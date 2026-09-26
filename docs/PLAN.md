@@ -7,6 +7,30 @@ Legend: 🧩 shared logic · 🗄 db · 🖥 server · 📱 mobile · 📚 conte
 
 ---
 
+## Phase 0-A — Stack spikes (de-risk before scaffolding)
+
+Owner-approved (2026-09-26) tech consult; see `docs/DECISIONS.md` D13–D18. ~3–5 days. Each item
+gets a short dated write-up appended to `DECISIONS.md` §Phase 0-A spike when done — a failed
+spike can still flip a decision before real code depends on it.
+
+- [ ] **Expo RTL + local build**: Expo app, forced RTL, bundled Vazirmatn, booted with a
+      placeholder screen; build the Android APK **locally** (no EAS cloud) and install on ≥2 real
+      devices (include one older/budget device); export the same code as web/PWA and open it in
+      mobile Safari on an iPhone. Confirms D2, D13.
+- [ ] **Realtime latency + framework choice**: minimal Socket.io echo server deployed on
+      ArvanCloud; measure round-trip latency and reconnect behavior from Irancell/Hamrah-e-Avval
+      mobile data. Spend ≤1 day building the same echo server with Colyseus and compare fit for
+      the turn-based/redaction model. Decide D17 (Socket.io vs Colyseus) from the result.
+- [ ] **Self-hosted OTA**: stand up a self-hosted `expo-updates` server; push a change and confirm
+      it reaches the Phase-0-A build without a store re-submission. Confirms D14.
+- [ ] **Registry reachability**: try `npm install` and `docker pull` from an Iranian network path
+      (or the project's own CI runner); record which registries/mirrors need pinning in `.npmrc`
+      / `Dockerfile` for reproducible installs.
+
+**Exit:** D13–D17 confirmed or superseded with a written rationale in `DECISIONS.md`; if the Expo
+web output proves unusable, record a pivot to React (Vite) + Capacitor here instead of silently
+carrying it into Phase 0.
+
 ## Phase 0 — Foundations (repo & tooling)
 
 - [ ] pnpm workspace: `apps/mobile`, `apps/server`, `packages/shared`, `packages/db`
