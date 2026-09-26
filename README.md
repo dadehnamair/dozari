@@ -8,3 +8,4 @@
 - تصمیم‌ها و سوال‌های باز: [`docs/DECISIONS.md`](docs/DECISIONS.md)
 - منطق دقیق بازی: [`docs/logic/`](docs/logic)
 - راهنمای Claude: [`CLAUDE.md`](CLAUDE.md) و [`.claude/skills/`](.claude/skills)
+- نسخه‌ی نمایشی استاتیک (HTML): [`prototype/index.html`](prototype/index.html) — مستقیم در مرورگر باز کنید
