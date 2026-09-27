@@ -33,6 +33,7 @@ matching spec in `docs/logic/`.
 | D21 | Profile carries **tags** (achievement / skill-rank / special / self-equipped) next to the avatar | accepted | Owner request (2026-09-27). One equipped at a time from the user's earned set. Full spec: `docs/logic/profile-and-identity.md`. |
 | D22 | Phone-number linking (OTP) is **fully optional**, account-recovery only, never a gate on any feature | accepted | Owner request (2026-09-27), refines D7. Entry point is a profile-screen button, not onboarding. |
 | D23 | Matchmaking is backed by an **undisclosed pool of AI opponents ("bots")** that fill queues when no human is available | accepted | Owner request (2026-09-27): "کاملاً شبیه آدم واقعی جلوه بره" — always available, human-like randomized delay, never revealed as a bot in any UI/API surface. Because this touches real coin stakes, a subsidy mechanism (`bot_match_subsidy` ledger reason) keeps payout math fair to the human player — see `docs/logic/bots.md` §Economy interaction. Chat is canned-taunts-only for MVP (no live LLM in the realtime path). |
+| D24 | Game name is **«دوزاری» (Dozari)**, code identifier `dozari`, deep-link scheme `dozari://`, tagline «دوزاریت می‌افته؟» | accepted | Owner choice (2026-09-27). Double meaning: the old 2-rial payphone coin (price nostalgia = content) and «دوزاریت افتاد؟» = "did the penny drop?" (the Connections aha moment = mechanic). Short, already in everyday speech (free daily recall triggers). Store/domain availability still to be checked. Slogans, voice, and copy: `docs/brand.md`. |
 
 ## Phase 0-A spike: de-risk the stack before Phase 0 scaffolding
 
@@ -58,7 +59,7 @@ app wrapped with Capacitor for the Android build — record that pivot here as a
 2. **Sources for historical prices** — deferred. Schema already has `source_type`, `source_url`, `source_note`, `confidence`.
 3. **Team chat vs cross-team chat visibility** — proposed in `logic/chat-and-access.md`.
 4. **Long-term monetization** (ads / subscription / coin packs) — open. Iranian IAP = Cafe Bazaar / Myket billing SDKs; Iranian ad networks (Tapsell, Adivery). Don't build until decided.
-5. **Final game name** — open. Working title everywhere: `gheymat` (code), «قیمتش چند بود؟» (UI).
+5. ~~**Final game name**~~ — resolved by D24: «دوزاری» / `dozari`.
 6. **Turn model (D8)** confirmed? shared-board-alternating vs parallel race.
 7. **Min content for launch** — proposed: ≥ 300 products with ≥ 3 price points each, ≥ 200 validated puzzles pre-generated.
 8. **Moderation capacity for UGC & free chat** — who reviews? Proposed: admin panel + community votes threshold.

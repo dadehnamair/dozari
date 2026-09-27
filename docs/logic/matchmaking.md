@@ -28,7 +28,7 @@ No rating/ELO at launch (D12). Values in `config/game.ts`.
 
 - Host creates: `{format: '1v1'|'2v2', entryFee}` → 5-char room code (alphabet without 0/O/1/I/L),
   expires after *ROOM_IDLE_MINUTES* = 15 without start.
-- Deep link `gheymat://room/<CODE>` and web URL `https://<domain>/r/<CODE>`.
+- Deep link `dozari://room/<CODE>` and web URL `https://<domain>/r/<CODE>`.
 - Joiners pick a side; host can swap/kick; host starts when seats are full. Entry fee escrowed at start.
 - Rematch keeps the same room.
 

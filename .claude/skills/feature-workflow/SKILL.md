@@ -1,6 +1,6 @@
 ---
 name: feature-workflow
-description: Default step-by-step procedure for implementing any feature or task in the price-quiz game (قیمتش چند بود). Use whenever starting work on a PLAN.md task, a new game rule, screen, endpoint, socket event, or DB change — even if the user just says "بساز" / "implement X" / "next phase".
+description: Default step-by-step procedure for implementing any feature or task in the price-quiz game «دوزاری» (Dozari). Use whenever starting work on a PLAN.md task, a new game rule, screen, endpoint, socket event, or DB change — even if the user just says "بساز" / "implement X" / "next phase".
 ---
 
 # Feature workflow
