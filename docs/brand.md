@@ -1,6 +1,6 @@
 # Brand — «دوزاری» (Dozari)
 
-Final game name, chosen by the owner (2026-09-27, D24). Replaces the working title
+Final game name, chosen by the owner (2026-09-27, D29). Replaces the working title
 «قیمتش چند بود؟». This file is the source of truth for the name, slogans, voice, and the
 brand-flavored copy used across the app, store listing, and share cards.
 

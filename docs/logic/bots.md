@@ -24,7 +24,7 @@ a disguised way to take players' coins.
   `profile-and-identity.md`), an equipped tag, a stable-looking match history. A background job
   keeps a roster of `BOT_POOL_SIZE` (proposed, e.g. 30–50) personas with varied skill profiles
   (novice / casual / sharp — reuses the bot difficulty knob already prototyped in
-  `prototype/mvp.body.html`'s `botMove()`).
+  `prototype/index.html`'s `botMove()`).
 
 ## When a bot joins
 
@@ -42,7 +42,7 @@ a disguised way to take players' coins.
 - A bot plays through the **exact same server path** as a human: the server issues `submit` /
   `submit_guess` commands on its behalf into `applyCommand` (no special-cased "bot state") — this
   guarantees bots can't see anything a human client couldn't (no solution peeking).
-  Reuses/extends the heuristic already built in `prototype/mvp.body.html`'s `botMove()`
+  Reuses/extends the heuristic already built in `prototype/index.html`'s `botMove()`
   (weighted-random guesses biased toward the group it's likely found, imperfect on purpose).
 - Chat: bots use **canned taunts only** (`chat-and-access.md`'s `canned_taunts` table), sent on
   the same jittered human-like delay as a real player's UI interaction would take. No free-text

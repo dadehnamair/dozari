@@ -37,7 +37,8 @@ matching spec in `docs/logic/`.
 | D25 | Design the **coin-package IAP schema now** (`coin_packages` table, Cafe Bazaar/Myket billing, `purchase` ledger reason with server-side receipt verification), without building or enabling it at MVP | accepted | Owner request (2026-09-27): "از همین الان براش جا باز کنیم در طراحی." Whether/when to turn purchases on is still open question 4 — this decision is only about not needing a schema retrofit later. Full spec: `docs/logic/economy.md` §Real-money coin purchases. |
 | D26 | Bootstrap catalog sourcing: **manual/AI-assisted archive research + personal/family memories**, both allowed until UGC carries the load | accepted | Owner request (2026-09-27). AI research suggestions land as `status: pending`, never auto-approved — human verifies before publish. Full spec: `price-catalog` skill §Bootstrap sourcing. |
 | D27 | **Hand-curate 50–100 puzzles first**, generator built afterward to imitate that style; group titles are **AI-drafted, owner-approved** (never auto-published) | accepted | Owner request (2026-09-27): quality/tone bar set by humans before automating. Full spec: `docs/logic/puzzle-generation.md` §Content bootstrap order. |
-| D28 | Brand mood = **nostalgia + playfulness combined** (warm aged-paper base + the bright Connections group colors as accents); Vazirmatn for UI, a **separate nostalgic display font for titles/brand** (family TBD); app icon/logo deferred | accepted (direction) / open (specific tokens) | Owner request (2026-09-27). Group colors were already locked in `persian-rtl-ui` skill; this decision is the *mood* and the *two-font system*, not final hex/font-family values — those are explicitly still open. Full spec: `docs/BRAND.md`. |
+| D28 | Brand mood = **nostalgia + playfulness combined** (warm aged-paper base + the bright Connections group colors as accents); Vazirmatn for UI, a **separate nostalgic display font for titles/brand** (family TBD); app icon/logo deferred | accepted (direction) / open (specific tokens) | Owner request (2026-09-27). Group colors were already locked in `persian-rtl-ui` skill; this decision is the *mood* and the *two-font system*, not final hex/font-family values — those are explicitly still open. Full spec: `docs/brand-visual.md`. |
+| D29 | Final game name **دوزاری** / `dozari` (replaces working title «قیمتش چند بود؟» / `gheymat`) | accepted | Owner choice (2026-09-27). Name, slogans, voice: `docs/brand.md`. |
 
 ## Phase 0-A spike: de-risk the stack before Phase 0 scaffolding
 
@@ -66,7 +67,7 @@ app wrapped with Capacitor for the Android build — record that pivot here as a
    coin packs is now decided (D25, `economy.md` §Real-money coin purchases); *whether/when* to actually
    enable real-money purchases, ads, or a subscription is still open. Iranian IAP = Cafe Bazaar / Myket
    billing SDKs; Iranian ad networks (Tapsell, Adivery). Don't build/enable until decided.
-5. **Final game name** — open. Working title everywhere: `gheymat` (code), «قیمتش چند بود؟» (UI).
+5. ~~Final game name~~ — resolved by D29 (دوزاری / `dozari`).
 6. **Turn model (D8)** confirmed? shared-board-alternating vs parallel race.
 7. **Min content for launch** — proposed: ≥ 300 products with ≥ 3 price points each, ≥ 200 validated puzzles pre-generated.
 8. **Moderation capacity for UGC & free chat** — who reviews? Proposed: admin panel + community votes threshold.
