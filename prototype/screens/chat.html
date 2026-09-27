@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>دوزاری — چت مسابقه</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lalezar&family=Vazirmatn:wght@400;500;700;800&display=swap">
+<link rel="stylesheet" href="shared.css">
+<style>
+.mock-board{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;min-height:220px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;color:var(--muted)}
+.fab{position:fixed;left:16px;bottom:calc(96px + env(safe-area-inset-bottom,0px));width:54px;height:54px;border-radius:50%;background:var(--accent);color:var(--accent-ink);border:0;font-size:22px;box-shadow:0 4px 10px rgba(59,42,34,.25);display:flex;align-items:center;justify-content:center;z-index:15}
+.fab .badge{position:absolute;top:-3px;right:-3px;background:var(--danger);color:#fff;border-radius:999px;min-width:18px;height:18px;font-size:10.5px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+.drawer-backdrop{position:fixed;inset:0;background:rgba(59,42,34,.35);opacity:0;pointer-events:none;transition:opacity .2s;z-index:16}
+.drawer-backdrop.open{opacity:1;pointer-events:auto}
+.drawer{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-radius:18px 18px 0 0;box-shadow:0 -6px 20px rgba(59,42,34,.2);transform:translateY(105%);transition:transform .25s ease;z-index:17;max-height:75vh;display:flex;flex-direction:column}
+.drawer.open{transform:translateY(0)}
+.drawer-head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--line)}
+.drawer-body{padding:12px 14px;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
+.chatlog{display:flex;flex-direction:column;gap:6px;min-height:80px}
+.msg{max-width:80%;padding:7px 12px;border-radius:14px;font-size:13.5px;background:var(--card);align-self:flex-end}
+.msg.me{background:var(--accent);color:var(--accent-ink);align-self:flex-start}
+.msg b{font-size:11px;display:block;opacity:.75;font-weight:700}
+.taunts{display:flex;gap:6px;flex-wrap:wrap}
+.lock{display:flex;gap:8px;align-items:center;font-size:12.5px;color:var(--muted);border-top:1px dashed var(--line);padding-top:8px}
+.lock input{flex:1;min-width:0;border:1px solid var(--line);background:var(--paper);color:var(--muted);border-radius:8px;padding:6px 10px;font:inherit}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="logo" href="home.html">دوزاری <span aria-hidden="true">🪙</span></a>
+    <span class="coins num"><span class="coin-dot"></span><span id="coins">۲۰۰</span></span>
+  </header>
+  <h1 class="screen-title">چت مسابقه</h1>
+  <p class="screen-sub">توی صفحه‌ی واقعی مسابقه، این یه دکمه‌ی شناور روی گوشه‌ی صفحه‌ست که با تپ باز می‌شه — نه یه صفحه‌ی جدا. این‌جا برای دیدن محتواش جدا آوردیمش.</p>
+
+  <div class="mock-board">
+    <span style="font-size:34px" aria-hidden="true">🧩</span>
+    <p>صفحه‌ی مسابقه (تخته‌ی پازل) این پشته</p>
+    <p class="hint">دکمه‌ی چت شناور رو پایین‌چپ صفحه بزن</p>
+  </div>
+</div>
+
+<button class="fab" id="fab" aria-label="باز کردن چت"><span aria-hidden="true">💬</span><span class="badge" id="unread">۲</span></button>
+<div class="drawer-backdrop" id="backdrop"></div>
+<div class="drawer" id="drawer" role="dialog" aria-label="چت مسابقه">
+  <div class="drawer-head">
+    <div class="seg" role="tablist" style="width:200px">
+      <button aria-selected="true" data-ch="all">همه</button>
+      <button aria-selected="false" data-ch="team">تیم من</button>
+    </div>
+    <button class="btn sm" id="closeDrawer">بستن ✕</button>
+  </div>
+  <div class="drawer-body">
+    <div class="chatlog" id="chatlog"></div>
+    <div class="taunts" id="taunts"></div>
+    <div class="lock"><span aria-hidden="true">🔒</span><input disabled placeholder="چت آزاد: فقط با کد دعوت باز می‌شه (پروفایل ‹ چت آزاد)"></div>
+  </div>
+</div>
+
+<nav class="bottom" aria-label="ناوبری اصلی">
+  <a href="home.html"><span class="e" aria-hidden="true">🏠</span>خانه</a>
+  <a href="profile.html"><span class="e" aria-hidden="true">👤</span>پروفایل</a>
+  <a href="settings.html"><span class="e" aria-hidden="true">⚙️</span>تنظیمات</a>
+</nav>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const TAUNTS = ['یه دوزاری بنداز، شروع کنیم!','این یکی رو مامان‌بزرگمم بلد بود 😄','یکی مونده بیفته!','دمت گرم، بازی خوبی بود'];
+  let chat = [
+    {who:'bot', text:'سلام! من ممدم. بزن بریم 👋'},
+    {who:'me', text:'یه دوزاری بنداز، شروع کنیم!'},
+    {who:'bot', text:'دوزاریت هنوز تو راهه؟'},
+  ];
+  function renderChat(){
+    $('chatlog').innerHTML = chat.map(m => '<div class="msg '+(m.who==='me'?'me':'')+'"><b>'+(m.who==='me'?'تو':'ممد')+'</b>'+m.text+'</div>').join('');
+    $('chatlog').scrollTop = $('chatlog').scrollHeight;
+  }
+  $('taunts').innerHTML = TAUNTS.map((t,i) => '<button class="chip" data-taunt="'+i+'">'+t+'</button>').join('');
+  $('taunts').addEventListener('click', e => {
+    const b = e.target.closest('[data-taunt]'); if (!b) return;
+    chat.push({who:'me', text:TAUNTS[+b.dataset.taunt]}); renderChat();
+    setTimeout(() => { chat.push({who:'bot', text:'ای بابا!'}); renderChat(); }, 900);
+  });
+  function openDrawer(){ $('drawer').classList.add('open'); $('backdrop').classList.add('open'); $('unread').style.display='none'; }
+  function closeDrawer(){ $('drawer').classList.remove('open'); $('backdrop').classList.remove('open'); }
+  $('fab').addEventListener('click', openDrawer);
+  $('closeDrawer').addEventListener('click', closeDrawer);
+  $('backdrop').addEventListener('click', closeDrawer);
+  document.querySelectorAll('[data-ch]').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('[data-ch]').forEach(x => x.setAttribute('aria-selected', x===b));
+  }));
+  renderChat();
+  try{ $('coins').textContent = Number(JSON.parse(localStorage.getItem('gh_coins')||'200')).toLocaleString('fa-IR'); }catch(e){}
+})();
+</script>
+</body>
+</html>

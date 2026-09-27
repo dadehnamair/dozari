@@ -18,12 +18,14 @@
 
   <div class="panel">
     <div class="profile-head">
-      <span class="avatar" aria-hidden="true">🧑‍🚀</span>
+      <span class="avatar-wrap"><span class="avatar" aria-hidden="true">🧑‍🚀</span><span class="level-badge num" id="lvbadge">۱</span></span>
       <div style="flex:1">
         <div class="name">دوزاری‌باز۸۸ <span class="badge" id="equippedTag">دوزاری‌تیز</span></div>
         <div class="meta">۱۴ بازی انجام‌شده · عضو از فروردین ۱۴۰۴</div>
       </div>
     </div>
+    <div class="xp-row num"><span id="xplabel">سطح ۱ — ۰ از ۵۰ XP</span><span id="xppct">٪۰</span></div>
+    <div class="xp-track"><div class="xp-fill" id="xpfill" style="width:0"></div></div>
     <div class="row-btns">
       <button class="btn sm" id="btnAvatar">تغییر آواتار</button>
       <button class="btn sm" id="btnName">تغییر نام</button>
@@ -38,6 +40,15 @@
       <div><b>۹</b><span>برد</span></div>
       <div><b>٪۷۸</b><span>دقت حدس قیمت</span></div>
     </div>
+  </div>
+
+  <div class="panel">
+    <h2>رتبه‌ی مهارت و سختی پازل‌ها</h2>
+    <div class="tier-row">
+      <div class="tier-dots" aria-hidden="true"><span class="tier-dot on"></span><span class="tier-dot on"></span><span class="tier-dot"></span></div>
+      <b>مبتدی</b>
+    </div>
+    <p class="hint">هرچی مهارتت بالاتر بره، پازل‌هایی که برات میاد قانون‌های ظریف‌تر و گول‌زننده‌های بیشتری دارن — خودکاره، نیازی به تنظیم دستی نیست.</p>
   </div>
 
   <div class="panel" id="achievements">
@@ -86,6 +97,18 @@
 
   const GAMES_PLAYED = 14;
   const AVATAR_UNLOCK_GAMES = 3, NICKNAME_UNLOCK_GAMES = 10;
+
+  // level/XP — docs/logic/progression.md (D33); reads the same gh_xp key ../index.html writes to
+  const xpForLevel = n => Math.round(50*n*n);
+  function levelOf(x){ let lv=1; while(x>=xpForLevel(lv)) lv++; return lv; }
+  let xp = 0;
+  try{ xp = JSON.parse(localStorage.getItem('gh_xp')||'0'); }catch(e){}
+  const lv = levelOf(xp), prevNeed = lv>1?xpForLevel(lv-1):0, nextNeed = xpForLevel(lv);
+  const pct = Math.min(100, Math.round((xp-prevNeed)/(nextNeed-prevNeed)*100));
+  $('lvbadge').textContent = lv.toLocaleString('fa-IR');
+  $('xplabel').textContent = 'سطح '+lv.toLocaleString('fa-IR')+' — '+(xp-prevNeed).toLocaleString('fa-IR')+' از '+(nextNeed-prevNeed).toLocaleString('fa-IR')+' XP';
+  $('xppct').textContent = '٪'+pct.toLocaleString('fa-IR');
+  $('xpfill').style.width = pct+'%';
 
   const tags = [
     {label:'دوزاری‌تیز', desc:'دسته رو در نوبت اول گرفتی', earned:true, equipped:true},

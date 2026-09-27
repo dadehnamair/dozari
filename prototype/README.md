@@ -17,6 +17,13 @@ What it demonstrates (all client-side, no server):
   brand-flavored lines from `docs/brand.md`.
 - Post-match overlaid log-scale price chart per group (docs/logic/result-chart.md), now preceded
   by a price-guess round summary on the same result screen.
+- A **level/XP bar** in the header (`docs/logic/progression.md`, D33) — XP awarded per finished
+  match, level-up pop/toast. Purely cosmetic; never affects matchmaking (D12 stands).
+
+Visual language: a warm pastel-paper palette (`docs/brand-visual.md` §Color, proposed 2026-09-27)
+— cream/paper background, warm coffee-brown ink, a caramel accent, and the locked Connections
+group colors as the "playful" accent layer. Shared identically by `screens/shared.css` so the
+whole prototype reads as one app.
 
 Prices are illustrative placeholders, NOT verified data — never import them into the real catalog.
 
@@ -42,6 +49,12 @@ the screens together, and `index.html` links out to `screens/home.html`.
 - `settings.html` — sound/vibration toggles, replay tutorial, about/support, logout/delete.
 - `ugc.html` — submission form (name/photo, year+price with toman/rial toggle, source, category)
   and the single-card swipe voting feed, per `ugc.md`.
-
-Not built as static pages: the in-match chat drawer (lives inside `index.html`'s match screen,
-not a separate page) and the admin panel (not yet interviewed/spec'd).
+- `profile.html` also shows the level/XP bar (reads the same `gh_xp` key `index.html` writes,
+  so playing a match there and reloading this page reflects it) and the skill-tier/puzzle-
+  difficulty meter, per `docs/logic/progression.md` (D33/D34).
+- `chat.html` — the in-match chat drawer's content (taunts, team/all tabs, locked free-text),
+  shown as a floating-button + slide-up drawer over a placeholder board, since in the real app
+  it's an overlay on the match screen, not its own route.
+- `admin.html` — first-pass admin panel mock (dashboard KPIs + D32 content-target progress,
+  puzzle approval queue, UGC moderation queue, faucet/sink economy overview, user
+  search/mute/ban). Not a full interview yet — see `docs/logic/app-screens.md` §Admin panel.

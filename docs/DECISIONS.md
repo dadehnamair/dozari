@@ -42,6 +42,8 @@ matching spec in `docs/logic/`.
 | D30 | Turn model (D8) reconfirmed as final: **shared board, alternating turns**, not parallel race | accepted | Owner confirmed (2026-09-27), resolves open question 6. No change to `logic/game-rules.md` mechanics — the "Alternatives" section stays for reference only. |
 | D31 | Locked-out side that stays to the end and wins price-guess rounds gets a **small consolation bonus score** (never enough to overturn a puzzle-portion loss) | accepted | Owner request (2026-09-27), resolves open question 9. A side that forfeits/abandons gets no bonus. Full spec: `logic/game-rules.md` §Price-guess bonus points & the locked-out side. |
 | D32 | Min content for launch confirmed: **≥ 300 products (≥ 3 price points each) + ≥ 200 validated puzzles pre-generated** | accepted | Owner confirmed (2026-09-27) as the launch target, resolves open question 7. Hand-curated 50–100 (D27) is the earlier internal MVP/tone-setting milestone within this larger target, not a separate lower bar. |
+| D33 | Add a **player level/XP system** (cosmetic progression, separate from the skill-rank tag) — XP per finished match + win bonus + price-guess points, shown as a level badge + XP bar on the avatar/header | accepted (feature) / proposed (curve & numbers) | Owner request (2026-09-27): "لول‌بندی کاربرا رو نداره" — profile felt flat without visible growth. Never affects matchmaking (D12 stands — no ELO). Full spec: `docs/logic/progression.md`. |
+| D34 | **Puzzle difficulty scales with the player's skill tier** (already-existing تازه‌کار/مبتدی/حرفه‌ای tag from `profile-and-identity.md`) — higher tier biases puzzle *selection* toward subtler rules/more red herrings; duel puzzle picks use the higher/average tier of the two matched players so both sides see the same puzzle | accepted (feature) / proposed (weighting mechanics) | Owner request (2026-09-27): "باید سعی کنیم اسکیل بازی رو تعیین کنیم که هرچی مهارت میره بالا سخت‌تر هم بشه." This is content *selection*, not opponent matching — D12 (no ELO-based matchmaking) is unaffected. Full spec: `docs/logic/progression.md`. |
 
 ## Phase 0-A spike: de-risk the stack before Phase 0 scaffolding
 
@@ -85,6 +87,13 @@ precedence~~ (D31), ~~min content for launch~~ (D32) — see Decisions table abo
    not all screens are covered yet (see `docs/PLAN.md` for what's locked vs. still open).
 9. **Exact `PRICE_GUESS_ROUND_WAGER`** pinned value (D24 sets a 2–5 coin range, not a single
    number) and full economy simulation once bots/wagers are implemented.
-10. **Nostalgic display font, base "paper" color tokens, primary accent color, app icon/logo** —
-    all explicitly deferred in `docs/brand-visual.md`.
-11. **Admin panel screens** — not yet interviewed.
+10. **Nostalgic display font + app icon/logo** — still deferred in `docs/brand-visual.md`.
+    Paper/accent color tokens now have a *proposed* pastel default (2026-09-27, see
+    `brand-visual.md` §Color) implemented in both prototypes — needs an explicit owner
+    sign-off to flip to `accepted`.
+11. **Admin panel** — a first static mock now exists (`prototype/screens/admin.html`: puzzle
+    approval, UGC moderation, economy overview, content-target progress). Auth, real moderation
+    actions, and the full screen set are still open — track as a Phase 7 task in `PLAN.md`.
+12. **Player-level XP curve and puzzle-difficulty weighting mechanics** (D33/D34) — a working
+    default is implemented in the prototypes; needs playtesting/tuning like the rest of
+    `economy.md`'s numbers. See `docs/logic/progression.md`.

@@ -1,18 +1,19 @@
 /* Shared design tokens + components for the static screen prototypes.
    Mirrors ../index.html's palette so the whole clickable prototype feels like one app. */
 :root{
-  --paper:#EAEFF2; --surface:#FFFFFF; --ink:#1B2230; --muted:#5B6576; --line:#D2DAE0;
-  --accent:#0B7580; --accent-ink:#FFFFFF; --card:#DCE3E8; --card-hover:#D0D9DF;
-  --sel:#263041; --sel-ink:#F2F5F7; --danger:#B93A34; --ok:#2F7D3A;
-  --y:#F2D65B; --g:#9CC35A; --b:#A9C0EE; --p:#B982C6; --on-group:#1B2230;
-  --shadow:0 1px 0 rgba(27,34,48,.08);
+  /* warm-paper + pastel palette per docs/brand.md (nostalgia+playful); group colors are the D28/persian-rtl-ui locked hex */
+  --paper:#FBF1E3; --surface:#FFFCF5; --ink:#3B2A22; --muted:#8A7563; --line:#E9D8BE;
+  --accent:#E2984B; --accent-ink:#3B2A22; --card:#F3E3CB; --card-hover:#ECD7B7;
+  --sel:#3B2A22; --sel-ink:#FBF1E3; --danger:#C4564E; --ok:#5C9A5C;
+  --y:#F9DF6D; --g:#A0C35A; --b:#B0C4EF; --p:#BA81C5; --on-group:#3B2A22;
+  --shadow:0 1px 0 rgba(59,42,34,.08);
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
     color-scheme:dark;
-    --paper:#10141A; --surface:#181E27; --ink:#E5E9EE; --muted:#96A1B1; --line:#29323E;
-    --accent:#3AB3BC; --accent-ink:#0C1115; --card:#232B36; --card-hover:#2B3441;
-    --sel:#E5E9EE; --sel-ink:#10141A; --danger:#EF6E66; --ok:#6CC47C; --shadow:none;
+    --paper:#241A12; --surface:#2F2318; --ink:#F3E6D4; --muted:#BBA48B; --line:#493725;
+    --accent:#E8A768; --accent-ink:#241A12; --card:#3B2C1E; --card-hover:#463625;
+    --sel:#F3E6D4; --sel-ink:#241A12; --danger:#E9948C; --ok:#8FC98F; --shadow:none;
   }
 }
 *{box-sizing:border-box}
@@ -124,4 +125,29 @@ nav.bottom a .e{font-size:19px}
 .swipe-card .e{font-size:44px}
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--paper);padding:9px 18px;border-radius:999px;font-weight:700;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-width:calc(100% - 32px);text-align:center;z-index:20}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* gamification: level ring + XP bar (docs/logic/progression.md, D33) */
+.avatar-wrap{position:relative;display:inline-flex;flex:none}
+.avatar-wrap .avatar{box-shadow:0 0 0 3px var(--y),0 0 0 5px var(--surface)}
+.level-badge{position:absolute;bottom:-4px;left:-6px;background:var(--accent);color:var(--accent-ink);border:2px solid var(--surface);border-radius:999px;min-width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:800;padding:0 5px}
+.xp-row{display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);font-weight:700}
+.xp-track{background:var(--card);border-radius:999px;height:10px;overflow:hidden}
+.xp-fill{background:linear-gradient(90deg,var(--y),var(--accent));height:100%;border-radius:999px;transition:width .4s ease}
+
+.tier-row{display:flex;align-items:center;gap:10px}
+.tier-dots{display:flex;gap:5px}
+.tier-dot{width:10px;height:10px;border-radius:50%;background:var(--card)}
+.tier-dot.on{background:var(--accent)}
+
+/* playful "sticker" tilt, per docs/BRAND.md mood */
+.tag-item:nth-child(4n+1){transform:rotate(-1.6deg)}
+.tag-item:nth-child(4n+2){transform:rotate(1.2deg)}
+.tag-item:nth-child(4n+3){transform:rotate(1.8deg)}
+.tag-item:nth-child(4n+4){transform:rotate(-1.1deg)}
+.badge{transform:rotate(-2.5deg)}
+.mode-card .e{display:inline-block;transition:transform .15s}
+.mode-card:hover .e{transform:scale(1.15) rotate(-6deg)}
+
+@keyframes levelpop{0%{transform:scale(.6) rotate(-8deg);opacity:0}60%{transform:scale(1.15) rotate(4deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:1}}
+.level-up-toast{animation:levelpop .5s ease}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}

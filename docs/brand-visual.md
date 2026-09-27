@@ -35,17 +35,27 @@ onto (playful) — both readable at once, neither fighting the other.
 Until the display face is chosen, prototypes may fall back to a heavier Vazirmatn weight for
 headlines — never ship that as final.
 
-## Color
+## Color — pastel-paper palette (proposed default, 2026-09-27)
 
-- **Base/paper tokens** — warm off-white/cream background (light mode), warm dark background for
-  dark mode (not pure black — keep the "paper" feeling even in dark mode, e.g. a warm near-black
-  rather than neutral gray). Exact hex values still to be picked alongside the display font (do
-  them together — the paper tone needs to sit well behind whatever display face is chosen).
-- **Group colors** — already defined and locked: yellow `#F9DF6D`, green `#A0C35A`, blue
-  `#B0C4EF`, purple `#BA81C5` (`persian-rtl-ui` skill).
-- **Primary app accent** (buttons, links, active states outside the puzzle board) — not yet
-  chosen; should read as distinct from all four group colors so a button never gets mistaken for
-  a group. Pick alongside the base palette.
+Owner asked for a pastel direction ("بنظرم پاستیلی چیز جذابی میشه") and left the exact tokens to
+Claude. Implemented in both prototypes (`prototype/index.html`, `prototype/screens/shared.css`)
+for the owner to react to — **proposed**, not a final locked palette (still needs an explicit
+owner sign-off before it's `accepted`, the same as the display font below):
+
+| token | light | dark | note |
+|---|---|---|---|
+| paper (bg) | `#FBF1E3` | `#241A12` | warm cream / warm near-black, never neutral gray |
+| surface (cards) | `#FFFCF5` | `#2F2318` | |
+| ink (text) | `#3B2A22` | `#F3E6D4` | warm coffee-brown instead of a cool near-black |
+| accent (buttons/links) | `#E2984B` | `#E8A768` | warm caramel/amber — pastel-adjacent, distinct from all 4 group colors |
+| muted / line | `#8A7563` / `#E9D8BE` | `#BBA48B` / `#493725` | |
+
+- **Group colors** — unchanged, already defined and locked: yellow `#F9DF6D`, green `#A0C35A`,
+  blue `#B0C4EF`, purple `#BA81C5` (`persian-rtl-ui` skill). They read as pastel already, so no
+  change was needed to satisfy the pastel direction — the paper/accent tokens above were tuned to
+  sit well next to them.
+- Small playful touches added alongside the palette: a slight alternating tilt ("sticker") on tag
+  chips and badges, per the mood reference (an old photo album with stickers doodled on it).
 
 ## Icon / app logo
 

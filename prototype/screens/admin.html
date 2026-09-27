@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>دوزاری — پنل ادمین</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lalezar&family=Vazirmatn:wght@400;500;700;800&display=swap">
+<link rel="stylesheet" href="shared.css">
+<style>
+body{padding-block:18px 32px}
+.wrap{max-width:720px}
+.admin-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.admin-tabs button{flex:none;border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 14px;font-weight:700;font-size:13px;white-space:nowrap}
+.admin-tabs button[aria-selected="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.pane{display:none;flex-direction:column;gap:14px}
+.pane.active{display:flex}
+.kpi-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+@media (min-width:480px){.kpi-grid{grid-template-columns:repeat(4,1fr)}}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
+.kpi b{display:block;font-size:19px}
+.kpi span{font-size:11px;color:var(--muted)}
+.progress-row{display:flex;flex-direction:column;gap:3px}
+.progress-row .lbl{display:flex;justify-content:space-between;font-size:12.5px;font-weight:700}
+.progress-track{background:var(--card);border-radius:999px;height:10px;overflow:hidden}
+.progress-track i{display:block;height:100%;background:var(--accent);border-radius:999px}
+.queue-item{background:var(--paper);border-radius:10px;padding:10px;display:flex;align-items:center;gap:10px}
+.queue-item .info{flex:1;min-width:0}
+.queue-item .info b{display:block;font-size:13.5px}
+.queue-item .info span{font-size:11.5px;color:var(--muted)}
+.actions{display:flex;gap:6px}
+.actions button{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--line);background:var(--surface);font-size:15px}
+.actions button.approve:hover{background:var(--ok);color:#fff;border-color:var(--ok)}
+.actions button.reject:hover{background:var(--danger);color:#fff;border-color:var(--danger)}
+.bar-row{display:flex;align-items:center;gap:8px;font-size:12.5px}
+.bar-row .lbl{width:120px;flex:none;color:var(--muted)}
+.bar-track{flex:1;background:var(--card);border-radius:999px;height:14px;overflow:hidden}
+.bar-track i{display:block;height:100%;border-radius:999px}
+.bar-row .val{width:76px;flex:none;text-align:left;font-weight:700}
+.userrow{display:flex;align-items:center;gap:10px;background:var(--paper);border-radius:10px;padding:8px 10px}
+.userrow .info{flex:1;min-width:0;font-size:13px}
+.userrow .info small{display:block;color:var(--muted);font-size:11px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="logo" href="home.html">دوزاری <span aria-hidden="true">🪙</span></a>
+    <span class="badge">پنل ادمین (دمو)</span>
+  </header>
+  <p class="screen-sub">مصاحبه نشده — این یه شروعه؛ ورود/دسترسی ادمین و بقیه‌ی صفحه‌ها بعداً اضافه می‌شن (سوال باز #11).</p>
+
+  <div class="admin-tabs" role="tablist">
+    <button aria-selected="true" data-tab="dash">داشبورد</button>
+    <button aria-selected="false" data-tab="puzzles">پازل‌ها</button>
+    <button aria-selected="false" data-tab="ugc">پیشنهادهای UGC</button>
+    <button aria-selected="false" data-tab="economy">اقتصاد</button>
+    <button aria-selected="false" data-tab="users">کاربران</button>
+  </div>
+
+  <section class="pane active" data-pane="dash">
+    <div class="kpi-grid num">
+      <div class="kpi"><b>۱٬۲۴۰</b><span>کاربر فعال (۷ روز)</span></div>
+      <div class="kpi"><b>۳۸۶</b><span>بازی امروز</span></div>
+      <div class="kpi"><b>۹</b><span>پازل در صف تأیید</span></div>
+      <div class="kpi"><b>۳</b><span>پیشنهاد UGC در صف</span></div>
+    </div>
+    <div class="panel">
+      <h2>پیشرفت محتوا تا لانچ (D32)</h2>
+      <div class="progress-row num">
+        <div class="lbl"><span>محصول</span><span>۶۲ / ۳۰۰</span></div>
+        <div class="progress-track"><i style="width:21%"></i></div>
+      </div>
+      <div class="progress-row num">
+        <div class="lbl"><span>پازل معتبر</span><span>۹ / ۲۰۰</span></div>
+        <div class="progress-track"><i style="width:5%"></i></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="pane" data-pane="puzzles">
+    <div class="panel">
+      <h2>صف تأیید پازل‌های دستی</h2>
+      <div id="puzzleQueue"></div>
+    </div>
+  </section>
+
+  <section class="pane" data-pane="ugc">
+    <div class="panel">
+      <h2>صف تعدیل پیشنهادهای کاربران</h2>
+      <div id="ugcQueue"></div>
+    </div>
+  </section>
+
+  <section class="pane" data-pane="economy">
+    <div class="panel">
+      <h2>خلاصه‌ی اقتصاد سکه (این هفته)</h2>
+      <div class="kpi-grid num">
+        <div class="kpi"><b>۱٫۸M</b><span>سکه در گردش</span></div>
+        <div class="kpi"><b>۱۴۲K</b><span>درآمد کارمزد خانه (٪۱۰)</span></div>
+      </div>
+    </div>
+    <div class="panel">
+      <h3>منابع ورودی سکه (Faucets)</h3>
+      <div id="faucets"></div>
+    </div>
+    <div class="panel">
+      <h3>مصارف سکه (Sinks)</h3>
+      <div id="sinks"></div>
+    </div>
+  </section>
+
+  <section class="pane" data-pane="users">
+    <div class="panel">
+      <div class="field"><input type="text" id="userSearch" placeholder="جستجوی نام کاربری…"></div>
+      <div id="userList"></div>
+    </div>
+  </section>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1600); }
+
+  document.querySelectorAll('.admin-tabs [data-tab]').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('.admin-tabs [data-tab]').forEach(x => x.setAttribute('aria-selected', x===b));
+    document.querySelectorAll('.pane').forEach(p => p.classList.toggle('active', p.dataset.pane===b.dataset.tab));
+  }));
+
+  function queueList(el, items, render){
+    function draw(){
+      el.innerHTML = items.length ? items.map(render).join('') : '<p class="hint">صف خالیه — همه‌چی بررسی شده ✓</p>';
+    }
+    el.addEventListener('click', e => {
+      const btn = e.target.closest('[data-i]'); if (!btn) return;
+      const i = +btn.dataset.i;
+      items.splice(i, 1);
+      toast(btn.classList.contains('approve') ? 'تأیید شد' : 'رد شد');
+      draw();
+    });
+    draw();
+  }
+
+  const puzzles = [
+    {title:'دهه‌شصتی‌های اصل', by:'ادمین سارا', groups:4},
+    {title:'عصرونه‌ی سال ۸۵', by:'ادمین رضا', groups:4},
+    {title:'جهیزیه‌هایی که میلیونی شدن', by:'ادمین سارا', groups:4},
+  ];
+  queueList($('puzzleQueue'), puzzles, (p,i) =>
+    '<div class="queue-item"><div class="info"><b>'+p.title+'</b><span>'+p.groups+' دسته · ثبت‌شده توسط '+p.by+'</span></div>'+
+    '<div class="actions"><button class="reject" data-i="'+i+'" title="رد">✕</button><button class="approve" data-i="'+i+'" title="تأیید">✓</button></div></div>'
+  );
+
+  const ugc = [
+    {name:'بستنی یخی', year:'۷۰', price:'۱۵۰ تومن', votes:'+۷/−۱', flag:false},
+    {name:'بلیت سینما', year:'۸۲', price:'۱٬۲۰۰ تومن', votes:'+۴/−۰', flag:false},
+    {name:'یخچال', year:'۹۵', price:'۹۰۰٬۰۰۰ تومن', votes:'+۲/−۱', flag:true},
+  ];
+  queueList($('ugcQueue'), ugc, (u,i) =>
+    '<div class="queue-item"><div class="info"><b>'+u.name+(u.flag?' <span class="badge danger">پرت — بررسی دستی</span>':'')+'</b><span>سال '+u.year+' · '+u.price+' · رأی‌ها: '+u.votes+'</span></div>'+
+    '<div class="actions"><button class="reject" data-i="'+i+'" title="رد">✕</button><button class="approve" data-i="'+i+'" title="تأیید">✓</button></div></div>'
+  );
+
+  const faucets = [
+    {label:'برد مسابقه', pct:46, color:'var(--ok)'},
+    {label:'پاداش روزانه', pct:22, color:'var(--y)'},
+    {label:'پاداش دعوت', pct:18, color:'var(--b)'},
+    {label:'پاداش UGC تأییدشده', pct:14, color:'var(--g)'},
+  ];
+  $('faucets').innerHTML = faucets.map(f =>
+    '<div class="bar-row"><span class="lbl">'+f.label+'</span><div class="bar-track"><i style="width:'+f.pct+'%;background:'+f.color+'"></i></div><span class="val num">٪'+f.pct.toLocaleString('fa-IR')+'</span></div>'
+  ).join('');
+  const sinks = [
+    {label:'ورودی مسابقه', pct:52, color:'var(--accent)'},
+    {label:'شرط دور حدس‌قیمت', pct:31, color:'var(--p)'},
+    {label:'میز اختصاصی', pct:17, color:'var(--danger)'},
+  ];
+  $('sinks').innerHTML = sinks.map(f =>
+    '<div class="bar-row"><span class="lbl">'+f.label+'</span><div class="bar-track"><i style="width:'+f.pct+'%;background:'+f.color+'"></i></div><span class="val num">٪'+f.pct.toLocaleString('fa-IR')+'</span></div>'
+  ).join('');
+
+  const users = [
+    {name:'دوزاری‌باز۸۸', games:14, coins:242, chat:true},
+    {name:'مینای_قدیمی', games:61, coins:1180, chat:true},
+    {name:'رضاگل', games:3, coins:60, chat:false},
+  ];
+  function drawUsers(filter){
+    const f = (filter||'').trim();
+    $('userList').innerHTML = users.filter(u => !f || u.name.includes(f)).map(u =>
+      '<div class="userrow num"><span class="avatar sm" aria-hidden="true">🙂</span>'+
+      '<div class="info">'+u.name+'<small>'+u.games+' بازی · '+u.coins+' سکه · '+(u.chat?'چت آزاد باز':'فقط جمله‌ی آماده')+'</small></div>'+
+      '<div class="row-btns"><button class="btn sm" data-mute="'+u.name+'">سکوت</button><button class="btn sm danger" data-ban="'+u.name+'">مسدود</button></div></div>'
+    ).join('') || '<p class="hint">کسی پیدا نشد</p>';
+  }
+  drawUsers();
+  $('userSearch').addEventListener('input', e => drawUsers(e.target.value));
+  $('userList').addEventListener('click', e => {
+    if (e.target.dataset.mute) toast(e.target.dataset.mute+' سکوت شد (دمو)');
+    if (e.target.dataset.ban) toast(e.target.dataset.ban+' مسدود شد (دمو)');
+  });
+})();
+</script>
+</body>
+</html>

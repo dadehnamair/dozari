@@ -77,9 +77,31 @@ list (`profile-and-identity.md`) is the coin history — each row already shows 
 match. No dedicated full-ledger view (all faucets/sinks) at MVP; revisit only if players ask for
 non-match coin movements (daily bonus, invite rewards) to be individually visible.
 
+## Admin panel (first pass, 2026-09-27 — resolves part of open question 11)
+
+Not a full interview yet — a starting mock (`prototype/screens/admin.html`) to react to, covering
+the moderation/ops work already implied by other specs rather than new decisions:
+
+- **Dashboard**: rough activity KPIs + the D32 content-target progress bars (products, puzzles)
+  so the team can see launch-readiness at a glance.
+- **Puzzles**: approval queue for hand-curated puzzles (`puzzle-generation.md` §Content bootstrap
+  order) — approve/reject per puzzle.
+- **UGC**: moderation queue for submissions that crossed the community vote threshold
+  (`ugc.md`) — shows the outlier-price flag from that spec, approve/reject overrides the
+  community auto-state.
+- **Economy**: a faucet/sink breakdown (which coin sources/sinks make up circulation this period)
+  — a simple ops view on top of `economy.md`, not a new balancing decision.
+- **Users**: search + mute/ban — the moderation actions `chat-and-access.md`'s profanity
+  filter/report flow needs a human backstop for.
+
+Still open: admin authentication/roles, real backend wiring, and whether this stays inside the
+Expo web build (`apps/admin`, per `CLAUDE.md`'s repo map) or a separate tool — track as a Phase 7
+task in `PLAN.md`, not blocking Phase 0-A/0.
+
 ## Open follow-ups
 
 - Achievement/tag catalog content (which badges exist, unlock rules) is content work, not logic —
   tracked as a Phase 6/7 content task in `PLAN.md`, not a screen-design question.
 - UGC voting-feed screen is now specified in `docs/logic/ugc.md` §Voting feed UI (single-card
   swipe, approve/reject) — no longer open.
+- Admin panel: see §Admin panel above — first pass done, full interview still open.
