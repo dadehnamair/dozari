@@ -1,6 +1,6 @@
 ---
 name: feature-workflow
-description: Default step-by-step procedure for implementing any feature or task in the price-quiz game (قیمتش چند بود). Use whenever starting work on a PLAN.md task, a new game rule, screen, endpoint, socket event, or DB change — even if the user just says "بساز" / "implement X" / "next phase".
+description: Default step-by-step procedure for implementing any feature or task in the price-quiz game «دوزاری» (Dozari). Use whenever starting work on a PLAN.md task, a new game rule, screen, endpoint, socket event, or DB change — even if the user just says "بساز" / "implement X" / "next phase".
 ---
 
 # Feature workflow
@@ -8,7 +8,7 @@ description: Default step-by-step procedure for implementing any feature or task
 Follow in order. Skip a step only if it truly doesn't apply, and say so.
 
 1. **Locate the task** in `docs/PLAN.md` (phase + checkbox). If it isn't there, add it to the right phase.
-2. **Read the spec** in `docs/logic/*.md` for the area (table in `CLAUDE.md`). Also check
+2. **Read the spec** in `docs/logic/*.md` for the area (list in `CLAUDE.md`). Also check
    `docs/DECISIONS.md` for proposed/accepted decisions touching it.
    - Spec missing or ambiguous → write/extend the spec first. If the ambiguity is a product decision,
      pick a sensible default, record it as **proposed** in DECISIONS.md, and tell the user in Persian.
