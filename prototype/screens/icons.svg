@@ -1,24 +1,6 @@
-<!doctype html>
-<html lang="fa" dir="rtl">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>دوزاری — تنظیمات</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lalezar&family=Vazirmatn:wght@400;500;700;800&display=swap">
-<link rel="stylesheet" href="shared.css">
-<style>
-.switch-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.switch{position:relative;width:44px;height:26px;flex:none}
-.switch input{opacity:0;width:100%;height:100%;margin:0;position:absolute;inset:0;cursor:pointer}
-.switch i{position:absolute;inset:0;background:var(--card);border-radius:999px;transition:background .15s}
-.switch i::before{content:'';position:absolute;width:20px;height:20px;top:3px;right:3px;background:var(--surface);border-radius:50%;box-shadow:var(--shadow);transition:transform .15s}
-.switch input:checked + i{background:var(--accent)}
-.switch input:checked + i::before{transform:translateX(-18px)}
-</style>
-</head>
-<body>
+<!-- Self-hosted icon set (no external/CDN dependency, per CLAUDE.md rule 8). Consistent 24x24
+     stroke icons, hand-authored in a single style (2px round stroke) so they read as one pack.
+     Use: <svg class="icon"><use href="icons.svg#home"></use></svg> -->
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
   <symbol id="home" viewBox="0 0 24 24"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v9.5a.5.5 0 0 0 .5.5H10v-5.5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1V20h3.5a.5.5 0 0 0 .5-.5V10"/></symbol>
   <symbol id="user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c.7-4.2 4-6.4 7.5-6.4s6.8 2.2 7.5 6.4"/></symbol>
@@ -49,50 +31,3 @@
   <symbol id="flag" viewBox="0 0 24 24"><path d="M6 3.5v17"/><path d="M6 4.5h11l-2.5 3.5L17 11.5H6Z"/></symbol>
   <symbol id="sparkle" viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/></symbol>
 </svg>
-
-<div class="wrap">
-  <header class="top">
-    <a class="logo" href="home.html">دوزاری <span aria-hidden="true">🪙</span></a>
-    <span class="coins num"><span class="coin-dot"></span><span id="coins">۲۰۰</span></span>
-  </header>
-  <h1 class="screen-title">تنظیمات</h1>
-
-  <div class="panel">
-    <div class="switch-row"><span>صدا</span><label class="switch"><input type="checkbox" id="sound" checked><i></i></label></div>
-    <div class="switch-row"><span>لرزش</span><label class="switch"><input type="checkbox" id="vibrate" checked><i></i></label></div>
-  </div>
-
-  <div class="panel">
-    <button class="btn block" id="replay">▶️ دیدن دوباره‌ی آموزش</button>
-  </div>
-
-  <div class="panel">
-    <h2>درباره و پشتیبانی</h2>
-    <p class="hint">دوزاری، بازی نوستالژی قیمت‌های ایران. نسخه‌ی نمایشی ۰٫۱ — قیمت‌ها نمونه‌ان.</p>
-    <a class="btn block" href="https://t.me/" target="_blank" rel="noopener">پشتیبانی در تلگرام</a>
-  </div>
-
-  <div class="panel">
-    <button class="btn danger block" id="logout">خروج از حساب</button>
-    <button class="btn danger block" id="delete">حذف حساب کاربری</button>
-  </div>
-</div>
-
-<nav class="bottom" aria-label="ناوبری اصلی">
-  <a href="home.html"><svg class="icon" aria-hidden="true"><use href="#home"></use></svg>خانه</a>
-  <a href="profile.html"><svg class="icon" aria-hidden="true"><use href="#user"></use></svg>پروفایل</a>
-  <a class="active" href="settings.html"><svg class="icon" aria-hidden="true"><use href="#settings"></use></svg>تنظیمات</a>
-</nav>
-<div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script>
-(() => {
-  const $ = id => document.getElementById(id);
-  function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1600); }
-  $('replay').addEventListener('click', () => location.href = 'onboarding.html');
-  $('logout').addEventListener('click', () => { if (confirm('از حساب خارج بشی؟')) toast('خارج شدی (دمو)'); });
-  $('delete').addEventListener('click', () => { if (confirm('مطمئنی؟ این کار برگشت‌ناپذیره.')) toast('درخواست حذف ثبت شد (دمو)'); });
-  try{ $('coins').textContent = Number(JSON.parse(localStorage.getItem('gh_coins')||'200')).toLocaleString('fa-IR'); }catch(e){}
-})();
-</script>
-</body>
-</html>

@@ -44,6 +44,10 @@ matching spec in `docs/logic/`.
 | D32 | Min content for launch confirmed: **≥ 300 products (≥ 3 price points each) + ≥ 200 validated puzzles pre-generated** | accepted | Owner confirmed (2026-09-27) as the launch target, resolves open question 7. Hand-curated 50–100 (D27) is the earlier internal MVP/tone-setting milestone within this larger target, not a separate lower bar. |
 | D33 | Add a **player level/XP system** (cosmetic progression, separate from the skill-rank tag) — XP per finished match + win bonus + price-guess points, shown as a level badge + XP bar on the avatar/header | accepted (feature) / proposed (curve & numbers) | Owner request (2026-09-27): "لول‌بندی کاربرا رو نداره" — profile felt flat without visible growth. Never affects matchmaking (D12 stands — no ELO). Full spec: `docs/logic/progression.md`. |
 | D34 | **Puzzle difficulty scales with the player's skill tier** (already-existing تازه‌کار/مبتدی/حرفه‌ای tag from `profile-and-identity.md`) — higher tier biases puzzle *selection* toward subtler rules/more red herrings; duel puzzle picks use the higher/average tier of the two matched players so both sides see the same puzzle | accepted (feature) / proposed (weighting mechanics) | Owner request (2026-09-27): "باید سعی کنیم اسکیل بازی رو تعیین کنیم که هرچی مهارت میره بالا سخت‌تر هم بشه." This is content *selection*, not opponent matching — D12 (no ELO-based matchmaking) is unaffected. Full spec: `docs/logic/progression.md`. |
+| D35 | **Superseded the D28 pastel-paper palette with a "cool arcade" palette v2** — cool near-white/near-black ink instead of warm paper/coffee-brown, a violet→teal gradient accent (`--accent-grad`) used on primary CTAs, the logo, the level chip and the chat bubble, bigger radii (`--radius-lg/md`) and a real drop shadow (`--shadow`) instead of a flat 1px line | proposed | Owner rejected the pastel-paper execution outright (2026-09-27): "این گرافیک اصلا مناسب اپ نیستا باید خیلی کول تر باشه." Same nostalgia+playful *mood* from D28 (brief unchanged) but the paper/coffee execution is replaced; the locked Connections group colors (yellow/green/blue/purple) and the result-chart `s1–s4` colors are untouched. Implemented in both prototypes. Still needs owner sign-off — see open question 10. |
+| D36 | **Self-hosted, hand-authored SVG icon set** (`prototype/screens/icons.svg`, inlined per-page since `file://` blocks cross-file `<use>`) replaces raw emoji for UI chrome (bottom nav, mode cards, admin actions, chat FAB) | accepted (approach) / proposed (exact glyphs) | Owner request (2026-09-27): "آیکون‌ها رو سعی کن یه پک حرفه‌ای رو پروژه نصب کنی." This session's network policy blocked fetching a named external icon package (e.g. via npm/jsdelivr), so a consistent 24×24, 2px-stroke icon set was hand-authored instead — which also avoids a runtime CDN dependency (rule 8) better than pulling one would have. Product emoji on the puzzle tiles (🥤📼 etc.) are content, not UI chrome, and are unchanged. Revisit with a licensed pack (e.g. self-hosted Lucide/Tabler files) once network access allows fetching one, or if the hand-drawn set doesn't hold up at higher fidelity. |
+| D37 | **First-ever solo puzzle is an eased tutorial run**: forces the first authored puzzle (`PUZZLES[0]`), allows 2 extra mistakes (`MAX_MISTAKES+2`, solo-only), and shows a dismissable-by-progress banner explaining the mechanic before the player's first submit | accepted | Owner request (2026-09-27): "یکم گنگه... بنظرم مرحله اول آسون‌تر باشه که آشنا بشن." Gate is a `gh_solo_played` localStorage counter — the ramp applies once, to the very first completed solo game, never again. Never touches duel mistake limits or scoring (D8/D30 unaffected). Full spec: `docs/logic/app-screens.md` §Onboarding. |
+| D38 | **Admin panel target platform is a full-featured web app**, not a screen bolted onto the Expo mobile client — real auth/roles, live data, and every moderation/ops action actionable from the browser | accepted (direction) / open (stack choice) | Owner request (2026-09-27): "ادمین پنل باید واسه وب هم باشه با امکانات کامل که بشه از اونجا مدیریتش کرد." Narrows part of open question 11/`app-screens.md`'s "`apps/admin` vs. separate tool" question toward *definitely web, definitely full-featured* — still open: plain React/Vite admin app vs. Expo-web reuse, and the auth/roles model. Track as a Phase 7 `PLAN.md` task; `prototype/screens/admin.html` remains the interaction-design mock only, not the implementation target. |
 
 ## Phase 0-A spike: de-risk the stack before Phase 0 scaffolding
 
@@ -88,12 +92,16 @@ precedence~~ (D31), ~~min content for launch~~ (D32) — see Decisions table abo
 9. **Exact `PRICE_GUESS_ROUND_WAGER`** pinned value (D24 sets a 2–5 coin range, not a single
    number) and full economy simulation once bots/wagers are implemented.
 10. **Nostalgic display font + app icon/logo** — still deferred in `docs/brand-visual.md`.
-    Paper/accent color tokens now have a *proposed* pastel default (2026-09-27, see
-    `brand-visual.md` §Color) implemented in both prototypes — needs an explicit owner
-    sign-off to flip to `accepted`.
-11. **Admin panel** — a first static mock now exists (`prototype/screens/admin.html`: puzzle
-    approval, UGC moderation, economy overview, content-target progress). Auth, real moderation
-    actions, and the full screen set are still open — track as a Phase 7 task in `PLAN.md`.
+    The color palette moved on to a v2 "cool arcade" *proposed* default (D35, 2026-09-27, see
+    `brand-visual.md` §Color) after the owner rejected the earlier pastel-paper v1 — needs an
+    explicit owner sign-off to flip to `accepted`.
+11. **Admin panel** — a first static mock exists (`prototype/screens/admin.html`: puzzle
+    approval, UGC moderation, economy overview, content-target progress); the owner has since
+    confirmed the *target platform* is a full-featured web app (D38). Auth/roles, real data
+    wiring, and the exact web stack are still open — track as a Phase 7 task in `PLAN.md`.
 12. **Player-level XP curve and puzzle-difficulty weighting mechanics** (D33/D34) — a working
     default is implemented in the prototypes; needs playtesting/tuning like the rest of
     `economy.md`'s numbers. See `docs/logic/progression.md`.
+13. **Icon pack** (D36) — a hand-authored self-hosted set is in place because this session
+    couldn't reach an external package registry; swap for a licensed pack (self-hosted files,
+    never a runtime CDN) if/when network access allows, or on owner request.

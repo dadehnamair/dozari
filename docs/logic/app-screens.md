@@ -15,6 +15,14 @@ part of the same "logic specs" set in `CLAUDE.md` — read it before building th
    4. Coins/economy: entering and playing is free; tables/matches can cost coins.
 2. After the tutorial, a **random nickname + avatar** is assigned silently (no signup screen) —
    see `profile-and-identity.md`. The user lands straight on Home.
+3. **The first solo puzzle played is an eased tutorial run (D37)**, on top of the slide tutorial
+   above — owner: "یکم گنگه... بنظرم مرحله اول آسون‌تر باشه که آشنا بشن." It's always the first
+   authored/curated puzzle, allows 2 extra mistakes before locking out, and shows a banner over
+   the board with a one-line worked example ("اولین دسته همیشه از همه واضح‌تره") instead of a
+   separate non-interactive demo screen — keeps the ramp inside the real game loop rather than a
+   second tutorial to sit through. Applies once, gated by a local "first solo game" flag; every
+   game after it (including a first duel, if that's played before any solo game) is normal
+   difficulty. Prototype: `prototype/index.html` (`S.tutorial`, `gh_solo_played`).
 
 ## Home / Lobby screen
 
@@ -79,8 +87,16 @@ non-match coin movements (daily bonus, invite rewards) to be individually visibl
 
 ## Admin panel (first pass, 2026-09-27 — resolves part of open question 11)
 
-Not a full interview yet — a starting mock (`prototype/screens/admin.html`) to react to, covering
-the moderation/ops work already implied by other specs rather than new decisions:
+**Target platform: a full-featured web app (D38)**, not a screen bolted onto the Expo mobile
+client — owner: "ادمین پنل باید واسه وب هم باشه با امکانات کامل که بشه از اونجا مدیریتش کرد
+بیشتر." Real auth/roles and every moderation/ops action below need to be actually actionable from
+a browser, not just viewable. `prototype/screens/admin.html` is an interaction-design mock only
+(static, no backend, no auth) — it validates the information architecture below, not the
+implementation target. Stack choice (plain React/Vite admin app vs. reusing Expo web, per
+`ARCHITECTURE.md`) is still open, track as Phase 7 in `PLAN.md`.
+
+Not a full interview yet — the mock is a starting point to react to, covering the moderation/ops
+work already implied by other specs rather than new decisions:
 
 - **Dashboard**: rough activity KPIs + the D32 content-target progress bars (products, puzzles)
   so the team can see launch-readiness at a glance.
