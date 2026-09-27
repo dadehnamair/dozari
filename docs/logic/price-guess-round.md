@@ -54,6 +54,26 @@ For duel/team/private:
 - No submission before the timer → counts as the worst possible guess for that side (loses the
   round unless the opponent also times out, then it's a draw).
 
+### Real coin side-bet per round (owner-approved, 2026-09-27)
+
+Each price-guess round also carries a small real coin wager, on top of the match-score point:
+
+- `PRICE_GUESS_ROUND_WAGER` = 2–5 coins (proposed default, range per owner's own framing;
+  pin an exact number in `packages/shared/src/config/economy.ts` and simulate it —
+  `economy.md` §Balancing).
+- Both sides' wager is escrowed via the same `LedgerService` path as the match entry fee
+  (idempotency key `price_guess_wager:<matchId>:<round>:<userId>`), **at the moment each round
+  starts**, not upfront for all 4 — so a side that got locked out of the puzzle isn't forced to
+  pre-commit coins for rounds it might not meaningfully compete in.
+- Round winner takes the pot (both wagers minus the standard house cut, `economy.md`'s
+  `HOUSE_CUT` = 10%, applied here too for consistency). A round draw (tie on distance, or both
+  timed out) refunds both wagers minus the house cut, same as a match draw.
+- Solo mode has **no wager** — staircase scoring only, no coins move. This wager only applies to
+  duel/team/private (i.e. wherever a real opponent's guess exists to bet against).
+- A side that can't afford the wager when a round starts **auto-sits it out**: no guess submitted,
+  counts as the worst guess for that round, no coins move for that side (mirrors the
+  match-entry-fee affordability check in `matchmaking.md`).
+
 ## Server/reducer notes
 
 - Same pattern as the match reducer (`docs/ARCHITECTURE.md` §Match engine pattern): a

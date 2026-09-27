@@ -137,6 +137,10 @@ human opponent is found.
 - [ ] 🖥 LedgerService (single write path), entry fee escrow at match start, payout at end, refunds on abort
 - [ ] 🖥 Daily free games + daily login bonus + invite reward (with anti-abuse rules)
 - [ ] 🖥 `bot_match_subsidy` ledger reason + pot top-up when a bot fills a seat (`logic/bots.md`)
+- [ ] 🧩 Price-guess round wager: per-round escrow, winner-takes-pot-minus-cut, auto-sit-out if
+      unaffordable (`logic/price-guess-round.md` §Real coin side-bet)
+- [ ] 🗄 `coin_packages` table + `purchase`/IAP ledger plumbing, **built but disabled** at MVP
+      (`economy.md` §Real-money coin purchases) — enabling real purchases is a separate, later task
 - [ ] 📱 Coin balance header, entry-fee confirmation, reward animation, invite share screen
 - [ ] 📱 Single-scroll result screen: win/loss summary → 4 solved-group rows → 4 price-guess
       rounds → overlaid price chart (bottom) — see `logic/price-guess-round.md` §Result screen integration

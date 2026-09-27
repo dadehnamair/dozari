@@ -98,13 +98,18 @@ room_code text null, started_at, ended_at, winner_side smallint null`
 | id | |
 | user_id | |
 | delta | int, +/- |
-| reason | enum: `signup_bonus, daily_login, match_entry, match_payout, match_refund, invite_reward, ugc_reward, admin_adjust, purchase` |
+| reason | enum: `signup_bonus, daily_login, match_entry, match_payout, match_refund, invite_reward, ugc_reward, admin_adjust, purchase, bot_match_subsidy, price_guess_wager, price_guess_payout` |
 | ref_type / ref_id | e.g. `match`/uuid |
 | idempotency_key | text unique — e.g. `match_payout:<matchId>:<userId>` |
 | created_at | |
 
 Balance = `SUM(delta)`; cached in `user_balances` materialized by trigger or updated in the same
 transaction. A check constraint / service guard prevents balance < 0.
+
+### `coin_packages` (IAP catalog — designed now, not enabled at MVP; `economy.md` §Real-money coin purchases)
+`id, coins, price_irr, store_sku_bazaar, store_sku_myket, is_active` — a fixed handful of tiers,
+never a free-form amount. Purchases verified server-side against the store's receipt API before
+any `purchase` ledger row is written.
 
 ## UGC
 `ugc_submissions(id, user_id, kind (item|price_point|puzzle), payload jsonb, status (pending|approved|rejected), reviewer_id, created_at)`
