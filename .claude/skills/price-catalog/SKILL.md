@@ -56,6 +56,20 @@ Validated by zod (`packages/shared/src/schemas/catalog.ts`); seed is idempotent 
   point out and add a TODO in `source_note` of a draft rather than guessing. Clearly mark any
   AI-suggested/estimated value as `status: "pending"` for human verification.
 
+## Bootstrap sourcing (owner-approved, 2026-09-27)
+
+Before UGC (`docs/logic/ugc.md`) is live to carry the load, fill the initial catalog from two
+sources, both allowed:
+
+1. **Manual/AI-assisted research** over newspaper archives and old websites — `source_type:
+   archive_newspaper` or `website`, `confidence: 3` when a real citation is found. An AI research
+   pass may *suggest* a price, but never insert it directly: land it as `status: "pending"` with
+   the suggestion noted in `source_note`, for a human to verify before it flips to `approved`
+   (same rule as the "Quality checks" section above — don't invent prices).
+2. **Personal/family memories** — the owner's and acquaintances' own recollections,
+   `source_type: user_memory`, `confidence: 1`. Fine for bootstrapping tone and coverage; these
+   are exactly the kind of point a later UGC vote or a stronger source should be able to upgrade.
+
 ## Useful puzzle coverage
 
 Generator needs dense years. Prioritize filling 1365, 1370, 1375, 1380, 1385, 1390, 1395, 1400 for every
