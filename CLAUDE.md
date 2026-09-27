@@ -48,6 +48,9 @@ docs/
 | Invite codes, free chat vs canned taunts, team/cross-team visibility | `docs/logic/chat-and-access.md` |
 | User-submitted items/puzzles, voting, moderation | `docs/logic/ugc.md` |
 | Post-match overlaid price chart & sharing | `docs/logic/result-chart.md` |
+| Price-guess bonus round (after every puzzle) | `docs/logic/price-guess-round.md` |
+| Profile, avatar/nickname galleries, tags, phone link | `docs/logic/profile-and-identity.md` |
+| Undisclosed AI opponents ("bots") in matchmaking | `docs/logic/bots.md` |
 
 If code and spec disagree, fix the code **or** update the spec in the same change — never
 leave them diverged.

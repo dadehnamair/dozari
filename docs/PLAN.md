@@ -77,18 +77,46 @@ carrying it into Phase 0.
 
 **Exit:** after a solo puzzle, user sees & shares the chart image.
 
+## Phase 3-A — Price-guess bonus round (`logic/price-guess-round.md`)
+
+- [ ] 🧩 Round item selection (1 random item/group) + solo staircase scorer
+- [ ] 🧩 Competitive blind-simultaneous-guess reducer (4 rounds, reuses turn timer)
+- [ ] 📱 Solo price-guess UI (numeric input, staircase feedback)
+- [ ] 📱 Competitive price-guess UI (hidden entry, simultaneous reveal animation)
+- [ ] 🧪 Scoring tests (staircase tiers, tie-on-distance draw, locked-out side can't win match off this alone)
+
+**Exit:** every finished puzzle (solo or competitive) flows into a price-guess round before the result screen.
+
 ## Phase 4 — Identity & multiplayer core
 
-- [ ] 🖥 Guest auth (device id → JWT), profile (nickname, avatar pick)
+- [ ] 🖥 Guest auth (device id → JWT); random nickname+avatar assignment at creation
+      (`logic/profile-and-identity.md`)
 - [ ] 🧩 Socket event contracts (`logic/matchmaking.md`, `logic/game-rules.md`)
 - [ ] 🧩 Match reducer: shared board, turns, timers-as-commands, scoring, end conditions
 - [ ] 🖥 MatchService + redaction (`toClientView`), turn timer, persistence of match log
 - [ ] 🖥 MatchmakingService: 1v1 queue, private table (room code), reconnect grace
-- [ ] 📱 Lobby: quick match 1v1, create/join private table, waiting screen
+- [ ] 🖥 Bot pool + fallback-fill logic (`logic/bots.md`) — bots flow through the same MatchService
+      path as real players; `is_bot` never leaves the server
+- [ ] 📱 Lobby: quick match 1v1, create/join private table, waiting screen (est. wait, cancel,
+      "play solo while waiting", short puzzle info)
+- [ ] 📱 4-slide onboarding tutorial (skippable) before first Home screen
 - [ ] 📱 Match screen: whose turn, timer, scores, opponent's last guess feedback
-- [ ] 🧪 Reducer tests for every rule; socket integration test with two fake clients
+- [ ] 🧪 Reducer tests for every rule; socket integration test with two fake clients; bot-fill test
 
-**Exit:** two phones can play a 1v1 and a private-table match.
+**Exit:** two phones can play a 1v1 and a private-table match, with a bot stepping in when no
+human opponent is found.
+
+## Phase 4-A — Profile screen (`logic/profile-and-identity.md`)
+
+- [ ] 🗄 `user_tags`, tag catalog table, `users.equipped_tag_id`, avatar/nickname gallery tables
+- [ ] 🖥 Play-count tracking + unlock checks (avatar @3 games, nickname @10 games)
+- [ ] 🖥 Optional phone-link/OTP endpoint (account merge, not creation) — Iranian SMS provider (D18)
+- [ ] 📱 Profile screen: stats, match history, achievements/tags, chat-lock status + redeem CTA,
+      invite/referral block (copyable code, share sheet, live tracker), phone-link button
+- [ ] 📱 Share-invite action also reachable from the match-result screen
+- [ ] 🧪 Unlock-threshold tests; tag equip/unequip tests
+
+**Exit:** a returning player has a profile that shows real progress, not just a coin balance.
 
 ## Phase 5 — 2v2 teams, taunts, chat gating
 
@@ -106,13 +134,17 @@ carrying it into Phase 0.
 - [ ] 🧩 `config/economy.ts` + pure calculators; 🧪 simulation script for faucet/sink balance
 - [ ] 🖥 LedgerService (single write path), entry fee escrow at match start, payout at end, refunds on abort
 - [ ] 🖥 Daily free games + daily login bonus + invite reward (with anti-abuse rules)
+- [ ] 🖥 `bot_match_subsidy` ledger reason + pot top-up when a bot fills a seat (`logic/bots.md`)
 - [ ] 📱 Coin balance header, entry-fee confirmation, reward animation, invite share screen
+- [ ] 📱 Single-scroll result screen: win/loss summary → 4 solved-group rows → 4 price-guess
+      rounds → overlaid price chart (bottom) — see `logic/price-guess-round.md` §Result screen integration
 
 ## Phase 7 — UGC phase 1 (single item suggestions)
 
 - [ ] 🗄 `ugc_submissions`, `ugc_votes`
 - [ ] 🖥 Submit item (name, year, price, source, photo), vote, admin approve → product/price_point
-- [ ] 📱 "Suggest an item" form + "Review suggestions" voting feed
+- [ ] 📱 "Suggest an item" form + "Review suggestions" voting feed — reachable from its **own
+      card on the Home screen**, alongside the mode cards (owner decision, 2026-09-27)
 - [ ] Coin reward on approval (ledger)
 - [ ] `apps/admin` minimal moderation panel (or protected Expo web routes)
 

@@ -28,6 +28,11 @@ matching spec in `docs/logic/`.
 | D16 | Primary server hosting **inside Iran** (ArvanCloud or ParsPack), with off-country backups | accepted | Same consult. During international connectivity outages, only in-country services stay reachable; in-country hosting also lowers latency for the target audience. Backups replicated outside Iran for disaster recovery. |
 | D17 | Evaluate **Colyseus** as an alternative to hand-rolled Socket.io room/match logic | proposed | Same consult. Colyseus is a purpose-built Node multiplayer room framework (matchmaking, state sync, reconnection) that could remove custom code from `MatchmakingService`/`MatchService`. Time-boxed to ~1 day of spike (Phase 0-A, experiment 2) before committing; plain Socket.io (current ARCHITECTURE.md default) remains the fallback if Colyseus doesn't fit the turn-based/redaction model cleanly. |
 | D18 | Iranian-first vendor list for payments, SMS OTP, error tracking, analytics, push, ads | accepted | Same consult. Payments: Cafe Bazaar/Myket IAP (Poolakey) for in-app purchases, ZarinPal (needs Enamad) for web. SMS OTP: Kavenegar, SMS.ir, Ghasedak. Error tracking: self-hosted GlitchTip (not Sentry SaaS/Crashlytics). Analytics: self-hosted Umami or PostHog. Push (if built): Pushe or Najva. Ads (if/when monetization is decided, see open question 4): Tapsell, Adivery. |
+| D19 | Add a **price-guess bonus round** after every puzzle (solo: 5-tier staircase scoring; competitive: blind-simultaneous, closest-wins, 4 rounds) | accepted | Owner request (2026-09-27), resolves open question "رقابت قیمتی" — a guess-the-exact-price mode was referenced in the brief's market research but never designed as a mode. Folded into the existing puzzle flow rather than a separate top-level mode. Full spec: `docs/logic/price-guess-round.md`. |
+| D20 | Nickname & avatar are **gallery-picked only** (never free text), random at signup, customization unlocks at 3 games (avatar) / 10 games (nickname) | accepted | Owner request (2026-09-27). Removes free-text nickname moderation risk entirely; the play-count unlock is a light progression hook. Full spec: `docs/logic/profile-and-identity.md`. |
+| D21 | Profile carries **tags** (achievement / skill-rank / special / self-equipped) next to the avatar | accepted | Owner request (2026-09-27). One equipped at a time from the user's earned set. Full spec: `docs/logic/profile-and-identity.md`. |
+| D22 | Phone-number linking (OTP) is **fully optional**, account-recovery only, never a gate on any feature | accepted | Owner request (2026-09-27), refines D7. Entry point is a profile-screen button, not onboarding. |
+| D23 | Matchmaking is backed by an **undisclosed pool of AI opponents ("bots")** that fill queues when no human is available | accepted | Owner request (2026-09-27): "کاملاً شبیه آدم واقعی جلوه بره" — always available, human-like randomized delay, never revealed as a bot in any UI/API surface. Because this touches real coin stakes, a subsidy mechanism (`bot_match_subsidy` ledger reason) keeps payout math fair to the human player — see `docs/logic/bots.md` §Economy interaction. Chat is canned-taunts-only for MVP (no live LLM in the realtime path). |
 
 ## Phase 0-A spike: de-risk the stack before Phase 0 scaffolding
 
@@ -57,3 +62,15 @@ app wrapped with Capacitor for the Android build — record that pivot here as a
 6. **Turn model (D8)** confirmed? shared-board-alternating vs parallel race.
 7. **Min content for launch** — proposed: ≥ 300 products with ≥ 3 price points each, ≥ 200 validated puzzles pre-generated.
 8. **Moderation capacity for UGC & free chat** — who reviews? Proposed: admin panel + community votes threshold.
+9. **Price-guess round tie-break precedence** (D19) — whether a locked-out side's price-guess round
+   wins can affect the final score/tie-break, or only ever add flavor. Needs a decision when
+   `game-rules.md` is next revised.
+10. **Bot economy subsidy mechanism** (D23) — `bot_match_subsidy` ledger reason and its exact
+    accounting are proposed, not yet balanced/simulated. Run through
+    `packages/shared/scripts/simulate-economy.ts` once bots are built (Phase 4/6).
+11. **Bot pool sizing & fallback timing** (`BOT_POOL_SIZE`, `BOT_FALLBACK_SECONDS`) — defaults
+    proposed in `docs/logic/bots.md`, to be tuned with real queue-wait data after launch.
+12. **Full app-screen inventory** — an in-progress owner interview (2026-09-27) is going
+    screen-by-screen through onboarding, home/lobby, private tables, queue, match, chat, result,
+    profile, invite, and UGC. Decisions land here and in `docs/logic/` as each screen closes;
+    not all screens are covered yet (see `docs/PLAN.md` for what's locked vs. still open).

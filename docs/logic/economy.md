@@ -17,6 +17,7 @@ an active player should **never get stuck** at zero. All numbers → `packages/s
 | Invite reward (invitee) | +50 on redemption | plus free chat unlock |
 | UGC item approved | 40 | per approved submission, max 5/day |
 | Broke rescue | top-up to 60 | if balance < cheapest entry fee and no free matches left: once per day |
+| *(house-funded, not a player faucet)* `bot_match_subsidy` | = the entry fee a human opponent would have paid | credited to the match pot, not to any user, whenever a bot fills a seat — keeps win/draw/loss payout math identical to a human match. See `docs/logic/bots.md` §Economy interaction (D23). Needs balancing once bots are simulated. |
 
 ## Sinks (coins out)
 
