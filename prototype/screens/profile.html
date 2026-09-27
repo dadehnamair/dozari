@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>دوزاری — پروفایل</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lalezar&family=Vazirmatn:wght@400;500;700;800&display=swap">
+<link rel="stylesheet" href="shared.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="logo" href="home.html">دوزاری <span aria-hidden="true">🪙</span></a>
+    <span class="coins num"><span class="coin-dot"></span><span id="coins">۲۰۰</span></span>
+  </header>
+
+  <div class="panel">
+    <div class="profile-head">
+      <span class="avatar" aria-hidden="true">🧑‍🚀</span>
+      <div style="flex:1">
+        <div class="name">دوزاری‌باز۸۸ <span class="badge" id="equippedTag">دوزاری‌تیز</span></div>
+        <div class="meta">۱۴ بازی انجام‌شده · عضو از فروردین ۱۴۰۴</div>
+      </div>
+    </div>
+    <div class="row-btns">
+      <button class="btn sm" id="btnAvatar">تغییر آواتار</button>
+      <button class="btn sm" id="btnName">تغییر نام</button>
+      <button class="btn sm" id="btnTag">تغییر نشان</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>آمار</h2>
+    <div class="stat-grid num">
+      <div><b>۱۴</b><span>بازی</span></div>
+      <div><b>۹</b><span>برد</span></div>
+      <div><b>٪۷۸</b><span>دقت حدس قیمت</span></div>
+    </div>
+  </div>
+
+  <div class="panel" id="achievements">
+    <h2>افتخارات و نشان‌ها</h2>
+    <div class="tag-grid" id="tagGrid"></div>
+  </div>
+
+  <div class="panel">
+    <h2>تاریخچه‌ی بازی‌ها</h2>
+    <div id="history"></div>
+    <p class="hint">همین لیست، تاریخچه‌ی سکه‌هاتم هست — سکه‌ی هر بازی رو همین‌جا می‌بینی.</p>
+  </div>
+
+  <div class="panel" id="chatlock">
+    <h2>چت آزاد</h2>
+    <p class="hint">فعلاً فقط جمله‌های آماده می‌تونی بفرستی. با یه کد دعوت، چت آزاد باز می‌شه.</p>
+    <button class="btn accent block" id="redeem">وارد کردن کد دعوت</button>
+  </div>
+
+  <div class="panel">
+    <h2>دعوت از دوستان</h2>
+    <div class="code-box num"><span id="invcode">DZ-914K</span><button class="btn sm" id="copyInv">کپی</button></div>
+    <div class="row-btns">
+      <button class="btn sm" id="share">اشتراک‌گذاری</button>
+    </div>
+    <p class="hint num">۵ نفر با کدت پیوستن · ۳ نفر تکمیل کردن · ۲ نفر در انتظار پاداش</p>
+  </div>
+
+  <div class="panel">
+    <h2>اتصال شماره (اختیاری)</h2>
+    <p class="hint">فقط برای این‌که اگه گوشیتو عوض کردی، پیشرفتت از بین نره. هیچ‌جا اجباری نیست.</p>
+    <div id="phoneArea"><button class="btn block" id="linkPhone">لینک شماره برای حفظ پیشرفت</button></div>
+  </div>
+</div>
+
+<nav class="bottom" aria-label="ناوبری اصلی">
+  <a href="home.html"><span class="e" aria-hidden="true">🏠</span>خانه</a>
+  <a class="active" href="profile.html"><span class="e" aria-hidden="true">👤</span>پروفایل</a>
+  <a href="settings.html"><span class="e" aria-hidden="true">⚙️</span>تنظیمات</a>
+</nav>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1600); }
+
+  const GAMES_PLAYED = 14;
+  const AVATAR_UNLOCK_GAMES = 3, NICKNAME_UNLOCK_GAMES = 10;
+
+  const tags = [
+    {label:'دوزاری‌تیز', desc:'دسته رو در نوبت اول گرفتی', earned:true, equipped:true},
+    {label:'مبتدی', desc:'رتبه‌ی مهارت (خودکار)', earned:true, equipped:false},
+    {label:'قهرمان دهه‌۶۰', desc:'۵ برد روی پازل‌های دهه‌ی ۶۰', earned:true, equipped:false},
+    {label:'کلکسیونر سکه', desc:'همه‌ی آواتارهای گالری رو داشته باش', earned:false, equipped:false},
+    {label:'حامی از روز اول', desc:'ویژه — توسط ادمین اهدا می‌شه', earned:false, equipped:false},
+    {label:'تلفن‌عمومی', desc:'۱۰۰ بازی انجام بده (۱۴/۱۰۰)', earned:false, equipped:false},
+  ];
+  $('tagGrid').innerHTML = tags.map(t =>
+    '<div class="tag-item'+(t.equipped?' equipped':'')+(t.earned?'':' locked')+'">'+t.label+'<small>'+(t.earned?t.desc:'قفل: '+t.desc)+'</small></div>'
+  ).join('');
+
+  const hist = [
+    {mode:'۱ در ۱', vs:'ممد', win:true, delta:18, date:'۲ روز پیش'},
+    {mode:'میز اختصاصی', vs:'رضا', win:false, delta:-15, date:'۳ روز پیش'},
+    {mode:'۲ در ۲', vs:'تیم سارا', win:true, delta:16, date:'۵ روز پیش'},
+    {mode:'تمرین تکی', vs:'—', win:true, delta:0, date:'۶ روز پیش'},
+  ];
+  $('history').innerHTML = hist.map(h =>
+    '<div class="hist-row"><span class="who"><span class="avatar sm" aria-hidden="true">'+(h.win?'🏆':'😕')+'</span>'+
+    h.mode+' · '+h.vs+'<span class="hint">'+h.date+'</span></span>'+
+    '<span class="delta num '+(h.delta>0?'plus':h.delta<0?'minus':'')+'">'+(h.delta>0?'+':h.delta<0?'−':'')+Math.abs(h.delta).toLocaleString('fa-IR')+(h.delta?' سکه':'')+'</span></div>'
+  ).join('');
+
+  $('btnAvatar').addEventListener('click', () => {
+    if (GAMES_PLAYED < AVATAR_UNLOCK_GAMES) return toast('گالری آواتار بعد از ۳ بازی باز می‌شه');
+    toast('گالری آواتار (دمو) — یکی رو انتخاب کن');
+  });
+  $('btnName').addEventListener('click', () => {
+    if (GAMES_PLAYED < NICKNAME_UNLOCK_GAMES) return toast('گالری اسم بعد از '+NICKNAME_UNLOCK_GAMES.toLocaleString('fa-IR')+' بازی باز می‌شه ('+GAMES_PLAYED.toLocaleString('fa-IR')+'/'+NICKNAME_UNLOCK_GAMES.toLocaleString('fa-IR')+')');
+    toast('گالری اسم (دمو)');
+  });
+  $('btnTag').addEventListener('click', () => toast('یکی از نشان‌های گرفته‌شده رو انتخاب کن (دمو)'));
+  $('redeem').addEventListener('click', () => {
+    const code = prompt('کد دعوت رو وارد کن:');
+    if (code) toast('چت آزاد باز شد! 🎉');
+  });
+  $('copyInv').addEventListener('click', () => { navigator.clipboard && navigator.clipboard.writeText($('invcode').textContent); toast('کد کپی شد'); });
+  $('share').addEventListener('click', () => {
+    if (navigator.share) navigator.share({text:'دوزاریت افتاد؟ بیا با کد من بازی کن: DZ-914K'});
+    else toast('لینک اشتراک‌گذاری کپی شد (دمو)');
+  });
+  $('linkPhone').addEventListener('click', () => {
+    $('phoneArea').innerHTML = '<div class="field"><label>شماره موبایل</label><input type="text" inputmode="numeric" placeholder="۰۹۱۲۳۴۵۶۷۸۹" id="phoneNum"></div><button class="btn accent block" id="sendOtp" style="margin-top:8px">ارسال کد تأیید</button>';
+    document.getElementById('sendOtp').addEventListener('click', () => {
+      $('phoneArea').innerHTML = '<span class="badge ok">شماره لینک شد ✓</span>';
+      toast('پیشرفتت الان با این شماره هم قابل بازیابیه');
+    });
+  });
+  try{ $('coins').textContent = Number(JSON.parse(localStorage.getItem('gh_coins')||'200')).toLocaleString('fa-IR'); }catch(e){}
+})();
+</script>
+</body>
+</html>

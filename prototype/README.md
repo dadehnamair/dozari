@@ -19,3 +19,29 @@ What it demonstrates (all client-side, no server):
   by a price-guess round summary on the same result screen.
 
 Prices are illustrative placeholders, NOT verified data — never import them into the real catalog.
+
+## `screens/` — the rest of the app, static/mock data
+
+A separate, linked set of pages for every screen in `docs/logic/app-screens.md` and
+`docs/logic/profile-and-identity.md` that isn't the puzzle board itself. These use mock/static
+data (no real game logic, no shared localStorage state beyond the coin balance) — they're for
+walking through the UI/IA, not for testing rules. Shares `screens/shared.css` (same color tokens
+and fonts as `index.html`) so it reads as one app; a bottom nav (خانه / پروفایل / تنظیمات) links
+the screens together, and `index.html` links out to `screens/home.html`.
+
+- `onboarding.html` — 4-slide skippable tutorial (swipe or button), per §Onboarding.
+- `home.html` — mode cards row (تمرین تکی / ۱در۱ / ۲در۲ / میز اختصاصی), coin balance, daily
+  challenge banner, UGC card, achievements shortcut, per §Home / Lobby screen.
+- `queue.html` — matchmaking wait screen (ETA, cancel, practice-while-waiting, puzzle info);
+  auto-"finds" an opponent after a few seconds to demo the transition into a match.
+- `table.html` — private table host controls (room code, format/entry-fee, seat management,
+  lock/extend) per §Private table.
+- `profile.html` — avatar/nickname (with unlock-gated buttons), equipped tag + tag gallery, stats,
+  match history (doubles as coin history), chat-lock/redeem CTA, invite/referral block, optional
+  phone-link flow — per `profile-and-identity.md`.
+- `settings.html` — sound/vibration toggles, replay tutorial, about/support, logout/delete.
+- `ugc.html` — submission form (name/photo, year+price with toman/rial toggle, source, category)
+  and the single-card swipe voting feed, per `ugc.md`.
+
+Not built as static pages: the in-match chat drawer (lives inside `index.html`'s match screen,
+not a separate page) and the admin panel (not yet interviewed/spec'd).
