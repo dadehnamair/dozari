@@ -12,6 +12,9 @@ description: Build or fix React Native (Expo) UI for the Persian game — RTL la
   `"extra": {"supportsRTL": true}` / `expo-localization`.
 - Font: **Vazirmatn** bundled via `expo-font` (weights 400/500/700). No Google Fonts at runtime.
   Set as default `fontFamily` in the theme `Text` wrapper — use our `<Text>` component, not RN's directly.
+- Second, **display-only** font for titles/logo/brand moments per `docs/BRAND.md` — nostalgic/
+  vintage feel, distinct from Vazirmatn. Exact family **not chosen yet** (`BRAND.md` §Open
+  follow-ups); don't hardcode a placeholder as if it were final.
 
 ## Layout
 
@@ -35,10 +38,16 @@ description: Build or fix React Native (Expo) UI for the Persian game — RTL la
 
 ## Visual language
 
+Full brand direction: `docs/BRAND.md` (mood, typography, color, icon — several pieces still open,
+read it before making a visual call this file doesn't already answer).
+
 - Group colors (Connections-like, tuned for dark & light): yellow `#F9DF6D`, green `#A0C35A`, blue `#B0C4EF`,
-  purple `#BA81C5`. Define in theme tokens; text on them must pass WCAG AA.
-- Nostalgic tone: warm paper background option, retro product photos; keep tap targets ≥ 44 pt.
-- Support dark mode from day one (theme tokens, no hard-coded colors).
+  purple `#BA81C5`. Define in theme tokens; text on them must pass WCAG AA. These are **locked**.
+- Nostalgic + playful mood (`BRAND.md`): warm paper background (exact tokens **not chosen yet**),
+  retro product photos, group colors carry the "playful" energy — don't let them bleed into large
+  background fills, keep the paper tone as the quiet base. Keep tap targets ≥ 44 pt.
+- Support dark mode from day one (theme tokens, no hard-coded colors); dark mode should still read
+  as "warm paper", not neutral gray (`BRAND.md` §Color).
 
 ## Testing
 
