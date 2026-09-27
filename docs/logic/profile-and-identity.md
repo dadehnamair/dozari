@@ -65,6 +65,29 @@ label, icon, and unlock rule per tag — content-managed like `canned_taunts`, n
   profile) — the owner wants the growth loop available right when a player is most engaged, not
   buried behind a profile tab.
 
+## Friends & player browsing (D44)
+
+Players can browse other users and send friend requests — a new surface, not covered by the
+existing tag/history/invite sections above. Owner: "ما بتونیم بقیه رو هم ببینیم و درخواست دوستی
+بدیم." Needs a `friendships` relation in `data-model.md` (not yet added — request/accepted state,
+bidirectional visibility) beyond what's currently specced. Entry points: a "دوستان" panel on the
+profile screen (accepted friends only) and a full browse/search + add-friend list on the
+leaderboard screen (`app-screens.md` §Leaderboard & tournaments). Prototype:
+`prototype/screens/profile.html` §دوستان, `prototype/screens/leaderboard.html` §بازیکنان tab.
+Open: what a friendship unlocks beyond visibility (e.g. inviting a friend directly to a private
+table) — not designed yet.
+
+## Province/city (D53)
+
+An **optional** profile field — province required, city optional — never a gate on play (same
+spirit as D22's optional phone link; the brief's "entry must be frictionless" rule still applies).
+Owner: "اگه از افراد استانشون رو هم بپرسه بد نیست، بشه یه کل‌کل‌های شهری هم راه انداخت." Powers a
+regional filter on the leaderboard (`app-screens.md` §Leaderboard & tournaments) and, longer-term,
+"city crews" — persistent regional teams/rivalries, which is a bigger social-feature question not
+designed here (`DECISIONS.md` open question 17). Where to ask (onboarding step vs. profile-only,
+picked reactively) is still open; the prototype puts it as a profile-only optional field
+(`prototype/screens/profile.html` §استان).
+
 ## Open follow-ups
 
 - Exact skill-rank tier thresholds and the full achievement catalog are content work, not logic —

@@ -8,8 +8,20 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lalezar&family=Vazirmatn:wght@400;500;700;800&display=swap">
 <link rel="stylesheet" href="shared.css">
+<style>
+.emoji-pick{display:flex;gap:6px;flex-wrap:wrap}
+.emoji-pick button{width:38px;height:38px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);font-size:18px}
+.emoji-pick button[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1.5px var(--accent)}
+.host-crown{color:var(--accent)}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.toggle-row .hint{margin:0}
+</style>
 </head>
 <body>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="home" viewBox="0 0 24 24"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v9.5a.5.5 0 0 0 .5.5H10v-5.5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1V20h3.5a.5.5 0 0 0 .5-.5V10"/></symbol>
+  <symbol id="crown" viewBox="0 0 24 24"><path d="M4 17.5h16M4.5 17 3 8l4.5 3.5L12 5l4.5 6.5L21 8l-1.5 9Z"/></symbol>
+</svg>
 <div class="wrap">
   <header class="top">
     <a class="logo" href="home.html">دوزاری <span aria-hidden="true">🪙</span></a>
@@ -17,6 +29,28 @@
   </header>
   <h1 class="screen-title">میز اختصاصی</h1>
   <p class="screen-sub">تا وقتی بازی شروع نشده، همه‌چیز دست میزبانه. بعد از شروع، کنترل صندلی‌ها قفل می‌شه.</p>
+
+  <div class="panel">
+    <h2><svg class="icon host-crown"><use href="#crown"></use></svg> میز تو، قوانین تو</h2>
+    <div class="field">
+      <label>اسم میز</label>
+      <input type="text" id="tableName" value="میز دوزاری‌بازای قدیمی" maxlength="30">
+    </div>
+    <div class="field">
+      <label>نماد میز</label>
+      <div class="emoji-pick" id="emojiPick">
+        <button aria-pressed="true" data-e="🎲">🎲</button>
+        <button aria-pressed="false" data-e="🏆">🏆</button>
+        <button aria-pressed="false" data-e="🔥">🔥</button>
+        <button aria-pressed="false" data-e="🪙">🪙</button>
+        <button aria-pressed="false" data-e="🎯">🎯</button>
+      </div>
+    </div>
+    <div class="toggle-row">
+      <div><b>شروع فقط با تأیید همه</b><p class="hint">تا وقتی هر مهمون دکمه‌ی «آماده‌ام» رو نزنه، بازی شروع نمی‌شه.</p></div>
+      <input type="checkbox" id="requireReady">
+    </div>
+  </div>
 
   <div class="panel">
     <h2>کد دعوت</h2>
@@ -30,11 +64,17 @@
   </div>
 
   <div class="panel">
-    <h2>فرمت و ورودی</h2>
+    <h2>فرمت، سختی و ورودی</h2>
     <div class="seg" role="tablist" aria-label="فرمت">
       <button aria-selected="true" data-fmt="1v1">۱ در ۱</button>
       <button aria-selected="false" data-fmt="2v2">۲ در ۲</button>
     </div>
+    <div class="seg" role="tablist" aria-label="سختی" id="diffSeg">
+      <button aria-selected="false" data-diff="easy">آسون</button>
+      <button aria-selected="true" data-diff="mid">متوسط</button>
+      <button aria-selected="false" data-diff="hard">سخت</button>
+    </div>
+    <p class="hint">ورودی با سختی میز بالا می‌ره — میز سخت‌تر یعنی جایزه‌ی بزرگ‌تر. <small>(D51)</small></p>
     <div class="stepper">
       <button id="fee-dn" aria-label="کم کردن ورودی">−</button>
       <b class="num" id="fee">۲۰ سکه</b>
@@ -55,7 +95,9 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
 (() => {
-  let fee = 20, fmt = '1v1';
+  // entry fee scales with difficulty (D51) — a harder table costs more to enter
+  const DIFF_MULT = {easy:0.5, mid:1, hard:1.75};
+  let baseFee = 20, fmt = '1v1', diff = 'mid';
   const names = ['مینا', 'رضا', 'سارا', 'بهنام'];
   let seats = [{me:true, name:'تو'}, null, null, null];
   const $ = id => document.getElementById(id);
@@ -66,12 +108,16 @@
     $('seats').innerHTML = Array.from({length:n}, (_,i) => {
       const s = seats[i];
       if (!s) return '<div class="seat empty"><span>صندلی '+(i+1).toLocaleString('fa-IR')+' — خالی</span><span class="hint">در انتظار</span></div>';
-      return '<div class="seat"><span class="who"><span class="avatar sm" aria-hidden="true">🙂</span>'+s.name+(s.me?' (تو)':'')+'</span>'+
+      const crown = s.me ? '<svg class="icon host-crown" style="width:15px;height:15px"><use href="#crown"></use></svg>' : '';
+      return '<div class="seat"><span class="who"><span class="avatar sm" aria-hidden="true">🙂</span>'+s.name+(s.me?' (تو)':'')+crown+'</span>'+
         (s.me?'':'<button class="btn sm" data-kick="'+i+'">اخراج</button>')+'</div>';
     }).join('');
     const filled = seats.slice(0,n).filter(Boolean).length;
-    $('start').disabled = filled < n;
-    $('startHint').textContent = filled < n ? ('برای شروع باید '+n.toLocaleString('fa-IR')+' صندلی پر باشه ('+filled.toLocaleString('fa-IR')+' پر شده).') : 'همه آماده‌ن!';
+    const ready = filled >= n;
+    $('start').disabled = !ready;
+    $('startHint').textContent = !ready ? ('برای شروع باید '+n.toLocaleString('fa-IR')+' صندلی پر باشه ('+filled.toLocaleString('fa-IR')+' پر شده).')
+      : ($('requireReady').checked ? 'همه پرن — منتظر تأیید «آماده‌ام» هر مهمونیم.' : 'همه آماده‌ن!');
+    const fee = Math.round(baseFee * DIFF_MULT[diff] / 5) * 5;
     $('fee').textContent = fee.toLocaleString('fa-IR') + ' سکه';
   }
   document.querySelectorAll('[data-fmt]').forEach(b => b.addEventListener('click', () => {
@@ -80,8 +126,18 @@
     if (fmt==='1v1') seats = seats.slice(0,2); else while(seats.length<4) seats.push(null);
     render();
   }));
-  $('fee-up').addEventListener('click', () => { fee = Math.min(200, fee+10); render(); });
-  $('fee-dn').addEventListener('click', () => { fee = Math.max(0, fee-10); render(); });
+  document.querySelectorAll('#diffSeg [data-diff]').forEach(b => b.addEventListener('click', () => {
+    diff = b.dataset.diff;
+    document.querySelectorAll('#diffSeg [data-diff]').forEach(x => x.setAttribute('aria-selected', x===b));
+    render();
+  }));
+  $('emojiPick').addEventListener('click', e => {
+    const b = e.target.closest('[data-e]'); if (!b) return;
+    document.querySelectorAll('#emojiPick button').forEach(x => x.setAttribute('aria-pressed', x===b));
+  });
+  $('requireReady').addEventListener('change', render);
+  $('fee-up').addEventListener('click', () => { baseFee = Math.min(200, baseFee+10); render(); });
+  $('fee-dn').addEventListener('click', () => { baseFee = Math.max(0, baseFee-10); render(); });
   $('simJoin').addEventListener('click', () => {
     const n = seatCount();
     const idx = seats.findIndex((s,i) => i<n && !s);

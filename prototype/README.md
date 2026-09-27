@@ -22,6 +22,9 @@ What it demonstrates (all client-side, no server):
 - The **first solo puzzle** is an eased tutorial run (`docs/logic/app-screens.md` §Onboarding,
   D37): forces the first authored puzzle, allows 2 extra mistakes, shows a one-line worked-example
   banner over the board. Gated by `gh_solo_played` in localStorage — applies once.
+- Duel mode's HUD shows both sides' **avatar, coins, and level** (D39), not just score/mistakes —
+  and starting a duel sets a `gh_active_match` flag (cleared on finish/abandon) that
+  `screens/home.html` reads to show a "game in progress" resume banner (D42).
 
 Visual language: a "cool arcade" palette v2 (`docs/brand-visual.md` §Color, proposed 2026-09-27,
 D35) — cool near-white/near-black chrome, a violet→teal gradient accent on CTAs/logo/level chip,
@@ -46,10 +49,17 @@ the screens together, and `index.html` links out to `screens/home.html`.
 - `onboarding.html` — 4-slide skippable tutorial (swipe or button), per §Onboarding.
 - `home.html` — mode cards row (تمرین تکی / ۱در۱ / ۲در۲ / میز اختصاصی), coin balance, daily
   challenge banner, UGC card, achievements shortcut, per §Home / Lobby screen.
-- `queue.html` — matchmaking wait screen (ETA, cancel, practice-while-waiting, puzzle info);
-  auto-"finds" an opponent after a few seconds to demo the transition into a match.
+- `home.html` also shows an **online player count** (D45) and a **resume-match banner** (D42) when
+  `gh_active_match` is set, plus a card linking to `leaderboard.html`.
+- `queue.html` — matchmaking wait screen (ETA, cancel, practice-while-waiting, puzzle info); shows
+  a **"scanning among players" reveal card** cycling names/avatars before locking onto the found
+  opponent (D40/D41 — a bot result looks identical to a human one), then auto-"finds" an opponent
+  after a few seconds to demo the transition into a match.
 - `table.html` — private table host controls (room code, format/entry-fee, seat management,
-  lock/extend) per §Private table.
+  lock/extend) per §Private table, plus D52's extra "ownership" features: custom table name/emoji,
+  a difficulty picker that scales the entry fee (D51), and a "require everyone ready" toggle.
+- `leaderboard.html` — rankings (day/week/month/all-time + province filter), a players
+  browse/search list with add-friend buttons (D44), and a tournament entry card (D49/D50).
 - `profile.html` — avatar/nickname (with unlock-gated buttons), equipped tag + tag gallery, stats,
   match history (doubles as coin history), chat-lock/redeem CTA, invite/referral block, optional
   phone-link flow — per `profile-and-identity.md`.
@@ -58,7 +68,8 @@ the screens together, and `index.html` links out to `screens/home.html`.
   and the single-card swipe voting feed, per `ugc.md`.
 - `profile.html` also shows the level/XP bar (reads the same `gh_xp` key `index.html` writes,
   so playing a match there and reloading this page reflects it) and the skill-tier/puzzle-
-  difficulty meter, per `docs/logic/progression.md` (D33/D34).
+  difficulty meter, per `docs/logic/progression.md` (D33/D34); plus an optional province field
+  (D53) and a friends preview linking to `leaderboard.html` (D44).
 - `chat.html` — the in-match chat drawer's content (taunts, team/all tabs, locked free-text),
   shown as a floating-button + slide-up drawer over a placeholder board, since in the real app
   it's an overlay on the match screen, not its own route.

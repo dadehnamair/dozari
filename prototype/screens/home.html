@@ -39,6 +39,9 @@
   <symbol id="play" viewBox="0 0 24 24"><path d="M7 5.5v13l11-6.5Z"/></symbol>
   <symbol id="flag" viewBox="0 0 24 24"><path d="M6 3.5v17"/><path d="M6 4.5h11l-2.5 3.5L17 11.5H6Z"/></symbol>
   <symbol id="sparkle" viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/></symbol>
+  <symbol id="user-plus" viewBox="0 0 24 24"><circle cx="10" cy="8.5" r="3.4"/><path d="M3.5 20c.6-4 3.7-6.1 6.5-6.1s5.9 2.1 6.5 6.1"/><path d="M18.5 8v6M15.5 11h6"/></symbol>
+  <symbol id="crown" viewBox="0 0 24 24"><path d="M4 17.5h16M4.5 17 3 8l4.5 3.5L12 5l4.5 6.5L21 8l-1.5 9Z"/></symbol>
+  <symbol id="map-pin" viewBox="0 0 24 24"><path d="M12 21s6.5-6.1 6.5-11A6.5 6.5 0 0 0 5.5 10c0 4.9 6.5 11 6.5 11Z"/><circle cx="12" cy="10" r="2.3"/></symbol>
 </svg>
 
 <div class="wrap">
@@ -46,6 +49,16 @@
     <a class="logo" href="home.html">دوزاری <span aria-hidden="true">🪙</span></a>
     <a class="coins num" href="profile.html" title="سکه‌ها و پروفایل"><span class="coin-dot"></span><span id="coins">۲۰۰</span></a>
   </header>
+  <span class="online-pill num" id="onlinePill"><i aria-hidden="true"></i><span id="onlineCount">۳۴۲</span> نفر الان آنلاینن</span>
+
+  <a class="panel resume-banner" href="../index.html" id="resumeBanner" style="display:none;text-decoration:none;flex-direction:row;align-items:center;gap:10px">
+    <svg class="icon" style="width:22px;height:22px" aria-hidden="true"><use href="#swords"></use></svg>
+    <div style="flex:1">
+      <b>یه بازی نیمه‌تموم داری!</b>
+      <p class="hint" style="margin-top:2px" id="resumeSub">با ممدِ رحیمی — برگرد و ادامه بده</p>
+    </div>
+    <svg class="icon" aria-hidden="true"><use href="#chevron-left"></use></svg>
+  </a>
 
   <div class="banner">
     <div>چالش امروز: پازل «دهه‌شصتی‌ها» <small>رشته‌ی روزهای پشت‌سرهم: ۳ روز 🔥</small></div>
@@ -87,6 +100,14 @@
     <svg class="icon" style="width:24px;height:24px" aria-hidden="true"><use href="#trophy"></use></svg>
   </a>
 
+  <a class="panel" href="leaderboard.html" style="text-decoration:none;flex-direction:row;align-items:center;justify-content:space-between">
+    <div>
+      <h2>رقابت‌ها و تورنومنت</h2>
+      <p class="hint">رتبه‌ت الان: <b class="num">#۲۸</b> — رتبه‌بندی هفته، ماه و کل، بازیکن‌ها، تورنومنت</p>
+    </div>
+    <svg class="icon" style="width:24px;height:24px" aria-hidden="true"><use href="#flag"></use></svg>
+  </a>
+
   <div class="panel">
     <h2>پیش‌نمایش‌های بیشتر (دمو)</h2>
     <div class="row-btns">
@@ -106,6 +127,14 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
 try{ document.getElementById('coins').textContent = Number(JSON.parse(localStorage.getItem('gh_coins')||'200')).toLocaleString('fa-IR'); }catch(e){}
+document.getElementById('onlineCount').textContent = (300 + Math.floor(Math.random()*180)).toLocaleString('fa-IR');
+try{
+  const active = JSON.parse(localStorage.getItem('gh_active_match')||'null');
+  if (active){
+    document.getElementById('resumeBanner').style.display = 'flex';
+    document.getElementById('resumeSub').textContent = 'با ' + (active.opponent||'حریفت') + ' — برگرد و ادامه بده';
+  }
+}catch(e){}
 </script>
 </body>
 </html>

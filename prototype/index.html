@@ -71,6 +71,8 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .side.active{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
 .side.bot.active{border-color:var(--bot);box-shadow:0 0 0 1px var(--bot)}
 .side .who{font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:6px}
+.side .id{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:3px;margin:1px 0}
+.side .id .e{font-size:14px}
 .side .score{font-size:22px;font-weight:800;line-height:1.2}
 .dots{display:flex;gap:4px}
 .dot{width:9px;height:9px;border-radius:50%;background:var(--ink);opacity:.8}
@@ -257,6 +259,8 @@ const xpForLevel = n => Math.round(50*n*n); // total XP needed to reach level n+
 const LV_NAMES=['زرد','سبز','آبی','بنفش'];
 const TAUNTS=['یه دوزاری بنداز، شروع کنیم!','سلام! آماده‌ای ببازی؟','اینو مامان‌بزرگمم بلد بود 😄','پیکان هم این‌قدر کند نبود!','یکی مونده بود، حیف!','دمت گرم، بازی خوبی بود'];
 const BOT_TAUNTS=['حالا ببین کی می‌بره 😎','دوزاریت هنوز تو راهه؟','شانسی بود!','قیمت سال ۷۵ رو از حفظم','عجله نکن، وقت داری','ای بابا!'];
+// opponent HUD — docs/logic/game-rules.md §Match HUD (D39). Same undisclosed-bot identity queue.html reveals (D41).
+const BOT_PROFILE={name:'ممدِ رحیمی',avatar:'🧑‍🔧',coins:640,level:7};
 
 // ---------- helpers ----------
 const fa = (n, d=1) => Number(n).toLocaleString('fa-IR',{maximumFractionDigits:d});
@@ -365,6 +369,8 @@ function newGame(mode){
     setCoins(coins-ENTRY_FEE); S.entry=ENTRY_FEE;
     S.turn = rng()<0.5 ? 'me' : 'bot';
     S.chat.push({who:'bot',text:'سلام! من ممدم. بزن بریم 👋'});
+    // resume-match indicator (D42) — flag survives a reload/tab-close; other screens read it to show a "game in progress" badge.
+    store.set('gh_active_match',{ts:Date.now(),opponent:BOT_PROFILE.name});
   }
   render();
   if(mode==='duel') startTurn();
@@ -571,6 +577,7 @@ function finalizeDuel(forced){
   S.result={winner:w, loserBonus, loserSide:loser};
   say('bot', w==='me'?'دمت گرم، بازی خوبی بود':w==='bot'?'ای بابا! دفعه‌ی بعد 😄':'دوزاری‌ها هم‌زمان افتاد!', true);
   addXp(XP_DUEL_BASE + (w==='me'?XP_WIN_BONUS:0) + S.pg.score.me*XP_PER_PG_POINT);
+  store.set('gh_active_match',null);
   render(); scrollToEl('result');
 }
 
@@ -594,10 +601,12 @@ function renderStatus(){
     el.innerHTML=tut+'<div class="solo-status">اشتباه‌های باقی‌مونده '+dotsHtml(S.mistakes.me,maxMistakesFor('me'))+'</div>'; return;
   }
   const act = w => !S.over && S.turn===w ? ' active':'';
+  const myId='<div class="id num"><span class="e" aria-hidden="true">🧑‍🚀</span>'+fa(coins,0)+' 🪙 · Lv '+fa(levelOf(xp),0)+'</div>';
+  const botId='<div class="id num"><span class="e" aria-hidden="true">'+BOT_PROFILE.avatar+'</span>'+fa(BOT_PROFILE.coins,0)+' 🪙 · Lv '+fa(BOT_PROFILE.level,0)+'</div>';
   el.innerHTML='<div class="hud">'+
-    '<div class="side'+act('me')+'"><div class="who"><span>تو</span>'+(locked('me')?'<span>قفل شد</span>':'')+'</div><div class="score num">'+fa(S.score.me,0)+'</div>'+dotsHtml(S.mistakes.me)+'</div>'+
+    '<div class="side'+act('me')+'"><div class="who"><span>تو</span>'+(locked('me')?'<span>قفل شد</span>':'')+'</div>'+myId+'<div class="score num">'+fa(S.score.me,0)+'</div>'+dotsHtml(S.mistakes.me)+'</div>'+
     '<div class="clock num" id="clock"></div>'+
-    '<div class="side bot'+act('bot')+'"><div class="who"><span>ممدِ ربات 🤖</span>'+(locked('bot')?'<span>قفل شد</span>':'')+'</div><div class="score num">'+fa(S.score.bot,0)+'</div>'+dotsHtml(S.mistakes.bot)+'</div>'+
+    '<div class="side bot'+act('bot')+'"><div class="who"><span>'+BOT_PROFILE.name+'</span>'+(locked('bot')?'<span>قفل شد</span>':'')+'</div>'+botId+'<div class="score num">'+fa(S.score.bot,0)+'</div>'+dotsHtml(S.mistakes.bot)+'</div>'+
     '<div class="turnbar"><i id="turnbar"></i></div></div>';
   renderClock();
 }
@@ -759,7 +768,7 @@ document.addEventListener('click',e=>{
   else if(t.id==='b-submit' && S.sel.length===4){ submit('me',S.sel.slice()); }
   else if(t.id==='tab-solo'||t.id==='tab-duel'){
     const mode=t.id==='tab-solo'?'solo':'duel';
-    if(S && S.mode==='duel' && !S.over && S.solved.length+S.mistakes.me+S.mistakes.bot>0) toast('بازی قبلی رو ترک کردی؛ سکه‌ی ورودی برنگشت');
+    if(S && S.mode==='duel' && !S.over && S.solved.length+S.mistakes.me+S.mistakes.bot>0){ toast('بازی قبلی رو ترک کردی؛ سکه‌ی ورودی برنگشت'); store.set('gh_active_match',null); }
     newGame(mode);
   }
   else if(t.id==='b-next'){ pIdx=(pIdx+1)%PUZZLES.length; store.set('gh_pidx',pIdx); renderLogic(); newGame(S.mode); window.scrollTo({top:0}); }

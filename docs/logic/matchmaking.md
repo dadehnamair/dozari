@@ -24,6 +24,16 @@ No rating/ELO at launch (D12). Values in `config/game.ts`.
    Missing ready → abort + refund, the no-show gets a short queue cooldown (*NO_SHOW_COOLDOWN* = 60 s).
 5. `active`: first turn goes to a random side (seeded; stored in match_events).
 
+## Search reveal card (D40/D41)
+
+The matchmaking wait screen doesn't show a bare spinner: while `queue:status` waits, the client
+cycles through nicknames/avatars drawn from the same-looking player pool, then "locks onto" the
+actual opponent from `match:found`'s payload once it arrives — including a bot opponent, per D23.
+Owner: "موقع انتخاب حریف یسری کارت بیاد که داره از تو اسم‌های مختلف یکی رو پیدا میکنه که این حس و
+نده کسی نیست" و "از تو اون کارت‌ها مثلا ربات با اسم و مشخصات واقعی وارد میشه." No server/protocol
+change — this is purely how the client renders the existing wait period; the cycling pool can be a
+static/cached recent-players sample, not a live query. Prototype: `prototype/screens/queue.html`.
+
 ## Private tables (میز اختصاصی)
 
 - Host creates: `{format: '1v1'|'2v2', entryFee}` → 5-char room code (alphabet without 0/O/1/I/L),
@@ -31,6 +41,11 @@ No rating/ELO at launch (D12). Values in `config/game.ts`.
 - Deep link `dozari://room/<CODE>` and web URL `https://<domain>/r/<CODE>`.
 - Joiners pick a side; host can swap/kick; host starts when seats are full. Entry fee escrowed at start.
 - Rematch keeps the same room.
+- **Host ownership features (D52)** — beyond the bare controls above: a custom table name + emoji
+  the host picks, an explicit board-difficulty selector for the table (ties into D47/D51 — harder
+  boards cost more to enter), and a "require every guest to confirm ready before start" toggle.
+  Owner: "موقع ایجاد میز یکم امکانات بیشتر بدیم به سازنده که حس مالکیت رو بهش القا کنیم." Prototype:
+  `prototype/screens/table.html`.
 
 ## Reconnects & abandonment
 
@@ -41,6 +56,26 @@ No rating/ELO at launch (D12). Values in `config/game.ts`.
   - Duel: opponent wins.
   - Team: if one teammate remains, team continues (captaincy passes). Both gone → other side wins.
 - Abandoners get no payout and their entry fee goes to the pot (sink); repeated abandons → queue cooldown.
+- **Resume-match indicator (D42)**: as soon as the app opens with an unfinished match still active
+  server-side (i.e. still inside `RECONNECT_GRACE_SECONDS`, or a longer-lived "match still active"
+  state — exact cutoff TBD), the client shows a persistent badge/banner (Home screen, and ideally a
+  nav-level badge) offering to rejoin — not just "reconnect works if you happen to navigate back
+  into the match." Owner: "اگه بازی رو باز داشتم و افتادم بیرون، موقع برگشت یه آیکن بگه هست و
+  می‌تونه دوباره بپیونده." Prototype (client-only flag, no real server round-trip):
+  `prototype/index.html` sets `gh_active_match` in localStorage on duel start/clears it on
+  finish/abandon; `prototype/screens/home.html` reads it and shows the banner.
+- **Mid-match takeover** — see `game-rules.md` §Mid-match disconnect → bot takeover (D43): past a
+  grace period (new config value, not yet picked), an AFK/disconnected seat gets a silent bot
+  takeover rather than staying abandoned, same undisclosed-bot policy as D23.
+
+## Presence & social
+
+- **Online player count** (D45): shown somewhere persistent (Home header, matchmaking wait screen)
+  — a real or lightly-smoothed server-computed figure, never fabricated client-side. Needs a
+  lightweight presence mechanism (could piggyback on the existing socket connection count) — not
+  designed yet, tracked as an open item.
+- **Browse players & friend requests** (D44) — see `profile-and-identity.md` §Friends & player
+  browsing.
 
 ## Socket events (contract lives in `packages/shared/src/socket/events.ts`)
 

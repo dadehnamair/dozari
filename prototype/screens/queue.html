@@ -11,6 +11,12 @@
 <style>
 .spinner{width:64px;height:64px;border-radius:50%;border:5px solid var(--card);border-top-color:var(--accent);animation:spin 1s linear infinite;margin:0 auto}
 @keyframes spin{to{transform:rotate(360deg)}}
+.scan-card{display:flex;align-items:center;gap:10px;background:var(--paper);border-radius:var(--radius-md);padding:10px 14px;justify-content:center}
+.scan-card .e{font-size:26px}
+.scan-card b{font-size:15px}
+.scan-card.found{background:var(--accent-grad);color:var(--accent-ink)}
+.online-pill{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ok);font-weight:700}
+.online-pill i{width:7px;height:7px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px color-mix(in srgb, var(--ok) 25%, transparent)}
 @media (prefers-reduced-motion:reduce){.spinner{animation:none}}
 </style>
 </head>
@@ -22,8 +28,12 @@
   </header>
 
   <div class="panel" style="align-items:center;text-align:center">
+    <span class="online-pill num" id="onlinePill"><i aria-hidden="true"></i><span id="onlineCount">۳۴۲</span> نفر الان آنلاینن</span>
     <div class="spinner" role="status" aria-label="در حال جستجو"></div>
     <h2 id="title">در حال پیدا کردن حریف…</h2>
+    <div class="scan-card" id="scanCard" aria-live="polite">
+      <span class="e" aria-hidden="true" id="scanAvatar">🔎</span><b id="scanName">در حال گشتن بین بازیکن‌ها…</b>
+    </div>
     <p class="hint">زمان تقریبی: <b class="num" id="eta">۱۵</b> ثانیه · گذشته: <b class="num" id="elapsed">۰</b> ثانیه</p>
     <p class="hint">پازل صف‌شده: <b>۴ دسته</b> · سختی: <b>متوسط</b></p>
     <button class="btn danger" id="cancel">لغو</button>
@@ -42,20 +52,38 @@
   const params = new URLSearchParams(location.search);
   const mode = params.get('mode') || 'duel';
   document.getElementById('title').textContent = mode==='team' ? 'در حال پیدا کردن ۳ حریف دیگه…' : 'در حال پیدا کردن حریف…';
+
+  // "scanning among players" reveal card (D40) — the found opponent (incl. a bot, per D23/D41)
+  // is drawn from the exact same-looking pool, so a bot result never looks different from a human one.
+  const CANDIDATES = [
+    {name:'دوزاری‌باز۸۸', e:'🧑‍🚀'}, {name:'مینای_قدیمی', e:'👩‍🦳'}, {name:'رضاگل', e:'🧑‍🎤'},
+    {name:'ممدِ رحیمی', e:'🧑‍🔧'}, {name:'شیرین‌بانو', e:'🧕'}, {name:'حسنِ اصفهان', e:'👳'},
+    {name:'نازی_۷۰', e:'👵'}, {name:'کوروش‌جان', e:'🧑‍🌾'}, {name:'تارا_کرج', e:'👩‍🎓'},
+  ];
+  document.getElementById('onlineCount').textContent = (300 + Math.floor(Math.random()*180)).toLocaleString('fa-IR');
+  const scanName = document.getElementById('scanName'), scanAvatar = document.getElementById('scanAvatar'), scanCard = document.getElementById('scanCard');
+  const scanTimer = setInterval(() => {
+    const c = CANDIDATES[Math.floor(Math.random()*CANDIDATES.length)];
+    scanName.textContent = c.name; scanAvatar.textContent = c.e;
+  }, 260);
+
   let elapsed = 0;
   const foundAt = 6 + Math.floor(Math.random()*4);
+  const opponent = CANDIDATES[Math.floor(Math.random()*CANDIDATES.length)];
   const t = setInterval(() => {
     elapsed++;
     document.getElementById('elapsed').textContent = elapsed.toLocaleString('fa-IR');
     if (elapsed >= foundAt) {
-      clearInterval(t);
+      clearInterval(t); clearInterval(scanTimer);
+      scanCard.classList.add('found');
+      scanName.textContent = opponent.name + ' — پیدا شد!'; scanAvatar.textContent = opponent.e;
       const toast = document.getElementById('toast');
-      toast.textContent = elapsed < 10 ? 'حریف پیدا شد! 🎉' : 'یه حریف دوزاری‌باز پیدا شد!';
+      toast.textContent = 'حریف پیدا شد! 🎉';
       toast.classList.add('show');
-      setTimeout(() => { location.href = '../index.html'; }, 900);
+      setTimeout(() => { location.href = '../index.html'; }, 1100);
     }
   }, 1000);
-  document.getElementById('cancel').addEventListener('click', () => { clearInterval(t); location.href = 'home.html'; });
+  document.getElementById('cancel').addEventListener('click', () => { clearInterval(t); clearInterval(scanTimer); location.href = 'home.html'; });
   try{ document.getElementById('coins').textContent = Number(JSON.parse(localStorage.getItem('gh_coins')||'200')).toLocaleString('fa-IR'); }catch(e){}
 })();
 </script>

@@ -27,14 +27,26 @@ hardcoded literal, so they can be tuned post-launch from real play data without 
 
 | sink | amount |
 |---|---|
-| Duel entry | 20 |
-| Team entry | 20 per player |
+| Duel entry | 20 (base — see §Entry fee scales with difficulty below) |
+| Team entry | 20 per player (base) |
 | Private table | host-chosen 0–100 per player (0 = friendly, no payout, no burn) |
 | House cut | 10% of every pot |
 | Abandon | entry fee lost |
 | Price-guess round wager | 2–5 coins/round, escrowed per round | competitive modes only, solo has none — see `price-guess-round.md` §Real coin side-bet |
 | Coin packages (IAP) | N/A yet | see §Real-money coin purchases below — designed for now, **not built/enabled** at MVP |
 | (later) cosmetics: avatars, card backs, taunt packs | TBD |
+
+## Entry fee scales with difficulty (D51)
+
+A harder match costs more to enter than an easier one — the flat `ENTRY_FEE` above becomes a
+tier-scaled table: `entryFee = round(baseEntryFee * DIFFICULTY_MULTIPLIER[tier] / 5) * 5` (rounded
+to the nearest 5 coins). Owner: "هرچی بازی رو سخت‌ترش میکنه ورودی‌هاش سنگین‌تر باشه." Applies to
+duel/team queue entry (tier = the skill-tier puzzle picked, per `progression.md` D34/D47) and to
+private-table hosts picking a difficulty (`app-screens.md` §Private table, D52). Prototype uses
+illustrative multipliers `{easy: 0.5, mid: 1, hard: 1.75}` in `prototype/screens/table.html` — not
+tuned numbers, just a placeholder shape. Exact multipliers need the same playtesting pass as the
+rest of this file's numbers (open question 1); payout math (win = pot × 0.9, etc.) is unchanged,
+it just operates on a bigger or smaller pot.
 
 ## Rules
 

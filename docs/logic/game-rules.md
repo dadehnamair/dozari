@@ -93,6 +93,26 @@ Invariants (unit-tested):
 - `turnId` increments on every turn change; timeouts carry the `turnId` they were scheduled for.
 - A finished state accepts no commands.
 
+## Match HUD (D39)
+
+During any live match (duel/2v2/table), each side's panel always shows, not just score/mistakes:
+avatar, nickname, current coin balance, and level (from `progression.md`, D33). Owner: "وقتی داریم
+با یکی بازی میکنیم مشخصاتش آواتارش مقدار سکه‌هاش لولش همش بیاد که هیجان کارو زیاد کنه" — makes the
+opponent read as a real person with something at stake, not just an abstract score column. Coin
+balance shown is a snapshot at match start (own client already tracks it live; the opponent's is
+whatever the server last broadcast — no new real-time sync requirement beyond what already exists
+for score/mistakes). Prototype: `prototype/index.html` `renderStatus()`'s `.side .id` row.
+
+## Mid-match disconnect → bot takeover (D43)
+
+If a player disconnects or goes AFK (no input) mid-match past a grace period, the server silently
+swaps a bot into their seat — same undisclosed-bot policy as `bots.md`/D23, now covering an
+abandoned *live* seat, not just an unfilled queue. The remaining player(s) never see any
+"opponent disconnected" state; the seat just keeps playing, at the same visual fidelity as D39's
+HUD (avatar/coins/level unchanged). Grace-period timer is a new config value, not yet picked — see
+`bots.md` open questions. Economy subsidy accounting (`bots.md` §Economy interaction) extends to
+cover a mid-match handoff.
+
 ## Result screen (all modes)
 - Full solution (4 colored rows, title + explanation), scores, mistakes, coins won/lost.
 - Overlaid price chart (see result-chart.md) + product stories.

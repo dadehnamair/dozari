@@ -37,6 +37,11 @@ separate card since it's folded into every mode per D19):
   another menu (owner decision, 2026-09-27; also reflected in `PLAN.md` Phase 7).
 - Daily challenge / streak banner.
 - Achievements shortcut.
+- **Online player count** (D45, see `matchmaking.md` §Presence & social) — a small persistent
+  badge near the top.
+- **Resume-match indicator** (D42, see §Resume-match indicator below) when an unfinished match
+  exists.
+- **Leaderboard/tournament entry card** (D49/D50, see §Leaderboard & tournaments below).
 
 ## Matchmaking queue (waiting) screen
 
@@ -60,6 +65,47 @@ identical between private and queued matches, per the redaction/authority model 
 - Move/kick guests between seats.
 - Lock the table (blocks further joins) and extend it if it's about to expire
   (`ROOM_IDLE_MINUTES` in `matchmaking.md`).
+- **More host "ownership" features (D52)**: a custom table name + emoji, a board-difficulty
+  picker (drives the entry fee via D51), and a "require every guest to confirm ready before start"
+  toggle — see `matchmaking.md` §Private tables for the full writeup. Owner: "موقع ایجاد میز یکم
+  امکانات بیشتر بدیم به سازنده که حس مالکیت رو بهش القا کنیم." Prototype: `screens/table.html`.
+
+## Resume-match indicator (D42)
+
+Reopening the app with an unfinished match still active server-side shows a persistent
+badge/banner (Home screen, ideally reachable from anywhere via a nav-level badge) offering to
+rejoin — not just "reconnect works if you happen to navigate back into the match screen." Owner:
+"اگه بازی رو باز داشتم و افتادم بیرون، موقع برگشت یه آیکن بگه هست و می‌تونه دوباره بپیونده."
+Backend mechanics (grace window, resume snapshot) already exist per `matchmaking.md` §Reconnects &
+abandonment — this decision is specifically that the client must surface it proactively. Prototype:
+`index.html` sets a `gh_active_match` flag on duel start (cleared on finish/abandon);
+`screens/home.html` reads it and shows the banner.
+
+## Leaderboard & tournaments (D49/D50)
+
+A dedicated screen the player can reach any time (linked from Home and from Profile), covering
+three things in one place:
+
+- **Rankings**, filterable by period — امروز / این هفته / این ماه / کل بازی — and optionally by
+  province (ties into D53). Owner: "یه‌جایی باشه بتونه کاربر بره رقابت‌ها هم ببینه" و "جایگاه
+  کاربرارو بر اساس روز هفته ماه و کل بازی نشون بده."
+- **Players** — browse/search other users, send friend requests (D44, full spec in
+  `profile-and-identity.md` §Friends & player browsing).
+- **Tournaments** — owner: "یه صفحه هم باشه تورنومنت برگزار کنیم." The prototype mocks only the
+  entry point (a tournament card with entry fee/prize/start time and a join button) — bracket vs.
+  ongoing-leaderboard format, prize structure, and cadence are **not decided**, flagged as an open
+  question (`DECISIONS.md` open question 16).
+
+Prototype: `screens/leaderboard.html`. Backend needs a ranking query (probably a periodic
+materialized view or a scheduled aggregation job, not a live query per request) and, for
+tournaments, new tables — neither designed yet.
+
+## Icon caption convention (D48)
+
+Any icon-only control gets a short text caption underneath it, not just a hover title. Already the
+pattern for the bottom nav and mode cards; apply it to every new icon-only control going forward
+(friend-request button, resume-match badge, online-count pill, etc.) rather than relying on a
+tooltip alone. Owner: "زیر متن‌های اون آیکن‌ها یه راهنمایی کوچیک هم باشه قشنگ میشه."
 
 ## In-match chat drawer
 
