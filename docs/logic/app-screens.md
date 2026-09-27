@@ -70,12 +70,16 @@ identical between private and queued matches, per the redaction/authority model 
   (Telegram, email, in-app form) is a content/ops decision, not logic; track as a small open
   item, not blocking).
 
+## Wallet / coin history
+
+**No separate wallet screen** (owner decision, 2026-09-27): the Profile screen's match-history
+list (`profile-and-identity.md`) is the coin history — each row already shows coins won/lost per
+match. No dedicated full-ledger view (all faucets/sinks) at MVP; revisit only if players ask for
+non-match coin movements (daily bonus, invite rewards) to be individually visible.
+
 ## Open follow-ups
 
-- Wallet/coin-history screen: currently folded into the Profile screen's "match history" per
-  `profile-and-identity.md`; whether it needs its own dedicated full ledger view (all faucets/sinks,
-  not just match-related) hasn't been asked yet.
-- UGC voting-feed screen layout (queue of pending submissions, vote UI) hasn't been walked
-  through in detail yet — `docs/logic/ugc.md` has the backend flow, the screen itself doesn't.
 - Achievement/tag catalog content (which badges exist, unlock rules) is content work, not logic —
   tracked as a Phase 6/7 content task in `PLAN.md`, not a screen-design question.
+- UGC voting-feed screen is now specified in `docs/logic/ugc.md` §Voting feed UI (single-card
+  swipe, approve/reject) — no longer open.
