@@ -76,6 +76,25 @@ Choosing bands: pick a year with dense data, pick a target price from actual pri
 band = target ± k% where k shrinks with level (yellow 40%, green 25%, blue 15%, purple 8%).
 Always re-run the uniqueness check — narrowing bands is how collisions are avoided.
 
+## Content bootstrap order (owner-approved, 2026-09-27)
+
+Before the automated generator is trusted to run unattended:
+
+1. **Hand-curate `MANUAL_PUZZLE_TARGET`** = 50–100 high-quality puzzles first (`curated` groups
+   allowed, admin-approved) — this is what sets the game's tone/humor bar. The automated
+   generator in §Generator is built and tuned to imitate this style, not the other way around.
+2. Only after that pool exists does the generator's output get trusted into the `approved` pool
+   without a human pass — see `PLAN.md` Phase 2 ordering.
+
+### Group titles: AI-drafted, owner-approved
+
+Titles (`title_fa`) are **drafted by an LLM** from the group's `rule` (a prompt template per rule
+`kind`, producing 2–3 candidate titles in the tone described in `puzzle-design.md`), then a human
+**picks/edits** one before the puzzle is saved as `approved`. Never auto-publish an AI title
+un-reviewed — this is a content-quality gate, same spirit as the `curated` rule kind's
+human-approval requirement above. Track candidate titles + which was chosen in
+`group_title_templates` so good drafts get reused and bad ones don't repeat.
+
 ## "Infinite" puzzles
 
 - A background job keeps a pool of ≥ `POOL_MIN` approved puzzles (config) and tops it up.

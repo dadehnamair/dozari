@@ -1,7 +1,11 @@
-# Coin economy (proposed defaults — D9)
+# Coin economy (defaults accepted, tunable — D9, confirmed 2026-09-27)
 
 Goal from the brief: coins come from inviting friends and playing; entering matches/tables costs coins;
 an active player should **never get stuck** at zero. All numbers → `packages/shared/src/config/economy.ts`.
+
+Owner confirmed the faucet/sink numbers below as the launch defaults (2026-09-27: "همون گزینه
+اول اما حتما قابل تنظیم باشه" — keep them, but every number must stay a config value, never a
+hardcoded literal, so they can be tuned post-launch from real play data without a code change.
 
 ## Faucets (coins in)
 
@@ -17,6 +21,7 @@ an active player should **never get stuck** at zero. All numbers → `packages/s
 | Invite reward (invitee) | +50 on redemption | plus free chat unlock |
 | UGC item approved | 40 | per approved submission, max 5/day |
 | Broke rescue | top-up to 60 | if balance < cheapest entry fee and no free matches left: once per day |
+| *(house-funded, not a player faucet)* `bot_match_subsidy` | = the entry fee a human opponent would have paid | credited to the match pot, not to any user, whenever a bot fills a seat — keeps win/draw/loss payout math identical to a human match. See `docs/logic/bots.md` §Economy interaction (D23). Needs balancing once bots are simulated. |
 
 ## Sinks (coins out)
 
@@ -27,6 +32,8 @@ an active player should **never get stuck** at zero. All numbers → `packages/s
 | Private table | host-chosen 0–100 per player (0 = friendly, no payout, no burn) |
 | House cut | 10% of every pot |
 | Abandon | entry fee lost |
+| Price-guess round wager | 2–5 coins/round, escrowed per round | competitive modes only, solo has none — see `price-guess-round.md` §Real coin side-bet |
+| Coin packages (IAP) | N/A yet | see §Real-money coin purchases below — designed for now, **not built/enabled** at MVP |
 | (later) cosmetics: avatars, card backs, taunt packs | TBD |
 
 ## Rules
@@ -46,6 +53,26 @@ an active player should **never get stuck** at zero. All numbers → `packages/s
 - Private-table coin farming: payouts from private tables capped at *PRIVATE_DAILY_PAYOUT_CAP* = 300/day
   per user; pairs that play each other > 10 times/day get fee 0 forced.
 - Daily counters reset at 00:00 Asia/Tehran.
+
+## Real-money coin purchases (IAP) — designed now, built later
+
+Owner (2026-09-27): "از همین الان براش جا باز کنیم در طراحی" — make room in the design now, even
+though this isn't built or enabled at MVP launch (open question 4 in `DECISIONS.md` still governs
+*whether/when* to turn it on; this section is the *how*, decided in advance so the schema and
+ledger don't need retrofitting later).
+
+- New `coin_packages` catalog table: `id, coins, price_irr, store_sku_bazaar, store_sku_myket,
+  is_active`. A handful of fixed tiers (e.g. small/medium/large), not a free-form amount.
+- Purchase flow: client buys via **Cafe Bazaar or Myket in-app billing** (Poolakey SDK, per D18 —
+  no other payment path for mobile; a future ZarinPal web top-up is a separate, later decision).
+  Server verifies the purchase receipt with the store's server-side verification API before
+  crediting coins — never trust the client's "purchase succeeded" event alone.
+- Ledger: new `purchase` reason (already reserved as a placeholder in `data-model.md`
+  §coin_ledger), `idempotencyKey = purchase:<storeOrderId>`, so a replayed/duplicate store
+  callback can't double-credit.
+- Because this is real money, it needs its own refund/dispute handling and store-policy
+  compliance review before going live — tracked as a Phase 8+ (or dedicated) task in `PLAN.md`,
+  not part of the Phase 6 coin-economy build-out.
 
 ## Balancing
 

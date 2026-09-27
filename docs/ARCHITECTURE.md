@@ -4,29 +4,46 @@
 
 - Users are in Iran: Google/Firebase services are filtered or sanction-blocked; payment via
   international gateways is impossible. Iranian app stores: Cafe Bazaar (بازار), Myket (مایکت).
+- iOS distribution from Iran is impractical (no local Apple developer account, unreliable
+  alt-stores) → the **web build is a first-class target**, not an afterthought, both for iPhone
+  users and for opening invite/room links without installing anything (D13).
+- International connectivity can drop entirely during outages, while in-country services stay
+  up → **primary hosting is inside Iran** (D16), with backups replicated abroad.
+- Cloud dev-tooling accounts (Expo EAS, Docker Hub, some npm registries) can be rate-limited,
+  blocked, or account-restricted from Iran → prefer **self-hosted / local-build** pipelines over
+  vendor cloud services wherever the alternative isn't much extra work (D14).
 - Gameplay is **turn-based and slow** → a single Node process with Socket.io is plenty for MVP.
 - The team codes with heavy AI assistance → one language (TypeScript) across the whole stack.
+
+See `docs/DECISIONS.md` D13–D18 for the tech consult these constraints came out of, and
+Phase 0-A in `docs/PLAN.md` for the spikes that validate them before real code is built on top.
 
 ## Stack
 
 | Layer | Choice | Notes |
 |---|---|---|
-| Mobile | React Native + Expo (TypeScript), Expo Router | Android first (Bazaar/Myket APK/AAB). iOS later (sideload/web). No Google Play Services dependency. |
-| Web (optional) | Expo web build of same app | Cheap distribution channel for iOS users; share links land here. |
+| Mobile | React Native + Expo (TypeScript), Expo Router | Android (Bazaar/Myket APK/AAB) **and web/PWA** built from the same codebase (D13). iOS only via the web build for now. No Google Play Services dependency. |
+| Build/OTA | Local Android builds (`expo prebuild` + Gradle, or `eas build --local`); self-hosted `expo-updates` server | No dependency on Expo's EAS cloud (D14) — validated in Phase 0-A. |
+| Web hosting | Static export of the Expo web build, served from the same origin/CDN as the API | Also where invite/room-code links resolve for users without the app installed. |
 | State (client) | Zustand for local UI state, TanStack Query for REST | Match state comes from socket snapshots, not local truth. |
-| Realtime | Socket.io (server + client) | Rooms = matches. Acks for every client→server command. |
+| Realtime | Socket.io (server + client); **Colyseus evaluated as an alternative** (D17) | Rooms = matches. Acks for every client→server command. Phase 0-A spikes both before Phase 4 is built. |
 | API | Fastify + zod (`fastify-type-provider-zod`) | REST for catalog, profile, economy, UGC. |
 | DB | PostgreSQL 16 | Drizzle ORM + drizzle-kit migrations (pure TS, no binary engine download). |
 | Cache/queues | In-memory for MVP → Redis when >1 server instance | Socket.io Redis adapter at that point. |
 | Object storage | S3-compatible (ArvanCloud Object Storage) | Product images; CDN in front. |
-| Charts | `react-native-svg` + `victory-native` (or hand-rolled SVG) | Must render offscreen for share image. |
+| Charts | Hand-rolled `react-native-svg` (D15) | No Skia-based chart library — keeps the web build light. Must render offscreen for share image. |
 | Share | `react-native-view-shot` + `expo-sharing` | |
-| Auth | Guest device account (anonymous JWT) → optional phone OTP upgrade | OTP via Iranian SMS provider (e.g. Kavenegar / SMS.ir). |
-| Push | Deferred. Candidates: Pushe / Najva (Iranian) or none for MVP | No FCM. |
-| Hosting | ArvanCloud (IaaS/Container) or non-sanctioning foreign VPS | Docker Compose: `server`, `postgres`, `redis` (later), `caddy`. |
-| CI | GitHub Actions: typecheck, lint, test, build | |
+| Auth | Guest device account (anonymous JWT) → optional phone OTP upgrade | OTP via Iranian SMS provider: Kavenegar, SMS.ir, or Ghasedak (D18). |
+| Payments (later) | Cafe Bazaar / Myket IAP (Poolakey SDK) for in-app; ZarinPal (needs Enamad) for web | Not built until monetization model is decided (open question 4). |
+| Error tracking | Self-hosted GlitchTip | Not Sentry SaaS or Crashlytics (D18). |
+| Analytics | Self-hosted Umami or PostHog | D18. |
+| Push | Deferred. Candidates: Pushe / Najva (Iranian) or none for MVP | No FCM (D18). |
+| Ads (if monetized) | Tapsell, Adivery | Iranian ad networks (D18); deferred with open question 4. |
+| Hosting | **Primary: ArvanCloud or ParsPack (inside Iran)**, backups replicated to an off-country location | D16 — stays reachable during international connectivity outages, lower latency for the target audience. Docker Compose: `server`, `postgres`, `redis` (later), `caddy`. |
+| CI | GitHub Actions: typecheck, lint, test, build | Pin npm/Docker registry mirrors reachable from Iran once Phase 0-A experiment 4 identifies them. |
 
-Rejected alternatives are recorded in `DECISIONS.md` (Firebase, Flutter, Supabase self-hosted).
+Rejected alternatives are recorded in `DECISIONS.md` (Firebase, Flutter, Supabase self-hosted,
+Skia-based charts, Expo EAS cloud, hosting outside Iran).
 
 ## Module boundaries
 

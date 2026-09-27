@@ -9,8 +9,10 @@ No rating/ELO at launch (D12). Values in `config/game.ts`.
   sides so parties stay together (2+2, 2+1+1, 1+1+1+1).
 - Compatibility: both can afford the entry fee (checked at join AND re-checked at match start), not
   mutually blocked, not in another active match.
-- *QUEUE_BOT_FALLBACK_SECONDS* = 60: if nobody found, offer "play solo while waiting" (keeps queue slot).
-  No bots in ranked play at MVP.
+- *QUEUE_BOT_FALLBACK_SECONDS* = 60 (superseded default — see `docs/logic/bots.md` for the
+  actual `BOT_FALLBACK_SECONDS`, proposed 20–40s): once a real player has waited this long with
+  no human match, an **undisclosed AI opponent ("bot")** fills the match instead (D23, owner
+  request 2026-09-27). The waiting screen still offers "play solo while waiting" alongside this.
 
 ## Match start sequence
 
