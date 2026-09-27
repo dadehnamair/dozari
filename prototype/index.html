@@ -11,27 +11,28 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lalezar&family=Vazirmatn:wght@400;500;700;800&display=swap">
 <style>
 :root{
-  --paper:#EAEFF2; --surface:#FFFFFF; --ink:#1B2230; --muted:#5B6576; --line:#D2DAE0;
-  --accent:#0B7580; --accent-ink:#FFFFFF; --card:#DCE3E8; --card-hover:#D0D9DF;
-  --sel:#263041; --sel-ink:#F2F5F7; --bot:#8A5A00; --danger:#B93A34; --ok:#2F7D3A;
-  --y:#F2D65B; --g:#9CC35A; --b:#A9C0EE; --p:#B982C6; --on-group:#1B2230;
+  /* warm-paper + pastel palette per docs/brand.md (nostalgia+playful); group colors are the D28/persian-rtl-ui locked hex */
+  --paper:#FBF1E3; --surface:#FFFCF5; --ink:#3B2A22; --muted:#8A7563; --line:#E9D8BE;
+  --accent:#E2984B; --accent-ink:#3B2A22; --card:#F3E3CB; --card-hover:#ECD7B7;
+  --sel:#3B2A22; --sel-ink:#FBF1E3; --bot:#B5731F; --danger:#C4564E; --ok:#5C9A5C;
+  --y:#F9DF6D; --g:#A0C35A; --b:#B0C4EF; --p:#BA81C5; --on-group:#3B2A22;
   --s1:#D9482B; --s2:#2A6FC9; --s3:#2E8F4E; --s4:#8E44C9;
-  --shadow:0 1px 0 rgba(27,34,48,.08);
+  --shadow:0 1px 0 rgba(59,42,34,.08);
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
     color-scheme:dark;
-    --paper:#10141A; --surface:#181E27; --ink:#E5E9EE; --muted:#96A1B1; --line:#29323E;
-    --accent:#3AB3BC; --accent-ink:#0C1115; --card:#232B36; --card-hover:#2B3441;
-    --sel:#E5E9EE; --sel-ink:#10141A; --bot:#E3B04B; --danger:#EF6E66; --ok:#6CC47C;
+    --paper:#241A12; --surface:#2F2318; --ink:#F3E6D4; --muted:#BBA48B; --line:#493725;
+    --accent:#E8A768; --accent-ink:#241A12; --card:#3B2C1E; --card-hover:#463625;
+    --sel:#F3E6D4; --sel-ink:#241A12; --bot:#E3B04B; --danger:#E9948C; --ok:#8FC98F;
     --s1:#FF7A5C; --s2:#63A4FF; --s3:#5CCB7E; --s4:#C28CFF; --shadow:none;
   }
 }
 :root[data-theme="dark"]{
   color-scheme:dark;
-  --paper:#10141A; --surface:#181E27; --ink:#E5E9EE; --muted:#96A1B1; --line:#29323E;
-  --accent:#3AB3BC; --accent-ink:#0C1115; --card:#232B36; --card-hover:#2B3441;
-  --sel:#E5E9EE; --sel-ink:#10141A; --bot:#E3B04B; --danger:#EF6E66; --ok:#6CC47C;
+  --paper:#241A12; --surface:#2F2318; --ink:#F3E6D4; --muted:#BBA48B; --line:#493725;
+  --accent:#E8A768; --accent-ink:#241A12; --card:#3B2C1E; --card-hover:#463625;
+  --sel:#F3E6D4; --sel-ink:#241A12; --bot:#E3B04B; --danger:#E9948C; --ok:#8FC98F;
   --s1:#FF7A5C; --s2:#63A4FF; --s3:#5CCB7E; --s4:#C28CFF; --shadow:none;
 }
 *{box-sizing:border-box}
@@ -49,6 +50,10 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .coin-dot{width:16px;height:16px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#FFE58A,#D9A520);box-shadow:inset 0 0 0 1.5px #B8860B}
 .tagline{margin:-8px 0 0;font-weight:700;color:var(--accent);font-size:14px}
 .sub{color:var(--muted);font-size:13px;margin:-6px 0 0}
+.lvchip{background:var(--accent);color:var(--accent-ink);border-radius:999px;padding:4px 10px;font-weight:800;font-size:12.5px;transform:rotate(-2deg)}
+.xp-wrap{margin-top:-8px}
+.xp-track{background:var(--card);border-radius:999px;height:6px;overflow:hidden}
+.xp-track i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--y),var(--accent));border-radius:999px;transition:width .4s ease}
 
 .tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--card);padding:4px;border-radius:12px}
 .tabs button{border:0;background:transparent;border-radius:9px;padding:8px 6px;font-weight:600;font-size:14px}
@@ -149,8 +154,12 @@ details.logic summary{cursor:pointer;font-weight:700;font-size:14px}
 <div class="wrap">
   <header>
     <h1 class="logo">دوزاری<span> 🪙</span></h1>
-    <div class="coins num" title="سکه‌ها"><span class="coin-dot"></span><span id="coins">۲۰۰</span></div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <span class="lvchip num" id="lvchip" title="سطح و امتیاز تجربه">Lv ۱</span>
+      <div class="coins num" title="سکه‌ها"><span class="coin-dot"></span><span id="coins">۲۰۰</span></div>
+    </div>
   </header>
+  <div class="xp-wrap"><div class="xp-track"><i id="xpfill"></i></div></div>
   <p class="tagline">دوزاریت می‌افته؟</p>
   <p class="sub">«قیمتش چند بود؟» — ۱۶ جنس قدیمی رو توی ۴ دسته‌ی چهارتایی بچین، بعد قیمت دقیقشونم حدس بزن.</p>
 
@@ -232,6 +241,9 @@ const ENTRY_FEE=20, HOUSE_CUT=0.1, LOSS_CONSOLATION=5, RESCUE_TO=60;
 // price-guess bonus round — docs/logic/price-guess-round.md + game-rules.md §Price-guess bonus points
 const PRICE_GUESS_STAIRCASE=[{max:5,pts:5},{max:15,pts:4},{max:30,pts:3},{max:60,pts:2},{max:Infinity,pts:1}];
 const PRICE_GUESS_ROUND_WAGER=3, PRICE_GUESS_LOSER_BONUS_PER_ROUND=1;
+// leveling / XP — docs/logic/progression.md (D33). Cosmetic progression only, never affects matchmaking (D12 stands).
+const XP_SOLO_BASE=5, XP_DUEL_BASE=10, XP_WIN_BONUS=15, XP_PER_PG_POINT=2;
+const xpForLevel = n => Math.round(50*n*n); // total XP needed to reach level n+1
 const LV_NAMES=['زرد','سبز','آبی','بنفش'];
 const TAUNTS=['یه دوزاری بنداز، شروع کنیم!','سلام! آماده‌ای ببازی؟','اینو مامان‌بزرگمم بلد بود 😄','پیکان هم این‌قدر کند نبود!','یکی مونده بود، حیف!','دمت گرم، بازی خوبی بود'];
 const BOT_TAUNTS=['حالا ببین کی می‌بره 😎','دوزاریت هنوز تو راهه؟','شانسی بود!','قیمت سال ۷۵ رو از حفظم','عجله نکن، وقت داری','ای بابا!'];
@@ -304,10 +316,25 @@ const store = {
 
 // ---------- state ----------
 let coins = store.get('gh_coins',200);
+let xp = store.get('gh_xp',0);
 let pIdx = store.get('gh_pidx',0) % PUZZLES.length;
 let S = null, timerId=null, botId=null, passId=null, pgTimerId=null;
 const $ = id => document.getElementById(id);
 function setCoins(v){ coins=Math.max(0,v); store.set('gh_coins',coins); $('coins').textContent=fa(coins,0); }
+function levelOf(x){ let lv=1; while(x>=xpForLevel(lv)) lv++; return lv; }
+function renderLevel(){
+  const lv=levelOf(xp);
+  const prevNeed = lv>1?xpForLevel(lv-1):0, nextNeed=xpForLevel(lv);
+  $('lvchip').textContent='Lv '+fa(lv,0);
+  $('xpfill').style.width=Math.min(100,Math.round((xp-prevNeed)/(nextNeed-prevNeed)*100))+'%';
+}
+function addXp(amount){
+  const before=levelOf(xp);
+  xp+=amount; store.set('gh_xp',xp);
+  renderLevel();
+  const after=levelOf(xp);
+  if(after>before) toast('ترفیع گرفتی! رسیدی به سطح '+fa(after,0)+' 🎉');
+}
 let toastId=null;
 function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastId); toastId=setTimeout(()=>t.classList.remove('show'),1800); }
 
@@ -499,6 +526,7 @@ function nextPgRound(){
 function finalizeSolo(){
   const total=S.pg.rounds.reduce((s,r)=>s+(r.pts||0),0);
   S.result={win:S.mistakes.me<MAX_MISTAKES, pgScore:total, pgMax:S.pg.rounds.length*5};
+  addXp(XP_SOLO_BASE + total*XP_PER_PG_POINT);
   render(); scrollToEl('result');
 }
 function finalizeDuel(forced){
@@ -526,6 +554,7 @@ function finalizeDuel(forced){
   const loserBonus = (loser && locked(loser) && S.pg.score[loser]>0) ? S.pg.score[loser]*PRICE_GUESS_LOSER_BONUS_PER_ROUND : 0;
   S.result={winner:w, loserBonus, loserSide:loser};
   say('bot', w==='me'?'دمت گرم، بازی خوبی بود':w==='bot'?'ای بابا! دفعه‌ی بعد 😄':'دوزاری‌ها هم‌زمان افتاد!', true);
+  addXp(XP_DUEL_BASE + (w==='me'?XP_WIN_BONUS:0) + S.pg.score.me*XP_PER_PG_POINT);
   render(); scrollToEl('result');
 }
 
@@ -732,6 +761,7 @@ document.addEventListener('keydown',e=>{
 });
 
 setCoins(coins);
+renderLevel();
 renderLogic();
 newGame('solo');
 })();

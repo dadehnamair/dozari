@@ -23,7 +23,8 @@ validator, scoring, config; no I/O) · `packages/db` Drizzle schema/migrations/s
 ## Specs — read the matching one before coding (`docs/logic/`)
 
 data-model · puzzle-generation · game-rules · matchmaking · economy · chat-and-access · ugc ·
-result-chart · price-guess-round · profile-and-identity · bots · app-screens (screen-by-screen UI).
+result-chart · price-guess-round · profile-and-identity · bots · app-screens (screen-by-screen UI) ·
+progression (level/XP, skill-tier puzzle difficulty).
 Code and spec must never diverge: fix one or the other in the same change.
 
 ## Non-negotiable rules
