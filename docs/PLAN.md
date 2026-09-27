@@ -47,7 +47,8 @@ carrying it into Phase 0.
 ## Phase 1 — Catalog & content pipeline
 
 - [ ] 🗄 Seed format (`packages/db/seed/*.json`) validated by zod — see `price-catalog` skill
-- [ ] 📚 First 60 products × ≥3 price points (hand-curated, with sources where available)
+- [ ] 📚 First 60 products × ≥3 price points (hand-curated: archive/AI-assisted research +
+      personal/family memories, per `price-catalog` skill §Bootstrap sourcing)
 - [ ] 🖥 REST: `GET /products/:id`, `GET /products/:id/prices` (for result chart)
 - [ ] 🖥 Image upload to object storage (script, not UI yet)
 - [ ] 🧪 Seed validation test: every product has ≥1 price point, no duplicate (product, year)
@@ -58,8 +59,13 @@ carrying it into Phase 0.
 
 - [ ] 🧩 Group rule types + evaluators (`logic/puzzle-generation.md` §Rule types)
 - [ ] 🧩 `validatePuzzle()` — uniqueness of solution, difficulty ordering, item constraints
-- [ ] 🧩 `generatePuzzle(catalog, rng, opts)` — template-driven generator with retries
 - [ ] 🗄 `puzzles`, `puzzle_groups`, `puzzle_group_items`, `group_title_templates`
+- [ ] 📚 **Hand-curate 50–100 puzzles first** (`curated` groups, admin-approved) to set the tone/
+      humor bar before the generator exists — `puzzle-generation.md` §Content bootstrap order
+- [ ] 🧩 AI-drafted group titles (2–3 candidates per rule `kind`) + human pick/edit before a
+      puzzle is saved `approved` — `puzzle-generation.md` §Group titles
+- [ ] 🧩 `generatePuzzle(catalog, rng, opts)` — template-driven generator with retries, **built to
+      imitate the hand-curated pool's style**, not before it exists
 - [ ] 🖥 Job: pre-generate a pool of N validated puzzles; admin CLI to approve/rename titles
 - [ ] 🧩 Single-player reducer (select 4 → submit → correct / one-away / wrong, 4 mistakes)
 - [ ] 📱 Board UI: 4×4 grid, select/deselect, shuffle, submit, solved-row reveal with colors
@@ -137,6 +143,10 @@ human opponent is found.
 - [ ] 🖥 LedgerService (single write path), entry fee escrow at match start, payout at end, refunds on abort
 - [ ] 🖥 Daily free games + daily login bonus + invite reward (with anti-abuse rules)
 - [ ] 🖥 `bot_match_subsidy` ledger reason + pot top-up when a bot fills a seat (`logic/bots.md`)
+- [ ] 🧩 Price-guess round wager: per-round escrow, winner-takes-pot-minus-cut, auto-sit-out if
+      unaffordable (`logic/price-guess-round.md` §Real coin side-bet)
+- [ ] 🗄 `coin_packages` table + `purchase`/IAP ledger plumbing, **built but disabled** at MVP
+      (`economy.md` §Real-money coin purchases) — enabling real purchases is a separate, later task
 - [ ] 📱 Coin balance header, entry-fee confirmation, reward animation, invite share screen
 - [ ] 📱 Single-scroll result screen: win/loss summary → 4 solved-group rows → 4 price-guess
       rounds → overlaid price chart (bottom) — see `logic/price-guess-round.md` §Result screen integration

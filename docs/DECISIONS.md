@@ -18,7 +18,7 @@ matching spec in `docs/logic/`.
 | D6 | Years stored as Solar Hijri integers | proposed | Content & players think in شمسی ("سال ۷۵"). |
 | D7 | Guest accounts first, phone OTP optional | proposed | Brief: entry must be completely free/frictionless. |
 | D8 | **Shared board, alternating turns** for competitive matches | proposed | Brief says gameplay is turn-based/slow; a shared board makes it a real head-to-head (steal groups from the opponent) and gives 2v2 teams something to coordinate on. Alternative (parallel race on separate boards) documented in `logic/game-rules.md` §Alternatives. |
-| D9 | Coin amounts per `logic/economy.md` defaults | proposed | Brief left formula open (open question 1). All values in `packages/shared/src/config/economy.ts`. |
+| D9 | Coin amounts per `logic/economy.md` defaults | **accepted** (2026-09-27) | Brief left formula open (open question 1). Owner confirmed the launch defaults as-is, on the condition every number stays a config value (never hardcoded) so they're tunable post-launch. All values in `packages/shared/src/config/economy.ts`. |
 | D10 | Free chat gated by *redeemed* invite code; canned taunts for everyone | accepted | Brief. Visibility details in `logic/chat-and-access.md` are **proposed**. |
 | D11 | Group titles are witty/indirect; hidden rule is objective and machine-checkable | proposed | Title = flavor (brief), rule = what validator checks. Keeps "infinite puzzles" solvable & fair. |
 | D12 | No ELO at start; FIFO queue with widening wait | accepted | Brief. |
@@ -33,7 +33,11 @@ matching spec in `docs/logic/`.
 | D21 | Profile carries **tags** (achievement / skill-rank / special / self-equipped) next to the avatar | accepted | Owner request (2026-09-27). One equipped at a time from the user's earned set. Full spec: `docs/logic/profile-and-identity.md`. |
 | D22 | Phone-number linking (OTP) is **fully optional**, account-recovery only, never a gate on any feature | accepted | Owner request (2026-09-27), refines D7. Entry point is a profile-screen button, not onboarding. |
 | D23 | Matchmaking is backed by an **undisclosed pool of AI opponents ("bots")** that fill queues when no human is available | accepted | Owner request (2026-09-27): "کاملاً شبیه آدم واقعی جلوه بره" — always available, human-like randomized delay, never revealed as a bot in any UI/API surface. Because this touches real coin stakes, a subsidy mechanism (`bot_match_subsidy` ledger reason) keeps payout math fair to the human player — see `docs/logic/bots.md` §Economy interaction. Chat is canned-taunts-only for MVP (no live LLM in the realtime path). |
-| D24 | Game name is **«دوزاری» (Dozari)**, code identifier `dozari`, deep-link scheme `dozari://`, tagline «دوزاریت می‌افته؟» | accepted | Owner choice (2026-09-27). Double meaning: the old 2-rial payphone coin (price nostalgia = content) and «دوزاریت افتاد؟» = "did the penny drop?" (the Connections aha moment = mechanic). Short, already in everyday speech (free daily recall triggers). Store/domain availability still to be checked. Slogans, voice, and copy: `docs/brand.md`. |
+| D24 | Price-guess rounds carry a **real coin wager** (2–5 coins/round, escrowed per round, winner takes the pot minus house cut) in competitive modes | accepted | Owner request (2026-09-27) — the "شرط‌بندی" (betting) flavor the owner liked earlier now has real stakes, not just match-score points. Solo has no wager. Full spec: `docs/logic/price-guess-round.md` §Real coin side-bet. |
+| D25 | Design the **coin-package IAP schema now** (`coin_packages` table, Cafe Bazaar/Myket billing, `purchase` ledger reason with server-side receipt verification), without building or enabling it at MVP | accepted | Owner request (2026-09-27): "از همین الان براش جا باز کنیم در طراحی." Whether/when to turn purchases on is still open question 4 — this decision is only about not needing a schema retrofit later. Full spec: `docs/logic/economy.md` §Real-money coin purchases. |
+| D26 | Bootstrap catalog sourcing: **manual/AI-assisted archive research + personal/family memories**, both allowed until UGC carries the load | accepted | Owner request (2026-09-27). AI research suggestions land as `status: pending`, never auto-approved — human verifies before publish. Full spec: `price-catalog` skill §Bootstrap sourcing. |
+| D27 | **Hand-curate 50–100 puzzles first**, generator built afterward to imitate that style; group titles are **AI-drafted, owner-approved** (never auto-published) | accepted | Owner request (2026-09-27): quality/tone bar set by humans before automating. Full spec: `docs/logic/puzzle-generation.md` §Content bootstrap order. |
+| D28 | Brand mood = **nostalgia + playfulness combined** (warm aged-paper base + the bright Connections group colors as accents); Vazirmatn for UI, a **separate nostalgic display font for titles/brand** (family TBD); app icon/logo deferred | accepted (direction) / open (specific tokens) | Owner request (2026-09-27). Group colors were already locked in `persian-rtl-ui` skill; this decision is the *mood* and the *two-font system*, not final hex/font-family values — those are explicitly still open. Full spec: `docs/BRAND.md`. |
 
 ## Phase 0-A spike: de-risk the stack before Phase 0 scaffolding
 
@@ -58,8 +62,11 @@ app wrapped with Capacitor for the Android build — record that pivot here as a
 1. **Exact scoring / coin formula** — defaults proposed (D9). Needs playtesting.
 2. **Sources for historical prices** — deferred. Schema already has `source_type`, `source_url`, `source_note`, `confidence`.
 3. **Team chat vs cross-team chat visibility** — proposed in `logic/chat-and-access.md`.
-4. **Long-term monetization** (ads / subscription / coin packs) — open. Iranian IAP = Cafe Bazaar / Myket billing SDKs; Iranian ad networks (Tapsell, Adivery). Don't build until decided.
-5. ~~**Final game name**~~ — resolved by D24: «دوزاری» / `dozari`.
+4. **Long-term monetization** (ads / subscription / coin packs) — the *schema and integration plan* for
+   coin packs is now decided (D25, `economy.md` §Real-money coin purchases); *whether/when* to actually
+   enable real-money purchases, ads, or a subscription is still open. Iranian IAP = Cafe Bazaar / Myket
+   billing SDKs; Iranian ad networks (Tapsell, Adivery). Don't build/enable until decided.
+5. **Final game name** — open. Working title everywhere: `gheymat` (code), «قیمتش چند بود؟» (UI).
 6. **Turn model (D8)** confirmed? shared-board-alternating vs parallel race.
 7. **Min content for launch** — proposed: ≥ 300 products with ≥ 3 price points each, ≥ 200 validated puzzles pre-generated.
 8. **Moderation capacity for UGC & free chat** — who reviews? Proposed: admin panel + community votes threshold.
