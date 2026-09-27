@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>دوزاری — میز اختصاصی</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lalezar&family=Vazirmatn:wght@400;500;700;800&display=swap">
+<link rel="stylesheet" href="shared.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="logo" href="home.html">دوزاری <span aria-hidden="true">🪙</span></a>
+    <a class="coins num" href="profile.html"><span class="coin-dot"></span><span id="coins">۲۰۰</span></a>
+  </header>
+  <h1 class="screen-title">میز اختصاصی</h1>
+  <p class="screen-sub">تا وقتی بازی شروع نشده، همه‌چیز دست میزبانه. بعد از شروع، کنترل صندلی‌ها قفل می‌شه.</p>
+
+  <div class="panel">
+    <h2>کد دعوت</h2>
+    <div class="code-box num"><span id="code">7XQ4K</span><button class="btn sm" id="copy">کپی</button></div>
+    <p class="hint">لینک: <code dir="ltr" style="unicode-bidi:isolate">dozari://room/7XQ4K</code></p>
+    <div class="row-btns">
+      <button class="btn sm" id="lock">🔒 قفل کردن میز</button>
+      <button class="btn sm" id="extend">⏱ تمدید (۱۵ دقیقه)</button>
+    </div>
+    <p class="hint">این میز تا <b id="expiry" class="num">۱۵</b> دقیقه‌ی دیگه، بدون شروع، منقضی می‌شه.</p>
+  </div>
+
+  <div class="panel">
+    <h2>فرمت و ورودی</h2>
+    <div class="seg" role="tablist" aria-label="فرمت">
+      <button aria-selected="true" data-fmt="1v1">۱ در ۱</button>
+      <button aria-selected="false" data-fmt="2v2">۲ در ۲</button>
+    </div>
+    <div class="stepper">
+      <button id="fee-dn" aria-label="کم کردن ورودی">−</button>
+      <b class="num" id="fee">۲۰ سکه</b>
+      <button id="fee-up" aria-label="زیاد کردن ورودی">+</button>
+    </div>
+  </div>
+
+  <div class="panel" id="seatsPanel">
+    <h2>صندلی‌ها</h2>
+    <div id="seats"></div>
+    <button class="btn sm" id="simJoin">➕ شبیه‌سازی پیوستن مهمان (دمو)</button>
+  </div>
+
+  <button class="btn accent block" id="start" disabled>شروع بازی</button>
+  <p class="hint" id="startHint">حداقل ۲ صندلی باید پر باشه.</p>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+(() => {
+  let fee = 20, fmt = '1v1';
+  const names = ['مینا', 'رضا', 'سارا', 'بهنام'];
+  let seats = [{me:true, name:'تو'}, null, null, null];
+  const $ = id => document.getElementById(id);
+  function seatCount(){ return fmt==='1v1' ? 2 : 4; }
+  function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1600); }
+  function render(){
+    const n = seatCount();
+    $('seats').innerHTML = Array.from({length:n}, (_,i) => {
+      const s = seats[i];
+      if (!s) return '<div class="seat empty"><span>صندلی '+(i+1).toLocaleString('fa-IR')+' — خالی</span><span class="hint">در انتظار</span></div>';
+      return '<div class="seat"><span class="who"><span class="avatar sm" aria-hidden="true">🙂</span>'+s.name+(s.me?' (تو)':'')+'</span>'+
+        (s.me?'':'<button class="btn sm" data-kick="'+i+'">اخراج</button>')+'</div>';
+    }).join('');
+    const filled = seats.slice(0,n).filter(Boolean).length;
+    $('start').disabled = filled < n;
+    $('startHint').textContent = filled < n ? ('برای شروع باید '+n.toLocaleString('fa-IR')+' صندلی پر باشه ('+filled.toLocaleString('fa-IR')+' پر شده).') : 'همه آماده‌ن!';
+    $('fee').textContent = fee.toLocaleString('fa-IR') + ' سکه';
+  }
+  document.querySelectorAll('[data-fmt]').forEach(b => b.addEventListener('click', () => {
+    fmt = b.dataset.fmt;
+    document.querySelectorAll('[data-fmt]').forEach(x => x.setAttribute('aria-selected', x===b));
+    if (fmt==='1v1') seats = seats.slice(0,2); else while(seats.length<4) seats.push(null);
+    render();
+  }));
+  $('fee-up').addEventListener('click', () => { fee = Math.min(200, fee+10); render(); });
+  $('fee-dn').addEventListener('click', () => { fee = Math.max(0, fee-10); render(); });
+  $('simJoin').addEventListener('click', () => {
+    const n = seatCount();
+    const idx = seats.findIndex((s,i) => i<n && !s);
+    if (idx<0) { toast('میز پره!'); return; }
+    seats[idx] = {name: names[Math.floor(Math.random()*names.length)]};
+    render();
+  });
+  document.getElementById('seats').addEventListener('click', e => {
+    const k = e.target.closest('[data-kick]');
+    if (!k) return;
+    seats[+k.dataset.kick] = null;
+    render();
+  });
+  $('copy').addEventListener('click', () => { navigator.clipboard && navigator.clipboard.writeText($('code').textContent); toast('کد کپی شد'); });
+  $('lock').addEventListener('click', () => { $('lock').textContent = $('lock').textContent.includes('قفل کردن') ? '🔓 باز کردن میز' : '🔒 قفل کردن میز'; toast('وضعیت میز عوض شد'); });
+  $('extend').addEventListener('click', () => { $('expiry').textContent = '۱۵'; toast('میز ۱۵ دقیقه تمدید شد'); });
+  $('start').addEventListener('click', () => { location.href = '../index.html'; });
+  render();
+  try{ $('coins').textContent = Number(JSON.parse(localStorage.getItem('gh_coins')||'200')).toLocaleString('fa-IR'); }catch(e){}
+})();
+</script>
+</body>
+</html>

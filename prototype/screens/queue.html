@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>دوزاری — در حال یافتن حریف</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lalezar&family=Vazirmatn:wght@400;500;700;800&display=swap">
+<link rel="stylesheet" href="shared.css">
+<style>
+.spinner{width:64px;height:64px;border-radius:50%;border:5px solid var(--card);border-top-color:var(--accent);animation:spin 1s linear infinite;margin:0 auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spinner{animation:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="logo" href="home.html">دوزاری <span aria-hidden="true">🪙</span></a>
+    <a class="coins num" href="profile.html"><span class="coin-dot"></span><span id="coins">۲۰۰</span></a>
+  </header>
+
+  <div class="panel" style="align-items:center;text-align:center">
+    <div class="spinner" role="status" aria-label="در حال جستجو"></div>
+    <h2 id="title">در حال پیدا کردن حریف…</h2>
+    <p class="hint">زمان تقریبی: <b class="num" id="eta">۱۵</b> ثانیه · گذشته: <b class="num" id="elapsed">۰</b> ثانیه</p>
+    <p class="hint">پازل صف‌شده: <b>۴ دسته</b> · سختی: <b>متوسط</b></p>
+    <button class="btn danger" id="cancel">لغو</button>
+  </div>
+
+  <div class="panel">
+    <h2>حین انتظار تمرین کن</h2>
+    <p class="hint">جای صفت حفظ می‌شه — هر وقت حریف پیدا شد صدات می‌کنیم.</p>
+    <a class="btn block" href="../index.html">تمرین تکی</a>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+(() => {
+  const params = new URLSearchParams(location.search);
+  const mode = params.get('mode') || 'duel';
+  document.getElementById('title').textContent = mode==='team' ? 'در حال پیدا کردن ۳ حریف دیگه…' : 'در حال پیدا کردن حریف…';
+  let elapsed = 0;
+  const foundAt = 6 + Math.floor(Math.random()*4);
+  const t = setInterval(() => {
+    elapsed++;
+    document.getElementById('elapsed').textContent = elapsed.toLocaleString('fa-IR');
+    if (elapsed >= foundAt) {
+      clearInterval(t);
+      const toast = document.getElementById('toast');
+      toast.textContent = elapsed < 10 ? 'حریف پیدا شد! 🎉' : 'یه حریف دوزاری‌باز پیدا شد!';
+      toast.classList.add('show');
+      setTimeout(() => { location.href = '../index.html'; }, 900);
+    }
+  }, 1000);
+  document.getElementById('cancel').addEventListener('click', () => { clearInterval(t); location.href = 'home.html'; });
+  try{ document.getElementById('coins').textContent = Number(JSON.parse(localStorage.getItem('gh_coins')||'200')).toLocaleString('fa-IR'); }catch(e){}
+})();
+</script>
+</body>
+</html>

@@ -47,6 +47,7 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .logo span{color:var(--accent)}
 .coins{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:4px 12px 4px 10px;font-weight:700}
 .coin-dot{width:16px;height:16px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#FFE58A,#D9A520);box-shadow:inset 0 0 0 1.5px #B8860B}
+.tagline{margin:-8px 0 0;font-weight:700;color:var(--accent);font-size:14px}
 .sub{color:var(--muted);font-size:13px;margin:-6px 0 0}
 
 .tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:var(--card);padding:4px;border-radius:12px}
@@ -123,6 +124,12 @@ header{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .legend em{font-style:normal;color:var(--muted);margin-inline-start:auto;white-space:nowrap}
 .hint{font-size:12px;color:var(--muted);margin:0}
 
+.pg-input input{width:100%;border:1.5px solid var(--line);background:var(--paper);color:var(--ink);border-radius:10px;padding:10px 12px;font:inherit;font-weight:700}
+.pg-input input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.pg-summary h3{margin:6px 0 0;font-size:14px;font-weight:800}
+.pg-summary p{margin:0}
+.badge-consolation{display:inline-block;background:var(--card);border-radius:999px;padding:2px 10px;font-size:12px;font-weight:700;margin-inline-start:6px}
+
 details.logic{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 14px}
 details.logic summary{cursor:pointer;font-weight:700;font-size:14px}
 .checks{list-style:none;padding:0;margin:10px 0 0;display:flex;flex-direction:column;gap:5px;font-size:13px}
@@ -131,6 +138,7 @@ details.logic summary{cursor:pointer;font-weight:700;font-size:14px}
 .checks code{font-size:11.5px;direction:ltr;unicode-bidi:isolate;color:var(--muted);word-break:break-all}
 .checks li>span:last-child{min-width:0}
 .foot{font-size:12px;color:var(--muted);text-align:center;margin:0}
+.foot a{color:var(--accent);font-weight:700;text-decoration:none}
 
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--paper);padding:9px 18px;border-radius:999px;font-weight:700;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-width:calc(100% - 32px);text-align:center}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -140,10 +148,11 @@ details.logic summary{cursor:pointer;font-weight:700;font-size:14px}
 
 <div class="wrap">
   <header>
-    <h1 class="logo">قیمتش <span>چند</span> بود؟</h1>
+    <h1 class="logo">دوزاری<span> 🪙</span></h1>
     <div class="coins num" title="سکه‌ها"><span class="coin-dot"></span><span id="coins">۲۰۰</span></div>
   </header>
-  <p class="sub">۱۶ جنس قدیمی رو توی ۴ دسته‌ی چهارتایی بچین. دسته‌ها از روی قیمت و زمونه‌شون ساخته شدن.</p>
+  <p class="tagline">دوزاریت می‌افته؟</p>
+  <p class="sub">«قیمتش چند بود؟» — ۱۶ جنس قدیمی رو توی ۴ دسته‌ی چهارتایی بچین، بعد قیمت دقیقشونم حدس بزن.</p>
 
   <div class="tabs" role="tablist">
     <button id="tab-solo" role="tab">تمرین تکی<small>بدون سکه، ۴ اشتباه</small></button>
@@ -155,10 +164,12 @@ details.logic summary{cursor:pointer;font-weight:700;font-size:14px}
   <div id="board" class="board" aria-label="صفحه‌ی بازی"></div>
   <div id="controls" class="controls"></div>
   <div id="chat"></div>
+  <div id="pguess"></div>
   <div id="result"></div>
 
   <details class="logic" id="logic"></details>
   <p class="foot">نسخه‌ی نمایشی. قیمت‌ها <b>نمونه و تقریبی</b> هستن و هنوز با منبع تأیید نشدن. حریف ۱ در ۱ یه ربات ساده‌ست.</p>
+  <p class="foot"><a href="screens/home.html">دیدن بقیه‌ی صفحه‌های اپ (خانه، پروفایل، میز اختصاصی، ...) ‹</a></p>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
@@ -218,9 +229,12 @@ const PUZZLES = [
 ];
 const GROUP_POINTS=[1,2,3,4], FIRST_BLOOD=1, MAX_MISTAKES=4, TURN_SECONDS=45, MAX_TIMEOUTS=2;
 const ENTRY_FEE=20, HOUSE_CUT=0.1, LOSS_CONSOLATION=5, RESCUE_TO=60;
+// price-guess bonus round — docs/logic/price-guess-round.md + game-rules.md §Price-guess bonus points
+const PRICE_GUESS_STAIRCASE=[{max:5,pts:5},{max:15,pts:4},{max:30,pts:3},{max:60,pts:2},{max:Infinity,pts:1}];
+const PRICE_GUESS_ROUND_WAGER=3, PRICE_GUESS_LOSER_BONUS_PER_ROUND=1;
 const LV_NAMES=['زرد','سبز','آبی','بنفش'];
-const TAUNTS=['سلام! آماده‌ای ببازی؟','اینو مامان‌بزرگمم بلد بود 😄','پیکان هم این‌قدر کند نبود!','یکی مونده بود، حیف!','دمت گرم، بازی خوبی بود'];
-const BOT_TAUNTS=['حالا ببین کی می‌بره 😎','شانسی بود!','قیمت سال ۷۵ رو از حفظم','عجله نکن، وقت داری','ای بابا!'];
+const TAUNTS=['یه دوزاری بنداز، شروع کنیم!','سلام! آماده‌ای ببازی؟','اینو مامان‌بزرگمم بلد بود 😄','پیکان هم این‌قدر کند نبود!','یکی مونده بود، حیف!','دمت گرم، بازی خوبی بود'];
+const BOT_TAUNTS=['حالا ببین کی می‌بره 😎','دوزاریت هنوز تو راهه؟','شانسی بود!','قیمت سال ۷۵ رو از حفظم','عجله نکن، وقت داری','ای بابا!'];
 
 // ---------- helpers ----------
 const fa = (n, d=1) => Number(n).toLocaleString('fa-IR',{maximumFractionDigits:d});
@@ -235,6 +249,7 @@ const fy = y => Number(y).toLocaleString('fa-IR',{useGrouping:false});
 const yShort = y => y>=1400 ? fy(y) : fy(y-1300);
 const priceAt = (id,y) => { const i=YEARS.indexOf(y); return i<0?null:(P[id].s[i] ?? null); };
 function firstAtOrAbove(id,th){ for(const y of YEARS){ const v=priceAt(id,y); if(v!=null && v>=th) return y; } return null; }
+function lastYearWithPrice(id){ for(let i=YEARS.length-1;i>=0;i--){ if(priceAt(id,YEARS[i])!=null) return YEARS[i]; } return YEARS.at(-1); }
 function satisfies(rule,id){
   const p=P[id];
   switch(rule.kind){
@@ -290,18 +305,19 @@ const store = {
 // ---------- state ----------
 let coins = store.get('gh_coins',200);
 let pIdx = store.get('gh_pidx',0) % PUZZLES.length;
-let S = null, timerId=null, botId=null, passId=null;
+let S = null, timerId=null, botId=null, passId=null, pgTimerId=null;
 const $ = id => document.getElementById(id);
 function setCoins(v){ coins=Math.max(0,v); store.set('gh_coins',coins); $('coins').textContent=fa(coins,0); }
 let toastId=null;
 function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastId); toastId=setTimeout(()=>t.classList.remove('show'),1800); }
 
 function newGame(mode){
-  clearInterval(timerId); clearTimeout(botId); clearTimeout(passId);
+  clearInterval(timerId); clearTimeout(botId); clearTimeout(passId); clearInterval(pgTimerId);
   const pz=PUZZLES[pIdx];
   S = {mode, pz, board:shuffleBoard(pz.groups.flatMap(g=>g.items), pz.groups), solved:[], sel:[], tried:new Set(),
        mistakes:{me:0,bot:0}, score:{me:0,bot:0}, turn:'me', over:false, result:null, firstBlood:false,
-       timeLeft:TURN_SECONDS, timeouts:0, chat:[], botPick:[], chartLv:3, coinDelta:0, entry:0};
+       timeLeft:TURN_SECONDS, timeouts:0, chat:[], botPick:[], chartLv:3, coinDelta:0, entry:0,
+       pg:{active:false, idx:0, rounds:[], score:{me:0,bot:0}, coinDelta:0, timeLeft:0}};
   if(mode==='duel'){
     if(coins<ENTRY_FEE){ setCoins(RESCUE_TO); toast('سکه‌هات کم بود، '+fa(RESCUE_TO,0)+' سکه‌ی کمکی گرفتی'); }
     setCoins(coins-ENTRY_FEE); S.entry=ENTRY_FEE;
@@ -351,8 +367,8 @@ function submit(by, ids){
     if(S.mode==='duel'){
       let pts=GROUP_POINTS[g.lv]; if(!S.firstBlood){ pts+=FIRST_BLOOD; S.firstBlood=true; }
       S.score[by]+=pts;
-      toast((by==='me'?'آفرین! ':'ممد گرفت: ')+'+'+fa(pts,0)+' امتیاز');
-    } else toast('آفرین!');
+      toast((by==='me'?'دوزاریت افتاد! 🪙 ':'ممد گرفت: ')+'+'+fa(pts,0)+' امتیاز');
+    } else toast('دوزاریت افتاد! 🪙');
     if(S.solved.length===3){
       const last=unsolved()[0]; S.solved.push({g:last,by:null}); S.board=[];
       return endGame(), true;
@@ -363,7 +379,7 @@ function submit(by, ids){
   const maxOverlap=Math.max(...unsolved().map(u=>ids.filter(id=>u.items.includes(id)).length));
   S.mistakes[by]++;
   if(by==='me'){ shake(ids); S.sel=[]; }
-  toast(maxOverlap===3 ? (by==='me'?'یکی مونده!':'ممد: یکی مونده بود!') : (by==='me'?'نه، این‌ها یه دسته نیستن':'ممد اشتباه کرد'));
+  toast(maxOverlap===3 ? (by==='me'?'یکی مونده بیفته!':'ممد: یکی مونده بود!') : (by==='me'?'دوزاریت یه‌کم کجه!':'ممد اشتباه کرد'));
   if(S.mode==='solo'){
     if(S.mistakes.me>=MAX_MISTAKES) return endGame(), false;
     render(); return false;
@@ -400,31 +416,117 @@ function botMove(){
   },1100);
 }
 
+function scrollToEl(id){
+  requestAnimationFrame(()=>$(id).scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'}));
+}
+
 function endGame(winnerOverride){
   clearInterval(timerId); clearTimeout(botId);
   // reveal the rest in level order
   unsolved().sort((a,b)=>a.lv-b.lv).forEach(g=>S.solved.push({g,by:null}));
   S.board=[]; S.sel=[]; S.botPick=[]; S.over=true;
-  if(S.mode==='solo'){
-    S.result={win:S.mistakes.me<MAX_MISTAKES};
+  if(winnerOverride) return finalizeDuel(winnerOverride);
+  startPriceGuess();
+}
+
+// ---------- price-guess bonus round (docs/logic/price-guess-round.md) ----------
+function pickPgRounds(){
+  return S.pz.groups.slice().sort((a,b)=>a.lv-b.lv).map(g=>{
+    const item=g.items[Math.floor(rng()*g.items.length)];
+    const year=g.rule.year!=null?g.rule.year:lastYearWithPrice(item);
+    return {lv:g.lv, item, year, actual:priceAt(item,year), myGuess:null, botGuess:null, winner:null, done:false};
+  });
+}
+function startPriceGuess(){
+  S.pg={active:true, idx:0, rounds:pickPgRounds(), score:{me:0,bot:0}, coinDelta:0, timeLeft:0};
+  render();
+  scrollToEl('pguess');
+  if(S.mode==='duel') startPgTurn();
+}
+function startPgTurn(){
+  clearInterval(pgTimerId);
+  const r=S.pg.rounds[S.pg.idx];
+  if(coins<PRICE_GUESS_ROUND_WAGER){
+    r.sitout=true; render(); setTimeout(revealPgRound,700); return;
+  }
+  setCoins(coins-PRICE_GUESS_ROUND_WAGER); r.wagered=true;
+  const err=1+(rng()-0.5)*0.6;
+  r.botGuess=Math.max(1,Math.round(r.actual*err));
+  S.pg.timeLeft=TURN_SECONDS;
+  render();
+  pgTimerId=setInterval(()=>{
+    S.pg.timeLeft--; renderPgClock();
+    if(S.pg.timeLeft<=0){ clearInterval(pgTimerId); revealPgRound(); }
+  },1000);
+}
+function submitPgGuess(v){
+  const r=S.pg.rounds[S.pg.idx];
+  if(r.done || r.myGuess!=null || r.sitout) return;
+  r.myGuess=Math.max(0,Math.round(v));
+  if(S.mode==='solo') return revealPgRoundSolo();
+  clearInterval(pgTimerId); revealPgRound();
+}
+function revealPgRoundSolo(){
+  const r=S.pg.rounds[S.pg.idx];
+  r.errPct=Math.abs(r.myGuess-r.actual)/r.actual*100;
+  r.pts=PRICE_GUESS_STAIRCASE.find(t=>r.errPct<=t.max).pts;
+  S.pg.score.me+=r.pts; r.done=true;
+  render();
+}
+function revealPgRound(){
+  const r=S.pg.rounds[S.pg.idx];
+  if(r.sitout){
+    r.winner='bot'; r.coinDelta=0;
   } else {
-    let w=winnerOverride;
-    if(!w){
-      if(S.score.me!==S.score.bot) w=S.score.me>S.score.bot?'me':'bot';
-      else if(S.mistakes.me!==S.mistakes.bot) w=S.mistakes.me<S.mistakes.bot?'me':'bot';
+    const meVal = r.myGuess==null ? Infinity : Math.abs(r.myGuess-r.actual);
+    const botVal = Math.abs(r.botGuess-r.actual);
+    r.winner = meVal<botVal?'me':botVal<meVal?'bot':'draw';
+    const pot=PRICE_GUESS_ROUND_WAGER*2;
+    if(r.winner==='me'){ const win=Math.round(pot*(1-HOUSE_CUT)); setCoins(coins+win); r.coinDelta=win-PRICE_GUESS_ROUND_WAGER; }
+    else if(r.winner==='draw'){ const ref=Math.round(PRICE_GUESS_ROUND_WAGER*(1-HOUSE_CUT)); setCoins(coins+ref); r.coinDelta=ref-PRICE_GUESS_ROUND_WAGER; }
+    else r.coinDelta=-PRICE_GUESS_ROUND_WAGER;
+  }
+  if(r.winner==='me') S.pg.score.me++; else if(r.winner==='bot') S.pg.score.bot++;
+  S.pg.coinDelta+=r.coinDelta; r.done=true;
+  render();
+}
+function nextPgRound(){
+  clearInterval(pgTimerId);
+  if(S.pg.idx+1<S.pg.rounds.length){ S.pg.idx++; render(); if(S.mode==='duel') startPgTurn(); return; }
+  S.pg.active=false;
+  if(S.mode==='solo') finalizeSolo(); else finalizeDuel();
+}
+function finalizeSolo(){
+  const total=S.pg.rounds.reduce((s,r)=>s+(r.pts||0),0);
+  S.result={win:S.mistakes.me<MAX_MISTAKES, pgScore:total, pgMax:S.pg.rounds.length*5};
+  render(); scrollToEl('result');
+}
+function finalizeDuel(forced){
+  let w=forced;
+  if(!w){
+    if(S.score.me!==S.score.bot) w=S.score.me>S.score.bot?'me':'bot';
+    else if(S.mistakes.me!==S.mistakes.bot) w=S.mistakes.me<S.mistakes.bot?'me':'bot';
+    else {
+      const lastIdx=side=>{ let i=-1; S.solved.forEach((s,k)=>{ if(s.by===side) i=k; }); return i; };
+      const li=lastIdx('me'), lb=lastIdx('bot');
+      if(li>=0 && (lb<0 || li<lb)) w='me';
+      else if(lb>=0 && (li<0 || lb<li)) w='bot';
+      else if(S.pg.score.me!==S.pg.score.bot) w=S.pg.score.me>S.pg.score.bot?'me':'bot';
       else w='draw';
     }
-    const pot=S.entry*2;
-    let d=0;
-    if(w==='me') d=Math.round(pot*(1-HOUSE_CUT));
-    else if(w==='draw') d=Math.round(S.entry*(1-HOUSE_CUT));
-    else d=LOSS_CONSOLATION;
-    setCoins(coins+d); S.coinDelta=d-S.entry;
-    S.result={winner:w};
-    say('bot', w==='me'?'دمت گرم، بازی خوبی بود':'ای بابا! دفعه‌ی بعد 😄', true);
   }
-  render();
-  requestAnimationFrame(()=>$('result').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'}));
+  const pot=S.entry*2;
+  let d=0;
+  if(w==='me') d=Math.round(pot*(1-HOUSE_CUT));
+  else if(w==='draw') d=Math.round(S.entry*(1-HOUSE_CUT));
+  else d=LOSS_CONSOLATION;
+  setCoins(coins+d);
+  S.coinDelta=d-S.entry+(S.pg.coinDelta||0);
+  const loser = w==='me'?'bot':w==='bot'?'me':null;
+  const loserBonus = (loser && locked(loser) && S.pg.score[loser]>0) ? S.pg.score[loser]*PRICE_GUESS_LOSER_BONUS_PER_ROUND : 0;
+  S.result={winner:w, loserBonus, loserSide:loser};
+  say('bot', w==='me'?'دمت گرم، بازی خوبی بود':w==='bot'?'ای بابا! دفعه‌ی بعد 😄':'دوزاری‌ها هم‌زمان افتاد!', true);
+  render(); scrollToEl('result');
 }
 
 function say(who,text,silent){
@@ -437,7 +539,7 @@ function say(who,text,silent){
 function render(){
   $('tab-solo').setAttribute('aria-selected',S.mode==='solo');
   $('tab-duel').setAttribute('aria-selected',S.mode==='duel');
-  renderStatus(); renderSolved(); renderBoard(); renderControls(); renderChat(); renderResult();
+  renderStatus(); renderSolved(); renderBoard(); renderControls(); renderChat(); renderPriceGuess(); renderResult();
 }
 function dotsHtml(n){ let h=''; for(let i=0;i<MAX_MISTAKES;i++) h+='<span class="dot'+(i<n?' used':'')+'"></span>'; return '<span class="dots" aria-label="اشتباه‌ها">'+h+'</span>'; }
 function renderStatus(){
@@ -489,18 +591,62 @@ function renderChat(){
     '<div class="taunts">'+TAUNTS.map((t,i)=>'<button class="chip" data-taunt="'+i+'"'+(S.over?' disabled':'')+'>'+t+'</button>').join('')+'</div>'+
     '<div class="lock"><span aria-hidden="true">🔒</span><input id="freechat" disabled placeholder="چت آزاد: فقط میز اختصاصی و با کد دعوت"></div></div>';
 }
+function renderPriceGuess(){
+  const el=$('pguess');
+  if(!S.pg || !S.pg.active){ el.innerHTML=''; return; }
+  const r=S.pg.rounds[S.pg.idx];
+  let body;
+  if(!r.done){
+    if(r.sitout){
+      body='<p class="hint">سکه‌ی کافی برای شرط این دور نداری؛ این دور رو از دست می‌دی، سکه‌ای هم کم نمی‌شه.</p>';
+    } else if(r.myGuess==null){
+      body='<div class="pg-input"><input type="number" min="0" id="pg-guess" inputmode="numeric" placeholder="حدست چند تومنه؟"></div>'+
+           '<div class="controls"><button class="btn primary" id="pg-submit">ثبت حدس</button></div>'+
+           (S.mode==='duel'?'<p class="hint num">زمان باقی‌مونده: <span id="pg-clock">'+fa(S.pg.timeLeft,0)+'</span> ثانیه — حدس ممد مخفیه تا هر دو ثبت کنیم</p>':'');
+    } else {
+      body='<p class="hint">در حال آماده‌سازی نتیجه…</p>';
+    }
+  } else if(S.mode==='solo'){
+    body='<p>قیمت واقعی: <b class="num">'+fmtT(r.actual)+'</b> · حدس تو: <b class="num">'+fa(r.myGuess,0)+'</b> تومن</p>'+
+         '<p>خطا: <b class="num">'+fa(r.errPct,1)+'٪</b> — امتیاز این دور: <b class="num">'+fa(r.pts,0)+'</b> از ۵</p>'+
+         '<div class="controls"><button class="btn accent" id="pg-next">'+(S.pg.idx+1<S.pg.rounds.length?'دور بعد':'دیدن نتیجه نهایی')+'</button></div>';
+  } else {
+    const meTxt=r.sitout?'شرکت نکردی':fa(r.myGuess,0)+' تومن';
+    body='<p>قیمت واقعی: <b class="num">'+fmtT(r.actual)+'</b></p>'+
+         '<p>حدس تو: <b class="num">'+meTxt+'</b> · حدس ممد: <b class="num">'+fa(r.botGuess,0)+'</b> تومن</p>'+
+         '<p>'+(r.winner==='me'?'این دور رو بردی! 🎉':r.winner==='bot'?'ممد این دور رو برد':'این دور مساوی شد')+
+         (r.wagered?' · '+(r.coinDelta>=0?'+':'−')+fa(Math.abs(r.coinDelta),0)+' سکه':'')+'</p>'+
+         '<div class="controls"><button class="btn accent" id="pg-next">'+(S.pg.idx+1<S.pg.rounds.length?'دور بعد':'دیدن نتیجه نهایی')+'</button></div>';
+  }
+  el.innerHTML='<div class="panel"><h2>دور حدس قیمت '+fa(S.pg.idx+1,0)+' از '+fa(S.pg.rounds.length,0)+' — دسته‌ی '+LV_NAMES[r.lv]+'</h2>'+
+    '<p>قیمت <b>'+P[r.item].e+' '+P[r.item].n+'</b> سال '+yShort(r.year)+' چند تومن بود؟</p>'+body+'</div>';
+}
+function renderPgClock(){ const c=$('pg-clock'); if(c) c.textContent=fa(S.pg.timeLeft,0); }
+
 function renderResult(){
   const el=$('result');
-  if(!S.over){ el.innerHTML=''; return; }
+  if(!S.result){ el.innerHTML=''; return; }
   let verdict, delta='';
   if(S.mode==='solo') verdict = S.result.win ? 'حل شد! 🎉' : 'این دفعه نشد';
   else {
     const w=S.result.winner;
-    verdict = w==='me'?'بردی! 🏆':w==='bot'?'ممد برد':'مساوی';
+    verdict = w==='me'?'دوزاریت طلاست! 🏆':w==='bot'?'ممد برد':'دوزاری‌ها هم‌زمان افتاد!';
     delta='<span class="delta num '+(S.coinDelta>=0?'plus':'minus')+'">'+(S.coinDelta>=0?'+':'−')+fa(Math.abs(S.coinDelta),0)+' سکه</span>';
+  }
+  let pgSummary='';
+  if(S.pg && S.pg.rounds.length){
+    if(S.mode==='solo'){
+      pgSummary='<div class="pg-summary"><h3>دور حدس قیمت</h3><p class="hint">امتیاز کل: <b class="num">'+fa(S.result.pgScore,0)+'</b> از '+fa(S.result.pgMax,0)+'</p>'+
+        S.pg.rounds.map(r=>'<p class="hint">'+P[r.item].e+' '+P[r.item].n+' ('+yShort(r.year)+'): حدس '+fa(r.myGuess,0)+' — واقعی '+fmtT(r.actual)+' — '+fa(r.pts,0)+' امتیاز</p>').join('')+'</div>';
+    } else {
+      const bonus = S.result.loserBonus ? '<span class="badge-consolation">امتیاز تشویقی '+(S.result.loserSide==='me'?'تو':'ممد')+': +'+fa(S.result.loserBonus,0)+'</span>' : '';
+      pgSummary='<div class="pg-summary"><h3>دور حدس قیمت</h3><p class="hint">امتیاز: تو '+fa(S.pg.score.me,0)+' — ممد '+fa(S.pg.score.bot,0)+bonus+'</p>'+
+        S.pg.rounds.map(r=>'<p class="hint">'+P[r.item].e+' '+P[r.item].n+' ('+yShort(r.year)+'): واقعی '+fmtT(r.actual)+' — '+(r.winner==='me'?'تو بردی':r.winner==='bot'?'ممد برد':'مساوی')+'</p>').join('')+'</div>';
+    }
   }
   const tabs=S.pz.groups.slice().sort((a,b)=>b.lv-a.lv).map(g=>'<button class="gtab lv'+g.lv+'" data-lv="'+g.lv+'" aria-selected="'+(S.chartLv===g.lv)+'">'+LV_NAMES[g.lv]+'</button>').join('');
   el.innerHTML='<div class="panel"><div class="result-head"><h2 class="verdict">'+verdict+'</h2>'+delta+'</div>'+
+    pgSummary+
     '<p class="hint">سیر قیمت هر دسته، روی‌هم. محور عمودی لگاریتمیه چون قیمت‌ها از چند ریال تا میلیون‌ها تومن می‌رن.</p>'+
     '<div class="gtabs" role="tablist">'+tabs+'</div>'+
     '<div class="chart-box" id="chart"></div><div class="legend" id="legend"></div>'+
@@ -574,6 +720,15 @@ document.addEventListener('click',e=>{
   else if(t.id==='b-again'){ newGame(S.mode); window.scrollTo({top:0}); }
   else if(t.dataset.taunt!=null){ say('me',TAUNTS[+t.dataset.taunt]); }
   else if(t.dataset.lv!=null){ S.chartLv=+t.dataset.lv; renderResult(); }
+  else if(t.id==='pg-submit'){
+    const inp=$('pg-guess'); const v=inp?parseFloat(inp.value):NaN;
+    if(!(v>=0)){ toast('یه عدد بزن'); return; }
+    submitPgGuess(v);
+  }
+  else if(t.id==='pg-next'){ nextPgRound(); }
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter' && e.target.id==='pg-guess'){ const b=$('pg-submit'); if(b) b.click(); }
 });
 
 setCoins(coins);

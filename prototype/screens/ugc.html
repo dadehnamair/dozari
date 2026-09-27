@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>دوزاری — پیشنهاد و رأی</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lalezar&family=Vazirmatn:wght@400;500;700;800&display=swap">
+<link rel="stylesheet" href="shared.css">
+<style>.vote-btns{display:flex;gap:14px;justify-content:center}
+.vote-btns button{width:60px;height:60px;border-radius:50%;font-size:26px;border:1.5px solid var(--line);background:var(--surface)}
+.vote-btns button.up:active{background:var(--ok);color:#fff}
+.vote-btns button.down:active{background:var(--danger);color:#fff}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="logo" href="home.html">دوزاری <span aria-hidden="true">🪙</span></a>
+    <span class="coins num"><span class="coin-dot"></span><span id="coins">۲۰۰</span></span>
+  </header>
+  <h1 class="screen-title">پیشنهاد قیمت</h1>
+
+  <div class="seg" role="tablist">
+    <button aria-selected="true" data-tab="submit">پیشنهاد بده</button>
+    <button aria-selected="false" data-tab="vote">رأی بده</button>
+  </div>
+
+  <section id="pane-submit" class="panel">
+    <div class="field"><label>اسم جنس</label><input type="text" placeholder="مثلاً: بستنی یخی"></div>
+    <div class="field"><label>عکس</label><button class="btn sm" type="button">📷 افزودن عکس</button></div>
+    <div class="field"><label>سال (شمسی)</label><input type="text" inputmode="numeric" placeholder="۷۵"></div>
+    <div class="field">
+      <label>قیمت</label>
+      <div style="display:flex;gap:8px">
+        <input type="number" inputmode="numeric" placeholder="۱۵۰" style="flex:1">
+        <div class="seg" style="width:120px">
+          <button aria-selected="true" data-unit="toman">تومن</button>
+          <button aria-selected="false" data-unit="rial">ریال</button>
+        </div>
+      </div>
+    </div>
+    <div class="field">
+      <label>منبع / مدرک</label>
+      <div class="seg">
+        <button aria-selected="true" data-src="memory">یادمه</button>
+        <button aria-selected="false" data-src="photo">عکس رسید</button>
+        <button aria-selected="false" data-src="url">لینک</button>
+      </div>
+    </div>
+    <div class="field"><label>دسته / واحد</label>
+      <select>
+        <option>خوراکی — عددی</option><option>خوراکی — کیلویی</option>
+        <option>لوازم‌التحریر — عددی</option><option>لوازم خانه — عددی</option>
+      </select>
+    </div>
+    <button class="btn accent block" id="submitUgc">ثبت پیشنهاد</button>
+    <p class="hint">تا ۱۰ پیشنهاد در روز. بعد از تأیید جامعه و ادمین، سکه جایزه می‌گیری.</p>
+  </section>
+
+  <section id="pane-vote" class="panel" style="display:none">
+    <div id="voteStack"></div>
+  </section>
+</div>
+
+<nav class="bottom" aria-label="ناوبری اصلی">
+  <a href="home.html"><span class="e" aria-hidden="true">🏠</span>خانه</a>
+  <a href="profile.html"><span class="e" aria-hidden="true">👤</span>پروفایل</a>
+  <a href="settings.html"><span class="e" aria-hidden="true">⚙️</span>تنظیمات</a>
+</nav>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1600); }
+
+  document.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => {
+    document.querySelectorAll('[data-tab]').forEach(x => x.setAttribute('aria-selected', x===b));
+    $('pane-submit').style.display = b.dataset.tab==='submit' ? 'flex' : 'none';
+    $('pane-vote').style.display = b.dataset.tab==='vote' ? 'flex' : 'none';
+  }));
+  document.querySelectorAll('[data-unit],[data-src]').forEach(b => b.addEventListener('click', () => {
+    const attr = b.hasAttribute('data-unit') ? 'data-unit' : 'data-src';
+    b.closest('.seg').querySelectorAll('button').forEach(x => x.setAttribute('aria-selected', x===b));
+  }));
+  $('submitUgc').addEventListener('click', () => toast('پیشنهادت ثبت شد، منتظر رأی بقیه بمون'));
+
+  const queue = [
+    {e:'🍦', name:'بستنی یخی', year:'۷۰', price:'۱۵۰ تومن', src:'یادمه'},
+    {e:'🎬', name:'بلیت سینما', year:'۸۲', price:'۱٬۲۰۰ تومن', src:'عکس رسید'},
+    {e:'📼', name:'نوار کاست خام', year:'۶۳', price:'۶۰ تومن', src:'یادمه'},
+  ];
+  let idx = 0;
+  function renderVote(){
+    const el = $('voteStack');
+    if (idx >= queue.length) { el.innerHTML = '<p class="hint" style="text-align:center">فعلاً چیزی واسه رأی نمونده — بعداً سر بزن!</p>'; return; }
+    const c = queue[idx];
+    el.innerHTML = '<div class="swipe-card"><span class="e" aria-hidden="true">'+c.e+'</span>'+
+      '<h2>'+c.name+'</h2><p>سال '+c.year+' · '+c.price+'</p><p class="hint">منبع: '+c.src+'</p>'+
+      '<div class="vote-btns"><button class="down" id="voteDown" aria-label="رد">👎</button><button class="up" id="voteUp" aria-label="تأیید">👍</button></div></div>';
+    $('voteUp').addEventListener('click', () => { toast('تأیید شد'); idx++; renderVote(); });
+    $('voteDown').addEventListener('click', () => { toast('رد شد'); idx++; renderVote(); });
+  }
+  renderVote();
+  try{ $('coins').textContent = Number(JSON.parse(localStorage.getItem('gh_coins')||'200')).toLocaleString('fa-IR'); }catch(e){}
+})();
+</script>
+</body>
+</html>

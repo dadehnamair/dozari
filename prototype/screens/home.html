@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>دوزاری — خانه</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lalezar&family=Vazirmatn:wght@400;500;700;800&display=swap">
+<link rel="stylesheet" href="shared.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="logo" href="home.html">دوزاری <span aria-hidden="true">🪙</span></a>
+    <a class="coins num" href="profile.html" title="سکه‌ها و پروفایل"><span class="coin-dot"></span><span id="coins">۲۰۰</span></a>
+  </header>
+
+  <div class="banner">
+    <div>چالش امروز: پازل «دهه‌شصتی‌ها» <small>رشته‌ی روزهای پشت‌سرهم: ۳ روز 🔥</small></div>
+    <span aria-hidden="true" style="font-size:22px">📅</span>
+  </div>
+
+  <div class="panel" style="gap:8px">
+    <h2>بازی کن</h2>
+    <div class="card-grid">
+      <a class="mode-card" href="../index.html">
+        <span class="e" aria-hidden="true">🧩</span><b>تمرین تکی</b><small>بدون سکه</small>
+      </a>
+      <a class="mode-card" href="queue.html?mode=duel">
+        <span class="e" aria-hidden="true">⚔️</span><b>۱ در ۱</b><small>ورودی ۲۰ سکه</small>
+      </a>
+      <a class="mode-card" href="queue.html?mode=team">
+        <span class="e" aria-hidden="true">🤝</span><b>۲ در ۲</b><small>ورودی ۲۰ سکه</small>
+      </a>
+      <a class="mode-card" href="table.html">
+        <span class="e" aria-hidden="true">🔒</span><b>میز اختصاصی</b><small>با کد دعوت</small>
+      </a>
+    </div>
+  </div>
+
+  <a class="ugc-card" href="ugc.html">
+    <span class="e" aria-hidden="true">🗳️</span>
+    <div style="flex:1">
+      <b>پیشنهاد بده و رأی بده</b>
+      <p class="hint" style="margin-top:2px">یه قیمت قدیمی یادته؟ ثبتش کن یا به پیشنهاد بقیه رأی بده — پاداش سکه داره.</p>
+    </div>
+    <span aria-hidden="true">‹</span>
+  </a>
+
+  <a class="panel" href="profile.html#achievements" style="text-decoration:none;flex-direction:row;align-items:center;justify-content:space-between">
+    <div>
+      <h2>افتخارات</h2>
+      <p class="hint">۴ نشان گرفتی، ۹ تا مونده</p>
+    </div>
+    <span aria-hidden="true" style="font-size:24px">🏅</span>
+  </a>
+
+  <p class="hint" style="text-align:center">نسخه‌ی نمایشی صفحه‌ها — داده‌ها ثابت (mock) هستن.</p>
+</div>
+
+<nav class="bottom" aria-label="ناوبری اصلی">
+  <a class="active" href="home.html"><span class="e" aria-hidden="true">🏠</span>خانه</a>
+  <a href="profile.html"><span class="e" aria-hidden="true">👤</span>پروفایل</a>
+  <a href="settings.html"><span class="e" aria-hidden="true">⚙️</span>تنظیمات</a>
+</nav>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+try{ document.getElementById('coins').textContent = Number(JSON.parse(localStorage.getItem('gh_coins')||'200')).toLocaleString('fa-IR'); }catch(e){}
+</script>
+</body>
+</html>
