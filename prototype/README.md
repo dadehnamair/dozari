@@ -19,11 +19,18 @@ What it demonstrates (all client-side, no server):
   by a price-guess round summary on the same result screen.
 - A **level/XP bar** in the header (`docs/logic/progression.md`, D33) — XP awarded per finished
   match, level-up pop/toast. Purely cosmetic; never affects matchmaking (D12 stands).
+- The **first solo puzzle** is an eased tutorial run (`docs/logic/app-screens.md` §Onboarding,
+  D37): forces the first authored puzzle, allows 2 extra mistakes, shows a one-line worked-example
+  banner over the board. Gated by `gh_solo_played` in localStorage — applies once.
 
-Visual language: a warm pastel-paper palette (`docs/brand-visual.md` §Color, proposed 2026-09-27)
-— cream/paper background, warm coffee-brown ink, a caramel accent, and the locked Connections
-group colors as the "playful" accent layer. Shared identically by `screens/shared.css` so the
-whole prototype reads as one app.
+Visual language: a "cool arcade" palette v2 (`docs/brand-visual.md` §Color, proposed 2026-09-27,
+D35) — cool near-white/near-black chrome, a violet→teal gradient accent on CTAs/logo/level chip,
+bigger radii and real elevation, with the locked Connections group colors as the "playful" accent
+layer. Supersedes the earlier pastel-paper v1, which the owner found not "cool" enough. Shared
+identically by `screens/shared.css` so the whole prototype reads as one app. UI chrome icons (nav,
+mode cards, admin actions, chat FAB) use a self-hosted hand-authored SVG set
+(`screens/icons.svg`, D36) instead of emoji — each screen inlines the sprite since opening a
+static file directly (`file://`) can't `<use>` across separate files.
 
 Prices are illustrative placeholders, NOT verified data — never import them into the real catalog.
 
@@ -57,4 +64,8 @@ the screens together, and `index.html` links out to `screens/home.html`.
   it's an overlay on the match screen, not its own route.
 - `admin.html` — first-pass admin panel mock (dashboard KPIs + D32 content-target progress,
   puzzle approval queue, UGC moderation queue, faucet/sink economy overview, user
-  search/mute/ban). Not a full interview yet — see `docs/logic/app-screens.md` §Admin panel.
+  search/mute/ban). Interaction-design mock only — the real thing is a full-featured **web** app
+  (D38), not part of the Expo mobile client. Not a full interview yet — see
+  `docs/logic/app-screens.md` §Admin panel.
+- `icons.svg` — the self-hosted icon sprite source (D36); each screen inlines its `<symbol>` defs
+  directly rather than referencing this file at runtime (see note above).

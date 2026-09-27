@@ -35,27 +35,51 @@ onto (playful) — both readable at once, neither fighting the other.
 Until the display face is chosen, prototypes may fall back to a heavier Vazirmatn weight for
 headlines — never ship that as final.
 
-## Color — pastel-paper palette (proposed default, 2026-09-27)
+## Color — "cool arcade" palette v2 (proposed default, D35, 2026-09-27)
 
-Owner asked for a pastel direction ("بنظرم پاستیلی چیز جذابی میشه") and left the exact tokens to
-Claude. Implemented in both prototypes (`prototype/index.html`, `prototype/screens/shared.css`)
-for the owner to react to — **proposed**, not a final locked palette (still needs an explicit
-owner sign-off before it's `accepted`, the same as the display font below):
+**Supersedes v1 below.** The owner rejected the pastel-paper execution outright: "این گرافیک
+اصلا مناسب اپ نیستا باید خیلی کول‌تر باشه." Same nostalgia+playful *mood* (the group colors still
+carry the "playful" energy against a quiet base) but the base moved from warm paper/coffee-brown
+to a cooler, punchier, more contemporary "arcade quiz" chrome — closer to Kahoot/Duolingo energy
+than a scrapbook. Implemented in both prototypes — **proposed**, not locked, same as the display
+font below:
 
 | token | light | dark | note |
 |---|---|---|---|
-| paper (bg) | `#FBF1E3` | `#241A12` | warm cream / warm near-black, never neutral gray |
+| paper (bg) | `#F4F3FE` | `#0E0C1B` | cool near-white lavender / near-black indigo |
+| surface (cards) | `#FFFFFF` | `#181430` | |
+| ink (text) | `#161327` | `#F1EFFC` | cool near-black indigo instead of coffee-brown |
+| accent (buttons/links) | `#6C5CE7` | `#8C7CFF` | vivid violet |
+| accent-grad (primary CTAs, logo, level chip) | `linear-gradient(135deg,#6C5CE7,#00C2D6)` | `linear-gradient(135deg,#8C7CFF,#22E0C9)` | violet→teal, used for anything that wants to feel like a "big tappable" moment |
+| muted / line | `#726D8E` / `#E4E1F7` | `#9C97BE` / `#2C2748` | |
+| shadow | `0 10px 26px -8px rgba(22,19,39,.22)` | `0 10px 26px -8px rgba(0,0,0,.5)` | real elevation instead of a flat 1px line — panels/buttons/cards read as "lifted" |
+| radius | `--radius-lg:20px` / `--radius-md:14px` | same | rounder than v1, part of the "cooler" read |
+
+- **Group colors** — unchanged, still locked: yellow `#F9DF6D`, green `#A0C35A`, blue `#B0C4EF`,
+  purple `#BA81C5` (`persian-rtl-ui` skill), as are the result-chart `s1–s4` line colors.
+- Small playful touches from v1 carried over: the alternating "sticker" tilt on tag chips/badges,
+  the level-up pop animation.
+
+### v1 — pastel-paper (superseded 2026-09-27, kept for history)
+
+| token | light | dark | note |
+|---|---|---|---|
+| paper (bg) | `#FBF1E3` | `#241A12` | warm cream / warm near-black |
 | surface (cards) | `#FFFCF5` | `#2F2318` | |
-| ink (text) | `#3B2A22` | `#F3E6D4` | warm coffee-brown instead of a cool near-black |
-| accent (buttons/links) | `#E2984B` | `#E8A768` | warm caramel/amber — pastel-adjacent, distinct from all 4 group colors |
+| ink (text) | `#3B2A22` | `#F3E6D4` | warm coffee-brown |
+| accent (buttons/links) | `#E2984B` | `#E8A768` | warm caramel/amber |
 | muted / line | `#8A7563` / `#E9D8BE` | `#BBA48B` / `#493725` | |
 
-- **Group colors** — unchanged, already defined and locked: yellow `#F9DF6D`, green `#A0C35A`,
-  blue `#B0C4EF`, purple `#BA81C5` (`persian-rtl-ui` skill). They read as pastel already, so no
-  change was needed to satisfy the pastel direction — the paper/accent tokens above were tuned to
-  sit well next to them.
-- Small playful touches added alongside the palette: a slight alternating tilt ("sticker") on tag
-  chips and badges, per the mood reference (an old photo album with stickers doodled on it).
+## Icons
+
+**Self-hosted SVG set** (`prototype/screens/icons.svg`, D36) replaces raw emoji for UI chrome —
+bottom nav, mode cards, admin approve/reject/mute/ban actions, the chat FAB. 24×24 viewBox, 2px
+round stroke, one consistent style. Hand-authored because this session's network policy blocked
+fetching a named external package (npm/jsdelivr); each screen inlines the sprite's `<symbol>`
+defs directly (`file://` pages can't `<use>` across files — cross-document fetches need a real
+origin). Swap for a licensed pack later if/when that's reachable, or on owner request — see
+`DECISIONS.md` open question 13. Product emoji on puzzle tiles are content, not chrome, and stay
+emoji.
 
 ## Icon / app logo
 
