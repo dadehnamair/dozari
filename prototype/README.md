@@ -1,8 +1,7 @@
 # Static MVP prototype
 
-`index.html` — standalone, open in any browser. `mvp.body.html` is the same page without the
-document skeleton (the version published as a claude.ai artifact); edit that one and regenerate
-`index.html` by wrapping it with the doctype/head (see git history for the one-liner).
+`index.html` — standalone, open in any browser. Single source of truth (the former duplicate
+`mvp.body.html` was removed); publish this file directly when an artifact is needed.
 
 What it demonstrates (all client-side, no server):
 - Connections-style board with 2 hand-authored puzzles, validated on load by a JS port of

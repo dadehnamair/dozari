@@ -37,7 +37,7 @@ matching spec in `docs/logic/`.
 | D25 | Design the **coin-package IAP schema now** (`coin_packages` table, Cafe Bazaar/Myket billing, `purchase` ledger reason with server-side receipt verification), without building or enabling it at MVP | accepted | Owner request (2026-09-27): "از همین الان براش جا باز کنیم در طراحی." Whether/when to turn purchases on is still open question 4 — this decision is only about not needing a schema retrofit later. Full spec: `docs/logic/economy.md` §Real-money coin purchases. |
 | D26 | Bootstrap catalog sourcing: **manual/AI-assisted archive research + personal/family memories**, both allowed until UGC carries the load | accepted | Owner request (2026-09-27). AI research suggestions land as `status: pending`, never auto-approved — human verifies before publish. Full spec: `price-catalog` skill §Bootstrap sourcing. |
 | D27 | **Hand-curate 50–100 puzzles first**, generator built afterward to imitate that style; group titles are **AI-drafted, owner-approved** (never auto-published) | accepted | Owner request (2026-09-27): quality/tone bar set by humans before automating. Full spec: `docs/logic/puzzle-generation.md` §Content bootstrap order. |
-| D28 | Brand mood = **nostalgia + playfulness combined** (warm aged-paper base + the bright Connections group colors as accents); Vazirmatn for UI, a **separate nostalgic display font for titles/brand** (family TBD); app icon/logo deferred | accepted (direction) / open (specific tokens) | Owner request (2026-09-27). Group colors were already locked in `persian-rtl-ui` skill; this decision is the *mood* and the *two-font system*, not final hex/font-family values — those are explicitly still open. Full spec: `docs/BRAND.md`. |
+| D28 | Brand mood = **nostalgia + playfulness combined** (warm aged-paper base + the bright Connections group colors as accents); Vazirmatn for UI, a **separate nostalgic display font for titles/brand** (family TBD); app icon/logo deferred | accepted (direction) / open (specific tokens) | Owner request (2026-09-27). Group colors were already locked in `persian-rtl-ui` skill; this decision is the *mood* and the *two-font system*, not final hex/font-family values — those are explicitly still open. Full spec: `docs/brand-visual.md`. |
 | D29 | Final game name: **«دوزاری» (Dozari)**, code identifier `dozari`, deep-link scheme `dozari://`, primary tagline «دوزاریت می‌افته؟» | accepted | Owner choice (2026-09-27), resolves open question 5. Double meaning: the old 2-rial payphone coin (price nostalgia = content) and «دوزاریت افتاد؟» = "did the penny drop?" (the Connections aha moment = mechanic). Repo/internal scaffolding may still reference the earlier `gheymat` codename in places; `dozari` is the product-facing identifier going forward. Store/domain availability still to be checked. Full name, slogans, voice, and approved copy: `docs/brand.md`. |
 | D30 | Turn model (D8) reconfirmed as final: **shared board, alternating turns**, not parallel race | accepted | Owner confirmed (2026-09-27), resolves open question 6. No change to `logic/game-rules.md` mechanics — the "Alternatives" section stays for reference only. |
 | D31 | Locked-out side that stays to the end and wins price-guess rounds gets a **small consolation bonus score** (never enough to overturn a puzzle-portion loss) | accepted | Owner request (2026-09-27), resolves open question 9. A side that forfeits/abandons gets no bonus. Full spec: `logic/game-rules.md` §Price-guess bonus points & the locked-out side. |
@@ -75,16 +75,16 @@ precedence~~ (D31), ~~min content for launch~~ (D32) — see Decisions table abo
    billing SDKs; Iranian ad networks (Tapsell, Adivery). Don't build/enable until decided.
 5. **Moderation capacity for UGC & free chat** — who reviews? Proposed: admin panel + community votes threshold.
 6. **Bot economy subsidy mechanism** (D23) — `bot_match_subsidy` ledger reason and its exact
-    accounting are proposed, not yet balanced/simulated. Run through
-    `packages/shared/scripts/simulate-economy.ts` once bots are built (Phase 4/6).
+   accounting are proposed, not yet balanced/simulated. Run through
+   `packages/shared/scripts/simulate-economy.ts` once bots are built (Phase 4/6).
 7. **Bot pool sizing & fallback timing** (`BOT_POOL_SIZE`, `BOT_FALLBACK_SECONDS`) — defaults
-    proposed in `docs/logic/bots.md`, to be tuned with real queue-wait data after launch.
+   proposed in `docs/logic/bots.md`, to be tuned with real queue-wait data after launch.
 8. **Full app-screen inventory** — an in-progress owner interview (2026-09-27) is going
-    screen-by-screen through onboarding, home/lobby, private tables, queue, match, chat, result,
-    profile, invite, and UGC. Decisions land here and in `docs/logic/` as each screen closes;
-    not all screens are covered yet (see `docs/PLAN.md` for what's locked vs. still open).
+   screen-by-screen through onboarding, home/lobby, private tables, queue, match, chat, result,
+   profile, invite, and UGC. Decisions land here and in `docs/logic/` as each screen closes;
+   not all screens are covered yet (see `docs/PLAN.md` for what's locked vs. still open).
 9. **Exact `PRICE_GUESS_ROUND_WAGER`** pinned value (D24 sets a 2–5 coin range, not a single
    number) and full economy simulation once bots/wagers are implemented.
 10. **Nostalgic display font, base "paper" color tokens, primary accent color, app icon/logo** —
-    all explicitly deferred in `docs/BRAND.md`.
+    all explicitly deferred in `docs/brand-visual.md`.
 11. **Admin panel screens** — not yet interviewed.
