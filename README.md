@@ -1,4 +1,6 @@
-# قیمتش چند بود؟ (نام موقت)
+# دوزاری 🪙
+
+> **دوزاریت می‌افته؟**
 
 بازی پازلی چندنفره‌ی آنلاین با محور نوستالژی قیمت‌های ایران — مکانیک شبیه NYT Connections (۱۶ آیتم، ۴ دسته) + رقابت زنده (۱ در ۱، ۲ در ۲، میز اختصاصی).
 
@@ -6,6 +8,7 @@
 - هویت بصری و برند: [`docs/BRAND.md`](docs/BRAND.md)
 - نقشه‌ی راه پیاده‌سازی: [`docs/PLAN.md`](docs/PLAN.md)
 - معماری: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+- برند، شعارها و متن‌های بازی: [`docs/brand.md`](docs/brand.md)
 - تصمیم‌ها و سوال‌های باز: [`docs/DECISIONS.md`](docs/DECISIONS.md)
 - منطق دقیق بازی: [`docs/logic/`](docs/logic)
 - راهنمای Claude: [`CLAUDE.md`](CLAUDE.md) و [`.claude/skills/`](.claude/skills)

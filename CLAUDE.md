@@ -1,4 +1,7 @@
-# CLAUDE.md — "Gheymatesh Chand Bood?" (قیمتش چند بود؟) — working title
+# CLAUDE.md — «دوزاری» (Dozari)
+
+Game name: **دوزاری** / `dozari` (D24). Name, slogans, and brand-voice copy: `docs/brand.md`.
+Former working title: «قیمتش چند بود؟».
 
 Online multiplayer Persian puzzle game about **Iranian price nostalgia**.
 Mechanic = NYT Connections (16 items → 4 hidden groups of 4), content = historical nominal
@@ -33,6 +36,7 @@ docs/
   PLAN.md              phased roadmap with checkboxes
   ARCHITECTURE.md      stack, deployment, module boundaries
   DECISIONS.md         ADR log + open questions
+  brand.md             name, slogans, brand voice & approved copy
   logic/               precise game logic specs (read the relevant one before coding)
 ```
 

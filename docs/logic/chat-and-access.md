@@ -48,4 +48,5 @@ non-unlocked readers (the gate is on *sending*).
 
 Stored in `canned_taunts`, categories: greeting, brag, tease, gg, react. Examples:
 «سلام! آماده‌ای ببازی؟»، «این یکی رو مامان‌بزرگمم بلد بود 😄»، «پیکان هم این‌قدر کند نبود!»،
-«دمت گرم، بازی خوبی بود»، «یکی مونده بود، حیف!». Keep them playful, never insulting.
+«دمت گرم، بازی خوبی بود»، «یکی مونده بود، حیف!». Keep them playful, never insulting. Brand-flavored additions («دوزاریت هنوز تو راهه؟» etc.)
+are listed in `docs/brand.md`.
