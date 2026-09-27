@@ -125,8 +125,10 @@ human opponent is found.
 - [ ] 🗄 `canned_taunts` (Persian, categorized), `invite_codes`, `users.chat_unlocked_at`
 - [ ] 🖥 ChatService: canned taunts for all; free text only if sender unlocked; team vs all channels
 - [ ] 🖥 Profanity filter (Persian wordlist + normalization of ی/ي، ک/ك، ZWNJ) + report/mute
-- [ ] 📱 Chat drawer with tabs (team / all), taunt picker, invite-code redemption screen
+- [ ] 📱 Chat drawer: floating icon button + unread badge (`logic/app-screens.md`), tabs (team /
+      all), taunt picker, invite-code redemption screen
 - [ ] 🧪 Visibility matrix tests (`logic/chat-and-access.md`)
+- [ ] 📱 Settings screen: sound/vibration toggles, delete account/log out, replay tutorial, about/support
 
 ## Phase 6 — Coin economy
 

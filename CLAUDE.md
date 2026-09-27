@@ -51,6 +51,7 @@ docs/
 | Price-guess bonus round (after every puzzle) | `docs/logic/price-guess-round.md` |
 | Profile, avatar/nickname galleries, tags, phone link | `docs/logic/profile-and-identity.md` |
 | Undisclosed AI opponents ("bots") in matchmaking | `docs/logic/bots.md` |
+| Screen-by-screen UI decisions (onboarding, home, queue, private table, chat drawer, settings) | `docs/logic/app-screens.md` |
 
 If code and spec disagree, fix the code **or** update the spec in the same change — never
 leave them diverged.
