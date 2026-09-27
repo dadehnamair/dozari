@@ -38,6 +38,10 @@ matching spec in `docs/logic/`.
 | D26 | Bootstrap catalog sourcing: **manual/AI-assisted archive research + personal/family memories**, both allowed until UGC carries the load | accepted | Owner request (2026-09-27). AI research suggestions land as `status: pending`, never auto-approved — human verifies before publish. Full spec: `price-catalog` skill §Bootstrap sourcing. |
 | D27 | **Hand-curate 50–100 puzzles first**, generator built afterward to imitate that style; group titles are **AI-drafted, owner-approved** (never auto-published) | accepted | Owner request (2026-09-27): quality/tone bar set by humans before automating. Full spec: `docs/logic/puzzle-generation.md` §Content bootstrap order. |
 | D28 | Brand mood = **nostalgia + playfulness combined** (warm aged-paper base + the bright Connections group colors as accents); Vazirmatn for UI, a **separate nostalgic display font for titles/brand** (family TBD); app icon/logo deferred | accepted (direction) / open (specific tokens) | Owner request (2026-09-27). Group colors were already locked in `persian-rtl-ui` skill; this decision is the *mood* and the *two-font system*, not final hex/font-family values — those are explicitly still open. Full spec: `docs/BRAND.md`. |
+| D29 | Final game name: **«دوزاری» (Dozari)**, code identifier `dozari`, deep-link scheme `dozari://`, primary tagline «دوزاریت می‌افته؟» | accepted | Owner choice (2026-09-27), resolves open question 5. Double meaning: the old 2-rial payphone coin (price nostalgia = content) and «دوزاریت افتاد؟» = "did the penny drop?" (the Connections aha moment = mechanic). Repo/internal scaffolding may still reference the earlier `gheymat` codename in places; `dozari` is the product-facing identifier going forward. Store/domain availability still to be checked. Full name, slogans, voice, and approved copy: `docs/brand.md`. |
+| D30 | Turn model (D8) reconfirmed as final: **shared board, alternating turns**, not parallel race | accepted | Owner confirmed (2026-09-27), resolves open question 6. No change to `logic/game-rules.md` mechanics — the "Alternatives" section stays for reference only. |
+| D31 | Locked-out side that stays to the end and wins price-guess rounds gets a **small consolation bonus score** (never enough to overturn a puzzle-portion loss) | accepted | Owner request (2026-09-27), resolves open question 9. A side that forfeits/abandons gets no bonus. Full spec: `logic/game-rules.md` §Price-guess bonus points & the locked-out side. |
+| D32 | Min content for launch confirmed: **≥ 300 products (≥ 3 price points each) + ≥ 200 validated puzzles pre-generated** | accepted | Owner confirmed (2026-09-27) as the launch target, resolves open question 7. Hand-curated 50–100 (D27) is the earlier internal MVP/tone-setting milestone within this larger target, not a separate lower bar. |
 
 ## Phase 0-A spike: de-risk the stack before Phase 0 scaffolding
 
@@ -59,6 +63,9 @@ app wrapped with Capacitor for the Android build — record that pivot here as a
 
 ## Open questions (from the brief + new)
 
+Resolved: ~~final game name~~ (D29), ~~turn model confirmation~~ (D30), ~~price-guess tie-break
+precedence~~ (D31), ~~min content for launch~~ (D32) — see Decisions table above.
+
 1. **Exact scoring / coin formula** — defaults proposed (D9). Needs playtesting.
 2. **Sources for historical prices** — deferred. Schema already has `source_type`, `source_url`, `source_note`, `confidence`.
 3. **Team chat vs cross-team chat visibility** — proposed in `logic/chat-and-access.md`.
@@ -66,19 +73,18 @@ app wrapped with Capacitor for the Android build — record that pivot here as a
    coin packs is now decided (D25, `economy.md` §Real-money coin purchases); *whether/when* to actually
    enable real-money purchases, ads, or a subscription is still open. Iranian IAP = Cafe Bazaar / Myket
    billing SDKs; Iranian ad networks (Tapsell, Adivery). Don't build/enable until decided.
-5. **Final game name** — open. Working title everywhere: `gheymat` (code), «قیمتش چند بود؟» (UI).
-6. **Turn model (D8)** confirmed? shared-board-alternating vs parallel race.
-7. **Min content for launch** — proposed: ≥ 300 products with ≥ 3 price points each, ≥ 200 validated puzzles pre-generated.
-8. **Moderation capacity for UGC & free chat** — who reviews? Proposed: admin panel + community votes threshold.
-9. **Price-guess round tie-break precedence** (D19) — whether a locked-out side's price-guess round
-   wins can affect the final score/tie-break, or only ever add flavor. Needs a decision when
-   `game-rules.md` is next revised.
-10. **Bot economy subsidy mechanism** (D23) — `bot_match_subsidy` ledger reason and its exact
+5. **Moderation capacity for UGC & free chat** — who reviews? Proposed: admin panel + community votes threshold.
+6. **Bot economy subsidy mechanism** (D23) — `bot_match_subsidy` ledger reason and its exact
     accounting are proposed, not yet balanced/simulated. Run through
     `packages/shared/scripts/simulate-economy.ts` once bots are built (Phase 4/6).
-11. **Bot pool sizing & fallback timing** (`BOT_POOL_SIZE`, `BOT_FALLBACK_SECONDS`) — defaults
+7. **Bot pool sizing & fallback timing** (`BOT_POOL_SIZE`, `BOT_FALLBACK_SECONDS`) — defaults
     proposed in `docs/logic/bots.md`, to be tuned with real queue-wait data after launch.
-12. **Full app-screen inventory** — an in-progress owner interview (2026-09-27) is going
+8. **Full app-screen inventory** — an in-progress owner interview (2026-09-27) is going
     screen-by-screen through onboarding, home/lobby, private tables, queue, match, chat, result,
     profile, invite, and UGC. Decisions land here and in `docs/logic/` as each screen closes;
     not all screens are covered yet (see `docs/PLAN.md` for what's locked vs. still open).
+9. **Exact `PRICE_GUESS_ROUND_WAGER`** pinned value (D24 sets a 2–5 coin range, not a single
+   number) and full economy simulation once bots/wagers are implemented.
+10. **Nostalgic display font, base "paper" color tokens, primary accent color, app icon/logo** —
+    all explicitly deferred in `docs/BRAND.md`.
+11. **Admin panel screens** — not yet interviewed.

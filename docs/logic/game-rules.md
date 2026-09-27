@@ -26,7 +26,7 @@ All values in *italics* are config in `packages/shared/src/config/game.ts`.
 Classic Connections: *SOLO_MAX_MISTAKES* = 4 mistakes allowed; game over at the 4th wrong guess
 (remaining groups revealed). Result screen + chart.
 
-## Competitive: shared board, alternating turns (Decision D8 — proposed)
+## Competitive: shared board, alternating turns (Decision D8 — **accepted**, confirmed 2026-09-27)
 
 One board, both sides play it in turns.
 
@@ -42,8 +42,22 @@ One board, both sides play it in turns.
 
 ### End of match
 - Ends when: 3 groups solved (4th auto-revealed), or both sides locked out, or forfeit/abandon.
-- Winner = higher score. Tie-break: fewer mistakes → earlier last correct guess → draw.
+- Winner = higher score. Tie-break: fewer mistakes → earlier last correct guess → **price-guess
+  bonus points** (below) → draw.
 - Forfeit/abandon: the remaining side wins regardless of score (see matchmaking.md for reconnect grace).
+
+### Price-guess bonus points & the locked-out side (resolves open question 9, owner-confirmed 2026-09-27)
+- A side that got locked out (4 mistakes) during the puzzle **cannot win the match outright** off
+  price-guess-round points alone — the puzzle-portion result still decides the match winner when
+  it alone would have decided it.
+- But a locked-out side that **stayed in the match to the end** (didn't forfeit/abandon) and won
+  price-guess rounds gets a **small bonus score** added to their final tally — enough to affect a
+  close tie-break (per the tie-break order above) or pad the loss margin shown on the result
+  screen, never enough to flip a clear puzzle-portion win. Exact bonus size:
+  `PRICE_GUESS_LOSER_BONUS_PER_ROUND` (proposed, small — e.g. 1 point per round won; pin the
+  number in `packages/shared/src/config/game.ts` and reconcile with `price-guess-round.md`
+  §Competitive scoring `PRICE_GUESS_ROUND_POINTS`).
+- A side that forfeits/abandons gets no such bonus — this only rewards staying till the end.
 
 ### 2v2 specifics
 - The side (team) shares one turn, one score, one mistake counter.

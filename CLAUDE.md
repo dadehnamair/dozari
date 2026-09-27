@@ -1,6 +1,6 @@
 # CLAUDE.md — «دوزاری» (Dozari)
 
-Game name: **دوزاری** / `dozari` (D24). Name, slogans, and brand-voice copy: `docs/brand.md`.
+Game name: **دوزاری** / `dozari` (D29). Name, slogans, and brand-voice copy: `docs/brand.md`.
 Former working title: «قیمتش چند بود؟».
 
 Online multiplayer Persian puzzle game about **Iranian price nostalgia**.

@@ -48,9 +48,10 @@ For duel/team/private:
 - A side that got **locked out** of the puzzle (4 mistakes) still plays every price-guess round —
   they can win individual rounds, but per owner instruction they can never win the **match**
   outright off price-guess points alone while locked out (i.e. the lockout still decides the
-  match winner if the puzzle portion alone would have; price-guess rounds only break ties/add
-  color, never overturn a lockout loss). Exact tie-break precedence to finalize when game-rules.md
-  is next revised.
+  match winner if the puzzle portion alone would have). If that side stays until the end (no
+  forfeit) and wins price-guess rounds, it gets a small consolation bonus added to its final
+  score — resolved tie-break precedence, see `game-rules.md` §Price-guess bonus points & the
+  locked-out side.
 - No submission before the timer → counts as the worst possible guess for that side (loses the
   round unless the opponent also times out, then it's a draw).
 
