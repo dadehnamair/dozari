@@ -51,6 +51,18 @@ a disguised way to take players' coins.
 - Turn timing: bots don't always use the full timer — vary their response time within a
   plausible human range so a string of bot matches doesn't feel robotic.
 
+## Mid-match takeover (D43)
+
+Extends the above from "fills an empty queue/seat at match start" to "takes over an abandoned
+*live* seat": if a human disconnects or goes AFK mid-match past a grace period, the server swaps a
+bot into their seat rather than leaving the match to resolve via `matchmaking.md`'s abandonment
+rules. Same non-disclosure rule applies — the remaining player(s) never see any "opponent left"
+state. Owner: "وسط بازی اگه کسی لفت داد یا نتش مشکل پیدا کرد، بعد از یه مدت ربات جایگزینش بشه اما
+معلوم نباشه ربات." The takeover grace period is a new config value (not `RECONNECT_GRACE_SECONDS`
+necessarily — could be shorter, since the match is live and other players are waiting), and the
+`bot_match_subsidy` accounting below needs to cover a mid-match handoff, not just a match that
+started with a bot. Both are open — see §Open follow-ups.
+
 ## Economy interaction — keeping it fair
 
 This is the part that needs care, since real coins are at stake (`economy.md`):
@@ -71,6 +83,7 @@ This is the part that needs care, since real coins are at stake (`economy.md`):
 
 - Exact `BOT_FALLBACK_SECONDS` and `BOT_POOL_SIZE` are tuning knobs — set defaults in Phase 4,
   revisit with real queue-wait data after launch.
+- **Mid-match takeover grace period** (D43) — no default timer picked yet.
 - Whether/how a private-table host can opt into "fill with bot if a seat is empty" needs its own
   small UI decision when the private-table screen is built (see `docs/logic/matchmaking.md`
   §Private tables) — not yet specified.

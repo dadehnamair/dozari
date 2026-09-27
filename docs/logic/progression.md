@@ -50,6 +50,19 @@ biases which puzzles a player is served:
   weighted toward the stronger one's level rather than always the easiest.
 - Config: `PUZZLE_TIER_WEIGHTS` in `packages/shared/src/config/game.ts`.
 
+## Board size as a difficulty lever (D47)
+
+A further extension the owner asked for on top of D34: easier tiers can offer a **smaller board**
+(e.g. 3×3 = 9 items / fewer groups) instead of always the fixed 4×4/16-item Connections board;
+harder tiers can go **larger** than 4×4. Owner: "واسه شروع بازی یسری گزینه‌های آسون‌تر مثلا ۳×۳
+باشه، ۴×۴ نباشه، ولی توی لول‌های خیلی سخت تعداد جدولش بیشتر هم بشه." This is a bigger change than
+the rest of D34 (which only varies *which* puzzle/rule-subtlety a player sees, keeping the board
+shape fixed per D19's original brief) — board geometry itself becomes a lever. **Not implemented
+in the prototype** — it's structural enough (how a non-4-groups-of-4 board maps onto
+`game-rules.md`'s scoring, and whether `validatePuzzle`/the generator in `puzzle-generation.md`
+can even produce non-4×4 boards) that mocking it would risk misleading the real design. Tracked as
+`DECISIONS.md` open question 15 — needs a real design pass before it's spec'd further here.
+
 ## Open follow-ups
 
 - Exact XP numbers and tier-weighting percentages need playtesting, same as the rest of
