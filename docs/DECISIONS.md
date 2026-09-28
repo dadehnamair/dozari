@@ -67,6 +67,11 @@ matching spec in `docs/logic/`.
 | D55 | **Visual identity moves to "Candy Arcade" v3** — a deliberately single, non-adaptive game-world look (vivid magenta/violet night-sky gradient, chunky glossy 3D buttons with a thick drop "shelf" edge, sticker-style outlined display type) replacing the D35 "cool arcade" v2 flat palette | accepted (direction) / proposed (exact tokens) | Owner request (2026-09-28), narrowed through a reference discussion: candy-vivid color energy (closest to Candy Crush Saga among the options offered), glossy chunky buttons (Coin Master/Clash Royale), a central hub with big portal buttons instead of a list/nav (also D54). Deliberately **not** light/dark-adaptive — real game main-menus don't reskin with the OS theme (see `artifact-design` principle: "a design that deliberately commits to a single visual world... may stay single-theme"). Locked Connections group colors (yellow/green/blue/purple) and chart `s1–s4` colors are unchanged. Full spec: `docs/brand-visual.md` §Color v3. **v3.1 polish pass (same day):** owner found the first pass "too simple, like a generic game" and asked for real glassmorphism and a much higher production level. Added: true frosted-glass panels/chips/tiles (`backdrop-filter: blur+saturate`, inset highlight), a layered ambient backdrop (blurred drifting color blobs + a twinkling sparkle field + a subtle grain overlay, all pure CSS/no assets), a periodic diagonal shine sweep across every button/portal, a staggered pop-in animation for the hub portals, a glowing spotlight + orbiting sparkles under the mascot, and a shimmering gradient sweep on the logo text. |
 | D56 | **Mascot character: «دایی‌دوزاری» (Uncle Dozari)**, an anthropomorphic gold coin with a mustache and a flat cap, appears on the hub screen (idle bob + wave animation, a speech-bubble line) and reacts to level-ups | accepted (character) / proposed (name & exact personality) | Owner request (2026-09-28): wanted a mascot like Coin Master's, left the concept to Claude. Ties directly to the game's own name/economy (the دوزاری = old 2-rial coin) rather than a generic animal mascot, reinforcing the nostalgia layer from D28 inside the new candy-arcade chrome. Hand-drawn inline SVG in `prototype/game.html`, no external image asset. Revisit character design once a real illustrator/brand pass happens. |
 | D57 | **Hub portal icons are a hand-drawn "3D clay" SVG set** (trophy/gift/puzzle/user — gradient-shaded, drop-shadowed, no external files), instead of licensed stock icons | accepted (prototype only) | Owner shared a Vecteezy "3D quiz icon" reference and asked to use assets from there, with "اگه لایسنس داشت میگیرم" (will buy a license for the real app if needed) — i.e. explicitly not yet licensed. This session's network policy also blocks vecteezy.com outright. Downloading/embedding unlicensed stock art into the repo isn't something to do without a confirmed license, so a matching hand-drawn style was built instead (`prototype/game.html`, inline `<symbol>` defs `i3d-*`). **For the real app**: once the owner buys an actual icon-pack license, swap in those files as local assets — this hand-drawn set is a stand-in, not the intended final art. |
+| D58 | **Display/brand font locked in: Lalezar**, resolving the "nostalgic display font" half of open question 10 | accepted | Owner confirmed (2026-09-28): "همین Lalezar رو قطعی کن" — it's what every prototype screenshot has used for the logo/headlines since early on and never drew a complaint, so no separate candidate review was needed. Vazirmatn stays the body/UI font (unchanged, `persian-rtl-ui` skill). App icon/logo mark itself is still undecided (see open question 10, now narrower). |
+| D59 | **Mascot personality is playful/mischievous, not just friendly** — «دایی‌دوزاری» winks, has a raised eyebrow and a lopsided smirk, and its idle hub lines are cheeky/teasing rather than plain encouragement | accepted | Owner (2026-09-28) kept the name but asked to change the personality: "شیطون/بازیگوش‌تر — چشمک می‌زنه، حالت‌های شیطنت‌آمیز." Redrawn face in `prototype/game.html`'s inline SVG (D56); idle speech-bubble line now cycles through a small set of cheeky lines instead of one static "بزن بریم!". |
+| D60 | **Tournament format: single-elimination bracket** (16 players, one duel-puzzle match per round, loser is out), not an ongoing leaderboard-style event | accepted (format) / proposed (bracket size, prizes, bye handling) | Owner picked this explicitly (2026-09-28) over the leaderboard-style alternative, resolving D50/open question 16's format fork. Bigger engineering lift than a leaderboard event would have been: needs bracket generation/seeding, per-round match scheduling, and a bye rule for uneven signup counts — none of that is designed yet, only the format choice and a mocked bracket-progress visual (`prototype/game.html` §Leaderboard → Tournament tab). Prize table beyond "۱st place" and exact entry fee are still open. |
+| D61 | **`PRICE_GUESS_ROUND_WAGER` pinned at 3 coins**, resolving open question 9 within D24's 2–5 range | accepted | Not a new owner ask — this is just promoting the prototype's long-standing placeholder value (`PRICE_GUESS_ROUND_WAGER=3` in `index.html`/`game.html` since D19/D24 were written) to an actual decision, since nothing in playtesting so far has argued for a different number in the allowed range. Still subject to revision once `packages/shared/scripts/simulate-economy.ts` exists (open question 6). |
+| D62 | **`BOT_TAKEOVER_GRACE_SECONDS` proposed at 15s** — how long a mid-match disconnect/AFK seat waits before D43's silent bot takeover kicks in | proposed | Claude default (2026-09-28) to unblock the open item — intentionally shorter than `RECONNECT_GRACE_SECONDS` (60s, `matchmaking.md`) because a *live* match has other real players actively waiting on that seat, unlike an abandoned queue slot; picked to feel responsive without punishing a normal brief app-switch. Needs the same real-queue-data tuning pass as `BOT_FALLBACK_SECONDS` (open question 7) once telemetry exists. |
 
 Owner-approved (2026-09-26). Do these ~3–5 days of experiments first; their results can still
 flip D13–D17 before real code is built on top of them. Tracked as checkboxes in `docs/PLAN.md`
@@ -87,7 +92,9 @@ app wrapped with Capacitor for the Android build — record that pivot here as a
 ## Open questions (from the brief + new)
 
 Resolved: ~~final game name~~ (D29), ~~turn model confirmation~~ (D30), ~~price-guess tie-break
-precedence~~ (D31), ~~min content for launch~~ (D32) — see Decisions table above.
+precedence~~ (D31), ~~min content for launch~~ (D32), ~~display font~~ (D58), ~~mascot
+personality~~ (D59), ~~tournament format~~ (D60), ~~price-guess wager amount~~ (D61) — see
+Decisions table above.
 
 1. **Exact scoring / coin formula** — defaults proposed (D9). Needs playtesting.
 2. **Sources for historical prices** — deferred. Schema already has `source_type`, `source_url`, `source_note`, `confidence`.
@@ -106,10 +113,10 @@ precedence~~ (D31), ~~min content for launch~~ (D32) — see Decisions table abo
    screen-by-screen through onboarding, home/lobby, private tables, queue, match, chat, result,
    profile, invite, and UGC. Decisions land here and in `docs/logic/` as each screen closes;
    not all screens are covered yet (see `docs/PLAN.md` for what's locked vs. still open).
-9. **Exact `PRICE_GUESS_ROUND_WAGER`** pinned value (D24 sets a 2–5 coin range, not a single
-   number) and full economy simulation once bots/wagers are implemented.
-10. **Nostalgic display font + app icon/logo** — still deferred in `docs/brand-visual.md`.
-    The color palette has since moved twice: v2 "cool arcade" (D35) then v3 "Candy Arcade"
+9. ~~Exact `PRICE_GUESS_ROUND_WAGER`~~ — pinned at 3 coins (D61); full economy simulation still
+   needed once bots/wagers are implemented.
+10. **App icon/logo mark** — still deferred in `docs/brand-visual.md` (the display *font* is now
+    locked, D58). The color palette has moved twice: v2 "cool arcade" (D35) then v3 "Candy Arcade"
     (D55, 2026-09-28) — v3 is the current *proposed* default, needs an explicit owner sign-off
     to flip to `accepted`.
 11. **Admin panel** — a first static mock exists (`prototype/screens/admin.html`: puzzle
@@ -125,18 +132,19 @@ precedence~~ (D31), ~~min content for launch~~ (D32) — see Decisions table abo
 14. **Mid-match bot takeover grace period** (D43) — how long to wait after a disconnect/AFK
     before silently swapping in a bot; no default timer picked yet, track alongside the
     `BOT_FALLBACK_SECONDS` numbers in `docs/logic/bots.md` (open question 7).
-15. **Difficulty-driven board size** (D47) — exact board sizes per tier and how a non-4×4 board
-    maps onto the existing 4-groups/1-point-per-group scoring and `validatePuzzle` checks is
-    unresolved; too structural to prototype safely without a real design pass.
-16. **Tournament format** (D50) — bracket vs. ongoing leaderboard event, entry fee, prize
-    structure, and cadence are all undecided; `leaderboard.html` mocks the *entry point* only.
-17. **City crews** (D53) — persistent regional teams/rivalries beyond a leaderboard filter is a
-    bigger social-feature question, not designed yet.
-18. **SPA scope** (D54) — `prototype/game.html` covers hub, play menu, solo/duel board + price-guess
+15. **Tournament mechanics** — format is decided (single-elimination bracket, D60); bracket size
+    beyond the mocked 16, bye handling for odd signup counts, exact entry fee, and the full prize
+    table are still open. `prototype/game.html`'s tournament tab mocks the bracket-progress visual
+    and entry point only, not real bracket generation/scheduling.
+16. **SPA scope** (D54) — `prototype/game.html` covers hub, play menu, solo/duel board + price-guess
     + result, queue, private table, leaderboard/players/tournament, profile, shop, and settings.
     It does **not** yet include admin, the in-match chat as its own full screen (only the overlay
     drawer during a live duel), UGC submission/voting, or the onboarding slides — those still only
     exist in the older `screens/*.html` set. Folding them into the SPA (and deciding whether
     admin belongs in a player-facing game shell at all, given D38) is unstarted follow-up work.
-19. **Mascot personality & name** (D56) — «دایی‌دوزاری» is a first pass; not validated with the
-    owner beyond "yes, have a mascot."
+17. **Board-size difficulty scaling** (D47) — see the new proposed default in
+    `docs/logic/progression.md` §Board size as a difficulty lever; still needs owner sign-off and
+    real puzzle-content authoring for the 3-item and 5-item group variants before it can move past
+    "proposed."
+18. **City crews** (D53) — explicitly deferred past launch; not designed further, revisit only if
+    players ask for it post-launch.

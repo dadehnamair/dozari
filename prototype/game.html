@@ -294,6 +294,10 @@ input{font:inherit}
 .player-row .info small{display:block;font-weight:500;opacity:.75;font-size:10.5px}
 .tourney-card{background:linear-gradient(135deg,var(--yellow),var(--orange));border-radius:var(--radius-md);padding:14px;display:flex;flex-direction:column;gap:8px;color:#3B2A0E;box-shadow:0 6px 0 var(--orange-dk),0 16px 30px -12px rgba(255,153,30,.6);position:relative;overflow:hidden;isolation:isolate}
 .tourney-card::before{content:"";position:absolute;inset:0 0 50% 0;background:linear-gradient(180deg,rgba(255,255,255,.5),transparent);pointer-events:none;z-index:-1}
+.bracket-mini{display:flex;align-items:center;gap:8px;padding:6px 0}
+.bracket-mini .bl{flex:1;text-align:center;background:rgba(255,255,255,.55);border-radius:8px;padding:6px 2px;font-weight:800;font-size:13px;position:relative}
+.bracket-mini .bl:not(:last-child)::after{content:"›";position:absolute;left:-10px;top:50%;transform:translateY(-50%);opacity:.6}
+.bracket-mini .r4{background:linear-gradient(180deg,#FFEFB8,var(--yellow))}
 .avatar{width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:26px;flex:none}
 .avatar.sm{width:38px;height:38px;font-size:18px}
 .avatar-wrap{position:relative;display:inline-flex}
@@ -440,7 +444,7 @@ input{font:inherit}
       <div class="mascot-wrap">
         <div class="mascot-glow"></div>
         <div class="orbit"><span>✨</span><span>⭐</span><span>✨</span></div>
-        <div class="mascot-bubble" id="mascotLine">بزن بریم! 😄</div>
+        <div class="mascot-bubble" id="mascotLine">بزن بریم! 😏</div>
         <svg class="mascot mascot-bob" viewBox="0 0 200 200" aria-hidden="true">
           <defs><radialGradient id="coinGrad" cx="35%" cy="30%" r="80%">
             <stop offset="0%" stop-color="#FFE58A"/><stop offset="60%" stop-color="#FFC93C"/><stop offset="100%" stop-color="#D9A520"/>
@@ -449,9 +453,13 @@ input{font:inherit}
           <circle cx="100" cy="112" r="70" fill="url(#coinGrad)" stroke="#9A6A12" stroke-width="6"/>
           <circle cx="100" cy="112" r="57" fill="none" stroke="#FFF3C4" stroke-width="3" stroke-dasharray="4 7" opacity=".6"/>
           <path d="M52 78 Q100 42 148 78 L142 89 Q100 63 58 89 Z" fill="#FF4D8D"/>
-          <circle cx="78" cy="103" r="7" fill="#3B2A0E"/><circle cx="122" cy="103" r="7" fill="#3B2A0E"/>
+          <!-- mischievous face: raised brow, open eye + wink, lopsided smirk (D56 v2 — playful/cheeky, not just friendly) -->
+          <path d="M66 87 Q78 78 91 85" stroke="#3B2A0E" stroke-width="4" fill="none" stroke-linecap="round"/>
+          <circle cx="78" cy="103" r="7" fill="#3B2A0E"/>
+          <path d="M113 104 Q122 96 131 104" stroke="#3B2A0E" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+          <path d="M132 92 l4 -4 M136 97 l5 -1 M133 101 l4 3" stroke="#FFD86B" stroke-width="2.5" stroke-linecap="round"/>
           <path d="M63 120 Q80 130 90 122 Q100 132 110 122 Q120 130 137 120" stroke="#5C4322" stroke-width="6" fill="none" stroke-linecap="round"/>
-          <path d="M75 130 Q100 148 125 130" stroke="#3B2A0E" stroke-width="5" fill="none" stroke-linecap="round"/>
+          <path d="M70 127 Q96 144 133 122" stroke="#3B2A0E" stroke-width="5" fill="none" stroke-linecap="round"/>
           <ellipse cx="80" cy="188" rx="15" ry="7" fill="#3B2A0E"/><ellipse cx="120" cy="188" rx="15" ry="7" fill="#3B2A0E"/>
           <path class="arm-r" d="M165 132 Q182 112 172 90" stroke="#D9A520" stroke-width="14" fill="none" stroke-linecap="round"/>
         </svg>
@@ -557,11 +565,15 @@ input{font:inherit}
       </div>
       <div class="tabpane" data-pane="tourney">
         <div class="tourney-card">
-          <h2 style="margin:0;font-family:'Lalezar','Vazirmatn',serif;font-size:19px">تورنومنت هفتگی «دوزاری‌های برتر»</h2>
-          <p class="hint num" style="color:inherit;opacity:.85">شروع: ۲ روز دیگه · ورودی: ۵۰ سکه · جایزه‌ی نفر اول: ۲٬۰۰۰ سکه</p>
+          <h2 style="margin:0;font-family:'Lalezar','Vazirmatn',serif;font-size:19px">تورنومنت حذفی «دوزاری‌های برتر»</h2>
+          <p class="hint num" style="color:inherit;opacity:.85">براکت ۱۶ نفره · شروع: ۲ روز دیگه · ورودی: ۵۰ سکه · جایزه‌ی نفر اول: ۲٬۰۰۰ سکه</p>
+          <div class="bracket-mini num" aria-hidden="true">
+            <span class="bl r1">۱۶</span><span class="bl r2">۸</span><span class="bl r3">۴</span><span class="bl r4">🏆</span>
+          </div>
+          <p class="hint" style="color:inherit;opacity:.8">هر دور یه پازل ۱در۱ با ورودی — برنده به دور بعد می‌ره، بازنده حذف می‌شه.</p>
           <button class="candy sm ghost" id="joinTourney" style="align-self:flex-start;color:#3B2A0E;background:rgba(255,255,255,.5)">ثبت‌نام در تورنومنت</button>
         </div>
-        <p class="hint">فرمت دقیق و جدول جایزه‌ها هنوز طراحی نشده.</p>
+        <p class="hint">جدول دقیق جوایز و مکانیک بای (نفر کم برای دور اول) هنوز طراحی نشده.</p>
       </div>
     </section>
 
@@ -692,6 +704,10 @@ function addXp(amount){
   if(after>before){ toast('ترفیع گرفتی! رسیدی به سطح '+fa(after,0)+' 🎉'); mascotSay('وای چه بازیکنی شدی! 🎉'); }
 }
 function mascotSay(t){ const el=$('mascotLine'); if(el) el.textContent=t; }
+// playful/cheeky mascot idle lines (D56 v2) — cycles on the hub so «دایی‌دوزاری» feels mischievous, not just friendly
+const MASCOT_IDLE=['بزن بریم! 😏','یه چیزی حس می‌کنم... امروز می‌بری 😉','حریفتو ضعیف نگیر‌ها 😜','دوزاریت کو؟ بندازش بیاد!','بازی بعدی رو من می‌چینم 😏'];
+let mascotIdleIdx=0;
+setInterval(() => { if(currentScene==='hub'){ mascotIdleIdx=(mascotIdleIdx+1)%MASCOT_IDLE.length; mascotSay(MASCOT_IDLE[mascotIdleIdx]); } }, 4200);
 
 /* ===================== puzzle data (illustrative, nominal toman) ===================== */
 const YEARS = [1360,1365,1370,1375,1380,1385,1390,1395,1400];

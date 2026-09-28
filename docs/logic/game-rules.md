@@ -109,8 +109,8 @@ If a player disconnects or goes AFK (no input) mid-match past a grace period, th
 swaps a bot into their seat — same undisclosed-bot policy as `bots.md`/D23, now covering an
 abandoned *live* seat, not just an unfilled queue. The remaining player(s) never see any
 "opponent disconnected" state; the seat just keeps playing, at the same visual fidelity as D39's
-HUD (avatar/coins/level unchanged). Grace-period timer is a new config value, not yet picked — see
-`bots.md` open questions. Economy subsidy accounting (`bots.md` §Economy interaction) extends to
+HUD (avatar/coins/level unchanged). Grace-period timer is `BOT_TAKEOVER_GRACE_SECONDS`, proposed at
+15s (D62) — see `bots.md`. Economy subsidy accounting (`bots.md` §Economy interaction) extends to
 cover a mid-match handoff.
 
 ## Result screen (all modes)

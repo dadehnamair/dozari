@@ -91,14 +91,18 @@ three things in one place:
   کاربرارو بر اساس روز هفته ماه و کل بازی نشون بده."
 - **Players** — browse/search other users, send friend requests (D44, full spec in
   `profile-and-identity.md` §Friends & player browsing).
-- **Tournaments** — owner: "یه صفحه هم باشه تورنومنت برگزار کنیم." The prototype mocks only the
-  entry point (a tournament card with entry fee/prize/start time and a join button) — bracket vs.
-  ongoing-leaderboard format, prize structure, and cadence are **not decided**, flagged as an open
-  question (`DECISIONS.md` open question 16).
+- **Tournaments** — owner: "یه صفحه هم باشه تورنومنت برگزار کنیم." Format is decided: **single-
+  elimination bracket** (D60) — one duel-puzzle match per round, loser is out, winner advances,
+  down to a final. `prototype/game.html`'s tournament tab mocks a 16→8→4→🏆 bracket-progress
+  strip alongside the entry card (fee/prize/start time/join button). Bracket size beyond 16, the
+  bye rule for odd signup counts, and the full prize table are still open (`DECISIONS.md` open
+  question 15).
 
-Prototype: `screens/leaderboard.html`. Backend needs a ranking query (probably a periodic
+Prototype: `screens/leaderboard.html` (rankings/players/entry card) and `game.html`'s leaderboard
+scene (adds the bracket-progress visual). Backend needs a ranking query (probably a periodic
 materialized view or a scheduled aggregation job, not a live query per request) and, for
-tournaments, new tables — neither designed yet.
+tournaments, new tables (bracket/round/match rows) plus a scheduler to advance rounds — neither
+designed yet.
 
 ## Icon caption convention (D48)
 
