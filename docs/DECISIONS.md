@@ -63,8 +63,9 @@ matching spec in `docs/logic/`.
 | D51 | **Entry fees scale with difficulty** — a harder match (higher skill tier / bigger board per D47) costs more coins to enter, a easier one costs less than the current flat `ENTRY_FEE` | accepted (direction) / open (exact tiered numbers) | Owner request (2026-09-27): "هرچی بازی رو سخت‌ترش میکنه ورودی‌هاش سنگین‌تر باشه." Extends `economy.md`'s flat `ENTRY_FEE` (D9) into a tier-scaled table; exact multipliers need the same playtesting pass as the rest of `economy.md`'s numbers (open question 1). |
 | D52 | **Private table hosts get more visible ownership/control features** than the current bare room-code + seat management | accepted (direction) / proposed (exact feature list) | Owner request (2026-09-27): "موقع ایجاد میز یکم امکانات بیشتر بدیم به سازنده که حس مالکیت رو بهش القا کنیم." First pass implemented in the prototype (`table.html`): host badge/crown, a custom table name/emoji, a board-difficulty picker for the table, and a "start requires host confirmation" toggle. Full spec: `docs/logic/app-screens.md` §Private table. |
 | D53 | **Ask for the player's province (and optionally city) — optional, not a gate** — to power regional leaderboards and informal "city crews"/rivalries | accepted (feature) / proposed (exact UX: onboarding step vs. profile-only) | Owner request (2026-09-27): "اگه از افراد استانشون رو هم بپرسه بد نیست، بشه یه کل‌کل‌های شهری هم راه انداخت و اکیپ‌های شهری تشکیل بشه." Must stay optional per the entry-must-be-frictionless brief (same spirit as D22's optional phone link) — never required to play. "City crews" (persistent regional teams, not just a leaderboard filter) is a bigger social-feature question, flagged as open rather than designed here. Full spec: `docs/logic/profile-and-identity.md` §Province/city (new), `docs/logic/app-screens.md` §Leaderboard & tournaments (regional filter). |
-
-## Phase 0-A spike: de-risk the stack before Phase 0 scaffolding
+| D54 | **Prototype rebuilt as a true single-page app with fixed, non-scrolling "game scenes"** and JS-driven scene transitions (no page reloads/links between screens) — replaces the multi-file `screens/*.html` navigation model | accepted | Owner request (2026-09-28): "بنظرم باید spa باشه، کامل میخوام وایب گیم باشه" — explicit rejection of the earlier website-feeling navigation (bottom nav bar, scrolling pages, per-screen `<a href>` links). New file: `prototype/game.html`. Content-heavy screens (profile, leaderboard) use in-scene tabs instead of page scroll to stay on one screen. The multi-file `screens/*.html` set (and `index.html`) is kept as-is for reference/history, not deleted — `game.html` is the new primary prototype going forward pending owner sign-off. |
+| D55 | **Visual identity moves to "Candy Arcade" v3** — a deliberately single, non-adaptive game-world look (vivid magenta/violet night-sky gradient, chunky glossy 3D buttons with a thick drop "shelf" edge, sticker-style outlined display type) replacing the D35 "cool arcade" v2 flat palette | accepted (direction) / proposed (exact tokens) | Owner request (2026-09-28), narrowed through a reference discussion: candy-vivid color energy (closest to Candy Crush Saga among the options offered), glossy chunky buttons (Coin Master/Clash Royale), a central hub with big portal buttons instead of a list/nav (also D54). Deliberately **not** light/dark-adaptive — real game main-menus don't reskin with the OS theme (see `artifact-design` principle: "a design that deliberately commits to a single visual world... may stay single-theme"). Locked Connections group colors (yellow/green/blue/purple) and chart `s1–s4` colors are unchanged. Full spec: `docs/brand-visual.md` §Color v3. |
+| D56 | **Mascot character: «دایی‌دوزاری» (Uncle Dozari)**, an anthropomorphic gold coin with a mustache and a flat cap, appears on the hub screen (idle bob + wave animation, a speech-bubble line) and reacts to level-ups | accepted (character) / proposed (name & exact personality) | Owner request (2026-09-28): wanted a mascot like Coin Master's, left the concept to Claude. Ties directly to the game's own name/economy (the دوزاری = old 2-rial coin) rather than a generic animal mascot, reinforcing the nostalgia layer from D28 inside the new candy-arcade chrome. Hand-drawn inline SVG in `prototype/game.html`, no external image asset. Revisit character design once a real illustrator/brand pass happens. |
 
 Owner-approved (2026-09-26). Do these ~3–5 days of experiments first; their results can still
 flip D13–D17 before real code is built on top of them. Tracked as checkboxes in `docs/PLAN.md`
@@ -107,9 +108,9 @@ precedence~~ (D31), ~~min content for launch~~ (D32) — see Decisions table abo
 9. **Exact `PRICE_GUESS_ROUND_WAGER`** pinned value (D24 sets a 2–5 coin range, not a single
    number) and full economy simulation once bots/wagers are implemented.
 10. **Nostalgic display font + app icon/logo** — still deferred in `docs/brand-visual.md`.
-    The color palette moved on to a v2 "cool arcade" *proposed* default (D35, 2026-09-27, see
-    `brand-visual.md` §Color) after the owner rejected the earlier pastel-paper v1 — needs an
-    explicit owner sign-off to flip to `accepted`.
+    The color palette has since moved twice: v2 "cool arcade" (D35) then v3 "Candy Arcade"
+    (D55, 2026-09-28) — v3 is the current *proposed* default, needs an explicit owner sign-off
+    to flip to `accepted`.
 11. **Admin panel** — a first static mock exists (`prototype/screens/admin.html`: puzzle
     approval, UGC moderation, economy overview, content-target progress); the owner has since
     confirmed the *target platform* is a full-featured web app (D38). Auth/roles, real data
@@ -130,3 +131,11 @@ precedence~~ (D31), ~~min content for launch~~ (D32) — see Decisions table abo
     structure, and cadence are all undecided; `leaderboard.html` mocks the *entry point* only.
 17. **City crews** (D53) — persistent regional teams/rivalries beyond a leaderboard filter is a
     bigger social-feature question, not designed yet.
+18. **SPA scope** (D54) — `prototype/game.html` covers hub, play menu, solo/duel board + price-guess
+    + result, queue, private table, leaderboard/players/tournament, profile, shop, and settings.
+    It does **not** yet include admin, the in-match chat as its own full screen (only the overlay
+    drawer during a live duel), UGC submission/voting, or the onboarding slides — those still only
+    exist in the older `screens/*.html` set. Folding them into the SPA (and deciding whether
+    admin belongs in a player-facing game shell at all, given D38) is unstarted follow-up work.
+19. **Mascot personality & name** (D56) — «دایی‌دوزاری» is a first pass; not validated with the
+    owner beyond "yes, have a mascot."

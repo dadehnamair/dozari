@@ -1,0 +1,1190 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>دوزاری</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lalezar&family=Vazirmatn:wght@400;500;700;800&display=swap">
+<style>
+/* ============================================================
+   "Candy Arcade" — deliberate single game-world look (D54).
+   Not light/dark adaptive on purpose, like a real game's main menu
+   never changes with the OS theme. See docs/brand-visual.md §Color v3.
+   ============================================================ */
+:root{
+  --bg1:#2A0E52; --bg2:#7A1E86; --bg3:#FF3D77; --bg4:#FF8A3D; /* night-candy sky gradient stops */
+  --ink:#2B1240; --cream:#FFF6E8;
+  --panel:#3A1768; --panel-line:rgba(255,255,255,.14);
+  --pink:#FF4D8D; --pink-dk:#C4266A;
+  --orange:#FF7A3D; --orange-dk:#D4531A;
+  --yellow:#FFC93C; --yellow-dk:#D99A0E;
+  --sky:#3FC1F0; --sky-dk:#1C8FBD;
+  --grape:#A66BF0; --grape-dk:#7139C4;
+  --lime:#7ED957; --lime-dk:#4FAE2A;
+  --danger:#FF4D6D; --danger-dk:#C42248;
+  --y:#F9DF6D; --g:#A0C35A; --b:#B0C4EF; --p:#BA81C5; --on-group:#241F3B; /* locked puzzle-group colors, persian-rtl-ui skill */
+  --s1:#FF7A5C; --s2:#63A4FF; --s3:#5CCB7E; --s4:#C28CFF; /* chart line colors */
+  --radius-lg:26px; --radius-md:18px; --radius-sm:12px;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  background:
+    radial-gradient(circle at 15% 8%, rgba(255,255,255,.10), transparent 40%),
+    radial-gradient(circle at 88% 82%, rgba(255,255,255,.08), transparent 45%),
+    linear-gradient(165deg, var(--bg1) 0%, var(--bg2) 45%, var(--bg3) 80%, var(--bg4) 100%);
+  color:var(--cream); font:15px/1.6 "Vazirmatn",Tahoma,"Segoe UI",sans-serif; direction:rtl;
+  overflow:hidden; -webkit-tap-highlight-color:transparent;
+}
+button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+input{font:inherit}
+.num{font-variant-numeric:tabular-nums}
+.icon{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:inline-block;vertical-align:-4px;flex:none}
+
+/* ---------- app frame: fixed viewport, no page scroll ---------- */
+.app{position:fixed;inset:0;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+
+.hud{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 14px;flex:none;z-index:20}
+.hud-left,.hud-right{display:flex;align-items:center;gap:8px}
+.chip{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.14);backdrop-filter:blur(4px);border:1px solid rgba(255,255,255,.22);border-radius:999px;padding:6px 12px 6px 10px;font-weight:800;font-size:13px}
+.coin-dot{width:16px;height:16px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#FFE58A,#D9A520);box-shadow:inset 0 0 0 1.5px #B8860B;flex:none}
+.lvchip{background:linear-gradient(135deg,var(--yellow),var(--orange));color:#3B2A0E;border-radius:999px;padding:6px 12px;font-weight:800;font-size:12.5px;box-shadow:0 3px 0 var(--orange-dk)}
+.iconbtn{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center}
+.iconbtn:active{transform:scale(.92)}
+.home-btn{display:none}
+.app[data-scene]:not([data-scene="hub"]) .home-btn{display:flex}
+
+.stage{position:relative;flex:1;min-height:0}
+.scene{position:absolute;inset:0;display:flex;flex-direction:column;opacity:0;transform:scale(.95) translateY(6px);pointer-events:none;transition:opacity .22s ease, transform .22s ease;padding:0 16px 16px}
+.scene.active{opacity:1;transform:none;pointer-events:auto}
+@media (prefers-reduced-motion:reduce){.scene{transition:none}}
+
+/* ---------- candy chunky button mixin ---------- */
+.candy{border:0;border-radius:999px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:transform .08s;color:#fff}
+.candy:active{transform:translateY(3px)}
+.candy.sm{padding:9px 16px;font-size:13px;border-radius:999px}
+.candy.lg{padding:14px 22px;font-size:16px}
+.candy.block{width:100%}
+.candy.pink{background:linear-gradient(180deg,#FF7BAB,var(--pink));box-shadow:0 5px 0 var(--pink-dk)}
+.candy.orange{background:linear-gradient(180deg,#FFA36B,var(--orange));box-shadow:0 5px 0 var(--orange-dk)}
+.candy.yellow{background:linear-gradient(180deg,#FFDD7E,var(--yellow));color:#4A3300;box-shadow:0 5px 0 var(--yellow-dk)}
+.candy.sky{background:linear-gradient(180deg,#7CD8FA,var(--sky));box-shadow:0 5px 0 var(--sky-dk)}
+.candy.grape{background:linear-gradient(180deg,#C79BFA,var(--grape));box-shadow:0 5px 0 var(--grape-dk)}
+.candy.lime{background:linear-gradient(180deg,#A8EB86,var(--lime));color:#1E3A0E;box-shadow:0 5px 0 var(--lime-dk)}
+.candy.ghost{background:rgba(255,255,255,.14);box-shadow:0 3px 0 rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.2)}
+.candy.danger{background:linear-gradient(180deg,#FF7C93,var(--danger));box-shadow:0 5px 0 var(--danger-dk)}
+.candy:disabled{opacity:.4;pointer-events:none}
+
+.panel{background:var(--panel);border:1px solid var(--panel-line);border-radius:var(--radius-lg);padding:16px;box-shadow:0 10px 0 rgba(0,0,0,.18),0 16px 30px -10px rgba(0,0,0,.45)}
+.scroll-y{overflow-y:auto;-webkit-overflow-scrolling:touch}
+.scroll-y::-webkit-scrollbar{width:6px}
+.scroll-y::-webkit-scrollbar-thumb{background:rgba(255,255,255,.25);border-radius:99px}
+
+/* ---------- mascot ---------- */
+.mascot-wrap{position:relative;display:flex;justify-content:center;margin:2px 0 4px}
+.mascot{width:132px;height:132px;filter:drop-shadow(0 10px 14px rgba(0,0,0,.35))}
+.mascot .arm-r{transform-origin:170px 92px;animation:wave 2.6s ease-in-out infinite}
+.mascot-bob{animation:bob 3.2s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-10px) rotate(2deg)}}
+@keyframes wave{0%,20%,100%{transform:rotate(0)}10%{transform:rotate(-28deg)}}
+.mascot-bubble{position:absolute;top:-6px;right:calc(50% - 108px);background:#fff;color:#3B2A0E;font-weight:800;font-size:12px;padding:6px 12px;border-radius:14px;box-shadow:0 4px 0 rgba(0,0,0,.15);white-space:nowrap}
+.mascot-bubble:after{content:"";position:absolute;bottom:-7px;right:16px;border:7px solid transparent;border-top-color:#fff}
+@media (prefers-reduced-motion:reduce){.mascot-bob,.mascot .arm-r{animation:none}}
+
+/* ---------- hub ---------- */
+#scene-hub{align-items:center;justify-content:center;text-align:center;gap:6px}
+.game-logo{font-family:"Lalezar","Vazirmatn",serif;font-size:44px;margin:0 0 2px;letter-spacing:1px;
+  color:#fff;text-shadow:0 3px 0 var(--pink-dk),0 3px 0 var(--pink-dk),2px 3px 0 var(--pink-dk),-2px 3px 0 var(--pink-dk),0 8px 14px rgba(0,0,0,.4);}
+.hub-tagline{margin:0 0 10px;font-weight:700;color:#FFE1EE;font-size:13.5px}
+.portal-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:360px}
+.portal{border:0;border-radius:var(--radius-md);padding:18px 8px 14px;display:flex;flex-direction:column;align-items:center;gap:6px;font-weight:800;font-size:13.5px;color:#fff;transition:transform .1s}
+.portal .icon{width:30px;height:30px}
+.portal:active{transform:translateY(4px)}
+.portal-play{background:linear-gradient(160deg,#FFA36B,var(--orange));box-shadow:0 6px 0 var(--orange-dk)}
+.portal-comp{background:linear-gradient(160deg,#FFDD7E,var(--yellow));color:#4A3300;box-shadow:0 6px 0 var(--yellow-dk)}
+.portal-profile{background:linear-gradient(160deg,#7CD8FA,var(--sky));box-shadow:0 6px 0 var(--sky-dk)}
+.portal-shop{background:linear-gradient(160deg,#C79BFA,var(--grape));box-shadow:0 6px 0 var(--grape-dk)}
+.portal small{font-weight:600;font-size:10.5px;opacity:.85}
+
+/* ---------- generic scene header ---------- */
+.scene-head{display:flex;align-items:center;justify-content:center;gap:8px;padding:6px 0 12px;flex:none;text-align:center}
+.scene-head h1{margin:0;font-family:"Lalezar","Vazirmatn",serif;font-size:24px;text-shadow:0 3px 0 rgba(0,0,0,.2)}
+
+/* ---------- play menu ---------- */
+#scene-play{align-items:center;justify-content:center}
+.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:380px}
+.mode-tile{border:0;border-radius:var(--radius-md);padding:20px 8px 14px;display:flex;flex-direction:column;align-items:center;gap:6px;font-weight:800;font-size:13.5px;color:#fff}
+.mode-tile .icon{width:28px;height:28px}
+.mode-tile:active{transform:translateY(4px)}
+.mode-tile small{font-weight:600;font-size:10.5px;opacity:.85}
+
+/* ---------- board scene ---------- */
+#scene-board{gap:8px;padding-top:4px}
+.progress-strip{display:flex;gap:6px;justify-content:center;padding:2px 0}
+.pip{flex:1;max-width:70px;height:8px;border-radius:99px;background:rgba(255,255,255,.18)}
+.pip.on{background:linear-gradient(90deg,var(--yellow),var(--orange))}
+.tutorial-banner{background:linear-gradient(135deg,var(--sky),var(--grape));border-radius:var(--radius-md);padding:10px 14px;margin-bottom:2px;box-shadow:0 4px 0 rgba(0,0,0,.15)}
+.tutorial-banner b{font-size:13.5px}
+.tutorial-banner p{margin:3px 0 0;font-size:11.5px;line-height:1.55;opacity:.95}
+.duel-hud{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center}
+.duel-side{background:rgba(255,255,255,.1);border:1px solid var(--panel-line);border-radius:14px;padding:6px 8px;text-align:center;transition:box-shadow .2s}
+.duel-side.active{box-shadow:0 0 0 2px var(--yellow)}
+.duel-side .nm{font-size:11.5px;font-weight:700;opacity:.85}
+.duel-side .sc{font-size:19px;font-weight:800}
+.duel-side .id{font-size:10.5px;opacity:.8}
+.duel-clock{text-align:center;font-weight:800;font-size:18px;min-width:48px}
+.duel-clock small{display:block;font-weight:500;font-size:10px;opacity:.75}
+.solo-status{text-align:center;font-size:12.5px;font-weight:700;opacity:.9}
+.dots{display:inline-flex;gap:3px;margin-inline-start:6px;vertical-align:middle}
+.dot{width:8px;height:8px;border-radius:50%;background:#fff;opacity:.85}
+.dot.used{background:transparent;box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.6);opacity:.5}
+
+.board{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-top:10px}
+.card{border:0;background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(255,255,255,.05));border:1px solid rgba(255,255,255,.25);border-radius:14px;aspect-ratio:1/1;padding:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-weight:700;font-size:11px;line-height:1.25;text-align:center;color:#fff;transition:transform .1s,background .1s;box-shadow:0 3px 0 rgba(0,0,0,.18)}
+.card .e{font-size:22px;line-height:1}
+.card[aria-pressed="true"]{background:linear-gradient(180deg,var(--yellow),var(--orange));color:#3B2A0E;border-color:transparent;transform:translateY(2px);box-shadow:0 1px 0 var(--orange-dk)}
+.card.botpick{background:linear-gradient(180deg,var(--grape),var(--grape-dk));border-color:transparent}
+.card.shake{animation:shake .4s}
+.card:disabled{opacity:.55}
+@keyframes shake{25%{transform:translateX(-5px)}50%{transform:translateX(5px)}75%{transform:translateX(-3px)}}
+.board-controls{display:flex;gap:8px;justify-content:center;padding-top:8px;margin-top:auto;flex:none}
+
+.chat-fab{position:absolute;left:8px;bottom:8px;width:48px;height:48px;border-radius:50%;background:linear-gradient(180deg,#7CD8FA,var(--sky));box-shadow:0 4px 0 var(--sky-dk);display:flex;align-items:center;justify-content:center;z-index:15}
+.chat-fab .badge{position:absolute;top:-3px;right:-3px;background:var(--danger);color:#fff;border-radius:999px;min-width:17px;height:17px;font-size:10px;display:flex;align-items:center;justify-content:center;padding:0 4px}
+.chat-drawer{position:absolute;inset:auto 0 0 0;background:var(--panel);border-radius:22px 22px 0 0;box-shadow:0 -8px 24px rgba(0,0,0,.4);transform:translateY(105%);transition:transform .25s ease;z-index:16;max-height:60%;display:flex;flex-direction:column}
+.chat-drawer.open{transform:translateY(0)}
+.chat-drawer .dr-head{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--panel-line)}
+.chat-drawer .dr-body{padding:10px 14px;overflow-y:auto;display:flex;flex-direction:column;gap:8px}
+.chatlog{display:flex;flex-direction:column;gap:5px;min-height:30px}
+.msg{max-width:82%;padding:6px 11px;border-radius:12px;font-size:12.5px;background:rgba(255,255,255,.12);align-self:flex-start}
+.msg.me{align-self:flex-start;background:linear-gradient(135deg,var(--pink),var(--grape));color:#fff}
+.msg b{font-size:10px;display:block;opacity:.7;font-weight:700}
+.taunts{display:flex;gap:5px;flex-wrap:wrap}
+
+/* ---------- price-guess scene ---------- */
+#scene-priceguess{align-items:center;justify-content:center;text-align:center;gap:10px}
+.pg-item{font-size:44px;line-height:1}
+.pg-input input{width:180px;text-align:center;border:0;border-radius:14px;padding:12px;font-weight:800;font-size:18px;color:#3B2A0E;background:#fff}
+.pg-clock{font-weight:800;font-size:13px;opacity:.85}
+
+/* ---------- result scene ---------- */
+#scene-matchresult{gap:8px;padding-top:8px}
+.verdict{font-family:"Lalezar","Vazirmatn",serif;font-size:28px;margin:0;text-align:center;text-shadow:0 3px 0 rgba(0,0,0,.2)}
+.delta{display:block;text-align:center;font-weight:800;font-size:14px;margin-top:2px}
+.delta.plus{color:#9CFFC2}.delta.minus{color:#FFB3C0}
+.solved-list{display:flex;flex-direction:column;gap:6px}
+.solved-row{border-radius:12px;padding:8px 10px;color:var(--on-group)}
+.solved-row h3{margin:0;font-size:13px;font-weight:800}
+.solved-row p{margin:2px 0 0;font-size:11.5px}
+.lv0{background:var(--y)}.lv1{background:var(--g)}.lv2{background:var(--b)}.lv3{background:var(--p)}
+.gtabs{display:flex;gap:5px;flex-wrap:wrap;justify-content:center}
+.gtab{border:2px solid transparent;border-radius:999px;padding:4px 11px;font-size:11.5px;font-weight:700;color:var(--on-group)}
+.gtab[aria-selected="true"]{border-color:#fff}
+.chart-box{overflow-x:auto;direction:ltr}
+.chart-box svg{display:block;width:100%;min-width:300px;height:auto}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;font-size:11px}
+.legend div{display:flex;align-items:center;gap:5px;min-width:0}
+.legend i{width:12px;height:4px;border-radius:2px;flex:none}
+.legend span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hint{font-size:11.5px;opacity:.8;margin:0}
+
+/* ---------- queue scene ---------- */
+#scene-queue{align-items:center;justify-content:center;text-align:center;gap:12px}
+.spinner{width:60px;height:60px;border-radius:50%;border:5px solid rgba(255,255,255,.18);border-top-color:var(--yellow);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.scan-card{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.12);border-radius:16px;padding:10px 16px;justify-content:center}
+.scan-card .e{font-size:24px}
+.scan-card.found{background:linear-gradient(135deg,var(--lime),var(--sky))}
+.online-pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#9CFFC2}
+.online-pill i{width:7px;height:7px;border-radius:50%;background:#3EE07E;box-shadow:0 0 0 3px rgba(62,224,126,.3)}
+
+/* ---------- generic tabs used in leaderboard/profile ---------- */
+.subtabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;flex:none}
+.subtabs button{flex:none;display:inline-flex;align-items:center;gap:5px;border:0;background:rgba(255,255,255,.12);border-radius:999px;padding:7px 14px;font-weight:700;font-size:12.5px;color:#fff}
+.subtabs button[aria-selected="true"]{background:#fff;color:var(--ink)}
+.tabpane{display:none;flex:1;min-height:0;flex-direction:column;gap:10px}
+.tabpane.active{display:flex}
+
+/* ---------- leaderboard ---------- */
+.period-seg{display:flex;background:rgba(255,255,255,.1);border-radius:10px;padding:3px;gap:3px;flex:none}
+.period-seg button{flex:1;border:0;background:transparent;border-radius:8px;padding:7px 4px;font-weight:700;font-size:11.5px;color:#fff}
+.period-seg button[aria-selected="true"]{background:#fff;color:var(--ink)}
+.rank-row{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.1);border-radius:12px;padding:8px 10px}
+.rank-row.me{background:linear-gradient(135deg,var(--pink),var(--grape))}
+.rank-row .n{width:22px;text-align:center;font-weight:800;flex:none}
+.rank-row .info{flex:1;min-width:0;font-size:12.5px;font-weight:700}
+.rank-row .info small{display:block;font-weight:500;opacity:.75;font-size:10.5px}
+.rank-row .pts{font-weight:800;font-size:13px}
+.player-row{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.1);border-radius:12px;padding:8px 10px}
+.player-row .info{flex:1;min-width:0;font-size:12.5px;font-weight:700}
+.player-row .info small{display:block;font-weight:500;opacity:.75;font-size:10.5px}
+.tourney-card{background:linear-gradient(135deg,var(--yellow),var(--orange));border-radius:var(--radius-md);padding:14px;display:flex;flex-direction:column;gap:8px;color:#3B2A0E;box-shadow:0 6px 0 var(--orange-dk)}
+.avatar{width:56px;height:56px;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:26px;flex:none}
+.avatar.sm{width:38px;height:38px;font-size:18px}
+.avatar-wrap{position:relative;display:inline-flex}
+.level-badge{position:absolute;bottom:-4px;left:-6px;background:linear-gradient(135deg,var(--yellow),var(--orange));color:#3B2A0E;border:2px solid var(--panel);border-radius:999px;min-width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;padding:0 5px}
+
+/* ---------- profile ---------- */
+.profile-head{display:flex;align-items:center;gap:12px;flex:none;padding-bottom:6px}
+.profile-head .name{font-size:15.5px;font-weight:800}
+.profile-head .meta{font-size:11px;opacity:.75}
+.xp-row{display:flex;justify-content:space-between;font-size:10.5px;opacity:.85;font-weight:700}
+.xp-track{background:rgba(255,255,255,.15);border-radius:999px;height:8px;overflow:hidden}
+.xp-fill{background:linear-gradient(90deg,var(--yellow),var(--pink));height:100%;border-radius:999px;transition:width .4s ease}
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center;flex:none}
+.stat-grid div{background:rgba(255,255,255,.1);border-radius:10px;padding:8px 4px}
+.stat-grid b{display:block;font-size:16px}
+.stat-grid span{font-size:10.5px;opacity:.75}
+.tag-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.tag-item{border:2px solid transparent;background:rgba(255,255,255,.1);border-radius:12px;padding:9px;text-align:center;font-size:11.5px;font-weight:700}
+.tag-item.equipped{border-color:var(--yellow)}
+.tag-item.locked{opacity:.45}
+.tag-item small{display:block;font-weight:500;opacity:.7;margin-top:2px}
+.hist-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 0;border-top:1px dashed var(--panel-line);font-size:12px}
+.hist-row:first-child{border-top:0}
+.hist-row .delta.plus{color:#9CFFC2}.hist-row .delta.minus{color:#FFB3C0}
+.code-box{display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(255,255,255,.1);border:1px dashed var(--panel-line);border-radius:10px;padding:9px 12px;font-weight:800;font-size:15px;letter-spacing:2px}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:11.5px;font-weight:700;opacity:.85}
+.field select,.field input[type=text]{border:0;background:rgba(255,255,255,.12);color:#fff;border-radius:10px;padding:9px 12px;font:inherit}
+.field select option{color:#000}
+
+/* ---------- shop ---------- */
+.shop-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.shop-card{background:rgba(255,255,255,.1);border-radius:16px;padding:12px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:4px;position:relative}
+.shop-card .e{font-size:30px}
+.shop-card b{font-size:14px}
+.shop-card small{font-size:10.5px;opacity:.7}
+.soon-ribbon{position:absolute;top:8px;left:-26px;background:var(--danger);color:#fff;font-size:9.5px;font-weight:800;padding:3px 28px;transform:rotate(-35deg)}
+
+/* ---------- settings ---------- */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px dashed var(--panel-line)}
+.toggle-row:first-child{border-top:0}
+.switch{width:44px;height:26px;border-radius:999px;background:rgba(255,255,255,.2);position:relative;border:0;flex:none}
+.switch i{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:right .15s}
+.switch[aria-pressed="true"]{background:var(--lime)}
+.switch[aria-pressed="true"] i{right:21px}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:#fff;color:var(--ink);padding:10px 18px;border-radius:999px;font-weight:800;font-size:13.5px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-width:calc(100% - 32px);text-align:center;z-index:30;box-shadow:0 6px 20px rgba(0,0,0,.35)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+@media (max-width:380px){.game-logo{font-size:36px}.mascot{width:108px;height:108px}}
+</style>
+</head>
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11.5 12 4l8 7.5"/><path d="M6 10v9.5a.5.5 0 0 0 .5.5H10v-5.5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1V20h3.5a.5.5 0 0 0 .5-.5V10"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c.7-4.2 4-6.4 7.5-6.4s6.8 2.2 7.5 6.4"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8.5" r="3"/><path d="M3.5 19.5c.6-3.4 3-5.2 5.5-5.2s4.9 1.8 5.5 5.2"/><circle cx="17" cy="9" r="2.4"/><path d="M15.3 14.6c2 .2 3.7 1.8 4.2 4.9"/></symbol>
+  <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 12h3M11 12h9M4 17h13M20 17h0"/><circle cx="15" cy="7" r="2.2"/><circle cx="7" cy="12" r="2.2"/><circle cx="16.5" cy="17" r="2.2"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5.5h16a1 1 0 0 1 1 1V15a1 1 0 0 1-1 1H9l-4.2 3.4a.5.5 0 0 1-.8-.4V16H4a1 1 0 0 1-1-1V6.5a1 1 0 0 1 1-1Z"/><path d="M7.5 9.5h9M7.5 12.5h6"/></symbol>
+  <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M7 4h10v5.5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4.5a1 1 0 0 0-1 1.2c.4 2.2 1.8 3.6 3.8 4M17 6h2.5a1 1 0 0 1 1 1.2c-.4 2.2-1.8 3.6-3.8 4"/><path d="M12 14.5V17M9 20.5h6M8.8 20.5c0-2 1.4-2.6 3.2-2.6s3.2.6 3.2 2.6"/></symbol>
+  <symbol id="i-swords" viewBox="0 0 24 24"><path d="M4 4l7 7-2 2-7-7V4h2Z"/><path d="M20 4l-7 7 2 2 7-7V4h-2Z"/><path d="m11 13-6.5 6.5M13 13l6.5 6.5"/><path d="M4.5 17.5h2v2h-2zM17.5 17.5h2v2h-2z"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><circle cx="7.5" cy="14.5" r="3.5"/><path d="m10 12 8.5-8.5M15.5 6.5l2 2M13 9l2 2"/></symbol>
+  <symbol id="i-puzzle" viewBox="0 0 24 24"><path d="M9 4.5h4.5a1.3 1.3 0 0 1 0 3 1.4 1.4 0 0 0 0 2.8 1.3 1.3 0 0 1 0 2.7H9V9.6a1.4 1.4 0 0 0-2.8 0v3.4H4.5V9a1.3 1.3 0 0 1 0-2.6H9V4.5Z"/><path d="M9 13h4.5V17a1.4 1.4 0 0 0 2.8 0V13H19a1.3 1.3 0 0 1 1.3 1.3v2.4a1.3 1.3 0 0 1-2.6 0 1.4 1.4 0 0 0-2.8 0 1.3 1.3 0 0 1-2.6 0V13H9Z" opacity=".55"/></symbol>
+  <symbol id="i-gift" viewBox="0 0 24 24"><rect x="4" y="9" width="16" height="4" rx="1"/><rect x="5.5" y="13" width="13" height="7" rx="1"/><path d="M12 9v11"/><path d="M12 9c-1-3-5-4-5-1.3S9.5 9 12 9Zm0 0c1-3 5-4 5-1.3S14.5 9 12 9Z"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3.5 14.5 9l6 .8-4.3 4.1 1 6-5.2-2.8-5.2 2.8 1-6-4.3-4.1 6-.8Z"/></symbol>
+  <symbol id="i-user-plus" viewBox="0 0 24 24"><circle cx="10" cy="8.5" r="3.4"/><path d="M3.5 20c.6-4 3.7-6.1 6.5-6.1s5.9 2.1 6.5 6.1"/><path d="M18.5 8v6M15.5 11h6"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><path d="M6 3.5v17"/><path d="M6 4.5h11l-2.5 3.5L17 11.5H6Z"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="5"/><path d="M12 9.3v5.4M10.4 10.4h2.5a1.3 1.3 0 0 1 0 2.6h-1.8a1.3 1.3 0 0 0 0 2.6h2.5"/></symbol>
+</svg>
+
+<div class="app" id="app" data-scene="hub">
+  <div class="hud">
+    <div class="hud-right">
+      <button class="iconbtn home-btn" id="homeBtn" aria-label="بازگشت به هاب"><svg class="icon"><use href="#i-home"></use></svg></button>
+      <button class="iconbtn" id="settingsBtn" aria-label="تنظیمات"><svg class="icon"><use href="#i-settings"></use></svg></button>
+    </div>
+    <div class="hud-left">
+      <span class="lvchip num" id="lvchip">Lv ۱</span>
+      <span class="chip num"><span class="coin-dot"></span><span id="coins">۲۰۰</span></span>
+    </div>
+  </div>
+
+  <div class="stage" id="stage">
+
+    <!-- ===== HUB ===== -->
+    <section class="scene active" id="scene-hub">
+      <h1 class="game-logo">دوزاری</h1>
+      <p class="hub-tagline">دوزاریت می‌افته؟</p>
+      <div class="mascot-wrap">
+        <div class="mascot-bubble" id="mascotLine">بزن بریم! 😄</div>
+        <svg class="mascot mascot-bob" viewBox="0 0 200 200" aria-hidden="true">
+          <defs><radialGradient id="coinGrad" cx="35%" cy="30%" r="80%">
+            <stop offset="0%" stop-color="#FFE58A"/><stop offset="60%" stop-color="#FFC93C"/><stop offset="100%" stop-color="#D9A520"/>
+          </radialGradient></defs>
+          <path d="M35 132 Q18 108 30 86" stroke="#D9A520" stroke-width="14" fill="none" stroke-linecap="round"/>
+          <circle cx="100" cy="112" r="70" fill="url(#coinGrad)" stroke="#9A6A12" stroke-width="6"/>
+          <circle cx="100" cy="112" r="57" fill="none" stroke="#FFF3C4" stroke-width="3" stroke-dasharray="4 7" opacity=".6"/>
+          <path d="M52 78 Q100 42 148 78 L142 89 Q100 63 58 89 Z" fill="#FF4D8D"/>
+          <circle cx="78" cy="103" r="7" fill="#3B2A0E"/><circle cx="122" cy="103" r="7" fill="#3B2A0E"/>
+          <path d="M63 120 Q80 130 90 122 Q100 132 110 122 Q120 130 137 120" stroke="#5C4322" stroke-width="6" fill="none" stroke-linecap="round"/>
+          <path d="M75 130 Q100 148 125 130" stroke="#3B2A0E" stroke-width="5" fill="none" stroke-linecap="round"/>
+          <ellipse cx="80" cy="188" rx="15" ry="7" fill="#3B2A0E"/><ellipse cx="120" cy="188" rx="15" ry="7" fill="#3B2A0E"/>
+          <path class="arm-r" d="M165 132 Q182 112 172 90" stroke="#D9A520" stroke-width="14" fill="none" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="portal-grid">
+        <button class="portal portal-play" data-go="play"><svg class="icon"><use href="#i-puzzle"></use></svg>بازی<small>تمرین، ۱در۱، میز</small></button>
+        <button class="portal portal-comp" data-go="leaderboard"><svg class="icon"><use href="#i-trophy"></use></svg>رقابت‌ها<small>رتبه، تورنومنت</small></button>
+        <button class="portal portal-profile" data-go="profile"><svg class="icon"><use href="#i-user"></use></svg>پروفایل<small>آمار، افتخارات</small></button>
+        <button class="portal portal-shop" data-go="shop"><svg class="icon"><use href="#i-gift"></use></svg>فروشگاه<small>سکه، تزئینات</small></button>
+      </div>
+    </section>
+
+    <!-- ===== PLAY MENU ===== -->
+    <section class="scene" id="scene-play">
+      <div class="scene-head"><h1>چطوری بازی کنیم؟</h1></div>
+      <div class="mode-grid">
+        <button class="mode-tile candy orange" data-mode="solo"><svg class="icon"><use href="#i-puzzle"></use></svg>تمرین تکی<small>بدون سکه</small></button>
+        <button class="mode-tile candy pink" data-mode="duel"><svg class="icon"><use href="#i-swords"></use></svg>۱ در ۱<small>ورودی ۲۰ سکه</small></button>
+        <button class="mode-tile candy grape" data-mode="team"><svg class="icon"><use href="#i-users"></use></svg>۲ در ۲<small>ورودی ۲۰ سکه</small></button>
+        <button class="mode-tile candy sky" data-mode="table"><svg class="icon"><use href="#i-key"></use></svg>میز اختصاصی<small>با کد دعوت</small></button>
+      </div>
+    </section>
+
+    <!-- ===== QUEUE (matchmaking reveal card) ===== -->
+    <section class="scene" id="scene-queue">
+      <span class="online-pill num" style="margin-bottom:8px"><i aria-hidden="true"></i><span id="onlineCount">۳۴۲</span> نفر الان آنلاینن</span>
+      <div class="spinner" role="status" aria-label="در حال جستجو"></div>
+      <h1 style="font-family:'Lalezar','Vazirmatn',serif;font-size:20px;margin:0">در حال پیدا کردن حریف…</h1>
+      <div class="scan-card" id="scanCard"><span class="e" id="scanAvatar">🔎</span><b id="scanName">در حال گشتن بین بازیکن‌ها…</b></div>
+      <p class="hint num">زمان تقریبی: <b id="qEta">۱۵</b> ثانیه · گذشته: <b id="qElapsed">۰</b> ثانیه</p>
+      <button class="candy sm ghost" id="qCancel">لغو</button>
+    </section>
+
+    <!-- ===== PRIVATE TABLE ===== -->
+    <section class="scene scroll-y" id="scene-table">
+      <div class="scene-head"><h1>میز اختصاصی</h1></div>
+      <div class="panel" style="display:flex;flex-direction:column;gap:10px">
+        <div class="field"><label>اسم میز</label><input type="text" id="tableName" value="میز دوزاری‌بازای قدیمی" maxlength="30"></div>
+        <div class="code-box num"><span id="tCode">7XQ4K</span><button class="candy sm ghost" id="tCopy">کپی</button></div>
+        <div class="period-seg" role="tablist" id="tDiff">
+          <button aria-selected="false" data-diff="easy">آسون</button>
+          <button aria-selected="true" data-diff="mid">متوسط</button>
+          <button aria-selected="false" data-diff="hard">سخت</button>
+        </div>
+        <p class="hint">ورودی با سختی میز بالا می‌ره: <b class="num" id="tFee">۲۰ سکه</b></p>
+        <div id="tSeats" style="display:flex;flex-direction:column;gap:6px"></div>
+        <button class="candy sm ghost" id="tSim">➕ شبیه‌سازی پیوستن مهمان</button>
+        <button class="candy lg pink block" id="tStart" disabled>شروع بازی</button>
+      </div>
+    </section>
+
+    <!-- ===== BOARD (the game itself) ===== -->
+    <section class="scene" id="scene-board">
+      <div id="status"></div>
+      <div class="progress-strip" id="progress"></div>
+      <div id="board" class="board" aria-label="صفحه‌ی بازی"></div>
+      <div id="board-controls" class="board-controls"></div>
+      <button class="chat-fab" id="chatFab" style="display:none" aria-label="چت"><svg class="icon" style="width:22px;height:22px"><use href="#i-chat"></use></svg><span class="badge" id="chatUnread" style="display:none">۱</span></button>
+      <div class="chat-drawer" id="chatDrawer">
+        <div class="dr-head"><b>کل‌کل</b><button class="candy sm ghost" id="chatClose"><svg class="icon"><use href="#i-x"></use></svg></button></div>
+        <div class="dr-body">
+          <div class="chatlog" id="chatlog"></div>
+          <div class="taunts" id="taunts"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== PRICE-GUESS ROUND ===== -->
+    <section class="scene" id="scene-priceguess">
+      <div id="pgBody" style="display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;max-width:340px"></div>
+    </section>
+
+    <!-- ===== MATCH RESULT ===== -->
+    <section class="scene scroll-y" id="scene-matchresult">
+      <div id="resultBody"></div>
+    </section>
+
+    <!-- ===== LEADERBOARD / TOURNAMENT ===== -->
+    <section class="scene" id="scene-leaderboard">
+      <div class="scene-head"><h1>رقابت‌ها</h1></div>
+      <div class="subtabs" role="tablist">
+        <button aria-selected="true" data-tab="rank"><svg class="icon" style="width:16px;height:16px"><use href="#i-trophy"></use></svg>رتبه‌بندی</button>
+        <button aria-selected="false" data-tab="players"><svg class="icon" style="width:16px;height:16px"><use href="#i-users"></use></svg>بازیکنان</button>
+        <button aria-selected="false" data-tab="tourney"><svg class="icon" style="width:16px;height:16px"><use href="#i-flag"></use></svg>تورنومنت</button>
+      </div>
+      <div class="tabpane active" data-pane="rank">
+        <div class="period-seg" role="tablist" id="lbPeriod">
+          <button aria-selected="true" data-period="day">امروز</button>
+          <button aria-selected="false" data-period="week">هفته</button>
+          <button aria-selected="false" data-period="month">ماه</button>
+          <button aria-selected="false" data-period="all">کل</button>
+        </div>
+        <div class="scroll-y" style="display:flex;flex-direction:column;gap:6px" id="rankList"></div>
+      </div>
+      <div class="tabpane" data-pane="players">
+        <div class="field"><input type="text" id="playerSearch" placeholder="جستجوی بازیکن…"></div>
+        <div class="scroll-y" style="display:flex;flex-direction:column;gap:6px" id="playerList"></div>
+      </div>
+      <div class="tabpane" data-pane="tourney">
+        <div class="tourney-card">
+          <h2 style="margin:0;font-family:'Lalezar','Vazirmatn',serif;font-size:19px">تورنومنت هفتگی «دوزاری‌های برتر»</h2>
+          <p class="hint num" style="color:inherit;opacity:.85">شروع: ۲ روز دیگه · ورودی: ۵۰ سکه · جایزه‌ی نفر اول: ۲٬۰۰۰ سکه</p>
+          <button class="candy sm ghost" id="joinTourney" style="align-self:flex-start;color:#3B2A0E;background:rgba(255,255,255,.5)">ثبت‌نام در تورنومنت</button>
+        </div>
+        <p class="hint">فرمت دقیق و جدول جایزه‌ها هنوز طراحی نشده.</p>
+      </div>
+    </section>
+
+    <!-- ===== PROFILE ===== -->
+    <section class="scene" id="scene-profile">
+      <div class="profile-head">
+        <span class="avatar-wrap"><span class="avatar" aria-hidden="true">🧑‍🚀</span><span class="level-badge num" id="pLvBadge">۱</span></span>
+        <div style="flex:1;min-width:0">
+          <div class="name">دوزاری‌باز۸۸</div>
+          <div class="meta">۱۴ بازی · عضو از فروردین ۱۴۰۴</div>
+        </div>
+      </div>
+      <div class="xp-row num"><span id="pXpLabel">سطح ۱ — ۰ از ۵۰ XP</span><span id="pXpPct">٪۰</span></div>
+      <div class="xp-track"><div class="xp-fill" id="pXpFill" style="width:0"></div></div>
+      <div class="subtabs" role="tablist" style="margin-top:4px">
+        <button aria-selected="true" data-tab="stats">آمار</button>
+        <button aria-selected="false" data-tab="achv">افتخارات</button>
+        <button aria-selected="false" data-tab="hist">تاریخچه</button>
+        <button aria-selected="false" data-tab="more">دوستان و استان</button>
+      </div>
+      <div class="tabpane active" data-pane="stats">
+        <div class="stat-grid num"><div><b>۱۴</b><span>بازی</span></div><div><b>۹</b><span>برد</span></div><div><b>٪۷۸</b><span>دقت قیمت</span></div></div>
+        <div class="panel" style="padding:12px">
+          <b style="font-size:12.5px">رتبه‌ی مهارت: مبتدی</b>
+          <p class="hint" style="margin-top:4px">هرچی مهارتت بالاتر بره، پازل‌هات ظریف‌تر و گول‌زننده‌تر می‌شن — خودکاره.</p>
+        </div>
+      </div>
+      <div class="tabpane" data-pane="achv"><div class="tag-grid scroll-y" id="tagGrid"></div></div>
+      <div class="tabpane" data-pane="hist"><div class="scroll-y" id="histList"></div></div>
+      <div class="tabpane" data-pane="more" style="gap:12px">
+        <div class="field"><label>استان (اختیاری)</label>
+          <select id="province"><option value="">انتخاب نکردم</option><option>تهران</option><option>اصفهان</option><option>فارس</option><option>خراسان رضوی</option></select>
+        </div>
+        <div class="code-box num"><span id="invcode">DZ-914K</span><button class="candy sm ghost" id="copyInv">کپی</button></div>
+        <button class="candy sm ghost block" id="pFriends">دیدن بازیکن‌ها و دوستی</button>
+      </div>
+    </section>
+
+    <!-- ===== SHOP ===== -->
+    <section class="scene scroll-y" id="scene-shop">
+      <div class="scene-head"><h1>فروشگاه</h1></div>
+      <p class="hint" style="text-align:center">خرید سکه هنوز فعال نشده — این فقط پیش‌نمایشه.</p>
+      <div class="shop-grid">
+        <div class="shop-card"><div class="soon-ribbon">به‌زودی</div><span class="e">🪙</span><b class="num">۱۰۰</b><small>۹۹۰۰ تومن</small></div>
+        <div class="shop-card"><div class="soon-ribbon">به‌زودی</div><span class="e">💰</span><b class="num">۵۰۰</b><small>۳۹۰۰۰ تومن</small></div>
+        <div class="shop-card"><div class="soon-ribbon">به‌زودی</div><span class="e">🎁</span><b>پک هدیه</b><small>سکه + نشان ویژه</small></div>
+        <div class="shop-card"><div class="soon-ribbon">به‌زودی</div><span class="e">🧢</span><b>تزئین آواتار</b><small>کلاه دایی‌دوزاری</small></div>
+      </div>
+    </section>
+
+    <!-- ===== SETTINGS ===== -->
+    <section class="scene scroll-y" id="scene-settings">
+      <div class="scene-head"><h1>تنظیمات</h1></div>
+      <div class="panel">
+        <div class="toggle-row"><span>صدا</span><button class="switch" id="swSound" aria-pressed="true"><i></i></button></div>
+        <div class="toggle-row"><span>لرزش</span><button class="switch" id="swVibe" aria-pressed="true"><i></i></button></div>
+      </div>
+      <div class="panel" style="margin-top:10px">
+        <button class="candy sm ghost block" id="btnSupport">پشتیبانی در تلگرام</button>
+        <button class="candy sm danger block" id="btnLogout" style="margin-top:8px">خروج از حساب</button>
+      </div>
+      <p class="hint" style="text-align:center;margin-top:10px">نسخه‌ی نمایشی SPA — «کندی‌آرکید» — قیمت‌ها نمونه و تقریبی‌ان.</p>
+    </section>
+
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+
+/* ===================== router ===================== */
+const app = $('app');
+let currentScene = 'hub';
+function goTo(name){
+  if(currentScene===name) return;
+  const cur = document.getElementById('scene-'+currentScene);
+  const next = document.getElementById('scene-'+name);
+  if(cur) cur.classList.remove('active');
+  next.classList.add('active');
+  app.dataset.scene = name;
+  currentScene = name;
+  $('stage').scrollTop = 0;
+}
+$('homeBtn').addEventListener('click', () => goTo('hub'));
+$('settingsBtn').addEventListener('click', () => goTo('settings'));
+document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => goTo(b.dataset.go)));
+
+let toastId=null;
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastId); toastId=setTimeout(()=>t.classList.remove('show'),1800); }
+
+const store = {
+  get(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v); }catch(e){ return d; } },
+  set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+};
+const fa = (n, d=1) => Number(n).toLocaleString('fa-IR',{maximumFractionDigits:d});
+
+/* ===================== economy / level HUD ===================== */
+let coins = store.get('gh_coins',200);
+let xp = store.get('gh_xp',0);
+const xpForLevel = n => Math.round(50*n*n);
+function levelOf(x){ let lv=1; while(x>=xpForLevel(lv)) lv++; return lv; }
+function setCoins(v){ coins=Math.max(0,v); store.set('gh_coins',coins); $('coins').textContent=fa(coins,0); }
+function renderLevel(){
+  const lv=levelOf(xp);
+  const prevNeed = lv>1?xpForLevel(lv-1):0, nextNeed=xpForLevel(lv);
+  $('lvchip').textContent='Lv '+fa(lv,0);
+  const pct = Math.min(100,Math.round((xp-prevNeed)/(nextNeed-prevNeed)*100));
+  $('pLvBadge').textContent = fa(lv,0);
+  $('pXpLabel').textContent = 'سطح '+fa(lv,0)+' — '+fa(xp-prevNeed,0)+' از '+fa(nextNeed-prevNeed,0)+' XP';
+  $('pXpPct').textContent = '٪'+fa(pct,0);
+  $('pXpFill').style.width = pct+'%';
+}
+function addXp(amount){
+  const before=levelOf(xp);
+  xp+=amount; store.set('gh_xp',xp);
+  renderLevel();
+  const after=levelOf(xp);
+  if(after>before){ toast('ترفیع گرفتی! رسیدی به سطح '+fa(after,0)+' 🎉'); mascotSay('وای چه بازیکنی شدی! 🎉'); }
+}
+function mascotSay(t){ const el=$('mascotLine'); if(el) el.textContent=t; }
+
+/* ===================== puzzle data (illustrative, nominal toman) ===================== */
+const YEARS = [1360,1365,1370,1375,1380,1385,1390,1395,1400];
+const P = {
+  gum:{n:'آدامس خروس‌نشان',e:'🍬',t:['dahe-60'],s:[0.5,1,2,10,30,60,150,300,500]},
+  cassette:{n:'نوار کاست خام',e:'📼',t:['dahe-60'],s:[30,60,150,250,400,800,1200,null,null]},
+  shoe:{n:'کفش ملی',e:'👟',t:['dahe-60'],s:[300,800,1500,4000,9000,20000,50000,150000,400000]},
+  notebook:{n:'دفتر چهل‌برگ',e:'📓',t:['dahe-60'],s:[3,8,30,60,150,400,900,2500,10000]},
+  soda:{n:'نوشابه شیشه‌ای',e:'🥤',t:['dahe-70'],s:[2,5,20,100,150,250,700,1500,5000]},
+  icepop:{n:'بستنی یخی',e:'🍦',t:['dahe-70'],s:[1,3,15,90,150,250,500,1000,3000]},
+  taxi:{n:'کرایه تاکسی خطی',e:'🚕',t:['dahe-70'],s:[2,5,20,100,150,250,500,1000,5000]},
+  pofak:{n:'پفک نمکی',e:'🧀',t:['dahe-70'],s:[3,8,25,110,180,300,800,1500,6000]},
+  cinema:{n:'بلیت سینما',e:'🎬',t:['dahe-80'],s:[10,30,100,300,700,1500,4000,10000,40000]},
+  falafel:{n:'ساندویچ فلافل',e:'🥙',t:['dahe-80'],s:[5,20,150,250,600,1200,3000,8000,30000]},
+  book:{n:'کتاب جیبی',e:'📚',t:['dahe-80'],s:[20,50,200,500,900,2000,5000,15000,60000]},
+  orange:{n:'یک کیلو پرتقال',e:'🍊',t:['dahe-80'],s:[10,30,150,250,500,1100,2500,6000,25000]},
+  coin:{n:'سکه بهار آزادی',e:'🪙',t:[],s:[4000,9000,14000,50000,70000,190000,700000,1200000,12000000]},
+  gold:{n:'یک گرم طلای ۱۸',e:'💍',t:[],s:[400,800,1500,5000,6000,20000,80000,120000,1200000]},
+  apt:{n:'یک متر آپارتمان تهران',e:'🏢',t:[],s:[2000,8000,30000,90000,150000,600000,2500000,5000000,32000000]},
+  meat:{n:'یک کیلو گوشت',e:'🥩',t:[],s:[100,250,500,1600,3000,6000,15000,40000,280000]},
+  pencil:{n:'مداد سوسمارنشان',e:'✏️',t:['madrese'],s:[0.5,2,8,20,50,100,300,800,3000]},
+  eraser:{n:'پاک‌کن جوهری',e:'🧽',t:['madrese'],s:[0.5,3,10,25,60,150,400,1000,4000]},
+  ruler:{n:'خط‌کش ۳۰ سانتی',e:'📐',t:['madrese'],s:[1,3,10,40,100,300,600,1500,5000]},
+  bag:{n:'کیف مدرسه',e:'🎒',t:['madrese'],s:[100,300,1500,5000,12000,30000,90000,250000,1100000]},
+  sandwich:{n:'ساندویچ کالباس',e:'🥪',t:[],s:[5,30,60,150,300,500,1500,4000,15000]},
+  milk:{n:'شیر پاکتی یک لیتری',e:'🥛',t:[],s:[3,8,20,60,200,450,1000,2500,9000]},
+  chips:{n:'چیپس',e:'🥔',t:[],s:[null,10,30,80,250,500,1200,3000,10000]},
+  famsoda:{n:'نوشابه خانواده',e:'🍾',t:[],s:[5,15,40,150,300,550,1500,3500,15000]},
+  egg:{n:'یک دونه تخم‌مرغ',e:'🥚',t:[],s:[2,5,10,25,40,70,150,500,2000]},
+  bus:{n:'بلیت اتوبوس واحد',e:'🚌',t:[],s:[2,5,5,10,25,50,100,300,1000]},
+  lavash:{n:'نون لواش',e:'🫓',t:[],s:[2,5,5,10,25,50,100,300,1500]},
+  stamp:{n:'تمبر پست',e:'✉️',t:[],s:[2,5,10,20,50,150,300,700,2000]},
+  washer:{n:'ماشین لباسشویی',e:'🧺',t:[],s:[8000,25000,60000,150000,300000,400000,800000,1500000,12000000]},
+  tv:{n:'تلویزیون رنگی',e:'📺',t:[],s:[5000,15000,50000,120000,250000,400000,700000,1200000,9000000]},
+  fridge:{n:'یخچال',e:'🧊',t:[],s:[10000,30000,80000,200000,350000,500000,900000,2000000,15000000]},
+  moto:{n:'موتور هوندا ۱۲۵',e:'🏍️',t:[],s:[10000,40000,120000,300000,600000,900000,1500000,4000000,35000000]},
+};
+const PUZZLES = [
+  {groups:[
+    {lv:0,title:'دهه‌شصتی‌های اصل',ex:'همه‌شون نماد دهه‌ی ۶۰ بودن',rule:{kind:'era_icon',tag:'dahe-60'},items:['gum','cassette','shoe','notebook']},
+    {lv:1,title:'با یه اسکناس صدتومنی سال ۷۵',ex:'سال ۷۵ همه‌شون بین ۸۰ تا ۱۲۰ تومن بودن',rule:{kind:'price_band_at_year',year:1375,min:80,max:120},items:['soda','icepop','taxi','pofak']},
+    {lv:2,title:'هزارتومنی‌شدگان دهه‌ی هشتاد',ex:'اولین بار توی دهه‌ی ۸۰ از ۱۰۰۰ تومن رد شدن',rule:{kind:'first_crossed',threshold:1000,from:1380,to:1389},items:['cinema','falafel','book','orange']},
+    {lv:3,title:'چیزهایی که مامان‌بزرگ‌ها ازشون شاکی‌ان',ex:'از سال ۷۰ تا ۱۴۰۰ بیشتر از ۵۰۰ برابر گرون شدن',rule:{kind:'multiplier_between',a:1370,b:1400,minX:500},items:['coin','gold','apt','meat']},
+  ]},
+  {groups:[
+    {lv:0,title:'زنگ اول، کلاس اول',ex:'همه‌شون لوازم مدرسه‌ان',rule:{kind:'era_icon',tag:'madrese'},items:['pencil','eraser','ruler','bag']},
+    {lv:1,title:'عصرونه‌ی سال ۸۵',ex:'سال ۸۵ همه‌شون بین ۴۰۰ تا ۶۰۰ تومن بودن',rule:{kind:'price_band_at_year',year:1385,min:400,max:600},items:['sandwich','milk','chips','famsoda']},
+    {lv:2,title:'پنج‌تومنی‌های خوش‌شانس',ex:'سال ۶۵ همه‌شون حدود ۵ تومن بودن',rule:{kind:'same_price_at_year',year:1365,target:5,tol:0.2},items:['egg','bus','lavash','stamp']},
+    {lv:3,title:'جهیزیه‌هایی که میلیونی شدن',ex:'اولین بار توی دهه‌ی ۹۰ از یک میلیون تومن رد شدن',rule:{kind:'first_crossed',threshold:1000000,from:1390,to:1399},items:['washer','tv','fridge','moto']},
+  ]},
+];
+const GROUP_POINTS=[1,2,3,4], FIRST_BLOOD=1, MAX_MISTAKES=4, TURN_SECONDS=45, MAX_TIMEOUTS=2;
+const ENTRY_FEE=20, HOUSE_CUT=0.1, LOSS_CONSOLATION=5, RESCUE_TO=60;
+const PRICE_GUESS_STAIRCASE=[{max:5,pts:5},{max:15,pts:4},{max:30,pts:3},{max:60,pts:2},{max:Infinity,pts:1}];
+const PRICE_GUESS_ROUND_WAGER=3, PRICE_GUESS_LOSER_BONUS_PER_ROUND=1;
+const XP_SOLO_BASE=5, XP_DUEL_BASE=10, XP_WIN_BONUS=15, XP_PER_PG_POINT=2;
+const LV_NAMES=['زرد','سبز','آبی','بنفش'];
+const TAUNTS=['یه دوزاری بنداز، شروع کنیم!','سلام! آماده‌ای ببازی؟','اینو مامان‌بزرگمم بلد بود 😄','پیکان هم این‌قدر کند نبود!','یکی مونده بود، حیف!','دمت گرم، بازی خوبی بود'];
+const BOT_TAUNTS=['حالا ببین کی می‌بره 😎','دوزاریت هنوز تو راهه؟','شانسی بود!','قیمت سال ۷۵ رو از حفظم','عجله نکن، وقت داری','ای بابا!'];
+const BOT_PROFILE={name:'ممدِ رحیمی',avatar:'🧑‍🔧',coins:640,level:7};
+
+function fmtT(v){
+  if(v<1) return fa(v*10)+' ریال';
+  if(v<1000) return fa(v)+' تومن';
+  if(v<1e6) return fa(v/1000)+' هزار';
+  if(v<1e9) return fa(v/1e6)+' میلیون';
+  return fa(v/1e9)+' میلیارد';
+}
+const fy = y => Number(y).toLocaleString('fa-IR',{useGrouping:false});
+const yShort = y => y>=1400 ? fy(y) : fy(y-1300);
+const priceAt = (id,y) => { const i=YEARS.indexOf(y); return i<0?null:(P[id].s[i] ?? null); };
+function firstAtOrAbove(id,th){ for(const y of YEARS){ const v=priceAt(id,y); if(v!=null && v>=th) return y; } return null; }
+function lastYearWithPrice(id){ for(let i=YEARS.length-1;i>=0;i--){ if(priceAt(id,YEARS[i])!=null) return YEARS[i]; } return YEARS.at(-1); }
+function mulberry(seed){ return () => { seed|=0; seed=seed+0x6D2B79F5|0; let t=Math.imul(seed^seed>>>15,1|seed); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+let rng=mulberry(Date.now()%100000);
+const shuffle = a => { a=a.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(rng()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+function shuffleBoard(ids, groups){
+  for(let k=0;k<50;k++){
+    const b=shuffle(ids); let bad=false;
+    for(let r=0;r<b.length;r+=4){ const row=b.slice(r,r+4); if(row.length===4 && groups.some(g=>row.every(id=>g.items.includes(id)))) bad=true; }
+    if(!bad) return b;
+  }
+  return shuffle(ids);
+}
+
+/* ===================== game state ===================== */
+let pIdx = store.get('gh_pidx',0) % PUZZLES.length;
+let soloPlayed = store.get('gh_solo_played',0);
+const maxMistakesFor = who => (S && S.tutorial && who==='me') ? MAX_MISTAKES+2 : MAX_MISTAKES;
+let S = null, timerId=null, botId=null, passId=null, pgTimerId=null;
+const groupOf = id => S.pz.groups.find(g=>g.items.includes(id));
+const unsolved = () => S.pz.groups.filter(g=>!S.solved.some(s=>s.g===g));
+const locked = who => S.mistakes[who]>=maxMistakesFor(who);
+const other = who => who==='me'?'bot':'me';
+
+function newGame(mode){
+  clearInterval(timerId); clearTimeout(botId); clearTimeout(passId); clearInterval(pgTimerId);
+  const tutorial = mode==='solo' && soloPlayed===0;
+  const pz=tutorial ? PUZZLES[0] : PUZZLES[pIdx];
+  S = {mode, pz, tutorial, board:shuffleBoard(pz.groups.flatMap(g=>g.items), pz.groups), solved:[], sel:[], tried:new Set(),
+       mistakes:{me:0,bot:0}, score:{me:0,bot:0}, turn:'me', over:false, result:null, firstBlood:false,
+       timeLeft:TURN_SECONDS, timeouts:0, chat:[], botPick:[], chartLv:3, coinDelta:0, entry:0,
+       pg:{active:false, idx:0, rounds:[], score:{me:0,bot:0}, coinDelta:0, timeLeft:0}};
+  if(mode==='duel' || mode==='team'){
+    if(coins<ENTRY_FEE){ setCoins(RESCUE_TO); toast('سکه‌هات کم بود، '+fa(RESCUE_TO,0)+' سکه‌ی کمکی گرفتی'); }
+    setCoins(coins-ENTRY_FEE); S.entry=ENTRY_FEE;
+    S.turn = rng()<0.5 ? 'me' : 'bot';
+    S.chat.push({who:'bot',text:'سلام! من ممدم. بزن بریم 👋'});
+    store.set('gh_active_match',{ts:Date.now(),opponent:BOT_PROFILE.name});
+    S.mode='duel';
+  }
+  goTo('board');
+  render();
+  if(S.mode==='duel') startTurn();
+}
+
+function startTurn(){
+  clearInterval(timerId); clearTimeout(botId);
+  if(S.over) return;
+  S.timeLeft=TURN_SECONDS;
+  if(S.turn==='me'){
+    timerId=setInterval(()=>{
+      S.timeLeft--; renderStatus();
+      if(S.timeLeft<=0){
+        clearInterval(timerId); S.timeouts++;
+        if(S.timeouts>=MAX_TIMEOUTS){ toast('دو بار وقتت تموم شد؛ باختی'); return endGame('bot'); }
+        toast('وقتت تموم شد! نوبت رد شد'); S.sel=[]; passTurn();
+      }
+    },1000);
+  } else {
+    botId=setTimeout(botMove, 1400+rng()*1600);
+  }
+  render();
+}
+function passTurn(){
+  const nxt=other(S.turn);
+  if(!locked(nxt)) S.turn=nxt;
+  startTurn();
+}
+function submit(by, ids){
+  const key=ids.slice().sort().join('|');
+  if(S.tried.has(key)){ if(by==='me') toast('اینو قبلاً امتحان کردین'); return false; }
+  S.tried.add(key);
+  const g=groupOf(ids[0]);
+  const correct = ids.every(id=>groupOf(id)===g);
+  if(correct){
+    S.solved.push({g,by}); S.board=S.board.filter(id=>!g.items.includes(id)); S.sel=[];
+    if(S.mode==='duel'){
+      let pts=GROUP_POINTS[g.lv]; if(!S.firstBlood){ pts+=FIRST_BLOOD; S.firstBlood=true; }
+      S.score[by]+=pts;
+      toast((by==='me'?'دوزاریت افتاد! 🪙 ':'ممد گرفت: ')+'+'+fa(pts,0)+' امتیاز');
+    } else toast('دوزاریت افتاد! 🪙');
+    if(S.solved.length===3){
+      const last=unsolved()[0]; S.solved.push({g:last,by:null}); S.board=[];
+      return endGame(), true;
+    }
+    if(S.mode==='duel'){ if(by==='me') S.timeouts=0; startTurn(); } else render();
+    return true;
+  }
+  const maxOverlap=Math.max(...unsolved().map(u=>ids.filter(id=>u.items.includes(id)).length));
+  S.mistakes[by]++;
+  if(by==='me'){ shake(ids); S.sel=[]; }
+  toast(maxOverlap===3 ? (by==='me'?'یکی مونده بیفته!':'ممد: یکی مونده بود!') : (by==='me'?'دوزاریت یه‌کم کجه!':'ممد اشتباه کرد'));
+  if(S.mode==='solo'){
+    if(S.mistakes.me>=maxMistakesFor('me')) return endGame(), false;
+    render(); return false;
+  }
+  if(by==='me') S.timeouts=0;
+  if(locked('me') && locked('bot')) return endGame(), false;
+  passId=setTimeout(passTurn, by==='bot'?700:0);
+  render();
+  return false;
+}
+function shake(ids){
+  ids.forEach(id=>{ const el=document.querySelector('[data-id="'+id+'"]'); if(el){ el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake'); } });
+}
+function botMove(){
+  if(S.over || S.turn!=='bot') return;
+  const us=unsolved().sort((a,b)=>a.lv-b.lv);
+  const pCorrect=0.33+0.12*S.solved.length;
+  let pick=null;
+  for(let k=0;k<20 && !pick;k++){
+    let cand;
+    const r=rng();
+    if(r<pCorrect){ const g=us[rng()<0.7?0:Math.min(1,us.length-1)]; cand=g.items.slice(); }
+    else if(r<pCorrect+0.35 && us.length>1){ const g=us[Math.floor(rng()*us.length)]; const rest=S.board.filter(id=>!g.items.includes(id)); cand=[...shuffle(g.items).slice(0,3), rest[Math.floor(rng()*rest.length)]]; }
+    else cand=shuffle(S.board).slice(0,4);
+    if(!S.tried.has(cand.slice().sort().join('|'))) pick=cand;
+  }
+  if(!pick) pick=us[0].items.slice();
+  S.botPick=pick; render();
+  botId=setTimeout(()=>{
+    S.botPick=[];
+    const ok=submit('bot',pick);
+    if(ok && rng()<0.45) say('bot',BOT_TAUNTS[Math.floor(rng()*2)]);
+  },1100);
+}
+function endGame(winnerOverride){
+  clearInterval(timerId); clearTimeout(botId);
+  unsolved().sort((a,b)=>a.lv-b.lv).forEach(g=>S.solved.push({g,by:null}));
+  S.board=[]; S.sel=[]; S.botPick=[]; S.over=true;
+  if(winnerOverride) return finalizeDuel(winnerOverride);
+  startPriceGuess();
+}
+
+/* ---------- price-guess bonus round ---------- */
+function pickPgRounds(){
+  return S.pz.groups.slice().sort((a,b)=>a.lv-b.lv).map(g=>{
+    const item=g.items[Math.floor(rng()*g.items.length)];
+    const year=g.rule.year!=null?g.rule.year:lastYearWithPrice(item);
+    return {lv:g.lv, item, year, actual:priceAt(item,year), myGuess:null, botGuess:null, winner:null, done:false};
+  });
+}
+function startPriceGuess(){
+  S.pg={active:true, idx:0, rounds:pickPgRounds(), score:{me:0,bot:0}, coinDelta:0, timeLeft:0};
+  goTo('priceguess');
+  renderPriceGuess();
+  if(S.mode==='duel') startPgTurn();
+}
+function startPgTurn(){
+  clearInterval(pgTimerId);
+  const r=S.pg.rounds[S.pg.idx];
+  if(coins<PRICE_GUESS_ROUND_WAGER){ r.sitout=true; renderPriceGuess(); setTimeout(revealPgRound,700); return; }
+  setCoins(coins-PRICE_GUESS_ROUND_WAGER); r.wagered=true;
+  const err=1+(rng()-0.5)*0.6;
+  r.botGuess=Math.max(1,Math.round(r.actual*err));
+  S.pg.timeLeft=TURN_SECONDS;
+  renderPriceGuess();
+  pgTimerId=setInterval(()=>{
+    S.pg.timeLeft--; const c=$('pgClock'); if(c) c.textContent=fa(S.pg.timeLeft,0);
+    if(S.pg.timeLeft<=0){ clearInterval(pgTimerId); revealPgRound(); }
+  },1000);
+}
+function submitPgGuess(v){
+  const r=S.pg.rounds[S.pg.idx];
+  if(r.done || r.myGuess!=null || r.sitout) return;
+  r.myGuess=Math.max(0,Math.round(v));
+  if(S.mode==='solo') return revealPgRoundSolo();
+  clearInterval(pgTimerId); revealPgRound();
+}
+function revealPgRoundSolo(){
+  const r=S.pg.rounds[S.pg.idx];
+  r.errPct=Math.abs(r.myGuess-r.actual)/r.actual*100;
+  r.pts=PRICE_GUESS_STAIRCASE.find(t=>r.errPct<=t.max).pts;
+  S.pg.score.me+=r.pts; r.done=true;
+  renderPriceGuess();
+}
+function revealPgRound(){
+  const r=S.pg.rounds[S.pg.idx];
+  if(r.sitout){ r.winner='bot'; r.coinDelta=0; }
+  else {
+    const meVal = r.myGuess==null ? Infinity : Math.abs(r.myGuess-r.actual);
+    const botVal = Math.abs(r.botGuess-r.actual);
+    r.winner = meVal<botVal?'me':botVal<meVal?'bot':'draw';
+    const pot=PRICE_GUESS_ROUND_WAGER*2;
+    if(r.winner==='me'){ const win=Math.round(pot*(1-HOUSE_CUT)); setCoins(coins+win); r.coinDelta=win-PRICE_GUESS_ROUND_WAGER; }
+    else if(r.winner==='draw'){ const ref=Math.round(PRICE_GUESS_ROUND_WAGER*(1-HOUSE_CUT)); setCoins(coins+ref); r.coinDelta=ref-PRICE_GUESS_ROUND_WAGER; }
+    else r.coinDelta=-PRICE_GUESS_ROUND_WAGER;
+  }
+  if(r.winner==='me') S.pg.score.me++; else if(r.winner==='bot') S.pg.score.bot++;
+  S.pg.coinDelta+=r.coinDelta; r.done=true;
+  renderPriceGuess();
+}
+function nextPgRound(){
+  clearInterval(pgTimerId);
+  if(S.pg.idx+1<S.pg.rounds.length){ S.pg.idx++; renderPriceGuess(); if(S.mode==='duel') startPgTurn(); return; }
+  S.pg.active=false;
+  if(S.mode==='solo') finalizeSolo(); else finalizeDuel();
+}
+function finalizeSolo(){
+  const total=S.pg.rounds.reduce((s,r)=>s+(r.pts||0),0);
+  S.result={win:S.mistakes.me<maxMistakesFor('me'), pgScore:total, pgMax:S.pg.rounds.length*5};
+  addXp(XP_SOLO_BASE + total*XP_PER_PG_POINT);
+  soloPlayed++; store.set('gh_solo_played',soloPlayed);
+  goTo('matchresult'); renderResult();
+}
+function finalizeDuel(forced){
+  let w=forced;
+  if(!w){
+    if(S.score.me!==S.score.bot) w=S.score.me>S.score.bot?'me':'bot';
+    else if(S.mistakes.me!==S.mistakes.bot) w=S.mistakes.me<S.mistakes.bot?'me':'bot';
+    else {
+      const lastIdx=side=>{ let i=-1; S.solved.forEach((s,k)=>{ if(s.by===side) i=k; }); return i; };
+      const li=lastIdx('me'), lb=lastIdx('bot');
+      if(li>=0 && (lb<0 || li<lb)) w='me';
+      else if(lb>=0 && (li<0 || lb<li)) w='bot';
+      else if(S.pg.score.me!==S.pg.score.bot) w=S.pg.score.me>S.pg.score.bot?'me':'bot';
+      else w='draw';
+    }
+  }
+  const pot=S.entry*2;
+  let d=0;
+  if(w==='me') d=Math.round(pot*(1-HOUSE_CUT));
+  else if(w==='draw') d=Math.round(S.entry*(1-HOUSE_CUT));
+  else d=LOSS_CONSOLATION;
+  setCoins(coins+d);
+  S.coinDelta=d-S.entry+(S.pg.coinDelta||0);
+  const loser = w==='me'?'bot':w==='bot'?'me':null;
+  const loserBonus = (loser && locked(loser) && S.pg.score[loser]>0) ? S.pg.score[loser]*PRICE_GUESS_LOSER_BONUS_PER_ROUND : 0;
+  S.result={winner:w, loserBonus, loserSide:loser};
+  say('bot', w==='me'?'دمت گرم، بازی خوبی بود':w==='bot'?'ای بابا! دفعه‌ی بعد 😄':'دوزاری‌ها هم‌زمان افتاد!', true);
+  addXp(XP_DUEL_BASE + (w==='me'?XP_WIN_BONUS:0) + S.pg.score.me*XP_PER_PG_POINT);
+  store.set('gh_active_match',null);
+  goTo('matchresult'); renderResult();
+}
+function say(who,text,silent){
+  S.chat.push({who,text}); if(S.chat.length>5) S.chat.shift();
+  if(!silent) renderChat();
+  if(who==='me' && !S.over && rng()<0.5) setTimeout(()=>{ if(S && !S.over){ say('bot',BOT_TAUNTS[2+Math.floor(rng()*3)]); } },1300);
+}
+
+/* ---------- render: board scene ---------- */
+function render(){ renderStatus(); renderProgress(); renderBoard(); renderControls(); renderChat(); }
+function dotsHtml(n,max){ max=max||MAX_MISTAKES; let h=''; for(let i=0;i<max;i++) h+='<span class="dot'+(i<n?' used':'')+'"></span>'; return '<span class="dots">'+h+'</span>'; }
+function renderStatus(){
+  const el=$('status');
+  if(S.mode==='solo'){
+    const tut = S.tutorial ? '<div class="tutorial-banner"><b>🧭 پازل تمرینی</b><p>اولین پازلته، آسون‌تره و اشتباه بیشتری مجازه. چهارتا جنس هم‌قانون رو بزن، بعد «ثبت».</p></div>' : '';
+    el.innerHTML=tut+'<div class="solo-status">اشتباه‌های باقی‌مونده '+dotsHtml(S.mistakes.me,maxMistakesFor('me'))+'</div>';
+    return;
+  }
+  const act = w => !S.over && S.turn===w ? ' active':'';
+  const myId='<div class="id num">'+fa(coins,0)+'🪙 · Lv'+fa(levelOf(xp),0)+'</div>';
+  const bId='<div class="id num">'+fa(BOT_PROFILE.coins,0)+'🪙 · Lv'+fa(BOT_PROFILE.level,0)+'</div>';
+  el.innerHTML='<div class="duel-hud">'+
+    '<div class="duel-side'+act('me')+'"><div class="nm">تو '+(locked('me')?'🔒':'')+'</div>'+myId+'<div class="sc num">'+fa(S.score.me,0)+'</div>'+dotsHtml(S.mistakes.me)+'</div>'+
+    '<div class="duel-clock num" id="clock"></div>'+
+    '<div class="duel-side bot'+act('bot')+'"><div class="nm">'+BOT_PROFILE.name+' '+(locked('bot')?'🔒':'')+'</div>'+bId+'<div class="sc num">'+fa(S.score.bot,0)+'</div>'+dotsHtml(S.mistakes.bot)+'</div></div>';
+  const c=$('clock');
+  if(c){
+    if(S.over){ c.innerHTML='پایان'; }
+    else if(S.turn==='me'){ c.innerHTML=fa(S.timeLeft,0)+'<small>نوبتته</small>'; }
+    else { c.innerHTML='…<small>فکر می‌کنه</small>'; }
+  }
+}
+function renderProgress(){
+  const total=S.pz.groups.length;
+  $('progress').innerHTML = Array.from({length:total},(_,i)=>'<span class="pip'+(i<S.solved.length?' on':'')+'"></span>').join('');
+}
+function renderBoard(){
+  const myTurn = !S.over && (S.mode==='solo' || S.turn==='me');
+  $('board').innerHTML=S.board.map(id=>{
+    const sel=S.sel.includes(id), bp=S.botPick.includes(id);
+    return '<button class="card'+(bp?' botpick':'')+'" data-id="'+id+'" aria-pressed="'+sel+'"'+(myTurn?'':' disabled')+'><span class="e">'+P[id].e+'</span>'+P[id].n+'</button>';
+  }).join('');
+}
+function renderControls(){
+  if(S.over){ $('board-controls').innerHTML=''; return; }
+  const myTurn = S.mode==='solo' || S.turn==='me';
+  $('board-controls').innerHTML=
+    '<button class="candy sm ghost" id="b-shuffle">بُر زدن</button>'+
+    '<button class="candy sm ghost" id="b-clear"'+(S.sel.length?'':' disabled')+'>پاک کردن</button>'+
+    '<button class="candy sm pink" id="b-submit"'+(S.sel.length===4&&myTurn?'':' disabled')+'>ثبت</button>';
+}
+let chatOpen=false, chatUnreadN=0;
+function renderChat(){
+  const fab=$('chatFab');
+  if(S.mode!=='duel'){ fab.style.display='none'; $('chatDrawer').classList.remove('open'); return; }
+  fab.style.display='flex';
+  $('taunts').innerHTML=TAUNTS.map((t,i)=>'<button class="candy sm ghost" data-taunt="'+i+'"'+(S.over?' disabled':'')+' style="font-size:11px;padding:6px 10px">'+t+'</button>').join('');
+  $('chatlog').innerHTML=S.chat.map(m=>'<div class="msg '+m.who+'"><b>'+(m.who==='me'?'تو':'ممد')+'</b>'+m.text+'</div>').join('');
+  if(!chatOpen && S.chat.length){ chatUnreadN++; const b=$('chatUnread'); b.style.display='flex'; b.textContent=fa(chatUnreadN,0); }
+}
+$('chatFab').addEventListener('click', () => { chatOpen=true; chatUnreadN=0; $('chatUnread').style.display='none'; $('chatDrawer').classList.add('open'); $('chatlog').scrollTop=$('chatlog').scrollHeight; });
+$('chatClose').addEventListener('click', () => { chatOpen=false; $('chatDrawer').classList.remove('open'); });
+
+/* ---------- render: price-guess scene ---------- */
+function renderPriceGuess(){
+  const r=S.pg.rounds[S.pg.idx];
+  let body;
+  if(!r.done){
+    if(r.sitout) body='<p class="hint">سکه‌ی کافی برای شرط نداری؛ این دور رو از دست می‌دی.</p>';
+    else if(r.myGuess==null){
+      body='<div class="pg-input"><input type="number" min="0" id="pg-guess" inputmode="numeric" placeholder="حدست چند تومنه؟"></div>'+
+           '<button class="candy lg pink" id="pg-submit">ثبت حدس</button>'+
+           (S.mode==='duel'?'<p class="pg-clock num">زمان: <span id="pgClock">'+fa(S.pg.timeLeft,0)+'</span> ثانیه</p>':'');
+    } else body='<p class="hint">در حال آماده‌سازی نتیجه…</p>';
+  } else if(S.mode==='solo'){
+    body='<p class="num">قیمت واقعی: <b>'+fmtT(r.actual)+'</b> · حدس تو: <b>'+fa(r.myGuess,0)+'</b> تومن</p>'+
+         '<p class="num">خطا: <b>'+fa(r.errPct,1)+'٪</b> — امتیاز: <b>'+fa(r.pts,0)+'</b> از ۵</p>'+
+         '<button class="candy lg orange" id="pg-next">'+(S.pg.idx+1<S.pg.rounds.length?'دور بعد':'دیدن نتیجه نهایی')+'</button>';
+  } else {
+    const meTxt=r.sitout?'شرکت نکردی':fa(r.myGuess,0)+' تومن';
+    body='<p class="num">قیمت واقعی: <b>'+fmtT(r.actual)+'</b></p>'+
+         '<p class="num">تو: <b>'+meTxt+'</b> · ممد: <b>'+fa(r.botGuess,0)+'</b> تومن</p>'+
+         '<p>'+(r.winner==='me'?'این دور رو بردی! 🎉':r.winner==='bot'?'ممد این دور رو برد':'مساوی شد')+
+         (r.wagered?' · '+(r.coinDelta>=0?'+':'−')+fa(Math.abs(r.coinDelta),0)+' سکه':'')+'</p>'+
+         '<button class="candy lg orange" id="pg-next">'+(S.pg.idx+1<S.pg.rounds.length?'دور بعد':'دیدن نتیجه نهایی')+'</button>';
+  }
+  $('pgBody').innerHTML='<p class="hint num">دور '+fa(S.pg.idx+1,0)+' از '+fa(S.pg.rounds.length,0)+' — دسته‌ی '+LV_NAMES[r.lv]+'</p>'+
+    '<div class="pg-item">'+P[r.item].e+'</div><h2 style="margin:0;font-family:\'Lalezar\',\'Vazirmatn\',serif;font-size:19px">'+P[r.item].n+'</h2>'+
+    '<p class="hint">سال '+yShort(r.year)+' چند تومن بود؟</p>'+body;
+}
+
+/* ---------- render: result scene ---------- */
+function renderResult(){
+  let verdict, delta='';
+  if(S.mode==='solo') verdict = S.result.win ? 'حل شد! 🎉' : 'این دفعه نشد';
+  else {
+    const w=S.result.winner;
+    verdict = w==='me'?'دوزاریت طلاست! 🏆':w==='bot'?'ممد برد':'دوزاری‌ها هم‌زمان افتاد!';
+    delta='<span class="delta num '+(S.coinDelta>=0?'plus':'minus')+'">'+(S.coinDelta>=0?'+':'−')+fa(Math.abs(S.coinDelta),0)+' سکه</span>';
+  }
+  let pgSummary='';
+  if(S.pg && S.pg.rounds.length){
+    if(S.mode==='solo'){
+      pgSummary='<div class="panel" style="margin-top:8px"><b style="font-size:13px">دور حدس قیمت</b><p class="hint">امتیاز کل: <b class="num">'+fa(S.result.pgScore,0)+'</b> از '+fa(S.result.pgMax,0)+'</p></div>';
+    } else {
+      const bonus = S.result.loserBonus ? ' · تشویقی '+(S.result.loserSide==='me'?'تو':'ممد')+': +'+fa(S.result.loserBonus,0) : '';
+      pgSummary='<div class="panel" style="margin-top:8px"><b style="font-size:13px">دور حدس قیمت</b><p class="hint num">امتیاز: تو '+fa(S.pg.score.me,0)+' — ممد '+fa(S.pg.score.bot,0)+bonus+'</p></div>';
+    }
+  }
+  const solvedList = S.solved.map(({g,by})=>{
+    const names=g.items.map(id=>P[id].n).join('، ');
+    const byTxt = S.mode==='duel' ? (by==='me'?'تو گرفتی · +'+fa(GROUP_POINTS[g.lv],0):by==='bot'?'ممد گرفت · +'+fa(GROUP_POINTS[g.lv],0):'بدون امتیاز') : '';
+    return '<div class="solved-row lv'+g.lv+'"><h3>'+g.title+'</h3><p>'+names+'</p><p class="hint" style="color:inherit;opacity:.8">'+g.ex+'</p>'+(byTxt?'<p style="font-weight:700;font-size:11px;margin-top:2px">'+byTxt+'</p>':'')+'</div>';
+  }).join('');
+  const tabs=S.pz.groups.slice().sort((a,b)=>b.lv-a.lv).map(g=>'<button class="gtab lv'+g.lv+'" data-lv="'+g.lv+'" aria-selected="'+(S.chartLv===g.lv)+'">'+LV_NAMES[g.lv]+'</button>').join('');
+  $('resultBody').innerHTML =
+    '<h1 class="verdict">'+verdict+'</h1>'+delta+
+    pgSummary+
+    '<div class="solved-list" style="margin-top:10px">'+solvedList+'</div>'+
+    '<div class="panel" style="margin-top:8px">'+
+      '<p class="hint" style="text-align:center">سیر قیمت هر دسته (محور لگاریتمی)</p>'+
+      '<div class="gtabs">'+tabs+'</div>'+
+      '<div class="chart-box" id="chart"></div><div class="legend" id="legend"></div>'+
+    '</div>'+
+    '<div style="display:flex;gap:8px;justify-content:center;margin-top:12px">'+
+      '<button class="candy pink" id="b-next">پازل بعدی</button>'+
+      '<button class="candy ghost" id="b-hub">بازگشت به هاب</button>'+
+    '</div>';
+  drawChart();
+}
+function drawChart(){
+  const g=S.pz.groups.find(x=>x.lv===S.chartLv);
+  const W=520,H=260,m={l:66,r:14,t:16,b:30};
+  const cols=['var(--s1)','var(--s2)','var(--s3)','var(--s4)'];
+  const vals=g.items.flatMap(id=>P[id].s.filter(v=>v!=null));
+  let lo=Math.floor(Math.log10(Math.min(...vals))), hi=Math.ceil(Math.log10(Math.max(...vals)));
+  if(hi===lo) hi++;
+  const x=y=>m.l+(y-YEARS[0])/(YEARS.at(-1)-YEARS[0])*(W-m.l-m.r);
+  const yv=v=>H-m.b-(Math.log10(v)-lo)/(hi-lo)*(H-m.t-m.b);
+  let s='<svg viewBox="0 0 '+W+' '+H+'" role="img" font-family="Vazirmatn,Tahoma,sans-serif">';
+  for(let e=lo;e<=hi;e++){
+    const yy=yv(10**e);
+    s+='<line x1="'+m.l+'" x2="'+(W-m.r)+'" y1="'+yy+'" y2="'+yy+'" stroke="rgba(255,255,255,.15)" stroke-width="1"/>';
+    s+='<text x="'+(m.l-8)+'" y="'+(yy+4)+'" text-anchor="end" font-size="10" fill="rgba(255,255,255,.65)">'+fmtT(10**e)+'</text>';
+  }
+  YEARS.forEach(y=>{ s+='<text x="'+x(y)+'" y="'+(H-m.b+18)+'" text-anchor="middle" font-size="10" fill="rgba(255,255,255,.65)">'+yShort(y)+'</text>'; });
+  g.items.forEach((id,i)=>{
+    let d='', pen=false;
+    YEARS.forEach((y,k)=>{ const v=P[id].s[k]; if(v==null){ pen=false; return; } d+=(pen?'L':'M')+x(y).toFixed(1)+' '+yv(v).toFixed(1)+' '; pen=true; });
+    s+='<path d="'+d+'" fill="none" stroke="'+cols[i]+'" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>';
+    YEARS.forEach((y,k)=>{ const v=P[id].s[k]; if(v!=null) s+='<circle cx="'+x(y).toFixed(1)+'" cy="'+yv(v).toFixed(1)+'" r="3" fill="'+cols[i]+'"/>'; });
+  });
+  s+='</svg>';
+  $('chart').innerHTML=s;
+  $('legend').innerHTML=g.items.map((id,i)=>{
+    const k=P[id].s.findLastIndex(v=>v!=null);
+    return '<div><i style="background:'+cols[i]+'"></i><span>'+P[id].e+' '+P[id].n+'</span></div>';
+  }).join('');
+}
+
+/* ===================== play-menu -> mode routing ===================== */
+document.querySelectorAll('#scene-play [data-mode]').forEach(b => b.addEventListener('click', () => {
+  const mode=b.dataset.mode;
+  if(mode==='solo'){ newGame('solo'); return; }
+  if(mode==='table'){ goTo('table'); return; }
+  pendingMode = mode==='team' ? 'team' : 'duel';
+  startQueue();
+}));
+
+/* ===================== queue scene ===================== */
+let pendingMode='duel', qTimer=null, qScanTimer=null;
+const CANDIDATES = [
+  {name:'دوزاری‌باز۸۸', e:'🧑‍🚀'}, {name:'مینای_قدیمی', e:'👩‍🦳'}, {name:'رضاگل', e:'🧑‍🎤'},
+  {name:'ممدِ رحیمی', e:'🧑‍🔧'}, {name:'شیرین‌بانو', e:'🧕'}, {name:'حسنِ اصفهان', e:'👳'},
+  {name:'نازی_۷۰', e:'👵'}, {name:'کوروش‌جان', e:'🧑‍🌾'}, {name:'تارا_کرج', e:'👩‍🎓'},
+];
+function startQueue(){
+  goTo('queue');
+  $('onlineCount').textContent = fa(300+Math.floor(Math.random()*180),0);
+  $('scanCard').classList.remove('found');
+  let elapsed=0; $('qElapsed').textContent='۰';
+  const foundAt = 6+Math.floor(Math.random()*4);
+  const opponent = CANDIDATES[Math.floor(Math.random()*CANDIDATES.length)];
+  qScanTimer=setInterval(()=>{
+    const c=CANDIDATES[Math.floor(Math.random()*CANDIDATES.length)];
+    $('scanName').textContent=c.name; $('scanAvatar').textContent=c.e;
+  },260);
+  qTimer=setInterval(()=>{
+    elapsed++; $('qElapsed').textContent=fa(elapsed,0);
+    if(elapsed>=foundAt){
+      clearInterval(qTimer); clearInterval(qScanTimer);
+      $('scanCard').classList.add('found');
+      $('scanName').textContent=opponent.name+' — پیدا شد!'; $('scanAvatar').textContent=opponent.e;
+      toast('حریف پیدا شد! 🎉');
+      setTimeout(()=>newGame(pendingMode),1000);
+    }
+  },1000);
+}
+$('qCancel').addEventListener('click', () => { clearInterval(qTimer); clearInterval(qScanTimer); goTo('play'); });
+
+/* ===================== table scene ===================== */
+const DIFF_MULT={easy:0.5,mid:1,hard:1.75};
+let tDiff='mid', tSeats=[{me:true,name:'تو'},null];
+function renderTable(){
+  const fee=Math.round(ENTRY_FEE*DIFF_MULT[tDiff]/5)*5;
+  $('tFee').textContent=fa(fee,0)+' سکه';
+  $('tSeats').innerHTML=tSeats.map((s,i)=> s
+    ? '<div class="chip" style="justify-content:space-between">'+s.name+(s.me?' (تو) 👑':'')+'</div>'
+    : '<div class="chip" style="opacity:.6;justify-content:space-between">صندلی '+fa(i+1,0)+' — خالی</div>'
+  ).join('');
+  $('tStart').disabled = tSeats.some(s=>!s);
+}
+document.querySelectorAll('#tDiff [data-diff]').forEach(b=>b.addEventListener('click',()=>{
+  tDiff=b.dataset.diff;
+  document.querySelectorAll('#tDiff [data-diff]').forEach(x=>x.setAttribute('aria-selected',x===b));
+  renderTable();
+}));
+$('tSim').addEventListener('click', () => {
+  const idx=tSeats.findIndex(s=>!s); if(idx<0){ toast('میز پره!'); return; }
+  const names=['مینا','رضا','سارا','بهنام'];
+  tSeats[idx]={name:names[Math.floor(Math.random()*names.length)]};
+  renderTable();
+});
+$('tCopy').addEventListener('click', () => { navigator.clipboard && navigator.clipboard.writeText($('tCode').textContent).catch(()=>{}); toast('کد کپی شد'); });
+$('tStart').addEventListener('click', () => newGame('duel'));
+
+/* ===================== leaderboard scene ===================== */
+document.querySelectorAll('#scene-leaderboard .subtabs [data-tab]').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#scene-leaderboard .subtabs [data-tab]').forEach(x=>x.setAttribute('aria-selected',x===b));
+  document.querySelectorAll('#scene-leaderboard .tabpane').forEach(p=>p.classList.toggle('active',p.dataset.pane===b.dataset.tab));
+}));
+const RANKS = {
+  day:[['مینای_قدیمی','تهران',312],['ممدِ رحیمی','اصفهان',298],['نازی_۷۰','فارس',276],['شما','تهران',210,true],['تارا_کرج','البرز',190]],
+  week:[['مینای_قدیمی','تهران',1840],['رضاگل','تهران',1690],['کوروش‌جان','فارس',1520],['شما','تهران',980,true],['حسنِ اصفهان','اصفهان',870]],
+  month:[['دوزاری‌باز۸۸','تهران',5200],['مینای_قدیمی','تهران',4870],['شیرین‌بانو','خراسان رضوی',4100],['شما','تهران',2100,true],['نازی_۷۰','فارس',1980]],
+  all:[['دوزاری‌باز۸۸','تهران',21400],['کوروش‌جان','فارس',19800],['مینای_قدیمی','تهران',18650],['حسنِ اصفهان','اصفهان',15200],['شما','تهران',9840,true]],
+};
+function renderRank(period){
+  $('rankList').innerHTML = RANKS[period].map((r,i) => {
+    const [name,city,pts,isMe]=r;
+    return '<div class="rank-row num'+(isMe?' me':'')+'"><span class="n">'+(i<3?['🥇','🥈','🥉'][i]:fa(i+1,0))+'</span><div class="info">'+name+'<small>'+city+'</small></div><span class="pts">'+fa(pts,0)+'</span></div>';
+  }).join('');
+}
+document.querySelectorAll('#lbPeriod [data-period]').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#lbPeriod [data-period]').forEach(x=>x.setAttribute('aria-selected',x===b));
+  renderRank(b.dataset.period);
+}));
+const PLAYERS=[
+  {name:'مینای_قدیمی',city:'تهران',level:14,friend:false},{name:'رضاگل',city:'تهران',level:9,friend:true},
+  {name:'ممدِ رحیمی',city:'اصفهان',level:7,friend:false},{name:'نازی_۷۰',city:'فارس',level:11,friend:false},
+  {name:'کوروش‌جان',city:'فارس',level:16,friend:false},{name:'تارا_کرج',city:'البرز',level:5,friend:true},
+];
+function drawPlayers(filter){
+  const f=(filter||'').trim();
+  $('playerList').innerHTML = PLAYERS.filter(p=>!f||p.name.includes(f)).map(p =>
+    '<div class="player-row num"><span class="avatar sm">🙂</span><div class="info">'+p.name+'<small>'+p.city+' · سطح '+fa(p.level,0)+'</small></div>'+
+    (p.friend?'<span class="chip">دوست ✓</span>':'<button class="candy sm ghost" data-add="'+p.name+'"><svg class="icon" style="width:14px;height:14px"><use href="#i-user-plus"></use></svg></button>')+'</div>'
+  ).join('') || '<p class="hint">کسی پیدا نشد</p>';
+}
+$('playerSearch').addEventListener('input', e=>drawPlayers(e.target.value));
+$('playerList').addEventListener('click', e => {
+  const btn=e.target.closest('[data-add]'); if(!btn) return;
+  toast('درخواست دوستی برای '+btn.dataset.add+' ارسال شد');
+  btn.outerHTML='<span class="chip">درخواست رفت</span>';
+});
+$('joinTourney').addEventListener('click', () => toast('ثبت‌نام شدی! (دمو)'));
+renderRank('day'); drawPlayers();
+
+/* ===================== profile scene ===================== */
+document.querySelectorAll('#scene-profile .subtabs [data-tab]').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('#scene-profile .subtabs [data-tab]').forEach(x=>x.setAttribute('aria-selected',x===b));
+  document.querySelectorAll('#scene-profile .tabpane').forEach(p=>p.classList.toggle('active',p.dataset.pane===b.dataset.tab));
+}));
+const TAGS=[
+  {label:'دوزاری‌تیز',desc:'دسته رو در نوبت اول گرفتی',earned:true,equipped:true},
+  {label:'مبتدی',desc:'رتبه‌ی مهارت',earned:true,equipped:false},
+  {label:'قهرمان دهه‌۶۰',desc:'۵ برد روی پازل‌های دهه‌ی ۶۰',earned:true,equipped:false},
+  {label:'کلکسیونر سکه',desc:'همه‌ی آواتارهای گالری',earned:false,equipped:false},
+];
+$('tagGrid').innerHTML=TAGS.map(t=>'<div class="tag-item'+(t.equipped?' equipped':'')+(t.earned?'':' locked')+'">'+t.label+'<small>'+(t.earned?t.desc:'قفل: '+t.desc)+'</small></div>').join('');
+const HIST=[
+  {mode:'۱ در ۱',vs:'ممد',win:true,delta:18,date:'۲ روز پیش'},
+  {mode:'میز اختصاصی',vs:'رضا',win:false,delta:-15,date:'۳ روز پیش'},
+  {mode:'تمرین تکی',vs:'—',win:true,delta:0,date:'۶ روز پیش'},
+];
+$('histList').innerHTML=HIST.map(h=>'<div class="hist-row"><span>'+(h.win?'🏆':'😕')+' '+h.mode+' · '+h.vs+'<br><span class="hint" style="opacity:.6">'+h.date+'</span></span><span class="delta num '+(h.delta>0?'plus':h.delta<0?'minus':'')+'">'+(h.delta>0?'+':h.delta<0?'−':'')+fa(Math.abs(h.delta),0)+(h.delta?' سکه':'')+'</span></div>').join('');
+try{ $('province').value = localStorage.getItem('gh_province')||''; }catch(e){}
+$('province').addEventListener('change', e => { try{ localStorage.setItem('gh_province', e.target.value); }catch(err){} toast(e.target.value?'استانت ثبت شد':'پاک شد'); });
+$('copyInv').addEventListener('click', () => { navigator.clipboard && navigator.clipboard.writeText($('invcode').textContent).catch(()=>{}); toast('کد کپی شد'); });
+$('pFriends').addEventListener('click', () => { goTo('leaderboard'); document.querySelector('#scene-leaderboard [data-tab="players"]').click(); });
+
+/* ===================== settings ===================== */
+document.querySelectorAll('.switch').forEach(sw => sw.addEventListener('click', () => {
+  sw.setAttribute('aria-pressed', sw.getAttribute('aria-pressed')!=='true');
+}));
+$('btnSupport').addEventListener('click', () => toast('لینک پشتیبانی (دمو)'));
+$('btnLogout').addEventListener('click', () => toast('خروج (دمو) — چیزی واقعاً پاک نشد'));
+
+/* ===================== global click delegation for board scene ===================== */
+document.addEventListener('click', e => {
+  const card=e.target.closest('.card');
+  if(card && !card.disabled && S && !S.over){
+    const id=card.dataset.id, i=S.sel.indexOf(id);
+    if(i>=0) S.sel.splice(i,1); else if(S.sel.length<4) S.sel.push(id);
+    renderBoard(); renderControls(); return;
+  }
+  const t=e.target.closest('button'); if(!t) return;
+  if(t.id==='b-shuffle'){ S.board=shuffle(S.board); renderBoard(); }
+  else if(t.id==='b-clear'){ S.sel=[]; renderBoard(); renderControls(); }
+  else if(t.id==='b-submit' && S.sel.length===4){ submit('me',S.sel.slice()); }
+  else if(t.dataset.taunt!=null){ say('me',TAUNTS[+t.dataset.taunt]); }
+  else if(t.id==='pg-submit'){
+    const inp=$('pg-guess'); const v=inp?parseFloat(inp.value):NaN;
+    if(!(v>=0)){ toast('یه عدد بزن'); return; }
+    submitPgGuess(v);
+  }
+  else if(t.id==='pg-next'){ nextPgRound(); }
+  else if(t.dataset.lv!=null){ S.chartLv=+t.dataset.lv; renderResult(); }
+  else if(t.id==='b-next'){ pIdx=(pIdx+1)%PUZZLES.length; store.set('gh_pidx',pIdx); newGame(S.mode); }
+  else if(t.id==='b-hub'){ goTo('hub'); }
+});
+document.addEventListener('keydown', e => { if(e.key==='Enter' && e.target.id==='pg-guess'){ const b=$('pg-submit'); if(b) b.click(); } });
+
+/* ===================== init ===================== */
+setCoins(coins);
+renderLevel();
+renderTable();
+try{
+  const active = JSON.parse(localStorage.getItem('gh_active_match')||'null');
+  if(active) mascotSay('یه بازی نیمه‌تموم با '+(active.opponent||'یه حریف')+' داری!');
+}catch(e){}
+})();
+</script>
+</body>
+</html>

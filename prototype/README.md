@@ -1,7 +1,34 @@
 # Static MVP prototype
 
-`index.html` — standalone, open in any browser. Single source of truth (the former duplicate
-`mvp.body.html` was removed); publish this file directly when an artifact is needed.
+## `game.html` — the current primary prototype (SPA, "Candy Arcade", D54/D55/D56)
+
+Standalone single file, open directly in any browser. A true single-page app — one fixed,
+non-scrolling viewport, JS-driven scene transitions, no page navigation/reloads between screens —
+replacing the earlier multi-file `screens/*.html` + `index.html` website-style navigation, per
+owner request 2026-09-28: "کامل میخوام وایب گیم باشه."
+
+Scenes: hub (mascot + 4 big portal buttons: بازی / رقابت‌ها / پروفایل / فروشگاه, no bottom nav),
+play-menu (تمرین تکی/۱در۱/۲در۲/میز), the puzzle board (solo + duel, same engine/data as `index.html`
+below), a matchmaking "scanning among players" reveal-card scene, a private-table setup scene, a
+price-guess bonus-round scene, a match-result scene (solved groups + price chart), leaderboard
+(rankings/players/tournament tabs), profile (tabbed: stats/achievements/history/friends+province),
+shop (coin-package preview, not purchasable per D25), and settings. Content-heavy screens use
+in-scene tabs instead of page scroll to stay on one fixed screen (owner: "هیچ اسکرولی نباشه").
+
+Visual language: "Candy Arcade" v3 (`docs/brand-visual.md` §Color, D55) — a magenta/violet
+night-candy gradient backdrop, chunky glossy 3D "shelf-edge" buttons, a mascot character
+«دایی‌دوزاری» (D56, an anthropomorphic coin, hand-drawn inline SVG) on the hub. Deliberately not
+light/dark-adaptive, like a real game's main menu.
+
+Not yet in the SPA (still only in the older `screens/*.html` set below): admin panel, UGC
+submission/voting, the onboarding slides, and chat as anything beyond the in-match overlay drawer.
+See `docs/DECISIONS.md` open question 18.
+
+## `index.html` — the earlier single-board prototype (kept for reference)
+
+Standalone, open in any browser. Predates the SPA rebuild above; still useful as the simpler
+reference for the core puzzle engine (`game.html` copies this same data/logic into its board
+scene). Publish this file directly when a non-SPA artifact is needed.
 
 What it demonstrates (all client-side, no server):
 - Connections-style board with 2 hand-authored puzzles, validated on load by a JS port of
