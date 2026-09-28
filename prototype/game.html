@@ -69,8 +69,12 @@ input{font:inherit}
 .coin-dot{width:16px;height:16px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#FFE58A,#D9A520);box-shadow:inset 0 0 0 1.5px #B8860B;flex:none}
 .lvchip{background:linear-gradient(135deg,var(--yellow),var(--orange));color:#3B2A0E;border-radius:999px;padding:6px 12px;font-weight:800;font-size:12.5px;box-shadow:0 3px 0 var(--orange-dk),0 5px 14px -3px rgba(255,153,30,.6);position:relative;overflow:hidden}
 .lvchip::after{content:"";position:absolute;inset:0 0 55% 0;background:linear-gradient(180deg,rgba(255,255,255,.65),transparent);pointer-events:none;z-index:-1}
-.iconbtn{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.16);backdrop-filter:blur(14px) saturate(180%);-webkit-backdrop-filter:blur(14px) saturate(180%);border:1px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.5)}
+.iconbtn{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.16);backdrop-filter:blur(14px) saturate(180%);-webkit-backdrop-filter:blur(14px) saturate(180%);border:1px solid rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.5);position:relative}
 .iconbtn:active{transform:scale(.92)}
+.iconbtn .ping{position:absolute;top:5px;left:5px;width:9px;height:9px;border-radius:50%;background:var(--danger);box-shadow:0 0 0 2px rgba(58,23,104,.7);display:none}
+.iconbtn .ping.on{display:block;animation:pingpulse 1.6s ease-in-out infinite}
+@keyframes pingpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.3)}}
+.chip.stars{color:var(--yellow);letter-spacing:1px;font-size:12px;padding:6px 10px}
 .home-btn{display:none}
 .app[data-scene]:not([data-scene="hub"]) .home-btn{display:flex}
 
@@ -133,7 +137,32 @@ input{font:inherit}
   filter:drop-shadow(0 3px 0 var(--pink-dk)) drop-shadow(2px 3px 0 var(--pink-dk)) drop-shadow(-2px 3px 0 var(--pink-dk)) drop-shadow(0 10px 16px rgba(0,0,0,.45));}
 @keyframes logoshine{to{background-position:-220% 0}}
 .hub-tagline{margin:0 0 10px;font-weight:700;color:#FFE1EE;font-size:13.5px}
-.portal-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;max-width:360px}
+
+/* ---------- decorative scenery scattered around the hub, like a level-map's little props ---------- */
+.scenery{position:absolute;opacity:.5;filter:drop-shadow(0 2px 3px rgba(0,0,0,.2));pointer-events:none;animation:sway 5s ease-in-out infinite}
+.s1{top:6%;left:8%;font-size:22px;animation-delay:0s}
+.s2{top:16%;right:6%;font-size:18px;animation-delay:.6s}
+.s3{top:38%;left:5%;font-size:16px;animation-delay:1.2s}
+.s4{bottom:20%;right:7%;font-size:20px;animation-delay:1.8s}
+.s5{bottom:8%;left:10%;font-size:16px;animation-delay:2.4s}
+.s6{top:4%;left:44%;font-size:14px;animation-delay:.3s}
+@keyframes sway{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-8px) rotate(6deg)}}
+@media (prefers-reduced-motion:reduce){.scenery{animation:none}}
+
+/* ---------- ribbon banner (Candy Crush style folded-flag banner) ---------- */
+.ribbon-wrap{position:relative;display:inline-flex;margin:0 0 8px}
+.ribbon{background:linear-gradient(180deg,#FF6FA8,var(--pink));color:#fff;font-weight:800;font-size:13.5px;padding:6px 22px;border-radius:4px;box-shadow:0 3px 0 var(--pink-dk);position:relative;z-index:1}
+.ribbon-wrap::before,.ribbon-wrap::after{content:"";position:absolute;top:2px;width:0;height:0;border-style:solid}
+.ribbon-wrap::before{left:-9px;border-width:11px 9px 11px 0;border-color:transparent var(--pink-dk) transparent transparent}
+.ribbon-wrap::after{right:-9px;border-width:11px 0 11px 9px;border-color:transparent transparent transparent var(--pink-dk)}
+
+.portal-map{position:relative;width:100%;max-width:360px}
+.portal-path{position:absolute;inset:0;width:100%;height:100%;z-index:0}
+.portal-grid{position:relative;z-index:1;display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%}
+.portal-star{position:absolute;top:6px;left:6px;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:linear-gradient(180deg,#FFDD7E,var(--yellow));color:#4A3300;font-size:10.5px;font-weight:800;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 0 var(--yellow-dk);z-index:3}
+.portal{position:relative}
+.portal::before,.portal::after{z-index:0}
+.portal>.icon,.portal>b,.portal>small{position:relative;z-index:2}
 .portal{border:0;border-radius:var(--radius-md);padding:18px 8px 14px;display:flex;flex-direction:column;align-items:center;gap:6px;font-weight:800;font-size:13.5px;color:#fff;transition:transform .1s;position:relative;overflow:hidden;isolation:isolate;
   opacity:0;transform:translateY(14px) scale(.9);animation:popin .45s cubic-bezier(.2,1.4,.4,1) forwards;animation-delay:calc(var(--pop,0) * .08s)}
 .portal::before{content:"";position:absolute;inset:0 0 55% 0;background:linear-gradient(180deg,rgba(255,255,255,.5),transparent);pointer-events:none;z-index:-1}
@@ -332,6 +361,7 @@ input{font:inherit}
   <symbol id="i-flag" viewBox="0 0 24 24"><path d="M6 3.5v17"/><path d="M6 4.5h11l-2.5 3.5L17 11.5H6Z"/></symbol>
   <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
   <symbol id="i-coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="5"/><path d="M12 9.3v5.4M10.4 10.4h2.5a1.3 1.3 0 0 1 0 2.6h-1.8a1.3 1.3 0 0 0 0 2.6h2.5"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="m4 7 8 6 8-6"/></symbol>
 </svg>
 
 <div class="bg-decor" aria-hidden="true">
@@ -343,9 +373,11 @@ input{font:inherit}
   <div class="hud">
     <div class="hud-right">
       <button class="iconbtn home-btn" id="homeBtn" aria-label="بازگشت به هاب"><svg class="icon"><use href="#i-home"></use></svg></button>
+      <button class="iconbtn" id="mailBtn" aria-label="اعلان‌ها"><svg class="icon" style="width:17px;height:17px"><use href="#i-mail"></use></svg><span class="ping on" id="mailPing"></span></button>
       <button class="iconbtn" id="settingsBtn" aria-label="تنظیمات"><svg class="icon"><use href="#i-settings"></use></svg></button>
     </div>
     <div class="hud-left">
+      <span class="chip stars num" id="starsChip" title="رتبه‌ی مهارت">★★☆</span>
       <span class="lvchip num" id="lvchip">Lv ۱</span>
       <span class="chip num"><span class="coin-dot"></span><span id="coins">۲۰۰</span></span>
     </div>
@@ -355,8 +387,11 @@ input{font:inherit}
 
     <!-- ===== HUB ===== -->
     <section class="scene active" id="scene-hub">
+      <span class="scenery s1" aria-hidden="true">🌸</span><span class="scenery s2" aria-hidden="true">🍬</span>
+      <span class="scenery s3" aria-hidden="true">✨</span><span class="scenery s4" aria-hidden="true">🍭</span>
+      <span class="scenery s5" aria-hidden="true">⭐</span><span class="scenery s6" aria-hidden="true">🌟</span>
       <h1 class="game-logo">دوزاری</h1>
-      <p class="hub-tagline">دوزاریت می‌افته؟</p>
+      <div class="ribbon-wrap"><span class="ribbon">دوزاریت می‌افته؟</span></div>
       <div class="mascot-wrap">
         <div class="mascot-glow"></div>
         <div class="orbit"><span>✨</span><span>⭐</span><span>✨</span></div>
@@ -376,11 +411,16 @@ input{font:inherit}
           <path class="arm-r" d="M165 132 Q182 112 172 90" stroke="#D9A520" stroke-width="14" fill="none" stroke-linecap="round"/>
         </svg>
       </div>
-      <div class="portal-grid">
-        <button class="portal portal-play" style="--pop:0" data-go="play"><svg class="icon"><use href="#i-puzzle"></use></svg>بازی<small>تمرین، ۱در۱، میز</small></button>
-        <button class="portal portal-comp" style="--pop:1" data-go="leaderboard"><svg class="icon"><use href="#i-trophy"></use></svg>رقابت‌ها<small>رتبه، تورنومنت</small></button>
-        <button class="portal portal-profile" style="--pop:2" data-go="profile"><svg class="icon"><use href="#i-user"></use></svg>پروفایل<small>آمار، افتخارات</small></button>
-        <button class="portal portal-shop" style="--pop:3" data-go="shop"><svg class="icon"><use href="#i-gift"></use></svg>فروشگاه<small>سکه، تزئینات</small></button>
+      <div class="portal-map">
+        <svg class="portal-path" viewBox="0 0 340 280" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M60 40 C 220 40, 220 100, 170 140 S 60 220, 60 240 S 260 260, 280 240" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-dasharray="2 16" opacity=".45"/>
+        </svg>
+        <div class="portal-grid">
+          <button class="portal portal-play" style="--pop:0" data-go="play"><span class="portal-star">🔥</span><svg class="icon"><use href="#i-puzzle"></use></svg>بازی<small>تمرین، ۱در۱، میز</small></button>
+          <button class="portal portal-comp" style="--pop:1" data-go="leaderboard"><span class="portal-star num">#۲۸</span><svg class="icon"><use href="#i-trophy"></use></svg>رقابت‌ها<small>رتبه، تورنومنت</small></button>
+          <button class="portal portal-profile" style="--pop:2" data-go="profile"><span class="portal-star num">۴</span><svg class="icon"><use href="#i-user"></use></svg>پروفایل<small>آمار، افتخارات</small></button>
+          <button class="portal portal-shop" style="--pop:3" data-go="shop"><span class="portal-star">🎁</span><svg class="icon"><use href="#i-gift"></use></svg>فروشگاه<small>سکه، تزئینات</small></button>
+        </div>
       </div>
     </section>
 
@@ -565,6 +605,11 @@ function goTo(name){
 }
 $('homeBtn').addEventListener('click', () => goTo('hub'));
 $('settingsBtn').addEventListener('click', () => goTo('settings'));
+$('mailBtn').addEventListener('click', () => {
+  $('mailPing').classList.remove('on');
+  toast('۲ اعلان: دعوت تورنومنت هفتگی + درخواست دوستی جدید');
+  goTo('leaderboard');
+});
 document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => goTo(b.dataset.go)));
 
 let toastId=null;
@@ -591,6 +636,8 @@ function renderLevel(){
   $('pXpLabel').textContent = 'سطح '+fa(lv,0)+' — '+fa(xp-prevNeed,0)+' از '+fa(nextNeed-prevNeed,0)+' XP';
   $('pXpPct').textContent = '٪'+fa(pct,0);
   $('pXpFill').style.width = pct+'%';
+  const starN = lv>=10?3:lv>=4?2:1;
+  $('starsChip').textContent = '★'.repeat(starN)+'☆'.repeat(3-starN);
 }
 function addXp(amount){
   const before=levelOf(xp);
