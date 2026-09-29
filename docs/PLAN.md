@@ -54,7 +54,7 @@ browser — both need the owner's own machine (see Phase 0-A).
 - [ ] 📚 First 60 products × ≥3 price points (hand-curated: archive/AI-assisted research +
       personal/family memories, per `price-catalog` skill §Bootstrap sourcing)
 - [x] 🖥 REST: `GET /products/:id`, `GET /products/:id/prices` (for result chart)
-- [ ] 🖥 Image upload to object storage (script, not UI yet)
+- [x] 🖥 Image upload to object storage (script, not UI yet) — MinIO in dev, S3-compatible so ArvanCloud in prod
 - [x] 🧪 Seed validation test: every product has ≥1 price point, no duplicate (product, year)
 
 **Exit:** catalog queryable; seed can be re-run idempotently.

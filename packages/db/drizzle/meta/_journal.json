@@ -8,6 +8,13 @@
       "when": 1790665106690,
       "tag": "0000_secret_mercury",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790667102897,
+      "tag": "0001_curvy_skreet",
+      "breakpoints": true
     }
   ]
 }

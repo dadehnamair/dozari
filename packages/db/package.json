@@ -12,11 +12,13 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/migrate.ts",
     "seed": "tsx src/seed/run.ts",
-    "seed:check": "tsx src/seed/run.ts --check"
+    "seed:check": "tsx src/seed/run.ts --check",
+    "images:upload": "tsx src/seed/upload-images.ts"
   },
   "dependencies": {
     "@dozari/shared": "workspace:*",
     "drizzle-orm": "^0.36.4",
+    "minio": "^8.0.7",
     "postgres": "^3.4.5"
   },
   "devDependencies": {

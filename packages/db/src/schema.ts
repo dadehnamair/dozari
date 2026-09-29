@@ -13,7 +13,7 @@ import {
 } from 'drizzle-orm/pg-core';
 
 /**
- * Phase 0 scope only (docs/PLAN.md): `products` and `price_points`, per
+ * Catalog tables so far (docs/PLAN.md): `products`, `product_images` and `price_points`, per
  * docs/logic/data-model.md §Catalog. The rest of the data model (puzzles, users, matches,
  * economy, UGC) lands in later phases as those features are built.
  */
@@ -68,6 +68,26 @@ export const products = pgTable('products', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const productImages = pgTable(
+  'product_images',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => products.id, { onDelete: 'cascade' }),
+    url: text('url').notNull(),
+    yearFrom: smallint('year_from'),
+    yearTo: smallint('year_to'),
+    isPrimary: boolean('is_primary').notNull().default(false),
+    credit: text('credit'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('product_images_product_url_idx').on(table.productId, table.url),
+    index('product_images_product_id_idx').on(table.productId),
+  ],
+);
 
 export const pricePoints = pgTable(
   'price_points',
