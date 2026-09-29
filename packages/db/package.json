@@ -19,7 +19,8 @@
     "@dozari/shared": "workspace:*",
     "drizzle-orm": "^0.36.4",
     "minio": "^8.0.7",
-    "postgres": "^3.4.5"
+    "mysql2": "^3.24.4",
+    "uuidv7": "^1.2.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

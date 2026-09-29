@@ -3,8 +3,8 @@ import { defineConfig } from 'drizzle-kit';
 export default defineConfig({
   schema: './src/schema.ts',
   out: './drizzle',
-  dialect: 'postgresql',
+  dialect: 'mysql',
   dbCredentials: {
-    url: process.env.DATABASE_URL ?? 'postgres://dozari:dozari@localhost:5432/dozari',
+    url: process.env.DATABASE_URL ?? 'mysql://dozari:dozari@localhost:3306/dozari',
   },
 });

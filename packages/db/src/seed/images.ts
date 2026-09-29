@@ -140,13 +140,7 @@ export async function uploadSeedImages(
         isPrimary: img.is_primary,
         credit: img.credit ?? null,
       };
-      await db
-        .insert(productImages)
-        .values(values)
-        .onConflictDoUpdate({
-          target: [productImages.productId, productImages.url],
-          set: values,
-        });
+      await db.insert(productImages).values(values).onDuplicateKeyUpdate({ set: values });
       result.uploaded++;
     }
   }

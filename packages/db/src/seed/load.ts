@@ -5,7 +5,7 @@ import { checkSeedProducts, seedFileSchema, seedPriceToRials } from '@dozari/sha
 import type { SeedProduct } from '@dozari/shared';
 import { and, eq, isNull } from 'drizzle-orm';
 import type { Db } from '../client.js';
-import { pricePoints, products } from '../schema.js';
+import { pricePoints, productAudiences, productEraTags, products } from '../schema.js';
 
 export const SEED_DIR = join(fileURLToPath(new URL('../../seed/products', import.meta.url)));
 
@@ -38,18 +38,33 @@ export async function loadSeed(db: Db, seed: readonly SeedProduct[] = readSeedPr
         brand: p.brand ?? null,
         category: p.category,
         unitFa: p.unit_fa ?? null,
-        audience: p.audience,
-        eraTags: p.era_tags,
         storyFa: p.story_fa ?? null,
         status: p.status,
-        updatedAt: new Date(),
       };
-      const [row] = await tx
+      // MySQL has no RETURNING: upsert, then look the id up by its unique slug.
+      await tx
         .insert(products)
         .values(values)
-        .onConflictDoUpdate({ target: products.slug, set: values })
-        .returning({ id: products.id });
+        .onDuplicateKeyUpdate({ set: { ...values, updatedAt: new Date() } });
+      const [row] = await tx
+        .select({ id: products.id })
+        .from(products)
+        .where(eq(products.slug, p.slug));
       if (!row) throw new Error(`upsert failed for ${p.slug}`);
+
+      // Tag tables are fully owned by the seed: replace them so removed tags disappear.
+      await tx.delete(productAudiences).where(eq(productAudiences.productId, row.id));
+      if (p.audience.length > 0) {
+        await tx
+          .insert(productAudiences)
+          .values(p.audience.map((audience) => ({ productId: row.id, audience })));
+      }
+      await tx.delete(productEraTags).where(eq(productEraTags.productId, row.id));
+      if (p.era_tags.length > 0) {
+        await tx
+          .insert(productEraTags)
+          .values(p.era_tags.map((tag) => ({ productId: row.id, tag })));
+      }
 
       for (const pt of p.prices) {
         const month = pt.month ?? null;
@@ -63,7 +78,6 @@ export async function loadSeed(db: Db, seed: readonly SeedProduct[] = readSeedPr
           sourceNote: pt.source_note ?? null,
           confidence: pt.confidence,
           status: pt.status,
-          updatedAt: new Date(),
         };
         // NULL months are distinct in a unique index, so match manually.
         const [existing] = await tx
