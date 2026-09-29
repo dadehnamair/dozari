@@ -10,11 +10,17 @@
     "lint": "eslint . --max-warnings=0",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx src/migrate.ts"
+    "db:migrate": "tsx --env-file=../../.env src/migrate.ts",
+    "seed": "tsx --env-file=../../.env src/seed/run.ts",
+    "seed:check": "tsx src/seed/run.ts --check",
+    "images:upload": "tsx --env-file=../../.env src/seed/upload-images.ts"
   },
   "dependencies": {
+    "@dozari/shared": "workspace:*",
     "drizzle-orm": "^0.36.4",
-    "postgres": "^3.4.5"
+    "minio": "^8.0.7",
+    "mysql2": "^3.24.4",
+    "uuidv7": "^1.2.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

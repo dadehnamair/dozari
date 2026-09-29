@@ -43,11 +43,13 @@ Code and spec must never diverge: fix one or the other in the same change.
 
 ```bash
 pnpm install; pnpm -r typecheck; pnpm -r lint; pnpm -r test
-docker compose up -d              # postgres + adminer (http://localhost:8080)
-pnpm --filter @dozari/server dev  # needs Postgres above
+docker compose up -d              # optional: mysql + adminer (:8080) + minio (:9001). Docker-free path: docs/LOCAL-DEV.md
+pnpm --filter @dozari/server dev  # needs MySQL (docker or native)
 pnpm --filter @dozari/mobile start
 pnpm --filter @dozari/db db:generate  # after editing packages/db/src/schema.ts
 pnpm --filter @dozari/db db:migrate
+pnpm --filter @dozari/db images:upload  # seed/images/* -> MinIO (S3_* env, see .env.example)
+pnpm --filter @dozari/db seed:check  # validate seed JSON; `seed` loads it (idempotent)
 ```
 Before pushing: typecheck + lint + tests of every touched package pass.
 
@@ -55,7 +57,7 @@ Before pushing: typecheck + lint + tests of every touched package pass.
 
 TS `strict`; zod at every boundary. Game logic = pure fns in shared + unit tests; server wraps with I/O.
 Socket events `domain:action`, contracts in `packages/shared/src/socket/events.ts`. IDs UUID v7;
-`timestamptz` UTC. Game-logic randomness via injected seeded RNG. Small phase-scoped PRs; tick
+DATETIME(3) UTC; MySQL 8, no JSON columns (D63). Game-logic randomness via injected seeded RNG. Small phase-scoped PRs; tick
 `docs/PLAN.md` boxes. Open product question → record a *proposed* default in `DECISIONS.md` and
 tell the user in Persian.
 

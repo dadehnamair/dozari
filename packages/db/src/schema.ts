@@ -2,23 +2,31 @@ import { sql } from 'drizzle-orm';
 import {
   bigint,
   boolean,
+  char,
+  datetime,
   index,
-  pgEnum,
-  pgTable,
+  mysqlEnum,
+  mysqlTable,
+  primaryKey,
   smallint,
   text,
-  timestamp,
+  tinyint,
   uniqueIndex,
-  uuid,
-} from 'drizzle-orm/pg-core';
+  varchar,
+} from 'drizzle-orm/mysql-core';
+import { uuidv7 } from 'uuidv7';
 
 /**
- * Phase 0 scope only (docs/PLAN.md): `products` and `price_points`, per
- * docs/logic/data-model.md §Catalog. The rest of the data model (puzzles, users, matches,
- * economy, UGC) lands in later phases as those features are built.
+ * Catalog tables so far (docs/PLAN.md): `products`, `product_audiences`, `product_era_tags`,
+ * `product_images` and `price_points`, per docs/logic/data-model.md §Catalog. Everything is
+ * plain relational columns — no JSON columns (owner decision, docs/DECISIONS.md D63).
+ * The rest of the data model lands in later phases as those features are built.
+ *
+ * MySQL notes: ids are app-generated UUID v7 stored as CHAR(36); timestamps are DATETIME(3)
+ * holding UTC (the connection is opened with timezone 'Z', see client.ts).
  */
 
-export const productCategoryEnum = pgEnum('product_category', [
+export const PRODUCT_CATEGORY_VALUES = [
   'car',
   'food',
   'snack',
@@ -33,67 +41,115 @@ export const productCategoryEnum = pgEnum('product_category', [
   'hygiene',
   'service',
   'other',
-]);
+] as const;
 
-export const productStatusEnum = pgEnum('product_status', [
-  'in_production',
-  'discontinued',
-  'changed',
-]);
+const id = () =>
+  char('id', { length: 36 })
+    .primaryKey()
+    .$defaultFn(() => uuidv7());
 
-export const priceSourceTypeEnum = pgEnum('price_source_type', [
-  'archive_newspaper',
-  'official_list',
-  'receipt_photo',
-  'website',
-  'user_memory',
-  'other',
-]);
+const fk = (name: string) => char(name, { length: 36 }).notNull();
 
-export const priceStatusEnum = pgEnum('price_status', ['approved', 'pending', 'rejected']);
+const now = () => sql`CURRENT_TIMESTAMP(3)`;
 
-export const products = pgTable('products', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  slug: text('slug').notNull().unique(),
-  nameFa: text('name_fa').notNull(),
-  brand: text('brand'),
-  category: productCategoryEnum('category').notNull(),
-  unitFa: text('unit_fa'),
-  audience: text('audience').array().notNull().default(sql`'{}'::text[]`),
-  eraTags: text('era_tags').array().notNull().default(sql`'{}'::text[]`),
+export const products = mysqlTable('products', {
+  id: id(),
+  slug: varchar('slug', { length: 100 }).notNull().unique(),
+  nameFa: varchar('name_fa', { length: 200 }).notNull(),
+  brand: varchar('brand', { length: 200 }),
+  category: mysqlEnum('category', PRODUCT_CATEGORY_VALUES).notNull(),
+  unitFa: varchar('unit_fa', { length: 100 }),
   storyFa: text('story_fa'),
-  status: productStatusEnum('status').notNull().default('in_production'),
+  status: mysqlEnum('status', ['in_production', 'discontinued', 'changed'])
+    .notNull()
+    .default('in_production'),
   isActive: boolean('is_active').notNull().default(true),
-  createdBy: uuid('created_by'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  createdBy: char('created_by', { length: 36 }),
+  createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  updatedAt: datetime('updated_at', { mode: 'date', fsp: 3 })
+    .notNull()
+    .default(now())
+    .$onUpdate(() => new Date()),
 });
 
-export const pricePoints = pgTable(
+/** Who a product resonates with: kids, teens, adults, elderly, family. One row per tag. */
+export const productAudiences = mysqlTable(
+  'product_audiences',
+  {
+    productId: fk('product_id').references(() => products.id, { onDelete: 'cascade' }),
+    audience: mysqlEnum('audience', ['kids', 'teens', 'adults', 'elderly', 'family']).notNull(),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.productId, table.audience] }) }),
+);
+
+/** Decade(s) of peak nostalgia, e.g. `dahe-60`. One row per tag. */
+export const productEraTags = mysqlTable(
+  'product_era_tags',
+  {
+    productId: fk('product_id').references(() => products.id, { onDelete: 'cascade' }),
+    tag: varchar('tag', { length: 50 }).notNull(),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.productId, table.tag] }) }),
+);
+
+export const productImages = mysqlTable(
+  'product_images',
+  {
+    id: id(),
+    productId: fk('product_id').references(() => products.id, { onDelete: 'cascade' }),
+    url: varchar('url', { length: 500 }).notNull(),
+    yearFrom: smallint('year_from'),
+    yearTo: smallint('year_to'),
+    isPrimary: boolean('is_primary').notNull().default(false),
+    credit: varchar('credit', { length: 300 }),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({
+    productUrl: uniqueIndex('product_images_product_url_idx').on(table.productId, table.url),
+  }),
+);
+
+export const pricePoints = mysqlTable(
   'price_points',
   {
-    id: uuid('id').primaryKey().defaultRandom(),
-    productId: uuid('product_id')
-      .notNull()
-      .references(() => products.id, { onDelete: 'cascade' }),
+    id: id(),
+    productId: fk('product_id').references(() => products.id, { onDelete: 'cascade' }),
     year: smallint('year').notNull(),
     month: smallint('month'),
     // Rule 2: nominal, integer rials, never inflation-adjusted, never a float.
     priceRials: bigint('price_rials', { mode: 'bigint' }).notNull(),
-    sourceType: priceSourceTypeEnum('source_type').notNull(),
-    sourceUrl: text('source_url'),
+    sourceType: mysqlEnum('source_type', [
+      'archive_newspaper',
+      'official_list',
+      'receipt_photo',
+      'website',
+      'user_memory',
+      'other',
+    ]).notNull(),
+    sourceUrl: varchar('source_url', { length: 1000 }),
     sourceNote: text('source_note'),
     confidence: smallint('confidence').notNull(),
-    status: priceStatusEnum('status').notNull().default('pending'),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+    status: mysqlEnum('status', ['approved', 'pending', 'rejected']).notNull().default('pending'),
+    // MySQL has no partial unique index: this stored column is 1 for approved rows and NULL
+    // otherwise, so UNIQUE(product, year, month, approved_flag) only constrains approved rows
+    // (NULLs never collide) — matches data-model.md's "unique where status = approved".
+    approvedFlag: tinyint('approved_flag').generatedAlwaysAs(
+      sql`IF(status = 'approved', 1, NULL)`,
+      { mode: 'stored' },
+    ),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    updatedAt: datetime('updated_at', { mode: 'date', fsp: 3 })
+      .notNull()
+      .default(now())
+      .$onUpdate(() => new Date()),
   },
-  (table) => [
-    // Unique (product, year, month) only among approved rows — matches data-model.md's
-    // "Unique (product_id, year, month) where status = approved".
-    uniqueIndex('price_points_product_year_month_approved_idx')
-      .on(table.productId, table.year, table.month)
-      .where(sql`${table.status} = 'approved'`),
-    index('price_points_product_id_idx').on(table.productId),
-  ],
+  (table) => ({
+    approvedUnique: uniqueIndex('price_points_product_year_month_approved_idx').on(
+      table.productId,
+      table.year,
+      table.month,
+      table.approvedFlag,
+    ),
+    byProduct: index('price_points_product_id_idx').on(table.productId),
+  }),
 );

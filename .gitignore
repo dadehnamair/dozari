@@ -17,3 +17,6 @@ web-build/
 *.log
 .DS_Store
 .turbo/
+
+# local dev data (docker-free image store)
+.local/

@@ -35,7 +35,7 @@ carrying it into Phase 0.
 
 - [x] pnpm workspace: `apps/mobile`, `apps/server`, `packages/shared`, `packages/db`
 - [x] Root `tsconfig.base.json` (strict), ESLint + Prettier, `.editorconfig`, `.nvmrc` (Node 22)
-- [x] `docker-compose.yml`: postgres (+ adminer for dev)
+- [x] `docker-compose.yml`: mysql (+ adminer for dev) — was postgres until D63
 - [x] 🗄 Drizzle setup, first migration from `docs/logic/data-model.md` (products, price_points only)
 - [x] 🧩 `packages/shared/src/format`: `rialsToTomanString`, `toPersianDigits`, Jalali year helpers + tests
 - [x] 📱 Expo app boots in RTL with bundled Vazirmatn font, `fa.ts` i18n file, placeholder home
@@ -44,18 +44,18 @@ carrying it into Phase 0.
 
 **Exit:** `pnpm -r typecheck && pnpm -r test` green in CI; app shows a Persian RTL screen.
 Verified in-sandbox: `pnpm -r typecheck/lint/test` all green and `expo config` resolves the app
-cleanly. Not verified here (no Docker daemon / physical device in this container): Postgres
+cleanly. Not verified here (no Docker daemon / physical device in this container): MySQL
 actually running via docker-compose, and the app booting on a real Android device or in a
 browser — both need the owner's own machine (see Phase 0-A).
 
 ## Phase 1 — Catalog & content pipeline
 
-- [ ] 🗄 Seed format (`packages/db/seed/*.json`) validated by zod — see `price-catalog` skill
+- [x] 🗄 Seed format (`packages/db/seed/*.json`) validated by zod — see `price-catalog` skill
 - [ ] 📚 First 60 products × ≥3 price points (hand-curated: archive/AI-assisted research +
       personal/family memories, per `price-catalog` skill §Bootstrap sourcing)
-- [ ] 🖥 REST: `GET /products/:id`, `GET /products/:id/prices` (for result chart)
-- [ ] 🖥 Image upload to object storage (script, not UI yet)
-- [ ] 🧪 Seed validation test: every product has ≥1 price point, no duplicate (product, year)
+- [x] 🖥 REST: `GET /products/:id`, `GET /products/:id/prices` (for result chart)
+- [x] 🖥 Image upload to object storage (script, not UI yet) — MinIO in dev, S3-compatible so ArvanCloud in prod
+- [x] 🧪 Seed validation test: every product has ≥1 price point, no duplicate (product, year)
 
 **Exit:** catalog queryable; seed can be re-run idempotently.
 

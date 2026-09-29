@@ -1,28 +1,47 @@
 services:
-  postgres:
-    image: postgres:16-alpine
+  mysql:
+    image: mysql:8.4
     restart: unless-stopped
     environment:
-      POSTGRES_USER: dozari
-      POSTGRES_PASSWORD: dozari
-      POSTGRES_DB: dozari
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: dozari
+      MYSQL_USER: dozari
+      MYSQL_PASSWORD: dozari
+    command: ['--character-set-server=utf8mb4', '--collation-server=utf8mb4_unicode_ci']
     ports:
-      - '5432:5432'
+      - '3306:3306'
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - mysql-data:/var/lib/mysql
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U dozari']
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-udozari', '-pdozari']
       interval: 5s
       timeout: 5s
       retries: 10
 
   adminer:
     image: adminer:4
+    environment:
+      ADMINER_DEFAULT_SERVER: mysql
     restart: unless-stopped
     ports:
       - '8080:8080'
     depends_on:
-      - postgres
+      - mysql
+
+  # S3-compatible object storage for product images (dev stand-in for ArvanCloud Object Storage).
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ':9001'
+    environment:
+      MINIO_ROOT_USER: dozari
+      MINIO_ROOT_PASSWORD: dozari-secret
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    volumes:
+      - minio-data:/data
 
 volumes:
-  postgres-data:
+  mysql-data:
+  minio-data:

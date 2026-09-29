@@ -1,7 +1,10 @@
-# Data model (Postgres, Drizzle)
+# Data model (MySQL 8, Drizzle)
 
-Conventions: `id uuid` (v7) PK, `created_at/updated_at timestamptz`, snake_case columns,
+Conventions: `id char(36)` (UUID v7, app-generated) PK, `created_at/updated_at datetime(3)` holding UTC, snake_case columns,
 money = `bigint` rials, years = `smallint` Solar Hijri.
+**No JSON columns and no array columns** (owner decision, D63): multi-valued data gets its own table.
+Spec sections below that still say `jsonb` / `text[]` for *later* phases must be normalised into tables
+when they are built.
 
 ## Catalog
 
@@ -14,12 +17,16 @@ money = `bigint` rials, years = `smallint` Solar Hijri.
 | brand | text null | manufacturer / brand |
 | category | enum `product_category` | `car, food, snack, drink, digital, electronics, housing, transport, education, entertainment, clothing, hygiene, service, other` |
 | unit_fa | text null | «یک کیلو»، «یک بسته»، «یک عدد»، «متر مربع» — price is for this unit |
-| audience | text[] | tags: `kids, teens, adults, elderly, family` |
-| era_tags | text[] | e.g. `dahe-60`, `dahe-70` (decade of peak nostalgia) |
 | story_fa | text null | memory / fun fact shown after match |
 | status | enum | `in_production, discontinued, changed` |
 | is_active | boolean | usable by generator |
 | created_by | uuid null | user id if from UGC |
+
+### `product_audiences`
+`product_id FK, audience enum(kids|teens|adults|elderly|family)` — PK (product_id, audience).
+
+### `product_era_tags`
+`product_id FK, tag varchar` (e.g. `dahe-60`, decade of peak nostalgia) — PK (product_id, tag).
 
 ### `product_images`
 `id, product_id FK, url, year_from smallint null, year_to smallint null, is_primary bool, credit text null`
@@ -39,7 +46,9 @@ money = `bigint` rials, years = `smallint` Solar Hijri.
 | confidence | smallint | 1 (memory) … 3 (documented) |
 | status | enum | `approved, pending, rejected` |
 
-Unique `(product_id, year, month)` where status = approved. Generator uses only `approved`.
+Unique `(product_id, year, month)` among approved rows: MySQL has no partial index, so a stored generated column
+`approved_flag = IF(status='approved',1,NULL)` is part of the unique key (NULLs never collide). A NULL `month`
+is distinct in unique keys, so the seed loader matches month-less rows manually. Generator uses only `approved`.
 
 **Price at year Y** (`priceAt(product, Y)`): exact approved point for Y; if several months, the
 median. No interpolation for gameplay rules (interpolation allowed only for chart smoothing, flagged).
