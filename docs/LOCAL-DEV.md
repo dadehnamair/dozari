@@ -1,17 +1,23 @@
 # Local development without Docker
 
 Docker is optional. Containerisation (server image, compose for prod) comes later; until then
-everything runs directly on the host. Needs Node 22 (`.nvmrc`), pnpm, and a local PostgreSQL 16.
+everything runs directly on the host. Needs Node 22 (`.nvmrc`), pnpm, and a local MySQL 8
+(decision D63 in `DECISIONS.md`).
 
-## 1. Postgres
+## 1. MySQL
 
-Install it natively (Windows installer / `brew install postgresql@16` / `apt install postgresql`), then:
+Install it natively (XAMPP/Laragon/MySQL Installer on Windows, `brew install mysql`, `apt install mysql-server`),
+then create the database and user:
 
-```bash
-psql -U postgres -c "create user dozari superuser password 'dozari'" -c "create database dozari owner dozari"
+```sql
+CREATE DATABASE dozari CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'dozari'@'%' IDENTIFIED BY 'dozari';
+GRANT ALL ON dozari.* TO 'dozari'@'%';
 ```
 
-The connection string matches `.env.example`; change `DATABASE_URL` if yours differs.
+Use phpMyAdmin / Adminer / any client to manage it. The connection string matches `.env.example`;
+change `DATABASE_URL` if yours differs (e.g. XAMPP's root without a password:
+`mysql://root@localhost:3306/dozari`).
 
 ## 2. Env + install
 
@@ -38,7 +44,7 @@ Image storage is chosen by env: if `S3_ENDPOINT` is set it uploads to S3-compati
 ```bash
 pnpm --filter @dozari/server dev           # http://localhost:3000
 curl localhost:3000/health
-curl localhost:3000/products               # id, slug, name for every active product
+curl localhost:3000/products               # every active product with audiences and era tags
 curl localhost:3000/products/<id>/prices   # approved points only, rials as strings
 # images: http://localhost:3000/images/products/<slug>/<file>
 ```

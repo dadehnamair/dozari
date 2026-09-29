@@ -23,7 +23,7 @@ export interface PricePointDto {
   confidence: number;
 }
 
-/** I/O boundary so routes are testable without Postgres. */
+/** I/O boundary so routes are testable without a database. */
 export interface CatalogRepository {
   /** Active products, ordered by slug. */
   listProducts(): Promise<ProductDto[]>;

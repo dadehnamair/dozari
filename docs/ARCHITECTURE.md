@@ -28,7 +28,7 @@ Phase 0-A in `docs/PLAN.md` for the spikes that validate them before real code i
 | State (client) | Zustand for local UI state, TanStack Query for REST | Match state comes from socket snapshots, not local truth. |
 | Realtime | Socket.io (server + client); **Colyseus evaluated as an alternative** (D17) | Rooms = matches. Acks for every client→server command. Phase 0-A spikes both before Phase 4 is built. |
 | API | Fastify + zod (`fastify-type-provider-zod`) | REST for catalog, profile, economy, UGC. |
-| DB | PostgreSQL 16 | Drizzle ORM + drizzle-kit migrations (pure TS, no binary engine download). |
+| DB | MySQL 8 (utf8mb4) — interim owner choice, see D63; Postgres is the reversal path | Drizzle ORM + drizzle-kit migrations (pure TS, no binary engine download). |
 | Cache/queues | In-memory for MVP → Redis when >1 server instance | Socket.io Redis adapter at that point. |
 | Object storage | S3-compatible (ArvanCloud Object Storage) | Product images; CDN in front. |
 | Charts | Hand-rolled `react-native-svg` (D15) | No Skia-based chart library — keeps the web build light. Must render offscreen for share image. |
@@ -39,7 +39,7 @@ Phase 0-A in `docs/PLAN.md` for the spikes that validate them before real code i
 | Analytics | Self-hosted Umami or PostHog | D18. |
 | Push | Deferred. Candidates: Pushe / Najva (Iranian) or none for MVP | No FCM (D18). |
 | Ads (if monetized) | Tapsell, Adivery | Iranian ad networks (D18); deferred with open question 4. |
-| Hosting | **Primary: ArvanCloud or ParsPack (inside Iran)**, backups replicated to an off-country location | D16 — stays reachable during international connectivity outages, lower latency for the target audience. Docker Compose: `server`, `postgres`, `redis` (later), `caddy`. |
+| Hosting | **Primary: ArvanCloud or ParsPack (inside Iran)**, backups replicated to an off-country location | D16 — stays reachable during international connectivity outages, lower latency for the target audience. Docker Compose: `server`, `mysql`, `redis` (later), `caddy`. |
 | CI | GitHub Actions: typecheck, lint, test, build | Pin npm/Docker registry mirrors reachable from Iran once Phase 0-A experiment 4 identifies them. |
 
 Rejected alternatives are recorded in `DECISIONS.md` (Firebase, Flutter, Supabase self-hosted,
@@ -72,7 +72,7 @@ The match is an in-memory state machine owned by `MatchService` on the server:
 
 1. Socket handler validates payload with zod → `MatchService.handle(matchId, command)`.
 2. `MatchService` calls the pure reducer `applyCommand(state, command, ctx)` from `packages/shared/game`.
-3. Reducer returns `{ state, events }`. Service persists key events (guess log, result) to Postgres,
+3. Reducer returns `{ state, events }`. Service persists key events (guess log, result) to MySQL,
    then broadcasts **redacted** snapshots per recipient (never reveal unsolved groups).
 4. Timers (turn timeout) are server-side; on fire they enqueue a `timeout` command into the same path.
 
@@ -86,6 +86,6 @@ match is finished.
 
 ## Deployment (MVP)
 
-- One VM: Docker Compose with Caddy (TLS) → server (Node 22) → Postgres (volume, nightly `pg_dump` to object storage).
+- One VM: Docker Compose with Caddy (TLS) → server (Node 22) → MySQL (volume, nightly `mysqldump` to object storage).
 - Images served from object storage + CDN; the app caches them.
 - Environment config via `.env` (never committed). `.env.example` documents keys.
