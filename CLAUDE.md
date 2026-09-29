@@ -39,13 +39,15 @@ Code and spec must never diverge: fix one or the other in the same change.
 8. No Google/Firebase deps (FCM, Firebase Auth, runtime Google Fonts, Maps…). Bundle fonts, self-host.
 9. Economy numbers/timers/limits only in `packages/shared/src/config/*.ts`.
 
-## Commands (keep accurate once Phase 0 exists)
+## Commands
 
 ```bash
 pnpm install; pnpm -r typecheck; pnpm -r lint; pnpm -r test
-pnpm --filter server dev   # needs Postgres (docker-compose.yml)
-pnpm --filter mobile start
-pnpm --filter db migrate; pnpm --filter db seed
+docker compose up -d              # postgres + adminer (http://localhost:8080)
+pnpm --filter @dozari/server dev  # needs Postgres above
+pnpm --filter @dozari/mobile start
+pnpm --filter @dozari/db db:generate  # after editing packages/db/src/schema.ts
+pnpm --filter @dozari/db db:migrate
 ```
 Before pushing: typecheck + lint + tests of every touched package pass.
 

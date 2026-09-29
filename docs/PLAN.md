@@ -33,16 +33,20 @@ carrying it into Phase 0.
 
 ## Phase 0 — Foundations (repo & tooling)
 
-- [ ] pnpm workspace: `apps/mobile`, `apps/server`, `packages/shared`, `packages/db`
-- [ ] Root `tsconfig.base.json` (strict), ESLint + Prettier, `.editorconfig`, `.nvmrc` (Node 22)
-- [ ] `docker-compose.yml`: postgres (+ adminer for dev)
-- [ ] 🗄 Drizzle setup, first migration from `docs/logic/data-model.md` (products, price_points only)
-- [ ] 🧩 `packages/shared/src/format`: `rialsToTomanString`, `toPersianDigits`, Jalali year helpers + tests
-- [ ] 📱 Expo app boots in RTL with bundled Vazirmatn font, `fa.ts` i18n file, placeholder home
-- [ ] GitHub Actions CI: typecheck, lint, test
-- [ ] Fill the **Commands** section of `CLAUDE.md` with real commands
+- [x] pnpm workspace: `apps/mobile`, `apps/server`, `packages/shared`, `packages/db`
+- [x] Root `tsconfig.base.json` (strict), ESLint + Prettier, `.editorconfig`, `.nvmrc` (Node 22)
+- [x] `docker-compose.yml`: postgres (+ adminer for dev)
+- [x] 🗄 Drizzle setup, first migration from `docs/logic/data-model.md` (products, price_points only)
+- [x] 🧩 `packages/shared/src/format`: `rialsToTomanString`, `toPersianDigits`, Jalali year helpers + tests
+- [x] 📱 Expo app boots in RTL with bundled Vazirmatn font, `fa.ts` i18n file, placeholder home
+- [x] GitHub Actions CI: typecheck, lint, test
+- [x] Fill the **Commands** section of `CLAUDE.md` with real commands
 
 **Exit:** `pnpm -r typecheck && pnpm -r test` green in CI; app shows a Persian RTL screen.
+Verified in-sandbox: `pnpm -r typecheck/lint/test` all green and `expo config` resolves the app
+cleanly. Not verified here (no Docker daemon / physical device in this container): Postgres
+actually running via docker-compose, and the app booting on a real Android device or in a
+browser — both need the owner's own machine (see Phase 0-A).
 
 ## Phase 1 — Catalog & content pipeline
 
