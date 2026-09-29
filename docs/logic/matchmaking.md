@@ -64,8 +64,8 @@ static/cached recent-players sample, not a live query. Prototype: `prototype/scr
   می‌تونه دوباره بپیونده." Prototype (client-only flag, no real server round-trip):
   `prototype/index.html` sets `gh_active_match` in localStorage on duel start/clears it on
   finish/abandon; `prototype/screens/home.html` reads it and shows the banner.
-- **Mid-match takeover** — see `game-rules.md` §Mid-match disconnect → bot takeover (D43): past a
-  grace period (new config value, not yet picked), an AFK/disconnected seat gets a silent bot
+- **Mid-match takeover** — see `game-rules.md` §Mid-match disconnect → bot takeover (D43): past
+  `BOT_TAKEOVER_GRACE_SECONDS` (proposed 15s, D62), an AFK/disconnected seat gets a silent bot
   takeover rather than staying abandoned, same undisclosed-bot policy as D23.
 
 ## Presence & social

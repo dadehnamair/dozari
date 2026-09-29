@@ -57,11 +57,25 @@ A further extension the owner asked for on top of D34: easier tiers can offer a 
 harder tiers can go **larger** than 4×4. Owner: "واسه شروع بازی یسری گزینه‌های آسون‌تر مثلا ۳×۳
 باشه، ۴×۴ نباشه، ولی توی لول‌های خیلی سخت تعداد جدولش بیشتر هم بشه." This is a bigger change than
 the rest of D34 (which only varies *which* puzzle/rule-subtlety a player sees, keeping the board
-shape fixed per D19's original brief) — board geometry itself becomes a lever. **Not implemented
-in the prototype** — it's structural enough (how a non-4-groups-of-4 board maps onto
-`game-rules.md`'s scoring, and whether `validatePuzzle`/the generator in `puzzle-generation.md`
-can even produce non-4×4 boards) that mocking it would risk misleading the real design. Tracked as
-`DECISIONS.md` open question 15 — needs a real design pass before it's spec'd further here.
+shape fixed per D19's original brief) — board geometry itself becomes a lever.
+
+**Proposed scheme** (not implemented in the prototype yet — too structural to mock without
+misleading the real design; needs owner sign-off first):
+
+| tier | board | groups | notes |
+|---|---|---|---|
+| آسان | 3×3 (9 items) | 3 groups of 3 | fewer red herrings possible with only 3 groups; good onboarding-adjacent difficulty, separate from D37's one-time tutorial ramp |
+| متوسط | 4×4 (16 items) | 4 groups of 4 | unchanged — today's only shape, stays the default |
+| سخت | 4×5 (20 items) | 5 groups of 4 | adds a 5th, hardest tier on top of yellow→purple (needs a new tier color + name) |
+
+Consequences this scheme would need worked out before implementation: `GROUP_POINTS` and
+`LV_NAMES` need a 3-group and a 5-group variant (or a formula instead of fixed arrays);
+`validatePuzzle` (`puzzle-generation.md`) already checks group count generically but its "exactly
+4 groups" hard check would need to become tier-aware; and — the actual content cost — every
+existing 4-group puzzle needs a hand-authored 3-group *and* 5-group sibling, roughly tripling the
+authoring load per puzzle "family." That content cost is why this stays proposed rather than
+built: it's a real scope increase on top of D32's 200-puzzle target, not just a code change.
+Tracked as `DECISIONS.md` open question 17.
 
 ## Open follow-ups
 

@@ -24,18 +24,33 @@ onto (playful) — both readable at once, neither fighting the other.
 | role | face | status |
 |---|---|---|
 | UI/body text (all app chrome, buttons, forms, i18n strings) | **Vazirmatn** | decided (`persian-rtl-ui` skill; readable at small sizes, wide Iranian-app precedent) |
-| Display/brand (logo, app name, section headers, share-card headline, group title reveal) | a **nostalgic-feeling Persian display face** — vintage/retro print or classic headline
-  character, distinct from Vazirmatn | **not chosen yet** — owner wants to look at real
-  candidates rather than pick blind. Needs a font that (a) is legible at large sizes only (it's
-  never body text), (b) has a real Google Fonts or self-hostable Persian family (CSP/self-hosting
-  rule in `ARCHITECTURE.md` still applies — no runtime Google Fonts fetch, bundle whatever is
-  picked), (c) actually carries the "old newspaper/vintage" feeling rather than just being "a
-  second sans". Track candidates and the final pick as a decision in `DECISIONS.md` once chosen. |
+| Display/brand (logo, app name, section headers, share-card headline, group title reveal) | **Lalezar** | **decided (D58, 2026-09-28)** — every prototype since the earliest mockups used it for the logo/headlines and it never drew a complaint; owner confirmed it rather than reviewing alternatives blind. Google Fonts family, self-hostable per `ARCHITECTURE.md`'s no-runtime-fetch rule (bundle the actual font file for the real app; the prototypes' `<link>` to fonts.googleapis.com is a prototype-only shortcut, not the shipping approach). |
 
-Until the display face is chosen, prototypes may fall back to a heavier Vazirmatn weight for
-headlines — never ship that as final.
+App icon/logo *mark* (the small glyph, separate from the wordmark above) is still undecided — see
+§Icon / app logo below.
 
-## Color — "cool arcade" palette v2 (proposed default, D35, 2026-09-27)
+## Color — "Candy Arcade" palette v3 (proposed default, D55, 2026-09-28)
+
+**Supersedes v2 below**, used in the new SPA prototype (`prototype/game.html`, D54). Owner asked
+for a full game vibe, not a website vibe: "کامل میخوام وایب گیم باشه." Reference direction:
+candy-vivid color energy (closest to Candy Crush Saga among the options discussed) plus glossy
+chunky "shelf-edge" buttons (Coin Master/Clash Royale). **Deliberately not light/dark-adaptive** —
+a real game's main menu doesn't reskin with the OS theme:
+
+| token | value | note |
+|---|---|---|
+| background | `linear-gradient(165deg,#2A0E52 0%,#7A1E86 45%,#FF3D77 80%,#FF8A3D 100%)` | night-candy sky; two soft radial highlights layered on top |
+| panel | `#3A1768` on `rgba(255,255,255,.14)` line | translucent-glass panels over the gradient |
+| candy buttons | pink `#FF4D8D`, orange `#FF7A3D`, yellow `#FFC93C`, sky `#3FC1F0`, grape `#A66BF0`, lime `#7ED957` | each with a lighter top highlight + a solid "shelf" bottom border 4–6px darker, so buttons read as chunky 3D objects, not flat rounded rects |
+| ink / cream (text) | `#2B1240` / `#FFF6E8` | dark ink only appears on light candy-yellow surfaces; cream is the default text color against the dark gradient |
+| display type | Lalezar with a 3-direction fake-stroke `text-shadow` (sticker/logo effect) | used for the logo and scene headers only, never body text |
+
+- **Group colors and chart colors** — unchanged, still locked: yellow `#F9DF6D`, green `#A0C35A`,
+  blue `#B0C4EF`, purple `#BA81C5`; chart `s1–s4`.
+- New: a hand-drawn mascot, «دایی‌دوزاری» (D56) — see `prototype/game.html`'s inline SVG.
+- New: a hub screen with big glossy "portal" buttons instead of a list/nav (D54).
+
+## Color — "cool arcade" palette v2 (superseded 2026-09-28, kept for history)
 
 **Supersedes v1 below.** The owner rejected the pastel-paper execution outright: "این گرافیک
 اصلا مناسب اپ نیستا باید خیلی کول‌تر باشه." Same nostalgia+playful *mood* (the group colors still

@@ -58,10 +58,10 @@ Extends the above from "fills an empty queue/seat at match start" to "takes over
 bot into their seat rather than leaving the match to resolve via `matchmaking.md`'s abandonment
 rules. Same non-disclosure rule applies — the remaining player(s) never see any "opponent left"
 state. Owner: "وسط بازی اگه کسی لفت داد یا نتش مشکل پیدا کرد، بعد از یه مدت ربات جایگزینش بشه اما
-معلوم نباشه ربات." The takeover grace period is a new config value (not `RECONNECT_GRACE_SECONDS`
-necessarily — could be shorter, since the match is live and other players are waiting), and the
-`bot_match_subsidy` accounting below needs to cover a mid-match handoff, not just a match that
-started with a bot. Both are open — see §Open follow-ups.
+معلوم نباشه ربات." The takeover grace period is `BOT_TAKEOVER_GRACE_SECONDS` (proposed 15s, D62 —
+shorter than `RECONNECT_GRACE_SECONDS`'s 60s since the match is live and other players are
+waiting), and the `bot_match_subsidy` accounting below needs to cover a mid-match handoff, not
+just a match that started with a bot — that part is still open, see §Open follow-ups.
 
 ## Economy interaction — keeping it fair
 
@@ -83,7 +83,7 @@ This is the part that needs care, since real coins are at stake (`economy.md`):
 
 - Exact `BOT_FALLBACK_SECONDS` and `BOT_POOL_SIZE` are tuning knobs — set defaults in Phase 4,
   revisit with real queue-wait data after launch.
-- **Mid-match takeover grace period** (D43) — no default timer picked yet.
+- **Mid-match takeover grace period** (D43) — `BOT_TAKEOVER_GRACE_SECONDS` proposed at 15s (D62), needs real queue/match telemetry to tune like `BOT_FALLBACK_SECONDS`.
 - Whether/how a private-table host can opt into "fill with bot if a seat is empty" needs its own
   small UI decision when the private-table screen is built (see `docs/logic/matchmaking.md`
   §Private tables) — not yet specified.
