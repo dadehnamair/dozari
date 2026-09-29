@@ -48,7 +48,8 @@ when they are built.
 
 Unique `(product_id, year, month)` among approved rows: MySQL has no partial index, so a stored generated column
 `approved_flag = IF(status='approved',1,NULL)` is part of the unique key (NULLs never collide). A NULL `month`
-is distinct in unique keys, so the seed loader matches month-less rows manually. Generator uses only `approved`.
+is distinct in unique keys, so the key uses a second stored column `month_key = COALESCE(month, 0)`
+instead of `month` (year-only points collide like any other). Generator uses only `approved`.
 
 **Price at year Y** (`priceAt(product, Y)`): exact approved point for Y; if several months, the
 median. No interpolation for gameplay rules (interpolation allowed only for chart smoothing, flagged).

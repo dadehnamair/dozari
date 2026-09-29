@@ -4,12 +4,17 @@ import { resolve } from 'node:path';
 import { rialsToTomanString } from '@dozari/shared';
 import { createDb } from '@dozari/db';
 import { createDbCatalogRepository } from './catalog/db-repository.js';
+import { createDbAdminRepository } from './admin/db-repository.js';
+import { registerAdminRoutes } from './admin/routes.js';
+import type { AdminRepository } from './admin/routes.js';
 import { registerCatalogRoutes } from './catalog/routes.js';
 import { isMainModule } from './is-main.js';
 import type { CatalogRepository } from './catalog/routes.js';
 
 export interface ServerDeps {
   catalog?: CatalogRepository;
+  /** Interim catalog review page + API at `/admin`; registered only when a token is provided. */
+  admin?: { repo: AdminRepository; token: string };
   /** Docker-free dev: directory of uploaded product images, served at `/images/*`. */
   localImagesDir?: string;
 }
@@ -24,6 +29,7 @@ export function buildServer(deps: ServerDeps = {}) {
   }));
 
   if (deps.catalog) registerCatalogRoutes(app, deps.catalog);
+  if (deps.admin) registerAdminRoutes(app, deps.admin.repo, deps.admin.token);
   if (deps.localImagesDir) {
     void app.register(fastifyStatic, { root: resolve(deps.localImagesDir), prefix: '/images/' });
   }
@@ -32,8 +38,11 @@ export function buildServer(deps: ServerDeps = {}) {
 }
 
 if (isMainModule(import.meta.url)) {
+  const db = process.env.DATABASE_URL ? createDb() : undefined;
+  const adminToken = process.env.ADMIN_TOKEN;
   const app = buildServer({
-    catalog: process.env.DATABASE_URL ? createDbCatalogRepository(createDb()) : undefined,
+    catalog: db ? createDbCatalogRepository(db) : undefined,
+    admin: db && adminToken ? { repo: createDbAdminRepository(db), token: adminToken } : undefined,
     localImagesDir: process.env.LOCAL_IMAGES_DIR,
   });
   const port = Number(process.env.PORT ?? 3000);
