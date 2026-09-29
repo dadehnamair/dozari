@@ -50,12 +50,12 @@ browser — both need the owner's own machine (see Phase 0-A).
 
 ## Phase 1 — Catalog & content pipeline
 
-- [ ] 🗄 Seed format (`packages/db/seed/*.json`) validated by zod — see `price-catalog` skill
+- [x] 🗄 Seed format (`packages/db/seed/*.json`) validated by zod — see `price-catalog` skill
 - [ ] 📚 First 60 products × ≥3 price points (hand-curated: archive/AI-assisted research +
       personal/family memories, per `price-catalog` skill §Bootstrap sourcing)
-- [ ] 🖥 REST: `GET /products/:id`, `GET /products/:id/prices` (for result chart)
+- [x] 🖥 REST: `GET /products/:id`, `GET /products/:id/prices` (for result chart)
 - [ ] 🖥 Image upload to object storage (script, not UI yet)
-- [ ] 🧪 Seed validation test: every product has ≥1 price point, no duplicate (product, year)
+- [x] 🧪 Seed validation test: every product has ≥1 price point, no duplicate (product, year)
 
 **Exit:** catalog queryable; seed can be re-run idempotently.
 

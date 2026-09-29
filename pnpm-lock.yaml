@@ -66,12 +66,21 @@ importers:
 
   apps/server:
     dependencies:
+      '@dozari/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@dozari/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      drizzle-orm:
+        specifier: ^0.36.4
+        version: 0.36.4(@types/react@19.3.0)(postgres@3.4.9)(react@19.3.0)
       fastify:
         specifier: ^5.1.0
         version: 5.12.5
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
     devDependencies:
       '@types/node':
         specifier: ^22.10.2
@@ -88,6 +97,9 @@ importers:
 
   packages/db:
     dependencies:
+      '@dozari/shared':
+        specifier: workspace:*
+        version: link:../shared
       drizzle-orm:
         specifier: ^0.36.4
         version: 0.36.4(@types/react@19.3.0)(postgres@3.4.9)(react@19.3.0)

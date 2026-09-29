@@ -48,6 +48,7 @@ pnpm --filter @dozari/server dev  # needs Postgres above
 pnpm --filter @dozari/mobile start
 pnpm --filter @dozari/db db:generate  # after editing packages/db/src/schema.ts
 pnpm --filter @dozari/db db:migrate
+pnpm --filter @dozari/db seed:check  # validate seed JSON; `seed` loads it (idempotent)
 ```
 Before pushing: typecheck + lint + tests of every touched package pass.
 
