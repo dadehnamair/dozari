@@ -131,12 +131,15 @@ export const pricePoints = mysqlTable(
     confidence: smallint('confidence').notNull(),
     status: mysqlEnum('status', ['approved', 'pending', 'rejected']).notNull().default('pending'),
     // MySQL has no partial unique index: this stored column is 1 for approved rows and NULL
-    // otherwise, so UNIQUE(product, year, month, approved_flag) only constrains approved rows
+    // otherwise, so UNIQUE(product, year, month_key, approved_flag) only constrains approved rows
     // (NULLs never collide) — matches data-model.md's "unique where status = approved".
     approvedFlag: tinyint('approved_flag').generatedAlwaysAs(
       sql`IF(status = 'approved', 1, NULL)`,
       { mode: 'stored' },
     ),
+    // Unique keys treat NULL as distinct, so a month-less point would escape the constraint.
+    // This stored column maps a missing month to 0 so "year only" points collide like any other.
+    monthKey: smallint('month_key').generatedAlwaysAs(sql`COALESCE(month, 0)`, { mode: 'stored' }),
     createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
     updatedAt: datetime('updated_at', { mode: 'date', fsp: 3 })
       .notNull()
@@ -147,7 +150,7 @@ export const pricePoints = mysqlTable(
     approvedUnique: uniqueIndex('price_points_product_year_month_approved_idx').on(
       table.productId,
       table.year,
-      table.month,
+      table.monthKey,
       table.approvedFlag,
     ),
     byProduct: index('price_points_product_id_idx').on(table.productId),

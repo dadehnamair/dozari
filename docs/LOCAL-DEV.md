@@ -54,3 +54,12 @@ curl localhost:3000/products/<id>/prices   # approved points only, rials as stri
 JSON after verifying a source, then re-run `seed`.
 
 Mobile: `pnpm --filter @dozari/mobile start` (Expo web/Android; needs no server yet).
+
+## 5. Review prices (`/admin`)
+
+Set `ADMIN_TOKEN` in `.env` (see `.env.example`) and restart the server, then open
+`http://localhost:3000/admin`, paste the token, and approve / reject / re-queue price points.
+Points that jump >5× or drop >30% versus the previous point are flagged (usually a rial↔toman slip).
+Approving a second price for the same year and month is refused. Without `ADMIN_TOKEN` the page and
+API are not served at all; the server listens on all interfaces, so use a long random token on any
+shared network.

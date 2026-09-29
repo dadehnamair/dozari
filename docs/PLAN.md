@@ -56,6 +56,8 @@ browser — both need the owner's own machine (see Phase 0-A).
 - [x] 🖥 REST: `GET /products/:id`, `GET /products/:id/prices` (for result chart)
 - [x] 🖥 Image upload to object storage (script, not UI yet) — MinIO in dev, S3-compatible so ArvanCloud in prod
 - [x] 🧪 Seed validation test: every product has ≥1 price point, no duplicate (product, year)
+- [x] 🖥 Interim price review page (`/admin`, token-guarded via `ADMIN_TOKEN`): approve / reject / re-queue
+      `pending` price points, with >30%-drop / >5×-jump flags. Replaced by the Phase 7 admin panel.
 
 **Exit:** catalog queryable; seed can be re-run idempotently.
 
