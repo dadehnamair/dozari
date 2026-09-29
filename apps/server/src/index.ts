@@ -5,6 +5,7 @@ import { rialsToTomanString } from '@dozari/shared';
 import { createDb } from '@dozari/db';
 import { createDbCatalogRepository } from './catalog/db-repository.js';
 import { registerCatalogRoutes } from './catalog/routes.js';
+import { isMainModule } from './is-main.js';
 import type { CatalogRepository } from './catalog/routes.js';
 
 export interface ServerDeps {
@@ -30,7 +31,7 @@ export function buildServer(deps: ServerDeps = {}) {
   return app;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   const app = buildServer({
     catalog: process.env.DATABASE_URL ? createDbCatalogRepository(createDb()) : undefined,
     localImagesDir: process.env.LOCAL_IMAGES_DIR,
