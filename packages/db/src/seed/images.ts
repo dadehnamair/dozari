@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { extname, join } from 'node:path';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { dirname, extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Client } from 'minio';
 import { eq } from 'drizzle-orm';
@@ -52,17 +53,13 @@ export function s3ConfigFromEnv(env: NodeJS.ProcessEnv = process.env): S3Config 
   };
 }
 
-/**
- * Uploads every seed image found in `seed/images/` to S3-compatible storage (MinIO in dev)
- * and upserts its `product_images` row. Idempotent: same key, same (product, url) row.
- * Images listed in the seed but missing on disk are reported and skipped.
- */
-export async function uploadSeedImages(
-  db: Db,
-  seed: readonly SeedProduct[],
-  cfg: S3Config,
-  dir: string = IMAGES_DIR,
-) {
+/** Where uploaded images go. `put` stores the bytes; `publicUrl` is what `product_images.url` holds. */
+export interface ImageStore {
+  put(key: string, body: Buffer, contentType: string): Promise<void>;
+  publicUrl(key: string): string;
+}
+
+export function createS3ImageStore(cfg: S3Config): ImageStore {
   const endpoint = new URL(cfg.endpoint);
   const client = new Client({
     endPoint: endpoint.hostname,
@@ -71,8 +68,51 @@ export async function uploadSeedImages(
     accessKey: cfg.accessKey,
     secretKey: cfg.secretKey,
   });
-  if (!(await client.bucketExists(cfg.bucket))) await client.makeBucket(cfg.bucket);
+  let bucketReady: Promise<void> | undefined;
+  const ensureBucket = () =>
+    (bucketReady ??= (async () => {
+      if (!(await client.bucketExists(cfg.bucket))) await client.makeBucket(cfg.bucket);
+    })());
+  return {
+    async put(key, body, contentType) {
+      await ensureBucket();
+      await client.putObject(cfg.bucket, key, body, undefined, { 'Content-Type': contentType });
+    },
+    publicUrl: (key) => imagePublicUrl(cfg.publicBaseUrl, key),
+  };
+}
 
+/** Docker-free dev store: writes under `dir`, served by the API at `${publicBaseUrl}/<key>`. */
+export function createLocalImageStore(dir: string, publicBaseUrl: string): ImageStore {
+  return {
+    async put(key, body) {
+      const target = join(dir, key);
+      await mkdir(dirname(target), { recursive: true });
+      await writeFile(target, body);
+    },
+    publicUrl: (key) => imagePublicUrl(publicBaseUrl, key),
+  };
+}
+
+/** S3 when `S3_ENDPOINT` is set (MinIO / ArvanCloud), otherwise local disk (`LOCAL_IMAGES_DIR`). */
+export function imageStoreFromEnv(env: NodeJS.ProcessEnv = process.env): ImageStore {
+  if (env.S3_ENDPOINT) return createS3ImageStore(s3ConfigFromEnv(env));
+  const dir = env.LOCAL_IMAGES_DIR;
+  if (!dir) throw new Error('Set S3_ENDPOINT (+ S3_*) or LOCAL_IMAGES_DIR for image storage');
+  return createLocalImageStore(dir, env.LOCAL_IMAGES_PUBLIC_URL ?? 'http://localhost:3000/images');
+}
+
+/**
+ * Uploads every seed image found in `seed/images/` to the image store and upserts its
+ * `product_images` row. Idempotent: same key, same (product, url) row.
+ * Images listed in the seed but missing on disk are reported and skipped.
+ */
+export async function uploadSeedImages(
+  db: Db,
+  seed: readonly SeedProduct[],
+  store: ImageStore,
+  dir: string = IMAGES_DIR,
+) {
   const result = { uploaded: 0, missing: [] as string[] };
   for (const product of seed) {
     if (product.images.length === 0) continue;
@@ -91,12 +131,10 @@ export async function uploadSeedImages(
         continue;
       }
       const key = imageObjectKey(product.slug, img.file);
-      await client.putObject(cfg.bucket, key, readFileSync(path), undefined, {
-        'Content-Type': contentType,
-      });
+      await store.put(key, readFileSync(path), contentType);
       const values = {
         productId: row.id,
-        url: imagePublicUrl(cfg.publicBaseUrl, key),
+        url: store.publicUrl(key),
         yearFrom: img.year_from ?? null,
         yearTo: img.year_to ?? null,
         isPrimary: img.is_primary,
