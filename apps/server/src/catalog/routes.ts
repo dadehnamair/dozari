@@ -25,6 +25,8 @@ export interface PricePointDto {
 
 /** I/O boundary so routes are testable without Postgres. */
 export interface CatalogRepository {
+  /** Active products, ordered by slug. */
+  listProducts(): Promise<ProductDto[]>;
   getProduct(id: string): Promise<ProductDto | null>;
   /** Approved points only, ordered by year then month. */
   listApprovedPrices(productId: string): Promise<PricePointDto[]>;
@@ -33,6 +35,8 @@ export interface CatalogRepository {
 const paramsSchema = z.object({ id: z.string().uuid() });
 
 export function registerCatalogRoutes(app: FastifyInstance, repo: CatalogRepository) {
+  app.get('/products', async () => ({ products: await repo.listProducts() }));
+
   app.get('/products/:id', async (req, reply) => {
     const params = paramsSchema.safeParse(req.params);
     if (!params.success) return reply.code(400).send({ error: 'invalid_id' });

@@ -4,6 +4,20 @@ import type { CatalogRepository } from '../catalog/routes.js';
 
 const ID = '0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b';
 const repo: CatalogRepository = {
+  listProducts: async () => [
+    {
+      id: ID,
+      slug: 'peykan-javanan',
+      nameFa: 'پیکان جوانان',
+      brand: null,
+      category: 'car',
+      unitFa: null,
+      audience: [],
+      eraTags: [],
+      storyFa: null,
+      status: 'discontinued',
+    },
+  ],
   getProduct: async (id) =>
     id === ID
       ? {
@@ -26,6 +40,12 @@ const repo: CatalogRepository = {
 
 describe('catalog routes', () => {
   const app = buildServer({ catalog: repo });
+
+  it('lists products', async () => {
+    const res = await app.inject({ method: 'GET', url: '/products' });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().products).toHaveLength(1);
+  });
 
   it('returns a product', async () => {
     const res = await app.inject({ method: 'GET', url: `/products/${ID}` });

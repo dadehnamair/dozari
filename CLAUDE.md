@@ -43,7 +43,7 @@ Code and spec must never diverge: fix one or the other in the same change.
 
 ```bash
 pnpm install; pnpm -r typecheck; pnpm -r lint; pnpm -r test
-docker compose up -d              # postgres + adminer (http://localhost:8080) + minio (console :9001)
+docker compose up -d              # optional: postgres + adminer (:8080) + minio (:9001). Docker-free path: docs/LOCAL-DEV.md
 pnpm --filter @dozari/server dev  # needs Postgres above
 pnpm --filter @dozari/mobile start
 pnpm --filter @dozari/db db:generate  # after editing packages/db/src/schema.ts
