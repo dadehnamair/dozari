@@ -368,11 +368,41 @@ VIEWS.messages = function (root) {
   root.appendChild(card('پیام‌های فرستاده‌شده', 'می‌توانی پیام صندوق داخل اپ را پس بگیری', [hist]));
   drawHistory();
 };
+VIEWS.admins = function (root) {
+  var box = h('div');
+  var ROLES = [['owner', 'مالک — همه‌چیز'], ['editor', 'ویرایشگر — کاتالوگ، قیمت، ربات، فیلتر، پیام'], ['support', 'پشتیبان — کاربران'], ['viewer', 'فقط‌خواندن']];
+  function draw() {
+    api('/admin/admins').then(function (r) {
+      clear(box);
+      if (!r.ok) return fail(r);
+      if (r.body.legacyToken) box.appendChild(h('div', { class: 'flag', text: 'توکن اصلی (ADMIN_TOKEN) هنوز فعال است و دسترسی کامل دارد. بعد از ساختن حساب مالک، آن را از .env بردار.' }));
+      if (!r.body.admins.length) box.appendChild(empty('هنوز حسابی نیست'));
+      else box.appendChild(h('div', { class: 'tbl-wrap' }, [h('table', {}, [h('thead', {}, [h('tr', {}, ['نام', 'نام کاربری', 'نقش', 'آخرین ورود', 'وضعیت', ''].map(function (x) { return h('th', { text: x }); }))]),
+        h('tbody', {}, r.body.admins.map(function (a) {
+          var roleSel = select(ROLES, a.role);
+          roleSel.addEventListener('change', function () { api('/admin/admins/' + a.id, { method: 'PUT', body: { role: roleSel.value } }).then(function (x) { if (!x.ok) fail(x); else toast('نقش عوض شد'); draw(); }); });
+          return h('tr', {}, [h('td', {}, [h('b', { text: a.displayName })]), h('td', { class: 'ltr', text: a.username }), h('td', {}, [roleSel]), h('td', { text: a.lastLoginAt ? ago(a.lastLoginAt) : 'هرگز' }),
+            h('td', {}, [a.locked ? badge('قفل', 'b-warn') : a.isActive ? badge('فعال', 'b-ok') : badge('غیرفعال', 'b-mute')]),
+            h('td', {}, [
+              h('button', { class: 'btn sm', text: a.isActive ? 'غیرفعال' : 'فعال', onclick: function () { api('/admin/admins/' + a.id, { method: 'PUT', body: { isActive: !a.isActive } }).then(function (x) { if (!x.ok) fail(x); draw(); }); } }), ' ',
+              h('button', { class: 'btn sm', text: 'رمز تازه', onclick: function () { var pw = prompt('رمز تازه برای ' + a.username + ' (حداقل ۱۰ نویسه):'); if (!pw) return; api('/admin/admins/' + a.id + '/password', { method: 'POST', body: { password: pw } }).then(function (x) { if (!x.ok) fail(x); else toast('رمز عوض شد و نشست‌های قبلی بسته شد'); draw(); }); } })
+            ])]);
+        }))])]));
+    });
+  }
+  var un = h('input', { type: 'text', dir: 'ltr', placeholder: 'نام کاربری (انگلیسی)', maxlength: 30 }), dn = h('input', { type: 'text', placeholder: 'نام نمایشی', maxlength: 60 }), pw = h('input', { type: 'password', dir: 'ltr', placeholder: 'رمز (حداقل ۱۰ نویسه)', autocomplete: 'new-password' }), role = select(ROLES, 'support');
+  root.appendChild(box);
+  root.appendChild(card('حساب تازه', 'هر مدیر حساب جدا دارد و کارهایش با اسمش در «گزارش تغییرها» ثبت می‌شود.', [h('div', { class: 'form-grid' }, [field('نام کاربری', un), field('نام نمایشی', dn), field('رمز', pw), field('نقش', role)]),
+    h('div', { class: 'toolbar' }, [h('button', { class: 'btn primary', text: 'ساخت حساب', onclick: function () {
+      api('/admin/admins', { method: 'POST', body: { username: un.value.trim(), displayName: dn.value.trim() || un.value.trim(), password: pw.value, role: role.value } }).then(function (x) { if (!x.ok) return fail(x); toast('حساب ساخته شد'); un.value = ''; dn.value = ''; pw.value = ''; draw(); });
+    } })])]));
+  draw();
+};
 VIEWS.audit = function (root) {
   api('/admin/audit').then(function (r) {
     if (r.status === 404) return root.appendChild(empty('گزارش تغییرها روی این سرور فعال نیست'));
     if (!r.ok) return fail(r);
-    root.appendChild(card('گزارش تغییرها', 'صد تغییر آخر', r.body.entries.length ? [h('div', { class: 'tbl-wrap' }, [h('table', {}, [h('thead', {}, [h('tr', {}, ['زمان', 'کار', 'هدف', 'جزئیات'].map(function (x) { return h('th', { text: x }); }))]), h('tbody', {}, r.body.entries.map(function (e) { return h('tr', {}, [h('td', { text: ago(e.at) }), h('td', {}, [badge(e.action, 'b-info')]), h('td', { class: 'ltr', text: e.target }), h('td', { class: 'ltr', text: e.detail || '' })]); }))])])] : [empty('هنوز چیزی ثبت نشده')]));
+    root.appendChild(card('گزارش تغییرها', 'صد تغییر آخر', r.body.entries.length ? [h('div', { class: 'tbl-wrap' }, [h('table', {}, [h('thead', {}, [h('tr', {}, ['زمان', 'چه کسی', 'کار', 'هدف', 'جزئیات'].map(function (x) { return h('th', { text: x }); }))]), h('tbody', {}, r.body.entries.map(function (e) { return h('tr', {}, [h('td', { text: ago(e.at) }), h('td', { text: e.actor || '—' }), h('td', {}, [badge(e.action, 'b-info')]), h('td', { class: 'ltr', text: e.target }), h('td', { class: 'ltr', text: e.detail || '' })]); }))])])] : [empty('هنوز چیزی ثبت نشده')]));
   });
 };
 `;

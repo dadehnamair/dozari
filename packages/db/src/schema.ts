@@ -363,6 +363,8 @@ export const adminAuditLog = mysqlTable(
     id: id(),
     at: datetime('at', { mode: 'date', fsp: 3 }).notNull().default(now()),
     action: varchar('action', { length: 60 }).notNull(),
+    /** Which admin account did it (the display name at that time); null for rows written before accounts existed. */
+    actor: varchar('actor', { length: 60 }),
     target: varchar('target', { length: 200 }).notNull(),
     detail: text('detail'),
   },
@@ -489,6 +491,28 @@ export const blockedWords = mysqlTable(
     createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
   },
   (table) => ({ uniqWord: uniqueIndex('blocked_words_word_uq').on(table.word) }),
+);
+
+export const ADMIN_ROLES = ['owner', 'editor', 'support', 'viewer'] as const;
+
+/** Admin panel accounts. The password is stored as a salted scrypt hash, never in clear. */
+export const adminUsers = mysqlTable(
+  'admin_users',
+  {
+    id: id(),
+    username: varchar('username', { length: 30 }).notNull(),
+    displayName: varchar('display_name', { length: 60 }).notNull(),
+    passwordHash: varchar('password_hash', { length: 200 }).notNull(),
+    role: mysqlEnum('role', ADMIN_ROLES).notNull(),
+    isActive: boolean('is_active').notNull().default(true),
+    failedLogins: smallint('failed_logins').notNull().default(0),
+    lockedUntil: datetime('locked_until', { mode: 'date', fsp: 3 }),
+    /** Bumped on a password change or deactivation: sessions signed with an older value stop working. */
+    sessionVersion: int('session_version').notNull().default(1),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    lastLoginAt: datetime('last_login_at', { mode: 'date', fsp: 3 }),
+  },
+  (table) => ({ uniqUsername: uniqueIndex('admin_users_username_uq').on(table.username) }),
 );
 
 export const BOT_ADAPTERS = ['html_table', 'csv', 'text_lines'] as const;
