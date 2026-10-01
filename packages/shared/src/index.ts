@@ -9,3 +9,4 @@ export * from './priceguess/index.js';
 export * from './identity/index.js';
 export * from './socket/index.js';
 export * from './economy/index.js';
+export * from './calendar/solar-month.js';

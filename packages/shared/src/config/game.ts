@@ -38,6 +38,9 @@ export const FIRST_BLOOD_BONUS = 1;
 /** Locked-out side that stayed to the end: added to its final tally per price-guess round it won. */
 export const PRICE_GUESS_LOSER_BONUS_PER_ROUND = 1;
 
-/** Profile customisation unlocks (docs/logic/profile-and-identity.md): finished games needed. */
+/** Free pick: finished games before the player may choose one avatar / one nickname from the free sets (D65; to be editable in the admin panel). */
 export const AVATAR_UNLOCK_GAMES = 3;
 export const NICKNAME_UNLOCK_GAMES = 10;
+/** Paid (coin) avatars / nicknames: minimum player level; an activated profile is also required (D65). */
+export const AVATAR_CHANGE_MIN_LEVEL = 3;
+export const NICKNAME_CHANGE_MIN_LEVEL = 5;

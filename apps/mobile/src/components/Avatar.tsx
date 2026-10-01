@@ -4,7 +4,7 @@ import { colors } from '../theme/colors';
 import { Mascot } from './Mascot';
 
 /** Round avatar: mascot face crop over a candy gradient-ish disc, cream ring and ink outline. */
-export function Avatar({ avatar, size = 84 }: { avatar: AvatarSpec; size?: number }) {
+export function Avatar({ avatar, size = 84, month }: { avatar: AvatarSpec; size?: number; month?: number }) {
   const inner = Math.round(size * 0.76);
   return (
     <View
@@ -15,7 +15,7 @@ export function Avatar({ avatar, size = 84 }: { avatar: AvatarSpec; size?: numbe
     >
       <View style={[styles.glow, { backgroundColor: avatar.light, width: size * 0.7, height: size * 0.45, borderRadius: size }]} />
       <View style={{ width: inner, height: inner }}>
-        <Mascot pose={avatar.pose} skin={avatar.skin} crop="face" />
+        <Mascot pose={avatar.pose} skin={avatar.skin} crop="face" month={month} />
       </View>
     </View>
   );

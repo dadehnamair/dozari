@@ -13,6 +13,8 @@ import Svg, {
 } from 'react-native-svg';
 import { fonts } from '../theme/colors';
 import { mascotLook } from '../theme/mascot';
+import { monthSkin } from '../theme/month';
+import { MonthAccessory } from './MonthAccessory';
 import type { MascotCrop, MascotPose } from '../theme/mascot';
 
 const INK = '#2B1240';
@@ -24,6 +26,8 @@ interface Props {
   crop?: MascotCrop;
   width?: DimensionValue;
   height?: DimensionValue;
+  /** Solar Hijri month 1..12: adds that month's costume and, unless `skin` is given, its colour. */
+  month?: number;
   /** Cream outline under the dark limbs so they stay visible on dark screens (default on). */
   halo?: boolean;
 }
@@ -31,13 +35,14 @@ interface Props {
 /** The coin mascot (docs/design/Mascot.dc.html). `crop="face"` is the avatar crop. */
 export function Mascot({
   pose = 'idle',
-  skin = 0,
+  skin,
+  month,
   crop = 'full',
   width = '100%',
   height = '100%',
   halo = true,
 }: Props) {
-  const m = mascotLook(pose, skin, crop);
+  const m = mascotLook(pose, skin ?? (month ? monthSkin(month) : 0), crop);
   const gid = `mg${m.skinIndex}`;
   return (
     <View
@@ -171,6 +176,7 @@ export function Mascot({
             strokeWidth={2.5}
           />
         ) : null}
+        {month ? <MonthAccessory month={month} /> : null}
         {m.crown ? (
           <G>
             <Polygon
