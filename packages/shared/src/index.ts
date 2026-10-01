@@ -5,3 +5,4 @@ export * from './config/index.js';
 export * from './game/index.js';
 export * from './solo/index.js';
 export * from './chart/index.js';
+export * from './priceguess/index.js';
