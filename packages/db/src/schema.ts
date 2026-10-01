@@ -281,6 +281,10 @@ export const users = mysqlTable(
     chatUnlockedAt: datetime('chat_unlocked_at', { mode: 'date', fsp: 3 }),
     /** Home city (a row of `cities`), optional; shown on the profile and used for the city room. */
     cityId: char('city_id', { length: 36 }),
+    /** Verified mobile number as +989XXXXXXXXX (unique). Set only after Bale contact or SMS verification. */
+    phone: varchar('phone', { length: 16 }),
+    phonePending: varchar('phone_pending', { length: 16 }),
+    phoneVerifiedAt: datetime('phone_verified_at', { mode: 'date', fsp: 3 }),
     /** Optional contact e-mail; private and not verified yet. */
     email: varchar('email', { length: 120 }),
     /** Why and when an admin banned the player. */
@@ -293,6 +297,7 @@ export const users = mysqlTable(
   },
   (table) => ({
     deviceUnique: uniqueIndex('users_device_id_idx').on(table.deviceId),
+    phoneUnique: uniqueIndex('users_phone_idx').on(table.phone),
   }),
 );
 
@@ -740,3 +745,13 @@ export const coinTransfers = mysqlTable(
     byTo: index('coin_transfers_to_idx').on(table.toUserId, table.createdAt),
   }),
 );
+
+/** One live SMS code per player (hashed); a new code replaces the old one. */
+export const phoneOtps = mysqlTable('phone_otps', {
+  userId: char('user_id', { length: 36 }).primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+  phone: varchar('phone', { length: 16 }).notNull(),
+  codeHash: char('code_hash', { length: 64 }).notNull(),
+  attempts: int('attempts').notNull().default(0),
+  sentAt: datetime('sent_at', { mode: 'date', fsp: 3 }).notNull(),
+  expiresAt: datetime('expires_at', { mode: 'date', fsp: 3 }).notNull(),
+});

@@ -1,11 +1,12 @@
 /** Minimal Bale Bot API client. Bale's bot API mirrors Telegram's: `POST {base}/bot{token}/{method}` with a JSON body. */
 export interface BaleUpdate {
   update_id: number;
-  message?: { message_id: number; chat: { id: number | string }; from?: { id: number | string }; text?: string };
+  message?: { message_id: number; chat: { id: number | string }; from?: { id: number | string }; text?: string; contact?: { phone_number: string; user_id?: number | string; first_name?: string } };
 }
 
 export interface BaleClient {
-  sendMessage(chatId: string, text: string): Promise<void>;
+  /** `contactButton` shows a one-tap keyboard button that shares the sender's own phone contact; `removeKeyboard` hides it again. */
+  sendMessage(chatId: string, text: string, opts?: { contactButton?: string; removeKeyboard?: boolean }): Promise<void>;
   /** Long poll; returns [] when nothing arrived within `timeoutSec`. */
   getUpdates(offset: number, timeoutSec: number): Promise<BaleUpdate[]>;
 }
@@ -37,8 +38,13 @@ export function createBaleClient(token: string, opts: { base?: string; fetchImpl
     return json.result as T;
   }
   return {
-    async sendMessage(chatId, text) {
-      await call('sendMessage', { chat_id: chatId, text }, 15_000);
+    async sendMessage(chatId, text, opts) {
+      const reply_markup = opts?.contactButton
+        ? { keyboard: [[{ text: opts.contactButton, request_contact: true }]], resize_keyboard: true, one_time_keyboard: true }
+        : opts?.removeKeyboard
+          ? { remove_keyboard: true }
+          : undefined;
+      await call('sendMessage', { chat_id: chatId, text, ...(reply_markup ? { reply_markup } : {}) }, 15_000);
     },
     async getUpdates(offset, timeoutSec) {
       return (await call<BaleUpdate[]>('getUpdates', { offset, timeout: timeoutSec }, (timeoutSec + 10) * 1000)) ?? [];

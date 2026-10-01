@@ -4,6 +4,9 @@ import type { BaleLinkCode, BaleLinkStatus } from '@dozari/shared';
 import { CandyButton } from '../components/CandyButton';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
+import { ApiError } from '../net/http';
+import { phoneErrorText } from '../phone/errors';
+import { PhoneStep } from '../phone/PhoneStep';
 import { fetchBaleLink, requestBaleCode, unlinkBale } from './api';
 
 const INK = '#3A2418';
@@ -13,12 +16,17 @@ export function BaleSheet({ onClose }: { onClose: () => void }) {
   const [status, setStatus] = useState<BaleLinkStatus | null>(null);
   const [code, setCode] = useState<BaleLinkCode | null>(null);
   const [failed, setFailed] = useState(false);
+  const [phoneNote, setPhoneNote] = useState<string | null>(null);
 
   useEffect(() => {
     fetchBaleLink().then(setStatus, () => setFailed(true));
   }, []);
 
-  const getCode = () => requestBaleCode().then((c) => (setCode(c), setFailed(false)), () => setFailed(true));
+  const getCode = () =>
+    requestBaleCode().then(
+      (c) => (setCode(c), setFailed(false), setPhoneNote(null)),
+      (e) => (e instanceof ApiError && e.code === 'phone_required' ? setPhoneNote(phoneErrorText('phone_required')) : setFailed(true)),
+    );
   const unlink = () =>
     unlinkBale().then(() => {
       setCode(null);
@@ -30,6 +38,8 @@ export function BaleSheet({ onClose }: { onClose: () => void }) {
       <Pressable style={styles.sheet} onPress={() => undefined}>
         <Text style={styles.title}>{fa.bale.title}</Text>
         <Text style={styles.text}>{fa.bale.intro}</Text>
+        <PhoneStep />
+        {phoneNote ? <Text style={styles.text}>{phoneNote}</Text> : null}
         {failed ? <Text style={styles.text}>{fa.bale.error}</Text> : null}
         {status && !status.configured ? <Text style={styles.text}>{fa.bale.notConfigured}</Text> : null}
         {status?.linked ? (

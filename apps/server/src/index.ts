@@ -20,6 +20,10 @@ import { createDbPlayerStore } from './player/store.js';
 import { registerTransferRoutes } from './transfers/routes.js';
 import { TransferService, transferRulesFromSettings } from './transfers/service.js';
 import { createDbTransferStore } from './transfers/store.js';
+import { registerPhoneRoutes } from './phone/routes.js';
+import { PhoneService, phoneRulesFromSettings } from './phone/service.js';
+import { createKavenegarClient } from './phone/sms.js';
+import { createDbPhoneStore } from './phone/store.js';
 import { registerInviteRoutes } from './invite/routes.js';
 import { InviteService, inviteRulesFromSettings } from './invite/service.js';
 import { createDbInviteStore } from './invite/store.js';
@@ -84,6 +88,8 @@ export interface ServerDeps {
   realtime?: boolean;
   /** Bale messenger integration: link codes for players, the bot's name for the app. */
   bale?: { service: NotifyService; botUsername: string | null };
+  /** Mobile numbers (`/me/phone`); also required before Bale linking when the setting says so. */
+  phone?: PhoneService;
   /** Admin message center; its in-app channel feeds `GET /inbox`. */
   messages?: MessageCenter;
   /** Public profiles, friend requests and the gender setting. */
@@ -152,7 +158,12 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.invite) registerInviteRoutes(app, deps.auth, deps.invite);
   if (deps.auth && deps.transfers) registerTransferRoutes(app, deps.auth, deps.transfers);
   if (deps.auth && deps.messages) registerInboxRoutes(app, deps.auth, deps.messages);
-  if (deps.auth && deps.bale) registerBaleRoutes(app, deps.auth, deps.bale.service, deps.bale.botUsername);
+  if (deps.auth && deps.phone) registerPhoneRoutes(app, deps.auth, deps.phone);
+  if (deps.auth && deps.bale) {
+    const phoneSvc = deps.phone;
+    const settings = deps.settings;
+    registerBaleRoutes(app, deps.auth, deps.bale.service, deps.bale.botUsername, phoneSvc ? { service: phoneSvc, required: async () => (settings ? (await settings.num('phone.required_for_bale')) === 1 : true) } : undefined);
+  }
   if (deps.settings) {
     const settings = deps.settings;
     app.get('/config', async () => ({ settings: await settings.publicValues() }));
@@ -216,6 +227,9 @@ if (isMainModule(import.meta.url)) {
   const baleClient = baleToken ? createBaleClient(baleToken, { base: process.env.BALE_API_BASE }) : null;
   const baleStore: NotifyStore | undefined = db ? createDbNotifyStore(db) : undefined;
   const notify = baleStore ? new NotifyService(baleStore, baleClient) : undefined;
+  const smsClient = process.env.KAVENEGAR_API_KEY && process.env.KAVENEGAR_TEMPLATE ? createKavenegarClient(process.env.KAVENEGAR_API_KEY, process.env.KAVENEGAR_TEMPLATE) : null;
+  const phone = db && settings ? new PhoneService(createDbPhoneStore(db), () => phoneRulesFromSettings(settings), smsClient) : undefined;
+  if (notify && phone) notify.phone = phone;
   const words = db ? new TextFilterService(createDbWordStore(db)) : undefined;
   const playerStore = db ? createDbPlayerStore(db) : undefined;
   const inviteStore = db ? createDbInviteStore(db) : undefined;
@@ -268,6 +282,7 @@ if (isMainModule(import.meta.url)) {
         }
       : undefined,
     bale: notify ? { service: notify, botUsername: baleUsername } : undefined,
+    phone,
     messages,
     social,
     invite,

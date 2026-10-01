@@ -37,3 +37,16 @@ fetched by long polling, so no public URL or webhook is needed.
 
 Written against the Telegram-compatible Bale API from its documentation and tested with a fake HTTP layer only; it has not talked to the real
 Bale servers. Bale chat ids are assumed to be numeric.
+
+
+## Phone verification through the bot (D81, owner backlog item 6)
+
+The player first types a mobile number in the app (`PUT /me/phone`; Iranian numbers only, stored as `+989…`, shown masked). Linking Bale
+needs a number first (`phone.required_for_bale`). After the link code is redeemed the bot sends a one-tap keyboard button
+`request_contact` («ارسال شماره‌ی من»). A shared contact verifies the number only when (1) the chat is linked to the player,
+(2) `contact.user_id` equals the sender's Bale id — it is the sender's **own** contact, a forwarded contact proves nothing — and (3) it
+matches the number typed in the app. Wrong contacts count like wrong link codes (8 per 10 min per chat). A verified number belongs to one
+account (unique index); typed-but-unverified numbers are not unique, so nobody can squat a number. SMS fallback: `POST /me/phone/sms`
++ `/me/phone/verify` (5-digit code, hashed, 5 min, 60 s between sends, 5 tries); the provider is an adapter (`phone/sms.ts`); Kavenegar
+`verify/lookup` is included but **not run against the live service**. Not verified against Bale's real servers: that Bale delivers
+`contact.user_id` and honours `request_contact` exactly like Telegram.

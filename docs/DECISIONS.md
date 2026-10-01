@@ -183,3 +183,8 @@ redemption. Admin can make special campaign codes (no inviter reward). All numbe
 
 Friends can gift or lend coins under admin-set rules (friendship age, level, activation, per-transfer range, weekly cap, loan
 term, one open loan). Details and defaults in `docs/logic/economy.md` §Gifts and loans. Proposed; the owner may change any number.
+
+## D81 — Phone number first, verified through Bale contact or SMS (2026-10-01)
+
+Bale linking requires a typed mobile number; the bot verifies it from the sender's own shared contact; SMS is the fallback through a
+pluggable provider (owner still to choose one). A verified number is unique per account and private. See `docs/logic/bale-bot.md`.
