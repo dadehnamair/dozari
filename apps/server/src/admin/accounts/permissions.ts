@@ -30,7 +30,7 @@ export function permissionFor(method: string, path: string): Permission {
   if (path === '/admin/me') return 'read';
   if (m === 'GET' || m === 'HEAD') return 'read';
   if (/^\/admin\/users\/[^/]+\/coins$/.test(path)) return 'economy';
-  if (path.startsWith('/admin/daily-reward') || path.startsWith('/admin/shop')) return 'economy';
+  if (path.startsWith('/admin/daily-reward') || path.startsWith('/admin/shop') || path.startsWith('/admin/invites')) return 'economy';
   if (path.startsWith('/admin/users') || path.startsWith('/admin/user-notes')) return 'users';
   if (path.startsWith('/admin/messages')) return 'messages';
   if (path.startsWith('/admin/words') || path.startsWith('/admin/cities')) return 'content';

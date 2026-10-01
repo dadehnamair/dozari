@@ -16,6 +16,8 @@ import type { TextFilterService } from '../textfilter/service.js';
 import type { UsersAdmin } from './users.js';
 import type { PlayerStore } from '../player/store.js';
 import type { ShopStore } from '../economy/shop-store.js';
+import { registerInviteAdminRoutes } from '../invite/routes.js';
+import type { InviteStore } from '../invite/store.js';
 
 export interface AdminModules {
   settings?: SettingsService;
@@ -28,6 +30,8 @@ export interface AdminModules {
   cities?: PlayerStore;
   /** Coin shop items (price, level gate, daily limit, visibility). */
   shop?: ShopStore;
+  /** Invite codes: list, special campaign codes, limits. */
+  invites?: InviteStore;
   messages?: MessageCenter;
   bale?: { service: NotifyService; store: NotifyStore; botUsername: string | null };
   bot?: { repo: BotRepository; service: BotService };
@@ -98,7 +102,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     adapters: BOT_ADAPTER_KEYS,
     settingGroups: SETTING_GROUPS,
     icons: ITEMS,
-    modules: { settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, bale: !!m.bale, messages: !!m.messages },
+    modules: { settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, invites: !!m.invites, bale: !!m.bale, messages: !!m.messages },
   }));
 
   if (m.stats) {
@@ -341,6 +345,8 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       return { ok: true };
     });
   }
+
+  if (m.invites) registerInviteAdminRoutes(g, m.invites, (a, t, d) => void audit(a, t, d));
 
   if (m.shop) {
     const shop = m.shop;

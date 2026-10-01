@@ -16,6 +16,7 @@ import {
 } from './game.js';
 import { DAILY_REWARD_COOLDOWN_HOURS, DAILY_REWARD_STREAK_WINDOW_HOURS, HINT_MAX_PER_GAME, HINT_MIN_LEVEL, HINT_PRICES, HINT_REPEAT_PERCENT } from './economy.js';
 import { CHART_GAP_BREAK_YEARS, CHART_MIN_YEAR } from './chart.js';
+import { INVITE_INVITEE_BONUS, INVITE_INVITER_REWARD, INVITE_MAX_USES, INVITE_MIN_LEVEL, INVITE_REWARD_AFTER_GAMES } from './invite.js';
 import { LEVEL_MAX, NICKNAME_MAX_LEN, NICKNAME_MIN_LEN, XP_CURVE_BASE, XP_DUEL_BASE, XP_SOLO_BASE, XP_WIN_BONUS } from './progression.js';
 
 /**
@@ -97,6 +98,12 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'hint.max_per_game', group: 'economy', label: 'حداکثر راهنما در هر بازی', kind: 'int', min: 1, max: 10, default: HINT_MAX_PER_GAME },
   { key: 'hint.repeat_percent', group: 'economy', label: 'قیمت راهنمای دوم به بعد (درصد قیمت اول)', hint: '۲۰۰ یعنی دو برابر', kind: 'int', min: 100, max: 1000, default: HINT_REPEAT_PERCENT, unit: '٪' },
   { key: 'feature.shop', group: 'app', label: 'فروشگاه و راهنما روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'invite.min_level', group: 'economy', label: 'کمترین لول برای گرفتن کد معرف شخصی', hint: 'کد معرف ارزشمند است؛ تا این لول کدی داده نمی‌شود', kind: 'int', min: 1, max: 100, default: INVITE_MIN_LEVEL },
+  { key: 'invite.max_uses', group: 'economy', label: 'هر کد معرف چند نفر را می‌تواند دعوت کند', kind: 'int', min: 1, max: 1000, default: INVITE_MAX_USES, unit: 'نفر' },
+  { key: 'invite.invitee_bonus', group: 'economy', label: 'سکه‌ی دعوت‌شده بعد از واردکردن کد', kind: 'int', min: 0, max: 10000, default: INVITE_INVITEE_BONUS, unit: 'سکه' },
+  { key: 'invite.inviter_reward', group: 'economy', label: 'سکه‌ی معرف', hint: 'بعد از اینکه دعوت‌شده چند بازی را تمام کرد', kind: 'int', min: 0, max: 10000, default: INVITE_INVITER_REWARD, unit: 'سکه' },
+  { key: 'invite.reward_after_games', group: 'economy', label: 'پاداش معرف بعد از چند بازی تمام‌شده‌ی دعوت‌شده', kind: 'int', min: 1, max: 100, default: INVITE_REWARD_AFTER_GAMES, unit: 'بازی' },
+  { key: 'invite.required_for_rename', group: 'profile', label: 'تغییر اسم نیازمند فعال‌بودن حساب با کد معرف باشد', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'chart.gap_break_years', group: 'chart', label: 'شکاف سال در نمودار قیمت', hint: 'بیشتر از این تعداد سال بدون داده، خط نمودار قطع می‌شود', kind: 'int', min: 1, max: 30, default: CHART_GAP_BREAK_YEARS, unit: 'سال' },
   { key: 'chart.min_year', group: 'chart', label: 'اولین سال نمودار', kind: 'int', min: 1200, max: 1400, default: CHART_MIN_YEAR },
   { key: 'bot.enabled', group: 'bot', label: 'ربات محتوا روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },

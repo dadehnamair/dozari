@@ -277,6 +277,8 @@ export const users = mysqlTable(
     isBanned: boolean('is_banned').notNull().default(false),
     /** Optional, picked from a fixed list (D68); switches the hero character. Never shown publicly. */
     gender: mysqlEnum('gender', ['female', 'male']),
+    /** Set when the player redeems an invite code: it activates free chat, renaming and gifts (chat-and-access.md). */
+    chatUnlockedAt: datetime('chat_unlocked_at', { mode: 'date', fsp: 3 }),
     /** Home city (a row of `cities`), optional; shown on the profile and used for the city room. */
     cityId: char('city_id', { length: 36 }),
     /** Optional contact e-mail; private and not verified yet. */
@@ -676,4 +678,34 @@ export const shopPurchases = mysqlTable(
     createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
   },
   (table) => ({ byUserDay: index('shop_purchases_user_idx').on(table.userId, table.createdAt) }),
+);
+
+/** Invite ("gold") codes: one personal code per player, plus special codes an admin makes for campaigns (owner null). */
+export const inviteCodes = mysqlTable(
+  'invite_codes',
+  {
+    code: varchar('code', { length: 12 }).primaryKey(),
+    ownerId: char('owner_id', { length: 36 }),
+    /** Admin-only name of a special code, e.g. a campaign. */
+    label: varchar('label', { length: 80 }),
+    maxUses: int('max_uses').notNull(),
+    uses: int('uses').notNull().default(0),
+    isActive: boolean('is_active').notNull().default(true),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ ownerUnique: uniqueIndex('invite_codes_owner_idx').on(table.ownerId) }),
+);
+
+/** One row per invited player (a player redeems exactly once, ever); the inviter reward is paid once. */
+export const inviteRedemptions = mysqlTable(
+  'invite_redemptions',
+  {
+    inviteeId: char('invitee_id', { length: 36 }).primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+    code: varchar('code', { length: 12 }).notNull(),
+    /** Null for a campaign code (no inviter to reward). */
+    inviterId: char('inviter_id', { length: 36 }),
+    redeemedAt: datetime('redeemed_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    rewardPaidAt: datetime('reward_paid_at', { mode: 'date', fsp: 3 }),
+  },
+  (table) => ({ byInviter: index('invite_redemptions_inviter_idx').on(table.inviterId) }),
 );
