@@ -58,7 +58,7 @@ export function registerSocialRoutes(app: FastifyInstance, auth: AuthService, so
     if (!body.success || !social.player) return reply.code(400).send({ error: 'invalid_request' });
     const out = await social.player.setNickname(user.id, body.data.nickname);
     if (out.ok) return { nickname: out.nickname };
-    return reply.code(out.error === 'locked' ? 403 : 400).send({ error: out.error, unlockGames: out.unlockGames });
+    return reply.code(out.error === 'locked' || out.error === 'needs_invite' ? 403 : 400).send({ error: out.error, unlockGames: out.unlockGames });
   });
 
   app.get('/players/:id', async (req, reply) => {

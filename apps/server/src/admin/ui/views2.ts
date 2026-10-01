@@ -355,6 +355,34 @@ VIEWS.shop = function (root) {
   ]));
   draw();
 };
+VIEWS.invites = function (root) {
+  var list = h('div');
+  function draw() {
+    api('/admin/invites').then(function (r) {
+      clear(list);
+      if (r.status === 404) return list.appendChild(empty('کد معرف روی این سرور فعال نیست'));
+      if (!r.ok) return fail(r);
+      if (!r.body.codes.length) return list.appendChild(empty('هنوز کدی ساخته نشده'));
+      r.body.codes.forEach(function (c) {
+        var max = h('input', { type: 'number', value: c.maxUses, min: 1, style: 'width:90px' });
+        list.appendChild(h('div', { class: 'toolbar', style: 'padding:6px 0;border-bottom:1px solid var(--line,#ddd)' }, [
+          h('b', { text: c.code, dir: 'ltr' }), c.label ? badge(c.label, 'b-warn') : badge('کد شخصی', 'b-ok'), c.isActive ? null : badge('غیرفعال', 'b-bad'),
+          h('span', { text: 'استفاده: ' + fa(c.uses) + ' از ' }), max,
+          h('button', { class: 'btn sm', text: 'ذخیره', onclick: function () { api('/admin/invites/' + c.code, { method: 'PATCH', body: { maxUses: +max.value } }).then(function (x) { if (!x.ok) return fail(x); toast('ذخیره شد'); draw(); }); } }),
+          h('button', { class: 'btn sm ' + (c.isActive ? 'bad' : ''), text: c.isActive ? 'غیرفعال کن' : 'فعال کن', onclick: function () { api('/admin/invites/' + c.code, { method: 'PATCH', body: { isActive: !c.isActive } }).then(function (x) { if (!x.ok) return fail(x); draw(); }); } })
+        ]));
+      });
+    });
+  }
+  var code = h('input', { type: 'text', dir: 'ltr', placeholder: 'کد (مثل NOWRUZ)', maxlength: 12 }), label = h('input', { type: 'text', placeholder: 'نام کمپین', maxlength: 80 }), uses = h('input', { type: 'number', value: 100, min: 1, style: 'width:110px' });
+  root.appendChild(card('کد معرف ویژه (کمپین)', 'کد کمپین معرفی ندارد، پس پاداش معرف پرداخت نمی‌شود؛ فقط دعوت‌شده سکه‌ی خوش‌آمد و فعال‌شدن حساب را می‌گیرد. حروف و عددهای شبیه به هم (۰ O ۱ I L) مجاز نیستند.', [
+    h('div', { class: 'toolbar' }, [code, label, field('تعداد استفاده', uses), h('button', { class: 'btn primary', text: 'ساخت', onclick: function () {
+      api('/admin/invites', { method: 'POST', body: { code: code.value, label: label.value.trim(), maxUses: +uses.value } }).then(function (x) { if (x.status === 409) return toast('این کد از قبل هست', true); if (!x.ok) return fail(x); code.value = ''; label.value = ''; draw(); });
+    } })])
+  ]));
+  root.appendChild(card('همه‌ی کدها', 'سقف استفاده‌ی کد شخصی و پاداش‌ها در «تنظیمات ← اقتصاد» است. غیرفعال‌کردن یک کد جلوی دعوت تازه را می‌گیرد، حساب‌های دعوت‌شده‌ی قبلی بدون تغییر می‌مانند.', [list]));
+  draw();
+};
 VIEWS.bale = function (root) {
   var body = h('div'), msg = h('textarea', { placeholder: 'متن پیام برای همه‌ی بازیکنان وصل‌شده…', maxlength: 1000 }), chat = h('input', { type: 'text', dir: 'ltr', placeholder: 'شناسه‌ی چت (عدد)' });
   function draw() {

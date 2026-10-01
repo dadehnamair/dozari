@@ -1,3 +1,4 @@
+import { randomInt } from 'node:crypto';
 import Fastify from 'fastify';
 import fastifyCors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
@@ -16,6 +17,9 @@ import type { Gateway } from './realtime/gateway.js';
 import type { MatchDeps } from './realtime/match-service.js';
 import { PlayerService, rulesFromSettings } from './player/service.js';
 import { createDbPlayerStore } from './player/store.js';
+import { registerInviteRoutes } from './invite/routes.js';
+import { InviteService, inviteRulesFromSettings } from './invite/service.js';
+import { createDbInviteStore } from './invite/store.js';
 import { createDbProfileLookup } from './realtime/profile.js';
 import { registerAuthRoutes } from './auth/routes.js';
 import { createTokenSigner } from './auth/tokens.js';
@@ -81,6 +85,8 @@ export interface ServerDeps {
   messages?: MessageCenter;
   /** Public profiles, friend requests and the gender setting. */
   social?: SocialService;
+  /** Invite ("gold") codes; needs `auth`. */
+  invite?: InviteService;
   /** Where live matches get puzzles and player cards from; without it queue pairs are put back in line. */
   match?: Omit<MatchDeps, 'emit'>;
   /** Admin-editable tunables; also served to clients at `GET /config`. */
@@ -138,6 +144,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth) registerAuthRoutes(app, deps.auth);
   if (deps.auth && deps.dailyReward) registerDailyRewardRoutes(app, deps.auth, deps.dailyReward);
   if (deps.auth && deps.social) registerSocialRoutes(app, deps.auth, deps.social);
+  if (deps.auth && deps.invite) registerInviteRoutes(app, deps.auth, deps.invite);
   if (deps.auth && deps.messages) registerInboxRoutes(app, deps.auth, deps.messages);
   if (deps.auth && deps.bale) registerBaleRoutes(app, deps.auth, deps.bale.service, deps.bale.botUsername);
   if (deps.settings) {
@@ -205,7 +212,8 @@ if (isMainModule(import.meta.url)) {
   const notify = baleStore ? new NotifyService(baleStore, baleClient) : undefined;
   const words = db ? new TextFilterService(createDbWordStore(db)) : undefined;
   const playerStore = db ? createDbPlayerStore(db) : undefined;
-  const player = playerStore && settings ? new PlayerService(playerStore, () => rulesFromSettings(settings), words) : undefined;
+  const inviteStore = db ? createDbInviteStore(db) : undefined;
+  const player = playerStore && settings ? new PlayerService(playerStore, () => rulesFromSettings(settings), words, inviteStore ? (id) => inviteStore.isActivated(id) : undefined) : undefined;
   const social = db
     ? new SocialService(
         createDbSocialStore(db),
@@ -217,6 +225,8 @@ if (isMainModule(import.meta.url)) {
       )
     : undefined;
   const messages = db ? new MessageCenter(createDbMessageStore(db), notify ?? null) : undefined;
+  const invite = inviteStore && settings && player ? new InviteService(inviteStore, () => inviteRulesFromSettings(settings), async (id) => (await player.levelOf(id)).level.level, async (id) => (await player.levelOf(id)).stats.games, () => randomInt(0, 2 ** 30) / 2 ** 30) : undefined;
+  if (player && invite) player.afterGame = (id) => invite.settle(id);
   const levelOf = async (id: string) => (player ? (await player.levelOf(id)).level.level : 1);
   const shopStore = db ? createDbShopStore(db) : undefined;
   const solo = db && settings ? new SoloService(createDbPuzzleSource(db), { rules: () => soloRules(settings), onFinished: (id, outcome) => void player?.recordGame(id, { mode: 'solo', outcome }) }) : undefined;
@@ -226,7 +236,7 @@ if (isMainModule(import.meta.url)) {
     auth,
     settings,
     adminModules: db
-      ? { products: createDbProductAdmin(db), stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      ? { products: createDbProductAdmin(db), stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, invites: inviteStore, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
     match: db
@@ -252,6 +262,7 @@ if (isMainModule(import.meta.url)) {
     bale: notify ? { service: notify, botUsername: baleUsername } : undefined,
     messages,
     social,
+    invite,
     dailyReward: db && settings ? new DailyRewardService(createDbDailyRewardStore(db), Date.now, () => dailyRules(settings)) : undefined,
     catalog: db ? createDbCatalogRepository(db) : undefined,
     solo,

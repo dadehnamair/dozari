@@ -172,3 +172,9 @@ city, friends). Defaults in that file are proposed and tunable from the admin pa
 
 Hints in solo games (title / one card / pair) cost coins or a hint token; the shop sells tokens for coins. All numbers, level
 gates and daily limits are admin-editable; coins stay scarce by design. Details: `docs/logic/shop.md`. Proposed defaults, owner may change.
+
+## D79 — Invite code is "gold" (2026-10-01)
+
+A personal code is issued from level 3, has 10 uses, is guessed at a limited rate, and redeeming it is what activates free chat,
+renaming and (later) gifts/loans. The inviter is paid 100 coins only after the invitee finished 3 games; the invitee gets 50 coins at
+redemption. Admin can make special campaign codes (no inviter reward). All numbers are settings; proposed, owner may change.

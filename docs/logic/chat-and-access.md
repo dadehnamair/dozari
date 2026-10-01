@@ -18,7 +18,11 @@ anything but a code.
   → sets `chat_unlocked_at = now()`, `invited_by = owner`, economy invitee bonus, creates pending
   inviter reward (economy.md).
 - Redemption possible any time (onboarding screen or settings), exactly once per account.
-- *INVITE_MAX_USES* = 50 per code (raise for influencers via admin).
+- *INVITE_MAX_USES* = 10 per personal code (D79; admin-set; raise for influencers with a special code).
+- **Gold rule (D79):** the personal code is issued only from level `invite.min_level` (3) and a wrong guess is rate-limited
+  (8 tries / 10 min). Redeeming activates the account: free-text chat, renaming (`invite.required_for_rename`) and — when they ship —
+  gifts and loans. The inviter is paid only after the invited player finishes `invite.reward_after_games` (3) games, once.
+- Built: `invite_codes`, `invite_redemptions`, `users.chat_unlocked_at`; `GET /me/invite`, `POST /invite/redeem`; admin «کد معرف».
 - Admin can issue special codes (campaigns) with custom max uses; admin can revoke chat unlock (abuse).
 
 ## Channels in a match (proposed — open question 3)

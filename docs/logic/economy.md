@@ -17,7 +17,7 @@ hardcoded literal, so they can be tuned post-launch from real play data without 
 | Win payout | pot × 0.9 | pot = sum of entry fees; 10% burned (sink) |
 | Draw | refund entry fee − 10% | |
 | Loss consolation | 5 | only for full matches (not abandon), max 10 per day |
-| Invite reward (inviter) | 100 | granted when the invitee completes **3 finished matches** (anti-abuse) |
+| Invite reward (inviter) | 100 | granted when the invitee completes **3 finished games** (anti-abuse); a personal code needs level 3 and has 10 uses (D79) |
 | Invite reward (invitee) | +50 on redemption | plus free chat unlock |
 | UGC item approved | 40 | per approved submission, max 5/day |
 | Broke rescue | top-up to 60 | if balance < cheapest entry fee and no free matches left: once per day |

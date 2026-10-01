@@ -9,6 +9,7 @@ import { acceptFriend, fetchFriends, fetchMyProfile, removeFriend, saveGender } 
 import { avatarOf } from './avatarOf';
 import { PlayerSheet } from './PlayerSheet';
 import { ProfileEditor } from './ProfileEditor';
+import { InviteSheet } from '../invite/InviteSheet';
 
 const INK = '#3A2418';
 
@@ -18,6 +19,7 @@ export function ProfileSheet({ onClose, onGender }: { onClose: () => void; onGen
   const [friends, setFriends] = useState<Friends | null>(null);
   const [open, setOpen] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
 
   const load = useCallback(() => {
     Promise.all([fetchMyProfile(), fetchFriends()]).then(
@@ -34,6 +36,7 @@ export function ProfileSheet({ onClose, onGender }: { onClose: () => void; onGen
   };
   const options: [Gender | null, string][] = [['female', fa.profile.female], ['male', fa.profile.male], [null, fa.profile.none]];
 
+  if (inviteOpen) return <InviteSheet onClose={() => (setInviteOpen(false), load())} />;
   if (open) return <PlayerSheet playerId={open} onClose={() => (setOpen(null), load())} />;
   return (
     <Pressable style={styles.overlay} onPress={onClose} accessibilityLabel={fa.profile.close}>
@@ -81,6 +84,7 @@ export function ProfileSheet({ onClose, onGender }: { onClose: () => void; onGen
             </Pressable>
           ))}
         </ScrollView>
+        <CandyButton label={fa.invite.open} color={colors.candy.lime} onPress={() => setInviteOpen(true)} />
         <CandyButton label={fa.profile.close} color={colors.candy.sky} onPress={onClose} />
       </Pressable>
     </Pressable>
