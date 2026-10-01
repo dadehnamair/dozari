@@ -224,6 +224,40 @@ VIEWS.socket = function (root) {
   }
   pull(); timer = setInterval(pull, 3000);
 };
+VIEWS.words = function (root) {
+  var list = h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' });
+  var word = h('input', { type: 'text', placeholder: 'کلمه…', maxlength: 100 });
+  var sev = select([['block', 'مسدود (پیام ارسال نمی‌شود)'], ['mask', 'ستاره‌دار (کلمه با * جایگزین می‌شود)']], 'block');
+  var test = h('input', { type: 'text', placeholder: 'یک متن بنویس تا ببینی چه می‌شود' }), verdict = h('div');
+  function draw() {
+    api('/admin/words').then(function (r) {
+      clear(list);
+      if (r.status === 404) return list.appendChild(empty('فیلتر کلمات روی این سرور فعال نیست'));
+      if (!r.ok) return fail(r);
+      if (!r.body.words.length) list.appendChild(empty('هنوز کلمه‌ای اضافه نشده؛ فیلتر تا وقتی کلمه‌ای نباشد چیزی را رد نمی‌کند.'));
+      r.body.words.forEach(function (w) {
+        list.appendChild(h('span', { class: 'chip', style: 'display:inline-flex;gap:6px;align-items:center' }, [
+          h('span', { text: w.word }), badge(w.severity === 'block' ? 'مسدود' : 'ستاره', w.severity === 'block' ? 'b-bad' : 'b-warn'),
+          h('button', { class: 'btn sm', text: w.severity === 'block' ? 'ستاره‌دار' : 'مسدود', onclick: function () { api('/admin/words/' + w.id, { method: 'PATCH', body: { severity: w.severity === 'block' ? 'mask' : 'block' } }).then(function (x) { if (!x.ok) return fail(x); draw(); }); } }),
+          h('button', { class: 'btn bad sm', text: 'حذف', onclick: function () { api('/admin/words/' + w.id, { method: 'DELETE' }).then(function (x) { if (!x.ok) return fail(x); draw(); }); } })
+        ]));
+      });
+    });
+  }
+  root.appendChild(card('افزودن کلمه', 'املا و ریخت‌های مختلف (ی/ي، ک/ك، نیم‌فاصله، حروف تکراری، حروف جداشده) خودکار گرفته می‌شود؛ فقط خود کلمه را بنویس.', [
+    h('div', { class: 'toolbar' }, [word, sev, h('button', { class: 'btn primary', text: 'افزودن', onclick: function () {
+      api('/admin/words', { method: 'POST', body: { word: word.value.trim(), severity: sev.value } }).then(function (x) { if (x.status === 409) return toast('این کلمه از قبل هست', true); if (!x.ok) return fail(x); word.value = ''; draw(); });
+    } })])
+  ]));
+  root.appendChild(card('فهرست', 'روی همه‌ی متن‌هایی که بازیکن تایپ می‌کند (چت و ...) در سرور اجرا می‌شود', [list]));
+  root.appendChild(card('آزمایش', 'متن آزمایشی ذخیره نمی‌شود', [h('div', { class: 'toolbar' }, [test, h('button', { class: 'btn', text: 'بررسی', onclick: function () {
+    api('/admin/words/test', { method: 'POST', body: { text: test.value } }).then(function (x) {
+      if (!x.ok) return fail(x); clear(verdict);
+      verdict.appendChild(x.body.ok ? badge('قبول: ' + x.body.text, 'b-ok') : badge('رد شد (کلمه‌ی «' + x.body.hit.word + '»)', 'b-bad'));
+    });
+  } })]), verdict]));
+  draw();
+};
 VIEWS.audit = function (root) {
   api('/admin/audit').then(function (r) {
     if (r.status === 404) return root.appendChild(empty('گزارش تغییرها روی این سرور فعال نیست'));

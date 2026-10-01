@@ -8,6 +8,7 @@ import type { BotService } from '../bot/service.js';
 import type { AuditLog } from './audit.js';
 import type { ProductAdmin } from './products.js';
 import type { StatsAdmin } from './stats.js';
+import type { TextFilterService } from '../textfilter/service.js';
 import type { UsersAdmin } from './users.js';
 
 export interface AdminModules {
@@ -16,9 +17,11 @@ export interface AdminModules {
   stats?: StatsAdmin;
   users?: UsersAdmin;
   audit?: AuditLog;
+  words?: TextFilterService;
   bot?: { repo: BotRepository; service: BotService };
 }
 
+const wordBody = z.object({ word: z.string().trim().min(2).max(100), severity: z.enum(['block', 'mask']).default('block') });
 const idParam = z.object({ id: z.string().uuid() });
 const rials = z.string().regex(/^\d{1,15}$/);
 const year = z.number().int().min(1300).max(1450);
@@ -82,7 +85,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     adapters: BOT_ADAPTER_KEYS,
     settingGroups: SETTING_GROUPS,
     icons: ITEMS,
-    modules: { settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit },
+    modules: { settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words },
   }));
 
   if (m.stats) {
@@ -175,6 +178,40 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       if (out === 'insufficient') return reply.code(409).send({ error: 'insufficient' });
       void audit('user.coins', p.data.id, String(b.data.delta));
       return { ok: true, balance: out.balance };
+    });
+  }
+
+  if (m.words) {
+    const words = m.words;
+    g.get('/admin/words', async () => ({ words: await words.list() }));
+    g.post('/admin/words', async (req, reply) => {
+      const b = wordBody.safeParse(req.body);
+      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await words.add(b.data.word, b.data.severity);
+      if (out === 'duplicate') return reply.code(409).send({ error: 'duplicate' });
+      void audit('word.add', out.id, b.data.severity);
+      return reply.code(201).send({ id: out.id });
+    });
+    g.patch('/admin/words/:id', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object({ severity: z.enum(['block', 'mask']) }).safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      if ((await words.setSeverity(p.data.id, b.data.severity)) === 'not_found') return reply.code(404).send({ error: 'word_not_found' });
+      void audit('word.severity', p.data.id, b.data.severity);
+      return { ok: true };
+    });
+    g.delete('/admin/words/:id', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
+      if ((await words.remove(p.data.id)) === 'not_found') return reply.code(404).send({ error: 'word_not_found' });
+      void audit('word.remove', p.data.id);
+      return { ok: true };
+    });
+    /** Dry run for the admin: what the filter would do with this text. Never stored. */
+    g.post('/admin/words/test', async (req, reply) => {
+      const b = z.object({ text: z.string().max(500) }).safeParse(req.body);
+      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      return words.check(b.data.text);
     });
   }
 

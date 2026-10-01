@@ -43,6 +43,13 @@
       "when": 1790865167243,
       "tag": "0005_clumsy_doctor_octopus",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1790880962439,
+      "tag": "0006_open_iron_fist",
+      "breakpoints": true
     }
   ]
 }

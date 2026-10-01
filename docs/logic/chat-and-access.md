@@ -39,6 +39,7 @@ non-unlocked readers (the gate is on *sending*).
 - Normalize before filtering: Arabic ي/ك → Persian ی/ک, remove ZWNJ/diacritics/repeated letters,
   Finglish transliteration map for common profanity.
 - Profanity match → message blocked with a friendly notice (not silently dropped).
+- As built (D69): `filterText`/`normalizeForFilter` in `packages/shared/src/text`, word list in `blocked_words` (severity block or mask), edited in the admin panel; server side `TextFilterService.check(text)` is the single gate for every player-typed text.
 - Limits: *CHAT_MAX_LEN* = 120 chars, *CHAT_RATE* = 5 messages / 10 s; taunts 1 / 3 s.
 - Per-user mute (client-side hide + server doesn't deliver), report button → `reports`, admin review.
 - No links, no phone numbers (regex, Persian and Latin digits) in free text.

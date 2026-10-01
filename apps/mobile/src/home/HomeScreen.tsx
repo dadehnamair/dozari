@@ -13,7 +13,7 @@ import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 
 /** Home: wordmark, the waving mascot (floating, as on the kit's splash) and the way into a solo game. */
-export function HomeScreen({ onSolo, onGallery }: { onSolo: () => void; onGallery?: () => void }) {
+export function HomeScreen({ onSolo, onLookup, onGallery }: { onSolo: () => void; onLookup: () => void; onGallery?: () => void }) {
   const month = useMemo(() => solarMonthOf(Date.now()), []);
   const daily = useDailyReward();
   const [dailyOpen, setDailyOpen] = useState(false);
@@ -67,6 +67,7 @@ export function HomeScreen({ onSolo, onGallery }: { onSolo: () => void; onGaller
             {fa.months[month - 1]?.name} · {fa.months[month - 1]?.mood}
           </Text>
           <CandyButton label={fa.home.soloButton} color={colors.candy.yellow} onPress={onSolo} />
+          <CandyButton label={fa.home.lookupButton} color={colors.candy.lime} onPress={onLookup} />
           {onGallery ? (
             <CandyButton label={fa.kit.gallery} color={colors.candy.sky} onPress={onGallery} />
           ) : null}
