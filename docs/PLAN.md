@@ -73,10 +73,10 @@ browser — both need the owner's own machine (see Phase 0-A).
 - [ ] 🧩 `generatePuzzle(catalog, rng, opts)` — template-driven generator with retries, **built to
       imitate the hand-curated pool's style**, not before it exists
 - [ ] 🖥 Job: pre-generate a pool of N validated puzzles; admin CLI to approve/rename titles
-- [ ] 🧩 Single-player reducer (select 4 → submit → correct / one-away / wrong, 4 mistakes)
+- [x] 🧩 Single-player reducer (select 4 → submit → correct / one-away / wrong, 4 mistakes)
 - [ ] 📱 Board UI: 4×4 grid, select/deselect, shuffle, submit, solved-row reveal with colors
 - [ ] 📱 Solo practice mode (no coins) using a served puzzle
-- [ ] 🧪 Property tests: generated puzzles always pass validator; reducer invariants
+- [~] 🧪 Property tests: generated puzzles always pass validator; reducer invariants (reducer invariants done with fast-check; generator part waits for the generator)
 
 **Exit:** a person can play solo puzzles on the phone end-to-end.
 
