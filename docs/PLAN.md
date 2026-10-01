@@ -104,7 +104,7 @@ browser — both need the owner's own machine (see Phase 0-A).
 - [ ] 🖥 Guest auth (device id → JWT); random nickname+avatar assignment at creation
       (`logic/profile-and-identity.md`)
 - [ ] 🧩 Socket event contracts (`logic/matchmaking.md`, `logic/game-rules.md`)
-- [ ] 🧩 Match reducer: shared board, turns, timers-as-commands, scoring, end conditions
+- [x] 🧩 Match reducer: shared board, turns, timers-as-commands, scoring, end conditions — `game/match.ts` (1v1; team/captain flow is Phase 5)
 - [ ] 🖥 MatchService + redaction (`toClientView`), turn timer, persistence of match log
 - [ ] 🖥 MatchmakingService: 1v1 queue, private table (room code), reconnect grace
 - [ ] 🖥 Bot pool + fallback-fill logic (`logic/bots.md`) — bots flow through the same MatchService

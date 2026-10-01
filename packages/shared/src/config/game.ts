@@ -25,3 +25,15 @@ export const PRICE_GUESS_MIN_POINTS = 1;
 
 /** Competitive: match-score points for winning one price-guess round. */
 export const PRICE_GUESS_ROUND_POINTS = 1;
+
+/** Competitive match (docs/logic/game-rules.md §Competitive). Proposed defaults, to be playtested. */
+export const TURN_SECONDS = 45;
+export const MATCH_MAX_MISTAKES = 4;
+/** Two timeouts in a row make a side forfeit. */
+export const MAX_CONSECUTIVE_TIMEOUTS = 2;
+/** Points for solving a group, yellow to purple. */
+export const GROUP_POINTS = [1, 2, 3, 4] as const;
+/** Extra point for the very first group solved in a match. */
+export const FIRST_BLOOD_BONUS = 1;
+/** Locked-out side that stayed to the end: added to its final tally per price-guess round it won. */
+export const PRICE_GUESS_LOSER_BONUS_PER_ROUND = 1;
