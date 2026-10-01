@@ -18,3 +18,4 @@ export * from './progression/index.js';
 export * from './items/index.js';
 export * from './config/registry.js';
 export * from './economy/contract.js';
+export * from './calendar/tehran-day.js';

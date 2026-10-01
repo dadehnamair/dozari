@@ -308,6 +308,8 @@ export const LEDGER_REASONS = [
   'bot_match_subsidy',
   'price_guess_wager',
   'price_guess_payout',
+  'shop_purchase',
+  'hint_purchase',
 ] as const;
 
 /** Append-only. Coins move only through the server's ledger function; a repeated idempotency key is a no-op. */
@@ -628,3 +630,50 @@ export const userStats = mysqlTable('user_stats', {
   draws: int('draws').notNull().default(0),
   updatedAt: datetime('updated_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
 });
+
+export const SHOP_EFFECTS = ['hint_token'] as const;
+
+/** Things a player can buy with coins (docs/logic/shop.md). Prices, level gates and daily limits are edited in the admin panel. */
+export const shopItems = mysqlTable(
+  'shop_items',
+  {
+    id: id(),
+    titleFa: varchar('title_fa', { length: 80 }).notNull(),
+    descriptionFa: varchar('description_fa', { length: 300 }).notNull().default(''),
+    effect: mysqlEnum('effect', SHOP_EFFECTS).notNull(),
+    /** Units of the effect one purchase grants. */
+    amount: int('amount').notNull().default(1),
+    priceCoins: int('price_coins').notNull(),
+    minLevel: int('min_level').notNull().default(1),
+    /** 0 = no daily limit. */
+    perDayLimit: int('per_day_limit').notNull().default(0),
+    iconKey: varchar('icon_key', { length: 30 }),
+    sortOrder: int('sort_order').notNull().default(0),
+    isActive: boolean('is_active').notNull().default(true),
+  },
+  (table) => ({ bySort: index('shop_items_sort_idx').on(table.sortOrder) }),
+);
+
+/** What a player owns, one row per effect (e.g. how many hint tokens). */
+export const userInventory = mysqlTable(
+  'user_inventory',
+  {
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    effect: mysqlEnum('effect', SHOP_EFFECTS).notNull(),
+    qty: int('qty').notNull().default(0),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.userId, table.effect] }) }),
+);
+
+/** Every purchase, for the per-day limits and for support. The coins themselves are in `coin_ledger`. */
+export const shopPurchases = mysqlTable(
+  'shop_purchases',
+  {
+    id: id(),
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    itemId: char('item_id', { length: 36 }).notNull(),
+    priceCoins: int('price_coins').notNull(),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ byUserDay: index('shop_purchases_user_idx').on(table.userId, table.createdAt) }),
+);

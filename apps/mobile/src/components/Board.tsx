@@ -16,10 +16,12 @@ interface BoardProps {
   selected: readonly string[];
   onToggle: (id: string) => void;
   disabled: boolean;
+  /** Cards a paid hint pointed at; drawn with a gold frame. */
+  hinted?: readonly string[];
 }
 
 /** Solved rows stack on top (in the order found), the remaining cards fill a 4-wide grid below. */
-export function Board({ solved, cards, names, selected, onToggle, disabled }: BoardProps) {
+export function Board({ solved, cards, names, selected, onToggle, disabled, hinted = [] }: BoardProps) {
   const [width, setWidth] = useState(0);
   const w = cellWidth(width, GAP, GROUP_SIZE);
   return (
@@ -41,7 +43,7 @@ export function Board({ solved, cards, names, selected, onToggle, disabled }: Bo
               accessibilityRole="button"
               accessibilityState={{ selected: on }}
               onPress={() => onToggle(c.id)}
-              style={[styles.cell, w > 0 && { width: w, height: Math.round(w * 0.85) }, on && styles.cellOn]}
+              style={[styles.cell, w > 0 && { width: w, height: Math.round(w * 0.85) }, on && styles.cellOn, hinted.includes(c.id) && styles.cellHint]}
             >
               {c.iconKey ? (
                 <View style={styles.icon}>
@@ -59,6 +61,7 @@ export function Board({ solved, cards, names, selected, onToggle, disabled }: Bo
 }
 
 const styles = StyleSheet.create({
+  cellHint: { borderColor: '#FFC93C', borderWidth: 4 },
   board: { gap: GAP, width: '100%', maxWidth: 520, alignSelf: 'center' },
   row: { borderRadius: 16, borderWidth: 3, borderColor: colors.ink, borderBottomWidth: 6, paddingVertical: 10, paddingHorizontal: 12, alignItems: 'center', gap: 2 },
   rowTitle: { fontFamily: 'Vazirmatn_700Bold', fontSize: 16, color: colors.ink },

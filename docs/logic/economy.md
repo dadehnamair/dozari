@@ -34,6 +34,8 @@ hardcoded literal, so they can be tuned post-launch from real play data without 
 | Abandon | entry fee lost |
 | Price-guess round wager | 2–5 coins/round, escrowed per round | competitive modes only, solo has none — see `price-guess-round.md` §Real coin side-bet |
 | Coin packages (IAP) | N/A yet | see §Real-money coin purchases below — designed for now, **not built/enabled** at MVP |
+| Solo hints (D78) | 15 / 20 / 35, ×2 from the 2nd per game, level ≥ 2, max 2 per game | or one hint token; see `shop.md` |
+| Shop items (D78) | admin-set (starter: 1 token = 20, 5 tokens = 80 from level 3) | per-item level gate and daily limit |
 | (later) cosmetics: avatars, card backs, taunt packs | TBD |
 
 ## Entry fee scales with difficulty (D51)

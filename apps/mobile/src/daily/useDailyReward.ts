@@ -12,6 +12,8 @@ export interface DailyRewardState {
   won: number | null;
   failed: boolean;
   claim(): void;
+  /** Reads the card and balance again (e.g. after a shop purchase). */
+  reload(): void;
   dismissWon(): void;
 }
 
@@ -68,6 +70,7 @@ export function useDailyReward(): DailyRewardState {
     won,
     failed,
     claim,
+    reload: load,
     dismissWon: () => setWon(null),
   };
 }

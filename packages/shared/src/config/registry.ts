@@ -14,7 +14,7 @@ import {
   SOLO_MAX_MISTAKES,
   TURN_SECONDS,
 } from './game.js';
-import { DAILY_REWARD_COOLDOWN_HOURS, DAILY_REWARD_STREAK_WINDOW_HOURS } from './economy.js';
+import { DAILY_REWARD_COOLDOWN_HOURS, DAILY_REWARD_STREAK_WINDOW_HOURS, HINT_MAX_PER_GAME, HINT_MIN_LEVEL, HINT_PRICES, HINT_REPEAT_PERCENT } from './economy.js';
 import { CHART_GAP_BREAK_YEARS, CHART_MIN_YEAR } from './chart.js';
 import { LEVEL_MAX, NICKNAME_MAX_LEN, NICKNAME_MIN_LEN, XP_CURVE_BASE, XP_DUEL_BASE, XP_SOLO_BASE, XP_WIN_BONUS } from './progression.js';
 
@@ -90,6 +90,13 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'nickname.allow_persian', group: 'profile', label: 'حرف فارسی در اسم مجاز باشد', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'economy.daily_cooldown_hours', group: 'economy', label: 'فاصله‌ی دریافت جایزه‌ی روزانه', kind: 'int', min: 1, max: 72, default: DAILY_REWARD_COOLDOWN_HOURS, unit: 'ساعت' },
   { key: 'economy.daily_streak_window_hours', group: 'economy', label: 'مهلت ادامه‌ی زنجیره‌ی جایزه', hint: 'دریافت بعدی تا این مدت بعد از قبلی، زنجیره را ادامه می‌دهد؛ دیرتر از آن از روز اول شروع می‌شود', kind: 'int', min: 2, max: 168, default: DAILY_REWARD_STREAK_WINDOW_HOURS, unit: 'ساعت' },
+  { key: 'hint.price_group_title', group: 'economy', label: 'قیمت راهنما: نام یک دسته', hint: 'سکه برای هر بار گرفتن راهنما در بازی تکی', kind: 'int', min: 0, max: 5000, default: HINT_PRICES.group_title, unit: 'سکه' },
+  { key: 'hint.price_one_card', group: 'economy', label: 'قیمت راهنما: یک کارت از یک دسته', kind: 'int', min: 0, max: 5000, default: HINT_PRICES.one_card, unit: 'سکه' },
+  { key: 'hint.price_pair', group: 'economy', label: 'قیمت راهنما: دو کارت هم‌دسته', kind: 'int', min: 0, max: 5000, default: HINT_PRICES.pair, unit: 'سکه' },
+  { key: 'hint.min_level', group: 'economy', label: 'کمترین لول برای گرفتن راهنما', kind: 'int', min: 1, max: 100, default: HINT_MIN_LEVEL },
+  { key: 'hint.max_per_game', group: 'economy', label: 'حداکثر راهنما در هر بازی', kind: 'int', min: 1, max: 10, default: HINT_MAX_PER_GAME },
+  { key: 'hint.repeat_percent', group: 'economy', label: 'قیمت راهنمای دوم به بعد (درصد قیمت اول)', hint: '۲۰۰ یعنی دو برابر', kind: 'int', min: 100, max: 1000, default: HINT_REPEAT_PERCENT, unit: '٪' },
+  { key: 'feature.shop', group: 'app', label: 'فروشگاه و راهنما روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'chart.gap_break_years', group: 'chart', label: 'شکاف سال در نمودار قیمت', hint: 'بیشتر از این تعداد سال بدون داده، خط نمودار قطع می‌شود', kind: 'int', min: 1, max: 30, default: CHART_GAP_BREAK_YEARS, unit: 'سال' },
   { key: 'chart.min_year', group: 'chart', label: 'اولین سال نمودار', kind: 'int', min: 1200, max: 1400, default: CHART_MIN_YEAR },
   { key: 'bot.enabled', group: 'bot', label: 'ربات محتوا روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
