@@ -66,7 +66,15 @@ shared network.
 
 ## 6. Play solo in the app
 
-There must be at least one `approved` puzzle in the database (puzzle authoring comes later), then:
+There must be at least one `approved` puzzle in the database. Puzzle authoring is not built yet, so for a first look create a
+**fake demo puzzle** (16 invented `demo-*` products, hidden from the catalog, made-up prices — dev only):
+
+```bash
+pnpm --filter @dozari/db demo:puzzle           # create
+pnpm --filter @dozari/db demo:puzzle:remove    # delete it again
+```
+
+Then:
 
 ```bash
 pnpm --filter @dozari/server dev      # API on :3000
