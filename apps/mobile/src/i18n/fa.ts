@@ -30,6 +30,16 @@ export const fa = {
       noInternet: { title: 'اینترنت قطعه', sub: 'اتصالت رو چک کن و برگرد.', action: 'دوباره وصل شو' },
     },
     gallery: 'نمایش طراحی',
+    search: {
+      title: 'جستجوی حریف',
+      you: 'تو',
+      searching: 'در حال جستجو...',
+      cancel: 'لغو جستجو',
+      versus: 'VS',
+      unknown: '؟',
+      /** Placeholder opponents cycling through the grid while searching (design-kit sample names). */
+      players: ['سارا', 'رضا', 'مینا', 'آرش', 'نگار', 'کیان', 'شیدا', 'بهراد', 'تینا', 'امید', 'یاسی', 'پویا', 'لیلا', 'سینا', 'رها', 'مهدی'],
+    },
   },
   solo: {
     title: 'تمرین تکی',

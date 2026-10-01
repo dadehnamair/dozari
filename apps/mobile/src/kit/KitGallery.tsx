@@ -28,10 +28,13 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 /** Dev-only page that shows every asset of the design kit that is implemented. */
-export function KitGallery({ onBack }: { onBack: () => void }) {
+export function KitGallery({ onBack, onSearch }: { onBack: () => void; onSearch: () => void }) {
   return (
     <ScrollView contentContainerStyle={styles.screen}>
-      <CandyButton label={fa.solo.back} color={colors.candy.sky} onPress={onBack} />
+      <View style={styles.wrap}>
+        <CandyButton label={fa.solo.back} color={colors.candy.sky} onPress={onBack} />
+        <CandyButton label={fa.kit.search.title} color={colors.candy.pink} onPress={onSearch} />
+      </View>
       <Section title="mascot">
         {MASCOT_POSES.map((p, i) => (
           <View key={p} style={styles.mascot}>

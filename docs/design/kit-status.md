@@ -19,7 +19,9 @@ Source: `Dozari Visual Assets.dc.html` and `Mascot.dc.html` (Candy Arcade v3, ex
 | Hub entrances (10 portals) | done (icons) | `PortalIcon`; the hub screen itself is not built yet |
 | Effects: confetti, rain | done | `Confetti`, `Rain`; shown on the solo result screen |
 | Effects: twinkle, rings, flicker, pop, drop, shine | todo | keyframes exist in the kit |
-| Backgrounds (section B), the home building scene, the search/match screens | todo | |
+| Opponent search screen + `bg-search` diamond backdrop | done | `search/SearchScreen.tsx`, `DiamondBackground`; reachable from the dev gallery, not wired to matchmaking yet |
+| Mascot limbs visible on dark screens (cream halo under the ink strokes) | done | `Mascot` `halo` prop |
+| Other backgrounds (section B), the home building scene, the match screen | todo | |
 
 Dev-only gallery of everything above: the «نمایش طراحی» button on the home screen (`kit/KitGallery.tsx`).
 

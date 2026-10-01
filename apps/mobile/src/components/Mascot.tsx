@@ -16,6 +16,7 @@ import { mascotLook } from '../theme/mascot';
 import type { MascotCrop, MascotPose } from '../theme/mascot';
 
 const INK = '#2B1240';
+const HALO = '#FFF6E8';
 
 interface Props {
   pose?: MascotPose;
@@ -23,6 +24,8 @@ interface Props {
   crop?: MascotCrop;
   width?: DimensionValue;
   height?: DimensionValue;
+  /** Cream outline under the dark limbs so they stay visible on dark screens (default on). */
+  halo?: boolean;
 }
 
 /** The coin mascot (docs/design/Mascot.dc.html). `crop="face"` is the avatar crop. */
@@ -32,6 +35,7 @@ export function Mascot({
   crop = 'full',
   width = '100%',
   height = '100%',
+  halo = true,
 }: Props) {
   const m = mascotLook(pose, skin, crop);
   const gid = `mg${m.skinIndex}`;
@@ -52,6 +56,21 @@ export function Mascot({
         {m.full ? (
           <G>
             <Ellipse cx={100} cy={206} rx={48} ry={7} fill="#000" opacity={0.2} />
+            {halo ? (
+              <G>
+                <Path
+                  d="M86 166 L84 194 M114 166 L116 194"
+                  stroke={HALO}
+                  strokeWidth={13}
+                  strokeLinecap="round"
+                  fill="none"
+                />
+                <Ellipse cx={80} cy={198} rx={16} ry={10} fill={HALO} />
+                <Ellipse cx={120} cy={198} rx={16} ry={10} fill={HALO} />
+                <Path d={m.armL} stroke={HALO} strokeWidth={13} fill="none" strokeLinecap="round" />
+                <Path d={m.armR} stroke={HALO} strokeWidth={13} fill="none" strokeLinecap="round" />
+              </G>
+            ) : null}
             <Path
               d="M86 166 L84 194 M114 166 L116 194"
               stroke={INK}
