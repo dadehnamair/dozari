@@ -9,20 +9,19 @@ Owner (2026-09-27): "پروفایل خیلی مهمه" — treat this as a first
 - Both are **picked from a gallery, never free text**: this sidesteps profanity/impersonation
   moderation entirely (no free-text nickname to filter — normalize/profanity-filter code in
   `chat-and-access.md` still applies to chat text, not to names).
-- Customization unlocks with play count (progression hook, keeps early sessions moving toward a
-  goal): avatar gallery unlocks after `AVATAR_UNLOCK_GAMES` = 3 finished games; nickname gallery
-  unlocks after `NICKNAME_UNLOCK_GAMES` = 10 finished games. Both are config values in
-  `packages/shared/src/config/game.ts`, owner-adjustable.
+- Changing them is gated (D65, owner 2026-10-01): the profile must be **activated** (an invite code was redeemed,
+  `users.chat_unlocked_at` set) **and** the player must have reached a minimum level: `AVATAR_CHANGE_MIN_LEVEL` = 3 for
+  the avatar, `NICKNAME_CHANGE_MIN_LEVEL` = 5 for the nickname (config values in `config/game.ts`, proposed numbers).
+  Until then the random preset stays. Same gate for other cosmetic changes added later. Pure check: `canCustomise`.
 - Once unlocked, the picker stays open forever (re-picking doesn't re-lock it).
-- "Finished game" = any completed solo, duel, team, or private match (abandons don't count —
-  reuse the `abandon` result type from `matchmaking.md`).
+- Levels come from `progression.md`; the server must enforce the gate on the change endpoint (not built yet).
 
 ### As built (guest account)
 `POST /auth/guest {deviceId}` creates the account on first sight (no sign-up) and returns `{token, user}`; the same device id
 always gets the same account, concurrent first requests included. The token is an HS256 JWT (`sub` = user id, 30 days,
 `JWT_SECRET`); `GET /me` with `Authorization: Bearer <token>` returns the profile. The nickname and avatar come from the
 preset lists in `packages/shared/src/identity` (avatars = the 24 design-kit faces). A banned user gets 403 at login and
-401 everywhere else. The unlock thresholds are `AVATAR_UNLOCK_GAMES` / `NICKNAME_UNLOCK_GAMES` in `config/game.ts`.
+401 everywhere else. The change gate (`canCustomise`, `AVATAR_CHANGE_MIN_LEVEL` / `NICKNAME_CHANGE_MIN_LEVEL`) exists in shared; the change endpoint does not yet.
 
 ## Tags (badges shown next to the avatar)
 

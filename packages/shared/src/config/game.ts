@@ -38,6 +38,6 @@ export const FIRST_BLOOD_BONUS = 1;
 /** Locked-out side that stayed to the end: added to its final tally per price-guess round it won. */
 export const PRICE_GUESS_LOSER_BONUS_PER_ROUND = 1;
 
-/** Profile customisation unlocks (docs/logic/profile-and-identity.md): finished games needed. */
-export const AVATAR_UNLOCK_GAMES = 3;
-export const NICKNAME_UNLOCK_GAMES = 10;
+/** Profile customisation (docs/logic/profile-and-identity.md, D65): minimum player level; an activated profile is also required. */
+export const AVATAR_CHANGE_MIN_LEVEL = 3;
+export const NICKNAME_CHANGE_MIN_LEVEL = 5;
