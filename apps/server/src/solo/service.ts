@@ -1,6 +1,6 @@
 import { randomInt } from 'node:crypto';
-import { SOLO_MAX_MISTAKES, mulberry32, shuffleBoard, startSolo, submitGuess } from '@dozari/shared';
-import type { GroupLevel, Rng, SoloChart, SoloState, SubmitOutcome } from '@dozari/shared';
+import { SOLO_MAX_MISTAKES, mulberry32, selectRounds, shuffleBoard, staircasePoints, startSolo, submitGuess } from '@dozari/shared';
+import type { CatalogProduct, GroupLevel, PriceGuessRound, Rng, SoloChart, SoloPriceResult, SoloPriceRounds, SoloState, SubmitOutcome } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
 import type { PuzzleSource, ServedPuzzle, SoloView } from './types.js';
 
@@ -9,6 +9,9 @@ interface Session {
   state: SoloState;
   rng: Rng;
   touchedAt: number;
+  /** Drawn on first request after the game is over; holds the real prices. */
+  priceRounds?: PriceGuessRound[];
+  priceResults: SoloPriceResult[];
 }
 
 export interface GuessResult {
@@ -50,7 +53,7 @@ export class SoloService {
     const rng = mulberry32(this.newSeed());
     const state = startSolo(puzzle, rng);
     const sessionId = uuidv7();
-    const session: Session = { puzzle, state, rng, touchedAt: this.now() };
+    const session: Session = { puzzle, state, rng, touchedAt: this.now(), priceResults: [] };
     this.sessions.set(sessionId, session);
     return this.toView(sessionId, session);
   }
@@ -91,11 +94,62 @@ export class SoloService {
     };
   }
 
+  /** The bonus round's questions (no prices), drawn once the game is over; else 'in_progress'. */
+  async priceRounds(sessionId: string): Promise<SoloPriceRounds | 'in_progress' | null> {
+    const s = this.live(sessionId);
+    if (!s) return null;
+    if (s.state.status === 'playing') return 'in_progress';
+    const rounds = await this.ensureRounds(s);
+    return this.roundsView(s, rounds);
+  }
+
+  /** Scores one round. Answering a round twice returns the first result unchanged. */
+  async priceGuess(sessionId: string, level: GroupLevel, guessRials: bigint): Promise<SoloPriceResult | 'in_progress' | 'unknown_round' | null> {
+    const s = this.live(sessionId);
+    if (!s) return null;
+    if (s.state.status === 'playing') return 'in_progress';
+    const rounds = await this.ensureRounds(s);
+    const round = rounds.find((r) => r.level === level);
+    if (!round) return 'unknown_round';
+    const done = s.priceResults.find((r) => r.level === level);
+    if (done) return done;
+    const result: SoloPriceResult = {
+      level,
+      guessRials: guessRials.toString(),
+      actualRials: round.actualRials.toString(),
+      points: staircasePoints(guessRials, round.actualRials),
+    };
+    s.priceResults.push(result);
+    return result;
+  }
+
   shuffle(sessionId: string): SoloView | null {
     const s = this.live(sessionId);
     if (!s) return null;
     s.state = shuffleBoard(s.state, s.rng);
     return this.toView(sessionId, s);
+  }
+
+  private async ensureRounds(s: Session): Promise<PriceGuessRound[]> {
+    if (s.priceRounds) return s.priceRounds;
+    const ids = s.puzzle.groups.flatMap((g) => g.productIds);
+    const prices = await this.source.pricesFor(ids);
+    const catalog: CatalogProduct[] = ids.map((id) => ({ id, category: '', eraTags: [], prices: prices[id] ?? [] }));
+    s.priceRounds ??= selectRounds(s.puzzle.groups, catalog, s.rng);
+    return s.priceRounds;
+  }
+
+  private roundsView(s: Session, rounds: readonly PriceGuessRound[]): SoloPriceRounds {
+    return {
+      rounds: rounds.map((r) => ({
+        level: r.level,
+        productId: r.productId,
+        nameFa: s.puzzle.items[r.productId]?.nameFa ?? r.productId,
+        unitFa: s.puzzle.items[r.productId]?.unitFa ?? null,
+        year: r.year,
+      })),
+      results: s.priceResults,
+    };
   }
 
   private live(sessionId: string): Session | null {

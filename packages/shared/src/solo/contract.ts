@@ -66,3 +66,35 @@ export const soloChartSchema = z.object({
 });
 
 export type SoloChart = z.infer<typeof soloChartSchema>;
+
+/**
+ * Solo price-guess bonus round (docs/logic/price-guess-round.md), available once the puzzle is over.
+ * A round never carries the real price; it appears only in the result of that round's guess.
+ */
+const rialsString = z.string().regex(/^\d+$/);
+
+export const soloPriceRoundSchema = z.object({
+  level,
+  productId: z.string(),
+  nameFa: z.string(),
+  unitFa: z.string().nullable(),
+  /** Solar Hijri year the price is asked for. */
+  year: z.number().int(),
+});
+
+export const soloPriceResultSchema = z.object({
+  level,
+  guessRials: rialsString,
+  actualRials: rialsString,
+  points: z.number().int().positive(),
+});
+
+export const soloPriceRoundsSchema = z.object({
+  rounds: z.array(soloPriceRoundSchema),
+  /** Rounds already answered (in the order answered), with the revealed real price. */
+  results: z.array(soloPriceResultSchema),
+});
+
+export type SoloPriceRound = z.infer<typeof soloPriceRoundSchema>;
+export type SoloPriceResult = z.infer<typeof soloPriceResultSchema>;
+export type SoloPriceRounds = z.infer<typeof soloPriceRoundsSchema>;

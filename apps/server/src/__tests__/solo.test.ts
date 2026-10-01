@@ -154,3 +154,49 @@ describe('cors', () => {
     expect(on.headers['access-control-allow-origin']).toBe('http://x');
   });
 });
+
+describe('solo price-guess round', () => {
+  async function finished() {
+    const { solo, app } = setup();
+    const v = (await solo.start())!;
+    for (const l of [0, 1, 2]) solo.guess(v.sessionId, ids(l));
+    return { solo, app, id: v.sessionId };
+  }
+
+  it('is refused while the puzzle is still being played', async () => {
+    const { solo, app } = setup();
+    const v = (await solo.start())!;
+    expect((await app.inject({ method: 'GET', url: `/solo/${v.sessionId}/price-rounds` })).statusCode).toBe(409);
+    const r = await app.inject({ method: 'POST', url: `/solo/${v.sessionId}/price-guess`, payload: { level: 0, guessRials: '5000' } });
+    expect(r.statusCode).toBe(409);
+  });
+
+  it('serves one round per group without any real price', async () => {
+    const { app, id } = await finished();
+    const res = await app.inject({ method: 'GET', url: `/solo/${id}/price-rounds` });
+    const body = res.json() as { rounds: { level: number; productId: string; year: number }[]; results: unknown[] };
+    expect(body.rounds.map((r) => r.level)).toEqual([0, 1, 2, 3]);
+    expect(body.rounds.every((r) => r.year === 1380 && ids(r.level).includes(r.productId))).toBe(true);
+    expect(body.results).toEqual([]);
+    expect(res.body).not.toContain('actualRials');
+    expect(res.body).not.toContain('5000');
+  });
+
+  it('scores a guess, reveals the price, and keeps the first answer', async () => {
+    const { app, id } = await finished();
+    const first = await app.inject({ method: 'POST', url: `/solo/${id}/price-guess`, payload: { level: 1, guessRials: '5000' } });
+    expect(first.json()).toEqual({ level: 1, guessRials: '5000', actualRials: '5000', points: 5 });
+    const again = await app.inject({ method: 'POST', url: `/solo/${id}/price-guess`, payload: { level: 1, guessRials: '1' } });
+    expect(again.json()).toEqual(first.json());
+    const rounds = (await app.inject({ method: 'GET', url: `/solo/${id}/price-rounds` })).json() as { results: unknown[] };
+    expect(rounds.results).toHaveLength(1);
+  });
+
+  it('rejects bad input', async () => {
+    const { app, id } = await finished();
+    for (const payload of [{ level: 9, guessRials: '5' }, { level: 0, guessRials: '-5' }, { level: 0, guessRials: '0' }, { level: 0 }]) {
+      expect((await app.inject({ method: 'POST', url: `/solo/${id}/price-guess`, payload })).statusCode).toBe(400);
+    }
+    expect((await app.inject({ method: 'GET', url: `/solo/00000000-0000-7000-8000-000000000000/price-rounds` })).statusCode).toBe(404);
+  });
+});
