@@ -77,6 +77,8 @@ export const products = mysqlTable('products', {
   brand: varchar('brand', { length: 200 }),
   category: mysqlEnum('category', PRODUCT_CATEGORY_VALUES).notNull(),
   unitFa: varchar('unit_fa', { length: 100 }),
+  /** Key of the hand-drawn icon pack (`ITEM_ICON_KEYS` in shared); null = no icon yet. */
+  iconKey: varchar('icon_key', { length: 40 }),
   storyFa: text('story_fa'),
   status: mysqlEnum('status', ['in_production', 'discontinued', 'changed'])
     .notNull()
@@ -336,3 +338,112 @@ export const userDailyRewards = mysqlTable('user_daily_rewards', {
   streakDay: smallint('streak_day').notNull(),
   claimsTotal: int('claims_total').notNull().default(0),
 });
+
+/** Admin-editable overrides of the tunables in shared config (the registry lives in `config/registry.ts`). Missing key = default. */
+export const appSettings = mysqlTable('app_settings', {
+  key: varchar('key', { length: 100 }).primaryKey(),
+  value: varchar('value', { length: 500 }).notNull(),
+  updatedAt: datetime('updated_at', { mode: 'date', fsp: 3 })
+    .notNull()
+    .default(now())
+    .$onUpdate(() => new Date()),
+});
+
+/** Append-only trail of what the admin changed (settings, prices, products, users, bot decisions). */
+export const adminAuditLog = mysqlTable(
+  'admin_audit_log',
+  {
+    id: id(),
+    at: datetime('at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    action: varchar('action', { length: 60 }).notNull(),
+    target: varchar('target', { length: 200 }).notNull(),
+    detail: text('detail'),
+  },
+  (table) => ({ byTime: index('admin_audit_log_at_idx').on(table.at) }),
+);
+
+export const BOT_ADAPTERS = ['html_table', 'csv', 'text_lines'] as const;
+
+/** Where the content bot looks (docs/logic/content-bot.md). `adapter` picks a built-in parser; its options are rows of `content_source_options`. */
+export const contentSources = mysqlTable('content_sources', {
+  id: id(),
+  name: varchar('name', { length: 150 }).notNull(),
+  url: varchar('url', { length: 1000 }).notNull(),
+  adapter: mysqlEnum('adapter', BOT_ADAPTERS).notNull(),
+  /** Stored on each candidate's price point as its source type. */
+  sourceType: mysqlEnum('source_type', [
+    'archive_newspaper',
+    'official_list',
+    'receipt_photo',
+    'website',
+    'user_memory',
+    'other',
+  ])
+    .notNull()
+    .default('website'),
+  enabled: boolean('enabled').notNull().default(true),
+  /** Run again when this many hours passed since the last run. */
+  everyHours: smallint('every_hours').notNull().default(24),
+  lastRunAt: datetime('last_run_at', { mode: 'date', fsp: 3 }),
+  notes: text('notes'),
+  createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+});
+
+/** Key/value options of a source's adapter (column indexes, year column, units ...): one row per option, no JSON. */
+export const contentSourceOptions = mysqlTable(
+  'content_source_options',
+  {
+    sourceId: fk('source_id').references(() => contentSources.id, { onDelete: 'cascade' }),
+    key: varchar('key', { length: 60 }).notNull(),
+    value: varchar('value', { length: 500 }).notNull(),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.sourceId, table.key] }) }),
+);
+
+export const botRuns = mysqlTable(
+  'bot_runs',
+  {
+    id: id(),
+    sourceId: char('source_id', { length: 36 }),
+    startedAt: datetime('started_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    finishedAt: datetime('finished_at', { mode: 'date', fsp: 3 }),
+    status: mysqlEnum('status', ['running', 'ok', 'failed']).notNull().default('running'),
+    foundCount: int('found_count').notNull().default(0),
+    newCount: int('new_count').notNull().default(0),
+    errorText: text('error_text'),
+  },
+  (table) => ({ byStart: index('bot_runs_started_idx').on(table.startedAt) }),
+);
+
+/**
+ * Something the bot found that a human has to decide on. Always starts `pending`; approving it creates the price point
+ * (and the product, if it is new). The bot never writes `price_points` itself (rule: no invented approved prices).
+ */
+export const priceCandidates = mysqlTable(
+  'price_candidates',
+  {
+    id: id(),
+    runId: char('run_id', { length: 36 }),
+    sourceId: char('source_id', { length: 36 }),
+    productNameFa: varchar('product_name_fa', { length: 200 }).notNull(),
+    unitFa: varchar('unit_fa', { length: 100 }),
+    categoryGuess: mysqlEnum('category_guess', PRODUCT_CATEGORY_VALUES),
+    /** Matched catalog product, if the name is already known. */
+    productId: char('product_id', { length: 36 }),
+    year: smallint('year').notNull(),
+    month: smallint('month'),
+    priceRials: bigint('price_rials', { mode: 'bigint' }).notNull(),
+    sourceUrl: varchar('source_url', { length: 1000 }).notNull(),
+    excerpt: text('excerpt'),
+    confidence: smallint('confidence').notNull().default(2),
+    status: mysqlEnum('status', ['pending', 'approved', 'rejected']).notNull().default('pending'),
+    /** Same (name, year, month, price, url) is only stored once. */
+    dedupeKey: varchar('dedupe_key', { length: 64 }).notNull(),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    reviewedAt: datetime('reviewed_at', { mode: 'date', fsp: 3 }),
+  },
+  (table) => ({
+    dedupe: uniqueIndex('price_candidates_dedupe_idx').on(table.dedupeKey),
+    byStatus: index('price_candidates_status_idx').on(table.status, table.createdAt),
+  }),
+);

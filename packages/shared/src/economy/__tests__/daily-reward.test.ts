@@ -72,3 +72,15 @@ describe('coinsForDay / validDailySteps', () => {
     expect(ok(Array(MAX_DAILY_REWARD_DAYS + 1).fill(10))).toBe(false);
   });
 });
+
+describe('custom rules (admin settings)', () => {
+  const H = 3_600_000;
+  const steps = [10, 15, 20];
+  it('uses the given cooldown and streak window', () => {
+    const state = { lastClaimedAt: 0, streakDay: 1 };
+    const rules = { cooldownHours: 12, windowHours: 20 };
+    expect(nextDailyReward(state, steps, 11 * H, rules)).toEqual({ status: 'wait', availableAt: 12 * H });
+    expect(nextDailyReward(state, steps, 13 * H, rules)).toMatchObject({ status: 'ready', day: 2, coins: 15 });
+    expect(nextDailyReward(state, steps, 21 * H, rules)).toMatchObject({ status: 'ready', day: 1, coins: 10 });
+  });
+});

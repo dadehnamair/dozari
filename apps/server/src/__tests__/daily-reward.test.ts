@@ -31,9 +31,9 @@ function memoryStore() {
         balance: balances.get(userId) ?? 0,
       };
     },
-    async claim(userId, now, stepList): Promise<ClaimResult> {
+    async claim(userId, now, stepList, rules): Promise<ClaimResult> {
       const cur = states.get(userId) ?? { lastClaimedAt: null, streakDay: 0, claims: 0 };
-      const d = decideClaim({ lastClaimedAt: cur.lastClaimedAt, streakDay: cur.streakDay }, stepList, now);
+      const d = decideClaim({ lastClaimedAt: cur.lastClaimedAt, streakDay: cur.streakDay }, stepList, now, rules);
       if (d.kind === 'disabled') return { ok: false, error: 'DISABLED' };
       if (d.kind === 'wait') return { ok: false, error: 'TOO_EARLY', nextClaimAt: d.nextClaimAt };
       const claims = cur.claims + 1;

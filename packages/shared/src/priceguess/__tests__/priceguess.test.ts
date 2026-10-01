@@ -183,3 +183,12 @@ describe('competitive reducer', () => {
     );
   });
 });
+
+describe('custom staircase (admin settings)', () => {
+  it('uses the tiers and the floor that are passed in', () => {
+    const tiers = [{ maxErrorPct: 10, points: 9 }, { maxErrorPct: 50, points: 4 }];
+    expect(staircasePoints(105n, 100n, tiers, 2)).toBe(9);
+    expect(staircasePoints(140n, 100n, tiers, 2)).toBe(4);
+    expect(staircasePoints(400n, 100n, tiers, 2)).toBe(2);
+  });
+});

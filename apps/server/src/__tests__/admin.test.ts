@@ -62,6 +62,23 @@ describe('admin routes', () => {
     expect(res.json().products[0].prices[0].priceRials).toBe('300000');
   });
 
+  it('summarises the approved price range and flags products with too few points', async () => {
+    const pt = (id: string, year: number, month: number | null, priceRials: string, status: 'approved' | 'pending') => ({ id, year, month, priceRials, sourceType: 'other', sourceUrl: null, sourceNote: null, confidence: 1, status });
+    const repo: AdminRepository = {
+      listCatalog: async () => [
+        { id: 'a', slug: 'a', nameFa: 'الف', unitFa: null, prices: [pt('1', 1375, 6, '1000', 'approved'), pt('2', 1390, null, '40000', 'approved'), pt('3', 1380, 1, '5000', 'approved'), pt('4', 1300, null, '1', 'pending')] },
+        { id: 'b', slug: 'b', nameFa: 'ب', unitFa: null, prices: [pt('5', 1375, null, '9', 'pending')] },
+      ],
+      setPriceStatus: async () => 'ok',
+    };
+    const res = await buildServer({ admin: { repo, token: TOKEN } }).inject({ method: 'GET', url: '/admin/catalog', headers: auth });
+    const [a, b] = res.json().products;
+    expect(a.needsMorePrices).toBe(false);
+    expect(a.range).toMatchObject({ count: 3, first: { year: 1375, month: 6 }, last: { year: 1390, month: null }, min: { priceRials: '1000' }, max: { priceRials: '40000' } });
+    expect(b.range).toBeNull();
+    expect(b.needsMorePrices).toBe(true);
+  });
+
   it('changes a price status', async () => {
     const { repo, calls } = makeRepo();
     const app = buildServer({ admin: { repo, token: TOKEN } });

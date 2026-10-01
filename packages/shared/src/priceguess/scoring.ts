@@ -9,13 +9,18 @@ export const guessDistance = (guess: bigint, actual: bigint): bigint => abs(gues
  * Solo staircase: points by relative error, `|guess - actual| / actual * 100 <= maxErrorPct`,
  * evaluated in integers (no floats). Throws on a non-positive actual price.
  */
-export function staircasePoints(guess: bigint, actual: bigint): number {
+export function staircasePoints(
+  guess: bigint,
+  actual: bigint,
+  tiers: readonly { maxErrorPct: number; points: number }[] = PRICE_GUESS_STAIRCASE,
+  minPoints: number = PRICE_GUESS_MIN_POINTS,
+): number {
   if (actual <= 0n) throw new Error('staircasePoints: actual price must be positive');
   const err100 = guessDistance(guess, actual) * 100n;
-  for (const tier of PRICE_GUESS_STAIRCASE) {
+  for (const tier of tiers) {
     if (err100 <= actual * BigInt(tier.maxErrorPct)) return tier.points;
   }
-  return PRICE_GUESS_MIN_POINTS;
+  return minPoints;
 }
 
 const DIGITS: Record<string, string> = { '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4', '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9', '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4', '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9' };

@@ -190,3 +190,16 @@ human opponent is found.
 - Monetization (once decided): Bazaar/Myket IAP for coins, rewarded ads
 - Redis + horizontal scaling; seasonal leaderboards; lightweight rating for matchmaking
 - Daily shared puzzle as an additional mode
+
+
+## Ideas queue (owner, 2026-10-01)
+
+- [ ] 🛡 Profanity filter on all free text (D69): admin-editable word list, normalisation, server-side
+- [x] Price range per product (D71): `priceRange`/`priceOnDate` in shared, admin catalog shows range + flags products below the minimum number of approved points
+- [ ] 🔎 Price lookup screen «استعلام قیمت» (D70): product + year -> approved price with source, chart, «request this item»
+- [x] 🖥 Admin panel v2: sidebar SPA, dashboard, catalog + icon picker, price review, bot inbox/sources, daily reward, settings registry (`config/registry.ts`, `app_settings`), users + coin adjust, socket, audit log (`admin/ui/*`)
+- [x] 🖥 Content bot: sources (`html_table`/`csv`/`text_lines`), runs, pending-only candidates with source + excerpt, approve/reject, in-process schedule + `bot:run` CLI (`bot/*`)
+- [x] 📱 Guest login + token on device, daily reward card and coin balance on Home, item icons on board cards
+- [ ] 🔔 Admin: word-filter section (with D69)
+- [x] 🖥 Settings wired into: solo max mistakes, price-guess staircase + floor, daily reward cooldown/window (read live; a running solo game keeps the rules it started with)
+- [ ] 🖥 Settings still to wire when their consumers exist: turn seconds, match mistakes, match scoring, avatar/nickname thresholds, chart limits (stored, editable, served at `GET /config`)

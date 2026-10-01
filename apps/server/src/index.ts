@@ -16,6 +16,16 @@ import { registerAuthRoutes } from './auth/routes.js';
 import { createTokenSigner } from './auth/tokens.js';
 import { createDbAdminRepository } from './admin/db-repository.js';
 import { registerAdminRoutes } from './admin/routes.js';
+import type { AdminModules } from './admin/module-routes.js';
+import { createDbAuditLog } from './admin/audit.js';
+import { createDbProductAdmin } from './admin/products.js';
+import { createDbStatsAdmin } from './admin/stats.js';
+import { createDbUsersAdmin } from './admin/users.js';
+import { createDbBotRepository } from './bot/repository.js';
+import { BotService } from './bot/service.js';
+import { startBotScheduler } from './bot/scheduler.js';
+import { createDbSettingsStore } from './settings/db-store.js';
+import { SettingsService } from './settings/service.js';
 import type { AdminRepository } from './admin/routes.js';
 import { registerCatalogRoutes } from './catalog/routes.js';
 import { isMainModule } from './is-main.js';
@@ -34,6 +44,10 @@ export interface ServerDeps {
   dailyReward?: DailyRewardService;
   /** Socket.io service (queue, matches); needs `auth`. Its live stats feed the admin panel. */
   realtime?: boolean;
+  /** Admin-editable tunables; also served to clients at `GET /config`. */
+  settings?: SettingsService;
+  /** Extra admin panel modules (products editor, users, stats, bot, audit). */
+  adminModules?: Omit<AdminModules, 'settings'>;
   /** Solo practice sessions (`/solo/*`). */
   solo?: SoloService;
   /** Allowed browser origins (e.g. Expo web dev). `*` allows any. Off when unset: native apps don't need CORS. */
@@ -56,6 +70,10 @@ export function buildServer(deps: ServerDeps = {}) {
   }
   if (deps.auth) registerAuthRoutes(app, deps.auth);
   if (deps.auth && deps.dailyReward) registerDailyRewardRoutes(app, deps.auth, deps.dailyReward);
+  if (deps.settings) {
+    const settings = deps.settings;
+    app.get('/config', async () => ({ settings: await settings.publicValues() }));
+  }
   if (deps.catalog) registerCatalogRoutes(app, deps.catalog);
   if (deps.solo) registerSoloRoutes(app, deps.solo);
   let gateway: Gateway | undefined;
@@ -66,12 +84,28 @@ export function buildServer(deps: ServerDeps = {}) {
       await gateway?.close();
     });
   }
-  if (deps.admin) registerAdminRoutes(app, deps.admin.repo, deps.admin.token, { dailyReward: deps.dailyReward, socketStats: gateway?.stats });
+  if (deps.admin) registerAdminRoutes(app, deps.admin.repo, deps.admin.token, { dailyReward: deps.dailyReward, socketStats: gateway?.stats, settings: deps.settings, ...deps.adminModules });
   if (deps.localImagesDir) {
     void app.register(fastifyStatic, { root: resolve(deps.localImagesDir), prefix: '/images/' });
   }
 
   return app;
+}
+
+/** Live tunables for the daily reward (admin settings). */
+async function dailyRules(settings: SettingsService) {
+  return { cooldownHours: await settings.num('economy.daily_cooldown_hours'), windowHours: await settings.num('economy.daily_streak_window_hours') };
+}
+
+/** Live tunables for solo games and the price-guess staircase (admin settings). */
+async function soloRules(settings: SettingsService) {
+  const pct = await settings.list('score.staircase_error_pct');
+  const points = await settings.list('score.staircase_points');
+  return {
+    maxMistakes: await settings.num('game.solo_max_mistakes'),
+    tiers: pct.map((maxErrorPct, i) => ({ maxErrorPct, points: points[i] ?? 1 })),
+    minPoints: await settings.num('score.guess_min_points'),
+  };
 }
 
 if (isMainModule(import.meta.url)) {
@@ -80,16 +114,27 @@ if (isMainModule(import.meta.url)) {
   const jwtSecret = process.env.JWT_SECRET ?? (process.env.NODE_ENV === 'production' ? undefined : 'dev-only-secret-change-me');
   if (db && !jwtSecret) throw new Error('JWT_SECRET is required in production');
   const auth = db && jwtSecret ? new AuthService(createDbUserRepository(db), createTokenSigner(jwtSecret)) : undefined;
+  const settings = db ? new SettingsService(createDbSettingsStore(db)) : undefined;
+  const botRepo = db ? createDbBotRepository(db) : undefined;
+  const bot = botRepo ? new BotService(botRepo) : undefined;
   const app = buildServer({
     auth,
+    settings,
+    adminModules: db
+      ? { products: createDbProductAdmin(db), stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      : undefined,
     realtime: Boolean(auth),
-    dailyReward: db ? new DailyRewardService(createDbDailyRewardStore(db)) : undefined,
+    dailyReward: db && settings ? new DailyRewardService(createDbDailyRewardStore(db), Date.now, () => dailyRules(settings)) : undefined,
     catalog: db ? createDbCatalogRepository(db) : undefined,
-    solo: db ? new SoloService(createDbPuzzleSource(db)) : undefined,
+    solo: db && settings ? new SoloService(createDbPuzzleSource(db), { rules: () => soloRules(settings) }) : undefined,
     admin: db && adminToken ? { repo: createDbAdminRepository(db), token: adminToken } : undefined,
     corsOrigin: process.env.CORS_ORIGIN,
     localImagesDir: process.env.LOCAL_IMAGES_DIR,
   });
+  if (bot && settings && process.env.BOT_SCHEDULER !== 'off') {
+    const scheduler = startBotScheduler({ bot, settings, log: (msg, err) => (err ? app.log.error({ err }, msg) : app.log.info(msg)) });
+    app.addHook('onClose', async () => scheduler.stop());
+  }
   const port = Number(process.env.PORT ?? 3000);
   app.listen({ port, host: '0.0.0.0' }).catch((err) => {
     app.log.error(err);

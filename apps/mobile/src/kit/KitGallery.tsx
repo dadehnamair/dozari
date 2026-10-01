@@ -10,6 +10,7 @@ import { CandyButton } from '../components/CandyButton';
 import { EmptyState } from '../components/EmptyState';
 import { EraStamp } from '../components/EraStamp';
 import { Icon } from '../components/Icon';
+import { Item } from '../components/Item';
 import { Character } from '../components/Character';
 import { Scene, SCENES } from '../components/Scene';
 import { Mascot } from '../components/Mascot';
@@ -81,6 +82,18 @@ export function KitGallery({
           <Scene scene="alley" mood="dusk" />
         </View>
       </Section>
+      {fa.itemGroups.map((g) => (
+        <Section key={g.title} title={g.title}>
+          {g.items.map((it) => (
+            <View key={it.key} style={styles.item}>
+              <Item icon={it.key} />
+              <Text style={styles.itemLabel} numberOfLines={1}>
+                {it.name}
+              </Text>
+            </View>
+          ))}
+        </Section>
+      ))}
       <Section title="characters">
         {CHARACTERS.map((who) => (
           <View key={who} style={styles.char}>
@@ -92,6 +105,13 @@ export function KitGallery({
         {CHARACTER_POSES.map((p) => (
           <View key={p} style={styles.char}>
             <Character pose={p} />
+          </View>
+        ))}
+      </Section>
+      <Section title="dozariF poses">
+        {CHARACTER_POSES.map((p) => (
+          <View key={p} style={styles.char}>
+            <Character who="dozariF" pose={p} />
           </View>
         ))}
       </Section>
@@ -161,6 +181,8 @@ const styles = StyleSheet.create({
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'center' },
   mascot: { width: 90, height: 100 },
   daily: { width: 320 },
+  item: { width: 76, alignItems: 'center', gap: 2, backgroundColor: '#FBF1DE', borderRadius: 16, paddingTop: 8, paddingBottom: 6, paddingHorizontal: 4 },
+  itemLabel: { fontFamily: fonts.display, fontSize: 12, color: '#3A2418' },
   scene: {
     width: 120,
     height: 260,

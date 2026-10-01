@@ -1,5 +1,5 @@
 import { randomInt } from 'node:crypto';
-import { SOLO_MAX_MISTAKES, mulberry32, selectRounds, shuffleBoard, staircasePoints, startSolo, submitGuess } from '@dozari/shared';
+import { PRICE_GUESS_MIN_POINTS, PRICE_GUESS_STAIRCASE, SOLO_MAX_MISTAKES, mulberry32, selectRounds, shuffleBoard, staircasePoints, startSolo, submitGuess } from '@dozari/shared';
 import type { CatalogProduct, GroupLevel, PriceGuessRound, Rng, SoloChart, SoloPriceResult, SoloPriceRounds, SoloState, SubmitOutcome } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
 import type { PuzzleSource, ServedPuzzle, SoloView } from './types.js';
@@ -12,7 +12,17 @@ interface Session {
   /** Drawn on first request after the game is over; holds the real prices. */
   priceRounds?: PriceGuessRound[];
   priceResults: SoloPriceResult[];
+  /** Admin-tunable rules, read once when the game starts so a running game does not change under the player. */
+  rules: SoloRules;
 }
+
+export interface SoloRules {
+  maxMistakes: number;
+  tiers: readonly { maxErrorPct: number; points: number }[];
+  minPoints: number;
+}
+
+const DEFAULT_RULES: SoloRules = { maxMistakes: SOLO_MAX_MISTAKES, tiers: PRICE_GUESS_STAIRCASE, minPoints: PRICE_GUESS_MIN_POINTS };
 
 export interface GuessResult {
   outcome: SubmitOutcome;
@@ -25,6 +35,8 @@ export interface SoloServiceOptions {
   ttlMs?: number;
   now?: () => number;
   newSeed?: () => number;
+  /** Where the tunables come from (the admin settings in production); defaults to the shared constants. */
+  rules?: () => Promise<SoloRules>;
 }
 
 const DEFAULT_TTL_MS = 2 * 60 * 60 * 1000;
@@ -35,6 +47,7 @@ export class SoloService {
   private readonly ttlMs: number;
   private readonly now: () => number;
   private readonly newSeed: () => number;
+  private readonly loadRules: () => Promise<SoloRules>;
 
   constructor(
     private readonly source: PuzzleSource,
@@ -43,6 +56,7 @@ export class SoloService {
     this.ttlMs = opts.ttlMs ?? DEFAULT_TTL_MS;
     this.now = opts.now ?? Date.now;
     this.newSeed = opts.newSeed ?? (() => randomInt(0, 2 ** 31));
+    this.loadRules = opts.rules ?? (async () => DEFAULT_RULES);
   }
 
   /** Starts a session, or null when there is no puzzle to play. */
@@ -53,7 +67,7 @@ export class SoloService {
     const rng = mulberry32(this.newSeed());
     const state = startSolo(puzzle, rng);
     const sessionId = uuidv7();
-    const session: Session = { puzzle, state, rng, touchedAt: this.now(), priceResults: [] };
+    const session: Session = { puzzle, state, rng, touchedAt: this.now(), priceResults: [], rules: await this.loadRules() };
     this.sessions.set(sessionId, session);
     return this.toView(sessionId, session);
   }
@@ -66,7 +80,7 @@ export class SoloService {
   guess(sessionId: string, productIds: readonly string[]): GuessResult | null {
     const s = this.live(sessionId);
     if (!s) return null;
-    const r = submitGuess(s.state, s.puzzle, productIds);
+    const r = submitGuess(s.state, s.puzzle, productIds, s.rules.maxMistakes);
     s.state = r.state;
     return { outcome: r.outcome, solvedLevel: r.solvedLevel, view: this.toView(sessionId, s) };
   }
@@ -117,7 +131,7 @@ export class SoloService {
       level,
       guessRials: guessRials.toString(),
       actualRials: round.actualRials.toString(),
-      points: staircasePoints(guessRials, round.actualRials),
+      points: staircasePoints(guessRials, round.actualRials, s.rules.tiers, s.rules.minPoints),
     };
     s.priceResults.push(result);
     return result;
@@ -146,6 +160,7 @@ export class SoloService {
         productId: r.productId,
         nameFa: s.puzzle.items[r.productId]?.nameFa ?? r.productId,
         unitFa: s.puzzle.items[r.productId]?.unitFa ?? null,
+        iconKey: s.puzzle.items[r.productId]?.iconKey ?? null,
         year: r.year,
       })),
       results: s.priceResults,
@@ -175,7 +190,7 @@ export class SoloService {
       puzzleId: s.puzzle.id,
       cards: s.state.remaining.map((id) => {
         const item = s.puzzle.items[id];
-        return { id, nameFa: item?.nameFa ?? id, unitFa: item?.unitFa ?? null };
+        return { id, nameFa: item?.nameFa ?? id, unitFa: item?.unitFa ?? null, iconKey: item?.iconKey ?? null };
       }),
       solved: s.state.solved.map((g) => {
         const full = groupByLevel.get(g.level);
@@ -188,7 +203,7 @@ export class SoloService {
         };
       }),
       mistakes: s.state.mistakes,
-      maxMistakes: SOLO_MAX_MISTAKES,
+      maxMistakes: s.rules.maxMistakes,
       status: s.state.status,
     };
   }

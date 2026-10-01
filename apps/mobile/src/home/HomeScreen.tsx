@@ -1,16 +1,22 @@
-import { useEffect, useMemo, useRef } from 'react';
-import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 import { CandyButton } from '../components/CandyButton';
 import { SceneBackground } from '../components/SceneBackground';
 import { Character } from '../components/Character';
+import { DailyRewardCard } from '../components/DailyRewardCard';
+import { IconButton } from '../components/IconButton';
+import { Toast } from '../components/Toast';
 import { Wordmark } from '../components/Wordmark';
-import { solarMonthOf } from '@dozari/shared';
+import { useDailyReward } from '../daily/useDailyReward';
+import { solarMonthOf, toPersianDigits } from '@dozari/shared';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 
 /** Home: wordmark, the waving mascot (floating, as on the kit's splash) and the way into a solo game. */
 export function HomeScreen({ onSolo, onGallery }: { onSolo: () => void; onGallery?: () => void }) {
   const month = useMemo(() => solarMonthOf(Date.now()), []);
+  const daily = useDailyReward();
+  const [dailyOpen, setDailyOpen] = useState(false);
   const float = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     const loop = Animated.loop(
@@ -36,6 +42,19 @@ export function HomeScreen({ onSolo, onGallery }: { onSolo: () => void; onGaller
   return (
     <SceneBackground scene="bazaar">
       <View style={styles.content}>
+        <View style={styles.topBar}>
+          {daily.status ? (
+            <View style={styles.coins} accessibilityLabel={`${daily.status.balance} ${fa.daily.coins}`}>
+              <Text style={styles.coinsText}>{toPersianDigits(String(daily.status.balance))}</Text>
+              <Text style={styles.coinsUnit}>{fa.daily.coins}</Text>
+            </View>
+          ) : (
+            <View />
+          )}
+          {daily.status ? (
+            <IconButton icon="gift" label={fa.daily.open} color={colors.candy.pink} badge={daily.status.canClaim ? '!' : undefined} size={48} onPress={() => setDailyOpen(true)} />
+          ) : null}
+        </View>
         <View style={styles.top}>
           <Wordmark />
           <Text style={styles.tagline}>{fa.home.tagline}</Text>
@@ -53,6 +72,24 @@ export function HomeScreen({ onSolo, onGallery }: { onSolo: () => void; onGaller
           ) : null}
         </View>
       </View>
+      {dailyOpen && daily.status ? (
+        <Pressable style={styles.overlay} onPress={() => setDailyOpen(false)} accessibilityLabel={fa.solo.back}>
+          <Pressable style={styles.sheet} onPress={() => undefined}>
+            <DailyRewardCard
+              steps={daily.status.steps}
+              day={daily.status.day}
+              canClaim={daily.status.canClaim && !daily.claiming}
+              onClaim={daily.claim}
+              waitText={daily.countdown ? `${daily.countdown} ${fa.daily.wait}` : undefined}
+            />
+            {daily.won !== null ? (
+              <View style={styles.won}>
+                <Toast text={`${toPersianDigits(String(daily.won))} ${fa.daily.won}`} tone={colors.candy.yellow} />
+              </View>
+            ) : null}
+          </Pressable>
+        </Pressable>
+      ) : null}
     </SceneBackground>
   );
 }
@@ -65,6 +102,13 @@ const styles = StyleSheet.create({
     paddingBottom: 28,
     paddingHorizontal: 24,
   },
+  topBar: { position: 'absolute', top: 14, left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  coins: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 99, backgroundColor: 'rgba(251,241,222,0.92)', borderWidth: 3, borderColor: '#3A2418' },
+  coinsText: { fontFamily: fonts.display, fontSize: 20, color: '#3A2418' },
+  coinsUnit: { fontFamily: fonts.bold, fontSize: 12, color: '#3A2418' },
+  overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,8,32,0.55)', alignItems: 'center', justifyContent: 'center', padding: 24 },
+  sheet: { width: '100%', maxWidth: 360, backgroundColor: 'rgba(60,30,90,0.92)', borderRadius: 30, padding: 4, gap: 10 },
+  won: { alignItems: 'center', paddingBottom: 10 },
   top: { alignItems: 'center', gap: 6 },
   bottom: { alignItems: 'center', gap: 10 },
   tagline: {

@@ -35,7 +35,7 @@ describe('SoloService redaction', () => {
     expect(json).not.toContain('عنوان');
     expect(json).not.toContain('توضیح');
     expect(view).not.toHaveProperty('groups');
-    expect(Object.keys(view.cards[0]!).sort()).toEqual(['id', 'nameFa', 'unitFa']);
+    expect(Object.keys(view.cards[0]!).sort()).toEqual(['iconKey', 'id', 'nameFa', 'unitFa']);
   });
 
   it('reveals a group title only once it is solved', async () => {
@@ -198,5 +198,16 @@ describe('solo price-guess round', () => {
       expect((await app.inject({ method: 'POST', url: `/solo/${id}/price-guess`, payload })).statusCode).toBe(400);
     }
     expect((await app.inject({ method: 'GET', url: `/solo/00000000-0000-7000-8000-000000000000/price-rounds` })).statusCode).toBe(404);
+  });
+});
+
+describe('admin-tunable rules', () => {
+  it('ends the game after the configured number of mistakes and reports it to the client', async () => {
+    const solo = new SoloService({ pickRandom: async () => puzzle, pricesFor: prices }, { newSeed: () => 7, rules: async () => ({ maxMistakes: 2, tiers: [{ maxErrorPct: 10, points: 7 }], minPoints: 2 }) });
+    const view = (await solo.start())!;
+    expect(view.maxMistakes).toBe(2);
+    const mix = (i: number) => [ids(0)[i]!, ids(1)[i]!, ids(2)[i]!, ids(3)[i]!];
+    expect(solo.guess(view.sessionId, mix(0))?.view.status).toBe('playing');
+    expect(solo.guess(view.sessionId, mix(1))?.view.status).toBe('lost');
   });
 });

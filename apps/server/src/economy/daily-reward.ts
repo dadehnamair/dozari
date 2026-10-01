@@ -1,5 +1,5 @@
-import { DAILY_REWARD_COOLDOWN_HOURS, DEFAULT_DAILY_REWARD_STEPS, MAX_DAILY_REWARD_COINS, MAX_DAILY_REWARD_DAYS, afterClaim, coinsForDay, nextDailyReward, validDailySteps } from '@dozari/shared';
-import type { DailyRewardState } from '@dozari/shared';
+import { DEFAULT_DAILY_REWARD_STEPS, DEFAULT_DAILY_RULES, MAX_DAILY_REWARD_COINS, MAX_DAILY_REWARD_DAYS, afterClaim, coinsForDay, nextDailyReward, validDailySteps } from '@dozari/shared';
+import type { DailyRewardState, DailyRules } from '@dozari/shared';
 
 /** What the app shows on the daily reward card. */
 export interface DailyRewardStatus {
@@ -29,13 +29,15 @@ export interface DailyRewardStore {
    * Atomically (one transaction, row locked): re-read the player's state, ask `decide`, and when it says `ready` record the
    * claim and credit the coins through the ledger. Returns what happened.
    */
-  claim(userId: string, now: number, steps: number[]): Promise<ClaimResult>;
+  claim(userId: string, now: number, steps: number[], rules: DailyRules): Promise<ClaimResult>;
 }
 
 export class DailyRewardService {
   constructor(
     private readonly store: DailyRewardStore,
     private readonly now: () => number = Date.now,
+    /** Cooldown and streak window; the admin panel's settings in production. */
+    private readonly rules: () => Promise<DailyRules> = async () => DEFAULT_DAILY_RULES,
   ) {}
 
   async steps(): Promise<number[]> {
@@ -44,7 +46,7 @@ export class DailyRewardService {
 
   async status(userId: string): Promise<DailyRewardStatus> {
     const [steps, { state, balance }] = await Promise.all([this.steps(), this.store.getState(userId)]);
-    const d = nextDailyReward(state, steps, this.now());
+    const d = nextDailyReward(state, steps, this.now(), await this.rules());
     if (d.status === 'disabled') return { canClaim: false, day: 1, coins: 0, nextClaimAt: null, steps, balance };
     if (d.status === 'wait') {
       // The day it will be when the cooldown ends: the streak continues (the window is wider than the cooldown).
@@ -55,7 +57,7 @@ export class DailyRewardService {
   }
 
   async claim(userId: string): Promise<ClaimResult> {
-    return this.store.claim(userId, this.now(), await this.steps());
+    return this.store.claim(userId, this.now(), await this.steps(), await this.rules());
   }
 
   /** Admin: replace the day-by-day amounts. Returns false when the list is not acceptable. */
@@ -67,10 +69,10 @@ export class DailyRewardService {
 }
 
 /** Shared decision used by every store implementation, so the rule exists once. */
-export function decideClaim(state: DailyRewardState, steps: number[], now: number) {
-  const d = nextDailyReward(state, steps, now);
+export function decideClaim(state: DailyRewardState, steps: number[], now: number, rules: DailyRules = DEFAULT_DAILY_RULES) {
+  const d = nextDailyReward(state, steps, now, rules);
   if (d.status === 'ready') {
-    return { kind: 'ready' as const, day: d.day, coins: d.coins, next: afterClaim(d.day, now), nextClaimAt: now + DAILY_REWARD_COOLDOWN_HOURS * 3_600_000 };
+    return { kind: 'ready' as const, day: d.day, coins: d.coins, next: afterClaim(d.day, now), nextClaimAt: now + rules.cooldownHours * 3_600_000 };
   }
   return d.status === 'wait' ? { kind: 'wait' as const, nextClaimAt: d.availableAt } : { kind: 'disabled' as const };
 }
