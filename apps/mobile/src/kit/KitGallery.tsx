@@ -31,12 +31,23 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 /** Dev-only page that shows every asset of the design kit that is implemented. */
-export function KitGallery({ onBack, onSearch }: { onBack: () => void; onSearch: () => void }) {
+export function KitGallery({
+  onBack,
+  onSearch,
+  onBrand,
+}: {
+  onBack: () => void;
+  onSearch: () => void;
+  onBrand?: () => void;
+}) {
   return (
     <ScrollView contentContainerStyle={styles.screen}>
       <View style={styles.wrap}>
         <CandyButton label={fa.solo.back} color={colors.candy.sky} onPress={onBack} />
         <CandyButton label={fa.kit.search.title} color={colors.candy.pink} onPress={onSearch} />
+        {onBrand ? (
+          <CandyButton label={fa.kit.brand} color={colors.candy.yellow} onPress={onBrand} />
+        ) : null}
       </View>
       <Section title="backgrounds">
         {SCENES.map((n) => (

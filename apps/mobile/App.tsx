@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Lalezar_400Regular } from '@expo-google-fonts/lalezar';
 import { useFonts, Vazirmatn_400Regular, Vazirmatn_700Bold } from '@expo-google-fonts/vazirmatn';
 import { HomeScreen } from './src/home/HomeScreen';
+import { BrandScreen } from './src/brand/BrandScreen';
 import { KitGallery } from './src/kit/KitGallery';
 import { SearchScreen } from './src/search/SearchScreen';
 import { SplashScreen } from './src/splash/SplashScreen';
@@ -22,7 +23,9 @@ export default function App() {
   const [fontsLoaded] = useFonts({ Vazirmatn_400Regular, Vazirmatn_700Bold, Lalezar_400Regular });
 
   // Minimal navigation until a real router lands with the hub screen (docs/logic/app-screens.md).
-  const [screen, setScreen] = useState<'splash' | 'home' | 'solo' | 'gallery' | 'search'>('splash');
+  const [screen, setScreen] = useState<'splash' | 'home' | 'solo' | 'gallery' | 'search' | 'brand'>(
+    'splash',
+  );
 
   useEffect(() => {
     if (!fontsLoaded || screen !== 'splash') return;
@@ -43,9 +46,21 @@ export default function App() {
       <StatusBar style="light" />
       {screen === 'splash' ? <SplashScreen /> : null}
       {screen === 'solo' ? <SoloScreen onBack={() => setScreen('home')} /> : null}
-      {screen === 'gallery' ? <KitGallery onBack={() => setScreen('home')} onSearch={() => setScreen('search')} /> : null}
+      {screen === 'gallery' ? (
+        <KitGallery
+          onBack={() => setScreen('home')}
+          onSearch={() => setScreen('search')}
+          onBrand={() => setScreen('brand')}
+        />
+      ) : null}
+      {screen === 'brand' ? <BrandScreen onBack={() => setScreen('gallery')} /> : null}
       {screen === 'search' ? <SearchScreen onCancel={() => setScreen('gallery')} /> : null}
-      {screen === 'home' ? <HomeScreen onSolo={() => setScreen('solo')} onGallery={__DEV__ ? () => setScreen('gallery') : undefined} /> : null}
+      {screen === 'home' ? (
+        <HomeScreen
+          onSolo={() => setScreen('solo')}
+          onGallery={__DEV__ ? () => setScreen('gallery') : undefined}
+        />
+      ) : null}
     </View>
   );
 }

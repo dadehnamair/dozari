@@ -10,7 +10,8 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings=0",
-    "test": "vitest run"
+    "test": "vitest run",
+    "brand:export": "node scripts/export-brand.mjs"
   },
   "dependencies": {
     "@dozari/shared": "workspace:*",
@@ -30,6 +31,7 @@
   "devDependencies": {
     "@types/react": "^19.2.18",
     "babel-preset-expo": "^57.0.13",
+    "playwright-core": "^1.63.0",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
   }
