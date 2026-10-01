@@ -42,3 +42,27 @@ export type SoloCard = z.infer<typeof soloCardSchema>;
 export type SoloSolvedGroup = z.infer<typeof soloSolvedGroupSchema>;
 export type SoloView = z.infer<typeof soloViewSchema>;
 export type SoloGuessResult = z.infer<typeof soloGuessResultSchema>;
+
+/**
+ * Price history shown on the result screen. Only served once the game is over (never while playing,
+ * because the groups' contents would leak the solution). Prices are integer rials as decimal strings.
+ */
+export const soloChartSchema = z.object({
+  groups: z.array(
+    z.object({
+      level,
+      titleFa: z.string(),
+      /** Year the group's rule refers to (drawn as a dashed marker), if any. */
+      ruleYear: z.number().int().optional(),
+      items: z.array(
+        z.object({
+          productId: z.string(),
+          nameFa: z.string(),
+          points: z.array(z.object({ year: z.number().int(), month: z.number().int().nullable(), priceRials: z.string().regex(/^\d+$/) })),
+        }),
+      ),
+    }),
+  ),
+});
+
+export type SoloChart = z.infer<typeof soloChartSchema>;

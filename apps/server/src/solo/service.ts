@@ -1,6 +1,6 @@
 import { randomInt } from 'node:crypto';
 import { SOLO_MAX_MISTAKES, mulberry32, shuffleBoard, startSolo, submitGuess } from '@dozari/shared';
-import type { GroupLevel, Rng, SoloState, SubmitOutcome } from '@dozari/shared';
+import type { GroupLevel, Rng, SoloChart, SoloState, SubmitOutcome } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
 import type { PuzzleSource, ServedPuzzle, SoloView } from './types.js';
 
@@ -66,6 +66,29 @@ export class SoloService {
     const r = submitGuess(s.state, s.puzzle, productIds);
     s.state = r.state;
     return { outcome: r.outcome, solvedLevel: r.solvedLevel, view: this.toView(sessionId, s) };
+  }
+
+  /** Price history of all four groups; only once the game is over, else null (it would reveal the groups). */
+  async chart(sessionId: string): Promise<SoloChart | 'in_progress' | null> {
+    const s = this.live(sessionId);
+    if (!s) return null;
+    if (s.state.status === 'playing') return 'in_progress';
+    const ids = s.puzzle.groups.flatMap((g) => g.productIds);
+    const prices = await this.source.pricesFor(ids);
+    return {
+      groups: [...s.puzzle.groups]
+        .sort((a, b) => a.level - b.level)
+        .map((g) => ({
+          level: g.level,
+          titleFa: g.titleFa,
+          ruleYear: g.ruleYear,
+          items: g.productIds.map((id) => ({
+            productId: id,
+            nameFa: s.puzzle.items[id]?.nameFa ?? id,
+            points: (prices[id] ?? []).map((p) => ({ year: p.year, month: p.month, priceRials: p.priceRials.toString() })),
+          })),
+        })),
+    };
   }
 
   shuffle(sessionId: string): SoloView | null {

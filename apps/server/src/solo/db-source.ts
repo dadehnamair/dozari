@@ -1,12 +1,23 @@
-import { asc, eq, inArray, products, puzzleGroupItems, puzzleGroups, puzzles, sql } from '@dozari/db';
+import { and, asc, eq, inArray, pricePoints, products, puzzleGroupItems, puzzleGroups, puzzles, sql } from '@dozari/db';
 import type { Db } from '@dozari/db';
 import { GROUP_COUNT, GROUP_SIZE } from '@dozari/shared';
 import type { GroupLevel } from '@dozari/shared';
-import type { PuzzleSource, ServedPuzzle } from './types.js';
+import type { PricePointRow, PuzzleSource, ServedPuzzle } from './types.js';
 
 /** Serves a random `approved` puzzle with its groups and card texts. */
 export function createDbPuzzleSource(db: Db): PuzzleSource {
   return {
+    async pricesFor(productIds) {
+      if (productIds.length === 0) return {};
+      const rows = await db
+        .select({ productId: pricePoints.productId, year: pricePoints.year, month: pricePoints.month, priceRials: pricePoints.priceRials })
+        .from(pricePoints)
+        .where(and(inArray(pricePoints.productId, [...productIds]), eq(pricePoints.status, 'approved')))
+        .orderBy(asc(pricePoints.year), asc(pricePoints.month));
+      const out: Record<string, PricePointRow[]> = {};
+      for (const r of rows) (out[r.productId] ??= []).push({ year: r.year, month: r.month, priceRials: r.priceRials });
+      return out;
+    },
     async pickRandom() {
       const [puzzle] = await db
         .select({ id: puzzles.id })
@@ -40,6 +51,7 @@ export function createDbPuzzleSource(db: Db): PuzzleSource {
           productIds: items.filter((i) => i.groupId === g.id).map((i) => i.productId),
           titleFa: g.titleFa ?? '',
           explanationFa: g.explanationFa ?? '',
+          ruleYear: g.ruleYear ?? undefined,
         })),
         items: Object.fromEntries(productRows.map((p) => [p.id, { nameFa: p.nameFa, unitFa: p.unitFa }])),
       };

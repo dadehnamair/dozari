@@ -83,7 +83,7 @@ browser — both need the owner's own machine (see Phase 0-A).
 ## Phase 3 — Result chart & share
 
 - [x] 🧩 Chart data builder: union of years, per-product series, gaps (`logic/result-chart.md`) — `buildChartData`, `normalizeX/Y`, `compactTomanLabel` in shared
-- [ ] 📱 Overlaid line chart (4 lines, one per item of a chosen group, or 16 thin lines + highlight)
+- [x] 📱 Overlaid line chart (4 lines, one per item of a chosen group, or 16 thin lines + highlight) — `ChartView`/`ChartPanel` (react-native-svg), colour tabs per group, log/linear toggle; shown on the solo result screen
 - [ ] 📱 Share card render (view-shot) with branding + deep link; `expo-sharing`
 - [x] 🧪 Snapshot test of chart data builder
 

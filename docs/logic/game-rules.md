@@ -39,6 +39,9 @@ Served by `apps/server/src/solo/` (practice, no coins): `POST /solo/start` (503 
 The client only ever receives `SoloView`: card ids + `name_fa`/`unit_fa` (no prices), solved groups with
 their title/explanation (flagged `revealed` when shown by the game), mistakes, status. Unsolved groups'
 membership and texts never leave the server.
+`GET /solo/:id/chart` returns the price history of all four groups, but only once the game is over
+(409 `game_in_progress` otherwise, since it would reveal the groups); the result screen draws it with
+`buildChartData`.
 
 ## Competitive: shared board, alternating turns (Decision D8 — **accepted**, confirmed 2026-09-27)
 

@@ -17,7 +17,10 @@ const puzzle: ServedPuzzle = {
 };
 const ids = (level: number) => puzzle.groups[level]!.productIds as string[];
 
-function setup(src: PuzzleSource = { pickRandom: async () => puzzle }, now = () => 1_000) {
+const prices: PuzzleSource['pricesFor'] = async (ids) =>
+  Object.fromEntries(ids.map((id) => [id, [{ year: 1375, month: null, priceRials: 1000n }, { year: 1380, month: null, priceRials: 5000n }]]));
+
+function setup(src: PuzzleSource = { pickRandom: async () => puzzle, pricesFor: prices }, now = () => 1_000) {
   const solo = new SoloService(src, { now, newSeed: () => 7, ttlMs: 10_000 });
   return { solo, app: buildServer({ solo }) };
 }
@@ -98,7 +101,7 @@ describe('solo routes', () => {
   });
 
   it('503 without puzzles, 400 on bad input, 404 on unknown session', async () => {
-    const empty = setup({ pickRandom: async () => null });
+    const empty = setup({ pickRandom: async () => null, pricesFor: prices });
     expect((await empty.app.inject({ method: 'POST', url: '/solo/start' })).statusCode).toBe(503);
     const { app } = setup();
     const unknown = '0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b';
@@ -106,6 +109,30 @@ describe('solo routes', () => {
     expect((await app.inject({ method: 'GET', url: `/solo/${unknown}` })).statusCode).toBe(404);
     expect((await app.inject({ method: 'POST', url: `/solo/${unknown}/guess`, payload: { productIds: ['a'] } })).statusCode).toBe(400);
     expect((await app.inject({ method: 'POST', url: `/solo/${unknown}/guess`, payload: { productIds: ['a', 'b', 'c', 'd'] } })).statusCode).toBe(404);
+  });
+});
+
+describe('chart endpoint', () => {
+  it('refuses while playing (would reveal the groups) and serves once the game is over', async () => {
+    const { solo, app } = setup();
+    const v = (await solo.start())!;
+    const early = await app.inject({ method: 'GET', url: `/solo/${v.sessionId}/chart` });
+    expect(early.statusCode).toBe(409);
+    for (const l of [0, 1, 2]) solo.guess(v.sessionId, ids(l));
+    const done = await app.inject({ method: 'GET', url: `/solo/${v.sessionId}/chart` });
+    expect(done.statusCode).toBe(200);
+    const body = done.json();
+    expect(body.groups).toHaveLength(4);
+    expect(body.groups[0].items).toHaveLength(4);
+    expect(body.groups[0].items[0].points[0]).toEqual({ year: 1375, month: null, priceRials: '1000' });
+    const { soloChartSchema } = await import('@dozari/shared');
+    expect(soloChartSchema.safeParse(body).success).toBe(true);
+  });
+
+  it('404 for an unknown session', async () => {
+    const { app } = setup();
+    const unknown = await app.inject({ method: 'GET', url: '/solo/0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b/chart' });
+    expect(unknown.statusCode).toBe(404);
   });
 });
 

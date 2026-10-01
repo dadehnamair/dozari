@@ -31,6 +31,15 @@ export function registerSoloRoutes(app: FastifyInstance, solo: SoloService) {
     return result;
   });
 
+  app.get('/solo/:id/chart', async (req, reply) => {
+    const params = paramsSchema.safeParse(req.params);
+    if (!params.success) return reply.code(400).send({ error: 'invalid_id' });
+    const chart = await solo.chart(params.data.id);
+    if (chart === null) return reply.code(404).send({ error: 'session_not_found' });
+    if (chart === 'in_progress') return reply.code(409).send({ error: 'game_in_progress' });
+    return chart;
+  });
+
   app.post('/solo/:id/shuffle', async (req, reply) => {
     const params = paramsSchema.safeParse(req.params);
     if (!params.success) return reply.code(400).send({ error: 'invalid_id' });
