@@ -33,6 +33,13 @@ set (any order) is `duplicate` and free; anything that is not 4 distinct cards o
 `won`; at the 4th mistake the rest are revealed and the game is `lost`. The initial board never lays
 out a row as a whole group. The reducer needs the solution, so it runs server-side (rule 4).
 
+Served by `apps/server/src/solo/` (practice, no coins): `POST /solo/start` (503 `no_puzzles` when no
+`approved` puzzle exists), `GET /solo/:id`, `POST /solo/:id/guess {productIds[4]}`,
+`POST /solo/:id/shuffle`. Sessions live in memory (2 h idle TTL) until solo results are persisted.
+The client only ever receives `SoloView`: card ids + `name_fa`/`unit_fa` (no prices), solved groups with
+their title/explanation (flagged `revealed` when shown by the game), mistakes, status. Unsolved groups'
+membership and texts never leave the server.
+
 ## Competitive: shared board, alternating turns (Decision D8 — **accepted**, confirmed 2026-09-27)
 
 One board, both sides play it in turns.

@@ -16,6 +16,7 @@
     "@dozari/shared": "workspace:*",
     "@fastify/static": "^8.3.0",
     "fastify": "^5.1.0",
+    "uuidv7": "^1.2.1",
     "zod": "^3.25.76"
   },
   "devDependencies": {
