@@ -93,7 +93,7 @@ browser — both need the owner's own machine (see Phase 0-A).
 
 - [x] 🧩 Round item selection (1 random item/group) + solo staircase scorer — `selectRounds`, `staircasePoints`, `parseTomanInput` in shared
 - [x] 🧩 Competitive blind-simultaneous-guess reducer (4 rounds, reuses turn timer) — `applyPriceGuessCommand`, `priceGuessClientView` in shared (the timer itself is the server's `timeout` command)
-- [ ] 📱 Solo price-guess UI (numeric input, staircase feedback)
+- [x] 📱 Solo price-guess UI (numeric input, staircase feedback) — `PriceRoundPanel` + `GET /solo/:id/price-rounds`, `POST /solo/:id/price-guess`; runs after the puzzle, before the chart
 - [ ] 📱 Competitive price-guess UI (hidden entry, simultaneous reveal animation)
 - [~] 🧪 Scoring tests (staircase tiers, tie-on-distance draw done; the locked-out-side match rule waits for the match reducer)
 

@@ -1,5 +1,5 @@
-import { soloChartSchema, soloGuessResultSchema, soloViewSchema } from '@dozari/shared';
-import type { SoloChart, SoloGuessResult, SoloView } from '@dozari/shared';
+import { soloChartSchema, soloGuessResultSchema, soloPriceResultSchema, soloPriceRoundsSchema, soloViewSchema } from '@dozari/shared';
+import type { SoloChart, SoloGuessResult, SoloPriceResult, SoloPriceRounds, SoloView } from '@dozari/shared';
 
 export const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
 
@@ -36,3 +36,9 @@ export const shuffleSolo = async (sessionId: string): Promise<SoloView> =>
 
 export const fetchSoloChart = async (sessionId: string): Promise<SoloChart> =>
   soloChartSchema.parse(await call(`/solo/${sessionId}/chart`, 'GET'));
+
+export const fetchPriceRounds = async (sessionId: string): Promise<SoloPriceRounds> =>
+  soloPriceRoundsSchema.parse(await call(`/solo/${sessionId}/price-rounds`, 'GET'));
+
+export const guessPrice = async (sessionId: string, level: number, guessRials: bigint): Promise<SoloPriceResult> =>
+  soloPriceResultSchema.parse(await call(`/solo/${sessionId}/price-guess`, 'POST', { level, guessRials: guessRials.toString() }));

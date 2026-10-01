@@ -5,6 +5,7 @@ import { Board } from '../components/Board';
 import { CandyButton } from '../components/CandyButton';
 import { ChartPanel } from '../components/ChartPanel';
 import { MistakeDots } from '../components/MistakeDots';
+import { PriceRoundPanel } from '../components/PriceRoundPanel';
 import { fa } from '../i18n/fa';
 import { colors } from '../theme/colors';
 import { BASE_URL, guessSolo, shuffleSolo, startSolo } from './api';
@@ -22,6 +23,7 @@ export function SoloScreen({ onBack }: { onBack: () => void }) {
   const [names, setNames] = useState<Record<string, string>>({});
   const [feedback, setFeedback] = useState<FeedbackKey | null>(null);
   const [busy, setBusy] = useState(false);
+  const [priceDone, setPriceDone] = useState(false);
   const feedbackTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const adopt = useCallback((view: SoloView) => {
@@ -46,6 +48,7 @@ export function SoloScreen({ onBack }: { onBack: () => void }) {
     setPhase({ kind: 'loading' });
     setSelected([]);
     setNames({});
+    setPriceDone(false);
     flash(null);
     try {
       adopt(await startSolo());
@@ -125,11 +128,17 @@ export function SoloScreen({ onBack }: { onBack: () => void }) {
       ) : (
         <View style={styles.end}>
           <Text style={styles.msg}>{view.status === 'won' ? fa.solo.won : fa.solo.lost}</Text>
-          <ChartPanel sessionId={view.sessionId} />
-          <View style={styles.actions}>
-            <CandyButton label={fa.solo.newGame} color={colors.candy.yellow} onPress={() => void begin()} />
-            <CandyButton label={fa.solo.back} color={colors.candy.sky} onPress={onBack} />
-          </View>
+          {priceDone ? (
+            <>
+              <ChartPanel sessionId={view.sessionId} />
+              <View style={styles.actions}>
+                <CandyButton label={fa.solo.newGame} color={colors.candy.yellow} onPress={() => void begin()} />
+                <CandyButton label={fa.solo.back} color={colors.candy.sky} onPress={onBack} />
+              </View>
+            </>
+          ) : (
+            <PriceRoundPanel sessionId={view.sessionId} onDone={() => setPriceDone(true)} />
+          )}
         </View>
       )}
     </ScrollView>
