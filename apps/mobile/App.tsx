@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ActivityIndicator, I18nManager, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { Lalezar_400Regular } from '@expo-google-fonts/lalezar';
 import { useFonts, Vazirmatn_400Regular, Vazirmatn_700Bold } from '@expo-google-fonts/vazirmatn';
 import { CandyButton } from './src/components/CandyButton';
 import { fa } from './src/i18n/fa';
@@ -15,7 +16,7 @@ if (!I18nManager.isRTL) {
 }
 
 export default function App() {
-  const [fontsLoaded] = useFonts({ Vazirmatn_400Regular, Vazirmatn_700Bold });
+  const [fontsLoaded] = useFonts({ Vazirmatn_400Regular, Vazirmatn_700Bold, Lalezar_400Regular });
 
   // Minimal navigation until a real router lands with the hub screen (docs/logic/app-screens.md).
   const [screen, setScreen] = useState<'home' | 'solo'>('home');
@@ -53,8 +54,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   title: {
-    fontFamily: 'Vazirmatn_700Bold',
-    fontSize: 32,
+    fontFamily: 'Lalezar_400Regular',
+    fontSize: 56,
     color: '#FFF6E8',
   },
   tagline: {

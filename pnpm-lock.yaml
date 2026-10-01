@@ -32,6 +32,9 @@ importers:
       '@dozari/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@expo-google-fonts/lalezar':
+        specifier: ^0.4.1
+        version: 0.4.1
       '@expo-google-fonts/vazirmatn':
         specifier: ^0.4.1
         version: 0.4.1
@@ -1129,6 +1132,9 @@ packages:
   '@eslint/plugin-kit@0.4.1':
     resolution: {integrity: sha512-43/qtrDUokr7LJqoF2c3+RInu/t4zfrpYdoSDfYyhg52rwLV6TnOvdG4fXm7IkSB3wErkcmJS9iEhjVtOSEjjA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
+  '@expo-google-fonts/lalezar@0.4.1':
+    resolution: {integrity: sha512-1bSXcPR+lO+BB8k2Zuz3oPWAmt4TXRyhNsEwnBTvzPqijqaZ6fPJwpWNbkBd9uMWaStF0yLt/q6WT1RJajdYiw==}
 
   '@expo-google-fonts/vazirmatn@0.4.1':
     resolution: {integrity: sha512-sznMvxt99C4bsEcWCebs3XWb/av8z9a/Y4OQo8F7VPFT0xzzn7Whkkw6dqxcAyLYEiNNpTpa3/vp8t1/koK6Jw==}
@@ -4826,6 +4832,8 @@ snapshots:
     dependencies:
       '@eslint/core': 0.17.0
       levn: 0.4.1
+
+  '@expo-google-fonts/lalezar@0.4.1': {}
 
   '@expo-google-fonts/vazirmatn@0.4.1': {}
 
