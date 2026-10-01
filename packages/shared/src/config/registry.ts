@@ -21,7 +21,7 @@ import { CHART_GAP_BREAK_YEARS, CHART_MIN_YEAR } from './chart.js';
  * Every tunable the admin panel can change. The defaults come from the constants in `config/*.ts` (CLAUDE.md rule 9);
  * an override is a row in `app_settings`. Values are integers or short lists of integers (stored as "1,2,3,4", no JSON).
  */
-export const SETTING_GROUPS = ['app', 'gameplay', 'scoring', 'profile', 'economy', 'chart', 'bot', 'notify'] as const;
+export const SETTING_GROUPS = ['app', 'gameplay', 'scoring', 'profile', 'economy', 'chart', 'bot', 'notify', 'review'] as const;
 export type SettingGroup = (typeof SETTING_GROUPS)[number];
 
 export interface SettingDef {
@@ -49,6 +49,19 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'feature.friends', group: 'app', label: 'دوستان و پروفایل بازیکن‌ها روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'feature.inbox', group: 'app', label: 'صندوق پیام داخل اپ روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'feature.bale', group: 'app', label: 'اتصال به بله روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'review.enabled', group: 'review', label: 'درخواست نظر در فروشگاه روشن باشد', hint: 'پیش‌فرض خاموش؛ بعد از پر کردن لینک فروشگاه‌ها روشنش کن', kind: 'bool', min: 0, max: 1, default: 0 },
+  { key: 'review.after_days', group: 'review', label: 'اولین بار بعد از چند روز از نصب', kind: 'int', min: 0, max: 365, default: 3, unit: 'روز' },
+  { key: 'review.after_games', group: 'review', label: 'و بعد از چند بازی تمام‌شده', kind: 'int', min: 0, max: 500, default: 3 },
+  { key: 'review.repeat_days', group: 'review', label: 'هر چند روز یک بار دوباره بپرسد (اگر «بعداً» زد)', kind: 'int', min: 1, max: 365, default: 30, unit: 'روز' },
+  { key: 'review.max_prompts', group: 'review', label: 'حداکثر چند بار از هر بازیکن بپرسد', kind: 'int', min: 1, max: 20, default: 3 },
+  { key: 'review.myket', group: 'review', label: 'برای نسخه‌ی مایکت روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'review.bazaar', group: 'review', label: 'برای نسخه‌ی بازار روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'review.bale', group: 'review', label: 'برای نسخه‌ی بله روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'review.package_id', group: 'review', label: 'شناسه‌ی بسته‌ی اپ (package)', kind: 'text', min: 0, max: 100, default: 'ir.dozari.app' },
+  { key: 'review.url_myket', group: 'review', label: 'لینک صفحه‌ی مایکت', hint: 'خالی = از روی شناسه‌ی بسته ساخته می‌شود (myket.ir/app/…)', kind: 'text', min: 0, max: 300, default: '' },
+  { key: 'review.url_bazaar', group: 'review', label: 'لینک صفحه‌ی بازار', hint: 'خالی = از روی شناسه‌ی بسته ساخته می‌شود (cafebazaar.ir/app/…)', kind: 'text', min: 0, max: 300, default: '' },
+  { key: 'review.url_bale', group: 'review', label: 'لینک صفحه‌ی اپ در بله', hint: 'باید خودت پر کنی؛ حدس نمی‌زنیم', kind: 'text', min: 0, max: 300, default: '' },
+  { key: 'review.message', group: 'review', label: 'متن درخواست', kind: 'text', min: 0, max: 200, default: 'اگه از دوزاری خوشت اومده، یه نظر برامون بذار ❤️' },
   { key: 'game.solo_max_mistakes', group: 'gameplay', label: 'اشتباه مجاز در بازی تکی', kind: 'int', min: 1, max: 10, default: SOLO_MAX_MISTAKES },
   { key: 'game.match_max_mistakes', group: 'gameplay', label: 'اشتباه مجاز هر بازیکن در دوئل', kind: 'int', min: 1, max: 10, default: MATCH_MAX_MISTAKES },
   { key: 'game.turn_seconds', group: 'gameplay', label: 'زمان هر نوبت', kind: 'int', min: 10, max: 180, default: TURN_SECONDS, unit: 'ثانیه' },

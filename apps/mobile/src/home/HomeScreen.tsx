@@ -9,6 +9,8 @@ import { ProfileSheet } from '../social/ProfileSheet';
 import { fetchMyProfile } from '../social/api';
 import { heroFor } from '../social/heroFor';
 import type { Gender } from '@dozari/shared';
+import { ReviewSheet } from '../review/ReviewSheet';
+import { useReviewPrompt } from '../review/useReviewPrompt';
 import { OPEN_CONFIG } from '../config/gate';
 import type { ClientConfig } from '../config/gate';
 import { InboxSheet } from '../inbox/InboxSheet';
@@ -22,7 +24,7 @@ import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 
 /** Home: wordmark, the waving mascot (floating, as on the kit's splash) and the way into a solo game. */
-export function HomeScreen({ onSolo, onLookup, onGallery, features = OPEN_CONFIG.features }: { onSolo: () => void; onLookup: () => void; onGallery?: () => void; features?: ClientConfig['features'] }) {
+export function HomeScreen({ onSolo, onLookup, onGallery, features = OPEN_CONFIG.features, settings = OPEN_CONFIG.raw }: { onSolo: () => void; onLookup: () => void; onGallery?: () => void; features?: ClientConfig['features']; settings?: ClientConfig['raw'] }) {
   const month = useMemo(() => solarMonthOf(Date.now()), []);
   const daily = useDailyReward();
   const [dailyOpen, setDailyOpen] = useState(false);
@@ -34,6 +36,7 @@ export function HomeScreen({ onSolo, onLookup, onGallery, features = OPEN_CONFIG
     fetchMyProfile().then((p) => setGender(p.gender), () => undefined);
   }, []);
   const inbox = useInbox();
+  const review = useReviewPrompt(settings);
   const float = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     const loop = Animated.loop(
@@ -113,6 +116,7 @@ export function HomeScreen({ onSolo, onLookup, onGallery, features = OPEN_CONFIG
           </Pressable>
         </Pressable>
       ) : null}
+      {review.open && review.url ? <ReviewSheet message={review.message} url={review.url} onReview={review.onReview} onLater={review.onLater} onNever={review.onNever} /> : null}
       {profileOpen ? <ProfileSheet onClose={() => setProfileOpen(false)} onGender={setGender} /> : null}
       {inboxOpen ? <InboxSheet inbox={inbox.inbox} failed={inbox.failed} onRead={inbox.markRead} onReadAll={inbox.markAll} onClose={() => setInboxOpen(false)} /> : null}
       {baleOpen ? <BaleSheet onClose={() => setBaleOpen(false)} /> : null}

@@ -196,6 +196,7 @@ human opponent is found.
 
 - [x] 🛡 Profanity filter on all free text (D69): admin-editable word list, normalisation, server-side (filter + list + admin done; wire it into chat when chat exists)
 - [x] Player profile sheet + friend requests (D67 v1) and gender setting switching the Home hero (D68 v1); app icon switch and tap-everywhere wait for screens
+- [x] Store review prompts (Myket / Bazaar / Bale) from admin settings (D75)
 - [x] Admin: user management (detail, ban reason, logout everywhere, identity reset, notes) and app management (maintenance, min build, feature switches) (D74)
 - [x] Admin message center (D73): compose / history / retract, in-app inbox + Bale live; SMS, e-mail, push await providers and recipients
 - [x] Bale bot (D72): link by one-time code, outbox + dispatcher, match result / daily reward / broadcast notifications, admin section

@@ -4,7 +4,7 @@ import { OPEN_CONFIG, gateState, parseClientConfig } from '../gate';
 describe('client config gate', () => {
   it('is open for an empty or broken config', () => {
     expect(parseClientConfig({})).toEqual(OPEN_CONFIG);
-    expect(parseClientConfig({ 'app.min_build': 'x', 'feature.duel': 'yes' })).toEqual(OPEN_CONFIG);
+    expect({ ...parseClientConfig({ 'app.min_build': 'x', 'feature.duel': 'yes' }), raw: {} }).toEqual(OPEN_CONFIG);
     expect(gateState(OPEN_CONFIG, 1)).toBe('ok');
   });
 
