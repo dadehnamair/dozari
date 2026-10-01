@@ -318,6 +318,43 @@ VIEWS.cities = function (root) {
   root.appendChild(card('فهرست شهرها', null, [list]));
   draw();
 };
+VIEWS.shop = function (root) {
+  var list = h('div');
+  function num(v, min) { return h('input', { type: 'number', value: v, min: min === undefined ? 0 : min, style: 'width:90px' }); }
+  function row(it) {
+    var price = num(it.priceCoins), lvl = num(it.minLevel, 1), lim = num(it.perDayLimit), amt = num(it.amount, 1);
+    function save(patch) { api('/admin/shop/' + it.id, { method: 'PATCH', body: patch }).then(function (x) { if (!x.ok) return fail(x); toast('ذخیره شد'); draw(); }); }
+    return h('div', { class: 'card', style: 'padding:12px' }, [
+      h('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap' }, [
+        h('b', { text: it.titleFa }), it.isActive ? badge('فعال', 'b-ok') : badge('پنهان', 'b-warn'), h('span', { class: 'h', text: it.descriptionFa })
+      ]),
+      h('div', { class: 'toolbar', style: 'margin-top:8px' }, [
+        field('قیمت (سکه)', price), field('تعداد در هر خرید', amt), field('کمترین لول', lvl), field('سقف خرید در روز (۰ = بی‌سقف)', lim),
+        h('button', { class: 'btn primary', text: 'ذخیره', onclick: function () { save({ priceCoins: +price.value, amount: +amt.value, minLevel: +lvl.value, perDayLimit: +lim.value }); } }),
+        h('button', { class: 'btn', text: it.isActive ? 'پنهان کن' : 'فعال کن', onclick: function () { save({ isActive: !it.isActive }); } })
+      ])
+    ]);
+  }
+  function draw() {
+    api('/admin/shop').then(function (r) {
+      clear(list);
+      if (r.status === 404) return list.appendChild(empty('فروشگاه روی این سرور فعال نیست'));
+      if (!r.ok) return fail(r);
+      r.body.items.forEach(function (it) { list.appendChild(row(it)); });
+    });
+  }
+  var title = h('input', { type: 'text', placeholder: 'نام آیتم', maxlength: 80 }), desc = h('input', { type: 'text', placeholder: 'توضیح کوتاه برای بازیکن', maxlength: 300 });
+  var price = num(20), amt = num(1, 1), lvl = num(1, 1), lim = num(0);
+  root.appendChild(card('قیمت راهنما در بازی تکی', 'قیمت هر راهنما، لول لازم و سقف راهنما در هر بازی در بخش «تنظیمات ← اقتصاد» است.', []));
+  root.appendChild(card('آیتم‌های فروشگاه', 'هر آیتم با سکه خریده می‌شود و «توکن راهنما» می‌دهد؛ توکن به جای سکه در بازی تکی خرج می‌شود. بازیکن شرط لول و سقف روزانه را قبل از خرید می‌بیند.', [list]));
+  root.appendChild(card('آیتم تازه', 'نوع اثر فعلاً فقط «توکن راهنما» است.', [
+    h('div', { class: 'toolbar' }, [title, desc]),
+    h('div', { class: 'toolbar' }, [field('قیمت (سکه)', price), field('تعداد توکن', amt), field('کمترین لول', lvl), field('سقف در روز', lim), h('button', { class: 'btn primary', text: 'افزودن', onclick: function () {
+      api('/admin/shop', { method: 'POST', body: { titleFa: title.value.trim(), descriptionFa: desc.value.trim(), effect: 'hint_token', amount: +amt.value, priceCoins: +price.value, minLevel: +lvl.value, perDayLimit: +lim.value, iconKey: 'magnifier', isActive: true } }).then(function (x) { if (!x.ok) return fail(x); title.value = ''; desc.value = ''; draw(); });
+    } })])
+  ]));
+  draw();
+};
 VIEWS.bale = function (root) {
   var body = h('div'), msg = h('textarea', { placeholder: 'متن پیام برای همه‌ی بازیکنان وصل‌شده…', maxlength: 1000 }), chat = h('input', { type: 'text', dir: 'ltr', placeholder: 'شناسه‌ی چت (عدد)' });
   function draw() {

@@ -1,10 +1,11 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { GROUP_SIZE } from '@dozari/shared';
+import { GROUP_SIZE, hintKindSchema } from '@dozari/shared';
 import type { GroupLevel } from '@dozari/shared';
 import type { AuthService } from '../auth/service.js';
 import { currentUser } from '../auth/routes.js';
 import type { SoloService } from './service.js';
+import type { HintService } from './hints.js';
 
 const paramsSchema = z.object({ id: z.string().uuid() });
 const guessSchema = z.object({ productIds: z.array(z.string().min(1).max(64)).length(GROUP_SIZE) });
@@ -12,7 +13,7 @@ const guessSchema = z.object({ productIds: z.array(z.string().min(1).max(64)).le
 const priceGuessSchema = z.object({ level: z.number().int().min(0).max(3), guessRials: z.string().regex(/^\d{1,15}$/) });
 
 /** Solo practice (no coins): the client only ever receives `SoloView`, never the solution. */
-export function registerSoloRoutes(app: FastifyInstance, solo: SoloService, auth?: AuthService) {
+export function registerSoloRoutes(app: FastifyInstance, solo: SoloService, auth?: AuthService, hints?: HintService) {
   app.post('/solo/start', async (req, reply) => {
     // Playing needs no account; a signed-in player's finished game counts toward their level and stats.
     const user = auth ? await currentUser(auth, req) : null;
@@ -76,4 +77,26 @@ export function registerSoloRoutes(app: FastifyInstance, solo: SoloService, auth
     if (!view) return reply.code(404).send({ error: 'session_not_found' });
     return view;
   });
+
+  if (hints && auth) {
+    const status = { not_found: 404, not_yours: 403, game_over: 409, level: 403, limit: 409, nothing_left: 409, insufficient: 402 } as const;
+    app.get('/solo/:id/hints', async (req, reply) => {
+      const user = await currentUser(auth, req);
+      const params = paramsSchema.safeParse(req.params);
+      if (!user) return reply.code(401).send({ error: 'unauthorized' });
+      if (!params.success) return reply.code(400).send({ error: 'invalid_id' });
+      const out = await hints.options(params.data.id, user.id);
+      return typeof out === 'string' ? reply.code(status[out]).send({ error: out }) : out;
+    });
+
+    app.post('/solo/:id/hint', async (req, reply) => {
+      const user = await currentUser(auth, req);
+      const params = paramsSchema.safeParse(req.params);
+      const body = z.object({ kind: hintKindSchema }).safeParse(req.body);
+      if (!user) return reply.code(401).send({ error: 'unauthorized' });
+      if (!params.success || !body.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await hints.take(params.data.id, user.id, body.data.kind);
+      return typeof out === 'string' ? reply.code(status[out]).send({ error: out }) : out;
+    });
+  }
 }

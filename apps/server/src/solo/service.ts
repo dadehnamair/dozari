@@ -1,6 +1,6 @@
 import { randomInt } from 'node:crypto';
-import { PRICE_GUESS_MIN_POINTS, PRICE_GUESS_STAIRCASE, SOLO_MAX_MISTAKES, mulberry32, selectRounds, shuffleBoard, staircasePoints, startSolo, submitGuess } from '@dozari/shared';
-import type { CatalogProduct, GroupLevel, PriceGuessRound, Rng, SoloChart, SoloPriceResult, SoloPriceRounds, SoloState, SubmitOutcome } from '@dozari/shared';
+import { PRICE_GUESS_MIN_POINTS, pickHint, PRICE_GUESS_STAIRCASE, SOLO_MAX_MISTAKES, mulberry32, selectRounds, shuffleBoard, staircasePoints, startSolo, submitGuess } from '@dozari/shared';
+import type { CatalogProduct, GroupLevel, HintKind, HintPayload, PriceGuessRound, Rng, SoloChart, SoloPriceResult, SoloPriceRounds, SoloState, SubmitOutcome } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
 import type { PuzzleSource, ServedPuzzle, SoloView } from './types.js';
 
@@ -17,6 +17,8 @@ interface Session {
   /** Signed-in player, when the game was started with a token; their stats are updated once, when the game ends. */
   userId?: string;
   recorded?: boolean;
+  /** Hints revealed so far in this game (one per paid hint). */
+  hints: HintPayload[];
 }
 
 export interface SoloRules {
@@ -74,7 +76,7 @@ export class SoloService {
     const rng = mulberry32(this.newSeed());
     const state = startSolo(puzzle, rng);
     const sessionId = uuidv7();
-    const session: Session = { puzzle, state, rng, touchedAt: this.now(), priceResults: [], rules: await this.loadRules(), userId };
+    const session: Session = { puzzle, state, rng, touchedAt: this.now(), priceResults: [], rules: await this.loadRules(), userId, hints: [] };
     this.sessions.set(sessionId, session);
     return this.toView(sessionId, session);
   }
@@ -150,6 +152,24 @@ export class SoloService {
     };
     s.priceResults.push(result);
     return result;
+  }
+
+  /** Who started this game (null for an anonymous one), whether it is still being played and what was already revealed; null when the session is gone. */
+  hintState(sessionId: string): { userId: string | null; playing: boolean; given: readonly HintPayload[] } | null {
+    const s = this.live(sessionId);
+    return s ? { userId: s.userId ?? null, playing: s.state.status === 'playing', given: s.hints } : null;
+  }
+
+  /** What the next hint of this kind would reveal, or null when there is nothing new to reveal. Does not record it. */
+  previewHint(sessionId: string, kind: HintKind): HintPayload | null {
+    const s = this.live(sessionId);
+    if (!s) return null;
+    return pickHint(kind, s.puzzle.groups, s.state.solved.map((g) => g.level), s.hints, s.rng);
+  }
+
+  /** Remembers a paid hint so it is shown again after a reload and never repeated. */
+  recordHint(sessionId: string, hint: HintPayload): void {
+    this.live(sessionId)?.hints.push(hint);
   }
 
   shuffle(sessionId: string): SoloView | null {

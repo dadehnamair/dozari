@@ -61,7 +61,7 @@ export default function App() {
     <View style={styles.container}>
       <StatusBar style="light" />
       {screen === 'splash' ? <SplashScreen /> : null}
-      {screen === 'solo' ? <SoloScreen onBack={() => setScreen('home')} /> : null}
+      {screen === 'solo' ? <SoloScreen onBack={() => setScreen('home')} hintsEnabled={config.features.shop} /> : null}
       {screen === 'gallery' ? (
         <KitGallery
           onBack={() => setScreen('home')}

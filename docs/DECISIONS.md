@@ -167,3 +167,8 @@ Decisions table above.
 
 The list is built in the order of `docs/logic/owner-backlog-2026-10.md` because later phases need earlier data (level, badges,
 city, friends). Defaults in that file are proposed and tunable from the admin panel; owner confirms or changes them later.
+
+## D78 — Coin shop and paid solo hints (2026-10-01)
+
+Hints in solo games (title / one card / pair) cost coins or a hint token; the shop sells tokens for coins. All numbers, level
+gates and daily limits are admin-editable; coins stay scarce by design. Details: `docs/logic/shop.md`. Proposed defaults, owner may change.

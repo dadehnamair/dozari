@@ -14,13 +14,14 @@ const FEATURE_OF: [prefix: string, setting: string][] = [
   ['/players', 'feature.friends'],
   ['/inbox', 'feature.inbox'],
   ['/bale', 'feature.bale'],
+  ['/shop', 'feature.shop'],
 ];
 
 /** Admin kill switches (maintenance mode, feature flags) applied to an HTTP path; null = let it through. */
 export async function gateForPath(settings: SettingsService, path: string): Promise<GateVerdict | null> {
   if (ALWAYS_OPEN.some((p) => path === p || path.startsWith(`${p}/`))) return null;
   if ((await settings.num('app.maintenance_on')) === 1) return { error: 'maintenance', message: await settings.text('app.maintenance_message') };
-  const feature = FEATURE_OF.find(([prefix]) => path === prefix || path.startsWith(`${prefix}/`));
+  const feature = /^\/solo\/[^/]+\/hints?$/.test(path) ? (['', 'feature.shop'] as [string, string]) : FEATURE_OF.find(([prefix]) => path === prefix || path.startsWith(`${prefix}/`));
   if (feature && (await settings.num(feature[1])) !== 1) return { error: 'feature_off' };
   return null;
 }

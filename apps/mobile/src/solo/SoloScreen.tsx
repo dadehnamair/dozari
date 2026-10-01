@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { solarMonthOf } from '@dozari/shared';
-import type { SoloView } from '@dozari/shared';
+import type { HintPayload, SoloView } from '@dozari/shared';
 import { Board } from '../components/Board';
 import { CandyButton } from '../components/CandyButton';
 import { ChartPanel } from '../components/ChartPanel';
@@ -14,23 +14,28 @@ import { PriceRoundPanel } from '../components/PriceRoundPanel';
 import { BANNERS } from '../kit/data';
 import { fa } from '../i18n/fa';
 import { colors } from '../theme/colors';
-import { BASE_URL, guessSolo, shuffleSolo, startSolo } from './api';
+import { BASE_URL, guessSolo, shuffleSolo } from './api';
+import { beginSolo } from './begin';
 import { describeError } from './errors';
 import { canSubmit, feedbackFor, pruneSelection, toggleSelection } from './selection';
 import { recordGameFinished } from '../review/state';
+import { HintSheet } from '../shop/HintSheet';
+import { hintedCardIds, hintedTitles } from '../shop/hintView';
 import type { FeedbackKey } from './selection';
 
 type Phase = { kind: 'loading' } | { kind: 'error'; message: string; detail: string } | { kind: 'ready'; view: SoloView };
 
 const FEEDBACK_MS = 1600;
 
-export function SoloScreen({ onBack }: { onBack: () => void }) {
+export function SoloScreen({ onBack, hintsEnabled = true }: { onBack: () => void; hintsEnabled?: boolean }) {
   const [phase, setPhase] = useState<Phase>({ kind: 'loading' });
   const [selected, setSelected] = useState<string[]>([]);
   const [names, setNames] = useState<Record<string, string>>({});
   const [feedback, setFeedback] = useState<FeedbackKey | null>(null);
   const [busy, setBusy] = useState(false);
   const [priceDone, setPriceDone] = useState(false);
+  const [hintOpen, setHintOpen] = useState(false);
+  const [given, setGiven] = useState<HintPayload[]>([]);
   const feedbackTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const adopt = useCallback((view: SoloView) => {
@@ -56,9 +61,11 @@ export function SoloScreen({ onBack }: { onBack: () => void }) {
     setSelected([]);
     setNames({});
     setPriceDone(false);
+    setGiven([]);
+    setHintOpen(false);
     flash(null);
     try {
-      adopt(await startSolo());
+      adopt(await beginSolo());
     } catch (err) {
       fail(err);
     }
@@ -127,11 +134,14 @@ export function SoloScreen({ onBack }: { onBack: () => void }) {
       <View style={styles.feedbackSlot}>
         {feedback ? <Text style={styles.feedback}>{fa.solo.feedback[feedback]}</Text> : null}
       </View>
-      <Board solved={view.solved} cards={view.cards} names={names} selected={selected} onToggle={(id) => setSelected((s) => toggleSelection(s, id))} disabled={!playing || busy} />
+      {hintedTitles(given).length > 0 ? <Text style={styles.hintLine}>{fa.hints.revealedTitle}: {hintedTitles(given).join('، ')}</Text> : null}
+      <Board solved={view.solved} cards={view.cards} names={names} selected={selected} onToggle={(id) => setSelected((s) => toggleSelection(s, id))} disabled={!playing || busy} hinted={hintedCardIds(given)} />
+      {hintedCardIds(given).length > 0 ? <Text style={styles.hintLine}>{fa.hints.framed}</Text> : null}
       {playing ? (
         <View style={styles.actions}>
           <CandyButton label={fa.solo.shuffle} color={colors.candy.sky} onPress={() => void shuffle()} disabled={busy} />
           <CandyButton label={fa.solo.deselect} color={colors.candy.grape} onPress={() => setSelected([])} disabled={selected.length === 0} />
+          {hintsEnabled ? <CandyButton label={fa.hints.open} color={colors.candy.orange} onPress={() => setHintOpen(true)} disabled={busy} /> : null}
           <CandyButton label={fa.solo.submit} color={colors.candy.lime} onPress={() => void submit()} disabled={!canSubmit(selected) || busy} />
         </View>
       ) : (
@@ -153,6 +163,7 @@ export function SoloScreen({ onBack }: { onBack: () => void }) {
         </View>
       )}
     </ScrollView>
+    {hintOpen && playing ? <HintSheet sessionId={view.sessionId} onGiven={setGiven} onClose={() => setHintOpen(false)} /> : null}
     {!playing ? (view.status === 'won' ? <Confetti distance={500} /> : <Rain distance={800} />) : null}
     </View>
   );
@@ -171,5 +182,6 @@ const styles = StyleSheet.create({
   endMascot: { width: 140, height: 154 },
   end: { alignItems: 'center', gap: 8, marginTop: 8 },
   detail: { fontFamily: 'Vazirmatn_400Regular', fontSize: 12, color: colors.cream, opacity: 0.7, textAlign: 'center', writingDirection: 'ltr' },
+  hintLine: { fontFamily: 'Vazirmatn_700Bold', fontSize: 13, color: colors.candy.yellow, textAlign: 'center' },
   msg: { fontFamily: 'Vazirmatn_700Bold', fontSize: 18, color: colors.cream, textAlign: 'center' },
 });

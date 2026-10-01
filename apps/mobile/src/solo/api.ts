@@ -7,7 +7,7 @@ export { ApiError, BASE_URL };
 
 const call = callJson;
 
-export const startSolo = async (): Promise<SoloView> => soloViewSchema.parse(await call('/solo/start', 'POST'));
+export const startSolo = async (token?: string): Promise<SoloView> => soloViewSchema.parse(await call('/solo/start', 'POST', undefined, token));
 
 export const guessSolo = async (sessionId: string, productIds: readonly string[]): Promise<SoloGuessResult> =>
   soloGuessResultSchema.parse(await call(`/solo/${sessionId}/guess`, 'POST', { productIds }));

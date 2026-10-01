@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { ITEMS, PRODUCT_CATEGORIES, SETTING_GROUPS } from '@dozari/shared';
+import { ITEMS, PRODUCT_CATEGORIES, SETTING_GROUPS, SHOP_EFFECTS } from '@dozari/shared';
 import type { SettingsService } from '../settings/service.js';
 import { BOT_ADAPTER_KEYS, SOURCE_TYPES } from '../bot/constants.js';
 import type { BotRepository } from '../bot/repository.js';
@@ -15,6 +15,7 @@ import type { NotifyStore } from '../notify/store.js';
 import type { TextFilterService } from '../textfilter/service.js';
 import type { UsersAdmin } from './users.js';
 import type { PlayerStore } from '../player/store.js';
+import type { ShopStore } from '../economy/shop-store.js';
 
 export interface AdminModules {
   settings?: SettingsService;
@@ -25,6 +26,8 @@ export interface AdminModules {
   words?: TextFilterService;
   /** Cities players can pick (list, add, rename, hide). */
   cities?: PlayerStore;
+  /** Coin shop items (price, level gate, daily limit, visibility). */
+  shop?: ShopStore;
   messages?: MessageCenter;
   bale?: { service: NotifyService; store: NotifyStore; botUsername: string | null };
   bot?: { repo: BotRepository; service: BotService };
@@ -95,7 +98,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     adapters: BOT_ADAPTER_KEYS,
     settingGroups: SETTING_GROUPS,
     icons: ITEMS,
-    modules: { settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, bale: !!m.bale, messages: !!m.messages },
+    modules: { settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, bale: !!m.bale, messages: !!m.messages },
   }));
 
   if (m.stats) {
@@ -335,6 +338,37 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
       if ((await cities.updateCity(p.data.id, b.data)) === 'not_found') return reply.code(404).send({ error: 'city_not_found' });
       void audit('city.update', p.data.id, JSON.stringify(b.data));
+      return { ok: true };
+    });
+  }
+
+  if (m.shop) {
+    const shop = m.shop;
+    const itemFields = {
+      titleFa: z.string().trim().min(2).max(80),
+      descriptionFa: z.string().trim().max(300),
+      effect: z.enum(SHOP_EFFECTS),
+      amount: z.number().int().min(1).max(1000),
+      priceCoins: z.number().int().min(0).max(1_000_000),
+      minLevel: z.number().int().min(1).max(500),
+      perDayLimit: z.number().int().min(0).max(1000),
+      iconKey: z.string().max(30).nullable(),
+      isActive: z.boolean(),
+    };
+    g.get('/admin/shop', async () => ({ items: await shop.items({ includeHidden: true }) }));
+    g.post('/admin/shop', async (req, reply) => {
+      const b = z.object(itemFields).safeParse(req.body);
+      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const row = await shop.addItem(b.data);
+      void audit('shop.add', row.id, `${b.data.titleFa} ${b.data.priceCoins}`);
+      return reply.code(201).send({ id: row.id });
+    });
+    g.patch('/admin/shop/:id', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object(itemFields).partial().safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      if ((await shop.updateItem(p.data.id, b.data)) === 'not_found') return reply.code(404).send({ error: 'item_not_found' });
+      void audit('shop.update', p.data.id, JSON.stringify(b.data));
       return { ok: true };
     });
   }

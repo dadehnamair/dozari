@@ -8,3 +8,12 @@ export const DAILY_REWARD_STREAK_WINDOW_HOURS = 48;
 export const DEFAULT_DAILY_REWARD_STEPS: readonly number[] = [10, 15, 20];
 export const MAX_DAILY_REWARD_DAYS = 60;
 export const MAX_DAILY_REWARD_COINS = 10_000;
+
+/** Solo-game hints bought with coins (owner item 1). Every number is an admin setting; these are the launch defaults. */
+export const HINT_KINDS = ['group_title', 'one_card', 'pair'] as const;
+export const HINT_PRICES: Readonly<Record<(typeof HINT_KINDS)[number], number>> = { group_title: 15, one_card: 20, pair: 35 };
+/** A player must reach this level before hints unlock (it keeps day-one coins for matches). */
+export const HINT_MIN_LEVEL = 2;
+export const HINT_MAX_PER_GAME = 2;
+/** The 2nd and later hint of one game cost this percent of the listed price. */
+export const HINT_REPEAT_PERCENT = 200;

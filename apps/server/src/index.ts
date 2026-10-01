@@ -3,6 +3,7 @@ import fastifyCors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
 import { resolve } from 'node:path';
 import { rialsToTomanString } from '@dozari/shared';
+import type { HintRules } from '@dozari/shared';
 import { createDb } from '@dozari/db';
 import { createDbCatalogRepository } from './catalog/db-repository.js';
 import { DailyRewardService } from './economy/daily-reward.js';
@@ -54,6 +55,10 @@ import type { AdminRepository } from './admin/routes.js';
 import { registerCatalogRoutes, registerLookupRoutes } from './catalog/routes.js';
 import { isMainModule } from './is-main.js';
 import { createDbPuzzleSource } from './solo/db-source.js';
+import { registerShopRoutes } from './economy/shop-routes.js';
+import { ShopService } from './economy/shop.js';
+import { createDbShopStore } from './economy/shop-store.js';
+import { HintService } from './solo/hints.js';
 import { registerSoloRoutes } from './solo/routes.js';
 import { SoloService } from './solo/service.js';
 import type { CatalogRepository } from './catalog/routes.js';
@@ -84,6 +89,10 @@ export interface ServerDeps {
   adminModules?: Omit<AdminModules, 'settings'>;
   /** Solo practice sessions (`/solo/*`). */
   solo?: SoloService;
+  /** Paid hints of solo games; needs `solo` and `auth`. */
+  hints?: HintService;
+  /** Coin shop (`/shop`); needs `auth`. */
+  shop?: ShopService;
   /** Allowed browser origins (e.g. Expo web dev). `*` allows any. Off when unset: native apps don't need CORS. */
   corsOrigin?: string;
   /** Docker-free dev: directory of uploaded product images, served at `/images/*`. */
@@ -139,7 +148,8 @@ export function buildServer(deps: ServerDeps = {}) {
     registerCatalogRoutes(app, deps.catalog);
     registerLookupRoutes(app, deps.catalog);
   }
-  if (deps.solo) registerSoloRoutes(app, deps.solo, deps.auth);
+  if (deps.solo) registerSoloRoutes(app, deps.solo, deps.auth, deps.hints);
+  if (deps.auth && deps.shop) registerShopRoutes(app, deps.auth, deps.shop);
   let gateway: Gateway | undefined;
   if (deps.auth && deps.realtime) {
     const auth = deps.auth;
@@ -159,6 +169,12 @@ export function buildServer(deps: ServerDeps = {}) {
 /** Live tunables for the daily reward (admin settings). */
 async function dailyRules(settings: SettingsService) {
   return { cooldownHours: await settings.num('economy.daily_cooldown_hours'), windowHours: await settings.num('economy.daily_streak_window_hours') };
+}
+
+/** Live tunables for paid hints (admin settings). */
+async function hintRules(settings: SettingsService): Promise<HintRules> {
+  const [t, o, p, minLevel, maxPerGame, repeatPercent] = await Promise.all(['hint.price_group_title', 'hint.price_one_card', 'hint.price_pair', 'hint.min_level', 'hint.max_per_game', 'hint.repeat_percent'].map((k) => settings.num(k)));
+  return { prices: { group_title: t!, one_card: o!, pair: p! }, minLevel: minLevel!, maxPerGame: maxPerGame!, repeatPercent: repeatPercent! };
 }
 
 /** Live tunables for solo games and the price-guess staircase (admin settings). */
@@ -201,13 +217,16 @@ if (isMainModule(import.meta.url)) {
       )
     : undefined;
   const messages = db ? new MessageCenter(createDbMessageStore(db), notify ?? null) : undefined;
+  const levelOf = async (id: string) => (player ? (await player.levelOf(id)).level.level : 1);
+  const shopStore = db ? createDbShopStore(db) : undefined;
+  const solo = db && settings ? new SoloService(createDbPuzzleSource(db), { rules: () => soloRules(settings), onFinished: (id, outcome) => void player?.recordGame(id, { mode: 'solo', outcome }) }) : undefined;
   const botRepo = db ? createDbBotRepository(db) : undefined;
   const bot = botRepo ? new BotService(botRepo) : undefined;
   const app = buildServer({
     auth,
     settings,
     adminModules: db
-      ? { products: createDbProductAdmin(db), stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      ? { products: createDbProductAdmin(db), stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
     match: db
@@ -235,7 +254,9 @@ if (isMainModule(import.meta.url)) {
     social,
     dailyReward: db && settings ? new DailyRewardService(createDbDailyRewardStore(db), Date.now, () => dailyRules(settings)) : undefined,
     catalog: db ? createDbCatalogRepository(db) : undefined,
-    solo: db && settings ? new SoloService(createDbPuzzleSource(db), { rules: () => soloRules(settings), onFinished: (id, outcome) => void player?.recordGame(id, { mode: 'solo', outcome }) }) : undefined,
+    solo,
+    hints: solo && shopStore && settings ? new HintService(solo, shopStore, () => hintRules(settings), levelOf) : undefined,
+    shop: shopStore ? new ShopService(shopStore, levelOf) : undefined,
     admin: db && jwtSecret ? { repo: createDbAdminRepository(db), token: adminToken, accounts: new AdminAccounts(createDbAdminStore(db), jwtSecret, adminToken) } : undefined,
     corsOrigin: process.env.CORS_ORIGIN,
     trustProxy: process.env.TRUST_PROXY === '1',
