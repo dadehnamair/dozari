@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lalezar&amp;family=Vazirmatn:wght@400;600;800;900&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#2B1240;font-family:Vazirmatn,system-ui,sans-serif;color:#FFF6E8}
+a{color:#FFC93C}a:hover{color:#FF7A3D}
+*{box-sizing:border-box}
+button{font-family:inherit}
+@keyframes dz-spin{to{transform:rotate(360deg)}}
+@keyframes dz-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes dz-shine{0%{transform:translateX(-200%) skewX(-20deg)}55%,100%{transform:translateX(320%) skewX(-20deg)}}
+@keyframes dz-flip{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.08)}}
+@keyframes dz-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-9px)}40%{transform:translateX(9px)}60%{transform:translateX(-6px)}80%{transform:translateX(5px)}}
+@keyframes dz-pulse{0%,100%{transform:scale(1);opacity:.75}50%{transform:scale(1.18);opacity:1}}
+@keyframes dz-ring{0%{transform:scale(.25);opacity:1}100%{transform:scale(1.5);opacity:0}}
+@keyframes dz-fall{0%{transform:translateY(-30px) rotate(0)}100%{transform:translateY(170px) rotate(600deg)}}
+@keyframes dz-twinkle{0%,100%{transform:scale(.25) rotate(0);opacity:.2}50%{transform:scale(1) rotate(45deg);opacity:1}}
+@keyframes dz-flicker{0%,100%{transform:scale(1,1)}50%{transform:scale(.92,1.12)}}
+@keyframes dz-load{0%{width:6%}100%{width:94%}}
+@keyframes dz-pop{0%{transform:scale(.4);opacity:0}70%{transform:scale(1.08);opacity:1}100%{transform:scale(1)}}
+@keyframes dz-drop{0%{transform:translateY(-60px);opacity:0}10%{opacity:1}100%{transform:translateY(380px);opacity:.9}}
+</style>
+</helmet>
+
+<div dir="rtl" style="min-height:100vh;background:linear-gradient(180deg,#2B1240 0%,#40166A 30%,#5E1F7E 60%,#8E2A6E 85%,#C2413F 100%);padding:56px 56px 80px;display:flex;flex-direction:column;gap:36px;max-width:1600px;margin:0 auto">
+
+<header style="display:flex;flex-direction:column;gap:4px"><div style="font:14px 'JetBrains Mono',monospace;color:#FFC93C;direction:ltr;text-align:right">Dozari · 10 Empty States</div><h1 style="margin:0;font:56px/1 Lalezar;color:#FFF6E8;text-shadow:0 4px 0 #2B1240">حالت‌های خالی</h1></header>
+<!-- J EMPTY -->
+<section style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:36px;padding:40px;display:flex;flex-direction:column;gap:24px">
+  <div style="display:flex;align-items:center;gap:14px">
+    <div style="width:52px;height:52px;border-radius:16px;background:linear-gradient(180deg,#B8F08F,#7ED957);box-shadow:inset 0 3px 0 rgba(255,255,255,.6),0 5px 0 #3F8F1F;display:grid;place-items:center;font:30px Lalezar;color:#2B1240">J</div>
+    <div><h2 style="margin:0;font:38px/1.1 Lalezar">حالت‌های خالی و خطا</h2><div style="font:13px Vazirmatn;color:rgba(255,246,232,.7)">هر حالت با یک ژست ماسکات و یک اقدام روشن</div></div>
+  </div>
+  <div style="display:flex;gap:20px;flex-wrap:wrap">
+    <sc-for list="{{ empties }}" as="e" hint-placeholder-count="5">
+      <div style="width:236px;padding:22px 18px;border-radius:28px;background:#FFF6E8;border:4px solid #2B1240;box-shadow:0 8px 0 #2B1240;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;color:#2B1240">
+        <div style="width:130px;height:142px"><dc-import name="Character" pose="{{ e.pose }}" skin="{{ e.skin }}" hint-size="130px,142px" style="width:130px;height:142px"></dc-import></div>
+        <div style="font:24px/1.2 Lalezar">{{ e.t }}</div>
+        <div style="font:500 13.5px/1.7 Vazirmatn;opacity:.8;text-wrap:pretty">{{ e.s }}</div>
+        <sc-if value="{{ e.btn }}" hint-placeholder-val="{{ true }}">
+          <button style="margin-top:6px;height:50px;padding:0 24px;border-radius:16px;border:3px solid #2B1240;background:linear-gradient(180deg,{{ e.l }},{{ e.b }});box-shadow:inset 0 3px 0 rgba(255,255,255,.5),0 5px 0 #2B1240;font:20px Lalezar;color:#fff;text-shadow:0 2px 0 #2B1240;cursor:pointer" style-active="transform:translateY(4px);box-shadow:0 1px 0 #2B1240">{{ e.btn }}</button>
+        </sc-if>
+        <div style="font:10.5px 'JetBrains Mono',monospace;opacity:.5;margin-top:4px">{{ e.k }}</div>
+      </div>
+    </sc-for>
+  </div>
+</section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const C={pink:{l:'#FF8FB6',b:'#FF4D8D',d:'#B8235A'},orange:{l:'#FFAA7A',b:'#FF7A3D',d:'#B9481A'},yellow:{l:'#FFE48A',b:'#FFC93C',d:'#C48A0E'},
+sky:{l:'#8FDCFA',b:'#3FC1F0',d:'#1478A8'},grape:{l:'#C9A3FF',b:'#A66BF0',d:'#6634B0'},lime:{l:'#B8F08F',b:'#7ED957',d:'#3F8F1F'}};
+const CL=[C.pink,C.orange,C.yellow,C.sky,C.grape,C.lime];
+const I={
+home:'M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10',user:'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 4-6 8-6s8 2 8 6',
+users:'M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5M16 4.5a3.5 3.5 0 0 1 0 6.5M18 14.5c2.5.5 4 2.5 4 5.5',
+settings:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1',
+search:'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM21 21l-5-5',close:'M6 6l12 12M18 6L6 18',check:'M5 12.5l4.5 4.5L19 7',plus:'M12 5v14M5 12h14',
+back:'M9 5l7 7-7 7',heart:'M12 20s-8-5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 9c0 6-8 11-8 11z',
+star:'M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z',
+trophy:'M8 4h8v5a4 4 0 0 1-8 0zM8 6H4a3 3 0 0 0 4 4M16 6h4a3 3 0 0 1-4 4M12 13v4M8 20h8M10 17h4',
+bell:'M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4',lock:'M6 11h12v10H6zM8 11V8a4 4 0 0 1 8 0v3',
+share:'M18 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM18 22a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM8.6 13.5l6.8 4M15.4 6.5l-6.8 4',
+hint:'M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z',
+shuffle:'M3 7h4l10 10h4M3 17h4l3-3M14 10l3-3h4M18 4l3 3-3 3M18 14l3 3-3 3',clock:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2',
+chart:'M5 20V10M12 20V4M19 20v-7M2 20h20',coin:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v10M15 9.5H10.5a1.5 1.5 0 0 0 0 3h3a1.5 1.5 0 0 1 0 3H9',
+gift:'M3 9h18v4H3zM5 13h14v8H5zM12 9v12M12 9c-2 0-5-1-5-3a2 2 0 0 1 4-1l1 4 1-4a2 2 0 0 1 4 1c0 2-3 3-5 3',
+calendar:'M4 6h16v15H4zM4 10h16M8 3v4M16 3v4',flame:'M12 22c4 0 7-3 7-7 0-4-3-6-4-10-2 2-3 4-3 6-1-1-2-2-2-4-2 2-5 5-5 8 0 4 3 7 7 7z',
+volume:'M4 9h4l5-4v14l-5-4H4zM16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12',mute:'M4 9h4l5-4v14l-5-4H4zM17 9l5 6M22 9l-5 6',
+info:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v6M12 7.5v.5',help:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9.5 9a2.5 2.5 0 0 1 5 .5c0 1.5-2.5 2-2.5 3.5M12 17v.5',
+edit:'M4 20l4-1L19 8l-3-3L5 16zM14 7l3 3',trash:'M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14',refresh:'M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5',
+play:'M7 4l13 8-13 8z',pause:'M7 4h3v16H7zM14 4h3v16h-3z',crown:'M3 8l4 4 5-7 5 7 4-4-2 11H5zM5 21h14',flag:'M5 21V4M5 4h12l-2 4 2 4H5',
+mail:'M3 5h18v14H3zM3 6l9 7 9-7',eye:'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
+bolt:'M13 2L4 14h7l-1 8 9-12h-7z',menu:'M4 6h16M4 12h16M4 18h16',vote:'M12 19V5M5 12l7-7 7 7',
+wallet:'M3 7h16v13H3zM3 7l12-4v4M15 12h6v4h-6z',target:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 12.5v-1',
+chat:'M4 5h16v11H9l-5 4z'};
+const ICC=['#FFC93C','#FF8FB6','#8FDCFA','#B8F08F','#C9A3FF','#FFAA7A'];
+const GROUPS=[{name:'پرندگان',words:['کلاغ','طوطی','عقاب','قناری'],c:'#F9DF6D',d:'#C9A92A'},{name:'سازهای ایرانی',words:['تار','سنتور','دف','نی'],c:'#A0C35A',d:'#6E9030'},
+{name:'شهرهای ایران',words:['یزد','کرمان','رشت','تبریز'],c:'#B0C4EF',d:'#6F88C4'},{name:'فصل‌ها',words:['بهار','تابستان','پاییز','زمستان'],c:'#BA81C5',d:'#8A4F98'}];
+const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
+const shuf=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+const ALL=GROUPS.flatMap(g=>g.words);
+const CONF=Array.from({length:12},(_,i)=>({x:(6+i*8)+'%',c:['#FF4D8D','#3FC1F0','#7ED957','#FFC93C','#A66BF0','#fff'][i%6],t:(1.6+(i%4)*.4)+'s',dl:(-i*.37)+'s'}));
+const rnd=(a,b,i)=>a+((Math.sin(i*12.9898)*43758.5453)%1+1)%1*(b-a);
+const RAIN=Array.from({length:34},(_,i)=>{const near=i%3===0;return {x:rnd(-5,105,i)+'%',w:near?'2px':'1.2px',h:Math.round(near?rnd(26,38,i+7):rnd(12,22,i+7))+'px',o:near?.85:.5,t:(near?rnd(.45,.6,i+3):rnd(.7,1,i+3)).toFixed(2)+'s',dl:(-rnd(0,1,i+11)).toFixed(2)+'s'};});
+const SPL=Array.from({length:6},(_,i)=>({x:rnd(10,90,i+40)+'%',y:Math.round(rnd(6,40,i+50))+'px',t:rnd(.8,1.3,i+60).toFixed(2)+'s',dl:(-rnd(0,1.2,i+70)).toFixed(2)+'s'}));
+const POSES=[['idle','ایستاده'],['coin','دوزاری به دست'],['wave','دست تکان'],['cheer','هورا'],['win','برنده'],['sad','ناراحت'],['thinking','فکر'],['shocked','شوکه'],['sleeping','خواب'],['pointing','اشاره'],['blink','پلک'],['angry','عصبانی']];
+const CAST_INFO=[['dozari','دوزاری','قهرمان بازی؛ بچهٔ زرنگ بازار که همیشه یه سکه تو جیبشه','coin'],['mashti','عمو مشتی','پیرمرد حجره‌دار؛ راهنمای مرحله‌ها','idle'],['khale','خاله قزی','صاحب دکهٔ ادویه؛ جایزهٔ روزانه','wave'],['pahlevan','پهلوون','حریف دوئل‌ها؛ زورخانه','angry'],['baqal','اوس‌ممد بقال','فروشگاه سکه و آیتم','pointing'],['mirza','میرزا','کاتب؛ پیشنهاد و رأی پازل‌ها','thinking'],['goli','گلی','هم‌تیمی؛ بخش تیمی و دعوت','cheer']];
+const PLAYERS=['سارا','رضا','مینا','آرش','نگار','کیان','شیدا','بهراد','تینا','امید','یاسی','پویا','لیلا','سینا','رها','مهدی'];
+const AV_P=['idle','wave','cheer','thinking','shocked','blink','win','sleeping'];
+class Component extends DCLogic {
+  state={scan:0,ticks:0,tiles:shuf(ALL),sel:[],solved:[],mistakes:0,shake:false,toast:'',over:null,coins:2213};
+  componentDidMount(){this._scan=setInterval(()=>this.setState(s=>({scan:(s.scan+5+Math.floor(Math.random()*7))%16,ticks:(s.ticks||0)+1})),450);}
+  componentWillUnmount(){clearInterval(this._scan);}
+  flash(t){this.setState({toast:t});clearTimeout(this._t);this._t=setTimeout(()=>this.setState({toast:''}),1300);}
+  toggle(w){const s=this.state;if(s.over)return;const on=s.sel.includes(w);if(!on&&s.sel.length>=4)return;this.setState({sel:on?s.sel.filter(x=>x!==w):[...s.sel,w]});}
+  submit(){const s=this.state;if(s.sel.length!==4||s.over)return;
+    const gi=GROUPS.findIndex(g=>s.sel.every(w=>g.words.includes(w)));
+    if(gi>=0){const solved=[...s.solved,gi];this.setState({solved,sel:[],coins:s.coins+25});this.flash(['آفرین!','دمت گرم!','عالی بود!','ایول!'][solved.length-1]);
+      if(solved.length===4)setTimeout(()=>this.setState({over:'win'}),700);}
+    else{const near=GROUPS.some(g=>s.sel.filter(w=>g.words.includes(w)).length===3);const m=s.mistakes+1;
+      this.setState({mistakes:m,shake:true});setTimeout(()=>this.setState({shake:false}),500);this.flash(near?'یکی مونده!':'نه، این نبود');
+      if(m>=4)setTimeout(()=>this.setState({over:'lose'}),800);}}
+  reset(){this.setState({tiles:shuf(ALL),sel:[],solved:[],mistakes:0,over:null,toast:''});}
+  renderVals(){
+    const s=this.state;const solvedW=s.solved.flatMap(i=>GROUPS[i].words);
+    const tiles=s.tiles.filter(w=>!solvedW.includes(w)).map(w=>{const on=s.sel.includes(w);return {w,onClick:()=>this.toggle(w),
+      bg:on?'#6B35B8':'#FFF6E8',fg:on?'#fff':'#2B1240',sh:on?'#3E1A78':'#D9B98C',tr:on?'translateY(2px) scale(.95)':'none'};});
+    const win=s.over==='win';
+    const mPose=s.over?(win?'win':'sad'):s.shake?'shocked':s.sel.length===4?'pointing':s.sel.length?'thinking':(s.solved.length?'cheer':'idle');
+    const bubble=s.shake?'اوه! حواست باشه…':s.sel.length===4?'مطمئنی؟ بزن «ثبت کن»!':s.sel.length?'چهارتا کلمهٔ هم‌گروه پیدا کن.':s.solved.length?'دوزاریت داره می‌افته! ادامه بده.':'۱۶ کلمه، ۴ گروه. شروع کن!';
+    return {
+      tiles, rows:s.solved.map(i=>({name:GROUPS[i].name,words:GROUPS[i].words.join('، '),c:GROUPS[i].c,d:GROUPS[i].d})),
+      lives:[0,1,2,3].map(i=>({bg:i<4-s.mistakes?'#FF4D8D':'rgba(255,255,255,.18)'})),
+      shakeAnim:s.shake?'dz-shake .45s ease-in-out':'none', subOp:s.sel.length===4?1:.55, subFilter:s.sel.length===4?'none':'saturate(.4)',
+      toast:s.toast, over:!!s.over, mPose, bubble, coins:fa(s.coins).replace(/(\S)(\S{3})$/,'$1٬$2'),
+      overTitle:win?'دوزاریت افتاد!':'این دفعه نشد', overSub:win?'+۱۰۰ سکه · رکورد جدید':'فردا یه پازل تازه داریم',
+      rayC:win?'rgba(255,201,60,.28)':'rgba(176,196,239,.16)', banC:win?'linear-gradient(180deg,#FFE48A,#FFC93C)':'linear-gradient(180deg,#D4E0FA,#B0C4EF)',
+      submit:()=>this.submit(), clear:()=>this.setState({sel:[]}), shuffle:()=>this.setState({tiles:shuf(s.tiles)}), reset:()=>this.reset(),
+      tabs:[['فروشگاه','gift'],['رتبه‌ها','trophy'],['خانه','home'],['تیم','users'],['تنظیمات','settings']].map(([n,k])=>({n,d:I[k],on:k==='home',sz:k==='home'?34:26})),
+      corners:[
+        {top:'146px',right:'10px',left:'auto',items:[['روزانه','calendar',C.yellow,'!','#FF4D8D'],['تیم','users',C.sky,'',''],['رتبه‌ها','trophy',C.orange,'','']]},
+        {top:'146px',left:'10px',right:'auto',items:[['تنظیمات','settings',C.grape,'',''],['پیام‌ها','mail',C.pink,'۳','#7ED957'],['فروشگاه','gift',C.lime,'جدید','#FF4D8D']]}
+      ].map(c=>({...c,items:c.items.map(([n,k,cl,badge,bc])=>({n,d2:I[k],l:cl.l,b:cl.b,d:cl.d,badge,bc}))})),
+      confetti:CONF, rain:RAIN, splashes:SPL,
+      cast:CAST_INFO.map(([k,fa,d,pose])=>({k,fa,d,pose})),
+      searchRows:[C.pink,C.grape,C.sky,C.orange].map((rc,r)=>({l:rc.l,b:rc.d,cards:[0,1,2,3].map(k=>{const i=r*4+k,on=i===s.scan,cc=CL[(i*7+1)%6];
+        return {n:PLAYERS[i],lv:fa(3+(i*7)%28),skin:i%7,pose:AV_P[i%8],l:cc.l,b:cc.b,frame:on?'#FFC93C':'#2B1240',on,z:on?2:1,
+          tr:on?'scale(1.12) rotate(-3deg)':'none',glow:on?'0 0 0 3px #2B1240,0 0 22px 6px rgba(255,201,60,.85)':'0 0 0 0 transparent'};})})),
+      scanName:PLAYERS[s.scan], scanC:CL[(s.scan*7+1)%6],
+      searchTime:'در حال جستجو… '+fa('0:'+String(Math.floor(s.ticks*0.45)%60).padStart(2,'0')),
+      poses:POSES.map(([k,f])=>({k,fa:f})),
+      portals:[['portal-solo','تک‌نفره','user',C.grape],['portal-duel','دوئل','bolt',C.pink],['portal-team','تیمی','users',C.sky],['portal-private','خصوصی','lock',C.orange],
+        ['portal-daily','روزانه','calendar',C.yellow],['portal-ugc-suggest','پیشنهاد پازل','edit',C.lime],['portal-ugc-vote','رأی بده','vote',C.pink],
+        ['portal-leaderboard','جدول','chart',C.sky],['portal-achievements','افتخارات','trophy',C.yellow],['portal-wallet','کیف سکه','wallet',C.grape]]
+        .map(([k,f,ic,c],i)=>({k,fa:f,ic:I[ic],l:c.l,b:c.b,d:c.d,dl:(i*.35)+'s'})),
+      icons:Object.keys(I).map((n,i)=>({n,d:I[n],c:ICC[i%6]})),
+      btns:[['شروع',C.grape],['دعوت',C.sky],['جایزه',C.yellow],['مأموریت',C.orange],['خرید',C.pink],['ثبت',C.lime]].map(([t,c])=>({t,...c})),
+      groupRows:GROUPS.map(g=>({name:g.name,words:g.words.join('، '),c:g.c,d:g.d})),
+      banners:[{t:'دوزاریت افتاد!',l:'#FFE48A',b:'#FFC93C',d:'#C48A0E',fg:'#2B1240'},{t:'این دفعه نشد',l:'#D4E0FA',b:'#B0C4EF',d:'#6F88C4',fg:'#2B1240'},{t:'مساوی!',l:'#D9B3E2',b:'#BA81C5',d:'#8A4F98',fg:'#2B1240'}],
+      avatars:Array.from({length:24},(_,i)=>{const r=CL[(i*5+2)%6];return {k:'avatar-'+String(i+1).padStart(2,'0'),skin:i%7,pose:AV_P[Math.floor(i/3)%8],l:r.l,b:r.b};}),
+      tiers:[['مسی','#F2B48A','#C46A3A','#7A3A1A'],['برنزی','#F2D49A','#C7902F','#6A4410'],['نقره‌ای','#FFFFFF','#BFCBE0','#5E6C89'],['طلایی','#FFF4B0','#FFC93C','#A86E00'],['الماسی','#D2F3FF','#3FC1F0','#5A33C0']]
+        .map(([f,l,b,d],i)=>({i:i+1,n:fa(i+1),fa:f,l,b,d})),
+      tags:[['چت‌باز','chat',C.sky],['اولین برد','flag',C.lime],['کلکسیونر','gift',C.grape],['تیزبین','eye',C.orange],['زنجیره‌ای','flame',C.pink],['قهرمان','crown',C.yellow],
+        ['دهه ۵۰','clock',C.orange],['دهه ۶۰','clock',C.pink],['دهه ۷۰','clock',C.grape],['دهه ۸۰','clock',C.sky],['دهه ۹۰','clock',C.lime],['دهه ۰۰','clock',C.yellow]]
+        .map(([t,ic,c])=>({t,ic:I[ic],l:c.l,b:c.b})),
+      stamps:[['۵۰','#B9481A','-8deg'],['۶۰','#B8235A','5deg'],['۷۰','#6634B0','-4deg'],['۸۰','#1478A8','7deg'],['۹۰','#3F8F1F','-6deg'],['۰۰','#C48A0E','3deg']]
+        .map(([n,c,r],i)=>({t:'دهه '+n,c,r,k:'stamp-era-dahe'+['50','60','70','80','90','00'][i]})),
+      empties:[
+        {k:'empty-error',pose:'shocked',skin:1,t:'یه چیزی خراب شد!',s:'دوزاری‌مون گیر کرده. یه بار دیگه امتحان کن.',btn:'تلاش دوباره',...C.pink},
+        {k:'empty-searching',pose:'thinking',skin:3,t:'داریم می‌گردیم…',s:'یه حریف هم‌سطح برات پیدا می‌کنیم.',btn:'',...C.sky},
+        {k:'empty-no-history',pose:'sleeping',skin:4,t:'هنوز بازی نکردی',s:'تاریخچه‌ات خالیه. اولین پازل رو شروع کن.',btn:'بزن بریم',...C.grape},
+        {k:'empty-no-puzzles',pose:'sad',skin:0,t:'پازل‌ها تموم شد',s:'فردا یه پازل تازه منتظرته.',btn:'یادم بنداز',...C.yellow},
+        {k:'empty-no-internet',pose:'blink',skin:6,t:'اینترنت قطعه',s:'اتصالت رو چک کن و برگرد.',btn:'دوباره وصل شو',...C.orange}]
+    };
+  }
+}
+</script>
+</body>
+</html>
