@@ -362,6 +362,44 @@ export const adminAuditLog = mysqlTable(
   (table) => ({ byTime: index('admin_audit_log_at_idx').on(table.at) }),
 );
 
+/** A player's Bale chat, linked with a one-time code typed to the bot. `dailyNotifiedFor` = the claim time we already announced the next daily reward for. */
+export const baleLinks = mysqlTable(
+  'bale_links',
+  {
+    userId: char('user_id', { length: 36 }).primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+    chatId: varchar('chat_id', { length: 40 }).notNull(),
+    linkedAt: datetime('linked_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    dailyNotifiedFor: datetime('daily_notified_for', { mode: 'date', fsp: 3 }),
+  },
+  (table) => ({ uniqChat: uniqueIndex('bale_links_chat_uq').on(table.chatId) }),
+);
+
+export const baleLinkCodes = mysqlTable('bale_link_codes', {
+  code: varchar('code', { length: 12 }).primaryKey(),
+  userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+  expiresAt: datetime('expires_at', { mode: 'date', fsp: 3 }).notNull(),
+});
+
+export const OUTBOX_STATUSES = ['pending', 'sent', 'failed'] as const;
+
+/** Everything the game wants to tell a player (or the admin chat) on Bale; the dispatcher sends it and records the outcome. */
+export const notificationOutbox = mysqlTable(
+  'notification_outbox',
+  {
+    id: id(),
+    chatId: varchar('chat_id', { length: 40 }).notNull(),
+    userId: char('user_id', { length: 36 }),
+    kind: varchar('kind', { length: 40 }).notNull(),
+    text: text('text').notNull(),
+    status: mysqlEnum('status', OUTBOX_STATUSES).notNull().default('pending'),
+    attempts: smallint('attempts').notNull().default(0),
+    lastError: varchar('last_error', { length: 300 }),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    sentAt: datetime('sent_at', { mode: 'date', fsp: 3 }),
+  },
+  (table) => ({ byStatus: index('notification_outbox_status_idx').on(table.status, table.createdAt) }),
+);
+
 export const WORD_SEVERITIES = ['block', 'mask'] as const;
 
 /** The profanity list (D69), editable from the admin panel. `word` is stored as typed; matching normalises both sides. */

@@ -5,6 +5,7 @@ import { SceneBackground } from '../components/SceneBackground';
 import { Character } from '../components/Character';
 import { DailyRewardCard } from '../components/DailyRewardCard';
 import { IconButton } from '../components/IconButton';
+import { BaleSheet } from '../bale/BaleSheet';
 import { Toast } from '../components/Toast';
 import { Wordmark } from '../components/Wordmark';
 import { useDailyReward } from '../daily/useDailyReward';
@@ -17,6 +18,7 @@ export function HomeScreen({ onSolo, onLookup, onGallery }: { onSolo: () => void
   const month = useMemo(() => solarMonthOf(Date.now()), []);
   const daily = useDailyReward();
   const [dailyOpen, setDailyOpen] = useState(false);
+  const [baleOpen, setBaleOpen] = useState(false);
   const float = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     const loop = Animated.loop(
@@ -68,6 +70,7 @@ export function HomeScreen({ onSolo, onLookup, onGallery }: { onSolo: () => void
           </Text>
           <CandyButton label={fa.home.soloButton} color={colors.candy.yellow} onPress={onSolo} />
           <CandyButton label={fa.home.lookupButton} color={colors.candy.lime} onPress={onLookup} />
+          <CandyButton label={fa.bale.open} color={colors.candy.grape} onPress={() => setBaleOpen(true)} />
           {onGallery ? (
             <CandyButton label={fa.kit.gallery} color={colors.candy.sky} onPress={onGallery} />
           ) : null}
@@ -91,6 +94,7 @@ export function HomeScreen({ onSolo, onLookup, onGallery }: { onSolo: () => void
           </Pressable>
         </Pressable>
       ) : null}
+      {baleOpen ? <BaleSheet onClose={() => setBaleOpen(false)} /> : null}
     </SceneBackground>
   );
 }

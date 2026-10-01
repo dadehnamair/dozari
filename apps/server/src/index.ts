@@ -27,6 +27,13 @@ import { createDbBotRepository } from './bot/repository.js';
 import { BotService } from './bot/service.js';
 import { startBotScheduler } from './bot/scheduler.js';
 import { TextFilterService, createDbWordStore } from './textfilter/service.js';
+import { createBaleClient } from './notify/client.js';
+import { NotifyService } from './notify/service.js';
+import { startNotifyRunner } from './notify/runner.js';
+import { registerBaleRoutes } from './notify/routes.js';
+import { createDbNotifyStore } from './notify/store.js';
+import type { NotifyStore } from './notify/store.js';
+import { BALE_TEXT } from './notify/texts.js';
 import { createDbSettingsStore } from './settings/db-store.js';
 import { SettingsService } from './settings/service.js';
 import type { AdminRepository } from './admin/routes.js';
@@ -47,6 +54,8 @@ export interface ServerDeps {
   dailyReward?: DailyRewardService;
   /** Socket.io service (queue, matches); needs `auth`. Its live stats feed the admin panel. */
   realtime?: boolean;
+  /** Bale messenger integration: link codes for players, the bot's name for the app. */
+  bale?: { service: NotifyService; botUsername: string | null };
   /** Where live matches get puzzles and player cards from; without it queue pairs are put back in line. */
   match?: Omit<MatchDeps, 'emit'>;
   /** Admin-editable tunables; also served to clients at `GET /config`. */
@@ -75,6 +84,7 @@ export function buildServer(deps: ServerDeps = {}) {
   }
   if (deps.auth) registerAuthRoutes(app, deps.auth);
   if (deps.auth && deps.dailyReward) registerDailyRewardRoutes(app, deps.auth, deps.dailyReward);
+  if (deps.auth && deps.bale) registerBaleRoutes(app, deps.auth, deps.bale.service, deps.bale.botUsername);
   if (deps.settings) {
     const settings = deps.settings;
     app.get('/config', async () => ({ settings: await settings.publicValues() }));
@@ -123,16 +133,38 @@ if (isMainModule(import.meta.url)) {
   if (db && !jwtSecret) throw new Error('JWT_SECRET is required in production');
   const auth = db && jwtSecret ? new AuthService(createDbUserRepository(db), createTokenSigner(jwtSecret)) : undefined;
   const settings = db ? new SettingsService(createDbSettingsStore(db)) : undefined;
+  const baleToken = process.env.BALE_BOT_TOKEN;
+  const baleUsername = process.env.BALE_BOT_USERNAME?.replace(/^@/, '') ?? null;
+  const baleClient = baleToken ? createBaleClient(baleToken, { base: process.env.BALE_API_BASE }) : null;
+  const baleStore: NotifyStore | undefined = db ? createDbNotifyStore(db) : undefined;
+  const notify = baleStore ? new NotifyService(baleStore, baleClient) : undefined;
   const botRepo = db ? createDbBotRepository(db) : undefined;
   const bot = botRepo ? new BotService(botRepo) : undefined;
   const app = buildServer({
     auth,
     settings,
     adminModules: db
-      ? { products: createDbProductAdmin(db), stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words: new TextFilterService(createDbWordStore(db)), bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      ? { products: createDbProductAdmin(db), stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words: new TextFilterService(createDbWordStore(db)), bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
-    match: db ? { puzzles: createDbPuzzleSource(db), profile: createDbProfileLookup(db) } : undefined,
+    match: db
+      ? {
+          puzzles: createDbPuzzleSource(db),
+          profile: createDbProfileLookup(db),
+          onEnded: ({ players, result }) => {
+            if (!notify || !settings) return;
+            void (async () => {
+              if ((await settings.num('notify.match_result')) !== 1) return;
+              players.forEach((id, side) => {
+                const reason = BALE_TEXT.reasons[result.reason] ?? '';
+                const text = result.winner === null ? BALE_TEXT.matchDraw : result.winner === side ? BALE_TEXT.matchWon(reason) : BALE_TEXT.matchLost(reason);
+                void notify.notify(id, 'match_result', text);
+              });
+            })().catch(() => undefined);
+          },
+        }
+      : undefined,
+    bale: notify ? { service: notify, botUsername: baleUsername } : undefined,
     dailyReward: db && settings ? new DailyRewardService(createDbDailyRewardStore(db), Date.now, () => dailyRules(settings)) : undefined,
     catalog: db ? createDbCatalogRepository(db) : undefined,
     solo: db && settings ? new SoloService(createDbPuzzleSource(db), { rules: () => soloRules(settings) }) : undefined,
@@ -143,6 +175,10 @@ if (isMainModule(import.meta.url)) {
   if (bot && settings && process.env.BOT_SCHEDULER !== 'off') {
     const scheduler = startBotScheduler({ bot, settings, log: (msg, err) => (err ? app.log.error({ err }, msg) : app.log.info(msg)) });
     app.addHook('onClose', async () => scheduler.stop());
+  }
+  if (notify && baleClient) {
+    const runner = startNotifyRunner({ service: notify, client: baleClient, settings, log: (msg, err) => (err ? app.log.error({ err }, msg) : app.log.info(msg)) });
+    app.addHook('onClose', async () => runner.stop());
   }
   const port = Number(process.env.PORT ?? 3000);
   app.listen({ port, host: '0.0.0.0' }).catch((err) => {
