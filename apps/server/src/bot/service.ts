@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { assertPublicHttpUrl } from '../security/url-guard.js';
 import { ADAPTERS } from './adapters.js';
 import type { BotRepository, SourceRow } from './repository.js';
 import type { RawCandidate } from './types.js';
@@ -9,15 +10,52 @@ const MAX_BYTES = 2 * 1024 * 1024;
 const TIMEOUT_MS = 20_000;
 const USER_AGENT = 'DozariContentBot/1.0 (price-history research; contact: site owner)';
 
-/** Plain HTTP(S) fetch with a timeout and a size cap; only http(s) URLs. */
+const MAX_REDIRECTS = 4;
+
+/**
+ * HTTP(S) fetch for admin-defined sources, hardened against SSRF: every hop (the URL and each redirect) must be http(s) and
+ * resolve to public addresses only, redirects are followed by hand, and the body is read with a hard size cap.
+ */
 export const httpFetcher: Fetcher = async (url) => {
-  if (!/^https?:\/\//i.test(url)) throw new Error('only http(s) urls');
-  const res = await fetch(url, { headers: { 'user-agent': USER_AGENT, accept: 'text/html,text/csv,text/plain,*/*' }, signal: AbortSignal.timeout(TIMEOUT_MS), redirect: 'follow' });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const buf = await res.arrayBuffer();
-  if (buf.byteLength > MAX_BYTES) throw new Error('response too large');
-  return new TextDecoder('utf-8').decode(buf);
+  let current = url;
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    const checked = await assertPublicHttpUrl(current);
+    const res = await fetch(checked, { headers: { 'user-agent': USER_AGENT, accept: 'text/html,text/csv,text/plain,*/*' }, signal: AbortSignal.timeout(TIMEOUT_MS), redirect: 'manual' });
+    if (res.status >= 300 && res.status < 400) {
+      const next = res.headers.get('location');
+      if (!next) throw new Error('redirect without location');
+      current = new URL(next, checked).toString();
+      continue;
+    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return readCapped(res, MAX_BYTES);
+  }
+  throw new Error('too many redirects');
 };
+
+async function readCapped(res: Response, max: number): Promise<string> {
+  const reader = res.body?.getReader();
+  if (!reader) return '';
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.byteLength;
+    if (total > max) {
+      await reader.cancel();
+      throw new Error('response too large');
+    }
+    chunks.push(value);
+  }
+  const all = new Uint8Array(total);
+  let off = 0;
+  for (const c of chunks) {
+    all.set(c, off);
+    off += c.byteLength;
+  }
+  return new TextDecoder('utf-8').decode(all);
+}
 
 export function dedupeKeyOf(c: RawCandidate, url: string): string {
   return createHash('sha256').update([c.productNameFa, c.year, c.month ?? 0, c.priceRials.toString(), url].join('|')).digest('hex').slice(0, 64);

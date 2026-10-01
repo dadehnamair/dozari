@@ -4,6 +4,7 @@ import type { Socket } from 'socket.io';
 import { ClientEvent, ServerEvent, matchResumeSchema, matchSubmitSchema, queueJoinSchema } from '@dozari/shared';
 import type { Ack } from '@dozari/shared';
 import type { UserRecord } from '../auth/service.js';
+import { RateLimiter } from '../security/rate-limit.js';
 import { MatchService } from './match-service.js';
 import type { MatchDeps } from './match-service.js';
 import { DuelQueue } from './queue.js';
@@ -37,6 +38,8 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
   let matches: MatchService | undefined;
   const stats = new SocketStats({ queueLength: () => queue.length, activeMatches: () => matches?.activeCount ?? 0, longestWaitMs: (t) => queue.longestWaitMs(t) }, now);
   const io = new Server(http, {
+    // Every client message is a tiny JSON object.
+    maxHttpBufferSize: 16 * 1024,
     cors: opts.corsOrigin ? { origin: opts.corsOrigin === '*' ? true : opts.corsOrigin.split(',').map((o) => o.trim()) } : undefined,
   });
   if (opts.match) matches = new MatchService({ now, ...opts.match, emit: (userId, event, payload) => void io.to(room(userId)).emit(event, payload) });
@@ -66,6 +69,12 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
   io.on('connection', (socket: Socket) => {
     const userId = socket.data.userId as string;
     stats.connected();
+    // A flooding client is cut off: 60 events per 10 seconds per connection.
+    const flood = new RateLimiter(60, 10_000, now);
+    socket.use((_packet, next) => {
+      if (flood.take(socket.id)) return next();
+      socket.disconnect(true);
+    });
     void socket.join(room(userId));
 
     socket.on(ClientEvent.queueJoin, async (payload: unknown, ack?: (a: Ack) => void) => {

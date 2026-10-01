@@ -121,7 +121,7 @@ function editProduct(p) {
       h('thead', {}, [h('tr', {}, ['سال', 'قیمت', 'منبع', 'وضعیت', ''].map(function (t) { return h('th', { text: t }); }))]),
       h('tbody', {}, p.prices.map(function (x) {
         return h('tr', {}, [h('td', { class: 'num', text: fa(x.year) + (x.month ? '/' + fa(x.month) : '') }), h('td', { class: 'num', text: toman(x.priceRials) }),
-          h('td', {}, [x.sourceUrl ? h('a', { href: x.sourceUrl, target: '_blank', rel: 'noopener noreferrer', text: SRC_FA[x.sourceType] || x.sourceType }) : (SRC_FA[x.sourceType] || x.sourceType)]),
+          h('td', {}, [x.sourceUrl ? h('a', { href: safeHref(x.sourceUrl), target: '_blank', rel: 'noopener noreferrer', text: SRC_FA[x.sourceType] || x.sourceType }) : (SRC_FA[x.sourceType] || x.sourceType)]),
           h('td', {}, [badge(x.status === 'approved' ? 'تأییدشده' : x.status === 'pending' ? 'در انتظار' : 'ردشده', x.status === 'approved' ? 'b-ok' : x.status === 'pending' ? 'b-info' : 'b-bad')]),
           h('td', {}, [x.status !== 'approved' ? h('button', { class: 'btn ok sm', text: 'تأیید', onclick: function () { setPrice(x, 'approved', drawPrices); } }) : null, ' ', x.status !== 'rejected' ? h('button', { class: 'btn bad sm', text: 'رد', onclick: function () { setPrice(x, 'rejected', drawPrices); } }) : null])]);
       }))
@@ -181,7 +181,7 @@ VIEWS.prices = function (root) {
         var fl = flagsFor(p, x);
         return h('div', { class: 'kv', style: 'align-items:center;flex-wrap:wrap' }, [
           h('div', {}, [h('b', { class: 'num', text: fa(x.year) + (x.month ? '/' + fa(x.month) : '') + ' — ' + toman(x.priceRials) }),
-            h('div', { class: 'sub', style: 'color:var(--muted);font-size:13px' }, [(SRC_FA[x.sourceType] || x.sourceType) + ' · اطمینان ' + fa(x.confidence) + ' ', x.sourceUrl ? h('a', { href: x.sourceUrl, target: '_blank', rel: 'noopener noreferrer', text: 'منبع' }) : null, x.sourceNote ? ' · ' + x.sourceNote : '']),
+            h('div', { class: 'sub', style: 'color:var(--muted);font-size:13px' }, [(SRC_FA[x.sourceType] || x.sourceType) + ' · اطمینان ' + fa(x.confidence) + ' ', x.sourceUrl ? h('a', { href: safeHref(x.sourceUrl), target: '_blank', rel: 'noopener noreferrer', text: 'منبع' }) : null, x.sourceNote ? ' · ' + x.sourceNote : '']),
             fl.map(function (t) { return h('span', { class: 'flag', text: '⚠ ' + t }); })]),
           h('div', { style: 'display:flex;gap:6px' }, [x.status !== 'approved' ? h('button', { class: 'btn ok sm', text: 'تأیید', onclick: function () { setPrice(x, 'approved', draw); } }) : null, x.status !== 'rejected' ? h('button', { class: 'btn bad sm', text: 'رد', onclick: function () { setPrice(x, 'rejected', draw); } }) : null, x.status !== 'pending' ? h('button', { class: 'btn sm', text: 'برگرداندن به انتظار', onclick: function () { setPrice(x, 'pending', draw); } }) : null])
         ]);

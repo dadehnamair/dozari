@@ -37,6 +37,9 @@ import { registerInboxRoutes } from './messages/routes.js';
 import { SocialService } from './social/service.js';
 import { createDbSocialStore } from './social/store.js';
 import { registerSocialRoutes } from './social/routes.js';
+import { RateLimiter } from './security/rate-limit.js';
+import { registerSecurityHeaders } from './security/headers.js';
+import { checkProductionConfig } from './security/config.js';
 import { createDbNotifyStore } from './notify/store.js';
 import type { NotifyStore } from './notify/store.js';
 import { BALE_TEXT } from './notify/texts.js';
@@ -51,6 +54,8 @@ import { SoloService } from './solo/service.js';
 import type { CatalogRepository } from './catalog/routes.js';
 
 export interface ServerDeps {
+  /** Behind a reverse proxy: trust `X-Forwarded-For` for the client IP (needed for the per-IP rate limits to see real clients). */
+  trustProxy?: boolean;
   catalog?: CatalogRepository;
   /** Interim catalog review page + API at `/admin`; registered only when a token is provided. */
   admin?: { repo: AdminRepository; token: string };
@@ -81,7 +86,27 @@ export interface ServerDeps {
 }
 
 export function buildServer(deps: ServerDeps = {}) {
-  const app = Fastify({ logger: true });
+  // Small bodies only: every JSON payload of this API is a few hundred bytes.
+  const app = Fastify({ logger: true, bodyLimit: 64 * 1024, trustProxy: deps.trustProxy ?? false });
+  registerSecurityHeaders(app, { hsts: process.env.NODE_ENV === 'production' });
+
+  // Never leak internals: 5xx are logged and answered generically, 4xx carry only a short code.
+  app.setErrorHandler((err: { statusCode?: number; code?: string }, req, reply) => {
+    const status = err.statusCode && err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 500;
+    if (status >= 500) {
+      req.log.error({ err }, 'request failed');
+      return reply.code(500).send({ error: 'internal' });
+    }
+    return reply.code(status).send({ error: status === 413 ? 'payload_too_large' : status === 429 ? 'rate_limited' : 'invalid_request' });
+  });
+
+  // Per-IP request limits: a general one, and a tight one on account creation.
+  const anyLimit = new RateLimiter(300, 60_000);
+  const guestLimit = new RateLimiter(20, 60_000);
+  app.addHook('onRequest', async (req, reply) => {
+    const limited = !anyLimit.take(req.ip) ? anyLimit : req.url.split('?')[0] === '/auth/guest' && !guestLimit.take(req.ip) ? guestLimit : null;
+    if (limited) return reply.header('retry-after', String(limited.retryAfterSec(req.ip))).code(429).send({ error: 'rate_limited' });
+  });
 
   app.get('/health', async () => ({
     status: 'ok',
@@ -139,6 +164,9 @@ async function soloRules(settings: SettingsService) {
 }
 
 if (isMainModule(import.meta.url)) {
+  const problems = checkProductionConfig(process.env);
+  for (const w of problems.warn) console.warn(`[security] ${w}`);
+  if (problems.fatal.length > 0) throw new Error(`Refusing to start: ${problems.fatal.join('; ')}`);
   const db = process.env.DATABASE_URL ? createDb() : undefined;
   const adminToken = process.env.ADMIN_TOKEN;
   const jwtSecret = process.env.JWT_SECRET ?? (process.env.NODE_ENV === 'production' ? undefined : 'dev-only-secret-change-me');
@@ -190,6 +218,7 @@ if (isMainModule(import.meta.url)) {
     solo: db && settings ? new SoloService(createDbPuzzleSource(db), { rules: () => soloRules(settings) }) : undefined,
     admin: db && adminToken ? { repo: createDbAdminRepository(db), token: adminToken } : undefined,
     corsOrigin: process.env.CORS_ORIGIN,
+    trustProxy: process.env.TRUST_PROXY === '1',
     localImagesDir: process.env.LOCAL_IMAGES_DIR,
   });
   if (bot && settings && process.env.BOT_SCHEDULER !== 'off') {

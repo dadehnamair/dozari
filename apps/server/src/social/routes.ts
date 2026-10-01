@@ -3,12 +3,15 @@ import { z } from 'zod';
 import { genderSchema } from '@dozari/shared';
 import type { AuthService } from '../auth/service.js';
 import { currentUser } from '../auth/routes.js';
+import { RateLimiter } from '../security/rate-limit.js';
 import type { SocialService } from './service.js';
 
 const idParam = z.object({ id: z.string().uuid() });
 
 /** Player side: public profiles, friend requests, own profile and gender (D67, D68). */
 export function registerSocialRoutes(app: FastifyInstance, auth: AuthService, social: SocialService) {
+  // Friend-request spam: 30 requests an hour per player.
+  const requestLimit = new RateLimiter(30, 60 * 60_000);
   app.get('/me/profile', async (req, reply) => {
     const user = await currentUser(auth, req);
     if (!user) return reply.code(401).send({ error: 'unauthorized' });
@@ -43,6 +46,7 @@ export function registerSocialRoutes(app: FastifyInstance, auth: AuthService, so
     const p = idParam.safeParse(req.params);
     if (!user) return reply.code(401).send({ error: 'unauthorized' });
     if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
+    if (!requestLimit.take(user.id)) return reply.header('retry-after', String(requestLimit.retryAfterSec(user.id))).code(429).send({ error: 'rate_limited' });
     const out = await social.request(user.id, p.data.id);
     if (out === 'unknown_player') return reply.code(404).send({ error: 'player_not_found' });
     if (out === 'self') return reply.code(400).send({ error: 'cannot_friend_self' });

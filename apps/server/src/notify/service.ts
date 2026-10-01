@@ -1,4 +1,5 @@
 import { randomInt } from 'node:crypto';
+import { RateLimiter } from '../security/rate-limit.js';
 import type { BaleClient, BaleUpdate } from './client.js';
 import type { NotifyStore } from './store.js';
 import { BALE_TEXT } from './texts.js';
@@ -11,6 +12,9 @@ const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 export type NotifyKind = 'match_result' | 'daily_ready' | 'friend_request' | 'broadcast' | 'admin' | 'test';
 
 export class NotifyService {
+  /** Wrong link codes per chat: 8 in 10 minutes, then the bot stays quiet (a 6-character code must not be guessable). */
+  private readonly badCodes = new RateLimiter(8, 10 * 60_000);
+
   constructor(
     private readonly store: NotifyStore,
     private readonly client: BaleClient | null,
@@ -100,7 +104,9 @@ export class NotifyService {
     // «/start CODE» (deep link) or just the code typed by hand.
     const candidate = (cmd === '/start' ? text.split(/\s+/)[1] : text)?.trim().toUpperCase();
     if (!candidate || !/^[A-Z0-9]{4,12}$/.test(candidate)) return void (await reply(BALE_TEXT.help));
+    if (this.badCodes.blocked(chatId)) return;
     const linked = await this.store.redeemCode(candidate, chatId, this.now());
+    if (!linked) this.badCodes.take(chatId);
     await reply(linked ? BALE_TEXT.linked : BALE_TEXT.badCode);
   }
 }

@@ -6,6 +6,7 @@ import type { PriceMark } from '@dozari/shared';
 import type { DailyRewardService } from '../economy/daily-reward.js';
 import { registerDailyRewardAdminRoutes } from '../economy/routes.js';
 import type { SocketStats } from '../realtime/stats.js';
+import { RateLimiter } from '../security/rate-limit.js';
 import { registerAdminModules } from './module-routes.js';
 import type { AdminModules } from './module-routes.js';
 import { ADMIN_PAGE_HTML } from './page.js';
@@ -83,8 +84,14 @@ export function registerAdminRoutes(app: FastifyInstance, repo: AdminRepository,
   app.get('/admin', async (_req, reply) => reply.type('text/html; charset=utf-8').send(ADMIN_PAGE_HTML));
 
   app.register(async (guarded) => {
+    // Guessing the token: 10 wrong tries per 15 minutes per IP, then locked out for the rest of the window.
+    const failures = new RateLimiter(10, 15 * 60_000);
     guarded.addHook('onRequest', async (req, reply) => {
-      if (!tokenMatches(req, token)) return reply.code(401).send({ error: 'unauthorized' });
+      if (failures.blocked(req.ip)) return reply.header('retry-after', String(failures.retryAfterSec(req.ip))).code(429).send({ error: 'rate_limited' });
+      if (!tokenMatches(req, token)) {
+        failures.take(req.ip);
+        return reply.code(401).send({ error: 'unauthorized' });
+      }
     });
 
     if (extras.dailyReward) registerDailyRewardAdminRoutes(guarded, extras.dailyReward);
