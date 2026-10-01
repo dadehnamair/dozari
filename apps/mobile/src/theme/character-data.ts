@@ -58,6 +58,7 @@ export interface CastSpec {
   glasses?: number;
   brow?: string;
   mustache?: string;
+  fem?: number;
 }
 /** [path, fill, stroke?, strokeWidth?] */
 export type AccPart = [string, string, string?, number?];
@@ -340,6 +341,9 @@ export const CAST: Record<string, CastSpec> = {
     mustache: 'thin',
     seed: 37,
   },
+  dozariF: {
+    head: 'bean', skin: '#F9CDA4', hat: 'namadi', hatC: '#E8743B', nose: 'button', cloth: '#FF7FAE', patC: '#FFC2D9', pat: 'stripe', belt: '#3A2418', freckles: 1, fem: 1, seed: 5,
+  },
   goli: {
     head: 'round',
     skin: '#F8CEA6',
@@ -436,4 +440,4 @@ export const MONTH: (MonthSpec | null)[] = [
   ['#8FDCFA', '#FFFFFF', '#3E93B8', '#FFFFFF', 'earmuffs'],
   ['#A66BF0', '#D2B8FA', '#FF4D8D', '#FFC93C', 'goldfish'],
 ];
-export const ORDER: string[] = ['dozari', 'mashti', 'khale', 'pahlevan', 'baqal', 'mirza', 'goli'];
+export const ORDER: string[] = ['dozari', 'dozariF', 'mashti', 'khale', 'pahlevan', 'baqal', 'mirza', 'goli'];

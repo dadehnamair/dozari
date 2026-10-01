@@ -126,6 +126,14 @@ export function Character({
               <Path d={body} fill={`url(#${pid})`} stroke="none" />
               {L.beltD ? <Path d={L.beltD} fill={L.belt} strokeWidth={2.4} /> : null}
               <Path d={body} fill="none" strokeWidth={3.2} />
+              {L.heroF ? (
+                <G>
+                  <Path d="M63 206Q100 216 137 206L148 234Q100 248 52 234Z" fill={L.cloth} strokeWidth={3} />
+                  <Path d="M63 206Q100 216 137 206L148 234Q100 248 52 234Z" fill={`url(#${pid})`} stroke="none" />
+                  <Path d="M54 228Q100 242 146 228" stroke="#FFC93C" strokeWidth={3.4} fill="none" />
+                  <Path d="M60 222l3 6" stroke="#fff" strokeWidth={2.2} opacity={0.6} fill="none" />
+                </G>
+              ) : null}
               {L.hero ? (
                 <G>
                   <Circle cx={100} cy={200} r={7} fill="#FFC93C" strokeWidth={2.2} />
@@ -168,9 +176,10 @@ export function Character({
           {L.hairBack ? (
             <G>
               <Path d={L.hairBack} strokeWidth={12} fill="none" />
-              <Path d={L.hairBack} stroke={L.hatColor} strokeWidth={7} fill="none" />
+              <Path d={L.hairBack} stroke={L.hairColor} strokeWidth={7} fill="none" />
             </G>
           ) : null}
+          {L.ribbon ? <Path d={L.ribbon} fill="#E8743B" strokeWidth={2.2} /> : null}
           {L.hero ? (
             <G>
               <Ellipse cx={62} cy={98} rx={9} ry={12} fill={L.skin} strokeWidth={3} />
@@ -180,7 +189,7 @@ export function Character({
             </G>
           ) : null}
           <Path d={L.headD} fill={L.skin} strokeWidth={3.4} />
-          {L.hero ? (
+          {L.hero && !L.heroF ? (
             <G>
               <Path
                 d="M72 36C60 36 56 46 61 52C54 57 59 66 66 63C71 59 70 52 75 47ZM128 36C140 36 144 46 139 52C146 57 141 66 134 63C129 59 130 52 125 47Z"
@@ -192,6 +201,12 @@ export function Character({
                 fill="#4A2A1A"
                 strokeWidth={2.6}
               />
+            </G>
+          ) : null}
+          {L.heroF ? (
+            <G>
+              <Path d="M66 60C62 40 80 30 100 32C120 30 138 40 134 60C128 50 120 46 112 52C106 44 96 44 90 52C82 46 72 50 66 60Z" fill="#4A2A1A" strokeWidth={2.6} />
+              <Path d="M76 46Q84 40 92 40" stroke="#fff" strokeWidth={2} opacity={0.45} fill="none" />
             </G>
           ) : null}
           <G transform={`translate(0 ${L.hatY}) rotate(${L.hatRot} 100 40)`}>
@@ -234,6 +249,7 @@ export function Character({
               <Circle cx={L.eye.hlx} cy={L.eye.hly} r={1.5} fill="#fff" stroke="none" />
               <Circle cx={L.eye.hrx} cy={L.eye.hly} r={1.5} fill="#fff" stroke="none" />
               {L.eye.lid ? <Path d={L.eye.lid} fill={L.skin} strokeWidth={2.8} /> : null}
+              {L.heroF ? <Path d="M77 68l-6-4M78 63l-4-6M123 68l6-4M122 63l4-6" strokeWidth={2.4} fill="none" /> : null}
             </G>
           ) : null}
           {L.eye.lines ? <Path d={L.eye.lines} fill="none" strokeWidth={3.4} /> : null}

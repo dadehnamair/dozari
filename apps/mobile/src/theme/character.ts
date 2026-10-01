@@ -18,6 +18,7 @@ import type { AccPart, HatSpec, MouthSpec, NoseSpec } from './character-data';
 
 export const CHARACTERS = [
   'dozari',
+  'dozariF',
   'mashti',
   'khale',
   'pahlevan',
@@ -47,6 +48,7 @@ const BEARD =
   'M60 104C54 116 58 128 66 132C62 144 72 154 82 152C84 164 98 168 106 160C116 168 130 160 128 150C140 152 146 140 140 130C148 124 148 110 140 104C124 122 76 122 60 104Z';
 const CURLS = 'M74 138q4 5 9 1M94 152q4 5 9 1M114 146q4 5 9 1M128 128q4 5 9 1';
 const BRAIDS = 'M56 92C48 118 50 146 56 168M144 92C152 118 150 146 144 168';
+const RIBBON = 'M50 160l-8-6l2 10ZM50 160l8-6l-2 10ZM150 160l-8-6l2 10ZM150 160l8-6l-2 10Z';
 const FRECKLES = 'M70 97h.1M76 100h.1M71 104h.1M124 100h.1M130 97h.1M129 104h.1';
 
 export interface CharacterLook {
@@ -94,6 +96,9 @@ export interface CharacterLook {
   hatColor: string;
   browColor: string;
   hero: boolean;
+  heroF: boolean;
+  hairColor: string;
+  ribbon: string;
   scarf: string;
   scarfLight: string;
   freckles: string;
@@ -113,7 +118,7 @@ export function characterLook(opts: {
   const sk = Math.trunc(opts.skin ?? 0) || 0;
   const key = opts.who && CAST[opts.who] ? opts.who : (ORDER[((sk % 7) + 7) % 7] as string);
   const base = CAST[key] ?? CAST.dozari!;
-  const mo = key === 'dozari' ? (MONTH[Math.trunc(opts.month ?? 0)] ?? null) : null;
+  const mo = key === 'dozari' || key === 'dozariF' ? (MONTH[Math.trunc(opts.month ?? 0)] ?? null) : null;
   const c0 = mo ? { ...base, cloth: mo[0], patC: mo[1], hatC: mo[2] } : base;
   const scarf = mo ? mo[3] : '#E84A3C';
   const P = POSE[opts.pose ?? 'idle'] ?? POSE.idle!;
@@ -126,7 +131,8 @@ export function characterLook(opts: {
   const front = ARMS[P.f]!;
   const px = P.px ?? 0;
   const py = P.py ?? 0;
-  const hero = key === 'dozari';
+  const heroF = Boolean(c0.fem);
+  const hero = key === 'dozari' || heroF;
   const mouth: MouthSpec =
     hero && P.mouth === 'smile'
       ? {
@@ -195,7 +201,10 @@ export function characterLook(opts: {
       d: must && c0.mustache ? (MUST[c0.mustache] ?? '') : '',
       color: c0.mustache === 'thin' ? '#3A2418' : '#2E1E18',
     },
-    hairBack: c0.hat === 'girlhair' ? BRAIDS : '',
+    hairBack: c0.hat === 'girlhair' || heroF ? BRAIDS : '',
+    hairColor: heroF ? '#4A2A1A' : (c0.hatC ?? 'none'),
+    ribbon: heroF ? RIBBON : '',
+    heroF,
     hatColor: c0.hatC ?? 'none',
     browColor: c0.brow ?? '#3A2418',
     hero,
