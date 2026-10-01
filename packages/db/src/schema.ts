@@ -277,6 +277,11 @@ export const users = mysqlTable(
     isBanned: boolean('is_banned').notNull().default(false),
     /** Optional, picked from a fixed list (D68); switches the hero character. Never shown publicly. */
     gender: mysqlEnum('gender', ['female', 'male']),
+    /** Why and when an admin banned the player. */
+    banReason: varchar('ban_reason', { length: 200 }),
+    bannedAt: datetime('banned_at', { mode: 'date', fsp: 3 }),
+    /** Tokens issued before this moment are refused ("log out everywhere", bans). */
+    sessionsValidAfter: datetime('sessions_valid_after', { mode: 'date', fsp: 3 }),
     createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
     lastSeenAt: datetime('last_seen_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
   },
@@ -381,6 +386,18 @@ export const baleLinkCodes = mysqlTable('bale_link_codes', {
   userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
   expiresAt: datetime('expires_at', { mode: 'date', fsp: 3 }).notNull(),
 });
+
+/** Private notes admins keep about a player (moderation history). */
+export const userNotes = mysqlTable(
+  'user_notes',
+  {
+    id: id(),
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    note: varchar('note', { length: 500 }).notNull(),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ byUser: index('user_notes_user_idx').on(table.userId, table.createdAt) }),
+);
 
 export const FRIENDSHIP_STATUSES = ['pending', 'accepted'] as const;
 

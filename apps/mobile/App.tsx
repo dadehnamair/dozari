@@ -3,6 +3,10 @@ import { ActivityIndicator, I18nManager, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Lalezar_400Regular } from '@expo-google-fonts/lalezar';
 import { useFonts, Vazirmatn_400Regular, Vazirmatn_700Bold } from '@expo-google-fonts/vazirmatn';
+import { APP_BUILD } from './src/config/build';
+import { GateScreen } from './src/config/GateScreen';
+import { gateState } from './src/config/gate';
+import { useClientConfig } from './src/config/useClientConfig';
 import { HomeScreen } from './src/home/HomeScreen';
 import { BrandScreen } from './src/brand/BrandScreen';
 import { KitGallery } from './src/kit/KitGallery';
@@ -21,6 +25,8 @@ if (!I18nManager.isRTL) {
 const SPLASH_MS = 1800;
 
 export default function App() {
+  const config = useClientConfig();
+  const gate = gateState(config, APP_BUILD);
   const [fontsLoaded] = useFonts({ Vazirmatn_400Regular, Vazirmatn_700Bold, Lalezar_400Regular });
 
   // Minimal navigation until a real router lands with the hub screen (docs/logic/app-screens.md).
@@ -38,6 +44,15 @@ export default function App() {
     return (
       <View style={styles.loading}>
         <ActivityIndicator color="#FFC93C" />
+      </View>
+    );
+  }
+
+  if (gate !== 'ok') {
+    return (
+      <View style={styles.container}>
+        <StatusBar style="light" />
+        <GateScreen kind={gate} message={config.maintenance.message} updateUrl={config.updateUrl} />
       </View>
     );
   }
@@ -61,6 +76,7 @@ export default function App() {
         <HomeScreen
           onSolo={() => setScreen('solo')}
           onLookup={() => setScreen('lookup')}
+          features={config.features}
           onGallery={__DEV__ ? () => setScreen('gallery') : undefined}
         />
       ) : null}

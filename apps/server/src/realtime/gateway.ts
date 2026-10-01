@@ -14,6 +14,8 @@ export interface GatewayOptions {
   /** Resolves a handshake token to its (not banned) account, else null: `AuthService.authenticate`. */
   authenticate: (token: string) => Promise<UserRecord | null>;
   corsOrigin?: string;
+  /** Admin kill switches: a non-null answer refuses new connections' queue joins (maintenance mode, duel feature off). */
+  gate?: () => Promise<'MAINTENANCE' | 'FEATURE_OFF' | null>;
   now?: () => number;
   /** Called when two players are paired; return false to put them back in line. Ignored when `match` is given. */
   onPair?: (a: string, b: string) => Promise<boolean> | boolean;
@@ -79,6 +81,8 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
 
     socket.on(ClientEvent.queueJoin, async (payload: unknown, ack?: (a: Ack) => void) => {
       if (!queueJoinSchema.safeParse(payload).success) return ack?.({ ok: false, error: 'INVALID_PAYLOAD' });
+      const closed = await opts.gate?.();
+      if (closed) return ack?.({ ok: false, error: closed });
       if (matches?.inMatch(userId)) return ack?.({ ok: false, error: 'ALREADY_IN_MATCH' });
       if (!queue.join(userId, now())) return ack?.({ ok: false, error: 'ALREADY_QUEUED' });
       ack?.({ ok: true });

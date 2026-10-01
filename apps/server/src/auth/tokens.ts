@@ -5,8 +5,8 @@ export const TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30;
 
 export interface TokenSigner {
   sign(userId: string): Promise<string>;
-  /** The user id inside a valid, unexpired token, else null. */
-  verify(token: string): Promise<string | null>;
+  /** The user id and issue time (epoch seconds) inside a valid, unexpired token, else null. */
+  verify(token: string): Promise<{ userId: string; issuedAt: number } | null>;
 }
 
 export function createTokenSigner(secret: string, now: () => number = Date.now): TokenSigner {
@@ -20,7 +20,7 @@ export function createTokenSigner(secret: string, now: () => number = Date.now):
     async verify(token) {
       try {
         const { payload } = await jwtVerify(token, key, { algorithms: ['HS256'], currentDate: new Date(now()) });
-        return typeof payload.sub === 'string' ? payload.sub : null;
+        return typeof payload.sub === 'string' ? { userId: payload.sub, issuedAt: typeof payload.iat === 'number' ? payload.iat : 0 } : null;
       } catch {
         return null;
       }

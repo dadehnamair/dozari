@@ -5,6 +5,10 @@ describe('settings registry', () => {
   it('has unique keys and in-range defaults', () => {
     expect(new Set(SETTING_DEFS.map((d) => d.key)).size).toBe(SETTING_DEFS.length);
     for (const d of SETTING_DEFS) {
+      if (d.kind === 'text') {
+        expect([...(d.default as string)].length <= d.max, d.key).toBe(true);
+        continue;
+      }
       const values = Array.isArray(d.default) ? d.default : [d.default as number];
       for (const v of values) expect(v >= d.min && v <= d.max, d.key).toBe(true);
       if (d.kind === 'intList') expect(values.length, d.key).toBe(d.length);
@@ -21,6 +25,15 @@ describe('settings registry', () => {
     expect(parseSetting(pts, '1, 2 ,3,4')).toEqual([1, 2, 3, 4]);
     expect(parseSetting(pts, '1,2,3')).toBeNull();
     expect(formatSetting([1, 2, 3, 4])).toBe('1,2,3,4');
+  });
+
+  it('keeps short text settings, trimmed, within their length limit', () => {
+    const msg = settingDef('app.maintenance_message')!;
+    expect(parseSetting(msg, '  تعمیر تا ساعت ۸  ')).toBe('تعمیر تا ساعت ۸');
+    expect(parseSetting(msg, 'x'.repeat(301))).toBeNull();
+    expect(parseSetting(msg, 'a\nb')).toBeNull();
+    expect(parseSetting(settingDef('app.update_url')!, '')).toBe('');
+    expect(effectiveSettings({ 'app.update_url': 'https://cafebazaar.ir/app/x' })['app.update_url']).toBe('https://cafebazaar.ir/app/x');
   });
 
   it('applies overrides and ignores broken ones', () => {
