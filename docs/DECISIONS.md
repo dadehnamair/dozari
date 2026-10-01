@@ -162,3 +162,8 @@ Decisions table above.
     "proposed."
 18. **City crews** (D53) — explicitly deferred past launch; not designed further, revisit only if
     players ask for it post-launch.
+
+## D77 — Owner backlog of 27 items is ordered A→F (2026-10-01)
+
+The list is built in the order of `docs/logic/owner-backlog-2026-10.md` because later phases need earlier data (level, badges,
+city, friends). Defaults in that file are proposed and tunable from the admin panel; owner confirms or changes them later.

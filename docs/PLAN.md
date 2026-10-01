@@ -209,3 +209,12 @@ human opponent is found.
 - [ ] 🔔 Admin: word-filter section (with D69)
 - [x] 🖥 Settings wired into: solo max mistakes, price-guess staircase + floor, daily reward cooldown/window (read live; a running solo game keeps the rules it started with)
 - [ ] 🖥 Settings still to wire when their consumers exist: turn seconds, match mistakes, match scoring, avatar/nickname thresholds, chart limits (stored, editable, served at `GET /config`)
+
+## Owner backlog 2026-10-01 (27 items) — see `docs/logic/owner-backlog-2026-10.md`
+
+- [ ] A. Player record: stats, XP/level, skill estimate, city, optional e-mail, nickname rules, warnings/commendations/badges/medals (items 24, 8, 7, 14)
+- [ ] B. Coin economy: audit, shop + hints, coin packages (off), referral "gold", gifts and loans (items 4, 1, 3, 2, 5)
+- [ ] C. Contact and friends: phone + Bale contact verification, SMS, search, shortener, badge-gated sharing (items 6, 7, 19, 20, 22)
+- [ ] D. Chat and moderation: chat, shared tables, city room, canned taunt categories, "Agent Dozari" powers (items 16, 17, 18, 21, 23)
+- [ ] E. Content control: trend-based daily puzzle, admin bot users, tournament entry rules + builder + page (items 15, 25, 26, 27)
+- [ ] F. Feel: dialects, sounds, city backgrounds, personal settings, touch-everything polish (items 9, 10, 11, 12, 13)
