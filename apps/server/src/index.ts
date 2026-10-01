@@ -24,10 +24,11 @@ import { createDbUsersAdmin } from './admin/users.js';
 import { createDbBotRepository } from './bot/repository.js';
 import { BotService } from './bot/service.js';
 import { startBotScheduler } from './bot/scheduler.js';
+import { TextFilterService, createDbWordStore } from './textfilter/service.js';
 import { createDbSettingsStore } from './settings/db-store.js';
 import { SettingsService } from './settings/service.js';
 import type { AdminRepository } from './admin/routes.js';
-import { registerCatalogRoutes } from './catalog/routes.js';
+import { registerCatalogRoutes, registerLookupRoutes } from './catalog/routes.js';
 import { isMainModule } from './is-main.js';
 import { createDbPuzzleSource } from './solo/db-source.js';
 import { registerSoloRoutes } from './solo/routes.js';
@@ -74,7 +75,10 @@ export function buildServer(deps: ServerDeps = {}) {
     const settings = deps.settings;
     app.get('/config', async () => ({ settings: await settings.publicValues() }));
   }
-  if (deps.catalog) registerCatalogRoutes(app, deps.catalog);
+  if (deps.catalog) {
+    registerCatalogRoutes(app, deps.catalog);
+    registerLookupRoutes(app, deps.catalog);
+  }
   if (deps.solo) registerSoloRoutes(app, deps.solo);
   let gateway: Gateway | undefined;
   if (deps.auth && deps.realtime) {
@@ -121,7 +125,7 @@ if (isMainModule(import.meta.url)) {
     auth,
     settings,
     adminModules: db
-      ? { products: createDbProductAdmin(db), stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      ? { products: createDbProductAdmin(db), stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words: new TextFilterService(createDbWordStore(db)), bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
     dailyReward: db && settings ? new DailyRewardService(createDbDailyRewardStore(db), Date.now, () => dailyRules(settings)) : undefined,

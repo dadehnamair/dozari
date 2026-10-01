@@ -27,6 +27,7 @@ function toDto(
     eraTags,
     storyFa: row.storyFa,
     status: row.status,
+    iconKey: row.iconKey,
   };
 }
 

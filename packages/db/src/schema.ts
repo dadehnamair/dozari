@@ -362,6 +362,20 @@ export const adminAuditLog = mysqlTable(
   (table) => ({ byTime: index('admin_audit_log_at_idx').on(table.at) }),
 );
 
+export const WORD_SEVERITIES = ['block', 'mask'] as const;
+
+/** The profanity list (D69), editable from the admin panel. `word` is stored as typed; matching normalises both sides. */
+export const blockedWords = mysqlTable(
+  'blocked_words',
+  {
+    id: id(),
+    word: varchar('word', { length: 100 }).notNull(),
+    severity: mysqlEnum('severity', WORD_SEVERITIES).notNull().default('block'),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ uniqWord: uniqueIndex('blocked_words_word_uq').on(table.word) }),
+);
+
 export const BOT_ADAPTERS = ['html_table', 'csv', 'text_lines'] as const;
 
 /** Where the content bot looks (docs/logic/content-bot.md). `adapter` picks a built-in parser; its options are rows of `content_source_options`. */

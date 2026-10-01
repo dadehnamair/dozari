@@ -6,6 +6,7 @@ import { useFonts, Vazirmatn_400Regular, Vazirmatn_700Bold } from '@expo-google-
 import { HomeScreen } from './src/home/HomeScreen';
 import { BrandScreen } from './src/brand/BrandScreen';
 import { KitGallery } from './src/kit/KitGallery';
+import { LookupScreen } from './src/lookup/LookupScreen';
 import { SearchScreen } from './src/search/SearchScreen';
 import { SplashScreen } from './src/splash/SplashScreen';
 import { SoloScreen } from './src/solo/SoloScreen';
@@ -23,7 +24,7 @@ export default function App() {
   const [fontsLoaded] = useFonts({ Vazirmatn_400Regular, Vazirmatn_700Bold, Lalezar_400Regular });
 
   // Minimal navigation until a real router lands with the hub screen (docs/logic/app-screens.md).
-  const [screen, setScreen] = useState<'splash' | 'home' | 'solo' | 'gallery' | 'search' | 'brand'>(
+  const [screen, setScreen] = useState<'splash' | 'home' | 'solo' | 'gallery' | 'search' | 'brand' | 'lookup'>(
     'splash',
   );
 
@@ -53,11 +54,13 @@ export default function App() {
           onBrand={() => setScreen('brand')}
         />
       ) : null}
+      {screen === 'lookup' ? <LookupScreen onBack={() => setScreen('home')} /> : null}
       {screen === 'brand' ? <BrandScreen onBack={() => setScreen('gallery')} /> : null}
       {screen === 'search' ? <SearchScreen onCancel={() => setScreen('gallery')} /> : null}
       {screen === 'home' ? (
         <HomeScreen
           onSolo={() => setScreen('solo')}
+          onLookup={() => setScreen('lookup')}
           onGallery={__DEV__ ? () => setScreen('gallery') : undefined}
         />
       ) : null}
