@@ -81,7 +81,7 @@ export const fa = {
       { key: 'kite', name: 'بادبادک' },
     ] },
   ],
-  daily: { title: 'جایزهٔ روزانه', day: 'روز', today: 'امروز', claim: 'بگیر!' },
+  daily: { title: 'جایزهٔ روزانه', day: 'روز', today: 'امروز', claim: 'بگیر!', wait: 'تا جایزهٔ بعدی', won: 'سکه گرفتی!', coins: 'سکه', open: 'جایزهٔ روزانه' },
   /** Solar Hijri months: the name and the mood the mascot wears in that month (D66). */
   months: [
     { name: 'فروردین', mood: 'سبزهٔ نوروز' },

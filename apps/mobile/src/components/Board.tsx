@@ -5,6 +5,7 @@ import type { SoloCard, SoloSolvedGroup } from '@dozari/shared';
 import { colors, groupShelf, tile } from '../theme/colors';
 import { fa } from '../i18n/fa';
 import { cellWidth } from './boardLayout';
+import { Item } from './Item';
 
 const GAP = 8;
 
@@ -42,6 +43,11 @@ export function Board({ solved, cards, names, selected, onToggle, disabled }: Bo
               onPress={() => onToggle(c.id)}
               style={[styles.cell, w > 0 && { width: w, height: Math.round(w * 0.85) }, on && styles.cellOn]}
             >
+              {c.iconKey ? (
+                <View style={styles.icon}>
+                  <Item icon={c.iconKey} />
+                </View>
+              ) : null}
               <Text style={[styles.name, on && styles.nameOn]} numberOfLines={3}>{c.nameFa}</Text>
               {c.unitFa ? <Text style={[styles.unit, on && styles.nameOn]} numberOfLines={1}>{c.unitFa}</Text> : null}
             </Pressable>
@@ -71,6 +77,7 @@ const styles = StyleSheet.create({
     padding: 6,
   },
   cellOn: { backgroundColor: tile.selected.face, borderBottomColor: tile.selected.shelf, transform: [{ translateY: 2 }, { scale: 0.96 }] },
+  icon: { width: 34, height: 34 },
   name: { fontFamily: 'Vazirmatn_700Bold', fontSize: 14, color: tile.idle.text, textAlign: 'center' },
   unit: { fontFamily: 'Vazirmatn_400Regular', fontSize: 11, color: colors.ink, opacity: 0.7, textAlign: 'center' },
   nameOn: { color: tile.selected.text },

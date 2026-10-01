@@ -196,4 +196,8 @@ human opponent is found.
 
 - [ ] 🛡 Profanity filter on all free text (D69): admin-editable word list, normalisation, server-side
 - [ ] 🔎 Price lookup screen «استعلام قیمت» (D70): product + year -> approved price with source, chart, «request this item»
-- [ ] 🔔 Admin: word-filter section, bot sources/candidates, settings registry (done in code, UI in progress)
+- [x] 🖥 Admin panel v2: sidebar SPA, dashboard, catalog + icon picker, price review, bot inbox/sources, daily reward, settings registry (`config/registry.ts`, `app_settings`), users + coin adjust, socket, audit log (`admin/ui/*`)
+- [x] 🖥 Content bot: sources (`html_table`/`csv`/`text_lines`), runs, pending-only candidates with source + excerpt, approve/reject, in-process schedule + `bot:run` CLI (`bot/*`)
+- [x] 📱 Guest login + token on device, daily reward card and coin balance on Home, item icons on board cards
+- [ ] 🔔 Admin: word-filter section (with D69)
+- [ ] 🖥 Wire settings overrides into consumers (solo mistakes, turn seconds, scoring, unlock thresholds) — today they are stored, served at `GET /config` and editable, but the game code still reads the compile-time constants

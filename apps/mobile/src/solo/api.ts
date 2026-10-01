@@ -1,30 +1,11 @@
 import { soloChartSchema, soloGuessResultSchema, soloPriceResultSchema, soloPriceRoundsSchema, soloViewSchema } from '@dozari/shared';
 import type { SoloChart, SoloGuessResult, SoloPriceResult, SoloPriceRounds, SoloView } from '@dozari/shared';
 
-export const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
+import { ApiError, BASE_URL, callJson } from '../net/http';
 
-export class ApiError extends Error {
-  constructor(
-    readonly status: number,
-    readonly code: string,
-  ) {
-    super(`${status} ${code}`);
-  }
-}
+export { ApiError, BASE_URL };
 
-async function call(path: string, method: 'GET' | 'POST', body?: unknown): Promise<unknown> {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    method,
-    headers: body === undefined ? undefined : { 'content-type': 'application/json' },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
-  const json: unknown = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const code = typeof json === 'object' && json !== null && 'error' in json ? String((json as { error: unknown }).error) : 'error';
-    throw new ApiError(res.status, code);
-  }
-  return json;
-}
+const call = callJson;
 
 export const startSolo = async (): Promise<SoloView> => soloViewSchema.parse(await call('/solo/start', 'POST'));
 

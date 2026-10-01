@@ -12,3 +12,4 @@ export * from './economy/index.js';
 export * from './calendar/solar-month.js';
 export * from './items/index.js';
 export * from './config/registry.js';
+export * from './economy/contract.js';
