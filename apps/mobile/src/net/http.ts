@@ -10,7 +10,7 @@ export class ApiError extends Error {
 }
 
 /** JSON call to the Dozari server; throws `ApiError` for non-2xx. `token` adds the guest session header. */
-export async function callJson(path: string, method: 'GET' | 'POST' | 'DELETE', body?: unknown, token?: string): Promise<unknown> {
+export async function callJson(path: string, method: 'GET' | 'POST' | 'DELETE' | 'PUT', body?: unknown, token?: string): Promise<unknown> {
   const headers: Record<string, string> = {};
   if (body !== undefined) headers['content-type'] = 'application/json';
   if (token) headers.authorization = `Bearer ${token}`;

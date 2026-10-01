@@ -13,6 +13,7 @@ export * from './calendar/solar-month.js';
 export * from './text/index.js';
 export * from './lookup/index.js';
 export * from './notify/index.js';
+export * from './social/index.js';
 export * from './items/index.js';
 export * from './config/registry.js';
 export * from './economy/contract.js';

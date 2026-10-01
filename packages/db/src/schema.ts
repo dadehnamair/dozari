@@ -275,6 +275,8 @@ export const users = mysqlTable(
     nickname: varchar('nickname', { length: 60 }).notNull(),
     avatarKey: varchar('avatar_key', { length: 30 }).notNull(),
     isBanned: boolean('is_banned').notNull().default(false),
+    /** Optional, picked from a fixed list (D68); switches the hero character. Never shown publicly. */
+    gender: mysqlEnum('gender', ['female', 'male']),
     createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
     lastSeenAt: datetime('last_seen_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
   },
@@ -379,6 +381,22 @@ export const baleLinkCodes = mysqlTable('bale_link_codes', {
   userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
   expiresAt: datetime('expires_at', { mode: 'date', fsp: 3 }).notNull(),
 });
+
+export const FRIENDSHIP_STATUSES = ['pending', 'accepted'] as const;
+
+/** One row per pair of players; the ids are stored in sorted order so a pair can exist only once. */
+export const friendships = mysqlTable(
+  'friendships',
+  {
+    userLow: char('user_low', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    userHigh: char('user_high', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    requestedBy: char('requested_by', { length: 36 }).notNull(),
+    status: mysqlEnum('status', FRIENDSHIP_STATUSES).notNull().default('pending'),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    respondedAt: datetime('responded_at', { mode: 'date', fsp: 3 }),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.userLow, table.userHigh] }), byHigh: index('friendships_high_idx').on(table.userHigh) }),
+);
 
 export const MESSAGE_AUDIENCES = ['all', 'bale_linked', 'user'] as const;
 export const MESSAGE_CHANNELS = ['in_app', 'bale', 'sms', 'email', 'push'] as const;
