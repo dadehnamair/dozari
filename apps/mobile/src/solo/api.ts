@@ -1,5 +1,5 @@
-import { soloGuessResultSchema, soloViewSchema } from '@dozari/shared';
-import type { SoloGuessResult, SoloView } from '@dozari/shared';
+import { soloChartSchema, soloGuessResultSchema, soloViewSchema } from '@dozari/shared';
+import type { SoloChart, SoloGuessResult, SoloView } from '@dozari/shared';
 
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
 
@@ -33,3 +33,6 @@ export const guessSolo = async (sessionId: string, productIds: readonly string[]
 
 export const shuffleSolo = async (sessionId: string): Promise<SoloView> =>
   soloViewSchema.parse(await call(`/solo/${sessionId}/shuffle`, 'POST'));
+
+export const fetchSoloChart = async (sessionId: string): Promise<SoloChart> =>
+  soloChartSchema.parse(await call(`/solo/${sessionId}/chart`, 'GET'));

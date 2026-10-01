@@ -3,6 +3,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-nat
 import type { SoloView } from '@dozari/shared';
 import { Board } from '../components/Board';
 import { CandyButton } from '../components/CandyButton';
+import { ChartPanel } from '../components/ChartPanel';
 import { MistakeDots } from '../components/MistakeDots';
 import { fa } from '../i18n/fa';
 import { colors } from '../theme/colors';
@@ -121,6 +122,7 @@ export function SoloScreen({ onBack }: { onBack: () => void }) {
       ) : (
         <View style={styles.end}>
           <Text style={styles.msg}>{view.status === 'won' ? fa.solo.won : fa.solo.lost}</Text>
+          <ChartPanel sessionId={view.sessionId} />
           <View style={styles.actions}>
             <CandyButton label={fa.solo.newGame} color={colors.candy.yellow} onPress={() => void begin()} />
             <CandyButton label={fa.solo.back} color={colors.candy.sky} onPress={onBack} />
