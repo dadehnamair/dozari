@@ -5,6 +5,8 @@ import { SceneBackground } from '../components/SceneBackground';
 import { Character } from '../components/Character';
 import { DailyRewardCard } from '../components/DailyRewardCard';
 import { IconButton } from '../components/IconButton';
+import { InboxSheet } from '../inbox/InboxSheet';
+import { useInbox } from '../inbox/useInbox';
 import { BaleSheet } from '../bale/BaleSheet';
 import { Toast } from '../components/Toast';
 import { Wordmark } from '../components/Wordmark';
@@ -19,6 +21,8 @@ export function HomeScreen({ onSolo, onLookup, onGallery }: { onSolo: () => void
   const daily = useDailyReward();
   const [dailyOpen, setDailyOpen] = useState(false);
   const [baleOpen, setBaleOpen] = useState(false);
+  const [inboxOpen, setInboxOpen] = useState(false);
+  const inbox = useInbox();
   const float = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     const loop = Animated.loop(
@@ -53,9 +57,12 @@ export function HomeScreen({ onSolo, onLookup, onGallery }: { onSolo: () => void
           ) : (
             <View />
           )}
+          <View style={styles.actions}>
+          <IconButton icon="mail" label={fa.inbox.open} color={colors.candy.sky} badge={inbox.inbox && inbox.inbox.unread > 0 ? toPersianDigits(String(inbox.inbox.unread)) : undefined} size={48} onPress={() => { inbox.reload(); setInboxOpen(true); }} />
           {daily.status ? (
             <IconButton icon="gift" label={fa.daily.open} color={colors.candy.pink} badge={daily.status.canClaim ? '!' : undefined} size={48} onPress={() => setDailyOpen(true)} />
           ) : null}
+          </View>
         </View>
         <View style={styles.top}>
           <Wordmark />
@@ -94,6 +101,7 @@ export function HomeScreen({ onSolo, onLookup, onGallery }: { onSolo: () => void
           </Pressable>
         </Pressable>
       ) : null}
+      {inboxOpen ? <InboxSheet inbox={inbox.inbox} failed={inbox.failed} onRead={inbox.markRead} onReadAll={inbox.markAll} onClose={() => setInboxOpen(false)} /> : null}
       {baleOpen ? <BaleSheet onClose={() => setBaleOpen(false)} /> : null}
     </SceneBackground>
   );
@@ -108,6 +116,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   topBar: { position: 'absolute', top: 14, left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  actions: { flexDirection: 'row', gap: 10, alignItems: 'center' },
   coins: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 99, backgroundColor: 'rgba(251,241,222,0.92)', borderWidth: 3, borderColor: '#3A2418' },
   coinsText: { fontFamily: fonts.display, fontSize: 20, color: '#3A2418' },
   coinsUnit: { fontFamily: fonts.bold, fontSize: 12, color: '#3A2418' },
