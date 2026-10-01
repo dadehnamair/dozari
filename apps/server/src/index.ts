@@ -34,6 +34,9 @@ import { registerBaleRoutes } from './notify/routes.js';
 import { MessageCenter } from './messages/service.js';
 import { createDbMessageStore } from './messages/store.js';
 import { registerInboxRoutes } from './messages/routes.js';
+import { SocialService } from './social/service.js';
+import { createDbSocialStore } from './social/store.js';
+import { registerSocialRoutes } from './social/routes.js';
 import { createDbNotifyStore } from './notify/store.js';
 import type { NotifyStore } from './notify/store.js';
 import { BALE_TEXT } from './notify/texts.js';
@@ -61,6 +64,8 @@ export interface ServerDeps {
   bale?: { service: NotifyService; botUsername: string | null };
   /** Admin message center; its in-app channel feeds `GET /inbox`. */
   messages?: MessageCenter;
+  /** Public profiles, friend requests and the gender setting. */
+  social?: SocialService;
   /** Where live matches get puzzles and player cards from; without it queue pairs are put back in line. */
   match?: Omit<MatchDeps, 'emit'>;
   /** Admin-editable tunables; also served to clients at `GET /config`. */
@@ -89,6 +94,7 @@ export function buildServer(deps: ServerDeps = {}) {
   }
   if (deps.auth) registerAuthRoutes(app, deps.auth);
   if (deps.auth && deps.dailyReward) registerDailyRewardRoutes(app, deps.auth, deps.dailyReward);
+  if (deps.auth && deps.social) registerSocialRoutes(app, deps.auth, deps.social);
   if (deps.auth && deps.messages) registerInboxRoutes(app, deps.auth, deps.messages);
   if (deps.auth && deps.bale) registerBaleRoutes(app, deps.auth, deps.bale.service, deps.bale.botUsername);
   if (deps.settings) {
@@ -144,6 +150,11 @@ if (isMainModule(import.meta.url)) {
   const baleClient = baleToken ? createBaleClient(baleToken, { base: process.env.BALE_API_BASE }) : null;
   const baleStore: NotifyStore | undefined = db ? createDbNotifyStore(db) : undefined;
   const notify = baleStore ? new NotifyService(baleStore, baleClient) : undefined;
+  const social = db
+    ? new SocialService(createDbSocialStore(db), Date.now, (targetId, nickname) => {
+        void notify?.notify(targetId, 'friend_request', BALE_TEXT.friendRequest(nickname)).catch(() => undefined);
+      })
+    : undefined;
   const messages = db ? new MessageCenter(createDbMessageStore(db), notify ?? null) : undefined;
   const botRepo = db ? createDbBotRepository(db) : undefined;
   const bot = botRepo ? new BotService(botRepo) : undefined;
@@ -173,6 +184,7 @@ if (isMainModule(import.meta.url)) {
       : undefined,
     bale: notify ? { service: notify, botUsername: baleUsername } : undefined,
     messages,
+    social,
     dailyReward: db && settings ? new DailyRewardService(createDbDailyRewardStore(db), Date.now, () => dailyRules(settings)) : undefined,
     catalog: db ? createDbCatalogRepository(db) : undefined,
     solo: db && settings ? new SoloService(createDbPuzzleSource(db), { rules: () => soloRules(settings) }) : undefined,

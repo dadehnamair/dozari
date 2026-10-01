@@ -92,12 +92,12 @@ table) — not designed yet.
 Every place a player's nickname appears (match, result, leaderboard, friends, chat, search) is tappable and opens a
 bottom sheet: avatar, nickname, member since, level + tier, cups (tournament trophies), coins, medals/tags, win stats,
 and a «درخواست دوستی» button (state: none / sent / friends). The sheet reads one public-profile endpoint that never
-reveals `is_bot`. Not built yet; needs the `friendships` table.
+reveals `is_bot`. v1 built: endpoint, `friendships` table, `PlayerSheet`; wired from the friends list only until other screens exist.
 
 ## Gender setting (D68)
 
 An optional choice, female or male, set next to the province/city. It only changes presentation: the hero character and the
-app icon take that gender. Owner is drawing the female variant. Not built; see D68 for the open points.
+app icon take that gender. Stored in `users.gender` (nullable), set from «پروفایل من»; Home already draws the matching hero. The app icon switch is not built; see D68 for the open points.
 
 ## Province/city (D53)
 

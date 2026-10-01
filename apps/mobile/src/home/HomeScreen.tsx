@@ -5,6 +5,10 @@ import { SceneBackground } from '../components/SceneBackground';
 import { Character } from '../components/Character';
 import { DailyRewardCard } from '../components/DailyRewardCard';
 import { IconButton } from '../components/IconButton';
+import { ProfileSheet } from '../social/ProfileSheet';
+import { fetchMyProfile } from '../social/api';
+import { heroFor } from '../social/heroFor';
+import type { Gender } from '@dozari/shared';
 import { InboxSheet } from '../inbox/InboxSheet';
 import { useInbox } from '../inbox/useInbox';
 import { BaleSheet } from '../bale/BaleSheet';
@@ -22,6 +26,11 @@ export function HomeScreen({ onSolo, onLookup, onGallery }: { onSolo: () => void
   const [dailyOpen, setDailyOpen] = useState(false);
   const [baleOpen, setBaleOpen] = useState(false);
   const [inboxOpen, setInboxOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [gender, setGender] = useState<Gender | null>(null);
+  useEffect(() => {
+    fetchMyProfile().then((p) => setGender(p.gender), () => undefined);
+  }, []);
   const inbox = useInbox();
   const float = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -58,6 +67,7 @@ export function HomeScreen({ onSolo, onLookup, onGallery }: { onSolo: () => void
             <View />
           )}
           <View style={styles.actions}>
+          <IconButton icon="user" label={fa.profile.open} color={colors.candy.grape} size={48} onPress={() => setProfileOpen(true)} />
           <IconButton icon="mail" label={fa.inbox.open} color={colors.candy.sky} badge={inbox.inbox && inbox.inbox.unread > 0 ? toPersianDigits(String(inbox.inbox.unread)) : undefined} size={48} onPress={() => { inbox.reload(); setInboxOpen(true); }} />
           {daily.status ? (
             <IconButton icon="gift" label={fa.daily.open} color={colors.candy.pink} badge={daily.status.canClaim ? '!' : undefined} size={48} onPress={() => setDailyOpen(true)} />
@@ -70,7 +80,7 @@ export function HomeScreen({ onSolo, onLookup, onGallery }: { onSolo: () => void
         </View>
         <View style={styles.bottom}>
           <Animated.View style={[styles.mascot, { transform: [{ translateY: float }] }]}>
-            <Character pose="wave" month={month} />
+            <Character who={heroFor(gender)} pose="wave" month={month} />
           </Animated.View>
           <Text style={styles.mood}>
             {fa.months[month - 1]?.name} · {fa.months[month - 1]?.mood}
@@ -101,6 +111,7 @@ export function HomeScreen({ onSolo, onLookup, onGallery }: { onSolo: () => void
           </Pressable>
         </Pressable>
       ) : null}
+      {profileOpen ? <ProfileSheet onClose={() => setProfileOpen(false)} onGender={setGender} /> : null}
       {inboxOpen ? <InboxSheet inbox={inbox.inbox} failed={inbox.failed} onRead={inbox.markRead} onReadAll={inbox.markAll} onClose={() => setInboxOpen(false)} /> : null}
       {baleOpen ? <BaleSheet onClose={() => setBaleOpen(false)} /> : null}
     </SceneBackground>

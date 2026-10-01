@@ -1,0 +1,72 @@
+import type { FriendRelation, Friends, Gender, MyProfile, PlayerProfile } from '@dozari/shared';
+import type { SocialStore } from './store.js';
+
+export type RequestResult = 'ok' | 'self' | 'unknown_player' | 'already' | 'accepted';
+
+/** Public profiles, friend requests and the private gender setting. */
+export class SocialService {
+  constructor(
+    private readonly store: SocialStore,
+    private readonly now: () => number = Date.now,
+    /** Called after a new friend request (e.g. to tell the target on Bale); must not throw into the request flow. */
+    private readonly onRequest?: (targetId: string, fromNickname: string) => void,
+  ) {}
+
+  private async relation(me: string, other: string): Promise<FriendRelation> {
+    const p = await this.store.pair(me, other);
+    if (!p) return 'none';
+    if (p.status === 'accepted') return 'friends';
+    return p.requestedBy === me ? 'sent' : 'received';
+  }
+
+  /** What anybody may see of a player. The level system does not exist yet, so everyone is level 1. */
+  async profile(me: string, id: string): Promise<PlayerProfile | null> {
+    const row = await this.store.publicRow(id);
+    if (!row) return null;
+    return { id, nickname: row.nickname, avatarKey: row.avatarKey, level: 1, coins: row.coins, memberSince: row.createdAt, relation: me === id ? 'none' : await this.relation(me, id), isMe: me === id };
+  }
+
+  async request(me: string, target: string): Promise<RequestResult> {
+    if (me === target) return 'self';
+    const [mine, theirs] = await Promise.all([this.store.publicRow(me), this.store.publicRow(target)]);
+    if (!theirs || !mine) return 'unknown_player';
+    const p = await this.store.pair(me, target);
+    if (p?.status === 'accepted') return 'already';
+    if (p?.status === 'pending') {
+      if (p.requestedBy === me) return 'already';
+      // They already asked us: asking back means yes.
+      await this.store.accept(me, target, this.now());
+      return 'accepted';
+    }
+    if (!(await this.store.createRequest(me, target))) return 'already';
+    try {
+      this.onRequest?.(target, mine.nickname);
+    } catch {
+      /* notification problems never fail the request */
+    }
+    return 'ok';
+  }
+
+  async accept(me: string, other: string): Promise<boolean> {
+    return this.store.accept(me, other, this.now());
+  }
+
+  /** Cancels a request, declines one, or unfriends. */
+  remove(me: string, other: string): Promise<boolean> {
+    return this.store.remove(me, other);
+  }
+
+  async friends(me: string): Promise<Friends> {
+    const [friends, incoming] = await Promise.all([this.store.friends(me), this.store.incoming(me)]);
+    return { friends, incoming };
+  }
+
+  async mine(me: string): Promise<MyProfile | null> {
+    const row = await this.store.publicRow(me);
+    return row ? { id: me, nickname: row.nickname, avatarKey: row.avatarKey, gender: await this.store.getGender(me) } : null;
+  }
+
+  setGender(me: string, gender: Gender | null): Promise<void> {
+    return this.store.setGender(me, gender);
+  }
+}

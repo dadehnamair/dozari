@@ -8,7 +8,7 @@ const MAX_ATTEMPTS = 5;
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
 /** Kinds of notification; admin settings can switch the automatic ones off. */
-export type NotifyKind = 'match_result' | 'daily_ready' | 'broadcast' | 'admin' | 'test';
+export type NotifyKind = 'match_result' | 'daily_ready' | 'friend_request' | 'broadcast' | 'admin' | 'test';
 
 export class NotifyService {
   constructor(
