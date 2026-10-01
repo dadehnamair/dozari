@@ -10,6 +10,8 @@ import { createDbDailyRewardStore } from './economy/daily-reward-db.js';
 import { registerDailyRewardRoutes } from './economy/routes.js';
 import { AuthService } from './auth/service.js';
 import { createDbUserRepository } from './auth/db-repository.js';
+import { attachGateway } from './realtime/gateway.js';
+import type { Gateway } from './realtime/gateway.js';
 import { registerAuthRoutes } from './auth/routes.js';
 import { createTokenSigner } from './auth/tokens.js';
 import { createDbAdminRepository } from './admin/db-repository.js';
@@ -30,6 +32,8 @@ export interface ServerDeps {
   auth?: AuthService;
   /** Daily reward (`/daily-reward`, and the admin editor); needs `auth` for the player routes. */
   dailyReward?: DailyRewardService;
+  /** Socket.io service (queue, matches); needs `auth`. Its live stats feed the admin panel. */
+  realtime?: boolean;
   /** Solo practice sessions (`/solo/*`). */
   solo?: SoloService;
   /** Allowed browser origins (e.g. Expo web dev). `*` allows any. Off when unset: native apps don't need CORS. */
@@ -54,7 +58,15 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.dailyReward) registerDailyRewardRoutes(app, deps.auth, deps.dailyReward);
   if (deps.catalog) registerCatalogRoutes(app, deps.catalog);
   if (deps.solo) registerSoloRoutes(app, deps.solo);
-  if (deps.admin) registerAdminRoutes(app, deps.admin.repo, deps.admin.token, { dailyReward: deps.dailyReward });
+  let gateway: Gateway | undefined;
+  if (deps.auth && deps.realtime) {
+    const auth = deps.auth;
+    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin: deps.corsOrigin });
+    app.addHook('onClose', async () => {
+      await gateway?.close();
+    });
+  }
+  if (deps.admin) registerAdminRoutes(app, deps.admin.repo, deps.admin.token, { dailyReward: deps.dailyReward, socketStats: gateway?.stats });
   if (deps.localImagesDir) {
     void app.register(fastifyStatic, { root: resolve(deps.localImagesDir), prefix: '/images/' });
   }
@@ -70,6 +82,7 @@ if (isMainModule(import.meta.url)) {
   const auth = db && jwtSecret ? new AuthService(createDbUserRepository(db), createTokenSigner(jwtSecret)) : undefined;
   const app = buildServer({
     auth,
+    realtime: Boolean(auth),
     dailyReward: db ? new DailyRewardService(createDbDailyRewardStore(db)) : undefined,
     catalog: db ? createDbCatalogRepository(db) : undefined,
     solo: db ? new SoloService(createDbPuzzleSource(db)) : undefined,

@@ -33,6 +33,8 @@ export const ADMIN_PAGE_HTML = `<!doctype html>
   .product h2 small { color:var(--muted); font-weight:normal; margin-inline-start:8px; }
   .row { display:grid; grid-template-columns: 90px 1fr auto; gap:6px 12px; padding:10px 14px; border-bottom:1px solid var(--line); align-items:start; }
   .row:last-child { border-bottom:0; }
+  .stat { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--line); }
+  .stat:last-child { border-bottom:0; }
   .year { font-weight:bold; }
   .price { font-weight:bold; }
   .meta { color:var(--muted); font-size:13px; }
@@ -106,12 +108,12 @@ export const ADMIN_PAGE_HTML = `<!doctype html>
     Array.prototype.forEach.call($('sections').children, function (c) { c.setAttribute('aria-pressed', String(c.getAttribute('data-s') === name)); });
     var prices = name === 'prices';
     $('tabs').hidden = !prices; $('q').hidden = !prices;
-    if (prices) render(); else if (name === 'daily') loadDaily();
+    if (prices) render(); else if (name === 'daily') loadDaily(); else if (name === 'socket') loadSocket();
   }
 
   function buildSections() {
     var bar = $('sections');
-    [['prices', 'قیمت‌ها'], ['daily', 'جایزه روزانه']].forEach(function (t) {
+    [['prices', 'قیمت‌ها'], ['daily', 'جایزه روزانه'], ['socket', 'سرویس سوکت']].forEach(function (t) {
       var b = el('button', 'tab', t[1]);
       b.setAttribute('data-s', t[0]);
       b.setAttribute('aria-pressed', String(t[0] === state.section));
@@ -128,6 +130,44 @@ export const ADMIN_PAGE_HTML = `<!doctype html>
       if (r.status !== 200) { showMsg('خطا در دریافت اطلاعات (' + r.status + ').'); return; }
       renderDaily(r.body.steps.slice());
     }).catch(function () { showMsg('اتصال به سرور برقرار نشد.'); });
+  }
+
+  // ---- socket service: live numbers, refreshed every few seconds while the section is open ----
+  var socketTimer = null;
+  function fmtUptime(sec) {
+    var h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60);
+    return (h ? h + ' ساعت و ' : '') + m + ' دقیقه';
+  }
+  function loadSocket() {
+    clearInterval(socketTimer);
+    function pull() {
+      if (state.section !== 'socket') { clearInterval(socketTimer); return; }
+      api('/admin/socket').then(function (r) {
+        if (r.status === 401) { showMsg('توکن اشتباه است.'); return; }
+        if (r.status === 404) { showMsg('سرویس سوکت روی این سرور فعال نیست.'); return; }
+        if (r.status !== 200) { showMsg('خطا در دریافت اطلاعات (' + r.status + ').'); return; }
+        renderSocket(r.body);
+      }).catch(function () { showMsg('اتصال به سرور برقرار نشد.'); });
+    }
+    pull();
+    socketTimer = setInterval(pull, 3000);
+  }
+  function renderSocket(s) {
+    var panel = el('section', 'panel');
+    panel.appendChild(el('h2', '', 'سرویس سوکت'));
+    var rows = [
+      ['اتصال‌های فعال', s.connections], ['بیشترین اتصال همزمان', s.peakConnections], ['کل اتصال‌ها از شروع', s.totalConnections],
+      ['اتصال ردشده (توکن نامعتبر)', s.rejectedHandshakes], ['بازیکن در صف', s.queueLength], ['بیشترین انتظار در صف (ثانیه)', s.longestWaitSec],
+      ['مسابقه‌های فعال', s.activeMatches], ['زمان روشن بودن', fmtUptime(s.uptimeSec)]
+    ];
+    rows.forEach(function (r) {
+      var line = el('div', 'stat');
+      line.appendChild(el('span', '', r[0]));
+      var v = el('strong', '', String(r[1])); v.style.direction = 'ltr';
+      line.appendChild(v);
+      panel.appendChild(line);
+    });
+    $('main').replaceChildren(panel);
   }
 
   function renderDaily(steps) {
