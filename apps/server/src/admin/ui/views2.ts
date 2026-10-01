@@ -293,6 +293,31 @@ VIEWS.words = function (root) {
   } })]), verdict]));
   draw();
 };
+VIEWS.cities = function (root) {
+  var list = h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' });
+  var slug = h('input', { type: 'text', dir: 'ltr', placeholder: 'شناسه‌ی لاتین (مثل tehran)', maxlength: 40 });
+  var name = h('input', { type: 'text', placeholder: 'نام شهر', maxlength: 60 });
+  function draw() {
+    api('/admin/cities').then(function (r) {
+      clear(list);
+      if (r.status === 404) return list.appendChild(empty('بخش شهرها روی این سرور فعال نیست'));
+      if (!r.ok) return fail(r);
+      r.body.cities.forEach(function (c) {
+        list.appendChild(h('span', { class: 'chip', style: 'display:inline-flex;gap:6px;align-items:center' }, [
+          h('span', { text: c.nameFa }), c.isActive ? null : badge('پنهان', 'b-warn'),
+          h('button', { class: 'btn sm', text: c.isActive ? 'پنهان کن' : 'نشان بده', onclick: function () { api('/admin/cities/' + c.id, { method: 'PATCH', body: { isActive: !c.isActive } }).then(function (x) { if (!x.ok) return fail(x); draw(); }); } })
+        ]));
+      });
+    });
+  }
+  root.appendChild(card('افزودن شهر', 'بازیکن‌ها شهرشان را از این فهرست انتخاب می‌کنند؛ پنهان‌کردن، شهرِ کسانی که قبلاً انتخاب کرده‌اند را عوض نمی‌کند.', [
+    h('div', { class: 'toolbar' }, [slug, name, h('button', { class: 'btn primary', text: 'افزودن', onclick: function () {
+      api('/admin/cities', { method: 'POST', body: { slug: slug.value.trim(), nameFa: name.value.trim() } }).then(function (x) { if (x.status === 409) return toast('این شناسه از قبل هست', true); if (!x.ok) return fail(x); slug.value = ''; name.value = ''; draw(); });
+    } })])
+  ]));
+  root.appendChild(card('فهرست شهرها', null, [list]));
+  draw();
+};
 VIEWS.bale = function (root) {
   var body = h('div'), msg = h('textarea', { placeholder: 'متن پیام برای همه‌ی بازیکنان وصل‌شده…', maxlength: 1000 }), chat = h('input', { type: 'text', dir: 'ltr', placeholder: 'شناسه‌ی چت (عدد)' });
   function draw() {

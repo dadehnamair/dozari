@@ -8,6 +8,7 @@ import { colors, fonts } from '../theme/colors';
 import { acceptFriend, fetchFriends, fetchMyProfile, removeFriend, saveGender } from './api';
 import { avatarOf } from './avatarOf';
 import { PlayerSheet } from './PlayerSheet';
+import { ProfileEditor } from './ProfileEditor';
 
 const INK = '#3A2418';
 
@@ -55,6 +56,7 @@ export function ProfileSheet({ onClose, onGender }: { onClose: () => void; onGen
           </>
         ) : null}
         <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
+          {me ? <ProfileEditor me={me} onChange={(patch) => setMe((m) => (m ? { ...m, ...patch } : m))} /> : null}
           {friends && friends.incoming.length > 0 ? <Text style={styles.label}>{fa.profile.incoming}</Text> : null}
           {friends?.incoming.map((p) => (
             <View key={p.id} style={styles.person}>

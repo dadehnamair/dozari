@@ -277,6 +277,10 @@ export const users = mysqlTable(
     isBanned: boolean('is_banned').notNull().default(false),
     /** Optional, picked from a fixed list (D68); switches the hero character. Never shown publicly. */
     gender: mysqlEnum('gender', ['female', 'male']),
+    /** Home city (a row of `cities`), optional; shown on the profile and used for the city room. */
+    cityId: char('city_id', { length: 36 }),
+    /** Optional contact e-mail; private and not verified yet. */
+    email: varchar('email', { length: 120 }),
     /** Why and when an admin banned the player. */
     banReason: varchar('ban_reason', { length: 200 }),
     bannedAt: datetime('banned_at', { mode: 'date', fsp: 3 }),
@@ -600,3 +604,27 @@ export const priceCandidates = mysqlTable(
     byStatus: index('price_candidates_status_idx').on(table.status, table.createdAt),
   }),
 );
+
+/** Cities a player can pick (docs/logic/owner-backlog-2026-10.md item 8). Seeded from the shared default list, editable in the admin panel. */
+export const cities = mysqlTable(
+  'cities',
+  {
+    id: id(),
+    slug: varchar('slug', { length: 40 }).notNull(),
+    nameFa: varchar('name_fa', { length: 60 }).notNull(),
+    sortOrder: int('sort_order').notNull().default(0),
+    isActive: boolean('is_active').notNull().default(true),
+  },
+  (table) => ({ slugUnique: uniqueIndex('cities_slug_idx').on(table.slug) }),
+);
+
+/** Running totals of a player's finished games and experience; level is computed from `xp`, never stored. */
+export const userStats = mysqlTable('user_stats', {
+  userId: char('user_id', { length: 36 }).primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+  xp: int('xp').notNull().default(0),
+  games: int('games').notNull().default(0),
+  wins: int('wins').notNull().default(0),
+  losses: int('losses').notNull().default(0),
+  draws: int('draws').notNull().default(0),
+  updatedAt: datetime('updated_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+});

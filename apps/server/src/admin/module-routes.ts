@@ -14,6 +14,7 @@ import type { NotifyService } from '../notify/service.js';
 import type { NotifyStore } from '../notify/store.js';
 import type { TextFilterService } from '../textfilter/service.js';
 import type { UsersAdmin } from './users.js';
+import type { PlayerStore } from '../player/store.js';
 
 export interface AdminModules {
   settings?: SettingsService;
@@ -22,6 +23,8 @@ export interface AdminModules {
   users?: UsersAdmin;
   audit?: AuditLog;
   words?: TextFilterService;
+  /** Cities players can pick (list, add, rename, hide). */
+  cities?: PlayerStore;
   messages?: MessageCenter;
   bale?: { service: NotifyService; store: NotifyStore; botUsername: string | null };
   bot?: { repo: BotRepository; service: BotService };
@@ -92,7 +95,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     adapters: BOT_ADAPTER_KEYS,
     settingGroups: SETTING_GROUPS,
     icons: ITEMS,
-    modules: { settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, bale: !!m.bale, messages: !!m.messages },
+    modules: { settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, bale: !!m.bale, messages: !!m.messages },
   }));
 
   if (m.stats) {
@@ -312,6 +315,27 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       const b = z.object({ text: z.string().max(500) }).safeParse(req.body);
       if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
       return words.check(b.data.text);
+    });
+  }
+
+  if (m.cities) {
+    const cities = m.cities;
+    g.get('/admin/cities', async () => ({ cities: await cities.cities({ includeHidden: true }) }));
+    g.post('/admin/cities', async (req, reply) => {
+      const b = z.object({ slug: z.string().trim().toLowerCase().regex(/^[a-z0-9-]{2,40}$/), nameFa: z.string().trim().min(2).max(60) }).safeParse(req.body);
+      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await cities.addCity(b.data.slug, b.data.nameFa);
+      if (out === 'duplicate') return reply.code(409).send({ error: 'duplicate' });
+      void audit('city.add', out.id, b.data.nameFa);
+      return reply.code(201).send({ id: out.id });
+    });
+    g.patch('/admin/cities/:id', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object({ nameFa: z.string().trim().min(2).max(60).optional(), isActive: z.boolean().optional(), sortOrder: z.number().int().min(0).max(10000).optional() }).safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      if ((await cities.updateCity(p.data.id, b.data)) === 'not_found') return reply.code(404).send({ error: 'city_not_found' });
+      void audit('city.update', p.data.id, JSON.stringify(b.data));
+      return { ok: true };
     });
   }
 

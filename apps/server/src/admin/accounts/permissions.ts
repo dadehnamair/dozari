@@ -33,7 +33,7 @@ export function permissionFor(method: string, path: string): Permission {
   if (path.startsWith('/admin/daily-reward')) return 'economy';
   if (path.startsWith('/admin/users') || path.startsWith('/admin/user-notes')) return 'users';
   if (path.startsWith('/admin/messages')) return 'messages';
-  if (path.startsWith('/admin/words')) return 'content';
+  if (path.startsWith('/admin/words') || path.startsWith('/admin/cities')) return 'content';
   if (path.startsWith('/admin/catalog') || path.startsWith('/admin/prices') || path.startsWith('/admin/products') || path.startsWith('/admin/bot')) return 'content';
   if (path.startsWith('/admin/bale/broadcast')) return 'messages';
   return 'system'; // settings, bale test, anything new
