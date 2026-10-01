@@ -98,6 +98,19 @@ export const fa = {
     ] },
   ],
   daily: { title: 'جایزهٔ روزانه', day: 'روز', today: 'امروز', claim: 'بگیر!', wait: 'تا جایزهٔ بعدی', won: 'سکه گرفتی!', coins: 'سکه', open: 'جایزهٔ روزانه' },
+  bale: {
+    open: 'اتصال به بله',
+    title: 'اتصال به بله',
+    intro: 'نتیجهٔ بازی‌ها و آماده شدن جایزهٔ روزانه را در پیام‌رسان بله بگیر.',
+    getCode: 'گرفتن کد',
+    sendTo: 'این کد را برای ربات بله بفرست',
+    expires: 'کد تا ۱۰ دقیقه معتبر است.',
+    linked: 'به بله وصل هستی ✅',
+    unlink: 'قطع اتصال',
+    notConfigured: 'ربات بله هنوز راه‌اندازی نشده.',
+    error: 'نتوانستیم به سرور وصل شویم.',
+    close: 'بستن',
+  },
   /** Solar Hijri months: the name and the mood the mascot wears in that month (D66). */
   months: [
     { name: 'فروردین', mood: 'سبزهٔ نوروز' },

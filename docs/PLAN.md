@@ -195,6 +195,7 @@ human opponent is found.
 ## Ideas queue (owner, 2026-10-01)
 
 - [x] 🛡 Profanity filter on all free text (D69): admin-editable word list, normalisation, server-side (filter + list + admin done; wire it into chat when chat exists)
+- [x] Bale bot (D72): link by one-time code, outbox + dispatcher, match result / daily reward / broadcast notifications, admin section
 - [x] Price range per product (D71): `priceRange`/`priceOnDate` in shared, admin catalog shows range + flags products below the minimum number of approved points
 - [x] 🔎 Price lookup screen «استعلام قیمت» (D70): product + year -> approved price with source, chart, «request this item»
 - [x] 🖥 Admin panel v2: sidebar SPA, dashboard, catalog + icon picker, price review, bot inbox/sources, daily reward, settings registry (`config/registry.ts`, `app_settings`), users + coin adjust, socket, audit log (`admin/ui/*`)

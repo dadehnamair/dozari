@@ -21,6 +21,8 @@ export interface MatchDeps {
   newSeed?: () => number;
   /** Schedules `fn` after `ms`; returns the canceller. Injected so tests can drive the clock. */
   schedule?: (ms: number, fn: () => void) => () => void;
+  /** Called once when a match ends, with the two players' ids by side (e.g. to send results to Bale). */
+  onEnded?: (info: { players: readonly [string, string]; result: NonNullable<MatchState['result']> }) => void;
 }
 
 interface Active {
@@ -186,6 +188,13 @@ export class MatchService {
           .map((g) => ({ level: g.level, titleFa: g.titleFa, explanationFa: g.explanationFa, productIds: [...g.productIds] })) as MatchEnded['groups'],
       };
       for (const p of entry.state.players) this.deps.emit(p.userId, ServerEvent.matchEnded, ended);
+    }
+    if (result) {
+      try {
+        this.deps.onEnded?.({ players: [entry.state.players[0].userId, entry.state.players[1].userId], result });
+      } catch {
+        /* a notification hook must never break the match flow */
+      }
     }
     for (const p of entry.state.players) this.byUser.delete(p.userId);
     this.matches.delete(entry.id);

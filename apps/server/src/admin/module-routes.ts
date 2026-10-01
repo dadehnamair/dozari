@@ -8,6 +8,8 @@ import type { BotService } from '../bot/service.js';
 import type { AuditLog } from './audit.js';
 import type { ProductAdmin } from './products.js';
 import type { StatsAdmin } from './stats.js';
+import type { NotifyService } from '../notify/service.js';
+import type { NotifyStore } from '../notify/store.js';
 import type { TextFilterService } from '../textfilter/service.js';
 import type { UsersAdmin } from './users.js';
 
@@ -18,6 +20,7 @@ export interface AdminModules {
   users?: UsersAdmin;
   audit?: AuditLog;
   words?: TextFilterService;
+  bale?: { service: NotifyService; store: NotifyStore; botUsername: string | null };
   bot?: { repo: BotRepository; service: BotService };
 }
 
@@ -85,7 +88,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     adapters: BOT_ADAPTER_KEYS,
     settingGroups: SETTING_GROUPS,
     icons: ITEMS,
-    modules: { settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words },
+    modules: { settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, bale: !!m.bale },
   }));
 
   if (m.stats) {
@@ -178,6 +181,26 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       if (out === 'insufficient') return reply.code(409).send({ error: 'insufficient' });
       void audit('user.coins', p.data.id, String(b.data.delta));
       return { ok: true, balance: out.balance };
+    });
+  }
+
+  if (m.bale) {
+    const { service, store, botUsername } = m.bale;
+    const textBody = z.object({ text: z.string().trim().min(1).max(1000) });
+    g.get('/admin/bale', async () => ({ configured: service.configured, botUsername, linked: await store.linkedCount(), outbox: await store.stats() }));
+    g.post('/admin/bale/broadcast', async (req, reply) => {
+      const b = textBody.safeParse(req.body);
+      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const queued = await service.broadcast(b.data.text);
+      void audit('bale.broadcast', String(queued), b.data.text.slice(0, 100));
+      return { queued };
+    });
+    g.post('/admin/bale/test', async (req, reply) => {
+      const b = z.object({ chatId: z.string().regex(/^-?\d{3,20}$/), text: z.string().trim().min(1).max(500).default('پیام آزمایشی دوزاری ✅') }).safeParse(req.body);
+      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      await service.notifyChat(b.data.chatId, 'test', b.data.text);
+      void audit('bale.test', b.data.chatId);
+      return { queued: 1 };
     });
   }
 

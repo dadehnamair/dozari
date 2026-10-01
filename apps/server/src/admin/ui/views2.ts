@@ -149,7 +149,7 @@ VIEWS.daily = function (root) {
 };
 
 /* ---------------- settings ---------------- */
-var GROUP_FA = { gameplay: 'بازی', scoring: 'امتیاز', profile: 'پروفایل', economy: 'اقتصاد', chart: 'نمودار', bot: 'ربات محتوا' };
+var GROUP_FA = { gameplay: 'بازی', scoring: 'امتیاز', profile: 'پروفایل', economy: 'اقتصاد', chart: 'نمودار', bot: 'ربات محتوا', notify: 'اعلان‌های بله' };
 VIEWS.settings = function (root) {
   var group = load('settings.group') || 'gameplay', tabs = h('div', { style: 'display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px' }), box = h('div'), rows = [];
   root.appendChild(tabs); root.appendChild(box);
@@ -256,6 +256,33 @@ VIEWS.words = function (root) {
       verdict.appendChild(x.body.ok ? badge('قبول: ' + x.body.text, 'b-ok') : badge('رد شد (کلمه‌ی «' + x.body.hit.word + '»)', 'b-bad'));
     });
   } })]), verdict]));
+  draw();
+};
+VIEWS.bale = function (root) {
+  var body = h('div'), msg = h('textarea', { placeholder: 'متن پیام برای همه‌ی بازیکنان وصل‌شده…', maxlength: 1000 }), chat = h('input', { type: 'text', dir: 'ltr', placeholder: 'شناسه‌ی چت (عدد)' });
+  function draw() {
+    api('/admin/bale').then(function (r) {
+      clear(body);
+      if (r.status === 404) return body.appendChild(empty('ربات بله روی این سرور فعال نیست'));
+      if (!r.ok) return fail(r);
+      var d = r.body;
+      body.appendChild(h('div', { class: 'grid' }, [
+        statCard('وضعیت ربات', d.configured ? 'روشن' : 'خاموش', d.configured ? (d.botUsername ? '@' + d.botUsername : 'نام کاربری تنظیم نشده') : 'BALE_BOT_TOKEN تنظیم نشده', d.configured ? '#7ed957' : '#ff4d8d'),
+        statCard('بازیکنان وصل‌شده', faNum(d.linked), 'کسانی که حسابشان را با کد وصل کرده‌اند', '#3fc1f0'),
+        statCard('در صف ارسال', faNum(d.outbox.pending), fa(d.outbox.sent) + ' فرستاده‌شده · ' + fa(d.outbox.failed) + ' ناموفق', '#ffc93c')
+      ]));
+      body.appendChild(card('آخرین پیام‌ها', 'بیست پیام آخر صف ارسال', d.outbox.recent.length ? [h('div', { class: 'tbl-wrap' }, [h('table', {}, [h('thead', {}, [h('tr', {}, ['زمان', 'نوع', 'وضعیت', 'متن', 'خطا'].map(function (x) { return h('th', { text: x }); }))]),
+        h('tbody', {}, d.outbox.recent.map(function (e) { return h('tr', {}, [h('td', { text: ago(e.at) }), h('td', {}, [badge(e.kind, 'b-info')]), h('td', {}, [badge(e.status === 'sent' ? 'فرستاده شد' : e.status === 'pending' ? 'در انتظار' : 'ناموفق', e.status === 'sent' ? 'b-ok' : e.status === 'pending' ? 'b-info' : 'b-bad')]), h('td', { text: e.text.slice(0, 80) }), h('td', { class: 'ltr', text: e.lastError || '' })]); }))])])] : [empty('هنوز پیامی نیست')]));
+    });
+  }
+  root.appendChild(body);
+  root.appendChild(card('پیام همگانی', 'همین متن برای همه‌ی بازیکنانی که بله را وصل کرده‌اند در صف می‌رود', [msg, h('div', { class: 'toolbar' }, [h('button', { class: 'btn primary', text: 'ارسال به همه', onclick: function () {
+    if (!msg.value.trim() || !confirm('این پیام برای همه‌ی بازیکنان وصل‌شده فرستاده شود؟')) return;
+    api('/admin/bale/broadcast', { method: 'POST', body: { text: msg.value.trim() } }).then(function (x) { if (!x.ok) return fail(x); toast(fa(x.body.queued) + ' پیام در صف رفت'); msg.value = ''; draw(); });
+  } })])]));
+  root.appendChild(card('پیام آزمایشی', 'شناسه‌ی چت خودت را بده؛ ربات یک پیام کوتاه برایت می‌فرستد', [h('div', { class: 'toolbar' }, [chat, h('button', { class: 'btn', text: 'ارسال آزمایشی', onclick: function () {
+    api('/admin/bale/test', { method: 'POST', body: { chatId: chat.value.trim() } }).then(function (x) { if (!x.ok) return fail(x); toast('در صف رفت'); draw(); });
+  } })])]));
   draw();
 };
 VIEWS.audit = function (root) {
