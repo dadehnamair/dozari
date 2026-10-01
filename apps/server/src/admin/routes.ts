@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { PRICE_STATUSES } from '@dozari/shared';
 import type { DailyRewardService } from '../economy/daily-reward.js';
 import { registerDailyRewardAdminRoutes } from '../economy/routes.js';
+import type { SocketStats } from '../realtime/stats.js';
 import { ADMIN_PAGE_HTML } from './page.js';
 
 export type PriceStatus = (typeof PRICE_STATUSES)[number];
@@ -58,6 +59,8 @@ const bodySchema = z.object({ status: z.enum(PRICE_STATUSES) });
 export interface AdminExtras {
   /** Daily reward amounts editor. */
   dailyReward?: DailyRewardService;
+  /** Live numbers of the socket service. */
+  socketStats?: SocketStats;
 }
 
 export function registerAdminRoutes(app: FastifyInstance, repo: AdminRepository, token: string, extras: AdminExtras = {}) {
@@ -70,6 +73,11 @@ export function registerAdminRoutes(app: FastifyInstance, repo: AdminRepository,
     });
 
     if (extras.dailyReward) registerDailyRewardAdminRoutes(guarded, extras.dailyReward);
+
+    if (extras.socketStats) {
+      const stats = extras.socketStats;
+      guarded.get('/admin/socket', async () => stats.snapshot());
+    }
 
     guarded.get('/admin/catalog', async () => ({ products: await repo.listCatalog() }));
 

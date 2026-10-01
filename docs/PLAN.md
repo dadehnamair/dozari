@@ -105,6 +105,7 @@ browser — both need the owner's own machine (see Phase 0-A).
       (`logic/profile-and-identity.md`) — `POST /auth/guest`, `GET /me`, `users` table; client wiring comes with the lobby
 - [x] 🧩 Socket event contracts (`logic/matchmaking.md`, `logic/game-rules.md`) — `socket/events.ts` (queue + 1v1 match; rooms/parties/chat later)
 - [x] 🧩 Match reducer: shared board, turns, timers-as-commands, scoring, end conditions — `game/match.ts` (1v1; team/captain flow is Phase 5)
+- [x] 🖥 Socket.io gateway: JWT handshake, per-user room, 1v1 queue join/leave with acks, live stats in the admin panel «سرویس سوکت» (`realtime/`)
 - [ ] 🖥 MatchService + redaction (`toClientView`), turn timer, persistence of match log
 - [ ] 🖥 MatchmakingService: 1v1 queue, private table (room code), reconnect grace
 - [ ] 🖥 Bot pool + fallback-fill logic (`logic/bots.md`) — bots flow through the same MatchService
