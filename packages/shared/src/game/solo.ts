@@ -49,7 +49,7 @@ export interface SubmitResult {
 export const selectionKey = (ids: readonly string[]): string => [...ids].sort().join('|');
 
 /** Shuffle the board so that no row of 4 consecutive cards is a whole group. */
-function initialOrder(puzzle: SoloPuzzle, rng: Rng): string[] {
+export function initialBoardOrder(puzzle: SoloPuzzle, rng: Rng): string[] {
   const all = puzzle.groups.flatMap((g) => g.productIds);
   const groupKeys = new Set(puzzle.groups.map((g) => selectionKey(g.productIds)));
   for (let attempt = 0; attempt < 100; attempt++) {
@@ -68,7 +68,7 @@ export function startSolo(puzzle: SoloPuzzle, rng: Rng): SoloState {
   if (puzzle.groups.length !== GROUP_COUNT || puzzle.groups.some((g) => g.productIds.length !== GROUP_SIZE)) {
     throw new Error(`a puzzle needs ${GROUP_COUNT} groups of ${GROUP_SIZE}`);
   }
-  const order = initialOrder(puzzle, rng);
+  const order = initialBoardOrder(puzzle, rng);
   if (new Set(order).size !== BOARD_SIZE) throw new Error(`a puzzle needs ${BOARD_SIZE} distinct products`);
   return { remaining: order, solved: [], mistakes: 0, tried: [], status: 'playing' };
 }

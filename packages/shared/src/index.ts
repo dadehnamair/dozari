@@ -6,3 +6,6 @@ export * from './game/index.js';
 export * from './solo/index.js';
 export * from './chart/index.js';
 export * from './priceguess/index.js';
+export * from './identity/index.js';
+export * from './socket/index.js';
+export * from './economy/index.js';

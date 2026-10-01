@@ -103,6 +103,17 @@ type Command =
 applyCommand(state, cmd, ctx: { now: number }) => { state, events: MatchEvent[] } | { error: RuleError }
 ```
 
+Implemented in `packages/shared/src/game/match.ts` for 1v1 (one player per side, `MatchSide` 0|1): `startMatch`,
+`applyCommand` (`submit`, `timeout`, `leave`, `forfeit`; `propose` waits for the team flow in Phase 5), `matchClientView`
+(the only shape that leaves the server), and for after the price-guess round `resolveWinner` / `finalScores`.
+Details the spec left open, as built: a correct guess restarts the turn clock for the same side; when the opponent is
+locked out the active side keeps the turn after a mistake or a timeout; a repeated set is a `DUPLICATE_SELECTION`
+error (no penalty), not a turn; two consecutive timeouts forfeit (a submit resets the count); `leave` is an `abandon`;
+a tie after score, mistakes and earliest last-correct guess leaves `result.winner = null` for `resolveWinner`
+to settle with the price-guess rounds (a locked-out side cannot win that way while the other side is still in).
+Constants: `TURN_SECONDS`, `MATCH_MAX_MISTAKES`, `MAX_CONSECUTIVE_TIMEOUTS`, `GROUP_POINTS`, `FIRST_BLOOD_BONUS`,
+`PRICE_GUESS_LOSER_BONUS_PER_ROUND` in `config/game.ts`.
+
 Invariants (unit-tested):
 - Only the active side's captain (or active player) can `submit`; others → `NOT_YOUR_TURN`.
 - `itemIds` length 4, all on board, unique → else `INVALID_SELECTION`.

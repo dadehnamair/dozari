@@ -12,7 +12,7 @@ hardcoded literal, so they can be tuned post-launch from real play data without 
 | source | amount | rule |
 |---|---|---|
 | Signup bonus | 200 | once per account (device-bound for guests) |
-| Daily login | 30 | first app open per Tehran calendar day (Asia/Tehran) |
+| Daily reward (D64) | 10 / 15 / 20 … | one claim per 24 h; a streak grows day by day (admin-editable list, last amount repeats), restarts at day 1 after a skipped day. Built: `economy/daily-reward.ts`, `GET /daily-reward`, `POST /daily-reward/claim`, admin editor |
 | Daily free matches | 3 / day | entry fee waived; payout from a **house pot** = normal win payout × 0.5 |
 | Win payout | pot × 0.9 | pot = sum of entry fees; 10% burned (sink) |
 | Draw | refund entry fee − 10% | |
