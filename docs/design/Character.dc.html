@@ -36,26 +36,37 @@
 <path d="M70 146 C62 170 60 196 62 216 Q100 226 138 216 C140 196 138 170 130 146 Q100 138 70 146Z" fill="url(#{{ pid }})" stroke="none"></path>
 <path d="{{ c.beltD }}" fill="{{ c.belt }}" stroke-width="2.4"></path>
 <path d="M70 146 C62 170 60 196 62 216 Q100 226 138 216 C140 196 138 170 130 146 Q100 138 70 146Z" fill="none" stroke-width="3.2"></path>
+<sc-if value="{{ c.heroF }}" hint-placeholder-val="{{ false }}">
+<path d="M63 206 Q100 216 137 206 L148 234 Q100 248 52 234Z" fill="{{ c.cloth }}" stroke-width="3"></path>
+<path d="M63 206 Q100 216 137 206 L148 234 Q100 248 52 234Z" fill="url(#{{ pid }})" stroke="none"></path>
+<path d="M54 228 Q100 242 146 228" stroke="#FFC93C" stroke-width="3.4" fill="none"></path>
+<path d="M60 222 l3 6" stroke="#fff" stroke-width="2.2" opacity=".6" fill="none"></path>
+</sc-if>
 <sc-if value="{{ c.hero }}" hint-placeholder-val="{{ false }}">
 <circle cx="100" cy="200" r="7" fill="#FFC93C" stroke-width="2.2"></circle><path d="M97 197 q2 -2 5 -2" stroke="#fff" stroke-width="1.6" fill="none"></path>
-<path d="M116 160 L128 190 L115 194 L106 164Z" fill="{{ c.scarf }}" stroke-width="2.6"></path>
-<path d="M114 176 l8 -3 M118 186 l8 -3" stroke="{{ c.scarfL }}" stroke-width="2.4" fill="none"></path>
-<path d="M66 146 C80 160 120 160 134 146 C136 154 132 160 128 162 C112 170 88 170 72 162 C68 160 64 154 66 146Z" fill="{{ c.scarf }}" stroke-width="2.8"></path>
-<path d="M80 158 l2 8 M94 161 l1 8 M108 161 l-1 8 M121 158 l-2 8" stroke="{{ c.scarfL }}" stroke-width="2.4" fill="none"></path>
+<path d="M116 160 L128 190 L115 194 L106 164Z" fill="#E84A3C" stroke-width="2.6"></path>
+<path d="M114 176 l8 -3 M118 186 l8 -3" stroke="#FFF3E0" stroke-width="2.4" fill="none"></path>
+<path d="M66 146 C80 160 120 160 134 146 C136 154 132 160 128 162 C112 170 88 170 72 162 C68 160 64 154 66 146Z" fill="#E84A3C" stroke-width="2.8"></path>
+<path d="M80 158 l2 8 M94 161 l1 8 M108 161 l-1 8 M121 158 l-2 8" stroke="#FFF3E0" stroke-width="2.4" fill="none"></path>
 </sc-if>
 <path d="M73 160 Q67 178 67 196" stroke="#fff" stroke-width="2.4" opacity=".6" fill="none"></path>
 <path d="M127 168 l5 -3 M128 175 l5 -3 M129 182 l5 -3" stroke-width="1.6" opacity=".45" fill="none"></path>
 </sc-if>
 <path d="{{ c.hairBack }}" stroke-width="12" fill="none"></path>
-<path d="{{ c.hairBack }}" stroke="{{ c.hatC }}" stroke-width="7" fill="none"></path>
+<path d="{{ c.hairBack }}" stroke="{{ c.hairC }}" stroke-width="7" fill="none"></path>
+<path d="{{ c.ribbon }}" fill="#E8743B" stroke-width="2.2"></path>
 <sc-if value="{{ c.hero }}" hint-placeholder-val="{{ false }}">
 <ellipse cx="62" cy="98" rx="9" ry="12" fill="{{ c.skin }}" stroke-width="3"></ellipse><path d="M62 92 q-4 6 0 12" fill="none" stroke-width="2" opacity=".6"></path>
 <ellipse cx="138" cy="98" rx="9" ry="12" fill="{{ c.skin }}" stroke-width="3"></ellipse><path d="M138 92 q4 6 0 12" fill="none" stroke-width="2" opacity=".6"></path>
 </sc-if>
 <path d="{{ headD }}" fill="{{ c.skin }}" stroke-width="3.4"></path>
-<sc-if value="{{ c.hero }}" hint-placeholder-val="{{ false }}">
+<sc-if value="{{ c.heroM }}" hint-placeholder-val="{{ false }}">
 <path d="M72 36 C60 36 56 46 61 52 C54 57 59 66 66 63 C71 59 70 52 75 47Z M128 36 C140 36 144 46 139 52 C146 57 141 66 134 63 C129 59 130 52 125 47Z" fill="#4A2A1A" stroke-width="2.6"></path>
 <path d="M90 38 C84 48 94 56 99 49 C101 57 112 53 108 42Z" fill="#4A2A1A" stroke-width="2.6"></path>
+</sc-if>
+<sc-if value="{{ c.heroF }}" hint-placeholder-val="{{ false }}">
+<path d="M66 60 C62 40 80 30 100 32 C120 30 138 40 134 60 C128 50 120 46 112 52 C106 44 96 44 90 52 C82 46 72 50 66 60Z" fill="#4A2A1A" stroke-width="2.6"></path>
+<path d="M76 46 Q84 40 92 40" stroke="#fff" stroke-width="2" opacity=".45" fill="none"></path>
 </sc-if>
 <g transform="translate(0 {{ hatY }}) rotate({{ c.hatRot }} 100 40)">
 <path d="{{ h.d }}" fill="{{ h.fill }}" stroke-width="3.2"></path>
@@ -75,6 +86,7 @@
 <circle cx="{{ e.hlx }}" cy="{{ e.hly }}" r="1.5" fill="#fff" stroke="none"></circle>
 <circle cx="{{ e.hrx }}" cy="{{ e.hly }}" r="1.5" fill="#fff" stroke="none"></circle>
 <path d="{{ e.lid }}" fill="{{ c.skin }}" stroke-width="2.8"></path>
+<sc-if value="{{ c.heroF }}" hint-placeholder-val="{{ false }}"><path d="M77 68 l-6 -4 M78 63 l-4 -6 M123 68 l6 -4 M122 63 l4 -6" stroke-width="2.4" fill="none"></path></sc-if>
 </sc-if>
 <path d="{{ e.lines }}" fill="none" stroke-width="3.4"></path>
 <path d="{{ c.beardD }}" fill="{{ c.beardC }}" stroke-width="3"></path>
@@ -110,7 +122,6 @@
 </g>
 </sc-if>
 </sc-if>
-<sc-for list="{{ acc }}" as="a" hint-placeholder-count="0"><path d="{{ a.d }}" fill="{{ a.f }}" stroke="{{ a.s }}" stroke-width="{{ a.w }}" opacity="{{ a.o }}"></path></sc-for>
 <sc-if value="{{ x.q }}" hint-placeholder-val="{{ false }}"><text x="150" y="34" font-family="Lalezar" font-size="42" fill="#3FC1F0" stroke-width="3" paint-order="stroke">؟</text></sc-if>
 <sc-if value="{{ x.z }}" hint-placeholder-val="{{ false }}"><text x="138" y="34" font-family="Lalezar" font-size="24" fill="#B0C4EF" stroke-width="3" paint-order="stroke">z</text><text x="154" y="16" font-family="Lalezar" font-size="32" fill="#B0C4EF" stroke-width="3" paint-order="stroke">Z</text></sc-if>
 <sc-if value="{{ x.sweat }}" hint-placeholder-val="{{ false }}"><path d="M146 46 q-8 12 0 16 q8 -4 0 -16z" fill="#8FDCFA" stroke-width="2.2"></path></sc-if>
@@ -119,7 +130,7 @@
 </g>
 </svg>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:240,&quot;height&quot;:276},&quot;who&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dozari&quot;,&quot;mashti&quot;,&quot;khale&quot;,&quot;pahlevan&quot;,&quot;baqal&quot;,&quot;mirza&quot;,&quot;goli&quot;],&quot;default&quot;:&quot;dozari&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;pose&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;idle&quot;,&quot;coin&quot;,&quot;wave&quot;,&quot;cheer&quot;,&quot;win&quot;,&quot;sad&quot;,&quot;thinking&quot;,&quot;shocked&quot;,&quot;sleeping&quot;,&quot;pointing&quot;,&quot;blink&quot;,&quot;angry&quot;],&quot;default&quot;:&quot;idle&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;month&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;min&quot;:0,&quot;max&quot;:12,&quot;default&quot;:0,&quot;tsType&quot;:&quot;number&quot;},&quot;skin&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;min&quot;:0,&quot;max&quot;:6,&quot;default&quot;:0,&quot;tsType&quot;:&quot;number&quot;},&quot;crop&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;full&quot;,&quot;face&quot;],&quot;default&quot;:&quot;full&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:240,&quot;height&quot;:276},&quot;who&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dozari&quot;,&quot;dozariF&quot;,&quot;mashti&quot;,&quot;khale&quot;,&quot;pahlevan&quot;,&quot;baqal&quot;,&quot;mirza&quot;,&quot;goli&quot;],&quot;default&quot;:&quot;dozari&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;pose&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;idle&quot;,&quot;coin&quot;,&quot;wave&quot;,&quot;cheer&quot;,&quot;win&quot;,&quot;sad&quot;,&quot;thinking&quot;,&quot;shocked&quot;,&quot;sleeping&quot;,&quot;pointing&quot;,&quot;blink&quot;,&quot;angry&quot;],&quot;default&quot;:&quot;idle&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;skin&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;min&quot;:0,&quot;max&quot;:7,&quot;default&quot;:0,&quot;tsType&quot;:&quot;number&quot;},&quot;crop&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;full&quot;,&quot;face&quot;],&quot;default&quot;:&quot;full&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
 const HEAD={
 bean:{d:'M66 62 C62 30 82 18 100 18 C118 18 138 30 134 62 C140 96 138 150 100 150 C62 150 60 96 66 62Z',top:18},
 round:{d:'M100 34 C134 34 152 60 152 94 C152 128 130 150 100 150 C70 150 48 128 48 94 C48 60 66 34 100 34Z',top:34},
@@ -173,55 +184,33 @@ khale:{head:'round',skin:'#F9D0AA',hat:'scarf',hatC:'#FF5C8A',nose:'button',clot
 pahlevan:{head:'round',skin:'#E2A06E',hat:'topknot',nose:'potato',cloth:'#E84A3C',patC:'#FFF1DC',pat:'hstripe',belt:'#3A2418',mustache:'handle',seed:23},
 baqal:{head:'bean',skin:'#ECB283',hat:'headband',hatC:'#6CC04A',nose:'potato',cloth:'#F1E4C8',patC:'#D8C49C',pat:'stripe',belt:'#6CC04A',beard:'black',mustache:'bushy',seed:29},
 mirza:{head:'egg',skin:'#F5CDA2',hat:'turban',hatC:'#3B8FE8',nose:'long',cloth:'#2F3D8F',patC:'#5E74D6',pat:'dot',belt:'#FFC93C',mustache:'thin',seed:37},
+dozariF:{head:'bean',skin:'#F9CDA4',hat:'namadi',hatC:'#E8743B',nose:'button',cloth:'#FF7FAE',patC:'#FFC2D9',pat:'stripe',belt:'#3A2418',freckles:1,fem:1,seed:5},
 goli:{head:'round',skin:'#F8CEA6',hat:'girlhair',hatC:'#5A3424',nose:'button',cloth:'#7ED957',patC:'#C6F2A6',pat:'dot',seed:41}};
-const O=(x,y,r)=>`M${x-r} ${y} a${r} ${r} 0 1 0 ${2*r} 0 a${r} ${r} 0 1 0 ${-2*r} 0`;
-const DROP=(x,y)=>`M${x} ${y} q-6 9 0 12 q6 -3 0 -12z`;
-const LEAF=(x,y,r)=>`M${x} ${y} C${x+12} ${y-6} ${x+22} ${y+2} ${x+18} ${y+14} C${x+8} ${y+16} ${x} ${y+10} ${x} ${y}Z`;
-const ACC={
-sabzeh:[['M146 228 h28 l-4 22 h-20Z','#C46A3A'],['M150 228 l-2 -18 M155 228 l0 -22 M160 228 l1 -24 M165 228 l2 -20 M170 228 l3 -16','none','#3FA36B',3.4],['M146 235 h28 v6 h-28Z','#E84A3C']],
-flower:[[O(80,16,5)+O(72,24,5)+O(88,24,5)+O(75,32,5)+O(85,32,5),'#FF5C8A'],[O(80,25,4),'#FFC93C']],
-cherries:[['M62 108 q-4 10 -10 16 M62 108 q2 10 -2 18','none','#3FA36B',2.4],[O(51,128,5.5)+O(60,130,5.5),'#D8282B'],['M48 126 q1 -2 3 -2 M57 128 q1 -2 3 -2','none','#fff',1.6]],
-sunglasses:[['M75 66 h24 v9 q-12 9 -24 0Z M101 66 h24 v9 q-12 9 -24 0Z M99 68 h2','#2A1A12'],['M79 69 l6 0 M105 69 l6 0','none','#fff',2]],
-watermelon:[['M36 194 A26 26 0 0 0 88 194Z','#FF5A5A','#3FA36B',4],['M36 194 h52','none'],[O(54,202,1.5)+O(64,206,1.5)+O(72,200,1.5),'#2A1A12','none',0]],
-pencil:[['M134 66 L152 94 L147 97 L129 69Z','#FFC93C'],['M152 94 L154 102 L147 97Z','#F7C69A'],['M129 69 L134 66 L131 62 L126 65Z','#FF8FB6']],
-backpack:[['M138 154 h16 q4 0 4 4 v40 q0 4 -4 4 h-16Z','#E84A3C'],['M80 148 L82 212 M120 148 L118 212','none','#3A2418',8],['M80 148 L82 212 M120 148 L118 212','none','#E84A3C',4]],
-rain:[[LEAF(112,14,1),'#FF7A3D'],[DROP(36,56)+DROP(164,108)+DROP(26,138)+DROP(170,170),'#8FDCFA','#3A2418',2]],
-leaves:[[LEAF(30,40,1),'#E8743B'],[LEAF(158,120,1),'#FFB23F'],[LEAF(24,150,1),'#A8423A']],
-pomegranate:[[O(156,192,14),'#C4302B'],['M150 180 l2 -7 l3 4 l2 -5 l2 5 l3 -4 l1 7Z','#C4302B'],['M148 186 q3 -4 7 -5','none','#fff',2]],
-earmuffs:[['M64 92 C58 18 142 18 136 92','none','#3E93B8',6],[O(60,98,12)+O(140,98,12),'#FFFFFF'],[O(28,40,0.1)+O(170,60,0.1)+O(22,120,0.1)+O(176,140,0.1),'none','#FFFFFF',6]],
-goldfish:[['M144 212 C132 226 138 250 160 251 C182 250 188 226 176 212Z','#BFE9FA'],['M140 228 C150 222 170 222 180 228','none','#3E93B8',2],['M152 236 C156 230 166 230 168 236 C166 242 156 242 152 236Z M168 236 l7 -5 v10Z','#FF7A3D']]};
-const MONTH=[null,
-['#3FA36B','#8FDCA8','#E84A3C','#FFC93C','sabzeh'],['#FF8FB6','#FFD1DF','#7ED957','#FFF3E0','flower'],['#9BD65A','#D2F0A8','#E84A3C','#FF5C8A','cherries'],
-['#3FC1F0','#A8E6F8','#FFC93C','#FF7A3D','sunglasses'],['#FF7A3D','#FFC29E','#3FA36B','#E84A3C','watermelon'],['#5E74D6','#A9B8F2','#E8743B','#FFC93C','pencil'],
-['#2F3D8F','#5E74D6','#E8743B','#E84A3C','backpack'],['#FFC93C','#FFE48A','#3FA36B','#3E93B8','rain'],['#A8423A','#D97A5A','#E8743B','#FFB23F','leaves'],
-['#C4302B','#E86A5A','#7A1F3D','#FFF3E0','pomegranate'],['#8FDCFA','#FFFFFF','#3E93B8','#FFFFFF','earmuffs'],['#A66BF0','#D2B8FA','#FF4D8D','#FFC93C','goldfish']];
-const ORDER=['dozari','mashti','khale','pahlevan','baqal','mirza','goli'];
+const ORDER=['dozari','dozariF','mashti','khale','pahlevan','baqal','mirza','goli'];
 class Component extends DCLogic {
   renderVals(){
     if(!this.uid){window.__dzc=(window.__dzc||0)+1;this.uid='dzc'+window.__dzc;}
     const sk=+(this.props.skin??0)||0;
-    const key=CAST[this.props.who]?this.props.who:ORDER[((sk%7)+7)%7];
-    let c0=CAST[key];const mo=key==='dozari'?MONTH[+(this.props.month||0)]:null;if(mo)c0=Object.assign({},c0,{cloth:mo[0],patC:mo[1],hatC:mo[2]});const scarf=mo?mo[3]:'#E84A3C';
-    const P=POSE[this.props.pose]||POSE.idle,hd=HEAD[c0.head];
+    const key=CAST[this.props.who]?this.props.who:ORDER[((sk%ORDER.length)+ORDER.length)%ORDER.length];
+    const c0=CAST[key],P=POSE[this.props.pose]||POSE.idle,hd=HEAD[c0.head];
     const hf=HATS[c0.hat]?HATS[c0.hat](c0.hatC):NONE;
     const long=c0.nose==='long'?8:0,must=!!c0.mustache;
     const ab=A[P.b],af=A[P.f],px=P.px||0,py=P.py||0;
-    const m=(key==='dozari'&&P.mouth==='smile')?{d:'M86 127 Q102 142 117 122 Q102 131 86 127Z',f:'#8A2A2A',teeth:'M99 130 L106 129 L105.5 134 L99.5 134.5Z'}:MOUTH[P.mouth];
+    const m=((key==='dozari'||c0.fem)&&P.mouth==='smile')?{d:'M86 127 Q102 142 117 122 Q102 131 86 127Z',f:'#8A2A2A',teeth:'M99 130 L106 129 L105.5 134 L99.5 134.5Z'}:MOUTH[P.mouth];
     const face=this.props.crop==='face';
     const c=Object.assign({},c0,{
       stW:c0.pat==='dot'?0:4.5,dotR:c0.pat==='dot'?2:0,patRot:c0.pat==='hstripe'?90:(c0.pat==='dot'?45:0),
       beltD:c0.belt?'M63 190 Q100 200 137 190 L138 201 Q100 211 62 201Z':'',belt:c0.belt||'none',
       beardD:c0.beard?BEARD:'',beardC:c0.beard==='white'?'#FFFDF5':'#2E1E18',beardCurl:c0.beard==='white'?CURLS:'',
       mustD:must?MUST[c0.mustache]:'',mustC:c0.mustache==='thin'?'#3A2418':'#2E1E18',
-      hairBack:c0.hat==='girlhair'?BRAIDS:'',hatC:c0.hatC||'none',browC:c0.brow||'#3A2418',
-      hero:key==='dozari',scarf,scarfL:scarf==='#FFF3E0'||scarf==='#FFFFFF'?'#E84A3C':'#FFF3E0',hatRot:key==='dozari'?-9:0,freck:c0.freckles?'M70 97 h.1 M76 100 h.1 M71 104 h.1 M124 100 h.1 M130 97 h.1 M129 104 h.1':'',glasses:!!c0.glasses});
+      hairBack:(c0.hat==='girlhair'||c0.fem)?BRAIDS:'',hairC:c0.fem?'#4A2A1A':(c0.hatC||'none'),ribbon:c0.fem?'M50 160 l-8 -6 l2 10Z M50 160 l8 -6 l-2 10Z M150 160 l-8 -6 l2 10Z M150 160 l8 -6 l-2 10Z':'',hatC:c0.hatC||'none',browC:c0.brow||'#3A2418',
+      hero:!!(key==='dozari'||c0.fem),heroM:key==='dozari',heroF:!!c0.fem,hatRot:(key==='dozari'||c0.fem)?-9:0,freck:c0.freckles?'M70 97 h.1 M76 100 h.1 M71 104 h.1 M124 100 h.1 M130 97 h.1 M129 104 h.1':'',glasses:!!c0.glasses});
     return {
       vb:face?'26 -4 148 148':'-20 -18 240 276',full:!face,fid:this.uid+'f',pid:this.uid+'p',seed:c0.seed,c,headD:hd.d,hatY:hd.top-34,h:hf,
       e:{open:P.eye==='open',rx:P.big?13:11,ry:P.big?16:13,pr:P.big?2.6:3.8,plx:88+px,prx:112+px,py:76+py,hlx:89.6+px,hrx:113.6+px,hly:74.2+py,lid:LID[P.lid]||'',
         lines:P.eye==='happy'?HAPPY:P.eye==='closed'?CLOSED:'',brow:BROW[P.brow]},
       m:{d:m.d,f:m.f,teeth:m.teeth||''},mY:long+(must?5:0),nY:long,n:NOSE[c0.nose],
       p:{armB:ab[0],hbx:ab[1],hby:ab[2],armF:af[0],hfx:af[1],hfy:af[2],coin:!!P.coin,cx:af[1],cy:af[2]-14},
-      acc:mo?ACC[mo[4]].map(([d,f,s,w])=>({d,f,s:s||'#3A2418',w:w??2.4,o:1})):[],
       x:{q:!!P.q,z:!!P.z,sweat:!!P.sweat,tear:!!P.tear,spark:!!P.spark}
     };
   }

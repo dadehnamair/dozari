@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lalezar&amp;family=Vazirmatn:wght@400;600;800&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0;background:#2B1240;font-family:Vazirmatn,system-ui,sans-serif;color:#FFF6E8}a{color:#FFC93C}a:hover{color:#FF7A3D}*{box-sizing:border-box}</style>
+</helmet>
+<div dir="rtl" style="min-height:100vh;background:linear-gradient(180deg,#2B1240 0%,#40166A 40%,#5E1F7E 100%);padding:56px;display:flex;flex-direction:column;gap:32px;max-width:1600px;margin:0 auto">
+<header style="display:flex;flex-direction:column;gap:4px">
+  <div style="font:14px 'JetBrains Mono',monospace;color:#FFC93C;direction:ltr;text-align:right">Dozari · 12 Item Icons · &lt;dc-import name="Item" icon="…"&gt;</div>
+  <h1 style="margin:0;font:56px/1 Lalezar;text-shadow:0 4px 0 #2B1240">پک آیکن آیتم‌ها و محصولات</h1>
+  <p style="margin:6px 0 0;font:500 15px/1.8 Vazirmatn;color:rgba(255,246,232,.8);max-width:760px">همه با خط قلم لرزان، رنگ تخت و هایلایت سفید، هم‌سبک شخصیت‌ها. viewBox ۶۴. برای اضافه کردن آیکن جدید فقط یک خط به فهرست داخل Item.dc.html اضافه می‌شود.</p>
+</header>
+<div style="display:flex;gap:20px;align-items:flex-end;flex-wrap:wrap;padding:20px 24px;border-radius:24px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14)">
+  <sc-for list="{{ sizes }}" as="s" hint-placeholder-count="5">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+      <div style="width:{{ s.px }};height:{{ s.px }}"><dc-import name="Item" icon="chest" hint-size="{{ s.hs }}" style="width:100%;height:100%"></dc-import></div>
+      <div style="font:11px 'JetBrains Mono',monospace;opacity:.6">{{ s.l }}</div>
+    </div>
+  </sc-for>
+  <div style="display:flex;gap:10px;margin-right:auto">
+    <sc-for list="{{ tiles }}" as="t" hint-placeholder-count="4">
+      <div style="width:84px;height:84px;border-radius:24px;background:radial-gradient(circle at 30% 22%,{{ t.l }},{{ t.b }} 60%);border:3px solid #2B1240;box-shadow:inset 0 -6px 0 rgba(0,0,0,.15),0 5px 0 #2B1240;padding:12px"><dc-import name="Item" icon="{{ t.k }}" hint-size="54px,54px" style="width:100%;height:100%"></dc-import></div>
+    </sc-for>
+  </div>
+</div>
+<sc-for list="{{ cats }}" as="c" hint-placeholder-count="6">
+  <section style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:32px;padding:28px 32px;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:14px;height:14px;border-radius:50%;background:{{ c.c }};border:3px solid #2B1240;box-shadow:0 0 0 2px {{ c.c }}"></div>
+      <h2 style="margin:0;font:32px/1 Lalezar">{{ c.t }}</h2>
+      <span style="font:12px 'JetBrains Mono',monospace;opacity:.55">{{ c.n }}</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:14px">
+      <sc-for list="{{ c.items }}" as="it" hint-placeholder-count="8">
+        <div style="padding:14px 8px 10px;border-radius:22px;background:#FBF1DE;border:3px solid #3A2418;box-shadow:0 5px 0 #3A2418;display:flex;flex-direction:column;align-items:center;gap:6px;color:#3A2418;transition:transform .15s" style-hover="transform:translateY(-4px) rotate(-2deg)">
+          <div style="width:76px;height:76px"><dc-import name="Item" icon="{{ it.k }}" hint-size="76px,76px" style="width:100%;height:100%"></dc-import></div>
+          <div style="font:18px/1.1 Lalezar;text-align:center">{{ it.fa }}</div>
+          <div style="font:10.5px 'JetBrains Mono',monospace;opacity:.5">item-{{ it.k }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+</sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
+const CATS=[
+['پول و گنجینه','#FFC93C',[['coin','سکهٔ دوزاری'],['coinStack','کپهٔ سکه'],['coinBag','کیسهٔ سکه'],['chest','صندوقچه'],['gem','جواهر'],['piggy','قلک'],['banknote','اسکناس'],['goldBar','شمش طلا']]],
+['کمک‌ها و قدرت‌ها','#3FC1F0',[['lantern','فانوس راهنما'],['magnifier','ذره‌بین'],['hourglass','ساعت شنی'],['dice','تاس بُر'],['heart','جان اضافه'],['freeze','یخ‌زدن زمان'],['scissors','حذف یک کلمه'],['eraser','پاک‌کن'],['magicLamp','چراغ جادو'],['key','کلید'],['lock','قفل']]],
+['اجناس بازار','#E8743B',[['teaGlass','استکان چای'],['teapot','قوری'],['samovar','سماور'],['pomegranate','انار'],['watermelon','هندوانه'],['saffron','زعفران'],['pistachio','پسته'],['rug','فرش'],['spiceSack','کیسهٔ ادویه'],['jug','کوزه'],['bread','نان'],['pashmak','پشمک'],['sohan','سوهان']]],
+['جایزه و افتخار','#FF4D8D',[['crown','تاج'],['trophy','جام'],['medal','مدال'],['star','ستاره'],['ticket','بلیت تورنومنت'],['gift','کادو'],['envelope','نامه'],['scroll','طومار'],['flag','پرچم'],['balloons','بادکنک'],['rosette','نشان'],['fireworks','آتش‌بازی']]],
+['انرژی و زمان','#7ED957',[['potion','معجون انرژی'],['xpPotion','معجون تجربه'],['bolt','صاعقه'],['calendar','تقویم'],['alarm','ساعت زنگی'],['map','نقشه'],['compass','قطب‌نما']]],
+['نوستالژی','#A66BF0',[['cassette','نوار کاست'],['radio','رادیو'],['phone','تلفن قدیمی'],['marbles','تیله'],['top','فرفره'],['kite','بادبادک']]]];
+class Component extends DCLogic {
+  renderVals(){
+    return {
+      cats:CATS.map(([t,c,items])=>({t,c,n:fa(items.length)+' آیکن',items:items.map(([k,f])=>({k,fa:f}))})),
+      sizes:[24,32,48,64,96].map(n=>({px:n+'px',hs:n+'px,'+n+'px',l:n+'px'})),
+      tiles:[['coin','#FFE48A','#FFC93C'],['gem','#8FDCFA','#3FC1F0'],['heart','#FF8FB6','#FF4D8D'],['potion','#B8F08F','#7ED957']].map(([k,l,b])=>({k,l,b}))
+    };
+  }
+}
+</script>
+</body>
+</html>
