@@ -1,7 +1,7 @@
 /** Core of the admin SPA: DOM helpers, API client, toasts, modals, icon rendering, router. */
 export const ADMIN_CORE_JS = String.raw`
 var NS = 'http://www.w3.org/2000/svg';
-var S = { token: '', meta: null, route: 'dashboard', counts: {}, theme: null };
+var S = { token: '', me: null, meta: null, route: 'dashboard', counts: {}, theme: null };
 function $(id) { return document.getElementById(id); }
 function h(tag, attrs, kids) {
   var el = document.createElement(tag);
@@ -40,13 +40,16 @@ function ago(ms) {
 }
 function store(k, v) { try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { /* private mode */ } }
 function load(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+/* The sign-in token lives only as long as the tab (sessionStorage), never in localStorage. */
+function sstore(k, v) { try { if (v === null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, v); } catch (e) { /* private mode */ } }
+function sload(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }
 
 function api(path, opts) {
   opts = opts || {};
   var headers = { 'x-admin-token': S.token };
   if (opts.body !== undefined) headers['content-type'] = 'application/json';
   return fetch(path, { method: opts.method || 'GET', headers: headers, body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined })
-    .then(function (res) { return res.json().catch(function () { return {}; }).then(function (body) { return { status: res.status, ok: res.ok, body: body }; }); })
+    .then(function (res) { return res.json().catch(function () { return {}; }).then(function (body) { if (res.status === 401 && S.token && path !== '/admin/login') { sstore('tok', null); S.token = ''; showLogin('نشست تمام شد؛ دوباره وارد شو.'); } return { status: res.status, ok: res.ok, body: body }; }); })
     .catch(function () { return { status: 0, ok: false, body: {} }; });
 }
 function toast(msg, err) {
@@ -55,7 +58,7 @@ function toast(msg, err) {
   area.appendChild(t);
   setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, err ? 5000 : 2600);
 }
-var ERR = { unauthorized: 'توکن اشتباه است', invalid_request: 'ورودی نامعتبر است', product_not_found: 'محصول پیدا نشد', slug_taken: 'این شناسه (slug) قبلاً استفاده شده', price_exists: 'همین قیمت قبلاً ثبت شده', approved_price_exists: 'برای این سال قبلاً یک قیمت تأییدشده هست', conflict: 'برای این محصول و سال قبلاً قیمت تأییدشده هست', needs_product: 'یک محصول انتخاب کن یا محصول جدید بساز', duplicate_slug: 'این شناسه قبلاً استفاده شده', already_decided: 'قبلاً تصمیم گرفته شده', insufficient: 'موجودی کافی نیست', source_not_found: 'منبع پیدا نشد', user_not_found: 'کاربر پیدا نشد', invalid_value: 'مقدار خارج از محدوده است', invalid_key: 'تنظیم ناشناخته است' };
+var ERR = { unauthorized: 'توکن اشتباه است', forbidden: 'نقش تو اجازه‌ی این کار را ندارد', rate_limited: 'تلاش‌های زیاد؛ کمی بعد دوباره امتحان کن', invalid_credentials: 'نام کاربری یا رمز درست نیست', account_locked: 'حساب برای چند دقیقه قفل شد', duplicate: 'این نام کاربری قبلاً هست', invalid_username: 'نام کاربری: ۳ تا ۳۰ حرف انگلیسی کوچک، عدد، نقطه یا خط تیره', weak_password: 'رمز ضعیف است (حداقل ۱۰ نویسه، بدون نام کاربری، متنوع)', last_owner: 'آخرین مالک را نمی‌شود برداشت یا غیرفعال کرد', not_found: 'پیدا نشد', invalid_request: 'ورودی نامعتبر است', product_not_found: 'محصول پیدا نشد', slug_taken: 'این شناسه (slug) قبلاً استفاده شده', price_exists: 'همین قیمت قبلاً ثبت شده', approved_price_exists: 'برای این سال قبلاً یک قیمت تأییدشده هست', conflict: 'برای این محصول و سال قبلاً قیمت تأییدشده هست', needs_product: 'یک محصول انتخاب کن یا محصول جدید بساز', duplicate_slug: 'این شناسه قبلاً استفاده شده', already_decided: 'قبلاً تصمیم گرفته شده', insufficient: 'موجودی کافی نیست', source_not_found: 'منبع پیدا نشد', user_not_found: 'کاربر پیدا نشد', invalid_value: 'مقدار خارج از محدوده است', invalid_key: 'تنظیم ناشناخته است' };
 function fail(r) { toast(ERR[r.body && r.body.error] || ('خطا (' + r.status + ')'), true); }
 
 function modal(title, body, buttons) {

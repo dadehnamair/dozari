@@ -1,11 +1,16 @@
-import { createHash, timingSafeEqual } from 'node:crypto';
-import type { FastifyInstance, FastifyRequest } from 'fastify';
+import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { MIN_PRICE_POINTS_PER_PRODUCT, PRICE_STATUSES, priceRange } from '@dozari/shared';
 import type { PriceMark } from '@dozari/shared';
 import type { DailyRewardService } from '../economy/daily-reward.js';
 import { registerDailyRewardAdminRoutes } from '../economy/routes.js';
 import type { SocketStats } from '../realtime/stats.js';
+import { randomBytes } from 'node:crypto';
+import { AdminAccounts } from './accounts/service.js';
+import { createMemoryAdminStore } from './accounts/store.js';
+import { can, permissionFor } from './accounts/permissions.js';
+import { registerAdminAccountRoutes, registerAdminLogin } from './accounts/routes.js';
+import { auditActor } from './audit.js';
 import { RateLimiter } from '../security/rate-limit.js';
 import { registerAdminModules } from './module-routes.js';
 import type { AdminModules } from './module-routes.js';
@@ -56,14 +61,6 @@ function rangeSummary(prices: readonly AdminPriceDto[]) {
   };
 }
 
-const digest = (s: string) => createHash('sha256').update(s).digest();
-
-function tokenMatches(req: FastifyRequest, token: string): boolean {
-  const given = req.headers['x-admin-token'];
-  if (typeof given !== 'string') return false;
-  return timingSafeEqual(digest(given), digest(token));
-}
-
 const paramsSchema = z.object({ id: z.string().uuid() });
 const bodySchema = z.object({ status: z.enum(PRICE_STATUSES) });
 
@@ -77,9 +74,13 @@ export interface AdminExtras extends AdminModules {
   dailyReward?: DailyRewardService;
   /** Live numbers of the socket service. */
   socketStats?: SocketStats;
+  /** Admin accounts with roles; without it only the static token (owner) works. */
+  accounts?: AdminAccounts;
 }
 
-export function registerAdminRoutes(app: FastifyInstance, repo: AdminRepository, token: string, extras: AdminExtras = {}) {
+export function registerAdminRoutes(app: FastifyInstance, repo: AdminRepository, token: string | undefined, extras: AdminExtras = {}) {
+  const accounts = extras.accounts ?? new AdminAccounts(createMemoryAdminStore(), randomBytes(32).toString('hex'), token);
+  registerAdminLogin(app, accounts);
   // The page itself carries no data; every data call below needs the token.
   app.get('/admin', async (_req, reply) => reply.type('text/html; charset=utf-8').send(ADMIN_PAGE_HTML));
 
@@ -88,11 +89,19 @@ export function registerAdminRoutes(app: FastifyInstance, repo: AdminRepository,
     const failures = new RateLimiter(10, 15 * 60_000);
     guarded.addHook('onRequest', async (req, reply) => {
       if (failures.blocked(req.ip)) return reply.header('retry-after', String(failures.retryAfterSec(req.ip))).code(429).send({ error: 'rate_limited' });
-      if (!tokenMatches(req, token)) {
+      const given = req.headers['x-admin-token'];
+      const actor = typeof given === 'string' && given.length > 0 ? await accounts.authenticate(given) : null;
+      if (!actor) {
         failures.take(req.ip);
         return reply.code(401).send({ error: 'unauthorized' });
       }
+      const needs = permissionFor(req.method, req.url.split('?')[0] ?? '');
+      if (!can(actor.role, needs)) return reply.code(403).send({ error: 'forbidden', needs });
+      req.adminActor = actor;
     });
+    // Everything the handler (and its audit calls) does runs "as" this admin.
+    guarded.addHook('preHandler', (req, _reply, done) => auditActor.run(req.adminActor?.name ?? 'unknown', done));
+    registerAdminAccountRoutes(guarded, accounts, (action, target, detail) => void extras.audit?.record(action, target, detail));
 
     if (extras.dailyReward) registerDailyRewardAdminRoutes(guarded, extras.dailyReward);
     registerAdminModules(guarded, extras);

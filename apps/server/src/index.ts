@@ -19,6 +19,8 @@ import { createTokenSigner } from './auth/tokens.js';
 import { createDbAdminRepository } from './admin/db-repository.js';
 import { registerAdminRoutes } from './admin/routes.js';
 import type { AdminModules } from './admin/module-routes.js';
+import { AdminAccounts } from './admin/accounts/service.js';
+import { createDbAdminStore } from './admin/accounts/store.js';
 import { createDbAuditLog } from './admin/audit.js';
 import { createDbProductAdmin } from './admin/products.js';
 import { createDbStatsAdmin } from './admin/stats.js';
@@ -59,7 +61,7 @@ export interface ServerDeps {
   trustProxy?: boolean;
   catalog?: CatalogRepository;
   /** Interim catalog review page + API at `/admin`; registered only when a token is provided. */
-  admin?: { repo: AdminRepository; token: string };
+  admin?: { repo: AdminRepository; token?: string; accounts?: AdminAccounts };
   /** Guest accounts and sessions (`/auth/guest`, `/me`). */
   auth?: AuthService;
   /** Daily reward (`/daily-reward`, and the admin editor); needs `auth` for the player routes. */
@@ -144,7 +146,7 @@ export function buildServer(deps: ServerDeps = {}) {
       await gateway?.close();
     });
   }
-  if (deps.admin) registerAdminRoutes(app, deps.admin.repo, deps.admin.token, { dailyReward: deps.dailyReward, socketStats: gateway?.stats, settings: deps.settings, ...deps.adminModules });
+  if (deps.admin) registerAdminRoutes(app, deps.admin.repo, deps.admin.token, { accounts: deps.admin.accounts, dailyReward: deps.dailyReward, socketStats: gateway?.stats, settings: deps.settings, ...deps.adminModules });
   if (deps.localImagesDir) {
     void app.register(fastifyStatic, { root: resolve(deps.localImagesDir), prefix: '/images/' });
   }
@@ -221,7 +223,7 @@ if (isMainModule(import.meta.url)) {
     dailyReward: db && settings ? new DailyRewardService(createDbDailyRewardStore(db), Date.now, () => dailyRules(settings)) : undefined,
     catalog: db ? createDbCatalogRepository(db) : undefined,
     solo: db && settings ? new SoloService(createDbPuzzleSource(db), { rules: () => soloRules(settings) }) : undefined,
-    admin: db && adminToken ? { repo: createDbAdminRepository(db), token: adminToken } : undefined,
+    admin: db && jwtSecret ? { repo: createDbAdminRepository(db), token: adminToken, accounts: new AdminAccounts(createDbAdminStore(db), jwtSecret, adminToken) } : undefined,
     corsOrigin: process.env.CORS_ORIGIN,
     trustProxy: process.env.TRUST_PROXY === '1',
     localImagesDir: process.env.LOCAL_IMAGES_DIR,

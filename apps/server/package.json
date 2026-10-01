@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings=0",
     "test": "vitest run",
-    "bot:run": "tsx src/bot/cli.ts"
+    "bot:run": "tsx src/bot/cli.ts",
+    "admin:create": "tsx --env-file=../../.env src/admin/accounts/cli.ts"
   },
   "dependencies": {
     "@dozari/db": "workspace:*",

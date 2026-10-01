@@ -26,7 +26,7 @@ Audit of 2026-10-01 (whole server, admin panel, sockets, dependencies). What is 
 
 ## Open / owner decisions
 
-- **Admin login is one shared token** (`ADMIN_TOKEN`). Fine for one owner; for several admins we need accounts with roles and per-admin audit (planned in the admin work).
+- **Admin login** now uses separate accounts with roles (D76). The static `ADMIN_TOKEN` remains as an optional break-glass owner: once an owner account exists, remove it from `.env`. Still open: two-factor sign-in, IP allow-list for `/admin`.
 - **Guest account = device id.** Whoever has the device id has the account (it is a random 128-bit value kept in the device keychain). Phone-number linking (optional, profile spec) is the recovery path.
 - **JWT revocation**: only bans end a session today. A "log out everywhere" switch is planned.
 - **Coins are visible** on every player's public profile (D67) — owner to confirm.

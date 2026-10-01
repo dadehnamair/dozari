@@ -19,10 +19,13 @@ export const ADMIN_PAGE_HTML = `<!doctype html>
 <body>
 <div id="login" class="login card" hidden>
   <h1>پنل ادمین دوزاری</h1>
-  <div class="sub" style="color:var(--muted);margin-bottom:12px">توکن ادمین (مقدار ADMIN_TOKEN در فایل .env) را وارد کن.</div>
+  <div class="sub" style="color:var(--muted);margin-bottom:12px">با نام کاربری و رمز خودت وارد شو.</div>
   <form id="login-form" style="display:flex;flex-direction:column;gap:10px">
-    <input id="login-token" type="password" autocomplete="off" placeholder="توکن ادمین">
+    <input id="login-user" type="text" autocomplete="username" placeholder="نام کاربری" dir="ltr">
+    <input id="login-pass" type="password" autocomplete="current-password" placeholder="رمز" dir="ltr">
+    <input id="login-token" type="password" autocomplete="off" placeholder="توکن اصلی (ADMIN_TOKEN)" dir="ltr" hidden>
     <button class="btn primary" type="submit" style="justify-content:center">ورود</button>
+    <button id="login-mode" class="btn sm" type="button" style="justify-content:center">ورود با توکن اصلی</button>
     <div id="login-msg" class="flag" style="background:transparent;color:var(--bad)"></div>
   </form>
 </div>
@@ -36,6 +39,7 @@ export const ADMIN_PAGE_HTML = `<!doctype html>
     <div class="top">
       <button id="menu" class="btn menu-btn" aria-label="منو">☰</button>
       <h1 id="title"></h1>
+      <span id="who" class="sub" style="color:var(--muted);font-size:13px"></span>
       <button id="theme" class="btn sm" aria-label="تغییر تم">🌓</button>
       <button id="logout" class="btn sm">خروج</button>
     </div>
