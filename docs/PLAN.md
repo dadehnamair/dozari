@@ -65,7 +65,7 @@ browser — both need the owner's own machine (see Phase 0-A).
 
 - [x] 🧩 Group rule types + evaluators (`logic/puzzle-generation.md` §Rule types)
 - [x] 🧩 `validatePuzzle()` — uniqueness of solution, difficulty ordering, item constraints
-- [ ] 🗄 `puzzles`, `puzzle_groups`, `puzzle_group_items`, `group_title_templates`
+- [x] 🗄 `puzzles`, `puzzle_groups`, `puzzle_group_items`, `group_title_templates`
 - [ ] 📚 **Hand-curate 50–100 puzzles first** (`curated` groups, admin-approved) to set the tone/
       humor bar before the generator exists — `puzzle-generation.md` §Content bootstrap order
 - [ ] 🧩 AI-drafted group titles (2–3 candidates per rule `kind`) + human pick/edit before a

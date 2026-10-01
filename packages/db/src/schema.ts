@@ -4,7 +4,9 @@ import {
   boolean,
   char,
   datetime,
+  double,
   index,
+  int,
   mysqlEnum,
   mysqlTable,
   primaryKey,
@@ -41,6 +43,22 @@ export const PRODUCT_CATEGORY_VALUES = [
   'hygiene',
   'service',
   'other',
+] as const;
+
+/**
+ * Rule kinds (docs/logic/puzzle-generation.md). Duplicated from @dozari/shared on purpose:
+ * drizzle-kit loads this file with a CJS loader that cannot resolve the shared package's ESM
+ * `.js` imports. A test keeps both lists identical.
+ */
+export const RULE_KIND_VALUES = [
+  'price_band_at_year',
+  'same_price_at_year',
+  'first_crossed',
+  'multiplier_between',
+  'cheaper_than_ref',
+  'era_icon',
+  'category_price_rank',
+  'curated',
 ] as const;
 
 const id = () =>
@@ -154,5 +172,91 @@ export const pricePoints = mysqlTable(
       table.approvedFlag,
     ),
     byProduct: index('price_points_product_id_idx').on(table.productId),
+  }),
+);
+
+/**
+ * Puzzles (docs/logic/data-model.md §Puzzles). Group rules are stored as flat, typed columns
+ * (no JSON, D63): `rule_kind` says which of the nullable `rule_*` columns apply. Convert with
+ * `ruleToColumns` / `columnsToRule` (puzzle-rule.ts), which validate through the shared zod schema.
+ */
+export const puzzles = mysqlTable('puzzles', {
+  id: id(),
+  status: mysqlEnum('status', ['draft', 'approved', 'retired']).notNull().default('draft'),
+  source: mysqlEnum('source', ['generated', 'curated', 'ugc']).notNull(),
+  authorId: char('author_id', { length: 36 }),
+  seed: bigint('seed', { mode: 'bigint' }),
+  difficultyScore: double('difficulty_score'),
+  timesPlayed: int('times_played').notNull().default(0),
+  avgSolveRate: double('avg_solve_rate'),
+  createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+});
+
+export const puzzleGroups = mysqlTable(
+  'puzzle_groups',
+  {
+    id: id(),
+    puzzleId: fk('puzzle_id').references(() => puzzles.id, { onDelete: 'cascade' }),
+    /** 0 = yellow (easiest) .. 3 = purple (hardest). */
+    level: tinyint('level').notNull(),
+    /** Null while a puzzle is a draft; an approved puzzle needs both texts (enforced in code). */
+    titleFa: varchar('title_fa', { length: 100 }),
+    explanationFa: varchar('explanation_fa', { length: 300 }),
+    ruleKind: mysqlEnum('rule_kind', RULE_KIND_VALUES).notNull(),
+    ruleYear: smallint('rule_year'),
+    ruleYearB: smallint('rule_year_b'),
+    ruleMinRials: bigint('rule_min_rials', { mode: 'bigint' }),
+    ruleMaxRials: bigint('rule_max_rials', { mode: 'bigint' }),
+    ruleTargetRials: bigint('rule_target_rials', { mode: 'bigint' }),
+    ruleThresholdRials: bigint('rule_threshold_rials', { mode: 'bigint' }),
+    ruleTolerancePct: smallint('rule_tolerance_pct'),
+    ruleFromYear: smallint('rule_from_year'),
+    ruleToYear: smallint('rule_to_year'),
+    ruleMinX: int('rule_min_x'),
+    ruleMaxX: int('rule_max_x'),
+    ruleRank: smallint('rule_rank'),
+    ruleRefProductId: char('rule_ref_product_id', { length: 36 }).references(() => products.id),
+    ruleEraTag: varchar('rule_era_tag', { length: 50 }),
+    ruleCategory: mysqlEnum('rule_category', PRODUCT_CATEGORY_VALUES),
+    ruleNote: varchar('rule_note', { length: 300 }),
+  },
+  (table) => ({
+    levelPerPuzzle: uniqueIndex('puzzle_groups_puzzle_level_idx').on(table.puzzleId, table.level),
+  }),
+);
+
+/** Exactly 4 per group; `puzzle_id` is denormalised so "16 distinct products per puzzle" is a unique key. */
+export const puzzleGroupItems = mysqlTable(
+  'puzzle_group_items',
+  {
+    groupId: fk('group_id').references(() => puzzleGroups.id, { onDelete: 'cascade' }),
+    puzzleId: fk('puzzle_id').references(() => puzzles.id, { onDelete: 'cascade' }),
+    productId: fk('product_id').references(() => products.id),
+    /** Year hint shown on the item card for year-based rules. */
+    displayYear: smallint('display_year'),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.groupId, table.productId] }),
+    distinctProducts: uniqueIndex('puzzle_group_items_puzzle_product_idx').on(table.puzzleId, table.productId),
+  }),
+);
+
+/** Human/AI-written witty titles matched to a rule kind and level range. */
+export const groupTitleTemplates = mysqlTable(
+  'group_title_templates',
+  {
+    id: id(),
+    ruleKind: mysqlEnum('rule_kind', RULE_KIND_VALUES).notNull(),
+    titleFa: varchar('title_fa', { length: 100 }).notNull(),
+    tone: mysqlEnum('tone', ['funny', 'nostalgic', 'neutral']).notNull().default('funny'),
+    minLevel: tinyint('min_level').notNull().default(0),
+    maxLevel: tinyint('max_level').notNull().default(3),
+    isActive: boolean('is_active').notNull().default(true),
+    /** How often a human picked this draft for a real puzzle (reuse good ones, drop bad ones). */
+    timesChosen: int('times_chosen').notNull().default(0),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({
+    byKind: index('group_title_templates_kind_idx').on(table.ruleKind, table.isActive),
   }),
 );

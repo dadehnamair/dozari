@@ -15,6 +15,13 @@
       "when": 1790672371069,
       "tag": "0001_green_wolfsbane",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1790848216965,
+      "tag": "0002_giant_roulette",
+      "breakpoints": true
     }
   ]
 }
