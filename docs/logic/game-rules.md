@@ -26,6 +26,13 @@ All values in *italics* are config in `packages/shared/src/config/game.ts`.
 Classic Connections: *SOLO_MAX_MISTAKES* = 4 mistakes allowed; game over at the 4th wrong guess
 (remaining groups revealed). Result screen + chart.
 
+Implemented as the pure reducer `packages/shared/src/game/solo.ts` (`startSolo`, `submitGuess`,
+`shuffleBoard`; seeded RNG injected). One away counts as a mistake like any wrong guess; a repeated
+set (any order) is `duplicate` and free; anything that is not 4 distinct cards on the board is
+`invalid` and changes nothing; after three solved groups the fourth is auto-revealed and the game is
+`won`; at the 4th mistake the rest are revealed and the game is `lost`. The initial board never lays
+out a row as a whole group. The reducer needs the solution, so it runs server-side (rule 4).
+
 ## Competitive: shared board, alternating turns (Decision D8 — **accepted**, confirmed 2026-09-27)
 
 One board, both sides play it in turns.
