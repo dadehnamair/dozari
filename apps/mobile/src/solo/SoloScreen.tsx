@@ -17,6 +17,7 @@ import { colors } from '../theme/colors';
 import { BASE_URL, guessSolo, shuffleSolo, startSolo } from './api';
 import { describeError } from './errors';
 import { canSubmit, feedbackFor, pruneSelection, toggleSelection } from './selection';
+import { recordGameFinished } from '../review/state';
 import type { FeedbackKey } from './selection';
 
 type Phase = { kind: 'loading' } | { kind: 'error'; message: string; detail: string } | { kind: 'ready'; view: SoloView };
@@ -95,6 +96,7 @@ export function SoloScreen({ onBack }: { onBack: () => void }) {
       flash(feedbackFor(result.outcome));
       adopt(result.view);
       if (result.outcome === 'correct' || result.view.status !== 'playing') setSelected([]);
+      if (result.view.status !== 'playing') void recordGameFinished();
     } catch (err) {
       fail(err);
     } finally {

@@ -77,6 +77,7 @@ export default function App() {
           onSolo={() => setScreen('solo')}
           onLookup={() => setScreen('lookup')}
           features={config.features}
+          settings={config.raw}
           onGallery={__DEV__ ? () => setScreen('gallery') : undefined}
         />
       ) : null}
