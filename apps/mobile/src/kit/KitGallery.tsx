@@ -6,6 +6,7 @@ import { EmptyState } from '../components/EmptyState';
 import { EraStamp } from '../components/EraStamp';
 import { Icon } from '../components/Icon';
 import { Character } from '../components/Character';
+import { Scene, SCENES } from '../components/Scene';
 import { Mascot } from '../components/Mascot';
 import { PortalIcon } from '../components/PortalIcon';
 import { TagPill } from '../components/TagPill';
@@ -37,6 +38,16 @@ export function KitGallery({ onBack, onSearch }: { onBack: () => void; onSearch:
         <CandyButton label={fa.solo.back} color={colors.candy.sky} onPress={onBack} />
         <CandyButton label={fa.kit.search.title} color={colors.candy.pink} onPress={onSearch} />
       </View>
+      <Section title="backgrounds">
+        {SCENES.map((n) => (
+          <View key={n} style={styles.scene}>
+            <Scene scene={n} />
+          </View>
+        ))}
+        <View style={styles.scene}>
+          <Scene scene="alley" mood="dusk" />
+        </View>
+      </Section>
       <Section title="characters">
         {CHARACTERS.map((who) => (
           <View key={who} style={styles.char}>
@@ -116,6 +127,14 @@ const styles = StyleSheet.create({
   heading: { fontFamily: fonts.display, fontSize: 22, color: colors.cream },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'center' },
   mascot: { width: 90, height: 100 },
+  scene: {
+    width: 120,
+    height: 260,
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.25)',
+  },
   char: {
     width: 110,
     height: 130,
