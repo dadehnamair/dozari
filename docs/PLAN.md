@@ -91,11 +91,11 @@ browser — both need the owner's own machine (see Phase 0-A).
 
 ## Phase 3-A — Price-guess bonus round (`logic/price-guess-round.md`)
 
-- [ ] 🧩 Round item selection (1 random item/group) + solo staircase scorer
-- [ ] 🧩 Competitive blind-simultaneous-guess reducer (4 rounds, reuses turn timer)
+- [x] 🧩 Round item selection (1 random item/group) + solo staircase scorer — `selectRounds`, `staircasePoints`, `parseTomanInput` in shared
+- [x] 🧩 Competitive blind-simultaneous-guess reducer (4 rounds, reuses turn timer) — `applyPriceGuessCommand`, `priceGuessClientView` in shared (the timer itself is the server's `timeout` command)
 - [ ] 📱 Solo price-guess UI (numeric input, staircase feedback)
 - [ ] 📱 Competitive price-guess UI (hidden entry, simultaneous reveal animation)
-- [ ] 🧪 Scoring tests (staircase tiers, tie-on-distance draw, locked-out side can't win match off this alone)
+- [~] 🧪 Scoring tests (staircase tiers, tie-on-distance draw done; the locked-out-side match rule waits for the match reducer)
 
 **Exit:** every finished puzzle (solo or competitive) flows into a price-guess round before the result screen.
 

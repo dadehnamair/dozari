@@ -87,3 +87,15 @@ Each price-guess round also carries a small real coin wager, on top of the match
 Per `docs/logic/result-chart.md` and the owner's ordering (2026-09-27): the price-guess rounds are
 shown on the same single result page, after the 4 solved-group rows and before the price chart —
 see updated flow in that file / the result-screen section of `docs/PLAN.md`.
+
+## Implementation (pure logic, `packages/shared/src/priceguess/`)
+
+- `selectRounds(groups, catalog, rng)`: one round per group yellow→purple; random item among those with a
+  usable price (rule year if the group has one, else the product's latest priced year).
+- `staircasePoints(guess, actual)`: integer-only error% against `PRICE_GUESS_STAIRCASE` (config/game.ts);
+  `parseTomanInput` reads what the player types (Persian/Arabic/ASCII digits, separators) as rials.
+- Competitive: `startPriceGuess` / `applyPriceGuessCommand` (`submit_guess`, server-issued `timeout`) /
+  `priceGuessPoints` / `priceGuessClientView` (never exposes the real price or the opponent's number before
+  the simultaneous reveal). A missing guess is the worst possible; two missing is a draw.
+- Not here yet: the coin wager (LedgerService), persistence to `match_events`, the locked-out-side match rule
+  (belongs to the match reducer, Phase 4).
