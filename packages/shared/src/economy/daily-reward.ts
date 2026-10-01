@@ -28,14 +28,20 @@ export function coinsForDay(steps: readonly number[], day: number): number {
  * One claim per 24 h. A claim 24-48 h after the previous one moves to the next streak day; waiting longer than that
  * (a whole day skipped) starts over at day 1. Pure: the clock is passed in.
  */
-export function nextDailyReward(state: DailyRewardState, steps: readonly number[], now: number): DailyRewardDecision {
+export interface DailyRules {
+  cooldownHours: number;
+  windowHours: number;
+}
+export const DEFAULT_DAILY_RULES: DailyRules = { cooldownHours: DAILY_REWARD_COOLDOWN_HOURS, windowHours: DAILY_REWARD_STREAK_WINDOW_HOURS };
+
+export function nextDailyReward(state: DailyRewardState, steps: readonly number[], now: number, rules: DailyRules = DEFAULT_DAILY_RULES): DailyRewardDecision {
   if (steps.length === 0) return { status: 'disabled' };
   if (state.lastClaimedAt === null) return { status: 'ready', day: 1, coins: coinsForDay(steps, 1) };
 
-  const availableAt = state.lastClaimedAt + DAILY_REWARD_COOLDOWN_HOURS * HOUR_MS;
+  const availableAt = state.lastClaimedAt + rules.cooldownHours * HOUR_MS;
   if (now < availableAt) return { status: 'wait', availableAt };
 
-  const continues = now < state.lastClaimedAt + DAILY_REWARD_STREAK_WINDOW_HOURS * HOUR_MS;
+  const continues = now < state.lastClaimedAt + rules.windowHours * HOUR_MS;
   const day = continues ? state.streakDay + 1 : 1;
   return { status: 'ready', day, coins: coinsForDay(steps, day) };
 }

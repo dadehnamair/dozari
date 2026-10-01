@@ -92,6 +92,22 @@ export function buildServer(deps: ServerDeps = {}) {
   return app;
 }
 
+/** Live tunables for the daily reward (admin settings). */
+async function dailyRules(settings: SettingsService) {
+  return { cooldownHours: await settings.num('economy.daily_cooldown_hours'), windowHours: await settings.num('economy.daily_streak_window_hours') };
+}
+
+/** Live tunables for solo games and the price-guess staircase (admin settings). */
+async function soloRules(settings: SettingsService) {
+  const pct = await settings.list('score.staircase_error_pct');
+  const points = await settings.list('score.staircase_points');
+  return {
+    maxMistakes: await settings.num('game.solo_max_mistakes'),
+    tiers: pct.map((maxErrorPct, i) => ({ maxErrorPct, points: points[i] ?? 1 })),
+    minPoints: await settings.num('score.guess_min_points'),
+  };
+}
+
 if (isMainModule(import.meta.url)) {
   const db = process.env.DATABASE_URL ? createDb() : undefined;
   const adminToken = process.env.ADMIN_TOKEN;
@@ -108,9 +124,9 @@ if (isMainModule(import.meta.url)) {
       ? { products: createDbProductAdmin(db), stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
-    dailyReward: db ? new DailyRewardService(createDbDailyRewardStore(db)) : undefined,
+    dailyReward: db && settings ? new DailyRewardService(createDbDailyRewardStore(db), Date.now, () => dailyRules(settings)) : undefined,
     catalog: db ? createDbCatalogRepository(db) : undefined,
-    solo: db ? new SoloService(createDbPuzzleSource(db)) : undefined,
+    solo: db && settings ? new SoloService(createDbPuzzleSource(db), { rules: () => soloRules(settings) }) : undefined,
     admin: db && adminToken ? { repo: createDbAdminRepository(db), token: adminToken } : undefined,
     corsOrigin: process.env.CORS_ORIGIN,
     localImagesDir: process.env.LOCAL_IMAGES_DIR,

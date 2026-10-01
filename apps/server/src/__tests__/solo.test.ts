@@ -200,3 +200,14 @@ describe('solo price-guess round', () => {
     expect((await app.inject({ method: 'GET', url: `/solo/00000000-0000-7000-8000-000000000000/price-rounds` })).statusCode).toBe(404);
   });
 });
+
+describe('admin-tunable rules', () => {
+  it('ends the game after the configured number of mistakes and reports it to the client', async () => {
+    const solo = new SoloService({ pickRandom: async () => puzzle, pricesFor: prices }, { newSeed: () => 7, rules: async () => ({ maxMistakes: 2, tiers: [{ maxErrorPct: 10, points: 7 }], minPoints: 2 }) });
+    const view = (await solo.start())!;
+    expect(view.maxMistakes).toBe(2);
+    const mix = (i: number) => [ids(0)[i]!, ids(1)[i]!, ids(2)[i]!, ids(3)[i]!];
+    expect(solo.guess(view.sessionId, mix(0))?.view.status).toBe('playing');
+    expect(solo.guess(view.sessionId, mix(1))?.view.status).toBe('lost');
+  });
+});

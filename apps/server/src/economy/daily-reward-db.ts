@@ -26,7 +26,7 @@ export function createDbDailyRewardStore(db: Db): DailyRewardStore {
       return { state, balance: bal?.balance ?? 0 };
     },
 
-    async claim(userId, now, steps): Promise<ClaimResult> {
+    async claim(userId, now, steps, rules): Promise<ClaimResult> {
       return db.transaction(async (tx) => {
         // Lock this player's state row (created empty-but-claimable on first sight) so two taps cannot both pay.
         await tx.insert(userDailyRewards).values({ userId, lastClaimedAt: new Date(0), streakDay: 0, claimsTotal: 0 }).onDuplicateKeyUpdate({ set: { userId } });
@@ -34,7 +34,7 @@ export function createDbDailyRewardStore(db: Db): DailyRewardStore {
         if (!row) throw new Error('daily reward row missing');
         const state: DailyRewardState = row.claimsTotal === 0 ? { lastClaimedAt: null, streakDay: 0 } : { lastClaimedAt: row.lastClaimedAt.getTime(), streakDay: row.streakDay };
 
-        const d = decideClaim(state, steps, now);
+        const d = decideClaim(state, steps, now, rules);
         if (d.kind === 'disabled') return { ok: false, error: 'DISABLED' };
         if (d.kind === 'wait') return { ok: false, error: 'TOO_EARLY', nextClaimAt: d.nextClaimAt };
 

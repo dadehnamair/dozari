@@ -200,4 +200,5 @@ human opponent is found.
 - [x] 🖥 Content bot: sources (`html_table`/`csv`/`text_lines`), runs, pending-only candidates with source + excerpt, approve/reject, in-process schedule + `bot:run` CLI (`bot/*`)
 - [x] 📱 Guest login + token on device, daily reward card and coin balance on Home, item icons on board cards
 - [ ] 🔔 Admin: word-filter section (with D69)
-- [ ] 🖥 Wire settings overrides into consumers (solo mistakes, turn seconds, scoring, unlock thresholds) — today they are stored, served at `GET /config` and editable, but the game code still reads the compile-time constants
+- [x] 🖥 Settings wired into: solo max mistakes, price-guess staircase + floor, daily reward cooldown/window (read live; a running solo game keeps the rules it started with)
+- [ ] 🖥 Settings still to wire when their consumers exist: turn seconds, match mistakes, match scoring, avatar/nickname thresholds, chart limits (stored, editable, served at `GET /config`)
