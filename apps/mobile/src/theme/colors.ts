@@ -19,6 +19,12 @@ export const candyTone = {
   lime: { light: '#B8F08F', base: '#7ED957', dark: '#3F8F1F' },
 } as const;
 
+/** Light / base / dark of a candy base colour; any other colour gets a neutral set. */
+export function toneOf(color: string): { light: string; base: string; dark: string } {
+  const hit = Object.values(candyTone).find((t) => t.base === color);
+  return hit ?? { light: color, base: color, dark: 'rgba(0,0,0,0.28)' };
+}
+
 /** Shelf (bottom edge) colour of each locked group colour, yellow to purple. */
 export const groupShelf = ['#C9A92A', '#6E9030', '#6F88C4', '#8A4F98'] as const;
 

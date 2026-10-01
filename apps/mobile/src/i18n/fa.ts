@@ -9,6 +9,7 @@ export const fa = {
     loading: 'در حال بارگذاری…',
     soloButton: 'تمرین تکی',
   },
+  daily: { title: 'جایزهٔ روزانه', day: 'روز', today: 'امروز', claim: 'بگیر!' },
   /** Solar Hijri months: the name and the mood the mascot wears in that month (D66). */
   months: [
     { name: 'فروردین', mood: 'سبزهٔ نوروز' },
@@ -28,6 +29,7 @@ export const fa = {
   kit: {
     splash: { tagline: 'بالاخره دوزاریت می‌افته!', loading: 'در حال بارگذاری...' },
     decade: 'دهه',
+    ui: { start: 'شروع', play: 'بازی', locked: 'قفل', settings: 'تنظیمات', bell: 'اعلان‌ها', toast: 'آفرین، درست بود!' },
     tiers: ['مسی', 'برنزی', 'نقره‌ای', 'طلایی', 'الماسی'],
     tags: {
       chatty: 'چت‌باز', firstWin: 'اولین برد', collector: 'کلکسیونر', sharp: 'تیزبین', streak: 'زنجیره‌ای', champion: 'قهرمان',

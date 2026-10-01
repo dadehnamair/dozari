@@ -1,6 +1,11 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Avatar } from '../components/Avatar';
 import { Banner } from '../components/Banner';
+import { Chip } from '../components/Chip';
+import { DailyRewardCard } from '../components/DailyRewardCard';
+import { IconButton } from '../components/IconButton';
+import { MistakeDots } from '../components/MistakeDots';
+import { Toast } from '../components/Toast';
 import { CandyButton } from '../components/CandyButton';
 import { EmptyState } from '../components/EmptyState';
 import { EraStamp } from '../components/EraStamp';
@@ -49,6 +54,23 @@ export function KitGallery({
           <CandyButton label={fa.kit.brand} color={colors.candy.yellow} onPress={onBrand} />
         ) : null}
       </View>
+      <Section title="buttons">
+        <CandyButton label={fa.kit.ui.start} color={colors.candy.grape} onPress={noop} />
+        <CandyButton label={fa.kit.ui.play} color={colors.candy.yellow} onPress={noop} />
+        <CandyButton label={fa.kit.ui.locked} disabled onPress={noop} />
+        <IconButton icon="settings" label={fa.kit.ui.settings} onPress={noop} />
+        <IconButton icon="bell" label={fa.kit.ui.bell} color={colors.candy.pink} shape="square" badge="۳" onPress={noop} />
+      </Section>
+      <Section title="chip · toast · mistakes">
+        <Chip label={`${fa.kit.decade} ۶۰`} />
+        <Toast text={fa.kit.ui.toast} />
+        <MistakeDots mistakes={1} max={4} />
+      </Section>
+      <Section title="daily reward">
+        <View style={styles.daily}>
+          <DailyRewardCard steps={[10, 15, 20]} day={2} canClaim onClaim={noop} />
+        </View>
+      </Section>
       <Section title="backgrounds">
         {SCENES.map((n) => (
           <View key={n} style={styles.scene}>
@@ -138,6 +160,7 @@ const styles = StyleSheet.create({
   heading: { fontFamily: fonts.display, fontSize: 22, color: colors.cream },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'center' },
   mascot: { width: 90, height: 100 },
+  daily: { width: 320 },
   scene: {
     width: 120,
     height: 260,

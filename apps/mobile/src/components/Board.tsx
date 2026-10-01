@@ -54,14 +54,16 @@ export function Board({ solved, cards, names, selected, onToggle, disabled }: Bo
 
 const styles = StyleSheet.create({
   board: { gap: GAP, width: '100%', maxWidth: 520, alignSelf: 'center' },
-  row: { borderRadius: 14, borderBottomWidth: 4, paddingVertical: 10, paddingHorizontal: 12, alignItems: 'center', gap: 2 },
+  row: { borderRadius: 16, borderWidth: 3, borderColor: colors.ink, borderBottomWidth: 6, paddingVertical: 10, paddingHorizontal: 12, alignItems: 'center', gap: 2 },
   rowTitle: { fontFamily: 'Vazirmatn_700Bold', fontSize: 16, color: colors.ink },
   rowItems: { fontFamily: 'Vazirmatn_400Regular', fontSize: 14, color: colors.ink, textAlign: 'center' },
   rowWhy: { fontFamily: 'Vazirmatn_400Regular', fontSize: 12, color: colors.ink, opacity: 0.75, textAlign: 'center' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: GAP },
   cell: {
     borderRadius: 14,
-    borderBottomWidth: 5,
+    borderWidth: 3,
+    borderColor: colors.ink,
+    borderBottomWidth: 7,
     borderBottomColor: tile.idle.shelf,
     backgroundColor: tile.idle.face,
     alignItems: 'center',

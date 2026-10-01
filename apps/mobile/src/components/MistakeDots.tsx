@@ -16,7 +16,7 @@ export function MistakeDots({ mistakes, max }: { mistakes: number; max: number }
 const styles = StyleSheet.create({
   wrap: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   label: { fontFamily: 'Vazirmatn_400Regular', fontSize: 13, color: colors.cream },
-  dot: { width: 14, height: 14, borderRadius: 7 },
+  dot: { width: 18, height: 18, borderRadius: 9, borderWidth: 3, borderColor: colors.ink },
   dotFree: { backgroundColor: 'rgba(255,255,255,0.3)' },
   dotUsed: { backgroundColor: colors.candy.pink },
 });
