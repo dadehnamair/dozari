@@ -12,6 +12,8 @@ import { AuthService } from './auth/service.js';
 import { createDbUserRepository } from './auth/db-repository.js';
 import { attachGateway } from './realtime/gateway.js';
 import type { Gateway } from './realtime/gateway.js';
+import type { MatchDeps } from './realtime/match-service.js';
+import { createDbProfileLookup } from './realtime/profile.js';
 import { registerAuthRoutes } from './auth/routes.js';
 import { createTokenSigner } from './auth/tokens.js';
 import { createDbAdminRepository } from './admin/db-repository.js';
@@ -45,6 +47,8 @@ export interface ServerDeps {
   dailyReward?: DailyRewardService;
   /** Socket.io service (queue, matches); needs `auth`. Its live stats feed the admin panel. */
   realtime?: boolean;
+  /** Where live matches get puzzles and player cards from; without it queue pairs are put back in line. */
+  match?: Omit<MatchDeps, 'emit'>;
   /** Admin-editable tunables; also served to clients at `GET /config`. */
   settings?: SettingsService;
   /** Extra admin panel modules (products editor, users, stats, bot, audit). */
@@ -83,7 +87,7 @@ export function buildServer(deps: ServerDeps = {}) {
   let gateway: Gateway | undefined;
   if (deps.auth && deps.realtime) {
     const auth = deps.auth;
-    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin: deps.corsOrigin });
+    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin: deps.corsOrigin, match: deps.match });
     app.addHook('onClose', async () => {
       await gateway?.close();
     });
@@ -128,6 +132,7 @@ if (isMainModule(import.meta.url)) {
       ? { products: createDbProductAdmin(db), stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words: new TextFilterService(createDbWordStore(db)), bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
+    match: db ? { puzzles: createDbPuzzleSource(db), profile: createDbProfileLookup(db) } : undefined,
     dailyReward: db && settings ? new DailyRewardService(createDbDailyRewardStore(db), Date.now, () => dailyRules(settings)) : undefined,
     catalog: db ? createDbCatalogRepository(db) : undefined,
     solo: db && settings ? new SoloService(createDbPuzzleSource(db), { rules: () => soloRules(settings) }) : undefined,

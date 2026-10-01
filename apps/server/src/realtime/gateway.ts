@@ -1,9 +1,11 @@
 import type { Server as HttpServer } from 'node:http';
 import { Server } from 'socket.io';
 import type { Socket } from 'socket.io';
-import { ClientEvent, ServerEvent, queueJoinSchema } from '@dozari/shared';
+import { ClientEvent, ServerEvent, matchResumeSchema, matchSubmitSchema, queueJoinSchema } from '@dozari/shared';
 import type { Ack } from '@dozari/shared';
 import type { UserRecord } from '../auth/service.js';
+import { MatchService } from './match-service.js';
+import type { MatchDeps } from './match-service.js';
 import { DuelQueue } from './queue.js';
 import { SocketStats } from './stats.js';
 
@@ -12,14 +14,17 @@ export interface GatewayOptions {
   authenticate: (token: string) => Promise<UserRecord | null>;
   corsOrigin?: string;
   now?: () => number;
-  /** Called when two players are paired. The match service plugs in here; until then pairs are put back in line. */
+  /** Called when two players are paired; return false to put them back in line. Ignored when `match` is given. */
   onPair?: (a: string, b: string) => Promise<boolean> | boolean;
+  /** Live matches: everything but `emit` (the gateway supplies it). When set, pairs are handed to a `MatchService`. */
+  match?: Omit<MatchDeps, 'emit'>;
 }
 
 export interface Gateway {
   io: Server;
   stats: SocketStats;
   queue: DuelQueue;
+  matches?: MatchService;
   close(): Promise<void>;
 }
 
@@ -29,10 +34,12 @@ const room = (userId: string) => `user:${userId}`;
 export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
   const now = opts.now ?? Date.now;
   const queue = new DuelQueue();
-  const stats = new SocketStats({ queueLength: () => queue.length, activeMatches: () => 0, longestWaitMs: (t) => queue.longestWaitMs(t) }, now);
+  let matches: MatchService | undefined;
+  const stats = new SocketStats({ queueLength: () => queue.length, activeMatches: () => matches?.activeCount ?? 0, longestWaitMs: (t) => queue.longestWaitMs(t) }, now);
   const io = new Server(http, {
     cors: opts.corsOrigin ? { origin: opts.corsOrigin === '*' ? true : opts.corsOrigin.split(',').map((o) => o.trim()) } : undefined,
   });
+  if (opts.match) matches = new MatchService({ now, ...opts.match, emit: (userId, event, payload) => void io.to(room(userId)).emit(event, payload) });
 
   io.use(async (socket, next) => {
     const token: unknown = socket.handshake.auth?.token;
@@ -48,7 +55,7 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
   async function tryPair() {
     const pair = queue.takePair();
     if (!pair) return;
-    const handled = opts.onPair ? await opts.onPair(pair[0], pair[1]) : false;
+    const handled = matches ? await matches.start(pair[0], pair[1]) : opts.onPair ? await opts.onPair(pair[0], pair[1]) : false;
     if (!handled) for (const id of pair) queue.join(id, now());
   }
 
@@ -63,6 +70,7 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
 
     socket.on(ClientEvent.queueJoin, async (payload: unknown, ack?: (a: Ack) => void) => {
       if (!queueJoinSchema.safeParse(payload).success) return ack?.({ ok: false, error: 'INVALID_PAYLOAD' });
+      if (matches?.inMatch(userId)) return ack?.({ ok: false, error: 'ALREADY_IN_MATCH' });
       if (!queue.join(userId, now())) return ack?.({ ok: false, error: 'ALREADY_QUEUED' });
       ack?.({ ok: true });
       socket.emit(ServerEvent.queueStatus, { waitedSec: 0, position: queue.position(userId) ?? 1 });
@@ -71,6 +79,25 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
 
     socket.on(ClientEvent.queueLeave, (_payload: unknown, ack?: (a: Ack) => void) => {
       ack?.(queue.leave(userId) ? { ok: true } : { ok: false, error: 'NOT_QUEUED' });
+    });
+
+    // A returning player gets the live board straight away.
+    matches?.resume(userId);
+
+    socket.on(ClientEvent.matchSubmit, (payload: unknown, ack?: (a: Ack) => void) => {
+      const body = matchSubmitSchema.safeParse(payload);
+      if (!body.success) return ack?.({ ok: false, error: 'INVALID_PAYLOAD' });
+      ack?.(matches ? matches.submit(userId, body.data.itemIds) : { ok: false, error: 'NOT_IN_MATCH' });
+    });
+
+    socket.on(ClientEvent.matchResume, (payload: unknown, ack?: (a: Ack) => void) => {
+      const body = matchResumeSchema.safeParse(payload);
+      if (!body.success) return ack?.({ ok: false, error: 'INVALID_PAYLOAD' });
+      ack?.(matches ? matches.resume(userId, body.data.matchId) : { ok: false, error: 'NOT_IN_MATCH' });
+    });
+
+    socket.on(ClientEvent.matchLeave, (_payload: unknown, ack?: (a: Ack) => void) => {
+      ack?.(matches ? matches.leave(userId) : { ok: false, error: 'NOT_IN_MATCH' });
     });
 
     socket.on('disconnect', async () => {
@@ -85,6 +112,7 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
     io,
     stats,
     queue,
+    matches,
     close: () => new Promise<void>((resolve) => void io.close(() => resolve())),
   };
 }
