@@ -57,6 +57,13 @@
       "when": 1790881617235,
       "tag": "0007_past_lifeguard",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1790881913086,
+      "tag": "0008_flawless_sway",
+      "breakpoints": true
     }
   ]
 }

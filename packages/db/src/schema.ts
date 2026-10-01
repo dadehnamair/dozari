@@ -380,6 +380,48 @@ export const baleLinkCodes = mysqlTable('bale_link_codes', {
   expiresAt: datetime('expires_at', { mode: 'date', fsp: 3 }).notNull(),
 });
 
+export const MESSAGE_AUDIENCES = ['all', 'bale_linked', 'user'] as const;
+export const MESSAGE_CHANNELS = ['in_app', 'bale', 'sms', 'email', 'push'] as const;
+
+/** A message the admin sent from the message center (one row per send); `retractedAt` hides it from players' inboxes. */
+export const adminMessages = mysqlTable(
+  'admin_messages',
+  {
+    id: id(),
+    title: varchar('title', { length: 150 }).notNull(),
+    body: text('body').notNull(),
+    audience: mysqlEnum('audience', MESSAGE_AUDIENCES).notNull(),
+    targetUserId: char('target_user_id', { length: 36 }),
+    sentAt: datetime('sent_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    retractedAt: datetime('retracted_at', { mode: 'date', fsp: 3 }),
+  },
+  (table) => ({ bySent: index('admin_messages_sent_idx').on(table.sentAt) }),
+);
+
+/** Which channels a message went out on and how many recipients each reached (a table, not an array column). */
+export const adminMessageChannels = mysqlTable(
+  'admin_message_channels',
+  {
+    messageId: char('message_id', { length: 36 }).notNull().references(() => adminMessages.id, { onDelete: 'cascade' }),
+    channel: mysqlEnum('channel', MESSAGE_CHANNELS).notNull(),
+    recipients: int('recipients').notNull().default(0),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.messageId, table.channel] }) }),
+);
+
+/** The in-app inbox: one row per player per message. */
+export const inboxMessages = mysqlTable(
+  'inbox_messages',
+  {
+    id: id(),
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    messageId: char('message_id', { length: 36 }).notNull().references(() => adminMessages.id, { onDelete: 'cascade' }),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    readAt: datetime('read_at', { mode: 'date', fsp: 3 }),
+  },
+  (table) => ({ byUser: index('inbox_messages_user_idx').on(table.userId, table.createdAt) }),
+);
+
 export const OUTBOX_STATUSES = ['pending', 'sent', 'failed'] as const;
 
 /** Everything the game wants to tell a player (or the admin chat) on Bale; the dispatcher sends it and records the outcome. */

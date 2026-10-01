@@ -285,6 +285,54 @@ VIEWS.bale = function (root) {
   } })])]));
   draw();
 };
+var CH_FA = { in_app: 'صندوق داخل اپ', bale: 'بله', sms: 'پیامک', email: 'ایمیل', push: 'اعلان پوش' };
+var AUD_FA = { all: 'همه‌ی بازیکنان', bale_linked: 'وصل‌شده‌ها به بله', user: 'یک بازیکن' };
+VIEWS.messages = function (root) {
+  var title = h('input', { type: 'text', placeholder: 'عنوان', maxlength: 150 }), text = h('textarea', { placeholder: 'متن پیام…', maxlength: 2000 });
+  var aud = select([['all', AUD_FA.all], ['bale_linked', AUD_FA.bale_linked], ['user', AUD_FA.user]], 'all');
+  var target = h('input', { type: 'text', dir: 'ltr', placeholder: 'شناسه‌ی بازیکن (از بخش کاربران)', style: 'display:none' });
+  aud.addEventListener('change', function () { target.style.display = aud.value === 'user' ? '' : 'none'; });
+  var chBox = h('div', { style: 'display:flex;flex-direction:column;gap:6px' }), checks = {};
+  var hist = h('div');
+  function drawHistory() {
+    api('/admin/messages').then(function (r) {
+      clear(hist);
+      if (r.status === 404) return hist.appendChild(empty('مرکز پیام روی این سرور فعال نیست'));
+      if (!r.ok) return fail(r);
+      if (!r.body.messages.length) return hist.appendChild(empty('هنوز پیامی نفرستاده‌ای'));
+      hist.appendChild(h('div', { class: 'tbl-wrap' }, [h('table', {}, [h('thead', {}, [h('tr', {}, ['زمان', 'عنوان', 'مخاطب', 'کانال‌ها', ''].map(function (x) { return h('th', { text: x }); }))]),
+        h('tbody', {}, r.body.messages.map(function (m) {
+          return h('tr', {}, [h('td', { text: ago(m.sentAt) }), h('td', {}, [h('b', { text: m.title }), h('div', { class: 'sub', style: 'color:var(--muted);font-size:12px', text: m.body.slice(0, 80) })]),
+            h('td', { text: AUD_FA[m.audience] || m.audience }),
+            h('td', {}, m.channels.map(function (c) { return badge((CH_FA[c.channel] || c.channel) + ' ' + fa(c.recipients), 'b-info'); })),
+            h('td', {}, [m.retracted ? badge('پس گرفته شد', 'b-mute') : h('button', { class: 'btn bad sm', text: 'پس گرفتن از صندوق', onclick: function () { if (confirm('این پیام از صندوق همه‌ی بازیکنان برداشته شود؟ (پیام‌های بله و ... که رفته‌اند برنمی‌گردند)')) api('/admin/messages/' + m.id, { method: 'DELETE' }).then(function (x) { if (!x.ok) return fail(x); drawHistory(); }); } })])]);
+        }))])]));
+    });
+  }
+  api('/admin/messages/channels').then(function (r) {
+    if (!r.ok) return;
+    r.body.channels.forEach(function (c) {
+      var cb = h('input', { type: 'checkbox', disabled: !c.available, checked: c.channel === 'in_app' }); checks[c.channel] = cb;
+      chBox.appendChild(h('label', { style: 'display:flex;gap:8px;align-items:center;' + (c.available ? '' : 'opacity:.55') }, [cb, h('span', { text: CH_FA[c.channel] }), c.available ? null : h('span', { class: 'sub', style: 'color:var(--muted);font-size:12px', text: '— ' + c.reason })]));
+    });
+  });
+  root.appendChild(card('پیام جدید', 'یک پیام، چند کانال. کانال‌هایی که هنوز راه نیفتاده‌اند خاموش‌اند و دلیلشان کنارشان نوشته شده.', [
+    h('div', { class: 'form-grid' }, [field('عنوان', title), field('مخاطب', aud)]), target, field('متن', text), field('کانال‌ها', chBox),
+    h('div', { class: 'toolbar' }, [h('button', { class: 'btn primary', text: 'ارسال', onclick: function () {
+      var chans = Object.keys(checks).filter(function (k) { return checks[k].checked && !checks[k].disabled; });
+      if (!title.value.trim() || !text.value.trim() || !chans.length) return toast('عنوان، متن و دست‌کم یک کانال لازم است', true);
+      if (!confirm('پیام برای «' + AUD_FA[aud.value] + '» فرستاده شود؟')) return;
+      api('/admin/messages', { method: 'POST', body: { title: title.value.trim(), body: text.value.trim(), audience: aud.value, targetUserId: aud.value === 'user' ? target.value.trim() : null, channels: chans } }).then(function (x) {
+        if (x.status === 409) return toast('مخاطبی پیدا نشد', true);
+        if (!x.ok) return fail(x);
+        toast('فرستاده شد: ' + Object.keys(x.body.recipients).map(function (k) { return CH_FA[k] + ' ' + fa(x.body.recipients[k]); }).join('، '));
+        title.value = ''; text.value = ''; drawHistory();
+      });
+    } })])
+  ]));
+  root.appendChild(card('پیام‌های فرستاده‌شده', 'می‌توانی پیام صندوق داخل اپ را پس بگیری', [hist]));
+  drawHistory();
+};
 VIEWS.audit = function (root) {
   api('/admin/audit').then(function (r) {
     if (r.status === 404) return root.appendChild(empty('گزارش تغییرها روی این سرور فعال نیست'));

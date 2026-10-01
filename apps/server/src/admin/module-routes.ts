@@ -8,6 +8,7 @@ import type { BotService } from '../bot/service.js';
 import type { AuditLog } from './audit.js';
 import type { ProductAdmin } from './products.js';
 import type { StatsAdmin } from './stats.js';
+import type { MessageCenter } from '../messages/service.js';
 import type { NotifyService } from '../notify/service.js';
 import type { NotifyStore } from '../notify/store.js';
 import type { TextFilterService } from '../textfilter/service.js';
@@ -20,6 +21,7 @@ export interface AdminModules {
   users?: UsersAdmin;
   audit?: AuditLog;
   words?: TextFilterService;
+  messages?: MessageCenter;
   bale?: { service: NotifyService; store: NotifyStore; botUsername: string | null };
   bot?: { repo: BotRepository; service: BotService };
 }
@@ -88,7 +90,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     adapters: BOT_ADAPTER_KEYS,
     settingGroups: SETTING_GROUPS,
     icons: ITEMS,
-    modules: { settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, bale: !!m.bale },
+    modules: { settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, bale: !!m.bale, messages: !!m.messages },
   }));
 
   if (m.stats) {
@@ -181,6 +183,36 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       if (out === 'insufficient') return reply.code(409).send({ error: 'insufficient' });
       void audit('user.coins', p.data.id, String(b.data.delta));
       return { ok: true, balance: out.balance };
+    });
+  }
+
+  if (m.messages) {
+    const center = m.messages;
+    const sendBody = z
+      .object({
+        title: z.string().trim().min(1).max(150),
+        body: z.string().trim().min(1).max(2000),
+        audience: z.enum(['all', 'bale_linked', 'user']),
+        targetUserId: z.string().uuid().nullable().default(null),
+        channels: z.array(z.enum(['in_app', 'bale', 'sms', 'email', 'push'])).min(1).max(5),
+      })
+      .refine((b) => (b.audience === 'user') === (b.targetUserId !== null), { message: 'targetUserId' });
+    g.get('/admin/messages/channels', async () => ({ channels: center.channels() }));
+    g.get('/admin/messages', async () => ({ messages: await center.history() }));
+    g.post('/admin/messages', async (req, reply) => {
+      const b = sendBody.safeParse(req.body);
+      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await center.send({ title: b.data.title, body: b.data.body, audience: b.data.audience, targetUserId: b.data.targetUserId }, b.data.channels);
+      if (!out.ok) return reply.code(out.error === 'NO_RECIPIENTS' ? 409 : 400).send({ error: out.error.toLowerCase() });
+      void audit('message.send', out.id, `${b.data.audience} ${b.data.channels.join(',')} ${b.data.title.slice(0, 60)}`);
+      return reply.code(201).send({ id: out.id, recipients: out.recipients });
+    });
+    g.delete('/admin/messages/:id', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
+      if (!(await center.retract(p.data.id))) return reply.code(404).send({ error: 'message_not_found' });
+      void audit('message.retract', p.data.id);
+      return { ok: true };
     });
   }
 

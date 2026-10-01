@@ -31,6 +31,9 @@ import { createBaleClient } from './notify/client.js';
 import { NotifyService } from './notify/service.js';
 import { startNotifyRunner } from './notify/runner.js';
 import { registerBaleRoutes } from './notify/routes.js';
+import { MessageCenter } from './messages/service.js';
+import { createDbMessageStore } from './messages/store.js';
+import { registerInboxRoutes } from './messages/routes.js';
 import { createDbNotifyStore } from './notify/store.js';
 import type { NotifyStore } from './notify/store.js';
 import { BALE_TEXT } from './notify/texts.js';
@@ -56,6 +59,8 @@ export interface ServerDeps {
   realtime?: boolean;
   /** Bale messenger integration: link codes for players, the bot's name for the app. */
   bale?: { service: NotifyService; botUsername: string | null };
+  /** Admin message center; its in-app channel feeds `GET /inbox`. */
+  messages?: MessageCenter;
   /** Where live matches get puzzles and player cards from; without it queue pairs are put back in line. */
   match?: Omit<MatchDeps, 'emit'>;
   /** Admin-editable tunables; also served to clients at `GET /config`. */
@@ -84,6 +89,7 @@ export function buildServer(deps: ServerDeps = {}) {
   }
   if (deps.auth) registerAuthRoutes(app, deps.auth);
   if (deps.auth && deps.dailyReward) registerDailyRewardRoutes(app, deps.auth, deps.dailyReward);
+  if (deps.auth && deps.messages) registerInboxRoutes(app, deps.auth, deps.messages);
   if (deps.auth && deps.bale) registerBaleRoutes(app, deps.auth, deps.bale.service, deps.bale.botUsername);
   if (deps.settings) {
     const settings = deps.settings;
@@ -138,13 +144,14 @@ if (isMainModule(import.meta.url)) {
   const baleClient = baleToken ? createBaleClient(baleToken, { base: process.env.BALE_API_BASE }) : null;
   const baleStore: NotifyStore | undefined = db ? createDbNotifyStore(db) : undefined;
   const notify = baleStore ? new NotifyService(baleStore, baleClient) : undefined;
+  const messages = db ? new MessageCenter(createDbMessageStore(db), notify ?? null) : undefined;
   const botRepo = db ? createDbBotRepository(db) : undefined;
   const bot = botRepo ? new BotService(botRepo) : undefined;
   const app = buildServer({
     auth,
     settings,
     adminModules: db
-      ? { products: createDbProductAdmin(db), stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words: new TextFilterService(createDbWordStore(db)), bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      ? { products: createDbProductAdmin(db), stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words: new TextFilterService(createDbWordStore(db)), messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
     match: db
@@ -165,6 +172,7 @@ if (isMainModule(import.meta.url)) {
         }
       : undefined,
     bale: notify ? { service: notify, botUsername: baleUsername } : undefined,
+    messages,
     dailyReward: db && settings ? new DailyRewardService(createDbDailyRewardStore(db), Date.now, () => dailyRules(settings)) : undefined,
     catalog: db ? createDbCatalogRepository(db) : undefined,
     solo: db && settings ? new SoloService(createDbPuzzleSource(db), { rules: () => soloRules(settings) }) : undefined,
