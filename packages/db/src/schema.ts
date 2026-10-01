@@ -260,3 +260,23 @@ export const groupTitleTemplates = mysqlTable(
     byKind: index('group_title_templates_kind_idx').on(table.ruleKind, table.isActive),
   }),
 );
+
+/**
+ * Players (docs/logic/data-model.md §Users). A guest account is created from a device id on first open;
+ * phone linking, chat unlock and invites arrive with their phases.
+ */
+export const users = mysqlTable(
+  'users',
+  {
+    id: id(),
+    deviceId: varchar('device_id', { length: 64 }),
+    nickname: varchar('nickname', { length: 60 }).notNull(),
+    avatarKey: varchar('avatar_key', { length: 30 }).notNull(),
+    isBanned: boolean('is_banned').notNull().default(false),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    lastSeenAt: datetime('last_seen_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({
+    deviceUnique: uniqueIndex('users_device_id_idx').on(table.deviceId),
+  }),
+);

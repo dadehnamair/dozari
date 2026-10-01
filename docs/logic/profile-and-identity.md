@@ -17,6 +17,13 @@ Owner (2026-09-27): "پروفایل خیلی مهمه" — treat this as a first
 - "Finished game" = any completed solo, duel, team, or private match (abandons don't count —
   reuse the `abandon` result type from `matchmaking.md`).
 
+### As built (guest account)
+`POST /auth/guest {deviceId}` creates the account on first sight (no sign-up) and returns `{token, user}`; the same device id
+always gets the same account, concurrent first requests included. The token is an HS256 JWT (`sub` = user id, 30 days,
+`JWT_SECRET`); `GET /me` with `Authorization: Bearer <token>` returns the profile. The nickname and avatar come from the
+preset lists in `packages/shared/src/identity` (avatars = the 24 design-kit faces). A banned user gets 403 at login and
+401 everywhere else. The unlock thresholds are `AVATAR_UNLOCK_GAMES` / `NICKNAME_UNLOCK_GAMES` in `config/game.ts`.
+
 ## Tags (badges shown next to the avatar)
 
 Four kinds, owner-approved (2026-09-27), all stored as rows a user can *earn*; only one is

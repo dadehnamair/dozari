@@ -101,9 +101,9 @@ browser — both need the owner's own machine (see Phase 0-A).
 
 ## Phase 4 — Identity & multiplayer core
 
-- [ ] 🖥 Guest auth (device id → JWT); random nickname+avatar assignment at creation
-      (`logic/profile-and-identity.md`)
-- [ ] 🧩 Socket event contracts (`logic/matchmaking.md`, `logic/game-rules.md`)
+- [x] 🖥 Guest auth (device id → JWT); random nickname+avatar assignment at creation
+      (`logic/profile-and-identity.md`) — `POST /auth/guest`, `GET /me`, `users` table; client wiring comes with the lobby
+- [x] 🧩 Socket event contracts (`logic/matchmaking.md`, `logic/game-rules.md`) — `socket/events.ts` (queue + 1v1 match; rooms/parties/chat later)
 - [x] 🧩 Match reducer: shared board, turns, timers-as-commands, scoring, end conditions — `game/match.ts` (1v1; team/captain flow is Phase 5)
 - [ ] 🖥 MatchService + redaction (`toClientView`), turn timer, persistence of match log
 - [ ] 🖥 MatchmakingService: 1v1 queue, private table (room code), reconnect grace
