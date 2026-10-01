@@ -82,3 +82,15 @@ export const ruleSchema = z
 
 export type Rule = z.infer<typeof ruleSchema>;
 export type RuleKind = Rule['kind'];
+
+/** All rule kinds, in spec order. Mirrored by the `rule_kind` enums in packages/db. */
+export const RULE_KINDS = [
+  'price_band_at_year',
+  'same_price_at_year',
+  'first_crossed',
+  'multiplier_between',
+  'cheaper_than_ref',
+  'era_icon',
+  'category_price_rank',
+  'curated',
+] as const satisfies readonly RuleKind[];
