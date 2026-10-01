@@ -98,6 +98,10 @@ emoji.
 
 ## Icon / app logo
 
+> 2026-10-01: the owner offered to design the full asset set; the shopping list with sizes is in
+> `docs/design/asset-plan.md` (+ `asset-plan.jpg`). The decision below (don't design the app icon yet)
+> still stands for *us*; the owner's own design replaces it when delivered.
+
 **Not decided — explicitly deferred** (owner, 2026-09-27: "هنوز تصمیم نگرفتم، بعداً بررسی
 می‌کنیم"). Do not design or lock an app icon/logo yet; when it's time, revisit against whatever
 display font and color palette get chosen above so all three land together.
