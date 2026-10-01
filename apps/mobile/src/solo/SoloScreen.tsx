@@ -155,6 +155,6 @@ const styles = StyleSheet.create({
   feedback: { fontFamily: 'Vazirmatn_700Bold', fontSize: 18, color: colors.candy.yellow },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginTop: 8 },
   end: { alignItems: 'center', gap: 8, marginTop: 8 },
-  detail: { fontFamily: 'Vazirmatn_400Regular', fontSize: 12, color: colors.cream, opacity: 0.7, textAlign: 'center', direction: 'ltr' },
+  detail: { fontFamily: 'Vazirmatn_400Regular', fontSize: 12, color: colors.cream, opacity: 0.7, textAlign: 'center', writingDirection: 'ltr' },
   msg: { fontFamily: 'Vazirmatn_700Bold', fontSize: 18, color: colors.cream, textAlign: 'center' },
 });

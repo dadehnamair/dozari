@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import type { ViewStyle } from 'react-native';
 import Svg, { Circle, Line, Path, Text as SvgText } from 'react-native-svg';
 import { CHART_SERIES_COLORS, buildChartData, compactTomanLabel, formatShortJalaliYear, lineSegments, normalizeX, normalizeY, xTicks, yTicks } from '@dozari/shared';
 import type { SoloChart, YScale } from '@dozari/shared';
@@ -31,7 +32,7 @@ export function ChartView({ group, scale }: { group: SoloChart['groups'][number]
 
   return (
     <View style={styles.wrap}>
-      <View style={styles.chart} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+      <View style={[styles.chart, LTR]} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
         {data.years && data.yDomain && width > 0 ? (
           <Svg width={width} height={HEIGHT}>
             {yTicks(data.yDomain, scale).map((t) => (
@@ -72,9 +73,12 @@ export function ChartView({ group, scale }: { group: SoloChart['groups'][number]
   );
 }
 
+// Not in StyleSheet.create: react-native-web's dev validation rejects `direction` there, though it works on both platforms.
+const LTR: ViewStyle = { direction: 'ltr' };
+
 const styles = StyleSheet.create({
   wrap: { width: '100%', gap: 8 },
-  chart: { height: HEIGHT, direction: 'ltr', backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 14, justifyContent: 'center' },
+  chart: { height: HEIGHT, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 14, justifyContent: 'center' },
   empty: { fontFamily: 'Vazirmatn_400Regular', color: colors.cream, textAlign: 'center' },
   legend: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'center' },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
