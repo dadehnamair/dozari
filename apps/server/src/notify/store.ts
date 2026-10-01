@@ -21,6 +21,8 @@ export interface OutboxStats {
 /** I/O boundary of the Bale integration: links, one-time codes and the outbox. */
 export interface NotifyStore {
   chatOf(userId: string): Promise<string | null>;
+  /** The player a Bale chat is linked to, if any. */
+  userOfChat(chatId: string): Promise<string | null>;
   allLinked(): Promise<{ userId: string; chatId: string }[]>;
   createCode(userId: string, code: string, expiresAt: number): Promise<void>;
   /** Consumes a live code and links the chat to its user (an older link of either side is replaced); null = unknown/expired. */
@@ -47,6 +49,10 @@ export function createDbNotifyStore(db: Db): NotifyStore {
     async chatOf(userId) {
       const [r] = await db.select({ chatId: baleLinks.chatId }).from(baleLinks).where(eq(baleLinks.userId, userId));
       return r?.chatId ?? null;
+    },
+    async userOfChat(chatId) {
+      const [r] = await db.select({ userId: baleLinks.userId }).from(baleLinks).where(eq(baleLinks.chatId, chatId));
+      return r?.userId ?? null;
     },
     allLinked: () => db.select({ userId: baleLinks.userId, chatId: baleLinks.chatId }).from(baleLinks),
     async createCode(userId, code, expiresAt) {
@@ -140,6 +146,9 @@ export function createMemoryNotifyStore(): NotifyStore & { outbox: (OutboxRow & 
     setClaim: (userId, claimedAt) => void claims.set(userId, claimedAt),
     async chatOf(userId) {
       return links.get(userId)?.chatId ?? null;
+    },
+    async userOfChat(chatId) {
+      return [...links].find(([, l]) => l.chatId === chatId)?.[0] ?? null;
     },
     async allLinked() {
       return [...links].map(([userId, l]) => ({ userId, chatId: l.chatId }));

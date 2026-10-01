@@ -1,6 +1,7 @@
 import { randomInt } from 'node:crypto';
 import { RateLimiter } from '../security/rate-limit.js';
 import type { BaleClient, BaleUpdate } from './client.js';
+import type { PhoneService } from '../phone/service.js';
 import type { NotifyStore } from './store.js';
 import { BALE_TEXT } from './texts.js';
 
@@ -21,6 +22,9 @@ export class NotifyService {
     private readonly now: () => number = Date.now,
     private readonly newCode: () => string = () => Array.from({ length: 6 }, () => CODE_ALPHABET[randomInt(CODE_ALPHABET.length)]).join(''),
   ) {}
+
+  /** Set at start-up when phone verification exists; lets the bot accept a shared contact. */
+  phone?: PhoneService;
 
   get configured(): boolean {
     return this.client !== null;
@@ -91,6 +95,7 @@ export class NotifyService {
   /** One incoming message of the bot: link code, /status, /stop, else help. */
   async handleUpdate(update: BaleUpdate): Promise<void> {
     const msg = update.message;
+    if (msg?.contact && this.client) return this.handleContact(update);
     const text = msg?.text?.trim();
     if (!msg || !text || !this.client) return;
     const chatId = String(msg.chat.id);
@@ -108,5 +113,27 @@ export class NotifyService {
     const linked = await this.store.redeemCode(candidate, chatId, this.now());
     if (!linked) this.badCodes.take(chatId);
     await reply(linked ? BALE_TEXT.linked : BALE_TEXT.badCode);
+    if (linked && this.phone) {
+      // Linked: if the number typed in the app is not verified yet, ask for the contact with a one-tap button.
+      const st = await this.phone.status(linked.userId);
+      if (!st.verified && st.pending) await this.client.sendMessage(chatId, BALE_TEXT.askContact, { contactButton: BALE_TEXT.contactButton }).catch(() => undefined);
+    }
+  }
+
+  /** The sender shared a contact: it verifies the phone number only for the linked player and only when it is their own contact. */
+  private async handleContact(update: BaleUpdate): Promise<void> {
+    const msg = update.message!;
+    const chatId = String(msg.chat.id);
+    const say = (t: string, removeKeyboard = false) => this.client!.sendMessage(chatId, t, removeKeyboard ? { removeKeyboard: true } : undefined).catch(() => undefined);
+    if (!this.phone) return;
+    const userId = await this.store.userOfChat(chatId);
+    if (!userId) return void (await say(BALE_TEXT.help));
+    if (this.badCodes.blocked(chatId)) return;
+    const out = await this.phone.verifyByContact(userId, msg.contact!.phone_number, msg.contact!.user_id === undefined ? undefined : String(msg.contact!.user_id), msg.from?.id === undefined ? undefined : String(msg.from.id));
+    if (out === 'verified' || out === 'already') return void (await say(BALE_TEXT.phoneVerified, true));
+    if (out === 'no_pending') return void (await say(BALE_TEXT.noPhonePending, true));
+    if (out === 'taken') return void (await say(BALE_TEXT.phoneTaken, true));
+    this.badCodes.take(chatId); // a wrong contact counts like a wrong code: guessing someone else's number is not free
+    await say(BALE_TEXT.phoneMismatch);
   }
 }
