@@ -7,11 +7,12 @@ import { ChartPanel } from '../components/ChartPanel';
 import { MistakeDots } from '../components/MistakeDots';
 import { fa } from '../i18n/fa';
 import { colors } from '../theme/colors';
-import { ApiError, guessSolo, shuffleSolo, startSolo } from './api';
+import { BASE_URL, guessSolo, shuffleSolo, startSolo } from './api';
+import { describeError } from './errors';
 import { canSubmit, feedbackFor, pruneSelection, toggleSelection } from './selection';
 import type { FeedbackKey } from './selection';
 
-type Phase = { kind: 'loading' } | { kind: 'error'; message: string } | { kind: 'ready'; view: SoloView };
+type Phase = { kind: 'loading' } | { kind: 'error'; message: string; detail: string } | { kind: 'ready'; view: SoloView };
 
 const FEEDBACK_MS = 1600;
 
@@ -36,8 +37,9 @@ export function SoloScreen({ onBack }: { onBack: () => void }) {
   }, []);
 
   const fail = useCallback((err: unknown) => {
-    const message = err instanceof ApiError && err.code === 'no_puzzles' ? fa.solo.errors.noPuzzles : fa.solo.errors.network;
-    setPhase({ kind: 'error', message });
+    console.warn('[solo] request failed', err);
+    const { message, detail } = describeError(err, BASE_URL);
+    setPhase({ kind: 'error', message, detail });
   }, []);
 
   const begin = useCallback(async () => {
@@ -64,6 +66,7 @@ export function SoloScreen({ onBack }: { onBack: () => void }) {
     return (
       <View style={styles.center}>
         <Text style={styles.msg}>{phase.message}</Text>
+        {phase.detail ? <Text style={styles.detail}>{phase.detail}</Text> : null}
         <View style={styles.actions}>
           <CandyButton label={fa.solo.errors.retry} color={colors.candy.yellow} onPress={() => void begin()} />
           <CandyButton label={fa.solo.back} color={colors.candy.sky} onPress={onBack} />
@@ -143,5 +146,6 @@ const styles = StyleSheet.create({
   feedback: { fontFamily: 'Vazirmatn_700Bold', fontSize: 18, color: colors.candy.yellow },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginTop: 8 },
   end: { alignItems: 'center', gap: 8, marginTop: 8 },
+  detail: { fontFamily: 'Vazirmatn_400Regular', fontSize: 12, color: colors.cream, opacity: 0.7, textAlign: 'center', direction: 'ltr' },
   msg: { fontFamily: 'Vazirmatn_700Bold', fontSize: 18, color: colors.cream, textAlign: 'center' },
 });
