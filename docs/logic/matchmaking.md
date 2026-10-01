@@ -93,3 +93,15 @@ Server → client:
 
 Auth: JWT in the socket handshake `auth.token`. One active socket per user; a new connection
 replaces the old one.
+
+## As built (v1, duel only)
+
+`apps/server/src/realtime/match-service.ts` runs live 1v1 matches in memory around the shared reducer. The gateway hands every
+queue pair to `MatchService.start`, which loads two public profiles and a random approved puzzle, then pushes `match:found` and
+`match:state` to both players. `match:submit {itemIds}`, `match:resume {matchId}` and `match:leave` are answered with acks; every
+change pushes a redacted `match:state` plus `match:event`s, and the end pushes `match:ended` with the full solution. The turn clock
+is one timer per match for the current turn (a stale fire is ignored by `turnId`); an AFK player is ended by the reducer's
+consecutive-timeout rule. A player who connects with a live match gets the snapshot immediately.
+
+Not built yet: entry-fee escrow and payouts, the price-guess round, the ready handshake, reconnect grace and bot takeover,
+persistence of the match log, level (everyone is level 1 on the opponent card).
