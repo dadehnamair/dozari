@@ -118,6 +118,14 @@ browser — both need the owner's own machine (see Phase 0-A).
 **Exit:** two phones can play a 1v1 and a private-table match, with a bot stepping in when no
 human opponent is found.
 
+## Phase 4-B — Coin ledger & daily reward (D64)
+
+- [x] 🗄 `coin_ledger` (append-only, idempotency key), `user_balances`, `daily_reward_steps`, `user_daily_rewards`
+- [x] 🖥 `applyLedgerEntry` (the one place coins move), daily reward service + routes, admin editor tab
+- [x] 🧪 Streak calculator tests (10/15/20, 24 h cooldown, skipped day resets), concurrent-tap test
+- [ ] 📱 Daily reward card/popup (7-day card, claim button, countdown) — needs the client to log in first
+- [ ] 🖥 Signup bonus and the other faucets/sinks of `economy.md`
+
 ## Phase 4-A — Profile screen (`logic/profile-and-identity.md`)
 
 - [ ] 🗄 `user_tags`, tag catalog table, `users.equipped_tag_id`, avatar/nickname gallery tables

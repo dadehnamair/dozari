@@ -2,6 +2,8 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { PRICE_STATUSES } from '@dozari/shared';
+import type { DailyRewardService } from '../economy/daily-reward.js';
+import { registerDailyRewardAdminRoutes } from '../economy/routes.js';
 import { ADMIN_PAGE_HTML } from './page.js';
 
 export type PriceStatus = (typeof PRICE_STATUSES)[number];
@@ -53,7 +55,12 @@ const bodySchema = z.object({ status: z.enum(PRICE_STATUSES) });
  * Only registered when an ADMIN_TOKEN is configured. The real admin panel is Phase 7
  * (docs/logic/app-screens.md §Admin panel) and will replace this.
  */
-export function registerAdminRoutes(app: FastifyInstance, repo: AdminRepository, token: string) {
+export interface AdminExtras {
+  /** Daily reward amounts editor. */
+  dailyReward?: DailyRewardService;
+}
+
+export function registerAdminRoutes(app: FastifyInstance, repo: AdminRepository, token: string, extras: AdminExtras = {}) {
   // The page itself carries no data; every data call below needs the token.
   app.get('/admin', async (_req, reply) => reply.type('text/html; charset=utf-8').send(ADMIN_PAGE_HTML));
 
@@ -61,6 +68,8 @@ export function registerAdminRoutes(app: FastifyInstance, repo: AdminRepository,
     guarded.addHook('onRequest', async (req, reply) => {
       if (!tokenMatches(req, token)) return reply.code(401).send({ error: 'unauthorized' });
     });
+
+    if (extras.dailyReward) registerDailyRewardAdminRoutes(guarded, extras.dailyReward);
 
     guarded.get('/admin/catalog', async () => ({ products: await repo.listCatalog() }));
 
