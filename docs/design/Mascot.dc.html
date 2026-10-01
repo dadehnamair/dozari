@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<svg viewBox="{{ vb }}" width="100%" height="100%" style="display:block;overflow:visible">
+<defs>
+<radialGradient id="{{ gid }}" cx="34%" cy="28%" r="78%"><stop offset="0" stop-color="{{ s.hi }}"></stop><stop offset=".55" stop-color="{{ s.base }}"></stop><stop offset="1" stop-color="{{ s.rim }}"></stop></radialGradient>
+</defs>
+<sc-if value="{{ full }}" hint-placeholder-val="{{ true }}">
+<ellipse cx="100" cy="206" rx="48" ry="7" fill="#000" opacity=".2"></ellipse>
+<path d="M86 166 L84 194 M114 166 L116 194" stroke="#2B1240" stroke-width="7" stroke-linecap="round" fill="none"></path>
+<ellipse cx="80" cy="198" rx="13" ry="7" fill="#2B1240"></ellipse>
+<ellipse cx="120" cy="198" rx="13" ry="7" fill="#2B1240"></ellipse>
+<path d="{{ p.armL }}" stroke="#2B1240" stroke-width="7" fill="none" stroke-linecap="round"></path>
+<path d="{{ p.armR }}" stroke="#2B1240" stroke-width="7" fill="none" stroke-linecap="round"></path>
+</sc-if>
+<circle cx="100" cy="108" r="72" fill="{{ s.rim }}" stroke="#2B1240" stroke-width="5"></circle>
+<circle cx="100" cy="100" r="72" fill="url(#{{ gid }})" stroke="#2B1240" stroke-width="5"></circle>
+<circle cx="100" cy="100" r="60" fill="none" stroke="{{ s.rim }}" stroke-width="3" stroke-dasharray="1 7" stroke-linecap="round" opacity=".7"></circle>
+<ellipse cx="68" cy="56" rx="22" ry="9" fill="#fff" opacity=".6" transform="rotate(-32 68 56)"></ellipse>
+<ellipse cx="58" cy="120" rx="11" ry="6" fill="#FF4D8D" opacity=".45"></ellipse>
+<ellipse cx="142" cy="120" rx="11" ry="6" fill="#FF4D8D" opacity=".45"></ellipse>
+<sc-if value="{{ p.isOpen }}" hint-placeholder-val="{{ true }}">
+<ellipse cx="76" cy="{{ p.ey }}" rx="14" ry="{{ p.ery }}" fill="#fff" stroke="#2B1240" stroke-width="4"></ellipse>
+<ellipse cx="124" cy="{{ p.ey }}" rx="14" ry="{{ p.ery }}" fill="#fff" stroke="#2B1240" stroke-width="4"></ellipse>
+<circle cx="{{ p.plx }}" cy="{{ p.pcy }}" r="7.5" fill="#2B1240"></circle>
+<circle cx="{{ p.prx }}" cy="{{ p.pcy }}" r="7.5" fill="#2B1240"></circle>
+<circle cx="{{ p.hlx }}" cy="{{ p.hcy }}" r="2.6" fill="#fff"></circle>
+<circle cx="{{ p.hrx }}" cy="{{ p.hcy }}" r="2.6" fill="#fff"></circle>
+</sc-if>
+<sc-if value="{{ p.isHappy }}" hint-placeholder-val="{{ false }}"><path d="M62 96 Q76 80 90 96 M110 96 Q124 80 138 96" stroke="#2B1240" stroke-width="6" fill="none" stroke-linecap="round"></path></sc-if>
+<sc-if value="{{ p.isClosed }}" hint-placeholder-val="{{ false }}"><path d="M62 92 Q76 102 90 92 M110 92 Q124 102 138 92" stroke="#2B1240" stroke-width="6" fill="none" stroke-linecap="round"></path></sc-if>
+<path d="{{ p.brow }}" stroke="#2B1240" stroke-width="5" fill="none" stroke-linecap="round"></path>
+<path d="{{ p.mouth }}" fill="{{ p.mf }}" stroke="#2B1240" stroke-width="5" stroke-linejoin="round" stroke-linecap="round"></path>
+<sc-if value="{{ p.tear }}" hint-placeholder-val="{{ false }}"><path d="M146 104 q-7 11 0 15 q7 -4 0 -15z" fill="#3FC1F0" stroke="#2B1240" stroke-width="2.5"></path></sc-if>
+<sc-if value="{{ p.crown }}" hint-placeholder-val="{{ false }}"><polygon points="68,40 76,8 92,28 100,0 108,28 124,8 132,40" fill="#FFC93C" stroke="#2B1240" stroke-width="5" stroke-linejoin="round"></polygon><circle cx="100" cy="30" r="5" fill="#FF4D8D"></circle></sc-if>
+<sc-if value="{{ full }}" hint-placeholder-val="{{ true }}">
+<circle cx="{{ p.glx }}" cy="{{ p.gly }}" r="12" fill="#fff" stroke="#2B1240" stroke-width="4"></circle>
+<circle cx="{{ p.grx }}" cy="{{ p.gry }}" r="12" fill="#fff" stroke="#2B1240" stroke-width="4"></circle>
+<text x="{{ p.xx }}" y="{{ p.xy }}" font-family="Lalezar" font-size="46" fill="{{ p.xc }}" stroke="#2B1240" stroke-width="6" paint-order="stroke" stroke-linejoin="round">{{ p.x }}</text>
+</sc-if>
+</svg>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:220,&quot;height&quot;:240},&quot;pose&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;idle&quot;,&quot;wave&quot;,&quot;cheer&quot;,&quot;sad&quot;,&quot;win&quot;,&quot;thinking&quot;,&quot;shocked&quot;,&quot;sleeping&quot;,&quot;pointing&quot;,&quot;blink&quot;],&quot;default&quot;:&quot;idle&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;skin&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;min&quot;:0,&quot;max&quot;:6,&quot;default&quot;:0,&quot;tsType&quot;:&quot;number&quot;},&quot;crop&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;full&quot;,&quot;face&quot;],&quot;default&quot;:&quot;full&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const SKINS=[
+{hi:'#FFF4B0',base:'#FFC93C',rim:'#D98A0B'},{hi:'#FFC9DC',base:'#FF4D8D',rim:'#B8235A'},{hi:'#FFD6BC',base:'#FF7A3D',rim:'#B9481A'},
+{hi:'#D2F3FF',base:'#3FC1F0',rim:'#1478A8'},{hi:'#E6D3FF',base:'#A66BF0',rim:'#6634B0'},{hi:'#E2F8CF',base:'#7ED957',rim:'#3F8F1F'},{hi:'#FFFFFF',base:'#C9D3E6',rim:'#7D8AA6'}];
+const BASE={armL:'M34 110 Q16 128 22 150',gl:[22,152],armR:'M166 110 Q184 128 178 150',gr:[178,152],eyes:'open',ey:92,ery:16,px:0,py:0,
+mouth:'M82 120 Q100 138 118 120',mf:'none',brow:'',crown:false,tear:false,x:'',xx:0,xy:0,xc:'#fff'};
+const OPEN='M80 118 Q100 152 120 118 Z';
+const POSES={
+idle:{},
+wave:{armR:'M166 104 Q190 86 184 56',gr:[184,50],mouth:OPEN,mf:'#7A1F3D'},
+cheer:{armL:'M36 102 Q12 80 20 50',gl:[20,44],armR:'M164 102 Q188 80 180 50',gr:[180,44],eyes:'happy',mouth:'M76 116 Q100 158 124 116 Z',mf:'#7A1F3D'},
+sad:{mouth:'M84 134 Q100 120 116 134',py:5,brow:'M62 80 L88 72 M138 80 L112 72',tear:true},
+win:{eyes:'happy',crown:true,mouth:OPEN,mf:'#7A1F3D',armR:'M166 104 Q190 86 184 56',gr:[184,50]},
+thinking:{armR:'M166 114 Q152 150 128 136',gr:[126,134],mouth:'M90 128 Q102 123 112 128',px:5,py:-5,brow:'M64 70 L88 76',x:'؟',xx:156,xy:44,xc:'#3FC1F0'},
+shocked:{ery:20,mouth:'M90 128 a10 13 0 1 0 20 0 a10 13 0 1 0 -20 0',mf:'#7A1F3D',armL:'M34 104 Q14 96 10 74',gl:[10,68],armR:'M166 104 Q186 96 190 74',gr:[190,68],x:'!',xx:168,xy:38,xc:'#FF4D8D'},
+sleeping:{eyes:'closed',mouth:'M94 126 a6 5 0 1 0 12 0 a6 5 0 1 0 -12 0',mf:'#7A1F3D',x:'zZ',xx:146,xy:40,xc:'#B0C4EF'},
+pointing:{armR:'M166 106 L196 96',gr:[200,94],px:6},
+blink:{eyes:'closed'}
+};
+class Component extends DCLogic {
+  renderVals(){
+    const sk=Math.max(0,Math.min(6,+(this.props.skin??0)||0));
+    const q=Object.assign({},BASE,POSES[this.props.pose??'idle']||{});
+    const face=this.props.crop==='face';
+    return {
+      vb: face?'24 18 152 152':'-12 -8 224 226', full:!face, gid:'mg'+sk, s:SKINS[sk],
+      p:Object.assign(q,{isOpen:q.eyes==='open',isHappy:q.eyes==='happy',isClosed:q.eyes==='closed',
+        plx:76+q.px,prx:124+q.px,pcy:q.ey+q.py,hlx:79+q.px,hrx:127+q.px,hcy:q.ey+q.py-3,
+        glx:q.gl[0],gly:q.gl[1],grx:q.gr[0],gry:q.gr[1]})
+    };
+  }
+}
+</script>
+</body>
+</html>
