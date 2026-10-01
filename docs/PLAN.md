@@ -75,7 +75,7 @@ browser — both need the owner's own machine (see Phase 0-A).
 - [ ] 🖥 Job: pre-generate a pool of N validated puzzles; admin CLI to approve/rename titles
 - [x] 🧩 Single-player reducer (select 4 → submit → correct / one-away / wrong, 4 mistakes)
 - [ ] 📱 Board UI: 4×4 grid, select/deselect, shuffle, submit, solved-row reveal with colors
-- [ ] 📱 Solo practice mode (no coins) using a served puzzle
+- [~] 📱 Solo practice mode (no coins) using a served puzzle — server side done (`/solo/*`, in-memory sessions, redacted view); mobile screen pending
 - [~] 🧪 Property tests: generated puzzles always pass validator; reducer invariants (reducer invariants done with fast-check; generator part waits for the generator)
 
 **Exit:** a person can play solo puzzles on the phone end-to-end.
