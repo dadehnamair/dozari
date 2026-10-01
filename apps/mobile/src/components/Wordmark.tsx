@@ -1,9 +1,28 @@
+import { useId } from 'react';
 import Svg, { Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-svg';
 import { fa } from '../i18n/fa';
 import { fonts } from '../theme/colors';
 
 /** «دوزاری» wordmark: gold gradient letters over a thick ink outline, as on the kit's splash screen. */
-export function Wordmark({ width = 270 }: { width?: number }) {
+export function Wordmark({
+  width = 270,
+  variant = 'gold',
+}: {
+  width?: number;
+  variant?: 'gold' | 'violet';
+}) {
+  const gid = `wm${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
+  const stops =
+    variant === 'gold'
+      ? ([
+          ['0', '#FFF6A8'],
+          ['0.5', '#FFC93C'],
+          ['1', '#FF7A3D'],
+        ] as const)
+      : ([
+          ['0', '#C9A3FF'],
+          ['1', '#6634B0'],
+        ] as const);
   return (
     <Svg
       width={width}
@@ -13,10 +32,10 @@ export function Wordmark({ width = 270 }: { width?: number }) {
       accessibilityLabel={fa.home.title}
     >
       <Defs>
-        <LinearGradient id="wm" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor="#FFF6A8" />
-          <Stop offset="0.5" stopColor="#FFC93C" />
-          <Stop offset="1" stopColor="#FF7A3D" />
+        <LinearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+          {stops.map(([o, c]) => (
+            <Stop key={o} offset={o} stopColor={c} />
+          ))}
         </LinearGradient>
       </Defs>
       <SvgText
@@ -51,7 +70,7 @@ export function Wordmark({ width = 270 }: { width?: number }) {
         textAnchor="middle"
         fontFamily={fonts.display}
         fontSize={168}
-        fill="url(#wm)"
+        fill={`url(#${gid})`}
       >
         {fa.home.title}
       </SvgText>

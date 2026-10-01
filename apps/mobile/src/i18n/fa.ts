@@ -45,6 +45,7 @@ export const fa = {
       noPuzzles: { title: 'پازل‌ها تموم شد', sub: 'فردا یه پازل تازه منتظرته.', action: 'یادم بنداز' },
       noInternet: { title: 'اینترنت قطعه', sub: 'اتصالت رو چک کن و برگرد.', action: 'دوباره وصل شو' },
     },
+    brand: 'برند و آیکن اپ',
     gallery: 'نمایش طراحی',
     search: {
       title: 'جستجوی حریف',
