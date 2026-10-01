@@ -5,6 +5,10 @@ import { resolve } from 'node:path';
 import { rialsToTomanString } from '@dozari/shared';
 import { createDb } from '@dozari/db';
 import { createDbCatalogRepository } from './catalog/db-repository.js';
+import { AuthService } from './auth/service.js';
+import { createDbUserRepository } from './auth/db-repository.js';
+import { registerAuthRoutes } from './auth/routes.js';
+import { createTokenSigner } from './auth/tokens.js';
 import { createDbAdminRepository } from './admin/db-repository.js';
 import { registerAdminRoutes } from './admin/routes.js';
 import type { AdminRepository } from './admin/routes.js';
@@ -19,6 +23,8 @@ export interface ServerDeps {
   catalog?: CatalogRepository;
   /** Interim catalog review page + API at `/admin`; registered only when a token is provided. */
   admin?: { repo: AdminRepository; token: string };
+  /** Guest accounts and sessions (`/auth/guest`, `/me`). */
+  auth?: AuthService;
   /** Solo practice sessions (`/solo/*`). */
   solo?: SoloService;
   /** Allowed browser origins (e.g. Expo web dev). `*` allows any. Off when unset: native apps don't need CORS. */
@@ -39,6 +45,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.corsOrigin) {
     void app.register(fastifyCors, { origin: deps.corsOrigin === '*' ? true : deps.corsOrigin.split(',').map((o) => o.trim()) });
   }
+  if (deps.auth) registerAuthRoutes(app, deps.auth);
   if (deps.catalog) registerCatalogRoutes(app, deps.catalog);
   if (deps.solo) registerSoloRoutes(app, deps.solo);
   if (deps.admin) registerAdminRoutes(app, deps.admin.repo, deps.admin.token);
@@ -52,7 +59,11 @@ export function buildServer(deps: ServerDeps = {}) {
 if (isMainModule(import.meta.url)) {
   const db = process.env.DATABASE_URL ? createDb() : undefined;
   const adminToken = process.env.ADMIN_TOKEN;
+  const jwtSecret = process.env.JWT_SECRET ?? (process.env.NODE_ENV === 'production' ? undefined : 'dev-only-secret-change-me');
+  if (db && !jwtSecret) throw new Error('JWT_SECRET is required in production');
+  const auth = db && jwtSecret ? new AuthService(createDbUserRepository(db), createTokenSigner(jwtSecret)) : undefined;
   const app = buildServer({
+    auth,
     catalog: db ? createDbCatalogRepository(db) : undefined,
     solo: db ? new SoloService(createDbPuzzleSource(db)) : undefined,
     admin: db && adminToken ? { repo: createDbAdminRepository(db), token: adminToken } : undefined,
