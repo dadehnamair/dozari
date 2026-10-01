@@ -38,6 +38,9 @@ export const fa = {
     errors: {
       noPuzzles: 'هنوز پازلی آماده نیست',
       network: 'اتصال به سرور برقرار نشد',
+      server: 'سرور خطا داد',
+      badResponse: 'پاسخ سرور قابل‌فهم نبود',
+      address: 'آدرس سرور',
       retry: 'تلاش دوباره',
     },
   },

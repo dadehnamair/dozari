@@ -76,3 +76,10 @@ pnpm --filter @dozari/mobile start    # then press `w` for web, or scan the QR w
 The app reads the API address from `EXPO_PUBLIC_API_URL` (default `http://localhost:3000`; on a phone use
 your computer's LAN IP). For the **web** build also set `CORS_ORIGIN=http://localhost:8081` in `.env`
 (native apps don't need CORS).
+
+### If the solo screen says «اتصال به سرور برقرار نشد»
+
+The screen now prints the address it tried (`آدرس سرور: …`). Check, in order:
+1. `http://localhost:3000/health` opens in a browser (the server is running).
+2. Expo **web** only: `.env` has `CORS_ORIGIN=*` (or the exact web origin) and the server was restarted; the browser console (F12) mentions CORS.
+3. On a **phone**: `localhost` is the phone itself. Start Expo with `EXPO_PUBLIC_API_URL=http://<computer LAN IP>:3000` and allow port 3000 in the firewall.
