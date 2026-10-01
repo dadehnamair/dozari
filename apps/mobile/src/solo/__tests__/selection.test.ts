@@ -24,7 +24,7 @@ describe('selection helpers', () => {
   });
 
   it('prunes cards that left the board', () => {
-    const cards = [{ id: 'a', nameFa: 'x', unitFa: null }, { id: 'c', nameFa: 'y', unitFa: null }];
+    const cards = [{ id: 'a', nameFa: 'x', unitFa: null, iconKey: null }, { id: 'c', nameFa: 'y', unitFa: null, iconKey: null }];
     expect(pruneSelection(['a', 'b', 'c'], cards)).toEqual(['a', 'c']);
   });
 
