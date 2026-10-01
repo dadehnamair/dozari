@@ -108,3 +108,22 @@ describe('solo routes', () => {
     expect((await app.inject({ method: 'POST', url: `/solo/${unknown}/guess`, payload: { productIds: ['a', 'b', 'c', 'd'] } })).statusCode).toBe(404);
   });
 });
+
+describe('wire contract', () => {
+  it('server views parse with the shared schema', async () => {
+    const { soloGuessResultSchema, soloViewSchema } = await import('@dozari/shared');
+    const { solo } = setup();
+    const v = (await solo.start())!;
+    expect(soloViewSchema.safeParse(v).success).toBe(true);
+    expect(soloGuessResultSchema.safeParse(solo.guess(v.sessionId, ids(1))).success).toBe(true);
+  });
+});
+
+describe('cors', () => {
+  it('is off by default and on when configured', async () => {
+    const off = await buildServer().inject({ method: 'OPTIONS', url: '/health', headers: { origin: 'http://x', 'access-control-request-method': 'GET' } });
+    expect(off.headers['access-control-allow-origin']).toBeUndefined();
+    const on = await buildServer({ corsOrigin: 'http://x' }).inject({ method: 'OPTIONS', url: '/health', headers: { origin: 'http://x', 'access-control-request-method': 'GET' } });
+    expect(on.headers['access-control-allow-origin']).toBe('http://x');
+  });
+});
