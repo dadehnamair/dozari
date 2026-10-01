@@ -312,6 +312,12 @@ export const LEDGER_REASONS = [
   'price_guess_payout',
   'shop_purchase',
   'hint_purchase',
+  'gift_out',
+  'gift_in',
+  'loan_out',
+  'loan_in',
+  'repay_out',
+  'repay_in',
 ] as const;
 
 /** Append-only. Coins move only through the server's ledger function; a repeated idempotency key is a no-op. */
@@ -708,4 +714,29 @@ export const inviteRedemptions = mysqlTable(
     rewardPaidAt: datetime('reward_paid_at', { mode: 'date', fsp: 3 }),
   },
   (table) => ({ byInviter: index('invite_redemptions_inviter_idx').on(table.inviterId) }),
+);
+
+export const TRANSFER_KINDS = ['gift', 'loan'] as const;
+export const TRANSFER_STATUSES = ['completed', 'offered', 'open', 'repaid', 'declined', 'cancelled'] as const;
+
+/** Gifts (done at once) and loans (offered, then accepted, then repaid) between friends. The coins themselves move through `coin_ledger`. */
+export const coinTransfers = mysqlTable(
+  'coin_transfers',
+  {
+    id: id(),
+    kind: mysqlEnum('kind', TRANSFER_KINDS).notNull(),
+    status: mysqlEnum('status', TRANSFER_STATUSES).notNull(),
+    fromUserId: char('from_user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    toUserId: char('to_user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    amount: int('amount').notNull(),
+    /** Loans only: coins paid back so far. */
+    repaid: int('repaid').notNull().default(0),
+    dueAt: datetime('due_at', { mode: 'date', fsp: 3 }),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    closedAt: datetime('closed_at', { mode: 'date', fsp: 3 }),
+  },
+  (table) => ({
+    byFrom: index('coin_transfers_from_idx').on(table.fromUserId, table.createdAt),
+    byTo: index('coin_transfers_to_idx').on(table.toUserId, table.createdAt),
+  }),
 );

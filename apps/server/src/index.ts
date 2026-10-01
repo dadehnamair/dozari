@@ -17,6 +17,9 @@ import type { Gateway } from './realtime/gateway.js';
 import type { MatchDeps } from './realtime/match-service.js';
 import { PlayerService, rulesFromSettings } from './player/service.js';
 import { createDbPlayerStore } from './player/store.js';
+import { registerTransferRoutes } from './transfers/routes.js';
+import { TransferService, transferRulesFromSettings } from './transfers/service.js';
+import { createDbTransferStore } from './transfers/store.js';
 import { registerInviteRoutes } from './invite/routes.js';
 import { InviteService, inviteRulesFromSettings } from './invite/service.js';
 import { createDbInviteStore } from './invite/store.js';
@@ -87,6 +90,8 @@ export interface ServerDeps {
   social?: SocialService;
   /** Invite ("gold") codes; needs `auth`. */
   invite?: InviteService;
+  /** Gifts and loans between friends; needs `auth`. */
+  transfers?: TransferService;
   /** Where live matches get puzzles and player cards from; without it queue pairs are put back in line. */
   match?: Omit<MatchDeps, 'emit'>;
   /** Admin-editable tunables; also served to clients at `GET /config`. */
@@ -145,6 +150,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.dailyReward) registerDailyRewardRoutes(app, deps.auth, deps.dailyReward);
   if (deps.auth && deps.social) registerSocialRoutes(app, deps.auth, deps.social);
   if (deps.auth && deps.invite) registerInviteRoutes(app, deps.auth, deps.invite);
+  if (deps.auth && deps.transfers) registerTransferRoutes(app, deps.auth, deps.transfers);
   if (deps.auth && deps.messages) registerInboxRoutes(app, deps.auth, deps.messages);
   if (deps.auth && deps.bale) registerBaleRoutes(app, deps.auth, deps.bale.service, deps.bale.botUsername);
   if (deps.settings) {
@@ -227,6 +233,8 @@ if (isMainModule(import.meta.url)) {
   const messages = db ? new MessageCenter(createDbMessageStore(db), notify ?? null) : undefined;
   const invite = inviteStore && settings && player ? new InviteService(inviteStore, () => inviteRulesFromSettings(settings), async (id) => (await player.levelOf(id)).level.level, async (id) => (await player.levelOf(id)).stats.games, () => randomInt(0, 2 ** 30) / 2 ** 30) : undefined;
   if (player && invite) player.afterGame = (id) => invite.settle(id);
+  const socialStore = db ? createDbSocialStore(db) : undefined;
+  const transfers = db && settings && socialStore && inviteStore ? new TransferService(createDbTransferStore(db), socialStore, () => transferRulesFromSettings(settings), async (id) => (player ? (await player.levelOf(id)).level.level : 1), (id) => inviteStore.isActivated(id)) : undefined;
   const levelOf = async (id: string) => (player ? (await player.levelOf(id)).level.level : 1);
   const shopStore = db ? createDbShopStore(db) : undefined;
   const solo = db && settings ? new SoloService(createDbPuzzleSource(db), { rules: () => soloRules(settings), onFinished: (id, outcome) => void player?.recordGame(id, { mode: 'solo', outcome }) }) : undefined;
@@ -263,6 +271,7 @@ if (isMainModule(import.meta.url)) {
     messages,
     social,
     invite,
+    transfers,
     dailyReward: db && settings ? new DailyRewardService(createDbDailyRewardStore(db), Date.now, () => dailyRules(settings)) : undefined,
     catalog: db ? createDbCatalogRepository(db) : undefined,
     solo,

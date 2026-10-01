@@ -50,6 +50,18 @@ tuned numbers, just a placeholder shape. Exact multipliers need the same playtes
 rest of this file's numbers (open question 1); payout math (win = pot × 0.9, etc.) is unchanged,
 it just operates on a bigger or smaller pot.
 
+## Gifts and loans between friends (D80)
+
+Owner item 5. Both ways are options in the profile; before first use the app shows the live rules («آجان دوزاری می‌گوید»).
+All numbers are admin settings (`transfer.*`, `loan.*`): friends for ≥ 7 days, sender level ≥ 5 and an activated account
+(invite code redeemed), 10–100 coins per transfer, **200 coins per rolling week** for gifts + loan principals together
+(an open offer reserves its amount; a cancelled or declined one frees it; repayments never refund the cap).
+A **gift** moves at once. A **loan** is offered, moves only when the borrower accepts, is due in 7 days, the borrower may repay
+in parts any time; at the due date it is taken from whatever the borrower has (never below zero), what remains stays owed and
+blocks new loans for that borrower. One open loan per borrower. Ledger reasons: `gift_out/in`, `loan_out/in`, `repay_out/in`
+(every step has its own idempotency key). Table `coin_transfers`; API `/transfers`, `/transfers/rules`, `/friends/:id/gift|loan`,
+`/loans/:id/accept|decline|cancel|repay`. A transfer is a move, not a faucet: the coin total never changes.
+
 ## Rules
 
 - **Single write path:** `LedgerService.apply({userId, delta, reason, ref, idempotencyKey})` inside a DB

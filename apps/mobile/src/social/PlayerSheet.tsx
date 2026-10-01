@@ -8,6 +8,7 @@ import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { acceptFriend, fetchPlayer, removeFriend, requestFriend } from './api';
 import { avatarOf } from './avatarOf';
+import { TransferSheet } from '../transfers/TransferSheet';
 
 const INK = '#3A2418';
 
@@ -15,6 +16,7 @@ const INK = '#3A2418';
 export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: () => void }) {
   const [p, setP] = useState<PlayerProfile | null>(null);
   const [failed, setFailed] = useState(false);
+  const [send, setSend] = useState<'gift' | 'loan' | null>(null);
 
   const load = useCallback(() => {
     fetchPlayer(playerId).then(
@@ -27,6 +29,7 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
   const act = (fn: (id: string) => Promise<void>) => () => fn(playerId).then(load, () => setFailed(true));
   const since = p ? new Intl.DateTimeFormat('fa-IR-u-ca-persian', { year: 'numeric', month: 'long' }).format(new Date(p.memberSince)) : '';
 
+  if (send) return <TransferSheet friendId={playerId} kind={send} onClose={() => setSend(null)} />;
   return (
     <Pressable style={styles.overlay} onPress={onClose} accessibilityLabel={fa.player.close}>
       <Pressable style={styles.sheet} onPress={() => undefined}>
@@ -52,6 +55,8 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
             ) : (
               <>
                 <Text style={styles.text}>{fa.player.friends}</Text>
+                <CandyButton label={fa.transfers.gift} color={colors.candy.lime} onPress={() => setSend('gift')} />
+                <CandyButton label={fa.transfers.loan} color={colors.candy.orange} onPress={() => setSend('loan')} />
                 <CandyButton label={fa.player.unfriend} color={colors.candy.pink} onPress={act(removeFriend)} />
               </>
             )}

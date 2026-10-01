@@ -178,3 +178,8 @@ gates and daily limits are admin-editable; coins stay scarce by design. Details:
 A personal code is issued from level 3, has 10 uses, is guessed at a limited rate, and redeeming it is what activates free chat,
 renaming and (later) gifts/loans. The inviter is paid 100 coins only after the invitee finished 3 games; the invitee gets 50 coins at
 redemption. Admin can make special campaign codes (no inviter reward). All numbers are settings; proposed, owner may change.
+
+## D80 — Gifts and loans between friends (2026-10-01)
+
+Friends can gift or lend coins under admin-set rules (friendship age, level, activation, per-transfer range, weekly cap, loan
+term, one open loan). Details and defaults in `docs/logic/economy.md` §Gifts and loans. Proposed; the owner may change any number.

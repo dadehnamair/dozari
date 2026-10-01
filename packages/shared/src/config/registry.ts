@@ -17,6 +17,7 @@ import {
 import { DAILY_REWARD_COOLDOWN_HOURS, DAILY_REWARD_STREAK_WINDOW_HOURS, HINT_MAX_PER_GAME, HINT_MIN_LEVEL, HINT_PRICES, HINT_REPEAT_PERCENT } from './economy.js';
 import { CHART_GAP_BREAK_YEARS, CHART_MIN_YEAR } from './chart.js';
 import { INVITE_INVITEE_BONUS, INVITE_INVITER_REWARD, INVITE_MAX_USES, INVITE_MIN_LEVEL, INVITE_REWARD_AFTER_GAMES } from './invite.js';
+import { LOAN_DUE_DAYS, LOAN_MAX_OPEN, TRANSFER_MAX_AMOUNT, TRANSFER_MIN_AMOUNT, TRANSFER_MIN_FRIEND_DAYS, TRANSFER_MIN_LEVEL, TRANSFER_WEEKLY_CAP } from './transfers.js';
 import { LEVEL_MAX, NICKNAME_MAX_LEN, NICKNAME_MIN_LEN, XP_CURVE_BASE, XP_DUEL_BASE, XP_SOLO_BASE, XP_WIN_BONUS } from './progression.js';
 
 /**
@@ -104,6 +105,16 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'invite.inviter_reward', group: 'economy', label: 'سکه‌ی معرف', hint: 'بعد از اینکه دعوت‌شده چند بازی را تمام کرد', kind: 'int', min: 0, max: 10000, default: INVITE_INVITER_REWARD, unit: 'سکه' },
   { key: 'invite.reward_after_games', group: 'economy', label: 'پاداش معرف بعد از چند بازی تمام‌شده‌ی دعوت‌شده', kind: 'int', min: 1, max: 100, default: INVITE_REWARD_AFTER_GAMES, unit: 'بازی' },
   { key: 'invite.required_for_rename', group: 'profile', label: 'تغییر اسم نیازمند فعال‌بودن حساب با کد معرف باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'transfer.gifts_on', group: 'economy', label: 'هدیه‌دادن سکه بین دوستان روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'transfer.loans_on', group: 'economy', label: 'قرض‌دادن سکه بین دوستان روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'transfer.min_friend_days', group: 'economy', label: 'کمترین مدت دوستی برای هدیه و قرض', kind: 'int', min: 0, max: 365, default: TRANSFER_MIN_FRIEND_DAYS, unit: 'روز' },
+  { key: 'transfer.min_level', group: 'economy', label: 'کمترین لول فرستنده برای هدیه و قرض', kind: 'int', min: 1, max: 100, default: TRANSFER_MIN_LEVEL },
+  { key: 'transfer.weekly_cap', group: 'economy', label: 'سقف سکه‌ی فرستادنی در هفته (هدیه + قرض)', hint: 'جمع در هر ۷ روز گذشته', kind: 'int', min: 0, max: 100000, default: TRANSFER_WEEKLY_CAP, unit: 'سکه' },
+  { key: 'transfer.min_amount', group: 'economy', label: 'کمترین مبلغ هر انتقال', kind: 'int', min: 1, max: 100000, default: TRANSFER_MIN_AMOUNT, unit: 'سکه' },
+  { key: 'transfer.max_amount', group: 'economy', label: 'بیشترین مبلغ هر انتقال', kind: 'int', min: 1, max: 100000, default: TRANSFER_MAX_AMOUNT, unit: 'سکه' },
+  { key: 'transfer.needs_activation', group: 'economy', label: 'فرستنده باید حسابش را با کد معرف فعال کرده باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'loan.due_days', group: 'economy', label: 'مهلت پس‌دادن قرض', kind: 'int', min: 1, max: 90, default: LOAN_DUE_DAYS, unit: 'روز' },
+  { key: 'loan.max_open', group: 'economy', label: 'حداکثر قرض باز برای هر نفر', kind: 'int', min: 1, max: 10, default: LOAN_MAX_OPEN },
   { key: 'chart.gap_break_years', group: 'chart', label: 'شکاف سال در نمودار قیمت', hint: 'بیشتر از این تعداد سال بدون داده، خط نمودار قطع می‌شود', kind: 'int', min: 1, max: 30, default: CHART_GAP_BREAK_YEARS, unit: 'سال' },
   { key: 'chart.min_year', group: 'chart', label: 'اولین سال نمودار', kind: 'int', min: 1200, max: 1400, default: CHART_MIN_YEAR },
   { key: 'bot.enabled', group: 'bot', label: 'ربات محتوا روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
