@@ -94,6 +94,11 @@ bottom sheet: avatar, nickname, member since, level + tier, cups (tournament tro
 and a «درخواست دوستی» button (state: none / sent / friends). The sheet reads one public-profile endpoint that never
 reveals `is_bot`. Not built yet; needs the `friendships` table.
 
+## Gender setting (D68)
+
+An optional choice, female or male, set next to the province/city. It only changes presentation: the hero character and the
+app icon take that gender. Owner is drawing the female variant. Not built; see D68 for the open points.
+
 ## Province/city (D53)
 
 An **optional** profile field — province required, city optional — never a gate on play (same
