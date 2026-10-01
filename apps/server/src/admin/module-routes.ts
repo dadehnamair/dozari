@@ -8,6 +8,7 @@ import type { BotService } from '../bot/service.js';
 import type { AuditLog } from './audit.js';
 import type { ProductAdmin } from './products.js';
 import type { StatsAdmin } from './stats.js';
+import { isHttpUrl } from '../security/url-guard.js';
 import type { MessageCenter } from '../messages/service.js';
 import type { NotifyService } from '../notify/service.js';
 import type { NotifyStore } from '../notify/store.js';
@@ -27,6 +28,7 @@ export interface AdminModules {
 }
 
 const wordBody = z.object({ word: z.string().trim().min(2).max(100), severity: z.enum(['block', 'mask']).default('block') });
+const httpUrl = z.string().max(1000).refine(isHttpUrl, 'http(s) only');
 const idParam = z.object({ id: z.string().uuid() });
 const rials = z.string().regex(/^\d{1,15}$/);
 const year = z.number().int().min(1300).max(1450);
@@ -59,14 +61,14 @@ const newPrice = z.object({
   month: z.number().int().min(1).max(12).nullable().default(null),
   priceRials: rials,
   sourceType: z.enum(SOURCE_TYPES),
-  sourceUrl: z.string().url().max(1000).nullable().optional(),
+  sourceUrl: httpUrl.nullable().optional(),
   sourceNote: z.string().max(2000).nullable().optional(),
   confidence: z.number().int().min(1).max(3).default(2),
 });
 
 const sourceBody = z.object({
   name: z.string().trim().min(1).max(150),
-  url: z.string().url().max(1000),
+  url: httpUrl,
   adapter: z.enum(BOT_ADAPTER_KEYS),
   sourceType: z.enum(SOURCE_TYPES).default('website'),
   enabled: z.boolean().default(true),

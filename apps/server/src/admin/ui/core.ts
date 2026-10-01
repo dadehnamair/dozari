@@ -20,6 +20,8 @@ function h(tag, attrs, kids) {
   return el;
 }
 function clear(el) { while (el.firstChild) el.removeChild(el.firstChild); return el; }
+/* Only http(s) links are ever put into href (a stored javascript: URL must not become clickable). */
+function safeHref(u) { return /^https?:\/\//i.test(String(u || '')) ? u : '#'; }
 var FA = '۰۱۲۳۴۵۶۷۸۹';
 function fa(n) { return String(n).replace(/\d/g, function (d) { return FA[d]; }); }
 function group(nStr) { return String(nStr).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }

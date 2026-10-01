@@ -44,7 +44,7 @@ function candidateCard(c, reload) {
   return h('div', { class: 'cand' }, [
     h('div', { class: 'head' }, [h('span', { class: 'name', text: c.productNameFa }), c.unitFa ? badge(c.unitFa) : null, known ? badge('در کاتالوگ هست', 'b-ok') : badge('محصول جدید', 'b-warn'), h('span', { style: 'flex:1' }),
       h('span', { class: 'price num', text: toman(c.priceRials) }), badge('سال ' + fa(c.year) + (c.month ? '/' + fa(c.month) : ''), 'b-info')]),
-    h('div', { class: 'sub', style: 'color:var(--muted);font-size:13px' }, ['منبع: ', h('b', { text: c.sourceName || 'نامشخص' }), ' · ', h('a', { href: c.sourceUrl, target: '_blank', rel: 'noopener noreferrer', text: 'باز کردن صفحه' }), ' · ' + ago(c.createdAt)]),
+    h('div', { class: 'sub', style: 'color:var(--muted);font-size:13px' }, ['منبع: ', h('b', { text: c.sourceName || 'نامشخص' }), ' · ', h('a', { href: safeHref(c.sourceUrl), target: '_blank', rel: 'noopener noreferrer', text: 'باز کردن صفحه' }), ' · ' + ago(c.createdAt)]),
     c.excerpt ? h('div', { class: 'quote', text: c.excerpt }) : null,
     c.status === 'pending' ? h('div', { style: 'display:flex;flex-direction:column;gap:10px' }, [
       known ? null : h('div', {}, [newBox, h('div', { style: 'display:flex;gap:8px;align-items:center;margin-top:8px' }, [iconBox, pickBtn])]),

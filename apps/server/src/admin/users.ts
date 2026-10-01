@@ -36,7 +36,7 @@ export function createDbUsersAdmin(db: Db): UsersAdmin {
         .select({ u: users, balance: userBalances.balance })
         .from(users)
         .leftJoin(userBalances, eq(userBalances.userId, users.id))
-        .where(q ? or(like(users.nickname, `%${q}%`), eq(users.id, q)) : undefined)
+        .where(q ? or(like(users.nickname, `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`), eq(users.id, q)) : undefined)
         .orderBy(desc(users.lastSeenAt))
         .limit(limit);
       return rows.map(({ u, balance }) => ({
