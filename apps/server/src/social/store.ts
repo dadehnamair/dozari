@@ -16,6 +16,8 @@ export interface PublicRow extends PlayerRow {
 export interface PairState {
   status: 'pending' | 'accepted';
   requestedBy: string;
+  /** When the friendship was accepted (ms); null while pending. */
+  acceptedAt: number | null;
 }
 
 /** I/O boundary of the social features: public profiles, gender and friendships. */
@@ -72,7 +74,7 @@ export function createDbSocialStore(db: Db): SocialStore {
     },
     async pair(a, b) {
       const [r] = await db.select().from(friendships).where(pairWhere(a, b));
-      return r ? { status: r.status, requestedBy: r.requestedBy } : null;
+      return r ? { status: r.status, requestedBy: r.requestedBy, acceptedAt: r.respondedAt ? r.respondedAt.getTime() : null } : null;
     },
     async createRequest(from, to) {
       if (await this.pair(from, to)) return false;
@@ -125,18 +127,19 @@ export function createMemorySocialStore(seed: PublicRow[]): SocialStore & { gend
     },
     async pair(a, b) {
       const p = pairs.get(key(a, b));
-      return p ? { status: p.status, requestedBy: p.requestedBy } : null;
+      return p ? { status: p.status, requestedBy: p.requestedBy, acceptedAt: p.acceptedAt } : null;
     },
     async createRequest(from, to) {
       if (pairs.has(key(from, to))) return false;
       const [low, high] = sortedPair(from, to);
-      pairs.set(key(from, to), { low, high, status: 'pending', requestedBy: from });
+      pairs.set(key(from, to), { low, high, status: 'pending', requestedBy: from, acceptedAt: null });
       return true;
     },
-    async accept(by, other) {
+    async accept(by, other, now) {
       const p = pairs.get(key(by, other));
       if (!p || p.status !== 'pending' || p.requestedBy !== other) return false;
       p.status = 'accepted';
+      p.acceptedAt = now;
       return true;
     },
     async remove(a, b) {

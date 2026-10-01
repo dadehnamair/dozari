@@ -15,6 +15,8 @@ const FEATURE_OF: [prefix: string, setting: string][] = [
   ['/inbox', 'feature.inbox'],
   ['/bale', 'feature.bale'],
   ['/shop', 'feature.shop'],
+  ['/transfers', 'feature.friends'],
+  ['/loans', 'feature.friends'],
 ];
 
 /** Admin kill switches (maintenance mode, feature flags) applied to an HTTP path; null = let it through. */
