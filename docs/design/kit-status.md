@@ -1,7 +1,7 @@
 # Design kit → app: what is implemented
 
-Source: `Dozari Visual Assets.dc.html` (Candy Arcade v3, exported from Claude Design). The file imports
-`support.js` and a `Mascot` component that were **not** part of the export, so anything needing the mascot waits for them.
+Source: `Dozari Visual Assets.dc.html` and `Mascot.dc.html` (Candy Arcade v3, exported from Claude Design).
+`support.js` is only the design tool's own runtime (`<x-dc>`, `DCLogic`, `dc-import`); the app does not need it.
 
 | Kit section | Status | Where |
 |---|---|---|
@@ -10,8 +10,11 @@ Source: `Dozari Visual Assets.dc.html` (Candy Arcade v3, exported from Claude De
 | Line icons (42) | done | `theme/icons.ts`, `components/Icon.tsx` |
 | Shelf buttons (light top edge, dark bottom shelf) | done | `components/CandyButton.tsx` |
 | Board tiles (cream + shelf, selected grape), solved rows with shelf | done | `components/Board.tsx` |
-| Screens: splash, home hub, backgrounds, parallax | todo | needs mascot + background art |
-| Mascot poses, avatars, empty states | todo | `Mascot` component missing from the export |
+| Mascot (10 poses, 7 skins, face crop) | done | `theme/mascot.ts`, `components/Mascot.tsx` |
+| Splash-style home (wordmark, floating waving mascot, radial backdrop) | done | `home/HomeScreen.tsx`, `Wordmark`, `GradientBackground` |
+| Solo result screen mascot (win / sad) | done | `solo/SoloScreen.tsx` |
+| Splash screen with loading bar, game-screen backdrop, the hub building scene | todo | |
+| Avatars (24), empty/error states | todo | mascot face crop is ready |
 | Effects (confetti, rain, twinkle…), banners, tier badges, era stamps | todo | |
 | Hub icons (10 portals) | todo | |
 

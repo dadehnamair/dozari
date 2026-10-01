@@ -1,12 +1,10 @@
 import { useState } from 'react';
-import { ActivityIndicator, I18nManager, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, I18nManager, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { Lalezar_400Regular } from '@expo-google-fonts/lalezar';
 import { useFonts, Vazirmatn_400Regular, Vazirmatn_700Bold } from '@expo-google-fonts/vazirmatn';
-import { CandyButton } from './src/components/CandyButton';
-import { fa } from './src/i18n/fa';
+import { HomeScreen } from './src/home/HomeScreen';
 import { SoloScreen } from './src/solo/SoloScreen';
-import { colors } from './src/theme/colors';
 
 // Rule (CLAUDE.md §Language): in-game UI is Persian/RTL. Expo's managed I18nManager call is a
 // no-op on web and only takes effect after a native reload, which is expected here.
@@ -23,7 +21,7 @@ export default function App() {
 
   if (!fontsLoaded) {
     return (
-      <View style={styles.container}>
+      <View style={styles.loading}>
         <ActivityIndicator color="#FFC93C" />
       </View>
     );
@@ -35,32 +33,13 @@ export default function App() {
       {screen === 'solo' ? (
         <SoloScreen onBack={() => setScreen('home')} />
       ) : (
-        <>
-          <Text style={styles.title}>{fa.home.title}</Text>
-          <Text style={styles.tagline}>{fa.home.tagline}</Text>
-          <CandyButton label={fa.home.soloButton} color={colors.candy.pink} onPress={() => setScreen('solo')} />
-        </>
+        <HomeScreen onSolo={() => setScreen('solo')} />
       )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#2A0E52',
-    gap: 12,
-  },
-  title: {
-    fontFamily: 'Lalezar_400Regular',
-    fontSize: 56,
-    color: '#FFF6E8',
-  },
-  tagline: {
-    fontFamily: 'Vazirmatn_400Regular',
-    fontSize: 16,
-    color: '#FFF6E8',
-  },
+  container: { flex: 1, backgroundColor: '#2A0E52' },
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2A0E52' },
 });

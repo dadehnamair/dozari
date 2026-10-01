@@ -4,6 +4,7 @@ import type { SoloView } from '@dozari/shared';
 import { Board } from '../components/Board';
 import { CandyButton } from '../components/CandyButton';
 import { ChartPanel } from '../components/ChartPanel';
+import { Mascot } from '../components/Mascot';
 import { MistakeDots } from '../components/MistakeDots';
 import { PriceRoundPanel } from '../components/PriceRoundPanel';
 import { fa } from '../i18n/fa';
@@ -127,6 +128,7 @@ export function SoloScreen({ onBack }: { onBack: () => void }) {
         </View>
       ) : (
         <View style={styles.end}>
+          <View style={styles.endMascot}><Mascot pose={view.status === 'won' ? 'win' : 'sad'} skin={0} /></View>
           <Text style={styles.msg}>{view.status === 'won' ? fa.solo.won : fa.solo.lost}</Text>
           {priceDone ? (
             <>
@@ -154,6 +156,7 @@ const styles = StyleSheet.create({
   feedbackSlot: { height: 28, justifyContent: 'center' },
   feedback: { fontFamily: 'Vazirmatn_700Bold', fontSize: 18, color: colors.candy.yellow },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginTop: 8 },
+  endMascot: { width: 140, height: 154 },
   end: { alignItems: 'center', gap: 8, marginTop: 8 },
   detail: { fontFamily: 'Vazirmatn_400Regular', fontSize: 12, color: colors.cream, opacity: 0.7, textAlign: 'center', writingDirection: 'ltr' },
   msg: { fontFamily: 'Vazirmatn_700Bold', fontSize: 18, color: colors.cream, textAlign: 'center' },
