@@ -27,4 +27,6 @@ Dev-only gallery of everything above: the «نمایش طراحی» button on th
 
 The kit page loads Google Fonts at runtime; the app must not (CLAUDE.md rule 8), so fonts are bundled from npm packages.
 
-- Month looks (D66): 12 Solar Hijri costumes on the mascot and avatars (`MonthAccessory`), automatic from the date; shown on Home and in the kit gallery. Drawn by us, not from the design file: replace if the designer supplies the originals.
+- New design generation («Dozari - 02 … 11», `Character`, `Scene`; hand-drawn market style, brown ink `#3A2418` on cream `#FBF1DE`):
+  - Characters (7, 12 poses, hero's 12 month looks, face crop): done, `components/Character.tsx` + `theme/character*.ts`; used on Home, splash, solo result. The pencil-wobble filter is on for the web; native filter support is unverified, so it is off there (`wobble` prop).
+  - Still the old candy kit: avatars, tier badges, tags, stamps, empty states, banners, fx, icons, buttons, backgrounds. To port from the new files: 02 backgrounds, 03 brand, 05 hub icons, 06 UI icons, 07 UI components, 08 fx, 09 avatars/badges, 10 empty states, 11 screens (hub, profile, settings, tournament, leaderboard).

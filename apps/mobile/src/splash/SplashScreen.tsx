@@ -1,8 +1,9 @@
+import { solarMonthOf } from '@dozari/shared';
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import Svg, { G, Path } from 'react-native-svg';
 import { GradientBackground } from '../components/GradientBackground';
-import { Mascot } from '../components/Mascot';
+import { Character } from '../components/Character';
 import { Wordmark } from '../components/Wordmark';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
@@ -83,7 +84,7 @@ export function SplashScreen() {
         <Wordmark />
         <Text style={styles.tagline}>{fa.kit.splash.tagline}</Text>
         <Animated.View style={[styles.mascot, { transform: [{ translateY: float }] }]}>
-          <Mascot pose="wave" />
+          <Character pose="wave" month={solarMonthOf(Date.now())} />
         </Animated.View>
       </View>
       <View style={styles.footer}>

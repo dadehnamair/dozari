@@ -5,6 +5,7 @@ import { CandyButton } from '../components/CandyButton';
 import { EmptyState } from '../components/EmptyState';
 import { EraStamp } from '../components/EraStamp';
 import { Icon } from '../components/Icon';
+import { Character } from '../components/Character';
 import { Mascot } from '../components/Mascot';
 import { PortalIcon } from '../components/PortalIcon';
 import { TagPill } from '../components/TagPill';
@@ -13,6 +14,7 @@ import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { ICON_PATHS } from '../theme/icons';
 import type { IconName } from '../theme/icons';
+import { CHARACTERS, CHARACTER_POSES } from '../theme/character';
 import { MASCOT_POSES } from '../theme/mascot';
 import { AVATARS, BANNERS, EMPTY_STATES, PORTALS, STAMPS, TAGS, TIERS } from './data';
 
@@ -35,6 +37,28 @@ export function KitGallery({ onBack, onSearch }: { onBack: () => void; onSearch:
         <CandyButton label={fa.solo.back} color={colors.candy.sky} onPress={onBack} />
         <CandyButton label={fa.kit.search.title} color={colors.candy.pink} onPress={onSearch} />
       </View>
+      <Section title="characters">
+        {CHARACTERS.map((who) => (
+          <View key={who} style={styles.char}>
+            <Character who={who} pose="idle" />
+          </View>
+        ))}
+      </Section>
+      <Section title="dozari poses">
+        {CHARACTER_POSES.map((p) => (
+          <View key={p} style={styles.char}>
+            <Character pose={p} />
+          </View>
+        ))}
+      </Section>
+      <Section title="dozari months">
+        {fa.months.map((m, i) => (
+          <View key={m.name} style={styles.char}>
+            <Character month={i + 1} pose="coin" />
+            <Text style={styles.monthLabel}>{m.name}</Text>
+          </View>
+        ))}
+      </Section>
       <Section title="mascot">
         {MASCOT_POSES.map((p, i) => (
           <View key={p} style={styles.mascot}>
@@ -42,17 +66,9 @@ export function KitGallery({ onBack, onSearch }: { onBack: () => void; onSearch:
           </View>
         ))}
       </Section>
-      <Section title="months">
-        {fa.months.map((m, i) => (
-          <View key={m.name} style={styles.mascot}>
-            <Mascot pose="idle" month={i + 1} />
-            <Text style={styles.monthLabel}>{m.name}</Text>
-          </View>
-        ))}
-      </Section>
       <Section title="avatars">
         {AVATARS.map((a) => (
-          <Avatar key={a.key} avatar={a} size={64} month={(AVATARS.indexOf(a) % 12) + 1} />
+          <Avatar key={a.key} avatar={a} size={64} />
         ))}
       </Section>
       <Section title="tiers">
@@ -100,5 +116,13 @@ const styles = StyleSheet.create({
   heading: { fontFamily: fonts.display, fontSize: 22, color: colors.cream },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'center' },
   mascot: { width: 90, height: 100 },
+  char: {
+    width: 110,
+    height: 130,
+    backgroundColor: '#FBF1DE',
+    borderRadius: 18,
+    padding: 6,
+    alignItems: 'center',
+  },
   monthLabel: { fontFamily: fonts.bold, fontSize: 12, color: colors.cream, textAlign: 'center' },
 });

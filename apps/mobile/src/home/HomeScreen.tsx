@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { CandyButton } from '../components/CandyButton';
 import { GradientBackground } from '../components/GradientBackground';
-import { Mascot } from '../components/Mascot';
+import { Character } from '../components/Character';
 import { Wordmark } from '../components/Wordmark';
 import { solarMonthOf } from '@dozari/shared';
 import { fa } from '../i18n/fa';
@@ -29,7 +29,7 @@ export function HomeScreen({ onSolo, onGallery }: { onSolo: () => void; onGaller
         <Wordmark />
         <Text style={styles.tagline}>{fa.home.tagline}</Text>
         <Animated.View style={[styles.mascot, { transform: [{ translateY: float }] }]}>
-          <Mascot pose="wave" month={month} />
+          <Character pose="wave" month={month} />
         </Animated.View>
         <Text style={styles.mood}>{fa.months[month - 1]?.name} · {fa.months[month - 1]?.mood}</Text>
         <CandyButton label={fa.home.soloButton} color={colors.candy.yellow} onPress={onSolo} />

@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { solarMonthOf } from '@dozari/shared';
 import type { SoloView } from '@dozari/shared';
 import { Board } from '../components/Board';
 import { CandyButton } from '../components/CandyButton';
 import { ChartPanel } from '../components/ChartPanel';
 import { Banner } from '../components/Banner';
 import { Confetti } from '../components/Confetti';
-import { Mascot } from '../components/Mascot';
+import { Character } from '../components/Character';
 import { MistakeDots } from '../components/MistakeDots';
 import { Rain } from '../components/Rain';
 import { PriceRoundPanel } from '../components/PriceRoundPanel';
@@ -134,7 +135,7 @@ export function SoloScreen({ onBack }: { onBack: () => void }) {
       ) : (
         <View style={styles.end}>
           {view.status === 'won' ? <Banner banner={BANNERS[0]!} /> : <Banner banner={BANNERS[1]!} />}
-          <View style={styles.endMascot}><Mascot pose={view.status === 'won' ? 'win' : 'sad'} skin={0} /></View>
+          <View style={styles.endMascot}><Character pose={view.status === 'won' ? 'win' : 'sad'} month={solarMonthOf(Date.now())} /></View>
           <Text style={styles.msg}>{view.status === 'won' ? fa.solo.won : fa.solo.lost}</Text>
           {priceDone ? (
             <>
