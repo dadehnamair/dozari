@@ -26,3 +26,5 @@ Source: `Dozari Visual Assets.dc.html` and `Mascot.dc.html` (Candy Arcade v3, ex
 Dev-only gallery of everything above: the «نمایش طراحی» button on the home screen (`kit/KitGallery.tsx`).
 
 The kit page loads Google Fonts at runtime; the app must not (CLAUDE.md rule 8), so fonts are bundled from npm packages.
+
+- Month looks (D66): 12 Solar Hijri costumes on the mascot and avatars (`MonthAccessory`), automatic from the date; shown on Home and in the kit gallery. Drawn by us, not from the design file: replace if the designer supplies the originals.

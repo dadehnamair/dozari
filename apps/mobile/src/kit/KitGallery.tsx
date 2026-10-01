@@ -42,9 +42,17 @@ export function KitGallery({ onBack, onSearch }: { onBack: () => void; onSearch:
           </View>
         ))}
       </Section>
+      <Section title="months">
+        {fa.months.map((m, i) => (
+          <View key={m.name} style={styles.mascot}>
+            <Mascot pose="idle" month={i + 1} />
+            <Text style={styles.monthLabel}>{m.name}</Text>
+          </View>
+        ))}
+      </Section>
       <Section title="avatars">
         {AVATARS.map((a) => (
-          <Avatar key={a.key} avatar={a} size={64} />
+          <Avatar key={a.key} avatar={a} size={64} month={(AVATARS.indexOf(a) % 12) + 1} />
         ))}
       </Section>
       <Section title="tiers">
@@ -92,4 +100,5 @@ const styles = StyleSheet.create({
   heading: { fontFamily: fonts.display, fontSize: 22, color: colors.cream },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'center' },
   mascot: { width: 90, height: 100 },
+  monthLabel: { fontFamily: fonts.bold, fontSize: 12, color: colors.cream, textAlign: 'center' },
 });
