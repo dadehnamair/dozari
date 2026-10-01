@@ -40,6 +40,11 @@ export class SettingsService {
     return typeof v === 'number' ? v : Number((v as number[] | undefined)?.[0] ?? 0);
   }
 
+  async text(key: string): Promise<string> {
+    const v = (await this.values())[key];
+    return typeof v === 'string' ? v : '';
+  }
+
   async list(key: string): Promise<number[]> {
     const v = (await this.values())[key];
     return Array.isArray(v) ? v : [];

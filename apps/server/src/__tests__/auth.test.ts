@@ -35,7 +35,7 @@ function setup(now = () => 1_700_000_000_000) {
 describe('tokens', () => {
   it('round-trips a user id', async () => {
     const t = createTokenSigner(SECRET);
-    expect(await t.verify(await t.sign('user-1'))).toBe('user-1');
+    expect((await t.verify(await t.sign('user-1')))?.userId).toBe('user-1');
   });
 
   it('rejects tampered, foreign-secret, garbage and expired tokens', async () => {
@@ -51,6 +51,25 @@ describe('tokens', () => {
 
   it('refuses a weak secret', () => {
     expect(() => createTokenSigner('short')).toThrow();
+  });
+});
+
+describe('log out everywhere', () => {
+  it('refuses tokens issued before sessionsValidAfter, accepts later ones, and a ban kills the session too', async () => {
+    let clock = 1_700_000_000_000;
+    const users = memoryUsers();
+    const tokens = createTokenSigner(SECRET, () => clock);
+    const auth = new AuthService(users.repo, tokens, mulberry32(3));
+    const login = await auth.guestLogin(DEVICE);
+    if (!login.ok) throw new Error('login failed');
+    const id = login.session.user.id;
+    expect(await auth.authenticate(login.session.token)).not.toBeNull();
+    clock += 5_000;
+    users.byId.get(id)!.sessionsValidAfter = clock; // admin: log out everywhere
+    expect(await auth.authenticate(login.session.token)).toBeNull();
+    const again = await auth.guestLogin(DEVICE);
+    if (!again.ok) throw new Error('login failed');
+    expect(await auth.authenticate(again.session.token)).not.toBeNull(); // a fresh login works
   });
 });
 

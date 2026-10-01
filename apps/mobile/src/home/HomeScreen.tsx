@@ -9,6 +9,8 @@ import { ProfileSheet } from '../social/ProfileSheet';
 import { fetchMyProfile } from '../social/api';
 import { heroFor } from '../social/heroFor';
 import type { Gender } from '@dozari/shared';
+import { OPEN_CONFIG } from '../config/gate';
+import type { ClientConfig } from '../config/gate';
 import { InboxSheet } from '../inbox/InboxSheet';
 import { useInbox } from '../inbox/useInbox';
 import { BaleSheet } from '../bale/BaleSheet';
@@ -20,7 +22,7 @@ import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 
 /** Home: wordmark, the waving mascot (floating, as on the kit's splash) and the way into a solo game. */
-export function HomeScreen({ onSolo, onLookup, onGallery }: { onSolo: () => void; onLookup: () => void; onGallery?: () => void }) {
+export function HomeScreen({ onSolo, onLookup, onGallery, features = OPEN_CONFIG.features }: { onSolo: () => void; onLookup: () => void; onGallery?: () => void; features?: ClientConfig['features'] }) {
   const month = useMemo(() => solarMonthOf(Date.now()), []);
   const daily = useDailyReward();
   const [dailyOpen, setDailyOpen] = useState(false);
@@ -67,8 +69,8 @@ export function HomeScreen({ onSolo, onLookup, onGallery }: { onSolo: () => void
             <View />
           )}
           <View style={styles.actions}>
-          <IconButton icon="user" label={fa.profile.open} color={colors.candy.grape} size={48} onPress={() => setProfileOpen(true)} />
-          <IconButton icon="mail" label={fa.inbox.open} color={colors.candy.sky} badge={inbox.inbox && inbox.inbox.unread > 0 ? toPersianDigits(String(inbox.inbox.unread)) : undefined} size={48} onPress={() => { inbox.reload(); setInboxOpen(true); }} />
+          {features.friends ? <IconButton icon="user" label={fa.profile.open} color={colors.candy.grape} size={48} onPress={() => setProfileOpen(true)} /> : null}
+          {features.inbox ? <IconButton icon="mail" label={fa.inbox.open} color={colors.candy.sky} badge={inbox.inbox && inbox.inbox.unread > 0 ? toPersianDigits(String(inbox.inbox.unread)) : undefined} size={48} onPress={() => { inbox.reload(); setInboxOpen(true); }} /> : null}
           {daily.status ? (
             <IconButton icon="gift" label={fa.daily.open} color={colors.candy.pink} badge={daily.status.canClaim ? '!' : undefined} size={48} onPress={() => setDailyOpen(true)} />
           ) : null}
@@ -86,8 +88,8 @@ export function HomeScreen({ onSolo, onLookup, onGallery }: { onSolo: () => void
             {fa.months[month - 1]?.name} · {fa.months[month - 1]?.mood}
           </Text>
           <CandyButton label={fa.home.soloButton} color={colors.candy.yellow} onPress={onSolo} />
-          <CandyButton label={fa.home.lookupButton} color={colors.candy.lime} onPress={onLookup} />
-          <CandyButton label={fa.bale.open} color={colors.candy.grape} onPress={() => setBaleOpen(true)} />
+          {features.lookup ? <CandyButton label={fa.home.lookupButton} color={colors.candy.lime} onPress={onLookup} /> : null}
+          {features.bale ? <CandyButton label={fa.bale.open} color={colors.candy.grape} onPress={() => setBaleOpen(true)} /> : null}
           {onGallery ? (
             <CandyButton label={fa.kit.gallery} color={colors.candy.sky} onPress={onGallery} />
           ) : null}

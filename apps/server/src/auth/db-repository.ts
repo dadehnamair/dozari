@@ -3,12 +3,12 @@ import type { Db } from '@dozari/db';
 import { uuidv7 } from 'uuidv7';
 import type { UserRecord, UserRepository } from './service.js';
 
-const columns = { id: users.id, nickname: users.nickname, avatarKey: users.avatarKey, isBanned: users.isBanned };
+const columns = { id: users.id, nickname: users.nickname, avatarKey: users.avatarKey, isBanned: users.isBanned, sessionsValidAfter: users.sessionsValidAfter };
 
 export function createDbUserRepository(db: Db): UserRepository {
   const one = async (where: ReturnType<typeof eq>): Promise<UserRecord | null> => {
     const [row] = await db.select(columns).from(users).where(where).limit(1);
-    return row ?? null;
+    return row ? { ...row, sessionsValidAfter: row.sessionsValidAfter?.getTime() ?? null } : null;
   };
   return {
     findByDeviceId: (deviceId) => one(eq(users.deviceId, deviceId)),

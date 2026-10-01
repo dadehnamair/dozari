@@ -45,6 +45,8 @@ export const ERROR_CODES = [
   'DUPLICATE_SELECTION',
   'MATCH_FINISHED',
   'INSUFFICIENT_COINS',
+  'MAINTENANCE',
+  'FEATURE_OFF',
   'INTERNAL',
 ] as const;
 export const errorCodeSchema = z.enum(ERROR_CODES);

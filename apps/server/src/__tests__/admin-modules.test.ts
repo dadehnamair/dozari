@@ -27,8 +27,13 @@ function setup() {
   };
   const users: UsersAdmin = {
     list: async () => [],
+    detail: async () => null,
     ledger: async () => [],
     setBanned: async () => 'ok',
+    logoutEverywhere: async () => 'ok',
+    setIdentity: async () => 'ok',
+    addNote: async () => ({ id: ID }),
+    removeNote: async () => 'ok',
     adjustCoins: async (_id, delta) => (delta < -50 ? 'insufficient' : { balance: 100 + delta }),
   };
   const botRepo = { listSources: async () => [], listCandidates: async () => [], listRuns: async () => [], approve: async () => 'conflict', reject: async () => 'ok' } as unknown as BotRepository;
@@ -100,6 +105,40 @@ describe('admin modules', () => {
     expect((await app.inject({ method: 'POST', url, headers: h, payload: { delta: 25 } })).json()).toEqual({ ok: true, balance: 125 });
     expect((await app.inject({ method: 'POST', url, headers: h, payload: { delta: -100 } })).statusCode).toBe(409);
     expect((await app.inject({ method: 'POST', url, headers: h, payload: { delta: 0 } })).statusCode).toBe(400);
+  });
+
+  it('manages a player: detail, ban with reason, log out everywhere, identity, notes', async () => {
+    const calls: unknown[][] = [];
+    const settings = new SettingsService(createMemorySettingsStore());
+    const audit = createMemoryAuditLog();
+    const users: UsersAdmin = {
+      list: async (q, limit, opts) => (calls.push(['list', q, limit, opts]), []),
+      detail: async (id) => (id === ID ? { id, nickname: 'n', avatarKey: 'avatar-01', isBanned: false, balance: 5, createdAt: 1, lastSeenAt: 2, gender: 'female', banReason: null, bannedAt: null, friends: 2, baleLinked: true, notes: [] } : null),
+      ledger: async () => [],
+      setBanned: async (id, banned, reason) => (calls.push(['ban', id, banned, reason]), 'ok'),
+      logoutEverywhere: async (id) => (calls.push(['logout', id]), 'ok'),
+      setIdentity: async (id, identity) => (calls.push(['identity', id, identity]), identity?.avatarKey === 'bad' ? 'invalid' : 'ok'),
+      addNote: async (id, note) => (calls.push(['note', id, note]), { id: ID }),
+      removeNote: async () => 'ok',
+      adjustCoins: async () => ({ balance: 1 }),
+    };
+    const app = buildServer({ settings, admin: { repo: { listCatalog: async () => [], setPriceStatus: async () => 'ok' }, token: TOKEN }, adminModules: { users, audit } });
+    expect((await app.inject({ method: 'GET', url: `/admin/users/${ID}`, headers: h })).json()).toMatchObject({ friends: 2, baleLinked: true, gender: 'female' });
+    expect((await app.inject({ method: 'GET', url: '/admin/users/0190a000-0000-7000-8000-0000000000ff', headers: h })).statusCode).toBe(404);
+    await app.inject({ method: 'GET', url: '/admin/users?q=ali&filter=banned&sort=coins&offset=50', headers: h });
+    expect(calls[0]).toEqual(['list', 'ali', 50, { filter: 'banned', sort: 'coins', offset: 50 }]);
+    expect((await app.inject({ method: 'GET', url: '/admin/users?filter=weird', headers: h })).statusCode).toBe(400);
+    expect((await app.inject({ method: 'POST', url: `/admin/users/${ID}/ban`, headers: h, payload: { banned: true, reason: 'اسم نامناسب' } })).statusCode).toBe(200);
+    expect(calls.at(-1)).toEqual(['ban', ID, true, 'اسم نامناسب']);
+    expect((await app.inject({ method: 'POST', url: `/admin/users/${ID}/logout`, headers: h })).json()).toEqual({ ok: true });
+    expect((await app.inject({ method: 'PUT', url: `/admin/users/${ID}/identity`, headers: h, payload: {} })).statusCode).toBe(200); // random reset
+    expect(calls.at(-1)).toEqual(['identity', ID, undefined]);
+    expect((await app.inject({ method: 'PUT', url: `/admin/users/${ID}/identity`, headers: h, payload: { nickname: 'خوب' } })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'PUT', url: `/admin/users/${ID}/identity`, headers: h, payload: { avatarKey: 'bad' } })).statusCode).toBe(400);
+    expect((await app.inject({ method: 'POST', url: `/admin/users/${ID}/notes`, headers: h, payload: { note: 'هشدار اول' } })).statusCode).toBe(201);
+    expect((await app.inject({ method: 'POST', url: `/admin/users/${ID}/notes`, headers: h, payload: { note: '' } })).statusCode).toBe(400);
+    expect((await app.inject({ method: 'DELETE', url: `/admin/user-notes/${ID}`, headers: h })).statusCode).toBe(200);
+    expect(audit.entries.map((e) => e.action)).toEqual(expect.arrayContaining(['user.ban', 'user.logout', 'user.identity_reset', 'user.identity', 'user.note', 'user.note_delete']));
   });
 
   it('answers the candidate decisions with the right status codes', async () => {

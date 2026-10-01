@@ -98,6 +98,13 @@ export const fa = {
     ] },
   ],
   daily: { title: 'جایزهٔ روزانه', day: 'روز', today: 'امروز', claim: 'بگیر!', wait: 'تا جایزهٔ بعدی', won: 'سکه گرفتی!', coins: 'سکه', open: 'جایزهٔ روزانه' },
+  gate: {
+    maintenanceTitle: 'در دست تعمیر',
+    maintenanceDefault: 'بازی برای چند دقیقه در دست تعمیر است. به‌زودی برمی‌گردیم.',
+    updateTitle: 'نسخه‌ی تازه آمده',
+    updateText: 'برای ادامه باید دوزاری را به‌روزرسانی کنی.',
+    updateButton: 'به‌روزرسانی',
+  },
   profile: {
     open: 'پروفایل من',
     title: 'پروفایل من',

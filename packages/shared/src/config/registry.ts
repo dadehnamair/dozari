@@ -21,7 +21,7 @@ import { CHART_GAP_BREAK_YEARS, CHART_MIN_YEAR } from './chart.js';
  * Every tunable the admin panel can change. The defaults come from the constants in `config/*.ts` (CLAUDE.md rule 9);
  * an override is a row in `app_settings`. Values are integers or short lists of integers (stored as "1,2,3,4", no JSON).
  */
-export const SETTING_GROUPS = ['gameplay', 'scoring', 'profile', 'economy', 'chart', 'bot', 'notify'] as const;
+export const SETTING_GROUPS = ['app', 'gameplay', 'scoring', 'profile', 'economy', 'chart', 'bot', 'notify'] as const;
 export type SettingGroup = (typeof SETTING_GROUPS)[number];
 
 export interface SettingDef {
@@ -29,16 +29,26 @@ export interface SettingDef {
   group: SettingGroup;
   label: string;
   hint?: string;
-  kind: 'int' | 'bool' | 'intList';
+  /** `text` is a short string: `max` is its length limit, `min` is ignored. */
+  kind: 'int' | 'bool' | 'intList' | 'text';
   min: number;
   max: number;
   /** For lists: exact length. */
   length?: number;
-  default: number | readonly number[];
+  default: number | readonly number[] | string;
   unit?: string;
 }
 
 export const SETTING_DEFS: readonly SettingDef[] = [
+  { key: 'app.maintenance_on', group: 'app', label: 'حالت تعمیر (بازیکن‌ها فقط پیام تعمیر را می‌بینند)', kind: 'bool', min: 0, max: 1, default: 0 },
+  { key: 'app.maintenance_message', group: 'app', label: 'پیام حالت تعمیر', kind: 'text', min: 0, max: 300, default: 'بازی برای چند دقیقه در دست تعمیر است. به‌زودی برمی‌گردیم.' },
+  { key: 'app.min_build', group: 'app', label: 'کمترین نسخه‌ی مجاز اپ (شماره‌ی بیلد)', hint: 'نسخه‌های قدیمی‌تر باید به‌روزرسانی کنند؛ ۰ یعنی همه مجازند', kind: 'int', min: 0, max: 99999, default: 0 },
+  { key: 'app.update_url', group: 'app', label: 'لینک به‌روزرسانی', hint: 'صفحه‌ی اپ در بازار / مایکت / بله', kind: 'text', min: 0, max: 300, default: '' },
+  { key: 'feature.lookup', group: 'app', label: 'استعلام قیمت روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'feature.duel', group: 'app', label: 'بازی دونفره‌ی زنده روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'feature.friends', group: 'app', label: 'دوستان و پروفایل بازیکن‌ها روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'feature.inbox', group: 'app', label: 'صندوق پیام داخل اپ روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'feature.bale', group: 'app', label: 'اتصال به بله روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'game.solo_max_mistakes', group: 'gameplay', label: 'اشتباه مجاز در بازی تکی', kind: 'int', min: 1, max: 10, default: SOLO_MAX_MISTAKES },
   { key: 'game.match_max_mistakes', group: 'gameplay', label: 'اشتباه مجاز هر بازیکن در دوئل', kind: 'int', min: 1, max: 10, default: MATCH_MAX_MISTAKES },
   { key: 'game.turn_seconds', group: 'gameplay', label: 'زمان هر نوبت', kind: 'int', min: 10, max: 180, default: TURN_SECONDS, unit: 'ثانیه' },
@@ -65,7 +75,7 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'bot.max_candidates_per_run', group: 'bot', label: 'سقف پیشنهاد در هر اجرا', hint: 'برای اینکه صف تأیید یک‌جا پر نشود', kind: 'int', min: 1, max: 500, default: 100 },
 ];
 
-export type SettingValue = number | number[];
+export type SettingValue = number | number[] | string;
 
 export function settingDef(key: string): SettingDef | undefined {
   return SETTING_DEFS.find((d) => d.key === key);
@@ -73,6 +83,10 @@ export function settingDef(key: string): SettingDef | undefined {
 
 /** Parses the stored text of an override; returns null when it is not valid for this definition. */
 export function parseSetting(def: SettingDef, raw: string): SettingValue | null {
+  if (def.kind === 'text') {
+    const text = raw.trim();
+    return [...text].length <= def.max && !/[\u0000-\u001f]/.test(text) ? text : null;
+  }
   const parts = raw
     .trim()
     .split(/[,،\s]+/)
@@ -97,7 +111,7 @@ export function effectiveSettings(overrides: Readonly<Record<string, string>>): 
   for (const def of SETTING_DEFS) {
     const raw = overrides[def.key];
     const parsed = raw === undefined ? null : parseSetting(def, raw);
-    out[def.key] = parsed ?? (Array.isArray(def.default) ? [...(def.default as readonly number[])] : (def.default as number));
+    out[def.key] = parsed ?? (Array.isArray(def.default) ? [...(def.default as readonly number[])] : (def.default as number | string));
   }
   return out;
 }

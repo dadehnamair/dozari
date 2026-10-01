@@ -7,6 +7,8 @@ export interface UserRecord {
   nickname: string;
   avatarKey: string;
   isBanned: boolean;
+  /** Epoch ms; tokens issued before it are refused (log out everywhere). */
+  sessionsValidAfter?: number | null;
 }
 
 /** I/O boundary of auth: where users live. */
@@ -37,9 +39,12 @@ export class AuthService {
 
   /** The user behind a bearer token, or null for a bad/expired token, an unknown user or a banned one. */
   async authenticate(token: string): Promise<UserRecord | null> {
-    const id = await this.tokens.verify(token);
-    if (!id) return null;
-    const user = await this.users.findById(id);
-    return user && !user.isBanned ? user : null;
+    const t = await this.tokens.verify(token);
+    if (!t) return null;
+    const user = await this.users.findById(t.userId);
+    if (!user || user.isBanned) return null;
+    // A token counts as issued at the end of its second, so a fresh login right after a logout is not refused.
+    if (user.sessionsValidAfter && (t.issuedAt + 1) * 1000 <= user.sessionsValidAfter) return null;
+    return user;
   }
 }

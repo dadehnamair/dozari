@@ -37,6 +37,7 @@ import { registerInboxRoutes } from './messages/routes.js';
 import { SocialService } from './social/service.js';
 import { createDbSocialStore } from './social/store.js';
 import { registerSocialRoutes } from './social/routes.js';
+import { gateForDuel, gateForPath } from './settings/gate.js';
 import { RateLimiter } from './security/rate-limit.js';
 import { registerSecurityHeaders } from './security/headers.js';
 import { checkProductionConfig } from './security/config.js';
@@ -104,6 +105,10 @@ export function buildServer(deps: ServerDeps = {}) {
   const anyLimit = new RateLimiter(300, 60_000);
   const guestLimit = new RateLimiter(20, 60_000);
   app.addHook('onRequest', async (req, reply) => {
+    if (deps.settings) {
+      const verdict = await gateForPath(deps.settings, req.url.split('?')[0] ?? '');
+      if (verdict) return reply.code(503).send(verdict);
+    }
     const limited = !anyLimit.take(req.ip) ? anyLimit : req.url.split('?')[0] === '/auth/guest' && !guestLimit.take(req.ip) ? guestLimit : null;
     if (limited) return reply.header('retry-after', String(limited.retryAfterSec(req.ip))).code(429).send({ error: 'rate_limited' });
   });
@@ -134,7 +139,7 @@ export function buildServer(deps: ServerDeps = {}) {
   let gateway: Gateway | undefined;
   if (deps.auth && deps.realtime) {
     const auth = deps.auth;
-    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin: deps.corsOrigin, match: deps.match });
+    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin: deps.corsOrigin, match: deps.match, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined });
     app.addHook('onClose', async () => {
       await gateway?.close();
     });

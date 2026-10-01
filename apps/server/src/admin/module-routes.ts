@@ -110,7 +110,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     g.get('/admin/settings', async () => ({ settings: await settings.rows() }));
     g.put('/admin/settings/:key', async (req, reply) => {
       const key = (req.params as { key?: string }).key ?? '';
-      const body = z.object({ value: z.union([z.string().max(100), z.number()]) }).safeParse(req.body);
+      const body = z.object({ value: z.union([z.string().max(400), z.number()]) }).safeParse(req.body);
       if (!body.success) return reply.code(400).send({ error: 'invalid_request' });
       const out = await settings.set(key, String(body.data.value));
       if (out !== 'ok') return reply.code(out === 'invalid_key' ? 404 : 400).send({ error: out });
@@ -159,9 +159,18 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
 
   if (m.users) {
     const users = m.users;
-    g.get('/admin/users', async (req) => {
-      const q = z.object({ q: z.string().max(60).default('') }).parse(req.query);
-      return { users: await users.list(q.q, 50) };
+    g.get('/admin/users', async (req, reply) => {
+      const parsed = z
+        .object({ q: z.string().max(60).default(''), filter: z.enum(['all', 'banned', 'new']).default('all'), sort: z.enum(['lastSeen', 'created', 'coins']).default('lastSeen'), offset: z.coerce.number().int().min(0).max(100_000).default(0) })
+        .safeParse(req.query);
+      if (!parsed.success) return reply.code(400).send({ error: 'invalid_request' });
+      const q = parsed.data;
+      return { users: await users.list(q.q, 50, { filter: q.filter, sort: q.sort, offset: q.offset }) };
+    });
+    g.get('/admin/users/:id', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
+      return (await users.detail(p.data.id)) ?? reply.code(404).send({ error: 'user_not_found' });
     });
     g.get('/admin/users/:id/ledger', async (req, reply) => {
       const p = idParam.safeParse(req.params);
@@ -170,10 +179,44 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     });
     g.post('/admin/users/:id/ban', async (req, reply) => {
       const p = idParam.safeParse(req.params);
-      const b = z.object({ banned: z.boolean() }).safeParse(req.body);
+      const b = z.object({ banned: z.boolean(), reason: z.string().trim().max(200).nullable().optional() }).safeParse(req.body);
       if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
-      if ((await users.setBanned(p.data.id, b.data.banned)) === 'not_found') return reply.code(404).send({ error: 'user_not_found' });
-      void audit(b.data.banned ? 'user.ban' : 'user.unban', p.data.id);
+      if ((await users.setBanned(p.data.id, b.data.banned, b.data.reason)) === 'not_found') return reply.code(404).send({ error: 'user_not_found' });
+      void audit(b.data.banned ? 'user.ban' : 'user.unban', p.data.id, b.data.reason ?? undefined);
+      return { ok: true };
+    });
+    g.post('/admin/users/:id/logout', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
+      if ((await users.logoutEverywhere(p.data.id)) === 'not_found') return reply.code(404).send({ error: 'user_not_found' });
+      void audit('user.logout', p.data.id);
+      return { ok: true };
+    });
+    g.put('/admin/users/:id/identity', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object({ nickname: z.string().trim().min(2).max(30).optional(), avatarKey: z.string().max(30).optional() }).safeParse(req.body ?? {});
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const identity = b.data.nickname !== undefined || b.data.avatarKey !== undefined ? b.data : undefined;
+      const out = await users.setIdentity(p.data.id, identity);
+      if (out === 'not_found') return reply.code(404).send({ error: 'user_not_found' });
+      if (out === 'invalid') return reply.code(400).send({ error: 'invalid_request' });
+      void audit(identity ? 'user.identity' : 'user.identity_reset', p.data.id, identity?.nickname);
+      return { ok: true };
+    });
+    g.post('/admin/users/:id/notes', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object({ note: z.string().trim().min(1).max(500) }).safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await users.addNote(p.data.id, b.data.note);
+      if (out === 'not_found') return reply.code(404).send({ error: 'user_not_found' });
+      void audit('user.note', p.data.id);
+      return reply.code(201).send(out);
+    });
+    g.delete('/admin/user-notes/:id', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
+      if ((await users.removeNote(p.data.id)) === 'not_found') return reply.code(404).send({ error: 'note_not_found' });
+      void audit('user.note_delete', p.data.id);
       return { ok: true };
     });
     g.post('/admin/users/:id/coins', async (req, reply) => {
