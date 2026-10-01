@@ -6,6 +6,8 @@ export const BOARD_SIZE = GROUP_COUNT * GROUP_SIZE;
 
 /** Solo: the 4th wrong guess ends the game and reveals the remaining groups. */
 export const SOLO_MAX_MISTAKES = 4;
+/** A product needs at least this many approved price points (distinct dates) to show a price range; the admin flags fewer. */
+export const MIN_PRICE_POINTS_PER_PRODUCT = 3;
 
 /** Price-guess bonus round (docs/logic/price-guess-round.md). All four groups get one round. */
 export const PRICE_GUESS_ROUNDS = GROUP_COUNT;

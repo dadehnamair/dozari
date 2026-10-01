@@ -1,7 +1,8 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import { PRICE_STATUSES } from '@dozari/shared';
+import { MIN_PRICE_POINTS_PER_PRODUCT, PRICE_STATUSES, priceRange } from '@dozari/shared';
+import type { PriceMark } from '@dozari/shared';
 import type { DailyRewardService } from '../economy/daily-reward.js';
 import { registerDailyRewardAdminRoutes } from '../economy/routes.js';
 import type { SocketStats } from '../realtime/stats.js';
@@ -40,6 +41,18 @@ export interface AdminRepository {
   listCatalog(): Promise<AdminProductDto[]>;
   /** `conflict` = another approved point already exists for the same (product, year, month). */
   setPriceStatus(priceId: string, status: PriceStatus): Promise<SetStatusResult>;
+}
+
+const markDto = (m: PriceMark) => ({ year: m.year, month: m.month, priceRials: m.priceRials.toString() });
+
+/** Range of the approved prices (what players see), plus whether the product is below the minimum number of points. */
+function rangeSummary(prices: readonly AdminPriceDto[]) {
+  const approved = prices.filter((x) => x.status === 'approved').map((x) => ({ year: x.year, month: x.month, priceRials: BigInt(x.priceRials) }));
+  const r = priceRange(approved);
+  return {
+    range: r ? { count: r.count, first: markDto(r.first), last: markDto(r.last), min: markDto(r.min), max: markDto(r.max) } : null,
+    needsMorePrices: approved.length < MIN_PRICE_POINTS_PER_PRODUCT,
+  };
 }
 
 const digest = (s: string) => createHash('sha256').update(s).digest();
@@ -85,7 +98,7 @@ export function registerAdminRoutes(app: FastifyInstance, repo: AdminRepository,
     guarded.get('/admin/catalog', async () => {
       const list = await repo.listCatalog();
       const details = extras.products ? await extras.products.details() : {};
-      return { products: list.map((p) => ({ ...p, ...(details[p.id] ?? {}) })) };
+      return { products: list.map((p) => ({ ...p, ...(details[p.id] ?? {}), ...rangeSummary(p.prices) })) };
     });
 
     guarded.patch('/admin/prices/:id', async (req, reply) => {

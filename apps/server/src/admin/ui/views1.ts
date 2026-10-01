@@ -40,11 +40,17 @@ VIEWS.dashboard = function (root) {
 /* ---------------- catalog ---------------- */
 var CAT = { products: [], filter: 'all', q: '' };
 function productHasApproved(p) { return p.prices.some(function (x) { return x.status === 'approved'; }); }
+function dateFa(m) { return fa(m.year) + (m.month ? '/' + fa(m.month) : ''); }
+function rangeText(p) {
+  var r = p.range;
+  if (!r) return 'بازه‌ی قیمت: بدون قیمت تأییدشده';
+  return 'از ' + dateFa(r.first) + ' تا ' + dateFa(r.last) + ' · ' + toman(r.min.priceRials) + ' تا ' + toman(r.max.priceRials);
+}
 VIEWS.catalog = function (root) {
   var list = h('div', { class: 'pgrid' });
   var search = h('input', { type: 'search', placeholder: 'جستجوی محصول…', value: CAT.q });
   var chips = h('div', { style: 'display:flex;gap:6px;flex-wrap:wrap' });
-  var FILTERS = [['all', 'همه'], ['noicon', 'بدون آیکن'], ['noprice', 'بدون قیمت تأییدشده'], ['inactive', 'غیرفعال']];
+  var FILTERS = [['all', 'همه'], ['noicon', 'بدون آیکن'], ['noprice', 'بدون قیمت تأییدشده'], ['few', 'قیمت کم (زیر حداقل)'], ['inactive', 'غیرفعال']];
   function draw() {
     clear(chips);
     FILTERS.forEach(function (f) { chips.appendChild(h('button', { class: 'chip', 'aria-pressed': String(CAT.filter === f[0]), text: f[1], onclick: function () { CAT.filter = f[0]; draw(); } })); });
@@ -54,6 +60,7 @@ VIEWS.catalog = function (root) {
       if (q && (p.nameFa + ' ' + p.slug).indexOf(q) < 0) return false;
       if (CAT.filter === 'noicon') return !p.iconKey;
       if (CAT.filter === 'noprice') return !productHasApproved(p);
+      if (CAT.filter === 'few') return p.needsMorePrices === true;
       if (CAT.filter === 'inactive') return p.isActive === false;
       return true;
     });
@@ -66,8 +73,9 @@ VIEWS.catalog = function (root) {
         h('div', { style: 'min-width:0;flex:1' }, [
           h('div', { class: 't', text: p.nameFa }),
           h('div', { class: 'm', text: (CAT_FA[p.category] || p.category || '') + (p.unitFa ? ' · ' + p.unitFa : '') }),
+          h('div', { class: 'm', text: rangeText(p) }),
           h('div', { style: 'margin-top:4px;display:flex;gap:4px;flex-wrap:wrap' }, [
-            badge(fa(approved) + ' تأییدشده', approved ? 'b-ok' : 'b-warn'), pending ? badge(fa(pending) + ' در انتظار', 'b-info') : null, p.isActive === false ? badge('غیرفعال', 'b-bad') : null
+            badge(fa(approved) + ' تأییدشده', approved ? 'b-ok' : 'b-warn'), p.needsMorePrices ? badge('قیمت بیشتر لازم است', 'b-warn') : null, pending ? badge(fa(pending) + ' در انتظار', 'b-info') : null, p.isActive === false ? badge('غیرفعال', 'b-bad') : null
           ])
         ])
       ]));
@@ -132,7 +140,7 @@ function editProduct(p) {
     h('div', { class: 'form-grid' }, [field('نام فارسی', f.nameFa), field('واحد', f.unitFa), field('برند', f.brand), field('دسته', f.category), field('وضعیت تولید', f.status), h('label', { class: 'f' }, ['فعال', f.isActive])]),
     field('داستان کوتاه محصول', f.storyFa),
     h('div', {}, [h('div', { text: 'آیکن', style: 'font-weight:700;margin-bottom:6px' }), tile, picker]),
-    h('div', {}, [h('div', { text: 'قیمت‌ها', style: 'font-weight:700;margin-bottom:6px' }), prices]),
+    h('div', {}, [h('div', { text: 'قیمت‌ها', style: 'font-weight:700;margin-bottom:6px' }), h('div', { class: 'm', style: 'color:var(--muted);font-size:13px;margin-bottom:8px', text: rangeText(p) + (p.needsMorePrices ? ' — برای نمایش بازه حداقل چند قیمت در تاریخ‌های مختلف لازم است' : '') }), prices]),
     h('div', {}, [h('div', { text: 'افزودن قیمت دستی', style: 'font-weight:700;margin-bottom:6px' }), h('div', { class: 'form-grid' }, [field('سال شمسی', yr), field('قیمت (تومان)', price), field('نوع منبع', srcT), field('لینک منبع', srcU), field('توضیح منبع', note)]), h('div', { style: 'margin-top:8px' }, [addBtn])])
   ]);
   modal(p.nameFa, body, [{ label: 'بستن' }, { label: 'ذخیره', cls: 'primary', keepOpen: true, run: function (close) {
