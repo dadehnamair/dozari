@@ -28,6 +28,20 @@ All price comparisons use `priceAt(product, year)` (nominal rials). Bands are in
 | `category_price_rank` | `year, category, rank` | "the cheapest snacks of 1370" | 1–2 |
 | `curated` | `note` | hand-made group; validator skips rule check, relies on human approval | any |
 
+Precise semantics (implemented in `packages/shared/src/puzzle/rules/evaluate.ts`; every evaluator
+returns `yes | no | unknown`, `unknown` = the data to decide is missing):
+
+- `same_price_at_year`: `|price - target| * 100 <= target * tolerancePct`, integers only.
+- `first_crossed`: judged on recorded points. The first year in the product's data with a price
+  above `threshold` must lie in `[fromYear, toYear]` and an earlier point must exist (crossing at
+  the very first data point is `unknown`). Never above the threshold => `no`.
+- `multiplier_between`: `minX`/`maxX` are positive integers; `priceB` in `[minX*priceA, maxX*priceA]`.
+- `cheaper_than_ref`: strictly cheaper; the reference product itself is never a member.
+- `category_price_rank`: `rank` = "among the N cheapest" of that category in `year` (1 = cheapest),
+  ranked against catalog peers that have a price that year; ties share the better rank.
+- `curated`: never machine-judged (always `unknown`).
+- Rule money params are integer rials (JSON numbers, zod `int`), never floats.
+
 Add new kinds only together with: evaluator in `packages/shared/src/puzzle/rules/`, unit tests,
 and a row in this table.
 
@@ -47,6 +61,12 @@ A puzzle is valid iff ALL hold:
    near misses are too easy → reject in generator, warn for curated.
 6. **Diversity (soft):** ≤ 6 items from any single `category`; ≥ 3 categories total.
 7. **Difficulty ordering (soft):** estimated difficulty of levels is non-decreasing.
+
+Uniqueness is conservative: if an outside item's data cannot prove it fails a group's rule
+(`unknown`), that is a hard error (`uniqueness.unverifiable`), because "exactly one solution" would
+be unproven. `curated` groups skip checks 2–3 and are not used as the rule in check 4 (but their
+items must still fail every non-curated group's rule). Near misses use a ~30% relaxed rule
+(`relaxRule`); difficulty is a rough per-rule heuristic (`estimateDifficulty`) with a 0.1 tolerance.
 
 Hard failures (1–4) block saving. Soft failures (5–7) are warnings with a score penalty.
 
