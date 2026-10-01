@@ -35,7 +35,7 @@ describe('SoloService redaction', () => {
     expect(json).not.toContain('عنوان');
     expect(json).not.toContain('توضیح');
     expect(view).not.toHaveProperty('groups');
-    expect(Object.keys(view.cards[0]!).sort()).toEqual(['id', 'nameFa', 'unitFa']);
+    expect(Object.keys(view.cards[0]!).sort()).toEqual(['iconKey', 'id', 'nameFa', 'unitFa']);
   });
 
   it('reveals a group title only once it is solved', async () => {

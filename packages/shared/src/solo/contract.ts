@@ -11,6 +11,8 @@ export const soloCardSchema = z.object({
   id: z.string(),
   nameFa: z.string(),
   unitFa: z.string().nullable(),
+  /** Icon of the hand-drawn pack, or null when the product has none yet. */
+  iconKey: z.string().nullable().default(null),
 });
 
 export const soloSolvedGroupSchema = z.object({
@@ -78,6 +80,7 @@ export const soloPriceRoundSchema = z.object({
   productId: z.string(),
   nameFa: z.string(),
   unitFa: z.string().nullable(),
+  iconKey: z.string().nullable().default(null),
   /** Solar Hijri year the price is asked for. */
   year: z.number().int(),
 });

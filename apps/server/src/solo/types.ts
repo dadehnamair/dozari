@@ -12,7 +12,7 @@ export interface ServedPuzzle {
     ruleYear?: number;
   }[];
   /** Everything a card shows. No prices during play (docs/logic/puzzle-generation.md §Board). */
-  items: Readonly<Record<string, { nameFa: string; unitFa: string | null }>>;
+  items: Readonly<Record<string, { nameFa: string; unitFa: string | null; iconKey?: string | null }>>;
 }
 
 /** I/O boundary: where playable puzzles come from. */

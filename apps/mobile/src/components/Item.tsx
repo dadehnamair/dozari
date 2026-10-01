@@ -3,7 +3,7 @@ import { Platform, View } from 'react-native';
 import type { DimensionValue } from 'react-native';
 import Svg, { Defs, Ellipse, FeDisplacementMap, FeTurbulence, Filter, G, Path, Text as SvgText } from 'react-native-svg';
 import { fonts } from '../theme/colors';
-import { ITEMS } from '../theme/item-data';
+import { ITEMS } from '@dozari/shared';
 
 const INK = '#3A2418';
 

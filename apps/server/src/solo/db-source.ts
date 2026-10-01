@@ -40,7 +40,7 @@ export function createDbPuzzleSource(db: Db): PuzzleSource {
       if (groups.length !== GROUP_COUNT || items.length !== GROUP_COUNT * GROUP_SIZE) return null;
 
       const productRows = await db
-        .select({ id: products.id, nameFa: products.nameFa, unitFa: products.unitFa })
+        .select({ id: products.id, nameFa: products.nameFa, unitFa: products.unitFa, iconKey: products.iconKey })
         .from(products)
         .where(inArray(products.id, productIds));
 
@@ -53,7 +53,7 @@ export function createDbPuzzleSource(db: Db): PuzzleSource {
           explanationFa: g.explanationFa ?? '',
           ruleYear: g.ruleYear ?? undefined,
         })),
-        items: Object.fromEntries(productRows.map((p) => [p.id, { nameFa: p.nameFa, unitFa: p.unitFa }])),
+        items: Object.fromEntries(productRows.map((p) => [p.id, { nameFa: p.nameFa, unitFa: p.unitFa, iconKey: p.iconKey }])),
       };
       return served.groups.every((g) => g.productIds.length === GROUP_SIZE) ? served : null;
     },

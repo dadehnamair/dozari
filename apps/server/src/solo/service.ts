@@ -146,6 +146,7 @@ export class SoloService {
         productId: r.productId,
         nameFa: s.puzzle.items[r.productId]?.nameFa ?? r.productId,
         unitFa: s.puzzle.items[r.productId]?.unitFa ?? null,
+        iconKey: s.puzzle.items[r.productId]?.iconKey ?? null,
         year: r.year,
       })),
       results: s.priceResults,
@@ -175,7 +176,7 @@ export class SoloService {
       puzzleId: s.puzzle.id,
       cards: s.state.remaining.map((id) => {
         const item = s.puzzle.items[id];
-        return { id, nameFa: item?.nameFa ?? id, unitFa: item?.unitFa ?? null };
+        return { id, nameFa: item?.nameFa ?? id, unitFa: item?.unitFa ?? null, iconKey: item?.iconKey ?? null };
       }),
       solved: s.state.solved.map((g) => {
         const full = groupByLevel.get(g.level);
