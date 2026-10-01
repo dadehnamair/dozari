@@ -4,8 +4,13 @@ import type { SoloView } from '@dozari/shared';
 import { Board } from '../components/Board';
 import { CandyButton } from '../components/CandyButton';
 import { ChartPanel } from '../components/ChartPanel';
+import { Banner } from '../components/Banner';
+import { Confetti } from '../components/Confetti';
+import { Mascot } from '../components/Mascot';
 import { MistakeDots } from '../components/MistakeDots';
+import { Rain } from '../components/Rain';
 import { PriceRoundPanel } from '../components/PriceRoundPanel';
+import { BANNERS } from '../kit/data';
 import { fa } from '../i18n/fa';
 import { colors } from '../theme/colors';
 import { BASE_URL, guessSolo, shuffleSolo, startSolo } from './api';
@@ -109,6 +114,7 @@ export function SoloScreen({ onBack }: { onBack: () => void }) {
   };
 
   return (
+    <View style={styles.root}>
     <ScrollView contentContainerStyle={styles.screen}>
       <View style={styles.header}>
         <Text style={styles.title}>{fa.solo.title}</Text>
@@ -127,6 +133,8 @@ export function SoloScreen({ onBack }: { onBack: () => void }) {
         </View>
       ) : (
         <View style={styles.end}>
+          {view.status === 'won' ? <Banner banner={BANNERS[0]!} /> : <Banner banner={BANNERS[1]!} />}
+          <View style={styles.endMascot}><Mascot pose={view.status === 'won' ? 'win' : 'sad'} skin={0} /></View>
           <Text style={styles.msg}>{view.status === 'won' ? fa.solo.won : fa.solo.lost}</Text>
           {priceDone ? (
             <>
@@ -142,10 +150,13 @@ export function SoloScreen({ onBack }: { onBack: () => void }) {
         </View>
       )}
     </ScrollView>
+    {!playing ? (view.status === 'won' ? <Confetti distance={500} /> : <Rain distance={800} />) : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24 },
   screen: { padding: 16, gap: 12, alignItems: 'center' },
   header: { width: '100%', maxWidth: 520, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -154,6 +165,7 @@ const styles = StyleSheet.create({
   feedbackSlot: { height: 28, justifyContent: 'center' },
   feedback: { fontFamily: 'Vazirmatn_700Bold', fontSize: 18, color: colors.candy.yellow },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginTop: 8 },
+  endMascot: { width: 140, height: 154 },
   end: { alignItems: 'center', gap: 8, marginTop: 8 },
   detail: { fontFamily: 'Vazirmatn_400Regular', fontSize: 12, color: colors.cream, opacity: 0.7, textAlign: 'center', writingDirection: 'ltr' },
   msg: { fontFamily: 'Vazirmatn_700Bold', fontSize: 18, color: colors.cream, textAlign: 'center' },

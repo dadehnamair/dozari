@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text } from 'react-native';
-import { colors } from '../theme/colors';
+import { colors, fonts, shelfOf } from '../theme/colors';
 
 interface Props {
   label: string;
@@ -8,7 +8,7 @@ interface Props {
   disabled?: boolean;
 }
 
-/** Chunky "shelf" button (docs/brand-visual.md). Placeholder styling until the designed 9-slice art lands. */
+/** Chunky "shelf" button (docs/brand-visual.md): candy face over a darker bottom edge, as in the design kit. */
 export function CandyButton({ label, onPress, color = colors.candy.pink, disabled = false }: Props) {
   return (
     <Pressable
@@ -18,7 +18,7 @@ export function CandyButton({ label, onPress, color = colors.candy.pink, disable
       onPress={onPress}
       style={({ pressed }) => [
         styles.base,
-        { backgroundColor: color, borderBottomWidth: pressed ? 2 : 6, marginTop: pressed ? 4 : 0, opacity: disabled ? 0.45 : 1 },
+        { backgroundColor: color, borderBottomColor: shelfOf(color), borderBottomWidth: pressed ? 2 : 6, marginTop: pressed ? 4 : 0, opacity: disabled ? 0.45 : 1 },
       ]}
     >
       <Text style={styles.label}>{label}</Text>
@@ -32,8 +32,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 16,
-    borderBottomColor: 'rgba(0,0,0,0.28)',
+    borderTopWidth: 2,
+    borderTopColor: 'rgba(255,255,255,0.45)',
     alignItems: 'center',
   },
-  label: { fontFamily: 'Vazirmatn_700Bold', fontSize: 16, color: colors.ink },
+  label: { fontFamily: fonts.display, fontSize: 20, color: colors.ink },
 });

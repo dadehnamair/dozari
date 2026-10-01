@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { GROUP_SIZE } from '@dozari/shared';
 import type { SoloCard, SoloSolvedGroup } from '@dozari/shared';
-import { colors } from '../theme/colors';
+import { colors, groupShelf, tile } from '../theme/colors';
 import { fa } from '../i18n/fa';
 import { cellWidth } from './boardLayout';
 
@@ -24,7 +24,7 @@ export function Board({ solved, cards, names, selected, onToggle, disabled }: Bo
   return (
     <View style={styles.board} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
       {solved.map((g) => (
-        <View key={g.level} style={[styles.row, { backgroundColor: colors.group[g.level] }]} accessibilityLabel={g.titleFa}>
+        <View key={g.level} style={[styles.row, { backgroundColor: colors.group[g.level], borderBottomColor: groupShelf[g.level] }]} accessibilityLabel={g.titleFa}>
           <Text style={styles.rowTitle}>{g.titleFa}</Text>
           <Text style={styles.rowItems}>{g.productIds.map((id) => names[id] ?? id).join('، ')}</Text>
           <Text style={styles.rowWhy}>{g.revealed ? `${fa.solo.revealed} · ` : ''}{g.explanationFa}</Text>
@@ -54,7 +54,7 @@ export function Board({ solved, cards, names, selected, onToggle, disabled }: Bo
 
 const styles = StyleSheet.create({
   board: { gap: GAP, width: '100%', maxWidth: 520, alignSelf: 'center' },
-  row: { borderRadius: 14, paddingVertical: 10, paddingHorizontal: 12, alignItems: 'center', gap: 2 },
+  row: { borderRadius: 14, borderBottomWidth: 4, paddingVertical: 10, paddingHorizontal: 12, alignItems: 'center', gap: 2 },
   rowTitle: { fontFamily: 'Vazirmatn_700Bold', fontSize: 16, color: colors.ink },
   rowItems: { fontFamily: 'Vazirmatn_400Regular', fontSize: 14, color: colors.ink, textAlign: 'center' },
   rowWhy: { fontFamily: 'Vazirmatn_400Regular', fontSize: 12, color: colors.ink, opacity: 0.75, textAlign: 'center' },
@@ -62,14 +62,14 @@ const styles = StyleSheet.create({
   cell: {
     borderRadius: 14,
     borderBottomWidth: 5,
-    borderBottomColor: 'rgba(0,0,0,0.25)',
-    backgroundColor: colors.cream,
+    borderBottomColor: tile.idle.shelf,
+    backgroundColor: tile.idle.face,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 6,
   },
-  cellOn: { backgroundColor: colors.candy.grape, borderBottomColor: 'rgba(0,0,0,0.4)' },
-  name: { fontFamily: 'Vazirmatn_700Bold', fontSize: 14, color: colors.ink, textAlign: 'center' },
+  cellOn: { backgroundColor: tile.selected.face, borderBottomColor: tile.selected.shelf, transform: [{ translateY: 2 }, { scale: 0.96 }] },
+  name: { fontFamily: 'Vazirmatn_700Bold', fontSize: 14, color: tile.idle.text, textAlign: 'center' },
   unit: { fontFamily: 'Vazirmatn_400Regular', fontSize: 11, color: colors.ink, opacity: 0.7, textAlign: 'center' },
-  nameOn: { color: colors.cream },
+  nameOn: { color: tile.selected.text },
 });

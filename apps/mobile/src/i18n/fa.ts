@@ -9,6 +9,38 @@ export const fa = {
     loading: 'در حال بارگذاری…',
     soloButton: 'تمرین تکی',
   },
+  kit: {
+    splash: { tagline: 'بالاخره دوزاریت می‌افته!', loading: 'در حال بارگذاری...' },
+    decade: 'دهه',
+    tiers: ['مسی', 'برنزی', 'نقره‌ای', 'طلایی', 'الماسی'],
+    tags: {
+      chatty: 'چت‌باز', firstWin: 'اولین برد', collector: 'کلکسیونر', sharp: 'تیزبین', streak: 'زنجیره‌ای', champion: 'قهرمان',
+      dahe50: 'دهه ۵۰', dahe60: 'دهه ۶۰', dahe70: 'دهه ۷۰', dahe80: 'دهه ۸۰', dahe90: 'دهه ۹۰', dahe00: 'دهه ۰۰',
+    },
+    banners: { win: 'دوزاریت افتاد!', lose: 'این دفعه نشد', draw: 'مساوی!' },
+    portals: {
+      solo: 'تک‌نفره', duel: 'دوئل', team: 'تیمی', private: 'خصوصی', daily: 'روزانه', ugcSuggest: 'پیشنهاد پازل',
+      ugcVote: 'رأی بده', leaderboard: 'جدول', achievements: 'افتخارات', wallet: 'کیف سکه',
+    },
+    empty: {
+      error: { title: 'یه چیزی خراب شد!', sub: 'دوزاری‌مون گیر کرده. یه بار دیگه امتحان کن.', action: 'تلاش دوباره' },
+      searching: { title: 'داریم می‌گردیم...', sub: 'یه حریف هم‌سطح برات پیدا می‌کنیم.', action: '' },
+      noHistory: { title: 'هنوز بازی نکردی', sub: 'تاریخچه‌ات خالیه. اولین پازل رو شروع کن.', action: 'بزن بریم' },
+      noPuzzles: { title: 'پازل‌ها تموم شد', sub: 'فردا یه پازل تازه منتظرته.', action: 'یادم بنداز' },
+      noInternet: { title: 'اینترنت قطعه', sub: 'اتصالت رو چک کن و برگرد.', action: 'دوباره وصل شو' },
+    },
+    gallery: 'نمایش طراحی',
+    search: {
+      title: 'جستجوی حریف',
+      you: 'تو',
+      searching: 'در حال جستجو...',
+      cancel: 'لغو جستجو',
+      versus: 'VS',
+      unknown: '؟',
+      /** Placeholder opponents cycling through the grid while searching (design-kit sample names). */
+      players: ['سارا', 'رضا', 'مینا', 'آرش', 'نگار', 'کیان', 'شیدا', 'بهراد', 'تینا', 'امید', 'یاسی', 'پویا', 'لیلا', 'سینا', 'رها', 'مهدی'],
+    },
+  },
   solo: {
     title: 'تمرین تکی',
     subtitle: 'چهارتا چهارتا دسته‌بندی کن',
