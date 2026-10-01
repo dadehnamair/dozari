@@ -280,3 +280,59 @@ export const users = mysqlTable(
     deviceUnique: uniqueIndex('users_device_id_idx').on(table.deviceId),
   }),
 );
+
+/** Why coins moved (docs/logic/economy.md, data-model.md §Economy). */
+export const LEDGER_REASONS = [
+  'signup_bonus',
+  'daily_login',
+  'match_entry',
+  'match_payout',
+  'match_refund',
+  'invite_reward',
+  'ugc_reward',
+  'admin_adjust',
+  'purchase',
+  'bot_match_subsidy',
+  'price_guess_wager',
+  'price_guess_payout',
+] as const;
+
+/** Append-only. Coins move only through the server's ledger function; a repeated idempotency key is a no-op. */
+export const coinLedger = mysqlTable(
+  'coin_ledger',
+  {
+    id: id(),
+    userId: fk('user_id').references(() => users.id),
+    delta: int('delta').notNull(),
+    reason: mysqlEnum('reason', LEDGER_REASONS).notNull(),
+    refType: varchar('ref_type', { length: 30 }),
+    refId: varchar('ref_id', { length: 64 }),
+    idempotencyKey: varchar('idempotency_key', { length: 150 }).notNull(),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({
+    keyUnique: uniqueIndex('coin_ledger_idempotency_key_idx').on(table.idempotencyKey),
+    byUser: index('coin_ledger_user_idx').on(table.userId, table.createdAt),
+  }),
+);
+
+/** Cached balance, updated in the same transaction as the ledger row (balance = SUM(delta), never negative). */
+export const userBalances = mysqlTable('user_balances', {
+  userId: char('user_id', { length: 36 }).primaryKey().references(() => users.id),
+  balance: int('balance').notNull().default(0),
+  updatedAt: datetime('updated_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+});
+
+/** Admin-editable coins per streak day (day 1, 2, 3 …). Empty table = the defaults in shared config. */
+export const dailyRewardSteps = mysqlTable('daily_reward_steps', {
+  day: smallint('day').primaryKey(),
+  coins: int('coins').notNull(),
+});
+
+/** Per-player daily reward state: when they last claimed and which streak day that was. */
+export const userDailyRewards = mysqlTable('user_daily_rewards', {
+  userId: char('user_id', { length: 36 }).primaryKey().references(() => users.id),
+  lastClaimedAt: datetime('last_claimed_at', { mode: 'date', fsp: 3 }).notNull(),
+  streakDay: smallint('streak_day').notNull(),
+  claimsTotal: int('claims_total').notNull().default(0),
+});

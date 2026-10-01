@@ -5,6 +5,9 @@ import { resolve } from 'node:path';
 import { rialsToTomanString } from '@dozari/shared';
 import { createDb } from '@dozari/db';
 import { createDbCatalogRepository } from './catalog/db-repository.js';
+import { DailyRewardService } from './economy/daily-reward.js';
+import { createDbDailyRewardStore } from './economy/daily-reward-db.js';
+import { registerDailyRewardRoutes } from './economy/routes.js';
 import { AuthService } from './auth/service.js';
 import { createDbUserRepository } from './auth/db-repository.js';
 import { registerAuthRoutes } from './auth/routes.js';
@@ -25,6 +28,8 @@ export interface ServerDeps {
   admin?: { repo: AdminRepository; token: string };
   /** Guest accounts and sessions (`/auth/guest`, `/me`). */
   auth?: AuthService;
+  /** Daily reward (`/daily-reward`, and the admin editor); needs `auth` for the player routes. */
+  dailyReward?: DailyRewardService;
   /** Solo practice sessions (`/solo/*`). */
   solo?: SoloService;
   /** Allowed browser origins (e.g. Expo web dev). `*` allows any. Off when unset: native apps don't need CORS. */
@@ -46,9 +51,10 @@ export function buildServer(deps: ServerDeps = {}) {
     void app.register(fastifyCors, { origin: deps.corsOrigin === '*' ? true : deps.corsOrigin.split(',').map((o) => o.trim()) });
   }
   if (deps.auth) registerAuthRoutes(app, deps.auth);
+  if (deps.auth && deps.dailyReward) registerDailyRewardRoutes(app, deps.auth, deps.dailyReward);
   if (deps.catalog) registerCatalogRoutes(app, deps.catalog);
   if (deps.solo) registerSoloRoutes(app, deps.solo);
-  if (deps.admin) registerAdminRoutes(app, deps.admin.repo, deps.admin.token);
+  if (deps.admin) registerAdminRoutes(app, deps.admin.repo, deps.admin.token, { dailyReward: deps.dailyReward });
   if (deps.localImagesDir) {
     void app.register(fastifyStatic, { root: resolve(deps.localImagesDir), prefix: '/images/' });
   }
@@ -64,6 +70,7 @@ if (isMainModule(import.meta.url)) {
   const auth = db && jwtSecret ? new AuthService(createDbUserRepository(db), createTokenSigner(jwtSecret)) : undefined;
   const app = buildServer({
     auth,
+    dailyReward: db ? new DailyRewardService(createDbDailyRewardStore(db)) : undefined,
     catalog: db ? createDbCatalogRepository(db) : undefined,
     solo: db ? new SoloService(createDbPuzzleSource(db)) : undefined,
     admin: db && adminToken ? { repo: createDbAdminRepository(db), token: adminToken } : undefined,
