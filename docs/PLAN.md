@@ -190,3 +190,10 @@ human opponent is found.
 - Monetization (once decided): Bazaar/Myket IAP for coins, rewarded ads
 - Redis + horizontal scaling; seasonal leaderboards; lightweight rating for matchmaking
 - Daily shared puzzle as an additional mode
+
+
+## Ideas queue (owner, 2026-10-01)
+
+- [ ] 🛡 Profanity filter on all free text (D69): admin-editable word list, normalisation, server-side
+- [ ] 🔎 Price lookup screen «استعلام قیمت» (D70): product + year -> approved price with source, chart, «request this item»
+- [ ] 🔔 Admin: word-filter section, bot sources/candidates, settings registry (done in code, UI in progress)
