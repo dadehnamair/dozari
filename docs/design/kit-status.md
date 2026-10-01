@@ -27,4 +27,8 @@ Dev-only gallery of everything above: the «نمایش طراحی» button on th
 
 The kit page loads Google Fonts at runtime; the app must not (CLAUDE.md rule 8), so fonts are bundled from npm packages.
 
-- Month looks (D66): 12 Solar Hijri costumes on the mascot and avatars (`MonthAccessory`), automatic from the date; shown on Home and in the kit gallery. Drawn by us, not from the design file: replace if the designer supplies the originals.
+- New design generation («Dozari - 02 … 11», `Character`, `Scene`; hand-drawn market style, brown ink `#3A2418` on cream `#FBF1DE`):
+  - Characters (7, 12 poses, hero's 12 month looks, face crop): done, `components/Character.tsx` + `theme/character*.ts`; used on Home, splash, solo result. The pencil-wobble filter is on for the web; native filter support is unverified, so it is off there (`wobble` prop).
+  - Painted backgrounds (bazaar, alley, hojre, caravan, win, dusk): done, `components/Scene.tsx` (+ `SceneBackground`); Home uses the bazaar, the splash the alley. `bg-search` stays the existing diamond; `bg-paper-tile` and the layered parallax export are not built.
+  - Brand (03): done. `brand/BrandArt.tsx` draws logo-stacked, logo-wordmark (light bg), app icon, Android adaptive fg/bg/mono, notification and favicon; the dev sheet «برند و آیکن اپ» shows them at export size and `pnpm --filter @dozari/mobile brand:export` (web dev server running, `CHROME_PATH` set) writes the PNGs to `apps/mobile/assets/`, wired in `app.json`. The icon shows the default (male, no-month) hero; a gender/month-specific icon is the D68 follow-up. Native splash image and the notification plugin are not configured.
+  - Still the old candy kit: avatars, tier badges, tags, stamps, empty states, banners, fx, icons, buttons, backgrounds. To port from the new files: 05 hub icons, 06 UI icons, 07 UI components, 08 fx, 09 avatars/badges, 10 empty states, 11 screens (hub, profile, settings, tournament, leaderboard).
