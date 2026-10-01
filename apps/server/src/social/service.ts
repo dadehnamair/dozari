@@ -1,4 +1,5 @@
 import type { FriendRelation, Friends, Gender, MyProfile, PlayerProfile } from '@dozari/shared';
+import type { PlayerService } from '../player/service.js';
 import type { SocialStore } from './store.js';
 
 export type RequestResult = 'ok' | 'self' | 'unknown_player' | 'already' | 'accepted';
@@ -10,6 +11,8 @@ export class SocialService {
     private readonly now: () => number = Date.now,
     /** Called after a new friend request (e.g. to tell the target on Bale); must not throw into the request flow. */
     private readonly onRequest?: (targetId: string, fromNickname: string) => void,
+    /** Level, stats, city, e-mail and nickname; without it everyone is level 1 with no games. */
+    readonly player?: PlayerService,
   ) {}
 
   private async relation(me: string, other: string): Promise<FriendRelation> {
@@ -19,11 +22,13 @@ export class SocialService {
     return p.requestedBy === me ? 'sent' : 'received';
   }
 
-  /** What anybody may see of a player. The level system does not exist yet, so everyone is level 1. */
+  /** What anybody may see of a player. */
   async profile(me: string, id: string): Promise<PlayerProfile | null> {
     const row = await this.store.publicRow(id);
     if (!row) return null;
-    return { id, nickname: row.nickname, avatarKey: row.avatarKey, level: 1, coins: row.coins, memberSince: row.createdAt, relation: me === id ? 'none' : await this.relation(me, id), isMe: me === id };
+    const lv = (await this.player?.levelOf(id)) ?? { level: { level: 1 }, stats: { games: 0, wins: 0, losses: 0, draws: 0 } };
+    const city = (await this.player?.cityOf(id)) ?? null;
+    return { id, nickname: row.nickname, avatarKey: row.avatarKey, level: lv.level.level, coins: row.coins, stats: lv.stats, cityName: city?.nameFa ?? null, memberSince: row.createdAt, relation: me === id ? 'none' : await this.relation(me, id), isMe: me === id };
   }
 
   async request(me: string, target: string): Promise<RequestResult> {
@@ -63,7 +68,16 @@ export class SocialService {
 
   async mine(me: string): Promise<MyProfile | null> {
     const row = await this.store.publicRow(me);
-    return row ? { id: me, nickname: row.nickname, avatarKey: row.avatarKey, gender: await this.store.getGender(me) } : null;
+    if (!row) return null;
+    const rec = (await this.player?.mine(me)) ?? {
+      level: { level: 1, xp: 0, xpInLevel: 0, xpForNext: 50 },
+      stats: { games: 0, wins: 0, losses: 0, draws: 0 },
+      city: null,
+      email: null,
+      nicknameRules: { minLen: 2, maxLen: 20, allowDigits: false, allowLatin: false, allowPersian: true },
+      nicknameLockedUntilGames: null,
+    };
+    return { id: me, nickname: row.nickname, avatarKey: row.avatarKey, gender: await this.store.getGender(me), ...rec };
   }
 
   setGender(me: string, gender: Gender | null): Promise<void> {

@@ -13,6 +13,8 @@ import { createDbUserRepository } from './auth/db-repository.js';
 import { attachGateway } from './realtime/gateway.js';
 import type { Gateway } from './realtime/gateway.js';
 import type { MatchDeps } from './realtime/match-service.js';
+import { PlayerService, rulesFromSettings } from './player/service.js';
+import { createDbPlayerStore } from './player/store.js';
 import { createDbProfileLookup } from './realtime/profile.js';
 import { registerAuthRoutes } from './auth/routes.js';
 import { createTokenSigner } from './auth/tokens.js';
@@ -137,7 +139,7 @@ export function buildServer(deps: ServerDeps = {}) {
     registerCatalogRoutes(app, deps.catalog);
     registerLookupRoutes(app, deps.catalog);
   }
-  if (deps.solo) registerSoloRoutes(app, deps.solo);
+  if (deps.solo) registerSoloRoutes(app, deps.solo, deps.auth);
   let gateway: Gateway | undefined;
   if (deps.auth && deps.realtime) {
     const auth = deps.auth;
@@ -185,10 +187,18 @@ if (isMainModule(import.meta.url)) {
   const baleClient = baleToken ? createBaleClient(baleToken, { base: process.env.BALE_API_BASE }) : null;
   const baleStore: NotifyStore | undefined = db ? createDbNotifyStore(db) : undefined;
   const notify = baleStore ? new NotifyService(baleStore, baleClient) : undefined;
+  const words = db ? new TextFilterService(createDbWordStore(db)) : undefined;
+  const playerStore = db ? createDbPlayerStore(db) : undefined;
+  const player = playerStore && settings ? new PlayerService(playerStore, () => rulesFromSettings(settings), words) : undefined;
   const social = db
-    ? new SocialService(createDbSocialStore(db), Date.now, (targetId, nickname) => {
-        void notify?.notify(targetId, 'friend_request', BALE_TEXT.friendRequest(nickname)).catch(() => undefined);
-      })
+    ? new SocialService(
+        createDbSocialStore(db),
+        Date.now,
+        (targetId, nickname) => {
+          void notify?.notify(targetId, 'friend_request', BALE_TEXT.friendRequest(nickname)).catch(() => undefined);
+        },
+        player,
+      )
     : undefined;
   const messages = db ? new MessageCenter(createDbMessageStore(db), notify ?? null) : undefined;
   const botRepo = db ? createDbBotRepository(db) : undefined;
@@ -197,14 +207,17 @@ if (isMainModule(import.meta.url)) {
     auth,
     settings,
     adminModules: db
-      ? { products: createDbProductAdmin(db), stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words: new TextFilterService(createDbWordStore(db)), messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      ? { products: createDbProductAdmin(db), stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
     match: db
       ? {
           puzzles: createDbPuzzleSource(db),
-          profile: createDbProfileLookup(db),
+          profile: createDbProfileLookup(db, player ? async (id) => (await player.levelOf(id)).level.level : undefined),
           onEnded: ({ players, result }) => {
+            if (result.reason !== 'abandon') {
+              players.forEach((id, side) => void player?.recordGame(id, { mode: 'duel', outcome: result.winner === null ? 'draw' : result.winner === side ? 'win' : 'loss' }));
+            }
             if (!notify || !settings) return;
             void (async () => {
               if ((await settings.num('notify.match_result')) !== 1) return;
@@ -222,7 +235,7 @@ if (isMainModule(import.meta.url)) {
     social,
     dailyReward: db && settings ? new DailyRewardService(createDbDailyRewardStore(db), Date.now, () => dailyRules(settings)) : undefined,
     catalog: db ? createDbCatalogRepository(db) : undefined,
-    solo: db && settings ? new SoloService(createDbPuzzleSource(db), { rules: () => soloRules(settings) }) : undefined,
+    solo: db && settings ? new SoloService(createDbPuzzleSource(db), { rules: () => soloRules(settings), onFinished: (id, outcome) => void player?.recordGame(id, { mode: 'solo', outcome }) }) : undefined,
     admin: db && jwtSecret ? { repo: createDbAdminRepository(db), token: adminToken, accounts: new AdminAccounts(createDbAdminStore(db), jwtSecret, adminToken) } : undefined,
     corsOrigin: process.env.CORS_ORIGIN,
     trustProxy: process.env.TRUST_PROXY === '1',

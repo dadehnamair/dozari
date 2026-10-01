@@ -14,6 +14,9 @@ interface Session {
   priceResults: SoloPriceResult[];
   /** Admin-tunable rules, read once when the game starts so a running game does not change under the player. */
   rules: SoloRules;
+  /** Signed-in player, when the game was started with a token; their stats are updated once, when the game ends. */
+  userId?: string;
+  recorded?: boolean;
 }
 
 export interface SoloRules {
@@ -37,6 +40,8 @@ export interface SoloServiceOptions {
   newSeed?: () => number;
   /** Where the tunables come from (the admin settings in production); defaults to the shared constants. */
   rules?: () => Promise<SoloRules>;
+  /** Called once when a signed-in player's game ends. */
+  onFinished?: (userId: string, outcome: 'win' | 'loss') => void;
 }
 
 const DEFAULT_TTL_MS = 2 * 60 * 60 * 1000;
@@ -48,6 +53,7 @@ export class SoloService {
   private readonly now: () => number;
   private readonly newSeed: () => number;
   private readonly loadRules: () => Promise<SoloRules>;
+  private readonly onFinished?: (userId: string, outcome: 'win' | 'loss') => void;
 
   constructor(
     private readonly source: PuzzleSource,
@@ -57,17 +63,18 @@ export class SoloService {
     this.now = opts.now ?? Date.now;
     this.newSeed = opts.newSeed ?? (() => randomInt(0, 2 ** 31));
     this.loadRules = opts.rules ?? (async () => DEFAULT_RULES);
+    this.onFinished = opts.onFinished;
   }
 
   /** Starts a session, or null when there is no puzzle to play. */
-  async start(): Promise<SoloView | null> {
+  async start(userId?: string): Promise<SoloView | null> {
     this.sweep();
     const puzzle = await this.source.pickRandom();
     if (!puzzle) return null;
     const rng = mulberry32(this.newSeed());
     const state = startSolo(puzzle, rng);
     const sessionId = uuidv7();
-    const session: Session = { puzzle, state, rng, touchedAt: this.now(), priceResults: [], rules: await this.loadRules() };
+    const session: Session = { puzzle, state, rng, touchedAt: this.now(), priceResults: [], rules: await this.loadRules(), userId };
     this.sessions.set(sessionId, session);
     return this.toView(sessionId, session);
   }
@@ -82,6 +89,14 @@ export class SoloService {
     if (!s) return null;
     const r = submitGuess(s.state, s.puzzle, productIds, s.rules.maxMistakes);
     s.state = r.state;
+    if (s.state.status !== 'playing' && s.userId && !s.recorded) {
+      s.recorded = true;
+      try {
+        this.onFinished?.(s.userId, s.state.status === 'won' ? 'win' : 'loss');
+      } catch {
+        /* stats must not break the game */
+      }
+    }
     return { outcome: r.outcome, solvedLevel: r.solvedLevel, view: this.toView(sessionId, s) };
   }
 

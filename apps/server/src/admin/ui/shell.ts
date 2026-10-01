@@ -6,15 +6,15 @@ var ICON_D = {
   dashboard: 'M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10', catalog: 'M4 6h16v4H4zM4 14h16v4H4z', prices: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v10M15 9.5H10.5a1.5 1.5 0 0 0 0 3h3a1.5 1.5 0 0 1 0 3H9',
   inbox: 'M3 5h18v14H3zM3 13h5l1 3h6l1-3h5', sources: 'M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1', daily: 'M3 9h18v4H3zM5 13h14v8H5zM12 9v12',
   settings: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1', users: 'M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5M16 4.5a3.5 3.5 0 0 1 0 6.5M18 14.5c2.5.5 4 2.5 4 5.5',
-  socket: 'M4 12h4l3-7 4 14 3-7h2', admins: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM9 12l2 2 4-4', audit: 'M5 4h14v16H5zM9 9h6M9 13h6M9 17h3', words: 'M12 3l9 16H3zM12 10v4M12 17v.5', bale: 'M21 4L3 11l6 2 2 6 3-4 5 3z', messages: 'M3 5h18v14H3zM3 6l9 7 9-7'
+  socket: 'M4 12h4l3-7 4 14 3-7h2', admins: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM9 12l2 2 4-4', audit: 'M5 4h14v16H5zM9 9h6M9 13h6M9 17h3', words: 'M12 3l9 16H3zM12 10v4M12 17v.5', cities: 'M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6', bale: 'M21 4L3 11l6 2 2 6 3-4 5 3z', messages: 'M3 5h18v14H3zM3 6l9 7 9-7'
 };
 var NAV = [
   ['main', 'اصلی'], ['dashboard', 'داشبورد'],
   ['main', 'محتوا'], ['catalog', 'کاتالوگ محصولات'], ['prices', 'بازبینی قیمت‌ها', 'prices'], ['inbox', 'صندوق ربات', 'inbox'], ['sources', 'منبع‌های ربات'],
-  ['main', 'اقتصاد و بازیکنان'], ['daily', 'جایزه‌ی روزانه'], ['users', 'کاربران'], ['messages', 'مرکز پیام'],
+  ['main', 'اقتصاد و بازیکنان'], ['daily', 'جایزه‌ی روزانه'], ['users', 'کاربران'], ['cities', 'شهرها'], ['messages', 'مرکز پیام'],
   ['main', 'سیستم'], ['admins', 'مدیران پنل'], ['words', 'فیلتر کلمات'], ['bale', 'ربات بله'], ['settings', 'تنظیمات'], ['socket', 'سرویس سوکت'], ['audit', 'گزارش تغییرها']
 ];
-var TITLES = { dashboard: 'داشبورد', catalog: 'کاتالوگ محصولات', prices: 'بازبینی قیمت‌ها', inbox: 'صندوق پیشنهادهای ربات', sources: 'منبع‌های ربات', daily: 'جایزه‌ی روزانه', users: 'کاربران', settings: 'تنظیمات', socket: 'سرویس سوکت', audit: 'گزارش تغییرها', admins: 'مدیران پنل', words: 'فیلتر کلمات توهین‌آمیز', bale: 'ربات بله و اعلان‌ها', messages: 'مرکز پیام' };
+var TITLES = { dashboard: 'داشبورد', catalog: 'کاتالوگ محصولات', prices: 'بازبینی قیمت‌ها', inbox: 'صندوق پیشنهادهای ربات', sources: 'منبع‌های ربات', daily: 'جایزه‌ی روزانه', users: 'کاربران', settings: 'تنظیمات', socket: 'سرویس سوکت', audit: 'گزارش تغییرها', admins: 'مدیران پنل', words: 'فیلتر کلمات توهین‌آمیز', cities: 'شهرهای بازی', bale: 'ربات بله و اعلان‌ها', messages: 'مرکز پیام' };
 function navIcon(key) { var s = svgEl('svg', { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }); s.appendChild(svgEl('path', { d: ICON_D[key] || ICON_D.dashboard })); return s; }
 function drawNav() {
   var nav = clear($('nav'));

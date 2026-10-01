@@ -1,5 +1,5 @@
-import { friendsSchema, myProfileSchema, playerProfileSchema } from '@dozari/shared';
-import type { Friends, Gender, MyProfile, PlayerProfile } from '@dozari/shared';
+import { citiesSchema, friendsSchema, myProfileSchema, playerProfileSchema } from '@dozari/shared';
+import type { City, Friends, Gender, MyProfile, PlayerProfile } from '@dozari/shared';
 import { session } from '../auth';
 import { callJson } from '../net/http';
 
@@ -13,3 +13,7 @@ export const fetchFriends = (): Promise<Friends> => authed('/friends', 'GET', (v
 export const requestFriend = (id: string): Promise<void> => authed(`/friends/${id}/request`, 'POST', () => undefined);
 export const acceptFriend = (id: string): Promise<void> => authed(`/friends/${id}/accept`, 'POST', () => undefined);
 export const removeFriend = (id: string): Promise<void> => authed(`/friends/${id}`, 'DELETE', () => undefined);
+export const fetchCities = (): Promise<City[]> => authed('/cities', 'GET', (v) => citiesSchema.parse(v).cities);
+export const saveCity = (cityId: string | null): Promise<void> => authed('/me/city', 'PUT', () => undefined, { cityId });
+export const saveEmail = (email: string | null): Promise<void> => authed('/me/email', 'PUT', () => undefined, { email });
+export const saveNickname = (nickname: string): Promise<string> => authed('/me/nickname', 'PUT', (v) => String((v as { nickname: unknown }).nickname), { nickname });

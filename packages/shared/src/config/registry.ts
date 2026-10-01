@@ -16,6 +16,7 @@ import {
 } from './game.js';
 import { DAILY_REWARD_COOLDOWN_HOURS, DAILY_REWARD_STREAK_WINDOW_HOURS } from './economy.js';
 import { CHART_GAP_BREAK_YEARS, CHART_MIN_YEAR } from './chart.js';
+import { LEVEL_MAX, NICKNAME_MAX_LEN, NICKNAME_MIN_LEN, XP_CURVE_BASE, XP_DUEL_BASE, XP_SOLO_BASE, XP_WIN_BONUS } from './progression.js';
 
 /**
  * Every tunable the admin panel can change. The defaults come from the constants in `config/*.ts` (CLAUDE.md rule 9);
@@ -77,6 +78,16 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'profile.nickname_unlock_games', group: 'profile', label: 'بازی لازم برای انتخاب رایگان اسم', kind: 'int', min: 0, max: 200, default: NICKNAME_UNLOCK_GAMES, unit: 'بازی' },
   { key: 'profile.avatar_change_min_level', group: 'profile', label: 'کمترین لول برای تغییر آواتار (خرید)', kind: 'int', min: 1, max: 100, default: AVATAR_CHANGE_MIN_LEVEL },
   { key: 'profile.nickname_change_min_level', group: 'profile', label: 'کمترین لول برای تغییر اسم (خرید)', kind: 'int', min: 1, max: 100, default: NICKNAME_CHANGE_MIN_LEVEL },
+  { key: 'xp.solo_base', group: 'profile', label: 'تجربه (XP) برای هر بازی تکی تمام‌شده', kind: 'int', min: 0, max: 1000, default: XP_SOLO_BASE },
+  { key: 'xp.duel_base', group: 'profile', label: 'تجربه (XP) برای هر دوئل تمام‌شده', kind: 'int', min: 0, max: 1000, default: XP_DUEL_BASE },
+  { key: 'xp.win_bonus', group: 'profile', label: 'تجربه‌ی اضافه برای برد', kind: 'int', min: 0, max: 1000, default: XP_WIN_BONUS },
+  { key: 'xp.curve_base', group: 'profile', label: 'ضریب منحنی لول', hint: 'رسیدن به لول n+1 یعنی ضریب × n² تجربه؛ ضریب بزرگ‌تر = لول‌گرفتن سخت‌تر', kind: 'int', min: 1, max: 5000, default: XP_CURVE_BASE },
+  { key: 'xp.level_max', group: 'profile', label: 'بالاترین لول', kind: 'int', min: 2, max: 500, default: LEVEL_MAX },
+  { key: 'nickname.min_len', group: 'profile', label: 'کمترین طول اسم', kind: 'int', min: 1, max: 30, default: NICKNAME_MIN_LEN, unit: 'حرف' },
+  { key: 'nickname.max_len', group: 'profile', label: 'بیشترین طول اسم', kind: 'int', min: 2, max: 60, default: NICKNAME_MAX_LEN, unit: 'حرف' },
+  { key: 'nickname.allow_digits', group: 'profile', label: 'عدد در اسم مجاز باشد', kind: 'bool', min: 0, max: 1, default: 0 },
+  { key: 'nickname.allow_latin', group: 'profile', label: 'حرف انگلیسی در اسم مجاز باشد', kind: 'bool', min: 0, max: 1, default: 0 },
+  { key: 'nickname.allow_persian', group: 'profile', label: 'حرف فارسی در اسم مجاز باشد', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'economy.daily_cooldown_hours', group: 'economy', label: 'فاصله‌ی دریافت جایزه‌ی روزانه', kind: 'int', min: 1, max: 72, default: DAILY_REWARD_COOLDOWN_HOURS, unit: 'ساعت' },
   { key: 'economy.daily_streak_window_hours', group: 'economy', label: 'مهلت ادامه‌ی زنجیره‌ی جایزه', hint: 'دریافت بعدی تا این مدت بعد از قبلی، زنجیره را ادامه می‌دهد؛ دیرتر از آن از روز اول شروع می‌شود', kind: 'int', min: 2, max: 168, default: DAILY_REWARD_STREAK_WINDOW_HOURS, unit: 'ساعت' },
   { key: 'chart.gap_break_years', group: 'chart', label: 'شکاف سال در نمودار قیمت', hint: 'بیشتر از این تعداد سال بدون داده، خط نمودار قطع می‌شود', kind: 'int', min: 1, max: 30, default: CHART_GAP_BREAK_YEARS, unit: 'سال' },

@@ -2,6 +2,8 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { GROUP_SIZE } from '@dozari/shared';
 import type { GroupLevel } from '@dozari/shared';
+import type { AuthService } from '../auth/service.js';
+import { currentUser } from '../auth/routes.js';
 import type { SoloService } from './service.js';
 
 const paramsSchema = z.object({ id: z.string().uuid() });
@@ -10,9 +12,11 @@ const guessSchema = z.object({ productIds: z.array(z.string().min(1).max(64)).le
 const priceGuessSchema = z.object({ level: z.number().int().min(0).max(3), guessRials: z.string().regex(/^\d{1,15}$/) });
 
 /** Solo practice (no coins): the client only ever receives `SoloView`, never the solution. */
-export function registerSoloRoutes(app: FastifyInstance, solo: SoloService) {
-  app.post('/solo/start', async (_req, reply) => {
-    const view = await solo.start();
+export function registerSoloRoutes(app: FastifyInstance, solo: SoloService, auth?: AuthService) {
+  app.post('/solo/start', async (req, reply) => {
+    // Playing needs no account; a signed-in player's finished game counts toward their level and stats.
+    const user = auth ? await currentUser(auth, req) : null;
+    const view = await solo.start(user?.id);
     if (!view) return reply.code(503).send({ error: 'no_puzzles' });
     return view;
   });
