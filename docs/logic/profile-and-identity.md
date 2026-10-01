@@ -87,6 +87,13 @@ leaderboard screen (`app-screens.md` §Leaderboard & tournaments). Prototype:
 Open: what a friendship unlocks beyond visibility (e.g. inviting a friend directly to a private
 table) — not designed yet.
 
+### Tappable names → public profile sheet (D67)
+
+Every place a player's nickname appears (match, result, leaderboard, friends, chat, search) is tappable and opens a
+bottom sheet: avatar, nickname, member since, level + tier, cups (tournament trophies), coins, medals/tags, win stats,
+and a «درخواست دوستی» button (state: none / sent / friends). The sheet reads one public-profile endpoint that never
+reveals `is_bot`. Not built yet; needs the `friendships` table.
+
 ## Province/city (D53)
 
 An **optional** profile field — province required, city optional — never a gate on play (same
