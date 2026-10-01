@@ -19,20 +19,5 @@ export interface PuzzleSource {
   pickRandom(): Promise<ServedPuzzle | null>;
 }
 
-/** What a client may see. Unsolved groups' membership and texts never appear (rule 4). */
-export interface SoloView {
-  sessionId: string;
-  puzzleId: string;
-  cards: { id: string; nameFa: string; unitFa: string | null }[];
-  solved: {
-    level: GroupLevel;
-    titleFa: string;
-    explanationFa: string;
-    productIds: string[];
-    /** Shown by the game (auto-reveal / game over) rather than found by the player. */
-    revealed: boolean;
-  }[];
-  mistakes: number;
-  maxMistakes: number;
-  status: 'playing' | 'won' | 'lost';
-}
+/** What a client may see (the shared wire contract). */
+export type { SoloView } from '@dozari/shared';

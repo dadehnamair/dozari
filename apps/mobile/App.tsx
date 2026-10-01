@@ -1,9 +1,11 @@
-import { useEffect } from 'react';
+import { useState } from 'react';
 import { ActivityIndicator, I18nManager, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts, Vazirmatn_400Regular, Vazirmatn_700Bold } from '@expo-google-fonts/vazirmatn';
-import { rialsToTomanString } from '@dozari/shared';
+import { CandyButton } from './src/components/CandyButton';
 import { fa } from './src/i18n/fa';
+import { SoloScreen } from './src/solo/SoloScreen';
+import { colors } from './src/theme/colors';
 
 // Rule (CLAUDE.md §Language): in-game UI is Persian/RTL. Expo's managed I18nManager call is a
 // no-op on web and only takes effect after a native reload, which is expected here.
@@ -15,9 +17,8 @@ if (!I18nManager.isRTL) {
 export default function App() {
   const [fontsLoaded] = useFonts({ Vazirmatn_400Regular, Vazirmatn_700Bold });
 
-  useEffect(() => {
-    // placeholder screen only — real navigation/screens land in later phases per docs/PLAN.md.
-  }, []);
+  // Minimal navigation until a real router lands with the hub screen (docs/logic/app-screens.md).
+  const [screen, setScreen] = useState<'home' | 'solo'>('home');
 
   if (!fontsLoaded) {
     return (
@@ -30,9 +31,15 @@ export default function App() {
   return (
     <View style={styles.container}>
       <StatusBar style="light" />
-      <Text style={styles.title}>{fa.home.title}</Text>
-      <Text style={styles.tagline}>{fa.home.tagline}</Text>
-      <Text style={styles.sample}>{rialsToTomanString(1_500)}</Text>
+      {screen === 'solo' ? (
+        <SoloScreen onBack={() => setScreen('home')} />
+      ) : (
+        <>
+          <Text style={styles.title}>{fa.home.title}</Text>
+          <Text style={styles.tagline}>{fa.home.tagline}</Text>
+          <CandyButton label={fa.home.soloButton} color={colors.candy.pink} onPress={() => setScreen('solo')} />
+        </>
+      )}
     </View>
   );
 }
@@ -54,10 +61,5 @@ const styles = StyleSheet.create({
     fontFamily: 'Vazirmatn_400Regular',
     fontSize: 16,
     color: '#FFF6E8',
-  },
-  sample: {
-    fontFamily: 'Vazirmatn_400Regular',
-    fontSize: 14,
-    color: '#FFC93C',
   },
 });

@@ -63,3 +63,16 @@ Points that jump >5× or drop >30% versus the previous point are flagged (usuall
 Approving a second price for the same year and month is refused. Without `ADMIN_TOKEN` the page and
 API are not served at all; the server listens on all interfaces, so use a long random token on any
 shared network.
+
+## 6. Play solo in the app
+
+There must be at least one `approved` puzzle in the database (puzzle authoring comes later), then:
+
+```bash
+pnpm --filter @dozari/server dev      # API on :3000
+pnpm --filter @dozari/mobile start    # then press `w` for web, or scan the QR with Expo Go
+```
+
+The app reads the API address from `EXPO_PUBLIC_API_URL` (default `http://localhost:3000`; on a phone use
+your computer's LAN IP). For the **web** build also set `CORS_ORIGIN=http://localhost:8081` in `.env`
+(native apps don't need CORS).

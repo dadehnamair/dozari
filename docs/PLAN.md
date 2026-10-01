@@ -74,8 +74,8 @@ browser — both need the owner's own machine (see Phase 0-A).
       imitate the hand-curated pool's style**, not before it exists
 - [ ] 🖥 Job: pre-generate a pool of N validated puzzles; admin CLI to approve/rename titles
 - [x] 🧩 Single-player reducer (select 4 → submit → correct / one-away / wrong, 4 mistakes)
-- [ ] 📱 Board UI: 4×4 grid, select/deselect, shuffle, submit, solved-row reveal with colors
-- [~] 📱 Solo practice mode (no coins) using a served puzzle — server side done (`/solo/*`, in-memory sessions, redacted view); mobile screen pending
+- [x] 📱 Board UI: 4×4 grid, select/deselect, shuffle, submit, solved-row reveal with colors (placeholder styling until the designed art in `docs/design/asset-plan.md` lands)
+- [x] 📱 Solo practice mode (no coins) using a served puzzle (`/solo/*` + `SoloScreen`; needs ≥1 `approved` puzzle in the DB)
 - [~] 🧪 Property tests: generated puzzles always pass validator; reducer invariants (reducer invariants done with fast-check; generator part waits for the generator)
 
 **Exit:** a person can play solo puzzles on the phone end-to-end.

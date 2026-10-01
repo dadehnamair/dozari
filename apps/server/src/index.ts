@@ -1,4 +1,5 @@
 import Fastify from 'fastify';
+import fastifyCors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
 import { resolve } from 'node:path';
 import { rialsToTomanString } from '@dozari/shared';
@@ -20,6 +21,8 @@ export interface ServerDeps {
   admin?: { repo: AdminRepository; token: string };
   /** Solo practice sessions (`/solo/*`). */
   solo?: SoloService;
+  /** Allowed browser origins (e.g. Expo web dev). `*` allows any. Off when unset: native apps don't need CORS. */
+  corsOrigin?: string;
   /** Docker-free dev: directory of uploaded product images, served at `/images/*`. */
   localImagesDir?: string;
 }
@@ -33,6 +36,9 @@ export function buildServer(deps: ServerDeps = {}) {
     sample: rialsToTomanString(1_500),
   }));
 
+  if (deps.corsOrigin) {
+    void app.register(fastifyCors, { origin: deps.corsOrigin === '*' ? true : deps.corsOrigin.split(',').map((o) => o.trim()) });
+  }
   if (deps.catalog) registerCatalogRoutes(app, deps.catalog);
   if (deps.solo) registerSoloRoutes(app, deps.solo);
   if (deps.admin) registerAdminRoutes(app, deps.admin.repo, deps.admin.token);
@@ -50,6 +56,7 @@ if (isMainModule(import.meta.url)) {
     catalog: db ? createDbCatalogRepository(db) : undefined,
     solo: db ? new SoloService(createDbPuzzleSource(db)) : undefined,
     admin: db && adminToken ? { repo: createDbAdminRepository(db), token: adminToken } : undefined,
+    corsOrigin: process.env.CORS_ORIGIN,
     localImagesDir: process.env.LOCAL_IMAGES_DIR,
   });
   const port = Number(process.env.PORT ?? 3000);
