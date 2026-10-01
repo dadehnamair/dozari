@@ -13,9 +13,14 @@ Source: `Dozari Visual Assets.dc.html` and `Mascot.dc.html` (Candy Arcade v3, ex
 | Mascot (10 poses, 7 skins, face crop) | done | `theme/mascot.ts`, `components/Mascot.tsx` |
 | Splash-style home (wordmark, floating waving mascot, radial backdrop) | done | `home/HomeScreen.tsx`, `Wordmark`, `GradientBackground` |
 | Solo result screen mascot (win / sad) | done | `solo/SoloScreen.tsx` |
-| Splash screen with loading bar, game-screen backdrop, the hub building scene | todo | |
-| Avatars (24), empty/error states | todo | mascot face crop is ready |
-| Effects (confetti, rain, twinkle…), banners, tier badges, era stamps | todo | |
-| Hub icons (10 portals) | todo | |
+| Splash (rotating rays, flipping coins, wordmark, mascot, loading bar) | done | `splash/SplashScreen.tsx`, shown 1.8 s after fonts load |
+| Avatars (24), tier shields (5), tag pills (12), decade stamps (6) | done | `kit/data.ts`, `Avatar`, `TierBadge`, `TagPill`, `EraStamp` |
+| Empty / error states (5), result banners (3) | done | `EmptyState`, `Banner` |
+| Hub entrances (10 portals) | done (icons) | `PortalIcon`; the hub screen itself is not built yet |
+| Effects: confetti, rain | done | `Confetti`, `Rain`; shown on the solo result screen |
+| Effects: twinkle, rings, flicker, pop, drop, shine | todo | keyframes exist in the kit |
+| Backgrounds (section B), the home building scene, the search/match screens | todo | |
+
+Dev-only gallery of everything above: the «نمایش طراحی» button on the home screen (`kit/KitGallery.tsx`).
 
 The kit page loads Google Fonts at runtime; the app must not (CLAUDE.md rule 8), so fonts are bundled from npm packages.

@@ -8,7 +8,7 @@ import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 
 /** Home: wordmark, the waving mascot (floating, as on the kit's splash) and the way into a solo game. */
-export function HomeScreen({ onSolo }: { onSolo: () => void }) {
+export function HomeScreen({ onSolo, onGallery }: { onSolo: () => void; onGallery?: () => void }) {
   const float = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     const loop = Animated.loop(
@@ -30,6 +30,7 @@ export function HomeScreen({ onSolo }: { onSolo: () => void }) {
           <Mascot pose="wave" />
         </Animated.View>
         <CandyButton label={fa.home.soloButton} color={colors.candy.yellow} onPress={onSolo} />
+        {onGallery ? <CandyButton label={fa.kit.gallery} color={colors.candy.sky} onPress={onGallery} /> : null}
       </View>
     </GradientBackground>
   );
