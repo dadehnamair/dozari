@@ -32,7 +32,7 @@ import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 
 /** Home: wordmark, the waving mascot (floating, as on the kit's splash) and the way into a solo game. */
-export function HomeScreen({ onSolo, onDaily, onLookup, onGallery, features = OPEN_CONFIG.features, settings = OPEN_CONFIG.raw }: { onSolo: () => void; onDaily?: () => void; onLookup: () => void; onGallery?: () => void; features?: ClientConfig['features']; settings?: ClientConfig['raw'] }) {
+export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onLookup, onGallery, features = OPEN_CONFIG.features, settings = OPEN_CONFIG.raw }: { onSolo: () => void; onDaily?: () => void; onDuel?: () => void; onDuelResume?: () => void; onLookup: () => void; onGallery?: () => void; features?: ClientConfig['features']; settings?: ClientConfig['raw'] }) {
   const month = useMemo(() => solarMonthOf(Date.now()), []);
   const daily = useDailyReward();
   const [dailyOpen, setDailyOpen] = useState(false);
@@ -116,6 +116,7 @@ export function HomeScreen({ onSolo, onDaily, onLookup, onGallery, features = OP
             />
           ) : null}
           <CandyButton label={fa.home.soloButton} color={colors.candy.yellow} onPress={onSolo} />
+          {features.duel && onDuel ? <CandyButton label={fa.duel.open} color={colors.candy.pink} onPress={onDuel} /> : null}
           {features.lookup ? <CandyButton label={fa.home.lookupButton} color={colors.candy.lime} onPress={onLookup} /> : null}
           {features.tournament ? <CandyButton label={fa.tournament.open} color={colors.candy.pink} onPress={() => setTournamentOpen(true)} /> : null}
           {features.tables ? <CandyButton label={fa.tables.open} color={colors.candy.lime} onPress={() => setTableOpen(true)} /> : null}
@@ -148,7 +149,7 @@ export function HomeScreen({ onSolo, onDaily, onLookup, onGallery, features = OP
       {review.open && review.url ? <ReviewSheet message={review.message} url={review.url} onReview={review.onReview} onLater={review.onLater} onNever={review.onNever} /> : null}
       {profileOpen ? <ProfileSheet onClose={() => setProfileOpen(false)} onGender={setGender} /> : null}
       {inboxOpen ? <InboxSheet inbox={inbox.inbox} failed={inbox.failed} onRead={inbox.markRead} onReadAll={inbox.markAll} onClose={() => setInboxOpen(false)} /> : null}
-      {tableOpen ? <TableSheet initialCode={tableCode} onClose={() => (setTableOpen(false), setTableCode(undefined))} onShare={() => shareTable()} /> : null}
+      {tableOpen ? <TableSheet initialCode={tableCode} onMatch={onDuelResume ? () => (setTableOpen(false), onDuelResume()) : undefined} onClose={() => (setTableOpen(false), setTableCode(undefined))} onShare={() => shareTable()} /> : null}
       {tournamentOpen ? <TournamentSheet onClose={() => setTournamentOpen(false)} /> : null}
       {chatOpen ? <ChatSheet onClose={() => setChatOpen(false)} onJoinTable={(code) => (setChatOpen(false), setTableCode(code), setTableOpen(true))} /> : null}
       {shopOpen ? <ShopSheet onClose={() => { setShopOpen(false); daily.reload(); }} /> : null}

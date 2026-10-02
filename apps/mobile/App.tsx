@@ -13,6 +13,7 @@ import { KitGallery } from './src/kit/KitGallery';
 import { LookupScreen } from './src/lookup/LookupScreen';
 import { SearchScreen } from './src/search/SearchScreen';
 import { SplashScreen } from './src/splash/SplashScreen';
+import { DuelScreen } from './src/duel/DuelScreen';
 import { SoloScreen } from './src/solo/SoloScreen';
 import { useInviteLink } from './src/social/useInviteLink';
 
@@ -32,7 +33,7 @@ export default function App() {
   const [fontsLoaded] = useFonts({ Vazirmatn_400Regular, Vazirmatn_700Bold, Lalezar_400Regular });
 
   // Minimal navigation until a real router lands with the hub screen (docs/logic/app-screens.md).
-  const [screen, setScreen] = useState<'splash' | 'home' | 'solo' | 'daily' | 'gallery' | 'search' | 'brand' | 'lookup'>(
+  const [screen, setScreen] = useState<'splash' | 'home' | 'solo' | 'daily' | 'duel' | 'duelResume' | 'gallery' | 'search' | 'brand' | 'lookup'>(
     'splash',
   );
 
@@ -65,6 +66,8 @@ export default function App() {
       {screen === 'splash' ? <SplashScreen /> : null}
       {screen === 'solo' ? <SoloScreen onBack={() => setScreen('home')} hintsEnabled={config.features.shop} /> : null}
       {screen === 'daily' ? <SoloScreen daily onBack={() => setScreen('home')} hintsEnabled={config.features.shop} /> : null}
+      {screen === 'duel' ? <DuelScreen onBack={() => setScreen('home')} /> : null}
+      {screen === 'duelResume' ? <DuelScreen resume onBack={() => setScreen('home')} /> : null}
       {screen === 'gallery' ? (
         <KitGallery
           onBack={() => setScreen('home')}
@@ -79,6 +82,8 @@ export default function App() {
         <HomeScreen
           onSolo={() => setScreen('solo')}
           onDaily={() => setScreen('daily')}
+          onDuel={() => setScreen('duel')}
+          onDuelResume={() => setScreen('duelResume')}
           onLookup={() => setScreen('lookup')}
           features={config.features}
           settings={config.raw}

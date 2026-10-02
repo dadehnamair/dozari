@@ -112,3 +112,9 @@ consecutive-timeout rule. A player who connects with a live match gets the snaps
 
 Not built yet: entry-fee escrow and payouts, the price-guess round, the ready handshake, reconnect grace and bot takeover,
 persistence of the match log, level (everyone is level 1 on the opponent card).
+
+## Live duel in the app (D94)
+
+`apps/mobile/src/duel/*`: `socket.ts` (socket.io-client with the guest token, events parsed with the shared zod schemas), `model.ts` (pure reducer, unit-tested), `DuelScreen.tsx` (queue → board → result, turn clock, own-guess flash, sounds).
+Home button «دوئل زنده» (`feature.duel`). A private table's match opens the same screen in resume mode (`match:resume` without a match id → the server re-sends the current snapshot).
+Not in the app yet: price-guess round inside a duel, taunt buttons, reconnect banner (D42), coin escrow/payout (server side not built either).
