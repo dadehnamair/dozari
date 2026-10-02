@@ -239,6 +239,27 @@ function userModal(id, done) {
       var notes = h('div');
       u.notes.forEach(function (n) { notes.appendChild(h('div', { class: 'kv' }, [h('span', { text: n.note }), h('span', { style: 'color:var(--muted);font-size:12px', text: ago(n.at) }), h('button', { class: 'btn bad sm', text: 'حذف', onclick: function () { api('/admin/user-notes/' + n.id, { method: 'DELETE' }).then(function (x) { if (!x.ok) return fail(x); draw(); }); } })])); });
       box.appendChild(h('div', {}, [h('div', { text: 'یادداشت‌های ادمین', style: 'font-weight:700;margin-bottom:6px' }), notes, h('div', { style: 'display:flex;gap:8px;margin-top:6px' }, [note, h('button', { class: 'btn', text: 'افزودن', onclick: function () { if (!note.value.trim()) return; api('/admin/users/' + id + '/notes', { method: 'POST', body: { note: note.value.trim() } }).then(function (x) { if (!x.ok) return fail(x); draw(); }); } })])]));
+      var bbox = h('div');
+      box.appendChild(h('div', {}, [h('div', { text: 'نشان‌ها، اخطارها و سکوت', style: 'font-weight:700;margin-bottom:6px' }), bbox]));
+      Promise.all([api('/admin/users/' + id + '/badges'), api('/admin/badges')]).then(function (rs) {
+        clear(bbox);
+        if (!rs[0].ok || !rs[1].ok) return bbox.appendChild(empty('این بخش روی سرور فعال نیست'));
+        var me = rs[0].body, cat = rs[1].body.badges;
+        me.earned.forEach(function (b) { bbox.appendChild(h('div', { class: 'kv' }, [h('span', { text: b.titleFa + (b.perk !== 'none' ? ' · ' + b.perk : '') }), h('button', { class: 'btn bad sm', text: 'پس‌گرفتن', onclick: function () { api('/admin/users/' + id + '/badges/' + b.id, { method: 'DELETE' }).then(function (x) { if (!x.ok) return fail(x); draw(); }); } })])); });
+        var pick = select(cat.map(function (b) { return [b.id, b.titleFa]; }), cat[0] && cat[0].id);
+        bbox.appendChild(h('div', { style: 'display:flex;gap:8px;margin:6px 0' }, [pick, h('button', { class: 'btn', text: 'دادن نشان', onclick: function () { api('/admin/users/' + id + '/badges', { method: 'POST', body: { badgeId: pick.value } }).then(function (x) { if (!x.ok) return fail(x); draw(); }); } })]));
+        me.notices.forEach(function (n) { bbox.appendChild(h('div', { class: 'kv' }, [badge(n.kind === 'warning' ? 'اخطار' : 'تشویق', n.kind === 'warning' ? 'b-bad' : 'b-ok'), h('span', { text: n.text }), h('span', { style: 'color:var(--muted);font-size:12px', text: (n.by === 'agent' ? 'آجان · ' : 'ادمین · ') + ago(n.createdAt) })])); });
+        var text = h('input', { type: 'text', placeholder: 'متن اخطار یا تشویق', maxlength: 300 });
+        bbox.appendChild(h('div', { style: 'display:flex;gap:8px;margin-top:6px' }, [text,
+          h('button', { class: 'btn bad', text: 'اخطار', onclick: function () { api('/admin/users/' + id + '/notices', { method: 'POST', body: { kind: 'warning', text: text.value } }).then(function (x) { if (!x.ok) return fail(x); draw(); }); } }),
+          h('button', { class: 'btn ok', text: 'تشویق', onclick: function () { api('/admin/users/' + id + '/notices', { method: 'POST', body: { kind: 'commendation', text: text.value } }).then(function (x) { if (!x.ok) return fail(x); draw(); }); } })]));
+        var mins = h('input', { type: 'number', value: 30, min: 1, style: 'width:90px' }), why = h('input', { type: 'text', placeholder: 'دلیل سکوت', maxlength: 200 });
+        bbox.appendChild(h('div', { style: 'display:flex;gap:8px;margin-top:6px;align-items:center;flex-wrap:wrap' }, [
+          me.muted ? badge('ساکت تا ' + new Date(me.muted.until).toLocaleString('fa-IR'), 'b-warn') : null,
+          mins, h('span', { text: 'دقیقه' }), why,
+          h('button', { class: 'btn', text: 'سکوت در چت', onclick: function () { api('/admin/users/' + id + '/mute', { method: 'POST', body: { minutes: +mins.value, reason: why.value } }).then(function (x) { if (!x.ok) return fail(x); draw(); }); } }),
+          me.muted ? h('button', { class: 'btn ok', text: 'برداشتن سکوت', onclick: function () { api('/admin/users/' + id + '/mute', { method: 'DELETE' }).then(function (x) { if (!x.ok) return fail(x); draw(); }); } }) : null]));
+      });
       box.appendChild(h('div', {}, [h('div', { text: 'آخرین تراکنش‌ها', style: 'font-weight:700;margin-bottom:6px' }), ledger]));
     });
   }
@@ -381,6 +402,42 @@ VIEWS.invites = function (root) {
     } })])
   ]));
   root.appendChild(card('همه‌ی کدها', 'سقف استفاده‌ی کد شخصی و پاداش‌ها در «تنظیمات ← اقتصاد» است. غیرفعال‌کردن یک کد جلوی دعوت تازه را می‌گیرد، حساب‌های دعوت‌شده‌ی قبلی بدون تغییر می‌مانند.', [list]));
+  draw();
+};
+VIEWS.badges = function (root) {
+  var list = h('div');
+  function num(v) { return h('input', { type: 'number', value: v, min: 0, style: 'width:90px' }); }
+  var PERKS = [['none', 'بدون امتیاز'], ['share_contact', 'مجاز به فرستادن شماره/لینک در چت'], ['moderator', 'آجان دوزاری (اخطار و سکوت)']];
+  var METRICS = [['none', 'فقط ادمین می‌دهد'], ['games', 'تعداد بازی'], ['wins', 'تعداد برد'], ['level', 'لول']];
+  function row(b) {
+    var title = h('input', { type: 'text', value: b.titleFa, maxlength: 60 }), desc = h('input', { type: 'text', value: b.descriptionFa, maxlength: 200 });
+    var perk = select(PERKS, b.perk), metric = select(METRICS, b.ruleMetric), min = num(b.ruleMin);
+    function save(patch) { api('/admin/badges/' + b.id, { method: 'PATCH', body: patch }).then(function (x) { if (!x.ok) return fail(x); toast('ذخیره شد'); draw(); }); }
+    return h('div', { class: 'card', style: 'padding:12px' }, [
+      h('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap' }, [h('b', { text: b.slug, class: 'ltr' }), badge(b.kind === 'medal' ? 'مدال' : 'نشان', 'b-ok'), b.isActive ? null : badge('غیرفعال', 'b-warn')]),
+      h('div', { class: 'toolbar', style: 'margin-top:8px' }, [field('نام', title), field('توضیح', desc)]),
+      h('div', { class: 'toolbar' }, [field('امتیاز', perk), field('شرط خودکار', metric), field('حداقل', min),
+        h('button', { class: 'btn primary', text: 'ذخیره', onclick: function () { save({ titleFa: title.value.trim(), descriptionFa: desc.value.trim(), perk: perk.value, ruleMetric: metric.value, ruleMin: +min.value }); } }),
+        h('button', { class: 'btn', text: b.isActive ? 'غیرفعال کن' : 'فعال کن', onclick: function () { save({ isActive: !b.isActive }); } })])
+    ]);
+  }
+  function draw() {
+    api('/admin/badges').then(function (r) {
+      clear(list);
+      if (r.status === 404) return list.appendChild(empty('نشان‌ها روی این سرور فعال نیست'));
+      if (!r.ok) return fail(r);
+      r.body.badges.forEach(function (b) { list.appendChild(row(b)); });
+    });
+  }
+  var slug = h('input', { type: 'text', dir: 'ltr', placeholder: 'شناسه‌ی لاتین', maxlength: 40 }), title = h('input', { type: 'text', placeholder: 'نام', maxlength: 60 }), desc = h('input', { type: 'text', placeholder: 'توضیح', maxlength: 200 });
+  var kind = select([['badge', 'نشان'], ['medal', 'مدال']], 'badge'), perk = select(PERKS, 'none'), metric = select(METRICS, 'games'), min = num(10);
+  root.appendChild(card('نشان‌ها و مدال‌ها', 'نشان می‌تواند امتیاز داشته باشد (فرستادن شماره/لینک در چت، یا نقش آجان دوزاری) و شرط خودکار (مثلاً لول ۱۰). بازیکن شرط نشان‌های قفل را می‌بیند.', [list]));
+  root.appendChild(card('نشان تازه', null, [
+    h('div', { class: 'toolbar' }, [slug, title, desc]),
+    h('div', { class: 'toolbar' }, [field('نوع', kind), field('امتیاز', perk), field('شرط خودکار', metric), field('حداقل', min), h('button', { class: 'btn primary', text: 'افزودن', onclick: function () {
+      api('/admin/badges', { method: 'POST', body: { slug: slug.value.trim(), titleFa: title.value.trim(), descriptionFa: desc.value.trim(), kind: kind.value, iconKey: kind.value === 'medal' ? 'medal' : 'star', perk: perk.value, ruleMetric: metric.value, ruleMin: +min.value, isActive: true } }).then(function (x) { if (x.status === 409) return toast('این شناسه از قبل هست', true); if (!x.ok) return fail(x); slug.value = ''; title.value = ''; desc.value = ''; draw(); });
+    } })])
+  ]));
   draw();
 };
 VIEWS.bale = function (root) {

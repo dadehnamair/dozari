@@ -281,6 +281,8 @@ export const users = mysqlTable(
     chatUnlockedAt: datetime('chat_unlocked_at', { mode: 'date', fsp: 3 }),
     /** Home city (a row of `cities`), optional; shown on the profile and used for the city room. */
     cityId: char('city_id', { length: 36 }),
+    /** The badge shown next to the name (one of the player's earned badges). */
+    equippedBadgeId: char('equipped_badge_id', { length: 36 }),
     /** Public ID others can search for (exact match). */
     handle: varchar('handle', { length: 12 }),
     /** May a player who knows my verified phone number find me? Default yes; never shows the number. */
@@ -760,3 +762,79 @@ export const phoneOtps = mysqlTable('phone_otps', {
   sentAt: datetime('sent_at', { mode: 'date', fsp: 3 }).notNull(),
   expiresAt: datetime('expires_at', { mode: 'date', fsp: 3 }).notNull(),
 });
+
+export const BADGE_KINDS = ['badge', 'medal'] as const;
+export const BADGE_PERKS = ['none', 'share_contact', 'moderator'] as const;
+export const BADGE_RULE_METRICS = ['none', 'games', 'wins', 'level'] as const;
+
+/** Badge and medal catalog, edited in the admin panel. A badge may carry a perk and an automatic unlock rule (metric >= min). */
+export const badges = mysqlTable(
+  'badges',
+  {
+    id: id(),
+    slug: varchar('slug', { length: 40 }).notNull(),
+    titleFa: varchar('title_fa', { length: 60 }).notNull(),
+    descriptionFa: varchar('description_fa', { length: 200 }).notNull().default(''),
+    kind: mysqlEnum('kind', BADGE_KINDS).notNull().default('badge'),
+    iconKey: varchar('icon_key', { length: 30 }),
+    perk: mysqlEnum('perk', BADGE_PERKS).notNull().default('none'),
+    ruleMetric: mysqlEnum('rule_metric', BADGE_RULE_METRICS).notNull().default('none'),
+    ruleMin: int('rule_min').notNull().default(0),
+    isActive: boolean('is_active').notNull().default(true),
+    sortOrder: int('sort_order').notNull().default(0),
+  },
+  (table) => ({ slugUnique: uniqueIndex('badges_slug_idx').on(table.slug) }),
+);
+
+export const userBadges = mysqlTable(
+  'user_badges',
+  {
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    badgeId: char('badge_id', { length: 36 }).notNull().references(() => badges.id, { onDelete: 'cascade' }),
+    awardedAt: datetime('awarded_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    /** Null when the automatic rule awarded it; else the admin or agent that granted it. */
+    awardedBy: varchar('awarded_by', { length: 40 }),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.userId, table.badgeId] }) }),
+);
+
+export const NOTICE_KINDS = ['warning', 'commendation'] as const;
+export const ISSUER_TYPES = ['admin', 'agent'] as const;
+
+/** Warnings and commendations a player received. */
+export const userNotices = mysqlTable(
+  'user_notices',
+  {
+    id: id(),
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    kind: mysqlEnum('kind', NOTICE_KINDS).notNull(),
+    text: varchar('text', { length: 300 }).notNull(),
+    issuerType: mysqlEnum('issuer_type', ISSUER_TYPES).notNull(),
+    issuerId: char('issuer_id', { length: 36 }),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    readAt: datetime('read_at', { mode: 'date', fsp: 3 }),
+  },
+  (table) => ({ byUser: index('user_notices_user_idx').on(table.userId, table.createdAt) }),
+);
+
+/** One current chat mute per player (a newer one replaces it). */
+export const chatMutes = mysqlTable('chat_mutes', {
+  userId: char('user_id', { length: 36 }).primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+  until: datetime('until', { mode: 'date', fsp: 3 }).notNull(),
+  reason: varchar('reason', { length: 200 }).notNull().default(''),
+  issuerType: mysqlEnum('issuer_type', ISSUER_TYPES).notNull(),
+  issuerId: char('issuer_id', { length: 36 }),
+});
+
+/** Every warn or mute an agent issued, for the daily limit and for review. */
+export const modActions = mysqlTable(
+  'mod_actions',
+  {
+    id: id(),
+    agentId: char('agent_id', { length: 36 }).notNull(),
+    targetId: char('target_id', { length: 36 }).notNull(),
+    action: mysqlEnum('action', ['warn', 'mute']).notNull(),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ byAgent: index('mod_actions_agent_idx').on(table.agentId, table.createdAt) }),
+);
