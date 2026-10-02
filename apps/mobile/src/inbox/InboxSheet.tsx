@@ -1,45 +1,66 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { Inbox } from '@dozari/shared';
-import { CandyButton } from '../components/CandyButton';
+import { Item } from '../components/Item';
+import { HeaderPill, PageShell } from '../components/PageShell';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
+import { agoText } from './ago';
 
-const INK = '#3A2418';
+const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
+/** Icon tiles cycle through the candy colours so a long list stays lively. */
+const TINTS = ['#FFE48A', '#3FC1F0', '#FF8FB6', '#B8F08F', '#C9A3FF', '#FFAA7A'];
 
-/** The in-app inbox: messages the admin sent to everyone or to this player. Tapping one marks it read. */
+/** screen-notifications of `19 Social Daily Onboarding`: the admin's messages to everyone or to this player; tap marks one read. */
 export function InboxSheet({ inbox, failed, onRead, onReadAll, onClose }: { inbox: Inbox | null; failed: boolean; onRead: (id: string) => void; onReadAll: () => void; onClose: () => void }) {
+  const [now] = useState(() => Date.now());
   return (
-    <Pressable style={styles.overlay} onPress={onClose} accessibilityLabel={fa.inbox.close}>
-      <Pressable style={styles.sheet} onPress={() => undefined}>
-        <Text style={styles.title}>{fa.inbox.title}</Text>
-        {failed ? <Text style={styles.text}>{fa.inbox.error}</Text> : null}
-        {inbox && inbox.items.length === 0 ? <Text style={styles.text}>{fa.inbox.empty}</Text> : null}
-        <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
-          {inbox?.items.map((m) => (
-            <Pressable key={m.id} onPress={() => onRead(m.id)} style={[styles.item, !m.read && styles.unread]} accessibilityRole="button">
-              <Text style={styles.itemTitle}>{m.title}</Text>
-              <Text style={styles.text}>{m.body}</Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-        <View style={styles.actions}>
-          {inbox && inbox.unread > 0 ? <CandyButton label={fa.inbox.readAll} color={colors.candy.lime} onPress={onReadAll} /> : null}
-          <CandyButton label={fa.inbox.close} color={colors.candy.sky} onPress={onClose} />
-        </View>
-      </Pressable>
-    </Pressable>
+    <PageShell
+      title={fa.inbox.title}
+      color={colors.candy.grape}
+      backLabel={fa.inbox.close}
+      onBack={onClose}
+      action={inbox && inbox.unread > 0 ? <HeaderPill label={fa.inbox.readAll} onPress={onReadAll} /> : undefined}
+    >
+      <ScrollView contentContainerStyle={styles.list}>
+        {failed ? <Text style={styles.note}>{fa.inbox.error}</Text> : null}
+        {inbox && inbox.items.length === 0 ? <Text style={styles.note}>{fa.inbox.empty}</Text> : null}
+        {inbox?.items.map((m, i) => (
+          <Pressable key={m.id} onPress={() => onRead(m.id)} accessibilityRole="button">
+            {({ pressed }) => (
+              <View style={[styles.card, !m.read ? styles.unread : null, pressed ? styles.pressed : null]}>
+                <View style={[styles.tile, { backgroundColor: TINTS[i % TINTS.length] }]}>
+                  <View style={styles.icon}><Item icon={m.read ? 'envelope' : 'alarm'} /></View>
+                </View>
+                <View style={styles.body}>
+                  <Text style={styles.title}>{m.title}</Text>
+                  <Text style={styles.text}>{m.body}</Text>
+                </View>
+                <View style={styles.meta}>
+                  <Text style={styles.time}>{agoText(m.createdAt, now)}</Text>
+                  {!m.read ? <View style={styles.dot} /> : null}
+                </View>
+              </View>
+            )}
+          </Pressable>
+        ))}
+      </ScrollView>
+    </PageShell>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,8,32,0.55)', alignItems: 'center', justifyContent: 'center', padding: 24 },
-  sheet: { width: '100%', maxWidth: 380, maxHeight: '80%', backgroundColor: colors.cream, borderWidth: 3, borderColor: INK, borderRadius: 24, padding: 16, gap: 10 },
-  title: { fontFamily: fonts.display, fontSize: 24, color: INK, textAlign: 'center' },
-  text: { fontFamily: fonts.bold, fontSize: 14, color: INK, textAlign: 'right' },
-  list: { flexGrow: 0 },
-  listContent: { gap: 8 },
-  item: { borderWidth: 2, borderColor: INK, borderRadius: 14, padding: 10, gap: 4, backgroundColor: '#fff6e8' },
-  unread: { backgroundColor: '#FFE48A' },
-  itemTitle: { fontFamily: fonts.display, fontSize: 17, color: INK, textAlign: 'right' },
-  actions: { alignItems: 'center', gap: 8 },
+  list: { gap: 8, paddingBottom: 24 },
+  note: { fontFamily: fonts.bold, fontSize: 14, color: colors.ink, textAlign: 'center', marginTop: 12 },
+  card: { flexDirection: ROW, alignItems: 'center', gap: 10, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#fff', shadowColor: colors.ink, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4 },
+  unread: { backgroundColor: '#FFF6D8' },
+  pressed: { transform: [{ translateY: 2 }] },
+  tile: { width: 46, height: 46, borderRadius: 14, borderWidth: 2.5, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  icon: { width: 34, height: 34 },
+  body: { flex: 1, minWidth: 0, gap: 1 },
+  title: { fontFamily: fonts.display, fontSize: 15, lineHeight: 20, color: colors.ink, textAlign: 'right' },
+  text: { fontFamily: fonts.bold, fontSize: 11, lineHeight: 17, color: '#5A3A7A', textAlign: 'right' },
+  meta: { alignItems: 'center', gap: 6 },
+  time: { fontFamily: fonts.bold, fontSize: 10, color: '#7E46D6' },
+  dot: { width: 12, height: 12, borderRadius: 6, backgroundColor: colors.candy.pink, borderWidth: 2, borderColor: colors.ink },
 });
