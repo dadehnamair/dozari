@@ -28,7 +28,7 @@ function memoryUsers(): UserRepository {
   };
 }
 
-function boot() {
+function boot(bots: string[] = []) {
   const clock = { ms: Date.UTC(2026, 9, 2, 12) };
   const store = createMemoryTournamentStore();
   const levels = new Map<string, number>();
@@ -46,6 +46,8 @@ function boot() {
       return true;
     },
     inMatch: (id) => busy.has(id),
+    fillBots: (n) => bots.slice(0, n),
+    isBot: (id) => bots.includes(id),
     notify: (id, text) => told.push([id, text]),
     now: () => clock.ms,
   });
@@ -236,5 +238,32 @@ describe('running a tournament', () => {
     expect((await t.service.detail(a.id, c.id))?.prizes).toEqual([{ place: 1, coins: 77 }]);
     expect((await t.service.startNow(c.id)).ok).toBe(true);
     expect(t.started).toHaveLength(1);
+  });
+});
+
+describe('bot fill', () => {
+  it('fills empty seats with bots at the start, they play, and never get prize coins', async () => {
+    const t = boot(['bot-1', 'bot-2']);
+    const a = await t.login(1);
+    const b = await t.login(2);
+    t.store.coins.set(a.id, 100);
+    t.store.coins.set(b.id, 100);
+    const created = await t.service.create(t.input({ botFill: true, minPlayers: 2 }), true);
+    if (!created.ok) throw new Error('x');
+    await t.join(a, created.id);
+    await t.join(b, created.id);
+    t.clock.ms += 61 * MIN;
+    await t.service.tick();
+    const detail = await t.service.detail(a.id, created.id);
+    expect(detail?.joined).toBe(4); // 2 humans + 2 bots
+    expect(t.started).toHaveLength(2);
+    // Bots win both round-1 matches (the first listed of each pair is the better seed; make the bots win), then the final.
+    await t.finishMatches((x, y) => (['bot-1', 'bot-2'].includes(x) ? 0 : ['bot-1', 'bot-2'].includes(y) ? 1 : 0));
+    await t.service.tick();
+    await t.finishMatches((x) => (x === 'bot-1' ? 0 : 1));
+    const done = await t.service.detail(a.id, created.id);
+    expect(done?.status).toBe('finished');
+    expect(t.store.coins.get('bot-1') ?? 0).toBe(0);
+    expect(t.store.coins.get('bot-2') ?? 0).toBe(0);
   });
 });

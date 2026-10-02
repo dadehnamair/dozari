@@ -28,9 +28,13 @@ import { registerChatRoutes } from './chat/routes.js';
 import { ChatService, chatRulesFromSettings } from './chat/service.js';
 import { createDbChatStore } from './chat/store.js';
 import type { MatchService } from './realtime/match-service.js';
+import type { DuelQueue } from './realtime/queue.js';
 import { registerTournamentRoutes } from './tournament/routes.js';
 import { TournamentService } from './tournament/service.js';
 import { createDbTournamentStore } from './tournament/store.js';
+import { BotDriver } from './botplayers/driver.js';
+import { BotPlayerService } from './botplayers/service.js';
+import { createDbBotPlayerStore } from './botplayers/store.js';
 import { registerFindRoutes } from './find/routes.js';
 import { FindService } from './find/service.js';
 import { createShortener } from './find/shortener.js';
@@ -114,7 +118,9 @@ export interface ServerDeps {
   /** Tournaments (list, page, join); needs `auth`. */
   tournaments?: TournamentService;
   /** Filled with the live-match service once the socket gateway exists, so tournaments can start duels. */
-  live?: { matches?: MatchService };
+  live?: { matches?: MatchService; queue?: DuelQueue };
+  /** Bot players: reacts to the events pushed to bot accounts (needs the gateway). */
+  botDriver?: BotDriver;
   /** Admin message center; its in-app channel feeds `GET /inbox`. */
   messages?: MessageCenter;
   /** Public profiles, friend requests and the gender setting. */
@@ -206,8 +212,11 @@ export function buildServer(deps: ServerDeps = {}) {
   let gateway: Gateway | undefined;
   if (deps.auth && deps.realtime) {
     const auth = deps.auth;
-    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin: deps.corsOrigin, match: deps.match, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, chat: deps.chat });
-    if (deps.live) deps.live.matches = gateway.matches;
+    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin: deps.corsOrigin, match: deps.match, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, chat: deps.chat, onEmit: deps.botDriver ? (u, e, p) => deps.botDriver!.onEmit(u, e, p) : undefined });
+    if (deps.live) {
+      deps.live.matches = gateway.matches;
+      deps.live.queue = gateway.queue;
+    }
     app.addHook('onClose', async () => {
       await gateway?.close();
     });
@@ -314,7 +323,21 @@ if (isMainModule(import.meta.url)) {
           filter: words,
         })
       : undefined;
-  const live: { matches?: MatchService } = {};
+  const live: { matches?: MatchService; queue?: DuelQueue } = {};
+  const botStore = db ? createDbBotPlayerStore(db) : undefined;
+  const botDriver =
+    botStore && settings
+      ? new BotDriver({
+          store: botStore,
+          matches: () => live.matches,
+          queue: () => live.queue,
+          chat: () => chat,
+          settings: async () => ({ enabled: (await settings.num('bots.enabled')) === 1, fallbackSec: await settings.num('bots.fallback_seconds'), jitterSec: await settings.num('bots.fallback_jitter_seconds'), cityReplyPercent: await settings.num('bots.city_reply_percent') }),
+          taunts: chatStore ? async () => (await chatStore.taunts()).map((c) => ({ nameFa: c.nameFa, ids: c.taunts.map((t) => t.id) })) : undefined,
+          rng: () => randomInt(0, 2 ** 30) / 2 ** 30,
+        })
+      : undefined;
+  if (chat && botDriver) chat.onCityMessage = (cityId, message) => void botDriver.onCityMessage(cityId, message);
   const tournamentService =
     db && settings && player && socialStore
       ? new TournamentService(createDbTournamentStore(db), {
@@ -322,6 +345,8 @@ if (isMainModule(import.meta.url)) {
           profileOf: async (id) => socialStore.publicRow(id),
           startMatch: async (a, b) => (live.matches ? live.matches.start(a, b) : false),
           inMatch: (id) => live.matches?.inMatch(id) ?? false,
+          fillBots: (n) => botDriver?.fillSeats(n) ?? [],
+          isBot: (id) => botDriver?.isBot(id) ?? false,
           notify: (id, text) => void notify?.notify(id, 'admin', text).catch(() => undefined),
         })
       : undefined;
@@ -350,7 +375,7 @@ if (isMainModule(import.meta.url)) {
     auth,
     settings,
     adminModules: db
-      ? { products: createDbProductAdmin(db), stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      ? { products: createDbProductAdmin(db), stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, botPlayers: botStore && player && settings ? { service: new BotPlayerService(botStore, () => rulesFromSettings(settings).then((r) => r.xp), () => randomInt(0, 2 ** 30) / 2 ** 30, async (id) => player.afterGame?.(id)), cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
     match: db
@@ -381,6 +406,7 @@ if (isMainModule(import.meta.url)) {
     chat,
     tournaments: tournamentService,
     live,
+    botDriver,
     messages,
     social,
     invite,
@@ -395,6 +421,12 @@ if (isMainModule(import.meta.url)) {
     trustProxy: process.env.TRUST_PROXY === '1',
     localImagesDir: process.env.LOCAL_IMAGES_DIR,
   });
+  if (botDriver) {
+    void botDriver.refresh().catch(() => undefined);
+    const botTimer = setInterval(() => void botDriver.tick().catch((err) => app.log.error({ err }, 'bot tick failed')), 5000);
+    botTimer.unref();
+    app.addHook('onClose', async () => clearInterval(botTimer));
+  }
   if (tournamentService) {
     const timer = setInterval(() => void tournamentService.tick().catch((err) => app.log.error({ err }, 'tournament tick failed')), TOURNAMENT_TICK_SECONDS * 1000);
     timer.unref();

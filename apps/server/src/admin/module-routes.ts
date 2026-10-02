@@ -20,6 +20,7 @@ import type { BadgeService } from '../badges/service.js';
 import type { BadgeStore } from '../badges/store.js';
 import type { ChatStore } from '../chat/store.js';
 import type { TournamentService } from '../tournament/service.js';
+import type { BotPlayerService } from '../botplayers/service.js';
 import { registerInviteAdminRoutes } from '../invite/routes.js';
 import type { InviteStore } from '../invite/store.js';
 
@@ -42,6 +43,8 @@ export interface AdminModules {
   chat?: ChatStore;
   /** Tournament builder and management. */
   tournaments?: TournamentService;
+  /** Bot players: generate many natural accounts, tune or pause them. */
+  botPlayers?: { service: BotPlayerService; cities: () => Promise<string[]> };
   messages?: MessageCenter;
   bale?: { service: NotifyService; store: NotifyStore; botUsername: string | null };
   bot?: { repo: BotRepository; service: BotService };
@@ -112,7 +115,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     adapters: BOT_ADAPTER_KEYS,
     settingGroups: SETTING_GROUPS,
     icons: ITEMS,
-    modules: { settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, bale: !!m.bale, messages: !!m.messages },
+    modules: { settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages },
   }));
 
   if (m.stats) {
@@ -492,6 +495,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       entryCoins: z.number().int().min(0).max(100_000),
       minLevel: z.number().int().min(1).max(500),
       startsAt: z.number().int(),
+      botFill: z.boolean().optional(),
       prizes: z.array(z.object({ place: z.number().int().min(1).max(3), coins: z.number().int().min(0).max(1_000_000) })).max(3),
     };
     const fail = (reply: FastifyReply, error: string) => reply.code(error === 'NOT_FOUND' ? 404 : error === 'BAD_STATE' ? 409 : 400).send({ error });
@@ -524,6 +528,41 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
         return { ok: true, ...('refunded' in out ? { refunded: out.refunded } : {}) };
       });
     }
+  }
+
+  if (m.botPlayers) {
+    const { service, cities } = m.botPlayers;
+    g.get('/admin/bots', async () => ({ bots: await service.list() }));
+    g.post('/admin/bots/generate', async (req, reply) => {
+      const b = z
+        .object({
+          count: z.number().int().min(1).max(50),
+          levelMin: z.number().int().min(1).max(100),
+          levelMax: z.number().int().min(1).max(100),
+          skillMin: z.number().int().min(0).max(100),
+          skillMax: z.number().int().min(0).max(100),
+          winPercentMin: z.number().int().min(20).max(85),
+          winPercentMax: z.number().int().min(20).max(85),
+          thinkMinMs: z.number().int().min(1000).max(60_000),
+          thinkMaxMs: z.number().int().min(1000).max(60_000),
+          tauntPercent: z.number().int().min(0).max(100),
+          withCities: z.boolean().default(true),
+        })
+        .safeParse(req.body);
+      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const { withCities, ...opts } = b.data;
+      const out = await service.generate({ ...opts, cityIds: withCities ? await cities() : [] });
+      void audit('bots.generate', String(out.created.length), JSON.stringify(opts).slice(0, 200));
+      return reply.code(201).send({ created: out.created.length });
+    });
+    g.patch('/admin/bots/:id', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object({ skill: z.number().int().min(0).max(100).optional(), thinkMinMs: z.number().int().min(1000).max(60_000).optional(), thinkMaxMs: z.number().int().min(1000).max(60_000).optional(), tauntPercent: z.number().int().min(0).max(100).optional(), isActive: z.boolean().optional(), cityId: z.string().uuid().nullable().optional() }).safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      if ((await service.update(p.data.id, b.data)) === 'not_found') return reply.code(404).send({ error: 'bot_not_found' });
+      void audit('bot.update', p.data.id, JSON.stringify(b.data));
+      return { ok: true };
+    });
   }
 
   if (m.invites) registerInviteAdminRoutes(g, m.invites, (a, t, d) => void audit(a, t, d));

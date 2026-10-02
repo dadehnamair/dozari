@@ -35,6 +35,8 @@ export type SendResult = { ok: true; message: ChatMessage } | { ok: false; error
 export class ChatService {
   /** Called with a room name and a message to push live (set by the gateway). */
   broadcast?: (room: string, message: ChatMessage) => void;
+  /** Called after every city message (e.g. so a bot from that city may answer). */
+  onCityMessage?: (cityId: string, message: ChatMessage) => void;
   /** Called to push a message to one player (the opponent in a duel). */
   toUser?: (userId: string, message: ChatMessage) => void;
   private readonly text = new RateLimiter(CHAT_TEXT_RATE.count, CHAT_TEXT_RATE.windowMs);
@@ -102,6 +104,11 @@ export class ChatService {
     const row = await this.store.addMessage({ room: 'city', roomKey: city.id, userId, kind: input.kind, text: text.text });
     const message = await this.view(row, new Map());
     this.broadcast?.(ChatService.cityRoom(city.id), message);
+    try {
+      this.onCityMessage?.(city.id, message);
+    } catch {
+      /* a hook never breaks sending */
+    }
     return { ok: true, message };
   }
 

@@ -16,6 +16,8 @@ export interface TournamentRow {
   minPlayers: number;
   entryCoins: number;
   minLevel: number;
+  /** Fill empty seats with bot players when the tournament starts. */
+  botFill: boolean;
   startsAt: number;
   startedAt: number | null;
   finishedAt: number | null;
@@ -75,6 +77,7 @@ const toRow = (r: typeof tournaments.$inferSelect): TournamentRow => ({
   minPlayers: r.minPlayers,
   entryCoins: r.entryCoins,
   minLevel: r.minLevel,
+  botFill: r.botFill,
   startsAt: r.startsAt.getTime(),
   startedAt: r.startedAt ? r.startedAt.getTime() : null,
   finishedAt: r.finishedAt ? r.finishedAt.getTime() : null,
@@ -85,7 +88,7 @@ export function createDbTournamentStore(db: Db): TournamentStore {
   return {
     async create(t, prizes) {
       const id = uuidv7();
-      await db.insert(tournaments).values({ id, titleFa: t.titleFa, descriptionFa: t.descriptionFa, iconKey: t.iconKey, status: t.status, size: t.size, minPlayers: t.minPlayers, entryCoins: t.entryCoins, minLevel: t.minLevel, startsAt: new Date(t.startsAt) });
+      await db.insert(tournaments).values({ id, titleFa: t.titleFa, descriptionFa: t.descriptionFa, iconKey: t.iconKey, status: t.status, size: t.size, minPlayers: t.minPlayers, entryCoins: t.entryCoins, minLevel: t.minLevel, botFill: t.botFill, startsAt: new Date(t.startsAt) });
       if (prizes.length > 0) await db.insert(tournamentPrizes).values(prizes.map((p) => ({ tournamentId: id, place: p.place, coins: p.coins })));
       const [r] = await db.select().from(tournaments).where(eq(tournaments.id, id));
       return toRow(r!);

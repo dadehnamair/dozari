@@ -208,3 +208,9 @@ contact-info perk, profanity filter, rate limits, 30-day retention. See `docs/lo
 
 Admin builds tournaments (size, entry coins, minimum level, start, prizes); players join with coins and level; the server seeds by level, runs the bracket through live
 duels, pays prizes. House funds prizes, entry fees are a sink. Details and what is not built: `docs/logic/tournaments.md`. Proposed defaults; the owner may change any number.
+
+## D86 — Bot players from the admin panel (2026-10-02)
+
+Admin-generated bot accounts that look like players, fill the queue after a human-like wait, play through the normal submit with a skill-controlled use of the
+answer (server-internal only), answer taunts and city chat, and can fill tournament seats. Never disclosed. Details: `docs/logic/bots.md` §As built.
+Owner note: undisclosed AI opponents were already approved (D19); the skill cap (90 %) and the rule that bots never take prize coins keep it from being a thumb on the scale.
