@@ -9,6 +9,7 @@ import { Mascot } from '../components/Mascot';
 import { fa } from '../i18n/fa';
 import { candyTone, colors, fonts } from '../theme/colors';
 import { cellLevel, nextScan, searchClock, waitClock } from './scan';
+import { safeTop } from '../theme/safeArea';
 
 // `direction` is not accepted inside StyleSheet.create by react-native-web's dev validation.
 const LTR: TextStyle = { direction: 'ltr' };
@@ -235,7 +236,7 @@ export function SearchScreen({ onCancel, waitedSec }: { onCancel: () => void; wa
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, paddingHorizontal: 10, paddingTop: 34 },
+  screen: { flex: 1, paddingHorizontal: 10, paddingTop: safeTop(34) },
   title: { alignItems: 'center', marginBottom: 6 },
   rows: { gap: 5 },
   row: {

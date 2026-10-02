@@ -1,3 +1,4 @@
+import { LEVEL_REWARD_BASE_COINS, LEVEL_REWARD_EVERY } from './progression.js';
 import {
   AVATAR_CHANGE_MIN_LEVEL,
   AVATAR_UNLOCK_GAMES,
@@ -104,6 +105,10 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'duel.loss_consolation', group: 'economy', label: 'دلداری باخت (سکه)', kind: 'int', min: 0, max: 1000, default: LOSS_CONSOLATION, unit: 'سکه' },
   { key: 'duel.consolation_cap', group: 'economy', label: 'سقف دلداری باخت در روز برای هر بازیکن', kind: 'int', min: 0, max: 10000, default: LOSS_CONSOLATION_DAILY_CAP, unit: 'سکه' },
   { key: 'duel.rescue_target', group: 'economy', label: 'نجات از بی‌سکه‌ای: رساندن موجودی به', hint: 'روزی یک بار، وقتی سکه برای ورودی نیست و بازی رایگان هم تمام شده', kind: 'int', min: 0, max: 10000, default: BROKE_RESCUE_TARGET, unit: 'سکه' },
+  { key: 'levelreward.every', group: 'economy', label: 'جایزه‌ی سکه‌ی جاده‌ی لول: هر چند لول یک بار', hint: '۰ = خاموش', kind: 'int', min: 0, max: 50, default: LEVEL_REWARD_EVERY, unit: 'لول' },
+  { key: 'levelreward.base_coins', group: 'economy', label: 'جایزه‌ی جاده‌ی لول: سکه‌ی پایه', hint: 'جایزه = پایه × (لول ÷ فاصله)؛ مثلاً ۲۵ → لول ۵: ۲۵، لول ۱۰: ۵۰', kind: 'int', min: 0, max: 10000, default: LEVEL_REWARD_BASE_COINS, unit: 'سکه' },
+  { key: 'wheel.enabled', group: 'economy', label: 'گردونه‌ی شانس بعد از برد روشن باشد', hint: 'هر برد دوئل زنده با آدم واقعی یک چرخش می‌دهد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'wheel.prize_scale_percent', group: 'economy', label: 'مقیاس جایزه‌های گردونه (۱۰۰ = جدول پیش‌فرض)', kind: 'int', min: 0, max: 1000, default: 100, unit: '٪' },
   { key: 'feature.tables', group: 'app', label: 'میز اختصاصی روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'table.idle_minutes', group: 'gameplay', label: 'میز اختصاصی بعد از چند دقیقه بی‌استفاده بسته شود', kind: 'int', min: 1, max: 240, default: TABLE_IDLE_MINUTES, unit: 'دقیقه' },
   { key: 'feature.daily', group: 'app', label: 'پازل روز روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },

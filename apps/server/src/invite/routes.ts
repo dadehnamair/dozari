@@ -30,12 +30,12 @@ export function registerInviteAdminRoutes(guarded: FastifyInstance, store: Invit
   guarded.get('/admin/invites', async () => ({ codes: await store.listCodes() }));
 
   guarded.post('/admin/invites', async (req, reply) => {
-    const b = z.object({ code: z.string().max(20), label: z.string().trim().min(1).max(80), maxUses: z.number().int().min(1).max(1_000_000) }).safeParse(req.body);
+    const b = z.object({ code: z.string().max(20), label: z.string().trim().max(80).default(''), maxUses: z.number().int().min(1).max(1_000_000) }).safeParse(req.body);
     if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
     const code = normalizeInviteCode(b.data.code);
     if (!looksLikeInviteCode(code)) return reply.code(400).send({ error: 'invalid_code' });
-    if ((await store.createCode(code, null, b.data.label, b.data.maxUses)) === 'taken') return reply.code(409).send({ error: 'duplicate' });
-    audit('invite.create', code, `${b.data.label} x${b.data.maxUses}`);
+    if ((await store.createCode(code, null, b.data.label || code, b.data.maxUses)) === 'taken') return reply.code(409).send({ error: 'duplicate' });
+    audit('invite.create', code, `${b.data.label || code} x${b.data.maxUses}`);
     return reply.code(201).send({ code });
   });
 

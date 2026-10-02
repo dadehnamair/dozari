@@ -338,6 +338,8 @@ export const LEDGER_REASONS = [
   'tournament_prize',
   'match_consolation',
   'broke_rescue',
+  'wheel_spin',
+  'level_reward',
 ] as const;
 
 /** Append-only. Coins move only through the server's ledger function; a repeated idempotency key is a no-op. */
@@ -1064,6 +1066,31 @@ export const dailyPlayCounts = mysqlTable(
     count: int('count').notNull().default(0),
   },
   (t) => ({ pk: primaryKey({ columns: [t.userId, t.dateKey, t.mode] }) }),
+);
+
+/** A lucky-wheel spin earned by winning a duel (docs/logic/economy.md §Lucky wheel). `coins` stays null until it is spun. */
+export const wheelSpins = mysqlTable(
+  'wheel_spins',
+  {
+    id: id(),
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    matchId: char('match_id', { length: 36 }).notNull(),
+    coins: int('coins'),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    spunAt: datetime('spun_at', { mode: 'date', fsp: 3 }),
+  },
+  (t) => ({ onePerMatch: uniqueIndex('wheel_spins_user_match').on(t.userId, t.matchId), pending: index('wheel_spins_pending').on(t.userId, t.spunAt) }),
+);
+
+/** Level-road coin rewards a player has taken (docs/logic/progression.md §Level rewards). */
+export const levelRewardClaims = mysqlTable(
+  'level_reward_claims',
+  {
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    level: int('level').notNull(),
+    claimedAt: datetime('claimed_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.userId, t.level] }) }),
 );
 
 /** One attempt per player per day. */

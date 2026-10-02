@@ -125,7 +125,7 @@ room_code text null, started_at, ended_at, winner_side smallint null`
 | id | |
 | user_id | |
 | delta | int, +/- |
-| reason | enum: `signup_bonus, daily_login, match_entry, match_payout, match_refund, invite_reward, ugc_reward, admin_adjust, purchase, bot_match_subsidy, price_guess_wager, price_guess_payout` |
+| reason | enum: `signup_bonus, daily_login, match_entry, match_payout, match_refund, invite_reward, ugc_reward, admin_adjust, purchase, bot_match_subsidy, wheel_spin, price_guess_wager, price_guess_payout` |
 | ref_type / ref_id | e.g. `match`/uuid |
 | idempotency_key | text unique — e.g. `match_payout:<matchId>:<userId>` |
 | created_at | |

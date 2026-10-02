@@ -21,9 +21,9 @@ VIEWS.inbox = function (root) {
       clear(list);
       if (r.status === 404) return list.appendChild(empty('ربات روی این سرور فعال نیست (دیتابیس لازم است)'));
       if (!r.ok) return fail(r);
+      refreshCounts();
       if (!r.body.candidates.length) return list.appendChild(empty(status === 'pending' ? 'پیشنهادی برای بررسی نیست. ربات را اجرا کن یا منبع اضافه کن.' : 'موردی نیست'));
       r.body.candidates.forEach(function (c) { list.appendChild(candidateCard(c, load2)); });
-      refreshCounts();
     });
   }
   load2();
@@ -495,10 +495,10 @@ VIEWS.invites = function (root) {
       });
     });
   }
-  var code = h('input', { type: 'text', dir: 'ltr', placeholder: 'کد (مثل NOWRUZ)', maxlength: 12 }), label = h('input', { type: 'text', placeholder: 'نام کمپین', maxlength: 80 }), uses = h('input', { type: 'number', value: 100, min: 1, style: 'width:110px' });
+  var code = h('input', { type: 'text', dir: 'ltr', placeholder: 'کد (مثل NAVRUZ)', maxlength: 12 }), label = h('input', { type: 'text', placeholder: 'نام کمپین (اختیاری)', maxlength: 80 }), uses = h('input', { type: 'number', value: 100, min: 1, style: 'width:110px' });
   root.appendChild(card('کد معرف ویژه (کمپین)', 'کد کمپین معرفی ندارد، پس پاداش معرف پرداخت نمی‌شود؛ فقط دعوت‌شده سکه‌ی خوش‌آمد و فعال‌شدن حساب را می‌گیرد. حروف و عددهای شبیه به هم (۰ O ۱ I L) مجاز نیستند.', [
     h('div', { class: 'toolbar' }, [code, label, field('تعداد استفاده', uses), h('button', { class: 'btn primary', text: 'ساخت', onclick: function () {
-      api('/admin/invites', { method: 'POST', body: { code: code.value, label: label.value.trim(), maxUses: +uses.value } }).then(function (x) { if (x.status === 409) return toast('این کد از قبل هست', true); if (!x.ok) return fail(x); code.value = ''; label.value = ''; draw(); });
+      api('/admin/invites', { method: 'POST', body: { code: code.value, label: label.value.trim() || code.value.trim(), maxUses: +uses.value } }).then(function (x) { if (x.status === 409) return toast('این کد از قبل هست', true); if (!x.ok) return fail(x); code.value = ''; label.value = ''; draw(); });
     } })])
   ]));
   root.appendChild(card('همه‌ی کدها', 'سقف استفاده‌ی کد شخصی و پاداش‌ها در «تنظیمات ← اقتصاد» است. غیرفعال‌کردن یک کد جلوی دعوت تازه را می‌گیرد، حساب‌های دعوت‌شده‌ی قبلی بدون تغییر می‌مانند.', [list]));

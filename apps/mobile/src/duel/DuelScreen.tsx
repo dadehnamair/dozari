@@ -28,6 +28,8 @@ import { connectDuel } from './socket';
 import type { DuelConnection } from './socket';
 import { SearchScreen } from '../search/SearchScreen';
 import { Versus } from './Versus';
+import { fetchWheel } from '../wheel/api';
+import { WheelPage } from '../wheel/WheelPage';
 
 const FLASH_MS = 1500;
 /** The versus card stays up this long once a rival is found (the turn clock is 45s by default). */
@@ -56,6 +58,8 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   const [leaveArmed, setLeaveArmed] = useState(false);
   const [friendOpen, setFriendOpen] = useState(false);
   const conn = useRef<DuelConnection | null>(null);
+  const [wheelOpen, setWheelOpen] = useState(false);
+  const [spinsWaiting, setSpinsWaiting] = useState(0);
   const numbers = arenaNumbers(settings);
 
   useEffect(() => {
@@ -104,6 +108,18 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   useEffect(() => {
     if (state.phase === 'ended' && state.ended && state.view) playSfx(myOutcome(state.ended, state.view.you) === 'won' ? 'win' : 'lose');
   }, [state.phase, state.ended, state.view]);
+  // A win earns a wheel spin; the server records it just after the result, so ask once shortly after and once more later.
+  const wonMatch = state.phase === 'ended' && state.ended && state.view ? myOutcome(state.ended, state.view.you) === 'won' : false;
+  useEffect(() => {
+    if (!wonMatch) return;
+    let alive = true;
+    const ask = () => void fetchWheel().then((w) => alive && w.enabled && setSpinsWaiting(w.pending), () => undefined);
+    const ids = [setTimeout(ask, 1200), setTimeout(ask, 4000)];
+    return () => {
+      alive = false;
+      ids.forEach(clearTimeout);
+    };
+  }, [wonMatch]);
   useEffect(() => {
     if (!leaveArmed) return;
     const id = setTimeout(() => setLeaveArmed(false), LEAVE_ARM_MS);
@@ -182,6 +198,10 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
           onAgain={stage === 'queue' ? again : undefined}
         />
         {!prefs.reduceMotion ? (outcome === 'won' ? <Confetti distance={500} /> : <Rain distance={800} />) : null}
+        {outcome === 'won' && spinsWaiting > 0 ? (
+          <View style={styles.wheelCta}><SlabButton label={fa.wheel.open} color={colors.candy.yellow} badge={toPersianDigits(String(spinsWaiting))} onPress={() => setWheelOpen(true)} /></View>
+        ) : null}
+        {wheelOpen ? <WheelPage onClose={() => (setWheelOpen(false), void fetchWheel().then((w) => setSpinsWaiting(w.pending), () => undefined))} /> : null}
       </View>
     );
   }
@@ -269,6 +289,7 @@ const lift = { shadowColor: colors.ink, shadowOffset: { width: 0, height: 4 }, s
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
+  wheelCta: { position: 'absolute', top: 54, right: 16, width: 150 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24 },
   screen: { flexGrow: 1, paddingHorizontal: 10, paddingTop: 14, paddingBottom: 24, alignItems: 'center' },
   column: { width: '100%', maxWidth: 520, gap: 10 },

@@ -7,6 +7,7 @@ import type { ProductAdmin } from '../admin/products.js';
 import type { UsersAdmin } from '../admin/users.js';
 import type { BotRepository } from '../bot/repository.js';
 import { BotService } from '../bot/service.js';
+import { createMemoryInviteStore } from '../invite/store.js';
 
 const TOKEN = 'secret-admin-token';
 const h = { 'x-admin-token': TOKEN };
@@ -40,12 +41,24 @@ function setup() {
   const app = buildServer({
     settings,
     admin: { repo: { listCatalog: async () => [{ id: ID, slug: 'bread', nameFa: 'نان', unitFa: null, prices: [] }], setPriceStatus: async () => 'ok' }, token: TOKEN },
-    adminModules: { products, users, audit, bot: { repo: botRepo, service: new BotService(botRepo) } },
+    adminModules: { products, users, audit, invites: createMemoryInviteStore(), bot: { repo: botRepo, service: new BotService(botRepo) } },
   });
   return { app, audit, calls };
 }
 
 describe('admin modules', () => {
+  it('creates a campaign invite code, with or without a name, and explains a bad one', async () => {
+    const { app } = setup();
+    const post = (payload: Record<string, unknown>) => app.inject({ method: 'POST', url: '/admin/invites', headers: h, payload });
+    expect((await post({ code: 'navruz', label: 'نوروز', maxUses: 100 })).statusCode).toBe(201);
+    expect((await post({ code: 'navruz', label: '', maxUses: 100 })).statusCode).toBe(409);
+    expect((await post({ code: 'ZAMAN9', label: '', maxUses: 5 })).statusCode).toBe(201); // no campaign name is fine
+    expect((await post({ code: 'NOWRUZ', label: 'x', maxUses: 100 })).json()).toEqual({ error: 'invalid_code' }); // O is not allowed
+    const list = (await app.inject({ method: 'GET', url: '/admin/invites', headers: h })).json() as { codes: { code: string; label: string | null }[] };
+    expect(list.codes.map((c) => c.code).sort()).toEqual(['NAVRUZ', 'ZAMAN9']);
+  });
+
+
   it('guards every new route with the token', async () => {
     const { app } = setup();
     for (const [method, url] of [['GET', '/admin/meta'], ['GET', '/admin/settings'], ['PUT', '/admin/settings/game.turn_seconds'], ['GET', '/admin/users'], ['GET', '/admin/bot/candidates']] as const) {

@@ -1,10 +1,12 @@
-import { dailyDateKey, rescueAmount, settleDuel, tehranDayStart } from '@dozari/shared';
+import { dailyDateKey, earnsWheelSpin, rescueAmount, settleDuel, tehranDayStart } from '@dozari/shared';
 import type { DuelReason, DuelRules, Stake } from '@dozari/shared';
 import type { StakeStore } from './stakes-store.js';
 
 export interface StakeDeps {
   rules(): Promise<DuelRules>;
   isBot(userId: string): boolean;
+  /** The winner of a duel that earns a lucky-wheel spin (a real win against a human). */
+  onWin?(matchId: string, userId: string): Promise<unknown>;
   now?: () => number;
 }
 
@@ -87,5 +89,6 @@ export class DuelStakes {
       const reason = a.kind === 'payout' ? 'match_payout' : a.kind === 'refund' ? 'match_refund' : 'match_consolation';
       await this.store.apply(players[s], a.coins, reason, matchId, `${reason}:${matchId}:${players[s]}`);
     }
+    if (result.winner !== null && earnsWheelSpin(result, stakes)) await this.deps.onWin?.(matchId, players[result.winner]);
   }
 }

@@ -42,14 +42,20 @@ export interface ShopStore {
 export const DEFAULT_SHOP_ITEMS: readonly NewShopItem[] = [
   { titleFa: 'یک راهنما', descriptionFa: 'یک بار راهنما گرفتن در بازی تکی، بدون پرداخت سکه در همان لحظه.', effect: 'hint_token', amount: 1, priceCoins: 20, minLevel: 2, perDayLimit: 0, iconKey: 'magnifier', isActive: true },
   { titleFa: 'بسته‌ی پنج‌تایی راهنما', descriptionFa: 'پنج راهنما با تخفیف نسبت به خرید تکی.', effect: 'hint_token', amount: 5, priceCoins: 80, minLevel: 3, perDayLimit: 3, iconKey: 'potion', isActive: true },
+  // Higher tiers open further along the level road (docs/logic/progression.md §Level rewards).
+  { titleFa: 'بسته‌ی ده‌تایی راهنما', descriptionFa: 'ده راهنما، ارزان‌تر از خرید جدا.', effect: 'hint_token', amount: 10, priceCoins: 150, minLevel: 10, perDayLimit: 3, iconKey: 'magnifier', isActive: true },
+  { titleFa: 'بسته‌ی بیست‌تایی راهنما', descriptionFa: 'بیست راهنما برای بازی‌های سخت‌تر.', effect: 'hint_token', amount: 20, priceCoins: 280, minLevel: 20, perDayLimit: 2, iconKey: 'potion', isActive: true },
+  { titleFa: 'صندوق راهنما', descriptionFa: 'پنجاه راهنما؛ مخصوص بازیکن‌های باتجربه.', effect: 'hint_token', amount: 50, priceCoins: 600, minLevel: 35, perDayLimit: 1, iconKey: 'chest', isActive: true },
 ];
 
 export function createDbShopStore(db: Db): ShopStore {
   let seeded = false;
   const seed = async () => {
     if (seeded) return;
-    const [any] = await db.select({ id: shopItems.id }).from(shopItems).limit(1);
-    if (!any) await db.insert(shopItems).values(DEFAULT_SHOP_ITEMS.map((it, i) => ({ ...it, id: uuidv7(), sortOrder: i })));
+    // Add every default item the table does not have yet (by title), so shops seeded before a tier existed get it too.
+    const have = new Set((await db.select({ t: shopItems.titleFa }).from(shopItems)).map((r) => r.t));
+    const missing = DEFAULT_SHOP_ITEMS.map((it, i) => ({ it, i })).filter(({ it }) => !have.has(it.titleFa));
+    if (missing.length > 0) await db.insert(shopItems).values(missing.map(({ it, i }) => ({ ...it, id: uuidv7(), sortOrder: i })));
     seeded = true;
   };
   const toRow = (r: typeof shopItems.$inferSelect): ShopItemRow => ({ ...r });

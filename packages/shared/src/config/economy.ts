@@ -38,3 +38,19 @@ export const LOSS_CONSOLATION = 5;
 export const LOSS_CONSOLATION_DAILY_CAP = 10;
 /** A broke player with no free matches left is topped up to this once a day. */
 export const BROKE_RESCUE_TARGET = 60;
+
+/**
+ * Lucky wheel (docs/logic/economy.md §Lucky wheel): one spin per won queue duel against a human. Eight slices, a weight each;
+ * the admin can scale every prize with `wheel.prize_scale_percent`. Expected value ≈ 13 coins before scaling (needs the
+ * economy simulation before launch).
+ */
+export const WHEEL_SLICES_DEFAULT: readonly { coins: number; weight: number }[] = [
+  { coins: 5, weight: 25 },
+  { coins: 10, weight: 20 },
+  { coins: 10, weight: 20 },
+  { coins: 15, weight: 15 },
+  { coins: 20, weight: 10 },
+  { coins: 25, weight: 6 },
+  { coins: 40, weight: 3 },
+  { coins: 100, weight: 1 },
+];
