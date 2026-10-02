@@ -7,16 +7,24 @@ passwords and open ports). The production stack is `docker-compose.prod.yml`:
 |---|---|---|
 | `mysql` | MySQL 8.4, data in a volume | no (compose network only) |
 | `migrate` | applies the DB migrations, then exits | no |
-| `server` | the game server (REST, Socket.io, admin panel, product images) | only through Caddy |
-| `web` | Caddy: https certificates, the web app (PWA), proxy to the server | ports 80 / 443 |
+| `server` | the game server (REST, Socket.io, admin panel, product images) | `127.0.0.1:3000` |
+| `web` | the web app (PWA) as static files over plain HTTP | `127.0.0.1:8081` (`WEB_PORT`) |
+
+**This stack binds neither port 80 nor 443.** The server already runs other services behind a reverse proxy, so
+that proxy keeps the domains and https and forwards two names to the containers (§Reverse proxy):
+
+| Public name (DNS A record to the server) | Forward to |
+|---|---|
+| `mrbots.ir` (`APP_DOMAIN`, the web app) | `127.0.0.1:8081` |
+| `api.mrbots.ir` (`API_DOMAIN`, the game server; product images live at `/images/`) | `127.0.0.1:3000`, **websockets on** |
+
+The API address is baked into the web build, so changing `API_DOMAIN` later means editing `.env.prod` and
+rebuilding `web`.
 
 ## Before you start
 
-- A Linux server with Docker and the Compose plugin; ports 80 and 443 open.
-- Two DNS A records (both to the server IP; the domain can be changed later by editing `.env.prod` and rebuilding) pointing at the server: `APP_DOMAIN` (the web app, now `mrbots.ir`) and
-  `API_DOMAIN` (the game server, now `api.mrbots.ir`; product images are served from there at `/images/`). Caddy gets the https certificates
-  itself, which only works once both names resolve to this server.
-- The API address is baked into the web build, so changing `API_DOMAIN` later means rebuilding `web`.
+- A Linux server with Docker and the Compose plugin.
+- A reverse proxy on the host that can forward two domains (nginx, Caddy, Nginx Proxy Manager ...).
 
 ## First run
 
@@ -26,7 +34,7 @@ cp deploy/.env.example .env.prod
 nano .env.prod          # every line: domains, MYSQL_*, JWT_SECRET, ADMIN_TOKEN (openssl rand -hex 24)
 docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 docker compose -f docker-compose.prod.yml --env-file .env.prod ps     # migrate: exited (0), others: running
-curl https://$API_DOMAIN/health
+curl http://127.0.0.1:3000/health   # once the proxy forwards: https://api.mrbots.ir/health
 ```
 
 The server **refuses to start in production** with a short or default `JWT_SECRET` / `ADMIN_TOKEN`
@@ -36,6 +44,15 @@ The server **refuses to start in production** with a short or default `JWT_SECRE
 docker compose -f docker-compose.prod.yml --env-file .env.prod run --rm -w /app/apps/server server \
   pnpm exec tsx src/admin/accounts/cli.ts <username> owner "<display name>"
 ```
+
+## Reverse proxy
+
+Add the two forwards from the table above in whatever proxy owns 80/443. `deploy/nginx.example.conf` is a
+ready nginx example. In Nginx Proxy Manager add two Proxy Hosts — `mrbots.ir` → `http://127.0.0.1:8081` and
+`api.mrbots.ir` → `http://127.0.0.1:3000` with *Websockets Support* on — and request a Let's Encrypt certificate
+for each. Two things matter: **websockets** (live duels and chat use Socket.io on the API host) and passing
+`X-Forwarded-*` headers (the server runs with `TRUST_PROXY=1`). Check: `https://api.mrbots.ir/health` answers,
+`https://mrbots.ir` shows the game, and a duel connects.
 
 ## Catalogue (products, prices, images)
 
@@ -47,7 +64,7 @@ $dc run --rm --user root -w /app/packages/db server pnpm exec tsx src/seed/run.t
 $dc run --rm --user root -w /app/packages/db server pnpm exec tsx src/seed/upload-images.ts  # product images -> volume
 ```
 
-Images are stored in the `images` volume and served by the game server at `https://<API_DOMAIN>/images/`.
+Images are stored in the `images` volume and served by the game server at `https://<API_DOMAIN>/images/` (through your proxy).
 To use S3-compatible storage instead (ArvanCloud, MinIO), add the `S3_*` variables from `.env.example`
 to the `server` service environment and run the upload command above.
 
@@ -76,6 +93,6 @@ Also copy the `images` volume if images are not re-creatable from the repo. Rest
 
 - One server process: the rate limits and the live-match queue live in memory (`docs/security.md`).
   Do not scale `server` to several replicas yet.
-- `127.0.0.1:3000` is published on the host only for debugging; remove that `ports:` entry if you do not need it.
+- Both published ports are bound to the loopback only, so nothing is reachable from outside except through your proxy.
 - Logs: `docker compose … logs -f server`.
 - Bale bot and SMS keys are optional; leave them empty to keep those features off.

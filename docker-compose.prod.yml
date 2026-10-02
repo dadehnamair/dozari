@@ -1,4 +1,5 @@
-# Production stack: MySQL (private), the game server, and Caddy (https, web app, API proxy).
+# Production stack: MySQL (private), the game server, and the web app (static, plain HTTP on loopback).
+# https and the domains are the host's existing reverse proxy's job (docs/deploy.md, Reverse proxy).
 #   cp deploy/.env.example .env.prod  &&  edit it
 #   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 # Steps and upkeep: docs/deploy.md
@@ -65,7 +66,7 @@ services:
       KAVENEGAR_TEMPLATE: ${KAVENEGAR_TEMPLATE:-}
     volumes:
       - images:/data/images
-    # Published only to the host's loopback for debugging; Caddy talks to it on the compose network.
+    # Loopback only: the host's reverse proxy forwards the API domain here (websockets on).
     ports:
       - '127.0.0.1:3000:3000'
 
@@ -78,19 +79,11 @@ services:
     restart: unless-stopped
     depends_on:
       - server
-    environment:
-      APP_DOMAIN: ${APP_DOMAIN}
-      API_DOMAIN: ${API_DOMAIN}
+    # Plain HTTP on the host's loopback: the reverse proxy already on the server (which owns 80/443) forwards the app
+    # domain here and the API domain to 127.0.0.1:3000. Nothing in this stack binds 80 or 443.
     ports:
-      - '80:80'
-      - '443:443'
-      - '443:443/udp'
-    volumes:
-      - caddy-data:/data
-      - caddy-config:/config
+      - '127.0.0.1:${WEB_PORT:-8081}:80'
 
 volumes:
   mysql-data:
   images:
-  caddy-data:
-  caddy-config:
