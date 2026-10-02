@@ -37,6 +37,10 @@ services:
       DATABASE_URL: mysql://dozari:${MYSQL_PASSWORD}@mysql:3306/dozari
 
   server:
+    # Same build as `migrate` (cached): a service with only `image:` would make compose try to pull it.
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.server
     image: dozari-server
     restart: unless-stopped
     depends_on:
