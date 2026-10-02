@@ -905,12 +905,12 @@ export const cannedTaunts = mysqlTable(
   (table) => ({ byCategory: index('canned_taunts_category_idx').on(table.categoryId, table.sortOrder) }),
 );
 
-/** One row per chat message. `roomKey` is the city id for the city room, the match id for a duel, `all` for the global room. Kept 30 days for moderation. */
+/** One row per chat message. `roomKey` is the city id for the city room, the match id for a duel, `all` for the global room, the two user ids sorted and joined by `:` for a friends' private chat. Kept 30 days for moderation. */
 export const chatMessages = mysqlTable(
   'chat_messages',
   {
     id: id(),
-    room: mysqlEnum('room', ['city', 'match', 'global']).notNull(),
+    room: mysqlEnum('room', ['city', 'match', 'global', 'dm']).notNull(),
     roomKey: varchar('room_key', { length: 64 }).notNull(),
     userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
     kind: mysqlEnum('kind', ['text', 'taunt', 'table']).notNull(),

@@ -14,6 +14,7 @@ import { registerDailyRewardRoutes } from './economy/routes.js';
 import { AuthService } from './auth/service.js';
 import { createDbUserRepository } from './auth/db-repository.js';
 import { attachGateway } from './realtime/gateway.js';
+import { Presence } from './realtime/presence.js';
 import type { Gateway } from './realtime/gateway.js';
 import type { MatchDeps } from './realtime/match-service.js';
 import { PlayerService, rulesFromSettings } from './player/service.js';
@@ -136,6 +137,10 @@ export interface ServerDeps {
   live?: { matches?: MatchService; queue?: DuelQueue };
   /** Bot players: reacts to the events pushed to bot accounts (needs the gateway). */
   botDriver?: BotDriver;
+  /** Live-socket tracker shared by the gateway and the friends list. */
+  presence?: Presence;
+  /** Bale outbox, used to nudge an offline friend about a table invite. */
+  notify?: NotifyService;
   /** Admin message center; its in-app channel feeds `GET /inbox`. */
   messages?: MessageCenter;
   /** Public profiles, friend requests and the gender setting. */
@@ -244,7 +249,13 @@ export function buildServer(deps: ServerDeps = {}) {
       return { active: live.matches?.inMatch(user.id) ?? false };
     });
   }
-  if (deps.auth && deps.tables) registerTableRoutes(app, deps.auth, deps.tables, deps.chat ? async (u, code, label) => { const r = await deps.chat!.sendCity(u, { kind: 'table', code, label }); return r.ok ? { ok: true } : { ok: false, error: r.error }; } : undefined);
+  if (deps.auth && deps.tables) registerTableRoutes(app, deps.auth, deps.tables, deps.chat ? async (u, code, label) => { const r = await deps.chat!.sendCity(u, { kind: 'table', code, label }); return r.ok ? { ok: true } : { ok: false, error: r.error }; } : undefined, deps.chat ? async (host, friendId, t) => {
+    const r = await deps.chat!.sendDm(host, friendId, { kind: 'table', code: t.code, label: `${t.icon}|${t.name}` });
+    if (!r.ok) return { ok: false, error: r.error };
+    const online = deps.presence?.isOnline(friendId) ?? false;
+    if (!online) void deps.notify?.notify(friendId, 'table_invite', BALE_TEXT.tableInvite(r.message.nickname)).catch(() => undefined);
+    return { ok: true, online };
+  } : undefined);
   if (deps.solo) registerSoloRoutes(app, deps.solo, deps.auth, deps.hints, deps.limiter);
   if (deps.auth && deps.shop) registerShopRoutes(app, deps.auth, deps.shop);
   if (deps.auth && deps.levelRoad) registerRoadRoutes(app, deps.auth, deps.levelRoad);
@@ -252,7 +263,7 @@ export function buildServer(deps: ServerDeps = {}) {
   let gateway: Gateway | undefined;
   if (deps.auth && deps.realtime) {
     const auth = deps.auth;
-    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin: deps.corsOrigin, match: deps.match, canAfford: deps.duelStakes ? (u) => deps.duelStakes!.canQueue(u) : undefined, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, limit: deps.limiter ? { canPlay: async (u) => (await deps.limiter!.check(u, 'duel')).ok, onStarted: (u) => deps.limiter!.record(u, 'duel') } : undefined, chat: deps.chat, onEmit: deps.botDriver ? (u, e, p) => deps.botDriver!.onEmit(u, e, p) : undefined });
+    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin: deps.corsOrigin, match: deps.match, canAfford: deps.duelStakes ? (u) => deps.duelStakes!.canQueue(u) : undefined, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, limit: deps.limiter ? { canPlay: async (u) => (await deps.limiter!.check(u, 'duel')).ok, onStarted: (u) => deps.limiter!.record(u, 'duel') } : undefined, chat: deps.chat, presence: deps.presence, onEmit: deps.botDriver ? (u, e, p) => deps.botDriver!.onEmit(u, e, p) : undefined });
     if (deps.live) {
       deps.live.matches = gateway.matches;
       deps.live.queue = gateway.queue;
@@ -301,6 +312,7 @@ if (isMainModule(import.meta.url)) {
   if (db && !jwtSecret) throw new Error('JWT_SECRET is required in production');
   const auth = db && jwtSecret ? new AuthService(createDbUserRepository(db), createTokenSigner(jwtSecret)) : undefined;
   const settings = db ? new SettingsService(createDbSettingsStore(db)) : undefined;
+  const presence = new Presence();
   const baleToken = process.env.BALE_BOT_TOKEN;
   const baleUsername = process.env.BALE_BOT_USERNAME?.replace(/^@/, '') ?? null;
   const baleClient = baleToken ? createBaleClient(baleToken, { base: process.env.BALE_API_BASE }) : null;
@@ -344,6 +356,7 @@ if (isMainModule(import.meta.url)) {
         },
         player,
         badges,
+        (id) => presence.isOnline(id),
       )
     : undefined;
   const messages = db ? new MessageCenter(createDbMessageStore(db), notify ?? null) : undefined;
@@ -364,6 +377,7 @@ if (isMainModule(import.meta.url)) {
           isActivated: (id) => inviteStore.isActivated(id),
           mute: (id) => badges.isMuted(id),
           hasContactPerk: (id) => badges.hasPerk(id, 'share_contact'),
+          areFriends: async (a, b) => (await socialStore.pair(a, b))?.status === 'accepted',
           rules: () => chatRulesFromSettings(settings),
           filter: words,
         })
@@ -492,6 +506,8 @@ if (isMainModule(import.meta.url)) {
     daily,
     live,
     botDriver,
+    presence,
+    notify,
     messages,
     social,
     invite,

@@ -1,3 +1,4 @@
+import { OnlineDot } from '../components/OnlineDot';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { PlayerProfile } from '@dozari/shared';
@@ -39,7 +40,10 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
         {p ? (
           <>
             <Avatar avatar={avatarOf(p.avatarKey)} size={96} />
-            <Text style={styles.name}>{p.nickname}{p.badges.badge ? ` · ${p.badges.badge.titleFa}` : ''}</Text>
+            <View style={styles.nameRow}>
+              {p.isMe ? null : <OnlineDot online={p.online} />}
+              <Text style={styles.name}>{p.nickname}{p.badges.badge ? ` · ${p.badges.badge.titleFa}` : ''}</Text>
+            </View>
             <View style={styles.stats}>
               <Text style={styles.stat}>{fa.player.level} {toPersianDigits(String(p.level))}</Text>
               <Text style={styles.stat}>{fa.player.coins} {toPersianDigits(String(p.coins))}</Text>
@@ -82,6 +86,7 @@ const styles = StyleSheet.create({
   city: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,8,32,0.55)', alignItems: 'center', justifyContent: 'center', padding: 24 },
   sheet: { width: '100%', maxWidth: 360, backgroundColor: colors.cream, borderWidth: 3, borderColor: INK, borderRadius: 24, padding: 16, gap: 10, alignItems: 'center' },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   name: { fontFamily: fonts.display, fontSize: 24, color: INK },
   stats: { gap: 2, alignItems: 'center' },
   stat: { fontFamily: fonts.bold, fontSize: 14, color: INK },

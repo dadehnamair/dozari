@@ -9,7 +9,9 @@ import { fa } from '../i18n/fa';
 import { ApiError } from '../net/http';
 import { avatarOf } from '../social/avatarOf';
 import { colors, fonts } from '../theme/colors';
-import { createTable, extendTable, fetchMyTable, fetchTable, joinTable, kickFromTable, leaveTable, setTableLocked, setTableReady, startTable } from './api';
+import { fetchFriends } from '../social/api';
+import { OnlineDot } from '../components/OnlineDot';
+import { createTable, inviteToTable, extendTable, fetchMyTable, fetchTable, joinTable, kickFromTable, leaveTable, setTableLocked, setTableReady, startTable } from './api';
 
 const INK = '#3A2418';
 const errText = (e: unknown) => fa.tables.errors[e instanceof ApiError ? e.code : 'generic'] ?? fa.tables.errors.generic ?? '';
@@ -76,6 +78,7 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
                   ) : null}
                 </View>
               ))}
+              {table.youAreHost && !table.inMatch && table.players.length < table.seats ? <InviteFriends onNote={setNote} /> : null}
               <Text style={styles.hint}>{fa.tables.friendly}</Text>
               {note ? <Text style={styles.warn}>{note}</Text> : null}
               {table.youAreHost ? (
@@ -145,7 +148,42 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
   );
 }
 
+/** Host-only: the friends list with online dots and an invite button each (a join card in their private chat; offline friends get a Bale nudge). */
+function InviteFriends({ onNote }: { onNote: (text: string | null) => void }) {
+  const [friends, setFriends] = useState<{ id: string; nickname: string; avatarKey: string; online: boolean }[] | null>(null);
+  const [sent, setSent] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    void fetchFriends().then((f) => setFriends([...f.friends].sort((a, b) => Number(b.online) - Number(a.online))), () => setFriends([]));
+  }, []);
+  const invite = (id: string) =>
+    inviteToTable(id).then(
+      (r) => (setSent((s) => new Set(s).add(id)), onNote(r.online ? fa.tables.inviteOnline : fa.tables.inviteOffline)),
+      (e) => onNote(errText(e)),
+    );
+  return (
+    <View style={styles.invites}>
+      <Text style={styles.label}>{fa.tables.inviteTitle}</Text>
+      {friends && friends.length === 0 ? <Text style={styles.hint}>{fa.tables.inviteNoFriends}</Text> : null}
+      {friends?.map((f) => (
+        <View key={f.id} style={styles.row}>
+          <View>
+            <Avatar avatar={avatarOf(f.avatarKey)} size={32} />
+            <View style={styles.dotPos}><OnlineDot online={f.online} size={12} /></View>
+          </View>
+          <Text style={styles.name} numberOfLines={1}>{f.nickname}</Text>
+          <Pressable onPress={() => void invite(f.id)} disabled={sent.has(f.id)} style={[styles.pill, sent.has(f.id) ? styles.pillDone : null]} accessibilityRole="button">
+            <Text style={styles.pillText}>{sent.has(f.id) ? '✓' : fa.tables.invite}</Text>
+          </Pressable>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  invites: { gap: 6 },
+  dotPos: { position: 'absolute', bottom: -2, right: -2 },
+  pillDone: { opacity: 0.5 },
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,8,32,0.55)', alignItems: 'center', justifyContent: 'center', padding: 16 },
   sheet: { width: '100%', maxWidth: 420, maxHeight: '90%', backgroundColor: colors.cream, borderWidth: 3, borderColor: INK, borderRadius: 24, padding: 14, gap: 8, alignItems: 'center' },
   title: { fontFamily: fonts.display, fontSize: 22, color: INK },

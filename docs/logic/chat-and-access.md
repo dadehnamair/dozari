@@ -87,3 +87,9 @@ tabs wait for those features.
 ## City dialect phrases (owner item 9, D88)
 
 A canned-taunt category may be tied to a city (`taunt_categories.city_id`, null = everyone). `GET /chat/taunts` returns general categories plus the caller's own city's; sending a taunt of another city's category is refused (`UNKNOWN_TAUNT`). Admin sets the city per category in «کل‌کل‌های آماده». Phrases themselves are content the owner writes there.
+
+
+## Private chat between friends (D115)
+
+Room `dm`, `roomKey` = the two user ids sorted and joined by `:`. Only accepted friends may read or write (`NOT_FRIENDS` otherwise). Text follows the normal rules (activation, filter, contact-info block, mute, rate limit); a `table` card (code + icon + name) needs no activation. Both players get the message live; history is polled.
+Presence (`online` on friends and profiles) = the player has at least one live socket.

@@ -74,6 +74,8 @@ export const playerProfileSchema = z.object({
   memberSince: z.number().int(),
   relation: friendRelationSchema,
   isMe: z.boolean(),
+  /** Has the app open right now (a live socket). */
+  online: z.boolean().default(false),
 });
 export type PlayerProfile = z.infer<typeof playerProfileSchema>;
 
@@ -97,5 +99,5 @@ export type MyProfile = z.infer<typeof myProfileSchema>;
 
 const playerRow = z.object({ id: z.string().uuid(), nickname: z.string(), avatarKey: z.string() });
 /** `GET /friends`: accepted friends and requests waiting for the caller's answer. */
-export const friendsSchema = z.object({ friends: z.array(playerRow), incoming: z.array(playerRow) });
+export const friendsSchema = z.object({ friends: z.array(playerRow.extend({ online: z.boolean().default(false) })), incoming: z.array(playerRow) });
 export type Friends = z.infer<typeof friendsSchema>;

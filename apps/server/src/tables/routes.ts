@@ -11,7 +11,7 @@ const codeParam = z.object({ code: z.string().min(3).max(12) });
 const targetBody = z.object({ userId: z.string().uuid() });
 
 /** Player side of private tables. Polling `GET /tables/:code` keeps the screen current; the match itself starts through the socket (`match:found`). */
-export function registerTableRoutes(app: FastifyInstance, auth: AuthService, tables: TableService, share?: (userId: string, code: string, label: string) => Promise<{ ok: true } | { ok: false; error: string }>) {
+export function registerTableRoutes(app: FastifyInstance, auth: AuthService, tables: TableService, share?: (userId: string, code: string, label: string) => Promise<{ ok: true } | { ok: false; error: string }>, invite?: (host: string, friendId: string, table: { code: string; icon: string; name: string }) => Promise<{ ok: true; online: boolean } | { ok: false; error: string }>) {
   const fail = (reply: FastifyReply, error: TableError) => reply.code(STATUS[error]).send({ error });
 
   app.post('/tables', async (req, reply) => {
@@ -55,6 +55,20 @@ export function registerTableRoutes(app: FastifyInstance, auth: AuthService, tab
     if (!share) return reply.code(503).send({ error: 'OFF' });
     const out = await share(user.id, t.code, `${t.icon}|${t.name}`);
     return out.ok ? { ok: true } : reply.code(out.error === 'RATE_LIMITED' ? 429 : out.error === 'MUTED' ? 403 : out.error === 'NO_CITY' ? 409 : 400).send({ error: out.error });
+  });
+
+  // The host invites one friend: a join card in their private chat (live when online, a Bale nudge when not).
+  app.post('/tables/invite', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    const body = z.object({ userId: z.string().uuid() }).safeParse(req.body);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    if (!body.success) return reply.code(400).send({ error: 'invalid_request' });
+    const t = await tables.mine(user.id);
+    if (!t || !t.youAreHost) return fail(reply, 'NOT_HOST');
+    if (!invite) return reply.code(503).send({ error: 'OFF' });
+    const out = await invite(user.id, body.data.userId, { code: t.code, icon: t.icon, name: t.name });
+    if (out.ok) return { ok: true, online: out.online };
+    return reply.code(out.error === 'RATE_LIMITED' ? 429 : out.error === 'NOT_FRIENDS' || out.error === 'MUTED' ? 403 : 400).send({ error: out.error });
   });
 
   // Actions on the table the caller sits at.

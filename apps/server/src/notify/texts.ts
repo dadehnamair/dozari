@@ -14,6 +14,7 @@ export const BALE_TEXT = {
   statusLinked: 'به حسابت وصل هستی ✅',
   dailyReady: 'جایزه‌ی روزانه‌ات آماده است 🎁 بیا بگیرش!',
   friendRequest: (nickname: string) => `${nickname} برایت درخواست دوستی فرستاد 🤝 در بازی جوابش را بده.`,
+  tableInvite: (nickname: string) => `${nickname} تو را به یک میز دعوت کرد 🎲 بیا بازی کنیم!`,
   matchWon: (reason: string) => `بازی را بردی 🏆 ${reason}`,
   matchLost: (reason: string) => `این بار باختی. ${reason}`,
   matchDraw: 'بازی مساوی شد.',

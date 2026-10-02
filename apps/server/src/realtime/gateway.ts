@@ -30,6 +30,8 @@ export interface GatewayOptions {
   chat?: ChatService;
   /** Sees every event pushed to any user (used to let bot accounts react); must not throw. */
   onEmit?: (userId: string, event: string, payload: unknown) => void;
+  /** Receives every socket connect and disconnect, so friends can show who is online. */
+  presence?: Presence;
 }
 
 export interface Gateway {
@@ -39,6 +41,8 @@ export interface Gateway {
   matches?: MatchService;
   close(): Promise<void>;
 }
+
+import type { Presence } from './presence.js';
 
 const room = (userId: string) => `user:${userId}`;
 
@@ -93,6 +97,7 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
   io.on('connection', (socket: Socket) => {
     const userId = socket.data.userId as string;
     stats.connected();
+    opts.presence?.connect(userId);
     // A flooding client is cut off: 60 events per 10 seconds per connection.
     const flood = new RateLimiter(60, 10_000, now);
     socket.use((_packet, next) => {
@@ -160,6 +165,7 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
 
     socket.on('disconnect', async () => {
       stats.disconnected();
+      opts.presence?.disconnect(userId);
       // Leave the line only when this was the player's last open connection.
       const left = await io.in(room(userId)).fetchSockets();
       if (left.length === 0) leaveQueue(userId);

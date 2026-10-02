@@ -62,6 +62,7 @@ describe('chat', () => {
       isActivated: async (id) => state.activated.has(id),
       mute: async (id) => (state.muted.has(id) ? { until: state.muted.get(id)!, reason: 'تست' } : null),
       hasContactPerk: async (id) => state.perk.has(id),
+      areFriends: async (a, b) => (await socialStore.pair(a, b))?.status === 'accepted',
       rules: async () => ({ maxLen: 40, textNeedsActivation: opts.needsActivation ?? true, enabled: true, globalEnabled: true }),
       filter: new TextFilterService(wordStore(['بد'])),
     });
@@ -82,7 +83,7 @@ describe('chat', () => {
       return s;
     };
     const send = (u: { h: Record<string, string> }, payload: Record<string, unknown>) => app.inject({ method: 'POST', url: '/chat/city', headers: u.h, payload });
-    return { app, login, inCity, dial, send, state, store, players };
+    return { app, login, inCity, dial, send, state, store, players, socialStore };
   }
 
   it('lists the canned taunts by category', async () => {
@@ -91,6 +92,26 @@ describe('chat', () => {
     const t = tauntsSchema.parse((await app.inject({ method: 'GET', url: '/chat/taunts', headers: a.h })).json());
     expect(t.categories.map((c) => c.nameFa)).toContain('سربه‌سر');
     expect(t.categories.every((c) => c.taunts.length > 0)).toBe(true);
+  });
+
+  it('friends chat privately; strangers cannot, and the other friend sees it live', async () => {
+    const { app, login, dial, socialStore } = await boot({ needsActivation: false });
+    const a = await login(1);
+    const b = await login(2);
+    const c = await login(3);
+    const send = (from: typeof a, to: typeof a, text: string) => app.inject({ method: 'POST', url: `/chat/dm/${to.id}`, headers: from.h, payload: { kind: 'text', text } });
+    expect((await send(a, b, 'سلام')).json()).toEqual({ error: 'NOT_FRIENDS' });
+    expect((await app.inject({ method: 'GET', url: `/chat/dm/${b.id}`, headers: a.h })).statusCode).toBe(403);
+    await socialStore.createRequest(a.id, b.id);
+    await socialStore.accept(b.id, a.id, 1);
+    const live = new Promise<{ text: string }>((resolve) => dial(b.token).on('chat:message', resolve));
+    await new Promise((r) => setTimeout(r, 100));
+    expect((await send(a, b, 'سلام')).statusCode).toBe(200);
+    expect((await live).text).toBe('سلام');
+    const hist = (await app.inject({ method: 'GET', url: `/chat/dm/${a.id}`, headers: b.h })).json() as { messages: { text: string }[] };
+    expect(hist.messages.map((m) => m.text)).toEqual(['سلام']);
+    // A third player sees nothing of it.
+    expect((await app.inject({ method: 'GET', url: `/chat/dm/${a.id}`, headers: c.h })).statusCode).toBe(403);
   });
 
   it('a dialect category is offered and accepted only for players of its city', async () => {
