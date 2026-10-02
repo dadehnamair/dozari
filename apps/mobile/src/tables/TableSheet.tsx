@@ -14,7 +14,7 @@ const INK = '#3A2418';
 const errText = (e: unknown) => fa.tables.errors[e instanceof ApiError ? e.code : 'generic'] ?? fa.tables.errors.generic ?? '';
 
 /** «میز اختصاصی»: create a table or enter one by its code, then wait for the guest and start a duel. `initialCode` opens a shared table. */
-export function TableSheet({ onClose, initialCode, onShare }: { onClose: () => void; initialCode?: string; onShare?: (table: TableView) => Promise<void> }) {
+export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose: () => void; initialCode?: string; /** The table's match started: open the duel board. */ onMatch?: () => void; onShare?: (table: TableView) => Promise<void> }) {
   const [table, setTable] = useState<TableView | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [name, setName] = useState('');
@@ -35,6 +35,12 @@ export function TableSheet({ onClose, initialCode, onShare }: { onClose: () => v
     const timer = setInterval(refresh, 2500);
     return () => clearInterval(timer);
   }, [table, refresh]);
+
+  // Both players are taken to the board as soon as the host starts the match.
+  const started = table?.inMatch && table.youAreIn;
+  useEffect(() => {
+    if (started) onMatch?.();
+  }, [started, onMatch]);
 
   const run = (fn: () => Promise<unknown>) => fn().then(() => (setNote(null), refresh()), (e) => (setNote(errText(e)), refresh()));
   const enter = (c: string) => {

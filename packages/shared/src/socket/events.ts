@@ -70,7 +70,8 @@ export type Ack = z.infer<typeof ackSchema>;
 
 export const queueJoinSchema = z.object({ mode: z.literal('duel') });
 export const matchSubmitSchema = z.object({ itemIds: z.array(z.string().min(1).max(64)).length(4) });
-export const matchResumeSchema = z.object({ matchId: z.string().uuid() });
+/** Without a match id the server resumes whatever match the player is in (e.g. one a private table started). */
+export const matchResumeSchema = z.object({ matchId: z.string().uuid().optional() });
 
 export type QueueJoin = z.infer<typeof queueJoinSchema>;
 export type MatchSubmit = z.infer<typeof matchSubmitSchema>;
