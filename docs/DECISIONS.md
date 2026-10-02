@@ -368,3 +368,7 @@ Private tables gain `format: '2v2'` (four seats, teams of two, host starts when 
 ## D143 — 2v2 plays three boards (2026-10-02, proposed)
 
 Owner's idea: a team match should last longer, so instead of one 16-card pack the teams solve three. Built as a series of boards in one match: scores add up, mistakes/lock-outs reset per board, the other side opens each next board, forfeit ends everything. The count is the admin setting `match.team_boards` (default 3). Proposed details to confirm: first-blood bonus only on the first board; the result screen shows only the last board's solution (a per-board recap is not built); no coin prize in 2v2 yet, so a longer match carries no extra payout.
+
+## D144 — The opponent-search grid shows real online players, topped up with bots (2026-10-02, proposed)
+
+Owner: the search screen should pull from online players, or from bots when few. Built as `GET /duel/candidates` (public fields only, no flags); see `logic/matchmaking.md` §Opponent-search show. Proposed: a player's nickname/avatar/level may appear in strangers' search grids while they are online (same fields any opponent sees at match time); the grid is cosmetic and not tied to who the queue pairs.

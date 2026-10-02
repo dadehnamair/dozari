@@ -12,6 +12,11 @@ export class Presence {
     else this.open.delete(userId);
   }
 
+  /** Everyone with a live socket right now. */
+  onlineIds(): string[] {
+    return [...this.open.keys()];
+  }
+
   isOnline(userId: string): boolean {
     return this.open.has(userId);
   }

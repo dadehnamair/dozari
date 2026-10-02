@@ -54,6 +54,7 @@ import { createDbPhoneStore } from './phone/store.js';
 import { registerInviteRoutes } from './invite/routes.js';
 import { InviteService, inviteRulesFromSettings } from './invite/service.js';
 import { createDbInviteStore } from './invite/store.js';
+import { registerCandidateRoutes } from './realtime/candidates.js';
 import { createDbProfileLookup } from './realtime/profile.js';
 import { AccountDeletion, createDbDeleteCodeStore } from './account/deletion.js';
 import { registerAuthRoutes } from './auth/routes.js';
@@ -240,6 +241,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.messages) registerInboxRoutes(app, deps.auth, deps.messages);
   if (deps.auth && deps.phone) registerPhoneRoutes(app, deps.auth, deps.phone);
   if (deps.phoneLogin) registerPhoneLoginRoutes(app, deps.phoneLogin);
+  if (deps.auth && deps.match && deps.presence) registerCandidateRoutes(app, deps.auth, { online: () => deps.presence!.onlineIds(), bots: () => deps.botDriver?.rosterIds() ?? [], profile: deps.match.profile });
   if (deps.auth && deps.find) registerFindRoutes(app, deps.auth, deps.find);
   if (deps.auth && deps.ledger) registerLedgerRoutes(app, deps.auth, deps.ledger);
   if (deps.auth && deps.badges) registerBadgeRoutes(app, deps.auth, deps.badges);

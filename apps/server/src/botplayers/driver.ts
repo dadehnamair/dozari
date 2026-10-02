@@ -52,6 +52,11 @@ export class BotDriver {
     this.roster = new Map((await this.deps.store.active()).map((b) => [b.userId, b]));
   }
 
+  /** Ids of the active bot accounts (for the opponent-search show). */
+  rosterIds(): string[] {
+    return [...this.roster.keys()];
+  }
+
   isBot(userId: string): boolean {
     return this.roster.has(userId);
   }

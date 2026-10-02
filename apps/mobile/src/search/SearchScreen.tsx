@@ -8,7 +8,10 @@ import { DiamondBackground } from '../components/DiamondBackground';
 import { Character } from '../components/Character';
 import { fa } from '../i18n/fa';
 import { candyTone, colors, fonts } from '../theme/colors';
-import { cellLevel, nextScan, searchClock, waitClock } from './scan';
+import { characterFor } from '../duel/arena';
+import { fetchCandidates } from '../duel/api';
+import { facesFor, nextScan, searchClock, waitClock } from './scan';
+import type { Face } from './scan';
 import { safeTop } from '../theme/safeArea';
 
 // `direction` is not accepted inside StyleSheet.create by react-native-web's dev validation.
@@ -75,7 +78,7 @@ function Title() {
   );
 }
 
-function PlayerCard({ index, active }: { index: number; active: boolean }) {
+function PlayerCard({ index, active, face }: { index: number; active: boolean; face: Face }) {
   const tone = toneOfCell(index);
   const scale = useRef(new Animated.Value(1)).current;
   useEffect(() => {
@@ -100,19 +103,20 @@ function PlayerCard({ index, active }: { index: number; active: boolean }) {
     >
       <View style={styles.face}>
         <Character
+          who={face.avatarKey ? characterFor(face.avatarKey) : undefined}
           pose={
             (['idle', 'wave', 'cheer', 'thinking', 'shocked', 'blink', 'win', 'sleeping'] as const)[
               index % 8
             ]
           }
-          skin={index % 7}
+          skin={face.avatarKey ? undefined : index % 7}
           crop="face"
           wobble={false}
         />
       </View>
-      <Text style={styles.level}>{formatPersianNumber(cellLevel(index))}</Text>
+      <Text style={styles.level}>{formatPersianNumber(face.level)}</Text>
       <Text style={styles.name} numberOfLines={1}>
-        {fa.kit.search.players[index]}
+        {face.name}
       </Text>
       {active ? <View style={styles.shine} /> : null}
     </Animated.View>
@@ -126,6 +130,18 @@ function PlayerCard({ index, active }: { index: number; active: boolean }) {
 export function SearchScreen({ onCancel, waitedSec }: { onCancel: () => void; waitedSec?: number }) {
   const [scan, setScan] = useState(0);
   const [ticks, setTicks] = useState(0);
+  const [faces, setFaces] = useState<Face[]>(() => facesFor([], fa.kit.search.players));
+  // Real online players (and bots when few) take the grid's places; refreshed now and then while waiting.
+  useEffect(() => {
+    let alive = true;
+    const load = () => void fetchCandidates().then((c) => alive && c.length > 0 && setFaces(facesFor(c, fa.kit.search.players)));
+    load();
+    const id = setInterval(load, 12_000);
+    return () => {
+      alive = false;
+      clearInterval(id);
+    };
+  }, []);
   const pulse = useRef(new Animated.Value(1)).current;
   const spin = useRef(new Animated.Value(0)).current;
 
@@ -185,7 +201,7 @@ export function SearchScreen({ onCancel, waitedSec }: { onCancel: () => void; wa
               ]}
             >
               {[0, 1, 2, 3].map((k) => (
-                <PlayerCard key={k} index={r * 4 + k} active={r * 4 + k === scan} />
+                <PlayerCard key={k} index={r * 4 + k} active={r * 4 + k === scan} face={faces[r * 4 + k] as Face} />
               ))}
             </View>
           ))}
@@ -225,7 +241,7 @@ export function SearchScreen({ onCancel, waitedSec }: { onCancel: () => void; wa
               />
               <Text style={styles.unknown}>{s.unknown}</Text>
             </View>
-            <Text style={styles.sideName}>{s.players[scan]}</Text>
+            <Text style={styles.sideName}>{faces[scan]?.name}</Text>
           </View>
         </View>
         <View style={styles.cancel}>

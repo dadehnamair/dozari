@@ -22,3 +22,21 @@ export function searchClock(ticks: number, tickMs = 450): string {
   const seconds = Math.floor((ticks * tickMs) / 1000) % 60;
   return `0:${String(seconds).padStart(2, '0')}`;
 }
+
+/** One card of the search grid. `avatarKey` is null for a placeholder (nobody to show yet). */
+export interface Face {
+  name: string;
+  level: number;
+  avatarKey: string | null;
+}
+
+/**
+ * The 16 cards of the grid. Real faces (online players, topped up with bots by the server) repeat around the grid when
+ * there are fewer than 16; with none at all the design's placeholder names fill it.
+ */
+export function facesFor(candidates: readonly { nickname: string; avatarKey: string; level: number }[], placeholders: readonly string[]): Face[] {
+  return Array.from({ length: SEARCH_CELLS }, (_, i) => {
+    const c = candidates.length > 0 ? candidates[i % candidates.length] : undefined;
+    return c ? { name: c.nickname, level: c.level, avatarKey: c.avatarKey } : { name: placeholders[i] ?? '', level: cellLevel(i), avatarKey: null };
+  });
+}
