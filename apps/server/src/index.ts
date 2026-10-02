@@ -20,6 +20,10 @@ import { createDbPlayerStore } from './player/store.js';
 import { registerTransferRoutes } from './transfers/routes.js';
 import { TransferService, transferRulesFromSettings } from './transfers/service.js';
 import { createDbTransferStore } from './transfers/store.js';
+import { registerFindRoutes } from './find/routes.js';
+import { FindService } from './find/service.js';
+import { createShortener } from './find/shortener.js';
+import { createDbFindStore } from './find/store.js';
 import { registerPhoneRoutes } from './phone/routes.js';
 import { PhoneService, phoneRulesFromSettings } from './phone/service.js';
 import { createKavenegarClient } from './phone/sms.js';
@@ -90,6 +94,8 @@ export interface ServerDeps {
   bale?: { service: NotifyService; botUsername: string | null };
   /** Mobile numbers (`/me/phone`); also required before Bale linking when the setting says so. */
   phone?: PhoneService;
+  /** Public ID, search, contacts, invite link; needs `auth`. */
+  find?: FindService;
   /** Admin message center; its in-app channel feeds `GET /inbox`. */
   messages?: MessageCenter;
   /** Public profiles, friend requests and the gender setting. */
@@ -159,6 +165,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.transfers) registerTransferRoutes(app, deps.auth, deps.transfers);
   if (deps.auth && deps.messages) registerInboxRoutes(app, deps.auth, deps.messages);
   if (deps.auth && deps.phone) registerPhoneRoutes(app, deps.auth, deps.phone);
+  if (deps.auth && deps.find) registerFindRoutes(app, deps.auth, deps.find);
   if (deps.auth && deps.bale) {
     const phoneSvc = deps.phone;
     const settings = deps.settings;
@@ -249,6 +256,21 @@ if (isMainModule(import.meta.url)) {
   if (player && invite) player.afterGame = (id) => invite.settle(id);
   const socialStore = db ? createDbSocialStore(db) : undefined;
   const transfers = db && settings && socialStore && inviteStore ? new TransferService(createDbTransferStore(db), socialStore, () => transferRulesFromSettings(settings), async (id) => (player ? (await player.levelOf(id)).level.level : 1), (id) => inviteStore.isActivated(id)) : undefined;
+  const find =
+    db && settings && socialStore
+      ? new FindService(
+          createDbFindStore(db),
+          socialStore,
+          async () => ({
+            inviteBase: await settings.text('link.invite_base'),
+            shortenerUrl: await settings.text('link.shortener_url'),
+            autoFriendHours: await settings.num('friend.link_auto_hours'),
+            autoFriendPerDay: await settings.num('friend.link_auto_per_day'),
+          }),
+          createShortener(),
+          () => randomInt(0, 2 ** 30) / 2 ** 30,
+        )
+      : undefined;
   const levelOf = async (id: string) => (player ? (await player.levelOf(id)).level.level : 1);
   const shopStore = db ? createDbShopStore(db) : undefined;
   const solo = db && settings ? new SoloService(createDbPuzzleSource(db), { rules: () => soloRules(settings), onFinished: (id, outcome) => void player?.recordGame(id, { mode: 'solo', outcome }) }) : undefined;
@@ -283,6 +305,7 @@ if (isMainModule(import.meta.url)) {
       : undefined,
     bale: notify ? { service: notify, botUsername: baleUsername } : undefined,
     phone,
+    find,
     messages,
     social,
     invite,

@@ -1,5 +1,5 @@
-import { citiesSchema, friendsSchema, myProfileSchema, playerProfileSchema } from '@dozari/shared';
-import type { City, Friends, Gender, MyProfile, PlayerProfile } from '@dozari/shared';
+import { citiesSchema, friendsSchema, myFindSchema, myProfileSchema, playerProfileSchema, searchResultSchema } from '@dozari/shared';
+import type { City, Friends, FoundPlayer, Gender, MyFind, MyProfile, PlayerProfile } from '@dozari/shared';
 import { session } from '../auth';
 import { callJson } from '../net/http';
 
@@ -17,3 +17,7 @@ export const fetchCities = (): Promise<City[]> => authed('/cities', 'GET', (v) =
 export const saveCity = (cityId: string | null): Promise<void> => authed('/me/city', 'PUT', () => undefined, { cityId });
 export const saveEmail = (email: string | null): Promise<void> => authed('/me/email', 'PUT', () => undefined, { email });
 export const saveNickname = (nickname: string): Promise<string> => authed('/me/nickname', 'PUT', (v) => String((v as { nickname: unknown }).nickname), { nickname });
+export const fetchMyFind = (): Promise<MyFind> => authed('/me/find', 'GET', (v) => myFindSchema.parse(v));
+export const saveFindable = (findableByPhone: boolean): Promise<MyFind> => authed('/me/find', 'PUT', (v) => myFindSchema.parse(v), { findableByPhone });
+export const searchPlayer = (q: string): Promise<FoundPlayer | null> => authed(`/players/search?q=${encodeURIComponent(q)}`, 'GET', (v) => searchResultSchema.parse(v).player);
+export const friendByLink = (handle: string): Promise<{ status: string }> => authed('/friends/link', 'POST', (v) => v as { status: string }, { handle });

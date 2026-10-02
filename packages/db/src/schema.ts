@@ -281,6 +281,10 @@ export const users = mysqlTable(
     chatUnlockedAt: datetime('chat_unlocked_at', { mode: 'date', fsp: 3 }),
     /** Home city (a row of `cities`), optional; shown on the profile and used for the city room. */
     cityId: char('city_id', { length: 36 }),
+    /** Public ID others can search for (exact match). */
+    handle: varchar('handle', { length: 12 }),
+    /** May a player who knows my verified phone number find me? Default yes; never shows the number. */
+    findableByPhone: boolean('findable_by_phone').notNull().default(true),
     /** Verified mobile number as +989XXXXXXXXX (unique). Set only after Bale contact or SMS verification. */
     phone: varchar('phone', { length: 16 }),
     phonePending: varchar('phone_pending', { length: 16 }),
@@ -298,6 +302,7 @@ export const users = mysqlTable(
   (table) => ({
     deviceUnique: uniqueIndex('users_device_id_idx').on(table.deviceId),
     phoneUnique: uniqueIndex('users_phone_idx').on(table.phone),
+    handleUnique: uniqueIndex('users_handle_idx').on(table.handle),
   }),
 );
 
