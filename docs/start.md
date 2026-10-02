@@ -92,6 +92,8 @@ If the app says «اتصال به سرور برقرار نشد», it prints the 
 `/health` opens in a browser → `CORS_ORIGIN` is set and the server was restarted (web only) →
 LAN IP/firewall (phone only).
 
+> Putting the game on a real server: `docs/deploy.md` (production compose, https, migrations, backups).
+
 ### Install as an app (PWA)
 
 The web build is an installable PWA (D98). Installing needs **https** (or `localhost`); over a plain

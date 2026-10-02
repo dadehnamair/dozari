@@ -1,0 +1,92 @@
+# Production stack: MySQL (private), the game server, and Caddy (https, web app, API proxy).
+#   cp deploy/.env.example .env.prod  &&  edit it
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+# Steps and upkeep: docs/deploy.md
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: dozari
+      MYSQL_USER: dozari
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD}
+    command: ['--character-set-server=utf8mb4', '--collation-server=utf8mb4_unicode_ci']
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-udozari', '-p${MYSQL_PASSWORD}']
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    # No published ports: only the server reaches it, over the compose network.
+
+  # Applies the database migrations (safe to repeat) and exits; the server starts after it succeeds.
+  migrate:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.server
+    image: dozari-server
+    working_dir: /app/packages/db
+    command: ['pnpm', 'exec', 'tsx', 'src/migrate.ts']
+    restart: 'no'
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: mysql://dozari:${MYSQL_PASSWORD}@mysql:3306/dozari
+
+  server:
+    image: dozari-server
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: mysql://dozari:${MYSQL_PASSWORD}@mysql:3306/dozari
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET (32+ random chars)}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:?set ADMIN_TOKEN (long random value)}
+      CORS_ORIGIN: https://${APP_DOMAIN:?set APP_DOMAIN}
+      TRUST_PROXY: '1'
+      LOCAL_IMAGES_DIR: /data/images
+      LOCAL_IMAGES_PUBLIC_URL: https://${API_DOMAIN:?set API_DOMAIN}/images
+      BALE_BOT_TOKEN: ${BALE_BOT_TOKEN:-}
+      BALE_BOT_USERNAME: ${BALE_BOT_USERNAME:-}
+      IRNOTI_API_KEY: ${IRNOTI_API_KEY:-}
+      KAVENEGAR_API_KEY: ${KAVENEGAR_API_KEY:-}
+      KAVENEGAR_TEMPLATE: ${KAVENEGAR_TEMPLATE:-}
+    volumes:
+      - images:/data/images
+    # Published only to the host's loopback for debugging; Caddy talks to it on the compose network.
+    ports:
+      - '127.0.0.1:3000:3000'
+
+  web:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.web
+      args:
+        API_URL: https://${API_DOMAIN}
+    restart: unless-stopped
+    depends_on:
+      - server
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN}
+      API_DOMAIN: ${API_DOMAIN}
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  mysql-data:
+  images:
+  caddy-data:
+  caddy-config:
