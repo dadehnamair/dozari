@@ -51,7 +51,8 @@ static/cached recent-players sample, not a live query. Prototype: `prototype/scr
 
 `apps/server/src/tables/*` (in-memory like live matches), routes `POST /tables`, `GET /tables/mine|:code`, `POST /tables/:code/join`, `/tables/leave|start|ready|lock|extend|kick|share`; gate `feature.tables`; setting `table.idle_minutes`.
 Table = 1v1, name + emoji, optional "guest must be ready", host lock/kick/extend, the table stays for rematches, closes when idle. **Friendly only** (no entry fee, no payout) because duel coin escrow is not built;
-board difficulty and 2v2 are not built either. `share` posts a join card (`chat_messages.kind = 'table'`, text `CODE|emoji name`) into the host's city chat; tapping it opens the table.
+board difficulty and 2v2 are not built either. 2v2 tables (D142): `POST /tables {format:'2v2'}` makes a four-seat table; players get a team (0/1) on joining — the emptier team, on a tie the second, so a third joiner is the host's teammate — and `POST /tables/side {side}` moves a seated player to the other team when it has room (`FULL`, `NOT_TEAM` at a 1v1 table). The host starts when both teams have two players (`NEED_PLAYERS` otherwise; `requireReady` needs every guest ready); the match is `MatchService.startTeam`, friendly (no stakes). `TableView` carries `format`, per-player `side` and `isYou`.
+`share` posts a join card (`chat_messages.kind = 'table'`, text `CODE|emoji name`) into the host's city chat; tapping it opens the table.
 The app has no live duel board yet, so a started table match is only playable once the duel client exists.
 
 ## Reconnects & abandonment

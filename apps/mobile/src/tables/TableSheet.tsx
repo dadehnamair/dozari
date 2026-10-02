@@ -13,7 +13,7 @@ import { avatarOf } from '../social/avatarOf';
 import { colors, fonts } from '../theme/colors';
 import { fetchFriends } from '../social/api';
 import { OnlineDot } from '../components/OnlineDot';
-import { createTable, inviteToTable, extendTable, fetchMyTable, fetchTable, joinTable, kickFromTable, leaveTable, setTableLocked, setTableReady, startTable } from './api';
+import { createTable, inviteToTable, extendTable, fetchMyTable, fetchTable, joinTable, kickFromTable, leaveTable, setTableLocked, setTableReady, setTableSide, startTable } from './api';
 
 const INK = '#3A2418';
 const errText = (e: unknown) => fa.tables.errors[e instanceof ApiError ? e.code : 'generic'] ?? fa.tables.errors.generic ?? '';
@@ -28,6 +28,7 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
   /** Before sitting at a table: the two-choice menu, then the form of the chosen one. */
   const [mode, setMode] = useState<'menu' | 'make' | 'join'>(initialCode ? 'join' : 'menu');
   const [requireReady, setRequireReady] = useState(false);
+  const [format, setFormat] = useState<'1v1' | '2v2'>('1v1');
   const [code, setCode] = useState(initialCode ?? '');
 
   // Reopen the table the player already sits at; poll while one is open.
@@ -76,7 +77,10 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
                 <View key={p.id} style={styles.row}>
                   <Avatar avatar={avatarOf(p.avatarKey)} size={32} />
                   <Text style={styles.name}>{p.nickname}</Text>
-                  <Text style={styles.hint}>{p.isHost ? fa.tables.host : p.ready ? fa.tables.ready : ''}</Text>
+                  <Text style={styles.hint}>{table.format === '2v2' ? `${fa.tables.team(p.side + 1)} ` : ''}{p.isHost ? fa.tables.host : p.ready ? fa.tables.ready : ''}</Text>
+                  {table.format === '2v2' && p.isYou && !table.inMatch ? (
+                    <Pressable onPress={() => void run(() => setTableSide(p.side === 0 ? 1 : 0))} style={styles.pill} accessibilityRole="button"><Text style={styles.pillText}>{fa.tables.switchTeam}</Text></Pressable>
+                  ) : null}
                   {table.youAreHost && !p.isHost ? (
                     <Pressable onPress={() => void run(() => kickFromTable(p.id))} style={styles.pill} accessibilityRole="button"><Text style={styles.pillText}>{fa.tables.kick}</Text></Pressable>
                   ) : null}
@@ -93,7 +97,7 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
                   {onShare ? <CandyButton label={fa.tables.share} color={colors.candy.grape} onPress={() => void onShare(table).then(() => setNote(fa.tables.shared), (e) => setNote(errText(e)))} /> : null}
                 </>
               ) : table.requireReady ? (
-                <CandyButton label={table.players.find((p) => !p.isHost)?.ready ? fa.tables.notReady : fa.tables.imReady} color={colors.candy.lime} onPress={() => void run(() => setTableReady(!table.players.find((p) => !p.isHost)?.ready))} />
+                <CandyButton label={table.players.find((p) => p.isYou)?.ready ? fa.tables.notReady : fa.tables.imReady} color={colors.candy.lime} onPress={() => void run(() => setTableReady(!table.players.find((p) => p.isYou)?.ready))} />
               ) : null}
               <CandyButton label={fa.tables.leave} color={colors.candy.orange} onPress={() => ask({ title: fa.confirm.leaveTable.title, message: fa.confirm.leaveTable.message, confirmLabel: fa.confirm.leaveTable.yes, onConfirm: () => void leaveTable().then(() => setTable(null), () => setTable(null)) })} />
             </>
@@ -127,11 +131,19 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
                     </Pressable>
                   ))}
                 </View>
+                <Text style={styles.label}>{fa.tables.formatTitle}</Text>
+                <View style={styles.row}>
+                  {(['1v1', '2v2'] as const).map((f) => (
+                    <Pressable key={f} onPress={() => setFormat(f)} accessibilityRole="button" accessibilityState={{ selected: format === f }} style={[styles.pill, format === f ? { backgroundColor: colors.candy.lime } : null]}>
+                      <Text style={styles.pillText}>{f === '1v1' ? fa.tables.format1v1 : fa.tables.format2v2}</Text>
+                    </Pressable>
+                  ))}
+                </View>
                 <Pressable onPress={() => setRequireReady(!requireReady)} accessibilityRole="checkbox" accessibilityState={{ checked: requireReady }}>
                   <Text style={styles.hint}>{requireReady ? '☑' : '☐'} {fa.tables.requireReady}</Text>
                 </Pressable>
                 {note ? <Text style={styles.warn}>{note}</Text> : null}
-                <CandyButton label={fa.tables.create} color={colors.candy.lime} disabled={name.trim().length === 0} onPress={() => createTable({ name: name.trim(), icon: icon as (typeof TABLE_ICONS)[number], requireReady }).then((t) => (setNote(null), setTable(t)), (e) => setNote(errText(e)))} />
+                <CandyButton label={fa.tables.create} color={colors.candy.lime} disabled={name.trim().length === 0} onPress={() => createTable({ name: name.trim(), icon: icon as (typeof TABLE_ICONS)[number], requireReady, format }).then((t) => (setNote(null), setTable(t)), (e) => setNote(errText(e)))} />
                 <CandyButton label={fa.tables.back} color={colors.candy.sky} onPress={() => (setNote(null), setMode('menu'))} />
               </>
             ) : (

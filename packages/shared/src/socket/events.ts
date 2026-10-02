@@ -125,6 +125,8 @@ export const matchViewSchema = z.object({
   you: side,
   /** The viewer's own user id, to compare with `captain`. */
   youId: z.string().optional(),
+  /** True in a 2v2 (two players per side). */
+  team: z.boolean().optional(),
   cards: z.array(soloCardSchema),
   solved: z.array(matchSolvedGroupSchema),
   scores: z.tuple([z.number().int(), z.number().int()]),

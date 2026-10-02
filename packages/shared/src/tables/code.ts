@@ -10,6 +10,11 @@ export type TableIcon = (typeof TABLE_ICONS)[number];
 export const DEFAULT_TABLE_ICON: TableIcon = 'samovar';
 /** Seats of a 1v1 table. */
 export const TABLE_SEATS = 2;
+/** Seats of a 2v2 table (two per side). */
+export const TABLE_SEATS_TEAM = 4;
+export const TABLE_FORMATS = ['1v1', '2v2'] as const;
+export type TableFormat = (typeof TABLE_FORMATS)[number];
+export const seatsOfFormat = (f: TableFormat): number => (f === '2v2' ? TABLE_SEATS_TEAM : TABLE_SEATS);
 
 export function makeTableCode(rng: () => number): string {
   let out = '';

@@ -160,7 +160,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   const errorText = state.error ? fa.duel.errors[state.error] ?? fa.duel.errors.generic : null;
   const view = state.view;
   const players = state.found?.players;
-  const team = (players?.length ?? 0) > 2;
+  const team = (players?.length ?? 0) > 2 || view?.team === true;
 
   if (errorText && state.phase !== 'playing') {
     return (

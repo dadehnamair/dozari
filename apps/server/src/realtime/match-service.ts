@@ -225,6 +225,7 @@ export class MatchService {
       matchId: entry.id,
       you: v.you,
       youId: userId,
+      team: entry.state.players.length > 2,
       cards: v.cards.map((id) => ({ id, nameFa: info[id]?.nameFa ?? id, unitFa: info[id]?.unitFa ?? null, iconKey: info[id]?.iconKey ?? null })),
       solved: v.solved.map((g) => ({ level: g.level, titleFa: text.get(g.level)?.titleFa ?? '', explanationFa: text.get(g.level)?.explanationFa ?? '', productIds: [...g.productIds], by: g.by })),
       scores: [v.scores[0], v.scores[1]],

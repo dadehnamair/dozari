@@ -14,6 +14,7 @@ export const leaveTable = (): Promise<void> => authed('/tables/leave', 'POST', {
 export const startTable = (): Promise<void> => authed('/tables/start', 'POST', {}, nothing);
 export const setTableReady = (ready: boolean): Promise<void> => authed('/tables/ready', 'POST', { ready }, nothing);
 export const setTableLocked = (locked: boolean): Promise<void> => authed('/tables/lock', 'POST', { locked }, nothing);
+export const setTableSide = (side: 0 | 1): Promise<void> => authed('/tables/side', 'POST', { side }, nothing);
 export const shareTable = (): Promise<void> => authed('/tables/share', 'POST', {}, nothing);
 export const extendTable = (): Promise<void> => authed('/tables/extend', 'POST', {}, nothing);
 export const kickFromTable = (userId: string): Promise<void> => authed('/tables/kick', 'POST', { userId }, nothing);

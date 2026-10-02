@@ -360,3 +360,7 @@ Built the team flow of `logic/game-rules.md` §2v2: captain rotates every turn (
 ## D141 — Scheduled puzzle-pool top-up (2026-10-02, proposed)
 
 A timer keeps the puzzle pool at a target (default 30) using the D131 generator. Proposed default: it only fills the **draft** backlog so the admin still writes real titles and approves (the spec's "never auto-publish an un-reviewed title"); a setting `puzzles.autofill_auto_approve` lets the owner switch to publishing straight away with the rule text as title when the solo pool runs dry. Details: `logic/puzzle-generation.md` §Scheduled pool top-up.
+
+## D142 — 2v2 private tables (2026-10-02, proposed)
+
+Private tables gain `format: '2v2'` (four seats, teams of two, host starts when teams are 2+2). Friends choose their team by switching sides; free (no stakes), like all tables for now. A party of 2 joining the public 2v2 queue together is not built; friends who want to play together use a table.

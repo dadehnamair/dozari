@@ -142,7 +142,7 @@ human opponent is found.
 ## Phase 5 — 2v2 teams, taunts, chat gating
 
 - [x] 🧩 Team turn model + "proposal" flow (teammate proposes selection, captain submits) — `game/match.ts`, `__tests__/team.test.ts`
-- [x] 🖥 2v2 queue (solo fill + bot fill; party of 2 / team rooms still open) — `realtime/gateway.ts`, `match-service.ts#startTeam`
+- [x] 🖥 2v2 queue (solo fill + bot fill) and 2v2 private tables with team choice (D142); a party of 2 into the public queue is still open — `realtime/gateway.ts`, `match-service.ts#startTeam`
 - [ ] 🗄 `canned_taunts` (Persian, categorized), `invite_codes`, `users.chat_unlocked_at`
 - [ ] 🖥 ChatService: canned taunts for all; free text only if sender unlocked; team vs all channels
 - [ ] 🖥 Profanity filter (Persian wordlist + normalization of ی/ي، ک/ك، ZWNJ) + report/mute

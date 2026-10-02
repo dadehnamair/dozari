@@ -6,7 +6,7 @@ import type { AuthService } from '../auth/service.js';
 import { currentUser } from '../auth/routes.js';
 import type { TableService } from './service.js';
 
-const STATUS: Record<TableError, number> = { NOT_FOUND: 404, FULL: 409, LOCKED: 403, EXPIRED: 410, NOT_HOST: 403, NOT_IN: 409, NOT_READY: 409, NEED_PLAYERS: 409, BUSY: 503, IN_MATCH: 409, START_FAILED: 409, INVALID: 400 };
+const STATUS: Record<TableError, number> = { NOT_FOUND: 404, FULL: 409, LOCKED: 403, EXPIRED: 410, NOT_HOST: 403, NOT_IN: 409, NOT_READY: 409, NEED_PLAYERS: 409, BUSY: 503, IN_MATCH: 409, START_FAILED: 409, INVALID: 400, NOT_TEAM: 409 };
 const codeParam = z.object({ code: z.string().min(3).max(12) });
 const targetBody = z.object({ userId: z.string().uuid() });
 
@@ -82,6 +82,10 @@ export function registerTableRoutes(app: FastifyInstance, auth: AuthService, tab
   simple('leave', (u) => tables.leave(u));
   simple('start', (u) => tables.start(u));
   simple('ready', (u, b) => tables.setReady(u, z.object({ ready: z.boolean() }).safeParse(b).data?.ready ?? true));
+  simple('side', (u, b) => {
+    const side = z.object({ side: z.union([z.literal(0), z.literal(1)]) }).safeParse(b);
+    return side.success ? tables.setSide(u, side.data.side) : { ok: false, error: 'INVALID' };
+  });
   simple('lock', (u, b) => tables.setLocked(u, z.object({ locked: z.boolean() }).safeParse(b).data?.locked ?? true));
   simple('extend', async (u) => {
     const out = await tables.extend(u);

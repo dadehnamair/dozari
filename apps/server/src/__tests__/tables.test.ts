@@ -5,9 +5,15 @@ function boot() {
   const clock = { ms: 1_000_000 };
   const inMatch = new Set<string>();
   const started: [string, string][] = [];
+  const teams: string[][][] = [];
   let fail = false;
   const svc = new TableService({
     profileOf: async (id) => ({ nickname: `p-${id}`, avatarKey: 'avatar-01' }),
+    startTeam: async (sides) => {
+      teams.push(sides.map((x) => [...x]));
+      for (const u of sides.flat()) inMatch.add(u);
+      return true;
+    },
     startMatch: async (a, b) => {
       if (fail) return false;
       started.push([a, b]);
@@ -23,9 +29,9 @@ function boot() {
       return () => ((i++ * 7) % 31) / 31;
     })(),
   });
-  return { svc, clock, inMatch, started, setFail: (v: boolean) => (fail = v) };
+  return { svc, clock, inMatch, started, teams, setFail: (v: boolean) => (fail = v) };
 }
-const body = { name: 'میز علی', icon: 'dice' as const, requireReady: false };
+const body = { name: 'میز علی', icon: 'dice' as const, requireReady: false, format: '1v1' as const };
 
 describe('private tables', () => {
   it('host creates, guest joins by a typed code, host starts a duel', async () => {
@@ -85,5 +91,38 @@ describe('private tables', () => {
     t.inMatch.clear();
     expect((await t.svc.start('host')).ok).toBe(true);
     expect(t.started).toHaveLength(2);
+  });
+});
+
+describe('2v2 tables', () => {
+  const body2 = { ...body, format: '2v2' as const };
+  it('seats four, puts friends on teams, lets a player switch, and starts a team match', async () => {
+    const t = boot();
+    const made = await t.svc.create('host', body2);
+    if (!made.ok) throw new Error('create');
+    expect(made.table).toMatchObject({ format: '2v2', seats: 4 });
+    const code = made.table.code;
+    for (const u of ['b', 'c', 'd']) await t.svc.join(u, code);
+    expect(await t.svc.join('e', code)).toEqual({ ok: false, error: 'FULL' });
+    const view = await t.svc.get('host', code);
+    expect(view?.players.map((p) => [p.id, p.side])).toEqual([['host', 0], ['b', 1], ['c', 0], ['d', 1]]);
+    expect(view?.players.find((p) => p.isYou)?.id).toBe('host');
+    expect(t.svc.setSide('c', 1)).toEqual({ ok: false, error: 'FULL' }); // team 2 already has two
+    expect(t.svc.setSide('b', 0)).toEqual({ ok: false, error: 'FULL' });
+    expect(t.svc.leave('d')).toEqual({ ok: true });
+    expect(t.svc.setSide('c', 1)).toEqual({ ok: true });
+    expect(await t.svc.start('host')).toEqual({ ok: false, error: 'NEED_PLAYERS' });
+    await t.svc.join('d', code); // goes to the emptier team: host's
+    expect(await t.svc.start('host')).toEqual({ ok: true });
+    expect(t.teams).toEqual([[['host', 'd'], ['b', 'c']]]);
+  });
+
+  it('refuses a side switch at a 1v1 table, and 2v2 when the server cannot start teams', async () => {
+    const t = boot();
+    const made = await t.svc.create('host', body);
+    if (!made.ok) throw new Error('create');
+    expect(t.svc.setSide('host', 1)).toEqual({ ok: false, error: 'NOT_TEAM' });
+    const plain = new TableService({ profileOf: async () => null, startMatch: async () => true, inMatch: () => false, idleMs: async () => 1000 });
+    expect(await plain.create('h', body2)).toEqual({ ok: false, error: 'INVALID' });
   });
 });

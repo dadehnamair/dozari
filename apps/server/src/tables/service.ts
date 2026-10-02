@@ -1,9 +1,11 @@
-import { TABLE_SEATS, makeTableCode, normalizeTableCode } from '@dozari/shared';
-import type { CreateTableBody, TableError, TableView } from '@dozari/shared';
+import { makeTableCode, normalizeTableCode, seatsOfFormat } from '@dozari/shared';
+import type { CreateTableBody, TableError, TableFormat, TableView } from '@dozari/shared';
 
 export interface TableDeps {
   profileOf(userId: string): Promise<{ nickname: string; avatarKey: string } | null>;
   startMatch(a: string, b: string): Promise<boolean>;
+  /** Starts a 2v2 (`sides[s]` = the two players of side s); omit to refuse 2v2 tables. */
+  startTeam?(sides: readonly [readonly [string, string], readonly [string, string]]): Promise<boolean>;
   inMatch(userId: string): boolean;
   idleMs(): Promise<number>;
   now?: () => number;
@@ -14,6 +16,9 @@ interface Table {
   code: string;
   name: string;
   icon: string;
+  format: TableFormat;
+  /** Team of each seated player (0/1). */
+  sides: Map<string, 0 | 1>;
   requireReady: boolean;
   locked: boolean;
   hostId: string;
@@ -67,6 +72,7 @@ export class TableService {
   private removeSeat(t: Table, userId: string): void {
     if (t.hostId === userId) return this.close(t);
     t.seated = t.seated.filter((u) => u !== userId);
+    t.sides.delete(userId);
     t.ready.delete(userId);
     this.byUser.delete(userId);
   }
@@ -78,7 +84,8 @@ export class TableService {
     let code = makeTableCode(rng);
     for (let i = 0; i < 20 && this.tables.has(code); i++) code = makeTableCode(rng);
     if (this.tables.has(code)) return { ok: false, error: 'BUSY' };
-    const t: Table = { code, name: body.name, icon: body.icon, requireReady: body.requireReady, locked: false, hostId, seated: [hostId], ready: new Set(), expiresAt: this.now() + (await this.deps.idleMs()) };
+    if (body.format === '2v2' && !this.deps.startTeam) return { ok: false, error: 'INVALID' };
+    const t: Table = { code, name: body.name, icon: body.icon, format: body.format, sides: new Map([[hostId, 0]]), requireReady: body.requireReady, locked: false, hostId, seated: [hostId], ready: new Set(), expiresAt: this.now() + (await this.deps.idleMs()) };
     this.tables.set(code, t);
     this.byUser.set(hostId, code);
     return { ok: true, table: await this.view(t, hostId) };
@@ -101,9 +108,13 @@ export class TableService {
     if (t.seated.includes(userId)) return { ok: true, table: await this.view(t, userId) };
     if (this.deps.inMatch(userId)) return { ok: false, error: 'IN_MATCH' };
     if (t.locked) return { ok: false, error: 'LOCKED' };
-    if (t.seated.length >= TABLE_SEATS) return { ok: false, error: 'FULL' };
+    if (t.seated.length >= seatsOfFormat(t.format)) return { ok: false, error: 'FULL' };
     this.leaveCurrent(userId);
     t.seated.push(userId);
+    // The emptier team; on a tie the second team (so a 1v1 guest faces the host, and the third player joins the host).
+    const n0 = [...t.sides.values()].filter((s) => s === 0).length;
+    const n1 = t.sides.size - n0;
+    t.sides.set(userId, n1 < n0 ? 1 : n0 < n1 ? 0 : t.seated.length % 2 === 1 ? 0 : 1);
     this.byUser.set(userId, t.code);
     return { ok: true, table: await this.view(t, userId) };
   }
@@ -139,6 +150,18 @@ export class TableService {
     return { ok: true, expiresAt: t.expiresAt };
   }
 
+  /** A seated player moves to the other team of a 2v2 table when it has room. */
+  setSide(userId: string, side: 0 | 1): TableResult {
+    const t = this.tableOf(userId);
+    if (!t) return { ok: false, error: 'NOT_IN' };
+    if (t.format !== '2v2') return { ok: false, error: 'NOT_TEAM' };
+    if (t.sides.get(userId) === side) return { ok: true };
+    if ([...t.sides.values()].filter((s) => s === side).length >= seatsOfFormat(t.format) / 2) return { ok: false, error: 'FULL' };
+    t.sides.set(userId, side);
+    t.ready.delete(userId);
+    return { ok: true };
+  }
+
   setReady(userId: string, ready: boolean): TableResult {
     const t = this.tableOf(userId);
     if (!t) return { ok: false, error: 'NOT_IN' };
@@ -151,11 +174,16 @@ export class TableService {
   async start(hostId: string): Promise<TableResult> {
     const t = this.tableOf(hostId);
     if (!t || t.hostId !== hostId) return { ok: false, error: 'NOT_HOST' };
-    if (t.seated.length < TABLE_SEATS) return { ok: false, error: 'NEED_PLAYERS' };
-    const guest = t.seated.find((u) => u !== hostId)!;
-    if (t.requireReady && !t.ready.has(guest)) return { ok: false, error: 'NOT_READY' };
-    if (this.deps.inMatch(hostId) || this.deps.inMatch(guest)) return { ok: false, error: 'IN_MATCH' };
-    if (!(await this.deps.startMatch(hostId, guest))) return { ok: false, error: 'START_FAILED' };
+    if (t.seated.length < seatsOfFormat(t.format)) return { ok: false, error: 'NEED_PLAYERS' };
+    const guests = t.seated.filter((u) => u !== hostId);
+    if (t.requireReady && guests.some((g) => !t.ready.has(g))) return { ok: false, error: 'NOT_READY' };
+    if (t.seated.some((u) => this.deps.inMatch(u))) return { ok: false, error: 'IN_MATCH' };
+    if (t.format === '2v2') {
+      const side = (n: 0 | 1) => t.seated.filter((u) => t.sides.get(u) === n);
+      const [a, b] = [side(0), side(1)];
+      if (a.length !== 2 || b.length !== 2) return { ok: false, error: 'NEED_PLAYERS' };
+      if (!(await this.deps.startTeam?.([[a[0]!, a[1]!], [b[0]!, b[1]!]]))) return { ok: false, error: 'START_FAILED' };
+    } else if (!(await this.deps.startMatch(hostId, guests[0]!))) return { ok: false, error: 'START_FAILED' };
     t.ready.clear();
     t.expiresAt = this.now() + (await this.deps.idleMs());
     return { ok: true };
@@ -170,8 +198,8 @@ export class TableService {
     const players = [];
     for (const id of t.seated) {
       const p = (await this.deps.profileOf(id)) ?? { nickname: '؟', avatarKey: 'avatar-01' };
-      players.push({ id, nickname: p.nickname, avatarKey: p.avatarKey, ready: t.ready.has(id), isHost: id === t.hostId });
+      players.push({ id, nickname: p.nickname, avatarKey: p.avatarKey, ready: t.ready.has(id), isHost: id === t.hostId, isYou: id === forUser, side: t.sides.get(id) ?? 0 });
     }
-    return { code: t.code, name: t.name, icon: t.icon, requireReady: t.requireReady, locked: t.locked, hostId: t.hostId, youAreHost: t.hostId === forUser, youAreIn: t.seated.includes(forUser), expiresAt: t.expiresAt, inMatch: t.seated.some((u) => this.deps.inMatch(u)), players, seats: TABLE_SEATS };
+    return { code: t.code, name: t.name, icon: t.icon, format: t.format, requireReady: t.requireReady, locked: t.locked, hostId: t.hostId, youAreHost: t.hostId === forUser, youAreIn: t.seated.includes(forUser), expiresAt: t.expiresAt, inMatch: t.seated.some((u) => this.deps.inMatch(u)), players, seats: seatsOfFormat(t.format) };
   }
 }

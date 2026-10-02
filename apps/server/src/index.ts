@@ -464,6 +464,7 @@ if (isMainModule(import.meta.url)) {
       ? new TableService({
           profileOf: async (id) => socialStore.publicRow(id),
           startMatch: async (a, b) => (live.matches ? live.matches.start(a, b, { friendly: true }) : false),
+          startTeam: async (sides) => (live.matches ? live.matches.startTeam(sides) : false),
           inMatch: (id) => live.matches?.inMatch(id) ?? false,
           idleMs: async () => (await settings.num('table.idle_minutes')) * 60_000,
         })
