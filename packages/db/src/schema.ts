@@ -332,6 +332,7 @@ export const LEDGER_REASONS = [
   'loan_in',
   'repay_out',
   'repay_in',
+  'daily_puzzle',
   'tournament_entry',
   'tournament_refund',
   'tournament_prize',
@@ -974,3 +975,52 @@ export const botPlayers = mysqlTable('bot_players', {
   isActive: boolean('is_active').notNull().default(true),
   createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
 });
+
+/** A reason a day's puzzle is chosen: an occasion, season, trend or category (docs/logic/daily-puzzle.md). */
+export const puzzleThemes = mysqlTable('puzzle_themes', {
+  id: id(),
+  titleFa: varchar('title_fa', { length: 80 }).notNull(),
+  kind: mysqlEnum('kind', ['occasion', 'season', 'trend', 'category', 'custom']).notNull().default('custom'),
+  weight: int('weight').notNull().default(1),
+  /** Recurring yearly Solar Hijri window; all four set or all null. */
+  startMonth: tinyint('start_month'),
+  startDay: tinyint('start_day'),
+  endMonth: tinyint('end_month'),
+  endDay: tinyint('end_day'),
+  /** Absolute Gregorian window in Tehran time, `YYYY-MM-DD`. */
+  fromDate: char('from_date', { length: 10 }),
+  toDate: char('to_date', { length: 10 }),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+});
+
+export const puzzleThemeLinks = mysqlTable(
+  'puzzle_theme_links',
+  {
+    themeId: char('theme_id', { length: 36 }).notNull().references(() => puzzleThemes.id, { onDelete: 'cascade' }),
+    puzzleId: char('puzzle_id', { length: 36 }).notNull().references(() => puzzles.id, { onDelete: 'cascade' }),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.themeId, t.puzzleId] }) }),
+);
+
+/** The puzzle of a Tehran day (`YYYY-MM-DD`); one row per day, written when first needed or pinned by an admin. */
+export const dailyPuzzles = mysqlTable('daily_puzzles', {
+  dateKey: char('date_key', { length: 10 }).primaryKey(),
+  puzzleId: char('puzzle_id', { length: 36 }).notNull().references(() => puzzles.id),
+  themeId: char('theme_id', { length: 36 }).references(() => puzzleThemes.id, { onDelete: 'set null' }),
+  pinnedBy: mysqlEnum('pinned_by', ['auto', 'admin']).notNull().default('auto'),
+  createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+});
+
+/** One attempt per player per day. */
+export const dailyPuzzlePlays = mysqlTable(
+  'daily_puzzle_plays',
+  {
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    dateKey: char('date_key', { length: 10 }).notNull(),
+    result: mysqlEnum('result', ['playing', 'won', 'lost']).notNull().default('playing'),
+    startedAt: datetime('started_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    finishedAt: datetime('finished_at', { mode: 'date', fsp: 3 }),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.userId, t.dateKey] }) }),
+);

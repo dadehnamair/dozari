@@ -18,6 +18,9 @@ import { useInbox } from '../inbox/useInbox';
 import { BaleSheet } from '../bale/BaleSheet';
 import { ShopSheet } from '../shop/ShopSheet';
 import { ChatSheet } from '../chat/ChatSheet';
+import { fetchDailyStatus } from '../daily/puzzleApi';
+import { dailyPuzzleLabel } from '../daily/label';
+import type { DailyStatus } from '@dozari/shared';
 import { TournamentSheet } from '../tournament/TournamentSheet';
 import { Toast } from '../components/Toast';
 import { Wordmark } from '../components/Wordmark';
@@ -27,7 +30,7 @@ import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 
 /** Home: wordmark, the waving mascot (floating, as on the kit's splash) and the way into a solo game. */
-export function HomeScreen({ onSolo, onLookup, onGallery, features = OPEN_CONFIG.features, settings = OPEN_CONFIG.raw }: { onSolo: () => void; onLookup: () => void; onGallery?: () => void; features?: ClientConfig['features']; settings?: ClientConfig['raw'] }) {
+export function HomeScreen({ onSolo, onDaily, onLookup, onGallery, features = OPEN_CONFIG.features, settings = OPEN_CONFIG.raw }: { onSolo: () => void; onDaily?: () => void; onLookup: () => void; onGallery?: () => void; features?: ClientConfig['features']; settings?: ClientConfig['raw'] }) {
   const month = useMemo(() => solarMonthOf(Date.now()), []);
   const daily = useDailyReward();
   const [dailyOpen, setDailyOpen] = useState(false);
@@ -38,9 +41,13 @@ export function HomeScreen({ onSolo, onLookup, onGallery, features = OPEN_CONFIG
   const [inboxOpen, setInboxOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [gender, setGender] = useState<Gender | null>(null);
+  const [dailyPuzzle, setDailyPuzzle] = useState<DailyStatus | null>(null);
   useEffect(() => {
     fetchMyProfile().then((p) => setGender(p.gender), () => undefined);
   }, []);
+  useEffect(() => {
+    if (features.daily) fetchDailyStatus().then(setDailyPuzzle, () => undefined);
+  }, [features.daily]);
   const inbox = useInbox();
   const review = useReviewPrompt(settings);
   const float = useRef(new Animated.Value(0)).current;
@@ -96,6 +103,14 @@ export function HomeScreen({ onSolo, onLookup, onGallery, features = OPEN_CONFIG
           <Text style={styles.mood}>
             {fa.months[month - 1]?.name} · {fa.months[month - 1]?.mood}
           </Text>
+          {features.daily && onDaily && dailyPuzzle && dailyPuzzle.state !== 'unavailable' ? (
+            <CandyButton
+              label={dailyPuzzleLabel(dailyPuzzle)}
+              color={colors.candy.orange}
+              disabled={dailyPuzzle.state === 'won' || dailyPuzzle.state === 'lost'}
+              onPress={onDaily}
+            />
+          ) : null}
           <CandyButton label={fa.home.soloButton} color={colors.candy.yellow} onPress={onSolo} />
           {features.lookup ? <CandyButton label={fa.home.lookupButton} color={colors.candy.lime} onPress={onLookup} /> : null}
           {features.tournament ? <CandyButton label={fa.tournament.open} color={colors.candy.pink} onPress={() => setTournamentOpen(true)} /> : null}

@@ -14,7 +14,7 @@ import {
   SOLO_MAX_MISTAKES,
   TURN_SECONDS,
 } from './game.js';
-import { DAILY_REWARD_COOLDOWN_HOURS, DAILY_REWARD_STREAK_WINDOW_HOURS, HINT_MAX_PER_GAME, HINT_MIN_LEVEL, HINT_PRICES, HINT_REPEAT_PERCENT } from './economy.js';
+import { DAILY_REWARD_COOLDOWN_HOURS, DAILY_REWARD_STREAK_WINDOW_HOURS, HINT_MAX_PER_GAME, HINT_MIN_LEVEL, HINT_PRICES, HINT_REPEAT_PERCENT, DAILY_PUZZLE_REWARD, DAILY_PUZZLE_STREAK_MAX_DAYS, DAILY_PUZZLE_STREAK_STEP, DAILY_PUZZLE_REPEAT_DAYS } from './economy.js';
 import { CHART_GAP_BREAK_YEARS, CHART_MIN_YEAR } from './chart.js';
 import { INVITE_INVITEE_BONUS, INVITE_INVITER_REWARD, INVITE_MAX_USES, INVITE_MIN_LEVEL, INVITE_REWARD_AFTER_GAMES } from './invite.js';
 import { LOAN_DUE_DAYS, LOAN_MAX_OPEN, TRANSFER_MAX_AMOUNT, TRANSFER_MIN_AMOUNT, TRANSFER_MIN_FRIEND_DAYS, TRANSFER_MIN_LEVEL, TRANSFER_WEEKLY_CAP } from './transfers.js';
@@ -94,6 +94,11 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'nickname.allow_persian', group: 'profile', label: 'حرف فارسی در اسم مجاز باشد', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'economy.daily_cooldown_hours', group: 'economy', label: 'فاصله‌ی دریافت جایزه‌ی روزانه', kind: 'int', min: 1, max: 72, default: DAILY_REWARD_COOLDOWN_HOURS, unit: 'ساعت' },
   { key: 'economy.daily_streak_window_hours', group: 'economy', label: 'مهلت ادامه‌ی زنجیره‌ی جایزه', hint: 'دریافت بعدی تا این مدت بعد از قبلی، زنجیره را ادامه می‌دهد؛ دیرتر از آن از روز اول شروع می‌شود', kind: 'int', min: 2, max: 168, default: DAILY_REWARD_STREAK_WINDOW_HOURS, unit: 'ساعت' },
+  { key: 'feature.daily', group: 'app', label: 'پازل روز روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'daily.reward_coins', group: 'economy', label: 'جایزه‌ی حل پازل روز', hint: 'برای حل کامل، یک بار در روز', kind: 'int', min: 0, max: 1000, default: DAILY_PUZZLE_REWARD, unit: 'سکه' },
+  { key: 'daily.streak_step', group: 'economy', label: 'افزایش جایزه به ازای هر روز پشت‌سرهم', kind: 'int', min: 0, max: 200, default: DAILY_PUZZLE_STREAK_STEP, unit: 'سکه' },
+  { key: 'daily.streak_max_days', group: 'economy', label: 'سقف روزهای زنجیره برای افزایش جایزه', kind: 'int', min: 1, max: 60, default: DAILY_PUZZLE_STREAK_MAX_DAYS, unit: 'روز' },
+  { key: 'daily.repeat_days', group: 'gameplay', label: 'پازل روز تا چند روز تکرار نشود', kind: 'int', min: 0, max: 365, default: DAILY_PUZZLE_REPEAT_DAYS, unit: 'روز' },
   { key: 'hint.price_group_title', group: 'economy', label: 'قیمت راهنما: نام یک دسته', hint: 'سکه برای هر بار گرفتن راهنما در بازی تکی', kind: 'int', min: 0, max: 5000, default: HINT_PRICES.group_title, unit: 'سکه' },
   { key: 'hint.price_one_card', group: 'economy', label: 'قیمت راهنما: یک کارت از یک دسته', kind: 'int', min: 0, max: 5000, default: HINT_PRICES.one_card, unit: 'سکه' },
   { key: 'hint.price_pair', group: 'economy', label: 'قیمت راهنما: دو کارت هم‌دسته', kind: 'int', min: 0, max: 5000, default: HINT_PRICES.pair, unit: 'سکه' },

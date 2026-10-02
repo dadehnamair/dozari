@@ -19,6 +19,8 @@ interface Session {
   recorded?: boolean;
   /** Hints revealed so far in this game (one per paid hint). */
   hints: HintPayload[];
+  /** Marks a special game (the daily puzzle) so its end can be told apart. */
+  tag?: string;
 }
 
 export interface SoloRules {
@@ -43,7 +45,7 @@ export interface SoloServiceOptions {
   /** Where the tunables come from (the admin settings in production); defaults to the shared constants. */
   rules?: () => Promise<SoloRules>;
   /** Called once when a signed-in player's game ends. */
-  onFinished?: (userId: string, outcome: 'win' | 'loss') => void;
+  onFinished?: (userId: string, outcome: 'win' | 'loss', tag?: string) => void;
 }
 
 const DEFAULT_TTL_MS = 2 * 60 * 60 * 1000;
@@ -55,7 +57,7 @@ export class SoloService {
   private readonly now: () => number;
   private readonly newSeed: () => number;
   private readonly loadRules: () => Promise<SoloRules>;
-  private readonly onFinished?: (userId: string, outcome: 'win' | 'loss') => void;
+  private readonly onFinished?: (userId: string, outcome: 'win' | 'loss', tag?: string) => void;
 
   constructor(
     private readonly source: PuzzleSource,
@@ -69,14 +71,14 @@ export class SoloService {
   }
 
   /** Starts a session, or null when there is no puzzle to play. */
-  async start(userId?: string): Promise<SoloView | null> {
+  async start(userId?: string, opts: { puzzleId?: string; tag?: string } = {}): Promise<SoloView | null> {
     this.sweep();
-    const puzzle = await this.source.pickRandom();
+    const puzzle = opts.puzzleId ? await this.source.byId?.(opts.puzzleId) : await this.source.pickRandom();
     if (!puzzle) return null;
     const rng = mulberry32(this.newSeed());
     const state = startSolo(puzzle, rng);
     const sessionId = uuidv7();
-    const session: Session = { puzzle, state, rng, touchedAt: this.now(), priceResults: [], rules: await this.loadRules(), userId, hints: [] };
+    const session: Session = { puzzle, state, rng, touchedAt: this.now(), priceResults: [], rules: await this.loadRules(), userId, hints: [], tag: opts.tag };
     this.sessions.set(sessionId, session);
     return this.toView(sessionId, session);
   }
@@ -94,7 +96,7 @@ export class SoloService {
     if (s.state.status !== 'playing' && s.userId && !s.recorded) {
       s.recorded = true;
       try {
-        this.onFinished?.(s.userId, s.state.status === 'won' ? 'win' : 'loss');
+        this.onFinished?.(s.userId, s.state.status === 'won' ? 'win' : 'loss', s.tag);
       } catch {
         /* stats must not break the game */
       }

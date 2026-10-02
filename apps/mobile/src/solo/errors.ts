@@ -7,6 +7,8 @@ export function describeError(err: unknown, baseUrl: string): { message: string;
   const e = fa.solo.errors;
   if (err instanceof ApiError) {
     if (err.code === 'no_puzzles') return { message: e.noPuzzles, detail: '' };
+    if (err.code === 'done') return { message: e.dailyDone, detail: '' };
+    if (err.code === 'unavailable') return { message: e.noPuzzles, detail: '' };
     return { message: e.server, detail: `${err.status} ${err.code}` };
   }
   if (err instanceof ZodError) return { message: e.badResponse, detail: err.issues[0]?.message ?? '' };

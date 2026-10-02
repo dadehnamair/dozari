@@ -15,7 +15,7 @@ import { BANNERS } from '../kit/data';
 import { fa } from '../i18n/fa';
 import { colors } from '../theme/colors';
 import { BASE_URL, guessSolo, shuffleSolo } from './api';
-import { beginSolo } from './begin';
+import { beginDaily, beginSolo } from './begin';
 import { describeError } from './errors';
 import { canSubmit, feedbackFor, pruneSelection, toggleSelection } from './selection';
 import { recordGameFinished } from '../review/state';
@@ -27,7 +27,7 @@ type Phase = { kind: 'loading' } | { kind: 'error'; message: string; detail: str
 
 const FEEDBACK_MS = 1600;
 
-export function SoloScreen({ onBack, hintsEnabled = true }: { onBack: () => void; hintsEnabled?: boolean }) {
+export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onBack: () => void; hintsEnabled?: boolean; /** Today's daily puzzle: one attempt, no "new game". */ daily?: boolean }) {
   const [phase, setPhase] = useState<Phase>({ kind: 'loading' });
   const [selected, setSelected] = useState<string[]>([]);
   const [names, setNames] = useState<Record<string, string>>({});
@@ -65,11 +65,11 @@ export function SoloScreen({ onBack, hintsEnabled = true }: { onBack: () => void
     setHintOpen(false);
     flash(null);
     try {
-      adopt(await beginSolo());
+      adopt(await (daily ? beginDaily() : beginSolo()));
     } catch (err) {
       fail(err);
     }
-  }, [adopt, fail, flash]);
+  }, [adopt, daily, fail, flash]);
 
   useEffect(() => {
     void begin();
@@ -153,7 +153,7 @@ export function SoloScreen({ onBack, hintsEnabled = true }: { onBack: () => void
             <>
               <ChartPanel sessionId={view.sessionId} />
               <View style={styles.actions}>
-                <CandyButton label={fa.solo.newGame} color={colors.candy.yellow} onPress={() => void begin()} />
+                {daily ? null : <CandyButton label={fa.solo.newGame} color={colors.candy.yellow} onPress={() => void begin()} />}
                 <CandyButton label={fa.solo.back} color={colors.candy.sky} onPress={onBack} />
               </View>
             </>

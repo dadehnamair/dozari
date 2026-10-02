@@ -32,7 +32,7 @@ export default function App() {
   const [fontsLoaded] = useFonts({ Vazirmatn_400Regular, Vazirmatn_700Bold, Lalezar_400Regular });
 
   // Minimal navigation until a real router lands with the hub screen (docs/logic/app-screens.md).
-  const [screen, setScreen] = useState<'splash' | 'home' | 'solo' | 'gallery' | 'search' | 'brand' | 'lookup'>(
+  const [screen, setScreen] = useState<'splash' | 'home' | 'solo' | 'daily' | 'gallery' | 'search' | 'brand' | 'lookup'>(
     'splash',
   );
 
@@ -64,6 +64,7 @@ export default function App() {
       <StatusBar style="light" />
       {screen === 'splash' ? <SplashScreen /> : null}
       {screen === 'solo' ? <SoloScreen onBack={() => setScreen('home')} hintsEnabled={config.features.shop} /> : null}
+      {screen === 'daily' ? <SoloScreen daily onBack={() => setScreen('home')} hintsEnabled={config.features.shop} /> : null}
       {screen === 'gallery' ? (
         <KitGallery
           onBack={() => setScreen('home')}
@@ -77,6 +78,7 @@ export default function App() {
       {screen === 'home' ? (
         <HomeScreen
           onSolo={() => setScreen('solo')}
+          onDaily={() => setScreen('daily')}
           onLookup={() => setScreen('lookup')}
           features={config.features}
           settings={config.raw}
