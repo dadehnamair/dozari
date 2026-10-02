@@ -67,7 +67,7 @@ button{font-family:inherit}
     <div onClick="{{ b.onClick }}" style="position:absolute;left:{{ b.lx }};top:{{ b.ly }};transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;cursor:pointer;z-index:2">
       <div style="padding:1px 8px;border-radius:99px;background:{{ b.mc }};border:2px solid #2B1240;font:800 10.5px Vazirmatn;color:#fff;text-shadow:0 1px 0 #2B1240;white-space:nowrap;margin-bottom:-4px;position:relative;z-index:1">{{ b.mode }}</div>
       <div style="position:relative;padding:3px 12px 2px;border-radius:10px;background:{{ b.plate }};border:3px solid #2B1240;box-shadow:0 4px 0 #2B1240;font:{{ b.fs }} Lalezar;color:#2B1240;white-space:nowrap">{{ b.fa }}
-        <sc-if value="{{ b.badge }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:-12px;left:-14px;padding:0 6px;height:22px;border-radius:99px;background:{{ b.bc }};border:2px solid #2B1240;font:12px/18px Lalezar;color:#fff">{{ b.badge }}</span></sc-if>
+        <sc-if value="{{ b.badge }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:50%;left:-16px;transform:translate(-50%,-50%);z-index:2;padding:0 6px;height:22px;border-radius:99px;background:{{ b.bc }};border:2px solid #2B1240;font:12px/18px Lalezar;color:#fff">{{ b.badge }}</span></sc-if>
       </div>
     </div>
   </sc-for>
@@ -86,7 +86,7 @@ button{font-family:inherit}
   <sc-if value="{{ selB }}" hint-placeholder-val="{{ false }}">
     <div onClick="{{ closeSel }}" style="position:absolute;inset:0;background:rgba(26,8,44,.35);z-index:4"></div>
     <div style="position:absolute;left:0;right:0;bottom:0;z-index:5;padding:18px 16px 26px;border-radius:30px 30px 0 0;background:#FBF1DE;border-top:4px solid #2B1240;box-shadow:0 -10px 30px rgba(0,0,0,.3);animation:dz-up .3s ease-out;color:#2B1240;display:flex;gap:10px;align-items:flex-end">
-      <div style="width:104px;height:120px;flex:none;margin-top:-50px"><dc-import name="Character" who="{{ selB.host }}" pose="wave" hint-size="104px,120px" style="width:104px;height:120px"></dc-import></div>
+      <div style="width:104px;height:120px;flex:none;margin-top:-50px"><dc-import name="Character" who="{{ selB.host }}" anim="true" pose="wave" hint-size="104px,120px" style="width:104px;height:120px"></dc-import></div>
       <div style="flex:1;display:flex;flex-direction:column;gap:6px;min-width:0">
         <div style="display:flex;align-items:center;gap:8px"><span style="font:26px/1 Lalezar">{{ selB.fa }}</span><span style="padding:1px 8px;border-radius:99px;background:{{ selB.mc }};border:2px solid #2B1240;font:800 11px Vazirmatn;color:#fff">{{ selB.mode }}</span></div>
         <div style="font:500 13px/1.7 Vazirmatn;text-wrap:pretty">{{ selB.desc }}</div>
@@ -163,10 +163,10 @@ button{font-family:inherit}
   </div>
   <div style="position:absolute;top:210px;left:12px;right:12px;bottom:20px;display:flex;flex-direction:column;gap:10px">
     <sc-for list="{{ setGroups }}" as="g" hint-placeholder-count="3">
-      <div style="border-radius:20px;background:#FBF1DE;border:3px solid #2B1240;box-shadow:0 5px 0 #2B1240;overflow:hidden;color:#2B1240">
+      <div style="border-radius:20px;background:#FBF1DE;border:3px solid #2B1240;box-shadow:0 5px 0 #2B1240;overflow:hidden;flex:none;color:#2B1240">
         <div style="padding:6px 14px;background:{{ g.c }};border-bottom:3px solid #2B1240;font:16px Lalezar;color:#fff;text-shadow:0 1px 0 #2B1240">{{ g.t }}</div>
         <sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="2">
-          <div onClick="{{ r.onClick }}" style="height:46px;display:flex;align-items:center;gap:10px;padding:0 12px;border-top:1.5px dashed rgba(43,18,64,.2);cursor:pointer">
+          <div onClick="{{ r.onClick }}" style="height:42px;display:flex;align-items:center;gap:10px;padding:0 12px;border-top:1.5px dashed rgba(43,18,64,.2);cursor:pointer">
             <div style="width:30px;height:30px;border-radius:10px;background:{{ r.ic }};border:2px solid #2B1240;display:grid;place-items:center;flex:none"><svg viewBox="0 0 24 24" width="17" height="17"><path d="{{ r.d }}" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path></svg></div>
             <div style="flex:1;font:800 13.5px Vazirmatn;color:{{ r.tc }}">{{ r.t }}</div>
             <sc-if value="{{ r.isToggle }}" hint-placeholder-val="{{ false }}">
@@ -249,7 +249,7 @@ button{font-family:inherit}
   <div style="position:absolute;top:150px;left:10px;right:10px;height:250px;display:flex;align-items:flex-end;gap:6px">
     <sc-for list="{{ podium }}" as="p" hint-placeholder-count="3">
       <div style="flex:1;display:flex;flex-direction:column;align-items:center">
-        <div style="width:{{ p.cw }};height:{{ p.chh }}"><dc-import name="Character" who="{{ p.who }}" pose="{{ p.pose }}" hint-size="90px,104px" style="width:100%;height:100%"></dc-import></div>
+        <div style="width:{{ p.cw }};height:{{ p.chh }}"><dc-import name="Character" who="{{ p.who }}" pose="{{ p.pose }}" anim="true" hint-size="90px,104px" style="width:100%;height:100%"></dc-import></div>
         <div style="font:15px/1.1 Lalezar;color:#fff;text-shadow:0 2px 0 #2B1240">{{ p.n }}</div>
         <div style="font:12px 'JetBrains Mono',monospace;color:#FFE48A;margin-bottom:4px">{{ p.s }}</div>
         <div style="width:100%;height:{{ p.h }};border-radius:14px 14px 0 0;background:linear-gradient(180deg,{{ p.l }},{{ p.b }});border:3px solid #2B1240;border-bottom:none;box-shadow:inset 0 4px 0 rgba(255,255,255,.55);display:grid;place-items:center;font:40px/1 Lalezar;color:#fff;text-shadow:0 3px 0 {{ p.d }},0 0 2px #2B1240">{{ p.r }}</div>
@@ -289,6 +289,7 @@ const BL=[
 {k:'zur',fa:'زورخانه',mode:'دوئل',x:70,by:448,w:100,h:56,type:'dome',body:'#F0BE78',roof:'#E84A3C',mc:'#FF4D8D',host:'pahlevan',desc:'یک‌به‌یک با یه حریف هم‌سطح؛ هر کی زودتر حل کنه برنده‌ست.'},
 {k:'chai',fa:'قهوه‌خانه',mode:'تیمی',x:252,by:568,w:104,h:58,type:'badgir',body:'#E9A85C',roof:'#3FA36B',awn:'#3FA36B',mc:'#5DBB3C',badge:'۲',bc:'#FF4D8D',host:'goli',desc:'با دوستات تیم بزن و با هم پازل حل کنید.'},
 {k:'maktab',fa:'مکتب‌خانه',mode:'پیشنهاد و رأی',x:72,by:656,w:100,h:54,type:'dome',body:'#F4CB8E',roof:'#3E93B8',mc:'#E85F22',host:'mirza',desc:'پازل خودت رو بساز، به پازل بقیه رأی بده.'}];
+const LAY={caravan:[236,250],tower:[82,322],shop:[236,400],zur:[82,476],chai:[236,552],maktab:[82,628]};
 function parts(b){const {x,by,w,h}=b,L=x-w/2,top=by-h,P=[];const add=(d,f,s,wd,o)=>P.push({d,f,s:s||'#4A2E1E',w:wd??2.4,o:o??1});
  add(`M${L-10} ${by} Q${x} ${by+16} ${L+w+10} ${by}Z`,'#3A2418','none',0,.18);
  if(b.type==='tower'){add(`M${L-6} ${top} L${x} ${top-40} L${L+w+6} ${top}Z`,b.roof);add(`M${x} ${top-40} v-10`,'none');}
@@ -320,8 +321,8 @@ class Component extends DCLogic {
   componentWillUnmount(){clearInterval(this._t);}
   renderVals(){
     const s=this.state;const selB=BL.find(b=>b.k===s.sel)||null;
-    const blds=BL.map(b=>({...b,parts:parts(b),tr:s.sel===b.k?`translate(${b.x} ${b.by}) scale(1.07) translate(${-b.x} ${-b.by})`:'',
-      lx:b.x+'px',ly:(b.by+8)+'px',plate:s.sel===b.k?'#FFE48A':'#FFF6E8',fs:'17px',badge:b.badge||'',bc:b.bc||'',onClick:()=>this.setState({sel:b.k})}));
+    const blds=BL.map(b0=>{const L=LAY[b0.k],b={...b0,x:L[0],by:L[1],w:Math.round(b0.w*.74),h:Math.round(b0.h*.74)};return b;}).map(b=>({...b,parts:parts(b),tr:s.sel===b.k?`translate(${b.x} ${b.by}) scale(1.07) translate(${-b.x} ${-b.by})`:'',
+      lx:b.x+'px',ly:(b.by+8)+'px',plate:s.sel===b.k?'#FFE48A':'#FFF6E8',fs:'15px',badge:b.badge||'',bc:b.bc||'',onClick:()=>this.setState({sel:b.k})}));
     const T=s.tab,lb=LB[T],sec=LB2[T];
     const podium=[[sec[0],sec[1],sec[2],'۲','88px','84px','96px','cheer','#FFFFFF','#BFCBE0','#5E6C89'],[lb[0][0],lb[0][1],lb[0][2],'۱','96px','96px','104px','win','#FFF4B0','#FFC93C','#A86E00'],[lb[2][0],lb[2][1],lb[2][2],'۳','64px','80px','92px','wave','#F2B48A','#C46A3A','#7A3A1A']]
       .map(([n,who,sc,r,h,cw,chh,pose,l,b,d])=>({n,who,s:grp(sc),r,h,cw,chh,pose,l,b,d}));

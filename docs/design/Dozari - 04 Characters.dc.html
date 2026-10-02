@@ -39,18 +39,34 @@ button{font-family:inherit}
 <section style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:36px;padding:40px;display:flex;flex-direction:column;gap:24px">
   <div style="display:flex;align-items:center;gap:14px">
     <div style="width:52px;height:52px;border-radius:16px;background:linear-gradient(180deg,#FFE48A,#FFC93C);box-shadow:inset 0 3px 0 rgba(255,255,255,.6),0 5px 0 #C48A0E;display:grid;place-items:center;font:30px Lalezar;color:#2B1240">D</div>
-    <div><h2 style="margin:0;font:38px/1.1 Lalezar">شخصیت‌های بازار</h2><div style="font:13px Vazirmatn;color:rgba(255,246,232,.7)">هشت شخصیت با خط مدادی لرزان، رنگ تخت، گونهٔ صورتی و هایلایت سفید. سر، چشم، دهان و دست‌ها لایهٔ جدا برای Rive/Spine.</div></div>
+    <div><h2 style="margin:0;font:38px/1.1 Lalezar">شخصیت‌های بازار</h2><div style="font:13px Vazirmatn;color:rgba(255,246,232,.7)">نُه شخصیت با خط مدادی لرزان، رنگ تخت، گونهٔ صورتی و هایلایت سفید. سر، چشم، دهان و دست‌ها لایهٔ جدا برای Rive/Spine.</div></div>
   </div>
   <div style="display:flex;gap:16px;flex-wrap:wrap">
-    <sc-for list="{{ cast }}" as="c" hint-placeholder-count="7">
+    <sc-for list="{{ cast }}" as="c" hint-placeholder-count="9">
       <div style="width:172px;padding:14px 12px 16px;border-radius:26px;background:#FBF1DE;border:3px solid #3A2418;box-shadow:0 6px 0 #3A2418;display:flex;flex-direction:column;align-items:center;gap:4px;color:#3A2418">
-        <div style="width:148px;height:170px"><dc-import name="Character" who="{{ c.k }}" pose="{{ c.pose }}" hint-size="148px,170px" style="width:148px;height:170px"></dc-import></div>
+        <div style="width:148px;height:170px"><dc-import name="Character" who="{{ c.k }}" anim="true" pose="{{ c.pose }}" hint-size="148px,170px" style="width:148px;height:170px"></dc-import></div>
         <div style="font:24px/1.1 Lalezar">{{ c.fa }}</div>
         <div style="font:500 12.5px/1.6 Vazirmatn;text-align:center;opacity:.8;text-wrap:pretty">{{ c.d }}</div>
         <div style="font:10.5px 'JetBrains Mono',monospace;opacity:.55">char-{{ c.k }}</div>
       </div>
     </sc-for>
   </div>
+  <div style="font:700 12px 'JetBrains Mono',monospace;color:#FFC93C;margin-top:8px">char-ajan · rules</div>
+  <div style="display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap">
+    <div style="width:200px;height:232px;flex:none;transform:scaleX(-1)"><dc-import name="Character" who="ajan" pose="pointing" anim="true" hint-size="200px,232px" style="width:200px;height:232px"></dc-import></div>
+    <div style="position:relative;flex:1;min-width:280px;max-width:560px;margin-bottom:40px;padding:18px 22px 20px;border-radius:26px;background:#FBF1DE;border:3px solid #3A2418;box-shadow:0 6px 0 #3A2418;color:#2B1240;display:flex;flex-direction:column;gap:10px">
+      <div style="position:absolute;right:-16px;bottom:34px;width:26px;height:26px;background:#FBF1DE;border-right:3px solid #3A2418;border-bottom:3px solid #3A2418;transform:rotate(-45deg)"></div>
+      <div style="display:flex;align-items:center;gap:8px"><div style="padding:2px 12px;border-radius:99px;background:#3F72D0;border:2.5px solid #2B1240;font:16px Lalezar;color:#fff;text-shadow:0 1px 0 #2B1240">آجان</div><div style="font:24px/1.2 Lalezar">ایست! قوانین بازار رو بشنو</div></div>
+      <sc-for list="{{ rules }}" as="r" hint-placeholder-count="5">
+        <div style="display:flex;gap:10px;align-items:flex-start">
+          <div style="width:28px;height:28px;flex:none;border-radius:50%;background:{{ r.c }};border:2.5px solid #2B1240;display:grid;place-items:center;font:15px/1 Lalezar;color:#2B1240">{{ r.n }}</div>
+          <div style="font:600 14px/1.8 Vazirmatn;text-wrap:pretty">{{ r.t }}</div>
+        </div>
+      </sc-for>
+      <button style="align-self:flex-start;margin-top:4px;height:44px;padding:0 22px;border-radius:14px;background:linear-gradient(180deg,#FFE48A,#FFC93C);border:3px solid #2B1240;box-shadow:inset 0 3px 0 rgba(255,255,255,.6),0 4px 0 #2B1240;font:18px Lalezar;color:#2B1240;cursor:pointer">چشم، قربان!</button>
+    </div>
+  </div>
+
   <div style="font:700 12px 'JetBrains Mono',monospace;color:#FFC93C;margin-top:8px">char-dozari · poses</div>
   <div style="display:flex;gap:14px;flex-wrap:wrap">
     <sc-for list="{{ poses }}" as="p" hint-placeholder-count="12">
@@ -120,7 +136,7 @@ const rnd=(a,b,i)=>a+((Math.sin(i*12.9898)*43758.5453)%1+1)%1*(b-a);
 const RAIN=Array.from({length:34},(_,i)=>{const near=i%3===0;return {x:rnd(-5,105,i)+'%',w:near?'2px':'1.2px',h:Math.round(near?rnd(26,38,i+7):rnd(12,22,i+7))+'px',o:near?.85:.5,t:(near?rnd(.45,.6,i+3):rnd(.7,1,i+3)).toFixed(2)+'s',dl:(-rnd(0,1,i+11)).toFixed(2)+'s'};});
 const SPL=Array.from({length:6},(_,i)=>({x:rnd(10,90,i+40)+'%',y:Math.round(rnd(6,40,i+50))+'px',t:rnd(.8,1.3,i+60).toFixed(2)+'s',dl:(-rnd(0,1.2,i+70)).toFixed(2)+'s'}));
 const POSES=[['idle','ایستاده'],['coin','دوزاری به دست'],['wave','دست تکان'],['cheer','هورا'],['win','برنده'],['sad','ناراحت'],['thinking','فکر'],['shocked','شوکه'],['sleeping','خواب'],['pointing','اشاره'],['blink','پلک'],['angry','عصبانی']];
-const CAST_INFO=[['dozari','دوزاری','قهرمان بازی؛ بچهٔ زرنگ بازار که همیشه یه سکه تو جیبشه','coin'],['dozariF','دوزاری خانم','نسخهٔ دخترِ قهرمان؛ همان کلاه و شال، با گیس و دامن','wave'],['mashti','عمو مشتی','پیرمرد حجره‌دار؛ راهنمای مرحله‌ها','idle'],['khale','خاله قزی','صاحب دکهٔ ادویه؛ جایزهٔ روزانه','wave'],['pahlevan','پهلوون','حریف دوئل‌ها؛ زورخانه','angry'],['baqal','اوس‌ممد بقال','فروشگاه سکه و آیتم','pointing'],['mirza','میرزا','کاتب؛ پیشنهاد و رأی پازل‌ها','thinking'],['goli','گلی','هم‌تیمی؛ بخش تیمی و دعوت','cheer']];
+const CAST_INFO=[['dozari','دوزاری','قهرمان بازی؛ بچهٔ زرنگ بازار که همیشه یه سکه تو جیبشه','coin'],['dozariF','دوزاری خانم','نسخهٔ دخترِ قهرمان؛ همان کلاه و شال، با گیس و دامن','wave'],['mashti','عمو مشتی','پیرمرد حجره‌دار؛ راهنمای مرحله‌ها','idle'],['khale','خاله قزی','صاحب دکهٔ ادویه؛ جایزهٔ روزانه','wave'],['pahlevan','پهلوون','حریف دوئل‌ها؛ زورخانه','angry'],['baqal','اوس‌ممد بقال','فروشگاه سکه و آیتم','pointing'],['mirza','میرزا','کاتب؛ پیشنهاد و رأی پازل‌ها','thinking'],['goli','گلی','هم‌تیمی؛ بخش تیمی و دعوت','cheer'],['ajan','آجان','پاسبان بازار؛ قوانین و مقررات بازی رو اعلام می‌کنه','pointing']];
 const PLAYERS=['سارا','رضا','مینا','آرش','نگار','کیان','شیدا','بهراد','تینا','امید','یاسی','پویا','لیلا','سینا','رها','مهدی'];
 const AV_P=['idle','wave','cheer','thinking','shocked','blink','win','sleeping'];
 class Component extends DCLogic {
@@ -159,6 +175,7 @@ class Component extends DCLogic {
       ].map(c=>({...c,items:c.items.map(([n,k,cl,badge,bc])=>({n,d2:I[k],l:cl.l,b:cl.b,d:cl.d,badge,bc}))})),
       confetti:CONF, rain:RAIN, splashes:SPL,
       cast:CAST_INFO.map(([k,fa,d,pose])=>({k,fa,d,pose})),
+      rules:['۱۶ کلمه داری؛ باید ۴ دستهٔ ۴تایی پیدا کنی.','هر بار ۴ کلمه انتخاب کن و «ثبت» رو بزن.','فقط ۴ اشتباه مجازه؛ پنجمی یعنی باخت.','راهنما سکه می‌خواد؛ بی‌حساب خرجش نکن.','کمک گرفتن از بیرون و تقلب ممنوعه!'].map((t,i)=>({t,n:fa(i+1),c:['#FFC93C','#8FDCFA','#FF8FB6','#B8F08F','#FFAA7A'][i]})),
       searchRows:[C.pink,C.grape,C.sky,C.orange].map((rc,r)=>({l:rc.l,b:rc.d,cards:[0,1,2,3].map(k=>{const i=r*4+k,on=i===s.scan,cc=CL[(i*7+1)%6];
         return {n:PLAYERS[i],lv:fa(3+(i*7)%28),skin:i%7,pose:AV_P[i%8],l:cc.l,b:cc.b,frame:on?'#FFC93C':'#2B1240',on,z:on?2:1,
           tr:on?'scale(1.12) rotate(-3deg)':'none',glow:on?'0 0 0 3px #2B1240,0 0 22px 6px rgba(255,201,60,.85)':'0 0 0 0 transparent'};})})),

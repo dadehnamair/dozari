@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Lalezar&amp;family=Vazirmatn:wght@600;800&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>body{margin:0;background:#FFF6E8;color:#2B1240}a{color:#A66BF0}a:hover{color:#FF4D8D}*{box-sizing:border-box}</style>
+</helmet>
+<div dir="rtl" style="max-width:1400px;margin:0 auto;padding:48px 32px 80px;display:flex;flex-direction:column;gap:32px">
+  <header style="display:flex;flex-direction:column;gap:4px">
+    <div style="font:13px 'JetBrains Mono',monospace;color:#A66BF0;direction:ltr;text-align:right">Dozari · 14 Product Icons · Item.dc.html</div>
+    <h1 style="margin:0;font:48px/1.1 Lalezar">آیکون محصولات بازار</h1>
+  </header>
+  <sc-for list="{{ groups }}" as="g" hint-placeholder-count="6">
+    <section style="display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:center;gap:10px"><div style="padding:2px 14px;border-radius:99px;background:{{ g.c }};border:2.5px solid #2B1240;font:20px Lalezar">{{ g.t }}</div><span style="font:12px 'JetBrains Mono',monospace;opacity:.6">{{ g.n }}</span></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:12px">
+        <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="12">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px 10px;border-radius:18px;background:#fff;border:2.5px solid #2B1240;box-shadow:0 4px 0 #2B1240">
+            <div style="width:60px;height:60px"><dc-import name="Item" icon="{{ it.k }}" hint-size="60px,60px" style="width:60px;height:60px"></dc-import></div>
+            <span style="font:800 13px Vazirmatn">{{ it.fa }}</span>
+            <span style="font:10px 'JetBrains Mono',monospace;opacity:.55">{{ it.k }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const G=[
+['میوه','#FF8FB6','apple:سیب,pear:گلابی,grape:انگور,cherry:گیلاس,strawberry:توت‌فرنگی,orange:پرتقال,lemon:لیمو,banana:موز,peach:هلو,fig:انجیر,dates:خرما,pomegranate:انار,watermelon:هندوانه'],
+['آجیل و سبزیجات','#B8F08F','walnut:گردو,almond:بادام,pistachio:پسته,tomato:گوجه,cucumber:خیار,carrot:هویج,eggplant:بادمجان,pepper:فلفل,onion:پیاز,potato:سیب‌زمینی,garlic:سیر,mushroom:قارچ,corn:ذرت'],
+['بقالی','#FFE48A','cheese:پنیر,egg:تخم‌مرغ,milk:شیر,honey:عسل,jam:مربا,pickles:ترشی,oil:روغن,rice:برنج,flour:آرد,sugar:قند,salt:نمک,tea:چای,spices:ادویه,cinnamon:دارچین,cardamom:هل,saffron:زعفران'],
+['نون و شیرینی','#FFAA7A','bread:نان,bread2:نان باگت,sangak:سنگک,cookie:کلوچه,cake:کیک,icecream:بستنی,lollipop:آبنبات چوبی,candy:آبنبات,gaz:گز,baklava:باقلوا,sohan:سوهان,pashmak:پشمک'],
+['غذا و نوشیدنی','#8FDCFA','kebab:کباب,pizza:پیتزا,burger:همبرگر,fish:ماهی,chicken:مرغ,coffee:قهوه,juice:آبمیوه,soda:نوشابه,water:آب,teaGlass:استکان چای'],
+['خونه و آشپزخونه','#C9A3FF','carpet:فرش,vase:گلدان,lamp:چراغ,candle:شمع,mirror:آینه,clock:ساعت,pot:قابلمه,pan:ماهیتابه,knife:چاقو,spoon:قاشق,plate:بشقاب,teapot:قوری,samovar:سماور,broom:جارو,bucket:سطل,basket:سبد,scale:ترازو'],
+['پوشاک و زیورآلات','#FF8FB6','hat:کلاه,shoe:کفش,shirt:پیراهن,dress:لباس,scarf:شال,umbrella:چتر,bag:کیف,ring:انگشتر,necklace:گردنبند,bracelet:دستبند,perfume:عطر,lipstick:رژ لب,comb:شانه,soap:صابون,toothbrush:مسواک'],
+['سرگرمی و گل','#B8F08F','book:کتاب,pencil:مداد,camera:دوربین,headphones:هدفون,ball:توپ,teddy:عروسک,guitar:گیتار,tar:تار,daf:دف,marbles:تیله,top:فرفره,kite:بادبادک,rose:گل رز,tulip:لاله,sunflower:آفتابگردان,cactus:کاکتوس,cart:چرخ خرید']];
+class Component extends DCLogic{renderVals(){return{groups:G.map(([t,c,s])=>{const items=s.split(',').map(x=>{const[k,fa]=x.split(':');return{k,fa};});return{t,c,items,n:items.length+' icons'};})};}}
+</script>
+</body>
+</html>

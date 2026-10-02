@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lalezar&amp;family=Vazirmatn:wght@400;600;800;900&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#2B1240;font-family:Vazirmatn,system-ui,sans-serif;color:#FFF6E8}
+a{color:#FFC93C}a:hover{color:#FF7A3D}
+*{box-sizing:border-box}
+button{font-family:inherit}
+@keyframes dz-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+@keyframes dz-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+@keyframes dz-spin{to{transform:rotate(360deg)}}
+@keyframes dz-pop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.06);opacity:1}100%{transform:scale(1)}}
+@keyframes dz-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+@keyframes dz-glow{0%,100%{box-shadow:0 0 0 3px #FFC93C,0 0 18px 4px rgba(255,201,60,.55),0 6px 0 #2B1240}50%{box-shadow:0 0 0 3px #FFC93C,0 0 30px 10px rgba(255,201,60,.8),0 6px 0 #2B1240}}
+@keyframes dz-slideR{0%{transform:translateX(120%)}100%{transform:translateX(0)}}
+@keyframes dz-slideL{0%{transform:translateX(-120%)}100%{transform:translateX(0)}}
+@keyframes dz-tick{0%{transform:scale(1.6);opacity:0}30%{transform:scale(1);opacity:1}100%{transform:scale(1);opacity:1}}
+</style>
+</helmet>
+
+<div dir="rtl" style="min-height:100vh;background:linear-gradient(180deg,#2B1240 0%,#40166A 35%,#5E1F7E 70%,#8E2A6E 100%);padding:56px 56px 80px;display:flex;flex-direction:column;gap:36px;max-width:1900px;margin:0 auto">
+<header style="display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap">
+  <div style="display:flex;flex-direction:column;gap:4px">
+    <div style="font:14px 'JetBrains Mono',monospace;color:#FFC93C;direction:ltr;text-align:right">Dozari · 13 Match Screens</div>
+    <h1 style="margin:0;font:56px/1 Lalezar;color:#FFF6E8;text-shadow:0 4px 0 #2B1240">میدان رقابت: دوئل و تیمی</h1>
+    <p style="margin:6px 0 0;font:500 15px/1.8 Vazirmatn;color:rgba(255,246,232,.8);max-width:760px;text-wrap:pretty">حالت رو انتخاب کن، حریف پیدا می‌شه و مسابقه شروع می‌شه. هر طرف زودتر ۴ دسته رو پیدا کنه برنده‌ست. ذره‌بین دو کلمه رو لو می‌ده و یخ، حریف رو ۱۰ ثانیه متوقف می‌کنه.</p>
+  </div>
+  <div style="display:flex;gap:6px;padding:5px;border-radius:18px;background:rgba(20,10,34,.6);border:2px solid rgba(255,255,255,.18)">
+    <button onClick="{{ pick1 }}" style="height:44px;padding:0 22px;border-radius:13px;border:{{ seg1.bd }};background:{{ seg1.bg }};font:20px Lalezar;color:{{ seg1.fg }};cursor:pointer">۱ در ۱</button>
+    <button onClick="{{ pick2 }}" style="height:44px;padding:0 22px;border-radius:13px;border:{{ seg2.bd }};background:{{ seg2.bg }};font:20px Lalezar;color:{{ seg2.fg }};cursor:pointer">۲ در ۲</button>
+  </div>
+</header>
+
+<section style="display:flex;gap:36px;flex-wrap:wrap;justify-content:center;align-items:flex-start">
+
+<!-- MODE SELECT -->
+<div data-screen-label="Mode select" style="display:flex;flex-direction:column;gap:12px;align-items:center">
+<div style="width:340px;height:736px;border-radius:52px;border:11px solid #140A22;box-shadow:0 30px 60px rgba(0,0,0,.5),0 0 0 2px rgba(255,255,255,.12);position:relative;overflow:hidden;background:#3C1A66">
+  <div style="position:absolute;inset:0"><dc-import name="Scene" scene="caravan" mood="dusk" hint-size="100%,100%" style="width:100%;height:100%"></dc-import></div>
+  <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(43,18,64,.25),rgba(43,18,64,.55) 60%,rgba(43,18,64,.85))"></div>
+
+  <div style="position:absolute;top:36px;left:12px;right:12px;display:flex;align-items:center;gap:8px">
+    <button style="width:42px;height:42px;border-radius:14px;border:3px solid #2B1240;background:linear-gradient(180deg,#C9A3FF,#A66BF0);box-shadow:inset 0 3px 0 rgba(255,255,255,.5),0 4px 0 #2B1240;display:grid;place-items:center;cursor:pointer"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M9 5l7 7-7 7" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
+    <div style="flex:1;height:46px;border-radius:14px;background:linear-gradient(180deg,#FFE48A,#FFC93C);border:3px solid #2B1240;box-shadow:inset 0 3px 0 rgba(255,255,255,.6),0 4px 0 #2B1240;display:flex;align-items:center;justify-content:center;font:22px Lalezar;color:#2B1240">میدان رقابت</div>
+    <div style="height:42px;border-radius:99px;background:rgba(43,18,64,.7);border:2px solid rgba(255,255,255,.3);display:flex;align-items:center;gap:5px;padding:0 3px 0 10px">
+      <div style="width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#FFF4B0,#FFC93C 55%,#D98A0B);border:2.5px solid #2B1240;display:grid;place-items:center;font:15px/1 Lalezar;color:#7A4A00">۲</div>
+      <span style="font:16px Lalezar;color:#fff">{{ coins }}</span>
+    </div>
+  </div>
+
+  <div style="position:absolute;top:102px;left:14px;right:14px;display:flex;flex-direction:column;gap:18px">
+    <button onClick="{{ pick1 }}" style="position:relative;padding:0;border-radius:24px;border:3px solid #2B1240;background:linear-gradient(180deg,#FFF6E8,#F6E2C2);text-align:right;cursor:pointer;overflow:hidden;animation:{{ card1.anim }};box-shadow:0 6px 0 #2B1240;transform:{{ card1.tr }};transition:transform .15s">
+      <div style="height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;background:linear-gradient(180deg,#8FDCFA,#3FC1F0);border-bottom:3px solid #2B1240">
+        <span style="font:22px Lalezar;color:#fff;text-shadow:0 2px 0 #2B1240">دوئل</span>
+        <span style="padding:1px 10px;border-radius:99px;background:#2B1240;font:15px Lalezar;color:#FFC93C">۱ در ۱</span>
+      </div>
+      <div style="height:116px;display:flex;align-items:flex-end;justify-content:center;gap:4px;padding-top:6px;background:radial-gradient(ellipse at 50% 100%,rgba(166,107,240,.25),transparent 70%)">
+        <div style="width:96px;height:111px"><dc-import name="Character" who="dozari" pose="coin" hint-size="96px,111px" style="width:96px;height:111px"></dc-import></div>
+        <div style="align-self:center;width:44px;height:44px;flex:none;border-radius:50%;background:linear-gradient(180deg,#FF8FB6,#FF4D8D);border:3px solid #2B1240;display:grid;place-items:center;font:20px/1 Lalezar;color:#fff;text-shadow:0 2px 0 #2B1240;transform:rotate(-8deg)">VS</div>
+        <div style="width:96px;height:111px;transform:scaleX(-1)"><dc-import name="Character" who="pahlevan" pose="angry" hint-size="96px,111px" style="width:96px;height:111px"></dc-import></div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;padding:8px 12px 10px;border-top:2px dashed rgba(43,18,64,.25)">
+        <div style="display:flex;align-items:center;gap:4px;font:800 12px Vazirmatn;color:#2B1240"><div style="width:22px;height:22px"><dc-import name="Item" icon="ticket" hint-size="22px,22px" style="width:22px;height:22px"></dc-import></div>ورودی ۵۰</div>
+        <div style="display:flex;align-items:center;gap:4px;font:800 12px Vazirmatn;color:#2B1240"><div style="width:22px;height:22px"><dc-import name="Item" icon="coinStack" hint-size="22px,22px" style="width:22px;height:22px"></dc-import></div>جایزه ۱۰۰</div>
+        <div style="display:flex;align-items:center;gap:4px;font:800 12px Vazirmatn;color:#2B1240"><div style="width:22px;height:22px"><dc-import name="Item" icon="trophy" hint-size="22px,22px" style="width:22px;height:22px"></dc-import></div>+۱۵</div>
+      </div>
+      <sc-if value="{{ is1 }}" hint-placeholder-val="{{ true }}"><div style="position:absolute;top:50px;left:10px;width:30px;height:30px;border-radius:50%;background:#7ED957;border:3px solid #2B1240;display:grid;place-items:center"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M5 12l5 5 9-10" fill="none" stroke="#fff" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"></path></svg></div></sc-if>
+    </button>
+
+    <button onClick="{{ pick2 }}" style="position:relative;padding:0;border-radius:24px;border:3px solid #2B1240;background:linear-gradient(180deg,#FFF6E8,#F6E2C2);text-align:right;cursor:pointer;overflow:hidden;animation:{{ card2.anim }};box-shadow:0 6px 0 #2B1240;transform:{{ card2.tr }};transition:transform .15s">
+      <div style="height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;background:linear-gradient(180deg,#C9A3FF,#A66BF0);border-bottom:3px solid #2B1240">
+        <span style="font:22px Lalezar;color:#fff;text-shadow:0 2px 0 #2B1240">تیمی</span>
+        <span style="padding:1px 10px;border-radius:99px;background:#2B1240;font:15px Lalezar;color:#FFC93C">۲ در ۲</span>
+      </div>
+      <div style="height:116px;display:flex;align-items:flex-end;justify-content:center;gap:0;padding-top:6px;background:radial-gradient(ellipse at 50% 100%,rgba(63,193,240,.22),transparent 70%)">
+        <div style="width:66px;height:96px;margin-left:-14px"><dc-import name="Character" who="goli" pose="cheer" hint-size="66px,96px" style="width:66px;height:96px"></dc-import></div>
+        <div style="width:76px;height:96px;margin-left:-10px"><dc-import name="Character" who="dozari" pose="wave" hint-size="76px,96px" style="width:76px;height:96px"></dc-import></div>
+        <div style="align-self:center;width:40px;height:40px;flex:none;border-radius:50%;background:linear-gradient(180deg,#FF8FB6,#FF4D8D);border:3px solid #2B1240;display:grid;place-items:center;font:18px/1 Lalezar;color:#fff;text-shadow:0 2px 0 #2B1240;transform:rotate(-8deg);z-index:1">VS</div>
+        <div style="width:76px;height:96px;margin-right:-10px;transform:scaleX(-1)"><dc-import name="Character" who="pahlevan" pose="pointing" hint-size="76px,96px" style="width:76px;height:96px"></dc-import></div>
+        <div style="width:66px;height:96px;margin-right:-14px;transform:scaleX(-1)"><dc-import name="Character" who="baqal" pose="thinking" hint-size="66px,96px" style="width:66px;height:96px"></dc-import></div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;padding:8px 12px 10px;border-top:2px dashed rgba(43,18,64,.25)">
+        <div style="display:flex;align-items:center;gap:4px;font:800 12px Vazirmatn;color:#2B1240"><div style="width:22px;height:22px"><dc-import name="Item" icon="ticket" hint-size="22px,22px" style="width:22px;height:22px"></dc-import></div>ورودی ۸۰</div>
+        <div style="display:flex;align-items:center;gap:4px;font:800 12px Vazirmatn;color:#2B1240"><div style="width:22px;height:22px"><dc-import name="Item" icon="coinBag" hint-size="22px,22px" style="width:22px;height:22px"></dc-import></div>جایزه ۲۰۰</div>
+        <div style="display:flex;align-items:center;gap:4px;font:800 12px Vazirmatn;color:#2B1240"><div style="width:22px;height:22px"><dc-import name="Item" icon="trophy" hint-size="22px,22px" style="width:22px;height:22px"></dc-import></div>+۲۰</div>
+      </div>
+      <sc-if value="{{ is2 }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;top:50px;left:10px;width:30px;height:30px;border-radius:50%;background:#7ED957;border:3px solid #2B1240;display:grid;place-items:center"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M5 12l5 5 9-10" fill="none" stroke="#fff" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"></path></svg></div></sc-if>
+    </button>
+  </div>
+
+  <div style="position:absolute;bottom:108px;left:0;right:0;display:flex;justify-content:center">
+    <button style="height:40px;padding:0 16px;border-radius:99px;border:2px solid rgba(255,255,255,.4);background:rgba(43,18,64,.6);display:flex;align-items:center;gap:6px;font:800 13px Vazirmatn;color:#FFF6E8;cursor:pointer"><div style="width:24px;height:24px"><dc-import name="Item" icon="envelope" hint-size="24px,24px" style="width:24px;height:24px"></dc-import></div>رقابت با دوست</button>
+  </div>
+  <div style="position:absolute;bottom:34px;left:14px;right:14px">
+    <button onClick="{{ restart }}" style="width:100%;height:62px;border-radius:20px;border:3px solid #2B1240;background:linear-gradient(180deg,#B8F08F,#7ED957 60%,#5DBB3C);box-shadow:inset 0 4px 0 rgba(255,255,255,.55),0 6px 0 #2B1240;font:28px Lalezar;color:#fff;text-shadow:0 2px 0 #2B1240;cursor:pointer" style-active="transform:translateY(4px);box-shadow:0 2px 0 #2B1240">بزن بریم!</button>
+  </div>
+</div>
+<div style="font:12px 'JetBrains Mono',monospace;color:rgba(255,246,232,.7)">screen-mode · tap a card</div>
+</div>
+
+<!-- VS / MATCHMAKING -->
+<div data-screen-label="Versus" style="display:flex;flex-direction:column;gap:12px;align-items:center">
+<div style="width:340px;height:736px;border-radius:52px;border:11px solid #140A22;box-shadow:0 30px 60px rgba(0,0,0,.5),0 0 0 2px rgba(255,255,255,.12);position:relative;overflow:hidden;background:#2B1240">
+  <div style="position:absolute;inset:0;clip-path:polygon(0 0,100% 0,100% 44%,0 56%);background-color:#2A8CC8;background-image:radial-gradient(ellipse at 50% 30%,rgba(143,220,250,.7),transparent 65%),repeating-linear-gradient(-30deg,rgba(255,255,255,.07) 0 14px,transparent 14px 28px)"></div>
+  <div style="position:absolute;inset:0;clip-path:polygon(0 56%,100% 44%,100% 100%,0 100%);background-color:#C8306E;background-image:radial-gradient(ellipse at 50% 75%,rgba(255,143,182,.7),transparent 65%),repeating-linear-gradient(30deg,rgba(255,255,255,.07) 0 14px,transparent 14px 28px)"></div>
+  <svg viewBox="0 0 318 714" width="318" height="714" style="position:absolute;inset:0"><path d="M-10 401 L328 309" stroke="#2B1240" stroke-width="10"></path><path d="M-10 401 L328 309" stroke="#FFC93C" stroke-width="4"></path></svg>
+
+  <div style="position:absolute;top:40px;left:0;right:0;display:flex;justify-content:center"><div style="padding:4px 16px;border-radius:99px;background:rgba(43,18,64,.7);border:2px solid rgba(255,255,255,.35);font:16px Lalezar;color:#FFF6E8">{{ modeLabel }} · حریف پیدا شد!</div></div>
+
+  <div style="position:absolute;top:80px;left:0;right:0;display:flex;justify-content:center;gap:10px;animation:dz-slideR .6s ease-out">
+    <sc-for list="{{ myTeam }}" as="p" hint-placeholder-count="1">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+        <div style="width:{{ vsW }};height:{{ vsH }}"><dc-import name="Character" who="{{ p.who }}" pose="{{ p.vsPose }}" anim="true" hint-size="120px,139px" style="width:100%;height:100%"></dc-import></div>
+        <div style="display:flex;align-items:center;gap:6px;padding:3px 12px 3px 4px;border-radius:12px;background:#FFF6E8;border:3px solid #2B1240;box-shadow:0 4px 0 #2B1240">
+          <span style="width:24px;height:24px;border-radius:8px;background:#3FC1F0;border:2px solid #2B1240;display:grid;place-items:center;font:13px/1 Lalezar;color:#fff">{{ p.lv }}</span>
+          <span style="font:17px Lalezar;color:#2B1240">{{ p.n }}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:3px;font:800 12px Vazirmatn;color:#fff;text-shadow:0 1px 0 #2B1240"><div style="width:18px;height:18px"><dc-import name="Item" icon="trophy" hint-size="18px,18px" style="width:18px;height:18px"></dc-import></div>{{ p.cup }}</div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="position:absolute;top:300px;left:50%;width:104px;height:104px;margin-left:-52px;display:grid;place-items:center">
+    <div style="position:absolute;inset:-40px;border-radius:50%;background:repeating-conic-gradient(rgba(255,201,60,.35) 0 10deg,transparent 10deg 20deg);animation:dz-spin 10s linear infinite"></div>
+    <div style="position:relative;width:96px;height:96px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#FFF4B0,#FFC93C 55%,#D98A0B);border:4px solid #2B1240;box-shadow:inset 0 -5px 0 rgba(0,0,0,.15),0 6px 0 #2B1240;display:grid;place-items:center;font:44px/1 Lalezar;color:#fff;text-shadow:0 3px 0 #2B1240,0 0 1px #2B1240;animation:dz-pulse 1.4s ease-in-out infinite">VS</div>
+  </div>
+
+  <div style="position:absolute;top:404px;left:0;right:0;display:flex;justify-content:center;gap:10px;animation:dz-slideL .6s ease-out">
+    <sc-for list="{{ oppTeam }}" as="p" hint-placeholder-count="1">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+        <div style="width:{{ vsW }};height:{{ vsH }};transform:scaleX(-1)"><dc-import name="Character" who="{{ p.who }}" pose="{{ p.vsPose }}" anim="true" hint-size="120px,139px" style="width:100%;height:100%"></dc-import></div>
+        <div style="display:flex;align-items:center;gap:6px;padding:3px 12px 3px 4px;border-radius:12px;background:#FFF6E8;border:3px solid #2B1240;box-shadow:0 4px 0 #2B1240">
+          <span style="width:24px;height:24px;border-radius:8px;background:#FF4D8D;border:2px solid #2B1240;display:grid;place-items:center;font:13px/1 Lalezar;color:#fff">{{ p.lv }}</span>
+          <span style="font:17px Lalezar;color:#2B1240">{{ p.n }}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:3px;font:800 12px Vazirmatn;color:#fff;text-shadow:0 1px 0 #2B1240"><div style="width:18px;height:18px"><dc-import name="Item" icon="trophy" hint-size="18px,18px" style="width:18px;height:18px"></dc-import></div>{{ p.cup }}</div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="position:absolute;bottom:34px;left:14px;right:14px;height:62px;border-radius:20px;background:rgba(43,18,64,.75);border:3px solid #2B1240;display:flex;align-items:center;justify-content:center;gap:12px">
+    <span style="font:800 14px Vazirmatn;color:#FFF6E8">شروع تا</span>
+    <span style="width:44px;height:44px;border-radius:50%;background:linear-gradient(180deg,#FFE48A,#FFC93C);border:3px solid #2B1240;display:grid;place-items:center;font:26px/1 Lalezar;color:#2B1240">{{ cd }}</span>
+    <span style="font:800 14px Vazirmatn;color:#FFF6E8">ثانیهٔ دیگه</span>
+  </div>
+</div>
+<div style="font:12px 'JetBrains Mono',monospace;color:rgba(255,246,232,.7)">screen-versus · {{ modeTag }}</div>
+</div>
+
+<!-- MATCH -->
+<div data-screen-label="Match" style="display:flex;flex-direction:column;gap:12px;align-items:center">
+<div style="width:340px;height:736px;border-radius:52px;border:11px solid #140A22;box-shadow:0 30px 60px rgba(0,0,0,.5),0 0 0 2px rgba(255,255,255,.12);position:relative;overflow:hidden;background:#4E2585">
+  <div style="position:absolute;inset:0"><dc-import name="Scene" scene="hojre" hint-size="100%,100%" style="width:100%;height:100%"></dc-import></div>
+  <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(43,18,64,.35),rgba(43,18,64,.1) 40%,rgba(43,18,64,.45))"></div>
+
+  <div style="position:absolute;top:36px;left:12px;right:12px;display:flex;align-items:center;gap:8px">
+    <button onClick="{{ restart }}" style="width:42px;height:42px;border-radius:14px;border:3px solid #2B1240;background:linear-gradient(180deg,#C9A3FF,#A66BF0);box-shadow:inset 0 3px 0 rgba(255,255,255,.5),0 4px 0 #2B1240;display:grid;place-items:center;cursor:pointer"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 6h4v12H6zM14 6h4v12h-4z" fill="#fff" stroke="#2B1240" stroke-width="1.5"></path></svg></button>
+    <div style="flex:1;height:46px;border-radius:14px;background:{{ timerBg }};border:3px solid #2B1240;box-shadow:inset 0 3px 0 rgba(255,255,255,.6),0 4px 0 #2B1240;display:flex;align-items:center;justify-content:center;gap:6px">
+      <div style="width:28px;height:28px"><dc-import name="Item" icon="hourglass" hint-size="28px,28px" style="width:28px;height:28px"></dc-import></div>
+      <span style="font:26px/1 Lalezar;color:#2B1240;direction:ltr">{{ clock }}</span>
+    </div>
+    <div style="height:42px;padding:0 12px;border-radius:14px;background:#2B1240;border:2px solid #FFC93C;display:flex;align-items:center;font:17px Lalezar;color:#FFC93C">{{ modeLabel }}</div>
+  </div>
+
+  <div style="position:absolute;top:92px;left:10px;right:10px;padding:8px 10px 10px;border-radius:20px;background:rgba(26,8,44,.78);border:3px solid #2B1240;box-shadow:0 4px 0 #2B1240;display:flex;flex-direction:column;gap:8px">
+    <div style="display:flex;align-items:center;gap:6px">
+      <div style="display:flex;align-items:center">
+        <sc-for list="{{ myTeam }}" as="p" hint-placeholder-count="1">
+          <div style="width:40px;height:40px;margin-left:-8px;border-radius:50%;background:#3FC1F0;border:3px solid #FFF6E8;box-shadow:0 0 0 2px #2B1240;overflow:hidden;position:relative"><div style="position:absolute;inset:-2px"><dc-import name="Character" who="{{ p.who }}" pose="{{ p.hudPose }}" crop="face" hint-size="44px,44px" style="width:100%;height:100%"></dc-import></div></div>
+        </sc-for>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
+        <span style="font:15px/1 Lalezar;color:#8FDCFA">{{ myName }}</span>
+        <div style="display:flex;gap:3px"><sc-for list="{{ myPips }}" as="x" hint-placeholder-count="4"><div style="width:14px;height:14px;border-radius:4px;border:2px solid #2B1240;background:{{ x.bg }}"></div></sc-for></div>
+      </div>
+      <div style="font:30px/1 Lalezar;color:#fff;text-shadow:0 2px 0 #2B1240;display:flex;align-items:center;gap:6px"><span style="color:#8FDCFA">{{ myScore }}</span><span style="font-size:16px;opacity:.6">:</span><span style="color:#FF8FB6">{{ oppScore }}</span></div>
+      <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;align-items:flex-end">
+        <span style="font:15px/1 Lalezar;color:#FF8FB6">{{ oppName }}</span>
+        <div style="display:flex;gap:3px;direction:ltr"><sc-for list="{{ oppPips }}" as="x" hint-placeholder-count="4"><div style="width:14px;height:14px;border-radius:4px;border:2px solid #2B1240;background:{{ x.bg }}"></div></sc-for></div>
+      </div>
+      <div style="display:flex;align-items:center;position:relative;direction:ltr">
+        <sc-for list="{{ oppTeam }}" as="p" hint-placeholder-count="1">
+          <div style="width:40px;height:40px;margin-right:-8px;border-radius:50%;background:#FF4D8D;border:3px solid #FFF6E8;box-shadow:0 0 0 2px #2B1240;overflow:hidden;position:relative;filter:{{ iceFilter }}"><div style="position:absolute;inset:-2px;transform:scaleX(-1)"><dc-import name="Character" who="{{ p.who }}" pose="{{ p.hudPose }}" crop="face" hint-size="44px,44px" style="width:100%;height:100%"></dc-import></div></div>
+        </sc-for>
+        <sc-if value="{{ frozen }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;top:-10px;left:-8px;width:28px;height:28px;animation:dz-pop .3s ease-out"><dc-import name="Item" icon="freeze" hint-size="28px,28px" style="width:28px;height:28px"></dc-import></div></sc-if>
+      </div>
+    </div>
+    <div style="position:relative;height:14px;border-radius:99px;border:2.5px solid #2B1240;overflow:hidden;background:#FF4D8D">
+      <div style="position:absolute;top:0;bottom:0;right:0;width:{{ tug }};background:linear-gradient(180deg,#8FDCFA,#3FC1F0);transition:width .5s"></div>
+      <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.45),transparent 55%)"></div>
+    </div>
+  </div>
+
+  <div style="position:absolute;top:208px;left:10px;right:10px;display:flex;flex-direction:column;gap:6px;animation:{{ shakeAnim }}">
+    <sc-for list="{{ rows }}" as="r" hint-placeholder-count="0">
+      <div style="height:62px;border-radius:14px;background:{{ r.c }};border:3px solid #2B1240;box-shadow:inset 0 3px 0 rgba(255,255,255,.55),0 4px 0 {{ r.d }};display:flex;align-items:center;gap:8px;padding:0 8px;animation:dz-pop .4s ease-out">
+        <div style="width:42px;height:42px;flex:none"><dc-import name="Item" icon="{{ r.ic }}" hint-size="42px,42px" style="width:42px;height:42px"></dc-import></div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+          <div style="font:19px/1.15 Lalezar;color:#2B1240">{{ r.name }}</div>
+          <div style="font:700 12px Vazirmatn;color:#2B1240;opacity:.85">{{ r.words }}</div>
+        </div>
+        <div style="width:30px;height:30px;flex:none;border-radius:50%;background:#FFF6E8;border:2.5px solid #2B1240;overflow:hidden;position:relative"><div style="position:absolute;inset:-2px"><dc-import name="Character" who="{{ r.by }}" pose="cheer" crop="face" hint-size="34px,34px" style="width:100%;height:100%"></dc-import></div></div>
+      </div>
+    </sc-for>
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px">
+      <sc-for list="{{ tiles }}" as="t" hint-placeholder-count="16">
+        <button onClick="{{ t.onClick }}" style="height:70px;border-radius:14px;border:3px solid #2B1240;background:{{ t.bg }};color:{{ t.fg }};box-shadow:inset 0 3px 0 rgba(255,255,255,.5),0 5px 0 {{ t.sh }};transform:{{ t.tr }};cursor:pointer;transition:transform .12s,background .12s;padding:4px 2px 2px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px">
+          <div style="width:34px;height:34px"><dc-import name="Item" icon="{{ t.ic }}" hint-size="34px,34px" style="width:34px;height:34px"></dc-import></div>
+          <span style="font:800 12.5px/1.2 Vazirmatn">{{ t.w }}</span>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="position:absolute;bottom:106px;left:14px;right:14px;display:flex;align-items:center;justify-content:space-between">
+    <button onClick="{{ useMag }}" style="position:relative;width:52px;height:52px;border-radius:50%;border:3px solid #2B1240;background:radial-gradient(circle at 40% 30%,#FFF6E8,#F6E2C2);box-shadow:0 4px 0 #2B1240;display:grid;place-items:center;cursor:pointer;opacity:{{ magOp }}" style-active="transform:translateY(3px);box-shadow:0 1px 0 #2B1240">
+      <div style="width:34px;height:34px"><dc-import name="Item" icon="magnifier" hint-size="34px,34px" style="width:34px;height:34px"></dc-import></div>
+      <span style="position:absolute;top:-6px;left:-6px;min-width:22px;height:22px;padding:0 5px;border-radius:99px;background:#FF4D8D;border:2.5px solid #2B1240;font:13px/17px Lalezar;color:#fff">{{ magN }}</span>
+    </button>
+    <div style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:99px;background:rgba(26,8,44,.65)">
+      <span style="font:800 12px Vazirmatn;color:#FFF6E8">فرصت</span>
+      <sc-for list="{{ lives }}" as="l" hint-placeholder-count="4"><div style="width:20px;height:20px;opacity:{{ l.op }};filter:{{ l.f }};transition:opacity .3s"><dc-import name="Item" icon="heart" hint-size="20px,20px" style="width:20px;height:20px"></dc-import></div></sc-for>
+    </div>
+    <button onClick="{{ useIce }}" style="position:relative;width:52px;height:52px;border-radius:50%;border:3px solid #2B1240;background:radial-gradient(circle at 40% 30%,#E6F7FF,#BFEFFF);box-shadow:0 4px 0 #2B1240;display:grid;place-items:center;cursor:pointer;opacity:{{ iceOp }}" style-active="transform:translateY(3px);box-shadow:0 1px 0 #2B1240">
+      <div style="width:32px;height:32px"><dc-import name="Item" icon="freeze" hint-size="32px,32px" style="width:32px;height:32px"></dc-import></div>
+      <span style="position:absolute;top:-6px;right:-6px;min-width:22px;height:22px;padding:0 5px;border-radius:99px;background:#FF4D8D;border:2.5px solid #2B1240;font:13px/17px Lalezar;color:#fff">{{ iceN }}</span>
+    </button>
+  </div>
+
+  <div style="position:absolute;bottom:34px;left:14px;right:14px;display:flex;gap:9px">
+    <button onClick="{{ shuffle }}" style="flex:1;height:58px;border-radius:18px;border:3px solid #2B1240;background:linear-gradient(180deg,#8FDCFA,#3FC1F0 60%,#1E9AD0);box-shadow:inset 0 4px 0 rgba(255,255,255,.55),0 5px 0 #2B1240;font:20px Lalezar;color:#fff;text-shadow:0 2px 0 #2B1240;cursor:pointer" style-active="transform:translateY(4px);box-shadow:0 1px 0 #2B1240">بُر بزن</button>
+    <button onClick="{{ clear }}" style="flex:1;height:58px;border-radius:18px;border:3px solid #2B1240;background:linear-gradient(180deg,#FFAA7A,#FF7A3D 60%,#E85F22);box-shadow:inset 0 4px 0 rgba(255,255,255,.5),0 5px 0 #2B1240;font:20px Lalezar;color:#fff;text-shadow:0 2px 0 #2B1240;cursor:pointer" style-active="transform:translateY(4px);box-shadow:0 1px 0 #2B1240">پاک کن</button>
+    <button onClick="{{ submit }}" style="flex:1.4;height:58px;border-radius:18px;border:3px solid #2B1240;background:linear-gradient(180deg,#B8F08F,#7ED957 60%,#5DBB3C);box-shadow:inset 0 4px 0 rgba(255,255,255,.55),0 5px 0 #2B1240;font:24px Lalezar;color:#fff;text-shadow:0 2px 0 #2B1240;cursor:pointer;opacity:{{ subOp }};filter:{{ subFilter }}" style-active="transform:translateY(4px);box-shadow:0 1px 0 #2B1240">ثبت کن</button>
+  </div>
+
+  <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;top:196px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:6px;padding:7px 16px;border-radius:99px;background:#2B1240;border:2px solid #FFC93C;font:17px Lalezar;color:#FFC93C;white-space:nowrap;box-shadow:0 8px 20px rgba(0,0,0,.4);z-index:5;animation:dz-pop .3s ease-out">{{ toast }}</div>
+  </sc-if>
+
+  <sc-if value="{{ over }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;inset:0;background:rgba(26,8,44,.8);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:10;overflow:hidden">
+      <div style="position:absolute;left:50%;top:40%;width:1700px;height:1700px;margin:-850px 0 0 -850px;border-radius:50%;background:repeating-conic-gradient({{ res.ray }} 0 9deg,transparent 9deg 18deg);animation:dz-spin 18s linear infinite"></div>
+      <div style="position:relative;display:flex;align-items:flex-end;animation:dz-pop .5s ease-out">
+        <sc-for list="{{ myTeam }}" as="p" hint-placeholder-count="1"><div style="width:{{ ovW }};height:{{ ovH }}"><dc-import name="Character" who="{{ p.who }}" pose="{{ res.pose }}" anim="true" hint-size="150px,174px" style="width:100%;height:100%"></dc-import></div></sc-for>
+      </div>
+      <div style="position:relative;padding:10px 30px;background:{{ res.ban }};border:4px solid #2B1240;border-radius:18px;box-shadow:inset 0 4px 0 rgba(255,255,255,.55),0 6px 0 #2B1240;font:32px Lalezar;color:#2B1240;animation:dz-pop .6s ease-out">{{ res.title }}</div>
+      <div style="position:relative;font:26px Lalezar;color:#fff;display:flex;gap:10px"><span style="color:#8FDCFA">{{ myScore }}</span><span>-</span><span style="color:#FF8FB6">{{ oppScore }}</span></div>
+      <button onClick="{{ restart }}" style="position:relative;margin-top:6px;height:60px;padding:0 40px;border-radius:20px;border:3px solid #2B1240;background:linear-gradient(180deg,#C9A3FF,#A66BF0 60%,#7E46D6);box-shadow:inset 0 4px 0 rgba(255,255,255,.5),0 6px 0 #2B1240;font:24px Lalezar;color:#fff;text-shadow:0 2px 0 #2B1240;cursor:pointer">{{ res.cta }}</button>
+    </div>
+  </sc-if>
+</div>
+<div style="font:12px 'JetBrains Mono',monospace;color:rgba(255,246,232,.7)">screen-match · live vs {{ modeTag }}</div>
+</div>
+
+<!-- RESULTS -->
+<div data-screen-label="Results" style="display:flex;flex-direction:column;gap:12px;align-items:center">
+<div style="width:340px;height:736px;border-radius:52px;border:11px solid #140A22;box-shadow:0 30px 60px rgba(0,0,0,.5),0 0 0 2px rgba(255,255,255,.12);position:relative;overflow:hidden;background:#3C1A66">
+  <div style="position:absolute;inset:0"><dc-import name="Scene" scene="win" hint-size="100%,100%" style="width:100%;height:100%"></dc-import></div>
+  <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(43,18,64,.1),rgba(43,18,64,.65) 55%,rgba(43,18,64,.9))"></div>
+  <div style="position:absolute;left:50%;top:150px;width:1700px;height:1700px;margin:-850px 0 0 -850px;border-radius:50%;background:repeating-conic-gradient({{ fin.ray }} 0 9deg,transparent 9deg 18deg);animation:dz-spin 22s linear infinite"></div>
+
+  <div style="position:absolute;top:44px;left:0;right:0;display:flex;justify-content:center;align-items:flex-end;gap:0">
+    <sc-for list="{{ myTeam }}" as="p" hint-placeholder-count="1"><div style="width:{{ resW }};height:{{ resH }}"><dc-import name="Character" who="{{ p.who }}" pose="{{ fin.pose }}" anim="true" hint-size="130px,151px" style="width:100%;height:100%"></dc-import></div></sc-for>
+  </div>
+  <div style="position:absolute;top:190px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:6px">
+    <div style="padding:8px 30px;background:{{ fin.ban }};border:4px solid #2B1240;border-radius:18px;box-shadow:inset 0 4px 0 rgba(255,255,255,.55),0 6px 0 #2B1240;font:32px Lalezar;color:#2B1240">{{ fin.title }}</div>
+    <div style="font:800 13px Vazirmatn;color:#FFF6E8">{{ fin.sub }}</div>
+  </div>
+
+  <div style="position:absolute;top:312px;left:12px;right:12px;border-radius:20px;background:#FBF1DE;border:3px solid #2B1240;box-shadow:0 5px 0 #2B1240;overflow:hidden;color:#2B1240">
+    <div style="height:30px;display:flex;align-items:center;padding:0 12px;gap:8px;background:#2B1240;font:800 11px Vazirmatn;color:rgba(255,246,232,.75)"><span style="flex:1">بازیکن</span><span style="width:50px;text-align:center">دسته</span><span style="width:50px;text-align:center">امتیاز</span></div>
+    <sc-for list="{{ board }}" as="b" hint-placeholder-count="2">
+      <div style="height:44px;display:flex;align-items:center;gap:8px;padding:0 10px;border-top:1.5px dashed rgba(43,18,64,.2);background:{{ b.row }}">
+        <div style="width:6px;align-self:stretch;margin:8px 0;border-radius:3px;background:{{ b.tc }}"></div>
+        <div style="width:34px;height:34px;flex:none;border-radius:50%;background:{{ b.tc }};border:2.5px solid #2B1240;overflow:hidden;position:relative"><div style="position:absolute;inset:-2px;transform:{{ b.flip }}"><dc-import name="Character" who="{{ b.who }}" pose="idle" crop="face" hint-size="38px,38px" style="width:100%;height:100%"></dc-import></div></div>
+        <div style="flex:1;min-width:0;display:flex;align-items:center;gap:4px;font:18px Lalezar">{{ b.n }}<sc-if value="{{ b.mvp }}" hint-placeholder-val="{{ false }}"><div style="width:22px;height:22px"><dc-import name="Item" icon="crown" hint-size="22px,22px" style="width:22px;height:22px"></dc-import></div></sc-if></div>
+        <span style="width:50px;text-align:center;font:18px Lalezar">{{ b.g }}</span>
+        <span style="width:50px;text-align:center;font:18px Lalezar;color:#7E46D6">{{ b.pts }}</span>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="position:absolute;bottom:108px;left:12px;right:12px;display:flex;gap:8px">
+    <sc-for list="{{ fin.rewards }}" as="w" hint-placeholder-count="3">
+      <div style="flex:1;height:78px;border-radius:16px;background:linear-gradient(180deg,#FFF6E8,#F6E2C2);border:3px solid #2B1240;box-shadow:0 4px 0 #2B1240;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
+        <div style="width:36px;height:36px"><dc-import name="Item" icon="{{ w.ic }}" hint-size="36px,36px" style="width:36px;height:36px"></dc-import></div>
+        <span style="font:17px/1 Lalezar;color:#2B1240">{{ w.t }}</span>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="position:absolute;bottom:34px;left:14px;right:14px;display:flex;gap:9px">
+    <button style="flex:1;height:58px;border-radius:18px;border:3px solid #2B1240;background:linear-gradient(180deg,#8FDCFA,#3FC1F0 60%,#1E9AD0);box-shadow:inset 0 4px 0 rgba(255,255,255,.55),0 5px 0 #2B1240;font:20px Lalezar;color:#fff;text-shadow:0 2px 0 #2B1240;cursor:pointer" style-active="transform:translateY(4px);box-shadow:0 1px 0 #2B1240">خانه</button>
+    <button onClick="{{ restart }}" style="flex:1.6;height:58px;border-radius:18px;border:3px solid #2B1240;background:linear-gradient(180deg,#FF8FB6,#FF4D8D 60%,#D63A72);box-shadow:inset 0 4px 0 rgba(255,255,255,.5),0 5px 0 #2B1240;font:24px Lalezar;color:#fff;text-shadow:0 2px 0 #2B1240;cursor:pointer" style-active="transform:translateY(4px);box-shadow:0 1px 0 #2B1240">{{ fin.cta }}</button>
+  </div>
+</div>
+<div style="font:12px 'JetBrains Mono',monospace;color:rgba(255,246,232,.7)">screen-results · {{ modeTag }}</div>
+</div>
+
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
+const shuf=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+const GROUPS=[
+ {name:'خوراکی بازار',ic:'spiceSack',c:'#FFC93C',d:'#C48A0E',words:[['انار','pomegranate'],['هندوانه','watermelon'],['پسته','pistachio'],['نان','bread']]},
+ {name:'بساط چای',ic:'teaGlass',c:'#8FDCFA',d:'#1E9AD0',words:[['سماور','samovar'],['قوری','teapot'],['سوهان','sohan'],['پشمک','pashmak']]},
+ {name:'بازی‌های قدیمی',ic:'balloons',c:'#B8F08F',d:'#5DBB3C',words:[['تیله','marbles'],['فرفره','top'],['بادبادک','kite'],['تاس','dice']]},
+ {name:'صندوق گنج',ic:'chest',c:'#FF8FB6',d:'#D63A72',words:[['سکه','coin'],['الماس','gem'],['شمش','goldBar'],['تاج','crown']]}];
+const ALL=GROUPS.flatMap((g,gi)=>g.words.map(([w,ic])=>({w,ic,gi})));
+const P={me:{who:'dozari',n:'تو',lv:'۱۲',cup:'۱٬۲۴۰'},mate:{who:'goli',n:'نگار',lv:'۱۴',cup:'۱٬۳۱۰'},o1:{who:'pahlevan',n:'آرش',lv:'۱۳',cup:'۱٬۲۷۵'},o2:{who:'baqal',n:'کیان',lv:'۱۱',cup:'۱٬۱۹۰'}};
+const fresh=()=>({tiles:shuf(ALL),sel:[],solved:[],mistakes:0,opp:0,time:120,frz:0,mag:2,ice:1,over:null,toast:'',shake:false});
+class Component extends DCLogic {
+  state={mode:'1v1',cd:3,coins:2213,last:null,...fresh()};
+  componentDidMount(){this._iv=setInterval(()=>this.tick(),1000);}
+  componentWillUnmount(){clearInterval(this._iv);clearTimeout(this._t);}
+  flash(t){this.setState({toast:t});clearTimeout(this._t);this._t=setTimeout(()=>this.setState({toast:''}),1400);}
+  finish(r){this.setState({over:r,last:r});}
+  tick(){const s=this.state;const cd=s.cd>1?s.cd-1:3;
+    if(s.over){this.setState({cd});return;}
+    const two=s.mode==='2v2';let opp=s.opp,solved=s.solved,sel=s.sel;
+    if(!s.frz&&opp<4&&Math.random()<(two?1/11:1/15)){opp++;this.flash(two?'تیم حریف یه دسته زد!':'حریف یه دسته زد!');}
+    if(two&&solved.length<4&&Math.random()<1/13){const left=GROUPS.map((g,i)=>i).filter(i=>!solved.some(x=>x.gi===i));const gi=left[Math.floor(Math.random()*left.length)];
+      solved=[...solved,{gi,by:'goli'}];sel=sel.filter(w=>ALL.find(a=>a.w===w).gi!==gi);this.flash('نگار یه دسته پیدا کرد!');}
+    const time=s.time-1;this.setState({cd,opp,solved,sel,time,frz:Math.max(0,s.frz-1)});
+    if(solved.length===4)this.finish('win');else if(opp>=4)this.finish('lose');else if(time<=0)this.finish(solved.length>opp?'win':solved.length<opp?'lose':'draw');}
+  toggle(w){const s=this.state;if(s.over)return;const on=s.sel.includes(w);if(!on&&s.sel.length>=4)return;this.setState({sel:on?s.sel.filter(x=>x!==w):[...s.sel,w]});}
+  submit(){const s=this.state;if(s.sel.length!==4||s.over)return;
+    const gi=GROUPS.findIndex(g=>s.sel.every(w=>g.words.some(x=>x[0]===w)));
+    if(gi>=0){const solved=[...s.solved,{gi,by:'dozari'}];this.setState({solved,sel:[]});this.flash(['آفرین!','دمت گرم!','عالی بود!','ایول!'][solved.length-1]);
+      if(solved.length===4)setTimeout(()=>this.finish('win'),600);}
+    else{const near=GROUPS.some(g=>s.sel.filter(w=>g.words.some(x=>x[0]===w)).length===3);const m=s.mistakes+1;
+      this.setState({mistakes:m,shake:true,sel:[]});setTimeout(()=>this.setState({shake:false}),500);this.flash(near?'یکی مونده!':'نه، این نبود');
+      if(m>=4)setTimeout(()=>this.finish('lose'),700);}}
+  useMag(){const s=this.state;if(!s.mag||s.over)return;const left=GROUPS.map((g,i)=>i).filter(i=>!s.solved.some(x=>x.gi===i));if(!left.length)return;
+    const g=GROUPS[left[0]];this.setState({mag:s.mag-1,sel:g.words.slice(0,2).map(x=>x[0])});this.flash('دوتاش رو پیدا کردم!');}
+  useIce(){const s=this.state;if(!s.ice||s.over)return;this.setState({ice:s.ice-1,frz:10});this.flash('حریف یخ زد! ۱۰ ثانیه');}
+  restart(){this.setState({...fresh(),cd:3});}
+  setMode(m){this.setState({mode:m,...fresh(),cd:3});}
+  renderVals(){
+    const s=this.state,two=s.mode==='2v2';
+    const solvedG=s.solved.map(x=>x.gi);
+    const tiles=s.tiles.filter(t=>!solvedG.includes(t.gi)).map(t=>{const on=s.sel.includes(t.w);return {w:t.w,ic:t.ic,onClick:()=>this.toggle(t.w),
+      bg:on?'#6B35B8':'#FFF6E8',fg:on?'#fff':'#2B1240',sh:on?'#3E1A78':'#D9B98C',tr:on?'translateY(2px) scale(.94)':'none'};});
+    const mine=s.solved.length,opp=s.opp;
+    const vs=(p,pose)=>({...p,vsPose:pose,hudPose:'idle'});
+    const myTeam=two?[vs(P.me,'coin'),vs(P.mate,'cheer')]:[vs(P.me,'coin')];
+    const oppTeam=two?[vs(P.o1,'angry'),vs(P.o2,'pointing')]:[vs(P.o1,'angry')];
+    const R={win:{title:'بردی!',sub:'دوزاریت زودتر از همه افتاد',pose:'win',ray:'rgba(255,201,60,.3)',ban:'linear-gradient(180deg,#FFE48A,#FFC93C)',cta:'یه دست دیگه!',
+        rewards:[{ic:'coinStack',t:two?'+۲۰۰':'+۱۰۰'},{ic:'trophy',t:two?'+۲۰':'+۱۵'},{ic:'xpPotion',t:'+۴۰'}]},
+      lose:{title:'باختی!',sub:'حریف این دست زرنگ‌تر بود',pose:'sad',ray:'rgba(176,196,239,.18)',ban:'linear-gradient(180deg,#D4E0FA,#B0C4EF)',cta:'انتقام بگیر!',
+        rewards:[{ic:'coin',t:'۰'},{ic:'trophy',t:'-۸'},{ic:'xpPotion',t:'+۱۵'}]},
+      draw:{title:'مساوی!',sub:'وقت تموم شد، امتیاز برابر',pose:'thinking',ray:'rgba(201,163,255,.25)',ban:'linear-gradient(180deg,#E3CCFF,#C9A3FF)',cta:'دوباره!',
+        rewards:[{ic:'coin',t:'+۵۰'},{ic:'trophy',t:'۰'},{ic:'xpPotion',t:'+۲۵'}]}};
+    const res=R[s.over||'win'],finK=s.last||'win',fin=R[finK];
+    const myG=s.solved.filter(x=>x.by==='dozari').length,mateG=mine-myG;
+    const fMine=s.last?mine:4,fOpp=s.last?opp:2,fMy=s.last?myG:(two?2:4),fMate=s.last?mateG:2;
+    const o1g=two?Math.ceil(fOpp/2):fOpp,o2g=fOpp-o1g;
+    let board=[{...P.me,g:fMy,t:'me'},...(two?[{...P.mate,g:fMate,t:'me'}]:[]),{...P.o1,g:o1g,t:'op'},...(two?[{...P.o2,g:o2g,t:'op'}]:[])];
+    const top=Math.max(...board.map(b=>b.g));
+    board=board.sort((a,b)=>b.g-a.g).map((b,i)=>({...b,n:b.n,g:fa(b.g),pts:fa(b.g*100+(b.t==='me'&&finK==='win'?50:0)),tc:b.t==='me'?'#3FC1F0':'#FF4D8D',
+      flip:b.t==='me'?'none':'scaleX(-1)',row:b.who==='dozari'?'rgba(255,201,60,.25)':'transparent',mvp:i===0&&b.g>0}));
+    const mm=Math.floor(Math.max(0,s.time)/60),ss=Math.max(0,s.time)%60;
+    const seg=on=>({bg:on?'linear-gradient(180deg,#FFE48A,#FFC93C)':'transparent',fg:on?'#2B1240':'#FFF6E8',bd:on?'3px solid #2B1240':'3px solid transparent'});
+    const card=on=>({anim:on?'dz-glow 1.6s ease-in-out infinite':'none',tr:on?'scale(1)':'scale(.96)'});
+    return {
+      mode:s.mode,is1:!two,is2:two,seg1:seg(!two),seg2:seg(two),card1:card(!two),card2:card(two),
+      pick1:()=>this.setMode('1v1'),pick2:()=>this.setMode('2v2'),restart:()=>this.restart(),
+      modeLabel:two?'۲ در ۲':'۱ در ۱',modeTag:two?'2v2':'1v1',coins:fa(s.coins).replace(/(\S)(\S{3})$/,'$1٬$2'),
+      myTeam,oppTeam,cd:fa(s.cd),
+      vsW:two?'104px':'114px',vsH:two?'121px':'132px',ovW:two?'120px':'160px',ovH:two?'139px':'186px',resW:two?'118px':'140px',resH:two?'137px':'162px',
+      myName:two?'تیم تو':'تو',oppName:two?'تیم آرش':'آرش',
+      myScore:fa(mine),oppScore:fa(opp),
+      myPips:[0,1,2,3].map(i=>({bg:i<mine?'#3FC1F0':'rgba(255,255,255,.15)'})),
+      oppPips:[0,1,2,3].map(i=>({bg:i<opp?'#FF4D8D':'rgba(255,255,255,.15)'})),
+      tug:(50+(mine-opp)*12.5)+'%',
+      frozen:s.frz>0,iceFilter:s.frz>0?'saturate(.3) brightness(1.25) hue-rotate(160deg)':'none',
+      clock:fa(mm+':'+String(ss).padStart(2,'0')),timerBg:s.time<=20?'linear-gradient(180deg,#FF8FB6,#FF4D8D)':'linear-gradient(180deg,#FFE48A,#FFC93C)',
+      tiles,rows:s.solved.map(x=>{const g=GROUPS[x.gi];return {name:g.name,ic:g.ic,c:g.c,d:g.d,words:g.words.map(w=>w[0]).join('، '),by:x.by};}),
+      lives:[0,1,2,3].map(i=>{const ok=i<4-s.mistakes;return {op:ok?1:.35,f:ok?'none':'grayscale(1)'};}),
+      magN:fa(s.mag),iceN:fa(s.ice),magOp:s.mag?1:.45,iceOp:s.ice?1:.45,
+      useMag:()=>this.useMag(),useIce:()=>this.useIce(),
+      shakeAnim:s.shake?'dz-shake .45s ease-in-out':'none',subOp:s.sel.length===4?1:.55,subFilter:s.sel.length===4?'none':'saturate(.4)',
+      toast:s.toast,over:!!s.over,res,fin,board,
+      submit:()=>this.submit(),clear:()=>this.setState({sel:[]}),shuffle:()=>this.setState({tiles:shuf(s.tiles)})
+    };
+  }
+}
+</script>
+</body>
+</html>

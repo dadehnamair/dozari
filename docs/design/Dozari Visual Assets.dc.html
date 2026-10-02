@@ -81,7 +81,7 @@ button{font-family:inherit}
         </div>
         <div style="position:absolute;top:218px;left:0;right:0;text-align:center;font:800 15px Vazirmatn;color:#FFF6E8;letter-spacing:.5px;text-shadow:0 2px 0 #2B1240">بالاخره دوزاریت می‌افته!</div>
         <div style="position:absolute;top:270px;left:50%;width:220px;height:240px;margin-left:-110px;animation:dz-float 2.4s ease-in-out infinite">
-          <dc-import name="Character" pose="wave" skin="0" hint-size="220px,240px" style="width:220px;height:240px"></dc-import>
+          <dc-import name="Character" anim="true" pose="wave" skin="0" hint-size="220px,240px" style="width:220px;height:240px"></dc-import>
         </div>
         <div style="position:absolute;bottom:64px;left:34px;right:34px;display:flex;flex-direction:column;gap:10px;align-items:center">
           <div style="width:100%;height:26px;border-radius:99px;background:#2B1240;border:3px solid #2B1240;box-shadow:0 0 0 2px rgba(255,255,255,.25);overflow:hidden;direction:ltr">
@@ -121,7 +121,7 @@ button{font-family:inherit}
         <div style="position:absolute;top:186px;left:50%;margin-left:-62px;padding:4px 14px;border-radius:99px;background:#FFF6E8;border:3px solid #2B1240;font:800 13px Vazirmatn;color:#2B1240;box-shadow:0 4px 0 #2B1240;white-space:nowrap">پازل امروز آماده‌ست!</div>
 
         <div style="position:absolute;top:417px;left:50%;width:180px;height:197px;margin-left:-90px;animation:dz-float 3s ease-in-out infinite">
-          <dc-import name="Character" pose="idle" skin="0" hint-size="180px,197px" style="width:180px;height:197px"></dc-import>
+          <dc-import name="Character" anim="true" pose="idle" skin="0" hint-size="180px,197px" style="width:180px;height:197px"></dc-import>
         </div>
 
         <div style="position:absolute;bottom:34px;left:16px;right:16px;display:flex;gap:12px">
@@ -214,7 +214,7 @@ button{font-family:inherit}
 
         <div style="position:absolute;top:96px;left:14px;right:14px;height:110px;display:flex;align-items:center;gap:6px">
           <div style="width:104px;height:114px;flex:none">
-            <dc-import name="Character" pose="{{ mPose }}" skin="0" hint-size="104px,114px" style="width:104px;height:114px"></dc-import>
+            <dc-import name="Character" pose="{{ mPose }}" anim="true" skin="0" hint-size="104px,114px" style="width:104px;height:114px"></dc-import>
           </div>
           <div style="flex:1;position:relative;background:#FFF6E8;border:3px solid #2B1240;border-radius:18px;padding:10px 12px;box-shadow:0 4px 0 #2B1240;font:700 13.5px/1.6 Vazirmatn;color:#2B1240;text-wrap:pretty">
             <div style="position:absolute;right:-11px;top:24px;width:16px;height:16px;background:#FFF6E8;border-right:3px solid #2B1240;border-bottom:3px solid #2B1240;transform:rotate(-45deg)"></div>
@@ -255,9 +255,9 @@ button{font-family:inherit}
 
         <sc-if value="{{ over }}" hint-placeholder-val="{{ false }}">
           <div style="position:absolute;inset:0;background:rgba(26,8,44,.78);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:10;overflow:hidden">
-            <div style="position:absolute;left:50%;top:42%;width:900px;height:900px;margin:-450px 0 0 -450px;background:repeating-conic-gradient({{ rayC }} 0 9deg,transparent 9deg 18deg);animation:dz-spin 18s linear infinite"></div>
+            <div style="position:absolute;left:50%;top:42%;width:1700px;height:1700px;margin:-850px 0 0 -850px;border-radius:50%;background:repeating-conic-gradient({{ rayC }} 0 9deg,transparent 9deg 18deg);animation:dz-spin 18s linear infinite"></div>
             <div style="position:relative;width:200px;height:220px;animation:dz-pop .5s ease-out">
-              <dc-import name="Character" pose="{{ mPose }}" skin="0" hint-size="200px,220px" style="width:200px;height:220px"></dc-import>
+              <dc-import name="Character" pose="{{ mPose }}" anim="true" skin="0" hint-size="200px,220px" style="width:200px;height:220px"></dc-import>
             </div>
             <div style="position:relative;padding:10px 34px;background:{{ banC }};border:4px solid #2B1240;border-radius:18px;box-shadow:inset 0 4px 0 rgba(255,255,255,.55),0 6px 0 #2B1240;font:34px Lalezar;color:#2B1240;animation:dz-pop .6s ease-out">{{ overTitle }}</div>
             <div style="position:relative;font:700 15px Vazirmatn;color:#FFF6E8">{{ overSub }}</div>
@@ -335,7 +335,7 @@ button{font-family:inherit}
   <div style="display:flex;gap:16px;flex-wrap:wrap">
     <sc-for list="{{ cast }}" as="c" hint-placeholder-count="7">
       <div style="width:172px;padding:14px 12px 16px;border-radius:26px;background:#FBF1DE;border:3px solid #3A2418;box-shadow:0 6px 0 #3A2418;display:flex;flex-direction:column;align-items:center;gap:4px;color:#3A2418">
-        <div style="width:148px;height:170px"><dc-import name="Character" who="{{ c.k }}" pose="{{ c.pose }}" hint-size="148px,170px" style="width:148px;height:170px"></dc-import></div>
+        <div style="width:148px;height:170px"><dc-import name="Character" who="{{ c.k }}" anim="true" pose="{{ c.pose }}" hint-size="148px,170px" style="width:148px;height:170px"></dc-import></div>
         <div style="font:24px/1.1 Lalezar">{{ c.fa }}</div>
         <div style="font:500 12.5px/1.6 Vazirmatn;text-align:center;opacity:.8;text-wrap:pretty">{{ c.d }}</div>
         <div style="font:10.5px 'JetBrains Mono',monospace;opacity:.55">char-{{ c.k }}</div>
