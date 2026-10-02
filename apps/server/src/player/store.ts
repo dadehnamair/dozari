@@ -1,4 +1,4 @@
-import { and, asc, cities, eq, isNull, sql, userStats, users } from '@dozari/db';
+import { and, asc, cities, desc, eq, gt, inArray, isNull, sql, userStats, users } from '@dozari/db';
 import type { Db } from '@dozari/db';
 import { DEFAULT_CITIES } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
@@ -26,6 +26,12 @@ export interface PrivateRow {
   email: string | null;
 }
 
+/** Who takes part in a ranking: everyone, one city, or an explicit list of players. */
+export interface RankFilter {
+  cityId?: string;
+  userIds?: readonly string[];
+}
+
 export const EMPTY_STATS: StatsRow = { xp: 0, games: 0, wins: 0, losses: 0, draws: 0 };
 
 /** I/O boundary of the player record: stats, city, e-mail, nickname. */
@@ -37,6 +43,10 @@ export interface PlayerStore {
   setCity(userId: string, cityId: string | null): Promise<void>;
   setEmail(userId: string, email: string | null): Promise<void>;
   setNickname(userId: string, nickname: string): Promise<void>;
+  /** The top `limit` players by XP inside a filter (`cityId`, or an explicit id list); ties break by id for a stable order. */
+  ranking(filter: RankFilter, limit: number): Promise<{ userId: string; xp: number }[]>;
+  /** 1-based place of a player inside the filter (players with more XP + 1). */
+  rankOf(userId: string, filter: RankFilter): Promise<number>;
   cities(opts?: { includeHidden?: boolean }): Promise<CityRow[]>;
   city(id: string): Promise<CityRow | null>;
   addCity(slug: string, nameFa: string, province?: string | null): Promise<CityRow | 'duplicate'>;
@@ -58,6 +68,7 @@ export function createDbPlayerStore(db: Db): PlayerStore {
     }
     seeded = true;
   };
+  const rankWhere = (f: RankFilter) => [f.cityId ? eq(users.cityId, f.cityId) : undefined, f.userIds ? (f.userIds.length > 0 ? inArray(users.id, [...f.userIds]) : sql`1 = 0`) : undefined];
   const toCity = (r: typeof cities.$inferSelect): CityRow => ({ id: r.id, slug: r.slug, nameFa: r.nameFa, province: r.province, sortOrder: r.sortOrder, isActive: r.isActive });
   return {
     async stats(userId) {
@@ -84,6 +95,27 @@ export function createDbPlayerStore(db: Db): PlayerStore {
     },
     async setNickname(userId, nickname) {
       await db.update(users).set({ nickname }).where(eq(users.id, userId));
+    },
+    async ranking(filter, limit) {
+      const where = and(...rankWhere(filter));
+      const rows = await db
+        .select({ userId: userStats.userId, xp: userStats.xp })
+        .from(userStats)
+        .innerJoin(users, eq(users.id, userStats.userId))
+        .where(where)
+        .orderBy(desc(userStats.xp), asc(userStats.userId))
+        .limit(limit);
+      return rows;
+    },
+    async rankOf(userId, filter) {
+      const [mine] = await db.select({ xp: userStats.xp }).from(userStats).where(eq(userStats.userId, userId));
+      const xp = mine?.xp ?? 0;
+      const [agg] = await db
+        .select({ above: sql<number>`COUNT(*)` })
+        .from(userStats)
+        .innerJoin(users, eq(users.id, userStats.userId))
+        .where(and(...rankWhere(filter), gt(userStats.xp, xp)));
+      return Number(agg?.above ?? 0) + 1;
     },
     async cities(opts) {
       await ensureCities();
@@ -119,6 +151,10 @@ export function createMemoryPlayerStore(seedCities: readonly { slug: string; nam
   const stats = new Map<string, StatsRow>();
   const priv = new Map<string, PrivateRow>();
   const nicknames = new Map<string, string>();
+  const inFilter = (f: RankFilter) =>
+    [...stats.entries()]
+      .map(([userId, s]) => ({ userId, xp: s.xp }))
+      .filter((r) => (f.cityId ? priv.get(r.userId)?.cityId === f.cityId : true) && (f.userIds ? f.userIds.includes(r.userId) : true));
   const rows: CityRow[] = seedCities.map((c, i) => ({ id: `00000000-0000-7000-8000-${String(i + 1).padStart(12, '0')}`, slug: c.slug, nameFa: c.nameFa, province: c.province ?? null, sortOrder: i, isActive: true }));
   return {
     nicknames,
@@ -137,6 +173,15 @@ export function createMemoryPlayerStore(seedCities: readonly { slug: string; nam
     },
     async privateRow(id) {
       return { ...(priv.get(id) ?? { cityId: null, email: null }) };
+    },
+    async ranking(filter, limit) {
+      return inFilter(filter)
+        .sort((a, b) => b.xp - a.xp || a.userId.localeCompare(b.userId))
+        .slice(0, limit);
+    },
+    async rankOf(id, filter) {
+      const xp = stats.get(id)?.xp ?? 0;
+      return inFilter(filter).filter((r) => r.xp > xp).length + 1;
     },
     async setCity(id, cityId) {
       priv.set(id, { ...(priv.get(id) ?? { cityId: null, email: null }), cityId });

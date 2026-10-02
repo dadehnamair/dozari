@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { citiesSchema, mulberry32, myProfileSchema, playerProfileSchema } from '@dozari/shared';
+import { citiesSchema, leaderboardSchema, mulberry32, myProfileSchema, playerProfileSchema } from '@dozari/shared';
 import { buildServer } from '../index.js';
 import { AuthService } from '../auth/service.js';
 import type { UserRecord, UserRepository } from '../auth/service.js';
@@ -147,5 +147,42 @@ describe('nickname rules', () => {
     await player.recordGame(a.id, { mode: 'duel', outcome: 'loss' });
     await player.recordGame(a.id, { mode: 'duel', outcome: 'loss' });
     expect((await put(app, a.h, 'علی')).statusCode).toBe(200);
+  });
+});
+
+describe('leaderboard (D108)', () => {
+  it('ranks by total XP; city scope only lists the city, friends scope only friends; me is placed even outside the top', async () => {
+    const { app, login, store, player } = boot();
+    const a = await login(1);
+    const b = await login(2);
+    const c = await login(3);
+    await store.addGame(a.id, 'win', 100);
+    await store.addGame(b.id, 'win', 300);
+    await store.addGame(c.id, 'win', 200);
+    const tehran = (await store.cities())[0]!.id;
+    await player.setCity(a.id, tehran);
+    await player.setCity(c.id, tehran);
+    const get = async (u: typeof a, scope: string) => leaderboardSchema.parse((await app.inject({ method: 'GET', url: `/leaderboard?scope=${scope}`, headers: u.h })).json());
+
+    const all = await get(a, 'all');
+    expect(all.entries.map((e) => [e.rank, e.xp, e.isMe])).toEqual([[1, 300, false], [2, 200, false], [3, 100, true]]);
+    expect(all.me?.rank).toBe(3);
+
+    const city = await get(a, 'city');
+    expect(city.entries.map((e) => e.xp)).toEqual([200, 100]);
+    expect(city.entries[0]?.province).toBe('tehran');
+    expect(city.me?.rank).toBe(2);
+
+    // No city: the scope is empty.
+    expect(await get(b, 'city')).toMatchObject({ entries: [], me: null });
+
+    // Friends: only me until someone accepts.
+    expect((await get(a, 'friends')).entries.map((e) => e.xp)).toEqual([100]);
+    await app.inject({ method: 'POST', url: `/friends/${c.id}/request`, headers: a.h, payload: {} });
+    await app.inject({ method: 'POST', url: `/friends/${a.id}/accept`, headers: c.h, payload: {} });
+    expect((await get(a, 'friends')).entries.map((e) => e.xp)).toEqual([200, 100]);
+
+    expect((await app.inject({ method: 'GET', url: '/leaderboard?scope=galaxy', headers: a.h })).statusCode).toBe(400);
+    expect((await app.inject({ method: 'GET', url: '/leaderboard' })).statusCode).toBe(401);
   });
 });

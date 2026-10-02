@@ -89,6 +89,16 @@ by nickname, incoming requests with accept / decline, then one card per friend (
 tap for their profile — and a gift button that opens the coin gift). The mock-up's online status and
 per-friend duel button need presence and direct challenges, which do not exist yet; they are left out.
 
+## Leaderboard (D108)
+
+screen-leaderboard of `11 More Screens`, opened from the Home tile «جدول»: purple chequer with a golden
+glow, pink title plate, three tabs — «همه», «شهر من», «دوستان» — the podium of the top three (2nd, 1st,
+3rd; gold, silver, bronze blocks), the rest as rows (rank, avatar, province badge, nickname, XP) on a
+cream sheet, and the player's own row pinned at the bottom when they are outside the top 20. Tap a row
+for the player's profile. Ranked by **total XP** (`GET /leaderboard?scope=all|city|friends`, top 20, the
+caller's rank counted from `user_stats`). The design's week / month tabs need a per-game log that is not
+kept; they come with the game-history work.
+
 ## Profile and settings (D107)
 
 **screen-profile**: caravan scene header with back and a pencil (opens the editor: gender, nickname,

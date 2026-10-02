@@ -305,3 +305,7 @@ List and detail follow `screen-tournament` (`app-screens.md` §Tournaments). The
 ## D107 — Profile and settings split (2026-10-02)
 
 The old profile sheet mixed identity and settings. It is now two pages from the designs (`app-screens.md` §Profile and settings): the profile page is read-first with an edit panel behind the pencil; settings holds the device switches and the account actions. Home: the level pill opens the profile, the «تنظیمات» tile opens settings.
+
+## D108 — Leaderboard by XP with city and friends scopes (2026-10-02)
+
+Owner: build screen-leaderboard. Ranked by total XP (the only score we store). Tabs: everyone, my city (the regional filter D53 promised), friends; the design's week / month are replaced because no per-game log exists — add them when game history is recorded. Bots appear like players (D67). `GET /leaderboard?scope=` returns the top 20 and the caller's place.

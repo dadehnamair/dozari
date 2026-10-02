@@ -18,6 +18,7 @@ export const fa = {
       daily: 'جایزه',
       tables: 'میز',
       tournaments: 'تورنومنت',
+      leaderboard: 'جدول',
       lookup: 'قیمت‌یاب',
       settings: 'تنظیمات',
       messages: 'پیام‌ها',
@@ -235,6 +236,15 @@ export const fa = {
       { title: 'حالا ثبت کن', text: 'وقتی ۴تا رو انتخاب کردی، دکمهٔ «ثبت کن» رو بزن. فرصت‌هات محدوده، حواست باشه.', cta: 'باشه', pose: 'thinking' },
       { title: 'آفرین، دوزاریت افتاد!', text: 'قیمت‌ها همون قیمت روی برچسب همون ساله، بدون حساب تورم. با بازی و دعوت دوستات سکه جمع کن. بزن بریم!', cta: 'بزن بریم!', pose: 'cheer' },
     ] as readonly { title: string; text: string; cta: string; pose: 'wave' | 'pointing' | 'thinking' | 'cheer' }[],
+  },
+  leaderboard: {
+    title: 'جدول امتیازات',
+    close: 'برگشت',
+    tabs: { all: 'همه', city: 'شهر من', friends: 'دوستان' },
+    empty: { all: 'هنوز کسی امتیاز نگرفته.', city: 'شهرت را انتخاب کن تا جدول همشهری‌ها باز شود.', friends: 'دوستی نداری؛ از «پیدا کردن دوست» اضافه کن.' },
+    you: 'تو',
+    error: 'نتوانستیم جدول را بگیریم.',
+    xp: 'امتیاز',
   },
   settings: {
     title: 'تنظیمات',
