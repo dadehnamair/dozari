@@ -102,6 +102,23 @@ ledger don't need retrofitting later).
 
 ## Balancing
 
-`packages/shared/scripts/simulate-economy.ts` simulates N players with play-frequency distributions
-for 30 days and prints median/p10/p90 balances + % of player-days stuck. Target: < 2% stuck,
-median balance slowly rising (so future cosmetics sink has room). Run it whenever config changes.
+`packages/shared/src/economy/simulate.ts` (`simulateEconomy`, seeded, pure) models 2000 players over 30 days
+(three play-frequency buckets, daily reward, daily puzzle, 3 free matches, loss consolation, broke rescue) and
+returns median/p10/p90 balance, % of player-days stuck and faucet/burn per player. Print it with
+`PRINT_ECONOMY=1 pnpm --filter @dozari/shared exec vitest run src/economy/__tests__/simulate.test.ts`.
+Target: < 2% stuck, median balance slowly rising (so the shop/cosmetics sink has room). Run it whenever config changes.
+
+### Audit result (launch defaults, 2026-10-02, D90)
+
+| metric | value |
+|---|---|
+| median / p10 / p90 balance after 30 days | 1336 / 832 / 1692 |
+| stuck player-days | 0.002 % (target < 2 %) |
+| coins created per player (faucets) | ≈ 1433 |
+| coins burned per player (house cut) | ≈ 100 |
+
+Reading: nobody gets stuck, but the balance **inflates** — faucets are ~14× the burn. The mint is mostly
+free-match wins paid from the house pot (3/day × 45 % × 9 coins), daily reward and consolation. Model only
+covers duels; hints, shop, gifts (zero-sum) and tournaments are not in it. Proposed (not applied): leave
+numbers as they are until real play data exists, and use the shop / cosmetics / coin-packages as the sink;
+if inflation shows in production lower `FREE_MATCH_PAYOUT_PERCENT` first (settings-tunable).

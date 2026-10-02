@@ -25,3 +25,16 @@ export const DAILY_PUZZLE_STREAK_STEP = 5;
 export const DAILY_PUZZLE_STREAK_MAX_DAYS = 7;
 /** A puzzle used as a daily one is not picked again within this many days (when others exist). */
 export const DAILY_PUZZLE_REPEAT_DAYS = 30;
+
+/** Match economy launch defaults (docs/logic/economy.md). Used by the balance simulator; live matches read the same values. */
+export const SIGNUP_BONUS = 200;
+export const ENTRY_FEE_BASE = 20;
+/** Share of every pot burned by the house, in percent. */
+export const HOUSE_CUT_PERCENT = 10;
+export const DAILY_FREE_MATCHES = 3;
+/** A free-match win pays the normal payout times this percent, from the house pot. */
+export const FREE_MATCH_PAYOUT_PERCENT = 50;
+export const LOSS_CONSOLATION = 5;
+export const LOSS_CONSOLATION_DAILY_CAP = 10;
+/** A broke player with no free matches left is topped up to this once a day. */
+export const BROKE_RESCUE_TARGET = 60;
