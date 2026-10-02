@@ -20,6 +20,9 @@ import { createDbPlayerStore } from './player/store.js';
 import { registerTransferRoutes } from './transfers/routes.js';
 import { TransferService, transferRulesFromSettings } from './transfers/service.js';
 import { createDbTransferStore } from './transfers/store.js';
+import { registerBadgeRoutes } from './badges/routes.js';
+import { BadgeService, modRulesFromSettings, skillRulesFromSettings } from './badges/service.js';
+import { createDbBadgeStore } from './badges/store.js';
 import { registerFindRoutes } from './find/routes.js';
 import { FindService } from './find/service.js';
 import { createShortener } from './find/shortener.js';
@@ -96,6 +99,8 @@ export interface ServerDeps {
   phone?: PhoneService;
   /** Public ID, search, contacts, invite link; needs `auth`. */
   find?: FindService;
+  /** Badges, medals, notices, mutes and the agent's powers; needs `auth`. */
+  badges?: BadgeService;
   /** Admin message center; its in-app channel feeds `GET /inbox`. */
   messages?: MessageCenter;
   /** Public profiles, friend requests and the gender setting. */
@@ -166,6 +171,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.messages) registerInboxRoutes(app, deps.auth, deps.messages);
   if (deps.auth && deps.phone) registerPhoneRoutes(app, deps.auth, deps.phone);
   if (deps.auth && deps.find) registerFindRoutes(app, deps.auth, deps.find);
+  if (deps.auth && deps.badges) registerBadgeRoutes(app, deps.auth, deps.badges);
   if (deps.auth && deps.bale) {
     const phoneSvc = deps.phone;
     const settings = deps.settings;
@@ -241,20 +247,42 @@ if (isMainModule(import.meta.url)) {
   const playerStore = db ? createDbPlayerStore(db) : undefined;
   const inviteStore = db ? createDbInviteStore(db) : undefined;
   const player = playerStore && settings ? new PlayerService(playerStore, () => rulesFromSettings(settings), words, inviteStore ? (id) => inviteStore.isActivated(id) : undefined) : undefined;
-  const social = db
+  const socialStore = db ? createDbSocialStore(db) : undefined;
+  const badgeStore = db ? createDbBadgeStore(db) : undefined;
+  const badges =
+    badgeStore && settings && player && socialStore
+      ? new BadgeService(
+          badgeStore,
+          async (id) => {
+            const { level, stats } = await player.levelOf(id);
+            return { games: stats.games, wins: stats.wins, level: level.level };
+          },
+          () => skillRulesFromSettings(settings),
+          () => modRulesFromSettings(settings),
+          async (id) => (await socialStore.publicRow(id)) !== null,
+          Date.now,
+          (id, text) => void notify?.notify(id, 'admin', text).catch(() => undefined),
+        )
+      : undefined;
+  const social = db && socialStore
     ? new SocialService(
-        createDbSocialStore(db),
+        socialStore,
         Date.now,
         (targetId, nickname) => {
           void notify?.notify(targetId, 'friend_request', BALE_TEXT.friendRequest(nickname)).catch(() => undefined);
         },
         player,
+        badges,
       )
     : undefined;
   const messages = db ? new MessageCenter(createDbMessageStore(db), notify ?? null) : undefined;
   const invite = inviteStore && settings && player ? new InviteService(inviteStore, () => inviteRulesFromSettings(settings), async (id) => (await player.levelOf(id)).level.level, async (id) => (await player.levelOf(id)).stats.games, () => randomInt(0, 2 ** 30) / 2 ** 30) : undefined;
-  if (player && invite) player.afterGame = (id) => invite.settle(id);
-  const socialStore = db ? createDbSocialStore(db) : undefined;
+  if (player) {
+    player.afterGame = async (id) => {
+      await invite?.settle(id);
+      await badges?.evaluate(id);
+    };
+  }
   const transfers = db && settings && socialStore && inviteStore ? new TransferService(createDbTransferStore(db), socialStore, () => transferRulesFromSettings(settings), async (id) => (player ? (await player.levelOf(id)).level.level : 1), (id) => inviteStore.isActivated(id)) : undefined;
   const find =
     db && settings && socialStore
@@ -280,7 +308,7 @@ if (isMainModule(import.meta.url)) {
     auth,
     settings,
     adminModules: db
-      ? { products: createDbProductAdmin(db), stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, invites: inviteStore, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      ? { products: createDbProductAdmin(db), stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
     match: db
@@ -306,6 +334,7 @@ if (isMainModule(import.meta.url)) {
     bale: notify ? { service: notify, botUsername: baleUsername } : undefined,
     phone,
     find,
+    badges,
     messages,
     social,
     invite,

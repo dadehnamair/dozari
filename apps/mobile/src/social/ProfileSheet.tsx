@@ -12,6 +12,7 @@ import { ProfileEditor } from './ProfileEditor';
 import { InviteSheet } from '../invite/InviteSheet';
 import { LoansSheet } from '../transfers/LoansSheet';
 import { FindSheet } from './FindSheet';
+import { BadgesSheet } from '../badges/BadgesSheet';
 
 const INK = '#3A2418';
 
@@ -24,6 +25,7 @@ export function ProfileSheet({ onClose, onGender }: { onClose: () => void; onGen
   const [inviteOpen, setInviteOpen] = useState(false);
   const [loansOpen, setLoansOpen] = useState(false);
   const [findOpen, setFindOpen] = useState(false);
+  const [badgesOpen, setBadgesOpen] = useState(false);
 
   const load = useCallback(() => {
     Promise.all([fetchMyProfile(), fetchFriends()]).then(
@@ -40,6 +42,7 @@ export function ProfileSheet({ onClose, onGender }: { onClose: () => void; onGen
   };
   const options: [Gender | null, string][] = [['female', fa.profile.female], ['male', fa.profile.male], [null, fa.profile.none]];
 
+  if (badgesOpen) return <BadgesSheet onClose={() => setBadgesOpen(false)} />;
   if (findOpen) return <FindSheet onClose={() => (setFindOpen(false), load())} />;
   if (loansOpen) return <LoansSheet onClose={() => setLoansOpen(false)} />;
   if (inviteOpen) return <InviteSheet onClose={() => (setInviteOpen(false), load())} />;
@@ -90,6 +93,7 @@ export function ProfileSheet({ onClose, onGender }: { onClose: () => void; onGen
             </Pressable>
           ))}
         </ScrollView>
+        <CandyButton label={fa.badges.open} color={colors.candy.grape} onPress={() => setBadgesOpen(true)} />
         <CandyButton label={fa.find.open} color={colors.candy.lime} onPress={() => setFindOpen(true)} />
         <CandyButton label={fa.transfers.loansOpen} color={colors.candy.orange} onPress={() => setLoansOpen(true)} />
         <CandyButton label={fa.invite.open} color={colors.candy.lime} onPress={() => setInviteOpen(true)} />

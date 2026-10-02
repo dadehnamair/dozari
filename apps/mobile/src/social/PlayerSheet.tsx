@@ -8,6 +8,7 @@ import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { acceptFriend, fetchPlayer, removeFriend, requestFriend } from './api';
 import { avatarOf } from './avatarOf';
+import { skillText } from '../badges/text';
 import { TransferSheet } from '../transfers/TransferSheet';
 
 const INK = '#3A2418';
@@ -37,11 +38,14 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
         {p ? (
           <>
             <Avatar avatar={avatarOf(p.avatarKey)} size={96} />
-            <Text style={styles.name}>{p.nickname}</Text>
+            <Text style={styles.name}>{p.nickname}{p.badges.badge ? ` · ${p.badges.badge.titleFa}` : ''}</Text>
             <View style={styles.stats}>
               <Text style={styles.stat}>{fa.player.level} {toPersianDigits(String(p.level))}</Text>
               <Text style={styles.stat}>{fa.player.coins} {toPersianDigits(String(p.coins))}</Text>
               <Text style={styles.stat}>{fa.player.since} {since}</Text>
+              {p.cityName ? <Text style={styles.stat}>{p.cityName}</Text> : null}
+              <Text style={styles.stat}>{skillText(p.badges.skill)} · {fa.player.games} {toPersianDigits(String(p.stats.games))} · {fa.player.wins} {toPersianDigits(String(p.stats.wins))}</Text>
+              {p.badges.medals.length > 0 ? <Text style={styles.stat}>{p.badges.medals.map((m) => m.titleFa).join('، ')}</Text> : null}
             </View>
             {p.isMe ? null : p.relation === 'none' ? (
               <CandyButton label={fa.player.request} color={colors.candy.lime} onPress={act(requestFriend)} />

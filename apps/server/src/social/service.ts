@@ -1,5 +1,6 @@
 import type { FriendRelation, Friends, Gender, MyProfile, PlayerProfile } from '@dozari/shared';
 import type { PlayerService } from '../player/service.js';
+import type { BadgeService } from '../badges/service.js';
 import type { SocialStore } from './store.js';
 
 export type RequestResult = 'ok' | 'self' | 'unknown_player' | 'already' | 'accepted';
@@ -13,6 +14,8 @@ export class SocialService {
     private readonly onRequest?: (targetId: string, fromNickname: string) => void,
     /** Level, stats, city, e-mail and nickname; without it everyone is level 1 with no games. */
     readonly player?: PlayerService,
+    /** Badges, medals and the skill tier shown on a profile. */
+    readonly badges?: BadgeService,
   ) {}
 
   private async relation(me: string, other: string): Promise<FriendRelation> {
@@ -28,7 +31,7 @@ export class SocialService {
     if (!row) return null;
     const lv = (await this.player?.levelOf(id)) ?? { level: { level: 1 }, stats: { games: 0, wins: 0, losses: 0, draws: 0 } };
     const city = (await this.player?.cityOf(id)) ?? null;
-    return { id, nickname: row.nickname, avatarKey: row.avatarKey, level: lv.level.level, coins: row.coins, stats: lv.stats, cityName: city?.nameFa ?? null, memberSince: row.createdAt, relation: me === id ? 'none' : await this.relation(me, id), isMe: me === id };
+    return { id, nickname: row.nickname, avatarKey: row.avatarKey, level: lv.level.level, coins: row.coins, stats: lv.stats, cityName: city?.nameFa ?? null, badges: (await this.badges?.publicOf(id)) ?? { badge: null, medals: [], skill: 'novice' as const }, memberSince: row.createdAt, relation: me === id ? 'none' : await this.relation(me, id), isMe: me === id };
   }
 
   async request(me: string, target: string): Promise<RequestResult> {

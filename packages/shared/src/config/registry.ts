@@ -18,6 +18,7 @@ import { DAILY_REWARD_COOLDOWN_HOURS, DAILY_REWARD_STREAK_WINDOW_HOURS, HINT_MAX
 import { CHART_GAP_BREAK_YEARS, CHART_MIN_YEAR } from './chart.js';
 import { INVITE_INVITEE_BONUS, INVITE_INVITER_REWARD, INVITE_MAX_USES, INVITE_MIN_LEVEL, INVITE_REWARD_AFTER_GAMES } from './invite.js';
 import { LOAN_DUE_DAYS, LOAN_MAX_OPEN, TRANSFER_MAX_AMOUNT, TRANSFER_MIN_AMOUNT, TRANSFER_MIN_FRIEND_DAYS, TRANSFER_MIN_LEVEL, TRANSFER_WEEKLY_CAP } from './transfers.js';
+import { SKILL_MIN_GAMES, SKILL_PRO_GAMES, SKILL_PRO_WIN_PERCENT } from './progression.js';
 import { LEVEL_MAX, NICKNAME_MAX_LEN, NICKNAME_MIN_LEN, XP_CURVE_BASE, XP_DUEL_BASE, XP_SOLO_BASE, XP_WIN_BONUS } from './progression.js';
 
 /**
@@ -122,6 +123,11 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'link.shortener_url', group: 'app', label: 'آدرس سرویس کوتاه‌کننده‌ی لینک', hint: 'آدرسی که {url} در آن جایگزین لینک می‌شود؛ مثل https://example.com/api?url={url} . خالی = لینک کوتاه نمی‌شود', kind: 'text', min: 0, max: 300, default: '' },
   { key: 'friend.link_auto_hours', group: 'app', label: 'حساب‌های تازه‌تر از این مدت با لینک دعوت فوری دوست می‌شوند', kind: 'int', min: 0, max: 168, default: 24, unit: 'ساعت' },
   { key: 'friend.link_auto_per_day', group: 'app', label: 'سقف دوستی خودکار با لینک برای هر نفر در روز', kind: 'int', min: 0, max: 500, default: 20 },
+  { key: 'skill.min_games', group: 'profile', label: 'بازی لازم تا از «تازه‌کار» رد شود', kind: 'int', min: 1, max: 500, default: SKILL_MIN_GAMES, unit: 'بازی' },
+  { key: 'skill.pro_games', group: 'profile', label: 'بازی لازم برای «حرفه‌ای» شدن', kind: 'int', min: 1, max: 1000, default: SKILL_PRO_GAMES, unit: 'بازی' },
+  { key: 'skill.pro_win_percent', group: 'profile', label: 'درصد برد لازم برای «حرفه‌ای» شدن', kind: 'int', min: 1, max: 100, default: SKILL_PRO_WIN_PERCENT, unit: '٪' },
+  { key: 'mod.max_mute_minutes', group: 'app', label: 'بیشترین مدت سکوت که آجان دوزاری می‌تواند بدهد', kind: 'int', min: 1, max: 1440, default: 60, unit: 'دقیقه' },
+  { key: 'mod.agent_actions_per_day', group: 'app', label: 'سقف اخطار و سکوت هر آجان در روز', kind: 'int', min: 1, max: 500, default: 20 },
   { key: 'chart.gap_break_years', group: 'chart', label: 'شکاف سال در نمودار قیمت', hint: 'بیشتر از این تعداد سال بدون داده، خط نمودار قطع می‌شود', kind: 'int', min: 1, max: 30, default: CHART_GAP_BREAK_YEARS, unit: 'سال' },
   { key: 'chart.min_year', group: 'chart', label: 'اولین سال نمودار', kind: 'int', min: 1200, max: 1400, default: CHART_MIN_YEAR },
   { key: 'bot.enabled', group: 'bot', label: 'ربات محتوا روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },

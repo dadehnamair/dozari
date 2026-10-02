@@ -16,6 +16,8 @@ import type { TextFilterService } from '../textfilter/service.js';
 import type { UsersAdmin } from './users.js';
 import type { PlayerStore } from '../player/store.js';
 import type { ShopStore } from '../economy/shop-store.js';
+import type { BadgeService } from '../badges/service.js';
+import type { BadgeStore } from '../badges/store.js';
 import { registerInviteAdminRoutes } from '../invite/routes.js';
 import type { InviteStore } from '../invite/store.js';
 
@@ -32,6 +34,8 @@ export interface AdminModules {
   shop?: ShopStore;
   /** Invite codes: list, special campaign codes, limits. */
   invites?: InviteStore;
+  /** Badge catalog, grants, warnings, commendations, mutes. */
+  badges?: { store: BadgeStore; service: BadgeService };
   messages?: MessageCenter;
   bale?: { service: NotifyService; store: NotifyStore; botUsername: string | null };
   bot?: { repo: BotRepository; service: BotService };
@@ -102,7 +106,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     adapters: BOT_ADAPTER_KEYS,
     settingGroups: SETTING_GROUPS,
     icons: ITEMS,
-    modules: { settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, invites: !!m.invites, bale: !!m.bale, messages: !!m.messages },
+    modules: { settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, invites: !!m.invites, badges: !!m.badges, bale: !!m.bale, messages: !!m.messages },
   }));
 
   if (m.stats) {
@@ -342,6 +346,80 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
       if ((await cities.updateCity(p.data.id, b.data)) === 'not_found') return reply.code(404).send({ error: 'city_not_found' });
       void audit('city.update', p.data.id, JSON.stringify(b.data));
+      return { ok: true };
+    });
+  }
+
+  if (m.badges) {
+    const { store, service } = m.badges;
+    const badgeFields = {
+      titleFa: z.string().trim().min(2).max(60),
+      descriptionFa: z.string().trim().max(200),
+      kind: z.enum(['badge', 'medal']),
+      iconKey: z.string().max(30).nullable(),
+      perk: z.enum(['none', 'share_contact', 'moderator']),
+      ruleMetric: z.enum(['none', 'games', 'wins', 'level']),
+      ruleMin: z.number().int().min(0).max(1_000_000),
+      isActive: z.boolean(),
+    };
+    g.get('/admin/badges', async () => ({ badges: await store.catalog({ includeHidden: true }) }));
+    g.post('/admin/badges', async (req, reply) => {
+      const b = z.object({ slug: z.string().trim().toLowerCase().regex(/^[a-z0-9_]{2,40}$/), ...badgeFields }).safeParse(req.body);
+      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await store.addBadge(b.data);
+      if (out === 'duplicate') return reply.code(409).send({ error: 'duplicate' });
+      void audit('badge.add', out.id, b.data.titleFa);
+      return reply.code(201).send({ id: out.id });
+    });
+    g.patch('/admin/badges/:id', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object(badgeFields).partial().safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      if ((await store.updateBadge(p.data.id, b.data)) === 'not_found') return reply.code(404).send({ error: 'badge_not_found' });
+      void audit('badge.update', p.data.id, JSON.stringify(b.data));
+      return { ok: true };
+    });
+    g.get('/admin/users/:id/badges', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
+      return service.me(p.data.id);
+    });
+    g.post('/admin/users/:id/badges', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object({ badgeId: z.string().uuid() }).safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      if (!(await service.grant(p.data.id, b.data.badgeId, 'admin'))) return reply.code(404).send({ error: 'badge_not_found' });
+      void audit('badge.grant', p.data.id, b.data.badgeId);
+      return { ok: true };
+    });
+    g.delete('/admin/users/:id/badges/:badgeId', async (req, reply) => {
+      const p = z.object({ id: z.string().uuid(), badgeId: z.string().uuid() }).safeParse(req.params);
+      if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
+      if (!(await service.revoke(p.data.id, p.data.badgeId))) return reply.code(404).send({ error: 'not_found' });
+      void audit('badge.revoke', p.data.id, p.data.badgeId);
+      return { ok: true };
+    });
+    g.post('/admin/users/:id/notices', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object({ kind: z.enum(['warning', 'commendation']), text: z.string().trim().min(3).max(300) }).safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      await service.issueNotice(p.data.id, b.data.kind, b.data.text, { type: 'admin', id: null });
+      void audit(`notice.${b.data.kind}`, p.data.id, b.data.text.slice(0, 100));
+      return reply.code(201).send({ ok: true });
+    });
+    g.post('/admin/users/:id/mute', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object({ minutes: z.number().int().min(1).max(60 * 24 * 365), reason: z.string().trim().max(200) }).safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      await service.adminMute(p.data.id, b.data.minutes, b.data.reason);
+      void audit('user.mute', p.data.id, `${b.data.minutes}m ${b.data.reason}`);
+      return { ok: true };
+    });
+    g.delete('/admin/users/:id/mute', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
+      await service.clearMute(p.data.id);
+      void audit('user.unmute', p.data.id);
       return { ok: true };
     });
   }

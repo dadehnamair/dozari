@@ -193,3 +193,8 @@ pluggable provider (owner still to choose one). A verified number is unique per 
 
 Exact-match search by public ID or verified phone (findable by default, switchable), address-book lookup API, invite link through an
 admin-configured shortener, instant friendship for a brand-new account that opens a link. See `docs/logic/find-friends.md`.
+
+## D83 — Badges, medals, notices, skill tier and «آجان دوزاری» (2026-10-02)
+
+Badge catalog with perks and automatic rules, medals, private warnings/commendations, a computed skill tier, short agent mutes with a daily cap,
+and a contact-info detector for chat. Details and defaults in `docs/logic/badges-and-moderation.md`. Proposed; the owner may change any number.

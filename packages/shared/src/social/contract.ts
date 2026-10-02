@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { publicBadgesSchema } from '../badges/contract.js';
 
 export const GENDERS = ['female', 'male'] as const;
 export const genderSchema = z.enum(GENDERS);
@@ -39,6 +40,7 @@ export const playerProfileSchema = z.object({
   coins: z.number().int().nonnegative(),
   stats: playerStatsSchema,
   cityName: z.string().nullable(),
+  badges: publicBadgesSchema,
   memberSince: z.number().int(),
   relation: friendRelationSchema,
   isMe: z.boolean(),
