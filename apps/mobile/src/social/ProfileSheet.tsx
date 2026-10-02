@@ -13,6 +13,8 @@ import { InviteSheet } from '../invite/InviteSheet';
 import { LoansSheet } from '../transfers/LoansSheet';
 import { FindSheet } from './FindSheet';
 import { BadgesSheet } from '../badges/BadgesSheet';
+import { setPref, usePrefs } from '../prefs/store';
+import { playSfx } from '../sound/engine';
 
 const INK = '#3A2418';
 
@@ -26,6 +28,7 @@ export function ProfileSheet({ onClose, onGender }: { onClose: () => void; onGen
   const [loansOpen, setLoansOpen] = useState(false);
   const [findOpen, setFindOpen] = useState(false);
   const [badgesOpen, setBadgesOpen] = useState(false);
+  const prefs = usePrefs();
 
   const load = useCallback(() => {
     Promise.all([fetchMyProfile(), fetchFriends()]).then(
@@ -84,6 +87,24 @@ export function ProfileSheet({ onClose, onGender }: { onClose: () => void; onGen
               </Pressable>
             </View>
           ))}
+          <Text style={styles.label}>{fa.prefs.title}</Text>
+          <Text style={styles.hint}>{fa.prefs.hint}</Text>
+          <View style={styles.row}>
+            {(['sound', 'vibration', 'reduceMotion'] as const).map((k) => (
+              <Pressable
+                key={k}
+                onPress={() => {
+                  setPref(k, !prefs[k]);
+                  if (k === 'sound' && !prefs.sound) setTimeout(() => playSfx('coin'), 0);
+                }}
+                style={[styles.pill, prefs[k] && styles.pillOn]}
+                accessibilityRole="switch"
+                accessibilityState={{ checked: prefs[k] }}
+              >
+                <Text style={styles.pillText}>{fa.prefs[k]}</Text>
+              </Pressable>
+            ))}
+          </View>
           <Text style={styles.label}>{fa.profile.friends}</Text>
           {friends && friends.friends.length === 0 ? <Text style={styles.hint}>{fa.profile.noFriends}</Text> : null}
           {friends?.friends.map((p) => (

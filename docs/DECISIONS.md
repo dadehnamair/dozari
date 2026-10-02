@@ -224,3 +224,9 @@ admin or chosen by a date-seeded weighted picker avoiding recent repeats. One at
 ## D88 — City dialect phrases as city-scoped taunt categories (2026-10-02)
 
 Dialect/local phrases reuse canned taunts: a category can be limited to one city, offered and accepted only for that city's players. No new content is shipped; the owner fills it in the admin panel. See `docs/logic/chat-and-access.md` §City dialect phrases.
+
+## D89 — Personal settings and synthesized sound effects (2026-10-02)
+
+Per-device preferences (sound, vibration, reduced motion) in the profile sheet, stored locally (`deviceStore`), never sent to the server. Sound effects (tap, correct,
+one away, wrong, win, lose, coin) are synthesized with WebAudio, so no audio files are shipped and nothing depends on Google. Native (iOS/Android) has no sound
+engine yet and stays silent; vibration uses `navigator.vibrate` where it exists. Real recorded sounds or a native audio library are the follow-up (owner supplies assets or approves a dependency).

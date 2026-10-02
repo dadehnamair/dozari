@@ -7,6 +7,8 @@ import { CandyButton } from '../components/CandyButton';
 import { ChartPanel } from '../components/ChartPanel';
 import { Banner } from '../components/Banner';
 import { Confetti } from '../components/Confetti';
+import { usePrefs } from '../prefs/store';
+import { buzz, playSfx } from '../sound/engine';
 import { Character } from '../components/Character';
 import { MistakeDots } from '../components/MistakeDots';
 import { Rain } from '../components/Rain';
@@ -28,6 +30,7 @@ type Phase = { kind: 'loading' } | { kind: 'error'; message: string; detail: str
 const FEEDBACK_MS = 1600;
 
 export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onBack: () => void; hintsEnabled?: boolean; /** Today's daily puzzle: one attempt, no "new game". */ daily?: boolean }) {
+  const prefs = usePrefs();
   const [phase, setPhase] = useState<Phase>({ kind: 'loading' });
   const [selected, setSelected] = useState<string[]>([]);
   const [names, setNames] = useState<Record<string, string>>({});
@@ -100,7 +103,12 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
     setBusy(true);
     try {
       const result = await guessSolo(view.sessionId, selected);
-      flash(feedbackFor(result.outcome));
+      const fb = feedbackFor(result.outcome);
+      flash(fb);
+      if (fb === 'correct' || fb === 'oneAway' || fb === 'wrong') playSfx(fb);
+      if (fb === 'wrong') buzz(60);
+      if (result.view.status === 'won') playSfx('win');
+      else if (result.view.status === 'lost') playSfx('lose');
       adopt(result.view);
       if (result.outcome === 'correct' || result.view.status !== 'playing') setSelected([]);
       if (result.view.status !== 'playing') void recordGameFinished();
@@ -135,7 +143,7 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
         {feedback ? <Text style={styles.feedback}>{fa.solo.feedback[feedback]}</Text> : null}
       </View>
       {hintedTitles(given).length > 0 ? <Text style={styles.hintLine}>{fa.hints.revealedTitle}: {hintedTitles(given).join('، ')}</Text> : null}
-      <Board solved={view.solved} cards={view.cards} names={names} selected={selected} onToggle={(id) => setSelected((s) => toggleSelection(s, id))} disabled={!playing || busy} hinted={hintedCardIds(given)} />
+      <Board solved={view.solved} cards={view.cards} names={names} selected={selected} onToggle={(id) => (playSfx('tap'), setSelected((s) => toggleSelection(s, id)))} disabled={!playing || busy} hinted={hintedCardIds(given)} />
       {hintedCardIds(given).length > 0 ? <Text style={styles.hintLine}>{fa.hints.framed}</Text> : null}
       {playing ? (
         <View style={styles.actions}>
@@ -164,7 +172,7 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
       )}
     </ScrollView>
     {hintOpen && playing ? <HintSheet sessionId={view.sessionId} onGiven={setGiven} onClose={() => setHintOpen(false)} /> : null}
-    {!playing ? (view.status === 'won' ? <Confetti distance={500} /> : <Rain distance={800} />) : null}
+    {!playing && !prefs.reduceMotion ? (view.status === 'won' ? <Confetti distance={500} /> : <Rain distance={800} />) : null}
     </View>
   );
 }
