@@ -33,3 +33,9 @@ Audit of 2026-10-01 (whole server, admin panel, sockets, dependencies). What is 
 - **Remaining audit advisories** (moderate): `uuid` inside Expo's build-time config plugin and two packages under `minio` (used only by the image upload script, not by the running server).
 - **Rate limits are per process** (in memory). Running several server instances needs a shared store (Redis) — noted for the deploy phase.
 - Set `TRUST_PROXY=1` when running behind a reverse proxy, otherwise every client looks like the proxy's IP.
+
+## Destructive actions (D125)
+
+- Account deletion: `POST /me/delete/code` then `DELETE /me {code}`. Code is 5 digits, stored as a salted SHA-256 (`delete:<userId>:<code>`), valid 10 minutes, one send per 60 s, burnt on success, locked after 5 wrong tries. Sent by SMS to the verified phone or by Bale to the linked chat; no channel → no deletion.
+- Everything else that cannot be undone (sign out of all devices, unfriend, unlink Bale, leave a tournament or table, leave a running game) asks «مطمئنی؟» first in the app (`useConfirm`). The server does not need a second factor for those.
+

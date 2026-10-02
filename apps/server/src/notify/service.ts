@@ -10,7 +10,7 @@ const MAX_ATTEMPTS = 5;
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
 /** Kinds of notification; admin settings can switch the automatic ones off. */
-export type NotifyKind = 'match_result' | 'daily_ready' | 'friend_request' | 'table_invite' | 'broadcast' | 'admin' | 'test';
+export type NotifyKind = 'match_result' | 'daily_ready' | 'friend_request' | 'table_invite' | 'broadcast' | 'admin' | 'security' | 'test';
 
 export class NotifyService {
   /** Wrong link codes per chat: 8 in 10 minutes, then the bot stays quiet (a 6-character code must not be guessable). */

@@ -54,6 +54,7 @@ import { registerInviteRoutes } from './invite/routes.js';
 import { InviteService, inviteRulesFromSettings } from './invite/service.js';
 import { createDbInviteStore } from './invite/store.js';
 import { createDbProfileLookup } from './realtime/profile.js';
+import { AccountDeletion, createDbDeleteCodeStore } from './account/deletion.js';
 import { registerAuthRoutes } from './auth/routes.js';
 import { createTokenSigner } from './auth/tokens.js';
 import { createDbAdminRepository } from './admin/db-repository.js';
@@ -134,6 +135,7 @@ export interface ServerDeps {
   phone?: PhoneService;
   /** Public ID, search, contacts, invite link; needs `auth`. */
   find?: FindService;
+  deletion?: AccountDeletion;
   ledger?: LedgerReader;
   /** Badges, medals, notices, mutes and the agent's powers; needs `auth`. */
   badges?: BadgeService;
@@ -224,7 +226,7 @@ export function buildServer(deps: ServerDeps = {}) {
     // @fastify/cors ≥10 allows only GET/HEAD/POST by default; the web app also sends PUT, PATCH and DELETE.
     void app.register(fastifyCors, { origin: deps.corsOrigin === '*' ? true : deps.corsOrigin.split(',').map((o) => o.trim()), methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'] });
   }
-  if (deps.auth) registerAuthRoutes(app, deps.auth);
+  if (deps.auth) registerAuthRoutes(app, deps.auth, deps.deletion);
   if (deps.auth && deps.dailyReward) registerDailyRewardRoutes(app, deps.auth, deps.dailyReward);
   if (deps.auth && deps.wheel) registerWheelRoutes(app, deps.auth, deps.wheel);
   if (deps.auth && deps.social) registerSocialRoutes(app, deps.auth, deps.social);
@@ -338,6 +340,7 @@ if (isMainModule(import.meta.url)) {
       : null;
   const phone = db && settings ? new PhoneService(createDbPhoneStore(db), () => phoneRulesFromSettings(settings), smsClient) : undefined;
   if (notify && phone) notify.phone = phone;
+  const deletion = db ? new AccountDeletion(createDbDeleteCodeStore(db), createDbPhoneStore(db), smsClient, notify ? (id, text) => notify.notify(id, 'security', text) : null) : undefined;
   const words = db ? new TextFilterService(createDbWordStore(db)) : undefined;
   const playerStore = db ? createDbPlayerStore(db) : undefined;
   const inviteStore = db ? createDbInviteStore(db) : undefined;
@@ -520,6 +523,7 @@ if (isMainModule(import.meta.url)) {
     bale: notify ? { service: notify, botUsername: baleUsername } : undefined,
     phone,
     find,
+    deletion,
     ledger: db ? createDbLedgerReader(db) : undefined,
     badges,
     chat,

@@ -1,5 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { guestLoginSchema } from '@dozari/shared';
+import { z } from 'zod';
+import type { AccountDeletion } from '../account/deletion.js';
 import type { AuthService, UserRecord } from './service.js';
 
 const bearer = (req: FastifyRequest): string | null => {
@@ -13,7 +15,7 @@ export async function currentUser(auth: AuthService, req: FastifyRequest): Promi
   return token ? auth.authenticate(token) : null;
 }
 
-export function registerAuthRoutes(app: FastifyInstance, auth: AuthService) {
+export function registerAuthRoutes(app: FastifyInstance, auth: AuthService, deletion?: AccountDeletion) {
   app.post('/auth/guest', async (req, reply) => {
     const body = guestLoginSchema.safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: 'invalid_request' });
@@ -22,10 +24,28 @@ export function registerAuthRoutes(app: FastifyInstance, auth: AuthService) {
     return result.session;
   });
 
-  // Delete my account: personal data goes, the account becomes an empty banned shell, the next launch starts a fresh guest.
+  // Step 1 of deleting my account: a one-time code goes to my verified phone (SMS) or my linked Bale chat.
+  app.post('/me/delete/code', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    if (!deletion) return reply.code(501).send({ error: 'unsupported' });
+    const out = await deletion.sendCode(user.id);
+    if (out.ok) return { ok: true, channel: out.channel };
+    if (out.error === 'too_soon') return reply.header('retry-after', String(out.retryAfterSec ?? 60)).code(429).send({ error: out.error, retryAfterSec: out.retryAfterSec });
+    return reply.code(out.error === 'send_failed' ? 502 : 409).send({ error: out.error });
+  });
+
+  // Step 2: delete my account — personal data goes, the account becomes an empty banned shell, the next launch starts a fresh guest.
+  // With the deletion service wired, the one-time code from step 1 is mandatory.
   app.delete('/me', async (req, reply) => {
     const user = await currentUser(auth, req);
     if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    if (deletion) {
+      const body = z.object({ code: z.string().max(10) }).safeParse(req.body);
+      if (!body.success) return reply.code(400).send({ error: 'code_required' });
+      const out = await deletion.confirm(user.id, body.data.code);
+      if (!out.ok) return reply.code(out.error === 'too_many' ? 429 : 400).send({ error: out.error });
+    }
     return (await auth.deleteAccount(user.id)) ? { ok: true } : reply.code(501).send({ error: 'unsupported' });
   });
 

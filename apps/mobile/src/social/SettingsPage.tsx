@@ -6,7 +6,9 @@ import { Icon } from '../components/Icon';
 import { Item } from '../components/Item';
 import { Scene } from '../components/Scene';
 import { fa } from '../i18n/fa';
-import { deleteMyAccount, signOutEverywhere } from '../account/api';
+import { signOutEverywhere } from '../account/api';
+import { DeleteAccountDialog } from '../account/DeleteAccountDialog';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { setPref, usePrefs } from '../prefs/store';
 import { IosInstallSheet } from '../pwa/PwaLayer';
 import { usePwa } from '../pwa/usePwa';
@@ -41,7 +43,8 @@ export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone }: 
   const [iosHelp, setIosHelp] = useState(false);
   const [cityOpen, setCityOpen] = useState(false);
   const [city, setCity] = useState<City | null | undefined>(undefined);
-  const [sure, setSure] = useState(false);
+  const [askOut, setAskOut] = useState(false);
+  const [askDelete, setAskDelete] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [aboutOpen, setAboutOpen] = useState(false);
   const t = fa.settings;
@@ -81,8 +84,8 @@ export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone }: 
       tint: colors.candy.pink,
       rows: [
         { key: 'about', icon: 'lantern', tint: '#C9A3FF', label: t.about, onPress: () => setAboutOpen((v) => !v) },
-        { key: 'out', icon: 'key', tint: '#FFAA7A', label: t.signOut, onPress: () => void signOutEverywhere().then(() => (setNote(fa.account.signOutDone), onAccountGone?.()), () => setNote(fa.account.failed)) },
-        { key: 'del', icon: 'lock', tint: '#FF4D8D', label: t.delete, tone: '#B3261E', onPress: () => (sure ? void deleteMyAccount().then(() => (setNote(fa.account.deleteDone), onAccountGone?.()), () => setNote(fa.account.failed)) : setSure(true)) },
+        { key: 'out', icon: 'key', tint: '#FFAA7A', label: t.signOut, onPress: () => setAskOut(true) },
+        { key: 'del', icon: 'lock', tint: '#FF4D8D', label: t.delete, tone: '#B3261E', onPress: () => setAskDelete(true) },
       ],
     },
   ];
@@ -114,7 +117,7 @@ export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone }: 
               {g.rows.map((r) => (
                 <Pressable key={r.key} onPress={r.onPress} accessibilityRole={r.toggle === undefined ? 'button' : 'switch'} accessibilityState={r.toggle === undefined ? undefined : { checked: r.toggle }} style={[styles.row, compact ? styles.rowTight : null]}>
                   <View style={[styles.tile, { backgroundColor: r.tint }]}><View style={styles.tileIcon}><Item icon={r.icon} /></View></View>
-                  <Text style={[styles.rowText, r.tone ? { color: r.tone } : null]}>{r.key === 'del' && sure ? fa.account.deleteSure : r.label}</Text>
+                  <Text style={[styles.rowText, r.tone ? { color: r.tone } : null]}>{r.label}</Text>
                   {r.toggle !== undefined ? (
                     <View style={[styles.track, { backgroundColor: r.toggle ? '#7ED957' : '#D9C7A6' }]}>
                       <View style={[styles.knob, r.toggle ? styles.knobOn : null]} />
@@ -128,6 +131,17 @@ export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone }: 
           ))}
         </View>
       </View>
+      {askOut ? (
+        <ConfirmDialog
+          title={fa.account.signOutAsk.title}
+          message={fa.account.signOutAsk.message}
+          confirmLabel={fa.account.signOutAsk.confirm}
+          cancelLabel={fa.account.signOutAsk.cancel}
+          onCancel={() => setAskOut(false)}
+          onConfirm={() => void signOutEverywhere().then(() => (setAskOut(false), setNote(fa.account.signOutDone), onAccountGone?.()), () => (setAskOut(false), setNote(fa.account.failed)))}
+        />
+      ) : null}
+      {askDelete ? <DeleteAccountDialog onCancel={() => setAskDelete(false)} onDeleted={() => (setAskDelete(false), setNote(fa.account.deleteDone), onAccountGone?.())} /> : null}
       {iosHelp ? <IosInstallSheet onClose={() => setIosHelp(false)} /> : null}
     </View>
   );

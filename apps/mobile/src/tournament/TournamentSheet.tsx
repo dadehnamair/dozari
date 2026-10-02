@@ -11,6 +11,7 @@ import { Scene } from '../components/Scene';
 import { SlabButton } from '../components/SlabButton';
 import { formatCountdown } from '../daily/countdown';
 import { GuideBubble } from '../components/GuideBubble';
+import { useConfirm } from '../components/useConfirm';
 import { fa } from '../i18n/fa';
 import { ApiError } from '../net/http';
 import { avatarOf } from '../social/avatarOf';
@@ -61,6 +62,7 @@ export function TournamentSheet({ onClose }: { onClose: () => void }) {
 }
 
 function TournamentPage({ id, onBack }: { id: string; onBack: () => void }) {
+  const { ask, dialog } = useConfirm();
   const [t, setT] = useState<TournamentDetail | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -183,12 +185,13 @@ function TournamentPage({ id, onBack }: { id: string; onBack: () => void }) {
           {why && !t.entered ? <Text style={styles.warnLight}>{why}</Text> : null}
           {note ? <Text style={styles.warnLight}>{note}</Text> : null}
           {t.entered ? (
-            <SlabButton label={fa.tournament.leave} color={colors.candy.orange} height={60} fontSize={22} grow={0} onPress={() => void act(leaveTournament)} />
+            <SlabButton label={fa.tournament.leave} color={colors.candy.orange} height={60} fontSize={22} grow={0} onPress={() => ask({ title: fa.confirm.leaveTournament.title, message: fa.confirm.leaveTournament.message, confirmLabel: fa.confirm.leaveTournament.yes, onConfirm: () => void act(leaveTournament) })} />
           ) : (
             <SlabButton label={fa.tournament.join} color={colors.candy.lime} height={64} fontSize={24} grow={0} disabled={t.blocked !== null} onPress={() => void act(joinTournament)} />
           )}
         </View>
       ) : null}
+      {dialog}
     </View>
   );
 }

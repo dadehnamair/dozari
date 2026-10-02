@@ -6,6 +6,7 @@ import { provinceOf, toPersianDigits } from '@dozari/shared';
 import { Avatar } from '../components/Avatar';
 import { CandyButton } from '../components/CandyButton';
 import { ProvinceBadge } from '../components/ProvinceBadge';
+import { useConfirm } from '../components/useConfirm';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { acceptFriend, fetchPlayer, removeFriend, requestFriend } from './api';
@@ -20,6 +21,7 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
   const [p, setP] = useState<PlayerProfile | null>(null);
   const [failed, setFailed] = useState(false);
   const [send, setSend] = useState<'gift' | 'loan' | null>(null);
+  const { ask, dialog } = useConfirm();
 
   const load = useCallback(() => {
     fetchPlayer(playerId).then(
@@ -71,13 +73,14 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
                 <Text style={styles.text}>{fa.player.friends}</Text>
                 <CandyButton label={fa.transfers.gift} color={colors.candy.lime} onPress={() => setSend('gift')} />
                 <CandyButton label={fa.transfers.loan} color={colors.candy.orange} onPress={() => setSend('loan')} />
-                <CandyButton label={fa.player.unfriend} color={colors.candy.pink} onPress={act(removeFriend)} />
+                <CandyButton label={fa.player.unfriend} color={colors.candy.pink} onPress={() => ask({ title: fa.confirm.unfriend.title, message: fa.confirm.unfriend.message, confirmLabel: fa.confirm.unfriend.yes, onConfirm: act(removeFriend) })} />
               </>
             )}
           </>
         ) : null}
         <CandyButton label={fa.player.close} color={colors.candy.sky} onPress={onClose} />
       </Pressable>
+      {dialog}
     </Pressable>
   );
 }

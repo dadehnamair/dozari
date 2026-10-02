@@ -16,6 +16,7 @@ import { GameTopBar } from '../game/GameTopBar';
 import { Lives } from '../game/Lives';
 import { Rain } from '../components/Rain';
 import { PriceRoundPanel } from '../components/PriceRoundPanel';
+import { useConfirm } from '../components/useConfirm';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { BASE_URL, guessSolo, shuffleSolo } from './api';
@@ -35,6 +36,7 @@ const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 
 export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onBack: () => void; hintsEnabled?: boolean; /** Today's daily puzzle: one attempt, no "new game". */ daily?: boolean }) {
   const prefs = usePrefs();
+  const { ask, dialog } = useConfirm();
   /** Short screens get a smaller character and chart so the end scene still fits without scrolling. */
   const compact = useWindowDimensions().height <= 700;
   const [phase, setPhase] = useState<Phase>({ kind: 'loading' });
@@ -174,7 +176,7 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
     <MatchBackground>
     <ScrollView contentContainerStyle={styles.screen}>
       <View style={styles.column}>
-        <GameTopBar title={daily ? fa.solo.dailyTitle : fa.solo.title} backLabel={fa.solo.back} onBack={onBack}>
+        <GameTopBar title={daily ? fa.solo.dailyTitle : fa.solo.title} backLabel={fa.solo.back} onBack={() => ask({ title: daily ? fa.confirm.leaveDaily.title : fa.confirm.leaveSolo.title, message: daily ? fa.confirm.leaveDaily.message : fa.confirm.leaveSolo.message, confirmLabel: fa.confirm.leaveSolo.yes, onConfirm: onBack })}>
           {hintsEnabled && playing ? (
             <Pressable accessibilityRole="button" accessibilityLabel={fa.hints.open} onPress={() => setHintOpen(true)} disabled={busy}>
               {({ pressed }) => (
@@ -212,6 +214,7 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
       </View>
     </ScrollView>
     {hintOpen && playing ? <HintSheet sessionId={view.sessionId} onGiven={setGiven} onClose={() => setHintOpen(false)} /> : null}
+    {dialog}
     </MatchBackground>
   );
 }

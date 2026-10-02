@@ -6,6 +6,7 @@ import { Avatar } from '../components/Avatar';
 import { CandyButton } from '../components/CandyButton';
 import { Item } from '../components/Item';
 import { GuideBubble } from '../components/GuideBubble';
+import { useConfirm } from '../components/useConfirm';
 import { fa } from '../i18n/fa';
 import { ApiError } from '../net/http';
 import { avatarOf } from '../social/avatarOf';
@@ -19,6 +20,7 @@ const errText = (e: unknown) => fa.tables.errors[e instanceof ApiError ? e.code 
 
 /** «میز اختصاصی»: create a table or enter one by its code, then wait for the guest and start a duel. `initialCode` opens a shared table. */
 export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose: () => void; initialCode?: string; /** The table's match started: open the duel board. */ onMatch?: () => void; onShare?: (table: TableView) => Promise<void> }) {
+  const { ask, dialog } = useConfirm();
   const [table, setTable] = useState<TableView | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [name, setName] = useState('');
@@ -93,7 +95,7 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
               ) : table.requireReady ? (
                 <CandyButton label={table.players.find((p) => !p.isHost)?.ready ? fa.tables.notReady : fa.tables.imReady} color={colors.candy.lime} onPress={() => void run(() => setTableReady(!table.players.find((p) => !p.isHost)?.ready))} />
               ) : null}
-              <CandyButton label={fa.tables.leave} color={colors.candy.orange} onPress={() => void leaveTable().then(() => setTable(null), () => setTable(null))} />
+              <CandyButton label={fa.tables.leave} color={colors.candy.orange} onPress={() => ask({ title: fa.confirm.leaveTable.title, message: fa.confirm.leaveTable.message, confirmLabel: fa.confirm.leaveTable.yes, onConfirm: () => void leaveTable().then(() => setTable(null), () => setTable(null)) })} />
             </>
           ) : (
             mode === 'menu' ? (
@@ -146,6 +148,7 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
         </ScrollView>
         <CandyButton label={fa.tables.close} color={colors.candy.sky} onPress={onClose} />
       </Pressable>
+      {dialog}
     </Pressable>
   );
 }

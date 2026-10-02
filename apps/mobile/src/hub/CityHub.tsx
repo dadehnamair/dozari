@@ -16,7 +16,7 @@ const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const MAP_W = 318;
 const MAP_H = 714;
 const INK = '#4A2E1E';
-const ROAD = 'M159 714 C159 640 60 630 70 560 C80 500 244 486 244 420 C244 360 88 372 88 300 C88 250 210 262 222 230';
+const ROAD = 'M159 3000 V714 C159 640 60 630 70 560 C80 500 244 486 244 420 C244 360 88 372 88 300 C88 250 210 262 222 230';
 
 /**
  * screen-hub of `11 More Screens` (D112): «شهر دوزاری», a hand-drawn bazaar town where each building is a game mode.
@@ -31,6 +31,9 @@ export function CityHub({ onClose, onEnter, features, dailyReady }: { onClose: (
   // The whole town fits the screen (nothing scrolls): scale by whichever of width / height is tighter.
   const k = Math.min(Math.min(width, 520) / MAP_W, height / MAP_H);
   const mapW = MAP_W * k;
+  // The painted background reaches the screen's edges: the SVG is as wide / tall as the screen and its viewBox shows the map in the middle.
+  const svgH = Math.max(height, MAP_H * k);
+  const sideK = (width - mapW) / 2 / k;
   const t = fa.hub;
 
   return (
@@ -42,11 +45,11 @@ export function CityHub({ onClose, onEnter, features, dailyReady }: { onClose: (
       </View>
       <View style={styles.mapBox}>
         <View style={{ width: mapW, height: MAP_H * k }}>
-          <Svg width={mapW} height={MAP_H * k} viewBox={`0 0 ${MAP_W} ${MAP_H}`} style={StyleSheet.absoluteFill}>
+          <Svg width={width} height={svgH} viewBox={`${-sideK} 0 ${width / k} ${svgH / k}`} style={{ position: 'absolute', top: 0, left: -(width - mapW) / 2 }}>
             <G stroke={INK} strokeWidth={2.4} strokeLinejoin="round" strokeLinecap="round">
               <Drift from={-230} to={120} dur={60} begin={-20} animated={animated}><Path d="M-40 6 C-52 4 -50 -14 -36 -12 C-34 -26 -14 -28 -8 -16 C-2 -28 22 -26 22 -12 C38 -16 46 2 32 8 C30 18 12 18 6 10 C0 18 -18 18 -22 10 C-30 16 -42 14 -40 6Z" transform="translate(250 120) scale(.7)" fill="#fff" stroke="#4E9E9E" strokeWidth={2.2} /></Drift>
-              <Path d="M0 176 C70 146 150 172 220 150 C260 138 290 146 318 140 V210 H0Z" fill="#C9B5E0" stroke="#A893C8" strokeWidth={2} />
-              <Path d="M0 190 C80 176 200 196 318 178 V714 H0Z" fill="#F2D59C" stroke="none" />
+              <Path d="M-700 176 H0 C70 146 150 172 220 150 C260 138 290 146 318 140 H1020 V210 H-700Z" fill="#C9B5E0" stroke="#A893C8" strokeWidth={2} />
+              <Path d="M-700 190 H0 C80 176 200 196 318 178 H1020 V3000 H-700Z" fill="#F2D59C" stroke="none" />
               <Path d={ROAD} fill="none" strokeWidth={30} />
               <Path d={ROAD} fill="none" stroke="#FBEBC8" strokeWidth={24} />
               <Path d={ROAD} fill="none" stroke="#E2BF80" strokeWidth={2} strokeDasharray="6 10" />
@@ -141,7 +144,7 @@ const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0
 
 const styles = StyleSheet.create({
   root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20, backgroundColor: '#F2D59C' },
-  mapBox: { flex: 1, alignItems: 'center', justifyContent: 'flex-end' },
+  mapBox: { flex: 1, alignItems: 'center', justifyContent: 'flex-start' },
   sky: { position: 'absolute', top: 0, left: 0, right: 0 },
   skyBand: { width: '100%' },
   tag: { position: 'absolute', width: 140, alignItems: 'center' },

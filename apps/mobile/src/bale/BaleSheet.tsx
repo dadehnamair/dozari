@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { BaleLinkCode, BaleLinkStatus } from '@dozari/shared';
 import { CandyButton } from '../components/CandyButton';
 import { GuideBubble } from '../components/GuideBubble';
+import { useConfirm } from '../components/useConfirm';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { ApiError } from '../net/http';
@@ -28,6 +29,7 @@ export function BaleSheet({ onClose }: { onClose: () => void }) {
       (c) => (setCode(c), setFailed(false), setPhoneNote(null)),
       (e) => (e instanceof ApiError && e.code === 'phone_required' ? setPhoneNote(phoneErrorText('phone_required')) : setFailed(true)),
     );
+  const { ask, dialog } = useConfirm();
   const unlink = () =>
     unlinkBale().then(() => {
       setCode(null);
@@ -46,7 +48,7 @@ export function BaleSheet({ onClose }: { onClose: () => void }) {
         {status?.linked ? (
           <>
             <Text style={styles.text}>{fa.bale.linked}</Text>
-            <CandyButton label={fa.bale.unlink} color={colors.candy.pink} onPress={unlink} />
+            <CandyButton label={fa.bale.unlink} color={colors.candy.pink} onPress={() => ask({ title: fa.confirm.unlinkBale.title, message: fa.confirm.unlinkBale.message, confirmLabel: fa.confirm.unlinkBale.yes, onConfirm: unlink })} />
           </>
         ) : null}
         {status?.configured && !status.linked ? (
@@ -67,6 +69,7 @@ export function BaleSheet({ onClose }: { onClose: () => void }) {
         ) : null}
         <CandyButton label={fa.bale.close} color={colors.candy.sky} onPress={onClose} />
       </Pressable>
+      {dialog}
     </Pressable>
   );
 }

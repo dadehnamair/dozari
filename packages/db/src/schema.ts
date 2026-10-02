@@ -824,6 +824,15 @@ export const phoneOtps = mysqlTable('phone_otps', {
   expiresAt: datetime('expires_at', { mode: 'date', fsp: 3 }).notNull(),
 });
 
+/** One live one-time code per player for deleting the account (hashed); a new code replaces the old one. */
+export const accountDeleteCodes = mysqlTable('account_delete_codes', {
+  userId: char('user_id', { length: 36 }).primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+  codeHash: char('code_hash', { length: 64 }).notNull(),
+  attempts: int('attempts').notNull().default(0),
+  sentAt: datetime('sent_at', { mode: 'date', fsp: 3 }).notNull(),
+  expiresAt: datetime('expires_at', { mode: 'date', fsp: 3 }).notNull(),
+});
+
 export const BADGE_KINDS = ['badge', 'medal'] as const;
 export const BADGE_PERKS = ['none', 'share_contact', 'moderator'] as const;
 export const BADGE_RULE_METRICS = ['none', 'games', 'wins', 'level'] as const;
