@@ -1,4 +1,4 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { ITEMS, PRODUCT_CATEGORIES, SETTING_GROUPS, SHOP_EFFECTS } from '@dozari/shared';
 import type { SettingsService } from '../settings/service.js';
@@ -19,6 +19,7 @@ import type { ShopStore } from '../economy/shop-store.js';
 import type { BadgeService } from '../badges/service.js';
 import type { BadgeStore } from '../badges/store.js';
 import type { ChatStore } from '../chat/store.js';
+import type { TournamentService } from '../tournament/service.js';
 import { registerInviteAdminRoutes } from '../invite/routes.js';
 import type { InviteStore } from '../invite/store.js';
 
@@ -39,6 +40,8 @@ export interface AdminModules {
   badges?: { store: BadgeStore; service: BadgeService };
   /** Canned taunts and their categories, chat reports and removing messages. */
   chat?: ChatStore;
+  /** Tournament builder and management. */
+  tournaments?: TournamentService;
   messages?: MessageCenter;
   bale?: { service: NotifyService; store: NotifyStore; botUsername: string | null };
   bot?: { repo: BotRepository; service: BotService };
@@ -109,7 +112,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     adapters: BOT_ADAPTER_KEYS,
     settingGroups: SETTING_GROUPS,
     icons: ITEMS,
-    modules: { settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, bale: !!m.bale, messages: !!m.messages },
+    modules: { settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, bale: !!m.bale, messages: !!m.messages },
   }));
 
   if (m.stats) {
@@ -476,6 +479,51 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       void audit('chat_message.remove', p.data.id);
       return { ok: true };
     });
+  }
+
+  if (m.tournaments) {
+    const tournaments = m.tournaments;
+    const fields = {
+      titleFa: z.string().trim().min(2).max(80),
+      descriptionFa: z.string().trim().max(4000),
+      iconKey: z.string().max(30).nullable(),
+      size: z.number().int(),
+      minPlayers: z.number().int().min(2).max(32),
+      entryCoins: z.number().int().min(0).max(100_000),
+      minLevel: z.number().int().min(1).max(500),
+      startsAt: z.number().int(),
+      prizes: z.array(z.object({ place: z.number().int().min(1).max(3), coins: z.number().int().min(0).max(1_000_000) })).max(3),
+    };
+    const fail = (reply: FastifyReply, error: string) => reply.code(error === 'NOT_FOUND' ? 404 : error === 'BAD_STATE' ? 409 : 400).send({ error });
+    g.get('/admin/tournaments', async () => ({ tournaments: await tournaments.adminList() }));
+    g.post('/admin/tournaments', async (req, reply) => {
+      const b = z.object({ ...fields, publish: z.boolean().default(false) }).safeParse(req.body);
+      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const { publish, ...input } = b.data;
+      const out = await tournaments.create(input, publish);
+      if (!out.ok) return fail(reply, out.error);
+      void audit('tournament.create', out.id, `${input.titleFa} size=${input.size} fee=${input.entryCoins}`);
+      return reply.code(201).send({ id: out.id });
+    });
+    g.patch('/admin/tournaments/:id', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object(fields).partial().safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await tournaments.update(p.data.id, b.data);
+      if (!out.ok) return fail(reply, out.error);
+      void audit('tournament.update', p.data.id, JSON.stringify(b.data).slice(0, 200));
+      return { ok: true };
+    });
+    for (const [action, run] of [['publish', (id: string) => tournaments.publish(id)], ['start', (id: string) => tournaments.startNow(id)], ['cancel', (id: string) => tournaments.cancel(id)]] as const) {
+      g.post(`/admin/tournaments/:id/${action}`, async (req, reply) => {
+        const p = idParam.safeParse(req.params);
+        if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
+        const out = await run(p.data.id);
+        if (!out.ok) return fail(reply, out.error);
+        void audit(`tournament.${action}`, p.data.id);
+        return { ok: true, ...('refunded' in out ? { refunded: out.refunded } : {}) };
+      });
+    }
   }
 
   if (m.invites) registerInviteAdminRoutes(g, m.invites, (a, t, d) => void audit(a, t, d));

@@ -216,5 +216,5 @@ human opponent is found.
 - [ ] B. Coin economy — [x] shop + solo hints (D78); [x] referral "gold" (D79); [x] gifts and loans (D80); [ ] coin packages (off), economy audit (items 4, 3)
 - [ ] C. Contact and friends — [x] phone + Bale contact verification, SMS adapter (D81, item 6); [x] public ID, search by ID/phone, contacts API, shortener + link-friend (items 19, 20; app contacts screen pending); [x] badge-gated sharing: perk + `containsContactInfo` (item 22; chat must enforce it)
 - [x] D. Chat and moderation — city chat, canned taunt categories, duel taunts, reports (D84) with agent powers (D83); [ ] private-table chat and shared tables (items 16, 17, 18, 21, 23) — rest of D: chat, shared tables, city room, canned taunt categories, "Agent Dozari" powers (items 16, 17, 18, 21, 23)
-- [ ] E. Content control: trend-based daily puzzle, admin bot users, tournament entry rules + builder + page (items 15, 25, 26, 27)
+- [ ] E. Content control — [x] tournament entry rules (coins + level), builder, own page, bracket engine (items 26, 27; D85); [ ] admin bot users (25), trend-based daily puzzle (15)
 - [ ] F. Feel: dialects, sounds, city backgrounds, personal settings, touch-everything polish (items 9, 10, 11, 12, 13)

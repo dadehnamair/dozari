@@ -4,7 +4,7 @@ import fastifyCors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
 import { resolve } from 'node:path';
 import { rialsToTomanString } from '@dozari/shared';
-import { CHAT_RETENTION_DAYS } from '@dozari/shared';
+import { CHAT_RETENTION_DAYS, TOURNAMENT_TICK_SECONDS } from '@dozari/shared';
 import type { HintRules } from '@dozari/shared';
 import { createDb } from '@dozari/db';
 import { createDbCatalogRepository } from './catalog/db-repository.js';
@@ -27,6 +27,10 @@ import { createDbBadgeStore } from './badges/store.js';
 import { registerChatRoutes } from './chat/routes.js';
 import { ChatService, chatRulesFromSettings } from './chat/service.js';
 import { createDbChatStore } from './chat/store.js';
+import type { MatchService } from './realtime/match-service.js';
+import { registerTournamentRoutes } from './tournament/routes.js';
+import { TournamentService } from './tournament/service.js';
+import { createDbTournamentStore } from './tournament/store.js';
 import { registerFindRoutes } from './find/routes.js';
 import { FindService } from './find/service.js';
 import { createShortener } from './find/shortener.js';
@@ -107,6 +111,10 @@ export interface ServerDeps {
   badges?: BadgeService;
   /** City chat and canned taunts; needs `auth`. */
   chat?: ChatService;
+  /** Tournaments (list, page, join); needs `auth`. */
+  tournaments?: TournamentService;
+  /** Filled with the live-match service once the socket gateway exists, so tournaments can start duels. */
+  live?: { matches?: MatchService };
   /** Admin message center; its in-app channel feeds `GET /inbox`. */
   messages?: MessageCenter;
   /** Public profiles, friend requests and the gender setting. */
@@ -179,6 +187,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.find) registerFindRoutes(app, deps.auth, deps.find);
   if (deps.auth && deps.badges) registerBadgeRoutes(app, deps.auth, deps.badges);
   if (deps.auth && deps.chat) registerChatRoutes(app, deps.auth, deps.chat);
+  if (deps.auth && deps.tournaments) registerTournamentRoutes(app, deps.auth, deps.tournaments);
   if (deps.auth && deps.bale) {
     const phoneSvc = deps.phone;
     const settings = deps.settings;
@@ -198,6 +207,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.realtime) {
     const auth = deps.auth;
     gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin: deps.corsOrigin, match: deps.match, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, chat: deps.chat });
+    if (deps.live) deps.live.matches = gateway.matches;
     app.addHook('onClose', async () => {
       await gateway?.close();
     });
@@ -304,6 +314,17 @@ if (isMainModule(import.meta.url)) {
           filter: words,
         })
       : undefined;
+  const live: { matches?: MatchService } = {};
+  const tournamentService =
+    db && settings && player && socialStore
+      ? new TournamentService(createDbTournamentStore(db), {
+          levelOf: async (id) => (await player.levelOf(id)).level.level,
+          profileOf: async (id) => socialStore.publicRow(id),
+          startMatch: async (a, b) => (live.matches ? live.matches.start(a, b) : false),
+          inMatch: (id) => live.matches?.inMatch(id) ?? false,
+          notify: (id, text) => void notify?.notify(id, 'admin', text).catch(() => undefined),
+        })
+      : undefined;
   const transfers = db && settings && socialStore && inviteStore ? new TransferService(createDbTransferStore(db), socialStore, () => transferRulesFromSettings(settings), async (id) => (player ? (await player.levelOf(id)).level.level : 1), (id) => inviteStore.isActivated(id)) : undefined;
   const find =
     db && settings && socialStore
@@ -329,7 +350,7 @@ if (isMainModule(import.meta.url)) {
     auth,
     settings,
     adminModules: db
-      ? { products: createDbProductAdmin(db), stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      ? { products: createDbProductAdmin(db), stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
     match: db
@@ -337,6 +358,7 @@ if (isMainModule(import.meta.url)) {
           puzzles: createDbPuzzleSource(db),
           profile: createDbProfileLookup(db, player ? async (id) => (await player.levelOf(id)).level.level : undefined),
           onEnded: ({ players, result }) => {
+            if (tournamentService) void tournamentService.onMatchEnded(players, result.winner);
             if (result.reason !== 'abandon') {
               players.forEach((id, side) => void player?.recordGame(id, { mode: 'duel', outcome: result.winner === null ? 'draw' : result.winner === side ? 'win' : 'loss' }));
             }
@@ -357,6 +379,8 @@ if (isMainModule(import.meta.url)) {
     find,
     badges,
     chat,
+    tournaments: tournamentService,
+    live,
     messages,
     social,
     invite,
@@ -371,6 +395,11 @@ if (isMainModule(import.meta.url)) {
     trustProxy: process.env.TRUST_PROXY === '1',
     localImagesDir: process.env.LOCAL_IMAGES_DIR,
   });
+  if (tournamentService) {
+    const timer = setInterval(() => void tournamentService.tick().catch((err) => app.log.error({ err }, 'tournament tick failed')), TOURNAMENT_TICK_SECONDS * 1000);
+    timer.unref();
+    app.addHook('onClose', async () => clearInterval(timer));
+  }
   if (chat) {
     // Retention: chat history is kept 30 days for moderation, then purged (checked every 6 hours).
     const timer = setInterval(() => void chat.purge(CHAT_RETENTION_DAYS).catch(() => undefined), 6 * 3_600_000);

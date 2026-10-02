@@ -330,6 +330,9 @@ export const LEDGER_REASONS = [
   'loan_in',
   'repay_out',
   'repay_in',
+  'tournament_entry',
+  'tournament_refund',
+  'tournament_prize',
 ] as const;
 
 /** Append-only. Coins move only through the server's ledger function; a repeated idempotency key is a no-op. */
@@ -887,4 +890,70 @@ export const chatReports = mysqlTable(
     resolvedAt: datetime('resolved_at', { mode: 'date', fsp: 3 }),
   },
   (table) => ({ oncePerReporter: uniqueIndex('chat_reports_once_idx').on(table.messageId, table.reporterId) }),
+);
+
+export const TOURNAMENT_STATUS_VALUES = ['draft', 'open', 'running', 'finished', 'cancelled'] as const;
+
+/** A single-elimination tournament built in the admin panel (docs/logic/tournaments.md). */
+export const tournaments = mysqlTable(
+  'tournaments',
+  {
+    id: id(),
+    titleFa: varchar('title_fa', { length: 80 }).notNull(),
+    descriptionFa: text('description_fa').notNull(),
+    iconKey: varchar('icon_key', { length: 30 }),
+    status: mysqlEnum('status', TOURNAMENT_STATUS_VALUES).notNull().default('draft'),
+    /** Bracket size: 4, 8, 16 or 32. */
+    size: int('size').notNull(),
+    /** The tournament still starts with at least this many players (the rest of the bracket gets byes). */
+    minPlayers: int('min_players').notNull().default(4),
+    entryCoins: int('entry_coins').notNull().default(0),
+    minLevel: int('min_level').notNull().default(1),
+    /** Registration closes and the first round starts at this time. */
+    startsAt: datetime('starts_at', { mode: 'date', fsp: 3 }).notNull(),
+    startedAt: datetime('started_at', { mode: 'date', fsp: 3 }),
+    finishedAt: datetime('finished_at', { mode: 'date', fsp: 3 }),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ byStatus: index('tournaments_status_idx').on(table.status, table.startsAt) }),
+);
+
+/** Prize coins by final place (1, 2, 3; place 3 is paid to both semi-final losers). */
+export const tournamentPrizes = mysqlTable(
+  'tournament_prizes',
+  {
+    tournamentId: char('tournament_id', { length: 36 }).notNull().references(() => tournaments.id, { onDelete: 'cascade' }),
+    place: int('place').notNull(),
+    coins: int('coins').notNull(),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.tournamentId, table.place] }) }),
+);
+
+export const tournamentEntries = mysqlTable(
+  'tournament_entries',
+  {
+    tournamentId: char('tournament_id', { length: 36 }).notNull().references(() => tournaments.id, { onDelete: 'cascade' }),
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    joinedAt: datetime('joined_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    /** Fee paid, kept for the refund. */
+    paid: int('paid').notNull().default(0),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.tournamentId, table.userId] }) }),
+);
+
+export const TOURNAMENT_MATCH_STATUS = ['waiting', 'ready', 'playing', 'done', 'bye'] as const;
+
+export const tournamentMatches = mysqlTable(
+  'tournament_matches',
+  {
+    id: id(),
+    tournamentId: char('tournament_id', { length: 36 }).notNull().references(() => tournaments.id, { onDelete: 'cascade' }),
+    round: int('round').notNull(),
+    slot: int('slot').notNull(),
+    playerA: char('player_a', { length: 36 }),
+    playerB: char('player_b', { length: 36 }),
+    winnerId: char('winner_id', { length: 36 }),
+    status: mysqlEnum('status', TOURNAMENT_MATCH_STATUS).notNull().default('waiting'),
+  },
+  (table) => ({ slotUnique: uniqueIndex('tournament_matches_slot_idx').on(table.tournamentId, table.round, table.slot) }),
 );

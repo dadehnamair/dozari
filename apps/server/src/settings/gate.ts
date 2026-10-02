@@ -16,6 +16,7 @@ const FEATURE_OF: [prefix: string, setting: string][] = [
   ['/bale', 'feature.bale'],
   ['/shop', 'feature.shop'],
   ['/chat', 'feature.chat'],
+  ['/tournaments', 'feature.tournament'],
   ['/transfers', 'feature.friends'],
   ['/loans', 'feature.friends'],
 ];

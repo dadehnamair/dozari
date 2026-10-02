@@ -146,7 +146,7 @@ Decisions table above.
 14. **Mid-match bot takeover grace period** (D43) — how long to wait after a disconnect/AFK
     before silently swapping in a bot; no default timer picked yet, track alongside the
     `BOT_FALLBACK_SECONDS` numbers in `docs/logic/bots.md` (open question 7).
-15. **Tournament mechanics** — format is decided (single-elimination bracket, D60); bracket size
+15. **Tournament mechanics** (built, see D85) — format is decided (single-elimination bracket, D60); bracket size
     beyond the mocked 16, bye handling for odd signup counts, exact entry fee, and the full prize
     table are still open. `prototype/game.html`'s tournament tab mocks the bracket-progress visual
     and entry point only, not real bracket generation/scheduling.
@@ -203,3 +203,8 @@ and a contact-info detector for chat. Details and defaults in `docs/logic/badges
 
 City-mates chat, canned taunts grouped in admin-edited categories, duel taunts, reports. Server-side rules: activation for free text, mutes, the
 contact-info perk, profanity filter, rate limits, 30-day retention. See `docs/logic/chat-and-access.md` §As built. Proposed; the owner may change numbers.
+
+## D85 — Tournaments: builder, coin + level entry, single-elimination engine (2026-10-02)
+
+Admin builds tournaments (size, entry coins, minimum level, start, prizes); players join with coins and level; the server seeds by level, runs the bracket through live
+duels, pays prizes. House funds prizes, entry fees are a sink. Details and what is not built: `docs/logic/tournaments.md`. Proposed defaults; the owner may change any number.
