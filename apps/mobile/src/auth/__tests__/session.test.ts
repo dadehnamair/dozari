@@ -37,6 +37,17 @@ describe('session manager', () => {
     expect(logins).toBe(1);
   });
 
+  it('forgets the account: the next login gets a new device id', async () => {
+    const store = memoryStore();
+    const ids: string[] = [];
+    const m = createSessionManager({ store, login: async (d) => (ids.push(d), session(`t${ids.length}`)) });
+    await m.token();
+    await m.forget();
+    expect(store.data).toEqual({});
+    await m.token();
+    expect(ids[0]).not.toBe(ids[1]);
+  });
+
   it('keeps the same device id when it has to log in again', async () => {
     const store = memoryStore({ 'dozari.deviceId': 'abcdef0123456789abcdef0123456789' });
     const seen: string[] = [];
