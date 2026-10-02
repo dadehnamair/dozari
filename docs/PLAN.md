@@ -70,9 +70,9 @@ browser — both need the owner's own machine (see Phase 0-A).
       humor bar before the generator exists — `puzzle-generation.md` §Content bootstrap order
 - [ ] 🧩 AI-drafted group titles (2–3 candidates per rule `kind`) + human pick/edit before a
       puzzle is saved `approved` — `puzzle-generation.md` §Group titles
-- [ ] 🧩 `generatePuzzle(catalog, rng, opts)` — template-driven generator with retries, **built to
+- [x] 🧩 `generatePuzzle(catalog, rng, opts)` — template-driven generator with retries, **built to
       imitate the hand-curated pool's style**, not before it exists
-- [ ] 🖥 Job: pre-generate a pool of N validated puzzles; admin CLI to approve/rename titles
+- [~] 🖥 Job: pre-generate a pool of N validated puzzles; admin CLI to approve/rename titles (admin page «ساخت پازل» does it by hand; no scheduled top-up job yet)
 - [x] 🧩 Single-player reducer (select 4 → submit → correct / one-away / wrong, 4 mistakes)
 - [x] 📱 Board UI: 4×4 grid, select/deselect, shuffle, submit, solved-row reveal with colors (placeholder styling until the designed art in `docs/design/asset-plan.md` lands)
 - [x] 📱 Solo practice mode (no coins) using a served puzzle (`/solo/*` + `SoloScreen`; needs ≥1 `approved` puzzle in the DB)

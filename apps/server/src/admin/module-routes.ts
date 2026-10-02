@@ -1,3 +1,4 @@
+import { randomInt } from 'node:crypto';
 import type { PuzzleAdmin } from '../puzzles/admin.js';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
@@ -553,6 +554,22 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       if (!out.ok) return reply.code(out.error === 'unknown_product' ? 404 : 400).send({ error: out.error });
       void audit('puzzle.create', out.id);
       return reply.code(201).send({ id: out.id });
+    });
+    g.post('/admin/puzzles/generate', async (req, reply) => {
+      const b = z.object({ count: z.number().int().min(1).max(20) }).safeParse(req.body);
+      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await puzzles.generate(b.data.count, () => randomInt(0, 2 ** 30) / 2 ** 30);
+      void audit('puzzle.generate', 'puzzles', `${out.created}/${out.requested}`);
+      return out;
+    });
+    g.put('/admin/puzzles/:id/titles', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object({ titles: z.array(z.object({ level: z.number().int().min(0).max(3), titleFa: z.string().trim().min(2).max(100) })).min(1).max(4) }).safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await puzzles.setTitles(p.data.id, b.data.titles);
+      if (out === 'not_found') return reply.code(404).send({ error: out });
+      void audit('puzzle.titles', p.data.id);
+      return { ok: true };
     });
     g.patch('/admin/puzzles/:id', async (req, reply) => {
       const p = idParam.safeParse(req.params);

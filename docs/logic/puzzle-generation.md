@@ -139,3 +139,15 @@ the admin is the human check) and goes live as `approved` at once; it can be ret
 readiness: products in the catalog, products with ≥ `MIN_PRICE_POINTS_PER_PRODUCT` approved prices, approved puzzles. Prices are not needed to
 *play* a puzzle, but the price-guess round and the result chart need approved prices for its products.
 
+## Generator + admin panel (D131)
+
+`generatePuzzle(catalog, rng, opts)` (`packages/shared/src/puzzle/generate.ts`) is built: hardest level first, rule kinds `multiplier_between` (level 3),
+`price_band_at_year` (band ±8 / 15 / 25 / 40 % by level) and `era_icon` (an easy anchor), each instantiated from real prices; the finished puzzle
+must pass `validatePuzzle` (one solution) with ≥ 2 near misses. Seeded RNG → same seed, same puzzle. Measured on synthetic catalogs: 150+ products
+succeed every time, 90 products ≈ 70 %, 60 ≈ 30 %, so a real catalog of about 150 products with ≥ 3 approved price years each is the target.
+Not built yet: `first_crossed`, `same_price_at_year`, `cheaper_than_ref`, `category_price_rank` instantiation; the title templates.
+
+Admin page «ساخت پازل»: «ساخت خودکار» (`POST /admin/puzzles/generate {count}`) saves up to 20 puzzles as `draft`, `source: generated`; the
+placeholder title of each group is the rule in plain Persian (`explainRule`). The admin writes real titles (`PUT /admin/puzzles/:id/titles`) and
+approves (`PATCH`); a draft is never served. Generated puzzles never go live without that human step (spec: "Never auto-publish an AI title").
+

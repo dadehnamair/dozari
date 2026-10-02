@@ -801,7 +801,7 @@ VIEWS.audit = function (root) {
 VIEWS.puzzles = function (root) {
   var LEVELS = [['زرد (آسان)', '#f5c542'], ['سبز', '#6cc24a'], ['آبی', '#3fa5e0'], ['بنفش (سخت)', '#9b59d0']];
   var prods = [];
-  var readyBox = h('div'), listBox = h('div'), formBox = h('div');
+  var readyBox = h('div'), listBox = h('div'), formBox = h('div'), autoBox = h('div');
   function drawReady(r) {
     clear(readyBox);
     var ok = r.products >= r.productsPerPuzzle;
@@ -839,15 +839,42 @@ VIEWS.puzzles = function (root) {
   function drawList(rows) {
     clear(listBox);
     if (!rows.length) return listBox.appendChild(card('پازل‌ها', '', [empty('هنوز پازلی نیست')]));
-    listBox.appendChild(card('پازل‌ها', 'تازه‌ترین‌ها', rows.map(function (p) {
-      return h('div', { class: 'kv', style: 'align-items:center;flex-wrap:wrap' }, [
-        h('div', {}, [badge(p.status === 'approved' ? 'تأییدشده' : p.status === 'retired' ? 'بازنشسته' : 'پیش‌نویس', p.status === 'approved' ? 'b-ok' : 'b-mute'),
-          h('div', { style: 'font-size:13px;color:var(--muted)', text: p.groups.map(function (g) { return g.titleFa || '—'; }).join(' · ') })]),
-        p.status === 'approved'
-          ? h('button', { class: 'btn bad sm', text: 'بازنشسته کن', onclick: function () { api('/admin/puzzles/' + p.id, { method: 'PATCH', body: { status: 'retired' } }).then(function (r) { r.ok ? load() : fail(r); }); } })
-          : h('button', { class: 'btn ok sm', text: 'دوباره فعال کن', onclick: function () { api('/admin/puzzles/' + p.id, { method: 'PATCH', body: { status: 'approved' } }).then(function (r) { r.ok ? load() : fail(r); }); } })
+    function act(p, status) { api('/admin/puzzles/' + p.id, { method: 'PATCH', body: { status: status } }).then(function (r) { r.ok ? load() : fail(r); }); }
+    listBox.appendChild(card('پازل‌ها', 'پیش‌نویس‌های ساخته‌شده‌ی خودکار را عنوان بده و تأیید کن', rows.map(function (p) {
+      var draft = p.status === 'draft';
+      var inputs = p.groups.map(function (g) { return h('input', { value: g.titleFa || '', 'data-level': String(g.level), style: 'width:100%' }); });
+      var head = h('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap' }, [
+        badge(p.status === 'approved' ? 'تأییدشده' : p.status === 'retired' ? 'بازنشسته' : 'پیش‌نویس', p.status === 'approved' ? 'b-ok' : draft ? 'b-warn' : 'b-mute'),
+        badge(p.source === 'generated' ? 'خودکار' : 'دستی', 'b-info')
       ]);
+      var body = draft
+        ? h('div', {}, p.groups.map(function (g, i) { return h('div', { style: 'margin:4px 0' }, [h('div', { style: 'font-size:12px;color:var(--muted)', text: g.items.join('، ') }), inputs[i]]); }))
+        : h('div', { style: 'font-size:13px;color:var(--muted)', text: p.groups.map(function (g) { return g.titleFa || '—'; }).join(' · ') });
+      var btns = h('div', { style: 'display:flex;gap:6px;margin-top:6px' }, draft ? [
+        h('button', { class: 'btn ok sm', text: 'ذخیره‌ی عنوان‌ها و تأیید', onclick: function () {
+          var titles = inputs.map(function (i) { return { level: Number(i.getAttribute('data-level')), titleFa: i.value }; });
+          api('/admin/puzzles/' + p.id + '/titles', { method: 'PUT', body: { titles: titles } }).then(function (r) { if (!r.ok) return fail(r); act(p, 'approved'); });
+        } }),
+        h('button', { class: 'btn bad sm', text: 'دور بریز', onclick: function () { act(p, 'retired'); } })
+      ] : [p.status === 'approved'
+        ? h('button', { class: 'btn bad sm', text: 'بازنشسته کن', onclick: function () { act(p, 'retired'); } })
+        : h('button', { class: 'btn ok sm', text: 'دوباره فعال کن', onclick: function () { act(p, 'approved'); } })]);
+      return h('div', { style: 'padding:8px 0;border-bottom:1px solid var(--line)' }, [head, body, btns]);
     })));
+  }
+  function drawAuto() {
+    clear(autoBox);
+    var n = h('input', { type: 'number', min: '1', max: '20', value: '5', style: 'width:80px' });
+    autoBox.appendChild(card('ساخت خودکار', 'از کالاهای دارای قیمت تأییدشده، پازل یکتا و معتبر می‌سازد؛ به‌صورت پیش‌نویس می‌ماند تا خودت عنوان بنویسی و تأیید کنی', [
+      h('div', { style: 'display:flex;gap:8px;align-items:center' }, [n, h('button', { class: 'btn', text: 'بساز', onclick: function () {
+        api('/admin/puzzles/generate', { method: 'POST', body: { count: Number(n.value) || 1 } }).then(function (r) {
+          if (!r.ok) return fail(r);
+          var b = r.body;
+          toast(b.created ? fa(b.created) + ' پیش‌نویس ساخته شد' : 'پازلی ساخته نشد؛ کاتالوگ فعلی (' + fa(b.catalogSize) + ' کالا با قیمت کافی) کم است', !b.created);
+          load();
+        });
+      } })])
+    ]));
   }
   function load() {
     api('/admin/puzzles').then(function (r) {
@@ -856,7 +883,7 @@ VIEWS.puzzles = function (root) {
       drawReady(r.body.readiness); drawList(r.body.puzzles);
     });
   }
-  root.appendChild(readyBox); root.appendChild(formBox); root.appendChild(listBox);
+  root.appendChild(readyBox); root.appendChild(autoBox); root.appendChild(listBox); root.appendChild(formBox); drawAuto();
   api('/admin/catalog').then(function (r) { if (!r.ok) return fail(r); prods = r.body.products; drawForm(); load(); });
 };
 `;

@@ -100,6 +100,7 @@ matching spec in `docs/logic/`.
 | D128 | **«بازی‌های اخیر» on the profile** | proposed | Older ask from the design (profile screen). Reuses `xp_events` (+ `mode`, `outcome`, migration 0037); no opponent name yet. Empty states now use the cast (`EmptyNote`, design 10). |
 | D129 | **Coin packages are sold through the Bale wallet** | proposed | Owner pasted Bale's payment docs (`logic/bale-payments.md`). `POST /coin-packages/:id/bale-invoice` → `sendInvoice` into the linked chat; `pre_checkout_query` answered yes only for the right payer / package / level / exact rial amount; coins credited only on `successful_payment`, once per `telegram_payment_charge_id` (store `bale`, migration 0038). Needs `BALE_PROVIDER_TOKEN` (from @botfather) and `feature.coin_packages` on. Not run against the live service. |
 | D130 | **Admin puzzle builder (hand-made puzzles)** | proposed | Owner: «پازل نیست». A puzzle needs 4 groups × 4 distinct products; the generator is still unbuilt, so the admin page «ساخت پازل» makes curated puzzles live at once. See `logic/puzzle-generation.md` §Hand-built puzzles. |
+| D131 | **Puzzle generator + draft review in the admin panel** | proposed | PLAN Phase 2 `generatePuzzle`; admin «ساخت خودکار» makes `draft` puzzles that a human titles and approves. See `logic/puzzle-generation.md` §Generator + admin panel. |
 
 Owner-approved (2026-09-26). Do these ~3–5 days of experiments first; their results can still
 flip D13–D17 before real code is built on top of them. Tracked as checkboxes in `docs/PLAN.md`

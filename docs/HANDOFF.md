@@ -28,7 +28,7 @@ For the next chat. Read `CLAUDE.md`, then this file, then `docs/DECISIONS.md` fr
 
 24 Duel «ارتباط با سرور» error on the owner's host: locally fine; client now falls back to long-polling (D127). If it persists, check websockets on the api proxy and `CORS_ORIGIN` (polling needs it). **Deploy: run migrations 0034–0038.**
 
-25 Solo said «پازل نیست»: the server had 1 product and 0 puzzles. Admin page «ساخت پازل» added (D130): needs ≥ 16 catalog products, then the owner builds puzzles by hand. The generator (`generatePuzzle`) is still not built (PLAN Phase 2). The owner still has no real catalogue: ask for / write a real seed (never invent prices as approved; AI guesses go `pending`).
+25 Solo said «پازل نیست»: the server had 1 product and 0 puzzles. Admin page «ساخت پازل» added (D130): needs ≥ 16 catalog products, then the owner builds puzzles by hand. The generator is built (D131): ~150 products with ≥3 approved price years are needed for it to succeed reliably; drafts need a human title + approval. The owner still has no real catalogue: ask for / write a real seed (never invent prices as approved; AI guesses go `pending`).
 
 ## Queue rule (owner, 2026-10-02)
 New asks go to the END of the queue unless the owner says it is truly urgent.
