@@ -356,3 +356,7 @@ Owner: show who is online, let the host invite friends to a table, and private c
 ## D140 — 2v2 team mode: free, solo-fill first (2026-10-02, proposed)
 
 Built the team flow of `logic/game-rules.md` §2v2: captain rotates every turn (not on a streak), a teammate's proposal is a live highlight for the captain only, a leaver hands the captaincy over and the team plays on. Proposed defaults, open to the owner: **no entry fee and no coin prize in 2v2 yet** (escrow per teammate/party needs its own economy decision), the queue fills from four strangers (the two longest waiters are teammates), bots fill missing seats after the usual wait. Party of 2 and team rooms are not built.
+
+## D141 — Scheduled puzzle-pool top-up (2026-10-02, proposed)
+
+A timer keeps the puzzle pool at a target (default 30) using the D131 generator. Proposed default: it only fills the **draft** backlog so the admin still writes real titles and approves (the spec's "never auto-publish an un-reviewed title"); a setting `puzzles.autofill_auto_approve` lets the owner switch to publishing straight away with the rule text as title when the solo pool runs dry. Details: `logic/puzzle-generation.md` §Scheduled pool top-up.

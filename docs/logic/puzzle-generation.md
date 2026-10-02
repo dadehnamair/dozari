@@ -139,6 +139,13 @@ the admin is the human check) and goes live as `approved` at once; it can be ret
 readiness: products in the catalog, products with ≥ `MIN_PRICE_POINTS_PER_PRODUCT` approved prices, approved puzzles. Prices are not needed to
 *play* a puzzle, but the price-guess round and the result chart need approved prices for its products.
 
+## Scheduled pool top-up (D141)
+
+`puzzles/pool.ts`: every `puzzles.autofill_check_minutes` (default 60, first look 45 s after boot; `PUZZLE_SCHEDULER=off` disables it) the server counts
+the pool and, when it is below `puzzles.autofill_target` (default 30), generates the gap (at most 20 per run) with the injected RNG. Pool = the **drafts
+waiting for a human** by default (`puzzles.autofill_auto_approve` = 0: titles are never auto-published); with auto-approve on, pool = live puzzles and the new
+ones are approved at once with the plain-Persian rule as title. `puzzles.autofill_enabled` pauses it. All four are admin settings (group «گیم‌پلی»).
+
 ## Generator + admin panel (D131)
 
 `generatePuzzle(catalog, rng, opts)` (`packages/shared/src/puzzle/generate.ts`) is built: hardest level first, rule kinds `multiplier_between` (level 3),

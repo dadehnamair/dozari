@@ -96,6 +96,7 @@ import { isMainModule } from './is-main.js';
 import { createDbPuzzleSource } from './solo/db-source.js';
 import { CoinPackageService } from './economy/coin-packages.js';
 import { createDbPuzzleAdmin } from './puzzles/admin.js';
+import { startPuzzlePoolScheduler } from './puzzles/pool.js';
 import { registerCoinPackageRoutes } from './economy/coin-packages-routes.js';
 import { createDbCoinPackageStore } from './economy/coin-packages-store.js';
 import { registerShopRoutes } from './economy/shop-routes.js';
@@ -605,6 +606,10 @@ if (isMainModule(import.meta.url)) {
   if (bot && settings && process.env.BOT_SCHEDULER !== 'off') {
     const scheduler = startBotScheduler({ bot, settings, log: (msg, err) => (err ? app.log.error({ err }, msg) : app.log.info(msg)) });
     app.addHook('onClose', async () => scheduler.stop());
+  }
+  if (db && settings && process.env.PUZZLE_SCHEDULER !== 'off') {
+    const pool = startPuzzlePoolScheduler({ admin: createDbPuzzleAdmin(db), settings, rng: () => randomInt(0, 2 ** 30) / 2 ** 30, log: (msg, err) => (err ? app.log.error({ err }, msg) : app.log.info(msg)) });
+    app.addHook('onClose', async () => pool.stop());
   }
   if (notify && baleClient) {
     const runner = startNotifyRunner({ service: notify, client: baleClient, settings, log: (msg, err) => (err ? app.log.error({ err }, msg) : app.log.info(msg)) });

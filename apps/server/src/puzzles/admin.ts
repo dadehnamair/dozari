@@ -47,7 +47,9 @@ export interface PuzzleAdmin {
   create(groups: NewGroup[]): Promise<CreateResult>;
   setStatus(id: string, status: 'approved' | 'retired'): Promise<'ok' | 'not_found'>;
   /** Makes up to `count` validated puzzles from the approved catalog and saves them as `draft` (a human writes the titles, then approves). */
-  generate(count: number, rng: Rng): Promise<{ requested: number; created: number; catalogSize: number }>;
+  generate(count: number, rng: Rng): Promise<{ requested: number; created: number; catalogSize: number; ids: string[] }>;
+  /** How many puzzles wait as drafts and how many are live (approved). */
+  counts(): Promise<{ draft: number; approved: number }>;
   /** Replaces the four titles of a puzzle (level → title). */
   setTitles(id: string, titles: { level: number; titleFa: string }[]): Promise<'ok' | 'not_found'>;
 }
@@ -144,10 +146,12 @@ export function createDbPuzzleAdmin(db: Db): PuzzleAdmin {
       for (const t of tags) byId.get(t.productId)?.eraTags.push(t.tag);
       const catalog = [...byId.values()].filter((p) => new Set(p.prices.map((x) => x.year)).size >= MIN_PRICE_POINTS_PER_PRODUCT);
       const made = makePuzzles(catalog, count, rng);
+      const ids: string[] = [];
       for (const g of made) {
         await db.transaction(async (tx) => {
           const [puzzle] = await tx.insert(puzzles).values({ status: 'draft', source: 'generated' }).$returningId();
           if (!puzzle) throw new Error('puzzle insert failed');
+          ids.push(puzzle.id);
           for (const grp of g.groups) {
             const text = explainRule(grp.rule);
             const [group] = await tx.insert(puzzleGroups).values({ puzzleId: puzzle.id, level: grp.level, titleFa: text.slice(0, 100), explanationFa: text.slice(0, 300), ...ruleColumns(grp.rule) }).$returningId();
@@ -156,7 +160,12 @@ export function createDbPuzzleAdmin(db: Db): PuzzleAdmin {
           }
         });
       }
-      return { requested: count, created: made.length, catalogSize: catalog.length };
+      return { requested: count, created: made.length, catalogSize: catalog.length, ids };
+    },
+    async counts() {
+      const rows = await db.select({ status: puzzles.status, n: count() }).from(puzzles).groupBy(puzzles.status);
+      const n = (s: string) => Number(rows.find((r) => r.status === s)?.n ?? 0);
+      return { draft: n('draft'), approved: n('approved') };
     },
     async setTitles(id, titles) {
       const [r] = await db.select({ id: puzzles.id }).from(puzzles).where(eq(puzzles.id, id));
@@ -194,11 +203,16 @@ export function createMemoryPuzzleAdmin(known: Set<string>, catalog: Catalog = [
     },
     async generate(count, rng) {
       const made = makePuzzles(catalog, count, rng);
+      const ids: string[] = [];
       for (const g of made) {
         const id = `00000000-0000-7000-9000-${String(rows.length + 1).padStart(12, '0')}`;
+        ids.push(id);
         rows.unshift({ id, status: 'draft', source: 'generated', createdAt: 0, groups: g.groups.map((x) => ({ level: x.level, titleFa: explainRule(x.rule), items: [...x.productIds] })) });
       }
-      return { requested: count, created: made.length, catalogSize: catalog.length };
+      return { requested: count, created: made.length, catalogSize: catalog.length, ids };
+    },
+    async counts() {
+      return { draft: rows.filter((r) => r.status === 'draft').length, approved: rows.filter((r) => r.status === 'approved').length };
     },
     async setTitles(id, titles) {
       const r = rows.find((x) => x.id === id);
