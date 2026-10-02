@@ -1,5 +1,7 @@
-/** Design system of the admin panel: tokens, layout, components. Light and dark, RTL, no external fonts. */
+/** Design system of the admin panel: tokens, layout, components. Light and dark, RTL, self-hosted font (served from /admin/fonts, no external requests). */
 export const ADMIN_CSS = String.raw`
+@font-face { font-family:Vazirmatn; font-weight:400; font-display:swap; src:url(/admin/fonts/Vazirmatn-Regular.ttf) format("truetype"); }
+@font-face { font-family:Vazirmatn; font-weight:700; font-display:swap; src:url(/admin/fonts/Vazirmatn-Bold.ttf) format("truetype"); }
 :root { color-scheme: light dark;
   --bg:#f4f1fa; --card:#ffffff; --card2:#faf8fe; --ink:#241238; --muted:#6f6682; --line:#e6e0f1;
   --brand:#7a3fd1; --brand2:#a66bf0; --brandink:#ffffff; --gold:#ffc93c;

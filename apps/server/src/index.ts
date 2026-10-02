@@ -44,7 +44,7 @@ import { createShortener } from './find/shortener.js';
 import { createDbFindStore } from './find/store.js';
 import { registerPhoneRoutes } from './phone/routes.js';
 import { PhoneService, phoneRulesFromSettings } from './phone/service.js';
-import { createKavenegarClient } from './phone/sms.js';
+import { createIrnotiClient, createKavenegarClient } from './phone/sms.js';
 import { createDbPhoneStore } from './phone/store.js';
 import { registerInviteRoutes } from './invite/routes.js';
 import { InviteService, inviteRulesFromSettings } from './invite/service.js';
@@ -301,7 +301,12 @@ if (isMainModule(import.meta.url)) {
   const baleClient = baleToken ? createBaleClient(baleToken, { base: process.env.BALE_API_BASE }) : null;
   const baleStore: NotifyStore | undefined = db ? createDbNotifyStore(db) : undefined;
   const notify = baleStore ? new NotifyService(baleStore, baleClient) : undefined;
-  const smsClient = process.env.KAVENEGAR_API_KEY && process.env.KAVENEGAR_TEMPLATE ? createKavenegarClient(process.env.KAVENEGAR_API_KEY, process.env.KAVENEGAR_TEMPLATE) : null;
+  // irnoti wins when both are configured; Kavenegar stays as the fallback adapter.
+  const smsClient = process.env.IRNOTI_API_KEY
+    ? createIrnotiClient(process.env.IRNOTI_API_KEY, { message: process.env.IRNOTI_MESSAGE })
+    : process.env.KAVENEGAR_API_KEY && process.env.KAVENEGAR_TEMPLATE
+      ? createKavenegarClient(process.env.KAVENEGAR_API_KEY, process.env.KAVENEGAR_TEMPLATE)
+      : null;
   const phone = db && settings ? new PhoneService(createDbPhoneStore(db), () => phoneRulesFromSettings(settings), smsClient) : undefined;
   if (notify && phone) notify.phone = phone;
   const words = db ? new TextFilterService(createDbWordStore(db)) : undefined;

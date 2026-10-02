@@ -6,6 +6,7 @@ import type { DailyRewardService } from '../economy/daily-reward.js';
 import { registerDailyRewardAdminRoutes } from '../economy/routes.js';
 import type { SocketStats } from '../realtime/stats.js';
 import { randomBytes } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 import { AdminAccounts } from './accounts/service.js';
 import { createMemoryAdminStore } from './accounts/store.js';
 import { can, permissionFor } from './accounts/permissions.js';
@@ -78,11 +79,19 @@ export interface AdminExtras extends AdminModules {
   accounts?: AdminAccounts;
 }
 
+const ADMIN_FONTS = new Set(['Vazirmatn-Regular.ttf', 'Vazirmatn-Bold.ttf']);
+
 export function registerAdminRoutes(app: FastifyInstance, repo: AdminRepository, token: string | undefined, extras: AdminExtras = {}) {
   const accounts = extras.accounts ?? new AdminAccounts(createMemoryAdminStore(), randomBytes(32).toString('hex'), token);
   registerAdminLogin(app, accounts);
   // The page itself carries no data; every data call below needs the token.
   app.get('/admin', async (_req, reply) => reply.type('text/html; charset=utf-8').send(ADMIN_PAGE_HTML));
+  // The panel's own font (self-hosted, rule 8). Public: it is a typeface, not data; the file names are a closed list.
+  app.get<{ Params: { name: string } }>('/admin/fonts/:name', async (req, reply) => {
+    if (!ADMIN_FONTS.has(req.params.name)) return reply.code(404).send();
+    const file = await readFile(new URL(`../../assets/fonts/${req.params.name}`, import.meta.url));
+    return reply.type('font/ttf').header('cache-control', 'public, max-age=31536000, immutable').send(file);
+  });
 
   app.register(async (guarded) => {
     // Guessing the token: 10 wrong tries per 15 minutes per IP, then locked out for the rest of the window.
