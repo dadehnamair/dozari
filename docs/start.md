@@ -104,7 +104,21 @@ pnpm --filter @dozari/mobile build:web     # -> apps/mobile/dist (static files)
 Serve `apps/mobile/dist` from any https static host (or an https tunnel to your machine), open it on
 the phone, then: Android Chrome → menu → **Install app**; iPhone Safari → Share → **Add to Home Screen**.
 Set `EXPO_PUBLIC_API_URL` to the public API address before building, and allow that web origin in the
-server's `CORS_ORIGIN`.
+server's `CORS_ORIGIN`. The app also shows its own «نصب» card on Home (and «نصب روی گوشی» in the
+profile); on iPhone it explains the Safari steps (D102).
+
+Hosting rules for `dist/` (any static host; nginx shown):
+
+```nginx
+location = /sw.js              { add_header Cache-Control "no-cache"; }          # releases must be seen
+location = /manifest.webmanifest { types { application/manifest+json webmanifest; } add_header Cache-Control "no-cache"; }
+location /_expo/static/        { add_header Cache-Control "public, max-age=31536000, immutable"; }
+location /                     { try_files $uri /index.html; add_header Cache-Control "no-cache"; }
+```
+
+`build:web` stamps `dist/sw.js` with a build version and the precache list, so each release replaces
+the old cache; players see «نسخهٔ تازهٔ دوزاری آماده است» on Home and update with one tap (never
+mid-match). Home-screen shortcuts open solo, daily puzzle or duel (`/?go=…`).
 
 ## 5. Admin panel
 

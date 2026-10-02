@@ -13,6 +13,8 @@ import { InviteSheet } from '../invite/InviteSheet';
 import { LoansSheet } from '../transfers/LoansSheet';
 import { FindSheet } from './FindSheet';
 import { CityPicker } from './CityPicker';
+import { IosInstallSheet } from '../pwa/PwaLayer';
+import { usePwa } from '../pwa/usePwa';
 import { FriendsPage } from './FriendsPage';
 import { BadgesSheet } from '../badges/BadgesSheet';
 import { deleteMyAccount, signOutEverywhere } from '../account/api';
@@ -32,6 +34,8 @@ export function ProfileSheet({ onClose, onGender, onTutorial, onAccountGone }: {
   const [badgesOpen, setBadgesOpen] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
   const [cityOpen, setCityOpen] = useState(false);
+  const pwa = usePwa();
+  const [iosHelp, setIosHelp] = useState(false);
   const prefs = usePrefs();
   const [sure, setSure] = useState(false);
   const [accountNote, setAccountNote] = useState<string | null>(null);
@@ -99,6 +103,7 @@ export function ProfileSheet({ onClose, onGender, onTutorial, onAccountGone }: {
           </View>
           <Text style={styles.label}>{fa.account.title}</Text>
           <View style={styles.row}>
+            {pwa.installMode !== 'none' ? <Pressable onPress={() => void pwa.promptInstall().then((r) => r === 'ios' && setIosHelp(true))} style={[styles.pill, styles.pillOn]} accessibilityRole="button"><Text style={styles.pillText}>{fa.pwa.profileButton}</Text></Pressable> : null}
             {onTutorial ? <Pressable onPress={onTutorial} style={styles.pill} accessibilityRole="button"><Text style={styles.pillText}>{fa.account.replayTutorial}</Text></Pressable> : null}
             <Pressable onPress={() => void signOutEverywhere().then(() => (setAccountNote(fa.account.signOutDone), onAccountGone?.()), () => setAccountNote(fa.account.failed))} style={styles.pill} accessibilityRole="button"><Text style={styles.pillText}>{fa.account.signOut}</Text></Pressable>
             <Pressable onPress={() => (sure ? void deleteMyAccount().then(() => (setAccountNote(fa.account.deleteDone), onAccountGone?.()), () => setAccountNote(fa.account.failed)) : setSure(true))} style={[styles.pill, sure && styles.pillOn]} accessibilityRole="button"><Text style={styles.pillText}>{fa.account.delete}</Text></Pressable>
@@ -115,6 +120,7 @@ export function ProfileSheet({ onClose, onGender, onTutorial, onAccountGone }: {
         <CandyButton label={fa.invite.open} color={colors.candy.lime} onPress={() => setInviteOpen(true)} />
         <CandyButton label={fa.profile.close} color={colors.candy.sky} onPress={onClose} />
       </Pressable>
+      {iosHelp ? <IosInstallSheet onClose={() => setIosHelp(false)} /> : null}
     </Pressable>
   );
 }

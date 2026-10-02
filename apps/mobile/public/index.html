@@ -23,6 +23,19 @@
       }
       body {
         overflow: hidden;
+        /* A game, not a page: no pull-to-refresh or bounce while dragging on the board, no grey tap flash, no
+           accidental text selection or long-press callout (inputs stay selectable). */
+        overscroll-behavior: none;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-text-size-adjust: 100%;
+      }
+      input,
+      textarea {
+        -webkit-user-select: text;
+        user-select: text;
       }
       #root {
         display: flex;
@@ -36,12 +49,60 @@
     <noscript>برای اجرای دوزاری جاوااسکریپت را روشن کنید.</noscript>
     <div id="root"></div>
     <script>
-      // Installable PWA: the service worker only works on https or localhost; elsewhere this is a no-op.
-      if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-        window.addEventListener('load', function () {
-          navigator.serviceWorker.register('/sw.js').catch(function () {});
+      // PWA glue (D98, D102). Runs before the app so no browser event is missed; the app reads `window.__dozariPwa`
+      // and listens for `dozari-pwa` events (src/pwa/pwa.ts).
+      (function () {
+        var pwa = (window.__dozariPwa = { install: null, waiting: null });
+        var tell = function () {
+          window.dispatchEvent(new Event('dozari-pwa'));
+        };
+        // Chrome/Android offer installing through this event; keep it for our own «نصب» button.
+        window.addEventListener('beforeinstallprompt', function (e) {
+          e.preventDefault();
+          pwa.install = e;
+          tell();
         });
-      }
+        window.addEventListener('appinstalled', function () {
+          pwa.install = null;
+          tell();
+        });
+        // The service worker only works on https or localhost; elsewhere this is a no-op.
+        if (!('serviceWorker' in navigator) || !(location.protocol === 'https:' || location.hostname === 'localhost')) return;
+        var reloading = false;
+        navigator.serviceWorker.addEventListener('controllerchange', function () {
+          // Only after the player asked for the new version (a first install takes over without reloading).
+          if (pwa.updating && !reloading) {
+            reloading = true;
+            location.reload();
+          }
+        });
+        window.addEventListener('load', function () {
+          navigator.serviceWorker
+            .register('/sw.js')
+            .then(function (reg) {
+              var waitFor = function (sw) {
+                if (!sw) return;
+                var check = function () {
+                  if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+                    pwa.waiting = sw;
+                    tell();
+                  }
+                };
+                sw.addEventListener('statechange', check);
+                check();
+              };
+              waitFor(reg.waiting);
+              reg.addEventListener('updatefound', function () {
+                waitFor(reg.installing);
+              });
+              // Long sessions (the app stays open on a phone for days) still notice a release.
+              setInterval(function () {
+                reg.update().catch(function () {});
+              }, 30 * 60 * 1000);
+            })
+            .catch(function () {});
+        });
+      })();
     </script>
   </body>
 </html>
