@@ -34,7 +34,10 @@ Laid out as **screen-home** of `docs/design/Dozari - 01 Screens.dc.html` (D99, r
 - **Corner tiles**, one column per side (54px candy squares with a label; a tile shows only when its
   feature flag is on). Right: daily reward (badge when claimable), private tables, tournaments, price
   lookup. Left: settings/profile, messages (unread badge), city chat, shop, Bale.
-- The **hero** character floating over the bazaar background.
+- The **hero** character floating over the bazaar background. It is also the **guide** (owner note 4):
+  tapping it cycles short tips (`fa.home.guide.tips`, one per menu; tips of switched-off features are
+  skipped) shown in a `GuideBubble` (mascot + speech bubble) above it; the tip fades after 12 s.
+- Coin pill → coin history sheet (see §Coin history sheet).
 - **Two big buttons** at the bottom: solo play (green) and duel (orange). When an unfinished match
   exists the orange button becomes **back to your game** with a badge (D42).
 - Still to come from the design: the mode screen (duel / team / play with a friend) behind the duel

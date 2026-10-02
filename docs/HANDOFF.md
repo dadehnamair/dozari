@@ -17,13 +17,13 @@ For the next chat. Read `CLAUDE.md`, then this file, then `docs/DECISIONS.md` fr
 #86 level road / locked popup / wheel / city hub · #87, #88 deploy fixes · #89 polish batch 1 (D114) · #90 presence + friends' DM + table invites (D115; merged together with this file).
 
 ## Owner's list of 16 notes — status
-1 slogan lower ✔ · 2 invite friends to a table ✔ (#90) · 3 online dot ✔ (#90; "other players' profile is plain" — still plain) · 4 guide character on Home explaining the menus ✘ · 5 private chat between friends ✔ (#90) · 6 price finder by category ✔ (D70 note) · 7 app-wide soft music, a bit more exciting in competitions ✘ (`sound/engine.ts` is WebAudio SFX only) · 8 table icons from our pack ✔ · 9 wheel as a separate thing: chance after a win ✔ (D116; gems still don't exist) (**there is no gems currency** — needs an owner decision; `daily/DailyWheelPage.tsx` still exists, unused) · 10 daily reward as before ✔ · 11 shop → «بازار» ✔; a guide explaining why items are locked ✘ · 12 message filters ✔ · 13 tap the coin count → coin history ✔ (D118, `GET /me/ledger` + `LedgerSheet`) · 14 level star icon ✔ · 15 table button: join / create menu ✔ · 16 no zoom ✔.
+1 slogan lower ✔ · 2 invite friends to a table ✔ (#90) · 3 online dot ✔ (#90; "other players' profile is plain" — still plain) · 4 guide character on Home explaining the menus ✔ (D120) · 5 private chat between friends ✔ (#90) · 6 price finder by category ✔ (D70 note) · 7 app-wide soft music, a bit more exciting in competitions ✘ (`sound/engine.ts` is WebAudio SFX only) · 8 table icons from our pack ✔ · 9 wheel as a separate thing: chance after a win ✔ (D116; gems still don't exist) (**there is no gems currency** — needs an owner decision; `daily/DailyWheelPage.tsx` still exists, unused) · 10 daily reward as before ✔ · 11 shop → «بازار» ✔; a guide explaining why items are locked ✔ (D120) · 12 message filters ✔ · 13 tap the coin count → coin history ✔ (D118, `GET /me/ledger` + `LedgerSheet`) · 14 level star icon ✔ · 15 table button: join / create menu ✔ · 16 no zoom ✔.
 
 ## Not built (older asks)
 screen-login with phone (needs the account-recovery decision), public player number + default handle (`dozari_7k2m`), Bale payment docs (allow `docs.bale.ai` or paste the payment section), gems/outfits/avatars shop tabs, week/month leaderboards, team and propose-and-vote modes, recent games on profile.
 
 ## Suggested next order
-4 (guide + locked-item explanations) → 7 (music) → 9 after the owner picks: wheel by win-chance and/or gems.
+7 (music) → 9 after the owner picks: wheel by win-chance and/or gems.
 
 ## Local dev
 MySQL `mysqld_safe --user=mysql`; `pnpm --filter @dozari/db db:migrate`; server `pnpm --filter @dozari/server dev`; web `EXPO_PUBLIC_API_URL=http://localhost:3000 npx expo start --web --port 8081`. Docker is not available in the cloud container, so images and Caddy are never built there.

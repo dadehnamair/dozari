@@ -33,6 +33,19 @@ export const fa = {
       streak: 'روز',
       level: 'سطح',
     },
+    /** The guide character on Home: tap it to hear what each menu does (key = feature switch / menu). */
+    guide: {
+      name: 'راهنما',
+      tips: [
+        { key: 'play', text: 'با «بازی تکی» مرحله‌به‌مرحله پیش برو و دست‌گرم کن.' },
+        { key: 'duel', text: 'در «دوئل» با یک حریف واقعی رو در رو می‌شوی؛ برنده سکه می‌برد.' },
+        { key: 'daily', text: 'هر روز یک پازل تازه داری؛ زنجیره‌ات را نگه دار تا جایزه بگیری.' },
+        { key: 'shop', text: 'در «بازار» با سکه راهنما می‌خری؛ بعضی چیزها با رسیدن به سطح بالاتر باز می‌شوند.' },
+        { key: 'chat', text: 'در «چت» با بقیه‌ی شهر حرف بزن و دوستانت را به میز دعوت کن.' },
+        { key: 'inbox', text: '«پیام‌ها» خبرهای دوزاری و پیام‌های مخصوص تو را نشان می‌دهد.' },
+        { key: 'coins', text: 'روی عدد سکه بزن تا ببینی سکه‌هایت از کجا آمده و کجا رفته.' },
+      ],
+    },
   },
   lookup: {
     title: 'استعلام قیمت',
@@ -749,6 +762,12 @@ export const fa = {
     price: 'سکه',
     amount: (n: number) => `${toPersianDigits(String(n))} عدد`,
     needLevel: (n: number) => `از سطح ${toPersianDigits(String(n))}`,
+    /** What the guide says when a locked item is tapped. */
+    why: {
+      LEVEL: (n: number) => `این یکی هنوز قفله؛ وقتی به سطح ${toPersianDigits(String(n))} برسی بازش می‌کنی. با بازی کردن امتیاز می‌گیری و سطحت بالا می‌رود.`,
+      DAILY_LIMIT: 'سقف خرید امروز این کالا پر شده؛ فردا دوباره می‌توانی بخری.',
+      COINS: 'سکه‌ات برای این کالا کافی نیست. بازی کن و جایزه‌ی روزانه‌ات را بگیر تا سکه جمع کنی.',
+    } as Record<string, string | ((n: number) => string)>,
     dailyLimit: 'سقف خرید امروز پر شد',
     leftToday: (n: number) => `${toPersianDigits(String(n))} بار دیگر امروز`,
     needCoins: 'سکه‌ات کافی نیست',

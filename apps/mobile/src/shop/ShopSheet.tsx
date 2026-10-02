@@ -4,6 +4,7 @@ import type { Shop, ShopItem } from '@dozari/shared';
 import { toPersianDigits } from '@dozari/shared';
 import { GradientFill } from '../components/GradientFill';
 import { Icon } from '../components/Icon';
+import { GuideBubble } from '../components/GuideBubble';
 import { Item } from '../components/Item';
 import { Scene } from '../components/Scene';
 import { fa } from '../i18n/fa';
@@ -25,6 +26,12 @@ const TABS = [
 ] as const;
 type TabKey = (typeof TABS)[number]['key'];
 
+/** The guide's longer explanation of why an item cannot be bought right now. */
+const whyText = (it: ShopItem): string | null => {
+  const w = it.blocked ? fa.shop.why[it.blocked] : undefined;
+  return typeof w === 'function' ? w(it.minLevel) : (w ?? null);
+};
+
 const stateText = (it: ShopItem): string | null => {
   if (it.blocked === 'LEVEL') return fa.shop.needLevel(it.minLevel);
   if (it.blocked === 'DAILY_LIMIT') return fa.shop.dailyLimit;
@@ -41,6 +48,7 @@ export function ShopSheet({ onClose, onBalance }: { onClose: () => void; onBalan
   const [shop, setShop] = useState<Shop | null>(null);
   const [tab, setTab] = useState<TabKey>('boost');
   const [note, setNote] = useState<string | null>(null);
+  const [whyLocked, setWhyLocked] = useState<string | null>(null);
   const [bought, setBought] = useState<ShopItem | null>(null);
 
   const load = useCallback(() => {
@@ -98,6 +106,7 @@ export function ShopSheet({ onClose, onBalance }: { onClose: () => void; onBalan
           })}
         </View>
         {note ? <Text style={styles.note}>{note}</Text> : null}
+        {whyLocked ? <Pressable onPress={() => setWhyLocked(null)} accessibilityRole="button"><GuideBubble text={whyLocked} /></Pressable> : null}
 
         <ScrollView style={styles.list} contentContainerStyle={styles.grid}>
           {tab === 'boost'
@@ -113,7 +122,7 @@ export function ShopSheet({ onClose, onBalance }: { onClose: () => void; onBalan
                       </View>
                       <Text style={styles.name} numberOfLines={1}>{it.titleFa}</Text>
                       <Text style={styles.sub} numberOfLines={2}>{why ?? fa.shop.amount(it.amount)}</Text>
-                      <Pressable disabled={locked} onPress={() => void buy(it)} accessibilityRole="button" accessibilityLabel={`${fa.shop.buy} ${it.titleFa}`} style={({ pressed }) => [styles.buy, locked ? styles.buyOff : null, pressed ? styles.pressed : null]}>
+                      <Pressable onPress={() => (locked ? setWhyLocked(whyText(it)) : void buy(it))} accessibilityRole="button" accessibilityLabel={`${fa.shop.buy} ${it.titleFa}`} style={({ pressed }) => [styles.buy, locked ? styles.buyOff : null, pressed ? styles.pressed : null]}>
                         <View style={styles.buyIcon}><Item icon="coin" /></View>
                         <Text style={styles.buyText}>{it.priceCoins === 0 ? fa.shop.free : n(it.priceCoins)}</Text>
                       </Pressable>

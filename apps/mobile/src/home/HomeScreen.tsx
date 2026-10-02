@@ -18,6 +18,8 @@ import { OPEN_CONFIG } from '../config/gate';
 import type { ClientConfig } from '../config/gate';
 import { InboxSheet } from '../inbox/InboxSheet';
 import { LedgerSheet } from '../ledger/LedgerSheet';
+import { GuideBubble } from '../components/GuideBubble';
+import { availableTips, nextTip } from './guideTips';
 import { useInbox } from '../inbox/useInbox';
 import { BaleSheet } from '../bale/BaleSheet';
 import { ShopSheet } from '../shop/ShopSheet';
@@ -81,6 +83,14 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
   const [tableCode, setTableCode] = useState<string | undefined>(undefined);
   const [inboxOpen, setInboxOpen] = useState(false);
   const [ledgerOpen, setLedgerOpen] = useState(false);
+  const [tip, setTip] = useState<number | null>(null);
+  const tips = availableTips(fa.home.guide.tips, new Set(['duel', 'daily', 'shop', 'chat', 'inbox'].filter((k) => !features[k as 'duel' | 'daily' | 'shop' | 'chat' | 'inbox'])));
+  // A tip fades after a while so the guide never covers the menu for good.
+  useEffect(() => {
+    if (tip === null) return;
+    const timer = setTimeout(() => setTip(null), 12_000);
+    return () => clearTimeout(timer);
+  }, [tip]);
   const [profileOpen, setProfileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [boardOpen, setBoardOpen] = useState(false);
@@ -163,9 +173,12 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
               </Pressable>
             ) : null}
             <View style={styles.spacer} />
-            <Animated.View style={[styles.hero, compact ? styles.heroCompact : null, { transform: [{ translateY: float }] }]}>
-              <Character who={heroFor(gender)} pose="wave" month={month} />
-            </Animated.View>
+            {tip !== null && tips[tip] ? <GuideBubble text={tips[tip].text} /> : null}
+            <Pressable onPress={() => setTip((cur) => nextTip(cur, tips.length))} accessibilityRole="button" accessibilityLabel={fa.home.guide.name}>
+              <Animated.View style={[styles.hero, compact ? styles.heroCompact : null, { transform: [{ translateY: float }] }]}>
+                <Character who={heroFor(gender)} pose="wave" month={month} />
+              </Animated.View>
+            </Pressable>
           </View>
           <View style={[styles.column, compact ? styles.columnCompact : null]}>{left.map(({ key, ...t }) => <HubTile key={key} {...t} />)}</View>
         </View>
