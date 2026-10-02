@@ -22,6 +22,12 @@ For the next chat. Read `CLAUDE.md`, then this file, then `docs/DECISIONS.md` fr
 ## New owner notes (2026-10-02, late)
 17 no page may scroll — the Hub now fits the screen (✔); every other page still to audit ✘ · 18 characters were unused — now hosts: baqal (Bazaar, coin history), mirza (price finder), ajan (inbox), khale (chat), pahlevan (leaderboard, tournaments), goli (friends); more spots (empty states, result screens) still ✘ · 19 admin «بازبینی قیمت‌ها» crashed with `appendChild … not of type 'Node'` when a price had a warning flag (nested array passed to `h()`); fixed in `ui/core.ts` (`h` flattens arrays), reproduced and verified in headless Chromium. Its empty state also points to «صندوق ربات».
 
+## Queue rule (owner, 2026-10-02)
+New asks go to the END of the queue unless the owner says it is truly urgent.
+
+## Queued at the end
+20 **Phone ↔ existing account conflict (Bale / SMS)**: when a number is proven (Bale contact or SMS) and another account already holds it, the app must ASK: keep this account's progress on the number, or load the previous account's progress (never silent, never merged). Design sketched, nothing built: today typing such a number just answers `taken` (`phone/service.ts` `setPending`). Plan: new table `phone_conflicts(user_id, phone, holder_id, created_at)`; after proof create the conflict instead of `taken`; `GET /me/phone` carries `conflict` with both accounts' summary (nickname, level, coins); `POST /me/phone/resolve {choice: keep_current | load_previous}` — keep moves the number (old account stays, loses recovery), load issues a session for the old account (`AuthService.sessionFor`) and the app swaps its token and remounts; the Bale bot tells the player to open the app. 30-minute expiry.
+
 ## Not built (older asks)
 screen-login with phone (needs the account-recovery decision), public player number + default handle (`dozari_7k2m`), Bale payment docs (allow `docs.bale.ai` or paste the payment section), gems/outfits/avatars shop tabs, week/month leaderboards, team and propose-and-vote modes, recent games on profile.
 
