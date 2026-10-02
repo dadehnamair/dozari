@@ -441,6 +441,8 @@ export const fa = {
       freeNote: 'چندتا دوئل اول هر روز رایگانه',
       soon: 'به‌زودی',
       teamNote: 'بدون ورودی، با دو هم‌تیمی',
+      boardOf: (n: number, total: number) => `بسته‌ی ${toPersianDigits(String(n))} از ${toPersianDigits(String(total))}`,
+      nextBoard: (n: number, total: number) => `بسته‌ی بعدی! (${toPersianDigits(String(n))} از ${toPersianDigits(String(total))})`,
       twoVsTwoMode: '۲ در ۲',
       captain: 'کاپیتان این نوبت تویی',
       mateCaptain: 'کاپیتان این نوبت هم‌تیمی‌ته؛ انتخابت را پیشنهاد بده',

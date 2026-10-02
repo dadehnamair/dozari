@@ -13,6 +13,7 @@ import {
   PRICE_GUESS_ROUND_POINTS,
   PRICE_GUESS_STAIRCASE,
   SOLO_MAX_MISTAKES,
+  TEAM_MATCH_BOARDS,
   TURN_SECONDS,
 } from './game.js';
 import { BROKE_RESCUE_TARGET, DAILY_FREE_MATCHES, ENTRY_FEE_BASE, FREE_MATCH_PAYOUT_PERCENT, HOUSE_CUT_PERCENT, LOSS_CONSOLATION, LOSS_CONSOLATION_DAILY_CAP, DAILY_REWARD_COOLDOWN_HOURS, DAILY_REWARD_STREAK_WINDOW_HOURS, HINT_MAX_PER_GAME, HINT_MIN_LEVEL, HINT_PRICES, HINT_REPEAT_PERCENT, DAILY_PUZZLE_REWARD, DAILY_PUZZLE_STREAK_MAX_DAYS, DAILY_PUZZLE_STREAK_STEP, DAILY_PUZZLE_REPEAT_DAYS } from './economy.js';
@@ -157,6 +158,7 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'chat.max_len', group: 'app', label: 'بیشترین طول پیام چت', kind: 'int', min: 20, max: 500, default: CHAT_MAX_LEN, unit: 'حرف' },
   { key: 'chat.global_enabled', group: 'app', label: 'چت کلی (همهٔ بازیکن‌ها، کنار چت شهر)', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'chat.text_needs_activation', group: 'app', label: 'پیام آزاد فقط برای حساب فعال‌شده با کد معرف', hint: 'کل‌کل‌های آماده همیشه آزاد است', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'match.team_boards', group: 'gameplay', label: 'تعداد بسته‌ی ۱۶تایی در بازی تیمی ۲ در ۲', hint: 'امتیازها جمع می‌شود؛ ۱ یعنی مثل دوئل', kind: 'int', min: 1, max: 5, default: TEAM_MATCH_BOARDS },
   { key: 'puzzles.autofill_enabled', group: 'gameplay', label: 'پر کردن خودکار استخر پازل روشن باشد', hint: 'کار زمان‌بندی‌شده پازل تازه از کالاهای کاتالوگ می‌سازد', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'puzzles.autofill_target', group: 'gameplay', label: 'تعداد پازل آماده در استخر', hint: 'پیش‌نویس‌های منتظر تأیید (یا پازل‌های تأییدشده، اگر تأیید خودکار روشن است) تا این عدد پر می‌شود', kind: 'int', min: 1, max: 200, default: 30 },
   { key: 'puzzles.autofill_check_minutes', group: 'gameplay', label: 'هر چند دقیقه استخر پازل بررسی شود', kind: 'int', min: 5, max: 1440, default: 60, unit: 'دقیقه' },

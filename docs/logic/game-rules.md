@@ -93,6 +93,8 @@ with nobody left forfeits (`abandon`). 2v2 has **no entry fee yet** (proposed, D
 Queue: `queue:join {mode:'team'}` fills from strangers (4 in line → the two longest waiters play together); a party of 2 is not built.
 The bot driver fills missing seats after the usual fallback wait (humans on opposite sides) and only plays when its bot is the captain.
 
+**Three boards (D143).** A 2v2 is longer: *TEAM_MATCH_BOARDS* = 3 different 16-card boards played one after another (admin setting `match.team_boards`, 1–5; a 1v1 stays one board). Scores add up across boards; the mistake limit (*MATCH_MAX_MISTAKES*), lock-outs, the consecutive-timeout count and the repeated-set list reset on every board, while tie-breaks count mistakes of all boards and first blood is only for the first board. A board ends when three groups are found or both sides are locked out; its last group is revealed, `board_done` (with the board's full solution) and `board` events go out, and the other side than the one that opened the board opens the next (captain rotates). The match ends after the last board (`solved`/`locked_out`) or at once on forfeit/abandon. The state keeps the next boards server-side (`upcoming`, already shuffled); `MatchView` only has `round`/`rounds` and the board in play. The result screen shows the last board's solution.
+
 ### Visibility (redaction)
 - Everyone sees: board items, solved groups, scores, mistakes, whose turn, timer, each side's
   submitted selection result (the 4 items and correct/one-away/wrong).

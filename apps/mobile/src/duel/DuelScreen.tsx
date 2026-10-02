@@ -89,6 +89,11 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
     return () => clearTimeout(id);
   }, [state.taunt]);
   useEffect(() => {
+    if (!state.boardNote) return;
+    const id = setTimeout(() => dispatch({ t: 'clearBoard' }), 3500);
+    return () => clearTimeout(id);
+  }, [state.boardNote]);
+  useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 500);
     return () => clearInterval(id);
   }, []);
@@ -225,7 +230,8 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   const playing = view.status === 'playing';
   const secs = turnSecondsLeft(view, now);
   const turnText = view.lockedOut[me] ? fa.duel.lockedOut : mine ? (!captain ? a.mateCaptain : team ? a.captain : fa.duel.yourTurn) : fa.duel.theirTurn;
-  const toast = leaveArmed ? a.leaveSure : state.flash ? fa.duel.feedback[state.flash] : state.taunt ? `${state.taunt.from}: ${state.taunt.text}` : null;
+  const boards = view.rounds ?? 1;
+  const toast = leaveArmed ? a.leaveSure : state.boardNote ? a.nextBoard(state.boardNote.board, state.boardNote.of) : state.flash ? fa.duel.feedback[state.flash] : state.taunt ? `${state.taunt.from}: ${state.taunt.text}` : null;
   const submit = () => {
     if (!canSubmit(selected) || !mine || !captain) return;
     void conn.current?.submit(selected).then((ack) => {
@@ -257,7 +263,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
               <View style={styles.clockIcon}><Item icon="hourglass" /></View>
               <Text style={styles.clockText}>{toPersianDigits(clockText(secs))}</Text>
             </View>
-            <View style={styles.mode}><Text style={styles.modeText}>{team ? a.twoVsTwo : a.oneVsOne}</Text></View>
+            <View style={styles.mode}><Text style={styles.modeText}>{team ? (boards > 1 ? `${a.twoVsTwo} · ${a.boardOf((view.round ?? 0) + 1, boards)}` : a.twoVsTwo) : a.oneVsOne}</Text></View>
           </View>
 
           <MatchHud

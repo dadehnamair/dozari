@@ -1,6 +1,6 @@
 import { randomInt } from 'node:crypto';
-import { applyCommand, matchClientView, mulberry32, ServerEvent, startMatch, startTeamMatch, turnDeadline } from '@dozari/shared';
-import type { Command, ErrorCode, Stake, MatchEnded, MatchEvent, MatchFound, MatchState, MatchView, Rng, RuleError } from '@dozari/shared';
+import { TEAM_MATCH_BOARDS, applyCommand, matchClientView, mulberry32, ServerEvent, startMatch, startTeamMatch, turnDeadline } from '@dozari/shared';
+import type { Command, ErrorCode, Stake, MatchEnded, MatchEvent, MatchEventPayload, MatchFound, MatchState, MatchView, Rng, RuleError } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
 import type { PuzzleSource, ServedPuzzle } from '../solo/types.js';
 
@@ -17,6 +17,8 @@ export interface MatchDeps {
   profile(userId: string): Promise<PlayerProfile | null>;
   /** Pushes a server event to every open socket of a user. */
   emit(userId: string, event: string, payload: unknown): void;
+  /** Boards of a 2v2 match (admin setting `match.team_boards`); absent = the shared default. */
+  teamBoards?: () => Promise<number>;
   now?: () => number;
   newSeed?: () => number;
   /** Schedules `fn` after `ms`; returns the canceller. Injected so tests can drive the clock. */
@@ -35,7 +37,8 @@ export interface MatchDeps {
 interface Active {
   id: string;
   state: MatchState;
-  puzzle: ServedPuzzle;
+  /** One served puzzle per board; `state.round` says which is in play. */
+  puzzles: ServedPuzzle[];
   cancel: (() => void) | null;
   /** How each seat entered, when the match carried coin stakes. */
   stakes?: [Stake, Stake];
@@ -52,6 +55,8 @@ const RULE_TO_ERROR: Record<RuleError, ErrorCode> = {
   INVALID_SELECTION: 'INVALID_SELECTION',
   DUPLICATE_SELECTION: 'DUPLICATE_SELECTION',
 };
+
+const toSolo = (p: ServedPuzzle) => ({ groups: p.groups.map((g) => ({ level: g.level, productIds: g.productIds })) });
 
 const defaultSchedule = (ms: number, fn: () => void) => {
   const t = setTimeout(fn, ms);
@@ -125,7 +130,7 @@ export class MatchService {
         return false;
       }
     }
-    const entry: Active = { id, puzzle, state: startMatch(puzzle, [a, b], rng, this.now()), cancel: null, stakes, proposals: [null, null] };
+    const entry: Active = { id, puzzles: [puzzle], state: startMatch(puzzle, [a, b], rng, this.now()), cancel: null, stakes, proposals: [null, null] };
     this.matches.set(id, entry);
     this.byUser.set(a, id);
     this.byUser.set(b, id);
@@ -143,11 +148,11 @@ export class MatchService {
   async startTeam(sides: readonly [readonly [string, string], readonly [string, string]]): Promise<boolean> {
     const all = [...sides[0], ...sides[1]];
     if (new Set(all).size !== 4 || all.some((u) => this.inMatch(u))) return false;
-    const [profiles, puzzle] = await Promise.all([Promise.all(all.map((u) => this.deps.profile(u))), this.deps.puzzles.pickRandom()]);
-    if (!puzzle || profiles.some((p) => !p)) return false;
+    const [profiles, boards] = await Promise.all([Promise.all(all.map((u) => this.deps.profile(u))), this.pickBoards(await this.boardCount())]);
+    if (boards.length === 0 || profiles.some((p) => !p)) return false;
     if (all.some((u) => this.inMatch(u))) return false; // raced with another start while loading
     const id = uuidv7();
-    const entry: Active = { id, puzzle, state: startTeamMatch(puzzle, sides, mulberry32(this.newSeed()), this.now()), cancel: null, proposals: [null, null] };
+    const entry: Active = { id, puzzles: boards, state: startTeamMatch(boards.map(toSolo), sides, mulberry32(this.newSeed()), this.now()), cancel: null, proposals: [null, null] };
     this.matches.set(id, entry);
     for (const u of all) this.byUser.set(u, id);
     const players: MatchFound['players'] = all.map((u, i) => ({ userId: u, side: i < 2 ? 0 : 1, ...(profiles[i] as PlayerProfile) }));
@@ -155,6 +160,25 @@ export class MatchService {
     this.pushState(entry);
     this.armTimer(entry);
     return true;
+  }
+
+  private async boardCount(): Promise<number> {
+    try {
+      return Math.max(1, (await this.deps.teamBoards?.()) ?? TEAM_MATCH_BOARDS);
+    } catch {
+      return TEAM_MATCH_BOARDS;
+    }
+  }
+
+  /** Up to `n` different random puzzles (fewer when the pool is small; at least one or none). */
+  private async pickBoards(n: number): Promise<ServedPuzzle[]> {
+    const out: ServedPuzzle[] = [];
+    for (let i = 0; i < n * 3 && out.length < n; i++) {
+      const p = await this.deps.puzzles.pickRandom();
+      if (!p) break;
+      if (!out.some((o) => o.id === p.id)) out.push(p);
+    }
+    return out;
   }
 
   /** A teammate shows the captain a selection (2v2). Not stored in the match; only the proposer's team sees it. */
@@ -219,13 +243,16 @@ export class MatchService {
   private view(entry: Active, userId: string): MatchView {
     const v = matchClientView(entry.state, userId);
     if (!v) throw new Error('not a participant');
-    const info = entry.puzzle.items;
-    const text = new Map(entry.puzzle.groups.map((g) => [g.level, g]));
+    const current = entry.puzzles[entry.state.round] ?? entry.puzzles[0]!;
+    const info = current.items;
+    const text = new Map(current.groups.map((g) => [g.level, g]));
     return {
       matchId: entry.id,
       you: v.you,
       youId: userId,
       team: entry.state.players.length > 2,
+      round: v.round,
+      rounds: v.rounds,
       cards: v.cards.map((id) => ({ id, nameFa: info[id]?.nameFa ?? id, unitFa: info[id]?.unitFa ?? null, iconKey: info[id]?.iconKey ?? null })),
       solved: v.solved.map((g) => ({ level: g.level, titleFa: text.get(g.level)?.titleFa ?? '', explanationFa: text.get(g.level)?.explanationFa ?? '', productIds: [...g.productIds], by: g.by })),
       scores: [v.scores[0], v.scores[1]],
@@ -241,13 +268,25 @@ export class MatchService {
     };
   }
 
+  /** The finished board with its full solution (it is over, so nothing is hidden any more). */
+  private boardDone(entry: Active, round: number): MatchEventPayload {
+    const done = entry.puzzles[round];
+    if (!done) return { t: 'board_done', round };
+    return { t: 'board_done', round, groups: [...done.groups].sort((a, b) => a.level - b.level).map((g) => ({ level: g.level, titleFa: g.titleFa, explanationFa: g.explanationFa, productIds: [...g.productIds] })) };
+  }
+
   private pushState(entry: Active) {
     for (const p of entry.state.players) this.deps.emit(p.userId, ServerEvent.matchState, this.view(entry, p.userId));
   }
 
   private broadcast(entry: Active, events: readonly MatchEvent[]) {
     this.pushState(entry);
-    for (const p of entry.state.players) for (const e of events) if (e.t !== 'proposal') this.deps.emit(p.userId, ServerEvent.matchEvent, e);
+    for (const p of entry.state.players) {
+      for (const e of events) {
+        if (e.t === 'proposal') continue;
+        this.deps.emit(p.userId, ServerEvent.matchEvent, e.t === 'board_done' ? this.boardDone(entry, e.round) : e);
+      }
+    }
     if (entry.state.status === 'finished') {
       this.finish(entry);
     } else {
@@ -264,7 +303,7 @@ export class MatchService {
         matchId: entry.id,
         result,
         scores: [entry.state.scores[0], entry.state.scores[1]],
-        groups: [...entry.puzzle.groups]
+        groups: [...(entry.puzzles[entry.state.round] ?? entry.puzzles[0]!).groups]
           .sort((a, b) => a.level - b.level)
           .map((g) => ({ level: g.level, titleFa: g.titleFa, explanationFa: g.explanationFa, productIds: [...g.productIds] })) as MatchEnded['groups'],
       };

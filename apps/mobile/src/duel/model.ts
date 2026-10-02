@@ -14,10 +14,12 @@ export interface DuelState {
   /** The opponent's latest canned taunt. */
   taunt: { from: string; text: string } | null;
   flash: 'correct' | 'one_away' | 'wrong' | 'timeout' | null;
+  /** A multi-board match just moved on: the board now in play (1-based) and the total, for a short banner. */
+  boardNote: { board: number; of: number } | null;
   error: string | null;
 }
 
-export const initialDuel: DuelState = { phase: 'idle', waitedSec: 0, found: null, view: null, ended: null, names: {}, taunt: null, flash: null, error: null };
+export const initialDuel: DuelState = { phase: 'idle', waitedSec: 0, found: null, view: null, ended: null, names: {}, taunt: null, flash: null, boardNote: null, error: null };
 
 export type DuelAction =
   | { t: 'queued' }
@@ -28,6 +30,8 @@ export type DuelAction =
   | { t: 'timeout'; mine: boolean }
   | { t: 'ended'; ended: MatchEnded }
   | { t: 'clearFlash' }
+  | { t: 'board'; board: number; of: number }
+  | { t: 'clearBoard' }
   | { t: 'taunt'; from: string; text: string }
   | { t: 'clearTaunt' }
   | { t: 'error'; error: string }
@@ -56,6 +60,10 @@ export function duelReducer(s: DuelState, a: DuelAction): DuelState {
       return { ...s, taunt: { from: a.from, text: a.text } };
     case 'clearTaunt':
       return { ...s, taunt: null };
+    case 'board':
+      return { ...s, boardNote: { board: a.board, of: a.of } };
+    case 'clearBoard':
+      return { ...s, boardNote: null };
     case 'clearFlash':
       return { ...s, flash: null };
     case 'error':

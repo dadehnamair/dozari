@@ -364,3 +364,7 @@ A timer keeps the puzzle pool at a target (default 30) using the D131 generator.
 ## D142 — 2v2 private tables (2026-10-02, proposed)
 
 Private tables gain `format: '2v2'` (four seats, teams of two, host starts when teams are 2+2). Friends choose their team by switching sides; free (no stakes), like all tables for now. A party of 2 joining the public 2v2 queue together is not built; friends who want to play together use a table.
+
+## D143 — 2v2 plays three boards (2026-10-02, proposed)
+
+Owner's idea: a team match should last longer, so instead of one 16-card pack the teams solve three. Built as a series of boards in one match: scores add up, mistakes/lock-outs reset per board, the other side opens each next board, forfeit ends everything. The count is the admin setting `match.team_boards` (default 3). Proposed details to confirm: first-blood bonus only on the first board; the result screen shows only the last board's solution (a per-board recap is not built); no coin prize in 2v2 yet, so a longer match carries no extra payout.

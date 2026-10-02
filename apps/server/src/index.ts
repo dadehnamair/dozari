@@ -519,6 +519,7 @@ if (isMainModule(import.meta.url)) {
     match: db
       ? {
           puzzles: createDbPuzzleSource(db),
+          teamBoards: settings ? () => settings.num('match.team_boards') : undefined,
           stakes: duelStakes,
           profile: createDbProfileLookup(db, player ? async (id) => (await player.levelOf(id)).level.level : undefined),
           onEnded: ({ players, result }) => {

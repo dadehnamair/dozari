@@ -43,7 +43,7 @@ export interface MatchResult {
 }
 
 export interface MatchState {
-  /** The solution. Server-side only; `matchClientView` is the only thing that may leave the server. */
+  /** The board in play (of `rounds`; a 2v2 plays several). The solution. Server-side only; `matchClientView` is the only thing that may leave the server. */
   puzzle: SoloPuzzle;
   /** 2 players (1v1) or 4 (2v2: two per side). */
   players: readonly MatchPlayer[];
@@ -51,6 +51,15 @@ export interface MatchState {
   captain: readonly [string, string];
   /** Players who left; their team carries on without them, and a side with nobody left forfeits. */
   gone: readonly string[];
+  /** Boards still to come, with their card order already shuffled (the reducer holds no rng). */
+  upcoming: readonly { puzzle: SoloPuzzle; order: readonly string[] }[];
+  /** 0-based index of the board in play, and how many boards the match has. */
+  round: number;
+  rounds: number;
+  /** Who opened the board in play; the next board is opened by the other side. */
+  boardStarter: MatchSide;
+  /** Mistakes made on earlier boards (the lock-out limit is per board; tie-breaks count all). */
+  mistakesBefore: readonly [number, number];
   remaining: readonly string[];
   solved: readonly MatchSolvedGroup[];
   scores: readonly [number, number];
@@ -93,6 +102,9 @@ export type MatchEvent =
   | { t: 'guess'; side: MatchSide; itemIds: readonly string[]; outcome: SubmitFeedback }
   | { t: 'group_solved'; side: MatchSide; level: GroupLevel; points: number; firstBlood: boolean }
   | { t: 'group_revealed'; level: GroupLevel }
+  /** A board of a multi-board match is over (its solution may now be shown); the next one follows. */
+  | { t: 'board_done'; round: number }
+  | { t: 'board'; round: number; rounds: number }
   | { t: 'locked_out'; side: MatchSide }
   | { t: 'timeout'; side: MatchSide }
   | { t: 'turn'; side: MatchSide; turnId: number; captain: string }
@@ -117,9 +129,12 @@ export function startMatch(
   return startTeamMatch(puzzle, [[players[0]], [players[1]]], rng, now, startingSide);
 }
 
-/** `sides[s]` = the player ids of side `s`: one (1v1) or two (2v2); both sides the same size. */
+/**
+ * `sides[s]` = the player ids of side `s`: one (1v1) or two (2v2); both sides the same size.
+ * `puzzle` is one board, or a list of them for a multi-board match (2v2).
+ */
 export function startTeamMatch(
-  puzzle: SoloPuzzle,
+  puzzle: SoloPuzzle | readonly SoloPuzzle[],
   sides: readonly [readonly string[], readonly string[]],
   rng: Rng,
   now: number,
@@ -129,12 +144,21 @@ export function startTeamMatch(
   if ((size !== 1 && size !== 2) || sides[1].length !== size) throw new Error('a match is 1v1 or 2v2');
   const all = [...sides[0], ...sides[1]];
   if (new Set(all).size !== all.length) throw new Error('a match needs different players');
+  const boards: readonly SoloPuzzle[] = 'groups' in puzzle ? [puzzle] : puzzle;
+  if (boards.length === 0) throw new Error('a match needs a board');
+  const first = boards[0] as SoloPuzzle;
+  const turn: MatchSide = startingSide ?? (rng() < 0.5 ? 0 : 1);
   return {
-    puzzle,
+    puzzle: first,
+    upcoming: boards.slice(1).map((p) => ({ puzzle: p, order: initialBoardOrder(p, rng) })),
+    round: 0,
+    rounds: boards.length,
+    boardStarter: turn,
+    mistakesBefore: [0, 0],
     players: [...sides[0].map((userId) => ({ userId, side: 0 as const })), ...sides[1].map((userId) => ({ userId, side: 1 as const }))],
     captain: [sides[0][0]!, sides[1][0]!],
     gone: [],
-    remaining: initialBoardOrder(puzzle, rng),
+    remaining: initialBoardOrder(first, rng),
     solved: [],
     scores: [0, 0],
     mistakes: [0, 0],
@@ -142,7 +166,7 @@ export function startTeamMatch(
     timeouts: [0, 0],
     lastCorrectAt: [null, null],
     tried: [],
-    turn: startingSide ?? (rng() < 0.5 ? 0 : 1),
+    turn,
     turnId: 1,
     turnStartedAt: now,
     status: 'playing',
@@ -184,7 +208,8 @@ function revealRest(state: MatchState, events: MatchEvent[]): MatchState {
 function decide(state: MatchState): MatchSide | null {
   const [s0, s1] = state.scores;
   if (s0 !== s1) return s0 > s1 ? 0 : 1;
-  const [m0, m1] = state.mistakes;
+  const m0 = state.mistakes[0] + state.mistakesBefore[0];
+  const m1 = state.mistakes[1] + state.mistakesBefore[1];
   if (m0 !== m1) return m0 < m1 ? 0 : 1;
   const [t0, t1] = state.lastCorrectAt;
   if (t0 !== null && t1 !== null && t0 !== t1) return t0 < t1 ? 0 : 1;
@@ -196,6 +221,34 @@ function finish(state: MatchState, reason: EndReason, winner: MatchSide | null, 
   const result: MatchResult = { winner, reason };
   events.push({ t: 'finished', result });
   return { ...next, result };
+}
+
+/**
+ * A board is over by `reason` (`solved` = three groups found, `locked_out` = both sides out). The last board ends the match;
+ * an earlier one reveals its rest and opens the next board for the side that did not open this one.
+ */
+function endBoard(state: MatchState, reason: 'solved' | 'locked_out', now: number, events: MatchEvent[]): MatchState {
+  const [coming, ...rest] = state.upcoming;
+  if (!coming) return finish(state, reason, decide(state), events);
+  const shown = revealRest(state, events);
+  events.push({ t: 'board_done', round: state.round });
+  const starter = otherSide(state.boardStarter);
+  const next: MatchState = {
+    ...shown,
+    puzzle: coming.puzzle,
+    remaining: coming.order,
+    upcoming: rest,
+    round: state.round + 1,
+    boardStarter: starter,
+    solved: [],
+    tried: [],
+    mistakesBefore: [state.mistakesBefore[0] + state.mistakes[0], state.mistakesBefore[1] + state.mistakes[1]],
+    mistakes: [0, 0],
+    lockedOut: [false, false],
+    timeouts: [0, 0],
+  };
+  events.push({ t: 'board', round: next.round, rounds: next.rounds });
+  return startTurn(next, starter, now, events);
 }
 
 /**
@@ -286,7 +339,7 @@ export function applyCommand(state: MatchState, cmd: Command, ctx: Ctx): ApplyRe
 
       if (exact) {
         events.push({ t: 'guess', side, itemIds: ids, outcome: 'correct' });
-        const firstBlood = state.solved.length === 0;
+        const firstBlood = state.round === 0 && state.solved.length === 0;
         const points = GROUP_POINTS[exact.level] + (firstBlood ? FIRST_BLOOD_BONUS : 0);
         next = {
           ...next,
@@ -297,7 +350,7 @@ export function applyCommand(state: MatchState, cmd: Command, ctx: Ctx): ApplyRe
         };
         events.push({ t: 'group_solved', side, level: exact.level, points, firstBlood });
         if (next.solved.length === GROUP_COUNT - 1) {
-          return { state: finish(next, 'solved', decide(next), events), events };
+          return { state: endBoard(next, 'solved', ctx.now, events), events };
         }
         // A correct guess keeps the turn (streak) with a fresh clock.
         return { state: startTurn(next, side, ctx.now, events, false), events };
@@ -311,7 +364,7 @@ export function applyCommand(state: MatchState, cmd: Command, ctx: Ctx): ApplyRe
         next = { ...next, lockedOut: set(next.lockedOut, side, true) };
         events.push({ t: 'locked_out', side });
         if (next.lockedOut[otherSide(side)]) {
-          return { state: finish(next, 'locked_out', decide(next), events), events };
+          return { state: endBoard(next, 'locked_out', ctx.now, events), events };
         }
       }
       return { state: startTurn(next, nextTurn(next, side), ctx.now, events), events };
@@ -350,6 +403,9 @@ export interface MatchClientView {
   scores: readonly [number, number];
   mistakes: readonly [number, number];
   lockedOut: readonly [boolean, boolean];
+  /** Board in play (0-based) and the number of boards of the match. */
+  round: number;
+  rounds: number;
   turn: MatchSide;
   /** Who submits for each side right now. */
   captain: readonly [string, string];
@@ -374,6 +430,8 @@ export function matchClientView(state: MatchState, viewerId: string): MatchClien
     scores: state.scores,
     mistakes: state.mistakes,
     lockedOut: state.lockedOut,
+    round: state.round,
+    rounds: state.rounds,
     turn: state.turn,
     captain: state.captain,
     turnId: state.turnId,

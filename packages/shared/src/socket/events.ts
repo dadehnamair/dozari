@@ -127,6 +127,9 @@ export const matchViewSchema = z.object({
   youId: z.string().optional(),
   /** True in a 2v2 (two players per side). */
   team: z.boolean().optional(),
+  /** Board in play (0-based) of `rounds` boards: a 2v2 plays several 16-card packs, scores adding up. */
+  round: z.number().int().nonnegative().optional(),
+  rounds: z.number().int().positive().optional(),
   cards: z.array(soloCardSchema),
   solved: z.array(matchSolvedGroupSchema),
   scores: z.tuple([z.number().int(), z.number().int()]),
@@ -149,6 +152,9 @@ export const matchEventSchema = z.discriminatedUnion('t', [
   z.object({ t: z.literal('guess'), side, itemIds: z.array(z.string()).length(4), outcome: z.enum(['correct', 'one_away', 'wrong']) }),
   z.object({ t: z.literal('group_solved'), side, level, points: z.number().int().positive(), firstBlood: z.boolean() }),
   z.object({ t: z.literal('group_revealed'), level }),
+  /** A board is over (multi-board match): its full solution may be shown, then the next board starts. */
+  z.object({ t: z.literal('board_done'), round: z.number().int().nonnegative(), groups: z.array(z.object({ level, titleFa: z.string(), explanationFa: z.string(), productIds: z.array(z.string()) })).length(4).optional() }),
+  z.object({ t: z.literal('board'), round: z.number().int().nonnegative(), rounds: z.number().int().positive() }),
   z.object({ t: z.literal('locked_out'), side }),
   z.object({ t: z.literal('timeout'), side }),
   z.object({ t: z.literal('turn'), side, turnId: z.number().int().positive(), captain: z.string().optional() }),

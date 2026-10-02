@@ -78,3 +78,73 @@ describe('team match', () => {
     expect(JSON.stringify(v)).not.toContain('"level"');
   });
 });
+
+describe('multi-board match (2v2)', () => {
+  const board = (tag: string): SoloPuzzle => ({
+    groups: ([0, 1, 2, 3] as GroupLevel[]).map((level) => ({ level, productIds: [0, 1, 2, 3].map((i) => `${tag}g${level}p${i}`) })),
+  });
+  const boards = [board('a'), board('b'), board('c')];
+  const ids = (tag: string, level: number) => [0, 1, 2, 3].map((i) => `${tag}g${level}p${i}`);
+  const start3 = () => startTeamMatch(boards, [['a1', 'a2'], ['b1', 'b2']], mulberry32(1), 1000, 0);
+  const capt = (s: MatchState) => s.captain[s.turn];
+  /** The side on turn solves the first three groups of the board in play. */
+  const solveBoard = (s: MatchState, tag: string) => {
+    let st = s;
+    const events: MatchEvent[] = [];
+    for (let level = 0; level < 3; level++) {
+      const r = ok(st, { t: 'submit', by: capt(st)!, itemIds: ids(tag, level) });
+      st = r.state;
+      events.push(...r.events);
+    }
+    return { state: st, events };
+  };
+
+  it('plays three boards: scores add up, the next board is opened by the other side, and mistakes reset', () => {
+    let s = start3();
+    expect([s.round, s.rounds, s.upcoming.length]).toEqual([0, 3, 2]);
+    // side 0 makes a mistake on board 1, then solves it
+    s = ok(s, { t: 'submit', by: 'a1', itemIds: ['ag0p0', 'ag0p1', 'ag1p0', 'ag1p1'] }).state;
+    s = ok(s, { t: 'submit', by: s.captain[1], itemIds: ['ag2p0', 'ag2p1', 'ag3p0', 'ag3p1'] }).state; // side 1 also errs
+    const one = solveBoard(s, 'a');
+    expect(one.events.map((e) => e.t)).toContain('board_done');
+    s = one.state;
+    expect([s.status, s.round, s.solved.length, s.mistakes, s.mistakesBefore]).toEqual(['playing', 1, 0, [0, 0], [1, 1]]);
+    expect(s.turn).toBe(1); // board 1 was opened by side 0, so board 2 is opened by side 1
+    expect(s.scores[0]).toBeGreaterThan(0);
+    expect(s.remaining.every((id) => id.startsWith('b'))).toBe(true);
+    const before = s.scores[1];
+    s = solveBoard(s, 'b').state;
+    expect([s.round, s.turn]).toEqual([2, 0]);
+    expect(s.scores[1]).toBeGreaterThan(before);
+    const last = solveBoard(s, 'c');
+    expect(last.state.status).toBe('finished');
+    expect(last.state.result?.reason).toBe('solved');
+    expect(last.state.solved).toHaveLength(4);
+    expect(last.events.map((e) => e.t)).not.toContain('board_done');
+  });
+
+  it('first blood counts only on the first board, and a forfeit ends all boards at once', () => {
+    let s = start3();
+    const first = ok(s, { t: 'submit', by: capt(s)!, itemIds: ids('a', 0) });
+    expect(first.events.find((e) => e.t === 'group_solved')).toMatchObject({ firstBlood: true });
+    s = solveBoard(start3(), 'a').state;
+    const second = ok(s, { t: 'submit', by: capt(s)!, itemIds: ids('b', 0) });
+    expect(second.events.find((e) => e.t === 'group_solved')).toMatchObject({ firstBlood: false });
+    const gone = ok(ok(s, { t: 'leave', by: 'a1' }).state, { t: 'leave', by: 'a2' });
+    expect(gone.state.status).toBe('finished');
+    expect(gone.state.result).toMatchObject({ winner: 1, reason: 'abandon' });
+  });
+
+  it('a board where both sides lock out moves on; the client view shows the round, never the next board', () => {
+    let s = start3();
+    const wrongs = [
+      ['ag0p0', 'ag0p1', 'ag1p0', 'ag1p1'], ['ag0p0', 'ag0p2', 'ag1p0', 'ag1p2'], ['ag0p0', 'ag0p3', 'ag1p0', 'ag1p3'], ['ag0p1', 'ag0p2', 'ag1p1', 'ag1p2'],
+      ['ag0p1', 'ag0p3', 'ag1p1', 'ag1p3'], ['ag0p2', 'ag0p3', 'ag1p2', 'ag1p3'], ['ag2p0', 'ag2p1', 'ag3p0', 'ag3p1'], ['ag2p0', 'ag2p2', 'ag3p0', 'ag3p2'],
+    ];
+    for (const w of wrongs) s = ok(s, { t: 'submit', by: capt(s)!, itemIds: w }).state;
+    expect([s.round, s.status, s.lockedOut]).toEqual([1, 'playing', [false, false]]);
+    const v = matchClientView(s, 'a1')!;
+    expect([v.round, v.rounds]).toEqual([1, 3]);
+    expect(JSON.stringify(v)).not.toContain('cg0');
+  });
+});
