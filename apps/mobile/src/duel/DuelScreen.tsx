@@ -26,6 +26,7 @@ import { ModeSelect } from './ModeSelect';
 import { boardSolved, duelReducer, initialDuel, isMyTurn, myOutcome, turnSecondsLeft } from './model';
 import { connectDuel } from './socket';
 import type { DuelConnection } from './socket';
+import { SearchScreen } from '../search/SearchScreen';
 import { Versus } from './Versus';
 
 const FLASH_MS = 1500;
@@ -143,6 +144,8 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   }
 
   const countdown = Math.ceil((introUntil - now) / 1000);
+  // Searching: the diamond search screen; once a rival is found: the versus screen counting down (D104).
+  if (!state.found && stage !== 'resume') return <SearchScreen waitedSec={state.waitedSec} onCancel={() => (void conn.current?.leaveQueue(), setStage('pick'), dispatch({ t: 'reset' }))} />;
   if (state.phase === 'idle' || state.phase === 'queued' || !view || countdown > 0) {
     const you = state.found?.you ?? 0;
     return (

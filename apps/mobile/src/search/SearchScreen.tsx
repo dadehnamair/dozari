@@ -8,7 +8,7 @@ import { DiamondBackground } from '../components/DiamondBackground';
 import { Mascot } from '../components/Mascot';
 import { fa } from '../i18n/fa';
 import { candyTone, colors, fonts } from '../theme/colors';
-import { cellLevel, nextScan, searchClock } from './scan';
+import { cellLevel, nextScan, searchClock, waitClock } from './scan';
 
 // `direction` is not accepted inside StyleSheet.create by react-native-web's dev validation.
 const LTR: TextStyle = { direction: 'ltr' };
@@ -117,8 +117,11 @@ function PlayerCard({ index, active }: { index: number; active: boolean }) {
   );
 }
 
-/** Opponent search screen ("screen-search" in the design kit): a grid of candidate players being scanned, you vs «؟», cancel. */
-export function SearchScreen({ onCancel }: { onCancel: () => void }) {
+/**
+ * Opponent search screen ("screen-search" in the design kit): a grid of candidate players being scanned, you vs «؟», cancel.
+ * `waitedSec` (the real queue time) replaces the demo clock; the duel shows this while searching (D104).
+ */
+export function SearchScreen({ onCancel, waitedSec }: { onCancel: () => void; waitedSec?: number }) {
   const [scan, setScan] = useState(0);
   const [ticks, setTicks] = useState(0);
   const pulse = useRef(new Animated.Value(1)).current;
@@ -198,7 +201,7 @@ export function SearchScreen({ onCancel }: { onCancel: () => void }) {
             <Animated.Text style={[styles.vs, { transform: [{ scale: pulse }] }]}>
               {s.versus}
             </Animated.Text>
-            <Text style={[styles.clock, LTR]}>{toPersianDigits(searchClock(ticks, TICK_MS))}</Text>
+            <Text style={[styles.clock, LTR]}>{toPersianDigits(waitedSec === undefined ? searchClock(ticks, TICK_MS) : waitClock(waitedSec))}</Text>
             <Text style={styles.clock}>{s.searching}</Text>
           </View>
           <View style={styles.side}>

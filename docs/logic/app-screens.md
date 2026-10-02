@@ -59,9 +59,10 @@ Four views from `docs/design/Dozari - 13 Match Screens.dc.html`:
 1. **screen-mode** «میدان رقابت»: the 1v1 card (picked; entry fee and winner payout from the public
    `duel.*` settings), the 2v2 card dimmed with «به‌زودی», a «رقابت با دوست» pill that opens the
    private-table sheet, and «بزن بریم!» to join the queue.
-2. **screen-versus**: blue half (player) and pink half (rival) split by a gold seam with the VS coin.
-   While searching the rival is a «؟» with the wait time and a cancel slab; once found both name plates
-   (level badge + nickname) show and a 3-second countdown leads to the board. A resumed match skips it.
+2. **screen-search** (D104, diamond background, the 4×4 grid of candidates being scanned, you vs «؟»,
+   the real queue wait, «لغو جستجو») while searching; then **screen-versus**: blue half (player) and
+   pink half (rival) split by a gold seam with the VS coin, both name plates (level badge + nickname),
+   and a 3-second countdown leads to the board. A resumed match skips both.
 3. **screen-match**: top bar (leave button — two taps, since leaving loses; the turn clock plate turns
    pink in the last 10 s; «۱ در ۱»), score panel (faces, names, four group pips per side, points,
    blue/pink tug bar), whose turn it is, a toast line (guess feedback, the rival's taunt), the board,

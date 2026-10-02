@@ -11,6 +11,12 @@ export function cellLevel(index: number): number {
   return 3 + ((index * 7) % 28);
 }
 
+/** `m:ss` for a real wait of `sec` seconds (the duel queue reports it). */
+export function waitClock(sec: number): string {
+  const s = Math.max(0, Math.floor(sec));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+
 /** `m:ss` clock for how long the search has run, one tick every `tickMs`. */
 export function searchClock(ticks: number, tickMs = 450): string {
   const seconds = Math.floor((ticks * tickMs) / 1000) % 60;
