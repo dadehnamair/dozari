@@ -41,6 +41,15 @@ Laid out as **screen-home** of `docs/design/Dozari - 01 Screens.dc.html` (D99, r
 - Still to come from the design: the mode screen (duel / team / play with a friend) behind the duel
   button, the online-player badge (D45) and the UGC entry.
 
+## Game board (solo and daily puzzle)
+
+Laid out as **screen-match** of `docs/design/Dozari - 01 Screens.dc.html` (D99): violet checkered
+background; top bar with a square back button, the yellow title plate (practice / daily puzzle) and a
+hint button; the character beside a speech bubble that carries the prompt, the last guess's feedback
+(the character's pose follows it) or revealed hint titles; the 4×4 board; «فرصت‌ها» dots (one per
+chance left); and three action slabs: shuffle, clear, submit (wider, dimmed until four are picked).
+The end of a game (banner, price round, chart) keeps its earlier layout for now.
+
 ## Matchmaking queue (waiting) screen
 
 Shown between tapping a competitive mode and the match actually starting:

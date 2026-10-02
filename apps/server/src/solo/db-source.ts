@@ -4,6 +4,9 @@ import { GROUP_COUNT, GROUP_SIZE } from '@dozari/shared';
 import type { GroupLevel } from '@dozari/shared';
 import type { PricePointRow, PuzzleSource, ServedPuzzle } from './types.js';
 
+/** How many random approved puzzles one pick tries before giving up. */
+const PICK_ATTEMPTS = 5;
+
 /** Serves a random `approved` puzzle with its groups and card texts. */
 export function createDbPuzzleSource(db: Db): PuzzleSource {
   return {
@@ -19,13 +22,19 @@ export function createDbPuzzleSource(db: Db): PuzzleSource {
       return out;
     },
     async pickRandom() {
-      const [puzzle] = await db
+      // A few random candidates, not one: an approved puzzle with missing groups or items is skipped instead of
+      // turning the whole request into "no puzzle" while playable ones exist.
+      const candidates = await db
         .select({ id: puzzles.id })
         .from(puzzles)
         .where(eq(puzzles.status, 'approved'))
         .orderBy(sql`RAND()`)
-        .limit(1);
-      return puzzle ? load(puzzle.id) : null;
+        .limit(PICK_ATTEMPTS);
+      for (const c of candidates) {
+        const served = await load(c.id);
+        if (served) return served;
+      }
+      return null;
     },
     async byId(id) {
       const [puzzle] = await db.select({ id: puzzles.id }).from(puzzles).where(and(eq(puzzles.id, id), eq(puzzles.status, 'approved'))).limit(1);
