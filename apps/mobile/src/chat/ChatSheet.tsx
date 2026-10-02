@@ -7,6 +7,7 @@ import { GradientFill } from '../components/GradientFill';
 import { Item } from '../components/Item';
 import { PageShell } from '../components/PageShell';
 import { ProvinceBadge } from '../components/ProvinceBadge';
+import { GuideBubble } from '../components/GuideBubble';
 import { fa } from '../i18n/fa';
 import { ApiError } from '../net/http';
 import { avatarOf } from '../social/avatarOf';
@@ -94,6 +95,7 @@ export function ChatSheet({ onClose, onJoinTable, initialTab = 'city' }: { onClo
       </View>
       {friendsView ? <FriendsChat meId={meId} onJoinTable={onJoinTable} /> : <>
       {sub ? <Text style={styles.sub}>{sub}</Text> : null}
+      <GuideBubble who="khale" text={t.khaleHello} />
 
       <ScrollView ref={scroller} style={styles.list} contentContainerStyle={styles.content}>
         {cityBlocked ? <Text style={styles.hint}>{t.noCity}</Text> : null}

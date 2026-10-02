@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { toPersianDigits } from '@dozari/shared';
 import type { LedgerPage } from '@dozari/shared';
+import { GuideBubble } from '../components/GuideBubble';
 import { PageShell } from '../components/PageShell';
 import { fa } from '../i18n/fa';
 import { agoText } from '../inbox/ago';
@@ -31,6 +32,7 @@ export function LedgerSheet({ onClose }: { onClose: () => void }) {
   return (
     <PageShell title={l.title} color={colors.candy.yellow} backLabel={l.close} onBack={onClose}>
       <ScrollView contentContainerStyle={styles.list}>
+        <GuideBubble who="baqal" text={l.baqalHello} />
         {page ? <Text style={styles.balance}>{`${l.balance}: ${fmt(page.balance)} ${fa.home.hub.coins}`}</Text> : null}
         {failed ? <Text style={styles.note}>{l.error}</Text> : null}
         {page && page.items.length === 0 ? <Text style={styles.note}>{l.empty}</Text> : null}

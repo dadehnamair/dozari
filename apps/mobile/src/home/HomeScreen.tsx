@@ -173,7 +173,7 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
               </Pressable>
             ) : null}
             <View style={styles.spacer} />
-            {tip !== null && tips[tip] ? <GuideBubble text={tips[tip].text} /> : null}
+            {tip !== null && tips[tip] ? <GuideBubble who={heroFor(gender)} text={tips[tip].text} /> : null}
             <Pressable onPress={() => setTip((cur) => nextTip(cur, tips.length))} accessibilityRole="button" accessibilityLabel={fa.home.guide.name}>
               <Animated.View style={[styles.hero, compact ? styles.heroCompact : null, { transform: [{ translateY: float }] }]}>
                 <Character who={heroFor(gender)} pose="wave" month={month} />

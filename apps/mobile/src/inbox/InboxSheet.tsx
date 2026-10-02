@@ -3,6 +3,7 @@ import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-n
 import type { Inbox } from '@dozari/shared';
 import { Item } from '../components/Item';
 import { HeaderPill, PageShell } from '../components/PageShell';
+import { GuideBubble } from '../components/GuideBubble';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { agoText } from './ago';
@@ -36,6 +37,7 @@ export function InboxSheet({ inbox, failed, onRead, onReadAll, onClose }: { inbo
             </Pressable>
           ))}
         </View>
+        <GuideBubble who="ajan" text={fa.inbox.ajanHello} />
         {failed ? <Text style={styles.note}>{fa.inbox.error}</Text> : null}
         {inbox && shown.length === 0 ? <Text style={styles.note}>{filter === 'unread' ? fa.inbox.emptyUnread : filter === 'read' ? fa.inbox.emptyRead : fa.inbox.empty}</Text> : null}
         {shown.map((m, i) => (

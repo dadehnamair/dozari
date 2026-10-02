@@ -10,6 +10,7 @@ import { PageShell } from '../components/PageShell';
 import { Scene } from '../components/Scene';
 import { SlabButton } from '../components/SlabButton';
 import { formatCountdown } from '../daily/countdown';
+import { GuideBubble } from '../components/GuideBubble';
 import { fa } from '../i18n/fa';
 import { ApiError } from '../net/http';
 import { avatarOf } from '../social/avatarOf';
@@ -35,6 +36,7 @@ export function TournamentSheet({ onClose }: { onClose: () => void }) {
   return (
     <PageShell title={fa.tournament.title} color={colors.candy.orange} backLabel={fa.tournament.close} onBack={onClose}>
       <ScrollView contentContainerStyle={styles.list}>
+        <GuideBubble who="pahlevan" text={fa.tournament.pahlevanHello} />
         {list && list.length === 0 ? <Text style={styles.note}>{fa.tournament.empty}</Text> : null}
         {list?.map((t, i) => (
           <Pressable key={t.id} onPress={() => setOpenId(t.id)} accessibilityRole="button">

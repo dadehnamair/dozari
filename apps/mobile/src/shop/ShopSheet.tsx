@@ -106,7 +106,7 @@ export function ShopSheet({ onClose, onBalance }: { onClose: () => void; onBalan
           })}
         </View>
         {note ? <Text style={styles.note}>{note}</Text> : null}
-        {whyLocked ? <Pressable onPress={() => setWhyLocked(null)} accessibilityRole="button"><GuideBubble text={whyLocked} /></Pressable> : null}
+        {whyLocked ? <Pressable onPress={() => setWhyLocked(null)} accessibilityRole="button"><GuideBubble who="baqal" text={whyLocked} /></Pressable> : <GuideBubble who="baqal" text={fa.shop.baqalHello} />}
 
         <ScrollView style={styles.list} contentContainerStyle={styles.grid}>
           {tab === 'boost'

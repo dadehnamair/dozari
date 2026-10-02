@@ -1,14 +1,15 @@
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { fonts, colors } from '../theme/colors';
-import { Mascot } from './Mascot';
+import type { CharacterId } from '../theme/character';
+import { Character } from './Character';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 
-/** The guide: the mascot pointing at a speech bubble. Used for menu tips on Home and for «why is this locked». */
-export function GuideBubble({ text }: { text: string }) {
+/** A character of the bazaar (baqal, ajan, mirza …) speaking in a bubble. Used for menu tips on Home and for «why is this locked». */
+export function GuideBubble({ text, who = 'dozari' }: { text: string; who?: CharacterId }) {
   return (
     <View style={styles.root} accessibilityRole="text" accessibilityLabel={text}>
-      <View style={styles.mascot}><Mascot pose="pointing" crop="face" width="100%" height="100%" /></View>
+      <View style={styles.mascot}><Character who={who} pose="idle" crop="face" /></View>
       <View style={styles.bubble}><Text style={styles.text}>{text}</Text></View>
     </View>
   );

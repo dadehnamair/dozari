@@ -5,6 +5,7 @@ import type { LookupDetail, LookupHit } from '@dozari/shared';
 import { CandyButton } from '../components/CandyButton';
 import { Item } from '../components/Item';
 import { SceneBackground } from '../components/SceneBackground';
+import { GuideBubble } from '../components/GuideBubble';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { fetchLookup, searchProducts } from './api';
@@ -105,7 +106,7 @@ export function LookupScreen({ onBack }: { onBack: () => void }) {
           </View>
         ) : (
           <>
-            <Text style={styles.hint}>{fa.lookup.hint}</Text>
+            <GuideBubble who="mirza" text={fa.lookup.hint} />
             <TextInput value={q} onChangeText={setQ} placeholder={fa.lookup.placeholder} placeholderTextColor="#8a6a55" style={styles.input} autoFocus />
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips} keyboardShouldPersistTaps="handled">
               {PRODUCT_CATEGORIES.map((c) => (

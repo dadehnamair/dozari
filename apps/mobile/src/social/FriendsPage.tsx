@@ -5,6 +5,7 @@ import type { Friends } from '@dozari/shared';
 import { Avatar } from '../components/Avatar';
 import { Item } from '../components/Item';
 import { PageShell } from '../components/PageShell';
+import { GuideBubble } from '../components/GuideBubble';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { TransferSheet } from '../transfers/TransferSheet';
@@ -49,6 +50,7 @@ export function FriendsPage({ onClose }: { onClose: () => void }) {
     >
       <TextInput value={q} onChangeText={setQ} placeholder={fa.friends.search} placeholderTextColor="rgba(43,18,64,0.45)" style={styles.search} accessibilityLabel={fa.friends.search} />
       <ScrollView contentContainerStyle={styles.list}>
+        <GuideBubble who="goli" text={fa.friends.goliHello} />
         {failed ? <Text style={styles.note}>{fa.profile.error}</Text> : null}
         {data && data.incoming.length > 0 ? <Text style={styles.section}>{fa.profile.incoming}</Text> : null}
         {data?.incoming.map((p, i) => (

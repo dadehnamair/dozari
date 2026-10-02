@@ -16,7 +16,14 @@ function h(tag, attrs, kids) {
     else if (k === 'checked') el.checked = !!v;
     else el.setAttribute(k, v === true ? '' : v);
   });
-  (kids || []).forEach(function (c) { if (c !== null && c !== undefined && c !== false) el.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
+  // Children may be nested arrays (e.g. a list built with .map next to other nodes): flatten them.
+  (function add(list) {
+    list.forEach(function (c) {
+      if (c === null || c === undefined || c === false) return;
+      if (Array.isArray(c)) return add(c);
+      el.appendChild(typeof c === 'string' || typeof c === 'number' ? document.createTextNode(String(c)) : c);
+    });
+  })(kids || []);
   return el;
 }
 function clear(el) { while (el.firstChild) el.removeChild(el.firstChild); return el; }
