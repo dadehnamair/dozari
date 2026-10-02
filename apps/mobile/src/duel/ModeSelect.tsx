@@ -1,0 +1,126 @@
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { solarMonthOf } from '@dozari/shared';
+import { Character } from '../components/Character';
+import { GradientFill } from '../components/GradientFill';
+import { Item } from '../components/Item';
+import { Scene } from '../components/Scene';
+import { SlabButton } from '../components/SlabButton';
+import { GameTopBar } from '../game/GameTopBar';
+import { fa } from '../i18n/fa';
+import { colors, fonts } from '../theme/colors';
+import type { CharacterId, CharacterPose } from '../theme/character';
+
+const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
+const a = fa.duel.arena;
+
+/** screen-mode of `13 Match Screens`: the 1v1 card (picked), the 2v2 card (not built yet), «رقابت با دوست», «بزن بریم!». */
+export function ModeSelect({ entry, prize, onGo, onFriend, onBack }: { entry: number; prize: number; onGo: () => void; onFriend?: () => void; onBack: () => void }) {
+  return (
+    <View style={styles.root}>
+      <View style={StyleSheet.absoluteFill}><Scene scene="caravan" mood="dusk" /></View>
+      <View style={[StyleSheet.absoluteFill, styles.shade]} />
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <View style={styles.column}>
+          <GameTopBar title={a.title} backLabel={fa.duel.back} onBack={onBack} />
+          <ModeCard title={a.duel} tag={a.oneVsOne} band="sky" picked onPress={onGo}
+            cast={[{ who: 'dozari', pose: 'coin' }, { who: 'pahlevan', pose: 'angry', flip: true }]}
+            stats={[{ icon: 'ticket', text: a.entry(entry) }, { icon: 'coinStack', text: a.prize(prize) }]} />
+          <Text style={styles.note}>{a.freeNote}</Text>
+          <ModeCard title={a.team} tag={a.twoVsTwo} band="grape" disabled
+            cast={[{ who: 'goli', pose: 'cheer', small: true }, { who: 'dozari', pose: 'wave', small: true }, { who: 'pahlevan', pose: 'pointing', flip: true, small: true }, { who: 'baqal', pose: 'thinking', flip: true, small: true }]}
+            stats={[{ icon: 'hourglass', text: a.soon }]} />
+          <View style={styles.spacer} />
+          {onFriend ? (
+            <Pressable accessibilityRole="button" onPress={onFriend} style={styles.friend}>
+              <View style={styles.friendIcon}><Item icon="envelope" /></View>
+              <Text style={styles.friendText}>{a.friend}</Text>
+            </Pressable>
+          ) : null}
+          <SlabButton label={a.go} color={colors.candy.lime} height={62} grow={0} onPress={onGo} />
+        </View>
+      </ScrollView>
+    </View>
+  );
+}
+
+type Cast = { who: CharacterId; pose: CharacterPose; flip?: boolean; small?: boolean };
+
+function ModeCard({ title, tag, band, cast, stats, picked = false, disabled = false, onPress }: { title: string; tag: string; band: 'sky' | 'grape'; cast: Cast[]; stats: { icon: string; text: string }[]; picked?: boolean; disabled?: boolean; onPress?: () => void }) {
+  const half = cast.length / 2;
+  const month = solarMonthOf(Date.now());
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={`${title} ${tag}`} accessibilityState={{ disabled, selected: picked }} disabled={disabled} onPress={onPress}>
+      {({ pressed }) => (
+        <View style={[styles.card, picked ? styles.cardPicked : null, disabled ? styles.cardOff : null, pressed ? styles.pressed : null]}>
+          <GradientFill from={colors.cream} to="#F6E2C2" />
+          <View style={styles.band}>
+            <GradientFill from={band === 'sky' ? '#8FDCFA' : '#C9A3FF'} to={band === 'sky' ? colors.candy.sky : colors.candy.grape} />
+            <Text style={styles.bandTitle}>{title}</Text>
+            <View style={styles.tag}><Text style={styles.tagText}>{tag}</Text></View>
+          </View>
+          <View style={styles.stage}>
+            {cast.map((c, i) => (
+              <View key={`${c.who}${i}`} style={[c.small ? styles.castSmall : styles.cast, c.flip ? styles.flip : null]}>
+                <Character who={c.who} pose={c.pose} month={c.who === 'dozari' ? month : undefined} />
+              </View>
+            )).flatMap((el, i) => (i === half - 1 ? [el, <VsBadge key="vs" />] : [el]))}
+          </View>
+          <View style={styles.stats}>
+            {stats.map((s) => (
+              <View key={s.text} style={styles.stat}>
+                <View style={styles.statIcon}><Item icon={s.icon} /></View>
+                <Text style={styles.statText}>{s.text}</Text>
+              </View>
+            ))}
+          </View>
+          {picked ? (
+            <View style={styles.check}><Text style={styles.checkText}>✓</Text></View>
+          ) : null}
+        </View>
+      )}
+    </Pressable>
+  );
+}
+
+export function VsBadge({ size = 44 }: { size?: number }) {
+  return (
+    <View style={[styles.vs, { width: size, height: size, borderRadius: size / 2 }]}>
+      <GradientFill from="#FF8FB6" to={colors.candy.pink} />
+      <Text style={[styles.vsText, { fontSize: size * 0.45 }]}>VS</Text>
+    </View>
+  );
+}
+
+const shadow = { shadowColor: colors.ink, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 1, shadowRadius: 0, elevation: 6 };
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#3C1A66' },
+  shade: { backgroundColor: 'rgba(43,18,64,0.5)' },
+  scroll: { flexGrow: 1, paddingHorizontal: 14, paddingTop: 14, paddingBottom: 20, alignItems: 'center' },
+  column: { flex: 1, width: '100%', maxWidth: 480, gap: 14 },
+  card: { borderRadius: 24, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', transform: [{ scale: 0.96 }], ...shadow },
+  cardPicked: { transform: [{ scale: 1 }], shadowColor: colors.candy.yellow, shadowOffset: { width: 0, height: 0 }, shadowRadius: 18, shadowOpacity: 0.8 },
+  cardOff: { opacity: 0.7 },
+  pressed: { transform: [{ translateY: 3 }] },
+  band: { height: 40, flexDirection: ROW, alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, borderBottomWidth: 3, borderColor: colors.ink, overflow: 'hidden' },
+  bandTitle: { fontFamily: fonts.display, fontSize: 22, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
+  tag: { paddingHorizontal: 10, paddingVertical: 1, borderRadius: 99, backgroundColor: colors.ink },
+  tagText: { fontFamily: fonts.display, fontSize: 15, color: colors.candy.yellow },
+  stage: { height: 112, flexDirection: ROW, alignItems: 'flex-end', justifyContent: 'center', paddingTop: 6 },
+  cast: { width: 90, height: 104 },
+  castSmall: { width: 64, height: 88, marginHorizontal: -6 },
+  flip: { transform: [{ scaleX: -1 }] },
+  stats: { flexDirection: ROW, alignItems: 'center', justifyContent: 'space-around', gap: 6, paddingHorizontal: 12, paddingTop: 8, paddingBottom: 10, borderTopWidth: 2, borderStyle: 'dashed', borderColor: 'rgba(43,18,64,0.25)' },
+  stat: { flexDirection: ROW, alignItems: 'center', gap: 4 },
+  statIcon: { width: 22, height: 22 },
+  statText: { fontFamily: fonts.bold, fontSize: 13, color: colors.ink },
+  check: { position: 'absolute', top: 50, [Platform.OS === 'web' ? 'left' : 'right']: 10, width: 30, height: 30, borderRadius: 15, backgroundColor: colors.candy.lime, borderWidth: 3, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  checkText: { fontFamily: fonts.bold, fontSize: 15, lineHeight: 20, color: '#fff' },
+  vs: { alignSelf: 'center', borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '-8deg' }], zIndex: 1 },
+  vsText: { fontFamily: fonts.display, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
+  note: { fontFamily: fonts.bold, fontSize: 12, color: colors.cream, textAlign: 'center', marginTop: -6, opacity: 0.85 },
+  spacer: { flex: 1, minHeight: 8 },
+  friend: { alignSelf: 'center', height: 40, paddingHorizontal: 16, borderRadius: 99, borderWidth: 2, borderColor: 'rgba(255,255,255,0.4)', backgroundColor: 'rgba(43,18,64,0.6)', flexDirection: ROW, alignItems: 'center', gap: 6 },
+  friendIcon: { width: 24, height: 24 },
+  friendText: { fontFamily: fonts.bold, fontSize: 13, color: colors.cream },
+});

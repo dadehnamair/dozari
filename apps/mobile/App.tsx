@@ -73,8 +73,8 @@ export default function App() {
       {screen === 'solo' ? <SoloScreen onBack={() => setScreen('home')} hintsEnabled={config.features.shop} /> : null}
       {screen === 'daily' ? <SoloScreen daily onBack={() => setScreen('home')} hintsEnabled={config.features.shop} /> : null}
       {screen === 'tutorial' ? <Tutorial onDone={() => void markTutorialSeen().then(() => setScreen('home'))} /> : null}
-      {screen === 'duel' ? <DuelScreen onBack={() => setScreen('home')} /> : null}
-      {screen === 'duelResume' ? <DuelScreen resume onBack={() => setScreen('home')} /> : null}
+      {screen === 'duel' ? <DuelScreen onBack={() => setScreen('home')} settings={config.raw} /> : null}
+      {screen === 'duelResume' ? <DuelScreen resume onBack={() => setScreen('home')} settings={config.raw} /> : null}
       {screen === 'gallery' ? (
         <KitGallery
           onBack={() => setScreen('home')}

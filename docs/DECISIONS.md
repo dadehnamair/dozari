@@ -273,3 +273,7 @@ The Expo web build is an installable PWA: `apps/mobile/public/` holds the HTML t
 ## D99 — App screens follow the owner's screen designs (2026-10-02)
 
 The owner's full screen designs (`docs/design/Dozari - 01/11/13/17/19 *.dc.html`, reference images in `docs/design/uploads/`) are the source of truth for layout; the earlier text-only screen specs give way where they differ. Screens are rebuilt one at a time, Home first (screen-home: counters, corner tiles, hero, two big buttons — see `app-screens.md`). Rows are laid out right-to-left on every platform: native flips `row` under forced RTL, react-native-web does not, so web uses `row-reverse`.
+
+## D100 — Live duel screens from the match design (2026-10-02)
+
+The duel now runs through the four views of `Dozari - 13 Match Screens` (mode, versus, match, results; see `app-screens.md`). Departures from the mock-up, because the game rules differ: the match is turn-based on one shared board (not a race on two boards), so the clock plate shows the turn timer and a turn chip says whose turn it is; the magnifier / freeze power-ups are not in the rules and are left out; the 2v2 card is shown disabled («به‌زودی») until team play exists; the reward tiles of the results card are left out because the client is not told the coins paid (the ledger is). The rival is drawn as a market character chosen stably from their avatar key. The versus card holds for 3 s after a match is found (the turn clock keeps running; 45 s per turn by default).
