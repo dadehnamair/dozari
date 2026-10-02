@@ -14,6 +14,7 @@ import { IosInstallSheet } from '../pwa/PwaLayer';
 import { usePwa } from '../pwa/usePwa';
 import { playSfx } from '../sound/engine';
 import { colors, fonts } from '../theme/colors';
+import { PhoneLoginSheet } from '../phone/PhoneLoginSheet';
 import { CityPicker } from './CityPicker';
 import { fetchMyProfile } from './api';
 import type { City } from '@dozari/shared';
@@ -47,6 +48,7 @@ export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone }: 
   const [askDelete, setAskDelete] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
   const t = fa.settings;
   // Nothing scrolls: on a short screen the rows tighten instead.
   const compact = useWindowDimensions().height < 760;
@@ -84,6 +86,7 @@ export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone }: 
       tint: colors.candy.pink,
       rows: [
         { key: 'about', icon: 'lantern', tint: '#C9A3FF', label: t.about, onPress: () => setAboutOpen((v) => !v) },
+        { key: 'phoneLogin', icon: 'phone', tint: '#7ED957', label: fa.phoneLogin.row, onPress: () => setLoginOpen(true) },
         { key: 'out', icon: 'key', tint: '#FFAA7A', label: t.signOut, onPress: () => setAskOut(true) },
         { key: 'del', icon: 'lock', tint: '#FF4D8D', label: t.delete, tone: '#B3261E', onPress: () => setAskDelete(true) },
       ],
@@ -142,6 +145,7 @@ export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone }: 
         />
       ) : null}
       {askDelete ? <DeleteAccountDialog onCancel={() => setAskDelete(false)} onDeleted={() => (setAskDelete(false), setNote(fa.account.deleteDone), onAccountGone?.())} /> : null}
+      {loginOpen ? <PhoneLoginSheet onClose={() => setLoginOpen(false)} /> : null}
       {iosHelp ? <IosInstallSheet onClose={() => setIosHelp(false)} /> : null}
     </View>
   );

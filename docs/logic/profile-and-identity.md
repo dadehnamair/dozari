@@ -64,6 +64,14 @@ label, icon, and unlock rule per tag — content-managed like `canned_taunts`, n
   or Ghasedak). No password — phone + OTP is the whole recovery flow. Losing the phone number
   with no OTP access = account unrecoverable (acceptable for MVP; documented, not solved here).
 
+### Phone login («ورود با شماره»)
+
+Built beside the link flow (`apps/server/src/phone/login.ts`, `POST /auth/phone/code`, `POST /auth/phone/verify`; app: settings → «ورود با شماره»).
+Logged out, the player asks for an SMS code for a number and proves it: a number that an account holds logs in to **that** account (device
+claimed, `AuthService.sessionFor`); a number nobody holds is attached, verified, to this device's guest account (a new one on a fresh install).
+Codes are 5 digits, 5 min, 5 tries, 60 s resend, 5 codes/hour per number, 20 calls/10 min per IP; kept in memory. `sms_unavailable` (503) when no
+SMS provider key is set. The answer never tells before the proof whether a number has an account.
+
 ## Invite/referral block
 
 - Personal invite code as **copyable text** + a share button (WhatsApp, Telegram, generic

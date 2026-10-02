@@ -1,8 +1,10 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { phoneChoiceSchema } from '@dozari/shared';
+import { DEVICE_ID_PATTERN, phoneChoiceSchema } from '@dozari/shared';
 import type { AuthService } from '../auth/service.js';
 import { currentUser } from '../auth/routes.js';
+import { RateLimiter } from '../security/rate-limit.js';
+import type { PhoneLoginService } from './login.js';
 import type { PhoneService } from './service.js';
 
 /** Player side: my number, change it, verify by SMS (Bale contact verification happens inside the bot). */
@@ -60,5 +62,30 @@ export function registerPhoneRoutes(app: FastifyInstance, auth: AuthService, pho
     const out = await phone.verifySms(user.id, body.data.code);
     if (out.ok) return phone.status(user.id);
     return reply.code(out.error === 'too_many' ? 429 : out.error === 'taken' ? 409 : 400).send({ error: out.error });
+  });
+}
+
+/** Logged-out side: sign in with a number (SMS code) from a fresh install or a new phone. */
+export function registerPhoneLoginRoutes(app: FastifyInstance, login: PhoneLoginService) {
+  // Per client address: a flood of codes or guesses is cut off before it reaches the SMS provider.
+  const perIp = new RateLimiter(20, 10 * 60_000);
+
+  app.post('/auth/phone/code', async (req, reply) => {
+    const body = z.object({ phone: z.string().max(30) }).safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'invalid_request' });
+    if (!perIp.take(req.ip)) return reply.code(429).send({ error: 'rate_limited' });
+    const out = await login.sendCode(body.data.phone);
+    if (out.ok) return { ok: true };
+    if (out.error === 'too_soon') return reply.header('retry-after', String(out.retryAfterSec ?? 60)).code(429).send({ error: out.error, retryAfterSec: out.retryAfterSec });
+    return reply.code(out.error === 'sms_unavailable' ? 503 : out.error === 'send_failed' ? 502 : out.error === 'rate_limited' ? 429 : 400).send({ error: out.error });
+  });
+
+  app.post('/auth/phone/verify', async (req, reply) => {
+    const body = z.object({ phone: z.string().max(30), code: z.string().max(10), deviceId: z.string().regex(DEVICE_ID_PATTERN) }).safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'invalid_request' });
+    if (!perIp.take(req.ip)) return reply.code(429).send({ error: 'rate_limited' });
+    const out = await login.verify(body.data.phone, body.data.code, body.data.deviceId);
+    if (out.ok) return out.session;
+    return reply.code(out.error === 'too_many' ? 429 : out.error === 'banned' ? 403 : out.error === 'taken' ? 409 : 400).send({ error: out.error });
   });
 }

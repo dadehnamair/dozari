@@ -131,7 +131,7 @@ human opponent is found.
 
 - [ ] 🗄 `user_tags`, tag catalog table, `users.equipped_tag_id`, avatar/nickname gallery tables
 - [ ] 🖥 Play-count tracking + unlock checks (avatar @3 games, nickname @10 games)
-- [ ] 🖥 Optional phone-link/OTP endpoint (account merge, not creation) — Iranian SMS provider (D18)
+- [x] 🖥 Optional phone-link/OTP endpoint (account merge, not creation) — Iranian SMS provider (D18) — link in `phone/service.ts`, sign-in by number in `phone/login.ts`
 - [ ] 📱 Profile screen: stats, match history, achievements/tags, chat-lock status + redeem CTA,
       invite/referral block (copyable code, share sheet, live tracker), phone-link button
 - [ ] 📱 Share-invite action also reachable from the match-result screen

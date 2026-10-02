@@ -46,7 +46,8 @@ import type { LedgerReader } from './ledger/store.js';
 import { FindService } from './find/service.js';
 import { createShortener } from './find/shortener.js';
 import { createDbFindStore } from './find/store.js';
-import { registerPhoneRoutes } from './phone/routes.js';
+import { PhoneLoginService } from './phone/login.js';
+import { registerPhoneLoginRoutes, registerPhoneRoutes } from './phone/routes.js';
 import { PhoneService, phoneRulesFromSettings } from './phone/service.js';
 import { createIrnotiClient, createKavenegarClient } from './phone/sms.js';
 import { createDbPhoneStore } from './phone/store.js';
@@ -134,6 +135,8 @@ export interface ServerDeps {
   bale?: { service: NotifyService; botUsername: string | null };
   /** Mobile numbers (`/me/phone`); also required before Bale linking when the setting says so. */
   phone?: PhoneService;
+  /** «ورود با شماره»: logged-out sign-in by SMS code (`/auth/phone/*`). */
+  phoneLogin?: PhoneLoginService;
   /** Public ID, search, contacts, invite link; needs `auth`. */
   find?: FindService;
   deletion?: AccountDeletion;
@@ -235,6 +238,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.transfers) registerTransferRoutes(app, deps.auth, deps.transfers);
   if (deps.auth && deps.messages) registerInboxRoutes(app, deps.auth, deps.messages);
   if (deps.auth && deps.phone) registerPhoneRoutes(app, deps.auth, deps.phone);
+  if (deps.phoneLogin) registerPhoneLoginRoutes(app, deps.phoneLogin);
   if (deps.auth && deps.find) registerFindRoutes(app, deps.auth, deps.find);
   if (deps.auth && deps.ledger) registerLedgerRoutes(app, deps.auth, deps.ledger);
   if (deps.auth && deps.badges) registerBadgeRoutes(app, deps.auth, deps.badges);
@@ -345,6 +349,7 @@ if (isMainModule(import.meta.url)) {
         return { nickname: row?.nickname ?? '', avatarKey: row?.avatarKey ?? 'avatar-01', level: lv?.level.level ?? 1, coins: row?.coins ?? 0 };
       }) : undefined;
   if (notify && phone) notify.phone = phone;
+  const phoneLogin = db && auth ? new PhoneLoginService(createDbPhoneStore(db), auth, smsClient) : undefined;
   const deletion = db ? new AccountDeletion(createDbDeleteCodeStore(db), createDbPhoneStore(db), smsClient, notify ? (id, text) => notify.notify(id, 'security', text) : null) : undefined;
   const words = db ? new TextFilterService(createDbWordStore(db)) : undefined;
   const playerStore = db ? createDbPlayerStore(db) : undefined;
@@ -533,6 +538,7 @@ if (isMainModule(import.meta.url)) {
       : undefined,
     bale: notify ? { service: notify, botUsername: baleUsername } : undefined,
     phone,
+    phoneLogin,
     find,
     deletion,
     ledger: db ? createDbLedgerReader(db) : undefined,
