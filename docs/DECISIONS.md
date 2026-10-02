@@ -230,3 +230,9 @@ Dialect/local phrases reuse canned taunts: a category can be limited to one city
 Per-device preferences (sound, vibration, reduced motion) in the profile sheet, stored locally (`deviceStore`), never sent to the server. Sound effects (tap, correct,
 one away, wrong, win, lose, coin) are synthesized with WebAudio, so no audio files are shipped and nothing depends on Google. Native (iOS/Android) has no sound
 engine yet and stays silent; vibration uses `navigator.vibrate` where it exists. Real recorded sounds or a native audio library are the follow-up (owner supplies assets or approves a dependency).
+
+## D90 — Coin-economy audit and balance simulator (2026-10-02)
+
+`simulateEconomy` (shared, pure, seeded) models the duel economy with the launch defaults; match economy numbers now live in `config/economy.ts`. Result: 0.002 % stuck player-days,
+but the balance inflates (median 1336 after 30 days; faucets ≈ 1433 vs burn ≈ 100 per player). Proposed: keep numbers until real data, rely on shop/cosmetics/coin packages as sinks,
+lower the free-match payout first if needed. Owner may change the numbers; see `docs/logic/economy.md` §Balancing.
