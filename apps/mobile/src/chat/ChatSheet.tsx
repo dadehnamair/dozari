@@ -4,6 +4,7 @@ import type { ChatHistory, ChatMessage, TauntCategory } from '@dozari/shared';
 import { provinceOf } from '@dozari/shared';
 import { Avatar } from '../components/Avatar';
 import { GradientFill } from '../components/GradientFill';
+import { Item } from '../components/Item';
 import { PageShell } from '../components/PageShell';
 import { ProvinceBadge } from '../components/ProvinceBadge';
 import { fa } from '../i18n/fa';
@@ -105,7 +106,10 @@ export function ChatSheet({ onClose, onJoinTable, initialTab = 'city' }: { onClo
                 </View>
                 {m.kind === 'table' ? (
                   <Pressable onPress={() => onJoinTable?.(m.text.split('|')[0] ?? '')} style={styles.tableCard} accessibilityRole="button">
-                    <Text style={styles.text}>{t.tableInvite(m.text.split('|').slice(1).join('|'))}</Text>
+                    <View style={styles.tableRow}>
+                      <View style={styles.tableIcon}><Item icon={m.text.split('|')[1] ?? 'samovar'} /></View>
+                      <Text style={styles.text}>{t.tableInvite(m.text.split('|').slice(2).join('|'))}</Text>
+                    </View>
                     <Text style={styles.join}>{t.tableJoin}</Text>
                   </Pressable>
                 ) : (
@@ -178,6 +182,8 @@ const styles = StyleSheet.create({
   bubbleMine: { backgroundColor: colors.candy.yellow },
   bubbleTaunt: { backgroundColor: '#E8D5FF' },
   text: { fontFamily: fonts.bold, fontSize: 13, lineHeight: 21, color: colors.ink, textAlign: 'right' },
+  tableRow: { flexDirection: ROW, alignItems: 'center', gap: 6 },
+  tableIcon: { width: 26, height: 26 },
   tableCard: { gap: 4, padding: 8, borderRadius: 14, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: '#FFF3C4', ...lift(3) },
   join: { fontFamily: fonts.display, fontSize: 14, color: '#7E46D6', textAlign: 'right' },
   report: { fontFamily: fonts.bold, fontSize: 10, color: colors.ink, opacity: 0.45, paddingHorizontal: 6 },

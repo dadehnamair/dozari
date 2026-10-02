@@ -53,7 +53,7 @@ export function registerTableRoutes(app: FastifyInstance, auth: AuthService, tab
     const t = await tables.mine(user.id);
     if (!t || !t.youAreHost) return fail(reply, 'NOT_HOST');
     if (!share) return reply.code(503).send({ error: 'OFF' });
-    const out = await share(user.id, t.code, `${t.emoji} ${t.name}`);
+    const out = await share(user.id, t.code, `${t.icon}|${t.name}`);
     return out.ok ? { ok: true } : reply.code(out.error === 'RATE_LIMITED' ? 429 : out.error === 'MUTED' ? 403 : out.error === 'NO_CITY' ? 409 : 400).send({ error: out.error });
   });
 

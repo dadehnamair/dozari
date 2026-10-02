@@ -25,7 +25,7 @@ function boot() {
   });
   return { svc, clock, inMatch, started, setFail: (v: boolean) => (fail = v) };
 }
-const body = { name: 'میز علی', emoji: '🎲', requireReady: false };
+const body = { name: 'میز علی', icon: 'dice' as const, requireReady: false };
 
 describe('private tables', () => {
   it('host creates, guest joins by a typed code, host starts a duel', async () => {
