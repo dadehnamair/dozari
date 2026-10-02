@@ -200,6 +200,8 @@ export const fa = {
     submit: 'ثبت',
     deselect: 'برداشتن انتخاب',
     leave: 'ترک بازی',
+    taunts: 'متلک',
+    resume: 'برگشت به بازی در جریان',
     won: 'بردی!',
     lost: 'باختی.',
     draw: 'مساوی شد.',

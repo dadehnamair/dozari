@@ -100,6 +100,7 @@ import { DuelStakes } from './duel/stakes.js';
 import { createDbStakeStore } from './duel/stakes-store.js';
 import { TableService } from './tables/service.js';
 import { registerTableRoutes } from './tables/routes.js';
+import { currentUser } from './auth/routes.js';
 import { registerSoloRoutes } from './solo/routes.js';
 import { SoloService } from './solo/service.js';
 import type { CatalogRepository } from './catalog/routes.js';
@@ -228,6 +229,16 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.catalog) {
     registerCatalogRoutes(app, deps.catalog);
     registerLookupRoutes(app, deps.catalog);
+  }
+  // Is the player in a live match right now? (the app shows a "back to your game" banner, D42)
+  if (deps.auth && deps.live) {
+    const auth = deps.auth;
+    const live = deps.live;
+    app.get('/match/active', async (req, reply) => {
+      const user = await currentUser(auth, req);
+      if (!user) return reply.code(401).send({ error: 'unauthorized' });
+      return { active: live.matches?.inMatch(user.id) ?? false };
+    });
   }
   if (deps.auth && deps.tables) registerTableRoutes(app, deps.auth, deps.tables, deps.chat ? async (u, code, label) => { const r = await deps.chat!.sendCity(u, { kind: 'table', code, label }); return r.ok ? { ok: true } : { ok: false, error: r.error }; } : undefined);
   if (deps.solo) registerSoloRoutes(app, deps.solo, deps.auth, deps.hints, deps.limiter);

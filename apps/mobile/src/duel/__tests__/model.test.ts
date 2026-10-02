@@ -54,3 +54,12 @@ describe('duel model', () => {
     expect(myOutcome(e(null), 1)).toBe('draw');
   });
 });
+
+describe('duel taunts', () => {
+  it('shows the latest taunt and clears it', () => {
+    let s = duelReducer(initialDuel, { t: 'taunt', from: 'علی', text: 'بیا جلو' });
+    expect(s.taunt).toEqual({ from: 'علی', text: 'بیا جلو' });
+    s = duelReducer(s, { t: 'clearTaunt' });
+    expect(s.taunt).toBeNull();
+  });
+});
