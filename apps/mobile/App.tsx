@@ -12,6 +12,8 @@ import { BrandScreen } from './src/brand/BrandScreen';
 import { KitGallery } from './src/kit/KitGallery';
 import { LookupScreen } from './src/lookup/LookupScreen';
 import { SearchScreen } from './src/search/SearchScreen';
+import { Tutorial } from './src/onboarding/Tutorial';
+import { markTutorialSeen, tutorialSeen } from './src/onboarding/state';
 import { SplashScreen } from './src/splash/SplashScreen';
 import { DuelScreen } from './src/duel/DuelScreen';
 import { SoloScreen } from './src/solo/SoloScreen';
@@ -33,14 +35,18 @@ export default function App() {
   const [fontsLoaded] = useFonts({ Vazirmatn_400Regular, Vazirmatn_700Bold, Lalezar_400Regular });
 
   // Minimal navigation until a real router lands with the hub screen (docs/logic/app-screens.md).
-  const [screen, setScreen] = useState<'splash' | 'home' | 'solo' | 'daily' | 'duel' | 'duelResume' | 'gallery' | 'search' | 'brand' | 'lookup'>(
+  const [screen, setScreen] = useState<'splash' | 'home' | 'solo' | 'daily' | 'duel' | 'tutorial' | 'duelResume' | 'gallery' | 'search' | 'brand' | 'lookup'>(
     'splash',
   );
 
   useEffect(() => {
     if (!fontsLoaded || screen !== 'splash') return;
-    const timer = setTimeout(() => setScreen('home'), SPLASH_MS);
-    return () => clearTimeout(timer);
+    let alive = true;
+    const timer = setTimeout(() => void tutorialSeen().then((seen) => alive && setScreen(seen ? 'home' : 'tutorial')), SPLASH_MS);
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+    };
   }, [fontsLoaded, screen]);
 
   if (!fontsLoaded) {
@@ -66,6 +72,7 @@ export default function App() {
       {screen === 'splash' ? <SplashScreen /> : null}
       {screen === 'solo' ? <SoloScreen onBack={() => setScreen('home')} hintsEnabled={config.features.shop} /> : null}
       {screen === 'daily' ? <SoloScreen daily onBack={() => setScreen('home')} hintsEnabled={config.features.shop} /> : null}
+      {screen === 'tutorial' ? <Tutorial onDone={() => void markTutorialSeen().then(() => setScreen('home'))} /> : null}
       {screen === 'duel' ? <DuelScreen onBack={() => setScreen('home')} /> : null}
       {screen === 'duelResume' ? <DuelScreen resume onBack={() => setScreen('home')} /> : null}
       {screen === 'gallery' ? (
@@ -82,6 +89,7 @@ export default function App() {
         <HomeScreen
           onSolo={() => setScreen('solo')}
           onDaily={() => setScreen('daily')}
+          onTutorial={() => setScreen('tutorial')}
           onDuel={() => setScreen('duel')}
           onDuelResume={() => setScreen('duelResume')}
           onLookup={() => setScreen('lookup')}

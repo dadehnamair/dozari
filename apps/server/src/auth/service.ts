@@ -18,6 +18,10 @@ export interface UserRepository {
   /** Creates the user, or returns the existing one when another request created it first (same device id). */
   createGuest(deviceId: string, identity: GuestIdentity): Promise<UserRecord>;
   touch(id: string): Promise<void>;
+  /** Turns the account into an empty, banned shell (personal data removed; ledger and history stay) and signs it out everywhere. */
+  anonymize?(id: string): Promise<void>;
+  /** Refuses every token issued before now. */
+  signOutEverywhere?(id: string): Promise<void>;
 }
 
 export type LoginResult = { ok: true; session: Session } | { ok: false; error: 'BANNED' };
@@ -35,6 +39,18 @@ export class AuthService {
     if (user.isBanned) return { ok: false, error: 'BANNED' };
     await this.users.touch(user.id);
     return { ok: true, session: { token: await this.tokens.sign(user.id), user: { id: user.id, nickname: user.nickname, avatarKey: user.avatarKey } } };
+  }
+
+  async deleteAccount(userId: string): Promise<boolean> {
+    if (!this.users.anonymize) return false;
+    await this.users.anonymize(userId);
+    return true;
+  }
+
+  async signOutEverywhere(userId: string): Promise<boolean> {
+    if (!this.users.signOutEverywhere) return false;
+    await this.users.signOutEverywhere(userId);
+    return true;
   }
 
   /** The user behind a bearer token, or null for a bad/expired token, an unknown user or a banned one. */

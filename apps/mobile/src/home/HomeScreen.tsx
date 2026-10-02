@@ -33,7 +33,7 @@ import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 
 /** Home: wordmark, the waving mascot (floating, as on the kit's splash) and the way into a solo game. */
-export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onLookup, onGallery, features = OPEN_CONFIG.features, settings = OPEN_CONFIG.raw }: { onSolo: () => void; onDaily?: () => void; onDuel?: () => void; onDuelResume?: () => void; onLookup: () => void; onGallery?: () => void; features?: ClientConfig['features']; settings?: ClientConfig['raw'] }) {
+export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, onLookup, onGallery, features = OPEN_CONFIG.features, settings = OPEN_CONFIG.raw }: { onSolo: () => void; onDaily?: () => void; onDuel?: () => void; onDuelResume?: () => void; onTutorial?: () => void; onLookup: () => void; onGallery?: () => void; features?: ClientConfig['features']; settings?: ClientConfig['raw'] }) {
   const month = useMemo(() => solarMonthOf(Date.now()), []);
   const daily = useDailyReward();
   const [dailyOpen, setDailyOpen] = useState(false);
@@ -153,7 +153,7 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onLookup, on
         </Pressable>
       ) : null}
       {review.open && review.url ? <ReviewSheet message={review.message} url={review.url} onReview={review.onReview} onLater={review.onLater} onNever={review.onNever} /> : null}
-      {profileOpen ? <ProfileSheet onClose={() => setProfileOpen(false)} onGender={setGender} /> : null}
+      {profileOpen ? <ProfileSheet onClose={() => setProfileOpen(false)} onGender={setGender} onTutorial={onTutorial} onAccountGone={onTutorial ? () => (setProfileOpen(false), onTutorial()) : undefined} /> : null}
       {inboxOpen ? <InboxSheet inbox={inbox.inbox} failed={inbox.failed} onRead={inbox.markRead} onReadAll={inbox.markAll} onClose={() => setInboxOpen(false)} /> : null}
       {tableOpen ? <TableSheet initialCode={tableCode} onMatch={onDuelResume ? () => (setTableOpen(false), onDuelResume()) : undefined} onClose={() => (setTableOpen(false), setTableCode(undefined))} onShare={() => shareTable()} /> : null}
       {tournamentOpen ? <TournamentSheet onClose={() => setTournamentOpen(false)} /> : null}

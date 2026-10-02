@@ -13,13 +13,14 @@ import { InviteSheet } from '../invite/InviteSheet';
 import { LoansSheet } from '../transfers/LoansSheet';
 import { FindSheet } from './FindSheet';
 import { BadgesSheet } from '../badges/BadgesSheet';
+import { deleteMyAccount, signOutEverywhere } from '../account/api';
 import { setPref, usePrefs } from '../prefs/store';
 import { playSfx } from '../sound/engine';
 
 const INK = '#3A2418';
 
 /** «پروفایل من»: gender choice (it switches the hero), friends and incoming requests; a tap on a name opens that player. */
-export function ProfileSheet({ onClose, onGender }: { onClose: () => void; onGender: (g: Gender | null) => void }) {
+export function ProfileSheet({ onClose, onGender, onTutorial, onAccountGone }: { onClose: () => void; onGender: (g: Gender | null) => void; onTutorial?: () => void; /** The account was deleted or signed out: start over. */ onAccountGone?: () => void }) {
   const [me, setMe] = useState<MyProfile | null>(null);
   const [friends, setFriends] = useState<Friends | null>(null);
   const [open, setOpen] = useState<string | null>(null);
@@ -29,6 +30,8 @@ export function ProfileSheet({ onClose, onGender }: { onClose: () => void; onGen
   const [findOpen, setFindOpen] = useState(false);
   const [badgesOpen, setBadgesOpen] = useState(false);
   const prefs = usePrefs();
+  const [sure, setSure] = useState(false);
+  const [accountNote, setAccountNote] = useState<string | null>(null);
 
   const load = useCallback(() => {
     Promise.all([fetchMyProfile(), fetchFriends()]).then(
@@ -105,6 +108,16 @@ export function ProfileSheet({ onClose, onGender }: { onClose: () => void; onGen
               </Pressable>
             ))}
           </View>
+          <Text style={styles.label}>{fa.account.title}</Text>
+          <View style={styles.row}>
+            {onTutorial ? <Pressable onPress={onTutorial} style={styles.pill} accessibilityRole="button"><Text style={styles.pillText}>{fa.account.replayTutorial}</Text></Pressable> : null}
+            <Pressable onPress={() => void signOutEverywhere().then(() => (setAccountNote(fa.account.signOutDone), onAccountGone?.()), () => setAccountNote(fa.account.failed))} style={styles.pill} accessibilityRole="button"><Text style={styles.pillText}>{fa.account.signOut}</Text></Pressable>
+            <Pressable onPress={() => (sure ? void deleteMyAccount().then(() => (setAccountNote(fa.account.deleteDone), onAccountGone?.()), () => setAccountNote(fa.account.failed)) : setSure(true))} style={[styles.pill, sure && styles.pillOn]} accessibilityRole="button"><Text style={styles.pillText}>{fa.account.delete}</Text></Pressable>
+          </View>
+          {sure ? <Text style={styles.hint}>{fa.account.deleteSure}</Text> : null}
+          {accountNote ? <Text style={styles.hint}>{accountNote}</Text> : null}
+          <Text style={styles.label}>{fa.account.about}</Text>
+          <Text style={styles.hint}>{fa.account.aboutText}</Text>
           <Text style={styles.label}>{fa.profile.friends}</Text>
           {friends && friends.friends.length === 0 ? <Text style={styles.hint}>{fa.profile.noFriends}</Text> : null}
           {friends?.friends.map((p) => (

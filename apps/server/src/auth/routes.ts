@@ -22,6 +22,19 @@ export function registerAuthRoutes(app: FastifyInstance, auth: AuthService) {
     return result.session;
   });
 
+  // Delete my account: personal data goes, the account becomes an empty banned shell, the next launch starts a fresh guest.
+  app.delete('/me', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    return (await auth.deleteAccount(user.id)) ? { ok: true } : reply.code(501).send({ error: 'unsupported' });
+  });
+
+  app.post('/me/sign-out-everywhere', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    return (await auth.signOutEverywhere(user.id)) ? { ok: true } : reply.code(501).send({ error: 'unsupported' });
+  });
+
   app.get('/me', async (req, reply) => {
     const user = await currentUser(auth, req);
     if (!user) return reply.code(401).send({ error: 'unauthorized' });
