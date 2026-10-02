@@ -9,7 +9,7 @@ import { NotifyService } from '../notify/service.js';
 import { createMemoryNotifyStore } from '../notify/store.js';
 import { PhoneService } from '../phone/service.js';
 import type { SmsClient } from '../phone/sms.js';
-import { createKavenegarClient } from '../phone/sms.js';
+import { createIrnotiClient, createKavenegarClient } from '../phone/sms.js';
 import { createMemoryPhoneStore } from '../phone/store.js';
 
 function memoryUsers(): UserRepository {
@@ -182,5 +182,27 @@ describe('Kavenegar adapter', () => {
     expect(urls[0]).toBe('https://api.kavenegar.com/v1/KEY/verify/lookup.json?receptor=09123456789&token=12345&template=dozari');
     const bad = createKavenegarClient('KEY', 'dozari', { fetchImpl: (async () => ({ ok: true, status: 200, json: async () => ({ return: { status: 411 } }) })) as unknown as typeof fetch });
     await expect(bad.sendCode('+989123456789', '1')).rejects.toThrow();
+  });
+});
+
+describe('irnoti adapter', () => {
+  it('posts {to, message} with a Bearer key, using the national number and the code in the text', async () => {
+    const calls: { url: string; init: RequestInit }[] = [];
+    const f = (async (url: string, init: RequestInit) => (calls.push({ url, init }), { ok: true, status: 200, json: async () => ({}) })) as unknown as typeof fetch;
+    await createIrnotiClient('irnt_KEY', { fetchImpl: f }).sendCode('+989123456789', '12345');
+    expect(calls[0]!.url).toBe('https://irnoti.com/api/v1/sms/send');
+    expect((calls[0]!.init.headers as Record<string, string>).Authorization).toBe('Bearer irnt_KEY');
+    expect(JSON.parse(String(calls[0]!.init.body))).toEqual({ to: '09123456789', message: 'کد ورود دوزاری: 12345' });
+  });
+
+  it('uses a custom message containing {code} and fails on HTTP errors or an error body', async () => {
+    const bodies: string[] = [];
+    const ok = createIrnotiClient('k', { message: 'code={code}!', fetchImpl: (async (_u: string, init: RequestInit) => (bodies.push(String(init.body)), { ok: true, status: 200, json: async () => ({}) })) as unknown as typeof fetch });
+    await ok.sendCode('+989121111111', '777');
+    expect(JSON.parse(bodies[0]!).message).toBe('code=777!');
+    const http = createIrnotiClient('k', { fetchImpl: (async () => ({ ok: false, status: 401, json: async () => ({}) })) as unknown as typeof fetch });
+    await expect(http.sendCode('+989121111111', '1')).rejects.toThrow();
+    const body = createIrnotiClient('k', { fetchImpl: (async () => ({ ok: true, status: 200, json: async () => ({ success: false }) })) as unknown as typeof fetch });
+    await expect(body.sendCode('+989121111111', '1')).rejects.toThrow();
   });
 });
