@@ -18,6 +18,8 @@ export interface TournamentRow {
   minLevel: number;
   /** Fill empty seats with bot players when the tournament starts. */
   botFill: boolean;
+  /** A player already in another open or running tournament may still join this one. */
+  allowConcurrent: boolean;
   startsAt: number;
   startedAt: number | null;
   finishedAt: number | null;
@@ -53,6 +55,8 @@ export interface TournamentStore {
   setPrizes(id: string, prizes: readonly { place: number; coins: number }[]): Promise<void>;
   entries(id: string): Promise<EntryRow[]>;
   entriesOf(userId: string, ids: readonly string[]): Promise<Set<string>>;
+  /** True when the player has a seat in an open or running tournament other than `exceptId`. */
+  busyElsewhere(userId: string, exceptId: string): Promise<boolean>;
   join(id: string, userId: string, fee: number, nowMs: number): Promise<JoinOutcome>;
   /** Leaves an open tournament and gets the fee back. */
   leave(id: string, userId: string): Promise<'ok' | 'not_in' | 'closed'>;
@@ -78,6 +82,7 @@ const toRow = (r: typeof tournaments.$inferSelect): TournamentRow => ({
   entryCoins: r.entryCoins,
   minLevel: r.minLevel,
   botFill: r.botFill,
+  allowConcurrent: r.allowConcurrent,
   startsAt: r.startsAt.getTime(),
   startedAt: r.startedAt ? r.startedAt.getTime() : null,
   finishedAt: r.finishedAt ? r.finishedAt.getTime() : null,
@@ -88,7 +93,7 @@ export function createDbTournamentStore(db: Db): TournamentStore {
   return {
     async create(t, prizes) {
       const id = uuidv7();
-      await db.insert(tournaments).values({ id, titleFa: t.titleFa, descriptionFa: t.descriptionFa, iconKey: t.iconKey, status: t.status, size: t.size, minPlayers: t.minPlayers, entryCoins: t.entryCoins, minLevel: t.minLevel, botFill: t.botFill, startsAt: new Date(t.startsAt) });
+      await db.insert(tournaments).values({ id, titleFa: t.titleFa, descriptionFa: t.descriptionFa, iconKey: t.iconKey, status: t.status, size: t.size, minPlayers: t.minPlayers, entryCoins: t.entryCoins, minLevel: t.minLevel, botFill: t.botFill, allowConcurrent: t.allowConcurrent, startsAt: new Date(t.startsAt) });
       if (prizes.length > 0) await db.insert(tournamentPrizes).values(prizes.map((p) => ({ tournamentId: id, place: p.place, coins: p.coins })));
       const [r] = await db.select().from(tournaments).where(eq(tournaments.id, id));
       return toRow(r!);
@@ -123,6 +128,14 @@ export function createDbTournamentStore(db: Db): TournamentStore {
       if (ids.length === 0) return new Set();
       const rows = await db.select({ t: tournamentEntries.tournamentId }).from(tournamentEntries).where(and(eq(tournamentEntries.userId, userId), inArray(tournamentEntries.tournamentId, [...ids])));
       return new Set(rows.map((r) => r.t));
+    },
+    async busyElsewhere(userId, exceptId) {
+      const rows = await db
+        .select({ t: tournamentEntries.tournamentId })
+        .from(tournamentEntries)
+        .innerJoin(tournaments, eq(tournaments.id, tournamentEntries.tournamentId))
+        .where(and(eq(tournamentEntries.userId, userId), inArray(tournaments.status, ['open', 'running'])));
+      return rows.some((r) => r.t !== exceptId);
     },
     async join(id, userId, fee, nowMs) {
       return db.transaction(async (tx): Promise<JoinOutcome> => {
@@ -233,6 +246,9 @@ export function createMemoryTournamentStore(): TournamentStore & { coins: Map<st
     },
     async entriesOf(u, ids) {
       return new Set(ids.filter((t) => (entries.get(t) ?? []).some((e) => e.userId === u)));
+    },
+    async busyElsewhere(u, exceptId) {
+      return [...ts.values()].some((t) => t.id !== exceptId && (t.status === 'open' || t.status === 'running') && (entries.get(t.id) ?? []).some((e) => e.userId === u));
     },
     async join(tid, u, fee, now) {
       const t = ts.get(tid);

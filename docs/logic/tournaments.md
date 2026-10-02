@@ -31,3 +31,7 @@ when blocked, players, bracket by round (فینال / نیمه‌نهایی / ی
 
 Not built: bots filling empty seats (waits for the admin bot users, D85), scheduled recurring tournaments, notifications at each round beyond Bale text,
 a live bracket push over sockets (the page refreshes every 10 s).
+
+## One tournament at a time (D92)
+
+By default a player may hold a seat in only one open or running tournament. Each tournament has an admin switch **allowConcurrent** («کسی که در تورنومنت دیگری هست هم بتواند وارد شود»); when on, players already in another tournament may still join this one. The check is on the tournament being joined: `join` answers `BUSY` (HTTP 409) and the detail page shows `blocked: 'BUSY'`. Store: `busyElsewhere(userId, exceptId)`; column `tournaments.allow_concurrent`.

@@ -96,6 +96,22 @@ describe('tournament entry', () => {
     expect((await t.app.inject({ method: 'POST', url: `/tournaments/${id}/leave`, headers: a.h })).json()).toEqual({ error: 'NOT_IN' });
   });
 
+  it('one tournament at a time unless the tournament allows concurrent players', async () => {
+    const t = boot();
+    const a = await t.login(1);
+    const first = await t.service.create(t.input({ entryCoins: 0, minLevel: 1 }), true);
+    const strict = await t.service.create(t.input({ entryCoins: 0, minLevel: 1 }), true);
+    const open = await t.service.create(t.input({ entryCoins: 0, minLevel: 1, allowConcurrent: true }), true);
+    if (!first.ok || !strict.ok || !open.ok) throw new Error('create failed');
+    expect((await t.join(a, first.id)).json()).toMatchObject({ ok: true });
+    expect((await t.join(a, strict.id)).json()).toEqual({ error: 'BUSY' });
+    expect(tournamentDetailSchema.parse((await t.app.inject({ method: 'GET', url: `/tournaments/${strict.id}`, headers: a.h })).json()).blocked).toBe('BUSY');
+    expect((await t.join(a, open.id)).json()).toMatchObject({ ok: true });
+    await t.app.inject({ method: 'POST', url: `/tournaments/${first.id}/leave`, headers: a.h });
+    await t.app.inject({ method: 'POST', url: `/tournaments/${open.id}/leave`, headers: a.h });
+    expect((await t.join(a, strict.id)).json()).toMatchObject({ ok: true });
+  });
+
   it('stops at the bracket size, and a draft is invisible', async () => {
     const t = boot();
     const users = [await t.login(1), await t.login(2), await t.login(3), await t.login(4), await t.login(5)];

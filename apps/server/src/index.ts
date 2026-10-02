@@ -95,6 +95,7 @@ import { registerShopRoutes } from './economy/shop-routes.js';
 import { ShopService } from './economy/shop.js';
 import { createDbShopStore } from './economy/shop-store.js';
 import { HintService } from './solo/hints.js';
+import { PlayLimiter, createDbPlayCountStore } from './limits/play-limits.js';
 import { registerSoloRoutes } from './solo/routes.js';
 import { SoloService } from './solo/service.js';
 import type { CatalogRepository } from './catalog/routes.js';
@@ -147,6 +148,8 @@ export interface ServerDeps {
   solo?: SoloService;
   /** Paid hints of solo games; needs `solo` and `auth`. */
   hints?: HintService;
+  /** Admin-set daily game caps (solo, live duel). */
+  limiter?: PlayLimiter;
   /** Coin shop (`/shop`); needs `auth`. */
   shop?: ShopService;
   /** Coin packages bought with real money (`/coin-packages`, off by default); needs `auth`. */
@@ -218,13 +221,13 @@ export function buildServer(deps: ServerDeps = {}) {
     registerCatalogRoutes(app, deps.catalog);
     registerLookupRoutes(app, deps.catalog);
   }
-  if (deps.solo) registerSoloRoutes(app, deps.solo, deps.auth, deps.hints);
+  if (deps.solo) registerSoloRoutes(app, deps.solo, deps.auth, deps.hints, deps.limiter);
   if (deps.auth && deps.shop) registerShopRoutes(app, deps.auth, deps.shop);
   if (deps.auth && deps.coinPackages) registerCoinPackageRoutes(app, deps.auth, deps.coinPackages);
   let gateway: Gateway | undefined;
   if (deps.auth && deps.realtime) {
     const auth = deps.auth;
-    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin: deps.corsOrigin, match: deps.match, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, chat: deps.chat, onEmit: deps.botDriver ? (u, e, p) => deps.botDriver!.onEmit(u, e, p) : undefined });
+    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin: deps.corsOrigin, match: deps.match, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, limit: deps.limiter ? { canPlay: async (u) => (await deps.limiter!.check(u, 'duel')).ok, onStarted: (u) => deps.limiter!.record(u, 'duel') } : undefined, chat: deps.chat, onEmit: deps.botDriver ? (u, e, p) => deps.botDriver!.onEmit(u, e, p) : undefined });
     if (deps.live) {
       deps.live.matches = gateway.matches;
       deps.live.queue = gateway.queue;
@@ -441,6 +444,7 @@ if (isMainModule(import.meta.url)) {
     dailyReward: db && settings ? new DailyRewardService(createDbDailyRewardStore(db), Date.now, () => dailyRules(settings)) : undefined,
     catalog: db ? createDbCatalogRepository(db) : undefined,
     solo,
+    limiter: db && settings ? new PlayLimiter(createDbPlayCountStore(db), async (mode) => settings.num(mode === 'solo' ? 'limit.solo_per_day' : 'limit.duel_per_day')) : undefined,
     hints: solo && shopStore && settings ? new HintService(solo, shopStore, () => hintRules(settings), levelOf) : undefined,
     shop: shopStore ? new ShopService(shopStore, levelOf) : undefined,
     coinPackages: coinPackageService,

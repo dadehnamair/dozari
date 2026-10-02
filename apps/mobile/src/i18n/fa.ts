@@ -217,8 +217,8 @@ export const fa = {
     leave: 'انصراف',
     needLevel: (l: number) => `از سطح ${toPersianDigits(String(l))} می‌توانی ثبت‌نام کنی.`,
     needCoins: (c: number) => `برای ورود ${toPersianDigits(String(c))} سکه لازم است.`,
-    blocked: { FULL: 'ظرفیت پر شده است.', CLOSED: 'ثبت‌نام بسته است.', NOT_ACTIVATED: 'اول حسابت را با کد معرف فعال کن.' } as Record<string, string>,
-    errors: { LEVEL: 'سطحت کافی نیست.', COINS: 'سکه‌ات کافی نیست.', FULL: 'ظرفیت پر شده است.', CLOSED: 'ثبت‌نام بسته است.', ALREADY_IN: 'قبلاً ثبت‌نام کرده‌ای.', generic: 'نتوانستیم انجام بدهیم.' } as Record<string, string>,
+    blocked: { FULL: 'ظرفیت پر شده است.', CLOSED: 'ثبت‌نام بسته است.', NOT_ACTIVATED: 'اول حسابت را با کد معرف فعال کن.', BUSY: 'هم‌زمان در تورنومنت دیگری هستی.' } as Record<string, string>,
+    errors: { LEVEL: 'سطحت کافی نیست.', COINS: 'سکه‌ات کافی نیست.', FULL: 'ظرفیت پر شده است.', CLOSED: 'ثبت‌نام بسته است.', ALREADY_IN: 'قبلاً ثبت‌نام کرده‌ای.', BUSY: 'هم‌زمان در تورنومنت دیگری هستی.', generic: 'نتوانستیم انجام بدهیم.' } as Record<string, string>,
     close: 'بستن',
     back: 'بازگشت',
   },
@@ -557,6 +557,7 @@ export const fa = {
     errors: {
       noPuzzles: 'هنوز پازلی آماده نیست',
       dailyDone: 'پازل امروزت را بازی کردی؛ فردا پازل تازه می‌آید.',
+      dailyCap: 'به سقف بازی امروزت رسیدی؛ فردا دوباره بیا.',
       network: 'اتصال به سرور برقرار نشد',
       server: 'سرور خطا داد',
       badResponse: 'پاسخ سرور قابل‌فهم نبود',

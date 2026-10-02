@@ -950,6 +950,8 @@ export const tournaments = mysqlTable(
     minLevel: int('min_level').notNull().default(1),
     /** When the bracket is not full at the start, empty seats are filled with bot players. */
     botFill: boolean('bot_fill').notNull().default(false),
+    /** Off by default: a player may be in one open or running tournament at a time. On = they may also join this one while in another. */
+    allowConcurrent: boolean('allow_concurrent').notNull().default(false),
     /** Registration closes and the first round starts at this time. */
     startsAt: datetime('starts_at', { mode: 'date', fsp: 3 }).notNull(),
     startedAt: datetime('started_at', { mode: 'date', fsp: 3 }),
@@ -1047,6 +1049,18 @@ export const dailyPuzzles = mysqlTable('daily_puzzles', {
   pinnedBy: mysqlEnum('pinned_by', ['auto', 'admin']).notNull().default('auto'),
   createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
 });
+
+/** How many games of one mode a player started on one Tehran day (admin-set daily caps read this). */
+export const dailyPlayCounts = mysqlTable(
+  'daily_play_counts',
+  {
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    dateKey: char('date_key', { length: 10 }).notNull(),
+    mode: mysqlEnum('mode', ['solo', 'duel']).notNull(),
+    count: int('count').notNull().default(0),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.userId, t.dateKey, t.mode] }) }),
+);
 
 /** One attempt per player per day. */
 export const dailyPuzzlePlays = mysqlTable(

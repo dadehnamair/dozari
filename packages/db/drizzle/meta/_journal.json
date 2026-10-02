@@ -176,6 +176,20 @@
       "when": 1790922756009,
       "tag": "0024_public_molly_hayes",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "5",
+      "when": 1790922994214,
+      "tag": "0025_romantic_medusa",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "5",
+      "when": 1790923067125,
+      "tag": "0026_violet_madrox",
+      "breakpoints": true
     }
   ]
 }
