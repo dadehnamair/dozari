@@ -5,7 +5,7 @@ import Svg, { Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-s
 import { formatPersianNumber, toPersianDigits } from '@dozari/shared';
 import { CandyButton } from '../components/CandyButton';
 import { DiamondBackground } from '../components/DiamondBackground';
-import { Mascot } from '../components/Mascot';
+import { Character } from '../components/Character';
 import { fa } from '../i18n/fa';
 import { candyTone, colors, fonts } from '../theme/colors';
 import { cellLevel, nextScan, searchClock, waitClock } from './scan';
@@ -99,7 +99,7 @@ function PlayerCard({ index, active }: { index: number; active: boolean }) {
       ]}
     >
       <View style={styles.face}>
-        <Mascot
+        <Character
           pose={
             (['idle', 'wave', 'cheer', 'thinking', 'shocked', 'blink', 'win', 'sleeping'] as const)[
               index % 8
@@ -107,6 +107,7 @@ function PlayerCard({ index, active }: { index: number; active: boolean }) {
           }
           skin={index % 7}
           crop="face"
+          wobble={false}
         />
       </View>
       <Text style={styles.level}>{formatPersianNumber(cellLevel(index))}</Text>
@@ -193,7 +194,7 @@ export function SearchScreen({ onCancel, waitedSec }: { onCancel: () => void; wa
           <View style={styles.side}>
             <View style={[styles.disc, { backgroundColor: candyTone.lime.base }]}>
               <View style={styles.discFace}>
-                <Mascot pose="idle" skin={0} crop="face" />
+                <Character pose="idle" skin={0} crop="face" />
               </View>
             </View>
             <Text style={styles.sideName}>{s.you}</Text>

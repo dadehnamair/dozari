@@ -1,6 +1,7 @@
 import { randomInt } from 'node:crypto';
 import { RateLimiter } from '../security/rate-limit.js';
 import type { BaleClient, BaleUpdate } from './client.js';
+import type { BaleInvoice, BalePaid, PreCheckout } from '../economy/coin-packages.js';
 import type { PhoneService } from '../phone/service.js';
 import type { NotifyStore } from './store.js';
 import { BALE_TEXT } from './texts.js';
@@ -25,6 +26,28 @@ export class NotifyService {
 
   /** Set at start-up when phone verification exists; lets the bot accept a shared contact. */
   phone?: PhoneService;
+
+  /** Set at start-up when coin packages exist: judges `pre_checkout_query` and credits `successful_payment`. */
+  payments?: {
+    preCheckout(payload: string, totalAmount: number, currency: string, payerUserId: string | null): Promise<PreCheckout>;
+    creditPaid(payload: string, chargeId: string, totalAmount: number): Promise<BalePaid | null>;
+  };
+
+  /** Wallet payment token from @botfather (`BALE_PROVIDER_TOKEN`); without it nothing can be sold. */
+  providerToken: string | null = null;
+
+  /** Sends a coin-package invoice into the player's linked Bale chat. */
+  async sendInvoice(userId: string, invoice: BaleInvoice): Promise<'ok' | 'unavailable' | 'not_linked' | 'failed'> {
+    if (!this.client?.sendInvoice || !this.providerToken) return 'unavailable';
+    const chatId = await this.store.chatOf(userId);
+    if (!chatId) return 'not_linked';
+    try {
+      await this.client.sendInvoice(chatId, { title: invoice.title, description: invoice.description, payload: invoice.payload, providerToken: this.providerToken, prices: [{ label: invoice.label, amount: invoice.amountRials }] });
+      return 'ok';
+    } catch {
+      return 'failed';
+    }
+  }
 
   get configured(): boolean {
     return this.client !== null;
@@ -94,7 +117,9 @@ export class NotifyService {
 
   /** One incoming message of the bot: link code, /status, /stop, else help. */
   async handleUpdate(update: BaleUpdate): Promise<void> {
+    if (update.pre_checkout_query) return this.handlePreCheckout(update.pre_checkout_query);
     const msg = update.message;
+    if (msg?.successful_payment) return this.handlePaid(msg.chat.id, msg.successful_payment);
     if (msg?.contact && this.client) return this.handleContact(update);
     const text = msg?.text?.trim();
     if (!msg || !text || !this.client) return;
@@ -118,6 +143,27 @@ export class NotifyService {
       const st = await this.phone.status(linked.userId);
       if (!st.verified && st.pending) await this.client.sendMessage(chatId, BALE_TEXT.askContact, { contactButton: BALE_TEXT.contactButton }).catch(() => undefined);
     }
+  }
+
+  /** Must answer within 10 s (Bale cancels the payment otherwise): two DB reads and one HTTP call. */
+  private async handlePreCheckout(q: NonNullable<BaleUpdate['pre_checkout_query']>): Promise<void> {
+    const answer = this.client?.answerPreCheckoutQuery;
+    if (!answer || !this.client) return;
+    let verdict: PreCheckout = { ok: false, message: 'پرداخت فعلاً ممکن نیست.' };
+    try {
+      // A private chat's id is the user's id, so the paying Bale user maps to the linked player the same way a chat does.
+      if (this.payments) verdict = await this.payments.preCheckout(q.invoice_payload, q.total_amount, q.currency, await this.store.userOfChat(String(q.from.id)));
+    } catch {
+      /* answer «no» below */
+    }
+    await answer.call(this.client, q.id, verdict.ok, verdict.ok ? undefined : verdict.message).catch(() => undefined);
+  }
+
+  /** The only moment coins are credited for a Bale payment; a replayed update credits nothing twice. */
+  private async handlePaid(chatId: number | string, p: NonNullable<NonNullable<BaleUpdate['message']>['successful_payment']>): Promise<void> {
+    if (!this.payments || p.currency !== 'IRR') return;
+    const out = await this.payments.creditPaid(p.invoice_payload, p.telegram_payment_charge_id, p.total_amount);
+    if (out && !out.duplicate) await this.client?.sendMessage(String(chatId), BALE_TEXT.paid(out.coins)).catch(() => undefined);
   }
 
   /** The sender shared a contact: it verifies the phone number only for the linked player and only when it is their own contact. */

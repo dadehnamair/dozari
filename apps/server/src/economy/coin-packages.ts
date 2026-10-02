@@ -1,7 +1,7 @@
-import type { CoinPackageRow, CoinPackageStore, NewCoinPackage, PurchaseStore } from './coin-packages-store.js';
+import type { CoinPackageRow, CoinPackageStore, NewCoinPackage, ReceiptStore } from './coin-packages-store.js';
 
 export interface StoreReceipt {
-  store: PurchaseStore;
+  store: ReceiptStore;
   sku: string;
   orderId: string;
   /** The opaque token the store app gave the client. */
@@ -19,6 +19,26 @@ export const refusingVerifier: ReceiptVerifier = { verify: async () => false };
 export type RedeemResult =
   | { ok: true; balance: number; coins: number; duplicate: boolean }
   | { ok: false; error: 'unknown_package' | 'level' | 'no_sku' | 'not_verified'; minLevel?: number };
+
+/** What goes into a Bale `sendInvoice` for one package (amount in integer rials, rule 2). */
+export interface BaleInvoice {
+  title: string;
+  description: string;
+  /** `cp:<packageId>:<userId>`: comes back in `pre_checkout_query` and `successful_payment`. */
+  payload: string;
+  label: string;
+  amountRials: number;
+}
+
+const PAYLOAD = /^cp:([0-9a-f-]{36}):([0-9a-f-]{36})$/;
+export const invoicePayload = (packageId: string, userId: string): string => `cp:${packageId}:${userId}`;
+export function parseInvoicePayload(payload: string): { packageId: string; userId: string } | null {
+  const m = PAYLOAD.exec(payload);
+  return m ? { packageId: m[1]!, userId: m[2]! } : null;
+}
+
+export type PreCheckout = { ok: true } | { ok: false; message: string };
+export type BalePaid = { userId: string; coins: number; balance: number; duplicate: boolean };
 
 export type CoinPackageView = Pick<CoinPackageRow, 'id' | 'titleFa' | 'coins' | 'minLevel'> & { priceToman: number; locked: boolean };
 
@@ -45,6 +65,38 @@ export class CoinPackageService {
     if (!(await this.verifier.verify({ ...receipt, sku }))) return { ok: false, error: 'not_verified' };
     const out = await this.store.credit(userId, pkg, receipt.store, receipt.orderId);
     return { ok: true, balance: out.balance, coins: pkg.coins, duplicate: out.duplicate };
+  }
+
+  /** The invoice for a package the player may buy now; the caller sends it through the Bale bot. */
+  async invoice(userId: string, packageId: string): Promise<{ ok: true; invoice: BaleInvoice } | { ok: false; error: 'unknown_package' | 'level'; minLevel?: number }> {
+    const pkg = await this.store.package(packageId);
+    if (!pkg || !pkg.isActive) return { ok: false, error: 'unknown_package' };
+    if ((await this.levelOf(userId)) < pkg.minLevel) return { ok: false, error: 'level', minLevel: pkg.minLevel };
+    return { ok: true, invoice: { title: pkg.titleFa.slice(0, 32), description: `${pkg.coins} سکه برای دوزاری`.slice(0, 255), payload: invoicePayload(pkg.id, userId), label: pkg.titleFa.slice(0, 32), amountRials: Number(pkg.priceRials) } };
+  }
+
+  /**
+   * Bale's `pre_checkout_query`: say yes only when the payer is the player the invoice was made for, the package is still on sale, the level
+   * still allows it and the amount is exactly the price. Nothing is credited here (only `successful_payment` counts).
+   */
+  async preCheckout(payload: string, totalAmount: number, currency: string, payerUserId: string | null): Promise<PreCheckout> {
+    const p = parseInvoicePayload(payload);
+    if (!p || payerUserId === null || payerUserId !== p.userId) return { ok: false, message: 'این پرداخت برای حساب دیگری ساخته شده است.' };
+    const pkg = await this.store.package(p.packageId);
+    if (!pkg || !pkg.isActive) return { ok: false, message: 'این بسته دیگر فروخته نمی‌شود.' };
+    if ((await this.levelOf(p.userId)) < pkg.minLevel) return { ok: false, message: 'سطحت برای این بسته کافی نیست.' };
+    if (currency !== 'IRR' || totalAmount !== Number(pkg.priceRials)) return { ok: false, message: 'مبلغ با قیمت بسته یکی نیست.' };
+    return { ok: true };
+  }
+
+  /** Bale's `successful_payment`: credit the package once per `telegram_payment_charge_id`; null when the payload or amount does not match a package. */
+  async creditPaid(payload: string, chargeId: string, totalAmount: number): Promise<BalePaid | null> {
+    const p = parseInvoicePayload(payload);
+    if (!p || chargeId.length < 3) return null;
+    const pkg = await this.store.package(p.packageId);
+    if (!pkg || totalAmount !== Number(pkg.priceRials)) return null;
+    const out = await this.store.credit(p.userId, pkg, 'bale', chargeId.slice(0, 120));
+    return { userId: p.userId, coins: pkg.coins, balance: out.balance, duplicate: out.duplicate };
   }
 
   admin = {

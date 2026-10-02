@@ -37,7 +37,7 @@ New asks go to the END of the queue unless the owner says it is truly urgent.
 21 **Confirmations + OTP for account deletion** ✔ (D125; run `db:migrate` on the server for 0034 `xp_events` and 0035 `account_delete_codes`).
 
 ## Not built (older asks)
-screen-login with phone (needs the account-recovery decision), public player number + default handle (covered by `users.handle`, see D123), Bale payment docs (allow `docs.bale.ai` or paste the payment section), gems/outfits/avatars shop tabs, (week/month leaderboards ✔ D123), team and propose-and-vote modes, recent games on profile ✔ (D128).
+screen-login with phone (needs the account-recovery decision), public player number + default handle (covered by `users.handle`, see D123), Bale payment docs (pasted by the owner → `docs/logic/bale-payments.md`, D129), gems/outfits/avatars shop tabs, (week/month leaderboards ✔ D123), team and propose-and-vote modes, recent games on profile ✔ (D128).
 
 ## Suggested next order
 7 (music) → 9 after the owner picks: wheel by win-chance and/or gems.

@@ -3,7 +3,10 @@ import type { Db } from '@dozari/db';
 import { uuidv7 } from 'uuidv7';
 import { applyLedgerEntry } from './ledger.js';
 
-export type PurchaseStore = 'bazaar' | 'myket';
+/** Stores whose app hands the client a receipt to verify. */
+export type ReceiptStore = 'bazaar' | 'myket';
+/** Where a purchase came from; `bale` is the Bale wallet, confirmed by Bale's own `successful_payment` update (docs/logic/bale-payments.md). */
+export type PurchaseStore = ReceiptStore | 'bale';
 
 export interface CoinPackageRow {
   id: string;

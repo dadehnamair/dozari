@@ -730,7 +730,7 @@ export const coinPurchases = mysqlTable(
     id: id(),
     userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
     packageId: char('package_id', { length: 36 }).notNull().references(() => coinPackages.id),
-    store: mysqlEnum('store', ['bazaar', 'myket']).notNull(),
+    store: mysqlEnum('store', ['bazaar', 'myket', 'bale']).notNull(),
     storeOrderId: varchar('store_order_id', { length: 120 }).notNull(),
     coins: int('coins').notNull(),
     createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
