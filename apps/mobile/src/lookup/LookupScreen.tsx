@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { PRODUCT_CATEGORIES } from '@dozari/shared';
 import type { LookupDetail, LookupHit } from '@dozari/shared';
 import { CandyButton } from '../components/CandyButton';
 import { Item } from '../components/Item';
@@ -15,6 +16,7 @@ const INK = '#3A2418';
 /** «استعلام قیمت» (D70): search a product, pick a year, read the approved price. No data means no answer, never an estimate. */
 export function LookupScreen({ onBack }: { onBack: () => void }) {
   const [q, setQ] = useState('');
+  const [category, setCategory] = useState<string | null>(null);
   const [hits, setHits] = useState<LookupHit[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -24,7 +26,7 @@ export function LookupScreen({ onBack }: { onBack: () => void }) {
   // Debounced search as the player types.
   useEffect(() => {
     const text = q.trim();
-    if (!text) {
+    if (!text && !category) {
       setHits(null);
       return;
     }
@@ -32,7 +34,7 @@ export function LookupScreen({ onBack }: { onBack: () => void }) {
     const timer = setTimeout(() => {
       setBusy(true);
       setFailed(false);
-      searchProducts(text)
+      searchProducts(text, category)
         .then((r) => live && setHits(r.results))
         .catch(() => live && setFailed(true))
         .finally(() => live && setBusy(false));
@@ -41,7 +43,7 @@ export function LookupScreen({ onBack }: { onBack: () => void }) {
       live = false;
       clearTimeout(timer);
     };
-  }, [q]);
+  }, [q, category]);
 
   const open = (hit: LookupHit, y?: number) => {
     setFailed(false);
@@ -105,6 +107,13 @@ export function LookupScreen({ onBack }: { onBack: () => void }) {
           <>
             <Text style={styles.hint}>{fa.lookup.hint}</Text>
             <TextInput value={q} onChangeText={setQ} placeholder={fa.lookup.placeholder} placeholderTextColor="#8a6a55" style={styles.input} autoFocus />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips} keyboardShouldPersistTaps="handled">
+              {PRODUCT_CATEGORIES.map((c) => (
+                <Pressable key={c} onPress={() => setCategory(category === c ? null : c)} accessibilityRole="button" accessibilityState={{ selected: category === c }} style={[styles.year, category === c && styles.yearOn]}>
+                  <Text style={styles.yearText}>{fa.lookup.categories[c]}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
             {busy ? <ActivityIndicator color={INK} /> : null}
             {failed ? <Text style={styles.sub}>{fa.lookup.error}</Text> : null}
             {hits && !busy && hits.length === 0 && !failed ? <Text style={styles.sub}>{fa.lookup.none}</Text> : null}
@@ -139,6 +148,7 @@ const styles = StyleSheet.create({
   name: { fontFamily: fonts.display, fontSize: 18, color: INK },
   sub: { fontFamily: fonts.bold, fontSize: 13, color: INK, opacity: 0.8 },
   label: { fontFamily: fonts.bold, fontSize: 14, color: INK },
+  chips: { gap: 6, paddingVertical: 2 },
   years: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   year: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 99, borderWidth: 2, borderColor: INK, backgroundColor: colors.cream },
   yearOn: { backgroundColor: '#FFC93C' },

@@ -36,7 +36,7 @@ export const fa = {
   },
   lookup: {
     title: 'استعلام قیمت',
-    hint: 'اسم یک کالا را بنویس؛ قیمت قدیمی‌اش را از داده‌های تأییدشده می‌گیری.',
+    hint: 'اسم یک کالا را بنویس یا یک دسته را انتخاب کن؛ قیمت قدیمی‌اش را از داده‌های تأییدشده می‌گیری.',
     placeholder: 'مثلاً نان سنگک، بنزین، پیکان…',
     searching: 'در حال جستجو…',
     none: 'کالایی با این اسم پیدا نشد.',
@@ -48,6 +48,22 @@ export const fa = {
     nominal: 'قیمت‌ها اسمی هستند، یعنی همان عددی که آن روز روی کالا بوده؛ با تورم تعدیل نشده.',
     error: 'نتوانستیم به سرور وصل شویم.',
     back: 'بازگشت',
+    categories: {
+      car: 'خودرو',
+      food: 'خوراکی',
+      snack: 'تنقلات',
+      drink: 'نوشیدنی',
+      digital: 'دیجیتال',
+      electronics: 'لوازم برقی',
+      housing: 'مسکن',
+      transport: 'رفت‌وآمد',
+      education: 'تحصیل',
+      entertainment: 'سرگرمی',
+      clothing: 'پوشاک',
+      hygiene: 'بهداشتی',
+      service: 'خدمات',
+      other: 'متفرقه',
+    } as Record<string, string>,
   },
   /** Item and product icon names, grouped as in the design's icon pack. */
   itemGroups: [

@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { normalizeForFilter, priceOnDate, priceRange } from '@dozari/shared';
+import { normalizeForFilter, PRODUCT_CATEGORIES, priceOnDate, priceRange } from '@dozari/shared';
 import type { LookupDetail, LookupHit, LookupRange } from '@dozari/shared';
 
 export interface ProductDto {
@@ -67,7 +67,9 @@ async function hitOf(repo: CatalogRepository, p: ProductDto, prices?: PricePoint
   return { id: p.id, nameFa: p.nameFa, unitFa: p.unitFa, iconKey: p.iconKey, category: p.category, range };
 }
 
-const searchQuery = z.object({ q: z.string().trim().min(1).max(60) });
+const searchQuery = z
+  .object({ q: z.string().trim().max(60).optional(), category: z.enum(PRODUCT_CATEGORIES).optional() })
+  .refine((v) => Boolean(v.q) || Boolean(v.category));
 const detailQuery = z.object({ year: z.coerce.number().int().min(1300).max(1450).optional(), month: z.coerce.number().int().min(1).max(12).optional() });
 
 /** Price lookup «استعلام قیمت» (D70): answers only from approved price points; no estimates. */
@@ -77,13 +79,14 @@ export function registerLookupRoutes(app: FastifyInstance, repo: CatalogReposito
     if (!q.success) return reply.code(400).send({ error: 'invalid_request' });
     // Every typed word must start some word of the name or brand («نان» must not match «جوانان»).
     const words = (text: string) => normalizeForFilter(text).split(/\s+/).filter(Boolean);
-    const typed = words(q.data.q);
+    const typed = words(q.data.q ?? '');
     const matches = (await repo.listProducts())
       .filter((p) => {
+        if (q.data.category && p.category !== q.data.category) return false;
         const have = words(`${p.nameFa} ${p.brand ?? ''}`);
-        return typed.length > 0 && typed.every((t) => have.some((w) => w.startsWith(t)));
+        return typed.every((t) => have.some((w) => w.startsWith(t)));
       })
-      .slice(0, 20);
+      .slice(0, q.data.category && typed.length === 0 ? 40 : 20);
     return { results: await Promise.all(matches.map((p) => hitOf(repo, p))) };
   });
 
