@@ -198,3 +198,8 @@ admin-configured shortener, instant friendship for a brand-new account that open
 
 Badge catalog with perks and automatic rules, medals, private warnings/commendations, a computed skill tier, short agent mutes with a daily cap,
 and a contact-info detector for chat. Details and defaults in `docs/logic/badges-and-moderation.md`. Proposed; the owner may change any number.
+
+## D84 — City chat and admin-managed canned taunts (2026-10-02)
+
+City-mates chat, canned taunts grouped in admin-edited categories, duel taunts, reports. Server-side rules: activation for free text, mutes, the
+contact-info perk, profanity filter, rate limits, 30-day retention. See `docs/logic/chat-and-access.md` §As built. Proposed; the owner may change numbers.

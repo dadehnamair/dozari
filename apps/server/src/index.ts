@@ -4,6 +4,7 @@ import fastifyCors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
 import { resolve } from 'node:path';
 import { rialsToTomanString } from '@dozari/shared';
+import { CHAT_RETENTION_DAYS } from '@dozari/shared';
 import type { HintRules } from '@dozari/shared';
 import { createDb } from '@dozari/db';
 import { createDbCatalogRepository } from './catalog/db-repository.js';
@@ -23,6 +24,9 @@ import { createDbTransferStore } from './transfers/store.js';
 import { registerBadgeRoutes } from './badges/routes.js';
 import { BadgeService, modRulesFromSettings, skillRulesFromSettings } from './badges/service.js';
 import { createDbBadgeStore } from './badges/store.js';
+import { registerChatRoutes } from './chat/routes.js';
+import { ChatService, chatRulesFromSettings } from './chat/service.js';
+import { createDbChatStore } from './chat/store.js';
 import { registerFindRoutes } from './find/routes.js';
 import { FindService } from './find/service.js';
 import { createShortener } from './find/shortener.js';
@@ -101,6 +105,8 @@ export interface ServerDeps {
   find?: FindService;
   /** Badges, medals, notices, mutes and the agent's powers; needs `auth`. */
   badges?: BadgeService;
+  /** City chat and canned taunts; needs `auth`. */
+  chat?: ChatService;
   /** Admin message center; its in-app channel feeds `GET /inbox`. */
   messages?: MessageCenter;
   /** Public profiles, friend requests and the gender setting. */
@@ -172,6 +178,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.phone) registerPhoneRoutes(app, deps.auth, deps.phone);
   if (deps.auth && deps.find) registerFindRoutes(app, deps.auth, deps.find);
   if (deps.auth && deps.badges) registerBadgeRoutes(app, deps.auth, deps.badges);
+  if (deps.auth && deps.chat) registerChatRoutes(app, deps.auth, deps.chat);
   if (deps.auth && deps.bale) {
     const phoneSvc = deps.phone;
     const settings = deps.settings;
@@ -190,7 +197,7 @@ export function buildServer(deps: ServerDeps = {}) {
   let gateway: Gateway | undefined;
   if (deps.auth && deps.realtime) {
     const auth = deps.auth;
-    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin: deps.corsOrigin, match: deps.match, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined });
+    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin: deps.corsOrigin, match: deps.match, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, chat: deps.chat });
     app.addHook('onClose', async () => {
       await gateway?.close();
     });
@@ -283,6 +290,20 @@ if (isMainModule(import.meta.url)) {
       await badges?.evaluate(id);
     };
   }
+  const chatStore = db ? createDbChatStore(db) : undefined;
+  const chat =
+    chatStore && settings && player && socialStore && badges && inviteStore
+      ? new ChatService(chatStore, {
+          cityOf: (id) => player.cityOf(id),
+          profileOf: async (id) => socialStore.publicRow(id),
+          badgeTitleOf: async (id) => (await badges.publicOf(id)).badge?.titleFa ?? null,
+          isActivated: (id) => inviteStore.isActivated(id),
+          mute: (id) => badges.isMuted(id),
+          hasContactPerk: (id) => badges.hasPerk(id, 'share_contact'),
+          rules: () => chatRulesFromSettings(settings),
+          filter: words,
+        })
+      : undefined;
   const transfers = db && settings && socialStore && inviteStore ? new TransferService(createDbTransferStore(db), socialStore, () => transferRulesFromSettings(settings), async (id) => (player ? (await player.levelOf(id)).level.level : 1), (id) => inviteStore.isActivated(id)) : undefined;
   const find =
     db && settings && socialStore
@@ -308,7 +329,7 @@ if (isMainModule(import.meta.url)) {
     auth,
     settings,
     adminModules: db
-      ? { products: createDbProductAdmin(db), stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      ? { products: createDbProductAdmin(db), stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
     match: db
@@ -335,6 +356,7 @@ if (isMainModule(import.meta.url)) {
     phone,
     find,
     badges,
+    chat,
     messages,
     social,
     invite,
@@ -349,6 +371,12 @@ if (isMainModule(import.meta.url)) {
     trustProxy: process.env.TRUST_PROXY === '1',
     localImagesDir: process.env.LOCAL_IMAGES_DIR,
   });
+  if (chat) {
+    // Retention: chat history is kept 30 days for moderation, then purged (checked every 6 hours).
+    const timer = setInterval(() => void chat.purge(CHAT_RETENTION_DAYS).catch(() => undefined), 6 * 3_600_000);
+    timer.unref();
+    app.addHook('onClose', async () => clearInterval(timer));
+  }
   if (bot && settings && process.env.BOT_SCHEDULER !== 'off') {
     const scheduler = startBotScheduler({ bot, settings, log: (msg, err) => (err ? app.log.error({ err }, msg) : app.log.info(msg)) });
     app.addHook('onClose', async () => scheduler.stop());

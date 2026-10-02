@@ -1,9 +1,10 @@
 import type { Server as HttpServer } from 'node:http';
 import { Server } from 'socket.io';
 import type { Socket } from 'socket.io';
-import { ClientEvent, ServerEvent, matchResumeSchema, matchSubmitSchema, queueJoinSchema } from '@dozari/shared';
+import { ClientEvent, ServerEvent, chatTauntSchema, matchResumeSchema, matchSubmitSchema, queueJoinSchema } from '@dozari/shared';
 import type { Ack } from '@dozari/shared';
 import type { UserRecord } from '../auth/service.js';
+import type { ChatService } from '../chat/service.js';
 import { RateLimiter } from '../security/rate-limit.js';
 import { MatchService } from './match-service.js';
 import type { MatchDeps } from './match-service.js';
@@ -21,6 +22,8 @@ export interface GatewayOptions {
   onPair?: (a: string, b: string) => Promise<boolean> | boolean;
   /** Live matches: everything but `emit` (the gateway supplies it). When set, pairs are handed to a `MatchService`. */
   match?: Omit<MatchDeps, 'emit'>;
+  /** Chat: city rooms and taunts in a duel. */
+  chat?: ChatService;
 }
 
 export interface Gateway {
@@ -44,6 +47,11 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
     maxHttpBufferSize: 16 * 1024,
     cors: opts.corsOrigin ? { origin: opts.corsOrigin === '*' ? true : opts.corsOrigin.split(',').map((o) => o.trim()) } : undefined,
   });
+  if (opts.chat) {
+    const chat = opts.chat;
+    chat.broadcast = (roomName, message) => void io.to(roomName).emit(ServerEvent.chatMessage, message);
+    chat.toUser = (userId, message) => void io.to(room(userId)).emit(ServerEvent.chatMessage, message);
+  }
   if (opts.match) matches = new MatchService({ now, ...opts.match, emit: (userId, event, payload) => void io.to(room(userId)).emit(event, payload) });
 
   io.use(async (socket, next) => {
@@ -92,6 +100,25 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
 
     socket.on(ClientEvent.queueLeave, (_payload: unknown, ack?: (a: Ack) => void) => {
       ack?.(queue.leave(userId) ? { ok: true } : { ok: false, error: 'NOT_QUEUED' });
+    });
+
+    // City chat: joining puts this socket in the room of the player's city; messages arrive as `chat:message`.
+    socket.on(ClientEvent.chatJoin, async (_payload: unknown, ack?: (a: Ack) => void) => {
+      const target = opts.chat ? await opts.chat.roomFor(userId) : null;
+      if (!target) return ack?.({ ok: false, error: opts.chat ? 'NO_CITY' : 'FEATURE_OFF' });
+      await socket.join(target);
+      ack?.({ ok: true });
+    });
+
+    // A canned taunt to the opponent in a duel (strangers never get free text).
+    socket.on(ClientEvent.chatTaunt, async (payload: unknown, ack?: (a: Ack) => void) => {
+      const body = chatTauntSchema.safeParse(payload);
+      if (!body.success || !opts.chat) return ack?.({ ok: false, error: 'INVALID_PAYLOAD' });
+      const mine = matches?.opponentOf(userId);
+      if (!mine) return ack?.({ ok: false, error: 'NOT_IN_MATCH' });
+      const out = await opts.chat.sendMatchTaunt(userId, mine.matchId, mine.opponentId, body.data.tauntId);
+      if (out.ok) return ack?.({ ok: true });
+      ack?.({ ok: false, error: out.error === 'MUTED' ? 'MUTED' : out.error === 'RATE_LIMITED' ? 'RATE_LIMITED' : out.error === 'UNKNOWN_TAUNT' ? 'UNKNOWN_TAUNT' : 'INTERNAL' });
     });
 
     // A returning player gets the live board straight away.

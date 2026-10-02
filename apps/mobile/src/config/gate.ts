@@ -3,7 +3,7 @@ export interface ClientConfig {
   maintenance: { on: boolean; message: string };
   minBuild: number;
   updateUrl: string;
-  features: { lookup: boolean; duel: boolean; friends: boolean; inbox: boolean; bale: boolean; shop: boolean };
+  features: { lookup: boolean; duel: boolean; friends: boolean; inbox: boolean; bale: boolean; shop: boolean; chat: boolean };
   /** All public settings as sent, for features that read their own keys (e.g. the review prompt). */
   raw: Record<string, unknown>;
 }
@@ -13,7 +13,7 @@ export const OPEN_CONFIG: ClientConfig = {
   maintenance: { on: false, message: '' },
   minBuild: 0,
   updateUrl: '',
-  features: { lookup: true, duel: true, friends: true, inbox: true, bale: true, shop: true },
+  features: { lookup: true, duel: true, friends: true, inbox: true, bale: true, shop: true, chat: true },
   raw: {},
 };
 
@@ -33,6 +33,7 @@ export function parseClientConfig(settings: Record<string, unknown>): ClientConf
       inbox: flag(settings['feature.inbox'], true),
       bale: flag(settings['feature.bale'], true),
       shop: flag(settings['feature.shop'], true),
+      chat: flag(settings['feature.chat'], true),
     },
     raw: settings,
   };
