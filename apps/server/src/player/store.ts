@@ -1,4 +1,4 @@
-import { and, asc, cities, eq, sql, userStats, users } from '@dozari/db';
+import { and, asc, cities, eq, isNull, sql, userStats, users } from '@dozari/db';
 import type { Db } from '@dozari/db';
 import { DEFAULT_CITIES } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
@@ -15,6 +15,8 @@ export interface CityRow {
   id: string;
   slug: string;
   nameFa: string;
+  /** Key into shared `PROVINCES`; null = no regional identity. */
+  province: string | null;
   sortOrder: number;
   isActive: boolean;
 }
@@ -37,23 +39,26 @@ export interface PlayerStore {
   setNickname(userId: string, nickname: string): Promise<void>;
   cities(opts?: { includeHidden?: boolean }): Promise<CityRow[]>;
   city(id: string): Promise<CityRow | null>;
-  addCity(slug: string, nameFa: string): Promise<CityRow | 'duplicate'>;
-  updateCity(id: string, patch: { nameFa?: string; isActive?: boolean; sortOrder?: number }): Promise<'ok' | 'not_found'>;
+  addCity(slug: string, nameFa: string, province?: string | null): Promise<CityRow | 'duplicate'>;
+  updateCity(id: string, patch: { nameFa?: string; isActive?: boolean; sortOrder?: number; province?: string | null }): Promise<'ok' | 'not_found'>;
 }
 
 export function createDbPlayerStore(db: Db): PlayerStore {
   let seeded = false;
+  /**
+   * Adds the default cities an older table lacks (abroad cities came later) and fills a missing province from the
+   * defaults; rows the admin renamed, hid, reordered or gave a province keep those changes.
+   */
   const ensureCities = async () => {
     if (seeded) return;
-    const [any] = await db.select({ id: cities.id }).from(cities).limit(1);
-    if (!any) {
-      for (const [i, c] of DEFAULT_CITIES.entries()) {
-        await db.insert(cities).values({ id: uuidv7(), slug: c.slug, nameFa: c.nameFa, sortOrder: i }).onDuplicateKeyUpdate({ set: { slug: sql`${cities.slug}` } });
-      }
+    const have = new Map((await db.select({ slug: cities.slug, province: cities.province }).from(cities)).map((r) => [r.slug, r.province]));
+    for (const [i, c] of DEFAULT_CITIES.entries()) {
+      if (!have.has(c.slug)) await db.insert(cities).values({ id: uuidv7(), slug: c.slug, nameFa: c.nameFa, province: c.province, sortOrder: i }).onDuplicateKeyUpdate({ set: { slug: sql`${cities.slug}` } });
+      else if (have.get(c.slug) === null && c.province) await db.update(cities).set({ province: c.province }).where(and(eq(cities.slug, c.slug), isNull(cities.province)));
     }
     seeded = true;
   };
-  const toCity = (r: typeof cities.$inferSelect): CityRow => ({ id: r.id, slug: r.slug, nameFa: r.nameFa, sortOrder: r.sortOrder, isActive: r.isActive });
+  const toCity = (r: typeof cities.$inferSelect): CityRow => ({ id: r.id, slug: r.slug, nameFa: r.nameFa, province: r.province, sortOrder: r.sortOrder, isActive: r.isActive });
   return {
     async stats(userId) {
       const [r] = await db.select().from(userStats).where(eq(userStats.userId, userId));
@@ -90,13 +95,13 @@ export function createDbPlayerStore(db: Db): PlayerStore {
       const [r] = await db.select().from(cities).where(eq(cities.id, id));
       return r ? toCity(r) : null;
     },
-    async addCity(slug, nameFa) {
+    async addCity(slug, nameFa, province = null) {
       await ensureCities();
       const [dup] = await db.select({ id: cities.id }).from(cities).where(eq(cities.slug, slug));
       if (dup) return 'duplicate';
       const [agg] = await db.select({ top: sql<number>`COALESCE(MAX(${cities.sortOrder}), 0)` }).from(cities);
       const top = agg?.top ?? 0;
-      const row = { id: uuidv7(), slug, nameFa, sortOrder: Number(top) + 1, isActive: true };
+      const row = { id: uuidv7(), slug, nameFa, province, sortOrder: Number(top) + 1, isActive: true };
       await db.insert(cities).values(row);
       return row;
     },
@@ -110,11 +115,11 @@ export function createDbPlayerStore(db: Db): PlayerStore {
 }
 
 /** Memory store for tests; `seedCities` mirrors the default list when omitted. */
-export function createMemoryPlayerStore(seedCities: readonly { slug: string; nameFa: string }[] = DEFAULT_CITIES): PlayerStore & { nicknames: Map<string, string> } {
+export function createMemoryPlayerStore(seedCities: readonly { slug: string; nameFa: string; province?: string | null }[] = DEFAULT_CITIES): PlayerStore & { nicknames: Map<string, string> } {
   const stats = new Map<string, StatsRow>();
   const priv = new Map<string, PrivateRow>();
   const nicknames = new Map<string, string>();
-  const rows: CityRow[] = seedCities.map((c, i) => ({ id: `00000000-0000-7000-8000-${String(i + 1).padStart(12, '0')}`, slug: c.slug, nameFa: c.nameFa, sortOrder: i, isActive: true }));
+  const rows: CityRow[] = seedCities.map((c, i) => ({ id: `00000000-0000-7000-8000-${String(i + 1).padStart(12, '0')}`, slug: c.slug, nameFa: c.nameFa, province: c.province ?? null, sortOrder: i, isActive: true }));
   return {
     nicknames,
     async stats(id) {
@@ -149,9 +154,9 @@ export function createMemoryPlayerStore(seedCities: readonly { slug: string; nam
       const r = rows.find((c) => c.id === id);
       return r ? { ...r } : null;
     },
-    async addCity(slug, nameFa) {
+    async addCity(slug, nameFa, province = null) {
       if (rows.some((r) => r.slug === slug)) return 'duplicate';
-      const row = { id: `00000000-0000-7000-8000-${String(rows.length + 1).padStart(12, '0')}`, slug, nameFa, sortOrder: rows.length, isActive: true };
+      const row = { id: `00000000-0000-7000-8000-${String(rows.length + 1).padStart(12, '0')}`, slug, nameFa, province, sortOrder: rows.length, isActive: true };
       rows.push(row);
       return { ...row };
     },

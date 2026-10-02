@@ -1,39 +1,28 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import type { City, MyProfile } from '@dozari/shared';
-import { toPersianDigits } from '@dozari/shared';
+import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import type { MyProfile } from '@dozari/shared';
+import { provinceOf, toPersianDigits } from '@dozari/shared';
+import { ProvinceBadge } from '../components/ProvinceBadge';
 import { fa } from '../i18n/fa';
 import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
-import { fetchCities, saveCity, saveEmail, saveNickname } from './api';
+import { saveEmail, saveNickname } from './api';
 import { nicknameHint } from './nicknameHint';
 
 const INK = '#3A2418';
+const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 
 const problemText = (e: unknown): string => (e instanceof ApiError ? fa.profile.nicknameProblem[e.code] ?? fa.profile.error : fa.profile.error);
 
-/** Level bar and game totals, then the editable bits: nickname (under the admin's rules), city and optional e-mail. */
-export function ProfileEditor({ me, onChange }: { me: MyProfile; onChange: (patch: Partial<MyProfile>) => void }) {
+/** Level bar and game totals, then the editable bits: nickname (under the admin's rules), city (its own page) and optional e-mail. */
+export function ProfileEditor({ me, onChange, onPickCity }: { me: MyProfile; onChange: (patch: Partial<MyProfile>) => void; onPickCity: () => void }) {
   const [nick, setNick] = useState(me.nickname);
   const [email, setEmail] = useState(me.email ?? '');
-  const [cities, setCities] = useState<City[] | null>(null);
-  const [pickingCity, setPickingCity] = useState(false);
   const [note, setNote] = useState<{ text: string; bad: boolean } | null>(null);
 
   useEffect(() => setNick(me.nickname), [me.nickname]);
   const say = (text: string, bad = false) => setNote({ text, bad });
 
-  const showCities = () => {
-    setPickingCity((v) => !v);
-    if (!cities) fetchCities().then(setCities, () => say(fa.profile.error, true));
-  };
-  const chooseCity = (c: City | null) => {
-    setPickingCity(false);
-    saveCity(c?.id ?? null).then(
-      () => (onChange({ city: c }), say(fa.profile.saved)),
-      () => say(fa.profile.error, true),
-    );
-  };
   const rename = () =>
     saveNickname(nick).then(
       (saved) => (onChange({ nickname: saved }), say(fa.profile.saved)),
@@ -49,6 +38,7 @@ export function ProfileEditor({ me, onChange }: { me: MyProfile; onChange: (patc
   const pct = lv.xpForNext === 0 ? 100 : Math.round((lv.xpInLevel / lv.xpForNext) * 100);
   const locked = me.nicknameLockedUntilGames !== null;
   const n = (v: number) => toPersianDigits(String(v));
+  const province = provinceOf(me.city?.province);
 
   return (
     <View style={styles.box}>
@@ -78,22 +68,14 @@ export function ProfileEditor({ me, onChange }: { me: MyProfile; onChange: (patc
       <Text style={styles.hint}>{locked ? fa.profile.nicknameLocked(me.nicknameLockedUntilGames ?? 0) : nicknameHint(me.nicknameRules)}</Text>
 
       <Text style={styles.label}>{fa.profile.city}</Text>
-      <Pressable onPress={showCities} style={styles.pill} accessibilityRole="button">
-        <Text style={styles.pillText}>{me.city?.nameFa ?? fa.profile.cityNone}</Text>
+      <Pressable onPress={onPickCity} style={styles.city} accessibilityRole="button" accessibilityLabel={fa.profile.pickCity}>
+        {province ? <ProvinceBadge province={province} size={44} /> : null}
+        <View style={styles.cityText}>
+          <Text style={styles.pillText}>{me.city?.nameFa ?? fa.profile.pickCity}</Text>
+          {province ? <Text style={styles.hint}>{province.hello} · {province.landmark}</Text> : null}
+        </View>
       </Pressable>
       <Text style={styles.hint}>{fa.profile.cityHint}</Text>
-      {pickingCity ? (
-        <View style={styles.cities}>
-          <Pressable onPress={() => chooseCity(null)} style={styles.pill}>
-            <Text style={styles.pillText}>{fa.profile.cityNone}</Text>
-          </Pressable>
-          {cities?.map((c) => (
-            <Pressable key={c.id} onPress={() => chooseCity(c)} style={[styles.pill, me.city?.id === c.id && styles.pillOn]}>
-              <Text style={styles.pillText}>{c.nameFa}</Text>
-            </Pressable>
-          ))}
-        </View>
-      ) : null}
 
       <Text style={styles.label}>{fa.profile.email}</Text>
       <View style={styles.row}>
@@ -124,5 +106,6 @@ const styles = StyleSheet.create({
   pill: { paddingHorizontal: 14, paddingVertical: 5, borderRadius: 99, borderWidth: 2, borderColor: INK, backgroundColor: colors.cream, alignSelf: 'flex-start' },
   pillOn: { backgroundColor: '#FFC93C' },
   pillText: { fontFamily: fonts.bold, fontSize: 14, color: INK },
-  cities: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  city: { flexDirection: ROW, alignItems: 'center', gap: 8, padding: 6, paddingHorizontal: 10, borderRadius: 16, borderWidth: 2, borderColor: INK, backgroundColor: colors.cream },
+  cityText: { flex: 1, gap: 1 },
 });
