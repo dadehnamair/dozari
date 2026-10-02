@@ -129,6 +129,7 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'skill.pro_win_percent', group: 'profile', label: 'درصد برد لازم برای «حرفه‌ای» شدن', kind: 'int', min: 1, max: 100, default: SKILL_PRO_WIN_PERCENT, unit: '٪' },
   { key: 'mod.max_mute_minutes', group: 'app', label: 'بیشترین مدت سکوت که آجان دوزاری می‌تواند بدهد', kind: 'int', min: 1, max: 1440, default: 60, unit: 'دقیقه' },
   { key: 'mod.agent_actions_per_day', group: 'app', label: 'سقف اخطار و سکوت هر آجان در روز', kind: 'int', min: 1, max: 500, default: 20 },
+  { key: 'feature.tournament', group: 'app', label: 'تورنومنت روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'feature.chat', group: 'app', label: 'چت روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'chat.max_len', group: 'app', label: 'بیشترین طول پیام چت', kind: 'int', min: 20, max: 500, default: CHAT_MAX_LEN, unit: 'حرف' },
   { key: 'chat.text_needs_activation', group: 'app', label: 'پیام آزاد فقط برای حساب فعال‌شده با کد معرف', hint: 'کل‌کل‌های آماده همیشه آزاد است', kind: 'bool', min: 0, max: 1, default: 1 },

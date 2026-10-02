@@ -489,6 +489,55 @@ VIEWS.chatreports = function (root) {
   root.appendChild(card('گزارش‌های چت', 'پیام گزارش‌شده را ببین؛ حذف کن، یا از «کاربران» اخطار/سکوت بده.', [list]));
   draw();
 };
+VIEWS.tournaments = function (root) {
+  var list = h('div');
+  var STATUS = { draft: ['پیش‌نویس', 'b-mute'], open: ['ثبت‌نام باز', 'b-ok'], running: ['در حال برگزاری', 'b-warn'], finished: ['تمام‌شده', 'b-ok'], cancelled: ['لغوشده', 'b-bad'] };
+  function when(ms) { return new Date(ms).toLocaleString('fa-IR'); }
+  function draw() {
+    api('/admin/tournaments').then(function (r) {
+      clear(list);
+      if (r.status === 404) return list.appendChild(empty('تورنومنت روی این سرور فعال نیست'));
+      if (!r.ok) return fail(r);
+      if (!r.body.tournaments.length) return list.appendChild(empty('هنوز تورنومنتی نساخته‌ای'));
+      r.body.tournaments.forEach(function (t) {
+        var st = STATUS[t.status] || [t.status, 'b-mute'];
+        var prizes = t.prizes.map(function (p) { return 'مقام ' + fa(p.place) + ': ' + faNum(p.coins); }).join(' · ');
+        function act(path, ask) { return function () { if (ask && !confirm(ask)) return; api('/admin/tournaments/' + t.id + '/' + path, { method: 'POST' }).then(function (x) { if (!x.ok) return fail(x); toast('انجام شد'); draw(); }); }; }
+        list.appendChild(h('div', { class: 'card', style: 'padding:12px' }, [
+          h('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap' }, [h('b', { text: t.titleFa }), badge(st[0], st[1]), h('span', { class: 'h', text: fa(t.joined) + ' از ' + fa(t.size) + ' نفر · ورودی ' + faNum(t.entryCoins) + ' سکه · از لول ' + fa(t.minLevel) + ' · شروع ' + when(t.startsAt) })]),
+          h('div', { class: 'h', style: 'margin-top:4px', text: prizes || 'بدون جایزه' }),
+          h('div', { class: 'toolbar', style: 'margin-top:8px' }, [
+            t.status === 'draft' ? h('button', { class: 'btn primary', text: 'منتشر کن (باز کردن ثبت‌نام)', onclick: act('publish') }) : null,
+            t.status === 'open' ? h('button', { class: 'btn primary', text: 'همین حالا شروع کن', onclick: act('start', 'ثبت‌نام بسته و تورنومنت شروع شود؟ اگر به حد نصاب نرسیده باشد لغو و ورودی‌ها برگردانده می‌شود.') }) : null,
+            t.status === 'draft' || t.status === 'open' || t.status === 'running' ? h('button', { class: 'btn bad', text: 'لغو و بازپرداخت', onclick: act('cancel', 'تورنومنت لغو شود و ورودی همه برگردانده شود؟') }) : null
+          ])
+        ]));
+      });
+    });
+  }
+  var title = h('input', { type: 'text', placeholder: 'نام تورنومنت', maxlength: 80 }), desc = h('textarea', { placeholder: 'توضیحات برای صفحه‌ی اختصاصی تورنومنت (قانون‌ها، جایزه‌ها، داستان)…', maxlength: 4000, style: 'min-height:90px' });
+  var size = select([['4', '۴ نفر'], ['8', '۸ نفر'], ['16', '۱۶ نفر'], ['32', '۳۲ نفر']], '16');
+  function num(v, min) { return h('input', { type: 'number', value: v, min: min === undefined ? 0 : min, style: 'width:100px' }); }
+  var minPlayers = num(4, 2), fee = num(20), level = num(1, 1), p1 = num(100), p2 = num(40), p3 = num(10);
+  var startsAt = h('input', { type: 'datetime-local' });
+  var publish = h('input', { type: 'checkbox' });
+  var note = h('div', { class: 'h' });
+  function recalc() { var pool = +fee.value * +size.value, prizes = (+p1.value) + (+p2.value) + 2 * (+p3.value); note.textContent = 'جمع ورودی اگر پر شود: ' + faNum(pool) + ' سکه · جمع جایزه‌ها: ' + faNum(prizes) + ' سکه' + (prizes > pool ? ' ← جایزه از ورودی بیشتر است؛ این تفاوت سکه‌ی تازه به اقتصاد اضافه می‌کند.' : ''); }
+  [fee, size, p1, p2, p3].forEach(function (el) { el.addEventListener('input', recalc); }); recalc();
+  root.appendChild(card('تورنومنت‌ها', 'جدول حذفی تک‌حذفی؛ هر دور با یک دوئل. بازیکنی که نرسد یا ببازد حذف می‌شود، تساوی دوباره بازی می‌شود.', [list]));
+  root.appendChild(card('تورنومنت تازه', 'مقام سوم به هر دو بازنده‌ی نیمه‌نهایی داده می‌شود. اگر تعداد ثبت‌نام‌ها کمتر از ظرفیت باشد، جدول با «بای» پر می‌شود (به شرط رسیدن به حداقل نفرات).', [
+    h('div', { class: 'toolbar' }, [title]), h('div', {}, [desc]),
+    h('div', { class: 'toolbar' }, [field('ظرفیت', size), field('حداقل نفرات برای برگزاری', minPlayers), field('ورودی (سکه، ۰ = رایگان)', fee), field('کمترین لول (۱ = همه)', level), field('شروع و بسته‌شدن ثبت‌نام', startsAt)]),
+    h('div', { class: 'toolbar' }, [field('جایزه‌ی مقام اول', p1), field('مقام دوم', p2), field('مقام سوم (به هر نفر)', p3)]),
+    note,
+    h('div', { class: 'toolbar' }, [h('label', {}, [publish, ' همین حالا منتشر شود']), h('button', { class: 'btn primary', text: 'ساخت', onclick: function () {
+      if (!startsAt.value) return toast('زمان شروع را بگذار', true);
+      var prizes = [{ place: 1, coins: +p1.value }, { place: 2, coins: +p2.value }, { place: 3, coins: +p3.value }].filter(function (p) { return p.coins > 0; });
+      api('/admin/tournaments', { method: 'POST', body: { titleFa: title.value.trim(), descriptionFa: desc.value.trim(), iconKey: 'trophy', size: +size.value, minPlayers: +minPlayers.value, entryCoins: +fee.value, minLevel: +level.value, startsAt: new Date(startsAt.value).getTime(), prizes: prizes, publish: publish.checked } }).then(function (x) { if (!x.ok) return fail(x); toast('تورنومنت ساخته شد'); title.value = ''; desc.value = ''; draw(); });
+    } })])
+  ]));
+  draw();
+};
 VIEWS.bale = function (root) {
   var body = h('div'), msg = h('textarea', { placeholder: 'متن پیام برای همه‌ی بازیکنان وصل‌شده…', maxlength: 1000 }), chat = h('input', { type: 'text', dir: 'ltr', placeholder: 'شناسه‌ی چت (عدد)' });
   function draw() {
