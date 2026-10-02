@@ -1,4 +1,5 @@
-import type { FriendRelation, Friends, Gender, MyProfile, PlayerProfile } from '@dozari/shared';
+import { LEADERBOARD_SIZE } from '@dozari/shared';
+import type { FriendRelation, Friends, Gender, Leaderboard, LeaderboardScope, MyProfile, PlayerProfile } from '@dozari/shared';
 import type { PlayerService } from '../player/service.js';
 import type { BadgeService } from '../badges/service.js';
 import type { SocialStore } from './store.js';
@@ -67,6 +68,29 @@ export class SocialService {
   async friends(me: string): Promise<Friends> {
     const [friends, incoming] = await Promise.all([this.store.friends(me), this.store.incoming(me)]);
     return { friends, incoming };
+  }
+
+  /** Top of a scope by total XP plus the caller's own place (D108). A scope that does not apply (no city) is empty. */
+  async leaderboard(me: string, scope: LeaderboardScope): Promise<Leaderboard> {
+    const player = this.player;
+    if (!player) return { scope, entries: [], me: null };
+    let filter: { cityId?: string; userIds?: string[] } = {};
+    if (scope === 'city') {
+      const city = await player.cityOf(me);
+      if (!city) return { scope, entries: [], me: null };
+      filter = { cityId: city.id };
+    } else if (scope === 'friends') {
+      filter = { userIds: [me, ...(await this.store.friends(me)).map((f) => f.id)] };
+    }
+    const rows = await player.ranking(filter, LEADERBOARD_SIZE);
+    const entries = [];
+    for (const [i, r] of rows.entries()) {
+      const [who, lv, city] = await Promise.all([this.store.publicRow(r.userId), player.levelOf(r.userId), player.cityOf(r.userId)]);
+      if (!who) continue;
+      entries.push({ rank: i + 1, id: r.userId, nickname: who.nickname, avatarKey: who.avatarKey, level: lv.level.level, xp: r.xp, province: city?.province ?? null, isMe: r.userId === me });
+    }
+    const mine = await player.levelOf(me);
+    return { scope, entries, me: { rank: await player.rankOf(me, filter), xp: mine.level.xp, level: mine.level.level } };
   }
 
   async mine(me: string): Promise<MyProfile | null> {

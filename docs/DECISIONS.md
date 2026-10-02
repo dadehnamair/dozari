@@ -285,3 +285,27 @@ Owner: «وقتی شهرشونو میزنن یکم احساس هم رابطه خ
 ## D102 — Complete PWA (2026-10-02)
 
 Owner: «کارای فنی PWA هم بکن کامل». On top of D98: (1) `scripts/pwa-build.mjs` runs after `expo export` and stamps `dist/sw.js` with a build hash and the full precache list (bundle, the three used font files, icons), so the installed app opens offline after one visit and every release gets a fresh cache; (2) a new version **waits** and Home shows «نسخهٔ تازه» with an update button (message `skip-waiting`, reload on takeover) — never reloaded under a running match; the page also checks for releases every 30 min; (3) our own install card on Home (snoozed 7 days on «بعداً») and a profile button, using Chrome's `beforeinstallprompt` (captured in `index.html` before the app loads) or, on iPhone, a sheet with the Safari steps; (4) an offline strip on every screen; (5) manifest `id`, shortcuts (`?go=solo|daily|duel`), categories, `launch_handler`; (6) game CSS: no pull-to-refresh/overscroll, no tap flash, no text selection outside inputs; (7) `navigator.storage.persist()` so the browser keeps the login token under storage pressure; (8) fonts imported per weight, so the export ships 3 font files instead of 10. **Not done, by rule 8:** Web Push — Chrome delivers it through Google's FCM; notifications stay with the Bale bot.
+
+## D103 — Global chat room and the chat page (2026-10-02)
+
+Owner: «چت شهر باشه، چت کلی هم باشه». A second public room for all players beside the city room (see `chat-and-access.md` §Global room); messages carry the sender's province badge. The chat page follows `screen-chat` of `17 Chat Shop Unlocks`: grape header with two tabs, bubbles (mine highlighted), a strip of canned taunts and the text box. Not built, because the features do not exist: the design's DM and clan tabs, stickers, gift messages and typing indicator.
+
+## D104 — Search screen while queueing (2026-10-02)
+
+Owner: while searching show `screen-search` (diamond), and once a rival is found the 3-second `screen-versus`. The duel now shows the existing `SearchScreen` (with the real queue wait on its clock) until a match is found, then `Versus` counts down. Versus no longer has a searching state in the duel flow.
+
+## D105 — Shop from the design (2026-10-02)
+
+The shop page follows `screen-shop` (see `app-screens.md` §Shop). Departures: only the hint-token tab is live; the other five tabs are shown dimmed with «به‌زودی» rather than left out, so the page keeps the design's shape and the roadmap is visible; the Yalda offer banner (timed bundle) is left out until offers exist.
+
+## D106 — Tournament pages from the design (2026-10-02)
+
+List and detail follow `screen-tournament` (`app-screens.md` §Tournaments). The design shows a fixed three-column bracket; ours has one column per round of the real bracket (scrolls sideways for 16+). Rules, prizes, results and the player list, which the mock-up does not have, sit in a card under the bracket.
+
+## D107 — Profile and settings split (2026-10-02)
+
+The old profile sheet mixed identity and settings. It is now two pages from the designs (`app-screens.md` §Profile and settings): the profile page is read-first with an edit panel behind the pencil; settings holds the device switches and the account actions. Home: the level pill opens the profile, the «تنظیمات» tile opens settings.
+
+## D108 — Leaderboard by XP with city and friends scopes (2026-10-02)
+
+Owner: build screen-leaderboard. Ranked by total XP (the only score we store). Tabs: everyone, my city (the regional filter D53 promised), friends; the design's week / month are replaced because no per-game log exists — add them when game history is recorded. Bots appear like players (D67). `GET /leaderboard?scope=` returns the top 20 and the caller's place.

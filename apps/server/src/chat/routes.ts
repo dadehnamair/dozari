@@ -12,7 +12,7 @@ const STATUS: Record<ChatError, number> = {
 
 const sendBody = z.union([z.object({ kind: z.literal('text'), text: z.string().max(1000) }), z.object({ kind: z.literal('taunt'), tauntId: z.string().uuid() })]);
 
-/** Player side of chat: the taunt list, the city room (history + send), reports. */
+/** Player side of chat: the taunt list, the city and global rooms (history + send), reports. */
 export function registerChatRoutes(app: FastifyInstance, auth: AuthService, chat: ChatService) {
   app.get('/chat/taunts', async (req, reply) => {
     const user = await currentUser(auth, req);
@@ -20,23 +20,25 @@ export function registerChatRoutes(app: FastifyInstance, auth: AuthService, chat
     return { categories: await chat.taunts(user.id) };
   });
 
-  app.get('/chat/city', async (req, reply) => {
-    const user = await currentUser(auth, req);
-    if (!user) return reply.code(401).send({ error: 'unauthorized' });
-    const out = await chat.history(user.id);
-    if (out === 'NO_CITY') return reply.code(409).send({ error: 'NO_CITY' });
-    if (out === 'OFF') return reply.code(503).send({ error: 'OFF' });
-    return out;
-  });
+  for (const room of ['city', 'global'] as const) {
+    app.get(`/chat/${room}`, async (req, reply) => {
+      const user = await currentUser(auth, req);
+      if (!user) return reply.code(401).send({ error: 'unauthorized' });
+      const out = await chat.history(user.id, room);
+      if (out === 'NO_CITY') return reply.code(409).send({ error: 'NO_CITY' });
+      if (out === 'OFF') return reply.code(503).send({ error: 'OFF' });
+      return out;
+    });
 
-  app.post('/chat/city', async (req, reply) => {
-    const user = await currentUser(auth, req);
-    const body = sendBody.safeParse(req.body);
-    if (!user) return reply.code(401).send({ error: 'unauthorized' });
-    if (!body.success) return reply.code(400).send({ error: 'invalid_request' });
-    const out = await chat.sendCity(user.id, body.data);
-    return out.ok ? { message: out.message } : reply.code(STATUS[out.error]).send({ error: out.error, mutedUntil: out.mutedUntil });
-  });
+    app.post(`/chat/${room}`, async (req, reply) => {
+      const user = await currentUser(auth, req);
+      const body = sendBody.safeParse(req.body);
+      if (!user) return reply.code(401).send({ error: 'unauthorized' });
+      if (!body.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = room === 'city' ? await chat.sendCity(user.id, body.data) : await chat.sendGlobal(user.id, body.data);
+      return out.ok ? { message: out.message } : reply.code(STATUS[out.error]).send({ error: out.error, mutedUntil: out.mutedUntil });
+    });
+  }
 
   app.post('/chat/report', async (req, reply) => {
     const user = await currentUser(auth, req);

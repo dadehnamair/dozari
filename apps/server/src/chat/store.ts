@@ -1,4 +1,5 @@
 import { and, asc, cannedTaunts, chatMessages, chatReports, desc, eq, isNull, lt, sql, tauntCategories } from '@dozari/db';
+import type { ChatRoom } from '@dozari/shared';
 import type { Db } from '@dozari/db';
 import { uuidv7 } from 'uuidv7';
 
@@ -22,7 +23,7 @@ export interface TauntCategoryRow {
 
 export interface MessageRow {
   id: string;
-  room: 'city' | 'match';
+  room: ChatRoom;
   roomKey: string;
   userId: string;
   kind: 'text' | 'taunt' | 'table';
@@ -60,7 +61,7 @@ export interface ChatStore {
   updateTaunt(id: string, patch: { text?: string; isActive?: boolean; categoryId?: string; sortOrder?: number }): Promise<'ok' | 'not_found'>;
   addMessage(m: Omit<MessageRow, 'id' | 'createdAt'>): Promise<MessageRow>;
   /** Newest `limit` messages of a room, oldest first (removed ones are left out). */
-  history(room: 'city' | 'match', roomKey: string, limit: number): Promise<MessageRow[]>;
+  history(room: ChatRoom, roomKey: string, limit: number): Promise<MessageRow[]>;
   message(id: string): Promise<MessageRow | null>;
   removeMessage(id: string): Promise<boolean>;
   report(messageId: string, reporterId: string, reason: string): Promise<'ok' | 'duplicate' | 'not_found'>;

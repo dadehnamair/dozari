@@ -59,9 +59,10 @@ Four views from `docs/design/Dozari - 13 Match Screens.dc.html`:
 1. **screen-mode** «میدان رقابت»: the 1v1 card (picked; entry fee and winner payout from the public
    `duel.*` settings), the 2v2 card dimmed with «به‌زودی», a «رقابت با دوست» pill that opens the
    private-table sheet, and «بزن بریم!» to join the queue.
-2. **screen-versus**: blue half (player) and pink half (rival) split by a gold seam with the VS coin.
-   While searching the rival is a «؟» with the wait time and a cancel slab; once found both name plates
-   (level badge + nickname) show and a 3-second countdown leads to the board. A resumed match skips it.
+2. **screen-search** (D104, diamond background, the 4×4 grid of candidates being scanned, you vs «؟»,
+   the real queue wait, «لغو جستجو») while searching; then **screen-versus**: blue half (player) and
+   pink half (rival) split by a gold seam with the VS coin, both name plates (level badge + nickname),
+   and a 3-second countdown leads to the board. A resumed match skips both.
 3. **screen-match**: top bar (leave button — two taps, since leaving loses; the turn clock plate turns
    pink in the last 10 s; «۱ در ۱»), score panel (faces, names, four group pips per side, points,
    blue/pink tug bar), whose turn it is, a toast line (guess feedback, the rival's taunt), the board,
@@ -87,6 +88,46 @@ number of pending requests): sky header band, «+ افزودن» (find players),
 by nickname, incoming requests with accept / decline, then one card per friend (avatar, nickname —
 tap for their profile — and a gift button that opens the coin gift). The mock-up's online status and
 per-friend duel button need presence and direct challenges, which do not exist yet; they are left out.
+
+## Leaderboard (D108)
+
+screen-leaderboard of `11 More Screens`, opened from the Home tile «جدول»: purple chequer with a golden
+glow, pink title plate, three tabs — «همه», «شهر من», «دوستان» — the podium of the top three (2nd, 1st,
+3rd; gold, silver, bronze blocks), the rest as rows (rank, avatar, province badge, nickname, XP) on a
+cream sheet, and the player's own row pinned at the bottom when they are outside the top 20. Tap a row
+for the player's profile. Ranked by **total XP** (`GET /leaderboard?scope=all|city|friends`, top 20, the
+caller's rank counted from `user_stats`). The design's week / month tabs need a per-game log that is not
+kept; they come with the game-history work.
+
+## Profile and settings (D107)
+
+**screen-profile**: caravan scene header with back and a pencil (opens the editor: gender, nickname,
+city, e-mail), the big avatar with the level hexagon, nickname, skill rank and city (with its province
+badge), the level bar, four stat tiles (games / wins / losses / draws), the earned badges as colour
+tags and shortcut buttons (friends, badges and messages, find a friend, gifts and loans, invite). The
+design's handle line and «recent games» need a public handle and a game history endpoint and are left
+out. Opened from the level pill on Home or from settings.
+
+**screen-settings** (Home tile «تنظیمات»): hujre scene, sky title plate, Mashti and his line, then three
+cards — «بازی» (sound, vibration, less motion as switches, per device), «من» (profile, city, install on
+phone when possible, replay the tutorial) and «حساب» (about, sign out everywhere, delete with a second tap).
+
+## Tournaments (D106)
+
+List: orange page, one card per tournament (icon tile, title, players / entry, start time, status chip).
+A tournament's page is screen-tournament of `11 More Screens`: the win scene fading into purple, status
+pill, the yellow ribbon with the title, «شروع تا» live countdown, three tiles (players, entry, first
+prize), the bracket as columns per round (winner ticked, live match outlined green), then a card with
+story, prizes, rules, results and players; a large «ثبت‌نام» / «انصراف» slab at the bottom.
+
+## Shop (D105)
+
+screen-shop of `17 Chat Shop Unlocks`: the hujre scene under a dark veil, the yellow «حجرهٔ دوزاری»
+plate with the coin count, six tabs (سکه، جم، کمکی، لباس، آواتار، ویژه) and a two-column grid of goods.
+Only «کمکی» has goods today (hint tokens, bought with coins; level gate and daily limit show on the
+card, a locked card is veiled with a padlock); the other tabs are dimmed and say «به‌زودی» — coin
+packs wait on the payment decision, gems/outfits/avatars/offers on their own features. A purchase
+ends in the «مال خودت شد!» card.
 
 ## City page (D101)
 

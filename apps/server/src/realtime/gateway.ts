@@ -4,7 +4,7 @@ import type { Socket } from 'socket.io';
 import { ClientEvent, ServerEvent, chatTauntSchema, matchResumeSchema, matchSubmitSchema, queueJoinSchema } from '@dozari/shared';
 import type { Ack } from '@dozari/shared';
 import type { UserRecord } from '../auth/service.js';
-import type { ChatService } from '../chat/service.js';
+import { ChatService } from '../chat/service.js';
 import { RateLimiter } from '../security/rate-limit.js';
 import { MatchService } from './match-service.js';
 import type { MatchDeps } from './match-service.js';
@@ -118,8 +118,10 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
       ack?.(queue.leave(userId) ? { ok: true } : { ok: false, error: 'NOT_QUEUED' });
     });
 
-    // City chat: joining puts this socket in the room of the player's city; messages arrive as `chat:message`.
+    // Chat: joining puts this socket in the global room (when open) and the room of the player's city; messages
+    // arrive as `chat:message`.
     socket.on(ClientEvent.chatJoin, async (_payload: unknown, ack?: (a: Ack) => void) => {
+      if (opts.chat && (await opts.chat.globalOpen())) await socket.join(ChatService.GLOBAL_ROOM);
       const target = opts.chat ? await opts.chat.roomFor(userId) : null;
       if (!target) return ack?.({ ok: false, error: opts.chat ? 'NO_CITY' : 'FEATURE_OFF' });
       await socket.join(target);

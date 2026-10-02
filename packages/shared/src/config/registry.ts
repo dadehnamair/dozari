@@ -150,6 +150,7 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'feature.tournament', group: 'app', label: 'تورنومنت روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'feature.chat', group: 'app', label: 'چت روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'chat.max_len', group: 'app', label: 'بیشترین طول پیام چت', kind: 'int', min: 20, max: 500, default: CHAT_MAX_LEN, unit: 'حرف' },
+  { key: 'chat.global_enabled', group: 'app', label: 'چت کلی (همهٔ بازیکن‌ها، کنار چت شهر)', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'chat.text_needs_activation', group: 'app', label: 'پیام آزاد فقط برای حساب فعال‌شده با کد معرف', hint: 'کل‌کل‌های آماده همیشه آزاد است', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'bots.enabled', group: 'bot', label: 'بازیکن‌های ربات (بازی‌کننده‌ی طبیعی) فعال باشند', hint: 'اگر خاموش باشد کسی با ربات جفت نمی‌شود', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'bots.fallback_seconds', group: 'bot', label: 'بعد از چند ثانیه انتظار در صف، حریف ربات پیدا شود', kind: 'int', min: 5, max: 300, default: 25, unit: 'ثانیه' },

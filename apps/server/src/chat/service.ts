@@ -1,5 +1,8 @@
 import { CHAT_HISTORY_LIMIT, CHAT_TAUNT_RATE, CHAT_TEXT_RATE, containsContactInfo } from '@dozari/shared';
 import type { ChatError, ChatHistory, ChatMessage, TauntCategory } from '@dozari/shared';
+
+/** Rooms a player reads and writes from the chat sheet (the duel room is socket-only). */
+export type PublicRoom = 'city' | 'global';
 import { RateLimiter } from '../security/rate-limit.js';
 import type { SettingsService } from '../settings/service.js';
 import type { TextFilterService } from '../textfilter/service.js';
@@ -9,15 +12,17 @@ export interface ChatRules {
   maxLen: number;
   textNeedsActivation: boolean;
   enabled: boolean;
+  /** The global room (D103) can be switched off on its own. */
+  globalEnabled: boolean;
 }
 
 export async function chatRulesFromSettings(settings: SettingsService): Promise<ChatRules> {
-  const [maxLen, needs, on] = await Promise.all([settings.num('chat.max_len'), settings.num('chat.text_needs_activation'), settings.num('feature.chat')]);
-  return { maxLen: maxLen!, textNeedsActivation: needs === 1, enabled: on === 1 };
+  const [maxLen, needs, on, global] = await Promise.all([settings.num('chat.max_len'), settings.num('chat.text_needs_activation'), settings.num('feature.chat'), settings.num('chat.global_enabled')]);
+  return { maxLen: maxLen!, textNeedsActivation: needs === 1, enabled: on === 1, globalEnabled: global === 1 };
 }
 
 export interface ChatDeps {
-  cityOf(userId: string): Promise<{ id: string; nameFa: string } | null>;
+  cityOf(userId: string): Promise<{ id: string; nameFa: string; province?: string | null } | null>;
   profileOf(userId: string): Promise<{ nickname: string; avatarKey: string } | null>;
   badgeTitleOf(userId: string): Promise<string | null>;
   isActivated(userId: string): Promise<boolean>;
@@ -31,7 +36,7 @@ export interface ChatDeps {
 export type SendInput = { kind: 'text'; text: string } | { kind: 'taunt'; tauntId: string } | { kind: 'table'; code: string; label: string };
 export type SendResult = { ok: true; message: ChatMessage } | { ok: false; error: ChatError; mutedUntil?: number };
 
-/** Chat: the city room and canned taunts in a duel. Every rule of `docs/logic/chat-and-access.md` is checked here, on the server. */
+/** Chat: the city room, the global room (D103) and canned taunts in a duel. Every rule of `docs/logic/chat-and-access.md` is checked here, on the server. */
 export class ChatService {
   /** Called with a room name and a message to push live (set by the gateway). */
   broadcast?: (room: string, message: ChatMessage) => void;
@@ -55,14 +60,18 @@ export class ChatService {
     return `city:${cityId}`;
   }
 
-  private async view(row: MessageRow, cache: Map<string, { nickname: string; avatarKey: string; badge: string | null }>): Promise<ChatMessage> {
+  /** Socket.io room of the global chat; its `roomKey` in the table is `all`. */
+  static readonly GLOBAL_ROOM = 'chat:global';
+  static readonly GLOBAL_KEY = 'all';
+
+  private async view(row: MessageRow, cache: Map<string, { nickname: string; avatarKey: string; badge: string | null; province: string | null }>): Promise<ChatMessage> {
     let who = cache.get(row.userId);
     if (!who) {
-      const p = await this.deps.profileOf(row.userId);
-      who = { nickname: p?.nickname ?? '؟', avatarKey: p?.avatarKey ?? 'avatar-01', badge: await this.deps.badgeTitleOf(row.userId) };
+      const [p, badge, city] = await Promise.all([this.deps.profileOf(row.userId), this.deps.badgeTitleOf(row.userId), this.deps.cityOf(row.userId)]);
+      who = { nickname: p?.nickname ?? '؟', avatarKey: p?.avatarKey ?? 'avatar-01', badge, province: city?.province ?? null };
       cache.set(row.userId, who);
     }
-    return { id: row.id, room: row.room, kind: row.kind, text: row.text, userId: row.userId, nickname: who.nickname, avatarKey: who.avatarKey, badge: who.badge, createdAt: row.createdAt };
+    return { id: row.id, room: row.room, kind: row.kind, text: row.text, userId: row.userId, nickname: who.nickname, avatarKey: who.avatarKey, badge: who.badge, province: who.province, createdAt: row.createdAt };
   }
 
   /** The taunt list for a player: general categories plus the dialect ones of their own city. */
@@ -71,15 +80,18 @@ export class ChatService {
     return (await this.store.taunts()).filter((c) => c.taunts.length > 0 && (!c.cityId || c.cityId === cityId)).map((c) => ({ id: c.id, nameFa: c.nameFa, taunts: c.taunts.map((t) => ({ id: t.id, text: t.text })) }));
   }
 
-  async history(userId: string): Promise<ChatHistory | 'NO_CITY' | 'OFF'> {
-    if (!(await this.deps.rules()).enabled) return 'OFF';
+  /** History of the city room (needs a city) or the global room (open to everyone while `chat.global_enabled`). */
+  async history(userId: string, room: PublicRoom = 'city'): Promise<ChatHistory | 'NO_CITY' | 'OFF'> {
+    const rules = await this.deps.rules();
+    if (!rules.enabled || (room === 'global' && !rules.globalEnabled)) return 'OFF';
     const city = await this.deps.cityOf(userId);
-    if (!city) return 'NO_CITY';
-    const [rows, mute, activated, rules] = await Promise.all([this.store.history('city', city.id, CHAT_HISTORY_LIMIT), this.deps.mute(userId), this.deps.isActivated(userId), this.deps.rules()]);
+    if (room === 'city' && !city) return 'NO_CITY';
+    const key = room === 'global' ? ChatService.GLOBAL_KEY : city!.id;
+    const [rows, mute, activated] = await Promise.all([this.store.history(room, key, CHAT_HISTORY_LIMIT), this.deps.mute(userId), this.deps.isActivated(userId)]);
     const cache = new Map();
     const messages: ChatMessage[] = [];
     for (const r of rows) messages.push(await this.view(r, cache));
-    return { cityName: city.nameFa, messages, canType: !mute && (activated || !rules.textNeedsActivation), muted: mute };
+    return { cityName: city?.nameFa ?? null, globalOn: rules.globalEnabled, messages, canType: !mute && (activated || !rules.textNeedsActivation), muted: mute };
   }
 
   /** The Socket.io room a player may join for the city chat, or null (no city / chat off). */
@@ -89,6 +101,12 @@ export class ChatService {
     return city ? ChatService.cityRoom(city.id) : null;
   }
 
+  /** Whether the global Socket.io room is open. */
+  async globalOpen(): Promise<boolean> {
+    const rules = await this.deps.rules();
+    return rules.enabled && rules.globalEnabled;
+  }
+
   /** Common checks: not muted, rate limit. */
   private async gate(userId: string, kind: 'text' | 'taunt' | 'table'): Promise<{ ok: false; error: ChatError; mutedUntil?: number } | null> {
     if (!(await this.deps.rules()).enabled) return { ok: false, error: 'OFF' };
@@ -96,6 +114,17 @@ export class ChatService {
     if (mute) return { ok: false, error: 'MUTED', mutedUntil: mute.until };
     if (!(kind === 'text' ? this.text : this.taunt).take(userId)) return { ok: false, error: 'RATE_LIMITED' };
     return null;
+  }
+
+  /** A message to the global room: same rules as the city room (filter, activation, mute, rate), no city needed. */
+  async sendGlobal(userId: string, input: SendInput): Promise<SendResult> {
+    if (!(await this.globalOpen())) return { ok: false, error: 'OFF' };
+    const text = await this.resolveText(userId, input);
+    if (!text.ok) return text;
+    const row = await this.store.addMessage({ room: 'global', roomKey: ChatService.GLOBAL_KEY, userId, kind: input.kind, text: text.text });
+    const message = await this.view(row, new Map());
+    this.broadcast?.(ChatService.GLOBAL_ROOM, message);
+    return { ok: true, message };
   }
 
   async sendCity(userId: string, input: SendInput): Promise<SendResult> {

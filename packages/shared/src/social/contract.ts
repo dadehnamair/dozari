@@ -28,6 +28,33 @@ export type City = z.infer<typeof citySchema>;
 /** `GET /cities`: cities a player may pick. */
 export const citiesSchema = z.object({ cities: z.array(citySchema) });
 
+/** Leaderboard scopes (D108): everyone, the caller's city, the caller's friends. Ranked by total XP. */
+export const LEADERBOARD_SCOPES = ['all', 'city', 'friends'] as const;
+export const leaderboardScopeSchema = z.enum(LEADERBOARD_SCOPES);
+export type LeaderboardScope = z.infer<typeof leaderboardScopeSchema>;
+export const LEADERBOARD_SIZE = 20;
+
+export const leaderboardEntrySchema = z.object({
+  rank: z.number().int().positive(),
+  id: z.string().uuid(),
+  nickname: z.string(),
+  avatarKey: z.string(),
+  level: z.number().int().positive(),
+  xp: z.number().int().nonnegative(),
+  /** Province key of the player's city (D101), for the badge. */
+  province: z.string().nullable(),
+  isMe: z.boolean(),
+});
+export type LeaderboardEntry = z.infer<typeof leaderboardEntrySchema>;
+
+/** `GET /leaderboard?scope=`: the top of the scope plus the caller's own place (null when the scope does not apply, e.g. no city). */
+export const leaderboardSchema = z.object({
+  scope: leaderboardScopeSchema,
+  entries: z.array(leaderboardEntrySchema),
+  me: z.object({ rank: z.number().int().positive(), xp: z.number().int().nonnegative(), level: z.number().int().positive() }).nullable(),
+});
+export type Leaderboard = z.infer<typeof leaderboardSchema>;
+
 /** How the caller stands with a player: nothing, request sent by me, request received from them, or friends. */
 export const friendRelationSchema = z.enum(['none', 'sent', 'received', 'friends']);
 export type FriendRelation = z.infer<typeof friendRelationSchema>;

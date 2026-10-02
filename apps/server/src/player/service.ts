@@ -2,7 +2,7 @@ import { checkNickname, levelInfo, xpForGame } from '@dozari/shared';
 import type { City, GameResultForXp, LevelInfo, NicknameProblem, NicknameRules, PlayerStats, XpRules } from '@dozari/shared';
 import type { SettingsService } from '../settings/service.js';
 import type { TextFilterService } from '../textfilter/service.js';
-import type { PlayerStore } from './store.js';
+import type { PlayerStore, RankFilter } from './store.js';
 
 export interface PlayerRules {
   xp: XpRules;
@@ -76,6 +76,14 @@ export class PlayerService {
     const [lv, priv, rules] = await Promise.all([this.levelOf(userId), this.store.privateRow(userId), this.rules()]);
     const games = lv.stats.games;
     return { ...lv, city: await this.cityOf(userId), email: priv.email, nicknameRules: rules.nickname, nicknameLockedUntilGames: games >= rules.nicknameUnlockGames ? null : rules.nicknameUnlockGames };
+  }
+
+  ranking(filter: RankFilter, limit: number) {
+    return this.store.ranking(filter, limit);
+  }
+
+  rankOf(userId: string, filter: RankFilter) {
+    return this.store.rankOf(userId, filter);
   }
 
   async cities(): Promise<City[]> {
