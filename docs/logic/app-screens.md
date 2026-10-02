@@ -89,6 +89,38 @@ by nickname, incoming requests with accept / decline, then one card per friend (
 tap for their profile — and a gift button that opens the coin gift). The mock-up's online status and
 per-friend duel button need presence and direct challenges, which do not exist yet; they are left out.
 
+## City hub (D112)
+
+screen-hub of `11 More Screens`, opened from the round map button in Home's top row: «شهر دوزاری», a
+hand-drawn bazaar town where every building is a game mode — برج ساعت (daily puzzle, «جدید» when
+today's is open), کاروانسرا (tournaments, «زنده»), حجرهٔ بازار (solo), زورخانه (duel), قهوه‌خانه (team)
+and مکتب‌خانه (propose and vote). Tap a building: its host and a short description rise from the bottom
+with «ورود» (a green slab) and a close square. Team play and propose-and-vote do not exist yet: those
+buildings are drawn and open the card with a disabled «به‌زودی». A mode the admin switched off is
+disabled the same way. Home stays the main screen; the hub is the second way in.
+
+## Daily wheel (D111)
+
+screen-daily of `19 Social Daily Onboarding` (Home tile «جایزه»): a yellow title plate, the seven-day
+streak strip (done green, today yellow, ahead dim, each with its coins), a lamp-rimmed wheel of eight
+slices with a pink pointer, a status line (ready / spinning / countdown to the next spin) and the big
+«بچرخون!» button; the prize card («N سکه», «فردا هم بیا، جایزه بزرگ‌تره») ends it. **The coins are the
+server's streak ladder** (`GET /daily-reward`, claim = one ledger row): slice 0 always holds today's
+amount, the next slices the following days, and the wheel always lands on slice 0 — it is the ceremony,
+never a second source of coins. Faces are frozen during a spin because the claim advances the streak.
+A random wheel would be a new economy rule; it stays an open choice for the owner.
+
+## Level road and locked popup (D109)
+
+screen-levels of `17 Chat Shop Unlocks`, opened from the profile («جادهٔ لول‌ها»): a purple night, the
+yellow title plate and a cream road with one node per level (top level first, scrolled to the player's
+level on open): done = gold with a tick, current = yellow with the hero waving beside it, ahead = grey
+with a padlock. Cards beside a level show what it opens, from the real gates (`GET /me/levels`: hint,
+personal invite code, gifts and loans, avatar change, nickname change, plus each active shop item with a
+level gate). Tapping a card of a future level opens **popup-locked**: the feature, «باز می‌شود در لول N»,
+the player's level and XP bar, «اینجا چی هست؟» and Ajan's line. The design's gem-unlock button has no
+counterpart (no gems) and is left out.
+
 ## Leaderboard (D108)
 
 screen-leaderboard of `11 More Screens`, opened from the Home tile «جدول»: purple chequer with a golden
