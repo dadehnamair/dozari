@@ -39,9 +39,10 @@ const wordStore = (words: string[]): WordStore => {
 
 function boot(unlockGames = 0) {
   const seed: { id: string; nickname: string; avatarKey: string; createdAt: number; coins: number }[] = [];
-  const store = createMemoryPlayerStore();
+  const clock = { t: Date.now() };
+  const store = createMemoryPlayerStore(undefined, () => clock.t);
   const player = new PlayerService(store, async () => ({ ...DEFAULT_RULES, nicknameUnlockGames: unlockGames }), new TextFilterService(wordStore(['بد'])));
-  const social = new SocialService(createMemorySocialStore(seed), Date.now, undefined, player);
+  const social = new SocialService(createMemorySocialStore(seed), () => clock.t, undefined, player);
   const auth = new AuthService(memoryUsers((u) => seed.push({ id: u.id, nickname: u.nickname, avatarKey: u.avatarKey, createdAt: 1_700_000_000_000, coins: 0 })), createTokenSigner('a-test-secret-that-is-long-enough'), mulberry32(3));
   const puzzle: ServedPuzzle = {
     id: 'pz',
@@ -54,7 +55,7 @@ function boot(unlockGames = 0) {
     const r = (await app.inject({ method: 'POST', url: '/auth/guest', payload: { deviceId: `0f8fad5b-d9cb-469f-a165-7086772895${String(n).padStart(2, '0')}` } })).json() as { token: string; user: { id: string } };
     return { h: { authorization: `Bearer ${r.token}` }, id: r.user.id };
   };
-  return { app, login, store, solo, player };
+  return { app, login, store, solo, player, clock };
 }
 
 describe('stats and level from finished games', () => {
@@ -184,5 +185,33 @@ describe('leaderboard (D108)', () => {
 
     expect((await app.inject({ method: 'GET', url: '/leaderboard?scope=galaxy', headers: a.h })).statusCode).toBe(400);
     expect((await app.inject({ method: 'GET', url: '/leaderboard' })).statusCode).toBe(401);
+  });
+});
+
+describe('week and month leaderboards', () => {
+  it('rank the XP earned inside a rolling window, not the lifetime total', async () => {
+    const { app, login, store, clock } = boot();
+    const day = 86_400_000;
+    const a = await login(1);
+    const b = await login(2);
+    const start = clock.t;
+    clock.t = start - 20 * day; // 20 days ago: inside the month only
+    await store.addGame(a.id, 'win', 500);
+    clock.t = start - 40 * day; // 40 days ago: neither window
+    await store.addGame(b.id, 'win', 900);
+    clock.t = start - 2 * day; // 2 days ago: both windows
+    await store.addGame(b.id, 'win', 100);
+    clock.t = start;
+    const get = async (period: string) => leaderboardSchema.parse((await app.inject({ method: 'GET', url: `/leaderboard?scope=all&period=${period}`, headers: a.h })).json());
+
+    expect((await get('all')).entries.map((e) => e.xp)).toEqual([1000, 500]);
+    const month = await get('month');
+    expect(month.period).toBe('month');
+    expect(month.entries.map((e) => e.xp)).toEqual([500, 100]);
+    expect(month.me).toMatchObject({ rank: 1, xp: 500 });
+    const week = await get('week');
+    expect(week.entries.map((e) => e.xp)).toEqual([100]);
+    expect(week.me).toMatchObject({ rank: 2, xp: 0 }); // earned nothing this week: placed after the one who did
+    expect((await app.inject({ method: 'GET', url: '/leaderboard?period=year', headers: a.h })).statusCode).toBe(400);
   });
 });

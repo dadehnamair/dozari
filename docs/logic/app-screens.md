@@ -128,8 +128,10 @@ glow, pink title plate, three tabs — «همه», «شهر من», «دوستا
 3rd; gold, silver, bronze blocks), the rest as rows (rank, avatar, province badge, nickname, XP) on a
 cream sheet, and the player's own row pinned at the bottom when they are outside the top 20. Tap a row
 for the player's profile. Ranked by **total XP** (`GET /leaderboard?scope=all|city|friends`, top 20, the
-caller's rank counted from `user_stats`). The design's week / month tabs need a per-game log that is not
-kept; they come with the game-history work.
+caller's rank counted from `user_stats`). A second tab row picks the window (D123): «کل زمان» (total XP), «این هفته» and
+«این ماه» — rolling 7 and 30 days, summed from `xp_events` (one row per finished game's XP, written by `PlayerStore.addGame`;
+players with no XP in the window are not listed; `GET /leaderboard?scope=&period=all|week|month`). XP from before the
+event log existed counts only in «کل زمان».
 
 ## Profile and settings (D107)
 

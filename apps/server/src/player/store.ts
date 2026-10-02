@@ -1,4 +1,4 @@
-import { and, asc, cities, desc, eq, gt, inArray, isNull, sql, userStats, users } from '@dozari/db';
+import { and, asc, cities, desc, eq, gt, gte, inArray, isNull, sql, userStats, users, xpEvents } from '@dozari/db';
 import type { Db } from '@dozari/db';
 import { DEFAULT_CITIES } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
@@ -43,10 +43,12 @@ export interface PlayerStore {
   setCity(userId: string, cityId: string | null): Promise<void>;
   setEmail(userId: string, email: string | null): Promise<void>;
   setNickname(userId: string, nickname: string): Promise<void>;
-  /** The top `limit` players by XP inside a filter (`cityId`, or an explicit id list); ties break by id for a stable order. */
-  ranking(filter: RankFilter, limit: number): Promise<{ userId: string; xp: number }[]>;
+  /** The top `limit` players by XP inside a filter (`cityId`, or an explicit id list); ties break by id for a stable order. With `since` only the XP earned from that time counts (players with none are left out). */
+  ranking(filter: RankFilter, limit: number, since?: number): Promise<{ userId: string; xp: number }[]>;
   /** 1-based place of a player inside the filter (players with more XP + 1). */
-  rankOf(userId: string, filter: RankFilter): Promise<number>;
+  rankOf(userId: string, filter: RankFilter, since?: number): Promise<number>;
+  /** XP a player earned since `since` (epoch ms); the total when omitted. */
+  xpSince(userId: string, since?: number): Promise<number>;
   cities(opts?: { includeHidden?: boolean }): Promise<CityRow[]>;
   city(id: string): Promise<CityRow | null>;
   addCity(slug: string, nameFa: string, province?: string | null): Promise<CityRow | 'duplicate'>;
@@ -81,6 +83,7 @@ export function createDbPlayerStore(db: Db): PlayerStore {
         .insert(userStats)
         .values({ userId, xp, games: 1, wins: outcome === 'win' ? 1 : 0, losses: outcome === 'loss' ? 1 : 0, draws: outcome === 'draw' ? 1 : 0 })
         .onDuplicateKeyUpdate({ set: inc });
+      if (xp > 0) await db.insert(xpEvents).values({ id: uuidv7(), userId, xp });
       return this.stats(userId);
     },
     async privateRow(userId) {
@@ -96,8 +99,20 @@ export function createDbPlayerStore(db: Db): PlayerStore {
     async setNickname(userId, nickname) {
       await db.update(users).set({ nickname }).where(eq(users.id, userId));
     },
-    async ranking(filter, limit) {
+    async ranking(filter, limit, since) {
       const where = and(...rankWhere(filter));
+      if (since !== undefined) {
+        const sum = sql<number>`SUM(${xpEvents.xp})`;
+        const rows = await db
+          .select({ userId: xpEvents.userId, xp: sum })
+          .from(xpEvents)
+          .innerJoin(users, eq(users.id, xpEvents.userId))
+          .where(and(where, gte(xpEvents.createdAt, new Date(since))))
+          .groupBy(xpEvents.userId)
+          .orderBy(desc(sum), asc(xpEvents.userId))
+          .limit(limit);
+        return rows.map((r) => ({ userId: r.userId, xp: Number(r.xp) }));
+      }
       const rows = await db
         .select({ userId: userStats.userId, xp: userStats.xp })
         .from(userStats)
@@ -107,9 +122,27 @@ export function createDbPlayerStore(db: Db): PlayerStore {
         .limit(limit);
       return rows;
     },
-    async rankOf(userId, filter) {
-      const [mine] = await db.select({ xp: userStats.xp }).from(userStats).where(eq(userStats.userId, userId));
-      const xp = mine?.xp ?? 0;
+    async xpSince(userId, since) {
+      if (since === undefined) {
+        const [r] = await db.select({ xp: userStats.xp }).from(userStats).where(eq(userStats.userId, userId));
+        return r?.xp ?? 0;
+      }
+      const [r] = await db.select({ xp: sql<number>`COALESCE(SUM(${xpEvents.xp}), 0)` }).from(xpEvents).where(and(eq(xpEvents.userId, userId), gte(xpEvents.createdAt, new Date(since))));
+      return Number(r?.xp ?? 0);
+    },
+    async rankOf(userId, filter, since) {
+      const xp = await this.xpSince(userId, since);
+      if (since !== undefined) {
+        const sum = sql<number>`SUM(${xpEvents.xp})`;
+        const above = await db
+          .select({ userId: xpEvents.userId })
+          .from(xpEvents)
+          .innerJoin(users, eq(users.id, xpEvents.userId))
+          .where(and(...rankWhere(filter), gte(xpEvents.createdAt, new Date(since))))
+          .groupBy(xpEvents.userId)
+          .having(sql`${sum} > ${xp}`);
+        return above.length + 1;
+      }
       const [agg] = await db
         .select({ above: sql<number>`COUNT(*)` })
         .from(userStats)
@@ -147,13 +180,16 @@ export function createDbPlayerStore(db: Db): PlayerStore {
 }
 
 /** Memory store for tests; `seedCities` mirrors the default list when omitted. */
-export function createMemoryPlayerStore(seedCities: readonly { slug: string; nameFa: string; province?: string | null }[] = DEFAULT_CITIES): PlayerStore & { nicknames: Map<string, string> } {
+export function createMemoryPlayerStore(seedCities: readonly { slug: string; nameFa: string; province?: string | null }[] = DEFAULT_CITIES, now: () => number = Date.now): PlayerStore & { nicknames: Map<string, string> } {
   const stats = new Map<string, StatsRow>();
+  const events: { userId: string; xp: number; at: number }[] = [];
   const priv = new Map<string, PrivateRow>();
   const nicknames = new Map<string, string>();
-  const inFilter = (f: RankFilter) =>
-    [...stats.entries()]
-      .map(([userId, s]) => ({ userId, xp: s.xp }))
+  const xpOf = (userId: string, since?: number) => (since === undefined ? (stats.get(userId)?.xp ?? 0) : events.filter((e) => e.userId === userId && e.at >= since).reduce((a, e) => a + e.xp, 0));
+  const inFilter = (f: RankFilter, since?: number) =>
+    [...stats.keys()]
+      .map((userId) => ({ userId, xp: xpOf(userId, since) }))
+      .filter((r) => since === undefined || r.xp > 0)
       .filter((r) => (f.cityId ? priv.get(r.userId)?.cityId === f.cityId : true) && (f.userIds ? f.userIds.includes(r.userId) : true));
   const rows: CityRow[] = seedCities.map((c, i) => ({ id: `00000000-0000-7000-8000-${String(i + 1).padStart(12, '0')}`, slug: c.slug, nameFa: c.nameFa, province: c.province ?? null, sortOrder: i, isActive: true }));
   return {
@@ -164,6 +200,7 @@ export function createMemoryPlayerStore(seedCities: readonly { slug: string; nam
     async addGame(id, outcome, xp) {
       const s = { ...(stats.get(id) ?? EMPTY_STATS) };
       s.xp += xp;
+      if (xp > 0) events.push({ userId: id, xp, at: now() });
       s.games += 1;
       if (outcome === 'win') s.wins += 1;
       if (outcome === 'loss') s.losses += 1;
@@ -174,14 +211,17 @@ export function createMemoryPlayerStore(seedCities: readonly { slug: string; nam
     async privateRow(id) {
       return { ...(priv.get(id) ?? { cityId: null, email: null }) };
     },
-    async ranking(filter, limit) {
-      return inFilter(filter)
+    async ranking(filter, limit, since) {
+      return inFilter(filter, since)
         .sort((a, b) => b.xp - a.xp || a.userId.localeCompare(b.userId))
         .slice(0, limit);
     },
-    async rankOf(id, filter) {
-      const xp = stats.get(id)?.xp ?? 0;
-      return inFilter(filter).filter((r) => r.xp > xp).length + 1;
+    async xpSince(id, since) {
+      return xpOf(id, since);
+    },
+    async rankOf(id, filter, since) {
+      const xp = xpOf(id, since);
+      return inFilter(filter, since).filter((r) => r.xp > xp).length + 1;
     },
     async setCity(id, cityId) {
       priv.set(id, { ...(priv.get(id) ?? { cityId: null, email: null }), cityId });

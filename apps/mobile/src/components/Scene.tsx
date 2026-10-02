@@ -67,11 +67,14 @@ export function Scene({
   mood = 'day',
   width = '100%',
   height = '100%',
-  wobble = Platform.OS === 'web',
+  wobble: wobbleProp = Platform.OS === 'web',
   animated: animatedProp,
 }: Props) {
   const reduce = usePrefs().reduceMotion;
   const animated = animatedProp ?? !reduce;
+  // The pencil-wobble filter over the whole scene is recomputed on every animation frame (60 → 25 fps even on a desktop,
+  // far worse on phones, where the clouds, lanterns and palm then barely move): a moving scene is drawn without it.
+  const wobble = wobbleProp && !animated;
   const u = useId().replace(/[^a-zA-Z0-9]/g, '');
   return (
     <View

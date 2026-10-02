@@ -652,6 +652,21 @@ export const cities = mysqlTable(
   (table) => ({ slugUnique: uniqueIndex('cities_slug_idx').on(table.slug) }),
 );
 
+/** One row per finished game's XP, so the week / month leaderboards can sum a time window (totals live in `user_stats`). */
+export const xpEvents = mysqlTable(
+  'xp_events',
+  {
+    id: id(),
+    userId: fk('user_id').references(() => users.id),
+    xp: int('xp').notNull(),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({
+    byTime: index('xp_events_time_idx').on(table.createdAt, table.userId),
+    byUser: index('xp_events_user_idx').on(table.userId, table.createdAt),
+  }),
+);
+
 /** Running totals of a player's finished games and experience; level is computed from `xp`, never stored. */
 export const userStats = mysqlTable('user_stats', {
   userId: char('user_id', { length: 36 }).primaryKey().references(() => users.id, { onDelete: 'cascade' }),

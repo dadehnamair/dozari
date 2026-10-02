@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { genderSchema, leaderboardScopeSchema } from '@dozari/shared';
+import { genderSchema, leaderboardPeriodSchema, leaderboardScopeSchema } from '@dozari/shared';
 import type { AuthService } from '../auth/service.js';
 import { currentUser } from '../auth/routes.js';
 import { RateLimiter } from '../security/rate-limit.js';
@@ -30,9 +30,9 @@ export function registerSocialRoutes(app: FastifyInstance, auth: AuthService, so
   app.get('/leaderboard', async (req, reply) => {
     const user = await currentUser(auth, req);
     if (!user) return reply.code(401).send({ error: 'unauthorized' });
-    const q = z.object({ scope: leaderboardScopeSchema.default('all') }).safeParse(req.query);
+    const q = z.object({ scope: leaderboardScopeSchema.default('all'), period: leaderboardPeriodSchema.default('all') }).safeParse(req.query);
     if (!q.success) return reply.code(400).send({ error: 'invalid_request' });
-    return social.leaderboard(user.id, q.data.scope);
+    return social.leaderboard(user.id, q.data.scope, q.data.period);
   });
 
   app.get('/cities', async (req, reply) => {

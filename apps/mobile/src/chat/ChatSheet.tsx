@@ -12,6 +12,7 @@ import { fa } from '../i18n/fa';
 import { ApiError } from '../net/http';
 import { avatarOf } from '../social/avatarOf';
 import { fetchMyProfile } from '../social/api';
+import { CityPicker } from '../social/CityPicker';
 import { PlayerSheet } from '../social/PlayerSheet';
 import { colors, fonts } from '../theme/colors';
 import { FriendsChat } from './FriendsChat';
@@ -39,6 +40,7 @@ export function ChatSheet({ onClose, onJoinTable, initialTab = 'city' }: { onClo
   const [text, setText] = useState('');
   const [note, setNote] = useState<string | null>(null);
   const [open, setOpen] = useState<string | null>(null);
+  const [pickCity, setPickCity] = useState(false);
   const scroller = useRef<ScrollView>(null);
 
   const load = useCallback((room: ChatTab) => {
@@ -76,6 +78,7 @@ export function ChatSheet({ onClose, onJoinTable, initialTab = 'city' }: { onClo
   const report = (m: ChatMessage) => void reportMessage(m.id).then(() => setNote(fa.chat.reported), () => setNote(fa.chat.errors.generic ?? ''));
 
   if (open) return <PlayerSheet playerId={open} onClose={() => setOpen(null)} />;
+  if (pickCity) return <CityPicker current={null} onPicked={() => (setPickCity(false), load('city'))} onClose={() => setPickCity(false)} />;
   const cityBlocked = tab === 'city' && noCity;
   const quick = taunts.flatMap((c) => c.taunts).slice(0, 14);
   const t = fa.chat;
@@ -98,7 +101,12 @@ export function ChatSheet({ onClose, onJoinTable, initialTab = 'city' }: { onClo
       <GuideBubble who="khale" text={t.khaleHello} />
 
       <ScrollView ref={scroller} style={styles.list} contentContainerStyle={styles.content}>
-        {cityBlocked ? <Text style={styles.hint}>{t.noCity}</Text> : null}
+        {cityBlocked ? (
+          <>
+            <Text style={styles.hint}>{t.noCity}</Text>
+            <Pressable onPress={() => setPickCity(true)} accessibilityRole="button" style={styles.cityBtn}><Text style={styles.cityBtnText}>{t.pickCity}</Text></Pressable>
+          </>
+        ) : null}
         {!cityBlocked && list.length === 0 ? <Text style={styles.hint}>{t.empty}</Text> : null}
         {list.map((m) => {
           const mine = m.userId === meId;
@@ -171,6 +179,8 @@ export function ChatSheet({ onClose, onJoinTable, initialTab = 'city' }: { onClo
 const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0, height: h }, shadowOpacity: 1, shadowRadius: 0, elevation: h });
 
 const styles = StyleSheet.create({
+  cityBtn: { alignSelf: 'center', paddingHorizontal: 18, height: 38, borderRadius: 19, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.candy.yellow, alignItems: 'center', justifyContent: 'center' },
+  cityBtnText: { fontFamily: fonts.bold, fontSize: 14, color: colors.ink },
   tabs: { marginTop: -26, marginBottom: 34, flexDirection: ROW, gap: 4, padding: 4, borderRadius: 16, backgroundColor: 'rgba(43,18,64,0.45)' },
   tab: { flex: 1, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   tabOn: { backgroundColor: colors.candy.yellow, borderWidth: 2.5, borderColor: colors.ink },

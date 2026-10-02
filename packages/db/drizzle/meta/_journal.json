@@ -239,6 +239,13 @@
       "when": 1790962152416,
       "tag": "0033_aspiring_hellion",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "5",
+      "when": 1790967918484,
+      "tag": "0034_yummy_blizzard",
+      "breakpoints": true
     }
   ]
 }

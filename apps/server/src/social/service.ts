@@ -1,5 +1,5 @@
-import { LEADERBOARD_SIZE } from '@dozari/shared';
-import type { FriendRelation, Friends, Gender, Leaderboard, LeaderboardScope, MyProfile, PlayerProfile } from '@dozari/shared';
+import { LEADERBOARD_SIZE, PERIOD_DAYS } from '@dozari/shared';
+import type { FriendRelation, Friends, Gender, Leaderboard, LeaderboardPeriod, LeaderboardScope, MyProfile, PlayerProfile } from '@dozari/shared';
 import type { PlayerService } from '../player/service.js';
 import type { BadgeService } from '../badges/service.js';
 import type { SocialStore } from './store.js';
@@ -73,18 +73,20 @@ export class SocialService {
   }
 
   /** Top of a scope by total XP plus the caller's own place (D108). A scope that does not apply (no city) is empty. */
-  async leaderboard(me: string, scope: LeaderboardScope): Promise<Leaderboard> {
+  async leaderboard(me: string, scope: LeaderboardScope, period: LeaderboardPeriod = 'all'): Promise<Leaderboard> {
     const player = this.player;
-    if (!player) return { scope, entries: [], me: null };
+    if (!player) return { scope, period, entries: [], me: null };
+    const days = PERIOD_DAYS[period];
+    const since = days === null ? undefined : this.now() - days * 86_400_000;
     let filter: { cityId?: string; userIds?: string[] } = {};
     if (scope === 'city') {
       const city = await player.cityOf(me);
-      if (!city) return { scope, entries: [], me: null };
+      if (!city) return { scope, period, entries: [], me: null };
       filter = { cityId: city.id };
     } else if (scope === 'friends') {
       filter = { userIds: [me, ...(await this.store.friends(me)).map((f) => f.id)] };
     }
-    const rows = await player.ranking(filter, LEADERBOARD_SIZE);
+    const rows = await player.ranking(filter, LEADERBOARD_SIZE, since);
     const entries = [];
     for (const [i, r] of rows.entries()) {
       const [who, lv, city] = await Promise.all([this.store.publicRow(r.userId), player.levelOf(r.userId), player.cityOf(r.userId)]);
@@ -92,7 +94,7 @@ export class SocialService {
       entries.push({ rank: i + 1, id: r.userId, nickname: who.nickname, avatarKey: who.avatarKey, level: lv.level.level, xp: r.xp, province: city?.province ?? null, isMe: r.userId === me });
     }
     const mine = await player.levelOf(me);
-    return { scope, entries, me: { rank: await player.rankOf(me, filter), xp: mine.level.xp, level: mine.level.level } };
+    return { scope, period, entries, me: { rank: await player.rankOf(me, filter, since), xp: since === undefined ? mine.level.xp : await player.xpSince(me, since), level: mine.level.level } };
   }
 
   async mine(me: string): Promise<MyProfile | null> {

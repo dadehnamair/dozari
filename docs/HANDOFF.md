@@ -22,7 +22,7 @@ For the next chat. Read `CLAUDE.md`, then this file, then `docs/DECISIONS.md` fr
 ## New owner notes (2026-10-02, late)
 17 no page may scroll — measured in headless Chromium (390×780, 360×640, 360×560) with a real server: Hub, Settings (rows tighten), Duel mode select (cast shrinks) and every sheet reachable from Home no longer overflow (the Bazaar now pages its items) ✔; pages with real data lists (inbox, chat, ledger, leaderboard, tournaments) still scroll inside their list, by design; not checked with lots of data ✘ · 18 characters were unused — now hosts: baqal (Bazaar, coin history), mirza (price finder), ajan (inbox), khale (chat), pahlevan (leaderboard, tournaments), goli (friends); players' avatars are now cast faces (D122) ✔; more spots (empty states, result screens) still ✘ · 19 admin «بازبینی قیمت‌ها» crashed with `appendChild … not of type 'Node'` when a price had a warning flag (nested array passed to `h()`); fixed in `ui/core.ts` (`h` flattens arrays), reproduced and verified in headless Chromium. Its empty state also points to «صندوق ربات».
 
-22 Owner reported scene animations (clouds, lanterns, palms) stopped. Not reproducible: they run with default prefs (verified in Chromium) and stop only when Settings → «حرکت کمتر» is on (`prefs.reduceMotion`). Ask the owner to check that switch.
+22 Scene animations stopped on the owner's device: cause was the wobble filter recomputed per frame (D124) — moving scenes now skip it, Hub gets moving cloud/palms; fixed, verify on the phone. The switch Settings → «حرکت کمتر» still freezes everything by design.
 
 ## Queue rule (owner, 2026-10-02)
 New asks go to the END of the queue unless the owner says it is truly urgent.
@@ -33,7 +33,7 @@ New asks go to the END of the queue unless the owner says it is truly urgent.
 21 **Confirmations for important actions** (owner): sign out, sign out of all devices, delete account, and similar → always a confirm dialog. **Delete account MUST ("حتما حتما") ask for a fresh one-time code again** (SMS/Bale OTP to the verified number, then `DELETE /me` accepts only with a valid just-issued code); today `DELETE /me` (`auth/routes.ts`) deletes on one tap. Put this first within the queued items.
 
 ## Not built (older asks)
-screen-login with phone (needs the account-recovery decision), public player number + default handle (`dozari_7k2m`), Bale payment docs (allow `docs.bale.ai` or paste the payment section), gems/outfits/avatars shop tabs, week/month leaderboards, team and propose-and-vote modes, recent games on profile.
+screen-login with phone (needs the account-recovery decision), public player number + default handle (covered by `users.handle`, see D123), Bale payment docs (allow `docs.bale.ai` or paste the payment section), gems/outfits/avatars shop tabs, (week/month leaderboards ✔ D123), team and propose-and-vote modes, recent games on profile.
 
 ## Suggested next order
 7 (music) → 9 after the owner picks: wheel by win-chance and/or gems.

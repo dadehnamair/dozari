@@ -4,6 +4,8 @@ import Svg, { G, Path } from 'react-native-svg';
 import { Character } from '../components/Character';
 import { GradientFill } from '../components/GradientFill';
 import { Icon } from '../components/Icon';
+import { Drift, Sway } from '../components/sceneMotion';
+import { usePrefs } from '../prefs/store';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { buildingParts } from './buildings';
@@ -25,6 +27,7 @@ const ROAD = 'M159 714 C159 640 60 630 70 560 C80 500 244 486 244 420 C244 360 8
 export function CityHub({ onClose, onEnter, features, dailyReady }: { onClose: () => void; onEnter: (a: HubAction) => void; features: { daily: boolean; duel: boolean; tournament: boolean }; dailyReady: boolean }) {
   const { width, height } = useWindowDimensions();
   const [sel, setSel] = useState<HubBuilding | null>(null);
+  const animated = !usePrefs().reduceMotion; // the cloud drifts and the palms sway unless «حرکت کمتر» is on
   // The whole town fits the screen (nothing scrolls): scale by whichever of width / height is tighter.
   const k = Math.min(Math.min(width, 520) / MAP_W, height / MAP_H);
   const mapW = MAP_W * k;
@@ -41,18 +44,22 @@ export function CityHub({ onClose, onEnter, features, dailyReady }: { onClose: (
         <View style={{ width: mapW, height: MAP_H * k }}>
           <Svg width={mapW} height={MAP_H * k} viewBox={`0 0 ${MAP_W} ${MAP_H}`} style={StyleSheet.absoluteFill}>
             <G stroke={INK} strokeWidth={2.4} strokeLinejoin="round" strokeLinecap="round">
-              <Path d="M-40 6 C-52 4 -50 -14 -36 -12 C-34 -26 -14 -28 -8 -16 C-2 -28 22 -26 22 -12 C38 -16 46 2 32 8 C30 18 12 18 6 10 C0 18 -18 18 -22 10 C-30 16 -42 14 -40 6Z" transform="translate(250 120) scale(.7)" fill="#fff" stroke="#4E9E9E" strokeWidth={2.2} />
+              <Drift from={-230} to={120} dur={60} begin={-20} animated={animated}><Path d="M-40 6 C-52 4 -50 -14 -36 -12 C-34 -26 -14 -28 -8 -16 C-2 -28 22 -26 22 -12 C38 -16 46 2 32 8 C30 18 12 18 6 10 C0 18 -18 18 -22 10 C-30 16 -42 14 -40 6Z" transform="translate(250 120) scale(.7)" fill="#fff" stroke="#4E9E9E" strokeWidth={2.2} /></Drift>
               <Path d="M0 176 C70 146 150 172 220 150 C260 138 290 146 318 140 V210 H0Z" fill="#C9B5E0" stroke="#A893C8" strokeWidth={2} />
               <Path d="M0 190 C80 176 200 196 318 178 V714 H0Z" fill="#F2D59C" stroke="none" />
               <Path d={ROAD} fill="none" strokeWidth={30} />
               <Path d={ROAD} fill="none" stroke="#FBEBC8" strokeWidth={24} />
               <Path d={ROAD} fill="none" stroke="#E2BF80" strokeWidth={2} strokeDasharray="6 10" />
+              <Sway x={300} y={470} dur={4.2} animated={animated}>
               <Path d="M300 470 C296 440 304 420 300 400" fill="none" strokeWidth={9} />
               <Path d="M300 470 C296 440 304 420 300 400" fill="none" stroke="#A8743E" strokeWidth={5} />
               <Path d="M300 400 C286 386 268 390 262 400 C276 394 288 396 300 402Z M300 400 C314 386 332 390 338 400 C324 394 312 396 300 402Z M300 398 C294 382 300 372 310 368 C304 378 302 388 301 398Z" fill="#3FA36B" />
+              </Sway>
+              <Sway x={20} y={470} dur={3.6} animated={animated}>
               <Path d="M20 470 C16 446 24 430 20 414" fill="none" strokeWidth={9} />
               <Path d="M20 470 C16 446 24 430 20 414" fill="none" stroke="#A8743E" strokeWidth={5} />
               <Path d="M20 414 C8 402 -8 406 -12 414 C2 408 10 410 20 416Z M20 414 C32 402 48 406 52 414 C40 408 30 410 20 416Z" fill="#3FA36B" />
+              </Sway>
               {HUB_BUILDINGS.map((b) => (
                 <G key={b.key} transform={sel?.key === b.key ? `translate(${b.x} ${b.by}) scale(1.07) translate(${-b.x} ${-b.by})` : undefined}>
                   {buildingParts(b).map((p, i) => (

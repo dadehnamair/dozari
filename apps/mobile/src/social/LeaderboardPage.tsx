@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { LEADERBOARD_SCOPES, provinceOf, toPersianDigits } from '@dozari/shared';
-import type { Leaderboard, LeaderboardEntry, LeaderboardScope } from '@dozari/shared';
+import { LEADERBOARD_PERIODS, LEADERBOARD_SCOPES, provinceOf, toPersianDigits } from '@dozari/shared';
+import type { Leaderboard, LeaderboardEntry, LeaderboardPeriod, LeaderboardScope } from '@dozari/shared';
 import { Avatar } from '../components/Avatar';
 import { GradientFill } from '../components/GradientFill';
 import { Icon } from '../components/Icon';
@@ -11,6 +11,7 @@ import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { fetchLeaderboard } from './api';
 import { avatarOf } from './avatarOf';
+import { CityPicker } from './CityPicker';
 import { PlayerSheet } from './PlayerSheet';
 import { safeTop } from '../theme/safeArea';
 
@@ -26,25 +27,29 @@ const PODIUM = {
 /**
  * screen-leaderboard of `11 More Screens` (D108): a purple chequer with a golden glow, a pink title plate, three tabs
  * (everyone, my city, friends), the podium of the top three, the rest as a list on a cream sheet and, pinned at the
- * bottom, the player's own place. Ranked by total XP; the design's week and month tabs need a game log we do not keep.
+ * bottom, the player's own place. Ranked by XP of the chosen window: all time, last 7 days, last 30 days (D123).
  */
 export function LeaderboardPage({ onClose }: { onClose: () => void }) {
   const [scope, setScope] = useState<LeaderboardScope>('all');
+  const [period, setPeriod] = useState<LeaderboardPeriod>('all');
   const [board, setBoard] = useState<Leaderboard | null>(null);
   const [failed, setFailed] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
+  const [pickCity, setPickCity] = useState(false);
+  const [nonce, setNonce] = useState(0);
   const t = fa.leaderboard;
 
   useEffect(() => {
     let alive = true;
     setBoard(null);
     setFailed(false);
-    fetchLeaderboard(scope).then((b) => alive && setBoard(b), () => alive && setFailed(true));
+    fetchLeaderboard(scope, period).then((b) => alive && setBoard(b), () => alive && setFailed(true));
     return () => {
       alive = false;
     };
-  }, [scope]);
+  }, [scope, period, nonce]);
 
+  if (pickCity) return <CityPicker current={null} onPicked={() => (setPickCity(false), setNonce((v) => v + 1))} onClose={() => setPickCity(false)} />;
   if (open) return <PlayerSheet playerId={open} onClose={() => setOpen(null)} />;
   const entries = board?.entries ?? [];
   const top = entries.slice(0, 3);
@@ -81,6 +86,14 @@ export function LeaderboardPage({ onClose }: { onClose: () => void }) {
           ))}
         </View>
 
+        <View style={styles.tabs}>
+          {LEADERBOARD_PERIODS.map((k) => (
+            <Pressable key={k} onPress={() => setPeriod(k)} accessibilityRole="tab" accessibilityState={{ selected: period === k }} style={[styles.tab, period === k ? styles.tabOn : null]}>
+              <Text style={[styles.tabText, period === k ? styles.tabTextOn : null]}>{t.periods[k]}</Text>
+            </Pressable>
+          ))}
+        </View>
+
         <View style={styles.stage}>
           {stage.map((e) => {
             const p = PODIUM[e.rank as 1 | 2 | 3];
@@ -107,6 +120,9 @@ export function LeaderboardPage({ onClose }: { onClose: () => void }) {
             <GuideBubble who="pahlevan" text={fa.leaderboard.pahlevanHello} />
             {failed ? <Text style={styles.note}>{t.error}</Text> : null}
             {board && entries.length === 0 ? <Text style={styles.note}>{t.empty[scope]}</Text> : null}
+            {board && scope === 'city' && board.me === null ? (
+              <Pressable onPress={() => setPickCity(true)} accessibilityRole="button" style={styles.cityBtn}><Text style={styles.cityBtnText}>{t.pickCity}</Text></Pressable>
+            ) : null}
             {rest.map((e) => (
               <Pressable key={e.id} onPress={() => setOpen(e.id)} accessibilityRole="button" style={[styles.row, e.isMe ? styles.rowMe : null]}>
                 <Text style={styles.rank}>{n(e.rank)}</Text>
@@ -136,6 +152,8 @@ export function LeaderboardPage({ onClose }: { onClose: () => void }) {
 const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0, height: h }, shadowOpacity: 1, shadowRadius: 0, elevation: h });
 
 const styles = StyleSheet.create({
+  cityBtn: { alignSelf: 'center', paddingHorizontal: 18, height: 38, borderRadius: 19, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.candy.yellow, alignItems: 'center', justifyContent: 'center' },
+  cityBtnText: { fontFamily: fonts.bold, fontSize: 14, color: colors.ink },
   root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20, backgroundColor: '#3C2A8E' },
   glow: { position: 'absolute', top: 0, left: 0, right: 0, height: 420 },
   column: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingTop: safeTop(30) },

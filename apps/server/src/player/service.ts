@@ -78,12 +78,16 @@ export class PlayerService {
     return { ...lv, city: await this.cityOf(userId), email: priv.email, nicknameRules: rules.nickname, nicknameLockedUntilGames: games >= rules.nicknameUnlockGames ? null : rules.nicknameUnlockGames };
   }
 
-  ranking(filter: RankFilter, limit: number) {
-    return this.store.ranking(filter, limit);
+  ranking(filter: RankFilter, limit: number, since?: number) {
+    return this.store.ranking(filter, limit, since);
   }
 
-  rankOf(userId: string, filter: RankFilter) {
-    return this.store.rankOf(userId, filter);
+  rankOf(userId: string, filter: RankFilter, since?: number) {
+    return this.store.rankOf(userId, filter, since);
+  }
+
+  xpSince(userId: string, since?: number) {
+    return this.store.xpSince(userId, since);
   }
 
   async cities(): Promise<City[]> {
