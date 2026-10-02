@@ -26,22 +26,20 @@ part of the same "logic specs" set in `CLAUDE.md` — read it before building th
 
 ## Home / Lobby screen
 
-Everything in one row of equal-weight cards, plus the utility elements below (owner: "همشون" /
-"همه با هم در یک ردیف کارت، وزن یکسان" — no mode is visually demoted, price-guess is not a
-separate card since it's folded into every mode per D19):
+Laid out as **screen-home** of `docs/design/Dozari - 01 Screens.dc.html` (D99, replaces the earlier
+"one row of equal mode cards"):
 
-- Mode cards, one row, equal size: **تمرین تکی** (solo/practice), **۱ در برابر ۱**, **۲ در برابر
-  ۲**, **میز اختصاصی** (private table).
-- Coin balance (header, tappable → profile/wallet).
-- A **separate card for UGC** ("پیشنهاد یک قیمت" / "رأی بده") — its own card, not nested inside
-  another menu (owner decision, 2026-09-27; also reflected in `PLAN.md` Phase 7).
-- Daily challenge / streak banner.
-- Achievements shortcut.
-- **Online player count** (D45, see `matchmaking.md` §Presence & social) — a small persistent
-  badge near the top.
-- **Resume-match indicator** (D42, see §Resume-match indicator below) when an unfinished match
-  exists.
-- **Leaderboard/tournament entry card** (D49/D50, see §Leaderboard & tournaments below).
+- **Top counters** (three pills): coins, daily-puzzle streak, level.
+- **Wordmark** and a **speech bubble** under it: "today's puzzle is ready" (tap → daily puzzle) while
+  it can be played, otherwise the month's mood line.
+- **Corner tiles**, one column per side (54px candy squares with a label; a tile shows only when its
+  feature flag is on). Right: daily reward (badge when claimable), private tables, tournaments, price
+  lookup. Left: settings/profile, messages (unread badge), city chat, shop, Bale.
+- The **hero** character floating over the bazaar background.
+- **Two big buttons** at the bottom: solo play (green) and duel (orange). When an unfinished match
+  exists the orange button becomes **back to your game** with a badge (D42).
+- Still to come from the design: the mode screen (duel / team / play with a friend) behind the duel
+  button, the online-player badge (D45) and the UGC entry.
 
 ## Matchmaking queue (waiting) screen
 
