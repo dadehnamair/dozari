@@ -67,6 +67,16 @@ Four views from `docs/design/Dozari - 13 Match Screens.dc.html`:
 4. **screen-results**: the hero's win / sad / thinking pose, the banner, why it ended (worded from the
    player's side), a scoreboard (groups and points per player, crown for the leader), home and play again.
 
+## Inbox and invite pages (D99)
+
+- **Inbox** = screen-notifications of `19 Social Daily Onboarding`: full page with a grape header
+  band, «همه خوانده شد» when anything is unread, and one card per message (candy icon tile, title,
+  body, how long ago, a pink dot while unread). Tapping marks it read.
+- **Invite** = screen-invite: sky-to-ink page, three cheering characters, «رفیقت بیاد، هر دو
+  ببرید!» with both rewards from the server rules, the code in a dashed box with copy (web
+  clipboard), «n از m دوست اومدن» with up to five boxes (the last a chest), the rules, the field for
+  a friend's code, and a share slab. Per-app share buttons of the mock-up become the system share sheet.
+
 ## Matchmaking queue (waiting) screen
 
 The waiting view is screen-versus above. Still open from the original spec below: practising solo

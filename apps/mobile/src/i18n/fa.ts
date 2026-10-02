@@ -532,6 +532,10 @@ export const fa = {
     activated: 'حسابت فعال است.',
     success: (bonus: number) => `کد ثبت شد؛ ${toPersianDigits(String(bonus))} سکه گرفتی.`,
     close: 'بستن',
+    headline: 'رفیقت بیاد، هر دو ببرید!',
+    perInvite: (mine: number, theirs: number) => `هر دعوت: ${toPersianDigits(String(mine))} سکه برای تو، ${toPersianDigits(String(theirs))} برای اون`,
+    came: (n: number, m: number) => `${toPersianDigits(String(n))} از ${toPersianDigits(String(m))} دوست اومدن`,
+    shareTo: 'بفرست برای…',
     shareMessage: (code: string, bonus: number) => `بیا دوزاری بازی کنیم! کد معرف من: ${code} — با وارد کردنش ${toPersianDigits(String(bonus))} سکه هدیه می‌گیری.`,
     errors: {
       invalid: 'این کد درست نیست.',
@@ -580,7 +584,21 @@ export const fa = {
     error: 'نتوانستیم فروشگاه را بگیریم.',
     close: 'بستن',
   },
-  inbox: { open: 'پیام‌ها', title: 'پیام‌ها', empty: 'پیامی نداری.', readAll: 'همه را خوانده کن', close: 'بستن', error: 'نتوانستیم پیام‌ها را بگیریم.' },
+  inbox: {
+    open: 'پیام‌ها',
+    title: 'اعلان‌ها',
+    empty: 'پیامی نداری.',
+    readAll: 'همه خوانده شد',
+    close: 'برگشت',
+    error: 'نتوانستیم پیام‌ها را بگیریم.',
+    ago: {
+      now: 'همین الان',
+      minutes: (n: number) => `${toPersianDigits(String(n))} دقیقه`,
+      hours: (n: number) => `${toPersianDigits(String(n))} ساعت`,
+      yesterday: 'دیروز',
+      days: (n: number) => `${toPersianDigits(String(n))} روز`,
+    },
+  },
   phone: {
     title: 'شماره‌ی موبایل',
     placeholder: '۰۹۱۲…',
