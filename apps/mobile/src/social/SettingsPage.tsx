@@ -48,7 +48,7 @@ export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone }: 
 
   if (cityOpen) return <CityPicker current={city ?? null} onPicked={(c) => (setCity(c), setCityOpen(false))} onClose={() => setCityOpen(false)} />;
   const openCity = () => void fetchMyProfile().then((p) => (setCity(p.city), setCityOpen(true)), () => setNote(fa.account.failed));
-  const toggle = (k: 'sound' | 'vibration' | 'reduceMotion') => () => {
+  const toggle = (k: 'sound' | 'music' | 'vibration' | 'reduceMotion') => () => {
     setPref(k, !prefs[k]);
     if (k === 'sound' && !prefs.sound) setTimeout(() => playSfx('coin'), 0);
   };
@@ -59,6 +59,7 @@ export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone }: 
       tint: colors.candy.sky,
       rows: [
         { key: 'sound', icon: 'radio', tint: '#3FC1F0', label: fa.prefs.sound, toggle: prefs.sound, onPress: toggle('sound') },
+        { key: 'music', icon: 'radio', tint: '#FFC93C', label: fa.prefs.music, toggle: prefs.music, onPress: toggle('music') },
         { key: 'vibration', icon: 'phone', tint: '#A66BF0', label: fa.prefs.vibration, toggle: prefs.vibration, onPress: toggle('vibration') },
         { key: 'motion', icon: 'hourglass', tint: '#FF8FB6', label: fa.prefs.reduceMotion, toggle: prefs.reduceMotion, onPress: toggle('reduceMotion') },
       ],

@@ -12,6 +12,7 @@ import { GateScreen } from './src/config/GateScreen';
 import { gateState } from './src/config/gate';
 import { useClientConfig } from './src/config/useClientConfig';
 import { HomeScreen } from './src/home/HomeScreen';
+import { useMusic } from './src/sound/music';
 import { BrandScreen } from './src/brand/BrandScreen';
 import { KitGallery } from './src/kit/KitGallery';
 import { LookupScreen } from './src/lookup/LookupScreen';
@@ -59,6 +60,9 @@ export default function App() {
       clearTimeout(timer);
     };
   }, [fontsLoaded, screen, launch, launchOn]);
+
+  // Soft music everywhere; a livelier loop during a duel (the competitive screens).
+  useMusic(screen === 'splash' || screen === 'tutorial' ? null : screen === 'duel' || screen === 'duelResume' ? 'tense' : 'calm');
 
   if (!fontsLoaded) {
     return (

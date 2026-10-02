@@ -164,7 +164,7 @@ export const fa = {
     error: 'نتوانستیم گردونه را بگیریم.',
   },
   daily: { title: 'جایزهٔ روزانه', day: 'روز', today: 'امروز', claim: 'بگیر!', wait: 'تا جایزهٔ بعدی', won: 'سکه گرفتی!', coins: 'سکه', open: 'جایزهٔ روزانه' },
-  prefs: { title: 'تنظیمات من', hint: 'فقط روی همین دستگاه اثر می‌گذارد.', sound: 'صدا', vibration: 'لرزش', reduceMotion: 'حرکت کمتر' },
+  prefs: { title: 'تنظیمات من', hint: 'فقط روی همین دستگاه اثر می‌گذارد.', sound: 'صدا', music: 'موسیقی', vibration: 'لرزش', reduceMotion: 'حرکت کمتر' },
   dailyPuzzle: {
     title: 'پازل روز',
     play: 'بازی کن',

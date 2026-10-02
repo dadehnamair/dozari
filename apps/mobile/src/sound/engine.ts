@@ -27,7 +27,8 @@ interface Ctx {
 type AudioCtor = new () => Ctx;
 let ctx: Ctx | null = null;
 
-function context(): Ctx | null {
+export type { Ctx as AudioCtx };
+export function context(): Ctx | null {
   if (Platform.OS !== 'web') return null;
   const g = globalThis as unknown as { AudioContext?: AudioCtor; webkitAudioContext?: AudioCtor };
   const C = g.AudioContext ?? g.webkitAudioContext;

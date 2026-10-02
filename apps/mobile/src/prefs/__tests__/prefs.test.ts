@@ -8,8 +8,8 @@ describe('prefs', () => {
     expect(parsePrefs('{nope')).toEqual(DEFAULT_PREFS);
   });
   it('keeps valid booleans and ignores the rest', () => {
-    expect(parsePrefs('{"sound":false,"vibration":"x","reduceMotion":true}')).toEqual({ sound: false, vibration: true, reduceMotion: true });
-    expect(parsePrefs(serializePrefs({ sound: false, vibration: false, reduceMotion: true }))).toEqual({ sound: false, vibration: false, reduceMotion: true });
+    expect(parsePrefs('{"sound":false,"vibration":"x","reduceMotion":true}')).toEqual({ sound: false, music: true, vibration: true, reduceMotion: true });
+    expect(parsePrefs(serializePrefs({ sound: false, music: false, vibration: false, reduceMotion: true }))).toEqual({ sound: false, music: false, vibration: false, reduceMotion: true });
   });
   it('every sound effect has sane notes', () => {
     for (const notes of Object.values(SFX_NOTES)) {
