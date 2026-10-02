@@ -1,3 +1,4 @@
+import { OnlineDot } from '../components/OnlineDot';
 import { useCallback, useEffect, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { Friends } from '@dozari/shared';
@@ -62,7 +63,7 @@ export function FriendsPage({ onClose }: { onClose: () => void }) {
         {data && data.friends.length > 0 && shown.length === 0 ? <Text style={styles.note}>{fa.friends.noMatch}</Text> : null}
         {shown.map((p, i) => (
           <View key={p.id} style={styles.card}>
-            <Face avatarKey={p.avatarKey} tint={TINTS[i % TINTS.length]!} />
+            <Face avatarKey={p.avatarKey} tint={TINTS[i % TINTS.length]!} online={p.online} />
             <Pressable style={styles.body} onPress={() => setOpen(p.id)} accessibilityRole="button"><Text style={styles.name} numberOfLines={1}>{p.nickname}</Text></Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel={`${fa.friends.gift} ${p.nickname}`} onPress={() => setGift(p.id)} style={styles.gift}>
               <View style={styles.giftIcon}><Item icon="gift" /></View>
@@ -74,8 +75,13 @@ export function FriendsPage({ onClose }: { onClose: () => void }) {
   );
 }
 
-function Face({ avatarKey, tint }: { avatarKey: string; tint: string }) {
-  return <View style={[styles.face, { backgroundColor: tint }]}><Avatar avatar={avatarOf(avatarKey)} size={40} /></View>;
+function Face({ avatarKey, tint, online }: { avatarKey: string; tint: string; online?: boolean }) {
+  return (
+    <View>
+      <View style={[styles.face, { backgroundColor: tint }]}><Avatar avatar={avatarOf(avatarKey)} size={40} /></View>
+      {online === undefined ? null : <View style={styles.dot}><OnlineDot online={online} size={14} /></View>}
+    </View>
+  );
 }
 
 const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0, height: h }, shadowOpacity: 1, shadowRadius: 0, elevation: h });
@@ -90,6 +96,7 @@ const styles = StyleSheet.create({
   card: { flexDirection: ROW, alignItems: 'center', gap: 8, paddingVertical: 7, paddingHorizontal: 8, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#fff', ...lift(4) },
   request: { backgroundColor: '#FFF6D8' },
   face: { width: 46, height: 46, borderRadius: 23, borderWidth: 2.5, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  dot: { position: 'absolute', bottom: -2, right: -2 },
   body: { flex: 1, minWidth: 0 },
   name: { fontFamily: fonts.display, fontSize: 16, color: colors.ink, textAlign: 'right' },
   gift: { width: 40, height: 40, borderRadius: 12, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center', ...lift(3) },

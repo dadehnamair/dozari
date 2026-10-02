@@ -13,6 +13,7 @@ import { avatarOf } from '../social/avatarOf';
 import { fetchMyProfile } from '../social/api';
 import { PlayerSheet } from '../social/PlayerSheet';
 import { colors, fonts } from '../theme/colors';
+import { FriendsChat } from './FriendsChat';
 import { fetchChat, fetchTaunts, reportMessage, sendTaunt, sendText } from './api';
 import type { ChatTab } from './api';
 import { chatErrorText, mergeMessages } from './errors';
@@ -27,6 +28,8 @@ const POLL_MS = 4000;
  */
 export function ChatSheet({ onClose, onJoinTable, initialTab = 'city' }: { onClose: () => void; onJoinTable?: (code: string) => void; initialTab?: ChatTab }) {
   const [tab, setTab] = useState<ChatTab>(initialTab);
+  /** The «دوستان» tab (private chats) is a separate view; `tab` keeps the last public room. */
+  const [friendsView, setFriendsView] = useState(false);
   const [info, setInfo] = useState<Record<ChatTab, ChatHistory | null>>({ city: null, global: null });
   const [messages, setMessages] = useState<Record<ChatTab, ChatMessage[]>>({ city: [], global: [] });
   const [taunts, setTaunts] = useState<TauntCategory[]>([]);
@@ -81,11 +84,15 @@ export function ChatSheet({ onClose, onJoinTable, initialTab = 'city' }: { onClo
     <PageShell title={t.title} color={colors.candy.grape} backLabel={t.close} onBack={onClose} bandHeight={152}>
       <View style={styles.tabs}>
         {(['city', 'global'] as const).map((k) => (
-          <Pressable key={k} onPress={() => setTab(k)} accessibilityRole="tab" accessibilityState={{ selected: tab === k }} style={[styles.tab, tab === k ? styles.tabOn : null]}>
-            <Text style={[styles.tabText, tab === k ? styles.tabTextOn : null]}>{k === 'city' ? t.tabCity : t.tabGlobal}</Text>
+          <Pressable key={k} onPress={() => (setFriendsView(false), setTab(k))} accessibilityRole="tab" accessibilityState={{ selected: !friendsView && tab === k }} style={[styles.tab, !friendsView && tab === k ? styles.tabOn : null]}>
+            <Text style={[styles.tabText, !friendsView && tab === k ? styles.tabTextOn : null]}>{k === 'city' ? t.tabCity : t.tabGlobal}</Text>
           </Pressable>
         ))}
+        <Pressable onPress={() => setFriendsView(true)} accessibilityRole="tab" accessibilityState={{ selected: friendsView }} style={[styles.tab, friendsView ? styles.tabOn : null]}>
+          <Text style={[styles.tabText, friendsView ? styles.tabTextOn : null]}>{t.tabFriends}</Text>
+        </Pressable>
       </View>
+      {friendsView ? <FriendsChat meId={meId} onJoinTable={onJoinTable} /> : <>
       {sub ? <Text style={styles.sub}>{sub}</Text> : null}
 
       <ScrollView ref={scroller} style={styles.list} contentContainerStyle={styles.content}>
@@ -154,6 +161,7 @@ export function ChatSheet({ onClose, onJoinTable, initialTab = 'city' }: { onClo
           ) : null}
         </View>
       )}
+      </>}
     </PageShell>
   );
 }

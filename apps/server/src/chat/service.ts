@@ -28,6 +28,8 @@ export interface ChatDeps {
   isActivated(userId: string): Promise<boolean>;
   mute(userId: string): Promise<{ until: number; reason: string } | null>;
   hasContactPerk(userId: string): Promise<boolean>;
+  /** Private chat is for accepted friends only. */
+  areFriends(a: string, b: string): Promise<boolean>;
   rules(): Promise<ChatRules>;
   filter?: TextFilterService;
   now?: () => number;
@@ -58,6 +60,11 @@ export class ChatService {
 
   static cityRoom(cityId: string): string {
     return `city:${cityId}`;
+  }
+
+  /** `roomKey` of a private chat: both ids, sorted, so each friend finds the same conversation. */
+  static dmKey(a: string, b: string): string {
+    return a < b ? `${a}:${b}` : `${b}:${a}`;
   }
 
   /** Socket.io room of the global chat; its `roomKey` in the table is `all`. */
@@ -92,6 +99,30 @@ export class ChatService {
     const messages: ChatMessage[] = [];
     for (const r of rows) messages.push(await this.view(r, cache));
     return { cityName: city?.nameFa ?? null, globalOn: rules.globalEnabled, messages, canType: !mute && (activated || !rules.textNeedsActivation), muted: mute };
+  }
+
+  /** History of the private chat with a friend. */
+  async dmHistory(userId: string, friendId: string): Promise<ChatHistory | 'NOT_FRIENDS' | 'OFF'> {
+    const rules = await this.deps.rules();
+    if (!rules.enabled) return 'OFF';
+    if (!(await this.deps.areFriends(userId, friendId))) return 'NOT_FRIENDS';
+    const [rows, mute, activated] = await Promise.all([this.store.history('dm', ChatService.dmKey(userId, friendId), CHAT_HISTORY_LIMIT), this.deps.mute(userId), this.deps.isActivated(userId)]);
+    const cache = new Map();
+    const messages: ChatMessage[] = [];
+    for (const r of rows) messages.push(await this.view(r, cache));
+    return { cityName: null, globalOn: rules.globalEnabled, messages, canType: !mute && (activated || !rules.textNeedsActivation), muted: mute };
+  }
+
+  /** A message to a friend (same rules as the rooms, plus: only friends). It reaches both players live. */
+  async sendDm(userId: string, friendId: string, input: SendInput): Promise<SendResult> {
+    if (!(await this.deps.areFriends(userId, friendId))) return { ok: false, error: 'NOT_FRIENDS' };
+    const text = await this.resolveText(userId, input);
+    if (!text.ok) return text;
+    const row = await this.store.addMessage({ room: 'dm', roomKey: ChatService.dmKey(userId, friendId), userId, kind: input.kind, text: text.text });
+    const message = await this.view(row, new Map());
+    this.toUser?.(friendId, message);
+    this.toUser?.(userId, message);
+    return { ok: true, message };
   }
 
   /** The Socket.io room a player may join for the city chat, or null (no city / chat off). */

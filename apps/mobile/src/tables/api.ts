@@ -17,3 +17,5 @@ export const setTableLocked = (locked: boolean): Promise<void> => authed('/table
 export const shareTable = (): Promise<void> => authed('/tables/share', 'POST', {}, nothing);
 export const extendTable = (): Promise<void> => authed('/tables/extend', 'POST', {}, nothing);
 export const kickFromTable = (userId: string): Promise<void> => authed('/tables/kick', 'POST', { userId }, nothing);
+/** Invites one friend to the caller's table; `online` tells whether the card reached them live or only a Bale nudge went out. */
+export const inviteToTable = (userId: string): Promise<{ online: boolean }> => authed('/tables/invite', 'POST', { userId }, (v) => ({ online: (v as { online?: boolean }).online === true }));
