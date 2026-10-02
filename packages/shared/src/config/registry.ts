@@ -18,6 +18,7 @@ import { DAILY_REWARD_COOLDOWN_HOURS, DAILY_REWARD_STREAK_WINDOW_HOURS, HINT_MAX
 import { CHART_GAP_BREAK_YEARS, CHART_MIN_YEAR } from './chart.js';
 import { INVITE_INVITEE_BONUS, INVITE_INVITER_REWARD, INVITE_MAX_USES, INVITE_MIN_LEVEL, INVITE_REWARD_AFTER_GAMES } from './invite.js';
 import { LOAN_DUE_DAYS, LOAN_MAX_OPEN, TRANSFER_MAX_AMOUNT, TRANSFER_MIN_AMOUNT, TRANSFER_MIN_FRIEND_DAYS, TRANSFER_MIN_LEVEL, TRANSFER_WEEKLY_CAP } from './transfers.js';
+import { TABLE_IDLE_MINUTES } from '../tables/code.js';
 import { CHAT_MAX_LEN } from './chat.js';
 import { SKILL_MIN_GAMES, SKILL_PRO_GAMES, SKILL_PRO_WIN_PERCENT } from './progression.js';
 import { LEVEL_MAX, NICKNAME_MAX_LEN, NICKNAME_MIN_LEN, XP_CURVE_BASE, XP_DUEL_BASE, XP_SOLO_BASE, XP_WIN_BONUS } from './progression.js';
@@ -96,6 +97,8 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'economy.daily_streak_window_hours', group: 'economy', label: 'مهلت ادامه‌ی زنجیره‌ی جایزه', hint: 'دریافت بعدی تا این مدت بعد از قبلی، زنجیره را ادامه می‌دهد؛ دیرتر از آن از روز اول شروع می‌شود', kind: 'int', min: 2, max: 168, default: DAILY_REWARD_STREAK_WINDOW_HOURS, unit: 'ساعت' },
   { key: 'limit.solo_per_day', group: 'gameplay', label: 'سقف بازی تکی در روز برای هر بازیکن', hint: '۰ یعنی بدون سقف؛ ساعت صفر به وقت تهران صفر می‌شود', kind: 'int', min: 0, max: 1000, default: 0 },
   { key: 'limit.duel_per_day', group: 'gameplay', label: 'سقف بازی دونفره‌ی زنده در روز برای هر بازیکن', hint: '۰ یعنی بدون سقف', kind: 'int', min: 0, max: 1000, default: 0 },
+  { key: 'feature.tables', group: 'app', label: 'میز اختصاصی روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'table.idle_minutes', group: 'gameplay', label: 'میز اختصاصی بعد از چند دقیقه بی‌استفاده بسته شود', kind: 'int', min: 1, max: 240, default: TABLE_IDLE_MINUTES, unit: 'دقیقه' },
   { key: 'feature.daily', group: 'app', label: 'پازل روز روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'daily.reward_coins', group: 'economy', label: 'جایزه‌ی حل پازل روز', hint: 'برای حل کامل، یک بار در روز', kind: 'int', min: 0, max: 1000, default: DAILY_PUZZLE_REWARD, unit: 'سکه' },
   { key: 'daily.streak_step', group: 'economy', label: 'افزایش جایزه به ازای هر روز پشت‌سرهم', kind: 'int', min: 0, max: 200, default: DAILY_PUZZLE_STREAK_STEP, unit: 'سکه' },

@@ -245,3 +245,7 @@ Still needed from the owner before enabling: Bazaar/Myket developer accounts and
 ## D92 — Tournament concurrency switch and daily game caps (2026-10-02)
 
 Owner: tournaments need an admin option for whether a player may be in several at once (default: one at a time), the daily game limit must be settable from the panel, and every game mode and hub should be broadly configurable from the admin panel. Built: per-tournament `allowConcurrent` (default off) and `limit.solo_per_day` / `limit.duel_per_day` (default 0 = unlimited). Standing rule from now on: any new limit, timer or amount ships as a registry setting, and existing hard-coded ones are moved into the registry as they are found.
+
+## D93 — Private tables v1 and sharing them in city chat (2026-10-02)
+
+Friendly 1v1 tables with a code, name/emoji, ready toggle, lock/kick/extend and rematch; shareable into the city chat as a join card (owner backlog item 17). Fees, difficulty, 2v2 and deep links wait for the duel economy and the duel client. Details: `docs/logic/matchmaking.md` §Built so far.

@@ -28,7 +28,7 @@ export interface ChatDeps {
   now?: () => number;
 }
 
-export type SendInput = { kind: 'text'; text: string } | { kind: 'taunt'; tauntId: string };
+export type SendInput = { kind: 'text'; text: string } | { kind: 'taunt'; tauntId: string } | { kind: 'table'; code: string; label: string };
 export type SendResult = { ok: true; message: ChatMessage } | { ok: false; error: ChatError; mutedUntil?: number };
 
 /** Chat: the city room and canned taunts in a duel. Every rule of `docs/logic/chat-and-access.md` is checked here, on the server. */
@@ -90,7 +90,7 @@ export class ChatService {
   }
 
   /** Common checks: not muted, rate limit. */
-  private async gate(userId: string, kind: 'text' | 'taunt'): Promise<{ ok: false; error: ChatError; mutedUntil?: number } | null> {
+  private async gate(userId: string, kind: 'text' | 'taunt' | 'table'): Promise<{ ok: false; error: ChatError; mutedUntil?: number } | null> {
     if (!(await this.deps.rules()).enabled) return { ok: false, error: 'OFF' };
     const mute = await this.deps.mute(userId);
     if (mute) return { ok: false, error: 'MUTED', mutedUntil: mute.until };
@@ -128,6 +128,13 @@ export class ChatService {
   private async resolveText(userId: string, input: SendInput): Promise<{ ok: true; text: string } | { ok: false; error: ChatError; mutedUntil?: number }> {
     const blocked = await this.gate(userId, input.kind);
     if (blocked) return blocked;
+    if (input.kind === 'table') {
+      // A table invite is structured (a code and a name), so it needs no activation; the name still goes through the word filter.
+      const label = input.label.replace(/\s+/g, ' ').trim().slice(0, 60);
+      const verdict = this.deps.filter ? await this.deps.filter.check(label) : { ok: true as const, text: label };
+      if (!verdict.ok) return { ok: false, error: 'FILTERED' };
+      return { ok: true, text: `${input.code}|${verdict.text}` };
+    }
     if (input.kind === 'taunt') {
       const t = await this.store.taunt(input.tauntId);
       if (!t || !t.isActive) return { ok: false, error: 'UNKNOWN_TAUNT' };

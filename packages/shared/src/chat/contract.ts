@@ -5,7 +5,8 @@ export const CHAT_ROOMS = ['city', 'match'] as const;
 export const chatMessageSchema = z.object({
   id: z.string().uuid(),
   room: z.enum(CHAT_ROOMS),
-  kind: z.enum(['text', 'taunt']),
+  /** `table`: a shared private table; `text` is `<CODE>|<emoji> <name>`. */
+  kind: z.enum(['text', 'taunt', 'table']),
   text: z.string(),
   userId: z.string().uuid(),
   nickname: z.string(),

@@ -107,7 +107,7 @@ browser — both need the owner's own machine (see Phase 0-A).
 - [x] 🧩 Match reducer: shared board, turns, timers-as-commands, scoring, end conditions — `game/match.ts` (1v1; team/captain flow is Phase 5)
 - [x] 🖥 Socket.io gateway: JWT handshake, per-user room, 1v1 queue join/leave with acks, live stats in the admin panel «سرویس سوکت» (`realtime/`)
 - [x] 🖥 MatchService (v1): in-memory 1v1 around the shared reducer, redacted snapshots, turn timer, queue pairing, submit/resume/leave over sockets. Still open: persistence of match log, entry-fee escrow/payouts, price-guess round, ready handshake, reconnect grace, bot takeover
-- [ ] 🖥 MatchmakingService: 1v1 queue, private table (room code), reconnect grace
+- [ ] 🖥 MatchmakingService: 1v1 queue, private table (room code, v1 built D93), reconnect grace
 - [ ] 🖥 Bot pool + fallback-fill logic (`logic/bots.md`) — bots flow through the same MatchService
       path as real players; `is_bot` never leaves the server
 - [ ] 📱 Lobby: quick match 1v1, create/join private table, waiting screen (est. wait, cancel,

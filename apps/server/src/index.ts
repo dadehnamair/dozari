@@ -96,6 +96,8 @@ import { ShopService } from './economy/shop.js';
 import { createDbShopStore } from './economy/shop-store.js';
 import { HintService } from './solo/hints.js';
 import { PlayLimiter, createDbPlayCountStore } from './limits/play-limits.js';
+import { TableService } from './tables/service.js';
+import { registerTableRoutes } from './tables/routes.js';
 import { registerSoloRoutes } from './solo/routes.js';
 import { SoloService } from './solo/service.js';
 import type { CatalogRepository } from './catalog/routes.js';
@@ -148,6 +150,8 @@ export interface ServerDeps {
   solo?: SoloService;
   /** Paid hints of solo games; needs `solo` and `auth`. */
   hints?: HintService;
+  /** Private tables (`/tables`); needs `auth` and the live-match service. */
+  tables?: TableService;
   /** Admin-set daily game caps (solo, live duel). */
   limiter?: PlayLimiter;
   /** Coin shop (`/shop`); needs `auth`. */
@@ -221,6 +225,7 @@ export function buildServer(deps: ServerDeps = {}) {
     registerCatalogRoutes(app, deps.catalog);
     registerLookupRoutes(app, deps.catalog);
   }
+  if (deps.auth && deps.tables) registerTableRoutes(app, deps.auth, deps.tables, deps.chat ? async (u, code, label) => { const r = await deps.chat!.sendCity(u, { kind: 'table', code, label }); return r.ok ? { ok: true } : { ok: false, error: r.error }; } : undefined);
   if (deps.solo) registerSoloRoutes(app, deps.solo, deps.auth, deps.hints, deps.limiter);
   if (deps.auth && deps.shop) registerShopRoutes(app, deps.auth, deps.shop);
   if (deps.auth && deps.coinPackages) registerCoinPackageRoutes(app, deps.auth, deps.coinPackages);
@@ -365,6 +370,15 @@ if (isMainModule(import.meta.url)) {
           notify: (id, text) => void notify?.notify(id, 'admin', text).catch(() => undefined),
         })
       : undefined;
+  const tableService =
+    settings && socialStore
+      ? new TableService({
+          profileOf: async (id) => socialStore.publicRow(id),
+          startMatch: async (a, b) => (live.matches ? live.matches.start(a, b) : false),
+          inMatch: (id) => live.matches?.inMatch(id) ?? false,
+          idleMs: async () => (await settings.num('table.idle_minutes')) * 60_000,
+        })
+      : undefined;
   const transfers = db && settings && socialStore && inviteStore ? new TransferService(createDbTransferStore(db), socialStore, () => transferRulesFromSettings(settings), async (id) => (player ? (await player.levelOf(id)).level.level : 1), (id) => inviteStore.isActivated(id)) : undefined;
   const find =
     db && settings && socialStore
@@ -444,6 +458,7 @@ if (isMainModule(import.meta.url)) {
     dailyReward: db && settings ? new DailyRewardService(createDbDailyRewardStore(db), Date.now, () => dailyRules(settings)) : undefined,
     catalog: db ? createDbCatalogRepository(db) : undefined,
     solo,
+    tables: tableService,
     limiter: db && settings ? new PlayLimiter(createDbPlayCountStore(db), async (mode) => settings.num(mode === 'solo' ? 'limit.solo_per_day' : 'limit.duel_per_day')) : undefined,
     hints: solo && shopStore && settings ? new HintService(solo, shopStore, () => hintRules(settings), levelOf) : undefined,
     shop: shopStore ? new ShopService(shopStore, levelOf) : undefined,
