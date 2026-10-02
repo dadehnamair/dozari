@@ -74,8 +74,18 @@ Check: `curl localhost:3000/health`.
 port 3000 in the firewall:
 
 ```bash
+# macOS / Linux / Git Bash
 EXPO_PUBLIC_API_URL=http://<LAN-IP>:3000 pnpm --filter @dozari/mobile start
 ```
+
+```powershell
+# Windows PowerShell (the variable cannot go after `pnpm --filter ...`; set it first)
+$env:EXPO_PUBLIC_API_URL="http://<LAN-IP>:3000"
+pnpm --filter @dozari/mobile start
+```
+
+Find the LAN IP with `ipconfig` (IPv4 address of the Wi-Fi adapter). The variable lives only in
+that terminal session; set it again in a new one.
 
 If the app says «اتصال به سرور برقرار نشد», it prints the address it tried. Check, in order:
 `/health` opens in a browser → `CORS_ORIGIN` is set and the server was restarted (web only) →
