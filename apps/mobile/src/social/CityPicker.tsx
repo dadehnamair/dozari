@@ -4,6 +4,7 @@ import type { City } from '@dozari/shared';
 import { provinceOf } from '@dozari/shared';
 import { PageShell } from '../components/PageShell';
 import { ProvinceBadge } from '../components/ProvinceBadge';
+import { GuideBubble } from '../components/GuideBubble';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { fetchCities, saveCity } from './api';
@@ -38,7 +39,7 @@ export function CityPicker({ current, onPicked, onClose }: { current: City | nul
   return (
     <PageShell title={t.title} color={colors.candy.grape} backLabel={fa.profile.close} onBack={onClose}>
       <ScrollView contentContainerStyle={styles.list}>
-        <Text style={styles.intro}>{t.intro}</Text>
+        <GuideBubble who="khale" text={t.intro} />
         {failed ? <Text style={styles.intro}>{fa.profile.error}</Text> : null}
         {groups.map((g) =>
           g.items.length === 0 ? null : (

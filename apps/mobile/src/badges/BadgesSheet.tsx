@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { MyBadges } from '@dozari/shared';
 import { CandyButton } from '../components/CandyButton';
 import { Item } from '../components/Item';
+import { GuideBubble } from '../components/GuideBubble';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { equipBadge, fetchMyBadges, markNoticesRead } from './api';
@@ -35,6 +36,7 @@ export function BadgesSheet({ onClose }: { onClose: () => void }) {
         <Text style={styles.title}>{fa.badges.title}</Text>
         {failed ? <Text style={styles.warn}>{fa.badges.error}</Text> : null}
         <ScrollView style={styles.list} contentContainerStyle={styles.content}>
+          <GuideBubble who="ajan" text={fa.badges.ajanHello} />
           {me ? (
             <>
               <Text style={styles.label}>{fa.badges.skillTitle}: {skillText(me.skill)}</Text>

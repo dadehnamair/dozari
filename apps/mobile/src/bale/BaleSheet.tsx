@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { BaleLinkCode, BaleLinkStatus } from '@dozari/shared';
 import { CandyButton } from '../components/CandyButton';
+import { GuideBubble } from '../components/GuideBubble';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { ApiError } from '../net/http';
@@ -37,7 +38,7 @@ export function BaleSheet({ onClose }: { onClose: () => void }) {
     <Pressable style={styles.overlay} onPress={onClose} accessibilityLabel={fa.bale.close}>
       <Pressable style={styles.sheet} onPress={() => undefined}>
         <Text style={styles.title}>{fa.bale.title}</Text>
-        <Text style={styles.text}>{fa.bale.intro}</Text>
+        <GuideBubble who="mirza" text={fa.bale.intro} />
         <PhoneStep />
         {phoneNote ? <Text style={styles.text}>{phoneNote}</Text> : null}
         {failed ? <Text style={styles.text}>{fa.bale.error}</Text> : null}

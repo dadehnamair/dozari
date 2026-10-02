@@ -25,6 +25,8 @@ interface Props {
   pose?: CharacterPose;
   /** Solar Hijri month 1..12: the hero «dozari» wears that month's look (docs/design/Character.dc.html). */
   month?: number;
+  /** 0..6 picks one of the cast when `who` is not given (used by avatars). */
+  skin?: number;
   crop?: CharacterCrop;
   width?: DimensionValue;
   height?: DimensionValue;
@@ -37,6 +39,7 @@ export function Character({
   who = 'dozari',
   pose = 'idle',
   month,
+  skin,
   crop = 'full',
   width = '100%',
   height = '100%',
@@ -45,7 +48,7 @@ export function Character({
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const fid = `${uid}f`;
   const pid = `${uid}p`;
-  const L = characterLook({ who, pose, month, crop });
+  const L = characterLook({ who: who === 'dozari' && skin !== undefined ? undefined : who, pose, month, crop, skin });
   const body =
     'M70 146C62 170 60 196 62 216Q100 226 138 216C140 196 138 170 130 146Q100 138 70 146Z';
   const pat = L.pattern;

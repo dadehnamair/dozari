@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Shop, ShopItem } from '@dozari/shared';
 import { toPersianDigits } from '@dozari/shared';
 import { GradientFill } from '../components/GradientFill';
@@ -16,6 +16,11 @@ const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const n = (v: number) => toPersianDigits(String(v));
 
 /** Tabs of screen-shop (design 17). Only «کمکی» (hint tokens) has goods today; the rest open with later features. */
+const CARD_H = 190;
+const CARD_H_TIGHT = 140;
+const CARD_GAP = 10;
+const PAGER_H = 44;
+
 const TABS = [
   { key: 'coins', icon: 'coinStack' },
   { key: 'gems', icon: 'gem' },
@@ -50,6 +55,15 @@ export function ShopSheet({ onClose, onBalance }: { onClose: () => void; onBalan
   const [note, setNote] = useState<string | null>(null);
   const [whyLocked, setWhyLocked] = useState<string | null>(null);
   const [bought, setBought] = useState<ShopItem | null>(null);
+  // Nothing scrolls: the items are paged, as many per page as the measured height allows.
+  const [boxH, setBoxH] = useState(0);
+  const [page, setPage] = useState(0);
+  const tight = boxH > 0 && boxH < 470;
+  const rows = Math.max(1, Math.floor((boxH - PAGER_H + CARD_GAP) / ((tight ? CARD_H_TIGHT : CARD_H) + CARD_GAP)));
+  const perPage = rows * 2;
+  const items = tab === 'boost' ? (shop?.items ?? []) : [];
+  const pages = Math.max(1, Math.ceil(items.length / perPage));
+  const at = Math.min(page, pages - 1);
 
   const load = useCallback(() => {
     fetchShop().then(
@@ -108,21 +122,22 @@ export function ShopSheet({ onClose, onBalance }: { onClose: () => void; onBalan
         {note ? <Text style={styles.note}>{note}</Text> : null}
         {whyLocked ? <Pressable onPress={() => setWhyLocked(null)} accessibilityRole="button"><GuideBubble who="baqal" text={whyLocked} /></Pressable> : <GuideBubble who="baqal" text={fa.shop.baqalHello} />}
 
-        <ScrollView style={styles.list} contentContainerStyle={styles.grid}>
+        <View style={styles.list} onLayout={(e) => setBoxH(e.nativeEvent.layout.height)}>
+        <View style={styles.grid}>
           {tab === 'boost'
-            ? shop?.items.map((it) => {
+            ? items.slice(at * perPage, (at + 1) * perPage).map((it) => {
                 const why = stateText(it);
                 const locked = it.blocked !== null;
                 return (
                   <View key={it.id} style={styles.cell}>
-                    <View style={styles.card}>
-                      <View style={styles.art}>
-                        <View style={styles.artIcon}><Item icon={it.iconKey ?? 'magnifier'} /></View>
+                    <View style={[styles.card, tight ? styles.cardTight : null]}>
+                      <View style={[styles.art, tight ? styles.artTight : null]}>
+                        <View style={[styles.artIcon, tight ? styles.artIconTight : null]}><Item icon={it.iconKey ?? 'magnifier'} /></View>
                         {locked ? <View style={styles.lock}><View style={styles.lockIcon}><Item icon="lock" /></View></View> : null}
                       </View>
                       <Text style={styles.name} numberOfLines={1}>{it.titleFa}</Text>
-                      <Text style={styles.sub} numberOfLines={2}>{why ?? fa.shop.amount(it.amount)}</Text>
-                      <Pressable onPress={() => (locked ? setWhyLocked(whyText(it)) : void buy(it))} accessibilityRole="button" accessibilityLabel={`${fa.shop.buy} ${it.titleFa}`} style={({ pressed }) => [styles.buy, locked ? styles.buyOff : null, pressed ? styles.pressed : null]}>
+                      <Text style={[styles.sub, tight ? styles.subTight : null]} numberOfLines={2}>{why ?? fa.shop.amount(it.amount)}</Text>
+                      <Pressable onPress={() => (locked ? setWhyLocked(whyText(it)) : void buy(it))} accessibilityRole="button" accessibilityLabel={`${fa.shop.buy} ${it.titleFa}`} style={({ pressed }) => [styles.buy, tight ? styles.buyTight : null, locked ? styles.buyOff : null, pressed ? styles.pressed : null]}>
                         <View style={styles.buyIcon}><Item icon="coin" /></View>
                         <Text style={styles.buyText}>{it.priceCoins === 0 ? fa.shop.free : n(it.priceCoins)}</Text>
                       </Pressable>
@@ -131,7 +146,15 @@ export function ShopSheet({ onClose, onBalance }: { onClose: () => void; onBalan
                 );
               })
             : null}
-        </ScrollView>
+        </View>
+        {pages > 1 ? (
+          <View style={styles.pager}>
+            <Pressable disabled={at === 0} onPress={() => setPage(at - 1)} accessibilityRole="button" accessibilityLabel={fa.shop.prev} style={[styles.pageBtn, at === 0 ? styles.buyOff : null]}><Icon name="back" size={18} color={colors.ink} strokeWidth={3} /></Pressable>
+            <Text style={styles.pageText}>{n(at + 1)} / {n(pages)}</Text>
+            <Pressable disabled={at >= pages - 1} onPress={() => setPage(at + 1)} accessibilityRole="button" accessibilityLabel={fa.shop.next} style={[styles.pageBtn, styles.flipX, at >= pages - 1 ? styles.buyOff : null]}><Icon name="back" size={18} color={colors.ink} strokeWidth={3} /></Pressable>
+          </View>
+        ) : null}
+        </View>
       </View>
 
       {bought ? (
@@ -171,7 +194,16 @@ const styles = StyleSheet.create({
   tabText: { fontFamily: fonts.display, fontSize: 11, color: colors.ink },
   note: { marginTop: 8, fontFamily: fonts.bold, fontSize: 12, color: colors.cream, textAlign: 'center' },
   list: { flex: 1, marginTop: 12 },
-  grid: { flexDirection: ROW, flexWrap: 'wrap', gap: 10, paddingBottom: 24 },
+  grid: { flexDirection: ROW, flexWrap: 'wrap', gap: CARD_GAP },
+  pager: { position: 'absolute', left: 0, right: 0, bottom: 0, height: PAGER_H, flexDirection: ROW, alignItems: 'center', justifyContent: 'center', gap: 14 },
+  pageBtn: { width: 36, height: 32, borderRadius: 10, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.candy.yellow, alignItems: 'center', justifyContent: 'center' },
+  cardTight: { paddingTop: 4, paddingBottom: 6 },
+  artTight: { height: 40 },
+  artIconTight: { width: 38, height: 38 },
+  subTight: { minHeight: 0 },
+  buyTight: { height: 30 },
+  flipX: { transform: [{ scaleX: -1 }] },
+  pageText: { fontFamily: fonts.display, fontSize: 16, color: '#fff' },
   cell: { width: '47.8%' },
   card: { borderRadius: 20, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#FBEBD2', alignItems: 'center', paddingTop: 8, paddingBottom: 8, paddingHorizontal: 6, gap: 2, ...lift(5) },
   art: { height: 74, width: '100%', alignItems: 'center', justifyContent: 'center' },

@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { TransferRow } from '@dozari/shared';
 import { toPersianDigits } from '@dozari/shared';
 import { CandyButton } from '../components/CandyButton';
+import { GuideBubble } from '../components/GuideBubble';
 import { fa } from '../i18n/fa';
 import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
@@ -38,6 +39,7 @@ export function LoansSheet({ onClose }: { onClose: () => void }) {
       <Pressable style={styles.sheet} onPress={() => undefined}>
         <Text style={styles.title}>{fa.transfers.loansOpen}</Text>
         <ScrollView style={styles.list} contentContainerStyle={styles.content}>
+          <GuideBubble who="baqal" text={fa.transfers.baqalHello} />
           {rows && rows.length === 0 ? <Text style={styles.hint}>{fa.transfers.none}</Text> : null}
           {rows?.map((t) => (
             <View key={t.id} style={styles.item}>

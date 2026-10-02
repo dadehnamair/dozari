@@ -5,6 +5,7 @@ import { DEFAULT_TABLE_ICON, TABLE_ICONS, normalizeTableCode } from '@dozari/sha
 import { Avatar } from '../components/Avatar';
 import { CandyButton } from '../components/CandyButton';
 import { Item } from '../components/Item';
+import { GuideBubble } from '../components/GuideBubble';
 import { fa } from '../i18n/fa';
 import { ApiError } from '../net/http';
 import { avatarOf } from '../social/avatarOf';
@@ -64,6 +65,7 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
           </View>
         ) : <Text style={styles.title}>{mode === 'make' ? fa.tables.createTitle : mode === 'join' ? fa.tables.joinTitle : fa.tables.title}</Text>}
         <ScrollView style={styles.list} contentContainerStyle={styles.content}>
+          <GuideBubble who="goli" text={fa.tables.goliHello} />
           {table ? (
             <>
               <Text style={styles.code} selectable>{fa.tables.code(table.code)}</Text>

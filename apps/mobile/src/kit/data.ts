@@ -1,6 +1,7 @@
 import { candyTone } from '../theme/colors';
 import type { IconName } from '../theme/icons';
 import type { MascotPose } from '../theme/mascot';
+import type { CharacterPose } from '../theme/character';
 
 /** Asset catalogue from docs/design/Dozari Visual Assets.dc.html (sections G-J). Labels live in i18n/fa.ts. */
 
@@ -9,12 +10,12 @@ export type CandyName = keyof typeof candyTone;
 const TONE_ORDER: readonly CandyName[] = ['pink', 'orange', 'yellow', 'sky', 'grape', 'lime'];
 const toneAt = (i: number): Tone => candyTone[TONE_ORDER[i % TONE_ORDER.length] as CandyName];
 
-const AVATAR_POSES: readonly MascotPose[] = ['idle', 'wave', 'cheer', 'thinking', 'shocked', 'blink', 'win', 'sleeping'];
+const AVATAR_POSES: readonly CharacterPose[] = ['idle', 'wave', 'cheer', 'thinking', 'shocked', 'blink', 'win', 'sleeping'];
 
 export interface AvatarSpec {
   key: string;
   skin: number;
-  pose: MascotPose;
+  pose: CharacterPose;
   light: string;
   base: string;
 }
@@ -25,7 +26,7 @@ export const AVATARS: readonly AvatarSpec[] = Array.from({ length: 24 }, (_, i) 
   return {
     key: `avatar-${String(i + 1).padStart(2, '0')}`,
     skin: i % 7,
-    pose: AVATAR_POSES[Math.floor(i / 3) % AVATAR_POSES.length] as MascotPose,
+    pose: AVATAR_POSES[Math.floor(i / 3) % AVATAR_POSES.length] as CharacterPose,
     light: tone.light,
     base: tone.base,
   };
