@@ -151,7 +151,7 @@ says "second player" — each profile is a separate guest identity.
    profile (ledger and history stay), bans the shell, and a fresh guest is created on the same device.
 
 ### Live duel (needs two players, or one + the bot fallback)
-8. Both profiles: Home → **Duel**. They pair up; otherwise a bot joins after the fallback timer
+8. Both profiles: Home → **Duel** → **«بزن بریم!»** on the mode screen. They pair up (versus card, 3 s countdown); otherwise a bot joins after the fallback timer
    (which player is a bot is never shown).
 9. Take turns; wrong guesses and timeouts count; watch scores, mistakes, lock-outs.
 10. Taunt buttons (`chat:taunt`) are canned phrases. Free-text chat needs an invite code

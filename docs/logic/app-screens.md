@@ -50,7 +50,28 @@ hint button; the character beside a speech bubble that carries the prompt, the l
 chance left); and three action slabs: shuffle, clear, submit (wider, dimmed until four are picked).
 The end of a game (banner, price round, chart) keeps its earlier layout for now.
 
+## Live duel (D99, D100)
+
+Four views from `docs/design/Dozari - 13 Match Screens.dc.html`:
+
+1. **screen-mode** «میدان رقابت»: the 1v1 card (picked; entry fee and winner payout from the public
+   `duel.*` settings), the 2v2 card dimmed with «به‌زودی», a «رقابت با دوست» pill that opens the
+   private-table sheet, and «بزن بریم!» to join the queue.
+2. **screen-versus**: blue half (player) and pink half (rival) split by a gold seam with the VS coin.
+   While searching the rival is a «؟» with the wait time and a cancel slab; once found both name plates
+   (level badge + nickname) show and a 3-second countdown leads to the board. A resumed match skips it.
+3. **screen-match**: top bar (leave button — two taps, since leaving loses; the turn clock plate turns
+   pink in the last 10 s; «۱ در ۱»), score panel (faces, names, four group pips per side, points,
+   blue/pink tug bar), whose turn it is, a toast line (guess feedback, the rival's taunt), the board,
+   the taunt button beside «فرصت‌ها», and shuffle / clear / submit. Shuffle only reorders the player's
+   own view. The design's magnifier and freeze power-ups are not part of the game rules and are left out.
+4. **screen-results**: the hero's win / sad / thinking pose, the banner, why it ended (worded from the
+   player's side), a scoreboard (groups and points per player, crown for the leader), home and play again.
+
 ## Matchmaking queue (waiting) screen
+
+The waiting view is screen-versus above. Still open from the original spec below: practising solo
+while waiting and the queued-puzzle info.
 
 Shown between tapping a competitive mode and the match actually starting:
 
