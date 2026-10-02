@@ -15,6 +15,7 @@ import type { NotifyStore } from '../notify/store.js';
 import type { TextFilterService } from '../textfilter/service.js';
 import type { UsersAdmin } from './users.js';
 import type { PlayerStore } from '../player/store.js';
+import type { CoinPackageService } from '../economy/coin-packages.js';
 import type { ShopStore } from '../economy/shop-store.js';
 import type { BadgeService } from '../badges/service.js';
 import type { BadgeStore } from '../badges/store.js';
@@ -37,6 +38,8 @@ export interface AdminModules {
   cities?: PlayerStore;
   /** Coin shop items (price, level gate, daily limit, visibility). */
   shop?: ShopStore;
+  /** Coin packages sold for real money (catalog only; buying is gated by a feature flag). */
+  coinPackages?: CoinPackageService;
   /** Invite codes: list, special campaign codes, limits. */
   invites?: InviteStore;
   /** Badge catalog, grants, warnings, commendations, mutes. */
@@ -118,7 +121,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     adapters: BOT_ADAPTER_KEYS,
     settingGroups: SETTING_GROUPS,
     icons: ITEMS,
-    modules: { settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages },
+    modules: { settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages },
   }));
 
   if (m.stats) {
@@ -682,6 +685,35 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
       if ((await shop.updateItem(p.data.id, b.data)) === 'not_found') return reply.code(404).send({ error: 'item_not_found' });
       void audit('shop.update', p.data.id, JSON.stringify(b.data));
+      return { ok: true };
+    });
+  }
+
+  if (m.coinPackages) {
+    const cp = m.coinPackages.admin;
+    const fields = {
+      titleFa: z.string().trim().min(2).max(80),
+      coins: z.number().int().min(1).max(10_000_000),
+      priceRials: z.number().int().min(0).max(1_000_000_000_000).transform((n) => BigInt(n)),
+      skuBazaar: z.string().trim().max(80).nullable(),
+      skuMyket: z.string().trim().max(80).nullable(),
+      minLevel: z.number().int().min(1).max(500),
+      isActive: z.boolean(),
+    };
+    g.get('/admin/coin-packages', async () => ({ packages: (await cp.list()).map((p) => ({ ...p, priceRials: Number(p.priceRials) })) }));
+    g.post('/admin/coin-packages', async (req, reply) => {
+      const b = z.object(fields).safeParse(req.body);
+      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const row = await cp.add(b.data);
+      void audit('coin_package.add', row.id, `${b.data.titleFa} ${b.data.coins}`);
+      return reply.code(201).send({ id: row.id });
+    });
+    g.patch('/admin/coin-packages/:id', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object(fields).partial().safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      if ((await cp.update(p.data.id, b.data)) === 'not_found') return reply.code(404).send({ error: 'package_not_found' });
+      void audit('coin_package.update', p.data.id, JSON.stringify(b.data, (_k, v) => (typeof v === 'bigint' ? Number(v) : v)));
       return { ok: true };
     });
   }

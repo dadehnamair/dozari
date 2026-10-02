@@ -680,6 +680,40 @@ export const shopItems = mysqlTable(
   (table) => ({ bySort: index('shop_items_sort_idx').on(table.sortOrder) }),
 );
 
+/** Fixed coin packages sold for real money through a store (built, switched off by `feature.coin_packages`). */
+export const coinPackages = mysqlTable(
+  'coin_packages',
+  {
+    id: id(),
+    titleFa: varchar('title_fa', { length: 80 }).notNull(),
+    coins: int('coins').notNull(),
+    /** Price in rials (display only; the store charges its own price for the SKU). */
+    priceRials: bigint('price_rials', { mode: 'bigint' }).notNull(),
+    skuBazaar: varchar('sku_bazaar', { length: 80 }),
+    skuMyket: varchar('sku_myket', { length: 80 }),
+    /** Buying needs this player level (paid items unlock at a level). */
+    minLevel: int('min_level').notNull().default(1),
+    sortOrder: int('sort_order').notNull().default(0),
+    isActive: boolean('is_active').notNull().default(false),
+  },
+  (table) => ({ bySort: index('coin_packages_sort_idx').on(table.sortOrder) }),
+);
+
+/** One verified store purchase; the unique order id makes a replayed callback harmless. */
+export const coinPurchases = mysqlTable(
+  'coin_purchases',
+  {
+    id: id(),
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    packageId: char('package_id', { length: 36 }).notNull().references(() => coinPackages.id),
+    store: mysqlEnum('store', ['bazaar', 'myket']).notNull(),
+    storeOrderId: varchar('store_order_id', { length: 120 }).notNull(),
+    coins: int('coins').notNull(),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ orderUnique: uniqueIndex('coin_purchases_order_idx').on(table.store, table.storeOrderId) }),
+);
+
 /** What a player owns, one row per effect (e.g. how many hint tokens). */
 export const userInventory = mysqlTable(
   'user_inventory',
