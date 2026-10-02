@@ -129,3 +129,13 @@ human-approval requirement above. Track candidate titles + which was chosen in
 - Item card: primary image (era-appropriate if the rule references a year), `name_fa`, optional
   `unit_fa`. **No prices shown during play.**
 - Initial order: seeded shuffle; guarantee no row of the initial grid equals a full group.
+
+## Hand-built puzzles in the admin panel (D130)
+
+Until the generator exists, the fastest way to get playable puzzles is the admin page «ساخت پازل» (`/admin/puzzles`, permission `content`):
+the admin picks **16 distinct catalog products**, splits them into **4 groups of 4** (levels 0–3 once each: yellow, green, blue, purple) and writes
+each group's witty title and plain explanation. The puzzle is saved `source: curated`, groups `rule_kind: curated` (no rule is machine-checked,
+the admin is the human check) and goes live as `approved` at once; it can be retired and re-activated. The page also shows the catalog's
+readiness: products in the catalog, products with ≥ `MIN_PRICE_POINTS_PER_PRODUCT` approved prices, approved puzzles. Prices are not needed to
+*play* a puzzle, but the price-guess round and the result chart need approved prices for its products.
+

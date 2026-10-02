@@ -94,6 +94,7 @@ import { registerCatalogRoutes, registerLookupRoutes } from './catalog/routes.js
 import { isMainModule } from './is-main.js';
 import { createDbPuzzleSource } from './solo/db-source.js';
 import { CoinPackageService } from './economy/coin-packages.js';
+import { createDbPuzzleAdmin } from './puzzles/admin.js';
 import { registerCoinPackageRoutes } from './economy/coin-packages-routes.js';
 import { createDbCoinPackageStore } from './economy/coin-packages-store.js';
 import { registerShopRoutes } from './economy/shop-routes.js';
@@ -273,7 +274,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.solo) registerSoloRoutes(app, deps.solo, deps.auth, deps.hints, deps.limiter);
   if (deps.auth && deps.shop) registerShopRoutes(app, deps.auth, deps.shop);
   if (deps.auth && deps.levelRoad) registerRoadRoutes(app, deps.auth, deps.levelRoad);
-  if (deps.auth && deps.coinPackages) registerCoinPackageRoutes(app, deps.auth, deps.coinPackages);
+  if (deps.auth && deps.coinPackages) registerCoinPackageRoutes(app, deps.auth, deps.coinPackages, deps.notify ? { send: (id, inv) => deps.notify!.sendInvoice(id, inv) } : undefined);
   let gateway: Gateway | undefined;
   if (deps.auth && deps.realtime) {
     const auth = deps.auth;
@@ -478,6 +479,11 @@ if (isMainModule(import.meta.url)) {
   const levelOf = async (id: string) => (player ? (await player.levelOf(id)).level.level : 1);
   const shopStore = db ? createDbShopStore(db) : undefined;
   const coinPackageService = db ? new CoinPackageService(createDbCoinPackageStore(db), levelOf) : undefined;
+  if (notify && coinPackageService) {
+    // Coins bought with the Bale wallet: the bot judges the pre-checkout and credits the successful payment (docs/logic/bale-payments.md).
+    notify.payments = coinPackageService;
+    notify.providerToken = process.env.BALE_PROVIDER_TOKEN ?? null;
+  }
   let dailyRef: DailyService | undefined;
   const solo =
     db && settings
@@ -498,7 +504,7 @@ if (isMainModule(import.meta.url)) {
     auth,
     settings,
     adminModules: db
-      ? { products: createDbProductAdmin(db), stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, daily, botPlayers: botStore && player && settings ? { service: new BotPlayerService(botStore, () => rulesFromSettings(settings).then((r) => r.xp), () => randomInt(0, 2 ** 30) / 2 ** 30, async (id) => player.afterGame?.(id)), cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      ? { products: createDbProductAdmin(db), stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, daily, puzzles: createDbPuzzleAdmin(db), botPlayers: botStore && player && settings ? { service: new BotPlayerService(botStore, () => rulesFromSettings(settings).then((r) => r.xp), () => randomInt(0, 2 ** 30) / 2 ** 30, async (id) => player.afterGame?.(id)), cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
     match: db

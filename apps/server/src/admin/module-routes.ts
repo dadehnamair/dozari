@@ -1,3 +1,4 @@
+import type { PuzzleAdmin } from '../puzzles/admin.js';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { isDateKey, ITEMS, PRODUCT_CATEGORIES, PROVINCES, provinceOf, SETTING_GROUPS, SHOP_EFFECTS } from '@dozari/shared';
@@ -49,6 +50,8 @@ export interface AdminModules {
   /** Tournament builder and management. */
   tournaments?: TournamentService;
   daily?: DailyService;
+  /** Hand-built puzzles: readiness of the catalog, list, create (4 groups × 4 products), retire. */
+  puzzles?: PuzzleAdmin;
   /** Bot players: generate many natural accounts, tune or pause them. */
   botPlayers?: { service: BotPlayerService; cities: () => Promise<string[]> };
   messages?: MessageCenter;
@@ -121,7 +124,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     adapters: BOT_ADAPTER_KEYS,
     settingGroups: SETTING_GROUPS,
     icons: ITEMS,
-    modules: { settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages },
+    modules: { puzzles: !!m.puzzles, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages },
   }));
 
   if (m.stats) {
@@ -537,6 +540,29 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
         return { ok: true, ...('refunded' in out ? { refunded: out.refunded } : {}) };
       });
     }
+  }
+
+  if (m.puzzles) {
+    const puzzles = m.puzzles;
+    const groupBody = z.object({ level: z.number().int().min(0).max(3), titleFa: z.string().trim().min(2).max(100), explanationFa: z.string().trim().min(2).max(300), productIds: z.array(z.string().uuid()).length(4) });
+    g.get('/admin/puzzles', async () => ({ readiness: await puzzles.readiness(), puzzles: await puzzles.list(200) }));
+    g.post('/admin/puzzles', async (req, reply) => {
+      const b = z.object({ groups: z.array(groupBody).length(4) }).safeParse(req.body);
+      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await puzzles.create(b.data.groups);
+      if (!out.ok) return reply.code(out.error === 'unknown_product' ? 404 : 400).send({ error: out.error });
+      void audit('puzzle.create', out.id);
+      return reply.code(201).send({ id: out.id });
+    });
+    g.patch('/admin/puzzles/:id', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object({ status: z.enum(['approved', 'retired']) }).safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await puzzles.setStatus(p.data.id, b.data.status);
+      if (out === 'not_found') return reply.code(404).send({ error: out });
+      void audit('puzzle.status', p.data.id, b.data.status);
+      return { ok: true };
+    });
   }
 
   if (m.daily) {

@@ -797,4 +797,66 @@ VIEWS.audit = function (root) {
     root.appendChild(card('گزارش تغییرها', 'صد تغییر آخر', r.body.entries.length ? [h('div', { class: 'tbl-wrap' }, [h('table', {}, [h('thead', {}, [h('tr', {}, ['زمان', 'چه کسی', 'کار', 'هدف', 'جزئیات'].map(function (x) { return h('th', { text: x }); }))]), h('tbody', {}, r.body.entries.map(function (e) { return h('tr', {}, [h('td', { text: ago(e.at) }), h('td', { text: e.actor || '—' }), h('td', {}, [badge(e.action, 'b-info')]), h('td', { class: 'ltr', text: e.target }), h('td', { class: 'ltr', text: e.detail || '' })]); }))])])] : [empty('هنوز چیزی ثبت نشده')]));
   });
 };
+
+VIEWS.puzzles = function (root) {
+  var LEVELS = [['زرد (آسان)', '#f5c542'], ['سبز', '#6cc24a'], ['آبی', '#3fa5e0'], ['بنفش (سخت)', '#9b59d0']];
+  var prods = [];
+  var readyBox = h('div'), listBox = h('div'), formBox = h('div');
+  function drawReady(r) {
+    clear(readyBox);
+    var ok = r.products >= r.productsPerPuzzle;
+    readyBox.appendChild(card('آمادگی کاتالوگ', 'هر پازل ' + fa(r.productsPerPuzzle) + ' کالای متمایز می‌خواهد: ۴ دسته‌ی ۴تایی', [
+      h('div', { class: 'kv' }, [h('span', { text: 'کالاهای کاتالوگ' }), h('b', { class: 'num', text: fa(r.products) })]),
+      h('div', { class: 'kv' }, [h('span', { text: 'کالاهای دارای ' + fa(3) + ' قیمت تأییدشده یا بیشتر' }), h('b', { class: 'num', text: fa(r.withPrices) })]),
+      h('div', { class: 'kv' }, [h('span', { text: 'پازل تأییدشده (قابل بازی)' }), h('b', { class: 'num', text: fa(r.approvedPuzzles) })]),
+      ok ? badge('کالا برای ساخت پازل کافی است', 'b-ok') : badge('هنوز ' + fa(r.productsPerPuzzle - r.products) + ' کالای دیگر لازم است؛ از «کاتالوگ محصولات» اضافه کن', 'b-warn')
+    ]));
+  }
+  function drawForm() {
+    clear(formBox);
+    var titles = [], expls = [], sels = [];
+    var opts = [['', '— کالا را انتخاب کن —']].concat(prods.map(function (p) { return [p.id, p.nameFa]; }));
+    var blocks = LEVELS.map(function (lv, i) {
+      titles[i] = h('input', { placeholder: 'عنوان بامزه‌ی دسته' });
+      expls[i] = h('input', { placeholder: 'توضیح ساده‌ی قانون (مثلاً: همه‌شان سال ۷۵ حدود ۱۰۰ تومان بودند)' });
+      sels[i] = [0, 1, 2, 3].map(function () { return select(opts, ''); });
+      return h('div', { style: 'border-inline-start:6px solid ' + lv[1] + ';padding:6px 10px;margin:8px 0' }, [
+        h('b', { text: 'دسته‌ی ' + lv[0] }),
+        field('عنوان', titles[i]), field('توضیح', expls[i]),
+        h('div', { style: 'display:grid;grid-template-columns:repeat(2,1fr);gap:6px' }, sels[i])
+      ]);
+    });
+    var btn = h('button', { class: 'btn', text: 'ساخت پازل', onclick: function () {
+      var groups = LEVELS.map(function (lv, i) { return { level: i, titleFa: titles[i].value, explanationFa: expls[i].value, productIds: sels[i].map(function (s) { return s.value; }) }; });
+      if (groups.some(function (g) { return g.productIds.some(function (id) { return !id; }); })) return toast('هر ۱۶ کالا را انتخاب کن', true);
+      api('/admin/puzzles', { method: 'POST', body: { groups: groups } }).then(function (r) {
+        if (!r.ok) return r.body && r.body.error === 'duplicate_product' ? toast('یک کالا نباید دو بار در پازل بیاید', true) : fail(r);
+        toast('پازل ساخته شد و قابل بازی است'); load();
+      });
+    } });
+    formBox.appendChild(card('ساخت پازل دستی', 'چهار دسته، هر دسته چهار کالا؛ بعد از ساخت همان لحظه در بازی تکی و دوئل پخش می‌شود', blocks.concat([btn])));
+  }
+  function drawList(rows) {
+    clear(listBox);
+    if (!rows.length) return listBox.appendChild(card('پازل‌ها', '', [empty('هنوز پازلی نیست')]));
+    listBox.appendChild(card('پازل‌ها', 'تازه‌ترین‌ها', rows.map(function (p) {
+      return h('div', { class: 'kv', style: 'align-items:center;flex-wrap:wrap' }, [
+        h('div', {}, [badge(p.status === 'approved' ? 'تأییدشده' : p.status === 'retired' ? 'بازنشسته' : 'پیش‌نویس', p.status === 'approved' ? 'b-ok' : 'b-mute'),
+          h('div', { style: 'font-size:13px;color:var(--muted)', text: p.groups.map(function (g) { return g.titleFa || '—'; }).join(' · ') })]),
+        p.status === 'approved'
+          ? h('button', { class: 'btn bad sm', text: 'بازنشسته کن', onclick: function () { api('/admin/puzzles/' + p.id, { method: 'PATCH', body: { status: 'retired' } }).then(function (r) { r.ok ? load() : fail(r); }); } })
+          : h('button', { class: 'btn ok sm', text: 'دوباره فعال کن', onclick: function () { api('/admin/puzzles/' + p.id, { method: 'PATCH', body: { status: 'approved' } }).then(function (r) { r.ok ? load() : fail(r); }); } })
+      ]);
+    })));
+  }
+  function load() {
+    api('/admin/puzzles').then(function (r) {
+      if (r.status === 404) { clear(root); return root.appendChild(empty('بخش پازل روی این سرور فعال نیست')); }
+      if (!r.ok) return fail(r);
+      drawReady(r.body.readiness); drawList(r.body.puzzles);
+    });
+  }
+  root.appendChild(readyBox); root.appendChild(formBox); root.appendChild(listBox);
+  api('/admin/catalog').then(function (r) { if (!r.ok) return fail(r); prods = r.body.products; drawForm(); load(); });
+};
 `;
