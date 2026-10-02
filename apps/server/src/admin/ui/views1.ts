@@ -188,6 +188,8 @@ VIEWS.prices = function (root) {
       }))));
     });
     if (!n) list.appendChild(empty(status === 'pending' ? 'همه‌ی قیمت‌ها بازبینی شده‌اند 🎉' : 'موردی نیست'));
+    // Prices the bot finds wait in its own inbox, not here: point there when something is waiting.
+    if (!n && status === 'pending' && S.counts && S.counts.inbox) list.appendChild(h('div', { class: 'card' }, [h('p', { text: 'این‌جا فقط قیمت‌هایی که خودت دستی ثبت کرده‌ای می‌آید. ' + fa(S.counts.inbox) + ' پیشنهاد قیمت از ربات در «صندوق ربات» منتظر بررسی است.' }), h('a', { class: 'btn sm', href: '#/inbox', text: 'رفتن به صندوق ربات' })]));
   }
   api('/admin/catalog').then(function (r) { if (!r.ok) return fail(r); products = r.body.products; draw(); refreshCounts(); });
 };

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Svg, { G, Path } from 'react-native-svg';
 import { Character } from '../components/Character';
 import { GradientFill } from '../components/GradientFill';
@@ -23,21 +23,22 @@ const ROAD = 'M159 714 C159 640 60 630 70 560 C80 500 244 486 244 420 C244 360 8
  * propose-and-vote school are drawn but say «به‌زودی».
  */
 export function CityHub({ onClose, onEnter, features, dailyReady }: { onClose: () => void; onEnter: (a: HubAction) => void; features: { daily: boolean; duel: boolean; tournament: boolean }; dailyReady: boolean }) {
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const [sel, setSel] = useState<HubBuilding | null>(null);
-  const mapW = Math.min(width, 520);
-  const k = mapW / MAP_W;
+  // The whole town fits the screen (nothing scrolls): scale by whichever of width / height is tighter.
+  const k = Math.min(Math.min(width, 520) / MAP_W, height / MAP_H);
+  const mapW = MAP_W * k;
   const t = fa.hub;
 
   return (
     <View style={styles.root}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <View style={{ width: mapW, height: MAP_H * k, alignSelf: 'center' }}>
-          <View style={[styles.sky, { height: 190 * k }]}>
-            <View style={[styles.skyBand, { backgroundColor: '#5ECBC6', flex: 1 }]} />
-            <View style={[styles.skyBand, { backgroundColor: '#8FDCCF', flex: 1 }]} />
-            <View style={[styles.skyBand, { backgroundColor: '#B9EAD8', flex: 1 }]} />
-          </View>
+      <View style={[styles.sky, { height: 190 * k }]}>
+        <View style={[styles.skyBand, { backgroundColor: '#5ECBC6', flex: 1 }]} />
+        <View style={[styles.skyBand, { backgroundColor: '#8FDCCF', flex: 1 }]} />
+        <View style={[styles.skyBand, { backgroundColor: '#B9EAD8', flex: 1 }]} />
+      </View>
+      <View style={styles.mapBox}>
+        <View style={{ width: mapW, height: MAP_H * k }}>
           <Svg width={mapW} height={MAP_H * k} viewBox={`0 0 ${MAP_W} ${MAP_H}`} style={StyleSheet.absoluteFill}>
             <G stroke={INK} strokeWidth={2.4} strokeLinejoin="round" strokeLinecap="round">
               <Path d="M-40 6 C-52 4 -50 -14 -36 -12 C-34 -26 -14 -28 -8 -16 C-2 -28 22 -26 22 -12 C38 -16 46 2 32 8 C30 18 12 18 6 10 C0 18 -18 18 -22 10 C-30 16 -42 14 -40 6Z" transform="translate(250 120) scale(.7)" fill="#fff" stroke="#4E9E9E" strokeWidth={2.2} />
@@ -76,7 +77,7 @@ export function CityHub({ onClose, onEnter, features, dailyReady }: { onClose: (
             );
           })}
         </View>
-      </ScrollView>
+      </View>
 
       <View style={styles.top}>
         <Pressable accessibilityRole="button" accessibilityLabel={t.close} onPress={onClose}>
@@ -133,7 +134,7 @@ const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0
 
 const styles = StyleSheet.create({
   root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20, backgroundColor: '#F2D59C' },
-  scroll: { paddingBottom: 0 },
+  mapBox: { flex: 1, alignItems: 'center', justifyContent: 'flex-end' },
   sky: { position: 'absolute', top: 0, left: 0, right: 0 },
   skyBand: { width: '100%' },
   tag: { position: 'absolute', width: 140, alignItems: 'center' },
