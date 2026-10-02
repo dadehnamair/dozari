@@ -309,3 +309,7 @@ The old profile sheet mixed identity and settings. It is now two pages from the 
 ## D108 — Leaderboard by XP with city and friends scopes (2026-10-02)
 
 Owner: build screen-leaderboard. Ranked by total XP (the only score we store). Tabs: everyone, my city (the regional filter D53 promised), friends; the design's week / month are replaced because no per-game log exists — add them when game history is recorded. Bots appear like players (D67). `GET /leaderboard?scope=` returns the top 20 and the caller's place.
+
+## D110 — Production deployment stack (2026-10-02)
+
+The repo's `docker-compose.yml` stays dev-only. Production is `docker-compose.prod.yml` + `deploy/` (see `docs/deploy.md`): MySQL on the private network only, a one-shot `migrate` service, the game server (run through tsx because the workspace packages are TypeScript sources), and Caddy serving the PWA build with automatic https and proxying the API on a second hostname (the API routes live at the root, so web and API need separate hosts; `CORS_ORIGIN` is the web host). Images default to a local volume served by the game server; S3 (Arvan/MinIO) is a documented switch. Verified without Docker (no daemon here): the install layout, migrations from an empty database, and the server booting in production mode with its CORS and HSTS headers; the image builds themselves have not been run.

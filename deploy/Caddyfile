@@ -1,0 +1,22 @@
+# {$APP_DOMAIN}: the web app (PWA). {$API_DOMAIN}: the game server (REST, Socket.io, admin panel, images).
+# Caddy gets and renews the https certificates by itself; both names must point at this server.
+{$APP_DOMAIN} {
+	root * /srv/web
+	encode zstd gzip
+
+	# Releases must be seen at once; hashed bundles never change.
+	@sw path /sw.js
+	header @sw Cache-Control "no-cache"
+	@manifest path /manifest.webmanifest
+	header @manifest Cache-Control "no-cache"
+	@static path /_expo/static/*
+	header @static Cache-Control "public, max-age=31536000, immutable"
+
+	try_files {path} /index.html
+	file_server
+}
+
+{$API_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy server:3000
+}
