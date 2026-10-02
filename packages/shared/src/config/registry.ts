@@ -105,6 +105,7 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'hint.min_level', group: 'economy', label: 'کمترین لول برای گرفتن راهنما', kind: 'int', min: 1, max: 100, default: HINT_MIN_LEVEL },
   { key: 'hint.max_per_game', group: 'economy', label: 'حداکثر راهنما در هر بازی', kind: 'int', min: 1, max: 10, default: HINT_MAX_PER_GAME },
   { key: 'hint.repeat_percent', group: 'economy', label: 'قیمت راهنمای دوم به بعد (درصد قیمت اول)', hint: '۲۰۰ یعنی دو برابر', kind: 'int', min: 100, max: 1000, default: HINT_REPEAT_PERCENT, unit: '٪' },
+  { key: 'feature.coin_packages', group: 'app', label: 'خرید بسته‌ی سکه با پول واقعی روشن باشد', hint: 'تا فروشگاه‌های بازار/مایکت وصل نشده خاموش بماند', kind: 'bool', min: 0, max: 1, default: 0 },
   { key: 'feature.shop', group: 'app', label: 'فروشگاه و راهنما روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'invite.min_level', group: 'economy', label: 'کمترین لول برای گرفتن کد معرف شخصی', hint: 'کد معرف ارزشمند است؛ تا این لول کدی داده نمی‌شود', kind: 'int', min: 1, max: 100, default: INVITE_MIN_LEVEL },
   { key: 'invite.max_uses', group: 'economy', label: 'هر کد معرف چند نفر را می‌تواند دعوت کند', kind: 'int', min: 1, max: 1000, default: INVITE_MAX_USES, unit: 'نفر' },

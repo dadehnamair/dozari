@@ -236,3 +236,8 @@ engine yet and stays silent; vibration uses `navigator.vibrate` where it exists.
 `simulateEconomy` (shared, pure, seeded) models the duel economy with the launch defaults; match economy numbers now live in `config/economy.ts`. Result: 0.002 % stuck player-days,
 but the balance inflates (median 1336 after 30 days; faucets ≈ 1433 vs burn ≈ 100 per player). Proposed: keep numbers until real data, rely on shop/cosmetics/coin packages as sinks,
 lower the free-match payout first if needed. Owner may change the numbers; see `docs/logic/economy.md` §Balancing.
+
+## D91 — Coin packages built but off (2026-10-02)
+
+Catalog, level gate, admin CRUD and an idempotent `purchase` credit exist, behind `feature.coin_packages` (default off) and a verifier that refuses until a real store adapter exists.
+Still needed from the owner before enabling: Bazaar/Myket developer accounts and SKUs, store receipt-API keys, refund/dispute handling and store-policy review (open question 4).

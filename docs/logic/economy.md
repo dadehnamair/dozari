@@ -96,6 +96,10 @@ ledger don't need retrofitting later).
 - Ledger: new `purchase` reason (already reserved as a placeholder in `data-model.md`
   §coin_ledger), `idempotencyKey = purchase:<storeOrderId>`, so a replayed/duplicate store
   callback can't double-credit.
+- **Built, switched off (D91):** tables `coin_packages` (+ `min_level`, sort, per-store SKU) and `coin_purchases` (unique store+order id);
+  `GET /coin-packages`, `POST /coin-packages/:id/redeem {store, orderId, token}`; admin CRUD `/admin/coin-packages` (economy permission).
+  Everything is gated by setting `feature.coin_packages` (default 0). The receipt check is a `ReceiptVerifier`; the shipped one refuses
+  everything, so no coin can be credited until a real Bazaar/Myket adapter is written and the flag is turned on.
 - Because this is real money, it needs its own refund/dispute handling and store-policy
   compliance review before going live — tracked as a Phase 8+ (or dedicated) task in `PLAN.md`,
   not part of the Phase 6 coin-economy build-out.
