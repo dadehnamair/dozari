@@ -23,13 +23,13 @@ import { shareTable } from '../tables/api';
 import { TableSheet } from '../tables/TableSheet';
 import { TournamentSheet } from '../tournament/TournamentSheet';
 import { Toast } from '../components/Toast';
+import { SlabButton } from '../components/SlabButton';
 import { Wordmark } from '../components/Wordmark';
 import { useDailyReward } from '../daily/useDailyReward';
 import { solarMonthOf, toPersianDigits } from '@dozari/shared';
 import type { IconName } from '../theme/icons';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
-import { HubButton } from './HubButton';
 import { HubTile } from './HubTile';
 import { StatPill } from './StatPill';
 
@@ -147,8 +147,8 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
         </View>
 
         <View style={styles.buttons}>
-          <HubButton label={h.play} color={colors.candy.lime} onPress={onSolo} />
-          {second ? <HubButton label={second.label} color={second.color} badge={second.badge} onPress={second.onPress} /> : null}
+          <SlabButton label={h.play} color={colors.candy.lime} onPress={onSolo} />
+          {second ? <SlabButton label={second.label} color={second.color} badge={second.badge} onPress={second.onPress} /> : null}
         </View>
       </View>
 
