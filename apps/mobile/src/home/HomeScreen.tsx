@@ -38,6 +38,7 @@ import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { HubTile } from './HubTile';
 import { StatPill } from './StatPill';
+import { safeBottom, safeTop } from '../theme/safeArea';
 
 interface Tile {
   key: string;
@@ -221,7 +222,7 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingTop: 14, paddingBottom: 22, paddingHorizontal: 12 },
+  root: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingTop: safeTop(14), paddingBottom: safeBottom(22), paddingHorizontal: 12 },
   pills: { flexDirection: RTL_ROW, gap: 8, minHeight: 36, alignItems: 'center' },
   mapBtn: { width: 38, height: 38, borderRadius: 19, borderWidth: 2, borderColor: 'rgba(255,255,255,0.35)', backgroundColor: 'rgba(43,18,64,0.65)', alignItems: 'center', justifyContent: 'center' },
   mapIcon: { width: 26, height: 26 },

@@ -42,13 +42,14 @@
       #root {
         display: flex;
         flex: 1;
-        /* Cover the whole screen, home-indicator strip included: on iOS the home-screen app's `height: 100%` stops short of
-           the bottom edge, which left a bare purple bar there. */
+        /* Cover the whole screen. On iOS the home-screen app's `100%` / `bottom: 0` stop about a status-bar short of the
+           real bottom edge (a bare purple strip), while `100vh` / `100lvh` is the true screen height. */
         position: fixed;
         top: 0;
         left: 0;
         right: 0;
-        bottom: 0;
+        height: 100vh;
+        height: 100lvh;
       }
     </style>
     <script>
