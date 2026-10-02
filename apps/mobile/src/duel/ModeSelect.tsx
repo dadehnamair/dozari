@@ -1,4 +1,4 @@
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { solarMonthOf } from '@dozari/shared';
 import { Character } from '../components/Character';
 import { GradientFill } from '../components/GradientFill';
@@ -15,18 +15,19 @@ const a = fa.duel.arena;
 
 /** screen-mode of `13 Match Screens`: the 1v1 card (picked), the 2v2 card (not built yet), «رقابت با دوست», «بزن بریم!». */
 export function ModeSelect({ entry, prize, onGo, onFriend, onBack }: { entry: number; prize: number; onGo: () => void; onFriend?: () => void; onBack: () => void }) {
+  const tight = useWindowDimensions().height < 700; // nothing scrolls: shrink the cast on short screens
   return (
     <View style={styles.root}>
       <View style={StyleSheet.absoluteFill}><Scene scene="caravan" mood="dusk" /></View>
       <View style={[StyleSheet.absoluteFill, styles.shade]} />
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <View style={styles.column}>
+      <View style={[styles.scroll, tight ? styles.scrollTight : null]}>
+        <View style={[styles.column, tight ? styles.columnTight : null]}>
           <GameTopBar title={a.title} backLabel={fa.duel.back} onBack={onBack} />
-          <ModeCard title={a.duel} tag={a.oneVsOne} band="sky" picked onPress={onGo}
+          <ModeCard tight={tight} title={a.duel} tag={a.oneVsOne} band="sky" picked onPress={onGo}
             cast={[{ who: 'dozari', pose: 'coin' }, { who: 'pahlevan', pose: 'angry', flip: true }]}
             stats={[{ icon: 'ticket', text: a.entry(entry) }, { icon: 'coinStack', text: a.prize(prize) }]} />
           <Text style={styles.note}>{a.freeNote}</Text>
-          <ModeCard title={a.team} tag={a.twoVsTwo} band="grape" disabled
+          <ModeCard tight={tight} title={a.team} tag={a.twoVsTwo} band="grape" disabled
             cast={[{ who: 'goli', pose: 'cheer', small: true }, { who: 'dozari', pose: 'wave', small: true }, { who: 'pahlevan', pose: 'pointing', flip: true, small: true }, { who: 'baqal', pose: 'thinking', flip: true, small: true }]}
             stats={[{ icon: 'hourglass', text: a.soon }]} />
           <View style={styles.spacer} />
@@ -38,14 +39,14 @@ export function ModeSelect({ entry, prize, onGo, onFriend, onBack }: { entry: nu
           ) : null}
           <SlabButton label={a.go} color={colors.candy.lime} height={62} grow={0} onPress={onGo} />
         </View>
-      </ScrollView>
+      </View>
     </View>
   );
 }
 
 type Cast = { who: CharacterId; pose: CharacterPose; flip?: boolean; small?: boolean };
 
-function ModeCard({ title, tag, band, cast, stats, picked = false, disabled = false, onPress }: { title: string; tag: string; band: 'sky' | 'grape'; cast: Cast[]; stats: { icon: string; text: string }[]; picked?: boolean; disabled?: boolean; onPress?: () => void }) {
+function ModeCard({ tight = false, title, tag, band, cast, stats, picked = false, disabled = false, onPress }: { tight?: boolean; title: string; tag: string; band: 'sky' | 'grape'; cast: Cast[]; stats: { icon: string; text: string }[]; picked?: boolean; disabled?: boolean; onPress?: () => void }) {
   const half = cast.length / 2;
   const month = solarMonthOf(Date.now());
   return (
@@ -58,9 +59,9 @@ function ModeCard({ title, tag, band, cast, stats, picked = false, disabled = fa
             <Text style={styles.bandTitle}>{title}</Text>
             <View style={styles.tag}><Text style={styles.tagText}>{tag}</Text></View>
           </View>
-          <View style={styles.stage}>
+          <View style={[styles.stage, tight ? styles.stageTight : null]}>
             {cast.map((c, i) => (
-              <View key={`${c.who}${i}`} style={[c.small ? styles.castSmall : styles.cast, c.flip ? styles.flip : null]}>
+              <View key={`${c.who}${i}`} style={[c.small ? styles.castSmall : styles.cast, tight ? (c.small ? styles.castSmallTight : styles.castTight) : null, c.flip ? styles.flip : null]}>
                 <Character who={c.who} pose={c.pose} month={c.who === 'dozari' ? month : undefined} />
               </View>
             )).flatMap((el, i) => (i === half - 1 ? [el, <VsBadge key="vs" />] : [el]))}
@@ -96,6 +97,11 @@ const shadow = { shadowColor: colors.ink, shadowOffset: { width: 0, height: 6 },
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#3C1A66' },
   shade: { backgroundColor: 'rgba(43,18,64,0.5)' },
+  scrollTight: { paddingTop: 8, paddingBottom: 10 },
+  columnTight: { gap: 8 },
+  stageTight: { height: 76 },
+  castTight: { width: 62, height: 70 },
+  castSmallTight: { width: 46, height: 62 },
   scroll: { flexGrow: 1, paddingHorizontal: 14, paddingTop: 14, paddingBottom: 20, alignItems: 'center' },
   column: { flex: 1, width: '100%', maxWidth: 480, gap: 14 },
   card: { borderRadius: 24, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', transform: [{ scale: 0.96 }], ...shadow },

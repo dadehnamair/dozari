@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Character } from '../components/Character';
 import { GradientFill } from '../components/GradientFill';
 import { Icon } from '../components/Icon';
@@ -45,6 +45,8 @@ export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone }: 
   const [note, setNote] = useState<string | null>(null);
   const [aboutOpen, setAboutOpen] = useState(false);
   const t = fa.settings;
+  // Nothing scrolls: on a short screen the rows tighten instead.
+  const compact = useWindowDimensions().height < 760;
 
   if (cityOpen) return <CityPicker current={city ?? null} onPicked={(c) => (setCity(c), setCityOpen(false))} onClose={() => setCityOpen(false)} />;
   const openCity = () => void fetchMyProfile().then((p) => (setCity(p.city), setCityOpen(true)), () => setNote(fa.account.failed));
@@ -88,8 +90,8 @@ export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone }: 
   return (
     <View style={styles.root}>
       <View style={styles.scene} pointerEvents="none"><Scene scene="hojre" /></View>
-      <ScrollView contentContainerStyle={styles.page}>
-        <View style={styles.column}>
+      <View style={styles.page}>
+        <View style={[styles.column, compact ? styles.columnTight : null]}>
           <View style={styles.head}>
             <Pressable accessibilityRole="button" accessibilityLabel={t.close} onPress={onClose}>
               {({ pressed }) => (
@@ -103,19 +105,14 @@ export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone }: 
               <GradientFill from="#8FDCFA" to="#3FC1F0" />
               <Text style={styles.plateText}>{t.title}</Text>
             </View>
-            <View style={styles.spacer} />
-          </View>
-
-          <View style={styles.talk}>
-            <View style={styles.mashti}><Character who="mashti" pose="pointing" /></View>
-            <View style={styles.bubble}><Text style={styles.bubbleText}>{t.mashti}</Text></View>
+            <View style={styles.mashti} accessibilityLabel={t.mashti}><Character who="mashti" pose="pointing" crop="face" /></View>
           </View>
 
           {groups.map((g) => (
             <View key={g.title} style={styles.group}>
               <View style={[styles.groupHead, { backgroundColor: g.tint }]}><Text style={styles.groupTitle}>{g.title}</Text></View>
               {g.rows.map((r) => (
-                <Pressable key={r.key} onPress={r.onPress} accessibilityRole={r.toggle === undefined ? 'button' : 'switch'} accessibilityState={r.toggle === undefined ? undefined : { checked: r.toggle }} style={styles.row}>
+                <Pressable key={r.key} onPress={r.onPress} accessibilityRole={r.toggle === undefined ? 'button' : 'switch'} accessibilityState={r.toggle === undefined ? undefined : { checked: r.toggle }} style={[styles.row, compact ? styles.rowTight : null]}>
                   <View style={[styles.tile, { backgroundColor: r.tint }]}><View style={styles.tileIcon}><Item icon={r.icon} /></View></View>
                   <Text style={[styles.rowText, r.tone ? { color: r.tone } : null]}>{r.key === 'del' && sure ? fa.account.deleteSure : r.label}</Text>
                   {r.toggle !== undefined ? (
@@ -130,7 +127,7 @@ export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone }: 
             </View>
           ))}
         </View>
-      </ScrollView>
+      </View>
       {iosHelp ? <IosInstallSheet onClose={() => setIosHelp(false)} /> : null}
     </View>
   );
@@ -141,18 +138,17 @@ const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0
 const styles = StyleSheet.create({
   root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20, backgroundColor: '#D99A52' },
   scene: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.9 },
-  page: { paddingBottom: 30 },
-  column: { width: '100%', maxWidth: 520, alignSelf: 'center', paddingHorizontal: 12, paddingTop: safeTop(30), gap: 10 },
+  page: { flex: 1, paddingBottom: 12 },
+  column: { width: '100%', maxWidth: 520, alignSelf: 'center', paddingHorizontal: 12, paddingTop: safeTop(30), gap: 8 },
   head: { flexDirection: ROW, alignItems: 'center', gap: 8 },
   back: { width: 42, height: 42, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...lift(4) },
   pressed: { transform: [{ translateY: 3 }] },
   plate: { flex: 1, height: 46, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...lift(4) },
   plateText: { fontFamily: fonts.display, fontSize: 24, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
   spacer: { width: 42 },
-  talk: { flexDirection: ROW, alignItems: 'flex-end', gap: 4 },
-  mashti: { width: 92, height: 106 },
-  bubble: { flex: 1, marginBottom: 30, padding: 10, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#FFF6E8', ...lift(4) },
-  bubbleText: { fontFamily: fonts.bold, fontSize: 12.5, lineHeight: 20, color: colors.ink, textAlign: 'right' },
+  mashti: { width: 42, height: 46 },
+  columnTight: { paddingTop: safeTop(12), gap: 6 },
+  rowTight: { minHeight: 36, paddingVertical: 1 },
   group: { borderRadius: 20, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#FBF1DE', overflow: 'hidden', ...lift(5) },
   groupHead: { paddingVertical: 6, paddingHorizontal: 14, borderBottomWidth: 3, borderColor: colors.ink },
   groupTitle: { fontFamily: fonts.display, fontSize: 16, color: '#fff', textAlign: 'right', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 1 },
