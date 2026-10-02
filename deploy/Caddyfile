@@ -1,6 +1,12 @@
-# {$APP_DOMAIN}: the web app (PWA). {$API_DOMAIN}: the game server (REST, Socket.io, admin panel, images).
-# Caddy gets and renews the https certificates by itself; both names must point at this server.
-{$APP_DOMAIN} {
+# The web app (PWA) as plain HTTP inside the container. https and the domain names belong to the reverse proxy that
+# already runs on the host (nginx, Caddy, Nginx Proxy Manager ...); it forwards:
+#   APP_DOMAIN -> 127.0.0.1:WEB_PORT   (this container)
+#   API_DOMAIN -> 127.0.0.1:3000       (the game server; websockets must be allowed)
+{
+	auto_https off
+}
+
+:80 {
 	root * /srv/web
 	encode zstd gzip
 
@@ -14,9 +20,4 @@
 
 	try_files {path} /index.html
 	file_server
-}
-
-{$API_DOMAIN} {
-	encode zstd gzip
-	reverse_proxy server:3000
 }

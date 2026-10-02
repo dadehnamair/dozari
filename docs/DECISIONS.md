@@ -325,3 +325,7 @@ The level road and locked popup are built from `GET /me/levels` (level, XP curve
 ## D112 — City hub as a second entry (2026-10-02)
 
 Owner: Home is good as it is; the hub map complements it. Built as an extra page (round map button in Home's top row) that routes to the same modes. Buildings of modes that do not exist (team, propose-and-vote) are shown but disabled. Building art is the design's (`parts`), ported to typed code; the sky is drawn as three flat bands because a gradient fill did not render reliably under the scroll view.
+
+## D113 — Deployment behind the host's existing reverse proxy (2026-10-02)
+
+The owner's server already runs many services on ports 80/443, so the stack no longer binds them: the web container serves plain HTTP on `127.0.0.1:${WEB_PORT:-8081}`, the game server on `127.0.0.1:3000`, and the host's proxy forwards `mrbots.ir` and `api.mrbots.ir` (websockets on) and owns https. Replaces the Caddy-with-certificates arrangement of D110; `deploy/nginx.example.conf` shows the forwards.
