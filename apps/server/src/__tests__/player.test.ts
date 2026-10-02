@@ -102,7 +102,10 @@ describe('city and e-mail', () => {
     expect((await app.inject({ method: 'PUT', url: '/me/city', headers: a.h, payload: { cityId: tehran.id } })).statusCode).toBe(200);
     expect((await app.inject({ method: 'PUT', url: '/me/city', headers: a.h, payload: { cityId: '00000000-0000-7000-8000-0000000000ff' } })).json()).toEqual({ error: 'unknown_city' });
     expect(myProfileSchema.parse((await app.inject({ method: 'GET', url: '/me/profile', headers: a.h })).json()).city).toEqual(tehran);
-    expect(playerProfileSchema.parse((await app.inject({ method: 'GET', url: `/players/${a.id}`, headers: b.h })).json()).cityName).toBe('تهران');
+    const pub = playerProfileSchema.parse((await app.inject({ method: 'GET', url: `/players/${a.id}`, headers: b.h })).json());
+    expect([pub.cityName, pub.cityProvince]).toEqual(['تهران', 'tehran']);
+    expect(tehran.province).toBe('tehran');
+    expect(cities.find((c) => c.nameFa === 'تورنتو')?.province).toBe('toronto');
     expect((await app.inject({ method: 'PUT', url: '/me/city', headers: a.h, payload: { cityId: null } })).statusCode).toBe(200);
   });
 

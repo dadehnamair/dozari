@@ -153,6 +153,11 @@ describe('cors', () => {
     const on = await buildServer({ corsOrigin: 'http://x' }).inject({ method: 'OPTIONS', url: '/health', headers: { origin: 'http://x', 'access-control-request-method': 'GET' } });
     expect(on.headers['access-control-allow-origin']).toBe('http://x');
   });
+
+  it('lets the web app send PUT, PATCH and DELETE', async () => {
+    const pre = await buildServer({ corsOrigin: 'http://x' }).inject({ method: 'OPTIONS', url: '/me/city', headers: { origin: 'http://x', 'access-control-request-method': 'PUT' } });
+    expect(String(pre.headers['access-control-allow-methods']).split(',').map((m) => m.trim())).toEqual(expect.arrayContaining(['PUT', 'PATCH', 'DELETE']));
+  });
 });
 
 describe('solo price-guess round', () => {

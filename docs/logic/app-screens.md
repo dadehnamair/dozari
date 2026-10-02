@@ -47,7 +47,10 @@ background; top bar with a square back button, the yellow title plate (practice 
 hint button; the character beside a speech bubble that carries the prompt, the last guess's feedback
 (the character's pose follows it) or revealed hint titles; the 4×4 board; «فرصت‌ها» dots (one per
 chance left); and three action slabs: shuffle, clear, submit (wider, dimmed until four are picked).
-The end of a game (banner, price round, chart) keeps its earlier layout for now.
+When the game ends the board gives way to one fixed end scene, never a scrolling page (D54): top bar,
+the character (win / sad) with the result line, one dark card holding the price round (one question
+at a time, then the summary) and then the chart, and the back / new-game slabs pinned at the bottom.
+Short screens (≤ 700 px tall) get a smaller character and chart.
 
 ## Live duel (D99, D100)
 
@@ -76,6 +79,21 @@ Four views from `docs/design/Dozari - 13 Match Screens.dc.html`:
   ببرید!» with both rewards from the server rules, the code in a dashed box with copy (web
   clipboard), «n از m دوست اومدن» with up to five boxes (the last a chest), the rules, the field for
   a friend's code, and a share slab. Per-app share buttons of the mock-up become the system share sheet.
+
+## Friends page (D99)
+
+screen-friends of `19 Social Daily Onboarding`, opened from the profile sheet (its button shows the
+number of pending requests): sky header band, «+ افزودن» (find players), a search field that filters
+by nickname, incoming requests with accept / decline, then one card per friend (avatar, nickname —
+tap for their profile — and a gift button that opens the coin gift). The mock-up's online status and
+per-friend duel button need presence and direct challenges, which do not exist yet; they are left out.
+
+## City page (D101)
+
+«شهر من», opened from the city row of the profile: the badge grid of `18 Provinces` — an «ایران»
+group then «ایرانیان خارج از کشور», each card with the province badge, city name and souvenir; the
+current city is yellow; «نمی‌خواهم بگویم» clears it. Tapping saves and returns. Home shows the
+badge and the local greeting under the month bubble; tapping it opens the profile.
 
 ## Matchmaking queue (waiting) screen
 

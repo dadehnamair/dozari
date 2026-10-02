@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { isDateKey, ITEMS, PRODUCT_CATEGORIES, SETTING_GROUPS, SHOP_EFFECTS } from '@dozari/shared';
+import { isDateKey, ITEMS, PRODUCT_CATEGORIES, PROVINCES, provinceOf, SETTING_GROUPS, SHOP_EFFECTS } from '@dozari/shared';
 import type { SettingsService } from '../settings/service.js';
 import { BOT_ADAPTER_KEYS, SOURCE_TYPES } from '../bot/constants.js';
 import type { BotRepository } from '../bot/repository.js';
@@ -346,18 +346,20 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
 
   if (m.cities) {
     const cities = m.cities;
-    g.get('/admin/cities', async () => ({ cities: await cities.cities({ includeHidden: true }) }));
+    /** A `PROVINCES` key, or null for no regional identity. */
+    const provinceKey = z.string().refine((k) => provinceOf(k) !== null).nullable();
+    g.get('/admin/cities', async () => ({ cities: await cities.cities({ includeHidden: true }), provinces: PROVINCES.map((p) => ({ key: p.key, nameFa: p.nameFa, abroad: p.abroad })) }));
     g.post('/admin/cities', async (req, reply) => {
-      const b = z.object({ slug: z.string().trim().toLowerCase().regex(/^[a-z0-9-]{2,40}$/), nameFa: z.string().trim().min(2).max(60) }).safeParse(req.body);
+      const b = z.object({ slug: z.string().trim().toLowerCase().regex(/^[a-z0-9-]{2,40}$/), nameFa: z.string().trim().min(2).max(60), province: provinceKey.optional() }).safeParse(req.body);
       if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
-      const out = await cities.addCity(b.data.slug, b.data.nameFa);
+      const out = await cities.addCity(b.data.slug, b.data.nameFa, b.data.province ?? null);
       if (out === 'duplicate') return reply.code(409).send({ error: 'duplicate' });
       void audit('city.add', out.id, b.data.nameFa);
       return reply.code(201).send({ id: out.id });
     });
     g.patch('/admin/cities/:id', async (req, reply) => {
       const p = idParam.safeParse(req.params);
-      const b = z.object({ nameFa: z.string().trim().min(2).max(60).optional(), isActive: z.boolean().optional(), sortOrder: z.number().int().min(0).max(10000).optional() }).safeParse(req.body);
+      const b = z.object({ nameFa: z.string().trim().min(2).max(60).optional(), isActive: z.boolean().optional(), sortOrder: z.number().int().min(0).max(10000).optional(), province: provinceKey.optional() }).safeParse(req.body);
       if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
       if ((await cities.updateCity(p.data.id, b.data)) === 'not_found') return reply.code(404).send({ error: 'city_not_found' });
       void audit('city.update', p.data.id, JSON.stringify(b.data));

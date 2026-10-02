@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, I18nManager, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { Lalezar_400Regular } from '@expo-google-fonts/lalezar';
-import { useFonts, Vazirmatn_400Regular, Vazirmatn_700Bold } from '@expo-google-fonts/vazirmatn';
+// Per-weight imports: the package index pulls in all nine Vazirmatn weights, which the web export would ship and the
+// PWA precache (D102); only these two are used. The files are bundled and self-hosted, never fetched from Google.
+import { Lalezar_400Regular } from '@expo-google-fonts/lalezar/400Regular';
+import { Vazirmatn_400Regular } from '@expo-google-fonts/vazirmatn/400Regular';
+import { Vazirmatn_700Bold } from '@expo-google-fonts/vazirmatn/700Bold';
+import { useFonts } from 'expo-font';
 import { APP_BUILD } from './src/config/build';
 import { GateScreen } from './src/config/GateScreen';
 import { gateState } from './src/config/gate';
@@ -18,6 +22,8 @@ import { SplashScreen } from './src/splash/SplashScreen';
 import { DuelScreen } from './src/duel/DuelScreen';
 import { SoloScreen } from './src/solo/SoloScreen';
 import { useInviteLink } from './src/social/useInviteLink';
+import { PwaLayer } from './src/pwa/PwaLayer';
+import { takeLaunchTarget } from './src/pwa/usePwa';
 
 // Rule (CLAUDE.md §Language): in-game UI is Persian/RTL. Expo's managed I18nManager call is a
 // no-op on web and only takes effect after a native reload, which is expected here.
@@ -39,15 +45,19 @@ export default function App() {
     'splash',
   );
 
+  /** A home-screen shortcut (`?go=`, D102) opens its screen straight after the splash, when that mode is on. */
+  const [launch] = useState(takeLaunchTarget);
+  const launchOn = launch === 'solo' || (launch === 'daily' && config.features.daily) || (launch === 'duel' && config.features.duel);
+
   useEffect(() => {
     if (!fontsLoaded || screen !== 'splash') return;
     let alive = true;
-    const timer = setTimeout(() => void tutorialSeen().then((seen) => alive && setScreen(seen ? 'home' : 'tutorial')), SPLASH_MS);
+    const timer = setTimeout(() => void tutorialSeen().then((seen) => alive && setScreen(!seen ? 'tutorial' : launchOn && launch ? launch : 'home')), SPLASH_MS);
     return () => {
       alive = false;
       clearTimeout(timer);
     };
-  }, [fontsLoaded, screen]);
+  }, [fontsLoaded, screen, launch, launchOn]);
 
   if (!fontsLoaded) {
     return (
@@ -98,6 +108,7 @@ export default function App() {
           onGallery={__DEV__ ? () => setScreen('gallery') : undefined}
         />
       ) : null}
+      <PwaLayer home={screen === 'home'} />
     </View>
   );
 }
