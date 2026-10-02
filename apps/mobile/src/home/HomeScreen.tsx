@@ -39,6 +39,8 @@ import { ProvinceBadge } from '../components/ProvinceBadge';
 import type { IconName } from '../theme/icons';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
+import { usePrefs } from '../prefs/store';
+import { HeroCoinToss } from './HeroCoinToss';
 import { HubTile } from './HubTile';
 import { StatPill } from './StatPill';
 
@@ -109,6 +111,7 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
   }, [features.daily]);
   const inbox = useInbox();
   const review = useReviewPrompt(settings);
+  const prefs = usePrefs();
   const float = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     const loop = Animated.loop(
@@ -120,6 +123,25 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
     loop.start();
     return () => loop.stop();
   }, [float]);
+
+  // A tap makes Dozari hop (squash, spring up, land) and flip his coin right away.
+  const jump = useRef(new Animated.Value(0)).current;
+  const squash = useRef(new Animated.Value(0)).current;
+  const [tossKey, setTossKey] = useState(0);
+  const hop = () => {
+    setTossKey((k) => k + 1);
+    if (prefs.reduceMotion) return;
+    Animated.sequence([
+      Animated.timing(squash, { toValue: 1, duration: 90, useNativeDriver: true }),
+      Animated.parallel([
+        Animated.timing(squash, { toValue: 0, duration: 120, useNativeDriver: true }),
+        Animated.timing(jump, { toValue: 1, duration: 200, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+      ]),
+      Animated.timing(jump, { toValue: 0, duration: 190, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+      Animated.timing(squash, { toValue: 0.6, duration: 70, useNativeDriver: true }),
+      Animated.spring(squash, { toValue: 0, friction: 4, tension: 160, useNativeDriver: true }),
+    ]).start();
+  };
 
   const h = fa.home.hub;
   const unread = inbox.inbox?.unread ?? 0;
@@ -174,9 +196,10 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
             ) : null}
             <View style={styles.spacer} />
             {tip !== null && tips[tip] ? <GuideBubble who={heroFor(gender)} text={tips[tip].text} /> : null}
-            <Pressable onPress={() => setTip((cur) => nextTip(cur, tips.length))} accessibilityRole="button" accessibilityLabel={fa.home.guide.name}>
-              <Animated.View style={[styles.hero, compact ? styles.heroCompact : null, { transform: [{ translateY: float }] }]}>
+            <Pressable onPress={() => (setTip((cur) => nextTip(cur, tips.length)), hop())} accessibilityRole="button" accessibilityLabel={fa.home.guide.name}>
+              <Animated.View style={[styles.hero, compact ? styles.heroCompact : null, { transform: [{ translateY: Animated.add(float, jump.interpolate({ inputRange: [0, 1], outputRange: [0, -30] })) }, { scaleX: squash.interpolate({ inputRange: [0, 1], outputRange: [1, 1.1] }) }, { scaleY: squash.interpolate({ inputRange: [0, 1], outputRange: [1, 0.86] }) }] }]}>
                 <Character who={heroFor(gender)} pose="wave" month={month} />
+                <HeroCoinToss width={compact ? 130 : 180} height={compact ? 142 : 197} tossKey={tossKey} enabled={!prefs.reduceMotion} />
               </Animated.View>
             </Pressable>
           </View>
