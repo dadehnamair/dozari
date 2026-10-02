@@ -457,6 +457,14 @@ export const fa = {
     error: 'نتوانستیم انجام بدهیم.',
     close: 'بستن',
   },
+  friends: {
+    title: 'دوستان',
+    add: '+ افزودن',
+    search: 'جستجوی دوست…',
+    gift: 'هدیه',
+    back: 'برگشت',
+    noMatch: 'دوستی با این اسم نداری.',
+  },
   transfers: {
     gift: 'هدیه‌ی سکه',
     loan: 'قرض دادن سکه',

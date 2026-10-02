@@ -1,17 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { toPersianDigits } from '@dozari/shared';
 import type { Friends, Gender, MyProfile } from '@dozari/shared';
 import { Avatar } from '../components/Avatar';
 import { CandyButton } from '../components/CandyButton';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
-import { acceptFriend, fetchFriends, fetchMyProfile, removeFriend, saveGender } from './api';
+import { fetchFriends, fetchMyProfile, saveGender } from './api';
 import { avatarOf } from './avatarOf';
-import { PlayerSheet } from './PlayerSheet';
 import { ProfileEditor } from './ProfileEditor';
 import { InviteSheet } from '../invite/InviteSheet';
 import { LoansSheet } from '../transfers/LoansSheet';
 import { FindSheet } from './FindSheet';
+import { FriendsPage } from './FriendsPage';
 import { BadgesSheet } from '../badges/BadgesSheet';
 import { deleteMyAccount, signOutEverywhere } from '../account/api';
 import { setPref, usePrefs } from '../prefs/store';
@@ -19,16 +20,16 @@ import { playSfx } from '../sound/engine';
 
 const INK = '#3A2418';
 
-/** «پروفایل من»: gender choice (it switches the hero), friends and incoming requests; a tap on a name opens that player. */
+/** «پروفایل من»: gender choice (it switches the hero), settings and account; friends live on their own page. */
 export function ProfileSheet({ onClose, onGender, onTutorial, onAccountGone }: { onClose: () => void; onGender: (g: Gender | null) => void; onTutorial?: () => void; /** The account was deleted or signed out: start over. */ onAccountGone?: () => void }) {
   const [me, setMe] = useState<MyProfile | null>(null);
   const [friends, setFriends] = useState<Friends | null>(null);
-  const [open, setOpen] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [loansOpen, setLoansOpen] = useState(false);
   const [findOpen, setFindOpen] = useState(false);
   const [badgesOpen, setBadgesOpen] = useState(false);
+  const [friendsOpen, setFriendsOpen] = useState(false);
   const prefs = usePrefs();
   const [sure, setSure] = useState(false);
   const [accountNote, setAccountNote] = useState<string | null>(null);
@@ -48,11 +49,11 @@ export function ProfileSheet({ onClose, onGender, onTutorial, onAccountGone }: {
   };
   const options: [Gender | null, string][] = [['female', fa.profile.female], ['male', fa.profile.male], [null, fa.profile.none]];
 
+  if (friendsOpen) return <FriendsPage onClose={() => (setFriendsOpen(false), load())} />;
   if (badgesOpen) return <BadgesSheet onClose={() => setBadgesOpen(false)} />;
   if (findOpen) return <FindSheet onClose={() => (setFindOpen(false), load())} />;
   if (loansOpen) return <LoansSheet onClose={() => setLoansOpen(false)} />;
   if (inviteOpen) return <InviteSheet onClose={() => (setInviteOpen(false), load())} />;
-  if (open) return <PlayerSheet playerId={open} onClose={() => (setOpen(null), load())} />;
   return (
     <Pressable style={styles.overlay} onPress={onClose} accessibilityLabel={fa.profile.close}>
       <Pressable style={styles.sheet} onPress={() => undefined}>
@@ -75,21 +76,6 @@ export function ProfileSheet({ onClose, onGender, onTutorial, onAccountGone }: {
         ) : null}
         <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
           {me ? <ProfileEditor me={me} onChange={(patch) => setMe((m) => (m ? { ...m, ...patch } : m))} /> : null}
-          {friends && friends.incoming.length > 0 ? <Text style={styles.label}>{fa.profile.incoming}</Text> : null}
-          {friends?.incoming.map((p) => (
-            <View key={p.id} style={styles.person}>
-              <Pressable onPress={() => setOpen(p.id)} style={styles.personMain}>
-                <Avatar avatar={avatarOf(p.avatarKey)} size={40} />
-                <Text style={styles.personName}>{p.nickname}</Text>
-              </Pressable>
-              <Pressable onPress={() => acceptFriend(p.id).then(load, () => setFailed(true))} style={[styles.pill, styles.pillOn]}>
-                <Text style={styles.pillText}>{fa.profile.accept}</Text>
-              </Pressable>
-              <Pressable onPress={() => removeFriend(p.id).then(load, () => setFailed(true))} style={styles.pill}>
-                <Text style={styles.pillText}>{fa.profile.decline}</Text>
-              </Pressable>
-            </View>
-          ))}
           <Text style={styles.label}>{fa.prefs.title}</Text>
           <Text style={styles.hint}>{fa.prefs.hint}</Text>
           <View style={styles.row}>
@@ -118,15 +104,8 @@ export function ProfileSheet({ onClose, onGender, onTutorial, onAccountGone }: {
           {accountNote ? <Text style={styles.hint}>{accountNote}</Text> : null}
           <Text style={styles.label}>{fa.account.about}</Text>
           <Text style={styles.hint}>{fa.account.aboutText}</Text>
-          <Text style={styles.label}>{fa.profile.friends}</Text>
-          {friends && friends.friends.length === 0 ? <Text style={styles.hint}>{fa.profile.noFriends}</Text> : null}
-          {friends?.friends.map((p) => (
-            <Pressable key={p.id} onPress={() => setOpen(p.id)} style={styles.person}>
-              <Avatar avatar={avatarOf(p.avatarKey)} size={40} />
-              <Text style={styles.personName}>{p.nickname}</Text>
-            </Pressable>
-          ))}
         </ScrollView>
+        <CandyButton label={friends && friends.incoming.length > 0 ? `${fa.profile.friends} (${toPersianDigits(String(friends.incoming.length))})` : fa.profile.friends} color={colors.candy.sky} onPress={() => setFriendsOpen(true)} />
         <CandyButton label={fa.badges.open} color={colors.candy.grape} onPress={() => setBadgesOpen(true)} />
         <CandyButton label={fa.find.open} color={colors.candy.lime} onPress={() => setFindOpen(true)} />
         <CandyButton label={fa.transfers.loansOpen} color={colors.candy.orange} onPress={() => setLoansOpen(true)} />
@@ -151,7 +130,4 @@ const styles = StyleSheet.create({
   pillText: { fontFamily: fonts.bold, fontSize: 14, color: INK },
   list: { alignSelf: 'stretch', flexGrow: 0 },
   listContent: { gap: 6 },
-  person: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  personMain: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 },
-  personName: { fontFamily: fonts.bold, fontSize: 15, color: INK, flex: 1 },
 });
