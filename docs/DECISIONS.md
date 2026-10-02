@@ -220,3 +220,7 @@ Owner note: undisclosed AI opponents were already approved (D19); the skill cap 
 One frozen puzzle per Tehran day, picked from admin-defined themes (occasion/season/trend/category with yearly Solar Hijri or absolute windows), pinned by an
 admin or chosen by a date-seeded weighted picker avoiding recent repeats. One attempt a day; small ledger reward growing with the streak. Details:
 `docs/logic/daily-puzzle.md`. Proposed defaults (20 coins, +5/day to 7 days, 30-day no-repeat); the owner may change them in settings.
+
+## D88 — City dialect phrases as city-scoped taunt categories (2026-10-02)
+
+Dialect/local phrases reuse canned taunts: a category can be limited to one city, offered and accepted only for that city's players. No new content is shipped; the owner fills it in the admin panel. See `docs/logic/chat-and-access.md` §City dialect phrases.

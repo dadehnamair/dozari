@@ -65,8 +65,10 @@ export class ChatService {
     return { id: row.id, room: row.room, kind: row.kind, text: row.text, userId: row.userId, nickname: who.nickname, avatarKey: who.avatarKey, badge: who.badge, createdAt: row.createdAt };
   }
 
-  async taunts(): Promise<TauntCategory[]> {
-    return (await this.store.taunts()).filter((c) => c.taunts.length > 0).map((c) => ({ id: c.id, nameFa: c.nameFa, taunts: c.taunts.map((t) => ({ id: t.id, text: t.text })) }));
+  /** The taunt list for a player: general categories plus the dialect ones of their own city. */
+  async taunts(userId?: string): Promise<TauntCategory[]> {
+    const cityId = userId ? ((await this.deps.cityOf(userId))?.id ?? null) : null;
+    return (await this.store.taunts()).filter((c) => c.taunts.length > 0 && (!c.cityId || c.cityId === cityId)).map((c) => ({ id: c.id, nameFa: c.nameFa, taunts: c.taunts.map((t) => ({ id: t.id, text: t.text })) }));
   }
 
   async history(userId: string): Promise<ChatHistory | 'NO_CITY' | 'OFF'> {
@@ -128,7 +130,9 @@ export class ChatService {
     if (blocked) return blocked;
     if (input.kind === 'taunt') {
       const t = await this.store.taunt(input.tauntId);
-      return t && t.isActive ? { ok: true, text: t.text } : { ok: false, error: 'UNKNOWN_TAUNT' };
+      if (!t || !t.isActive) return { ok: false, error: 'UNKNOWN_TAUNT' };
+      if (t.cityId && t.cityId !== (await this.deps.cityOf(userId))?.id) return { ok: false, error: 'UNKNOWN_TAUNT' };
+      return { ok: true, text: t.text };
     }
     const rules = await this.deps.rules();
     const raw = input.text.replace(/\s+/g, ' ').trim();

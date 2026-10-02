@@ -17,7 +17,7 @@ export function registerChatRoutes(app: FastifyInstance, auth: AuthService, chat
   app.get('/chat/taunts', async (req, reply) => {
     const user = await currentUser(auth, req);
     if (!user) return reply.code(401).send({ error: 'unauthorized' });
-    return { categories: await chat.taunts() };
+    return { categories: await chat.taunts(user.id) };
   });
 
   app.get('/chat/city', async (req, reply) => {
