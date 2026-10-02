@@ -22,6 +22,7 @@ import { FindSheet } from './FindSheet';
 import { CityPicker } from './CityPicker';
 import { FriendsPage } from './FriendsPage';
 import { BadgesSheet } from '../badges/BadgesSheet';
+import { LevelRoadPage } from '../levels/LevelRoadPage';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const TAGS = ['#FF4D8D', '#7E46D6', '#3FA36B', '#E8743B', '#3FC1F0'];
@@ -38,7 +39,7 @@ export function ProfileSheet({ onClose, onGender }: { onClose: () => void; onGen
   const [badges, setBadges] = useState<MyBadges | null>(null);
   const [failed, setFailed] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [sub, setSub] = useState<'invite' | 'loans' | 'find' | 'badges' | 'friends' | 'city' | null>(null);
+  const [sub, setSub] = useState<'invite' | 'loans' | 'find' | 'badges' | 'friends' | 'city' | 'levels' | null>(null);
 
   const load = useCallback(() => {
     Promise.all([fetchMyProfile(), fetchFriends()]).then(
@@ -63,6 +64,7 @@ export function ProfileSheet({ onClose, onGender }: { onClose: () => void; onGen
   if (sub === 'find') return <FindSheet onClose={back} />;
   if (sub === 'loans') return <LoansSheet onClose={() => setSub(null)} />;
   if (sub === 'invite') return <InviteSheet onClose={back} />;
+  if (sub === 'levels') return <LevelRoadPage onClose={() => setSub(null)} />;
 
   const lv = me?.level;
   const pct = lv ? (lv.xpForNext === 0 ? 100 : Math.round((lv.xpInLevel / lv.xpForNext) * 100)) : 0;
@@ -171,6 +173,7 @@ export function ProfileSheet({ onClose, onGender }: { onClose: () => void; onGen
 
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>{fa.profile.shortcuts}</Text>
+                <CandyButton label={fa.levels.open} color={colors.candy.yellow} onPress={() => setSub('levels')} />
                 <CandyButton label={incoming > 0 ? `${fa.profile.friends} (${n(incoming)})` : fa.profile.friends} color={colors.candy.sky} onPress={() => setSub('friends')} />
                 <CandyButton label={fa.badges.open} color={colors.candy.grape} onPress={() => setSub('badges')} />
                 <CandyButton label={fa.find.open} color={colors.candy.lime} onPress={() => setSub('find')} />

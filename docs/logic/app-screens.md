@@ -89,6 +89,17 @@ by nickname, incoming requests with accept / decline, then one card per friend (
 tap for their profile — and a gift button that opens the coin gift). The mock-up's online status and
 per-friend duel button need presence and direct challenges, which do not exist yet; they are left out.
 
+## Level road and locked popup (D109)
+
+screen-levels of `17 Chat Shop Unlocks`, opened from the profile («جادهٔ لول‌ها»): a purple night, the
+yellow title plate and a cream road with one node per level (top level first, scrolled to the player's
+level on open): done = gold with a tick, current = yellow with the hero waving beside it, ahead = grey
+with a padlock. Cards beside a level show what it opens, from the real gates (`GET /me/levels`: hint,
+personal invite code, gifts and loans, avatar change, nickname change, plus each active shop item with a
+level gate). Tapping a card of a future level opens **popup-locked**: the feature, «باز می‌شود در لول N»,
+the player's level and XP bar, «اینجا چی هست؟» and Ajan's line. The design's gem-unlock button has no
+counterpart (no gems) and is left out.
+
 ## Leaderboard (D108)
 
 screen-leaderboard of `11 More Screens`, opened from the Home tile «جدول»: purple chequer with a golden

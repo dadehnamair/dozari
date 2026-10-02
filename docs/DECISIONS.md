@@ -313,3 +313,7 @@ Owner: build screen-leaderboard. Ranked by total XP (the only score we store). T
 ## D110 — Production deployment stack (2026-10-02)
 
 The repo's `docker-compose.yml` stays dev-only. Production is `docker-compose.prod.yml` + `deploy/` (see `docs/deploy.md`): MySQL on the private network only, a one-shot `migrate` service, the game server (run through tsx because the workspace packages are TypeScript sources), and Caddy serving the PWA build with automatic https and proxying the API on a second hostname (the API routes live at the root, so web and API need separate hosts; `CORS_ORIGIN` is the web host). Images default to a local volume served by the game server; S3 (Arvan/MinIO) is a documented switch. Verified without Docker (no daemon here): the install layout, migrations from an empty database, and the server booting in production mode with its CORS and HSTS headers; the image builds themselves have not been run.
+
+## D109 — Level road from the real gates (2026-10-02)
+
+The level road and locked popup are built from `GET /me/levels` (level, XP curve, and an unlock list assembled from the admin settings `hint.min_level`, `invite.min_level`, `transfer.min_level`, `profile.avatar_change_min_level`, `profile.nickname_change_min_level` and the shop items' `minLevel`), so the screen cannot drift from the rules. Tournaments' own level gates are per tournament and not on the road. Descriptions of the settings-based unlocks are app copy (`fa.levels.unlock`).
