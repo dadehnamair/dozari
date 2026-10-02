@@ -89,7 +89,7 @@ user who may `submit` (others get `NOT_CAPTAIN`); the captain rotates to the nex
 except on a correct-guess streak. `propose` (team only, `NOT_TEAM_MATCH` in a duel) is a pure event: the service keeps only the latest
 proposal per side and puts it in the snapshot of that side's own players (`MatchView.proposal`); it is never a `match:event`, never
 sent to the other side. `leave` marks the player `gone`: the captain role moves to the teammate, the leaver may queue again, and a side
-with nobody left forfeits (`abandon`). 2v2 has **no entry fee yet** (proposed, D118): stakes/escrow stay 1v1-only until the team economy is decided.
+with nobody left forfeits (`abandon`). 2v2 has **no entry fee yet** (proposed, D140): stakes/escrow stay 1v1-only until the team economy is decided.
 Queue: `queue:join {mode:'team'}` fills from strangers (4 in line → the two longest waiters play together); a party of 2 is not built.
 The bot driver fills missing seats after the usual fallback wait (humans on opposite sides) and only plays when its bot is the captain.
 
