@@ -189,6 +189,6 @@ VIEWS.prices = function (root) {
     });
     if (!n) list.appendChild(empty(status === 'pending' ? 'همه‌ی قیمت‌ها بازبینی شده‌اند 🎉' : 'موردی نیست'));
   }
-  api('/admin/catalog').then(function (r) { if (!r.ok) return fail(r); products = r.body.products; draw(); });
+  api('/admin/catalog').then(function (r) { if (!r.ok) return fail(r); products = r.body.products; draw(); refreshCounts(); });
 };
 `;

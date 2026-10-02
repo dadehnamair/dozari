@@ -21,9 +21,9 @@ VIEWS.inbox = function (root) {
       clear(list);
       if (r.status === 404) return list.appendChild(empty('ربات روی این سرور فعال نیست (دیتابیس لازم است)'));
       if (!r.ok) return fail(r);
+      refreshCounts();
       if (!r.body.candidates.length) return list.appendChild(empty(status === 'pending' ? 'پیشنهادی برای بررسی نیست. ربات را اجرا کن یا منبع اضافه کن.' : 'موردی نیست'));
       r.body.candidates.forEach(function (c) { list.appendChild(candidateCard(c, load2)); });
-      refreshCounts();
     });
   }
   load2();
