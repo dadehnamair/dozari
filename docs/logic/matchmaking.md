@@ -47,6 +47,13 @@ static/cached recent-players sample, not a live query. Prototype: `prototype/scr
   Owner: "موقع ایجاد میز یکم امکانات بیشتر بدیم به سازنده که حس مالکیت رو بهش القا کنیم." Prototype:
   `prototype/screens/table.html`.
 
+### Built so far (D93)
+
+`apps/server/src/tables/*` (in-memory like live matches), routes `POST /tables`, `GET /tables/mine|:code`, `POST /tables/:code/join`, `/tables/leave|start|ready|lock|extend|kick|share`; gate `feature.tables`; setting `table.idle_minutes`.
+Table = 1v1, name + emoji, optional "guest must be ready", host lock/kick/extend, the table stays for rematches, closes when idle. **Friendly only** (no entry fee, no payout) because duel coin escrow is not built;
+board difficulty and 2v2 are not built either. `share` posts a join card (`chat_messages.kind = 'table'`, text `CODE|emoji name`) into the host's city chat; tapping it opens the table.
+The app has no live duel board yet, so a started table match is only playable once the duel client exists.
+
 ## Reconnects & abandonment
 
 - Server keeps the match authoritative; a disconnect does not pause the clock.

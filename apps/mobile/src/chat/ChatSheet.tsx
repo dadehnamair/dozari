@@ -15,7 +15,7 @@ const INK = '#3A2418';
 const POLL_MS = 4000;
 
 /** «چت همشهری‌ها»: the room of the player's city. Messages refresh every few seconds; taunts are always allowed, free text needs an activated account. */
-export function ChatSheet({ onClose }: { onClose: () => void }) {
+export function ChatSheet({ onClose, onJoinTable }: { onClose: () => void; onJoinTable?: (code: string) => void }) {
   const [info, setInfo] = useState<ChatHistory | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [taunts, setTaunts] = useState<TauntCategory[]>([]);
@@ -63,7 +63,14 @@ export function ChatSheet({ onClose }: { onClose: () => void }) {
               <Pressable onPress={() => setOpen(m.userId)} accessibilityRole="button"><Avatar avatar={avatarOf(m.avatarKey)} size={32} /></Pressable>
               <View style={styles.msgBody}>
                 <Text style={styles.name}>{m.nickname}{m.badge ? ` · ${m.badge}` : ''}</Text>
-                <Text style={[styles.text, m.kind === 'taunt' && styles.taunt]}>{m.text}</Text>
+                {m.kind === 'table' ? (
+                  <Pressable onPress={() => onJoinTable?.(m.text.split('|')[0] ?? '')} style={styles.tableCard} accessibilityRole="button">
+                    <Text style={styles.text}>{fa.chat.tableInvite(m.text.split('|').slice(1).join('|'))}</Text>
+                    <Text style={styles.pillText}>{fa.chat.tableJoin}</Text>
+                  </Pressable>
+                ) : (
+                  <Text style={[styles.text, m.kind === 'taunt' && styles.taunt]}>{m.text}</Text>
+                )}
               </View>
               <Pressable onPress={() => report(m)} accessibilityRole="button"><Text style={styles.report}>{fa.chat.report}</Text></Pressable>
             </View>
@@ -105,6 +112,7 @@ export function ChatSheet({ onClose }: { onClose: () => void }) {
 }
 
 const styles = StyleSheet.create({
+  tableCard: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 8, borderRadius: 12, borderWidth: 2, borderColor: INK, backgroundColor: '#FFF3C4' },
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,8,32,0.55)', alignItems: 'center', justifyContent: 'center', padding: 16 },
   sheet: { width: '100%', maxWidth: 420, height: '86%', backgroundColor: colors.cream, borderWidth: 3, borderColor: INK, borderRadius: 24, padding: 12, gap: 8, alignItems: 'center' },
   title: { fontFamily: fonts.display, fontSize: 22, color: INK },

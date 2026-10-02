@@ -1,0 +1,1 @@
+ALTER TABLE `chat_messages` MODIFY COLUMN `kind` enum('text','taunt','table') NOT NULL;

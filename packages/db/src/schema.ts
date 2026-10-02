@@ -909,7 +909,7 @@ export const chatMessages = mysqlTable(
     room: mysqlEnum('room', ['city', 'match']).notNull(),
     roomKey: varchar('room_key', { length: 64 }).notNull(),
     userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
-    kind: mysqlEnum('kind', ['text', 'taunt']).notNull(),
+    kind: mysqlEnum('kind', ['text', 'taunt', 'table']).notNull(),
     text: varchar('text', { length: 500 }).notNull(),
     createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
     /** Set when an admin removes the message; it disappears from history. */

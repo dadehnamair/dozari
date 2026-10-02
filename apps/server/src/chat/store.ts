@@ -25,7 +25,7 @@ export interface MessageRow {
   room: 'city' | 'match';
   roomKey: string;
   userId: string;
-  kind: 'text' | 'taunt';
+  kind: 'text' | 'taunt' | 'table';
   text: string;
   createdAt: number;
 }

@@ -190,6 +190,13 @@
       "when": 1790923067125,
       "tag": "0026_violet_madrox",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "5",
+      "when": 1790923717103,
+      "tag": "0027_ambitious_gargoyle",
+      "breakpoints": true
     }
   ]
 }

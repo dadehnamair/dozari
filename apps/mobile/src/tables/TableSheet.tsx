@@ -1,0 +1,123 @@
+import { useCallback, useEffect, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import type { TableView } from '@dozari/shared';
+import { normalizeTableCode } from '@dozari/shared';
+import { Avatar } from '../components/Avatar';
+import { CandyButton } from '../components/CandyButton';
+import { fa } from '../i18n/fa';
+import { ApiError } from '../net/http';
+import { avatarOf } from '../social/avatarOf';
+import { colors, fonts } from '../theme/colors';
+import { createTable, extendTable, fetchMyTable, fetchTable, joinTable, kickFromTable, leaveTable, setTableLocked, setTableReady, startTable } from './api';
+
+const INK = '#3A2418';
+const errText = (e: unknown) => fa.tables.errors[e instanceof ApiError ? e.code : 'generic'] ?? fa.tables.errors.generic ?? '';
+
+/** «میز اختصاصی»: create a table or enter one by its code, then wait for the guest and start a duel. `initialCode` opens a shared table. */
+export function TableSheet({ onClose, initialCode, onShare }: { onClose: () => void; initialCode?: string; onShare?: (table: TableView) => Promise<void> }) {
+  const [table, setTable] = useState<TableView | null>(null);
+  const [note, setNote] = useState<string | null>(null);
+  const [name, setName] = useState('');
+  const [emoji, setEmoji] = useState('🎲');
+  const [requireReady, setRequireReady] = useState(false);
+  const [code, setCode] = useState(initialCode ?? '');
+
+  // Reopen the table the player already sits at; poll while one is open.
+  useEffect(() => {
+    void fetchMyTable().then((t) => (t ? setTable(t) : initialCode ? enter(initialCode) : undefined), () => undefined);
+  }, []);
+  const refresh = useCallback(() => {
+    if (!table) return;
+    fetchTable(table.code).then(setTable, () => setTable(null));
+  }, [table]);
+  useEffect(() => {
+    if (!table) return;
+    const timer = setInterval(refresh, 2500);
+    return () => clearInterval(timer);
+  }, [table, refresh]);
+
+  const run = (fn: () => Promise<unknown>) => fn().then(() => (setNote(null), refresh()), (e) => (setNote(errText(e)), refresh()));
+  const enter = (c: string) => {
+    const norm = normalizeTableCode(c);
+    if (!norm) return setNote(fa.tables.errors.NOT_FOUND ?? '');
+    joinTable(norm).then((t) => (setNote(null), setTable(t)), (e) => setNote(errText(e)));
+  };
+
+  return (
+    <Pressable style={styles.overlay} onPress={onClose} accessibilityLabel={fa.tables.close}>
+      <Pressable style={styles.sheet} onPress={() => undefined}>
+        <Text style={styles.title}>{table ? `${table.emoji} ${table.name}` : fa.tables.title}</Text>
+        <ScrollView style={styles.list} contentContainerStyle={styles.content}>
+          {table ? (
+            <>
+              <Text style={styles.code} selectable>{fa.tables.code(table.code)}</Text>
+              <Text style={styles.hint}>{table.inMatch ? fa.tables.inMatch : table.players.length < table.seats ? fa.tables.waiting : fa.tables.seats(table.players.length, table.seats)}</Text>
+              {table.players.map((p) => (
+                <View key={p.id} style={styles.row}>
+                  <Avatar avatar={avatarOf(p.avatarKey)} size={32} />
+                  <Text style={styles.name}>{p.nickname}</Text>
+                  <Text style={styles.hint}>{p.isHost ? fa.tables.host : p.ready ? fa.tables.ready : ''}</Text>
+                  {table.youAreHost && !p.isHost ? (
+                    <Pressable onPress={() => void run(() => kickFromTable(p.id))} style={styles.pill} accessibilityRole="button"><Text style={styles.pillText}>{fa.tables.kick}</Text></Pressable>
+                  ) : null}
+                </View>
+              ))}
+              <Text style={styles.hint}>{fa.tables.friendly}</Text>
+              {note ? <Text style={styles.warn}>{note}</Text> : null}
+              {table.youAreHost ? (
+                <>
+                  <CandyButton label={fa.tables.start} color={colors.candy.lime} disabled={table.inMatch || table.players.length < table.seats} onPress={() => void run(startTable)} />
+                  <CandyButton label={table.locked ? fa.tables.unlock : fa.tables.lock} color={colors.candy.sky} onPress={() => void run(() => setTableLocked(!table.locked))} />
+                  <CandyButton label={fa.tables.extend} color={colors.candy.yellow} onPress={() => void run(extendTable)} />
+                  {onShare ? <CandyButton label={fa.tables.share} color={colors.candy.grape} onPress={() => void onShare(table).then(() => setNote(fa.tables.shared), (e) => setNote(errText(e)))} /> : null}
+                </>
+              ) : table.requireReady ? (
+                <CandyButton label={table.players.find((p) => !p.isHost)?.ready ? fa.tables.notReady : fa.tables.imReady} color={colors.candy.lime} onPress={() => void run(() => setTableReady(!table.players.find((p) => !p.isHost)?.ready))} />
+              ) : null}
+              <CandyButton label={fa.tables.leave} color={colors.candy.orange} onPress={() => void leaveTable().then(() => setTable(null), () => setTable(null))} />
+            </>
+          ) : (
+            <>
+              <Text style={styles.hint}>{fa.tables.intro}</Text>
+              <Text style={styles.label}>{fa.tables.createTitle}</Text>
+              <View style={styles.row}>
+                <TextInput value={emoji} onChangeText={setEmoji} maxLength={4} placeholder={fa.tables.emojiPlaceholder} style={[styles.input, styles.emoji]} />
+                <TextInput value={name} onChangeText={setName} maxLength={30} placeholder={fa.tables.namePlaceholder} style={[styles.input, styles.grow]} />
+              </View>
+              <Pressable onPress={() => setRequireReady(!requireReady)} accessibilityRole="checkbox" accessibilityState={{ checked: requireReady }}>
+                <Text style={styles.hint}>{requireReady ? '☑' : '☐'} {fa.tables.requireReady}</Text>
+              </Pressable>
+              <CandyButton label={fa.tables.create} color={colors.candy.lime} disabled={name.trim().length === 0} onPress={() => createTable({ name: name.trim(), emoji: emoji.trim() || '🎲', requireReady }).then((t) => (setNote(null), setTable(t)), (e) => setNote(errText(e)))} />
+              <Text style={styles.label}>{fa.tables.joinTitle}</Text>
+              <View style={styles.row}>
+                <TextInput value={code} onChangeText={setCode} autoCapitalize="characters" autoCorrect={false} maxLength={10} placeholder={fa.tables.codePlaceholder} style={[styles.input, styles.grow]} />
+                <Pressable onPress={() => enter(code)} style={styles.pill} accessibilityRole="button"><Text style={styles.pillText}>{fa.tables.join}</Text></Pressable>
+              </View>
+              {note ? <Text style={styles.warn}>{note}</Text> : null}
+            </>
+          )}
+        </ScrollView>
+        <CandyButton label={fa.tables.close} color={colors.candy.sky} onPress={onClose} />
+      </Pressable>
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,8,32,0.55)', alignItems: 'center', justifyContent: 'center', padding: 16 },
+  sheet: { width: '100%', maxWidth: 420, maxHeight: '90%', backgroundColor: colors.cream, borderWidth: 3, borderColor: INK, borderRadius: 24, padding: 14, gap: 8, alignItems: 'center' },
+  title: { fontFamily: fonts.display, fontSize: 22, color: INK },
+  list: { alignSelf: 'stretch', flexGrow: 0 },
+  content: { gap: 8 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  code: { fontFamily: fonts.display, fontSize: 24, color: INK, textAlign: 'center', letterSpacing: 2 },
+  label: { fontFamily: fonts.bold, fontSize: 15, color: INK, marginTop: 6 },
+  name: { fontFamily: fonts.bold, fontSize: 14, color: INK, flex: 1 },
+  hint: { fontFamily: fonts.bold, fontSize: 12, color: INK, opacity: 0.8 },
+  warn: { fontFamily: fonts.bold, fontSize: 13, color: '#B3261E' },
+  input: { fontFamily: fonts.bold, fontSize: 14, color: INK, borderWidth: 2, borderColor: INK, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: '#fff', textAlign: 'right' },
+  grow: { flex: 1 },
+  emoji: { width: 56, textAlign: 'center' },
+  pill: { borderWidth: 2, borderColor: INK, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: colors.candy.yellow },
+  pillText: { fontFamily: fonts.bold, fontSize: 13, color: INK },
+});
