@@ -89,6 +89,14 @@ by nickname, incoming requests with accept / decline, then one card per friend (
 tap for their profile — and a gift button that opens the coin gift). The mock-up's online status and
 per-friend duel button need presence and direct challenges, which do not exist yet; they are left out.
 
+## Tournaments (D106)
+
+List: orange page, one card per tournament (icon tile, title, players / entry, start time, status chip).
+A tournament's page is screen-tournament of `11 More Screens`: the win scene fading into purple, status
+pill, the yellow ribbon with the title, «شروع تا» live countdown, three tiles (players, entry, first
+prize), the bracket as columns per round (winner ticked, live match outlined green), then a card with
+story, prizes, rules, results and players; a large «ثبت‌نام» / «انصراف» slab at the bottom.
+
 ## Shop (D105)
 
 screen-shop of `17 Chat Shop Unlocks`: the hujre scene under a dark veil, the yellow «حجرهٔ دوزاری»

@@ -297,3 +297,7 @@ Owner: while searching show `screen-search` (diamond), and once a rival is found
 ## D105 — Shop from the design (2026-10-02)
 
 The shop page follows `screen-shop` (see `app-screens.md` §Shop). Departures: only the hint-token tab is live; the other five tabs are shown dimmed with «به‌زودی» rather than left out, so the page keeps the design's shape and the roadmap is visible; the Yalda offer banner (timed bundle) is left out until offers exist.
+
+## D106 — Tournament pages from the design (2026-10-02)
+
+List and detail follow `screen-tournament` (`app-screens.md` §Tournaments). The design shows a fixed three-column bracket; ours has one column per round of the real bracket (scrolls sideways for 16+). Rules, prizes, results and the player list, which the mock-up does not have, sit in a card under the bracket.
