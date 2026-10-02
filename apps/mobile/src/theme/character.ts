@@ -25,6 +25,7 @@ export const CHARACTERS = [
   'baqal',
   'mirza',
   'goli',
+  'ajan',
 ] as const;
 export type CharacterId = (typeof CHARACTERS)[number];
 export const CHARACTER_POSES = [
@@ -103,6 +104,7 @@ export interface CharacterLook {
   scarfLight: string;
   freckles: string;
   glasses: boolean;
+  police: boolean;
   acc: { d: string; fill: string; stroke: string; width: number }[];
   extras: { q: boolean; z: boolean; sweat: boolean; tear: boolean; spark: boolean };
 }
@@ -212,6 +214,7 @@ export function characterLook(opts: {
     scarfLight: scarf === '#FFF3E0' || scarf === '#FFFFFF' ? '#E84A3C' : '#FFF3E0',
     freckles: c0.freckles ? FRECKLES : '',
     glasses: Boolean(c0.glasses),
+    police: Boolean(c0.police),
     acc: accParts.map(([d, fill, stroke, width]) => ({
       d,
       fill,

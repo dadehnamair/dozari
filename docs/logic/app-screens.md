@@ -7,12 +7,11 @@ part of the same "logic specs" set in `CLAUDE.md` — read it before building th
 
 ## Onboarding (first app open, before any account setup)
 
-1. **4-slide tutorial**, skippable both by swipe-dismiss and an explicit "رد شدن" button. Slides:
-   1. Goal of the game + a worked example of solving one group in the Connections puzzle.
-   2. The 4-mistake rule: what happens when you run out (game over / turn passes).
-   3. The price-guess bonus round (`price-guess-round.md`) — what it is, that it happens after
-      every puzzle.
-   4. Coins/economy: entering and playing is free; tables/matches can cost coins.
+1. **4-step tutorial** (screen-tutorial of `docs/design/Dozari - 19 Social Daily Onboarding`, D99),
+   skippable with «رد کن». «آجان», the bazaar guard, talks from the bottom corner over a sample
+   board of 16 items: (1) the goal — four groups of four; (2) one group lights up and the rest dim;
+   (3) the group is picked and a «ثبت کن» slab shows, with a word on the limited chances; (4) the
+   group is solved, plus the nominal-prices and coins line. Step dots at the top; one CTA per step.
 2. After the tutorial, a **random nickname + avatar** is assigned silently (no signup screen) —
    see `profile-and-identity.md`. The user lands straight on Home.
 3. **The first solo puzzle played is an eased tutorial run (D37)**, on top of the slide tutorial

@@ -59,6 +59,8 @@ export interface CastSpec {
   brow?: string;
   mustache?: string;
   fem?: number;
+  /** «آجان»: police tunic (collar, tie, epaulettes, star) and a badge on the kepi. */
+  police?: number;
 }
 /** [path, fill, stroke?, strokeWidth?] */
 export type AccPart = [string, string, string?, number?];
@@ -90,6 +92,16 @@ export const NONE: HatSpec = {
   hl: '',
 };
 export const HATS: Record<string, (c: string) => HatSpec> = {
+  kepi: (c) => ({
+    d: 'M60 50 C54 24 146 24 140 50 L136 58 Q100 52 64 58Z',
+    fill: c,
+    pat: 'M64 52 Q100 46 136 52',
+    patC: '#FFC93C',
+    patW: 3.4,
+    acc: 'M62 56 Q100 50 138 56 Q142 68 120 68 Q100 62 80 68 Q58 68 62 56Z',
+    accC: '#1E2A4A',
+    hl: 'M72 36 Q82 28 96 28',
+  }),
   namadi: (c) => ({
     d: 'M64 56 C60 26 82 14 100 14 C118 14 140 26 136 56 C120 60 80 60 64 56Z',
     fill: c,
@@ -340,6 +352,21 @@ export const CAST: Record<string, CastSpec> = {
     belt: '#FFC93C',
     mustache: 'thin',
     seed: 37,
+  },
+  ajan: {
+    head: 'round',
+    skin: '#EDB58A',
+    hat: 'kepi',
+    hatC: '#2F5FB8',
+    nose: 'potato',
+    cloth: '#3F72D0',
+    patC: '#6E97E6',
+    pat: 'stripe',
+    belt: '#1E2A4A',
+    mustache: 'bushy',
+    police: 1,
+    brow: '#2E1E18',
+    seed: 47,
   },
   dozariF: {
     head: 'bean', skin: '#F9CDA4', hat: 'namadi', hatC: '#E8743B', nose: 'button', cloth: '#FF7FAE', patC: '#FFC2D9', pat: 'stripe', belt: '#3A2418', freckles: 1, fem: 1, seed: 5,
