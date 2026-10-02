@@ -57,7 +57,8 @@ CORS_ORIGIN=*                  # needed for Expo web (browser). Use a precise or
 ```
 
 Optional (all off/unset by default, features degrade gracefully): `BALE_BOT_TOKEN`,
-`BALE_BOT_USERNAME`, `BALE_API_BASE`, `KAVENEGAR_API_KEY`, `KAVENEGAR_TEMPLATE`, `S3_*`.
+`BALE_BOT_USERNAME`, `BALE_API_BASE`, `IRNOTI_API_KEY`, `IRNOTI_MESSAGE` (SMS; preferred), `KAVENEGAR_API_KEY`,
+`KAVENEGAR_TEMPLATE` (SMS fallback), `S3_*`.
 
 ## 4. Run
 
@@ -101,6 +102,15 @@ Open `http://localhost:3000/admin`.
 ```bash
 NEW_ADMIN_PASSWORD='a-long-password' pnpm --filter @dozari/server admin:create alice owner "Alice"
 ```
+
+```powershell
+# Windows PowerShell
+$env:NEW_ADMIN_PASSWORD="Dozari-Test-2026"
+pnpm --filter @dozari/server admin:create alice owner "Alice"
+```
+
+The password must be at least 10 characters, must not contain the username, and needs at least 5
+distinct characters (otherwise `WEAK_PASSWORD`). Arguments: username, role, display name.
 
 Everything tunable lives in **Settings** (feature flags, daily caps, economy, timers). Changes
 apply without a restart.
@@ -171,7 +181,7 @@ need the real database from step 2.
 ## 8. Known gaps (so you don't chase them)
 
 - Mobile screens haven't been exercised on a real device; only the web build and unit tests.
-- Real SMS (Kavenegar), Bale bot, store receipts (Bazaar/Myket) and push are not live without keys.
+- Real SMS (irnoti: set `IRNOTI_API_KEY`; or Kavenegar), Bale bot, store receipts (Bazaar/Myket) and push are not live without keys.
 - WebAudio sounds are web-only; native sound is not built.
 - Price-guess round inside duels, 2v2 tables and admin 2FA are not built yet (`PLAN.md`).
 

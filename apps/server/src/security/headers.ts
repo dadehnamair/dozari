@@ -17,7 +17,7 @@ export function registerSecurityHeaders(app: FastifyInstance, opts: { hsts?: boo
       const nonce = randomBytes(16).toString('base64');
       reply.header(
         'content-security-policy',
-        `default-src 'none'; script-src 'nonce-${nonce}'; style-src-elem 'nonce-${nonce}'; style-src-attr 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; form-action 'none'; base-uri 'none'; frame-ancestors 'none'`,
+        `default-src 'none'; script-src 'nonce-${nonce}'; style-src-elem 'nonce-${nonce}'; style-src-attr 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; font-src 'self'; form-action 'none'; base-uri 'none'; frame-ancestors 'none'`,
       );
       reply.header('cache-control', 'no-store');
       return payload.replace(/<script>/g, `<script nonce="${nonce}">`).replace(/<style>/g, `<style nonce="${nonce}">`);

@@ -261,3 +261,7 @@ Entry fee, free daily matches, winner payout, draw refund, loss consolation and 
 ## D96 — Onboarding tutorial and account controls (2026-10-02)
 
 Four skippable slides before the first Home (seen flag kept on the device); in the profile sheet: replay tutorial, sign out everywhere (`POST /me/sign-out-everywhere`), delete account (`DELETE /me`, two taps) and an about text. Deleting does not erase rows: personal data (device id, phone, email, handle, nickname) is removed and the account becomes an empty banned shell so the ledger and match history stay consistent; the device then starts a fresh guest. Support contact text is generic until the owner gives a real channel.
+
+## D97 — irnoti as the primary SMS provider; self-hosted admin font (2026-10-02)
+
+Phone-verification SMS now goes through irnoti (`POST https://irnoti.com/api/v1/sms/send`, Bearer key, JSON `{to, message}`) when `IRNOTI_API_KEY` is set; the message text is `IRNOTI_MESSAGE` (must contain `{code}`) with a default. Kavenegar stays as a fallback adapter when only its keys are set. The irnoti response body is undocumented to us: any 2xx counts as sent unless the body says `success:false`/`ok:false`/`status:'error'` — verify with a real key. The admin panel now serves Vazirmatn (Regular/Bold) from `apps/server/assets/fonts` at `/admin/fonts/*` (CSP `font-src 'self'`), so it no longer depends on a locally installed font.

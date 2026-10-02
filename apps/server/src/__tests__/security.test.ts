@@ -57,6 +57,18 @@ describe('production config check', () => {
 });
 
 describe('HTTP hardening', () => {
+  it('self-hosts the admin font: CSP allows it, only the two known files are served', async () => {
+    const app = buildServer({ admin });
+    const page = await app.inject({ method: 'GET', url: '/admin' });
+    expect(String(page.headers['content-security-policy'])).toContain("font-src 'self'");
+    const font = await app.inject({ method: 'GET', url: '/admin/fonts/Vazirmatn-Regular.ttf' });
+    expect(font.statusCode).toBe(200);
+    expect(font.headers['content-type']).toBe('font/ttf');
+    expect(font.rawPayload.length).toBeGreaterThan(50_000);
+    expect((await app.inject({ method: 'GET', url: '/admin/fonts/..%2Fpackage.json' })).statusCode).toBe(404);
+    expect((await app.inject({ method: 'GET', url: '/admin/fonts/other.ttf' })).statusCode).toBe(404);
+  });
+
   it('sends security headers and a nonce-based CSP on the admin page', async () => {
     const app = buildServer({ admin });
     const res = await app.inject({ method: 'GET', url: '/admin' });
