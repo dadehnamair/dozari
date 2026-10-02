@@ -22,6 +22,7 @@ import { SplashScreen } from './src/splash/SplashScreen';
 import { DuelScreen } from './src/duel/DuelScreen';
 import { SoloScreen } from './src/solo/SoloScreen';
 import { useInviteLink } from './src/social/useInviteLink';
+import { safeInsetTop } from './src/theme/safeArea';
 import { PwaLayer } from './src/pwa/PwaLayer';
 import { takeLaunchTarget } from './src/pwa/usePwa';
 
@@ -114,6 +115,7 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#2A0E52' },
+  // On a notched phone the home-screen web app draws under the status bar: keep the screens below it (the band stays dark purple).
+  container: { flex: 1, backgroundColor: '#2A0E52', paddingTop: safeInsetTop() },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2A0E52' },
 });

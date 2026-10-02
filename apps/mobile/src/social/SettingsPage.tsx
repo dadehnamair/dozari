@@ -15,6 +15,7 @@ import { colors, fonts } from '../theme/colors';
 import { CityPicker } from './CityPicker';
 import { fetchMyProfile } from './api';
 import type { City } from '@dozari/shared';
+import { safeTop } from '../theme/safeArea';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 
@@ -140,7 +141,7 @@ const styles = StyleSheet.create({
   root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20, backgroundColor: '#D99A52' },
   scene: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.9 },
   page: { paddingBottom: 30 },
-  column: { width: '100%', maxWidth: 520, alignSelf: 'center', paddingHorizontal: 12, paddingTop: 30, gap: 10 },
+  column: { width: '100%', maxWidth: 520, alignSelf: 'center', paddingHorizontal: 12, paddingTop: safeTop(30), gap: 10 },
   head: { flexDirection: ROW, alignItems: 'center', gap: 8 },
   back: { width: 42, height: 42, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...lift(4) },
   pressed: { transform: [{ translateY: 3 }] },

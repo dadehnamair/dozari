@@ -41,8 +41,14 @@
       }
       #root {
         display: flex;
-        height: 100%;
         flex: 1;
+        /* Cover the whole screen, home-indicator strip included: on iOS the home-screen app's `height: 100%` stops short of
+           the bottom edge, which left a bare purple bar there. */
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
       }
     </style>
     <script>

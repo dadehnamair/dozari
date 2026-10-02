@@ -8,6 +8,7 @@ import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { fetchLookup, searchProducts } from './api';
 import { dateLabel, priceLabel, rangeLine, yearsWithData } from './model';
+import { safeTop } from '../theme/safeArea';
 
 const INK = '#3A2418';
 
@@ -127,7 +128,7 @@ export function LookupScreen({ onBack }: { onBack: () => void }) {
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 20, paddingTop: 48, gap: 12 },
+  content: { padding: 20, paddingTop: safeTop(48), gap: 12 },
   title: { fontFamily: fonts.display, fontSize: 30, color: INK, textAlign: 'center' },
   hint: { fontFamily: fonts.bold, fontSize: 14, color: INK, textAlign: 'center' },
   input: { backgroundColor: colors.cream, borderWidth: 3, borderColor: INK, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 10, fontFamily: fonts.bold, fontSize: 16, color: INK, textAlign: 'right' },

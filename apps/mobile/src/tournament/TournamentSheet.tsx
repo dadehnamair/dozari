@@ -16,6 +16,7 @@ import { avatarOf } from '../social/avatarOf';
 import { colors, fonts } from '../theme/colors';
 import { fetchTournament, fetchTournaments, joinTournament, leaveTournament } from './api';
 import { blockedText, placeLabel, roundLabel } from './text';
+import { safeTop } from '../theme/safeArea';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const n = (v: number) => toPersianDigits(String(v));
@@ -209,7 +210,7 @@ const styles = StyleSheet.create({
   sceneBox: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   fade: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   page: { paddingBottom: 130 },
-  column: { width: '100%', maxWidth: 520, alignSelf: 'center', paddingHorizontal: 12, paddingTop: 30, gap: 12 },
+  column: { width: '100%', maxWidth: 520, alignSelf: 'center', paddingHorizontal: 12, paddingTop: safeTop(30), gap: 12 },
   top: { flexDirection: ROW, alignItems: 'center', justifyContent: 'space-between' },
   back: { width: 42, height: 42, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...lift(4) },
   status: { flexDirection: ROW, alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 99, borderWidth: 2.5, borderColor: colors.ink },

@@ -11,6 +11,7 @@ import { colors, fonts } from '../theme/colors';
 import { fetchLeaderboard } from './api';
 import { avatarOf } from './avatarOf';
 import { PlayerSheet } from './PlayerSheet';
+import { safeTop } from '../theme/safeArea';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const n = (v: number) => toPersianDigits(String(v));
@@ -135,7 +136,7 @@ const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0
 const styles = StyleSheet.create({
   root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20, backgroundColor: '#3C2A8E' },
   glow: { position: 'absolute', top: 0, left: 0, right: 0, height: 420 },
-  column: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingTop: 30 },
+  column: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingTop: safeTop(30) },
   head: { flexDirection: ROW, alignItems: 'center', gap: 8, paddingHorizontal: 12 },
   back: { width: 42, height: 42, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...lift(4) },
   pressed: { transform: [{ translateY: 3 }] },
