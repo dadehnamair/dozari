@@ -92,6 +92,20 @@ If the app says «اتصال به سرور برقرار نشد», it prints the 
 `/health` opens in a browser → `CORS_ORIGIN` is set and the server was restarted (web only) →
 LAN IP/firewall (phone only).
 
+### Install as an app (PWA)
+
+The web build is an installable PWA (D98). Installing needs **https** (or `localhost`); over a plain
+`http://<LAN-IP>` address the phone can play in the browser but shows no install option.
+
+```bash
+pnpm --filter @dozari/mobile build:web     # -> apps/mobile/dist (static files)
+```
+
+Serve `apps/mobile/dist` from any https static host (or an https tunnel to your machine), open it on
+the phone, then: Android Chrome → menu → **Install app**; iPhone Safari → Share → **Add to Home Screen**.
+Set `EXPO_PUBLIC_API_URL` to the public API address before building, and allow that web origin in the
+server's `CORS_ORIGIN`.
+
 ## 5. Admin panel
 
 Open `http://localhost:3000/admin`.
