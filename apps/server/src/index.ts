@@ -29,6 +29,9 @@ import { ChatService, chatRulesFromSettings } from './chat/service.js';
 import { createDbChatStore } from './chat/store.js';
 import type { MatchService } from './realtime/match-service.js';
 import type { DuelQueue } from './realtime/queue.js';
+import { registerDailyRoutes } from './daily/routes.js';
+import { DailyService } from './daily/service.js';
+import { createDbDailyStore } from './daily/store.js';
 import { registerTournamentRoutes } from './tournament/routes.js';
 import { TournamentService } from './tournament/service.js';
 import { createDbTournamentStore } from './tournament/store.js';
@@ -117,6 +120,8 @@ export interface ServerDeps {
   chat?: ChatService;
   /** Tournaments (list, page, join); needs `auth`. */
   tournaments?: TournamentService;
+  /** The daily puzzle; needs `auth`. */
+  daily?: DailyService;
   /** Filled with the live-match service once the socket gateway exists, so tournaments can start duels. */
   live?: { matches?: MatchService; queue?: DuelQueue };
   /** Bot players: reacts to the events pushed to bot accounts (needs the gateway). */
@@ -194,6 +199,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.badges) registerBadgeRoutes(app, deps.auth, deps.badges);
   if (deps.auth && deps.chat) registerChatRoutes(app, deps.auth, deps.chat);
   if (deps.auth && deps.tournaments) registerTournamentRoutes(app, deps.auth, deps.tournaments);
+  if (deps.auth && deps.daily) registerDailyRoutes(app, deps.auth, deps.daily);
   if (deps.auth && deps.bale) {
     const phoneSvc = deps.phone;
     const settings = deps.settings;
@@ -368,14 +374,27 @@ if (isMainModule(import.meta.url)) {
       : undefined;
   const levelOf = async (id: string) => (player ? (await player.levelOf(id)).level.level : 1);
   const shopStore = db ? createDbShopStore(db) : undefined;
-  const solo = db && settings ? new SoloService(createDbPuzzleSource(db), { rules: () => soloRules(settings), onFinished: (id, outcome) => void player?.recordGame(id, { mode: 'solo', outcome }) }) : undefined;
+  let dailyRef: DailyService | undefined;
+  const solo =
+    db && settings
+      ? new SoloService(createDbPuzzleSource(db), {
+          rules: () => soloRules(settings),
+          onFinished: (id, outcome, tag) => {
+            void player?.recordGame(id, { mode: 'solo', outcome });
+            void dailyRef?.onFinished(id, outcome, tag).catch((err) => console.error('daily finish failed', err));
+          },
+        })
+      : undefined;
+  const dailyStore = db ? createDbDailyStore(db) : undefined;
+  const daily = dailyStore && solo && settings ? new DailyService(dailyStore, solo, { num: (k) => settings.num(k) }) : undefined;
+  dailyRef = daily;
   const botRepo = db ? createDbBotRepository(db) : undefined;
   const bot = botRepo ? new BotService(botRepo) : undefined;
   const app = buildServer({
     auth,
     settings,
     adminModules: db
-      ? { products: createDbProductAdmin(db), stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, botPlayers: botStore && player && settings ? { service: new BotPlayerService(botStore, () => rulesFromSettings(settings).then((r) => r.xp), () => randomInt(0, 2 ** 30) / 2 ** 30, async (id) => player.afterGame?.(id)), cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      ? { products: createDbProductAdmin(db), stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, daily, botPlayers: botStore && player && settings ? { service: new BotPlayerService(botStore, () => rulesFromSettings(settings).then((r) => r.xp), () => randomInt(0, 2 ** 30) / 2 ** 30, async (id) => player.afterGame?.(id)), cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
     match: db
@@ -405,6 +424,7 @@ if (isMainModule(import.meta.url)) {
     badges,
     chat,
     tournaments: tournamentService,
+    daily,
     live,
     botDriver,
     messages,

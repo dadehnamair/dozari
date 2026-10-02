@@ -17,3 +17,11 @@ export const HINT_MIN_LEVEL = 2;
 export const HINT_MAX_PER_GAME = 2;
 /** The 2nd and later hint of one game cost this percent of the listed price. */
 export const HINT_REPEAT_PERCENT = 200;
+
+/** Daily puzzle (owner item 15): one attempt a day, a small reward for solving, growing with the win streak. */
+export const DAILY_PUZZLE_REWARD = 20;
+/** Extra coins per streak day beyond the first, up to `DAILY_PUZZLE_STREAK_MAX_DAYS`. */
+export const DAILY_PUZZLE_STREAK_STEP = 5;
+export const DAILY_PUZZLE_STREAK_MAX_DAYS = 7;
+/** A puzzle used as a daily one is not picked again within this many days (when others exist). */
+export const DAILY_PUZZLE_REPEAT_DAYS = 30;

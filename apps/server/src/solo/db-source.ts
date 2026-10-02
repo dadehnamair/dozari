@@ -25,7 +25,17 @@ export function createDbPuzzleSource(db: Db): PuzzleSource {
         .where(eq(puzzles.status, 'approved'))
         .orderBy(sql`RAND()`)
         .limit(1);
-      if (!puzzle) return null;
+      return puzzle ? load(puzzle.id) : null;
+    },
+    async byId(id) {
+      const [puzzle] = await db.select({ id: puzzles.id }).from(puzzles).where(and(eq(puzzles.id, id), eq(puzzles.status, 'approved'))).limit(1);
+      return puzzle ? load(puzzle.id) : null;
+    },
+  };
+
+  async function load(puzzleId: string): Promise<ServedPuzzle | null> {
+    const puzzle = { id: puzzleId };
+    {
 
       const groups = await db
         .select()
@@ -56,6 +66,6 @@ export function createDbPuzzleSource(db: Db): PuzzleSource {
         items: Object.fromEntries(productRows.map((p) => [p.id, { nameFa: p.nameFa, unitFa: p.unitFa, iconKey: p.iconKey }])),
       };
       return served.groups.every((g) => g.productIds.length === GROUP_SIZE) ? served : null;
-    },
-  };
+    }
+  }
 }

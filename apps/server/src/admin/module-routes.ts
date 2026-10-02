@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { ITEMS, PRODUCT_CATEGORIES, SETTING_GROUPS, SHOP_EFFECTS } from '@dozari/shared';
+import { isDateKey, ITEMS, PRODUCT_CATEGORIES, SETTING_GROUPS, SHOP_EFFECTS } from '@dozari/shared';
 import type { SettingsService } from '../settings/service.js';
 import { BOT_ADAPTER_KEYS, SOURCE_TYPES } from '../bot/constants.js';
 import type { BotRepository } from '../bot/repository.js';
@@ -20,6 +20,8 @@ import type { BadgeService } from '../badges/service.js';
 import type { BadgeStore } from '../badges/store.js';
 import type { ChatStore } from '../chat/store.js';
 import type { TournamentService } from '../tournament/service.js';
+import type { DailyService } from '../daily/service.js';
+import { THEME_KINDS } from '../daily/store.js';
 import type { BotPlayerService } from '../botplayers/service.js';
 import { registerInviteAdminRoutes } from '../invite/routes.js';
 import type { InviteStore } from '../invite/store.js';
@@ -43,6 +45,7 @@ export interface AdminModules {
   chat?: ChatStore;
   /** Tournament builder and management. */
   tournaments?: TournamentService;
+  daily?: DailyService;
   /** Bot players: generate many natural accounts, tune or pause them. */
   botPlayers?: { service: BotPlayerService; cities: () => Promise<string[]> };
   messages?: MessageCenter;
@@ -115,7 +118,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     adapters: BOT_ADAPTER_KEYS,
     settingGroups: SETTING_GROUPS,
     icons: ITEMS,
-    modules: { settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages },
+    modules: { settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages },
   }));
 
   if (m.stats) {
@@ -528,6 +531,91 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
         return { ok: true, ...('refunded' in out ? { refunded: out.refunded } : {}) };
       });
     }
+  }
+
+  if (m.daily) {
+    const daily = m.daily;
+    const month = z.number().int().min(1).max(12);
+    const day = z.number().int().min(1).max(31);
+    const dateStr = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+    const themeBody = z
+      .object({
+        titleFa: z.string().trim().min(2).max(80),
+        kind: z.enum(THEME_KINDS),
+        weight: z.number().int().min(1).max(100),
+        startMonth: month.nullable(),
+        startDay: day.nullable(),
+        endMonth: month.nullable(),
+        endDay: day.nullable(),
+        fromDate: dateStr.nullable(),
+        toDate: dateStr.nullable(),
+        isActive: z.boolean(),
+      })
+      .refine((t) => [t.startMonth, t.startDay, t.endMonth, t.endDay].every((v) => v === null) || [t.startMonth, t.startDay, t.endMonth, t.endDay].every((v) => v !== null), 'recurring window must be complete')
+      .refine((t) => (!t.fromDate || isDateKey(t.fromDate)) && (!t.toDate || isDateKey(t.toDate)), 'bad date');
+    g.get('/admin/daily-puzzle/themes', async () => ({ themes: await daily.adminThemes() }));
+    g.get('/admin/daily-puzzle/puzzles', async () => ({ puzzles: await daily.puzzles(300) }));
+    g.post('/admin/daily-puzzle/themes', async (req, reply) => {
+      const b = themeBody.safeParse(req.body);
+      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await daily.saveTheme(null, b.data);
+      void audit('daily_theme.create', out?.id ?? '', b.data.titleFa);
+      return { ok: true, theme: out };
+    });
+    g.patch('/admin/daily-puzzle/themes/:id', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = themeBody.safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await daily.saveTheme(p.data.id, b.data);
+      if (!out) return reply.code(404).send({ error: 'not_found' });
+      void audit('daily_theme.update', p.data.id, b.data.titleFa);
+      return { ok: true };
+    });
+    g.delete('/admin/daily-puzzle/themes/:id', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
+      if (!(await daily.deleteTheme(p.data.id))) return reply.code(404).send({ error: 'not_found' });
+      void audit('daily_theme.delete', p.data.id);
+      return { ok: true };
+    });
+    g.get('/admin/daily-puzzle/themes/:id/puzzles', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
+      return { puzzleIds: await daily.linked(p.data.id) };
+    });
+    for (const on of [true, false]) {
+      g.route({
+        method: on ? 'POST' : 'DELETE',
+        url: '/admin/daily-puzzle/themes/:id/puzzles/:puzzleId',
+        handler: async (req, reply) => {
+          const p = z.object({ id: z.string().uuid(), puzzleId: z.string().uuid() }).safeParse(req.params);
+          if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
+          if ((await daily.link(p.data.id, p.data.puzzleId, on)) === 'not_found') return reply.code(404).send({ error: 'not_found' });
+          void audit(on ? 'daily_theme.link' : 'daily_theme.unlink', p.data.id, p.data.puzzleId);
+          return { ok: true };
+        },
+      });
+    }
+    g.get('/admin/daily-puzzle/schedule', async (req) => {
+      const q = z.object({ days: z.coerce.number().int().min(1).max(60).default(14) }).safeParse(req.query);
+      return { days: await daily.schedule(q.success ? q.data.days : 14) };
+    });
+    g.put('/admin/daily-puzzle/days/:dateKey', async (req, reply) => {
+      const p = z.object({ dateKey: dateStr }).safeParse(req.params);
+      const b = z.object({ puzzleId: z.string().uuid(), themeId: z.string().uuid().nullable().default(null) }).safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await daily.pin(p.data.dateKey, b.data.puzzleId, b.data.themeId);
+      if (out !== 'ok') return reply.code(out === 'played' ? 409 : out === 'not_found' ? 404 : 400).send({ error: out });
+      void audit('daily_puzzle.pin', p.data.dateKey, b.data.puzzleId);
+      return { ok: true };
+    });
+    g.delete('/admin/daily-puzzle/days/:dateKey', async (req, reply) => {
+      const p = z.object({ dateKey: dateStr }).safeParse(req.params);
+      if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
+      if ((await daily.unpin(p.data.dateKey)) === 'played') return reply.code(409).send({ error: 'played' });
+      void audit('daily_puzzle.unpin', p.data.dateKey);
+      return { ok: true };
+    });
   }
 
   if (m.botPlayers) {

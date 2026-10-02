@@ -99,6 +99,17 @@ export const fa = {
     ] },
   ],
   daily: { title: 'جایزهٔ روزانه', day: 'روز', today: 'امروز', claim: 'بگیر!', wait: 'تا جایزهٔ بعدی', won: 'سکه گرفتی!', coins: 'سکه', open: 'جایزهٔ روزانه' },
+  dailyPuzzle: {
+    title: 'پازل روز',
+    play: 'بازی کن',
+    done: 'امروز را بازی کردی',
+    won: 'حل کردی',
+    lost: 'این بار نشد',
+    playing: 'ادامه بده',
+    streak: 'روز پشت‌سرهم',
+    reward: 'جایزه‌ی حل',
+    coins: 'سکه',
+  },
   review: { title: 'نظرت برامون مهمه', defaultMessage: 'اگه از دوزاری خوشت اومده، یه نظر برامون بذار ❤️', go: 'نظر می‌دم', later: 'بعداً', never: 'دیگه نپرس' },
   gate: {
     maintenanceTitle: 'در دست تعمیر',
@@ -544,6 +555,7 @@ export const fa = {
     groupTab: ['زرد', 'سبز', 'آبی', 'بنفش'],
     errors: {
       noPuzzles: 'هنوز پازلی آماده نیست',
+      dailyDone: 'پازل امروزت را بازی کردی؛ فردا پازل تازه می‌آید.',
       network: 'اتصال به سرور برقرار نشد',
       server: 'سرور خطا داد',
       badResponse: 'پاسخ سرور قابل‌فهم نبود',

@@ -27,6 +27,8 @@ export interface PuzzleSource {
   pricesFor(productIds: readonly string[]): Promise<Record<string, PricePointRow[]>>;
   /** A random approved puzzle, or null when none exist. */
   pickRandom(): Promise<ServedPuzzle | null>;
+  /** A specific approved puzzle (the daily one), or null. */
+  byId?(id: string): Promise<ServedPuzzle | null>;
 }
 
 /** What a client may see (the shared wire contract). */

@@ -214,3 +214,9 @@ duels, pays prizes. House funds prizes, entry fees are a sink. Details and what 
 Admin-generated bot accounts that look like players, fill the queue after a human-like wait, play through the normal submit with a skill-controlled use of the
 answer (server-internal only), answer taunts and city chat, and can fill tournament seats. Never disclosed. Details: `docs/logic/bots.md` §As built.
 Owner note: undisclosed AI opponents were already approved (D19); the skill cap (90 %) and the rule that bots never take prize coins keep it from being a thumb on the scale.
+
+## D87 — Daily puzzle by day conditions (2026-10-02)
+
+One frozen puzzle per Tehran day, picked from admin-defined themes (occasion/season/trend/category with yearly Solar Hijri or absolute windows), pinned by an
+admin or chosen by a date-seeded weighted picker avoiding recent repeats. One attempt a day; small ledger reward growing with the streak. Details:
+`docs/logic/daily-puzzle.md`. Proposed defaults (20 coins, +5/day to 7 days, 30-day no-repeat); the owner may change them in settings.
