@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SceneBackground } from '../components/SceneBackground';
 import { Character } from '../components/Character';
-import { DailyRewardCard } from '../components/DailyRewardCard';
+import { DailyWheelPage } from '../daily/DailyWheelPage';
 import { ProfileSheet } from '../social/ProfileSheet';
 import { SettingsPage } from '../social/SettingsPage';
 import { LeaderboardPage } from '../social/LeaderboardPage';
@@ -24,7 +24,6 @@ import { fetchMatchActive } from '../duel/api';
 import { shareTable } from '../tables/api';
 import { TableSheet } from '../tables/TableSheet';
 import { TournamentSheet } from '../tournament/TournamentSheet';
-import { Toast } from '../components/Toast';
 import { SlabButton } from '../components/SlabButton';
 import { Wordmark } from '../components/Wordmark';
 import { useDailyReward } from '../daily/useDailyReward';
@@ -168,24 +167,7 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
         </View>
       </View>
 
-      {dailyOpen && daily.status ? (
-        <Pressable style={styles.overlay} onPress={() => setDailyOpen(false)} accessibilityLabel={fa.solo.back}>
-          <Pressable style={styles.sheet} onPress={() => undefined}>
-            <DailyRewardCard
-              steps={daily.status.steps}
-              day={daily.status.day}
-              canClaim={daily.status.canClaim && !daily.claiming}
-              onClaim={daily.claim}
-              waitText={daily.countdown ? `${daily.countdown} ${fa.daily.wait}` : undefined}
-            />
-            {daily.won !== null ? (
-              <View style={styles.won}>
-                <Toast text={`${toPersianDigits(String(daily.won))} ${fa.daily.won}`} tone={colors.candy.yellow} />
-              </View>
-            ) : null}
-          </Pressable>
-        </Pressable>
-      ) : null}
+      {dailyOpen ? <DailyWheelPage daily={daily} onClose={() => setDailyOpen(false)} /> : null}
       {review.open && review.url ? <ReviewSheet message={review.message} url={review.url} onReview={review.onReview} onLater={review.onLater} onNever={review.onNever} /> : null}
       {profileOpen ? <ProfileSheet onClose={() => (setProfileOpen(false), loadMe())} onGender={setGender} /> : null}
       {boardOpen ? <LeaderboardPage onClose={() => setBoardOpen(false)} /> : null}

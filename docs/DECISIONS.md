@@ -317,3 +317,7 @@ The repo's `docker-compose.yml` stays dev-only. Production is `docker-compose.pr
 ## D109 — Level road from the real gates (2026-10-02)
 
 The level road and locked popup are built from `GET /me/levels` (level, XP curve, and an unlock list assembled from the admin settings `hint.min_level`, `invite.min_level`, `transfer.min_level`, `profile.avatar_change_min_level`, `profile.nickname_change_min_level` and the shop items' `minLevel`), so the screen cannot drift from the rules. Tournaments' own level gates are per tournament and not on the road. Descriptions of the settings-based unlocks are app copy (`fa.levels.unlock`).
+
+## D111 — Daily reward as a wheel, same economy (2026-10-02)
+
+`screen-daily` is built as a spinning wheel over the existing seven-day streak ladder. The wheel always lands on today's reward (the server decides, rule 6), so no economy number changed; the design's random slices (a different prize per spin) would be a new faucet and were not built. **Proposed, owner to decide:** whether the daily reward should become random (weighted slices with an expected value equal to today's ladder) — it would need a config, a ledger reason key and the economy simulation.

@@ -89,6 +89,17 @@ by nickname, incoming requests with accept / decline, then one card per friend (
 tap for their profile — and a gift button that opens the coin gift). The mock-up's online status and
 per-friend duel button need presence and direct challenges, which do not exist yet; they are left out.
 
+## Daily wheel (D111)
+
+screen-daily of `19 Social Daily Onboarding` (Home tile «جایزه»): a yellow title plate, the seven-day
+streak strip (done green, today yellow, ahead dim, each with its coins), a lamp-rimmed wheel of eight
+slices with a pink pointer, a status line (ready / spinning / countdown to the next spin) and the big
+«بچرخون!» button; the prize card («N سکه», «فردا هم بیا، جایزه بزرگ‌تره») ends it. **The coins are the
+server's streak ladder** (`GET /daily-reward`, claim = one ledger row): slice 0 always holds today's
+amount, the next slices the following days, and the wheel always lands on slice 0 — it is the ceremony,
+never a second source of coins. Faces are frozen during a spin because the claim advances the streak.
+A random wheel would be a new economy rule; it stays an open choice for the owner.
+
 ## Level road and locked popup (D109)
 
 screen-levels of `17 Chat Shop Unlocks`, opened from the profile («جادهٔ لول‌ها»): a purple night, the
