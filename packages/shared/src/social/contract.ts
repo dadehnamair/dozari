@@ -108,3 +108,9 @@ const playerRow = z.object({ id: z.string().uuid(), nickname: z.string(), avatar
 /** `GET /friends`: accepted friends and requests waiting for the caller's answer. */
 export const friendsSchema = z.object({ friends: z.array(playerRow.extend({ online: z.boolean().default(false) })), incoming: z.array(playerRow) });
 export type Friends = z.infer<typeof friendsSchema>;
+
+/** `GET /me/games`: the player's last finished games, newest first («بازی‌های اخیر» on the profile). */
+export const recentGamesSchema = z.object({
+  games: z.array(z.object({ mode: z.enum(['solo', 'duel']).nullable(), outcome: z.enum(['win', 'loss', 'draw']).nullable(), xp: z.number().int().nonnegative(), at: z.number().int() })),
+});
+export type RecentGames = z.infer<typeof recentGamesSchema>;

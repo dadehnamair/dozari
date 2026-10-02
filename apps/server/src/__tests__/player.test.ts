@@ -215,3 +215,19 @@ describe('week and month leaderboards', () => {
     expect((await app.inject({ method: 'GET', url: '/leaderboard?period=year', headers: a.h })).statusCode).toBe(400);
   });
 });
+
+describe('recent games', () => {
+  it('lists the caller\'s last finished games, newest first, only theirs', async () => {
+    const { app, login, store, clock } = boot();
+    const a = await login(1);
+    const b = await login(2);
+    clock.t += 1000;
+    await store.addGame(a.id, 'win', 30, 'solo');
+    clock.t += 1000;
+    await store.addGame(a.id, 'loss', 20, 'duel');
+    await store.addGame(b.id, 'win', 99, 'duel');
+    const res = (await app.inject({ method: 'GET', url: '/me/games', headers: a.h })).json() as { games: { mode: string; outcome: string; xp: number }[] };
+    expect(res.games.map((g) => [g.mode, g.outcome, g.xp])).toEqual([['duel', 'loss', 20], ['solo', 'win', 30]]);
+    expect((await app.inject({ method: 'GET', url: '/me/games' })).statusCode).toBe(401);
+  });
+});

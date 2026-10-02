@@ -35,6 +35,12 @@ export function registerSocialRoutes(app: FastifyInstance, auth: AuthService, so
     return social.leaderboard(user.id, q.data.scope, q.data.period);
   });
 
+  app.get('/me/games', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    return { games: (await social.player?.recentGames(user.id, 10)) ?? [] };
+  });
+
   app.get('/cities', async (req, reply) => {
     const user = await currentUser(auth, req);
     if (!user) return reply.code(401).send({ error: 'unauthorized' });

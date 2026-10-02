@@ -185,6 +185,9 @@ export const fa = {
     updateButton: 'به‌روزرسانی',
   },
   profile: {
+    recentGames: 'بازی‌های اخیر',
+    gameMode: { solo: 'بازی تکی', duel: 'دوئل' } as Record<string, string>,
+    gameOutcome: { win: 'بردی', loss: 'باختی', draw: 'مساوی' } as Record<string, string>,
     open: 'پروفایل من',
     title: 'پروفایل من',
     gender: 'جنسیت',

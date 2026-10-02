@@ -2,18 +2,19 @@ import { useCallback, useEffect, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Polygon } from 'react-native-svg';
 import { provinceOf, toPersianDigits } from '@dozari/shared';
-import type { Friends, Gender, MyBadges, MyProfile } from '@dozari/shared';
+import type { Friends, Gender, MyBadges, MyProfile, RecentGames } from '@dozari/shared';
 import { Avatar } from '../components/Avatar';
 import { CandyButton } from '../components/CandyButton';
 import { GradientFill } from '../components/GradientFill';
 import { Icon } from '../components/Icon';
 import { ProvinceBadge } from '../components/ProvinceBadge';
 import { Scene } from '../components/Scene';
+import { agoText } from '../inbox/ago';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { fetchMyBadges } from '../badges/api';
 import { skillText } from '../badges/text';
-import { fetchFriends, fetchMyProfile, saveGender } from './api';
+import { fetchFriends, fetchMyProfile, fetchRecentGames, saveGender } from './api';
 import { avatarOf } from './avatarOf';
 import { ProfileEditor } from './ProfileEditor';
 import { InviteSheet } from '../invite/InviteSheet';
@@ -38,6 +39,7 @@ export function ProfileSheet({ onClose, onGender }: { onClose: () => void; onGen
   const [me, setMe] = useState<MyProfile | null>(null);
   const [friends, setFriends] = useState<Friends | null>(null);
   const [badges, setBadges] = useState<MyBadges | null>(null);
+  const [games, setGames] = useState<RecentGames['games']>([]);
   const [failed, setFailed] = useState(false);
   const [editing, setEditing] = useState(false);
   const [sub, setSub] = useState<'invite' | 'loans' | 'find' | 'badges' | 'friends' | 'city' | 'levels' | null>(null);
@@ -48,6 +50,7 @@ export function ProfileSheet({ onClose, onGender }: { onClose: () => void; onGen
       () => setFailed(true),
     );
     fetchMyBadges().then(setBadges, () => undefined);
+    fetchRecentGames().then((r) => setGames(r.games), () => undefined);
   }, []);
   useEffect(load, [load]);
 
@@ -159,6 +162,20 @@ export function ProfileSheet({ onClose, onGender }: { onClose: () => void; onGen
                 </View>
               ) : null}
 
+              {games.length > 0 ? (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>{fa.profile.recentGames}</Text>
+                  {games.slice(0, 5).map((g, i) => (
+                    <View key={`${g.at}-${i}`} style={styles.gameRow}>
+                      <View style={[styles.gameDot, { backgroundColor: g.outcome === 'win' ? '#7ED957' : g.outcome === 'loss' ? '#FF8FB6' : '#FFE48A' }]} />
+                      <Text style={styles.gameText}>{`${g.mode ? fa.profile.gameMode[g.mode] : fa.profile.gameMode.solo} · ${g.outcome ? fa.profile.gameOutcome[g.outcome] : ''}`}</Text>
+                      <Text style={styles.gameXp}>{`+${n(g.xp)} ${fa.leaderboard.xp}`}</Text>
+                      <Text style={styles.gameAgo}>{agoText(g.at, Date.now())}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>{fa.profile.myBadges}</Text>
                 {badges && badges.earned.length > 0 ? (
@@ -192,6 +209,11 @@ export function ProfileSheet({ onClose, onGender }: { onClose: () => void; onGen
 const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0, height: h }, shadowOpacity: 1, shadowRadius: 0, elevation: h });
 
 const styles = StyleSheet.create({
+  gameRow: { alignSelf: 'stretch', flexDirection: ROW, alignItems: 'center', gap: 8, paddingVertical: 4 },
+  gameDot: { width: 12, height: 12, borderRadius: 6, borderWidth: 2, borderColor: colors.ink },
+  gameText: { flex: 1, fontFamily: fonts.bold, fontSize: 13, color: colors.ink, textAlign: 'right' },
+  gameXp: { fontFamily: fonts.display, fontSize: 13, color: '#7E46D6' },
+  gameAgo: { fontFamily: fonts.bold, fontSize: 11, color: colors.ink, opacity: 0.6, minWidth: 54, textAlign: 'left' },
   root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20, backgroundColor: '#FBF1DE' },
   page: { paddingBottom: 30 },
   hero: { position: 'absolute', top: 0, left: 0, right: 0, height: 210, overflow: 'hidden' },

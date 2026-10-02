@@ -659,6 +659,9 @@ export const xpEvents = mysqlTable(
     id: id(),
     userId: fk('user_id').references(() => users.id),
     xp: int('xp').notNull(),
+    /** What the game was and how it ended, for «بازی‌های اخیر» (null on rows written before the history existed). */
+    mode: mysqlEnum('mode', ['solo', 'duel']),
+    outcome: mysqlEnum('outcome', ['win', 'loss', 'draw']),
     createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
   },
   (table) => ({

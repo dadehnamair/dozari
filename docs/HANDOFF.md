@@ -26,7 +26,7 @@ For the next chat. Read `CLAUDE.md`, then this file, then `docs/DECISIONS.md` fr
 
 23 Hub regression fixed: after fitting the map to the screen the purple hill / ground stopped at the map's edges; the SVG now spans the whole screen (viewBox centred on the map) and hill, ground and road extend past it.
 
-24 Duel «ارتباط با سرور» error on the owner's host: locally fine; client now falls back to long-polling (D127). If it persists, check websockets on the api proxy and `CORS_ORIGIN` (polling needs it). **Deploy: run migrations 0034–0036.**
+24 Duel «ارتباط با سرور» error on the owner's host: locally fine; client now falls back to long-polling (D127). If it persists, check websockets on the api proxy and `CORS_ORIGIN` (polling needs it). **Deploy: run migrations 0034–0037.**
 
 ## Queue rule (owner, 2026-10-02)
 New asks go to the END of the queue unless the owner says it is truly urgent.
@@ -37,7 +37,7 @@ New asks go to the END of the queue unless the owner says it is truly urgent.
 21 **Confirmations + OTP for account deletion** ✔ (D125; run `db:migrate` on the server for 0034 `xp_events` and 0035 `account_delete_codes`).
 
 ## Not built (older asks)
-screen-login with phone (needs the account-recovery decision), public player number + default handle (covered by `users.handle`, see D123), Bale payment docs (allow `docs.bale.ai` or paste the payment section), gems/outfits/avatars shop tabs, (week/month leaderboards ✔ D123), team and propose-and-vote modes, recent games on profile.
+screen-login with phone (needs the account-recovery decision), public player number + default handle (covered by `users.handle`, see D123), Bale payment docs (allow `docs.bale.ai` or paste the payment section), gems/outfits/avatars shop tabs, (week/month leaderboards ✔ D123), team and propose-and-vote modes, recent games on profile ✔ (D128).
 
 ## Suggested next order
 7 (music) → 9 after the owner picks: wheel by win-chance and/or gems.

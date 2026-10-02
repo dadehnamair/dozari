@@ -54,7 +54,7 @@ export class PlayerService {
   async recordGame(userId: string, game: GameResultForXp): Promise<void> {
     try {
       const { xp } = await this.rules();
-      await this.store.addGame(userId, game.outcome, xpForGame(game, xp));
+      await this.store.addGame(userId, game.outcome, xpForGame(game, xp), game.mode);
       await this.afterGame?.(userId);
     } catch {
       /* stats must not break a finished game */
@@ -84,6 +84,10 @@ export class PlayerService {
 
   rankOf(userId: string, filter: RankFilter, since?: number) {
     return this.store.rankOf(userId, filter, since);
+  }
+
+  recentGames(userId: string, limit: number) {
+    return this.store.recentGames(userId, limit);
   }
 
   xpSince(userId: string, since?: number) {

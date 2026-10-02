@@ -38,7 +38,9 @@ export const EMPTY_STATS: StatsRow = { xp: 0, games: 0, wins: 0, losses: 0, draw
 export interface PlayerStore {
   stats(userId: string): Promise<StatsRow>;
   /** Adds one finished game and its XP; returns the new totals. */
-  addGame(userId: string, outcome: 'win' | 'loss' | 'draw', xp: number): Promise<StatsRow>;
+  addGame(userId: string, outcome: 'win' | 'loss' | 'draw', xp: number, mode?: 'solo' | 'duel'): Promise<StatsRow>;
+  /** The last `limit` finished games, newest first. */
+  recentGames(userId: string, limit: number): Promise<{ mode: 'solo' | 'duel' | null; outcome: 'win' | 'loss' | 'draw' | null; xp: number; at: number }[]>;
   privateRow(userId: string): Promise<PrivateRow>;
   setCity(userId: string, cityId: string | null): Promise<void>;
   setEmail(userId: string, email: string | null): Promise<void>;
@@ -77,13 +79,13 @@ export function createDbPlayerStore(db: Db): PlayerStore {
       const [r] = await db.select().from(userStats).where(eq(userStats.userId, userId));
       return r ? { xp: r.xp, games: r.games, wins: r.wins, losses: r.losses, draws: r.draws } : { ...EMPTY_STATS };
     },
-    async addGame(userId, outcome, xp) {
+    async addGame(userId, outcome, xp, mode) {
       const inc = { xp: sql`${userStats.xp} + ${xp}`, games: sql`${userStats.games} + 1`, wins: sql`${userStats.wins} + ${outcome === 'win' ? 1 : 0}`, losses: sql`${userStats.losses} + ${outcome === 'loss' ? 1 : 0}`, draws: sql`${userStats.draws} + ${outcome === 'draw' ? 1 : 0}`, updatedAt: new Date() };
       await db
         .insert(userStats)
         .values({ userId, xp, games: 1, wins: outcome === 'win' ? 1 : 0, losses: outcome === 'loss' ? 1 : 0, draws: outcome === 'draw' ? 1 : 0 })
         .onDuplicateKeyUpdate({ set: inc });
-      if (xp > 0) await db.insert(xpEvents).values({ id: uuidv7(), userId, xp });
+      await db.insert(xpEvents).values({ id: uuidv7(), userId, xp, mode: mode ?? null, outcome });
       return this.stats(userId);
     },
     async privateRow(userId) {
@@ -121,6 +123,10 @@ export function createDbPlayerStore(db: Db): PlayerStore {
         .orderBy(desc(userStats.xp), asc(userStats.userId))
         .limit(limit);
       return rows;
+    },
+    async recentGames(userId, limit) {
+      const rows = await db.select({ mode: xpEvents.mode, outcome: xpEvents.outcome, xp: xpEvents.xp, at: xpEvents.createdAt }).from(xpEvents).where(eq(xpEvents.userId, userId)).orderBy(desc(xpEvents.createdAt), desc(xpEvents.id)).limit(limit);
+      return rows.map((r) => ({ mode: r.mode, outcome: r.outcome, xp: r.xp, at: r.at.getTime() }));
     },
     async xpSince(userId, since) {
       if (since === undefined) {
@@ -182,7 +188,7 @@ export function createDbPlayerStore(db: Db): PlayerStore {
 /** Memory store for tests; `seedCities` mirrors the default list when omitted. */
 export function createMemoryPlayerStore(seedCities: readonly { slug: string; nameFa: string; province?: string | null }[] = DEFAULT_CITIES, now: () => number = Date.now): PlayerStore & { nicknames: Map<string, string> } {
   const stats = new Map<string, StatsRow>();
-  const events: { userId: string; xp: number; at: number }[] = [];
+  const events: { userId: string; xp: number; at: number; mode: 'solo' | 'duel' | null; outcome: 'win' | 'loss' | 'draw' | null }[] = [];
   const priv = new Map<string, PrivateRow>();
   const nicknames = new Map<string, string>();
   const xpOf = (userId: string, since?: number) => (since === undefined ? (stats.get(userId)?.xp ?? 0) : events.filter((e) => e.userId === userId && e.at >= since).reduce((a, e) => a + e.xp, 0));
@@ -197,10 +203,10 @@ export function createMemoryPlayerStore(seedCities: readonly { slug: string; nam
     async stats(id) {
       return { ...(stats.get(id) ?? EMPTY_STATS) };
     },
-    async addGame(id, outcome, xp) {
+    async addGame(id, outcome, xp, mode) {
       const s = { ...(stats.get(id) ?? EMPTY_STATS) };
       s.xp += xp;
-      if (xp > 0) events.push({ userId: id, xp, at: now() });
+      events.push({ userId: id, xp, at: now(), mode: mode ?? null, outcome });
       s.games += 1;
       if (outcome === 'win') s.wins += 1;
       if (outcome === 'loss') s.losses += 1;
@@ -210,6 +216,9 @@ export function createMemoryPlayerStore(seedCities: readonly { slug: string; nam
     },
     async privateRow(id) {
       return { ...(priv.get(id) ?? { cityId: null, email: null }) };
+    },
+    async recentGames(id, limit) {
+      return events.filter((e) => e.userId === id).sort((a, b) => b.at - a.at).slice(0, limit).map((e) => ({ mode: e.mode, outcome: e.outcome, xp: e.xp, at: e.at }));
     },
     async ranking(filter, limit, since) {
       return inFilter(filter, since)

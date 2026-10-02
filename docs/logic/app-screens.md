@@ -139,7 +139,7 @@ event log existed counts only in «کل زمان».
 city, e-mail), the big avatar with the level hexagon, nickname, skill rank and city (with its province
 badge), the level bar, four stat tiles (games / wins / losses / draws), the earned badges as colour
 tags and shortcut buttons (friends, badges and messages, find a friend, gifts and loans, invite). The
-design's handle line and «recent games» need a public handle and a game history endpoint and are left
+design's handle line is left
 out. Opened from the level pill on Home or from settings.
 
 **screen-settings** (Home tile «تنظیمات»): hujre scene, sky title plate, Mashti and his line, then three
@@ -304,3 +304,10 @@ task in `PLAN.md`, not blocking Phase 0-A/0.
 - UGC voting-feed screen is now specified in `docs/logic/ugc.md` §Voting feed UI (single-card
   swipe, approve/reject) — no longer open.
 - Admin panel: see §Admin panel above — first pass done, full interview still open.
+
+## Recent games on the profile (D128)
+
+The profile lists the last 5 finished games («بازی‌های اخیر»): mode (solo / duel), outcome (win / loss / draw), XP and how long ago.
+Source: `xp_events` (one row per finished game, now with `mode` and `outcome`; rows from before have neither and show as solo, no
+outcome). `GET /me/games` returns the last 10, newest first, the caller's own only.
+
