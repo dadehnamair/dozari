@@ -257,3 +257,7 @@ The app can now play the existing 1v1 socket flow: queue, board, turn clock, res
 ## D95 — Coin stakes for live queue duels (2026-10-02)
 
 Entry fee, free daily matches, winner payout, draw refund, loss consolation and the once-a-day broke rescue now run on the ledger for queue duels, all numbers as admin settings (`duel.*`). Tables and tournaments stay friendly. Defaults are the confirmed ones from D9; the simulator (D90) says the economy inflates, so the free-match payout is the first knob to lower if real data agrees.
+
+## D96 — Onboarding tutorial and account controls (2026-10-02)
+
+Four skippable slides before the first Home (seen flag kept on the device); in the profile sheet: replay tutorial, sign out everywhere (`POST /me/sign-out-everywhere`), delete account (`DELETE /me`, two taps) and an about text. Deleting does not erase rows: personal data (device id, phone, email, handle, nickname) is removed and the account becomes an empty banned shell so the ledger and match history stay consistent; the device then starts a fresh guest. Support contact text is generic until the owner gives a real channel.

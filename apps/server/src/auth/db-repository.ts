@@ -23,6 +23,16 @@ export function createDbUserRepository(db: Db): UserRepository {
       if (!row) throw new Error('guest account missing right after insert');
       return row;
     },
+    async anonymize(id) {
+      const now = new Date();
+      await db
+        .update(users)
+        .set({ deviceId: null, nickname: 'حساب حذف‌شده', phone: null, phonePending: null, phoneVerifiedAt: null, email: null, handle: null, equippedBadgeId: null, isBanned: true, banReason: 'account_deleted', bannedAt: now, sessionsValidAfter: now })
+        .where(eq(users.id, id));
+    },
+    async signOutEverywhere(id) {
+      await db.update(users).set({ sessionsValidAfter: new Date() }).where(eq(users.id, id));
+    },
     async touch(id) {
       await db.update(users).set({ lastSeenAt: new Date() }).where(eq(users.id, id));
     },

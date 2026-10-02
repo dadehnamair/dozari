@@ -28,6 +28,8 @@ export interface SessionManager {
   /** The stored token if there is one, else a fresh guest login. Concurrent callers share one login. */
   token(): Promise<string>;
   /** Run an authorised call; on a 401 the token is dropped, a new guest session is made and the call retried once. */
+  /** Forget this device's account: drop the token and the device id, so the next call starts a fresh guest. */
+  forget(): Promise<void>;
   authed<T>(call: (token: string) => Promise<T>): Promise<T>;
 }
 
@@ -56,6 +58,10 @@ export function createSessionManager(deps: SessionDeps): SessionManager {
 
   return {
     token,
+    async forget() {
+      await deps.store.remove(TOKEN_KEY);
+      await deps.store.remove(DEVICE_KEY);
+    },
     async authed(call) {
       try {
         return await call(await token());

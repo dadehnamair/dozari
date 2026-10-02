@@ -112,7 +112,7 @@ browser — both need the owner's own machine (see Phase 0-A).
       path as real players; `is_bot` never leaves the server
 - [ ] 📱 Lobby: quick match 1v1, create/join private table, waiting screen (est. wait, cancel,
       "play solo while waiting", short puzzle info)
-- [ ] 📱 4-slide onboarding tutorial (skippable) before first Home screen
+- [x] 📱 4-slide onboarding tutorial (skippable) before first Home screen (D96)
 - [ ] 📱 Match screen: whose turn, timer, scores, opponent's last guess feedback
 - [ ] 🧪 Reducer tests for every rule; socket integration test with two fake clients; bot-fill test
 
@@ -149,7 +149,7 @@ human opponent is found.
 - [ ] 📱 Chat drawer: floating icon button + unread badge (`logic/app-screens.md`), tabs (team /
       all), taunt picker, invite-code redemption screen
 - [ ] 🧪 Visibility matrix tests (`logic/chat-and-access.md`)
-- [ ] 📱 Settings screen: sound/vibration toggles, delete account/log out, replay tutorial, about/support
+- [x] 📱 Settings screen: sound/vibration toggles, delete account/log out, replay tutorial, about/support (D89 + D96, inside the profile sheet)
 
 ## Phase 6 — Coin economy
 

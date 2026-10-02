@@ -73,6 +73,32 @@ describe('log out everywhere', () => {
   });
 });
 
+describe('delete account', () => {
+  it('anonymizes the account, kills its sessions, and the same device then starts a fresh guest', async () => {
+    const users = memoryUsers();
+    const repo: UserRepository = {
+      ...users.repo,
+      async anonymize(id) {
+        const u = users.byId.get(id)!;
+        u.isBanned = true;
+        u.nickname = 'حساب حذف‌شده';
+        (u as { deviceId: string | null }).deviceId = null;
+      },
+    };
+    const auth = new AuthService(repo, createTokenSigner(SECRET), mulberry32(3));
+    const app = buildServer({ auth });
+    const login = await auth.guestLogin(DEVICE);
+    if (!login.ok) throw new Error('login failed');
+    const headers = { authorization: `Bearer ${login.session.token}` };
+    expect((await app.inject({ method: 'DELETE', url: '/me', headers })).json()).toEqual({ ok: true });
+    expect((await app.inject({ method: 'GET', url: '/me', headers })).statusCode).toBe(401);
+    const again = await auth.guestLogin(DEVICE);
+    if (!again.ok) throw new Error('login failed');
+    expect(again.session.user.id).not.toBe(login.session.user.id);
+    expect((await app.inject({ method: 'POST', url: '/me/sign-out-everywhere', headers })).statusCode).toBe(401);
+  });
+});
+
 describe('guest login', () => {
   it('creates an account with a preset nickname and avatar, then returns the same one for the same device', async () => {
     const { app, byId } = setup();
