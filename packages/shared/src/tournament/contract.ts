@@ -37,7 +37,7 @@ export const tournamentDetailSchema = tournamentListItemSchema.extend({
   bracket: z.array(bracketMatchSchema),
   rounds: z.number().int(),
   /** Why the caller cannot enter now, or null (they can, or they already did). */
-  blocked: z.enum(['LEVEL', 'COINS', 'FULL', 'CLOSED', 'NOT_ACTIVATED']).nullable(),
+  blocked: z.enum(['LEVEL', 'COINS', 'FULL', 'CLOSED', 'NOT_ACTIVATED', 'BUSY']).nullable(),
   /** Final places of a finished tournament. */
   results: z.array(z.object({ id: z.string().uuid(), nickname: z.string(), place: z.number().int().min(1).max(3), coins: z.number().int().nonnegative() })),
 });
@@ -45,5 +45,5 @@ export type TournamentDetail = z.infer<typeof tournamentDetailSchema>;
 
 export const tournamentSizeSchema = z.union(TOURNAMENT_SIZES.map((s) => z.literal(s)) as unknown as [z.ZodLiteral<4>, z.ZodLiteral<8>, ...z.ZodLiteral<number>[]]);
 
-export const TOURNAMENT_ERRORS = ['NOT_FOUND', 'CLOSED', 'FULL', 'ALREADY_IN', 'NOT_IN', 'LEVEL', 'COINS', 'NOT_ACTIVATED', 'BAD_STATE', 'TOO_FEW'] as const;
+export const TOURNAMENT_ERRORS = ['NOT_FOUND', 'CLOSED', 'FULL', 'ALREADY_IN', 'NOT_IN', 'LEVEL', 'COINS', 'NOT_ACTIVATED', 'BUSY', 'BAD_STATE', 'TOO_FEW'] as const;
 export type TournamentError = (typeof TOURNAMENT_ERRORS)[number];

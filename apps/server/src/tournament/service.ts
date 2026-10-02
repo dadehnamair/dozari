@@ -27,6 +27,7 @@ export interface TournamentInput {
   minLevel: number;
   startsAt: number;
   botFill?: boolean;
+  allowConcurrent?: boolean;
   prizes: { place: number; coins: number }[];
 }
 
@@ -60,7 +61,7 @@ export class TournamentService {
   async create(input: TournamentInput, publish: boolean): Promise<Result<{ id: string }>> {
     if (!this.validate(input)) return { ok: false, error: 'INVALID' };
     if (publish && input.startsAt <= this.now()) return { ok: false, error: 'INVALID' };
-    const t: NewTournament = { titleFa: input.titleFa.trim(), descriptionFa: input.descriptionFa.trim(), iconKey: input.iconKey, status: publish ? 'open' : 'draft', size: input.size, minPlayers: input.minPlayers, entryCoins: input.entryCoins, minLevel: input.minLevel, botFill: input.botFill ?? false, startsAt: input.startsAt };
+    const t: NewTournament = { titleFa: input.titleFa.trim(), descriptionFa: input.descriptionFa.trim(), iconKey: input.iconKey, status: publish ? 'open' : 'draft', size: input.size, minPlayers: input.minPlayers, entryCoins: input.entryCoins, minLevel: input.minLevel, botFill: input.botFill ?? false, allowConcurrent: input.allowConcurrent ?? false, startsAt: input.startsAt };
     const row = await this.store.create(t, input.prizes);
     return { ok: true, id: row.id };
   }
@@ -73,9 +74,9 @@ export class TournamentService {
     const entered = (await this.store.entries(id)).length > 0;
     const structural = ['size', 'minPlayers', 'entryCoins', 'minLevel'] as const;
     if (entered && structural.some((k) => input[k] !== undefined && input[k] !== t[k])) return { ok: false, error: 'BAD_STATE' };
-    const merged: TournamentInput = { titleFa: t.titleFa, descriptionFa: t.descriptionFa, iconKey: t.iconKey, size: t.size, minPlayers: t.minPlayers, entryCoins: t.entryCoins, minLevel: t.minLevel, botFill: t.botFill, startsAt: t.startsAt, prizes: input.prizes ?? (await this.store.prizes(id)), ...input };
+    const merged: TournamentInput = { titleFa: t.titleFa, descriptionFa: t.descriptionFa, iconKey: t.iconKey, size: t.size, minPlayers: t.minPlayers, entryCoins: t.entryCoins, minLevel: t.minLevel, botFill: t.botFill, allowConcurrent: t.allowConcurrent, startsAt: t.startsAt, prizes: input.prizes ?? (await this.store.prizes(id)), ...input };
     if (!this.validate(merged)) return { ok: false, error: 'INVALID' };
-    await this.store.update(id, { titleFa: merged.titleFa.trim(), descriptionFa: merged.descriptionFa.trim(), iconKey: merged.iconKey, size: merged.size, minPlayers: merged.minPlayers, entryCoins: merged.entryCoins, minLevel: merged.minLevel, botFill: merged.botFill ?? false, startsAt: merged.startsAt });
+    await this.store.update(id, { titleFa: merged.titleFa.trim(), descriptionFa: merged.descriptionFa.trim(), iconKey: merged.iconKey, size: merged.size, minPlayers: merged.minPlayers, entryCoins: merged.entryCoins, minLevel: merged.minLevel, botFill: merged.botFill ?? false, allowConcurrent: merged.allowConcurrent ?? false, startsAt: merged.startsAt });
     if (input.prizes) await this.store.setPrizes(id, input.prizes);
     return { ok: true };
   }
@@ -140,7 +141,8 @@ export class TournamentService {
       bracket.push({ round: m.round, slot: m.slot, a: a ? { id: a.id, nickname: a.nickname } : null, b: b ? { id: b.id, nickname: b.nickname } : null, winnerId: m.winner, status: m.status });
     }
     const entered = entries.some((e) => e.userId === userId);
-    const blocked = entered ? null : t.status !== 'open' ? 'CLOSED' : entries.length >= t.size ? 'FULL' : level < t.minLevel ? 'LEVEL' : balance < t.entryCoins ? 'COINS' : null;
+    const busy = !entered && !t.allowConcurrent && t.status === 'open' && (await this.store.busyElsewhere(userId, id));
+    const blocked = entered ? null : t.status !== 'open' ? 'CLOSED' : entries.length >= t.size ? 'FULL' : level < t.minLevel ? 'LEVEL' : busy ? 'BUSY' : balance < t.entryCoins ? 'COINS' : null;
     const prizeOf = new Map(prizes.map((p) => [p.place, p.coins]));
     const results = t.status === 'finished' ? finalPlaces(matches, t.size) : [];
     const resultRows = [];
@@ -156,6 +158,7 @@ export class TournamentService {
     if (!t || t.status === 'draft') return { ok: false, error: 'NOT_FOUND' };
     if (t.status !== 'open') return { ok: false, error: 'CLOSED' };
     if ((await this.deps.levelOf(userId)) < t.minLevel) return { ok: false, error: 'LEVEL' };
+    if (!t.allowConcurrent && (await this.store.busyElsewhere(userId, id))) return { ok: false, error: 'BUSY' };
     const out = await this.store.join(id, userId, t.entryCoins, this.now());
     if (out === 'ok') return { ok: true, balance: await this.store.balance(userId) };
     return { ok: false, error: out === 'full' ? 'FULL' : out === 'already' ? 'ALREADY_IN' : out === 'insufficient' ? 'COINS' : 'CLOSED' };

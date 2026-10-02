@@ -241,3 +241,7 @@ lower the free-match payout first if needed. Owner may change the numbers; see `
 
 Catalog, level gate, admin CRUD and an idempotent `purchase` credit exist, behind `feature.coin_packages` (default off) and a verifier that refuses until a real store adapter exists.
 Still needed from the owner before enabling: Bazaar/Myket developer accounts and SKUs, store receipt-API keys, refund/dispute handling and store-policy review (open question 4).
+
+## D92 — Tournament concurrency switch and daily game caps (2026-10-02)
+
+Owner: tournaments need an admin option for whether a player may be in several at once (default: one at a time), the daily game limit must be settable from the panel, and every game mode and hub should be broadly configurable from the admin panel. Built: per-tournament `allowConcurrent` (default off) and `limit.solo_per_day` / `limit.duel_per_day` (default 0 = unlimited). Standing rule from now on: any new limit, timer or amount ships as a registry setting, and existing hard-coded ones are moved into the registry as they are found.

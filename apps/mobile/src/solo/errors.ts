@@ -8,6 +8,7 @@ export function describeError(err: unknown, baseUrl: string): { message: string;
   if (err instanceof ApiError) {
     if (err.code === 'no_puzzles') return { message: e.noPuzzles, detail: '' };
     if (err.code === 'done') return { message: e.dailyDone, detail: '' };
+    if (err.code === 'daily_cap') return { message: e.dailyCap, detail: '' };
     if (err.code === 'unavailable') return { message: e.noPuzzles, detail: '' };
     return { message: e.server, detail: `${err.status} ${err.code}` };
   }

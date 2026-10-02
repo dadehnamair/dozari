@@ -126,3 +126,7 @@ free-match wins paid from the house pot (3/day × 45 % × 9 coins), daily reward
 covers duels; hints, shop, gifts (zero-sum) and tournaments are not in it. Proposed (not applied): leave
 numbers as they are until real play data exists, and use the shop / cosmetics / coin-packages as the sink;
 if inflation shows in production lower `FREE_MATCH_PAYOUT_PERCENT` first (settings-tunable).
+
+## Daily game caps (D92)
+
+Admin settings `limit.solo_per_day` and `limit.duel_per_day` (0 = unlimited, default) cap how many games of a mode one player may start per Tehran day. Counted in `daily_play_counts (user, date, mode)`; solo `POST /solo/start` answers 429 `daily_cap`, the duel queue answers `DAILY_CAP`. A duel is counted when the match actually starts (leaving the queue costs nothing). The daily puzzle has its own one-attempt rule and is not counted.

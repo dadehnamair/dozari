@@ -17,6 +17,8 @@ export interface GatewayOptions {
   corsOrigin?: string;
   /** Admin kill switches: a non-null answer refuses new connections' queue joins (maintenance mode, duel feature off). */
   gate?: () => Promise<'MAINTENANCE' | 'FEATURE_OFF' | null>;
+  /** Daily duel cap: `canPlay` refuses a queue join over the cap, `onStarted` counts a real match for both players. */
+  limit?: { canPlay: (userId: string) => Promise<boolean>; onStarted: (userId: string) => Promise<void> };
   now?: () => number;
   /** Called when two players are paired; return false to put them back in line. Ignored when `match` is given. */
   onPair?: (a: string, b: string) => Promise<boolean> | boolean;
@@ -79,6 +81,7 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
     if (!pair) return;
     const handled = matches ? await matches.start(pair[0], pair[1]) : opts.onPair ? await opts.onPair(pair[0], pair[1]) : false;
     if (!handled) for (const id of pair) queue.join(id, now());
+    else if (opts.limit) for (const id of pair) void opts.limit.onStarted(id).catch(() => undefined);
   }
 
   function leaveQueue(userId: string) {
@@ -100,6 +103,7 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
       if (!queueJoinSchema.safeParse(payload).success) return ack?.({ ok: false, error: 'INVALID_PAYLOAD' });
       const closed = await opts.gate?.();
       if (closed) return ack?.({ ok: false, error: closed });
+      if (opts.limit && !(await opts.limit.canPlay(userId))) return ack?.({ ok: false, error: 'DAILY_CAP' });
       if (matches?.inMatch(userId)) return ack?.({ ok: false, error: 'ALREADY_IN_MATCH' });
       if (!queue.join(userId, now())) return ack?.({ ok: false, error: 'ALREADY_QUEUED' });
       ack?.({ ok: true });

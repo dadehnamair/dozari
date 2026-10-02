@@ -5,6 +5,7 @@ import type { GroupLevel } from '@dozari/shared';
 import type { AuthService } from '../auth/service.js';
 import { currentUser } from '../auth/routes.js';
 import type { SoloService } from './service.js';
+import type { PlayLimiter } from '../limits/play-limits.js';
 import type { HintService } from './hints.js';
 
 const paramsSchema = z.object({ id: z.string().uuid() });
@@ -13,11 +14,16 @@ const guessSchema = z.object({ productIds: z.array(z.string().min(1).max(64)).le
 const priceGuessSchema = z.object({ level: z.number().int().min(0).max(3), guessRials: z.string().regex(/^\d{1,15}$/) });
 
 /** Solo practice (no coins): the client only ever receives `SoloView`, never the solution. */
-export function registerSoloRoutes(app: FastifyInstance, solo: SoloService, auth?: AuthService, hints?: HintService) {
+export function registerSoloRoutes(app: FastifyInstance, solo: SoloService, auth?: AuthService, hints?: HintService, limiter?: PlayLimiter) {
   app.post('/solo/start', async (req, reply) => {
     // Playing needs no account; a signed-in player's finished game counts toward their level and stats.
     const user = auth ? await currentUser(auth, req) : null;
+    if (user && limiter) {
+      const cap = await limiter.check(user.id, 'solo');
+      if (!cap.ok) return reply.code(429).send({ error: 'daily_cap', cap: cap.cap });
+    }
     const view = await solo.start(user?.id);
+    if (view && user && limiter) void limiter.record(user.id, 'solo').catch(() => undefined);
     if (!view) return reply.code(503).send({ error: 'no_puzzles' });
     return view;
   });

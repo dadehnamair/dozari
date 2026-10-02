@@ -50,6 +50,7 @@ export const ERROR_CODES = [
   'INSUFFICIENT_COINS',
   'MAINTENANCE',
   'FEATURE_OFF',
+  'DAILY_CAP',
   'NO_CITY',
   'MUTED',
   'UNKNOWN_TAUNT',
