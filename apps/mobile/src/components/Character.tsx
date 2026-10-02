@@ -126,6 +126,15 @@ export function Character({
               <Path d={body} fill={`url(#${pid})`} stroke="none" />
               {L.beltD ? <Path d={L.beltD} fill={L.belt} strokeWidth={2.4} /> : null}
               <Path d={body} fill="none" strokeWidth={3.2} />
+              {L.police ? (
+                <G>
+                  <Path d="M88 146L100 160L112 146" fill="none" strokeWidth={2.6} />
+                  <Path d="M96 154L104 154L107 182L100 190L93 182Z" fill="#1E2A4A" strokeWidth={2.4} />
+                  <Path d="M70 150Q78 144 88 148L86 156Q76 154 68 158Z M130 150Q122 144 112 148L114 156Q124 154 132 158Z" fill="#FFC93C" strokeWidth={2.2} />
+                  <Path d="M120 166l2.4 5 5.4 .6-4 3.6 1.2 5.4-5-2.8-5 2.8 1.2-5.4-4-3.6 5.4-.6Z" fill="#FFC93C" strokeWidth={2} />
+                  <Path d="M78 168h12M78 174h12" strokeWidth={2} fill="none" opacity={0.5} />
+                </G>
+              ) : null}
               {L.heroF ? (
                 <G>
                   <Path d="M63 206Q100 216 137 206L148 234Q100 248 52 234Z" fill={L.cloth} strokeWidth={3} />
@@ -217,6 +226,12 @@ export function Character({
             {L.hat.acc ? <Path d={L.hat.acc} fill={L.hat.accC} strokeWidth={2.4} /> : null}
             {L.hat.hl ? (
               <Path d={L.hat.hl} fill="none" stroke="#fff" strokeWidth={2.6} opacity={0.65} />
+            ) : null}
+            {L.police ? (
+              <G>
+                <Circle cx={100} cy={40} r={8} fill="#FFC93C" strokeWidth={2.4} />
+                <Path d="M100 34.5l1.6 3.4 3.7 .4-2.7 2.5 .8 3.7-3.4-1.9-3.4 1.9 .8-3.7-2.7-2.5 3.7-.4Z" fill="#C48A0E" stroke="none" />
+              </G>
             ) : null}
             {L.hero ? (
               <G>
