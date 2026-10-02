@@ -48,6 +48,16 @@ tuned numbers, just a placeholder shape. Exact multipliers need the same playtes
 rest of this file's numbers (open question 1); payout math (win = pot × 0.9, etc.) is unchanged,
 it just operates on a bigger or smaller pot.
 
+## Lucky wheel (D64, proposed)
+
+- The wheel is **only** a chance earned by winning: exactly one spin is granted when a match finishes
+  with the user on the winning side (2v2: each winning player). Loss, draw, abandon and bot-takeover
+  seats get none; no spin from daily login, app open, invites or purchases.
+- Spin is a server-side roll (injected seeded RNG); the client only animates the result. The spin
+  token is bound to the finished match id, so it can be claimed once and not banked or stacked.
+- Prize coins are credited through the single ledger fn with reason `wheel_spin`; prize table and
+  odds are config values in `config/economy.ts` (never literals).
+
 ## Rules
 
 - **Single write path:** `LedgerService.apply({userId, delta, reason, ref, idempotencyKey})` inside a DB
