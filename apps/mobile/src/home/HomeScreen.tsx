@@ -6,6 +6,8 @@ import { DailyWheelPage } from '../daily/DailyWheelPage';
 import { ProfileSheet } from '../social/ProfileSheet';
 import { SettingsPage } from '../social/SettingsPage';
 import { LeaderboardPage } from '../social/LeaderboardPage';
+import { CityHub } from '../hub/CityHub';
+import { Item } from '../components/Item';
 import { fetchMyProfile } from '../social/api';
 import { heroFor } from '../social/heroFor';
 import type { Gender } from '@dozari/shared';
@@ -79,6 +81,7 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
   const [profileOpen, setProfileOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [boardOpen, setBoardOpen] = useState(false);
+  const [hubOpen, setHubOpen] = useState(false);
   const [gender, setGender] = useState<Gender | null>(null);
   const [level, setLevel] = useState<number | null>(null);
   /** The player's province (D101): its badge and local greeting sit under the wordmark. */
@@ -137,6 +140,9 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
         <View style={styles.pills}>
           {daily.status ? <StatPill color={colors.candy.yellow} glyph="۲" glyphColor="#7A4A00" value={fmt(daily.status.balance)} label={`${daily.status.balance} ${h.coins}`} /> : null}
           {dailyPuzzle && dailyPuzzle.state !== 'unavailable' ? <StatPill color={colors.candy.pink} glyph="🔥" value={`${toPersianDigits(String(dailyPuzzle.streak))} ${h.streak}`} label={`${dailyPuzzle.streak} ${h.streak}`} /> : null}
+          <Pressable onPress={() => setHubOpen(true)} accessibilityRole="button" accessibilityLabel={fa.hub.open} style={styles.mapBtn}>
+            <View style={styles.mapIcon}><Item icon="map" /></View>
+          </Pressable>
           {level !== null ? <StatPill color={colors.candy.grape} glyph="★" glyphColor="#FFE48A" value={toPersianDigits(String(level))} label={`${h.level} ${level}`} onPress={() => setProfileOpen(true)} /> : null}
         </View>
 
@@ -170,6 +176,20 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
       {dailyOpen ? <DailyWheelPage daily={daily} onClose={() => setDailyOpen(false)} /> : null}
       {review.open && review.url ? <ReviewSheet message={review.message} url={review.url} onReview={review.onReview} onLater={review.onLater} onNever={review.onNever} /> : null}
       {profileOpen ? <ProfileSheet onClose={() => (setProfileOpen(false), loadMe())} onGender={setGender} /> : null}
+      {hubOpen ? (
+        <CityHub
+          onClose={() => setHubOpen(false)}
+          features={{ daily: features.daily && !!onDaily, duel: features.duel && !!onDuel, tournament: features.tournament }}
+          dailyReady={!!dailyOpenForPlay}
+          onEnter={(a) => {
+            setHubOpen(false);
+            if (a === 'solo') onSolo();
+            else if (a === 'daily') onDaily?.();
+            else if (a === 'duel') onDuel?.();
+            else setTournamentOpen(true);
+          }}
+        />
+      ) : null}
       {boardOpen ? <LeaderboardPage onClose={() => setBoardOpen(false)} /> : null}
       {settingsOpen ? <SettingsPage onClose={() => setSettingsOpen(false)} onProfile={() => (setSettingsOpen(false), setProfileOpen(true))} onTutorial={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} onAccountGone={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} /> : null}
       {inboxOpen ? <InboxSheet inbox={inbox.inbox} failed={inbox.failed} onRead={inbox.markRead} onReadAll={inbox.markAll} onClose={() => setInboxOpen(false)} /> : null}
@@ -184,7 +204,9 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
 
 const styles = StyleSheet.create({
   root: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingTop: 14, paddingBottom: 22, paddingHorizontal: 12 },
-  pills: { flexDirection: RTL_ROW, gap: 8, minHeight: 36 },
+  pills: { flexDirection: RTL_ROW, gap: 8, minHeight: 36, alignItems: 'center' },
+  mapBtn: { width: 38, height: 38, borderRadius: 19, borderWidth: 2, borderColor: 'rgba(255,255,255,0.35)', backgroundColor: 'rgba(43,18,64,0.65)', alignItems: 'center', justifyContent: 'center' },
+  mapIcon: { width: 26, height: 26 },
   middle: { flex: 1, flexDirection: RTL_ROW, justifyContent: 'space-between', paddingTop: 12 },
   column: { width: 72, gap: 12, alignItems: 'center', paddingTop: 44 },
   columnCompact: { gap: 2, paddingTop: 20 },

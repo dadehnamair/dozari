@@ -89,6 +89,16 @@ by nickname, incoming requests with accept / decline, then one card per friend (
 tap for their profile — and a gift button that opens the coin gift). The mock-up's online status and
 per-friend duel button need presence and direct challenges, which do not exist yet; they are left out.
 
+## City hub (D112)
+
+screen-hub of `11 More Screens`, opened from the round map button in Home's top row: «شهر دوزاری», a
+hand-drawn bazaar town where every building is a game mode — برج ساعت (daily puzzle, «جدید» when
+today's is open), کاروانسرا (tournaments, «زنده»), حجرهٔ بازار (solo), زورخانه (duel), قهوه‌خانه (team)
+and مکتب‌خانه (propose and vote). Tap a building: its host and a short description rise from the bottom
+with «ورود» (a green slab) and a close square. Team play and propose-and-vote do not exist yet: those
+buildings are drawn and open the card with a disabled «به‌زودی». A mode the admin switched off is
+disabled the same way. Home stays the main screen; the hub is the second way in.
+
 ## Daily wheel (D111)
 
 screen-daily of `19 Social Daily Onboarding` (Home tile «جایزه»): a yellow title plate, the seven-day

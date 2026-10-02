@@ -321,3 +321,7 @@ The level road and locked popup are built from `GET /me/levels` (level, XP curve
 ## D111 — Daily reward as a wheel, same economy (2026-10-02)
 
 `screen-daily` is built as a spinning wheel over the existing seven-day streak ladder. The wheel always lands on today's reward (the server decides, rule 6), so no economy number changed; the design's random slices (a different prize per spin) would be a new faucet and were not built. **Proposed, owner to decide:** whether the daily reward should become random (weighted slices with an expected value equal to today's ladder) — it would need a config, a ledger reason key and the economy simulation.
+
+## D112 — City hub as a second entry (2026-10-02)
+
+Owner: Home is good as it is; the hub map complements it. Built as an extra page (round map button in Home's top row) that routes to the same modes. Buildings of modes that do not exist (team, propose-and-vote) are shown but disabled. Building art is the design's (`parts`), ported to typed code; the sky is drawn as three flat bands because a gradient fill did not render reliably under the scroll view.
