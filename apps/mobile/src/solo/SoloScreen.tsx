@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { solarMonthOf } from '@dozari/shared';
 import type { HintPayload, SoloView } from '@dozari/shared';
 import { Board } from '../components/Board';
 import { CandyButton } from '../components/CandyButton';
 import { ChartPanel } from '../components/ChartPanel';
-import { Banner } from '../components/Banner';
 import { Confetti } from '../components/Confetti';
 import { usePrefs } from '../prefs/store';
 import { buzz, playSfx } from '../sound/engine';
@@ -17,7 +16,6 @@ import { GameTopBar } from '../game/GameTopBar';
 import { Lives } from '../game/Lives';
 import { Rain } from '../components/Rain';
 import { PriceRoundPanel } from '../components/PriceRoundPanel';
-import { BANNERS } from '../kit/data';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { BASE_URL, guessSolo, shuffleSolo } from './api';
@@ -37,6 +35,8 @@ const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 
 export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onBack: () => void; hintsEnabled?: boolean; /** Today's daily puzzle: one attempt, no "new game". */ daily?: boolean }) {
   const prefs = usePrefs();
+  /** Short screens get a smaller character and chart so the end scene still fits without scrolling. */
+  const compact = useWindowDimensions().height <= 700;
   const [phase, setPhase] = useState<Phase>({ kind: 'loading' });
   const [selected, setSelected] = useState<string[]>([]);
   const [names, setNames] = useState<Record<string, string>>({});
@@ -140,6 +140,36 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
   const pose = feedback === 'correct' ? 'cheer' : feedback === 'wrong' ? 'shocked' : feedback === 'oneAway' ? 'thinking' : 'idle';
   const bubble = feedback ? fa.solo.feedback[feedback] : hintedTitles(given).length > 0 ? `${fa.hints.revealedTitle}: ${hintedTitles(given).join('، ')}` : fa.solo.subtitle;
 
+  if (!playing) {
+    const won = view.status === 'won';
+    const chartH = compact ? 150 : 210;
+    return (
+      <MatchBackground>
+        {/* One fixed scene, no page scroll (D54): the board gives way to the price round, then the chart. */}
+        <View style={[styles.endScene, compact ? styles.endSceneCompact : null]}>
+          <GameTopBar title={daily ? fa.solo.dailyTitle : fa.solo.title} backLabel={fa.solo.back} onBack={onBack} />
+          <View style={styles.talk}>
+            <View style={compact ? styles.talkerSmall : styles.talker}><Character pose={won ? 'win' : 'sad'} month={solarMonthOf(Date.now())} /></View>
+            <View style={styles.bubble}>
+              <View style={styles.bubbleTail} />
+              <Text style={styles.bubbleTitle}>{won ? fa.solo.won : fa.solo.lost}</Text>
+            </View>
+          </View>
+          <View style={styles.stage}>
+            {priceDone ? <ChartPanel sessionId={view.sessionId} height={chartH} /> : <PriceRoundPanel sessionId={view.sessionId} onDone={() => setPriceDone(true)} />}
+          </View>
+          {priceDone ? (
+            <View style={styles.actions}>
+              <SlabButton label={fa.solo.back} color={colors.candy.sky} height={58} fontSize={20} onPress={onBack} />
+              {daily ? null : <SlabButton label={fa.solo.newGame} color={colors.candy.lime} height={58} fontSize={22} grow={1.4} onPress={() => void begin()} />}
+            </View>
+          ) : null}
+        </View>
+        {!prefs.reduceMotion ? (won ? <Confetti distance={500} /> : <Rain distance={800} />) : null}
+      </MatchBackground>
+    );
+  }
+
   return (
     <MatchBackground>
     <ScrollView contentContainerStyle={styles.screen}>
@@ -178,28 +208,10 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
               <SlabButton label={fa.solo.submit} color={colors.candy.lime} height={58} fontSize={24} grow={1.4} onPress={() => void submit()} disabled={!canSubmit(selected) || busy} />
             </View>
           </>
-        ) : (
-          <View style={styles.end}>
-            {view.status === 'won' ? <Banner banner={BANNERS[0]!} /> : <Banner banner={BANNERS[1]!} />}
-            <View style={styles.endMascot}><Character pose={view.status === 'won' ? 'win' : 'sad'} month={solarMonthOf(Date.now())} /></View>
-            <Text style={styles.msg}>{view.status === 'won' ? fa.solo.won : fa.solo.lost}</Text>
-            {priceDone ? (
-              <>
-                <ChartPanel sessionId={view.sessionId} />
-                <View style={styles.endActions}>
-                  {daily ? null : <CandyButton label={fa.solo.newGame} color={colors.candy.yellow} onPress={() => void begin()} />}
-                  <CandyButton label={fa.solo.back} color={colors.candy.sky} onPress={onBack} />
-                </View>
-              </>
-            ) : (
-              <PriceRoundPanel sessionId={view.sessionId} onDone={() => setPriceDone(true)} />
-            )}
-          </View>
-        )}
+        ) : null}
       </View>
     </ScrollView>
     {hintOpen && playing ? <HintSheet sessionId={view.sessionId} onGiven={setGiven} onClose={() => setHintOpen(false)} /> : null}
-    {!playing && !prefs.reduceMotion ? (view.status === 'won' ? <Confetti distance={500} /> : <Rain distance={800} />) : null}
     </MatchBackground>
   );
 }
@@ -216,9 +228,12 @@ const styles = StyleSheet.create({
   bubbleTail: { position: 'absolute', top: 24, [Platform.OS === 'web' ? 'right' : 'left']: -11, width: 16, height: 16, backgroundColor: colors.cream, borderRightWidth: 3, borderBottomWidth: 3, borderColor: colors.ink, transform: [{ rotate: Platform.OS === 'web' ? '-45deg' : '135deg' }] },
   bubbleText: { fontFamily: fonts.bold, fontSize: 13.5, lineHeight: 22, color: colors.ink, textAlign: 'right' },
   actions: { flexDirection: ROW, gap: 9 },
+  endScene: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingHorizontal: 12, paddingTop: 14, paddingBottom: 20, gap: 10 },
+  endSceneCompact: { paddingTop: 8, paddingBottom: 12, gap: 6 },
+  talkerSmall: { width: 72, height: 80 },
+  bubbleTitle: { fontFamily: fonts.display, fontSize: 18, lineHeight: 28, color: colors.ink, textAlign: 'right' },
+  stage: { flex: 1, minHeight: 0, borderRadius: 22, borderWidth: 3, borderColor: colors.ink, backgroundColor: 'rgba(26,8,44,0.55)', paddingHorizontal: 12, paddingBottom: 12, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   endActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginTop: 8 },
-  endMascot: { width: 140, height: 154 },
-  end: { alignItems: 'center', gap: 8, marginTop: 8 },
   detail: { fontFamily: 'Vazirmatn_400Regular', fontSize: 12, color: colors.cream, opacity: 0.7, textAlign: 'center', writingDirection: 'ltr' },
   hintLine: { fontFamily: 'Vazirmatn_700Bold', fontSize: 13, color: colors.candy.yellow, textAlign: 'center' },
   msg: { fontFamily: 'Vazirmatn_700Bold', fontSize: 18, color: colors.cream, textAlign: 'center' },

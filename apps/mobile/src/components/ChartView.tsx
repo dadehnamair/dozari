@@ -10,11 +10,11 @@ import { colors } from '../theme/colors';
 /** Persian text inside the chart's left-to-right container: isolate it so words and digits keep their reading order. */
 const rtl = (text: string): string => `\u2067${text}\u2069`;
 
-const HEIGHT = 230;
+const DEFAULT_HEIGHT = 230;
 const PAD = { left: 58, right: 12, top: 12, bottom: 26 };
 
 /** Overlaid price history of one group's four products (docs/logic/result-chart.md). Time runs left to right. */
-export function ChartView({ group, scale }: { group: SoloChart['groups'][number]; scale: YScale }) {
+export function ChartView({ group, scale, height: HEIGHT = DEFAULT_HEIGHT }: { group: SoloChart['groups'][number]; scale: YScale; /** Plot height; the end scene shrinks it on short screens. */ height?: number }) {
   const [width, setWidth] = useState(0);
   const data = buildChartData(
     group.items.map((it) => ({
@@ -32,7 +32,7 @@ export function ChartView({ group, scale }: { group: SoloChart['groups'][number]
 
   return (
     <View style={styles.wrap}>
-      <View style={[styles.chart, LTR]} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+      <View style={[styles.chart, LTR, { height: HEIGHT }]} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
         {data.years && data.yDomain && width > 0 ? (
           <Svg width={width} height={HEIGHT}>
             {yTicks(data.yDomain, scale).map((t) => (
@@ -78,7 +78,7 @@ const LTR: ViewStyle = { direction: 'ltr' };
 
 const styles = StyleSheet.create({
   wrap: { width: '100%', gap: 8 },
-  chart: { height: HEIGHT, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 14, justifyContent: 'center' },
+  chart: { backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 14, justifyContent: 'center' },
   empty: { fontFamily: 'Vazirmatn_400Regular', color: colors.cream, textAlign: 'center' },
   legend: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'center' },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },

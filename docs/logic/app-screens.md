@@ -47,7 +47,10 @@ background; top bar with a square back button, the yellow title plate (practice 
 hint button; the character beside a speech bubble that carries the prompt, the last guess's feedback
 (the character's pose follows it) or revealed hint titles; the 4×4 board; «فرصت‌ها» dots (one per
 chance left); and three action slabs: shuffle, clear, submit (wider, dimmed until four are picked).
-The end of a game (banner, price round, chart) keeps its earlier layout for now.
+When the game ends the board gives way to one fixed end scene, never a scrolling page (D54): top bar,
+the character (win / sad) with the result line, one dark card holding the price round (one question
+at a time, then the summary) and then the chart, and the back / new-game slabs pinned at the bottom.
+Short screens (≤ 700 px tall) get a smaller character and chart.
 
 ## Live duel (D99, D100)
 

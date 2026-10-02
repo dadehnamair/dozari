@@ -7,7 +7,7 @@ import { colors } from '../theme/colors';
 import { ChartView } from './ChartView';
 
 /** Result-screen chart: loads the history once the game is over; one colour tab per group (purple first). */
-export function ChartPanel({ sessionId }: { sessionId: string }) {
+export function ChartPanel({ sessionId, height }: { sessionId: string; height?: number }) {
   const [chart, setChart] = useState<SoloChart | 'failed' | null>(null);
   const [level, setLevel] = useState<number>(3);
   const [scale, setScale] = useState<YScale>('log');
@@ -34,7 +34,7 @@ export function ChartPanel({ sessionId }: { sessionId: string }) {
         ))}
       </View>
       <Text style={styles.groupTitle}>{group.titleFa}</Text>
-      <ChartView group={group} scale={scale} />
+      <ChartView group={group} scale={scale} height={height} />
       <Pressable onPress={() => setScale((s) => (s === 'log' ? 'linear' : 'log'))} accessibilityRole="button">
         <Text style={styles.toggle}>{scale === 'log' ? fa.solo.chart.log : fa.solo.chart.linear}</Text>
       </Pressable>
