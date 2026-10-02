@@ -14,8 +14,10 @@ import Svg, {
   Rect,
   Text as SvgText,
 } from 'react-native-svg';
+import { usePrefs } from '../prefs/store';
 import { fonts } from '../theme/colors';
 import { characterLook } from '../theme/character';
+import { Motion } from './characterMotion';
 import type { CharacterCrop, CharacterId, CharacterPose } from '../theme/character';
 
 const INK = '#3A2418';
@@ -32,6 +34,8 @@ interface Props {
   height?: DimensionValue;
   /** Pencil-wobble displacement filter of the design. On by default on the web; native filter support is unverified, so off there. */
   wobble?: boolean;
+  /** Living motion (head bob, breathing, blinking, swinging arms, hat coin). On for full-body characters unless the player chose less motion; face crops (avatars, lists) stay still unless asked. */
+  anim?: boolean;
 }
 
 /** Hand-drawn market characters (docs/design/Dozari - 04 Characters.dc.html), ported to react-native-svg. */
@@ -44,7 +48,10 @@ export function Character({
   width = '100%',
   height = '100%',
   wobble = Platform.OS === 'web',
+  anim,
 }: Props) {
+  const reduce = usePrefs().reduceMotion;
+  const on = !reduce && (anim ?? crop === 'full');
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const fid = `${uid}f`;
   const pid = `${uid}p`;
@@ -52,6 +59,8 @@ export function Character({
   const body =
     'M70 146C62 170 60 196 62 216Q100 226 138 216C140 196 138 170 130 146Q100 138 70 146Z';
   const pat = L.pattern;
+  const delay = -(((L.seed || 1) % 7) * 0.13);
+  const up = pose === 'wave' || pose === 'cheer' || pose === 'win';
   return (
     <View
       style={{ width, height }}
@@ -116,15 +125,18 @@ export function Character({
                 fill="#5A3A2A"
                 strokeWidth={2.6}
               />
-              <Path d={L.arm.backD} strokeWidth={12} fill="none" />
-              <Path d={L.arm.backD} stroke={L.cloth} strokeWidth={6.6} fill="none" />
-              <Circle
-                cx={L.arm.backHand[0]}
-                cy={L.arm.backHand[1]}
-                r={6.6}
-                fill={L.skin}
-                strokeWidth={2.6}
-              />
+              <Motion part="armBack" on={on} up={up}>
+                <Path d={L.arm.backD} strokeWidth={12} fill="none" />
+                <Path d={L.arm.backD} stroke={L.cloth} strokeWidth={6.6} fill="none" />
+                <Circle
+                  cx={L.arm.backHand[0]}
+                  cy={L.arm.backHand[1]}
+                  r={6.6}
+                  fill={L.skin}
+                  strokeWidth={2.6}
+                />
+              </Motion>
+              <Motion part="body" on={on} delay={delay}>
               <Path d={body} fill={L.cloth} stroke="none" />
               <Path d={body} fill={`url(#${pid})`} stroke="none" />
               {L.beltD ? <Path d={L.beltD} fill={L.belt} strokeWidth={2.4} /> : null}
@@ -183,8 +195,10 @@ export function Character({
                 opacity={0.45}
                 fill="none"
               />
+              </Motion>
             </G>
           ) : null}
+          <Motion part="head" on={on} delay={delay}>
           {L.hairBack ? (
             <G>
               <Path d={L.hairBack} strokeWidth={12} fill="none" />
@@ -238,6 +252,7 @@ export function Character({
             ) : null}
             {L.hero ? (
               <G>
+                <Motion part="coin" on={on}>
                 <Circle cx={122} cy={42} r={8} fill="#FFC93C" strokeWidth={2.4} />
                 <SvgText
                   x={122}
@@ -250,6 +265,7 @@ export function Character({
                 >
                   ۲
                 </SvgText>
+                </Motion>
               </G>
             ) : null}
           </G>
@@ -258,6 +274,7 @@ export function Character({
           {L.freckles ? (
             <Path d={L.freckles} stroke="#B8643A" strokeWidth={2.4} fill="none" opacity={0.7} />
           ) : null}
+          <Motion part="eyes" on={on} delay={delay}>
           {L.eye.open ? (
             <G>
               <Ellipse cx={88} cy={74} rx={L.eye.rx} ry={L.eye.ry} fill="#fff" strokeWidth={2.8} />
@@ -271,6 +288,7 @@ export function Character({
             </G>
           ) : null}
           {L.eye.lines ? <Path d={L.eye.lines} fill="none" strokeWidth={3.4} /> : null}
+          </Motion>
           {L.beard.d ? <Path d={L.beard.d} fill={L.beard.color} strokeWidth={3} /> : null}
           {L.beard.curl ? (
             <Path d={L.beard.curl} fill="none" strokeWidth={1.6} opacity={0.55} />
@@ -311,8 +329,9 @@ export function Character({
             fill="none"
           />
           <Path d="M148 84l5-2M149 92l5-2" strokeWidth={1.8} opacity={0.45} fill="none" />
+          </Motion>
           {L.full ? (
-            <G>
+            <Motion part="armFront" on={on} up={up}>
               <Path d={L.arm.frontD} strokeWidth={12} fill="none" />
               <Path d={L.arm.frontD} stroke={L.cloth} strokeWidth={6.6} fill="none" />
               <Circle
@@ -339,7 +358,7 @@ export function Character({
                   <Path d="M-9-7q3-4 8-5" stroke="#fff" strokeWidth={2.4} fill="none" />
                 </G>
               ) : null}
-            </G>
+            </Motion>
           ) : null}
           {L.acc.map((a, i) => (
             <Path key={i} d={a.d} fill={a.fill} stroke={a.stroke} strokeWidth={a.width} />
