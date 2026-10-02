@@ -13,8 +13,8 @@ passwords and open ports). The production stack is `docker-compose.prod.yml`:
 ## Before you start
 
 - A Linux server with Docker and the Compose plugin; ports 80 and 443 open.
-- Two DNS A records pointing at the server: `APP_DOMAIN` (the web app, e.g. `dozari.example.ir`) and
-  `API_DOMAIN` (the game server, e.g. `api.dozari.example.ir`). Caddy gets the https certificates
+- Two DNS A records (both to the server IP; the domain can be changed later by editing `.env.prod` and rebuilding) pointing at the server: `APP_DOMAIN` (the web app, now `mrbots.ir`) and
+  `API_DOMAIN` (the game server, now `api.mrbots.ir`; product images are served from there at `/images/`). Caddy gets the https certificates
   itself, which only works once both names resolve to this server.
 - The API address is baked into the web build, so changing `API_DOMAIN` later means rebuilding `web`.
 
