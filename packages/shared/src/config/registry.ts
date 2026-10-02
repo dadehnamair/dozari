@@ -14,7 +14,7 @@ import {
   SOLO_MAX_MISTAKES,
   TURN_SECONDS,
 } from './game.js';
-import { DAILY_REWARD_COOLDOWN_HOURS, DAILY_REWARD_STREAK_WINDOW_HOURS, HINT_MAX_PER_GAME, HINT_MIN_LEVEL, HINT_PRICES, HINT_REPEAT_PERCENT, DAILY_PUZZLE_REWARD, DAILY_PUZZLE_STREAK_MAX_DAYS, DAILY_PUZZLE_STREAK_STEP, DAILY_PUZZLE_REPEAT_DAYS } from './economy.js';
+import { BROKE_RESCUE_TARGET, DAILY_FREE_MATCHES, ENTRY_FEE_BASE, FREE_MATCH_PAYOUT_PERCENT, HOUSE_CUT_PERCENT, LOSS_CONSOLATION, LOSS_CONSOLATION_DAILY_CAP, DAILY_REWARD_COOLDOWN_HOURS, DAILY_REWARD_STREAK_WINDOW_HOURS, HINT_MAX_PER_GAME, HINT_MIN_LEVEL, HINT_PRICES, HINT_REPEAT_PERCENT, DAILY_PUZZLE_REWARD, DAILY_PUZZLE_STREAK_MAX_DAYS, DAILY_PUZZLE_STREAK_STEP, DAILY_PUZZLE_REPEAT_DAYS } from './economy.js';
 import { CHART_GAP_BREAK_YEARS, CHART_MIN_YEAR } from './chart.js';
 import { INVITE_INVITEE_BONUS, INVITE_INVITER_REWARD, INVITE_MAX_USES, INVITE_MIN_LEVEL, INVITE_REWARD_AFTER_GAMES } from './invite.js';
 import { LOAN_DUE_DAYS, LOAN_MAX_OPEN, TRANSFER_MAX_AMOUNT, TRANSFER_MIN_AMOUNT, TRANSFER_MIN_FRIEND_DAYS, TRANSFER_MIN_LEVEL, TRANSFER_WEEKLY_CAP } from './transfers.js';
@@ -97,6 +97,13 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'economy.daily_streak_window_hours', group: 'economy', label: 'مهلت ادامه‌ی زنجیره‌ی جایزه', hint: 'دریافت بعدی تا این مدت بعد از قبلی، زنجیره را ادامه می‌دهد؛ دیرتر از آن از روز اول شروع می‌شود', kind: 'int', min: 2, max: 168, default: DAILY_REWARD_STREAK_WINDOW_HOURS, unit: 'ساعت' },
   { key: 'limit.solo_per_day', group: 'gameplay', label: 'سقف بازی تکی در روز برای هر بازیکن', hint: '۰ یعنی بدون سقف؛ ساعت صفر به وقت تهران صفر می‌شود', kind: 'int', min: 0, max: 1000, default: 0 },
   { key: 'limit.duel_per_day', group: 'gameplay', label: 'سقف بازی دونفره‌ی زنده در روز برای هر بازیکن', hint: '۰ یعنی بدون سقف', kind: 'int', min: 0, max: 1000, default: 0 },
+  { key: 'duel.entry_fee', group: 'economy', label: 'ورودی بازی دونفره‌ی زنده (سکه برای هر نفر)', hint: 'جمع دو ورودی می‌شود جایزه‌ی برنده', kind: 'int', min: 0, max: 10000, default: ENTRY_FEE_BASE, unit: 'سکه' },
+  { key: 'duel.house_cut_percent', group: 'economy', label: 'سهم خانه از جایزه‌ی هر بازی', kind: 'int', min: 0, max: 90, default: HOUSE_CUT_PERCENT, unit: '٪' },
+  { key: 'duel.free_per_day', group: 'economy', label: 'بازی رایگان دونفره در روز', kind: 'int', min: 0, max: 100, default: DAILY_FREE_MATCHES },
+  { key: 'duel.free_payout_percent', group: 'economy', label: 'جایزه‌ی بردِ بازی رایگان (درصد جایزه‌ی عادی)', kind: 'int', min: 0, max: 100, default: FREE_MATCH_PAYOUT_PERCENT, unit: '٪' },
+  { key: 'duel.loss_consolation', group: 'economy', label: 'دلداری باخت (سکه)', kind: 'int', min: 0, max: 1000, default: LOSS_CONSOLATION, unit: 'سکه' },
+  { key: 'duel.consolation_cap', group: 'economy', label: 'سقف دلداری باخت در روز برای هر بازیکن', kind: 'int', min: 0, max: 10000, default: LOSS_CONSOLATION_DAILY_CAP, unit: 'سکه' },
+  { key: 'duel.rescue_target', group: 'economy', label: 'نجات از بی‌سکه‌ای: رساندن موجودی به', hint: 'روزی یک بار، وقتی سکه برای ورودی نیست و بازی رایگان هم تمام شده', kind: 'int', min: 0, max: 10000, default: BROKE_RESCUE_TARGET, unit: 'سکه' },
   { key: 'feature.tables', group: 'app', label: 'میز اختصاصی روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'table.idle_minutes', group: 'gameplay', label: 'میز اختصاصی بعد از چند دقیقه بی‌استفاده بسته شود', kind: 'int', min: 1, max: 240, default: TABLE_IDLE_MINUTES, unit: 'دقیقه' },
   { key: 'feature.daily', group: 'app', label: 'پازل روز روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },

@@ -336,6 +336,8 @@ export const LEDGER_REASONS = [
   'tournament_entry',
   'tournament_refund',
   'tournament_prize',
+  'match_consolation',
+  'broke_rescue',
 ] as const;
 
 /** Append-only. Coins move only through the server's ledger function; a repeated idempotency key is a no-op. */
@@ -1056,7 +1058,7 @@ export const dailyPlayCounts = mysqlTable(
   {
     userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
     dateKey: char('date_key', { length: 10 }).notNull(),
-    mode: mysqlEnum('mode', ['solo', 'duel']).notNull(),
+    mode: mysqlEnum('mode', ['solo', 'duel', 'duel_free']).notNull(),
     count: int('count').notNull().default(0),
   },
   (t) => ({ pk: primaryKey({ columns: [t.userId, t.dateKey, t.mode] }) }),

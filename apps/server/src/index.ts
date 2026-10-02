@@ -96,6 +96,8 @@ import { ShopService } from './economy/shop.js';
 import { createDbShopStore } from './economy/shop-store.js';
 import { HintService } from './solo/hints.js';
 import { PlayLimiter, createDbPlayCountStore } from './limits/play-limits.js';
+import { DuelStakes } from './duel/stakes.js';
+import { createDbStakeStore } from './duel/stakes-store.js';
 import { TableService } from './tables/service.js';
 import { registerTableRoutes } from './tables/routes.js';
 import { registerSoloRoutes } from './solo/routes.js';
@@ -152,6 +154,8 @@ export interface ServerDeps {
   hints?: HintService;
   /** Private tables (`/tables`); needs `auth` and the live-match service. */
   tables?: TableService;
+  /** Coin stakes of queue duels (entry, payout, free matches, rescue). */
+  duelStakes?: DuelStakes;
   /** Admin-set daily game caps (solo, live duel). */
   limiter?: PlayLimiter;
   /** Coin shop (`/shop`); needs `auth`. */
@@ -232,7 +236,7 @@ export function buildServer(deps: ServerDeps = {}) {
   let gateway: Gateway | undefined;
   if (deps.auth && deps.realtime) {
     const auth = deps.auth;
-    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin: deps.corsOrigin, match: deps.match, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, limit: deps.limiter ? { canPlay: async (u) => (await deps.limiter!.check(u, 'duel')).ok, onStarted: (u) => deps.limiter!.record(u, 'duel') } : undefined, chat: deps.chat, onEmit: deps.botDriver ? (u, e, p) => deps.botDriver!.onEmit(u, e, p) : undefined });
+    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin: deps.corsOrigin, match: deps.match, canAfford: deps.duelStakes ? (u) => deps.duelStakes!.canQueue(u) : undefined, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, limit: deps.limiter ? { canPlay: async (u) => (await deps.limiter!.check(u, 'duel')).ok, onStarted: (u) => deps.limiter!.record(u, 'duel') } : undefined, chat: deps.chat, onEmit: deps.botDriver ? (u, e, p) => deps.botDriver!.onEmit(u, e, p) : undefined });
     if (deps.live) {
       deps.live.matches = gateway.matches;
       deps.live.queue = gateway.queue;
@@ -363,18 +367,33 @@ if (isMainModule(import.meta.url)) {
       ? new TournamentService(createDbTournamentStore(db), {
           levelOf: async (id) => (await player.levelOf(id)).level.level,
           profileOf: async (id) => socialStore.publicRow(id),
-          startMatch: async (a, b) => (live.matches ? live.matches.start(a, b) : false),
+          startMatch: async (a, b) => (live.matches ? live.matches.start(a, b, { friendly: true }) : false),
           inMatch: (id) => live.matches?.inMatch(id) ?? false,
           fillBots: (n) => botDriver?.fillSeats(n) ?? [],
           isBot: (id) => botDriver?.isBot(id) ?? false,
           notify: (id, text) => void notify?.notify(id, 'admin', text).catch(() => undefined),
         })
       : undefined;
+  const duelStakes =
+    db && settings
+      ? new DuelStakes(createDbStakeStore(db), {
+          rules: async () => ({
+            entryFee: await settings.num('duel.entry_fee'),
+            houseCutPercent: await settings.num('duel.house_cut_percent'),
+            freePerDay: await settings.num('duel.free_per_day'),
+            freePayoutPercent: await settings.num('duel.free_payout_percent'),
+            consolation: await settings.num('duel.loss_consolation'),
+            consolationCap: await settings.num('duel.consolation_cap'),
+            rescueTarget: await settings.num('duel.rescue_target'),
+          }),
+          isBot: (id) => botDriver?.isBot(id) ?? false,
+        })
+      : undefined;
   const tableService =
     settings && socialStore
       ? new TableService({
           profileOf: async (id) => socialStore.publicRow(id),
-          startMatch: async (a, b) => (live.matches ? live.matches.start(a, b) : false),
+          startMatch: async (a, b) => (live.matches ? live.matches.start(a, b, { friendly: true }) : false),
           inMatch: (id) => live.matches?.inMatch(id) ?? false,
           idleMs: async () => (await settings.num('table.idle_minutes')) * 60_000,
         })
@@ -424,6 +443,7 @@ if (isMainModule(import.meta.url)) {
     match: db
       ? {
           puzzles: createDbPuzzleSource(db),
+          stakes: duelStakes,
           profile: createDbProfileLookup(db, player ? async (id) => (await player.levelOf(id)).level.level : undefined),
           onEnded: ({ players, result }) => {
             if (tournamentService) void tournamentService.onMatchEnded(players, result.winner);
@@ -459,6 +479,7 @@ if (isMainModule(import.meta.url)) {
     catalog: db ? createDbCatalogRepository(db) : undefined,
     solo,
     tables: tableService,
+    duelStakes,
     limiter: db && settings ? new PlayLimiter(createDbPlayCountStore(db), async (mode) => settings.num(mode === 'solo' ? 'limit.solo_per_day' : 'limit.duel_per_day')) : undefined,
     hints: solo && shopStore && settings ? new HintService(solo, shopStore, () => hintRules(settings), levelOf) : undefined,
     shop: shopStore ? new ShopService(shopStore, levelOf) : undefined,

@@ -62,6 +62,16 @@ blocks new loans for that borrower. One open loan per borrower. Ledger reasons: 
 (every step has its own idempotency key). Table `coin_transfers`; API `/transfers`, `/transfers/rules`, `/friends/:id/gift|loan`,
 `/loans/:id/accept|decline|cancel|repay`. A transfer is a move, not a faucet: the coin total never changes.
 
+## Live duel stakes — built (D95)
+
+Queue duels (and the bot fallback) carry coins; private tables and tournament matches are friendly (`start(..., {friendly: true})`).
+Pure math: `packages/shared/src/economy/duel.ts` (`settleDuel`, `winnerPayout`, `drawRefund`, `rescueAmount`); I/O: `apps/server/src/duel/stakes*.ts`.
+Settings (admin → economy): `duel.entry_fee` 20, `duel.house_cut_percent` 10, `duel.free_per_day` 3, `duel.free_payout_percent` 50, `duel.loss_consolation` 5, `duel.consolation_cap` 10, `duel.rescue_target` 60.
+- Queue join: free matches left → ok; else balance ≥ fee → ok; else once a day a rescue top-up to the target (`broke_rescue`); else `INSUFFICIENT_COINS`.
+- Start: a free match (counter `daily_play_counts.duel_free`) or the fee (`match_entry`); a bot seat is covered by the house (no ledger row). If a human cannot pay, fees already taken come back in full.
+- End: winner `match_payout` (pot − cut; a free-match win pays `free_payout_percent` of it; a bot win pays nothing); draw `match_refund` fee − cut for paid seats; loser `match_consolation` (capped per Tehran day, not for abandon/forfeit). Keys `<reason>:<matchId>:<userId>` → settling twice is a no-op.
+- Not built: difficulty-scaled fee (D51), team 2v2, private-table pots, abandon repeat cooldown.
+
 ## Rules
 
 - **Single write path:** `LedgerService.apply({userId, delta, reason, ref, idempotencyKey})` inside a DB
