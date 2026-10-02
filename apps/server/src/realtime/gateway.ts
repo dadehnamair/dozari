@@ -1,7 +1,7 @@
 import type { Server as HttpServer } from 'node:http';
 import { Server } from 'socket.io';
 import type { Socket } from 'socket.io';
-import { ClientEvent, ServerEvent, chatTauntSchema, matchResumeSchema, matchSubmitSchema, queueJoinSchema } from '@dozari/shared';
+import { ClientEvent, ServerEvent, chatTauntSchema, matchProposeSchema, matchResumeSchema, matchSubmitSchema, queueJoinSchema } from '@dozari/shared';
 import type { Ack } from '@dozari/shared';
 import type { UserRecord } from '../auth/service.js';
 import { ChatService } from '../chat/service.js';
@@ -38,6 +38,8 @@ export interface Gateway {
   io: Server;
   stats: SocketStats;
   queue: DuelQueue;
+  /** 2v2 fill queue: four strangers make a match (docs/logic/matchmaking.md). */
+  teamQueue: DuelQueue;
   matches?: MatchService;
   close(): Promise<void>;
 }
@@ -50,8 +52,9 @@ const room = (userId: string) => `user:${userId}`;
 export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
   const now = opts.now ?? Date.now;
   const queue = new DuelQueue();
+  const teamQueue = new DuelQueue();
   let matches: MatchService | undefined;
-  const stats = new SocketStats({ queueLength: () => queue.length, activeMatches: () => matches?.activeCount ?? 0, longestWaitMs: (t) => queue.longestWaitMs(t) }, now);
+  const stats = new SocketStats({ queueLength: () => queue.length + teamQueue.length, activeMatches: () => matches?.activeCount ?? 0, longestWaitMs: (t) => Math.max(queue.longestWaitMs(t), teamQueue.longestWaitMs(t)) }, now);
   const io = new Server(http, {
     // Every client message is a tiny JSON object.
     maxHttpBufferSize: 16 * 1024,
@@ -90,8 +93,18 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
     else if (opts.limit) for (const id of pair) void opts.limit.onStarted(id).catch(() => undefined);
   }
 
+  async function tryPairTeam() {
+    const four = matches ? teamQueue.takeGroup(4) : null;
+    if (!four || !matches) return;
+    // The two longest waiters play together against the next two.
+    const handled = await matches.startTeam([[four[0]!, four[1]!], [four[2]!, four[3]!]]);
+    if (!handled) for (const id of four) teamQueue.join(id, now());
+    else if (opts.limit) for (const id of four) void opts.limit.onStarted(id).catch(() => undefined);
+  }
+
   function leaveQueue(userId: string) {
     queue.leave(userId);
+    teamQueue.leave(userId);
   }
 
   io.on('connection', (socket: Socket) => {
@@ -107,20 +120,24 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
     void socket.join(room(userId));
 
     socket.on(ClientEvent.queueJoin, async (payload: unknown, ack?: (a: Ack) => void) => {
-      if (!queueJoinSchema.safeParse(payload).success) return ack?.({ ok: false, error: 'INVALID_PAYLOAD' });
+      const joined = queueJoinSchema.safeParse(payload);
+      if (!joined.success) return ack?.({ ok: false, error: 'INVALID_PAYLOAD' });
+      const team = joined.data.mode === 'team';
       const closed = await opts.gate?.();
       if (closed) return ack?.({ ok: false, error: closed });
       if (opts.limit && !(await opts.limit.canPlay(userId))) return ack?.({ ok: false, error: 'DAILY_CAP' });
-      if (opts.canAfford && !(await opts.canAfford(userId))) return ack?.({ ok: false, error: 'INSUFFICIENT_COINS' });
+      if (!team && opts.canAfford && !(await opts.canAfford(userId))) return ack?.({ ok: false, error: 'INSUFFICIENT_COINS' });
       if (matches?.inMatch(userId)) return ack?.({ ok: false, error: 'ALREADY_IN_MATCH' });
-      if (!queue.join(userId, now())) return ack?.({ ok: false, error: 'ALREADY_QUEUED' });
+      if (queue.has(userId) || teamQueue.has(userId)) return ack?.({ ok: false, error: 'ALREADY_QUEUED' });
+      const line = team ? teamQueue : queue;
+      line.join(userId, now());
       ack?.({ ok: true });
-      socket.emit(ServerEvent.queueStatus, { waitedSec: 0, position: queue.position(userId) ?? 1 });
-      await tryPair();
+      socket.emit(ServerEvent.queueStatus, { waitedSec: 0, position: line.position(userId) ?? 1 });
+      await (team ? tryPairTeam() : tryPair());
     });
 
     socket.on(ClientEvent.queueLeave, (_payload: unknown, ack?: (a: Ack) => void) => {
-      ack?.(queue.leave(userId) ? { ok: true } : { ok: false, error: 'NOT_QUEUED' });
+      ack?.(queue.leave(userId) || teamQueue.leave(userId) ? { ok: true } : { ok: false, error: 'NOT_QUEUED' });
     });
 
     // Chat: joining puts this socket in the global room (when open) and the room of the player's city; messages
@@ -153,6 +170,12 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
       ack?.(matches ? matches.submit(userId, body.data.itemIds) : { ok: false, error: 'NOT_IN_MATCH' });
     });
 
+    socket.on(ClientEvent.matchPropose, (payload: unknown, ack?: (a: Ack) => void) => {
+      const body = matchProposeSchema.safeParse(payload);
+      if (!body.success) return ack?.({ ok: false, error: 'INVALID_PAYLOAD' });
+      ack?.(matches ? matches.propose(userId, body.data.itemIds) : { ok: false, error: 'NOT_IN_MATCH' });
+    });
+
     socket.on(ClientEvent.matchResume, (payload: unknown, ack?: (a: Ack) => void) => {
       const body = matchResumeSchema.safeParse(payload);
       if (!body.success) return ack?.({ ok: false, error: 'INVALID_PAYLOAD' });
@@ -176,6 +199,7 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
     io,
     stats,
     queue,
+    teamQueue,
     matches,
     close: () => new Promise<void>((resolve) => void io.close(() => resolve())),
   };

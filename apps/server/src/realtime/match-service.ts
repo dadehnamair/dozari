@@ -1,5 +1,5 @@
 import { randomInt } from 'node:crypto';
-import { applyCommand, matchClientView, mulberry32, ServerEvent, startMatch, turnDeadline } from '@dozari/shared';
+import { applyCommand, matchClientView, mulberry32, ServerEvent, startMatch, startTeamMatch, turnDeadline } from '@dozari/shared';
 import type { Command, ErrorCode, Stake, MatchEnded, MatchEvent, MatchFound, MatchState, MatchView, Rng, RuleError } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
 import type { PuzzleSource, ServedPuzzle } from '../solo/types.js';
@@ -39,12 +39,16 @@ interface Active {
   cancel: (() => void) | null;
   /** How each seat entered, when the match carried coin stakes. */
   stakes?: [Stake, Stake];
+  /** Latest proposal per side (2v2); only that side's own players ever see it. */
+  proposals: [{ by: string; itemIds: readonly string[] } | null, { by: string; itemIds: readonly string[] } | null];
 }
 
 const RULE_TO_ERROR: Record<RuleError, ErrorCode> = {
   MATCH_FINISHED: 'MATCH_FINISHED',
   UNKNOWN_PLAYER: 'NOT_IN_MATCH',
   NOT_YOUR_TURN: 'NOT_YOUR_TURN',
+  NOT_CAPTAIN: 'NOT_CAPTAIN',
+  NOT_TEAM_MATCH: 'NOT_TEAM_MATCH',
   INVALID_SELECTION: 'INVALID_SELECTION',
   DUPLICATE_SELECTION: 'DUPLICATE_SELECTION',
 };
@@ -82,7 +86,8 @@ export class MatchService {
     const id = this.byUser.get(userId);
     const entry = id ? this.matches.get(id) : undefined;
     if (!id || !entry) return null;
-    const other = entry.state.players.find((p) => p.userId !== userId);
+    const mine = entry.state.players.find((p) => p.userId === userId);
+    const other = entry.state.players.find((p) => p.side !== mine?.side && !entry.state.gone.includes(p.userId));
     return other ? { matchId: id, opponentId: other.userId } : null;
   }
 
@@ -120,11 +125,11 @@ export class MatchService {
         return false;
       }
     }
-    const entry: Active = { id, puzzle, state: startMatch(puzzle, [a, b], rng, this.now()), cancel: null, stakes };
+    const entry: Active = { id, puzzle, state: startMatch(puzzle, [a, b], rng, this.now()), cancel: null, stakes, proposals: [null, null] };
     this.matches.set(id, entry);
     this.byUser.set(a, id);
     this.byUser.set(b, id);
-    const profiles: MatchFound['players'] = [{ side: 0, ...pa }, { side: 1, ...pb }];
+    const profiles: MatchFound['players'] = [{ userId: a, side: 0, ...pa }, { userId: b, side: 1, ...pb }];
     for (const [userId, you] of [[a, 0], [b, 1]] as const) {
       const found: MatchFound = { matchId: id, you, players: profiles };
       this.deps.emit(userId, ServerEvent.matchFound, found);
@@ -132,6 +137,31 @@ export class MatchService {
     this.pushState(entry);
     this.armTimer(entry);
     return true;
+  }
+
+  /** Starts a 2v2 for four players (`sides[s]` = side s); no coin stakes yet. False when it could not be created. */
+  async startTeam(sides: readonly [readonly [string, string], readonly [string, string]]): Promise<boolean> {
+    const all = [...sides[0], ...sides[1]];
+    if (new Set(all).size !== 4 || all.some((u) => this.inMatch(u))) return false;
+    const [profiles, puzzle] = await Promise.all([Promise.all(all.map((u) => this.deps.profile(u))), this.deps.puzzles.pickRandom()]);
+    if (!puzzle || profiles.some((p) => !p)) return false;
+    if (all.some((u) => this.inMatch(u))) return false; // raced with another start while loading
+    const id = uuidv7();
+    const entry: Active = { id, puzzle, state: startTeamMatch(puzzle, sides, mulberry32(this.newSeed()), this.now()), cancel: null, proposals: [null, null] };
+    this.matches.set(id, entry);
+    for (const u of all) this.byUser.set(u, id);
+    const players: MatchFound['players'] = all.map((u, i) => ({ userId: u, side: i < 2 ? 0 : 1, ...(profiles[i] as PlayerProfile) }));
+    for (const [i, u] of all.entries()) this.deps.emit(u, ServerEvent.matchFound, { matchId: id, you: i < 2 ? 0 : 1, players } satisfies MatchFound);
+    this.pushState(entry);
+    this.armTimer(entry);
+    return true;
+  }
+
+  /** A teammate shows the captain a selection (2v2). Not stored in the match; only the proposer's team sees it. */
+  propose(userId: string, itemIds: readonly string[]): { ok: true } | { ok: false; error: ErrorCode } {
+    const entry = this.entryOf(userId);
+    if (!entry) return { ok: false, error: 'NOT_IN_MATCH' };
+    return this.apply(entry, { t: 'propose', by: userId, itemIds });
   }
 
   submit(userId: string, itemIds: readonly string[]): { ok: true } | { ok: false; error: ErrorCode } {
@@ -143,7 +173,10 @@ export class MatchService {
   leave(userId: string): { ok: true } | { ok: false; error: ErrorCode } {
     const entry = this.entryOf(userId);
     if (!entry) return { ok: false, error: 'NOT_IN_MATCH' };
-    return this.apply(entry, { t: 'leave', by: userId });
+    const out = this.apply(entry, { t: 'leave', by: userId });
+    // A teammate who leaves a running 2v2 is free to queue again; the match carries on without them.
+    if (out.ok && entry.state.status === 'playing') this.byUser.delete(userId);
+    return out;
   }
 
   /** Re-sends the current snapshot to a returning player. */
@@ -163,6 +196,10 @@ export class MatchService {
     const r = applyCommand(entry.state, cmd, { now: this.now() });
     if ('error' in r) return { ok: false, error: RULE_TO_ERROR[r.error] };
     entry.state = r.state;
+    for (const e of r.events) {
+      if (e.t === 'proposal') entry.proposals[e.side] = e.itemIds.length > 0 ? { by: e.by, itemIds: e.itemIds } : null;
+      if (e.t === 'turn') entry.proposals = [null, null];
+    }
     this.broadcast(entry, r.events);
     return { ok: true };
   }
@@ -187,12 +224,15 @@ export class MatchService {
     return {
       matchId: entry.id,
       you: v.you,
+      youId: userId,
       cards: v.cards.map((id) => ({ id, nameFa: info[id]?.nameFa ?? id, unitFa: info[id]?.unitFa ?? null, iconKey: info[id]?.iconKey ?? null })),
       solved: v.solved.map((g) => ({ level: g.level, titleFa: text.get(g.level)?.titleFa ?? '', explanationFa: text.get(g.level)?.explanationFa ?? '', productIds: [...g.productIds], by: g.by })),
       scores: [v.scores[0], v.scores[1]],
       mistakes: [v.mistakes[0], v.mistakes[1]],
       lockedOut: [v.lockedOut[0], v.lockedOut[1]],
       turn: v.turn,
+      captain: [v.captain[0], v.captain[1]],
+      proposal: entry.proposals[v.you] ? { by: entry.proposals[v.you]!.by, itemIds: [...entry.proposals[v.you]!.itemIds] } : null,
       turnId: v.turnId,
       turnEndsAt: v.turnEndsAt,
       status: v.status,
@@ -206,7 +246,7 @@ export class MatchService {
 
   private broadcast(entry: Active, events: readonly MatchEvent[]) {
     this.pushState(entry);
-    for (const p of entry.state.players) for (const e of events) this.deps.emit(p.userId, ServerEvent.matchEvent, e);
+    for (const p of entry.state.players) for (const e of events) if (e.t !== 'proposal') this.deps.emit(p.userId, ServerEvent.matchEvent, e);
     if (entry.state.status === 'finished') {
       this.finish(entry);
     } else {
@@ -229,15 +269,16 @@ export class MatchService {
       };
       for (const p of entry.state.players) this.deps.emit(p.userId, ServerEvent.matchEnded, ended);
     }
-    if (result) {
+    const duel = entry.state.players.length === 2;
+    if (result && duel) {
       try {
-        this.deps.onEnded?.({ players: [entry.state.players[0].userId, entry.state.players[1].userId], result });
+        this.deps.onEnded?.({ players: [entry.state.players[0]!.userId, entry.state.players[1]!.userId], result });
       } catch {
         /* a notification hook must never break the match flow */
       }
     }
     if (result && entry.stakes && this.deps.stakes) {
-      const players: [string, string] = [entry.state.players[0].userId, entry.state.players[1].userId];
+      const players: [string, string] = [entry.state.players[0]!.userId, entry.state.players[1]!.userId];
       void this.deps.stakes.settle(entry.id, players, entry.stakes, { winner: result.winner, reason: result.reason }).catch((e) => console.error('[duel] settle failed', entry.id, e));
     }
     for (const p of entry.state.players) this.byUser.delete(p.userId);

@@ -6,7 +6,7 @@ import { soloCardSchema } from '../solo/contract.js';
  * Socket.io contract between client and server (docs/logic/matchmaking.md §Socket events). Events are named
  * `domain:action`. Every client command is answered with an ack; the server pushes full redacted snapshots
  * (`match:state`) plus `match:event` for animations. Auth: JWT in the handshake `auth.token`.
- * Only the 1v1 queue and match flow exists so far; rooms, parties and chat get their events with their phases.
+ * The 1v1 and 2v2 queues and the match flow (with teammate proposals) exist so far; rooms, parties and chat get their events with their phases.
  */
 
 export const ClientEvent = {
@@ -14,6 +14,7 @@ export const ClientEvent = {
   queueLeave: 'queue:leave',
   matchReady: 'match:ready',
   matchSubmit: 'match:submit',
+  matchPropose: 'match:propose',
   matchResume: 'match:resume',
   matchLeave: 'match:leave',
   chatJoin: 'chat:join',
@@ -44,6 +45,8 @@ export const ERROR_CODES = [
   'NOT_IN_MATCH',
   'UNKNOWN_MATCH',
   'NOT_YOUR_TURN',
+  'NOT_CAPTAIN',
+  'NOT_TEAM_MATCH',
   'INVALID_SELECTION',
   'DUPLICATE_SELECTION',
   'MATCH_FINISHED',
@@ -68,12 +71,15 @@ export type Ack = z.infer<typeof ackSchema>;
 
 // ---- client -> server payloads -------------------------------------------------------------------------------
 
-export const queueJoinSchema = z.object({ mode: z.literal('duel') });
+export const queueJoinSchema = z.object({ mode: z.enum(['duel', 'team']) });
+/** A teammate's in-progress selection (0-4 cards) shown to the captain; never stored, only the latest counts. */
+export const matchProposeSchema = z.object({ itemIds: z.array(z.string().min(1).max(64)).max(4) });
 export const matchSubmitSchema = z.object({ itemIds: z.array(z.string().min(1).max(64)).length(4) });
 /** Without a match id the server resumes whatever match the player is in (e.g. one a private table started). */
 export const matchResumeSchema = z.object({ matchId: z.string().uuid().optional() });
 
 export type QueueJoin = z.infer<typeof queueJoinSchema>;
+export type MatchPropose = z.infer<typeof matchProposeSchema>;
 export type MatchSubmit = z.infer<typeof matchSubmitSchema>;
 export type MatchResume = z.infer<typeof matchResumeSchema>;
 
@@ -81,6 +87,8 @@ export type MatchResume = z.infer<typeof matchResumeSchema>;
 
 /** Public profile of a participant. Whether a seat is a bot is never part of any payload. */
 export const matchPlayerProfileSchema = z.object({
+  /** Lets a team tell who the captain is; the profile of an opponent carries it too (it is public elsewhere). */
+  userId: z.string().optional(),
   side,
   nickname: z.string(),
   avatarKey: z.string(),
@@ -93,7 +101,8 @@ export const queueStatusSchema = z.object({ waitedSec: z.number().int().nonnegat
 export const matchFoundSchema = z.object({
   matchId: z.string().uuid(),
   you: side,
-  players: z.tuple([matchPlayerProfileSchema, matchPlayerProfileSchema]),
+  /** 2 players (1v1) or 4 (2v2, listed side 0 first). */
+  players: z.array(matchPlayerProfileSchema).min(2).max(4),
 });
 
 export const matchSolvedGroupSchema = z.object({
@@ -114,12 +123,18 @@ export const matchResultSchema = z.object({
 export const matchViewSchema = z.object({
   matchId: z.string().uuid(),
   you: side,
+  /** The viewer's own user id, to compare with `captain`. */
+  youId: z.string().optional(),
   cards: z.array(soloCardSchema),
   solved: z.array(matchSolvedGroupSchema),
   scores: z.tuple([z.number().int(), z.number().int()]),
   mistakes: z.tuple([z.number().int(), z.number().int()]),
   lockedOut: z.tuple([z.boolean(), z.boolean()]),
   turn: side,
+  /** Who submits for each side right now (2v2 rotates it every turn). Optional for older snapshots. */
+  captain: z.tuple([z.string(), z.string()]).optional(),
+  /** The viewer's own team's latest proposal (2v2 only): the teammate's highlighted cards. Opponents never get it. */
+  proposal: z.object({ by: z.string(), itemIds: z.array(z.string()) }).nullable().optional(),
   turnId: z.number().int().positive(),
   /** Absolute epoch ms when the active turn times out. */
   turnEndsAt: z.number().int(),
@@ -134,7 +149,8 @@ export const matchEventSchema = z.discriminatedUnion('t', [
   z.object({ t: z.literal('group_revealed'), level }),
   z.object({ t: z.literal('locked_out'), side }),
   z.object({ t: z.literal('timeout'), side }),
-  z.object({ t: z.literal('turn'), side, turnId: z.number().int().positive() }),
+  z.object({ t: z.literal('turn'), side, turnId: z.number().int().positive(), captain: z.string().optional() }),
+  z.object({ t: z.literal('captain'), side, userId: z.string() }),
   z.object({ t: z.literal('finished'), result: matchResultSchema }),
 ]);
 

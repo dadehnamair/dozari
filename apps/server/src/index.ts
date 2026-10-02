@@ -147,7 +147,7 @@ export interface ServerDeps {
   /** The daily puzzle; needs `auth`. */
   daily?: DailyService;
   /** Filled with the live-match service once the socket gateway exists, so tournaments can start duels. */
-  live?: { matches?: MatchService; queue?: DuelQueue };
+  live?: { matches?: MatchService; queue?: DuelQueue; teamQueue?: DuelQueue };
   /** Bot players: reacts to the events pushed to bot accounts (needs the gateway). */
   botDriver?: BotDriver;
   /** Live-socket tracker shared by the gateway and the friends list. */
@@ -282,6 +282,7 @@ export function buildServer(deps: ServerDeps = {}) {
     if (deps.live) {
       deps.live.matches = gateway.matches;
       deps.live.queue = gateway.queue;
+      deps.live.teamQueue = gateway.teamQueue;
     }
     app.addHook('onClose', async () => {
       await gateway?.close();
@@ -401,7 +402,7 @@ if (isMainModule(import.meta.url)) {
           filter: words,
         })
       : undefined;
-  const live: { matches?: MatchService; queue?: DuelQueue } = {};
+  const live: { matches?: MatchService; queue?: DuelQueue; teamQueue?: DuelQueue } = {};
   const botStore = db ? createDbBotPlayerStore(db) : undefined;
   const botDriver =
     botStore && settings
@@ -409,6 +410,7 @@ if (isMainModule(import.meta.url)) {
           store: botStore,
           matches: () => live.matches,
           queue: () => live.queue,
+          teamQueue: () => live.teamQueue,
           chat: () => chat,
           settings: async () => ({ enabled: (await settings.num('bots.enabled')) === 1, fallbackSec: await settings.num('bots.fallback_seconds'), jitterSec: await settings.num('bots.fallback_jitter_seconds'), cityReplyPercent: await settings.num('bots.city_reply_percent') }),
           taunts: chatStore ? async () => (await chatStore.taunts()).map((c) => ({ nameFa: c.nameFa, ids: c.taunts.map((t) => t.id) })) : undefined,

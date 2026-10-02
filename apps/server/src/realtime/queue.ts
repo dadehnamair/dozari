@@ -46,6 +46,14 @@ export class DuelQueue {
     return longest;
   }
 
+  /** Removes and returns the `n` longest-waiting players (2v2 fill), or null when fewer are queued. */
+  takeGroup(n: number): string[] | null {
+    if (this.entries.size < n) return null;
+    const group = [...this.entries.keys()].slice(0, n);
+    for (const id of group) this.entries.delete(id);
+    return group;
+  }
+
   /** Removes and returns the two longest-waiting players, or null when fewer than two are queued. */
   takePair(): [string, string] | null {
     if (this.entries.size < 2) return null;

@@ -23,7 +23,7 @@ import { arenaNumbers, arrange, characterFor, clockText, endReason, groupsBy, sh
 import { DuelResult } from './DuelResult';
 import { MatchHud } from './MatchHud';
 import { ModeSelect } from './ModeSelect';
-import { boardSolved, duelReducer, initialDuel, isMyTurn, myOutcome, turnSecondsLeft } from './model';
+import { boardSolved, duelReducer, initialDuel, isCaptain, isMyTurn, myOutcome, sideName, sidePlayers, turnSecondsLeft } from './model';
 import { connectDuel } from './socket';
 import type { DuelConnection } from './socket';
 import { SearchScreen } from '../search/SearchScreen';
@@ -57,6 +57,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   const [tauntOpen, setTauntOpen] = useState(false);
   const [leaveArmed, setLeaveArmed] = useState(false);
   const [friendOpen, setFriendOpen] = useState(false);
+  const [mode, setMode] = useState<'duel' | 'team'>('duel');
   const conn = useRef<DuelConnection | null>(null);
   const [wheelOpen, setWheelOpen] = useState(false);
   const [spinsWaiting, setSpinsWaiting] = useState(0);
@@ -68,7 +69,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
     void connectDuel((act) => alive && dispatch(act)).then(async (c) => {
       if (!alive) return c.close();
       conn.current = c;
-      const ack = await (stage === 'resume' ? c.resume() : c.joinQueue());
+      const ack = await (stage === 'resume' ? c.resume() : c.joinQueue(mode));
       if (!ack.ok) dispatch({ t: 'error', error: ack.error });
       else if (stage === 'queue') dispatch({ t: 'queued' });
     }, () => dispatch({ t: 'error', error: 'NETWORK' }));
@@ -101,6 +102,18 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   useEffect(() => {
     if (state.view) setSelected((s) => pruneSelection(s, state.view!.cards));
   }, [state.view]);
+  // 2v2: the captain sees the teammate's proposal as the current selection; a non-captain teammate's picks go to the captain.
+  const proposalKey = state.view?.proposal ? state.view.proposal.itemIds.join(',') : '';
+  useEffect(() => {
+    const v = state.view;
+    if (!v || !isCaptain(v) || !v.proposal) return;
+    setSelected(pruneSelection(v.proposal.itemIds, v.cards));
+  }, [proposalKey]);
+  const proposing = !!state.view && isMyTurn(state.view) && !isCaptain(state.view);
+  const selectedKey = selected.join(',');
+  useEffect(() => {
+    if (proposing) void conn.current?.propose(selected);
+  }, [proposing, selectedKey]);
   const foundId = state.found?.matchId;
   useEffect(() => {
     if (foundId && stage === 'queue') setIntroUntil(Date.now() + INTRO_MS);
@@ -138,7 +151,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   if (stage === 'pick') {
     return (
       <>
-        <ModeSelect entry={numbers.entry} prize={numbers.prize} onBack={onBack} onGo={() => setStage('queue')} onFriend={() => setFriendOpen(true)} />
+        <ModeSelect entry={numbers.entry} prize={numbers.prize} mode={mode} onMode={setMode} onBack={onBack} onGo={() => setStage('queue')} onFriend={() => setFriendOpen(true)} />
         {friendOpen ? <TableSheet onClose={() => setFriendOpen(false)} onMatch={() => (setFriendOpen(false), setStage('resume'))} /> : null}
       </>
     );
@@ -147,6 +160,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   const errorText = state.error ? fa.duel.errors[state.error] ?? fa.duel.errors.generic : null;
   const view = state.view;
   const players = state.found?.players;
+  const team = (players?.length ?? 0) > 2;
 
   if (errorText && state.phase !== 'playing') {
     return (
@@ -166,8 +180,8 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
     const you = state.found?.you ?? 0;
     return (
       <Versus
-        me={{ nickname: players?.[you].nickname ?? '', level: players?.[you].level }}
-        rival={players ? players[(1 - you) as 0 | 1] : null}
+        me={{ nickname: sidePlayers(state.found, you)[0]?.nickname ?? '', level: sidePlayers(state.found, you)[0]?.level }}
+        rival={players ? sidePlayers(state.found, (1 - you) as 0 | 1)[0] ?? null : null}
         waitedSec={state.waitedSec}
         countdown={players ? Math.max(1, countdown) : null}
         onCancel={() => (void conn.current?.leaveQueue(), setStage('pick'), dispatch({ t: 'reset' }))}
@@ -177,9 +191,9 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
 
   const me = view.you;
   const them = (1 - me) as 0 | 1;
-  const myName = players?.[me].nickname || a.you;
-  const rivalName = players?.[them].nickname || a.rival;
-  const rivalWho = characterFor(players?.[them].avatarKey || rivalName);
+  const myName = sideName(state.found, me, a.teamOf) || a.you;
+  const rivalName = sideName(state.found, them, a.teamOf) || a.rival;
+  const rivalWho = characterFor(sidePlayers(state.found, them)[0]?.avatarKey || rivalName);
   const lines = [
     { name: myName, who: 'dozari' as const, groups: groupsBy(view, me), me: true },
     { name: rivalName, who: rivalWho, groups: groupsBy(view, them), me: false },
@@ -207,12 +221,13 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   }
 
   const mine = isMyTurn(view);
+  const captain = isCaptain(view);
   const playing = view.status === 'playing';
   const secs = turnSecondsLeft(view, now);
-  const turnText = view.lockedOut[me] ? fa.duel.lockedOut : mine ? fa.duel.yourTurn : fa.duel.theirTurn;
+  const turnText = view.lockedOut[me] ? fa.duel.lockedOut : mine ? (!captain ? a.mateCaptain : team ? a.captain : fa.duel.yourTurn) : fa.duel.theirTurn;
   const toast = leaveArmed ? a.leaveSure : state.flash ? fa.duel.feedback[state.flash] : state.taunt ? `${state.taunt.from}: ${state.taunt.text}` : null;
   const submit = () => {
-    if (!canSubmit(selected) || !mine) return;
+    if (!canSubmit(selected) || !mine || !captain) return;
     void conn.current?.submit(selected).then((ack) => {
       if (ack.ok) setSelected([]);
       else dispatch({ t: 'error', error: ack.error });
@@ -242,7 +257,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
               <View style={styles.clockIcon}><Item icon="hourglass" /></View>
               <Text style={styles.clockText}>{toPersianDigits(clockText(secs))}</Text>
             </View>
-            <View style={styles.mode}><Text style={styles.modeText}>{a.oneVsOne}</Text></View>
+            <View style={styles.mode}><Text style={styles.modeText}>{team ? a.twoVsTwo : a.oneVsOne}</Text></View>
           </View>
 
           <MatchHud

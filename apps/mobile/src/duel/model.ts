@@ -72,6 +72,16 @@ export function boardSolved(view: MatchView): SoloSolvedGroup[] {
 
 export const isMyTurn = (view: MatchView): boolean => view.status === 'playing' && view.turn === view.you && !view.lockedOut[view.you];
 
+/** In 2v2 only the captain of the turn submits; older snapshots without captains mean everyone on the side may. */
+export const isCaptain = (view: MatchView): boolean => !view.captain || !view.youId || view.captain[view.you] === view.youId;
+
+/** The players of a side, in the order the server listed them. */
+export const sidePlayers = (found: MatchFound | null, side: 0 | 1) => (found?.players ?? []).filter((p) => p.side === side);
+
+/** «A و B» for a team, the plain nickname for a lone player. */
+export const sideName = (found: MatchFound | null, side: 0 | 1, joiner: (x: string, y: string) => string): string =>
+  sidePlayers(found, side).map((p) => p.nickname).reduce((acc, n) => (acc ? joiner(acc, n) : n), '');
+
 /** Seconds left on the turn clock, never negative. */
 export const turnSecondsLeft = (view: MatchView, nowMs: number): number => Math.max(0, Math.ceil((view.turnEndsAt - nowMs) / 1000));
 

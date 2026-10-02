@@ -84,6 +84,15 @@ One board, both sides play it in turns.
 - If the captain disconnects, the teammate becomes captain automatically.
 - Team chat channel exists (see chat-and-access.md).
 
+As built (`game/match.ts`, `realtime/match-service.ts`): `startTeamMatch` seats two players per side; `state.captain[side]` is the only
+user who may `submit` (others get `NOT_CAPTAIN`); the captain rotates to the next present teammate at every new turn of that side
+except on a correct-guess streak. `propose` (team only, `NOT_TEAM_MATCH` in a duel) is a pure event: the service keeps only the latest
+proposal per side and puts it in the snapshot of that side's own players (`MatchView.proposal`); it is never a `match:event`, never
+sent to the other side. `leave` marks the player `gone`: the captain role moves to the teammate, the leaver may queue again, and a side
+with nobody left forfeits (`abandon`). 2v2 has **no entry fee yet** (proposed, D118): stakes/escrow stay 1v1-only until the team economy is decided.
+Queue: `queue:join {mode:'team'}` fills from strangers (4 in line → the two longest waiters play together); a party of 2 is not built.
+The bot driver fills missing seats after the usual fallback wait (humans on opposite sides) and only plays when its bot is the captain.
+
 ### Visibility (redaction)
 - Everyone sees: board items, solved groups, scores, mistakes, whose turn, timer, each side's
   submitted selection result (the 4 items and correct/one-away/wrong).
@@ -104,7 +113,7 @@ applyCommand(state, cmd, ctx: { now: number }) => { state, events: MatchEvent[] 
 ```
 
 Implemented in `packages/shared/src/game/match.ts` for 1v1 (one player per side, `MatchSide` 0|1): `startMatch`,
-`applyCommand` (`submit`, `timeout`, `leave`, `forfeit`; `propose` waits for the team flow in Phase 5), `matchClientView`
+`applyCommand` (`submit`, `timeout`, `leave`, `forfeit`; `propose` is team-only), `matchClientView`
 (the only shape that leaves the server), and for after the price-guess round `resolveWinner` / `finalScores`.
 Details the spec left open, as built: a correct guess restarts the turn clock for the same side; when the opponent is
 locked out the active side keeps the turn after a mistake or a timeout; a repeated set is a `DUPLICATE_SELECTION`

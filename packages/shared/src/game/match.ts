@@ -15,8 +15,8 @@ import type { GroupLevel, SoloPuzzle } from './solo.js';
 /**
  * Competitive match reducer (docs/logic/game-rules.md §Competitive): one shared board, two sides taking
  * turns. Pure: time comes in through `ctx.now`, randomness through the injected rng, and timeouts arrive as
- * commands carrying the `turnId` they were scheduled for. 1v1 only for now (one player per side);
- * the team/captain flow is Phase 5.
+ * commands carrying the `turnId` they were scheduled for. A side is one player (1v1) or two teammates (2v2):
+ * the team shares one turn, score and mistake counter; the turn's captain submits and the captain rotates every turn.
  */
 
 export type MatchSide = 0 | 1;
@@ -45,7 +45,12 @@ export interface MatchResult {
 export interface MatchState {
   /** The solution. Server-side only; `matchClientView` is the only thing that may leave the server. */
   puzzle: SoloPuzzle;
-  players: readonly [MatchPlayer, MatchPlayer];
+  /** 2 players (1v1) or 4 (2v2: two per side). */
+  players: readonly MatchPlayer[];
+  /** The player who may submit for each side right now. */
+  captain: readonly [string, string];
+  /** Players who left; their team carries on without them, and a side with nobody left forfeits. */
+  gone: readonly string[];
   remaining: readonly string[];
   solved: readonly MatchSolvedGroup[];
   scores: readonly [number, number];
@@ -67,6 +72,8 @@ export interface MatchState {
 
 export type Command =
   | { t: 'submit'; by: string; itemIds: readonly string[] }
+  /** Team only, never stored: a teammate shows the captain a selection. */
+  | { t: 'propose'; by: string; itemIds: readonly string[] }
   | { t: 'timeout'; turnId: number }
   | { t: 'leave'; by: string }
   | { t: 'forfeit'; side: MatchSide };
@@ -75,6 +82,8 @@ export type RuleError =
   | 'MATCH_FINISHED'
   | 'UNKNOWN_PLAYER'
   | 'NOT_YOUR_TURN'
+  | 'NOT_CAPTAIN'
+  | 'NOT_TEAM_MATCH'
   | 'INVALID_SELECTION'
   | 'DUPLICATE_SELECTION';
 
@@ -86,7 +95,10 @@ export type MatchEvent =
   | { t: 'group_revealed'; level: GroupLevel }
   | { t: 'locked_out'; side: MatchSide }
   | { t: 'timeout'; side: MatchSide }
-  | { t: 'turn'; side: MatchSide; turnId: number }
+  | { t: 'turn'; side: MatchSide; turnId: number; captain: string }
+  /** Visible to the proposer's teammate only (the service must not broadcast it to the other side). */
+  | { t: 'proposal'; side: MatchSide; by: string; itemIds: readonly string[] }
+  | { t: 'captain'; side: MatchSide; userId: string }
   | { t: 'finished'; result: MatchResult };
 
 export type ApplyResult = { state: MatchState; events: MatchEvent[] } | { error: RuleError };
@@ -102,13 +114,26 @@ export function startMatch(
   now: number,
   startingSide?: MatchSide,
 ): MatchState {
-  if (players[0] === players[1]) throw new Error('a match needs two different players');
+  return startTeamMatch(puzzle, [[players[0]], [players[1]]], rng, now, startingSide);
+}
+
+/** `sides[s]` = the player ids of side `s`: one (1v1) or two (2v2); both sides the same size. */
+export function startTeamMatch(
+  puzzle: SoloPuzzle,
+  sides: readonly [readonly string[], readonly string[]],
+  rng: Rng,
+  now: number,
+  startingSide?: MatchSide,
+): MatchState {
+  const size = sides[0].length;
+  if ((size !== 1 && size !== 2) || sides[1].length !== size) throw new Error('a match is 1v1 or 2v2');
+  const all = [...sides[0], ...sides[1]];
+  if (new Set(all).size !== all.length) throw new Error('a match needs different players');
   return {
     puzzle,
-    players: [
-      { userId: players[0], side: 0 },
-      { userId: players[1], side: 1 },
-    ],
+    players: [...sides[0].map((userId) => ({ userId, side: 0 as const })), ...sides[1].map((userId) => ({ userId, side: 1 as const }))],
+    captain: [sides[0][0]!, sides[1][0]!],
+    gone: [],
     remaining: initialBoardOrder(puzzle, rng),
     solved: [],
     scores: [0, 0],
@@ -124,6 +149,12 @@ export function startMatch(
     result: null,
   };
 }
+
+/** Players of a side who are still in the match, in seat order. */
+export const presentOf = (state: MatchState, side: MatchSide): string[] =>
+  state.players.filter((p) => p.side === side && !state.gone.includes(p.userId)).map((p) => p.userId);
+
+export const isTeamMatch = (state: MatchState): boolean => state.players.length > 2;
 
 const set = <T>(pair: readonly [T, T], side: MatchSide, value: T): [T, T] => (side === 0 ? [value, pair[1]] : [pair[0], value]);
 
@@ -167,11 +198,18 @@ function finish(state: MatchState, reason: EndReason, winner: MatchSide | null, 
   return { ...next, result };
 }
 
-/** Starts the next turn for `side` (also used to restart the clock when the same side keeps playing). */
-function startTurn(state: MatchState, side: MatchSide, now: number, events: MatchEvent[]): MatchState {
+/**
+ * Starts the next turn for `side` (also used to restart the clock when the same side keeps playing). The captain
+ * rotates to the next present teammate unless the side is on a streak (`rotate: false`, after a correct guess).
+ */
+function startTurn(state: MatchState, side: MatchSide, now: number, events: MatchEvent[], rotate = true): MatchState {
   const turnId = state.turnId + 1;
-  events.push({ t: 'turn', side, turnId });
-  return { ...state, turn: side, turnId, turnStartedAt: now };
+  const present = presentOf(state, side);
+  let captain = state.captain[side];
+  if (rotate && present.length > 1) captain = present[(present.indexOf(captain) + 1) % present.length]!;
+  else if (!present.includes(captain)) captain = present[0] ?? captain;
+  events.push({ t: 'turn', side, turnId, captain });
+  return { ...state, turn: side, turnId, turnStartedAt: now, captain: set(state.captain, side, captain) };
 }
 
 /** Who plays next after `side` just moved: the opponent, unless the opponent is locked out. */
@@ -191,8 +229,16 @@ export function applyCommand(state: MatchState, cmd: Command, ctx: Ctx): ApplyRe
 
     case 'leave': {
       const side = sideOf(state, cmd.by);
-      if (side === null) return { error: 'UNKNOWN_PLAYER' };
-      return { state: forfeit(state, side, 'abandon', events), events };
+      if (side === null || state.gone.includes(cmd.by)) return { error: 'UNKNOWN_PLAYER' };
+      let next: MatchState = { ...state, gone: [...state.gone, cmd.by] };
+      const left = presentOf(next, side);
+      if (left.length === 0) return { state: forfeit(next, side, 'abandon', events), events };
+      // The team carries on with the teammate; if the leaver was the captain the teammate takes over.
+      if (next.captain[side] === cmd.by) {
+        next = { ...next, captain: set(next.captain, side, left[0]!) };
+        events.push({ t: 'captain', side, userId: left[0]! });
+      }
+      return { state: next, events };
     }
 
     case 'timeout': {
@@ -206,10 +252,24 @@ export function applyCommand(state: MatchState, cmd: Command, ctx: Ctx): ApplyRe
       return { state: next, events };
     }
 
+    case 'propose': {
+      if (!isTeamMatch(state)) return { error: 'NOT_TEAM_MATCH' };
+      const side = sideOf(state, cmd.by);
+      if (side === null || state.gone.includes(cmd.by)) return { error: 'UNKNOWN_PLAYER' };
+      if (side !== state.turn) return { error: 'NOT_YOUR_TURN' };
+      const onBoard = new Set(state.remaining);
+      if (cmd.itemIds.length > GROUP_SIZE || new Set(cmd.itemIds).size !== cmd.itemIds.length || cmd.itemIds.some((id) => !onBoard.has(id))) {
+        return { error: 'INVALID_SELECTION' };
+      }
+      events.push({ t: 'proposal', side, by: cmd.by, itemIds: cmd.itemIds });
+      return { state, events };
+    }
+
     case 'submit': {
       const side = sideOf(state, cmd.by);
-      if (side === null) return { error: 'UNKNOWN_PLAYER' };
+      if (side === null || state.gone.includes(cmd.by)) return { error: 'UNKNOWN_PLAYER' };
       if (side !== state.turn) return { error: 'NOT_YOUR_TURN' };
+      if (state.captain[side] !== cmd.by) return { error: 'NOT_CAPTAIN' };
       const ids = cmd.itemIds;
       const onBoard = new Set(state.remaining);
       if (ids.length !== GROUP_SIZE || new Set(ids).size !== GROUP_SIZE || ids.some((id) => !onBoard.has(id))) {
@@ -240,7 +300,7 @@ export function applyCommand(state: MatchState, cmd: Command, ctx: Ctx): ApplyRe
           return { state: finish(next, 'solved', decide(next), events), events };
         }
         // A correct guess keeps the turn (streak) with a fresh clock.
-        return { state: startTurn(next, side, ctx.now, events), events };
+        return { state: startTurn(next, side, ctx.now, events, false), events };
       }
 
       const oneAway = open.some((g) => g.productIds.filter((id) => chosen.has(id)).length === GROUP_SIZE - 1);
@@ -291,6 +351,8 @@ export interface MatchClientView {
   mistakes: readonly [number, number];
   lockedOut: readonly [boolean, boolean];
   turn: MatchSide;
+  /** Who submits for each side right now. */
+  captain: readonly [string, string];
   turnId: number;
   /** Absolute ms timestamp when the active turn times out. */
   turnEndsAt: number;
@@ -313,6 +375,7 @@ export function matchClientView(state: MatchState, viewerId: string): MatchClien
     mistakes: state.mistakes,
     lockedOut: state.lockedOut,
     turn: state.turn,
+    captain: state.captain,
     turnId: state.turnId,
     turnEndsAt: turnDeadline(state),
     status: state.status,

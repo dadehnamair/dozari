@@ -36,7 +36,8 @@ describe('event names', () => {
 describe('client payloads', () => {
   it('validates queue:join and match:submit', () => {
     expect(queueJoinSchema.safeParse({ mode: 'duel' }).success).toBe(true);
-    expect(queueJoinSchema.safeParse({ mode: 'team' }).success).toBe(false);
+    expect(queueJoinSchema.safeParse({ mode: 'team' }).success).toBe(true);
+    expect(queueJoinSchema.safeParse({ mode: 'party' }).success).toBe(false);
     expect(matchSubmitSchema.safeParse({ itemIds: ['a', 'b', 'c', 'd'] }).success).toBe(true);
     for (const itemIds of [['a', 'b', 'c'], ['a', 'b', 'c', 'd', 'e'], ['a', 'b', 'c', ''], 'abcd']) {
       expect(matchSubmitSchema.safeParse({ itemIds }).success).toBe(false);

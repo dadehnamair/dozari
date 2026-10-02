@@ -17,6 +17,7 @@ export interface BotDriverDeps {
   store: BotPlayerStore;
   matches: () => MatchService | undefined;
   queue: () => DuelQueue | undefined;
+  teamQueue?: () => DuelQueue | undefined;
   chat?: () => ChatService | undefined;
   settings: () => Promise<BotDriverSettings>;
   /** Lists the canned taunts by category name, for choosing a fitting reply. */
@@ -79,6 +80,7 @@ export class BotDriver {
 
   private planTurn(bot: BotRow, v: MatchView): void {
     if (v.status !== 'playing' || v.turn !== v.you) return;
+    if (v.captain && v.captain[v.you] !== bot.userId) return; // a bot teammate who is not the captain waits
     const key = `${bot.userId}:${v.matchId}:${v.turnId}`;
     if (this.planned.has(key)) return;
     this.planned.add(key);
@@ -157,5 +159,25 @@ export class BotDriver {
       queue.leave(userId);
       if (!(await matches.start(userId, bot.userId))) queue.join(userId, since); // could not start: back in line, original place in time
     }
+    await this.fillTeams(s, now);
+  }
+
+  /** 2v2: once the longest waiter is due, everyone waiting plays and bots fill the empty seats (humans on opposite sides). */
+  private async fillTeams(s: BotDriverSettings, now: number): Promise<void> {
+    const queue = this.deps.teamQueue?.();
+    const matches = this.deps.matches();
+    if (!queue || !matches) return;
+    const waiting = queue.waiting();
+    const first = waiting[0];
+    if (!first || now - first.since < (s.fallbackSec + jitterOf(first.userId, s.jitterSec)) * 1000) return;
+    const humans = waiting.slice(0, 4);
+    const idle = [...this.roster.values()].filter((b) => !matches.inMatch(b.userId) && !queue.has(b.userId));
+    const bots: string[] = [];
+    while (humans.length + bots.length < 4 && idle.length > 0) bots.push(idle.splice(Math.floor(this.deps.rng() * idle.length), 1)[0]!.userId);
+    if (humans.length + bots.length < 4) return;
+    const seats = [...humans.map((h) => h.userId), ...bots];
+    for (const h of humans) queue.leave(h.userId);
+    const ok = await matches.startTeam([[seats[0]!, seats[2]!], [seats[1]!, seats[3]!]]);
+    if (!ok) for (const h of humans) queue.join(h.userId, h.since);
   }
 }

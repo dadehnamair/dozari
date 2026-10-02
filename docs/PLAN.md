@@ -141,8 +141,8 @@ human opponent is found.
 
 ## Phase 5 — 2v2 teams, taunts, chat gating
 
-- [ ] 🧩 Team turn model + "proposal" flow (teammate proposes selection, captain submits)
-- [ ] 🖥 2v2 queue (party of 2 or solo fill), team rooms
+- [x] 🧩 Team turn model + "proposal" flow (teammate proposes selection, captain submits) — `game/match.ts`, `__tests__/team.test.ts`
+- [x] 🖥 2v2 queue (solo fill + bot fill; party of 2 / team rooms still open) — `realtime/gateway.ts`, `match-service.ts#startTeam`
 - [ ] 🗄 `canned_taunts` (Persian, categorized), `invite_codes`, `users.chat_unlocked_at`
 - [ ] 🖥 ChatService: canned taunts for all; free text only if sender unlocked; team vs all channels
 - [ ] 🖥 Profanity filter (Persian wordlist + normalization of ی/ي، ک/ك، ZWNJ) + report/mute

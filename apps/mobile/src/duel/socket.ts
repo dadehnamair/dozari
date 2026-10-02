@@ -7,11 +7,13 @@ import { BASE_URL, callJson } from '../net/http';
 import type { DuelAction } from './model';
 
 export interface DuelConnection {
-  joinQueue(): Promise<Ack>;
+  joinQueue(mode?: 'duel' | 'team'): Promise<Ack>;
   leaveQueue(): Promise<Ack>;
   /** Re-sends the snapshot of the match the player is already in (a table started it). */
   resume(): Promise<Ack>;
   submit(itemIds: string[]): Promise<Ack>;
+  /** 2v2: show the captain the cards the player has picked (replaces the previous proposal). */
+  propose(itemIds: string[]): Promise<Ack>;
   leave(): Promise<Ack>;
   taunt(tauntId: string): Promise<Ack>;
   close(): void;
@@ -78,10 +80,11 @@ export async function connectDuel(dispatch: (a: DuelAction) => void): Promise<Du
   });
 
   return {
-    joinQueue: () => ask(socket, ClientEvent.queueJoin, { mode: 'duel' }),
+    joinQueue: (mode = 'duel') => ask(socket, ClientEvent.queueJoin, { mode }),
     leaveQueue: () => ask(socket, ClientEvent.queueLeave),
     resume: () => ask(socket, ClientEvent.matchResume, {}),
     submit: (itemIds) => ask(socket, ClientEvent.matchSubmit, { itemIds }),
+    propose: (itemIds) => ask(socket, ClientEvent.matchPropose, { itemIds }),
     leave: () => ask(socket, ClientEvent.matchLeave),
     taunt: (tauntId) => ask(socket, ClientEvent.chatTaunt, { tauntId }),
     close: () => {

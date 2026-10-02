@@ -13,8 +13,8 @@ import type { CharacterId, CharacterPose } from '../theme/character';
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const a = fa.duel.arena;
 
-/** screen-mode of `13 Match Screens`: the 1v1 card (picked), the 2v2 card (not built yet), «رقابت با دوست», «بزن بریم!». */
-export function ModeSelect({ entry, prize, onGo, onFriend, onBack }: { entry: number; prize: number; onGo: () => void; onFriend?: () => void; onBack: () => void }) {
+/** screen-mode of `13 Match Screens`: the 1v1 card, the 2v2 card, «رقابت با دوست», «بزن بریم!». */
+export function ModeSelect({ entry, prize, mode, onMode, onGo, onFriend, onBack }: { entry: number; prize: number; mode: 'duel' | 'team'; onMode: (m: 'duel' | 'team') => void; onGo: () => void; onFriend?: () => void; onBack: () => void }) {
   const tight = useWindowDimensions().height < 700; // nothing scrolls: shrink the cast on short screens
   return (
     <View style={styles.root}>
@@ -23,13 +23,13 @@ export function ModeSelect({ entry, prize, onGo, onFriend, onBack }: { entry: nu
       <View style={[styles.scroll, tight ? styles.scrollTight : null]}>
         <View style={[styles.column, tight ? styles.columnTight : null]}>
           <GameTopBar title={a.title} backLabel={fa.duel.back} onBack={onBack} />
-          <ModeCard tight={tight} title={a.duel} tag={a.oneVsOne} band="sky" picked onPress={onGo}
+          <ModeCard tight={tight} title={a.duel} tag={a.oneVsOne} band="sky" picked={mode === 'duel'} onPress={() => onMode('duel')}
             cast={[{ who: 'dozari', pose: 'coin' }, { who: 'pahlevan', pose: 'angry', flip: true }]}
             stats={[{ icon: 'ticket', text: a.entry(entry) }, { icon: 'coinStack', text: a.prize(prize) }]} />
           <Text style={styles.note}>{a.freeNote}</Text>
-          <ModeCard tight={tight} title={a.team} tag={a.twoVsTwo} band="grape" disabled
+          <ModeCard tight={tight} title={a.team} tag={a.twoVsTwo} band="grape" picked={mode === 'team'} onPress={() => onMode('team')}
             cast={[{ who: 'goli', pose: 'cheer', small: true }, { who: 'dozari', pose: 'wave', small: true }, { who: 'pahlevan', pose: 'pointing', flip: true, small: true }, { who: 'baqal', pose: 'thinking', flip: true, small: true }]}
-            stats={[{ icon: 'hourglass', text: a.soon }]} />
+            stats={[{ icon: 'ticket', text: a.teamNote }]} />
           <View style={styles.spacer} />
           {onFriend ? (
             <Pressable accessibilityRole="button" onPress={onFriend} style={styles.friend}>
