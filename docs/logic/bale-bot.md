@@ -50,3 +50,17 @@ account (unique index); typed-but-unverified numbers are not unique, so nobody c
 + `/me/phone/verify` (5-digit code, hashed, 5 min, 60 s between sends, 5 tries); the provider is an adapter (`phone/sms.ts`); Kavenegar
 `verify/lookup` is included but **not run against the live service**. Not verified against Bale's real servers: that Bale delivers
 `contact.user_id` and honours `request_contact` exactly like Telegram.
+
+## Existing account (D126)
+
+A number is **never** silently merged or refused. Typing a number another account holds just stores it as pending (no `taken` answer, so
+nobody learns who holds a number). When the player then **proves** it (Bale contact or SMS code) and another account already holds it,
+`phone_conflicts` records the choice (30-minute expiry) instead of verifying:
+
+- `GET /me/phone` carries `conflict {phone (masked), current, previous}` (nickname, avatar, level, coins of each account); the Bale bot tells
+  the player to open the app. The app polls every 5 s while a number is pending, so the card appears right after the bot step.
+- `POST /me/phone/resolve {choice, deviceId?}`: **keep_current** moves the number to this account (the old account keeps its data but loses the
+  number, so no recovery through it); **load_previous** issues a session for the old account, makes this device belong to it (`claimDevice`, so a
+  later token expiry logs in to it, not to the throw-away guest) and the app swaps its token and remounts every screen.
+- Both choices ask «مطمئنی؟» first; nothing is merged and coins are never combined.
+

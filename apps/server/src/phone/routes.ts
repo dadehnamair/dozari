@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { phoneChoiceSchema } from '@dozari/shared';
 import type { AuthService } from '../auth/service.js';
 import { currentUser } from '../auth/routes.js';
 import type { PhoneService } from './service.js';
@@ -36,6 +37,19 @@ export function registerPhoneRoutes(app: FastifyInstance, auth: AuthService, pho
     if (out.ok) return { ok: true };
     if (out.error === 'too_soon') return reply.header('retry-after', String(out.retryAfterSec ?? 60)).code(429).send({ error: out.error, retryAfterSec: out.retryAfterSec });
     return reply.code(out.error === 'sms_unavailable' ? 503 : out.error === 'send_failed' ? 502 : 409).send({ error: out.error });
+  });
+
+  // The player's answer when the proven number already belongs to another account.
+  app.post('/me/phone/resolve', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    const body = z.object({ choice: phoneChoiceSchema, deviceId: z.string().max(64).optional() }).safeParse(req.body);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    if (!body.success) return reply.code(400).send({ error: 'invalid_request' });
+    const out = await phone.resolve(user.id, body.data.choice);
+    if (!out.ok) return reply.code(409).send({ error: out.error });
+    if (out.switchTo === null) return { status: await phone.status(user.id), session: null };
+    const session = await auth.sessionFor(out.switchTo, body.data.deviceId);
+    return session ? { status: null, session } : reply.code(409).send({ error: 'account_unavailable' });
   });
 
   app.post('/me/phone/verify', async (req, reply) => {

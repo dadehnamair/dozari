@@ -1,4 +1,4 @@
-import { eq, phoneOtps, users } from '@dozari/db';
+import { eq, phoneConflicts, phoneOtps, users } from '@dozari/db';
 import type { Db } from '@dozari/db';
 
 export interface PhoneState {
@@ -6,6 +6,12 @@ export interface PhoneState {
   phone: string | null;
   /** Number typed in the app and waiting for verification. */
   pending: string | null;
+}
+
+export interface ConflictRow {
+  phone: string;
+  holderId: string;
+  createdAt: number;
 }
 
 export interface OtpRow {
@@ -25,6 +31,13 @@ export interface PhoneStore {
   /** Makes the number the account's verified one and clears the pending one; false if another account got there first. */
   markVerified(userId: string, phone: string, now: number): Promise<boolean>;
   clear(userId: string): Promise<void>;
+  /** The account that holds this verified number, if any. */
+  holderOf(phone: string): Promise<string | null>;
+  putConflict(userId: string, row: ConflictRow): Promise<void>;
+  getConflict(userId: string): Promise<ConflictRow | null>;
+  dropConflict(userId: string): Promise<void>;
+  /** Moves a verified number from its holder to another account in one step; false when the holder no longer has it. */
+  moveNumber(fromId: string, toId: string, phone: string, now: number): Promise<boolean>;
   putOtp(userId: string, otp: OtpRow): Promise<void>;
   getOtp(userId: string): Promise<OtpRow | null>;
   bumpOtp(userId: string): Promise<void>;
@@ -57,6 +70,31 @@ export function createDbPhoneStore(db: Db): PhoneStore {
       await db.update(users).set({ phone: null, phonePending: null, phoneVerifiedAt: null }).where(eq(users.id, userId));
       await db.delete(phoneOtps).where(eq(phoneOtps.userId, userId));
     },
+    async holderOf(phone) {
+      const [r] = await db.select({ id: users.id }).from(users).where(eq(users.phone, phone));
+      return r?.id ?? null;
+    },
+    async putConflict(userId, row) {
+      const values = { userId, phone: row.phone, holderId: row.holderId, createdAt: new Date(row.createdAt) };
+      await db.insert(phoneConflicts).values(values).onDuplicateKeyUpdate({ set: values });
+    },
+    async getConflict(userId) {
+      const [r] = await db.select().from(phoneConflicts).where(eq(phoneConflicts.userId, userId));
+      return r ? { phone: r.phone, holderId: r.holderId, createdAt: r.createdAt.getTime() } : null;
+    },
+    async dropConflict(userId) {
+      await db.delete(phoneConflicts).where(eq(phoneConflicts.userId, userId));
+    },
+    async moveNumber(fromId, toId, phone, now) {
+      return db.transaction(async (tx) => {
+        const [h] = await tx.select({ phone: users.phone }).from(users).where(eq(users.id, fromId)).for('update');
+        if (h?.phone !== phone) return false;
+        await tx.update(users).set({ phone: null, phoneVerifiedAt: null }).where(eq(users.id, fromId));
+        await tx.update(users).set({ phone, phonePending: null, phoneVerifiedAt: new Date(now) }).where(eq(users.id, toId));
+        await tx.delete(phoneOtps).where(eq(phoneOtps.userId, toId));
+        return true;
+      });
+    },
     async putOtp(userId, otp) {
       const values = { userId, phone: otp.phone, codeHash: otp.codeHash, attempts: otp.attempts, sentAt: new Date(otp.sentAt), expiresAt: new Date(otp.expiresAt) };
       await db.insert(phoneOtps).values(values).onDuplicateKeyUpdate({ set: values });
@@ -79,6 +117,7 @@ export function createMemoryPhoneStore(): PhoneStore & { verified: Map<string, s
   const verified = new Map<string, string>();
   const pending = new Map<string, string>();
   const otps = new Map<string, OtpRow>();
+  const conflicts = new Map<string, ConflictRow>();
   return {
     verified,
     async state(id) {
@@ -102,6 +141,27 @@ export function createMemoryPhoneStore(): PhoneStore & { verified: Map<string, s
       verified.delete(id);
       pending.delete(id);
       otps.delete(id);
+    },
+    async holderOf(phone) {
+      return [...verified.entries()].find(([, p]) => p === phone)?.[0] ?? null;
+    },
+    async putConflict(id, row) {
+      conflicts.set(id, { ...row });
+    },
+    async getConflict(id) {
+      const r = conflicts.get(id);
+      return r ? { ...r } : null;
+    },
+    async dropConflict(id) {
+      conflicts.delete(id);
+    },
+    async moveNumber(fromId, toId, phone) {
+      if (verified.get(fromId) !== phone) return false;
+      verified.delete(fromId);
+      verified.set(toId, phone);
+      pending.delete(toId);
+      otps.delete(toId);
+      return true;
     },
     async putOtp(id, o) {
       otps.set(id, { ...o });

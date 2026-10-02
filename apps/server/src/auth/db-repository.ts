@@ -30,6 +30,12 @@ export function createDbUserRepository(db: Db): UserRepository {
         .set({ deviceId: null, nickname: 'حساب حذف‌شده', phone: null, phonePending: null, phoneVerifiedAt: null, email: null, handle: null, equippedBadgeId: null, isBanned: true, banReason: 'account_deleted', bannedAt: now, sessionsValidAfter: now })
         .where(eq(users.id, id));
     },
+    async claimDevice(id, deviceId) {
+      await db.transaction(async (tx) => {
+        await tx.update(users).set({ deviceId: null }).where(eq(users.deviceId, deviceId));
+        await tx.update(users).set({ deviceId }).where(eq(users.id, id));
+      });
+    },
     async signOutEverywhere(id) {
       await db.update(users).set({ sessionsValidAfter: new Date() }).where(eq(users.id, id));
     },

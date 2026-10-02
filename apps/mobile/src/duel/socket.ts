@@ -33,7 +33,8 @@ export async function connectDuel(dispatch: (a: DuelAction) => void): Promise<Du
     await callJson('/me', 'GET', undefined, t);
     return t;
   }).catch(() => session.token());
-  const socket = io(BASE_URL, { auth: { token }, transports: ['websocket'], reconnection: true });
+  // Long-polling first, then upgrade to a websocket when the host allows it: a proxy or CDN that refuses the upgrade then costs speed, not the whole duel.
+  const socket = io(BASE_URL, { auth: { token }, transports: ['polling', 'websocket'], reconnection: true });
   let you: 0 | 1 = 0;
 
   socket.on(ServerEvent.queueStatus, (p: unknown) => {

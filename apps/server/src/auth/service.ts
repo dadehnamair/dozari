@@ -22,6 +22,8 @@ export interface UserRepository {
   anonymize?(id: string): Promise<void>;
   /** Refuses every token issued before now. */
   signOutEverywhere?(id: string): Promise<void>;
+  /** Makes this device id log in to this account from now on (it is taken from any other account that had it). */
+  claimDevice?(id: string, deviceId: string): Promise<void>;
 }
 
 export type LoginResult = { ok: true; session: Session } | { ok: false; error: 'BANNED' };
@@ -39,6 +41,16 @@ export class AuthService {
     if (user.isBanned) return { ok: false, error: 'BANNED' };
     await this.users.touch(user.id);
     return { ok: true, session: { token: await this.tokens.sign(user.id), user: { id: user.id, nickname: user.nickname, avatarKey: user.avatarKey } } };
+  }
+
+  /** A session for an existing account, for the moment the player proved they own it (phone proof, see `PhoneService.resolve`). */
+  async sessionFor(userId: string, deviceId?: string): Promise<Session | null> {
+    const user = await this.users.findById(userId);
+    if (!user || user.isBanned) return null;
+    // The device now belongs to this account, so a token that expires later logs in to it, not to the guest it had before.
+    if (deviceId) await this.users.claimDevice?.(user.id, deviceId);
+    await this.users.touch(user.id);
+    return { token: await this.tokens.sign(user.id), user: { id: user.id, nickname: user.nickname, avatarKey: user.avatarKey } };
   }
 
   async deleteAccount(userId: string): Promise<boolean> {

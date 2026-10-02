@@ -12,6 +12,7 @@ import { GateScreen } from './src/config/GateScreen';
 import { gateState } from './src/config/gate';
 import { useClientConfig } from './src/config/useClientConfig';
 import { HomeScreen } from './src/home/HomeScreen';
+import { onAccountSwitched } from './src/auth/switched';
 import { useMusic } from './src/sound/music';
 import { BrandScreen } from './src/brand/BrandScreen';
 import { KitGallery } from './src/kit/KitGallery';
@@ -49,6 +50,9 @@ export default function App() {
 
   /** A home-screen shortcut (`?go=`, D102) opens its screen straight after the splash, when that mode is on. */
   const [launch] = useState(takeLaunchTarget);
+  // Another account was loaded on this device (phone proof): remount every screen so nothing shows the old account.
+  const [epoch, setEpoch] = useState(0);
+  useEffect(() => onAccountSwitched(() => (setScreen('home'), setEpoch((e) => e + 1))), []);
   const launchOn = launch === 'solo' || (launch === 'daily' && config.features.daily) || (launch === 'duel' && config.features.duel);
 
   useEffect(() => {
@@ -82,7 +86,7 @@ export default function App() {
   }
 
   return (
-    <View style={styles.container}>
+    <View key={epoch} style={styles.container}>
       <StatusBar style="light" />
       {screen === 'splash' ? <SplashScreen /> : null}
       {screen === 'solo' ? <SoloScreen onBack={() => setScreen('home')} hintsEnabled={config.features.shop} /> : null}

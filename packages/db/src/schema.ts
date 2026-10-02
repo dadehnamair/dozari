@@ -833,6 +833,17 @@ export const accountDeleteCodes = mysqlTable('account_delete_codes', {
   expiresAt: datetime('expires_at', { mode: 'date', fsp: 3 }).notNull(),
 });
 
+/**
+ * A number was proven (Bale contact or SMS) but another account already holds it: the player must choose which account keeps it
+ * (docs/logic/bale-bot.md §Existing account). One row per asking player; it expires after 30 minutes.
+ */
+export const phoneConflicts = mysqlTable('phone_conflicts', {
+  userId: char('user_id', { length: 36 }).primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+  phone: varchar('phone', { length: 16 }).notNull(),
+  holderId: char('holder_id', { length: 36 }).notNull().references(() => users.id),
+  createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+});
+
 export const BADGE_KINDS = ['badge', 'medal'] as const;
 export const BADGE_PERKS = ['none', 'share_contact', 'moderator'] as const;
 export const BADGE_RULE_METRICS = ['none', 'games', 'wins', 'level'] as const;

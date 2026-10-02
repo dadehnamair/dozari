@@ -338,7 +338,10 @@ if (isMainModule(import.meta.url)) {
     : process.env.KAVENEGAR_API_KEY && process.env.KAVENEGAR_TEMPLATE
       ? createKavenegarClient(process.env.KAVENEGAR_API_KEY, process.env.KAVENEGAR_TEMPLATE)
       : null;
-  const phone = db && settings ? new PhoneService(createDbPhoneStore(db), () => phoneRulesFromSettings(settings), smsClient) : undefined;
+  const phone = db && settings ? new PhoneService(createDbPhoneStore(db), () => phoneRulesFromSettings(settings), smsClient, Date.now, undefined, async (id) => {
+        const [row, lv] = await Promise.all([socialStore?.publicRow(id), player?.levelOf(id)]);
+        return { nickname: row?.nickname ?? '', avatarKey: row?.avatarKey ?? 'avatar-01', level: lv?.level.level ?? 1, coins: row?.coins ?? 0 };
+      }) : undefined;
   if (notify && phone) notify.phone = phone;
   const deletion = db ? new AccountDeletion(createDbDeleteCodeStore(db), createDbPhoneStore(db), smsClient, notify ? (id, text) => notify.notify(id, 'security', text) : null) : undefined;
   const words = db ? new TextFilterService(createDbWordStore(db)) : undefined;

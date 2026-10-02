@@ -30,6 +30,10 @@ export interface SessionManager {
   /** Run an authorised call; on a 401 the token is dropped, a new guest session is made and the call retried once. */
   /** Forget this device's account: drop the token and the device id, so the next call starts a fresh guest. */
   forget(): Promise<void>;
+  /** Switches this device to another account: its token replaces the current one. */
+  adopt(token: string): Promise<void>;
+  /** This device's id (made on first use), for claiming the device for an account. */
+  deviceId(): Promise<string>;
   authed<T>(call: (token: string) => Promise<T>): Promise<T>;
 }
 
@@ -58,6 +62,17 @@ export function createSessionManager(deps: SessionDeps): SessionManager {
 
   return {
     token,
+    async adopt(token) {
+      await deps.store.set(TOKEN_KEY, token);
+    },
+    async deviceId() {
+      let id = await deps.store.get(DEVICE_KEY);
+      if (!id) {
+        id = newDeviceId(deps.random);
+        await deps.store.set(DEVICE_KEY, id);
+      }
+      return id;
+    },
     async forget() {
       await deps.store.remove(TOKEN_KEY);
       await deps.store.remove(DEVICE_KEY);

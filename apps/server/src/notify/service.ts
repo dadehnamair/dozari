@@ -132,6 +132,7 @@ export class NotifyService {
     const out = await this.phone.verifyByContact(userId, msg.contact!.phone_number, msg.contact!.user_id === undefined ? undefined : String(msg.contact!.user_id), msg.from?.id === undefined ? undefined : String(msg.from.id));
     if (out === 'verified' || out === 'already') return void (await say(BALE_TEXT.phoneVerified, true));
     if (out === 'no_pending') return void (await say(BALE_TEXT.noPhonePending, true));
+    if (out === 'conflict') return void (await say(BALE_TEXT.phoneConflict, true));
     if (out === 'taken') return void (await say(BALE_TEXT.phoneTaken, true));
     this.badCodes.take(chatId); // a wrong contact counts like a wrong code: guessing someone else's number is not free
     await say(BALE_TEXT.phoneMismatch);

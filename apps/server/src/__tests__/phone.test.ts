@@ -27,6 +27,11 @@ function memoryUsers(): UserRepository {
       return user;
     },
     async touch() {},
+    async claimDevice(id, deviceId) {
+      for (const u of byId.values()) if (u.deviceId === deviceId) u.deviceId = '';
+      const me = byId.get(id);
+      if (me) me.deviceId = deviceId;
+    },
   };
 }
 
@@ -55,7 +60,7 @@ describe('phone number', () => {
     const a = await login(1);
     expect((await app.inject({ method: 'PUT', url: '/me/phone', headers: a.h, payload: { phone: '12345' } })).json()).toEqual({ error: 'invalid_phone' });
     const res = await app.inject({ method: 'PUT', url: '/me/phone', headers: a.h, payload: { phone: '۰۹۱۲-۳۴۵-۶۷۸۹' } });
-    expect(res.json()).toEqual({ phone: null, pending: '0912 ••• 6789', verified: false, smsAvailable: false });
+    expect(res.json()).toEqual({ phone: null, pending: '0912 ••• 6789', verified: false, smsAvailable: false, conflict: null });
     expect((await app.inject({ method: 'GET', url: '/me/phone' })).statusCode).toBe(401);
   });
 
@@ -98,14 +103,70 @@ describe('verification by sharing the Bale contact', () => {
     expect((await app.inject({ method: 'GET', url: '/me/phone', headers: a.h })).json()).toMatchObject({ verified: false });
   });
 
-  it('a verified number cannot be claimed or verified by a second account; unlinked chats are ignored', async () => {
-    const { app, a, login, notify, contact, sent } = await linked();
-    await notify.handleUpdate(contact(555, 777, 777, '09123456789'));
-    const b = await login(2);
-    expect((await app.inject({ method: 'PUT', url: '/me/phone', headers: b.h, payload: { phone: '09123456789' } })).json()).toEqual({ error: 'taken' });
+  it('unlinked chats are ignored', async () => {
+    const { notify, contact, sent } = await linked();
     await notify.handleUpdate(contact(999, 1, 1, '09123456789')); // chat that never linked
     expect(sent.at(-1)!.text).toContain('کد');
-    expect(a.id).not.toBe(b.id);
+  });
+});
+
+describe('a proven number that another account already holds', () => {
+  /** A holds the number (proven in Bale); B, on another device, types it and proves it from their own Bale chat. */
+  async function twoAccounts() {
+    const t = await (async () => {
+      const x = boot();
+      const a = await x.login(1);
+      await x.app.inject({ method: 'PUT', url: '/me/phone', headers: a.h, payload: { phone: '09123456789' } });
+      await x.app.inject({ method: 'POST', url: '/bale/link-code', headers: a.h });
+      await x.notify.handleUpdate({ update_id: 1, message: { message_id: 1, chat: { id: 555 }, from: { id: 777 }, text: '/start ABC234' } });
+      await x.notify.handleUpdate(x.contact(555, 777, 777, '09123456789'));
+      return { ...x, a };
+    })();
+    const b = await t.login(2);
+    expect((await t.app.inject({ method: 'PUT', url: '/me/phone', headers: b.h, payload: { phone: '09123456789' } })).statusCode).toBe(200); // typing it reveals nothing
+    await t.app.inject({ method: 'POST', url: '/bale/link-code', headers: b.h });
+    await t.notify.handleUpdate({ update_id: 2, message: { message_id: 2, chat: { id: 600 }, from: { id: 888 }, text: '/start ABC234' } });
+    await t.notify.handleUpdate(t.contact(600, 888, 888, '09123456789'));
+    return { ...t, b };
+  }
+  const status = async (t: Awaited<ReturnType<typeof twoAccounts>>, who: { h: Record<string, string> }) => (await t.app.inject({ method: 'GET', url: '/me/phone', headers: who.h })).json();
+
+  it('is never merged or silent: the player is asked, the old account keeps the number meanwhile', async () => {
+    const t = await twoAccounts();
+    expect(t.sent.at(-1)!.text).toContain('انتخاب کن');
+    const b = await status(t, t.b);
+    expect(b.verified).toBe(false);
+    expect(b.conflict).toMatchObject({ phone: '0912 ••• 6789', current: { level: 1 }, previous: { level: 1 } });
+    expect((await status(t, t.a)).verified).toBe(true);
+  });
+
+  it('keep_current moves the number to this account; the old account loses it', async () => {
+    const t = await twoAccounts();
+    const res = await t.app.inject({ method: 'POST', url: '/me/phone/resolve', headers: t.b.h, payload: { choice: 'keep_current' } });
+    expect(res.json()).toMatchObject({ session: null, status: { verified: true, conflict: null } });
+    expect((await status(t, t.a)).verified).toBe(false);
+    expect((await t.app.inject({ method: 'POST', url: '/me/phone/resolve', headers: t.b.h, payload: { choice: 'keep_current' } })).statusCode).toBe(409); // already answered
+  });
+
+  it('load_previous hands this device a session of the old account and leaves its number alone', async () => {
+    const t = await twoAccounts();
+    const deviceB = '0f8fad5b-d9cb-469f-a165-708677289502'; // the device B was created on
+    const res = (await t.app.inject({ method: 'POST', url: '/me/phone/resolve', headers: t.b.h, payload: { choice: 'load_previous', deviceId: deviceB } })).json();
+    expect(res.status).toBeNull();
+    // the device itself now belongs to the old account: a later fresh login lands there, not on the throw-away guest
+    expect((await t.app.inject({ method: 'POST', url: '/auth/guest', payload: { deviceId: deviceB } })).json().user.id).toBe(t.a.id);
+    expect(res.session.user.id).toBe(t.a.id);
+    const me = (await t.app.inject({ method: 'GET', url: '/me', headers: { authorization: `Bearer ${res.session.token}` } })).json();
+    expect(me.id).toBe(t.a.id);
+    expect((await status(t, t.a)).verified).toBe(true);
+    expect((await status(t, t.b)).conflict).toBeNull();
+  });
+
+  it('the choice expires after 30 minutes', async () => {
+    const t = await twoAccounts();
+    t.clock.ms += 31 * 60_000;
+    expect((await status(t, t.b)).conflict).toBeNull();
+    expect((await t.app.inject({ method: 'POST', url: '/me/phone/resolve', headers: t.b.h, payload: { choice: 'keep_current' } })).statusCode).toBe(409);
   });
 });
 

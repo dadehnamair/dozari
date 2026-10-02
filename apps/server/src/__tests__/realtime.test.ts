@@ -86,8 +86,8 @@ describe('socket gateway', () => {
       const deviceId = `0f8fad5b-d9cb-469f-a165-7086772895${String(n).padStart(2, '0')}`;
       return ((await app.inject({ method: 'POST', url: '/auth/guest', payload: { deviceId } })).json() as { token: string }).token;
     };
-    const dial = (token: string | undefined) => {
-      const s = connect(url, { auth: token ? { token } : {}, transports: ['websocket'], reconnection: false });
+    const dial = (token: string | undefined, transports: ('websocket' | 'polling')[] = ['websocket']) => {
+      const s = connect(url, { auth: token ? { token } : {}, transports, reconnection: false });
       open.push(s);
       return s;
     };
@@ -104,6 +104,14 @@ describe('socket gateway', () => {
       expect(err.message).toBe('UNAUTHORIZED');
     }
     expect((await stats()).rejectedHandshakes).toBe(2);
+  });
+
+  it('also works over long-polling, for hosts whose proxy blocks the websocket upgrade', async () => {
+    const { login, dial } = await boot();
+    const s = dial(await login(1), ['polling']);
+    await new Promise<void>((res, rej) => (s.once('connect', () => res()), s.once('connect_error', rej)));
+    expect(s.connected).toBe(true);
+    expect(s.io.engine.transport.name).toBe('polling');
   });
 
   it('joins and leaves the queue with acks and shows up in the admin stats', async () => {
