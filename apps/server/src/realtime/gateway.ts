@@ -19,6 +19,8 @@ export interface GatewayOptions {
   gate?: () => Promise<'MAINTENANCE' | 'FEATURE_OFF' | null>;
   /** Daily duel cap: `canPlay` refuses a queue join over the cap, `onStarted` counts a real match for both players. */
   limit?: { canPlay: (userId: string) => Promise<boolean>; onStarted: (userId: string) => Promise<void> };
+  /** Before queueing: false answers INSUFFICIENT_COINS (a free match or a rescue may apply). */
+  canAfford?: (userId: string) => Promise<boolean>;
   now?: () => number;
   /** Called when two players are paired; return false to put them back in line. Ignored when `match` is given. */
   onPair?: (a: string, b: string) => Promise<boolean> | boolean;
@@ -104,6 +106,7 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
       const closed = await opts.gate?.();
       if (closed) return ack?.({ ok: false, error: closed });
       if (opts.limit && !(await opts.limit.canPlay(userId))) return ack?.({ ok: false, error: 'DAILY_CAP' });
+      if (opts.canAfford && !(await opts.canAfford(userId))) return ack?.({ ok: false, error: 'INSUFFICIENT_COINS' });
       if (matches?.inMatch(userId)) return ack?.({ ok: false, error: 'ALREADY_IN_MATCH' });
       if (!queue.join(userId, now())) return ack?.({ ok: false, error: 'ALREADY_QUEUED' });
       ack?.({ ok: true });

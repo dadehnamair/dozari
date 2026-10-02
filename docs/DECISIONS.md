@@ -253,3 +253,7 @@ Friendly 1v1 tables with a code, name/emoji, ready toggle, lock/kick/extend and 
 ## D94 — Live duel screen in the app (2026-10-02)
 
 The app can now play the existing 1v1 socket flow: queue, board, turn clock, result. It adds `socket.io-client` to the mobile app (no Google dependency). `match:resume` accepts no match id so a table-started match can be picked up. Coin stakes, price round, taunts and reconnect banner remain follow-ups.
+
+## D95 — Coin stakes for live queue duels (2026-10-02)
+
+Entry fee, free daily matches, winner payout, draw refund, loss consolation and the once-a-day broke rescue now run on the ledger for queue duels, all numbers as admin settings (`duel.*`). Tables and tournaments stay friendly. Defaults are the confirmed ones from D9; the simulator (D90) says the economy inflates, so the free-match payout is the first knob to lower if real data agrees.

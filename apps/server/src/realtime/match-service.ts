@@ -1,6 +1,6 @@
 import { randomInt } from 'node:crypto';
 import { applyCommand, matchClientView, mulberry32, ServerEvent, startMatch, turnDeadline } from '@dozari/shared';
-import type { Command, ErrorCode, MatchEnded, MatchEvent, MatchFound, MatchState, MatchView, Rng, RuleError } from '@dozari/shared';
+import type { Command, ErrorCode, Stake, MatchEnded, MatchEvent, MatchFound, MatchState, MatchView, Rng, RuleError } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
 import type { PuzzleSource, ServedPuzzle } from '../solo/types.js';
 
@@ -22,6 +22,13 @@ export interface MatchDeps {
   /** Schedules `fn` after `ms`; returns the canceller. Injected so tests can drive the clock. */
   schedule?: (ms: number, fn: () => void) => () => void;
   /** Called once when a match ends, with the two players' ids by side (e.g. to send results to Bale). */
+  /** Coin stakes of queue duels. Absent = everything is friendly. */
+  stakes?: {
+    open(matchId: string, players: readonly [string, string]): Promise<[Stake, Stake] | null>;
+    /** The match never started: give every taken fee back in full. */
+    cancel(matchId: string, players: readonly [string, string], stakes: readonly [Stake, Stake]): Promise<void>;
+    settle(matchId: string, players: readonly [string, string], stakes: readonly [Stake, Stake], result: { winner: 0 | 1 | null; reason: 'solved' | 'locked_out' | 'forfeit' | 'abandon' }): Promise<void>;
+  };
   onEnded?: (info: { players: readonly [string, string]; result: NonNullable<MatchState['result']> }) => void;
 }
 
@@ -30,6 +37,8 @@ interface Active {
   state: MatchState;
   puzzle: ServedPuzzle;
   cancel: (() => void) | null;
+  /** How each seat entered, when the match carried coin stakes. */
+  stakes?: [Stake, Stake];
 }
 
 const RULE_TO_ERROR: Record<RuleError, ErrorCode> = {
@@ -93,14 +102,25 @@ export class MatchService {
   }
 
   /** Starts a match for a paired couple; false when it could not be created (no puzzle, unknown or busy player). */
-  async start(a: string, b: string): Promise<boolean> {
+  async start(a: string, b: string, opts: { friendly?: boolean } = {}): Promise<boolean> {
     if (a === b || this.inMatch(a) || this.inMatch(b)) return false;
     const [pa, pb, puzzle] = await Promise.all([this.deps.profile(a), this.deps.profile(b), this.deps.puzzles.pickRandom()]);
     if (!pa || !pb || !puzzle) return false;
     if (this.inMatch(a) || this.inMatch(b)) return false; // raced with another start while loading
     const rng: Rng = mulberry32(this.newSeed());
     const id = uuidv7();
-    const entry: Active = { id, puzzle, state: startMatch(puzzle, [a, b], rng, this.now()), cancel: null };
+    let stakes: [Stake, Stake] | undefined;
+    if (this.deps.stakes && !opts.friendly) {
+      const taken = await this.deps.stakes.open(id, [a, b]);
+      if (!taken) return false;
+      stakes = taken;
+      if (this.inMatch(a) || this.inMatch(b)) {
+        // Raced with another start while the stakes were taken: give them back in full.
+        await this.deps.stakes.cancel(id, [a, b], taken);
+        return false;
+      }
+    }
+    const entry: Active = { id, puzzle, state: startMatch(puzzle, [a, b], rng, this.now()), cancel: null, stakes };
     this.matches.set(id, entry);
     this.byUser.set(a, id);
     this.byUser.set(b, id);
@@ -215,6 +235,10 @@ export class MatchService {
       } catch {
         /* a notification hook must never break the match flow */
       }
+    }
+    if (result && entry.stakes && this.deps.stakes) {
+      const players: [string, string] = [entry.state.players[0].userId, entry.state.players[1].userId];
+      void this.deps.stakes.settle(entry.id, players, entry.stakes, { winner: result.winner, reason: result.reason }).catch((e) => console.error('[duel] settle failed', entry.id, e));
     }
     for (const p of entry.state.players) this.byUser.delete(p.userId);
     this.matches.delete(entry.id);
