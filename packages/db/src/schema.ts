@@ -642,6 +642,8 @@ export const cities = mysqlTable(
     id: id(),
     slug: varchar('slug', { length: 40 }).notNull(),
     nameFa: varchar('name_fa', { length: 60 }).notNull(),
+    /** Key into shared `PROVINCES` (D101); null = no regional identity («شهر دیگر»). */
+    province: varchar('province', { length: 24 }),
     sortOrder: int('sort_order').notNull().default(0),
     isActive: boolean('is_active').notNull().default(true),
   },

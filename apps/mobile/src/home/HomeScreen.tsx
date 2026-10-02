@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SceneBackground } from '../components/SceneBackground';
 import { Character } from '../components/Character';
@@ -26,7 +26,9 @@ import { Toast } from '../components/Toast';
 import { SlabButton } from '../components/SlabButton';
 import { Wordmark } from '../components/Wordmark';
 import { useDailyReward } from '../daily/useDailyReward';
-import { solarMonthOf, toPersianDigits } from '@dozari/shared';
+import { provinceOf, solarMonthOf, toPersianDigits } from '@dozari/shared';
+import type { Province } from '@dozari/shared';
+import { ProvinceBadge } from '../components/ProvinceBadge';
 import type { IconName } from '../theme/icons';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
@@ -76,10 +78,13 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
   const [profileOpen, setProfileOpen] = useState(false);
   const [gender, setGender] = useState<Gender | null>(null);
   const [level, setLevel] = useState<number | null>(null);
+  /** The player's province (D101): its badge and local greeting sit under the wordmark. */
+  const [province, setProvince] = useState<Province | null>(null);
   const [dailyPuzzle, setDailyPuzzle] = useState<DailyStatus | null>(null);
-  useEffect(() => {
-    fetchMyProfile().then((p) => (setGender(p.gender), setLevel(p.level.level)), () => undefined);
+  const loadMe = useCallback(() => {
+    fetchMyProfile().then((p) => (setGender(p.gender), setLevel(p.level.level), setProvince(provinceOf(p.city?.province))), () => undefined);
   }, []);
+  useEffect(loadMe, [loadMe]);
   useEffect(() => {
     if (features.daily) fetchDailyStatus().then(setDailyPuzzle, () => undefined);
   }, [features.daily]);
@@ -138,6 +143,12 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
             <Pressable onPress={dailyOpenForPlay ? onDaily : undefined} disabled={!dailyOpenForPlay} accessibilityRole={dailyOpenForPlay ? 'button' : 'text'}>
               <Text style={styles.bubble} numberOfLines={2}>{bubble}</Text>
             </Pressable>
+            {province ? (
+              <Pressable onPress={() => setProfileOpen(true)} accessibilityRole="button" accessibilityLabel={province.hello} style={styles.greet}>
+                <ProvinceBadge province={province} size={compact ? 30 : 38} />
+                <Text style={styles.hello} numberOfLines={1}>{province.hello}</Text>
+              </Pressable>
+            ) : null}
             <View style={styles.spacer} />
             <Animated.View style={[styles.hero, compact ? styles.heroCompact : null, { transform: [{ translateY: float }] }]}>
               <Character who={heroFor(gender)} pose="wave" month={month} />
@@ -171,7 +182,7 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
         </Pressable>
       ) : null}
       {review.open && review.url ? <ReviewSheet message={review.message} url={review.url} onReview={review.onReview} onLater={review.onLater} onNever={review.onNever} /> : null}
-      {profileOpen ? <ProfileSheet onClose={() => setProfileOpen(false)} onGender={setGender} onTutorial={onTutorial} onAccountGone={onTutorial ? () => (setProfileOpen(false), onTutorial()) : undefined} /> : null}
+      {profileOpen ? <ProfileSheet onClose={() => (setProfileOpen(false), loadMe())} onGender={setGender} onTutorial={onTutorial} onAccountGone={onTutorial ? () => (setProfileOpen(false), onTutorial()) : undefined} /> : null}
       {inboxOpen ? <InboxSheet inbox={inbox.inbox} failed={inbox.failed} onRead={inbox.markRead} onReadAll={inbox.markAll} onClose={() => setInboxOpen(false)} /> : null}
       {tableOpen ? <TableSheet initialCode={tableCode} onMatch={onDuelResume ? () => (setTableOpen(false), onDuelResume()) : undefined} onClose={() => (setTableOpen(false), setTableCode(undefined))} onShare={() => shareTable()} /> : null}
       {tournamentOpen ? <TournamentSheet onClose={() => setTournamentOpen(false)} /> : null}
@@ -189,6 +200,8 @@ const styles = StyleSheet.create({
   column: { width: 72, gap: 12, alignItems: 'center', paddingTop: 44 },
   columnCompact: { gap: 2, paddingTop: 20 },
   center: { flex: 1, alignItems: 'center' },
+  greet: { flexDirection: RTL_ROW, alignItems: 'center', gap: 4, marginTop: 6, maxWidth: '100%' },
+  hello: { flexShrink: 1, fontFamily: fonts.display, fontSize: 17, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
   bubble: {
     marginTop: 2,
     paddingHorizontal: 14,

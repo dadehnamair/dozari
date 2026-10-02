@@ -1,0 +1,1 @@
+ALTER TABLE `cities` ADD `province` varchar(24);

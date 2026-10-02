@@ -12,6 +12,7 @@ import { ProfileEditor } from './ProfileEditor';
 import { InviteSheet } from '../invite/InviteSheet';
 import { LoansSheet } from '../transfers/LoansSheet';
 import { FindSheet } from './FindSheet';
+import { CityPicker } from './CityPicker';
 import { FriendsPage } from './FriendsPage';
 import { BadgesSheet } from '../badges/BadgesSheet';
 import { deleteMyAccount, signOutEverywhere } from '../account/api';
@@ -30,6 +31,7 @@ export function ProfileSheet({ onClose, onGender, onTutorial, onAccountGone }: {
   const [findOpen, setFindOpen] = useState(false);
   const [badgesOpen, setBadgesOpen] = useState(false);
   const [friendsOpen, setFriendsOpen] = useState(false);
+  const [cityOpen, setCityOpen] = useState(false);
   const prefs = usePrefs();
   const [sure, setSure] = useState(false);
   const [accountNote, setAccountNote] = useState<string | null>(null);
@@ -49,6 +51,7 @@ export function ProfileSheet({ onClose, onGender, onTutorial, onAccountGone }: {
   };
   const options: [Gender | null, string][] = [['female', fa.profile.female], ['male', fa.profile.male], [null, fa.profile.none]];
 
+  if (cityOpen && me) return <CityPicker current={me.city} onPicked={(city) => (setMe((m) => (m ? { ...m, city } : m)), setCityOpen(false))} onClose={() => setCityOpen(false)} />;
   if (friendsOpen) return <FriendsPage onClose={() => (setFriendsOpen(false), load())} />;
   if (badgesOpen) return <BadgesSheet onClose={() => setBadgesOpen(false)} />;
   if (findOpen) return <FindSheet onClose={() => (setFindOpen(false), load())} />;
@@ -75,7 +78,7 @@ export function ProfileSheet({ onClose, onGender, onTutorial, onAccountGone }: {
           </>
         ) : null}
         <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
-          {me ? <ProfileEditor me={me} onChange={(patch) => setMe((m) => (m ? { ...m, ...patch } : m))} /> : null}
+          {me ? <ProfileEditor me={me} onChange={(patch) => setMe((m) => (m ? { ...m, ...patch } : m))} onPickCity={() => setCityOpen(true)} /> : null}
           <Text style={styles.label}>{fa.prefs.title}</Text>
           <Text style={styles.hint}>{fa.prefs.hint}</Text>
           <View style={styles.row}>

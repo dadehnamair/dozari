@@ -21,7 +21,8 @@ export const playerStatsSchema = z.object({
 });
 export type PlayerStats = z.infer<typeof playerStatsSchema>;
 
-export const citySchema = z.object({ id: z.string().uuid(), nameFa: z.string() });
+/** `province` keys `PROVINCES` (D101); null = no regional identity («شهر دیگر»). */
+export const citySchema = z.object({ id: z.string().uuid(), nameFa: z.string(), province: z.string().nullable() });
 export type City = z.infer<typeof citySchema>;
 
 /** `GET /cities`: cities a player may pick. */
@@ -40,6 +41,8 @@ export const playerProfileSchema = z.object({
   coins: z.number().int().nonnegative(),
   stats: playerStatsSchema,
   cityName: z.string().nullable(),
+  /** Province key of that city, for the badge next to it. */
+  cityProvince: z.string().nullable(),
   badges: publicBadgesSchema,
   memberSince: z.number().int(),
   relation: friendRelationSchema,

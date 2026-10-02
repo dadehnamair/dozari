@@ -110,6 +110,10 @@ designed here (`DECISIONS.md` open question 17). Where to ask (onboarding step v
 picked reactively) is still open; the prototype puts it as a profile-only optional field
 (`prototype/screens/profile.html` §استان).
 
+**Built (D101):** the player picks a city on the «شهر من» page (badge grid, Iran then abroad); the
+city's `province` key maps to shared `PROVINCES`, which themes Home (badge + local greeting under
+the wordmark) and shows the badge beside the city on profiles. The admin sets a city's province.
+
 ## Open follow-ups
 
 - Exact skill-rank tier thresholds and the full achievement catalog are content work, not logic —

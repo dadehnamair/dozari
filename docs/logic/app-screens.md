@@ -88,6 +88,13 @@ by nickname, incoming requests with accept / decline, then one card per friend (
 tap for their profile — and a gift button that opens the coin gift). The mock-up's online status and
 per-friend duel button need presence and direct challenges, which do not exist yet; they are left out.
 
+## City page (D101)
+
+«شهر من», opened from the city row of the profile: the badge grid of `18 Provinces` — an «ایران»
+group then «ایرانیان خارج از کشور», each card with the province badge, city name and souvenir; the
+current city is yellow; «نمی‌خواهم بگویم» clears it. Tapping saves and returns. Home shows the
+badge and the local greeting under the month bubble; tapping it opens the profile.
+
 ## Matchmaking queue (waiting) screen
 
 The waiting view is screen-versus above. Still open from the original spec below: practising solo
