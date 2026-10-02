@@ -269,3 +269,7 @@ Phone-verification SMS now goes through irnoti (`POST https://irnoti.com/api/v1/
 ## D98 — Installable web app (PWA) (2026-10-02)
 
 The Expo web build is an installable PWA: `apps/mobile/public/` holds the HTML template (manifest link, theme colour, iOS meta), `manifest.webmanifest` (standalone, portrait, fa), icons generated from `assets/icon.png`, and `sw.js`. The service worker caches only the app shell and hashed bundles (cache-first for immutable `/_expo/static/*`, network-first otherwise) and never touches API calls — the game stays online and server-authoritative. No Google/Firebase pieces (no Workbox CDN, no FCM). Browsers allow installing only over https (or localhost), so a phone on the LAN over plain http can play in the browser but not install; the production web build (`pnpm --filter @dozari/mobile build:web` → `dist/`) needs an https host.
+
+## D99 — App screens follow the owner's screen designs (2026-10-02)
+
+The owner's full screen designs (`docs/design/Dozari - 01/11/13/17/19 *.dc.html`, reference images in `docs/design/uploads/`) are the source of truth for layout; the earlier text-only screen specs give way where they differ. Screens are rebuilt one at a time, Home first (screen-home: counters, corner tiles, hero, two big buttons — see `app-screens.md`). Rows are laid out right-to-left on every platform: native flips `row` under forced RTL, react-native-web does not, so web uses `row-reverse`.

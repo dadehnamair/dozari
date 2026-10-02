@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
-import { CandyButton } from '../components/CandyButton';
+import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SceneBackground } from '../components/SceneBackground';
 import { Character } from '../components/Character';
 import { DailyRewardCard } from '../components/DailyRewardCard';
-import { IconButton } from '../components/IconButton';
 import { ProfileSheet } from '../social/ProfileSheet';
 import { fetchMyProfile } from '../social/api';
 import { heroFor } from '../social/heroFor';
@@ -19,7 +17,6 @@ import { BaleSheet } from '../bale/BaleSheet';
 import { ShopSheet } from '../shop/ShopSheet';
 import { ChatSheet } from '../chat/ChatSheet';
 import { fetchDailyStatus } from '../daily/puzzleApi';
-import { dailyPuzzleLabel } from '../daily/label';
 import type { DailyStatus } from '@dozari/shared';
 import { fetchMatchActive } from '../duel/api';
 import { shareTable } from '../tables/api';
@@ -29,12 +26,40 @@ import { Toast } from '../components/Toast';
 import { Wordmark } from '../components/Wordmark';
 import { useDailyReward } from '../daily/useDailyReward';
 import { solarMonthOf, toPersianDigits } from '@dozari/shared';
+import type { IconName } from '../theme/icons';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
+import { HubButton } from './HubButton';
+import { HubTile } from './HubTile';
+import { StatPill } from './StatPill';
 
-/** Home: wordmark, the waving mascot (floating, as on the kit's splash) and the way into a solo game. */
+interface Tile {
+  key: string;
+  icon: IconName;
+  label: string;
+  color: string;
+  badge?: string;
+  badgeColor?: string;
+  onPress: () => void;
+}
+
+/**
+ * Right-to-left rows on every platform: native flips `row` itself once RTL is forced (App.tsx); react-native-web
+ * reports RTL but lays rows out left-to-right, so web needs `row-reverse`.
+ */
+const RTL_ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
+
+const fmt = (n: number) => toPersianDigits(n.toLocaleString('en-US').replace(/,/g, '٬'));
+
+/**
+ * Home hub, laid out as screen-home of `docs/design/Dozari - 01 Screens`: three counters on top, the wordmark and a
+ * speech bubble, corner tiles down both sides, the floating hero, and two big buttons at the bottom. Every feature
+ * keeps its sheet; a tile only shows when its feature flag is on.
+ */
 export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, onLookup, onGallery, features = OPEN_CONFIG.features, settings = OPEN_CONFIG.raw }: { onSolo: () => void; onDaily?: () => void; onDuel?: () => void; onDuelResume?: () => void; onTutorial?: () => void; onLookup: () => void; onGallery?: () => void; features?: ClientConfig['features']; settings?: ClientConfig['raw'] }) {
   const month = useMemo(() => solarMonthOf(Date.now()), []);
+  /** Short phones (≤700px tall) get tighter columns and a smaller hero so nothing runs into the bottom buttons. */
+  const compact = useWindowDimensions().height <= 700;
   const daily = useDailyReward();
   const [dailyOpen, setDailyOpen] = useState(false);
   const [baleOpen, setBaleOpen] = useState(false);
@@ -50,9 +75,10 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
   const [inboxOpen, setInboxOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [gender, setGender] = useState<Gender | null>(null);
+  const [level, setLevel] = useState<number | null>(null);
   const [dailyPuzzle, setDailyPuzzle] = useState<DailyStatus | null>(null);
   useEffect(() => {
-    fetchMyProfile().then((p) => setGender(p.gender), () => undefined);
+    fetchMyProfile().then((p) => (setGender(p.gender), setLevel(p.level.level)), () => undefined);
   }, []);
   useEffect(() => {
     if (features.daily) fetchDailyStatus().then(setDailyPuzzle, () => undefined);
@@ -63,77 +89,69 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(float, {
-          toValue: -10,
-          duration: 1200,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
-        Animated.timing(float, {
-          toValue: 0,
-          duration: 1200,
-          easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
-        }),
+        Animated.timing(float, { toValue: -10, duration: 1500, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(float, { toValue: 0, duration: 1500, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
       ]),
     );
     loop.start();
     return () => loop.stop();
   }, [float]);
 
+  const h = fa.home.hub;
+  const unread = inbox.inbox?.unread ?? 0;
+  const right: Tile[] = [
+    ...(daily.status ? [{ key: 'daily', icon: 'calendar' as const, label: h.daily, color: colors.candy.yellow, badge: daily.status.canClaim ? '!' : undefined, onPress: () => setDailyOpen(true) }] : []),
+    ...(features.tables ? [{ key: 'tables', icon: 'users' as const, label: h.tables, color: colors.candy.sky, onPress: () => setTableOpen(true) }] : []),
+    ...(features.tournament ? [{ key: 'tour', icon: 'trophy' as const, label: h.tournaments, color: colors.candy.orange, onPress: () => setTournamentOpen(true) }] : []),
+    ...(features.lookup ? [{ key: 'lookup', icon: 'search' as const, label: h.lookup, color: colors.candy.grape, onPress: onLookup }] : []),
+    ...(onGallery ? [{ key: 'kit', icon: 'star' as const, label: h.gallery, color: colors.candy.lime, onPress: onGallery }] : []),
+  ];
+  const left: Tile[] = [
+    ...(features.friends ? [{ key: 'settings', icon: 'settings' as const, label: h.settings, color: colors.candy.grape, onPress: () => setProfileOpen(true) }] : []),
+    ...(features.inbox ? [{ key: 'inbox', icon: 'mail' as const, label: h.messages, color: colors.candy.pink, badge: unread > 0 ? toPersianDigits(String(unread)) : undefined, badgeColor: colors.candy.lime, onPress: () => (inbox.reload(), setInboxOpen(true)) }] : []),
+    ...(features.chat ? [{ key: 'chat', icon: 'chat' as const, label: h.chat, color: colors.candy.sky, onPress: () => setChatOpen(true) }] : []),
+    ...(features.shop ? [{ key: 'shop', icon: 'gift' as const, label: h.shop, color: colors.candy.lime, onPress: () => setShopOpen(true) }] : []),
+    ...(features.bale ? [{ key: 'bale', icon: 'bolt' as const, label: h.bale, color: colors.candy.orange, onPress: () => setBaleOpen(true) }] : []),
+  ];
+
+  const dailyOpenForPlay = features.daily && onDaily && dailyPuzzle && (dailyPuzzle.state === 'available' || dailyPuzzle.state === 'playing');
+  const bubble = dailyOpenForPlay ? (dailyPuzzle.state === 'playing' ? h.dailyPlaying : h.dailyReady) : `${fa.months[month - 1]?.name ?? ''} · ${fa.months[month - 1]?.mood ?? ''}`;
+  const second = liveMatch && onDuelResume
+    ? { label: h.resume, color: colors.candy.orange, badge: '!', onPress: onDuelResume }
+    : features.duel && onDuel
+      ? { label: h.duel, color: colors.candy.orange, badge: undefined, onPress: onDuel }
+      : null;
+
   return (
     <SceneBackground scene="bazaar">
-      <View style={styles.content}>
-        <View style={styles.topBar}>
-          {daily.status ? (
-            <View style={styles.coins} accessibilityLabel={`${daily.status.balance} ${fa.daily.coins}`}>
-              <Text style={styles.coinsText}>{toPersianDigits(String(daily.status.balance))}</Text>
-              <Text style={styles.coinsUnit}>{fa.daily.coins}</Text>
-            </View>
-          ) : (
-            <View />
-          )}
-          <View style={styles.actions}>
-          {features.friends ? <IconButton icon="user" label={fa.profile.open} color={colors.candy.grape} size={48} onPress={() => setProfileOpen(true)} /> : null}
-          {features.inbox ? <IconButton icon="mail" label={fa.inbox.open} color={colors.candy.sky} badge={inbox.inbox && inbox.inbox.unread > 0 ? toPersianDigits(String(inbox.inbox.unread)) : undefined} size={48} onPress={() => { inbox.reload(); setInboxOpen(true); }} /> : null}
-          {daily.status ? (
-            <IconButton icon="gift" label={fa.daily.open} color={colors.candy.pink} badge={daily.status.canClaim ? '!' : undefined} size={48} onPress={() => setDailyOpen(true)} />
-          ) : null}
+      <View style={styles.root}>
+        <View style={styles.pills}>
+          {daily.status ? <StatPill color={colors.candy.yellow} glyph="۲" glyphColor="#7A4A00" value={fmt(daily.status.balance)} label={`${daily.status.balance} ${h.coins}`} /> : null}
+          {dailyPuzzle && dailyPuzzle.state !== 'unavailable' ? <StatPill color={colors.candy.pink} glyph="🔥" value={`${toPersianDigits(String(dailyPuzzle.streak))} ${h.streak}`} label={`${dailyPuzzle.streak} ${h.streak}`} /> : null}
+          {level !== null ? <StatPill color={colors.candy.grape} glyph="★" glyphColor="#FFE48A" value={toPersianDigits(String(level))} label={`${h.level} ${level}`} /> : null}
+        </View>
+
+        <View style={styles.middle}>
+          <View style={[styles.column, compact ? styles.columnCompact : null]}>{right.map(({ key, ...t }) => <HubTile key={key} {...t} />)}</View>
+          <View style={styles.center}>
+            <Wordmark width={200} />
+            <Pressable onPress={dailyOpenForPlay ? onDaily : undefined} disabled={!dailyOpenForPlay} accessibilityRole={dailyOpenForPlay ? 'button' : 'text'}>
+              <Text style={styles.bubble} numberOfLines={2}>{bubble}</Text>
+            </Pressable>
+            <View style={styles.spacer} />
+            <Animated.View style={[styles.hero, compact ? styles.heroCompact : null, { transform: [{ translateY: float }] }]}>
+              <Character who={heroFor(gender)} pose="wave" month={month} />
+            </Animated.View>
           </View>
+          <View style={[styles.column, compact ? styles.columnCompact : null]}>{left.map(({ key, ...t }) => <HubTile key={key} {...t} />)}</View>
         </View>
-        <View style={styles.top}>
-          <Wordmark />
-          <Text style={styles.tagline}>{fa.home.tagline}</Text>
-        </View>
-        <View style={styles.bottom}>
-          <Animated.View style={[styles.mascot, { transform: [{ translateY: float }] }]}>
-            <Character who={heroFor(gender)} pose="wave" month={month} />
-          </Animated.View>
-          <Text style={styles.mood}>
-            {fa.months[month - 1]?.name} · {fa.months[month - 1]?.mood}
-          </Text>
-          {features.daily && onDaily && dailyPuzzle && dailyPuzzle.state !== 'unavailable' ? (
-            <CandyButton
-              label={dailyPuzzleLabel(dailyPuzzle)}
-              color={colors.candy.orange}
-              disabled={dailyPuzzle.state === 'won' || dailyPuzzle.state === 'lost'}
-              onPress={onDaily}
-            />
-          ) : null}
-          {liveMatch && onDuelResume ? <CandyButton label={fa.duel.resume} color={colors.candy.lime} onPress={onDuelResume} /> : null}
-          <CandyButton label={fa.home.soloButton} color={colors.candy.yellow} onPress={onSolo} />
-          {features.duel && onDuel ? <CandyButton label={fa.duel.open} color={colors.candy.pink} onPress={onDuel} /> : null}
-          {features.lookup ? <CandyButton label={fa.home.lookupButton} color={colors.candy.lime} onPress={onLookup} /> : null}
-          {features.tournament ? <CandyButton label={fa.tournament.open} color={colors.candy.pink} onPress={() => setTournamentOpen(true)} /> : null}
-          {features.tables ? <CandyButton label={fa.tables.open} color={colors.candy.lime} onPress={() => setTableOpen(true)} /> : null}
-          {features.chat ? <CandyButton label={fa.chat.open} color={colors.candy.sky} onPress={() => setChatOpen(true)} /> : null}
-          {features.shop ? <CandyButton label={fa.shop.open} color={colors.candy.orange} onPress={() => setShopOpen(true)} /> : null}
-          {features.bale ? <CandyButton label={fa.bale.open} color={colors.candy.grape} onPress={() => setBaleOpen(true)} /> : null}
-          {onGallery ? (
-            <CandyButton label={fa.kit.gallery} color={colors.candy.sky} onPress={onGallery} />
-          ) : null}
+
+        <View style={styles.buttons}>
+          <HubButton label={h.play} color={colors.candy.lime} onPress={onSolo} />
+          {second ? <HubButton label={second.label} color={second.color} badge={second.badge} onPress={second.onPress} /> : null}
         </View>
       </View>
+
       {dailyOpen && daily.status ? (
         <Pressable style={styles.overlay} onPress={() => setDailyOpen(false)} accessibilityLabel={fa.solo.back}>
           <Pressable style={styles.sheet} onPress={() => undefined}>
@@ -165,43 +183,31 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
 }
 
 const styles = StyleSheet.create({
-  content: {
-    flex: 1,
-    justifyContent: 'space-between',
-    paddingTop: 56,
-    paddingBottom: 28,
-    paddingHorizontal: 24,
+  root: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingTop: 14, paddingBottom: 22, paddingHorizontal: 12 },
+  pills: { flexDirection: RTL_ROW, gap: 8, minHeight: 36 },
+  middle: { flex: 1, flexDirection: RTL_ROW, justifyContent: 'space-between', paddingTop: 12 },
+  column: { width: 72, gap: 12, alignItems: 'center', paddingTop: 44 },
+  columnCompact: { gap: 2, paddingTop: 20 },
+  center: { flex: 1, alignItems: 'center' },
+  bubble: {
+    marginTop: 2,
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    borderRadius: 99,
+    overflow: 'hidden',
+    backgroundColor: colors.cream,
+    borderWidth: 3,
+    borderColor: colors.ink,
+    fontFamily: fonts.bold,
+    fontSize: 13,
+    color: colors.ink,
+    textAlign: 'center',
   },
-  topBar: { position: 'absolute', top: 14, left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  actions: { flexDirection: 'row', gap: 10, alignItems: 'center' },
-  coins: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 99, backgroundColor: 'rgba(251,241,222,0.92)', borderWidth: 3, borderColor: '#3A2418' },
-  coinsText: { fontFamily: fonts.display, fontSize: 20, color: '#3A2418' },
-  coinsUnit: { fontFamily: fonts.bold, fontSize: 12, color: '#3A2418' },
+  spacer: { flex: 1 },
+  hero: { width: 180, height: 197, marginBottom: 8 },
+  heroCompact: { width: 130, height: 142 },
+  buttons: { flexDirection: RTL_ROW, gap: 12, paddingTop: 6 },
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,8,32,0.55)', alignItems: 'center', justifyContent: 'center', padding: 24 },
   sheet: { width: '100%', maxWidth: 360, backgroundColor: 'rgba(60,30,90,0.92)', borderRadius: 30, padding: 4, gap: 10 },
   won: { alignItems: 'center', paddingBottom: 10 },
-  top: { alignItems: 'center', gap: 6 },
-  bottom: { alignItems: 'center', gap: 10 },
-  tagline: {
-    fontFamily: fonts.bold,
-    fontSize: 16,
-    color: '#3A2418',
-    textShadowColor: '#FFF6E8',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 0,
-  },
-  mood: {
-    fontFamily: fonts.bold,
-    fontSize: 14,
-    color: '#3A2418',
-    textAlign: 'center',
-    backgroundColor: 'rgba(251,241,222,0.92)',
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: '#3A2418',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    overflow: 'hidden',
-  },
-  mascot: { width: 190, height: 215 },
 });
