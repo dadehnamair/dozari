@@ -89,6 +89,19 @@ by nickname, incoming requests with accept / decline, then one card per friend (
 tap for their profile — and a gift button that opens the coin gift). The mock-up's online status and
 per-friend duel button need presence and direct challenges, which do not exist yet; they are left out.
 
+## Profile and settings (D107)
+
+**screen-profile**: caravan scene header with back and a pencil (opens the editor: gender, nickname,
+city, e-mail), the big avatar with the level hexagon, nickname, skill rank and city (with its province
+badge), the level bar, four stat tiles (games / wins / losses / draws), the earned badges as colour
+tags and shortcut buttons (friends, badges and messages, find a friend, gifts and loans, invite). The
+design's handle line and «recent games» need a public handle and a game history endpoint and are left
+out. Opened from the level pill on Home or from settings.
+
+**screen-settings** (Home tile «تنظیمات»): hujre scene, sky title plate, Mashti and his line, then three
+cards — «بازی» (sound, vibration, less motion as switches, per device), «من» (profile, city, install on
+phone when possible, replay the tutorial) and «حساب» (about, sign out everywhere, delete with a second tap).
+
 ## Tournaments (D106)
 
 List: orange page, one card per tournament (icon tile, title, players / entry, start time, status chip).

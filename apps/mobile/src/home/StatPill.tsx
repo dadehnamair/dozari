@@ -1,13 +1,13 @@
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Defs, RadialGradient, Circle, Stop } from 'react-native-svg';
 import { useId } from 'react';
 import { colors, fonts, toneOf } from '../theme/colors';
 
 /** Top-bar counter of screen-home: translucent ink pill, a glossy candy ball with a glyph, then the value. */
-export function StatPill({ color, glyph, glyphColor = '#fff', value, label }: { color: string; glyph: string; glyphColor?: string; value: string; label: string }) {
+export function StatPill({ color, glyph, glyphColor = '#fff', value, label, onPress }: { color: string; glyph: string; glyphColor?: string; value: string; label: string; onPress?: () => void }) {
   const tone = toneOf(color);
   const gid = `sp${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
-  return (
+  const body = (
     <View style={styles.pill} accessibilityLabel={label}>
       <View style={styles.ball}>
         <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" viewBox="0 0 1 1">
@@ -25,6 +25,7 @@ export function StatPill({ color, glyph, glyphColor = '#fff', value, label }: { 
       <Text style={styles.value} numberOfLines={1}>{value}</Text>
     </View>
   );
+  return onPress ? <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label}>{body}</Pressable> : body;
 }
 
 const styles = StyleSheet.create({

@@ -301,3 +301,7 @@ The shop page follows `screen-shop` (see `app-screens.md` §Shop). Departures: o
 ## D106 — Tournament pages from the design (2026-10-02)
 
 List and detail follow `screen-tournament` (`app-screens.md` §Tournaments). The design shows a fixed three-column bracket; ours has one column per round of the real bracket (scrolls sideways for 16+). Rules, prizes, results and the player list, which the mock-up does not have, sit in a card under the bracket.
+
+## D107 — Profile and settings split (2026-10-02)
+
+The old profile sheet mixed identity and settings. It is now two pages from the designs (`app-screens.md` §Profile and settings): the profile page is read-first with an edit panel behind the pencil; settings holds the device switches and the account actions. Home: the level pill opens the profile, the «تنظیمات» tile opens settings.
