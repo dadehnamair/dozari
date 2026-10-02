@@ -8,6 +8,10 @@ export interface TournamentDeps {
   /** Starts the live duel between two players; false when one of them is busy right now. */
   startMatch(a: string, b: string): Promise<boolean>;
   inMatch(userId: string): boolean;
+  /** Idle bot accounts to fill empty seats (admin bot players); omit to never fill. */
+  fillBots?(n: number): string[];
+  /** Bots take part but are never paid prize coins. */
+  isBot?(userId: string): boolean;
   /** Tell a player something (Bale); must not throw into the flow. */
   notify?(userId: string, text: string): void;
   now?: () => number;
@@ -22,6 +26,7 @@ export interface TournamentInput {
   entryCoins: number;
   minLevel: number;
   startsAt: number;
+  botFill?: boolean;
   prizes: { place: number; coins: number }[];
 }
 
@@ -55,7 +60,7 @@ export class TournamentService {
   async create(input: TournamentInput, publish: boolean): Promise<Result<{ id: string }>> {
     if (!this.validate(input)) return { ok: false, error: 'INVALID' };
     if (publish && input.startsAt <= this.now()) return { ok: false, error: 'INVALID' };
-    const t: NewTournament = { titleFa: input.titleFa.trim(), descriptionFa: input.descriptionFa.trim(), iconKey: input.iconKey, status: publish ? 'open' : 'draft', size: input.size, minPlayers: input.minPlayers, entryCoins: input.entryCoins, minLevel: input.minLevel, startsAt: input.startsAt };
+    const t: NewTournament = { titleFa: input.titleFa.trim(), descriptionFa: input.descriptionFa.trim(), iconKey: input.iconKey, status: publish ? 'open' : 'draft', size: input.size, minPlayers: input.minPlayers, entryCoins: input.entryCoins, minLevel: input.minLevel, botFill: input.botFill ?? false, startsAt: input.startsAt };
     const row = await this.store.create(t, input.prizes);
     return { ok: true, id: row.id };
   }
@@ -68,9 +73,9 @@ export class TournamentService {
     const entered = (await this.store.entries(id)).length > 0;
     const structural = ['size', 'minPlayers', 'entryCoins', 'minLevel'] as const;
     if (entered && structural.some((k) => input[k] !== undefined && input[k] !== t[k])) return { ok: false, error: 'BAD_STATE' };
-    const merged: TournamentInput = { titleFa: t.titleFa, descriptionFa: t.descriptionFa, iconKey: t.iconKey, size: t.size, minPlayers: t.minPlayers, entryCoins: t.entryCoins, minLevel: t.minLevel, startsAt: t.startsAt, prizes: input.prizes ?? (await this.store.prizes(id)), ...input };
+    const merged: TournamentInput = { titleFa: t.titleFa, descriptionFa: t.descriptionFa, iconKey: t.iconKey, size: t.size, minPlayers: t.minPlayers, entryCoins: t.entryCoins, minLevel: t.minLevel, botFill: t.botFill, startsAt: t.startsAt, prizes: input.prizes ?? (await this.store.prizes(id)), ...input };
     if (!this.validate(merged)) return { ok: false, error: 'INVALID' };
-    await this.store.update(id, { titleFa: merged.titleFa.trim(), descriptionFa: merged.descriptionFa.trim(), iconKey: merged.iconKey, size: merged.size, minPlayers: merged.minPlayers, entryCoins: merged.entryCoins, minLevel: merged.minLevel, startsAt: merged.startsAt });
+    await this.store.update(id, { titleFa: merged.titleFa.trim(), descriptionFa: merged.descriptionFa.trim(), iconKey: merged.iconKey, size: merged.size, minPlayers: merged.minPlayers, entryCoins: merged.entryCoins, minLevel: merged.minLevel, botFill: merged.botFill ?? false, startsAt: merged.startsAt });
     if (input.prizes) await this.store.setPrizes(id, input.prizes);
     return { ok: true };
   }
@@ -184,7 +189,12 @@ export class TournamentService {
   }
 
   private async begin(t: TournamentRow): Promise<void> {
-    const entries = await this.store.entries(t.id);
+    let entries = await this.store.entries(t.id);
+    if (t.botFill && this.deps.fillBots && entries.length < t.size) {
+      // Empty seats go to idle bot accounts (no entry fee); they play like anyone else.
+      for (const botId of this.deps.fillBots(t.size - entries.length)) await this.store.join(t.id, botId, 0, this.now());
+      entries = await this.store.entries(t.id);
+    }
     if (entries.length < t.minPlayers) {
       await this.store.cancel(t.id);
       for (const e of entries) this.deps.notify?.(e.userId, `تورنومنت «${t.titleFa}» به حد نصاب نرسید و لغو شد؛ ورودی‌ات برگشت.`);
@@ -243,7 +253,7 @@ export class TournamentService {
     if (!fresh || fresh.status === 'finished') return;
     const prizes = new Map((await this.store.prizes(t.id)).map((p) => [p.place, p.coins]));
     const places = finalPlaces(matches, t.size);
-    const awards = places.map((p) => ({ userId: p.userId, coins: prizes.get(p.place) ?? 0 }));
+    const awards = places.filter((p) => !this.deps.isBot?.(p.userId)).map((p) => ({ userId: p.userId, coins: prizes.get(p.place) ?? 0 }));
     await this.store.payout(t.id, awards);
     await this.store.update(t.id, { status: 'finished', finishedAt: this.now() });
     for (const p of places) {

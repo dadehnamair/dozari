@@ -24,6 +24,8 @@ export interface GatewayOptions {
   match?: Omit<MatchDeps, 'emit'>;
   /** Chat: city rooms and taunts in a duel. */
   chat?: ChatService;
+  /** Sees every event pushed to any user (used to let bot accounts react); must not throw. */
+  onEmit?: (userId: string, event: string, payload: unknown) => void;
 }
 
 export interface Gateway {
@@ -50,9 +52,16 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
   if (opts.chat) {
     const chat = opts.chat;
     chat.broadcast = (roomName, message) => void io.to(roomName).emit(ServerEvent.chatMessage, message);
-    chat.toUser = (userId, message) => void io.to(room(userId)).emit(ServerEvent.chatMessage, message);
+    chat.toUser = (userId, message) => {
+      io.to(room(userId)).emit(ServerEvent.chatMessage, message);
+      opts.onEmit?.(userId, ServerEvent.chatMessage, message);
+    };
   }
-  if (opts.match) matches = new MatchService({ now, ...opts.match, emit: (userId, event, payload) => void io.to(room(userId)).emit(event, payload) });
+  if (opts.match) matches = new MatchService({ now, ...opts.match, emit: (userId, event, payload) => {
+        io.to(room(userId)).emit(event, payload);
+        opts.onEmit?.(userId, event, payload);
+      },
+    });
 
   io.use(async (socket, next) => {
     const token: unknown = socket.handshake.auth?.token;

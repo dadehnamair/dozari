@@ -281,6 +281,8 @@ export const users = mysqlTable(
     chatUnlockedAt: datetime('chat_unlocked_at', { mode: 'date', fsp: 3 }),
     /** Home city (a row of `cities`), optional; shown on the profile and used for the city room. */
     cityId: char('city_id', { length: 36 }),
+    /** INTERNAL: an account the game plays itself (docs/logic/bots.md). Never in any player-facing response or socket payload. */
+    isBot: boolean('is_bot').notNull().default(false),
     /** The badge shown next to the name (one of the player's earned badges). */
     equippedBadgeId: char('equipped_badge_id', { length: 36 }),
     /** Public ID others can search for (exact match). */
@@ -909,6 +911,8 @@ export const tournaments = mysqlTable(
     minPlayers: int('min_players').notNull().default(4),
     entryCoins: int('entry_coins').notNull().default(0),
     minLevel: int('min_level').notNull().default(1),
+    /** When the bracket is not full at the start, empty seats are filled with bot players. */
+    botFill: boolean('bot_fill').notNull().default(false),
     /** Registration closes and the first round starts at this time. */
     startsAt: datetime('starts_at', { mode: 'date', fsp: 3 }).notNull(),
     startedAt: datetime('started_at', { mode: 'date', fsp: 3 }),
@@ -957,3 +961,16 @@ export const tournamentMatches = mysqlTable(
   },
   (table) => ({ slotUnique: uniqueIndex('tournament_matches_slot_idx').on(table.tournamentId, table.round, table.slot) }),
 );
+
+/** Behaviour of a bot account (the identity itself is an ordinary `users` row with `is_bot`). */
+export const botPlayers = mysqlTable('bot_players', {
+  userId: char('user_id', { length: 36 }).primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+  /** 0–100: how often it finds a real group. */
+  skill: int('skill').notNull().default(50),
+  thinkMinMs: int('think_min_ms').notNull().default(3000),
+  thinkMaxMs: int('think_max_ms').notNull().default(12000),
+  /** Chance it answers a canned taunt of the human opponent. */
+  tauntPercent: int('taunt_percent').notNull().default(40),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+});

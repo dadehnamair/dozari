@@ -521,6 +521,7 @@ VIEWS.tournaments = function (root) {
   var minPlayers = num(4, 2), fee = num(20), level = num(1, 1), p1 = num(100), p2 = num(40), p3 = num(10);
   var startsAt = h('input', { type: 'datetime-local' });
   var publish = h('input', { type: 'checkbox' });
+  var botFill = h('input', { type: 'checkbox' });
   var note = h('div', { class: 'h' });
   function recalc() { var pool = +fee.value * +size.value, prizes = (+p1.value) + (+p2.value) + 2 * (+p3.value); note.textContent = 'جمع ورودی اگر پر شود: ' + faNum(pool) + ' سکه · جمع جایزه‌ها: ' + faNum(prizes) + ' سکه' + (prizes > pool ? ' ← جایزه از ورودی بیشتر است؛ این تفاوت سکه‌ی تازه به اقتصاد اضافه می‌کند.' : ''); }
   [fee, size, p1, p2, p3].forEach(function (el) { el.addEventListener('input', recalc); }); recalc();
@@ -530,10 +531,43 @@ VIEWS.tournaments = function (root) {
     h('div', { class: 'toolbar' }, [field('ظرفیت', size), field('حداقل نفرات برای برگزاری', minPlayers), field('ورودی (سکه، ۰ = رایگان)', fee), field('کمترین لول (۱ = همه)', level), field('شروع و بسته‌شدن ثبت‌نام', startsAt)]),
     h('div', { class: 'toolbar' }, [field('جایزه‌ی مقام اول', p1), field('مقام دوم', p2), field('مقام سوم (به هر نفر)', p3)]),
     note,
-    h('div', { class: 'toolbar' }, [h('label', {}, [publish, ' همین حالا منتشر شود']), h('button', { class: 'btn primary', text: 'ساخت', onclick: function () {
+    h('div', { class: 'toolbar' }, [h('label', {}, [botFill, ' جای خالی با ربات پر شود']), h('label', {}, [publish, ' همین حالا منتشر شود']), h('button', { class: 'btn primary', text: 'ساخت', onclick: function () {
       if (!startsAt.value) return toast('زمان شروع را بگذار', true);
       var prizes = [{ place: 1, coins: +p1.value }, { place: 2, coins: +p2.value }, { place: 3, coins: +p3.value }].filter(function (p) { return p.coins > 0; });
-      api('/admin/tournaments', { method: 'POST', body: { titleFa: title.value.trim(), descriptionFa: desc.value.trim(), iconKey: 'trophy', size: +size.value, minPlayers: +minPlayers.value, entryCoins: +fee.value, minLevel: +level.value, startsAt: new Date(startsAt.value).getTime(), prizes: prizes, publish: publish.checked } }).then(function (x) { if (!x.ok) return fail(x); toast('تورنومنت ساخته شد'); title.value = ''; desc.value = ''; draw(); });
+      api('/admin/tournaments', { method: 'POST', body: { titleFa: title.value.trim(), descriptionFa: desc.value.trim(), iconKey: 'trophy', size: +size.value, minPlayers: +minPlayers.value, entryCoins: +fee.value, minLevel: +level.value, startsAt: new Date(startsAt.value).getTime(), botFill: botFill.checked, prizes: prizes, publish: publish.checked } }).then(function (x) { if (!x.ok) return fail(x); toast('تورنومنت ساخته شد'); title.value = ''; desc.value = ''; draw(); });
+    } })])
+  ]));
+  draw();
+};
+VIEWS.bots = function (root) {
+  var list = h('div');
+  function num(v, min, max) { return h('input', { type: 'number', value: v, min: min, max: max, style: 'width:90px' }); }
+  function draw() {
+    api('/admin/bots').then(function (r) {
+      clear(list);
+      if (r.status === 404) return list.appendChild(empty('بازیکن‌های ربات روی این سرور فعال نیستند'));
+      if (!r.ok) return fail(r);
+      if (!r.body.bots.length) return list.appendChild(empty('هنوز رباتی نساخته‌ای'));
+      r.body.bots.forEach(function (b) {
+        var skill = num(b.skill, 0, 100), taunt = num(b.tauntPercent, 0, 100), tmin = num(Math.round(b.thinkMinMs / 1000), 1, 60), tmax = num(Math.round(b.thinkMaxMs / 1000), 1, 60);
+        function save(patch) { api('/admin/bots/' + b.userId, { method: 'PATCH', body: patch }).then(function (x) { if (!x.ok) return fail(x); toast('ذخیره شد'); draw(); }); }
+        list.appendChild(h('div', { class: 'kv', style: 'flex-wrap:wrap;gap:8px;padding:8px 0;border-bottom:1px solid var(--line,#ddd)' }, [
+          h('b', { text: b.nickname }), h('span', { class: 'h', text: 'لول ' + fa(b.level) + ' · ' + fa(b.games) + ' بازی · ' + fa(b.wins) + ' برد · ' + faNum(b.coins) + ' سکه' }), b.isActive ? null : badge('متوقف', 'b-warn'),
+          field('مهارت', skill), field('جواب به کل‌کل ٪', taunt), field('فکر کردن (ثانیه)', h('span', { style: 'display:flex;gap:4px' }, [tmin, tmax])),
+          h('button', { class: 'btn sm primary', text: 'ذخیره', onclick: function () { save({ skill: +skill.value, tauntPercent: +taunt.value, thinkMinMs: +tmin.value * 1000, thinkMaxMs: Math.max(+tmin.value, +tmax.value) * 1000 }); } }),
+          h('button', { class: 'btn sm', text: b.isActive ? 'متوقف کن' : 'فعال کن', onclick: function () { save({ isActive: !b.isActive }); } })
+        ]));
+      });
+    });
+  }
+  var count = num(10, 1, 50), lmin = num(2, 1, 100), lmax = num(15, 1, 100), smin = num(35, 0, 100), smax = num(80, 0, 100), wmin = num(40, 20, 85), wmax = num(62, 20, 85), tmin = num(3, 1, 60), tmax = num(12, 1, 60), taunt = num(40, 0, 100);
+  var cities = h('input', { type: 'checkbox' }); cities.checked = true;
+  root.appendChild(card('بازیکن‌های ربات', 'حساب‌هایی که بازی خودش بازی می‌کند و از بازیکن واقعی قابل‌تشخیص نیست: اسم، آواتار، شهر، لول، آمار، سکه و مدال طبیعی دارند، با تأخیر انسانی بازی می‌کنند و کل‌کل جواب می‌دهند. بازیکنی که چند ثانیه در صف مانده با یکی‌شان جفت می‌شود (تنظیمات «ربات» در بخش تنظیمات).', [list]));
+  root.appendChild(card('ساخت گروهی', 'هر بار حداکثر ۵۰ ربات؛ اسم‌ها تکراری نیستند و فهرست اسم‌ها محدود است. مهارت یعنی چند درصد وقت‌ها گروه درست را پیدا می‌کند (هیچ‌وقت بیش از ۹۰٪).', [
+    h('div', { class: 'toolbar' }, [field('تعداد', count), field('لول از', lmin), field('تا', lmax), field('مهارت از', smin), field('تا', smax)]),
+    h('div', { class: 'toolbar' }, [field('درصد برد از', wmin), field('تا', wmax), field('فکر کردن از (ثانیه)', tmin), field('تا', tmax), field('جواب به کل‌کل ٪', taunt)]),
+    h('div', { class: 'toolbar' }, [h('label', {}, [cities, ' شهر تصادفی هم بدهم']), h('button', { class: 'btn primary', text: 'بساز', onclick: function () {
+      api('/admin/bots/generate', { method: 'POST', body: { count: +count.value, levelMin: +lmin.value, levelMax: Math.max(+lmin.value, +lmax.value), skillMin: +smin.value, skillMax: Math.max(+smin.value, +smax.value), winPercentMin: +wmin.value, winPercentMax: Math.max(+wmin.value, +wmax.value), thinkMinMs: +tmin.value * 1000, thinkMaxMs: Math.max(+tmin.value, +tmax.value) * 1000, tauntPercent: +taunt.value, withCities: cities.checked } }).then(function (x) { if (!x.ok) return fail(x); toast(fa(x.body.created) + ' ربات ساخته شد'); draw(); });
     } })])
   ]));
   draw();

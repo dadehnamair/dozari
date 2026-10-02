@@ -148,6 +148,13 @@
       "when": 1790900568898,
       "tag": "0020_misty_killraven",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "5",
+      "when": 1790901200000,
+      "tag": "0021_perpetual_scalphunter",
+      "breakpoints": true
     }
   ]
 }

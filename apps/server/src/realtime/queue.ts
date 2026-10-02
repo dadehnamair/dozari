@@ -30,6 +30,11 @@ export class DuelQueue {
     return null;
   }
 
+  /** Everyone in line with the time they joined, longest waiting first. */
+  waiting(): { userId: string; since: number }[] {
+    return [...this.entries].map(([userId, since]) => ({ userId, since }));
+  }
+
   waitedMs(userId: string, now: number): number {
     const at = this.entries.get(userId);
     return at === undefined ? 0 : now - at;

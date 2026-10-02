@@ -77,6 +77,17 @@ export class MatchService {
     return other ? { matchId: id, opponentId: other.userId } : null;
   }
 
+  /**
+   * INTERNAL, for the bot driver only: the groups not solved yet and the cards left, for a player of a live match. Nothing here may ever be
+   * sent to a client; bots play inside the server and move through `submit` like humans (docs/logic/bots.md).
+   */
+  solutionFor(userId: string): { groups: string[][]; remaining: string[]; tried: readonly string[] } | null {
+    const entry = this.entryOf(userId);
+    if (!entry || entry.state.status !== 'playing') return null;
+    const done = new Set(entry.state.solved.map((g) => g.level));
+    return { groups: entry.state.puzzle.groups.filter((g) => !done.has(g.level)).map((g) => [...g.productIds]), remaining: [...entry.state.remaining], tried: entry.state.tried };
+  }
+
   inMatch(userId: string): boolean {
     return this.byUser.has(userId);
   }
