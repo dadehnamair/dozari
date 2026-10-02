@@ -77,6 +77,14 @@ Four views from `docs/design/Dozari - 13 Match Screens.dc.html`:
   clipboard), «n از m دوست اومدن» with up to five boxes (the last a chest), the rules, the field for
   a friend's code, and a share slab. Per-app share buttons of the mock-up become the system share sheet.
 
+## Friends page (D99)
+
+screen-friends of `19 Social Daily Onboarding`, opened from the profile sheet (its button shows the
+number of pending requests): sky header band, «+ افزودن» (find players), a search field that filters
+by nickname, incoming requests with accept / decline, then one card per friend (avatar, nickname —
+tap for their profile — and a gift button that opens the coin gift). The mock-up's online status and
+per-friend duel button need presence and direct challenges, which do not exist yet; they are left out.
+
 ## Matchmaking queue (waiting) screen
 
 The waiting view is screen-versus above. Still open from the original spec below: practising solo
