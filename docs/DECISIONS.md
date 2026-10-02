@@ -188,3 +188,8 @@ term, one open loan). Details and defaults in `docs/logic/economy.md` §Gifts an
 
 Bale linking requires a typed mobile number; the bot verifies it from the sender's own shared contact; SMS is the fallback through a
 pluggable provider (owner still to choose one). A verified number is unique per account and private. See `docs/logic/bale-bot.md`.
+
+## D82 — Finding friends by ID, phone, contacts and invite link (2026-10-01)
+
+Exact-match search by public ID or verified phone (findable by default, switchable), address-book lookup API, invite link through an
+admin-configured shortener, instant friendship for a brand-new account that opens a link. See `docs/logic/find-friends.md`.

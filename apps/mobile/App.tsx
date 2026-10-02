@@ -14,6 +14,7 @@ import { LookupScreen } from './src/lookup/LookupScreen';
 import { SearchScreen } from './src/search/SearchScreen';
 import { SplashScreen } from './src/splash/SplashScreen';
 import { SoloScreen } from './src/solo/SoloScreen';
+import { useInviteLink } from './src/social/useInviteLink';
 
 // Rule (CLAUDE.md §Language): in-game UI is Persian/RTL. Expo's managed I18nManager call is a
 // no-op on web and only takes effect after a native reload, which is expected here.
@@ -27,6 +28,7 @@ const SPLASH_MS = 1800;
 export default function App() {
   const config = useClientConfig();
   const gate = gateState(config, APP_BUILD);
+  useInviteLink(gate === 'ok' && config.features.friends);
   const [fontsLoaded] = useFonts({ Vazirmatn_400Regular, Vazirmatn_700Bold, Lalezar_400Regular });
 
   // Minimal navigation until a real router lands with the hub screen (docs/logic/app-screens.md).

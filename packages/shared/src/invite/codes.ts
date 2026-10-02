@@ -25,3 +25,11 @@ export function normalizeInviteCode(raw: string): string {
 export function looksLikeInviteCode(code: string): boolean {
   return /^[2-9A-HJKMNP-Z]{4,12}$/.test(code);
 }
+
+/** A player's public ID: short, readable, searchable. Same alphabet as invite codes. */
+export const HANDLE_LENGTH = 7;
+export function generateHandle(rng: Rng): string {
+  let out = '';
+  for (let i = 0; i < HANDLE_LENGTH; i++) out += INVITE_ALPHABET[Math.floor(rng() * INVITE_ALPHABET.length)];
+  return out;
+}
