@@ -92,6 +92,7 @@ import { CoinPackageService } from './economy/coin-packages.js';
 import { registerCoinPackageRoutes } from './economy/coin-packages-routes.js';
 import { createDbCoinPackageStore } from './economy/coin-packages-store.js';
 import { registerShopRoutes } from './economy/shop-routes.js';
+import { LevelRoadService, registerRoadRoutes } from './progress/road.js';
 import { ShopService } from './economy/shop.js';
 import { createDbShopStore } from './economy/shop-store.js';
 import { HintService } from './solo/hints.js';
@@ -161,6 +162,8 @@ export interface ServerDeps {
   limiter?: PlayLimiter;
   /** Coin shop (`/shop`); needs `auth`. */
   shop?: ShopService;
+  /** Level road (`/me/levels`, D109); needs `auth`. */
+  levelRoad?: LevelRoadService;
   /** Coin packages bought with real money (`/coin-packages`, off by default); needs `auth`. */
   coinPackages?: CoinPackageService;
   /** Allowed browser origins (e.g. Expo web dev). `*` allows any. Off when unset: native apps don't need CORS. */
@@ -244,6 +247,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.tables) registerTableRoutes(app, deps.auth, deps.tables, deps.chat ? async (u, code, label) => { const r = await deps.chat!.sendCity(u, { kind: 'table', code, label }); return r.ok ? { ok: true } : { ok: false, error: r.error }; } : undefined);
   if (deps.solo) registerSoloRoutes(app, deps.solo, deps.auth, deps.hints, deps.limiter);
   if (deps.auth && deps.shop) registerShopRoutes(app, deps.auth, deps.shop);
+  if (deps.auth && deps.levelRoad) registerRoadRoutes(app, deps.auth, deps.levelRoad);
   if (deps.auth && deps.coinPackages) registerCoinPackageRoutes(app, deps.auth, deps.coinPackages);
   let gateway: Gateway | undefined;
   if (deps.auth && deps.realtime) {
@@ -500,6 +504,19 @@ if (isMainModule(import.meta.url)) {
     limiter: db && settings ? new PlayLimiter(createDbPlayCountStore(db), async (mode) => settings.num(mode === 'solo' ? 'limit.solo_per_day' : 'limit.duel_per_day')) : undefined,
     hints: solo && shopStore && settings ? new HintService(solo, shopStore, () => hintRules(settings), levelOf) : undefined,
     shop: shopStore ? new ShopService(shopStore, levelOf) : undefined,
+    levelRoad:
+      player && settings
+        ? new LevelRoadService({
+            levelOf: async (id) => (await player.levelOf(id)).level,
+            xpRules: async () => (await rulesFromSettings(settings)).xp,
+            gates: async () => {
+              const get = async (key: string) => (await settings.num(key)) ?? undefined;
+              const [hint, invite, transfer, avatar, nickname] = await Promise.all(['hint.min_level', 'invite.min_level', 'transfer.min_level', 'profile.avatar_change_min_level', 'profile.nickname_change_min_level'].map(get));
+              return { hint, invite, transfer, avatar, nickname };
+            },
+            shopItems: async () => (shopStore ? shopStore.items() : []),
+          })
+        : undefined,
     coinPackages: coinPackageService,
     admin: db && jwtSecret ? { repo: createDbAdminRepository(db), token: adminToken, accounts: new AdminAccounts(createDbAdminStore(db), jwtSecret, adminToken) } : undefined,
     corsOrigin: process.env.CORS_ORIGIN,
