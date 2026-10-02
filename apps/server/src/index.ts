@@ -40,6 +40,9 @@ import { BotDriver } from './botplayers/driver.js';
 import { BotPlayerService } from './botplayers/service.js';
 import { createDbBotPlayerStore } from './botplayers/store.js';
 import { registerFindRoutes } from './find/routes.js';
+import { registerLedgerRoutes } from './ledger/routes.js';
+import { createDbLedgerReader } from './ledger/store.js';
+import type { LedgerReader } from './ledger/store.js';
 import { FindService } from './find/service.js';
 import { createShortener } from './find/shortener.js';
 import { createDbFindStore } from './find/store.js';
@@ -131,6 +134,7 @@ export interface ServerDeps {
   phone?: PhoneService;
   /** Public ID, search, contacts, invite link; needs `auth`. */
   find?: FindService;
+  ledger?: LedgerReader;
   /** Badges, medals, notices, mutes and the agent's powers; needs `auth`. */
   badges?: BadgeService;
   /** City chat and canned taunts; needs `auth`. */
@@ -229,6 +233,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.messages) registerInboxRoutes(app, deps.auth, deps.messages);
   if (deps.auth && deps.phone) registerPhoneRoutes(app, deps.auth, deps.phone);
   if (deps.auth && deps.find) registerFindRoutes(app, deps.auth, deps.find);
+  if (deps.auth && deps.ledger) registerLedgerRoutes(app, deps.auth, deps.ledger);
   if (deps.auth && deps.badges) registerBadgeRoutes(app, deps.auth, deps.badges);
   if (deps.auth && deps.chat) registerChatRoutes(app, deps.auth, deps.chat);
   if (deps.auth && deps.tournaments) registerTournamentRoutes(app, deps.auth, deps.tournaments);
@@ -515,6 +520,7 @@ if (isMainModule(import.meta.url)) {
     bale: notify ? { service: notify, botUsername: baleUsername } : undefined,
     phone,
     find,
+    ledger: db ? createDbLedgerReader(db) : undefined,
     badges,
     chat,
     tournaments: tournamentService,

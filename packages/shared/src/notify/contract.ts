@@ -13,3 +13,11 @@ export const inboxSchema = z.object({
   items: z.array(z.object({ id: z.string(), title: z.string(), body: z.string(), createdAt: z.number().int(), read: z.boolean() })),
 });
 export type Inbox = z.infer<typeof inboxSchema>;
+
+/** `GET /me/ledger`: the player's own coin movements (newest first), financial rows only. `next` is the cursor for the following page. */
+export const ledgerPageSchema = z.object({
+  balance: z.number().int(),
+  items: z.array(z.object({ id: z.string(), delta: z.number().int(), reason: z.string(), createdAt: z.number().int() })),
+  next: z.string().nullable(),
+});
+export type LedgerPage = z.infer<typeof ledgerPageSchema>;

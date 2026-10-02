@@ -255,10 +255,13 @@ tooltip alone. Owner: "زیر متن‌های اون آیکن‌ها یه راه
 
 ## Wallet / coin history
 
-**No separate wallet screen** (owner decision, 2026-09-27): the Profile screen's match-history
-list (`profile-and-identity.md`) is the coin history — each row already shows coins won/lost per
-match. No dedicated full-ledger view (all faucets/sinks) at MVP; revisit only if players ask for
-non-match coin movements (daily bonus, invite rewards) to be individually visible.
+**Coin history sheet** (owner note 13, 2026-10-02; replaces the earlier "no separate wallet screen"
+decision): tapping the coin count on Home opens «تاریخچه‌ی سکه» — the player's own `coin_ledger`
+rows, newest first, each with a Persian reason label, relative time and a signed amount
+(green `+` / red `−`), plus the current balance on top and a «بیشتر» button for the next page.
+Backed by `GET /me/ledger?limit=&before=` (keyset cursor `<createdAtMs>_<id>`, caller's rows only,
+financial fields only: no ref ids or idempotency keys). Code: `apps/server/src/ledger`,
+`apps/mobile/src/ledger`. The match-history list on Profile stays as is.
 
 ## Admin panel (first pass, 2026-09-27 — resolves part of open question 11)
 
