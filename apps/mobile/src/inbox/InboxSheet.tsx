@@ -4,6 +4,7 @@ import type { Inbox } from '@dozari/shared';
 import { Item } from '../components/Item';
 import { HeaderPill, PageShell } from '../components/PageShell';
 import { GuideBubble } from '../components/GuideBubble';
+import { EmptyNote } from '../components/EmptyState';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { agoText } from './ago';
@@ -39,7 +40,7 @@ export function InboxSheet({ inbox, failed, onRead, onReadAll, onClose }: { inbo
         </View>
         <GuideBubble who="ajan" text={fa.inbox.ajanHello} />
         {failed ? <Text style={styles.note}>{fa.inbox.error}</Text> : null}
-        {inbox && shown.length === 0 ? <Text style={styles.note}>{filter === 'unread' ? fa.inbox.emptyUnread : filter === 'read' ? fa.inbox.emptyRead : fa.inbox.empty}</Text> : null}
+        {inbox && shown.length === 0 ? <EmptyNote skin={4} pose="sleeping" text={filter === 'unread' ? fa.inbox.emptyUnread : filter === 'read' ? fa.inbox.emptyRead : fa.inbox.empty} /> : null}
         {shown.map((m, i) => (
           <Pressable key={m.id} onPress={() => onRead(m.id)} accessibilityRole="button">
             {({ pressed }) => (

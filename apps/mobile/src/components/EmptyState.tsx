@@ -1,9 +1,10 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { fa } from '../i18n/fa';
 import type { EmptySpec } from '../kit/data';
 import { candyTone, colors, fonts } from '../theme/colors';
 import { CandyButton } from './CandyButton';
-import { Mascot } from './Mascot';
+import type { CharacterPose } from '../theme/character';
+import { Character } from './Character';
 
 /** Empty / error card: one mascot pose, a short title, a line of help and (usually) one clear action. */
 export function EmptyState({ spec, onAction }: { spec: EmptySpec; onAction?: () => void }) {
@@ -11,7 +12,7 @@ export function EmptyState({ spec, onAction }: { spec: EmptySpec; onAction?: () 
   return (
     <View style={styles.card}>
       <View style={styles.mascot}>
-        <Mascot pose={spec.pose} skin={spec.skin} />
+        <Character pose={spec.pose} skin={spec.skin} />
       </View>
       <Text style={styles.title}>{text.title}</Text>
       <Text style={styles.sub}>{text.sub}</Text>
@@ -25,4 +26,22 @@ const styles = StyleSheet.create({
   mascot: { width: 130, height: 142 },
   title: { fontFamily: fonts.display, fontSize: 24, color: colors.ink, textAlign: 'center' },
   sub: { fontFamily: fonts.body, fontSize: 13.5, color: colors.ink, opacity: 0.8, textAlign: 'center', lineHeight: 22 },
+});
+
+/** A short empty line with a character in a fitting pose (docs/design/Dozari - 10): for lists that are simply empty. */
+export function EmptyNote({ text, pose = 'sleeping', skin = 4 }: { text: string; pose?: CharacterPose; skin?: number }) {
+  const small = useWindowDimensions().height < 700; // nothing scrolls: a shorter screen gets a smaller character
+  return (
+    <View style={noteStyles.box}>
+      <View style={small ? noteStyles.artSmall : noteStyles.art}><Character pose={pose} skin={skin} /></View>
+      <Text style={noteStyles.text}>{text}</Text>
+    </View>
+  );
+}
+
+const noteStyles = StyleSheet.create({
+  box: { alignItems: 'center', gap: 2, paddingVertical: 4 },
+  art: { width: 84, height: 92 },
+  artSmall: { width: 52, height: 58 },
+  text: { fontFamily: fonts.bold, fontSize: 14, color: colors.ink, textAlign: 'center' },
 });

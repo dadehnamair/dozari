@@ -4,6 +4,7 @@ import { toPersianDigits } from '@dozari/shared';
 import type { LedgerPage } from '@dozari/shared';
 import { GuideBubble } from '../components/GuideBubble';
 import { PageShell } from '../components/PageShell';
+import { EmptyNote } from '../components/EmptyState';
 import { fa } from '../i18n/fa';
 import { agoText } from '../inbox/ago';
 import { colors, fonts } from '../theme/colors';
@@ -35,7 +36,7 @@ export function LedgerSheet({ onClose }: { onClose: () => void }) {
         <GuideBubble who="baqal" text={l.baqalHello} />
         {page ? <Text style={styles.balance}>{`${l.balance}: ${fmt(page.balance)} ${fa.home.hub.coins}`}</Text> : null}
         {failed ? <Text style={styles.note}>{l.error}</Text> : null}
-        {page && page.items.length === 0 ? <Text style={styles.note}>{l.empty}</Text> : null}
+        {page && page.items.length === 0 ? <EmptyNote skin={4} pose="sleeping" text={l.empty} /> : null}
         {page?.items.map((r) => (
           <View key={r.id} style={styles.card}>
             <View style={styles.body}>

@@ -1,6 +1,5 @@
 import { candyTone } from '../theme/colors';
 import type { IconName } from '../theme/icons';
-import type { MascotPose } from '../theme/mascot';
 import type { CharacterPose } from '../theme/character';
 
 /** Asset catalogue from docs/design/Dozari Visual Assets.dc.html (sections G-J). Labels live in i18n/fa.ts. */
@@ -93,7 +92,7 @@ export type EmptyKind = 'error' | 'searching' | 'noHistory' | 'noPuzzles' | 'noI
 export interface EmptySpec {
   kind: EmptyKind;
   key: string;
-  pose: MascotPose;
+  pose: CharacterPose;
   skin: number;
   tone: CandyName;
   /** Whether the card carries an action button. */

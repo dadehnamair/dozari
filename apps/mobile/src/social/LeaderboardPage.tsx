@@ -7,6 +7,7 @@ import { GradientFill } from '../components/GradientFill';
 import { Icon } from '../components/Icon';
 import { ProvinceBadge } from '../components/ProvinceBadge';
 import { GuideBubble } from '../components/GuideBubble';
+import { EmptyNote } from '../components/EmptyState';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { fetchLeaderboard } from './api';
@@ -117,9 +118,9 @@ export function LeaderboardPage({ onClose }: { onClose: () => void }) {
 
         <View style={styles.sheet}>
           <ScrollView contentContainerStyle={styles.rows}>
-            <GuideBubble who="pahlevan" text={fa.leaderboard.pahlevanHello} />
+            {board && entries.length === 0 ? null : <GuideBubble who="pahlevan" text={fa.leaderboard.pahlevanHello} />}
             {failed ? <Text style={styles.note}>{t.error}</Text> : null}
-            {board && entries.length === 0 ? <Text style={styles.note}>{t.empty[scope]}</Text> : null}
+            {board && entries.length === 0 ? <EmptyNote skin={3} pose="thinking" text={t.empty[scope]} /> : null}
             {board && scope === 'city' && board.me === null ? (
               <Pressable onPress={() => setPickCity(true)} accessibilityRole="button" style={styles.cityBtn}><Text style={styles.cityBtnText}>{t.pickCity}</Text></Pressable>
             ) : null}
