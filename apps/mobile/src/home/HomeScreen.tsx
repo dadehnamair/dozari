@@ -21,6 +21,7 @@ import { ChatSheet } from '../chat/ChatSheet';
 import { fetchDailyStatus } from '../daily/puzzleApi';
 import { dailyPuzzleLabel } from '../daily/label';
 import type { DailyStatus } from '@dozari/shared';
+import { fetchMatchActive } from '../duel/api';
 import { shareTable } from '../tables/api';
 import { TableSheet } from '../tables/TableSheet';
 import { TournamentSheet } from '../tournament/TournamentSheet';
@@ -41,6 +42,10 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onLookup, on
   const [chatOpen, setChatOpen] = useState(false);
   const [tournamentOpen, setTournamentOpen] = useState(false);
   const [tableOpen, setTableOpen] = useState(false);
+  const [liveMatch, setLiveMatch] = useState(false);
+  useEffect(() => {
+    if (features.duel) void fetchMatchActive().then(setLiveMatch, () => undefined);
+  }, [features.duel]);
   const [tableCode, setTableCode] = useState<string | undefined>(undefined);
   const [inboxOpen, setInboxOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -115,6 +120,7 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onLookup, on
               onPress={onDaily}
             />
           ) : null}
+          {liveMatch && onDuelResume ? <CandyButton label={fa.duel.resume} color={colors.candy.lime} onPress={onDuelResume} /> : null}
           <CandyButton label={fa.home.soloButton} color={colors.candy.yellow} onPress={onSolo} />
           {features.duel && onDuel ? <CandyButton label={fa.duel.open} color={colors.candy.pink} onPress={onDuel} /> : null}
           {features.lookup ? <CandyButton label={fa.home.lookupButton} color={colors.candy.lime} onPress={onLookup} /> : null}

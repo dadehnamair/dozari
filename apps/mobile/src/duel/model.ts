@@ -11,11 +11,13 @@ export interface DuelState {
   ended: MatchEnded | null;
   names: Record<string, string>;
   /** Last guess outcome for a short flash. */
+  /** The opponent's latest canned taunt. */
+  taunt: { from: string; text: string } | null;
   flash: 'correct' | 'one_away' | 'wrong' | 'timeout' | null;
   error: string | null;
 }
 
-export const initialDuel: DuelState = { phase: 'idle', waitedSec: 0, found: null, view: null, ended: null, names: {}, flash: null, error: null };
+export const initialDuel: DuelState = { phase: 'idle', waitedSec: 0, found: null, view: null, ended: null, names: {}, taunt: null, flash: null, error: null };
 
 export type DuelAction =
   | { t: 'queued' }
@@ -26,6 +28,8 @@ export type DuelAction =
   | { t: 'timeout'; mine: boolean }
   | { t: 'ended'; ended: MatchEnded }
   | { t: 'clearFlash' }
+  | { t: 'taunt'; from: string; text: string }
+  | { t: 'clearTaunt' }
   | { t: 'error'; error: string }
   | { t: 'reset' };
 
@@ -48,6 +52,10 @@ export function duelReducer(s: DuelState, a: DuelAction): DuelState {
       return a.mine ? { ...s, flash: 'timeout' } : s;
     case 'ended':
       return { ...s, phase: 'ended', ended: a.ended };
+    case 'taunt':
+      return { ...s, taunt: { from: a.from, text: a.text } };
+    case 'clearTaunt':
+      return { ...s, taunt: null };
     case 'clearFlash':
       return { ...s, flash: null };
     case 'error':

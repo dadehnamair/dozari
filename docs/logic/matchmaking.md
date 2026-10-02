@@ -117,4 +117,5 @@ persistence of the match log, level (everyone is level 1 on the opponent card).
 
 `apps/mobile/src/duel/*`: `socket.ts` (socket.io-client with the guest token, events parsed with the shared zod schemas), `model.ts` (pure reducer, unit-tested), `DuelScreen.tsx` (queue → board → result, turn clock, own-guess flash, sounds).
 Home button «دوئل زنده» (`feature.duel`). A private table's match opens the same screen in resume mode (`match:resume` without a match id → the server re-sends the current snapshot).
-Not in the app yet: price-guess round inside a duel, taunt buttons, reconnect banner (D42), coin escrow/payout (server side not built either).
+Also: canned-taunt buttons (socket `chat:taunt`, the opponent's taunt shows for 4 s) and the «برگشت به بازی در جریان» button on Home from `GET /match/active` (D42).
+Not in the app yet: price-guess round inside a duel.

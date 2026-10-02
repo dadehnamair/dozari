@@ -1,5 +1,7 @@
 import { useEffect, useReducer, useRef, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import type { TauntCategory } from '@dozari/shared';
+import { fetchTaunts } from '../chat/api';
 import { Board } from '../components/Board';
 import { CandyButton } from '../components/CandyButton';
 import { Confetti } from '../components/Confetti';
@@ -21,6 +23,8 @@ export function DuelScreen({ onBack, resume = false }: { onBack: () => void; /**
   const [state, dispatch] = useReducer(duelReducer, initialDuel);
   const [selected, setSelected] = useState<string[]>([]);
   const [now, setNow] = useState(Date.now());
+  const [taunts, setTaunts] = useState<TauntCategory[]>([]);
+  const [tauntOpen, setTauntOpen] = useState(false);
   const conn = useRef<DuelConnection | null>(null);
 
   useEffect(() => {
@@ -38,6 +42,14 @@ export function DuelScreen({ onBack, resume = false }: { onBack: () => void; /**
     };
   }, [resume]);
 
+  useEffect(() => {
+    fetchTaunts().then(setTaunts, () => undefined);
+  }, []);
+  useEffect(() => {
+    if (!state.taunt) return;
+    const id = setTimeout(() => dispatch({ t: 'clearTaunt' }), 4000);
+    return () => clearTimeout(id);
+  }, [state.taunt]);
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 500);
     return () => clearInterval(id);
@@ -100,12 +112,14 @@ export function DuelScreen({ onBack, resume = false }: { onBack: () => void; /**
             {view.lockedOut[me] ? fa.duel.lockedOut : mine ? fa.duel.yourTurn : fa.duel.theirTurn} · {fa.duel.seconds(turnSecondsLeft(view, now))}
           </Text>
         ) : null}
+        {state.taunt ? <Text style={styles.taunt}>{state.taunt.from}: {state.taunt.text}</Text> : null}
         <View style={styles.flashSlot}>{state.flash ? <Text style={styles.flash}>{fa.duel.feedback[state.flash]}</Text> : null}</View>
         <Board solved={boardSolved(view)} cards={view.cards} names={state.names} selected={selected} onToggle={(id) => (playSfx('tap'), setSelected((s) => toggleSelection(s, id)))} disabled={!playing || !mine} />
         {playing ? (
           <View style={styles.actions}>
             <CandyButton label={fa.duel.deselect} color={colors.candy.grape} onPress={() => setSelected([])} disabled={selected.length === 0} />
             <CandyButton label={fa.duel.submit} color={colors.candy.lime} onPress={submit} disabled={!canSubmit(selected) || !mine} />
+            {taunts.length > 0 ? <CandyButton label={fa.duel.taunts} color={colors.candy.pink} onPress={() => setTauntOpen((v) => !v)} /> : null}
             <CandyButton label={fa.duel.leave} color={colors.candy.orange} onPress={() => (void conn.current?.leave(), undefined)} />
           </View>
         ) : state.ended ? (
@@ -113,6 +127,13 @@ export function DuelScreen({ onBack, resume = false }: { onBack: () => void; /**
             <Text style={styles.msg}>{fa.duel[myOutcome(state.ended, me)]}</Text>
             <Text style={styles.sub}>{fa.duel.reasons[state.ended.result.reason] ?? ''}</Text>
             <CandyButton label={fa.duel.back} color={colors.candy.sky} onPress={onBack} />
+          </View>
+        ) : null}
+        {tauntOpen && playing ? (
+          <View style={styles.tauntBox}>
+            {(taunts[0]?.taunts ?? []).map((t) => (
+              <Pressable key={t.id} onPress={() => (void conn.current?.taunt(t.id), setTauntOpen(false))} style={styles.tauntChip} accessibilityRole="button"><Text style={styles.tauntText}>{t.text}</Text></Pressable>
+            ))}
           </View>
         ) : null}
       </ScrollView>
@@ -129,6 +150,10 @@ const styles = StyleSheet.create({
   score: { fontFamily: 'Vazirmatn_700Bold', fontSize: 28, color: colors.candy.yellow },
   turn: { fontFamily: 'Vazirmatn_700Bold', fontSize: 14, color: colors.cream, opacity: 0.85 },
   turnMine: { color: colors.candy.lime, opacity: 1 },
+  taunt: { fontFamily: 'Vazirmatn_700Bold', fontSize: 14, color: colors.candy.pink, textAlign: 'center' },
+  tauntBox: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
+  tauntChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, borderWidth: 2, borderColor: '#3A2418', backgroundColor: '#E8D5FF' },
+  tauntText: { fontFamily: 'Vazirmatn_700Bold', fontSize: 13, color: '#3A2418' },
   flashSlot: { height: 26, justifyContent: 'center' },
   flash: { fontFamily: 'Vazirmatn_700Bold', fontSize: 18, color: colors.candy.yellow },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginTop: 8 },
