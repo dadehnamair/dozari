@@ -8,5 +8,6 @@ import { Platform } from 'react-native';
 export const safeTop = (extra: number): number =>
   Platform.OS === 'web' ? (`calc(${extra}px + env(safe-area-inset-top, 0px))` as unknown as number) : extra;
 
-/** The inset alone (for a container that sits above full-bleed art). */
-export const safeInsetTop = (): number => safeTop(0);
+/** Space below content, above the home-indicator strip. */
+export const safeBottom = (extra: number): number =>
+  Platform.OS === 'web' ? (`calc(${extra}px + env(safe-area-inset-bottom, 0px))` as unknown as number) : extra;

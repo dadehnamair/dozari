@@ -8,6 +8,7 @@ import { SlabButton } from '../components/SlabButton';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { characterFor } from './arena';
+import { safeBottom, safeTop } from '../theme/safeArea';
 
 const a = fa.duel.arena;
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
@@ -99,7 +100,7 @@ function Fighter({ who, pose, name, level, side }: { who: 'dozari' | ReturnType<
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.ink, overflow: 'hidden' },
-  top: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', paddingTop: 24, paddingBottom: 70, gap: 10 },
+  top: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', paddingTop: safeTop(24), paddingBottom: 70, gap: 10 },
   bottom: { flex: 1, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 60 },
   chip: { paddingHorizontal: 16, paddingVertical: 4, borderRadius: 99, backgroundColor: 'rgba(43,18,64,0.7)', borderWidth: 2, borderColor: 'rgba(255,255,255,0.35)' },
   chipText: { fontFamily: fonts.display, fontSize: 16, color: colors.cream },
@@ -115,7 +116,7 @@ const styles = StyleSheet.create({
   name: { fontFamily: fonts.display, fontSize: 17, color: colors.ink, flexShrink: 1 },
   mystery: { width: 110, height: 110, borderRadius: 55, borderWidth: 4, borderColor: colors.ink, backgroundColor: 'rgba(43,18,64,0.35)', alignItems: 'center', justifyContent: 'center', marginTop: 24 },
   mysteryText: { fontFamily: fonts.display, fontSize: 60, lineHeight: 84, color: colors.cream },
-  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 14, paddingBottom: 28, gap: 8, alignItems: 'stretch', width: '100%', maxWidth: 480, alignSelf: 'center' },
+  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 14, paddingBottom: safeBottom(28), gap: 8, alignItems: 'stretch', width: '100%', maxWidth: 480, alignSelf: 'center' },
   waited: { fontFamily: fonts.bold, fontSize: 13, color: colors.cream, textAlign: 'center' },
   count: { height: 62, borderRadius: 20, backgroundColor: 'rgba(43,18,64,0.75)', borderWidth: 3, borderColor: colors.ink, flexDirection: ROW, alignItems: 'center', justifyContent: 'center', gap: 12 },
   countLabel: { fontFamily: fonts.bold, fontSize: 14, color: colors.cream },

@@ -26,6 +26,7 @@ import { recordGameFinished } from '../review/state';
 import { HintSheet } from '../shop/HintSheet';
 import { hintedCardIds, hintedTitles } from '../shop/hintView';
 import type { FeedbackKey } from './selection';
+import { safeBottom, safeTop } from '../theme/safeArea';
 
 type Phase = { kind: 'loading' } | { kind: 'error'; message: string; detail: string } | { kind: 'ready'; view: SoloView };
 
@@ -218,7 +219,7 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24, backgroundColor: '#4E2585' },
-  screen: { flexGrow: 1, paddingHorizontal: 12, paddingTop: 14, paddingBottom: 24, alignItems: 'center' },
+  screen: { flexGrow: 1, paddingHorizontal: 12, paddingTop: safeTop(14), paddingBottom: safeBottom(24), alignItems: 'center' },
   column: { width: '100%', maxWidth: 520, gap: 12 },
   hintBtn: { width: 42, height: 42, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.candy.orange, alignItems: 'center', justifyContent: 'center', marginBottom: 4, shadowColor: colors.ink, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4 },
   pressed: { transform: [{ translateY: 3 }] },

@@ -30,6 +30,7 @@ import { SearchScreen } from '../search/SearchScreen';
 import { Versus } from './Versus';
 import { fetchWheel } from '../wheel/api';
 import { WheelPage } from '../wheel/WheelPage';
+import { safeBottom, safeTop } from '../theme/safeArea';
 
 const FLASH_MS = 1500;
 /** The versus card stays up this long once a rival is found (the turn clock is 45s by default). */
@@ -291,7 +292,7 @@ const styles = StyleSheet.create({
   fill: { flex: 1 },
   wheelCta: { position: 'absolute', top: 54, right: 16, width: 150 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24 },
-  screen: { flexGrow: 1, paddingHorizontal: 10, paddingTop: 14, paddingBottom: 24, alignItems: 'center' },
+  screen: { flexGrow: 1, paddingHorizontal: 10, paddingTop: safeTop(14), paddingBottom: safeBottom(24), alignItems: 'center' },
   column: { width: '100%', maxWidth: 520, gap: 10 },
   bar: { flexDirection: ROW, alignItems: 'center', gap: 8 },
   square: { width: 42, height: 42, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', marginBottom: 4, ...lift },

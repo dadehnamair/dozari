@@ -6,6 +6,7 @@ import { Scene } from '../components/Scene';
 import { SlabButton } from '../components/SlabButton';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
+import { safeBottom, safeTop } from '../theme/safeArea';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const t = fa.tutorial;
@@ -80,7 +81,7 @@ const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#4E2585' },
   shade: { backgroundColor: 'rgba(26,8,44,0.55)' },
-  scroll: { flexGrow: 1, paddingHorizontal: 12, paddingTop: 20, paddingBottom: 24, alignItems: 'center' },
+  scroll: { flexGrow: 1, paddingHorizontal: 12, paddingTop: safeTop(20), paddingBottom: safeBottom(24), alignItems: 'center' },
   column: { flex: 1, width: '100%', maxWidth: 480 },
   top: { flexDirection: ROW, alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
   dots: { flexDirection: ROW, gap: 5 },
