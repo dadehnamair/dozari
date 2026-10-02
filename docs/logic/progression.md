@@ -24,6 +24,17 @@ is unchanged; this is a different axis (visible growth, not opponent selection).
 - Level-up triggers a small celebratory moment (toast + pop animation in the prototype; a
   confetti/share-card moment would be a nice Phase 6+ addition, not required at MVP).
 
+## Level rewards on the road (D117, proposed)
+
+- Every **5th level** (`levelreward.every`, 0 = off) pays coins once: `levelreward.base_coins × (level / every)` — with base 25: level 5 = 25,
+  level 10 = 50 … level 50 = 250 (1375 in all up to level 50). Both are admin settings (defaults `LEVEL_REWARD_*` in `config/progression.ts`).
+- The player takes them from the level road (`POST /me/levels/claim` pays every reached, untaken reward; `GET /me/levels` lists `rewards` with
+  `claimed`). A claim row per user + level (`level_reward_claims`) plus the idempotent ledger key `level_reward:<user>:<level>` make a double tap or
+  a second device pay nothing twice. Players already past a level can take its reward.
+- Shop tiers open along the same road: hint packs of 10 / 20 / 50 at levels 10 / 20 / 35 (`DEFAULT_SHOP_ITEMS`; defaults missing from the table are added
+  on start, admin edits of price and level stay). The road shows them as shop cards via the existing `minLevel` gate.
+- Needs the economy simulation: the road is a new faucet (~1375 coins over 50 levels, next to a 200-coin signup bonus).
+
 ## Puzzle difficulty scales with skill tier (D34)
 
 Reuses the **skill-rank tag** that already exists in `profile-and-identity.md` (تازه‌کار /

@@ -115,7 +115,8 @@ with a padlock. Cards beside a level show what it opens, from the real gates (`G
 personal invite code, gifts and loans, avatar change, nickname change, plus each active shop item with a
 level gate). Tapping a card of a future level opens **popup-locked**: the feature, «باز می‌شود در لول N»,
 the player's level and XP bar, «اینجا چی هست؟» and Ajan's line. The design's gem-unlock button has no
-counterpart (no gems) and is left out.
+counterpart (no gems) and is left out. D117 adds an XP header (level, bar, claim-all), a coin card on every 5th level
+(«بگیر!» → «گرفتی») and a «الان اینجایی» tag with a glowing current node.
 
 ## Leaderboard (D108)
 

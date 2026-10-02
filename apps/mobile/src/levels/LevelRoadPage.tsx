@@ -8,8 +8,8 @@ import { Icon } from '../components/Icon';
 import { Item } from '../components/Item';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
-import { fetchLevelRoad } from './api';
-import { levelProgress, roadNodes, xpToReach } from './road';
+import { claimLevelRewards, fetchLevelRoad } from './api';
+import { claimableCoins, levelProgress, roadNodes, xpToReach } from './road';
 import type { RoadNode } from './road';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
@@ -31,12 +31,26 @@ export function LevelRoadPage({ onClose }: { onClose: () => void }) {
   const [road, setRoad] = useState<LevelRoad | null>(null);
   const [failed, setFailed] = useState(false);
   const [locked, setLocked] = useState<{ unlock: Unlock } | null>(null);
+  const [claiming, setClaiming] = useState(false);
+  const [got, setGot] = useState<number | null>(null);
   const scroller = useRef<ScrollView>(null);
 
   useEffect(() => {
     fetchLevelRoad().then(setRoad, () => setFailed(true));
   }, []);
   const nodes = road ? roadNodes(road) : [];
+  const ready = road ? claimableCoins(road) : 0;
+  const claim = () => {
+    if (claiming || ready === 0) return;
+    setClaiming(true);
+    claimLevelRewards().then(
+      (out) => {
+        setGot(out.coins);
+        return fetchLevelRoad().then(setRoad);
+      },
+      () => setFailed(true),
+    ).finally(() => setClaiming(false));
+  };
   // Bring the current level into view once the road is drawn (the list runs from the top level down).
   useEffect(() => {
     if (!road) return;
@@ -63,25 +77,45 @@ export function LevelRoadPage({ onClose }: { onClose: () => void }) {
             <Text style={styles.plateText}>{fa.levels.title}</Text>
           </View>
         </View>
+        {road ? (
+          <View style={styles.xpBox}>
+            <View style={styles.xpHead}>
+              <Text style={styles.xpLevel}>{fa.levels.popup.yours(road.level)}</Text>
+              <Text style={styles.xpText}>{road.xpForNext === 0 ? fa.levels.maxLevel : fa.levels.xpOf(road.xpInLevel, road.xpForNext)}</Text>
+            </View>
+            <View style={styles.xpBar}><View style={[styles.xpFill, { width: `${Math.round(levelProgress(road) * 100)}%` }]} /></View>
+            {ready > 0 ? (
+              <Pressable accessibilityRole="button" onPress={claim} disabled={claiming} style={({ pressed }) => [styles.claimAll, pressed ? styles.pressed : null]}>
+                <GradientFill from="#B8F08F" to="#5DBB3C" />
+                <Text style={styles.claimAllText}>{fa.levels.claimAll(ready)}</Text>
+              </Pressable>
+            ) : null}
+          </View>
+        ) : null}
         {failed ? <Text style={styles.note}>{fa.levels.error}</Text> : null}
         <ScrollView ref={scroller} contentContainerStyle={styles.road} showsVerticalScrollIndicator={false}>
           {nodes.map((node, i) => (
-            <Row key={node.level} node={node} index={i} onLocked={(unlock) => setLocked({ unlock })} />
+            <Row key={node.level} node={node} index={i} reached={road ? node.level <= road.level : false} onLocked={(unlock) => setLocked({ unlock })} onClaim={claim} />
           ))}
         </ScrollView>
       </View>
+      {got !== null ? (
+        <Pressable style={styles.overlay} onPress={() => setGot(null)} accessibilityLabel={fa.levels.popup.ok}>
+          <View style={styles.gotBox}><View style={styles.gotIcon}><Item icon="coinStack" /></View><Text style={styles.gotText}>{fa.levels.got(got)}</Text></View>
+        </Pressable>
+      ) : null}
       {locked && road ? <LockedPopup road={road} unlock={locked.unlock} onClose={() => setLocked(null)} /> : null}
     </View>
   );
 }
 
-function Row({ node, index, onLocked }: { node: RoadNode; index: number; onLocked: (u: Unlock) => void }) {
+function Row({ node, index, reached, onLocked, onClaim }: { node: RoadNode; index: number; reached: boolean; onLocked: (u: Unlock) => void; onClaim: () => void }) {
   // Cards alternate sides so a busy road does not stack on one edge.
   const cardOnStart = index % 2 === 0;
   const dim = node.state === 'locked';
   return (
     <View style={styles.row}>
-      <View style={[styles.side, styles.sideStart]}>{cardOnStart ? <Cards node={node} dim={dim} onLocked={onLocked} /> : node.state === 'current' ? <Hero /> : null}</View>
+      <View style={[styles.side, styles.sideStart]}>{cardOnStart ? <Cards node={node} dim={dim} reached={reached} onLocked={onLocked} onClaim={onClaim} /> : node.state === 'current' ? <Hero /> : null}</View>
       <View style={styles.mid}>
         <View style={styles.path} />
         <View style={[styles.node, node.state === 'done' ? styles.nodeDone : node.state === 'current' ? styles.nodeCurrent : styles.nodeLocked]}>
@@ -89,9 +123,9 @@ function Row({ node, index, onLocked }: { node: RoadNode; index: number; onLocke
           {node.state === 'done' ? <View style={styles.tick}><Icon name="check" size={13} color="#fff" strokeWidth={4} /></View> : null}
           {dim ? <View style={styles.lockBadge}><Item icon="lock" /></View> : null}
         </View>
-        {node.state === 'current' ? <Text style={styles.youTag}>{fa.levels.you}</Text> : null}
+        {node.state === 'current' ? <Text style={styles.youTag}>{fa.levels.hereNow}</Text> : null}
       </View>
-      <View style={[styles.side, styles.sideEnd]}>{!cardOnStart ? <Cards node={node} dim={dim} onLocked={onLocked} /> : node.state === 'current' ? <Hero /> : null}</View>
+      <View style={[styles.side, styles.sideEnd]}>{!cardOnStart ? <Cards node={node} dim={dim} reached={reached} onLocked={onLocked} onClaim={onClaim} /> : node.state === 'current' ? <Hero /> : null}</View>
     </View>
   );
 }
@@ -105,12 +139,23 @@ function Hero() {
   );
 }
 
-function Cards({ node, dim, onLocked }: { node: RoadNode; dim: boolean; onLocked: (u: Unlock) => void }) {
-  if (node.unlocks.length === 0) return null;
+function Cards({ node, dim, reached, onLocked, onClaim }: { node: RoadNode; dim: boolean; reached: boolean; onLocked: (u: Unlock) => void; onClaim: () => void }) {
+  if (node.unlocks.length === 0 && !node.reward) return null;
+  const room = node.reward ? 1 : 2;
+  const r = node.reward;
   return (
     <View style={styles.cards}>
-      {node.unlocks.length > 2 ? <Text style={styles.more}>{`+${n(node.unlocks.length - 2)}`}</Text> : null}
-      {node.unlocks.slice(0, 2).map((u, i) => {
+      {r ? (
+        <Pressable onPress={reached && !r.claimed ? onClaim : undefined} disabled={!reached || r.claimed} accessibilityRole={reached && !r.claimed ? 'button' : 'text'} accessibilityLabel={fa.levels.rewardTitle} style={[styles.card, styles.cardReward, !reached ? styles.cardDim : null]}>
+          <View style={styles.cardIcon}><View style={[styles.cardIconInner, !reached ? styles.gray : null]}><Item icon="coinStack" /></View></View>
+          <View style={styles.cardText}>
+            <Text style={styles.cardTitle} numberOfLines={1}>{fa.levels.coins(r.coins)}</Text>
+            <Text style={[styles.cardSub, r.claimed ? styles.cardDone : reached ? styles.cardClaim : null]} numberOfLines={1}>{r.claimed ? fa.levels.claimed : reached ? fa.levels.claim : fa.levels.fromLevel(node.level)}</Text>
+          </View>
+        </Pressable>
+      ) : null}
+      {node.unlocks.length > room ? <Text style={styles.more}>{`+${n(node.unlocks.length - room)}`}</Text> : null}
+      {node.unlocks.slice(0, room).map((u, i) => {
         const v = view(u);
         return (
           <Pressable key={`${u.kind}-${i}`} onPress={dim ? () => onLocked(u) : undefined} disabled={!dim} accessibilityRole={dim ? 'button' : 'text'} accessibilityLabel={v.title} style={[styles.card, dim ? styles.cardDim : null]}>
@@ -189,7 +234,7 @@ const styles = StyleSheet.create({
   path: { position: 'absolute', top: 0, bottom: 0, width: 30, backgroundColor: '#F6E2C2', borderLeftWidth: 4, borderRightWidth: 4, borderColor: colors.ink },
   node: { width: 52, height: 52, borderRadius: 26, borderWidth: 4, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center', ...lift(5) },
   nodeDone: { backgroundColor: '#FFC93C' },
-  nodeCurrent: { backgroundColor: '#FFE48A', transform: [{ scale: 1.15 }] },
+  nodeCurrent: { backgroundColor: '#FFE48A', transform: [{ scale: 1.25 }], shadowColor: colors.candy.yellow, shadowOpacity: 1, shadowRadius: 14, borderColor: colors.ink },
   nodeLocked: { backgroundColor: '#B6A5CF' },
   nodeText: { fontFamily: fonts.display, fontSize: 22, color: colors.ink },
   nodeTextDim: { color: '#5A4A7A' },
@@ -208,6 +253,19 @@ const styles = StyleSheet.create({
   cardTitle: { fontFamily: fonts.display, fontSize: 13, color: colors.ink, textAlign: 'right' },
   cardSub: { fontFamily: fonts.bold, fontSize: 9.5, color: '#7E46D6', textAlign: 'right' },
   cardDone: { color: '#3FA36B' },
+  cardReward: { backgroundColor: '#FFF1B8' },
+  cardClaim: { color: '#E8743B' },
+  xpBox: { marginHorizontal: 14, marginBottom: 6, gap: 4 },
+  xpHead: { flexDirection: ROW, justifyContent: 'space-between' },
+  xpLevel: { fontFamily: fonts.display, fontSize: 16, color: colors.cream },
+  xpText: { fontFamily: fonts.bold, fontSize: 12, color: colors.cream },
+  xpBar: { height: 16, borderRadius: 99, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#E8D2B0', overflow: 'hidden' },
+  xpFill: { position: 'absolute', top: 0, bottom: 0, left: 0, backgroundColor: colors.candy.yellow },
+  claimAll: { height: 44, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', marginTop: 4, ...lift(4) },
+  claimAllText: { fontFamily: fonts.display, fontSize: 18, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
+  gotBox: { marginTop: 80, alignItems: 'center', gap: 12 },
+  gotIcon: { width: 130, height: 130 },
+  gotText: { fontFamily: fonts.display, fontSize: 28, color: colors.candy.yellow, textAlign: 'center' },
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 30, backgroundColor: 'rgba(26,8,44,0.72)', alignItems: 'center', paddingTop: 90, paddingHorizontal: 18 },
   popup: { width: '100%', maxWidth: 380, borderRadius: 28, borderWidth: 4, borderColor: colors.ink, backgroundColor: '#FBF1DE', alignItems: 'center', paddingHorizontal: 14, paddingBottom: 14, gap: 8, ...lift(8) },
   popIcon: { marginTop: -30, width: 100, height: 100, borderRadius: 50, borderWidth: 4, borderColor: colors.ink, backgroundColor: '#3C1A66', alignItems: 'center', justifyContent: 'center' },

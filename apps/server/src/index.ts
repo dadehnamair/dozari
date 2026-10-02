@@ -94,6 +94,7 @@ import { registerCoinPackageRoutes } from './economy/coin-packages-routes.js';
 import { createDbCoinPackageStore } from './economy/coin-packages-store.js';
 import { registerShopRoutes } from './economy/shop-routes.js';
 import { LevelRoadService, registerRoadRoutes } from './progress/road.js';
+import { createDbRewardStore } from './progress/rewards-store.js';
 import { ShopService } from './economy/shop.js';
 import { createDbShopStore } from './economy/shop-store.js';
 import { HintService } from './solo/hints.js';
@@ -546,6 +547,9 @@ if (isMainModule(import.meta.url)) {
               return { hint, invite, transfer, avatar, nickname };
             },
             shopItems: async () => (shopStore ? shopStore.items() : []),
+            rewardRules: async () => ({ every: await settings.num('levelreward.every'), base: await settings.num('levelreward.base_coins') }),
+            claimedLevels: (id) => (db ? createDbRewardStore(db).claimedLevels(id) : Promise.resolve([])),
+            payRewards: (id, rewards) => (db ? createDbRewardStore(db).payRewards(id, rewards) : Promise.resolve({ paid: [], balance: 0 })),
           })
         : undefined,
     coinPackages: coinPackageService,

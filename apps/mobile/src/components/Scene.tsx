@@ -17,7 +17,9 @@ import Svg, {
   Stop,
   Text as SvgText,
 } from 'react-native-svg';
+import { usePrefs } from '../prefs/store';
 import { fonts } from '../theme/colors';
+import { Drift, Glow, Sway } from './sceneMotion';
 
 export const SCENES = ['bazaar', 'alley', 'hojre', 'caravan', 'win'] as const;
 export type SceneName = (typeof SCENES)[number];
@@ -35,6 +37,7 @@ const rays = () => {
   return d;
 };
 const RAYS = rays();
+const CLOUD = 'M-40 6 C-52 4 -50 -14 -36 -12 C-34 -26 -14 -28 -8 -16 C-2 -28 22 -26 22 -12 C38 -16 46 2 32 8 C30 18 12 18 6 10 C0 18 -18 18 -22 10 C-30 16 -42 14 -40 6Z';
 const FLAG_COLORS = ['#FF4D8D', '#3FC1F0', '#7ED957', '#A66BF0', '#FFF6E8'];
 const FLAGS = Array.from({ length: 11 }, (_, i) => {
   const t = (i + 0.5) / 11;
@@ -54,6 +57,8 @@ interface Props {
   height?: DimensionValue;
   /** Pencil-wobble filter of the design: on for the web, off on native until filters are verified there. */
   wobble?: boolean;
+  /** Clouds drift, lanterns glow, the palm sways. Defaults to on unless the player chose reduced motion. */
+  animated?: boolean;
 }
 
 /** Painted backgrounds (docs/design/Dozari - 02 Backgrounds.dc.html, Scene.dc.html), 390 x 844 canvas, cropped to fill. */
@@ -63,7 +68,10 @@ export function Scene({
   width = '100%',
   height = '100%',
   wobble = Platform.OS === 'web',
+  animated: animatedProp,
 }: Props) {
+  const reduce = usePrefs().reduceMotion;
+  const animated = animatedProp ?? !reduce;
   const u = useId().replace(/[^a-zA-Z0-9]/g, '');
   return (
     <View
@@ -146,7 +154,7 @@ export function Scene({
           strokeLinejoin="round"
           strokeLinecap="round"
         >
-          {paint(scene, u)}
+          {paint(scene, u, animated)}
         </G>
         {mood === 'dusk' ? <Rect width={390} height={844} fill="#27306E" opacity={0.5} /> : null}
       </Svg>
@@ -154,7 +162,7 @@ export function Scene({
   );
 }
 
-function paint(scene: SceneName, u: string) {
+function paint(scene: SceneName, u: string, animated: boolean) {
   switch (scene) {
     case 'bazaar':
       return (
@@ -162,18 +170,15 @@ function paint(scene: SceneName, u: string) {
           <Rect width={390} height={844} fill={`url(#${u}skyA)`} stroke="none" />
           <Circle cx={300} cy={150} r={110} fill={`url(#${u}lg)`} stroke="none" opacity={0.7} />
           <G fill="#FFFFFF" stroke="#7DBFC2" strokeWidth={2.2}>
-            <Path
-              transform="translate(86 140)"
-              d="M-40 6 C-52 4 -50 -14 -36 -12 C-34 -26 -14 -28 -8 -16 C-2 -28 22 -26 22 -12 C38 -16 46 2 32 8 C30 18 12 18 6 10 C0 18 -18 18 -22 10 C-30 16 -42 14 -40 6Z"
-            />
-            <Path
-              transform="translate(300 260) scale(.75)"
-              d="M-40 6 C-52 4 -50 -14 -36 -12 C-34 -26 -14 -28 -8 -16 C-2 -28 22 -26 22 -12 C38 -16 46 2 32 8 C30 18 12 18 6 10 C0 18 -18 18 -22 10 C-30 16 -42 14 -40 6Z"
-            />
-            <Path
-              transform="translate(170 350) scale(.55)"
-              d="M-40 6 C-52 4 -50 -14 -36 -12 C-34 -26 -14 -28 -8 -16 C-2 -28 22 -26 22 -12 C38 -16 46 2 32 8 C30 18 12 18 6 10 C0 18 -18 18 -22 10 C-30 16 -42 14 -40 6Z"
-            />
+            <Drift from={-156} to={374} dur={70} begin={-20.6} animated={animated}>
+              <Path transform="translate(86 140)" d={CLOUD} />
+            </Drift>
+            <Drift from={-370} to={160} dur={55} begin={-38.4} animated={animated}>
+              <Path transform="translate(300 260) scale(.75)" d={CLOUD} />
+            </Drift>
+            <Drift from={-240} to={290} dur={85} begin={-38.5} animated={animated}>
+              <Path transform="translate(170 350) scale(.55)" d={CLOUD} />
+            </Drift>
           </G>
           <G fill="#E8CBB6" stroke="#C7A08B" strokeWidth={2}>
             <Path d="M0 470 V440 h60 v-10 h30 v10 h40 V470Z M260 470 V436 h50 v-10 h30 v10 h60 V470Z" />
@@ -296,17 +301,17 @@ function paint(scene: SceneName, u: string) {
           </SvgText>
           <Path d="M122 500 Q195 556 268 500" fill="none" strokeWidth={1.6} />
           <G transform="translate(158 522)">
-            <Circle cy={16} r={20} fill={`url(#${u}lg)`} stroke="none" />
+            <Glow r={20} radii={[20,23,19,22,20]} dur={1.3} fill={`url(#${u}lg)`} animated={animated} />
             <Path d="M0 0 v5" fill="none" />
             <Path d="M-7 5 C-10 14 -7 23 0 25 C7 23 10 14 7 5Z" fill="#FF5C8A" />
           </G>
           <G transform="translate(195 528)">
-            <Circle cy={16} r={22} fill={`url(#${u}lg)`} stroke="none" />
+            <Glow r={22} radii={[22,25,21,24,22]} dur={1.7} fill={`url(#${u}lg)`} animated={animated} />
             <Path d="M0 0 v5" fill="none" />
             <Path d="M-8 5 C-11 15 -8 25 0 27 C8 25 11 15 8 5Z" fill="#FFC93C" />
           </G>
           <G transform="translate(232 522)">
-            <Circle cy={16} r={20} fill={`url(#${u}lg)`} stroke="none" />
+            <Glow r={20} radii={[20,22,19,23,20]} dur={1.1} fill={`url(#${u}lg)`} animated={animated} />
             <Path d="M0 0 v5" fill="none" />
             <Path d="M-7 5 C-10 14 -7 23 0 25 C7 23 10 14 7 5Z" fill="#3FC1F0" />
           </G>
@@ -348,14 +353,12 @@ function paint(scene: SceneName, u: string) {
         <>
           <Rect width={390} height={844} fill={`url(#${u}skyB)`} stroke="none" />
           <G fill="#FFFFFF" stroke="#4E9E9E" strokeWidth={2.2}>
-            <Path
-              transform="translate(300 130)"
-              d="M-40 6 C-52 4 -50 -14 -36 -12 C-34 -26 -14 -28 -8 -16 C-2 -28 22 -26 22 -12 C38 -16 46 2 32 8 C30 18 12 18 6 10 C0 18 -18 18 -22 10 C-30 16 -42 14 -40 6Z"
-            />
-            <Path
-              transform="translate(80 300) scale(.7)"
-              d="M-40 6 C-52 4 -50 -14 -36 -12 C-34 -26 -14 -28 -8 -16 C-2 -28 22 -26 22 -12 C38 -16 46 2 32 8 C30 18 12 18 6 10 C0 18 -18 18 -22 10 C-30 16 -42 14 -40 6Z"
-            />
+            <Drift from={-370} to={160} dur={60} begin={-41.9} animated={animated}>
+              <Path transform="translate(300 130)" d={CLOUD} />
+            </Drift>
+            <Drift from={-150} to={380} dur={75} begin={-21.2} animated={animated}>
+              <Path transform="translate(80 300) scale(.7)" d={CLOUD} />
+            </Drift>
           </G>
           <Path
             d="M0 520 V478 h50 v-14 h40 v14 h30 V520Z M110 520 C110 478 172 478 172 520Z M260 520 V470 h40 v-22 h14 v22 h76 V520Z"
@@ -437,11 +440,11 @@ function paint(scene: SceneName, u: string) {
           />
           <Path d="M60 108 v40 M330 108 v40" fill="none" strokeWidth={1.8} />
           <G transform="translate(60 148)">
-            <Circle cy={16} r={26} fill={`url(#${u}lg)`} stroke="none" />
+            <Glow r={26} radii={[26,29,25,28,26]} dur={1.4} fill={`url(#${u}lg)`} animated={animated} />
             <Path d="M-9 0 C-12 14 -9 26 0 28 C9 26 12 14 9 0Z" fill="#FF5C8A" />
           </G>
           <G transform="translate(330 148)">
-            <Circle cy={16} r={26} fill={`url(#${u}lg)`} stroke="none" />
+            <Glow r={26} radii={[26,29,25,28,26]} dur={1.9} fill={`url(#${u}lg)`} animated={animated} />
             <Path d="M-9 0 C-12 14 -9 26 0 28 C9 26 12 14 9 0Z" fill="#7ED957" />
           </G>
           <Path d="M0 740 h390 v104 h-390Z" fill="#B8743E" />
@@ -466,10 +469,9 @@ function paint(scene: SceneName, u: string) {
           <Rect width={390} height={844} fill={`url(#${u}skyB)`} stroke="none" />
           <Circle cx={90} cy={170} r={70} fill={`url(#${u}lg)`} stroke="none" />
           <G fill="#FFFFFF" stroke="#4E9E9E" strokeWidth={2.2}>
-            <Path
-              transform="translate(280 200)"
-              d="M-40 6 C-52 4 -50 -14 -36 -12 C-34 -26 -14 -28 -8 -16 C-2 -28 22 -26 22 -12 C38 -16 46 2 32 8 C30 18 12 18 6 10 C0 18 -18 18 -22 10 C-30 16 -42 14 -40 6Z"
-            />
+            <Drift from={-350} to={180} dur={50} begin={-33} animated={animated}>
+              <Path transform="translate(280 200)" d={CLOUD} />
+            </Drift>
           </G>
           <Path
             d="M250 580 V520 h24 v-20 C274 480 304 480 304 500 v20 h22 v-40 h10 v-16 l6 -10 l6 10 v16 h10 v120Z"
@@ -483,6 +485,7 @@ function paint(scene: SceneName, u: string) {
             fill="#E07A4A"
           />
           <Path d="M150 470 l-10 22 h10Z M40 520 h26 M124 560 h26" fill="#C4562E" strokeWidth={2} />
+          <Sway x={300} y={650} dur={4} animated={animated}>
           <Path
             d="M300 650 C296 610 304 570 300 530"
             stroke="#4A2E1E"
@@ -499,6 +502,7 @@ function paint(scene: SceneName, u: string) {
             d="M300 530 C280 510 254 514 244 530 C264 522 284 524 300 532Z M300 530 C320 508 346 512 356 528 C336 520 316 522 300 532Z M300 528 C292 504 300 488 314 484 C306 498 304 512 302 528Z M300 530 C284 520 272 540 270 556 C280 544 290 536 300 532Z"
             fill="#3FA36B"
           />
+          </Sway>
           <Path d="M0 690 C120 650 260 710 390 668 V844 H0Z" fill="#E9B46A" />
           <Path
             d="M30 720 q40 -10 80 0 M210 740 q50 -12 100 0 M90 790 q40 -10 80 0"

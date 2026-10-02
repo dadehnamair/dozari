@@ -339,6 +339,7 @@ export const LEDGER_REASONS = [
   'match_consolation',
   'broke_rescue',
   'wheel_spin',
+  'level_reward',
 ] as const;
 
 /** Append-only. Coins move only through the server's ledger function; a repeated idempotency key is a no-op. */
@@ -1079,6 +1080,17 @@ export const wheelSpins = mysqlTable(
     spunAt: datetime('spun_at', { mode: 'date', fsp: 3 }),
   },
   (t) => ({ onePerMatch: uniqueIndex('wheel_spins_user_match').on(t.userId, t.matchId), pending: index('wheel_spins_pending').on(t.userId, t.spunAt) }),
+);
+
+/** Level-road coin rewards a player has taken (docs/logic/progression.md §Level rewards). */
+export const levelRewardClaims = mysqlTable(
+  'level_reward_claims',
+  {
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    level: int('level').notNull(),
+    claimedAt: datetime('claimed_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.userId, t.level] }) }),
 );
 
 /** One attempt per player per day. */
