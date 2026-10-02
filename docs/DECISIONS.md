@@ -293,3 +293,7 @@ Owner: «چت شهر باشه، چت کلی هم باشه». A second public roo
 ## D104 — Search screen while queueing (2026-10-02)
 
 Owner: while searching show `screen-search` (diamond), and once a rival is found the 3-second `screen-versus`. The duel now shows the existing `SearchScreen` (with the real queue wait on its clock) until a match is found, then `Versus` counts down. Versus no longer has a searching state in the duel flow.
+
+## D105 — Shop from the design (2026-10-02)
+
+The shop page follows `screen-shop` (see `app-screens.md` §Shop). Departures: only the hint-token tab is live; the other five tabs are shown dimmed with «به‌زودی» rather than left out, so the page keeps the design's shape and the roadmap is visible; the Yalda offer banner (timed bundle) is left out until offers exist.

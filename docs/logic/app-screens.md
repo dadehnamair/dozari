@@ -89,6 +89,15 @@ by nickname, incoming requests with accept / decline, then one card per friend (
 tap for their profile — and a gift button that opens the coin gift). The mock-up's online status and
 per-friend duel button need presence and direct challenges, which do not exist yet; they are left out.
 
+## Shop (D105)
+
+screen-shop of `17 Chat Shop Unlocks`: the hujre scene under a dark veil, the yellow «حجرهٔ دوزاری»
+plate with the coin count, six tabs (سکه، جم، کمکی، لباس، آواتار، ویژه) and a two-column grid of goods.
+Only «کمکی» has goods today (hint tokens, bought with coins; level gate and daily limit show on the
+card, a locked card is veiled with a padlock); the other tabs are dimmed and say «به‌زودی» — coin
+packs wait on the payment decision, gems/outfits/avatars/offers on their own features. A purchase
+ends in the «مال خودت شد!» card.
+
 ## City page (D101)
 
 «شهر من», opened from the city row of the profile: the badge grid of `18 Provinces` — an «ایران»

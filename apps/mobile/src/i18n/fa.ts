@@ -619,6 +619,12 @@ export const fa = {
     bought: 'خریدی شد!',
     error: 'نتوانستیم فروشگاه را بگیریم.',
     close: 'بستن',
+    room: 'حجرهٔ دوزاری',
+    tabs: { coins: 'سکه', gems: 'جم', boost: 'کمکی', outfit: 'لباس', avatar: 'آواتار', offer: 'ویژه' },
+    soon: 'این بخش به‌زودی باز می‌شود.',
+    soonTag: 'به‌زودی',
+    ownedNow: 'مال خودت شد!',
+    free: 'رایگان',
   },
   inbox: {
     open: 'پیام‌ها',
