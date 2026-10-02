@@ -17,6 +17,7 @@ import { InboxSheet } from '../inbox/InboxSheet';
 import { useInbox } from '../inbox/useInbox';
 import { BaleSheet } from '../bale/BaleSheet';
 import { ShopSheet } from '../shop/ShopSheet';
+import { ChatSheet } from '../chat/ChatSheet';
 import { Toast } from '../components/Toast';
 import { Wordmark } from '../components/Wordmark';
 import { useDailyReward } from '../daily/useDailyReward';
@@ -31,6 +32,7 @@ export function HomeScreen({ onSolo, onLookup, onGallery, features = OPEN_CONFIG
   const [dailyOpen, setDailyOpen] = useState(false);
   const [baleOpen, setBaleOpen] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
   const [inboxOpen, setInboxOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [gender, setGender] = useState<Gender | null>(null);
@@ -94,6 +96,7 @@ export function HomeScreen({ onSolo, onLookup, onGallery, features = OPEN_CONFIG
           </Text>
           <CandyButton label={fa.home.soloButton} color={colors.candy.yellow} onPress={onSolo} />
           {features.lookup ? <CandyButton label={fa.home.lookupButton} color={colors.candy.lime} onPress={onLookup} /> : null}
+          {features.chat ? <CandyButton label={fa.chat.open} color={colors.candy.sky} onPress={() => setChatOpen(true)} /> : null}
           {features.shop ? <CandyButton label={fa.shop.open} color={colors.candy.orange} onPress={() => setShopOpen(true)} /> : null}
           {features.bale ? <CandyButton label={fa.bale.open} color={colors.candy.grape} onPress={() => setBaleOpen(true)} /> : null}
           {onGallery ? (
@@ -122,6 +125,7 @@ export function HomeScreen({ onSolo, onLookup, onGallery, features = OPEN_CONFIG
       {review.open && review.url ? <ReviewSheet message={review.message} url={review.url} onReview={review.onReview} onLater={review.onLater} onNever={review.onNever} /> : null}
       {profileOpen ? <ProfileSheet onClose={() => setProfileOpen(false)} onGender={setGender} /> : null}
       {inboxOpen ? <InboxSheet inbox={inbox.inbox} failed={inbox.failed} onRead={inbox.markRead} onReadAll={inbox.markAll} onClose={() => setInboxOpen(false)} /> : null}
+      {chatOpen ? <ChatSheet onClose={() => setChatOpen(false)} /> : null}
       {shopOpen ? <ShopSheet onClose={() => { setShopOpen(false); daily.reload(); }} /> : null}
       {baleOpen ? <BaleSheet onClose={() => setBaleOpen(false)} /> : null}
     </SceneBackground>

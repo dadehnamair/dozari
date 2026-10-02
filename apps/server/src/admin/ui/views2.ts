@@ -440,6 +440,55 @@ VIEWS.badges = function (root) {
   ]));
   draw();
 };
+VIEWS.taunts = function (root) {
+  var list = h('div');
+  function draw() {
+    api('/admin/taunts').then(function (r) {
+      clear(list);
+      if (r.status === 404) return list.appendChild(empty('کل‌کل‌ها روی این سرور فعال نیست'));
+      if (!r.ok) return fail(r);
+      r.body.categories.forEach(function (c) {
+        var name = h('input', { type: 'text', value: c.nameFa, maxlength: 40 }), text = h('input', { type: 'text', placeholder: 'کل‌کل تازه…', maxlength: 120, style: 'flex:1' });
+        var body = h('div', { style: 'display:flex;flex-direction:column;gap:6px;margin-top:8px' });
+        c.taunts.forEach(function (t) {
+          var tx = h('input', { type: 'text', value: t.text, maxlength: 120, style: 'flex:1' });
+          body.appendChild(h('div', { style: 'display:flex;gap:6px;align-items:center' }, [tx, t.isActive ? null : badge('پنهان', 'b-warn'),
+            h('button', { class: 'btn sm', text: 'ذخیره', onclick: function () { api('/admin/taunts/' + t.id, { method: 'PATCH', body: { text: tx.value.trim() } }).then(function (x) { if (!x.ok) return fail(x); toast('ذخیره شد'); draw(); }); } }),
+            h('button', { class: 'btn sm', text: t.isActive ? 'پنهان' : 'نمایش', onclick: function () { api('/admin/taunts/' + t.id, { method: 'PATCH', body: { isActive: !t.isActive } }).then(function (x) { if (!x.ok) return fail(x); draw(); }); } })]));
+        });
+        body.appendChild(h('div', { style: 'display:flex;gap:6px' }, [text, h('button', { class: 'btn primary sm', text: 'افزودن', onclick: function () { api('/admin/taunts', { method: 'POST', body: { categoryId: c.id, text: text.value.trim() } }).then(function (x) { if (!x.ok) return fail(x); draw(); }); } })]));
+        list.appendChild(h('div', { class: 'card', style: 'padding:12px' }, [
+          h('div', { style: 'display:flex;gap:8px;align-items:center' }, [name, c.isActive ? null : badge('پنهان', 'b-warn'),
+            h('button', { class: 'btn sm', text: 'تغییر نام', onclick: function () { api('/admin/taunt-categories/' + c.id, { method: 'PATCH', body: { nameFa: name.value.trim() } }).then(function (x) { if (!x.ok) return fail(x); toast('ذخیره شد'); draw(); }); } }),
+            h('button', { class: 'btn sm', text: c.isActive ? 'پنهان‌کردن دسته' : 'نمایش دسته', onclick: function () { api('/admin/taunt-categories/' + c.id, { method: 'PATCH', body: { isActive: !c.isActive } }).then(function (x) { if (!x.ok) return fail(x); draw(); }); } })]),
+          body]));
+      });
+    });
+  }
+  var cat = h('input', { type: 'text', placeholder: 'نام دسته‌ی تازه', maxlength: 40 });
+  root.appendChild(card('کل‌کل‌های آماده', 'بازیکن‌ها در چت و در دوئل فقط از این فهرست کل‌کل می‌فرستند (بدون نیاز به کد معرف). لحن را شوخ نگه دار و توهین نکن.', [list]));
+  root.appendChild(card('دسته‌ی تازه', null, [h('div', { class: 'toolbar' }, [cat, h('button', { class: 'btn primary', text: 'افزودن', onclick: function () { api('/admin/taunt-categories', { method: 'POST', body: { nameFa: cat.value.trim() } }).then(function (x) { if (!x.ok) return fail(x); cat.value = ''; draw(); }); } })])]));
+  draw();
+};
+VIEWS.chatreports = function (root) {
+  var list = h('div');
+  function draw() {
+    api('/admin/chat/reports').then(function (r) {
+      clear(list);
+      if (r.status === 404) return list.appendChild(empty('چت روی این سرور فعال نیست'));
+      if (!r.ok) return fail(r);
+      if (!r.body.reports.length) return list.appendChild(empty('گزارشی نیست'));
+      r.body.reports.forEach(function (x) {
+        list.appendChild(h('div', { class: 'kv' }, [
+          h('span', { text: x.messageText }), h('span', { style: 'color:var(--muted);font-size:12px', text: (x.reason || 'بدون دلیل') + ' · ' + ago(x.createdAt) }),
+          x.resolved ? badge('بررسی شد', 'b-ok') : h('button', { class: 'btn sm', text: 'بررسی شد', onclick: function () { api('/admin/chat/reports/' + x.id + '/resolve', { method: 'POST' }).then(function (y) { if (!y.ok) return fail(y); draw(); }); } }),
+          h('button', { class: 'btn bad sm', text: 'حذف پیام', onclick: function () { api('/admin/chat/messages/' + x.messageId, { method: 'DELETE' }).then(function (y) { if (y.status === 404) toast('پیام قبلاً حذف شده', true); else if (!y.ok) return fail(y); draw(); }); } })]));
+      });
+    });
+  }
+  root.appendChild(card('گزارش‌های چت', 'پیام گزارش‌شده را ببین؛ حذف کن، یا از «کاربران» اخطار/سکوت بده.', [list]));
+  draw();
+};
 VIEWS.bale = function (root) {
   var body = h('div'), msg = h('textarea', { placeholder: 'متن پیام برای همه‌ی بازیکنان وصل‌شده…', maxlength: 1000 }), chat = h('input', { type: 'text', dir: 'ltr', placeholder: 'شناسه‌ی چت (عدد)' });
   function draw() {

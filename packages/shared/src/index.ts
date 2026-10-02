@@ -23,3 +23,4 @@ export * from './invite/index.js';
 export * from './transfers/index.js';
 export * from './phone/index.js';
 export * from './badges/index.js';
+export * from './chat/index.js';

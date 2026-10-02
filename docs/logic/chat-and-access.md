@@ -55,3 +55,20 @@ Stored in `canned_taunts`, categories: greeting, brag, tease, gg, react. Example
 «سلام! آماده‌ای ببازی؟»، «این یکی رو مامان‌بزرگمم بلد بود 😄»، «پیکان هم این‌قدر کند نبود!»،
 «دمت گرم، بازی خوبی بود»، «یکی مونده بود، حیف!». Keep them playful, never insulting. Brand-flavored additions («دوزاریت هنوز تو راهه؟» etc.)
 are listed in `docs/brand.md`.
+
+
+## As built (D84): city chat and canned taunts
+
+- **Rooms:** `city` (everyone whose profile city is the same; needs a city) and, in a duel, taunts to the opponent (`chat:taunt`). Private-table
+  chat is not built (private tables are not built yet).
+- **Send rules** (`apps/server/src/chat/service.ts`, all server side): chat switch `feature.chat`; muted players send nothing (taunts included);
+  free text needs an activated account (`chat.text_needs_activation`) and at most `chat.max_len` (120) characters; text with a phone number, link or
+  messenger handle needs the **«نشان تماس»** perk (`containsContactInfo`); the profanity filter (D69) always applies — no badge lifts it;
+  rate limits 5 messages / 10 s and 1 taunt / 3 s per player (attempts count). Strangers in a duel get taunts only.
+- **Canned taunts** are admin content: categories and taunts in `taunt_categories` / `canned_taunts`, edited in «کل‌کل‌های آماده» (starter set from
+  `docs/brand.md`). Players never need an invite code to use them.
+- **Reports and removal:** a player can report a message once (`chat_reports`); the admin sees reports, resolves them and removes the message
+  (`deleted_at`); users can then be warned or muted from their dialog. «آجان دوزاری» can warn and mute (D83).
+- **Live push:** sockets that sent `chat:join` receive `chat:message` for their city; the app polls every 4 s until it has a socket client.
+- **Retention:** 30 days, purged every 6 hours.
+- Not built: per-player mute lists, moderator-visible message context, a muting UI for agents in the app, text chat in private tables.

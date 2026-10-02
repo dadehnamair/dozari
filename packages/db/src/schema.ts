@@ -838,3 +838,53 @@ export const modActions = mysqlTable(
   },
   (table) => ({ byAgent: index('mod_actions_agent_idx').on(table.agentId, table.createdAt) }),
 );
+
+/** Groups of canned taunts («کل‌کل‌های آماده»), edited in the admin panel. */
+export const tauntCategories = mysqlTable('taunt_categories', {
+  id: id(),
+  nameFa: varchar('name_fa', { length: 40 }).notNull(),
+  sortOrder: int('sort_order').notNull().default(0),
+  isActive: boolean('is_active').notNull().default(true),
+});
+
+export const cannedTaunts = mysqlTable(
+  'canned_taunts',
+  {
+    id: id(),
+    categoryId: char('category_id', { length: 36 }).notNull().references(() => tauntCategories.id, { onDelete: 'cascade' }),
+    text: varchar('text', { length: 120 }).notNull(),
+    sortOrder: int('sort_order').notNull().default(0),
+    isActive: boolean('is_active').notNull().default(true),
+  },
+  (table) => ({ byCategory: index('canned_taunts_category_idx').on(table.categoryId, table.sortOrder) }),
+);
+
+/** One row per chat message. `roomKey` is the city id for the city room, the match id for a duel. Kept 30 days for moderation. */
+export const chatMessages = mysqlTable(
+  'chat_messages',
+  {
+    id: id(),
+    room: mysqlEnum('room', ['city', 'match']).notNull(),
+    roomKey: varchar('room_key', { length: 64 }).notNull(),
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    kind: mysqlEnum('kind', ['text', 'taunt']).notNull(),
+    text: varchar('text', { length: 500 }).notNull(),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    /** Set when an admin removes the message; it disappears from history. */
+    deletedAt: datetime('deleted_at', { mode: 'date', fsp: 3 }),
+  },
+  (table) => ({ byRoom: index('chat_messages_room_idx').on(table.room, table.roomKey, table.createdAt) }),
+);
+
+export const chatReports = mysqlTable(
+  'chat_reports',
+  {
+    id: id(),
+    messageId: char('message_id', { length: 36 }).notNull().references(() => chatMessages.id, { onDelete: 'cascade' }),
+    reporterId: char('reporter_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    reason: varchar('reason', { length: 200 }).notNull().default(''),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    resolvedAt: datetime('resolved_at', { mode: 'date', fsp: 3 }),
+  },
+  (table) => ({ oncePerReporter: uniqueIndex('chat_reports_once_idx').on(table.messageId, table.reporterId) }),
+);

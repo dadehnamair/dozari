@@ -68,6 +68,15 @@ export class MatchService {
     return this.matches.size;
   }
 
+  /** The match a player is in and who the opponent is (for canned taunts), or null. */
+  opponentOf(userId: string): { matchId: string; opponentId: string } | null {
+    const id = this.byUser.get(userId);
+    const entry = id ? this.matches.get(id) : undefined;
+    if (!id || !entry) return null;
+    const other = entry.state.players.find((p) => p.userId !== userId);
+    return other ? { matchId: id, opponentId: other.userId } : null;
+  }
+
   inMatch(userId: string): boolean {
     return this.byUser.has(userId);
   }

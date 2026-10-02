@@ -16,6 +16,8 @@ export const ClientEvent = {
   matchSubmit: 'match:submit',
   matchResume: 'match:resume',
   matchLeave: 'match:leave',
+  chatJoin: 'chat:join',
+  chatTaunt: 'chat:taunt',
 } as const;
 
 export const ServerEvent = {
@@ -24,6 +26,7 @@ export const ServerEvent = {
   matchState: 'match:state',
   matchEvent: 'match:event',
   matchEnded: 'match:ended',
+  chatMessage: 'chat:message',
   error: 'error',
 } as const;
 
@@ -47,6 +50,9 @@ export const ERROR_CODES = [
   'INSUFFICIENT_COINS',
   'MAINTENANCE',
   'FEATURE_OFF',
+  'NO_CITY',
+  'MUTED',
+  'UNKNOWN_TAUNT',
   'INTERNAL',
 ] as const;
 export const errorCodeSchema = z.enum(ERROR_CODES);

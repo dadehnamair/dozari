@@ -18,6 +18,7 @@ import type { PlayerStore } from '../player/store.js';
 import type { ShopStore } from '../economy/shop-store.js';
 import type { BadgeService } from '../badges/service.js';
 import type { BadgeStore } from '../badges/store.js';
+import type { ChatStore } from '../chat/store.js';
 import { registerInviteAdminRoutes } from '../invite/routes.js';
 import type { InviteStore } from '../invite/store.js';
 
@@ -36,6 +37,8 @@ export interface AdminModules {
   invites?: InviteStore;
   /** Badge catalog, grants, warnings, commendations, mutes. */
   badges?: { store: BadgeStore; service: BadgeService };
+  /** Canned taunts and their categories, chat reports and removing messages. */
+  chat?: ChatStore;
   messages?: MessageCenter;
   bale?: { service: NotifyService; store: NotifyStore; botUsername: string | null };
   bot?: { repo: BotRepository; service: BotService };
@@ -106,7 +109,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     adapters: BOT_ADAPTER_KEYS,
     settingGroups: SETTING_GROUPS,
     icons: ITEMS,
-    modules: { settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, invites: !!m.invites, badges: !!m.badges, bale: !!m.bale, messages: !!m.messages },
+    modules: { settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, bale: !!m.bale, messages: !!m.messages },
   }));
 
   if (m.stats) {
@@ -420,6 +423,57 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
       await service.clearMute(p.data.id);
       void audit('user.unmute', p.data.id);
+      return { ok: true };
+    });
+  }
+
+  if (m.chat) {
+    const chat = m.chat;
+    g.get('/admin/taunts', async () => ({ categories: await chat.taunts({ includeHidden: true }) }));
+    g.post('/admin/taunt-categories', async (req, reply) => {
+      const b = z.object({ nameFa: z.string().trim().min(2).max(40) }).safeParse(req.body);
+      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const c = await chat.addCategory(b.data.nameFa);
+      void audit('taunt_category.add', c.id, b.data.nameFa);
+      return reply.code(201).send({ id: c.id });
+    });
+    g.patch('/admin/taunt-categories/:id', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object({ nameFa: z.string().trim().min(2).max(40).optional(), isActive: z.boolean().optional(), sortOrder: z.number().int().min(0).max(1000).optional() }).safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      if ((await chat.updateCategory(p.data.id, b.data)) === 'not_found') return reply.code(404).send({ error: 'category_not_found' });
+      void audit('taunt_category.update', p.data.id, JSON.stringify(b.data));
+      return { ok: true };
+    });
+    g.post('/admin/taunts', async (req, reply) => {
+      const b = z.object({ categoryId: z.string().uuid(), text: z.string().trim().min(2).max(120) }).safeParse(req.body);
+      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const t = await chat.addTaunt(b.data.categoryId, b.data.text);
+      if (t === 'no_category') return reply.code(404).send({ error: 'category_not_found' });
+      void audit('taunt.add', t.id, b.data.text);
+      return reply.code(201).send({ id: t.id });
+    });
+    g.patch('/admin/taunts/:id', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object({ text: z.string().trim().min(2).max(120).optional(), isActive: z.boolean().optional(), categoryId: z.string().uuid().optional(), sortOrder: z.number().int().min(0).max(1000).optional() }).safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      if ((await chat.updateTaunt(p.data.id, b.data)) === 'not_found') return reply.code(404).send({ error: 'taunt_not_found' });
+      void audit('taunt.update', p.data.id, JSON.stringify(b.data));
+      return { ok: true };
+    });
+    g.get('/admin/chat/reports', async () => ({ reports: await chat.reports({ openOnly: false, limit: 100 }) }));
+    g.post('/admin/chat/reports/:id/resolve', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
+      if (!(await chat.resolveReport(p.data.id))) return reply.code(404).send({ error: 'report_not_found' });
+      void audit('chat_report.resolve', p.data.id);
+      return { ok: true };
+    });
+    g.delete('/admin/chat/messages/:id', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
+      if (!(await chat.removeMessage(p.data.id))) return reply.code(404).send({ error: 'message_not_found' });
+      void audit('chat_message.remove', p.data.id);
       return { ok: true };
     });
   }
