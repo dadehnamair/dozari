@@ -73,7 +73,20 @@ matching spec in `docs/logic/`.
 | D61 | **`PRICE_GUESS_ROUND_WAGER` pinned at 3 coins**, resolving open question 9 within D24's 2–5 range | accepted | Not a new owner ask — this is just promoting the prototype's long-standing placeholder value (`PRICE_GUESS_ROUND_WAGER=3` in `index.html`/`game.html` since D19/D24 were written) to an actual decision, since nothing in playtesting so far has argued for a different number in the allowed range. Still subject to revision once `packages/shared/scripts/simulate-economy.ts` exists (open question 6). |
 | D62 | **`BOT_TAKEOVER_GRACE_SECONDS` proposed at 15s** — how long a mid-match disconnect/AFK seat waits before D43's silent bot takeover kicks in | proposed | Claude default (2026-09-28) to unblock the open item — intentionally shorter than `RECONNECT_GRACE_SECONDS` (60s, `matchmaking.md`) because a *live* match has other real players actively waiting on that seat, unlike an abandoned queue slot; picked to feel responsive without punishing a normal brief app-switch. Needs the same real-queue-data tuning pass as `BOT_FALLBACK_SECONDS` (open question 7) once telemetry exists. |
 | D63 | **Database: MySQL 8 (utf8mb4) for now, Postgres later if needed** ("D63" in code comments) — supersedes the Postgres part of D3. **No JSON and no array columns: every multi-valued field is its own table.** | proposed (owner request 2026-09-29: more familiar, easier to administer) | Costs already paid: ids are app-generated UUID v7 `CHAR(36)`; times are `DATETIME(3)` UTC; "unique among approved" uses a stored generated `approved_flag` (no partial indexes); upserts use `ON DUPLICATE KEY` and a follow-up SELECT (no `RETURNING`); `audience`/`era_tags` became `product_audiences`/`product_era_tags`. Later-phase specs that say `jsonb` (puzzle group `rule`, match events `payload`, UGC `payload`) must be normalised into tables when built. Watch-outs: features planned around Postgres (row locks with `SKIP LOCKED` are available in MySQL 8; partial indexes and `RETURNING` are not). Postgres migration files were dropped and regenerated (nothing had been deployed). |
-| D64 | **Lucky wheel (گردونه) is a post-win reward only** — one spin per *won* match (never on loss/draw/abandon, never on app open or daily login). Prizes are coins via `coin_ledger` (`wheel_spin`), server-rolled with an injected seeded RNG; amounts/odds live in `config/economy.ts` | proposed | Owner request (2026-10-02): «گردونه فقط شانس بعد از برد باشد». Details: `docs/logic/economy.md` §Lucky wheel. |
+| D64 | **Daily reward: a growing streak, one claim per 24 h, amounts set in the admin panel** — supersedes the flat "Daily login 30 / Tehran calendar day" row of `economy.md` | proposed (owner request 2026-10-01) | Day 1 = 10, day 2 = 15, day 3 = 20 coins (editable day by day in the admin panel; after the last configured day the last amount repeats). One claim per 24 h *rolling* from the previous claim (owner's wording), not per Tehran calendar day. A claim 24-48 h after the last one continues the streak; waiting 48 h or more (a whole day skipped) starts again at day 1. Constants in `config/economy.ts`; calculator `nextDailyReward` in shared; amounts stored in `daily_reward_steps`, per-player state in `user_daily_rewards`, coins through `coin_ledger` (key `daily_login:<claimNo>:<userId>`). Open: a rolling window means the exact claim time drifts; if players find that annoying, switch to Tehran calendar days (only `nextDailyReward` changes). |
+| D65 | **Avatars and nicknames: one free pick after N games, everything else costs coins and needs an activated profile + level** (does NOT replace the finished-games unlock) | proposed (owner requests 2026-10-01) | After 3 finished games the player picks one avatar from the free set; after 10, one nickname from the free set (counts editable in the admin panel later). All other avatars/nicknames are bought with coins; buying or switching to them needs an activated profile (invite code redeemed, `chat_unlocked_at`, checked first) and level ≥ `AVATAR_CHANGE_MIN_LEVEL` (3) / `NICKNAME_CHANGE_MIN_LEVEL` (5) — placeholder numbers. Pure rule `canCustomise` in shared. Open: which items are free, coin prices, whether other cosmetics (tags, frames) share these levels. |
+| D66 | **The hero character wears the look of the current Solar Hijri month**, automatic from today's date in Tehran — using the designer's own 12 month looks | proposed (owner request 2026-10-01) | Supersedes the first version I drew myself: the designer's `Character.dc.html` already has `month=1..12` for «دوزاری» (sabzeh, flower hat, cherry earrings, sunglasses, watermelon slice, pencil, school backpack, rain and leaf, falling leaves, Yalda pomegranate, earmuffs and snow, goldfish bowl). Pure helpers in `shared/calendar/solar-month.ts`; the character is `components/Character.tsx` (+ `theme/character*.ts`). Home, splash and the solo result show the current month. Open: event days (Nowruz, Yalda) as extra looks; whether players may pin a month. |
+| D67 | **Every player name is tappable and opens a profile summary with a friend/connection request** | proposed (owner request 2026-10-01) | Anywhere a nickname is shown (match, results, leaderboard, friends, chat): tap opens a sheet with avatar, nickname, member-since, cups (tournament trophies), coins, level, medals/tags, tier and win stats, plus «درخواست دوستی». Needs a public-profile endpoint (never exposing `is_bot`; bots look like players) and the `friendships` table of D44. Coins shown only if the owner agrees it is public (open). **Built (v1)**: `GET /players/:id` (nickname, avatar, level 1, coins, member since, relation), friend requests `POST /friends/:id/request|accept`, `DELETE /friends/:id`, `GET /friends`, migration 0009 `friendships`; app: `PlayerSheet` + «پروفایل من» with friends/requests; a Bale message tells the target about a new request. Cups, medals, tier and win stats are not shown because those systems do not exist yet; coins are shown (owner to confirm). No screen shows other players' names yet except the friends list, so the tap-everywhere part waits for the duel/result/leaderboard screens. |
+| D68 | **Optional gender setting (female / male) next to province/city; it switches the hero character (and the app icon) to that gender** | proposed (owner request 2026-10-01) | Stored on the profile like province/city (`users.gender`, nullable, enum, no free text); never shown publicly unless the owner decides so. Everywhere the hero «دوزاری» is drawn (home, splash, results, month looks) uses the matching variant; the app icon follows via alternate launcher icons (Android activity-alias / iOS alternate icons: possible, but a change needs the app to relaunch or the launcher to refresh). The designer has delivered the female hero (`dozariF`: braids with ribbons, lashes, skirt, same 12 poses), ported as `who="dozariF"`; the setting itself (profile field, picker, icon switch) is not built. Open: default when unset (current male hero?), whether the other six characters stay as they are, and whether a player may change it later. **Built (v1)**: `users.gender` (nullable enum, migration 0009), `PUT /me/gender`, `GET /me/profile`, a picker in «پروفایل من» (خانم / آقا / نمی‌گویم); Home draws `dozariF` for «female», the original hero otherwise (default male while unset); the player may change it any time. Not built: other screens (splash, results) using the gender, and the app icon switch (needs native alternate-icon support, not available in Expo managed without a plugin; to be decided). |
+| D69 | **Profanity filter on every free-text input** (chat, and any other place players type text) | proposed (owner idea 2026-10-01) | Server-side check before a message is accepted or shown, so a modified client cannot bypass it. Word list is editable from the admin panel (add/remove words, per-word severity: block or mask), with Persian normalisation (digits, ZWNJ, Arabic/Persian letter variants, spaced-out letters, repeated letters) so «ک‌ص» style evasions are caught. Complements D35's rule that free chat needs a redeemed invite code. **Built (filter, list, admin section «فیلتر کلمات»); not yet called by any player-facing input because chat does not exist yet** — `TextFilterService.check` is the one gate to call. The list starts empty: the owner adds the words. |
+| D70 | **Price lookup («استعلام قیمت»)**: any player can look up the historical price of a catalog product in a given year | proposed (owner idea 2026-10-01) | Family-gathering use case: «بنزین سال ۶۰ چند بود؟». Search a product, pick a year (or see the whole chart); answers only from approved price points, shows the source and confidence, and says plainly when there is no approved data (never an estimate). Reuses the result chart and the catalog API; also a retention hook (people open the app outside games). Open: free or limited per day, whether to show it before login, and a «ask for this item» button feeding the bot / suggestion queue. **Built (minimal)**: `GET /lookup/search?q=` + `GET /lookup/:id?year=` (public, approved data only) and a Home button «استعلام قیمت» → search, year chips, answer or «no data». Free, no login, no limits yet; «ask for this item» not built. |
+| D71 | **Every product carries a price range**: several approved price points per product, each with Solar Hijri year (+ optional month) and nominal rials | proposed (owner 2026-10-01) | The range = earliest/latest date and cheapest/dearest price among *approved* points (`priceRange` in shared); a single date's price = exact month, else the year's median, never interpolated (`priceOnDate`). A product with fewer than `MIN_PRICE_POINTS_PER_PRODUCT` = 3 approved points is flagged «قیمت بیشتر لازم است» in the admin catalog (filter + card badge) and is the natural target for the content bot. Used by the price lookup (D70) and charts. The minimum is a proposed number; whether products below it may still appear in puzzles is open. |
+| D72 | **Bale bot for notifications**: players link their Bale chat with a one-time code; the game sends them results, daily-reward reminders and admin broadcasts there | decided (owner request 2026-10-01) | Spec `docs/logic/bale-bot.md`. Telegram-compatible API, long polling, outbox table with retries, admin section «ربات بله». The owner must create the bot on Bale and put `BALE_BOT_TOKEN` / `BALE_BOT_USERNAME` in the server env. Not tried against real Bale servers. Open: which further events should notify (friend requests, tournaments), quiet hours, a per-player on/off per kind. |
+| D73 | **Admin message center**: send/manage messages from the panel over several channels (in-app inbox, Bale, SMS, e-mail, push) | decided (owner request 2026-10-01), partly built | Spec `docs/logic/message-center.md`. In-app inbox and Bale work; SMS, e-mail and push are listed but disabled with a reason because there are no recipients (phone/e-mail) or providers yet, and FCM is not allowed. Open: SMS provider, whether to collect e-mail, a non-Google push route, scheduled sends. |
+| D74 | **Professional admin: user management and app management** | decided (owner request 2026-10-01) | Spec `docs/logic/admin-panel.md`. Users: filters/sort/paging, detail with ban reason, log-out-everywhere (`sessions_valid_after`), identity reset, notes. App: maintenance mode, minimum build / forced update, per-feature switches, all from the settings registry (now with a `text` kind). Not built: several admin accounts with roles (needs login accounts instead of one token), data export, a player-report queue. |
+| D75 | **Store review prompts for Myket / Bazaar / Bale, controlled from the admin panel** | decided (owner request 2026-10-01) | Spec `docs/logic/store-review.md`. Per-store switches, first ask after N days and N games, repeat pause, cap, links (Myket/Bazaar built from the package id, Bale link supplied by the owner). Build flavor `EXPO_PUBLIC_STORE` tells the app its market. Open: the exact Bale app-page URL; whether to use the stores' in-app rating deep links. |
+| D76 | **Separate admin accounts with roles (owner / editor / support / viewer)** replace the single shared token | decided (proposed after the security audit, built 2026-10-01) | Spec `docs/logic/admin-panel.md` §Admin accounts. scrypt password hashes, 8-hour sessions, lockouts, per-admin audit names, deny-by-default permission map. `ADMIN_TOKEN` stays as an optional break-glass owner. Not built: 2-factor sign-in, password reset by e-mail, IP allow-list, per-admin session list. |
+| D116 | **Lucky wheel (گردونه) is a post-win reward only** — one spin per *won* match (never on loss/draw/abandon, never on app open or daily login). Prizes are coins via `coin_ledger` (`wheel_spin`), server-rolled with an injected seeded RNG; amounts/odds live in `config/economy.ts` | proposed | Owner request (2026-10-02): «گردونه فقط شانس بعد از برد باشد». Details: `docs/logic/economy.md` §Lucky wheel. |
 
 Owner-approved (2026-09-26). Do these ~3–5 days of experiments first; their results can still
 flip D13–D17 before real code is built on top of them. Tracked as checkboxes in `docs/PLAN.md`
@@ -134,7 +147,7 @@ Decisions table above.
 14. **Mid-match bot takeover grace period** (D43) — how long to wait after a disconnect/AFK
     before silently swapping in a bot; no default timer picked yet, track alongside the
     `BOT_FALLBACK_SECONDS` numbers in `docs/logic/bots.md` (open question 7).
-15. **Tournament mechanics** — format is decided (single-elimination bracket, D60); bracket size
+15. **Tournament mechanics** (built, see D85) — format is decided (single-elimination bracket, D60); bracket size
     beyond the mocked 16, bye handling for odd signup counts, exact entry fee, and the full prize
     table are still open. `prototype/game.html`'s tournament tab mocks the bracket-progress visual
     and entry point only, not real bracket generation/scheduling.
@@ -150,3 +163,178 @@ Decisions table above.
     "proposed."
 18. **City crews** (D53) — explicitly deferred past launch; not designed further, revisit only if
     players ask for it post-launch.
+
+## D77 — Owner backlog of 27 items is ordered A→F (2026-10-01)
+
+The list is built in the order of `docs/logic/owner-backlog-2026-10.md` because later phases need earlier data (level, badges,
+city, friends). Defaults in that file are proposed and tunable from the admin panel; owner confirms or changes them later.
+
+## D78 — Coin shop and paid solo hints (2026-10-01)
+
+Hints in solo games (title / one card / pair) cost coins or a hint token; the shop sells tokens for coins. All numbers, level
+gates and daily limits are admin-editable; coins stay scarce by design. Details: `docs/logic/shop.md`. Proposed defaults, owner may change.
+
+## D79 — Invite code is "gold" (2026-10-01)
+
+A personal code is issued from level 3, has 10 uses, is guessed at a limited rate, and redeeming it is what activates free chat,
+renaming and (later) gifts/loans. The inviter is paid 100 coins only after the invitee finished 3 games; the invitee gets 50 coins at
+redemption. Admin can make special campaign codes (no inviter reward). All numbers are settings; proposed, owner may change.
+
+## D80 — Gifts and loans between friends (2026-10-01)
+
+Friends can gift or lend coins under admin-set rules (friendship age, level, activation, per-transfer range, weekly cap, loan
+term, one open loan). Details and defaults in `docs/logic/economy.md` §Gifts and loans. Proposed; the owner may change any number.
+
+## D81 — Phone number first, verified through Bale contact or SMS (2026-10-01)
+
+Bale linking requires a typed mobile number; the bot verifies it from the sender's own shared contact; SMS is the fallback through a
+pluggable provider (owner still to choose one). A verified number is unique per account and private. See `docs/logic/bale-bot.md`.
+
+## D82 — Finding friends by ID, phone, contacts and invite link (2026-10-01)
+
+Exact-match search by public ID or verified phone (findable by default, switchable), address-book lookup API, invite link through an
+admin-configured shortener, instant friendship for a brand-new account that opens a link. See `docs/logic/find-friends.md`.
+
+## D83 — Badges, medals, notices, skill tier and «آجان دوزاری» (2026-10-02)
+
+Badge catalog with perks and automatic rules, medals, private warnings/commendations, a computed skill tier, short agent mutes with a daily cap,
+and a contact-info detector for chat. Details and defaults in `docs/logic/badges-and-moderation.md`. Proposed; the owner may change any number.
+
+## D84 — City chat and admin-managed canned taunts (2026-10-02)
+
+City-mates chat, canned taunts grouped in admin-edited categories, duel taunts, reports. Server-side rules: activation for free text, mutes, the
+contact-info perk, profanity filter, rate limits, 30-day retention. See `docs/logic/chat-and-access.md` §As built. Proposed; the owner may change numbers.
+
+## D85 — Tournaments: builder, coin + level entry, single-elimination engine (2026-10-02)
+
+Admin builds tournaments (size, entry coins, minimum level, start, prizes); players join with coins and level; the server seeds by level, runs the bracket through live
+duels, pays prizes. House funds prizes, entry fees are a sink. Details and what is not built: `docs/logic/tournaments.md`. Proposed defaults; the owner may change any number.
+
+## D86 — Bot players from the admin panel (2026-10-02)
+
+Admin-generated bot accounts that look like players, fill the queue after a human-like wait, play through the normal submit with a skill-controlled use of the
+answer (server-internal only), answer taunts and city chat, and can fill tournament seats. Never disclosed. Details: `docs/logic/bots.md` §As built.
+Owner note: undisclosed AI opponents were already approved (D19); the skill cap (90 %) and the rule that bots never take prize coins keep it from being a thumb on the scale.
+
+## D87 — Daily puzzle by day conditions (2026-10-02)
+
+One frozen puzzle per Tehran day, picked from admin-defined themes (occasion/season/trend/category with yearly Solar Hijri or absolute windows), pinned by an
+admin or chosen by a date-seeded weighted picker avoiding recent repeats. One attempt a day; small ledger reward growing with the streak. Details:
+`docs/logic/daily-puzzle.md`. Proposed defaults (20 coins, +5/day to 7 days, 30-day no-repeat); the owner may change them in settings.
+
+## D88 — City dialect phrases as city-scoped taunt categories (2026-10-02)
+
+Dialect/local phrases reuse canned taunts: a category can be limited to one city, offered and accepted only for that city's players. No new content is shipped; the owner fills it in the admin panel. See `docs/logic/chat-and-access.md` §City dialect phrases.
+
+## D89 — Personal settings and synthesized sound effects (2026-10-02)
+
+Per-device preferences (sound, vibration, reduced motion) in the profile sheet, stored locally (`deviceStore`), never sent to the server. Sound effects (tap, correct,
+one away, wrong, win, lose, coin) are synthesized with WebAudio, so no audio files are shipped and nothing depends on Google. Native (iOS/Android) has no sound
+engine yet and stays silent; vibration uses `navigator.vibrate` where it exists. Real recorded sounds or a native audio library are the follow-up (owner supplies assets or approves a dependency).
+
+## D90 — Coin-economy audit and balance simulator (2026-10-02)
+
+`simulateEconomy` (shared, pure, seeded) models the duel economy with the launch defaults; match economy numbers now live in `config/economy.ts`. Result: 0.002 % stuck player-days,
+but the balance inflates (median 1336 after 30 days; faucets ≈ 1433 vs burn ≈ 100 per player). Proposed: keep numbers until real data, rely on shop/cosmetics/coin packages as sinks,
+lower the free-match payout first if needed. Owner may change the numbers; see `docs/logic/economy.md` §Balancing.
+
+## D91 — Coin packages built but off (2026-10-02)
+
+Catalog, level gate, admin CRUD and an idempotent `purchase` credit exist, behind `feature.coin_packages` (default off) and a verifier that refuses until a real store adapter exists.
+Still needed from the owner before enabling: Bazaar/Myket developer accounts and SKUs, store receipt-API keys, refund/dispute handling and store-policy review (open question 4).
+
+## D92 — Tournament concurrency switch and daily game caps (2026-10-02)
+
+Owner: tournaments need an admin option for whether a player may be in several at once (default: one at a time), the daily game limit must be settable from the panel, and every game mode and hub should be broadly configurable from the admin panel. Built: per-tournament `allowConcurrent` (default off) and `limit.solo_per_day` / `limit.duel_per_day` (default 0 = unlimited). Standing rule from now on: any new limit, timer or amount ships as a registry setting, and existing hard-coded ones are moved into the registry as they are found.
+
+## D93 — Private tables v1 and sharing them in city chat (2026-10-02)
+
+Friendly 1v1 tables with a code, name/emoji, ready toggle, lock/kick/extend and rematch; shareable into the city chat as a join card (owner backlog item 17). Fees, difficulty, 2v2 and deep links wait for the duel economy and the duel client. Details: `docs/logic/matchmaking.md` §Built so far.
+
+## D94 — Live duel screen in the app (2026-10-02)
+
+The app can now play the existing 1v1 socket flow: queue, board, turn clock, result. It adds `socket.io-client` to the mobile app (no Google dependency). `match:resume` accepts no match id so a table-started match can be picked up. Coin stakes, price round, taunts and reconnect banner remain follow-ups.
+
+## D95 — Coin stakes for live queue duels (2026-10-02)
+
+Entry fee, free daily matches, winner payout, draw refund, loss consolation and the once-a-day broke rescue now run on the ledger for queue duels, all numbers as admin settings (`duel.*`). Tables and tournaments stay friendly. Defaults are the confirmed ones from D9; the simulator (D90) says the economy inflates, so the free-match payout is the first knob to lower if real data agrees.
+
+## D96 — Onboarding tutorial and account controls (2026-10-02)
+
+Four skippable slides before the first Home (seen flag kept on the device); in the profile sheet: replay tutorial, sign out everywhere (`POST /me/sign-out-everywhere`), delete account (`DELETE /me`, two taps) and an about text. Deleting does not erase rows: personal data (device id, phone, email, handle, nickname) is removed and the account becomes an empty banned shell so the ledger and match history stay consistent; the device then starts a fresh guest. Support contact text is generic until the owner gives a real channel.
+
+## D97 — irnoti as the primary SMS provider; self-hosted admin font (2026-10-02)
+
+Phone-verification SMS now goes through irnoti (`POST https://irnoti.com/api/v1/sms/send`, Bearer key, JSON `{to, message}`) when `IRNOTI_API_KEY` is set; the message text is `IRNOTI_MESSAGE` (must contain `{code}`) with a default. Kavenegar stays as a fallback adapter when only its keys are set. The irnoti response body is undocumented to us: any 2xx counts as sent unless the body says `success:false`/`ok:false`/`status:'error'` — verify with a real key. The admin panel now serves Vazirmatn (Regular/Bold) from `apps/server/assets/fonts` at `/admin/fonts/*` (CSP `font-src 'self'`), so it no longer depends on a locally installed font.
+
+## D98 — Installable web app (PWA) (2026-10-02)
+
+The Expo web build is an installable PWA: `apps/mobile/public/` holds the HTML template (manifest link, theme colour, iOS meta), `manifest.webmanifest` (standalone, portrait, fa), icons generated from `assets/icon.png`, and `sw.js`. The service worker caches only the app shell and hashed bundles (cache-first for immutable `/_expo/static/*`, network-first otherwise) and never touches API calls — the game stays online and server-authoritative. No Google/Firebase pieces (no Workbox CDN, no FCM). Browsers allow installing only over https (or localhost), so a phone on the LAN over plain http can play in the browser but not install; the production web build (`pnpm --filter @dozari/mobile build:web` → `dist/`) needs an https host.
+
+## D99 — App screens follow the owner's screen designs (2026-10-02)
+
+The owner's full screen designs (`docs/design/Dozari - 01/11/13/17/19 *.dc.html`, reference images in `docs/design/uploads/`) are the source of truth for layout; the earlier text-only screen specs give way where they differ. Screens are rebuilt one at a time, Home first (screen-home: counters, corner tiles, hero, two big buttons — see `app-screens.md`). Rows are laid out right-to-left on every platform: native flips `row` under forced RTL, react-native-web does not, so web uses `row-reverse`.
+
+## D100 — Live duel screens from the match design (2026-10-02)
+
+The duel now runs through the four views of `Dozari - 13 Match Screens` (mode, versus, match, results; see `app-screens.md`). Departures from the mock-up, because the game rules differ: the match is turn-based on one shared board (not a race on two boards), so the clock plate shows the turn timer and a turn chip says whose turn it is; the magnifier / freeze power-ups are not in the rules and are left out; the 2v2 card is shown disabled («به‌زودی») until team play exists; the reward tiles of the results card are left out because the client is not told the coins paid (the ledger is). The rival is drawn as a market character chosen stably from their avatar key. The versus card holds for 3 s after a match is found (the turn clock keeps running; 45 s per turn by default).
+
+## D101 — Province identity and abroad cities (2026-10-02)
+
+Owner: «وقتی شهرشونو میزنن یکم احساس هم رابطه خودمونی پیدا کنه ... ایرانیان خارج از کشور هم پوشش بده». The player still picks a **city** (D53, optional); each city points at a **province identity** from `Dozari - 18 Provinces` — shared `PROVINCES` (31 provinces of Iran, seven abroad cities: Istanbul, Dubai, Toronto, Los Angeles, London, Paris, Berlin, plus a generic `abroad` entry): badge landmark, colours, souvenir, local greeting, rival. `cities.province` (nullable, admin-editable) holds the key; the Iran-wide «شهر دیگر» has none, «کشور دیگر» is `abroad`. Default cities missing from an existing table are added at startup. The app shows the badge grid as the city page, the badge and greeting («سلام اصفهانی!») on Home, and the badge next to the city on profiles. Souvenirs whose icon is not in the item pack use the nearest one (or the gift box) until the icons are drawn. **Proposed, not built:** the design's daily souvenir task («۳ دست ببر»), the province leaderboard and the Friday «جنگ استان‌ها» — they need economy and leaderboard rules first. Global chat beside the city chat comes in its own change.
+
+## D102 — Complete PWA (2026-10-02)
+
+Owner: «کارای فنی PWA هم بکن کامل». On top of D98: (1) `scripts/pwa-build.mjs` runs after `expo export` and stamps `dist/sw.js` with a build hash and the full precache list (bundle, the three used font files, icons), so the installed app opens offline after one visit and every release gets a fresh cache; (2) a new version **waits** and Home shows «نسخهٔ تازه» with an update button (message `skip-waiting`, reload on takeover) — never reloaded under a running match; the page also checks for releases every 30 min; (3) our own install card on Home (snoozed 7 days on «بعداً») and a profile button, using Chrome's `beforeinstallprompt` (captured in `index.html` before the app loads) or, on iPhone, a sheet with the Safari steps; (4) an offline strip on every screen; (5) manifest `id`, shortcuts (`?go=solo|daily|duel`), categories, `launch_handler`; (6) game CSS: no pull-to-refresh/overscroll, no tap flash, no text selection outside inputs; (7) `navigator.storage.persist()` so the browser keeps the login token under storage pressure; (8) fonts imported per weight, so the export ships 3 font files instead of 10. **Not done, by rule 8:** Web Push — Chrome delivers it through Google's FCM; notifications stay with the Bale bot.
+
+## D103 — Global chat room and the chat page (2026-10-02)
+
+Owner: «چت شهر باشه، چت کلی هم باشه». A second public room for all players beside the city room (see `chat-and-access.md` §Global room); messages carry the sender's province badge. The chat page follows `screen-chat` of `17 Chat Shop Unlocks`: grape header with two tabs, bubbles (mine highlighted), a strip of canned taunts and the text box. Not built, because the features do not exist: the design's DM and clan tabs, stickers, gift messages and typing indicator.
+
+## D104 — Search screen while queueing (2026-10-02)
+
+Owner: while searching show `screen-search` (diamond), and once a rival is found the 3-second `screen-versus`. The duel now shows the existing `SearchScreen` (with the real queue wait on its clock) until a match is found, then `Versus` counts down. Versus no longer has a searching state in the duel flow.
+
+## D105 — Shop from the design (2026-10-02)
+
+The shop page follows `screen-shop` (see `app-screens.md` §Shop). Departures: only the hint-token tab is live; the other five tabs are shown dimmed with «به‌زودی» rather than left out, so the page keeps the design's shape and the roadmap is visible; the Yalda offer banner (timed bundle) is left out until offers exist.
+
+## D106 — Tournament pages from the design (2026-10-02)
+
+List and detail follow `screen-tournament` (`app-screens.md` §Tournaments). The design shows a fixed three-column bracket; ours has one column per round of the real bracket (scrolls sideways for 16+). Rules, prizes, results and the player list, which the mock-up does not have, sit in a card under the bracket.
+
+## D107 — Profile and settings split (2026-10-02)
+
+The old profile sheet mixed identity and settings. It is now two pages from the designs (`app-screens.md` §Profile and settings): the profile page is read-first with an edit panel behind the pencil; settings holds the device switches and the account actions. Home: the level pill opens the profile, the «تنظیمات» tile opens settings.
+
+## D108 — Leaderboard by XP with city and friends scopes (2026-10-02)
+
+Owner: build screen-leaderboard. Ranked by total XP (the only score we store). Tabs: everyone, my city (the regional filter D53 promised), friends; the design's week / month are replaced because no per-game log exists — add them when game history is recorded. Bots appear like players (D67). `GET /leaderboard?scope=` returns the top 20 and the caller's place.
+
+## D110 — Production deployment stack (2026-10-02)
+
+The repo's `docker-compose.yml` stays dev-only. Production is `docker-compose.prod.yml` + `deploy/` (see `docs/deploy.md`): MySQL on the private network only, a one-shot `migrate` service, the game server (run through tsx because the workspace packages are TypeScript sources), and Caddy serving the PWA build with automatic https and proxying the API on a second hostname (the API routes live at the root, so web and API need separate hosts; `CORS_ORIGIN` is the web host). Images default to a local volume served by the game server; S3 (Arvan/MinIO) is a documented switch. Verified without Docker (no daemon here): the install layout, migrations from an empty database, and the server booting in production mode with its CORS and HSTS headers; the image builds themselves have not been run.
+
+## D109 — Level road from the real gates (2026-10-02)
+
+The level road and locked popup are built from `GET /me/levels` (level, XP curve, and an unlock list assembled from the admin settings `hint.min_level`, `invite.min_level`, `transfer.min_level`, `profile.avatar_change_min_level`, `profile.nickname_change_min_level` and the shop items' `minLevel`), so the screen cannot drift from the rules. Tournaments' own level gates are per tournament and not on the road. Descriptions of the settings-based unlocks are app copy (`fa.levels.unlock`).
+
+## D111 — Daily reward as a wheel, same economy (2026-10-02)
+
+`screen-daily` is built as a spinning wheel over the existing seven-day streak ladder. The wheel always lands on today's reward (the server decides, rule 6), so no economy number changed; the design's random slices (a different prize per spin) would be a new faucet and were not built. **Proposed, owner to decide:** whether the daily reward should become random (weighted slices with an expected value equal to today's ladder) — it would need a config, a ledger reason key and the economy simulation.
+
+## D112 — City hub as a second entry (2026-10-02)
+
+Owner: Home is good as it is; the hub map complements it. Built as an extra page (round map button in Home's top row) that routes to the same modes. Buildings of modes that do not exist (team, propose-and-vote) are shown but disabled. Building art is the design's (`parts`), ported to typed code; the sky is drawn as three flat bands because a gradient fill did not render reliably under the scroll view.
+
+## D113 — Deployment behind the host's existing reverse proxy (2026-10-02)
+
+The owner's server already runs many services on ports 80/443, so the stack no longer binds them: the web container serves plain HTTP on `127.0.0.1:${WEB_PORT:-8081}`, the game server on `127.0.0.1:3000`, and the host's proxy forwards `mrbots.ir` and `api.mrbots.ir` (websockets on) and owns https. Replaces the Caddy-with-certificates arrangement of D110; `deploy/nginx.example.conf` shows the forwards.
+
+## D114 — Owner polish batch 1 (2026-10-02)
+
+Owner notes, first slice: the wordmark's speech bubble moves down; Home's level pill uses the pack's `rosette` instead of a text star; the web build cannot be zoomed (viewport `user-scalable=no`, `touch-action`, iOS gesture and ctrl+wheel/keys blocked); the shop is named «بازار»; the daily reward is the streak card again (the wheel becomes a separate prize, next slice); tables show an item-pack icon instead of free emoji (`TABLE_ICONS`, contract field `icon`, chat card `CODE|icon|name`) and the Tables button opens a two-choice menu (join / create); messages get all / unread / read filters.
+
+## D115 — Presence, friends' private chat, table invites (2026-10-02)
+
+Owner: show who is online, let the host invite friends to a table, and private chat between friends (only after the friend request is accepted). Built: `realtime/presence.ts` counts live sockets per player (two tabs count once); `GET /friends` rows and public profiles carry `online`; the app shows a green/grey dot (`OnlineDot`) on friends, profiles, the invite list. Private chat = chat room `dm` (`roomKey` = both ids sorted), `GET/POST /chat/dm/:friendId`, friends only (`NOT_FRIENDS`), same filter/mute/rate/activation rules as other rooms, pushed live to both players; the Chat sheet has a third tab «دوستان». Table invite = `POST /tables/invite {userId}` (host, friend): a `table` card lands in their private chat (no activation needed, it is structured); an offline friend also gets a Bale nudge «بیا بازی کنیم» (`table_invite`). Migration 0031 adds `dm` to the room enum.

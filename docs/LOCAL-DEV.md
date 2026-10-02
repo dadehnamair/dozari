@@ -1,5 +1,7 @@
 # Local development without Docker
 
+Full walkthrough with a per-feature test checklist: [`start.md`](start.md).
+
 Docker is optional. Containerisation (server image, compose for prod) comes later; until then
 everything runs directly on the host. Needs Node 22 (`.nvmrc`), pnpm, and a local MySQL 8
 (decision D63 in `DECISIONS.md`).
@@ -54,3 +56,40 @@ curl localhost:3000/products/<id>/prices   # approved points only, rials as stri
 JSON after verifying a source, then re-run `seed`.
 
 Mobile: `pnpm --filter @dozari/mobile start` (Expo web/Android; needs no server yet).
+
+## 5. Review prices (`/admin`)
+
+Set `ADMIN_TOKEN` in `.env` (see `.env.example`) and restart the server, then open
+`http://localhost:3000/admin`, paste the token, and approve / reject / re-queue price points.
+Points that jump >5× or drop >30% versus the previous point are flagged (usually a rial↔toman slip).
+Approving a second price for the same year and month is refused. Without `ADMIN_TOKEN` the page and
+API are not served at all; the server listens on all interfaces, so use a long random token on any
+shared network.
+
+## 6. Play solo in the app
+
+There must be at least one `approved` puzzle in the database. Puzzle authoring is not built yet, so for a first look create a
+**fake demo puzzle** (16 invented `demo-*` products, hidden from the catalog, made-up prices — dev only):
+
+```bash
+pnpm --filter @dozari/db demo:puzzle           # create
+pnpm --filter @dozari/db demo:puzzle:remove    # delete it again
+```
+
+Then:
+
+```bash
+pnpm --filter @dozari/server dev      # API on :3000
+pnpm --filter @dozari/mobile start    # then press `w` for web, or scan the QR with Expo Go
+```
+
+The app reads the API address from `EXPO_PUBLIC_API_URL` (default `http://localhost:3000`; on a phone use
+your computer's LAN IP). For the **web** build also set `CORS_ORIGIN=http://localhost:8081` in `.env`
+(native apps don't need CORS).
+
+### If the solo screen says «اتصال به سرور برقرار نشد»
+
+The screen now prints the address it tried (`آدرس سرور: …`). Check, in order:
+1. `http://localhost:3000/health` opens in a browser (the server is running).
+2. Expo **web** only: `.env` has `CORS_ORIGIN=*` (or the exact web origin) and the server was restarted; the browser console (F12) mentions CORS.
+3. On a **phone**: `localhost` is the phone itself. Start Expo with `EXPO_PUBLIC_API_URL=http://<computer LAN IP>:3000` and allow port 3000 in the firewall.

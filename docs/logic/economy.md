@@ -12,12 +12,12 @@ hardcoded literal, so they can be tuned post-launch from real play data without 
 | source | amount | rule |
 |---|---|---|
 | Signup bonus | 200 | once per account (device-bound for guests) |
-| Daily login | 30 | first app open per Tehran calendar day (Asia/Tehran) |
+| Daily reward (D64) | 10 / 15 / 20 … | one claim per 24 h; a streak grows day by day (admin-editable list, last amount repeats), restarts at day 1 after a skipped day. Built: `economy/daily-reward.ts`, `GET /daily-reward`, `POST /daily-reward/claim`, admin editor |
 | Daily free matches | 3 / day | entry fee waived; payout from a **house pot** = normal win payout × 0.5 |
 | Win payout | pot × 0.9 | pot = sum of entry fees; 10% burned (sink) |
 | Draw | refund entry fee − 10% | |
 | Loss consolation | 5 | only for full matches (not abandon), max 10 per day |
-| Invite reward (inviter) | 100 | granted when the invitee completes **3 finished matches** (anti-abuse) |
+| Invite reward (inviter) | 100 | granted when the invitee completes **3 finished games** (anti-abuse); a personal code needs level 3 and has 10 uses (D79) |
 | Invite reward (invitee) | +50 on redemption | plus free chat unlock |
 | UGC item approved | 40 | per approved submission, max 5/day |
 | Broke rescue | top-up to 60 | if balance < cheapest entry fee and no free matches left: once per day |
@@ -34,6 +34,8 @@ hardcoded literal, so they can be tuned post-launch from real play data without 
 | Abandon | entry fee lost |
 | Price-guess round wager | 2–5 coins/round, escrowed per round | competitive modes only, solo has none — see `price-guess-round.md` §Real coin side-bet |
 | Coin packages (IAP) | N/A yet | see §Real-money coin purchases below — designed for now, **not built/enabled** at MVP |
+| Solo hints (D78) | 15 / 20 / 35, ×2 from the 2nd per game, level ≥ 2, max 2 per game | or one hint token; see `shop.md` |
+| Shop items (D78) | admin-set (starter: 1 token = 20, 5 tokens = 80 from level 3) | per-item level gate and daily limit |
 | (later) cosmetics: avatars, card backs, taunt packs | TBD |
 
 ## Entry fee scales with difficulty (D51)
@@ -48,7 +50,29 @@ tuned numbers, just a placeholder shape. Exact multipliers need the same playtes
 rest of this file's numbers (open question 1); payout math (win = pot × 0.9, etc.) is unchanged,
 it just operates on a bigger or smaller pot.
 
-## Lucky wheel (D64, proposed)
+## Gifts and loans between friends (D80)
+
+Owner item 5. Both ways are options in the profile; before first use the app shows the live rules («آجان دوزاری می‌گوید»).
+All numbers are admin settings (`transfer.*`, `loan.*`): friends for ≥ 7 days, sender level ≥ 5 and an activated account
+(invite code redeemed), 10–100 coins per transfer, **200 coins per rolling week** for gifts + loan principals together
+(an open offer reserves its amount; a cancelled or declined one frees it; repayments never refund the cap).
+A **gift** moves at once. A **loan** is offered, moves only when the borrower accepts, is due in 7 days, the borrower may repay
+in parts any time; at the due date it is taken from whatever the borrower has (never below zero), what remains stays owed and
+blocks new loans for that borrower. One open loan per borrower. Ledger reasons: `gift_out/in`, `loan_out/in`, `repay_out/in`
+(every step has its own idempotency key). Table `coin_transfers`; API `/transfers`, `/transfers/rules`, `/friends/:id/gift|loan`,
+`/loans/:id/accept|decline|cancel|repay`. A transfer is a move, not a faucet: the coin total never changes.
+
+## Live duel stakes — built (D95)
+
+Queue duels (and the bot fallback) carry coins; private tables and tournament matches are friendly (`start(..., {friendly: true})`).
+Pure math: `packages/shared/src/economy/duel.ts` (`settleDuel`, `winnerPayout`, `drawRefund`, `rescueAmount`); I/O: `apps/server/src/duel/stakes*.ts`.
+Settings (admin → economy): `duel.entry_fee` 20, `duel.house_cut_percent` 10, `duel.free_per_day` 3, `duel.free_payout_percent` 50, `duel.loss_consolation` 5, `duel.consolation_cap` 10, `duel.rescue_target` 60.
+- Queue join: free matches left → ok; else balance ≥ fee → ok; else once a day a rescue top-up to the target (`broke_rescue`); else `INSUFFICIENT_COINS`.
+- Start: a free match (counter `daily_play_counts.duel_free`) or the fee (`match_entry`); a bot seat is covered by the house (no ledger row). If a human cannot pay, fees already taken come back in full.
+- End: winner `match_payout` (pot − cut; a free-match win pays `free_payout_percent` of it; a bot win pays nothing); draw `match_refund` fee − cut for paid seats; loser `match_consolation` (capped per Tehran day, not for abandon/forfeit). Keys `<reason>:<matchId>:<userId>` → settling twice is a no-op.
+- Not built: difficulty-scaled fee (D51), team 2v2, private-table pots, abandon repeat cooldown.
+
+## Lucky wheel (D116, proposed)
 
 - The wheel is **only** a chance earned by winning: exactly one spin is granted when a match finishes
   with the user on the winning side (2v2: each winning player). Loss, draw, abandon and bot-takeover
@@ -92,12 +116,37 @@ ledger don't need retrofitting later).
 - Ledger: new `purchase` reason (already reserved as a placeholder in `data-model.md`
   §coin_ledger), `idempotencyKey = purchase:<storeOrderId>`, so a replayed/duplicate store
   callback can't double-credit.
+- **Built, switched off (D91):** tables `coin_packages` (+ `min_level`, sort, per-store SKU) and `coin_purchases` (unique store+order id);
+  `GET /coin-packages`, `POST /coin-packages/:id/redeem {store, orderId, token}`; admin CRUD `/admin/coin-packages` (economy permission).
+  Everything is gated by setting `feature.coin_packages` (default 0). The receipt check is a `ReceiptVerifier`; the shipped one refuses
+  everything, so no coin can be credited until a real Bazaar/Myket adapter is written and the flag is turned on.
 - Because this is real money, it needs its own refund/dispute handling and store-policy
   compliance review before going live — tracked as a Phase 8+ (or dedicated) task in `PLAN.md`,
   not part of the Phase 6 coin-economy build-out.
 
 ## Balancing
 
-`packages/shared/scripts/simulate-economy.ts` simulates N players with play-frequency distributions
-for 30 days and prints median/p10/p90 balances + % of player-days stuck. Target: < 2% stuck,
-median balance slowly rising (so future cosmetics sink has room). Run it whenever config changes.
+`packages/shared/src/economy/simulate.ts` (`simulateEconomy`, seeded, pure) models 2000 players over 30 days
+(three play-frequency buckets, daily reward, daily puzzle, 3 free matches, loss consolation, broke rescue) and
+returns median/p10/p90 balance, % of player-days stuck and faucet/burn per player. Print it with
+`PRINT_ECONOMY=1 pnpm --filter @dozari/shared exec vitest run src/economy/__tests__/simulate.test.ts`.
+Target: < 2% stuck, median balance slowly rising (so the shop/cosmetics sink has room). Run it whenever config changes.
+
+### Audit result (launch defaults, 2026-10-02, D90)
+
+| metric | value |
+|---|---|
+| median / p10 / p90 balance after 30 days | 1336 / 832 / 1692 |
+| stuck player-days | 0.002 % (target < 2 %) |
+| coins created per player (faucets) | ≈ 1433 |
+| coins burned per player (house cut) | ≈ 100 |
+
+Reading: nobody gets stuck, but the balance **inflates** — faucets are ~14× the burn. The mint is mostly
+free-match wins paid from the house pot (3/day × 45 % × 9 coins), daily reward and consolation. Model only
+covers duels; hints, shop, gifts (zero-sum) and tournaments are not in it. Proposed (not applied): leave
+numbers as they are until real play data exists, and use the shop / cosmetics / coin-packages as the sink;
+if inflation shows in production lower `FREE_MATCH_PAYOUT_PERCENT` first (settings-tunable).
+
+## Daily game caps (D92)
+
+Admin settings `limit.solo_per_day` and `limit.duel_per_day` (0 = unlimited, default) cap how many games of a mode one player may start per Tehran day. Counted in `daily_play_counts (user, date, mode)`; solo `POST /solo/start` answers 429 `daily_cap`, the duel queue answers `DAILY_CAP`. A duel is counted when the match actually starts (leaving the queue costs nothing). The daily puzzle has its own one-attempt rule and is not counted.

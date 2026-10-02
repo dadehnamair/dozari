@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="fa">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, shrink-to-fit=no, viewport-fit=cover" />
+    <title>دوزاری</title>
+    <meta name="description" content="بازی آنلاین نوستالژی قیمت‌ها" />
+    <meta name="theme-color" content="#2B1240" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="دوزاری" />
+    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
+    <style id="expo-reset">
+      html,
+      body {
+        height: 100%;
+        background: #2b1240;
+        /* Fixed-size game: no pinch or double-tap zoom (scrolling lists still pan). */
+        touch-action: pan-x pan-y;
+      }
+      body {
+        overflow: hidden;
+        /* A game, not a page: no pull-to-refresh or bounce while dragging on the board, no grey tap flash, no
+           accidental text selection or long-press callout (inputs stay selectable). */
+        overscroll-behavior: none;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-text-size-adjust: 100%;
+      }
+      input,
+      textarea {
+        -webkit-user-select: text;
+        user-select: text;
+      }
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+    </style>
+    <script>
+      // iOS Safari ignores user-scalable=no: block its pinch gestures, and desktop ctrl+wheel / ctrl +,- zoom, too.
+      (function () {
+        var stop = function (e) { e.preventDefault(); };
+        ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (t) { document.addEventListener(t, stop, { passive: false }); });
+        document.addEventListener('wheel', function (e) { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
+        document.addEventListener('keydown', function (e) {
+          if ((e.ctrlKey || e.metaKey) && ['+', '-', '=', '0'].indexOf(e.key) !== -1) e.preventDefault();
+        });
+      })();
+    </script>
+  </head>
+
+  <body>
+    <noscript>برای اجرای دوزاری جاوااسکریپت را روشن کنید.</noscript>
+    <div id="root"></div>
+    <script>
+      // PWA glue (D98, D102). Runs before the app so no browser event is missed; the app reads `window.__dozariPwa`
+      // and listens for `dozari-pwa` events (src/pwa/pwa.ts).
+      (function () {
+        var pwa = (window.__dozariPwa = { install: null, waiting: null });
+        var tell = function () {
+          window.dispatchEvent(new Event('dozari-pwa'));
+        };
+        // Chrome/Android offer installing through this event; keep it for our own «نصب» button.
+        window.addEventListener('beforeinstallprompt', function (e) {
+          e.preventDefault();
+          pwa.install = e;
+          tell();
+        });
+        window.addEventListener('appinstalled', function () {
+          pwa.install = null;
+          tell();
+        });
+        // The service worker only works on https or localhost; elsewhere this is a no-op.
+        if (!('serviceWorker' in navigator) || !(location.protocol === 'https:' || location.hostname === 'localhost')) return;
+        var reloading = false;
+        navigator.serviceWorker.addEventListener('controllerchange', function () {
+          // Only after the player asked for the new version (a first install takes over without reloading).
+          if (pwa.updating && !reloading) {
+            reloading = true;
+            location.reload();
+          }
+        });
+        window.addEventListener('load', function () {
+          navigator.serviceWorker
+            .register('/sw.js')
+            .then(function (reg) {
+              var waitFor = function (sw) {
+                if (!sw) return;
+                var check = function () {
+                  if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+                    pwa.waiting = sw;
+                    tell();
+                  }
+                };
+                sw.addEventListener('statechange', check);
+                check();
+              };
+              waitFor(reg.waiting);
+              reg.addEventListener('updatefound', function () {
+                waitFor(reg.installing);
+              });
+              // Long sessions (the app stays open on a phone for days) still notice a release.
+              setInterval(function () {
+                reg.update().catch(function () {});
+              }, 30 * 60 * 1000);
+            })
+            .catch(function () {});
+        });
+      })();
+    </script>
+  </body>
+</html>

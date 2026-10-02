@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<svg viewBox="0 0 390 844" preserveAspectRatio="xMidYMid slice" width="100%" height="100%" style="display:block">
+<defs>
+<filter id="{{ u }}p" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB">
+<feTurbulence type="fractalNoise" baseFrequency="0.022" numOctaves="2" seed="{{ seed }}" result="n"></feTurbulence>
+<feDisplacementMap in="SourceGraphic" in2="n" scale="5" xChannelSelector="R" yChannelSelector="G" result="d"></feDisplacementMap>
+
+
+
+
+</filter>
+<filter id="{{ u }}m1" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.005 0.018" numOctaves="4" seed="{{ seed }}"></feTurbulence><feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 0.98  0 0 0 0 0.92  1.5 0 0 0 -0.66"></feColorMatrix></filter>
+<filter id="{{ u }}m2" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.009 0.03" numOctaves="3" seed="{{ seed2 }}"></feTurbulence><feColorMatrix type="matrix" values="0 0 0 0 0.4  0 0 0 0 0.2  0 0 0 0 0.1  1.5 0 0 0 -0.7"></feColorMatrix></filter>
+<linearGradient id="{{ u }}skyA" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7ED6DA"></stop><stop offset=".42" stop-color="#BDEBE0"></stop><stop offset=".6" stop-color="#FBE6BF"></stop></linearGradient>
+<linearGradient id="{{ u }}skyB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4FC4C4"></stop><stop offset=".6" stop-color="#A8E6D6"></stop></linearGradient>
+<linearGradient id="{{ u }}wall" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EBC07C"></stop><stop offset="1" stop-color="#D29652"></stop></linearGradient>
+<radialGradient id="{{ u }}win" cx="50%" cy="42%" r="70%"><stop offset="0" stop-color="#FFF4B0"></stop><stop offset=".4" stop-color="#FFC93C"></stop><stop offset="1" stop-color="#FF7A3D"></stop></radialGradient>
+<radialGradient id="{{ u }}glow" cx="50%" cy="100%" r="90%"><stop offset="0" stop-color="#FFE0A0"></stop><stop offset=".35" stop-color="#E0803E"></stop><stop offset=".75" stop-color="#7A3418"></stop><stop offset="1" stop-color="#3E1A0C"></stop></radialGradient>
+<radialGradient id="{{ u }}lg"><stop offset="0" stop-color="#FFE48A" stop-opacity=".9"></stop><stop offset="1" stop-color="#FFE48A" stop-opacity="0"></stop></radialGradient>
+<pattern id="{{ u }}aR" width="24" height="10" patternUnits="userSpaceOnUse"><rect width="12" height="10" fill="#E84A3C"></rect><rect x="12" width="12" height="10" fill="#FFF3E0"></rect></pattern>
+<pattern id="{{ u }}aG" width="24" height="10" patternUnits="userSpaceOnUse"><rect width="12" height="10" fill="#3FA36B"></rect><rect x="12" width="12" height="10" fill="#FFF3E0"></rect></pattern>
+<pattern id="{{ u }}br" width="28" height="14" patternUnits="userSpaceOnUse"><rect width="28" height="14" fill="#E5884A"></rect><path d="M0 13.5 H28 M0 6.5 H28 M14 0 V7 M1 7 V14" stroke="#B85A2A" stroke-width="1.6" fill="none" opacity=".7"></path></pattern>
+</defs>
+<g filter="url(#{{ u }}p)" stroke="#4A2E1E" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round">
+
+<sc-if value="{{ is.bazaar }}" hint-placeholder-val="{{ false }}">
+<rect width="390" height="844" fill="url(#{{ u }}skyA)" stroke="none"></rect>
+<circle cx="300" cy="150" r="110" fill="url(#{{ u }}lg)" stroke="none" opacity=".7"></circle>
+<g fill="#FFFFFF" stroke="#7DBFC2" stroke-width="2.2">
+<g><animateTransform attributeName="transform" type="translate" from="-156 0" to="374 0" dur="70s" begin="-20.6s" repeatCount="indefinite"></animateTransform><path transform="translate(86 140)" d="M-40 6 C-52 4 -50 -14 -36 -12 C-34 -26 -14 -28 -8 -16 C-2 -28 22 -26 22 -12 C38 -16 46 2 32 8 C30 18 12 18 6 10 C0 18 -18 18 -22 10 C-30 16 -42 14 -40 6Z"></path></g>
+<g><animateTransform attributeName="transform" type="translate" from="-370 0" to="160 0" dur="55s" begin="-38.4s" repeatCount="indefinite"></animateTransform><path transform="translate(300 260) scale(.75)" d="M-40 6 C-52 4 -50 -14 -36 -12 C-34 -26 -14 -28 -8 -16 C-2 -28 22 -26 22 -12 C38 -16 46 2 32 8 C30 18 12 18 6 10 C0 18 -18 18 -22 10 C-30 16 -42 14 -40 6Z"></path></g>
+<g><animateTransform attributeName="transform" type="translate" from="-240 0" to="290 0" dur="85s" begin="-38.5s" repeatCount="indefinite"></animateTransform><path transform="translate(170 350) scale(.55)" d="M-40 6 C-52 4 -50 -14 -36 -12 C-34 -26 -14 -28 -8 -16 C-2 -28 22 -26 22 -12 C38 -16 46 2 32 8 C30 18 12 18 6 10 C0 18 -18 18 -22 10 C-30 16 -42 14 -40 6Z"></path></g>
+</g>
+<g fill="#E8CBB6" stroke="#C7A08B" stroke-width="2">
+<path d="M0 470 V440 h60 v-10 h30 v10 h40 V470Z M260 470 V436 h50 v-10 h30 v10 h60 V470Z"></path>
+<path d="M98 470 V380 h14 V470Z M96 380 l9 -16 l9 16Z M278 470 V390 h14 V470Z M276 390 l9 -16 l9 16Z"></path>
+<path d="M140 460 V440 h110 v20Z M150 440 C150 384 240 384 240 440Z M195 392 v-16"></path>
+</g>
+<path d="M0 460 h122 v190 h-122Z" fill="#EDB46A"></path>
+<path d="M268 460 h122 v190 h-122Z" fill="#E9A85C"></path>
+<path d="M-4 452 h130 v14 h-130Z M264 452 h130 v14 h-130Z" fill="#C98A4E"></path>
+<path d="M0 474 h122 v8 h-122Z M268 474 h122 v8 h-122Z" fill="#3E93B8"></path>
+<path d="M30 530 V510 C30 494 54 494 54 510 V530Z M70 530 V510 C70 494 94 494 94 510 V530Z M296 530 V510 C296 494 320 494 320 510 V530Z M336 530 V510 C336 494 360 494 360 510 V530Z" fill="#5A2A14"></path>
+<path d="M8 492 h34 M60 500 h44 M14 540 h28 M276 492 h40 M330 540 h40 M290 500 h24" stroke="#FFF3DC" stroke-width="3" opacity=".5" fill="none"></path>
+<path d="M108 488 l8 -6 M108 498 l8 -6 M108 508 l8 -6 M272 500 l8 -6 M272 510 l8 -6" stroke-width="1.6" opacity=".4" fill="none"></path>
+<path d="M-6 548 h136 l-12 30 h-112Z" fill="url(#{{ u }}aR)"></path>
+<path d="M260 548 h136 l-12 30 h-112Z" fill="url(#{{ u }}aG)"></path>
+<path d="M6 578 q7 8 14 0 q7 8 14 0 q7 8 14 0 q7 8 14 0 q7 8 14 0 q7 8 14 0 q7 8 14 0 q7 8 14 0" fill="#E84A3C"></path>
+<path d="M272 578 q7 8 14 0 q7 8 14 0 q7 8 14 0 q7 8 14 0 q7 8 14 0 q7 8 14 0 q7 8 14 0 q7 8 14 0" fill="#3FA36B"></path>
+<path d="M4 586 h110 v64 h-110Z M276 586 h110 v64 h-110Z" fill="#6A3018"></path>
+<path d="M-4 616 h124 v12 h-124Z M270 616 h124 v12 h-124Z" fill="#B8743E"></path>
+<g stroke-width="2"><circle cx="14" cy="607" r="9" fill="#FF5A4A"></circle><circle cx="31" cy="605" r="9" fill="#FFB23F"></circle><circle cx="48" cy="607" r="9" fill="#7ED957"></circle><circle cx="65" cy="605" r="9" fill="#FF5A4A"></circle><ellipse cx="94" cy="602" rx="17" ry="13" fill="#3FA36B"></ellipse></g>
+<path d="M84 594 q10 8 20 0 M82 604 q12 6 24 0 M11 602 q2 -3 5 -3 M28 600 q2 -3 5 -3 M62 600 q2 -3 5 -3" stroke="#fff" stroke-width="1.8" fill="none" opacity=".7"></path>
+<path d="M8 628 h46 v22 h-46Z M62 628 h46 v22 h-46Z" fill="#D9A15E"></path>
+<path d="M8 639 h46 M62 639 h46" fill="none" stroke-width="1.6"></path>
+<path d="M286 616 C278 610 278 592 288 588 V580 h10 v8 C308 592 308 610 300 616Z" fill="#C46A3A"></path>
+<path d="M316 616 C306 610 306 594 316 590 V584 h12 v6 C338 594 338 610 328 616Z" fill="#3E93B8"></path>
+<path d="M348 616 C340 612 340 596 350 594 V586 h8 v8 C366 596 366 612 358 616Z" fill="#E8B04A"></path>
+<path d="M285 600 q2 -6 6 -8 M314 602 q2 -6 6 -8" stroke="#fff" stroke-width="2" fill="none" opacity=".7"></path>
+<path d="M282 650 C276 636 284 628 300 630 C316 628 324 636 318 650Z M330 650 C324 636 332 628 348 630 C364 628 372 636 366 650Z" fill="#F2E2C2"></path>
+<path d="M286 634 C292 624 308 624 314 634Z" fill="#E8743B"></path><path d="M334 634 C340 624 356 624 362 634Z" fill="#FFC93C"></path>
+<path d="M122 420 h146 v230 h-146Z" fill="#F4CB8E"></path>
+<path d="M114 410 h162 v16 h-162Z M122 410 v-10 h16 v10Z M154 410 v-10 h16 v10Z M187 410 v-10 h16 v10Z M220 410 v-10 h16 v10Z M252 410 v-10 h16 v10Z" fill="#C98A4E"></path>
+<path d="M138 650 V520 C138 462 252 462 252 520 V650Z" fill="#3E93B8"></path>
+<path d="M144 650 V522 C144 470 246 470 246 522 V650" fill="none" stroke="#FFF6E8" stroke-width="2.4" stroke-dasharray="1 7"></path>
+<path d="M150 650 V524 C150 482 240 482 240 524 V650Z" fill="url(#{{ u }}glow)"></path>
+<path d="M168 650 V562 C168 534 222 534 222 562 V650Z" fill="#8A3E1A" opacity=".5" stroke-width="1.6"></path>
+<path d="M182 650 V592 C182 574 208 574 208 592 V650Z" fill="#FFE2A8" opacity=".85" stroke-width="1.4"></path>
+<circle cx="146" cy="446" r="9" fill="#FFC93C"></circle><circle cx="244" cy="446" r="9" fill="#FFC93C"></circle>
+<path d="M164 432 h62 v26 h-62Z" fill="#FFF6E8"></path>
+<text x="195" y="452" text-anchor="middle" font-family="Lalezar" font-size="19" fill="#3A2418" stroke="none">بازار</text>
+<path d="M122 500 Q195 556 268 500" fill="none" stroke-width="1.6"></path>
+<g transform="translate(158 522)"><circle cy="16" r="20" fill="url(#{{ u }}lg)" stroke="none"><animate attributeName="opacity" values="1;.55;.9;.6;1" dur="1.3s" repeatCount="indefinite"></animate><animate attributeName="r" values="20;23;19;22;20" dur="1.3s" repeatCount="indefinite"></animate></circle><path d="M0 0 v5" fill="none"></path><path d="M-7 5 C-10 14 -7 23 0 25 C7 23 10 14 7 5Z" fill="#FF5C8A"></path></g>
+<g transform="translate(195 528)"><circle cy="16" r="22" fill="url(#{{ u }}lg)" stroke="none"><animate attributeName="opacity" values="1;.55;.9;.6;1" dur="1.7s" repeatCount="indefinite"></animate><animate attributeName="r" values="22;25;21;24;22" dur="1.7s" repeatCount="indefinite"></animate></circle><path d="M0 0 v5" fill="none"></path><path d="M-8 5 C-11 15 -8 25 0 27 C8 25 11 15 8 5Z" fill="#FFC93C"></path></g>
+<g transform="translate(232 522)"><circle cy="16" r="20" fill="url(#{{ u }}lg)" stroke="none"><animate attributeName="opacity" values="1;.55;.9;.6;1" dur="1.1s" repeatCount="indefinite"></animate><animate attributeName="r" values="20;22;19;23;20" dur="1.1s" repeatCount="indefinite"></animate></circle><path d="M0 0 v5" fill="none"></path><path d="M-7 5 C-10 14 -7 23 0 25 C7 23 10 14 7 5Z" fill="#3FC1F0"></path></g>
+<path d="M0 650 h390 v194 h-390Z" fill="#EECFA0"></path>
+<path d="M0 650 h390 v12 h-390Z" fill="#3A2418" opacity=".12" stroke="none"></path>
+<path d="M195 650 L-160 844 M195 650 L550 844 M195 650 L40 844 M195 650 L350 844 M195 650 L195 844 M0 680 H390 M0 724 H390 M0 786 H390" fill="none" stroke="#D3A672" stroke-width="2" opacity=".7"></path>
+<g transform="translate(195 714)"><path d="M-84 -22 L84 -22 L100 24 L-100 24Z" fill="#B8235A"></path><path d="M-72 -14 L72 -14 L85 16 L-85 16Z" fill="none" stroke="#FFC93C" stroke-width="3"></path><path d="M0 -9 L22 1 L0 11 L-22 1Z" fill="#3E93B8"></path><path d="M-96 24 l-3 7 M-76 24 l-2 7 M-56 24 l-1 7 M56 24 l1 7 M76 24 l2 7 M96 24 l3 7" fill="none" stroke-width="1.8"></path></g>
+<path d="M30 770 h60 M250 806 h80 M120 826 h50" stroke="#FFF3DC" stroke-width="4" opacity=".55" fill="none"></path>
+</sc-if>
+
+<sc-if value="{{ is.alley }}" hint-placeholder-val="{{ false }}">
+<rect width="390" height="844" fill="url(#{{ u }}skyB)" stroke="none"></rect>
+<g fill="#FFFFFF" stroke="#4E9E9E" stroke-width="2.2">
+<g><animateTransform attributeName="transform" type="translate" from="-370 0" to="160 0" dur="60s" begin="-41.9s" repeatCount="indefinite"></animateTransform><path transform="translate(300 130)" d="M-40 6 C-52 4 -50 -14 -36 -12 C-34 -26 -14 -28 -8 -16 C-2 -28 22 -26 22 -12 C38 -16 46 2 32 8 C30 18 12 18 6 10 C0 18 -18 18 -22 10 C-30 16 -42 14 -40 6Z"></path></g>
+<g><animateTransform attributeName="transform" type="translate" from="-150 0" to="380 0" dur="75s" begin="-21.2s" repeatCount="indefinite"></animateTransform><path transform="translate(80 300) scale(.7)" d="M-40 6 C-52 4 -50 -14 -36 -12 C-34 -26 -14 -28 -8 -16 C-2 -28 22 -26 22 -12 C38 -16 46 2 32 8 C30 18 12 18 6 10 C0 18 -18 18 -22 10 C-30 16 -42 14 -40 6Z"></path></g>
+</g>
+<path d="M0 520 V478 h50 v-14 h40 v14 h30 V520Z M110 520 C110 478 172 478 172 520Z M260 520 V470 h40 v-22 h14 v22 h76 V520Z" fill="#C9B5E0" stroke="#A893C8" stroke-width="2"></path>
+<path d="M0 520 h390 v200 h-390Z" fill="url(#{{ u }}br)"></path>
+<path d="M-4 508 h398 v18 h-398Z" fill="#C46A3A"></path>
+<path d="M0 532 h390 M20 560 h70 M160 600 h60 M300 690 h70" stroke="#FFF3DC" stroke-width="3" opacity=".35" fill="none"></path>
+<path d="M52 720 V606 C52 570 118 570 118 606 V720Z" fill="#8A4A22"></path>
+<path d="M60 720 V610 C60 582 110 582 110 610 V720Z" fill="#3FA9A0"></path>
+<path d="M85 586 V720 M64 650 h18 M88 650 h18 M64 690 h18 M88 690 h18" fill="none" stroke-width="1.8"></path>
+<circle cx="79" cy="664" r="4" fill="#FFC93C"></circle><circle cx="91" cy="664" r="4" fill="#FFC93C"></circle>
+<path d="M44 720 h82 v10 h-82Z" fill="#D9A15E"></path>
+<path d="M232 642 V600 h14 v42Z M306 600 h14 v42 h-14Z" fill="#3FA9A0"></path>
+<path d="M246 642 V604 C246 576 306 576 306 604 V642Z" fill="#2B5E8C"></path>
+<path d="M276 580 V642 M246 612 h60" stroke="#FFF6E8" stroke-width="2" fill="none"></path>
+<path d="M240 642 h72 v8 h-72Z" fill="#D9A15E"></path>
+<path d="M260 642 l4 -14 h24 l4 14Z" fill="#C46A3A"></path>
+<g stroke-width="1.8"><circle cx="268" cy="620" r="5.5" fill="#FF5C8A"></circle><circle cx="278" cy="614" r="5.5" fill="#FFC93C"></circle><circle cx="288" cy="620" r="5.5" fill="#FF5C8A"></circle></g>
+<path d="M180 560 h30 v5 h-30Z M206 565 v8" fill="#4A2E1E"></path>
+<g transform="translate(206 573)"><circle cy="14" r="22" fill="url(#{{ u }}lg)" stroke="none"></circle><path d="M-8 0 C-11 12 -8 22 0 24 C8 22 11 12 8 0Z" fill="#FFC93C"></path></g>
+<path d="M0 720 h390 v124 h-390Z" fill="#F1D8A8"></path>
+<path d="M0 720 h390 v10 h-390Z" fill="#3A2418" opacity=".14" stroke="none"></path>
+<path d="M20 760 q14 -8 28 0 M70 782 q14 -8 28 0 M140 758 q14 -8 28 0 M200 792 q14 -8 28 0 M268 764 q14 -8 28 0 M320 790 q14 -8 28 0 M40 816 q14 -8 28 0 M170 824 q14 -8 28 0 M290 820 q14 -8 28 0" fill="none" stroke="#C9A06A" stroke-width="2"></path>
+</sc-if>
+
+<sc-if value="{{ is.hojre }}" hint-placeholder-val="{{ false }}">
+<rect width="390" height="844" fill="url(#{{ u }}wall)" stroke="none"></rect>
+<path d="M0 0 h390 v100 h-390Z" fill="#B9763E"></path>
+<path d="M0 96 h390 v12 h-390Z" fill="#7A4220"></path>
+<path d="M0 124 h390 v26 h-390Z" fill="#3E93B8"></path>
+<path d="M0 137 H390" stroke="#FFF6E8" stroke-width="6" stroke-dasharray="6 12" fill="none"></path>
+<path d="M60 760 V420 C60 300 330 300 330 420 V760" stroke="#C98A4E" stroke-width="4" opacity=".55" fill="none"></path>
+<path d="M30 200 h80 M260 260 h90 M40 480 h50 M300 560 h60" stroke="#FFF3DC" stroke-width="5" opacity=".35" fill="none"></path>
+<path d="M60 108 v40 M330 108 v40" fill="none" stroke-width="1.8"></path>
+<g transform="translate(60 148)"><circle cy="16" r="26" fill="url(#{{ u }}lg)" stroke="none"><animate attributeName="opacity" values="1;.55;.9;.6;1" dur="1.4s" repeatCount="indefinite"></animate><animate attributeName="r" values="26;29;25;28;26" dur="1.4s" repeatCount="indefinite"></animate></circle><path d="M-9 0 C-12 14 -9 26 0 28 C9 26 12 14 9 0Z" fill="#FF5C8A"></path></g>
+<g transform="translate(330 148)"><circle cy="16" r="26" fill="url(#{{ u }}lg)" stroke="none"><animate attributeName="opacity" values="1;.55;.9;.6;1" dur="1.9s" repeatCount="indefinite"></animate><animate attributeName="r" values="26;29;25;28;26" dur="1.9s" repeatCount="indefinite"></animate></circle><path d="M-9 0 C-12 14 -9 26 0 28 C9 26 12 14 9 0Z" fill="#7ED957"></path></g>
+<path d="M0 740 h390 v104 h-390Z" fill="#B8743E"></path>
+<path d="M0 772 H390 M0 806 H390 M80 740 v32 M220 740 v32 M150 772 v34 M300 772 v34 M60 806 v38 M260 806 v38" fill="none" stroke="#8A4A22" stroke-width="2"></path>
+<path d="M70 768 L320 768 L350 830 L40 830Z" fill="#2F7FA8"></path>
+<path d="M84 776 L306 776 L330 822 L60 822Z" fill="none" stroke="#FFC93C" stroke-width="3"></path>
+</sc-if>
+
+<sc-if value="{{ is.caravan }}" hint-placeholder-val="{{ false }}">
+<rect width="390" height="844" fill="url(#{{ u }}skyB)" stroke="none"></rect>
+<circle cx="90" cy="170" r="70" fill="url(#{{ u }}lg)" stroke="none"></circle>
+<g fill="#FFFFFF" stroke="#4E9E9E" stroke-width="2.2"><g><animateTransform attributeName="transform" type="translate" from="-350 0" to="180 0" dur="50s" begin="-33s" repeatCount="indefinite"></animateTransform><path transform="translate(280 200)" d="M-40 6 C-52 4 -50 -14 -36 -12 C-34 -26 -14 -28 -8 -16 C-2 -28 22 -26 22 -12 C38 -16 46 2 32 8 C30 18 12 18 6 10 C0 18 -18 18 -22 10 C-30 16 -42 14 -40 6Z"></path></g></g>
+<path d="M250 580 V520 h24 v-20 C274 480 304 480 304 500 v20 h22 v-40 h10 v-16 l6 -10 l6 10 v16 h10 v120Z" fill="#E9C089" stroke="#C99A60" stroke-width="2"></path>
+<path d="M0 600 C100 560 200 620 390 570 V844 H0Z" fill="#F2CD8E"></path>
+<path d="M40 640 V470 C40 410 150 410 150 470 V640 H124 V474 C124 440 66 440 66 474 V640Z" fill="#E07A4A"></path>
+<path d="M150 470 l-10 22 h10Z M40 520 h26 M124 560 h26" fill="#C4562E" stroke-width="2"></path>
+<g><animateTransform attributeName="transform" type="rotate" values="-2 300 650;2.5 300 650;-2 300 650" dur="4s" calcMode="spline" keySplines=".45 0 .55 1;.45 0 .55 1" repeatCount="indefinite"></animateTransform><path d="M300 650 C296 610 304 570 300 530" stroke="#4A2E1E" stroke-width="12" fill="none"></path>
+<path d="M300 650 C296 610 304 570 300 530" stroke="#A8743E" stroke-width="7" fill="none"></path>
+<path d="M300 530 C280 510 254 514 244 530 C264 522 284 524 300 532Z M300 530 C320 508 346 512 356 528 C336 520 316 522 300 532Z M300 528 C292 504 300 488 314 484 C306 498 304 512 302 528Z M300 530 C284 520 272 540 270 556 C280 544 290 536 300 532Z" fill="#3FA36B"></path></g>
+<path d="M0 690 C120 650 260 710 390 668 V844 H0Z" fill="#E9B46A"></path>
+<path d="M30 720 q40 -10 80 0 M210 740 q50 -12 100 0 M90 790 q40 -10 80 0" stroke="#FFF3DC" stroke-width="4" opacity=".55" fill="none"></path>
+<path d="M170 660 C162 660 160 640 170 636 V628 h10 v8 C190 640 188 660 180 660Z" fill="#C46A3A"></path>
+</sc-if>
+
+<sc-if value="{{ is.win }}" hint-placeholder-val="{{ false }}">
+<rect width="390" height="844" fill="url(#{{ u }}win)" stroke="none"></rect>
+<path d="{{ rays }}" fill="#FFFFFF" opacity=".28" stroke="none"></path>
+<path d="M-10 90 Q195 170 400 90" fill="none" stroke-width="1.8"></path>
+<sc-for list="{{ flags }}" as="f" hint-placeholder-count="10"><path d="{{ f.d }}" fill="{{ f.c }}" stroke-width="2"></path></sc-for>
+<path d="M0 844 V700 h60 v-30 h40 v30 h30 C130 640 210 640 210 700 h40 v-50 h16 v50 h40 v-24 h60 v24 h24 V844Z" fill="#E8743B"></path>
+<path d="M20 740 h20 v24 h-20Z M150 730 C150 716 170 716 170 730 v20 h-20Z M300 720 h16 v20 h-16Z M340 740 h16 v20 h-16Z" fill="#7A3418"></path>
+</sc-if>
+</g>
+
+
+<sc-if value="{{ dusk }}" hint-placeholder-val="{{ false }}"><rect width="390" height="844" fill="#27306E" opacity=".55" style="mix-blend-mode:multiply"></rect></sc-if>
+</svg>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:844},&quot;scene&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;bazaar&quot;,&quot;alley&quot;,&quot;hojre&quot;,&quot;caravan&quot;,&quot;win&quot;],&quot;default&quot;:&quot;bazaar&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;mood&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;day&quot;,&quot;dusk&quot;],&quot;default&quot;:&quot;day&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+const RAYS=(()=>{let d='';const cx=195,cy=380,R=900;for(let i=0;i<18;i++){const a=i*20*Math.PI/180,b=(i*20+10)*Math.PI/180;
+d+=`M${cx} ${cy} L${(cx+R*Math.cos(a)).toFixed(0)} ${(cy+R*Math.sin(a)).toFixed(0)} L${(cx+R*Math.cos(b)).toFixed(0)} ${(cy+R*Math.sin(b)).toFixed(0)}Z `;}return d;})();
+const FLAGS=Array.from({length:11},(_,i)=>{const t=(i+.5)/11,x=-10+410*t,y=90+80*4*t*(1-t)*1;return {d:`M${(x-12).toFixed(1)} ${(y-2).toFixed(1)} L${(x+12).toFixed(1)} ${(y-2).toFixed(1)} L${x.toFixed(1)} ${(y+24).toFixed(1)}Z`,c:['#FF4D8D','#3FC1F0','#7ED957','#A66BF0','#FFF6E8'][i%5]};});
+class Component extends DCLogic {
+  renderVals(){
+    if(!this.uid){window.__dzs=(window.__dzs||0)+1;this.uid='dzs'+window.__dzs;}
+    const s=this.props.scene??'bazaar';
+    return {u:this.uid,seed:7,seed2:13,rays:RAYS,flags:FLAGS,dusk:this.props.mood==='dusk',
+      is:{bazaar:s==='bazaar',alley:s==='alley',hojre:s==='hojre',caravan:s==='caravan',win:s==='win'}};
+  }
+}
+</script>
+</body>
+</html>

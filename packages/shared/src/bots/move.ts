@@ -1,0 +1,45 @@
+import type { Rng } from '../game/rng.js';
+
+export interface BotMoveInput {
+  /** Unsolved groups as product id lists (server side only: bots play inside the server, never over a socket). */
+  groups: readonly (readonly string[])[];
+  /** Cards still on the board. */
+  remaining: readonly string[];
+  /** 0 = clueless, 100 = nearly always right. */
+  skill: number;
+  rng: Rng;
+}
+
+const sample = <T>(items: readonly T[], n: number, rng: Rng): T[] => {
+  const pool = [...items];
+  const out: T[] = [];
+  while (out.length < n && pool.length > 0) out.push(pool.splice(Math.floor(rng() * pool.length), 1)[0] as T);
+  return out;
+};
+
+/**
+ * A human-like selection of four cards. With probability about `skill`% (never above 90 %) the bot submits a real group; otherwise it
+ * "almost" finds one (three right plus an intruder) or just guesses. Imperfect on purpose (docs/logic/bots.md). The caller submits it
+ * through the same match command as a human.
+ */
+export function chooseBotMove(input: BotMoveInput): string[] {
+  const { groups, remaining, rng } = input;
+  const skill = Math.max(0, Math.min(100, input.skill));
+  const usable = groups.filter((g) => g.length === 4);
+  const roll = rng() * 100;
+  if (usable.length > 0 && roll < Math.min(90, skill)) return [...(usable[Math.floor(rng() * usable.length)] as readonly string[])];
+  if (usable.length > 0 && roll < Math.min(90, skill) + 35) {
+    // One away: three of a group plus one card from elsewhere.
+    const group = usable[Math.floor(rng() * usable.length)] as readonly string[];
+    const outsiders = remaining.filter((c) => !group.includes(c));
+    if (outsiders.length > 0) return [...sample(group, 3, rng), sample(outsiders, 1, rng)[0] as string];
+  }
+  return sample(remaining, 4, rng);
+}
+
+/** How long a bot "thinks" before its move: uniform in [min, max], never so long that it would miss the turn (leaves `margin` ms). */
+export function botThinkDelay(minMs: number, maxMs: number, msLeft: number, rng: Rng, margin = 2500): number {
+  const span = Math.max(0, maxMs - minMs);
+  const wanted = minMs + Math.floor(rng() * (span + 1));
+  return Math.max(0, Math.min(wanted, msLeft - margin));
+}

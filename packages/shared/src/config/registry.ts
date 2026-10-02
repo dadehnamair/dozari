@@ -1,0 +1,207 @@
+import {
+  AVATAR_CHANGE_MIN_LEVEL,
+  AVATAR_UNLOCK_GAMES,
+  FIRST_BLOOD_BONUS,
+  GROUP_POINTS,
+  MATCH_MAX_MISTAKES,
+  MAX_CONSECUTIVE_TIMEOUTS,
+  NICKNAME_CHANGE_MIN_LEVEL,
+  NICKNAME_UNLOCK_GAMES,
+  PRICE_GUESS_LOSER_BONUS_PER_ROUND,
+  PRICE_GUESS_MIN_POINTS,
+  PRICE_GUESS_ROUND_POINTS,
+  PRICE_GUESS_STAIRCASE,
+  SOLO_MAX_MISTAKES,
+  TURN_SECONDS,
+} from './game.js';
+import { BROKE_RESCUE_TARGET, DAILY_FREE_MATCHES, ENTRY_FEE_BASE, FREE_MATCH_PAYOUT_PERCENT, HOUSE_CUT_PERCENT, LOSS_CONSOLATION, LOSS_CONSOLATION_DAILY_CAP, DAILY_REWARD_COOLDOWN_HOURS, DAILY_REWARD_STREAK_WINDOW_HOURS, HINT_MAX_PER_GAME, HINT_MIN_LEVEL, HINT_PRICES, HINT_REPEAT_PERCENT, DAILY_PUZZLE_REWARD, DAILY_PUZZLE_STREAK_MAX_DAYS, DAILY_PUZZLE_STREAK_STEP, DAILY_PUZZLE_REPEAT_DAYS } from './economy.js';
+import { CHART_GAP_BREAK_YEARS, CHART_MIN_YEAR } from './chart.js';
+import { INVITE_INVITEE_BONUS, INVITE_INVITER_REWARD, INVITE_MAX_USES, INVITE_MIN_LEVEL, INVITE_REWARD_AFTER_GAMES } from './invite.js';
+import { LOAN_DUE_DAYS, LOAN_MAX_OPEN, TRANSFER_MAX_AMOUNT, TRANSFER_MIN_AMOUNT, TRANSFER_MIN_FRIEND_DAYS, TRANSFER_MIN_LEVEL, TRANSFER_WEEKLY_CAP } from './transfers.js';
+import { TABLE_IDLE_MINUTES } from '../tables/code.js';
+import { CHAT_MAX_LEN } from './chat.js';
+import { SKILL_MIN_GAMES, SKILL_PRO_GAMES, SKILL_PRO_WIN_PERCENT } from './progression.js';
+import { LEVEL_MAX, NICKNAME_MAX_LEN, NICKNAME_MIN_LEN, XP_CURVE_BASE, XP_DUEL_BASE, XP_SOLO_BASE, XP_WIN_BONUS } from './progression.js';
+
+/**
+ * Every tunable the admin panel can change. The defaults come from the constants in `config/*.ts` (CLAUDE.md rule 9);
+ * an override is a row in `app_settings`. Values are integers or short lists of integers (stored as "1,2,3,4", no JSON).
+ */
+export const SETTING_GROUPS = ['app', 'gameplay', 'scoring', 'profile', 'economy', 'chart', 'bot', 'notify', 'review'] as const;
+export type SettingGroup = (typeof SETTING_GROUPS)[number];
+
+export interface SettingDef {
+  key: string;
+  group: SettingGroup;
+  label: string;
+  hint?: string;
+  /** `text` is a short string: `max` is its length limit, `min` is ignored. */
+  kind: 'int' | 'bool' | 'intList' | 'text';
+  min: number;
+  max: number;
+  /** For lists: exact length. */
+  length?: number;
+  default: number | readonly number[] | string;
+  unit?: string;
+}
+
+export const SETTING_DEFS: readonly SettingDef[] = [
+  { key: 'app.maintenance_on', group: 'app', label: 'حالت تعمیر (بازیکن‌ها فقط پیام تعمیر را می‌بینند)', kind: 'bool', min: 0, max: 1, default: 0 },
+  { key: 'app.maintenance_message', group: 'app', label: 'پیام حالت تعمیر', kind: 'text', min: 0, max: 300, default: 'بازی برای چند دقیقه در دست تعمیر است. به‌زودی برمی‌گردیم.' },
+  { key: 'app.min_build', group: 'app', label: 'کمترین نسخه‌ی مجاز اپ (شماره‌ی بیلد)', hint: 'نسخه‌های قدیمی‌تر باید به‌روزرسانی کنند؛ ۰ یعنی همه مجازند', kind: 'int', min: 0, max: 99999, default: 0 },
+  { key: 'app.update_url', group: 'app', label: 'لینک به‌روزرسانی', hint: 'صفحه‌ی اپ در بازار / مایکت / بله', kind: 'text', min: 0, max: 300, default: '' },
+  { key: 'feature.lookup', group: 'app', label: 'استعلام قیمت روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'feature.duel', group: 'app', label: 'بازی دونفره‌ی زنده روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'feature.friends', group: 'app', label: 'دوستان و پروفایل بازیکن‌ها روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'feature.inbox', group: 'app', label: 'صندوق پیام داخل اپ روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'feature.bale', group: 'app', label: 'اتصال به بله روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'review.enabled', group: 'review', label: 'درخواست نظر در فروشگاه روشن باشد', hint: 'پیش‌فرض خاموش؛ بعد از پر کردن لینک فروشگاه‌ها روشنش کن', kind: 'bool', min: 0, max: 1, default: 0 },
+  { key: 'review.after_days', group: 'review', label: 'اولین بار بعد از چند روز از نصب', kind: 'int', min: 0, max: 365, default: 3, unit: 'روز' },
+  { key: 'review.after_games', group: 'review', label: 'و بعد از چند بازی تمام‌شده', kind: 'int', min: 0, max: 500, default: 3 },
+  { key: 'review.repeat_days', group: 'review', label: 'هر چند روز یک بار دوباره بپرسد (اگر «بعداً» زد)', kind: 'int', min: 1, max: 365, default: 30, unit: 'روز' },
+  { key: 'review.max_prompts', group: 'review', label: 'حداکثر چند بار از هر بازیکن بپرسد', kind: 'int', min: 1, max: 20, default: 3 },
+  { key: 'review.myket', group: 'review', label: 'برای نسخه‌ی مایکت روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'review.bazaar', group: 'review', label: 'برای نسخه‌ی بازار روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'review.bale', group: 'review', label: 'برای نسخه‌ی بله روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'review.package_id', group: 'review', label: 'شناسه‌ی بسته‌ی اپ (package)', kind: 'text', min: 0, max: 100, default: 'ir.dozari.app' },
+  { key: 'review.url_myket', group: 'review', label: 'لینک صفحه‌ی مایکت', hint: 'خالی = از روی شناسه‌ی بسته ساخته می‌شود (myket.ir/app/…)', kind: 'text', min: 0, max: 300, default: '' },
+  { key: 'review.url_bazaar', group: 'review', label: 'لینک صفحه‌ی بازار', hint: 'خالی = از روی شناسه‌ی بسته ساخته می‌شود (cafebazaar.ir/app/…)', kind: 'text', min: 0, max: 300, default: '' },
+  { key: 'review.url_bale', group: 'review', label: 'لینک صفحه‌ی اپ در بله', hint: 'باید خودت پر کنی؛ حدس نمی‌زنیم', kind: 'text', min: 0, max: 300, default: '' },
+  { key: 'review.message', group: 'review', label: 'متن درخواست', kind: 'text', min: 0, max: 200, default: 'اگه از دوزاری خوشت اومده، یه نظر برامون بذار ❤️' },
+  { key: 'game.solo_max_mistakes', group: 'gameplay', label: 'اشتباه مجاز در بازی تکی', kind: 'int', min: 1, max: 10, default: SOLO_MAX_MISTAKES },
+  { key: 'game.match_max_mistakes', group: 'gameplay', label: 'اشتباه مجاز هر بازیکن در دوئل', kind: 'int', min: 1, max: 10, default: MATCH_MAX_MISTAKES },
+  { key: 'game.turn_seconds', group: 'gameplay', label: 'زمان هر نوبت', kind: 'int', min: 10, max: 180, default: TURN_SECONDS, unit: 'ثانیه' },
+  { key: 'game.max_consecutive_timeouts', group: 'gameplay', label: 'تایم‌اوت پیاپی تا باخت', hint: 'بعد از این تعداد تایم‌اوت پشت‌سرهم، بازیکن می‌بازد', kind: 'int', min: 1, max: 5, default: MAX_CONSECUTIVE_TIMEOUTS },
+  { key: 'score.group_points', group: 'scoring', label: 'امتیاز حل هر دسته (زرد تا بنفش)', hint: 'چهار عدد با ویرگول', kind: 'intList', length: 4, min: 0, max: 20, default: GROUP_POINTS },
+  { key: 'score.first_blood_bonus', group: 'scoring', label: 'امتیاز اضافه‌ی اولین دسته', kind: 'int', min: 0, max: 10, default: FIRST_BLOOD_BONUS },
+  { key: 'score.guess_round_points', group: 'scoring', label: 'امتیاز بردن یک دور حدس قیمت (دوئل)', kind: 'int', min: 0, max: 10, default: PRICE_GUESS_ROUND_POINTS },
+  { key: 'score.guess_loser_bonus', group: 'scoring', label: 'امتیاز دلداری به بازنده‌ی ماندگار', hint: 'برای هر دور حدس قیمتی که برده', kind: 'int', min: 0, max: 10, default: PRICE_GUESS_LOSER_BONUS_PER_ROUND },
+  { key: 'score.staircase_error_pct', group: 'scoring', label: 'پله‌های خطا در حدس قیمت (درصد)', hint: 'چهار عدد صعودی؛ خطای کمتر از هر پله، امتیاز همان پله', kind: 'intList', length: 4, min: 1, max: 100, default: PRICE_GUESS_STAIRCASE.map((s) => s.maxErrorPct) },
+  { key: 'score.staircase_points', group: 'scoring', label: 'امتیاز پله‌های حدس قیمت', hint: 'چهار عدد نزولی، هم‌ترتیب با پله‌ها', kind: 'intList', length: 4, min: 1, max: 20, default: PRICE_GUESS_STAIRCASE.map((s) => s.points) },
+  { key: 'score.guess_min_points', group: 'scoring', label: 'کمترین امتیاز حدس قیمت', kind: 'int', min: 0, max: 10, default: PRICE_GUESS_MIN_POINTS },
+  { key: 'profile.avatar_unlock_games', group: 'profile', label: 'بازی لازم برای انتخاب رایگان آواتار', kind: 'int', min: 0, max: 100, default: AVATAR_UNLOCK_GAMES, unit: 'بازی' },
+  { key: 'profile.nickname_unlock_games', group: 'profile', label: 'بازی لازم برای انتخاب رایگان اسم', kind: 'int', min: 0, max: 200, default: NICKNAME_UNLOCK_GAMES, unit: 'بازی' },
+  { key: 'profile.avatar_change_min_level', group: 'profile', label: 'کمترین لول برای تغییر آواتار (خرید)', kind: 'int', min: 1, max: 100, default: AVATAR_CHANGE_MIN_LEVEL },
+  { key: 'profile.nickname_change_min_level', group: 'profile', label: 'کمترین لول برای تغییر اسم (خرید)', kind: 'int', min: 1, max: 100, default: NICKNAME_CHANGE_MIN_LEVEL },
+  { key: 'xp.solo_base', group: 'profile', label: 'تجربه (XP) برای هر بازی تکی تمام‌شده', kind: 'int', min: 0, max: 1000, default: XP_SOLO_BASE },
+  { key: 'xp.duel_base', group: 'profile', label: 'تجربه (XP) برای هر دوئل تمام‌شده', kind: 'int', min: 0, max: 1000, default: XP_DUEL_BASE },
+  { key: 'xp.win_bonus', group: 'profile', label: 'تجربه‌ی اضافه برای برد', kind: 'int', min: 0, max: 1000, default: XP_WIN_BONUS },
+  { key: 'xp.curve_base', group: 'profile', label: 'ضریب منحنی لول', hint: 'رسیدن به لول n+1 یعنی ضریب × n² تجربه؛ ضریب بزرگ‌تر = لول‌گرفتن سخت‌تر', kind: 'int', min: 1, max: 5000, default: XP_CURVE_BASE },
+  { key: 'xp.level_max', group: 'profile', label: 'بالاترین لول', kind: 'int', min: 2, max: 500, default: LEVEL_MAX },
+  { key: 'nickname.min_len', group: 'profile', label: 'کمترین طول اسم', kind: 'int', min: 1, max: 30, default: NICKNAME_MIN_LEN, unit: 'حرف' },
+  { key: 'nickname.max_len', group: 'profile', label: 'بیشترین طول اسم', kind: 'int', min: 2, max: 60, default: NICKNAME_MAX_LEN, unit: 'حرف' },
+  { key: 'nickname.allow_digits', group: 'profile', label: 'عدد در اسم مجاز باشد', kind: 'bool', min: 0, max: 1, default: 0 },
+  { key: 'nickname.allow_latin', group: 'profile', label: 'حرف انگلیسی در اسم مجاز باشد', kind: 'bool', min: 0, max: 1, default: 0 },
+  { key: 'nickname.allow_persian', group: 'profile', label: 'حرف فارسی در اسم مجاز باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'economy.daily_cooldown_hours', group: 'economy', label: 'فاصله‌ی دریافت جایزه‌ی روزانه', kind: 'int', min: 1, max: 72, default: DAILY_REWARD_COOLDOWN_HOURS, unit: 'ساعت' },
+  { key: 'economy.daily_streak_window_hours', group: 'economy', label: 'مهلت ادامه‌ی زنجیره‌ی جایزه', hint: 'دریافت بعدی تا این مدت بعد از قبلی، زنجیره را ادامه می‌دهد؛ دیرتر از آن از روز اول شروع می‌شود', kind: 'int', min: 2, max: 168, default: DAILY_REWARD_STREAK_WINDOW_HOURS, unit: 'ساعت' },
+  { key: 'limit.solo_per_day', group: 'gameplay', label: 'سقف بازی تکی در روز برای هر بازیکن', hint: '۰ یعنی بدون سقف؛ ساعت صفر به وقت تهران صفر می‌شود', kind: 'int', min: 0, max: 1000, default: 0 },
+  { key: 'limit.duel_per_day', group: 'gameplay', label: 'سقف بازی دونفره‌ی زنده در روز برای هر بازیکن', hint: '۰ یعنی بدون سقف', kind: 'int', min: 0, max: 1000, default: 0 },
+  { key: 'duel.entry_fee', group: 'economy', label: 'ورودی بازی دونفره‌ی زنده (سکه برای هر نفر)', hint: 'جمع دو ورودی می‌شود جایزه‌ی برنده', kind: 'int', min: 0, max: 10000, default: ENTRY_FEE_BASE, unit: 'سکه' },
+  { key: 'duel.house_cut_percent', group: 'economy', label: 'سهم خانه از جایزه‌ی هر بازی', kind: 'int', min: 0, max: 90, default: HOUSE_CUT_PERCENT, unit: '٪' },
+  { key: 'duel.free_per_day', group: 'economy', label: 'بازی رایگان دونفره در روز', kind: 'int', min: 0, max: 100, default: DAILY_FREE_MATCHES },
+  { key: 'duel.free_payout_percent', group: 'economy', label: 'جایزه‌ی بردِ بازی رایگان (درصد جایزه‌ی عادی)', kind: 'int', min: 0, max: 100, default: FREE_MATCH_PAYOUT_PERCENT, unit: '٪' },
+  { key: 'duel.loss_consolation', group: 'economy', label: 'دلداری باخت (سکه)', kind: 'int', min: 0, max: 1000, default: LOSS_CONSOLATION, unit: 'سکه' },
+  { key: 'duel.consolation_cap', group: 'economy', label: 'سقف دلداری باخت در روز برای هر بازیکن', kind: 'int', min: 0, max: 10000, default: LOSS_CONSOLATION_DAILY_CAP, unit: 'سکه' },
+  { key: 'duel.rescue_target', group: 'economy', label: 'نجات از بی‌سکه‌ای: رساندن موجودی به', hint: 'روزی یک بار، وقتی سکه برای ورودی نیست و بازی رایگان هم تمام شده', kind: 'int', min: 0, max: 10000, default: BROKE_RESCUE_TARGET, unit: 'سکه' },
+  { key: 'feature.tables', group: 'app', label: 'میز اختصاصی روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'table.idle_minutes', group: 'gameplay', label: 'میز اختصاصی بعد از چند دقیقه بی‌استفاده بسته شود', kind: 'int', min: 1, max: 240, default: TABLE_IDLE_MINUTES, unit: 'دقیقه' },
+  { key: 'feature.daily', group: 'app', label: 'پازل روز روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'daily.reward_coins', group: 'economy', label: 'جایزه‌ی حل پازل روز', hint: 'برای حل کامل، یک بار در روز', kind: 'int', min: 0, max: 1000, default: DAILY_PUZZLE_REWARD, unit: 'سکه' },
+  { key: 'daily.streak_step', group: 'economy', label: 'افزایش جایزه به ازای هر روز پشت‌سرهم', kind: 'int', min: 0, max: 200, default: DAILY_PUZZLE_STREAK_STEP, unit: 'سکه' },
+  { key: 'daily.streak_max_days', group: 'economy', label: 'سقف روزهای زنجیره برای افزایش جایزه', kind: 'int', min: 1, max: 60, default: DAILY_PUZZLE_STREAK_MAX_DAYS, unit: 'روز' },
+  { key: 'daily.repeat_days', group: 'gameplay', label: 'پازل روز تا چند روز تکرار نشود', kind: 'int', min: 0, max: 365, default: DAILY_PUZZLE_REPEAT_DAYS, unit: 'روز' },
+  { key: 'hint.price_group_title', group: 'economy', label: 'قیمت راهنما: نام یک دسته', hint: 'سکه برای هر بار گرفتن راهنما در بازی تکی', kind: 'int', min: 0, max: 5000, default: HINT_PRICES.group_title, unit: 'سکه' },
+  { key: 'hint.price_one_card', group: 'economy', label: 'قیمت راهنما: یک کارت از یک دسته', kind: 'int', min: 0, max: 5000, default: HINT_PRICES.one_card, unit: 'سکه' },
+  { key: 'hint.price_pair', group: 'economy', label: 'قیمت راهنما: دو کارت هم‌دسته', kind: 'int', min: 0, max: 5000, default: HINT_PRICES.pair, unit: 'سکه' },
+  { key: 'hint.min_level', group: 'economy', label: 'کمترین لول برای گرفتن راهنما', kind: 'int', min: 1, max: 100, default: HINT_MIN_LEVEL },
+  { key: 'hint.max_per_game', group: 'economy', label: 'حداکثر راهنما در هر بازی', kind: 'int', min: 1, max: 10, default: HINT_MAX_PER_GAME },
+  { key: 'hint.repeat_percent', group: 'economy', label: 'قیمت راهنمای دوم به بعد (درصد قیمت اول)', hint: '۲۰۰ یعنی دو برابر', kind: 'int', min: 100, max: 1000, default: HINT_REPEAT_PERCENT, unit: '٪' },
+  { key: 'feature.coin_packages', group: 'app', label: 'خرید بسته‌ی سکه با پول واقعی روشن باشد', hint: 'تا فروشگاه‌های بازار/مایکت وصل نشده خاموش بماند', kind: 'bool', min: 0, max: 1, default: 0 },
+  { key: 'feature.shop', group: 'app', label: 'فروشگاه و راهنما روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'invite.min_level', group: 'economy', label: 'کمترین لول برای گرفتن کد معرف شخصی', hint: 'کد معرف ارزشمند است؛ تا این لول کدی داده نمی‌شود', kind: 'int', min: 1, max: 100, default: INVITE_MIN_LEVEL },
+  { key: 'invite.max_uses', group: 'economy', label: 'هر کد معرف چند نفر را می‌تواند دعوت کند', kind: 'int', min: 1, max: 1000, default: INVITE_MAX_USES, unit: 'نفر' },
+  { key: 'invite.invitee_bonus', group: 'economy', label: 'سکه‌ی دعوت‌شده بعد از واردکردن کد', kind: 'int', min: 0, max: 10000, default: INVITE_INVITEE_BONUS, unit: 'سکه' },
+  { key: 'invite.inviter_reward', group: 'economy', label: 'سکه‌ی معرف', hint: 'بعد از اینکه دعوت‌شده چند بازی را تمام کرد', kind: 'int', min: 0, max: 10000, default: INVITE_INVITER_REWARD, unit: 'سکه' },
+  { key: 'invite.reward_after_games', group: 'economy', label: 'پاداش معرف بعد از چند بازی تمام‌شده‌ی دعوت‌شده', kind: 'int', min: 1, max: 100, default: INVITE_REWARD_AFTER_GAMES, unit: 'بازی' },
+  { key: 'invite.required_for_rename', group: 'profile', label: 'تغییر اسم نیازمند فعال‌بودن حساب با کد معرف باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'transfer.gifts_on', group: 'economy', label: 'هدیه‌دادن سکه بین دوستان روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'transfer.loans_on', group: 'economy', label: 'قرض‌دادن سکه بین دوستان روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'transfer.min_friend_days', group: 'economy', label: 'کمترین مدت دوستی برای هدیه و قرض', kind: 'int', min: 0, max: 365, default: TRANSFER_MIN_FRIEND_DAYS, unit: 'روز' },
+  { key: 'transfer.min_level', group: 'economy', label: 'کمترین لول فرستنده برای هدیه و قرض', kind: 'int', min: 1, max: 100, default: TRANSFER_MIN_LEVEL },
+  { key: 'transfer.weekly_cap', group: 'economy', label: 'سقف سکه‌ی فرستادنی در هفته (هدیه + قرض)', hint: 'جمع در هر ۷ روز گذشته', kind: 'int', min: 0, max: 100000, default: TRANSFER_WEEKLY_CAP, unit: 'سکه' },
+  { key: 'transfer.min_amount', group: 'economy', label: 'کمترین مبلغ هر انتقال', kind: 'int', min: 1, max: 100000, default: TRANSFER_MIN_AMOUNT, unit: 'سکه' },
+  { key: 'transfer.max_amount', group: 'economy', label: 'بیشترین مبلغ هر انتقال', kind: 'int', min: 1, max: 100000, default: TRANSFER_MAX_AMOUNT, unit: 'سکه' },
+  { key: 'transfer.needs_activation', group: 'economy', label: 'فرستنده باید حسابش را با کد معرف فعال کرده باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'loan.due_days', group: 'economy', label: 'مهلت پس‌دادن قرض', kind: 'int', min: 1, max: 90, default: LOAN_DUE_DAYS, unit: 'روز' },
+  { key: 'loan.max_open', group: 'economy', label: 'حداکثر قرض باز برای هر نفر', kind: 'int', min: 1, max: 10, default: LOAN_MAX_OPEN },
+  { key: 'phone.required_for_bale', group: 'profile', label: 'برای اتصال به بله اول باید شماره‌ی موبایل ثبت شود', hint: 'شماره با ارسال مخاطب در ربات بله (یا پیامک) تأیید می‌شود', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'phone.sms_ttl_minutes', group: 'profile', label: 'مدت اعتبار کد پیامکی', kind: 'int', min: 1, max: 30, default: 5, unit: 'دقیقه' },
+  { key: 'phone.sms_resend_seconds', group: 'profile', label: 'فاصله‌ی دوبار فرستادن پیامک', kind: 'int', min: 10, max: 600, default: 60, unit: 'ثانیه' },
+  { key: 'link.invite_base', group: 'app', label: 'آدرس پایه‌ی لینک دعوت دوست', hint: 'ID بازیکن به انتهای آن اضافه می‌شود؛ مثل https://dozari.app/i/ (تا وقتی دامنه نیست، dozari://i/)', kind: 'text', min: 0, max: 200, default: 'dozari://i/' },
+  { key: 'link.shortener_url', group: 'app', label: 'آدرس سرویس کوتاه‌کننده‌ی لینک', hint: 'آدرسی که {url} در آن جایگزین لینک می‌شود؛ مثل https://example.com/api?url={url} . خالی = لینک کوتاه نمی‌شود', kind: 'text', min: 0, max: 300, default: '' },
+  { key: 'friend.link_auto_hours', group: 'app', label: 'حساب‌های تازه‌تر از این مدت با لینک دعوت فوری دوست می‌شوند', kind: 'int', min: 0, max: 168, default: 24, unit: 'ساعت' },
+  { key: 'friend.link_auto_per_day', group: 'app', label: 'سقف دوستی خودکار با لینک برای هر نفر در روز', kind: 'int', min: 0, max: 500, default: 20 },
+  { key: 'skill.min_games', group: 'profile', label: 'بازی لازم تا از «تازه‌کار» رد شود', kind: 'int', min: 1, max: 500, default: SKILL_MIN_GAMES, unit: 'بازی' },
+  { key: 'skill.pro_games', group: 'profile', label: 'بازی لازم برای «حرفه‌ای» شدن', kind: 'int', min: 1, max: 1000, default: SKILL_PRO_GAMES, unit: 'بازی' },
+  { key: 'skill.pro_win_percent', group: 'profile', label: 'درصد برد لازم برای «حرفه‌ای» شدن', kind: 'int', min: 1, max: 100, default: SKILL_PRO_WIN_PERCENT, unit: '٪' },
+  { key: 'mod.max_mute_minutes', group: 'app', label: 'بیشترین مدت سکوت که آجان دوزاری می‌تواند بدهد', kind: 'int', min: 1, max: 1440, default: 60, unit: 'دقیقه' },
+  { key: 'mod.agent_actions_per_day', group: 'app', label: 'سقف اخطار و سکوت هر آجان در روز', kind: 'int', min: 1, max: 500, default: 20 },
+  { key: 'feature.tournament', group: 'app', label: 'تورنومنت روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'feature.chat', group: 'app', label: 'چت روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'chat.max_len', group: 'app', label: 'بیشترین طول پیام چت', kind: 'int', min: 20, max: 500, default: CHAT_MAX_LEN, unit: 'حرف' },
+  { key: 'chat.global_enabled', group: 'app', label: 'چت کلی (همهٔ بازیکن‌ها، کنار چت شهر)', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'chat.text_needs_activation', group: 'app', label: 'پیام آزاد فقط برای حساب فعال‌شده با کد معرف', hint: 'کل‌کل‌های آماده همیشه آزاد است', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'bots.enabled', group: 'bot', label: 'بازیکن‌های ربات (بازی‌کننده‌ی طبیعی) فعال باشند', hint: 'اگر خاموش باشد کسی با ربات جفت نمی‌شود', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'bots.fallback_seconds', group: 'bot', label: 'بعد از چند ثانیه انتظار در صف، حریف ربات پیدا شود', kind: 'int', min: 5, max: 300, default: 25, unit: 'ثانیه' },
+  { key: 'bots.fallback_jitter_seconds', group: 'bot', label: 'تأخیر تصادفی اضافه برای طبیعی‌شدن', kind: 'int', min: 0, max: 120, default: 15, unit: 'ثانیه' },
+  { key: 'bots.city_reply_percent', group: 'bot', label: 'احتمال جواب کوتاه یک ربات همشهری به پیام چت', kind: 'int', min: 0, max: 100, default: 15, unit: '٪' },
+  { key: 'chart.gap_break_years', group: 'chart', label: 'شکاف سال در نمودار قیمت', hint: 'بیشتر از این تعداد سال بدون داده، خط نمودار قطع می‌شود', kind: 'int', min: 1, max: 30, default: CHART_GAP_BREAK_YEARS, unit: 'سال' },
+  { key: 'chart.min_year', group: 'chart', label: 'اولین سال نمودار', kind: 'int', min: 1200, max: 1400, default: CHART_MIN_YEAR },
+  { key: 'bot.enabled', group: 'bot', label: 'ربات محتوا روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'bot.check_minutes', group: 'bot', label: 'هر چند دقیقه یک بار منبع‌های سررسید را بررسی کند', kind: 'int', min: 5, max: 1440, default: 60, unit: 'دقیقه' },
+  { key: 'notify.match_result', group: 'notify', label: 'نتیجه‌ی بازی به بله فرستاده شود', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'notify.daily_ready', group: 'notify', label: 'آماده شدن جایزه‌ی روزانه به بله فرستاده شود', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'bot.max_candidates_per_run', group: 'bot', label: 'سقف پیشنهاد در هر اجرا', hint: 'برای اینکه صف تأیید یک‌جا پر نشود', kind: 'int', min: 1, max: 500, default: 100 },
+];
+
+export type SettingValue = number | number[] | string;
+
+export function settingDef(key: string): SettingDef | undefined {
+  return SETTING_DEFS.find((d) => d.key === key);
+}
+
+/** Parses the stored text of an override; returns null when it is not valid for this definition. */
+export function parseSetting(def: SettingDef, raw: string): SettingValue | null {
+  if (def.kind === 'text') {
+    const text = raw.trim();
+    return [...text].length <= def.max && !/[\u0000-\u001f]/.test(text) ? text : null;
+  }
+  const parts = raw
+    .trim()
+    .split(/[,،\s]+/)
+    .filter((p) => p !== '');
+  if (parts.length === 0 || parts.some((p) => !/^-?\d+$/.test(p))) return null;
+  const nums = parts.map(Number);
+  if (nums.some((n) => n < def.min || n > def.max)) return null;
+  if (def.kind === 'intList') {
+    if (nums.length !== def.length) return null;
+    return nums;
+  }
+  return nums.length === 1 ? (nums[0] as number) : null;
+}
+
+export function formatSetting(value: SettingValue | readonly number[]): string {
+  return Array.isArray(value) ? value.join(',') : String(value);
+}
+
+/** Effective values: the default, or the stored override when it still parses. */
+export function effectiveSettings(overrides: Readonly<Record<string, string>>): Record<string, SettingValue> {
+  const out: Record<string, SettingValue> = {};
+  for (const def of SETTING_DEFS) {
+    const raw = overrides[def.key];
+    const parsed = raw === undefined ? null : parseSetting(def, raw);
+    out[def.key] = parsed ?? (Array.isArray(def.default) ? [...(def.default as readonly number[])] : (def.default as number | string));
+  }
+  return out;
+}

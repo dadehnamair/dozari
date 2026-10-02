@@ -26,6 +26,23 @@ All values in *italics* are config in `packages/shared/src/config/game.ts`.
 Classic Connections: *SOLO_MAX_MISTAKES* = 4 mistakes allowed; game over at the 4th wrong guess
 (remaining groups revealed). Result screen + chart.
 
+Implemented as the pure reducer `packages/shared/src/game/solo.ts` (`startSolo`, `submitGuess`,
+`shuffleBoard`; seeded RNG injected). One away counts as a mistake like any wrong guess; a repeated
+set (any order) is `duplicate` and free; anything that is not 4 distinct cards on the board is
+`invalid` and changes nothing; after three solved groups the fourth is auto-revealed and the game is
+`won`; at the 4th mistake the rest are revealed and the game is `lost`. The initial board never lays
+out a row as a whole group. The reducer needs the solution, so it runs server-side (rule 4).
+
+Served by `apps/server/src/solo/` (practice, no coins): `POST /solo/start` (503 `no_puzzles` when no
+`approved` puzzle exists), `GET /solo/:id`, `POST /solo/:id/guess {productIds[4]}`,
+`POST /solo/:id/shuffle`. Sessions live in memory (2 h idle TTL) until solo results are persisted.
+The client only ever receives `SoloView`: card ids + `name_fa`/`unit_fa` (no prices), solved groups with
+their title/explanation (flagged `revealed` when shown by the game), mistakes, status. Unsolved groups'
+membership and texts never leave the server.
+`GET /solo/:id/chart` returns the price history of all four groups, but only once the game is over
+(409 `game_in_progress` otherwise, since it would reveal the groups); the result screen draws it with
+`buildChartData`.
+
 ## Competitive: shared board, alternating turns (Decision D8 — **accepted**, confirmed 2026-09-27)
 
 One board, both sides play it in turns.
@@ -85,6 +102,17 @@ type Command =
 
 applyCommand(state, cmd, ctx: { now: number }) => { state, events: MatchEvent[] } | { error: RuleError }
 ```
+
+Implemented in `packages/shared/src/game/match.ts` for 1v1 (one player per side, `MatchSide` 0|1): `startMatch`,
+`applyCommand` (`submit`, `timeout`, `leave`, `forfeit`; `propose` waits for the team flow in Phase 5), `matchClientView`
+(the only shape that leaves the server), and for after the price-guess round `resolveWinner` / `finalScores`.
+Details the spec left open, as built: a correct guess restarts the turn clock for the same side; when the opponent is
+locked out the active side keeps the turn after a mistake or a timeout; a repeated set is a `DUPLICATE_SELECTION`
+error (no penalty), not a turn; two consecutive timeouts forfeit (a submit resets the count); `leave` is an `abandon`;
+a tie after score, mistakes and earliest last-correct guess leaves `result.winner = null` for `resolveWinner`
+to settle with the price-guess rounds (a locked-out side cannot win that way while the other side is still in).
+Constants: `TURN_SECONDS`, `MATCH_MAX_MISTAKES`, `MAX_CONSECUTIVE_TIMEOUTS`, `GROUP_POINTS`, `FIRST_BLOOD_BONUS`,
+`PRICE_GUESS_LOSER_BONUS_PER_ROUND` in `config/game.ts`.
 
 Invariants (unit-tested):
 - Only the active side's captain (or active player) can `submit`; others → `NOT_YOUR_TURN`.

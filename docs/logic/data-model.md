@@ -48,7 +48,8 @@ when they are built.
 
 Unique `(product_id, year, month)` among approved rows: MySQL has no partial index, so a stored generated column
 `approved_flag = IF(status='approved',1,NULL)` is part of the unique key (NULLs never collide). A NULL `month`
-is distinct in unique keys, so the seed loader matches month-less rows manually. Generator uses only `approved`.
+is distinct in unique keys, so the key uses a second stored column `month_key = COALESCE(month, 0)`
+instead of `month` (year-only points collide like any other). Generator uses only `approved`.
 
 **Price at year Y** (`priceAt(product, Y)`): exact approved point for Y; if several months, the
 median. No interpolation for gameplay rules (interpolation allowed only for chart smoothing, flagged).
@@ -57,19 +58,36 @@ median. No interpolation for gameplay rules (interpolation allowed only for char
 
 ### `puzzles`
 `id, status (draft|approved|retired), source (generated|curated|ugc), author_id null, seed bigint null,
-difficulty_score real, times_played int, avg_solve_rate real, created_at`
+difficulty_score double null, times_played int, avg_solve_rate double null, created_at`
 
 ### `puzzle_groups`
-`id, puzzle_id FK, level smallint (0=yellow,1=green,2=blue,3=purple), title_fa text,
-rule jsonb (see puzzle-generation.md), explanation_fa text` — exactly 4 per puzzle.
+`id, puzzle_id FK, level tinyint (0=yellow,1=green,2=blue,3=purple), title_fa null, explanation_fa null,
+rule_kind enum, rule_* columns` — exactly 4 per puzzle, unique `(puzzle_id, level)`.
+`title_fa` / `explanation_fa` are null while a puzzle is a draft; approving requires both (enforced in code).
+
+**Rule columns (no JSON, D63).** `rule_kind` selects which nullable `rule_*` columns apply; the rest stay NULL.
+`ruleToColumns` / `columnsToRule` (`packages/db/src/puzzle-rule.ts`) convert and validate through the shared zod schema.
+
+| rule_kind | columns used |
+|---|---|
+| `price_band_at_year` | `rule_year`, `rule_min_rials`, `rule_max_rials` |
+| `same_price_at_year` | `rule_year`, `rule_target_rials`, `rule_tolerance_pct` |
+| `first_crossed` | `rule_threshold_rials`, `rule_from_year`, `rule_to_year` |
+| `multiplier_between` | `rule_year` (= yearA), `rule_year_b`, `rule_min_x`, `rule_max_x` |
+| `cheaper_than_ref` | `rule_year`, `rule_ref_product_id` (FK products) |
+| `era_icon` | `rule_era_tag` |
+| `category_price_rank` | `rule_year`, `rule_category`, `rule_rank` |
+| `curated` | `rule_note` |
 
 ### `puzzle_group_items`
-`group_id FK, product_id FK, display_year smallint null` — exactly 4 per group, 16 distinct products per puzzle.
-`display_year` is used when the item card shows a year hint (some rule types).
+`group_id FK, puzzle_id FK, product_id FK, display_year smallint null` — PK `(group_id, product_id)`,
+unique `(puzzle_id, product_id)` (so a puzzle has 16 distinct products); exactly 4 per group (enforced in code).
+`puzzle_id` is denormalised from the group for that unique key. `display_year` is used when the item card
+shows a year hint (some rule types).
 
 ### `group_title_templates`
-`id, rule_kind, title_fa, tone (funny|nostalgic|neutral), min_level, max_level, is_active`
-Human/AI-written witty titles, matched to rule kinds.
+`id, rule_kind, title_fa, tone (funny|nostalgic|neutral), min_level, max_level, is_active, times_chosen, created_at`
+Human/AI-written witty titles, matched to rule kinds; `times_chosen` counts how often a human picked a draft.
 
 ## Users & social
 

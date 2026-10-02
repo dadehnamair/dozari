@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link href="https://fonts.googleapis.com/css2?family=Lalezar&amp;family=Vazirmatn:wght@400;600;800;900&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0;background:#2B1240;font-family:Vazirmatn,system-ui,sans-serif;color:#FFF6E8}a{color:#FFC93C}a:hover{color:#FF7A3D}*{box-sizing:border-box}button,input{font-family:inherit}
+@keyframes dz-spin{to{transform:rotate(360deg)}}
+@keyframes dz-pop{0%{transform:scale(.7);opacity:0}70%{transform:scale(1.05);opacity:1}100%{transform:scale(1)}}
+@keyframes dz-bulb{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes dz-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}</style>
+</helmet>
+
+<div dir="rtl" style="min-height:100vh;background:linear-gradient(180deg,#2B1240 0%,#40166A 35%,#5E1F7E 70%,#8E2A6E 100%);padding:56px 56px 80px;display:flex;flex-direction:column;gap:36px">
+<header style="display:flex;flex-direction:column;gap:4px">
+  <div style="font:14px 'JetBrains Mono',monospace;color:#FFC93C;direction:ltr;text-align:right">Dozari · 19 Social · Daily · Onboarding</div>
+  <h1 style="margin:0;font:52px/1 Lalezar;color:#FFF6E8;text-shadow:0 4px 0 #2B1240">ورود، آموزش، گردونه و دوستان</h1>
+</header>
+
+<section style="display:flex;gap:36px;flex-wrap:wrap;justify-content:center;align-items:flex-start">
+
+<!-- LOGIN -->
+<div data-screen-label="Login" style="display:flex;flex-direction:column;gap:12px;align-items:center">
+<div style="width:340px;height:736px;border-radius:52px;border:11px solid #140A22;box-shadow:0 30px 60px rgba(0,0,0,.5),0 0 0 2px rgba(255,255,255,.12);position:relative;overflow:hidden;background:#3C1A66">
+  <div style="position:absolute;inset:0"><dc-import name="Scene" scene="bazaar" mood="dusk" hint-size="100%,100%" style="width:100%;height:100%"></dc-import></div>
+  <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(43,18,64,.2),rgba(43,18,64,.5) 45%,rgba(43,18,64,.92))"></div>
+  <div style="position:absolute;top:56px;left:0;right:0;display:flex;flex-direction:column;align-items:center">
+    <svg viewBox="-90 0 700 200" width="250" style="overflow:visible"><defs><linearGradient id="lgL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFF6A8"></stop><stop offset=".5" stop-color="#FFC93C"></stop><stop offset="1" stop-color="#FF7A3D"></stop></linearGradient></defs><text x="260" y="158" text-anchor="middle" font-family="Lalezar" font-size="168" fill="#2B1240" stroke="#2B1240" stroke-width="28" stroke-linejoin="round">دوزاری</text><text x="260" y="146" text-anchor="middle" font-family="Lalezar" font-size="168" fill="url(#lgL)" stroke="#2B1240" stroke-width="14" stroke-linejoin="round" paint-order="stroke">دوزاری</text></svg>
+    <div style="width:170px;height:197px;margin-top:-4px"><dc-import name="Character" who="dozari" pose="wave" anim="true" hint-size="170px,197px" style="width:170px;height:197px"></dc-import></div>
+  </div>
+  <div style="position:absolute;left:14px;right:14px;bottom:30px;padding:16px 14px 14px;border-radius:26px;background:#FBF1DE;border:4px solid #2B1240;box-shadow:0 7px 0 #2B1240;display:flex;flex-direction:column;gap:10px;color:#2B1240">
+    <sc-if value="{{ loginPhone }}" hint-placeholder-val="{{ true }}">
+      <span style="font:22px/1.2 Lalezar">خوش اومدی به بازار!</span>
+      <span style="font:700 12px/1.6 Vazirmatn;color:#7E46D6">شماره‌ات رو بزن تا کد برات بفرستیم</span>
+      <div style="display:flex;gap:6px;direction:ltr">
+        <div style="height:52px;padding:0 10px;border-radius:14px;border:3px solid #2B1240;background:#fff;display:grid;place-items:center;font:800 15px Vazirmatn">+98</div>
+        <input value="{{ phone }}" onChange="{{ onPhone }}" inputMode="numeric" placeholder="912 345 6789" style="flex:1;min-width:0;height:52px;border-radius:14px;border:3px solid #2B1240;background:#fff;padding:0 12px;font:800 17px Vazirmatn;color:#2B1240;outline:none;letter-spacing:1px"></input>
+      </div>
+    </sc-if>
+    <sc-if value="{{ loginOtp }}" hint-placeholder-val="{{ false }}">
+      <span style="font:22px/1.2 Lalezar">کد رو وارد کن</span>
+      <span style="font:700 12px/1.6 Vazirmatn;color:#7E46D6">به شمارهٔ {{ phoneFa }} فرستادیم · {{ otpTimer }}</span>
+      <div style="display:flex;gap:8px;justify-content:center;direction:ltr">
+        <sc-for list="{{ otp }}" as="o" hint-placeholder-count="5"><div style="width:48px;height:56px;border-radius:14px;border:3px solid #2B1240;background:{{ o.bg }};box-shadow:0 4px 0 #2B1240;display:grid;place-items:center;font:28px/1 Lalezar;color:#2B1240">{{ o.d }}</div></sc-for>
+      </div>
+    </sc-if>
+    <button onClick="{{ loginNext }}" style="height:56px;border-radius:18px;border:3px solid #2B1240;background:linear-gradient(180deg,#B8F08F,#7ED957 60%,#5DBB3C);box-shadow:inset 0 4px 0 rgba(255,255,255,.55),0 5px 0 #2B1240;font:22px Lalezar;color:#fff;text-shadow:0 2px 0 #2B1240;cursor:pointer">{{ loginCta }}</button>
+    <div style="display:flex;align-items:center;gap:8px;font:700 11px Vazirmatn;color:rgba(43,18,64,.55)"><div style="flex:1;height:2px;background:rgba(43,18,64,.15)"></div>یا<div style="flex:1;height:2px;background:rgba(43,18,64,.15)"></div></div>
+    <button style="height:48px;border-radius:16px;border:3px solid #2B1240;background:#fff;box-shadow:0 4px 0 #2B1240;font:17px Lalezar;color:#2B1240;cursor:pointer">مهمان بازی کن</button>
+  </div>
+</div>
+<div style="font:12px 'JetBrains Mono',monospace;color:rgba(255,246,232,.7)">screen-login · phone → otp</div>
+</div>
+
+<!-- TUTORIAL -->
+<div data-screen-label="Tutorial" style="display:flex;flex-direction:column;gap:12px;align-items:center">
+<div style="width:340px;height:736px;border-radius:52px;border:11px solid #140A22;box-shadow:0 30px 60px rgba(0,0,0,.5),0 0 0 2px rgba(255,255,255,.12);position:relative;overflow:hidden;background:#4E2585">
+  <div style="position:absolute;inset:0"><dc-import name="Scene" scene="hojre" hint-size="100%,100%" style="width:100%;height:100%"></dc-import></div>
+  <div style="position:absolute;inset:0;background:rgba(26,8,44,.55)"></div>
+  <div style="position:absolute;top:40px;left:14px;right:14px;display:flex;justify-content:space-between;align-items:center">
+    <div style="display:flex;gap:5px"><sc-for list="{{ tutDots }}" as="d" hint-placeholder-count="4"><div style="width:{{ d.w }};height:10px;border-radius:99px;background:{{ d.bg }};border:2px solid #2B1240;transition:width .25s"></div></sc-for></div>
+    <button onClick="{{ tutSkip }}" style="height:34px;padding:0 14px;border-radius:99px;border:2px solid rgba(255,255,255,.5);background:rgba(26,8,44,.6);font:800 12px Vazirmatn;color:#FFF6E8;cursor:pointer">رد کن</button>
+  </div>
+  <div style="position:absolute;top:96px;left:12px;right:12px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px">
+    <sc-for list="{{ tutTiles }}" as="t" hint-placeholder-count="16">
+      <div style="height:66px;border-radius:14px;border:3px solid #2B1240;background:{{ t.bg }};box-shadow:{{ t.sh }};opacity:{{ t.op }};transform:{{ t.tr }};transition:all .25s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;color:#2B1240">
+        <div style="width:32px;height:32px"><dc-import name="Item" icon="{{ t.ic }}" hint-size="32px,32px" style="width:32px;height:32px"></dc-import></div>
+        <span style="font:800 11.5px/1.2 Vazirmatn">{{ t.w }}</span>
+      </div>
+    </sc-for>
+  </div>
+  <sc-if value="{{ tutShowBtn }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;top:400px;left:0;right:0;display:flex;justify-content:center"><div style="height:52px;padding:0 34px;border-radius:18px;border:3px solid #2B1240;background:linear-gradient(180deg,#B8F08F,#7ED957);box-shadow:0 0 0 6px rgba(255,201,60,.5),0 5px 0 #2B1240;font:22px/46px Lalezar;color:#fff;text-shadow:0 2px 0 #2B1240;animation:dz-pulse 1.2s ease-in-out infinite">ثبت کن</div></div></sc-if>
+  <div style="position:absolute;bottom:30px;left:10px;width:132px;height:153px"><dc-import name="Character" who="ajan" pose="{{ tut.pose }}" anim="true" hint-size="132px,153px" style="width:132px;height:153px"></dc-import></div>
+  <div style="position:absolute;bottom:112px;left:130px;right:12px;padding:12px 14px;border-radius:20px 20px 20px 6px;background:#fff;border:3px solid #2B1240;box-shadow:0 5px 0 #2B1240;color:#2B1240;display:flex;flex-direction:column;gap:4px;animation:dz-pop .3s ease-out">
+    <div style="display:flex;align-items:center;gap:6px"><span style="padding:0 8px;border-radius:99px;background:#3F72D0;border:2px solid #2B1240;font:12px Lalezar;color:#fff">آجان</span><span style="font:16px/1.2 Lalezar">{{ tut.title }}</span></div>
+    <span style="font:600 12.5px/1.7 Vazirmatn;text-wrap:pretty">{{ tut.text }}</span>
+  </div>
+  <div style="position:absolute;bottom:30px;left:150px;right:14px">
+    <button onClick="{{ tutNext }}" style="width:100%;height:58px;border-radius:18px;border:3px solid #2B1240;background:linear-gradient(180deg,#FFE48A,#FFC93C 60%,#E8A01A);box-shadow:inset 0 4px 0 rgba(255,255,255,.55),0 5px 0 #2B1240;font:22px Lalezar;color:#2B1240;cursor:pointer">{{ tut.cta }}</button>
+  </div>
+</div>
+<div style="font:12px 'JetBrains Mono',monospace;color:rgba(255,246,232,.7)">screen-tutorial · 4 steps · tap next</div>
+</div>
+
+<!-- DAILY WHEEL -->
+<div data-screen-label="Daily wheel" style="display:flex;flex-direction:column;gap:12px;align-items:center">
+<div style="width:340px;height:736px;border-radius:52px;border:11px solid #140A22;box-shadow:0 30px 60px rgba(0,0,0,.5),0 0 0 2px rgba(255,255,255,.12);position:relative;overflow:hidden;background:radial-gradient(circle at 50% 40%,#7A2C9E,#40166A 60%,#2B1240)">
+  <div style="position:absolute;left:50%;top:330px;width:1400px;height:1400px;margin:-700px 0 0 -700px;border-radius:50%;background:repeating-conic-gradient(rgba(255,201,60,.12) 0 9deg,transparent 9deg 18deg);animation:dz-spin 30s linear infinite"></div>
+  <div style="position:absolute;top:36px;left:12px;right:12px;height:46px;border-radius:14px;background:linear-gradient(180deg,#FFE48A,#FFC93C);border:3px solid #2B1240;box-shadow:inset 0 3px 0 rgba(255,255,255,.6),0 4px 0 #2B1240;display:flex;align-items:center;justify-content:center;font:22px Lalezar;color:#2B1240">گردونهٔ روزانه</div>
+  <div style="position:absolute;top:96px;left:12px;right:12px;display:flex;gap:4px">
+    <sc-for list="{{ streak }}" as="d" hint-placeholder-count="7">
+      <div style="flex:1;height:62px;border-radius:12px;border:2.5px solid #2B1240;background:{{ d.bg }};box-shadow:0 3px 0 #2B1240;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;opacity:{{ d.op }}">
+        <span style="font:10px/1 Lalezar;color:#2B1240">{{ d.l }}</span>
+        <div style="width:24px;height:24px"><dc-import name="Item" icon="{{ d.ic }}" hint-size="24px,24px" style="width:24px;height:24px"></dc-import></div>
+        <span style="font:800 9px Vazirmatn;color:#2B1240">{{ d.r }}</span>
+      </div>
+    </sc-for>
+  </div>
+  <div style="position:absolute;top:186px;left:50%;width:290px;height:290px;margin-left:-145px">
+    <div style="position:absolute;inset:-12px;border-radius:50%;background:#2B1240;box-shadow:0 8px 0 #140A22"></div>
+    <sc-for list="{{ bulbs }}" as="b" hint-placeholder-count="16"><div style="position:absolute;left:50%;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:#FFF4B0;box-shadow:0 0 8px #FFC93C;transform:{{ b.tr }};animation:dz-bulb 1s ease-in-out infinite;animation-delay:{{ b.dl }}"></div></sc-for>
+    <div style="position:absolute;inset:6px;border-radius:50%;border:4px solid #2B1240;overflow:hidden;transform:rotate({{ wheelDeg }});transition:transform 4.2s cubic-bezier(.12,.7,.15,1);background:conic-gradient(#FF8FB6 0 45deg,#FFE48A 45deg 90deg,#8FDCFA 90deg 135deg,#B8F08F 135deg 180deg,#FF8FB6 180deg 225deg,#FFE48A 225deg 270deg,#8FDCFA 270deg 315deg,#B8F08F 315deg 360deg)">
+      <sc-for list="{{ slices }}" as="s" hint-placeholder-count="8">
+        <div style="position:absolute;left:50%;top:50%;width:0;height:0;transform:rotate({{ s.rot }})"><div style="position:absolute;left:-1.5px;top:-136px;width:3px;height:136px;background:#2B1240;opacity:.5;transform:rotate(-22.5deg);transform-origin:50% 100%"></div>
+          <div style="position:absolute;left:-30px;top:-118px;width:60px;display:flex;flex-direction:column;align-items:center;gap:0"><div style="width:42px;height:42px"><dc-import name="Item" icon="{{ s.ic }}" hint-size="42px,42px" style="width:42px;height:42px"></dc-import></div><span style="font:15px/1 Lalezar;color:#2B1240">{{ s.t }}</span></div></div>
+      </sc-for>
+    </div>
+    <div style="position:absolute;left:50%;top:50%;width:64px;height:64px;margin:-32px 0 0 -32px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#FFF4B0,#FFC93C 55%,#D98A0B);border:4px solid #2B1240;box-shadow:0 4px 0 #2B1240;display:grid;place-items:center;font:20px/1 Lalezar;color:#7A4A00">۲</div>
+    <svg viewBox="0 0 40 50" width="40" height="50" style="position:absolute;left:50%;top:-30px;margin-left:-20px"><path d="M20 46 L4 12 Q4 2 20 2 Q36 2 36 12Z" fill="#FF4D8D" stroke="#2B1240" stroke-width="3.4" stroke-linejoin="round"></path><circle cx="20" cy="13" r="5" fill="#fff" stroke="#2B1240" stroke-width="2"></circle></svg>
+  </div>
+  <div style="position:absolute;bottom:34px;left:14px;right:14px;display:flex;flex-direction:column;gap:8px;align-items:center">
+    <span style="font:800 12px Vazirmatn;color:#FFF6E8;white-space:nowrap">{{ spinNote }}</span>
+    <button onClick="{{ spin }}" style="width:100%;height:64px;border-radius:20px;border:3px solid #2B1240;background:{{ spinBg }};box-shadow:inset 0 4px 0 rgba(255,255,255,.55),0 6px 0 #2B1240;font:28px Lalezar;color:#fff;text-shadow:0 2px 0 #2B1240;cursor:pointer">{{ spinCta }}</button>
+  </div>
+  <sc-if value="{{ prize }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closePrize }}" style="position:absolute;inset:0;background:rgba(26,8,44,.82);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:9;cursor:pointer;overflow:hidden">
+      <div style="position:absolute;left:50%;top:42%;width:1100px;height:1100px;margin:-550px 0 0 -550px;border-radius:50%;background:repeating-conic-gradient(rgba(255,201,60,.28) 0 9deg,transparent 9deg 18deg);animation:dz-spin 16s linear infinite"></div>
+      <div style="position:relative;width:130px;height:130px;animation:dz-pop .45s ease-out"><dc-import name="Item" icon="{{ prize.ic }}" hint-size="130px,130px" style="width:130px;height:130px"></dc-import></div>
+      <div style="position:relative;padding:8px 26px;background:linear-gradient(180deg,#FFE48A,#FFC93C);border:4px solid #2B1240;border-radius:16px;box-shadow:0 6px 0 #2B1240;font:28px Lalezar;color:#2B1240;animation:dz-pop .55s ease-out">{{ prize.t }}</div>
+      <span style="position:relative;font:800 13px Vazirmatn;color:#FFF6E8">فردا هم بیا، جایزه بزرگ‌تره</span>
+    </div>
+  </sc-if>
+</div>
+<div style="font:12px 'JetBrains Mono',monospace;color:rgba(255,246,232,.7)">screen-daily · tap spin</div>
+</div>
+
+<!-- NOTIFICATIONS -->
+<div data-screen-label="Notifications" style="display:flex;flex-direction:column;gap:12px;align-items:center">
+<div style="width:340px;height:736px;border-radius:52px;border:11px solid #140A22;box-shadow:0 30px 60px rgba(0,0,0,.5),0 0 0 2px rgba(255,255,255,.12);position:relative;overflow:hidden;background:#F6E2C2">
+  <div style="position:absolute;inset:0;background-image:radial-gradient(rgba(166,107,240,.12) 2px,transparent 2px);background-size:22px 22px"></div>
+  <div style="position:absolute;top:0;left:0;right:0;height:100px;background:linear-gradient(180deg,#7E46D6,#A66BF0);border-bottom:4px solid #2B1240"></div>
+  <div style="position:absolute;top:36px;left:12px;right:12px;display:flex;align-items:center;gap:8px">
+    <button style="width:42px;height:42px;border-radius:14px;border:3px solid #2B1240;background:linear-gradient(180deg,#FFE48A,#FFC93C);box-shadow:0 4px 0 #2B1240;display:grid;place-items:center;cursor:pointer"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M9 5l7 7-7 7" fill="none" stroke="#2B1240" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
+    <span style="flex:1;font:24px Lalezar;color:#fff;text-shadow:0 2px 0 #2B1240">اعلان‌ها</span>
+    <button onClick="{{ readAll }}" style="height:34px;padding:0 12px;border-radius:99px;border:2px solid #2B1240;background:#FFF6E8;font:800 11px Vazirmatn;color:#2B1240;cursor:pointer">همه خوانده شد</button>
+  </div>
+  <div style="position:absolute;top:116px;left:10px;right:10px;bottom:20px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;scrollbar-width:none">
+    <sc-for list="{{ notifs }}" as="n" hint-placeholder-count="7">
+      <button onClick="{{ n.onClick }}" style="position:relative;display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:18px;border:3px solid #2B1240;background:{{ n.bg }};box-shadow:0 4px 0 #2B1240;text-align:right;cursor:pointer;color:#2B1240;flex:none">
+        <div style="width:46px;height:46px;flex:none;border-radius:14px;background:{{ n.c }};border:2.5px solid #2B1240;display:grid;place-items:center;overflow:hidden;position:relative">
+          <sc-if value="{{ n.who }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;inset:-2px"><dc-import name="Character" who="{{ n.who }}" pose="idle" crop="face" hint-size="50px,50px" style="width:100%;height:100%"></dc-import></div></sc-if>
+          <sc-if value="{{ n.ic }}" hint-placeholder-val="{{ true }}"><div style="width:34px;height:34px"><dc-import name="Item" icon="{{ n.ic }}" hint-size="34px,34px" style="width:34px;height:34px"></dc-import></div></sc-if>
+        </div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><span style="font:15px/1.25 Lalezar">{{ n.t }}</span><span style="font:600 11px/1.5 Vazirmatn;color:#5A3A7A">{{ n.s }}</span></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:none"><span style="font:700 10px Vazirmatn;color:#7E46D6;white-space:nowrap">{{ n.time }}</span><sc-if value="{{ n.unread }}" hint-placeholder-val="{{ false }}"><div style="width:12px;height:12px;border-radius:50%;background:#FF4D8D;border:2px solid #2B1240"></div></sc-if></div>
+      </button>
+    </sc-for>
+  </div>
+</div>
+<div style="font:12px 'JetBrains Mono',monospace;color:rgba(255,246,232,.7)">screen-notifications · tap to read</div>
+</div>
+
+<!-- INVITE -->
+<div data-screen-label="Invite" style="display:flex;flex-direction:column;gap:12px;align-items:center">
+<div style="width:340px;height:736px;border-radius:52px;border:11px solid #140A22;box-shadow:0 30px 60px rgba(0,0,0,.5),0 0 0 2px rgba(255,255,255,.12);position:relative;overflow:hidden;background:linear-gradient(180deg,#3FC1F0,#2A8CC8 45%,#2B1240)">
+  <div style="position:absolute;left:50%;top:200px;width:1200px;height:1200px;margin:-600px 0 0 -600px;border-radius:50%;background:repeating-conic-gradient(rgba(255,255,255,.1) 0 9deg,transparent 9deg 18deg);animation:dz-spin 36s linear infinite"></div>
+  <div style="position:absolute;top:36px;left:12px;right:12px;height:46px;border-radius:14px;background:linear-gradient(180deg,#FFE48A,#FFC93C);border:3px solid #2B1240;box-shadow:inset 0 3px 0 rgba(255,255,255,.6),0 4px 0 #2B1240;display:flex;align-items:center;justify-content:center;font:22px Lalezar;color:#2B1240">دعوت دوست</div>
+  <div style="position:absolute;top:96px;left:0;right:0;display:flex;justify-content:center;align-items:flex-end">
+    <div style="width:110px;height:128px;margin-left:-20px"><dc-import name="Character" who="goli" pose="cheer" hint-size="110px,128px" style="width:110px;height:128px"></dc-import></div>
+    <div style="width:140px;height:162px;z-index:1"><dc-import name="Character" who="dozari" pose="win" anim="true" hint-size="140px,162px" style="width:140px;height:162px"></dc-import></div>
+    <div style="width:110px;height:128px;margin-right:-20px;transform:scaleX(-1)"><dc-import name="Character" who="mashti" pose="wave" hint-size="110px,128px" style="width:110px;height:128px"></dc-import></div>
+  </div>
+  <div style="position:absolute;top:268px;left:0;right:0;text-align:center;display:flex;flex-direction:column;gap:2px;align-items:center">
+    <span style="font:26px/1.2 Lalezar;color:#fff;text-shadow:0 3px 0 #2B1240">رفیقت بیاد، هر دو ببرید!</span>
+    <span style="font:800 12px Vazirmatn;color:#FFF6E8;white-space:nowrap">هر دعوت: ۳۰۰ سکه برای تو، ۳۰۰ برای اون</span>
+  </div>
+  <div style="position:absolute;top:350px;left:12px;right:12px;padding:12px;border-radius:22px;background:#FBF1DE;border:3px solid #2B1240;box-shadow:0 5px 0 #2B1240;display:flex;flex-direction:column;gap:10px;color:#2B1240">
+    <span style="font:800 11px Vazirmatn;color:#7E46D6">کد دعوت تو</span>
+    <div style="display:flex;gap:6px">
+      <div style="flex:1;height:52px;border-radius:14px;border:3px dashed #2B1240;background:#fff;display:grid;place-items:center;font:26px/1 Lalezar;letter-spacing:4px;direction:ltr">DOZ-7K2M</div>
+      <button onClick="{{ copyCode }}" style="width:84px;height:52px;border-radius:14px;border:3px solid #2B1240;background:{{ copyBg }};box-shadow:0 4px 0 #2B1240;font:17px Lalezar;color:#2B1240;cursor:pointer">{{ copyLabel }}</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:4px">
+      <div style="display:flex;justify-content:space-between;gap:8px;font:800 11px Vazirmatn;white-space:nowrap"><span>۲ از ۵ دوست اومدن</span><span style="color:#7E46D6">جایزهٔ بزرگ: صندوق طلایی</span></div>
+      <div style="display:flex;gap:4px;align-items:center">
+        <sc-for list="{{ inviteSteps }}" as="i" hint-placeholder-count="5"><div style="flex:1;height:40px;border-radius:12px;border:2.5px solid #2B1240;background:{{ i.bg }};display:grid;place-items:center"><div style="width:28px;height:28px;filter:{{ i.f }}"><dc-import name="Item" icon="{{ i.ic }}" hint-size="28px,28px" style="width:28px;height:28px"></dc-import></div></div></sc-for>
+      </div>
+    </div>
+  </div>
+  <div style="position:absolute;bottom:34px;left:12px;right:12px;display:flex;flex-direction:column;gap:8px">
+    <span style="font:800 12px Vazirmatn;color:#FFF6E8;text-align:center">بفرست برای…</span>
+    <div style="display:flex;gap:8px">
+      <sc-for list="{{ shares }}" as="s" hint-placeholder-count="4"><button style="flex:1;height:64px;border-radius:18px;border:3px solid #2B1240;background:{{ s.bg }};box-shadow:inset 0 3px 0 rgba(255,255,255,.5),0 5px 0 #2B1240;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer"><div style="width:28px;height:28px"><dc-import name="Item" icon="{{ s.ic }}" hint-size="28px,28px" style="width:28px;height:28px"></dc-import></div><span style="font:12px/1 Lalezar;color:#2B1240">{{ s.t }}</span></button></sc-for>
+    </div>
+  </div>
+</div>
+<div style="font:12px 'JetBrains Mono',monospace;color:rgba(255,246,232,.7)">screen-invite · tap copy</div>
+</div>
+
+<!-- FRIENDS -->
+<div data-screen-label="Friends" style="display:flex;flex-direction:column;gap:12px;align-items:center">
+<div style="width:340px;height:736px;border-radius:52px;border:11px solid #140A22;box-shadow:0 30px 60px rgba(0,0,0,.5),0 0 0 2px rgba(255,255,255,.12);position:relative;overflow:hidden;background:#F6E2C2">
+  <div style="position:absolute;inset:0;background-image:radial-gradient(rgba(63,193,240,.14) 2px,transparent 2px);background-size:22px 22px"></div>
+  <div style="position:absolute;top:0;left:0;right:0;height:156px;background:linear-gradient(180deg,#2A8CC8,#3FC1F0);border-bottom:4px solid #2B1240"></div>
+  <div style="position:absolute;top:36px;left:12px;right:12px;display:flex;align-items:center;gap:8px">
+    <button style="width:42px;height:42px;border-radius:14px;border:3px solid #2B1240;background:linear-gradient(180deg,#FFE48A,#FFC93C);box-shadow:0 4px 0 #2B1240;display:grid;place-items:center;cursor:pointer"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M9 5l7 7-7 7" fill="none" stroke="#2B1240" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
+    <span style="flex:1;font:24px Lalezar;color:#fff;text-shadow:0 2px 0 #2B1240">دوستان</span>
+    <button style="height:40px;padding:0 12px;border-radius:14px;border:3px solid #2B1240;background:linear-gradient(180deg,#B8F08F,#7ED957);box-shadow:0 4px 0 #2B1240;font:15px Lalezar;color:#2B1240;cursor:pointer">+ افزودن</button>
+  </div>
+  <div style="position:absolute;top:96px;left:12px;right:12px;display:flex;gap:6px">
+    <input value="{{ q }}" onChange="{{ onQ }}" placeholder="جستجوی دوست…" style="flex:1;min-width:0;height:44px;border-radius:14px;border:3px solid #2B1240;background:#fff;padding:0 12px;font:600 13px Vazirmatn;color:#2B1240;outline:none"></input>
+    <div style="height:44px;padding:0 10px;border-radius:14px;border:3px solid #2B1240;background:#2B1240;display:flex;align-items:center;gap:4px;font:800 12px Vazirmatn;color:#7ED957"><div style="width:10px;height:10px;border-radius:50%;background:#7ED957"></div>{{ onlineN }} آنلاین</div>
+  </div>
+  <div style="position:absolute;top:168px;left:10px;right:10px;bottom:20px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;scrollbar-width:none">
+    <sc-for list="{{ friends }}" as="f" hint-placeholder-count="7">
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:18px;border:3px solid #2B1240;background:#fff;box-shadow:0 4px 0 #2B1240;color:#2B1240;flex:none">
+        <div style="position:relative;width:46px;height:46px;flex:none"><div style="position:absolute;inset:0;border-radius:50%;background:{{ f.c }};border:2.5px solid #2B1240;overflow:hidden"><div style="position:absolute;inset:-2px"><dc-import name="Character" who="{{ f.who }}" pose="idle" crop="face" hint-size="50px,50px" style="width:100%;height:100%"></dc-import></div></div><div style="position:absolute;bottom:-1px;left:-1px;width:14px;height:14px;border-radius:50%;background:{{ f.dot }};border:2.5px solid #fff"></div></div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column"><span style="font:16px/1.2 Lalezar">{{ f.n }}</span><span style="font:700 10.5px Vazirmatn;color:{{ f.stC }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ f.st }}</span></div>
+        <button onClick="{{ f.gift }}" style="width:40px;height:40px;flex:none;border-radius:12px;border:2.5px solid #2B1240;background:{{ f.giftBg }};box-shadow:0 3px 0 #2B1240;display:grid;place-items:center;cursor:pointer"><div style="width:26px;height:26px;opacity:{{ f.giftOp }}"><dc-import name="Item" icon="gift" hint-size="26px,26px" style="width:26px;height:26px"></dc-import></div></button>
+        <button style="height:40px;padding:0 10px;flex:none;border-radius:12px;border:2.5px solid #2B1240;background:{{ f.duelBg }};box-shadow:0 3px 0 #2B1240;font:15px Lalezar;color:#2B1240;cursor:pointer">دوئل</button>
+      </div>
+    </sc-for>
+  </div>
+</div>
+<div style="font:12px 'JetBrains Mono',monospace;color:rgba(255,246,232,.7)">screen-friends · search · gift</div>
+</div>
+
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
+const TW=[['انار','pomegranate'],['سماور','samovar'],['تیله','marbles'],['سکه','coin'],['قوری','teapot'],['پسته','pistachio'],['فرفره','top'],['الماس','gem'],['بادبادک','kite'],['سوهان','sohan'],['هندوانه','watermelon'],['تاج','crown'],['تاس','dice'],['نان','bread'],['پشمک','pashmak'],['شمش','goldBar']];
+const FOOD=[0,5,10,13];
+const TUT=[
+ {title:'خوش اومدی!',text:'من آجانم، نگهبان بازار. اینجا ۱۶ کلمه داری که باید ۴ دستهٔ ۴تایی ازشون بسازی.',cta:'فهمیدم',pose:'wave'},
+ {title:'ببین این چهارتا…',text:'انار، پسته، هندوانه و نان همه خوراکی بازارن. این یعنی یه دسته!',cta:'خب؟',pose:'pointing'},
+ {title:'حالا ثبت کن',text:'وقتی ۴تا رو انتخاب کردی، دکمهٔ «ثبت کن» رو بزن. فقط ۴ اشتباه مجازه، حواست باشه.',cta:'باشه',pose:'thinking'},
+ {title:'آفرین، دوزاریت افتاد!',text:'یه دسته رو پیدا کردی. حالا خودت بقیه رو پیدا کن، قانون‌ها رو هم یادت نره!',cta:'بزن بریم!',pose:'cheer'}];
+const SL=[['coin','۵۰'],['magnifier','×۲'],['coinStack','۲۰۰'],['freeze','×۱'],['coin','۱۰۰'],['gem','۱۰'],['heart','+۱'],['chest','جکپات']];
+const NOT=[
+ {who:'goli',c:'#3FC1F0',t:'نگار دعوتت کرد به دوئل',s:'۲ در ۲ · همین الان',time:'۲ دقیقه',unread:1},
+ {ic:'gift',c:'#FFE48A',t:'آرش ۱۰۰ سکه برات فرستاد',s:'بزن تا بگیریش',time:'۱۵ دقیقه',unread:1},
+ {ic:'trophy',c:'#FF8FB6',t:'رفتی تو ۱۰ نفر اول اصفهان!',s:'جدول هفتگی استان',time:'۱ ساعت',unread:1},
+ {ic:'alarm',c:'#B8F08F',t:'گردونهٔ امروزت آماده‌ست',s:'تا نیمه‌شب وقت داری',time:'۳ ساعت',unread:0},
+ {who:'mashti',c:'#FFC93C',t:'مشتی: تورنمنت جمعه ساعت ۹',s:'قبیلهٔ بازارچه',time:'دیروز',unread:0},
+ {ic:'lock',c:'#C9A3FF',t:'قهوه‌خانهٔ مشتی نزدیکه!',s:'فقط ۳ لول مونده',time:'دیروز',unread:0},
+ {ic:'shirt',c:'#FFAA7A',t:'لباس جدید مهر اومد',s:'توی حجره ببینش',time:'۲ روز',unread:0}];
+const FR=[['goli','نگار','#3FC1F0','on','آنلاین · لول ۱۴'],['pahlevan','آرش','#FF4D8D','play','در حال بازی · دوئل'],['khale','سارا','#FF8FB6','on','آنلاین · لول ۹'],['mashti','رضا','#FFC93C','off','۲ ساعت پیش'],['mirza','کیان','#B8F08F','off','دیروز'],['baqal','مهدی','#FFAA7A','on','آنلاین · لول ۱۱'],['khale','مریم','#C9A3FF','off','۳ روز پیش']];
+class Component extends DCLogic{
+  state={lstep:0,phone:'',tut:0,deg:0,spun:false,spinning:false,prize:null,read:{},allRead:false,copied:false,q:'',gifted:{}};
+  componentWillUnmount(){clearTimeout(this._s);}
+  spin(){const s=this.state;if(s.spinning||s.spun)return;const k=Math.floor(Math.random()*8);const target=s.deg+360*6+(360-(k*45))%360;
+    this.setState({deg:target,spinning:true});this._s=setTimeout(()=>this.setState({spinning:false,spun:true,prize:{ic:SL[k][0],t:SL[k][1]==='جکپات'?'جکپات!':SL[k][1]+(['coin','coinStack'].includes(SL[k][0])?' سکه':'')}}),4400);}
+  renderVals(){const s=this.state;const T=TUT[s.tut];
+    const tutTiles=TW.map(([w,ic],i)=>{const hl=s.tut>=1&&FOOD.includes(i),solved=s.tut===3&&FOOD.includes(i);const dim=s.tut>=1&&!hl;
+      return{w,ic,bg:solved?'#FFE48A':hl&&s.tut>=2?'#6B35B8':'#FFF6E8',op:dim?.35:1,tr:hl?'scale(1.04)':'none',
+        sh:hl?'0 0 0 4px #FFC93C,0 0 18px 4px rgba(255,201,60,.6),0 4px 0 #2B1240':'0 4px 0 #D9B98C'};}).map(t=>t.bg==='#6B35B8'?{...t,bg:'#C9A3FF'}:t);
+    const days=['شنبه','۱ش','۲ش','۳ش','۴ش','۵ش','جمعه'];
+    const streak=days.map((l,i)=>({l,ic:i===6?'chest':i%2?'gem':'coin',r:i===6?'جایزه':i%2?'×'+fa(i*2+1):fa((i+1)*50),bg:i<3?'#B8F08F':i===3?'#FFE48A':'#FFF6E8',op:i>3?.7:1}));
+    const notifs=NOT.map((n,i)=>{const unread=n.unread&&!s.allRead&&!s.read[i];return{...n,who:n.who||'',ic:n.ic||'',unread,bg:unread?'#FFF6D8':'#fff',onClick:()=>this.setState(st=>({read:{...st.read,[i]:1}}))};});
+    const q=s.q.trim();
+    const friends=FR.filter(f=>!q||f[1].includes(q)).map(([who,n,c,st,txt],i)=>({who,n,c,st:txt,dot:st==='on'?'#7ED957':st==='play'?'#FFC93C':'#B8A8C8',stC:st==='on'?'#3FA36B':st==='play'?'#E8743B':'#8E7EA0',
+      duelBg:st==='off'?'#EDE3F6':'linear-gradient(180deg,#FFE48A,#FFC93C)',giftBg:s.gifted[n]?'#E6F7D6':'#FFF6E8',giftOp:s.gifted[n]?.4:1,gift:()=>this.setState(x=>({gifted:{...x.gifted,[n]:1}}))}));
+    const ph=s.phone.replace(/\D/g,'');
+    return{
+      loginPhone:s.lstep===0,loginOtp:s.lstep===1,phone:s.phone,onPhone:e=>this.setState({phone:e.target.value.slice(0,13)}),phoneFa:fa('0'+(ph||'9123456789')),otpTimer:'۰:۴۸',
+      otp:['۴','۷','۲','',''].map((d,i)=>({d,bg:i===3?'#FFE48A':'#fff'})),loginCta:s.lstep===0?'ارسال کد':'ورود به بازار',loginNext:()=>this.setState(x=>({lstep:x.lstep?0:1})),
+      tut:T,tutDots:TUT.map((_,i)=>({w:i===s.tut?'28px':'10px',bg:i<=s.tut?'#FFC93C':'rgba(255,255,255,.3)'})),tutTiles,tutShowBtn:s.tut===2,
+      tutNext:()=>this.setState(x=>({tut:(x.tut+1)%4})),tutSkip:()=>this.setState({tut:3}),
+      streak,bulbs:Array.from({length:16},(_,i)=>({tr:'rotate('+(i*22.5)+'deg) translateY(-151px)',dl:(i%2?.5:0)+'s'})),
+      slices:SL.map(([ic,t],i)=>({ic,t,rot:(i*45+22.5)+'deg'})),wheelDeg:(s.deg-22.5)+'deg',
+      spin:()=>this.spin(),spinCta:s.spinning?'داره می‌چرخه…':s.spun?'فردا دوباره':'بچرخون!',spinBg:s.spun?'linear-gradient(180deg,#C8B8D8,#9E8EB8)':'linear-gradient(180deg,#FF8FB6,#FF4D8D 60%,#D63A72)',
+      spinNote:s.spun?'چرخش امروزت رو زدی':'روز ۴ از ۷ · یه چرخش رایگان داری',prize:s.prize,closePrize:()=>this.setState({prize:null}),
+      notifs,readAll:()=>this.setState({allRead:true}),
+      copyCode:()=>{this.setState({copied:true});setTimeout(()=>this.setState({copied:false}),1500);},copyLabel:s.copied?'کپی شد!':'کپی',copyBg:s.copied?'linear-gradient(180deg,#B8F08F,#7ED957)':'linear-gradient(180deg,#FFE48A,#FFC93C)',
+      inviteSteps:[0,1,2,3,4].map(i=>({ic:i===4?'chest':'coinStack',bg:i<2?'#B8F08F':'#FFF6E8',f:i<2?'none':'grayscale(.6)'})),
+      shares:[{t:'پیامک',ic:'envelope',bg:'linear-gradient(180deg,#B8F08F,#7ED957)'},{t:'تلگرام',ic:'kite',bg:'linear-gradient(180deg,#8FDCFA,#3FC1F0)'},{t:'واتساپ',ic:'phone',bg:'linear-gradient(180deg,#B8F08F,#5FB84A)'},{t:'بیشتر',ic:'balloons',bg:'linear-gradient(180deg,#FFE48A,#FFC93C)'}],
+      q:s.q,onQ:e=>this.setState({q:e.target.value}),friends,onlineN:fa(FR.filter(f=>f[3]!=='off').length)};
+  }
+}
+</script>
+</body>
+</html>

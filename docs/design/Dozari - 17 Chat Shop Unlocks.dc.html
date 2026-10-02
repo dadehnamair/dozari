@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link href="https://fonts.googleapis.com/css2?family=Lalezar&amp;family=Vazirmatn:wght@400;600;800;900&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0;background:#2B1240;font-family:Vazirmatn,system-ui,sans-serif;color:#FFF6E8}a{color:#FFC93C}a:hover{color:#FF7A3D}*{box-sizing:border-box}button{font-family:inherit}
+@keyframes dz-spin{to{transform:rotate(360deg)}}
+@keyframes dz-pop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.06);opacity:1}100%{transform:scale(1)}}
+@keyframes dz-wig{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}
+@keyframes dz-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}</style>
+</helmet>
+
+<div dir="rtl" style="min-height:100vh;background:linear-gradient(180deg,#2B1240 0%,#40166A 35%,#5E1F7E 70%,#8E2A6E 100%);padding:56px 56px 80px;display:flex;flex-direction:column;gap:36px">
+<header style="display:flex;flex-direction:column;gap:4px">
+  <div style="font:14px 'JetBrains Mono',monospace;color:#FFC93C;direction:ltr;text-align:right">Dozari · 17 Chat · Shop · Unlocks</div>
+  <h1 style="margin:0;font:52px/1 Lalezar;color:#FFF6E8;text-shadow:0 4px 0 #2B1240">چت، فروشگاه، قفل‌ها</h1>
+</header>
+
+<section style="display:flex;gap:36px;flex-wrap:wrap;justify-content:center;align-items:flex-start">
+
+<!-- CHAT -->
+<div data-screen-label="Chat" style="display:flex;flex-direction:column;gap:12px;align-items:center">
+<div style="width:340px;height:736px;border-radius:52px;border:11px solid #140A22;box-shadow:0 30px 60px rgba(0,0,0,.5),0 0 0 2px rgba(255,255,255,.12);position:relative;overflow:hidden;background:#F6E2C2">
+  <div style="position:absolute;inset:0;background-image:radial-gradient(rgba(166,107,240,.12) 2px,transparent 2px);background-size:22px 22px"></div>
+  <div style="position:absolute;top:0;left:0;right:0;height:150px;background:linear-gradient(180deg,#7E46D6,#A66BF0);border-bottom:4px solid #2B1240"></div>
+  <div style="position:absolute;top:36px;left:12px;right:12px;display:flex;align-items:center;gap:8px">
+    <button style="width:42px;height:42px;border-radius:14px;border:3px solid #2B1240;background:linear-gradient(180deg,#FFE48A,#FFC93C);box-shadow:inset 0 3px 0 rgba(255,255,255,.5),0 4px 0 #2B1240;display:grid;place-items:center;cursor:pointer"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M9 5l7 7-7 7" fill="none" stroke="#2B1240" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
+    <div style="width:46px;height:46px;border-radius:50%;background:{{ chat.avBg }};border:3px solid #FFF6E8;box-shadow:0 0 0 2.5px #2B1240;overflow:hidden;position:relative;flex:none"><div style="position:absolute;inset:-2px"><dc-import name="Character" who="{{ chat.who }}" pose="idle" crop="face" hint-size="50px,50px" style="width:100%;height:100%"></dc-import></div></div>
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+      <span style="font:20px/1.1 Lalezar;color:#fff;text-shadow:0 2px 0 #2B1240">{{ chat.title }}</span>
+      <span style="font:700 11px Vazirmatn;color:#E3CCFF">{{ chat.sub }}</span>
+    </div>
+    <sc-if value="{{ chat.timer }}" hint-placeholder-val="{{ true }}"><div style="height:34px;padding:0 10px;border-radius:10px;background:#2B1240;border:2px solid #FFC93C;display:flex;align-items:center;gap:4px;font:16px Lalezar;color:#FFC93C"><div style="width:20px;height:20px"><dc-import name="Item" icon="hourglass" hint-size="20px,20px" style="width:20px;height:20px"></dc-import></div>۱:۱۲</div></sc-if>
+  </div>
+  <div style="position:absolute;top:96px;left:12px;right:12px;display:flex;gap:4px;padding:4px;border-radius:16px;background:rgba(43,18,64,.45)">
+    <sc-for list="{{ chatTabs }}" as="t" hint-placeholder-count="3">
+      <button onClick="{{ t.onClick }}" style="flex:1;height:36px;border-radius:12px;border:{{ t.bd }};background:{{ t.bg }};color:{{ t.fg }};font:15px Lalezar;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:4px">{{ t.label }}<sc-if value="{{ t.badge }}" hint-placeholder-val="{{ false }}"><span style="min-width:18px;height:18px;padding:0 4px;border-radius:99px;background:#FF4D8D;border:2px solid #2B1240;font:11px/14px Lalezar;color:#fff">{{ t.badge }}</span></sc-if></button>
+    </sc-for>
+  </div>
+
+  <div style="position:absolute;top:162px;left:10px;right:10px;bottom:150px;display:flex;flex-direction:column;justify-content:flex-end;gap:8px;overflow:hidden">
+    <sc-for list="{{ msgs }}" as="m" hint-placeholder-count="5">
+      <div style="display:flex;gap:6px;align-items:flex-end;flex-direction:{{ m.dir }};animation:dz-pop .3s ease-out">
+        <sc-if value="{{ m.showAv }}" hint-placeholder-val="{{ true }}"><div style="width:32px;height:32px;flex:none;border-radius:50%;background:{{ m.avBg }};border:2.5px solid #2B1240;overflow:hidden;position:relative"><div style="position:absolute;inset:-2px"><dc-import name="Character" who="{{ m.who }}" pose="idle" crop="face" hint-size="36px,36px" style="width:100%;height:100%"></dc-import></div></div></sc-if>
+        <div style="max-width:210px;display:flex;flex-direction:column;gap:2px;align-items:{{ m.align }}">
+          <sc-if value="{{ m.name }}" hint-placeholder-val="{{ false }}"><span style="font:800 10px Vazirmatn;color:{{ m.nameC }};padding:0 6px">{{ m.name }}</span></sc-if>
+          <sc-if value="{{ m.text }}" hint-placeholder-val="{{ true }}"><div style="padding:8px 12px;border-radius:{{ m.rad }};background:{{ m.bg }};border:2.5px solid #2B1240;box-shadow:0 3px 0 #2B1240;font:600 13px/1.6 Vazirmatn;color:{{ m.fg }};text-wrap:pretty">{{ m.text }}</div></sc-if>
+          <sc-if value="{{ m.sticker }}" hint-placeholder-val="{{ false }}"><div style="width:84px;height:84px;animation:dz-wig 1.6s ease-in-out infinite"><dc-import name="Item" icon="{{ m.sticker }}" hint-size="84px,84px" style="width:84px;height:84px"></dc-import></div></sc-if>
+          <sc-if value="{{ m.gift }}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:16px;background:linear-gradient(180deg,#FFE48A,#FFC93C);border:2.5px solid #2B1240;box-shadow:0 3px 0 #2B1240"><div style="width:36px;height:36px"><dc-import name="Item" icon="gift" hint-size="36px,36px" style="width:36px;height:36px"></dc-import></div><div style="display:flex;flex-direction:column"><span style="font:15px Lalezar;color:#2B1240">{{ m.gift }}</span><span style="font:800 10px Vazirmatn;color:#7A4A00">بزن بازش کن</span></div></div></sc-if>
+        </div>
+      </div>
+    </sc-for>
+    <sc-if value="{{ typing }}" hint-placeholder-val="{{ false }}"><div style="display:flex;gap:6px;align-items:center"><div style="padding:8px 14px;border-radius:16px 16px 16px 4px;background:#fff;border:2.5px solid #2B1240;font:800 13px Vazirmatn;color:#7E46D6">داره تایپ می‌کنه…</div></div></sc-if>
+  </div>
+
+  <div style="position:absolute;bottom:92px;left:10px;right:10px;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:4px">
+    <sc-for list="{{ quick }}" as="q" hint-placeholder-count="4">
+      <button onClick="{{ q.onClick }}" style="flex:none;height:38px;padding:0 12px;border-radius:99px;border:2.5px solid #2B1240;background:{{ q.bg }};box-shadow:0 3px 0 #2B1240;font:800 12px Vazirmatn;color:#2B1240;cursor:pointer;display:flex;align-items:center;gap:4px"><sc-if value="{{ q.ic }}" hint-placeholder-val="{{ false }}"><div style="width:22px;height:22px"><dc-import name="Item" icon="{{ q.ic }}" hint-size="22px,22px" style="width:22px;height:22px"></dc-import></div></sc-if>{{ q.t }}</button>
+    </sc-for>
+  </div>
+  <div style="position:absolute;bottom:30px;left:10px;right:10px;display:flex;gap:6px;align-items:center">
+    <button onClick="{{ sendSticker }}" style="width:52px;height:52px;flex:none;border-radius:16px;border:3px solid #2B1240;background:linear-gradient(180deg,#FFE48A,#FFC93C);box-shadow:0 4px 0 #2B1240;display:grid;place-items:center;cursor:pointer"><div style="width:32px;height:32px"><dc-import name="Item" icon="balloons" hint-size="32px,32px" style="width:32px;height:32px"></dc-import></div></button>
+    <input value="{{ draft }}" onChange="{{ onDraft }}" onKeyDown="{{ onKey }}" placeholder="پیام بنویس…" style="flex:1;min-width:0;height:52px;border-radius:16px;border:3px solid #2B1240;background:#fff;padding:0 14px;font:600 14px Vazirmatn;color:#2B1240;outline:none"></input>
+    <button onClick="{{ send }}" style="width:52px;height:52px;flex:none;border-radius:16px;border:3px solid #2B1240;background:linear-gradient(180deg,#B8F08F,#7ED957 60%,#5DBB3C);box-shadow:inset 0 3px 0 rgba(255,255,255,.55),0 4px 0 #2B1240;display:grid;place-items:center;cursor:pointer"><svg viewBox="0 0 24 24" width="24" height="24"><path d="M20 4L3 11l7 2 2 7z" fill="#fff" stroke="#2B1240" stroke-width="2" stroke-linejoin="round"></path></svg></button>
+  </div>
+</div>
+<div style="font:12px 'JetBrains Mono',monospace;color:rgba(255,246,232,.7)">screen-chat · team / dm / clan · type + send</div>
+</div>
+
+<!-- SHOP -->
+<div data-screen-label="Shop" style="display:flex;flex-direction:column;gap:12px;align-items:center">
+<div style="width:340px;height:736px;border-radius:52px;border:11px solid #140A22;box-shadow:0 30px 60px rgba(0,0,0,.5),0 0 0 2px rgba(255,255,255,.12);position:relative;overflow:hidden;background:#3C1A66">
+  <div style="position:absolute;inset:0"><dc-import name="Scene" scene="hojre" hint-size="100%,100%" style="width:100%;height:100%"></dc-import></div>
+  <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(43,18,64,.55),rgba(43,18,64,.82))"></div>
+  <div style="position:absolute;top:36px;left:12px;right:12px;display:flex;align-items:center;gap:6px">
+    <div style="flex:1;height:44px;border-radius:14px;background:linear-gradient(180deg,#FFE48A,#FFC93C);border:3px solid #2B1240;box-shadow:inset 0 3px 0 rgba(255,255,255,.6),0 4px 0 #2B1240;display:flex;align-items:center;justify-content:center;font:22px Lalezar;color:#2B1240">حجرهٔ دوزاری</div>
+    <div style="height:38px;border-radius:99px;background:rgba(26,8,44,.75);border:2px solid rgba(255,255,255,.3);display:flex;align-items:center;gap:3px;padding:0 3px 0 9px"><span style="font:15px Lalezar;color:#fff">{{ coinsF }}</span><div style="width:28px;height:28px"><dc-import name="Item" icon="coin" hint-size="28px,28px" style="width:28px;height:28px"></dc-import></div></div>
+    <div style="height:38px;border-radius:99px;background:rgba(26,8,44,.75);border:2px solid rgba(255,255,255,.3);display:flex;align-items:center;gap:3px;padding:0 3px 0 9px"><span style="font:15px Lalezar;color:#fff">{{ gemsF }}</span><div style="width:28px;height:28px"><dc-import name="Item" icon="gem" hint-size="28px,28px" style="width:28px;height:28px"></dc-import></div></div>
+  </div>
+
+  <div style="position:absolute;top:92px;left:10px;right:10px;height:96px;padding:8px 10px;border-radius:20px;background:linear-gradient(135deg,#FF4D8D,#A66BF0);border:3px solid #2B1240;box-shadow:0 5px 0 #2B1240;display:flex;align-items:center;gap:10px;overflow:hidden">
+    <div style="position:absolute;left:-40px;top:-60px;width:220px;height:220px;border-radius:50%;background:repeating-conic-gradient(rgba(255,255,255,.18) 0 10deg,transparent 10deg 20deg);animation:dz-spin 14s linear infinite"></div>
+    <div style="position:relative;width:56px;height:56px;flex:none;animation:dz-wig 2s ease-in-out infinite"><dc-import name="Item" icon="chest" hint-size="56px,56px" style="width:56px;height:56px"></dc-import></div>
+    <div style="position:relative;flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+      <div style="display:flex;align-items:center;gap:6px"><span style="font:17px/1 Lalezar;color:#fff;text-shadow:0 2px 0 #2B1240;white-space:nowrap">صندوق یلدا</span><span style="padding:0 6px;border-radius:6px;background:#FFC93C;border:2px solid #2B1240;font:12px Lalezar;color:#2B1240">٪۷۰-</span></div>
+      <span style="font:800 10.5px Vazirmatn;color:#FFF6E8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">۲۰۰۰ سکه + ۵۰ جم + لباس</span>
+      <div style="display:flex;align-items:center;gap:4px;font:15px Lalezar;color:#FFE48A;direction:ltr;justify-content:flex-end"><div style="width:16px;height:16px"><dc-import name="Item" icon="alarm" hint-size="16px,16px" style="width:16px;height:16px"></dc-import></div>{{ offerClock }}</div>
+    </div>
+    <button onClick="{{ buyOffer }}" style="position:relative;height:44px;padding:0 10px;border-radius:14px;border:3px solid #2B1240;background:linear-gradient(180deg,#B8F08F,#7ED957);box-shadow:0 4px 0 #2B1240;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer"><span style="font:10px Vazirmatn;color:#2B1240;text-decoration:line-through;opacity:.7">۱۹۹ت</span><span style="font:16px/1 Lalezar;color:#2B1240">۵۹ت</span></button>
+  </div>
+
+  <div style="position:absolute;top:202px;left:6px;right:6px;display:flex;gap:4px;overflow:hidden">
+    <sc-for list="{{ shopTabs }}" as="t" hint-placeholder-count="6">
+      <button onClick="{{ t.onClick }}" style="flex:1;min-width:0;height:58px;border-radius:14px;border:2.5px solid #2B1240;background:{{ t.bg }};box-shadow:0 {{ t.sh }} 0 #2B1240;transform:translateY({{ t.ty }});cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:2px">
+        <div style="width:28px;height:28px"><dc-import name="Item" icon="{{ t.ic }}" hint-size="28px,28px" style="width:28px;height:28px"></dc-import></div>
+        <span style="font:11px/1.2 Lalezar;color:#2B1240">{{ t.label }}</span>
+      </button>
+    </sc-for>
+  </div>
+
+  <div style="position:absolute;top:276px;left:10px;right:10px;bottom:24px;overflow-y:auto;scrollbar-width:none;padding-bottom:8px;display:grid;grid-auto-rows:max-content;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-content:start">
+    <sc-for list="{{ goods }}" as="g" hint-placeholder-count="6">
+      <div style="position:relative;border-radius:20px;background:linear-gradient(180deg,#FFF6E8,#F6E2C2);border:3px solid #2B1240;box-shadow:0 5px 0 #2B1240;display:flex;flex-direction:column;align-items:center;padding:8px 6px 6px;gap:2px;overflow:hidden;animation:dz-pop .35s ease-out">
+        <sc-if value="{{ g.tag }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;top:8px;right:-24px;width:96px;padding:1px 0;transform:rotate(35deg);background:{{ g.tagC }};border-top:2px solid #2B1240;border-bottom:2px solid #2B1240;text-align:center;font:11px Lalezar;color:#fff;text-shadow:0 1px 0 #2B1240">{{ g.tag }}</div></sc-if>
+        <div style="height:74px;width:100%;display:grid;place-items:center;position:relative">
+          <sc-if value="{{ g.char }}" hint-placeholder-val="{{ false }}"><div style="width:64px;height:74px"><dc-import name="Character" who="dozari" pose="idle" month="{{ g.month }}" hint-size="64px,74px" style="width:64px;height:74px"></dc-import></div></sc-if>
+          <sc-if value="{{ g.frame }}" hint-placeholder-val="{{ false }}"><div style="width:66px;height:66px;border-radius:50%;border:5px solid {{ g.frameC }};box-shadow:0 0 0 2.5px #2B1240,inset 0 0 0 2.5px #2B1240;background:#FFF6E8;overflow:hidden;position:relative"><div style="position:absolute;inset:0"><dc-import name="Character" who="{{ g.who }}" pose="idle" crop="face" hint-size="56px,56px" style="width:100%;height:100%"></dc-import></div></div></sc-if>
+          <sc-if value="{{ g.ic }}" hint-placeholder-val="{{ true }}"><div style="width:68px;height:68px"><dc-import name="Item" icon="{{ g.ic }}" hint-size="68px,68px" style="width:68px;height:68px"></dc-import></div></sc-if>
+          <sc-if value="{{ g.locked }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;inset:0;border-radius:12px;background:rgba(43,18,64,.55);display:grid;place-items:center"><div style="width:40px;height:40px"><dc-import name="Item" icon="lock" hint-size="40px,40px" style="width:40px;height:40px"></dc-import></div></div></sc-if>
+        </div>
+        <span style="font:16px/1.2 Lalezar;color:#2B1240">{{ g.name }}</span>
+        <span style="font:700 10px Vazirmatn;color:#7E46D6;min-height:14px">{{ g.sub }}</span>
+        <button onClick="{{ g.onClick }}" style="width:100%;height:36px;margin-top:2px;border-radius:12px;border:2.5px solid #2B1240;background:{{ g.btnBg }};box-shadow:0 3px 0 #2B1240;display:flex;align-items:center;justify-content:center;gap:4px;font:16px Lalezar;color:{{ g.btnFg }};cursor:pointer"><sc-if value="{{ g.payIc }}" hint-placeholder-val="{{ false }}"><div style="width:20px;height:20px"><dc-import name="Item" icon="{{ g.payIc }}" hint-size="20px,20px" style="width:20px;height:20px"></dc-import></div></sc-if>{{ g.price }}</button>
+      </div>
+    </sc-for>
+  </div>
+
+  <sc-if value="{{ bought }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeBought }}" style="position:absolute;inset:0;background:rgba(26,8,44,.82);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;z-index:9;cursor:pointer;overflow:hidden">
+      <div style="position:absolute;left:50%;top:42%;width:1100px;height:1100px;margin:-550px 0 0 -550px;border-radius:50%;background:repeating-conic-gradient(rgba(255,201,60,.28) 0 9deg,transparent 9deg 18deg);animation:dz-spin 16s linear infinite"></div>
+      <div style="position:relative;width:130px;height:130px;animation:dz-pop .45s ease-out"><dc-import name="Item" icon="{{ bought.ic }}" hint-size="130px,130px" style="width:130px;height:130px"></dc-import></div>
+      <div style="position:relative;padding:8px 26px;background:linear-gradient(180deg,#FFE48A,#FFC93C);border:4px solid #2B1240;border-radius:16px;box-shadow:0 6px 0 #2B1240;font:26px Lalezar;color:#2B1240;animation:dz-pop .55s ease-out">مال خودت شد!</div>
+      <span style="position:relative;font:800 14px Vazirmatn;color:#FFF6E8">{{ bought.name }}</span>
+    </div>
+  </sc-if>
+</div>
+<div style="font:12px 'JetBrains Mono',monospace;color:rgba(255,246,232,.7)">screen-shop · 6 tabs · tap buy</div>
+</div>
+
+<!-- LOCKED POPUP -->
+<div data-screen-label="Locked popup" style="display:flex;flex-direction:column;gap:12px;align-items:center">
+<div style="width:340px;height:736px;border-radius:52px;border:11px solid #140A22;box-shadow:0 30px 60px rgba(0,0,0,.5),0 0 0 2px rgba(255,255,255,.12);position:relative;overflow:hidden;background:#3C1A66">
+  <div style="position:absolute;inset:0;filter:blur(3px) saturate(.7)"><dc-import name="Scene" scene="bazaar" mood="dusk" hint-size="100%,100%" style="width:100%;height:100%"></dc-import></div>
+  <div style="position:absolute;inset:0;background:rgba(26,8,44,.7)"></div>
+  <div style="position:absolute;top:84px;left:18px;right:18px;border-radius:28px;background:#FBF1DE;border:4px solid #2B1240;box-shadow:0 8px 0 #2B1240;display:flex;flex-direction:column;align-items:center;padding:0 14px 14px;gap:8px;animation:dz-pop .4s ease-out">
+    <div style="margin-top:-30px;position:relative;width:110px;height:110px;display:grid;place-items:center">
+      <div style="position:absolute;inset:-6px;border-radius:50%;background:radial-gradient(circle,#5E1F7E,#2B1240);border:4px solid #2B1240"></div>
+      <div style="position:relative;width:80px;height:80px;filter:grayscale(.85) brightness(.7)"><dc-import name="Item" icon="samovar" hint-size="80px,80px" style="width:80px;height:80px"></dc-import></div>
+      <div style="position:absolute;bottom:-6px;left:-6px;width:56px;height:56px;animation:dz-wig 1.4s ease-in-out infinite"><dc-import name="Item" icon="lock" hint-size="56px,56px" style="width:56px;height:56px"></dc-import></div>
+    </div>
+    <div style="font:28px/1.1 Lalezar;color:#2B1240">قهوه‌خانهٔ مشتی</div>
+    <div style="display:flex;align-items:center;gap:6px;padding:4px 14px;border-radius:99px;background:#2B1240"><span style="font:800 13px Vazirmatn;color:#FFF6E8">باز میشه در</span><span style="font:20px/1 Lalezar;color:#FFC93C">لول ۱۵</span></div>
+    <div style="width:100%;display:flex;flex-direction:column;gap:4px">
+      <div style="display:flex;justify-content:space-between;font:800 12px Vazirmatn;color:#2B1240"><span>لول تو: ۱۲</span><span>۳ لول مونده</span></div>
+      <div style="position:relative;height:22px;border-radius:99px;background:#E8D2B0;border:3px solid #2B1240;overflow:hidden"><div style="position:absolute;top:0;bottom:0;right:0;width:{{ lvPct }};background:linear-gradient(180deg,#C9A3FF,#A66BF0);transition:width .6s"></div><div style="position:absolute;inset:0;display:grid;place-items:center;font:13px/1 Lalezar;color:#2B1240;direction:ltr">{{ xpLabel }}</div></div>
+    </div>
+    <div style="width:100%;display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:16px;background:rgba(166,107,240,.12);border:2px dashed rgba(43,18,64,.3)">
+      <span style="font:15px Lalezar;color:#7E46D6">اینجا چی هست؟</span>
+      <sc-for list="{{ perks }}" as="p" hint-placeholder-count="3">
+        <div style="display:flex;align-items:center;gap:8px"><div style="width:28px;height:28px;flex:none"><dc-import name="Item" icon="{{ p.ic }}" hint-size="28px,28px" style="width:28px;height:28px"></dc-import></div><span style="font:700 12.5px/1.5 Vazirmatn;color:#2B1240">{{ p.t }}</span></div>
+      </sc-for>
+    </div>
+    <div style="width:100%;display:flex;gap:8px">
+      <button onClick="{{ addXp }}" style="flex:1.3;height:54px;border-radius:16px;border:3px solid #2B1240;background:linear-gradient(180deg,#B8F08F,#7ED957 60%,#5DBB3C);box-shadow:inset 0 3px 0 rgba(255,255,255,.55),0 4px 0 #2B1240;font:17px Lalezar;color:#fff;text-shadow:0 2px 0 #2B1240;cursor:pointer;white-space:nowrap">بازی کن +XP</button>
+      <button style="flex:1;height:54px;border-radius:16px;border:3px solid #2B1240;background:linear-gradient(180deg,#8FDCFA,#3FC1F0);box-shadow:0 4px 0 #2B1240;display:flex;align-items:center;justify-content:center;gap:4px;font:18px Lalezar;color:#2B1240;cursor:pointer"><div style="width:24px;height:24px"><dc-import name="Item" icon="gem" hint-size="24px,24px" style="width:24px;height:24px"></dc-import></div>۸۰ باز کن</button>
+    </div>
+  </div>
+  <div style="position:absolute;bottom:22px;left:8px;width:100px;height:116px"><dc-import name="Character" who="ajan" pose="pointing" anim="true" hint-size="100px,116px" style="width:100px;height:116px"></dc-import></div>
+  <div style="position:absolute;bottom:52px;left:110px;right:14px;padding:8px 12px;border-radius:16px 16px 16px 4px;background:#fff;border:3px solid #2B1240;box-shadow:0 4px 0 #2B1240;font:700 11.5px/1.55 Vazirmatn;color:#2B1240">ایست! هنوز لولت نرسیده. سه لول دیگه بیا، درش رو باز می‌کنم.</div>
+</div>
+<div style="font:12px 'JetBrains Mono',monospace;color:rgba(255,246,232,.7)">popup-locked · tap XP button</div>
+</div>
+
+<!-- LEVEL ROAD -->
+<div data-screen-label="Level road" style="display:flex;flex-direction:column;gap:12px;align-items:center">
+<div style="width:340px;height:736px;border-radius:52px;border:11px solid #140A22;box-shadow:0 30px 60px rgba(0,0,0,.5),0 0 0 2px rgba(255,255,255,.12);position:relative;overflow:hidden;background:linear-gradient(180deg,#5E1F7E,#3C1A66 50%,#2B1240)">
+  <div style="position:absolute;top:36px;left:12px;right:12px;display:flex;align-items:center;gap:8px;z-index:2">
+    <button style="width:42px;height:42px;border-radius:14px;border:3px solid #2B1240;background:linear-gradient(180deg,#C9A3FF,#A66BF0);box-shadow:0 4px 0 #2B1240;display:grid;place-items:center;cursor:pointer"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M9 5l7 7-7 7" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
+    <div style="flex:1;height:46px;border-radius:14px;background:linear-gradient(180deg,#FFE48A,#FFC93C);border:3px solid #2B1240;box-shadow:inset 0 3px 0 rgba(255,255,255,.6),0 4px 0 #2B1240;display:flex;align-items:center;justify-content:center;font:22px Lalezar;color:#2B1240">جادهٔ لول‌ها</div>
+  </div>
+  <div ref="{{ roadRef }}" style="position:absolute;top:96px;left:0;right:0;bottom:0;overflow-y:auto;scrollbar-width:none">
+    <div style="position:relative;height:1280px;background:radial-gradient(ellipse 60% 18% at 0% 30%,rgba(126,217,87,.16),transparent),radial-gradient(ellipse 60% 18% at 100% 62%,rgba(126,217,87,.16),transparent),radial-gradient(ellipse 60% 18% at 0% 88%,rgba(126,217,87,.18),transparent)">
+      <sc-for list="{{ stars }}" as="s" hint-placeholder-count="0"><div style="position:absolute;left:{{ s.x }};top:{{ s.y }};width:{{ s.r }};height:{{ s.r }};border-radius:50%;background:#FFF4B0;opacity:{{ s.o }}"></div></sc-for>
+      <svg viewBox="0 0 318 1280" width="318" height="1280" style="position:absolute;inset:0;overflow:visible">
+        <path d="{{ roadD }}" fill="none" stroke="rgba(0,0,0,.25)" stroke-width="54" stroke-linecap="round" transform="translate(0 8)"></path>
+        <path d="{{ roadD }}" fill="none" stroke="#2B1240" stroke-width="54" stroke-linecap="round"></path>
+        <path d="{{ roadD }}" fill="none" stroke="#C9A06A" stroke-width="44" stroke-linecap="round"></path>
+        <path d="{{ roadD }}" fill="none" stroke="#F6E2C2" stroke-width="34" stroke-linecap="round"></path>
+        <path d="{{ doneD }}" fill="none" stroke="#FFC93C" stroke-width="34" stroke-linecap="round"></path>
+        <path d="{{ doneD }}" fill="none" stroke="#FFE48A" stroke-width="10" stroke-linecap="round" transform="translate(-4 -3)"></path>
+        <path d="{{ roadD }}" fill="none" stroke="#2B1240" stroke-opacity=".28" stroke-width="4" stroke-linecap="round" stroke-dasharray="12 16"></path>
+      </svg>
+      <sc-for list="{{ road }}" as="n" hint-placeholder-count="10">
+        <div style="position:absolute;left:{{ n.cx }};top:{{ n.cy }};width:{{ n.sz }};height:{{ n.sz }};margin:{{ n.mg }};border-radius:50%;background:{{ n.bg }};border:4px solid #2B1240;box-shadow:inset 0 -5px 0 rgba(0,0,0,.18),inset 0 4px 0 rgba(255,255,255,.5),0 5px 0 #2B1240{{ n.glow }};display:grid;place-items:center;font:{{ n.fs }}/1 Lalezar;color:{{ n.fg }};text-shadow:0 2px 0 {{ n.ts }};animation:{{ n.anim }};z-index:2">{{ n.lv }}
+          <sc-if value="{{ n.done }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;top:-8px;left:-8px;width:24px;height:24px;border-radius:50%;background:#7ED957;border:3px solid #2B1240;display:grid;place-items:center"><svg viewBox="0 0 24 24" width="13" height="13"><path d="M5 12l5 5 9-10" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path></svg></div></sc-if>
+          <sc-if value="{{ n.locked }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;top:-10px;left:-10px;width:26px;height:26px"><dc-import name="Item" icon="lock" hint-size="26px,26px" style="width:26px;height:26px"></dc-import></div></sc-if>
+          <sc-if value="{{ n.me }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;bottom:48px;left:50%;margin-left:-34px;width:68px;height:79px"><dc-import name="Character" who="dozari" pose="wave" anim="true" hint-size="68px,79px" style="width:68px;height:79px"></dc-import></div></sc-if>
+        </div>
+        <div style="position:absolute;left:{{ n.kl }};right:{{ n.kr }};top:{{ n.ky }};width:150px;display:flex;align-items:center;gap:6px;padding:5px 8px 5px 5px;border-radius:16px;background:{{ n.cardBg }};border:3px solid #2B1240;box-shadow:0 4px 0 #2B1240;opacity:{{ n.op }};z-index:1">
+          <div style="width:40px;height:40px;flex:none;border-radius:12px;background:{{ n.icBg }};display:grid;place-items:center"><div style="width:34px;height:34px;filter:{{ n.f }}"><dc-import name="Item" icon="{{ n.ic }}" hint-size="34px,34px" style="width:34px;height:34px"></dc-import></div></div>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px"><span style="font:14px/1.15 Lalezar;color:#2B1240;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ n.name }}</span><span style="font:800 10px Vazirmatn;color:{{ n.stC }};white-space:nowrap">{{ n.st }}</span></div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+<div style="font:12px 'JetBrains Mono',monospace;color:rgba(255,246,232,.7)">screen-levels · scroll</div>
+</div>
+
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
+const grp=n=>fa(String(n).replace(/\B(?=(\d{3})+(?!\d))/g,'٬'));
+const CHATS={
+ team:{title:'هم‌تیمی: نگار',sub:'دوئل ۲ در ۲ · تیم آبی',who:'goli',avBg:'#3FC1F0',timer:true,
+  msgs:[{f:'goli',t:'من «انار» و «پسته» رو دیدم، خوراکیه 👀'.replace(' 👀','')},{f:'me',t:'سماور و قوری هم مال چاییه'},{f:'goli',t:'بزن، من تیله‌ها رو می‌گیرم!'},{f:'me',st:'coin'},{f:'goli',t:'عالی! حریف دوتا زده، عجله کن'}],
+  quick:[['انجام شد!','star'],['کمک!','magnifier'],['صبر کن',''],['ایول!','fireworks']]},
+ dm:{title:'آرش',sub:'آنلاین',who:'pahlevan',avBg:'#FF4D8D',timer:false,
+  msgs:[{f:'arash',t:'دیروز تو دوئل بد بردی ازم 😅'.replace(' 😅','')},{f:'me',t:'دوزاریم زود افتاد دیگه'},{f:'arash',t:'امشب انتقام می‌گیرم، ساعت ۹'},{f:'me',gift:'۱۰۰ سکه'},{f:'arash',t:'مرسی! پس امشب آماده باش'}],
+  quick:[['دوئل بدیم؟','ticket'],['هدیه','gift'],['سلام!','']]},
+ clan:{title:'قبیلهٔ بازارچه',sub:'۲۴ عضو · ۸ آنلاین',who:'mashti',avBg:'#FFC93C',timer:false,
+  msgs:[{f:'mashti',t:'بچه‌ها تورنمنت جمعه یادتون نره!'},{f:'khale',t:'من هستم، فقط سکه کم دارم'},{f:'mirza',st:'teaGlass'},{f:'me',t:'من ۳۰۰ سکه دارم، بفرستم؟'},{f:'mashti',t:'دمت گرم! صندوق قبیله رو پر کنیم'}],
+  quick:[['درخواست سکه','coinStack'],['تورنمنت','trophy'],['سلام همگی','']]}};
+const PEOPLE={me:['dozari','تو','#FFC93C'],goli:['goli','نگار','#3FC1F0'],arash:['pahlevan','آرش','#FF4D8D'],mashti:['mashti','مشتی','#FFC93C'],khale:['khale','خاله','#FF8FB6'],mirza:['mirza','میرزا','#B8F08F']};
+const TABS=[['coins','سکه','coinStack'],['gems','جم','gem'],['boost','کمکی','magnifier'],['outfit','لباس','shirt'],['avatar','آواتار','crown'],['offer','ویژه','gift']];
+const GOODS={
+ coins:[{ic:'coin',name:'۱۰۰۰ سکه',price:'۱۹ت'},{ic:'coinStack',name:'۳۰۰۰ سکه',sub:'+۱۰٪ هدیه',price:'۴۹ت',tag:'محبوب',tagC:'#FF4D8D'},{ic:'coinBag',name:'۸۰۰۰ سکه',sub:'+۲۵٪ هدیه',price:'۹۹ت'},{ic:'chest',name:'۲۰٬۰۰۰ سکه',sub:'+۴۰٪ هدیه',price:'۱۹۹ت',tag:'بهترین',tagC:'#7ED957'},{ic:'piggy',name:'قلک دوزاری',sub:'هر بازی پرتر میشه',price:'۲۹ت'},{ic:'banknote',name:'۵۰۰ سکه',sub:'با تبلیغ',price:'رایگان',free:1}],
+ gems:[{ic:'gem',name:'۲۰ جم',price:'۱۵ت'},{ic:'gem',name:'۶۰ جم',sub:'+۵ هدیه',price:'۳۹ت',tag:'محبوب',tagC:'#FF4D8D'},{ic:'gem',name:'۱۵۰ جم',sub:'+۲۰ هدیه',price:'۸۹ت'},{ic:'goldBar',name:'۴۰۰ جم',sub:'+۸۰ هدیه',price:'۱۹۹ت',tag:'بهترین',tagC:'#7ED957'}],
+ boost:[{ic:'magnifier',name:'ذره‌بین ×۳',sub:'۲ کلمه رو لو میده',price:'۱۵۰',pay:'coin'},{ic:'freeze',name:'یخ ×۲',sub:'حریف ۱۰ ثانیه وایسه',price:'۲۰۰',pay:'coin'},{ic:'hourglass',name:'زمان +۳۰',sub:'وقت بیشتر',price:'۱۲۰',pay:'coin'},{ic:'heart',name:'فرصت +۱',sub:'یه اشتباه بیشتر',price:'۱۰',pay:'gem'},{ic:'magicLamp',name:'چراغ جادو',sub:'یه دسته رو حل می‌کنه',price:'۲۵',pay:'gem',tag:'قوی',tagC:'#A66BF0'},{ic:'scissors',name:'قیچی ×۳',sub:'۴ کلمه حذف',price:'۱۸۰',pay:'coin'}],
+ outfit:[{char:1,month:1,name:'لباس نوروز',sub:'فروردین',price:'۴۰',pay:'gem',tag:'جدید',tagC:'#FF4D8D'},{char:1,month:9,name:'لباس یلدا',sub:'آذر',price:'۴۰',pay:'gem'},{char:1,month:4,name:'لباس تابستون',sub:'تیر',price:'۳۰',pay:'gem'},{char:1,month:7,name:'لباس پاییز',sub:'مهر',price:'۳۰',pay:'gem',locked:1,lockLv:20}],
+ avatar:[{frame:1,who:'goli',frameC:'#FFC93C',name:'قاب طلایی',price:'۵۰',pay:'gem'},{frame:1,who:'pahlevan',frameC:'#FF4D8D',name:'آواتار پهلوان',price:'۸۰۰',pay:'coin'},{frame:1,who:'khale',frameC:'#3FC1F0',name:'آواتار خاله',price:'۸۰۰',pay:'coin'},{frame:1,who:'mirza',frameC:'#7ED957',name:'آواتار میرزا',price:'',locked:1,lockLv:25}],
+ offer:[{ic:'chest',name:'صندوق یلدا',sub:'۲۰۰۰ سکه + ۵۰ جم',price:'۵۹ت',tag:'٪۷۰-',tagC:'#FF4D8D'},{ic:'rosette',name:'پاس ماهانه',sub:'جایزهٔ هر روز',price:'۷۹ت',tag:'VIP',tagC:'#A66BF0'},{ic:'gift',name:'بستهٔ شروع',sub:'فقط یک‌بار',price:'۹ت'},{ic:'potion',name:'XP دوبرابر',sub:'۲۴ ساعت',price:'۲۰',pay:'gem'}]};
+const ROAD=[[1,'pomegranate','بساط انار'],[3,'magnifier','ذره‌بین ×۲'],[5,'teaGlass','چایخانه'],[8,'coinBag','۵۰۰ سکه'],[10,'shirt','لباس تابستون'],[12,'freeze','یخ ×۲'],[15,'samovar','قهوه‌خانهٔ مشتی'],[18,'gem','۳۰ جم'],[20,'crown','قاب طلایی'],[25,'chest','صندوق پهلوان']];
+class Component extends DCLogic{
+  state={chat:'team',draft:'',extra:{team:[],dm:[],clan:[]},typing:false,tab:'coins',coins:2213,gems:45,bought:null,xp:640,offer:5*3600+12*60+40};
+  roadRef=React.createRef();
+  componentDidMount(){setTimeout(()=>{const r=this.roadRef.current;if(r){const ci=ROAD.findIndex(x=>x[0]===12);r.scrollTop=Math.max(0,1200-ci*118-r.clientHeight*0.55);}},300);this._iv=setInterval(()=>this.setState(s=>({offer:Math.max(0,s.offer-1)})),1000);}
+  componentWillUnmount(){clearInterval(this._iv);clearTimeout(this._r);}
+  push(m){const c=this.state.chat;this.setState(s=>({extra:{...s.extra,[c]:[...s.extra[c],m]}}));}
+  reply(){const c=this.state.chat;const R={team:['goli','گرفتمش! بعدی 💪'.replace(' 💪','')],dm:['arash','باشه، بیا ببینیم!'],clan:['khale','دمت گرم 🙏'.replace(' 🙏','')]}[c];
+    this.setState({typing:true});clearTimeout(this._r);this._r=setTimeout(()=>{this.setState({typing:false});this.push({f:R[0],t:R[1]});},1300);}
+  send(t){t=(t||'').trim();if(!t)return;this.push({f:'me',t});this.setState({draft:''});this.reply();}
+  buy(g){const s=this.state;if(g.locked)return;
+    if(g.pay==='coin'){const p=+g.price.replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d));if(s.coins<p)return;this.setState({coins:s.coins-p});}
+    if(g.pay==='gem'){const p=+g.price.replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d));if(s.gems<p)return;this.setState({gems:s.gems-p});}
+    this.setState({bought:{ic:g.ic||(g.char?'shirt':'crown'),name:g.name}});}
+  renderVals(){
+    const s=this.state,C=CHATS[s.chat];
+    const all=[...C.msgs,...s.extra[s.chat]].slice(-4);
+    const msgs=all.map((m,i)=>{const me=m.f==='me',P=PEOPLE[m.f];const prev=all[i-1];const grpChat=s.chat==='clan';
+      return{dir:me?'row-reverse':'row',align:me?'flex-end':'flex-start',who:P[0],avBg:P[2],showAv:!me,
+        name:grpChat&&!me&&(!prev||prev.f!==m.f)?P[1]:'',nameC:'#7E46D6',
+        text:m.t||'',sticker:m.st||'',gift:m.gift||'',
+        bg:me?'linear-gradient(180deg,#B8F08F,#7ED957)':'#fff',fg:'#2B1240',rad:me?'16px 16px 4px 16px':'16px 16px 16px 4px'};});
+    const chatTabs=[['team','هم‌تیمی',''],['dm','خصوصی','۲'],['clan','قبیله','۹']].map(([k,l,b])=>{const on=s.chat===k;
+      return{label:l,badge:on?'':b,onClick:()=>this.setState({chat:k,typing:false}),bg:on?'linear-gradient(180deg,#FFE48A,#FFC93C)':'transparent',fg:on?'#2B1240':'#fff',bd:on?'2.5px solid #2B1240':'2.5px solid transparent'};});
+    const quick=C.quick.map(([t,ic],i)=>({t,ic,bg:['#FFE48A','#8FDCFA','#FF8FB6','#B8F08F'][i%4],onClick:()=>this.send(t)}));
+    const shopTabs=TABS.map(([k,l,ic])=>{const on=s.tab===k;return{label:l,ic,onClick:()=>this.setState({tab:k}),bg:on?'linear-gradient(180deg,#FFE48A,#FFC93C)':'#FFF6E8',sh:on?'1px':'4px',ty:on?'3px':'0px'};});
+    const goods=GOODS[s.tab].map(g=>{const real=/ت$/.test(g.price),free=g.free;
+      return{...g,ic:g.char||g.frame?'':g.ic,char:!!g.char,frame:!!g.frame,locked:!!g.locked,tag:g.tag||'',tagC:g.tagC||'#FF4D8D',sub:g.locked?'قفل تا لول '+fa(g.lockLv):(g.sub||''),
+        payIc:g.locked?'':(g.pay==='gem'?'gem':g.pay==='coin'?'coin':''),
+        price:g.locked?'لول '+fa(g.lockLv):free?'رایگان':real?g.price.replace('ت',' تومان').replace(/^(\S+) تومان$/,'$1 هزار ت'):g.price,
+        btnBg:g.locked?'#C8B8D8':free?'linear-gradient(180deg,#8FDCFA,#3FC1F0)':'linear-gradient(180deg,#B8F08F,#7ED957)',btnFg:'#2B1240',onClick:()=>this.buy(g)};});
+    const h=Math.floor(s.offer/3600),m=Math.floor(s.offer/60)%60,sc=s.offer%60;
+    const lvl=12,need=1000;const pct=Math.min(100,s.xp/need*100);
+    const PX=[i=>i%2?222:96],Y0=1200,DY=118;
+    const pts=ROAD.map((_,i)=>[i%2?222:96,Y0-i*DY]);
+    const seg=(arr)=>arr.reduce((d,p,i)=>i?d+' C'+arr[i-1][0]+' '+(arr[i-1][1]-DY*.55)+' '+p[0]+' '+(p[1]+DY*.55)+' '+p[0]+' '+p[1]:'M'+p[0]+' '+(p[1]+70)+' L'+p[0]+' '+p[1],'');
+    const curI=ROAD.findIndex(r=>r[0]===lvl);
+    const roadD=seg(pts)+' L'+pts[pts.length-1][0]+' '+(pts[pts.length-1][1]-60);
+    const doneD=seg(pts.slice(0,curI+1));
+    const road=ROAD.map(([lv,ic,name],i)=>{const done=lv<lvl,cur=lv===lvl;const [x,y]=pts[i];const L=x<160;const sz=cur?66:54;
+      return{lv:fa(lv),ic,name,cx:x+'px',cy:y+'px',sz:sz+'px',mg:(-sz/2)+'px 0 0 '+(-sz/2)+'px',fs:cur?'28px':'22px',done,locked:!done&&!cur,me:cur,
+        bg:done?'radial-gradient(circle at 35% 30%,#D8FFB8,#7ED957 60%,#4FA03A)':cur?'radial-gradient(circle at 35% 30%,#FFF4B0,#FFC93C 60%,#E8A01A)':'radial-gradient(circle at 35% 30%,#8A6AAE,#5A3A7A)',
+        fg:done||cur?'#fff':'#C9A3FF',ts:done?'#2E7A22':cur?'#B86E00':'#2B1240',
+        glow:cur?',0 0 0 8px rgba(255,201,60,.35),0 0 30px 8px rgba(255,201,60,.5)':'',anim:cur?'dz-pulse 1.4s ease-in-out infinite':'none',
+        kl:L?(x+38)+'px':'auto',kr:L?'auto':(318-x+38)+'px',ky:(y-26)+'px',
+        cardBg:done?'#EAF8DD':cur?'#FFF6E8':'#EDE3F6',icBg:done?'rgba(126,217,87,.25)':cur?'rgba(255,201,60,.3)':'rgba(126,70,214,.12)',op:1,f:done||cur?'none':'grayscale(.7) brightness(.9)',
+        st:done?'گرفتی':cur?'الان اینجایی':'لول '+fa(lv),stC:done?'#3FA36B':cur?'#E8743B':'#7E46D6'};});
+    const stars=Array.from({length:26},(_,i)=>({x:((i*73)%300+6)+'px',y:((i*197)%1240+10)+'px',r:(i%3+2)+'px',o:(.25+(i%4)*.12).toFixed(2)}));
+    return{
+      chat:C,chatTabs,msgs,quick,typing:s.typing,draft:s.draft,
+      onDraft:e=>this.setState({draft:e.target.value}),onKey:e=>{if(e.key==='Enter')this.send(s.draft);},send:()=>this.send(s.draft),sendSticker:()=>{this.push({f:'me',st:['fireworks','coin','teaGlass','balloons'][Math.floor(Math.random()*4)]});this.reply();},
+      coinsF:grp(s.coins),gemsF:grp(s.gems),offerClock:fa(String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(sc).padStart(2,'0')),
+      shopTabs,goods,bought:s.bought,closeBought:()=>this.setState({bought:null}),buyOffer:()=>this.setState({bought:{ic:'chest',name:'صندوق شب یلدا'}}),
+      lvPct:pct+'%',xpLabel:grp(s.xp)+' / '+grp(need)+' XP',addXp:()=>this.setState(st=>({xp:Math.min(need,st.xp+120)})),
+      perks:[{ic:'teaGlass',t:'مرحله‌های ویژهٔ چای و قهوه'},{ic:'coinStack',t:'جایزهٔ روزانهٔ ۲۰۰ سکه'},{ic:'rosette',t:'لباس مخصوص مشتی'}],
+      road,roadD,doneD,stars,roadRef:this.roadRef};
+  }
+}
+</script>
+</body>
+</html>

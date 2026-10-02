@@ -17,6 +17,10 @@ Default: the **purple** (hardest) group — it carries the best story. The user 
 - Y axis: **log scale** by default (prices span 1 toman → millions); toggle to linear.
   Labels in toman with Persian digits and compact units: «۱۰۰ تومن»، «۱٫۲ هزار»، «۳ میلیون»، «۱٫۵ میلیارد».
 - Highlight the rule year (if the group's rule references one) with a vertical dashed line and label «سال ۷۵».
+- Implemented in `packages/shared/src/chart/build.ts` (`buildChartData`, `normalizeX`, `normalizeY`) with tunables in
+  `config/chart.ts` (`CHART_GAP_BREAK_YEARS` = 5, `CHART_MIN_YEAR` = 1340, the fixed s1–s4 series colours). Points
+  carry `breakBefore` where a gap > 5 years breaks the line; the Y domain is returned in integer rials and only
+  `normalizeY` does display-only float maths. Axis labels: `compactTomanLabel` («۱۰۰ تومن»، «۱٫۲ هزار»، «۳ میلیون»).
 - Output is plain data (`{ years, series:[{productId, name, color, points:[{year, rials}]}], markers }`)
   so it is unit-testable and reusable by the web share page.
 
