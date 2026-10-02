@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="fa">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
+    <title>دوزاری</title>
+    <meta name="description" content="بازی آنلاین نوستالژی قیمت‌ها" />
+    <meta name="theme-color" content="#2B1240" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="دوزاری" />
+    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
+    <style id="expo-reset">
+      html,
+      body {
+        height: 100%;
+        background: #2b1240;
+      }
+      body {
+        overflow: hidden;
+      }
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+    </style>
+  </head>
+
+  <body>
+    <noscript>برای اجرای دوزاری جاوااسکریپت را روشن کنید.</noscript>
+    <div id="root"></div>
+    <script>
+      // Installable PWA: the service worker only works on https or localhost; elsewhere this is a no-op.
+      if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/sw.js').catch(function () {});
+        });
+      }
+    </script>
+  </body>
+</html>
