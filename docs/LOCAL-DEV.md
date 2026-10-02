@@ -1,5 +1,7 @@
 # Local development without Docker
 
+Full walkthrough with a per-feature test checklist: [`start.md`](start.md).
+
 Docker is optional. Containerisation (server image, compose for prod) comes later; until then
 everything runs directly on the host. Needs Node 22 (`.nvmrc`), pnpm, and a local MySQL 8
 (decision D63 in `DECISIONS.md`).
