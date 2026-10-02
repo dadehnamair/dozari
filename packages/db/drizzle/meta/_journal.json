@@ -211,6 +211,13 @@
       "when": 1790940898082,
       "tag": "0029_whole_stick",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "5",
+      "when": 1790942330687,
+      "tag": "0030_curved_famine",
+      "breakpoints": true
     }
   ]
 }

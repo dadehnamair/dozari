@@ -1,0 +1,1 @@
+ALTER TABLE `chat_messages` MODIFY COLUMN `room` enum('city','match','global') NOT NULL;

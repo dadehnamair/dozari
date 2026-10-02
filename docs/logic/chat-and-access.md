@@ -74,6 +74,16 @@ are listed in `docs/brand.md`.
 - Not built: per-player mute lists, moderator-visible message context, a muting UI for agents in the app, text chat in private tables.
 
 
+## Global room (D103)
+
+Beside the city room there is one room for every player (`room = 'global'`, `room_key = 'all'`,
+`GET|POST /chat/global`, Socket.io room `chat:global` joined with `chat:join`). Same rules as the
+city room — word filter, contact-info block, activation for free text, mute, rate limit, canned
+taunts — but no city is needed. Each message carries the sender's `province` (D101), so the app can
+show the province badge beside the name. Admin setting `chat.global_enabled` closes it without
+touching the city room. The chat page has two tabs, «همشهری‌ها» and «همه»; the design's DM and clan
+tabs wait for those features.
+
 ## City dialect phrases (owner item 9, D88)
 
 A canned-taunt category may be tied to a city (`taunt_categories.city_id`, null = everyone). `GET /chat/taunts` returns general categories plus the caller's own city's; sending a taunt of another city's category is refused (`UNKNOWN_TAUNT`). Admin sets the city per category in «کل‌کل‌های آماده». Phrases themselves are content the owner writes there.

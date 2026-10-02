@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
-export const CHAT_ROOMS = ['city', 'match'] as const;
+/** `global`: one room for every player (D103), beside the room of the player's city. */
+export const CHAT_ROOMS = ['city', 'match', 'global'] as const;
+export type ChatRoom = (typeof CHAT_ROOMS)[number];
 
 export const chatMessageSchema = z.object({
   id: z.string().uuid(),
@@ -13,12 +15,16 @@ export const chatMessageSchema = z.object({
   avatarKey: z.string(),
   /** Title of the badge the sender shows, if any. */
   badge: z.string().nullable(),
+  /** Province key of the sender's city (D101), for the badge beside the name in the global room. */
+  province: z.string().nullable(),
   createdAt: z.number().int(),
 });
 export type ChatMessage = z.infer<typeof chatMessageSchema>;
 
 export const chatHistorySchema = z.object({
   cityName: z.string().nullable(),
+  /** Whether the global room is open (admin setting `chat.global_enabled`). */
+  globalOn: z.boolean(),
   messages: z.array(chatMessageSchema),
   /** Whether this player may type free text (activated account, not muted); taunts are always allowed unless muted. */
   canType: z.boolean(),

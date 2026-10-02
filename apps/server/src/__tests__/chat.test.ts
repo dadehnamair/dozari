@@ -62,7 +62,7 @@ describe('chat', () => {
       isActivated: async (id) => state.activated.has(id),
       mute: async (id) => (state.muted.has(id) ? { until: state.muted.get(id)!, reason: 'تست' } : null),
       hasContactPerk: async (id) => state.perk.has(id),
-      rules: async () => ({ maxLen: 40, textNeedsActivation: opts.needsActivation ?? true, enabled: true }),
+      rules: async () => ({ maxLen: 40, textNeedsActivation: opts.needsActivation ?? true, enabled: true, globalEnabled: true }),
       filter: new TextFilterService(wordStore(['بد'])),
     });
     const social = new SocialService(socialStore, Date.now, undefined, player);
@@ -125,6 +125,21 @@ describe('chat', () => {
     expect(mine.cityName).toBe('تهران');
     expect(mine.messages.map((m) => m.text)).toEqual(['سلام همشهری']);
     expect(chatHistorySchema.parse((await app.inject({ method: 'GET', url: '/chat/city', headers: c.h })).json()).messages).toEqual([]);
+  });
+
+  it('the global room is open to everyone, with or without a city, and carries the sender\'s province', async () => {
+    const { app, login, inCity } = await boot({ needsActivation: false });
+    const a = await login(1);
+    const b = await login(2);
+    await inCity(a, 0);
+    const post = (u: typeof a, text: string) => app.inject({ method: 'POST', url: '/chat/global', headers: u.h, payload: { kind: 'text', text } });
+    expect((await post(a, 'سلام همه')).statusCode).toBe(200);
+    expect((await post(b, 'سلام از بی‌شهر')).statusCode).toBe(200);
+    const seen = chatHistorySchema.parse((await app.inject({ method: 'GET', url: '/chat/global', headers: b.h })).json());
+    expect(seen.messages.map((m) => [m.room, m.text, m.province])).toEqual([['global', 'سلام همه', 'tehran'], ['global', 'سلام از بی‌شهر', null]]);
+    expect(seen.globalOn).toBe(true);
+    // The city room does not see global messages.
+    expect(chatHistorySchema.parse((await app.inject({ method: 'GET', url: '/chat/city', headers: a.h })).json()).messages).toEqual([]);
   });
 
   it('free text needs an activated account; a canned taunt does not', async () => {
