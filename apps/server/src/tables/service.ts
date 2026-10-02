@@ -13,7 +13,7 @@ export interface TableDeps {
 interface Table {
   code: string;
   name: string;
-  emoji: string;
+  icon: string;
   requireReady: boolean;
   locked: boolean;
   hostId: string;
@@ -78,7 +78,7 @@ export class TableService {
     let code = makeTableCode(rng);
     for (let i = 0; i < 20 && this.tables.has(code); i++) code = makeTableCode(rng);
     if (this.tables.has(code)) return { ok: false, error: 'BUSY' };
-    const t: Table = { code, name: body.name, emoji: body.emoji, requireReady: body.requireReady, locked: false, hostId, seated: [hostId], ready: new Set(), expiresAt: this.now() + (await this.deps.idleMs()) };
+    const t: Table = { code, name: body.name, icon: body.icon, requireReady: body.requireReady, locked: false, hostId, seated: [hostId], ready: new Set(), expiresAt: this.now() + (await this.deps.idleMs()) };
     this.tables.set(code, t);
     this.byUser.set(hostId, code);
     return { ok: true, table: await this.view(t, hostId) };
@@ -172,6 +172,6 @@ export class TableService {
       const p = (await this.deps.profileOf(id)) ?? { nickname: '؟', avatarKey: 'avatar-01' };
       players.push({ id, nickname: p.nickname, avatarKey: p.avatarKey, ready: t.ready.has(id), isHost: id === t.hostId });
     }
-    return { code: t.code, name: t.name, emoji: t.emoji, requireReady: t.requireReady, locked: t.locked, hostId: t.hostId, youAreHost: t.hostId === forUser, youAreIn: t.seated.includes(forUser), expiresAt: t.expiresAt, inMatch: t.seated.some((u) => this.deps.inMatch(u)), players, seats: TABLE_SEATS };
+    return { code: t.code, name: t.name, icon: t.icon, requireReady: t.requireReady, locked: t.locked, hostId: t.hostId, youAreHost: t.hostId === forUser, youAreIn: t.seated.includes(forUser), expiresAt: t.expiresAt, inMatch: t.seated.some((u) => this.deps.inMatch(u)), players, seats: TABLE_SEATS };
   }
 }

@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { TableView } from '@dozari/shared';
-import { normalizeTableCode } from '@dozari/shared';
+import { DEFAULT_TABLE_ICON, TABLE_ICONS, normalizeTableCode } from '@dozari/shared';
 import { Avatar } from '../components/Avatar';
 import { CandyButton } from '../components/CandyButton';
+import { Item } from '../components/Item';
 import { fa } from '../i18n/fa';
 import { ApiError } from '../net/http';
 import { avatarOf } from '../social/avatarOf';
@@ -18,7 +19,9 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
   const [table, setTable] = useState<TableView | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [name, setName] = useState('');
-  const [emoji, setEmoji] = useState('🎲');
+  const [icon, setIcon] = useState<string>(DEFAULT_TABLE_ICON);
+  /** Before sitting at a table: the two-choice menu, then the form of the chosen one. */
+  const [mode, setMode] = useState<'menu' | 'make' | 'join'>(initialCode ? 'join' : 'menu');
   const [requireReady, setRequireReady] = useState(false);
   const [code, setCode] = useState(initialCode ?? '');
 
@@ -52,7 +55,12 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
   return (
     <Pressable style={styles.overlay} onPress={onClose} accessibilityLabel={fa.tables.close}>
       <Pressable style={styles.sheet} onPress={() => undefined}>
-        <Text style={styles.title}>{table ? `${table.emoji} ${table.name}` : fa.tables.title}</Text>
+        {table ? (
+          <View style={styles.titleRow}>
+            <View style={styles.titleIcon}><Item icon={table.icon} /></View>
+            <Text style={styles.title}>{table.name}</Text>
+          </View>
+        ) : <Text style={styles.title}>{mode === 'make' ? fa.tables.createTitle : mode === 'join' ? fa.tables.joinTitle : fa.tables.title}</Text>}
         <ScrollView style={styles.list} contentContainerStyle={styles.content}>
           {table ? (
             <>
@@ -83,24 +91,52 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
               <CandyButton label={fa.tables.leave} color={colors.candy.orange} onPress={() => void leaveTable().then(() => setTable(null), () => setTable(null))} />
             </>
           ) : (
-            <>
-              <Text style={styles.hint}>{fa.tables.intro}</Text>
-              <Text style={styles.label}>{fa.tables.createTitle}</Text>
-              <View style={styles.row}>
-                <TextInput value={emoji} onChangeText={setEmoji} maxLength={4} placeholder={fa.tables.emojiPlaceholder} style={[styles.input, styles.emoji]} />
-                <TextInput value={name} onChangeText={setName} maxLength={30} placeholder={fa.tables.namePlaceholder} style={[styles.input, styles.grow]} />
-              </View>
-              <Pressable onPress={() => setRequireReady(!requireReady)} accessibilityRole="checkbox" accessibilityState={{ checked: requireReady }}>
-                <Text style={styles.hint}>{requireReady ? '☑' : '☐'} {fa.tables.requireReady}</Text>
-              </Pressable>
-              <CandyButton label={fa.tables.create} color={colors.candy.lime} disabled={name.trim().length === 0} onPress={() => createTable({ name: name.trim(), emoji: emoji.trim() || '🎲', requireReady }).then((t) => (setNote(null), setTable(t)), (e) => setNote(errText(e)))} />
-              <Text style={styles.label}>{fa.tables.joinTitle}</Text>
-              <View style={styles.row}>
-                <TextInput value={code} onChangeText={setCode} autoCapitalize="characters" autoCorrect={false} maxLength={10} placeholder={fa.tables.codePlaceholder} style={[styles.input, styles.grow]} />
-                <Pressable onPress={() => enter(code)} style={styles.pill} accessibilityRole="button"><Text style={styles.pillText}>{fa.tables.join}</Text></Pressable>
-              </View>
-              {note ? <Text style={styles.warn}>{note}</Text> : null}
-            </>
+            mode === 'menu' ? (
+              <>
+                <Text style={styles.hint}>{fa.tables.intro}</Text>
+                <Pressable onPress={() => setMode('join')} style={[styles.choice, { backgroundColor: colors.candy.sky }]} accessibilityRole="button">
+                  <View style={styles.choiceIcon}><Item icon="key" /></View>
+                  <View style={styles.grow}>
+                    <Text style={styles.choiceTitle}>{fa.tables.menuJoin}</Text>
+                    <Text style={styles.hint}>{fa.tables.menuJoinHint}</Text>
+                  </View>
+                </Pressable>
+                <Pressable onPress={() => setMode('make')} style={[styles.choice, { backgroundColor: colors.candy.lime }]} accessibilityRole="button">
+                  <View style={styles.choiceIcon}><Item icon="samovar" /></View>
+                  <View style={styles.grow}>
+                    <Text style={styles.choiceTitle}>{fa.tables.menuMake}</Text>
+                    <Text style={styles.hint}>{fa.tables.menuMakeHint}</Text>
+                  </View>
+                </Pressable>
+              </>
+            ) : mode === 'make' ? (
+              <>
+                <TextInput value={name} onChangeText={setName} maxLength={30} placeholder={fa.tables.namePlaceholder} style={styles.input} />
+                <Text style={styles.label}>{fa.tables.iconTitle}</Text>
+                <View style={styles.icons}>
+                  {TABLE_ICONS.map((k) => (
+                    <Pressable key={k} onPress={() => setIcon(k)} accessibilityRole="button" accessibilityState={{ selected: icon === k }} style={[styles.iconCell, icon === k ? styles.iconOn : null]}>
+                      <Item icon={k} />
+                    </Pressable>
+                  ))}
+                </View>
+                <Pressable onPress={() => setRequireReady(!requireReady)} accessibilityRole="checkbox" accessibilityState={{ checked: requireReady }}>
+                  <Text style={styles.hint}>{requireReady ? '☑' : '☐'} {fa.tables.requireReady}</Text>
+                </Pressable>
+                {note ? <Text style={styles.warn}>{note}</Text> : null}
+                <CandyButton label={fa.tables.create} color={colors.candy.lime} disabled={name.trim().length === 0} onPress={() => createTable({ name: name.trim(), icon: icon as (typeof TABLE_ICONS)[number], requireReady }).then((t) => (setNote(null), setTable(t)), (e) => setNote(errText(e)))} />
+                <CandyButton label={fa.tables.back} color={colors.candy.sky} onPress={() => (setNote(null), setMode('menu'))} />
+              </>
+            ) : (
+              <>
+                <View style={styles.row}>
+                  <TextInput value={code} onChangeText={setCode} autoCapitalize="characters" autoCorrect={false} maxLength={10} placeholder={fa.tables.codePlaceholder} style={[styles.input, styles.grow]} />
+                  <Pressable onPress={() => enter(code)} style={styles.pill} accessibilityRole="button"><Text style={styles.pillText}>{fa.tables.join}</Text></Pressable>
+                </View>
+                {note ? <Text style={styles.warn}>{note}</Text> : null}
+                <CandyButton label={fa.tables.back} color={colors.candy.sky} onPress={() => (setNote(null), setMode('menu'))} />
+              </>
+            )
           )}
         </ScrollView>
         <CandyButton label={fa.tables.close} color={colors.candy.sky} onPress={onClose} />
@@ -123,7 +159,14 @@ const styles = StyleSheet.create({
   warn: { fontFamily: fonts.bold, fontSize: 13, color: '#B3261E' },
   input: { fontFamily: fonts.bold, fontSize: 14, color: INK, borderWidth: 2, borderColor: INK, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: '#fff', textAlign: 'right' },
   grow: { flex: 1 },
-  emoji: { width: 56, textAlign: 'center' },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  titleIcon: { width: 34, height: 34 },
+  choice: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, borderRadius: 18, borderWidth: 3, borderColor: INK },
+  choiceIcon: { width: 44, height: 44 },
+  choiceTitle: { fontFamily: fonts.display, fontSize: 18, color: INK, textAlign: 'right' },
+  icons: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
+  iconCell: { width: 48, height: 48, padding: 5, borderRadius: 12, borderWidth: 2, borderColor: 'transparent', backgroundColor: '#fff' },
+  iconOn: { borderColor: INK, backgroundColor: colors.candy.yellow },
   pill: { borderWidth: 2, borderColor: INK, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: colors.candy.yellow },
   pillText: { fontFamily: fonts.bold, fontSize: 13, color: INK },
 });

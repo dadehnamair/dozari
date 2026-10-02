@@ -2,7 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SceneBackground } from '../components/SceneBackground';
 import { Character } from '../components/Character';
-import { DailyWheelPage } from '../daily/DailyWheelPage';
+import { DailyRewardCard } from '../components/DailyRewardCard';
+import { Toast } from '../components/Toast';
 import { ProfileSheet } from '../social/ProfileSheet';
 import { SettingsPage } from '../social/SettingsPage';
 import { LeaderboardPage } from '../social/LeaderboardPage';
@@ -143,7 +144,7 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
           <Pressable onPress={() => setHubOpen(true)} accessibilityRole="button" accessibilityLabel={fa.hub.open} style={styles.mapBtn}>
             <View style={styles.mapIcon}><Item icon="map" /></View>
           </Pressable>
-          {level !== null ? <StatPill color={colors.candy.grape} glyph="★" glyphColor="#FFE48A" value={toPersianDigits(String(level))} label={`${h.level} ${level}`} onPress={() => setProfileOpen(true)} /> : null}
+          {level !== null ? <StatPill color={colors.candy.grape} icon="rosette" value={toPersianDigits(String(level))} label={`${h.level} ${level}`} onPress={() => setProfileOpen(true)} /> : null}
         </View>
 
         <View style={styles.middle}>
@@ -173,7 +174,24 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
         </View>
       </View>
 
-      {dailyOpen ? <DailyWheelPage daily={daily} onClose={() => setDailyOpen(false)} /> : null}
+      {dailyOpen && daily.status ? (
+        <Pressable style={styles.overlay} onPress={() => setDailyOpen(false)} accessibilityLabel={fa.solo.back}>
+          <Pressable style={styles.sheet} onPress={() => undefined}>
+            <DailyRewardCard
+              steps={daily.status.steps}
+              day={daily.status.day}
+              canClaim={daily.status.canClaim && !daily.claiming}
+              onClaim={daily.claim}
+              waitText={daily.countdown ? `${daily.countdown} ${fa.daily.wait}` : undefined}
+            />
+            {daily.won !== null ? (
+              <View style={styles.won}>
+                <Toast text={`${toPersianDigits(String(daily.won))} ${fa.daily.won}`} tone={colors.candy.yellow} />
+              </View>
+            ) : null}
+          </Pressable>
+        </Pressable>
+      ) : null}
       {review.open && review.url ? <ReviewSheet message={review.message} url={review.url} onReview={review.onReview} onLater={review.onLater} onNever={review.onNever} /> : null}
       {profileOpen ? <ProfileSheet onClose={() => (setProfileOpen(false), loadMe())} onGender={setGender} /> : null}
       {hubOpen ? (
@@ -214,7 +232,7 @@ const styles = StyleSheet.create({
   greet: { flexDirection: RTL_ROW, alignItems: 'center', gap: 4, marginTop: 6, maxWidth: '100%' },
   hello: { flexShrink: 1, fontFamily: fonts.display, fontSize: 17, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
   bubble: {
-    marginTop: 2,
+    marginTop: 16,
     paddingHorizontal: 14,
     paddingVertical: 4,
     borderRadius: 99,

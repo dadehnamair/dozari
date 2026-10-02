@@ -329,3 +329,7 @@ Owner: Home is good as it is; the hub map complements it. Built as an extra page
 ## D113 — Deployment behind the host's existing reverse proxy (2026-10-02)
 
 The owner's server already runs many services on ports 80/443, so the stack no longer binds them: the web container serves plain HTTP on `127.0.0.1:${WEB_PORT:-8081}`, the game server on `127.0.0.1:3000`, and the host's proxy forwards `mrbots.ir` and `api.mrbots.ir` (websockets on) and owns https. Replaces the Caddy-with-certificates arrangement of D110; `deploy/nginx.example.conf` shows the forwards.
+
+## D114 — Owner polish batch 1 (2026-10-02)
+
+Owner notes, first slice: the wordmark's speech bubble moves down; Home's level pill uses the pack's `rosette` instead of a text star; the web build cannot be zoomed (viewport `user-scalable=no`, `touch-action`, iOS gesture and ctrl+wheel/keys blocked); the shop is named «بازار»; the daily reward is the streak card again (the wheel becomes a separate prize, next slice); tables show an item-pack icon instead of free emoji (`TABLE_ICONS`, contract field `icon`, chat card `CODE|icon|name`) and the Tables button opens a two-choice menu (join / create); messages get all / unread / read filters.

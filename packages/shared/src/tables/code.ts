@@ -4,6 +4,10 @@ export const TABLE_CODE_LENGTH = 5;
 /** A table that did not start within this many minutes is closed (admin setting `table.idle_minutes`). */
 export const TABLE_IDLE_MINUTES = 15;
 export const TABLE_NAME_MAX = 30;
+/** Table badges come from the item icon pack (never free emoji): keys of `ITEMS`. */
+export const TABLE_ICONS = ['samovar', 'teaGlass', 'dice', 'crown', 'trophy', 'pomegranate', 'watermelon', 'lantern', 'kite', 'marbles', 'cassette', 'radio', 'rug', 'balloons', 'fireworks', 'star'] as const;
+export type TableIcon = (typeof TABLE_ICONS)[number];
+export const DEFAULT_TABLE_ICON: TableIcon = 'samovar';
 /** Seats of a 1v1 table. */
 export const TABLE_SEATS = 2;
 
