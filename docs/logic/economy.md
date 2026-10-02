@@ -72,15 +72,19 @@ Settings (admin → economy): `duel.entry_fee` 20, `duel.house_cut_percent` 10, 
 - End: winner `match_payout` (pot − cut; a free-match win pays `free_payout_percent` of it; a bot win pays nothing); draw `match_refund` fee − cut for paid seats; loser `match_consolation` (capped per Tehran day, not for abandon/forfeit). Keys `<reason>:<matchId>:<userId>` → settling twice is a no-op.
 - Not built: difficulty-scaled fee (D51), team 2v2, private-table pots, abandon repeat cooldown.
 
-## Lucky wheel (D116, proposed)
+## Lucky wheel — built (D116)
 
-- The wheel is **only** a chance earned by winning: exactly one spin is granted when a match finishes
-  with the user on the winning side (2v2: each winning player). Loss, draw, abandon and bot-takeover
-  seats get none; no spin from daily login, app open, invites or purchases.
-- Spin is a server-side roll (injected seeded RNG); the client only animates the result. The spin
-  token is bound to the finished match id, so it can be claimed once and not banked or stacked.
-- Prize coins are credited through the single ledger fn with reason `wheel_spin`; prize table and
-  odds are config values in `config/economy.ts` (never literals).
+- The wheel is **only** a chance earned by winning: one spin per won **queue duel against a human**
+  (`earnsWheelSpin`, `packages/shared/src/economy/wheel.ts`). Loss, draw, abandon, forfeit, a bot opponent,
+  private tables and tournaments give none; nothing from daily login, app open, invites or purchases.
+- Granted by `DuelStakes.settle` → `WheelService.grantForWin` into table `wheel_spins` (unique per user + match, so a repeated settle
+  gives one). Unspun spins stack and are used oldest first.
+- The server rolls (`pickSlice`, crypto random) and pays through the ledger, reason `wheel_spin`, key `wheel_spin:<spinId>`.
+  The client only animates to the slice the server returns. API: `GET /wheel` (enabled, pending, slices, balance),
+  `POST /wheel/spin` (409 `NO_SPIN` when none waits).
+- Numbers: `WHEEL_SLICES_DEFAULT` in `config/economy.ts` (8 slices, expected ≈ 13 coins); admin settings `wheel.enabled`
+  and `wheel.prize_scale_percent`. Needs the economy simulation before launch (faucet next to the 20-coin entry fee).
+- App: after a win the result screen shows «گردونه!» once the server confirms a waiting spin (`apps/mobile/src/wheel`).
 
 ## Rules
 

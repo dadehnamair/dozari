@@ -3,7 +3,7 @@ import type { Socket } from 'socket.io-client';
 import { ClientEvent, ServerEvent, ackSchema, chatMessageSchema, matchEndedSchema, matchEventSchema, matchFoundSchema, matchViewSchema, queueStatusSchema } from '@dozari/shared';
 import type { Ack } from '@dozari/shared';
 import { session } from '../auth';
-import { BASE_URL } from '../net/http';
+import { BASE_URL, callJson } from '../net/http';
 import type { DuelAction } from './model';
 
 export interface DuelConnection {
@@ -27,7 +27,12 @@ const ask = (socket: Socket, event: string, payload?: unknown): Promise<Ack> =>
 
 /** Opens the live-match socket with the guest token and turns server events into reducer actions. */
 export async function connectDuel(dispatch: (a: DuelAction) => void): Promise<DuelConnection> {
-  const token = await session.token();
+  // A saved token the server no longer accepts (e.g. its signing secret changed) would fail the socket handshake as a plain
+  // "network" error; the HTTP path renews it on a 401, so check it that way first.
+  const token = await session.authed(async (t) => {
+    await callJson('/me', 'GET', undefined, t);
+    return t;
+  }).catch(() => session.token());
   const socket = io(BASE_URL, { auth: { token }, transports: ['websocket'], reconnection: true });
   let you: 0 | 1 = 0;
 

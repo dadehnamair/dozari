@@ -89,6 +89,7 @@ function Row({ node, index, onLocked }: { node: RoadNode; index: number; onLocke
           {node.state === 'done' ? <View style={styles.tick}><Icon name="check" size={13} color="#fff" strokeWidth={4} /></View> : null}
           {dim ? <View style={styles.lockBadge}><Item icon="lock" /></View> : null}
         </View>
+        {node.state === 'current' ? <Text style={styles.youTag}>{fa.levels.you}</Text> : null}
       </View>
       <View style={[styles.side, styles.sideEnd]}>{!cardOnStart ? <Cards node={node} dim={dim} onLocked={onLocked} /> : node.state === 'current' ? <Hero /> : null}</View>
     </View>
@@ -108,6 +109,7 @@ function Cards({ node, dim, onLocked }: { node: RoadNode; dim: boolean; onLocked
   if (node.unlocks.length === 0) return null;
   return (
     <View style={styles.cards}>
+      {node.unlocks.length > 2 ? <Text style={styles.more}>{`+${n(node.unlocks.length - 2)}`}</Text> : null}
       {node.unlocks.slice(0, 2).map((u, i) => {
         const v = view(u);
         return (
@@ -194,6 +196,8 @@ const styles = StyleSheet.create({
   tick: { position: 'absolute', top: -8, left: -8, width: 24, height: 24, borderRadius: 12, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#7ED957', alignItems: 'center', justifyContent: 'center' },
   lockBadge: { position: 'absolute', top: -10, left: -10, width: 26, height: 26 },
   hero: { width: 60, height: 70 },
+  youTag: { position: 'absolute', bottom: 2, fontFamily: fonts.display, fontSize: 12, color: colors.ink, backgroundColor: colors.candy.yellow, borderWidth: 2, borderColor: colors.ink, borderRadius: 8, paddingHorizontal: 6, overflow: 'hidden' },
+  more: { fontFamily: fonts.display, fontSize: 12, color: colors.cream, textAlign: 'center' },
   cards: { gap: 4, maxWidth: 170 },
   card: { flexDirection: ROW, alignItems: 'center', gap: 6, paddingVertical: 4, paddingHorizontal: 5, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#FBF1DE', ...lift(4) },
   cardDim: { backgroundColor: '#D7C9EC', opacity: 0.92 },

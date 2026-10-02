@@ -4,7 +4,7 @@ import fastifyCors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
 import { resolve } from 'node:path';
 import { rialsToTomanString } from '@dozari/shared';
-import { CHAT_RETENTION_DAYS, TOURNAMENT_TICK_SECONDS } from '@dozari/shared';
+import { CHAT_RETENTION_DAYS, TOURNAMENT_TICK_SECONDS, WHEEL_SLICES_DEFAULT, scaleSlices } from '@dozari/shared';
 import type { HintRules } from '@dozari/shared';
 import { createDb } from '@dozari/db';
 import { createDbCatalogRepository } from './catalog/db-repository.js';
@@ -99,6 +99,9 @@ import { createDbShopStore } from './economy/shop-store.js';
 import { HintService } from './solo/hints.js';
 import { PlayLimiter, createDbPlayCountStore } from './limits/play-limits.js';
 import { DuelStakes } from './duel/stakes.js';
+import { registerWheelRoutes } from './wheel/routes.js';
+import { WheelService } from './wheel/service.js';
+import { createDbWheelStore } from './wheel/store.js';
 import { createDbStakeStore } from './duel/stakes-store.js';
 import { TableService } from './tables/service.js';
 import { registerTableRoutes } from './tables/routes.js';
@@ -117,6 +120,8 @@ export interface ServerDeps {
   auth?: AuthService;
   /** Daily reward (`/daily-reward`, and the admin editor); needs `auth` for the player routes. */
   dailyReward?: DailyRewardService;
+  /** Lucky wheel: a spin earned by winning a duel. */
+  wheel?: WheelService;
   /** Socket.io service (queue, matches); needs `auth`. Its live stats feed the admin panel. */
   realtime?: boolean;
   /** Bale messenger integration: link codes for players, the bot's name for the app. */
@@ -216,6 +221,7 @@ export function buildServer(deps: ServerDeps = {}) {
   }
   if (deps.auth) registerAuthRoutes(app, deps.auth);
   if (deps.auth && deps.dailyReward) registerDailyRewardRoutes(app, deps.auth, deps.dailyReward);
+  if (deps.auth && deps.wheel) registerWheelRoutes(app, deps.auth, deps.wheel);
   if (deps.auth && deps.social) registerSocialRoutes(app, deps.auth, deps.social);
   if (deps.auth && deps.invite) registerInviteRoutes(app, deps.auth, deps.invite);
   if (deps.auth && deps.transfers) registerTransferRoutes(app, deps.auth, deps.transfers);
@@ -409,6 +415,13 @@ if (isMainModule(import.meta.url)) {
           notify: (id, text) => void notify?.notify(id, 'admin', text).catch(() => undefined),
         })
       : undefined;
+  const wheel =
+    db && settings
+      ? new WheelService(createDbWheelStore(db), async () => ({
+          enabled: (await settings.num('wheel.enabled')) === 1,
+          slices: scaleSlices(WHEEL_SLICES_DEFAULT, await settings.num('wheel.prize_scale_percent')),
+        }), () => randomInt(0, 2 ** 32) / 2 ** 32)
+      : undefined;
   const duelStakes =
     db && settings
       ? new DuelStakes(createDbStakeStore(db), {
@@ -422,6 +435,7 @@ if (isMainModule(import.meta.url)) {
             rescueTarget: await settings.num('duel.rescue_target'),
           }),
           isBot: (id) => botDriver?.isBot(id) ?? false,
+          onWin: (matchId, userId) => wheel?.grantForWin(userId, matchId).catch((e) => console.error('[wheel] grant failed', matchId, e)) ?? Promise.resolve(),
         })
       : undefined;
   const tableService =
@@ -512,6 +526,7 @@ if (isMainModule(import.meta.url)) {
     social,
     invite,
     transfers,
+    wheel,
     dailyReward: db && settings ? new DailyRewardService(createDbDailyRewardStore(db), Date.now, () => dailyRules(settings)) : undefined,
     catalog: db ? createDbCatalogRepository(db) : undefined,
     solo,

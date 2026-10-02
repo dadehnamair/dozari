@@ -139,7 +139,7 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
     <SceneBackground scene="bazaar">
       <View style={styles.root}>
         <View style={styles.pills}>
-          {daily.status ? <StatPill color={colors.candy.yellow} glyph="۲" glyphColor="#7A4A00" value={fmt(daily.status.balance)} label={`${daily.status.balance} ${h.coins}`} /> : null}
+          {daily.status ? <StatPill color={colors.candy.yellow} icon="coin" value={fmt(daily.status.balance)} label={`${daily.status.balance} ${h.coins}`} /> : null}
           {dailyPuzzle && dailyPuzzle.state !== 'unavailable' ? <StatPill color={colors.candy.pink} glyph="🔥" value={`${toPersianDigits(String(dailyPuzzle.streak))} ${h.streak}`} label={`${dailyPuzzle.streak} ${h.streak}`} /> : null}
           <Pressable onPress={() => setHubOpen(true)} accessibilityRole="button" accessibilityLabel={fa.hub.open} style={styles.mapBtn}>
             <View style={styles.mapIcon}><Item icon="map" /></View>

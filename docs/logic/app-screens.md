@@ -99,16 +99,12 @@ with «ورود» (a green slab) and a close square. Team play and propose-and-v
 buildings are drawn and open the card with a disabled «به‌زودی». A mode the admin switched off is
 disabled the same way. Home stays the main screen; the hub is the second way in.
 
-## Daily wheel (D111)
+## Lucky wheel (D116)
 
-screen-daily of `19 Social Daily Onboarding` (Home tile «جایزه»): a yellow title plate, the seven-day
-streak strip (done green, today yellow, ahead dim, each with its coins), a lamp-rimmed wheel of eight
-slices with a pink pointer, a status line (ready / spinning / countdown to the next spin) and the big
-«بچرخون!» button; the prize card («N سکه», «فردا هم بیا، جایزه بزرگ‌تره») ends it. **The coins are the
-server's streak ladder** (`GET /daily-reward`, claim = one ledger row): slice 0 always holds today's
-amount, the next slices the following days, and the wheel always lands on slice 0 — it is the ceremony,
-never a second source of coins. Faces are frozen during a spin because the claim advances the streak.
-A random wheel would be a new economy rule; it stays an open choice for the owner.
+The wheel look of D111 (lamp rim, pink pointer, big «بچرخون!») is now the **post-win** wheel, not a daily reward — the daily reward
+is the streak card. Opened from the duel result screen («گردونه!» with the count of waiting spins, only after a win). Slices come
+from `GET /wheel`; the spin button calls `POST /wheel/spin` and the wheel turns to stop on the slice the server picked, then a prize
+card shows the coins. Spec of the rules: `docs/logic/economy.md` §Lucky wheel.
 
 ## Level road and locked popup (D109)
 
