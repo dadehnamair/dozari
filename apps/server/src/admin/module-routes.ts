@@ -440,15 +440,15 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     const chat = m.chat;
     g.get('/admin/taunts', async () => ({ categories: await chat.taunts({ includeHidden: true }) }));
     g.post('/admin/taunt-categories', async (req, reply) => {
-      const b = z.object({ nameFa: z.string().trim().min(2).max(40) }).safeParse(req.body);
+      const b = z.object({ nameFa: z.string().trim().min(2).max(40), cityId: z.string().uuid().nullable().optional() }).safeParse(req.body);
       if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
-      const c = await chat.addCategory(b.data.nameFa);
+      const c = await chat.addCategory(b.data.nameFa, b.data.cityId ?? null);
       void audit('taunt_category.add', c.id, b.data.nameFa);
       return reply.code(201).send({ id: c.id });
     });
     g.patch('/admin/taunt-categories/:id', async (req, reply) => {
       const p = idParam.safeParse(req.params);
-      const b = z.object({ nameFa: z.string().trim().min(2).max(40).optional(), isActive: z.boolean().optional(), sortOrder: z.number().int().min(0).max(1000).optional() }).safeParse(req.body);
+      const b = z.object({ nameFa: z.string().trim().min(2).max(40).optional(), isActive: z.boolean().optional(), sortOrder: z.number().int().min(0).max(1000).optional(), cityId: z.string().uuid().nullable().optional() }).safeParse(req.body);
       if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
       if ((await chat.updateCategory(p.data.id, b.data)) === 'not_found') return reply.code(404).send({ error: 'category_not_found' });
       void audit('taunt_category.update', p.data.id, JSON.stringify(b.data));

@@ -72,3 +72,8 @@ are listed in `docs/brand.md`.
 - **Live push:** sockets that sent `chat:join` receive `chat:message` for their city; the app polls every 4 s until it has a socket client.
 - **Retention:** 30 days, purged every 6 hours.
 - Not built: per-player mute lists, moderator-visible message context, a muting UI for agents in the app, text chat in private tables.
+
+
+## City dialect phrases (owner item 9, D88)
+
+A canned-taunt category may be tied to a city (`taunt_categories.city_id`, null = everyone). `GET /chat/taunts` returns general categories plus the caller's own city's; sending a taunt of another city's category is refused (`UNKNOWN_TAUNT`). Admin sets the city per category in «کل‌کل‌های آماده». Phrases themselves are content the owner writes there.

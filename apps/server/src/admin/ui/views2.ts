@@ -530,6 +530,12 @@ VIEWS.badges = function (root) {
 };
 VIEWS.taunts = function (root) {
   var list = h('div');
+  var cities = [];
+  function citySel(cur) {
+    var sel = h('select', {}, [h('option', { value: '', text: 'همه‌ی شهرها' })].concat(cities.map(function (ct) { return h('option', { value: ct.id, text: 'فقط ' + ct.nameFa }); })));
+    sel.value = cur || '';
+    return sel;
+  }
   function draw() {
     api('/admin/taunts').then(function (r) {
       clear(list);
@@ -545,8 +551,10 @@ VIEWS.taunts = function (root) {
             h('button', { class: 'btn sm', text: t.isActive ? 'پنهان' : 'نمایش', onclick: function () { api('/admin/taunts/' + t.id, { method: 'PATCH', body: { isActive: !t.isActive } }).then(function (x) { if (!x.ok) return fail(x); draw(); }); } })]));
         });
         body.appendChild(h('div', { style: 'display:flex;gap:6px' }, [text, h('button', { class: 'btn primary sm', text: 'افزودن', onclick: function () { api('/admin/taunts', { method: 'POST', body: { categoryId: c.id, text: text.value.trim() } }).then(function (x) { if (!x.ok) return fail(x); draw(); }); } })]));
+        var where = citySel(c.cityId);
+        where.onchange = function () { api('/admin/taunt-categories/' + c.id, { method: 'PATCH', body: { cityId: where.value || null } }).then(function (x) { if (!x.ok) return fail(x); toast('ذخیره شد'); }); };
         list.appendChild(h('div', { class: 'card', style: 'padding:12px' }, [
-          h('div', { style: 'display:flex;gap:8px;align-items:center' }, [name, c.isActive ? null : badge('پنهان', 'b-warn'),
+          h('div', { style: 'display:flex;gap:8px;align-items:center' }, [name, where, c.isActive ? null : badge('پنهان', 'b-warn'),
             h('button', { class: 'btn sm', text: 'تغییر نام', onclick: function () { api('/admin/taunt-categories/' + c.id, { method: 'PATCH', body: { nameFa: name.value.trim() } }).then(function (x) { if (!x.ok) return fail(x); toast('ذخیره شد'); draw(); }); } }),
             h('button', { class: 'btn sm', text: c.isActive ? 'پنهان‌کردن دسته' : 'نمایش دسته', onclick: function () { api('/admin/taunt-categories/' + c.id, { method: 'PATCH', body: { isActive: !c.isActive } }).then(function (x) { if (!x.ok) return fail(x); draw(); }); } })]),
           body]));
@@ -554,9 +562,13 @@ VIEWS.taunts = function (root) {
     });
   }
   var cat = h('input', { type: 'text', placeholder: 'نام دسته‌ی تازه', maxlength: 40 });
-  root.appendChild(card('کل‌کل‌های آماده', 'بازیکن‌ها در چت و در دوئل فقط از این فهرست کل‌کل می‌فرستند (بدون نیاز به کد معرف). لحن را شوخ نگه دار و توهین نکن.', [list]));
-  root.appendChild(card('دسته‌ی تازه', null, [h('div', { class: 'toolbar' }, [cat, h('button', { class: 'btn primary', text: 'افزودن', onclick: function () { api('/admin/taunt-categories', { method: 'POST', body: { nameFa: cat.value.trim() } }).then(function (x) { if (!x.ok) return fail(x); cat.value = ''; draw(); }); } })])]));
-  draw();
+  var newWhere = citySel('');
+  root.appendChild(card('کل‌کل‌های آماده', 'بازیکن‌ها در چت و در دوئل فقط از این فهرست کل‌کل می‌فرستند (بدون نیاز به کد معرف). لحن را شوخ نگه دار و توهین نکن. دسته‌ی مخصوص یک شهر (لهجه و اصطلاح محلی) فقط به بازیکن‌های همان شهر نشان داده می‌شود.', [list]));
+  root.appendChild(card('دسته‌ی تازه', null, [h('div', { class: 'toolbar' }, [cat, newWhere, h('button', { class: 'btn primary', text: 'افزودن', onclick: function () { api('/admin/taunt-categories', { method: 'POST', body: { nameFa: cat.value.trim(), cityId: newWhere.value || null } }).then(function (x) { if (!x.ok) return fail(x); cat.value = ''; draw(); }); } })])]));
+  api('/admin/cities').then(function (r) {
+    if (r.ok) { cities = r.body.cities; var cur = newWhere.value; var fresh = citySel(cur); newWhere.innerHTML = fresh.innerHTML; newWhere.value = cur; }
+    draw();
+  });
 };
 VIEWS.chatreports = function (root) {
   var list = h('div');

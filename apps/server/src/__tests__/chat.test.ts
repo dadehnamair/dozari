@@ -93,6 +93,23 @@ describe('chat', () => {
     expect(t.categories.every((c) => c.taunts.length > 0)).toBe(true);
   });
 
+  it('a dialect category is offered and accepted only for players of its city', async () => {
+    const { app, login, inCity, store, players } = await boot({ needsActivation: false });
+    const a = await login(1);
+    const b = await login(2);
+    await inCity(a, 0);
+    await inCity(b, 1);
+    const cityA = (await players.cities())[0]!.id;
+    const cat = await store.addCategory('لهجه‌ی محلی', cityA);
+    const t = (await store.addTaunt(cat.id, 'دمت گرم داداش')) as { id: string };
+    const names = async (u: typeof a) => tauntsSchema.parse((await app.inject({ method: 'GET', url: '/chat/taunts', headers: u.h })).json()).categories.map((c) => c.nameFa);
+    expect(await names(a)).toContain('لهجه‌ی محلی');
+    expect(await names(b)).not.toContain('لهجه‌ی محلی');
+    const send = (u: typeof a) => app.inject({ method: 'POST', url: '/chat/city', headers: u.h, payload: { kind: 'taunt', tauntId: t.id } });
+    expect((await send(a)).statusCode).toBe(200);
+    expect((await send(b)).json()).toEqual({ error: 'UNKNOWN_TAUNT' });
+  });
+
   it('needs a city; the city room shows only that city\'s messages', async () => {
     const { app, login, inCity, send } = await boot({ needsActivation: false });
     const a = await login(1);

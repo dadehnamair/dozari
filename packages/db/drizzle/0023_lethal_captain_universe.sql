@@ -1,0 +1,2 @@
+ALTER TABLE `taunt_categories` ADD `city_id` char(36);--> statement-breakpoint
+ALTER TABLE `taunt_categories` ADD CONSTRAINT `taunt_categories_city_id_cities_id_fk` FOREIGN KEY (`city_id`) REFERENCES `cities`(`id`) ON DELETE set null ON UPDATE no action;

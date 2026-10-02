@@ -849,6 +849,8 @@ export const modActions = mysqlTable(
 export const tauntCategories = mysqlTable('taunt_categories', {
   id: id(),
   nameFa: varchar('name_fa', { length: 40 }).notNull(),
+  /** Set = a dialect/local category shown only to players of that city (owner item 9); null = everyone. */
+  cityId: char('city_id', { length: 36 }).references(() => cities.id, { onDelete: 'set null' }),
   sortOrder: int('sort_order').notNull().default(0),
   isActive: boolean('is_active').notNull().default(true),
 });
