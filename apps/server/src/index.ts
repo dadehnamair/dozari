@@ -106,6 +106,8 @@ import { createDbCoinPackageStore } from './economy/coin-packages-store.js';
 import { registerShopRoutes } from './economy/shop-routes.js';
 import { LevelRoadService, registerRoadRoutes } from './progress/road.js';
 import { createDbRewardStore } from './progress/rewards-store.js';
+import { ProfileTaskService, registerProfileTaskRoutes } from './profile/tasks.js';
+import { createDbProfileTaskStore } from './profile/tasks-store.js';
 import { ShopService } from './economy/shop.js';
 import { createDbShopStore } from './economy/shop-store.js';
 import { HintService } from './solo/hints.js';
@@ -190,6 +192,7 @@ export interface ServerDeps {
   shop?: ShopService;
   /** Level road (`/me/levels`, D109); needs `auth`. */
   levelRoad?: LevelRoadService;
+  profileTasks?: ProfileTaskService;
   /** Coin packages bought with real money (`/coin-packages`, off by default); needs `auth`. */
   coinPackages?: CoinPackageService;
   /** Allowed browser origins (e.g. Expo web dev). `*` allows any. Off when unset: native apps don't need CORS. */
@@ -285,6 +288,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.solo) registerSoloRoutes(app, deps.solo, deps.auth, deps.hints, deps.limiter);
   if (deps.auth && deps.shop) registerShopRoutes(app, deps.auth, deps.shop);
   if (deps.auth && deps.levelRoad) registerRoadRoutes(app, deps.auth, deps.levelRoad);
+  if (deps.auth && deps.profileTasks) registerProfileTaskRoutes(app, deps.auth, deps.profileTasks);
   if (deps.auth && deps.coinPackages) registerCoinPackageRoutes(app, deps.auth, deps.coinPackages, deps.notify ? { send: (id, inv) => deps.notify!.sendInvoice(id, inv) } : undefined);
   let gateway: Gateway | undefined;
   if (deps.auth && deps.realtime) {
@@ -594,6 +598,16 @@ if (isMainModule(import.meta.url)) {
             rewardRules: async () => ({ every: await settings.num('levelreward.every'), base: await settings.num('levelreward.base_coins') }),
             claimedLevels: (id) => (db ? createDbRewardStore(db).claimedLevels(id) : Promise.resolve([])),
             payRewards: (id, rewards) => (db ? createDbRewardStore(db).payRewards(id, rewards) : Promise.resolve({ paid: [], balance: 0 })),
+          })
+        : undefined,
+    profileTasks:
+      db && settings
+        ? new ProfileTaskService({
+            ...createDbProfileTaskStore(db),
+            coins: async () => {
+              const [gender, city, phone, bale] = await Promise.all(['gender', 'city', 'phone', 'bale'].map((k) => settings.num(`profiletask.coins_${k}`)));
+              return { gender: gender ?? 0, city: city ?? 0, phone: phone ?? 0, bale: bale ?? 0 };
+            },
           })
         : undefined,
     coinPackages: coinPackageService,

@@ -10,6 +10,9 @@ import { LeaderboardPage } from '../social/LeaderboardPage';
 import { CityHub } from '../hub/CityHub';
 import { Item } from '../components/Item';
 import { fetchMyProfile } from '../social/api';
+import { claimProfileTask, fetchProfileTasks } from '../social/profileTasksApi';
+import { profileNudge } from './profileNudge';
+import type { ProfileTask } from '@dozari/shared';
 import { heroFor } from '../social/heroFor';
 import type { Gender } from '@dozari/shared';
 import { ReviewSheet } from '../review/ReviewSheet';
@@ -113,9 +116,27 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
     fetchMyProfile().then((p) => (setGender(p.gender), setLevel(p.level.level), setProvince(provinceOf(p.city?.province))), () => undefined);
   }, []);
   useEffect(loadMe, [loadMe]);
+  const [profileTasks, setProfileTasks] = useState<ProfileTask[]>([]);
+  const [nudgeToast, setNudgeToast] = useState<string | null>(null);
+  const loadTasks = useCallback(() => void fetchProfileTasks().then((r) => setProfileTasks(r.tasks), () => undefined), []);
+  useEffect(loadTasks, [loadTasks]);
   useEffect(() => {
     if (features.daily) fetchDailyStatus().then(setDailyPuzzle, () => undefined);
   }, [features.daily]);
+  const nudge = profileNudge(profileTasks, (k) => (k === 'bale' ? features.bale : k === 'phone' ? features.friends : true));
+  const onNudge = () => {
+    if (!nudge) return;
+    if (nudge.action === 'claim') {
+      void claimProfileTask(nudge.task.key).then((r) => (setNudgeToast(fa.home.profileNudge.got(fmt(r.coins))), loadTasks()), () => loadTasks());
+    } else if (nudge.action === 'profile') setProfileOpen(true);
+    else if (nudge.action === 'settings') setSettingsOpen(true);
+    else setBaleOpen(true);
+  };
+  useEffect(() => {
+    if (!nudgeToast) return;
+    const timer = setTimeout(() => setNudgeToast(null), 3000);
+    return () => clearTimeout(timer);
+  }, [nudgeToast]);
   const inbox = useInbox();
   const review = useReviewPrompt(settings);
   const prefs = usePrefs();
@@ -207,7 +228,13 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
               </Pressable>
             ) : null}
             <View style={styles.spacer} />
-            {tip !== null && tips[tip] ? <GuideBubble who={heroFor(gender)} text={tips[tip].text} /> : null}
+            {tip !== null && tips[tip] ? (
+              <GuideBubble who={heroFor(gender)} text={tips[tip].text} />
+            ) : nudgeToast ? (
+              <GuideBubble who={heroFor(gender)} text={nudgeToast} />
+            ) : nudge ? (
+              <GuideBubble who={heroFor(gender)} text={fa.home.profileNudge[nudge.action === 'claim' ? 'claim' : nudge.task.key](fmt(nudge.task.coins))} onPress={onNudge} />
+            ) : null}
             <Pressable onPress={() => (setTip((cur) => nextTip(cur, tips.length)), hop())} accessibilityRole="button" accessibilityLabel={fa.home.guide.name}>
               <Animated.View style={[styles.hero, compact ? styles.heroCompact : null, { transform: [{ translateY: Animated.add(float, jump.interpolate({ inputRange: [0, 1], outputRange: [0, -30] })) }, { scaleX: squash.interpolate({ inputRange: [0, 1], outputRange: [1, 1.1] }) }, { scaleY: squash.interpolate({ inputRange: [0, 1], outputRange: [1, 0.86] }) }] }]}>
                 <Character who={heroFor(gender)} pose="wave" month={month} />
@@ -243,7 +270,7 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
         </Pressable>
       ) : null}
       {review.open && review.url ? <ReviewSheet message={review.message} url={review.url} onReview={review.onReview} onLater={review.onLater} onNever={review.onNever} /> : null}
-      {profileOpen ? <ProfileSheet onClose={() => (setProfileOpen(false), loadMe())} onGender={setGender} /> : null}
+      {profileOpen ? <ProfileSheet onClose={() => (setProfileOpen(false), loadMe(), loadTasks())} onGender={setGender} /> : null}
       {hubOpen ? (
         <CityHub
           onClose={() => setHubOpen(false)}
@@ -259,7 +286,7 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
         />
       ) : null}
       {boardOpen ? <LeaderboardPage onClose={() => setBoardOpen(false)} /> : null}
-      {settingsOpen ? <SettingsPage onClose={() => setSettingsOpen(false)} onProfile={() => (setSettingsOpen(false), setProfileOpen(true))} onTutorial={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} onAccountGone={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} /> : null}
+      {settingsOpen ? <SettingsPage onClose={() => (setSettingsOpen(false), loadTasks())} onProfile={() => (setSettingsOpen(false), setProfileOpen(true))} onTutorial={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} onAccountGone={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} /> : null}
       {ledgerOpen ? <LedgerSheet onClose={() => setLedgerOpen(false)} /> : null}
       {inboxOpen ? <InboxSheet inbox={inbox.inbox} failed={inbox.failed} onRead={inbox.markRead} onReadAll={inbox.markAll} onClose={() => setInboxOpen(false)} /> : null}
       {tableOpen ? <TableSheet initialCode={tableCode} onMatch={onDuelResume ? () => (setTableOpen(false), onDuelResume()) : undefined} onClose={() => (setTableOpen(false), setTableCode(undefined))} onShare={() => shareTable()} /> : null}
@@ -267,7 +294,7 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
       {chatOpen ? <ChatSheet onClose={() => setChatOpen(false)} onJoinTable={(code) => (setChatOpen(false), setTableCode(code), setTableOpen(true))} /> : null}
       {shopOpen ? <ShopSheet onClose={() => { setShopOpen(false); daily.reload(); }} /> : null}
       {wheelOpen ? <WheelPage onClose={() => (setWheelOpen(false), loadSpins(), daily.reload())} /> : null}
-      {baleOpen ? <BaleSheet onClose={() => setBaleOpen(false)} /> : null}
+      {baleOpen ? <BaleSheet onClose={() => (setBaleOpen(false), loadTasks())} /> : null}
     </SceneBackground>
   );
 }
