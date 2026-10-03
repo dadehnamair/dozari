@@ -229,7 +229,7 @@ Start after the first Android build.
 - [ ] 3. «تکمیل پروفایل» nudge / guide says «برو این کار را بکن، سکه بگیر»
 - [ ] 4. Missions (profile, social follow, store reviews, invite …) paying coins
 - [ ] 5. Shorter opponent search; bots fill the seat sooner
-- [ ] 6. Options greyed out when it is not my turn, coloured on my turn
+- [x] 6. Options greyed out when it is not my turn, coloured on my turn
 - [ ] 7. Phone-only gate: on desktop show Dozari + QR «با گوشی بیا»; Android → downloads, iPhone → PWA install
 - [ ] 8. Landing site `mrdozari.ir` (`apps/landing`, own container, admin-managed content, game story with the cast, blog, full SEO/GEO — owner's spreadsheet adapted from Laravel)
 - [ ] 9. Short domain `2oi.ir`: self-hosted shortener for outgoing links; all domains editable in the admin panel
