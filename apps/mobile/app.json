@@ -15,7 +15,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundImage": "./assets/adaptive-background.png",
         "monochromeImage": "./assets/adaptive-monochrome.png"
-      }
+      },
+      "versionCode": 1
     },
     "icon": "./assets/icon.png",
     "web": {

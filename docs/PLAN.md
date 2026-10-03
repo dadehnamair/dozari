@@ -219,3 +219,15 @@ human opponent is found.
 - [x] D. Chat and moderation — city chat, canned taunt categories, duel taunts, reports (D84) with agent powers (D83); [ ] private-table chat and shared tables (items 16, 17, 18, 21, 23) — rest of D: chat, shared tables, city room, canned taunt categories, "Agent Dozari" powers (items 16, 17, 18, 21, 23)
 - [x] E. Content control — [x] daily puzzle by day conditions/trends (item 15; D87); [x] tournament entry rules (coins + level), builder, own page, bracket engine (items 26, 27; D85); [x] admin bot players: accounts, queue fill, human-like play, taunt replies, tournament fill (item 25; D86); [ ] trend-based daily puzzle (15)
 - [ ] F. Feel: [x] city dialect phrases (item 9; D88); [x] personal settings + web sound effects (items 10, 12; D89; native sound pending); dialects, sounds, city backgrounds, personal settings, touch-everything polish (items 9, 10, 11, 12, 13)
+
+## Owner backlog 2026-10-03 (6 items) — see `docs/logic/owner-backlog-2026-10-03.md`
+
+Start after the first Android build.
+
+- [ ] 1. Wheel pays every prize kind (coins, gems, clothing, hats …); no free spins until the policy is set, then spins behave like lives (D156)
+- [ ] 2. Board cards: names and icons fit (fixed layout policy, auto-shrink floor, short names)
+- [ ] 3. «تکمیل پروفایل» nudge / guide says «برو این کار را بکن، سکه بگیر»
+- [ ] 4. Missions (profile, social follow, store reviews, invite …) paying coins
+- [ ] 5. Shorter opponent search; bots fill the seat sooner
+- [ ] 6. Options greyed out when it is not my turn, coloured on my turn
+

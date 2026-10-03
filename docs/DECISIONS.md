@@ -416,3 +416,10 @@ Owner: the wheel should always be reachable, with a spin item, hidden steps, tou
 ## D155 — Failure cards (2026-10-03)
 
 Owner: the friendly error card from the design should show when the server cannot be reached. `ErrorCard` (design 10) now covers the live duel and the solo screen; other screens keep their line for now (open item in `GAPS.md`).
+
+## D156 — Owner backlog of 2026-10-03 and the wheel's spin policy (2026-10-03, proposed)
+
+Owner listed six follow-ups to start after the first Android build (`docs/logic/owner-backlog-2026-10-03.md`, `PLAN.md`). One is a policy: the wheel
+should be able to pay every prize kind (gems, clothing, hats …), and **no one gets free spins for now**; later spins behave like lives (a small refilling
+stock) while prizes stay valuable. Until the owner confirms, nothing changes in code; the proposed first step is `wheel.daily_spins` = 0 when item 1 is built.
+
