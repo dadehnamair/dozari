@@ -631,6 +631,13 @@ if (isMainModule(import.meta.url)) {
     const runner = startNotifyRunner({ service: notify, client: baleClient, settings, log: (msg, err) => (err ? app.log.error({ err }, msg) : app.log.info(msg)) });
     app.addHook('onClose', async () => runner.stop());
   }
+  // The default shop items, badges, taunts and cities are created on first read; read them once now so a fresh database is complete at boot.
+  if (db) {
+    void Promise.all([shopStore?.items({ includeHidden: true }), badgeStore?.catalog({ includeHidden: true }), chatStore?.taunts({ includeHidden: true }), playerStore?.cities()]).then(
+      ([shop, badgeRows, taunts, cities]) => app.log.info(`defaults ready: ${shop?.length ?? 0} shop items, ${badgeRows?.length ?? 0} badges, ${taunts?.length ?? 0} taunt categories, ${cities?.length ?? 0} cities`),
+      (err) => app.log.warn({ err }, 'could not prepare default content'),
+    );
+  }
   const port = Number(process.env.PORT ?? 3000);
   app.listen({ port, host: '0.0.0.0' }).catch((err) => {
     app.log.error(err);

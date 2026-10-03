@@ -78,7 +78,7 @@ const lift = { shadowColor: colors.ink, shadowOffset: { width: 0, height: 4 }, s
 const styles = StyleSheet.create({
   offline: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 60, paddingVertical: 5, paddingHorizontal: 12, backgroundColor: colors.candy.pink, borderBottomWidth: 3, borderColor: colors.ink },
   offlineText: { fontFamily: fonts.bold, fontSize: 12, color: '#fff', textAlign: 'center', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 1 },
-  bar: { position: 'absolute', left: 12, right: 12, bottom: 96, zIndex: 40, maxWidth: 496, alignSelf: 'center', flexDirection: ROW, alignItems: 'center', gap: 8, padding: 10, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#FBF1DE', ...lift },
+  bar: { position: 'absolute', left: 12, right: 12, bottom: 128, zIndex: 40, maxWidth: 496, alignSelf: 'center', flexDirection: ROW, alignItems: 'center', gap: 8, padding: 10, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#FBF1DE', ...lift },
   updateBar: { backgroundColor: '#FFE48A' },
   barText: { flex: 1, fontFamily: fonts.bold, fontSize: 13, color: colors.ink, textAlign: 'right' },
   icon: { width: 40, height: 40 },
