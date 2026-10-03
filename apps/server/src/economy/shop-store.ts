@@ -1,6 +1,7 @@
-import { and, asc, eq, gte, shopItems, shopPurchases, sql, userBalances, userInventory, wheelSpins } from '@dozari/db';
+import { and, asc, eq, gte, shopItems, shopPurchases, sql, userBalances, userGems, userInventory, wheelSpins } from '@dozari/db';
 import type { Db } from '@dozari/db';
 import { uuidv7 } from 'uuidv7';
+import { applyGemEntry } from './gems.js';
 import { applyLedgerEntry } from './ledger.js';
 
 export type ShopEffect = 'hint_token' | 'wheel_spin';
@@ -11,7 +12,10 @@ export interface ShopItemRow {
   descriptionFa: string;
   effect: ShopEffect;
   amount: number;
+  /** Which currency pays for it; the matching price below is the one that counts. */
+  currency: 'coins' | 'gems';
   priceCoins: number;
+  priceGems: number;
   minLevel: number;
   perDayLimit: number;
   iconKey: string | null;
@@ -21,7 +25,7 @@ export interface ShopItemRow {
 
 export type NewShopItem = Omit<ShopItemRow, 'id' | 'sortOrder'>;
 
-export type PurchaseOutcome = { ok: true; balance: number; tokens: number } | { ok: false; error: 'insufficient' | 'daily_limit' | 'unavailable' };
+export type PurchaseOutcome = { ok: true; balance: number; gems: number; tokens: number } | { ok: false; error: 'insufficient' | 'daily_limit' | 'unavailable' };
 export type SpendOutcome = { ok: true; paidWith: 'coins' | 'token'; balance: number; tokens: number } | { ok: false; error: 'insufficient' };
 
 /** I/O boundary of the coin shop and the hint payment. Every coin movement goes through the ledger inside one transaction. */
@@ -30,7 +34,7 @@ export interface ShopStore {
   item(id: string): Promise<ShopItemRow | null>;
   addItem(item: NewShopItem): Promise<ShopItemRow>;
   updateItem(id: string, patch: Partial<NewShopItem> & { sortOrder?: number }): Promise<'ok' | 'not_found'>;
-  wallet(userId: string): Promise<{ balance: number; tokens: number }>;
+  wallet(userId: string): Promise<{ balance: number; gems: number; tokens: number }>;
   /** Purchases of one item by this player since `sinceMs`. */
   boughtSince(userId: string, itemId: string, sinceMs: number): Promise<number>;
   /** Buys one item: checks balance and the daily limit, debits coins (`shop_purchase`) and grants the effect, all or nothing. */
@@ -40,15 +44,15 @@ export interface ShopStore {
 }
 
 export const DEFAULT_SHOP_ITEMS: readonly NewShopItem[] = [
-  { titleFa: 'یک راهنما', descriptionFa: 'یک بار راهنما گرفتن در بازی تکی، بدون پرداخت سکه در همان لحظه.', effect: 'hint_token', amount: 1, priceCoins: 20, minLevel: 2, perDayLimit: 0, iconKey: 'magnifier', isActive: true },
-  { titleFa: 'بسته‌ی پنج‌تایی راهنما', descriptionFa: 'پنج راهنما با تخفیف نسبت به خرید تکی.', effect: 'hint_token', amount: 5, priceCoins: 80, minLevel: 3, perDayLimit: 3, iconKey: 'potion', isActive: true },
+  { titleFa: 'یک راهنما', descriptionFa: 'یک بار راهنما گرفتن در بازی تکی، بدون پرداخت سکه در همان لحظه.', effect: 'hint_token', amount: 1, priceCoins: 20, currency: 'coins', priceGems: 0, minLevel: 2, perDayLimit: 0, iconKey: 'magnifier', isActive: true },
+  { titleFa: 'بسته‌ی پنج‌تایی راهنما', descriptionFa: 'پنج راهنما با تخفیف نسبت به خرید تکی.', effect: 'hint_token', amount: 5, priceCoins: 80, currency: 'coins', priceGems: 0, minLevel: 3, perDayLimit: 3, iconKey: 'potion', isActive: true },
   // Higher tiers open further along the level road (docs/logic/progression.md §Level rewards).
-  { titleFa: 'بسته‌ی ده‌تایی راهنما', descriptionFa: 'ده راهنما، ارزان‌تر از خرید جدا.', effect: 'hint_token', amount: 10, priceCoins: 150, minLevel: 10, perDayLimit: 3, iconKey: 'magnifier', isActive: true },
-  { titleFa: 'بسته‌ی بیست‌تایی راهنما', descriptionFa: 'بیست راهنما برای بازی‌های سخت‌تر.', effect: 'hint_token', amount: 20, priceCoins: 280, minLevel: 20, perDayLimit: 2, iconKey: 'potion', isActive: true },
-  { titleFa: 'صندوق راهنما', descriptionFa: 'پنجاه راهنما؛ مخصوص بازیکن‌های باتجربه.', effect: 'hint_token', amount: 50, priceCoins: 600, minLevel: 35, perDayLimit: 1, iconKey: 'chest', isActive: true },
+  { titleFa: 'بسته‌ی ده‌تایی راهنما', descriptionFa: 'ده راهنما، ارزان‌تر از خرید جدا.', effect: 'hint_token', amount: 10, priceCoins: 150, currency: 'coins', priceGems: 0, minLevel: 10, perDayLimit: 3, iconKey: 'magnifier', isActive: true },
+  { titleFa: 'بسته‌ی بیست‌تایی راهنما', descriptionFa: 'بیست راهنما برای بازی‌های سخت‌تر.', effect: 'hint_token', amount: 20, priceCoins: 280, currency: 'coins', priceGems: 0, minLevel: 20, perDayLimit: 2, iconKey: 'potion', isActive: true },
+  { titleFa: 'صندوق راهنما', descriptionFa: 'پنجاه راهنما؛ مخصوص بازیکن‌های باتجربه.', effect: 'hint_token', amount: 50, priceCoins: 600, currency: 'coins', priceGems: 0, minLevel: 35, perDayLimit: 1, iconKey: 'chest', isActive: true },
   // Lucky-wheel spins: an average spin pays about 13 coins, so a spin costs more than it returns (a coin sink, but a fun one).
-  { titleFa: 'یک چرخش گردونه', descriptionFa: 'یک بار گردونه‌ی شانس را بچرخان؛ شاید سکه‌ی بیشتری برگردد!', effect: 'wheel_spin', amount: 1, priceCoins: 25, minLevel: 3, perDayLimit: 0, iconKey: 'dice', isActive: true },
-  { titleFa: 'بسته‌ی پنج چرخش گردونه', descriptionFa: 'پنج چرخش گردونه با تخفیف.', effect: 'wheel_spin', amount: 5, priceCoins: 100, minLevel: 5, perDayLimit: 3, iconKey: 'gift', isActive: true },
+  { titleFa: 'یک چرخش گردونه', descriptionFa: 'یک بار گردونه‌ی شانس را بچرخان؛ شاید سکه‌ی بیشتری برگردد!', effect: 'wheel_spin', amount: 1, priceCoins: 25, currency: 'coins', priceGems: 0, minLevel: 3, perDayLimit: 0, iconKey: 'dice', isActive: true },
+  { titleFa: 'بسته‌ی پنج چرخش گردونه', descriptionFa: 'پنج چرخش گردونه با تخفیف.', effect: 'wheel_spin', amount: 5, priceCoins: 100, currency: 'coins', priceGems: 0, minLevel: 5, perDayLimit: 3, iconKey: 'gift', isActive: true },
 ];
 
 export function createDbShopStore(db: Db): ShopStore {
@@ -92,7 +96,8 @@ export function createDbShopStore(db: Db): ShopStore {
     },
     async wallet(userId) {
       const [b] = await db.select({ balance: userBalances.balance }).from(userBalances).where(eq(userBalances.userId, userId));
-      return { balance: b?.balance ?? 0, tokens: await tokensOf(db, userId) };
+      const [g] = await db.select({ balance: userGems.balance }).from(userGems).where(eq(userGems.userId, userId));
+      return { balance: b?.balance ?? 0, gems: g?.balance ?? 0, tokens: await tokensOf(db, userId) };
     },
     async boughtSince(userId, itemId, sinceMs) {
       const [r] = await db
@@ -108,7 +113,10 @@ export function createDbShopStore(db: Db): ShopStore {
         if (!item || !item.isActive) return { ok: false, error: 'unavailable' };
         const purchaseId = uuidv7();
         // The ledger call locks this player's balance row first, which also serialises concurrent purchases (so the daily-limit count below is safe).
-        const ledger = await applyLedgerEntry(tx, { userId, delta: -item.priceCoins, reason: 'shop_purchase', refType: 'shop_item', refId: item.id, idempotencyKey: `shop_purchase:${purchaseId}:${userId}` });
+        const key = `shop_purchase:${purchaseId}:${userId}`;
+        const ledger = item.currency === 'gems'
+          ? await applyGemEntry(tx, { userId, delta: -item.priceGems, reason: 'shop_purchase', refType: 'shop_item', refId: item.id, idempotencyKey: key })
+          : await applyLedgerEntry(tx, { userId, delta: -item.priceCoins, reason: 'shop_purchase', refType: 'shop_item', refId: item.id, idempotencyKey: key });
         if (!ledger.applied) return { ok: false, error: 'insufficient' };
         if (item.perDayLimit > 0) {
           const [c] = await tx
@@ -117,14 +125,16 @@ export function createDbShopStore(db: Db): ShopStore {
             .where(and(eq(shopPurchases.userId, userId), eq(shopPurchases.itemId, itemId), gte(shopPurchases.createdAt, new Date(sinceMs))));
           if (Number(c?.n ?? 0) >= item.perDayLimit) throw new DailyLimit();
         }
-        await tx.insert(shopPurchases).values({ id: purchaseId, userId, itemId, priceCoins: item.priceCoins });
+        await tx.insert(shopPurchases).values({ id: purchaseId, userId, itemId, priceCoins: item.currency === 'gems' ? 0 : item.priceCoins, priceGems: item.currency === 'gems' ? item.priceGems : 0 });
         if (item.effect === 'wheel_spin') {
           // Wheel spins are rows of their own (one per spin), not a counter.
           for (let i = 0; i < item.amount; i++) await tx.insert(wheelSpins).values({ id: uuidv7(), userId, source: 'shop', ref: `${purchaseId}#${i}` });
         } else {
           await tx.insert(userInventory).values({ userId, effect: item.effect, qty: item.amount }).onDuplicateKeyUpdate({ set: { qty: sql`${userInventory.qty} + ${item.amount}` } });
         }
-        return { ok: true, balance: ledger.balance, tokens: await tokensOf(tx, userId) };
+        const [coinRow] = await tx.select({ balance: userBalances.balance }).from(userBalances).where(eq(userBalances.userId, userId));
+        const [gemRow] = await tx.select({ balance: userGems.balance }).from(userGems).where(eq(userGems.userId, userId));
+        return { ok: true, balance: coinRow?.balance ?? 0, gems: gemRow?.balance ?? 0, tokens: await tokensOf(tx, userId) };
       }).catch((e: unknown) => {
         if (e instanceof DailyLimit) return { ok: false, error: 'daily_limit' } as const;
         throw e;
@@ -152,18 +162,22 @@ export function createDbShopStore(db: Db): ShopStore {
 class DailyLimit extends Error {}
 
 /** Memory store for tests: a tiny ledger of balances, tokens and purchases, with the same rules. */
-export function createMemoryShopStore(seed: readonly NewShopItem[] = DEFAULT_SHOP_ITEMS): ShopStore & { give(userId: string, coins: number, tokens?: number): void; now: { ms: number }; ledger: { userId: string; delta: number; reason: string }[] } {
+export function createMemoryShopStore(seed: readonly NewShopItem[] = DEFAULT_SHOP_ITEMS): ShopStore & { give(userId: string, coins: number, tokens?: number, gems?: number): void; now: { ms: number }; ledger: { userId: string; delta: number; reason: string }[]; gemLedger: { userId: string; delta: number; reason: string }[] } {
   const rows: ShopItemRow[] = seed.map((s, i) => ({ ...s, id: `00000000-0000-7000-8000-${String(i + 1).padStart(12, '0')}`, sortOrder: i }));
   const balances = new Map<string, number>();
   const tokens = new Map<string, number>();
+  const gemBal = new Map<string, number>();
   const bought: { userId: string; itemId: string; at: number }[] = [];
   const keys = new Set<string>();
   const now = { ms: Date.now() };
   const ledger: { userId: string; delta: number; reason: string }[] = [];
+  const gemLedger: { userId: string; delta: number; reason: string }[] = [];
   return {
     now,
     ledger,
-    give(userId, coins, t = 0) {
+    gemLedger,
+    give(userId, coins, t = 0, g = 0) {
+      gemBal.set(userId, (gemBal.get(userId) ?? 0) + g);
       balances.set(userId, (balances.get(userId) ?? 0) + coins);
       tokens.set(userId, (tokens.get(userId) ?? 0) + t);
     },
@@ -186,7 +200,7 @@ export function createMemoryShopStore(seed: readonly NewShopItem[] = DEFAULT_SHO
       return 'ok';
     },
     async wallet(userId) {
-      return { balance: balances.get(userId) ?? 0, tokens: tokens.get(userId) ?? 0 };
+      return { balance: balances.get(userId) ?? 0, gems: gemBal.get(userId) ?? 0, tokens: tokens.get(userId) ?? 0 };
     },
     async boughtSince(userId, itemId, since) {
       return bought.filter((b) => b.userId === userId && b.itemId === itemId && b.at >= since).length;
@@ -195,13 +209,20 @@ export function createMemoryShopStore(seed: readonly NewShopItem[] = DEFAULT_SHO
       const item = rows.find((r) => r.id === itemId);
       if (!item || !item.isActive) return { ok: false, error: 'unavailable' };
       if (item.perDayLimit > 0 && bought.filter((b) => b.userId === userId && b.itemId === itemId && b.at >= since).length >= item.perDayLimit) return { ok: false, error: 'daily_limit' };
-      const bal = balances.get(userId) ?? 0;
-      if (bal < item.priceCoins) return { ok: false, error: 'insufficient' };
-      balances.set(userId, bal - item.priceCoins);
-      ledger.push({ userId, delta: -item.priceCoins, reason: 'shop_purchase' });
+      if (item.currency === 'gems') {
+        const g = gemBal.get(userId) ?? 0;
+        if (g < item.priceGems) return { ok: false, error: 'insufficient' };
+        gemBal.set(userId, g - item.priceGems);
+        gemLedger.push({ userId, delta: -item.priceGems, reason: 'shop_purchase' });
+      } else {
+        const bal = balances.get(userId) ?? 0;
+        if (bal < item.priceCoins) return { ok: false, error: 'insufficient' };
+        balances.set(userId, bal - item.priceCoins);
+        ledger.push({ userId, delta: -item.priceCoins, reason: 'shop_purchase' });
+      }
       tokens.set(userId, (tokens.get(userId) ?? 0) + item.amount);
       bought.push({ userId, itemId, at: now.ms });
-      return { ok: true, balance: balances.get(userId) ?? 0, tokens: tokens.get(userId) ?? 0 };
+      return { ok: true, balance: balances.get(userId) ?? 0, gems: gemBal.get(userId) ?? 0, tokens: tokens.get(userId) ?? 0 };
     },
     async spendOnHint(userId, price, key) {
       const t = tokens.get(userId) ?? 0;

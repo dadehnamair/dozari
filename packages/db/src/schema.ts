@@ -723,7 +723,10 @@ export const shopItems = mysqlTable(
     effect: mysqlEnum('effect', SHOP_EFFECTS).notNull(),
     /** Units of the effect one purchase grants. */
     amount: int('amount').notNull().default(1),
+    /** Which currency pays for it (`price_coins` or `price_gems` is the one that counts). */
+    currency: mysqlEnum('currency', ['coins', 'gems']).notNull().default('coins'),
     priceCoins: int('price_coins').notNull(),
+    priceGems: int('price_gems').notNull().default(0),
     minLevel: int('min_level').notNull().default(1),
     /** 0 = no daily limit. */
     perDayLimit: int('per_day_limit').notNull().default(0),
@@ -787,6 +790,7 @@ export const shopPurchases = mysqlTable(
     userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
     itemId: char('item_id', { length: 36 }).notNull(),
     priceCoins: int('price_coins').notNull(),
+    priceGems: int('price_gems').notNull().default(0),
     createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
   },
   (table) => ({ byUserDay: index('shop_purchases_user_idx').on(table.userId, table.createdAt) }),

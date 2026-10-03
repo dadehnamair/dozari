@@ -42,6 +42,7 @@ const stateText = (it: ShopItem): string | null => {
   if (it.blocked === 'LEVEL') return fa.shop.needLevel(it.minLevel);
   if (it.blocked === 'DAILY_LIMIT') return fa.shop.dailyLimit;
   if (it.blocked === 'COINS') return fa.shop.needCoins;
+  if (it.blocked === 'GEMS') return fa.shop.needGems;
   return it.leftToday !== null ? fa.shop.leftToday(it.leftToday) : null;
 };
 
@@ -106,6 +107,12 @@ export function ShopSheet({ onClose, onBalance }: { onClose: () => void; onBalan
               <View style={styles.pillIcon}><Item icon="coin" /></View>
             </View>
           ) : null}
+          {shop && shop.gems > 0 ? (
+            <View style={styles.pill} accessibilityLabel={`${fa.home.hub.gems} ${shop.gems}`}>
+              <Text style={styles.pillText}>{n(shop.gems)}</Text>
+              <View style={styles.pillIcon}><Item icon="gem" /></View>
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.tabs}>
@@ -142,8 +149,8 @@ export function ShopSheet({ onClose, onBalance }: { onClose: () => void; onBalan
                       <Text style={styles.name} numberOfLines={1}>{it.titleFa}</Text>
                       <Text style={[styles.sub, tight ? styles.subTight : null]} numberOfLines={2}>{why ?? fa.shop.amount(it.amount)}</Text>
                       <Pressable onPress={() => (locked ? setWhyLocked(whyText(it)) : void buy(it))} accessibilityRole="button" accessibilityLabel={`${fa.shop.buy} ${it.titleFa}`} style={({ pressed }) => [styles.buy, tight ? styles.buyTight : null, locked ? styles.buyOff : null, pressed ? styles.pressed : null]}>
-                        <View style={styles.buyIcon}><Item icon="coin" /></View>
-                        <Text style={styles.buyText}>{it.priceCoins === 0 ? fa.shop.free : n(it.priceCoins)}</Text>
+                        <View style={styles.buyIcon}><Item icon={it.currency === 'gems' ? 'gem' : 'coin'} /></View>
+                        <Text style={styles.buyText}>{(it.currency === 'gems' ? it.priceGems : it.priceCoins) === 0 ? fa.shop.free : n(it.currency === 'gems' ? it.priceGems : it.priceCoins)}</Text>
                       </Pressable>
                     </View>
                   </View>

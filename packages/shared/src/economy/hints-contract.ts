@@ -45,11 +45,14 @@ export const shopItemSchema = z.object({
   effect: shopEffectSchema,
   /** Units of the effect one purchase grants (e.g. 5 hint tokens). */
   amount: z.number().int().positive(),
+  /** Currency that pays for it; only the matching price counts. */
+  currency: z.enum(['coins', 'gems']).default('coins'),
   priceCoins: z.number().int().nonnegative(),
+  priceGems: z.number().int().nonnegative().default(0),
   minLevel: z.number().int().positive(),
   iconKey: z.string().nullable(),
   /** Why the player cannot buy it right now, or null. */
-  blocked: z.enum(['LEVEL', 'DAILY_LIMIT', 'COINS']).nullable(),
+  blocked: z.enum(['LEVEL', 'DAILY_LIMIT', 'COINS', 'GEMS']).nullable(),
   /** Purchases left today when the item has a daily limit. */
   leftToday: z.number().int().nonnegative().nullable(),
 });
@@ -58,6 +61,7 @@ export type ShopItem = z.infer<typeof shopItemSchema>;
 export const shopSchema = z.object({
   items: z.array(shopItemSchema),
   balance: z.number().int().nonnegative(),
+  gems: z.number().int().nonnegative().default(0),
   level: z.number().int().positive(),
   tokens: z.number().int().nonnegative(),
 });

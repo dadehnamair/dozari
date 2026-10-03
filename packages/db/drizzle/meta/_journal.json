@@ -302,6 +302,13 @@
       "when": 1791027919186,
       "tag": "0042_thankful_blazing_skull",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "5",
+      "when": 1791029166936,
+      "tag": "0043_reflective_the_hand",
+      "breakpoints": true
     }
   ]
 }
