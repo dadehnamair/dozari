@@ -26,7 +26,7 @@ import { CityPicker } from './CityPicker';
 import { FriendsPage } from './FriendsPage';
 import { BadgesSheet } from '../badges/BadgesSheet';
 import { LevelRoadPage } from '../levels/LevelRoadPage';
-import { safeTop } from '../theme/safeArea';
+import { pageTop } from '../theme/safeArea';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const TAGS = ['#FF4D8D', '#7E46D6', '#3FA36B', '#E8743B', '#3FC1F0'];
@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20, backgroundColor: '#FBF1DE' },
   hero: { position: 'absolute', top: 0, left: 0, right: 0, overflow: 'hidden' },
   heroLine: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 4, backgroundColor: colors.ink },
-  bar: { position: 'absolute', top: safeTop(30), left: 16, right: 16, zIndex: 3, flexDirection: ROW, justifyContent: 'space-between' },
+  bar: { position: 'absolute', top: pageTop(), left: 16, right: 16, zIndex: 3, flexDirection: ROW, justifyContent: 'space-between' },
   column: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingHorizontal: 16, paddingBottom: 14, alignItems: 'center' },
   square: { width: 42, height: 42, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...lift(4) },
   pressed: { transform: [{ translateY: 3 }] },

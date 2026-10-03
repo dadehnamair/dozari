@@ -13,7 +13,7 @@ import { claimLevelRewards, fetchLevelRoad } from './api';
 import { claimableCoins, levelProgress, roadNodes, xpToReach } from './road';
 import type { RoadNode } from './road';
 import { roadLayout, skyStars } from './roadPath';
-import { safeTop } from '../theme/safeArea';
+import { pageTop } from '../theme/safeArea';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const n = (v: number) => toPersianDigits(String(v));
@@ -263,7 +263,7 @@ const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0
 const styles = StyleSheet.create({
   root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20, backgroundColor: '#3C1A66' },
   sky: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
-  column: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingTop: safeTop(30) },
+  column: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingTop: pageTop() },
   head: { flexDirection: ROW, alignItems: 'center', gap: 8, paddingHorizontal: 12, marginBottom: 8 },
   back: { width: 42, height: 42, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...lift(4) },
   pressed: { transform: [{ translateY: 3 }] },

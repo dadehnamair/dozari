@@ -4,7 +4,7 @@ import { useId } from 'react';
 import { colors, fonts, toneOf } from '../theme/colors';
 import { GradientFill } from './GradientFill';
 import { Icon } from './Icon';
-import { safeTop } from '../theme/safeArea';
+import { PAGE_TOP_EXTRA, pageTop, safeTop } from '../theme/safeArea';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 
@@ -26,7 +26,8 @@ export function PageShell({ title, color, backLabel, onBack, action, bandHeight 
         </Defs>
         <Rect width="100%" height="100%" fill={`url(#${pid})`} />
       </Svg>
-      <View style={[styles.band, { height: bandHeight }]}>
+      {/* The band grows with the device's top inset, so the title row never slips onto the sand below it (white text on sand). */}
+      <View style={[styles.band, { height: safeTop(bandHeight - (30 - PAGE_TOP_EXTRA)) }]}>
         <GradientFill from={tone.dark} to={color} />
       </View>
       <View style={styles.column}>
@@ -60,7 +61,7 @@ export function HeaderPill({ label, onPress }: { label: string; onPress: () => v
 const styles = StyleSheet.create({
   root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: '#F6E2C2', zIndex: 20 },
   band: { position: 'absolute', top: 0, left: 0, right: 0, borderBottomWidth: 4, borderColor: colors.ink, overflow: 'hidden' },
-  column: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingHorizontal: 10, paddingTop: safeTop(30) },
+  column: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingHorizontal: 10, paddingTop: pageTop() },
   head: { flexDirection: ROW, alignItems: 'center', gap: 8, paddingHorizontal: 2, marginBottom: 30 },
   back: { width: 42, height: 42, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', shadowColor: colors.ink, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4 },
   pressed: { transform: [{ translateY: 3 }] },

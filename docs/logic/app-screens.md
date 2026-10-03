@@ -252,6 +252,10 @@ materialized view or a scheduled aggregation job, not a live query per request) 
 tournaments, new tables (bracket/round/match rows) plus a scheduler to advance rounds — neither
 designed yet.
 
+## Page headers and the device's top edge (D150)
+
+Every full-screen page puts its back button and title high: the row starts `PAGE_TOP_EXTRA` (14 px on the web, 30 native) below the top inset (`safeTop` adds the notch / status-bar inset on a home-screen web app). `PageShell` (chat/«قهوه‌خانه», inbox/«پیک», friends, tournaments/«جام‌ها», coin history, city picker) grows its coloured band by the same inset, so the white title never slips below the band onto the sand background (the bug seen on phones with a notch). The opponent search keeps «در حال جستجو…» and the seconds on one line, and its VS panel sits in the free space between the grid and the cancel button instead of floating over the last row on shorter screens.
+
 ## Icon caption convention (D48)
 
 Any icon-only control gets a short text caption underneath it, not just a hover title. Already the

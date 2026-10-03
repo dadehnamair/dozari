@@ -392,3 +392,7 @@ Owner: more attractive, more fantasy names — city → قبیله, leaderboard 
 ## D149 — Sample catalogue seed (2026-10-03)
 
 Owner: seed some products, prices and puzzles as samples; they will delete them at launch. Built: 119 `sample-*` products with rough, clearly-labelled prices (approved, confidence 1, "نمونه" in every source note — **not researched data**), 10 hand-made puzzles, and up to 20 generator puzzles; `seed --remove-sample` deletes all of it. This is the one place approved prices are not sourced; it exists so the game can be played and the generator tested before the real catalogue.
+
+## D150 — Page headers sit high; the header band grows with the notch (2026-10-03)
+
+Owner: on some pages the back button and title fell on the header's border line. Cause: the coloured band had a fixed height while the title row moved down by the device's top inset. The band now grows with the inset and the row starts closer to the top; the opponent-search status is one line. See `logic/app-screens.md` §Page headers.

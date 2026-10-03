@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import type { TextStyle } from 'react-native';
 import Svg, { Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-svg';
 import { formatPersianNumber, toPersianDigits } from '@dozari/shared';
@@ -17,16 +17,18 @@ import { safeTop } from '../theme/safeArea';
 // `direction` is not accepted inside StyleSheet.create by react-native-web's dev validation.
 const LTR: TextStyle = { direction: 'ltr' };
 const TICK_MS = 450;
+const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const ROW_TONES = ['pink', 'grape', 'sky', 'orange'] as const;
 const CELL_TONES = ['pink', 'orange', 'yellow', 'sky', 'grape', 'lime'] as const;
 const toneOfCell = (i: number) =>
   candyTone[CELL_TONES[(i * 7 + 1) % CELL_TONES.length] as (typeof CELL_TONES)[number]];
 
-function Title() {
+function Title({ small = false }: { small?: boolean }) {
+  const w = small ? 230 : 296;
   return (
     <Svg
-      width={296}
-      height={296 * (160 / 760)}
+      width={w}
+      height={w * (160 / 760)}
       viewBox="-120 0 760 160"
       style={{ overflow: 'visible' }}
       accessibilityLabel={fa.kit.search.title}
@@ -78,7 +80,7 @@ function Title() {
   );
 }
 
-function PlayerCard({ index, active, face }: { index: number; active: boolean; face: Face }) {
+function PlayerCard({ index, active, face, compact }: { index: number; active: boolean; face: Face; compact: boolean }) {
   const tone = toneOfCell(index);
   const scale = useRef(new Animated.Value(1)).current;
   useEffect(() => {
@@ -96,6 +98,7 @@ function PlayerCard({ index, active, face }: { index: number; active: boolean; f
           backgroundColor: tone.base,
           borderColor: active ? colors.candy.yellow : colors.ink,
           zIndex: active ? 2 : 1,
+          height: compact ? 54 : 68,
           transform: [{ scale }, { rotate: active ? '-3deg' : '0deg' }],
         },
         active && styles.cardOn,
@@ -128,6 +131,7 @@ function PlayerCard({ index, active, face }: { index: number; active: boolean; f
  * `waitedSec` (the real queue time) replaces the demo clock; the duel shows this while searching (D104).
  */
 export function SearchScreen({ onCancel, waitedSec }: { onCancel: () => void; waitedSec?: number }) {
+  const compact = useWindowDimensions().height < 800;
   const [scan, setScan] = useState(0);
   const [ticks, setTicks] = useState(0);
   const [faces, setFaces] = useState<Face[]>(() => facesFor([], fa.kit.search.players));
@@ -189,7 +193,7 @@ export function SearchScreen({ onCancel, waitedSec }: { onCancel: () => void; wa
     <DiamondBackground>
       <View style={styles.screen}>
         <View style={styles.title}>
-          <Title />
+          <Title small={compact} />
         </View>
         <View style={styles.rows}>
           {ROW_TONES.map((rt, r) => (
@@ -201,11 +205,12 @@ export function SearchScreen({ onCancel, waitedSec }: { onCancel: () => void; wa
               ]}
             >
               {[0, 1, 2, 3].map((k) => (
-                <PlayerCard key={k} index={r * 4 + k} active={r * 4 + k === scan} face={faces[r * 4 + k] as Face} />
+                <PlayerCard key={k} index={r * 4 + k} active={r * 4 + k === scan} face={faces[r * 4 + k] as Face} compact={compact} />
               ))}
             </View>
           ))}
         </View>
+        <View style={styles.versusSlot}>
         <View style={styles.versus}>
           <View style={styles.side}>
             <View style={[styles.disc, { backgroundColor: candyTone.lime.base }]}>
@@ -219,8 +224,11 @@ export function SearchScreen({ onCancel, waitedSec }: { onCancel: () => void; wa
             <Animated.Text style={[styles.vs, { transform: [{ scale: pulse }] }]}>
               {s.versus}
             </Animated.Text>
-            <Text style={[styles.clock, LTR]}>{toPersianDigits(waitedSec === undefined ? searchClock(ticks, TICK_MS) : waitClock(waitedSec))}</Text>
-            <Text style={styles.clock}>{s.searching}</Text>
+            {/* «در حال جستجو…» and the seconds share one line (they used to stack and the second line fell onto the panel's border). */}
+            <View style={styles.statusRow}>
+              <Text style={styles.clock} numberOfLines={1}>{s.searching}</Text>
+              <Text style={[styles.clock, styles.clockTime, LTR]}>{toPersianDigits(waitedSec === undefined ? searchClock(ticks, TICK_MS) : waitClock(waitedSec))}</Text>
+            </View>
           </View>
           <View style={styles.side}>
             <View style={[styles.disc, { backgroundColor: scanTone.base }]}>
@@ -244,6 +252,7 @@ export function SearchScreen({ onCancel, waitedSec }: { onCancel: () => void; wa
             <Text style={styles.sideName}>{faces[scan]?.name}</Text>
           </View>
         </View>
+        </View>
         <View style={styles.cancel}>
           <CandyButton label={s.cancel} color={candyTone.orange.base} onPress={onCancel} />
         </View>
@@ -253,7 +262,7 @@ export function SearchScreen({ onCancel, waitedSec }: { onCancel: () => void; wa
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, paddingHorizontal: 10, paddingTop: safeTop(34) },
+  screen: { flex: 1, paddingHorizontal: 10, paddingTop: safeTop(Platform.OS === 'web' ? 18 : 34) },
   title: { alignItems: 'center', marginBottom: 6 },
   rows: { gap: 5 },
   row: {
@@ -318,11 +327,8 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: 'rgba(255,255,255,0.22)',
   },
+  versusSlot: { flex: 1, justifyContent: 'center', paddingHorizontal: 6 },
   versus: {
-    position: 'absolute',
-    bottom: 100,
-    left: 16,
-    right: 16,
     height: 108,
     borderRadius: 24,
     borderWidth: 2,
@@ -366,15 +372,18 @@ const styles = StyleSheet.create({
     textShadowRadius: 0,
   },
   sideName: { fontFamily: fonts.display, fontSize: 15, color: colors.cream },
-  middle: { alignItems: 'center', gap: 2 },
+  middle: { alignItems: 'center', gap: 0 },
   vs: {
     fontFamily: fonts.display,
     fontSize: 44,
+    lineHeight: 52,
     color: colors.candy.yellow,
     textShadowColor: colors.ink,
     textShadowOffset: { width: 0, height: 3 },
     textShadowRadius: 0,
   },
+  statusRow: { flexDirection: ROW, alignItems: 'center', gap: 6 },
   clock: { fontFamily: fonts.bold, fontSize: 12, color: colors.cream },
-  cancel: { position: 'absolute', bottom: 30, left: 0, right: 0, alignItems: 'center' },
+  clockTime: { fontFamily: fonts.display, fontSize: 14, color: colors.candy.yellow, minWidth: 34, textAlign: 'center' },
+  cancel: { alignItems: 'center', paddingBottom: 26, paddingTop: 6 },
 });
