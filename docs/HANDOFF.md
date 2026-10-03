@@ -2,6 +2,27 @@
 
 For the next chat. Read `CLAUDE.md`, then this file, then `docs/DECISIONS.md` from D99 on.
 
+## Session of 2026-10-03 — state and what is left (read this first in a new chat)
+
+Done and pushed to `main` (D140–D155): 2v2 team mode with 3 boards, phone login, scheduled puzzle top-up, character/home animations, opponent-search
+grid (1v1 and 2v2 = three «؟»), winding level road + admin level table, no-scroll profile + player card, vocabulary (قبیله، جارچی، حجره، صراف…),
+sample seed (`--remove-sample` at launch), header fix, 157-icon pack generated from designs with categories, endless-search diagnosis + bot
+auto top-up, `ErrorCard`, wheel everywhere (Home button, daily spin, shop item, level/tournament prizes; migration 0040).
+
+**Not verified (cannot be from the container):** a real phone; migrations 0039/0040 and the seed on a live MySQL; real SMS provider; the bot
+auto top-up on a fresh DB (only unit-tested).
+
+**Still open, in the order proposed:**
+1. Run migrations + seed on the real server; confirm the search works (needs ≥1 approved puzzle; bots are now auto-made). Ask the owner whether
+   the daily spin (`wheel.daily_spins`, default 1) is what «روزانه» meant (D154) and whether the shop prices of 25/100 coins are right.
+2. Owner must confirm the fantasy names, especially «صراف» for the price finder (D148).
+3. `ErrorCard` on the remaining screens (shop, chat, tournaments, leaderboard, friends) — GAPS B+.
+4. A1 shop «سکه» tab (coin packages; server is done) → B1+B2 finish the duel loop (price round, chart, share card) → A3/A4+B8 2v2 result/HUD
+   polish → B6 team chat → B3 UGC → A5/A6 FX and badges in game → B4 bot takeover/reconnect. Full list: `docs/GAPS.md`.
+5. Admin cannot yet gift wheel spins to one player (`source = 'admin'` is reserved).
+6. `docs/PLAN.md` is stale: tick the finished items in one sweep.
+7. Content: real catalogue (≈150 products with ≥3 approved price years); the sample seed is only a placeholder.
+
 ## Working agreement
 - Owner talks Persian; code/commits/docs English. Branch `claude/keen-cray-pdxnxh`; after each merge: `git fetch origin main && git checkout -B claude/keen-cray-pdxnxh origin/main`, push with `--force-with-lease`.
 - Standing authorization (until Saturday morning 2026-10-03): squash-merge own PRs after green CI (undraft first, `expectedHeadSha` = full sha), then go on to the next item.
