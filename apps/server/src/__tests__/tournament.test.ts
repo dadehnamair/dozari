@@ -96,6 +96,23 @@ describe('tournament entry', () => {
     expect((await t.app.inject({ method: 'POST', url: `/tournaments/${id}/leave`, headers: a.h })).json()).toEqual({ error: 'NOT_IN' });
   });
 
+  it('charges a gem fee on top of coins, refuses without gems, and refunds both on leaving', async () => {
+    const t = boot();
+    const a = await t.login(1);
+    const created = await t.service.create(t.input({ entryCoins: 10, entryGems: 3 }), true);
+    if (!created.ok) throw new Error('create failed');
+    t.store.coins.set(a.id, 100);
+    t.store.gems.set(a.id, 2);
+    expect(tournamentDetailSchema.parse((await t.app.inject({ method: 'GET', url: `/tournaments/${created.id}`, headers: a.h })).json())).toMatchObject({ entryGems: 3, blocked: 'GEMS' });
+    expect((await t.join(a, created.id)).json()).toEqual({ error: 'GEMS' });
+    expect(t.store.coins.get(a.id)).toBe(100);
+    t.store.gems.set(a.id, 5);
+    expect((await t.join(a, created.id)).json()).toEqual({ ok: true, balance: 90 });
+    expect(t.store.gems.get(a.id)).toBe(2);
+    await t.app.inject({ method: 'POST', url: `/tournaments/${created.id}/leave`, headers: a.h });
+    expect([t.store.coins.get(a.id), t.store.gems.get(a.id)]).toEqual([100, 5]);
+  });
+
   it('one tournament at a time unless the tournament allows concurrent players', async () => {
     const t = boot();
     const a = await t.login(1);

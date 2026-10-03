@@ -11,6 +11,7 @@ describe('tournament texts', () => {
   it('explains why entry is blocked, with the live numbers', () => {
     expect(blockedText('LEVEL', { minLevel: 5, entryCoins: 20 })).toBe('از سطح ۵ می‌توانی ثبت‌نام کنی.');
     expect(blockedText('COINS', { minLevel: 5, entryCoins: 20 })).toBe('برای ورود ۲۰ سکه لازم است.');
+    expect(blockedText('GEMS', { minLevel: 1, entryCoins: 0, entryGems: 5 })).toBe('برای ورود ۵ الماس لازم است.');
     expect(blockedText('FULL', { minLevel: 1, entryCoins: 0 })).toBe('ظرفیت پر شده است.');
     expect(blockedText(null, { minLevel: 1, entryCoins: 0 })).toBeNull();
   });

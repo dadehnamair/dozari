@@ -49,7 +49,7 @@ export function TournamentSheet({ onClose }: { onClose: () => void }) {
                 </View>
                 <View style={styles.cardBody}>
                   <Text style={styles.cardTitle} numberOfLines={1}>{t.titleFa}</Text>
-                  <Text style={styles.cardSub}>{fa.tournament.joined(t.joined, t.size)} · {fa.tournament.entry(t.entryCoins)}</Text>
+                  <Text style={styles.cardSub}>{fa.tournament.joined(t.joined, t.size)} · {fa.tournament.entry(t.entryCoins, t.entryGems)}</Text>
                   <Text style={styles.cardSub}>{fa.tournament.starts}: {when(t.startsAt)}{t.entered ? ` · ${fa.tournament.mine}` : ''}</Text>
                 </View>
                 <View style={[styles.chip, { backgroundColor: STATUS_TONE[t.status] ?? '#C9A3FF' }]}><Text style={styles.chipText}>{fa.tournament.status[t.status]}</Text></View>
@@ -119,7 +119,7 @@ function TournamentPage({ id, onBack }: { id: string; onBack: () => void }) {
               </View>
 
               <View style={styles.stats}>
-                {([['players', `${n(t.joined)}/${n(t.size)}`, '#B8F08F'], ['entry', t.entryCoins === 0 ? fa.tournament.free : n(t.entryCoins), '#FFE48A'], ['prize', n(first), '#FF8FB6']] as const).map(([k, v, c]) => (
+                {([['players', `${n(t.joined)}/${n(t.size)}`, '#B8F08F'], ['entry', t.entryCoins === 0 && t.entryGems === 0 ? fa.tournament.free : [t.entryCoins > 0 ? n(t.entryCoins) : '', t.entryGems > 0 ? `${n(t.entryGems)}💎` : ''].filter(Boolean).join('+'), '#FFE48A'], ['prize', n(first), '#FF8FB6']] as const).map(([k, v, c]) => (
                   <View key={k} style={[styles.stat, { backgroundColor: c }]}>
                     <Text style={styles.statValue}>{v}</Text>
                     <Text style={styles.statLabel}>{fa.tournament.statTitle[k]}</Text>
@@ -160,7 +160,7 @@ function TournamentPage({ id, onBack }: { id: string; onBack: () => void }) {
                   </>
                 ) : null}
                 <Text style={styles.label}>{fa.tournament.rulesTitle}</Text>
-                {[fa.tournament.rules.elimination, fa.tournament.rules.fee(t.entryCoins), fa.tournament.rules.byes, fa.tournament.rules.cancel, fa.tournament.rules.online].map((r) => <Text key={r} style={styles.small}>• {r}</Text>)}
+                {[fa.tournament.rules.elimination, fa.tournament.rules.fee(t.entryCoins, t.entryGems), fa.tournament.rules.byes, fa.tournament.rules.cancel, fa.tournament.rules.online].map((r) => <Text key={r} style={styles.small}>• {r}</Text>)}
                 {t.results.length > 0 ? (
                   <>
                     <Text style={styles.label}>{fa.tournament.results}</Text>

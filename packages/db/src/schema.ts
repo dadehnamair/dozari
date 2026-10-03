@@ -1025,6 +1025,8 @@ export const tournaments = mysqlTable(
     /** The tournament still starts with at least this many players (the rest of the bracket gets byes). */
     minPlayers: int('min_players').notNull().default(4),
     entryCoins: int('entry_coins').notNull().default(0),
+    /** Gems charged on top of the coins (0 = none). */
+    entryGems: int('entry_gems').notNull().default(0),
     minLevel: int('min_level').notNull().default(1),
     /** When the bracket is not full at the start, empty seats are filled with bot players. */
     botFill: boolean('bot_fill').notNull().default(false),
@@ -1060,6 +1062,7 @@ export const tournamentEntries = mysqlTable(
     joinedAt: datetime('joined_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
     /** Fee paid, kept for the refund. */
     paid: int('paid').notNull().default(0),
+    paidGems: int('paid_gems').notNull().default(0),
   },
   (table) => ({ pk: primaryKey({ columns: [table.tournamentId, table.userId] }) }),
 );

@@ -1,6 +1,7 @@
-import { and, asc, desc, eq, inArray, tournamentEntries, tournamentMatches, tournamentPrizes, tournaments, userBalances, wheelSpins } from '@dozari/db';
+import { and, asc, desc, eq, inArray, tournamentEntries, tournamentMatches, tournamentPrizes, tournaments, userBalances, userGems, wheelSpins } from '@dozari/db';
 import type { Db } from '@dozari/db';
 import { uuidv7 } from 'uuidv7';
+import { applyGemEntry } from '../economy/gems.js';
 import { applyLedgerEntry } from '../economy/ledger.js';
 
 export type TournamentStatus = 'draft' | 'open' | 'running' | 'finished' | 'cancelled';
@@ -15,6 +16,7 @@ export interface TournamentRow {
   size: number;
   minPlayers: number;
   entryCoins: number;
+  entryGems: number;
   minLevel: number;
   /** Fill empty seats with bot players when the tournament starts. */
   botFill: boolean;
@@ -41,6 +43,7 @@ export interface EntryRow {
   userId: string;
   joinedAt: number;
   paid: number;
+  paidGems: number;
 }
 
 export type JoinOutcome = 'ok' | 'full' | 'already' | 'insufficient' | 'closed';
@@ -57,7 +60,7 @@ export interface TournamentStore {
   entriesOf(userId: string, ids: readonly string[]): Promise<Set<string>>;
   /** True when the player has a seat in an open or running tournament other than `exceptId`. */
   busyElsewhere(userId: string, exceptId: string): Promise<boolean>;
-  join(id: string, userId: string, fee: number, nowMs: number): Promise<JoinOutcome>;
+  join(id: string, userId: string, fee: number, gemFee: number, nowMs: number): Promise<JoinOutcome>;
   /** Leaves an open tournament and gets the fee back. */
   leave(id: string, userId: string): Promise<'ok' | 'not_in' | 'closed'>;
   /** Cancels: refunds every entry and marks the tournament cancelled. */
@@ -69,6 +72,7 @@ export interface TournamentStore {
   findPlaying(a: string, b: string): Promise<(MatchRow & { tournament: TournamentRow }) | null>;
   payout(id: string, awards: readonly { userId: string; coins: number; spins: number }[]): Promise<void>;
   balance(userId: string): Promise<number>;
+  gemBalance(userId: string): Promise<number>;
 }
 
 const toRow = (r: typeof tournaments.$inferSelect): TournamentRow => ({
@@ -80,6 +84,7 @@ const toRow = (r: typeof tournaments.$inferSelect): TournamentRow => ({
   size: r.size,
   minPlayers: r.minPlayers,
   entryCoins: r.entryCoins,
+  entryGems: r.entryGems,
   minLevel: r.minLevel,
   botFill: r.botFill,
   allowConcurrent: r.allowConcurrent,
@@ -93,7 +98,7 @@ export function createDbTournamentStore(db: Db): TournamentStore {
   return {
     async create(t, prizes) {
       const id = uuidv7();
-      await db.insert(tournaments).values({ id, titleFa: t.titleFa, descriptionFa: t.descriptionFa, iconKey: t.iconKey, status: t.status, size: t.size, minPlayers: t.minPlayers, entryCoins: t.entryCoins, minLevel: t.minLevel, botFill: t.botFill, allowConcurrent: t.allowConcurrent, startsAt: new Date(t.startsAt) });
+      await db.insert(tournaments).values({ id, titleFa: t.titleFa, descriptionFa: t.descriptionFa, iconKey: t.iconKey, status: t.status, size: t.size, minPlayers: t.minPlayers, entryCoins: t.entryCoins, entryGems: t.entryGems, minLevel: t.minLevel, botFill: t.botFill, allowConcurrent: t.allowConcurrent, startsAt: new Date(t.startsAt) });
       if (prizes.length > 0) await db.insert(tournamentPrizes).values(prizes.map((p) => ({ tournamentId: id, place: p.place, coins: p.coins, spins: p.spins })));
       const [r] = await db.select().from(tournaments).where(eq(tournaments.id, id));
       return toRow(r!);
@@ -122,7 +127,7 @@ export function createDbTournamentStore(db: Db): TournamentStore {
       });
     },
     async entries(id) {
-      return (await db.select().from(tournamentEntries).where(eq(tournamentEntries.tournamentId, id)).orderBy(asc(tournamentEntries.joinedAt))).map((e) => ({ userId: e.userId, joinedAt: e.joinedAt.getTime(), paid: e.paid }));
+      return (await db.select().from(tournamentEntries).where(eq(tournamentEntries.tournamentId, id)).orderBy(asc(tournamentEntries.joinedAt))).map((e) => ({ userId: e.userId, joinedAt: e.joinedAt.getTime(), paid: e.paid, paidGems: e.paidGems }));
     },
     async entriesOf(userId, ids) {
       if (ids.length === 0) return new Set();
@@ -137,7 +142,7 @@ export function createDbTournamentStore(db: Db): TournamentStore {
         .where(and(eq(tournamentEntries.userId, userId), inArray(tournaments.status, ['open', 'running'])));
       return rows.some((r) => r.t !== exceptId);
     },
-    async join(id, userId, fee, nowMs) {
+    async join(id, userId, fee, gemFee, nowMs) {
       return db.transaction(async (tx): Promise<JoinOutcome> => {
         const [t] = await tx.select().from(tournaments).where(eq(tournaments.id, id)).for('update');
         if (!t || t.status !== 'open') return 'closed';
@@ -148,7 +153,11 @@ export function createDbTournamentStore(db: Db): TournamentStore {
           const out = await applyLedgerEntry(tx, { userId, delta: -fee, reason: 'tournament_entry', refType: 'tournament', refId: id, idempotencyKey: `tournament_entry:${id}:${userId}:${nowMs}` });
           if (!out.applied) return 'insufficient';
         }
-        await tx.insert(tournamentEntries).values({ tournamentId: id, userId, joinedAt: new Date(nowMs), paid: fee });
+        if (gemFee > 0) {
+          const out = await applyGemEntry(tx, { userId, delta: -gemFee, reason: 'tournament_entry', refType: 'tournament', refId: id, idempotencyKey: `tournament_entry:${id}:${userId}:${nowMs}` });
+          if (!out.applied) return 'insufficient';
+        }
+        await tx.insert(tournamentEntries).values({ tournamentId: id, userId, joinedAt: new Date(nowMs), paid: fee, paidGems: gemFee });
         return 'ok';
       });
     },
@@ -159,6 +168,7 @@ export function createDbTournamentStore(db: Db): TournamentStore {
         const [e] = await tx.select().from(tournamentEntries).where(and(eq(tournamentEntries.tournamentId, id), eq(tournamentEntries.userId, userId)));
         if (!e) return 'not_in';
         if (e.paid > 0) await applyLedgerEntry(tx, { userId, delta: e.paid, reason: 'tournament_refund', refType: 'tournament', refId: id, idempotencyKey: `tournament_refund:${id}:${userId}:${e.joinedAt.getTime()}` });
+        if (e.paidGems > 0) await applyGemEntry(tx, { userId, delta: e.paidGems, reason: 'tournament_refund', refType: 'tournament', refId: id, idempotencyKey: `tournament_refund:${id}:${userId}:${e.joinedAt.getTime()}` });
         await tx.delete(tournamentEntries).where(and(eq(tournamentEntries.tournamentId, id), eq(tournamentEntries.userId, userId)));
         return 'ok';
       });
@@ -166,7 +176,10 @@ export function createDbTournamentStore(db: Db): TournamentStore {
     async cancel(id) {
       return db.transaction(async (tx) => {
         const entries = await tx.select().from(tournamentEntries).where(eq(tournamentEntries.tournamentId, id));
-        for (const e of entries) if (e.paid > 0) await applyLedgerEntry(tx, { userId: e.userId, delta: e.paid, reason: 'tournament_refund', refType: 'tournament', refId: id, idempotencyKey: `tournament_refund:${id}:${e.userId}:${e.joinedAt.getTime()}` });
+        for (const e of entries) {
+          if (e.paid > 0) await applyLedgerEntry(tx, { userId: e.userId, delta: e.paid, reason: 'tournament_refund', refType: 'tournament', refId: id, idempotencyKey: `tournament_refund:${id}:${e.userId}:${e.joinedAt.getTime()}` });
+          if (e.paidGems > 0) await applyGemEntry(tx, { userId: e.userId, delta: e.paidGems, reason: 'tournament_refund', refType: 'tournament', refId: id, idempotencyKey: `tournament_refund:${id}:${e.userId}:${e.joinedAt.getTime()}` });
+        }
         await tx.update(tournaments).set({ status: 'cancelled', finishedAt: new Date() }).where(eq(tournaments.id, id));
         return entries.length;
       });
@@ -200,24 +213,31 @@ export function createDbTournamentStore(db: Db): TournamentStore {
       const [b] = await db.select({ balance: userBalances.balance }).from(userBalances).where(eq(userBalances.userId, userId));
       return b?.balance ?? 0;
     },
+    async gemBalance(userId) {
+      const [b] = await db.select({ balance: userGems.balance }).from(userGems).where(eq(userGems.userId, userId));
+      return b?.balance ?? 0;
+    },
   };
 }
 
 
 /** Memory store for tests: a tiny coin ledger and the same rules. */
-export function createMemoryTournamentStore(): TournamentStore & { coins: Map<string, number>; spins: Map<string, number> } {
+export function createMemoryTournamentStore(): TournamentStore & { coins: Map<string, number>; gems: Map<string, number>; spins: Map<string, number> } {
   const ts = new Map<string, TournamentRow>();
   const prizes = new Map<string, { place: number; coins: number; spins: number }[]>();
   const entries = new Map<string, EntryRow[]>();
   const matches = new Map<string, MatchRow[]>();
   const coins = new Map<string, number>();
+  const gems = new Map<string, number>();
   const spins = new Map<string, number>();
   const paidOut = new Set<string>();
   let seq = 0;
   const id = () => `00000000-0000-7000-b000-${String(++seq).padStart(12, '0')}`;
   const bal = (u: string) => coins.get(u) ?? 0;
+  const gbal = (u: string) => gems.get(u) ?? 0;
   return {
     coins,
+    gems,
     spins,
     async create(t, p) {
       const row: TournamentRow = { ...t, id: id(), startedAt: null, finishedAt: null };
@@ -255,7 +275,7 @@ export function createMemoryTournamentStore(): TournamentStore & { coins: Map<st
     async busyElsewhere(u, exceptId) {
       return [...ts.values()].some((t) => t.id !== exceptId && (t.status === 'open' || t.status === 'running') && (entries.get(t.id) ?? []).some((e) => e.userId === u));
     },
-    async join(tid, u, fee, now) {
+    async join(tid, u, fee, gemFee, now) {
       const t = ts.get(tid);
       if (!t || t.status !== 'open') return 'closed';
       const list = entries.get(tid)!;
@@ -265,7 +285,14 @@ export function createMemoryTournamentStore(): TournamentStore & { coins: Map<st
         if (bal(u) < fee) return 'insufficient';
         coins.set(u, bal(u) - fee);
       }
-      list.push({ userId: u, joinedAt: now, paid: fee });
+      if (gemFee > 0) {
+        if (gbal(u) < gemFee) {
+          if (fee > 0) coins.set(u, bal(u) + fee);
+          return 'insufficient';
+        }
+        gems.set(u, gbal(u) - gemFee);
+      }
+      list.push({ userId: u, joinedAt: now, paid: fee, paidGems: gemFee });
       return 'ok';
     },
     async leave(tid, u) {
@@ -275,12 +302,16 @@ export function createMemoryTournamentStore(): TournamentStore & { coins: Map<st
       const i = list.findIndex((e) => e.userId === u);
       if (i < 0) return 'not_in';
       coins.set(u, bal(u) + list[i]!.paid);
+      gems.set(u, gbal(u) + list[i]!.paidGems);
       list.splice(i, 1);
       return 'ok';
     },
     async cancel(tid) {
       const list = entries.get(tid) ?? [];
-      for (const e of list) coins.set(e.userId, bal(e.userId) + e.paid);
+      for (const e of list) {
+        coins.set(e.userId, bal(e.userId) + e.paid);
+        gems.set(e.userId, gbal(e.userId) + e.paidGems);
+      }
       const t = ts.get(tid);
       if (t) t.status = 'cancelled';
       return list.length;
@@ -317,6 +348,9 @@ export function createMemoryTournamentStore(): TournamentStore & { coins: Map<st
     },
     async balance(u) {
       return bal(u);
+    },
+    async gemBalance(u) {
+      return gbal(u);
     },
   };
 }
