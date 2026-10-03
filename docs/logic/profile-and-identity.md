@@ -111,19 +111,25 @@ app icon take that gender. Stored in `users.gender` (nullable), set from «پر�
 
 An optional field set from «پروفایل من», next to gender and city. Policy:
 
-- **Stored as a Solar Hijri date** (`users.birth_year`, `birth_month`, `birth_day`, all nullable; year 1300..current−5, a real
+- **Stored as a Solar Hijri date** (`users.birth_year`, `birth_month`, `birth_day`, all nullable; year 1300..current−10, a real
   calendar day). Gregorian is only a display helper (rule 3). The full date is **never sent to other players**.
 - **Age is derived**, never stored. A tick «سنم نمایش داده شود» (`users.show_age`, default **off**) controls whether other players
   see the age (whole years, e.g. «۲۴ ساله») on the public profile sheet. Off = the profile shows no age at all.
-- **Age gate:** players under the minimum age set in `config` (proposed 13) cannot save a birth date that makes them younger;
-  the field then stays empty and nothing changes for them. No store-policy claim is made beyond this.
-- **Uses (all server-side, none changes fairness):** a birthday greeting + small coin gift once per year (amount in
-  `config/economy.ts`, through `LedgerService`), a birthday badge for the day, age-band stats in the admin dashboard
-  (aggregated, never per-user), and message targeting by age band in the message centre.
+- **Minimum age 10** (`config`, owner-set 2026-10-03). A birth date that makes the player younger than 10 is not saved; the
+  field stays empty and nothing else changes for them.
+- **Birthday week.** Starting **3 days before** the birthday and lasting **7 days** (3 before, the day, 3 after), the player's own
+  profile and their public profile sheet show a party look (balloons/confetti, a «تولدت مبارک» banner). Whether others see the
+  party follows the age tick: with the tick off, others see the party without any age or date.
+- **Birthday gift**, claimable once per year during that week (idempotent per year, via `LedgerService` for coins): the amounts
+  are **admin settings**, never code literals (rule 9). Starting values: **100 coins, 5 gems, 2 wheel spins**. The wheel
+  spins follow the spin policy of D156. **Gems do not exist in the economy yet**: item 1 of the backlog introduces the gem
+  prize kind, so the gem part waits for it (or is dropped to zero) until then.
+- **Other uses (server-side, none changes fairness):** aggregated age-band stats in the admin dashboard (never per-user) and
+  message targeting by age band in the message centre.
 - **Privacy:** the date is personal data; the admin user sheet shows age only, the exact date only to the owner role; deleting
   the field clears it. Never put it in logs, share cards or socket payloads.
 
-Open for the owner: the minimum age, the birthday gift size, and whether the birthday badge is wanted.
+Open for the owner: whether the party look also shows on the match screen name tag, and what a gem is for.
 
 ## Province/city (D53)
 
