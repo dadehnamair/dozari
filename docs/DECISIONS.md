@@ -431,3 +431,6 @@ landing + blog project in this repo (`apps/landing`, its own container, content 
 adapted from Laravel to this stack); (9) `2oi.ir` is the short domain for outgoing links via a self-hosted shortener, and every domain becomes an admin setting.
 The app's own domains (`mrbots.ir`, `api.mrbots.ir`) are unchanged until the owner decides otherwise.
 
+## D158 — Admin panel tidy-up (2026-10-03, proposed)
+
+Owner added backlog item 10: restructure the admin panel UI for readability — categorised sidebar, explanatory text per page, and «add» flows as modal forms. UI-only; admin API contracts are unchanged. Not started; the owner names the order.
