@@ -39,7 +39,7 @@ Quick check on a connected phone instead: `pnpm --filter @dozari/mobile android`
 
 Version: bump `version` in `app.json` (and `android.versionCode`). Icons, adaptive icon and notification icon are in `apps/mobile/assets`.
 Gradle downloads AndroidX from Google's Maven at **build time**; that is a build tool, not a runtime dependency (rule 8), but from an
-Iranian network use a mirror or build on GitHub (option A). Native sound is still silent (web only, D89/D121).
+Iranian network use a mirror or build on GitHub (option A). Background music plays on a phone (rendered offline to a looping WAV, `src/sound/nativeMusic.ts`); sound effects are still web only (D89/D121).
 The app forces RTL natively (`app.config.js`, `Application.onCreate`) so the first launch is already right-to-left, and on Android content is padded below the status bar (`nativeTopInset`) while backgrounds stay full-bleed.
 
 ## Not verified

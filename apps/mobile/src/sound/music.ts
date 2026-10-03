@@ -1,12 +1,15 @@
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import { getPrefs, usePrefs } from '../prefs/store';
 import { context } from './engine';
 import type { AudioCtx } from './engine';
 import { MUSIC, stepSeconds } from './musicPattern';
+import { setNativeMusic } from './nativeMusic';
 import type { DrumHit, Mood } from './musicPattern';
 
 /**
- * Soft background music, synthesised with WebAudio like the effects (web only; native stays silent for now). Never throws.
+ * Soft background music, synthesised with WebAudio like the effects on the web; on a phone the same pattern is rendered offline
+ * to a looping WAV (nativeMusic.ts). Never throws.
  * Timbre: plucked strings (a few decaying harmonics with a tiny pitch settle, like a setar / santur), a slow drone, and a soft
  * frame drum from filtered noise, all through a gentle low-pass and a short echo so it sounds like a room, not a beeper.
  */
@@ -135,6 +138,7 @@ function tick() {
 
 /** Sets the mood (null = silence). Switching mood restarts the loop so the tempo changes at once. */
 export function setMusicMood(next: Mood | null): void {
+  if (Platform.OS !== 'web') return setNativeMusic(next);
   if (next === mood) return;
   mood = next;
   step = 0;
