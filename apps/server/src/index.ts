@@ -461,12 +461,13 @@ if (isMainModule(import.meta.url)) {
     db && settings && wheelStore
       ? new WheelService(wheelStore, async () => {
           // The live table (admin-edited); a slice with no odds never shows. An empty table falls back to the shared default.
-          const live = (await wheelStore.prizes()).filter((p) => p.weight > 0).map((p) => ({ kind: p.kind, amount: p.amount, weight: p.weight }));
+          const live = (await wheelStore.prizes()).filter((p) => p.weight > 0 && (p.kind !== 'cosmetic' || p.itemId)).map((p) => ({ kind: p.kind, amount: p.amount, weight: p.weight, itemId: p.itemId ?? undefined, iconKey: p.iconKey, titleFa: p.titleFa ?? undefined }));
           return {
             enabled: (await settings.num('wheel.enabled')) === 1,
             slices: scaleSlices(live.length > 0 ? live : WHEEL_SLICES_DEFAULT, await settings.num('wheel.prize_scale_percent')),
             dailySpins: await settings.num('wheel.daily_spins'),
             winSpins: (await settings.num('wheel.win_spins')) === 1,
+            dupeCoins: await settings.num('wheel.cosmetic_dupe_coins'),
           };
         }, () => randomInt(0, 2 ** 32) / 2 ** 32)
       : undefined;

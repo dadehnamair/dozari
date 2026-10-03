@@ -35,7 +35,8 @@ export type SoloHintResult = z.infer<typeof soloHintResultSchema>;
 
 /** `GET /shop`: items a player can buy with coins (docs/logic/shop.md). */
 /** `hint_token` adds hint tokens; `wheel_spin` adds lucky-wheel spins (one row per spin in `wheel_spins`). */
-export const SHOP_EFFECTS = ['hint_token', 'wheel_spin'] as const;
+export const SHOP_EFFECTS = ['hint_token', 'wheel_spin', 'cosmetic'] as const;
+export const COSMETIC_SLOTS = ['hat', 'outfit', 'accessory'] as const;
 export const shopEffectSchema = z.enum(SHOP_EFFECTS);
 
 export const shopItemSchema = z.object({
@@ -51,8 +52,13 @@ export const shopItemSchema = z.object({
   priceGems: z.number().int().nonnegative().default(0),
   minLevel: z.number().int().positive(),
   iconKey: z.string().nullable(),
+  /** Slot a cosmetic is worn in (null for other effects). */
+  slot: z.enum(COSMETIC_SLOTS).nullable().default(null),
+  /** Cosmetics: the caller owns it / wears it. */
+  owned: z.boolean().default(false),
+  equipped: z.boolean().default(false),
   /** Why the player cannot buy it right now, or null. */
-  blocked: z.enum(['LEVEL', 'DAILY_LIMIT', 'COINS', 'GEMS']).nullable(),
+  blocked: z.enum(['LEVEL', 'DAILY_LIMIT', 'COINS', 'GEMS', 'OWNED']).nullable(),
   /** Purchases left today when the item has a daily limit. */
   leftToday: z.number().int().nonnegative().nullable(),
 });

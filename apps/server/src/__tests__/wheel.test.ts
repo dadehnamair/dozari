@@ -72,9 +72,18 @@ describe('typed prizes', () => {
     const s = await spinWith({ kind: 'wheel_spin', amount: 2 });
     expect(s.out).toMatchObject({ kind: 'wheel_spin', pending: 2 });
   });
+  it('a cosmetic prize is kept once; a repeat pays coins instead', async () => {
+    const store = createMemoryWheelStore();
+    const slices = [{ kind: 'cosmetic' as const, amount: 1, weight: 1, itemId: 'hat-1', iconKey: 'hat', titleFa: 'کلاه' }];
+    const wheel = new WheelService(store, async () => ({ ...DEFAULT_WHEEL_RULES, slices, dupeCoins: 50 }), () => 0);
+    await wheel.give('a', 'admin', 'x', 2);
+    expect(await wheel.spin('a')).toMatchObject({ kind: 'cosmetic', titleFa: 'کلاه', iconKey: 'hat', duplicate: false });
+    expect(store.wardrobe.get('a')?.has('hat-1')).toBe(true);
+    expect(await wheel.spin('a')).toMatchObject({ kind: 'coins', amount: 50, duplicate: true, balance: 50 });
+  });
   it('the status shows each slice with its kind', async () => {
     const t = boot();
-    expect((await t.wheel.status('a')).slices[1]).toEqual({ kind: 'hint_token', amount: 1 });
+    expect((await t.wheel.status('a')).slices[1]).toMatchObject({ kind: 'hint_token', amount: 1 });
   });
   it('a duel win gives no spin when the admin has win spins off', async () => {
     const t = boot({ ...DEFAULT_WHEEL_RULES, winSpins: false });

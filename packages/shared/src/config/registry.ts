@@ -121,6 +121,7 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'levelreward.base_coins', group: 'economy', label: 'جایزه‌ی جاده‌ی لول: سکه‌ی پایه', hint: 'جایزه = پایه × (لول ÷ فاصله)؛ مثلاً ۲۵ → لول ۵: ۲۵، لول ۱۰: ۵۰', kind: 'int', min: 0, max: 10000, default: LEVEL_REWARD_BASE_COINS, unit: 'سکه' },
   { key: 'wheel.enabled', group: 'economy', label: 'گردونه‌ی شانس بعد از برد روشن باشد', hint: 'کل گردونه را روشن یا خاموش می‌کند؛ جایزه‌ها در بخش «گردونه»ی پنل', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'wheel.daily_spins', group: 'economy', label: 'چرخش رایگان گردونه برای هر بازیکن در روز', hint: '۰ = خاموش (پیش‌فرض: چرخش رایگان نداریم). با اولین نگاه به گردونه‌ی آن روز داده می‌شود', kind: 'int', min: 0, max: 10, default: 0, unit: 'چرخش' },
+  { key: 'wheel.cosmetic_dupe_coins', group: 'economy', label: 'سکه‌ی جایگزین وقتی جایزه‌ی لباس یا کلاه را از قبل دارد', kind: 'int', min: 0, max: 100_000, default: 50, unit: 'سکه' },
   { key: 'wheel.win_spins', group: 'economy', label: 'برد دوئل زنده یک چرخش گردونه بدهد', hint: 'خاموش = چرخش فقط از خرید، سطح، تورنومنت و هدیه می‌آید', kind: 'bool', min: 0, max: 1, default: 0 },
   { key: 'wheel.prize_scale_percent', group: 'economy', label: 'مقیاس جایزه‌های سکه‌ای گردونه (۱۰۰ = همان مقدار جدول)', kind: 'int', min: 0, max: 1000, default: 100, unit: '٪' },
   { key: 'feature.tables', group: 'app', label: 'میز اختصاصی روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },

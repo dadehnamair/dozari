@@ -48,14 +48,15 @@ const rays = (() => {
  * the real slices of `GET /wheel` and, once `POST /wheel/spin` answers, turns to stop on the slice the server chose.
  */
 /** Icon of each prize kind on the wheel and in the result card. */
-const PRIZE_ICON = { coins: 'coin', gems: 'gem', hint_token: 'magnifier', wheel_spin: 'dice' } as const;
+const PRIZE_ICON = { coins: 'coin', gems: 'gem', hint_token: 'magnifier', wheel_spin: 'dice', cosmetic: 'gift' } as const;
+const iconOf = (p: { kind: keyof typeof PRIZE_ICON; iconKey?: string | null }): string => (p.kind === 'cosmetic' && p.iconKey ? p.iconKey : PRIZE_ICON[p.kind]);
 
 export function WheelPage({ onClose }: { onClose: () => void }) {
   useHardwareBack(onClose);
   const [status, setStatus] = useState<WheelStatus | null>(null);
   const [failed, setFailed] = useState(false);
   const [spinning, setSpinning] = useState(false);
-  const [prize, setPrize] = useState<WheelPrize | null>(null);
+  const [prize, setPrize] = useState<(WheelPrize & { duplicate?: boolean }) | null>(null);
   const turn = useRef(new Animated.Value(0)).current;
   const [dailyNote, setDailyNote] = useState(false);
   const raysTurn = useRef(new Animated.Value(0)).current;
@@ -90,7 +91,7 @@ export function WheelPage({ onClose }: { onClose: () => void }) {
       turn.setValue(0);
       Animated.timing(turn, { toValue: spinAngle(out.slice, status.slices.length), duration: SPIN_MS, easing: Easing.bezier(0.12, 0.7, 0.15, 1), useNativeDriver: Platform.OS !== 'web' }).start(() => {
         setSpinning(false);
-        setPrize({ kind: out.kind, amount: out.amount });
+        setPrize({ kind: out.kind, amount: out.amount, iconKey: out.iconKey, titleFa: out.titleFa, duplicate: out.duplicate });
         setStatus({ ...status, pending: out.pending, balance: out.balance, gems: out.gems });
       });
     } catch {
@@ -146,7 +147,7 @@ export function WheelPage({ onClose }: { onClose: () => void }) {
             </Svg>
             {status.slices.map((p, i) => (
               <View key={i} style={[styles.slice, { transform: [{ rotate: `${(i * 360) / count}deg` }] }]} pointerEvents="none">
-                <View style={styles.sliceIcon}><Item icon={PRIZE_ICON[p.kind]} /></View>
+                <View style={styles.sliceIcon}><Item icon={iconOf(p)} /></View>
                 <Text style={styles.sliceText}>{n(p.amount)}</Text>
               </View>
             ))}
@@ -179,12 +180,12 @@ export function WheelPage({ onClose }: { onClose: () => void }) {
 
       {prize !== null ? (
         <Pressable style={styles.prize} onPress={() => setPrize(null)} accessibilityLabel={t.close}>
-          <View style={styles.prizeIcon}><Item icon={prize.kind === 'coins' ? 'coinStack' : PRIZE_ICON[prize.kind]} /></View>
+          <View style={styles.prizeIcon}><Item icon={prize.kind === 'coins' ? 'coinStack' : iconOf(prize)} /></View>
           <View style={styles.prizePlate}>
             <GradientFill from="#FFE48A" to={colors.candy.yellow} />
-            <Text style={styles.prizeText}>{n(prize.amount)} {t.kinds[prize.kind]}</Text>
+            <Text style={styles.prizeText}>{prize.kind === 'cosmetic' ? (prize.titleFa ?? t.kinds.cosmetic) : `${n(prize.amount)} ${t.kinds[prize.kind]}`}</Text>
           </View>
-          <Text style={styles.noteLight}>{t.won[prize.kind]}</Text>
+          <Text style={styles.noteLight}>{prize.duplicate ? t.dupe : t.won[prize.kind]}</Text>
         </Pressable>
       ) : null}
     </View>

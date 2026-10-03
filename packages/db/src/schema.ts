@@ -711,7 +711,11 @@ export const userStats = mysqlTable('user_stats', {
   updatedAt: datetime('updated_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
 });
 
-export const SHOP_EFFECTS = ['hint_token', 'wheel_spin'] as const;
+/** What a shop item gives. `cosmetic` is a hat / clothing item the player keeps and wears (no stock). */
+export const SHOP_EFFECTS = ['hint_token', 'wheel_spin', 'cosmetic'] as const;
+/** Stockable effects of `user_inventory` (a cosmetic is owned in `user_cosmetics`, not counted). */
+export const INVENTORY_EFFECTS = ['hint_token', 'wheel_spin'] as const;
+export const COSMETIC_SLOTS = ['hat', 'outfit', 'accessory'] as const;
 
 /** Things a player can buy with coins (docs/logic/shop.md). Prices, level gates and daily limits are edited in the admin panel. */
 export const shopItems = mysqlTable(
@@ -730,11 +734,26 @@ export const shopItems = mysqlTable(
     minLevel: int('min_level').notNull().default(1),
     /** 0 = no daily limit. */
     perDayLimit: int('per_day_limit').notNull().default(0),
+    /** Slot a `cosmetic` item is worn in (one worn item per slot); null for other effects. */
+    slot: mysqlEnum('slot', COSMETIC_SLOTS),
     iconKey: varchar('icon_key', { length: 30 }),
     sortOrder: int('sort_order').notNull().default(0),
     isActive: boolean('is_active').notNull().default(true),
   },
   (table) => ({ bySort: index('shop_items_sort_idx').on(table.sortOrder) }),
+);
+
+/** Cosmetic shop items a player owns (bought, or won on the wheel), and which of them are worn. */
+export const userCosmetics = mysqlTable(
+  'user_cosmetics',
+  {
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    itemId: char('item_id', { length: 36 }).notNull().references(() => shopItems.id),
+    equipped: boolean('equipped').notNull().default(false),
+    source: varchar('source', { length: 16 }).notNull().default('shop'),
+    acquiredAt: datetime('acquired_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.userId, table.itemId] }) }),
 );
 
 /** Fixed coin packages sold for real money through a store (built, switched off by `feature.coin_packages`). */
@@ -776,7 +795,7 @@ export const userInventory = mysqlTable(
   'user_inventory',
   {
     userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
-    effect: mysqlEnum('effect', SHOP_EFFECTS).notNull(),
+    effect: mysqlEnum('effect', INVENTORY_EFFECTS).notNull(),
     qty: int('qty').notNull().default(0),
   },
   (table) => ({ pk: primaryKey({ columns: [table.userId, table.effect] }) }),
@@ -1149,7 +1168,7 @@ export const dailyPlayCounts = mysqlTable(
  * A lucky-wheel spin (docs/logic/economy.md §Lucky wheel). `source`: `win` (a won duel, `match_id`), `shop`, `level`, `tournament`, `daily`, `admin`;
  * non-win spins carry a `ref` that makes the grant idempotent. `coins` stays null until it is spun.
  */
-export const WHEEL_PRIZE_KIND_VALUES = ['coins', 'gems', 'hint_token', 'wheel_spin'] as const;
+export const WHEEL_PRIZE_KIND_VALUES = ['coins', 'gems', 'hint_token', 'wheel_spin', 'cosmetic'] as const;
 
 /** The wheel's live prize table (docs/logic/economy.md §Lucky wheel, D165): one row per slice, edited in the admin panel. Seeded from the shared default when empty. */
 export const wheelPrizes = mysqlTable(
@@ -1158,6 +1177,8 @@ export const wheelPrizes = mysqlTable(
     id: id(),
     kind: mysqlEnum('kind', WHEEL_PRIZE_KIND_VALUES).notNull(),
     amount: int('amount').notNull(),
+    /** The shop item (effect `cosmetic`) a `cosmetic` slice gives. */
+    itemId: char('item_id', { length: 36 }),
     /** Relative odds; 0 never wins. */
     weight: int('weight').notNull(),
     sortOrder: int('sort_order').notNull().default(0),

@@ -323,6 +323,13 @@
       "when": 1791031772277,
       "tag": "0045_fantastic_lake",
       "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "5",
+      "when": 1791032215628,
+      "tag": "0046_loose_scarlet_witch",
+      "breakpoints": true
     }
   ]
 }

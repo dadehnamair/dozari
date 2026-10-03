@@ -2,7 +2,7 @@ import { randomInt } from 'node:crypto';
 import type { PuzzleAdmin } from '../puzzles/admin.js';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { checkLevelTable, isDateKey, ITEMS, ITEM_GROUPS, LEVEL_TABLE_MAX, levelRowSchema, PRODUCT_CATEGORIES, PROVINCES, provinceOf, SETTING_GROUPS, SHOP_EFFECTS, WHEEL_PRIZE_KINDS } from '@dozari/shared';
+import { checkLevelTable, isDateKey, ITEMS, ITEM_GROUPS, LEVEL_TABLE_MAX, levelRowSchema, PRODUCT_CATEGORIES, PROVINCES, provinceOf, SETTING_GROUPS, SHOP_EFFECTS, COSMETIC_SLOTS, WHEEL_PRIZE_KINDS } from '@dozari/shared';
 import type { LevelRow } from '@dozari/shared';
 import type { LevelTable } from '../progress/table.js';
 import type { SettingsService } from '../settings/service.js';
@@ -758,6 +758,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       titleFa: z.string().trim().min(2).max(80),
       descriptionFa: z.string().trim().max(300),
       effect: z.enum(SHOP_EFFECTS),
+      slot: z.enum(COSMETIC_SLOTS).nullable().default(null),
       amount: z.number().int().min(1).max(1000),
       currency: z.enum(['coins', 'gems']),
       priceCoins: z.number().int().min(0).max(1_000_000),
@@ -790,13 +791,15 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     const prizeFields = {
       kind: z.enum(WHEEL_PRIZE_KINDS),
       amount: z.number().int().min(1).max(100_000),
+      /** The shop item a `cosmetic` slice gives. */
+      itemId: z.string().uuid().nullable().default(null),
       weight: z.number().int().min(0).max(1000),
       isActive: z.boolean(),
     };
     g.get('/admin/wheel/prizes', async () => ({ prizes: await wheel.prizes.list() }));
     g.post('/admin/wheel/prizes', async (req, reply) => {
       const b = z.object(prizeFields).safeParse(req.body);
-      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      if (!b.success || (b.data.kind === 'cosmetic' && !b.data.itemId)) return reply.code(400).send({ error: 'invalid_request' });
       const row = await wheel.prizes.add(b.data);
       void audit('wheel.add', row.id, `${b.data.kind} ${b.data.amount} w${b.data.weight}`);
       return reply.code(201).send({ id: row.id });

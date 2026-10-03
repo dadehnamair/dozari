@@ -6,10 +6,15 @@ export interface WheelPrizeRow {
   kind: WheelPrizeKind;
   amount: number;
   weight: number;
+  /** `cosmetic` slices: the shop item given. */
+  itemId: string | null;
+  /** Name and icon of that item (read from the shop, for the wheel face and the admin list). */
+  titleFa?: string | null;
+  iconKey?: string | null;
   sortOrder: number;
   isActive: boolean;
 }
-export type NewWheelPrize = Omit<WheelPrizeRow, 'id' | 'sortOrder'>;
+export type NewWheelPrize = Omit<WheelPrizeRow, 'id' | 'sortOrder' | 'titleFa' | 'iconKey'>;
 
 export interface SpinResult {
   slice: number;
@@ -18,6 +23,10 @@ export interface SpinResult {
   pending: number;
   balance: number;
   gems: number;
+  iconKey?: string | null;
+  titleFa?: string;
+  /** A cosmetic the player already owned: paid as `amount` coins instead (`kind` is then `coins`). */
+  duplicate: boolean;
 }
 
 /** I/O boundary of the lucky wheel. */
@@ -37,7 +46,7 @@ export interface WheelStore {
    * Atomically takes the player's oldest unspun spin, asks `roll` for the prize and pays it by kind (coins and gems through their
    * ledgers, hint tokens into the inventory, a spin as a new spin row). Null when nothing is waiting.
    */
-  spin(userId: string, roll: () => { slice: number } & WheelPrize): Promise<SpinResult | null>;
+  spin(userId: string, roll: () => { slice: number; itemId?: string } & WheelPrize, opts: { dupeCoins: number }): Promise<SpinResult | null>;
 }
 
 export interface WheelStatusView {
@@ -85,7 +94,7 @@ export class WheelService {
     // The free daily spin is handed out the first time the player looks at the wheel that day.
     const daily = rules.enabled && (rules.dailySpins ?? 0) > 0 ? await this.store.give(userId, 'daily', dailyDateKey(this.now()), rules.dailySpins ?? 0) : 0;
     const [pending, balance, gems] = await Promise.all([this.store.pending(userId), this.store.balance(userId), this.store.gems(userId)]);
-    return { enabled: rules.enabled, pending: rules.enabled ? pending : 0, daily, slices: rules.slices.map((s) => ({ kind: s.kind, amount: s.amount })), balance, gems };
+    return { enabled: rules.enabled, pending: rules.enabled ? pending : 0, daily, slices: rules.slices.map((s) => ({ kind: s.kind, amount: s.amount, iconKey: s.iconKey ?? null, titleFa: s.titleFa })), balance, gems };
   }
 
   /** Spins the oldest waiting spin; null when none is waiting (or the wheel is off). */
@@ -95,7 +104,7 @@ export class WheelService {
     return this.store.spin(userId, () => {
       const slice = pickSlice(rules.slices, this.random());
       const s = rules.slices[slice]!;
-      return { slice, kind: s.kind, amount: s.amount };
-    });
+      return { slice, kind: s.kind, amount: s.amount, itemId: s.itemId, iconKey: s.iconKey, titleFa: s.titleFa };
+    }, { dupeCoins: rules.dupeCoins ?? 0 });
   }
 }

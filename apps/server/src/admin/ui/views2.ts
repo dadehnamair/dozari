@@ -506,17 +506,18 @@ VIEWS.shop = function (root) {
     });
   }
   var title = h('input', { type: 'text', placeholder: 'نام آیتم', maxlength: 80 }), desc = h('input', { type: 'text', placeholder: 'توضیح کوتاه برای بازیکن', maxlength: 300 });
-  var cur = select([['coins', 'سکه'], ['gems', 'الماس']], 'coins'), price = num(20), amt = num(1, 1), lvl = num(1, 1), lim = num(0), eff = select([['hint_token', 'توکن راهنما'], ['wheel_spin', 'چرخش گردونه']], 'hint_token');
+  var cur = select([['coins', 'سکه'], ['gems', 'الماس']], 'coins'), price = num(20), amt = num(1, 1), lvl = num(1, 1), lim = num(0), eff = select([['hint_token', 'توکن راهنما'], ['wheel_spin', 'چرخش گردونه'], ['cosmetic', 'لباس / کلاه']], 'hint_token'), slot = select([['hat', 'کلاه'], ['outfit', 'لباس'], ['accessory', 'زیورآلات']], 'hat'), icon = h('input', { type: 'text', placeholder: 'magnifier، hat، crown، shirt …', value: 'magnifier', maxlength: 30 });
   root.appendChild(card('قیمت راهنما در بازی تکی', 'قیمت هر راهنما، لول لازم و سقف راهنما در هر بازی در بخش «تنظیمات ← اقتصاد» است.', []));
   root.appendChild(card('آیتم‌های فروشگاه', 'هر آیتم با سکه یا الماس خریده می‌شود و «توکن راهنما» می‌دهد؛ توکن به جای سکه در بازی تکی خرج می‌شود. بازیکن شرط لول و سقف روزانه را قبل از خرید می‌بیند.', [list]));
-  root.appendChild(addCard('آیتم تازه', 'نوع اثر: «توکن راهنما» (به جای سکه در بازی تکی خرج می‌شود) یا «چرخش گردونه» (هر عدد یک چرخش گردونه‌ی شانس).', 'آیتم تازه', [['عنوان', title], ['توضیح', desc], ['نوع اثر', eff], ['پرداخت با', cur], ['قیمت (به واحد انتخابی)', price], ['تعداد (توکن یا چرخش)', amt], ['کمترین لول', lvl], ['سقف در روز', lim]], function () {
-    return api('/admin/shop', { method: 'POST', body: { titleFa: title.value.trim(), descriptionFa: desc.value.trim(), effect: eff.value, amount: +amt.value, currency: cur.value, priceCoins: cur.value === 'coins' ? +price.value : 0, priceGems: cur.value === 'gems' ? +price.value : 0, minLevel: +lvl.value, perDayLimit: +lim.value, iconKey: eff.value === 'wheel_spin' ? 'dice' : 'magnifier', isActive: true } }).then(function (x) { if (!x.ok) { fail(x); return false; } toast('آیتم ساخته شد'); title.value = ''; desc.value = ''; draw(); return true; });
+  root.appendChild(addCard('آیتم تازه', 'نوع اثر: «توکن راهنما» (به جای سکه در بازی تکی خرج می‌شود) یا «چرخش گردونه» (هر عدد یک چرخش گردونه‌ی شانس) یا «لباس / کلاه» (یک بار خریده می‌شود و روی آواتار پوشیده می‌شود؛ تعداد را ۱ بگذارید).', 'آیتم تازه', [['عنوان', title], ['توضیح', desc], ['نوع اثر', eff], ['جایگاه (فقط لباس / کلاه)', slot], ['نام آیکن', icon], ['پرداخت با', cur], ['قیمت (به واحد انتخابی)', price], ['تعداد (توکن یا چرخش)', amt], ['کمترین لول', lvl], ['سقف در روز', lim]], function () {
+    return api('/admin/shop', { method: 'POST', body: { titleFa: title.value.trim(), descriptionFa: desc.value.trim(), effect: eff.value, amount: +amt.value, currency: cur.value, priceCoins: cur.value === 'coins' ? +price.value : 0, priceGems: cur.value === 'gems' ? +price.value : 0, minLevel: +lvl.value, perDayLimit: +lim.value, slot: eff.value === 'cosmetic' ? slot.value : null, iconKey: eff.value === 'wheel_spin' ? 'dice' : icon.value.trim() || 'magnifier', isActive: true } }).then(function (x) { if (!x.ok) { fail(x); return false; } toast('آیتم ساخته شد'); title.value = ''; desc.value = ''; draw(); return true; });
   }));
   draw();
 };
 VIEWS.wheel = function (root) {
-  var KIND = { coins: 'سکه', gems: 'الماس', hint_token: 'توکن راهنما', wheel_spin: 'چرخش گردونه' };
-  var KINDS = [['coins', 'سکه'], ['gems', 'الماس'], ['hint_token', 'توکن راهنما'], ['wheel_spin', 'چرخش گردونه']];
+  var KIND = { coins: 'سکه', gems: 'الماس', hint_token: 'توکن راهنما', wheel_spin: 'چرخش گردونه', cosmetic: 'لباس / کلاه' };
+  var KINDS = [['coins', 'سکه'], ['gems', 'الماس'], ['hint_token', 'توکن راهنما'], ['wheel_spin', 'چرخش گردونه'], ['cosmetic', 'لباس / کلاه (آیتم فروشگاه)']];
+  var itemSel = select([['', '— آیتم لباس —']], '');
   var list = h('div'), odds = h('div', { class: 'h' });
   function num(v, min) { return h('input', { type: 'number', value: v, min: min === undefined ? 0 : min, style: 'width:90px' }); }
   function row(p, total) {
@@ -525,7 +526,7 @@ VIEWS.wheel = function (root) {
     var pct = total > 0 && p.isActive ? Math.round((1000 * p.weight) / total) / 10 : 0;
     return h('div', { class: 'card', style: 'padding:12px' }, [
       h('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap' }, [
-        h('b', { text: KIND[p.kind] || p.kind }), p.isActive ? badge('فعال', 'b-ok') : badge('پنهان', 'b-warn'), h('span', { class: 'h', text: 'شانس تقریبی ' + faNum(pct) + '٪' })
+        h('b', { text: (KIND[p.kind] || p.kind) + (p.titleFa ? ' · ' + p.titleFa : '') }), p.isActive ? badge('فعال', 'b-ok') : badge('پنهان', 'b-warn'), h('span', { class: 'h', text: 'شانس تقریبی ' + faNum(pct) + '٪' })
       ]),
       h('div', { class: 'toolbar', style: 'margin-top:8px' }, [
         field('مقدار', amt), field('وزن شانس (۰ = هیچ‌وقت)', w),
@@ -549,9 +550,10 @@ VIEWS.wheel = function (root) {
   }
   var kind = select(KINDS, 'coins'), amt = num(10, 1), wt = num(10);
   root.appendChild(card('جایزه‌های گردونه', 'هر ردیف یک قطعه‌ی گردونه است. شانس هر قطعه = وزنش تقسیم بر جمع وزن‌های فعال. چرخش رایگان و چرخش بعد از برد در «تنظیمات ← اقتصاد» است.', [odds, list]));
-  root.appendChild(addCard('قطعه‌ی تازه', 'نوع جایزه، مقدارش و وزن شانس را بنویسید.', 'قطعه‌ی تازه', [['نوع جایزه', kind], ['مقدار', amt], ['وزن شانس', wt]], function () {
-    return api('/admin/wheel/prizes', { method: 'POST', body: { kind: kind.value, amount: +amt.value, weight: +wt.value, isActive: true } }).then(function (x) { if (!x.ok) { fail(x); return false; } toast('قطعه ساخته شد'); draw(); return true; });
+  root.appendChild(addCard('قطعه‌ی تازه', 'نوع جایزه، مقدارش و وزن شانس را بنویسید.', 'قطعه‌ی تازه', [['نوع جایزه', kind], ['آیتم (فقط برای لباس / کلاه)', itemSel], ['مقدار (برای لباس ۱)', amt], ['وزن شانس', wt]], function () {
+    return api('/admin/wheel/prizes', { method: 'POST', body: { kind: kind.value, itemId: kind.value === 'cosmetic' ? itemSel.value || null : null, amount: kind.value === 'cosmetic' ? 1 : +amt.value, weight: +wt.value, isActive: true } }).then(function (x) { if (!x.ok) { fail(x); return false; } toast('قطعه ساخته شد'); draw(); return true; });
   }));
+  api('/admin/shop').then(function (r) { if (!r.ok) return; r.body.items.filter(function (i) { return i.effect === 'cosmetic'; }).forEach(function (i) { itemSel.appendChild(h('option', { value: i.id, text: i.titleFa })); }); });
   draw();
 };
 VIEWS.invites = function (root) {
