@@ -120,6 +120,16 @@ Steps: `gender`, `city`, `phone` (verified), `bale` (linked). Nickname and avata
   open the profile sheet, settings or the Bale sheet). A step whose screen is switched off is skipped.
 - Birth date (D160) will become a fifth step when it is built.
 
+### Missions (D163)
+
+The same service also carries the other one-time missions (`GET /me/profile-tasks` is the list, `POST /me/profile-tasks/:key/claim` takes
+one): `first_win` (the player has at least one win in `user_stats`), `invite_friend` (an invitee's `reward_paid_at` is set, i.e. the
+friend really played), and three **honour** missions that cannot be verified because they happen outside the app: `follow_instagram`,
+`follow_channel` (links `link.instagram`, `link.channel`; empty = the mission is hidden) and `rate_app` (the store link of the review flow,
+D75). Honour missions pay little and unlock only after the player opened the link. Proposed rewards, all admin settings
+(`profiletask.coins_<key>`): first win 25, invited friend 100, Instagram 15, channel 15, store review 40 coins.
+Home has a «ماموریت‌ها» tile (badge = rewards waiting) opening the list; the guide bubble still nudges only the profile steps.
+
 ## Birth date and age display (D160, proposed — not built)
 
 An optional field set from «پروفایل من», next to gender and city. Policy:
@@ -137,12 +147,17 @@ An optional field set from «پروفایل من», next to gender and city. Pol
   are **admin settings**, never code literals (rule 9). Starting values: **100 coins, 5 gems, 2 wheel spins**. The wheel
   spins follow the spin policy of D156. **Gems do not exist in the economy yet**: item 1 of the backlog introduces the gem
   prize kind, so the gem part waits for it (or is dropped to zero) until then.
+- **Birthday badge for everyone:** during the birthday week the player's name tag shows a birthday badge to **all** players (name tag
+  in matches, lists and profile sheets), regardless of the age tick. It shows only that it is their birthday, never the date or age.
+- **Friends are told:** every friend gets an inbox message («امروز تولد X است»; a first one when the week starts, a second on the day),
+  once per year, no age in it. A tick «به دوستانم خبر بده» (default on) lets the player turn this off.
+- **Gems** (D164): the 5 gems of the gift are paid in the new gem currency.
 - **Other uses (server-side, none changes fairness):** aggregated age-band stats in the admin dashboard (never per-user) and
   message targeting by age band in the message centre.
 - **Privacy:** the date is personal data; the admin user sheet shows age only, the exact date only to the owner role; deleting
   the field clears it. Never put it in logs, share cards or socket payloads.
 
-Open for the owner: whether the party look also shows on the match screen name tag, and what a gem is for.
+Open for the owner: the size of the birthday gift per year can change in the admin panel at any time.
 
 ## Province/city (D53)
 

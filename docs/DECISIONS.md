@@ -449,3 +449,11 @@ The designer's update (`Item.dc.html`, `Dozari - 14 Product Icons.dc.html`; the 
 ## D161 — Profile-completion rewards (2026-10-03, proposed)
 
 Backlog item 3. Home's guide character nudges the next missing profile step and pays a one-time coin reward, set per step in the admin panel (proposed defaults: gender 10, city 20, verified phone 50, Bale link 30). Steps are checked on the server; claims are idempotent (`profile_task_claims` + ledger reason `profile_task`). Nickname and avatar are not steps because every account gets them at signup. The sizes are mine to propose and the owner can change them in «تنظیمات ← اقتصاد».
+
+## D163 — Missions (2026-10-03, proposed rewards)
+
+Backlog item 4. Missions reuse the profile-task service (D161): the list now holds the four profile steps plus `first_win`, `invite_friend` and three honour missions (Instagram follow, channel join, store review). Server-checked ones pay only when true; honour missions are always claimable once and carry small rewards; all claims are idempotent (`profile_task_claims`, ledger reason `profile_task`, label «ماموریت»). Rewards are mine to propose and the owner edits them in «تنظیمات ← اقتصاد»: first win 25, invited friend 100, Instagram 15, channel 15, store review 40. Home gets a «ماموریت‌ها» tile. `link.instagram` and `link.channel` are settings; an empty link hides its mission.
+
+## D164 — Gems (الماس), birthday badge for all, friends told (2026-10-03, proposed)
+
+Owner: gems are a second currency used for many things, mostly shop purchases, and some tournaments take gems as the entry fee; the birthday badge shows to everyone; friends get a message that it is someone's birthday. Proposed: gems live beside coins with their own append-only `gem_ledger` and balance (never `UPDATE`; one service function; same idempotent-key rule as coins, CLAUDE.md rule 6), prices of shop items and tournament entry fees get a currency (`coins` | `gems`), the wheel and the birthday gift can pay gems. Gems are earned only through such gifts and prizes at first, not sold. Not built; it is backlog item 12 and item 1 (wheel prizes) and 11 (birthday) wait on it. The birthday-week details (badge for all, friends' messages with an opt-out tick, gift in the admin panel) are in `logic/profile-and-identity.md` (D160).

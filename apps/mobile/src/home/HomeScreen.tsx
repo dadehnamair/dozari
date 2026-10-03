@@ -12,6 +12,10 @@ import { Item } from '../components/Item';
 import { fetchMyProfile } from '../social/api';
 import { claimProfileTask, fetchProfileTasks } from '../social/profileTasksApi';
 import { profileNudge } from './profileNudge';
+import { MissionsSheet } from '../missions/MissionsSheet';
+import { missionRows } from '../missions/model';
+import type { MissionAvailability } from '../missions/model';
+import { InviteSheet } from '../invite/InviteSheet';
 import type { ProfileTask } from '@dozari/shared';
 import { heroFor } from '../social/heroFor';
 import type { Gender } from '@dozari/shared';
@@ -117,6 +121,8 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
   }, []);
   useEffect(loadMe, [loadMe]);
   const [profileTasks, setProfileTasks] = useState<ProfileTask[]>([]);
+  const [missionsOpen, setMissionsOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [nudgeToast, setNudgeToast] = useState<string | null>(null);
   const loadTasks = useCallback(() => void fetchProfileTasks().then((r) => setProfileTasks(r.tasks), () => undefined), []);
   useEffect(loadTasks, [loadTasks]);
@@ -139,6 +145,12 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
   }, [nudgeToast]);
   const inbox = useInbox();
   const review = useReviewPrompt(settings);
+  const text = (v: unknown): string | null => (typeof v === 'string' && /^https?:\/\//i.test(v) ? v : null);
+  const missionAvail: MissionAvailability = {
+    link: (k) => (k === 'follow_instagram' ? text(settings['link.instagram']) : k === 'follow_channel' ? text(settings['link.channel']) : k === 'rate_app' ? review.url ?? null : null),
+    feature: (k) => (k === 'bale' ? features.bale : k === 'phone' ? features.friends : true),
+  };
+  const missionsReady = missionRows(profileTasks, missionAvail, new Set()).filter((r) => r.state === 'claim').length;
   const prefs = usePrefs();
   const float = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -174,6 +186,7 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
   const h = fa.home.hub;
   const unread = inbox.inbox?.unread ?? 0;
   const right: Tile[] = [
+    { key: 'missions', icon: 'target' as const, label: h.missions, color: colors.candy.lime, badge: missionsReady > 0 ? toPersianDigits(String(missionsReady)) : undefined, badgeColor: colors.candy.pink, onPress: () => setMissionsOpen(true) },
     ...(daily.status ? [{ key: 'daily', icon: 'calendar' as const, label: h.daily, color: colors.candy.yellow, badge: daily.status.canClaim ? '!' : undefined, onPress: () => setDailyOpen(true) }] : []),
     ...(features.tables ? [{ key: 'tables', icon: 'users' as const, label: h.tables, color: colors.candy.sky, onPress: () => setTableOpen(true) }] : []),
     ...(features.tournament ? [{ key: 'tour', icon: 'trophy' as const, label: h.tournaments, color: colors.candy.orange, onPress: () => setTournamentOpen(true) }] : []),
@@ -233,7 +246,7 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
             ) : nudgeToast ? (
               <GuideBubble who={heroFor(gender)} text={nudgeToast} />
             ) : nudge ? (
-              <GuideBubble who={heroFor(gender)} text={fa.home.profileNudge[nudge.action === 'claim' ? 'claim' : nudge.task.key](fmt(nudge.task.coins))} onPress={onNudge} />
+              <GuideBubble who={heroFor(gender)} text={fa.home.profileNudge[nudge.action === 'claim' ? 'claim' : nudge.key](fmt(nudge.task.coins))} onPress={onNudge} />
             ) : null}
             <Pressable onPress={() => (setTip((cur) => nextTip(cur, tips.length)), hop())} accessibilityRole="button" accessibilityLabel={fa.home.guide.name}>
               <Animated.View style={[styles.hero, compact ? styles.heroCompact : null, { transform: [{ translateY: Animated.add(float, jump.interpolate({ inputRange: [0, 1], outputRange: [0, -30] })) }, { scaleX: squash.interpolate({ inputRange: [0, 1], outputRange: [1, 1.1] }) }, { scaleY: squash.interpolate({ inputRange: [0, 1], outputRange: [1, 0.86] }) }] }]}>
@@ -294,6 +307,22 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
       {chatOpen ? <ChatSheet onClose={() => setChatOpen(false)} onJoinTable={(code) => (setChatOpen(false), setTableCode(code), setTableOpen(true))} /> : null}
       {shopOpen ? <ShopSheet onClose={() => { setShopOpen(false); daily.reload(); }} /> : null}
       {wheelOpen ? <WheelPage onClose={() => (setWheelOpen(false), loadSpins(), daily.reload())} /> : null}
+      {missionsOpen ? (
+        <MissionsSheet
+          avail={missionAvail}
+          links={missionAvail.link}
+          onClose={() => (setMissionsOpen(false), loadTasks())}
+          onChanged={loadTasks}
+          onGo={(go) => {
+            if (go === 'play') return (setMissionsOpen(false), onSolo());
+            if (go === 'profile') return setProfileOpen(true);
+            if (go === 'settings') return setSettingsOpen(true);
+            if (go === 'bale') return setBaleOpen(true);
+            return setInviteOpen(true);
+          }}
+        />
+      ) : null}
+      {inviteOpen ? <InviteSheet onClose={() => (setInviteOpen(false), loadTasks())} /> : null}
       {baleOpen ? <BaleSheet onClose={() => (setBaleOpen(false), loadTasks())} /> : null}
     </SceneBackground>
   );
