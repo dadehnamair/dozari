@@ -376,3 +376,7 @@ Owner: the search screen should pull from online players, or from bots when few.
 ## D145 — Level table editable in the admin panel; the level road is a winding path (2026-10-03, proposed)
 
 Owner: the level road should be the winding design of `17 Chat Shop Unlocks` (it was a straight list), and the levels and their coin rewards should be set in the admin panel. Built: the winding SVG road, and an admin page «جاده‌ی لول‌ها» to edit each level's start XP and coin reward (table `level_road`; empty table = the old formulas). See `logic/progression.md` §Level table. Proposed: the table replaces the curve, the cap and the every-Nth-level rule once saved; what a level *opens* stays in settings/shop.
+
+## D146 — Profile without scrolling and a player card (2026-10-03, proposed)
+
+Owner: the own profile scrolled and its quick links were plain stacked buttons; a friend's profile was a plain list. Now the own profile fits one screen with an icon-tile grid (recent games moved into a sheet, the editor into an overlay), and another player's profile is a card. See `logic/app-screens.md` §Profile without scrolling.

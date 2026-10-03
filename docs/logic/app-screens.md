@@ -137,6 +137,12 @@ caller's rank counted from `user_stats`). A second tab row picks the window (D12
 players with no XP in the window are not listed; `GET /leaderboard?scope=&period=all|week|month`). XP from before the
 event log existed counts only in «کل زمان».
 
+## Profile without scrolling, and the player card (D146)
+
+The own profile no longer scrolls: a short caravan header (118–140 px) with the back and pencil buttons, the avatar overlapping its edge with the level hexagon, nickname, skill rank · city (province badge), the level bar, four compact stat tiles in one row, up to three earned-badge tags (+N), and the shortcuts as a grid of icon tiles (`HubTile`): جاده‌ی لول, دوستان (request count badge), نشان‌ها, بازی‌ها (recent games, now a sheet), پیدا کردن, هدیه و وام, دعوت. The pencil opens the editor (gender, nickname, city, e-mail) as a sheet that scrolls on its own. Phones under 720 px tall shrink the avatar and tiles instead of scrolling.
+
+Another player's profile is a **player card**: the caravan header with a close button, avatar in a ring with the level hexagon, name with the online dot, skill rank and title chip, city with its province badge, four stat tiles (games / wins / losses / draws), chips for coins and member-since, up to three medals, and the actions — «درخواست دوستی» / waiting / accept for strangers; for friends a «دوست هستید» tag and round icon tiles for gift, loan, unfriend.
+
 ## Profile and settings (D107)
 
 **screen-profile**: caravan scene header with back and a pencil (opens the editor: gender, nickname,
