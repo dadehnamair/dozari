@@ -170,6 +170,7 @@ below zero is refused (CLAUDE.md rule 6 applies to gems too; never `UPDATE user_
 - **Read:** `GET /me/gems` → balance + the newest 30 movements. Home shows a «الماس» pill once the balance is above 0.
 - **Admin:** the player sheet has «تغییر الماس» (`POST /admin/users/:id/gems`, ±10 000 per call, audited as `user.gems`).
 - **Shop (stage 2)**: each `shop_items` row has `currency` (`coins`|`gems`) plus `price_coins` / `price_gems`; only the matching price counts. A gem purchase debits through `applyGemEntry` (`shop_purchase`) in the same transaction as the grant; `GET /shop` and the buy reply carry `gems`, and a short balance shows as `blocked: GEMS`. The admin «فروشگاه» page picks the currency per item. Migration 0043.
+- **Tournaments (stage 3)**: `tournaments.entry_gems` is charged on top of `entry_coins` (either may be 0), in the same transaction as the seat (`tournament_entry`); leaving or cancelling refunds both (`tournament_refund`, key per joinedAt). `entries.paid_gems` keeps what was paid. A short gem balance blocks with `GEMS` (HTTP 402). Admin builder has «ورودی الماس». Prizes in gems are not built yet. Migration 0044.
 - **Gems are not sold**: they come from gifts and prizes (birthday, wheel, tournaments, missions, admin).
 - **Next stages:** shop items priced in coins or gems; tournament entry fee in gems; wheel prize kind `gems`; birthday gift (100 coins + 5 gems + 2 spins).
 

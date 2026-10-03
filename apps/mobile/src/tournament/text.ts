@@ -8,10 +8,11 @@ export function roundLabel(round: number, size: number): string {
   return r.name === 'round' ? fa.tournament.round(r.n) : fa.tournament.roundNames[r.name] ?? '';
 }
 
-export function blockedText(b: TournamentDetail['blocked'], d: Pick<TournamentDetail, 'minLevel' | 'entryCoins'>): string | null {
+export function blockedText(b: TournamentDetail['blocked'], d: Pick<TournamentDetail, 'minLevel' | 'entryCoins'> & { entryGems?: number }): string | null {
   if (b === null) return null;
   if (b === 'LEVEL') return fa.tournament.needLevel(d.minLevel);
   if (b === 'COINS') return fa.tournament.needCoins(d.entryCoins);
+  if (b === 'GEMS') return fa.tournament.needGems(d.entryGems ?? 0);
   return fa.tournament.blocked[b] ?? null;
 }
 

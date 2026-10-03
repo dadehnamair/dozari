@@ -525,6 +525,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       size: z.number().int(),
       minPlayers: z.number().int().min(2).max(32),
       entryCoins: z.number().int().min(0).max(100_000),
+      entryGems: z.number().int().min(0).max(1_000).default(0),
       minLevel: z.number().int().min(1).max(500),
       startsAt: z.number().int(),
       botFill: z.boolean().optional(),
