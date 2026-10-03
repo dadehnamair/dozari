@@ -100,8 +100,8 @@ bot accounts: the admin can pause, tune or add more, and the top-up never touche
   chance to answer a taunt, active). The admin generates up to 50 at once («بازیکن‌های ربات»): distinct names (preset nicknames + common given names; the pool is
   finite), random avatar, gender, city, a level inside the asked range, XP/games/wins that fit that level (`plausibleStats`), coins, and the medals those stats earn.
   They can be tuned one by one or paused. `is_bot` is never selected by any player-facing endpoint or socket payload (tests check the payloads).
-- **Queue.** Every 5 s the driver looks at the duel queue: a human who waited `bots.fallback_seconds` (25) plus a per-player random delay up to
-  `bots.fallback_jitter_seconds` (15) is paired with an idle active bot; if the match cannot start the human goes back in line with the original wait.
+- **Queue.** Every 5 s the driver looks at the duel queue: a human who waited `bots.fallback_seconds` (8) plus a per-player random delay up to
+  `bots.fallback_jitter_seconds` (4) is paired with an idle active bot; if the match cannot start the human goes back in line with the original wait.
   `bots.enabled` is the master switch.
 - **Playing.** On its `match:state` snapshot the bot waits a human-like pause (its think range, never past the turn end) and submits four cards through the same
   `MatchService.submit` as any player. `chooseBotMove`: with probability about its skill (capped at 90 %) it submits a real group, else a "one away" or a guess;
