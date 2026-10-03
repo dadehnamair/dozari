@@ -8,6 +8,7 @@ import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
 import { fetchHints, takeHint } from './api';
 import { hintBlockedText } from './hintView';
+import { useHardwareBack } from '../nav/useHardwareBack';
 
 const INK = '#3A2418';
 const n = (v: number) => toPersianDigits(String(v));
@@ -22,6 +23,7 @@ const failureText = (e: unknown): string => {
 
 /** Paid hints of a solo game: what each costs now, what the player owns, and the one-tap purchase. */
 export function HintSheet({ sessionId, onGiven, onClose }: { sessionId: string; onGiven: (given: HintPayload[]) => void; onClose: () => void }) {
+  useHardwareBack(onClose);
   const [info, setInfo] = useState<SoloHints | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);

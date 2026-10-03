@@ -19,6 +19,7 @@ import { CityPicker } from './CityPicker';
 import { fetchMyProfile } from './api';
 import type { City } from '@dozari/shared';
 import { pageTop, safeTop } from '../theme/safeArea';
+import { useHardwareBack } from '../nav/useHardwareBack';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 
@@ -39,6 +40,7 @@ interface Row {
  * install) and the account (replay the tutorial, sign out, delete with a second tap).
  */
 export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone }: { onClose: () => void; onProfile: () => void; onTutorial?: () => void; onAccountGone?: () => void }) {
+  useHardwareBack(onClose);
   const prefs = usePrefs();
   const pwa = usePwa();
   const [iosHelp, setIosHelp] = useState(false);

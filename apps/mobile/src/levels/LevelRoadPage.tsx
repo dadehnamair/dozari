@@ -14,6 +14,7 @@ import { claimableCoins, claimableSpins, levelProgress, roadNodes, xpToReach } f
 import type { RoadNode } from './road';
 import { roadLayout, skyStars } from './roadPath';
 import { pageTop } from '../theme/safeArea';
+import { useHardwareBack } from '../nav/useHardwareBack';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const n = (v: number) => toPersianDigits(String(v));
@@ -30,6 +31,7 @@ const view = (u: Unlock): { title: string; text: string; icon: string } => {
  * What each level opens comes from the real gates (`GET /me/levels`).
  */
 export function LevelRoadPage({ onClose }: { onClose: () => void }) {
+  useHardwareBack(onClose);
   const [road, setRoad] = useState<LevelRoad | null>(null);
   const [failed, setFailed] = useState(false);
   const [locked, setLocked] = useState<{ unlock: Unlock } | null>(null);
@@ -218,6 +220,7 @@ function Cards({ node, dim, reached, onLocked, onClaim }: { node: RoadNode; dim:
 
 /** popup-locked of the design: what is here, when it opens, how far the player is, Ajan's line. */
 function LockedPopup({ road, unlock, onClose }: { road: LevelRoad; unlock: Unlock; onClose: () => void }) {
+  useHardwareBack(onClose);
   const v = view(unlock);
   const left = Math.max(0, unlock.level - road.level);
   const pct = Math.round(levelProgress(road) * 100);

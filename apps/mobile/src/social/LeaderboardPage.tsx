@@ -15,6 +15,7 @@ import { avatarOf } from './avatarOf';
 import { CityPicker } from './CityPicker';
 import { PlayerSheet } from './PlayerSheet';
 import { pageTop } from '../theme/safeArea';
+import { useHardwareBack } from '../nav/useHardwareBack';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const n = (v: number) => toPersianDigits(String(v));
@@ -31,6 +32,7 @@ const PODIUM = {
  * bottom, the player's own place. Ranked by XP of the chosen window: all time, last 7 days, last 30 days (D123).
  */
 export function LeaderboardPage({ onClose }: { onClose: () => void }) {
+  useHardwareBack(onClose);
   const [scope, setScope] = useState<LeaderboardScope>('all');
   const [period, setPeriod] = useState<LeaderboardPeriod>('all');
   const [board, setBoard] = useState<Leaderboard | null>(null);

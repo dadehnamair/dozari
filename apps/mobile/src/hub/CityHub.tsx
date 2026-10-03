@@ -11,6 +11,7 @@ import { colors, fonts } from '../theme/colors';
 import { buildingParts } from './buildings';
 import { HUB_BUILDINGS, canEnter } from './layout';
 import type { HubAction, HubBuilding } from './layout';
+import { useHardwareBack } from '../nav/useHardwareBack';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const MAP_W = 318;
@@ -25,6 +26,7 @@ const ROAD = 'M159 3000 V714 C159 640 60 630 70 560 C80 500 244 486 244 420 C244
  * propose-and-vote school are drawn but say «به‌زودی».
  */
 export function CityHub({ onClose, onEnter, features, dailyReady }: { onClose: () => void; onEnter: (a: HubAction) => void; features: { daily: boolean; duel: boolean; tournament: boolean }; dailyReady: boolean }) {
+  useHardwareBack(onClose);
   const { width, height } = useWindowDimensions();
   const [sel, setSel] = useState<HubBuilding | null>(null);
   const animated = !usePrefs().reduceMotion; // the cloud drifts and the palms sway unless «حرکت کمتر» is on

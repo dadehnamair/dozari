@@ -9,11 +9,13 @@ import { colors, fonts } from '../theme/colors';
 import { fetchMyFind, saveFindable, searchPlayer } from './api';
 import { avatarOf } from './avatarOf';
 import { PlayerSheet } from './PlayerSheet';
+import { useHardwareBack } from '../nav/useHardwareBack';
 
 const INK = '#3A2418';
 
 /** «پیدا کردن دوست»: my public ID and invite link, the phone-findability switch, and an exact search by ID or phone number. */
 export function FindSheet({ onClose }: { onClose: () => void }) {
+  useHardwareBack(onClose);
   const [me, setMe] = useState<MyFind | null>(null);
   const [q, setQ] = useState('');
   const [found, setFound] = useState<FoundPlayer | null | undefined>(undefined);

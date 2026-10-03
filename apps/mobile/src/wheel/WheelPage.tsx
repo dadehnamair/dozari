@@ -11,6 +11,7 @@ import { colors, fonts } from '../theme/colors';
 import { fetchWheel, spinWheel } from './api';
 import { spinAngle } from './geometry';
 import { pageTop } from '../theme/safeArea';
+import { useHardwareBack } from '../nav/useHardwareBack';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const SIZE = 290;
@@ -47,6 +48,7 @@ const rays = (() => {
  * the real slices of `GET /wheel` and, once `POST /wheel/spin` answers, turns to stop on the slice the server chose.
  */
 export function WheelPage({ onClose }: { onClose: () => void }) {
+  useHardwareBack(onClose);
   const [status, setStatus] = useState<WheelStatus | null>(null);
   const [failed, setFailed] = useState(false);
   const [spinning, setSpinning] = useState(false);

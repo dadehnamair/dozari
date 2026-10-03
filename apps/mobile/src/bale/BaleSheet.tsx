@@ -10,11 +10,13 @@ import { ApiError } from '../net/http';
 import { phoneErrorText } from '../phone/errors';
 import { PhoneStep } from '../phone/PhoneStep';
 import { fetchBaleLink, requestBaleCode, unlinkBale } from './api';
+import { useHardwareBack } from '../nav/useHardwareBack';
 
 const INK = '#3A2418';
 
 /** Bottom sheet of the Bale link: get a one-time code, send it to the bot, see "linked", unlink. */
 export function BaleSheet({ onClose }: { onClose: () => void }) {
+  useHardwareBack(onClose);
   const [status, setStatus] = useState<BaleLinkStatus | null>(null);
   const [code, setCode] = useState<BaleLinkCode | null>(null);
   const [failed, setFailed] = useState(false);

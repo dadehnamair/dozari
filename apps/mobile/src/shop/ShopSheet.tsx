@@ -11,6 +11,7 @@ import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { buyItem, fetchShop } from './api';
 import { pageTop } from '../theme/safeArea';
+import { useHardwareBack } from '../nav/useHardwareBack';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const n = (v: number) => toPersianDigits(String(v));
@@ -50,6 +51,7 @@ const stateText = (it: ShopItem): string | null => {
  * bought with coins (`shop.md`); the level gate and daily limit show on the card before the player taps.
  */
 export function ShopSheet({ onClose, onBalance }: { onClose: () => void; onBalance?: (coins: number) => void }) {
+  useHardwareBack(onClose);
   const [shop, setShop] = useState<Shop | null>(null);
   const [tab, setTab] = useState<TabKey>('boost');
   const [note, setNote] = useState<string | null>(null);

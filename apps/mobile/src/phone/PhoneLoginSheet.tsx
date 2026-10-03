@@ -5,6 +5,7 @@ import { fa } from '../i18n/fa';
 import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
 import { loginWithCode, requestLoginCode } from './loginApi';
+import { useHardwareBack } from '../nav/useHardwareBack';
 
 const INK = '#3A2418';
 const t = fa.phoneLogin;
@@ -12,6 +13,7 @@ const textOf = (e: unknown): string => t.errors[e instanceof ApiError ? e.code :
 
 /** Sign in with a number: type it, get an SMS code, type the code. Reachable from settings; nothing here is needed to play. */
 export function PhoneLoginSheet({ onClose }: { onClose: () => void }) {
+  useHardwareBack(onClose);
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
   const [sent, setSent] = useState(false);

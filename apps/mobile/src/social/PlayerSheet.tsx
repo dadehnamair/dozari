@@ -18,11 +18,13 @@ import { acceptFriend, fetchPlayer, removeFriend, requestFriend } from './api';
 import { avatarOf } from './avatarOf';
 import { skillText } from '../badges/text';
 import { TransferSheet } from '../transfers/TransferSheet';
+import { useHardwareBack } from '../nav/useHardwareBack';
 
 const INK = '#3A2418';
 
 /** Summary of any player (D67): avatar, name, member since, level, coins and the friend button. Open it from every place a name is shown. */
 export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: () => void }) {
+  useHardwareBack(onClose);
   const [p, setP] = useState<PlayerProfile | null>(null);
   const [failed, setFailed] = useState(false);
   const [send, setSend] = useState<'gift' | 'loan' | null>(null);

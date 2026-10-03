@@ -8,11 +8,13 @@ import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { equipBadge, fetchMyBadges, markNoticesRead } from './api';
 import { progressText, skillText } from './text';
+import { useHardwareBack } from '../nav/useHardwareBack';
 
 const INK = '#3A2418';
 
 /** «نشان‌ها و پیام‌ها»: skill tier, earned and locked badges (with how far along), which one is shown, warnings and commendations. */
 export function BadgesSheet({ onClose }: { onClose: () => void }) {
+  useHardwareBack(onClose);
   const [me, setMe] = useState<MyBadges | null>(null);
   const [failed, setFailed] = useState(false);
 

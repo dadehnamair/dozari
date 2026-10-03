@@ -8,11 +8,13 @@ import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
 import { fetchTransferInfo, offerLoan, sendGift } from './api';
 import { amountChoices, transferErrorText, transferRuleLines } from './rulesText';
+import { useHardwareBack } from '../nav/useHardwareBack';
 
 const INK = '#3A2418';
 
 /** Gift or loan to a friend: the rules first («آجان»), then a tap on an amount. */
 export function TransferSheet({ friendId, kind, onClose }: { friendId: string; kind: 'gift' | 'loan'; onClose: () => void }) {
+  useHardwareBack(onClose);
   const [info, setInfo] = useState<TransferInfo | null>(null);
   const [read, setRead] = useState(false);
   const [note, setNote] = useState<{ text: string; bad: boolean } | null>(null);

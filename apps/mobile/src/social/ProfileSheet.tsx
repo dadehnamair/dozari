@@ -27,6 +27,7 @@ import { FriendsPage } from './FriendsPage';
 import { BadgesSheet } from '../badges/BadgesSheet';
 import { LevelRoadPage } from '../levels/LevelRoadPage';
 import { pageTop } from '../theme/safeArea';
+import { useHardwareBack } from '../nav/useHardwareBack';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const TAGS = ['#FF4D8D', '#7E46D6', '#3FA36B', '#E8743B', '#3FC1F0'];
@@ -38,6 +39,7 @@ const n = (v: number) => toPersianDigits(String(v));
  * pencil opens the editor (nickname, gender, city, e-mail); settings live on their own page.
  */
 export function ProfileSheet({ onClose, onGender }: { onClose: () => void; onGender: (g: Gender | null) => void }) {
+  useHardwareBack(onClose);
   const [me, setMe] = useState<MyProfile | null>(null);
   const [friends, setFriends] = useState<Friends | null>(null);
   const [badges, setBadges] = useState<MyBadges | null>(null);
@@ -213,6 +215,7 @@ export function ProfileSheet({ onClose, onGender }: { onClose: () => void; onGen
 
 /** The last games, opened from the «بازی‌ها» tile (they used to stretch the profile page). */
 function RecentGamesSheet({ games, onClose }: { games: RecentGames['games']; onClose: () => void }) {
+  useHardwareBack(onClose);
   return (
     <Pressable style={styles.overlay} onPress={onClose} accessibilityLabel={fa.profile.close}>
       <Pressable style={styles.editor} onPress={() => undefined}>

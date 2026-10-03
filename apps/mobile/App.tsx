@@ -14,6 +14,7 @@ import { useClientConfig } from './src/config/useClientConfig';
 import { HomeScreen } from './src/home/HomeScreen';
 import { onAccountSwitched } from './src/auth/switched';
 import { useMusic } from './src/sound/music';
+import { useHardwareBack } from './src/nav/useHardwareBack';
 import { BrandScreen } from './src/brand/BrandScreen';
 import { KitGallery } from './src/kit/KitGallery';
 import { LookupScreen } from './src/lookup/LookupScreen';
@@ -66,6 +67,15 @@ export default function App() {
       clearTimeout(timer);
     };
   }, [fontsLoaded, screen, launch, launchOn, config.phoneLogin]);
+
+  // The phone's back button leaves a full-screen mode for the screen it came from (sheets close first, they register later).
+  useHardwareBack(
+    screen === 'brand' || screen === 'search'
+      ? () => setScreen('gallery')
+      : screen === 'solo' || screen === 'daily' || screen === 'duel' || screen === 'duelResume' || screen === 'lookup' || screen === 'gallery'
+        ? () => setScreen('home')
+        : null,
+  );
 
   // Soft music everywhere; a livelier loop during a duel (the competitive screens).
   useMusic(screen === 'splash' || screen === 'tutorial' || screen === 'login' ? null : screen === 'duel' || screen === 'duelResume' ? 'tense' : 'calm');

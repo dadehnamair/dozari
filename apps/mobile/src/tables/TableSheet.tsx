@@ -14,12 +14,14 @@ import { colors, fonts } from '../theme/colors';
 import { fetchFriends } from '../social/api';
 import { OnlineDot } from '../components/OnlineDot';
 import { createTable, inviteToTable, extendTable, fetchMyTable, fetchTable, joinTable, kickFromTable, leaveTable, setTableLocked, setTableReady, setTableSide, startTable } from './api';
+import { useHardwareBack } from '../nav/useHardwareBack';
 
 const INK = '#3A2418';
 const errText = (e: unknown) => fa.tables.errors[e instanceof ApiError ? e.code : 'generic'] ?? fa.tables.errors.generic ?? '';
 
 /** «میز اختصاصی»: create a table or enter one by its code, then wait for the guest and start a duel. `initialCode` opens a shared table. */
 export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose: () => void; initialCode?: string; /** The table's match started: open the duel board. */ onMatch?: () => void; onShare?: (table: TableView) => Promise<void> }) {
+  useHardwareBack(onClose);
   const { ask, dialog } = useConfirm();
   const [table, setTable] = useState<TableView | null>(null);
   const [note, setNote] = useState<string | null>(null);

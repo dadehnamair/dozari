@@ -11,6 +11,7 @@ import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
 import { fetchInvite, redeemInvite } from './api';
 import { inviteMessage, redeemErrorText } from './inviteText';
+import { useHardwareBack } from '../nav/useHardwareBack';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 /** Progress boxes under the code: at most this many, the last one a chest. */
@@ -25,6 +26,7 @@ const clipboard = (): Clip | null => {
 
 /** screen-invite of `19 Social Daily Onboarding`: my code with copy, how many came, the rules, sharing, and entering a friend's code. */
 export function InviteSheet({ onClose }: { onClose: () => void }) {
+  useHardwareBack(onClose);
   const [info, setInfo] = useState<MyInvite | null>(null);
   const [entry, setEntry] = useState('');
   const [copied, setCopied] = useState(false);

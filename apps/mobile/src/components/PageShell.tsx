@@ -5,6 +5,7 @@ import { colors, fonts, toneOf } from '../theme/colors';
 import { GradientFill } from './GradientFill';
 import { Icon } from './Icon';
 import { PAGE_TOP_EXTRA, pageTop, safeTop } from '../theme/safeArea';
+import { useHardwareBack } from '../nav/useHardwareBack';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 
@@ -14,6 +15,7 @@ const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
  * Rendered over whatever is underneath (absolute fill), like the sheets it replaces.
  */
 export function PageShell({ title, color, backLabel, onBack, action, bandHeight = 100, children }: { title: string; color: string; backLabel: string; onBack: () => void; action?: React.ReactNode; bandHeight?: number; children: React.ReactNode }) {
+  useHardwareBack(onBack);
   const tone = toneOf(color);
   const pid = `ps${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   return (
