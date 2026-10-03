@@ -19,10 +19,15 @@ interface Node {
 interface Ctx {
   state: string;
   currentTime: number;
+  sampleRate: number;
   destination: Node;
   resume(): Promise<void>;
   createOscillator(): Node & { type: string; frequency: Param; start(t: number): void; stop(t: number): void };
   createGain(): Node & { gain: Param };
+  createBiquadFilter(): Node & { type: string; frequency: Param; Q: Param };
+  createDelay(maxSeconds?: number): Node & { delayTime: Param };
+  createBuffer(channels: number, length: number, sampleRate: number): { getChannelData(channel: number): Float32Array };
+  createBufferSource(): Node & { buffer: unknown; start(t: number): void; stop(t: number): void };
 }
 type AudioCtor = new () => Ctx;
 let ctx: Ctx | null = null;
