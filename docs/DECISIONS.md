@@ -388,3 +388,7 @@ Owner: re-check the designs and docs for what was skipped. Result: `docs/GAPS.md
 ## D148 — Bazaar vocabulary for menu names (2026-10-03, proposed)
 
 Owner: more attractive, more fantasy names — city → قبیله, leaderboard → جارچی, shop → حجره, price finder → (open, proposed «صراف»). Applied in `fa.ts` and listed in `docs/brand.md` §Place names. Extra proposals in the same spirit: chat → قهوه‌خانه, inbox → پیک, private tables → سفره‌خانه, tournaments → جام‌ها, daily reward → عیدی, settings → کارگاه, Bale save → گاوصندوق, city hub → بازارچه‌ی دوزاری (its practice building is now «دکه‌ی تمرین», its team building «چایخانه»). Say the word to change any.
+
+## D149 — Sample catalogue seed (2026-10-03)
+
+Owner: seed some products, prices and puzzles as samples; they will delete them at launch. Built: 119 `sample-*` products with rough, clearly-labelled prices (approved, confidence 1, "نمونه" in every source note — **not researched data**), 10 hand-made puzzles, and up to 20 generator puzzles; `seed --remove-sample` deletes all of it. This is the one place approved prices are not sourced; it exists so the game can be played and the generator tested before the real catalogue.

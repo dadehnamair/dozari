@@ -69,13 +69,24 @@ The game needs product data. Load it once (and again after changing the seed fil
 
 ```bash
 dc="docker compose -f docker-compose.prod.yml --env-file .env.prod"
-$dc run --rm --user root -w /app/packages/db server pnpm exec tsx src/seed/run.ts            # products + prices
+$dc run --rm --user root -w /app/packages/db server pnpm exec tsx src/seed/run.ts            # products + prices + sample puzzles
 $dc run --rm --user root -w /app/packages/db server pnpm exec tsx src/seed/upload-images.ts  # product images -> volume
 ```
 
 Images are stored in the `images` volume and served by the game server at `https://<API_DOMAIN>/images/` (through your proxy).
 To use S3-compatible storage instead (ArvanCloud, MinIO), add the `S3_*` variables from `.env.example`
 to the `server` service environment and run the upload command above.
+
+### The sample catalogue (D149) — delete it before launch
+
+`packages/db/seed/products/sample-bazaar.json` holds **119 sample products** (slugs `sample-*`, ≥ 3 price years each, icons from the item pack) and
+`packages/db/seed/puzzles/sample.json` **10 hand-made puzzles**; the seed run also makes up to 20 more approved puzzles with the generator. Every sample
+price is a **rough, approximate number for testing** (the note on each says «نمونه — … پیش از لانچ جایگزین یا پاک شود»), not researched data. The seed is
+idempotent. To remove everything the sample made — its products, their prices and every puzzle made from them — before putting real data in:
+
+```bash
+$dc run --rm --user root -w /app/packages/db server pnpm exec tsx src/seed/run.ts --remove-sample
+```
 
 ## Updating
 

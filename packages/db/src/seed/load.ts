@@ -1,13 +1,28 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { checkSeedProducts, seedFileSchema, seedPriceToRials } from '@dozari/shared';
-import type { SeedProduct } from '@dozari/shared';
+import { checkSeedProducts, checkSeedPuzzles, seedFileSchema, seedPriceToRials, seedPuzzleFileSchema } from '@dozari/shared';
+import type { SeedProduct, SeedPuzzle } from '@dozari/shared';
 import { and, eq, isNull } from 'drizzle-orm';
 import type { Db } from '../client.js';
 import { pricePoints, productAudiences, productEraTags, products } from '../schema.js';
 
 export const SEED_DIR = join(fileURLToPath(new URL('../../seed/products', import.meta.url)));
+export const PUZZLE_SEED_DIR = join(fileURLToPath(new URL('../../seed/puzzles', import.meta.url)));
+
+/** Read + validate `seed/puzzles/*.json` against the catalog seed (every slug must exist). */
+export function readSeedPuzzles(products: readonly SeedProduct[] = readSeedProducts(), dir: string = PUZZLE_SEED_DIR): SeedPuzzle[] {
+  const all: SeedPuzzle[] = [];
+  const problems: string[] = [];
+  for (const file of readdirSync(dir).filter((f) => f.endsWith('.json')).sort()) {
+    const parsed = seedPuzzleFileSchema.safeParse(JSON.parse(readFileSync(join(dir, file), 'utf8')));
+    if (!parsed.success) problems.push(...parsed.error.issues.map((i) => `${file}: ${i.path.join('.')}: ${i.message}`));
+    else all.push(...parsed.data);
+  }
+  problems.push(...checkSeedPuzzles(all, new Set(products.map((p) => p.slug))));
+  if (problems.length > 0) throw new Error(`Invalid puzzle seed:\n${problems.join('\n')}`);
+  return all;
+}
 
 /** Read + zod-validate every `seed/products/*.json`; throws with all problems listed. */
 export function readSeedProducts(dir: string = SEED_DIR): SeedProduct[] {
@@ -38,6 +53,7 @@ export async function loadSeed(db: Db, seed: readonly SeedProduct[] = readSeedPr
         brand: p.brand ?? null,
         category: p.category,
         unitFa: p.unit_fa ?? null,
+        iconKey: p.icon_key ?? null,
         storyFa: p.story_fa ?? null,
         status: p.status,
       };
