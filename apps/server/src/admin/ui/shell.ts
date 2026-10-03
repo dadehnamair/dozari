@@ -9,13 +9,13 @@ var ICON_D = {
   dailypuzzle: 'M3 5h18v14H3zM3 10h18M8 3v4M16 3v4',
   levels: 'M3 20h5v-5h5v-5h5V5h3M3 20h18',
   puzzles: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',
-  socket: 'M4 12h4l3-7 4 14 3-7h2', admins: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM9 12l2 2 4-4', audit: 'M5 4h14v16H5zM9 9h6M9 13h6M9 17h3', words: 'M12 3l9 16H3zM12 10v4M12 17v.5', invites: 'M3 8h18v10H3zM3 8l9 6 9-6', bots: 'M12 3v3M7 8h10a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-6a3 3 0 0 1 3-3zM9 13h.01M15 13h.01M9 17h6', tournaments: 'M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3', taunts: 'M4 5h16v11H9l-5 4z', chatreports: 'M5 4h14v16H5zM9 9h6M9 13h4', badges: 'M12 2l3 6 6 1-4.5 4.5L18 20l-6-3-6 3 1.5-6.5L3 9l6-1z', shop: 'M4 8h16l-1.5 11h-13zM8 8a4 4 0 0 1 8 0', cities: 'M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6', bale: 'M21 4L3 11l6 2 2 6 3-4 5 3z', messages: 'M3 5h18v14H3zM3 6l9 7 9-7'
+  socket: 'M4 12h4l3-7 4 14 3-7h2', admins: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM9 12l2 2 4-4', audit: 'M5 4h14v16H5zM9 9h6M9 13h6M9 17h3', words: 'M12 3l9 16H3zM12 10v4M12 17v.5', invites: 'M3 8h18v10H3zM3 8l9 6 9-6', bots: 'M12 3v3M7 8h10a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-6a3 3 0 0 1 3-3zM9 13h.01M15 13h.01M9 17h6', tournaments: 'M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3', taunts: 'M4 5h16v11H9l-5 4z', chatreports: 'M5 4h14v16H5zM9 9h6M9 13h4', badges: 'M12 2l3 6 6 1-4.5 4.5L18 20l-6-3-6 3 1.5-6.5L3 9l6-1z', shop: 'M4 8h16l-1.5 11h-13zM8 8a4 4 0 0 1 8 0', wheel: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 3v18M3 12h18', cities: 'M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6', bale: 'M21 4L3 11l6 2 2 6 3-4 5 3z', messages: 'M3 5h18v14H3zM3 6l9 7 9-7'
 };
 var NAV = [
   ['main', 'نگاه کلی'], ['dashboard', 'داشبورد'],
   ['main', 'کاتالوگ و قیمت‌ها'], ['catalog', 'کاتالوگ محصولات'], ['prices', 'بازبینی قیمت‌ها', 'prices'], ['inbox', 'صندوق ربات', 'inbox'], ['sources', 'منبع‌های ربات'],
   ['main', 'پازل و بازی'], ['puzzles', 'ساخت پازل'], ['dailypuzzle', 'پازل روز'], ['levels', 'جاده‌ی لول‌ها'], ['tournaments', 'تورنومنت‌ها'], ['taunts', 'کل‌کل‌های آماده'],
-  ['main', 'اقتصاد و جایزه'], ['daily', 'جایزه‌ی روزانه'], ['shop', 'فروشگاه'], ['badges', 'نشان‌ها و مدال‌ها'], ['invites', 'کد معرف'],
+  ['main', 'اقتصاد و جایزه'], ['daily', 'جایزه‌ی روزانه'], ['shop', 'فروشگاه'], ['wheel', 'گردونه‌ی شانس'], ['badges', 'نشان‌ها و مدال‌ها'], ['invites', 'کد معرف'],
   ['main', 'بازیکن‌ها و ارتباط'], ['users', 'کاربران'], ['bots', 'بازیکن‌های ربات'], ['cities', 'شهرها'], ['messages', 'مرکز پیام'], ['chatreports', 'گزارش‌های چت'],
   ['main', 'سیستم'], ['settings', 'تنظیمات'], ['words', 'فیلتر کلمات'], ['bale', 'ربات بله'], ['socket', 'سرویس سوکت'], ['admins', 'مدیران پنل'], ['audit', 'گزارش تغییرها']
 ];
@@ -31,7 +31,8 @@ var DESC = {
   tournaments: 'مسابقه‌ی زمان‌دار با ورودی و جایزه‌ی مشخص.',
   taunts: 'جمله‌های آماده‌ای که بازیکن‌ها بدون چت آزاد برای هم می‌فرستند.',
   daily: 'جایزه‌ی هر روز از ورود پشت‌سرهم.',
-  shop: 'آیتم‌هایی که بازیکن با سکه می‌خرد، و متن راهنمای فروشگاه.',
+  shop: 'آیتم‌هایی که بازیکن با سکه یا الماس می‌خرد، و متن راهنمای فروشگاه.',
+  wheel: 'جایزه‌های روی گردونه: نوع، مقدار و شانس هر قطعه.',
   badges: 'نشان‌ها و مدال‌هایی که بازیکن با رسیدن به شرط می‌گیرد.',
   invites: 'کدهای معرف شخصی و کدهای کمپین برای جذب بازیکن.',
   users: 'جست‌وجو و مدیریت بازیکن‌ها: سکه، وضعیت، یادداشت.',
@@ -46,7 +47,7 @@ var DESC = {
   admins: 'حساب مدیران پنل و نقش هر کدام.',
   audit: 'فهرست همه‌ی تغییرهایی که مدیرها داده‌اند، با نام و زمان.'
 };
-var TITLES = { puzzles: 'ساخت پازل', dashboard: 'داشبورد', catalog: 'کاتالوگ محصولات', prices: 'بازبینی قیمت‌ها', inbox: 'صندوق پیشنهادهای ربات', sources: 'منبع‌های ربات', daily: 'جایزه‌ی روزانه', levels: 'جاده‌ی لول‌ها', users: 'کاربران', settings: 'تنظیمات', socket: 'سرویس سوکت', audit: 'گزارش تغییرها', admins: 'مدیران پنل', words: 'فیلتر کلمات توهین‌آمیز', cities: 'شهرهای بازی', shop: 'فروشگاه و راهنما', dailypuzzle: 'پازل روز', invites: 'کدهای معرف', badges: 'نشان‌ها و مدال‌ها', taunts: 'کل‌کل‌های آماده', tournaments: 'تورنومنت‌ها', bots: 'بازیکن‌های ربات', chatreports: 'گزارش‌های چت', bale: 'ربات بله و اعلان‌ها', messages: 'مرکز پیام' };
+var TITLES = { puzzles: 'ساخت پازل', dashboard: 'داشبورد', catalog: 'کاتالوگ محصولات', prices: 'بازبینی قیمت‌ها', inbox: 'صندوق پیشنهادهای ربات', sources: 'منبع‌های ربات', daily: 'جایزه‌ی روزانه', levels: 'جاده‌ی لول‌ها', users: 'کاربران', settings: 'تنظیمات', socket: 'سرویس سوکت', audit: 'گزارش تغییرها', admins: 'مدیران پنل', words: 'فیلتر کلمات توهین‌آمیز', cities: 'شهرهای بازی', shop: 'فروشگاه و راهنما', wheel: 'گردونه‌ی شانس', dailypuzzle: 'پازل روز', invites: 'کدهای معرف', badges: 'نشان‌ها و مدال‌ها', taunts: 'کل‌کل‌های آماده', tournaments: 'تورنومنت‌ها', bots: 'بازیکن‌های ربات', chatreports: 'گزارش‌های چت', bale: 'ربات بله و اعلان‌ها', messages: 'مرکز پیام' };
 function navIcon(key) { var s = svgEl('svg', { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }); s.appendChild(svgEl('path', { d: ICON_D[key] || ICON_D.dashboard })); return s; }
 function drawNav() {
   var nav = clear($('nav'));

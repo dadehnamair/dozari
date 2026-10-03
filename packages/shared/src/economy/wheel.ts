@@ -1,10 +1,13 @@
 import { WHEEL_SLICES_DEFAULT } from '../config/economy.js';
+import type { WheelPrizeKind } from '../config/economy.js';
 import type { DuelReason, Stake } from './duel.js';
 
 /** The lucky wheel (docs/logic/economy.md §Lucky wheel): a chance that only a won duel earns. Pure; the server rolls and pays. */
 
 export interface WheelSlice {
-  coins: number;
+  kind: WheelPrizeKind;
+  /** Coins, gems, hint tokens or spins, by `kind`. */
+  amount: number;
   /** Relative odds; a slice with weight 0 never wins. */
   weight: number;
 }
@@ -14,13 +17,15 @@ export interface WheelRules {
   slices: readonly WheelSlice[];
   /** Free spins every player gets once a day (0 / absent = none). */
   dailySpins?: number;
+  /** A won queue duel against a human gives a spin (default true; the live default is off, D165). */
+  winSpins?: boolean;
 }
 
 export const DEFAULT_WHEEL_RULES: WheelRules = { enabled: true, slices: WHEEL_SLICES_DEFAULT };
 
-/** The default slices with every prize scaled by `percent` (rounded, at least 1 coin). */
+/** The slices with every *coin* prize scaled by `percent` (rounded, at least 1 coin); other kinds are untouched. */
 export function scaleSlices(slices: readonly WheelSlice[], percent: number): WheelSlice[] {
-  return slices.map((s) => ({ weight: s.weight, coins: Math.max(1, Math.round((s.coins * percent) / 100)) }));
+  return slices.map((s) => (s.kind === 'coins' ? { ...s, amount: Math.max(1, Math.round((s.amount * percent) / 100)) } : { ...s }));
 }
 
 /**
@@ -48,5 +53,5 @@ export function pickSlice(slices: readonly WheelSlice[], roll: number): number {
 /** Average coins of one spin (for the balance simulation and the admin hint). */
 export function wheelExpectedCoins(slices: readonly WheelSlice[]): number {
   const total = slices.reduce((n, s) => n + Math.max(0, s.weight), 0);
-  return total <= 0 ? 0 : slices.reduce((n, s) => n + s.coins * Math.max(0, s.weight), 0) / total;
+  return total <= 0 ? 0 : slices.reduce((n, s) => n + (s.kind === 'coins' ? s.amount : 0) * Math.max(0, s.weight), 0) / total;
 }

@@ -86,8 +86,12 @@ Settings (admin → economy): `duel.entry_fee` 20, `duel.house_cut_percent` 10, 
 - The server rolls (`pickSlice`, crypto random) and pays through the ledger, reason `wheel_spin`, key `wheel_spin:<spinId>`.
   The client only animates to the slice the server returns. API: `GET /wheel` (enabled, pending, slices, balance),
   `POST /wheel/spin` (409 `NO_SPIN` when none waits).
-- Numbers: `WHEEL_SLICES_DEFAULT` in `config/economy.ts` (8 slices, expected ≈ 13 coins); admin settings `wheel.enabled`
-  and `wheel.prize_scale_percent`. Needs the economy simulation before launch (faucet next to the 20-coin entry fee).
+- **Typed prizes (D165)**: the slices live in table `wheel_prizes` (kind `coins|gems|hint_token|wheel_spin`, amount, weight, active), seeded from
+  `WHEEL_SLICES_DEFAULT` (10 slices) and edited in the admin «گردونه‌ی شانس». A spin pays by kind: coins `wheel_spin` (coin ledger), gems `wheel_prize`
+  (gem ledger), hint tokens into `user_inventory`, `wheel_spin` as new spin rows (`source = wheel`). `wheel_spins.prize_kind/prize_amount` record the result.
+  No free spins by default: `wheel.daily_spins` = 0 and `wheel.win_spins` (a won human duel gives a spin) = off. Clothing/hats arrive with cosmetics.
+- Numbers: `WHEEL_SLICES_DEFAULT` in `config/economy.ts` (expected ≈ 9 coins plus other kinds); admin settings `wheel.enabled`, `wheel.win_spins`
+  and `wheel.prize_scale_percent` (scales coin prizes only). Needs the economy simulation before launch (faucet next to the 20-coin entry fee).
 - App: Home's wheel button and, after a win, the result screen show «گردونه!» once the server confirms a waiting spin (`apps/mobile/src/wheel`).
 
 ## Rules

@@ -1,16 +1,29 @@
-import { and, asc, eq, isNull, sql, userBalances, wheelSpins } from '@dozari/db';
+import { WHEEL_SLICES_DEFAULT } from '@dozari/shared';
+import { and, asc, eq, isNull, sql, userBalances, userGems, userInventory, wheelPrizes, wheelSpins } from '@dozari/db';
 import type { Db } from '@dozari/db';
 import { uuidv7 } from 'uuidv7';
+import { applyGemEntry } from '../economy/gems.js';
 import { applyLedgerEntry } from '../economy/ledger.js';
-import type { WheelStore } from './service.js';
+import type { NewWheelPrize, WheelPrizeRow, WheelStore } from './service.js';
 
 export function createDbWheelStore(db: Db): WheelStore {
+  let seeded = false;
+  const seed = async () => {
+    if (seeded) return;
+    const [r] = await db.select({ n: sql<number>`COUNT(*)` }).from(wheelPrizes);
+    if (Number(r?.n ?? 0) === 0) await db.insert(wheelPrizes).values(WHEEL_SLICES_DEFAULT.map((s, i) => ({ id: uuidv7(), kind: s.kind, amount: s.amount, weight: s.weight, sortOrder: i })));
+    seeded = true;
+  };
   const pending = async (userId: string): Promise<number> => {
     const [r] = await db.select({ n: sql<number>`COUNT(*)` }).from(wheelSpins).where(and(eq(wheelSpins.userId, userId), isNull(wheelSpins.spunAt)));
     return Number(r?.n ?? 0);
   };
   const balance = async (userId: string): Promise<number> => {
     const [r] = await db.select({ b: userBalances.balance }).from(userBalances).where(eq(userBalances.userId, userId));
+    return r?.b ?? 0;
+  };
+  const gems = async (userId: string): Promise<number> => {
+    const [r] = await db.select({ b: userGems.balance }).from(userGems).where(eq(userGems.userId, userId));
     return r?.b ?? 0;
   };
   return {
@@ -28,6 +41,25 @@ export function createDbWheelStore(db: Db): WheelStore {
     },
     pending,
     balance,
+    gems,
+    async prizes(opts) {
+      await seed();
+      const rows = await db.select().from(wheelPrizes).where(opts?.includeHidden ? undefined : eq(wheelPrizes.isActive, true)).orderBy(asc(wheelPrizes.sortOrder), asc(wheelPrizes.id));
+      return rows.map((r) => ({ ...r }));
+    },
+    async addPrize(p) {
+      await seed();
+      const [agg] = await db.select({ top: sql<number>`COALESCE(MAX(${wheelPrizes.sortOrder}), 0)` }).from(wheelPrizes);
+      const row = { ...p, id: uuidv7(), sortOrder: Number(agg?.top ?? 0) + 1 };
+      await db.insert(wheelPrizes).values(row);
+      return row;
+    },
+    async updatePrize(id, patch) {
+      const [r] = await db.select({ id: wheelPrizes.id }).from(wheelPrizes).where(eq(wheelPrizes.id, id));
+      if (!r) return 'not_found';
+      await db.update(wheelPrizes).set(patch).where(eq(wheelPrizes.id, id));
+      return 'ok';
+    },
     spin: (userId, roll) =>
       db.transaction(async (tx) => {
         // Lock the oldest waiting spin so two taps cannot both use it.
@@ -40,21 +72,34 @@ export function createDbWheelStore(db: Db): WheelStore {
           .for('update');
         if (!row) return null;
         const prize = roll();
-        await tx.update(wheelSpins).set({ coins: prize.coins, spunAt: new Date() }).where(eq(wheelSpins.id, row.id));
-        const out = await applyLedgerEntry(tx, { userId, delta: prize.coins, reason: 'wheel_spin', refType: row.matchId ? 'match' : 'wheel', refId: row.matchId ?? row.id, idempotencyKey: `wheel_spin:${row.id}` });
+        await tx.update(wheelSpins).set({ coins: prize.kind === 'coins' ? prize.amount : 0, prizeKind: prize.kind, prizeAmount: prize.amount, spunAt: new Date() }).where(eq(wheelSpins.id, row.id));
+        const key = `wheel_spin:${row.id}`;
+        const refType = row.matchId ? 'match' : 'wheel';
+        const refId = row.matchId ?? row.id;
+        if (prize.kind === 'coins') await applyLedgerEntry(tx, { userId, delta: prize.amount, reason: 'wheel_spin', refType, refId, idempotencyKey: key });
+        else if (prize.kind === 'gems') await applyGemEntry(tx, { userId, delta: prize.amount, reason: 'wheel_prize', refType, refId, idempotencyKey: key });
+        else if (prize.kind === 'hint_token') await tx.insert(userInventory).values({ userId, effect: 'hint_token', qty: prize.amount }).onDuplicateKeyUpdate({ set: { qty: sql`${userInventory.qty} + ${prize.amount}` } });
+        else for (let i = 0; i < prize.amount; i++) await tx.insert(wheelSpins).ignore().values({ id: uuidv7(), userId, source: 'wheel', ref: `${row.id}#${i}` });
         const [left] = await tx.select({ n: sql<number>`COUNT(*)` }).from(wheelSpins).where(and(eq(wheelSpins.userId, userId), isNull(wheelSpins.spunAt)));
-        return { ...prize, pending: Number(left?.n ?? 0), balance: out.balance };
+        const [bal] = await tx.select({ b: userBalances.balance }).from(userBalances).where(eq(userBalances.userId, userId));
+        const [gem] = await tx.select({ b: userGems.balance }).from(userGems).where(eq(userGems.userId, userId));
+        return { ...prize, pending: Number(left?.n ?? 0), balance: bal?.b ?? 0, gems: gem?.b ?? 0 };
       }),
   };
 }
 
 /** In-memory twin for tests. */
-export function createMemoryWheelStore(): WheelStore & { balances: Map<string, number>; spins: { userId: string; matchId: string; coins: number | null }[] } {
+export function createMemoryWheelStore(): WheelStore & { balances: Map<string, number>; gemBalances: Map<string, number>; tokens: Map<string, number>; spins: { userId: string; matchId: string; coins: number | null }[] } {
   const balances = new Map<string, number>();
+  const gemBalances = new Map<string, number>();
+  const tokens = new Map<string, number>();
   const spins: { userId: string; matchId: string; coins: number | null }[] = [];
+  const table: WheelPrizeRow[] = WHEEL_SLICES_DEFAULT.map((s, i) => ({ id: `00000000-0000-7000-c000-${String(i + 1).padStart(12, '0')}`, kind: s.kind, amount: s.amount, weight: s.weight, sortOrder: i, isActive: true }));
   const waiting = (u: string) => spins.filter((s) => s.userId === u && s.coins === null);
   return {
     balances,
+    gemBalances,
+    tokens,
     spins,
     async grant(userId, matchId) {
       if (spins.some((s) => s.userId === userId && s.matchId === matchId)) return false;
@@ -77,13 +122,33 @@ export function createMemoryWheelStore(): WheelStore & { balances: Map<string, n
     async balance(u) {
       return balances.get(u) ?? 0;
     },
+    async gems(u) {
+      return gemBalances.get(u) ?? 0;
+    },
+    async prizes(opts) {
+      return table.filter((r) => opts?.includeHidden || r.isActive).map((r) => ({ ...r }));
+    },
+    async addPrize(p: NewWheelPrize) {
+      const row = { ...p, id: `00000000-0000-7000-c000-${String(table.length + 1).padStart(12, '0')}`, sortOrder: table.length };
+      table.push(row);
+      return { ...row };
+    },
+    async updatePrize(id, patch) {
+      const r = table.find((x) => x.id === id);
+      if (!r) return 'not_found';
+      Object.assign(r, patch);
+      return 'ok';
+    },
     async spin(userId, roll) {
       const next = waiting(userId)[0];
       if (!next) return null;
       const prize = roll();
-      next.coins = prize.coins;
-      balances.set(userId, (balances.get(userId) ?? 0) + prize.coins);
-      return { ...prize, pending: waiting(userId).length, balance: balances.get(userId)! };
+      next.coins = prize.kind === 'coins' ? prize.amount : 0;
+      if (prize.kind === 'coins') balances.set(userId, (balances.get(userId) ?? 0) + prize.amount);
+      else if (prize.kind === 'gems') gemBalances.set(userId, (gemBalances.get(userId) ?? 0) + prize.amount);
+      else if (prize.kind === 'hint_token') tokens.set(userId, (tokens.get(userId) ?? 0) + prize.amount);
+      else for (let i = 0; i < prize.amount; i++) spins.push({ userId, matchId: `wheel:${spins.length}`, coins: null });
+      return { ...prize, pending: waiting(userId).length, balance: balances.get(userId) ?? 0, gems: gemBalances.get(userId) ?? 0 };
     },
   };
 }

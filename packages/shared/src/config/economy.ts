@@ -40,17 +40,22 @@ export const LOSS_CONSOLATION_DAILY_CAP = 10;
 export const BROKE_RESCUE_TARGET = 60;
 
 /**
- * Lucky wheel (docs/logic/economy.md §Lucky wheel): one spin per won queue duel against a human. Eight slices, a weight each;
- * the admin can scale every prize with `wheel.prize_scale_percent`. Expected value ≈ 13 coins before scaling (needs the
- * economy simulation before launch).
+ * Lucky wheel (docs/logic/economy.md §Lucky wheel, D165): a typed prize table. Each slice has a `kind` (coins, gems, hint tokens
+ * or an extra spin), an `amount` and a weight; the admin edits the live table, this is the seed used when it is empty. The admin can
+ * also scale the coin prizes with `wheel.prize_scale_percent`. Expected ≈ 9 coins plus the other kinds per spin (needs the economy
+ * simulation before launch).
  */
-export const WHEEL_SLICES_DEFAULT: readonly { coins: number; weight: number }[] = [
-  { coins: 5, weight: 25 },
-  { coins: 10, weight: 20 },
-  { coins: 10, weight: 20 },
-  { coins: 15, weight: 15 },
-  { coins: 20, weight: 10 },
-  { coins: 25, weight: 6 },
-  { coins: 40, weight: 3 },
-  { coins: 100, weight: 1 },
+export const WHEEL_PRIZE_KINDS = ['coins', 'gems', 'hint_token', 'wheel_spin'] as const;
+export type WheelPrizeKind = (typeof WHEEL_PRIZE_KINDS)[number];
+export const WHEEL_SLICES_DEFAULT: readonly { kind: WheelPrizeKind; amount: number; weight: number }[] = [
+  { kind: 'coins', amount: 5, weight: 24 },
+  { kind: 'hint_token', amount: 1, weight: 12 },
+  { kind: 'coins', amount: 10, weight: 20 },
+  { kind: 'gems', amount: 1, weight: 10 },
+  { kind: 'coins', amount: 15, weight: 14 },
+  { kind: 'coins', amount: 20, weight: 9 },
+  { kind: 'wheel_spin', amount: 1, weight: 4 },
+  { kind: 'coins', amount: 40, weight: 3 },
+  { kind: 'gems', amount: 3, weight: 3 },
+  { kind: 'coins', amount: 100, weight: 1 },
 ];
