@@ -220,7 +220,7 @@ human opponent is found.
 - [x] E. Content control — [x] daily puzzle by day conditions/trends (item 15; D87); [x] tournament entry rules (coins + level), builder, own page, bracket engine (items 26, 27; D85); [x] admin bot players: accounts, queue fill, human-like play, taunt replies, tournament fill (item 25; D86); [ ] trend-based daily puzzle (15)
 - [ ] F. Feel: [x] city dialect phrases (item 9; D88); [x] personal settings + web sound effects (items 10, 12; D89; native sound pending); dialects, sounds, city backgrounds, personal settings, touch-everything polish (items 9, 10, 11, 12, 13)
 
-## Owner backlog 2026-10-03 (6 items) — see `docs/logic/owner-backlog-2026-10-03.md`
+## Owner backlog 2026-10-03 (9 items) — see `docs/logic/owner-backlog-2026-10-03.md`
 
 Start after the first Android build.
 
@@ -230,4 +230,6 @@ Start after the first Android build.
 - [ ] 4. Missions (profile, social follow, store reviews, invite …) paying coins
 - [ ] 5. Shorter opponent search; bots fill the seat sooner
 - [ ] 6. Options greyed out when it is not my turn, coloured on my turn
-
+- [ ] 7. Phone-only gate: on desktop show Dozari + QR «با گوشی بیا»; Android → downloads, iPhone → PWA install
+- [ ] 8. Landing site `mrdozari.ir` (`apps/landing`, own container, admin-managed content, game story with the cast, blog, full SEO/GEO — owner's spreadsheet adapted from Laravel)
+- [ ] 9. Short domain `2oi.ir`: self-hosted shortener for outgoing links; all domains editable in the admin panel
