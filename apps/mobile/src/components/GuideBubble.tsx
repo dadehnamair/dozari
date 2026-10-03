@@ -1,4 +1,4 @@
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { fonts, colors } from '../theme/colors';
 import type { CharacterId } from '../theme/character';
 import { Character } from './Character';
@@ -6,13 +6,14 @@ import { Character } from './Character';
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 
 /** A character of the bazaar (baqal, ajan, mirza …) speaking in a bubble. Used for menu tips on Home and for «why is this locked». */
-export function GuideBubble({ text, who = 'dozari' }: { text: string; who?: CharacterId }) {
-  return (
-    <View style={styles.root} accessibilityRole="text" accessibilityLabel={text}>
+export function GuideBubble({ text, who = 'dozari', onPress }: { text: string; who?: CharacterId; onPress?: () => void }) {
+  const body = (
+    <View style={styles.root} accessibilityRole={onPress ? undefined : 'text'} accessibilityLabel={onPress ? undefined : text}>
       <View style={styles.mascot}><Character who={who} pose="idle" crop="face" /></View>
       <View style={styles.bubble}><Text style={styles.text}>{text}</Text></View>
     </View>
   );
+  return onPress ? <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={text}>{body}</Pressable> : body;
 }
 
 const styles = StyleSheet.create({

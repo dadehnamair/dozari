@@ -107,6 +107,19 @@ reveals `is_bot`. v1 built: endpoint, `friendships` table, `PlayerSheet`; wired 
 An optional choice, female or male, set next to the province/city. It only changes presentation: the hero character and the
 app icon take that gender. Stored in `users.gender` (nullable), set from «پروفایل من»; Home already draws the matching hero. The app icon switch is not built; see D68 for the open points.
 
+## Profile-completion rewards (D161)
+
+Home's guide character points at the next missing profile step and says what it pays («شهرت را در پروفایل انتخاب کن و ۲۰ سکه بگیر»).
+Steps: `gender`, `city`, `phone` (verified), `bale` (linked). Nickname and avatar are always set at signup, so they are not steps.
+
+- **Reward per step** is an admin setting (`profiletask.coins_<key>`, defaults 10 / 20 / 50 / 30 coins; 0 = no reward and no nudge).
+- **One-time, server-checked:** `GET /me/profile-tasks` lists each step as `done` (the field is really filled in, read from `users` /
+  `bale_links`), `claimed` and `coins`; `POST /me/profile-tasks/:key/claim` pays only when `done` and not yet `claimed`. The claim row
+  (`profile_task_claims`, PK user + key) is the lock and the ledger key `profile_task:<user>:<key>` makes a repeat pay nothing.
+- **Order of the nudge:** a finished step whose reward is waiting comes first (tap = take it), else the first unfinished one (tap =
+  open the profile sheet, settings or the Bale sheet). A step whose screen is switched off is skipped.
+- Birth date (D160) will become a fifth step when it is built.
+
 ## Birth date and age display (D160, proposed — not built)
 
 An optional field set from «پروفایل من», next to gender and city. Policy:

@@ -226,7 +226,7 @@ Start after the first Android build.
 
 - [ ] 1. Wheel pays every prize kind (coins, gems, clothing, hats …); no free spins until the policy is set, then spins behave like lives (D156)
 - [x] 2. Board cards: names and icons fit (fixed layout policy, auto-shrink floor, short names)
-- [ ] 3. «تکمیل پروفایل» nudge / guide says «برو این کار را بکن، سکه بگیر»
+- [x] 3. «تکمیل پروفایل» nudge / guide says «برو این کار را بکن، سکه بگیر»
 - [ ] 4. Missions (profile, social follow, store reviews, invite …) paying coins
 - [x] 5. Shorter opponent search; bots fill the seat sooner
 - [x] 6. Options greyed out when it is not my turn, coloured on my turn

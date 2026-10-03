@@ -288,6 +288,13 @@
       "when": 1791004978399,
       "tag": "0040_gifted_surge",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "5",
+      "when": 1791025475143,
+      "tag": "0041_pale_famine",
+      "breakpoints": true
     }
   ]
 }

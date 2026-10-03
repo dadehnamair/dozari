@@ -35,6 +35,14 @@ export const fa = {
       level: 'سطح',
     },
     /** The guide character on Home: tap it to hear what each menu does (key = feature switch / menu). */
+    profileNudge: {
+      gender: (coins: string) => `جنسیتت را در پروفایل انتخاب کن و ${coins} سکه بگیر.`,
+      city: (coins: string) => `شهرت را در پروفایل انتخاب کن و ${coins} سکه بگیر.`,
+      phone: (coins: string) => `شماره‌ات را در تنظیمات تأیید کن و ${coins} سکه بگیر.`,
+      bale: (coins: string) => `حسابت را به بله وصل کن و ${coins} سکه بگیر.`,
+      claim: (coins: string) => `پروفایلت کامل شد! بزن تا ${coins} سکه‌ات را بگیری.`,
+      got: (coins: string) => `${coins} سکه گرفتی`,
+    },
     guide: {
       name: 'راهنما',
       tips: [
@@ -823,6 +831,7 @@ export const fa = {
       broke_rescue: 'کمک‌هزینه',
       wheel_spin: 'گردونه‌ی شانس',
       level_reward: 'جایزه‌ی مرحله',
+      profile_task: 'تکمیل پروفایل',
     } as Record<string, string>,
   },
   inbox: {
