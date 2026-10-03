@@ -4,6 +4,8 @@ export interface XpRules {
   winBonus: number;
   curveBase: number;
   levelMax: number;
+  /** Per-level start XP from the admin's level table (`starts[0]` is level 1 = 0); when set it replaces the curve and `levelMax` is its length. */
+  starts?: readonly number[];
 }
 
 export interface LevelInfo {
@@ -19,13 +21,19 @@ export function levelStartXp(level: number, curveBase: number): number {
   return curveBase * (level - 1) ** 2;
 }
 
-export function levelInfo(xp: number, rules: Pick<XpRules, 'curveBase' | 'levelMax'>): LevelInfo {
+/** XP at which `level` starts under these rules: the admin's table when there is one, else the curve. */
+export function levelStartAt(level: number, rules: Pick<XpRules, 'curveBase' | 'starts'>): number {
+  return rules.starts ? (rules.starts[level - 1] ?? Number.POSITIVE_INFINITY) : levelStartXp(level, rules.curveBase);
+}
+
+export function levelInfo(xp: number, rules: Pick<XpRules, 'curveBase' | 'levelMax' | 'starts'>): LevelInfo {
   const safe = Math.max(0, Math.floor(xp));
+  const max = rules.starts ? rules.starts.length : rules.levelMax;
   let level = 1;
-  while (level < rules.levelMax && safe >= levelStartXp(level + 1, rules.curveBase)) level++;
-  if (level >= rules.levelMax) return { level, xp: safe, xpInLevel: 0, xpForNext: 0 };
-  const start = levelStartXp(level, rules.curveBase);
-  return { level, xp: safe, xpInLevel: safe - start, xpForNext: levelStartXp(level + 1, rules.curveBase) - start };
+  while (level < max && safe >= levelStartAt(level + 1, rules)) level++;
+  if (level >= max) return { level, xp: safe, xpInLevel: 0, xpForNext: 0 };
+  const start = levelStartAt(level, rules);
+  return { level, xp: safe, xpInLevel: safe - start, xpForNext: levelStartAt(level + 1, rules) - start };
 }
 
 export interface GameResultForXp {

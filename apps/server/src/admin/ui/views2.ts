@@ -123,6 +123,45 @@ function sourceForm(s, done) {
     return false; } }]);
 }
 
+/* ---------------- level road ---------------- */
+VIEWS.levels = function (root) {
+  api('/admin/level-road').then(function (r) {
+    if (r.status === 404) return root.appendChild(empty('جاده‌ی لول روی این سرور فعال نیست (دیتابیس لازم است)'));
+    if (!r.ok) return fail(r);
+    var rows = r.body.rows.map(function (x) { return { level: x.level, startXp: x.startXp, rewardCoins: x.rewardCoins }; }), custom = r.body.custom;
+    var box = h('div'), status = h('div', { class: 'quote' }), xpIn = [], coinIn = [];
+    function read() { return rows.map(function (x, i) { return { level: i + 1, startXp: i === 0 ? 0 : Math.max(0, Math.round(Number(xpIn[i].value) || 0)), rewardCoins: Math.max(0, Math.round(Number(coinIn[i].value) || 0)) }; }); }
+    function total() { return rows.reduce(function (n, x) { return n + x.rewardCoins; }, 0); }
+    function draw() {
+      clear(box); xpIn = []; coinIn = [];
+      status.textContent = (custom ? 'جدول شما فعال است.' : 'هنوز جدولی ذخیره نشده؛ بازی از فرمول تنظیمات (منحنی XP و جایزه‌ی هر چند لول) استفاده می‌کند. هر عددی را عوض کنی و ذخیره کنی، این جدول جای فرمول را می‌گیرد.') + ' جمع جایزه‌ها: ' + faNum(total()) + ' سکه.';
+      var tbl = h('table', { class: 'tbl' });
+      tbl.appendChild(h('thead', {}, [h('tr', {}, ['لول', 'XP شروع لول (جمع کل)', 'XP لازم برای این لول', 'جایزه‌ی سکه‌ی رسیدن به این لول'].map(function (t) { return h('th', { text: t }); }))]));
+      var body = h('tbody');
+      rows.forEach(function (x, i) {
+        var xp = h('input', { type: 'number', min: 0, value: x.startXp, disabled: i === 0 ? 'disabled' : null, style: 'width:140px' }), coin = h('input', { type: 'number', min: 0, max: 1000000, value: x.rewardCoins, style: 'width:140px' });
+        xpIn.push(xp); coinIn.push(coin);
+        var need = h('span', { text: i === 0 ? '—' : faNum(Math.max(0, x.startXp - rows[i - 1].startXp)) });
+        xp.oninput = function () { x.startXp = Math.max(0, Math.round(Number(xp.value) || 0)); need.textContent = i === 0 ? '—' : faNum(Math.max(0, x.startXp - rows[i - 1].startXp)); if (rows[i + 1]) { /* next row's need changes too */ var nx = body.children[i + 1]; if (nx) nx.children[2].textContent = faNum(Math.max(0, rows[i + 1].startXp - x.startXp)); } };
+        coin.oninput = function () { x.rewardCoins = Math.max(0, Math.round(Number(coin.value) || 0)); status.textContent = status.textContent.replace(/جمع جایزه‌ها: .*$/, 'جمع جایزه‌ها: ' + faNum(total()) + ' سکه.'); };
+        body.appendChild(h('tr', {}, [h('td', { text: fa(x.level) }), h('td', {}, [xp]), h('td', {}, [need]), h('td', {}, [coin])]));
+      });
+      tbl.appendChild(body);
+      box.appendChild(h('div', { style: 'overflow:auto;max-height:60vh' }, [tbl]));
+      box.appendChild(h('div', { style: 'display:flex;gap:8px;margin-top:12px;flex-wrap:wrap' }, [
+        h('button', { class: 'btn', text: '＋ افزودن لول', onclick: function () { rows = read(); var last = rows[rows.length - 1], prev = rows[rows.length - 2]; if (rows.length >= 100) return toast('بیشتر از ۱۰۰ لول نمی‌شود', true); rows.push({ level: rows.length + 1, startXp: last.startXp + Math.max(50, last.startXp - (prev ? prev.startXp : 0) + 100), rewardCoins: 0 }); draw(); } }),
+        h('button', { class: 'btn bad', text: 'حذف آخرین لول', onclick: function () { rows = read(); if (rows.length > 1) rows.pop(); draw(); } }),
+        h('button', { class: 'btn', text: 'پر کردن از فرمول تنظیمات', onclick: function () { api('/admin/level-road?defaults=1').then(function (x) { if (!x.ok) return fail(x); rows = x.body.rows; draw(); toast('از فرمول پر شد؛ هنوز ذخیره نشده'); }); } }),
+        h('span', { style: 'flex:1' }),
+        custom ? h('button', { class: 'btn danger', text: 'بازگشت به فرمول', onclick: function () { if (!confirm('جدول حذف شود و دوباره از فرمول تنظیمات استفاده شود؟')) return; api('/admin/level-road', { method: 'DELETE' }).then(function (x) { if (!x.ok) return fail(x); rows = x.body.rows; custom = false; toast('به فرمول برگشت'); draw(); }); } }) : null,
+        h('button', { class: 'btn primary', text: 'ذخیره', onclick: function () { api('/admin/level-road', { method: 'PUT', body: { rows: read() } }).then(function (x) { if (!x.ok) return toast(({ not_increasing: 'XP هر لول باید از لول قبلی بیشتر باشد', first_not_zero: 'لول ۱ باید از صفر شروع شود', reward_too_big: 'جایزه بیش از حد بزرگ است' })[x.body && x.body.error] || 'ذخیره نشد', true); rows = x.body.rows; custom = true; toast('جدول لول‌ها ذخیره شد'); draw(); }); } })
+      ]));
+    }
+    root.appendChild(card('جاده‌ی لول‌ها', 'برای هر لول بگو از چند XP شروع می‌شود و رسیدن به آن چند سکه جایزه دارد (۰ = بدون جایزه). بازیکن جایزه‌ها را از «جاده‌ی لول‌ها» در اپ می‌گیرد؛ جایزه‌ی لولی که قبلاً گرفته شده دوباره داده نمی‌شود. تعداد ردیف‌ها همان سقف لول است. اینکه هر لول چه چیزی باز می‌کند (کمک، کد دعوت، ...) از «تنظیمات» و «فروشگاه» می‌آید.', [status, box]));
+    draw();
+  });
+};
+
 /* ---------------- daily reward ---------------- */
 VIEWS.daily = function (root) {
   api('/admin/daily-reward').then(function (r) {

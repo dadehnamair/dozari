@@ -372,3 +372,7 @@ Owner's idea: a team match should last longer, so instead of one 16-card pack th
 ## D144 — The opponent-search grid shows real online players, topped up with bots (2026-10-02, proposed)
 
 Owner: the search screen should pull from online players, or from bots when few. Built as `GET /duel/candidates` (public fields only, no flags); see `logic/matchmaking.md` §Opponent-search show. Proposed: a player's nickname/avatar/level may appear in strangers' search grids while they are online (same fields any opponent sees at match time); the grid is cosmetic and not tied to who the queue pairs.
+
+## D145 — Level table editable in the admin panel; the level road is a winding path (2026-10-03, proposed)
+
+Owner: the level road should be the winding design of `17 Chat Shop Unlocks` (it was a straight list), and the levels and their coin rewards should be set in the admin panel. Built: the winding SVG road, and an admin page «جاده‌ی لول‌ها» to edit each level's start XP and coin reward (table `level_road`; empty table = the old formulas). See `logic/progression.md` §Level table. Proposed: the table replaces the curve, the cap and the every-Nth-level rule once saved; what a level *opens* stays in settings/shop.

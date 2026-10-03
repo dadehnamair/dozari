@@ -1120,6 +1120,13 @@ export const wheelSpins = mysqlTable(
   (t) => ({ onePerMatch: uniqueIndex('wheel_spins_user_match').on(t.userId, t.matchId), pending: index('wheel_spins_pending').on(t.userId, t.spunAt) }),
 );
 
+/** The admin's level table (docs/logic/progression.md §Level table): XP at which each level starts and the coin reward for reaching it. Empty = the formulas of the settings. */
+export const levelRoad = mysqlTable('level_road', {
+  level: int('level').primaryKey(),
+  startXp: int('start_xp').notNull(),
+  rewardCoins: int('reward_coins').notNull().default(0),
+});
+
 /** Level-road coin rewards a player has taken (docs/logic/progression.md §Level rewards). */
 export const levelRewardClaims = mysqlTable(
   'level_reward_claims',

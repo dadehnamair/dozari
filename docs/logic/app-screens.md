@@ -121,6 +121,10 @@ the player's level and XP bar, «اینجا چی هست؟» and Ajan's line. The
 counterpart (no gems) and is left out. D117 adds an XP header (level, bar, claim-all), a coin card on every 5th level
 («بگیر!» → «گرفتی») and a «الان اینجایی» tag with a glowing current node.
 
+The road is a **winding path** (D145): level 1 at the bottom, the bends alternating left / right (30 % and 70 % of the width), an S-shaped Bézier between every pair of levels, a thick brown track
+with a cream centre and a dashed line, the stretch up to the player's level in gold, round nodes on the bends (the current one pulsing, the hero waving above it) and the cards on the opposite side of each
+bend (`levels/roadPath.ts`).
+
 ## Leaderboard (D108)
 
 screen-leaderboard of `11 More Screens`, opened from the Home tile «جدول»: purple chequer with a golden

@@ -1,5 +1,5 @@
-import { checkNickname, levelInfo, xpForGame } from '@dozari/shared';
-import type { City, GameResultForXp, LevelInfo, NicknameProblem, NicknameRules, PlayerStats, XpRules } from '@dozari/shared';
+import { checkNickname, levelInfo, startsOf, xpForGame } from '@dozari/shared';
+import type { City, GameResultForXp, LevelInfo, LevelRow, NicknameProblem, NicknameRules, PlayerStats, XpRules } from '@dozari/shared';
 import type { SettingsService } from '../settings/service.js';
 import type { TextFilterService } from '../textfilter/service.js';
 import type { PlayerStore, RankFilter } from './store.js';
@@ -20,12 +20,14 @@ export const DEFAULT_RULES: PlayerRules = {
   renameNeedsInvite: false,
 };
 
-export async function rulesFromSettings(settings: SettingsService): Promise<PlayerRules> {
+/** `table` returns the admin's level table (null = use the curve); it replaces the curve and the level cap when set. */
+export async function rulesFromSettings(settings: SettingsService, table?: () => Promise<LevelRow[] | null>): Promise<PlayerRules> {
+  const rows = (await table?.()) ?? null;
   const [soloBase, duelBase, winBonus, curveBase, levelMax, minLen, maxLen, digits, latin, persian, unlock, needsInvite] = await Promise.all(
     ['xp.solo_base', 'xp.duel_base', 'xp.win_bonus', 'xp.curve_base', 'xp.level_max', 'nickname.min_len', 'nickname.max_len', 'nickname.allow_digits', 'nickname.allow_latin', 'nickname.allow_persian', 'profile.nickname_unlock_games', 'invite.required_for_rename'].map((k) => settings.num(k)),
   );
   return {
-    xp: { soloBase: soloBase!, duelBase: duelBase!, winBonus: winBonus!, curveBase: curveBase!, levelMax: levelMax! },
+    xp: { soloBase: soloBase!, duelBase: duelBase!, winBonus: winBonus!, curveBase: curveBase!, levelMax: rows ? rows.length : levelMax!, ...(rows ? { starts: startsOf(rows) } : {}) },
     nickname: { minLen: minLen!, maxLen: Math.max(maxLen!, minLen!), allowDigits: digits === 1, allowLatin: latin === 1, allowPersian: persian === 1 },
     nicknameUnlockGames: unlock!,
     renameNeedsInvite: needsInvite === 1,

@@ -274,6 +274,13 @@
       "when": 1790970147849,
       "tag": "0038_bizarre_hammerhead",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "5",
+      "when": 1791002243875,
+      "tag": "0039_chief_zzzax",
+      "breakpoints": true
     }
   ]
 }

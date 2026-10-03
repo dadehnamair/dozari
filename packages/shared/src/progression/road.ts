@@ -51,6 +51,8 @@ export const levelRoadSchema = z.object({
   xpForNext: z.number().int().nonnegative(),
   curveBase: z.number().int().positive(),
   levelMax: z.number().int().positive(),
+  /** Start XP of every level (level 1 = 0), from the admin's level table or the curve; the app uses it for «how far to level N». */
+  starts: z.array(z.number().int().nonnegative()).optional(),
   unlocks: z.array(unlockSchema),
   /** Coin rewards of the road, with whether this player already took each. */
   rewards: z.array(levelRewardSchema),

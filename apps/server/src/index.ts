@@ -18,6 +18,8 @@ import { Presence } from './realtime/presence.js';
 import type { Gateway } from './realtime/gateway.js';
 import type { MatchDeps } from './realtime/match-service.js';
 import { PlayerService, rulesFromSettings } from './player/service.js';
+import { LevelTable, createDbLevelTableStore } from './progress/table.js';
+import { defaultLevelTable } from '@dozari/shared';
 import { createDbPlayerStore } from './player/store.js';
 import { registerTransferRoutes } from './transfers/routes.js';
 import { TransferService, transferRulesFromSettings } from './transfers/service.js';
@@ -357,7 +359,8 @@ if (isMainModule(import.meta.url)) {
   const words = db ? new TextFilterService(createDbWordStore(db)) : undefined;
   const playerStore = db ? createDbPlayerStore(db) : undefined;
   const inviteStore = db ? createDbInviteStore(db) : undefined;
-  const player = playerStore && settings ? new PlayerService(playerStore, () => rulesFromSettings(settings), words, inviteStore ? (id) => inviteStore.isActivated(id) : undefined) : undefined;
+  const levelTable = db ? new LevelTable(createDbLevelTableStore(db)) : undefined;
+  const player = playerStore && settings ? new PlayerService(playerStore, () => rulesFromSettings(settings, levelTable ? () => levelTable.get() : undefined), words, inviteStore ? (id) => inviteStore.isActivated(id) : undefined) : undefined;
   const socialStore = db ? createDbSocialStore(db) : undefined;
   const badgeStore = db ? createDbBadgeStore(db) : undefined;
   const badges =
@@ -515,7 +518,7 @@ if (isMainModule(import.meta.url)) {
     auth,
     settings,
     adminModules: db
-      ? { products: createDbProductAdmin(db), stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, daily, puzzles: createDbPuzzleAdmin(db), botPlayers: botStore && player && settings ? { service: new BotPlayerService(botStore, () => rulesFromSettings(settings).then((r) => r.xp), () => randomInt(0, 2 ** 30) / 2 ** 30, async (id) => player.afterGame?.(id)), cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      ? { products: createDbProductAdmin(db), stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, daily, puzzles: createDbPuzzleAdmin(db), levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings ? { service: new BotPlayerService(botStore, () => rulesFromSettings(settings, levelTable ? () => levelTable.get() : undefined).then((r) => r.xp), () => randomInt(0, 2 ** 30) / 2 ** 30, async (id) => player.afterGame?.(id)), cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
     match: db
@@ -572,7 +575,8 @@ if (isMainModule(import.meta.url)) {
       player && settings
         ? new LevelRoadService({
             levelOf: async (id) => (await player.levelOf(id)).level,
-            xpRules: async () => (await rulesFromSettings(settings)).xp,
+            xpRules: async () => (await rulesFromSettings(settings, levelTable ? () => levelTable.get() : undefined)).xp,
+            table: levelTable ? () => levelTable.get() : undefined,
             gates: async () => {
               const get = async (key: string) => (await settings.num(key)) ?? undefined;
               const [hint, invite, transfer, avatar, nickname] = await Promise.all(['hint.min_level', 'invite.min_level', 'transfer.min_level', 'profile.avatar_change_min_level', 'profile.nickname_change_min_level'].map(get));

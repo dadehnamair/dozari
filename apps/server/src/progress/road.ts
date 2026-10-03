@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
-import { levelRewardCoins, rewardLevels } from '@dozari/shared';
-import type { LevelClaim, LevelInfo, LevelRoad, Unlock, XpRules } from '@dozari/shared';
+import { levelRewardCoins, levelStartAt, rewardLevels } from '@dozari/shared';
+import type { LevelClaim, LevelInfo, LevelRoad, LevelRow, Unlock, XpRules } from '@dozari/shared';
 import type { AuthService } from '../auth/service.js';
 import { currentUser } from '../auth/routes.js';
 
@@ -9,7 +9,9 @@ export type SettingGates = Partial<Record<'hint' | 'invite' | 'transfer' | 'avat
 
 export interface RoadDeps {
   levelOf(userId: string): Promise<LevelInfo>;
-  xpRules(): Promise<Pick<XpRules, 'curveBase' | 'levelMax'>>;
+  xpRules(): Promise<Pick<XpRules, 'curveBase' | 'levelMax' | 'starts'>>;
+  /** The admin's level table, whose coin column replaces the every-Nth-level formula; null/absent = the formula. */
+  table?(): Promise<LevelRow[] | null>;
   gates(): Promise<SettingGates>;
   shopItems(): Promise<{ titleFa: string; iconKey: string | null; minLevel: number; isActive: boolean }[]>;
   /** `every` / `base` of the level reward (admin settings); `every` 0 = off. */
@@ -25,7 +27,7 @@ export class LevelRoadService {
   constructor(private readonly deps: RoadDeps) {}
 
   async road(userId: string): Promise<LevelRoad> {
-    const [lv, rules, gates, items, reward, claimed] = await Promise.all([this.deps.levelOf(userId), this.deps.xpRules(), this.deps.gates(), this.deps.shopItems(), this.deps.rewardRules(), this.deps.claimedLevels(userId)]);
+    const [lv, rules, gates, items, reward, claimed, table] = await Promise.all([this.deps.levelOf(userId), this.deps.xpRules(), this.deps.gates(), this.deps.shopItems(), this.deps.rewardRules(), this.deps.claimedLevels(userId), this.deps.table?.() ?? Promise.resolve(null)]);
     const unlocks: Unlock[] = [];
     for (const [kind, level] of Object.entries(gates) as [keyof SettingGates, number][]) {
       if (level > 1) unlocks.push({ level, kind, titleFa: null, iconKey: null });
@@ -33,8 +35,10 @@ export class LevelRoadService {
     for (const it of items) if (it.isActive && it.minLevel > 1) unlocks.push({ level: it.minLevel, kind: 'shop', titleFa: it.titleFa, iconKey: it.iconKey });
     unlocks.sort((a, b) => a.level - b.level || a.kind.localeCompare(b.kind) || (a.titleFa ?? '').localeCompare(b.titleFa ?? ''));
     const took = new Set(claimed);
-    const rewards = rewardLevels(rules.levelMax, reward.every).map((level) => ({ level, coins: levelRewardCoins(level, reward.every, reward.base), claimed: took.has(level) })).filter((r) => r.coins > 0);
-    return { level: lv.level, xp: lv.xp, xpInLevel: lv.xpInLevel, xpForNext: lv.xpForNext, curveBase: rules.curveBase, levelMax: rules.levelMax, unlocks, rewards };
+    const paid = table ? table.map((r) => ({ level: r.level, coins: r.rewardCoins })) : rewardLevels(rules.levelMax, reward.every).map((level) => ({ level, coins: levelRewardCoins(level, reward.every, reward.base) }));
+    const rewards = paid.filter((r) => r.coins > 0).map((r) => ({ ...r, claimed: took.has(r.level) }));
+    const starts = Array.from({ length: rules.levelMax }, (_, i) => levelStartAt(i + 1, rules));
+    return { level: lv.level, xp: lv.xp, xpInLevel: lv.xpInLevel, xpForNext: lv.xpForNext, curveBase: rules.curveBase, levelMax: rules.levelMax, starts, unlocks, rewards };
   }
 
   /** Takes every reward the player has reached and not yet taken. */

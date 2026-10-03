@@ -2,7 +2,9 @@ import { randomInt } from 'node:crypto';
 import type { PuzzleAdmin } from '../puzzles/admin.js';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { isDateKey, ITEMS, PRODUCT_CATEGORIES, PROVINCES, provinceOf, SETTING_GROUPS, SHOP_EFFECTS } from '@dozari/shared';
+import { checkLevelTable, isDateKey, ITEMS, LEVEL_TABLE_MAX, levelRowSchema, PRODUCT_CATEGORIES, PROVINCES, provinceOf, SETTING_GROUPS, SHOP_EFFECTS } from '@dozari/shared';
+import type { LevelRow } from '@dozari/shared';
+import type { LevelTable } from '../progress/table.js';
 import type { SettingsService } from '../settings/service.js';
 import { BOT_ADAPTER_KEYS, SOURCE_TYPES } from '../bot/constants.js';
 import type { BotRepository } from '../bot/repository.js';
@@ -51,6 +53,8 @@ export interface AdminModules {
   /** Tournament builder and management. */
   tournaments?: TournamentService;
   daily?: DailyService;
+  /** The level table: XP each level starts at and the coin reward for reaching it. */
+  levelRoad?: { table: LevelTable; defaults: () => Promise<LevelRow[]> };
   /** Hand-built puzzles: readiness of the catalog, list, create (4 groups × 4 products), retire. */
   puzzles?: PuzzleAdmin;
   /** Bot players: generate many natural accounts, tune or pause them. */
@@ -125,7 +129,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     adapters: BOT_ADAPTER_KEYS,
     settingGroups: SETTING_GROUPS,
     icons: ITEMS,
-    modules: { puzzles: !!m.puzzles, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages },
+    modules: { puzzles: !!m.puzzles, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages },
   }));
 
   if (m.stats) {
@@ -582,6 +586,30 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     });
   }
 
+  if (m.levelRoad) {
+    const { table, defaults } = m.levelRoad;
+    g.get('/admin/level-road', async (req) => {
+      const rows = await table.get();
+      // `?defaults=1` = what the settings' formulas give, for «fill from formula» in the editor.
+      if ((req.query as { defaults?: string }).defaults === '1') return { custom: rows !== null, rows: await defaults() };
+      return { custom: rows !== null, rows: rows ?? (await defaults()) };
+    });
+    g.put('/admin/level-road', async (req, reply) => {
+      const b = z.object({ rows: z.array(levelRowSchema).min(1).max(LEVEL_TABLE_MAX) }).safeParse(req.body);
+      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const problem = checkLevelTable(b.data.rows);
+      if (problem) return reply.code(400).send({ error: problem });
+      await table.set(b.data.rows);
+      void audit('level_road.save', String(b.data.rows.length), `${b.data.rows.reduce((n, r) => n + r.rewardCoins, 0)} coins`);
+      return { custom: true, rows: b.data.rows };
+    });
+    // Back to the formulas of the settings (curve, level cap, every-Nth-level coins).
+    g.delete('/admin/level-road', async () => {
+      await table.reset();
+      void audit('level_road.reset', '');
+      return { custom: false, rows: await defaults() };
+    });
+  }
   if (m.daily) {
     const daily = m.daily;
     const month = z.number().int().min(1).max(12);

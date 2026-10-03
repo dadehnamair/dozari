@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import Svg, { G, Path } from 'react-native-svg';
 import type { LevelRoad, Unlock } from '@dozari/shared';
 import { toPersianDigits } from '@dozari/shared';
 import { Character } from '../components/Character';
@@ -11,10 +12,10 @@ import { colors, fonts } from '../theme/colors';
 import { claimLevelRewards, fetchLevelRoad } from './api';
 import { claimableCoins, levelProgress, roadNodes, xpToReach } from './road';
 import type { RoadNode } from './road';
+import { roadLayout, skyStars } from './roadPath';
 import { safeTop } from '../theme/safeArea';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
-const ROW_H = 84;
 const n = (v: number) => toPersianDigits(String(v));
 
 const view = (u: Unlock): { title: string; text: string; icon: string } => {
@@ -35,6 +36,8 @@ export function LevelRoadPage({ onClose }: { onClose: () => void }) {
   const [claiming, setClaiming] = useState(false);
   const [got, setGot] = useState<number | null>(null);
   const scroller = useRef<ScrollView>(null);
+  const win = useWindowDimensions();
+  const width = Math.min(520, win.width);
 
   useEffect(() => {
     fetchLevelRoad().then(setRoad, () => setFailed(true));
@@ -55,8 +58,8 @@ export function LevelRoadPage({ onClose }: { onClose: () => void }) {
   // Bring the current level into view once the road is drawn (the list runs from the top level down).
   useEffect(() => {
     if (!road) return;
-    const idx = nodes.findIndex((x) => x.state === 'current');
-    const t = setTimeout(() => scroller.current?.scrollTo({ y: Math.max(0, idx * ROW_H - 160), animated: false }), 60);
+    const here = roadLayout(road.levelMax, width).points.find((p) => p.level === road.level);
+    const t = setTimeout(() => scroller.current?.scrollTo({ y: Math.max(0, (here?.y ?? 0) - (win.height - 200) * 0.55), animated: false }), 60);
     return () => clearTimeout(t);
   }, [road]);
 
@@ -95,9 +98,7 @@ export function LevelRoadPage({ onClose }: { onClose: () => void }) {
         ) : null}
         {failed ? <Text style={styles.note}>{fa.levels.error}</Text> : null}
         <ScrollView ref={scroller} contentContainerStyle={styles.road} showsVerticalScrollIndicator={false}>
-          {nodes.map((node, i) => (
-            <Row key={node.level} node={node} index={i} reached={road ? node.level <= road.level : false} onLocked={(unlock) => setLocked({ unlock })} onClaim={claim} />
-          ))}
+          {road ? <RoadCanvas road={road} nodes={nodes} width={width} onLocked={(unlock) => setLocked({ unlock })} onClaim={claim} /> : null}
         </ScrollView>
       </View>
       {got !== null ? (
@@ -110,33 +111,76 @@ export function LevelRoadPage({ onClose }: { onClose: () => void }) {
   );
 }
 
-function Row({ node, index, reached, onLocked, onClaim }: { node: RoadNode; index: number; reached: boolean; onLocked: (u: Unlock) => void; onClaim: () => void }) {
-  // Cards alternate sides so a busy road does not stack on one edge.
-  const cardOnStart = index % 2 === 0;
-  const dim = node.state === 'locked';
+/** The winding road itself: a brown path with an S-curve between every pair of levels, a gold stretch up to the player's level, round nodes on the bends and the cards beside them. */
+function RoadCanvas({ road, nodes, width, onLocked, onClaim }: { road: LevelRoad; nodes: RoadNode[]; width: number; onLocked: (u: Unlock) => void; onClaim: () => void }) {
+  const lay = roadLayout(road.levelMax, width);
+  const byLevel = new Map(nodes.map((nd) => [nd.level, nd]));
+  const stars = skyStars(width, lay.height);
+  const here = lay.points.find((p) => p.level === road.level);
   return (
-    <View style={styles.row}>
-      <View style={[styles.side, styles.sideStart]}>{cardOnStart ? <Cards node={node} dim={dim} reached={reached} onLocked={onLocked} onClaim={onClaim} /> : node.state === 'current' ? <Hero /> : null}</View>
-      <View style={styles.mid}>
-        <View style={styles.path} />
-        <View style={[styles.node, node.state === 'done' ? styles.nodeDone : node.state === 'current' ? styles.nodeCurrent : styles.nodeLocked]}>
-          <Text style={[styles.nodeText, dim ? styles.nodeTextDim : null]}>{n(node.level)}</Text>
-          {node.state === 'done' ? <View style={styles.tick}><Icon name="check" size={13} color="#fff" strokeWidth={4} /></View> : null}
-          {dim ? <View style={styles.lockBadge}><Item icon="lock" /></View> : null}
+    <View style={{ width, height: lay.height, alignSelf: 'center' }}>
+      {stars.map((st, i) => (
+        <View key={i} pointerEvents="none" style={{ position: 'absolute', left: st.x, top: st.y, width: st.r, height: st.r, borderRadius: st.r, backgroundColor: '#FFF4B0', opacity: st.o }} />
+      ))}
+      <Svg width={width} height={lay.height} style={StyleSheet.absoluteFill}>
+        <G transform="translate(0 8)"><Path d={lay.pathD} fill="none" stroke="rgba(0,0,0,0.25)" strokeWidth={54} strokeLinecap="round" /></G>
+        <Path d={lay.pathD} fill="none" stroke="#2B1240" strokeWidth={54} strokeLinecap="round" />
+        <Path d={lay.pathD} fill="none" stroke="#C9A06A" strokeWidth={44} strokeLinecap="round" />
+        <Path d={lay.pathD} fill="none" stroke="#F6E2C2" strokeWidth={34} strokeLinecap="round" />
+        {road.level > 1 ? (
+          <>
+            <Path d={lay.doneD(road.level)} fill="none" stroke="#FFC93C" strokeWidth={34} strokeLinecap="round" />
+            <G transform="translate(-4 -3)"><Path d={lay.doneD(road.level)} fill="none" stroke="#FFE48A" strokeWidth={10} strokeLinecap="round" /></G>
+          </>
+        ) : null}
+        <Path d={lay.pathD} fill="none" stroke="rgba(43,18,64,0.28)" strokeWidth={4} strokeLinecap="round" strokeDasharray="12 16" />
+      </Svg>
+      {lay.points.map((p) => {
+        const node = byLevel.get(p.level);
+        if (!node) return null;
+        return <RoadStop key={p.level} node={node} x={p.x} y={p.y} left={p.left} reached={node.level <= road.level} onLocked={onLocked} onClaim={onClaim} />;
+      })}
+      {here ? (
+        <View pointerEvents="none" style={{ position: 'absolute', left: here.x - 34, top: here.y - 50 - 79, width: 68, height: 79, zIndex: 3 }}>
+          <Character who="dozari" pose="wave" />
         </View>
-        {node.state === 'current' ? <Text style={styles.youTag}>{fa.levels.hereNow}</Text> : null}
-      </View>
-      <View style={[styles.side, styles.sideEnd]}>{!cardOnStart ? <Cards node={node} dim={dim} reached={reached} onLocked={onLocked} onClaim={onClaim} /> : node.state === 'current' ? <Hero /> : null}</View>
+      ) : null}
     </View>
   );
 }
 
-/** The hero waves from the empty side of the current level. */
-function Hero() {
+const CARD_W = 156;
+
+function RoadStop({ node, x, y, left, reached, onLocked, onClaim }: { node: RoadNode; x: number; y: number; left: boolean; reached: boolean; onLocked: (u: Unlock) => void; onClaim: () => void }) {
+  const dim = node.state === 'locked';
+  const current = node.state === 'current';
+  const size = current ? 66 : 54;
+  const count = Math.min(2, node.unlocks.length) + (node.reward ? 1 : 0);
+  const pulse = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (!current) return;
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(pulse, { toValue: 1.1, duration: 700, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      Animated.timing(pulse, { toValue: 1, duration: 700, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [current, pulse]);
+  const cardsH = count * 50 + Math.max(0, count - 1) * 4 + (node.unlocks.length > (node.reward ? 1 : 2) ? 14 : 0);
   return (
-    <View style={styles.hero} pointerEvents="none">
-      <Character who="dozari" pose="wave" />
-    </View>
+    <>
+      <Animated.View style={[styles.node, current ? styles.nodeCurrent : node.state === 'done' ? styles.nodeDone : styles.nodeLocked, { left: x - size / 2, top: y - size / 2, width: size, height: size, borderRadius: size / 2, transform: [{ scale: pulse }] }]}>
+        <Text style={[styles.nodeText, current ? styles.nodeTextBig : null, dim ? styles.nodeTextDim : null]}>{n(node.level)}</Text>
+        {node.state === 'done' ? <View style={styles.tick}><Icon name="check" size={13} color="#fff" strokeWidth={4} /></View> : null}
+        {dim ? <View style={styles.lockBadge}><Item icon="lock" /></View> : null}
+      </Animated.View>
+      {current ? <Text style={[styles.youTag, { left: x - 45, top: y + size / 2 + 6 }]}>{fa.levels.hereNow}</Text> : null}
+      {count > 0 ? (
+        <View style={[styles.cardsBox, { top: y - cardsH / 2, width: CARD_W }, left ? { left: x + 38 } : { left: Math.max(4, x - 38 - CARD_W) }]}>
+          <Cards node={node} dim={dim} reached={reached} onLocked={onLocked} onClaim={onClaim} />
+        </View>
+      ) : null}
+    </>
   );
 }
 
@@ -226,25 +270,20 @@ const styles = StyleSheet.create({
   plate: { flex: 1, height: 46, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...lift(4) },
   plateText: { fontFamily: fonts.display, fontSize: 22, color: colors.ink },
   note: { fontFamily: fonts.bold, fontSize: 13, color: colors.cream, textAlign: 'center', marginTop: 10 },
-  road: { paddingBottom: 60 },
-  row: { height: ROW_H, flexDirection: ROW, alignItems: 'center' },
-  side: { flex: 1, paddingHorizontal: 6 },
-  sideStart: { alignItems: 'flex-end' },
-  sideEnd: { alignItems: 'flex-start' },
-  mid: { width: 70, alignItems: 'center', justifyContent: 'center', height: ROW_H },
-  path: { position: 'absolute', top: 0, bottom: 0, width: 30, backgroundColor: '#F6E2C2', borderLeftWidth: 4, borderRightWidth: 4, borderColor: colors.ink },
-  node: { width: 52, height: 52, borderRadius: 26, borderWidth: 4, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center', ...lift(5) },
-  nodeDone: { backgroundColor: '#FFC93C' },
-  nodeCurrent: { backgroundColor: '#FFE48A', transform: [{ scale: 1.25 }], shadowColor: colors.candy.yellow, shadowOpacity: 1, shadowRadius: 14, borderColor: colors.ink },
-  nodeLocked: { backgroundColor: '#B6A5CF' },
-  nodeText: { fontFamily: fonts.display, fontSize: 22, color: colors.ink },
-  nodeTextDim: { color: '#5A4A7A' },
-  tick: { position: 'absolute', top: -8, left: -8, width: 24, height: 24, borderRadius: 12, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#7ED957', alignItems: 'center', justifyContent: 'center' },
+  road: { paddingBottom: 40 },
+  cardsBox: { position: 'absolute', zIndex: 2 },
+  node: { position: 'absolute', borderWidth: 4, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center', zIndex: 2, ...lift(5) },
+  nodeDone: { backgroundColor: '#7ED957' },
+  nodeCurrent: { backgroundColor: '#FFC93C', shadowColor: colors.candy.yellow, shadowOpacity: 1, shadowRadius: 16, borderColor: colors.ink },
+  nodeLocked: { backgroundColor: '#6A4A8E' },
+  nodeText: { fontFamily: fonts.display, fontSize: 22, color: '#fff', textShadowColor: '#2E7A22', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
+  nodeTextBig: { fontSize: 28, textShadowColor: '#B86E00' },
+  nodeTextDim: { color: '#C9A3FF', textShadowColor: colors.ink },
+  tick: { position: 'absolute', top: -8, left: -8, width: 24, height: 24, borderRadius: 12, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#FFC93C', alignItems: 'center', justifyContent: 'center' },
   lockBadge: { position: 'absolute', top: -10, left: -10, width: 26, height: 26 },
-  hero: { width: 60, height: 70 },
-  youTag: { position: 'absolute', bottom: 2, fontFamily: fonts.display, fontSize: 12, color: colors.ink, backgroundColor: colors.candy.yellow, borderWidth: 2, borderColor: colors.ink, borderRadius: 8, paddingHorizontal: 6, overflow: 'hidden' },
+  youTag: { position: 'absolute', width: 90, textAlign: 'center', zIndex: 3, fontFamily: fonts.display, fontSize: 12, color: colors.ink, backgroundColor: colors.candy.yellow, borderWidth: 2, borderColor: colors.ink, borderRadius: 8, overflow: 'hidden' },
   more: { fontFamily: fonts.display, fontSize: 12, color: colors.cream, textAlign: 'center' },
-  cards: { gap: 4, maxWidth: 170 },
+  cards: { gap: 4 },
   card: { flexDirection: ROW, alignItems: 'center', gap: 6, paddingVertical: 4, paddingHorizontal: 5, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#FBF1DE', ...lift(4) },
   cardDim: { backgroundColor: '#D7C9EC', opacity: 0.92 },
   cardIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },

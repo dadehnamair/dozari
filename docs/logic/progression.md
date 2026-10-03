@@ -35,6 +35,17 @@ is unchanged; this is a different axis (visible growth, not opponent selection).
   on start, admin edits of price and level stay). The road shows them as shop cards via the existing `minLevel` gate.
 - Needs the economy simulation: the road is a new faucet (~1375 coins over 50 levels, next to a 200-coin signup bonus).
 
+## Level table in the admin panel (D145, proposed)
+
+Owner: the levels and their coin rewards are set in the admin panel («جاده‌ی لول‌ها»). The table `level_road` (`level`, `start_xp`, `reward_coins`) holds one row per level:
+the total XP at which the level starts (level 1 = 0, strictly rising) and the coins paid once for reaching it (0 = none; claimed from the level road, the ledger key
+`level_reward:<user>:<level>` still makes a repeat pay nothing). **Empty table = the formulas above** (`xp.curve_base`, `xp.level_max`, `levelreward.*`); once saved, the table
+replaces the curve, the level cap (= number of rows) and the every-Nth-level rule. «بازگشت به فرمول» deletes it; «پر کردن از فرمول» loads the formula's values into the editor
+without saving. Validation (`checkLevelTable`): 1..N without gaps, N ≤ 100, first row 0 XP, XP strictly rising, reward ≤ 1,000,000. Server: `progress/table.ts` (`LevelTable`, cached 30 s,
+dropped on save), `rulesFromSettings(settings, table)` feeds `levelInfo` (`XpRules.starts`), `LevelRoadService` pays the table's coins and sends `starts` to the app.
+Admin API: `GET|PUT|DELETE /admin/level-road` (`?defaults=1` = the formula table). Changing XP under existing players re-levels them on their next read (no data migration);
+what each level *opens* (hint, invite, gifts, avatar, nickname gates; shop items) is still the existing settings and shop items.
+
 ## Puzzle difficulty scales with skill tier (D34)
 
 Reuses the **skill-rank tag** that already exists in `profile-and-identity.md` (تازه‌کار /

@@ -30,8 +30,8 @@ export function levelProgress(road: Pick<LevelRoad, 'xpInLevel' | 'xpForNext'>):
 }
 
 /** XP still needed to reach `level`, 0 when already there. */
-export function xpToReach(road: Pick<LevelRoad, 'xp' | 'curveBase'>, level: number): number {
-  return Math.max(0, levelStartXp(level, road.curveBase) - road.xp);
+export function xpToReach(road: Pick<LevelRoad, 'xp' | 'curveBase' | 'starts'>, level: number): number {
+  return Math.max(0, (road.starts?.[level - 1] ?? levelStartXp(level, road.curveBase)) - road.xp);
 }
 
 /** Coins of the rewards the player has reached and not yet taken. */

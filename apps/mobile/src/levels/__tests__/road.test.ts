@@ -26,6 +26,11 @@ describe('level road', () => {
     expect(xpToReach({ xp: 220, curveBase: 50 }, 2)).toBe(0);
   });
 
+  it('xp to reach a level follows the admin table when the road carries one', () => {
+    expect(xpToReach({ xp: 100, curveBase: 50, starts: [0, 40, 120] }, 3)).toBe(20);
+    expect(xpToReach({ xp: 100, curveBase: 50, starts: [0, 40, 120] }, 2)).toBe(0);
+  });
+
   it('puts the coin reward on its level and sums what can be taken', () => {
     const rewards = [{ level: 2, coins: 25, claimed: true }, { level: 3, coins: 50, claimed: false }, { level: 5, coins: 75, claimed: false }];
     const nodes = roadNodes({ level: 3, levelMax: 6, unlocks, rewards });
