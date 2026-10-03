@@ -493,3 +493,7 @@ Item 7 built for the web build only (native builds and an installed PWA always p
 ## D172 — Short domain and domain settings (2026-10-03)
 
 Item 9 (stage 1): self-hosted short links under the admin-managed short domain (`docs/logic/short-links.md`), plus the four domain settings. Redirects are 302 and uncached so edits apply at once. The reverse-proxy/DNS part for `2oi.ir` is the owner's; until then `/s/<code>` on the API host works for testing. The landing site (item 8) comes next as its own app.
+
+## D173 — Landing site content (item 8, stage 1: the content backend) (2026-10-03)
+
+The landing site `mrdozari.ir` is a separate app (`apps/landing`, next change) whose content the admin manages in the game's panel: blog posts in Markdown (`landing_posts`, draft/published, own meta title and description, cover, author; a renamed slug keeps the old one in `landing_slug_redirects` for a 301), the cast page (`landing_cast`), and FAQ pairs (`landing_faq`), plus `landing.*` texts in the settings (name, tagline, hero title and text, contact e-mail). The landing app reads only the read-only `GET /public/landing`, `/public/posts`, `/public/posts/:slug`, which stay up in maintenance mode. Drafts and hidden rows never leave the server. Admin pages: «بلاگ»، «بازیگران»، «سوالات متداول» (group «سایت معرفی»). The SEO/GEO sheet the owner promised will refine page copy and structured data; the technical SEO rules (one h1, canonical, JSON-LD graph, sitemap, robots, llms.txt, 301 on slug change, real 404) are implemented in the app itself.
