@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, I18nManager, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 // Per-weight imports: the package index pulls in all nine Vazirmatn weights, which the web export would ship and the
@@ -15,6 +15,7 @@ import { HomeScreen } from './src/home/HomeScreen';
 import { onAccountSwitched } from './src/auth/switched';
 import { useMusic } from './src/sound/music';
 import { useHardwareBack } from './src/nav/useHardwareBack';
+import { useKeyboardInset } from './src/nav/useKeyboardInset';
 import { BrandScreen } from './src/brand/BrandScreen';
 import { KitGallery } from './src/kit/KitGallery';
 import { LookupScreen } from './src/lookup/LookupScreen';
@@ -40,6 +41,8 @@ if (!I18nManager.isRTL) {
 const SPLASH_MS = 1800;
 
 export default function App() {
+  const shell = useRef<View>(null);
+  const keyboard = useKeyboardInset(shell);
   const config = useClientConfig();
   const gate = gateState(config, APP_BUILD);
   useInviteLink(gate === 'ok' && config.features.friends);
@@ -98,7 +101,7 @@ export default function App() {
   }
 
   return (
-    <View key={epoch} style={styles.container}>
+    <View key={epoch} ref={shell} style={[styles.container, keyboard ? { marginBottom: keyboard } : null]}>
       <StatusBar style="light" />
       {screen === 'splash' ? <SplashScreen /> : null}
       {screen === 'login' ? (
