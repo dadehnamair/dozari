@@ -13,9 +13,18 @@ const start = item.indexOf('/* part:');
 const end = item.indexOf('class Component', start);
 if (start < 0 || end < 0) throw new Error('Item.dc.html layout changed');
 let body = item.slice(start, end);
-body = body.replace(/^\/\*.*\*\/\n/, '').replace('const I={', 'export const ITEMS: Record<string, { p: Part[]; t?: ItemText[] }> = {').replace(/\};\s*$/, '};\n');
+body = body.replace(/^\/\*.*\*\/\n/, '').replace('const I={', 'export const ITEMS: Record<string, Icon> = {').replace(/\};\s*$/, '};\n');
 const consts = item.slice(item.indexOf('const O='), start).replace(/\(x,y,r\)/, '(x: number,y: number,r: number)').replace(/\(x,y,rx,ry\)/, '(x: number,y: number,rx: number,ry: number)').replace(/\(x,y,w,h,r\)/, '(x: number,y: number,w: number,h: number,r: number)');
-const keys = [...body.matchAll(/^([A-Za-z0-9_]+):\{p:/gm)].map((m) => m[1]);
+const typed = (t) =>
+  t
+  // builders added by the designer: type their parameters, and move the slug -> icon map out so it is exported, not unused
+  .replace('const CB={', "const CB: Record<'sedan' | 'hatch' | 'round' | 'van', [string, string]>={")
+  .replace('const CAR=(c,t,pre=[],post=[])=>({p:', 'const CAR=(c: string,t: keyof typeof CB,pre: Part[]=[],post: Part[]=[]): Icon=>({p: <Part[]>')
+  .replace('const BOWL=(c,top,extra)=>({p:', 'const BOWL=(c: string,top: string,extra: Part[]): Icon=>({p:')
+  .replace('const TIX=(c,ex)=>({p:', 'const TIX=(c: string,ex: Part[]): Icon=>({p:')
+  .replace(/^const S=(\{.*\});$/m, 'export const SAMPLE_ICONS: Record<string, string> = $1;');
+// An entry is a literal `{p:[...]}` or a call of a builder of the design file (`CAR(...)`, `BOWL(...)`, `TIX(...)`).
+const keys = [...body.matchAll(/^([A-Za-z0-9_]+):(?:\{p:|[A-Z]+\()/gm)].map((m) => m[1]);
 writeFileSync(
   join(out, 'data.ts'),
   `/**
@@ -25,8 +34,9 @@ writeFileSync(
 export type Part = [string, string, (string | number)?, string?];
 /** [x, y, size, text, colour] */
 export type ItemText = [number, number, number, string, string];
+type Icon = { p: Part[]; t?: ItemText[] };
 
-${consts}${body}`,
+${typed(consts + body)}`,
 );
 
 /** Categories and Persian names come from design 12 (items) and 14 (products). */
@@ -37,6 +47,12 @@ for (const [t, c, list] of cats) groups.push({ id: `item-${groups.length}`, titl
 const d14 = design('Dozari - 14 Product Icons.dc.html');
 const g14 = new Function(`${d14.slice(d14.indexOf('const G=['), d14.indexOf('class Component'))}; return G;`)();
 for (const [t, c, s] of g14) groups.push({ id: `product-${groups.length}`, titleFa: t, color: c, icons: s.split(',').map((x) => { const [k, fa] = x.split(':'); return { key: k, fa }; }) });
+// Design 14 also draws the sample catalogue's products (SAMPLES: product slug -> Persian name); Item.dc.html's `S` maps each slug to its icon key.
+const slugIcon = new Function(`${item.slice(item.indexOf('const S='), item.indexOf('};', item.indexOf('const S=')) + 2)}; return S;`)();
+const samples = new Function(`${d14.slice(d14.indexOf('const SAMPLES='), d14.indexOf('const G=['))}; return SAMPLES;`)();
+for (const [t, c, list] of samples) {
+  groups.push({ id: `sample-${groups.length}`, titleFa: t, color: c, icons: list.split(',').map((x) => { const [slug, fa] = x.split(':'); return { key: slugIcon[slug.replace(/^sample-/, '')], fa }; }).filter((i) => i.key) });
+}
 const seen = new Set();
 const clean = groups.map((g) => ({ ...g, icons: g.icons.filter((i) => keys.includes(i.key) && !seen.has(i.key) && seen.add(i.key)) }));
 const rest = keys.filter((k) => !seen.has(k));
