@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
   cardTight: { bottom: 12, gap: 7, padding: 12 },
   title: { fontFamily: fonts.display, fontSize: 22, color: INK, textAlign: 'right' },
   sub: { fontFamily: fonts.bold, fontSize: 12, lineHeight: 19, color: '#7E46D6', textAlign: 'right' },
-  phoneRow: { flexDirection: 'row', gap: 6 },
+  phoneRow: { flexDirection: 'row', direction: 'ltr', gap: 6 },
   prefix: { height: 52, paddingHorizontal: 12, borderRadius: 14, borderWidth: 3, borderColor: INK, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   prefixText: { fontFamily: fonts.bold, fontSize: 15, color: INK },
   phoneInput: { flex: 1, minWidth: 0, height: 52, borderRadius: 14, borderWidth: 3, borderColor: INK, backgroundColor: '#fff', paddingHorizontal: 12, fontFamily: fonts.bold, fontSize: 17, letterSpacing: 1, color: INK, textAlign: 'left' },
