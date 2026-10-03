@@ -423,3 +423,11 @@ Owner listed six follow-ups to start after the first Android build (`docs/logic/
 should be able to pay every prize kind (gems, clothing, hats …), and **no one gets free spins for now**; later spins behave like lives (a small refilling
 stock) while prizes stay valuable. Until the owner confirms, nothing changes in code; the proposed first step is `wheel.daily_spins` = 0 when item 1 is built.
 
+## D157 — Phone-only gate, landing site and short domain (2026-10-03, proposed)
+
+Owner added three items to the backlog (`docs/logic/owner-backlog-2026-10-03.md`, items 7–9), none started: (7) the desktop web layout is unsuitable, so a
+non-phone browser shows a «come with your phone» card with a QR code (Android → downloads, iPhone → PWA install); (8) `mrdozari.ir` becomes a separate
+landing + blog project in this repo (`apps/landing`, its own container, content managed from the admin panel, full SEO/GEO using the owner's spreadsheet,
+adapted from Laravel to this stack); (9) `2oi.ir` is the short domain for outgoing links via a self-hosted shortener, and every domain becomes an admin setting.
+The app's own domains (`mrbots.ir`, `api.mrbots.ir`) are unchanged until the owner decides otherwise.
+
