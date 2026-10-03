@@ -384,3 +384,7 @@ Owner: the own profile scrolled and its quick links were plain stacked buttons; 
 ## D147 — First-run login screen; a gap review (2026-10-03, proposed)
 
 Owner: re-check the designs and docs for what was skipped. Result: `docs/GAPS.md` (designs not in the app, specs not built, content/ops, a suggested order). One gap was closed at once: the designed **login screen** (phone → five-box code → guest), shown once on a fresh install when the server has an SMS provider. Proposed: it never blocks play and never returns after the first choice.
+
+## D148 — Bazaar vocabulary for menu names (2026-10-03, proposed)
+
+Owner: more attractive, more fantasy names — city → قبیله, leaderboard → جارچی, shop → حجره, price finder → (open, proposed «صراف»). Applied in `fa.ts` and listed in `docs/brand.md` §Place names. Extra proposals in the same spirit: chat → قهوه‌خانه, inbox → پیک, private tables → سفره‌خانه, tournaments → جام‌ها, daily reward → عیدی, settings → کارگاه, Bale save → گاوصندوق, city hub → بازارچه‌ی دوزاری (its practice building is now «دکه‌ی تمرین», its team building «چایخانه»). Say the word to change any.

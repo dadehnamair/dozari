@@ -43,6 +43,25 @@ brand-flavored copy used across the app, store listing, and share cards.
 - The coin is the logo motif: a round 2-rial-style coin (original art — do not reproduce real
   banknote/coin imagery 1:1).
 
+## Place names — the bazaar vocabulary (D148)
+
+Menus are places of an old Iranian bazaar, not software words. The code keeps its plain names (`leaderboard`, `shop`, `city` …); only `apps/mobile/src/i18n/fa.ts` carries these:
+
+| Plain | In the game | Why |
+|---|---|---|
+| leaderboard | **جارچی** | the town crier who calls out who is on top |
+| shop | **حجره** | a trader's stall (the plate in it: «حجرهٔ دوزاری», Bagh­al is the shopkeeper) |
+| city / «my city» | **قبیله** («قبیله‌ی من», هم‌قبیله‌ای‌ها) | your city is your tribe; the real city name still shows (قبیله: تهران) |
+| price finder | **صراف** («صرافِ بازار») | the money-changer who knows what everything was worth |
+| city chat | **قهوه‌خانه** | where the tribe talks |
+| inbox | **پیک** | the courier who brings news |
+| private tables | **سفره‌خانه** | a table set for friends |
+| tournaments | **جام‌ها** | |
+| daily reward | **عیدی** | |
+| settings | **کارگاه** | |
+| Bale save-my-game | **گاوصندوق** | |
+| city hub map | **بازارچه‌ی دوزاری** (buildings: دکه‌ی تمرین, زورخانه, چایخانه, مکتب‌خانه, کاروانسرا, برج ساعت) | |
+
 ## Slogans
 
 **Primary tagline (splash, store, share card):**
