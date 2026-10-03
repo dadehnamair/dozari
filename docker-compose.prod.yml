@@ -70,6 +70,24 @@ services:
     ports:
       - '127.0.0.1:3000:3000'
 
+  # phpMyAdmin for the same MySQL. Loopback only (host port PMA_PORT, default 8082): the host's reverse proxy forwards a domain of your
+  # choice to it. Log in with the database user (dozari / MYSQL_PASSWORD) or root. Protect the domain (basic auth / IP allow-list) —
+  # anyone who reaches this page can try passwords against the database.
+  phpmyadmin:
+    image: phpmyadmin:5
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_ARBITRARY: 0
+      UPLOAD_LIMIT: 256M
+      MEMORY_LIMIT: 512M
+    ports:
+      - '127.0.0.1:${PMA_PORT:-8082}:80'
+
   web:
     build:
       context: .

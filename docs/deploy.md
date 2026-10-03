@@ -9,6 +9,7 @@ passwords and open ports). The production stack is `docker-compose.prod.yml`:
 | `migrate` | applies the DB migrations, then exits | no |
 | `server` | the game server (REST, Socket.io, admin panel, product images) | `127.0.0.1:3000` |
 | `web` | the web app (PWA) as static files over plain HTTP | `127.0.0.1:8081` (`WEB_PORT`) |
+| `phpmyadmin` | phpMyAdmin on the same MySQL (§phpMyAdmin) | `127.0.0.1:8082` (`PMA_PORT`) |
 
 **This stack binds neither port 80 nor 443.** The server already runs other services behind a reverse proxy, so
 that proxy keeps the domains and https and forwards two names to the containers (§Reverse proxy):
@@ -53,6 +54,14 @@ ready nginx example. In Nginx Proxy Manager add two Proxy Hosts — `mrbots.ir` 
 for each. Two things matter: **websockets** (live duels and chat use Socket.io on the API host) and passing
 `X-Forwarded-*` headers (the server runs with `TRUST_PROXY=1`). Check: `https://api.mrbots.ir/health` answers,
 `https://mrbots.ir` shows the game, and a duel connects.
+
+## phpMyAdmin
+
+The `phpmyadmin` service is already in `docker-compose.prod.yml`, bound to **`127.0.0.1:8082`** (change with `PMA_PORT` in `.env.prod`). Forward a domain of your
+choice (say `pma.mrbots.ir`) to that port in the host's proxy — like the other two, with https from the proxy/CDN — and **protect that domain** (basic auth or an
+IP allow-list; `deploy/nginx.example.conf` has a block with basic auth). Log in with user `dozari` and `MYSQL_PASSWORD` (database `dozari`), or `root` and
+`MYSQL_ROOT_PASSWORD`. Start it with the rest: `docker compose -f docker-compose.prod.yml --env-file .env.prod up -d phpmyadmin`. For local development
+the root `docker-compose.yml` has Adminer on `:8080`.
 
 ## Catalogue (products, prices, images)
 
