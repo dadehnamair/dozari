@@ -681,7 +681,7 @@ export const userStats = mysqlTable('user_stats', {
   updatedAt: datetime('updated_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
 });
 
-export const SHOP_EFFECTS = ['hint_token'] as const;
+export const SHOP_EFFECTS = ['hint_token', 'wheel_spin'] as const;
 
 /** Things a player can buy with coins (docs/logic/shop.md). Prices, level gates and daily limits are edited in the admin panel. */
 export const shopItems = mysqlTable(
@@ -1012,6 +1012,8 @@ export const tournamentPrizes = mysqlTable(
     tournamentId: char('tournament_id', { length: 36 }).notNull().references(() => tournaments.id, { onDelete: 'cascade' }),
     place: int('place').notNull(),
     coins: int('coins').notNull(),
+    /** Lucky-wheel spins given besides the coins. */
+    spins: int('spins').notNull().default(0),
   },
   (table) => ({ pk: primaryKey({ columns: [table.tournamentId, table.place] }) }),
 );
@@ -1106,18 +1108,23 @@ export const dailyPlayCounts = mysqlTable(
   (t) => ({ pk: primaryKey({ columns: [t.userId, t.dateKey, t.mode] }) }),
 );
 
-/** A lucky-wheel spin earned by winning a duel (docs/logic/economy.md §Lucky wheel). `coins` stays null until it is spun. */
+/**
+ * A lucky-wheel spin (docs/logic/economy.md §Lucky wheel). `source`: `win` (a won duel, `match_id`), `shop`, `level`, `tournament`, `daily`, `admin`;
+ * non-win spins carry a `ref` that makes the grant idempotent. `coins` stays null until it is spun.
+ */
 export const wheelSpins = mysqlTable(
   'wheel_spins',
   {
     id: id(),
     userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
-    matchId: char('match_id', { length: 36 }).notNull(),
+    matchId: char('match_id', { length: 36 }),
+    source: varchar('source', { length: 16 }).notNull().default('win'),
+    ref: varchar('ref', { length: 80 }),
     coins: int('coins'),
     createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
     spunAt: datetime('spun_at', { mode: 'date', fsp: 3 }),
   },
-  (t) => ({ onePerMatch: uniqueIndex('wheel_spins_user_match').on(t.userId, t.matchId), pending: index('wheel_spins_pending').on(t.userId, t.spunAt) }),
+  (t) => ({ onePerMatch: uniqueIndex('wheel_spins_user_match').on(t.userId, t.matchId), onePerRef: uniqueIndex('wheel_spins_user_ref').on(t.userId, t.source, t.ref), pending: index('wheel_spins_pending').on(t.userId, t.spunAt) }),
 );
 
 /** The admin's level table (docs/logic/progression.md §Level table): XP at which each level starts and the coin reward for reaching it. Empty = the formulas of the settings. */
@@ -1125,6 +1132,8 @@ export const levelRoad = mysqlTable('level_road', {
   level: int('level').primaryKey(),
   startXp: int('start_xp').notNull(),
   rewardCoins: int('reward_coins').notNull().default(0),
+  /** Lucky-wheel spins given besides the coins when the level is reached. */
+  rewardSpins: int('reward_spins').notNull().default(0),
 });
 
 /** Level-road coin rewards a player has taken (docs/logic/progression.md §Level rewards). */

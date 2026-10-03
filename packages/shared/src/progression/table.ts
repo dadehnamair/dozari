@@ -9,8 +9,11 @@ export const levelRowSchema = z.object({
   startXp: z.number().int().nonnegative(),
   /** Coins paid once for reaching it (claimed from the level road); 0 = none. */
   rewardCoins: z.number().int().nonnegative(),
+  /** Lucky-wheel spins given with the coins (the owner's «hidden prize» steps); 0 = none. */
+  rewardSpins: z.number().int().min(0).max(20).default(0),
 });
-export type LevelRow = z.infer<typeof levelRowSchema>;
+/** `rewardSpins` may be left out (= 0), so older rows and tests keep working. */
+export type LevelRow = z.input<typeof levelRowSchema>;
 
 export const LEVEL_TABLE_MAX = 100;
 export const LEVEL_REWARD_MAX = 1_000_000;
@@ -30,7 +33,7 @@ export function checkLevelTable(rows: readonly LevelRow[]): LevelTableProblem | 
 
 /** The table the formulas give today (`xp.curve_base`, `xp.level_max`, `levelreward.*`): the editor's starting point and the fallback shape. */
 export function defaultLevelTable(rules: { curveBase: number; levelMax: number }, reward: { every: number; base: number }): LevelRow[] {
-  return Array.from({ length: rules.levelMax }, (_, i) => ({ level: i + 1, startXp: levelStartXp(i + 1, rules.curveBase), rewardCoins: levelRewardCoins(i + 1, reward.every, reward.base) }));
+  return Array.from({ length: rules.levelMax }, (_, i) => ({ level: i + 1, startXp: levelStartXp(i + 1, rules.curveBase), rewardCoins: levelRewardCoins(i + 1, reward.every, reward.base), rewardSpins: 0 }));
 }
 
 export const startsOf = (rows: readonly LevelRow[]): number[] => rows.map((r) => r.startXp);

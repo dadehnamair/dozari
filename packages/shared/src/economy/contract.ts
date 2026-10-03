@@ -23,8 +23,10 @@ export type DailyRewardClaim = z.infer<typeof dailyRewardClaimSchema>;
 /** Wire shape of `GET /wheel` (spins waiting + the slices to draw) and `POST /wheel/spin` (docs/logic/economy.md §Lucky wheel). */
 export const wheelStatusSchema = z.object({
   enabled: z.boolean(),
-  /** Spins earned by wins and not yet spun. */
+  /** Spins waiting (earned by wins, bought, won as prizes or given daily) and not yet spun. */
   pending: z.number().int().nonnegative(),
+  /** Free spins this request just added for today (0 when already taken or none are given). */
+  daily: z.number().int().nonnegative().default(0),
   /** Coins on each slice, in drawing order. */
   slices: z.array(z.number().int().positive()),
   balance: z.number().int().nonnegative(),

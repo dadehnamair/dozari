@@ -1,5 +1,7 @@
 export { ITEMS } from './data.js';
 export type { ItemText, Part } from './data.js';
+export { ITEM_GROUPS } from './groups.js';
+export type { ItemGroup } from './groups.js';
 import { ITEMS } from './data.js';
 
 /** Keys of the hand-drawn item / product icon pack (docs/design/Item.dc.html). Products reference one by `icon_key`. */

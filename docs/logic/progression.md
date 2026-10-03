@@ -46,6 +46,12 @@ dropped on save), `rulesFromSettings(settings, table)` feeds `levelInfo` (`XpRul
 Admin API: `GET|PUT|DELETE /admin/level-road` (`?defaults=1` = the formula table). Changing XP under existing players re-levels them on their next read (no data migration);
 what each level *opens* (hint, invite, gifts, avatar, nickname gates; shop items) is still the existing settings and shop items.
 
+### Wheel spins on the level table (D154)
+
+`level_road.reward_spins` (0–20) gives lucky-wheel spins next to the coins. A level with spins only is still a reward on the road; the client
+learns about it only through `GET /me/levels` (`rewards[].spins`), so the step stays a surprise until the player gets there. Claiming pays both in one
+transaction (claim row, spin rows, ledger).
+
 ## Puzzle difficulty scales with skill tier (D34)
 
 Reuses the **skill-rank tag** that already exists in `profile-and-identity.md` (تازه‌کار /

@@ -18,6 +18,14 @@ No rating/ELO at launch (D12). Values in `config/game.ts`.
 
 While a player waits, the search screen's 4×4 grid scans through real faces: `GET /duel/candidates` returns up to 16 `{nickname, avatarKey, level}` — players online right now first (shuffled, never the caller), topped up from the active bot roster when few are online, so the grid is never empty while bots exist (it falls back to the design's placeholder names only when there are none). Bots and humans are indistinguishable and nothing says who is online. A few faces repeat around the grid. The app refreshes the list every 12 s. It is a show: the queue alone decides who the match pairs with.
 
+## Why a search can seem endless (D153)
+
+A waiting player is paired with a human, else (after `bots.fallback_seconds` + jitter) with a bot. Two silent failures used to leave them on the
+search screen forever: **no approved puzzle** (`MatchService.start` returns false) and **no bot account** (the driver does nothing with an empty
+roster). The server now pushes `queue:status` every 4 s with the real `waitedSec`, `position` and an optional `problem` (`no_puzzles` at once,
+`no_bots` after 45 s). The app shows `no_puzzles` as the sad-mascot card and `no_bots` as a line above «انصراف». To make a fresh server work
+without a manual step, the bot driver tops the roster up to `bots.autofill_min` (default 12, 0 = off) with the admin generator's default tuning.
+
 ## Match start sequence
 
 1. Queue pops players → create `matches` row (`waiting`) and socket room `match:<id>`.

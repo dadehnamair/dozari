@@ -91,7 +91,7 @@ describe('tournament entry', () => {
     expect((await t.join(c, id)).json()).toEqual({ error: 'COINS' });
     const detail = tournamentDetailSchema.parse((await t.app.inject({ method: 'GET', url: `/tournaments/${id}`, headers: a.h })).json());
     expect(detail).toMatchObject({ entered: true, joined: 1, blocked: null, rounds: 2 });
-    expect(detail.prizes).toEqual([{ place: 1, coins: 120 }, { place: 2, coins: 50 }, { place: 3, coins: 10 }]);
+    expect(detail.prizes).toEqual([{ place: 1, coins: 120, spins: 0 }, { place: 2, coins: 50, spins: 0 }, { place: 3, coins: 10, spins: 0 }]);
     expect((await t.app.inject({ method: 'POST', url: `/tournaments/${id}/leave`, headers: a.h })).json()).toEqual({ ok: true, balance: 100 });
     expect((await t.app.inject({ method: 'POST', url: `/tournaments/${id}/leave`, headers: a.h })).json()).toEqual({ error: 'NOT_IN' });
   });
@@ -133,7 +133,7 @@ describe('tournament entry', () => {
 });
 
 describe('running a tournament', () => {
-  async function fourPlayers() {
+  async function fourPlayers(over: Parameters<ReturnType<typeof boot>['input']>[0] = {}) {
     const t = boot();
     const users = [await t.login(1), await t.login(2), await t.login(3), await t.login(4)];
     t.levels.set(users[0]!.id, 9);
@@ -141,11 +141,22 @@ describe('running a tournament', () => {
     t.levels.set(users[2]!.id, 6);
     t.levels.set(users[3]!.id, 5);
     for (const u of users) t.store.coins.set(u.id, 100);
-    const created = await t.service.create(t.input(), true);
+    const created = await t.service.create(t.input(over), true);
     if (!created.ok) throw new Error('x');
     for (const u of users) await t.join(u, created.id);
     return { ...t, users, id: created.id };
   }
+
+  it('pays wheel spins next to the coins of a place', async () => {
+    const t = await fourPlayers({ prizes: [{ place: 1, coins: 120, spins: 3 }, { place: 2, coins: 50 }] });
+    const [p1, p2] = t.users.map((u) => u.id) as [string, string];
+    t.clock.ms += 61 * MIN;
+    await t.service.tick();
+    await t.finishMatches(() => 0);
+    await t.service.tick();
+    await t.finishMatches(() => 1); // p2 wins the final
+    expect([t.store.spins.get(p2), t.store.spins.get(p1)]).toEqual([3, undefined]);
+  });
 
   it('starts at the start time, seeds by level, plays round by round, pays the prizes', async () => {
     const t = await fourPlayers();
@@ -251,7 +262,7 @@ describe('running a tournament', () => {
     await t.join(b, c.id);
     expect(await t.service.update(c.id, { entryCoins: 99 })).toEqual({ ok: false, error: 'BAD_STATE' });
     expect((await t.service.update(c.id, { descriptionFa: 'متن تازه', prizes: [{ place: 1, coins: 77 }] })).ok).toBe(true);
-    expect((await t.service.detail(a.id, c.id))?.prizes).toEqual([{ place: 1, coins: 77 }]);
+    expect((await t.service.detail(a.id, c.id))?.prizes).toEqual([{ place: 1, coins: 77, spins: 0 }]);
     expect((await t.service.startNow(c.id)).ok).toBe(true);
     expect(t.started).toHaveLength(1);
   });

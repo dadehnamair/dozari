@@ -9,12 +9,12 @@ export interface RoadNode {
   /** What this level opens (may be empty). */
   unlocks: Unlock[];
   /** The coin reward of this level, when it has one. */
-  reward: { coins: number; claimed: boolean } | null;
+  reward: { coins: number; spins: number; claimed: boolean } | null;
 }
 
 /** One node per level from `levelMax` down to 1 (the road is read bottom-up, so the highest level is the first row). */
 export function roadNodes(road: Pick<LevelRoad, 'level' | 'levelMax' | 'unlocks'> & Partial<Pick<LevelRoad, 'rewards'>>): RoadNode[] {
-  const rewardOf = new Map((road.rewards ?? []).map((r) => [r.level, { coins: r.coins, claimed: r.claimed }]));
+  const rewardOf = new Map((road.rewards ?? []).map((r) => [r.level, { coins: r.coins, spins: r.spins, claimed: r.claimed }]));
   const byLevel = new Map<number, Unlock[]>();
   for (const u of road.unlocks) byLevel.set(u.level, [...(byLevel.get(u.level) ?? []), u]);
   const out: RoadNode[] = [];
@@ -37,4 +37,9 @@ export function xpToReach(road: Pick<LevelRoad, 'xp' | 'curveBase' | 'starts'>, 
 /** Coins of the rewards the player has reached and not yet taken. */
 export function claimableCoins(road: Pick<LevelRoad, 'level' | 'rewards'>): number {
   return road.rewards.filter((r) => !r.claimed && r.level <= road.level).reduce((n, r) => n + r.coins, 0);
+}
+
+/** Wheel spins of the rewards the player has reached and not yet taken. */
+export function claimableSpins(road: Pick<LevelRoad, 'level' | 'rewards'>): number {
+  return road.rewards.filter((r) => !r.claimed && r.level <= road.level).reduce((n, r) => n + r.spins, 0);
 }

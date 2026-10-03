@@ -41,7 +41,7 @@ export async function connectDuel(dispatch: (a: DuelAction) => void): Promise<Du
 
   socket.on(ServerEvent.queueStatus, (p: unknown) => {
     const s = queueStatusSchema.safeParse(p);
-    if (s.success) dispatch({ t: 'status', waitedSec: s.data.waitedSec });
+    if (s.success) dispatch({ t: 'status', waitedSec: s.data.waitedSec, problem: s.data.problem });
   });
   socket.on(ServerEvent.matchFound, (p: unknown) => {
     const f = matchFoundSchema.safeParse(p);

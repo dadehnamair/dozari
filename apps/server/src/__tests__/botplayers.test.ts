@@ -167,3 +167,30 @@ describe('bot driver', () => {
     expect(w.driver.isBot('human')).toBe(false);
   });
 });
+
+describe('bot roster top-up', () => {
+  it('makes bots when fewer than the minimum exist, and says whether a human can be given one', async () => {
+    const store = createMemoryBotPlayerStore();
+    const svc = new BotPlayerService(store, async () => xp, mulberry32(3));
+    const asked: number[] = [];
+    const driver = new BotDriver({
+      store,
+      matches: () => undefined,
+      queue: () => undefined,
+      settings: async () => ({ enabled: true, fallbackSec: 25, jitterSec: 0, cityReplyPercent: 0, autofillMin: 6 }),
+      topUp: async (missing) => {
+        asked.push(missing);
+        await svc.generate({ ...opts, count: missing });
+      },
+      rng: mulberry32(1),
+    });
+    await driver.refresh();
+    expect(driver.ready()).toBe(false);
+    await driver.tick();
+    expect(asked).toEqual([6]);
+    expect(driver.ready()).toBe(true);
+    expect(driver.rosterIds()).toHaveLength(6);
+    for (let i = 0; i < 12; i++) await driver.tick(); // already enough: never asks again
+    expect(asked).toEqual([6]);
+  });
+});

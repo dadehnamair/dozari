@@ -281,6 +281,13 @@
       "when": 1791002243875,
       "tag": "0039_chief_zzzax",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "5",
+      "when": 1791004978399,
+      "tag": "0040_gifted_surge",
+      "breakpoints": true
     }
   ]
 }

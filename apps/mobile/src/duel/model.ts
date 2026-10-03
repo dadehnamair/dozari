@@ -1,4 +1,4 @@
-import type { MatchEnded, MatchFound, MatchView, SoloSolvedGroup } from '@dozari/shared';
+import type { MatchEnded, MatchFound, MatchView, QueueProblem, SoloSolvedGroup } from '@dozari/shared';
 
 /** What the duel screen shows. The server sends full snapshots; this only keeps names (solved rows list ids) and the end screen. */
 export type DuelPhase = 'idle' | 'queued' | 'playing' | 'ended';
@@ -6,6 +6,8 @@ export type DuelPhase = 'idle' | 'queued' | 'playing' | 'ended';
 export interface DuelState {
   phase: DuelPhase;
   waitedSec: number;
+  /** Why the queue is going nowhere, as the server reports it while the player waits. */
+  problem: QueueProblem | null;
   found: MatchFound | null;
   view: MatchView | null;
   ended: MatchEnded | null;
@@ -19,11 +21,11 @@ export interface DuelState {
   error: string | null;
 }
 
-export const initialDuel: DuelState = { phase: 'idle', waitedSec: 0, found: null, view: null, ended: null, names: {}, taunt: null, flash: null, boardNote: null, error: null };
+export const initialDuel: DuelState = { phase: 'idle', waitedSec: 0, problem: null, found: null, view: null, ended: null, names: {}, taunt: null, flash: null, boardNote: null, error: null };
 
 export type DuelAction =
   | { t: 'queued' }
-  | { t: 'status'; waitedSec: number }
+  | { t: 'status'; waitedSec: number; problem?: QueueProblem }
   | { t: 'found'; found: MatchFound }
   | { t: 'state'; view: MatchView }
   | { t: 'guess'; outcome: 'correct' | 'one_away' | 'wrong'; mine: boolean }
@@ -42,7 +44,7 @@ export function duelReducer(s: DuelState, a: DuelAction): DuelState {
     case 'queued':
       return { ...initialDuel, phase: 'queued' };
     case 'status':
-      return s.phase === 'queued' ? { ...s, waitedSec: a.waitedSec } : s;
+      return s.phase === 'queued' ? { ...s, waitedSec: a.waitedSec, problem: a.problem ?? null } : s;
     case 'found':
       return { ...s, phase: 'playing', found: a.found, ended: null, error: null };
     case 'state': {

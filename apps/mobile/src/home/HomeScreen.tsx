@@ -23,6 +23,8 @@ import { availableTips, nextTip } from './guideTips';
 import { useInbox } from '../inbox/useInbox';
 import { BaleSheet } from '../bale/BaleSheet';
 import { ShopSheet } from '../shop/ShopSheet';
+import { fetchWheel } from '../wheel/api';
+import { WheelPage } from '../wheel/WheelPage';
 import { ChatSheet } from '../chat/ChatSheet';
 import { fetchDailyStatus } from '../daily/puzzleApi';
 import type { DailyStatus } from '@dozari/shared';
@@ -39,6 +41,7 @@ import { ProvinceBadge } from '../components/ProvinceBadge';
 import type { IconName } from '../theme/icons';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
+import { Icon } from '../components/Icon';
 import { usePrefs } from '../prefs/store';
 import { HeroCoinToss } from './HeroCoinToss';
 import { HubTile } from './HubTile';
@@ -73,6 +76,10 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
   const compact = useWindowDimensions().height <= 700;
   const daily = useDailyReward();
   const [dailyOpen, setDailyOpen] = useState(false);
+  const [wheelOpen, setWheelOpen] = useState(false);
+  const [spins, setSpins] = useState(0);
+  const loadSpins = () => void fetchWheel().then((w) => setSpins(w.pending), () => undefined);
+  useEffect(loadSpins, []);
   const [baleOpen, setBaleOpen] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
@@ -178,6 +185,11 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
           <Pressable onPress={() => setHubOpen(true)} accessibilityRole="button" accessibilityLabel={fa.hub.open} style={styles.mapBtn}>
             <View style={styles.mapIcon}><Item icon="map" /></View>
           </Pressable>
+          {/* The lucky wheel is always one tap away; the number is the spins waiting (wins, level and tournament prizes, the shop, the daily free spin). */}
+          <Pressable onPress={() => setWheelOpen(true)} accessibilityRole="button" accessibilityLabel={h.wheel} style={styles.mapBtn}>
+            <Icon name="wheel" size={22} color="#fff" strokeWidth={2.2} />
+            {spins > 0 ? <View style={styles.spinBadge}><Text style={styles.spinBadgeText}>{toPersianDigits(String(spins))}</Text></View> : null}
+          </Pressable>
           {level !== null ? <StatPill color={colors.candy.grape} icon="rosette" value={toPersianDigits(String(level))} label={`${h.level} ${level}`} onPress={() => setProfileOpen(true)} /> : null}
         </View>
 
@@ -254,6 +266,7 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
       {tournamentOpen ? <TournamentSheet onClose={() => setTournamentOpen(false)} /> : null}
       {chatOpen ? <ChatSheet onClose={() => setChatOpen(false)} onJoinTable={(code) => (setChatOpen(false), setTableCode(code), setTableOpen(true))} /> : null}
       {shopOpen ? <ShopSheet onClose={() => { setShopOpen(false); daily.reload(); }} /> : null}
+      {wheelOpen ? <WheelPage onClose={() => (setWheelOpen(false), loadSpins(), daily.reload())} /> : null}
       {baleOpen ? <BaleSheet onClose={() => setBaleOpen(false)} /> : null}
     </SceneBackground>
   );
@@ -264,6 +277,8 @@ const styles = StyleSheet.create({
   pills: { flexDirection: RTL_ROW, gap: 8, minHeight: 36, alignItems: 'center' },
   mapBtn: { width: 38, height: 38, borderRadius: 19, borderWidth: 2, borderColor: 'rgba(255,255,255,0.35)', backgroundColor: 'rgba(43,18,64,0.65)', alignItems: 'center', justifyContent: 'center' },
   mapIcon: { width: 26, height: 26 },
+  spinBadge: { position: 'absolute', top: -6, right: -6, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, backgroundColor: colors.candy.lime, borderWidth: 2, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  spinBadgeText: { fontFamily: fonts.bold, fontSize: 10, color: colors.ink },
   middle: { flex: 1, flexDirection: RTL_ROW, justifyContent: 'space-between', paddingTop: 12 },
   column: { width: 72, gap: 12, alignItems: 'center', paddingTop: 44 },
   columnCompact: { gap: 2, paddingTop: 20 },

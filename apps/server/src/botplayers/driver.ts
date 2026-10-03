@@ -11,6 +11,8 @@ export interface BotDriverSettings {
   fallbackSec: number;
   jitterSec: number;
   cityReplyPercent: number;
+  /** Fewer active bots than this are topped up by `deps.topUp`; 0 or absent = never. */
+  autofillMin?: number;
 }
 
 export interface BotDriverDeps {
@@ -22,6 +24,8 @@ export interface BotDriverDeps {
   settings: () => Promise<BotDriverSettings>;
   /** Lists the canned taunts by category name, for choosing a fitting reply. */
   taunts?: () => Promise<{ nameFa: string; ids: string[] }[]>;
+  /** Makes `missing` more bot accounts (the admin's generator with default tuning). */
+  topUp?: (missing: number) => Promise<void>;
   rng: Rng;
   now?: () => number;
   schedule?: (ms: number, fn: () => void) => void;
@@ -40,6 +44,7 @@ export class BotDriver {
   private readonly planned = new Set<string>();
   private readonly opponentOf = new Map<string, string>();
   private ticks = 0;
+  private enabled = true;
   private readonly now: () => number;
   private readonly schedule: (ms: number, fn: () => void) => void;
 
@@ -55,6 +60,11 @@ export class BotDriver {
   /** Ids of the active bot accounts (for the opponent-search show). */
   rosterIds(): string[] {
     return [...this.roster.keys()];
+  }
+
+  /** True when a waiting human can be given a bot: bots are on and at least one account exists. */
+  ready(): boolean {
+    return this.enabled && this.roster.size > 0;
   }
 
   isBot(userId: string): boolean {
@@ -150,8 +160,14 @@ export class BotDriver {
 
   /** Every few seconds: a human who waited long enough in the queue gets a bot opponent (the "opponent found" moment is the human-like delay). */
   async tick(): Promise<void> {
-    if (this.ticks++ % 6 === 0) await this.refresh();
+    const refreshNow = this.ticks++ % 6 === 0;
+    if (refreshNow) await this.refresh();
     const s = await this.deps.settings();
+    this.enabled = s.enabled;
+    if (refreshNow && s.enabled && this.deps.topUp && (s.autofillMin ?? 0) > this.roster.size) {
+      await this.deps.topUp((s.autofillMin ?? 0) - this.roster.size).catch(() => undefined);
+      await this.refresh();
+    }
     const queue = this.deps.queue();
     const matches = this.deps.matches();
     if (!s.enabled || !queue || !matches || this.roster.size === 0) return;

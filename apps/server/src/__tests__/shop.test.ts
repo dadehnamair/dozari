@@ -59,8 +59,8 @@ describe('coin shop', () => {
     const shop = shopSchema.parse((await app.inject({ method: 'GET', url: '/shop', headers: a.h })).json());
     expect(shop).toMatchObject({ balance: 100, level: 3, tokens: 0 });
     // Level 3: the first two items are open, the higher tiers (levels 10 / 20 / 35) are locked.
-    expect(shop.items.map((i) => i.blocked)).toEqual([null, null, 'LEVEL', 'LEVEL', 'LEVEL']);
-    expect(shop.items.map((i) => i.minLevel)).toEqual([2, 3, 10, 20, 35]);
+    expect(shop.items.map((i) => i.blocked)).toEqual([null, null, 'LEVEL', 'LEVEL', 'LEVEL', null, 'LEVEL']);
+    expect(shop.items.map((i) => i.minLevel)).toEqual([2, 3, 10, 20, 35, 3, 5]);
     const pack = shop.items[1]!;
     const bought = (await app.inject({ method: 'POST', url: `/shop/${pack.id}/buy`, headers: a.h })).json();
     expect(bought).toEqual({ balance: 20, tokens: 5 });

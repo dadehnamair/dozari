@@ -15,12 +15,12 @@ export function createDbLevelTableStore(db: Db): LevelTableStore {
   return {
     async list() {
       const rows = await db.select().from(levelRoad).orderBy(asc(levelRoad.level));
-      return rows.map((r) => ({ level: r.level, startXp: r.startXp, rewardCoins: r.rewardCoins }));
+      return rows.map((r) => ({ level: r.level, startXp: r.startXp, rewardCoins: r.rewardCoins, rewardSpins: r.rewardSpins }));
     },
     async replace(rows) {
       await db.transaction(async (tx) => {
         await tx.delete(levelRoad);
-        if (rows.length > 0) await tx.insert(levelRoad).values(rows.map((r) => ({ level: r.level, startXp: r.startXp, rewardCoins: r.rewardCoins })));
+        if (rows.length > 0) await tx.insert(levelRoad).values(rows.map((r) => ({ level: r.level, startXp: r.startXp, rewardCoins: r.rewardCoins, rewardSpins: r.rewardSpins ?? 0 })));
       });
     },
     async clear() {

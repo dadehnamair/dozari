@@ -52,3 +52,30 @@ describe('lucky wheel', () => {
     expect((await t.wheel.status('a')).enabled).toBe(false);
   });
 });
+
+describe('spins from outside a duel', () => {
+  it('gives a bought, prize or admin spin once per ref, even with the wheel off', async () => {
+    const t = boot({ ...DEFAULT_WHEEL_RULES, enabled: false });
+    expect(await t.wheel.give('a', 'shop', 'buy-1', 3)).toBe(3);
+    expect(await t.wheel.give('a', 'shop', 'buy-1', 3)).toBe(0);
+    expect(await t.wheel.give('a', 'level', '5', 0)).toBe(0);
+    const on = boot();
+    await on.wheel.give('a', 'tournament', 't1', 2);
+    expect((await on.wheel.status('a')).pending).toBe(2);
+  });
+
+  it('hands out the free daily spin once a day and never when it is off', async () => {
+    let clock = Date.UTC(2026, 9, 3, 12);
+    const store = createMemoryWheelStore();
+    const wheel = new WheelService(store, async () => ({ ...DEFAULT_WHEEL_RULES, dailySpins: 2 }), () => 0, () => clock);
+    const first = await wheel.status('a');
+    expect([first.daily, first.pending]).toEqual([2, 2]);
+    const again = await wheel.status('a');
+    expect([again.daily, again.pending]).toEqual([0, 2]);
+    clock += 24 * 3_600_000;
+    const next = await wheel.status('a');
+    expect([next.daily, next.pending]).toEqual([2, 4]);
+    const off = new WheelService(createMemoryWheelStore(), async () => ({ ...DEFAULT_WHEEL_RULES, dailySpins: 0 }), () => 0);
+    expect((await off.status('a')).pending).toBe(0);
+  });
+});

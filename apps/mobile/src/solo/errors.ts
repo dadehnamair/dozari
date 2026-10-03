@@ -16,3 +16,10 @@ export function describeError(err: unknown, baseUrl: string): { message: string;
   // fetch() rejects with a TypeError when the server is down, the address is wrong, or the browser blocks it (CORS).
   return { message: e.network, detail: `${e.address}: ${baseUrl}` };
 }
+
+/** Which friendly card fits the failure: no server (sleepy mascot), nothing to play (sad mascot), anything else (shocked mascot). */
+export function errorKind(err: unknown): 'noInternet' | 'noPuzzles' | 'error' {
+  if (err instanceof ApiError) return err.code === 'no_puzzles' || err.code === 'unavailable' ? 'noPuzzles' : 'error';
+  if (err instanceof ZodError) return 'error';
+  return 'noInternet';
+}

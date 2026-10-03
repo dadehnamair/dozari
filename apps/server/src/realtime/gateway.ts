@@ -1,6 +1,7 @@
 import type { Server as HttpServer } from 'node:http';
 import { Server } from 'socket.io';
 import type { Socket } from 'socket.io';
+import type { QueueProblem } from '@dozari/shared';
 import { ClientEvent, ServerEvent, chatTauntSchema, matchProposeSchema, matchResumeSchema, matchSubmitSchema, queueJoinSchema } from '@dozari/shared';
 import type { Ack } from '@dozari/shared';
 import type { UserRecord } from '../auth/service.js';
@@ -32,6 +33,8 @@ export interface GatewayOptions {
   onEmit?: (userId: string, event: string, payload: unknown) => void;
   /** Receives every socket connect and disconnect, so friends can show who is online. */
   presence?: Presence;
+  /** Why a player who has waited `waitedSec` is not being matched (nothing to play, nobody to play against); null = just wait. */
+  diagnose?: (waitedSec: number) => Promise<QueueProblem | null>;
 }
 
 export interface Gateway {
@@ -195,12 +198,29 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
     });
   });
 
+  // Every few seconds each waiting player hears how long they have waited, and why nothing is happening when something is wrong.
+  const statusTimer = setInterval(() => {
+    void (async () => {
+      for (const line of [queue, teamQueue]) {
+        for (const { userId, since } of line.waiting()) {
+          const waitedSec = Math.max(0, Math.floor((now() - since) / 1000));
+          const problem = (await opts.diagnose?.(waitedSec).catch(() => null)) ?? undefined;
+          io.to(room(userId)).emit(ServerEvent.queueStatus, { waitedSec, position: line.position(userId) ?? 1, ...(problem ? { problem } : {}) });
+        }
+      }
+    })().catch(() => undefined);
+  }, 4000);
+  statusTimer.unref();
+
   return {
     io,
     stats,
     queue,
     teamQueue,
     matches,
-    close: () => new Promise<void>((resolve) => void io.close(() => resolve())),
+    close: () => {
+      clearInterval(statusTimer);
+      return new Promise<void>((resolve) => void io.close(() => resolve()));
+    },
   };
 }

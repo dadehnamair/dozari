@@ -32,7 +32,7 @@ describe('level road (D109)', () => {
 
   it('lists a coin reward every 5th level, growing with the level', async () => {
     const road = await svc({}).road('u');
-    expect(road.rewards).toEqual([{ level: 5, coins: 25, claimed: false }, { level: 10, coins: 50, claimed: false }, { level: 15, coins: 75, claimed: false }, { level: 20, coins: 100, claimed: false }]);
+    expect(road.rewards).toEqual([{ level: 5, coins: 25, spins: 0, claimed: false }, { level: 10, coins: 50, spins: 0, claimed: false }, { level: 15, coins: 75, spins: 0, claimed: false }, { level: 20, coins: 100, spins: 0, claimed: false }]);
   });
 
   it('pays only the rewards the player has reached, once', async () => {

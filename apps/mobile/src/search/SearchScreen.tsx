@@ -130,7 +130,7 @@ function PlayerCard({ index, active, face, compact }: { index: number; active: b
  * Opponent search screen ("screen-search" in the design kit): a grid of candidate players being scanned, you vs «؟», cancel.
  * `waitedSec` (the real queue time) replaces the demo clock; the duel shows this while searching (D104).
  */
-export function SearchScreen({ onCancel, waitedSec, team = false }: { onCancel: () => void; waitedSec?: number; /** 2v2: looks for a teammate and two rivals (three players), not one opponent. */ team?: boolean }) {
+export function SearchScreen({ onCancel, waitedSec, team = false, note }: { onCancel: () => void; waitedSec?: number; /** 2v2: looks for a teammate and two rivals (three players), not one opponent. */ team?: boolean; /** Why the search is going nowhere (the server says so), shown above the cancel button. */ note?: string }) {
   const compact = useWindowDimensions().height < 800;
   const [scan, setScan] = useState(0);
   const [ticks, setTicks] = useState(0);
@@ -258,6 +258,7 @@ export function SearchScreen({ onCancel, waitedSec, team = false }: { onCancel: 
           )}
         </View>
         </View>
+        {note ? <Text style={styles.note}>{note}</Text> : null}
         <View style={styles.cancel}>
           <CandyButton label={s.cancel} color={candyTone.orange.base} onPress={onCancel} />
         </View>
@@ -394,5 +395,6 @@ const styles = StyleSheet.create({
   statusRow: { flexDirection: ROW, alignItems: 'center', gap: 6 },
   clock: { fontFamily: fonts.bold, fontSize: 12, color: colors.cream },
   clockTime: { fontFamily: fonts.display, fontSize: 14, color: colors.candy.yellow, minWidth: 34, textAlign: 'center' },
+  note: { fontFamily: fonts.bold, fontSize: 13, color: colors.cream, textAlign: 'center', paddingHorizontal: 20, lineHeight: 22 },
   cancel: { alignItems: 'center', paddingBottom: 26, paddingTop: 6 },
 });

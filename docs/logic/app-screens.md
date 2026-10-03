@@ -31,6 +31,12 @@ Backend: `profile-and-identity.md` §Phone login (`POST /auth/phone/code|verify`
    game after it (including a first duel, if that's played before any solo game) is normal
    difficulty. Prototype: `prototype/index.html` (`S.tutorial`, `gh_solo_played`).
 
+## Failure cards (D155)
+
+Every screen that cannot reach the server or has nothing to play shows the design-10 card (`components/EmptyState.tsx` → `ErrorCard`) instead of a
+bare line: sleepy mascot «اینترنت قطعه» + «دوباره وصل شو» + back (offline, `NETWORK`/`INTERNAL`), sad mascot «پازل‌ها تموم شد» (no puzzles), shocked
+mascot (any other server error). Used by the live duel and the solo screen; other screens still show their own short error line.
+
 ## Home / Lobby screen
 
 Laid out as **screen-home** of `docs/design/Dozari - 01 Screens.dc.html` (D99, replaces the earlier
@@ -102,7 +108,7 @@ per-friend duel button need presence and direct challenges, which do not exist y
 
 ## City hub (D112)
 
-screen-hub of `11 More Screens`, opened from the round map button in Home's top row: «شهر دوزاری», a
+screen-hub of `11 More Screens`, opened from the round map button in Home's top row (next to it, the round **wheel** button, D154, with the number of spins waiting; it is always there): «شهر دوزاری», a
 hand-drawn bazaar town where every building is a game mode — برج ساعت (daily puzzle, «جدید» when
 today's is open), کاروانسرا (tournaments, «زنده»), حجرهٔ بازار (solo), زورخانه (duel), قهوه‌خانه (team)
 and مکتب‌خانه (propose and vote). Tap a building: its host and a short description rise from the bottom

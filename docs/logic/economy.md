@@ -74,17 +74,21 @@ Settings (admin → economy): `duel.entry_fee` 20, `duel.house_cut_percent` 10, 
 
 ## Lucky wheel — built (D116)
 
-- The wheel is **only** a chance earned by winning: one spin per won **queue duel against a human**
-  (`earnsWheelSpin`, `packages/shared/src/economy/wheel.ts`). Loss, draw, abandon, forfeit, a bot opponent,
-  private tables and tournaments give none; nothing from daily login, app open, invites or purchases.
+- Spins come from **six sources** (D154), all rows of `wheel_spins` with a `source` and an idempotent `ref`:
+  `win` — one per won **queue duel against a human** (`earnsWheelSpin`, `packages/shared/src/economy/wheel.ts`; loss, draw, abandon, forfeit,
+  a bot opponent and private tables give none); `daily` — `wheel.daily_spins` free spins the first time a player opens the wheel each day
+  (default 1, 0 = off); `shop` — items with effect `wheel_spin` (admin shop; defaults «یک چرخش گردونه» 25 coins, «بسته‌ی پنج چرخش» 100);
+  `level` — the level table's `reward_spins` column (hidden until the level is reached, taken with the coins); `tournament` — `spins` next to
+  the coins of each place; `admin` — reserved. A bought or won spin is never lost when the wheel is switched off, it just waits.
+- The wheel is **always reachable** from Home (round button beside the map, number = spins waiting).
 - Granted by `DuelStakes.settle` → `WheelService.grantForWin` into table `wheel_spins` (unique per user + match, so a repeated settle
-  gives one). Unspun spins stack and are used oldest first.
+  gives one; other sources use `(user, source, ref)`). Unspun spins stack and are used oldest first.
 - The server rolls (`pickSlice`, crypto random) and pays through the ledger, reason `wheel_spin`, key `wheel_spin:<spinId>`.
   The client only animates to the slice the server returns. API: `GET /wheel` (enabled, pending, slices, balance),
   `POST /wheel/spin` (409 `NO_SPIN` when none waits).
 - Numbers: `WHEEL_SLICES_DEFAULT` in `config/economy.ts` (8 slices, expected ≈ 13 coins); admin settings `wheel.enabled`
   and `wheel.prize_scale_percent`. Needs the economy simulation before launch (faucet next to the 20-coin entry fee).
-- App: after a win the result screen shows «گردونه!» once the server confirms a waiting spin (`apps/mobile/src/wheel`).
+- App: Home's wheel button and, after a win, the result screen show «گردونه!» once the server confirms a waiting spin (`apps/mobile/src/wheel`).
 
 ## Rules
 

@@ -18,6 +18,14 @@ export function createDbWheelStore(db: Db): WheelStore {
       const [res] = await db.insert(wheelSpins).ignore().values({ id: uuidv7(), userId, matchId });
       return res.affectedRows > 0;
     },
+    async give(userId, source, ref, count) {
+      let added = 0;
+      for (let i = 0; i < count; i++) {
+        const [res] = await db.insert(wheelSpins).ignore().values({ id: uuidv7(), userId, source, ref: `${ref}#${i}` });
+        added += res.affectedRows;
+      }
+      return added;
+    },
     pending,
     balance,
     spin: (userId, roll) =>
@@ -33,7 +41,7 @@ export function createDbWheelStore(db: Db): WheelStore {
         if (!row) return null;
         const prize = roll();
         await tx.update(wheelSpins).set({ coins: prize.coins, spunAt: new Date() }).where(eq(wheelSpins.id, row.id));
-        const out = await applyLedgerEntry(tx, { userId, delta: prize.coins, reason: 'wheel_spin', refType: 'match', refId: row.matchId, idempotencyKey: `wheel_spin:${row.id}` });
+        const out = await applyLedgerEntry(tx, { userId, delta: prize.coins, reason: 'wheel_spin', refType: row.matchId ? 'match' : 'wheel', refId: row.matchId ?? row.id, idempotencyKey: `wheel_spin:${row.id}` });
         const [left] = await tx.select({ n: sql<number>`COUNT(*)` }).from(wheelSpins).where(and(eq(wheelSpins.userId, userId), isNull(wheelSpins.spunAt)));
         return { ...prize, pending: Number(left?.n ?? 0), balance: out.balance };
       }),
@@ -52,6 +60,16 @@ export function createMemoryWheelStore(): WheelStore & { balances: Map<string, n
       if (spins.some((s) => s.userId === userId && s.matchId === matchId)) return false;
       spins.push({ userId, matchId, coins: null });
       return true;
+    },
+    async give(userId, source, ref, count) {
+      let added = 0;
+      for (let i = 0; i < count; i++) {
+        const key = `${source}:${ref}#${i}`;
+        if (spins.some((s) => s.userId === userId && s.matchId === key)) continue;
+        spins.push({ userId, matchId: key, coins: null });
+        added += 1;
+      }
+      return added;
     },
     async pending(u) {
       return waiting(u).length;

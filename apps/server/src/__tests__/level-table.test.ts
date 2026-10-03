@@ -68,7 +68,25 @@ describe('the table drives levels and rewards', () => {
       gates: async () => ({}),
       shopItems: async () => [],
     }).road('u');
-    expect(road.rewards).toEqual([{ level: 2, coins: 100, claimed: false }]);
+    expect(road.rewards).toEqual([{ level: 2, coins: 100, spins: 0, claimed: false }]);
     expect(road).toMatchObject({ levelMax: 3, starts: [0, 40, 120], level: 3 });
+  });
+
+  it('a spins-only level is on the road, and claiming reports the spins', async () => {
+    const withSpins = [{ level: 1, startXp: 0, rewardCoins: 0, rewardSpins: 0 }, { level: 2, startXp: 40, rewardCoins: 0, rewardSpins: 2 }, { level: 3, startXp: 120, rewardCoins: 30, rewardSpins: 1 }];
+    const table = new LevelTable(createMemoryLevelTableStore(withSpins), 0);
+    const rules = (await rulesFromSettings(settings, () => table.get())).xp;
+    const service = new LevelRoadService({
+      levelOf: async () => levelInfo(130, rules),
+      xpRules: async () => rules,
+      table: () => table.get(),
+      rewardRules: async () => ({ every: 0, base: 0 }),
+      claimedLevels: async () => [],
+      payRewards: async (_u, rs) => ({ paid: rs, balance: 1 }),
+      gates: async () => ({}),
+      shopItems: async () => [],
+    });
+    expect((await service.road('u')).rewards).toEqual([{ level: 2, coins: 0, spins: 2, claimed: false }, { level: 3, coins: 30, spins: 1, claimed: false }]);
+    expect(await service.claim('u')).toMatchObject({ levels: [2, 3], coins: 30, spins: 3 });
   });
 });

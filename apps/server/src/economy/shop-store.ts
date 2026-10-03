@@ -1,9 +1,9 @@
-import { and, asc, eq, gte, shopItems, shopPurchases, sql, userBalances, userInventory } from '@dozari/db';
+import { and, asc, eq, gte, shopItems, shopPurchases, sql, userBalances, userInventory, wheelSpins } from '@dozari/db';
 import type { Db } from '@dozari/db';
 import { uuidv7 } from 'uuidv7';
 import { applyLedgerEntry } from './ledger.js';
 
-export type ShopEffect = 'hint_token';
+export type ShopEffect = 'hint_token' | 'wheel_spin';
 
 export interface ShopItemRow {
   id: string;
@@ -46,6 +46,9 @@ export const DEFAULT_SHOP_ITEMS: readonly NewShopItem[] = [
   { titleFa: 'بسته‌ی ده‌تایی راهنما', descriptionFa: 'ده راهنما، ارزان‌تر از خرید جدا.', effect: 'hint_token', amount: 10, priceCoins: 150, minLevel: 10, perDayLimit: 3, iconKey: 'magnifier', isActive: true },
   { titleFa: 'بسته‌ی بیست‌تایی راهنما', descriptionFa: 'بیست راهنما برای بازی‌های سخت‌تر.', effect: 'hint_token', amount: 20, priceCoins: 280, minLevel: 20, perDayLimit: 2, iconKey: 'potion', isActive: true },
   { titleFa: 'صندوق راهنما', descriptionFa: 'پنجاه راهنما؛ مخصوص بازیکن‌های باتجربه.', effect: 'hint_token', amount: 50, priceCoins: 600, minLevel: 35, perDayLimit: 1, iconKey: 'chest', isActive: true },
+  // Lucky-wheel spins: an average spin pays about 13 coins, so a spin costs more than it returns (a coin sink, but a fun one).
+  { titleFa: 'یک چرخش گردونه', descriptionFa: 'یک بار گردونه‌ی شانس را بچرخان؛ شاید سکه‌ی بیشتری برگردد!', effect: 'wheel_spin', amount: 1, priceCoins: 25, minLevel: 3, perDayLimit: 0, iconKey: 'dice', isActive: true },
+  { titleFa: 'بسته‌ی پنج چرخش گردونه', descriptionFa: 'پنج چرخش گردونه با تخفیف.', effect: 'wheel_spin', amount: 5, priceCoins: 100, minLevel: 5, perDayLimit: 3, iconKey: 'gift', isActive: true },
 ];
 
 export function createDbShopStore(db: Db): ShopStore {
@@ -115,7 +118,12 @@ export function createDbShopStore(db: Db): ShopStore {
           if (Number(c?.n ?? 0) >= item.perDayLimit) throw new DailyLimit();
         }
         await tx.insert(shopPurchases).values({ id: purchaseId, userId, itemId, priceCoins: item.priceCoins });
-        await tx.insert(userInventory).values({ userId, effect: item.effect, qty: item.amount }).onDuplicateKeyUpdate({ set: { qty: sql`${userInventory.qty} + ${item.amount}` } });
+        if (item.effect === 'wheel_spin') {
+          // Wheel spins are rows of their own (one per spin), not a counter.
+          for (let i = 0; i < item.amount; i++) await tx.insert(wheelSpins).values({ id: uuidv7(), userId, source: 'shop', ref: `${purchaseId}#${i}` });
+        } else {
+          await tx.insert(userInventory).values({ userId, effect: item.effect, qty: item.amount }).onDuplicateKeyUpdate({ set: { qty: sql`${userInventory.qty} + ${item.amount}` } });
+        }
         return { ok: true, balance: ledger.balance, tokens: await tokensOf(tx, userId) };
       }).catch((e: unknown) => {
         if (e instanceof DailyLimit) return { ok: false, error: 'daily_limit' } as const;

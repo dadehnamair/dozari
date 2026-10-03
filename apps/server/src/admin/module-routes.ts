@@ -2,7 +2,7 @@ import { randomInt } from 'node:crypto';
 import type { PuzzleAdmin } from '../puzzles/admin.js';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { checkLevelTable, isDateKey, ITEMS, LEVEL_TABLE_MAX, levelRowSchema, PRODUCT_CATEGORIES, PROVINCES, provinceOf, SETTING_GROUPS, SHOP_EFFECTS } from '@dozari/shared';
+import { checkLevelTable, isDateKey, ITEMS, ITEM_GROUPS, LEVEL_TABLE_MAX, levelRowSchema, PRODUCT_CATEGORIES, PROVINCES, provinceOf, SETTING_GROUPS, SHOP_EFFECTS } from '@dozari/shared';
 import type { LevelRow } from '@dozari/shared';
 import type { LevelTable } from '../progress/table.js';
 import type { SettingsService } from '../settings/service.js';
@@ -129,6 +129,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     adapters: BOT_ADAPTER_KEYS,
     settingGroups: SETTING_GROUPS,
     icons: ITEMS,
+    iconGroups: ITEM_GROUPS,
     modules: { puzzles: !!m.puzzles, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages },
   }));
 
@@ -513,7 +514,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       startsAt: z.number().int(),
       botFill: z.boolean().optional(),
       allowConcurrent: z.boolean().optional(),
-      prizes: z.array(z.object({ place: z.number().int().min(1).max(3), coins: z.number().int().min(0).max(1_000_000) })).max(3),
+      prizes: z.array(z.object({ place: z.number().int().min(1).max(3), coins: z.number().int().min(0).max(1_000_000), spins: z.number().int().min(0).max(20).default(0) })).max(3),
     };
     const fail = (reply: FastifyReply, error: string) => reply.code(error === 'NOT_FOUND' ? 404 : error === 'BAD_STATE' ? 409 : 400).send({ error });
     g.get('/admin/tournaments', async () => ({ tournaments: await tournaments.adminList() }));

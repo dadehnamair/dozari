@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { claimableCoins, levelProgress, roadNodes, xpToReach } from '../road';
+import { claimableCoins, claimableSpins, levelProgress, roadNodes, xpToReach } from '../road';
 
 const unlocks = [
   { level: 2, kind: 'hint' as const, titleFa: null, iconKey: null },
@@ -32,10 +32,11 @@ describe('level road', () => {
   });
 
   it('puts the coin reward on its level and sums what can be taken', () => {
-    const rewards = [{ level: 2, coins: 25, claimed: true }, { level: 3, coins: 50, claimed: false }, { level: 5, coins: 75, claimed: false }];
+    const rewards = [{ level: 2, coins: 25, spins: 0, claimed: true }, { level: 3, coins: 50, spins: 2, claimed: false }, { level: 5, coins: 75, spins: 0, claimed: false }];
     const nodes = roadNodes({ level: 3, levelMax: 6, unlocks, rewards });
-    expect(nodes.find((n) => n.level === 3)?.reward).toEqual({ coins: 50, claimed: false });
+    expect(nodes.find((n) => n.level === 3)?.reward).toEqual({ coins: 50, spins: 2, claimed: false });
     expect(nodes.find((n) => n.level === 4)?.reward).toBeNull();
     expect(claimableCoins({ level: 3, rewards })).toBe(50);
+    expect(claimableSpins({ level: 3, rewards })).toBe(2);
   });
 });

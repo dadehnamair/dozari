@@ -10,7 +10,7 @@ import { Item } from '../components/Item';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { claimLevelRewards, fetchLevelRoad } from './api';
-import { claimableCoins, levelProgress, roadNodes, xpToReach } from './road';
+import { claimableCoins, claimableSpins, levelProgress, roadNodes, xpToReach } from './road';
 import type { RoadNode } from './road';
 import { roadLayout, skyStars } from './roadPath';
 import { pageTop } from '../theme/safeArea';
@@ -34,7 +34,7 @@ export function LevelRoadPage({ onClose }: { onClose: () => void }) {
   const [failed, setFailed] = useState(false);
   const [locked, setLocked] = useState<{ unlock: Unlock } | null>(null);
   const [claiming, setClaiming] = useState(false);
-  const [got, setGot] = useState<number | null>(null);
+  const [got, setGot] = useState<{ coins: number; spins: number } | null>(null);
   const scroller = useRef<ScrollView>(null);
   const win = useWindowDimensions();
   const width = Math.min(520, win.width);
@@ -43,13 +43,13 @@ export function LevelRoadPage({ onClose }: { onClose: () => void }) {
     fetchLevelRoad().then(setRoad, () => setFailed(true));
   }, []);
   const nodes = road ? roadNodes(road) : [];
-  const ready = road ? claimableCoins(road) : 0;
+  const ready = road ? claimableCoins(road) + claimableSpins(road) : 0;
   const claim = () => {
     if (claiming || ready === 0) return;
     setClaiming(true);
     claimLevelRewards().then(
       (out) => {
-        setGot(out.coins);
+        setGot({ coins: out.coins, spins: out.spins });
         return fetchLevelRoad().then(setRoad);
       },
       () => setFailed(true),
@@ -91,7 +91,7 @@ export function LevelRoadPage({ onClose }: { onClose: () => void }) {
             {ready > 0 ? (
               <Pressable accessibilityRole="button" onPress={claim} disabled={claiming} style={({ pressed }) => [styles.claimAll, pressed ? styles.pressed : null]}>
                 <GradientFill from="#B8F08F" to="#5DBB3C" />
-                <Text style={styles.claimAllText}>{fa.levels.claimAll(ready)}</Text>
+                <Text style={styles.claimAllText}>{fa.levels.claimAll(claimableCoins(road), claimableSpins(road))}</Text>
               </Pressable>
             ) : null}
           </View>
@@ -103,7 +103,7 @@ export function LevelRoadPage({ onClose }: { onClose: () => void }) {
       </View>
       {got !== null ? (
         <Pressable style={styles.overlay} onPress={() => setGot(null)} accessibilityLabel={fa.levels.popup.ok}>
-          <View style={styles.gotBox}><View style={styles.gotIcon}><Item icon="coinStack" /></View><Text style={styles.gotText}>{fa.levels.got(got)}</Text></View>
+          <View style={styles.gotBox}><View style={styles.gotIcon}><Item icon={got.coins > 0 ? 'coinStack' : 'dice'} /></View><Text style={styles.gotText}>{fa.levels.got(got.coins, got.spins)}</Text></View>
         </Pressable>
       ) : null}
       {locked && road ? <LockedPopup road={road} unlock={locked.unlock} onClose={() => setLocked(null)} /> : null}
@@ -192,9 +192,9 @@ function Cards({ node, dim, reached, onLocked, onClaim }: { node: RoadNode; dim:
     <View style={styles.cards}>
       {r ? (
         <Pressable onPress={reached && !r.claimed ? onClaim : undefined} disabled={!reached || r.claimed} accessibilityRole={reached && !r.claimed ? 'button' : 'text'} accessibilityLabel={fa.levels.rewardTitle} style={[styles.card, styles.cardReward, !reached ? styles.cardDim : null]}>
-          <View style={styles.cardIcon}><View style={[styles.cardIconInner, !reached ? styles.gray : null]}><Item icon="coinStack" /></View></View>
+          <View style={styles.cardIcon}><View style={[styles.cardIconInner, !reached ? styles.gray : null]}><Item icon={r.coins > 0 ? 'coinStack' : 'dice'} /></View></View>
           <View style={styles.cardText}>
-            <Text style={styles.cardTitle} numberOfLines={1}>{fa.levels.coins(r.coins)}</Text>
+            <Text style={styles.cardTitle} numberOfLines={1}>{fa.levels.prize(r.coins, r.spins)}</Text>
             <Text style={[styles.cardSub, r.claimed ? styles.cardDone : reached ? styles.cardClaim : null]} numberOfLines={1}>{r.claimed ? fa.levels.claimed : reached ? fa.levels.claim : fa.levels.fromLevel(node.level)}</Text>
           </View>
         </Pressable>

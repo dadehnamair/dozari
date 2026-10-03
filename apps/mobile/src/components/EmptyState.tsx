@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { fa } from '../i18n/fa';
-import type { EmptySpec } from '../kit/data';
+import { EMPTY_STATES } from '../kit/data';
+import type { EmptyKind, EmptySpec } from '../kit/data';
 import { candyTone, colors, fonts } from '../theme/colors';
 import { CandyButton } from './CandyButton';
 import type { CharacterPose } from '../theme/character';
@@ -21,7 +22,39 @@ export function EmptyState({ spec, onAction }: { spec: EmptySpec; onAction?: () 
   );
 }
 
+export interface ErrorCardProps {
+  /** Which design-10 card: the shocked mascot (`error`), the sleepy one (`noInternet`) or the sad one (`noPuzzles`). */
+  kind: Extract<EmptyKind, 'error' | 'noInternet' | 'noPuzzles'>;
+  /** Replaces the card's default line, e.g. a specific reason. */
+  sub?: string;
+  /** Small technical line (server address, status code) for whoever debugs. */
+  detail?: string;
+  onRetry?: () => void;
+  retryLabel?: string;
+  onBack?: () => void;
+  backLabel?: string;
+}
+
+/** The friendly failure card (docs/design/Dozari - 10): used wherever a screen could not reach the server or has nothing to show. */
+export function ErrorCard({ kind, sub, detail, onRetry, retryLabel, onBack, backLabel }: ErrorCardProps) {
+  const spec = EMPTY_STATES.find((e) => e.kind === kind) as EmptySpec;
+  const text = fa.kit.empty[kind];
+  return (
+    <View style={styles.card}>
+      <View style={styles.mascot}>
+        <Character pose={spec.pose} skin={spec.skin} />
+      </View>
+      <Text style={styles.title}>{text.title}</Text>
+      <Text style={styles.sub}>{sub ?? text.sub}</Text>
+      {detail ? <Text style={styles.detail}>{detail}</Text> : null}
+      {onRetry ? <CandyButton label={retryLabel ?? text.action} color={candyTone[spec.tone].base} onPress={onRetry} /> : null}
+      {onBack ? <CandyButton label={backLabel ?? fa.duel.back} color={candyTone.sky.base} onPress={onBack} /> : null}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  detail: { fontFamily: fonts.body, fontSize: 11, color: colors.ink, opacity: 0.5, textAlign: 'center', writingDirection: 'ltr' },
   card: { width: 236, padding: 20, borderRadius: 28, backgroundColor: colors.cream, borderWidth: 4, borderColor: colors.ink, borderBottomWidth: 8, alignItems: 'center', gap: 8 },
   mascot: { width: 130, height: 142 },
   title: { fontFamily: fonts.display, fontSize: 24, color: colors.ink, textAlign: 'center' },

@@ -79,6 +79,12 @@ This is the part that needs care, since real coins are at stake (`economy.md`):
   vs. bots as a metric once Phase 8 analytics exists, and alert if it drifts far from vs.-human
   win rates.
 
+## Roster top-up (D153)
+
+`bots.autofill_min` (admin setting, default 12, 0 = off): when bots are on and fewer active accounts exist, the driver's slow tick (every 30 s)
+makes the missing number with levels 3–25, skill 30–75, win rate 40–65 %, think time 4–20 s, 25 % taunts and random cities. They are normal
+bot accounts: the admin can pause, tune or add more, and the top-up never touches a roster that is already large enough.
+
 ## Open follow-ups
 
 - Exact `BOT_FALLBACK_SECONDS` and `BOT_POOL_SIZE` are tuning knobs — set defaults in Phase 4,

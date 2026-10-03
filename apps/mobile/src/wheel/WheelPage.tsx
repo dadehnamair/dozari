@@ -38,9 +38,10 @@ export function WheelPage({ onClose }: { onClose: () => void }) {
   const [spinning, setSpinning] = useState(false);
   const [prize, setPrize] = useState<number | null>(null);
   const turn = useRef(new Animated.Value(0)).current;
+  const [dailyNote, setDailyNote] = useState(false);
 
   useEffect(() => {
-    fetchWheel().then(setStatus, () => setFailed(true));
+    fetchWheel().then((w) => (setStatus(w), setDailyNote(w.daily > 0)), () => setFailed(true));
   }, []);
 
   const go = async () => {
@@ -78,7 +79,7 @@ export function WheelPage({ onClose }: { onClose: () => void }) {
   const count = status.slices.length;
   const can = status.enabled && status.pending > 0 && !spinning;
   const rotate = turn.interpolate({ inputRange: [0, 360], outputRange: ['0deg', '360deg'] });
-  const note = spinning ? t.spinning : status.pending > 1 ? t.more(status.pending - 1) : status.pending === 1 ? t.ready : t.none;
+  const note = spinning ? t.spinning : dailyNote && prize === null ? t.daily : status.pending > 1 ? t.more(status.pending - 1) : status.pending === 1 ? t.ready : t.none;
 
   return (
     <View style={styles.root}>

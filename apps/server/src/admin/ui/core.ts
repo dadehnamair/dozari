@@ -113,19 +113,33 @@ function iconTile(key) {
   return h('div', { class: 'icon-tile' }, [iconSvg(key, 40)]);
 }
 function iconPicker(current, onPick) {
-  var keys = Object.keys((S.meta && S.meta.icons) || {});
+  var groups = (S.meta && S.meta.iconGroups) || [], have = (S.meta && S.meta.icons) || {};
+  var faOf = {}, groupOf = {};
+  groups.forEach(function (g) { g.icons.forEach(function (i) { faOf[i.key] = i.fa; groupOf[i.key] = g.id; }); });
+  var keys = Object.keys(have), cat = 'all';
   var grid = h('div', { class: 'icon-pick' });
-  var q = h('input', { type: 'search', placeholder: 'جستجوی آیکن (انگلیسی)…' });
+  var chips = h('div', { class: 'chips', style: 'display:flex;flex-wrap:wrap;gap:6px' });
+  var q = h('input', { type: 'search', placeholder: 'جستجوی آیکن (فارسی یا انگلیسی)…' });
+  function drawChips() {
+    clear(chips);
+    [{ id: 'all', titleFa: 'همه', n: keys.length }].concat(groups.map(function (g) { return { id: g.id, titleFa: g.titleFa, n: g.icons.length }; })).forEach(function (g) {
+      chips.appendChild(h('button', { type: 'button', class: 'chip', 'aria-pressed': String(g.id === cat), text: g.titleFa + ' · ' + faNum(g.n), onclick: function () { cat = g.id; drawChips(); draw(); } }));
+    });
+  }
   function draw() {
     clear(grid);
     var term = q.value.trim().toLowerCase();
-    keys.filter(function (k) { return !term || k.toLowerCase().indexOf(term) >= 0; }).forEach(function (k) {
-      grid.appendChild(h('button', { type: 'button', 'aria-pressed': String(k === current), title: k, onclick: function () { current = k; onPick(k); draw(); } }, [iconSvg(k, 40), h('span', { class: 'ltr', text: k })]));
+    keys.filter(function (k) {
+      if (cat !== 'all' && groupOf[k] !== cat) return false;
+      return !term || k.toLowerCase().indexOf(term) >= 0 || (faOf[k] || '').indexOf(term) >= 0;
+    }).forEach(function (k) {
+      grid.appendChild(h('button', { type: 'button', 'aria-pressed': String(k === current), title: k, onclick: function () { current = k; onPick(k); draw(); } }, [iconSvg(k, 40), h('span', { text: faOf[k] || k }), h('span', { class: 'ltr', text: k, style: 'opacity:.6' })]));
     });
+    if (!grid.firstChild) grid.appendChild(h('div', { class: 'empty-state', text: 'آیکنی پیدا نشد' }));
   }
   q.addEventListener('input', draw);
-  draw();
-  return h('div', { style: 'display:flex;flex-direction:column;gap:8px' }, [q, grid]);
+  drawChips(); draw();
+  return h('div', { style: 'display:flex;flex-direction:column;gap:8px' }, [q, chips, grid]);
 }
 function badge(text, cls) { return h('span', { class: 'badge ' + (cls || 'b-mute'), text: text }); }
 function field(label, input, hint) { return h('label', { class: 'f' }, [label, input, hint ? h('span', { class: 'h', text: hint, style: 'font-size:12px' }) : null]); }

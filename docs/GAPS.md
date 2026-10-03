@@ -38,6 +38,11 @@ Done this session and worth knowing: the winding level road (`17` · levels), th
 | B10 | `profile-and-identity.md` | Avatar / nickname galleries and `user_tags` tables (PLAN Phase 4-A), the public player number + default handle (D123), the app icon following gender. |
 | B11 | `puzzle-generation.md` | Rule kinds `first_crossed`, `same_price_at_year`, `cheaper_than_ref`, `category_price_rank`; AI-drafted group titles with a human pick. |
 
+## B+. Added after the review (2026-10-03)
+
+- `ErrorCard` is used only by the live duel and solo screens; the shop, chat, tournaments, leaderboard and friends still show a plain error line (D155).
+- The wheel's «سهمیه»/daily meaning needs the owner's confirmation (D154); the admin cannot yet gift spins to one player.
+
 ## C. Content and operations
 
 - **Content is the real blocker.** The server has one starter product and (until the admin builds them) no puzzles. The generator needs ≈150

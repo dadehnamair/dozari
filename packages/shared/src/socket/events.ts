@@ -96,7 +96,9 @@ export const matchPlayerProfileSchema = z.object({
   coins: z.number().int().nonnegative(),
 });
 
-export const queueStatusSchema = z.object({ waitedSec: z.number().int().nonnegative(), position: z.number().int().positive().optional() });
+/** Why a waiting player is not being matched: nothing to play (`no_puzzles`) or nobody to play against (`no_bots`). */
+export const queueProblemSchema = z.enum(['no_puzzles', 'no_bots']);
+export const queueStatusSchema = z.object({ waitedSec: z.number().int().nonnegative(), position: z.number().int().positive().optional(), problem: queueProblemSchema.optional() });
 
 export const matchFoundSchema = z.object({
   matchId: z.string().uuid(),
@@ -177,6 +179,7 @@ export const errorEventSchema = z.object({ error: errorCodeSchema });
 
 export type MatchPlayerProfile = z.infer<typeof matchPlayerProfileSchema>;
 export type QueueStatus = z.infer<typeof queueStatusSchema>;
+export type QueueProblem = z.infer<typeof queueProblemSchema>;
 export type MatchFound = z.infer<typeof matchFoundSchema>;
 export type MatchView = z.infer<typeof matchViewSchema>;
 export type MatchEventPayload = z.infer<typeof matchEventSchema>;

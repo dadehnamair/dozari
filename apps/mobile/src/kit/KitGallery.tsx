@@ -1,4 +1,5 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ITEM_GROUPS } from '@dozari/shared';
 import { Avatar } from '../components/Avatar';
 import { Banner } from '../components/Banner';
 import { Chip } from '../components/Chip';
@@ -82,13 +83,13 @@ export function KitGallery({
           <Scene scene="alley" mood="dusk" />
         </View>
       </Section>
-      {fa.itemGroups.map((g) => (
-        <Section key={g.title} title={g.title}>
-          {g.items.map((it) => (
+      {ITEM_GROUPS.map((g) => (
+        <Section key={g.id} title={g.titleFa}>
+          {g.icons.map((it) => (
             <View key={it.key} style={styles.item}>
               <Item icon={it.key} />
               <Text style={styles.itemLabel} numberOfLines={1}>
-                {it.name}
+                {it.fa}
               </Text>
             </View>
           ))}

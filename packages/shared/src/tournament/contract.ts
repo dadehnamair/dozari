@@ -32,7 +32,7 @@ export const bracketMatchSchema = z.object({
 /** `GET /tournaments/:id`: the tournament's own page. */
 export const tournamentDetailSchema = tournamentListItemSchema.extend({
   descriptionFa: z.string(),
-  prizes: z.array(z.object({ place: z.number().int().positive(), coins: z.number().int().nonnegative() })),
+  prizes: z.array(z.object({ place: z.number().int().positive(), coins: z.number().int().nonnegative(), spins: z.number().int().nonnegative().default(0) })),
   players: z.array(z.object({ id: z.string().uuid(), nickname: z.string(), avatarKey: z.string() })),
   bracket: z.array(bracketMatchSchema),
   rounds: z.number().int(),

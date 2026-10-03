@@ -34,7 +34,8 @@ export const soloHintResultSchema = z.object({
 export type SoloHintResult = z.infer<typeof soloHintResultSchema>;
 
 /** `GET /shop`: items a player can buy with coins (docs/logic/shop.md). */
-export const SHOP_EFFECTS = ['hint_token'] as const;
+/** `hint_token` adds hint tokens; `wheel_spin` adds lucky-wheel spins (one row per spin in `wheel_spins`). */
+export const SHOP_EFFECTS = ['hint_token', 'wheel_spin'] as const;
 export const shopEffectSchema = z.enum(SHOP_EFFECTS);
 
 export const shopItemSchema = z.object({

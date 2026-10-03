@@ -12,6 +12,8 @@ export interface WheelSlice {
 export interface WheelRules {
   enabled: boolean;
   slices: readonly WheelSlice[];
+  /** Free spins every player gets once a day (0 / absent = none). */
+  dailySpins?: number;
 }
 
 export const DEFAULT_WHEEL_RULES: WheelRules = { enabled: true, slices: WHEEL_SLICES_DEFAULT };

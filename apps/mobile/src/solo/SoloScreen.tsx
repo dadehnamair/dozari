@@ -3,7 +3,6 @@ import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, V
 import { solarMonthOf } from '@dozari/shared';
 import type { HintPayload, SoloView } from '@dozari/shared';
 import { Board } from '../components/Board';
-import { CandyButton } from '../components/CandyButton';
 import { ChartPanel } from '../components/ChartPanel';
 import { Confetti } from '../components/Confetti';
 import { usePrefs } from '../prefs/store';
@@ -21,14 +20,15 @@ import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { BASE_URL, guessSolo, shuffleSolo } from './api';
 import { beginDaily, beginSolo } from './begin';
-import { describeError } from './errors';
+import { describeError, errorKind } from './errors';
+import { ErrorCard } from '../components/EmptyState';
 import { canSubmit, feedbackFor, pruneSelection, toggleSelection } from './selection';
 import { recordGameFinished } from '../review/state';
 import { HintSheet } from '../shop/HintSheet';
 import { hintedCardIds, hintedTitles } from '../shop/hintView';
 import type { FeedbackKey } from './selection';
 
-type Phase = { kind: 'loading' } | { kind: 'error'; message: string; detail: string } | { kind: 'ready'; view: SoloView };
+type Phase = { kind: 'loading' } | { kind: 'error'; message: string; detail: string; card: 'noInternet' | 'noPuzzles' | 'error' } | { kind: 'ready'; view: SoloView };
 
 const FEEDBACK_MS = 1600;
 /** Right-to-left rows on web too (react-native-web does not flip rows; native does under forced RTL). */
@@ -64,7 +64,7 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
   const fail = useCallback((err: unknown) => {
     console.warn('[solo] request failed', err);
     const { message, detail } = describeError(err, BASE_URL);
-    setPhase({ kind: 'error', message, detail });
+    setPhase({ kind: 'error', message, detail, card: errorKind(err) });
   }, []);
 
   const begin = useCallback(async () => {
@@ -93,12 +93,7 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
   if (phase.kind === 'error') {
     return (
       <View style={styles.center}>
-        <Text style={styles.msg}>{phase.message}</Text>
-        {phase.detail ? <Text style={styles.detail}>{phase.detail}</Text> : null}
-        <View style={styles.endActions}>
-          <CandyButton label={fa.solo.errors.retry} color={colors.candy.yellow} onPress={() => void begin()} />
-          <CandyButton label={fa.solo.back} color={colors.candy.sky} onPress={onBack} />
-        </View>
+        <ErrorCard kind={phase.card} sub={phase.message} detail={phase.detail} onRetry={() => void begin()} retryLabel={fa.solo.errors.retry} onBack={onBack} backLabel={fa.solo.back} />
       </View>
     );
   }

@@ -4,7 +4,7 @@ import { toPersianDigits } from '@dozari/shared';
 import type { TauntCategory } from '@dozari/shared';
 import { fetchTaunts } from '../chat/api';
 import { Board } from '../components/Board';
-import { CandyButton } from '../components/CandyButton';
+import { ErrorCard } from '../components/EmptyState';
 import { Confetti } from '../components/Confetti';
 import { GradientFill } from '../components/GradientFill';
 import { Icon } from '../components/Icon';
@@ -162,17 +162,26 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
     );
   }
 
+  const offline = state.error === 'NETWORK' || state.error === 'INTERNAL';
+  const noPuzzles = state.problem === 'no_puzzles';
   const errorText = state.error ? fa.duel.errors[state.error] ?? fa.duel.errors.generic : null;
   const view = state.view;
   const players = state.found?.players;
   const team = (players?.length ?? 0) > 2 || view?.team === true;
+  /** Try the same thing again: a fresh socket and queue join. */
+  const retry = () => (dispatch({ t: 'reset' }), setRound((r) => r + 1));
 
-  if (errorText && state.phase !== 'playing') {
+  if ((errorText || (noPuzzles && !state.found)) && state.phase !== 'playing') {
     return (
       <MatchBackground>
         <View style={styles.center}>
-          <Text style={styles.msg}>{errorText}</Text>
-          <CandyButton label={fa.duel.back} color={colors.candy.sky} onPress={onBack} />
+          {offline ? (
+            <ErrorCard kind="noInternet" sub={fa.duel.errors.NETWORK} onRetry={retry} onBack={onBack} />
+          ) : noPuzzles ? (
+            <ErrorCard kind="noPuzzles" sub={fa.duel.problems.no_puzzles} onBack={() => (void conn.current?.leaveQueue(), onBack())} />
+          ) : (
+            <ErrorCard kind="error" sub={errorText ?? undefined} onBack={onBack} />
+          )}
         </View>
       </MatchBackground>
     );
@@ -180,7 +189,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
 
   const countdown = Math.ceil((introUntil - now) / 1000);
   // Searching: the diamond search screen; once a rival is found: the versus screen counting down (D104).
-  if (!state.found && stage !== 'resume') return <SearchScreen team={mode === 'team'} waitedSec={state.waitedSec} onCancel={() => (void conn.current?.leaveQueue(), setStage('pick'), dispatch({ t: 'reset' }))} />;
+  if (!state.found && stage !== 'resume') return <SearchScreen team={mode === 'team'} waitedSec={state.waitedSec} note={state.problem ? fa.duel.problems[state.problem] : undefined} onCancel={() => (void conn.current?.leaveQueue(), setStage('pick'), dispatch({ t: 'reset' }))} />;
   if (state.phase === 'idle' || state.phase === 'queued' || !view || countdown > 0) {
     const you = state.found?.you ?? 0;
     const mineSide = sidePlayers(state.found, you);

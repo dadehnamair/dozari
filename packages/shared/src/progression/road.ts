@@ -29,7 +29,9 @@ export function rewardLevels(levelMax: number, every: number): number[] {
 
 export const levelRewardSchema = z.object({
   level: z.number().int().positive(),
-  coins: z.number().int().positive(),
+  coins: z.number().int().nonnegative(),
+  /** Lucky-wheel spins that come with it (0 = coins only). */
+  spins: z.number().int().nonnegative().default(0),
   claimed: z.boolean(),
 });
 export type LevelReward = z.infer<typeof levelRewardSchema>;
@@ -39,6 +41,7 @@ export const levelClaimSchema = z.object({
   ok: z.literal(true),
   levels: z.array(z.number().int().positive()),
   coins: z.number().int().nonnegative(),
+  spins: z.number().int().nonnegative().default(0),
   balance: z.number().int().nonnegative(),
 });
 export type LevelClaim = z.infer<typeof levelClaimSchema>;

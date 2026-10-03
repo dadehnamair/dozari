@@ -400,3 +400,19 @@ Owner: on some pages the back button and title fell on the header's border line.
 ## D151 — The 2v2 search looks for three players (2026-10-03)
 
 Owner: in 2v2 the search screen must look for three players, not one. The panel now shows a teammate «؟» next to you and two rival «؟», and the found-screen shows all four; `match:found` gained `youId`. See `logic/app-screens.md` §Searching for a 2v2.
+
+## D152 — The icon pack is generated from the design files, with categories (2026-10-03)
+
+Owner keeps updating the icon pack and wants categories in the admin. `packages/shared/scripts/gen-items.mjs` rebuilds `items/data.ts` (157 icons, was 57) and `items/groups.ts` (14 groups with Persian names, from designs 12 and 14) from `docs/design`; never edit them by hand. The admin icon picker has category chips and searches Persian and English names; the dev gallery lists the same groups.
+
+## D153 — An endless search is explained, and bots are made on their own (2026-10-03)
+
+Owner: the opponent search never ends. Cause: with no approved puzzle or no bot account the queue silently waits. The server now pushes `queue:status` every 4 s with an optional `problem` (`no_puzzles` / `no_bots`), the app shows it, and the bot driver tops the roster up to `bots.autofill_min` (default 12). See `logic/matchmaking.md` §Why a search can seem endless, `logic/bots.md` §Roster top-up. Proposed default: 12 bots; set 0 to switch off.
+
+## D154 — The wheel is always there and has more sources (2026-10-03)
+
+Owner: the wheel should always be reachable, with a spin item, hidden steps, tournament prizes and a daily option. Home has a round wheel button (badge = spins waiting). Spins come from a won duel, a free daily spin (`wheel.daily_spins`, default 1), shop items with effect `wheel_spin`, the level table's `reward_spins`, and tournament prizes (`spins` per place). Migration 0040. Proposed shop prices: 25 coins per spin (an average spin pays about 13). I read «روزانه» as the daily free spin; tell me if it meant something else. See `logic/economy.md` §Lucky wheel.
+
+## D155 — Failure cards (2026-10-03)
+
+Owner: the friendly error card from the design should show when the server cannot be reached. `ErrorCard` (design 10) now covers the live duel and the solo screen; other screens keep their line for now (open item in `GAPS.md`).

@@ -97,6 +97,7 @@ import type { AdminRepository } from './admin/routes.js';
 import { registerCatalogRoutes, registerLookupRoutes } from './catalog/routes.js';
 import { isMainModule } from './is-main.js';
 import { createDbPuzzleSource } from './solo/db-source.js';
+import { createQueueDiagnosis } from './realtime/diagnose.js';
 import { CoinPackageService } from './economy/coin-packages.js';
 import { createDbPuzzleAdmin } from './puzzles/admin.js';
 import { startPuzzlePoolScheduler } from './puzzles/pool.js';
@@ -288,7 +289,7 @@ export function buildServer(deps: ServerDeps = {}) {
   let gateway: Gateway | undefined;
   if (deps.auth && deps.realtime) {
     const auth = deps.auth;
-    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin: deps.corsOrigin, match: deps.match, canAfford: deps.duelStakes ? (u) => deps.duelStakes!.canQueue(u) : undefined, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, limit: deps.limiter ? { canPlay: async (u) => (await deps.limiter!.check(u, 'duel')).ok, onStarted: (u) => deps.limiter!.record(u, 'duel') } : undefined, chat: deps.chat, presence: deps.presence, onEmit: deps.botDriver ? (u, e, p) => deps.botDriver!.onEmit(u, e, p) : undefined });
+    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin: deps.corsOrigin, match: deps.match, canAfford: deps.duelStakes ? (u) => deps.duelStakes!.canQueue(u) : undefined, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, limit: deps.limiter ? { canPlay: async (u) => (await deps.limiter!.check(u, 'duel')).ok, onStarted: (u) => deps.limiter!.record(u, 'duel') } : undefined, chat: deps.chat, presence: deps.presence, onEmit: deps.botDriver ? (u, e, p) => deps.botDriver!.onEmit(u, e, p) : undefined, diagnose: deps.match ? createQueueDiagnosis({ hasPuzzle: async () => (await deps.match!.puzzles.pickRandom()) !== null, botsReady: () => deps.botDriver?.ready() ?? false, graceSec: 45 }) : undefined });
     if (deps.live) {
       deps.live.matches = gateway.matches;
       deps.live.queue = gateway.queue;
@@ -416,6 +417,10 @@ if (isMainModule(import.meta.url)) {
       : undefined;
   const live: { matches?: MatchService; queue?: DuelQueue; teamQueue?: DuelQueue } = {};
   const botStore = db ? createDbBotPlayerStore(db) : undefined;
+  const botService =
+    botStore && player && settings
+      ? new BotPlayerService(botStore, () => rulesFromSettings(settings, levelTable ? () => levelTable.get() : undefined).then((r) => r.xp), () => randomInt(0, 2 ** 30) / 2 ** 30, async (id) => player.afterGame?.(id))
+      : undefined;
   const botDriver =
     botStore && settings
       ? new BotDriver({
@@ -424,7 +429,8 @@ if (isMainModule(import.meta.url)) {
           queue: () => live.queue,
           teamQueue: () => live.teamQueue,
           chat: () => chat,
-          settings: async () => ({ enabled: (await settings.num('bots.enabled')) === 1, fallbackSec: await settings.num('bots.fallback_seconds'), jitterSec: await settings.num('bots.fallback_jitter_seconds'), cityReplyPercent: await settings.num('bots.city_reply_percent') }),
+          settings: async () => ({ enabled: (await settings.num('bots.enabled')) === 1, fallbackSec: await settings.num('bots.fallback_seconds'), jitterSec: await settings.num('bots.fallback_jitter_seconds'), cityReplyPercent: await settings.num('bots.city_reply_percent'), autofillMin: await settings.num('bots.autofill_min') }),
+          topUp: botService ? async (missing) => void (await botService.generate({ count: missing, levelMin: 3, levelMax: 25, skillMin: 30, skillMax: 75, winPercentMin: 40, winPercentMax: 65, thinkMinMs: 4000, thinkMaxMs: 20_000, tauntPercent: 25, cityIds: playerStore ? (await playerStore.cities()).map((c) => c.id) : [] })) : undefined,
           taunts: chatStore ? async () => (await chatStore.taunts()).map((c) => ({ nameFa: c.nameFa, ids: c.taunts.map((t) => t.id) })) : undefined,
           rng: () => randomInt(0, 2 ** 30) / 2 ** 30,
         })
@@ -447,6 +453,7 @@ if (isMainModule(import.meta.url)) {
       ? new WheelService(createDbWheelStore(db), async () => ({
           enabled: (await settings.num('wheel.enabled')) === 1,
           slices: scaleSlices(WHEEL_SLICES_DEFAULT, await settings.num('wheel.prize_scale_percent')),
+          dailySpins: await settings.num('wheel.daily_spins'),
         }), () => randomInt(0, 2 ** 32) / 2 ** 32)
       : undefined;
   const duelStakes =
@@ -519,7 +526,7 @@ if (isMainModule(import.meta.url)) {
     auth,
     settings,
     adminModules: db
-      ? { products: createDbProductAdmin(db), stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, daily, puzzles: createDbPuzzleAdmin(db), levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings ? { service: new BotPlayerService(botStore, () => rulesFromSettings(settings, levelTable ? () => levelTable.get() : undefined).then((r) => r.xp), () => randomInt(0, 2 ** 30) / 2 ** 30, async (id) => player.afterGame?.(id)), cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      ? { products: createDbProductAdmin(db), stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, daily, puzzles: createDbPuzzleAdmin(db), levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
     match: db

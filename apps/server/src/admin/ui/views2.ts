@@ -128,28 +128,29 @@ VIEWS.levels = function (root) {
   api('/admin/level-road').then(function (r) {
     if (r.status === 404) return root.appendChild(empty('جاده‌ی لول روی این سرور فعال نیست (دیتابیس لازم است)'));
     if (!r.ok) return fail(r);
-    var rows = r.body.rows.map(function (x) { return { level: x.level, startXp: x.startXp, rewardCoins: x.rewardCoins }; }), custom = r.body.custom;
-    var box = h('div'), status = h('div', { class: 'quote' }), xpIn = [], coinIn = [];
-    function read() { return rows.map(function (x, i) { return { level: i + 1, startXp: i === 0 ? 0 : Math.max(0, Math.round(Number(xpIn[i].value) || 0)), rewardCoins: Math.max(0, Math.round(Number(coinIn[i].value) || 0)) }; }); }
+    var rows = r.body.rows.map(function (x) { return { level: x.level, startXp: x.startXp, rewardCoins: x.rewardCoins, rewardSpins: x.rewardSpins || 0 }; }), custom = r.body.custom;
+    var box = h('div'), status = h('div', { class: 'quote' }), xpIn = [], coinIn = [], spinIn = [];
+    function read() { return rows.map(function (x, i) { return { level: i + 1, startXp: i === 0 ? 0 : Math.max(0, Math.round(Number(xpIn[i].value) || 0)), rewardCoins: Math.max(0, Math.round(Number(coinIn[i].value) || 0)), rewardSpins: Math.max(0, Math.min(20, Math.round(Number(spinIn[i].value) || 0))) }; }); }
     function total() { return rows.reduce(function (n, x) { return n + x.rewardCoins; }, 0); }
     function draw() {
-      clear(box); xpIn = []; coinIn = [];
+      clear(box); xpIn = []; coinIn = []; spinIn = [];
       status.textContent = (custom ? 'جدول شما فعال است.' : 'هنوز جدولی ذخیره نشده؛ بازی از فرمول تنظیمات (منحنی XP و جایزه‌ی هر چند لول) استفاده می‌کند. هر عددی را عوض کنی و ذخیره کنی، این جدول جای فرمول را می‌گیرد.') + ' جمع جایزه‌ها: ' + faNum(total()) + ' سکه.';
       var tbl = h('table', { class: 'tbl' });
-      tbl.appendChild(h('thead', {}, [h('tr', {}, ['لول', 'XP شروع لول (جمع کل)', 'XP لازم برای این لول', 'جایزه‌ی سکه‌ی رسیدن به این لول'].map(function (t) { return h('th', { text: t }); }))]));
+      tbl.appendChild(h('thead', {}, [h('tr', {}, ['لول', 'XP شروع لول (جمع کل)', 'XP لازم برای این لول', 'جایزه‌ی سکه‌ی رسیدن به این لول', 'چرخش گردونه (پنهان تا به لول برسد)'].map(function (t) { return h('th', { text: t }); }))]));
       var body = h('tbody');
       rows.forEach(function (x, i) {
         var xp = h('input', { type: 'number', min: 0, value: x.startXp, disabled: i === 0 ? 'disabled' : null, style: 'width:140px' }), coin = h('input', { type: 'number', min: 0, max: 1000000, value: x.rewardCoins, style: 'width:140px' });
-        xpIn.push(xp); coinIn.push(coin);
+        var spin = h('input', { type: 'number', min: 0, max: 20, value: x.rewardSpins || 0, style: 'width:90px' }); spin.oninput = function () { x.rewardSpins = Math.max(0, Math.min(20, Math.round(Number(spin.value) || 0))); };
+        xpIn.push(xp); coinIn.push(coin); spinIn.push(spin);
         var need = h('span', { text: i === 0 ? '—' : faNum(Math.max(0, x.startXp - rows[i - 1].startXp)) });
         xp.oninput = function () { x.startXp = Math.max(0, Math.round(Number(xp.value) || 0)); need.textContent = i === 0 ? '—' : faNum(Math.max(0, x.startXp - rows[i - 1].startXp)); if (rows[i + 1]) { /* next row's need changes too */ var nx = body.children[i + 1]; if (nx) nx.children[2].textContent = faNum(Math.max(0, rows[i + 1].startXp - x.startXp)); } };
         coin.oninput = function () { x.rewardCoins = Math.max(0, Math.round(Number(coin.value) || 0)); status.textContent = status.textContent.replace(/جمع جایزه‌ها: .*$/, 'جمع جایزه‌ها: ' + faNum(total()) + ' سکه.'); };
-        body.appendChild(h('tr', {}, [h('td', { text: fa(x.level) }), h('td', {}, [xp]), h('td', {}, [need]), h('td', {}, [coin])]));
+        body.appendChild(h('tr', {}, [h('td', { text: fa(x.level) }), h('td', {}, [xp]), h('td', {}, [need]), h('td', {}, [coin]), h('td', {}, [spin])]));
       });
       tbl.appendChild(body);
       box.appendChild(h('div', { style: 'overflow:auto;max-height:60vh' }, [tbl]));
       box.appendChild(h('div', { style: 'display:flex;gap:8px;margin-top:12px;flex-wrap:wrap' }, [
-        h('button', { class: 'btn', text: '＋ افزودن لول', onclick: function () { rows = read(); var last = rows[rows.length - 1], prev = rows[rows.length - 2]; if (rows.length >= 100) return toast('بیشتر از ۱۰۰ لول نمی‌شود', true); rows.push({ level: rows.length + 1, startXp: last.startXp + Math.max(50, last.startXp - (prev ? prev.startXp : 0) + 100), rewardCoins: 0 }); draw(); } }),
+        h('button', { class: 'btn', text: '＋ افزودن لول', onclick: function () { rows = read(); var last = rows[rows.length - 1], prev = rows[rows.length - 2]; if (rows.length >= 100) return toast('بیشتر از ۱۰۰ لول نمی‌شود', true); rows.push({ level: rows.length + 1, startXp: last.startXp + Math.max(50, last.startXp - (prev ? prev.startXp : 0) + 100), rewardCoins: 0, rewardSpins: 0 }); draw(); } }),
         h('button', { class: 'btn bad', text: 'حذف آخرین لول', onclick: function () { rows = read(); if (rows.length > 1) rows.pop(); draw(); } }),
         h('button', { class: 'btn', text: 'پر کردن از فرمول تنظیمات', onclick: function () { api('/admin/level-road?defaults=1').then(function (x) { if (!x.ok) return fail(x); rows = x.body.rows; draw(); toast('از فرمول پر شد؛ هنوز ذخیره نشده'); }); } }),
         h('span', { style: 'flex:1' }),
@@ -157,7 +158,7 @@ VIEWS.levels = function (root) {
         h('button', { class: 'btn primary', text: 'ذخیره', onclick: function () { api('/admin/level-road', { method: 'PUT', body: { rows: read() } }).then(function (x) { if (!x.ok) return toast(({ not_increasing: 'XP هر لول باید از لول قبلی بیشتر باشد', first_not_zero: 'لول ۱ باید از صفر شروع شود', reward_too_big: 'جایزه بیش از حد بزرگ است' })[x.body && x.body.error] || 'ذخیره نشد', true); rows = x.body.rows; custom = true; toast('جدول لول‌ها ذخیره شد'); draw(); }); } })
       ]));
     }
-    root.appendChild(card('جاده‌ی لول‌ها', 'برای هر لول بگو از چند XP شروع می‌شود و رسیدن به آن چند سکه جایزه دارد (۰ = بدون جایزه). بازیکن جایزه‌ها را از «جاده‌ی لول‌ها» در اپ می‌گیرد؛ جایزه‌ی لولی که قبلاً گرفته شده دوباره داده نمی‌شود. تعداد ردیف‌ها همان سقف لول است. اینکه هر لول چه چیزی باز می‌کند (کمک، کد دعوت، ...) از «تنظیمات» و «فروشگاه» می‌آید.', [status, box]));
+    root.appendChild(card('جاده‌ی لول‌ها', 'برای هر لول بگو از چند XP شروع می‌شود و رسیدن به آن چند سکه و چند چرخش گردونه جایزه دارد (۰ = بدون جایزه؛ چرخش‌ها تا رسیدن به آن لول برای بازیکن پنهان‌اند). بازیکن جایزه‌ها را از «جاده‌ی لول‌ها» در اپ می‌گیرد؛ جایزه‌ی لولی که قبلاً گرفته شده دوباره داده نمی‌شود. تعداد ردیف‌ها همان سقف لول است. اینکه هر لول چه چیزی باز می‌کند (کمک، کد دعوت، ...) از «تنظیمات» و «فروشگاه» می‌آید.', [status, box]));
     draw();
   });
 };
@@ -504,13 +505,13 @@ VIEWS.shop = function (root) {
     });
   }
   var title = h('input', { type: 'text', placeholder: 'نام آیتم', maxlength: 80 }), desc = h('input', { type: 'text', placeholder: 'توضیح کوتاه برای بازیکن', maxlength: 300 });
-  var price = num(20), amt = num(1, 1), lvl = num(1, 1), lim = num(0);
+  var price = num(20), amt = num(1, 1), lvl = num(1, 1), lim = num(0), eff = select([['hint_token', 'توکن راهنما'], ['wheel_spin', 'چرخش گردونه']], 'hint_token');
   root.appendChild(card('قیمت راهنما در بازی تکی', 'قیمت هر راهنما، لول لازم و سقف راهنما در هر بازی در بخش «تنظیمات ← اقتصاد» است.', []));
   root.appendChild(card('آیتم‌های فروشگاه', 'هر آیتم با سکه خریده می‌شود و «توکن راهنما» می‌دهد؛ توکن به جای سکه در بازی تکی خرج می‌شود. بازیکن شرط لول و سقف روزانه را قبل از خرید می‌بیند.', [list]));
-  root.appendChild(card('آیتم تازه', 'نوع اثر فعلاً فقط «توکن راهنما» است.', [
+  root.appendChild(card('آیتم تازه', 'نوع اثر: «توکن راهنما» (به جای سکه در بازی تکی خرج می‌شود) یا «چرخش گردونه» (هر عدد یک چرخش گردونه‌ی شانس).', [
     h('div', { class: 'toolbar' }, [title, desc]),
-    h('div', { class: 'toolbar' }, [field('قیمت (سکه)', price), field('تعداد توکن', amt), field('کمترین لول', lvl), field('سقف در روز', lim), h('button', { class: 'btn primary', text: 'افزودن', onclick: function () {
-      api('/admin/shop', { method: 'POST', body: { titleFa: title.value.trim(), descriptionFa: desc.value.trim(), effect: 'hint_token', amount: +amt.value, priceCoins: +price.value, minLevel: +lvl.value, perDayLimit: +lim.value, iconKey: 'magnifier', isActive: true } }).then(function (x) { if (!x.ok) return fail(x); title.value = ''; desc.value = ''; draw(); });
+    h('div', { class: 'toolbar' }, [field('نوع اثر', eff), field('قیمت (سکه)', price), field('تعداد (توکن یا چرخش)', amt), field('کمترین لول', lvl), field('سقف در روز', lim), h('button', { class: 'btn primary', text: 'افزودن', onclick: function () {
+      api('/admin/shop', { method: 'POST', body: { titleFa: title.value.trim(), descriptionFa: desc.value.trim(), effect: eff.value, amount: +amt.value, priceCoins: +price.value, minLevel: +lvl.value, perDayLimit: +lim.value, iconKey: eff.value === 'wheel_spin' ? 'dice' : 'magnifier', isActive: true } }).then(function (x) { if (!x.ok) return fail(x); title.value = ''; desc.value = ''; draw(); });
     } })])
   ]));
   draw();
@@ -652,7 +653,7 @@ VIEWS.tournaments = function (root) {
       if (!r.body.tournaments.length) return list.appendChild(empty('هنوز تورنومنتی نساخته‌ای'));
       r.body.tournaments.forEach(function (t) {
         var st = STATUS[t.status] || [t.status, 'b-mute'];
-        var prizes = t.prizes.map(function (p) { return 'مقام ' + fa(p.place) + ': ' + faNum(p.coins); }).join(' · ');
+        var prizes = t.prizes.map(function (p) { return 'مقام ' + fa(p.place) + ': ' + faNum(p.coins) + (p.spins ? ' + ' + faNum(p.spins) + ' چرخش' : ''); }).join(' · ');
         function act(path, ask) { return function () { if (ask && !confirm(ask)) return; api('/admin/tournaments/' + t.id + '/' + path, { method: 'POST' }).then(function (x) { if (!x.ok) return fail(x); toast('انجام شد'); draw(); }); }; }
         list.appendChild(h('div', { class: 'card', style: 'padding:12px' }, [
           h('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap' }, [h('b', { text: t.titleFa }), badge(st[0], st[1]), h('span', { class: 'h', text: fa(t.joined) + ' از ' + fa(t.size) + ' نفر · ورودی ' + faNum(t.entryCoins) + ' سکه · از لول ' + fa(t.minLevel) + ' · شروع ' + when(t.startsAt) })]),
@@ -669,7 +670,7 @@ VIEWS.tournaments = function (root) {
   var title = h('input', { type: 'text', placeholder: 'نام تورنومنت', maxlength: 80 }), desc = h('textarea', { placeholder: 'توضیحات برای صفحه‌ی اختصاصی تورنومنت (قانون‌ها، جایزه‌ها، داستان)…', maxlength: 4000, style: 'min-height:90px' });
   var size = select([['4', '۴ نفر'], ['8', '۸ نفر'], ['16', '۱۶ نفر'], ['32', '۳۲ نفر']], '16');
   function num(v, min) { return h('input', { type: 'number', value: v, min: min === undefined ? 0 : min, style: 'width:100px' }); }
-  var minPlayers = num(4, 2), fee = num(20), level = num(1, 1), p1 = num(100), p2 = num(40), p3 = num(10);
+  var minPlayers = num(4, 2), fee = num(20), level = num(1, 1), p1 = num(100), p2 = num(40), p3 = num(10), s1 = num(0), s2 = num(0), s3 = num(0);
   var startsAt = h('input', { type: 'datetime-local' });
   var publish = h('input', { type: 'checkbox' });
   var botFill = h('input', { type: 'checkbox' });
@@ -682,10 +683,11 @@ VIEWS.tournaments = function (root) {
     h('div', { class: 'toolbar' }, [title]), h('div', {}, [desc]),
     h('div', { class: 'toolbar' }, [field('ظرفیت', size), field('حداقل نفرات برای برگزاری', minPlayers), field('ورودی (سکه، ۰ = رایگان)', fee), field('کمترین لول (۱ = همه)', level), field('شروع و بسته‌شدن ثبت‌نام', startsAt)]),
     h('div', { class: 'toolbar' }, [field('جایزه‌ی مقام اول', p1), field('مقام دوم', p2), field('مقام سوم (به هر نفر)', p3)]),
+    h('div', { class: 'toolbar' }, [field('چرخش گردونه‌ی مقام اول', s1), field('مقام دوم', s2), field('مقام سوم (به هر نفر)', s3)]),
     note,
     h('div', { class: 'toolbar' }, [h('label', {}, [botFill, ' جای خالی با ربات پر شود']), h('label', {}, [concurrent, ' کسی که در تورنومنت دیگری هست هم بتواند وارد شود']), h('label', {}, [publish, ' همین حالا منتشر شود']), h('button', { class: 'btn primary', text: 'ساخت', onclick: function () {
       if (!startsAt.value) return toast('زمان شروع را بگذار', true);
-      var prizes = [{ place: 1, coins: +p1.value }, { place: 2, coins: +p2.value }, { place: 3, coins: +p3.value }].filter(function (p) { return p.coins > 0; });
+      var prizes = [{ place: 1, coins: +p1.value, spins: +s1.value }, { place: 2, coins: +p2.value, spins: +s2.value }, { place: 3, coins: +p3.value, spins: +s3.value }].filter(function (p) { return p.coins > 0 || p.spins > 0; });
       api('/admin/tournaments', { method: 'POST', body: { titleFa: title.value.trim(), descriptionFa: desc.value.trim(), iconKey: 'trophy', size: +size.value, minPlayers: +minPlayers.value, entryCoins: +fee.value, minLevel: +level.value, startsAt: new Date(startsAt.value).getTime(), botFill: botFill.checked, allowConcurrent: concurrent.checked, prizes: prizes, publish: publish.checked } }).then(function (x) { if (!x.ok) return fail(x); toast('تورنومنت ساخته شد'); title.value = ''; desc.value = ''; draw(); });
     } })])
   ]));
