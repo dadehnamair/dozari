@@ -235,4 +235,4 @@ Start after the first Android build.
 - [ ] 9. Short domain `2oi.ir`: self-hosted shortener for outgoing links; all domains editable in the admin panel
 - [x] 10. Admin panel tidy-up: grouped sidebar, page helper text, «add» actions as modal forms, consistent tables/toasts (UI only)
 - [ ] 11. Birth date in the profile with a «show my age» tick (policy D160; users columns, profile UI, birthday gift/badge, admin age stats)
-- [ ] 12. Gems (الماس) currency (D164): [x] stage 1 own ledger + balance + admin adjust + Home pill; [ ] shop prices in gems; [ ] tournament entry in gems; [ ] wheel and birthday prizes in gems
+- [ ] 12. Gems (الماس) currency (D164): [x] stage 1 own ledger + balance + admin adjust + Home pill; [x] shop prices in gems; [ ] tournament entry in gems; [ ] wheel and birthday prizes in gems

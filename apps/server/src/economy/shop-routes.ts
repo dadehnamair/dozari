@@ -20,7 +20,7 @@ export function registerShopRoutes(app: FastifyInstance, auth: AuthService, shop
     if (!user) return reply.code(401).send({ error: 'unauthorized' });
     if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
     const out = await shop.buy(user.id, p.data.id);
-    if (out.ok) return { balance: out.balance, tokens: out.tokens };
+    if (out.ok) return { balance: out.balance, gems: out.gems, tokens: out.tokens };
     const code = out.error === 'unknown_item' || out.error === 'unavailable' ? 404 : out.error === 'insufficient' ? 402 : out.error === 'level' ? 403 : 409;
     return reply.code(code).send({ error: out.error, ...('minLevel' in out ? { minLevel: out.minLevel } : {}) });
   });
