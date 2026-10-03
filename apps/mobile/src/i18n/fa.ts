@@ -90,6 +90,16 @@ export const fa = {
     } as Record<string, string>,
   },
   /** Item and product icon names, grouped as in the design's icon pack. */
+  net: { down: 'ارتباط با سرور برقرار نیست؛ نگران نباش، به‌زودی برمی‌گردیم. خودمان دوباره امتحان می‌کنیم.' },
+  /** Live pushes from the server (friend request) shown as a bottom sheet. */
+  notices: {
+    title: 'درخواست دوستی تازه',
+    one: (name: string) => `${name} برایت درخواست دوستی فرستاده است.`,
+    many: (n: string) => `${n} درخواست دوستی منتظر جواب توست.`,
+    generic: 'یک درخواست دوستی منتظر جواب توست.',
+    see: 'ببین',
+    later: 'بعداً',
+  },
   wheel: {
     title: 'گردونهٔ شانس',
     close: 'برگشت',

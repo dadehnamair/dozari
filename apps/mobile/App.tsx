@@ -29,6 +29,7 @@ import { SoloScreen } from './src/solo/SoloScreen';
 import { useInviteLink } from './src/social/useInviteLink';
 import { safeInsetTop } from './src/theme/safeArea';
 import { PwaLayer } from './src/pwa/PwaLayer';
+import { ServerDownBanner } from './src/net/ServerDownBanner';
 import { takeLaunchTarget } from './src/pwa/usePwa';
 
 // `?brand` on the web build opens the brand sheet directly (used by `scripts/export-brand.mjs`); read once, before anything rewrites the URL.
@@ -142,6 +143,7 @@ export default function App() {
           onGallery={__DEV__ ? () => setScreen('gallery') : undefined}
         />
       ) : null}
+      <ServerDownBanner />
       <PwaLayer home={screen === 'home'} />
     </View>
   );

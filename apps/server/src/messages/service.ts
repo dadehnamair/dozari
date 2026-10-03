@@ -31,6 +31,9 @@ export class MessageCenter {
     ];
   }
 
+  /** Called with the recipients after an in-app message is stored (the live socket nudges the ones who are online). */
+  onDelivered?: (userIds: readonly string[]) => void;
+
   async send(msg: NewMessage, channels: readonly Channel[]): Promise<SendResult> {
     const wanted = [...new Set(channels)];
     if (wanted.length === 0) return { ok: false, error: 'NO_CHANNEL' };
@@ -43,6 +46,11 @@ export class MessageCenter {
     const recipients: Partial<Record<Channel, number>> = {};
     if (wanted.includes('in_app')) {
       await this.store.deliverInbox(id, audience);
+      try {
+        this.onDelivered?.(audience);
+      } catch {
+        /* a failed live nudge never fails the send */
+      }
       recipients.in_app = audience.length;
     }
     if (wanted.includes('bale') && this.bale) {

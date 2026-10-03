@@ -3,7 +3,7 @@ import { Server } from 'socket.io';
 import type { Socket } from 'socket.io';
 import type { QueueProblem } from '@dozari/shared';
 import { ClientEvent, ServerEvent, chatTauntSchema, matchProposeSchema, matchResumeSchema, matchSubmitSchema, queueJoinSchema } from '@dozari/shared';
-import type { Ack } from '@dozari/shared';
+import type { Ack, LiveNotice } from '@dozari/shared';
 import type { UserRecord } from '../auth/service.js';
 import { ChatService } from '../chat/service.js';
 import { RateLimiter } from '../security/rate-limit.js';
@@ -33,6 +33,8 @@ export interface GatewayOptions {
   onEmit?: (userId: string, event: string, payload: unknown) => void;
   /** Receives every socket connect and disconnect, so friends can show who is online. */
   presence?: Presence;
+  /** Pushes a small notice to one player's live sockets (friend request, inbox message); the gateway fills in `push`. */
+  notices?: LiveNotices;
   /** Why a player who has waited `waitedSec` is not being matched (nothing to play, nobody to play against); null = just wait. */
   diagnose?: (waitedSec: number) => Promise<QueueProblem | null>;
 }
@@ -48,6 +50,7 @@ export interface Gateway {
 }
 
 import type { Presence } from './presence.js';
+import type { LiveNotices } from './notices.js';
 
 const room = (userId: string) => `user:${userId}`;
 
@@ -63,6 +66,10 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
     maxHttpBufferSize: 16 * 1024,
     cors: opts.corsOrigin ? { origin: opts.corsOrigin === '*' ? true : opts.corsOrigin.split(',').map((o) => o.trim()) } : undefined,
   });
+  if (opts.notices) {
+    const push = (userId: string, payload: LiveNotice) => void io.to(room(userId)).emit(ServerEvent.notice, payload);
+    opts.notices.push = push;
+  }
   if (opts.chat) {
     const chat = opts.chat;
     chat.broadcast = (roomName, message) => void io.to(roomName).emit(ServerEvent.chatMessage, message);

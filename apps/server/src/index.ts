@@ -15,6 +15,8 @@ import { AuthService } from './auth/service.js';
 import { createDbUserRepository } from './auth/db-repository.js';
 import { attachGateway } from './realtime/gateway.js';
 import { Presence } from './realtime/presence.js';
+import { createLiveNotices } from './realtime/notices.js';
+import type { LiveNotices } from './realtime/notices.js';
 import type { Gateway } from './realtime/gateway.js';
 import type { MatchDeps } from './realtime/match-service.js';
 import { PlayerService, rulesFromSettings } from './player/service.js';
@@ -164,6 +166,8 @@ export interface ServerDeps {
   botDriver?: BotDriver;
   /** Live-socket tracker shared by the gateway and the friends list. */
   presence?: Presence;
+  /** Live «something new» pushes (friend request, inbox message) over the socket. */
+  notices?: LiveNotices;
   /** Bale outbox, used to nudge an offline friend about a table invite. */
   notify?: NotifyService;
   /** Admin message center; its in-app channel feeds `GET /inbox`. */
@@ -297,7 +301,7 @@ export function buildServer(deps: ServerDeps = {}) {
   let gateway: Gateway | undefined;
   if (deps.auth && deps.realtime) {
     const auth = deps.auth;
-    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin: deps.corsOrigin, match: deps.match, canAfford: deps.duelStakes ? (u) => deps.duelStakes!.canQueue(u) : undefined, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, limit: deps.limiter ? { canPlay: async (u) => (await deps.limiter!.check(u, 'duel')).ok, onStarted: (u) => deps.limiter!.record(u, 'duel') } : undefined, chat: deps.chat, presence: deps.presence, onEmit: deps.botDriver ? (u, e, p) => deps.botDriver!.onEmit(u, e, p) : undefined, diagnose: deps.match ? createQueueDiagnosis({ hasPuzzle: async () => (await deps.match!.puzzles.pickRandom()) !== null, botsReady: () => deps.botDriver?.ready() ?? false, graceSec: 45 }) : undefined });
+    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin: deps.corsOrigin, match: deps.match, canAfford: deps.duelStakes ? (u) => deps.duelStakes!.canQueue(u) : undefined, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, limit: deps.limiter ? { canPlay: async (u) => (await deps.limiter!.check(u, 'duel')).ok, onStarted: (u) => deps.limiter!.record(u, 'duel') } : undefined, chat: deps.chat, presence: deps.presence, notices: deps.notices, onEmit: deps.botDriver ? (u, e, p) => deps.botDriver!.onEmit(u, e, p) : undefined, diagnose: deps.match ? createQueueDiagnosis({ hasPuzzle: async () => (await deps.match!.puzzles.pickRandom()) !== null, botsReady: () => deps.botDriver?.ready() ?? false, graceSec: 45 }) : undefined });
     if (deps.live) {
       deps.live.matches = gateway.matches;
       deps.live.queue = gateway.queue;
@@ -348,6 +352,7 @@ if (isMainModule(import.meta.url)) {
   const auth = db && jwtSecret ? new AuthService(createDbUserRepository(db), createTokenSigner(jwtSecret)) : undefined;
   const settings = db ? new SettingsService(createDbSettingsStore(db)) : undefined;
   const presence = new Presence();
+  const notices = createLiveNotices();
   const baleToken = process.env.BALE_BOT_TOKEN;
   const baleUsername = process.env.BALE_BOT_USERNAME?.replace(/^@/, '') ?? null;
   const baleClient = baleToken ? createBaleClient(baleToken, { base: process.env.BALE_API_BASE }) : null;
@@ -394,6 +399,7 @@ if (isMainModule(import.meta.url)) {
         Date.now,
         (targetId, nickname) => {
           void notify?.notify(targetId, 'friend_request', BALE_TEXT.friendRequest(nickname)).catch(() => undefined);
+          notices.push(targetId, { kind: 'friend_request', from: nickname });
         },
         player,
         badges,
@@ -401,6 +407,13 @@ if (isMainModule(import.meta.url)) {
       )
     : undefined;
   const messages = db ? new MessageCenter(createDbMessageStore(db), notify ?? null) : undefined;
+  if (messages) {
+    // Online recipients get a nudge so the inbox badge moves without a reload; offline ones see it on the next load.
+    messages.onDelivered = (ids) => {
+      const online = new Set(presence.onlineIds());
+      for (const id of ids) if (online.has(id)) notices.push(id, { kind: 'inbox' });
+    };
+  }
   const invite = inviteStore && settings && player ? new InviteService(inviteStore, () => inviteRulesFromSettings(settings), async (id) => (await player.levelOf(id)).level.level, async (id) => (await player.levelOf(id)).stats.games, () => randomInt(0, 2 ** 30) / 2 ** 30) : undefined;
   if (player) {
     player.afterGame = async (id) => {
@@ -580,6 +593,7 @@ if (isMainModule(import.meta.url)) {
     live,
     botDriver,
     presence,
+    notices,
     notify,
     messages,
     social,

@@ -9,7 +9,9 @@ import { SettingsPage } from '../social/SettingsPage';
 import { LeaderboardPage } from '../social/LeaderboardPage';
 import { CityHub } from '../hub/CityHub';
 import { Item } from '../components/Item';
-import { fetchMyProfile } from '../social/api';
+import { fetchFriends, fetchMyProfile } from '../social/api';
+import { connectNotices } from '../notices/connectNotices';
+import { FriendRequestSheet } from '../notices/FriendRequestSheet';
 import { claimProfileTask, fetchProfileTasks } from '../social/profileTasksApi';
 import { profileNudge } from './profileNudge';
 import { fetchGems } from '../ledger/gemsApi';
@@ -111,6 +113,10 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
     return () => clearTimeout(timer);
   }, [tip]);
   const [profileOpen, setProfileOpen] = useState(false);
+  /** Opens the profile straight on the friends list (from a friend-request notice). */
+  const [profileStart, setProfileStart] = useState<'friends' | null>(null);
+  /** A friend request is waiting: who sent the latest one (when pushed live) and how many wait in all. */
+  const [friendNotice, setFriendNotice] = useState<{ from?: string; count: number } | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [boardOpen, setBoardOpen] = useState(false);
   const [hubOpen, setHubOpen] = useState(false);
@@ -150,6 +156,16 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
     return () => clearTimeout(timer);
   }, [nudgeToast]);
   const inbox = useInbox();
+  const inboxReload = inbox.reload;
+  useEffect(() => {
+    if (!features.friends) return undefined;
+    // Requests already waiting when the app opens, then pushes while it is open (a quiet socket, D168).
+    fetchFriends().then((f) => f.incoming.length > 0 && setFriendNotice({ count: f.incoming.length }), () => undefined);
+    return connectNotices((n) => {
+      if (n.kind === 'inbox') return inboxReload();
+      setFriendNotice((cur) => ({ from: n.from, count: (cur?.count ?? 0) + 1 }));
+    });
+  }, [features.friends, inboxReload]);
   const review = useReviewPrompt(settings);
   const text = (v: unknown): string | null => (typeof v === 'string' && /^https?:\/\//i.test(v) ? v : null);
   const missionAvail: MissionAvailability = {
@@ -290,7 +306,8 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
         </Pressable>
       ) : null}
       {review.open && review.url ? <ReviewSheet message={review.message} url={review.url} onReview={review.onReview} onLater={review.onLater} onNever={review.onNever} /> : null}
-      {profileOpen ? <ProfileSheet onClose={() => (setProfileOpen(false), loadMe(), loadTasks())} onGender={(g) => (setGender(g), applyAppIcon(g))} /> : null}
+      {friendNotice && !profileOpen ? <FriendRequestSheet from={friendNotice.from} count={friendNotice.count} onSee={() => (setFriendNotice(null), setProfileStart('friends'), setProfileOpen(true))} onLater={() => setFriendNotice(null)} /> : null}
+      {profileOpen ? <ProfileSheet start={profileStart} onClose={() => (setProfileOpen(false), setProfileStart(null), loadMe(), loadTasks())} onGender={(g) => (setGender(g), applyAppIcon(g))} /> : null}
       {hubOpen ? (
         <CityHub
           onClose={() => setHubOpen(false)}

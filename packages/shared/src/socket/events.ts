@@ -28,8 +28,14 @@ export const ServerEvent = {
   matchEvent: 'match:event',
   matchEnded: 'match:ended',
   chatMessage: 'chat:message',
+  /** A small «something new for you» push (friend request, inbox message); the client then reloads that list. */
+  notice: 'notice:new',
   error: 'error',
 } as const;
+
+export const LIVE_NOTICE_KINDS = ['friend_request', 'inbox'] as const;
+export const liveNoticeSchema = z.object({ kind: z.enum(LIVE_NOTICE_KINDS), /** Nickname of the player who sent the friend request. */ from: z.string().optional() });
+export type LiveNotice = z.infer<typeof liveNoticeSchema>;
 
 export type ClientEventName = (typeof ClientEvent)[keyof typeof ClientEvent];
 export type ServerEventName = (typeof ServerEvent)[keyof typeof ServerEvent];

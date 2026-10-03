@@ -39,7 +39,7 @@ const n = (v: number) => toPersianDigits(String(v));
  * rank, the level bar, four stat tiles, earned badges, then shortcuts (friends, find, gifts, invite, badges). The
  * pencil opens the editor (nickname, gender, city, e-mail); settings live on their own page.
  */
-export function ProfileSheet({ onClose, onGender }: { onClose: () => void; onGender: (g: Gender | null) => void }) {
+export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () => void; onGender: (g: Gender | null) => void; /** Opens straight on a sub page (e.g. the friends list from a friend-request notice). */ start?: 'friends' | null }) {
   useHardwareBack(onClose);
   const [me, setMe] = useState<MyProfile | null>(null);
   const [friends, setFriends] = useState<Friends | null>(null);
@@ -51,7 +51,7 @@ export function ProfileSheet({ onClose, onGender }: { onClose: () => void; onGen
   }, []);
   const [failed, setFailed] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [sub, setSub] = useState<'invite' | 'loans' | 'find' | 'badges' | 'friends' | 'city' | 'levels' | 'recent' | null>(null);
+  const [sub, setSub] = useState<'invite' | 'loans' | 'find' | 'badges' | 'friends' | 'city' | 'levels' | 'recent' | null>(start);
   // Nothing scrolls: on a short phone the header and the tiles tighten instead.
   const compact = useWindowDimensions().height < 720;
   const heroH = compact ? 118 : 140;
