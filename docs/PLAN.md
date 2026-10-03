@@ -232,7 +232,7 @@ Start after the first Android build.
 - [x] 6. Options greyed out when it is not my turn, coloured on my turn
 - [x] 7. Phone-only gate: on desktop show Dozari + QR «با گوشی بیا»; Android → downloads, iPhone → PWA install (D171)
 - [ ] 8. Landing site `mrdozari.ir` (`apps/landing`, own container, admin-managed content, game story with the cast, blog, full SEO/GEO — owner's spreadsheet adapted from Laravel)
-- [ ] 9. Short domain `2oi.ir`: self-hosted shortener for outgoing links; all domains editable in the admin panel
+- [x] 9. Short domain `2oi.ir`: self-hosted shortener for outgoing links; all domains editable in the admin panel (code done, D172; DNS/proxy is the owner's step)
 - [x] 10. Admin panel tidy-up: grouped sidebar, page helper text, «add» actions as modal forms, consistent tables/toasts (UI only)
 - [x] 11. Birth date in the profile with a «show my age» tick (policy D160; users columns, profile UI, birthday gift/badge, admin age stats) (built, D160/D169)
 - [ ] 12. Gems (الماس) currency (D164): [x] stage 1 own ledger + balance + admin adjust + Home pill; [x] shop prices in gems; [x] tournament entry in gems; [ ] wheel and birthday prizes in gems
