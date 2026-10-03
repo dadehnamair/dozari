@@ -19,6 +19,7 @@ import { avatarOf } from './avatarOf';
 import { skillText } from '../badges/text';
 import { TransferSheet } from '../transfers/TransferSheet';
 import { useHardwareBack } from '../nav/useHardwareBack';
+import { BirthdayBadge, PartyBanner } from './BirthdayBadge';
 
 const INK = '#3A2418';
 
@@ -72,7 +73,10 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
             <View style={styles.nameRow}>
               {p.isMe ? null : <OnlineDot online={p.online} />}
               <Text style={styles.name} numberOfLines={1}>{p.nickname}</Text>
+              {p.birthday ? <BirthdayBadge /> : null}
             </View>
+            {p.birthday ? <PartyBanner own={p.isMe} name={p.nickname} /> : null}
+            {p.age !== null ? <Text style={styles.sub}>{fa.player.age(p.age)}</Text> : null}
             <View style={styles.subRow}>
               <Text style={styles.sub}>{skillText(p.badges.skill)}</Text>
               {p.badges.badge ? <View style={styles.titleChip}><Text style={styles.titleChipText}>{p.badges.badge.titleFa}</Text></View> : null}

@@ -91,6 +91,29 @@ export const fa = {
   },
   /** Item and product icon names, grouped as in the design's icon pack. */
   net: { down: 'ارتباط با سرور برقرار نیست؛ نگران نباش، به‌زودی برمی‌گردیم. خودمان دوباره امتحان می‌کنیم.' },
+  /** Birth date, the birthday week and its gift (D160). */
+  birthday: {
+    title: 'تاریخ تولد',
+    year: 'سال',
+    month: 'ماه',
+    day: 'روز',
+    showAge: 'سنم نمایش داده شود',
+    notifyFriends: 'به دوستانم خبر بده',
+    save: 'ذخیره',
+    remove: 'پاک کردن',
+    saved: 'ذخیره شد',
+    error: 'نتوانستیم انجام بدهیم.',
+    hint: (minAge: number) => `تاریخ شمسی بنویس (مثلاً ۱۳۸۰ / ۷ / ۱۱). سن کمتر از ${toPersianDigits(String(minAge))} سال ثبت نمی‌شود. تاریخ دقیق را هیچ‌کس نمی‌بیند؛ در هفته‌ی تولدت همه فقط نشان تولد را می‌بینند.`,
+    invalid: (minAge: number) => `این تاریخ درست نیست یا سنش کمتر از ${toPersianDigits(String(minAge))} سال است.`,
+    badge: 'تولدشه!',
+    happy: 'تولدت مبارک!',
+    theirs: (name: string) => `تولد ${name} است!`,
+    today: 'امروز تولدته! 🎂',
+    week: 'هفته‌ی تولدته! 🎁',
+    claim: 'هدیه‌ات را بگیر',
+    giftLine: (coins: number, gems: number, spins: number) => [coins > 0 ? `${toPersianDigits(String(coins))} سکه` : '', gems > 0 ? `${toPersianDigits(String(gems))} الماس` : '', spins > 0 ? `${toPersianDigits(String(spins))} چرخش گردونه` : ''].filter(Boolean).join(' + '),
+    claimed: (coins: number, gems: number, spins: number) => `هدیه‌ی تولد گرفتی: ${[coins > 0 ? `${toPersianDigits(String(coins))} سکه` : '', gems > 0 ? `${toPersianDigits(String(gems))} الماس` : '', spins > 0 ? `${toPersianDigits(String(spins))} چرخش` : ''].filter(Boolean).join(' + ')} 🎉`,
+  },
   /** Live pushes from the server (friend request) shown as a bottom sheet. */
   notices: {
     title: 'درخواست دوستی تازه',
@@ -210,6 +233,7 @@ export const fa = {
     } as Record<string, string>,
   },
   player: {
+    age: (n: number) => `${toPersianDigits(String(n))} ساله`,
     level: 'سطح',
     coins: 'سکه',
     since: 'عضو از',

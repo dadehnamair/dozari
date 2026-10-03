@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { fetchWorn } from '../shop/api';
+import { fetchBirthday } from './birthdayApi';
+import { PartyBanner } from './BirthdayBadge';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Svg, { Polygon } from 'react-native-svg';
 import { provinceOf, toPersianDigits } from '@dozari/shared';
@@ -47,6 +49,10 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
   const [badges, setBadges] = useState<MyBadges | null>(null);
   const [games, setGames] = useState<RecentGames['games']>([]);
   const [worn, setWorn] = useState<{ slot: string; iconKey: string | null }[]>([]);
+  const [party, setParty] = useState(false);
+  useEffect(() => {
+    fetchBirthday().then((b) => setParty(b.inWeek), () => undefined);
+  }, []);
   useEffect(() => {
     fetchWorn().then((r) => setWorn(r.worn), () => undefined);
   }, []);
@@ -143,6 +149,7 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
         {failed ? <Text style={styles.hint}>{fa.profile.error}</Text> : null}
         {me && lv ? (
           <>
+            {party ? <PartyBanner own /> : null}
             <View style={styles.nameBlock}>
               <Text style={[styles.name, compact ? styles.nameCompact : null]} numberOfLines={1}>{me.nickname}</Text>
               <View style={styles.cityRow}>

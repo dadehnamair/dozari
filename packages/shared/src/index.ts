@@ -10,6 +10,7 @@ export * from './identity/index.js';
 export * from './socket/index.js';
 export * from './economy/index.js';
 export * from './calendar/solar-month.js';
+export * from './calendar/birthday.js';
 export * from './text/index.js';
 export * from './lookup/index.js';
 export * from './notify/index.js';

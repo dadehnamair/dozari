@@ -130,7 +130,9 @@ D75). Honour missions pay little and unlock only after the player opened the lin
 (`profiletask.coins_<key>`): first win 25, invited friend 100, Instagram 15, channel 15, store review 40 coins.
 Home has a «ماموریت‌ها» tile (badge = rewards waiting) opening the list; the guide bubble still nudges only the profile steps.
 
-## Birth date and age display (D160, proposed — not built)
+## Birth date and age display (D160, built)
+
+Built: `users.birth_year/month/day`, `show_age`, `notify_birthday` (migration 0047); `GET/PUT /me/birthday`, `POST /me/birthday/claim` (`profile/birthday.ts`, pure rules in `shared/calendar/birthday.ts`); settings `birthday.*` (min age 10, week 3 before / 7 long, gift 100 coins + 5 gems + 2 spins); `birthday_claims` (user + year = the once-a-year lock), `birthday_notices` (friend message log). The badge flag reaches the public profile, the friends list and the match name tags; the age only with the tick; the date never. Friend messages go out from a 2-hourly job as one inbox message per event to all friends. Not built: admin age-band stats, the exact date on the admin user sheet.
 
 An optional field set from «پروفایل من», next to gender and city. Policy:
 
