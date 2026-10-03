@@ -18,6 +18,8 @@ that proxy keeps the domains and https and forwards two names to the containers 
 |---|---|
 | `mrbots.ir` (`APP_DOMAIN`, the web app) | `127.0.0.1:8081` |
 | `api.mrbots.ir` (`API_DOMAIN`, the game server; product images live at `/images/`) | `127.0.0.1:3000`, **websockets on** |
+| `mrdozari.ir` (`LANDING_DOMAIN`, the landing site and blog, D173) | `127.0.0.1:8083` (`LANDING_PORT`) |
+| `2oi.ir` (the short-link domain, `domain.short`, D172) | `127.0.0.1:3000` with the original `Host` header kept |
 
 The API address is baked into the web build, so changing `API_DOMAIN` later means editing `.env.prod` and
 rebuilding `web`.
@@ -118,3 +120,8 @@ Also copy the `images` volume if images are not re-creatable from the repo. Rest
 - Both published ports are bound to the loopback only, so nothing is reachable from outside except through your proxy.
 - Logs: `docker compose … logs -f server`.
 - Bale bot and SMS keys are optional; leave them empty to keep those features off.
+
+## Landing site and short domain (items 8 and 9)
+
+- **`landing` service** (`mrdozari.ir`): server-rendered pages (home, blog, cast, `sitemap.xml`, `robots.txt`, `llms.txt`). It has no database; it reads the game server's public content API (`API_URL=http://server:3000`), so start it with the rest (`up -d --build landing`). Content (blog posts, cast, FAQ, hero text) is edited in the game's admin panel under «سایت معرفی». If the game server is down the site keeps serving its last answers for a while and then shows a calm 503 page. Forward `LANDING_DOMAIN` to `127.0.0.1:LANDING_PORT` and give it a certificate like the other names.
+- **`2oi.ir`**: point it at the same reverse proxy and forward it to the **game server** (`127.0.0.1:3000`) **keeping the original `Host` header** (nginx: `proxy_set_header Host $host;`). The server turns requests for `domain.short` into redirects (docs/logic/short-links.md). Links are made in the admin page «لینک کوتاه».
