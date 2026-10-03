@@ -456,13 +456,19 @@ if (isMainModule(import.meta.url)) {
           notify: (id, text) => void notify?.notify(id, 'admin', text).catch(() => undefined),
         })
       : undefined;
+  const wheelStore = db ? createDbWheelStore(db) : undefined;
   const wheel =
-    db && settings
-      ? new WheelService(createDbWheelStore(db), async () => ({
-          enabled: (await settings.num('wheel.enabled')) === 1,
-          slices: scaleSlices(WHEEL_SLICES_DEFAULT, await settings.num('wheel.prize_scale_percent')),
-          dailySpins: await settings.num('wheel.daily_spins'),
-        }), () => randomInt(0, 2 ** 32) / 2 ** 32)
+    db && settings && wheelStore
+      ? new WheelService(wheelStore, async () => {
+          // The live table (admin-edited); a slice with no odds never shows. An empty table falls back to the shared default.
+          const live = (await wheelStore.prizes()).filter((p) => p.weight > 0).map((p) => ({ kind: p.kind, amount: p.amount, weight: p.weight }));
+          return {
+            enabled: (await settings.num('wheel.enabled')) === 1,
+            slices: scaleSlices(live.length > 0 ? live : WHEEL_SLICES_DEFAULT, await settings.num('wheel.prize_scale_percent')),
+            dailySpins: await settings.num('wheel.daily_spins'),
+            winSpins: (await settings.num('wheel.win_spins')) === 1,
+          };
+        }, () => randomInt(0, 2 ** 32) / 2 ** 32)
       : undefined;
   const duelStakes =
     db && settings
@@ -534,7 +540,7 @@ if (isMainModule(import.meta.url)) {
     auth,
     settings,
     adminModules: db
-      ? { products: createDbProductAdmin(db), stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, daily, puzzles: createDbPuzzleAdmin(db), levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      ? { products: createDbProductAdmin(db), stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, wheel, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, daily, puzzles: createDbPuzzleAdmin(db), levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
     match: db

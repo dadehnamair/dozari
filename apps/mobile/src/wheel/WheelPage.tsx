@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, G, Path } from 'react-native-svg';
-import type { WheelStatus } from '@dozari/shared';
+import type { WheelPrize, WheelStatus } from '@dozari/shared';
 import { toPersianDigits } from '@dozari/shared';
 import { GradientFill } from '../components/GradientFill';
 import { Icon } from '../components/Icon';
@@ -47,12 +47,15 @@ const rays = (() => {
  * The lucky wheel (D116): a chance only a won duel earns. The server rolls the prize and pays it; the wheel is drawn from
  * the real slices of `GET /wheel` and, once `POST /wheel/spin` answers, turns to stop on the slice the server chose.
  */
+/** Icon of each prize kind on the wheel and in the result card. */
+const PRIZE_ICON = { coins: 'coin', gems: 'gem', hint_token: 'magnifier', wheel_spin: 'dice' } as const;
+
 export function WheelPage({ onClose }: { onClose: () => void }) {
   useHardwareBack(onClose);
   const [status, setStatus] = useState<WheelStatus | null>(null);
   const [failed, setFailed] = useState(false);
   const [spinning, setSpinning] = useState(false);
-  const [prize, setPrize] = useState<number | null>(null);
+  const [prize, setPrize] = useState<WheelPrize | null>(null);
   const turn = useRef(new Animated.Value(0)).current;
   const [dailyNote, setDailyNote] = useState(false);
   const raysTurn = useRef(new Animated.Value(0)).current;
@@ -87,8 +90,8 @@ export function WheelPage({ onClose }: { onClose: () => void }) {
       turn.setValue(0);
       Animated.timing(turn, { toValue: spinAngle(out.slice, status.slices.length), duration: SPIN_MS, easing: Easing.bezier(0.12, 0.7, 0.15, 1), useNativeDriver: Platform.OS !== 'web' }).start(() => {
         setSpinning(false);
-        setPrize(out.coins);
-        setStatus({ ...status, pending: out.pending, balance: out.balance });
+        setPrize({ kind: out.kind, amount: out.amount });
+        setStatus({ ...status, pending: out.pending, balance: out.balance, gems: out.gems });
       });
     } catch {
       setFailed(true);
@@ -141,10 +144,10 @@ export function WheelPage({ onClose }: { onClose: () => void }) {
                 </G>
               ))}
             </Svg>
-            {status.slices.map((coins, i) => (
+            {status.slices.map((p, i) => (
               <View key={i} style={[styles.slice, { transform: [{ rotate: `${(i * 360) / count}deg` }] }]} pointerEvents="none">
-                <View style={styles.sliceIcon}><Item icon="coin" /></View>
-                <Text style={styles.sliceText}>{n(coins)}</Text>
+                <View style={styles.sliceIcon}><Item icon={PRIZE_ICON[p.kind]} /></View>
+                <Text style={styles.sliceText}>{n(p.amount)}</Text>
               </View>
             ))}
           </Animated.View>
@@ -176,12 +179,12 @@ export function WheelPage({ onClose }: { onClose: () => void }) {
 
       {prize !== null ? (
         <Pressable style={styles.prize} onPress={() => setPrize(null)} accessibilityLabel={t.close}>
-          <View style={styles.prizeIcon}><Item icon="coinStack" /></View>
+          <View style={styles.prizeIcon}><Item icon={prize.kind === 'coins' ? 'coinStack' : PRIZE_ICON[prize.kind]} /></View>
           <View style={styles.prizePlate}>
             <GradientFill from="#FFE48A" to={colors.candy.yellow} />
-            <Text style={styles.prizeText}>{n(prize)} {fa.daily.coins}</Text>
+            <Text style={styles.prizeText}>{n(prize.amount)} {t.kinds[prize.kind]}</Text>
           </View>
-          <Text style={styles.noteLight}>{t.won}</Text>
+          <Text style={styles.noteLight}>{t.won[prize.kind]}</Text>
         </Pressable>
       ) : null}
     </View>

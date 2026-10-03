@@ -41,8 +41,8 @@ describe('lucky wheel', () => {
     const t = boot();
     await t.wheel.grantForWin('a', 'm1');
     const out = await t.wheel.spin('a');
-    expect(out).toMatchObject({ slice: 0, coins: DEFAULT_WHEEL_RULES.slices[0]!.coins, pending: 0 });
-    expect(t.wheelStore.balances.get('a')).toBe(out!.coins);
+    expect(out).toMatchObject({ slice: 0, kind: 'coins', amount: DEFAULT_WHEEL_RULES.slices[0]!.amount, pending: 0 });
+    expect(t.wheelStore.balances.get('a')).toBe(out!.amount);
     expect(await t.wheel.spin('a')).toBeNull();
   });
   it('does nothing while the admin has the wheel off', async () => {
@@ -50,6 +50,36 @@ describe('lucky wheel', () => {
     expect(await t.wheel.grantForWin('a', 'm1')).toBe(false);
     expect(await t.wheel.spin('a')).toBeNull();
     expect((await t.wheel.status('a')).enabled).toBe(false);
+  });
+});
+
+describe('typed prizes', () => {
+  const spinWith = async (prize: { kind: 'coins' | 'gems' | 'hint_token' | 'wheel_spin'; amount: number }) => {
+    const store = createMemoryWheelStore();
+    const wheel = new WheelService(store, async () => ({ ...DEFAULT_WHEEL_RULES, slices: [{ ...prize, weight: 1 }] }), () => 0);
+    await wheel.give('a', 'admin', 'x', 1);
+    return { store, wheel, out: await wheel.spin('a') };
+  };
+  it('pays gems into the gem balance, not the coins', async () => {
+    const { store, out } = await spinWith({ kind: 'gems', amount: 3 });
+    expect(out).toMatchObject({ kind: 'gems', amount: 3, gems: 3, balance: 0 });
+    expect(store.gemBalances.get('a')).toBe(3);
+    expect(store.balances.get('a')).toBeUndefined();
+  });
+  it('gives hint tokens and extra spins', async () => {
+    const t = await spinWith({ kind: 'hint_token', amount: 2 });
+    expect(t.store.tokens.get('a')).toBe(2);
+    const s = await spinWith({ kind: 'wheel_spin', amount: 2 });
+    expect(s.out).toMatchObject({ kind: 'wheel_spin', pending: 2 });
+  });
+  it('the status shows each slice with its kind', async () => {
+    const t = boot();
+    expect((await t.wheel.status('a')).slices[1]).toEqual({ kind: 'hint_token', amount: 1 });
+  });
+  it('a duel win gives no spin when the admin has win spins off', async () => {
+    const t = boot({ ...DEFAULT_WHEEL_RULES, winSpins: false });
+    expect(await t.wheel.grantForWin('a', 'm1')).toBe(false);
+    expect((await t.wheel.status('a')).pending).toBe(0);
   });
 });
 

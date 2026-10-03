@@ -514,6 +514,46 @@ VIEWS.shop = function (root) {
   }));
   draw();
 };
+VIEWS.wheel = function (root) {
+  var KIND = { coins: 'سکه', gems: 'الماس', hint_token: 'توکن راهنما', wheel_spin: 'چرخش گردونه' };
+  var KINDS = [['coins', 'سکه'], ['gems', 'الماس'], ['hint_token', 'توکن راهنما'], ['wheel_spin', 'چرخش گردونه']];
+  var list = h('div'), odds = h('div', { class: 'h' });
+  function num(v, min) { return h('input', { type: 'number', value: v, min: min === undefined ? 0 : min, style: 'width:90px' }); }
+  function row(p, total) {
+    var amt = num(p.amount, 1), w = num(p.weight);
+    function save(patch) { api('/admin/wheel/prizes/' + p.id, { method: 'PATCH', body: patch }).then(function (x) { if (!x.ok) return fail(x); toast('ذخیره شد'); draw(); }); }
+    var pct = total > 0 && p.isActive ? Math.round((1000 * p.weight) / total) / 10 : 0;
+    return h('div', { class: 'card', style: 'padding:12px' }, [
+      h('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap' }, [
+        h('b', { text: KIND[p.kind] || p.kind }), p.isActive ? badge('فعال', 'b-ok') : badge('پنهان', 'b-warn'), h('span', { class: 'h', text: 'شانس تقریبی ' + faNum(pct) + '٪' })
+      ]),
+      h('div', { class: 'toolbar', style: 'margin-top:8px' }, [
+        field('مقدار', amt), field('وزن شانس (۰ = هیچ‌وقت)', w),
+        h('button', { class: 'btn primary', text: 'ذخیره', onclick: function () { save({ amount: +amt.value, weight: +w.value }); } }),
+        h('button', { class: 'btn', text: p.isActive ? 'پنهان کن' : 'فعال کن', onclick: function () { save({ isActive: !p.isActive }); } })
+      ])
+    ]);
+  }
+  function draw() {
+    api('/admin/wheel/prizes').then(function (r) {
+      clear(list);
+      if (r.status === 404) return list.appendChild(empty('گردونه روی این سرور فعال نیست'));
+      if (!r.ok) return fail(r);
+      var total = 0;
+      r.body.prizes.forEach(function (p) { if (p.isActive) total += p.weight; });
+      var coins = 0;
+      r.body.prizes.forEach(function (p) { if (p.isActive && p.kind === 'coins' && total > 0) coins += (p.amount * p.weight) / total; });
+      odds.textContent = 'میانگین سکه‌ی هر چرخش (بدون مقیاس): ' + faNum(Math.round(coins * 10) / 10) + ' · قطعه‌ی بدون شانس روی گردونه دیده نمی‌شود.';
+      r.body.prizes.forEach(function (p) { list.appendChild(row(p, total)); });
+    });
+  }
+  var kind = select(KINDS, 'coins'), amt = num(10, 1), wt = num(10);
+  root.appendChild(card('جایزه‌های گردونه', 'هر ردیف یک قطعه‌ی گردونه است. شانس هر قطعه = وزنش تقسیم بر جمع وزن‌های فعال. چرخش رایگان و چرخش بعد از برد در «تنظیمات ← اقتصاد» است.', [odds, list]));
+  root.appendChild(addCard('قطعه‌ی تازه', 'نوع جایزه، مقدارش و وزن شانس را بنویسید.', 'قطعه‌ی تازه', [['نوع جایزه', kind], ['مقدار', amt], ['وزن شانس', wt]], function () {
+    return api('/admin/wheel/prizes', { method: 'POST', body: { kind: kind.value, amount: +amt.value, weight: +wt.value, isActive: true } }).then(function (x) { if (!x.ok) { fail(x); return false; } toast('قطعه ساخته شد'); draw(); return true; });
+  }));
+  draw();
+};
 VIEWS.invites = function (root) {
   var list = h('div');
   function draw() {

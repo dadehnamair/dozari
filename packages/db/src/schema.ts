@@ -1149,6 +1149,23 @@ export const dailyPlayCounts = mysqlTable(
  * A lucky-wheel spin (docs/logic/economy.md §Lucky wheel). `source`: `win` (a won duel, `match_id`), `shop`, `level`, `tournament`, `daily`, `admin`;
  * non-win spins carry a `ref` that makes the grant idempotent. `coins` stays null until it is spun.
  */
+export const WHEEL_PRIZE_KIND_VALUES = ['coins', 'gems', 'hint_token', 'wheel_spin'] as const;
+
+/** The wheel's live prize table (docs/logic/economy.md §Lucky wheel, D165): one row per slice, edited in the admin panel. Seeded from the shared default when empty. */
+export const wheelPrizes = mysqlTable(
+  'wheel_prizes',
+  {
+    id: id(),
+    kind: mysqlEnum('kind', WHEEL_PRIZE_KIND_VALUES).notNull(),
+    amount: int('amount').notNull(),
+    /** Relative odds; 0 never wins. */
+    weight: int('weight').notNull(),
+    sortOrder: int('sort_order').notNull().default(0),
+    isActive: boolean('is_active').notNull().default(true),
+  },
+  (t) => ({ bySort: index('wheel_prizes_sort_idx').on(t.sortOrder) }),
+);
+
 export const wheelSpins = mysqlTable(
   'wheel_spins',
   {
@@ -1158,6 +1175,9 @@ export const wheelSpins = mysqlTable(
     source: varchar('source', { length: 16 }).notNull().default('win'),
     ref: varchar('ref', { length: 80 }),
     coins: int('coins'),
+    /** What the spin won (set when spun); `coins` above keeps the coin amount for older rows. */
+    prizeKind: varchar('prize_kind', { length: 16 }),
+    prizeAmount: int('prize_amount'),
     createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
     spunAt: datetime('spun_at', { mode: 'date', fsp: 3 }),
   },

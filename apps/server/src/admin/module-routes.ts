@@ -2,7 +2,7 @@ import { randomInt } from 'node:crypto';
 import type { PuzzleAdmin } from '../puzzles/admin.js';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { checkLevelTable, isDateKey, ITEMS, ITEM_GROUPS, LEVEL_TABLE_MAX, levelRowSchema, PRODUCT_CATEGORIES, PROVINCES, provinceOf, SETTING_GROUPS, SHOP_EFFECTS } from '@dozari/shared';
+import { checkLevelTable, isDateKey, ITEMS, ITEM_GROUPS, LEVEL_TABLE_MAX, levelRowSchema, PRODUCT_CATEGORIES, PROVINCES, provinceOf, SETTING_GROUPS, SHOP_EFFECTS, WHEEL_PRIZE_KINDS } from '@dozari/shared';
 import type { LevelRow } from '@dozari/shared';
 import type { LevelTable } from '../progress/table.js';
 import type { SettingsService } from '../settings/service.js';
@@ -21,6 +21,7 @@ import type { UsersAdmin } from './users.js';
 import type { PlayerStore } from '../player/store.js';
 import type { CoinPackageService } from '../economy/coin-packages.js';
 import type { ShopStore } from '../economy/shop-store.js';
+import type { WheelService } from '../wheel/service.js';
 import type { BadgeService } from '../badges/service.js';
 import type { BadgeStore } from '../badges/store.js';
 import type { ChatStore } from '../chat/store.js';
@@ -42,6 +43,8 @@ export interface AdminModules {
   cities?: PlayerStore;
   /** Coin shop items (price, level gate, daily limit, visibility). */
   shop?: ShopStore;
+  /** Lucky-wheel prize table (kind, amount, odds, visibility). */
+  wheel?: WheelService;
   /** Coin packages sold for real money (catalog only; buying is gated by a feature flag). */
   coinPackages?: CoinPackageService;
   /** Invite codes: list, special campaign codes, limits. */
@@ -130,7 +133,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     settingGroups: SETTING_GROUPS,
     icons: ITEMS,
     iconGroups: ITEM_GROUPS,
-    modules: { puzzles: !!m.puzzles, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages },
+    modules: { puzzles: !!m.puzzles, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, wheel: !!m.wheel, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages },
   }));
 
   if (m.stats) {
@@ -778,6 +781,32 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
       if ((await shop.updateItem(p.data.id, b.data)) === 'not_found') return reply.code(404).send({ error: 'item_not_found' });
       void audit('shop.update', p.data.id, JSON.stringify(b.data));
+      return { ok: true };
+    });
+  }
+
+  if (m.wheel) {
+    const wheel = m.wheel;
+    const prizeFields = {
+      kind: z.enum(WHEEL_PRIZE_KINDS),
+      amount: z.number().int().min(1).max(100_000),
+      weight: z.number().int().min(0).max(1000),
+      isActive: z.boolean(),
+    };
+    g.get('/admin/wheel/prizes', async () => ({ prizes: await wheel.prizes.list() }));
+    g.post('/admin/wheel/prizes', async (req, reply) => {
+      const b = z.object(prizeFields).safeParse(req.body);
+      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const row = await wheel.prizes.add(b.data);
+      void audit('wheel.add', row.id, `${b.data.kind} ${b.data.amount} w${b.data.weight}`);
+      return reply.code(201).send({ id: row.id });
+    });
+    g.patch('/admin/wheel/prizes/:id', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object(prizeFields).partial().safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      if ((await wheel.prizes.update(p.data.id, b.data)) === 'not_found') return reply.code(404).send({ error: 'prize_not_found' });
+      void audit('wheel.update', p.data.id, JSON.stringify(b.data));
       return { ok: true };
     });
   }
