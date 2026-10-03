@@ -30,8 +30,10 @@ describe('search scan', () => {
 describe('waitClock', () => {
   it('shows the real queue wait as m:ss', () => {
     expect(waitClock(0)).toBe('0:00');
-    expect(waitClock(7.9)).toBe('0:07');
-    expect(waitClock(75)).toBe('1:15');
+    expect(waitClock(7.9)).toBe('0:06');
+    expect(waitClock(2.9)).toBe('0:00');
+    expect(waitClock(3)).toBe('0:03');
+    expect(waitClock(76)).toBe('1:15');
     expect(waitClock(-3)).toBe('0:00');
   });
 });

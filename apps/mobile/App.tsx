@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, I18nManager, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, I18nManager, Platform, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 // Per-weight imports: the package index pulls in all nine Vazirmatn weights, which the web export would ship and the
 // PWA precache (D102); only these two are used. The files are bundled and self-hosted, never fetched from Google.
@@ -30,6 +30,9 @@ import { useInviteLink } from './src/social/useInviteLink';
 import { safeInsetTop } from './src/theme/safeArea';
 import { PwaLayer } from './src/pwa/PwaLayer';
 import { takeLaunchTarget } from './src/pwa/usePwa';
+
+// `?brand` on the web build opens the brand sheet directly (used by `scripts/export-brand.mjs`); read once, before anything rewrites the URL.
+const BRAND_SHEET = Platform.OS === 'web' && new URLSearchParams((globalThis as { location?: { search?: string } }).location?.search ?? '').has('brand');
 
 // Rule (CLAUDE.md §Language): in-game UI is Persian/RTL. Expo's managed I18nManager call is a
 // no-op on web and only takes effect after a native reload, which is expected here.
@@ -64,7 +67,7 @@ export default function App() {
     if (!fontsLoaded || screen !== 'splash') return;
     let alive = true;
     // First run: the sign-in screen (when the server can send codes), then the tutorial; a returning player goes straight on.
-    const timer = setTimeout(() => void Promise.all([tutorialSeen(), loginSeen()]).then(([seen, logged]) => alive && setScreen(config.phoneLogin && !logged ? 'login' : !seen ? 'tutorial' : launchOn && launch ? launch : 'home')), SPLASH_MS);
+    const timer = setTimeout(() => void Promise.all([tutorialSeen(), loginSeen()]).then(([seen, logged]) => alive && setScreen(BRAND_SHEET ? 'brand' : config.phoneLogin && !logged ? 'login' : !seen ? 'tutorial' : launchOn && launch ? launch : 'home')), SPLASH_MS);
     return () => {
       alive = false;
       clearTimeout(timer);
