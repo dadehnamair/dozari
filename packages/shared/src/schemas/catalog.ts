@@ -81,6 +81,8 @@ export const seedProductSchema = z
   .object({
     slug: z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'slug must be lowercase ascii kebab-case'),
     name_fa: z.string().min(1),
+    /** Emoji shown on puzzle tiles until real product photos exist (product content, not UI chrome). */
+    icon: z.string().min(1).max(16).optional(),
     brand: z.string().optional(),
     category: z.enum(PRODUCT_CATEGORIES),
     unit_fa: z.string().optional(),

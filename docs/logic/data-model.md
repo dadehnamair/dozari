@@ -14,6 +14,7 @@ when they are built.
 | id | uuid | |
 | slug | text unique | ascii, stable, used by seeds (`peykan-javanan`) |
 | name_fa | text | display name |
+| icon | varchar(16) null | emoji stand-in for a product photo (puzzle tiles); content, not UI chrome |
 | brand | text null | manufacturer / brand |
 | category | enum `product_category` | `car, food, snack, drink, digital, electronics, housing, transport, education, entertainment, clothing, hygiene, service, other` |
 | unit_fa | text null | «یک کیلو»، «یک بسته»، «یک عدد»، «متر مربع» — price is for this unit |
@@ -56,12 +57,17 @@ median. No interpolation for gameplay rules (interpolation allowed only for char
 ## Puzzles
 
 ### `puzzles`
-`id, status (draft|approved|retired), source (generated|curated|ugc), author_id null, seed bigint null,
+`id, slug varchar null unique (seeded puzzles), status (draft|approved|retired), source (generated|curated|ugc), author_id null, seed bigint null,
 difficulty_score real, times_played int, avg_solve_rate real, created_at`
 
 ### `puzzle_groups`
 `id, puzzle_id FK, level smallint (0=yellow,1=green,2=blue,3=purple), title_fa text,
-rule jsonb (see puzzle-generation.md), explanation_fa text` — exactly 4 per puzzle.
+rule_* columns (see below), explanation_fa text` — exactly 4 per puzzle, unique `(puzzle_id, level)`.
+
+No JSON (D63): the rule from puzzle-generation.md is flattened into `rule_kind` (enum) + nullable
+`rule_era_tag, rule_year, rule_year_to, rule_min_rials, rule_max_rials, rule_target_rials,
+rule_threshold_rials, rule_tolerance_pct, rule_min_multiplier`. `rule_year` = the (first) year;
+`rule_year_to` = `first_crossed.to` / `multiplier_between.year_b`. Money columns are integer rials.
 
 ### `puzzle_group_items`
 `group_id FK, product_id FK, display_year smallint null` — exactly 4 per group, 16 distinct products per puzzle.

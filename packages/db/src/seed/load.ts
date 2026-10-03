@@ -1,19 +1,36 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { checkSeedProducts, seedFileSchema, seedPriceToRials } from '@dozari/shared';
-import type { SeedProduct } from '@dozari/shared';
+import {
+  checkSeedProducts,
+  checkSeedPuzzles,
+  seedFileSchema,
+  seedPriceToRials,
+  seedPuzzleFileSchema,
+} from '@dozari/shared';
+import type { SeedProduct, SeedPuzzle } from '@dozari/shared';
 import { and, eq, isNull } from 'drizzle-orm';
 import type { Db } from '../client.js';
-import { pricePoints, productAudiences, productEraTags, products } from '../schema.js';
+import {
+  pricePoints,
+  productAudiences,
+  productEraTags,
+  products,
+  puzzleGroupItems,
+  puzzleGroups,
+  puzzles,
+} from '../schema.js';
 
 export const SEED_DIR = join(fileURLToPath(new URL('../../seed/products', import.meta.url)));
+export const PUZZLE_SEED_DIR = join(fileURLToPath(new URL('../../seed/puzzles', import.meta.url)));
 
 /** Read + zod-validate every `seed/products/*.json`; throws with all problems listed. */
 export function readSeedProducts(dir: string = SEED_DIR): SeedProduct[] {
   const all: SeedProduct[] = [];
   const problems: string[] = [];
-  for (const file of readdirSync(dir).filter((f) => f.endsWith('.json')).sort()) {
+  for (const file of readdirSync(dir)
+    .filter((f) => f.endsWith('.json'))
+    .sort()) {
     const parsed = seedFileSchema.safeParse(JSON.parse(readFileSync(join(dir, file), 'utf8')));
     if (!parsed.success) {
       for (const issue of parsed.error.issues) {
@@ -35,6 +52,7 @@ export async function loadSeed(db: Db, seed: readonly SeedProduct[] = readSeedPr
       const values = {
         slug: p.slug,
         nameFa: p.name_fa,
+        icon: p.icon ?? null,
         brand: p.brand ?? null,
         category: p.category,
         unitFa: p.unit_fa ?? null,
@@ -91,8 +109,123 @@ export async function loadSeed(db: Db, seed: readonly SeedProduct[] = readSeedPr
               eq(pricePoints.status, pt.status),
             ),
           );
-        if (existing) await tx.update(pricePoints).set(point).where(eq(pricePoints.id, existing.id));
+        if (existing)
+          await tx.update(pricePoints).set(point).where(eq(pricePoints.id, existing.id));
         else await tx.insert(pricePoints).values(point);
+      }
+    }
+  });
+}
+
+/** Read + zod-validate every `seed/puzzles/*.json`, cross-checked against the product slugs. */
+export function readSeedPuzzles(
+  products: readonly SeedProduct[] = readSeedProducts(),
+  dir: string = PUZZLE_SEED_DIR,
+): SeedPuzzle[] {
+  const all: SeedPuzzle[] = [];
+  const problems: string[] = [];
+  for (const file of readdirSync(dir)
+    .filter((f) => f.endsWith('.json'))
+    .sort()) {
+    const parsed = seedPuzzleFileSchema.safeParse(
+      JSON.parse(readFileSync(join(dir, file), 'utf8')),
+    );
+    if (!parsed.success) {
+      for (const issue of parsed.error.issues) {
+        problems.push(`${file}: ${issue.path.join('.')}: ${issue.message}`);
+      }
+      continue;
+    }
+    all.push(...parsed.data);
+  }
+  problems.push(...checkSeedPuzzles(all, new Set(products.map((p) => p.slug))));
+  if (problems.length > 0) throw new Error(`Invalid puzzle seed data:\n${problems.join('\n')}`);
+  return all;
+}
+
+const tomanToRials = (t: number) => BigInt(Math.round(t * 10));
+
+function ruleColumns(rule: SeedPuzzle['groups'][number]['rule']) {
+  switch (rule.kind) {
+    case 'era_icon':
+      return { ruleKind: rule.kind, ruleEraTag: rule.era_tag };
+    case 'price_band_at_year':
+      return {
+        ruleKind: rule.kind,
+        ruleYear: rule.year,
+        ruleMinRials: tomanToRials(rule.min_toman),
+        ruleMaxRials: tomanToRials(rule.max_toman),
+      };
+    case 'same_price_at_year':
+      return {
+        ruleKind: rule.kind,
+        ruleYear: rule.year,
+        ruleTargetRials: tomanToRials(rule.target_toman),
+        ruleTolerancePct: rule.tolerance_pct,
+      };
+    case 'first_crossed':
+      return {
+        ruleKind: rule.kind,
+        ruleYear: rule.from_year,
+        ruleYearTo: rule.to_year,
+        ruleThresholdRials: tomanToRials(rule.threshold_toman),
+      };
+    case 'multiplier_between':
+      return {
+        ruleKind: rule.kind,
+        ruleYear: rule.year_a,
+        ruleYearTo: rule.year_b,
+        ruleMinMultiplier: BigInt(Math.round(rule.min_multiplier)),
+      };
+  }
+}
+
+/**
+ * Idempotent by puzzle `slug`: an existing seeded puzzle's groups are replaced wholesale.
+ * Run after `loadSeed` (items reference products by slug).
+ */
+export async function loadPuzzleSeed(db: Db, seed: readonly SeedPuzzle[] = readSeedPuzzles()) {
+  await db.transaction(async (tx) => {
+    const productIds = new Map(
+      (await tx.select({ id: products.id, slug: products.slug }).from(products)).map((r) => [
+        r.slug,
+        r.id,
+      ]),
+    );
+    for (const pz of seed) {
+      await tx
+        .insert(puzzles)
+        .values({ slug: pz.slug, source: pz.source, status: pz.status })
+        .onDuplicateKeyUpdate({ set: { source: pz.source, status: pz.status } });
+      const [row] = await tx
+        .select({ id: puzzles.id })
+        .from(puzzles)
+        .where(eq(puzzles.slug, pz.slug));
+      if (!row) throw new Error(`upsert failed for puzzle ${pz.slug}`);
+
+      // Cascades remove the old group items too.
+      await tx.delete(puzzleGroups).where(eq(puzzleGroups.puzzleId, row.id));
+      for (const g of pz.groups) {
+        const groupId = (
+          await tx
+            .insert(puzzleGroups)
+            .values({
+              puzzleId: row.id,
+              level: g.level,
+              titleFa: g.title_fa,
+              explanationFa: g.explanation_fa,
+              ...ruleColumns(g.rule),
+            })
+            .$returningId()
+        )[0]?.id;
+        if (!groupId) throw new Error(`group insert failed for ${pz.slug}`);
+        await tx.insert(puzzleGroupItems).values(
+          g.items.map((slug) => {
+            const productId = productIds.get(slug);
+            if (!productId) throw new Error(`${pz.slug}: product ${slug} is not loaded`);
+            return { groupId, productId };
+          }),
+        );
       }
     }
   });

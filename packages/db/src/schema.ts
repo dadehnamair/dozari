@@ -56,6 +56,8 @@ export const products = mysqlTable('products', {
   id: id(),
   slug: varchar('slug', { length: 100 }).notNull().unique(),
   nameFa: varchar('name_fa', { length: 200 }).notNull(),
+  // Emoji stand-in for a product photo on puzzle tiles (content, not UI chrome).
+  icon: varchar('icon', { length: 16 }),
   brand: varchar('brand', { length: 200 }),
   category: mysqlEnum('category', PRODUCT_CATEGORY_VALUES).notNull(),
   unitFa: varchar('unit_fa', { length: 100 }),
@@ -152,4 +154,63 @@ export const pricePoints = mysqlTable(
     ),
     byProduct: index('price_points_product_id_idx').on(table.productId),
   }),
+);
+
+export const PUZZLE_RULE_KIND_VALUES = [
+  'era_icon',
+  'price_band_at_year',
+  'same_price_at_year',
+  'first_crossed',
+  'multiplier_between',
+  'curated',
+] as const;
+
+export const puzzles = mysqlTable('puzzles', {
+  id: id(),
+  // Stable handle for seeded puzzles (re-runnable by slug); null for generated/UGC ones.
+  slug: varchar('slug', { length: 100 }).unique(),
+  status: mysqlEnum('status', ['draft', 'approved', 'retired']).notNull().default('draft'),
+  source: mysqlEnum('source', ['generated', 'curated', 'ugc']).notNull(),
+  authorId: char('author_id', { length: 36 }),
+  seed: bigint('seed', { mode: 'bigint' }),
+  createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+});
+
+/**
+ * One row per group (exactly 4 per puzzle). The rule is flattened into nullable columns instead
+ * of a JSON column (D63): which ones are set depends on `rule_kind`. Money is integer rials.
+ */
+export const puzzleGroups = mysqlTable(
+  'puzzle_groups',
+  {
+    id: id(),
+    puzzleId: fk('puzzle_id').references(() => puzzles.id, { onDelete: 'cascade' }),
+    level: smallint('level').notNull(), // 0 yellow … 3 purple
+    titleFa: varchar('title_fa', { length: 300 }).notNull(),
+    explanationFa: varchar('explanation_fa', { length: 500 }).notNull(),
+    ruleKind: mysqlEnum('rule_kind', PUZZLE_RULE_KIND_VALUES).notNull(),
+    ruleEraTag: varchar('rule_era_tag', { length: 50 }),
+    ruleYear: smallint('rule_year'),
+    ruleYearTo: smallint('rule_year_to'), // first_crossed.to / multiplier_between.year_b
+    ruleMinRials: bigint('rule_min_rials', { mode: 'bigint' }),
+    ruleMaxRials: bigint('rule_max_rials', { mode: 'bigint' }),
+    ruleTargetRials: bigint('rule_target_rials', { mode: 'bigint' }),
+    ruleThresholdRials: bigint('rule_threshold_rials', { mode: 'bigint' }),
+    ruleTolerancePct: smallint('rule_tolerance_pct'),
+    // multiplier_between: year_a lives in rule_year; minimum multiplier as an integer ×.
+    ruleMinMultiplier: bigint('rule_min_multiplier', { mode: 'bigint' }),
+  },
+  (table) => ({
+    puzzleLevel: uniqueIndex('puzzle_groups_puzzle_level_idx').on(table.puzzleId, table.level),
+  }),
+);
+
+export const puzzleGroupItems = mysqlTable(
+  'puzzle_group_items',
+  {
+    groupId: fk('group_id').references(() => puzzleGroups.id, { onDelete: 'cascade' }),
+    productId: fk('product_id').references(() => products.id),
+    displayYear: smallint('display_year'),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.groupId, table.productId] }) }),
 );

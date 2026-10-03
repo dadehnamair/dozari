@@ -1,0 +1,263 @@
+[
+  {
+    "slug": "sekke-bahar-azadi",
+    "name_fa": "سکه بهار آزادی",
+    "icon": "🪙",
+    "category": "other",
+    "unit_fa": "یک سکه",
+    "audience": [
+      "adults",
+      "elderly"
+    ],
+    "era_tags": [],
+    "status": "in_production",
+    "prices": [
+      {
+        "year": 1360,
+        "toman": 4000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1365,
+        "toman": 9000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1370,
+        "toman": 14000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1375,
+        "toman": 50000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1380,
+        "toman": 70000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1385,
+        "toman": 190000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1390,
+        "toman": 700000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1395,
+        "toman": 1200000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1400,
+        "toman": 12000000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      }
+    ]
+  },
+  {
+    "slug": "talaye-18-gram",
+    "name_fa": "یک گرم طلای ۱۸",
+    "icon": "💍",
+    "category": "other",
+    "unit_fa": "یک گرم",
+    "audience": [
+      "adults",
+      "elderly"
+    ],
+    "era_tags": [],
+    "status": "in_production",
+    "prices": [
+      {
+        "year": 1360,
+        "toman": 400,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1365,
+        "toman": 800,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1370,
+        "toman": 1500,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1375,
+        "toman": 5000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1380,
+        "toman": 6000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1385,
+        "toman": 20000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1390,
+        "toman": 80000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1395,
+        "toman": 120000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1400,
+        "toman": 1200000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      }
+    ]
+  },
+  {
+    "slug": "tambr-post",
+    "name_fa": "تمبر پست",
+    "icon": "✉️",
+    "category": "service",
+    "unit_fa": "یک عدد",
+    "audience": [
+      "adults",
+      "elderly"
+    ],
+    "era_tags": [],
+    "status": "in_production",
+    "prices": [
+      {
+        "year": 1360,
+        "toman": 2,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1365,
+        "toman": 5,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1370,
+        "toman": 10,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1375,
+        "toman": 20,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1380,
+        "toman": 50,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1385,
+        "toman": 150,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1390,
+        "toman": 300,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1395,
+        "toman": 700,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1400,
+        "toman": 2000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      }
+    ]
+  }
+]

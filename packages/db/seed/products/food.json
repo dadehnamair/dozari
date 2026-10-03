@@ -1,0 +1,1133 @@
+[
+  {
+    "slug": "gum-khorous-neshan",
+    "name_fa": "آدامس خروس‌نشان",
+    "icon": "🍬",
+    "category": "snack",
+    "unit_fa": "یک عدد",
+    "audience": [
+      "kids",
+      "adults"
+    ],
+    "era_tags": [
+      "dahe-60"
+    ],
+    "status": "discontinued",
+    "prices": [
+      {
+        "year": 1360,
+        "toman": 0.5,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1365,
+        "toman": 1,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1370,
+        "toman": 2,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1375,
+        "toman": 10,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1380,
+        "toman": 30,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1385,
+        "toman": 60,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1390,
+        "toman": 150,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1395,
+        "toman": 300,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1400,
+        "toman": 500,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      }
+    ]
+  },
+  {
+    "slug": "noshabe-shishei",
+    "name_fa": "نوشابه شیشه‌ای",
+    "icon": "🥤",
+    "category": "drink",
+    "unit_fa": "یک بطری",
+    "audience": [
+      "kids",
+      "adults"
+    ],
+    "era_tags": [
+      "dahe-70"
+    ],
+    "status": "in_production",
+    "prices": [
+      {
+        "year": 1360,
+        "toman": 2,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1365,
+        "toman": 5,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1370,
+        "toman": 20,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1375,
+        "toman": 100,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1380,
+        "toman": 150,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1385,
+        "toman": 250,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1390,
+        "toman": 700,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1395,
+        "toman": 1500,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1400,
+        "toman": 5000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      }
+    ]
+  },
+  {
+    "slug": "bastani-yakhi",
+    "name_fa": "بستنی یخی",
+    "icon": "🍦",
+    "category": "snack",
+    "unit_fa": "یک عدد",
+    "audience": [
+      "kids"
+    ],
+    "era_tags": [
+      "dahe-70"
+    ],
+    "status": "in_production",
+    "prices": [
+      {
+        "year": 1360,
+        "toman": 1,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1365,
+        "toman": 3,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1370,
+        "toman": 15,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1375,
+        "toman": 90,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1380,
+        "toman": 150,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1385,
+        "toman": 250,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1390,
+        "toman": 500,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1395,
+        "toman": 1000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1400,
+        "toman": 3000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      }
+    ]
+  },
+  {
+    "slug": "pofak-namaki",
+    "name_fa": "پفک نمکی",
+    "icon": "🧀",
+    "category": "snack",
+    "unit_fa": "یک بسته",
+    "audience": [
+      "kids",
+      "teens"
+    ],
+    "era_tags": [
+      "dahe-70"
+    ],
+    "status": "in_production",
+    "prices": [
+      {
+        "year": 1360,
+        "toman": 3,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1365,
+        "toman": 8,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1370,
+        "toman": 25,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1375,
+        "toman": 110,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1380,
+        "toman": 180,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1385,
+        "toman": 300,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1390,
+        "toman": 800,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1395,
+        "toman": 1500,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1400,
+        "toman": 6000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      }
+    ]
+  },
+  {
+    "slug": "sandwich-falafel",
+    "name_fa": "ساندویچ فلافل",
+    "icon": "🥙",
+    "category": "food",
+    "unit_fa": "یک عدد",
+    "audience": [
+      "teens",
+      "adults"
+    ],
+    "era_tags": [
+      "dahe-80"
+    ],
+    "status": "in_production",
+    "prices": [
+      {
+        "year": 1360,
+        "toman": 5,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1365,
+        "toman": 20,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1370,
+        "toman": 150,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1375,
+        "toman": 250,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1380,
+        "toman": 600,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1385,
+        "toman": 1200,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1390,
+        "toman": 3000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1395,
+        "toman": 8000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1400,
+        "toman": 30000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      }
+    ]
+  },
+  {
+    "slug": "portaghal-kilo",
+    "name_fa": "یک کیلو پرتقال",
+    "icon": "🍊",
+    "category": "food",
+    "unit_fa": "یک کیلو",
+    "audience": [
+      "family"
+    ],
+    "era_tags": [
+      "dahe-80"
+    ],
+    "status": "in_production",
+    "prices": [
+      {
+        "year": 1360,
+        "toman": 10,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1365,
+        "toman": 30,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1370,
+        "toman": 150,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1375,
+        "toman": 250,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1380,
+        "toman": 500,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1385,
+        "toman": 1100,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1390,
+        "toman": 2500,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1395,
+        "toman": 6000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1400,
+        "toman": 25000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      }
+    ]
+  },
+  {
+    "slug": "goosht-kilo",
+    "name_fa": "یک کیلو گوشت",
+    "icon": "🥩",
+    "category": "food",
+    "unit_fa": "یک کیلو",
+    "audience": [
+      "family",
+      "elderly"
+    ],
+    "era_tags": [],
+    "status": "in_production",
+    "prices": [
+      {
+        "year": 1360,
+        "toman": 100,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1365,
+        "toman": 250,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1370,
+        "toman": 500,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1375,
+        "toman": 1600,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1380,
+        "toman": 3000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1385,
+        "toman": 6000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1390,
+        "toman": 15000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1395,
+        "toman": 40000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1400,
+        "toman": 280000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      }
+    ]
+  },
+  {
+    "slug": "sandwich-kalbas",
+    "name_fa": "ساندویچ کالباس",
+    "icon": "🥪",
+    "category": "food",
+    "unit_fa": "یک عدد",
+    "audience": [
+      "teens",
+      "adults"
+    ],
+    "era_tags": [],
+    "status": "in_production",
+    "prices": [
+      {
+        "year": 1360,
+        "toman": 5,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1365,
+        "toman": 30,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1370,
+        "toman": 60,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1375,
+        "toman": 150,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1380,
+        "toman": 300,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1385,
+        "toman": 500,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1390,
+        "toman": 1500,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1395,
+        "toman": 4000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1400,
+        "toman": 15000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      }
+    ]
+  },
+  {
+    "slug": "shir-paketi-1l",
+    "name_fa": "شیر پاکتی یک لیتری",
+    "icon": "🥛",
+    "category": "food",
+    "unit_fa": "یک لیتر",
+    "audience": [
+      "family"
+    ],
+    "era_tags": [],
+    "status": "in_production",
+    "prices": [
+      {
+        "year": 1360,
+        "toman": 3,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1365,
+        "toman": 8,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1370,
+        "toman": 20,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1375,
+        "toman": 60,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1380,
+        "toman": 200,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1385,
+        "toman": 450,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1390,
+        "toman": 1000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1395,
+        "toman": 2500,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1400,
+        "toman": 9000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      }
+    ]
+  },
+  {
+    "slug": "chips",
+    "name_fa": "چیپس",
+    "icon": "🥔",
+    "category": "snack",
+    "unit_fa": "یک بسته",
+    "audience": [
+      "kids",
+      "teens"
+    ],
+    "era_tags": [],
+    "status": "in_production",
+    "prices": [
+      {
+        "year": 1365,
+        "toman": 10,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1370,
+        "toman": 30,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1375,
+        "toman": 80,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1380,
+        "toman": 250,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1385,
+        "toman": 500,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1390,
+        "toman": 1200,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1395,
+        "toman": 3000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1400,
+        "toman": 10000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      }
+    ]
+  },
+  {
+    "slug": "noshabe-khanevade",
+    "name_fa": "نوشابه خانواده",
+    "icon": "🍾",
+    "category": "drink",
+    "unit_fa": "یک بطری ۱٫۵ لیتری",
+    "audience": [
+      "family"
+    ],
+    "era_tags": [],
+    "status": "in_production",
+    "prices": [
+      {
+        "year": 1360,
+        "toman": 5,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1365,
+        "toman": 15,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1370,
+        "toman": 40,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1375,
+        "toman": 150,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1380,
+        "toman": 300,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1385,
+        "toman": 550,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1390,
+        "toman": 1500,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1395,
+        "toman": 3500,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1400,
+        "toman": 15000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      }
+    ]
+  },
+  {
+    "slug": "tokhm-morgh",
+    "name_fa": "یک دونه تخم‌مرغ",
+    "icon": "🥚",
+    "category": "food",
+    "unit_fa": "یک عدد",
+    "audience": [
+      "family",
+      "elderly"
+    ],
+    "era_tags": [],
+    "status": "in_production",
+    "prices": [
+      {
+        "year": 1360,
+        "toman": 2,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1365,
+        "toman": 5,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1370,
+        "toman": 10,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1375,
+        "toman": 25,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1380,
+        "toman": 40,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1385,
+        "toman": 70,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1390,
+        "toman": 150,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1395,
+        "toman": 500,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1400,
+        "toman": 2000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      }
+    ]
+  },
+  {
+    "slug": "nan-lavash",
+    "name_fa": "نون لواش",
+    "icon": "🫓",
+    "category": "food",
+    "unit_fa": "یک عدد",
+    "audience": [
+      "family",
+      "elderly"
+    ],
+    "era_tags": [],
+    "status": "in_production",
+    "prices": [
+      {
+        "year": 1360,
+        "toman": 2,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1365,
+        "toman": 5,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1370,
+        "toman": 5,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1375,
+        "toman": 10,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1380,
+        "toman": 25,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1385,
+        "toman": 50,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1390,
+        "toman": 100,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1395,
+        "toman": 300,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1400,
+        "toman": 1500,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      }
+    ]
+  }
+]

@@ -8,6 +8,13 @@
       "when": 1790669628310,
       "tag": "0000_panoramic_mole_man",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1791009669087,
+      "tag": "0001_typical_makkari",
+      "breakpoints": true
     }
   ]
 }

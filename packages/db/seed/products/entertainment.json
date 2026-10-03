@@ -1,0 +1,91 @@
+[
+  {
+    "slug": "belit-cinema",
+    "name_fa": "بلیت سینما",
+    "icon": "🎬",
+    "category": "entertainment",
+    "unit_fa": "یک بلیت",
+    "audience": [
+      "teens",
+      "adults"
+    ],
+    "era_tags": [
+      "dahe-80"
+    ],
+    "status": "in_production",
+    "prices": [
+      {
+        "year": 1360,
+        "toman": 10,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1365,
+        "toman": 30,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1370,
+        "toman": 100,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1375,
+        "toman": 300,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1380,
+        "toman": 700,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1385,
+        "toman": 1500,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1390,
+        "toman": 4000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1395,
+        "toman": 10000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1400,
+        "toman": 40000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      }
+    ]
+  }
+]

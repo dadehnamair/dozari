@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readSeedProducts } from '../load.js';
+import { readSeedProducts, readSeedPuzzles } from '../load.js';
 
 describe('catalog seed files', () => {
   const seed = readSeedProducts();
@@ -21,7 +21,47 @@ describe('catalog seed files', () => {
       for (let i = 1; i < approved.length; i++) {
         const prev = approved[i - 1]!;
         const cur = approved[i]!;
-        expect(cur.rials, `${p.slug} ${prev.year}->${cur.year}`).toBeGreaterThanOrEqual(prev.rials * 0.7);
+        expect(cur.rials, `${p.slug} ${prev.year}->${cur.year}`).toBeGreaterThanOrEqual(
+          prev.rials * 0.7,
+        );
+      }
+    }
+  });
+});
+
+describe('product icons', () => {
+  it('gives every product an emoji icon (no photos exist yet)', () => {
+    for (const p of readSeedProducts()) expect(p.icon, p.slug).toBeTruthy();
+  });
+});
+
+describe('puzzle seed files', () => {
+  const products = readSeedProducts();
+  const puzzles = readSeedPuzzles(products);
+
+  it('parses, references only seeded products and has 4 levelled groups × 4 items', () => {
+    expect(puzzles.length).toBeGreaterThan(0);
+    for (const pz of puzzles) {
+      expect(pz.groups.map((g) => g.level).sort(), pz.slug).toEqual([0, 1, 2, 3]);
+      expect(new Set(pz.groups.flatMap((g) => g.items)).size, pz.slug).toBe(16);
+    }
+  });
+
+  it('only uses products that have price points for years its rules reference', () => {
+    const years = new Map(products.map((p) => [p.slug, new Set(p.prices.map((x) => x.year))]));
+    for (const pz of puzzles) {
+      for (const g of pz.groups) {
+        const r = g.rule;
+        const needed =
+          r.kind === 'price_band_at_year' || r.kind === 'same_price_at_year'
+            ? [r.year]
+            : r.kind === 'multiplier_between'
+              ? [r.year_a, r.year_b]
+              : [];
+        for (const slug of g.items) {
+          for (const y of needed)
+            expect(years.get(slug)?.has(y), `${pz.slug} ${slug} ${y}`).toBe(true);
+        }
       }
     }
   });

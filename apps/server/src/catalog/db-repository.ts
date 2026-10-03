@@ -20,6 +20,7 @@ function toDto(
     id: row.id,
     slug: row.slug,
     nameFa: row.nameFa,
+    icon: row.icon,
     brand: row.brand,
     category: row.category,
     unitFa: row.unitFa,

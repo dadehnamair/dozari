@@ -5,6 +5,8 @@ export interface ProductDto {
   id: string;
   slug: string;
   nameFa: string;
+  /** Emoji stand-in for a product photo; null when none. */
+  icon: string | null;
   brand: string | null;
   category: string;
   unitFa: string | null;

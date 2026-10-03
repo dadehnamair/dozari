@@ -1,0 +1,148 @@
+[
+  {
+    "slug": "curated-001",
+    "source": "curated",
+    "status": "draft",
+    "groups": [
+      {
+        "level": 0,
+        "title_fa": "دهه‌شصتی‌های اصل",
+        "explanation_fa": "همه‌شون نماد دهه‌ی ۶۰ بودن",
+        "rule": {
+          "kind": "era_icon",
+          "era_tag": "dahe-60"
+        },
+        "items": [
+          "gum-khorous-neshan",
+          "cassette-khaam",
+          "kafsh-melli",
+          "daftar-chehel-barg"
+        ]
+      },
+      {
+        "level": 1,
+        "title_fa": "با یه اسکناس صدتومنی سال ۷۵",
+        "explanation_fa": "سال ۷۵ همه‌شون بین ۸۰ تا ۱۲۰ تومن بودن",
+        "rule": {
+          "kind": "price_band_at_year",
+          "year": 1375,
+          "min_toman": 80,
+          "max_toman": 120
+        },
+        "items": [
+          "noshabe-shishei",
+          "bastani-yakhi",
+          "kerayeh-taxi-khati",
+          "pofak-namaki"
+        ]
+      },
+      {
+        "level": 2,
+        "title_fa": "هزارتومنی‌شدگان دهه‌ی هشتاد",
+        "explanation_fa": "اولین بار توی دهه‌ی ۸۰ از ۱۰۰۰ تومن رد شدن",
+        "rule": {
+          "kind": "first_crossed",
+          "threshold_toman": 1000,
+          "from_year": 1380,
+          "to_year": 1389
+        },
+        "items": [
+          "belit-cinema",
+          "sandwich-falafel",
+          "ketab-jibi",
+          "portaghal-kilo"
+        ]
+      },
+      {
+        "level": 3,
+        "title_fa": "چیزهایی که مامان‌بزرگ‌ها ازشون شاکی‌ان",
+        "explanation_fa": "از سال ۷۰ تا ۱۴۰۰ بیشتر از ۵۰۰ برابر گرون شدن",
+        "rule": {
+          "kind": "multiplier_between",
+          "year_a": 1370,
+          "year_b": 1400,
+          "min_multiplier": 500
+        },
+        "items": [
+          "sekke-bahar-azadi",
+          "talaye-18-gram",
+          "metr-apartman-tehran",
+          "goosht-kilo"
+        ]
+      }
+    ]
+  },
+  {
+    "slug": "curated-002",
+    "source": "curated",
+    "status": "draft",
+    "groups": [
+      {
+        "level": 0,
+        "title_fa": "زنگ اول، کلاس اول",
+        "explanation_fa": "همه‌شون لوازم مدرسه‌ان",
+        "rule": {
+          "kind": "era_icon",
+          "era_tag": "madrese"
+        },
+        "items": [
+          "medad-soosmar-neshan",
+          "pak-kon-johari",
+          "khat-kesh-30",
+          "kif-madrese"
+        ]
+      },
+      {
+        "level": 1,
+        "title_fa": "عصرونه‌ی سال ۸۵",
+        "explanation_fa": "سال ۸۵ همه‌شون بین ۴۰۰ تا ۶۰۰ تومن بودن",
+        "rule": {
+          "kind": "price_band_at_year",
+          "year": 1385,
+          "min_toman": 400,
+          "max_toman": 600
+        },
+        "items": [
+          "sandwich-kalbas",
+          "shir-paketi-1l",
+          "chips",
+          "noshabe-khanevade"
+        ]
+      },
+      {
+        "level": 2,
+        "title_fa": "پنج‌تومنی‌های خوش‌شانس",
+        "explanation_fa": "سال ۶۵ همه‌شون حدود ۵ تومن بودن",
+        "rule": {
+          "kind": "same_price_at_year",
+          "year": 1365,
+          "target_toman": 5,
+          "tolerance_pct": 20
+        },
+        "items": [
+          "tokhm-morgh",
+          "belit-otobus-vahed",
+          "nan-lavash",
+          "tambr-post"
+        ]
+      },
+      {
+        "level": 3,
+        "title_fa": "جهیزیه‌هایی که میلیونی شدن",
+        "explanation_fa": "اولین بار توی دهه‌ی ۹۰ از یک میلیون تومن رد شدن",
+        "rule": {
+          "kind": "first_crossed",
+          "threshold_toman": 1000000,
+          "from_year": 1390,
+          "to_year": 1399
+        },
+        "items": [
+          "lebas-shooyi",
+          "television-rangi",
+          "yakhchal",
+          "motor-honda-125"
+        ]
+      }
+    ]
+  }
+]

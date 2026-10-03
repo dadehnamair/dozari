@@ -1,0 +1,512 @@
+[
+  {
+    "slug": "cassette-khaam",
+    "name_fa": "نوار کاست خام",
+    "icon": "📼",
+    "category": "electronics",
+    "unit_fa": "یک عدد",
+    "audience": [
+      "teens",
+      "adults"
+    ],
+    "era_tags": [
+      "dahe-60"
+    ],
+    "status": "discontinued",
+    "prices": [
+      {
+        "year": 1360,
+        "toman": 30,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1365,
+        "toman": 60,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1370,
+        "toman": 150,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1375,
+        "toman": 250,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1380,
+        "toman": 400,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1385,
+        "toman": 800,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1390,
+        "toman": 1200,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      }
+    ]
+  },
+  {
+    "slug": "kafsh-melli",
+    "name_fa": "کفش ملی",
+    "icon": "👟",
+    "category": "clothing",
+    "unit_fa": "یک جفت",
+    "audience": [
+      "adults",
+      "family"
+    ],
+    "era_tags": [
+      "dahe-60"
+    ],
+    "status": "in_production",
+    "prices": [
+      {
+        "year": 1360,
+        "toman": 300,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1365,
+        "toman": 800,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1370,
+        "toman": 1500,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1375,
+        "toman": 4000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1380,
+        "toman": 9000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1385,
+        "toman": 20000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1390,
+        "toman": 50000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1395,
+        "toman": 150000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1400,
+        "toman": 400000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      }
+    ]
+  },
+  {
+    "slug": "metr-apartman-tehran",
+    "name_fa": "یک متر آپارتمان تهران",
+    "icon": "🏢",
+    "category": "housing",
+    "unit_fa": "یک متر مربع",
+    "audience": [
+      "adults",
+      "family"
+    ],
+    "era_tags": [],
+    "status": "in_production",
+    "prices": [
+      {
+        "year": 1360,
+        "toman": 2000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1365,
+        "toman": 8000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1370,
+        "toman": 30000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1375,
+        "toman": 90000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1380,
+        "toman": 150000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1385,
+        "toman": 600000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1390,
+        "toman": 2500000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1395,
+        "toman": 5000000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1400,
+        "toman": 32000000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      }
+    ]
+  },
+  {
+    "slug": "lebas-shooyi",
+    "name_fa": "ماشین لباسشویی",
+    "icon": "🧺",
+    "category": "electronics",
+    "unit_fa": "یک دستگاه",
+    "audience": [
+      "family",
+      "adults"
+    ],
+    "era_tags": [],
+    "status": "in_production",
+    "prices": [
+      {
+        "year": 1360,
+        "toman": 8000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1365,
+        "toman": 25000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1370,
+        "toman": 60000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1375,
+        "toman": 150000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1380,
+        "toman": 300000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1385,
+        "toman": 400000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1390,
+        "toman": 800000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1395,
+        "toman": 1500000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1400,
+        "toman": 12000000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      }
+    ]
+  },
+  {
+    "slug": "television-rangi",
+    "name_fa": "تلویزیون رنگی",
+    "icon": "📺",
+    "category": "electronics",
+    "unit_fa": "یک دستگاه",
+    "audience": [
+      "family",
+      "adults"
+    ],
+    "era_tags": [],
+    "status": "in_production",
+    "prices": [
+      {
+        "year": 1360,
+        "toman": 5000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1365,
+        "toman": 15000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1370,
+        "toman": 50000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1375,
+        "toman": 120000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1380,
+        "toman": 250000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1385,
+        "toman": 400000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1390,
+        "toman": 700000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1395,
+        "toman": 1200000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1400,
+        "toman": 9000000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      }
+    ]
+  },
+  {
+    "slug": "yakhchal",
+    "name_fa": "یخچال",
+    "icon": "🧊",
+    "category": "electronics",
+    "unit_fa": "یک دستگاه",
+    "audience": [
+      "family",
+      "adults"
+    ],
+    "era_tags": [],
+    "status": "in_production",
+    "prices": [
+      {
+        "year": 1360,
+        "toman": 10000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1365,
+        "toman": 30000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1370,
+        "toman": 80000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1375,
+        "toman": 200000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1380,
+        "toman": 350000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1385,
+        "toman": 500000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1390,
+        "toman": 900000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1395,
+        "toman": 2000000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      },
+      {
+        "year": 1400,
+        "toman": 15000000,
+        "source_type": "other",
+        "source_note": "Illustrative prototype value (prototype/index.html), UNVERIFIED — needs archive citation before approval",
+        "confidence": 1,
+        "status": "pending"
+      }
+    ]
+  }
+]
