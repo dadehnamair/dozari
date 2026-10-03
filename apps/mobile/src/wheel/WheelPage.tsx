@@ -13,7 +13,7 @@ import { spinAngle } from './geometry';
 import { pageTop } from '../theme/safeArea';
 import { useHardwareBack } from '../nav/useHardwareBack';
 
-const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
+const ROW = ('row-reverse' as const);
 const SIZE = 290;
 const R = SIZE / 2 - 6;
 const BULBS = 16;

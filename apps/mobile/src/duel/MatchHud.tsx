@@ -5,7 +5,7 @@ import { colors, fonts } from '../theme/colors';
 import type { CharacterId } from '../theme/character';
 import { tugPercent } from './arena';
 
-const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
+const ROW = ('row-reverse' as const);
 /** Pips run from the outer edge inwards on both sides. */
 const ROW_OUT = Platform.OS === 'web' ? ('row' as const) : ('row-reverse' as const);
 

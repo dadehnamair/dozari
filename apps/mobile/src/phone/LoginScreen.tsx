@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Keyboard, Platform, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { Keyboard, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { toPersianDigits } from '@dozari/shared';
 import { Character } from '../components/Character';
 import { Scene } from '../components/Scene';
@@ -11,6 +11,7 @@ import { colors, fonts } from '../theme/colors';
 import { safeTop } from '../theme/safeArea';
 import { OTP_LENGTH, onlyDigits, phoneFromInput, resendLeft } from './loginInput';
 import { loginWithCode, requestLoginCode } from './loginApi';
+import { TEXT_START } from '../theme/direction';
 
 const INK = '#2B1240';
 const errText = (e: unknown): string => fa.phoneLogin.errors[e instanceof ApiError ? e.code : 'generic'] ?? fa.phoneLogin.errors.generic ?? '';
@@ -121,7 +122,7 @@ export function LoginScreen({ onDone }: { onDone: (r: { signedIn: boolean; creat
   );
 }
 
-const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
+const ROW = ('row-reverse' as const);
 const lift = (h: number) => ({ shadowColor: INK, shadowOffset: { width: 0, height: h }, shadowOpacity: 1, shadowRadius: 0, elevation: h });
 
 const styles = StyleSheet.create({
@@ -132,8 +133,8 @@ const styles = StyleSheet.create({
   heroTight: { width: 100, height: 115 },
   card: { position: 'absolute', left: 14, right: 14, bottom: 26, maxWidth: 420, alignSelf: 'center', padding: 14, paddingTop: 16, gap: 10, borderRadius: 26, borderWidth: 4, borderColor: INK, backgroundColor: '#FBF1DE', ...lift(7) },
   cardTight: { bottom: 12, gap: 7, padding: 12 },
-  title: { fontFamily: fonts.display, fontSize: 22, color: INK, textAlign: 'right' },
-  sub: { fontFamily: fonts.bold, fontSize: 12, lineHeight: 19, color: '#7E46D6', textAlign: 'right' },
+  title: { fontFamily: fonts.display, fontSize: 22, color: INK, textAlign: TEXT_START },
+  sub: { fontFamily: fonts.bold, fontSize: 12, lineHeight: 19, color: '#7E46D6', textAlign: TEXT_START },
   phoneRow: { flexDirection: 'row', gap: 6 },
   prefix: { height: 52, paddingHorizontal: 12, borderRadius: 14, borderWidth: 3, borderColor: INK, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   prefixText: { fontFamily: fonts.bold, fontSize: 15, color: INK },

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { MyProfile } from '@dozari/shared';
 import { provinceOf, toPersianDigits } from '@dozari/shared';
 import { ProvinceBadge } from '../components/ProvinceBadge';
@@ -10,7 +10,7 @@ import { saveEmail, saveNickname } from './api';
 import { nicknameHint } from './nicknameHint';
 
 const INK = '#3A2418';
-const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
+const ROW = ('row-reverse' as const);
 
 const problemText = (e: unknown): string => (e instanceof ApiError ? fa.profile.nicknameProblem[e.code] ?? fa.profile.error : fa.profile.error);
 

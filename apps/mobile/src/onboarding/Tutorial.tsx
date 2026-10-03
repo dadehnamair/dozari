@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Character } from '../components/Character';
 import { Item } from '../components/Item';
 import { Scene } from '../components/Scene';
@@ -7,8 +7,9 @@ import { SlabButton } from '../components/SlabButton';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { nativeTopInset } from '../theme/safeArea';
+import { TEXT_START } from '../theme/direction';
 
-const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
+const ROW = ('row-reverse' as const);
 const t = fa.tutorial;
 /** Icons of the sample board, same order as `fa.tutorial.words`. */
 const TILE_ICONS = ['pomegranate', 'samovar', 'marbles', 'coin', 'teapot', 'pistachio', 'top', 'gem', 'kite', 'sohan', 'watermelon', 'crown', 'dice', 'bread', 'pashmak', 'goldBar'] as const;
@@ -108,7 +109,7 @@ const styles = StyleSheet.create({
   tag: { paddingHorizontal: 8, borderRadius: 99, backgroundColor: '#3F72D0', borderWidth: 2, borderColor: colors.ink },
   tagText: { fontFamily: fonts.display, fontSize: 12, lineHeight: 20, color: '#fff' },
   title: { fontFamily: fonts.display, fontSize: 16, color: colors.ink },
-  text: { fontFamily: fonts.bold, fontSize: 12.5, lineHeight: 21, color: colors.ink, textAlign: 'right' },
+  text: { fontFamily: fonts.bold, fontSize: 12.5, lineHeight: 21, color: colors.ink, textAlign: TEXT_START },
   footer: { flexDirection: ROW, alignItems: 'flex-end', gap: 8, marginTop: 4 },
   guide: { width: 132, height: 153, marginBottom: -6 },
   cta: { flex: 1, paddingBottom: 6 },

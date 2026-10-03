@@ -1,10 +1,10 @@
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { GradientFill } from '../components/GradientFill';
 import { Icon } from '../components/Icon';
 import { colors, fonts } from '../theme/colors';
 
 /** Right-to-left on web too (react-native-web does not flip rows; native does under forced RTL). */
-const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
+const ROW = ('row-reverse' as const);
 
 /** Top bar of screen-match: square violet back button, yellow title plate, and a slot for counters on the far side. */
 export function GameTopBar({ title, backLabel, onBack, children }: { title: string; backLabel: string; onBack: () => void; children?: React.ReactNode }) {

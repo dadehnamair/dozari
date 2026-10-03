@@ -1,4 +1,4 @@
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Defs, Pattern, Rect } from 'react-native-svg';
 import { useId } from 'react';
 import { colors, fonts, toneOf } from '../theme/colors';
@@ -6,8 +6,9 @@ import { GradientFill } from './GradientFill';
 import { Icon } from './Icon';
 import { PAGE_TOP_EXTRA, pageTop, safeTop } from '../theme/safeArea';
 import { useHardwareBack } from '../nav/useHardwareBack';
+import { TEXT_START } from '../theme/direction';
 
-const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
+const ROW = ('row-reverse' as const);
 
 /**
  * Full-screen list page of the designs (screen-notifications / screen-friends of `19 Social Daily Onboarding`):
@@ -67,7 +68,7 @@ const styles = StyleSheet.create({
   head: { flexDirection: ROW, alignItems: 'center', gap: 8, paddingHorizontal: 2, marginBottom: 30 },
   back: { width: 42, height: 42, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', shadowColor: colors.ink, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4 },
   pressed: { transform: [{ translateY: 3 }] },
-  title: { flex: 1, fontFamily: fonts.display, fontSize: 24, color: '#fff', textAlign: 'right', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
+  title: { flex: 1, fontFamily: fonts.display, fontSize: 24, color: '#fff', textAlign: TEXT_START, textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
   pill: { height: 34, paddingHorizontal: 12, borderRadius: 99, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.cream, justifyContent: 'center' },
   pillText: { fontFamily: fonts.bold, fontSize: 11, color: colors.ink },
 });

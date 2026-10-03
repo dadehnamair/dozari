@@ -12,8 +12,9 @@ import { fetchFriends } from '../social/api';
 import { colors, fonts } from '../theme/colors';
 import { fetchDm, sendDm } from './api';
 import { chatErrorText, mergeMessages } from './errors';
+import { TEXT_START } from '../theme/direction';
 
-const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
+const ROW = ('row-reverse' as const);
 const POLL_MS = 3000;
 type Friend = Friends['friends'][number];
 
@@ -123,7 +124,7 @@ const styles = StyleSheet.create({
   list: { gap: 8, paddingVertical: 10 },
   row: { flexDirection: ROW, alignItems: 'center', gap: 10, padding: 8, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#fff', ...lift(3) },
   dot: { position: 'absolute', bottom: -2, right: -2 },
-  name: { flex: 1, fontFamily: fonts.display, fontSize: 16, color: colors.ink, textAlign: 'right' },
+  name: { flex: 1, fontFamily: fonts.display, fontSize: 16, color: colors.ink, textAlign: TEXT_START },
   state: { fontFamily: fonts.bold, fontSize: 11, color: '#7E46D6' },
   hint: { fontFamily: fonts.bold, fontSize: 12, lineHeight: 20, color: colors.ink, textAlign: 'center', paddingHorizontal: 12 },
   warn: { fontFamily: fonts.bold, fontSize: 12, color: '#B3261E', textAlign: 'center' },
@@ -133,13 +134,13 @@ const styles = StyleSheet.create({
   mine: { flexDirection: Platform.OS === 'web' ? 'row' : 'row-reverse' },
   bubble: { maxWidth: '80%', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 16, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: '#fff' },
   bubbleMine: { backgroundColor: colors.candy.yellow },
-  text: { fontFamily: fonts.bold, fontSize: 13, lineHeight: 20, color: colors.ink, textAlign: 'right' },
+  text: { fontFamily: fonts.bold, fontSize: 13, lineHeight: 20, color: colors.ink, textAlign: TEXT_START },
   tableCard: { gap: 4, padding: 8, borderRadius: 14, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: '#FFF3C4', ...lift(3) },
   tableRow: { flexDirection: ROW, alignItems: 'center', gap: 6 },
   tableIcon: { width: 26, height: 26 },
   join: { fontFamily: fonts.display, fontSize: 14, color: '#7E46D6', textAlign: 'center' },
   inputRow: { flexDirection: ROW, gap: 8, alignItems: 'center', paddingTop: 6 },
-  input: { flex: 1, height: 44, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#fff', paddingHorizontal: 12, fontFamily: fonts.bold, fontSize: 13, color: colors.ink, textAlign: 'right' },
+  input: { flex: 1, height: 44, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#fff', paddingHorizontal: 12, fontFamily: fonts.bold, fontSize: 13, color: colors.ink, textAlign: TEXT_START },
   send: { width: 44, height: 44, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   sendMark: { fontFamily: fonts.display, fontSize: 18, color: colors.ink },
 });

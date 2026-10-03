@@ -11,6 +11,7 @@ import { colors, fonts } from '../theme/colors';
 import { fetchLookup, searchProducts } from './api';
 import { dateLabel, priceLabel, rangeLine, yearsWithData } from './model';
 import { safeTop } from '../theme/safeArea';
+import { TEXT_START } from '../theme/direction';
 
 const INK = '#3A2418';
 
@@ -141,7 +142,7 @@ const styles = StyleSheet.create({
   content: { padding: 20, paddingTop: safeTop(48), gap: 12 },
   title: { fontFamily: fonts.display, fontSize: 30, color: INK, textAlign: 'center' },
   hint: { fontFamily: fonts.bold, fontSize: 14, color: INK, textAlign: 'center' },
-  input: { backgroundColor: colors.cream, borderWidth: 3, borderColor: INK, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 10, fontFamily: fonts.bold, fontSize: 16, color: INK, textAlign: 'right' },
+  input: { backgroundColor: colors.cream, borderWidth: 3, borderColor: INK, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 10, fontFamily: fonts.bold, fontSize: 16, color: INK, textAlign: TEXT_START },
   card: { backgroundColor: 'rgba(251,241,222,0.95)', borderWidth: 3, borderColor: INK, borderRadius: 18, padding: 12, gap: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   flex: { flex: 1 },

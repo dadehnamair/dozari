@@ -1,5 +1,5 @@
 import { useEffect, useReducer, useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { toPersianDigits } from '@dozari/shared';
 import type { TauntCategory } from '@dozari/shared';
 import { fetchTaunts } from '../chat/api';
@@ -35,7 +35,7 @@ const FLASH_MS = 1500;
 /** The versus card stays up this long once a rival is found (the turn clock is 45s by default). */
 const INTRO_MS = 3000;
 const LEAVE_ARM_MS = 3000;
-const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
+const ROW = ('row-reverse' as const);
 const a = fa.duel.arena;
 
 type Stage = 'pick' | 'queue' | 'resume';

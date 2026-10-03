@@ -31,12 +31,9 @@ import { safeInsetTop } from './src/theme/safeArea';
 import { PwaLayer } from './src/pwa/PwaLayer';
 import { takeLaunchTarget } from './src/pwa/usePwa';
 
-// Rule (CLAUDE.md §Language): in-game UI is Persian/RTL. Expo's managed I18nManager call is a
-// no-op on web and only takes effect after a native reload, which is expected here.
-if (!I18nManager.isRTL) {
-  I18nManager.allowRTL(true);
-  I18nManager.forceRTL(true);
-}
+// The layout is the web design's on every platform (src/theme/direction.ts): left-to-right layout direction with the Persian
+// order written out explicitly. Keep a Persian-language phone from switching the layout to native RTL, which would flip it.
+I18nManager.allowRTL(false);
 
 const SPLASH_MS = 1800;
 

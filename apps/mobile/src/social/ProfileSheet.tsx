@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { fetchWorn } from '../shop/api';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Svg, { Polygon } from 'react-native-svg';
 import { provinceOf, toPersianDigits } from '@dozari/shared';
 import type { Friends, Gender, MyBadges, MyProfile, RecentGames } from '@dozari/shared';
@@ -29,8 +29,9 @@ import { BadgesSheet } from '../badges/BadgesSheet';
 import { LevelRoadPage } from '../levels/LevelRoadPage';
 import { pageTop } from '../theme/safeArea';
 import { useHardwareBack } from '../nav/useHardwareBack';
+import { TEXT_START } from '../theme/direction';
 
-const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
+const ROW = ('row-reverse' as const);
 const TAGS = ['#FF4D8D', '#7E46D6', '#3FA36B', '#E8743B', '#3FC1F0'];
 const n = (v: number) => toPersianDigits(String(v));
 
@@ -247,7 +248,7 @@ const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0
 const styles = StyleSheet.create({
   gameRow: { alignSelf: 'stretch', flexDirection: ROW, alignItems: 'center', gap: 8, paddingVertical: 4 },
   gameDot: { width: 12, height: 12, borderRadius: 6, borderWidth: 2, borderColor: colors.ink },
-  gameText: { flex: 1, fontFamily: fonts.bold, fontSize: 13, color: colors.ink, textAlign: 'right' },
+  gameText: { flex: 1, fontFamily: fonts.bold, fontSize: 13, color: colors.ink, textAlign: TEXT_START },
   gameXp: { fontFamily: fonts.display, fontSize: 13, color: '#7E46D6' },
   gameAgo: { fontFamily: fonts.bold, fontSize: 11, color: colors.ink, opacity: 0.6, minWidth: 54, textAlign: 'left' },
   root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20, backgroundColor: '#FBF1DE' },
@@ -280,8 +281,8 @@ const styles = StyleSheet.create({
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 30, backgroundColor: 'rgba(20,8,32,0.55)', alignItems: 'center', justifyContent: 'center', padding: 18 },
   editor: { width: '100%', maxWidth: 400, maxHeight: '88%', borderRadius: 22, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#FFF6E8', overflow: 'hidden' },
   editorContent: { gap: 8, padding: 14 },
-  sectionTitle: { fontFamily: fonts.display, fontSize: 17, color: colors.ink, textAlign: 'right' },
-  hint: { fontFamily: fonts.bold, fontSize: 12, color: colors.ink, opacity: 0.7, textAlign: 'right' },
+  sectionTitle: { fontFamily: fonts.display, fontSize: 17, color: colors.ink, textAlign: TEXT_START },
+  hint: { fontFamily: fonts.bold, fontSize: 12, color: colors.ink, opacity: 0.7, textAlign: TEXT_START },
   pills: { flexDirection: ROW, gap: 8 },
   pill: { paddingHorizontal: 14, paddingVertical: 5, borderRadius: 99, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.cream },
   pillOn: { backgroundColor: '#FFC93C' },
