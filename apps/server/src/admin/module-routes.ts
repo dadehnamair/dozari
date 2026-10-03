@@ -763,6 +763,10 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       currency: z.enum(['coins', 'gems']),
       priceCoins: z.number().int().min(0).max(1_000_000),
       priceGems: z.number().int().min(0).max(100_000),
+      /** Real-money price in rials (0 = not sold for money). */
+      priceRials: z.number().int().min(0).max(1_000_000_000).default(0),
+      skuBazaar: z.string().trim().max(80).nullable().default(null),
+      skuMyket: z.string().trim().max(80).nullable().default(null),
       minLevel: z.number().int().min(1).max(500),
       perDayLimit: z.number().int().min(0).max(1000),
       iconKey: z.string().max(30).nullable(),

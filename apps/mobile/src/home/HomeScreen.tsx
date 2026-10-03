@@ -329,7 +329,7 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
       {tableOpen ? <TableSheet initialCode={tableCode} onMatch={onDuelResume ? () => (setTableOpen(false), onDuelResume()) : undefined} onClose={() => (setTableOpen(false), setTableCode(undefined))} onShare={() => shareTable()} /> : null}
       {tournamentOpen ? <TournamentSheet onClose={() => setTournamentOpen(false)} /> : null}
       {chatOpen ? <ChatSheet onClose={() => setChatOpen(false)} onJoinTable={(code) => (setChatOpen(false), setTableCode(code), setTableOpen(true))} /> : null}
-      {shopOpen ? <ShopSheet onClose={() => { setShopOpen(false); daily.reload(); }} /> : null}
+      {shopOpen ? <ShopSheet realMoney={Number(settings['feature.coin_packages']) === 1} onClose={() => { setShopOpen(false); daily.reload(); }} /> : null}
       {wheelOpen ? <WheelPage onClose={() => (setWheelOpen(false), loadSpins(), daily.reload())} /> : null}
       {missionsOpen ? (
         <MissionsSheet

@@ -740,6 +740,10 @@ export const shopItems = mysqlTable(
     currency: mysqlEnum('currency', ['coins', 'gems']).notNull().default('coins'),
     priceCoins: int('price_coins').notNull(),
     priceGems: int('price_gems').notNull().default(0),
+    /** Real-money price in rials (0 = not sold for money); paid through Bale or a store receipt (D170). */
+    priceRials: bigint('price_rials', { mode: 'number' }).notNull().default(0),
+    skuBazaar: varchar('sku_bazaar', { length: 80 }),
+    skuMyket: varchar('sku_myket', { length: 80 }),
     minLevel: int('min_level').notNull().default(1),
     /** 0 = no daily limit. */
     perDayLimit: int('per_day_limit').notNull().default(0),
@@ -750,6 +754,21 @@ export const shopItems = mysqlTable(
     isActive: boolean('is_active').notNull().default(true),
   },
   (table) => ({ bySort: index('shop_items_sort_idx').on(table.sortOrder) }),
+);
+
+/** One verified real-money purchase of a shop item; the unique order id makes a replayed callback harmless (D170). */
+export const shopRealPurchases = mysqlTable(
+  'shop_real_purchases',
+  {
+    id: id(),
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    itemId: char('item_id', { length: 36 }).notNull().references(() => shopItems.id),
+    store: mysqlEnum('store', ['bazaar', 'myket', 'bale']).notNull(),
+    storeOrderId: varchar('store_order_id', { length: 120 }).notNull(),
+    rials: bigint('rials', { mode: 'number' }).notNull(),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ orderUnique: uniqueIndex('shop_real_purchases_order_idx').on(table.store, table.storeOrderId) }),
 );
 
 /** Cosmetic shop items a player owns (bought, or won on the wheel), and which of them are worn. */

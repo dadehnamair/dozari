@@ -38,7 +38,8 @@ export function parseInvoicePayload(payload: string): { packageId: string; userI
 }
 
 export type PreCheckout = { ok: true } | { ok: false; message: string };
-export type BalePaid = { userId: string; coins: number; balance: number; duplicate: boolean };
+/** `text` set = a shop item bought (its name), not coins. */
+export type BalePaid = { userId: string; coins: number; balance: number; duplicate: boolean; text?: string };
 
 export type CoinPackageView = Pick<CoinPackageRow, 'id' | 'titleFa' | 'coins' | 'minLevel'> & { priceToman: number; locked: boolean };
 

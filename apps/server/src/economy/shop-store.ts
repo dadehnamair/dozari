@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, ne, shopItems, shopPurchases, sql, userBalances, userCosmetics, userGems, userInventory, wheelSpins } from '@dozari/db';
+import { and, asc, eq, gte, ne, shopItems, shopPurchases, shopRealPurchases, sql, userBalances, userCosmetics, userGems, userInventory, wheelSpins } from '@dozari/db';
 import type { Db } from '@dozari/db';
 import { uuidv7 } from 'uuidv7';
 import { applyGemEntry } from './gems.js';
@@ -17,6 +17,10 @@ export interface ShopItemRow {
   currency: 'coins' | 'gems';
   priceCoins: number;
   priceGems: number;
+  /** Real-money price in rials; 0 = not for sale for money. */
+  priceRials: number;
+  skuBazaar: string | null;
+  skuMyket: string | null;
   minLevel: number;
   perDayLimit: number;
   /** Slot a `cosmetic` is worn in. */
@@ -29,6 +33,7 @@ export interface ShopItemRow {
 export type NewShopItem = Omit<ShopItemRow, 'id' | 'sortOrder'>;
 
 export type PurchaseOutcome = { ok: true; balance: number; gems: number; tokens: number } | { ok: false; error: 'insufficient' | 'daily_limit' | 'unavailable' | 'owned' };
+export type PaidOutcome = { ok: true; duplicate: boolean } | { ok: false; error: 'unavailable' | 'owned' };
 export type SpendOutcome = { ok: true; paidWith: 'coins' | 'token'; balance: number; tokens: number } | { ok: false; error: 'insufficient' };
 
 /** I/O boundary of the coin shop and the hint payment. Every coin movement goes through the ledger inside one transaction. */
@@ -42,6 +47,8 @@ export interface ShopStore {
   boughtSince(userId: string, itemId: string, sinceMs: number): Promise<number>;
   /** Buys one item: checks balance and the daily limit, debits coins (`shop_purchase`) and grants the effect, all or nothing. */
   purchase(userId: string, itemId: string, sinceMs: number): Promise<PurchaseOutcome>;
+  /** Grants the item of a verified real-money purchase (no coins or gems move); a replayed `(store, orderId)` grants nothing twice. */
+  grantPaid(userId: string, itemId: string, store: 'bazaar' | 'myket' | 'bale', orderId: string): Promise<PaidOutcome>;
   /** Cosmetics the player owns: item id → worn. */
   owned(userId: string): Promise<Map<string, boolean>>;
   /** Wears or takes off an owned cosmetic (wearing one takes off the other worn item of its slot). */
@@ -51,21 +58,21 @@ export interface ShopStore {
 }
 
 export const DEFAULT_SHOP_ITEMS: readonly NewShopItem[] = [
-  { titleFa: 'یک راهنما', descriptionFa: 'یک بار راهنما گرفتن در بازی تکی، بدون پرداخت سکه در همان لحظه.', effect: 'hint_token', amount: 1, priceCoins: 20, currency: 'coins', priceGems: 0, minLevel: 2, perDayLimit: 0, slot: null, iconKey: 'magnifier', isActive: true },
-  { titleFa: 'بسته‌ی پنج‌تایی راهنما', descriptionFa: 'پنج راهنما با تخفیف نسبت به خرید تکی.', effect: 'hint_token', amount: 5, priceCoins: 80, currency: 'coins', priceGems: 0, minLevel: 3, perDayLimit: 3, slot: null, iconKey: 'potion', isActive: true },
+  { titleFa: 'یک راهنما', descriptionFa: 'یک بار راهنما گرفتن در بازی تکی، بدون پرداخت سکه در همان لحظه.', effect: 'hint_token', amount: 1, priceCoins: 20, currency: 'coins', priceGems: 0, minLevel: 2, perDayLimit: 0, slot: null, priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'magnifier', isActive: true },
+  { titleFa: 'بسته‌ی پنج‌تایی راهنما', descriptionFa: 'پنج راهنما با تخفیف نسبت به خرید تکی.', effect: 'hint_token', amount: 5, priceCoins: 80, currency: 'coins', priceGems: 0, minLevel: 3, perDayLimit: 3, slot: null, priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'potion', isActive: true },
   // Higher tiers open further along the level road (docs/logic/progression.md §Level rewards).
-  { titleFa: 'بسته‌ی ده‌تایی راهنما', descriptionFa: 'ده راهنما، ارزان‌تر از خرید جدا.', effect: 'hint_token', amount: 10, priceCoins: 150, currency: 'coins', priceGems: 0, minLevel: 10, perDayLimit: 3, slot: null, iconKey: 'magnifier', isActive: true },
-  { titleFa: 'بسته‌ی بیست‌تایی راهنما', descriptionFa: 'بیست راهنما برای بازی‌های سخت‌تر.', effect: 'hint_token', amount: 20, priceCoins: 280, currency: 'coins', priceGems: 0, minLevel: 20, perDayLimit: 2, slot: null, iconKey: 'potion', isActive: true },
-  { titleFa: 'صندوق راهنما', descriptionFa: 'پنجاه راهنما؛ مخصوص بازیکن‌های باتجربه.', effect: 'hint_token', amount: 50, priceCoins: 600, currency: 'coins', priceGems: 0, minLevel: 35, perDayLimit: 1, slot: null, iconKey: 'chest', isActive: true },
+  { titleFa: 'بسته‌ی ده‌تایی راهنما', descriptionFa: 'ده راهنما، ارزان‌تر از خرید جدا.', effect: 'hint_token', amount: 10, priceCoins: 150, currency: 'coins', priceGems: 0, minLevel: 10, perDayLimit: 3, slot: null, priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'magnifier', isActive: true },
+  { titleFa: 'بسته‌ی بیست‌تایی راهنما', descriptionFa: 'بیست راهنما برای بازی‌های سخت‌تر.', effect: 'hint_token', amount: 20, priceCoins: 280, currency: 'coins', priceGems: 0, minLevel: 20, perDayLimit: 2, slot: null, priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'potion', isActive: true },
+  { titleFa: 'صندوق راهنما', descriptionFa: 'پنجاه راهنما؛ مخصوص بازیکن‌های باتجربه.', effect: 'hint_token', amount: 50, priceCoins: 600, currency: 'coins', priceGems: 0, minLevel: 35, perDayLimit: 1, slot: null, priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'chest', isActive: true },
   // Lucky-wheel spins: an average spin pays about 13 coins, so a spin costs more than it returns (a coin sink, but a fun one).
-  { titleFa: 'یک چرخش گردونه', descriptionFa: 'یک بار گردونه‌ی شانس را بچرخان؛ شاید سکه‌ی بیشتری برگردد!', effect: 'wheel_spin', amount: 1, priceCoins: 25, currency: 'coins', priceGems: 0, minLevel: 3, perDayLimit: 0, slot: null, iconKey: 'dice', isActive: true },
-  { titleFa: 'بسته‌ی پنج چرخش گردونه', descriptionFa: 'پنج چرخش گردونه با تخفیف.', effect: 'wheel_spin', amount: 5, priceCoins: 100, currency: 'coins', priceGems: 0, minLevel: 5, perDayLimit: 3, slot: null, iconKey: 'gift', isActive: true },
+  { titleFa: 'یک چرخش گردونه', descriptionFa: 'یک بار گردونه‌ی شانس را بچرخان؛ شاید سکه‌ی بیشتری برگردد!', effect: 'wheel_spin', amount: 1, priceCoins: 25, currency: 'coins', priceGems: 0, minLevel: 3, perDayLimit: 0, slot: null, priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'dice', isActive: true },
+  { titleFa: 'بسته‌ی پنج چرخش گردونه', descriptionFa: 'پنج چرخش گردونه با تخفیف.', effect: 'wheel_spin', amount: 5, priceCoins: 100, currency: 'coins', priceGems: 0, minLevel: 5, perDayLimit: 3, slot: null, priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'gift', isActive: true },
   // Hats and clothing (cosmetics, D165): bought once, worn on the avatar. Prices in coins unless noted; the admin edits all of it.
-  { titleFa: 'کلاه شاپو', descriptionFa: 'یک کلاه شاپوی شیک برای آواتارت.', effect: 'cosmetic', amount: 1, priceCoins: 150, currency: 'coins', priceGems: 0, minLevel: 3, perDayLimit: 0, slot: 'hat', iconKey: 'hat', isActive: true },
-  { titleFa: 'تاج دوزاری', descriptionFa: 'تاج مخصوص قهرمان‌ها.', effect: 'cosmetic', amount: 1, priceCoins: 0, currency: 'gems', priceGems: 20, minLevel: 5, perDayLimit: 0, slot: 'hat', iconKey: 'crown', isActive: true },
-  { titleFa: 'پیراهن رنگی', descriptionFa: 'یک پیراهن شاد.', effect: 'cosmetic', amount: 1, priceCoins: 200, currency: 'coins', priceGems: 0, minLevel: 4, perDayLimit: 0, slot: 'outfit', iconKey: 'shirt', isActive: true },
-  { titleFa: 'لباس مجلسی', descriptionFa: 'برای روزهای خاص.', effect: 'cosmetic', amount: 1, priceCoins: 0, currency: 'gems', priceGems: 30, minLevel: 8, perDayLimit: 0, slot: 'outfit', iconKey: 'dress', isActive: true },
-  { titleFa: 'شال گردن', descriptionFa: 'گرم و نوستالژیک.', effect: 'cosmetic', amount: 1, priceCoins: 120, currency: 'coins', priceGems: 0, minLevel: 3, perDayLimit: 0, slot: 'accessory', iconKey: 'scarf', isActive: true },
+  { titleFa: 'کلاه شاپو', descriptionFa: 'یک کلاه شاپوی شیک برای آواتارت.', effect: 'cosmetic', amount: 1, priceCoins: 150, currency: 'coins', priceGems: 0, minLevel: 3, perDayLimit: 0, slot: 'hat', priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'hat', isActive: true },
+  { titleFa: 'تاج دوزاری', descriptionFa: 'تاج مخصوص قهرمان‌ها.', effect: 'cosmetic', amount: 1, priceCoins: 0, currency: 'gems', priceGems: 20, minLevel: 5, perDayLimit: 0, slot: 'hat', priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'crown', isActive: true },
+  { titleFa: 'پیراهن رنگی', descriptionFa: 'یک پیراهن شاد.', effect: 'cosmetic', amount: 1, priceCoins: 200, currency: 'coins', priceGems: 0, minLevel: 4, perDayLimit: 0, slot: 'outfit', priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'shirt', isActive: true },
+  { titleFa: 'لباس مجلسی', descriptionFa: 'برای روزهای خاص.', effect: 'cosmetic', amount: 1, priceCoins: 0, currency: 'gems', priceGems: 30, minLevel: 8, perDayLimit: 0, slot: 'outfit', priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'dress', isActive: true },
+  { titleFa: 'شال گردن', descriptionFa: 'گرم و نوستالژیک.', effect: 'cosmetic', amount: 1, priceCoins: 120, currency: 'coins', priceGems: 0, minLevel: 3, perDayLimit: 0, slot: 'accessory', priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'scarf', isActive: true },
 ];
 
 export function createDbShopStore(db: Db): ShopStore {
@@ -159,6 +166,30 @@ export function createDbShopStore(db: Db): ShopStore {
         throw e;
       });
     },
+    async grantPaid(userId, itemId, store, orderId) {
+      return db.transaction(async (tx): Promise<PaidOutcome> => {
+        const [item] = await tx.select().from(shopItems).where(eq(shopItems.id, itemId));
+        if (!item || !item.isActive) return { ok: false, error: 'unavailable' };
+        const purchaseId = uuidv7();
+        // The unique (store, order id) row is the lock: a replayed callback inserts nothing and grants nothing.
+        const [res] = await tx.insert(shopRealPurchases).ignore().values({ id: purchaseId, userId, itemId, store, storeOrderId: orderId, rials: item.priceRials });
+        if (res.affectedRows < 1) return { ok: true, duplicate: true };
+        if (item.effect === 'cosmetic') {
+          const [have] = await tx.select({ i: userCosmetics.itemId }).from(userCosmetics).where(and(eq(userCosmetics.userId, userId), eq(userCosmetics.itemId, item.id)));
+          if (have) throw new Owned();
+          await tx.insert(userCosmetics).values({ userId, itemId: item.id, source: 'shop' });
+        } else if (item.effect === 'wheel_spin') {
+          for (let i = 0; i < item.amount; i++) await tx.insert(wheelSpins).values({ id: uuidv7(), userId, source: 'shop', ref: `${purchaseId}#${i}` });
+        } else {
+          await tx.insert(userInventory).values({ userId, effect: item.effect, qty: item.amount }).onDuplicateKeyUpdate({ set: { qty: sql`${userInventory.qty} + ${item.amount}` } });
+        }
+        await tx.insert(shopPurchases).values({ id: uuidv7(), userId, itemId, priceCoins: 0, priceGems: 0 });
+        return { ok: true, duplicate: false };
+      }).catch((e: unknown) => {
+        if (e instanceof Owned) return { ok: false, error: 'owned' } as const;
+        throw e;
+      });
+    },
     async owned(userId) {
       const rows = await db.select({ i: userCosmetics.itemId, e: userCosmetics.equipped }).from(userCosmetics).where(eq(userCosmetics.userId, userId));
       return new Map(rows.map((r) => [r.i, r.e]));
@@ -204,6 +235,7 @@ export function createMemoryShopStore(seed: readonly NewShopItem[] = DEFAULT_SHO
   const tokens = new Map<string, number>();
   const gemBal = new Map<string, number>();
   const wardrobe = new Map<string, Map<string, boolean>>();
+  const paidOrders = new Set<string>();
   const bought: { userId: string; itemId: string; at: number }[] = [];
   const keys = new Set<string>();
   const now = { ms: Date.now() };
@@ -262,6 +294,17 @@ export function createMemoryShopStore(seed: readonly NewShopItem[] = DEFAULT_SHO
       else tokens.set(userId, (tokens.get(userId) ?? 0) + item.amount);
       bought.push({ userId, itemId, at: now.ms });
       return { ok: true, balance: balances.get(userId) ?? 0, gems: gemBal.get(userId) ?? 0, tokens: tokens.get(userId) ?? 0 };
+    },
+    async grantPaid(userId, itemId, store, orderId) {
+      const item = rows.find((r) => r.id === itemId);
+      if (!item || !item.isActive) return { ok: false, error: 'unavailable' };
+      const key = `${store}:${orderId}`;
+      if (paidOrders.has(key)) return { ok: true, duplicate: true };
+      if (item.effect === 'cosmetic' && wardrobe.get(userId)?.has(item.id)) return { ok: false, error: 'owned' };
+      paidOrders.add(key);
+      if (item.effect === 'cosmetic') wardrobe.set(userId, (wardrobe.get(userId) ?? new Map()).set(item.id, false));
+      else tokens.set(userId, (tokens.get(userId) ?? 0) + item.amount);
+      return { ok: true, duplicate: false };
     },
     async owned(userId) {
       return new Map(wardrobe.get(userId) ?? []);
