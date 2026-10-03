@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { fetchWorn } from '../shop/api';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Svg, { Polygon } from 'react-native-svg';
 import { provinceOf, toPersianDigits } from '@dozari/shared';
@@ -44,6 +45,10 @@ export function ProfileSheet({ onClose, onGender }: { onClose: () => void; onGen
   const [friends, setFriends] = useState<Friends | null>(null);
   const [badges, setBadges] = useState<MyBadges | null>(null);
   const [games, setGames] = useState<RecentGames['games']>([]);
+  const [worn, setWorn] = useState<{ slot: string; iconKey: string | null }[]>([]);
+  useEffect(() => {
+    fetchWorn().then((r) => setWorn(r.worn), () => undefined);
+  }, []);
   const [failed, setFailed] = useState(false);
   const [editing, setEditing] = useState(false);
   const [sub, setSub] = useState<'invite' | 'loans' | 'find' | 'badges' | 'friends' | 'city' | 'levels' | 'recent' | null>(null);
@@ -122,7 +127,7 @@ export function ProfileSheet({ onClose, onGender }: { onClose: () => void; onGen
       </View>
       <View style={[styles.column, { paddingTop: heroH - avatar / 2 - 6, gap: compact ? 6 : 9 }]}>
         <View style={styles.avatarWrap}>
-          {me ? <Avatar avatar={avatarOf(me.avatarKey)} size={avatar} /> : <View style={{ width: avatar, height: avatar }} />}
+          {me ? <Avatar avatar={avatarOf(me.avatarKey)} size={avatar} worn={worn} /> : <View style={{ width: avatar, height: avatar }} />}
           {lv ? (
             <View style={styles.hex} accessibilityLabel={`${fa.profile.level} ${lv.level}`}>
               <Svg width={46} height={52} viewBox="0 0 46 52">

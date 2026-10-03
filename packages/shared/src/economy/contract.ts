@@ -21,7 +21,7 @@ export const dailyRewardClaimSchema = z.object({
 });
 export type DailyRewardClaim = z.infer<typeof dailyRewardClaimSchema>;
 
-export const wheelPrizeSchema = z.object({ kind: z.enum(WHEEL_PRIZE_KINDS), amount: z.number().int().positive() });
+export const wheelPrizeSchema = z.object({ kind: z.enum(WHEEL_PRIZE_KINDS), amount: z.number().int().positive(), iconKey: z.string().nullable().optional(), titleFa: z.string().optional() });
 export type WheelPrize = z.infer<typeof wheelPrizeSchema>;
 
 /** Wire shape of `GET /wheel` (spins waiting + the slices to draw) and `POST /wheel/spin` (docs/logic/economy.md §Lucky wheel). */
@@ -45,6 +45,10 @@ export const wheelSpinSchema = z.object({
   /** What was won, by kind (`amount` coins, gems, hint tokens or spins). */
   kind: z.enum(WHEEL_PRIZE_KINDS).default('coins'),
   amount: z.number().int().positive(),
+  /** Cosmetic prizes: the item's icon and name; `duplicate` = already owned, paid as coins instead. */
+  iconKey: z.string().nullable().optional(),
+  titleFa: z.string().optional(),
+  duplicate: z.boolean().default(false),
   pending: z.number().int().nonnegative(),
   balance: z.number().int().nonnegative(),
   gems: z.number().int().nonnegative().default(0),

@@ -45,7 +45,7 @@ export const BROKE_RESCUE_TARGET = 60;
  * also scale the coin prizes with `wheel.prize_scale_percent`. Expected ≈ 9 coins plus the other kinds per spin (needs the economy
  * simulation before launch).
  */
-export const WHEEL_PRIZE_KINDS = ['coins', 'gems', 'hint_token', 'wheel_spin'] as const;
+export const WHEEL_PRIZE_KINDS = ['coins', 'gems', 'hint_token', 'wheel_spin', 'cosmetic'] as const;
 export type WheelPrizeKind = (typeof WHEEL_PRIZE_KINDS)[number];
 export const WHEEL_SLICES_DEFAULT: readonly { kind: WheelPrizeKind; amount: number; weight: number }[] = [
   { kind: 'coins', amount: 5, weight: 24 },

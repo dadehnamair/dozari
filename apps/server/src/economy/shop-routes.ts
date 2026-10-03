@@ -14,6 +14,23 @@ export function registerShopRoutes(app: FastifyInstance, auth: AuthService, shop
     return shop.shop(user.id);
   });
 
+  app.get('/me/cosmetics', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    return { worn: await shop.worn(user.id) };
+  });
+
+  app.post('/shop/:id/equip', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    const p = idParam.safeParse(req.params);
+    const b = z.object({ equipped: z.boolean() }).safeParse(req.body);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+    const out = await shop.equip(user.id, p.data.id, b.data.equipped);
+    if (out !== 'ok') return reply.code(404).send({ error: 'not_owned' });
+    return { ok: true, worn: await shop.worn(user.id) };
+  });
+
   app.post('/shop/:id/buy', async (req, reply) => {
     const user = await currentUser(auth, req);
     const p = idParam.safeParse(req.params);
@@ -21,7 +38,7 @@ export function registerShopRoutes(app: FastifyInstance, auth: AuthService, shop
     if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
     const out = await shop.buy(user.id, p.data.id);
     if (out.ok) return { balance: out.balance, gems: out.gems, tokens: out.tokens };
-    const code = out.error === 'unknown_item' || out.error === 'unavailable' ? 404 : out.error === 'insufficient' ? 402 : out.error === 'level' ? 403 : 409;
+    const code = out.error === 'owned' ? 409 : out.error === 'unknown_item' || out.error === 'unavailable' ? 404 : out.error === 'insufficient' ? 402 : out.error === 'level' ? 403 : 409;
     return reply.code(code).send({ error: out.error, ...('minLevel' in out ? { minLevel: out.minLevel } : {}) });
   });
 }

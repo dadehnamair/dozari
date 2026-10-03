@@ -8,6 +8,10 @@ export interface WheelSlice {
   kind: WheelPrizeKind;
   /** Coins, gems, hint tokens or spins, by `kind`. */
   amount: number;
+  /** `cosmetic` slices: the shop item given, with its icon and name for the wheel face. */
+  itemId?: string;
+  iconKey?: string | null;
+  titleFa?: string;
   /** Relative odds; a slice with weight 0 never wins. */
   weight: number;
 }
@@ -19,6 +23,8 @@ export interface WheelRules {
   dailySpins?: number;
   /** A won queue duel against a human gives a spin (default true; the live default is off, D165). */
   winSpins?: boolean;
+  /** Coins paid instead when a cosmetic prize is already owned. */
+  dupeCoins?: number;
 }
 
 export const DEFAULT_WHEEL_RULES: WheelRules = { enabled: true, slices: WHEEL_SLICES_DEFAULT };

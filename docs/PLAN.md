@@ -224,7 +224,7 @@ human opponent is found.
 
 Start after the first Android build.
 
-- [ ] 1. Wheel pays every prize kind (D165): [x] typed prize table (coins, gems, hint tokens, spins) edited in the admin, no free spins by default; [ ] clothing/hats (cosmetics catalogue + wardrobe); [ ] real-money price on shop items; [ ] spins as lives (needs owner's refill rate)
+- [ ] 1. Wheel pays every prize kind (D165): [x] typed prize table (coins, gems, hint tokens, spins) edited in the admin, no free spins by default; [x] clothing/hats (shop items with effect `cosmetic`, wardrobe, wheel kind, worn on the profile avatar; art = existing icons for now); [ ] real-money price on shop items; [ ] spins as lives (needs owner's refill rate)
 - [x] 2. Board cards: names and icons fit (fixed layout policy, auto-shrink floor, short names)
 - [x] 3. «تکمیل پروفایل» nudge / guide says «برو این کار را بکن، سکه بگیر»
 - [x] 4. Missions (profile, social follow, store reviews, invite …) paying coins
