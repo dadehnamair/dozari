@@ -434,3 +434,7 @@ The app's own domains (`mrbots.ir`, `api.mrbots.ir`) are unchanged until the own
 ## D158 — Admin panel tidy-up (2026-10-03, proposed)
 
 Owner added backlog item 10: restructure the admin panel UI for readability — categorised sidebar, explanatory text per page, and «add» flows as modal forms. UI-only; admin API contracts are unchanged. Not started; the owner names the order.
+
+## D160 — Birth date in the profile, with an «show my age» tick (2026-10-03, proposed)
+
+Owner asked for the birth date to be collected in the profile, with a checkbox for showing or hiding the age. Proposed policy (full text in `logic/profile-and-identity.md`): optional Solar Hijri date, age derived and shown to others only when the player ticks «سنم نمایش داده شود» (default off), the date itself never leaves the server, a minimum age (proposed 13) enforced at save time, and uses limited to a yearly birthday greeting with a small coin gift, an optional birthday badge, aggregated age-band stats and message targeting. Not built; sizes and the minimum age are for the owner to confirm.
