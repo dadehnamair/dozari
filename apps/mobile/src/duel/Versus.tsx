@@ -8,6 +8,7 @@ import { SlabButton } from '../components/SlabButton';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { characterFor } from './arena';
+import { steppedSec } from '../search/scan';
 
 const a = fa.duel.arena;
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
@@ -82,7 +83,7 @@ export function Versus({ me, rival, mate, rivals, waitedSec, countdown, onCancel
           </View>
         ) : (
           <>
-            <Text style={styles.waited}>{fa.duel.waited(waitedSec)}</Text>
+            <Text style={styles.waited}>{fa.duel.waited(steppedSec(waitedSec))}</Text>
             <SlabButton label={fa.duel.cancel} color={colors.candy.orange} height={58} fontSize={22} grow={0} onPress={onCancel} />
           </>
         )}
