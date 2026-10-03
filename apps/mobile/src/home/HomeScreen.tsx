@@ -19,6 +19,7 @@ import type { MissionAvailability } from '../missions/model';
 import { InviteSheet } from '../invite/InviteSheet';
 import type { ProfileTask } from '@dozari/shared';
 import { heroFor } from '../social/heroFor';
+import { applyAppIcon } from '../appIcon/appIcon';
 import type { Gender } from '@dozari/shared';
 import { ReviewSheet } from '../review/ReviewSheet';
 import { useReviewPrompt } from '../review/useReviewPrompt';
@@ -119,7 +120,7 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
   const [province, setProvince] = useState<Province | null>(null);
   const [dailyPuzzle, setDailyPuzzle] = useState<DailyStatus | null>(null);
   const loadMe = useCallback(() => {
-    fetchMyProfile().then((p) => (setGender(p.gender), setLevel(p.level.level), setProvince(provinceOf(p.city?.province))), () => undefined);
+    fetchMyProfile().then((p) => (setGender(p.gender), applyAppIcon(p.gender), setLevel(p.level.level), setProvince(provinceOf(p.city?.province))), () => undefined);
   }, []);
   useEffect(loadMe, [loadMe]);
   const [profileTasks, setProfileTasks] = useState<ProfileTask[]>([]);
@@ -289,7 +290,7 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
         </Pressable>
       ) : null}
       {review.open && review.url ? <ReviewSheet message={review.message} url={review.url} onReview={review.onReview} onLater={review.onLater} onNever={review.onNever} /> : null}
-      {profileOpen ? <ProfileSheet onClose={() => (setProfileOpen(false), loadMe(), loadTasks())} onGender={setGender} /> : null}
+      {profileOpen ? <ProfileSheet onClose={() => (setProfileOpen(false), loadMe(), loadTasks())} onGender={(g) => (setGender(g), applyAppIcon(g))} /> : null}
       {hubOpen ? (
         <CityHub
           onClose={() => setHubOpen(false)}
