@@ -159,6 +159,9 @@ work already implied by other specs rather than new decisions:
   — a simple ops view on top of `economy.md`, not a new balancing decision.
 - **Users**: search + mute/ban — the moderation actions `chat-and-access.md`'s profanity
   filter/report flow needs a human backstop for.
+- **Notifications**: compose a message with an audience (all / chat-unlocked / new users / one user)
+  and a sent list where each message shows its audience, recipient count and the concrete
+  recipient names (expandable) — so admins can always see who a message went to.
 
 Still open: admin authentication/roles, real backend wiring, and whether this stays inside the
 Expo web build (`apps/admin`, per `CLAUDE.md`'s repo map) or a separate tool — track as a Phase 7

@@ -77,6 +77,7 @@ body{padding-block:18px 32px}
   <symbol id="sparkle" viewBox="0 0 24 24"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/></symbol>
   <symbol id="user-plus" viewBox="0 0 24 24"><circle cx="10" cy="8.5" r="3.4"/><path d="M3.5 20c.6-4 3.7-6.1 6.5-6.1s5.9 2.1 6.5 6.1"/><path d="M18.5 8v6M15.5 11h6"/></symbol>
   <symbol id="crown" viewBox="0 0 24 24"><path d="M4 17.5h16M4.5 17 3 8l4.5 3.5L12 5l4.5 6.5L21 8l-1.5 9Z"/></symbol>
+  <symbol id="bell" viewBox="0 0 24 24"><path d="M6 17.5V11a6 6 0 0 1 12 0v6.5l1.5 1.5h-15Z"/><path d="M10 21h4"/></symbol>
   <symbol id="map-pin" viewBox="0 0 24 24"><path d="M12 21s6.5-6.1 6.5-11A6.5 6.5 0 0 0 5.5 10c0 4.9 6.5 11 6.5 11Z"/><circle cx="12" cy="10" r="2.3"/></symbol>
 </svg>
 
@@ -93,6 +94,7 @@ body{padding-block:18px 32px}
     <button aria-selected="false" data-tab="ugc"><svg class="icon"><use href="#star"></use></svg>پیشنهادهای UGC</button>
     <button aria-selected="false" data-tab="economy"><svg class="icon"><use href="#wallet"></use></svg>اقتصاد</button>
     <button aria-selected="false" data-tab="users"><svg class="icon"><use href="#users"></use></svg>کاربران</button>
+    <button aria-selected="false" data-tab="notifs"><svg class="icon"><use href="#bell"></use></svg>اعلان‌ها</button>
   </div>
 
   <section class="pane active" data-pane="dash">
@@ -151,6 +153,20 @@ body{padding-block:18px 32px}
     <div class="panel">
       <div class="field"><input type="text" id="userSearch" placeholder="جستجوی نام کاربری…"></div>
       <div id="userList"></div>
+    </div>
+  </section>
+  <section class="pane" data-pane="notifs">
+    <div class="panel">
+      <h2>ارسال اعلان جدید</h2>
+      <div class="field"><label for="nText">متن پیام</label><textarea id="nText" placeholder="مثلاً: تورنومنت هفتگی شروع شد!"></textarea></div>
+      <div class="field"><label for="nAud">ارسال برای</label>
+        <select id="nAud"><option value="all">همه‌ی کاربران</option><option value="chat">کاربران با چت آزاد</option><option value="new">کاربران جدید (کمتر از ۱۰ بازی)</option><option value="u">یک کاربر مشخص</option></select></div>
+      <div class="field" id="nUserWrap" hidden><label for="nUser">نام کاربر</label><select id="nUser"></select></div>
+      <button class="btn accent block" id="nSend">ارسال</button>
+    </div>
+    <div class="panel">
+      <h2>اعلان‌های ارسال‌شده</h2>
+      <div id="notifList"></div>
     </div>
   </section>
 </div>
@@ -231,6 +247,31 @@ body{padding-block:18px 32px}
     ).join('') || '<p class="hint">کسی پیدا نشد</p>';
   }
   drawUsers();
+
+  // Notifications: every sent message records its audience + the concrete recipient list.
+  const AUD = {all:'همه‌ی کاربران', chat:'کاربران با چت آزاد', new:'کاربران جدید (کمتر از ۱۰ بازی)'};
+  const recipientsOf = (aud, one) => aud==='u' ? users.filter(u=>u.name===one)
+    : aud==='chat' ? users.filter(u=>u.chat) : aud==='new' ? users.filter(u=>u.games<10) : users;
+  const sent = [
+    {text:'تورنومنت هفتگی شروع شد!', aud:'all', when:'دیروز', rec:users},
+    {text:'چت آزاد برات باز شد 🎉', aud:'chat', when:'۳ روز پیش', rec:users.filter(u=>u.chat)},
+  ];
+  $('nUser').innerHTML = users.map(u=>'<option>'+u.name+'</option>').join('');
+  $('nAud').addEventListener('change', e => { $('nUserWrap').hidden = e.target.value!=='u'; });
+  function drawNotifs(){
+    $('notifList').innerHTML = sent.map(n => {
+      const to = n.aud==='u' ? 'فقط '+n.rec[0].name : AUD[n.aud];
+      return '<details class="queue-item num" style="display:block"><summary><b>'+n.text+'</b><br><small>ارسال برای: <span class="badge">'+to+'</span> · '+n.rec.length.toLocaleString('fa-IR')+' نفر · '+n.when+'</small></summary>'+
+        '<p class="hint" style="margin-top:8px">گیرنده‌ها: '+(n.rec.map(u=>u.name).join('، ')||'—')+'</p></details>';
+    }).join('') || '<p class="hint">هنوز اعلانی ارسال نشده</p>';
+  }
+  drawNotifs();
+  $('nSend').addEventListener('click', () => {
+    const text = $('nText').value.trim(); if (!text) return toast('متن پیام خالیه');
+    const aud = $('nAud').value, one = $('nUser').value;
+    sent.unshift({text, aud, when:'همین الان', rec:recipientsOf(aud, one)});
+    $('nText').value=''; drawNotifs(); toast('اعلان ارسال شد (دمو)');
+  });
   $('userSearch').addEventListener('input', e => drawUsers(e.target.value));
   $('userList').addEventListener('click', e => {
     const mute = e.target.closest('[data-mute]'), ban = e.target.closest('[data-ban]');
