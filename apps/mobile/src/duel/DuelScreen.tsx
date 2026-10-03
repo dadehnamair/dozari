@@ -180,13 +180,17 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
 
   const countdown = Math.ceil((introUntil - now) / 1000);
   // Searching: the diamond search screen; once a rival is found: the versus screen counting down (D104).
-  if (!state.found && stage !== 'resume') return <SearchScreen waitedSec={state.waitedSec} onCancel={() => (void conn.current?.leaveQueue(), setStage('pick'), dispatch({ t: 'reset' }))} />;
+  if (!state.found && stage !== 'resume') return <SearchScreen team={mode === 'team'} waitedSec={state.waitedSec} onCancel={() => (void conn.current?.leaveQueue(), setStage('pick'), dispatch({ t: 'reset' }))} />;
   if (state.phase === 'idle' || state.phase === 'queued' || !view || countdown > 0) {
     const you = state.found?.you ?? 0;
+    const mineSide = sidePlayers(state.found, you);
+    const myProfile = mineSide.find((p) => p.userId !== undefined && p.userId === state.found?.youId) ?? mineSide[0];
     return (
       <Versus
-        me={{ nickname: sidePlayers(state.found, you)[0]?.nickname ?? '', level: sidePlayers(state.found, you)[0]?.level }}
+        me={{ nickname: myProfile?.nickname ?? '', level: myProfile?.level }}
         rival={players ? sidePlayers(state.found, (1 - you) as 0 | 1)[0] ?? null : null}
+        mate={team ? sidePlayers(state.found, you).find((p) => p !== myProfile) ?? null : undefined}
+        rivals={team ? sidePlayers(state.found, (1 - you) as 0 | 1) : undefined}
         waitedSec={state.waitedSec}
         countdown={players ? Math.max(1, countdown) : null}
         onCancel={() => (void conn.current?.leaveQueue(), setStage('pick'), dispatch({ t: 'reset' }))}

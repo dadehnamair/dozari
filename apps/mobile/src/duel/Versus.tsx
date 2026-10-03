@@ -16,7 +16,8 @@ const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
  * screen-versus of `13 Match Screens`: blue half for the player, pink half for the rival, a gold VS coin on the seam.
  * While searching the rival is a «؟» and the bottom slab cancels; once found it counts down to the board.
  */
-export function Versus({ me, rival, waitedSec, countdown, onCancel }: { me: { nickname: string; level?: number }; rival: MatchPlayerProfile | null; waitedSec: number; countdown: number | null; onCancel: () => void }) {
+export function Versus({ me, rival, mate, rivals, waitedSec, countdown, onCancel }: { me: { nickname: string; level?: number }; rival: MatchPlayerProfile | null; /** 2v2: the teammate and both rivals (all four seats are shown). */ mate?: MatchPlayerProfile | null; rivals?: readonly MatchPlayerProfile[]; waitedSec: number; countdown: number | null; onCancel: () => void }) {
+  const team = mate !== undefined;
   return (
     <View style={styles.root}>
       <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
@@ -44,7 +45,10 @@ export function Versus({ me, rival, waitedSec, countdown, onCancel }: { me: { ni
 
       <View style={styles.top}>
         <View style={styles.chip}><Text style={styles.chipText}>{rival ? a.found : fa.duel.searching}</Text></View>
-        <Fighter who="dozari" pose="coin" name={me.nickname || a.you} level={me.level} side="me" />
+        <View style={styles.pairRow}>
+          <Fighter who="dozari" pose="coin" name={me.nickname || a.you} level={me.level} side="me" small={team} />
+          {team && mate ? <Fighter who={characterFor(mate.avatarKey || mate.nickname)} pose="wave" name={mate.nickname} level={mate.level} side="me" small /> : null}
+        </View>
       </View>
 
       <View style={styles.coinWrap} pointerEvents="none">
@@ -55,7 +59,11 @@ export function Versus({ me, rival, waitedSec, countdown, onCancel }: { me: { ni
       </View>
 
       <View style={styles.bottom}>
-        {rival ? (
+        {team && rivals && rivals.length > 0 ? (
+          <View style={styles.pairRow}>
+            {rivals.map((r) => <Fighter key={r.userId ?? r.nickname} who={characterFor(r.avatarKey || r.nickname)} pose="angry" name={r.nickname} level={r.level} side="rival" small />)}
+          </View>
+        ) : rival ? (
           <Fighter who={characterFor(rival.avatarKey || rival.nickname)} pose="angry" name={rival.nickname} level={rival.level} side="rival" />
         ) : (
           <View style={styles.mystery}><Text style={styles.mysteryText}>{a.unknown}</Text></View>
@@ -83,10 +91,10 @@ export function Versus({ me, rival, waitedSec, countdown, onCancel }: { me: { ni
   );
 }
 
-function Fighter({ who, pose, name, level, side }: { who: 'dozari' | ReturnType<typeof characterFor>; pose: 'coin' | 'angry'; name: string; level?: number; side: 'me' | 'rival' }) {
+function Fighter({ who, pose, name, level, side, small = false }: { who: 'dozari' | ReturnType<typeof characterFor>; pose: 'coin' | 'angry' | 'wave'; name: string; level?: number; side: 'me' | 'rival'; small?: boolean }) {
   return (
     <View style={styles.fighter}>
-      <View style={[styles.body, side === 'rival' ? styles.flip : null]}>
+      <View style={[styles.body, small ? styles.bodySmall : null, side === 'rival' ? styles.flip : null]}>
         <Character who={who} pose={pose} month={who === 'dozari' ? solarMonthOf(Date.now()) : undefined} />
       </View>
       <View style={styles.plate}>
@@ -108,8 +116,10 @@ const styles = StyleSheet.create({
   coinText: { fontFamily: fonts.display, fontSize: 44, lineHeight: 60, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 3 }, textShadowRadius: 1 },
   fighter: { alignItems: 'center', gap: 4 },
   body: { width: 120, height: 139 },
+  bodySmall: { width: 86, height: 100 },
+  pairRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-end', justifyContent: 'center' },
   flip: { transform: [{ scaleX: -1 }] },
-  plate: { flexDirection: ROW, alignItems: 'center', gap: 6, paddingVertical: 3, paddingHorizontal: 10, borderRadius: 12, backgroundColor: colors.cream, borderWidth: 3, borderColor: colors.ink, shadowColor: colors.ink, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4, maxWidth: 220 },
+  plate: { flexDirection: ROW, alignItems: 'center', gap: 6, paddingVertical: 3, paddingHorizontal: 10, borderRadius: 12, backgroundColor: colors.cream, borderWidth: 3, borderColor: colors.ink, shadowColor: colors.ink, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4, maxWidth: 160 },
   lv: { width: 24, height: 24, borderRadius: 8, borderWidth: 2, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   lvText: { fontFamily: fonts.display, fontSize: 13, lineHeight: 20, color: '#fff' },
   name: { fontFamily: fonts.display, fontSize: 17, color: colors.ink, flexShrink: 1 },

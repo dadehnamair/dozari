@@ -23,7 +23,7 @@ const CELL_TONES = ['pink', 'orange', 'yellow', 'sky', 'grape', 'lime'] as const
 const toneOfCell = (i: number) =>
   candyTone[CELL_TONES[(i * 7 + 1) % CELL_TONES.length] as (typeof CELL_TONES)[number]];
 
-function Title({ small = false }: { small?: boolean }) {
+function Title({ small = false, text }: { small?: boolean; text: string }) {
   const w = small ? 230 : 296;
   return (
     <Svg
@@ -31,7 +31,7 @@ function Title({ small = false }: { small?: boolean }) {
       height={w * (160 / 760)}
       viewBox="-120 0 760 160"
       style={{ overflow: 'visible' }}
-      accessibilityLabel={fa.kit.search.title}
+      accessibilityLabel={text}
     >
       <Defs>
         <LinearGradient id="srT" x1="0" y1="0" x2="0" y2="1">
@@ -51,7 +51,7 @@ function Title({ small = false }: { small?: boolean }) {
         strokeWidth={22}
         strokeLinejoin="round"
       >
-        {fa.kit.search.title}
+        {text}
       </SvgText>
       <SvgText
         x={260}
@@ -64,7 +64,7 @@ function Title({ small = false }: { small?: boolean }) {
         strokeWidth={10}
         strokeLinejoin="round"
       >
-        {fa.kit.search.title}
+        {text}
       </SvgText>
       <SvgText
         x={260}
@@ -74,7 +74,7 @@ function Title({ small = false }: { small?: boolean }) {
         fontSize={104}
         fill="url(#srT)"
       >
-        {fa.kit.search.title}
+        {text}
       </SvgText>
     </Svg>
   );
@@ -130,7 +130,7 @@ function PlayerCard({ index, active, face, compact }: { index: number; active: b
  * Opponent search screen ("screen-search" in the design kit): a grid of candidate players being scanned, you vs «؟», cancel.
  * `waitedSec` (the real queue time) replaces the demo clock; the duel shows this while searching (D104).
  */
-export function SearchScreen({ onCancel, waitedSec }: { onCancel: () => void; waitedSec?: number }) {
+export function SearchScreen({ onCancel, waitedSec, team = false }: { onCancel: () => void; waitedSec?: number; /** 2v2: looks for a teammate and two rivals (three players), not one opponent. */ team?: boolean }) {
   const compact = useWindowDimensions().height < 800;
   const [scan, setScan] = useState(0);
   const [ticks, setTicks] = useState(0);
@@ -187,13 +187,31 @@ export function SearchScreen({ onCancel, waitedSec }: { onCancel: () => void; wa
     };
   }, [pulse, spin]);
 
-  const scanTone = toneOfCell(scan);
   const s = fa.kit.search;
+  /** A scanning «؟» disc showing one of the faces going by; `offset` keeps the several discs of a 2v2 on different faces. */
+  const mystery = (offset: number, size: number) => (
+    <View style={styles.side}>
+      <View style={[styles.disc, { width: size, height: size, borderRadius: size / 2, backgroundColor: toneOfCell(scan + offset).base }]}>
+        <Animated.View style={[styles.sweep, { borderRadius: size / 2 + 6, borderTopWidth: size / 2, borderRightWidth: size / 2, transform: [{ rotate: spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }] }]} />
+        <Text style={[styles.unknown, size < 60 ? styles.unknownSmall : null]}>{s.unknown}</Text>
+      </View>
+      <Text style={[styles.sideName, size < 60 ? styles.sideNameSmall : null]} numberOfLines={1}>{faces[(scan + offset) % faces.length]?.name}</Text>
+    </View>
+  );
+  const you = (size: number) => (
+    <View style={styles.side}>
+      <View style={[styles.disc, { width: size, height: size, borderRadius: size / 2, backgroundColor: candyTone.lime.base }]}>
+        <View style={{ width: size * 0.76, height: size * 0.76 }}><Character pose="idle" skin={0} crop="face" /></View>
+      </View>
+      <Text style={[styles.sideName, size < 60 ? styles.sideNameSmall : null]}>{s.you}</Text>
+    </View>
+  );
   return (
     <DiamondBackground>
       <View style={styles.screen}>
         <View style={styles.title}>
-          <Title small={compact} />
+          <Title small={compact} text={team ? fa.kit.search.titleTeam : fa.kit.search.title} />
+          {team ? <Text style={styles.teamNote}>{fa.kit.search.teamNote}</Text> : null}
         </View>
         <View style={styles.rows}>
           {ROW_TONES.map((rt, r) => (
@@ -212,14 +230,14 @@ export function SearchScreen({ onCancel, waitedSec }: { onCancel: () => void; wa
         </View>
         <View style={styles.versusSlot}>
         <View style={styles.versus}>
-          <View style={styles.side}>
-            <View style={[styles.disc, { backgroundColor: candyTone.lime.base }]}>
-              <View style={styles.discFace}>
-                <Character pose="idle" skin={0} crop="face" />
-              </View>
+          {team ? (
+            <View style={styles.pair}>
+              {you(46)}
+              {mystery(3, 46)}
             </View>
-            <Text style={styles.sideName}>{s.you}</Text>
-          </View>
+          ) : (
+            you(68)
+          )}
           <View style={styles.middle}>
             <Animated.Text style={[styles.vs, { transform: [{ scale: pulse }] }]}>
               {s.versus}
@@ -230,27 +248,14 @@ export function SearchScreen({ onCancel, waitedSec }: { onCancel: () => void; wa
               <Text style={[styles.clock, styles.clockTime, LTR]}>{toPersianDigits(waitedSec === undefined ? searchClock(ticks, TICK_MS) : waitClock(waitedSec))}</Text>
             </View>
           </View>
-          <View style={styles.side}>
-            <View style={[styles.disc, { backgroundColor: scanTone.base }]}>
-              <Animated.View
-                style={[
-                  styles.sweep,
-                  {
-                    transform: [
-                      {
-                        rotate: spin.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: ['0deg', '360deg'],
-                        }),
-                      },
-                    ],
-                  },
-                ]}
-              />
-              <Text style={styles.unknown}>{s.unknown}</Text>
+          {team ? (
+            <View style={styles.pair}>
+              {mystery(0, 46)}
+              {mystery(7, 46)}
             </View>
-            <Text style={styles.sideName}>{faces[scan]?.name}</Text>
-          </View>
+          ) : (
+            mystery(0, 68)
+          )}
         </View>
         </View>
         <View style={styles.cancel}>
@@ -264,6 +269,7 @@ export function SearchScreen({ onCancel, waitedSec }: { onCancel: () => void; wa
 const styles = StyleSheet.create({
   screen: { flex: 1, paddingHorizontal: 10, paddingTop: safeTop(Platform.OS === 'web' ? 18 : 34) },
   title: { alignItems: 'center', marginBottom: 6 },
+  teamNote: { fontFamily: fonts.bold, fontSize: 12, color: colors.cream, opacity: 0.85, marginTop: -4 },
   rows: { gap: 5 },
   row: {
     flexDirection: 'row',
@@ -371,7 +377,10 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 3 },
     textShadowRadius: 0,
   },
-  sideName: { fontFamily: fonts.display, fontSize: 15, color: colors.cream },
+  sideName: { fontFamily: fonts.display, fontSize: 15, color: colors.cream, maxWidth: 80 },
+  sideNameSmall: { fontSize: 12, maxWidth: 60 },
+  pair: { flexDirection: 'row', gap: 6, alignItems: 'flex-start' },
+  unknownSmall: { fontSize: 28 },
   middle: { alignItems: 'center', gap: 0 },
   vs: {
     fontFamily: fonts.display,

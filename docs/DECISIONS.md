@@ -396,3 +396,7 @@ Owner: seed some products, prices and puzzles as samples; they will delete them 
 ## D150 — Page headers sit high; the header band grows with the notch (2026-10-03)
 
 Owner: on some pages the back button and title fell on the header's border line. Cause: the coloured band had a fixed height while the title row moved down by the device's top inset. The band now grows with the inset and the row starts closer to the top; the opponent-search status is one line. See `logic/app-screens.md` §Page headers.
+
+## D151 — The 2v2 search looks for three players (2026-10-03)
+
+Owner: in 2v2 the search screen must look for three players, not one. The panel now shows a teammate «؟» next to you and two rival «؟», and the found-screen shows all four; `match:found` gained `youId`. See `logic/app-screens.md` §Searching for a 2v2.

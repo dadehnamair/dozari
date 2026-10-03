@@ -136,7 +136,7 @@ export class MatchService {
     this.byUser.set(b, id);
     const profiles: MatchFound['players'] = [{ userId: a, side: 0, ...pa }, { userId: b, side: 1, ...pb }];
     for (const [userId, you] of [[a, 0], [b, 1]] as const) {
-      const found: MatchFound = { matchId: id, you, players: profiles };
+      const found: MatchFound = { matchId: id, you, youId: userId, players: profiles };
       this.deps.emit(userId, ServerEvent.matchFound, found);
     }
     this.pushState(entry);
@@ -156,7 +156,7 @@ export class MatchService {
     this.matches.set(id, entry);
     for (const u of all) this.byUser.set(u, id);
     const players: MatchFound['players'] = all.map((u, i) => ({ userId: u, side: i < 2 ? 0 : 1, ...(profiles[i] as PlayerProfile) }));
-    for (const [i, u] of all.entries()) this.deps.emit(u, ServerEvent.matchFound, { matchId: id, you: i < 2 ? 0 : 1, players } satisfies MatchFound);
+    for (const [i, u] of all.entries()) this.deps.emit(u, ServerEvent.matchFound, { matchId: id, you: i < 2 ? 0 : 1, youId: u, players } satisfies MatchFound);
     this.pushState(entry);
     this.armTimer(entry);
     return true;

@@ -101,6 +101,8 @@ export const queueStatusSchema = z.object({ waitedSec: z.number().int().nonnegat
 export const matchFoundSchema = z.object({
   matchId: z.string().uuid(),
   you: side,
+  /** The receiver's own user id, to tell which listed player is them (and which is the teammate in a 2v2). */
+  youId: z.string().optional(),
   /** 2 players (1v1) or 4 (2v2, listed side 0 first). */
   players: z.array(matchPlayerProfileSchema).min(2).max(4),
 });

@@ -1047,6 +1047,8 @@ export const fa = {
     gallery: 'نمایش طراحی',
     search: {
       title: 'جستجوی حریف',
+      titleTeam: 'جستجوی تیم',
+      teamNote: 'یک هم‌تیمی و دو حریف پیدا می‌کنیم',
       you: 'تو',
       searching: 'در حال جستجو...',
       cancel: 'لغو جستجو',
