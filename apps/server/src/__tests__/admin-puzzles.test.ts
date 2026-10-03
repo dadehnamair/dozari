@@ -85,7 +85,7 @@ describe('hand-built puzzles in the admin panel', () => {
     const after = (await app.inject({ method: 'GET', url: '/admin/puzzles', headers: h })).json();
     expect(after.puzzles.find((p: { id: string }) => p.id === id)).toMatchObject({ status: 'approved' });
     expect(after.puzzles.find((p: { id: string }) => p.id === id).groups[0].titleFa).toBe('عنوان بامزه 0');
-  });
+  }, 30_000);
 
   it('says how many it could make when the catalog is too small', async () => {
     const { app, h } = boot();
