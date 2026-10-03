@@ -1,0 +1,16 @@
+# Owner backlog of 2026-10-03 (6 items) — to do after the first Android build
+
+Source: the owner's list at the end of the 2026-10-03 session. Each item carries a *proposed* default (tunable from the admin
+panel, never a code literal — CLAUDE.md rule 9). Product questions stay open until the owner confirms (`DECISIONS.md` D156).
+
+| # | Item | Proposed default / approach | Touches |
+|---|---|---|---|
+| 1 | **Wheel prizes: everything, but spins are scarce** | The wheel must be able to pay *every* prize kind — coins, gems (الماس), clothing, hats (کلاه) and other cosmetics — not only coins; slice prizes become a typed table (kind + amount/item id) edited in the admin. **Nobody gets free spins until the owner sets the policy**: `wheel.daily_spins` → 0 and the won-duel spin stays off until confirmed. Target design: spins behave like *lives* (a small refilling stock, e.g. 1 per N hours, capped), so players can spin and win, but prizes are valuable enough that spins stay precious. | `wheel/*`, `shared/config`, admin settings, inventory/cosmetics |
+| 2 | **Board cards: names and icons must fit** | On the match board names/icons overflow small cards. Policy: a fixed card box; icon takes a fixed share of the height; the name gets up to 2 lines with auto-shrink to a floor (then `…`), never spilling out; one measured layout table per screen height (360×560 … 390×780) with a screenshot test. Long names get a short form in the catalog (`name_short_fa`), not a smaller font than the floor. | `game/*` board cards, catalog schema |
+| 3 | **Profile completion nudge** | Home shows a «تکمیل پروفایل» card, or the guide character says «برو این کار را بکن، سکه بگیر» for the first missing field (avatar, nickname, city, gender, phone/Bale link). Reward per field (coins, once, via `coin_ledger`). | Home, profile, ledger reasons |
+| 4 | **Missions (ماموریت)** | A missions screen: one-time tasks that pay coins — complete the profile, follow the social accounts, review the app in Bazaar/Myket/Bale (reuses D75 store-review flow), invite a friend, first win … Server-side `missions` + `user_missions` tables, claim endpoint through the single ledger service, amounts in admin settings. Anti-abuse: social follow cannot be verified, so it is an honour claim with a small reward. | new `missions` module, ledger, admin |
+| 5 | **Faster opponent search** | Today the 1v1 wait is too long. Lower the human-wait before a bot fills the seat (existing settings `bots.fallback_seconds` and `bots.fallback_jitter_seconds`; today 25 s + up to 15 s jitter, i.e. up to 40 s; propose ~8 s + ~4 s jitter; already editable in the admin settings), keep the bot-fill rules of `logic/bots.md` (undisclosed, same MatchService). | `find/*`, `botplayers`, settings registry |
+| 6 | **Not-my-turn state** | While it is the opponent's turn the answer options/cards are desaturated and disabled; they turn colourful when it is my turn, so the turn is readable at a glance. Purely client; driven by the existing turn state. | `game/*` board, match screen |
+
+Open questions for the owner: what exactly counts as the wheel's non-coin prizes (cosmetics that exist in the app today vs new
+ones), the refill rate of spins, and the reward sizes of the missions.
