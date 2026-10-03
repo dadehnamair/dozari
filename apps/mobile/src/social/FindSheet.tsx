@@ -10,6 +10,7 @@ import { fetchMyFind, saveFindable, searchPlayer } from './api';
 import { avatarOf } from './avatarOf';
 import { PlayerSheet } from './PlayerSheet';
 import { useHardwareBack } from '../nav/useHardwareBack';
+import { TEXT_LEFT } from '../theme/direction';
 
 const INK = '#3A2418';
 
@@ -83,7 +84,7 @@ const styles = StyleSheet.create({
   bad: { color: '#B3261E', opacity: 1 },
   code: { fontFamily: fonts.display, fontSize: 30, letterSpacing: 3, color: INK, writingDirection: 'ltr' },
   row: { flexDirection: 'row', gap: 8, alignItems: 'center', alignSelf: 'stretch', justifyContent: 'space-between' },
-  input: { flex: 1, fontFamily: fonts.bold, fontSize: 16, color: INK, borderWidth: 2, borderColor: INK, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: '#fff', textAlign: 'left', writingDirection: 'ltr' },
+  input: { flex: 1, fontFamily: fonts.bold, fontSize: 16, color: INK, borderWidth: 2, borderColor: INK, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: '#fff', textAlign: TEXT_LEFT, writingDirection: 'ltr' },
   pill: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 99, borderWidth: 2, borderColor: INK, backgroundColor: colors.cream },
   on: { backgroundColor: '#FFC93C' },
   pillText: { fontFamily: fonts.bold, fontSize: 14, color: INK },

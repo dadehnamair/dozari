@@ -12,6 +12,7 @@ import { buildingParts } from './buildings';
 import { HUB_BUILDINGS, canEnter } from './layout';
 import type { HubAction, HubBuilding } from './layout';
 import { useHardwareBack } from '../nav/useHardwareBack';
+import { TEXT_RIGHT } from '../theme/direction';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const MAP_W = 318;
@@ -172,7 +173,7 @@ const styles = StyleSheet.create({
   sheetBody: { flex: 1, gap: 6, minWidth: 0 },
   sheetHead: { flexDirection: ROW, alignItems: 'center', gap: 8 },
   sheetName: { fontFamily: fonts.display, fontSize: 26, color: colors.ink },
-  desc: { fontFamily: fonts.bold, fontSize: 13, lineHeight: 22, color: colors.ink, textAlign: 'right' },
+  desc: { fontFamily: fonts.bold, fontSize: 13, lineHeight: 22, color: colors.ink, textAlign: TEXT_RIGHT },
   buttons: { flexDirection: ROW, gap: 8, marginTop: 4 },
   enter: { flex: 1, height: 48, borderRadius: 15, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...lift(4) },
   enterOff: { opacity: 0.85 },

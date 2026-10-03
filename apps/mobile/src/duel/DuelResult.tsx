@@ -9,6 +9,7 @@ import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import type { CharacterId } from '../theme/character';
 import { nativeTopInset } from '../theme/safeArea';
+import { TEXT_RIGHT } from '../theme/direction';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const a = fa.duel.arena;
@@ -80,7 +81,7 @@ const styles = StyleSheet.create({
   sub: { fontFamily: fonts.bold, fontSize: 13, color: colors.cream, textAlign: 'center' },
   board: { marginTop: 10, borderRadius: 20, backgroundColor: '#FBF1DE', borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', shadowColor: colors.ink, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 1, shadowRadius: 0, elevation: 5 },
   head: { height: 30, flexDirection: ROW, alignItems: 'center', paddingHorizontal: 12, gap: 8, backgroundColor: colors.ink },
-  headText: { fontFamily: fonts.bold, fontSize: 11, color: 'rgba(255,246,232,0.75)', textAlign: 'right' },
+  headText: { fontFamily: fonts.bold, fontSize: 11, color: 'rgba(255,246,232,0.75)', textAlign: TEXT_RIGHT },
   grow: { flex: 1, minWidth: 0 },
   cell: { width: 50, textAlign: 'center' },
   line: { height: 46, flexDirection: ROW, alignItems: 'center', gap: 8, paddingHorizontal: 10, borderTopWidth: 1.5, borderStyle: 'dashed', borderColor: 'rgba(43,18,64,0.2)' },

@@ -147,6 +147,7 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: colors.ink,
     overflow: 'hidden',
+    direction: 'ltr', // the bar fills from the left, as in the web design
   },
   fill: {
     height: '100%',

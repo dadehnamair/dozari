@@ -73,6 +73,6 @@ const styles = StyleSheet.create({
   pips: { gap: 3 },
   pip: { width: 14, height: 14, borderRadius: 4, borderWidth: 2, borderColor: colors.ink },
   bar: { height: 14, borderRadius: 99, borderWidth: 2.5, borderColor: colors.ink, overflow: 'hidden', backgroundColor: colors.candy.pink },
-  mine: { position: 'absolute', top: 0, bottom: 0, [Platform.OS === 'web' ? 'right' : 'left']: 0, backgroundColor: colors.candy.sky },
+  mine: { position: 'absolute', top: 0, bottom: 0, right: 0, backgroundColor: colors.candy.sky },
   gloss: { position: 'absolute', top: 0, left: 0, right: 0, height: 5, backgroundColor: 'rgba(255,255,255,0.4)' },
 });

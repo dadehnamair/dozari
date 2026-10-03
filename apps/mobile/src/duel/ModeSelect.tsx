@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
   stat: { flexDirection: ROW, alignItems: 'center', gap: 4 },
   statIcon: { width: 22, height: 22 },
   statText: { fontFamily: fonts.bold, fontSize: 13, color: colors.ink },
-  check: { position: 'absolute', top: 50, [Platform.OS === 'web' ? 'left' : 'right']: 10, width: 30, height: 30, borderRadius: 15, backgroundColor: colors.candy.lime, borderWidth: 3, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  check: { position: 'absolute', top: 50, left: 10, width: 30, height: 30, borderRadius: 15, backgroundColor: colors.candy.lime, borderWidth: 3, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   checkText: { fontFamily: fonts.bold, fontSize: 15, lineHeight: 20, color: '#fff' },
   vs: { alignSelf: 'center', borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '-8deg' }], zIndex: 1 },
   vsText: { fontFamily: fonts.display, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },

@@ -7,6 +7,7 @@ import { SlabButton } from '../components/SlabButton';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { nativeTopInset } from '../theme/safeArea';
+import { TEXT_RIGHT } from '../theme/direction';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const t = fa.tutorial;
@@ -108,7 +109,7 @@ const styles = StyleSheet.create({
   tag: { paddingHorizontal: 8, borderRadius: 99, backgroundColor: '#3F72D0', borderWidth: 2, borderColor: colors.ink },
   tagText: { fontFamily: fonts.display, fontSize: 12, lineHeight: 20, color: '#fff' },
   title: { fontFamily: fonts.display, fontSize: 16, color: colors.ink },
-  text: { fontFamily: fonts.bold, fontSize: 12.5, lineHeight: 21, color: colors.ink, textAlign: 'right' },
+  text: { fontFamily: fonts.bold, fontSize: 12.5, lineHeight: 21, color: colors.ink, textAlign: TEXT_RIGHT },
   footer: { flexDirection: ROW, alignItems: 'flex-end', gap: 8, marginTop: 4 },
   guide: { width: 132, height: 153, marginBottom: -6 },
   cta: { flex: 1, paddingBottom: 6 },

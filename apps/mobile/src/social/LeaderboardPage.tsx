@@ -16,6 +16,7 @@ import { CityPicker } from './CityPicker';
 import { PlayerSheet } from './PlayerSheet';
 import { pageTop } from '../theme/safeArea';
 import { useHardwareBack } from '../nav/useHardwareBack';
+import { TEXT_RIGHT } from '../theme/direction';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const n = (v: number) => toPersianDigits(String(v));
@@ -190,6 +191,6 @@ const styles = StyleSheet.create({
   score: { fontFamily: fonts.display, fontSize: 16, color: colors.ink },
   mine: { position: 'absolute', left: 10, right: 10, bottom: 18, height: 52, flexDirection: ROW, alignItems: 'center', gap: 8, paddingHorizontal: 10, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', ...lift(5) },
   mineRank: { width: 30, fontFamily: fonts.display, fontSize: 20, color: colors.ink, textAlign: 'center' },
-  mineName: { flex: 1, fontFamily: fonts.display, fontSize: 15, color: colors.ink, textAlign: 'right' },
+  mineName: { flex: 1, fontFamily: fonts.display, fontSize: 15, color: colors.ink, textAlign: TEXT_RIGHT },
   mineScore: { fontFamily: fonts.display, fontSize: 18, color: colors.ink },
 });

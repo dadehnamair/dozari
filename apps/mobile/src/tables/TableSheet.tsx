@@ -15,6 +15,7 @@ import { fetchFriends } from '../social/api';
 import { OnlineDot } from '../components/OnlineDot';
 import { createTable, inviteToTable, extendTable, fetchMyTable, fetchTable, joinTable, kickFromTable, leaveTable, setTableLocked, setTableReady, setTableSide, startTable } from './api';
 import { useHardwareBack } from '../nav/useHardwareBack';
+import { TEXT_RIGHT } from '../theme/direction';
 
 const INK = '#3A2418';
 const errText = (e: unknown) => fa.tables.errors[e instanceof ApiError ? e.code : 'generic'] ?? fa.tables.errors.generic ?? '';
@@ -214,13 +215,13 @@ const styles = StyleSheet.create({
   name: { fontFamily: fonts.bold, fontSize: 14, color: INK, flex: 1 },
   hint: { fontFamily: fonts.bold, fontSize: 12, color: INK, opacity: 0.8 },
   warn: { fontFamily: fonts.bold, fontSize: 13, color: '#B3261E' },
-  input: { fontFamily: fonts.bold, fontSize: 14, color: INK, borderWidth: 2, borderColor: INK, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: '#fff', textAlign: 'right' },
+  input: { fontFamily: fonts.bold, fontSize: 14, color: INK, borderWidth: 2, borderColor: INK, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: '#fff', textAlign: TEXT_RIGHT },
   grow: { flex: 1 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   titleIcon: { width: 34, height: 34 },
   choice: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, borderRadius: 18, borderWidth: 3, borderColor: INK },
   choiceIcon: { width: 44, height: 44 },
-  choiceTitle: { fontFamily: fonts.display, fontSize: 18, color: INK, textAlign: 'right' },
+  choiceTitle: { fontFamily: fonts.display, fontSize: 18, color: INK, textAlign: TEXT_RIGHT },
   icons: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
   iconCell: { width: 48, height: 48, padding: 5, borderRadius: 12, borderWidth: 2, borderColor: 'transparent', backgroundColor: '#fff' },
   iconOn: { borderColor: INK, backgroundColor: colors.candy.yellow },
