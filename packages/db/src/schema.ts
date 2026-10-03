@@ -843,6 +843,56 @@ export const shopPurchases = mysqlTable(
   (table) => ({ byUserDay: index('shop_purchases_user_idx').on(table.userId, table.createdAt) }),
 );
 
+export const LANDING_POST_STATUS = ['draft', 'published'] as const;
+
+/** Blog posts of the landing site `mrdozari.ir` (item 8, D173); written in Markdown in the admin panel. */
+export const landingPosts = mysqlTable(
+  'landing_posts',
+  {
+    id: id(),
+    slug: varchar('slug', { length: 120 }).notNull(),
+    titleFa: varchar('title_fa', { length: 160 }).notNull(),
+    summaryFa: varchar('summary_fa', { length: 400 }).notNull().default(''),
+    bodyMd: text('body_md').notNull(),
+    metaTitle: varchar('meta_title', { length: 70 }),
+    metaDescription: varchar('meta_description', { length: 200 }),
+    coverUrl: varchar('cover_url', { length: 300 }),
+    authorName: varchar('author_name', { length: 80 }).notNull().default(''),
+    status: mysqlEnum('status', LANDING_POST_STATUS).notNull().default('draft'),
+    publishedAt: datetime('published_at', { mode: 'date', fsp: 3 }),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    updatedAt: datetime('updated_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (t) => ({ slugUnique: uniqueIndex('landing_posts_slug_idx').on(t.slug), byPublished: index('landing_posts_published_idx').on(t.status, t.publishedAt) }),
+);
+
+/** Old slugs of a renamed post: the landing site answers them with a 301 to the new one. */
+export const landingSlugRedirects = mysqlTable('landing_slug_redirects', {
+  oldSlug: varchar('old_slug', { length: 120 }).primaryKey(),
+  postId: char('post_id', { length: 36 }).notNull().references(() => landingPosts.id, { onDelete: 'cascade' }),
+});
+
+/** The cast page: the characters and people of the game. */
+export const landingCast = mysqlTable('landing_cast', {
+  id: id(),
+  nameFa: varchar('name_fa', { length: 80 }).notNull(),
+  roleFa: varchar('role_fa', { length: 120 }).notNull().default(''),
+  bioFa: text('bio_fa').notNull(),
+  /** A character key of the app's art (`dozari`, `dozariF`, …) or an image address. */
+  imageKey: varchar('image_key', { length: 200 }),
+  sortOrder: int('sort_order').notNull().default(0),
+  isActive: boolean('is_active').notNull().default(true),
+});
+
+/** Questions and answers of the landing page (also published as FAQ structured data). */
+export const landingFaq = mysqlTable('landing_faq', {
+  id: id(),
+  questionFa: varchar('question_fa', { length: 200 }).notNull(),
+  answerFa: text('answer_fa').notNull(),
+  sortOrder: int('sort_order').notNull().default(0),
+  isActive: boolean('is_active').notNull().default(true),
+});
+
 /** Self-hosted short links for outgoing addresses (the `2oi.ir` domain, D172); the redirect counts every click. */
 export const shortLinks = mysqlTable('short_links', {
   code: varchar('code', { length: 24 }).primaryKey(),

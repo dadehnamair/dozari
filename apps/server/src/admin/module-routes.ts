@@ -22,6 +22,8 @@ import type { PlayerStore } from '../player/store.js';
 import type { CoinPackageService } from '../economy/coin-packages.js';
 import type { ShopStore } from '../economy/shop-store.js';
 import type { WheelService } from '../wheel/service.js';
+import { registerLandingAdminRoutes } from '../landing/routes.js';
+import type { LandingService } from '../landing/service.js';
 import { registerShortLinkAdminRoutes } from '../shortlinks/routes.js';
 import type { ShortLinkService } from '../shortlinks/service.js';
 import type { BadgeService } from '../badges/service.js';
@@ -45,6 +47,8 @@ export interface AdminModules {
   cities?: PlayerStore;
   /** Coin shop items (price, level gate, daily limit, visibility). */
   shop?: ShopStore;
+  /** Blog, cast and FAQ of the landing site. */
+  landing?: LandingService;
   /** Self-hosted short links (the short domain). */
   shortLinks?: { service: ShortLinkService; base: () => Promise<string> };
   /** Lucky-wheel prize table (kind, amount, odds, visibility). */
@@ -137,7 +141,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     settingGroups: SETTING_GROUPS,
     icons: ITEMS,
     iconGroups: ITEM_GROUPS,
-    modules: { puzzles: !!m.puzzles, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, wheel: !!m.wheel, shortLinks: !!m.shortLinks, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages },
+    modules: { puzzles: !!m.puzzles, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, wheel: !!m.wheel, shortLinks: !!m.shortLinks, landing: !!m.landing, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages },
   }));
 
   if (m.stats) {
@@ -794,6 +798,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     });
   }
 
+  if (m.landing) registerLandingAdminRoutes(g, m.landing, (a, t, d) => void audit(a, t, d));
   if (m.shortLinks) registerShortLinkAdminRoutes(g, m.shortLinks.service, m.shortLinks.base, (a, t, d) => void audit(a, t, d));
 
   if (m.wheel) {

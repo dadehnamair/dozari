@@ -351,6 +351,13 @@
       "when": 1791039970797,
       "tag": "0049_wet_gorilla_man",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "5",
+      "when": 1791040172997,
+      "tag": "0050_low_crusher_hogan",
+      "breakpoints": true
     }
   ]
 }

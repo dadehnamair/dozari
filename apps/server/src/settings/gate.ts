@@ -6,7 +6,7 @@ export interface GateVerdict {
 }
 
 /** Paths that keep working in maintenance mode: health checks, the client config, the admin panel and static images. */
-const ALWAYS_OPEN = ['/health', '/config', '/admin', '/images'];
+const ALWAYS_OPEN = ['/health', '/config', '/admin', '/images', '/public'];
 
 const FEATURE_OF: [prefix: string, setting: string][] = [
   ['/lookup', 'feature.lookup'],
