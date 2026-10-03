@@ -19,9 +19,8 @@ import { FriendsChat } from './FriendsChat';
 import { fetchChat, fetchTaunts, reportMessage, sendTaunt, sendText } from './api';
 import type { ChatTab } from './api';
 import { chatErrorText, mergeMessages } from './errors';
-import { TEXT_START } from '../theme/direction';
 
-const ROW = ('row-reverse' as const);
+const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const POLL_MS = 4000;
 
 /**
@@ -202,18 +201,18 @@ const styles = StyleSheet.create({
   bubble: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 16, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: '#fff', ...lift(3) },
   bubbleMine: { backgroundColor: colors.candy.yellow },
   bubbleTaunt: { backgroundColor: '#E8D5FF' },
-  text: { fontFamily: fonts.bold, fontSize: 13, lineHeight: 21, color: colors.ink, textAlign: TEXT_START },
+  text: { fontFamily: fonts.bold, fontSize: 13, lineHeight: 21, color: colors.ink, textAlign: 'right' },
   tableRow: { flexDirection: ROW, alignItems: 'center', gap: 6 },
   tableIcon: { width: 26, height: 26 },
   tableCard: { gap: 4, padding: 8, borderRadius: 14, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: '#FFF3C4', ...lift(3) },
-  join: { fontFamily: fonts.display, fontSize: 14, color: '#7E46D6', textAlign: TEXT_START },
+  join: { fontFamily: fonts.display, fontSize: 14, color: '#7E46D6', textAlign: 'right' },
   report: { fontFamily: fonts.bold, fontSize: 10, color: colors.ink, opacity: 0.45, paddingHorizontal: 6 },
   footer: { gap: 6, paddingBottom: 14, paddingTop: 4 },
   quick: { flexDirection: ROW, gap: 6, paddingVertical: 2 },
   chip: { height: 38, paddingHorizontal: 12, borderRadius: 99, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: '#E8D5FF', justifyContent: 'center', ...lift(3) },
   chipText: { fontFamily: fonts.bold, fontSize: 12, color: colors.ink },
   inputRow: { flexDirection: ROW, gap: 6, alignItems: 'center' },
-  input: { flex: 1, minWidth: 0, height: 52, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#fff', paddingHorizontal: 14, fontFamily: fonts.bold, fontSize: 14, color: colors.ink, textAlign: TEXT_START },
+  input: { flex: 1, minWidth: 0, height: 52, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#fff', paddingHorizontal: 14, fontFamily: fonts.bold, fontSize: 14, color: colors.ink, textAlign: 'right' },
   send: { width: 52, height: 52, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...lift(4) },
   pressed: { transform: [{ translateY: 3 }] },
   sendMark: { fontSize: 22, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },

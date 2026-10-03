@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { TournamentDetail, TournamentListItem } from '@dozari/shared';
 import { toPersianDigits } from '@dozari/shared';
 import { Avatar } from '../components/Avatar';
@@ -20,9 +20,8 @@ import { colors, fonts } from '../theme/colors';
 import { fetchTournament, fetchTournaments, joinTournament, leaveTournament } from './api';
 import { blockedText, placeLabel, roundLabel } from './text';
 import { pageTop } from '../theme/safeArea';
-import { TEXT_START } from '../theme/direction';
 
-const ROW = ('row-reverse' as const);
+const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const n = (v: number) => toPersianDigits(String(v));
 const when = (ms: number) => new Intl.DateTimeFormat('fa-IR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(ms));
 const TINTS = ['#FFE48A', '#3FC1F0', '#FF8FB6', '#B8F08F', '#C9A3FF', '#FFAA7A'];
@@ -208,8 +207,8 @@ const styles = StyleSheet.create({
   tile: { width: 50, height: 50, borderRadius: 14, borderWidth: 2.5, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   tileIcon: { width: 38, height: 38 },
   cardBody: { flex: 1, minWidth: 0, gap: 1 },
-  cardTitle: { fontFamily: fonts.display, fontSize: 16, color: colors.ink, textAlign: TEXT_START },
-  cardSub: { fontFamily: fonts.bold, fontSize: 10.5, color: '#5A3A7A', textAlign: TEXT_START },
+  cardTitle: { fontFamily: fonts.display, fontSize: 16, color: colors.ink, textAlign: 'right' },
+  cardSub: { fontFamily: fonts.bold, fontSize: 10.5, color: '#5A3A7A', textAlign: 'right' },
   chip: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 99, borderWidth: 2, borderColor: colors.ink },
   chipText: { fontFamily: fonts.display, fontSize: 11, color: colors.ink },
 
@@ -241,13 +240,13 @@ const styles = StyleSheet.create({
   matchLive: { borderColor: '#7ED957' },
   player: { height: 28, flexDirection: ROW, alignItems: 'center', gap: 4, paddingHorizontal: 6, borderBottomWidth: 1, borderColor: 'rgba(43,18,64,0.15)' },
   playerWon: { backgroundColor: '#E4F7D0' },
-  playerName: { flex: 1, fontFamily: fonts.bold, fontSize: 11, color: colors.ink, textAlign: TEXT_START },
+  playerName: { flex: 1, fontFamily: fonts.bold, fontSize: 11, color: colors.ink, textAlign: 'right' },
   dim: { opacity: 0.5 },
   check: { fontFamily: fonts.display, fontSize: 13, color: '#3FA36B' },
   panel: { gap: 6, padding: 12, borderRadius: 20, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#FBF1DE', ...lift(5) },
-  label: { fontFamily: fonts.display, fontSize: 16, color: '#7E46D6', textAlign: TEXT_START, marginTop: 4 },
-  text: { fontFamily: fonts.bold, fontSize: 13, lineHeight: 21, color: colors.ink, textAlign: TEXT_START },
-  small: { fontFamily: fonts.bold, fontSize: 11.5, lineHeight: 19, color: colors.ink, opacity: 0.85, textAlign: TEXT_START },
+  label: { fontFamily: fonts.display, fontSize: 16, color: '#7E46D6', textAlign: 'right', marginTop: 4 },
+  text: { fontFamily: fonts.bold, fontSize: 13, lineHeight: 21, color: colors.ink, textAlign: 'right' },
+  small: { fontFamily: fonts.bold, fontSize: 11.5, lineHeight: 19, color: colors.ink, opacity: 0.85, textAlign: 'right' },
   people: { flexDirection: ROW, flexWrap: 'wrap', gap: 8 },
   person: { flexDirection: ROW, alignItems: 'center', gap: 4 },
   warnLight: { fontFamily: fonts.bold, fontSize: 12, color: '#FFE48A', textAlign: 'center' },

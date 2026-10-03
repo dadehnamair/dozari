@@ -28,13 +28,12 @@ import { HintSheet } from '../shop/HintSheet';
 import { hintedCardIds, hintedTitles } from '../shop/hintView';
 import type { FeedbackKey } from './selection';
 import { nativeTopInset } from '../theme/safeArea';
-import { TEXT_START } from '../theme/direction';
 
 type Phase = { kind: 'loading' } | { kind: 'error'; message: string; detail: string; card: 'noInternet' | 'noPuzzles' | 'error' } | { kind: 'ready'; view: SoloView };
 
 const FEEDBACK_MS = 1600;
 /** Right-to-left rows on web too (react-native-web does not flip rows; native does under forced RTL). */
-const ROW = ('row-reverse' as const);
+const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 
 export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onBack: () => void; hintsEnabled?: boolean; /** Today's daily puzzle: one attempt, no "new game". */ daily?: boolean }) {
   const prefs = usePrefs();
@@ -226,12 +225,12 @@ const styles = StyleSheet.create({
   talker: { width: 104, height: 114 },
   bubble: { flex: 1, backgroundColor: colors.cream, borderWidth: 3, borderColor: colors.ink, borderRadius: 18, paddingVertical: 10, paddingHorizontal: 12, shadowColor: colors.ink, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4 },
   bubbleTail: { position: 'absolute', top: 24, [Platform.OS === 'web' ? 'right' : 'left']: -11, width: 16, height: 16, backgroundColor: colors.cream, borderRightWidth: 3, borderBottomWidth: 3, borderColor: colors.ink, transform: [{ rotate: Platform.OS === 'web' ? '-45deg' : '135deg' }] },
-  bubbleText: { fontFamily: fonts.bold, fontSize: 13.5, lineHeight: 22, color: colors.ink, textAlign: TEXT_START },
+  bubbleText: { fontFamily: fonts.bold, fontSize: 13.5, lineHeight: 22, color: colors.ink, textAlign: 'right' },
   actions: { flexDirection: ROW, gap: 9 },
   endScene: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingHorizontal: 12, paddingTop: 14 + nativeTopInset(), paddingBottom: 20, gap: 10 },
   endSceneCompact: { paddingTop: 8, paddingBottom: 12, gap: 6 },
   talkerSmall: { width: 72, height: 80 },
-  bubbleTitle: { fontFamily: fonts.display, fontSize: 18, lineHeight: 28, color: colors.ink, textAlign: TEXT_START },
+  bubbleTitle: { fontFamily: fonts.display, fontSize: 18, lineHeight: 28, color: colors.ink, textAlign: 'right' },
   stage: { flex: 1, minHeight: 0, borderRadius: 22, borderWidth: 3, borderColor: colors.ink, backgroundColor: 'rgba(26,8,44,0.55)', paddingHorizontal: 12, paddingBottom: 12, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   endActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginTop: 8 },
   detail: { fontFamily: 'Vazirmatn_400Regular', fontSize: 12, color: colors.cream, opacity: 0.7, textAlign: 'center', writingDirection: 'ltr' },

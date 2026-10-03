@@ -17,7 +17,7 @@ import { safeTop } from '../theme/safeArea';
 // `direction` is not accepted inside StyleSheet.create by react-native-web's dev validation.
 const LTR: TextStyle = { direction: 'ltr' };
 const TICK_MS = 450;
-const ROW = ('row-reverse' as const);
+const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const ROW_TONES = ['pink', 'grape', 'sky', 'orange'] as const;
 const CELL_TONES = ['pink', 'orange', 'yellow', 'sky', 'grape', 'lime'] as const;
 const toneOfCell = (i: number) =>

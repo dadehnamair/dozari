@@ -12,9 +12,8 @@ import { colors, fonts } from '../theme/colors';
 import { fetchInvite, redeemInvite } from './api';
 import { inviteMessage, redeemErrorText } from './inviteText';
 import { useHardwareBack } from '../nav/useHardwareBack';
-import { TEXT_START } from '../theme/direction';
 
-const ROW = ('row-reverse' as const);
+const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 /** Progress boxes under the code: at most this many, the last one a chest. */
 const STEPS = 5;
 
@@ -140,7 +139,7 @@ const styles = StyleSheet.create({
   headline: { fontFamily: fonts.display, fontSize: 26, color: '#fff', textAlign: 'center', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 3 }, textShadowRadius: 1 },
   sub: { fontFamily: fonts.bold, fontSize: 12, color: colors.cream, textAlign: 'center' },
   card: { marginTop: 6, padding: 12, borderRadius: 22, backgroundColor: '#FBF1DE', borderWidth: 3, borderColor: colors.ink, gap: 8, ...lift(5) },
-  label: { fontFamily: fonts.bold, fontSize: 12, color: '#7E46D6', textAlign: TEXT_START },
+  label: { fontFamily: fonts.bold, fontSize: 12, color: '#7E46D6', textAlign: 'right' },
   codeRow: { flexDirection: ROW, gap: 6 },
   codeBox: { flex: 1, height: 52, borderRadius: 14, borderWidth: 3, borderStyle: 'dashed', borderColor: colors.ink, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   code: { fontFamily: fonts.display, fontSize: 26, letterSpacing: 4, color: colors.ink, writingDirection: 'ltr' },
@@ -148,7 +147,7 @@ const styles = StyleSheet.create({
   copied: { backgroundColor: colors.candy.lime },
   copyText: { fontFamily: fonts.display, fontSize: 17, color: colors.ink },
   progressHead: { flexDirection: ROW, justifyContent: 'space-between', gap: 6, flexWrap: 'wrap' },
-  small: { fontFamily: fonts.bold, fontSize: 11.5, lineHeight: 19, color: colors.ink, textAlign: TEXT_START },
+  small: { fontFamily: fonts.bold, fontSize: 11.5, lineHeight: 19, color: colors.ink, textAlign: 'right' },
   grape: { color: '#7E46D6' },
   steps: { flexDirection: ROW, gap: 4 },
   step: { flex: 1, height: 40, borderRadius: 12, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },

@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import Svg, { Defs, Line, Pattern, Polygon, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { solarMonthOf, toPersianDigits } from '@dozari/shared';
 import type { MatchPlayerProfile } from '@dozari/shared';
@@ -10,7 +10,7 @@ import { colors, fonts } from '../theme/colors';
 import { characterFor } from './arena';
 
 const a = fa.duel.arena;
-const ROW = ('row-reverse' as const);
+const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 
 /**
  * screen-versus of `13 Match Screens`: blue half for the player, pink half for the rival, a gold VS coin on the seam.

@@ -11,7 +11,7 @@ import { colors, fonts } from '../theme/colors';
 import type { CharacterId, CharacterPose } from '../theme/character';
 import { nativeTopInset } from '../theme/safeArea';
 
-const ROW = ('row-reverse' as const);
+const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const a = fa.duel.arena;
 
 /** screen-mode of `13 Match Screens`: the 1v1 card, the 2v2 card, «رقابت با دوست», «بزن بریم!». */

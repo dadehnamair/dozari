@@ -1,8 +1,8 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { ReactNode } from 'react';
 import { colors, fonts } from '../theme/colors';
 
-const ROW = ('row-reverse' as const);
+const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 
 /** «مطمئنی؟» before anything important (sign out, delete…): a centred card over a dimmed page; the dim area cancels. */
 export function ConfirmDialog({ title, message, confirmLabel, cancelLabel, danger = false, busy = false, error, children, onConfirm, onCancel }: {

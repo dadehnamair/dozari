@@ -1,9 +1,9 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { toPersianDigits } from '@dozari/shared';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 
-const ROW = ('row-reverse' as const);
+const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 
 /** «فرصت‌ها» row of screen-match: one pink dot per chance left, used chances dimmed. */
 export function Lives({ mistakes, max }: { mistakes: number; max: number }) {

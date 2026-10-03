@@ -1,6 +1,6 @@
 import { OnlineDot } from '../components/OnlineDot';
 import { useCallback, useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Polygon } from 'react-native-svg';
 import type { PlayerProfile } from '@dozari/shared';
 import { provinceOf, toPersianDigits } from '@dozari/shared';
@@ -133,7 +133,7 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
 
 const lift = (h: number) => ({ shadowColor: INK, shadowOffset: { width: 0, height: h }, shadowOpacity: 1, shadowRadius: 0, elevation: h });
 const MEDAL_COLORS = ['#FF4D8D', '#7E46D6', '#3FA36B'];
-const ROW = ('row-reverse' as const);
+const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 
 const styles = StyleSheet.create({
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 40, backgroundColor: 'rgba(20,8,32,0.6)', alignItems: 'center', justifyContent: 'center', padding: 20 },

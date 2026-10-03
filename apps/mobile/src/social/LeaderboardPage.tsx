@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { LEADERBOARD_PERIODS, LEADERBOARD_SCOPES, provinceOf, toPersianDigits } from '@dozari/shared';
 import type { Leaderboard, LeaderboardEntry, LeaderboardPeriod, LeaderboardScope } from '@dozari/shared';
 import { Avatar } from '../components/Avatar';
@@ -16,9 +16,8 @@ import { CityPicker } from './CityPicker';
 import { PlayerSheet } from './PlayerSheet';
 import { pageTop } from '../theme/safeArea';
 import { useHardwareBack } from '../nav/useHardwareBack';
-import { TEXT_START } from '../theme/direction';
 
-const ROW = ('row-reverse' as const);
+const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const n = (v: number) => toPersianDigits(String(v));
 /** Podium colours by place: light, base, dark (gold, silver, bronze of the design). */
 const PODIUM = {
@@ -191,6 +190,6 @@ const styles = StyleSheet.create({
   score: { fontFamily: fonts.display, fontSize: 16, color: colors.ink },
   mine: { position: 'absolute', left: 10, right: 10, bottom: 18, height: 52, flexDirection: ROW, alignItems: 'center', gap: 8, paddingHorizontal: 10, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', ...lift(5) },
   mineRank: { width: 30, fontFamily: fonts.display, fontSize: 20, color: colors.ink, textAlign: 'center' },
-  mineName: { flex: 1, fontFamily: fonts.display, fontSize: 15, color: colors.ink, textAlign: TEXT_START },
+  mineName: { flex: 1, fontFamily: fonts.display, fontSize: 15, color: colors.ink, textAlign: 'right' },
   mineScore: { fontFamily: fonts.display, fontSize: 18, color: colors.ink },
 });

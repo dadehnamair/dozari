@@ -9,7 +9,7 @@ import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { fetchCities, saveCity } from './api';
 
-const ROW = ('row-reverse' as const);
+const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 
 /**
  * City choice as the badge grid of `docs/design/Dozari - 18 Provinces` (D101): cities in Iran, then cities abroad,

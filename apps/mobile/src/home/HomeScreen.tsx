@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SceneBackground } from '../components/SceneBackground';
 import { Character } from '../components/Character';
 import { DailyRewardCard } from '../components/DailyRewardCard';
@@ -71,7 +71,7 @@ interface Tile {
  * Right-to-left rows on every platform: native flips `row` itself once RTL is forced (App.tsx); react-native-web
  * reports RTL but lays rows out left-to-right, so web needs `row-reverse`.
  */
-const RTL_ROW = ('row-reverse' as const);
+const RTL_ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 
 const fmt = (n: number) => toPersianDigits(n.toLocaleString('en-US').replace(/,/g, '٬'));
 

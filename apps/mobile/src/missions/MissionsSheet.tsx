@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { toPersianDigits } from '@dozari/shared';
 import type { MissionKey, ProfileTask } from '@dozari/shared';
 import { GuideBubble } from '../components/GuideBubble';
@@ -10,9 +10,8 @@ import { colors, fonts } from '../theme/colors';
 import { claimProfileTask, fetchProfileTasks } from '../social/profileTasksApi';
 import { missionRows } from './model';
 import type { MissionAvailability, MissionGo, MissionRow } from './model';
-import { TEXT_START } from '../theme/direction';
 
-const ROW = ('row-reverse' as const);
+const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const fmt = (n: number) => toPersianDigits(n.toLocaleString('en-US').replace(/,/g, '٬'));
 
 /**
@@ -80,8 +79,8 @@ const styles = StyleSheet.create({
   card: { flexDirection: ROW, alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#fff' },
   cardDone: { opacity: 0.55 },
   body: { flex: 1, minWidth: 0, gap: 1 },
-  title: { fontFamily: fonts.display, fontSize: 15, color: colors.ink, textAlign: TEXT_START },
-  reward: { fontFamily: fonts.bold, fontSize: 12, color: '#1F8A3B', textAlign: TEXT_START },
+  title: { fontFamily: fonts.display, fontSize: 15, color: colors.ink, textAlign: 'right' },
+  reward: { fontFamily: fonts.bold, fontSize: 12, color: '#1F8A3B', textAlign: 'right' },
   done: { fontFamily: fonts.bold, fontSize: 13, color: '#7A6A4A' },
   btn: { paddingHorizontal: 18, height: 38, borderRadius: 19, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.candy.yellow, alignItems: 'center', justifyContent: 'center' },
   btnClaim: { backgroundColor: colors.candy.lime },
