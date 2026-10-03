@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, G, Path, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, G, Path } from 'react-native-svg';
 import type { WheelStatus } from '@dozari/shared';
 import { toPersianDigits } from '@dozari/shared';
 import { GradientFill } from '../components/GradientFill';
@@ -15,6 +15,9 @@ import { pageTop } from '../theme/safeArea';
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const SIZE = 290;
 const R = SIZE / 2 - 6;
+const BULBS = 16;
+const RAYS = 20;
+const RAYS_SIZE = 900;
 const SLICE_COLORS = ['#FF8FB6', '#FFE48A', '#8FDCFA', '#B8F08F'];
 const SPIN_MS = 4200;
 const n = (v: number) => toPersianDigits(String(v));
@@ -28,6 +31,17 @@ const wedge = (i: number, count: number): string => {
   return `M${c} ${c} L${p(a0)} A${R} ${R} 0 0 1 ${p(a1)} Z`;
 };
 
+const rays = (() => {
+  const c = RAYS_SIZE / 2;
+  const step = (2 * Math.PI) / RAYS;
+  return Array.from({ length: RAYS }, (_, i) => {
+    const a0 = i * step;
+    const a1 = a0 + step / 2;
+    const p = (a: number) => `${c + c * Math.cos(a)} ${c + c * Math.sin(a)}`;
+    return `M${c} ${c} L${p(a0)} L${p(a1)} Z`;
+  });
+})();
+
 /**
  * The lucky wheel (D116): a chance only a won duel earns. The server rolls the prize and pays it; the wheel is drawn from
  * the real slices of `GET /wheel` and, once `POST /wheel/spin` answers, turns to stop on the slice the server chose.
@@ -39,6 +53,20 @@ export function WheelPage({ onClose }: { onClose: () => void }) {
   const [prize, setPrize] = useState<number | null>(null);
   const turn = useRef(new Animated.Value(0)).current;
   const [dailyNote, setDailyNote] = useState(false);
+  const raysTurn = useRef(new Animated.Value(0)).current;
+  const blink = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const native = Platform.OS !== 'web';
+    const spinRays = Animated.loop(Animated.timing(raysTurn, { toValue: 1, duration: 30000, easing: Easing.linear, useNativeDriver: native }));
+    const blinkBulbs = Animated.loop(Animated.sequence([
+      Animated.timing(blink, { toValue: 1, duration: 500, easing: Easing.inOut(Easing.quad), useNativeDriver: native }),
+      Animated.timing(blink, { toValue: 0, duration: 500, easing: Easing.inOut(Easing.quad), useNativeDriver: native }),
+    ]));
+    spinRays.start();
+    blinkBulbs.start();
+    return () => { spinRays.stop(); blinkBulbs.stop(); };
+  }, [raysTurn, blink]);
 
   useEffect(() => {
     fetchWheel().then((w) => (setStatus(w), setDailyNote(w.daily > 0)), () => setFailed(true));
@@ -78,12 +106,19 @@ export function WheelPage({ onClose }: { onClose: () => void }) {
   }
   const count = status.slices.length;
   const can = status.enabled && status.pending > 0 && !spinning;
+  const raysRotate = raysTurn.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+  const dim = blink.interpolate({ inputRange: [0, 1], outputRange: [1, 0.35] });
   const rotate = turn.interpolate({ inputRange: [0, 360], outputRange: ['0deg', '360deg'] });
   const note = spinning ? t.spinning : dailyNote && prize === null ? t.daily : status.pending > 1 ? t.more(status.pending - 1) : status.pending === 1 ? t.ready : t.none;
 
   return (
     <View style={styles.root}>
       <View style={styles.glow} pointerEvents="none"><GradientFill from="#7A2C9E" to="#2B1240" /></View>
+      <Animated.View style={[styles.rays, { transform: [{ rotate: raysRotate }] }]} pointerEvents="none">
+        <Svg width={RAYS_SIZE} height={RAYS_SIZE} viewBox={`0 0 ${RAYS_SIZE} ${RAYS_SIZE}`}>
+          {rays.map((d, i) => <Path key={i} d={d} fill="rgba(255,201,60,0.13)" />)}
+        </Svg>
+      </Animated.View>
       <View style={styles.column}>
         <View style={styles.head}>
           <Close onClose={onClose} />
@@ -101,14 +136,25 @@ export function WheelPage({ onClose }: { onClose: () => void }) {
               {status.slices.map((coins, i) => (
                 <G key={i}>
                   <Path d={wedge(i, count)} fill={SLICE_COLORS[i % SLICE_COLORS.length]} stroke={colors.ink} strokeWidth={2.5} strokeOpacity={0.55} />
-                  <G rotation={(i * 360) / count} origin={`${SIZE / 2}, ${SIZE / 2}`}>
-                    <SvgText x={SIZE / 2} y={SIZE / 2 - R + 44} fontSize={24} fontWeight="bold" fill={colors.ink} textAnchor="middle">{n(coins)}</SvgText>
-                  </G>
                 </G>
               ))}
             </Svg>
+            {status.slices.map((coins, i) => (
+              <View key={i} style={[styles.slice, { transform: [{ rotate: `${(i * 360) / count}deg` }] }]} pointerEvents="none">
+                <View style={styles.sliceIcon}><Item icon="coin" /></View>
+                <Text style={styles.sliceText}>{n(coins)}</Text>
+              </View>
+            ))}
           </Animated.View>
-          <View style={styles.hub}><Item icon="coin" /></View>
+          {Array.from({ length: BULBS }, (_, i) => (
+            <View key={i} style={[styles.bulbArm, { transform: [{ rotate: `${(i * 360) / BULBS}deg` }] }]} pointerEvents="none">
+              <Animated.View style={[styles.bulb, { opacity: i % 2 ? dim : 1 }]} />
+            </View>
+          ))}
+          <View style={styles.hub}>
+            <GradientFill from="#FFF4B0" to="#D98A0B" />
+            <Text style={styles.hubText}>{n(status.pending)}</Text>
+          </View>
           <View style={styles.pointer}>
             <Svg width={40} height={50} viewBox="0 0 40 50">
               <Path d="M20 46 L4 12 Q4 2 20 2 Q36 2 36 12Z" fill="#FF4D8D" stroke={colors.ink} strokeWidth={3.4} strokeLinejoin="round" />
@@ -120,7 +166,7 @@ export function WheelPage({ onClose }: { onClose: () => void }) {
         <View style={styles.bottom}>
           <Text style={styles.noteLight}>{note}</Text>
           <Pressable onPress={() => void go()} disabled={!can} accessibilityRole="button" accessibilityLabel={t.spin} style={({ pressed }) => [styles.spin, !can ? styles.spinOff : null, pressed ? styles.pressed : null]}>
-            <GradientFill from={can ? '#B8F08F' : '#C9BBD9'} to={can ? '#5DBB3C' : '#9C8DB5'} />
+            <GradientFill from={can ? '#FF8FB6' : '#C9BBD9'} to={can ? '#D63A72' : '#9C8DB5'} />
             <Text style={styles.spinText}>{t.spin}</Text>
           </Pressable>
         </View>
@@ -156,7 +202,8 @@ function Close({ onClose }: { onClose: () => void }) {
 const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0, height: h }, shadowOpacity: 1, shadowRadius: 0, elevation: h });
 
 const styles = StyleSheet.create({
-  root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20, backgroundColor: '#40166A' },
+  root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20, backgroundColor: '#40166A', overflow: 'hidden' },
+  rays: { position: 'absolute', left: '50%', top: pageTop() + 46 + 70 + SIZE / 2 - RAYS_SIZE / 2, width: RAYS_SIZE, height: RAYS_SIZE, marginLeft: -RAYS_SIZE / 2 },
   glow: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   column: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingHorizontal: 12, paddingTop: pageTop(), alignItems: 'center' },
   head: { alignSelf: 'stretch', flexDirection: ROW, alignItems: 'center', gap: 8 },
@@ -168,7 +215,13 @@ const styles = StyleSheet.create({
   wheelWrap: { width: SIZE, height: SIZE, marginTop: 70 },
   rim: { position: 'absolute', top: -12, left: -12, right: -12, bottom: -12, borderRadius: 999, backgroundColor: colors.ink },
   wheel: { width: SIZE, height: SIZE },
-  hub: { position: 'absolute', left: SIZE / 2 - 32, top: SIZE / 2 - 32, width: 64, height: 64, borderRadius: 32, borderWidth: 4, borderColor: colors.ink, backgroundColor: colors.candy.yellow, alignItems: 'center', justifyContent: 'center', padding: 10, ...lift(4) },
+  slice: { position: 'absolute', left: 0, top: 0, width: SIZE, height: SIZE, alignItems: 'center' },
+  sliceIcon: { width: 42, height: 42, marginTop: 20 },
+  sliceText: { fontFamily: fonts.display, fontSize: 18, lineHeight: 20, color: colors.ink },
+  bulbArm: { position: 'absolute', left: 0, top: 0, width: SIZE, height: SIZE, alignItems: 'center' },
+  bulb: { width: 10, height: 10, marginTop: -11, borderRadius: 5, backgroundColor: '#FFF4B0', shadowColor: '#FFC93C', shadowOpacity: 1, shadowRadius: 6, shadowOffset: { width: 0, height: 0 } },
+  hub: { position: 'absolute', left: SIZE / 2 - 32, top: SIZE / 2 - 32, width: 64, height: 64, borderRadius: 32, borderWidth: 4, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...lift(4) },
+  hubText: { fontFamily: fonts.display, fontSize: 24, lineHeight: 28, color: '#7A4A00' },
   pointer: { position: 'absolute', left: SIZE / 2 - 20, top: -34, width: 40, height: 50 },
   bottom: { position: 'absolute', left: 14, right: 14, bottom: 30, gap: 8, alignItems: 'center' },
   noteLight: { fontFamily: fonts.bold, fontSize: 12.5, color: colors.cream, textAlign: 'center' },
