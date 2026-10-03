@@ -4,3 +4,4 @@ export * from './hints-contract.js';
 export * from './simulate.js';
 export * from './duel.js';
 export * from './wheel.js';
+export * from './gems.js';

@@ -267,6 +267,16 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       void audit('user.coins', p.data.id, String(b.data.delta));
       return { ok: true, balance: out.balance };
     });
+    g.post('/admin/users/:id/gems', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object({ delta: z.number().int().min(-10_000).max(10_000).refine((n) => n !== 0) }).safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await users.adjustGems(p.data.id, b.data.delta);
+      if (out === 'not_found') return reply.code(404).send({ error: 'user_not_found' });
+      if (out === 'insufficient') return reply.code(409).send({ error: 'insufficient' });
+      void audit('user.gems', p.data.id, String(b.data.delta));
+      return { ok: true, balance: out.balance };
+    });
   }
 
   if (m.messages) {

@@ -13,6 +13,7 @@ export const fa = {
     /** Hub of screen-home (docs/design/Dozari - 01 Screens): corner tiles, top counters, big buttons. */
     hub: {
       missions: 'ماموریت‌ها',
+      gems: 'الماس',
       play: 'بازی تکی',
       duel: 'دوئل',
       resume: 'برگرد به بازی',

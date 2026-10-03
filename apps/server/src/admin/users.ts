@@ -2,6 +2,7 @@ import { and, baleLinks, coinLedger, count, desc, eq, friendships, like, or, use
 import type { Db } from '@dozari/db';
 import { AVATAR_KEYS, randomGuestIdentity } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
+import { applyGemEntry } from '../economy/gems.js';
 import { applyLedgerEntry } from '../economy/ledger.js';
 
 export interface AdminUserRow {
@@ -50,6 +51,8 @@ export interface UsersAdmin {
   removeNote(noteId: string): Promise<'ok' | 'not_found'>;
   /** Signed coins through the ledger (`admin_adjust`); refused when the balance would go negative. */
   adjustCoins(userId: string, delta: number): Promise<{ balance: number } | 'not_found' | 'insufficient'>;
+  /** Signed gems through the gem ledger (`admin_adjust`, D164); refused when the balance would go negative. */
+  adjustGems(userId: string, delta: number): Promise<{ balance: number } | 'not_found' | 'insufficient'>;
 }
 
 function rowOf(u: typeof users.$inferSelect, balance: number | null): AdminUserRow {
@@ -142,6 +145,12 @@ export function createDbUsersAdmin(db: Db): UsersAdmin {
       const out = await db.transaction((tx) =>
         applyLedgerEntry(tx, { userId, delta, reason: 'admin_adjust', refType: 'admin', refId: uuidv7(), idempotencyKey: `admin_adjust:${uuidv7()}:${userId}` }),
       );
+      return out.applied ? { balance: out.balance } : 'insufficient';
+    },
+    async adjustGems(userId, delta) {
+      const [u] = await db.select({ id: users.id }).from(users).where(eq(users.id, userId));
+      if (!u) return 'not_found';
+      const out = await db.transaction((tx) => applyGemEntry(tx, { userId, delta, reason: 'admin_adjust', refType: 'admin', refId: uuidv7(), idempotencyKey: `admin_adjust:${uuidv7()}:${userId}` }));
       return out.applied ? { balance: out.balance } : 'insufficient';
     },
   };

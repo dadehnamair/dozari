@@ -36,6 +36,7 @@ function setup() {
     addNote: async () => ({ id: ID }),
     removeNote: async () => 'ok',
     adjustCoins: async (_id, delta) => (delta < -50 ? 'insufficient' : { balance: 100 + delta }),
+    adjustGems: async (_id, delta) => (delta < -5 ? 'insufficient' : { balance: 10 + delta }),
   };
   const botRepo = { listSources: async () => [], listCandidates: async () => [], listRuns: async () => [], approve: async () => 'conflict', reject: async () => 'ok' } as unknown as BotRepository;
   const app = buildServer({
@@ -120,6 +121,14 @@ describe('admin modules', () => {
     expect((await app.inject({ method: 'POST', url, headers: h, payload: { delta: 0 } })).statusCode).toBe(400);
   });
 
+  it('adjusts gems through the gem ledger and refuses an overdraft', async () => {
+    const { app } = setup();
+    const url = `/admin/users/${ID}/gems`;
+    expect((await app.inject({ method: 'POST', url, headers: h, payload: { delta: 5 } })).json()).toEqual({ ok: true, balance: 15 });
+    expect((await app.inject({ method: 'POST', url, headers: h, payload: { delta: -50 } })).statusCode).toBe(409);
+    expect((await app.inject({ method: 'POST', url, headers: h, payload: { delta: 0 } })).statusCode).toBe(400);
+  });
+
   it('manages a player: detail, ban with reason, log out everywhere, identity, notes', async () => {
     const calls: unknown[][] = [];
     const settings = new SettingsService(createMemorySettingsStore());
@@ -134,6 +143,7 @@ describe('admin modules', () => {
       addNote: async (id, note) => (calls.push(['note', id, note]), { id: ID }),
       removeNote: async () => 'ok',
       adjustCoins: async () => ({ balance: 1 }),
+      adjustGems: async () => ({ balance: 1 }),
     };
     const app = buildServer({ settings, admin: { repo: { listCatalog: async () => [], setPriceStatus: async () => 'ok' }, token: TOKEN }, adminModules: { users, audit } });
     expect((await app.inject({ method: 'GET', url: `/admin/users/${ID}`, headers: h })).json()).toMatchObject({ friends: 2, baleLinked: true, gender: 'female' });

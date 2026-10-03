@@ -369,6 +369,35 @@ export const userBalances = mysqlTable('user_balances', {
   updatedAt: datetime('updated_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
 });
 
+/** Why gems moved (docs/logic/economy.md §Gems, D164). */
+export const GEM_REASONS = ['admin_adjust', 'birthday_gift', 'wheel_prize', 'shop_purchase', 'tournament_entry', 'tournament_refund', 'tournament_prize', 'mission_reward'] as const;
+
+/** Cached gem balance per player; changed only together with a `gem_ledger` row. */
+export const userGems = mysqlTable('user_gems', {
+  userId: char('user_id', { length: 36 }).primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+  balance: int('balance').notNull().default(0),
+  updatedAt: datetime('updated_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+});
+
+/** Append-only gem movements, like `coin_ledger`: a repeated idempotency key is a no-op. */
+export const gemLedger = mysqlTable(
+  'gem_ledger',
+  {
+    id: id(),
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    delta: int('delta').notNull(),
+    reason: mysqlEnum('reason', GEM_REASONS).notNull(),
+    refType: varchar('ref_type', { length: 30 }),
+    refId: varchar('ref_id', { length: 64 }),
+    idempotencyKey: varchar('idempotency_key', { length: 150 }).notNull(),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({
+    keyUnique: uniqueIndex('gem_ledger_idempotency_key_idx').on(table.idempotencyKey),
+    byUser: index('gem_ledger_user_idx').on(table.userId, table.createdAt),
+  }),
+);
+
 /** Admin-editable coins per streak day (day 1, 2, 3 …). Empty table = the defaults in shared config. */
 export const dailyRewardSteps = mysqlTable('daily_reward_steps', {
   day: smallint('day').primaryKey(),
