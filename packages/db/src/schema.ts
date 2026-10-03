@@ -340,6 +340,7 @@ export const LEDGER_REASONS = [
   'broke_rescue',
   'wheel_spin',
   'level_reward',
+  'profile_task',
 ] as const;
 
 /** Append-only. Coins move only through the server's ledger function; a repeated idempotency key is a no-op. */
@@ -1145,6 +1146,17 @@ export const levelRewardClaims = mysqlTable(
     claimedAt: datetime('claimed_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
   },
   (t) => ({ pk: primaryKey({ columns: [t.userId, t.level] }) }),
+);
+
+/** Profile-completion rewards a player has taken, one row per step (docs/logic/profile-and-identity.md, D161). */
+export const profileTaskClaims = mysqlTable(
+  'profile_task_claims',
+  {
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    taskKey: varchar('task_key', { length: 20 }).notNull(),
+    claimedAt: datetime('claimed_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.userId, t.taskKey] }) }),
 );
 
 /** One attempt per player per day. */

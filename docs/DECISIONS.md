@@ -442,3 +442,7 @@ Backlog item 5: the human-wait before a bot fills a 1v1 seat drops from 25 s + u
 ## D160 — Birth date in the profile, with a «show my age» tick (2026-10-03, accepted values)
 
 Owner asked for the birth date to be collected in the profile, with a checkbox for showing or hiding the age, minimum age **10**, and a birthday week: from 3 days before the birthday for 7 days the profile is in a party look and the player can claim a gift set in the admin panel (starting values 100 coins, 5 gems, 2 wheel spins). Full policy in `logic/profile-and-identity.md`. Date never leaves the server; age shown to others only with the tick (default off). Gems are not in the economy yet, so that part rides on backlog item 1. Not built.
+
+## D161 — Profile-completion rewards (2026-10-03, proposed)
+
+Backlog item 3. Home's guide character nudges the next missing profile step and pays a one-time coin reward, set per step in the admin panel (proposed defaults: gender 10, city 20, verified phone 50, Bale link 30). Steps are checked on the server; claims are idempotent (`profile_task_claims` + ledger reason `profile_task`). Nickname and avatar are not steps because every account gets them at signup. The sizes are mine to propose and the owner can change them in «تنظیمات ← اقتصاد».
