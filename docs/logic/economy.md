@@ -158,3 +158,17 @@ if inflation shows in production lower `FREE_MATCH_PAYOUT_PERCENT` first (settin
 ## Daily game caps (D92)
 
 Admin settings `limit.solo_per_day` and `limit.duel_per_day` (0 = unlimited, default) cap how many games of a mode one player may start per Tehran day. Counted in `daily_play_counts (user, date, mode)`; solo `POST /solo/start` answers 429 `daily_cap`, the duel queue answers `DAILY_CAP`. A duel is counted when the match actually starts (leaving the queue costs nothing). The daily puzzle has its own one-attempt rule and is not counted.
+
+## Gems (الماس, D164, stage 1)
+
+A second currency beside coins. It has its own append-only `gem_ledger` and cached `user_gems.balance`, and moves only through
+`applyGemEntry` (apps/server `economy/gems.ts`), the twin of `applyLedgerEntry`: same transaction, same idempotency key rule, a debit
+below zero is refused (CLAUDE.md rule 6 applies to gems too; never `UPDATE user_gems` by hand).
+
+- **Reasons** (`GEM_REASONS`): `admin_adjust`, `birthday_gift`, `wheel_prize`, `shop_purchase`, `tournament_entry`, `tournament_refund`,
+  `tournament_prize`, `mission_reward`. Only `admin_adjust` is wired in stage 1; the others are reserved for the stages below.
+- **Read:** `GET /me/gems` → balance + the newest 30 movements. Home shows a «الماس» pill once the balance is above 0.
+- **Admin:** the player sheet has «تغییر الماس» (`POST /admin/users/:id/gems`, ±10 000 per call, audited as `user.gems`).
+- **Gems are not sold**: they come from gifts and prizes (birthday, wheel, tournaments, missions, admin).
+- **Next stages:** shop items priced in coins or gems; tournament entry fee in gems; wheel prize kind `gems`; birthday gift (100 coins + 5 gems + 2 spins).
+

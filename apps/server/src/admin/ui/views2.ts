@@ -269,6 +269,11 @@ function userModal(id, done) {
         var d = Number(delta.value); if (!d) return toast('عدد غیرصفر وارد کن', true);
         api('/admin/users/' + id + '/coins', { method: 'POST', body: { delta: d } }).then(function (x) { if (!x.ok) return fail(x); toast('موجودی جدید: ' + faNum(x.body.balance)); draw(); });
       } })]));
+      var gemDelta = h('input', { type: 'number', value: 0, style: 'width:140px' });
+      box.appendChild(h('div', { style: 'display:flex;gap:8px;align-items:end' }, [field('تغییر الماس (از طریق دفتر الماس)', gemDelta), h('button', { class: 'btn primary', text: 'اعمال', onclick: function () {
+        var d = Number(gemDelta.value); if (!d) return toast('عدد غیرصفر وارد کن', true);
+        api('/admin/users/' + id + '/gems', { method: 'POST', body: { delta: d } }).then(function (x) { if (!x.ok) return fail(x); toast('الماس جدید: ' + faNum(x.body.balance)); gemDelta.value = 0; });
+      } })]));
       box.appendChild(h('div', { style: 'display:flex;gap:8px;align-items:end' }, [field('اسم نمایشی', nick), h('button', { class: 'btn', text: 'ذخیره‌ی اسم', onclick: function () { api('/admin/users/' + id + '/identity', { method: 'PUT', body: { nickname: nick.value.trim() } }).then(function (x) { if (!x.ok) return fail(x); toast('اسم عوض شد'); draw(); }); } }),
         h('button', { class: 'btn', text: 'اسم و آواتار تصادفی', onclick: function () { if (confirm('اسم و آواتار این بازیکن با یک هویت تصادفی عوض شود؟')) api('/admin/users/' + id + '/identity', { method: 'PUT', body: {} }).then(function (x) { if (!x.ok) return fail(x); toast('هویت جدید داده شد'); draw(); }); } })]));
       box.appendChild(h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap;align-items:end' }, [

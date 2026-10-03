@@ -12,6 +12,7 @@ import { Item } from '../components/Item';
 import { fetchMyProfile } from '../social/api';
 import { claimProfileTask, fetchProfileTasks } from '../social/profileTasksApi';
 import { profileNudge } from './profileNudge';
+import { fetchGems } from '../ledger/gemsApi';
 import { MissionsSheet } from '../missions/MissionsSheet';
 import { missionRows } from '../missions/model';
 import type { MissionAvailability } from '../missions/model';
@@ -121,6 +122,9 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
   }, []);
   useEffect(loadMe, [loadMe]);
   const [profileTasks, setProfileTasks] = useState<ProfileTask[]>([]);
+  const [gems, setGems] = useState(0);
+  const loadGems = useCallback(() => void fetchGems().then((w) => setGems(w.balance), () => undefined), []);
+  useEffect(loadGems, [loadGems]);
   const [missionsOpen, setMissionsOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [nudgeToast, setNudgeToast] = useState<string | null>(null);
@@ -215,6 +219,7 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
       <View style={styles.root}>
         <View style={styles.pills}>
           {daily.status ? <StatPill color={colors.candy.yellow} icon="coin" value={fmt(daily.status.balance)} label={`${daily.status.balance} ${h.coins}`} onPress={() => setLedgerOpen(true)} /> : null}
+          {gems > 0 ? <StatPill color={colors.candy.sky} glyph="💎" value={fmt(gems)} label={`${gems} ${h.gems}`} /> : null}
           {dailyPuzzle && dailyPuzzle.state !== 'unavailable' ? <StatPill color={colors.candy.pink} glyph="🔥" value={`${toPersianDigits(String(dailyPuzzle.streak))} ${h.streak}`} label={`${dailyPuzzle.streak} ${h.streak}`} /> : null}
           <Pressable onPress={() => setHubOpen(true)} accessibilityRole="button" accessibilityLabel={fa.hub.open} style={styles.mapBtn}>
             <View style={styles.mapIcon}><Item icon="map" /></View>
@@ -330,7 +335,7 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
 
 const styles = StyleSheet.create({
   root: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingTop: 14, paddingBottom: 22, paddingHorizontal: 12 },
-  pills: { flexDirection: RTL_ROW, gap: 8, minHeight: 36, alignItems: 'center' },
+  pills: { flexDirection: RTL_ROW, gap: 8, minHeight: 36, alignItems: 'center', flexWrap: 'wrap' },
   mapBtn: { width: 38, height: 38, borderRadius: 19, borderWidth: 2, borderColor: 'rgba(255,255,255,0.35)', backgroundColor: 'rgba(43,18,64,0.65)', alignItems: 'center', justifyContent: 'center' },
   mapIcon: { width: 26, height: 26 },
   spinBadge: { position: 'absolute', top: -6, right: -6, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, backgroundColor: colors.candy.lime, borderWidth: 2, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
