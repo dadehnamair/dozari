@@ -1,4 +1,5 @@
 import { createDb } from '../client.js';
+import { products } from '../schema.js';
 import { loadSeed, readSeedProducts, readSeedPuzzles } from './load.js';
 import { generateSamplePuzzles, loadSeedPuzzles, removeSampleData } from './puzzles.js';
 
@@ -6,6 +7,7 @@ import { generateSamplePuzzles, loadSeedPuzzles, removeSampleData } from './puzz
  * `pnpm --filter @dozari/db seed`            products + prices + the curated sample puzzles + generated ones (idempotent)
  * `... seed --check`                         validate the JSON only
  * `... seed --no-puzzles`                    products only
+ * `... seed --if-empty`                     do nothing when the catalogue already has any product (what the production `seed` service uses)
  * `... seed --remove-sample`                 delete everything `sample-*` and the puzzles made from it (run before launch)
  */
 const seed = readSeedProducts();
@@ -18,6 +20,10 @@ if (process.argv.includes('--check')) {
   process.exit(0);
 } else {
   const db = createDb();
+  if (process.argv.includes('--if-empty') && (await db.select({ id: products.id }).from(products).limit(1)).length > 0) {
+    console.log('catalogue already has products: skipping seed');
+    process.exit(0);
+  }
   await loadSeed(db, seed);
   console.log(`seeded ${seed.length} products`);
   if (!process.argv.includes('--no-puzzles')) {

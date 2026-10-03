@@ -37,8 +37,9 @@ services:
     environment:
       DATABASE_URL: mysql://dozari:${MYSQL_PASSWORD}@mysql:3306/dozari
 
-  # Loads the catalogue (products, prices, sample puzzles) after the migrations, on every `up` while SEED_ON_START=1 in
-  # .env.prod (idempotent). For hosts without a shell: set it, rebuild, check `logs seed`. Set it back to 0 once real data is in.
+  # Loads the catalogue (products, prices, sample puzzles) after the migrations. SEED_ON_START in .env.prod:
+  #   empty (default) = only when the database has no products yet, so a fresh install fills itself and real data is never touched;
+  #   1 = run the full idempotent seed on every `up`;  0 = never. Check the result with `logs seed`.
   seed:
     build:
       context: .
@@ -49,7 +50,7 @@ services:
       [
         'sh',
         '-c',
-        'if [ "$$SEED_ON_START" = "1" ]; then pnpm exec tsx src/seed/run.ts; else echo "SEED_ON_START is not 1, skipping seed"; fi',
+        'case "$$SEED_ON_START" in 1) pnpm exec tsx src/seed/run.ts ;; 0) echo "SEED_ON_START=0, skipping seed" ;; *) pnpm exec tsx src/seed/run.ts --if-empty ;; esac',
       ]
     restart: 'no'
     depends_on:
@@ -59,7 +60,7 @@ services:
         condition: service_completed_successfully
     environment:
       DATABASE_URL: mysql://dozari:${MYSQL_PASSWORD}@mysql:3306/dozari
-      SEED_ON_START: ${SEED_ON_START:-0}
+      SEED_ON_START: ${SEED_ON_START:-empty}
 
   server:
     # Same build as `migrate` (cached): a service with only `image:` would make compose try to pull it.

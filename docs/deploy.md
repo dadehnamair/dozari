@@ -65,8 +65,9 @@ the root `docker-compose.yml` has Adminer on `:8080`.
 
 ## Catalogue (products, prices, images)
 
-The game needs product data. **No shell on the host?** Set `SEED_ON_START=1` in `.env.prod` and run the usual `up -d --build`: the `seed` service loads the
-catalogue after the migrations (idempotent; check with `logs seed`), then set it back to `0`. With a shell, load it once (and again after changing the seed files):
+The game needs product data. **No shell on the host?** Nothing to do: the `seed` service runs on every `up -d --build` and loads the catalogue when the database has no
+products yet (`SEED_ON_START=empty`, the default; check with `logs seed`). `SEED_ON_START=1` re-runs the full idempotent seed on every `up`, `0` turns it off.
+Caveat: after `--remove-sample` with no real products loaded, the next `up` seeds the samples again; set `0` first. With a shell, load it once (and again after changing the seed files):
 
 ```bash
 dc="docker compose -f docker-compose.prod.yml --env-file .env.prod"
