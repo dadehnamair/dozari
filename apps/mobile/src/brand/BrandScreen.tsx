@@ -26,6 +26,12 @@ export function BrandScreen({ onBack }: { onBack: () => void }) {
       <Item id="brand-android-fg" label="android-fg · 1024 (transparent)">
         <AndroidForeground size={1024} />
       </Item>
+      <Item id="brand-icon-female" label="app-icon · 1024 · female hero (launcher icon for female players)">
+        <AppIconArt size={1024} who="dozariF" />
+      </Item>
+      <Item id="brand-android-fg-female" label="android-fg · 1024 · female hero (transparent)">
+        <AndroidForeground size={1024} who="dozariF" />
+      </Item>
       <Item id="brand-android-bg" label="android-bg · 1024">
         <View style={{ width: 1024, height: 1024, overflow: 'hidden' }}>
           <IconBackdrop size={1024} />

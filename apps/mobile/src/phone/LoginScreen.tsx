@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { Keyboard, Platform, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { toPersianDigits } from '@dozari/shared';
 import { Character } from '../components/Character';
 import { Scene } from '../components/Scene';
@@ -29,6 +29,16 @@ export function LoginScreen({ onDone }: { onDone: (r: { signedIn: boolean; creat
   const [sentAt, setSentAt] = useState(0);
   const [now, setNow] = useState(Date.now());
   const codeInput = useRef<TextInput>(null);
+  // Android keeps the hidden code field "focused" after the keyboard is dismissed (back button), so a second tap would not
+  // bring it up again: let go of the focus when the keyboard hides, and re-take it on a tap.
+  useEffect(() => {
+    const sub = Keyboard.addListener('keyboardDidHide', () => codeInput.current?.blur());
+    return () => sub.remove();
+  }, []);
+  const showKeyboard = () => {
+    codeInput.current?.blur();
+    setTimeout(() => codeInput.current?.focus(), 30);
+  };
   const tight = useWindowDimensions().height < 700;
   const phone = phoneFromInput(typed);
 
@@ -86,7 +96,7 @@ export function LoginScreen({ onDone }: { onDone: (r: { signedIn: boolean; creat
           <>
             <Text style={styles.title}>{l.otpTitle}</Text>
             <Text style={styles.sub}>{l.otpSent(toPersianDigits(`0${(phone ?? '').replace(/^\+98/, '')}`))}</Text>
-            <Pressable onPress={() => codeInput.current?.focus()} accessibilityRole="button" accessibilityLabel={fa.phoneLogin.code} style={styles.boxes}>
+            <Pressable onPress={showKeyboard} accessibilityRole="button" accessibilityLabel={fa.phoneLogin.code} style={styles.boxes}>
               {Array.from({ length: OTP_LENGTH }, (_, i) => (
                 <View key={i} style={[styles.box, i === Math.min(code.length, OTP_LENGTH - 1) ? styles.boxOn : null]}>
                   <Text style={styles.boxText}>{code[i] ? toPersianDigits(code[i]!) : ''}</Text>

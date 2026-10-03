@@ -15,6 +15,8 @@ mkdirSync('assets', { recursive: true });
 const OUT = [
   ['brand-icon', 'assets/icon.png', false],
   ['brand-android-fg', 'assets/adaptive-icon.png', true],
+  ['brand-icon-female', 'assets/icon-female.png', false],
+  ['brand-android-fg-female', 'assets/adaptive-icon-female.png', true],
   ['brand-android-bg', 'assets/adaptive-background.png', false],
   ['brand-mono', 'assets/adaptive-monochrome.png', true],
   ['brand-notification', 'assets/notification-icon.png', true],
