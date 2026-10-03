@@ -24,7 +24,7 @@ input, select, textarea, button { font:inherit; color:inherit; }
 .side { background:linear-gradient(180deg,var(--side1),var(--side2)); color:#f5eeff; padding:18px 12px; position:sticky; top:0; height:100vh; overflow:auto; display:flex; flex-direction:column; gap:4px; }
 .brand { display:flex; align-items:center; gap:10px; padding:6px 10px 16px; font-size:22px; font-weight:800; letter-spacing:.3px; }
 .brand i { width:38px; height:38px; border-radius:50%; background:radial-gradient(circle at 35% 30%,#fff4b0,#ffc93c 55%,#d98a0b); border:3px solid #2b1240; display:grid; place-items:center; color:#7a4a00; font-style:normal; font-size:20px; box-shadow:0 3px 0 #1a0a2c; }
-.nav-title { font-size:11px; letter-spacing:.6px; opacity:.55; padding:12px 12px 4px; }
+.nav-title { font-size:12px; font-weight:700; letter-spacing:.3px; opacity:.7; padding:16px 12px 4px; margin-top:6px; border-top:1px solid var(--line); } .nav-title:first-child { border-top:0; margin-top:0; }
 .nav a { display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:12px; color:#eadcff; text-decoration:none; }
 .nav a:hover { background:rgba(255,255,255,.1); }
 .nav a[aria-current=page] { background:rgba(255,255,255,.18); color:#fff; font-weight:700; box-shadow:inset 3px 0 0 var(--gold); }
@@ -38,6 +38,8 @@ input, select, textarea, button { font:inherit; color:inherit; }
 .menu-btn { display:none; }
 .card { background:var(--card); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow); padding:18px; margin-bottom:16px; }
 .card h2 { margin:0 0 4px; font-size:17px; }
+.add-head { display:flex; align-items:flex-start; gap:12px; justify-content:space-between; flex-wrap:wrap; } .add-head .sub { margin-bottom:0; max-width:62ch; } .add-head .btn { flex:none; }
+.page-desc { color:var(--muted); font-size:13px; margin:0 0 14px; max-width:80ch; }
 .card > .sub { color:var(--muted); font-size:13px; margin-bottom:12px; }
 .grid { display:grid; gap:14px; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); }
 .stat-card { background:var(--card); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow); padding:16px; display:flex; flex-direction:column; gap:2px; position:relative; overflow:hidden; }
