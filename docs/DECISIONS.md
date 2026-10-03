@@ -438,3 +438,7 @@ Owner added backlog item 10: restructure the admin panel UI for readability — 
 ## D159 — Faster opponent search (2026-10-03, proposed)
 
 Backlog item 5: the human-wait before a bot fills a 1v1 seat drops from 25 s + up to 15 s jitter to 8 s + up to 4 s jitter (`bots.fallback_seconds` / `bots.fallback_jitter_seconds`, minimum now 3 s). The driver polls every 5 s, so the real wait is 8–17 s. Values already saved in the admin settings keep winning; lower them there to tune. Bot-fill rules in `logic/bots.md` are unchanged.
+
+## D160 — Birth date in the profile, with an «show my age» tick (2026-10-03, proposed)
+
+Owner asked for the birth date to be collected in the profile, with a checkbox for showing or hiding the age. Proposed policy (full text in `logic/profile-and-identity.md`): optional Solar Hijri date, age derived and shown to others only when the player ticks «سنم نمایش داده شود» (default off), the date itself never leaves the server, a minimum age (proposed 13) enforced at save time, and uses limited to a yearly birthday greeting with a small coin gift, an optional birthday badge, aggregated age-band stats and message targeting. Not built; sizes and the minimum age are for the owner to confirm.

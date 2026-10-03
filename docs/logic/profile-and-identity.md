@@ -107,6 +107,24 @@ reveals `is_bot`. v1 built: endpoint, `friendships` table, `PlayerSheet`; wired 
 An optional choice, female or male, set next to the province/city. It only changes presentation: the hero character and the
 app icon take that gender. Stored in `users.gender` (nullable), set from «پروفایل من»; Home already draws the matching hero. The app icon switch is not built; see D68 for the open points.
 
+## Birth date and age display (D160, proposed — not built)
+
+An optional field set from «پروفایل من», next to gender and city. Policy:
+
+- **Stored as a Solar Hijri date** (`users.birth_year`, `birth_month`, `birth_day`, all nullable; year 1300..current−5, a real
+  calendar day). Gregorian is only a display helper (rule 3). The full date is **never sent to other players**.
+- **Age is derived**, never stored. A tick «سنم نمایش داده شود» (`users.show_age`, default **off**) controls whether other players
+  see the age (whole years, e.g. «۲۴ ساله») on the public profile sheet. Off = the profile shows no age at all.
+- **Age gate:** players under the minimum age set in `config` (proposed 13) cannot save a birth date that makes them younger;
+  the field then stays empty and nothing changes for them. No store-policy claim is made beyond this.
+- **Uses (all server-side, none changes fairness):** a birthday greeting + small coin gift once per year (amount in
+  `config/economy.ts`, through `LedgerService`), a birthday badge for the day, age-band stats in the admin dashboard
+  (aggregated, never per-user), and message targeting by age band in the message centre.
+- **Privacy:** the date is personal data; the admin user sheet shows age only, the exact date only to the owner role; deleting
+  the field clears it. Never put it in logs, share cards or socket payloads.
+
+Open for the owner: the minimum age, the birthday gift size, and whether the birthday badge is wanted.
+
 ## Province/city (D53)
 
 An **optional** profile field — province required, city optional — never a gate on play (same

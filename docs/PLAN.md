@@ -220,7 +220,7 @@ human opponent is found.
 - [x] E. Content control — [x] daily puzzle by day conditions/trends (item 15; D87); [x] tournament entry rules (coins + level), builder, own page, bracket engine (items 26, 27; D85); [x] admin bot players: accounts, queue fill, human-like play, taunt replies, tournament fill (item 25; D86); [ ] trend-based daily puzzle (15)
 - [ ] F. Feel: [x] city dialect phrases (item 9; D88); [x] personal settings + web sound effects (items 10, 12; D89; native sound pending); dialects, sounds, city backgrounds, personal settings, touch-everything polish (items 9, 10, 11, 12, 13)
 
-## Owner backlog 2026-10-03 (10 items) — see `docs/logic/owner-backlog-2026-10-03.md`
+## Owner backlog 2026-10-03 (11 items) — see `docs/logic/owner-backlog-2026-10-03.md`
 
 Start after the first Android build.
 
@@ -234,3 +234,4 @@ Start after the first Android build.
 - [ ] 8. Landing site `mrdozari.ir` (`apps/landing`, own container, admin-managed content, game story with the cast, blog, full SEO/GEO — owner's spreadsheet adapted from Laravel)
 - [ ] 9. Short domain `2oi.ir`: self-hosted shortener for outgoing links; all domains editable in the admin panel
 - [x] 10. Admin panel tidy-up: grouped sidebar, page helper text, «add» actions as modal forms, consistent tables/toasts (UI only)
+- [ ] 11. Birth date in the profile with a «show my age» tick (policy D160; users columns, profile UI, birthday gift/badge, admin age stats)
