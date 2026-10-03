@@ -8,6 +8,7 @@ import { SlabButton } from '../components/SlabButton';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import type { CharacterId } from '../theme/character';
+import { nativeTopInset } from '../theme/safeArea';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const a = fa.duel.arena;
@@ -72,7 +73,7 @@ export function DuelResult({ outcome, reason, lines, onHome, onAgain }: { outcom
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#3C1A66' },
   shade: { backgroundColor: 'rgba(43,18,64,0.55)' },
-  column: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', paddingHorizontal: 12, paddingTop: 28, paddingBottom: 28, alignItems: 'stretch', gap: 8 },
+  column: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', paddingHorizontal: 12, paddingTop: 28 + nativeTopInset(), paddingBottom: 28, alignItems: 'stretch', gap: 8 },
   hero: { width: 140, height: 162, alignSelf: 'center' },
   banner: { alignSelf: 'center', paddingHorizontal: 30, paddingVertical: 6, borderRadius: 18, borderWidth: 4, borderColor: colors.ink, overflow: 'hidden', shadowColor: colors.ink, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 1, shadowRadius: 0, elevation: 6 },
   bannerText: { fontFamily: fonts.display, fontSize: 32, lineHeight: 44, color: colors.ink },

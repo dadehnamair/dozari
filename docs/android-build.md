@@ -23,6 +23,16 @@ EXPO_PUBLIC_API_URL=https://api.mrbots.ir pnpm exec expo prebuild --platform and
 cd android && ./gradlew assembleRelease     # app/build/outputs/apk/release/app-release.apk
 ```
 
+Put `EXPO_PUBLIC_API_URL` / `EXPO_PUBLIC_STORE` in `apps/mobile/.env` (git-ignored) if you build from Android Studio, which does not see your shell variables.
+Plain `http://` API addresses (LAN tests) turn on Android cleartext traffic automatically (`app.config.js`); `https://` keeps it off.
+
+### Windows notes (verified on a real build)
+
+- Install with `pnpm install --node-linker=hoisted`: the default `node_modules/.pnpm/...` paths make CMake/ninja fail (`build.ninja still dirty`, object path > 250 chars).
+- Run Gradle with JDK 21, not Android Studio's bundled JBR 25 (its prefab step prints a "restricted method" warning that Gradle treats as a failure): set `JAVA_HOME` and, if Android Studio created `android/gradle/gradle-daemon-jvm.properties`, set `toolchainVersion=21` in it.
+- Install NDK 27.1.12297006 and CMake 3.22.1 in the SDK Manager. A very new Android Studio writes SDK XML v4 that this AGP cannot read (`CXX5304`); put `ndk.dir=` and `cmake.dir=` in `android/local.properties` to bypass it.
+- Gradle needs Google's and Maven Central's repositories: from Iran run it with a working proxy (`~/.gradle/gradle.properties`, `systemProp.socksProxyHost/Port`) and make sure the proxy app is on.
+
 Quick check on a connected phone instead: `pnpm --filter @dozari/mobile android` (dev build, needs the dev server).
 
 ## Before a store release
@@ -30,8 +40,8 @@ Quick check on a connected phone instead: `pnpm --filter @dozari/mobile android`
 Version: bump `version` in `app.json` (and `android.versionCode`). Icons, adaptive icon and notification icon are in `apps/mobile/assets`.
 Gradle downloads AndroidX from Google's Maven at **build time**; that is a build tool, not a runtime dependency (rule 8), but from an
 Iranian network use a mirror or build on GitHub (option A). Native sound is still silent (web only, D89/D121).
+The app forces RTL natively (`app.config.js`, `Application.onCreate`) so the first launch is already right-to-left, and on Android content is padded below the status bar (`nativeTopInset`) while backgrounds stay full-bleed.
 
 ## Not verified
 
-This pipeline was written in a container with no Android SDK and no access to Google's repositories, so **no APK has been built yet**.
-The first run may need small fixes (SDK version, a native module). Send the failing step's log.
+A local Windows build (Android Studio, JDK 21, hoisted pnpm) produces a working release APK. The GitHub Actions path (A) is not verified yet.

@@ -27,6 +27,7 @@ import { recordGameFinished } from '../review/state';
 import { HintSheet } from '../shop/HintSheet';
 import { hintedCardIds, hintedTitles } from '../shop/hintView';
 import type { FeedbackKey } from './selection';
+import { nativeTopInset } from '../theme/safeArea';
 
 type Phase = { kind: 'loading' } | { kind: 'error'; message: string; detail: string; card: 'noInternet' | 'noPuzzles' | 'error' } | { kind: 'ready'; view: SoloView };
 
@@ -216,7 +217,7 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24, backgroundColor: '#4E2585' },
-  screen: { flexGrow: 1, paddingHorizontal: 12, paddingTop: 14, paddingBottom: 24, alignItems: 'center' },
+  screen: { flexGrow: 1, paddingHorizontal: 12, paddingTop: 14 + nativeTopInset(), paddingBottom: 24, alignItems: 'center' },
   column: { width: '100%', maxWidth: 520, gap: 12 },
   hintBtn: { width: 42, height: 42, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.candy.orange, alignItems: 'center', justifyContent: 'center', marginBottom: 4, shadowColor: colors.ink, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4 },
   pressed: { transform: [{ translateY: 3 }] },
@@ -226,7 +227,7 @@ const styles = StyleSheet.create({
   bubbleTail: { position: 'absolute', top: 24, [Platform.OS === 'web' ? 'right' : 'left']: -11, width: 16, height: 16, backgroundColor: colors.cream, borderRightWidth: 3, borderBottomWidth: 3, borderColor: colors.ink, transform: [{ rotate: Platform.OS === 'web' ? '-45deg' : '135deg' }] },
   bubbleText: { fontFamily: fonts.bold, fontSize: 13.5, lineHeight: 22, color: colors.ink, textAlign: 'right' },
   actions: { flexDirection: ROW, gap: 9 },
-  endScene: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingHorizontal: 12, paddingTop: 14, paddingBottom: 20, gap: 10 },
+  endScene: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingHorizontal: 12, paddingTop: 14 + nativeTopInset(), paddingBottom: 20, gap: 10 },
   endSceneCompact: { paddingTop: 8, paddingBottom: 12, gap: 6 },
   talkerSmall: { width: 72, height: 80 },
   bubbleTitle: { fontFamily: fonts.display, fontSize: 18, lineHeight: 28, color: colors.ink, textAlign: 'right' },
