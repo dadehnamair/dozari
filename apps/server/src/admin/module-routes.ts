@@ -290,6 +290,11 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       void audit('message.send', out.id, `${b.data.audience} ${b.data.channels.join(',')} ${b.data.title.slice(0, 60)}`);
       return reply.code(201).send({ id: out.id, recipients: out.recipients });
     });
+    g.get('/admin/messages/:id/recipients', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
+      return { recipients: await center.recipients(p.data.id) };
+    });
     g.delete('/admin/messages/:id', async (req, reply) => {
       const p = idParam.safeParse(req.params);
       if (!p.success) return reply.code(400).send({ error: 'invalid_request' });

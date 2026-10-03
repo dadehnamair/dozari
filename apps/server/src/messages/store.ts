@@ -19,6 +19,13 @@ export interface SentMessage extends NewMessage {
   channels: { channel: Channel; recipients: number }[];
 }
 
+/** One player who got a message in their in-app inbox (admin "who did this go to" view). */
+export interface MessageRecipient {
+  userId: string;
+  nickname: string | null;
+  read: boolean;
+}
+
 export interface InboxItem {
   id: string;
   title: string;
@@ -35,6 +42,8 @@ export interface MessageStore {
   setChannel(messageId: string, channel: Channel, recipients: number): Promise<void>;
   deliverInbox(messageId: string, userIds: readonly string[]): Promise<void>;
   list(limit: number): Promise<SentMessage[]>;
+  /** Players whose inbox received the message (in-app channel only; other channels keep just a count). */
+  recipients(messageId: string, limit: number): Promise<MessageRecipient[]>;
   /** Hides the message from every inbox; false when unknown or already retracted. */
   retract(messageId: string, now: number): Promise<boolean>;
   inbox(userId: string, limit: number): Promise<InboxItem[]>;
@@ -84,6 +93,16 @@ export function createDbMessageStore(db: Db): MessageStore {
         retracted: r.retractedAt !== null,
         channels: ch.filter((c) => c.messageId === r.id).map((c) => ({ channel: c.channel, recipients: c.recipients })),
       }));
+    },
+    async recipients(messageId, limit) {
+      const rows = await db
+        .select({ userId: inboxMessages.userId, nickname: users.nickname, readAt: inboxMessages.readAt })
+        .from(inboxMessages)
+        .innerJoin(users, eq(users.id, inboxMessages.userId))
+        .where(eq(inboxMessages.messageId, messageId))
+        .orderBy(users.nickname)
+        .limit(limit);
+      return rows.map((r) => ({ userId: r.userId, nickname: r.nickname, read: r.readAt !== null }));
     },
     async retract(messageId, now) {
       const [r] = await db.select({ id: adminMessages.id }).from(adminMessages).where(and(eq(adminMessages.id, messageId), isNull(adminMessages.retractedAt)));
@@ -143,6 +162,12 @@ export function createMemoryMessageStore(seed: { users: string[]; baleLinked?: s
     },
     async list(limit) {
       return [...messages].reverse().slice(0, limit);
+    },
+    async recipients(messageId, limit) {
+      return inboxRows
+        .filter((r) => r.messageId === messageId)
+        .slice(0, limit)
+        .map((r) => ({ userId: r.userId, nickname: null, read: r.readAt !== null }));
     },
     async retract(messageId) {
       const m = messages.find((x) => x.id === messageId);
