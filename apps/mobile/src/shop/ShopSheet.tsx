@@ -120,7 +120,9 @@ export function ShopSheet({ onClose, onBalance }: { onClose: () => void; onBalan
           })}
         </View>
         {note ? <Text style={styles.note}>{note}</Text> : null}
-        {whyLocked ? <Pressable onPress={() => setWhyLocked(null)} accessibilityRole="button"><GuideBubble who="baqal" text={whyLocked} /></Pressable> : <GuideBubble who="baqal" text={fa.shop.baqalHello} />}
+        <View style={styles.bubbleGap}>
+          {whyLocked ? <Pressable onPress={() => setWhyLocked(null)} accessibilityRole="button"><GuideBubble who="baqal" text={whyLocked} /></Pressable> : <GuideBubble who="baqal" text={fa.shop.baqalHello} />}
+        </View>
 
         <View style={styles.list} onLayout={(e) => setBoxH(e.nativeEvent.layout.height)}>
         <View style={styles.grid}>
@@ -192,6 +194,7 @@ const styles = StyleSheet.create({
   tabSoon: { opacity: 0.6 },
   tabIcon: { width: 28, height: 28 },
   tabText: { fontFamily: fonts.display, fontSize: 11, color: colors.ink },
+  bubbleGap: { marginTop: 14 },
   note: { marginTop: 8, fontFamily: fonts.bold, fontSize: 12, color: colors.cream, textAlign: 'center' },
   list: { flex: 1, marginTop: 12 },
   grid: { flexDirection: ROW, flexWrap: 'wrap', gap: CARD_GAP },
