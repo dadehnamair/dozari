@@ -434,3 +434,7 @@ The app's own domains (`mrbots.ir`, `api.mrbots.ir`) are unchanged until the own
 ## D158 — Admin panel tidy-up (2026-10-03, proposed)
 
 Owner added backlog item 10: restructure the admin panel UI for readability — categorised sidebar, explanatory text per page, and «add» flows as modal forms. UI-only; admin API contracts are unchanged. Not started; the owner names the order.
+
+## D159 — Faster opponent search (2026-10-03, proposed)
+
+Backlog item 5: the human-wait before a bot fills a 1v1 seat drops from 25 s + up to 15 s jitter to 8 s + up to 4 s jitter (`bots.fallback_seconds` / `bots.fallback_jitter_seconds`, minimum now 3 s). The driver polls every 5 s, so the real wait is 8–17 s. Values already saved in the admin settings keep winning; lower them there to tune. Bot-fill rules in `logic/bots.md` are unchanged.
