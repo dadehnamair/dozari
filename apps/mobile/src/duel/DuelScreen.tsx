@@ -289,7 +289,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
           </View>
           <View style={styles.toastSlot}>{toast ? <View style={styles.toast}><Text style={styles.toastText} numberOfLines={2}>{toast}</Text></View> : null}</View>
 
-          <Board solved={boardSolved(view)} cards={arrange(view.cards, order)} names={state.names} selected={selected} onToggle={(id) => (playSfx('tap'), setSelected((s) => toggleSelection(s, id)))} disabled={!playing || !mine} />
+          <Board solved={boardSolved(view)} cards={arrange(view.cards, order)} names={state.names} selected={selected} onToggle={(id) => (playSfx('tap'), setSelected((s) => toggleSelection(s, id)))} disabled={!playing || !mine} muted={playing && !mine} />
 
           <View style={styles.tools}>
             {taunts.length > 0 ? (

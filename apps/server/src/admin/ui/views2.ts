@@ -335,16 +335,14 @@ VIEWS.words = function (root) {
         list.appendChild(h('span', { class: 'chip', style: 'display:inline-flex;gap:6px;align-items:center' }, [
           h('span', { text: w.word }), badge(w.severity === 'block' ? 'مسدود' : 'ستاره', w.severity === 'block' ? 'b-bad' : 'b-warn'),
           h('button', { class: 'btn sm', text: w.severity === 'block' ? 'ستاره‌دار' : 'مسدود', onclick: function () { api('/admin/words/' + w.id, { method: 'PATCH', body: { severity: w.severity === 'block' ? 'mask' : 'block' } }).then(function (x) { if (!x.ok) return fail(x); draw(); }); } }),
-          h('button', { class: 'btn bad sm', text: 'حذف', onclick: function () { api('/admin/words/' + w.id, { method: 'DELETE' }).then(function (x) { if (!x.ok) return fail(x); draw(); }); } })
+          h('button', { class: 'btn bad sm', text: 'حذف', onclick: function () { if (!confirm('این کلمه از فیلتر حذف شود؟')) return; api('/admin/words/' + w.id, { method: 'DELETE' }).then(function (x) { if (!x.ok) return fail(x); draw(); }); } })
         ]));
       });
     });
   }
-  root.appendChild(card('افزودن کلمه', 'املا و ریخت‌های مختلف (ی/ي، ک/ك، نیم‌فاصله، حروف تکراری، حروف جداشده) خودکار گرفته می‌شود؛ فقط خود کلمه را بنویس.', [
-    h('div', { class: 'toolbar' }, [word, sev, h('button', { class: 'btn primary', text: 'افزودن', onclick: function () {
-      api('/admin/words', { method: 'POST', body: { word: word.value.trim(), severity: sev.value } }).then(function (x) { if (x.status === 409) return toast('این کلمه از قبل هست', true); if (!x.ok) return fail(x); word.value = ''; draw(); });
-    } })])
-  ]));
+  root.appendChild(addCard('افزودن کلمه', 'املا و ریخت‌های مختلف (ی/ي، ک/ك، نیم‌فاصله، حروف تکراری، حروف جداشده) خودکار گرفته می‌شود؛ فقط خود کلمه را بنویس.', 'کلمه‌ی تازه', [['کلمه', word], ['شدت', sev]], function () {
+    return api('/admin/words', { method: 'POST', body: { word: word.value.trim(), severity: sev.value } }).then(function (x) { if (x.status === 409) { toast('این کلمه از قبل هست', true); return false; } if (!x.ok) { fail(x); return false; } toast('کلمه اضافه شد'); word.value = ''; draw(); return true; });
+  }));
   root.appendChild(card('فهرست', 'روی همه‌ی متن‌هایی که بازیکن تایپ می‌کند (چت و ...) در سرور اجرا می‌شود', [list]));
   root.appendChild(card('آزمایش', 'متن آزمایشی ذخیره نمی‌شود', [h('div', { class: 'toolbar' }, [test, h('button', { class: 'btn', text: 'بررسی', onclick: function () {
     api('/admin/words/test', { method: 'POST', body: { text: test.value } }).then(function (x) {
@@ -383,11 +381,9 @@ VIEWS.cities = function (root) {
       });
     });
   }
-  root.appendChild(card('افزودن شهر', 'بازیکن‌ها شهرشان را از این فهرست انتخاب می‌کنند؛ پنهان‌کردن، شهرِ کسانی که قبلاً انتخاب کرده‌اند را عوض نمی‌کند.', [
-    h('div', { class: 'toolbar' }, [slug, name, prov, h('button', { class: 'btn primary', text: 'افزودن', onclick: function () {
-      api('/admin/cities', { method: 'POST', body: { slug: slug.value.trim(), nameFa: name.value.trim(), province: prov.value || null } }).then(function (x) { if (x.status === 409) return toast('این شناسه از قبل هست', true); if (!x.ok) return fail(x); slug.value = ''; name.value = ''; draw(); });
-    } })])
-  ]));
+  root.appendChild(addCard('افزودن شهر', 'بازیکن‌ها شهرشان را از این فهرست انتخاب می‌کنند؛ پنهان‌کردن، شهرِ کسانی که قبلاً انتخاب کرده‌اند را عوض نمی‌کند.', 'شهر تازه', [['شناسه (انگلیسی)', slug], ['نام شهر', name], ['استان', prov]], function () {
+    return api('/admin/cities', { method: 'POST', body: { slug: slug.value.trim(), nameFa: name.value.trim(), province: prov.value || null } }).then(function (x) { if (x.status === 409) { toast('این شناسه از قبل هست', true); return false; } if (!x.ok) { fail(x); return false; } toast('شهر اضافه شد'); slug.value = ''; name.value = ''; draw(); return true; });
+  }));
   root.appendChild(card('فهرست شهرها', null, [list]));
   draw();
 };
@@ -466,15 +462,15 @@ VIEWS.dailypuzzle = function (root) {
   var sm = sel12(), em = sel12();
   var sd = h('input', { type: 'number', min: 1, max: 31, placeholder: 'روز', style: 'width:70px' }), ed = h('input', { type: 'number', min: 1, max: 31, placeholder: 'روز', style: 'width:70px' });
   var from = h('input', { type: 'text', dir: 'ltr', placeholder: 'از 2026-03-01', maxlength: 10, style: 'width:130px' }), to = h('input', { type: 'text', dir: 'ltr', placeholder: 'تا 2026-03-31', maxlength: 10, style: 'width:130px' });
-  root.appendChild(card('موضوع تازه', 'موضوع یعنی دلیلِ انتخاب پازل: مناسبت، فصل، ترند یا دسته. در روزهای بازه‌اش پازل‌های وصل‌شده به آن اولویت دارند. بازه‌ی سالانه به تاریخ شمسی است؛ بازه‌ی مطلق برای ترند یک‌باره.', [
-    h('div', { class: 'toolbar' }, [title, kind, h('span', { text: 'وزن' }), weight]),
+  root.appendChild(addCard('موضوع تازه', 'موضوع یعنی دلیلِ انتخاب پازل: مناسبت، فصل، ترند یا دسته. در روزهای بازه‌اش پازل‌های وصل‌شده به آن اولویت دارند. بازه‌ی سالانه به تاریخ شمسی است؛ بازه‌ی مطلق برای ترند یک‌باره.', 'موضوع تازه', [
+    ['عنوان', title], ['نوع', kind], ['وزن', weight],
     h('div', { class: 'toolbar' }, [h('span', { text: 'هر سال از' }), sm, sd, h('span', { text: 'تا' }), em, ed]),
-    h('div', { class: 'toolbar' }, [from, to, h('button', { class: 'btn primary', text: 'افزودن', onclick: function () {
-      var rec = sm.value && sd.value && em.value && ed.value;
-      if ((sm.value || sd.value || em.value || ed.value) && !rec) return toast('بازه‌ی سالانه را کامل پر کن', true);
-      api('/admin/daily-puzzle/themes', { method: 'POST', body: { titleFa: title.value.trim(), kind: kind.value, weight: +weight.value || 1, startMonth: rec ? +sm.value : null, startDay: rec ? +sd.value : null, endMonth: rec ? +em.value : null, endDay: rec ? +ed.value : null, fromDate: from.value.trim() || null, toDate: to.value.trim() || null, isActive: true } }).then(function (x) { if (!x.ok) return fail(x); title.value = ''; drawThemes(); });
-    } })])
-  ]));
+    h('div', { class: 'toolbar' }, [from, to])
+  ], function () {
+    var rec = sm.value && sd.value && em.value && ed.value;
+    if ((sm.value || sd.value || em.value || ed.value) && !rec) { toast('بازه‌ی سالانه را کامل پر کن', true); return false; }
+    return api('/admin/daily-puzzle/themes', { method: 'POST', body: { titleFa: title.value.trim(), kind: kind.value, weight: +weight.value || 1, startMonth: rec ? +sm.value : null, startDay: rec ? +sd.value : null, endMonth: rec ? +em.value : null, endDay: rec ? +ed.value : null, fromDate: from.value.trim() || null, toDate: to.value.trim() || null, isActive: true } }).then(function (x) { if (!x.ok) { fail(x); return false; } toast('موضوع ساخته شد'); title.value = ''; drawThemes(); return true; });
+  }));
   root.appendChild(card('موضوع‌ها', null, [themesBox]));
   root.appendChild(card('برنامه‌ی ۱۴ روز آینده', 'روزهای «پیش‌نمایش» هنوز ثبت نشده‌اند و هنگام اولین نیاز همین‌طور انتخاب می‌شوند. «ثابت» یک پازل را برای آن روز قطعی می‌کند (تا وقتی کسی بازی نکرده).', [schedBox]));
   api('/admin/daily-puzzle/puzzles').then(function (r) { if (r.ok) puzzles = r.body.puzzles; drawThemes(); });
@@ -508,12 +504,9 @@ VIEWS.shop = function (root) {
   var price = num(20), amt = num(1, 1), lvl = num(1, 1), lim = num(0), eff = select([['hint_token', 'توکن راهنما'], ['wheel_spin', 'چرخش گردونه']], 'hint_token');
   root.appendChild(card('قیمت راهنما در بازی تکی', 'قیمت هر راهنما، لول لازم و سقف راهنما در هر بازی در بخش «تنظیمات ← اقتصاد» است.', []));
   root.appendChild(card('آیتم‌های فروشگاه', 'هر آیتم با سکه خریده می‌شود و «توکن راهنما» می‌دهد؛ توکن به جای سکه در بازی تکی خرج می‌شود. بازیکن شرط لول و سقف روزانه را قبل از خرید می‌بیند.', [list]));
-  root.appendChild(card('آیتم تازه', 'نوع اثر: «توکن راهنما» (به جای سکه در بازی تکی خرج می‌شود) یا «چرخش گردونه» (هر عدد یک چرخش گردونه‌ی شانس).', [
-    h('div', { class: 'toolbar' }, [title, desc]),
-    h('div', { class: 'toolbar' }, [field('نوع اثر', eff), field('قیمت (سکه)', price), field('تعداد (توکن یا چرخش)', amt), field('کمترین لول', lvl), field('سقف در روز', lim), h('button', { class: 'btn primary', text: 'افزودن', onclick: function () {
-      api('/admin/shop', { method: 'POST', body: { titleFa: title.value.trim(), descriptionFa: desc.value.trim(), effect: eff.value, amount: +amt.value, priceCoins: +price.value, minLevel: +lvl.value, perDayLimit: +lim.value, iconKey: eff.value === 'wheel_spin' ? 'dice' : 'magnifier', isActive: true } }).then(function (x) { if (!x.ok) return fail(x); title.value = ''; desc.value = ''; draw(); });
-    } })])
-  ]));
+  root.appendChild(addCard('آیتم تازه', 'نوع اثر: «توکن راهنما» (به جای سکه در بازی تکی خرج می‌شود) یا «چرخش گردونه» (هر عدد یک چرخش گردونه‌ی شانس).', 'آیتم تازه', [['عنوان', title], ['توضیح', desc], ['نوع اثر', eff], ['قیمت (سکه)', price], ['تعداد (توکن یا چرخش)', amt], ['کمترین لول', lvl], ['سقف در روز', lim]], function () {
+    return api('/admin/shop', { method: 'POST', body: { titleFa: title.value.trim(), descriptionFa: desc.value.trim(), effect: eff.value, amount: +amt.value, priceCoins: +price.value, minLevel: +lvl.value, perDayLimit: +lim.value, iconKey: eff.value === 'wheel_spin' ? 'dice' : 'magnifier', isActive: true } }).then(function (x) { if (!x.ok) { fail(x); return false; } toast('آیتم ساخته شد'); title.value = ''; desc.value = ''; draw(); return true; });
+  }));
   draw();
 };
 VIEWS.invites = function (root) {
@@ -536,11 +529,9 @@ VIEWS.invites = function (root) {
     });
   }
   var code = h('input', { type: 'text', dir: 'ltr', placeholder: 'کد (مثل NAVRUZ)', maxlength: 12 }), label = h('input', { type: 'text', placeholder: 'نام کمپین (اختیاری)', maxlength: 80 }), uses = h('input', { type: 'number', value: 100, min: 1, style: 'width:110px' });
-  root.appendChild(card('کد معرف ویژه (کمپین)', 'کد کمپین معرفی ندارد، پس پاداش معرف پرداخت نمی‌شود؛ فقط دعوت‌شده سکه‌ی خوش‌آمد و فعال‌شدن حساب را می‌گیرد. حروف و عددهای شبیه به هم (۰ O ۱ I L) مجاز نیستند.', [
-    h('div', { class: 'toolbar' }, [code, label, field('تعداد استفاده', uses), h('button', { class: 'btn primary', text: 'ساخت', onclick: function () {
-      api('/admin/invites', { method: 'POST', body: { code: code.value, label: label.value.trim() || code.value.trim(), maxUses: +uses.value } }).then(function (x) { if (x.status === 409) return toast('این کد از قبل هست', true); if (!x.ok) return fail(x); code.value = ''; label.value = ''; draw(); });
-    } })])
-  ]));
+  root.appendChild(addCard('کد معرف ویژه (کمپین)', 'کد کمپین معرفی ندارد، پس پاداش معرف پرداخت نمی‌شود؛ فقط دعوت‌شده سکه‌ی خوش‌آمد و فعال‌شدن حساب را می‌گیرد. حروف و عددهای شبیه به هم (۰ O ۱ I L) مجاز نیستند.', 'کد تازه', [['کد', code, '۴ تا ۱۲ حرف یا عدد، مثل NAVRUZ'], ['نام کمپین', label, 'اختیاری'], ['تعداد استفاده', uses]], function () {
+    return api('/admin/invites', { method: 'POST', body: { code: code.value, label: label.value.trim() || code.value.trim(), maxUses: +uses.value } }).then(function (x) { if (x.status === 409) { toast('این کد از قبل هست', true); return false; } if (!x.ok) { fail(x); return false; } toast('کد ساخته شد'); code.value = ''; label.value = ''; draw(); return true; });
+  }));
   root.appendChild(card('همه‌ی کدها', 'سقف استفاده‌ی کد شخصی و پاداش‌ها در «تنظیمات ← اقتصاد» است. غیرفعال‌کردن یک کد جلوی دعوت تازه را می‌گیرد، حساب‌های دعوت‌شده‌ی قبلی بدون تغییر می‌مانند.', [list]));
   draw();
 };
@@ -572,12 +563,9 @@ VIEWS.badges = function (root) {
   var slug = h('input', { type: 'text', dir: 'ltr', placeholder: 'شناسه‌ی لاتین', maxlength: 40 }), title = h('input', { type: 'text', placeholder: 'نام', maxlength: 60 }), desc = h('input', { type: 'text', placeholder: 'توضیح', maxlength: 200 });
   var kind = select([['badge', 'نشان'], ['medal', 'مدال']], 'badge'), perk = select(PERKS, 'none'), metric = select(METRICS, 'games'), min = num(10);
   root.appendChild(card('نشان‌ها و مدال‌ها', 'نشان می‌تواند امتیاز داشته باشد (فرستادن شماره/لینک در چت، یا نقش آجان دوزاری) و شرط خودکار (مثلاً لول ۱۰). بازیکن شرط نشان‌های قفل را می‌بیند.', [list]));
-  root.appendChild(card('نشان تازه', null, [
-    h('div', { class: 'toolbar' }, [slug, title, desc]),
-    h('div', { class: 'toolbar' }, [field('نوع', kind), field('امتیاز', perk), field('شرط خودکار', metric), field('حداقل', min), h('button', { class: 'btn primary', text: 'افزودن', onclick: function () {
-      api('/admin/badges', { method: 'POST', body: { slug: slug.value.trim(), titleFa: title.value.trim(), descriptionFa: desc.value.trim(), kind: kind.value, iconKey: kind.value === 'medal' ? 'medal' : 'star', perk: perk.value, ruleMetric: metric.value, ruleMin: +min.value, isActive: true } }).then(function (x) { if (x.status === 409) return toast('این شناسه از قبل هست', true); if (!x.ok) return fail(x); slug.value = ''; title.value = ''; desc.value = ''; draw(); });
-    } })])
-  ]));
+  root.appendChild(addCard('نشان تازه', null, 'نشان تازه', [['شناسه (لاتین)', slug], ['عنوان', title], ['توضیح', desc], ['نوع', kind], ['امتیاز', perk], ['شرط خودکار', metric], ['حداقل', min]], function () {
+    return api('/admin/badges', { method: 'POST', body: { slug: slug.value.trim(), titleFa: title.value.trim(), descriptionFa: desc.value.trim(), kind: kind.value, iconKey: kind.value === 'medal' ? 'medal' : 'star', perk: perk.value, ruleMetric: metric.value, ruleMin: +min.value, isActive: true } }).then(function (x) { if (x.status === 409) { toast('این شناسه از قبل هست', true); return false; } if (!x.ok) { fail(x); return false; } toast('نشان ساخته شد'); slug.value = ''; title.value = ''; desc.value = ''; draw(); return true; });
+  }));
   draw();
 };
 VIEWS.taunts = function (root) {
@@ -679,18 +667,18 @@ VIEWS.tournaments = function (root) {
   function recalc() { var pool = +fee.value * +size.value, prizes = (+p1.value) + (+p2.value) + 2 * (+p3.value); note.textContent = 'جمع ورودی اگر پر شود: ' + faNum(pool) + ' سکه · جمع جایزه‌ها: ' + faNum(prizes) + ' سکه' + (prizes > pool ? ' ← جایزه از ورودی بیشتر است؛ این تفاوت سکه‌ی تازه به اقتصاد اضافه می‌کند.' : ''); }
   [fee, size, p1, p2, p3].forEach(function (el) { el.addEventListener('input', recalc); }); recalc();
   root.appendChild(card('تورنومنت‌ها', 'جدول حذفی تک‌حذفی؛ هر دور با یک دوئل. بازیکنی که نرسد یا ببازد حذف می‌شود، تساوی دوباره بازی می‌شود.', [list]));
-  root.appendChild(card('تورنومنت تازه', 'مقام سوم به هر دو بازنده‌ی نیمه‌نهایی داده می‌شود. اگر تعداد ثبت‌نام‌ها کمتر از ظرفیت باشد، جدول با «بای» پر می‌شود (به شرط رسیدن به حداقل نفرات).', [
-    h('div', { class: 'toolbar' }, [title]), h('div', {}, [desc]),
+  root.appendChild(addCard('تورنومنت تازه', 'مقام سوم به هر دو بازنده‌ی نیمه‌نهایی داده می‌شود. اگر تعداد ثبت‌نام‌ها کمتر از ظرفیت باشد، جدول با «بای» پر می‌شود (به شرط رسیدن به حداقل نفرات).', 'تورنومنت تازه', [
+    ['نام', title], ['توضیحات', desc],
     h('div', { class: 'toolbar' }, [field('ظرفیت', size), field('حداقل نفرات برای برگزاری', minPlayers), field('ورودی (سکه، ۰ = رایگان)', fee), field('کمترین لول (۱ = همه)', level), field('شروع و بسته‌شدن ثبت‌نام', startsAt)]),
     h('div', { class: 'toolbar' }, [field('جایزه‌ی مقام اول', p1), field('مقام دوم', p2), field('مقام سوم (به هر نفر)', p3)]),
     h('div', { class: 'toolbar' }, [field('چرخش گردونه‌ی مقام اول', s1), field('مقام دوم', s2), field('مقام سوم (به هر نفر)', s3)]),
     note,
-    h('div', { class: 'toolbar' }, [h('label', {}, [botFill, ' جای خالی با ربات پر شود']), h('label', {}, [concurrent, ' کسی که در تورنومنت دیگری هست هم بتواند وارد شود']), h('label', {}, [publish, ' همین حالا منتشر شود']), h('button', { class: 'btn primary', text: 'ساخت', onclick: function () {
-      if (!startsAt.value) return toast('زمان شروع را بگذار', true);
-      var prizes = [{ place: 1, coins: +p1.value, spins: +s1.value }, { place: 2, coins: +p2.value, spins: +s2.value }, { place: 3, coins: +p3.value, spins: +s3.value }].filter(function (p) { return p.coins > 0 || p.spins > 0; });
-      api('/admin/tournaments', { method: 'POST', body: { titleFa: title.value.trim(), descriptionFa: desc.value.trim(), iconKey: 'trophy', size: +size.value, minPlayers: +minPlayers.value, entryCoins: +fee.value, minLevel: +level.value, startsAt: new Date(startsAt.value).getTime(), botFill: botFill.checked, allowConcurrent: concurrent.checked, prizes: prizes, publish: publish.checked } }).then(function (x) { if (!x.ok) return fail(x); toast('تورنومنت ساخته شد'); title.value = ''; desc.value = ''; draw(); });
-    } })])
-  ]));
+    h('div', { class: 'toolbar' }, [h('label', {}, [botFill, ' جای خالی با ربات پر شود']), h('label', {}, [concurrent, ' کسی که در تورنومنت دیگری هست هم بتواند وارد شود']), h('label', {}, [publish, ' همین حالا منتشر شود'])])
+  ], function () {
+    if (!startsAt.value) { toast('زمان شروع را بگذار', true); return false; }
+    var prizes = [{ place: 1, coins: +p1.value, spins: +s1.value }, { place: 2, coins: +p2.value, spins: +s2.value }, { place: 3, coins: +p3.value, spins: +s3.value }].filter(function (p) { return p.coins > 0 || p.spins > 0; });
+    return api('/admin/tournaments', { method: 'POST', body: { titleFa: title.value.trim(), descriptionFa: desc.value.trim(), iconKey: 'trophy', size: +size.value, minPlayers: +minPlayers.value, entryCoins: +fee.value, minLevel: +level.value, startsAt: new Date(startsAt.value).getTime(), botFill: botFill.checked, allowConcurrent: concurrent.checked, prizes: prizes, publish: publish.checked } }).then(function (x) { if (!x.ok) { fail(x); return false; } toast('تورنومنت ساخته شد'); title.value = ''; desc.value = ''; draw(); return true; });
+  }));
   draw();
 };
 VIEWS.bots = function (root) {
@@ -833,10 +821,9 @@ VIEWS.admins = function (root) {
   }
   var un = h('input', { type: 'text', dir: 'ltr', placeholder: 'نام کاربری (انگلیسی)', maxlength: 30 }), dn = h('input', { type: 'text', placeholder: 'نام نمایشی', maxlength: 60 }), pw = h('input', { type: 'password', dir: 'ltr', placeholder: 'رمز (حداقل ۱۰ نویسه)', autocomplete: 'new-password' }), role = select(ROLES, 'support');
   root.appendChild(box);
-  root.appendChild(card('حساب تازه', 'هر مدیر حساب جدا دارد و کارهایش با اسمش در «گزارش تغییرها» ثبت می‌شود.', [h('div', { class: 'form-grid' }, [field('نام کاربری', un), field('نام نمایشی', dn), field('رمز', pw), field('نقش', role)]),
-    h('div', { class: 'toolbar' }, [h('button', { class: 'btn primary', text: 'ساخت حساب', onclick: function () {
-      api('/admin/admins', { method: 'POST', body: { username: un.value.trim(), displayName: dn.value.trim() || un.value.trim(), password: pw.value, role: role.value } }).then(function (x) { if (!x.ok) return fail(x); toast('حساب ساخته شد'); un.value = ''; dn.value = ''; pw.value = ''; draw(); });
-    } })])]));
+  root.appendChild(addCard('حساب تازه', 'هر مدیر حساب جدا دارد و کارهایش با اسمش در «گزارش تغییرها» ثبت می‌شود.', 'حساب تازه', [['نام کاربری', un], ['نام نمایشی', dn], ['رمز', pw], ['نقش', role]], function () {
+    return api('/admin/admins', { method: 'POST', body: { username: un.value.trim(), displayName: dn.value.trim() || un.value.trim(), password: pw.value, role: role.value } }).then(function (x) { if (!x.ok) { fail(x); return false; } toast('حساب ساخته شد'); un.value = ''; dn.value = ''; pw.value = ''; draw(); return true; });
+  }));
   draw();
 };
 VIEWS.audit = function (root) {
