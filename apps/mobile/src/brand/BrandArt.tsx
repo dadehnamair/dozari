@@ -2,6 +2,7 @@ import { useId } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Defs, LinearGradient, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { Character } from '../components/Character';
+import type { CharacterId } from '../theme/character';
 import { Wordmark } from '../components/Wordmark';
 import { fonts } from '../theme/colors';
 
@@ -51,13 +52,13 @@ function Gloss({ size }: { size: number }) {
 }
 
 /** app-icon 1024: backdrop, the hero's face, gloss. */
-export function AppIconArt({ size = 1024 }: { size?: number }) {
+export function AppIconArt({ size = 1024, who }: { size?: number; who?: CharacterId }) {
   const inset = size * (16 / 180);
   return (
     <View style={{ width: size, height: size, overflow: 'hidden' }}>
       <IconBackdrop size={size} />
       <View style={{ position: 'absolute', top: inset, left: inset, right: inset, bottom: inset }}>
-        <Character crop="face" pose="idle" />
+        <Character who={who} crop="face" pose="idle" />
       </View>
       <Gloss size={size} />
     </View>
@@ -65,12 +66,12 @@ export function AppIconArt({ size = 1024 }: { size?: number }) {
 }
 
 /** android-fg: transparent, the face inside the 66% safe zone of the adaptive icon. */
-export function AndroidForeground({ size = 1024 }: { size?: number }) {
+export function AndroidForeground({ size = 1024, who }: { size?: number; who?: CharacterId }) {
   const inset = size * 0.17;
   return (
     <View style={{ width: size, height: size }}>
       <View style={{ position: 'absolute', top: inset, left: inset, right: inset, bottom: inset }}>
-        <Character crop="face" pose="idle" />
+        <Character who={who} crop="face" pose="idle" />
       </View>
     </View>
   );

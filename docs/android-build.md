@@ -26,6 +26,8 @@ cd android && ./gradlew assembleRelease     # app/build/outputs/apk/release/app-
 Put `EXPO_PUBLIC_API_URL` / `EXPO_PUBLIC_STORE` in `apps/mobile/.env` (git-ignored) if you build from Android Studio, which does not see your shell variables.
 Plain `http://` API addresses (LAN tests) turn on Android cleartext traffic automatically (`app.config.js`); `https://` keeps it off.
 
+The launcher icon follows the player's gender (D166): `plugins/withGenderIcon.js` + `modules/app-icon`; change the art in `src/brand/BrandScreen.tsx` and re-export with `scripts/export-brand.mjs`.
+
 ### Windows notes (verified on a real build)
 
 - Install with `pnpm install --node-linker=hoisted`: the default `node_modules/.pnpm/...` paths make CMake/ninja fail (`build.ninja still dirty`, object path > 250 chars).
