@@ -225,7 +225,7 @@ human opponent is found.
 Start after the first Android build.
 
 - [ ] 1. Wheel pays every prize kind (coins, gems, clothing, hats …); no free spins until the policy is set, then spins behave like lives (D156)
-- [ ] 2. Board cards: names and icons fit (fixed layout policy, auto-shrink floor, short names)
+- [x] 2. Board cards: names and icons fit (fixed layout policy, auto-shrink floor, short names)
 - [ ] 3. «تکمیل پروفایل» nudge / guide says «برو این کار را بکن، سکه بگیر»
 - [ ] 4. Missions (profile, social follow, store reviews, invite …) paying coins
 - [ ] 5. Shorter opponent search; bots fill the seat sooner

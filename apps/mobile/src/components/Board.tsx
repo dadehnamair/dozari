@@ -4,7 +4,7 @@ import { GROUP_SIZE } from '@dozari/shared';
 import type { SoloCard, SoloSolvedGroup } from '@dozari/shared';
 import { colors, groupShelf, tile } from '../theme/colors';
 import { fa } from '../i18n/fa';
-import { cellWidth } from './boardLayout';
+import { NAME_FLOOR, cardMetrics, cellWidth } from './boardLayout';
 import { Item } from './Item';
 
 const GAP = 8;
@@ -38,6 +38,7 @@ export function Board({ solved, cards, names, selected, onToggle, disabled, hint
       <View style={styles.grid}>
         {cards.map((c) => {
           const on = selected.includes(c.id);
+          const m = cardMetrics(w);
           return (
             <Pressable
               key={c.id}
@@ -45,15 +46,15 @@ export function Board({ solved, cards, names, selected, onToggle, disabled, hint
               accessibilityRole="button"
               accessibilityState={{ selected: on }}
               onPress={() => onToggle(c.id)}
-              style={[styles.cell, w > 0 && { width: w, height: Math.round(w * 0.85) }, on && styles.cellOn, hinted.includes(c.id) && styles.cellHint, muted && styles.cellMuted]}
+              style={[styles.cell, w > 0 && { width: w, height: m.height }, on && styles.cellOn, hinted.includes(c.id) && styles.cellHint, muted && styles.cellMuted]}
             >
               {c.iconKey ? (
-                <View style={styles.icon}>
+                <View style={{ width: m.icon, height: m.icon }}>
                   <Item icon={c.iconKey} />
                 </View>
               ) : null}
-              <Text style={[styles.name, on && styles.nameOn]} numberOfLines={3}>{c.nameFa}</Text>
-              {c.unitFa ? <Text style={[styles.unit, on && styles.nameOn]} numberOfLines={1}>{c.unitFa}</Text> : null}
+              <Text style={[styles.name, { fontSize: m.nameSize }, on && styles.nameOn]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={NAME_FLOOR / m.nameSize}>{c.nameFa}</Text>
+              {c.unitFa ? <Text style={[styles.unit, { fontSize: m.unitSize }, on && styles.nameOn]} numberOfLines={1}>{c.unitFa}</Text> : null}
             </Pressable>
           );
         })}
@@ -80,10 +81,10 @@ const styles = StyleSheet.create({
     backgroundColor: tile.idle.face,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 6,
+    padding: 4,
+    overflow: 'hidden',
   },
   cellOn: { backgroundColor: tile.selected.face, borderBottomColor: tile.selected.shelf, transform: [{ translateY: 2 }, { scale: 0.96 }] },
-  icon: { width: 34, height: 34 },
   name: { fontFamily: 'Vazirmatn_700Bold', fontSize: 14, color: tile.idle.text, textAlign: 'center' },
   unit: { fontFamily: 'Vazirmatn_400Regular', fontSize: 11, color: colors.ink, opacity: 0.7, textAlign: 'center' },
   nameOn: { color: tile.selected.text },
