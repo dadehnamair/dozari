@@ -105,7 +105,8 @@ import { createDbPuzzleAdmin } from './puzzles/admin.js';
 import { startPuzzlePoolScheduler } from './puzzles/pool.js';
 import { registerCoinPackageRoutes } from './economy/coin-packages-routes.js';
 import { createDbCoinPackageStore } from './economy/coin-packages-store.js';
-import { registerShopRoutes } from './economy/shop-routes.js';
+import { ShopRealMoney } from './economy/shop-real.js';
+import { registerShopPayRoutes, registerShopRoutes } from './economy/shop-routes.js';
 import { LevelRoadService, registerRoadRoutes } from './progress/road.js';
 import { createDbRewardStore } from './progress/rewards-store.js';
 import { ProfileTaskService, registerProfileTaskRoutes } from './profile/tasks.js';
@@ -206,6 +207,8 @@ export interface ServerDeps {
   gems?: Pick<GemWalletReader, 'wallet'>;
   /** Coin packages bought with real money (`/coin-packages`, off by default); needs `auth`. */
   coinPackages?: CoinPackageService;
+  /** Shop items bought with real money (`/shop-pay`, behind the same switch as coin packages). */
+  shopReal?: ShopRealMoney;
   /** Allowed browser origins (e.g. Expo web dev). `*` allows any. Off when unset: native apps don't need CORS. */
   corsOrigin?: string;
   /** Docker-free dev: directory of uploaded product images, served at `/images/*`. */
@@ -302,6 +305,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.profileTasks) registerProfileTaskRoutes(app, deps.auth, deps.profileTasks);
   if (deps.auth && deps.birthday) registerBirthdayRoutes(app, deps.auth, deps.birthday);
   if (deps.auth && deps.gems) registerGemRoutes(app, deps.auth, deps.gems);
+  if (deps.auth && deps.shopReal) registerShopPayRoutes(app, deps.auth, deps.shopReal, deps.notify ? { send: (id, inv) => deps.notify!.sendInvoice(id, inv) } : undefined);
   if (deps.auth && deps.coinPackages) registerCoinPackageRoutes(app, deps.auth, deps.coinPackages, deps.notify ? { send: (id, inv) => deps.notify!.sendInvoice(id, inv) } : undefined);
   let gateway: Gateway | undefined;
   if (deps.auth && deps.realtime) {
@@ -548,10 +552,15 @@ if (isMainModule(import.meta.url)) {
       : undefined;
   const levelOf = async (id: string) => (player ? (await player.levelOf(id)).level.level : 1);
   const shopStore = db ? createDbShopStore(db) : undefined;
+  const shopReal = shopStore ? new ShopRealMoney(shopStore, levelOf) : undefined;
   const coinPackageService = db ? new CoinPackageService(createDbCoinPackageStore(db), levelOf) : undefined;
   if (notify && coinPackageService) {
     // Coins bought with the Bale wallet: the bot judges the pre-checkout and credits the successful payment (docs/logic/bale-payments.md).
-    notify.payments = coinPackageService;
+    // `si:` payloads are shop items bought for money (D170), `cp:` payloads are coin packages.
+    notify.payments = {
+      preCheckout: (payload, amount, currency, payer) => (payload.startsWith('si:') && shopReal ? shopReal.preCheckout(payload, amount, currency, payer) : coinPackageService.preCheckout(payload, amount, currency, payer)),
+      creditPaid: (payload, chargeId, amount) => (payload.startsWith('si:') && shopReal ? shopReal.creditPaid(payload, chargeId, amount) : coinPackageService.creditPaid(payload, chargeId, amount)),
+    };
     notify.providerToken = process.env.BALE_PROVIDER_TOKEN ?? null;
   }
   let dailyRef: DailyService | undefined;
@@ -666,6 +675,7 @@ if (isMainModule(import.meta.url)) {
           })
         : undefined,
     coinPackages: coinPackageService,
+    shopReal,
     admin: db && jwtSecret ? { repo: createDbAdminRepository(db), token: adminToken, accounts: new AdminAccounts(createDbAdminStore(db), jwtSecret, adminToken) } : undefined,
     corsOrigin: process.env.CORS_ORIGIN,
     trustProxy: process.env.TRUST_PROXY === '1',

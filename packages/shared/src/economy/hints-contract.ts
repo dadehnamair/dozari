@@ -50,6 +50,8 @@ export const shopItemSchema = z.object({
   currency: z.enum(['coins', 'gems']).default('coins'),
   priceCoins: z.number().int().nonnegative(),
   priceGems: z.number().int().nonnegative().default(0),
+  /** Real-money price in toman (0 = not sold for money); only offered when the switch is on. */
+  priceToman: z.number().int().nonnegative().default(0),
   minLevel: z.number().int().positive(),
   iconKey: z.string().nullable(),
   /** Slot a cosmetic is worn in (null for other effects). */
