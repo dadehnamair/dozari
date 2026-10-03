@@ -545,7 +545,7 @@ export const fa = {
     starts: 'شروع',
     mine: 'ثبت‌نام کرده‌ای',
     prizes: 'جایزه‌ها',
-    prizeLine: (label: string, coins: number, spins = 0) => `${label}: ${[coins > 0 ? `${toPersianDigits(String(coins))} سکه` : '', spins > 0 ? `${toPersianDigits(String(spins))} چرخش گردونه` : ''].filter(Boolean).join(' + ')}`,
+    prizeLine: (label: string, coins: number, spins = 0, gems = 0) => `${label}: ${[coins > 0 ? `${toPersianDigits(String(coins))} سکه` : '', gems > 0 ? `${toPersianDigits(String(gems))} الماس` : '', spins > 0 ? `${toPersianDigits(String(spins))} چرخش گردونه` : ''].filter(Boolean).join(' + ')}`,
     places: { 1: 'قهرمان', 2: 'مقام دوم', 3: 'مقام سوم' } as Record<number, string>,
     players: 'شرکت‌کننده‌ها',
     bracket: 'جدول',

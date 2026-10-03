@@ -358,6 +358,13 @@
       "when": 1791040172997,
       "tag": "0050_low_crusher_hogan",
       "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "5",
+      "when": 1791040745679,
+      "tag": "0051_lying_scalphunter",
+      "breakpoints": true
     }
   ]
 }

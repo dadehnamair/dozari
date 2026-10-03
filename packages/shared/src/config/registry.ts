@@ -140,6 +140,8 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'birthday.gift_gems', group: 'economy', label: 'الماس هدیه‌ی تولد', kind: 'int', min: 0, max: 1000, default: 5, unit: 'الماس' },
   { key: 'birthday.gift_spins', group: 'economy', label: 'چرخش گردونه‌ی هدیه‌ی تولد', kind: 'int', min: 0, max: 20, default: 2, unit: 'چرخش' },
   { key: 'wheel.cosmetic_dupe_coins', group: 'economy', label: 'سکه‌ی جایگزین وقتی جایزه‌ی لباس یا کلاه را از قبل دارد', kind: 'int', min: 0, max: 100_000, default: 50, unit: 'سکه' },
+  { key: 'wheel.refill_hours', group: 'economy', label: 'هر چند ساعت یک چرخش گردونه مثل «جان» پر شود', hint: '۰ = خاموش (پیش‌فرض: چرخش رایگان نداریم). فقط وقتی بازیکن گردونه را باز کند و کمتر از سقف چرخش داشته باشد یک چرخش می‌گیرد', kind: 'int', min: 0, max: 168, default: 0, unit: 'ساعت' },
+  { key: 'wheel.refill_cap', group: 'economy', label: 'سقف چرخش‌های در انتظار برای پر شدن خودکار', kind: 'int', min: 1, max: 20, default: 3, unit: 'چرخش' },
   { key: 'wheel.win_spins', group: 'economy', label: 'برد دوئل زنده یک چرخش گردونه بدهد', hint: 'خاموش = چرخش فقط از خرید، سطح، تورنومنت و هدیه می‌آید', kind: 'bool', min: 0, max: 1, default: 0 },
   { key: 'wheel.prize_scale_percent', group: 'economy', label: 'مقیاس جایزه‌های سکه‌ای گردونه (۱۰۰ = همان مقدار جدول)', kind: 'int', min: 0, max: 1000, default: 100, unit: '٪' },
   { key: 'feature.tables', group: 'app', label: 'میز اختصاصی روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },

@@ -53,6 +53,22 @@ describe('lucky wheel', () => {
   });
 });
 
+describe('spins that refill like lives', () => {
+  it('gives one spin per window while fewer than the cap wait, and nothing when it is off', async () => {
+    let clock = Date.UTC(2026, 9, 3, 12);
+    const store = createMemoryWheelStore();
+    const wheel = new WheelService(store, async () => ({ ...DEFAULT_WHEEL_RULES, refillHours: 6, refillCap: 2 }), () => 0, () => clock);
+    expect((await wheel.status('a')).pending).toBe(1);
+    expect((await wheel.status('a')).pending).toBe(1); // same window: nothing more
+    clock += 6 * 3_600_000;
+    expect((await wheel.status('a')).pending).toBe(2);
+    clock += 6 * 3_600_000;
+    expect((await wheel.status('a')).pending).toBe(2); // at the cap
+    const off = new WheelService(createMemoryWheelStore(), async () => ({ ...DEFAULT_WHEEL_RULES, refillHours: 0 }), () => 0, () => clock);
+    expect((await off.status('a')).pending).toBe(0);
+  });
+});
+
 describe('typed prizes', () => {
   const spinWith = async (prize: { kind: 'coins' | 'gems' | 'hint_token' | 'wheel_spin'; amount: number }) => {
     const store = createMemoryWheelStore();

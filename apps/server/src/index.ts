@@ -512,6 +512,8 @@ if (isMainModule(import.meta.url)) {
             slices: scaleSlices(live.length > 0 ? live : WHEEL_SLICES_DEFAULT, await settings.num('wheel.prize_scale_percent')),
             dailySpins: await settings.num('wheel.daily_spins'),
             winSpins: (await settings.num('wheel.win_spins')) === 1,
+            refillHours: await settings.num('wheel.refill_hours'),
+            refillCap: await settings.num('wheel.refill_cap'),
             dupeCoins: await settings.num('wheel.cosmetic_dupe_coins'),
           };
         }, () => randomInt(0, 2 ** 32) / 2 ** 32)
