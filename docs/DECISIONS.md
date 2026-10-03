@@ -489,3 +489,7 @@ Owner: each item in the حجره may carry a real-money price next to its coin o
 ## D171 — Phone-only gate (2026-10-03)
 
 Item 7 built for the web build only (native builds and an installed PWA always pass). `gate.phone_only` (admin setting, default on) turns it on; a desktop browser then shows the «با گوشی بیا» card with a QR of `link.app_url` (empty = the page's own address), an Android phone shows a download card with `link.android_app` (hidden while empty), an iPhone shows the three Safari install steps (the same steps as the install sheet of D102). Every card has «ادامه با مرورگر» (remembered in `dozari.gateContinue`; `?browser=1` does the same) so testers and anyone who insists can still use the browser. Detection is by user agent (iPadOS posing as a Mac counts as iOS). The QR comes from the small dependency-free `qrcode-generator`. Also fixed in the same change: `I18nManager.swapLeftAndRightInRTL` (added for native RTL) does not exist on react-native-web and crashed the whole web app at load, so it is now called on native only.
+
+## D172 — Short domain and domain settings (2026-10-03)
+
+Item 9 (stage 1): self-hosted short links under the admin-managed short domain (`docs/logic/short-links.md`), plus the four domain settings. Redirects are 302 and uncached so edits apply at once. The reverse-proxy/DNS part for `2oi.ir` is the owner's; until then `/s/<code>` on the API host works for testing. The landing site (item 8) comes next as its own app.

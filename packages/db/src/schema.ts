@@ -843,6 +843,17 @@ export const shopPurchases = mysqlTable(
   (table) => ({ byUserDay: index('shop_purchases_user_idx').on(table.userId, table.createdAt) }),
 );
 
+/** Self-hosted short links for outgoing addresses (the `2oi.ir` domain, D172); the redirect counts every click. */
+export const shortLinks = mysqlTable('short_links', {
+  code: varchar('code', { length: 24 }).primaryKey(),
+  targetUrl: varchar('target_url', { length: 1000 }).notNull(),
+  note: varchar('note', { length: 120 }).notNull().default(''),
+  clicks: int('clicks').notNull().default(0),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  lastClickAt: datetime('last_click_at', { mode: 'date', fsp: 3 }),
+});
+
 /** Invite ("gold") codes: one personal code per player, plus special codes an admin makes for campaigns (owner null). */
 export const inviteCodes = mysqlTable(
   'invite_codes',

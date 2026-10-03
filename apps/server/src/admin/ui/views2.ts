@@ -559,6 +559,42 @@ VIEWS.wheel = function (root) {
   api('/admin/shop').then(function (r) { if (!r.ok) return; r.body.items.filter(function (i) { return i.effect === 'cosmetic'; }).forEach(function (i) { itemSel.appendChild(h('option', { value: i.id, text: i.titleFa })); }); });
   draw();
 };
+VIEWS.shortlinks = function (root) {
+  var list = h('div'), baseUrl = '';
+  var ERR = { invalid_url: 'آدرس مقصد درست نیست (باید با http یا https شروع شود).', invalid_code: 'کد فقط حرف کوچک انگلیسی، عدد، خط تیره و زیرخط باشد (۲ تا ۲۴ نویسه).', reserved: 'این کد برای سیستم رزرو است.', taken: 'این کد قبلاً استفاده شده.', self_link: 'مقصد نباید خود دامنه‌ی کوتاه باشد.' };
+  function row(l) {
+    var full = baseUrl ? baseUrl + '/' + l.code : '/s/' + l.code;
+    function save(patch) { api('/admin/short-links/' + l.code, { method: 'PATCH', body: patch }).then(function (x) { if (!x.ok) return fail(x); toast('ذخیره شد'); draw(); }); }
+    var target = h('input', { type: 'text', value: l.targetUrl, style: 'min-width:260px;flex:1' });
+    return h('div', { class: 'card', style: 'padding:12px' }, [
+      h('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap' }, [
+        h('b', { text: full, style: 'direction:ltr' }), l.isActive ? badge('فعال', 'b-ok') : badge('خاموش', 'b-warn'), h('span', { class: 'h', text: faNum(l.clicks) + ' کلیک' + (l.note ? ' · ' + l.note : '') })
+      ]),
+      h('div', { class: 'toolbar', style: 'margin-top:8px' }, [
+        field('مقصد', target),
+        h('button', { class: 'btn primary', text: 'ذخیره', onclick: function () { save({ url: target.value }); } }),
+        h('button', { class: 'btn', text: l.isActive ? 'خاموش کن' : 'روشن کن', onclick: function () { save({ isActive: !l.isActive }); } })
+      ])
+    ]);
+  }
+  function draw() {
+    api('/admin/short-links').then(function (r) {
+      clear(list);
+      if (r.status === 404) return list.appendChild(empty('لینک کوتاه روی این سرور فعال نیست'));
+      if (!r.ok) return fail(r);
+      baseUrl = r.body.base;
+      if (!baseUrl) list.appendChild(h('div', { class: 'h', text: 'دامنه‌ی لینک کوتاه در «تنظیمات ← اپ» خالی است؛ تا آن را پر نکنید لینک‌ها فقط با /s/کد کار می‌کنند.' }));
+      if (r.body.links.length === 0) list.appendChild(empty('هنوز لینکی نساخته‌اید'));
+      r.body.links.forEach(function (l) { list.appendChild(row(l)); });
+    });
+  }
+  var url = h('input', { type: 'text', placeholder: 'https://…', style: 'direction:ltr' }), code = h('input', { type: 'text', placeholder: 'خالی = خودکار', maxlength: 24, style: 'direction:ltr' }), note = h('input', { type: 'text', placeholder: 'یادداشت (اختیاری)', maxlength: 120 });
+  root.appendChild(card('لینک‌های کوتاه', 'هر لینک بعد از دامنه‌ی کوتاه می‌آید؛ مثلاً 2oi.ir/dl. تغییر مقصد فوری اثر می‌کند.', [list]));
+  root.appendChild(addCard('لینک تازه', 'آدرس کامل مقصد را بنویسید؛ کد دلخواه اختیاری است.', 'لینک تازه', [['مقصد', url], ['کد دلخواه', code], ['یادداشت', note]], function () {
+    return api('/admin/short-links', { method: 'POST', body: { url: url.value.trim(), code: code.value.trim() || undefined, note: note.value.trim() } }).then(function (x) { if (!x.ok) { toast(ERR[x.body && x.body.error] || 'نشد'); return false; } toast('ساخته شد: ' + x.body.code); url.value = ''; code.value = ''; note.value = ''; draw(); return true; });
+  }));
+  draw();
+};
 VIEWS.invites = function (root) {
   var list = h('div');
   function draw() {
