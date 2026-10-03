@@ -1,6 +1,6 @@
-# Owner backlog of 2026-10-03 (11 items) — to do after the first Android build
+# Owner backlog of 2026-10-03 (12 items) — to do after the first Android build
 
-Source: the owner's list at the end of the 2026-10-03 session (items 7–11 added later the same day; **none is started — the owner names the order**). Each item carries a *proposed* default (tunable from the admin
+Source: the owner's list at the end of the 2026-10-03 session (items 7–12 added later the same day; **none is started — the owner names the order**). Each item carries a *proposed* default (tunable from the admin
 panel, never a code literal — CLAUDE.md rule 9). Product questions stay open until the owner confirms (`DECISIONS.md` D156).
 
 | # | Item | Proposed default / approach | Touches |
@@ -16,6 +16,7 @@ panel, never a code literal — CLAUDE.md rule 9). Product questions stay open u
 | 9 | **Short domain `2oi.ir` + domain management** | Outgoing links (invite links, shared results, links inside admin messages) use `2oi.ir/<code>`. A **self-hosted shortener** in the main server (`short_links` table: code, target, owner/purpose, clicks, expiry), resolving `2oi.ir/<code>` with a redirect; it replaces the external `link.shortener_url` service (kept as a fallback). **All domains** (`mrbots.ir`/app, `mrdozari.ir`/landing, `2oi.ir`/short, API) become **settings editable in the admin panel**, never code literals (rule 9); the reverse proxy forwards them to the right container. The owner will connect the domain to the main project; the agent manages the links. | server `shortlinks` module, admin, settings registry, proxy |
 | 10 | **Admin panel tidy-up** | Give `apps/server/src/admin/ui` a pass: group the sidebar into labelled sections (players, content, economy, messages, system), a short helper line under every page title, and every «add» action opens a **modal form** (labelled fields, hints, validation messages, Save/Cancel) instead of inline prompts; consistent tables (empty state, search, confirm before delete), toasts for results. UI only — no change to the admin API contracts. | admin `ui/*` (shell, styles, views1/2) |
 | 11 | **Birth date + show-age tick + birthday week** | Optional Solar Hijri birth date in «پروفایل من» (min age 10); age derived; a tick decides whether others see the age (default off). Birthday week = 3 days before for 7 days: party look on the profile and a claimable gift set in the admin panel (start 100 coins + 5 gems + 2 spins). Full policy: `logic/profile-and-identity.md` (D160). Gems wait for item 1. | profile, `users` columns, admin settings, economy |
+| 12 | **Gems (الماس)** | A second currency beside coins: own append-only `gem_ledger` + balance, one service function; shop items and tournament entry fees can be priced in coins or gems; the wheel (item 1) and the birthday gift pay gems; admin sets everything. Owner: used for many things, mostly shop purchases. Full design before building (D164). | economy, ledger, shop, tournaments, wheel, admin |
 
 Open questions for the owner: what exactly counts as the wheel's non-coin prizes (cosmetics that exist in the app today vs new
 ones), the refill rate of spins, and the reward sizes of the missions.

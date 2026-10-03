@@ -4,8 +4,8 @@ import fastifyCors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
 import { resolve } from 'node:path';
 import { rialsToTomanString } from '@dozari/shared';
-import { CHAT_RETENTION_DAYS, TOURNAMENT_TICK_SECONDS, WHEEL_SLICES_DEFAULT, scaleSlices } from '@dozari/shared';
-import type { HintRules } from '@dozari/shared';
+import { CHAT_RETENTION_DAYS, MISSION_KEYS, TOURNAMENT_TICK_SECONDS, WHEEL_SLICES_DEFAULT, scaleSlices } from '@dozari/shared';
+import type { HintRules, MissionKey } from '@dozari/shared';
 import { createDb } from '@dozari/db';
 import { createDbCatalogRepository } from './catalog/db-repository.js';
 import { DailyRewardService } from './economy/daily-reward.js';
@@ -605,8 +605,8 @@ if (isMainModule(import.meta.url)) {
         ? new ProfileTaskService({
             ...createDbProfileTaskStore(db),
             coins: async () => {
-              const [gender, city, phone, bale] = await Promise.all(['gender', 'city', 'phone', 'bale'].map((k) => settings.num(`profiletask.coins_${k}`)));
-              return { gender: gender ?? 0, city: city ?? 0, phone: phone ?? 0, bale: bale ?? 0 };
+              const entries = await Promise.all(MISSION_KEYS.map(async (k) => [k, (await settings.num(`profiletask.coins_${k}`)) ?? 0] as const));
+              return Object.fromEntries(entries) as Record<MissionKey, number>;
             },
           })
         : undefined,

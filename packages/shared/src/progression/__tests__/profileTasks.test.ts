@@ -18,4 +18,7 @@ describe('nextProfileTask', () => {
     expect(nextProfileTask([t('gender', true, true)])).toBeNull();
     expect(nextProfileTask([])).toBeNull();
   });
+  it('never nudges the other missions', () => {
+    expect(nextProfileTask([t('first_win', true, false), t('rate_app', false, false)])).toBeNull();
+  });
 });

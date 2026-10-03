@@ -12,6 +12,7 @@ export const fa = {
     lookupButton: 'استعلام قیمت',
     /** Hub of screen-home (docs/design/Dozari - 01 Screens): corner tiles, top counters, big buttons. */
     hub: {
+      missions: 'ماموریت‌ها',
       play: 'بازی تکی',
       duel: 'دوئل',
       resume: 'برگرد به بازی',
@@ -40,7 +41,7 @@ export const fa = {
       city: (coins: string) => `شهرت را در پروفایل انتخاب کن و ${coins} سکه بگیر.`,
       phone: (coins: string) => `شماره‌ات را در تنظیمات تأیید کن و ${coins} سکه بگیر.`,
       bale: (coins: string) => `حسابت را به بله وصل کن و ${coins} سکه بگیر.`,
-      claim: (coins: string) => `پروفایلت کامل شد! بزن تا ${coins} سکه‌ات را بگیری.`,
+      claim: (coins: string) => `ماموریتت انجام شد! بزن تا ${coins} سکه‌ات را بگیری.`,
       got: (coins: string) => `${coins} سکه گرفتی`,
     },
     guide: {
@@ -792,6 +793,29 @@ export const fa = {
     ownedNow: 'مال خودت شد!',
     free: 'رایگان',
   },
+  missions: {
+    title: 'ماموریت‌ها',
+    close: 'بستن',
+    hello: 'هر ماموریت را یک بار انجام بده و سکه‌اش را بگیر.',
+    go: 'برو',
+    claim: 'بگیر',
+    claimed: 'گرفته شد',
+    error: 'ماموریت‌ها بارگذاری نشد؛ دوباره امتحان کن.',
+    empty: 'فعلاً ماموریتی نیست.',
+    reward: (coins: string) => `${coins} سکه`,
+    got: (coins: string) => `${coins} سکه گرفتی`,
+    titles: {
+      gender: 'جنسیتت را انتخاب کن',
+      city: 'شهرت را انتخاب کن',
+      phone: 'شماره‌ی موبایلت را تأیید کن',
+      bale: 'حسابت را به بله وصل کن',
+      first_win: 'اولین بردت را بگیر',
+      invite_friend: 'یک دوست بیاور و با هم بازی کنید',
+      follow_instagram: 'ما را در اینستاگرام دنبال کن',
+      follow_channel: 'عضو کانال ما شو',
+      rate_app: 'در فروشگاه به دوزاری نظر بده',
+    } as Record<string, string>,
+  },
   ledger: {
     open: 'تاریخچه‌ی سکه',
     baqalHello: 'حساب‌کتاب سکه‌هایت پیش من، بقال محل؛ هر قران که آمد و رفت اینجا ثبت است.',
@@ -831,7 +855,7 @@ export const fa = {
       broke_rescue: 'کمک‌هزینه',
       wheel_spin: 'گردونه‌ی شانس',
       level_reward: 'جایزه‌ی مرحله',
-      profile_task: 'تکمیل پروفایل',
+      profile_task: 'ماموریت',
     } as Record<string, string>,
   },
   inbox: {

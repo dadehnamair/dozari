@@ -1,7 +1,7 @@
-import { baleLinks, eq, profileTaskClaims, userBalances, users } from '@dozari/db';
+import { and, baleLinks, eq, inviteRedemptions, isNotNull, profileTaskClaims, userBalances, userStats, users } from '@dozari/db';
 import type { Db } from '@dozari/db';
-import { PROFILE_TASK_KEYS } from '@dozari/shared';
-import type { ProfileTaskKey } from '@dozari/shared';
+import { MISSION_KEYS } from '@dozari/shared';
+import type { MissionKey } from '@dozari/shared';
 import { applyLedgerEntry } from '../economy/ledger.js';
 import type { ProfileTaskDeps } from './tasks.js';
 
@@ -11,11 +11,15 @@ export function createDbProfileTaskStore(db: Db): Pick<ProfileTaskDeps, 'facts' 
     async facts(userId) {
       const [u] = await db.select({ gender: users.gender, cityId: users.cityId, phoneVerifiedAt: users.phoneVerifiedAt }).from(users).where(eq(users.id, userId));
       const [bale] = await db.select({ id: baleLinks.userId }).from(baleLinks).where(eq(baleLinks.userId, userId));
-      return { gender: !!u?.gender, city: !!u?.cityId, phone: !!u?.phoneVerifiedAt, bale: !!bale };
+      const [stats] = await db.select({ wins: userStats.wins }).from(userStats).where(eq(userStats.userId, userId));
+      // A friend counts once their invite reward was paid, i.e. they actually played (invite.reward_after_games).
+      const [invited] = await db.select({ id: inviteRedemptions.inviteeId }).from(inviteRedemptions).where(and(eq(inviteRedemptions.inviterId, userId), isNotNull(inviteRedemptions.rewardPaidAt))).limit(1);
+      // Follows and store reviews happen outside the app and cannot be checked: they are honour claims (D163).
+      return { gender: !!u?.gender, city: !!u?.cityId, phone: !!u?.phoneVerifiedAt, bale: !!bale, first_win: (stats?.wins ?? 0) > 0, invite_friend: !!invited, follow_instagram: true, follow_channel: true, rate_app: true };
     },
     async claimedKeys(userId) {
       const rows = await db.select({ key: profileTaskClaims.taskKey }).from(profileTaskClaims).where(eq(profileTaskClaims.userId, userId));
-      return rows.map((r) => r.key).filter((k): k is ProfileTaskKey => (PROFILE_TASK_KEYS as readonly string[]).includes(k));
+      return rows.map((r) => r.key).filter((k): k is MissionKey => (MISSION_KEYS as readonly string[]).includes(k));
     },
     pay: (userId, key, coins) =>
       db.transaction(async (tx) => {
