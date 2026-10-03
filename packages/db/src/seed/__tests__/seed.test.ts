@@ -1,3 +1,4 @@
+import { catalogFromSeed, seedRuleToRule, validatePuzzle } from '@dozari/shared';
 import { describe, expect, it } from 'vitest';
 import { readSeedProducts, readSeedPuzzles } from '../load.js';
 
@@ -64,5 +65,33 @@ describe('puzzle seed files', () => {
         }
       }
     }
+  });
+
+  it('passes validatePuzzle hard checks (pending prices included, see D64)', () => {
+    const catalog = catalogFromSeed(products, { includePending: true });
+    for (const pz of puzzles) {
+      const draft = {
+        groups: pz.groups.map((g) => ({
+          level: g.level,
+          rule: seedRuleToRule(g.rule),
+          items: g.items,
+        })),
+      };
+      const r = validatePuzzle(draft, catalog);
+      expect(r.errors, pz.slug).toEqual([]);
+    }
+  });
+
+  it('is not servable yet: no approved prices means approved-only validation fails', () => {
+    const catalog = catalogFromSeed(products);
+    const pz = puzzles[0]!;
+    const draft = {
+      groups: pz.groups.map((g) => ({
+        level: g.level,
+        rule: seedRuleToRule(g.rule),
+        items: g.items,
+      })),
+    };
+    expect(validatePuzzle(draft, catalog).ok).toBe(false);
   });
 });
