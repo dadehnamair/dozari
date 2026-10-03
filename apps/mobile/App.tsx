@@ -37,6 +37,8 @@ if (!I18nManager.isRTL) {
   I18nManager.allowRTL(true);
   I18nManager.forceRTL(true);
 }
+// Coordinates (`left`/`right`, margins) stay physical like the web and the SVG art; only flex rows follow RTL.
+I18nManager.swapLeftAndRightInRTL(false);
 
 const SPLASH_MS = 1800;
 

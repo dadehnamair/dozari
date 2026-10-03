@@ -12,7 +12,7 @@ const withForcedRtl = (config) =>
     if (!src.includes('I18nUtil')) {
       mod.modResults.contents = src.replace(
         'super.onCreate()',
-        'super.onCreate()\n    com.facebook.react.modules.i18nmanager.I18nUtil.instance.allowRTL(this, true)\n    com.facebook.react.modules.i18nmanager.I18nUtil.instance.forceRTL(this, true)',
+        'super.onCreate()\n    com.facebook.react.modules.i18nmanager.I18nUtil.instance.allowRTL(this, true)\n    com.facebook.react.modules.i18nmanager.I18nUtil.instance.forceRTL(this, true)\n    com.facebook.react.modules.i18nmanager.I18nUtil.instance.swapLeftAndRightInRTL(this, false)',
       );
     }
     return mod;
