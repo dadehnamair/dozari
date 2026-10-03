@@ -59,6 +59,8 @@ export const leaderboardSchema = z.object({
   period: leaderboardPeriodSchema.default('all'),
   entries: z.array(leaderboardEntrySchema),
   me: z.object({ rank: z.number().int().positive(), xp: z.number().int().nonnegative(), level: z.number().int().positive() }).nullable(),
+  /** False only for the city scope when the caller has not picked a city (an empty city board with a city set means nobody there has XP yet). */
+  hasCity: z.boolean().default(true),
 });
 export type Leaderboard = z.infer<typeof leaderboardSchema>;
 

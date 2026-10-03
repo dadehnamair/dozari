@@ -120,8 +120,8 @@ export function LeaderboardPage({ onClose }: { onClose: () => void }) {
           <ScrollView contentContainerStyle={styles.rows}>
             {board && entries.length === 0 ? null : <GuideBubble who="pahlevan" text={fa.leaderboard.pahlevanHello} />}
             {failed ? <Text style={styles.note}>{t.error}</Text> : null}
-            {board && entries.length === 0 ? <EmptyNote skin={3} pose="thinking" text={t.empty[scope]} /> : null}
-            {board && scope === 'city' && board.me === null ? (
+            {board && entries.length === 0 ? <EmptyNote skin={3} pose="thinking" text={scope === 'city' && board.hasCity ? t.emptyCity : t.empty[scope]} /> : null}
+            {board && scope === 'city' && !board.hasCity ? (
               <Pressable onPress={() => setPickCity(true)} accessibilityRole="button" style={styles.cityBtn}><Text style={styles.cityBtnText}>{t.pickCity}</Text></Pressable>
             ) : null}
             {rest.map((e) => (

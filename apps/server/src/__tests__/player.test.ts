@@ -175,7 +175,9 @@ describe('leaderboard (D108)', () => {
     expect(city.me?.rank).toBe(2);
 
     // No city: the scope is empty.
-    expect(await get(b, 'city')).toMatchObject({ entries: [], me: null });
+    expect(await get(b, 'city')).toMatchObject({ entries: [], me: null, hasCity: false });
+    // A city that is set is told apart from none (the app asks for a city only in the second case).
+    expect(city.hasCity).toBe(true);
 
     // Friends: only me until someone accepts.
     expect((await get(a, 'friends')).entries.map((e) => e.xp)).toEqual([100]);

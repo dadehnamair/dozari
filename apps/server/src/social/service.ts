@@ -75,13 +75,13 @@ export class SocialService {
   /** Top of a scope by total XP plus the caller's own place (D108). A scope that does not apply (no city) is empty. */
   async leaderboard(me: string, scope: LeaderboardScope, period: LeaderboardPeriod = 'all'): Promise<Leaderboard> {
     const player = this.player;
-    if (!player) return { scope, period, entries: [], me: null };
+    if (!player) return { scope, period, entries: [], me: null, hasCity: true };
     const days = PERIOD_DAYS[period];
     const since = days === null ? undefined : this.now() - days * 86_400_000;
     let filter: { cityId?: string; userIds?: string[] } = {};
     if (scope === 'city') {
       const city = await player.cityOf(me);
-      if (!city) return { scope, period, entries: [], me: null };
+      if (!city) return { scope, period, entries: [], me: null, hasCity: false };
       filter = { cityId: city.id };
     } else if (scope === 'friends') {
       filter = { userIds: [me, ...(await this.store.friends(me)).map((f) => f.id)] };
@@ -94,7 +94,7 @@ export class SocialService {
       entries.push({ rank: i + 1, id: r.userId, nickname: who.nickname, avatarKey: who.avatarKey, level: lv.level.level, xp: r.xp, province: city?.province ?? null, isMe: r.userId === me });
     }
     const mine = await player.levelOf(me);
-    return { scope, period, entries, me: { rank: await player.rankOf(me, filter, since), xp: since === undefined ? mine.level.xp : await player.xpSince(me, since), level: mine.level.level } };
+    return { scope, period, entries, me: { rank: await player.rankOf(me, filter, since), xp: since === undefined ? mine.level.xp : await player.xpSince(me, since), level: mine.level.level }, hasCity: true };
   }
 
   async mine(me: string): Promise<MyProfile | null> {
