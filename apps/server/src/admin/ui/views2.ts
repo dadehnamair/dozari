@@ -762,6 +762,14 @@ VIEWS.messages = function (root) {
   aud.addEventListener('change', function () { target.style.display = aud.value === 'user' ? '' : 'none'; });
   var chBox = h('div', { style: 'display:flex;flex-direction:column;gap:6px' }), checks = {};
   var hist = h('div');
+  function showRecipients(m) {
+    api('/admin/messages/' + m.id + '/recipients').then(function (r) {
+      if (!r.ok) return fail(r);
+      var list = r.body.recipients;
+      if (!list.length) return alert('برای این پیام گیرنده‌ی صندوق ثبت نشده (کانال‌های دیگر فقط تعداد را نگه می‌دارند).');
+      alert('«' + m.title + '» به ' + fa(list.length) + ' بازیکن رسید:\n' + list.map(function (x) { return (x.nickname || x.userId) + (x.read ? ' ✓' : ''); }).join('، ') + '\n(✓ = خوانده)');
+    });
+  }
   function drawHistory() {
     api('/admin/messages').then(function (r) {
       clear(hist);
@@ -773,7 +781,7 @@ VIEWS.messages = function (root) {
           return h('tr', {}, [h('td', { text: ago(m.sentAt) }), h('td', {}, [h('b', { text: m.title }), h('div', { class: 'sub', style: 'color:var(--muted);font-size:12px', text: m.body.slice(0, 80) })]),
             h('td', { text: AUD_FA[m.audience] || m.audience }),
             h('td', {}, m.channels.map(function (c) { return badge((CH_FA[c.channel] || c.channel) + ' ' + fa(c.recipients), 'b-info'); })),
-            h('td', {}, [m.retracted ? badge('پس گرفته شد', 'b-mute') : h('button', { class: 'btn bad sm', text: 'پس گرفتن از صندوق', onclick: function () { if (confirm('این پیام از صندوق همه‌ی بازیکنان برداشته شود؟ (پیام‌های بله و ... که رفته‌اند برنمی‌گردند)')) api('/admin/messages/' + m.id, { method: 'DELETE' }).then(function (x) { if (!x.ok) return fail(x); drawHistory(); }); } })])]);
+            h('td', {}, [h('button', { class: 'btn sm', text: 'گیرنده‌ها', onclick: function () { showRecipients(m); } }), m.retracted ? badge('پس گرفته شد', 'b-mute') : h('button', { class: 'btn bad sm', text: 'پس گرفتن از صندوق', onclick: function () { if (confirm('این پیام از صندوق همه‌ی بازیکنان برداشته شود؟ (پیام‌های بله و ... که رفته‌اند برنمی‌گردند)')) api('/admin/messages/' + m.id, { method: 'DELETE' }).then(function (x) { if (!x.ok) return fail(x); drawHistory(); }); } })])]);
         }))])]));
     });
   }

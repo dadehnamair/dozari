@@ -58,6 +58,11 @@ export class MessageCenter {
     return this.store.list(limit);
   }
 
+  /** Who a sent message reached in their in-app inbox (up to 500; capped for huge broadcasts). */
+  recipients(id: string) {
+    return this.store.recipients(id, 500);
+  }
+
   retract(id: string) {
     return this.store.retract(id, Date.now());
   }

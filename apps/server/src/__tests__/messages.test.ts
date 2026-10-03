@@ -82,6 +82,11 @@ describe('message center', () => {
 
     const history = (await app.inject({ method: 'GET', url: '/admin/messages', headers: admin })).json().messages;
     expect(history[0]).toMatchObject({ title: 'سلام', retracted: false, channels: [{ channel: 'in_app', recipients: 2 }] });
+    const rec = (await app.inject({ method: 'GET', url: `/admin/messages/${history[0].id}/recipients`, headers: admin })).json().recipients as { userId: string; read: boolean }[];
+    expect(rec.map((r) => r.userId).sort()).toEqual([a.id, b.id].sort());
+    expect(rec.find((r) => r.userId === a.id)!.read).toBe(true);
+    expect(rec.find((r) => r.userId === b.id)!.read).toBe(false);
+    expect((await app.inject({ method: 'GET', url: `/admin/messages/${history[0].id}/recipients` })).statusCode).toBe(401);
     expect((await app.inject({ method: 'DELETE', url: `/admin/messages/${history[0].id}`, headers: admin })).statusCode).toBe(200);
     expect((await app.inject({ method: 'DELETE', url: `/admin/messages/${history[0].id}`, headers: admin })).statusCode).toBe(404);
     expect(inboxSchema.parse((await app.inject({ method: 'GET', url: '/inbox', headers: b.h })).json()).items).toEqual([]);
