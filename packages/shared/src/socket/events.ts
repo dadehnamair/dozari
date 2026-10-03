@@ -100,6 +100,8 @@ export const matchPlayerProfileSchema = z.object({
   avatarKey: z.string(),
   level: z.number().int().positive(),
   coins: z.number().int().nonnegative(),
+  /** In their birthday week: a party chip next to the name. */
+  birthday: z.boolean().optional(),
 });
 
 /** Why a waiting player is not being matched: nothing to play (`no_puzzles`) or nobody to play against (`no_bots`). */

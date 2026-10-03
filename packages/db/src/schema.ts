@@ -277,6 +277,14 @@ export const users = mysqlTable(
     isBanned: boolean('is_banned').notNull().default(false),
     /** Optional, picked from a fixed list (D68); switches the hero character. Never shown publicly. */
     gender: mysqlEnum('gender', ['female', 'male']),
+    /** Solar Hijri birth date (D160), all three set or all null; never sent to other players. */
+    birthYear: smallint('birth_year'),
+    birthMonth: tinyint('birth_month'),
+    birthDay: tinyint('birth_day'),
+    /** Others may see the age (whole years) on the public profile; default off. */
+    showAge: boolean('show_age').notNull().default(false),
+    /** Friends get an inbox message when the birthday week starts and on the day; default on. */
+    notifyBirthday: boolean('notify_birthday').notNull().default(true),
     /** Set when the player redeems an invite code: it activates free chat, renaming and gifts (chat-and-access.md). */
     chatUnlockedAt: datetime('chat_unlocked_at', { mode: 'date', fsp: 3 }),
     /** Home city (a row of `cities`), optional; shown on the profile and used for the city room. */
@@ -341,6 +349,7 @@ export const LEDGER_REASONS = [
   'wheel_spin',
   'level_reward',
   'profile_task',
+  'birthday_gift',
 ] as const;
 
 /** Append-only. Coins move only through the server's ledger function; a repeated idempotency key is a no-op. */
@@ -1234,6 +1243,29 @@ export const profileTaskClaims = mysqlTable(
     claimedAt: datetime('claimed_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
   },
   (t) => ({ pk: primaryKey({ columns: [t.userId, t.taskKey] }) }),
+);
+
+/** The birthday gift taken in a Solar Hijri year: one row per player and year is the once-a-year lock (D160). */
+export const birthdayClaims = mysqlTable(
+  'birthday_claims',
+  {
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    year: smallint('year').notNull(),
+    claimedAt: datetime('claimed_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.userId, t.year] }) }),
+);
+
+/** Which friend messages were already sent for a player's birthday in a year (`week` = the week started, `day` = the day itself). */
+export const birthdayNotices = mysqlTable(
+  'birthday_notices',
+  {
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    year: smallint('year').notNull(),
+    stage: mysqlEnum('stage', ['week', 'day']).notNull(),
+    sentAt: datetime('sent_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.userId, t.year, t.stage] }) }),
 );
 
 /** One attempt per player per day. */

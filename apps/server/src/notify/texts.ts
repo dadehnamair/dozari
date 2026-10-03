@@ -15,6 +15,8 @@ export const BALE_TEXT = {
   notLinked: 'هنوز به حسابی وصل نیستی.',
   statusLinked: 'به حسابت وصل هستی ✅',
   dailyReady: 'جایزه‌ی روزانه‌ات آماده است 🎁 بیا بگیرش!',
+  birthdayWeek: (nickname: string, days: number) => `تولد ${nickname} ${days} روز دیگر است 🎂`,
+  birthdayDay: (nickname: string) => `امروز تولد ${nickname} است 🎉 تبریک بگو!`,
   friendRequest: (nickname: string) => `${nickname} برایت درخواست دوستی فرستاد 🤝 در بازی جوابش را بده.`,
   tableInvite: (nickname: string) => `${nickname} تو را به یک میز دعوت کرد 🎲 بیا بازی کنیم!`,
   matchWon: (reason: string) => `بازی را بردی 🏆 ${reason}`,
@@ -22,3 +24,6 @@ export const BALE_TEXT = {
   matchDraw: 'بازی مساوی شد.',
   reasons: { solved: 'همه‌ی گروه‌ها پیدا شد.', locked_out: 'خطاها تمام شد.', forfeit: 'نوبت‌ها از دست رفت.', abandon: 'حریف بازی را ترک کرد.' } as Record<string, string>,
 } as const;
+
+/** Titles of the friend-birthday inbox messages. */
+export const BIRTHDAY_TITLE = { week: 'تولد دوستت نزدیک است', day: 'امروز تولد یکی از دوستانت است' } as const;

@@ -330,6 +330,13 @@
       "when": 1791032215628,
       "tag": "0046_loose_scarlet_witch",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "5",
+      "when": 1791038371805,
+      "tag": "0047_jittery_penance",
+      "breakpoints": true
     }
   ]
 }

@@ -92,7 +92,7 @@ import { registerSecurityHeaders } from './security/headers.js';
 import { checkProductionConfig } from './security/config.js';
 import { createDbNotifyStore } from './notify/store.js';
 import type { NotifyStore } from './notify/store.js';
-import { BALE_TEXT } from './notify/texts.js';
+import { BALE_TEXT, BIRTHDAY_TITLE } from './notify/texts.js';
 import { createDbSettingsStore } from './settings/db-store.js';
 import { SettingsService } from './settings/service.js';
 import type { AdminRepository } from './admin/routes.js';
@@ -112,6 +112,8 @@ import { ProfileTaskService, registerProfileTaskRoutes } from './profile/tasks.j
 import { createDbGemWallet, registerGemRoutes } from './economy/gems.js';
 import type { GemWalletReader } from './economy/gems.js';
 import { createDbProfileTaskStore } from './profile/tasks-store.js';
+import { BirthdayService, registerBirthdayRoutes } from './profile/birthday.js';
+import { createDbBirthdayStore } from './profile/birthday-store.js';
 import { ShopService } from './economy/shop.js';
 import { createDbShopStore } from './economy/shop-store.js';
 import { HintService } from './solo/hints.js';
@@ -199,6 +201,8 @@ export interface ServerDeps {
   /** Level road (`/me/levels`, D109); needs `auth`. */
   levelRoad?: LevelRoadService;
   profileTasks?: ProfileTaskService;
+  /** Birth date, birthday week, yearly gift and friend messages (D160). */
+  birthday?: BirthdayService;
   gems?: Pick<GemWalletReader, 'wallet'>;
   /** Coin packages bought with real money (`/coin-packages`, off by default); needs `auth`. */
   coinPackages?: CoinPackageService;
@@ -296,6 +300,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.shop) registerShopRoutes(app, deps.auth, deps.shop);
   if (deps.auth && deps.levelRoad) registerRoadRoutes(app, deps.auth, deps.levelRoad);
   if (deps.auth && deps.profileTasks) registerProfileTaskRoutes(app, deps.auth, deps.profileTasks);
+  if (deps.auth && deps.birthday) registerBirthdayRoutes(app, deps.auth, deps.birthday);
   if (deps.auth && deps.gems) registerGemRoutes(app, deps.auth, deps.gems);
   if (deps.auth && deps.coinPackages) registerCoinPackageRoutes(app, deps.auth, deps.coinPackages, deps.notify ? { send: (id, inv) => deps.notify!.sendInvoice(id, inv) } : undefined);
   let gateway: Gateway | undefined;
@@ -404,6 +409,7 @@ if (isMainModule(import.meta.url)) {
         player,
         badges,
         (id) => presence.isOnline(id),
+        (ids) => birthday?.info(ids) ?? Promise.resolve(new Map()),
       )
     : undefined;
   const messages = db ? new MessageCenter(createDbMessageStore(db), notify ?? null) : undefined;
@@ -484,6 +490,20 @@ if (isMainModule(import.meta.url)) {
           };
         }, () => randomInt(0, 2 ** 32) / 2 ** 32)
       : undefined;
+  const birthday =
+    db && settings && socialStore
+      ? new BirthdayService({
+          store: createDbBirthdayStore(db),
+          rules: async () => {
+            const [minAge, before, length, coins, gems, spins] = await Promise.all(['birthday.min_age', 'birthday.week_before_days', 'birthday.week_days', 'birthday.gift_coins', 'birthday.gift_gems', 'birthday.gift_spins'].map((k) => settings.num(k)));
+            return { minAge: minAge!, before: before!, length: length!, coins: coins!, gems: gems!, spins: spins! };
+          },
+          friendsOf: async (id) => (await socialStore.friends(id)).map((f) => f.id),
+          giveSpins: (id, ref, n) => wheel?.give(id, 'birthday', ref, n) ?? Promise.resolve(0),
+          tell: (ids, title, body) => messages?.tellUsers(ids, title, body) ?? Promise.resolve(),
+          texts: { weekTitle: BIRTHDAY_TITLE.week, weekBody: BALE_TEXT.birthdayWeek, dayTitle: BIRTHDAY_TITLE.day, dayBody: BALE_TEXT.birthdayDay },
+        })
+      : undefined;
   const duelStakes =
     db && settings
       ? new DuelStakes(createDbStakeStore(db), {
@@ -562,7 +582,15 @@ if (isMainModule(import.meta.url)) {
           puzzles: createDbPuzzleSource(db),
           teamBoards: settings ? () => settings.num('match.team_boards') : undefined,
           stakes: duelStakes,
-          profile: createDbProfileLookup(db, player ? async (id) => (await player.levelOf(id)).level.level : undefined),
+          profile: (() => {
+            const base = createDbProfileLookup(db, player ? async (id) => (await player.levelOf(id)).level.level : undefined);
+            return async (id: string) => {
+              const p = await base(id);
+              if (!p) return p;
+              const party = await birthday?.info([id]);
+              return party?.get(id)?.badge ? { ...p, birthday: true } : p;
+            };
+          })(),
           onEnded: ({ players, result }) => {
             if (tournamentService) void tournamentService.onMatchEnded(players, result.winner);
             if (result.reason !== 'abandon') {
@@ -626,6 +654,7 @@ if (isMainModule(import.meta.url)) {
           })
         : undefined,
     gems: db ? createDbGemWallet(db) : undefined,
+    birthday,
     profileTasks:
       db && settings
         ? new ProfileTaskService({
@@ -651,6 +680,14 @@ if (isMainModule(import.meta.url)) {
   if (tournamentService) {
     const timer = setInterval(() => void tournamentService.tick().catch((err) => app.log.error({ err }, 'tournament tick failed')), TOURNAMENT_TICK_SECONDS * 1000);
     timer.unref();
+    app.addHook('onClose', async () => clearInterval(timer));
+  }
+  if (birthday) {
+    // Friend messages for a birthday week and the day itself: checked every 2 hours, the log makes a repeat harmless.
+    const run = () => void birthday.announce().catch((err) => app.log.error({ err }, 'birthday announce failed'));
+    const timer = setInterval(run, 2 * 3_600_000);
+    timer.unref();
+    setTimeout(run, 30_000).unref();
     app.addHook('onClose', async () => clearInterval(timer));
   }
   if (chat) {

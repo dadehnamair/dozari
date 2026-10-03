@@ -9,6 +9,8 @@ export interface PlayerProfile {
   avatarKey: string;
   level: number;
   coins: number;
+  /** In their birthday week: a party chip on the name tag for everybody (never the date or age). */
+  birthday?: boolean;
 }
 
 export interface MatchDeps {
