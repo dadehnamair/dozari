@@ -85,7 +85,8 @@ export function registerPhoneLoginRoutes(app: FastifyInstance, login: PhoneLogin
     if (!body.success) return reply.code(400).send({ error: 'invalid_request' });
     if (!perIp.take(req.ip)) return reply.code(429).send({ error: 'rate_limited' });
     const out = await login.verify(body.data.phone, body.data.code, body.data.deviceId);
-    if (out.ok) return out.session;
+    // `created` = a new account was made for this number (the app then shows the tutorial).
+    if (out.ok) return { ...out.session, created: out.created };
     return reply.code(out.error === 'too_many' ? 429 : out.error === 'banned' ? 403 : out.error === 'taken' ? 409 : 400).send({ error: out.error });
   });
 }

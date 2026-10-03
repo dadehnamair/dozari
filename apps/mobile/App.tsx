@@ -19,7 +19,8 @@ import { KitGallery } from './src/kit/KitGallery';
 import { LookupScreen } from './src/lookup/LookupScreen';
 import { SearchScreen } from './src/search/SearchScreen';
 import { Tutorial } from './src/onboarding/Tutorial';
-import { markTutorialSeen, tutorialSeen } from './src/onboarding/state';
+import { loginSeen, markLoginSeen, markTutorialSeen, tutorialSeen } from './src/onboarding/state';
+import { LoginScreen } from './src/phone/LoginScreen';
 import { SplashScreen } from './src/splash/SplashScreen';
 import { DuelScreen } from './src/duel/DuelScreen';
 import { SoloScreen } from './src/solo/SoloScreen';
@@ -44,7 +45,7 @@ export default function App() {
   const [fontsLoaded] = useFonts({ Vazirmatn_400Regular, Vazirmatn_700Bold, Lalezar_400Regular });
 
   // Minimal navigation until a real router lands with the hub screen (docs/logic/app-screens.md).
-  const [screen, setScreen] = useState<'splash' | 'home' | 'solo' | 'daily' | 'duel' | 'tutorial' | 'duelResume' | 'gallery' | 'search' | 'brand' | 'lookup'>(
+  const [screen, setScreen] = useState<'splash' | 'login' | 'home' | 'solo' | 'daily' | 'duel' | 'tutorial' | 'duelResume' | 'gallery' | 'search' | 'brand' | 'lookup'>(
     'splash',
   );
 
@@ -58,15 +59,16 @@ export default function App() {
   useEffect(() => {
     if (!fontsLoaded || screen !== 'splash') return;
     let alive = true;
-    const timer = setTimeout(() => void tutorialSeen().then((seen) => alive && setScreen(!seen ? 'tutorial' : launchOn && launch ? launch : 'home')), SPLASH_MS);
+    // First run: the sign-in screen (when the server can send codes), then the tutorial; a returning player goes straight on.
+    const timer = setTimeout(() => void Promise.all([tutorialSeen(), loginSeen()]).then(([seen, logged]) => alive && setScreen(config.phoneLogin && !logged ? 'login' : !seen ? 'tutorial' : launchOn && launch ? launch : 'home')), SPLASH_MS);
     return () => {
       alive = false;
       clearTimeout(timer);
     };
-  }, [fontsLoaded, screen, launch, launchOn]);
+  }, [fontsLoaded, screen, launch, launchOn, config.phoneLogin]);
 
   // Soft music everywhere; a livelier loop during a duel (the competitive screens).
-  useMusic(screen === 'splash' || screen === 'tutorial' ? null : screen === 'duel' || screen === 'duelResume' ? 'tense' : 'calm');
+  useMusic(screen === 'splash' || screen === 'tutorial' || screen === 'login' ? null : screen === 'duel' || screen === 'duelResume' ? 'tense' : 'calm');
 
   if (!fontsLoaded) {
     return (
@@ -89,6 +91,11 @@ export default function App() {
     <View key={epoch} style={styles.container}>
       <StatusBar style="light" />
       {screen === 'splash' ? <SplashScreen /> : null}
+      {screen === 'login' ? (
+        <LoginScreen
+          onDone={(r) => void markLoginSeen().then(async () => (r.signedIn && !r.created ? (await markTutorialSeen(), setScreen('home')) : setScreen((await tutorialSeen()) ? 'home' : 'tutorial')))}
+        />
+      ) : null}
       {screen === 'solo' ? <SoloScreen onBack={() => setScreen('home')} hintsEnabled={config.features.shop} /> : null}
       {screen === 'daily' ? <SoloScreen daily onBack={() => setScreen('home')} hintsEnabled={config.features.shop} /> : null}
       {screen === 'tutorial' ? <Tutorial onDone={() => void markTutorialSeen().then(() => setScreen('home'))} /> : null}

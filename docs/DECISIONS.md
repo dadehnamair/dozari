@@ -380,3 +380,7 @@ Owner: the level road should be the winding design of `17 Chat Shop Unlocks` (it
 ## D146 — Profile without scrolling and a player card (2026-10-03, proposed)
 
 Owner: the own profile scrolled and its quick links were plain stacked buttons; a friend's profile was a plain list. Now the own profile fits one screen with an icon-tile grid (recent games moved into a sheet, the editor into an overlay), and another player's profile is a card. See `logic/app-screens.md` §Profile without scrolling.
+
+## D147 — First-run login screen; a gap review (2026-10-03, proposed)
+
+Owner: re-check the designs and docs for what was skipped. Result: `docs/GAPS.md` (designs not in the app, specs not built, content/ops, a suggested order). One gap was closed at once: the designed **login screen** (phone → five-box code → guest), shown once on a fresh install when the server has an SMS provider. Proposed: it never blocks play and never returns after the first choice.

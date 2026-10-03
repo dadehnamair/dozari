@@ -12,7 +12,7 @@ export function useClientConfig(): ClientConfig {
     let live = true;
     const load = () =>
       callJson('/config', 'GET').then(
-        (body) => live && setCfg(parseClientConfig((body as { settings?: Record<string, unknown> }).settings ?? {})),
+        (body) => live && setCfg(parseClientConfig((body as { settings?: Record<string, unknown> }).settings ?? {}, (body as { phoneLogin?: unknown }).phoneLogin === true)),
         () => undefined,
       );
     void load();

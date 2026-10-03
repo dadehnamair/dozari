@@ -6,6 +6,8 @@ export interface ClientConfig {
   features: { lookup: boolean; duel: boolean; friends: boolean; inbox: boolean; bale: boolean; shop: boolean; chat: boolean; tournament: boolean; daily: boolean; tables: boolean };
   /** All public settings as sent, for features that read their own keys (e.g. the review prompt). */
   raw: Record<string, unknown>;
+  /** The server can send sign-in codes (an SMS provider is set), so the first-run login screen is worth showing. */
+  phoneLogin: boolean;
 }
 
 /** Everything open: used until the config arrives and whenever it cannot be fetched (a network error never locks players out). */
@@ -15,13 +17,14 @@ export const OPEN_CONFIG: ClientConfig = {
   updateUrl: '',
   features: { lookup: true, duel: true, friends: true, inbox: true, bale: true, shop: true, chat: true, tournament: true, daily: true, tables: true },
   raw: {},
+  phoneLogin: false,
 };
 
 const num = (v: unknown, fallback: number) => (typeof v === 'number' && Number.isFinite(v) ? v : fallback);
 const str = (v: unknown) => (typeof v === 'string' ? v : '');
 const flag = (v: unknown, fallback: boolean) => (typeof v === 'number' ? v === 1 : fallback);
 
-export function parseClientConfig(settings: Record<string, unknown>): ClientConfig {
+export function parseClientConfig(settings: Record<string, unknown>, phoneLogin = false): ClientConfig {
   return {
     maintenance: { on: flag(settings['app.maintenance_on'], false), message: str(settings['app.maintenance_message']) },
     minBuild: num(settings['app.min_build'], 0),
@@ -39,6 +42,7 @@ export function parseClientConfig(settings: Record<string, unknown>): ClientConf
       tables: flag(settings['feature.tables'], true),
     },
     raw: settings,
+    phoneLogin,
   };
 }
 

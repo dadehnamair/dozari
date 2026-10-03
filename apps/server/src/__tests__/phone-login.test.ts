@@ -3,6 +3,7 @@ import { mulberry32 } from '@dozari/shared';
 import { AuthService } from '../auth/service.js';
 import type { UserRecord, UserRepository } from '../auth/service.js';
 import { createTokenSigner } from '../auth/tokens.js';
+import { buildServer } from '../index.js';
 import { PhoneLoginService } from '../phone/login.js';
 import { createMemoryPhoneStore } from '../phone/store.js';
 
@@ -79,5 +80,22 @@ describe('PhoneLoginService', () => {
     expect(await login.verify('09123456789', '12345', dev(1))).toEqual({ ok: false, error: 'expired' });
     expect(await login.sendCode('abc')).toEqual({ ok: false, error: 'invalid_phone' });
     expect(await boot(false).login.sendCode('09123456789')).toEqual({ ok: false, error: 'sms_unavailable' });
+  });
+});
+
+describe('phone login routes', () => {
+  it('asks for a code, verifies it, and tells the app whether the account is new', async () => {
+    const { login } = boot();
+    const app = buildServer({ phoneLogin: login });
+    const phone = '09123456789';
+    expect((await app.inject({ method: 'POST', url: '/auth/phone/code', payload: { phone } })).json()).toEqual({ ok: true });
+    const bad = await app.inject({ method: 'POST', url: '/auth/phone/verify', payload: { phone, code: '00000', deviceId: dev(1) } });
+    expect([bad.statusCode, bad.json().error]).toEqual([400, 'wrong']);
+    const ok = await app.inject({ method: 'POST', url: '/auth/phone/verify', payload: { phone, code: '12345', deviceId: dev(1) } });
+    expect(ok.statusCode).toBe(200);
+    expect(ok.json()).toMatchObject({ created: true, user: { id: expect.any(String) } });
+    expect(typeof ok.json().token).toBe('string');
+    const noDevice = await app.inject({ method: 'POST', url: '/auth/phone/verify', payload: { phone, code: '12345', deviceId: 'x' } });
+    expect(noDevice.statusCode).toBe(400);
   });
 });

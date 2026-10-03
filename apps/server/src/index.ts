@@ -257,7 +257,8 @@ export function buildServer(deps: ServerDeps = {}) {
   }
   if (deps.settings) {
     const settings = deps.settings;
-    app.get('/config', async () => ({ settings: await settings.publicValues() }));
+    // `phoneLogin` tells the app whether a sign-in screen can work (an SMS provider is configured).
+    app.get('/config', async () => ({ settings: await settings.publicValues(), phoneLogin: deps.phoneLogin?.available === true }));
   }
   if (deps.catalog) {
     registerCatalogRoutes(app, deps.catalog);

@@ -5,6 +5,14 @@ belong in a game-logic spec (those are `price-guess-round.md`, `profile-and-iden
 `bots.md`, and the existing `matchmaking.md`/`game-rules.md`/`chat-and-access.md`). Treat this as
 part of the same "logic specs" set in `CLAUDE.md` — read it before building the matching screen.
 
+## First-run login screen (D147)
+
+screen-login of `19 Social Daily Onboarding`, shown **once** on a fresh install and only when the server can send codes (`GET /config` → `phoneLogin`, true when an SMS
+provider is configured): the bazaar at dusk, the waving hero, a cream card with «خوش اومدی به بازار!», the number after a fixed «+98», then five code boxes with a resend
+countdown (60 s) and «عوض کردن شماره», and «مهمان بازی کن» under «یا». Signing in with a number that has an account loads that account (the tutorial is skipped); a new number
+makes the account (the tutorial follows); guest goes on to the tutorial. The choice is stored (`dozari.loginSeen`) so it never comes back; «ورود با شماره» stays in settings.
+Backend: `profile-and-identity.md` §Phone login (`POST /auth/phone/code|verify`, the verify answer carries `created`).
+
 ## Onboarding (first app open, before any account setup)
 
 1. **4-step tutorial** (screen-tutorial of `docs/design/Dozari - 19 Social Daily Onboarding`, D99),
