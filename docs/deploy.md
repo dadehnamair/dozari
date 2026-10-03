@@ -65,7 +65,8 @@ the root `docker-compose.yml` has Adminer on `:8080`.
 
 ## Catalogue (products, prices, images)
 
-The game needs product data. Load it once (and again after changing the seed files):
+The game needs product data. **No shell on the host?** Set `SEED_ON_START=1` in `.env.prod` and run the usual `up -d --build`: the `seed` service loads the
+catalogue after the migrations (idempotent; check with `logs seed`), then set it back to `0`. With a shell, load it once (and again after changing the seed files):
 
 ```bash
 dc="docker compose -f docker-compose.prod.yml --env-file .env.prod"

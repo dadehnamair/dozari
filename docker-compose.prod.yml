@@ -37,6 +37,25 @@ services:
     environment:
       DATABASE_URL: mysql://dozari:${MYSQL_PASSWORD}@mysql:3306/dozari
 
+  # Loads the catalogue (products, prices, sample puzzles) after the migrations, on every `up` while SEED_ON_START=1 in
+  # .env.prod (idempotent). For hosts without a shell: set it, rebuild, check `logs seed`. Set it back to 0 once real data is in.
+  seed:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.server
+    image: dozari-server
+    working_dir: /app/packages/db
+    command: ['sh', '-c', 'if [ "$$SEED_ON_START" = "1" ]; then pnpm exec tsx src/seed/run.ts; else echo "SEED_ON_START is not 1, skipping seed"; fi']
+    restart: 'no'
+    depends_on:
+      mysql:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: mysql://dozari:${MYSQL_PASSWORD}@mysql:3306/dozari
+      SEED_ON_START: ${SEED_ON_START:-0}
+
   server:
     # Same build as `migrate` (cached): a service with only `image:` would make compose try to pull it.
     build:
@@ -48,6 +67,8 @@ services:
       mysql:
         condition: service_healthy
       migrate:
+        condition: service_completed_successfully
+      seed:
         condition: service_completed_successfully
     environment:
       NODE_ENV: production
