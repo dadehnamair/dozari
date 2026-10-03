@@ -39,6 +39,14 @@ export interface MatchRow {
   status: MatchStatus;
 }
 
+/** What one final place pays: coins, gems and lucky-wheel spins. */
+export interface PrizeRow {
+  place: number;
+  coins: number;
+  gems: number;
+  spins: number;
+}
+
 export interface EntryRow {
   userId: string;
   joinedAt: number;
@@ -50,12 +58,12 @@ export type JoinOutcome = 'ok' | 'full' | 'already' | 'insufficient' | 'closed';
 
 /** I/O boundary of tournaments. Coin movements (entry, refund, prize) go through the ledger inside one transaction. */
 export interface TournamentStore {
-  create(t: NewTournament, prizes: readonly { place: number; coins: number; spins: number }[]): Promise<TournamentRow>;
+  create(t: NewTournament, prizes: readonly PrizeRow[]): Promise<TournamentRow>;
   update(id: string, patch: Partial<NewTournament> & { startedAt?: number | null; finishedAt?: number | null }): Promise<'ok' | 'not_found'>;
   get(id: string): Promise<TournamentRow | null>;
   list(statuses: readonly TournamentStatus[], limit: number): Promise<TournamentRow[]>;
-  prizes(id: string): Promise<{ place: number; coins: number; spins: number }[]>;
-  setPrizes(id: string, prizes: readonly { place: number; coins: number; spins: number }[]): Promise<void>;
+  prizes(id: string): Promise<PrizeRow[]>;
+  setPrizes(id: string, prizes: readonly PrizeRow[]): Promise<void>;
   entries(id: string): Promise<EntryRow[]>;
   entriesOf(userId: string, ids: readonly string[]): Promise<Set<string>>;
   /** True when the player has a seat in an open or running tournament other than `exceptId`. */
@@ -70,7 +78,7 @@ export interface TournamentStore {
   updateMatch(matchId: string, patch: Partial<Pick<MatchRow, 'a' | 'b' | 'winner' | 'status'>>): Promise<void>;
   /** Players of the `playing` match between `a` and `b`, if any. */
   findPlaying(a: string, b: string): Promise<(MatchRow & { tournament: TournamentRow }) | null>;
-  payout(id: string, awards: readonly { userId: string; coins: number; spins: number }[]): Promise<void>;
+  payout(id: string, awards: readonly { userId: string; coins: number; gems: number; spins: number }[]): Promise<void>;
   balance(userId: string): Promise<number>;
   gemBalance(userId: string): Promise<number>;
 }
@@ -99,7 +107,7 @@ export function createDbTournamentStore(db: Db): TournamentStore {
     async create(t, prizes) {
       const id = uuidv7();
       await db.insert(tournaments).values({ id, titleFa: t.titleFa, descriptionFa: t.descriptionFa, iconKey: t.iconKey, status: t.status, size: t.size, minPlayers: t.minPlayers, entryCoins: t.entryCoins, entryGems: t.entryGems, minLevel: t.minLevel, botFill: t.botFill, allowConcurrent: t.allowConcurrent, startsAt: new Date(t.startsAt) });
-      if (prizes.length > 0) await db.insert(tournamentPrizes).values(prizes.map((p) => ({ tournamentId: id, place: p.place, coins: p.coins, spins: p.spins })));
+      if (prizes.length > 0) await db.insert(tournamentPrizes).values(prizes.map((p) => ({ tournamentId: id, place: p.place, coins: p.coins, gems: p.gems, spins: p.spins })));
       const [r] = await db.select().from(tournaments).where(eq(tournaments.id, id));
       return toRow(r!);
     },
@@ -118,12 +126,12 @@ export function createDbTournamentStore(db: Db): TournamentStore {
       return (await db.select().from(tournaments).where(inArray(tournaments.status, [...statuses])).orderBy(desc(tournaments.startsAt)).limit(limit)).map(toRow);
     },
     async prizes(id) {
-      return (await db.select().from(tournamentPrizes).where(eq(tournamentPrizes.tournamentId, id)).orderBy(asc(tournamentPrizes.place))).map((p) => ({ place: p.place, coins: p.coins, spins: p.spins }));
+      return (await db.select().from(tournamentPrizes).where(eq(tournamentPrizes.tournamentId, id)).orderBy(asc(tournamentPrizes.place))).map((p) => ({ place: p.place, coins: p.coins, gems: p.gems, spins: p.spins }));
     },
     async setPrizes(id, prizes) {
       await db.transaction(async (tx) => {
         await tx.delete(tournamentPrizes).where(eq(tournamentPrizes.tournamentId, id));
-        if (prizes.length > 0) await tx.insert(tournamentPrizes).values(prizes.map((p) => ({ tournamentId: id, place: p.place, coins: p.coins, spins: p.spins })));
+        if (prizes.length > 0) await tx.insert(tournamentPrizes).values(prizes.map((p) => ({ tournamentId: id, place: p.place, coins: p.coins, gems: p.gems, spins: p.spins })));
       });
     },
     async entries(id) {
@@ -205,6 +213,7 @@ export function createDbTournamentStore(db: Db): TournamentStore {
       await db.transaction(async (tx) => {
         for (const w of awards) {
           if (w.coins > 0) await applyLedgerEntry(tx, { userId: w.userId, delta: w.coins, reason: 'tournament_prize', refType: 'tournament', refId: id, idempotencyKey: `tournament_prize:${id}:${w.userId}` });
+          if (w.gems > 0) await applyGemEntry(tx, { userId: w.userId, delta: w.gems, reason: 'tournament_prize', refType: 'tournament', refId: id, idempotencyKey: `tournament_prize:${id}:${w.userId}` });
           for (let i = 0; i < w.spins; i++) await tx.insert(wheelSpins).ignore().values({ id: uuidv7(), userId: w.userId, source: 'tournament', ref: `${id}#${i}` });
         }
       });
@@ -224,7 +233,7 @@ export function createDbTournamentStore(db: Db): TournamentStore {
 /** Memory store for tests: a tiny coin ledger and the same rules. */
 export function createMemoryTournamentStore(): TournamentStore & { coins: Map<string, number>; gems: Map<string, number>; spins: Map<string, number> } {
   const ts = new Map<string, TournamentRow>();
-  const prizes = new Map<string, { place: number; coins: number; spins: number }[]>();
+  const prizes = new Map<string, PrizeRow[]>();
   const entries = new Map<string, EntryRow[]>();
   const matches = new Map<string, MatchRow[]>();
   const coins = new Map<string, number>();
@@ -339,9 +348,10 @@ export function createMemoryTournamentStore(): TournamentStore & { coins: Map<st
     async payout(tid, awards) {
       for (const w of awards) {
         const key = `${tid}:${w.userId}`;
-        if ((w.coins > 0 || w.spins > 0) && !paidOut.has(key)) {
+        if ((w.coins > 0 || w.gems > 0 || w.spins > 0) && !paidOut.has(key)) {
           paidOut.add(key);
           coins.set(w.userId, bal(w.userId) + w.coins);
+          gems.set(w.userId, gbal(w.userId) + w.gems);
           if (w.spins > 0) spins.set(w.userId, (spins.get(w.userId) ?? 0) + w.spins);
         }
       }

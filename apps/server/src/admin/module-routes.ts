@@ -541,7 +541,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       startsAt: z.number().int(),
       botFill: z.boolean().optional(),
       allowConcurrent: z.boolean().optional(),
-      prizes: z.array(z.object({ place: z.number().int().min(1).max(3), coins: z.number().int().min(0).max(1_000_000), spins: z.number().int().min(0).max(20).default(0) })).max(3),
+      prizes: z.array(z.object({ place: z.number().int().min(1).max(3), coins: z.number().int().min(0).max(1_000_000), gems: z.number().int().min(0).max(500).default(0), spins: z.number().int().min(0).max(20).default(0) })).max(3),
     };
     const fail = (reply: FastifyReply, error: string) => reply.code(error === 'NOT_FOUND' ? 404 : error === 'BAD_STATE' ? 409 : 400).send({ error });
     g.get('/admin/tournaments', async () => ({ tournaments: await tournaments.adminList() }));

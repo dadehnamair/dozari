@@ -1156,6 +1156,8 @@ export const tournamentPrizes = mysqlTable(
     tournamentId: char('tournament_id', { length: 36 }).notNull().references(() => tournaments.id, { onDelete: 'cascade' }),
     place: int('place').notNull(),
     coins: int('coins').notNull(),
+    /** Gems given besides the coins. */
+    gems: int('gems').notNull().default(0),
     /** Lucky-wheel spins given besides the coins. */
     spins: int('spins').notNull().default(0),
   },

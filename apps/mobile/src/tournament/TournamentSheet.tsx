@@ -157,7 +157,7 @@ function TournamentPage({ id, onBack }: { id: string; onBack: () => void }) {
                 {t.prizes.length > 0 ? (
                   <>
                     <Text style={styles.label}>{fa.tournament.prizes}</Text>
-                    {t.prizes.map((p) => <Text key={p.place} style={styles.text}>{fa.tournament.prizeLine(placeLabel(p.place), p.coins, p.spins)}</Text>)}
+                    {t.prizes.map((p) => <Text key={p.place} style={styles.text}>{fa.tournament.prizeLine(placeLabel(p.place), p.coins, p.spins, p.gems)}</Text>)}
                   </>
                 ) : null}
                 <Text style={styles.label}>{fa.tournament.rulesTitle}</Text>

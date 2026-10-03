@@ -21,6 +21,9 @@ export interface WheelRules {
   slices: readonly WheelSlice[];
   /** Free spins every player gets once a day (0 / absent = none). */
   dailySpins?: number;
+  /** One spin like a refilling life every this many hours while fewer than `refillCap` wait (0 / absent = off, D165). */
+  refillHours?: number;
+  refillCap?: number;
   /** A won queue duel against a human gives a spin (default true; the live default is off, D165). */
   winSpins?: boolean;
   /** Coins paid instead when a cosmetic prize is already owned. */

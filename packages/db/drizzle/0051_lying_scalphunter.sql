@@ -1,0 +1,1 @@
+ALTER TABLE `tournament_prizes` ADD `gems` int DEFAULT 0 NOT NULL;
