@@ -5,7 +5,8 @@ const { withAndroidManifest, withDangerousMod } = require('expo/config-plugins')
 /**
  * Two launcher icons, switched at runtime by the player's gender (modules/app-icon): the original hero and the female hero.
  * MainActivity loses its own LAUNCHER entry; two activity-aliases take it, the female one disabled until the app enables it.
- * The female art (assets/icon-female.png, assets/adaptive-icon-female.png) is exported by scripts/export-brand.mjs.
+ * The female art (assets/icon-female.png, adaptive-icon-female.png: 1024 px, exported by scripts/export-brand.mjs) is shipped
+ * downscaled: adaptive-icon-female-432.png (xxxhdpi foreground) and icon-female-192.png (Android 7 fallback).
  */
 const ALIASES = [
   { name: '.MainActivityDefault', enabled: true, icon: '@mipmap/ic_launcher', round: '@mipmap/ic_launcher_round' },
@@ -54,8 +55,8 @@ const withResources = (config) =>
         fs.mkdirSync(path.join(res, dir), { recursive: true });
         fs.writeFileSync(path.join(res, dir, file), content);
       };
-      const foreground = fs.readFileSync(path.join(assets, 'adaptive-icon-female.png'));
-      const full = fs.readFileSync(path.join(assets, 'icon-female.png'));
+      const foreground = fs.readFileSync(path.join(assets, 'adaptive-icon-female-432.png'));
+      const full = fs.readFileSync(path.join(assets, 'icon-female-192.png'));
       put('drawable-nodpi', 'ic_launcher_female_foreground.png', foreground);
       // Android 7 (no adaptive icons): plain bitmaps. Android 8+ picks the adaptive XML below.
       put('mipmap-xxxhdpi', 'ic_launcher_female.png', full);

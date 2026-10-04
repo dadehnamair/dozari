@@ -28,6 +28,10 @@ Plain `http://` API addresses (LAN tests) turn on Android cleartext traffic auto
 
 The launcher icon follows the player's gender (D166): `plugins/withGenderIcon.js` + `modules/app-icon`; change the art in `src/brand/BrandScreen.tsx` and re-export with `scripts/export-brand.mjs`.
 
+### APK size
+
+`plugins/withSlimAndroid.js` (run by `expo prebuild`) builds only `arm64-v8a` + `armeabi-v7a` (no emulator ABIs), turns on R8 and resource shrinking, and stores native libraries compressed. If a release build crashes at start-up, suspect R8 first: set `android.enableMinifyInReleaseBuilds=false` in `android/gradle.properties` and rebuild to confirm, then add a `-keep` rule for the class in the stack trace to `plugins/withSlimAndroid.js`.
+
 ### Windows notes (verified on a real build)
 
 - Install with `pnpm install --node-linker=hoisted`: the default `node_modules/.pnpm/...` paths make CMake/ninja fail (`build.ninja still dirty`, object path > 250 chars).
