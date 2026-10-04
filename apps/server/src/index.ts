@@ -121,6 +121,7 @@ import type { GemWalletReader } from './economy/gems.js';
 import { createDbProfileTaskStore } from './profile/tasks-store.js';
 import { BirthdayService, registerBirthdayRoutes } from './profile/birthday.js';
 import { buildFeedbackService } from './feedback/build.js';
+import { applyLedgerEntry } from './economy/ledger.js';
 import type { FeedbackService } from './feedback/service.js';
 import { registerFeedbackRoutes } from './feedback/routes.js';
 import { createDbBirthdayStore } from './profile/birthday-store.js';
@@ -386,7 +387,14 @@ if (isMainModule(import.meta.url)) {
   const adminToken = process.env.ADMIN_TOKEN;
   const jwtSecret = process.env.JWT_SECRET ?? (process.env.NODE_ENV === 'production' ? undefined : 'dev-only-secret-change-me');
   if (db && !jwtSecret) throw new Error('JWT_SECRET is required in production');
-  const auth = db && jwtSecret ? new AuthService(createDbUserRepository(db), createTokenSigner(jwtSecret)) : undefined;
+  const auth =
+    db && jwtSecret
+      ? new AuthService(createDbUserRepository(db), createTokenSigner(jwtSecret), Math.random, async (userId) => {
+          // The signup faucet (docs/logic/economy.md): once per new account; the key makes a retry a no-op.
+          const bonus = (await settings?.num('economy.signup_bonus')) ?? 0;
+          if (bonus > 0) await db.transaction(async (tx) => void (await applyLedgerEntry(tx, { userId, delta: bonus, reason: 'signup_bonus', refType: 'user', refId: userId, idempotencyKey: `signup_bonus:${userId}` })));
+        })
+      : undefined;
   const settings = db ? new SettingsService(createDbSettingsStore(db)) : undefined;
   const presence = new Presence();
   const notices = createLiveNotices();
