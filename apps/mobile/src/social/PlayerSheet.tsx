@@ -9,6 +9,7 @@ import { CandyButton } from '../components/CandyButton';
 import { Icon } from '../components/Icon';
 import { Item } from '../components/Item';
 import { Scene } from '../components/Scene';
+import { ReportDialog } from '../feedback/ReportDialog';
 import { HubTile } from '../home/HubTile';
 import { ProvinceBadge } from '../components/ProvinceBadge';
 import { useConfirm } from '../components/useConfirm';
@@ -29,6 +30,7 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
   const [p, setP] = useState<PlayerProfile | null>(null);
   const [failed, setFailed] = useState(false);
   const [send, setSend] = useState<'gift' | 'loan' | null>(null);
+  const [reporting, setReporting] = useState(false);
   const { ask, dialog } = useConfirm();
 
   const load = useCallback(() => {
@@ -108,6 +110,10 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
               </View>
             ) : null}
 
+            {p.isMe ? null : (
+              <Pressable onPress={() => setReporting(true)} accessibilityRole="button" hitSlop={8}><Text style={styles.reportLink}>{fa.feedback.report.open}</Text></Pressable>
+            )}
+
             {p.isMe ? null : p.relation === 'none' ? (
               <CandyButton label={fa.player.request} color={colors.candy.lime} onPress={act(requestFriend)} />
             ) : p.relation === 'sent' ? (
@@ -131,6 +137,7 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
         ) : null}
       </Pressable>
       {dialog}
+      {reporting ? <ReportDialog target={{ kind: 'user', userId: playerId }} onClose={() => setReporting(false)} /> : null}
     </Pressable>
   );
 }
@@ -140,6 +147,7 @@ const MEDAL_COLORS = ['#FF4D8D', '#7E46D6', '#3FA36B'];
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 
 const styles = StyleSheet.create({
+  reportLink: { fontFamily: fonts.bold, fontSize: 12, color: '#8E7B6B', textDecorationLine: 'underline', textAlign: 'center' },
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 40, backgroundColor: 'rgba(20,8,32,0.6)', alignItems: 'center', justifyContent: 'center', padding: 20 },
   card: { width: '100%', maxWidth: 340, borderRadius: 30, borderWidth: 4, borderColor: INK, backgroundColor: '#FBF1DE', overflow: 'hidden', ...lift(8) },
   header: { height: 104, overflow: 'hidden' },

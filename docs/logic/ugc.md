@@ -44,3 +44,7 @@ voting fast/low-friction for the ≥10-match voter pool in step 3 above.
 - Must pass `validatePuzzle` hard checks; groups may use `curated` rule kind → requires admin approval.
 - Published community puzzles playable in private tables first, then in queue after quality signals
   (solve rate between 20% and 90%, report rate low).
+
+## Built (D177)
+
+Submission kinds `item`, `price_point`, `price_report`; votes; admin approve/reject (admin pages «پیشنهاد قیمت و کالا», «گزارش بازیکن‌ها»); ledger reward `ugc_reward`; settings `ugc.*`, `report.daily_limit`. Missing: photo, outlier guard.

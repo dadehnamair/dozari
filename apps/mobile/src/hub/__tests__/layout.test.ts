@@ -5,9 +5,9 @@ import { HUB_BUILDINGS, canEnter } from '../layout';
 const on = { daily: true, duel: true, tournament: true };
 
 describe('hub', () => {
-  it('has six buildings with unique keys; only the four existing modes can be entered', () => {
+  it('has six buildings with unique keys; only the existing modes (and the school) can be entered', () => {
     expect(new Set(HUB_BUILDINGS.map((b) => b.key)).size).toBe(6);
-    expect(HUB_BUILDINGS.filter((b) => canEnter(b, on)).map((b) => b.key).sort()).toEqual(['caravan', 'shop', 'tower', 'zur']);
+    expect(HUB_BUILDINGS.filter((b) => canEnter(b, on)).map((b) => b.key).sort()).toEqual(['caravan', 'maktab', 'shop', 'tower', 'zur']);
   });
 
   it('a switched-off mode cannot be entered', () => {

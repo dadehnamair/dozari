@@ -8,6 +8,7 @@ import { ProfileSheet } from '../social/ProfileSheet';
 import { SettingsPage } from '../social/SettingsPage';
 import { LeaderboardPage } from '../social/LeaderboardPage';
 import { CityHub } from '../hub/CityHub';
+import { SchoolSheet } from '../feedback/SchoolSheet';
 import { Item } from '../components/Item';
 import { fetchFriends, fetchMyProfile } from '../social/api';
 import { connectNotices } from '../notices/connectNotices';
@@ -120,6 +121,7 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [boardOpen, setBoardOpen] = useState(false);
   const [hubOpen, setHubOpen] = useState(false);
+  const [schoolOpen, setSchoolOpen] = useState(false);
   const [gender, setGender] = useState<Gender | null>(null);
   const [level, setLevel] = useState<number | null>(null);
   /** The player's province (D101): its badge and local greeting sit under the wordmark. */
@@ -321,10 +323,12 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
             if (a === 'solo') onSolo();
             else if (a === 'daily') onDaily?.();
             else if (a === 'duel') onDuel?.();
+            else if (a === 'suggest') setSchoolOpen(true);
             else setTournamentOpen(true);
           }}
         />
       ) : null}
+      {schoolOpen ? <SchoolSheet onClose={() => setSchoolOpen(false)} /> : null}
       {boardOpen ? <LeaderboardPage onClose={() => setBoardOpen(false)} /> : null}
       {settingsOpen ? <SettingsPage onClose={() => (setSettingsOpen(false), loadTasks())} onProfile={() => (setSettingsOpen(false), setProfileOpen(true))} onTutorial={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} onAccountGone={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} /> : null}
       {ledgerOpen ? <LedgerSheet onClose={() => setLedgerOpen(false)} /> : null}

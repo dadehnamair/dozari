@@ -904,6 +904,59 @@ export const shortLinks = mysqlTable('short_links', {
   lastClickAt: datetime('last_click_at', { mode: 'date', fsp: 3 }),
 });
 
+/** A player reported another player (profile), optionally over one chat message; the admin reviews them (docs/logic/ugc.md §Reports). */
+export const userReports = mysqlTable(
+  'user_reports',
+  {
+    id: id(),
+    reporterId: char('reporter_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    targetId: char('target_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    category: mysqlEnum('category', ['abuse', 'spam', 'cheating', 'bad_name', 'other']).notNull(),
+    details: varchar('details', { length: 500 }).notNull().default(''),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    resolvedAt: datetime('resolved_at', { mode: 'date', fsp: 3 }),
+  },
+  (table) => ({ byTarget: index('user_reports_target_idx').on(table.targetId, table.createdAt), byReporter: index('user_reports_reporter_idx').on(table.reporterId, table.createdAt) }),
+);
+
+/** A player's suggestion: a new item, a price for an item, or «this price is wrong» (docs/logic/ugc.md). */
+export const ugcSubmissions = mysqlTable(
+  'ugc_submissions',
+  {
+    id: id(),
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    kind: mysqlEnum('kind', ['item', 'price_point', 'price_report']).notNull(),
+    status: mysqlEnum('status', ['pending', 'ready_for_review', 'approved', 'rejected']).notNull().default('pending'),
+    productId: char('product_id', { length: 36 }),
+    nameFa: varchar('name_fa', { length: 200 }).notNull().default(''),
+    category: varchar('category', { length: 40 }),
+    unitFa: varchar('unit_fa', { length: 100 }),
+    year: smallint('year'),
+    priceRials: bigint('price_rials', { mode: 'number' }),
+    sourceType: mysqlEnum('source_type', ['website', 'user_memory', 'other']).notNull().default('user_memory'),
+    sourceText: varchar('source_text', { length: 300 }).notNull().default(''),
+    note: varchar('note', { length: 500 }).notNull().default(''),
+    score: int('score').notNull().default(0),
+    /** Set once when the reward was paid (the claim that makes approval pay exactly once). */
+    rewardedAt: datetime('rewarded_at', { mode: 'date', fsp: 3 }),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    decidedAt: datetime('decided_at', { mode: 'date', fsp: 3 }),
+  },
+  (table) => ({ byStatus: index('ugc_submissions_status_idx').on(table.status, table.createdAt), byUser: index('ugc_submissions_user_idx').on(table.userId, table.createdAt) }),
+);
+
+/** One vote (+1 / −1) of a player on a submission; the key makes it one per player. */
+export const ugcVotes = mysqlTable(
+  'ugc_votes',
+  {
+    submissionId: char('submission_id', { length: 36 }).notNull().references(() => ugcSubmissions.id, { onDelete: 'cascade' }),
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    value: tinyint('value').notNull(),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.submissionId, table.userId] }) }),
+);
+
 /** Invite ("gold") codes: one personal code per player, plus special codes an admin makes for campaigns (owner null). */
 export const inviteCodes = mysqlTable(
   'invite_codes',

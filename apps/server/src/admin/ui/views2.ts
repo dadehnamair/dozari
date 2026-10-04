@@ -1098,4 +1098,52 @@ VIEWS.puzzles = function (root) {
   root.appendChild(readyBox); root.appendChild(autoBox); root.appendChild(listBox); root.appendChild(formBox); drawAuto();
   api('/admin/catalog').then(function (r) { if (!r.ok) return fail(r); prods = r.body.products; drawForm(); load(); });
 };
+
+VIEWS.userreports = function (root) {
+  var list = h('div');
+  var CAT = { abuse: 'توهین و فحاشی', spam: 'اسپم', cheating: 'تقلب', bad_name: 'اسم یا عکس نامناسب', other: 'دیگر' };
+  function draw() {
+    api('/admin/user-reports').then(function (r) {
+      clear(list);
+      if (r.status === 404) return list.appendChild(empty('گزارش بازیکن روی این سرور فعال نیست'));
+      if (!r.ok) return fail(r);
+      if (!r.body.reports.length) return list.appendChild(empty('گزارشی نیست'));
+      r.body.reports.forEach(function (x) {
+        list.appendChild(h('div', { class: 'kv' }, [
+          h('span', { text: x.targetName + ' ← ' + x.reporterName }),
+          h('span', { style: 'color:var(--muted);font-size:12px', text: (CAT[x.category] || x.category) + (x.details ? ' · ' + x.details : '') + ' · ' + ago(x.createdAt) }),
+          x.resolved ? badge('بررسی شد', 'b-ok') : h('button', { class: 'btn sm', text: 'بررسی شد', onclick: function () { api('/admin/user-reports/' + x.id + '/resolve', { method: 'POST' }).then(function (y) { if (!y.ok) return fail(y); draw(); }); } })]));
+      });
+    });
+  }
+  root.appendChild(card('گزارش بازیکن‌ها', 'گزارش از پروفایل بازیکن؛ برای اقدام از «کاربران» اخطار یا سکوت بده.', [list]));
+  draw();
+};
+VIEWS.ugc = function (root) {
+  var list = h('div');
+  var status = select([['', 'همه'], ['ready_for_review', 'منتظر تأیید مدیر'], ['pending', 'در حال رأی‌گیری'], ['approved', 'تأییدشده'], ['rejected', 'ردشده']], 'ready_for_review');
+  var KIND = { item: 'کالای تازه', price_point: 'قیمت تازه', price_report: 'گزارش قیمت' };
+  var SRC = { website: 'لینک', user_memory: 'یادمه', other: 'دیگر' };
+  var STATE = { pending: 'رأی‌گیری', ready_for_review: 'منتظر مدیر', approved: 'تأیید شد', rejected: 'رد شد' };
+  function draw() {
+    api('/admin/ugc' + (status.value ? '?status=' + status.value : '')).then(function (r) {
+      clear(list);
+      if (r.status === 404) return list.appendChild(empty('پیشنهاد بازیکن روی این سرور فعال نیست'));
+      if (!r.ok) return fail(r);
+      if (!r.body.submissions.length) return list.appendChild(empty('پیشنهادی نیست'));
+      r.body.submissions.forEach(function (x) {
+        var price = x.priceRials === null ? '' : ' · ' + Number(x.priceRials / 10).toLocaleString('fa-IR') + ' تومان';
+        var open = x.status === 'pending' || x.status === 'ready_for_review';
+        list.appendChild(h('div', { class: 'kv' }, [
+          h('span', { text: (KIND[x.kind] || x.kind) + ': ' + x.nameFa + (x.year ? ' · ' + x.year : '') + price }),
+          h('span', { style: 'color:var(--muted);font-size:12px', text: x.userName + ' · ' + (SRC[x.sourceType] || '') + (x.sourceText ? ': ' + x.sourceText : '') + (x.note ? ' · ' + x.note : '') + ' · امتیاز ' + x.score + ' · ' + ago(x.createdAt) }),
+          open ? h('button', { class: 'btn sm', text: 'تأیید', onclick: function () { api('/admin/ugc/' + x.id + '/approve', { method: 'POST' }).then(function (y) { if (!y.ok) return fail(y); toast(x.kind === 'price_report' ? 'تأیید شد؛ قیمت را در «کاتالوگ» اصلاح کن' : 'به بازبینی کاتالوگ رفت'); draw(); }); } }) : badge(STATE[x.status] || x.status, x.status === 'approved' ? 'b-ok' : ''),
+          open ? h('button', { class: 'btn bad sm', text: 'رد', onclick: function () { api('/admin/ugc/' + x.id + '/reject', { method: 'POST' }).then(function (y) { if (!y.ok) return fail(y); draw(); }); } }) : null]));
+      });
+    });
+  }
+  status.onchange = draw;
+  root.appendChild(card('پیشنهاد قیمت و کالا', 'تأیید یک کالا یا قیمت آن را به «بازبینی قیمت‌ها» می‌فرستد و به پیشنهاددهنده سکه می‌دهد (مقدار در «تنظیمات»).', [h('div', { class: 'row' }, [status]), list]));
+  draw();
+};
 `;

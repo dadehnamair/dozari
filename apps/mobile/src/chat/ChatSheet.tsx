@@ -16,7 +16,8 @@ import { CityPicker } from '../social/CityPicker';
 import { PlayerSheet } from '../social/PlayerSheet';
 import { colors, fonts } from '../theme/colors';
 import { FriendsChat } from './FriendsChat';
-import { fetchChat, fetchTaunts, reportMessage, sendTaunt, sendText } from './api';
+import { fetchChat, fetchTaunts, sendTaunt, sendText } from './api';
+import { ReportDialog } from '../feedback/ReportDialog';
 import type { ChatTab } from './api';
 import { chatErrorText, mergeMessages } from './errors';
 import { TEXT_RIGHT } from '../theme/direction';
@@ -76,7 +77,8 @@ export function ChatSheet({ onClose, onJoinTable, initialTab = 'city' }: { onClo
     void sendText(tab, text).then((m) => (afterSend(m), setText('')), fail);
   };
   const taunt = (id: string) => void sendTaunt(tab, id).then(afterSend, fail);
-  const report = (m: ChatMessage) => void reportMessage(m.id).then(() => setNote(fa.chat.reported), () => setNote(fa.chat.errors.generic ?? ''));
+  const [reporting, setReporting] = useState<string | null>(null);
+  const report = (m: ChatMessage) => setReporting(m.id);
 
   if (open) return <PlayerSheet playerId={open} onClose={() => setOpen(null)} />;
   if (pickCity) return <CityPicker current={null} onPicked={() => (setPickCity(false), load('city'))} onClose={() => setPickCity(false)} />;
@@ -173,6 +175,7 @@ export function ChatSheet({ onClose, onJoinTable, initialTab = 'city' }: { onClo
         </View>
       )}
       </>}
+      {reporting ? <ReportDialog target={{ kind: 'message', messageId: reporting }} onClose={() => (setReporting(null), setNote(fa.chat.reported))} /> : null}
     </PageShell>
   );
 }

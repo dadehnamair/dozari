@@ -13,7 +13,7 @@ export const fetchChat = (room: ChatTab): Promise<ChatHistory> => authed(`/chat/
 export const fetchTaunts = (): Promise<TauntCategory[]> => authed('/chat/taunts', 'GET', (v) => tauntsSchema.parse(v).categories);
 export const sendText = (room: ChatTab, text: string): Promise<ChatMessage> => authed(`/chat/${room}`, 'POST', (v) => chatMessageSchema.parse((v as { message: unknown }).message), { kind: 'text', text });
 export const sendTaunt = (room: ChatTab, tauntId: string): Promise<ChatMessage> => authed(`/chat/${room}`, 'POST', (v) => chatMessageSchema.parse((v as { message: unknown }).message), { kind: 'taunt', tauntId });
-export const reportMessage = (messageId: string): Promise<void> => authed('/chat/report', 'POST', () => undefined, { messageId });
+export const reportMessage = (messageId: string, reason = ''): Promise<void> => authed('/chat/report', 'POST', () => undefined, { messageId, reason });
 
 /** Private chat with a friend (D115). */
 export const fetchDm = (friendId: string): Promise<ChatHistory> => authed(`/chat/dm/${friendId}`, 'GET', (v) => chatHistorySchema.parse(v));

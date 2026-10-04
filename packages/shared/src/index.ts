@@ -29,3 +29,4 @@ export * from './tournament/index.js';
 export * from './bots/index.js';
 export * from './daily/index.js';
 export * from './tables/index.js';
+export * from './feedback/index.js';
