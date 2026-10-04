@@ -1,29 +1,24 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Animated, Pressable, Text, View, useWindowDimensions } from 'react-native';
 import { SceneBackground } from '../components/SceneBackground';
 import { Character } from '../components/Character';
-import { DailyRewardCard } from '../components/DailyRewardCard';
-import { Toast } from '../components/Toast';
 import { ProfileSheet } from '../social/ProfileSheet';
 import { SettingsPage } from '../social/SettingsPage';
 import { LeaderboardPage } from '../social/LeaderboardPage';
 import { CityHub } from '../hub/CityHub';
 import { SchoolSheet } from '../feedback/SchoolSheet';
 import { Item } from '../components/Item';
-import { fetchFriends, fetchMyProfile } from '../social/api';
+import { fetchFriends } from '../social/api';
 import { connectNotices } from '../notices/connectNotices';
 import { FriendRequestSheet } from '../notices/FriendRequestSheet';
-import { claimProfileTask, fetchProfileTasks } from '../social/profileTasksApi';
+import { claimProfileTask } from '../social/profileTasksApi';
 import { profileNudge } from './profileNudge';
-import { fetchGems } from '../ledger/gemsApi';
 import { MissionsSheet } from '../missions/MissionsSheet';
 import { missionRows } from '../missions/model';
 import type { MissionAvailability } from '../missions/model';
 import { InviteSheet } from '../invite/InviteSheet';
-import type { ProfileTask } from '@dozari/shared';
 import { heroFor } from '../social/heroFor';
 import { applyAppIcon } from '../appIcon/appIcon';
-import type { Gender } from '@dozari/shared';
 import { ReviewSheet } from '../review/ReviewSheet';
 import { useReviewPrompt } from '../review/useReviewPrompt';
 import { OPEN_CONFIG } from '../config/gate';
@@ -35,30 +30,27 @@ import { availableTips, nextTip } from './guideTips';
 import { useInbox } from '../inbox/useInbox';
 import { BaleSheet } from '../bale/BaleSheet';
 import { ShopSheet } from '../shop/ShopSheet';
-import { fetchWheel } from '../wheel/api';
 import { WheelPage } from '../wheel/WheelPage';
 import { ChatSheet } from '../chat/ChatSheet';
-import { fetchDailyStatus } from '../daily/puzzleApi';
-import type { DailyStatus } from '@dozari/shared';
-import { fetchMatchActive } from '../duel/api';
 import { shareTable } from '../tables/api';
 import { TableSheet } from '../tables/TableSheet';
 import { TournamentSheet } from '../tournament/TournamentSheet';
 import { SlabButton } from '../components/SlabButton';
 import { Wordmark } from '../components/Wordmark';
 import { useDailyReward } from '../daily/useDailyReward';
-import { provinceOf, solarMonthOf, toPersianDigits } from '@dozari/shared';
-import type { Province } from '@dozari/shared';
+import { solarMonthOf, toPersianDigits } from '@dozari/shared';
 import { ProvinceBadge } from '../components/ProvinceBadge';
 import type { IconName } from '../theme/icons';
 import { fa } from '../i18n/fa';
-import { colors, fonts } from '../theme/colors';
+import { colors } from '../theme/colors';
 import { Icon } from '../components/Icon';
-import { usePrefs } from '../prefs/store';
 import { HeroCoinToss } from './HeroCoinToss';
 import { HubTile } from './HubTile';
+import { DailyRewardOverlay } from './DailyRewardOverlay';
+import { fmt, styles } from './homeStyles';
+import { useHeroMotion } from './useHeroMotion';
+import { useHomeData } from './useHomeData';
 import { StatPill } from './StatPill';
-import { nativeTopInset } from '../theme/safeArea';
 
 interface Tile {
   key: string;
@@ -71,14 +63,6 @@ interface Tile {
 }
 
 /**
- * Right-to-left rows on every platform: native flips `row` itself once RTL is forced (App.tsx); react-native-web
- * reports RTL but lays rows out left-to-right, so web needs `row-reverse`.
- */
-const RTL_ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
-
-const fmt = (n: number) => toPersianDigits(n.toLocaleString('en-US').replace(/,/g, '٬'));
-
-/**
  * Home hub, laid out as screen-home of `docs/design/Dozari - 01 Screens`: three counters on top, the wordmark and a
  * speech bubble, corner tiles down both sides, the floating hero, and two big buttons at the bottom. Every feature
  * keeps its sheet; a tile only shows when its feature flag is on.
@@ -88,20 +72,15 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
   /** Short phones (≤700px tall) get tighter columns and a smaller hero so nothing runs into the bottom buttons. */
   const compact = useWindowDimensions().height <= 700;
   const daily = useDailyReward();
+  const { spins, loadSpins, liveMatch, gender, setGender, level, province, dailyPuzzle, loadMe, profileTasks, loadTasks, gems } = useHomeData(features);
+  const hero = useHeroMotion();
   const [dailyOpen, setDailyOpen] = useState(false);
   const [wheelOpen, setWheelOpen] = useState(false);
-  const [spins, setSpins] = useState(0);
-  const loadSpins = () => void fetchWheel().then((w) => setSpins(w.pending), () => undefined);
-  useEffect(loadSpins, []);
   const [baleOpen, setBaleOpen] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [tournamentOpen, setTournamentOpen] = useState(false);
   const [tableOpen, setTableOpen] = useState(false);
-  const [liveMatch, setLiveMatch] = useState(false);
-  useEffect(() => {
-    if (features.duel) void fetchMatchActive().then(setLiveMatch, () => undefined);
-  }, [features.duel]);
   const [tableCode, setTableCode] = useState<string | undefined>(undefined);
   const [inboxOpen, setInboxOpen] = useState(false);
   const [ledgerOpen, setLedgerOpen] = useState(false);
@@ -122,27 +101,9 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
   const [boardOpen, setBoardOpen] = useState(false);
   const [hubOpen, setHubOpen] = useState(false);
   const [schoolOpen, setSchoolOpen] = useState(false);
-  const [gender, setGender] = useState<Gender | null>(null);
-  const [level, setLevel] = useState<number | null>(null);
-  /** The player's province (D101): its badge and local greeting sit under the wordmark. */
-  const [province, setProvince] = useState<Province | null>(null);
-  const [dailyPuzzle, setDailyPuzzle] = useState<DailyStatus | null>(null);
-  const loadMe = useCallback(() => {
-    fetchMyProfile().then((p) => (setGender(p.gender), applyAppIcon(p.gender), setLevel(p.level.level), setProvince(provinceOf(p.city?.province))), () => undefined);
-  }, []);
-  useEffect(loadMe, [loadMe]);
-  const [profileTasks, setProfileTasks] = useState<ProfileTask[]>([]);
-  const [gems, setGems] = useState(0);
-  const loadGems = useCallback(() => void fetchGems().then((w) => setGems(w.balance), () => undefined), []);
-  useEffect(loadGems, [loadGems]);
   const [missionsOpen, setMissionsOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [nudgeToast, setNudgeToast] = useState<string | null>(null);
-  const loadTasks = useCallback(() => void fetchProfileTasks().then((r) => setProfileTasks(r.tasks), () => undefined), []);
-  useEffect(loadTasks, [loadTasks]);
-  useEffect(() => {
-    if (features.daily) fetchDailyStatus().then(setDailyPuzzle, () => undefined);
-  }, [features.daily]);
   const nudge = profileNudge(profileTasks, (k) => (k === 'bale' ? features.bale : k === 'phone' ? features.friends : true));
   const onNudge = () => {
     if (!nudge) return;
@@ -175,37 +136,6 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
     feature: (k) => (k === 'bale' ? features.bale : k === 'phone' ? features.friends : true),
   };
   const missionsReady = missionRows(profileTasks, missionAvail, new Set()).filter((r) => r.state === 'claim').length;
-  const prefs = usePrefs();
-  const float = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(float, { toValue: -10, duration: 1500, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(float, { toValue: 0, duration: 1500, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [float]);
-
-  // A tap makes Dozari hop (squash, spring up, land) and flip his coin right away.
-  const jump = useRef(new Animated.Value(0)).current;
-  const squash = useRef(new Animated.Value(0)).current;
-  const [tossKey, setTossKey] = useState(0);
-  const hop = () => {
-    setTossKey((k) => k + 1);
-    if (prefs.reduceMotion) return;
-    Animated.sequence([
-      Animated.timing(squash, { toValue: 1, duration: 90, useNativeDriver: true }),
-      Animated.parallel([
-        Animated.timing(squash, { toValue: 0, duration: 120, useNativeDriver: true }),
-        Animated.timing(jump, { toValue: 1, duration: 200, easing: Easing.out(Easing.quad), useNativeDriver: true }),
-      ]),
-      Animated.timing(jump, { toValue: 0, duration: 190, easing: Easing.in(Easing.quad), useNativeDriver: true }),
-      Animated.timing(squash, { toValue: 0.6, duration: 70, useNativeDriver: true }),
-      Animated.spring(squash, { toValue: 0, friction: 4, tension: 160, useNativeDriver: true }),
-    ]).start();
-  };
 
   const h = fa.home.hub;
   const unread = inbox.inbox?.unread ?? 0;
@@ -275,10 +205,10 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
             ) : null}
             {/* A touch on the character itself must not count as «a tap elsewhere» that closes the tip. */}
             <View onTouchStart={(e) => e.stopPropagation()}>
-            <Pressable onPress={() => (setTip((cur) => nextTip(cur, tips.length)), hop())} accessibilityRole="button" accessibilityLabel={fa.home.guide.name}>
-              <Animated.View style={[styles.hero, compact ? styles.heroCompact : null, { transform: [{ translateY: Animated.add(float, jump.interpolate({ inputRange: [0, 1], outputRange: [0, -30] })) }, { scaleX: squash.interpolate({ inputRange: [0, 1], outputRange: [1, 1.1] }) }, { scaleY: squash.interpolate({ inputRange: [0, 1], outputRange: [1, 0.86] }) }] }]}>
+            <Pressable onPress={() => (setTip((cur) => nextTip(cur, tips.length)), hero.hop())} accessibilityRole="button" accessibilityLabel={fa.home.guide.name}>
+              <Animated.View style={[styles.hero, compact ? styles.heroCompact : null, { transform: hero.transform }]}>
                 <Character who={heroFor(gender)} pose="wave" month={month} />
-                <HeroCoinToss width={compact ? 130 : 180} height={compact ? 142 : 197} tossKey={tossKey} enabled={!prefs.reduceMotion} />
+                <HeroCoinToss width={compact ? 130 : 180} height={compact ? 142 : 197} tossKey={hero.tossKey} enabled={!hero.reduceMotion} />
               </Animated.View>
             </Pressable>
             </View>
@@ -292,24 +222,7 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
         </View>
       </View>
 
-      {dailyOpen && daily.status ? (
-        <Pressable style={styles.overlay} onPress={() => setDailyOpen(false)} accessibilityLabel={fa.solo.back}>
-          <Pressable style={styles.sheet} onPress={() => undefined}>
-            <DailyRewardCard
-              steps={daily.status.steps}
-              day={daily.status.day}
-              canClaim={daily.status.canClaim && !daily.claiming}
-              onClaim={daily.claim}
-              waitText={daily.countdown ? `${daily.countdown} ${fa.daily.wait}` : undefined}
-            />
-            {daily.won !== null ? (
-              <View style={styles.won}>
-                <Toast text={`${toPersianDigits(String(daily.won))} ${fa.daily.won}`} tone={colors.candy.yellow} />
-              </View>
-            ) : null}
-          </Pressable>
-        </Pressable>
-      ) : null}
+      {dailyOpen ? <DailyRewardOverlay daily={daily} onClose={() => setDailyOpen(false)} /> : null}
       {review.open && review.url ? <ReviewSheet message={review.message} url={review.url} onReview={review.onReview} onLater={review.onLater} onNever={review.onNever} /> : null}
       {friendNotice && !profileOpen ? <FriendRequestSheet from={friendNotice.from} count={friendNotice.count} onSee={() => (setFriendNotice(null), setProfileStart('friends'), setProfileOpen(true))} onLater={() => setFriendNotice(null)} /> : null}
       {profileOpen ? <ProfileSheet start={profileStart} onClose={() => (setProfileOpen(false), setProfileStart(null), loadMe(), loadTasks())} onGender={(g) => (setGender(g), applyAppIcon(g))} /> : null}
@@ -359,38 +272,3 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingTop: 14 + nativeTopInset(), paddingBottom: 22, paddingHorizontal: 12 },
-  pills: { flexDirection: RTL_ROW, gap: 8, minHeight: 40, alignItems: 'center', flexWrap: 'wrap' },
-  mapBtn: { width: 38, height: 38, borderRadius: 19, borderWidth: 2, borderColor: 'rgba(255,255,255,0.35)', backgroundColor: 'rgba(43,18,64,0.65)', alignItems: 'center', justifyContent: 'center' },
-  mapIcon: { width: 26, height: 26 },
-  spinBadge: { position: 'absolute', top: -6, right: -6, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, backgroundColor: colors.candy.lime, borderWidth: 2, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
-  spinBadgeText: { fontFamily: fonts.bold, fontSize: 10, color: colors.ink },
-  middle: { flex: 1, flexDirection: RTL_ROW, justifyContent: 'space-between', paddingTop: 12 },
-  column: { width: 72, gap: 12, alignItems: 'center', paddingTop: 44 },
-  columnCompact: { gap: 2, paddingTop: 20 },
-  center: { flex: 1, alignItems: 'center' },
-  greet: { flexDirection: RTL_ROW, alignItems: 'center', gap: 4, marginTop: 6, maxWidth: '100%' },
-  hello: { flexShrink: 1, fontFamily: fonts.display, fontSize: 17, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
-  bubble: {
-    marginTop: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 4,
-    borderRadius: 99,
-    overflow: 'hidden',
-    backgroundColor: colors.cream,
-    borderWidth: 3,
-    borderColor: colors.ink,
-    fontFamily: fonts.bold,
-    fontSize: 13,
-    color: colors.ink,
-    textAlign: 'center',
-  },
-  spacer: { flex: 1 },
-  hero: { width: 180, height: 197, marginBottom: 8 },
-  heroCompact: { width: 130, height: 142 },
-  buttons: { flexDirection: RTL_ROW, gap: 12, paddingTop: 6 },
-  overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,8,32,0.55)', alignItems: 'center', justifyContent: 'center', padding: 24 },
-  sheet: { width: '100%', maxWidth: 360, backgroundColor: 'rgba(60,30,90,0.92)', borderRadius: 30, padding: 4, gap: 10 },
-  won: { alignItems: 'center', paddingBottom: 10 },
-});
