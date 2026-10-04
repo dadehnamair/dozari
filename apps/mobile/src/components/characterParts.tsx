@@ -3,6 +3,7 @@ import { Circle, Ellipse, G, Path, Text as SvgText } from 'react-native-svg';
 import { fonts } from '../theme/colors';
 import type { CharacterLook } from '../theme/character';
 import { Motion } from './characterMotion';
+import { MakeupBase, MakeupGloss, MakeupLiner, MakeupLip, MakeupMarks } from './makeupArt';
 import { AccessoryArt, GlassesArt, HairArt, HatArt, OutfitArt, WearBack } from './wearArt';
 
 export const INK = '#3A2418';
@@ -199,9 +200,10 @@ export function HeadArt({ L, on, hairK, hatK }: Look & { on: boolean; hairK: str
 }
 
 /** Cheeks, eyes, beard, mouth, nose, brow, glasses. */
-export function FaceArt({ L, on, delay, glassesK }: Look & { on: boolean; delay: number; glassesK: string | null }) {
+export function FaceArt({ L, on, delay, glassesK, makeupK }: Look & { on: boolean; delay: number; glassesK: string | null; makeupK: string | null }) {
   return (
     <>
+          {makeupK ? <MakeupBase k={makeupK} eyesOpen={L.eye.open} /> : null}
           <Ellipse cx={75} cy={104} rx={9} ry={6} fill="#FF7C70" opacity={0.45} stroke="none" />
           <Ellipse cx={125} cy={104} rx={9} ry={6} fill="#FF7C70" opacity={0.45} stroke="none" />
           {L.freckles ? (
@@ -222,12 +224,15 @@ export function FaceArt({ L, on, delay, glassesK }: Look & { on: boolean; delay:
           ) : null}
           {L.eye.lines ? <Path d={L.eye.lines} fill="none" strokeWidth={3.4} /> : null}
           </Motion>
+          {makeupK ? <MakeupLiner k={makeupK} eyesOpen={L.eye.open} /> : null}
           {L.beard.d ? <Path d={L.beard.d} fill={L.beard.color} strokeWidth={3} /> : null}
           {L.beard.curl ? (
             <Path d={L.beard.curl} fill="none" strokeWidth={1.6} opacity={0.55} />
           ) : null}
           <G transform={`translate(0 ${L.mouthY})`}>
+            {makeupK ? <MakeupLip k={makeupK} mouthD={L.mouth.d} /> : null}
             <Path d={L.mouth.d} fill={L.mouth.f} strokeWidth={3} />
+            {makeupK ? <MakeupGloss k={makeupK} /> : null}
             {L.mouth.teeth ? <Path d={L.mouth.teeth} fill="#fff" strokeWidth={1.6} /> : null}
           </G>
           {L.mustache.d ? (
@@ -246,6 +251,7 @@ export function FaceArt({ L, on, delay, glassesK }: Look & { on: boolean; delay:
             stroke="none"
           />
           <Path d={L.nose.hl} fill="none" stroke="#fff" strokeWidth={2.4} opacity={0.85} />
+          {makeupK ? <MakeupMarks k={makeupK} /> : null}
           <Path d={L.eye.brow} fill="none" stroke={L.browColor} strokeWidth={4.4} />
           {glassesK ? <GlassesArt k={glassesK} /> : L.glasses ? (
             <G>

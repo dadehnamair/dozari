@@ -156,3 +156,19 @@ describe('/me', () => {
     expect((await app.inject({ method: 'GET', url: '/me', headers: { authorization: `Bearer ${login.token}` } })).statusCode).toBe(401);
   });
 });
+
+describe('account creation hook (signup bonus)', () => {
+  it('runs once per new account, not on later logins, and a failing hook never blocks the login', async () => {
+    const seen: string[] = [];
+    const users = memoryUsers();
+    const auth = new AuthService(users.repo, createTokenSigner(SECRET), mulberry32(3), async (id) => void seen.push(id));
+    const first = await auth.guestLogin(DEVICE);
+    await auth.guestLogin(DEVICE);
+    expect(first.ok && seen).toEqual([first.ok ? first.session.user.id : '']);
+    expect(seen).toHaveLength(1);
+
+    const failing = new AuthService(memoryUsers().repo, createTokenSigner(SECRET), mulberry32(3), async () => { throw new Error('ledger down'); });
+    expect((await failing.guestLogin(DEVICE)).ok).toBe(true);
+  });
+});
+

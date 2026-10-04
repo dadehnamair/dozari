@@ -1,6 +1,6 @@
 import { useId } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, Defs, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
+import Svg, { Defs, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { Character } from '../components/Character';
 import type { CharacterId } from '../theme/character';
 import { Wordmark } from '../components/Wordmark';
@@ -18,16 +18,22 @@ const rays = (() => {
   return d;
 })();
 
-/** Warm radial backdrop (yellow to orange) with a sunburst; also the Android adaptive background. */
-export function IconBackdrop({ size }: { size: number }) {
+const TONES = {
+  warm: ['#FFE48A', '#FFC93C', '#FF7A3D'],
+  rose: ['#FFD3E4', '#FF9EC4', '#C95BA0'],
+} as const;
+
+/** Warm radial backdrop (yellow to orange, or rose for the female icon) with a sunburst; also the Android adaptive background. */
+export function IconBackdrop({ size, tone = 'warm' }: { size: number; tone?: keyof typeof TONES }) {
   const gid = `ib${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
+  const [c0, c1, c2] = TONES[tone];
   return (
     <Svg width={size} height={size} viewBox="-50 -50 100 100" style={StyleSheet.absoluteFill}>
       <Defs>
         <RadialGradient id={gid} cx="50%" cy="30%" r="86%">
-          <Stop offset="0" stopColor="#FFE48A" />
-          <Stop offset="0.5" stopColor="#FFC93C" />
-          <Stop offset="1" stopColor="#FF7A3D" />
+          <Stop offset="0" stopColor={c0} />
+          <Stop offset="0.5" stopColor={c1} />
+          <Stop offset="1" stopColor={c2} />
         </RadialGradient>
       </Defs>
       <Rect x={-50} y={-50} width={100} height={100} fill={`url(#${gid})`} />
@@ -36,52 +42,32 @@ export function IconBackdrop({ size }: { size: number }) {
   );
 }
 
-/** The gold coin of the icon: ink outline and drop shadow, the hero's waving face inside (proportions of the 180px design). */
-function CoinHero({ size, who }: { size: number; who?: CharacterId }) {
-  const gid = `cn${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
-  const d = size * 0.7422;
-  const edge = size * 0.0233;
-  const drop = size * 0.0272;
+/** The hero's waving face alone (no coin), centred with breathing room. `width` is the face width as a share of the canvas. */
+function FaceHero({ size, who, width }: { size: number; who?: CharacterId; width: number }) {
+  const w = size * width;
+  const h = w * (0.6833 / 0.625);
   return (
-    <>
-      <View style={{ position: 'absolute', left: size * 0.1289, top: size * 0.1289, width: d, height: d + drop }}>
-        <Svg width={d} height={d + drop}>
-          <Defs>
-            <RadialGradient id={gid} cx="35%" cy="30%" r="75%">
-              <Stop offset="0" stopColor="#FFF4B0" />
-              <Stop offset="0.55" stopColor="#FFC93C" />
-              <Stop offset="1" stopColor="#D98A0B" />
-            </RadialGradient>
-          </Defs>
-          <Circle cx={d / 2} cy={d / 2 + drop} r={d / 2} fill="#2B1240" />
-          <Circle cx={d / 2} cy={d / 2} r={d / 2} fill="#2B1240" />
-          <Circle cx={d / 2} cy={d / 2} r={d / 2 - edge} fill={`url(#${gid})`} />
-        </Svg>
-      </View>
-      <View style={{ position: 'absolute', left: size * 0.1878, top: size * 0.1367, width: size * 0.625, height: size * 0.6833 }}>
-        <Character who={who} crop="face" pose="wave" />
-      </View>
-    </>
-  );
-}
-
-/** app-icon 1024: sunburst backdrop, the gold coin with the hero waving. */
-export function AppIconArt({ size = 1024, who }: { size?: number; who?: CharacterId }) {
-  return (
-    <View style={{ width: size, height: size, overflow: 'hidden' }}>
-      <IconBackdrop size={size} />
-      <CoinHero size={size} who={who} />
+    <View style={{ position: 'absolute', left: (size - w) / 2, top: (size - h) / 2, width: w, height: h }}>
+      <Character who={who} crop="face" pose="wave" />
     </View>
   );
 }
 
-/** android-fg: transparent coin and hero, drawn at 90% so the coin rim stays inside the 66% safe zone of the adaptive icon. */
+/** app-icon 1024: backdrop with the hero waving, centred. */
+export function AppIconArt({ size = 1024, who }: { size?: number; who?: CharacterId }) {
+  return (
+    <View style={{ width: size, height: size, overflow: 'hidden' }}>
+      <IconBackdrop size={size} tone={who === 'dozariF' ? 'rose' : 'warm'} />
+      <FaceHero size={size} who={who} width={0.52} />
+    </View>
+  );
+}
+
+/** android-fg: transparent hero face, well inside the 66% safe zone of the adaptive icon. */
 export function AndroidForeground({ size = 1024, who }: { size?: number; who?: CharacterId }) {
   return (
     <View style={{ width: size, height: size }}>
-      <View style={{ width: size, height: size, transform: [{ scale: 0.9 }] }}>
-        <CoinHero size={size} who={who} />
-      </View>
+      <FaceHero size={size} who={who} width={0.46} />
     </View>
   );
 }

@@ -1,6 +1,6 @@
 import { randomInt } from 'node:crypto';
-import { TEAM_MATCH_BOARDS, applyCommand, matchClientView, mulberry32, ServerEvent, startMatch, startTeamMatch, turnDeadline } from '@dozari/shared';
-import type { Command, ErrorCode, Stake, MatchEnded, MatchEvent, MatchEventPayload, MatchFound, MatchState, MatchView, Rng, RuleError } from '@dozari/shared';
+import { DEFAULT_MATCH_RULES, TEAM_MATCH_BOARDS, applyCommand, matchClientView, mulberry32, ServerEvent, startMatch, startTeamMatch, turnDeadline } from '@dozari/shared';
+import type { Command, ErrorCode, Stake, MatchEnded, MatchRules, MatchEvent, MatchEventPayload, MatchFound, MatchState, MatchView, Rng, RuleError } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
 import type { PuzzleSource, ServedPuzzle } from '../solo/types.js';
 
@@ -21,6 +21,8 @@ export interface MatchDeps {
   emit(userId: string, event: string, payload: unknown): void;
   /** Boards of a 2v2 match (admin setting `match.team_boards`); absent = the shared default. */
   teamBoards?: () => Promise<number>;
+  /** The match numbers (admin settings turn / mistakes / scoring), read when a match starts; absent or failing = the shared defaults. */
+  rules?: () => Promise<MatchRules>;
   now?: () => number;
   newSeed?: () => number;
   /** Schedules `fn` after `ms`; returns the canceller. Injected so tests can drive the clock. */
@@ -132,7 +134,7 @@ export class MatchService {
         return false;
       }
     }
-    const entry: Active = { id, puzzles: [puzzle], state: startMatch(puzzle, [a, b], rng, this.now()), cancel: null, stakes, proposals: [null, null] };
+    const entry: Active = { id, puzzles: [puzzle], state: startMatch(puzzle, [a, b], rng, this.now(), undefined, await this.matchRules()), cancel: null, stakes, proposals: [null, null] };
     this.matches.set(id, entry);
     this.byUser.set(a, id);
     this.byUser.set(b, id);
@@ -154,7 +156,7 @@ export class MatchService {
     if (boards.length === 0 || profiles.some((p) => !p)) return false;
     if (all.some((u) => this.inMatch(u))) return false; // raced with another start while loading
     const id = uuidv7();
-    const entry: Active = { id, puzzles: boards, state: startTeamMatch(boards.map(toSolo), sides, mulberry32(this.newSeed()), this.now()), cancel: null, proposals: [null, null] };
+    const entry: Active = { id, puzzles: boards, state: startTeamMatch(boards.map(toSolo), sides, mulberry32(this.newSeed()), this.now(), undefined, await this.matchRules()), cancel: null, proposals: [null, null] };
     this.matches.set(id, entry);
     for (const u of all) this.byUser.set(u, id);
     const players: MatchFound['players'] = all.map((u, i) => ({ userId: u, side: i < 2 ? 0 : 1, ...(profiles[i] as PlayerProfile) }));
@@ -162,6 +164,14 @@ export class MatchService {
     this.pushState(entry);
     this.armTimer(entry);
     return true;
+  }
+
+  private async matchRules(): Promise<MatchRules> {
+    try {
+      return (await this.deps.rules?.()) ?? DEFAULT_MATCH_RULES;
+    } catch {
+      return DEFAULT_MATCH_RULES;
+    }
   }
 
   private async boardCount(): Promise<number> {

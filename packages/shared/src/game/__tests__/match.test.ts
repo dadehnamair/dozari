@@ -1,7 +1,7 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { BOARD_SIZE, FIRST_BLOOD_BONUS, GROUP_POINTS, MATCH_MAX_MISTAKES, TURN_SECONDS } from '../../config/index.js';
-import { applyCommand, finalScores, matchClientView, resolveWinner, startMatch, turnDeadline } from '../match.js';
+import { DEFAULT_MATCH_RULES, applyCommand, finalScores, matchClientView, resolveWinner, startMatch, turnDeadline } from '../match.js';
 import type { Command, MatchEvent, MatchSide, MatchState } from '../match.js';
 import { mulberry32 } from '../rng.js';
 import type { GroupLevel, SoloPuzzle } from '../solo.js';
@@ -308,3 +308,32 @@ describe('invariants (random play)', () => {
     );
   });
 });
+
+describe('match rules', () => {
+  const rules = { turnSeconds: 10, maxMistakes: 2, maxTimeouts: 1, groupPoints: [5, 6, 7, 8], firstBloodBonus: 0 };
+
+  it('plays by the shared config unless told otherwise', () => {
+    expect(start().rules).toEqual(DEFAULT_MATCH_RULES);
+  });
+
+  it('uses the given turn length, group points and first-blood bonus', () => {
+    const s = startMatch(puzzle, U, mulberry32(1), 1000, 0, rules);
+    expect(turnDeadline(s)).toBe(1000 + 10_000);
+    const r = submit(s, 0, ids(0));
+    expect(r.state.scores[0]).toBe(5);
+    expect(submit(r.state, 0, ids(1)).state.scores[0]).toBe(5 + 6);
+  });
+
+  it('locks a side out at the given mistake limit and forfeits at the given timeout limit', () => {
+    let s = startMatch(puzzle, U, mulberry32(1), 1000, 0, rules);
+    s = submit(s, 0, wrongSets[0]!).state;
+    s = submit(s, 1, wrongSets[1]!).state;
+    s = submit(s, 0, wrongSets[2]!).state;
+    expect(s.lockedOut[0]).toBe(true);
+
+    const t = startMatch(puzzle, U, mulberry32(1), 1000, 0, rules);
+    const timeout = ok(t, { t: 'timeout', turnId: t.turnId }, 20_000).state;
+    expect(timeout.status).toBe('finished');
+  });
+});
+

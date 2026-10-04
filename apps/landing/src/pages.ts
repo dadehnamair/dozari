@@ -60,7 +60,7 @@ ${body}
 </main>
 <footer class="bottom"><div class="bar"><div>
 <p><strong>${escapeHtml(site.name)}</strong> — ${escapeHtml(site.tagline)}</p>
-<p><a href="/">صفحه‌ی اول</a> · <a href="/blog">مقاله‌های بلاگ</a> · <a href="/cast">آشنایی با شخصیت‌های بازی</a>${site.androidApp ? ` · <a href="${escapeHtml(site.androidApp)}">دانلود برنامه‌ی اندروید</a>` : ''}${site.contactEmail ? ` · <a href="mailto:${escapeHtml(site.contactEmail)}">تماس با ما</a>` : ''}</p>
+<p><a href="/">صفحه‌ی اول</a> · <a href="/blog">مقاله‌های بلاگ</a> · <a href="/cast">آشنایی با شخصیت‌های بازی</a> · <a href="/privacy">حریم خصوصی</a>${site.androidApp ? ` · <a href="${escapeHtml(site.androidApp)}">دانلود برنامه‌ی اندروید</a>` : ''}${site.contactEmail ? ` · <a href="mailto:${escapeHtml(site.contactEmail)}">تماس با ما</a>` : ''}</p>
 </div></div></footer>
 </body>
 </html>`;
@@ -79,8 +79,8 @@ const HOW_TO = [
 export function homePage(site: Site, data: LandingData, latest: PostSummary[]): string {
   const { site: s, cast, faq } = data;
   const i = ids(site);
-  const title = `${s.name} — ${s.tagline}`;
-  const desc = description(s.heroText || s.tagline);
+  const title = s.seo?.title || `${s.name} — ${s.tagline}`;
+  const desc = description(s.seo?.description || s.heroText || s.tagline);
   const nodes: Record<string, unknown>[] = [
     { '@type': 'WebPage', '@id': `${site.url}/#webpage`, url: `${site.url}/`, name: title, description: desc, inLanguage: 'fa-IR', isPartOf: { '@id': i.site }, about: { '@id': i.org } },
     {
@@ -158,6 +158,37 @@ export function castPage(site: Site, cast: CastMember[]): string {
   const nodes: Record<string, unknown>[] = [{ '@type': 'AboutPage', '@id': `${site.url}/cast#webpage`, url: absolute(site, '/cast'), name: title, description: desc, inLanguage: 'fa-IR', isPartOf: { '@id': ids(site).site } }];
   const body = `<h1>بازیگران ${escapeHtml(site.name)}</h1><p>${escapeHtml(desc)}</p>${cast.length ? cast.map((c) => `<section class="card" id="${escapeHtml(c.id)}"><h2>${escapeHtml(c.name)}</h2>${c.role ? `<p class="meta">${escapeHtml(c.role)}</p>` : ''}<p>${escapeHtml(c.bio)}</p></section>`).join('') : '<p>به‌زودی معرفی می‌شوند.</p>'}`;
   return layout(site, head(site, { title, description: desc, path: '/cast', nodes, crumbs }), crumbs, body);
+}
+
+/** The privacy policy (needed for the store listings). Facts only: what the app really stores, from `users` and the chat/ledger tables. */
+export function privacyPage(site: Site): string {
+  const title = `سیاست حریم خصوصی ${site.name}`;
+  const desc = description(`${site.name} چه اطلاعاتی از بازیکن‌ها نگه می‌دارد، برای چه کاری و چطور می‌شود آن را پاک کرد.`);
+  const crumbs: Crumb[] = [{ name: 'صفحه‌ی اول', path: '/' }, { name: 'حریم خصوصی' }];
+  const n = escapeHtml(site.name);
+  const contact = site.contactEmail ? `از راه ایمیل <a href="mailto:${escapeHtml(site.contactEmail)}">${escapeHtml(site.contactEmail)}</a> با ما در تماس باش.` : 'از راه بخش پیام‌های برنامه یا کانال رسمی بازی با ما در تماس باش.';
+  const nodes: Record<string, unknown>[] = [{ '@type': 'WebPage', '@id': `${site.url}/privacy#webpage`, url: absolute(site, '/privacy'), name: title, description: desc, inLanguage: 'fa-IR', isPartOf: { '@id': ids(site).site } }];
+  const body = `<h1>${escapeHtml(title)}</h1>
+<p>${n} یک بازی آنلاین فارسی است. این صفحه ساده می‌گوید چه چیزی نگه می‌داریم و چرا. ما اطلاعات تو را نمی‌فروشیم و در برنامه آگهی یا ردیاب شخص ثالث نمی‌گذاریم.</p>
+<h2>چه اطلاعاتی نگه می‌داریم؟</h2>
+<ul>
+<li><strong>برای بازی کردن لازم است:</strong> یک شناسه‌ی تصادفی دستگاه (برای ساختن حساب مهمان)، نام مستعار و آواتار، پیشرفت، امتیازها، سکه‌ها و تاریخچه‌ی بازی‌ها.</li>
+<li><strong>اگر خودت بدهی (اختیاری):</strong> جنسیت، تاریخ تولد، شهر، شماره‌ی تلفن (با کد پیامکی تأیید می‌شود)، ایمیل و اتصال حساب به بله.</li>
+<li><strong>گفت‌وگو و گزارش‌ها:</strong> پیام‌هایی که در گفت‌وگوها می‌فرستی و گزارش‌هایی که می‌دهی یا درباره‌ات داده می‌شود، تا بتوانیم رفتار نادرست را بررسی کنیم.</li>
+<li><strong>پیشنهادها:</strong> کالا یا قیمتی که برای بازی پیشنهاد می‌کنی و رأی‌هایی که می‌دهی.</li>
+</ul>
+<h2>برای چه کاری از آن‌ها استفاده می‌کنیم؟</h2>
+<p>برای اجرای بازی (حریف‌یابی، جدول رتبه‌ها، دوستان)، پرداخت جایزه‌ها و سکه‌ها، جلوگیری از تقلب و آزار و بهتر کردن بازی. شماره‌ی تلفن فقط برای ورود، پیدا کردن دوست‌ها و ارسال کد تأیید به کار می‌رود.</p>
+<h2>به چه کسی داده می‌شود؟</h2>
+<p>نام مستعار، آواتار و سطح تو برای بازیکن‌های دیگر دیده می‌شود. اطلاعات خصوصی مثل تلفن و ایمیل برای بازیکن‌های دیگر نمایش داده نمی‌شود. پیامک تأیید ممکن است از راه یک سرویس پیامکی ایرانی فرستاده شود و پیام‌های بله از راه ربات بله. اطلاعاتی برای تبلیغ به کسی نمی‌دهیم.</p>
+<h2>چقدر نگه می‌داریم و چطور پاک می‌شود؟</h2>
+<p>تا وقتی حساب داری. هر وقت خواستی از «تنظیمات» برنامه، گزینه‌ی حذف حساب را بزن؛ بعد از تأیید با کد، اطلاعات شخصی (نام، تلفن، ایمیل، شناسه) پاک می‌شود و حساب بسته می‌شود. بخشی از سابقه‌ی بی‌نام بازی‌ها و تراکنش‌های سکه برای صحت جدول‌ها می‌ماند.</p>
+<h2>امنیت</h2>
+<p>ارتباط برنامه با سرور رمزگذاری‌شده (https) است. با این حال هیچ سیستمی صددرصد امن نیست؛ اگر مشکلی دیدی به ما خبر بده.</p>
+<h2>تماس</h2>
+<p>${contact}</p>
+<p class="meta">این متن ممکن است با تغییر بازی به‌روز شود؛ تاریخ آخرین بازبینی نسخه‌ی سایت، همین صفحه است.</p>`;
+  return layout(site, head(site, { title, description: desc, path: '/privacy', nodes, crumbs }), crumbs, body);
 }
 
 export function notFoundPage(site: Site): string {

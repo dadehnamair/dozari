@@ -37,6 +37,11 @@ export function BrandScreen({ onBack }: { onBack: () => void }) {
           <IconBackdrop size={1024} />
         </View>
       </Item>
+      <Item id="brand-android-bg-female" label="android-bg · 1024 · rose (female launcher icon)">
+        <View style={{ width: 1024, height: 1024, overflow: 'hidden' }}>
+          <IconBackdrop size={1024} tone="rose" />
+        </View>
+      </Item>
       <Item id="brand-mono" label="icon-android-mono · 1024 (transparent)">
         <RingMark size={1024} color="#000000" />
       </Item>

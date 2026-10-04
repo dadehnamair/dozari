@@ -4,17 +4,29 @@ import type { SettingsService } from '../settings/service.js';
 import type { LandingService } from './service.js';
 
 const link = (v: string): string | null => (/^https?:\/\//i.test(v.trim()) ? v.trim() : null);
+/** A site-verification code: letters, digits, `-` and `_` only, so it can never break out of a meta tag. */
+const token = (v: string): string | null => (/^[A-Za-z0-9_-]{4,100}$/.test(v.trim()) ? v.trim() : null);
+const list = (v: string): string[] => v.split(/[,،\n]/).map((x) => x.trim()).filter((x) => x !== '');
 
 /** Read-only content for the landing site (`apps/landing` fetches it server to server; it stays up in maintenance mode, see settings/gate.ts). */
 export function registerLandingPublicRoutes(app: FastifyInstance, landing: LandingService, settings: SettingsService) {
   app.get('/public/landing', async () => {
     const t = (k: string) => settings.text(k);
-    const [name, tagline, heroTitle, heroText, email, instagram, channel, android, appUrl, dApp, dLanding, dShort, cast, faq] = await Promise.all([
+    const [name, tagline, heroTitle, heroText, email, instagram, channel, android, appUrl, dApp, dLanding, dShort, seoTitle, seoDescription, keywords, ogImage, ogAlt, sameAs, fontUrl, vGoogle, vBing, vYandex, indexable, statsUrl, statsId, cast, faq] = await Promise.all([
       t('landing.site_name'), t('landing.tagline'), t('landing.hero_title'), t('landing.hero_text'), t('landing.contact_email'), t('link.instagram'), t('link.channel'), t('link.android_app'), t('link.app_url'),
-      t('domain.app'), t('domain.landing'), t('domain.short'), landing.cast.publicList(), landing.faq.publicList(),
+      t('domain.app'), t('domain.landing'), t('domain.short'),
+      t('landing.seo_title'), t('landing.seo_description'), t('landing.keywords'), t('landing.og_image'), t('landing.og_image_alt'), t('landing.same_as'), t('landing.font_url'),
+      t('seo.verify_google'), t('seo.verify_bing'), t('seo.verify_yandex'), settings.num('landing.indexable'), t('analytics.script_url'), t('analytics.site_id'), landing.cast.publicList(), landing.faq.publicList(),
     ]);
     return {
-      site: { name, tagline, heroTitle, heroText, contactEmail: email.trim() || null, instagram: link(instagram), channel: link(channel), androidApp: link(android), appUrl: link(appUrl), domains: { app: dApp.trim(), landing: dLanding.trim(), short: dShort.trim() } },
+      site: { name, tagline, heroTitle, heroText, contactEmail: email.trim() || null, instagram: link(instagram), channel: link(channel), androidApp: link(android), appUrl: link(appUrl), domains: { app: dApp.trim(), landing: dLanding.trim(), short: dShort.trim() },
+        seo: {
+          title: seoTitle.trim() || null, description: seoDescription.trim() || null, keywords: list(keywords), ogImage: link(ogImage), ogImageAlt: ogAlt.trim() || null,
+          sameAs: list(sameAs).map(link).filter((x): x is string => x !== null), fontUrl: link(fontUrl), indexable: indexable !== 0,
+          verify: { google: token(vGoogle), bing: token(vBing), yandex: token(vYandex) },
+          analytics: link(statsUrl) && token(statsId) ? { scriptUrl: link(statsUrl) as string, siteId: token(statsId) as string } : null,
+        },
+      },
       cast: cast.map((c) => ({ id: c.id, name: c.nameFa, role: c.roleFa, bio: c.bioFa, image: c.imageKey })),
       faq: faq.map((f) => ({ question: f.questionFa, answer: f.answerFa })),
     };

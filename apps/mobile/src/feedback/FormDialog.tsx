@@ -11,7 +11,8 @@ export function FormDialog({ title, children, onClose }: { title: string; childr
       <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessible={false} importantForAccessibility="no" />
       <View style={styles.card}>
         <Text style={styles.title}>{title}</Text>
-        <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>{children}</ScrollView>
+        {/* The bar stays visible so a long form shows that it scrolls (D184). */}
+        <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator persistentScrollbar indicatorStyle="black" style={styles.scroll}>{children}</ScrollView>
       </View>
     </View>
   );
@@ -33,7 +34,7 @@ export function Chips<T extends string>({ options, value, onPick }: { options: r
 export const formStyles = StyleSheet.create({
   label: { fontFamily: fonts.bold, fontSize: 13, color: colors.ink, textAlign: 'right' },
   input: { fontFamily: fonts.bold, fontSize: 15, color: colors.ink, borderWidth: 3, borderColor: colors.ink, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#fff', textAlign: 'right' },
-  multiline: { minHeight: 84, textAlignVertical: 'top' },
+  multiline: { minHeight: 64, textAlignVertical: 'top' },
   error: { fontFamily: fonts.bold, fontSize: 13, color: '#B3261E', textAlign: 'center' },
   ok: { fontFamily: fonts.bold, fontSize: 14, color: '#2E7D32', textAlign: 'center' },
   buttons: { flexDirection: ROW, gap: 10, marginTop: 4 },
@@ -48,7 +49,8 @@ const styles = StyleSheet.create({
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 60, backgroundColor: 'rgba(26,8,44,0.6)', alignItems: 'center', justifyContent: 'center', padding: 16 },
   card: { width: '100%', maxWidth: 400, maxHeight: '92%', padding: 16, borderRadius: 22, borderWidth: 4, borderColor: colors.ink, backgroundColor: '#FFF6E8', gap: 8 },
   title: { fontFamily: fonts.display, fontSize: 22, color: colors.ink, textAlign: 'center' },
-  body: { gap: 10 },
+  scroll: { flexGrow: 0 },
+  body: { gap: 10, paddingRight: 6 },
   chips: { flexDirection: ROW, flexWrap: 'wrap', gap: 6 },
   chip: { paddingHorizontal: 12, height: 34, borderRadius: 99, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: '#fff', justifyContent: 'center' },
   chipOn: { backgroundColor: colors.candy.yellow },

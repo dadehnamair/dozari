@@ -21,6 +21,7 @@ import { TableSheet } from '../tables/TableSheet';
 import { colors, fonts } from '../theme/colors';
 import { arenaNumbers, arrange, characterFor, clockText, endReason, groupsBy, shuffled } from './arena';
 import { DuelResult } from './DuelResult';
+import { InviteSheet } from '../invite/InviteSheet';
 import { MatchHud } from './MatchHud';
 import { ModeSelect } from './ModeSelect';
 import { boardSolved, duelReducer, initialDuel, isCaptain, isMyTurn, myOutcome, sideName, sidePlayers, turnSecondsLeft } from './model';
@@ -48,6 +49,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   const prefs = usePrefs();
   const [stage, setStage] = useState<Stage>(resume ? 'resume' : 'pick');
   const [round, setRound] = useState(0);
+  const [inviteOpen, setInviteOpen] = useState(false);
   const [state, dispatch] = useReducer(duelReducer, initialDuel);
   const [selected, setSelected] = useState<string[]>([]);
   const [order, setOrder] = useState<string[]>([]);
@@ -228,11 +230,13 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
           lines={lines.map((l) => ({ ...l, points: scores[l.me ? me : them] }))}
           onHome={onBack}
           onAgain={stage === 'queue' ? again : undefined}
+          onInvite={() => setInviteOpen(true)}
         />
         {!prefs.reduceMotion ? (outcome === 'won' ? <Confetti distance={500} /> : <Rain distance={800} />) : null}
         {outcome === 'won' && spinsWaiting > 0 ? (
           <View style={styles.wheelCta}><SlabButton label={fa.wheel.open} color={colors.candy.yellow} badge={toPersianDigits(String(spinsWaiting))} onPress={() => setWheelOpen(true)} /></View>
         ) : null}
+        {inviteOpen ? <InviteSheet onClose={() => setInviteOpen(false)} /> : null}
         {wheelOpen ? <WheelPage onClose={() => (setWheelOpen(false), void fetchWheel().then((w) => setSpinsWaiting(w.pending), () => undefined))} /> : null}
       </View>
     );

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { ViewStyle } from 'react-native';
 import Svg, { Circle, Line, Path, Text as SvgText } from 'react-native-svg';
+import { getChartRules } from '../config/chartRules';
 import { CHART_SERIES_COLORS, buildChartData, compactTomanLabel, formatShortJalaliYear, lineSegments, normalizeX, normalizeY, xTicks, yTicks } from '@dozari/shared';
 import type { SoloChart, YScale } from '@dozari/shared';
 import { fa } from '../i18n/fa';
@@ -22,7 +23,7 @@ export function ChartView({ group, scale, height: HEIGHT = DEFAULT_HEIGHT }: { g
       name: it.nameFa,
       prices: it.points.map((p) => ({ year: p.year, month: p.month, priceRials: BigInt(p.priceRials) })),
     })),
-    { colors: CHART_SERIES_COLORS.dark, ruleYear: group.ruleYear },
+    { colors: CHART_SERIES_COLORS.dark, ruleYear: group.ruleYear, ...getChartRules() },
   );
 
   const innerW = Math.max(0, width - PAD.left - PAD.right);

@@ -10,6 +10,20 @@ export interface PublicSite {
   androidApp: string | null;
   appUrl: string | null;
   domains: { app: string; landing: string; short: string };
+  /** Everything the owner sets in the admin panel group «سئو و سایت معرفی». */
+  seo: {
+    title: string | null;
+    description: string | null;
+    keywords: string[];
+    ogImage: string | null;
+    ogImageAlt: string | null;
+    sameAs: string[];
+    fontUrl: string | null;
+    indexable: boolean;
+    verify: { google: string | null; bing: string | null; yandex: string | null };
+    /** Self-hosted analytics script (Umami style), or null. */
+    analytics?: { scriptUrl: string; siteId: string } | null;
+  };
 }
 export interface CastMember {
   id: string;

@@ -116,6 +116,20 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod exec -T s-dozari-
 Also copy the `images` volume if images are not re-creatable from the repo. Restore:
 `gunzip -c dozari-DATE.sql.gz | docker compose … exec -T s-dozari-mysql sh -c 'mysql -udozari -p"$MYSQL_PASSWORD" dozari'`.
 
+### Backup script and restore drill
+
+`deploy/backup.sh` does the dump above, keeps `KEEP_DAYS` (14) days in `backups/`, and refuses a dump without the `users` table:
+`0 3 * * * cd ~/projects/dozari && deploy/backup.sh`. Copy `backups/` off the machine too. `deploy/restore-check.sh [file]` loads a backup into a
+throw-away database in the MySQL container, compares the row counts of `users`, `coin_ledger`, `products`, `puzzles` with the live data and drops
+the copy: run it once now and about monthly. (Both scripts were syntax-checked only; they have not run against a real MySQL yet.)
+
+## Error reports and statistics (self-hosted)
+
+- **Errors:** set `SENTRY_DSN=https://<key>@errors.example.ir/<projectId>` in `.env.prod` (a GlitchTip or Sentry you host). The server then sends every
+  unexpected 5xx / crash as one small envelope (error text, stack, route; no bodies or users), at most 20 a minute. Empty = off.
+- **Statistics:** run a self-hosted Umami, then fill `analytics.script_url` and `analytics.site_id` in the admin panel (group «سئو و سایت معرفی»); the landing
+  site and the web app add the script. Empty = no statistics. The match funnel / retention reports are Umami's job; the app sends no custom events yet.
+
 ## Notes
 
 - One server process: the rate limits and the live-match queue live in memory (`docs/security.md`).

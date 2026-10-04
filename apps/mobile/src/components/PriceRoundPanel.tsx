@@ -91,7 +91,7 @@ export function PriceRoundPanel({ sessionId, onDone }: { sessionId: string; onDo
           <Text style={styles.row}>{p.yourGuess}: {priceText(result.guessRials)}</Text>
           <Text style={styles.total}>{p.actual}: {priceText(result.actualRials)}</Text>
           <Text style={styles.row}>{p.points}: {formatPersianNumber(result.points)}</Text>
-          {round ? <PriceFeedbackLink product={{ id: round.productId, nameFa: round.nameFa, year: round.year }} color={colors.cream} /> : null}
+          {round ? <PriceFeedbackLink product={{ id: round.productId, nameFa: round.nameFa, year: round.year }} /> : null}
           <CandyButton label={results.length >= total ? p.finish : p.next} color={colors.candy.lime} onPress={() => setReviewing(false)} />
         </>
       ) : (

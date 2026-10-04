@@ -24,7 +24,7 @@ const LOOK: Record<Outcome, { title: string; sub: string; pose: 'win' | 'sad' | 
 };
 
 /** screen-results of `13 Match Screens`: the hero's pose, a banner, why it ended, the scoreboard, home / play again. */
-export function DuelResult({ outcome, reason, lines, onHome, onAgain }: { outcome: Outcome; reason: string; lines: Line[]; onHome: () => void; onAgain?: () => void }) {
+export function DuelResult({ outcome, reason, lines, onHome, onAgain, onInvite }: { outcome: Outcome; reason: string; lines: Line[]; onHome: () => void; onAgain?: () => void; /** Opens the invite sheet: the best moment to ask a friend to play is right after a game. */ onInvite?: () => void }) {
   const look = LOOK[outcome];
   const sorted = [...lines].sort((x, y) => y.points - x.points);
   return (
@@ -64,6 +64,7 @@ export function DuelResult({ outcome, reason, lines, onHome, onAgain }: { outcom
         <View style={styles.spacer} />
         <View style={styles.actions}>
           <SlabButton label={a.home} color={colors.candy.sky} height={58} fontSize={20} onPress={onHome} />
+          {onInvite ? <SlabButton label={a.invite} color={colors.candy.lime} height={58} fontSize={18} onPress={onInvite} /> : null}
           {onAgain ? <SlabButton label={look.again} color={look.againColor} height={58} fontSize={24} grow={1.6} onPress={onAgain} /> : null}
         </View>
       </View>

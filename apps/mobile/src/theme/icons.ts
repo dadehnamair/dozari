@@ -36,6 +36,8 @@ export const ICON_PATHS = {
   pause: 'M7 4h3v16H7zM14 4h3v16h-3z',
   crown: 'M3 8l4 4 5-7 5 7 4-4-2 11H5zM5 21h14',
   flag: 'M5 21V4M5 4h12l-2 4 2 4H5',
+  /** A price tag with an exclamation mark: «this price looks wrong». */
+  priceAlert: 'M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8zM9.5 6.8v3.4M9.5 12.9h.01',
   mail: 'M3 5h18v14H3zM3 6l9 7 9-7',
   eye: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
   bolt: 'M13 2L4 14h7l-1 8 9-12h-7z',

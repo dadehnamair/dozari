@@ -6,7 +6,7 @@ const { withAndroidManifest, withDangerousMod } = require('expo/config-plugins')
  * Two launcher icons, switched at runtime by the player's gender (modules/app-icon): the original hero and the female hero.
  * MainActivity loses its own LAUNCHER entry; two activity-aliases take it, the female one disabled until the app enables it.
  * The female art (assets/icon-female.png, adaptive-icon-female.png: 1024 px, exported by scripts/export-brand.mjs) is shipped
- * downscaled: adaptive-icon-female-432.png (xxxhdpi foreground) and icon-female-192.png (Android 7 fallback).
+ * downscaled: adaptive-icon-female-432.png (xxxhdpi foreground), adaptive-background-female-216.png (rose backdrop) and icon-female-192.png (Android 7 fallback).
  */
 const ALIASES = [
   { name: '.MainActivityDefault', enabled: true, icon: '@mipmap/ic_launcher', round: '@mipmap/ic_launcher_round' },
@@ -39,7 +39,7 @@ const withAliases = (config) =>
 
 const ADAPTIVE = `<?xml version="1.0" encoding="utf-8"?>
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-    <background android:drawable="@mipmap/ic_launcher_background"/>
+    <background android:drawable="@drawable/ic_launcher_female_background"/>
     <foreground android:drawable="@drawable/ic_launcher_female_foreground"/>
     <monochrome android:drawable="@mipmap/ic_launcher_monochrome"/>
 </adaptive-icon>
@@ -56,8 +56,10 @@ const withResources = (config) =>
         fs.writeFileSync(path.join(res, dir, file), content);
       };
       const foreground = fs.readFileSync(path.join(assets, 'adaptive-icon-female-432.png'));
+      const background = fs.readFileSync(path.join(assets, 'adaptive-background-female-216.png'));
       const full = fs.readFileSync(path.join(assets, 'icon-female-192.png'));
       put('drawable-nodpi', 'ic_launcher_female_foreground.png', foreground);
+      put('drawable-nodpi', 'ic_launcher_female_background.png', background);
       // Android 7 (no adaptive icons): plain bitmaps. Android 8+ picks the adaptive XML below.
       put('mipmap-xxxhdpi', 'ic_launcher_female.png', full);
       put('mipmap-xxxhdpi', 'ic_launcher_female_round.png', full);
