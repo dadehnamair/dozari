@@ -8,8 +8,8 @@
 <body>
 <x-dc>
 <helmet>
-<title>دوزاری · بازی کلمات فارسی</title>
-<meta name="description" content="دوزاری، بازی کلمات فارسی با حال‌وهوای بازار قدیم. رایگان برای اندروید و iOS.">
+<title>دوزاری · بازی نوستالژی قیمت‌ها</title>
+<meta name="description" content="دوزاری، بازی نوستالژی قیمت‌ها: ۱۶ جنس، ۴ دسته، یه دوزاری. قیمت‌های قدیم رو دسته‌بندی کن و با رفیقات دوئل کن. رایگان در مرورگر و اندروید.">
 <link href="https://fonts.googleapis.com/css2?family=Lalezar&amp;family=Vazirmatn:wght@400;600;800;900&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet">
 <style>body{margin:0;background:#FFF6E8;font-family:Vazirmatn,system-ui,sans-serif;color:#2B1240}a{color:#A66BF0}a:hover{color:#FF4D8D}</style>
 </helmet>
@@ -19,14 +19,14 @@
 <section style="background:#FFC93C;border-bottom:4px solid #2B1240">
   <div style="max-width:1200px;margin:0 auto;padding:64px 24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:40px;align-items:center">
     <div style="display:flex;flex-direction:column;gap:22px">
-      <div style="align-self:flex-start;font:800 14px Vazirmatn;padding:6px 14px;border:3px solid #2B1240;border-radius:999px;background:#FFF6E8">بازی کلمات فارسی · رایگان</div>
-      <h1 style="margin:0;font:clamp(48px,7vw,88px)/1.05 Lalezar;text-wrap:balance">حرف‌ها رو وصل کن، دوزاری‌ات می‌افته!</h1>
-      <p style="margin:0;font:600 19px/1.9 Vazirmatn;max-width:520px;text-wrap:pretty">توی بازار قدیمی بچرخ، با مشتی و خاله و پهلوون رفیق شو و هر روز چندتا کلمهٔ تازه کشف کن. بدون عجله، با کلی خنده.</p>
+      <div style="align-self:flex-start;font:800 14px Vazirmatn;padding:6px 14px;border:3px solid #2B1240;border-radius:999px;background:#FFF6E8">بازی نوستالژی قیمت‌ها · رایگان</div>
+      <h1 style="margin:0;font:clamp(48px,7vw,88px)/1.05 Lalezar;text-wrap:balance">دوزاریت می‌افته؟</h1>
+      <p style="margin:0;font:600 19px/1.9 Vazirmatn;max-width:520px;text-wrap:pretty">یادته نوشابه چند بود؟ ۱۶ تا جنس رو چهارتا چهارتا دسته کن، قیمت‌های قدیم رو به یاد بیار و با رفیقات دوئل کن. توی بازارچهٔ دوزاری با مشتی و خاله و پهلوون رفیق شو.</p>
       <div style="display:flex;gap:12px;flex-wrap:wrap">
-        <sc-for list="{{ stores }}" as="s" hint-placeholder-count="4">
+        <sc-for list="{{ stores }}" as="s" hint-placeholder-count="2">
           <a href="Dozari Site - Download.dc.html" style="display:flex;flex-direction:column;gap:2px;padding:10px 18px;border:3px solid #2B1240;border-radius:18px;background:#2B1240;color:#FFF6E8;text-decoration:none;box-shadow:0 4px 0 #FF4D8D;min-width:130px">
-            <span style="font:600 11px Vazirmatn;opacity:.75">دریافت از</span>
-            <span style="font:20px/1.1 Lalezar">{{ s }}</span>
+            <span style="font:600 11px Vazirmatn;opacity:.75">{{ s.hint }}</span>
+            <span style="font:20px/1.1 Lalezar">{{ s.fa }}</span>
           </a>
         </sc-for>
       </div>
@@ -39,7 +39,7 @@
 </section>
 
 <section style="max-width:1200px;margin:0 auto;padding:80px 24px;display:flex;flex-direction:column;gap:36px">
-  <h2 style="margin:0;font:52px/1.1 Lalezar;text-align:center">چرا دوزاری؟</h2>
+  <h2 style="margin:0;font:clamp(36px,6vw,52px)/1.1 Lalezar;text-align:center">چرا دوزاری؟</h2>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px">
     <sc-for list="{{ features }}" as="f" hint-placeholder-count="4">
       <article style="background:#fff;border:4px solid #2B1240;border-radius:28px;padding:24px;box-shadow:0 6px 0 #2B1240;display:flex;flex-direction:column;gap:12px">
@@ -55,7 +55,7 @@
 
 <section style="background:#3FC1F0;border-block:4px solid #2B1240">
   <div style="max-width:1200px;margin:0 auto;padding:80px 24px;display:flex;flex-direction:column;gap:36px">
-    <h2 style="margin:0;font:52px/1.1 Lalezar;text-align:center">چطور بازی کنم؟</h2>
+    <h2 style="margin:0;font:clamp(36px,6vw,52px)/1.1 Lalezar;text-align:center">چطور بازی کنم؟</h2>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px">
       <sc-for list="{{ steps }}" as="s" hint-placeholder-count="3">
         <div style="display:flex;flex-direction:column;gap:14px;align-items:center;text-align:center">
@@ -71,8 +71,8 @@
 
 <section style="max-width:1200px;margin:0 auto;padding:80px 24px;display:flex;flex-direction:column;gap:28px">
   <div style="display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center">
-    <h2 style="margin:0;font:52px/1.1 Lalezar">آدم‌های بازار</h2>
-    <p style="margin:0;font:600 17px Vazirmatn;opacity:.8">هر کدوم یه قصه دارن و یه عالمه کلمه</p>
+    <h2 style="margin:0;font:clamp(36px,6vw,52px)/1.1 Lalezar">آدم‌های بازار</h2>
+    <p style="margin:0;font:600 17px Vazirmatn;opacity:.8">هر کدوم یه قصه دارن و یه عالمه قیمت</p>
   </div>
   <div style="display:flex;gap:8px;justify-content:center;align-items:flex-end;flex-wrap:wrap;background:#2B1240;border-radius:36px;padding:36px 20px 20px">
     <sc-for list="{{ cast }}" as="c" hint-placeholder-count="8">
@@ -86,7 +86,7 @@
 
 <section style="max-width:1200px;margin:0 auto;padding:0 24px 80px;display:flex;flex-direction:column;gap:28px">
   <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap">
-    <h2 style="margin:0;font:52px/1.1 Lalezar">تازه‌های وبلاگ</h2>
+    <h2 style="margin:0;font:clamp(36px,6vw,52px)/1.1 Lalezar">تازه‌های وبلاگ</h2>
     <a href="Dozari Site - Blog.dc.html" style="font:800 16px Vazirmatn;color:#2B1240">همهٔ مطالب ←</a>
   </div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px">
@@ -108,10 +108,10 @@
 <section style="max-width:1200px;margin:0 auto 80px;padding:0 24px">
   <div style="background:#FF4D8D;border:4px solid #2B1240;border-radius:40px;box-shadow:0 8px 0 #2B1240;padding:40px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap">
     <div style="display:flex;flex-direction:column;gap:10px;color:#FFF6E8">
-      <h2 style="margin:0;font:48px/1.1 Lalezar">همین حالا رایگان دانلود کن</h2>
-      <p style="margin:0;font:600 17px Vazirmatn">اندروید، iOS و نسخهٔ وب</p>
+      <h2 style="margin:0;font:48px/1.1 Lalezar">همین حالا رایگان بازی کن</h2>
+      <p style="margin:0;font:600 17px Vazirmatn">نسخهٔ وب، اندروید و نصب روی آیفون</p>
     </div>
-    <a href="Dozari Site - Download.dc.html" style="font:28px Lalezar;padding:14px 32px 10px;border:4px solid #2B1240;border-radius:999px;background:#FFC93C;color:#2B1240;text-decoration:none;box-shadow:0 5px 0 #2B1240">دانلود دوزاری</a>
+    <a href="Dozari Site - Download.dc.html" style="font:28px Lalezar;padding:14px 32px 10px;border:4px solid #2B1240;border-radius:999px;background:#FFC93C;color:#2B1240;text-decoration:none;box-shadow:0 5px 0 #2B1240">بازی کن!</a>
   </div>
 </section>
 
@@ -122,23 +122,23 @@
 class Component extends DCLogic {
   renderVals() {
     return {
-      stores: ['گوگل‌پلی','کافه‌بازار','مایکت','اپ‌استور'],
+      stores: [{ hint:'همین حالا در مرورگر', fa:'بازی آنلاین' }, { hint:'فایل نصب', fa:'دانلود اندروید' }],
       features: [
-        { t:'کلمه‌های واقعی فارسی', d:'هزاران مرحله با واژه‌های روزمره، ضرب‌المثل‌ها و کلمه‌های قدیمی که کم‌کم یادمون رفته.', bg:'#FFC93C', icon:'coin' },
-        { t:'چالش روزانه', d:'هر روز یه جدول تازه. بازی کن، جایزه بگیر و رکوردت رو با دوستات مقایسه کن.', bg:'#7ED957', icon:'gift' },
-        { t:'سفر به استان‌ها', d:'از بازار تبریز تا کاروانسرای یزد؛ هر استان مرحله‌ها و سوغاتی‌های خودش رو داره.', bg:'#3FC1F0', icon:'map' },
-        { t:'آواتار مخصوص خودت', d:'کلاه، عینک، سبیل و لباس‌های ماهانه؛ دوزاری‌ات رو هر جور دوست داری بپوشون.', bg:'#A66BF0', icon:'hat' }
+        { t:'قیمت‌های واقعی قدیم', d:'قیمت اسمی محصولات توی سال‌های مختلف، با منبع. تورم حساب نمی‌شه؛ همون عددی که اون موقع روی برچسب بود.', bg:'#FFC93C', icon:'coin' },
+        { t:'چالش روزانه', d:'هر روز یه پازل تازه و جایزهٔ روزانه. بازی کن، سکه بگیر و ببین دوستات چند شدن.', bg:'#7ED957', icon:'gift' },
+        { t:'بازارچهٔ دوزاری', d:'دکهٔ تمرین، زورخانه، چایخانه و کاروانسرا؛ هر ساختمون یه جور بازیه: تک‌نفره، دوئل، تیمی یا میز خصوصی.', bg:'#3FC1F0', icon:'map' },
+        { t:'آواتار مخصوص خودت', d:'کلاه و لباس‌های مخصوص؛ از چرخ شانس و فروشگاه بگیر و دوزاری‌ات رو هر جور دوست داری بپوشون.', bg:'#A66BF0', icon:'hat' }
       ],
       steps: [
-        { n:'۱', t:'حرف‌ها رو بکش', d:'انگشتت رو روی حروف بچرخون و کلمه بساز.', shot:'اسکرین‌شات: صفحهٔ بازی' },
-        { n:'۲', t:'جدول رو پر کن', d:'هر کلمهٔ درست یه خونه از جدول رو باز می‌کنه.', shot:'اسکرین‌شات: جدول' },
-        { n:'۳', t:'سکه جمع کن', d:'با سکه‌ها راهنما بگیر یا برای آواتارت خرید کن.', shot:'اسکرین‌شات: فروشگاه' }
+        { n:'۱', t:'۱۶ تا جنس رو ببین', d:'روی صفحه ۱۶ محصول هست؛ هر کدوم یه قیمت قدیمی داره.', shot:'اسکرین‌شات: تختهٔ بازی' },
+        { n:'۲', t:'چهارتا چهارتا دسته کن', d:'چهار دستهٔ مخفی هست. چهار تا جنس هم‌دسته رو انتخاب کن تا دوزاریت بیفته.', shot:'اسکرین‌شات: دسته‌های حل‌شده' },
+        { n:'۳', t:'با رفیقت دوئل کن', d:'یک‌به‌یک، دونفره در برابر دونفره یا میز خصوصی با کد؛ برنده سکه می‌گیره.', shot:'اسکرین‌شات: دوئل' }
       ],
       cast: [['dozari','دوزاری'],['dozariF','دوزاری‌خانم'],['mashti','مشتی'],['khale','خاله'],['pahlevan','پهلوون'],['baqal','بقال'],['mirza','میرزا'],['goli','گلی']].map(([who,name])=>({who,name})),
       posts: [
-        { t:'۱۰ ضرب‌المثل فارسی که ریشه‌شون رو نمی‌دونستی', cat:'زبان فارسی', date:'۸ مهر ۱۴۰۵', bg:'#FFC93C', who:'mirza', pose:'thinking' },
-        { t:'آپدیت پاییزی: استان‌های جدید و لباس مهر', cat:'اخبار بازی', date:'۱ مهر ۱۴۰۵', bg:'#FF7A3D', who:'dozari', pose:'wave' },
-        { t:'ترفندهای حل جدول وقتی گیر کردی', cat:'راهنما', date:'۲۴ شهریور ۱۴۰۵', bg:'#7ED957', who:'khale', pose:'idle' }
+        { t:'چرا اسم بازی «دوزاری»‌ه؟', cat:'قصهٔ دوزاری', date:'۸ مهر ۱۴۰۵', bg:'#FFC93C', who:'mirza', pose:'thinking' },
+        { t:'بازارچهٔ دوزاری: راهنمای ساختمان‌ها', cat:'راهنما', date:'۱ مهر ۱۴۰۵', bg:'#FF7A3D', who:'dozari', pose:'wave' },
+        { t:'ترفند دسته‌بندی وقتی گیر کردی', cat:'راهنما', date:'۲۴ شهریور ۱۴۰۵', bg:'#7ED957', who:'khale', pose:'idle' }
       ]
     };
   }
