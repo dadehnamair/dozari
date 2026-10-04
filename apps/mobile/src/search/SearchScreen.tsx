@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Platform, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import type { TextStyle } from 'react-native';
-import Svg, { Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-svg';
 import { formatPersianNumber, toPersianDigits } from '@dozari/shared';
 import { CandyButton } from '../components/CandyButton';
 import { DiamondBackground } from '../components/DiamondBackground';
@@ -23,60 +22,18 @@ const CELL_TONES = ['pink', 'orange', 'yellow', 'sky', 'grape', 'lime'] as const
 const toneOfCell = (i: number) =>
   candyTone[CELL_TONES[(i * 7 + 1) % CELL_TONES.length] as (typeof CELL_TONES)[number]];
 
+// Plain RN <Text> layers instead of <SvgText>: SVG text does not shape/join Persian letters correctly on phones.
+const OUTLINE: ReadonlyArray<readonly [number, number]> = [[-5, 0], [5, 0], [0, -5], [0, 5], [-4, -4], [4, -4], [-4, 4], [4, 4]];
 function Title({ small = false, text }: { small?: boolean; text: string }) {
-  const w = small ? 230 : 296;
+  const fontSize = small ? 40 : 52;
+  const base = { fontFamily: fonts.display, fontSize, lineHeight: fontSize * 1.5, textAlign: 'center' as const };
   return (
-    <Svg
-      width={w}
-      height={w * (160 / 760)}
-      viewBox="-120 0 760 160"
-      style={{ overflow: 'visible' }}
-      accessibilityLabel={text}
-    >
-      <Defs>
-        <LinearGradient id="srT" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor="#FFE0F0" />
-          <Stop offset="0.45" stopColor="#FF8FD0" />
-          <Stop offset="1" stopColor="#D43FB0" />
-        </LinearGradient>
-      </Defs>
-      <SvgText
-        x={260}
-        y={104}
-        textAnchor="middle"
-        fontFamily={fonts.display}
-        fontSize={104}
-        fill="#2B1240"
-        stroke="#2B1240"
-        strokeWidth={22}
-        strokeLinejoin="round"
-      >
-        {text}
-      </SvgText>
-      <SvgText
-        x={260}
-        y={96}
-        textAnchor="middle"
-        fontFamily={fonts.display}
-        fontSize={104}
-        fill="#5A1460"
-        stroke="#5A1460"
-        strokeWidth={10}
-        strokeLinejoin="round"
-      >
-        {text}
-      </SvgText>
-      <SvgText
-        x={260}
-        y={96}
-        textAnchor="middle"
-        fontFamily={fonts.display}
-        fontSize={104}
-        fill="url(#srT)"
-      >
-        {text}
-      </SvgText>
-    </Svg>
+    <View accessible accessibilityRole="header" accessibilityLabel={text} style={{ paddingVertical: 6, paddingHorizontal: 8 }}>
+      {OUTLINE.map(([dx, dy], i) => (
+        <Text key={i} importantForAccessibility="no" style={[base, { position: 'absolute', left: 8 + dx, right: 8 - dx, top: 6 + dy, color: '#2B1240' }]}>{text}</Text>
+      ))}
+      <Text style={[base, { color: '#FF8FD0' }]}>{text}</Text>
+    </View>
   );
 }
 
