@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<title>وبلاگ دوزاری</title>
+<meta name="description" content="اخبار بازی، راهنمای حل جدول و مطالب خواندنی دربارهٔ زبان فارسی.">
+<link href="https://fonts.googleapis.com/css2?family=Lalezar&amp;family=Vazirmatn:wght@400;600;800;900&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0;background:#FFF6E8;font-family:Vazirmatn,system-ui,sans-serif;color:#2B1240}a{color:#A66BF0}a:hover{color:#FF4D8D}</style>
+</helmet>
+<div dir="rtl" style="background:#FFF6E8;min-height:100vh">
+<dc-import name="SiteNav" active="blog" hint-size="100%,80px"></dc-import>
+
+<section style="max-width:1200px;margin:0 auto;padding:56px 24px 24px;display:flex;flex-direction:column;gap:20px">
+  <h1 style="margin:0;font:clamp(48px,6vw,72px)/1.1 Lalezar">وبلاگ دوزاری</h1>
+  <p style="margin:0;font:600 18px Vazirmatn;opacity:.8">اخبار بازی، راهنما و قصه‌های زبان فارسی</p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <sc-for list="{{ cats }}" as="c" hint-placeholder-count="5">
+      <button onClick="{{ c.pick }}" style="font:800 15px Vazirmatn;padding:8px 18px;border:3px solid #2B1240;border-radius:999px;cursor:pointer;background:{{ c.bg }};color:#2B1240">{{ c.fa }}</button>
+    </sc-for>
+  </div>
+</section>
+
+<section style="max-width:1200px;margin:0 auto;padding:16px 24px 32px">
+  <a href="Dozari Site - Blog Post.dc.html" style="text-decoration:none;color:#2B1240;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));background:#fff;border:4px solid #2B1240;border-radius:36px;overflow:hidden;box-shadow:0 8px 0 #2B1240">
+    <div style="background:#FF7A3D;min-height:300px;display:grid;place-items:center">
+      <dc-import name="Character" who="dozari" pose="wave" hint-size="220px,253px" style="width:220px;height:253px"></dc-import>
+    </div>
+    <div style="padding:36px;display:flex;flex-direction:column;gap:14px;justify-content:center">
+      <span style="align-self:flex-start;font:800 13px Vazirmatn;padding:4px 12px;border-radius:999px;background:#FFC93C;border:2px solid #2B1240">مطلب ویژه · اخبار بازی</span>
+      <h2 style="margin:0;font:40px/1.25 Lalezar;text-wrap:balance">آپدیت پاییزی: استان‌های جدید و لباس مهر</h2>
+      <p style="margin:0;font:500 16px/1.9 Vazirmatn;text-wrap:pretty">سه استان تازه، ۱۲۰ مرحلهٔ جدید و لباس مدرسهٔ دوزاری برای ماه مهر. هرچی توی این آپدیت هست رو اینجا ببین.</p>
+      <span style="font:600 13px Vazirmatn;opacity:.6">۱ مهر ۱۴۰۵ · ۴ دقیقه مطالعه</span>
+    </div>
+  </a>
+</section>
+
+<section style="max-width:1200px;margin:0 auto;padding:16px 24px 80px;display:flex;flex-direction:column;gap:32px">
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px">
+    <sc-for list="{{ posts }}" as="p" hint-placeholder-count="6">
+      <a href="Dozari Site - Blog Post.dc.html" style="text-decoration:none;color:#2B1240;background:#fff;border:4px solid #2B1240;border-radius:28px;overflow:hidden;box-shadow:0 6px 0 #2B1240;display:flex;flex-direction:column">
+        <div style="aspect-ratio:16/9;background:{{ p.bg }};border-bottom:4px solid #2B1240;display:grid;place-items:center">
+          <dc-import name="Character" who="{{ p.who }}" pose="{{ p.pose }}" hint-size="120px,138px" style="width:120px;height:138px"></dc-import>
+        </div>
+        <div style="padding:20px;display:flex;flex-direction:column;gap:8px;flex:1">
+          <span style="font:800 13px Vazirmatn;color:#FF4D8D">{{ p.cat }}</span>
+          <h3 style="margin:0;font:26px/1.3 Lalezar;text-wrap:balance">{{ p.t }}</h3>
+          <p style="margin:0;font:500 14px/1.8 Vazirmatn;opacity:.85">{{ p.ex }}</p>
+          <span style="font:600 13px Vazirmatn;opacity:.6;margin-top:auto">{{ p.date }}</span>
+        </div>
+      </a>
+    </sc-for>
+  </div>
+  <div style="display:flex;gap:8px;justify-content:center">
+    <a href="#" style="width:44px;height:44px;display:grid;place-items:center;border:3px solid #2B1240;border-radius:14px;background:#2B1240;color:#FFF6E8;font:800 16px Vazirmatn;text-decoration:none">۱</a>
+    <a href="#" style="width:44px;height:44px;display:grid;place-items:center;border:3px solid #2B1240;border-radius:14px;background:#fff;color:#2B1240;font:800 16px Vazirmatn;text-decoration:none">۲</a>
+    <a href="#" style="width:44px;height:44px;display:grid;place-items:center;border:3px solid #2B1240;border-radius:14px;background:#fff;color:#2B1240;font:800 16px Vazirmatn;text-decoration:none">۳</a>
+  </div>
+</section>
+
+<dc-import name="SiteFooter" hint-size="100%,380px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { cat: 'همه' };
+  renderVals() {
+    const ALL = [
+      { t:'۱۰ ضرب‌المثل فارسی که ریشه‌شون رو نمی‌دونستی', cat:'زبان فارسی', ex:'از «آب از آب تکون نخورد» تا «دوزاری‌اش افتاد»؛ قصهٔ پشت ضرب‌المثل‌ها.', date:'۸ مهر ۱۴۰۵', bg:'#FFC93C', who:'mirza', pose:'thinking' },
+      { t:'ترفندهای حل جدول وقتی گیر کردی', cat:'راهنما', ex:'پنج روش ساده برای پیدا کردن کلمهٔ آخر بدون خرج کردن سکه.', date:'۲۴ شهریور ۱۴۰۵', bg:'#7ED957', who:'khale', pose:'pointing' },
+      { t:'پشت صحنهٔ طراحی شخصیت‌های بازار', cat:'پشت صحنه', ex:'مشتی و خاله و پهلوون از کجا اومدن؟ از اولین طرح‌های مدادی تا بازی.', date:'۱۷ شهریور ۱۴۰۵', bg:'#FF4D8D', who:'goli', pose:'cheer' },
+      { t:'نتایج مسابقهٔ تابستونی دوزاری', cat:'اخبار بازی', ex:'برنده‌های جام تابستون معرفی شدن. ببین اسم تو هم توی جدول هست؟', date:'۱۰ شهریور ۱۴۰۵', bg:'#3FC1F0', who:'pahlevan', pose:'win' },
+      { t:'کلمه‌های فراموش‌شدهٔ بازار قدیم', cat:'زبان فارسی', ex:'حجره، کاروانسرا، تیمچه و راسته؛ واژه‌هایی که توی بازی زنده‌شون کردیم.', date:'۲ شهریور ۱۴۰۵', bg:'#A66BF0', who:'baqal', pose:'coin' },
+      { t:'چالش روزانه چطور ساخته می‌شه؟', cat:'پشت صحنه', ex:'هر روز صبح یه جدول تازه؛ از انتخاب کلمه تا تست سختی.', date:'۲۶ مرداد ۱۴۰۵', bg:'#FF7A3D', who:'ajan', pose:'idle' }
+    ];
+    const cats = ['همه','اخبار بازی','راهنما','زبان فارسی','پشت صحنه'];
+    const a = this.state.cat;
+    return {
+      cats: cats.map(fa => ({ fa, bg: fa===a ? '#FFC93C' : '#fff', pick: () => this.setState({ cat: fa }) })),
+      posts: a==='همه' ? ALL : ALL.filter(p => p.cat===a)
+    };
+  }
+}
+</script>
+</body>
+</html>
