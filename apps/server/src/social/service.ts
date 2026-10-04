@@ -30,6 +30,9 @@ export class SocialService {
     return p.requestedBy === me ? 'sent' : 'received';
   }
 
+  /** What a player wears now (set at start-up when the shop exists); shown on their public profile. */
+  wornOf?: (userId: string) => Promise<{ slot: string; iconKey: string | null }[]>;
+
   /** What anybody may see of a player. */
   async profile(me: string, id: string): Promise<PlayerProfile | null> {
     const row = await this.store.publicRow(id);
@@ -37,7 +40,7 @@ export class SocialService {
     const lv = (await this.player?.levelOf(id)) ?? { level: { level: 1 }, stats: { games: 0, wins: 0, losses: 0, draws: 0 } };
     const city = (await this.player?.cityOf(id)) ?? null;
     const party = (await this.birthdayInfo([id])).get(id);
-    return { id, nickname: row.nickname, avatarKey: row.avatarKey, level: lv.level.level, coins: row.coins, stats: lv.stats, cityName: city?.nameFa ?? null, cityProvince: city?.province ?? null, badges: (await this.badges?.publicOf(id)) ?? { badge: null, medals: [], skill: 'novice' as const }, memberSince: row.createdAt, relation: me === id ? 'none' : await this.relation(me, id), isMe: me === id, online: this.isOnline(id), birthday: party?.badge ?? false, age: party?.age ?? null };
+    return { id, nickname: row.nickname, avatarKey: row.avatarKey, level: lv.level.level, coins: row.coins, stats: lv.stats, cityName: city?.nameFa ?? null, cityProvince: city?.province ?? null, badges: (await this.badges?.publicOf(id)) ?? { badge: null, medals: [], skill: 'novice' as const }, memberSince: row.createdAt, relation: me === id ? 'none' : await this.relation(me, id), isMe: me === id, online: this.isOnline(id), birthday: party?.badge ?? false, age: party?.age ?? null, worn: ((await this.wornOf?.(id)) ?? []).map(({ slot, iconKey }) => ({ slot, iconKey })) };
   }
 
   async request(me: string, target: string): Promise<RequestResult> {

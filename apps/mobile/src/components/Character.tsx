@@ -18,6 +18,8 @@ import { usePrefs } from '../prefs/store';
 import { fonts } from '../theme/colors';
 import { characterLook } from '../theme/character';
 import { Motion } from './characterMotion';
+import { GlassesArt, HairArt, HatArt, OutfitArt, ScarfArt, wornIn } from './wearArt';
+import type { Worn } from './wearArt';
 import type { CharacterCrop, CharacterId, CharacterPose } from '../theme/character';
 
 const INK = '#3A2418';
@@ -36,6 +38,8 @@ interface Props {
   wobble?: boolean;
   /** Living motion (head bob, breathing, blinking, swinging arms, hat coin). On for full-body characters unless the player chose less motion; face crops (avatars, lists) stay still unless asked. */
   anim?: boolean;
+  /** Cosmetics worn (D165/D176): hair, hat, glasses on the head, clothes and scarf on the body (full body only). */
+  worn?: readonly Worn[];
 }
 
 /** Hand-drawn market characters (docs/design/Dozari - 04 Characters.dc.html), ported to react-native-svg. */
@@ -49,7 +53,13 @@ export function Character({
   height = '100%',
   wobble = Platform.OS === 'web',
   anim,
+  worn,
 }: Props) {
+  const hairK = wornIn(worn, 'hair');
+  const hatK = wornIn(worn, 'hat');
+  const glassesK = wornIn(worn, 'glasses');
+  const outfitK = wornIn(worn, 'outfit');
+  const scarfK = wornIn(worn, 'accessory');
   const reduce = usePrefs().reduceMotion;
   const on = !reduce && (anim ?? crop === 'full');
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
@@ -182,6 +192,8 @@ export function Character({
                   />
                 </G>
               ) : null}
+              {outfitK ? <OutfitArt k={outfitK} /> : null}
+              {scarfK ? <ScarfArt /> : null}
               <Path
                 d="M73 160Q67 178 67 196"
                 stroke="#fff"
@@ -199,13 +211,13 @@ export function Character({
             </G>
           ) : null}
           <Motion part="head" on={on} delay={delay}>
-          {L.hairBack ? (
+          {L.hairBack && !hairK ? (
             <G>
               <Path d={L.hairBack} strokeWidth={12} fill="none" />
               <Path d={L.hairBack} stroke={L.hairColor} strokeWidth={7} fill="none" />
             </G>
           ) : null}
-          {L.ribbon ? <Path d={L.ribbon} fill="#E8743B" strokeWidth={2.2} /> : null}
+          {L.ribbon && !hairK ? <Path d={L.ribbon} fill="#E8743B" strokeWidth={2.2} /> : null}
           {L.hero ? (
             <G>
               <Ellipse cx={62} cy={98} rx={9} ry={12} fill={L.skin} strokeWidth={3} />
@@ -215,7 +227,7 @@ export function Character({
             </G>
           ) : null}
           <Path d={L.headD} fill={L.skin} strokeWidth={3.4} />
-          {L.hero && !L.heroF ? (
+          {L.hero && !L.heroF && !hairK ? (
             <G>
               <Path
                 d="M72 36C60 36 56 46 61 52C54 57 59 66 66 63C71 59 70 52 75 47ZM128 36C140 36 144 46 139 52C146 57 141 66 134 63C129 59 130 52 125 47Z"
@@ -229,12 +241,14 @@ export function Character({
               />
             </G>
           ) : null}
-          {L.heroF ? (
+          {L.heroF && !hairK ? (
             <G>
               <Path d="M66 60C62 40 80 30 100 32C120 30 138 40 134 60C128 50 120 46 112 52C106 44 96 44 90 52C82 46 72 50 66 60Z" fill="#4A2A1A" strokeWidth={2.6} />
               <Path d="M76 46Q84 40 92 40" stroke="#fff" strokeWidth={2} opacity={0.45} fill="none" />
             </G>
           ) : null}
+          {hairK ? <HairArt k={hairK} /> : null}
+          {hatK || hairK ? null : (
           <G transform={`translate(0 ${L.hatY}) rotate(${L.hatRot} 100 40)`}>
             <Path d={L.hat.d} fill={L.hat.fill} strokeWidth={3.2} />
             {L.hat.pat ? (
@@ -269,6 +283,8 @@ export function Character({
               </G>
             ) : null}
           </G>
+          )}
+          {hatK ? <HatArt k={hatK} /> : null}
           <Ellipse cx={75} cy={104} rx={9} ry={6} fill="#FF7C70" opacity={0.45} stroke="none" />
           <Ellipse cx={125} cy={104} rx={9} ry={6} fill="#FF7C70" opacity={0.45} stroke="none" />
           {L.freckles ? (
@@ -314,7 +330,7 @@ export function Character({
           />
           <Path d={L.nose.hl} fill="none" stroke="#fff" strokeWidth={2.4} opacity={0.85} />
           <Path d={L.eye.brow} fill="none" stroke={L.browColor} strokeWidth={4.4} />
-          {L.glasses ? (
+          {glassesK ? <GlassesArt k={glassesK} /> : L.glasses ? (
             <G>
               <Circle cx={88} cy={74} r={14.5} fill="#fff" fillOpacity={0.12} strokeWidth={2.6} />
               <Circle cx={112} cy={74} r={14.5} fill="#fff" fillOpacity={0.12} strokeWidth={2.6} />

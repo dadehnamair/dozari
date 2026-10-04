@@ -365,6 +365,13 @@
       "when": 1791040745679,
       "tag": "0051_lying_scalphunter",
       "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "5",
+      "when": 1791093691270,
+      "tag": "0052_sloppy_star_brand",
+      "breakpoints": true
     }
   ]
 }

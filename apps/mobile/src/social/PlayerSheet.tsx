@@ -60,7 +60,7 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
         {p ? (
           <View style={styles.body}>
             <View style={styles.avatarWrap}>
-              <View style={styles.avatarRing}><Avatar avatar={avatarOf(p.avatarKey)} size={86} /></View>
+              <View style={styles.avatarRing}><Avatar avatar={avatarOf(p.avatarKey)} size={86} worn={p.worn} /></View>
               <View style={styles.hex} accessibilityLabel={`${fa.player.level} ${p.level}`}>
                 <Svg width={42} height={48} viewBox="0 0 46 52">
                   <Polygon points="23,1 45,8 45,33 23,51 1,33 1,8" fill={colors.ink} />

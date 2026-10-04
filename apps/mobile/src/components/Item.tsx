@@ -4,6 +4,8 @@ import type { DimensionValue } from 'react-native';
 import Svg, { Defs, Ellipse, FeDisplacementMap, FeTurbulence, Filter, G, Path, Text as SvgText } from 'react-native-svg';
 import { fonts } from '../theme/colors';
 import { ITEMS } from '@dozari/shared';
+import { Character } from './Character';
+import { isWearKey, WEAR_SLOT_OF, wearKey } from './wearArt';
 
 const INK = '#3A2418';
 
@@ -18,6 +20,23 @@ interface Props {
 
 /** Hand-drawn item / product icon (docs/design/Item.dc.html). */
 export function Item({ icon, width = '100%', height = '100%', wobble = Platform.OS === 'web' }: Props) {
+  if (isWearKey(icon)) return <WearPreview icon={icon} width={width} height={height} />;
+  return <Drawn icon={icon} width={width} height={height} wobble={wobble} />;
+}
+
+/** A wearable (hat, hair, glasses, clothes) shown on a plain face; clothes need the full body to show. */
+function WearPreview({ icon, width, height }: { icon: string; width: DimensionValue; height: DimensionValue }) {
+  const k = wearKey(icon)!;
+  const slot = WEAR_SLOT_OF[k]!;
+  const body = slot === 'outfit' || slot === 'accessory';
+  return (
+    <View style={{ width, height }}>
+      <Character skin={1} pose="idle" crop={body ? 'full' : 'face'} anim={false} worn={[{ slot, iconKey: k }]} />
+    </View>
+  );
+}
+
+function Drawn({ icon, width, height, wobble }: { icon: string; width: DimensionValue; height: DimensionValue; wobble: boolean }) {
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
   const def = ITEMS[icon] ?? ITEMS.coin;
   const seed = icon.length * 7 + 3;

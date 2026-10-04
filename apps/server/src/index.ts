@@ -578,6 +578,10 @@ if (isMainModule(import.meta.url)) {
   const shopStore = db ? createDbShopStore(db) : undefined;
   const landingService = db ? new LandingService(createDbLandingStore(db)) : undefined;
   const shortLinkService = db && settings ? new ShortLinkService(createDbShortLinkStore(db), () => settings.text('domain.short')) : undefined;
+  if (social && shopStore) {
+    const wardrobe = new ShopService(shopStore, levelOf);
+    social.wornOf = (id) => wardrobe.worn(id);
+  }
   const shopReal = shopStore ? new ShopRealMoney(shopStore, levelOf) : undefined;
   const coinPackageService = db ? new CoinPackageService(createDbCoinPackageStore(db), levelOf) : undefined;
   if (notify && coinPackageService) {
