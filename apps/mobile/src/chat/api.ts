@@ -15,6 +15,10 @@ export const sendText = (room: ChatTab, text: string): Promise<ChatMessage> => a
 export const sendTaunt = (room: ChatTab, tauntId: string): Promise<ChatMessage> => authed(`/chat/${room}`, 'POST', (v) => chatMessageSchema.parse((v as { message: unknown }).message), { kind: 'taunt', tauntId });
 export const reportMessage = (messageId: string, reason = ''): Promise<void> => authed('/chat/report', 'POST', () => undefined, { messageId, reason });
 
+/** Chat of a private table: only the players seated at it. */
+export const fetchTableChat = (code: string): Promise<ChatHistory> => authed(`/chat/table/${code}`, 'GET', (v) => chatHistorySchema.parse(v));
+export const sendTableChat = (code: string, text: string): Promise<ChatMessage> => authed(`/chat/table/${code}`, 'POST', (v) => chatMessageSchema.parse((v as { message: unknown }).message), { kind: 'text', text });
+
 /** Private chat with a friend (D115). */
 export const fetchDm = (friendId: string): Promise<ChatHistory> => authed(`/chat/dm/${friendId}`, 'GET', (v) => chatHistorySchema.parse(v));
 export const sendDm = (friendId: string, text: string): Promise<ChatMessage> => authed(`/chat/dm/${friendId}`, 'POST', (v) => chatMessageSchema.parse((v as { message: unknown }).message), { kind: 'text', text });

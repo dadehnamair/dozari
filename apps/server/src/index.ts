@@ -472,6 +472,8 @@ if (isMainModule(import.meta.url)) {
     };
   }
   const chatStore = db ? createDbChatStore(db) : undefined;
+  /** The table service is built after the chat service (the tables need matches); table chat reaches it through this holder. */
+  const tableRef: { svc?: TableService } = {};
   const chat =
     chatStore && settings && player && socialStore && badges && inviteStore
       ? new ChatService(chatStore, {
@@ -482,6 +484,7 @@ if (isMainModule(import.meta.url)) {
           mute: (id) => badges.isMuted(id),
           hasContactPerk: (id) => badges.hasPerk(id, 'share_contact'),
           areFriends: async (a, b) => (await socialStore.pair(a, b))?.status === 'accepted',
+          tableMembers: (id, code) => tableRef.svc?.memberIds(id, code) ?? null,
           rules: () => chatRulesFromSettings(settings),
           filter: words,
         })
@@ -578,6 +581,7 @@ if (isMainModule(import.meta.url)) {
           idleMs: async () => (await settings.num('table.idle_minutes')) * 60_000,
         })
       : undefined;
+  tableRef.svc = tableService;
   const transfers = db && settings && socialStore && inviteStore ? new TransferService(createDbTransferStore(db), socialStore, () => transferRulesFromSettings(settings), async (id) => (player ? (await player.levelOf(id)).level.level : 1), (id) => inviteStore.isActivated(id)) : undefined;
   const find =
     db && settings && socialStore

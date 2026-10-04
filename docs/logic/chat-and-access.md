@@ -60,7 +60,7 @@ are listed in `docs/brand.md`.
 ## As built (D84): city chat and canned taunts
 
 - **Rooms:** `city` (everyone whose profile city is the same; needs a city) and, in a duel, taunts to the opponent (`chat:taunt`). Private-table
-  chat is not built (private tables are not built yet).
+  chat is built: room `table`, `roomKey` = the table code; `GET|POST /chat/table/:code`, only players seated at the table (`NOT_IN_TABLE` otherwise); same rules as the other rooms (activation, filter, contact-info block, mute, rate limit); live to every seated player, and the table sheet polls it. Messages are stored, so reports and moderation work as elsewhere.
 - **Send rules** (`apps/server/src/chat/service.ts`, all server side): chat switch `feature.chat`; muted players send nothing (taunts included);
   free text needs an activated account (`chat.text_needs_activation`) and at most `chat.max_len` (120) characters; text with a phone number, link or
   messenger handle needs the **«نشان تماس»** perk (`containsContactInfo`); the profanity filter (D69) always applies — no badge lifts it;
@@ -71,7 +71,7 @@ are listed in `docs/brand.md`.
   (`deleted_at`); users can then be warned or muted from their dialog. «آجان دوزاری» can warn and mute (D83).
 - **Live push:** sockets that sent `chat:join` receive `chat:message` for their city; the app polls every 4 s until it has a socket client.
 - **Retention:** 30 days, purged every 6 hours.
-- Not built: per-player mute lists, moderator-visible message context, a muting UI for agents in the app, text chat in private tables.
+- Not built: per-player mute lists, moderator-visible message context, a muting UI for agents in the app.
 
 
 ## Global room (D103)
