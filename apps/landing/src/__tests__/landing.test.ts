@@ -192,6 +192,12 @@ describe('admin-set SEO (group «سئو و سایت معرفی»)', () => {
     expect(graph.find((n) => n['@type'] === 'WebSite')?.keywords).toBe('دوزاری, قیمت قدیم');
   });
 
+  it('adds the self-hosted analytics script only when the admin set one', async () => {
+    expect((await boot(DATA).inject({ method: 'GET', url: '/' })).body).not.toContain('data-website-id');
+    const html = (await boot(withSeo({ analytics: { scriptUrl: 'https://stats.example.ir/script.js', siteId: 'abcd-1234' } })).inject({ method: 'GET', url: '/' })).body;
+    expect(html).toContain('<script defer src="https://stats.example.ir/script.js" data-website-id="abcd-1234"></script>');
+  });
+
   it('adds the web font only when a font address is set', async () => {
     const plain = (await boot(DATA).inject({ method: 'GET', url: '/' })).body;
     expect(plain).not.toContain('@font-face');
@@ -217,3 +223,24 @@ describe('admin-set SEO (group «سئو و سایت معرفی»)', () => {
     expect((await app.inject({ method: 'GET', url: '/' })).body).toContain('content="https://mrdozari.ir/og.svg"');
   });
 });
+
+describe('privacy policy page', () => {
+  it('is a real indexable page with one h1, listed in the sitemap and linked from every footer', async () => {
+    const app = buildLanding({ api: fakeApi(), siteUrl: 'https://mrdozari.ir' });
+    const res = await app.inject({ method: 'GET', url: '/privacy' });
+    expect(res.statusCode).toBe(200);
+    expect(res.body.match(/<h1>/g)).toHaveLength(1);
+    expect(res.body).toContain('<link rel="canonical" href="https://mrdozari.ir/privacy">');
+    expect(res.body).toContain('index, follow');
+    expect((await app.inject({ method: 'GET', url: '/sitemap.xml' })).body).toContain('<loc>https://mrdozari.ir/privacy</loc>');
+    expect((await app.inject({ method: 'GET', url: '/' })).body).toContain('<a href="/privacy">حریم خصوصی</a>');
+  });
+
+  it('shows the contact e-mail only when the owner set one', async () => {
+    const withMail: LandingData = { ...DATA, site: { ...DATA.site, contactEmail: 'hi@mrdozari.ir' } };
+    const html = (await buildLanding({ api: fakeApi({}, [POST], {}, withMail), siteUrl: 'https://mrdozari.ir' }).inject({ method: 'GET', url: '/privacy' })).body;
+    expect(html).toContain('mailto:hi@mrdozari.ir');
+    expect((await buildLanding({ api: fakeApi(), siteUrl: 'https://mrdozari.ir' }).inject({ method: 'GET', url: '/privacy' })).body).not.toContain('mailto:');
+  });
+});
+

@@ -120,6 +120,7 @@ import { createDbGemWallet, registerGemRoutes } from './economy/gems.js';
 import type { GemWalletReader } from './economy/gems.js';
 import { createDbProfileTaskStore } from './profile/tasks-store.js';
 import { BirthdayService, registerBirthdayRoutes } from './profile/birthday.js';
+import { createErrorReporter } from './errors/report.js';
 import { buildFeedbackService } from './feedback/build.js';
 import { applyLedgerEntry } from './economy/ledger.js';
 import type { FeedbackService } from './feedback/service.js';
@@ -144,6 +145,8 @@ import type { CatalogRepository } from './catalog/routes.js';
 export interface ServerDeps {
   /** Behind a reverse proxy: trust `X-Forwarded-For` for the client IP (needed for the per-IP rate limits to see real clients). */
   trustProxy?: boolean;
+  /** Called with every unexpected server error (and crash); wired to the self-hosted collector by `SENTRY_DSN`. */
+  reportError?: (err: unknown, where?: string) => void;
   catalog?: CatalogRepository;
   /** Interim catalog review page + API at `/admin`; registered only when a token is provided. */
   admin?: { repo: AdminRepository; token?: string; accounts?: AdminAccounts };
@@ -241,6 +244,7 @@ export function buildServer(deps: ServerDeps = {}) {
     const status = err.statusCode && err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 500;
     if (status >= 500) {
       req.log.error({ err }, 'request failed');
+      deps.reportError?.(err, `${req.method} ${req.routeOptions?.url ?? 'unknown'}`);
       return reply.code(500).send({ error: 'internal' });
     }
     return reply.code(status).send({ error: status === 413 ? 'payload_too_large' : status === 429 ? 'rate_limited' : 'invalid_request' });
@@ -625,7 +629,9 @@ if (isMainModule(import.meta.url)) {
   dailyRef = daily;
   const botRepo = db ? createDbBotRepository(db) : undefined;
   const bot = botRepo ? new BotService(botRepo) : undefined;
+  const reportError = createErrorReporter({ dsn: process.env.SENTRY_DSN, environment: process.env.NODE_ENV, release: process.env.APP_RELEASE });
   const app = buildServer({
+    reportError,
     auth,
     settings,
     adminModules: db
@@ -781,6 +787,8 @@ if (isMainModule(import.meta.url)) {
     );
   }
   const port = Number(process.env.PORT ?? 3000);
+  process.on('unhandledRejection', (err) => (app.log.error({ err }, 'unhandled rejection'), reportError(err, 'unhandledRejection')));
+  process.on('uncaughtException', (err) => (app.log.error({ err }, 'uncaught exception'), reportError(err, 'uncaughtException')));
   app.listen({ port, host: '0.0.0.0' }).catch((err) => {
     app.log.error(err);
     process.exit(1);

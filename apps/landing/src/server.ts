@@ -2,7 +2,7 @@ import Fastify from 'fastify';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import type { ContentApi, LandingData, Post, PostSummary } from './api.js';
 import { llmsFull, llmsTxt, ogCard, robots, sitemap } from './discovery.js';
-import { blogIndexPage, castPage, homePage, notFoundPage, postPage, unavailablePage } from './pages.js';
+import { blogIndexPage, castPage, homePage, notFoundPage, postPage, privacyPage, unavailablePage } from './pages.js';
 import type { Site } from './seo.js';
 
 export interface LandingOptions {
@@ -16,7 +16,7 @@ const HTML = 'text/html; charset=utf-8';
 function siteOf(data: LandingData, siteUrl: string | undefined): Site {
   const s = data.site;
   const url = (siteUrl && siteUrl.trim() !== '' ? siteUrl.trim() : s.domains.landing ? `https://${s.domains.landing}` : 'http://localhost:3100').replace(/\/+$/, '');
-  return { name: s.name, tagline: s.tagline, url, contactEmail: s.contactEmail, sameAs: [...new Set([s.instagram, s.channel, ...(s.seo?.sameAs ?? [])].filter((x): x is string => !!x))], appUrl: s.appUrl ?? (s.domains.app ? `https://${s.domains.app}` : null), androidApp: s.androidApp, ogImage: s.seo?.ogImage ?? null, ogImageAlt: s.seo?.ogImageAlt ?? null, keywords: s.seo?.keywords ?? [], fontUrl: s.seo?.fontUrl ?? null, indexable: s.seo?.indexable ?? true, verify: s.seo?.verify };
+  return { name: s.name, tagline: s.tagline, url, contactEmail: s.contactEmail, sameAs: [...new Set([s.instagram, s.channel, ...(s.seo?.sameAs ?? [])].filter((x): x is string => !!x))], appUrl: s.appUrl ?? (s.domains.app ? `https://${s.domains.app}` : null), androidApp: s.androidApp, ogImage: s.seo?.ogImage ?? null, ogImageAlt: s.seo?.ogImageAlt ?? null, keywords: s.seo?.keywords ?? [], fontUrl: s.seo?.fontUrl ?? null, indexable: s.seo?.indexable ?? true, verify: s.seo?.verify, analytics: s.seo?.analytics ?? null };
 }
 
 /** Every published post (the API pages them at 50). */
@@ -83,6 +83,8 @@ export function buildLanding(opts: LandingOptions): FastifyInstance {
     const data = await api.landing();
     return send(reply, 200, castPage(siteOf(data, opts.siteUrl), data.cast));
   });
+
+  app.get('/privacy', async (_req, reply) => send(reply, 200, privacyPage(siteOf(await api.landing(), opts.siteUrl))));
 
   app.get('/sitemap.xml', async (_req, reply) => {
     const [data, posts] = await Promise.all([api.landing(), allPosts(api)]);

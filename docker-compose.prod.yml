@@ -90,6 +90,7 @@ services:
       TRUST_PROXY: '1'
       LOCAL_IMAGES_DIR: /data/images
       LOCAL_IMAGES_PUBLIC_URL: https://${API_DOMAIN:?set API_DOMAIN}/images
+      SENTRY_DSN: ${SENTRY_DSN:-}
       BALE_BOT_TOKEN: ${BALE_BOT_TOKEN:-}
       BALE_BOT_USERNAME: ${BALE_BOT_USERNAME:-}
       IRNOTI_API_KEY: ${IRNOTI_API_KEY:-}

@@ -10,7 +10,7 @@ const iso = (ms: number): string => new Date(ms).toISOString();
 export function sitemap(site: Site, posts: PostSummary[]): string {
   if (site.indexable === false) posts = [];
   const latest = posts.reduce((m, p) => Math.max(m, p.updatedAt), 0);
-  const urls: { path: string; lastmod?: number }[] = [{ path: '/', lastmod: latest || undefined }, { path: '/blog', lastmod: latest || undefined }, { path: '/cast' }, ...posts.map((p) => ({ path: `/blog/${encodeURIComponent(p.slug)}`, lastmod: p.updatedAt }))];
+  const urls: { path: string; lastmod?: number }[] = [{ path: '/', lastmod: latest || undefined }, { path: '/blog', lastmod: latest || undefined }, { path: '/cast' }, { path: '/privacy' }, ...posts.map((p) => ({ path: `/blog/${encodeURIComponent(p.slug)}`, lastmod: p.updatedAt }))];
   const entries = urls
     .map((u) => {
       const loc = xml(absolute(site, u.path));

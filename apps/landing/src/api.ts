@@ -21,6 +21,8 @@ export interface PublicSite {
     fontUrl: string | null;
     indexable: boolean;
     verify: { google: string | null; bing: string | null; yandex: string | null };
+    /** Self-hosted analytics script (Umami style), or null. */
+    analytics?: { scriptUrl: string; siteId: string } | null;
   };
 }
 export interface CastMember {

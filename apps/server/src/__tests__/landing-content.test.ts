@@ -76,6 +76,8 @@ describe('landing content', () => {
     await settings.set('landing.indexable', '0');
     await settings.set('seo.verify_google', 'abc_123-XYZ');
     await settings.set('seo.verify_bing', '"><script>');
+    await settings.set('analytics.script_url', 'https://stats.example.ir/script.js');
+    await settings.set('analytics.site_id', 'abcd-1234');
     expect(await read()).toMatchObject({
       title: 'عنوان من',
       keywords: ['دوزاری', 'قیمت قدیم', 'نوستالژی'],
@@ -83,6 +85,7 @@ describe('landing content', () => {
       sameAs: ['https://aparat.com/dozari', 'https://linkedin.com/company/dozari'],
       indexable: false,
       verify: { google: 'abc_123-XYZ', bing: null, yandex: null },
+      analytics: { scriptUrl: 'https://stats.example.ir/script.js', siteId: 'abcd-1234' },
     });
   });
 });

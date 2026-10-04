@@ -143,6 +143,8 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'seo.verify_google', group: 'seo', label: 'کد تأیید مالکیت سرچ‌کنسول گوگل', hint: 'فقط مقدار content تگ google-site-verification', kind: 'text', min: 0, max: 100, default: '' },
   { key: 'seo.verify_bing', group: 'seo', label: 'کد تأیید مالکیت Bing', hint: 'مقدار content تگ msvalidate.01', kind: 'text', min: 0, max: 100, default: '' },
   { key: 'seo.verify_yandex', group: 'seo', label: 'کد تأیید مالکیت Yandex', hint: 'مقدار content تگ yandex-verification', kind: 'text', min: 0, max: 100, default: '' },
+  { key: 'analytics.script_url', group: 'seo', label: 'آدرس اسکریپت آمار خودمیزبان (مثل Umami)', hint: 'مثل https://stats.example.ir/script.js روی سرور خودت؛ خالی = بدون آمار. از سرویس‌های گوگل استفاده نکن', kind: 'text', min: 0, max: 300, default: '' },
+  { key: 'analytics.site_id', group: 'seo', label: 'شناسه‌ی سایت در سرویس آمار (data-website-id)', kind: 'text', min: 0, max: 100, default: '' },
   { key: 'gate.phone_only', group: 'app', label: 'مرورگر کامپیوتر فقط کارت «با گوشی بیا» + QR ببیند', hint: 'گوشی اندروید کارت دانلود و آیفون راهنمای نصب می‌بیند؛ هر کدام دکمه‌ی «ادامه با مرورگر» دارند', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'link.app_url', group: 'app', label: 'آدرس بازی برای QR (خالی = همان صفحه)', kind: 'text', min: 0, max: 200, default: '' },
   { key: 'link.android_app', group: 'app', label: 'لینک دانلود برنامه‌ی اندروید', hint: 'خالی = دکمه‌ی دانلود نشان داده نمی‌شود', kind: 'text', min: 0, max: 300, default: '' },
