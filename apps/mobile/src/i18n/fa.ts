@@ -500,6 +500,8 @@ export const fa = {
       theyWon: 'این دور مال حریف بود',
       draw: 'مساوی',
       resultTitle: 'دورهای حدس قیمت',
+      /** Points the price-guess rounds added to each side's final score. */
+      earned: (you: string, them: string) => `امتیاز حدس قیمت: تو ${you} · حریف ${them}`,
     },
     /** Screens of `docs/design/Dozari - 13 Match Screens` (D99). */
     arena: {

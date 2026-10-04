@@ -1,5 +1,5 @@
 import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { solarMonthOf, toPersianDigits } from '@dozari/shared';
+import { PRICE_GUESS_ROUND_POINTS, solarMonthOf, toPersianDigits } from '@dozari/shared';
 import type { PriceRoundView } from '@dozari/shared';
 import { Character } from '../components/Character';
 import { GradientFill } from '../components/GradientFill';
@@ -70,8 +70,15 @@ export function DuelResult({ outcome, reason, lines, priceRound, onHome, onAgain
             {priceRound.revealed.map((r) => (
               <Text key={r.index} style={styles.priceLine} numberOfLines={1}>
                 {r.winner === 'you' ? '✔' : r.winner === 'opponent' ? '✘' : '＝'} {r.nameFa} · {fa.duel.price.actual}: {priceText(r.actualRials)}
+                {r.winner === 'draw' ? '' : ` · ${r.winner === 'you' ? '+' : '−'}${toPersianDigits(String(PRICE_GUESS_ROUND_POINTS))}`}
               </Text>
             ))}
+            <Text style={styles.priceSum}>
+              {fa.duel.price.earned(
+                toPersianDigits(String(priceRound.revealed.filter((r) => r.winner === 'you').length * PRICE_GUESS_ROUND_POINTS)),
+                toPersianDigits(String(priceRound.revealed.filter((r) => r.winner === 'opponent').length * PRICE_GUESS_ROUND_POINTS)),
+              )}
+            </Text>
           </View>
         ) : null}
         </ScrollView>
@@ -115,6 +122,7 @@ const styles = StyleSheet.create({
   pts: { color: '#7E46D6' },
   priceBox: { marginTop: 6, padding: 8, borderRadius: 14, backgroundColor: 'rgba(43,18,64,0.7)', gap: 2 },
   priceTitle: { fontFamily: fonts.display, fontSize: 15, color: colors.candy.yellow, textAlign: 'center' },
+  priceSum: { marginTop: 4, fontFamily: fonts.display, fontSize: 13, lineHeight: 22, color: colors.candy.lime, textAlign: 'center' },
   priceLine: { fontFamily: fonts.bold, fontSize: 12, color: colors.cream, textAlign: TEXT_RIGHT },
   spacer: { flex: 1, minHeight: 12 },
   actions: { flexDirection: ROW, gap: 9 },
