@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link href="https://fonts.googleapis.com/css2?family=Lalezar&amp;family=Vazirmatn:wght@400;600;800;900&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0;background:#FFF6E8;font-family:Vazirmatn,system-ui,sans-serif;color:#2B1240}a{color:#A66BF0}a:hover{color:#FF4D8D}</style>
+</helmet>
+<div dir="rtl" style="min-height:100vh;padding:56px;display:flex;flex-direction:column;gap:48px;background:#FFF6E8">
+
+<header style="display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap;border-bottom:4px solid #2B1240;padding-bottom:24px">
+  <div style="display:flex;flex-direction:column;gap:4px">
+    <div style="font:700 14px 'JetBrains Mono',monospace;direction:ltr;text-align:right;color:#FF4D8D">Dozari · 22 Style Sheet</div>
+    <h1 style="margin:0;font:72px/1.1 Lalezar">استایل‌شیت دوزاری</h1>
+    <div style="font:600 18px Vazirmatn;opacity:.75">شخصیت‌ها، حالت‌ها، لباس‌های ماهانه و لوکیشن‌ها برای تولید محتوا و ویدئو</div>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <a href="#cast" style="font:800 15px Vazirmatn;padding:10px 18px;border:3px solid #2B1240;border-radius:999px;background:#FFC93C;color:#2B1240;text-decoration:none">شخصیت‌ها</a>
+    <a href="#lineup" style="font:800 15px Vazirmatn;padding:10px 18px;border:3px solid #2B1240;border-radius:999px;background:#3FC1F0;color:#2B1240;text-decoration:none">لاین‌آپ</a>
+    <a href="#months" style="font:800 15px Vazirmatn;padding:10px 18px;border:3px solid #2B1240;border-radius:999px;background:#7ED957;color:#2B1240;text-decoration:none">لباس ماهانه</a>
+    <a href="#places" style="font:800 15px Vazirmatn;padding:10px 18px;border:3px solid #2B1240;border-radius:999px;background:#FF7A3D;color:#2B1240;text-decoration:none">لوکیشن‌ها</a>
+    <a href="#cosmetics" style="font:800 15px Vazirmatn;padding:10px 18px;border:3px solid #2B1240;border-radius:999px;background:#FF4D8D;color:#FFF6E8;text-decoration:none">کازمتیک‌ها</a>
+    <a href="#rules" style="font:800 15px Vazirmatn;padding:10px 18px;border:3px solid #2B1240;border-radius:999px;background:#A66BF0;color:#FFF6E8;text-decoration:none">قوانین</a>
+  </div>
+</header>
+
+<section id="cast" style="display:flex;flex-direction:column;gap:28px">
+  <h2 style="margin:0;font:48px/1.1 Lalezar">۱ · شخصیت‌ها و حالت‌ها</h2>
+  <sc-for list="{{ cast }}" as="c" hint-placeholder-count="9">
+    <article style="display:grid;grid-template-columns:300px minmax(0,1fr);gap:32px;background:#fff;border:4px solid #2B1240;border-radius:36px;padding:28px;box-shadow:0 8px 0 #2B1240">
+      <div style="display:flex;flex-direction:column;gap:14px;align-items:center">
+        <div style="width:300px;height:330px;border-radius:26px;background:{{ c.bg }};display:grid;place-items:center;border:3px solid #2B1240">
+          <dc-import name="Character" who="{{ c.who }}" pose="{{ c.hero }}" anim="{{ true }}" hint-size="240px,276px" style="width:240px;height:276px"></dc-import>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center;align-self:stretch">
+          <div style="width:84px;height:84px;flex:none;border-radius:50%;overflow:hidden;background:{{ c.bg }};border:3px solid #2B1240">
+            <dc-import name="Character" who="{{ c.who }}" pose="idle" crop="face" hint-size="84px,84px" style="width:84px;height:84px"></dc-import>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+            <div style="font:40px/1.1 Lalezar">{{ c.name }}</div>
+            <div style="font:700 12px 'JetBrains Mono',monospace;direction:ltr;text-align:right;opacity:.6">who="{{ c.who }}"</div>
+          </div>
+        </div>
+        <div style="font:600 15px/1.7 Vazirmatn;align-self:stretch;text-wrap:pretty">{{ c.role }}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:14px;align-content:start">
+        <sc-for list="{{ c.poses }}" as="p" hint-placeholder-count="12">
+          <div style="display:flex;flex-direction:column;gap:6px;align-items:center;background:#FFF6E8;border:2px solid rgba(43,18,64,.2);border-radius:20px;padding:10px 6px 8px">
+            <dc-import name="Character" who="{{ p.who }}" pose="{{ p.k }}" hint-size="100px,115px" style="width:100px;height:115px"></dc-import>
+            <div style="font:800 13px Vazirmatn">{{ p.fa }}</div>
+            <div style="font:500 10px 'JetBrains Mono',monospace;opacity:.55">{{ p.k }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </article>
+  </sc-for>
+</section>
+
+<section id="lineup" style="display:flex;flex-direction:column;gap:20px">
+  <h2 style="margin:0;font:48px/1.1 Lalezar">۲ · لاین‌آپ (مقایسهٔ قد و سبک)</h2>
+  <div style="display:flex;gap:4px;align-items:flex-end;justify-content:center;flex-wrap:wrap;background:#2B1240;border-radius:36px;padding:40px 24px 24px;position:relative">
+    <sc-for list="{{ cast }}" as="c" hint-placeholder-count="9">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+        <dc-import name="Character" who="{{ c.who }}" pose="idle" hint-size="150px,172px" style="width:150px;height:172px"></dc-import>
+        <div style="font:22px Lalezar;color:#FFF6E8">{{ c.name }}</div>
+      </div>
+    </sc-for>
+  </div>
+</section>
+
+<section id="months" style="display:flex;flex-direction:column;gap:20px">
+  <div style="display:flex;flex-direction:column;gap:4px">
+    <h2 style="margin:0;font:48px/1.1 Lalezar">۳ · لباس‌های ماهانهٔ دوزاری</h2>
+    <div style="font:600 16px Vazirmatn;opacity:.75">برای محتوای مناسبتی هر ماه · prop: month (۱ تا ۱۲)</div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px">
+    <sc-for list="{{ months }}" as="m" hint-placeholder-count="12">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;background:{{ m.bg }};border:3px solid #2B1240;border-radius:24px;padding:14px 8px 12px">
+        <div style="display:flex;gap:0;align-items:flex-end">
+          <dc-import name="Character" who="dozari" month="{{ m.n }}" pose="idle" hint-size="80px,92px" style="width:80px;height:92px"></dc-import>
+          <dc-import name="Character" who="dozariF" month="{{ m.n }}" pose="wave" hint-size="80px,92px" style="width:80px;height:92px"></dc-import>
+        </div>
+        <div style="font:24px Lalezar">{{ m.fa }}</div>
+        <div style="font:500 10px 'JetBrains Mono',monospace;opacity:.6">month="{{ m.n }}"</div>
+      </div>
+    </sc-for>
+  </div>
+</section>
+
+<section id="places" style="display:flex;flex-direction:column;gap:20px">
+  <div style="display:flex;flex-direction:column;gap:4px">
+    <h2 style="margin:0;font:48px/1.1 Lalezar">۴ · لوکیشن‌ها</h2>
+    <div style="font:600 16px Vazirmatn;opacity:.75">پس‌زمینه‌های عمودی ۹:۱۶ برای ریلز و استوری · روز و غروب</div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(440px,1fr));gap:24px">
+    <sc-for list="{{ places }}" as="s" hint-placeholder-count="5">
+      <div style="display:flex;flex-direction:column;gap:14px;background:#fff;border:4px solid #2B1240;border-radius:32px;padding:20px;box-shadow:0 8px 0 #2B1240">
+        <div style="display:flex;gap:14px;justify-content:center">
+          <div style="display:flex;flex-direction:column;gap:6px;align-items:center">
+            <div style="width:195px;height:422px;border-radius:18px;overflow:hidden;border:3px solid #2B1240;position:relative">
+              <div style="width:390px;height:844px;transform:scale(.5);transform-origin:top right;position:absolute;top:0;right:0">
+                <dc-import name="Scene" scene="{{ s.k }}" mood="day" hint-size="390px,844px" style="width:390px;height:844px"></dc-import>
+              </div>
+            </div>
+            <div style="font:700 11px 'JetBrains Mono',monospace">day</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;align-items:center">
+            <div style="width:195px;height:422px;border-radius:18px;overflow:hidden;border:3px solid #2B1240;position:relative">
+              <div style="width:390px;height:844px;transform:scale(.5);transform-origin:top right;position:absolute;top:0;right:0">
+                <dc-import name="Scene" scene="{{ s.k }}" mood="dusk" hint-size="390px,844px" style="width:390px;height:844px"></dc-import>
+              </div>
+            </div>
+            <div style="font:700 11px 'JetBrains Mono',monospace">dusk</div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px">
+          <div style="font:34px/1.1 Lalezar">{{ s.fa }}</div>
+          <div style="font:700 12px 'JetBrains Mono',monospace;opacity:.6">scene="{{ s.k }}"</div>
+        </div>
+        <div style="font:600 15px/1.7 Vazirmatn;text-wrap:pretty">{{ s.use }}</div>
+      </div>
+    </sc-for>
+  </div>
+</section>
+
+<section id="cosmetics" style="display:flex;flex-direction:column;gap:24px">
+  <div style="display:flex;flex-direction:column;gap:4px">
+    <h2 style="margin:0;font:48px/1.1 Lalezar">۵ · کازمتیک‌ها</h2>
+    <div style="font:600 16px Vazirmatn;opacity:.75">روی هر شخصیتی قابل استفاده‌ست · مقدار خالی = پیش‌فرض شخصیت، none = حذف</div>
+  </div>
+  <sc-for list="{{ cosm }}" as="g" hint-placeholder-count="9">
+    <div style="display:flex;flex-direction:column;gap:14px;background:#fff;border:4px solid #2B1240;border-radius:32px;padding:24px;box-shadow:0 8px 0 #2B1240">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px">
+        <div style="font:32px/1.1 Lalezar">{{ g.fa }}</div>
+        <div style="font:700 12px 'JetBrains Mono',monospace;opacity:.6">{{ g.k }}="…" · {{ g.count }}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:12px">
+        <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="8">
+          <div style="display:flex;flex-direction:column;gap:6px;align-items:center;background:{{ it.bg }};border:2px solid rgba(43,18,64,.25);border-radius:20px;padding:8px 6px">
+            <dc-import name="Character" who="{{ it.who }}" pose="idle" crop="bust" hat="{{ it.hat }}" crown="{{ it.crown }}" glasses="{{ it.glasses }}" hair="{{ it.hair }}" beard="{{ it.beard }}" jewel="{{ it.jewel }}" makeup="{{ it.makeup }}" badge="{{ it.badge }}" tone="{{ it.tone }}" hint-size="96px,96px" style="width:96px;height:96px"></dc-import>
+            <div style="font:600 11px 'JetBrains Mono',monospace">{{ it.v }}</div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-for>
+</section>
+
+<section id="rules" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:24px">
+  <div style="display:flex;flex-direction:column;gap:16px;background:#fff;border:4px solid #2B1240;border-radius:32px;padding:28px">
+    <h2 style="margin:0;font:36px/1.1 Lalezar">پالت رنگ</h2>
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">
+      <sc-for list="{{ colors }}" as="k" hint-placeholder-count="8">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="aspect-ratio:1;border-radius:18px;background:{{ k.hex }};border:3px solid #2B1240"></div>
+          <div style="font:800 13px Vazirmatn">{{ k.fa }}</div>
+          <div style="font:500 11px 'JetBrains Mono',monospace;direction:ltr;text-align:right;opacity:.65">{{ k.hex }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:16px;background:#fff;border:4px solid #2B1240;border-radius:32px;padding:28px">
+    <h2 style="margin:0;font:36px/1.1 Lalezar">تایپوگرافی</h2>
+    <div style="display:flex;flex-direction:column;gap:4px"><div style="font:56px/1.1 Lalezar">دوزاریت افتاد!</div><div style="font:500 12px 'JetBrains Mono',monospace;opacity:.6">Lalezar · تیتر و کپشن ویدئو</div></div>
+    <div style="display:flex;flex-direction:column;gap:4px"><div style="font:800 22px/1.6 Vazirmatn">چهارتا کلمهٔ هم‌گروه پیدا کن.</div><div style="font:500 12px 'JetBrains Mono',monospace;opacity:.6">Vazirmatn 600–900 · متن و زیرنویس</div></div>
+    <div style="display:flex;flex-direction:column;gap:4px"><div style="font:700 16px 'JetBrains Mono',monospace;direction:ltr;text-align:right">LEVEL 12 · +100</div><div style="font:500 12px 'JetBrains Mono',monospace;opacity:.6">JetBrains Mono · برچسب و عدد</div></div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:12px;background:#fff;border:4px solid #2B1240;border-radius:32px;padding:28px">
+    <h2 style="margin:0;font:36px/1.1 Lalezar">قوانین تصویری</h2>
+    <sc-for list="{{ rules }}" as="r" hint-placeholder-count="6">
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="width:28px;height:28px;flex:none;border-radius:50%;border:3px solid #2B1240;background:{{ r.c }};display:grid;place-items:center;font:800 13px Vazirmatn">{{ r.n }}</div>
+        <div style="font:600 15px/1.7 Vazirmatn;text-wrap:pretty">{{ r.t }}</div>
+      </div>
+    </sc-for>
+  </div>
+</section>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const POSES=[['idle','ایستاده'],['coin','دوزاری به دست'],['wave','دست تکان'],['cheer','هورا'],['win','برنده'],['sad','ناراحت'],['thinking','فکر'],['shocked','شوکه'],['sleeping','خواب'],['pointing','اشاره'],['blink','پلک'],['angry','عصبانی']];
+const BG=['#FFE48A','#BFE9FB','#FFD0E0','#D9F5C5','#E6D6FF','#FFD6BF'];
+const CAST=[
+ ['dozari','دوزاری','قهرمان بازی؛ بچهٔ زرنگ بازار که همیشه یه سکه تو جیبشه. راوی اصلی ویدئوها.','coin'],
+ ['dozariF','دوزاری (دختر)','نسخهٔ دختر قهرمان؛ همون شخصیت و انرژی، برای محتوای دونفره و انتخاب بازیکن.','cheer'],
+ ['mashti','عمو مشتی','پیرمرد حجره‌دار؛ راهنمای مرحله‌ها.','idle'],
+ ['khale','خاله قزی','صاحب دکهٔ ادویه؛ جایزهٔ روزانه.','wave'],
+ ['pahlevan','پهلوون','حریف دوئل‌ها؛ زورخانه.','angry'],
+ ['baqal','اوس‌ممد بقال','فروشگاه سکه و آیتم.','pointing'],
+ ['mirza','میرزا','کاتب؛ پیشنهاد و رأی پازل‌ها.','thinking'],
+ ['goli','گلی','هم‌تیمی؛ بخش تیمی و دعوت.','cheer'],
+ ['ajan','آژان','آژان محله؛ برای سوژه‌های طنز و قانون‌های بازی.','shocked']];
+const MONTHS=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+const COSM=[
+ ['hat','کلاه','dozari',['namadi','araqchin','turban','kepi','pusti','shapo','cap','beanie','chef','topHat','party','pirate']],
+ ['crown','تاج','dozariF',['gold','qajar','tiara','flower','laurel','paper','halo','coins']],
+ ['glasses','عینک','dozari',['mashti','gold','square','sun','heart','star','monocle','catEye','cinema']],
+ ['hair','مو','dozari',['spiky','curly','afro','mohawk','bun','long','pompadour','pigtails']],
+ ['beard','ریش و سبیل','mashti',['full','long','goatee','chin','stubble','handle','bushy','thin']],
+ ['jewel','جواهر','dozariF',['hoop','pearlDrop','stud','goldChain','coins','pearls','turquoise','nazar']],
+ ['makeup','آرایش و نقاشی صورت','dozariF',['blush','lipRed','lipPink','lipPlum','shadowPurple','shadowGold','liner','mole','glitter','stars','hearts','tiger','glam']],
+ ['badge','نشان','dozari',['star','medal','heart','coin','bolt','anar','flower','rosette']],
+ ['tone','رنگ پوست','dozari',[0,1,2,3,4,5,6,7,8,9]]];
+const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
+class Component extends DCLogic {
+  renderVals(){
+    return {
+      cast:CAST.map(([who,name,role,hero],i)=>({who,name,role,hero,bg:BG[i%6],poses:POSES.map(([k,f])=>({k,fa:f,who}))})),
+      months:MONTHS.map((f,i)=>({n:i+1,fa:f,bg:['#D9F5C5','#D9F5C5','#D9F5C5','#FFE48A','#FFE48A','#FFE48A','#FFD6BF','#FFD6BF','#FFD6BF','#BFE9FB','#BFE9FB','#BFE9FB'][i]})),
+      places:[
+        {k:'bazaar',fa:'بازار',use:'لوکیشن اصلی؛ معرفی بازی، چالش روزانه، ویدئوهای شلوغ و پرانرژی.'},
+        {k:'alley',fa:'کوچه',use:'سوژه‌های طنز و گفت‌وگوی دونفره، آژان و دوزاری.'},
+        {k:'hojre',fa:'حجره',use:'فضای بسته و گرم؛ آموزش، نکته‌ها و صحبت‌های عمو مشتی.'},
+        {k:'caravan',fa:'کاروانسرا',use:'دوئل و مسابقه؛ پهلوون، رتبه‌بندی و رویدادها.'},
+        {k:'win',fa:'صحنهٔ برد',use:'پایان ویدئو، اعلام برنده، جایزه و کال‌تو‌اکشن.'}],
+      colors:[['جوهر','#2B1240'],['کرم','#FFF6E8'],['صورتی','#FF4D8D'],['نارنجی','#FF7A3D'],['زرد','#FFC93C'],['آسمانی','#3FC1F0'],['انگوری','#A66BF0'],['لیمویی','#7ED957']].map(([f,hex])=>({fa:f,hex})),
+      cosm:COSM.map(([k,f,who,opts])=>({k,fa:f,count:fa(opts.length),items:opts.map((v,i)=>{const o={who,v,bg:BG[i%6],hat:'',crown:'',glasses:'',hair:'',beard:'',jewel:'',makeup:'',badge:'',tone:''};o[k]=String(v);if(k==='hair'||k==='crown')o.hat='none';return o;})})),
+      rules:['خط دور مدادی و کمی لرزان با رنگ #3A2418.','رنگ تخت، هایلایت سفید و لپ صورتی؛ بدون بافت و لکه روی شخصیت.','هر شخصیت همیشه با پوز امضای خودش معرفی بشه.','در هر فریم حداکثر ۳ رنگ کندی اصلی.','متن روی تصویر همیشه با دورخط جوهری و سایهٔ پایین.','جهت متن و حرکت راست‌به‌چپ.'].map((t,i)=>({t,n:fa(i+1),c:BG[i%6]}))
+    };
+  }
+}
+</script>
+</body>
+</html>
