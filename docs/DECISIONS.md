@@ -542,3 +542,7 @@ The owner added the makeup pack to the design («21 Cosmetic Packs», `Character
 
 Owner: the suggestion / «price is wrong» card scrolled without showing it, and the text «قیمت اشتباهه؟» should be a nice icon. Done: `PriceFeedbackLink` is now a round yellow button with the new `priceAlert` icon (a price tag with «!»; label kept for screen readers) on the result of a price-guess round and the price lookup; the form (`FormDialog`) keeps scrolling when it must but its bar is always visible (`persistentScrollbar`), and the price form is denser (amount and unit on one row, shorter note box). Not seen on a real phone.
 
+## D185 — City hub: tapping a building opens its bottom drawer again (2026-10-04)
+
+Owner: the hub without the bottom drawer looked worse; tapping an icon should open that building's menu. The change of #128 («the hub opens modes directly») is undone: a tap always raises the drawer (host, description, «ورود» / «به‌زودی», close), as `docs/logic/app-screens.md` §City hub always said. Entering is the drawer's button.
+
