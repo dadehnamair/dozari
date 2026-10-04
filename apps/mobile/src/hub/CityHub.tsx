@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Svg, { G, Path } from 'react-native-svg';
 import { Character } from '../components/Character';
 import { GradientFill } from '../components/GradientFill';
@@ -30,7 +30,19 @@ export function CityHub({ onClose, onEnter, features, dailyReady }: { onClose: (
   useHardwareBack(onClose);
   const { width, height } = useWindowDimensions();
   const [sel, setSel] = useState<HubBuilding | null>(null);
-  const animated = !usePrefs().reduceMotion; // the cloud drifts and the palms sway unless «حرکت کمتر» is on
+  const slide = useRef(new Animated.Value(0)).current; // 0 = drawer hidden below the screen, 1 = raised
+  const reduce = usePrefs().reduceMotion;
+  const hasSel = sel !== null;
+  useEffect(() => {
+    if (!hasSel) return;
+    if (reduce) return void slide.setValue(1);
+    Animated.timing(slide, { toValue: 1, duration: 320, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+  }, [hasSel, reduce, slide]);
+  const closeSheet = useCallback(() => {
+    if (reduce) return setSel(null);
+    Animated.timing(slide, { toValue: 0, duration: 220, easing: Easing.in(Easing.cubic), useNativeDriver: true }).start(({ finished }) => finished && setSel(null));
+  }, [reduce, slide]);
+  const animated = !reduce; // the cloud drifts and the palms sway unless «حرکت کمتر» is on
   // The whole town fits the screen (nothing scrolls): scale by whichever of width / height is tighter.
   const k = Math.min(Math.min(width, 520) / MAP_W, height / MAP_H);
   const mapW = MAP_W * k;
@@ -115,8 +127,10 @@ export function CityHub({ onClose, onEnter, features, dailyReady }: { onClose: (
 
       {sel ? (
         <>
-          <Pressable style={styles.dim} onPress={() => setSel(null)} accessibilityLabel={t.close} />
-          <View style={styles.sheet}>
+          <Animated.View style={[styles.dim, { opacity: slide }]}>
+            <Pressable style={StyleSheet.absoluteFill} onPress={closeSheet} accessibilityLabel={t.close} />
+          </Animated.View>
+          <Animated.View style={[styles.sheet, { transform: [{ translateY: slide.interpolate({ inputRange: [0, 1], outputRange: [Math.max(300, height * 0.4), 0] }) }] }]}>
             <View style={styles.host}><Character who={sel.host} pose="wave" /></View>
             <View style={styles.sheetBody}>
               <View style={styles.sheetHead}>
@@ -134,13 +148,13 @@ export function CityHub({ onClose, onEnter, features, dailyReady }: { onClose: (
                     </Pressable>
                   );
                 })()}
-                <Pressable accessibilityRole="button" accessibilityLabel={t.close} onPress={() => setSel(null)} style={({ pressed }) => [styles.x, pressed ? styles.pressed : null]}>
+                <Pressable accessibilityRole="button" accessibilityLabel={t.close} onPress={closeSheet} style={({ pressed }) => [styles.x, pressed ? styles.pressed : null]}>
                   <GradientFill from="#FFAA7A" to="#FF7A3D" />
                   <Icon name="close" size={20} color="#fff" strokeWidth={3} />
                 </Pressable>
               </View>
             </View>
-          </View>
+          </Animated.View>
         </>
       ) : null}
     </View>

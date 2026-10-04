@@ -580,3 +580,7 @@ Owner: scrolling the fitting room was not smooth. All cards (each with several S
 ## D193 — Animated logo without the shine; forced LTR box (2026-10-04)
 
 Owner: on the phone the logo did not animate and sat to the left. Likely cause: the shine animated the SVG `LinearGradient` through `setNativeProps`, which has no native view in the new architecture and breaks the JS-driven frame updates. The shine is removed (the coin drop, pop, sparks and breathing stay, all on the native driver), and the logo box is `alignSelf: 'center'` with `direction: 'ltr'` so the forced RTL cannot move its parts. Not seen on a phone yet.
+
+## D194 — Hub drawer slides up and down (2026-10-04)
+
+Owner: the building drawer of the city hub appeared at once. It now rises from the bottom (320 ms, ease-out) with the dim layer fading in, and sinks again on close (220 ms); «حرکت کمتر» keeps it instant. Native driver only. Not seen on a phone yet.
