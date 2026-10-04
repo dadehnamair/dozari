@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Character } from '../components/Character';
 import { Item } from '../components/Item';
@@ -22,7 +22,24 @@ const FOOD = [0, 5, 10, 13];
  */
 export function Tutorial({ onDone }: { onDone: () => void }) {
   const [i, setI] = useState(0);
+  /** Tiles the player has tapped on the «pick the food group» step. */
+  const [picked, setPicked] = useState<number[]>([]);
+  /** Shown instead of the step text for a moment after a wrong tap. */
+  const [oops, setOops] = useState(false);
+  useEffect(() => {
+    if (!oops) return;
+    const timer = setTimeout(() => setOops(false), 2200);
+    return () => clearTimeout(timer);
+  }, [oops]);
   const step = t.steps[i]!;
+  const tapTile = (k: number) => {
+    if (i !== 1) return;
+    if (!FOOD.includes(k)) return setOops(true);
+    const next = picked.includes(k) ? picked : [...picked, k];
+    setPicked(next);
+    setOops(false);
+    if (next.length === FOOD.length) setTimeout(() => setI(2), 350);
+  };
   const last = i === t.steps.length - 1;
   return (
     <View style={styles.root}>
@@ -41,18 +58,20 @@ export function Tutorial({ onDone }: { onDone: () => void }) {
             {TILE_ICONS.map((icon, k) => {
               const lit = i >= 1 && FOOD.includes(k);
               const solved = i === 3 && lit;
+              const isPicked = lit && (i === 2 || picked.includes(k));
               return (
                 <View key={icon} style={styles.cell}>
-                  <View style={[styles.tile, lit ? styles.tileLit : null, i >= 1 && !lit ? styles.tileDim : null, lit && i === 2 ? styles.tilePicked : null, solved ? styles.tileSolved : null]}>
+                  <Pressable onPress={() => tapTile(k)} disabled={i !== 1} accessibilityRole="button" accessibilityLabel={t.words[k]}
+                    style={[styles.tile, lit && !isPicked ? styles.tileLit : null, i >= 1 && !lit && i !== 1 ? styles.tileDim : null, isPicked ? styles.tilePicked : null, solved ? styles.tileSolved : null]}>
                     <View style={styles.tileIcon}><Item icon={icon} /></View>
                     <Text style={styles.tileText} numberOfLines={1}>{t.words[k]}</Text>
-                  </View>
+                  </Pressable>
                 </View>
               );
             })}
           </View>
           <View style={styles.submitSlot}>
-            {i === 2 ? <View style={styles.submit}><Text style={styles.submitText}>{t.submit}</Text></View> : null}
+            {i === 2 ? <Pressable onPress={() => setI(3)} style={styles.submit} accessibilityRole="button"><Text style={styles.submitText}>{t.submit}</Text></Pressable> : null}
           </View>
 
           <View style={styles.spacer} />
@@ -60,14 +79,14 @@ export function Tutorial({ onDone }: { onDone: () => void }) {
             <View style={styles.bubble}>
               <View style={styles.bubbleHead}>
                 <View style={styles.tag}><Text style={styles.tagText}>{t.guide}</Text></View>
-                <Text style={styles.title}>{step.title}</Text>
+                <Text style={styles.title}>{oops ? t.oopsTitle : step.title}</Text>
               </View>
-              <Text style={styles.text}>{step.text}</Text>
+              <Text style={styles.text}>{oops ? t.oops : step.text}</Text>
             </View>
           </View>
           <View style={styles.footer}>
             <View style={styles.cta}>
-              <SlabButton label={step.cta} color={colors.candy.yellow} height={58} fontSize={22} grow={0} onPress={() => (last ? onDone() : setI(i + 1))} />
+              {step.cta ? <SlabButton label={step.cta} color={colors.candy.yellow} height={58} fontSize={22} grow={0} onPress={() => (last ? onDone() : setI(i + 1))} /> : null}
             </View>
             <View style={styles.guide}><Character who="ajan" pose={step.pose} /></View>
           </View>
