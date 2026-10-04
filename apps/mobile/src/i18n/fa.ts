@@ -517,6 +517,7 @@ export const fa = {
       points: 'امتیاز',
       home: 'خانه',
       againWin: 'یه دست دیگه!',
+      invite: 'دعوت دوست',
       againLose: 'انتقام بگیر!',
       againDraw: 'دوباره!',
     },
