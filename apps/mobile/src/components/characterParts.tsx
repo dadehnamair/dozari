@@ -3,7 +3,7 @@ import { Circle, Ellipse, G, Path, Text as SvgText } from 'react-native-svg';
 import { fonts } from '../theme/colors';
 import type { CharacterLook } from '../theme/character';
 import { Motion } from './characterMotion';
-import { GlassesArt, HairArt, HatArt, OutfitArt, ScarfArt } from './wearArt';
+import { AccessoryArt, GlassesArt, HairArt, HatArt, OutfitArt, WearBack } from './wearArt';
 
 export const INK = '#3A2418';
 
@@ -47,6 +47,8 @@ export function BodyArt({ L, pid, on, up, delay, outfitK, scarfK }: Look & { pid
                 />
               </Motion>
               <Motion part="body" on={on} delay={delay}>
+              {outfitK ? <WearBack k={outfitK} /> : null}
+              {scarfK ? <WearBack k={scarfK} /> : null}
               <Path d={body} fill={L.cloth} stroke="none" />
               <Path d={body} fill={`url(#${pid})`} stroke="none" />
               {L.beltD ? <Path d={L.beltD} fill={L.belt} strokeWidth={2.4} /> : null}
@@ -93,7 +95,7 @@ export function BodyArt({ L, pid, on, up, delay, outfitK, scarfK }: Look & { pid
                 </G>
               ) : null}
               {outfitK ? <OutfitArt k={outfitK} /> : null}
-              {scarfK ? <ScarfArt /> : null}
+              {scarfK ? <AccessoryArt k={scarfK} /> : null}
               <Path
                 d="M73 160Q67 178 67 196"
                 stroke="#fff"
@@ -116,6 +118,8 @@ export function BodyArt({ L, pid, on, up, delay, outfitK, scarfK }: Look & { pid
 export function HeadArt({ L, on, hairK, hatK }: Look & { on: boolean; hairK: string | null; hatK: string | null }) {
   return (
     <>
+          {hairK ? <WearBack k={hairK} /> : null}
+          {hatK ? <WearBack k={hatK} /> : null}
           {L.hairBack && !hairK ? (
             <G>
               <Path d={L.hairBack} strokeWidth={12} fill="none" />

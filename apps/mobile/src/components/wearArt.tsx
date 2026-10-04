@@ -2,6 +2,7 @@ import { isWearKey, WEAR_SLOT_OF, wearKey } from '@dozari/shared';
 import type { CosmeticSlot } from '@dozari/shared';
 export { isWearKey, WEAR_SLOT_OF, wearKey };
 import { G, Circle, Path, Rect } from 'react-native-svg';
+import { GENERATED_WEAR } from './wearArt.generated';
 
 /** One thing a player wears (D165/D176). `iconKey` of a cosmetic shop item names one of these; the art is drawn on the character itself. */
 export type WearSlot = CosmeticSlot;
@@ -16,8 +17,22 @@ export function wornIn(worn: readonly Worn[] | undefined, slot: WearSlot): strin
   return k && WEAR_SLOT_OF[k] === slot ? k : null;
 }
 
+/** The part of a wearable drawn behind the head / body (only art drawn as `<key>.back.svg` has one). */
+export function WearBack({ k }: { k: string }) {
+  const Back = GENERATED_WEAR[k]?.back;
+  return Back ? <Back /> : null;
+}
+
+/** Art drawn as an SVG file wins over the one coded below (so a built-in can be redrawn without touching code). */
+function generated(k: string) {
+  const Front = GENERATED_WEAR[k]?.front;
+  return Front ? <Front /> : null;
+}
+
 /** Head is centred on x=100, crown of the head near y=32, eyes at y=74, chin near y=140 (the coordinates of `Character`). */
 export function HairArt({ k }: { k: string }) {
+  const art = generated(k);
+  if (art) return art;
   if (k === 'hairLong') {
     const c = '#6A3B1E';
     return (
@@ -49,6 +64,8 @@ export function HairArt({ k }: { k: string }) {
 }
 
 export function HatArt({ k }: { k: string }) {
+  const art = generated(k);
+  if (art) return art;
   if (k === 'crown') {
     return (
       <G>
@@ -82,6 +99,8 @@ export function HatArt({ k }: { k: string }) {
 }
 
 export function GlassesArt({ k }: { k: string }) {
+  const art = generated(k);
+  if (art) return art;
   if (k === 'glassesSun') {
     return (
       <G>
@@ -104,6 +123,8 @@ export function GlassesArt({ k }: { k: string }) {
 const TORSO = 'M70 146C62 170 60 196 62 216Q100 226 138 216C140 196 138 170 130 146Q100 138 70 146Z';
 
 export function OutfitArt({ k }: { k: string }) {
+  const art = generated(k);
+  if (art) return art;
   if (k === 'dress') {
     return (
       <G>
@@ -125,7 +146,9 @@ export function OutfitArt({ k }: { k: string }) {
   );
 }
 
-export function ScarfArt() {
+export function AccessoryArt({ k }: { k: string }) {
+  const art = generated(k);
+  if (art) return art;
   return (
     <G>
       <Path d="M116 160L128 196L113 200L104 166Z" fill="#D93B3B" strokeWidth={2.8} />

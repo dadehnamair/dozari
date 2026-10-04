@@ -12,3 +12,13 @@ describe('wear keys', () => {
     expect(isWearKey('magnifier')).toBe(false);
   });
 });
+
+describe('svg-drawn wearables', () => {
+  it('never move a built-in wearable to another slot', async () => {
+    const { BUILT_IN_WEAR_SLOT_OF } = await import('../wear.js');
+    const { GENERATED_WEAR_SLOT_OF } = await import('../wear-generated.js');
+    for (const [k, slot] of Object.entries(GENERATED_WEAR_SLOT_OF)) {
+      if (k in BUILT_IN_WEAR_SLOT_OF) expect(slot, k).toBe(BUILT_IN_WEAR_SLOT_OF[k]);
+    }
+  });
+});

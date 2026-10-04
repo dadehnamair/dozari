@@ -12,7 +12,9 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings=0",
     "test": "vitest run",
-    "brand:export": "node scripts/export-brand.mjs"
+    "brand:export": "node scripts/export-brand.mjs",
+    "wear:build": "node scripts/build-wear.mjs",
+    "wear:check": "node scripts/build-wear.mjs --check"
   },
   "dependencies": {
     "@dozari/shared": "workspace:*",
