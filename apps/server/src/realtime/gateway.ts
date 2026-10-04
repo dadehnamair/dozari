@@ -2,7 +2,7 @@ import type { Server as HttpServer } from 'node:http';
 import { Server } from 'socket.io';
 import type { Socket } from 'socket.io';
 import type { QueueProblem } from '@dozari/shared';
-import { ClientEvent, ServerEvent, chatTauntSchema, matchProposeSchema, matchResumeSchema, matchSubmitSchema, queueJoinSchema } from '@dozari/shared';
+import { ClientEvent, ServerEvent, chatTauntSchema, matchProposeSchema, matchResumeSchema, matchSubmitSchema, priceSubmitSchema, queueJoinSchema } from '@dozari/shared';
 import type { Ack, LiveNotice } from '@dozari/shared';
 import type { UserRecord } from '../auth/service.js';
 import { ChatService } from '../chat/service.js';
@@ -178,6 +178,13 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
       const body = matchSubmitSchema.safeParse(payload);
       if (!body.success) return ack?.({ ok: false, error: 'INVALID_PAYLOAD' });
       ack?.(matches ? matches.submit(userId, body.data.itemIds) : { ok: false, error: 'NOT_IN_MATCH' });
+    });
+
+    // A hidden guess in the duel's price-guess round (the rials arrive as a decimal string).
+    socket.on(ClientEvent.priceSubmit, (payload: unknown, ack?: (a: Ack) => void) => {
+      const body = priceSubmitSchema.safeParse(payload);
+      if (!body.success) return ack?.({ ok: false, error: 'INVALID_PAYLOAD' });
+      ack?.(matches ? matches.submitPrice(userId, BigInt(body.data.guessRials)) : { ok: false, error: 'NOT_IN_MATCH' });
     });
 
     socket.on(ClientEvent.matchPropose, (payload: unknown, ack?: (a: Ack) => void) => {

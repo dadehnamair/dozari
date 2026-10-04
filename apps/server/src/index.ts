@@ -646,6 +646,7 @@ if (isMainModule(import.meta.url)) {
       ? {
           puzzles: createDbPuzzleSource(db),
           teamBoards: settings ? () => settings.num('match.team_boards') : undefined,
+          priceRound: settings ? async () => (await settings.num('match.price_round')) === 1 : undefined,
           rules: settings
             ? async () => {
                 const [turnSeconds, maxMistakes, maxTimeouts, groupPoints, firstBloodBonus] = await Promise.all([settings.num('game.turn_seconds'), settings.num('game.match_max_mistakes'), settings.num('game.max_consecutive_timeouts'), settings.list('score.group_points'), settings.num('score.first_blood_bonus')]);

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { DEVICE_ID_PATTERN } from '../identity/index.js';
 import { soloCardSchema } from '../solo/contract.js';
+import { priceRoundViewSchema } from '../priceguess/wire.js';
 
 /**
  * Socket.io contract between client and server (docs/logic/matchmaking.md §Socket events). Events are named
@@ -17,6 +18,8 @@ export const ClientEvent = {
   matchPropose: 'match:propose',
   matchResume: 'match:resume',
   matchLeave: 'match:leave',
+  /** A hidden guess in the duel's price-guess round. */
+  priceSubmit: 'price:submit',
   chatJoin: 'chat:join',
   chatTaunt: 'chat:taunt',
 } as const;
@@ -63,6 +66,7 @@ export const ERROR_CODES = [
   'NO_CITY',
   'MUTED',
   'UNKNOWN_TAUNT',
+  'NO_PRICE_ROUND',
   'INTERNAL',
 ] as const;
 export const errorCodeSchema = z.enum(ERROR_CODES);
@@ -83,6 +87,10 @@ export const matchProposeSchema = z.object({ itemIds: z.array(z.string().min(1).
 export const matchSubmitSchema = z.object({ itemIds: z.array(z.string().min(1).max(64)).length(4) });
 /** Without a match id the server resumes whatever match the player is in (e.g. one a private table started). */
 export const matchResumeSchema = z.object({ matchId: z.string().uuid().optional() });
+
+/** The guess in rials as a decimal string (a toman price times ten); the server checks it is positive and sane. */
+export const priceSubmitSchema = z.object({ guessRials: z.string().regex(/^[1-9]\d{0,15}$/) });
+export type PriceSubmit = z.infer<typeof priceSubmitSchema>;
 
 export type QueueJoin = z.infer<typeof queueJoinSchema>;
 export type MatchPropose = z.infer<typeof matchProposeSchema>;
@@ -157,6 +165,8 @@ export const matchViewSchema = z.object({
   turnEndsAt: z.number().int(),
   status: z.enum(['playing', 'finished']),
   result: matchResultSchema.nullable(),
+  /** Set while the duel's price-guess round runs (the board is over, the match is not): render the round instead of the board. */
+  priceRound: priceRoundViewSchema.nullable().optional(),
 });
 
 /** Animation hints; both sides see every submitted selection and its result. */
@@ -181,6 +191,8 @@ export const matchEndedSchema = z.object({
   scores: z.tuple([z.number().int(), z.number().int()]),
   /** Full solution, sent only now that the match is over. */
   groups: z.array(z.object({ level, titleFa: z.string(), explanationFa: z.string(), productIds: z.array(z.string()) })).length(4),
+  /** The viewer's own view of the finished price-guess round (every guess and real price are public now), when the match had one. */
+  priceRound: priceRoundViewSchema.optional(),
 });
 
 export const errorEventSchema = z.object({ error: errorCodeSchema });
