@@ -568,6 +568,7 @@ if (isMainModule(import.meta.url)) {
             rescueTarget: await settings.num('duel.rescue_target'),
           }),
           isBot: (id) => botDriver?.isBot(id) ?? false,
+          priceWager: () => settings.num('duel.price_wager'),
           onWin: (matchId, userId) => wheel?.grantForWin(userId, matchId).catch((e) => console.error('[wheel] grant failed', matchId, e)) ?? Promise.resolve(),
         })
       : undefined;

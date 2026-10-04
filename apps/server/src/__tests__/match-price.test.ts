@@ -128,3 +128,114 @@ describe('duel price-guess round', () => {
     expect(svc.priceAnswerFor('nobody')).toBeNull();
   });
 });
+
+describe('price-round wager', () => {
+  /** A tiny in-memory ledger for the per-round wager; seats listed in `bots` are house seats. */
+  function wagerHarness(balances: Record<string, number>, opts: { amount?: number; bots?: string[] } = {}) {
+    const amount = opts.amount ?? 5;
+    const bank = { ...balances };
+    const log: string[] = [];
+    const stakes = {
+      open: async (_id: string, players: readonly [string, string]) => players.map((p) => (opts.bots?.includes(p) ? 'house' : 'free')) as ['free' | 'house', 'free' | 'house'],
+      cancel: async () => undefined,
+      settle: async () => undefined,
+      wagerRules: async () => ({ amount, cutPercent: 10, isBot: (id: string) => !!opts.bots?.includes(id) }),
+      takeWager: async (_m: string, round: number, user: string, n: number) => {
+        if ((bank[user] ?? 0) < n) return false;
+        bank[user]! -= n;
+        log.push(`take:${round}:${user}`);
+        return true;
+      },
+      creditWager: async (_m: string, round: number, user: string, coins: number) => {
+        bank[user] = (bank[user] ?? 0) + coins;
+        log.push(`credit:${round}:${user}:${coins}`);
+      },
+    };
+    let t = 1_000_000;
+    const timers: { at: number; fn: () => void; live: boolean }[] = [];
+    const sent: { to: string; event: string; payload: unknown }[] = [];
+    const svc = new MatchService({
+      puzzles: source,
+      profile,
+      emit: (to, event, payload) => sent.push({ to, event, payload }),
+      priceRound: async () => true,
+      stakes,
+      now: () => t,
+      newSeed: () => 5,
+      schedule: (ms, fn) => {
+        const timer = { at: t + ms, fn, live: true };
+        timers.push(timer);
+        return () => (timer.live = false);
+      },
+    });
+    const flush = () => new Promise((r) => setTimeout(r, 0));
+    const last = (to: string, event: string) => sent.filter((s) => s.to === to && s.event === event).at(-1)?.payload;
+    const play = async () => {
+      await svc.start('A', 'B');
+      const v = matchViewSchema.parse(last('A', 'match:state'));
+      const first = v.turn === 0 ? 'A' : 'B';
+      for (const level of [0, 1, 2]) svc.submit(first, ids(level));
+      await flush();
+      await flush();
+      return first;
+    };
+    return { svc, bank, log, last, play, flush, timers, advance: (ms: number) => { t += ms; for (const x of timers.filter((y) => y.live && y.at <= t)) { x.live = false; x.fn(); } } };
+  }
+
+  it('puts both wagers down, pays the round winner the pot minus the cut, and conserves coins', async () => {
+    const h = wagerHarness({ A: 100, B: 100 });
+    const first = await h.play();
+    const other = first === 'A' ? 'B' : 'A';
+    expect(h.bank[first]).toBe(95);
+    expect(matchViewSchema.parse(h.last('A', 'match:state')).priceRound).toMatchObject({ wager: 5, youIn: true });
+    expect(h.bank[other]).toBe(95);
+    for (let round = 0; round < 4; round++) {
+      expect(h.svc.submitPrice(first, 8_000_000n)).toEqual({ ok: true }); // closer to the real 7.65M
+      h.svc.submitPrice(other, 5_000_000n);
+      await h.flush();
+      await h.flush();
+    }
+    // 4 rounds won by `first`: each round pays floor(10 * 0.9) = 9, wagers of 5 each round
+    expect(h.bank[first]).toBe(100 - 5 * 4 + 9 * 4);
+    expect(h.bank[other]).toBe(100 - 5 * 4);
+    expect(matchEndedSchema.parse(h.last(first, 'match:ended')).priceRound?.revealed).toHaveLength(4);
+    expect(h.svc.activeCount).toBe(0);
+  });
+
+  it('a side that cannot afford the wager sits the round out; the other side gets its wager back', async () => {
+    const h = wagerHarness({ A: 100, B: 2 });
+    const first = await h.play();
+    const poor = 'B';
+    const rich = 'A';
+    expect(h.bank[poor]).toBe(2); // nothing taken
+    expect(h.svc.submitPrice(rich, 7_000_000n)).toEqual({ ok: true });
+    await h.flush();
+    await h.flush();
+    expect(h.bank[rich]).toBe(95); // round 1: 5 down and 5 back in full (nobody to bet against); round 2 has already taken its 5
+    const view = matchViewSchema.parse(h.last(rich, 'match:state'));
+    expect(view.priceRound?.revealed[0]).toMatchObject({ yourGuess: '7000000', opponentGuess: null, winner: 'you' });
+    expect(first).toBeDefined();
+  });
+
+  it('a bot seat plays for the house: the human risks only their own wager', async () => {
+    const h = wagerHarness({ A: 100, B: 0 }, { bots: ['B'] });
+    await h.play();
+    expect(h.bank.A).toBe(95);
+    h.svc.submitPrice('A', 1_000_000n); // far off
+    h.svc.submitPrice('B', 7_600_000n);
+    await h.flush();
+    await h.flush();
+    expect(h.bank.A).toBe(90); // lost round 1 (the bot collected nothing); round 2 has taken its 5
+    expect(h.bank.B).toBe(0);
+  });
+
+  it('gives every open wager back when a player leaves mid-round', async () => {
+    const h = wagerHarness({ A: 100, B: 100 });
+    await h.play();
+    expect(h.bank.A! + h.bank.B!).toBe(190);
+    h.svc.leave('A');
+    await h.flush();
+    expect(h.bank.A).toBe(100);
+    expect(h.bank.B).toBe(100);
+  });
+});

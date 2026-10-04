@@ -2,7 +2,7 @@ import { and, coinLedger, dailyPlayCounts, eq, gte, sql, userBalances } from '@d
 import type { Db } from '@dozari/db';
 import { applyLedgerEntry } from '../economy/ledger.js';
 
-export type StakeReason = 'match_entry' | 'match_payout' | 'match_refund' | 'match_consolation' | 'broke_rescue';
+export type StakeReason = 'match_entry' | 'match_payout' | 'match_refund' | 'match_consolation' | 'broke_rescue' | 'price_guess_wager' | 'price_guess_payout';
 
 /** I/O boundary of duel stakes. Every coin movement is one idempotent ledger row. */
 export interface StakeStore {

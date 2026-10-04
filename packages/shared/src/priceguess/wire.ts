@@ -33,6 +33,9 @@ export const priceRoundViewSchema = z.object({
   /** Absolute epoch ms when the round is revealed whether or not everybody guessed. */
   endsAt: z.number().int(),
   revealed: z.array(priceRoundRevealedSchema),
+  /** Coins each side has on every round (absent = no wager), and whether the viewer put theirs down this round (false = could not afford it and sits the round out). */
+  wager: z.number().int().positive().optional(),
+  youIn: z.boolean().optional(),
 });
 export type PriceRoundView = z.infer<typeof priceRoundViewSchema>;
 

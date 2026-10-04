@@ -114,4 +114,11 @@ see updated flow in that file / the result-screen section of `docs/PLAN.md`.
   and prices) for the result screen. Leaving during the rounds ends the match with the puzzle result.
 - Bots guess near the real price by skill (`chooseBotPriceGuess`; the price comes from `MatchService.priceAnswerFor`, server side only).
 - App: `DuelPriceRound` replaces the board while `view.priceRound` is set; `DuelResult` lists the four rounds.
-- Still to do: the coin wager and `bot_match_subsidy`, persistence to `match_events`, 2v2 (captain pools one guess).
+- **Coin wager (built, off by default):** admin setting `duel.price_wager` (0 = none, max 50; proposed 2–5), frozen when the match starts, **queue duels only**
+  (private tables and tournaments are friendly: no coins). When a round opens each human's wager is taken through the stake store (`price_guess_wager`,
+  key `price_guess_wager:<match>:<round>:<user>`); a side that cannot pay sits the round out (no guess, worst result, nothing moves). The reveal pays
+  `settleWager` (shared): winner = pot minus `duel.house_cut_percent` (rounded down), draw = each wager minus the cut, `price_guess_payout` rows; if only one
+  side is in play its wager comes back in full. A **bot seat plays for the house**: the human risks only their own wager and the bot never collects, so the
+  pot top-up of `bot_match_subsidy` is implicit, exactly as for the entry fee (no ledger row for the house). Leaving mid-round returns every open wager.
+  The snapshot carries `wager` and `youIn`. The economy simulator (`economy/simulate.ts`) does not model this wager yet — check it before switching it on.
+- Still to do: persistence to `match_events`, 2v2 (captain pools one guess), the reveal animation.

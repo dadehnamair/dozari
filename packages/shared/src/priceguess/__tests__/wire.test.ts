@@ -41,3 +41,16 @@ describe('bot price guess', () => {
     }
   });
 });
+
+describe('sit out', () => {
+  it('a side that sits out has no guess and loses the round; both sitting out is a draw', () => {
+    let s = startPriceGuess(rounds);
+    s = applyPriceGuessCommand(s, { type: 'sit_out', side: 'a' });
+    s = applyPriceGuessCommand(s, { type: 'submit_guess', side: 'b', guessRials: 1n });
+    expect(s.revealed[0]).toMatchObject({ winner: 'b', guesses: { a: null } });
+    let t = startPriceGuess(rounds);
+    t = applyPriceGuessCommand(t, { type: 'sit_out', side: 'a' });
+    t = applyPriceGuessCommand(t, { type: 'sit_out', side: 'b' });
+    expect(t.revealed[0]?.winner).toBe('draw');
+  });
+});

@@ -158,8 +158,8 @@ human opponent is found.
 - [x] 🧩 `config/economy.ts` + pure calculators; 🧪 simulation (D90, `economy/simulate.ts`) for faucet/sink balance
 - [x] 🖥 LedgerService (single write path), entry fee escrow at match start, payout at end, refunds on abort
 - [x] 🖥 Daily free games + daily login bonus + invite reward (with anti-abuse rules)
-- [ ] 🖥 `bot_match_subsidy` ledger reason + pot top-up when a bot fills a seat (`logic/bots.md`)
-- [ ] 🧩 Price-guess round wager: per-round escrow, winner-takes-pot-minus-cut, auto-sit-out if
+- [x] 🖥 Bot pot top-up when a bot fills a seat: implicit house cover in `settleDuel` / `settleWager` (no ledger row for the house, `economy.md`); the `bot_match_subsidy` reason stays reserved
+- [x] 🧩 (built, setting `duel.price_wager` off by default, D196) Price-guess round wager: per-round escrow, winner-takes-pot-minus-cut, auto-sit-out if
       unaffordable (`logic/price-guess-round.md` §Real coin side-bet)
 - [x] 🗄 `coin_packages` table + `purchase`/IAP ledger plumbing, **built but disabled** at MVP
       (`economy.md` §Real-money coin purchases) — enabling real purchases is a separate, later task

@@ -1,6 +1,6 @@
 import { randomInt } from 'node:crypto';
-import { DEFAULT_MATCH_RULES, TEAM_MATCH_BOARDS, applyCommand, applyPriceGuessCommand, finalScores, matchClientView, mulberry32, resolveWinner, selectRounds, ServerEvent, startMatch, startPriceGuess, startTeamMatch, toPriceRoundView, turnDeadline } from '@dozari/shared';
-import type { CatalogProduct, Command, ErrorCode, PriceGuessState, Stake, MatchEnded, MatchRules, MatchEvent, MatchEventPayload, MatchFound, MatchState, MatchView, Rng, RuleError } from '@dozari/shared';
+import { DEFAULT_MATCH_RULES, TEAM_MATCH_BOARDS, applyCommand, settleWager, applyPriceGuessCommand, finalScores, matchClientView, mulberry32, resolveWinner, selectRounds, ServerEvent, startMatch, startPriceGuess, startTeamMatch, toPriceRoundView, turnDeadline } from '@dozari/shared';
+import type { CatalogProduct, Command, RevealedRound, WagerSeat, ErrorCode, PriceGuessState, Stake, MatchEnded, MatchRules, MatchEvent, MatchEventPayload, MatchFound, MatchState, MatchView, Rng, RuleError } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
 import type { PuzzleSource, ServedPuzzle } from '../solo/types.js';
 
@@ -35,6 +35,10 @@ export interface MatchDeps {
     open(matchId: string, players: readonly [string, string]): Promise<[Stake, Stake] | null>;
     /** The match never started: give every taken fee back in full. */
     cancel(matchId: string, players: readonly [string, string], stakes: readonly [Stake, Stake]): Promise<void>;
+    /** Per-round coin wager of the price-guess round, or null for none (see `DuelStakes.wagerRules`). */
+    wagerRules?(): Promise<{ amount: number; cutPercent: number; isBot: (userId: string) => boolean } | null>;
+    takeWager?(matchId: string, round: number, userId: string, amount: number): Promise<boolean>;
+    creditWager?(matchId: string, round: number, userId: string, coins: number): Promise<void>;
     settle(matchId: string, players: readonly [string, string], stakes: readonly [Stake, Stake], result: { winner: 0 | 1 | null; reason: 'solved' | 'locked_out' | 'forfeit' | 'abandon' }): Promise<void>;
   };
   onEnded?: (info: { players: readonly [string, string]; result: NonNullable<MatchState['result']> }) => void;
@@ -52,8 +56,12 @@ interface Active {
   priceRound?: boolean;
   /** The board is over and the price rounds are being drawn (the clients must not see a finished match yet). */
   pgPending?: boolean;
-  /** The running price-guess phase. */
-  pg?: { state: PriceGuessState; endsAt: number; cancel: (() => void) | null };
+  /** The running price-guess phase; `busy` while a round's wagers are being settled or taken (no guesses then). */
+  pg?: { state: PriceGuessState; endsAt: number; cancel: (() => void) | null; busy?: boolean };
+  /** Per-round coin wager (stake matches only), frozen at the start. */
+  wager?: { amount: number; cutPercent: number; isBot: (userId: string) => boolean };
+  /** Wagers put down for the round in play and not settled yet. */
+  pgRound?: { index: number; seats: [WagerSeat, WagerSeat] };
   /** Latest proposal per side (2v2); only that side's own players ever see it. */
   proposals: [{ by: string; itemIds: readonly string[] } | null, { by: string; itemIds: readonly string[] } | null];
 }
@@ -143,6 +151,7 @@ export class MatchService {
       }
     }
     const entry: Active = { id, puzzles: [puzzle], state: startMatch(puzzle, [a, b], rng, this.now(), undefined, await this.matchRules()), cancel: null, stakes, priceRound: await this.wantsPriceRound(), proposals: [null, null] };
+    if (entry.priceRound && stakes) entry.wager = (await this.deps.stakes?.wagerRules?.().catch(() => null)) ?? undefined;
     this.matches.set(id, entry);
     this.byUser.set(a, id);
     this.byUser.set(b, id);
@@ -341,7 +350,8 @@ export class MatchService {
 
   private priceViewFor(entry: Active, side: 0 | 1) {
     const info = (entry.puzzles[entry.state.round] ?? entry.puzzles[0]!).items;
-    return toPriceRoundView(entry.pg!.state, side === 0 ? 'a' : 'b', (id) => ({ nameFa: info[id]?.nameFa ?? id, unitFa: info[id]?.unitFa ?? null, iconKey: info[id]?.iconKey ?? null }), entry.pg!.endsAt);
+    const base = toPriceRoundView(entry.pg!.state, side === 0 ? 'a' : 'b', (id) => ({ nameFa: info[id]?.nameFa ?? id, unitFa: info[id]?.unitFa ?? null, iconKey: info[id]?.iconKey ?? null }), entry.pg!.endsAt);
+    return entry.wager ? { ...base, wager: entry.wager.amount, youIn: entry.pgRound ? entry.pgRound.seats[side] !== 'out' : true } : base;
   }
 
   /** Draws the four rounds from the board that was just played; with none to ask, the match simply ends. */
@@ -357,10 +367,9 @@ export class MatchService {
         entry.pgPending = false;
         return this.finish(entry);
       }
-      entry.pg = { state: startPriceGuess(rounds), endsAt: 0, cancel: null };
+      entry.pg = { state: startPriceGuess(rounds), endsAt: 0, cancel: null, busy: true };
       entry.pgPending = false;
-      this.armPrice(entry);
-      this.pushState(entry);
+      await this.openRound(entry);
     } catch (e) {
       console.error('[match] price round failed to start', entry.id, e);
       entry.pgPending = false;
@@ -385,7 +394,7 @@ export class MatchService {
   submitPrice(userId: string, guessRials: bigint): { ok: true } | { ok: false; error: ErrorCode } {
     const entry = this.entryOf(userId);
     if (!entry) return { ok: false, error: 'NOT_IN_MATCH' };
-    if (!entry.pg) return { ok: false, error: 'NO_PRICE_ROUND' };
+    if (!entry.pg || entry.pg.busy) return { ok: false, error: 'NO_PRICE_ROUND' };
     const side = entry.state.players.find((p) => p.userId === userId)?.side;
     if (side === undefined) return { ok: false, error: 'NOT_IN_MATCH' };
     this.applyPrice(entry, { type: 'submit_guess', side: side === 0 ? 'a' : 'b', guessRials });
@@ -394,14 +403,74 @@ export class MatchService {
 
   private applyPrice(entry: Active, cmd: Parameters<typeof applyPriceGuessCommand>[1]): void {
     const pg = entry.pg;
-    if (!pg) return;
+    if (!pg || pg.busy) return;
     const before = pg.state;
     const next = applyPriceGuessCommand(before, cmd);
     if (next === before) return;
     pg.state = next;
-    if (next.status === 'finished') return this.completePrice(entry);
-    if (next.index !== before.index) this.armPrice(entry);
+    if (next.index === before.index) return this.pushState(entry); // a guess locked in, nothing revealed yet
+    pg.cancel?.();
+    pg.cancel = null;
+    const done = next.revealed[next.revealed.length - 1]!;
+    if (!entry.wager) {
+      if (next.status === 'finished') return this.completePrice(entry);
+      this.armPrice(entry);
+      return this.pushState(entry);
+    }
+    pg.busy = true;
+    void this.afterReveal(entry, done);
+  }
+
+  /** The wagers of one round are put down before its question is shown; a side that cannot pay sits the round out. */
+  private async openRound(entry: Active): Promise<void> {
+    const pg = entry.pg;
+    if (!pg) return;
+    const w = entry.wager;
+    const players = entry.state.players;
+    if (w && this.deps.stakes?.takeWager) {
+      const round = pg.state.index;
+      const seats: [WagerSeat, WagerSeat] = ['out', 'out'];
+      for (const side of [0, 1] as const) {
+        const userId = players[side]!.userId;
+        seats[side] = w.isBot(userId) ? 'house' : (await this.deps.stakes.takeWager(entry.id, round, userId, w.amount).catch(() => false)) ? 'in' : 'out';
+      }
+      entry.pgRound = { index: round, seats };
+      if (!this.matches.has(entry.id)) return void this.refundWager(entry);
+      for (const side of [0, 1] as const) if (seats[side] === 'out') pg.state = applyPriceGuessCommand(pg.state, { type: 'sit_out', side: side === 0 ? 'a' : 'b' });
+      if (pg.state.index !== round) return this.afterReveal(entry, pg.state.revealed[pg.state.revealed.length - 1]!); // nobody could play it
+    }
+    pg.busy = false;
+    this.armPrice(entry);
     this.pushState(entry);
+  }
+
+  /** A round was revealed: pay it out, then open the next one or end the match. */
+  private async afterReveal(entry: Active, done: RevealedRound): Promise<void> {
+    const pg = entry.pg;
+    if (!pg) return;
+    const round = entry.pgRound;
+    entry.pgRound = undefined;
+    const w = entry.wager;
+    if (round && w && round.index === done.index && this.deps.stakes?.creditWager) {
+      const credits = settleWager(w.amount, w.cutPercent, round.seats, done.winner);
+      for (const side of [0, 1] as const) if (credits[side] > 0) await this.deps.stakes.creditWager(entry.id, done.index, entry.state.players[side]!.userId, credits[side]).catch((e) => console.error('[wager] credit failed', entry.id, e));
+    }
+    if (!this.matches.has(entry.id)) return;
+    if (pg.state.status === 'finished') {
+      pg.busy = false;
+      return this.completePrice(entry);
+    }
+    await this.openRound(entry);
+  }
+
+  /** The match ended with wagers still down for the round in play: every one comes back in full. */
+  private refundWager(entry: Active): void {
+    const round = entry.pgRound;
+    entry.pgRound = undefined;
+    if (!round || !entry.wager || !this.deps.stakes?.creditWager) return;
+    for (const side of [0, 1] as const) {
+      if (round.seats[side] === 'in') void this.deps.stakes.creditWager(entry.id, round.index, entry.state.players[side]!.userId, entry.wager.amount).catch((e) => console.error('[wager] refund failed', entry.id, e));
+    }
   }
 
   /** All rounds revealed: the winner and the final tallies come from the shared rules (a tie falls through to the rounds; a locked-out side cannot win off them). */
@@ -420,7 +489,7 @@ export class MatchService {
   priceAnswerFor(userId: string): bigint | null {
     const entry = this.entryOf(userId);
     const pg = entry?.pg;
-    if (!entry || !pg || pg.state.status !== 'playing') return null;
+    if (!entry || !pg || pg.busy || pg.state.status !== 'playing') return null;
     const side = entry.state.players.find((p) => p.userId === userId)?.side;
     if (side === undefined || pg.state.submitted[side === 0 ? 'a' : 'b']) return null;
     return pg.state.rounds[pg.state.index]?.actualRials ?? null;
@@ -429,6 +498,7 @@ export class MatchService {
   private finish(entry: Active, final?: { result: NonNullable<MatchState['result']>; scores: [number, number] }) {
     entry.cancel?.();
     entry.cancel = null;
+    this.refundWager(entry);
     const result = final?.result ?? entry.state.result;
     if (result) {
       const ended: MatchEnded = {

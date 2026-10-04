@@ -52,8 +52,9 @@ export function DuelPriceRound({ round, now, onGuess }: { round: PriceRoundView;
           <View style={styles.icon}><Item icon={current.iconKey ?? 'coin'} /></View>
           <Text style={styles.name}>{current.nameFa}{current.unitFa ? ` (${current.unitFa})` : ''}</Text>
           <Text style={styles.question}>{questionText(fa.solo.price.question, current.year)}</Text>
-          {round.youSubmitted ? (
-            <Text style={styles.wait}>{p.lockedIn}</Text>
+          {round.wager ? <Text style={styles.hint}>{round.youIn === false ? p.sitOut : p.wager(round.wager)}</Text> : null}
+          {round.youSubmitted || round.youIn === false ? (
+            <Text style={styles.wait}>{round.youSubmitted ? p.lockedIn : p.waitRound}</Text>
           ) : (
             <>
               <View style={styles.inputRow}>
