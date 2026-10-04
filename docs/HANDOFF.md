@@ -1,3 +1,10 @@
+# Handoff — update 2026-10-04 (later the same day)
+
+Done on `main`: **A** architecture tidy-up (feedback wiring in `feedback/build.ts`; one `CosmeticSlot` and one wear-key table in shared; `Character`, `HomeScreen`, `admin/ui/views2` split, rendering/output verified byte-identical) · **B** SVG wearable pipeline (`apps/mobile/assets/wear/README.md`, `wear:build`, `wear:check` in CI) · **C** solo combo + timer ring, near-miss pill, last-life heartbeat (D178) · **E** fitting room, the hujre keeps only non-character goods (D179). Not seen on a real phone / live MySQL / Docker (compose services were renamed `s-dozari-*`, containers `c-dozari-*`: on the server run `up -d --build --remove-orphans`).
+Still open: the cosmetic pack's extra slots (crown, beard & moustache, skin tone, jewels, badge), bundles, and worn items on leaderboard/friend/chat avatars (D); real art goes in `assets/wear/`.
+
+---
+
 # Handoff — state at 2026-10-04 (read this section first in a new chat)
 
 Everything up to PR #129 is merged to `main` and green. No half-finished branch. Owner talks Persian; reply in Persian.
