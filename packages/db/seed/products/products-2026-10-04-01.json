@@ -1,0 +1,619 @@
+[
+  {
+    "slug": "benzin-azad",
+    "name_fa": "بنزین آزاد (هر لیتر)",
+    "brand": "شرکت ملی پخش فرآورده‌های نفتی",
+    "category": "transport",
+    "unit_fa": "یک لیتر",
+    "audience": ["adults", "family"],
+    "era_tags": ["dahe-50", "dahe-60", "dahe-70", "dahe-80", "dahe-90"],
+    "story_fa": "نرخ سوخت خودروها که از لیتری ۱ تومان در سال ۵۷ آغاز شد و تحولات اقتصادی بزرگی را رقم زد.",
+    "status": "in_production",
+    "prices": [
+      {
+        "year": 1355,
+        "rials": 6,
+        "source_type": "official_list",
+        "source_note": "تعرفه رسمی سوخت، اسناد شرکت ملی نفت",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1357,
+        "toman": 1,
+        "source_type": "official_list",
+        "source_note": "مصوبه هیئت دولت سال ۱۳۵۷",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1359,
+        "rials": 30,
+        "source_type": "official_list",
+        "source_note": "مصوبه شورای انقلاب اسلامی",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1369,
+        "rials": 50,
+        "source_type": "official_list",
+        "source_note": "جدول رسمی قیمت فرآورده‌های نفتی",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1374,
+        "toman": 10,
+        "source_type": "archive_newspaper",
+        "source_note": "آرشیو روزنامه همشهری و کیهان",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1381,
+        "toman": 50,
+        "source_type": "official_list",
+        "source_note": "قانون بودجه سال ۱۳۸۱ کل کشور",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1386,
+        "toman": 100,
+        "source_type": "official_list",
+        "source_note": "ابلاغیه رسمی آغاز سهمیه‌بندی سوخت",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1389,
+        "toman": 700,
+        "source_type": "official_list",
+        "source_note": "اجرای فاز اول قانون هدفمندسازی یارانه‌ها",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1393,
+        "toman": 1000,
+        "source_type": "official_list",
+        "source_note": "تصویب‌نامه هیئت وزیران سال ۱۳۹۳",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1398,
+        "toman": 3000,
+        "source_type": "official_list",
+        "source_note": "مصوبه شورای عالی هماهنگی اقتصادی",
+        "confidence": 3,
+        "status": "approved"
+      }
+    ]
+  },
+  {
+    "slug": "nan-sangak",
+    "name_fa": "نان سنگک سنتی",
+    "category": "food",
+    "unit_fa": "یک عدد",
+    "audience": ["kids", "teens", "adults", "elderly", "family"],
+    "era_tags": ["dahe-50", "dahe-60", "dahe-70", "dahe-80", "dahe-90"],
+    "story_fa": "نان برشته و کنجدی داغ که عطرش بخش جدانشدنی سفره‌های صبحانه ایرانیان بوده است.",
+    "status": "in_production",
+    "prices": [
+      {
+        "year": 1359,
+        "rials": 26,
+        "source_type": "official_list",
+        "source_note": "تعرفه وزارت بازرگانی بر حسب وزن — واحد با نرخ ۱۳۶۴ یکی نیست و قیمت از ۱۳۶۴ بیشتر است؛ تا بررسی در انتظار می‌ماند",
+        "confidence": 2,
+        "status": "pending"
+      },
+      {
+        "year": 1364,
+        "rials": 15,
+        "source_type": "archive_newspaper",
+        "source_note": "نرخ‌نامه اتحادیه نانوایان تهران",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1370,
+        "toman": 5,
+        "source_type": "archive_newspaper",
+        "source_note": "گزارش قیمت کالاهای اساسی روزنامه همشهری",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1392,
+        "toman": 500,
+        "source_type": "official_list",
+        "source_note": "مصوبه ستاد تنظیم بازار",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1400,
+        "toman": 3000,
+        "source_type": "official_list",
+        "source_note": "نرخ‌نامه رسمی اتحادیه نانوایان",
+        "confidence": 3,
+        "status": "approved"
+      }
+    ]
+  },
+  {
+    "slug": "bilet-cinema",
+    "name_fa": "بلیت سینما درجه یک",
+    "brand": "وزارت فرهنگ و ارشاد اسلامی",
+    "category": "entertainment",
+    "unit_fa": "یک قطعه",
+    "audience": ["kids", "teens", "adults", "elderly", "family"],
+    "era_tags": ["dahe-50", "dahe-60", "dahe-70", "dahe-80", "dahe-90"],
+    "story_fa": "ورودی سالن‌های سینما که خاطره فیلم‌دیدن دسته‌جمعی را زنده می‌کند.",
+    "status": "in_production",
+    "prices": [
+      {
+        "year": 1357,
+        "rials": 25,
+        "source_type": "archive_newspaper",
+        "source_note": "آرشیو مطبوعات سال ۱۳۵۷",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1361,
+        "rials": 50,
+        "source_type": "official_list",
+        "source_note": "جدول رسمی قیمت بلیت سینماها",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1365,
+        "rials": 100,
+        "source_type": "official_list",
+        "source_note": "تعرفه معاونت سینمایی وزارت ارشاد",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1370,
+        "rials": 300,
+        "source_type": "archive_newspaper",
+        "source_note": "آرشیو روزنامه کیهان",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1375,
+        "toman": 100,
+        "source_type": "archive_newspaper",
+        "source_note": "روزنامه همشهری سال ۱۳۷۵",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1380,
+        "rials": 4500,
+        "source_type": "official_list",
+        "source_note": "نرخ‌نامه انجمن سینماداران",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1385,
+        "toman": 1200,
+        "source_type": "official_list",
+        "source_note": "مصوبه شورای صنفی نمایش",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1390,
+        "toman": 3000,
+        "source_type": "official_list",
+        "source_note": "ابلاغیه رسمی قیمت بلیت سینماها",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1395,
+        "toman": 10000,
+        "source_type": "official_list",
+        "source_note": "تعرفه پردیس‌های سینمایی کشور",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1401,
+        "toman": 35000,
+        "source_type": "website",
+        "source_note": "سامانه رسمی فروش بلیت سینما",
+        "confidence": 3,
+        "status": "approved"
+      }
+    ]
+  },
+  {
+    "slug": "pride-131",
+    "name_fa": "خودروی پراید (صبا / ۱۳۱)",
+    "brand": "سایپا",
+    "category": "car",
+    "unit_fa": "یک دستگاه",
+    "audience": ["adults", "family"],
+    "era_tags": ["dahe-70", "dahe-80", "dahe-90"],
+    "story_fa": "پرفروش‌ترین خودروی چند دهه اخیر ایران که بخش جداشدنی خیابان‌ها شد.",
+    "status": "discontinued",
+    "prices": [
+      {
+        "year": 1372,
+        "toman": 2000000,
+        "source_type": "archive_newspaper",
+        "source_note": "قیمت اولیه پیش‌فروش کارخانه‌ای سایپا",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1380,
+        "toman": 6800000,
+        "source_type": "archive_newspaper",
+        "source_note": "آرشیو قیمت خودرو روزنامه همشهری",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1384,
+        "toman": 8000000,
+        "source_type": "official_list",
+        "source_note": "لیست رسمی قیمت محصولات سایپا",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1389,
+        "toman": 8500000,
+        "source_type": "official_list",
+        "source_note": "قیمت مصوب کارخانه‌ای خودرو",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1395,
+        "toman": 21000000,
+        "source_type": "official_list",
+        "source_note": "قیمت مصوب شورای رقابت",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1400,
+        "toman": 139000000,
+        "source_type": "website",
+        "source_note": "گزارش تحلیلی بازار خودروهای کارکرده و توقف تولید",
+        "confidence": 3,
+        "status": "approved"
+      }
+    ]
+  },
+  {
+    "slug": "peugeot-405-glx",
+    "name_fa": "خودروی پژو ۴۰۵ GLX",
+    "brand": "ایران خودرو",
+    "category": "car",
+    "unit_fa": "یک دستگاه",
+    "audience": ["adults", "family"],
+    "era_tags": ["dahe-70", "dahe-80", "dahe-90"],
+    "story_fa": "سدان محبوب فرانسوی‌الاصلی که خودروی خانوادگی استاندارد ایران شد.",
+    "status": "discontinued",
+    "prices": [
+      {
+        "year": 1371,
+        "toman": 9500000,
+        "source_type": "archive_newspaper",
+        "source_note": "آرشیو روزنامه کیهان، تحویل سری اول مونتاژ داخل",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1382,
+        "toman": 12800000,
+        "source_type": "official_list",
+        "source_note": "جدول قیمت محصولات ایران‌خودرو سال ۱۳۸۲",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1389,
+        "toman": 13150000,
+        "source_type": "official_list",
+        "source_note": "لیست رسمی قیمت فروش ایران‌خودرو",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1395,
+        "toman": 29031000,
+        "source_type": "official_list",
+        "source_note": "قیمت مصوب کارخانه‌ای سال ۱۳۹۵",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1400,
+        "toman": 295000000,
+        "source_type": "archive_newspaper",
+        "source_note": "گزارش قیمت خودروهای آستانه توقف تولید",
+        "confidence": 3,
+        "status": "approved"
+      }
+    ]
+  },
+  {
+    "slug": "samand-lx",
+    "name_fa": "خودروی سمند LX",
+    "brand": "ایران خودرو",
+    "category": "car",
+    "unit_fa": "یک دستگاه",
+    "audience": ["adults", "family"],
+    "era_tags": ["dahe-80", "dahe-90"],
+    "story_fa": "نخستین خودروی ملی ایران که با بدنه محکم و جادار بودن شناخته می‌شود.",
+    "status": "discontinued",
+    "prices": [
+      {
+        "year": 1381,
+        "toman": 12500000,
+        "source_type": "archive_newspaper",
+        "source_note": "پیش‌فروش سری اول سمند، روزنامه اطلاعات",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1389,
+        "toman": 16150000,
+        "source_type": "official_list",
+        "source_note": "جدول قیمت رسمی محصولات ایران‌خودرو",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1395,
+        "toman": 29844000,
+        "source_type": "official_list",
+        "source_note": "قیمت مصوب کارخانه‌ای سمند",
+        "confidence": 3,
+        "status": "approved"
+      }
+    ]
+  },
+  {
+    "slug": "pofak-namaki-minoo",
+    "name_fa": "پفک نمکی مینو (۱۱۰ گرمی)",
+    "brand": "مینو",
+    "category": "snack",
+    "unit_fa": "یک بسته",
+    "audience": ["kids", "teens", "adults", "family"],
+    "era_tags": ["dahe-60", "dahe-70", "dahe-80", "dahe-90"],
+    "story_fa": "بسته‌بندی قرمز و بافت ترد و شورش، طعم مشترک خاطرات چند نسل است.",
+    "status": "in_production",
+    "prices": [
+      {
+        "year": 1365,
+        "rials": 50,
+        "source_type": "official_list",
+        "source_note": "مصوبه شورای بررسی قیمت‌ها",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1375,
+        "toman": 25,
+        "source_type": "receipt_photo",
+        "source_note": "برچسب قیمت چاپ‌شده روی بسته پفک",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1385,
+        "toman": 150,
+        "source_type": "receipt_photo",
+        "source_note": "قیمت مصرف‌کننده چاپ‌شده روی بسته‌بندی",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1395,
+        "toman": 1500,
+        "source_type": "website",
+        "source_note": "آرشیو قیمت فروشگاهی دیجی‌کالا",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1401,
+        "toman": 15000,
+        "source_type": "website",
+        "source_note": "گزارش قیمت تنقلات نوستالژیک در پایگاه‌های خبری",
+        "confidence": 3,
+        "status": "approved"
+      }
+    ]
+  },
+  {
+    "slug": "shampoo-sehat-cedar",
+    "name_fa": "شامپو سدر صحت (۳۰۰ میلی‌لیتر)",
+    "brand": "صحت",
+    "category": "hygiene",
+    "unit_fa": "یک عدد",
+    "audience": ["adults", "family"],
+    "era_tags": ["dahe-60", "dahe-70", "dahe-80", "dahe-90"],
+    "story_fa": "بطری استوانه‌ای سبزرنگی که رکن ثابت حمام‌های ایرانی در چند دهه بوده است.",
+    "status": "in_production",
+    "prices": [
+      {
+        "year": 1368,
+        "rials": 180,
+        "source_type": "official_list",
+        "source_note": "نرخ‌نامه مصوب سازمان حمایت از مصرف‌کنندگان",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1378,
+        "toman": 120,
+        "source_type": "receipt_photo",
+        "source_note": "برچسب قیمت روی بطری شامپو سال ۱۳۷۸",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1388,
+        "toman": 800,
+        "source_type": "receipt_photo",
+        "source_note": "قیمت مصرف‌کننده چاپ‌شده روی بدنه محصول",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1401,
+        "toman": 71000,
+        "source_type": "website",
+        "source_note": "لیست قیمت فروشگاه‌های آنلاین ایمالز",
+        "confidence": 3,
+        "status": "approved"
+      }
+    ]
+  },
+  {
+    "slug": "sekke-bahar-azadi",
+    "name_fa": "سکه‌ی طلا (تمام بهار آزادی)",
+    "brand": "بانک مرکزی جمهوری اسلامی ایران",
+    "category": "other",
+    "unit_fa": "یک عدد",
+    "audience": ["adults", "elderly", "family"],
+    "era_tags": ["dahe-50", "dahe-60", "dahe-70", "dahe-80", "dahe-90"],
+    "story_fa": "شاخص‌ترین هدیه رسمی و پس‌انداز خانوار ایرانی با رشد شتابان تاریخی.",
+    "status": "in_production",
+    "prices": [
+      {
+        "year": 1357,
+        "rials": 4200,
+        "source_type": "official_list",
+        "source_note": "جدول رسمی قیمت سکه بانک مرکزی",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1365,
+        "rials": 65000,
+        "source_type": "official_list",
+        "source_note": "آرشیو قیمت طلا و سکه سال ۱۳۶۵",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1375,
+        "toman": 41200,
+        "source_type": "official_list",
+        "source_note": "گزارش تحولات اقتصادی بانک مرکزی",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1383,
+        "toman": 100000,
+        "source_type": "official_list",
+        "source_note": "آرشیو بازار طلا و صرافی‌های تهران",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1386,
+        "rials": 1906780,
+        "source_type": "official_list",
+        "source_note": "میانگین سالانه رسمی اتحادیه طلا و جواهر",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1392,
+        "rials": 10500000,
+        "source_type": "official_list",
+        "source_note": "آرشیو معاملات بازار طلا",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1400,
+        "rials": 111066000,
+        "source_type": "official_list",
+        "source_note": "نرخ رسمی اتحادیه طلا و جواهر فروردین ۱۴۰۰",
+        "confidence": 3,
+        "status": "approved"
+      }
+    ]
+  },
+  {
+    "slug": "dolar-usa",
+    "name_fa": "دلار آمریکا (بازار آزاد)",
+    "brand": "فدرال رزرو",
+    "category": "other",
+    "unit_fa": "یک دلار",
+    "audience": ["adults", "elderly", "family"],
+    "era_tags": ["dahe-50", "dahe-60", "dahe-70", "dahe-80", "dahe-90"],
+    "story_fa": "معیار اصلی سنجش ارزش پول ملی و تورم انتظاری در بازارها.",
+    "status": "in_production",
+    "prices": [
+      {
+        "year": 1357,
+        "toman": 7,
+        "source_type": "archive_newspaper",
+        "source_note": "آرشیو مطبوعات سال ۱۳۵۷",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1367,
+        "toman": 120,
+        "source_type": "archive_newspaper",
+        "source_note": "آرشیو روزنامه اطلاعات، پایان جنگ",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1375,
+        "toman": 440,
+        "source_type": "official_list",
+        "source_note": "گزارش رسمی بانک مرکزی سال ۱۳۷۵",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1385,
+        "toman": 920,
+        "source_type": "official_list",
+        "source_note": "میانگین نرخ بازار آزاد بانک مرکزی",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1395,
+        "toman": 3640,
+        "source_type": "official_list",
+        "source_note": "آرشیو سامانه سنا و بازار غیررسمی",
+        "confidence": 3,
+        "status": "approved"
+      },
+      {
+        "year": 1399,
+        "toman": 31000,
+        "source_type": "archive_newspaper",
+        "source_note": "گزارش تحلیلی بازار ارز مهر ۱۳۹۹",
+        "confidence": 3,
+        "status": "approved"
+      }
+    ]
+  }
+]
