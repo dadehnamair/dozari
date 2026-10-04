@@ -244,3 +244,24 @@ describe('privacy policy page', () => {
   });
 });
 
+
+describe('design pages: about, download, contact', () => {
+  it('are indexable pages with one h1, the five-link nav, canonical and a sitemap entry', async () => {
+    const app = buildLanding({ api: fakeApi(), siteUrl: 'https://mrdozari.ir' });
+    const map = (await app.inject({ method: 'GET', url: '/sitemap.xml' })).body;
+    for (const path of ['/about', '/download', '/contact']) {
+      const res = await app.inject({ method: 'GET', url: path });
+      expect(res.statusCode).toBe(200);
+      expect(res.body.match(/<h1[ >]/g)).toHaveLength(1);
+      expect(res.body).toContain(`<link rel="canonical" href="https://mrdozari.ir${path}">`);
+      expect(res.body).toContain(`<a href="${path}" aria-current="page">`);
+      expect(map).toContain(`<loc>https://mrdozari.ir${path}</loc>`);
+    }
+  });
+
+  it('contact lists the FAQ with FAQPage markup', async () => {
+    const html = (await buildLanding({ api: fakeApi(), siteUrl: 'https://mrdozari.ir' }).inject({ method: 'GET', url: '/contact' })).body;
+    expect(html).toContain('FAQPage');
+    expect(html).toContain('<details class="faq">');
+  });
+});
