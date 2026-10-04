@@ -5,7 +5,9 @@ import type { WheelPrize, WheelStatus } from '@dozari/shared';
 import { toPersianDigits } from '@dozari/shared';
 import { GradientFill } from '../components/GradientFill';
 import { Icon } from '../components/Icon';
+import { GuideBubble } from '../components/GuideBubble';
 import { Item } from '../components/Item';
+import { Scene } from '../components/Scene';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { fetchWheel, spinWheel } from './api';
@@ -57,6 +59,7 @@ export function WheelPage({ onClose }: { onClose: () => void }) {
   const [failed, setFailed] = useState(false);
   const [spinning, setSpinning] = useState(false);
   const [prize, setPrize] = useState<(WheelPrize & { duplicate?: boolean }) | null>(null);
+  const [tipAt, setTipAt] = useState(0);
   const turn = useRef(new Animated.Value(0)).current;
   const [dailyNote, setDailyNote] = useState(false);
   const raysTurn = useRef(new Animated.Value(0)).current;
@@ -119,7 +122,9 @@ export function WheelPage({ onClose }: { onClose: () => void }) {
 
   return (
     <View style={styles.root}>
-      <View style={styles.glow} pointerEvents="none"><GradientFill from="#7A2C9E" to="#2B1240" /></View>
+      {/* The bazaar paints the whole page; a plum shade keeps the wheel and the text readable over it. */}
+      <View style={styles.glow} pointerEvents="none"><Scene scene="bazaar" /></View>
+      <View style={[styles.glow, styles.shade]} pointerEvents="none" />
       <Animated.View style={[styles.rays, { transform: [{ rotate: raysRotate }] }]} pointerEvents="none">
         <Svg width={RAYS_SIZE} height={RAYS_SIZE} viewBox={`0 0 ${RAYS_SIZE} ${RAYS_SIZE}`}>
           {rays.map((d, i) => <Path key={i} d={d} fill="rgba(255,201,60,0.13)" />)}
@@ -170,6 +175,7 @@ export function WheelPage({ onClose }: { onClose: () => void }) {
         </View>
 
         <View style={styles.bottom}>
+          <Pressable onPress={() => setTipAt((x) => (x + 1) % t.tips.length)} accessibilityRole="button" style={styles.tip}><GuideBubble who="baqal" text={t.tips[tipAt] ?? ''} /></Pressable>
           <Text style={styles.noteLight}>{note}</Text>
           <Pressable onPress={() => void go()} disabled={!can} accessibilityRole="button" accessibilityLabel={t.spin} style={({ pressed }) => [styles.spin, !can ? styles.spinOff : null, pressed ? styles.pressed : null]}>
             <GradientFill from={can ? '#FF8FB6' : '#C9BBD9'} to={can ? '#D63A72' : '#9C8DB5'} />
@@ -211,6 +217,8 @@ const styles = StyleSheet.create({
   root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20, backgroundColor: '#40166A', overflow: 'hidden' },
   rays: { position: 'absolute', left: '50%', top: pageTop() + 46 + 70 + SIZE / 2 - RAYS_SIZE / 2, width: RAYS_SIZE, height: RAYS_SIZE, marginLeft: -RAYS_SIZE / 2 },
   glow: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+  shade: { backgroundColor: 'rgba(43,18,64,0.62)' },
+  tip: { alignSelf: 'stretch' },
   column: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingHorizontal: 12, paddingTop: pageTop(), alignItems: 'center' },
   head: { alignSelf: 'stretch', flexDirection: ROW, alignItems: 'center', gap: 8 },
   back: { width: 42, height: 42, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...lift(4) },
