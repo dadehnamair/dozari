@@ -90,7 +90,7 @@ Settings (admin → economy): `duel.entry_fee` 20, `duel.house_cut_percent` 10, 
   `WHEEL_SLICES_DEFAULT` (10 slices) and edited in the admin «گردونه‌ی شانس». A spin pays by kind: coins `wheel_spin` (coin ledger), gems `wheel_prize`
   (gem ledger), hint tokens into `user_inventory`, `wheel_spin` as new spin rows (`source = wheel`). `wheel_spins.prize_kind/prize_amount` record the result.
   No free spins by default: `wheel.daily_spins` = 0 and `wheel.win_spins` (a won human duel gives a spin) = off. Clothing/hats arrive with cosmetics.
-- **Cosmetics (D165)**: shop items with `effect = cosmetic` + `slot` (`hat|outfit|accessory`); bought once (409 `owned`), kept in `user_cosmetics`, worn via `POST /shop/:id/equip`
+- **Cosmetics (D165)**: shop items with `effect = cosmetic` + `slot` (`hat|outfit|accessory|hair|glasses`; D176); bought once (409 `owned`), kept in `user_cosmetics`, worn via `POST /shop/:id/equip`
   (one worn item per slot), listed by `GET /me/cosmetics`. Wheel kind `cosmetic` gives such an item (`wheel_prizes.item_id`); an owned one pays `wheel.cosmetic_dupe_coins`.
 - Numbers: `WHEEL_SLICES_DEFAULT` in `config/economy.ts` (expected ≈ 9 coins plus other kinds); admin settings `wheel.enabled`, `wheel.win_spins`
   and `wheel.prize_scale_percent` (scales coin prizes only). Needs the economy simulation before launch (faucet next to the 20-coin entry fee).

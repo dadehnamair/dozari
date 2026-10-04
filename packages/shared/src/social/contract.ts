@@ -89,6 +89,8 @@ export const playerProfileSchema = z.object({
   birthday: z.boolean().default(false),
   /** Whole years, only when the player ticked «سنم نمایش داده شود». */
   age: z.number().int().nonnegative().nullable().default(null),
+  /** Cosmetics they wear (hat, hair, glasses, clothes), drawn on their character. */
+  worn: z.array(z.object({ slot: z.string(), iconKey: z.string().nullable() })).default([]),
 });
 export type PlayerProfile = z.infer<typeof playerProfileSchema>;
 

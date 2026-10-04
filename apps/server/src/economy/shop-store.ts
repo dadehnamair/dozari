@@ -5,7 +5,7 @@ import { applyGemEntry } from './gems.js';
 import { applyLedgerEntry } from './ledger.js';
 
 export type ShopEffect = 'hint_token' | 'wheel_spin' | 'cosmetic';
-export type CosmeticSlot = 'hat' | 'outfit' | 'accessory';
+export type CosmeticSlot = 'hat' | 'outfit' | 'accessory' | 'hair' | 'glasses';
 
 export interface ShopItemRow {
   id: string;
@@ -72,6 +72,12 @@ export const DEFAULT_SHOP_ITEMS: readonly NewShopItem[] = [
   { titleFa: 'تاج دوزاری', descriptionFa: 'تاج مخصوص قهرمان‌ها.', effect: 'cosmetic', amount: 1, priceCoins: 0, currency: 'gems', priceGems: 20, minLevel: 5, perDayLimit: 0, slot: 'hat', priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'crown', isActive: true },
   { titleFa: 'پیراهن رنگی', descriptionFa: 'یک پیراهن شاد.', effect: 'cosmetic', amount: 1, priceCoins: 200, currency: 'coins', priceGems: 0, minLevel: 4, perDayLimit: 0, slot: 'outfit', priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'shirt', isActive: true },
   { titleFa: 'لباس مجلسی', descriptionFa: 'برای روزهای خاص.', effect: 'cosmetic', amount: 1, priceCoins: 0, currency: 'gems', priceGems: 30, minLevel: 8, perDayLimit: 0, slot: 'outfit', priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'dress', isActive: true },
+  { titleFa: 'کلاه بافتنی', descriptionFa: 'برای روزهای سرد بازار.', effect: 'cosmetic', amount: 1, priceCoins: 100, currency: 'coins', priceGems: 0, minLevel: 2, perDayLimit: 0, slot: 'hat', priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'beanie', isActive: true },
+  { titleFa: 'موی بلند', descriptionFa: 'یک مدل موی بلند و قهوه‌ای.', effect: 'cosmetic', amount: 1, priceCoins: 180, currency: 'coins', priceGems: 0, minLevel: 3, perDayLimit: 0, slot: 'hair', priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'hairLong', isActive: true },
+  { titleFa: 'موی فرفری', descriptionFa: 'فرهای پرپشت و شاد.', effect: 'cosmetic', amount: 1, priceCoins: 180, currency: 'coins', priceGems: 0, minLevel: 3, perDayLimit: 0, slot: 'hair', priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'hairCurly', isActive: true },
+  { titleFa: 'موی بسته', descriptionFa: 'موی جمع‌شده با گیس گوجه‌ای.', effect: 'cosmetic', amount: 1, priceCoins: 0, currency: 'gems', priceGems: 15, minLevel: 6, perDayLimit: 0, slot: 'hair', priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'hairBun', isActive: true },
+  { titleFa: 'عینک گرد', descriptionFa: 'یک عینک گرد و باوقار.', effect: 'cosmetic', amount: 1, priceCoins: 130, currency: 'coins', priceGems: 0, minLevel: 2, perDayLimit: 0, slot: 'glasses', priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'glassesRound', isActive: true },
+  { titleFa: 'عینک آفتابی', descriptionFa: 'برای بازیکن‌های خوش‌استایل.', effect: 'cosmetic', amount: 1, priceCoins: 0, currency: 'gems', priceGems: 12, minLevel: 4, perDayLimit: 0, slot: 'glasses', priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'glassesSun', isActive: true },
   { titleFa: 'شال گردن', descriptionFa: 'گرم و نوستالژیک.', effect: 'cosmetic', amount: 1, priceCoins: 120, currency: 'coins', priceGems: 0, minLevel: 3, perDayLimit: 0, slot: 'accessory', priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'scarf', isActive: true },
 ];
 
