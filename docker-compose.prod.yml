@@ -137,16 +137,17 @@ services:
 
   # Landing site (mrdozari.ir): server-rendered pages and blog, content managed in the game's admin panel (D173). No database of its own:
   # it reads the game server over the compose network. Loopback only; the host's reverse proxy forwards LANDING_DOMAIN here.
-  landing:
+  s-dozari-landing:
+    container_name: c-dozari-landing
     build:
       context: .
       dockerfile: deploy/Dockerfile.landing
     restart: unless-stopped
     depends_on:
-      - server
+      - s-dozari-server
     environment:
       PORT: 3100
-      API_URL: http://server:3000
+      API_URL: http://s-dozari-server:3000
       SITE_URL: https://${LANDING_DOMAIN:-mrdozari.ir}
     ports:
       - '${LANDING_PORT:-8083}:3100'
