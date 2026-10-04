@@ -126,9 +126,6 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   useEffect(() => {
     if (foundId && stage === 'queue') setIntroUntil(Date.now() + INTRO_MS);
   }, [foundId, stage]);
-  useEffect(() => {
-    if (state.phase === 'ended' && state.ended && state.view) playSfx(myOutcome(state.ended, state.view.you) === 'won' ? 'win' : 'lose');
-  }, [state.phase, state.ended, state.view]);
   // A win earns a wheel spin; the server records it just after the result, so ask once shortly after and once more later.
   const wonMatch = state.phase === 'ended' && state.ended && state.view ? myOutcome(state.ended, state.view.you) === 'won' : false;
   useEffect(() => {
@@ -146,6 +143,36 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
     const id = setTimeout(() => setLeaveArmed(false), LEAVE_ARM_MS);
     return () => clearTimeout(id);
   }, [leaveArmed]);
+
+  // When the board is won by finding groups, the last cards light up one by one and the rows stay visible for a moment before the result.
+  const [finaleFor, setFinaleFor] = useState<string | null>(null);
+  const finalePending = state.phase === 'ended' && state.ended?.result.reason === 'solved' && !!state.view && !prefs.reduceMotion && finaleFor !== (foundId ?? '');
+  useEffect(() => {
+    if (!finalePending || !state.view) return undefined;
+    let alive = true;
+    const rest = state.view.cards.map((c) => c.id);
+    const run = async () => {
+      const pause = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+      await pause(450);
+      for (const id of rest) {
+        if (!alive) return;
+        setSelected((cur) => [...cur, id]);
+        playSfx('select');
+        await pause(280);
+      }
+      await pause(rest.length ? 1400 : 1800);
+      if (alive) setFinaleFor(foundId ?? '');
+    };
+    void run();
+    return () => {
+      alive = false;
+    };
+    // The script runs once per finished match.
+  }, [finalePending, foundId]);
+
+  useEffect(() => {
+    if (state.phase === 'ended' && state.ended && state.view && !finalePending) playSfx(myOutcome(state.ended, state.view.you) === 'won' ? 'win' : 'lose');
+  }, [state.phase, state.ended, state.view, finalePending]);
 
   const again = () => {
     dispatch({ t: 'reset' });
@@ -220,7 +247,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
     { name: rivalName, who: rivalWho, groups: groupsBy(view, them), me: false },
   ];
 
-  if (state.phase === 'ended' && state.ended) {
+  if (state.phase === 'ended' && state.ended && !finalePending) {
     const outcome = myOutcome(state.ended, me);
     const scores = state.ended.scores;
     return (
