@@ -929,7 +929,7 @@ export const fa = {
     takeOffAll: 'همه را دربیار',
     pick: 'یک مورد را بزن تا امتحان کنی',
     empty: 'برای این بخش هنوز چیزی نیست؛ به‌زودی می‌آید!',
-    slots: { hat: 'کلاه', hair: 'مو', glasses: 'عینک', outfit: 'لباس', accessory: 'زیورآلات' } as Record<string, string>,
+    slots: { hat: 'کلاه', hair: 'مو', glasses: 'عینک', makeup: 'آرایش', outfit: 'لباس', accessory: 'زیورآلات' } as Record<string, string>,
     error: 'نتوانستیم اتاق پرو را باز کنیم.',
     tryHint: 'در حال امتحان',
   },

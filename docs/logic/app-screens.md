@@ -191,7 +191,7 @@ ends in the «مال خودت شد!» card.
 
 «اتاق پرو», a left-column Home tile (shirt icon, shown with the shop flag), after the idea of `21 Cosmetic Packs`:
 the player's own character (`heroFor(gender)`) on a warm stage, the coin / gem counts, a row of what is worn
-(tap a chip to take it off in the preview, «همه را دربیار» for the real thing), one tab per slot (کلاه، مو، عینک،
+(tap a chip to take it off in the preview, «همه را دربیار» for the real thing), one tab per slot (کلاه، مو، عینک، آرایش،
 لباس، زیورآلات) and a shelf of cards. Tapping a card **tries it on for free** (tapping again bares the slot; «برگردان»
 drops all tries). The bottom button then does what the item allows: «بپوش» / «دربیار» for an owned item, the price
 (coins or gems) to buy-and-wear, «رایگان · بپوش» for a 0 price, the toman price (Bale invoice) when real money is on,

@@ -8,6 +8,9 @@ export const BUILT_IN_WEAR_SLOT_OF: Readonly<Record<string, CosmeticSlot>> = {
   glassesRound: 'glasses', glassesSun: 'glasses',
   shirt: 'outfit', dress: 'outfit',
   scarf: 'accessory',
+  // Makeup (code-drawn, apps/mobile/src/theme/makeup-data.ts)
+  blush: 'makeup', lipPink: 'makeup', lipRed: 'makeup', lipPlum: 'makeup', mole: 'makeup', shadowPurple: 'makeup', shadowGold: 'makeup',
+  liner: 'makeup', hearts: 'makeup', stars: 'makeup', glitter: 'makeup', tiger: 'makeup', glam: 'makeup',
 };
 
 /**

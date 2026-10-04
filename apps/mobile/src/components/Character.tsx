@@ -55,6 +55,7 @@ export function Character({
   const glassesK = wornIn(worn, 'glasses');
   const outfitK = wornIn(worn, 'outfit');
   const scarfK = wornIn(worn, 'accessory');
+  const makeupK = wornIn(worn, 'makeup');
   const reduce = usePrefs().reduceMotion;
   const on = !reduce && (anim ?? crop === 'full');
   const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
@@ -111,7 +112,7 @@ export function Character({
           {L.full ? <BodyArt L={L} pid={pid} on={on} up={up} delay={delay} outfitK={outfitK} scarfK={scarfK} /> : null}
           <Motion part="head" on={on} delay={delay}>
             <HeadArt L={L} on={on} hairK={hairK} hatK={hatK} />
-            <FaceArt L={L} on={on} delay={delay} glassesK={glassesK} />
+            <FaceArt L={L} on={on} delay={delay} glassesK={glassesK} makeupK={makeupK} />
           </Motion>
           {L.full ? <FrontArm L={L} on={on} up={up} /> : null}
           <ExtrasArt L={L} />

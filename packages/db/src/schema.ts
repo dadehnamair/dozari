@@ -16,7 +16,7 @@ import {
   uniqueIndex,
   varchar,
 } from 'drizzle-orm/mysql-core';
-import { COSMETIC_SLOTS } from '@dozari/shared';
+import { COSMETIC_SLOTS } from '@dozari/shared/src/economy/slots';
 import { uuidv7 } from 'uuidv7';
 
 /**

@@ -26,7 +26,7 @@ Everything up to PR #129 is merged to `main` and green. No half-finished branch.
 **D. Not built**: worn items on leaderboard/friend/chat avatars (needs `worn` in those lists); admin age-band stats + exact birth date in the admin user sheet; UGC photo upload, outlier guard, Home card; admin number-input grouping.
 
 ## Owner's side
-DNS/proxy `mrdozari.ir` -> 127.0.0.1:8083 and `2oi.ir` -> 127.0.0.1:3000 (keep Host); `link.android_app` / `link.app_url`; run the Android APK workflow; SEO/GEO sheet, real OG PNG + font; Bale token, store receipt verifier, `feature.coin_packages`; real clothing art; decision on PR #92. Deploy runs `migrate` (up to 0053).
+DNS/proxy `mrdozari.ir` -> 127.0.0.1:8083 and `2oi.ir` -> 127.0.0.1:3000 (keep Host); `link.android_app` / `link.app_url`; run the Android APK workflow; SEO/GEO sheet, real OG PNG + font; Bale token, store receipt verifier, `feature.coin_packages`; real clothing art; decision on PR #92. Deploy runs `migrate` (up to 0054: the makeup slot).
 
 ## Not verified
 Real phone, live MySQL, Bale, Docker. Only typecheck/lint/tests (landing 11, shared 284, db 24, mobile 154, server 352) and one headless-Chromium look at the wearables.

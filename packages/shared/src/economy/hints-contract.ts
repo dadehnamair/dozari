@@ -36,8 +36,9 @@ export type SoloHintResult = z.infer<typeof soloHintResultSchema>;
 /** `GET /shop`: items a player can buy with coins (docs/logic/shop.md). */
 /** `hint_token` adds hint tokens; `wheel_spin` adds lucky-wheel spins (one row per spin in `wheel_spins`). */
 export const SHOP_EFFECTS = ['hint_token', 'wheel_spin', 'cosmetic'] as const;
-export const COSMETIC_SLOTS = ['hat', 'outfit', 'accessory', 'hair', 'glasses'] as const;
-export type CosmeticSlot = (typeof COSMETIC_SLOTS)[number];
+import { COSMETIC_SLOTS } from './slots.js';
+export { COSMETIC_SLOTS };
+export type { CosmeticSlot } from './slots.js';
 export const shopEffectSchema = z.enum(SHOP_EFFECTS);
 
 export const shopItemSchema = z.object({
