@@ -37,3 +37,12 @@ Files starting with `_` are ignored (use them for drafts).
 3. Add one shop row (admin panel, «حجره / بازار») with effect `cosmetic`, the same slot, and `iconKey` = the file's key.
 
 `pnpm --filter @dozari/mobile wear:check` fails when the generated files are stale (CI runs it).
+
+## Already drawn (27, in this folder)
+
+hat: bandana, cap, chef, cowboy, fez, partyHat, topHat, wizard · hair: hairAfro, hairBob, hairMohawk, hairPonytail, hairSpiky ·
+glasses: glassesHeart, glassesNerd, glassesStar, monocle · outfit: apron, ghaba, hoodie, sportShirt, suit, tshirt ·
+accessory: bowtie, cape, medal, necklace. Each has a default shop row (`DEFAULT_SHOP_ITEMS`, inserted by title on first use)
+with a proposed price: change price, currency (coins / gems / free / toman) and level in the admin panel. The older
+built-ins (shapoo, crown, beanie, hairLong, hairCurly, hairBun, glassesRound, glassesSun, shirt, dress, scarf) are coded in
+`wearArt.tsx`; drop a file with the same key to redraw one.
