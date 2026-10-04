@@ -97,7 +97,7 @@ export function AnimatedLogo({ width = 270, onDone }: { width?: number; onDone?:
       {SPARKS.map((s, i) => <Spark key={i} spec={s} width={width} on={on} />)}
       <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ scaleX: popScaleX }, { scaleY: popScaleY }, { rotate: popRotate }] }]}>
         <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ rotate: wobRotate }, { scale: wobScale }] }]}>
-          <Svg width={width} height={width * AR} viewBox="-90 0 700 220" style={{ overflow: 'visible' }}>
+          <Svg width={width} height={width * AR} viewBox="-118 0 700 220" style={{ overflow: 'visible' }}>
             <Defs>
               <LinearGradient id={`${gid}g`} x1="0" y1="0" x2="0" y2="1">
                 <Stop offset="0" stopColor="#FFF6A8" />
@@ -111,7 +111,7 @@ export function AnimatedLogo({ width = 270, onDone }: { width?: number; onDone?:
           </Svg>
         </Animated.View>
       </Animated.View>
-      <Animated.View pointerEvents="none" style={{ position: 'absolute', left: -0.03 * width, top: 0.02 * width * AR, width: coin, height: coin, opacity: dropOpacity, transform: [{ translateY: dropY }, { rotate: dropRot }, { scaleX: dropSX }, { scaleY: dropSY }] }}>
+      <Animated.View pointerEvents="none" style={{ position: 'absolute', left: 0.01 * width, top: 0.02 * width * AR, width: coin, height: coin, opacity: dropOpacity, transform: [{ translateY: dropY }, { rotate: dropRot }, { scaleX: dropSX }, { scaleY: dropSY }] }}>
         <Item icon="coin" />
       </Animated.View>
     </View>
