@@ -599,3 +599,5 @@ The owner-approved bonus round (D-series 2026-09-27) is now built for live 1v1 d
 switches it on and has seen it on a device. The puzzle winner stands; the rounds only break a tie and give a locked-out side a small bonus (rules already in
 shared). The per-round coin wager is built too, behind its own setting `duel.price_wager` (0 = off, queue duels only, 2–5 coins proposed): owner picks the number after checking the economy simulator, which does not model it yet. 2v2 keeps the
 puzzle-only ending until the captain-pooled guess is designed. Details: `docs/logic/price-guess-round.md` §As built.
+
+- **D198 — Terms page.** The landing site serves `/terms` (قوانین و شرایط) next to `/privacy`: conduct, chat, in-game-only coins, suggestions, bans, liability. In the sitemap and footer. Plain-language draft, not legal advice: the owner should read it before the store review.

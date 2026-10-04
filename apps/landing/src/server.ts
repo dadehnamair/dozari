@@ -3,7 +3,7 @@ import Fastify from 'fastify';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import type { ContentApi, LandingData, Post, PostSummary } from './api.js';
 import { llmsFull, llmsTxt, ogCard, robots, sitemap } from './discovery.js';
-import { aboutPage, blogIndexPage, castPage, contactPage, downloadPage, homePage, notFoundPage, postPage, privacyPage, unavailablePage } from './pages.js';
+import { aboutPage, blogIndexPage, castPage, contactPage, downloadPage, homePage, notFoundPage, postPage, privacyPage, termsPage, unavailablePage } from './pages.js';
 import type { Site } from './seo.js';
 
 export interface LandingOptions {
@@ -110,6 +110,7 @@ export function buildLanding(opts: LandingOptions): FastifyInstance {
     return send(reply, 200, contactPage(siteOf(data, opts.siteUrl), data.faq));
   });
 
+  app.get('/terms', async (_req, reply) => send(reply, 200, termsPage(siteOf(await api.landing(), opts.siteUrl))));
   app.get('/privacy', async (_req, reply) => send(reply, 200, privacyPage(siteOf(await api.landing(), opts.siteUrl))));
 
   app.get('/sitemap.xml', async (_req, reply) => {

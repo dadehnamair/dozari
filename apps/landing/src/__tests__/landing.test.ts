@@ -303,3 +303,15 @@ describe('self-hosted fonts', () => {
     expect((await app.inject({ method: 'GET', url: '/contact' })).body).not.toContain('action="mailto:');
   });
 });
+
+describe('terms page', () => {
+  it('is a real indexable page with one h1, listed in the sitemap and linked from the footer', async () => {
+    const app = buildLanding({ api: fakeApi(), siteUrl: 'https://mrdozari.ir' });
+    const res = await app.inject({ method: 'GET', url: '/terms' });
+    expect(res.statusCode).toBe(200);
+    expect(res.body.match(/<h1>/g)).toHaveLength(1);
+    expect(res.body).toContain('<link rel="canonical" href="https://mrdozari.ir/terms">');
+    expect((await app.inject({ method: 'GET', url: '/sitemap.xml' })).body).toContain('<loc>https://mrdozari.ir/terms</loc>');
+    expect((await app.inject({ method: 'GET', url: '/' })).body).toContain('<a href="/terms">قوانین و شرایط</a>');
+  });
+});

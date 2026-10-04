@@ -218,7 +218,7 @@ ${content}
 <div class="fgrid">
 <div><div class="brandname">${escapeHtml(site.name)}</div><p>${escapeHtml(site.tagline)}</p></div>
 <div><h2 style="color:var(--sky)">صفحه‌ها</h2><ul><li><a href="/">خانه</a></li><li><a href="/about">درباره ما</a></li><li><a href="/blog">وبلاگ</a></li><li><a href="/cast">آدم‌های بازار</a></li><li><a href="/download">دانلود</a></li><li><a href="/contact">تماس و سوالات</a></li></ul></div>
-<div><h2 style="color:var(--lime)">قوانین</h2><ul><li><a href="/privacy">حریم خصوصی</a></li></ul></div>
+<div><h2 style="color:var(--lime)">قوانین</h2><ul><li><a href="/terms">قوانین و شرایط</a></li><li><a href="/privacy">حریم خصوصی</a></li></ul></div>
 <div><h2 style="color:var(--orange)">ما را دنبال کنید</h2><div class="social">${social.map((s) => `<a href="${escapeHtml(s.u)}" rel="noopener me" style="background:${s.c[0]};color:${s.c[1]}">${escapeHtml(s.label)}</a>`).join('')}${site.contactEmail ? `<a href="mailto:${escapeHtml(site.contactEmail)}" style="background:#FFF6E8;color:#2B1240">ایمیل</a>` : ''}</div></div>
 </div>
 <div class="legal"><span>© ${escapeHtml(year)} ${escapeHtml(site.name)} · همهٔ حقوق محفوظ است</span><span class="ltr">${escapeHtml(site.url.replace(/^https?:\/\//, ''))}</span></div>
@@ -501,6 +501,48 @@ export function privacyPage(site: Site): string {
 <p>${contact}</p>
 <p class="meta">این متن ممکن است با تغییر بازی به‌روز شود؛ تاریخ آخرین بازبینی نسخه‌ی سایت، همین صفحه است.</p>`;
   return layout(site, head(site, { title, description: desc, path: '/privacy', nodes, crumbs }), crumbs, body);
+}
+
+/** The terms of use (store listings ask for it next to the privacy policy). Plain rules that match how the game really works. */
+export function termsPage(site: Site): string {
+  const title = `قوانین و شرایط استفاده از ${site.name}`;
+  const desc = description(`قاعده‌های بازی ${site.name}: رفتار در بازی و گفت‌وگو، سکه‌ها و جایزه‌ها، حساب کاربری و پیشنهاد کالا.`);
+  const crumbs: Crumb[] = [{ name: 'صفحه‌ی اول', path: '/' }, { name: 'قوانین' }];
+  const n = escapeHtml(site.name);
+  const contact = site.contactEmail ? `از راه ایمیل <a href="mailto:${escapeHtml(site.contactEmail)}">${escapeHtml(site.contactEmail)}</a> با ما در تماس باش.` : 'از راه بخش پیام‌های برنامه یا کانال رسمی بازی با ما در تماس باش.';
+  const nodes: Record<string, unknown>[] = [{ '@type': 'WebPage', '@id': `${site.url}/terms#webpage`, url: absolute(site, '/terms'), name: title, description: desc, inLanguage: 'fa-IR', isPartOf: { '@id': ids(site).site } }];
+  const body = `<h1>${escapeHtml(title)}</h1>
+<p>با نصب و استفاده از ${n} این قاعده‌ها را می‌پذیری. کوتاه و ساده نوشته‌ایم تا همه بخوانند. حریم خصوصی را در <a href="/privacy">صفحه‌ی جدا</a> توضیح داده‌ایم.</p>
+<h2>بازی و حساب کاربری</h2>
+<ul>
+<li>بازی برای سرگرمی است و با قیمت‌های تاریخی و اسمی کار می‌کند؛ این قیمت‌ها توصیه‌ی مالی یا آمار رسمی نیستند.</li>
+<li>هر نفر یک حساب داشته باشد. حساب و کد دعوتت را به نام خودت نگه دار و با دیگران عوض نکن.</li>
+<li>اگر زیر ۱۸ سال داری، با اطلاع خانواده از بازی استفاده کن.</li>
+</ul>
+<h2>رفتار در بازی و گفت‌وگو</h2>
+<ul>
+<li>به بازیکن‌های دیگر احترام بگذار. توهین، تهدید، آزار، محتوای نامناسب، تبلیغ و درخواست اطلاعات شخصی ممنوع است.</li>
+<li>نام مستعار و آواتار نباید توهین‌آمیز یا تقلید از دیگران باشد.</li>
+<li>تقلب، استفاده از ربات یا ابزار خودکار، سوءاستفاده از اشکال بازی و ساختن چند حساب برای گرفتن جایزه ممنوع است.</li>
+<li>گفت‌وگوی آزاد فقط برای کسانی باز است که کد دعوت را وارد کرده‌اند؛ بقیه پیام‌های آماده می‌فرستند. می‌توانی هر بازیکنی را گزارش یا مسدود کنی.</li>
+</ul>
+<h2>سکه‌ها، جایزه‌ها و خرید</h2>
+<ul>
+<li>سکه‌ها و جایزه‌ها فقط داخل بازی ارزش دارند. به پول نقد تبدیل نمی‌شوند و قابل انتقال یا فروش بیرون از بازی نیستند.</li>
+<li>سکه و پیشرفتِ ثبت‌شده در سرور ملاک است؛ اگر اشکالی باعث دریافت اشتباه شود، حق اصلاح آن را داریم.</li>
+<li>خریدهای درون‌برنامه (در صورت وجود) از راه مارکت یا درگاه انجام می‌شود و قوانین همان سرویس هم برای آن‌ها صدق می‌کند.</li>
+</ul>
+<h2>کالا و قیمتی که پیشنهاد می‌دهی</h2>
+<p>با فرستادن پیشنهاد، اجازه می‌دهی ما آن را بررسی، ویرایش و در بازی استفاده کنیم. فقط اطلاعاتی بفرست که حق انتشارش را داری. ممکن است پیشنهادی را رد کنیم.</p>
+<h2>محدودیت و حذف حساب</h2>
+<p>برای محافظت از بازی و بازیکن‌ها می‌توانیم گفت‌وگو را ببندیم، جایزه را برگردانیم یا حساب را موقت یا همیشگی مسدود کنیم. هر وقت خواستی می‌توانی حسابت را از «تنظیمات» برنامه حذف کنی.</p>
+<h2>مسئولیت</h2>
+<p>سعی می‌کنیم بازی همیشه بالا باشد، اما ممکن است قطعی، به‌روزرسانی یا اشکال پیش بیاید و تضمین بی‌وقفه بودن نمی‌دهیم. نام‌ها و تصویر کالاها فقط برای شناسایی نوستالژیک آورده شده و مالکیت برندها با صاحبانشان است. شخصیت‌ها، نوشته‌ها و طراحی ${n} مال ما هستند.</p>
+<h2>تغییر قوانین</h2>
+<p>ممکن است با رشد بازی این متن تغییر کند. ادامه‌ی استفاده یعنی پذیرفتن نسخه‌ی تازه.</p>
+<h2>تماس</h2>
+<p>${contact}</p>`;
+  return layout(site, head(site, { title, description: desc, path: '/terms', nodes, crumbs }), crumbs, body);
 }
 
 export function notFoundPage(site: Site): string {
