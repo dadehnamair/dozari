@@ -546,3 +546,9 @@ Owner: the suggestion / «price is wrong» card scrolled without showing it, and
 
 Owner: the hub without the bottom drawer looked worse; tapping an icon should open that building's menu. The change of #128 («the hub opens modes directly») is undone: a tap always raises the drawer (host, description, «ورود» / «به‌زودی», close), as `docs/logic/app-screens.md` §City hub always said. Entering is the drawer's button.
 
+## D186 — Age in the profile and the admin (2026-10-04)
+
+Owner: age was not handled in the profile. The birth date, the age tick and the birthday week were already built (D160); what was missing is now added: the own profile shows the age; the admin user sheet shows age (owner role: also the exact date); the dashboard shows age-band counts. Rules unchanged: age is derived, others see it only with the tick, the date never leaves the owner view.
+
+Also in this commit: the new seed file `products-2026-10-04-01.json` made `db` tests fail (nan-sangak 1359 = 26 rials, then 15 rials in 1364: a 42% nominal drop, with the 1359 note saying «بر حسب وزن»). That point is set to `pending` with a note until someone checks the unit; the rest of the file is untouched.
+

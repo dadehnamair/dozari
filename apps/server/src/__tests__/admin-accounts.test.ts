@@ -5,6 +5,7 @@ import { createMemoryAdminStore } from '../admin/accounts/store.js';
 import { hashPassword, passwordProblem, verifyPassword } from '../admin/accounts/password.js';
 import { can, permissionFor } from '../admin/accounts/permissions.js';
 import { createMemoryAuditLog } from '../admin/audit.js';
+import type { UsersAdmin } from '../admin/users.js';
 
 const LEGACY = 'legacy-admin-token-0123456789';
 const PW = 'correct horse battery';
@@ -53,14 +54,14 @@ describe('role permissions', () => {
   });
 });
 
-function boot() {
+function boot(users?: UsersAdmin) {
   let t = 1_700_000_000_000;
   const store = createMemoryAdminStore();
   const accounts = new AdminAccounts(store, 'a-test-secret-that-is-long-enough', LEGACY, () => t);
   const audit = createMemoryAuditLog();
   const app = buildServer({
     admin: { repo: { listCatalog: async () => [], setPriceStatus: async () => 'ok' }, token: LEGACY, accounts },
-    adminModules: { audit, users: undefined },
+    adminModules: { audit, users },
   });
   const legacy = { 'x-admin-token': LEGACY };
   const login = async (username: string, password = PW) => app.inject({ method: 'POST', url: '/admin/login', payload: { username, password } });
@@ -152,3 +153,18 @@ describe('admin accounts over HTTP', () => {
     expect((await fresh.app.inject({ method: 'GET', url: '/admin/me', headers: { 'x-admin-token': 'aaa.bbb.ccc' } })).statusCode).toBe(401);
   });
 });
+
+describe('birth date privacy in the user sheet', () => {
+  const ID = '0190a000-0000-7000-8000-000000000042';
+  const users = { detail: async (id: string) => (id === ID ? { id, nickname: 'n', avatarKey: 'avatar-01', isBanned: false, balance: 0, createdAt: 1, lastSeenAt: 2, gender: null, banReason: null, bannedAt: null, friends: 0, age: 24, birth: { year: 1381, month: 5, day: 9 }, baleLinked: false, notes: [] } : null) } as unknown as UsersAdmin;
+
+  it('shows the age to support and the exact date only to the owner', async () => {
+    const { app, make, tokenOf, legacy } = boot(users);
+    await make('sam', 'support');
+    const asSupport = (await app.inject({ method: 'GET', url: `/admin/users/${ID}`, headers: await tokenOf('sam') })).json();
+    expect(asSupport).toMatchObject({ age: 24, birth: null });
+    const asOwner = (await app.inject({ method: 'GET', url: `/admin/users/${ID}`, headers: legacy })).json();
+    expect(asOwner).toMatchObject({ age: 24, birth: { year: 1381, month: 5, day: 9 } });
+  });
+});
+

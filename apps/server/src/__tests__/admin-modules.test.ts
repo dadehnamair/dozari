@@ -135,7 +135,7 @@ describe('admin modules', () => {
     const audit = createMemoryAuditLog();
     const users: UsersAdmin = {
       list: async (q, limit, opts) => (calls.push(['list', q, limit, opts]), []),
-      detail: async (id) => (id === ID ? { id, nickname: 'n', avatarKey: 'avatar-01', isBanned: false, balance: 5, createdAt: 1, lastSeenAt: 2, gender: 'female', banReason: null, bannedAt: null, friends: 2, baleLinked: true, notes: [] } : null),
+      detail: async (id) => (id === ID ? { id, nickname: 'n', avatarKey: 'avatar-01', isBanned: false, balance: 5, createdAt: 1, lastSeenAt: 2, gender: 'female', banReason: null, bannedAt: null, friends: 2, age: 24, birth: { year: 1381, month: 5, day: 9 }, baleLinked: true, notes: [] } : null),
       ledger: async () => [],
       setBanned: async (id, banned, reason) => (calls.push(['ban', id, banned, reason]), 'ok'),
       logoutEverywhere: async (id) => (calls.push(['logout', id]), 'ok'),
@@ -146,7 +146,7 @@ describe('admin modules', () => {
       adjustGems: async () => ({ balance: 1 }),
     };
     const app = buildServer({ settings, admin: { repo: { listCatalog: async () => [], setPriceStatus: async () => 'ok' }, token: TOKEN }, adminModules: { users, audit } });
-    expect((await app.inject({ method: 'GET', url: `/admin/users/${ID}`, headers: h })).json()).toMatchObject({ friends: 2, baleLinked: true, gender: 'female' });
+    expect((await app.inject({ method: 'GET', url: `/admin/users/${ID}`, headers: h })).json()).toMatchObject({ friends: 2, baleLinked: true, gender: 'female', age: 24, birth: { year: 1381, month: 5, day: 9 } });
     expect((await app.inject({ method: 'GET', url: '/admin/users/0190a000-0000-7000-8000-0000000000ff', headers: h })).statusCode).toBe(404);
     await app.inject({ method: 'GET', url: '/admin/users?q=ali&filter=banned&sort=coins&offset=50', headers: h });
     expect(calls[0]).toEqual(['list', 'ali', 50, { filter: 'banned', sort: 'coins', offset: 50 }]);

@@ -159,6 +159,11 @@ An optional field set from «پروفایل من», next to gender and city. Pol
 - **Privacy:** the date is personal data; the admin user sheet shows age only, the exact date only to the owner role; deleting
   the field clears it. Never put it in logs, share cards or socket payloads.
 
+**Age everywhere it is allowed (D186):** the own profile page shows «۲۴ ساله» next to the skill rank and the city, always (the tick only decides what *others*
+see); the admin user sheet shows the age to every role and the exact Solar Hijri date to the **owner role only** (the route blanks `birth` for other
+roles); the admin dashboard has a «سن بازیکن‌ها» card with counts per band 10–17 / 18–24 / 25–34 / 35–44 / 45+ and how many gave no date (`AGE_BANDS`,
+`ageBandCounts` in `shared/calendar/birthday.ts`; grouped by birth date in SQL, aggregate only, never per player).
+
 Open for the owner: the size of the birthday gift per year can change in the admin panel at any time.
 
 ## Province/city (D53)

@@ -223,7 +223,10 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     g.get('/admin/users/:id', async (req, reply) => {
       const p = idParam.safeParse(req.params);
       if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
-      return (await users.detail(p.data.id)) ?? reply.code(404).send({ error: 'user_not_found' });
+      const detail = await users.detail(p.data.id);
+      if (!detail) return reply.code(404).send({ error: 'user_not_found' });
+      // Privacy (profile-and-identity.md): age for everyone with access, the exact birth date for the owner only.
+      return req.adminActor?.role === 'owner' ? detail : { ...detail, birth: null };
     });
     g.get('/admin/users/:id/ledger', async (req, reply) => {
       const p = idParam.safeParse(req.params);
