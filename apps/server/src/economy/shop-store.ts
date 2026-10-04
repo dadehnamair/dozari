@@ -1,11 +1,11 @@
 import { and, asc, eq, gte, ne, shopItems, shopPurchases, shopRealPurchases, sql, userBalances, userCosmetics, userGems, userInventory, wheelSpins } from '@dozari/db';
 import type { Db } from '@dozari/db';
+import type { CosmeticSlot } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
 import { applyGemEntry } from './gems.js';
 import { applyLedgerEntry } from './ledger.js';
 
 export type ShopEffect = 'hint_token' | 'wheel_spin' | 'cosmetic';
-export type CosmeticSlot = 'hat' | 'outfit' | 'accessory' | 'hair' | 'glasses';
 
 export interface ShopItemRow {
   id: string;
@@ -68,7 +68,7 @@ export const DEFAULT_SHOP_ITEMS: readonly NewShopItem[] = [
   { titleFa: 'یک چرخش گردونه', descriptionFa: 'یک بار گردونه‌ی شانس را بچرخان؛ شاید سکه‌ی بیشتری برگردد!', effect: 'wheel_spin', amount: 1, priceCoins: 25, currency: 'coins', priceGems: 0, minLevel: 3, perDayLimit: 0, slot: null, priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'dice', isActive: true },
   { titleFa: 'بسته‌ی پنج چرخش گردونه', descriptionFa: 'پنج چرخش گردونه با تخفیف.', effect: 'wheel_spin', amount: 5, priceCoins: 100, currency: 'coins', priceGems: 0, minLevel: 5, perDayLimit: 3, slot: null, priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'gift', isActive: true },
   // Hats and clothing (cosmetics, D165): bought once, worn on the avatar. Prices in coins unless noted; the admin edits all of it.
-  { titleFa: 'کلاه شاپو', descriptionFa: 'یک کلاه شاپوی شیک برای آواتارت.', effect: 'cosmetic', amount: 1, priceCoins: 150, currency: 'coins', priceGems: 0, minLevel: 3, perDayLimit: 0, slot: 'hat', priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'hat', isActive: true },
+  { titleFa: 'کلاه شاپو', descriptionFa: 'یک کلاه شاپوی شیک برای آواتارت.', effect: 'cosmetic', amount: 1, priceCoins: 150, currency: 'coins', priceGems: 0, minLevel: 3, perDayLimit: 0, slot: 'hat', priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'shapoo', isActive: true },
   { titleFa: 'تاج دوزاری', descriptionFa: 'تاج مخصوص قهرمان‌ها.', effect: 'cosmetic', amount: 1, priceCoins: 0, currency: 'gems', priceGems: 20, minLevel: 5, perDayLimit: 0, slot: 'hat', priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'crown', isActive: true },
   { titleFa: 'پیراهن رنگی', descriptionFa: 'یک پیراهن شاد.', effect: 'cosmetic', amount: 1, priceCoins: 200, currency: 'coins', priceGems: 0, minLevel: 4, perDayLimit: 0, slot: 'outfit', priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'shirt', isActive: true },
   { titleFa: 'لباس مجلسی', descriptionFa: 'برای روزهای خاص.', effect: 'cosmetic', amount: 1, priceCoins: 0, currency: 'gems', priceGems: 30, minLevel: 8, perDayLimit: 0, slot: 'outfit', priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'dress', isActive: true },

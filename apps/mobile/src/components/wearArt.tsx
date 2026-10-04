@@ -1,24 +1,14 @@
+import { isWearKey, WEAR_SLOT_OF, wearKey } from '@dozari/shared';
+import type { CosmeticSlot } from '@dozari/shared';
+export { isWearKey, WEAR_SLOT_OF, wearKey };
 import { G, Circle, Path, Rect } from 'react-native-svg';
 
 /** One thing a player wears (D165/D176). `iconKey` of a cosmetic shop item names one of these; the art is drawn on the character itself. */
-export type WearSlot = 'hat' | 'hair' | 'glasses' | 'outfit' | 'accessory';
+export type WearSlot = CosmeticSlot;
 export interface Worn {
   slot: string;
   iconKey: string | null;
 }
-
-/** Keys saved before the art existed (`hat` was a generic icon). */
-const ALIAS: Record<string, string> = { hat: 'shapoo' };
-export const wearKey = (key: string | null | undefined): string | null => (key ? (ALIAS[key] ?? key) : null);
-
-export const WEAR_SLOT_OF: Record<string, WearSlot> = {
-  shapoo: 'hat', crown: 'hat', beanie: 'hat',
-  hairLong: 'hair', hairCurly: 'hair', hairBun: 'hair',
-  glassesRound: 'glasses', glassesSun: 'glasses',
-  shirt: 'outfit', dress: 'outfit',
-  scarf: 'accessory',
-};
-export const isWearKey = (key: string): boolean => WEAR_SLOT_OF[wearKey(key) ?? ''] !== undefined;
 
 /** The key worn in a slot, or null. */
 export function wornIn(worn: readonly Worn[] | undefined, slot: WearSlot): string | null {
