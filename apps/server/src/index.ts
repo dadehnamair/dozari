@@ -623,6 +623,7 @@ if (isMainModule(import.meta.url)) {
     db && settings
       ? new SoloService(createDbPuzzleSource(db), {
           rules: () => soloRules(settings),
+          levelOf,
           onFinished: (id, outcome, tag) => {
             void player?.recordGame(id, { mode: 'solo', outcome });
             void dailyRef?.onFinished(id, outcome, tag).catch((err) => console.error('daily finish failed', err));

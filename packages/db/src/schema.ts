@@ -183,6 +183,18 @@ export const pricePoints = mysqlTable(
  * (no JSON, D63): `rule_kind` says which of the nullable `rule_*` columns apply. Convert with
  * `ruleToColumns` / `columnsToRule` (puzzle-rule.ts), which validate through the shared zod schema.
  */
+/** Difficulty ladder of whole puzzles, edited in the admin panel; `min_level`..`max_level` is the player-level range a tier is served to (docs/logic/progression.md). */
+export const puzzleTiers = mysqlTable('puzzle_tiers', {
+  id: id(),
+  nameFa: varchar('name_fa', { length: 40 }).notNull(),
+  /** Easiest first. */
+  sortOrder: int('sort_order').notNull(),
+  minLevel: int('min_level').notNull().default(1),
+  /** Null = no upper bound. */
+  maxLevel: int('max_level'),
+  createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+});
+
 export const puzzles = mysqlTable('puzzles', {
   id: id(),
   status: mysqlEnum('status', ['draft', 'approved', 'retired']).notNull().default('draft'),
@@ -190,6 +202,8 @@ export const puzzles = mysqlTable('puzzles', {
   authorId: char('author_id', { length: 36 }),
   seed: bigint('seed', { mode: 'bigint' }),
   difficultyScore: double('difficulty_score'),
+  /** Tier of the puzzle as a whole; null = not rated yet (served to everyone). */
+  tierId: char('tier_id', { length: 36 }),
   timesPlayed: int('times_played').notNull().default(0),
   avgSolveRate: double('avg_solve_rate'),
   createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),

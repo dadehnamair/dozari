@@ -46,6 +46,8 @@ export interface SoloServiceOptions {
   rules?: () => Promise<SoloRules>;
   /** Called once when a signed-in player's game ends. */
   onFinished?: (userId: string, outcome: 'win' | 'loss', tag?: string) => void;
+  /** A signed-in player's level, so easier puzzles come first (docs/logic/progression.md §Puzzle tiers). */
+  levelOf?: (userId: string) => Promise<number>;
 }
 
 const DEFAULT_TTL_MS = 2 * 60 * 60 * 1000;
@@ -58,6 +60,7 @@ export class SoloService {
   private readonly newSeed: () => number;
   private readonly loadRules: () => Promise<SoloRules>;
   private readonly onFinished?: (userId: string, outcome: 'win' | 'loss', tag?: string) => void;
+  private readonly levelOf?: (userId: string) => Promise<number>;
 
   constructor(
     private readonly source: PuzzleSource,
@@ -68,12 +71,13 @@ export class SoloService {
     this.newSeed = opts.newSeed ?? (() => randomInt(0, 2 ** 31));
     this.loadRules = opts.rules ?? (async () => DEFAULT_RULES);
     this.onFinished = opts.onFinished;
+    this.levelOf = opts.levelOf;
   }
 
   /** Starts a session, or null when there is no puzzle to play. */
   async start(userId?: string, opts: { puzzleId?: string; tag?: string } = {}): Promise<SoloView | null> {
     this.sweep();
-    const puzzle = opts.puzzleId ? await this.source.byId?.(opts.puzzleId) : await this.source.pickRandom();
+    const puzzle = opts.puzzleId ? await this.source.byId?.(opts.puzzleId) : await this.source.pickRandom({ level: userId && this.levelOf ? await this.levelOf(userId).catch(() => undefined) : undefined });
     if (!puzzle) return null;
     const rng = mulberry32(this.newSeed());
     const state = startSolo(puzzle, rng);
