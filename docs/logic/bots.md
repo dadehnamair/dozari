@@ -79,6 +79,12 @@ This is the part that needs care, since real coins are at stake (`economy.md`):
   vs. bots as a metric once Phase 8 analytics exists, and alert if it drifts far from vs.-human
   win rates.
 
+## Roster top-up (D153)
+
+`bots.autofill_min` (admin setting, default 12, 0 = off): when bots are on and fewer active accounts exist, the driver's slow tick (every 30 s)
+makes the missing number with levels 3–25, skill 30–75, win rate 40–65 %, think time 4–20 s, 25 % taunts and random cities. They are normal
+bot accounts: the admin can pause, tune or add more, and the top-up never touches a roster that is already large enough.
+
 ## Open follow-ups
 
 - Exact `BOT_FALLBACK_SECONDS` and `BOT_POOL_SIZE` are tuning knobs — set defaults in Phase 4,
@@ -87,3 +93,22 @@ This is the part that needs care, since real coins are at stake (`economy.md`):
 - Whether/how a private-table host can opt into "fill with bot if a seat is empty" needs its own
   small UI decision when the private-table screen is built (see `docs/logic/matchmaking.md`
   §Private tables) — not yet specified.
+
+## As built (D86): bot players made in the admin panel
+
+- **Accounts.** A bot is an ordinary `users` row (`is_bot = true`, no device id so nobody can sign in as it) plus `bot_players` (skill 0–100, think-time range,
+  chance to answer a taunt, active). The admin generates up to 50 at once («بازیکن‌های ربات»): distinct names (preset nicknames + common given names; the pool is
+  finite), random avatar, gender, city, a level inside the asked range, XP/games/wins that fit that level (`plausibleStats`), coins, and the medals those stats earn.
+  They can be tuned one by one or paused. `is_bot` is never selected by any player-facing endpoint or socket payload (tests check the payloads).
+- **Queue.** Every 5 s the driver looks at the duel queue: a human who waited `bots.fallback_seconds` (8) plus a per-player random delay up to
+  `bots.fallback_jitter_seconds` (4) is paired with an idle active bot; if the match cannot start the human goes back in line with the original wait.
+  `bots.enabled` is the master switch.
+- **Playing.** On its `match:state` snapshot the bot waits a human-like pause (its think range, never past the turn end) and submits four cards through the same
+  `MatchService.submit` as any player. `chooseBotMove`: with probability about its skill (capped at 90 %) it submits a real group, else a "one away" or a guess;
+  a duplicate set is re-chosen. **The answer reaches the driver through `solutionFor`, a server-internal call that the gateway never exposes — skill is how often it
+  uses it** (the spec's "no peeking" holds for what a client can ever see). Win rate versus bots should be tracked once analytics exists.
+- **Chat.** In a duel a bot greets, answers a human's taunt (its `taunt_percent`) and says «خداقوت» at the end, always with canned taunts. In a city room a bot from the same
+  city answers a human's message with a canned line after 5–25 s, with probability `bots.city_reply_percent` (15 %).
+- **Tournaments.** A tournament with «جای خالی با ربات پر شود» takes idle bots for empty seats when it starts (no fee); bots are never paid prize coins.
+- Not built: bots accepting friend requests, bots in 2v2/private tables, mid-match takeover of an abandoned human seat (D43), coin escrow/subsidy (match entry fees do not
+  exist yet), bot-chat beyond canned taunts.

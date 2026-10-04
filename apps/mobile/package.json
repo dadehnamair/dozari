@@ -5,25 +5,43 @@
   "main": "index.ts",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
+    "build:web": "expo export -p web && node scripts/pwa-build.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings=0",
-    "test": "vitest run"
+    "test": "vitest run",
+    "brand:export": "node scripts/export-brand.mjs",
+    "wear:build": "node scripts/build-wear.mjs",
+    "wear:check": "node scripts/build-wear.mjs --check"
   },
   "dependencies": {
     "@dozari/shared": "workspace:*",
+    "@expo-google-fonts/lalezar": "^0.4.1",
     "@expo-google-fonts/vazirmatn": "^0.4.1",
+    "@expo/metro-runtime": "^57.0.16",
     "expo": "^57.0.25",
+    "expo-audio": "^57.0.5",
+    "expo-build-properties": "^57.0.22",
     "expo-font": "^57.0.4",
+    "expo-secure-store": "^57.0.4",
+    "expo-sharing": "~57.0.22",
     "expo-status-bar": "^57.0.1",
-    "react": "19.3.0",
-    "react-native": "0.87.1"
+    "qrcode-generator": "^2.0.4",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-svg": "15.15.4",
+    "react-native-view-shot": "5.1.0",
+    "react-native-web": "~0.21.3",
+    "socket.io-client": "^4.8.4",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@types/react": "^19.3.0",
+    "@types/react": "^19.2.18",
     "babel-preset-expo": "^57.0.13",
+    "playwright-core": "^1.63.0",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
   }

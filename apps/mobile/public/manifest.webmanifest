@@ -1,0 +1,28 @@
+{
+  "id": "/",
+  "name": "دوزاری",
+  "short_name": "دوزاری",
+  "description": "بازی آنلاین نوستالژی قیمت‌ها",
+  "lang": "fa",
+  "dir": "rtl",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#2B1240",
+  "theme_color": "#2B1240",
+  "categories": ["games", "entertainment"],
+  "launch_handler": { "client_mode": "focus-existing" },
+  "prefer_related_applications": false,
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "بازی تکی", "short_name": "بازی تکی", "url": "/?go=solo&source=pwa", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "پازل روز", "short_name": "پازل روز", "url": "/?go=daily&source=pwa", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "دوئل", "short_name": "دوئل", "url": "/?go=duel&source=pwa", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] }
+  ]
+}

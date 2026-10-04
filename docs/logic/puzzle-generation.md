@@ -28,6 +28,20 @@ All price comparisons use `priceAt(product, year)` (nominal rials). Bands are in
 | `category_price_rank` | `year, category, rank` | "the cheapest snacks of 1370" | 1–2 |
 | `curated` | `note` | hand-made group; validator skips rule check, relies on human approval | any |
 
+Precise semantics (implemented in `packages/shared/src/puzzle/rules/evaluate.ts`; every evaluator
+returns `yes | no | unknown`, `unknown` = the data to decide is missing):
+
+- `same_price_at_year`: `|price - target| * 100 <= target * tolerancePct`, integers only.
+- `first_crossed`: judged on recorded points. The first year in the product's data with a price
+  above `threshold` must lie in `[fromYear, toYear]` and an earlier point must exist (crossing at
+  the very first data point is `unknown`). Never above the threshold => `no`.
+- `multiplier_between`: `minX`/`maxX` are positive integers; `priceB` in `[minX*priceA, maxX*priceA]`.
+- `cheaper_than_ref`: strictly cheaper; the reference product itself is never a member.
+- `category_price_rank`: `rank` = "among the N cheapest" of that category in `year` (1 = cheapest),
+  ranked against catalog peers that have a price that year; ties share the better rank.
+- `curated`: never machine-judged (always `unknown`).
+- Rule money params are integer rials (JSON numbers, zod `int`), never floats.
+
 Add new kinds only together with: evaluator in `packages/shared/src/puzzle/rules/`, unit tests,
 and a row in this table.
 
@@ -47,6 +61,12 @@ A puzzle is valid iff ALL hold:
    near misses are too easy → reject in generator, warn for curated.
 6. **Diversity (soft):** ≤ 6 items from any single `category`; ≥ 3 categories total.
 7. **Difficulty ordering (soft):** estimated difficulty of levels is non-decreasing.
+
+Uniqueness is conservative: if an outside item's data cannot prove it fails a group's rule
+(`unknown`), that is a hard error (`uniqueness.unverifiable`), because "exactly one solution" would
+be unproven. `curated` groups skip checks 2–3 and are not used as the rule in check 4 (but their
+items must still fail every non-curated group's rule). Near misses use a ~30% relaxed rule
+(`relaxRule`); difficulty is a rough per-rule heuristic (`estimateDifficulty`) with a 0.1 tolerance.
 
 Hard failures (1–4) block saving. Soft failures (5–7) are warnings with a score penalty.
 
@@ -109,3 +129,32 @@ human-approval requirement above. Track candidate titles + which was chosen in
 - Item card: primary image (era-appropriate if the rule references a year), `name_fa`, optional
   `unit_fa`. **No prices shown during play.**
 - Initial order: seeded shuffle; guarantee no row of the initial grid equals a full group.
+
+## Hand-built puzzles in the admin panel (D130)
+
+Until the generator exists, the fastest way to get playable puzzles is the admin page «ساخت پازل» (`/admin/puzzles`, permission `content`):
+the admin picks **16 distinct catalog products**, splits them into **4 groups of 4** (levels 0–3 once each: yellow, green, blue, purple) and writes
+each group's witty title and plain explanation. The puzzle is saved `source: curated`, groups `rule_kind: curated` (no rule is machine-checked,
+the admin is the human check) and goes live as `approved` at once; it can be retired and re-activated. The page also shows the catalog's
+readiness: products in the catalog, products with ≥ `MIN_PRICE_POINTS_PER_PRODUCT` approved prices, approved puzzles. Prices are not needed to
+*play* a puzzle, but the price-guess round and the result chart need approved prices for its products.
+
+## Scheduled pool top-up (D141)
+
+`puzzles/pool.ts`: every `puzzles.autofill_check_minutes` (default 60, first look 45 s after boot; `PUZZLE_SCHEDULER=off` disables it) the server counts
+the pool and, when it is below `puzzles.autofill_target` (default 30), generates the gap (at most 20 per run) with the injected RNG. Pool = the **drafts
+waiting for a human** by default (`puzzles.autofill_auto_approve` = 0: titles are never auto-published); with auto-approve on, pool = live puzzles and the new
+ones are approved at once with the plain-Persian rule as title. `puzzles.autofill_enabled` pauses it. All four are admin settings (group «گیم‌پلی»).
+
+## Generator + admin panel (D131)
+
+`generatePuzzle(catalog, rng, opts)` (`packages/shared/src/puzzle/generate.ts`) is built: hardest level first, rule kinds `multiplier_between` (level 3),
+`price_band_at_year` (band ±8 / 15 / 25 / 40 % by level) and `era_icon` (an easy anchor), each instantiated from real prices; the finished puzzle
+must pass `validatePuzzle` (one solution) with ≥ 2 near misses. Seeded RNG → same seed, same puzzle. Measured on synthetic catalogs: 150+ products
+succeed every time, 90 products ≈ 70 %, 60 ≈ 30 %, so a real catalog of about 150 products with ≥ 3 approved price years each is the target.
+Not built yet: `first_crossed`, `same_price_at_year`, `cheaper_than_ref`, `category_price_rank` instantiation; the title templates.
+
+Admin page «ساخت پازل»: «ساخت خودکار» (`POST /admin/puzzles/generate {count}`) saves up to 20 puzzles as `draft`, `source: generated`; the
+placeholder title of each group is the rule in plain Persian (`explainRule`). The admin writes real titles (`PUT /admin/puzzles/:id/titles`) and
+approves (`PATCH`); a draft is never served. Generated puzzles never go live without that human step (spec: "Never auto-publish an AI title").
+

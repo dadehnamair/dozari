@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link href="https://fonts.googleapis.com/css2?family=Lalezar&amp;family=Vazirmatn:wght@400;600;800;900&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0;background:#2B1240;font-family:Vazirmatn,system-ui,sans-serif;color:#FFF6E8}a{color:#FFC93C}a:hover{color:#FF7A3D}*{box-sizing:border-box}button{font-family:inherit}
+@keyframes dz-spin{to{transform:rotate(360deg)}}
+@keyframes dz-pop{0%{transform:scale(.7);opacity:0}70%{transform:scale(1.05);opacity:1}100%{transform:scale(1)}}</style>
+</helmet>
+
+<div dir="rtl" style="min-height:100vh;background:linear-gradient(180deg,#2B1240 0%,#40166A 40%,#5E1F7E 100%);padding:56px 56px 80px;display:flex;flex-direction:column;gap:32px">
+<header style="display:flex;flex-direction:column;gap:6px;max-width:900px">
+  <div style="font:14px 'JetBrains Mono',monospace;color:#FFC93C;direction:ltr;text-align:right">Dozari · 18 Provinces · 31 + abroad</div>
+  <h1 style="margin:0;font:52px/1 Lalezar;color:#FFF6E8;text-shadow:0 4px 0 #2B1240">نشان استان‌ها</h1>
+  <p style="margin:0;font:500 15px/1.8 Vazirmatn;color:rgba(255,246,232,.8);text-wrap:pretty">هر بازیکن نشان استان خودش رو داره: نماد شهر، رنگ، سوغاتی و یه سلام محلی. روی هر نشان بزنی، پیش‌نمایش خانه با همون استان عوض می‌شه.</p>
+</header>
+
+<section style="display:flex;gap:36px;align-items:flex-start;flex-wrap:wrap">
+
+<div data-screen-label="Home preview" style="display:flex;flex-direction:column;gap:12px;align-items:center;flex:none">
+<div style="width:340px;height:736px;border-radius:52px;border:11px solid #140A22;box-shadow:0 30px 60px rgba(0,0,0,.5),0 0 0 2px rgba(255,255,255,.12);position:relative;overflow:hidden;background:{{ sel.s2 }}">
+  <div style="position:absolute;inset:0;background:linear-gradient(180deg,{{ sel.s1 }} 0%,{{ sel.s2 }} 45%,#2B1240 100%)"></div>
+  <div style="position:absolute;left:50%;top:250px;width:1400px;height:1400px;margin:-700px 0 0 -700px;border-radius:50%;background:repeating-conic-gradient(rgba(255,255,255,.08) 0 9deg,transparent 9deg 18deg);animation:dz-spin 40s linear infinite"></div>
+
+  <div style="position:absolute;top:36px;left:12px;right:12px;display:flex;align-items:center;gap:8px">
+    <div style="position:relative;width:52px;height:52px;flex:none">
+      <div style="position:absolute;inset:0;border-radius:50%;background:#FFC93C;border:3px solid #2B1240;overflow:hidden"><div style="position:absolute;inset:-2px"><dc-import name="Character" who="dozari" pose="idle" crop="face" hint-size="56px,56px" style="width:100%;height:100%"></dc-import></div></div>
+      <div style="position:absolute;bottom:-6px;right:-6px;width:28px;height:28px;border-radius:50%;background:{{ sel.ring }};border:2.5px solid #2B1240;display:grid;place-items:center;font:12px/1 Lalezar;color:#2B1240">{{ sel.ab }}</div>
+    </div>
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+      <span style="font:19px/1.1 Lalezar;color:#fff;text-shadow:0 2px 0 #2B1240">{{ sel.hi }}</span>
+      <span style="font:800 11px Vazirmatn;color:rgba(255,246,232,.85)">لول ۱۲ · {{ sel.name }}</span>
+    </div>
+    <div style="height:38px;border-radius:99px;background:rgba(26,8,44,.7);border:2px solid rgba(255,255,255,.3);display:flex;align-items:center;gap:3px;padding:0 3px 0 9px"><span style="font:15px Lalezar;color:#fff">۲٬۲۱۳</span><div style="width:28px;height:28px"><dc-import name="Item" icon="coin" hint-size="28px,28px" style="width:28px;height:28px"></dc-import></div></div>
+  </div>
+
+  <div style="position:absolute;top:100px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:6px;animation:dz-pop .45s ease-out">
+    <div style="width:180px;height:180px;filter:drop-shadow(0 8px 0 #2B1240)">
+      <svg viewBox="0 0 120 120" width="180" height="180"><defs><clipPath id="pv-clip"><circle cx="60" cy="60" r="50"></circle></clipPath><linearGradient id="pv-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{{ sel.s1 }}"></stop><stop offset="1" stop-color="{{ sel.s2 }}"></stop></linearGradient></defs>
+        <circle cx="60" cy="60" r="57" fill="{{ sel.ring }}" stroke="#2B1240" stroke-width="3"></circle>
+        <circle cx="60" cy="60" r="57" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="2" stroke-dasharray="2 6"></circle>
+        <g clip-path="url(#pv-clip)"><rect x="0" y="0" width="120" height="120" fill="url(#pv-sky)"></rect><circle cx="{{ sel.sunX }}" cy="34" r="11" fill="#FFF4B0" opacity=".9"></circle><rect x="0" y="90" width="120" height="30" fill="{{ sel.gr }}"></rect>
+          <g stroke="#3A2418" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"><sc-for list="{{ sel.parts }}" as="q" hint-placeholder-count="0"><path d="{{ q.d }}" fill="{{ q.f }}"></path></sc-for></g>
+          <path d="M14 46 q8 -6 16 0" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="2.4" stroke-linecap="round"></path></g>
+        <circle cx="60" cy="60" r="50" fill="none" stroke="#2B1240" stroke-width="3"></circle>
+      </svg>
+    </div>
+    <div style="margin-top:-30px;padding:4px 22px 7px;border-radius:14px;background:linear-gradient(180deg,#FFE48A,#FFC93C);border:3px solid #2B1240;box-shadow:0 4px 0 #2B1240;font:24px/1.1 Lalezar;color:#2B1240;position:relative">{{ sel.name }}</div>
+    <span style="font:800 12px Vazirmatn;color:#FFF6E8;text-shadow:0 1px 0 #2B1240">{{ sel.mark }}</span>
+  </div>
+
+  <div style="position:absolute;top:350px;left:12px;right:12px;bottom:110px;display:flex;flex-direction:column;justify-content:flex-end;gap:8px">
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:18px;background:#FBF1DE;border:3px solid #2B1240;box-shadow:0 4px 0 #2B1240;color:#2B1240">
+      <div style="width:46px;height:46px;flex:none;border-radius:14px;background:{{ sel.ring }};border:2.5px solid #2B1240;display:grid;place-items:center"><div style="width:36px;height:36px"><dc-import name="Item" icon="{{ sel.gift }}" hint-size="36px,36px" style="width:36px;height:36px"></dc-import></div></div>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column"><span style="font:16px/1.2 Lalezar">سوغاتی امروز: {{ sel.giftFa }}</span><span style="font:700 11px Vazirmatn;color:#7E46D6">۳ دست ببر، سوغاتیت رو بگیر</span></div>
+      <button style="height:38px;padding:0 12px;border-radius:12px;border:2.5px solid #2B1240;background:linear-gradient(180deg,#B8F08F,#7ED957);box-shadow:0 3px 0 #2B1240;font:15px Lalezar;color:#2B1240;cursor:pointer">۱/۳</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:18px;background:#FBF1DE;border:3px solid #2B1240;box-shadow:0 4px 0 #2B1240;color:#2B1240">
+      <div style="width:46px;height:46px;flex:none"><dc-import name="Item" icon="trophy" hint-size="46px,46px" style="width:46px;height:46px"></dc-import></div>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column"><span style="font:16px/1.2 Lalezar">جدول {{ sel.name }}</span><span style="font:700 11px Vazirmatn;color:#7E46D6">تو نفر ۱۴ استانی · {{ sel.players }} بازیکن</span></div>
+      <div style="font:24px/1 Lalezar;color:#E8743B">#۱۴</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:18px;background:linear-gradient(135deg,#FF4D8D,#A66BF0);border:3px solid #2B1240;box-shadow:0 4px 0 #2B1240">
+      <div style="width:46px;height:46px;flex:none"><dc-import name="Item" icon="flag" hint-size="46px,46px" style="width:46px;height:46px"></dc-import></div>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column"><span style="font:16px/1.2 Lalezar;color:#fff;text-shadow:0 1px 0 #2B1240;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ sel.name }} در برابر {{ sel.rival }}</span><span style="font:700 11px Vazirmatn;color:#FFF6E8">جنگ استان‌ها · جمعه</span></div>
+    </div>
+  </div>
+
+  <div style="position:absolute;bottom:34px;left:14px;right:14px">
+    <button style="width:100%;height:62px;border-radius:20px;border:3px solid #2B1240;background:linear-gradient(180deg,#B8F08F,#7ED957 60%,#5DBB3C);box-shadow:inset 0 4px 0 rgba(255,255,255,.55),0 6px 0 #2B1240;font:26px Lalezar;color:#fff;text-shadow:0 2px 0 #2B1240;cursor:pointer">بزن بریم!</button>
+  </div>
+</div>
+<div style="font:12px 'JetBrains Mono',monospace;color:rgba(255,246,232,.7)">home · province-themed</div>
+</div>
+
+<div style="flex:1;min-width:560px;display:flex;flex-direction:column;gap:28px">
+  <sc-for list="{{ groups }}" as="g" hint-placeholder-count="2">
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:center;gap:10px"><div style="padding:2px 16px;border-radius:99px;background:{{ g.c }};border:2.5px solid #2B1240;font:20px Lalezar;color:#2B1240">{{ g.t }}</div><span style="font:12px 'JetBrains Mono',monospace;opacity:.6">{{ g.n }}</span></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:14px">
+        <sc-for list="{{ g.items }}" as="p" hint-placeholder-count="12">
+          <button onClick="{{ p.onClick }}" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 6px 10px;border-radius:20px;background:{{ p.cardBg }};border:3px solid #2B1240;box-shadow:0 {{ p.sh }} 0 #2B1240;transform:translateY({{ p.ty }});cursor:pointer;color:#2B1240;transition:transform .12s">
+            <svg viewBox="0 0 120 120" width="96" height="96"><defs><clipPath id="c-{{ p.id }}"><circle cx="60" cy="60" r="50"></circle></clipPath><linearGradient id="g-{{ p.id }}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{{ p.s1 }}"></stop><stop offset="1" stop-color="{{ p.s2 }}"></stop></linearGradient></defs>
+              <circle cx="60" cy="60" r="57" fill="{{ p.ring }}" stroke="#2B1240" stroke-width="3.4"></circle>
+              <g clip-path="url(#c-{{ p.id }})"><rect x="0" y="0" width="120" height="120" fill="url(#g-{{ p.id }})"></rect><circle cx="{{ p.sunX }}" cy="34" r="11" fill="#FFF4B0" opacity=".9"></circle><rect x="0" y="90" width="120" height="30" fill="{{ p.gr }}"></rect>
+                <g stroke="#3A2418" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"><sc-for list="{{ p.parts }}" as="q" hint-placeholder-count="0"><path d="{{ q.d }}" fill="{{ q.f }}"></path></sc-for></g></g>
+              <circle cx="60" cy="60" r="50" fill="none" stroke="#2B1240" stroke-width="3.4"></circle>
+            </svg>
+            <span style="font:{{ p.fs }}/1.15 Lalezar;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;height:20px;display:flex;align-items:center">{{ p.name }}</span>
+            <div style="display:flex;align-items:center;gap:3px;font:700 10.5px Vazirmatn;color:#7E46D6;white-space:nowrap"><div style="width:18px;height:18px"><dc-import name="Item" icon="{{ p.gift }}" hint-size="18px,18px" style="width:18px;height:18px"></dc-import></div>{{ p.giftFa }}</div>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+  </sc-for>
+</div>
+
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const CR='#FFF6E8',ST='#E8D8B8',DK='#4A2A5A',W='#fff';
+const E=(x,y,rx,ry)=>`M${x-rx} ${y}a${rx} ${ry} 0 1 0 ${rx*2} 0a${rx} ${ry} 0 1 0 ${-rx*2} 0Z`;
+const tree=(x,s,c)=>[{d:`M${x-1.5} 92 v-${6*s} h3 v${6*s}Z`,f:'#8E5A2A'},{d:`M${x} ${92-30*s} L${x+10*s} ${92-6*s} H${x-10*s}Z`,f:c}];
+const palm=(x,h)=>[{d:`M${x} 92 C${x-2} ${92-h*.5} ${x+2} ${92-h*.8} ${x+6} ${92-h}`,f:'none'},{d:`M${x+6} ${92-h} q-14 -2 -18 8 q10 -8 18 -8 q-6 -12 -16 -10 q12 0 16 10 q4 -12 16 -12 q-12 4 -16 12 q14 -4 18 6 q-10 -6 -18 -6Z`,f:'#5FB84A'}];
+const SH={
+ azadi:c=>[{d:'M36 92 L48 44 Q60 26 72 44 L84 92 H70 Q60 64 50 92Z',f:CR},{d:'M50 44 h20 v-8 h-20Z',f:CR},{d:'M54 36 Q60 26 66 36Z',f:c},{d:'M56 70 h8 M54 54 h12',f:'none'}],
+ needle:c=>[{d:'M56 92 L58 34 h4 L64 92Z',f:CR},{d:E(60,44,12,7),f:c},{d:'M60 34 V12',f:'none'},{d:'M30 92 v-14 h10 v14 M76 92 v-20 h12 v20',f:ST}],
+ dome:c=>[{d:'M34 92 V64 H86 V92Z',f:CR},{d:'M40 64 C40 34 80 34 80 64Z',f:c},{d:'M60 40 V30',f:'none'},{d:E(60,29,2.5,2.5),f:'#FFC93C'},{d:'M22 92 V46 h7 V92Z M91 92 V46 h7 V92Z',f:CR},{d:'M22 46 l3.5 -8 l3.5 8Z M91 46 l3.5 -8 l3.5 8Z',f:c},{d:'M52 92 V78 Q60 68 68 78 V92Z',f:DK}],
+ gold:c=>[{d:'M30 92 V66 H90 V92Z',f:'#3FB8C8'},{d:'M38 66 C38 32 82 32 82 66Z',f:'#FFC93C'},{d:'M60 38 V26',f:'none'},{d:'M20 92 V50 h8 V92Z M92 92 V50 h8 V92Z',f:'#FFC93C'},{d:'M52 92 V78 Q60 68 68 78 V92Z',f:DK}],
+ pillars:c=>[{d:'M22 92 V86 H98 V92Z',f:ST},{d:'M30 86 V50 h7 V86Z M46 86 V50 h7 V86Z M62 86 V50 h7 V86Z M78 86 V50 h7 V86Z',f:CR},{d:'M24 50 h72 v-8 h-72Z',f:ST},{d:'M40 42 q8 -10 16 0 M64 42 q8 -10 16 0',f:'none'}],
+ castle:c=>[{d:'M16 92 V62 h8 v-6 h6 v6 h8 V48 h8 v-6 h6 v6 h8 v-6 h6 v6 h8 V62 h8 v-6 h6 v6 h8 V92Z',f:c},{d:'M54 92 V80 Q60 72 66 80 V92Z',f:DK},{d:'M26 72 h4 M90 72 h4 M50 58 h4 M66 58 h4',f:'none'}],
+ wind:c=>[{d:'M20 92 V62 H56 V92Z',f:c},{d:'M24 62 C24 48 52 48 52 62Z',f:c},{d:'M62 92 V36 H84 V92Z',f:c},{d:'M66 42 v12 M71 42 v12 M76 42 v12 M80 42 v12',f:'none'},{d:'M88 92 V58 H104 V92Z',f:ST}],
+ mount:c=>[{d:'M0 92 L34 44 L52 66 L74 26 L120 92Z',f:c},{d:'M64 44 L74 26 L86 46 L80 42 L74 50 L68 42Z',f:W},{d:'M28 54 L34 44 L40 54 L36 51 L32 56Z',f:W}],
+ forest:c=>[{d:'M0 92 Q30 70 60 80 Q90 68 120 84 V92Z',f:'#5FB84A'},...tree(24,1,c),...tree(46,1.3,c),...tree(72,1.1,c),...tree(94,1.4,c)],
+ seaforest:c=>[{d:'M0 88 Q15 82 30 88 T60 88 T90 88 T120 88 V120 H0Z',f:'#3FC1F0'},...tree(34,1.2,c),...tree(56,1.5,c),...tree(80,1.1,c)],
+ sea:c=>[{d:'M0 86 Q15 80 30 86 T60 86 T90 86 T120 86 V120 H0Z',f:'#3FC1F0'},{d:'M14 86 L30 70 L46 86Z',f:ST},...palm(82,44)],
+ bay:c=>[{d:'M0 86 Q15 80 30 86 T60 86 T90 86 T120 86 V120 H0Z',f:'#3FC1F0'},{d:'M20 86 V64 H40 V86Z',f:c},{d:'M24 64 V54 h12 V64',f:c},{d:'M27 56 v6 M33 56 v6',f:'none'},...palm(80,40)],
+ bridge:c=>[{d:'M0 84 H120 V120 H0Z',f:'#3FC1F0'},{d:'M6 60 H114 V84 H6Z',f:c},{d:'M14 84 V74 Q20 66 26 74 V84Z M36 84 V74 Q42 66 48 74 V84Z M58 84 V74 Q64 66 70 74 V84Z M80 84 V74 Q86 66 92 74 V84Z M100 84 V74 Q106 66 112 74 V84Z',f:DK},{d:'M14 68 h4 M36 68 h4 M58 68 h4 M80 68 h4 M100 68 h4',f:'none'}],
+ river:c=>[{d:'M0 90 Q40 82 60 88 T120 86 V120 H0Z',f:'#3FC1F0'},{d:'M16 90 V60 h14 V90Z',f:c},{d:'M86 90 V60 h14 V90Z',f:c},{d:'M30 64 H86',f:'none'},{d:'M30 64 Q58 84 86 64',f:'none'},...palm(58,30)],
+ rock:c=>[{d:'M6 92 C10 54 36 30 66 32 C98 34 114 60 114 92Z',f:c},{d:'M44 92 V64 Q60 46 76 64 V92Z',f:DK},{d:'M52 92 V70 Q60 60 68 70 V92Z',f:ST}],
+ cone:c=>[{d:'M0 92 Q60 78 120 92Z',f:'#7ED957'},{d:'M50 92 V44 H70 V92Z',f:c},{d:'M47 44 L60 14 L73 44Z',f:c},{d:'M55 92 V50 M65 92 V50',f:'none'}],
+ fall:c=>[{d:'M0 92 V40 Q20 30 44 36 V92Z',f:c},{d:'M120 92 V44 Q100 34 76 40 V92Z',f:c},{d:'M44 36 Q60 32 76 40 V92 H44Z',f:'#BFEFFF'},{d:'M52 44 V88 M60 40 V90 M68 44 V88',f:'none'},...tree(18,.9,'#3FA36B'),...tree(102,.9,'#3FA36B')],
+ desert:c=>[{d:'M0 92 Q30 72 64 86 Q90 74 120 88 V92Z',f:'#FFC93C'},{d:'M70 86 V64 h22 v22',f:c},{d:'M68 64 h26 l-4 -6 h-18Z',f:c},{d:'M78 86 V76 h6 V86',f:DK},...palm(32,30)],
+ clock:c=>[{d:'M50 92 V36 H70 V92Z',f:ST},{d:'M50 36 L60 14 L70 36Z',f:c},{d:E(60,48,7,7),f:CR},{d:'M60 48 v-4 M60 48 l3 2',f:'none'},{d:'M14 92 V70 H50 V92Z M70 92 V74 H106 V92Z',f:ST}],
+ eiffel:c=>[{d:'M38 92 Q54 62 57 18 h6 Q66 62 82 92 H72 Q60 74 48 92Z',f:c},{d:'M46 70 H74 M52 50 H68',f:'none'},{d:'M60 18 V8',f:'none'}],
+ gate:c=>[{d:'M18 92 V50 H102 V92Z',f:ST},{d:'M14 50 H106 V40 H14Z',f:c},{d:'M30 92 V58 h10 V92Z M55 92 V58 h10 V92Z M80 92 V58 h10 V92Z',f:DK},{d:'M54 40 v-10 h12 v10',f:c}],
+ burj:c=>[{d:'M50 92 V54 h4 V36 h4 V18 L60 6 L62 18 V36 h4 V54 h4 V92Z',f:'#DDE4EF'},{d:'M20 92 V70 h12 V92Z M86 92 V64 h12 V92Z',f:ST}],
+ hills:c=>[{d:'M0 92 Q30 58 64 80 Q90 62 120 78 V92Z',f:c},...palm(34,46),...palm(86,36)],
+ cn:c=>[{d:'M57 92 L59 28 h2 L63 92Z',f:CR},{d:E(60,48,10,5),f:c},{d:'M60 28 V10',f:'none'},{d:'M18 92 V62 h14 V92Z M84 92 V56 h16 V92Z',f:'#8FDCFA'}],
+ mosqueBlue:c=>[{d:'M24 92 V66 H96 V92Z',f:ST},{d:'M36 66 C36 38 84 38 84 66Z',f:c},{d:'M28 66 C28 56 40 56 40 66 M80 66 C80 56 92 56 92 66',f:c},{d:'M12 92 V36 h6 V92Z M102 92 V36 h6 V92Z',f:ST},{d:'M12 36 l3 -12 l3 12Z M102 36 l3 -12 l3 12Z',f:c}]
+};
+const P=[
+ ['tehran','تهران','ته','azadi','#8FDCFA','#C9E8FF','#C8B8A8','#3FC1F0','sangak','نان سنگک','سلام تهرونی!','برج آزادی','alborz'],
+ ['isfahan','اصفهان','اص','mosqueBlue','#3FC1F0','#BFEFFF','#E8C88A','#3FC1F0','gaz','گز','سلام اصفهانی!','نقش جهان','fars'],
+ ['fars','فارس','فا','pillars','#FFAA7A','#FFE48A','#E8C88A','#FF7A3D','orange','بهارنارنج','سلام شیرازی!','تخت جمشید','isfahan'],
+ ['khrazavi','خراسان رضوی','خر','gold','#8FDCFA','#E6F7FF','#C8B8A8','#FFC93C','saffron','زعفران','سلام مشهدی!','حرم امام رضا','tehran'],
+ ['azsharghi','آذربایجان شرقی','آش','bridge','#C9A3FF','#F0E0FF','#C8B8A8','#A66BF0','carpet','فرش تبریز','سلام تبریزی!','بازار تبریز','azgharbi'],
+ ['azgharbi','آذربایجان غربی','آغ','castle','#FFB3C9','#FFE6EE','#C8B8A8','#FF8FB6','apple','سیب ارومیه','سلام ارومیه‌ای!','قلعهٔ ارومیه','azsharghi'],
+ ['ardabil','اردبیل','ار','mount','#8FDCFA','#E6F7FF','#7ED957','#3FC1F0','honey','عسل سبلان','سلام اردبیلی!','کوه سبلان','gilan'],
+ ['gilan','گیلان','گی','forest','#B8F08F','#E6F7D6','#5FB84A','#7ED957','tea','چای لاهیجان','سلام گیلانی!','جنگل‌های شمال','mazandaran'],
+ ['mazandaran','مازندران','ما','seaforest','#8FDCFA','#D6F4FF','#5FB84A','#3FA36B','rice','برنج','سلام مازنی!','دریا و جنگل','gilan'],
+ ['golestan','گلستان','گل','cone','#FFE48A','#FFF6D8','#7ED957','#E8A01A','fish','ماهی','سلام گلستانی!','گنبد قابوس','khshomali'],
+ ['semnan','سمنان','سم','desert','#FFC9A3','#FFEBD6','#FFC93C','#E8743B','cookie','قطاب','سلام سمنانی!','کویر','tehran'],
+ ['yazd','یزد','یز','wind','#FFC9A3','#FFEBD6','#E8C88A','#D9A06A','pashmak','پشمک','سلام یزدی!','بادگیرهای یزد','kerman'],
+ ['kerman','کرمان','کر','castle','#FFAA7A','#FFE0C8','#E8C88A','#C47A2A','pistachio','پسته','سلام کرمونی!','ارگ بم','yazd'],
+ ['qom','قم','قم','dome','#8FDCFA','#E6F7FF','#C8B8A8','#FFC93C','sohan','سوهان','سلام قمی!','حرم حضرت معصومه','markazi'],
+ ['markazi','مرکزی','مر','dome','#C9A3FF','#F0E0FF','#C8B8A8','#7E46D6','pomegranate','انار ساوه','سلام اراکی!','بازار اراک','qom'],
+ ['qazvin','قزوین','قز','gate','#FFB3C9','#FFE6EE','#C8B8A8','#FF4D8D','baklava','باقلوا','سلام قزوینی!','عالی‌قاپو','zanjan'],
+ ['zanjan','زنجان','زن','dome','#8FDCFA','#E6F7FF','#C8B8A8','#3FA36B','knife','چاقو','سلام زنجانی!','گنبد سلطانیه','qazvin'],
+ ['hamadan','همدان','هم','rock','#B8F08F','#E6F7D6','#7ED957','#8E8E9E','vase','سفال لالجین','سلام همدانی!','گنجنامه','kermanshah'],
+ ['kermanshah','کرمانشاه','کش','rock','#FFE48A','#FFF6D8','#7ED957','#B8A898','cookie','نان برنجی','سلام کرمانشاهی!','طاق بستان','hamadan'],
+ ['kurdistan','کردستان','کد','mount','#B8F08F','#E6F7D6','#5FB84A','#3FA36B','daf','دف','سلام سنندجی!','کوه‌های کردستان','kermanshah'],
+ ['lorestan','لرستان','لر','castle','#B8F08F','#E6F7D6','#7ED957','#D9A06A','walnut','گردو','سلام لرستانی!','فلک‌الافلاک','ilam'],
+ ['ilam','ایلام','ای','mount','#FFC9A3','#FFEBD6','#7ED957','#C47A2A','basket','سبد حصیری','سلام ایلامی!','کبیرکوه','lorestan'],
+ ['khuzestan','خوزستان','خو','river','#FFC93C','#FFF4B0','#E8C88A','#E8A01A','dates','خرما','سلام اهوازی!','پل سفید اهواز','bushehr'],
+ ['bushehr','بوشهر','بو','bay','#8FDCFA','#D6F4FF','#E8C88A','#D9A06A','fish','ماهی','سلام بوشهری!','ساحل بوشهر','hormozgan'],
+ ['hormozgan','هرمزگان','هر','sea','#FF8FB6','#FFD6E4','#E8C88A','#FF4D8D','lemon','لیمو عمانی','سلام بندری!','جزیرهٔ هرمز','bushehr'],
+ ['sistan','سیستان و بلوچستان','سب','desert','#FFAA7A','#FFE0C8','#FFC93C','#E8743B','dress','سوزن‌دوزی','سلام بلوچی!','کوه خواجه','kerman'],
+ ['khjonubi','خراسان جنوبی','خج','castle','#FFE48A','#FFF6D8','#E8C88A','#C48A0E','cherry','زرشک','سلام بیرجندی!','ارگ بیرجند','khrazavi'],
+ ['khshomali','خراسان شمالی','خش','mount','#C9A3FF','#F0E0FF','#7ED957','#7E46D6','watermelon','خربزه','سلام بجنوردی!','کوه‌های آلاداغ','golestan'],
+ ['chaharmahal','چهارمحال و بختیاری','چب','fall','#8FDCFA','#E6F7FF','#7ED957','#5A8A6A','cheese','لبنیات محلی','سلام بختیاری!','آبشار و کوهرنگ','kohgiluyeh'],
+ ['kohgiluyeh','کهگیلویه و بویراحمد','کب','fall','#B8F08F','#E6F7D6','#5FB84A','#8E5A2A','mushroom','قارچ کوهی','سلام یاسوجی!','آبشار یاسوج','chaharmahal'],
+ ['alborz','البرز','ال','mount','#FFB3C9','#FFE6EE','#7ED957','#A66BF0','peach','هلو','سلام کرجی!','کوه‌های البرز','tehran']];
+const A=[
+ ['istanbul','استانبول','IS','mosqueBlue','#FFAA7A','#FFE0C8','#C8B8A8','#C4302B','teaGlass','چای ترکی','سلام استانبولی!','ایاصوفیه','dubai'],
+ ['dubai','دبی','DX','burj','#FFC93C','#FFF4B0','#E8C88A','#3FC1F0','dates','خرما','سلام دبیایی!','برج خلیفه','istanbul'],
+ ['toronto','تورنتو','TO','cn','#8FDCFA','#E6F7FF','#C8D8E8','#C4302B','honey','شربت افرا','سلام تورنتویی!','برج سی‌ان','la'],
+ ['la','لس‌آنجلس','LA','hills','#FF8FB6','#FFD6E4','#E8C88A','#E8A01A','orange','پرتقال','سلام تهرانجلسی!','نخل‌ها و تپه‌ها','toronto'],
+ ['london','لندن','LN','clock','#C8D8E8','#EEF3F8','#7ED957','#2F5FB8','tea','چای','سلام لندنی!','ساعت بیگ‌بن','paris'],
+ ['paris','پاریس','PA','eiffel','#FFB3C9','#FFE6EE','#7ED957','#8E8E9E','bread2','نان باگت','سلام پاریسی!','برج ایفل','london'],
+ ['berlin','برلین','BE','gate','#C9A3FF','#F0E0FF','#C8B8A8','#2B1240','pretzel','پرتزل','سلام برلینی!','دروازهٔ براندنبورگ','london']];
+const mk=(r,i,abroad)=>{const [id,name,ab,sh,s1,s2,gr,c,gift,giftFa,hi,mark,rv]=r;return{id,name,ab,s1,s2,gr,ring:c==='#2B1240'?'#C9A3FF':c,gift:gift==='pretzel'?'cookie':gift,giftFa,hi,mark,rv,parts:SH[sh](c),sunX:i%2?88:32,abroad};};
+const ALL=[...P.map((r,i)=>mk(r,i,0)),...A.map((r,i)=>mk(r,i,1))];
+const BY=Object.fromEntries(ALL.map(p=>[p.id,p]));
+class Component extends DCLogic{
+  state={sel:'isfahan'};
+  renderVals(){const s=this.state;const cur=BY[s.sel];
+    const card=p=>{const on=p.id===s.sel;return{...p,fs:p.name.length>=17?'13.5px':p.name.length>=13?'15.5px':'17px',onClick:()=>this.setState({sel:p.id}),cardBg:on?'#FFE48A':'#FFF6E8',sh:on?'2px':'5px',ty:on?'3px':'0px'};};
+    return{
+      sel:{...cur,rival:(BY[cur.rv]||cur).name,players:(cur.abroad?'۱٬۲۴۰':'۱۸٬۴۰۰')},
+      groups:[{t:'۳۱ استان ایران',c:'#FFE48A',n:'31 provinces',items:ALL.filter(p=>!p.abroad).map(card)},{t:'ایرانیان خارج از کشور',c:'#8FDCFA',n:'abroad · 7 cities',items:ALL.filter(p=>p.abroad).map(card)}]};}
+}
+</script>
+</body>
+</html>

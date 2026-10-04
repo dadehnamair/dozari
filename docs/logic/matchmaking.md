@@ -14,6 +14,18 @@ No rating/ELO at launch (D12). Values in `config/game.ts`.
   no human match, an **undisclosed AI opponent ("bot")** fills the match instead (D23, owner
   request 2026-09-27). The waiting screen still offers "play solo while waiting" alongside this.
 
+## Opponent-search show (D144)
+
+While a player waits, the search screen's 4×4 grid scans through real faces: `GET /duel/candidates` returns up to 16 `{nickname, avatarKey, level}` — players online right now first (shuffled, never the caller), topped up from the active bot roster when few are online, so the grid is never empty while bots exist (it falls back to the design's placeholder names only when there are none). Bots and humans are indistinguishable and nothing says who is online. A few faces repeat around the grid. The app refreshes the list every 12 s. It is a show: the queue alone decides who the match pairs with.
+
+## Why a search can seem endless (D153)
+
+A waiting player is paired with a human, else (after `bots.fallback_seconds` + jitter) with a bot. Two silent failures used to leave them on the
+search screen forever: **no approved puzzle** (`MatchService.start` returns false) and **no bot account** (the driver does nothing with an empty
+roster). The server now pushes `queue:status` every 4 s with the real `waitedSec`, `position` and an optional `problem` (`no_puzzles` at once,
+`no_bots` after 45 s). The app shows `no_puzzles` as the sad-mascot card and `no_bots` as a line above «انصراف». To make a fresh server work
+without a manual step, the bot driver tops the roster up to `bots.autofill_min` (default 12, 0 = off) with the admin generator's default tuning.
+
 ## Match start sequence
 
 1. Queue pops players → create `matches` row (`waiting`) and socket room `match:<id>`.
@@ -46,6 +58,14 @@ static/cached recent-players sample, not a live query. Prototype: `prototype/scr
   boards cost more to enter), and a "require every guest to confirm ready before start" toggle.
   Owner: "موقع ایجاد میز یکم امکانات بیشتر بدیم به سازنده که حس مالکیت رو بهش القا کنیم." Prototype:
   `prototype/screens/table.html`.
+
+### Built so far (D93)
+
+`apps/server/src/tables/*` (in-memory like live matches), routes `POST /tables`, `GET /tables/mine|:code`, `POST /tables/:code/join`, `/tables/leave|start|ready|lock|extend|kick|share`; gate `feature.tables`; setting `table.idle_minutes`.
+Table = 1v1, name + emoji, optional "guest must be ready", host lock/kick/extend, the table stays for rematches, closes when idle. **Friendly only** (no entry fee, no payout) because duel coin escrow is not built;
+board difficulty and 2v2 are not built either. 2v2 tables (D142): `POST /tables {format:'2v2'}` makes a four-seat table; players get a team (0/1) on joining — the emptier team, on a tie the second, so a third joiner is the host's teammate — and `POST /tables/side {side}` moves a seated player to the other team when it has room (`FULL`, `NOT_TEAM` at a 1v1 table). The host starts when both teams have two players (`NEED_PLAYERS` otherwise; `requireReady` needs every guest ready); the match is `MatchService.startTeam`, friendly (no stakes). `TableView` carries `format`, per-player `side` and `isYou`.
+`share` posts a join card (`chat_messages.kind = 'table'`, text `CODE|emoji name`) into the host's city chat; tapping it opens the table.
+The app has no live duel board yet, so a started table match is only playable once the duel client exists.
 
 ## Reconnects & abandonment
 
@@ -93,3 +113,22 @@ Server → client:
 
 Auth: JWT in the socket handshake `auth.token`. One active socket per user; a new connection
 replaces the old one.
+
+## As built (v1, duel only)
+
+`apps/server/src/realtime/match-service.ts` runs live 1v1 matches in memory around the shared reducer. The gateway hands every
+queue pair to `MatchService.start`, which loads two public profiles and a random approved puzzle, then pushes `match:found` and
+`match:state` to both players. `match:submit {itemIds}`, `match:resume {matchId}` and `match:leave` are answered with acks; every
+change pushes a redacted `match:state` plus `match:event`s, and the end pushes `match:ended` with the full solution. The turn clock
+is one timer per match for the current turn (a stale fire is ignored by `turnId`); an AFK player is ended by the reducer's
+consecutive-timeout rule. A player who connects with a live match gets the snapshot immediately.
+
+Not built yet: entry-fee escrow and payouts, the price-guess round, the ready handshake, reconnect grace and bot takeover,
+persistence of the match log, level (everyone is level 1 on the opponent card).
+
+## Live duel in the app (D94)
+
+`apps/mobile/src/duel/*`: `socket.ts` (socket.io-client with the guest token, events parsed with the shared zod schemas), `model.ts` (pure reducer, unit-tested), `DuelScreen.tsx` (queue → board → result, turn clock, own-guess flash, sounds).
+Home button «دوئل زنده» (`feature.duel`). A private table's match opens the same screen in resume mode (`match:resume` without a match id → the server re-sends the current snapshot).
+Also: canned-taunt buttons (socket `chat:taunt`, the opponent's taunt shows for 4 s) and the «برگشت به بازی در جریان» button on Home from `GET /match/active` (D42).
+Not in the app yet: price-guess round inside a duel.

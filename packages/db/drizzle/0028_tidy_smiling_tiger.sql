@@ -1,0 +1,2 @@
+ALTER TABLE `coin_ledger` MODIFY COLUMN `reason` enum('signup_bonus','daily_login','match_entry','match_payout','match_refund','invite_reward','ugc_reward','admin_adjust','purchase','bot_match_subsidy','price_guess_wager','price_guess_payout','shop_purchase','hint_purchase','gift_out','gift_in','loan_out','loan_in','repay_out','repay_in','daily_puzzle','tournament_entry','tournament_refund','tournament_prize','match_consolation','broke_rescue') NOT NULL;--> statement-breakpoint
+ALTER TABLE `daily_play_counts` MODIFY COLUMN `mode` enum('solo','duel','duel_free') NOT NULL;

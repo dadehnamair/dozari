@@ -9,13 +9,23 @@ Owner (2026-09-27): "پروفایل خیلی مهمه" — treat this as a first
 - Both are **picked from a gallery, never free text**: this sidesteps profanity/impersonation
   moderation entirely (no free-text nickname to filter — normalize/profanity-filter code in
   `chat-and-access.md` still applies to chat text, not to names).
-- Customization unlocks with play count (progression hook, keeps early sessions moving toward a
-  goal): avatar gallery unlocks after `AVATAR_UNLOCK_GAMES` = 3 finished games; nickname gallery
-  unlocks after `NICKNAME_UNLOCK_GAMES` = 10 finished games. Both are config values in
-  `packages/shared/src/config/game.ts`, owner-adjustable.
+- Two layers (D65, owner 2026-10-01):
+  1. **Free pick.** After `AVATAR_UNLOCK_GAMES` = 3 finished games the player picks one avatar from the *free* set;
+     after `NICKNAME_UNLOCK_GAMES` = 10 finished games, one nickname from the free set. Both counts are meant to be
+     editable from the admin panel (not built yet; config values in `config/game.ts` for now).
+  2. **Everything else costs coins** (the rest of the avatars and nicknames), and buying/changing to them needs an
+     **activated profile** (an invite code redeemed, `users.chat_unlocked_at`) **and** a minimum level:
+     `AVATAR_CHANGE_MIN_LEVEL` = 3, `NICKNAME_CHANGE_MIN_LEVEL` = 5 (proposed numbers). Pure check: `canCustomise`.
+  Prices and the free/paid split of the lists are not decided yet.
 - Once unlocked, the picker stays open forever (re-picking doesn't re-lock it).
-- "Finished game" = any completed solo, duel, team, or private match (abandons don't count —
-  reuse the `abandon` result type from `matchmaking.md`).
+- Levels come from `progression.md`; the server must enforce the gate on the change endpoint (not built yet).
+
+### As built (guest account)
+`POST /auth/guest {deviceId}` creates the account on first sight (no sign-up) and returns `{token, user}`; the same device id
+always gets the same account, concurrent first requests included. The token is an HS256 JWT (`sub` = user id, 30 days,
+`JWT_SECRET`); `GET /me` with `Authorization: Bearer <token>` returns the profile. The nickname and avatar come from the
+preset lists in `packages/shared/src/identity` (avatars = the 24 design-kit faces). A banned user gets 403 at login and
+401 everywhere else. The unlock thresholds are `AVATAR_UNLOCK_GAMES` / `NICKNAME_UNLOCK_GAMES` in `config/game.ts`; the paid-change gate (`canCustomise`) exists in shared; the change/buy endpoints do not yet.
 
 ## Tags (badges shown next to the avatar)
 
@@ -54,6 +64,14 @@ label, icon, and unlock rule per tag — content-managed like `canned_taunts`, n
   or Ghasedak). No password — phone + OTP is the whole recovery flow. Losing the phone number
   with no OTP access = account unrecoverable (acceptable for MVP; documented, not solved here).
 
+### Phone login («ورود با شماره»)
+
+Built beside the link flow (`apps/server/src/phone/login.ts`, `POST /auth/phone/code`, `POST /auth/phone/verify`; app: settings → «ورود با شماره»).
+Logged out, the player asks for an SMS code for a number and proves it: a number that an account holds logs in to **that** account (device
+claimed, `AuthService.sessionFor`); a number nobody holds is attached, verified, to this device's guest account (a new one on a fresh install).
+Codes are 5 digits, 5 min, 5 tries, 60 s resend, 5 codes/hour per number, 20 calls/10 min per IP; kept in memory. `sms_unavailable` (503) when no
+SMS provider key is set. The answer never tells before the proof whether a number has an account.
+
 ## Invite/referral block
 
 - Personal invite code as **copyable text** + a share button (WhatsApp, Telegram, generic
@@ -77,6 +95,77 @@ leaderboard screen (`app-screens.md` §Leaderboard & tournaments). Prototype:
 Open: what a friendship unlocks beyond visibility (e.g. inviting a friend directly to a private
 table) — not designed yet.
 
+### Tappable names → public profile sheet (D67)
+
+Every place a player's nickname appears (match, result, leaderboard, friends, chat, search) is tappable and opens a
+bottom sheet: avatar, nickname, member since, level + tier, cups (tournament trophies), coins, medals/tags, win stats,
+and a «درخواست دوستی» button (state: none / sent / friends). The sheet reads one public-profile endpoint that never
+reveals `is_bot`. v1 built: endpoint, `friendships` table, `PlayerSheet`; wired from the friends list only until other screens exist.
+
+## Gender setting (D68)
+
+An optional choice, female or male, set next to the province/city. It only changes presentation: the hero character and the
+app icon take that gender. Stored in `users.gender` (nullable), set from «پروفایل من»; Home already draws the matching hero. The app icon switch is not built; see D68 for the open points.
+
+## Profile-completion rewards (D161)
+
+Home's guide character points at the next missing profile step and says what it pays («شهرت را در پروفایل انتخاب کن و ۲۰ سکه بگیر»).
+Steps: `gender`, `city`, `phone` (verified), `bale` (linked). Nickname and avatar are always set at signup, so they are not steps.
+
+- **Reward per step** is an admin setting (`profiletask.coins_<key>`, defaults 10 / 20 / 50 / 30 coins; 0 = no reward and no nudge).
+- **One-time, server-checked:** `GET /me/profile-tasks` lists each step as `done` (the field is really filled in, read from `users` /
+  `bale_links`), `claimed` and `coins`; `POST /me/profile-tasks/:key/claim` pays only when `done` and not yet `claimed`. The claim row
+  (`profile_task_claims`, PK user + key) is the lock and the ledger key `profile_task:<user>:<key>` makes a repeat pay nothing.
+- **Order of the nudge:** a finished step whose reward is waiting comes first (tap = take it), else the first unfinished one (tap =
+  open the profile sheet, settings or the Bale sheet). A step whose screen is switched off is skipped.
+- Birth date (D160) will become a fifth step when it is built.
+
+### Missions (D163)
+
+The same service also carries the other one-time missions (`GET /me/profile-tasks` is the list, `POST /me/profile-tasks/:key/claim` takes
+one): `first_win` (the player has at least one win in `user_stats`), `invite_friend` (an invitee's `reward_paid_at` is set, i.e. the
+friend really played), and three **honour** missions that cannot be verified because they happen outside the app: `follow_instagram`,
+`follow_channel` (links `link.instagram`, `link.channel`; empty = the mission is hidden) and `rate_app` (the store link of the review flow,
+D75). Honour missions pay little and unlock only after the player opened the link. Proposed rewards, all admin settings
+(`profiletask.coins_<key>`): first win 25, invited friend 100, Instagram 15, channel 15, store review 40 coins.
+Home has a «ماموریت‌ها» tile (badge = rewards waiting) opening the list; the guide bubble still nudges only the profile steps.
+
+## Birth date and age display (D160, built)
+
+Built: `users.birth_year/month/day`, `show_age`, `notify_birthday` (migration 0047); `GET/PUT /me/birthday`, `POST /me/birthday/claim` (`profile/birthday.ts`, pure rules in `shared/calendar/birthday.ts`); settings `birthday.*` (min age 10, week 3 before / 7 long, gift 100 coins + 5 gems + 2 spins); `birthday_claims` (user + year = the once-a-year lock), `birthday_notices` (friend message log). The badge flag reaches the public profile, the friends list and the match name tags; the age only with the tick; the date never. Friend messages go out from a 2-hourly job as one inbox message per event to all friends. Not built: admin age-band stats, the exact date on the admin user sheet.
+
+An optional field set from «پروفایل من», next to gender and city. Policy:
+
+- **Stored as a Solar Hijri date** (`users.birth_year`, `birth_month`, `birth_day`, all nullable; year 1300..current−10, a real
+  calendar day). Gregorian is only a display helper (rule 3). The full date is **never sent to other players**.
+- **Age is derived**, never stored. A tick «سنم نمایش داده شود» (`users.show_age`, default **off**) controls whether other players
+  see the age (whole years, e.g. «۲۴ ساله») on the public profile sheet. Off = the profile shows no age at all.
+- **Minimum age 10** (`config`, owner-set 2026-10-03). A birth date that makes the player younger than 10 is not saved; the
+  field stays empty and nothing else changes for them.
+- **Birthday week.** Starting **3 days before** the birthday and lasting **7 days** (3 before, the day, 3 after), the player's own
+  profile and their public profile sheet show a party look (balloons/confetti, a «تولدت مبارک» banner). Whether others see the
+  party follows the age tick: with the tick off, others see the party without any age or date.
+- **Birthday gift**, claimable once per year during that week (idempotent per year, via `LedgerService` for coins): the amounts
+  are **admin settings**, never code literals (rule 9). Starting values: **100 coins, 5 gems, 2 wheel spins**. The wheel
+  spins follow the spin policy of D156. **Gems do not exist in the economy yet**: item 1 of the backlog introduces the gem
+  prize kind, so the gem part waits for it (or is dropped to zero) until then.
+- **Birthday badge for everyone:** during the birthday week the player's name tag shows a birthday badge to **all** players (name tag
+  in matches, lists and profile sheets), regardless of the age tick. It shows only that it is their birthday, never the date or age.
+- **Friends are told:** every friend gets an inbox message («امروز تولد X است»; a first one when the week starts, a second on the day),
+  once per year, no age in it. A tick «به دوستانم خبر بده» (default on) lets the player turn this off.
+- **Gems** (D164): the 5 gems of the gift are paid in the new gem currency.
+- **Other uses (server-side, none changes fairness):** aggregated age-band stats in the admin dashboard (never per-user) and
+  message targeting by age band in the message centre.
+- **Privacy:** the date is personal data; the admin user sheet shows age only, the exact date only to the owner role; deleting
+  the field clears it. Never put it in logs, share cards or socket payloads.
+
+**Age everywhere it is allowed (D186):** the own profile page shows «۲۴ ساله» next to the skill rank and the city, always (the tick only decides what *others*
+see); the admin user sheet shows the age to every role and the exact Solar Hijri date to the **owner role only** (the route blanks `birth` for other
+roles); the admin dashboard has a «سن بازیکن‌ها» card with counts per band 10–17 / 18–24 / 25–34 / 35–44 / 45+ and how many gave no date (`AGE_BANDS`,
+`ageBandCounts` in `shared/calendar/birthday.ts`; grouped by birth date in SQL, aggregate only, never per player).
+
+Open for the owner: the size of the birthday gift per year can change in the admin panel at any time.
+
 ## Province/city (D53)
 
 An **optional** profile field — province required, city optional — never a gate on play (same
@@ -87,6 +176,10 @@ regional filter on the leaderboard (`app-screens.md` §Leaderboard & tournaments
 designed here (`DECISIONS.md` open question 17). Where to ask (onboarding step vs. profile-only,
 picked reactively) is still open; the prototype puts it as a profile-only optional field
 (`prototype/screens/profile.html` §استان).
+
+**Built (D101):** the player picks a city on the «شهر من» page (badge grid, Iran then abroad); the
+city's `province` key maps to shared `PROVINCES`, which themes Home (badge + local greeting under
+the wordmark) and shows the badge beside the city on profiles. The admin sets a city's province.
 
 ## Open follow-ups
 

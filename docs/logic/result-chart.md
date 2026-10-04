@@ -17,6 +17,10 @@ Default: the **purple** (hardest) group — it carries the best story. The user 
 - Y axis: **log scale** by default (prices span 1 toman → millions); toggle to linear.
   Labels in toman with Persian digits and compact units: «۱۰۰ تومن»، «۱٫۲ هزار»، «۳ میلیون»، «۱٫۵ میلیارد».
 - Highlight the rule year (if the group's rule references one) with a vertical dashed line and label «سال ۷۵».
+- Implemented in `packages/shared/src/chart/build.ts` (`buildChartData`, `normalizeX`, `normalizeY`) with tunables in
+  `config/chart.ts` (`CHART_GAP_BREAK_YEARS` = 5, `CHART_MIN_YEAR` = 1340, the fixed s1–s4 series colours). Points
+  carry `breakBefore` where a gap > 5 years breaks the line; the Y domain is returned in integer rials and only
+  `normalizeY` does display-only float maths. Axis labels: `compactTomanLabel` («۱۰۰ تومن»، «۱٫۲ هزار»، «۳ میلیون»).
 - Output is plain data (`{ years, series:[{productId, name, color, points:[{year, rials}]}], markers }`)
   so it is unit-testable and reusable by the web share page.
 
@@ -35,3 +39,10 @@ Default: the **purple** (hardest) group — it carries the best story. The user 
 - Capture with `react-native-view-shot`, share with `expo-sharing`. Include the user's invite code in the
   URL (growth loop → invite reward).
 - Share button available on result screen and in match history.
+
+**Built (H6, D182):** `apps/mobile/src/share/` — `ShareCard` (360×450 logical, captured at 3× = 1080×1350) is rendered off screen inside `ChartPanel`,
+under the chart's group tab that is selected; the line «سال ۷۵ با ۱۰۰ تومن می‌شد نان خرید!» comes from `shareLine` (rule year, else earliest year, cheapest
+product); the footer shows the player's invite code (`GET /me/invite`, left out when none). The «اشتراک‌گذاری نمودار» button captures with
+`react-native-view-shot` and shares the PNG with `expo-sharing` on phones (`shareCapture.native.ts`); the **web build has no capture** and shares the same
+words plus the code as text (`shareCapture.ts`), so the web bundle never imports the native modules. Not built: the short URL in the footer, the
+share button in match history and after a duel (there is no duel chart yet, GAPS B2). Not seen on a real phone.

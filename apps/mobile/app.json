@@ -10,7 +10,17 @@
       "supportsTablet": false
     },
     "android": {
-      "package": "ir.dozari.app"
+      "package": "ir.dozari.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundImage": "./assets/adaptive-background.png",
+        "monochromeImage": "./assets/adaptive-monochrome.png"
+      },
+      "versionCode": 1
+    },
+    "icon": "./assets/icon.png",
+    "web": {
+      "favicon": "./assets/favicon.png"
     }
   }
 }

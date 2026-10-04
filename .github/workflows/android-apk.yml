@@ -1,0 +1,83 @@
+name: Android APK
+
+# Manual build of the Android app (no EAS cloud, D14): Expo prebuild + Gradle on a GitHub runner.
+# Run it from Actions → "Android APK" → Run workflow, then download the APK from the run's artifacts.
+# Not run on push/PR. Signing: set the repository secrets below for a release key; without them the APK is
+# signed with a throw-away debug key (fine for installing and testing, NOT for a store).
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_url:
+        description: API address baked into the app
+        default: https://api.mrbots.ir
+      store:
+        description: Market this build is for (myket, bazaar, bale or empty)
+        default: ''
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      CI: '1'
+      EXPO_PUBLIC_API_URL: ${{ inputs.api_url }}
+      EXPO_PUBLIC_STORE: ${{ inputs.store }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate the native Android project
+        working-directory: apps/mobile
+        run: pnpm exec expo prebuild --platform android --no-install
+
+      - name: Signing key
+        working-directory: apps/mobile/android/app
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > release.keystore
+            echo "SIGNED=release" >> "$GITHUB_ENV"
+          else
+            keytool -genkeypair -v -keystore release.keystore -storepass android -keypass android -alias dozari \
+              -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Dozari Debug"
+            echo "SIGNED=debug-key" >> "$GITHUB_ENV"
+          fi
+
+      - name: Build the APK
+        working-directory: apps/mobile/android
+        env:
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD || 'android' }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || 'dozari' }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD || 'android' }}
+        run: |
+          ./gradlew assembleRelease --no-daemon \
+            -Pandroid.injected.signing.store.file="$PWD/app/release.keystore" \
+            -Pandroid.injected.signing.store.password="$KS_PASS" \
+            -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
+            -Pandroid.injected.signing.key.password="$KEY_PASS"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dozari-android-${{ env.SIGNED }}
+          path: apps/mobile/android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error

@@ -6,3 +6,9 @@ describe('fa i18n strings', () => {
     expect(fa.home.title).toBe('دوزاری');
   });
 });
+
+describe('solo strings', () => {
+  it('has a message for every feedback the board can show', () => {
+    expect(Object.keys(fa.solo.feedback).sort()).toEqual(['correct', 'duplicate', 'oneAway', 'wrong']);
+  });
+});

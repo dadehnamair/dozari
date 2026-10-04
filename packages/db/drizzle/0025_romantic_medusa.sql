@@ -1,0 +1,1 @@
+ALTER TABLE `tournaments` ADD `allow_concurrent` boolean DEFAULT false NOT NULL;

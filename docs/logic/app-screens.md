@@ -5,14 +5,21 @@ belong in a game-logic spec (those are `price-guess-round.md`, `profile-and-iden
 `bots.md`, and the existing `matchmaking.md`/`game-rules.md`/`chat-and-access.md`). Treat this as
 part of the same "logic specs" set in `CLAUDE.md` — read it before building the matching screen.
 
+## First-run login screen (D147)
+
+screen-login of `19 Social Daily Onboarding`, shown **once** on a fresh install and only when the server can send codes (`GET /config` → `phoneLogin`, true when an SMS
+provider is configured): the bazaar at dusk, the waving hero, a cream card with «خوش اومدی به بازار!», the number after a fixed «+98», then five code boxes with a resend
+countdown (60 s) and «عوض کردن شماره», and «مهمان بازی کن» under «یا». Signing in with a number that has an account loads that account (the tutorial is skipped); a new number
+makes the account (the tutorial follows); guest goes on to the tutorial. The choice is stored (`dozari.loginSeen`) so it never comes back; «ورود با شماره» stays in settings.
+Backend: `profile-and-identity.md` §Phone login (`POST /auth/phone/code|verify`, the verify answer carries `created`).
+
 ## Onboarding (first app open, before any account setup)
 
-1. **4-slide tutorial**, skippable both by swipe-dismiss and an explicit "رد شدن" button. Slides:
-   1. Goal of the game + a worked example of solving one group in the Connections puzzle.
-   2. The 4-mistake rule: what happens when you run out (game over / turn passes).
-   3. The price-guess bonus round (`price-guess-round.md`) — what it is, that it happens after
-      every puzzle.
-   4. Coins/economy: entering and playing is free; tables/matches can cost coins.
+1. **4-step tutorial** (screen-tutorial of `docs/design/Dozari - 19 Social Daily Onboarding`, D99),
+   skippable with «رد کن». «آجان», the bazaar guard, talks from the bottom corner over a sample
+   board of 16 items: (1) the goal — four groups of four; (2) one group lights up and the rest dim;
+   (3) the group is picked and a «ثبت کن» slab shows, with a word on the limited chances; (4) the
+   group is solved, plus the nominal-prices and coins line. Step dots at the top; one CTA per step.
 2. After the tutorial, a **random nickname + avatar** is assigned silently (no signup screen) —
    see `profile-and-identity.md`. The user lands straight on Home.
 3. **The first solo puzzle played is an eased tutorial run (D37)**, on top of the slide tutorial
@@ -24,26 +31,186 @@ part of the same "logic specs" set in `CLAUDE.md` — read it before building th
    game after it (including a first duel, if that's played before any solo game) is normal
    difficulty. Prototype: `prototype/index.html` (`S.tutorial`, `gh_solo_played`).
 
+## Failure cards (D155)
+
+Every screen that cannot reach the server or has nothing to play shows the design-10 card (`components/EmptyState.tsx` → `ErrorCard`) instead of a
+bare line: sleepy mascot «اینترنت قطعه» + «دوباره وصل شو» + back (offline, `NETWORK`/`INTERNAL`), sad mascot «پازل‌ها تموم شد» (no puzzles), shocked
+mascot (any other server error). Used by the live duel and the solo screen; other screens still show their own short error line.
+
 ## Home / Lobby screen
 
-Everything in one row of equal-weight cards, plus the utility elements below (owner: "همشون" /
-"همه با هم در یک ردیف کارت، وزن یکسان" — no mode is visually demoted, price-guess is not a
-separate card since it's folded into every mode per D19):
+Laid out as **screen-home** of `docs/design/Dozari - 01 Screens.dc.html` (D99, replaces the earlier
+"one row of equal mode cards"):
 
-- Mode cards, one row, equal size: **تمرین تکی** (solo/practice), **۱ در برابر ۱**, **۲ در برابر
-  ۲**, **میز اختصاصی** (private table).
-- Coin balance (header, tappable → profile/wallet).
-- A **separate card for UGC** ("پیشنهاد یک قیمت" / "رأی بده") — its own card, not nested inside
-  another menu (owner decision, 2026-09-27; also reflected in `PLAN.md` Phase 7).
-- Daily challenge / streak banner.
-- Achievements shortcut.
-- **Online player count** (D45, see `matchmaking.md` §Presence & social) — a small persistent
-  badge near the top.
-- **Resume-match indicator** (D42, see §Resume-match indicator below) when an unfinished match
-  exists.
-- **Leaderboard/tournament entry card** (D49/D50, see §Leaderboard & tournaments below).
+- **Top counters** (three pills): coins, daily-puzzle streak, level.
+- **Wordmark** and a **speech bubble** under it: "today's puzzle is ready" (tap → daily puzzle) while
+  it can be played, otherwise the month's mood line.
+- **Corner tiles**, one column per side (54px candy squares with a label; a tile shows only when its
+  feature flag is on). Right: daily reward (badge when claimable), private tables, tournaments, price
+  lookup. Left: settings/profile, messages (unread badge), city chat, shop, fitting room, Bale.
+- The **hero** character floating over the bazaar background. It is also the **guide** (owner note 4):
+  tapping it cycles short tips (`fa.home.guide.tips`, one per menu; tips of switched-off features are
+  skipped) shown in a `GuideBubble` (mascot + speech bubble) above it; the tip fades after 12 s.
+- Coin pill → coin history sheet (see §Coin history sheet).
+- **Two big buttons** at the bottom: solo play (green) and duel (orange). When an unfinished match
+  exists the orange button becomes **back to your game** with a badge (D42).
+- Still to come from the design: the mode screen (duel / team / play with a friend) behind the duel
+  button, the online-player badge (D45) and the UGC entry.
+
+## Game board (solo and daily puzzle)
+
+Laid out as **screen-match** of `docs/design/Dozari - 01 Screens.dc.html` (D99): violet checkered
+background; top bar with a square back button, the yellow title plate (practice / daily puzzle) and a
+hint button; the character beside a speech bubble that carries the prompt, the last guess's feedback
+(the character's pose follows it) or revealed hint titles; the 4×4 board; «فرصت‌ها» dots (one per
+chance left); and three action slabs: shuffle, clear, submit (wider, dimmed until four are picked).
+When the game ends the board gives way to one fixed end scene, never a scrolling page (D54): top bar,
+the character (win / sad) with the result line, one dark card holding the price round (one question
+at a time, then the summary) and then the chart, and the back / new-game slabs pinned at the bottom.
+Short screens (≤ 700 px tall) get a smaller character and chart.
+
+## Live duel (D99, D100)
+
+Four views from `docs/design/Dozari - 13 Match Screens.dc.html`:
+
+1. **screen-mode** «میدان رقابت»: the 1v1 card (picked; entry fee and winner payout from the public
+   `duel.*` settings), the 2v2 card dimmed with «به‌زودی», a «رقابت با دوست» pill that opens the
+   private-table sheet, and «بزن بریم!» to join the queue.
+2. **screen-search** (D104, diamond background, the 4×4 grid of candidates being scanned, you vs «؟»,
+   the real queue wait, «لغو جستجو») while searching; then **screen-versus**: blue half (player) and
+   pink half (rival) split by a gold seam with the VS coin, both name plates (level badge + nickname),
+   and a 3-second countdown leads to the board. A resumed match skips both.
+3. **screen-match**: top bar (leave button — two taps, since leaving loses; the turn clock plate turns
+   pink in the last 10 s; «۱ در ۱»), score panel (faces, names, four group pips per side, points,
+   blue/pink tug bar), whose turn it is, a toast line (guess feedback, the rival's taunt), the board,
+   the taunt button beside «فرصت‌ها», and shuffle / clear / submit. Shuffle only reorders the player's
+   own view. The design's magnifier and freeze power-ups are not part of the game rules and are left out.
+4. **screen-results**: the hero's win / sad / thinking pose, the banner, why it ended (worded from the
+   player's side), a scoreboard (groups and points per player, crown for the leader), home and play again.
+
+## Inbox and invite pages (D99)
+
+- **Inbox** = screen-notifications of `19 Social Daily Onboarding`: full page with a grape header
+  band, «همه خوانده شد» when anything is unread, and one card per message (candy icon tile, title,
+  body, how long ago, a pink dot while unread). Tapping marks it read.
+- **Invite** = screen-invite: sky-to-ink page, three cheering characters, «رفیقت بیاد، هر دو
+  ببرید!» with both rewards from the server rules, the code in a dashed box with copy (web
+  clipboard), «n از m دوست اومدن» with up to five boxes (the last a chest), the rules, the field for
+  a friend's code, and a share slab. Per-app share buttons of the mock-up become the system share sheet.
+
+## Friends page (D99)
+
+screen-friends of `19 Social Daily Onboarding`, opened from the profile sheet (its button shows the
+number of pending requests): sky header band, «+ افزودن» (find players), a search field that filters
+by nickname, incoming requests with accept / decline, then one card per friend (avatar, nickname —
+tap for their profile — and a gift button that opens the coin gift). The mock-up's online status and
+per-friend duel button need presence and direct challenges, which do not exist yet; they are left out.
+
+## City hub (D112)
+
+screen-hub of `11 More Screens`, opened from the round map button in Home's top row (next to it, the round **wheel** button, D154, with the number of spins waiting; it is always there): «شهر دوزاری», a
+hand-drawn bazaar town where every building is a game mode — برج ساعت (daily puzzle, «جدید» when
+today's is open), کاروانسرا (tournaments, «زنده»), حجرهٔ بازار (solo), زورخانه (duel), قهوه‌خانه (team)
+and مکتب‌خانه (propose and vote). Tap a building: its host and a short description rise from the bottom
+with «ورود» (a green slab) and a close square. Team play and propose-and-vote do not exist yet: those
+buildings are drawn and open the card with a disabled «به‌زودی». A mode the admin switched off is
+disabled the same way. Home stays the main screen; the hub is the second way in.
+
+## Lucky wheel (D116)
+
+The wheel look of D111 (lamp rim, pink pointer, big «بچرخون!») is now the **post-win** wheel, not a daily reward — the daily reward
+is the streak card. Opened from the duel result screen («گردونه!» with the count of waiting spins, only after a win). Slices come
+from `GET /wheel`; the spin button calls `POST /wheel/spin` and the wheel turns to stop on the slice the server picked, then a prize
+card shows the coins. Spec of the rules: `docs/logic/economy.md` §Lucky wheel.
+
+## Level road and locked popup (D109)
+
+screen-levels of `17 Chat Shop Unlocks`, opened from the profile («جادهٔ لول‌ها»): a purple night, the
+yellow title plate and a cream road with one node per level (top level first, scrolled to the player's
+level on open): done = gold with a tick, current = yellow with the hero waving beside it, ahead = grey
+with a padlock. Cards beside a level show what it opens, from the real gates (`GET /me/levels`: hint,
+personal invite code, gifts and loans, avatar change, nickname change, plus each active shop item with a
+level gate). Tapping a card of a future level opens **popup-locked**: the feature, «باز می‌شود در لول N»,
+the player's level and XP bar, «اینجا چی هست؟» and Ajan's line. The design's gem-unlock button has no
+counterpart (no gems) and is left out. D117 adds an XP header (level, bar, claim-all), a coin card on every 5th level
+(«بگیر!» → «گرفتی») and a «الان اینجایی» tag with a glowing current node.
+
+The road is a **winding path** (D145): level 1 at the bottom, the bends alternating left / right (30 % and 70 % of the width), an S-shaped Bézier between every pair of levels, a thick brown track
+with a cream centre and a dashed line, the stretch up to the player's level in gold, round nodes on the bends (the current one pulsing, the hero waving above it) and the cards on the opposite side of each
+bend (`levels/roadPath.ts`).
+
+## Leaderboard (D108)
+
+screen-leaderboard of `11 More Screens`, opened from the Home tile «جدول»: purple chequer with a golden
+glow, pink title plate, three tabs — «همه», «شهر من», «دوستان» — the podium of the top three (2nd, 1st,
+3rd; gold, silver, bronze blocks), the rest as rows (rank, avatar, province badge, nickname, XP) on a
+cream sheet, and the player's own row pinned at the bottom when they are outside the top 20. Tap a row
+for the player's profile. Ranked by **total XP** (`GET /leaderboard?scope=all|city|friends`, top 20, the
+caller's rank counted from `user_stats`). A second tab row picks the window (D123): «کل زمان» (total XP), «این هفته» and
+«این ماه» — rolling 7 and 30 days, summed from `xp_events` (one row per finished game's XP, written by `PlayerStore.addGame`;
+players with no XP in the window are not listed; `GET /leaderboard?scope=&period=all|week|month`). XP from before the
+event log existed counts only in «کل زمان».
+
+## Profile without scrolling, and the player card (D146)
+
+The own profile no longer scrolls: a short caravan header (118–140 px) with the back and pencil buttons, the avatar overlapping its edge with the level hexagon, nickname, skill rank · city (province badge), the level bar, four compact stat tiles in one row, up to three earned-badge tags (+N), and the shortcuts as a grid of icon tiles (`HubTile`): جاده‌ی لول, دوستان (request count badge), نشان‌ها, بازی‌ها (recent games, now a sheet), پیدا کردن, هدیه و وام, دعوت. The pencil opens the editor (gender, nickname, city, e-mail) as a sheet that scrolls on its own. Phones under 720 px tall shrink the avatar and tiles instead of scrolling.
+
+Another player's profile is a **player card**: the caravan header with a close button, avatar in a ring with the level hexagon, name with the online dot, skill rank and title chip, city with its province badge, four stat tiles (games / wins / losses / draws), chips for coins and member-since, up to three medals, and the actions — «درخواست دوستی» / waiting / accept for strangers; for friends a «دوست هستید» tag and round icon tiles for gift, loan, unfriend.
+
+## Profile and settings (D107)
+
+**screen-profile**: caravan scene header with back and a pencil (opens the editor: gender, nickname,
+city, e-mail), the big avatar with the level hexagon, nickname, skill rank and city (with its province
+badge), the level bar, four stat tiles (games / wins / losses / draws), the earned badges as colour
+tags and shortcut buttons (friends, badges and messages, find a friend, gifts and loans, invite). The
+design's handle line is left
+out. Opened from the level pill on Home or from settings.
+
+**screen-settings** (Home tile «تنظیمات»): hujre scene, sky title plate, Mashti and his line, then three
+cards — «بازی» (sound, vibration, less motion as switches, per device), «من» (profile, city, install on
+phone when possible, replay the tutorial) and «حساب» (about, sign out everywhere, delete with a second tap).
+
+## Tournaments (D106)
+
+List: orange page, one card per tournament (icon tile, title, players / entry, start time, status chip).
+A tournament's page is screen-tournament of `11 More Screens`: the win scene fading into purple, status
+pill, the yellow ribbon with the title, «شروع تا» live countdown, three tiles (players, entry, first
+prize), the bracket as columns per round (winner ticked, live match outlined green), then a card with
+story, prizes, rules, results and players; a large «ثبت‌نام» / «انصراف» slab at the bottom.
+
+## Shop (D105)
+
+screen-shop of `17 Chat Shop Unlocks`: the hujre scene under a dark veil, the yellow «حجرهٔ دوزاری»
+plate with the coin count, four tabs (سکه، جم، کمکی، ویژه) and a two-column grid of goods. Character items (hair, hats, glasses, clothes) are not sold here: see *Fitting room* below.
+Only «کمکی» has goods today (hint tokens, bought with coins; level gate and daily limit show on the
+card, a locked card is veiled with a padlock); the other tabs are dimmed and say «به‌زودی» — coin
+packs wait on the payment decision, gems/offers on their own features. A purchase
+ends in the «مال خودت شد!» card.
+
+## Fitting room (D179, redone D187)
+
+«اتاق پرو», a left-column Home tile (shirt icon, shown with the shop flag), laid out like `21 Cosmetic Packs`, one phone column: the top row (back, title, coin and
+gem pills); the **stage** — the player's own character (`heroFor(gender)`) over a warm radial backdrop with a slowly turning sunburst, a floor shadow and a green
+toast for messages; the **worn** row (a chip per worn item, tap = take it off in the preview; «برگردان» drops all tries, «پیش‌فرض» takes everything off for real);
+a **chip per pack** with its item count (tap scrolls to the pack); then the **packs** one under the other (کلاه، مو، عینک، آرایش، لباس، زیورآلات — only packs that have
+items), each with a coloured bar, «پک X» and «N آیتم · M تا داری», and a two-column grid of cards. A card: a backdrop tinted by rarity with the item on a face, the rarity
+badge (top right), a green ✓ when it is on the stage (top left), a **chip «از سطح N» inside the picture** when the level is missing, the name, and the price button — gold =
+to buy (coin or gem icon + the price, or «رایگان»), white «بپوش» = owned, green «پوشیده‌ای» = worn (tap takes it off); a sky-blue toman button when real money is on. Tapping the
+card tries the item on for free. Rarity follows the price (`wardrobe/rarity.ts`: coins ≤ 500 common, more rare; gems < 90 epic, ≥ 90 legendary). Prices, levels and
+currencies are per item in the admin panel. Only the pack list scrolls (its bar stays visible). The Home hero wears what is equipped (`GET /me/cosmetics`).
+Not built from the design: the male/female model switch (the character follows the profile), and the 40 %-off pack bundles (they need an economy decision).
+
+## City page (D101)
+
+«شهر من», opened from the city row of the profile: the badge grid of `18 Provinces` — an «ایران»
+group then «ایرانیان خارج از کشور», each card with the province badge, city name and souvenir; the
+current city is yellow; «نمی‌خواهم بگویم» clears it. Tapping saves and returns. Home shows the
+badge and the local greeting under the month bubble; tapping it opens the profile.
 
 ## Matchmaking queue (waiting) screen
+
+The waiting view is screen-versus above. Still open from the original spec below: practising solo
+while waiting and the queued-puzzle info.
 
 Shown between tapping a competitive mode and the match actually starting:
 
@@ -104,6 +271,14 @@ materialized view or a scheduled aggregation job, not a live query per request) 
 tournaments, new tables (bracket/round/match rows) plus a scheduler to advance rounds — neither
 designed yet.
 
+## Searching for a 2v2 (D151)
+
+In the 2v2 queue the search screen looks for **three** players, not one: the title reads «جستجوی تیم» with «یک هم‌تیمی و دو حریف پیدا می‌کنیم», and the VS panel shows you and a scanning «؟» (the teammate) against two scanning «؟» (the rivals), each disc running through the faces of the grid. When the match is found the versus screen shows both teams (you + teammate over the two rivals). `match:found` carries `youId` so the app can tell which listed player is the receiver.
+
+## Page headers and the device's top edge (D150)
+
+Every full-screen page puts its back button and title high: the row starts `PAGE_TOP_EXTRA` (14 px on the web, 30 native) below the top inset (`safeTop` adds the notch / status-bar inset on a home-screen web app). `PageShell` (chat/«قهوه‌خانه», inbox/«پیک», friends, tournaments/«جام‌ها», coin history, city picker) grows its coloured band by the same inset, so the white title never slips below the band onto the sand background (the bug seen on phones with a notch). The opponent search keeps «در حال جستجو…» and the seconds on one line, and its VS panel sits in the free space between the grid and the cancel button instead of floating over the last row on shorter screens.
+
 ## Icon caption convention (D48)
 
 Any icon-only control gets a short text caption underneath it, not just a hover title. Already the
@@ -130,10 +305,13 @@ tooltip alone. Owner: "زیر متن‌های اون آیکن‌ها یه راه
 
 ## Wallet / coin history
 
-**No separate wallet screen** (owner decision, 2026-09-27): the Profile screen's match-history
-list (`profile-and-identity.md`) is the coin history — each row already shows coins won/lost per
-match. No dedicated full-ledger view (all faucets/sinks) at MVP; revisit only if players ask for
-non-match coin movements (daily bonus, invite rewards) to be individually visible.
+**Coin history sheet** (owner note 13, 2026-10-02; replaces the earlier "no separate wallet screen"
+decision): tapping the coin count on Home opens «تاریخچه‌ی سکه» — the player's own `coin_ledger`
+rows, newest first, each with a Persian reason label, relative time and a signed amount
+(green `+` / red `−`), plus the current balance on top and a «بیشتر» button for the next page.
+Backed by `GET /me/ledger?limit=&before=` (keyset cursor `<createdAtMs>_<id>`, caller's rows only,
+financial fields only: no ref ids or idempotency keys). Code: `apps/server/src/ledger`,
+`apps/mobile/src/ledger`. The match-history list on Profile stays as is.
 
 ## Admin panel (first pass, 2026-09-27 — resolves part of open question 11)
 
@@ -171,3 +349,10 @@ task in `PLAN.md`, not blocking Phase 0-A/0.
 - UGC voting-feed screen is now specified in `docs/logic/ugc.md` §Voting feed UI (single-card
   swipe, approve/reject) — no longer open.
 - Admin panel: see §Admin panel above — first pass done, full interview still open.
+
+## Recent games on the profile (D128)
+
+The profile lists the last 5 finished games («بازی‌های اخیر»): mode (solo / duel), outcome (win / loss / draw), XP and how long ago.
+Source: `xp_events` (one row per finished game, now with `mode` and `outcome`; rows from before have neither and show as solo, no
+outcome). `GET /me/games` returns the last 10, newest first, the caller's own only.
+

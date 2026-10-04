@@ -21,10 +21,40 @@ All values in *italics* are config in `packages/shared/src/config/game.ts`.
 - Submitting an identical set twice is rejected client- and server-side (no penalty, "already tried").
 - When 3 groups are solved, the last group is auto-revealed (no one scores it).
 
+**Match numbers are admin settings** (`game.turn_seconds`, `game.match_max_mistakes`, `game.max_consecutive_timeouts`, `score.group_points`,
+`score.first_blood_bonus`): `MatchService` reads them when a match starts and the reducer keeps that snapshot in `MatchState.rules`, so an edit
+never changes a game in progress (the shared config is the default). The chart limits `chart.min_year` / `chart.gap_break_years` reach the
+client through `GET /config` (`apps/mobile/src/config/chartRules.ts`).
+
 ## Solo
 
 Classic Connections: *SOLO_MAX_MISTAKES* = 4 mistakes allowed; game over at the 4th wrong guess
 (remaining groups revealed). Result screen + chart.
+
+Implemented as the pure reducer `packages/shared/src/game/solo.ts` (`startSolo`, `submitGuess`,
+`shuffleBoard`; seeded RNG injected). One away counts as a mistake like any wrong guess; a repeated
+set (any order) is `duplicate` and free; anything that is not 4 distinct cards on the board is
+`invalid` and changes nothing; after three solved groups the fourth is auto-revealed and the game is
+`won`; at the 4th mistake the rest are revealed and the game is `lost`. The initial board never lays
+out a row as a whole group. The reducer needs the solution, so it runs server-side (rule 4).
+
+**Excitement layer (D178, client-only, cosmetic: no points, no coins).** A *combo* is groups solved back to back,
+each within *COMBO_WINDOW_SECONDS* of the previous one (pure `packages/shared/src/game/combo.ts`); from the second
+group on the top bar shows «×N» with a ring that empties over the window, and a rising sound plays. A wrong or
+one-away guess, or an expired window, ends it; a repeated set changes nothing. «یکی مونده!» (one away) pops as a
+pill over the board with the existing tone. On the last life (one mistake left) the life dot beats, the label turns
+into «آخرین فرصت!» and a soft lub-dub plays / vibrates every *LAST_LIFE_HEARTBEAT_MS*. Reduced motion keeps the
+text and sound but drops the animation.
+
+Served by `apps/server/src/solo/` (practice, no coins): `POST /solo/start` (503 `no_puzzles` when no
+`approved` puzzle exists), `GET /solo/:id`, `POST /solo/:id/guess {productIds[4]}`,
+`POST /solo/:id/shuffle`. Sessions live in memory (2 h idle TTL) until solo results are persisted.
+The client only ever receives `SoloView`: card ids + `name_fa`/`unit_fa` (no prices), solved groups with
+their title/explanation (flagged `revealed` when shown by the game), mistakes, status. Unsolved groups'
+membership and texts never leave the server.
+`GET /solo/:id/chart` returns the price history of all four groups, but only once the game is over
+(409 `game_in_progress` otherwise, since it would reveal the groups); the result screen draws it with
+`buildChartData`.
 
 ## Competitive: shared board, alternating turns (Decision D8 — **accepted**, confirmed 2026-09-27)
 
@@ -67,6 +97,17 @@ One board, both sides play it in turns.
 - If the captain disconnects, the teammate becomes captain automatically.
 - Team chat channel exists (see chat-and-access.md).
 
+As built (`game/match.ts`, `realtime/match-service.ts`): `startTeamMatch` seats two players per side; `state.captain[side]` is the only
+user who may `submit` (others get `NOT_CAPTAIN`); the captain rotates to the next present teammate at every new turn of that side
+except on a correct-guess streak. `propose` (team only, `NOT_TEAM_MATCH` in a duel) is a pure event: the service keeps only the latest
+proposal per side and puts it in the snapshot of that side's own players (`MatchView.proposal`); it is never a `match:event`, never
+sent to the other side. `leave` marks the player `gone`: the captain role moves to the teammate, the leaver may queue again, and a side
+with nobody left forfeits (`abandon`). 2v2 has **no entry fee yet** (proposed, D140): stakes/escrow stay 1v1-only until the team economy is decided.
+Queue: `queue:join {mode:'team'}` fills from strangers (4 in line → the two longest waiters play together); a party of 2 is not built.
+The bot driver fills missing seats after the usual fallback wait (humans on opposite sides) and only plays when its bot is the captain.
+
+**Three boards (D143).** A 2v2 is longer: *TEAM_MATCH_BOARDS* = 3 different 16-card boards played one after another (admin setting `match.team_boards`, 1–5; a 1v1 stays one board). Scores add up across boards; the mistake limit (*MATCH_MAX_MISTAKES*), lock-outs, the consecutive-timeout count and the repeated-set list reset on every board, while tie-breaks count mistakes of all boards and first blood is only for the first board. A board ends when three groups are found or both sides are locked out; its last group is revealed, `board_done` (with the board's full solution) and `board` events go out, and the other side than the one that opened the board opens the next (captain rotates). The match ends after the last board (`solved`/`locked_out`) or at once on forfeit/abandon. The state keeps the next boards server-side (`upcoming`, already shuffled); `MatchView` only has `round`/`rounds` and the board in play. The result screen shows the last board's solution.
+
 ### Visibility (redaction)
 - Everyone sees: board items, solved groups, scores, mistakes, whose turn, timer, each side's
   submitted selection result (the 4 items and correct/one-away/wrong).
@@ -85,6 +126,17 @@ type Command =
 
 applyCommand(state, cmd, ctx: { now: number }) => { state, events: MatchEvent[] } | { error: RuleError }
 ```
+
+Implemented in `packages/shared/src/game/match.ts` for 1v1 (one player per side, `MatchSide` 0|1): `startMatch`,
+`applyCommand` (`submit`, `timeout`, `leave`, `forfeit`; `propose` is team-only), `matchClientView`
+(the only shape that leaves the server), and for after the price-guess round `resolveWinner` / `finalScores`.
+Details the spec left open, as built: a correct guess restarts the turn clock for the same side; when the opponent is
+locked out the active side keeps the turn after a mistake or a timeout; a repeated set is a `DUPLICATE_SELECTION`
+error (no penalty), not a turn; two consecutive timeouts forfeit (a submit resets the count); `leave` is an `abandon`;
+a tie after score, mistakes and earliest last-correct guess leaves `result.winner = null` for `resolveWinner`
+to settle with the price-guess rounds (a locked-out side cannot win that way while the other side is still in).
+Constants: `TURN_SECONDS`, `MATCH_MAX_MISTAKES`, `MAX_CONSECUTIVE_TIMEOUTS`, `GROUP_POINTS`, `FIRST_BLOOD_BONUS`,
+`PRICE_GUESS_LOSER_BONUS_PER_ROUND` in `config/game.ts`.
 
 Invariants (unit-tested):
 - Only the active side's captain (or active player) can `submit`; others → `NOT_YOUR_TURN`.

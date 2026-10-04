@@ -1,0 +1,1 @@
+ALTER TABLE `coin_purchases` MODIFY COLUMN `store` enum('bazaar','myket','bale') NOT NULL;

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ITEM_ICON_KEYS } from '../items/index.js';
 
 /** Mirrors the `product_category` enum in packages/db (docs/logic/data-model.md §Catalog). */
 export const PRODUCT_CATEGORIES = [
@@ -84,6 +85,8 @@ export const seedProductSchema = z
     brand: z.string().optional(),
     category: z.enum(PRODUCT_CATEGORIES),
     unit_fa: z.string().optional(),
+    /** Key of the hand-drawn icon pack shown on the card (`ITEM_ICON_KEYS`); checked in `checkSeedProducts`. */
+    icon_key: z.string().optional(),
     audience: z.array(z.enum(AUDIENCES)).default([]),
     era_tags: z.array(z.string()).default([]),
     story_fa: z.string().optional(),
@@ -92,6 +95,42 @@ export const seedProductSchema = z
     prices: z.array(seedPricePointSchema).min(1),
   })
   .strict();
+
+/** One curated puzzle of the sample seed: 4 groups of 4 product slugs (`packages/db/seed/puzzles/*.json`). */
+export const seedPuzzleSchema = z
+  .object({
+    id: z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/),
+    groups: z
+      .array(
+        z
+          .object({
+            level: z.number().int().min(0).max(3),
+            title_fa: z.string().min(2).max(100),
+            explanation_fa: z.string().min(2).max(300),
+            products: z.array(z.string()).length(4),
+          })
+          .strict(),
+      )
+      .length(4),
+  })
+  .strict();
+export const seedPuzzleFileSchema = z.array(seedPuzzleSchema);
+export type SeedPuzzle = z.infer<typeof seedPuzzleSchema>;
+
+/** A seed puzzle's problems: levels 0–3 once each, 16 distinct products, every slug in the catalog seed. */
+export function checkSeedPuzzles(puzzles: readonly SeedPuzzle[], slugs: ReadonlySet<string>): string[] {
+  const errors: string[] = [];
+  const ids = new Set<string>();
+  for (const p of puzzles) {
+    if (ids.has(p.id)) errors.push(`duplicate puzzle id: ${p.id}`);
+    ids.add(p.id);
+    if (new Set(p.groups.map((g) => g.level)).size !== 4) errors.push(`${p.id}: levels 0-3 must each be used once`);
+    const all = p.groups.flatMap((g) => g.products);
+    if (new Set(all).size !== all.length) errors.push(`${p.id}: a product appears twice`);
+    for (const s of all) if (!slugs.has(s)) errors.push(`${p.id}: unknown product ${s}`);
+  }
+  return errors;
+}
 
 export const seedFileSchema = z.array(seedProductSchema);
 
@@ -111,6 +150,8 @@ export function checkSeedProducts(products: readonly SeedProduct[]): string[] {
   for (const product of products) {
     if (slugs.has(product.slug)) errors.push(`duplicate slug: ${product.slug}`);
     slugs.add(product.slug);
+
+    if (product.icon_key !== undefined && !ITEM_ICON_KEYS.includes(product.icon_key)) errors.push(`${product.slug}: unknown icon_key ${product.icon_key}`);
 
     const keys = new Set<string>();
     for (const p of product.prices) {
