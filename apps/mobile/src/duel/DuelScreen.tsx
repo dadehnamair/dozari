@@ -23,6 +23,7 @@ import { arenaNumbers, arrange, characterFor, clockText, endReason, groupsBy, sh
 import { DuelPriceRound } from './DuelPriceRound';
 import { DuelResult } from './DuelResult';
 import { InviteSheet } from '../invite/InviteSheet';
+import { PlayerSheet } from '../social/PlayerSheet';
 import { MatchHud } from './MatchHud';
 import { ModeSelect } from './ModeSelect';
 import { boardSolved, duelReducer, initialDuel, isCaptain, isMyTurn, myOutcome, sideName, sidePlayers, turnSecondsLeft } from './model';
@@ -51,6 +52,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   const [stage, setStage] = useState<Stage>(resume ? 'resume' : 'pick');
   const [round, setRound] = useState(0);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [profileId, setProfileId] = useState<string | null>(null);
   const [state, dispatch] = useReducer(duelReducer, initialDuel);
   const [selected, setSelected] = useState<string[]>([]);
   const [order, setOrder] = useState<string[]>([]);
@@ -244,7 +246,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   const rivalWho = characterFor(sidePlayers(state.found, them)[0]?.avatarKey || rivalName);
   const lines = [
     { name: myName, who: 'dozari' as const, groups: groupsBy(view, me), me: true },
-    { name: rivalName, who: rivalWho, groups: groupsBy(view, them), me: false },
+    { name: rivalName, who: rivalWho, groups: groupsBy(view, them), me: false, playerId: sidePlayers(state.found, them).length === 1 ? sidePlayers(state.found, them)[0]?.userId : undefined },
   ];
 
   if (state.phase === 'ended' && state.ended && !finalePending) {
@@ -260,12 +262,14 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
           onHome={onBack}
           onAgain={stage === 'queue' ? again : undefined}
           onInvite={() => setInviteOpen(true)}
+          onPlayer={(id) => setProfileId(id)}
         />
         {!prefs.reduceMotion ? (outcome === 'won' ? <Confetti distance={500} /> : <Rain distance={800} />) : null}
         {outcome === 'won' && spinsWaiting > 0 ? (
           <View style={styles.wheelCta}><SlabButton label={fa.wheel.open} color={colors.candy.yellow} badge={toPersianDigits(String(spinsWaiting))} onPress={() => setWheelOpen(true)} /></View>
         ) : null}
         {inviteOpen ? <InviteSheet onClose={() => setInviteOpen(false)} /> : null}
+        {profileId ? <PlayerSheet playerId={profileId} onClose={() => setProfileId(null)} /> : null}
         {wheelOpen ? <WheelPage onClose={() => (setWheelOpen(false), void fetchWheel().then((w) => setSpinsWaiting(w.pending), () => undefined))} /> : null}
       </View>
     );
