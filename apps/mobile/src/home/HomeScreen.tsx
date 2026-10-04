@@ -182,6 +182,8 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
             <Icon name="wheel" size={22} color="#fff" strokeWidth={2.2} />
             {spins > 0 ? <View style={styles.spinBadge}><Text style={styles.spinBadgeText}>{toPersianDigits(String(spins))}</Text></View> : null}
           </Pressable>
+          {/* A spacer keeps the level pill at the far (left) end of the row, whether or not the streak pill is showing. */}
+          <View style={styles.pillsGap} />
           {level !== null ? <StatPill color={colors.candy.grape} icon="rosette" value={toPersianDigits(String(level))} label={`${h.level} ${level}`} onPress={() => setProfileOpen(true)} /> : null}
         </View>
 
