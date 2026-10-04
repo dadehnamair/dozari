@@ -9,6 +9,8 @@ import { Vazirmatn_700Bold } from '@expo-google-fonts/vazirmatn/700Bold';
 import { useFonts } from 'expo-font';
 import { APP_BUILD } from './src/config/build';
 import { GateScreen } from './src/config/GateScreen';
+import { PhoneGate } from './src/config/PhoneGate';
+import { usePhoneGate } from './src/config/usePhoneGate';
 import { gateState } from './src/config/gate';
 import { useClientConfig } from './src/config/useClientConfig';
 import { HomeScreen } from './src/home/HomeScreen';
@@ -42,7 +44,8 @@ if (!I18nManager.isRTL) {
   I18nManager.forceRTL(true);
 }
 // Coordinates (`left`/`right`, margins) stay physical like the web and the SVG art; only flex rows follow RTL.
-I18nManager.swapLeftAndRightInRTL(false);
+// (react-native-web has no such method: calling it there crashed the whole web app at load.)
+if (Platform.OS !== 'web') I18nManager.swapLeftAndRightInRTL(false);
 
 const SPLASH_MS = 1800;
 
@@ -50,6 +53,7 @@ export default function App() {
   const shell = useRef<View>(null);
   const keyboard = useKeyboardInset(shell);
   const config = useClientConfig();
+  const phone = usePhoneGate(config.raw);
   const gate = gateState(config, APP_BUILD);
   useInviteLink(gate === 'ok' && config.features.friends);
   const [fontsLoaded] = useFonts({ Vazirmatn_400Regular, Vazirmatn_700Bold, Lalezar_400Regular });
@@ -93,6 +97,17 @@ export default function App() {
     return (
       <View style={styles.loading}>
         <ActivityIndicator color="#FFC93C" />
+      </View>
+    );
+  }
+
+  // Desktop browser → QR card, Android phone → download card, iPhone → install steps (D171); it waits for the saved «continue» choice.
+  if (!phone.ready) return <View style={styles.container} />;
+  if (phone.verdict !== 'pass') {
+    return (
+      <View style={styles.container}>
+        <StatusBar style="light" />
+        <PhoneGate kind={phone.verdict} address={phone.address} download={phone.download} onContinue={phone.continueBrowser} />
       </View>
     );
   }

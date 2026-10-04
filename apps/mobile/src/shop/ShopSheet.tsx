@@ -9,7 +9,8 @@ import { Item } from '../components/Item';
 import { Scene } from '../components/Scene';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
-import { buyItem, equipItem, fetchShop } from './api';
+import { ApiError } from '../net/http';
+import { buyItem, equipItem, fetchShop, payWithMoney } from './api';
 import { pageTop } from '../theme/safeArea';
 import { useHardwareBack } from '../nav/useHardwareBack';
 
@@ -51,7 +52,7 @@ const stateText = (it: ShopItem): string | null => {
  * coin count, six tabs and a two-column grid of goods; a purchase ends in the «مال خودت شد!» card. Everything is
  * bought with coins (`shop.md`); the level gate and daily limit show on the card before the player taps.
  */
-export function ShopSheet({ onClose, onBalance }: { onClose: () => void; onBalance?: (coins: number) => void }) {
+export function ShopSheet({ onClose, onBalance, realMoney = false }: { onClose: () => void; onBalance?: (coins: number) => void; /** `feature.coin_packages` is on: items with a money price get a pay button. */ realMoney?: boolean }) {
   useHardwareBack(onClose);
   const [shop, setShop] = useState<Shop | null>(null);
   const [tab, setTab] = useState<TabKey>('boost');
@@ -62,7 +63,8 @@ export function ShopSheet({ onClose, onBalance }: { onClose: () => void; onBalan
   const [boxH, setBoxH] = useState(0);
   const [page, setPage] = useState(0);
   const tight = boxH > 0 && boxH < 470;
-  const rows = Math.max(1, Math.floor((boxH - PAGER_H + CARD_GAP) / ((tight ? CARD_H_TIGHT : CARD_H) + CARD_GAP)));
+  const cardH = (realMoney ? 36 : 0) + (tight ? CARD_H_TIGHT : CARD_H);
+  const rows = Math.max(1, Math.floor((boxH - PAGER_H + CARD_GAP) / (cardH + CARD_GAP)));
   const perPage = rows * 2;
   const shown = tab === 'boost' || tab === 'outfit';
   const items = tab === 'boost' ? (shop?.items ?? []).filter((i) => i.effect !== 'cosmetic') : tab === 'outfit' ? (shop?.items ?? []).filter((i) => i.effect === 'cosmetic') : [];
@@ -83,6 +85,11 @@ export function ShopSheet({ onClose, onBalance }: { onClose: () => void; onBalan
       () => (setNote(fa.shop.error), load()),
     );
   const pick = (k: TabKey) => (setTab(k), setPage(0), setNote(k === 'boost' || k === 'outfit' ? null : fa.shop.soon));
+  const pay = (it: ShopItem) =>
+    payWithMoney(it.id).then(
+      () => setNote(fa.shop.invoiceSent),
+      (e) => setNote(e instanceof ApiError && e.code === 'bale_not_linked' ? fa.shop.linkBale : fa.shop.payError),
+    );
   const wear = (it: ShopItem) => equipItem(it.id, !it.equipped).then(load, () => (setNote(fa.shop.error), load()));
 
   return (
@@ -154,6 +161,11 @@ export function ShopSheet({ onClose, onBalance }: { onClose: () => void; onBalan
                         {it.owned ? null : <View style={styles.buyIcon}><Item icon={it.currency === 'gems' ? 'gem' : 'coin'} /></View>}
                         <Text style={styles.buyText}>{it.owned ? (it.equipped ? fa.shop.takeOff : fa.shop.wear) : (it.currency === 'gems' ? it.priceGems : it.priceCoins) === 0 ? fa.shop.free : n(it.currency === 'gems' ? it.priceGems : it.priceCoins)}</Text>
                       </Pressable>
+                      {realMoney && it.priceToman > 0 && !it.owned ? (
+                        <Pressable onPress={() => void pay(it)} accessibilityRole="button" accessibilityLabel={`${fa.shop.payMoney} ${it.titleFa}`} style={({ pressed }) => [styles.money, pressed ? styles.pressed : null]}>
+                          <Text style={styles.moneyText}>{fa.shop.toman(it.priceToman)}</Text>
+                        </Pressable>
+                      ) : null}
                     </View>
                   </View>
                 );
@@ -228,6 +240,8 @@ const styles = StyleSheet.create({
   sub: { fontFamily: fonts.bold, fontSize: 10, color: '#7E46D6', minHeight: 28, textAlign: 'center' },
   buy: { width: '100%', height: 36, borderRadius: 12, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.candy.lime, flexDirection: ROW, alignItems: 'center', justifyContent: 'center', gap: 4, ...lift(3) },
   buyOff: { opacity: 0.45 },
+  money: { width: '100%', height: 30, borderRadius: 12, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.candy.sky, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
+  moneyText: { fontFamily: fonts.display, fontSize: 14, color: colors.ink },
   buyIcon: { width: 20, height: 20 },
   buyText: { fontFamily: fonts.display, fontSize: 16, color: colors.ink },
   won: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9, backgroundColor: 'rgba(26,8,44,0.86)', alignItems: 'center', justifyContent: 'center', gap: 14 },

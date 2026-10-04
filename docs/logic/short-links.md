@@ -1,0 +1,9 @@
+# Short links and domains (D172)
+
+Backlog item 9: `2oi.ir` is the short domain for outgoing links, served by the game's own server (no third-party shortener).
+
+- **Domains are admin settings** (`domain.app`, `domain.api`, `domain.landing`, `domain.short`; defaults `mrbots.ir`, `api.mrbots.ir`, `mrdozari.ir`, `2oi.ir`). Today only `domain.short` and `domain.landing` are read by code; the others are for the landing site and documentation.
+- **Table** `short_links` (code PK, target URL, note, clicks, `is_active`, created / last click). Admin page «لینک کوتاه» creates (own code 2–24 chars of `a-z0-9_-`, or a random 6-char one), edits the target, switches off, and shows clicks.
+- **Rules** (`shortlinks/service.ts`): targets are `http(s)` only, no credentials, ≤ 1000 chars; a target on the short domain itself is refused (loops); reserved words (`admin`, `api`, `health`, `s`, …) cannot be codes; unknown or switched-off codes answer a real 404.
+- **Serving**: a request whose `Host` equals `domain.short` is answered first in the global `onRequest` hook: `/` → 302 to `https://<domain.landing>` (404 while empty), `/<code>` → 302 to the target with `cache-control: no-store` (so an edit applies at once), anything else 404. `GET /s/:code` does the same on any host, so links can be tried before DNS points at the server.
+- **Owner steps** to switch it on: point `2oi.ir` (A/AAAA) at the same reverse proxy as the API and forward it to the server container with the original `Host` header; get a certificate for it; set `domain.short` (already `2oi.ir`) and make links in the admin page.

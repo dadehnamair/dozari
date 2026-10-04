@@ -90,7 +90,7 @@ export function LoginScreen({ onDone }: { onDone: (r: { signedIn: boolean; creat
             <Text style={styles.sub}>{l.phoneHint}</Text>
             <View style={styles.phoneRow}>
               <View style={styles.prefix}><Text style={styles.prefixText}>+98</Text></View>
-              <TextInput value={typed} onChangeText={(v) => setTyped(onlyDigits(v, 11))} onSubmitEditing={send} keyboardType="phone-pad" maxLength={13} placeholder="912 345 6789" placeholderTextColor="#B8A9CC" style={styles.phoneInput} accessibilityLabel={fa.phoneLogin.phone} />
+              <TextInput value={toPersianDigits(typed)} onChangeText={(v) => setTyped(onlyDigits(v, 11))} onSubmitEditing={send} keyboardType="phone-pad" maxLength={13} placeholder={toPersianDigits('912 345 6789')} placeholderTextColor="#B8A9CC" style={styles.phoneInput} accessibilityLabel={fa.phoneLogin.phone} />
             </View>
           </>
         ) : (
@@ -103,7 +103,7 @@ export function LoginScreen({ onDone }: { onDone: (r: { signedIn: boolean; creat
                   <Text style={styles.boxText}>{code[i] ? toPersianDigits(code[i]!) : ''}</Text>
                 </View>
               ))}
-              <TextInput ref={codeInput} value={code} onChangeText={onCode} keyboardType="number-pad" maxLength={OTP_LENGTH + 2} autoFocus style={styles.hiddenInput} caretHidden />
+              <TextInput ref={codeInput} value={toPersianDigits(code)} onChangeText={onCode} keyboardType="number-pad" maxLength={OTP_LENGTH + 2} autoFocus style={styles.hiddenInput} caretHidden />
             </Pressable>
             <View style={styles.resendRow}>
               <Pressable onPress={() => (setStep('phone'), setNote(null))} accessibilityRole="button"><Text style={styles.link}>{l.changeNumber}</Text></Pressable>

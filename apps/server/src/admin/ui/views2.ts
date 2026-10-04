@@ -483,7 +483,9 @@ VIEWS.dailypuzzle = function (root) {
 VIEWS.shop = function (root) {
   var list = h('div');
   function num(v, min) { return h('input', { type: 'number', value: v, min: min === undefined ? 0 : min, style: 'width:90px' }); }
+  function txt(v, ph) { return h('input', { type: 'text', value: v || '', placeholder: ph || '', maxlength: 80, style: 'width:130px' }); }
   function row(it) {
+    var toman = num(Math.floor((it.priceRials || 0) / 10)), skuB = txt(it.skuBazaar, 'SKU بازار'), skuM = txt(it.skuMyket, 'SKU مایکت');
     var cur = select([['coins', 'سکه'], ['gems', 'الماس']], it.currency || 'coins'), price = num(it.currency === 'gems' ? it.priceGems : it.priceCoins), lvl = num(it.minLevel, 1), lim = num(it.perDayLimit), amt = num(it.amount, 1);
     function save(patch) { api('/admin/shop/' + it.id, { method: 'PATCH', body: patch }).then(function (x) { if (!x.ok) return fail(x); toast('ذخیره شد'); draw(); }); }
     return h('div', { class: 'card', style: 'padding:12px' }, [
@@ -491,8 +493,8 @@ VIEWS.shop = function (root) {
         h('b', { text: it.titleFa }), it.isActive ? badge('فعال', 'b-ok') : badge('پنهان', 'b-warn'), h('span', { class: 'h', text: it.descriptionFa })
       ]),
       h('div', { class: 'toolbar', style: 'margin-top:8px' }, [
-        field('پرداخت با', cur), field('قیمت', price), field('تعداد در هر خرید', amt), field('کمترین لول', lvl), field('سقف خرید در روز (۰ = بی‌سقف)', lim),
-        h('button', { class: 'btn primary', text: 'ذخیره', onclick: function () { save({ currency: cur.value, priceCoins: cur.value === 'coins' ? +price.value : it.priceCoins, priceGems: cur.value === 'gems' ? +price.value : it.priceGems, amount: +amt.value, minLevel: +lvl.value, perDayLimit: +lim.value }); } }),
+        field('پرداخت با', cur), field('قیمت', price), field('قیمت پول واقعی (تومان، ۰ = بدون)', toman), field('SKU بازار', skuB), field('SKU مایکت', skuM), field('تعداد در هر خرید', amt), field('کمترین لول', lvl), field('سقف خرید در روز (۰ = بی‌سقف)', lim),
+        h('button', { class: 'btn primary', text: 'ذخیره', onclick: function () { save({ priceRials: +toman.value * 10, skuBazaar: skuB.value.trim() || null, skuMyket: skuM.value.trim() || null, currency: cur.value, priceCoins: cur.value === 'coins' ? +price.value : it.priceCoins, priceGems: cur.value === 'gems' ? +price.value : it.priceGems, amount: +amt.value, minLevel: +lvl.value, perDayLimit: +lim.value }); } }),
         h('button', { class: 'btn', text: it.isActive ? 'پنهان کن' : 'فعال کن', onclick: function () { save({ isActive: !it.isActive }); } })
       ])
     ]);
@@ -506,11 +508,12 @@ VIEWS.shop = function (root) {
     });
   }
   var title = h('input', { type: 'text', placeholder: 'نام آیتم', maxlength: 80 }), desc = h('input', { type: 'text', placeholder: 'توضیح کوتاه برای بازیکن', maxlength: 300 });
-  var cur = select([['coins', 'سکه'], ['gems', 'الماس']], 'coins'), price = num(20), amt = num(1, 1), lvl = num(1, 1), lim = num(0), eff = select([['hint_token', 'توکن راهنما'], ['wheel_spin', 'چرخش گردونه'], ['cosmetic', 'لباس / کلاه']], 'hint_token'), slot = select([['hat', 'کلاه'], ['outfit', 'لباس'], ['accessory', 'زیورآلات']], 'hat'), icon = h('input', { type: 'text', placeholder: 'magnifier، hat، crown، shirt …', value: 'magnifier', maxlength: 30 });
+  var tomanNew = num(0), skuBN = h('input', { type: 'text', placeholder: 'SKU بازار', maxlength: 80 }), skuMN = h('input', { type: 'text', placeholder: 'SKU مایکت', maxlength: 80 });
+  var cur = select([['coins', 'سکه'], ['gems', 'الماس']], 'coins'), price = num(20), amt = num(1, 1), lvl = num(1, 1), lim = num(0), eff = select([['hint_token', 'توکن راهنما'], ['wheel_spin', 'چرخش گردونه'], ['cosmetic', 'لباس / کلاه']], 'hint_token'), slot = select([['hat', 'کلاه'], ['outfit', 'لباس'], ['accessory', 'شال و زیورآلات'], ['hair', 'مو'], ['glasses', 'عینک']], 'hat'), icon = h('input', { type: 'text', placeholder: 'magnifier، shapoo، crown، beanie، hairLong، hairCurly، hairBun، glassesRound، glassesSun، shirt، dress، scarf', value: 'magnifier', maxlength: 30 });
   root.appendChild(card('قیمت راهنما در بازی تکی', 'قیمت هر راهنما، لول لازم و سقف راهنما در هر بازی در بخش «تنظیمات ← اقتصاد» است.', []));
   root.appendChild(card('آیتم‌های فروشگاه', 'هر آیتم با سکه یا الماس خریده می‌شود و «توکن راهنما» می‌دهد؛ توکن به جای سکه در بازی تکی خرج می‌شود. بازیکن شرط لول و سقف روزانه را قبل از خرید می‌بیند.', [list]));
-  root.appendChild(addCard('آیتم تازه', 'نوع اثر: «توکن راهنما» (به جای سکه در بازی تکی خرج می‌شود) یا «چرخش گردونه» (هر عدد یک چرخش گردونه‌ی شانس) یا «لباس / کلاه» (یک بار خریده می‌شود و روی آواتار پوشیده می‌شود؛ تعداد را ۱ بگذارید).', 'آیتم تازه', [['عنوان', title], ['توضیح', desc], ['نوع اثر', eff], ['جایگاه (فقط لباس / کلاه)', slot], ['نام آیکن', icon], ['پرداخت با', cur], ['قیمت (به واحد انتخابی)', price], ['تعداد (توکن یا چرخش)', amt], ['کمترین لول', lvl], ['سقف در روز', lim]], function () {
-    return api('/admin/shop', { method: 'POST', body: { titleFa: title.value.trim(), descriptionFa: desc.value.trim(), effect: eff.value, amount: +amt.value, currency: cur.value, priceCoins: cur.value === 'coins' ? +price.value : 0, priceGems: cur.value === 'gems' ? +price.value : 0, minLevel: +lvl.value, perDayLimit: +lim.value, slot: eff.value === 'cosmetic' ? slot.value : null, iconKey: eff.value === 'wheel_spin' ? 'dice' : icon.value.trim() || 'magnifier', isActive: true } }).then(function (x) { if (!x.ok) { fail(x); return false; } toast('آیتم ساخته شد'); title.value = ''; desc.value = ''; draw(); return true; });
+  root.appendChild(addCard('آیتم تازه', 'نوع اثر: «توکن راهنما» (به جای سکه در بازی تکی خرج می‌شود) یا «چرخش گردونه» (هر عدد یک چرخش گردونه‌ی شانس) یا «لباس / کلاه» (یک بار خریده می‌شود و روی آواتار پوشیده می‌شود؛ تعداد را ۱ بگذارید).', 'آیتم تازه', [['عنوان', title], ['توضیح', desc], ['نوع اثر', eff], ['جایگاه (فقط لباس / کلاه)', slot], ['نام آیکن', icon], ['پرداخت با', cur], ['قیمت (به واحد انتخابی)', price], ['قیمت پول واقعی (تومان، ۰ = بدون)', tomanNew], ['SKU بازار (اختیاری)', skuBN], ['SKU مایکت (اختیاری)', skuMN], ['تعداد (توکن یا چرخش)', amt], ['کمترین لول', lvl], ['سقف در روز', lim]], function () {
+    return api('/admin/shop', { method: 'POST', body: { titleFa: title.value.trim(), descriptionFa: desc.value.trim(), effect: eff.value, amount: +amt.value, priceRials: +tomanNew.value * 10, skuBazaar: skuBN.value.trim() || null, skuMyket: skuMN.value.trim() || null, currency: cur.value, priceCoins: cur.value === 'coins' ? +price.value : 0, priceGems: cur.value === 'gems' ? +price.value : 0, minLevel: +lvl.value, perDayLimit: +lim.value, slot: eff.value === 'cosmetic' ? slot.value : null, iconKey: eff.value === 'wheel_spin' ? 'dice' : icon.value.trim() || 'magnifier', isActive: true } }).then(function (x) { if (!x.ok) { fail(x); return false; } toast('آیتم ساخته شد'); title.value = ''; desc.value = ''; draw(); return true; });
   }));
   draw();
 };
@@ -555,6 +558,131 @@ VIEWS.wheel = function (root) {
   }));
   api('/admin/shop').then(function (r) { if (!r.ok) return; r.body.items.filter(function (i) { return i.effect === 'cosmetic'; }).forEach(function (i) { itemSel.appendChild(h('option', { value: i.id, text: i.titleFa })); }); });
   draw();
+};
+VIEWS.shortlinks = function (root) {
+  var list = h('div'), baseUrl = '';
+  var ERR = { invalid_url: 'آدرس مقصد درست نیست (باید با http یا https شروع شود).', invalid_code: 'کد فقط حرف کوچک انگلیسی، عدد، خط تیره و زیرخط باشد (۲ تا ۲۴ نویسه).', reserved: 'این کد برای سیستم رزرو است.', taken: 'این کد قبلاً استفاده شده.', self_link: 'مقصد نباید خود دامنه‌ی کوتاه باشد.' };
+  function row(l) {
+    var full = baseUrl ? baseUrl + '/' + l.code : '/s/' + l.code;
+    function save(patch) { api('/admin/short-links/' + l.code, { method: 'PATCH', body: patch }).then(function (x) { if (!x.ok) return fail(x); toast('ذخیره شد'); draw(); }); }
+    var target = h('input', { type: 'text', value: l.targetUrl, style: 'min-width:260px;flex:1' });
+    return h('div', { class: 'card', style: 'padding:12px' }, [
+      h('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap' }, [
+        h('b', { text: full, style: 'direction:ltr' }), l.isActive ? badge('فعال', 'b-ok') : badge('خاموش', 'b-warn'), h('span', { class: 'h', text: faNum(l.clicks) + ' کلیک' + (l.note ? ' · ' + l.note : '') })
+      ]),
+      h('div', { class: 'toolbar', style: 'margin-top:8px' }, [
+        field('مقصد', target),
+        h('button', { class: 'btn primary', text: 'ذخیره', onclick: function () { save({ url: target.value }); } }),
+        h('button', { class: 'btn', text: l.isActive ? 'خاموش کن' : 'روشن کن', onclick: function () { save({ isActive: !l.isActive }); } })
+      ])
+    ]);
+  }
+  function draw() {
+    api('/admin/short-links').then(function (r) {
+      clear(list);
+      if (r.status === 404) return list.appendChild(empty('لینک کوتاه روی این سرور فعال نیست'));
+      if (!r.ok) return fail(r);
+      baseUrl = r.body.base;
+      if (!baseUrl) list.appendChild(h('div', { class: 'h', text: 'دامنه‌ی لینک کوتاه در «تنظیمات ← اپ» خالی است؛ تا آن را پر نکنید لینک‌ها فقط با /s/کد کار می‌کنند.' }));
+      if (r.body.links.length === 0) list.appendChild(empty('هنوز لینکی نساخته‌اید'));
+      r.body.links.forEach(function (l) { list.appendChild(row(l)); });
+    });
+  }
+  var url = h('input', { type: 'text', placeholder: 'https://…', style: 'direction:ltr' }), code = h('input', { type: 'text', placeholder: 'خالی = خودکار', maxlength: 24, style: 'direction:ltr' }), note = h('input', { type: 'text', placeholder: 'یادداشت (اختیاری)', maxlength: 120 });
+  root.appendChild(card('لینک‌های کوتاه', 'هر لینک بعد از دامنه‌ی کوتاه می‌آید؛ مثلاً 2oi.ir/dl. تغییر مقصد فوری اثر می‌کند.', [list]));
+  root.appendChild(addCard('لینک تازه', 'آدرس کامل مقصد را بنویسید؛ کد دلخواه اختیاری است.', 'لینک تازه', [['مقصد', url], ['کد دلخواه', code], ['یادداشت', note]], function () {
+    return api('/admin/short-links', { method: 'POST', body: { url: url.value.trim(), code: code.value.trim() || undefined, note: note.value.trim() } }).then(function (x) { if (!x.ok) { toast(ERR[x.body && x.body.error] || 'نشد'); return false; } toast('ساخته شد: ' + x.body.code); url.value = ''; code.value = ''; note.value = ''; draw(); return true; });
+  }));
+  draw();
+};
+var LANDING_ERR = { slug_taken: 'این نشانی (slug) قبلاً برای مقاله‌ی دیگری استفاده شده.', invalid_slug: 'نشانی فقط حرف، عدد و خط تیره باشد (حداقل ۲ نویسه).', invalid_cover: 'آدرس تصویر باید با http یا https شروع شود.', empty: 'عنوان و متن مقاله لازم است.' };
+function postFields(p) {
+  p = p || {};
+  var f = {
+    title: h('input', { type: 'text', value: p.titleFa || '', maxlength: 160 }),
+    slug: h('input', { type: 'text', value: p.slug || '', placeholder: 'خالی = از عنوان ساخته می‌شود', maxlength: 120, style: 'direction:ltr' }),
+    summary: h('textarea', { rows: 2, maxlength: 400, text: p.summaryFa || '' }),
+    body: h('textarea', { rows: 14, style: 'width:100%;font-family:monospace;direction:rtl', text: p.bodyMd || '' }),
+    metaTitle: h('input', { type: 'text', value: p.metaTitle || '', maxlength: 70, placeholder: 'خالی = همان عنوان' }),
+    metaDesc: h('textarea', { rows: 2, maxlength: 200, text: p.metaDescription || '' }),
+    cover: h('input', { type: 'text', value: p.coverUrl || '', placeholder: 'https://…', style: 'direction:ltr' }),
+    author: h('input', { type: 'text', value: p.authorName || '', maxlength: 80 }),
+    status: select([['draft', 'پیش‌نویس (منتشر نشده)'], ['published', 'منتشر شده']], p.status || 'draft')
+  };
+  f.nodes = [['عنوان', f.title], ['نشانی (slug)', f.slug, 'تغییر نشانی یک مقاله‌ی منتشرشده خودکار ۳۰۱ می‌شود.'], ['خلاصه', f.summary, 'یکی دو جمله؛ در فهرست و نتیجه‌ی جستجو دیده می‌شود.'], ['متن (مارک‌داون)', f.body, 'با ## بخش بسازید؛ زیر هر ## جمله‌ی اول پاسخ مستقیم باشد.'], ['عنوان گوگل', f.metaTitle], ['توضیح گوگل', f.metaDesc, 'حداکثر ۱۶۰ نویسه.'], ['تصویر شاخص', f.cover], ['نویسنده', f.author], ['وضعیت', f.status]];
+  f.value = function () { return { titleFa: f.title.value.trim(), slug: f.slug.value.trim() || undefined, summaryFa: f.summary.value.trim(), bodyMd: f.body.value, metaTitle: f.metaTitle.value.trim() || null, metaDescription: f.metaDesc.value.trim() || null, coverUrl: f.cover.value.trim() || null, authorName: f.author.value.trim(), status: f.status.value }; };
+  return f;
+}
+VIEWS.landingposts = function (root) {
+  var list = h('div');
+  function edit(id) {
+    api('/admin/landing/posts/' + id).then(function (r) {
+      if (!r.ok) return fail(r);
+      var f = postFields(r.body);
+      modal('ویرایش مقاله', h('div', { class: 'form-grid' }, f.nodes.map(function (n) { return field(n[0], n[1], n[2]); })), [{ label: 'انصراف' }, { label: 'ذخیره', cls: 'primary', keepOpen: true, run: function (close) {
+        api('/admin/landing/posts/' + id, { method: 'PUT', body: f.value() }).then(function (x) { if (!x.ok) return toast(LANDING_ERR[x.body && x.body.error] || 'نشد', true); toast('ذخیره شد'); close(); draw(); });
+      } }]);
+    });
+  }
+  function draw() {
+    api('/admin/landing/posts').then(function (r) {
+      clear(list);
+      if (r.status === 404) return list.appendChild(empty('سایت معرفی روی این سرور فعال نیست'));
+      if (!r.ok) return fail(r);
+      if (r.body.posts.length === 0) list.appendChild(empty('هنوز مقاله‌ای ننوشته‌اید'));
+      r.body.posts.forEach(function (p) {
+        list.appendChild(h('div', { class: 'card', style: 'padding:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap' }, [
+          h('b', { text: p.titleFa }), p.status === 'published' ? badge('منتشر شده', 'b-ok') : badge('پیش‌نویس', 'b-warn'), h('span', { class: 'h', text: '/blog/' + p.slug, style: 'direction:ltr' }),
+          h('button', { class: 'btn', text: 'ویرایش', onclick: function () { edit(p.id); } })
+        ]));
+      });
+    });
+  }
+  var fresh = postFields(null);
+  root.appendChild(card('مقاله‌ها', 'فقط مقاله‌های «منتشر شده» در سایت معرفی، نقشه‌ی سایت و llms.txt دیده می‌شوند.', [list]));
+  root.appendChild(addCard('مقاله‌ی تازه', 'مارک‌داون بنویسید؛ HTML خام حذف می‌شود.', 'مقاله‌ی تازه', fresh.nodes, function () {
+    return api('/admin/landing/posts', { method: 'POST', body: fresh.value() }).then(function (x) { if (!x.ok) { toast(LANDING_ERR[x.body && x.body.error] || 'نشد', true); return false; } toast('ساخته شد'); draw(); return true; });
+  }));
+  draw();
+};
+function simpleList(root, o) {
+  var list = h('div');
+  function draw() {
+    api(o.path).then(function (r) {
+      clear(list);
+      if (r.status === 404) return list.appendChild(empty('سایت معرفی روی این سرور فعال نیست'));
+      if (!r.ok) return fail(r);
+      var rows = r.body[o.key];
+      if (rows.length === 0) list.appendChild(empty(o.none));
+      rows.forEach(function (it) {
+        var inputs = o.edit.map(function (e) { return h(e.tag || 'input', e.tag ? { rows: 3, text: it[e.k] || '' } : { type: 'text', value: it[e.k] || '' }); });
+        list.appendChild(h('div', { class: 'card', style: 'padding:12px' }, [
+          h('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap' }, [h('b', { text: it[o.title] }), it.isActive ? badge('فعال', 'b-ok') : badge('پنهان', 'b-warn')]),
+          h('div', { class: 'form-grid', style: 'margin-top:8px' }, o.edit.map(function (e, i) { return field(e.label, inputs[i]); })),
+          h('div', { class: 'toolbar', style: 'margin-top:8px' }, [
+            h('button', { class: 'btn primary', text: 'ذخیره', onclick: function () { var body = {}; o.edit.forEach(function (e, i) { body[e.k] = inputs[i].value; }); api(o.path + '/' + it.id, { method: 'PATCH', body: body }).then(function (x) { if (!x.ok) return fail(x); toast('ذخیره شد'); draw(); }); } }),
+            h('button', { class: 'btn', text: it.isActive ? 'پنهان کن' : 'فعال کن', onclick: function () { api(o.path + '/' + it.id, { method: 'PATCH', body: { isActive: !it.isActive } }).then(function (x) { if (!x.ok) return fail(x); draw(); }); } }),
+            h('button', { class: 'btn', text: 'بالاتر', onclick: function () { api(o.path + '/' + it.id, { method: 'PATCH', body: { sortOrder: Math.max(0, it.sortOrder - 1) } }).then(function (x) { if (!x.ok) return fail(x); draw(); }); } })
+          ])
+        ]));
+      });
+    });
+  }
+  var inputs = o.edit.map(function (e) { return h(e.tag || 'input', e.tag ? { rows: 3 } : { type: 'text' }); });
+  root.appendChild(card(o.heading, o.sub, [list]));
+  root.appendChild(addCard(o.addTitle, o.addSub, o.addTitle, o.edit.map(function (e, i) { return [e.label, inputs[i]]; }), function () {
+    var body = { isActive: true }; o.edit.forEach(function (e, i) { body[e.k] = inputs[i].value.trim(); });
+    return api(o.path, { method: 'POST', body: body }).then(function (x) { if (!x.ok) { fail(x); return false; } toast('ساخته شد'); inputs.forEach(function (i) { i.value = ''; }); draw(); return true; });
+  }));
+  draw();
+}
+VIEWS.landingcast = function (root) {
+  simpleList(root, { path: '/admin/landing/cast', key: 'cast', title: 'nameFa', none: 'هنوز کسی اضافه نشده', heading: 'بازیگران', sub: 'ترتیب نمایش با «بالاتر» عوض می‌شود. «تصویر» نام شخصیت (dozari، dozariF …) یا آدرس تصویر است.', addTitle: 'بازیگر تازه', addSub: 'نام، نقش و یک معرفی کوتاه.',
+    edit: [{ k: 'nameFa', label: 'نام' }, { k: 'roleFa', label: 'نقش' }, { k: 'bioFa', label: 'معرفی', tag: 'textarea' }, { k: 'imageKey', label: 'تصویر' }] });
+};
+VIEWS.landingfaq = function (root) {
+  simpleList(root, { path: '/admin/landing/faq', key: 'faq', title: 'questionFa', none: 'هنوز پرسشی نیست', heading: 'پرسش‌های متداول', sub: 'جواب را با یک جمله‌ی مستقیم شروع کنید؛ هر دو، گوگل و دستیارهای هوش مصنوعی، همین را نقل می‌کنند.', addTitle: 'پرسش تازه', addSub: 'پرسش و پاسخ کوتاه.',
+    edit: [{ k: 'questionFa', label: 'پرسش' }, { k: 'answerFa', label: 'پاسخ', tag: 'textarea' }] });
 };
 VIEWS.invites = function (root) {
   var list = h('div');
@@ -688,7 +816,7 @@ VIEWS.tournaments = function (root) {
       if (!r.body.tournaments.length) return list.appendChild(empty('هنوز تورنومنتی نساخته‌ای'));
       r.body.tournaments.forEach(function (t) {
         var st = STATUS[t.status] || [t.status, 'b-mute'];
-        var prizes = t.prizes.map(function (p) { return 'مقام ' + fa(p.place) + ': ' + faNum(p.coins) + (p.spins ? ' + ' + faNum(p.spins) + ' چرخش' : ''); }).join(' · ');
+        var prizes = t.prizes.map(function (p) { return 'مقام ' + fa(p.place) + ': ' + faNum(p.coins) + (p.gems ? ' + ' + faNum(p.gems) + ' الماس' : '') + (p.spins ? ' + ' + faNum(p.spins) + ' چرخش' : ''); }).join(' · ');
         function act(path, ask) { return function () { if (ask && !confirm(ask)) return; api('/admin/tournaments/' + t.id + '/' + path, { method: 'POST' }).then(function (x) { if (!x.ok) return fail(x); toast('انجام شد'); draw(); }); }; }
         list.appendChild(h('div', { class: 'card', style: 'padding:12px' }, [
           h('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap' }, [h('b', { text: t.titleFa }), badge(st[0], st[1]), h('span', { class: 'h', text: fa(t.joined) + ' از ' + fa(t.size) + ' نفر · ورودی ' + faNum(t.entryCoins) + ' سکه' + (t.entryGems ? ' + ' + faNum(t.entryGems) + ' الماس' : '') + ' · از لول ' + fa(t.minLevel) + ' · شروع ' + when(t.startsAt) })]),
@@ -705,7 +833,7 @@ VIEWS.tournaments = function (root) {
   var title = h('input', { type: 'text', placeholder: 'نام تورنومنت', maxlength: 80 }), desc = h('textarea', { placeholder: 'توضیحات برای صفحه‌ی اختصاصی تورنومنت (قانون‌ها، جایزه‌ها، داستان)…', maxlength: 4000, style: 'min-height:90px' });
   var size = select([['4', '۴ نفر'], ['8', '۸ نفر'], ['16', '۱۶ نفر'], ['32', '۳۲ نفر']], '16');
   function num(v, min) { return h('input', { type: 'number', value: v, min: min === undefined ? 0 : min, style: 'width:100px' }); }
-  var minPlayers = num(4, 2), fee = num(20), gemFee = num(0), level = num(1, 1), p1 = num(100), p2 = num(40), p3 = num(10), s1 = num(0), s2 = num(0), s3 = num(0);
+  var minPlayers = num(4, 2), fee = num(20), gemFee = num(0), level = num(1, 1), p1 = num(100), p2 = num(40), p3 = num(10), s1 = num(0), s2 = num(0), s3 = num(0), g1 = num(0), g2 = num(0), g3 = num(0);
   var startsAt = h('input', { type: 'datetime-local' });
   var publish = h('input', { type: 'checkbox' });
   var botFill = h('input', { type: 'checkbox' });
@@ -718,12 +846,13 @@ VIEWS.tournaments = function (root) {
     ['نام', title], ['توضیحات', desc],
     h('div', { class: 'toolbar' }, [field('ظرفیت', size), field('حداقل نفرات برای برگزاری', minPlayers), field('ورودی (سکه، ۰ = رایگان)', fee), field('ورودی الماس (۰ = بدون الماس)', gemFee), field('کمترین لول (۱ = همه)', level), field('شروع و بسته‌شدن ثبت‌نام', startsAt)]),
     h('div', { class: 'toolbar' }, [field('جایزه‌ی مقام اول', p1), field('مقام دوم', p2), field('مقام سوم (به هر نفر)', p3)]),
+    h('div', { class: 'toolbar' }, [field('الماس مقام اول', g1), field('مقام دوم', g2), field('مقام سوم (به هر نفر)', g3)]),
     h('div', { class: 'toolbar' }, [field('چرخش گردونه‌ی مقام اول', s1), field('مقام دوم', s2), field('مقام سوم (به هر نفر)', s3)]),
     note,
     h('div', { class: 'toolbar' }, [h('label', {}, [botFill, ' جای خالی با ربات پر شود']), h('label', {}, [concurrent, ' کسی که در تورنومنت دیگری هست هم بتواند وارد شود']), h('label', {}, [publish, ' همین حالا منتشر شود'])])
   ], function () {
     if (!startsAt.value) { toast('زمان شروع را بگذار', true); return false; }
-    var prizes = [{ place: 1, coins: +p1.value, spins: +s1.value }, { place: 2, coins: +p2.value, spins: +s2.value }, { place: 3, coins: +p3.value, spins: +s3.value }].filter(function (p) { return p.coins > 0 || p.spins > 0; });
+    var prizes = [{ place: 1, coins: +p1.value, gems: +g1.value, spins: +s1.value }, { place: 2, coins: +p2.value, gems: +g2.value, spins: +s2.value }, { place: 3, coins: +p3.value, gems: +g3.value, spins: +s3.value }].filter(function (p) { return p.coins > 0 || p.gems > 0 || p.spins > 0; });
     return api('/admin/tournaments', { method: 'POST', body: { titleFa: title.value.trim(), descriptionFa: desc.value.trim(), iconKey: 'trophy', size: +size.value, minPlayers: +minPlayers.value, entryCoins: +fee.value, entryGems: +gemFee.value, minLevel: +level.value, startsAt: new Date(startsAt.value).getTime(), botFill: botFill.checked, allowConcurrent: concurrent.checked, prizes: prizes, publish: publish.checked } }).then(function (x) { if (!x.ok) { fail(x); return false; } toast('تورنومنت ساخته شد'); title.value = ''; desc.value = ''; draw(); return true; });
   }));
   draw();
@@ -968,5 +1097,53 @@ VIEWS.puzzles = function (root) {
   }
   root.appendChild(readyBox); root.appendChild(autoBox); root.appendChild(listBox); root.appendChild(formBox); drawAuto();
   api('/admin/catalog').then(function (r) { if (!r.ok) return fail(r); prods = r.body.products; drawForm(); load(); });
+};
+
+VIEWS.userreports = function (root) {
+  var list = h('div');
+  var CAT = { abuse: 'توهین و فحاشی', spam: 'اسپم', cheating: 'تقلب', bad_name: 'اسم یا عکس نامناسب', other: 'دیگر' };
+  function draw() {
+    api('/admin/user-reports').then(function (r) {
+      clear(list);
+      if (r.status === 404) return list.appendChild(empty('گزارش بازیکن روی این سرور فعال نیست'));
+      if (!r.ok) return fail(r);
+      if (!r.body.reports.length) return list.appendChild(empty('گزارشی نیست'));
+      r.body.reports.forEach(function (x) {
+        list.appendChild(h('div', { class: 'kv' }, [
+          h('span', { text: x.targetName + ' ← ' + x.reporterName }),
+          h('span', { style: 'color:var(--muted);font-size:12px', text: (CAT[x.category] || x.category) + (x.details ? ' · ' + x.details : '') + ' · ' + ago(x.createdAt) }),
+          x.resolved ? badge('بررسی شد', 'b-ok') : h('button', { class: 'btn sm', text: 'بررسی شد', onclick: function () { api('/admin/user-reports/' + x.id + '/resolve', { method: 'POST' }).then(function (y) { if (!y.ok) return fail(y); draw(); }); } })]));
+      });
+    });
+  }
+  root.appendChild(card('گزارش بازیکن‌ها', 'گزارش از پروفایل بازیکن؛ برای اقدام از «کاربران» اخطار یا سکوت بده.', [list]));
+  draw();
+};
+VIEWS.ugc = function (root) {
+  var list = h('div');
+  var status = select([['', 'همه'], ['ready_for_review', 'منتظر تأیید مدیر'], ['pending', 'در حال رأی‌گیری'], ['approved', 'تأییدشده'], ['rejected', 'ردشده']], 'ready_for_review');
+  var KIND = { item: 'کالای تازه', price_point: 'قیمت تازه', price_report: 'گزارش قیمت' };
+  var SRC = { website: 'لینک', user_memory: 'یادمه', other: 'دیگر' };
+  var STATE = { pending: 'رأی‌گیری', ready_for_review: 'منتظر مدیر', approved: 'تأیید شد', rejected: 'رد شد' };
+  function draw() {
+    api('/admin/ugc' + (status.value ? '?status=' + status.value : '')).then(function (r) {
+      clear(list);
+      if (r.status === 404) return list.appendChild(empty('پیشنهاد بازیکن روی این سرور فعال نیست'));
+      if (!r.ok) return fail(r);
+      if (!r.body.submissions.length) return list.appendChild(empty('پیشنهادی نیست'));
+      r.body.submissions.forEach(function (x) {
+        var price = x.priceRials === null ? '' : ' · ' + Number(x.priceRials / 10).toLocaleString('fa-IR') + ' تومان';
+        var open = x.status === 'pending' || x.status === 'ready_for_review';
+        list.appendChild(h('div', { class: 'kv' }, [
+          h('span', { text: (KIND[x.kind] || x.kind) + ': ' + x.nameFa + (x.year ? ' · ' + x.year : '') + price }),
+          h('span', { style: 'color:var(--muted);font-size:12px', text: x.userName + ' · ' + (SRC[x.sourceType] || '') + (x.sourceText ? ': ' + x.sourceText : '') + (x.note ? ' · ' + x.note : '') + ' · امتیاز ' + x.score + ' · ' + ago(x.createdAt) }),
+          open ? h('button', { class: 'btn sm', text: 'تأیید', onclick: function () { api('/admin/ugc/' + x.id + '/approve', { method: 'POST' }).then(function (y) { if (!y.ok) return fail(y); toast(x.kind === 'price_report' ? 'تأیید شد؛ قیمت را در «کاتالوگ» اصلاح کن' : 'به بازبینی کاتالوگ رفت'); draw(); }); } }) : badge(STATE[x.status] || x.status, x.status === 'approved' ? 'b-ok' : ''),
+          open ? h('button', { class: 'btn bad sm', text: 'رد', onclick: function () { api('/admin/ugc/' + x.id + '/reject', { method: 'POST' }).then(function (y) { if (!y.ok) return fail(y); draw(); }); } }) : null]));
+      });
+    });
+  }
+  status.onchange = draw;
+  root.appendChild(card('پیشنهاد قیمت و کالا', 'تأیید یک کالا یا قیمت آن را به «بازبینی قیمت‌ها» می‌فرستد و به پیشنهاددهنده سکه می‌دهد (مقدار در «تنظیمات»).', [h('div', { class: 'row' }, [status]), list]));
+  draw();
 };
 `;

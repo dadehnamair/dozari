@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { PRODUCT_CATEGORIES } from '@dozari/shared';
 import type { LookupDetail, LookupHit } from '@dozari/shared';
+import { PriceFeedbackLink } from '../feedback/SuggestDialog';
 import { CandyButton } from '../components/CandyButton';
 import { Item } from '../components/Item';
 import { SceneBackground } from '../components/SceneBackground';
@@ -102,6 +103,7 @@ export function LookupScreen({ onBack }: { onBack: () => void }) {
                 ))}
               </>
             ) : null}
+            <PriceFeedbackLink product={{ id: detail.product.id, nameFa: detail.product.nameFa, year: year ?? undefined }} />
             <Text style={styles.note}>{fa.lookup.nominal}</Text>
             <CandyButton label={fa.lookup.back} color={colors.candy.sky} onPress={() => setDetail(null)} />
           </View>

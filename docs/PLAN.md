@@ -169,11 +169,11 @@ human opponent is found.
 
 ## Phase 7 — UGC phase 1 (single item suggestions)
 
-- [ ] 🗄 `ugc_submissions`, `ugc_votes`
-- [ ] 🖥 Submit item (name, year, price, source, photo), vote, admin approve → product/price_point
-- [ ] 📱 "Suggest an item" form + "Review suggestions" voting feed — reachable from its **own
-      card on the Home screen**, alongside the mode cards (owner decision, 2026-09-27)
-- [ ] Coin reward on approval (ledger)
+- [x] 🗄 `ugc_submissions`, `ugc_votes` (+ `user_reports`) — D177
+- [x] 🖥 Submit item (name, year, price, source — photo not yet), vote, admin approve → product/price_point
+- [x] 📱 "Suggest an item" form + "Review suggestions" voting feed — reached from the hub's «مکتب‌خانه» building (D177); price links on result/lookup open the same form
+- [ ] 📱 Own Home-screen card for it (owner decision 2026-09-27) — the hub building stands in for now
+- [x] Coin reward on approval (ledger, `ugc.reward_coins`)
 - [ ] `apps/admin` minimal moderation panel (or protected Expo web routes)
 
 ## Phase 8 — Launch hardening
@@ -224,15 +224,15 @@ human opponent is found.
 
 Start after the first Android build.
 
-- [ ] 1. Wheel pays every prize kind (D165): [x] typed prize table (coins, gems, hint tokens, spins) edited in the admin, no free spins by default; [x] clothing/hats (shop items with effect `cosmetic`, wardrobe, wheel kind, worn on the profile avatar; art = existing icons for now); [ ] real-money price on shop items; [ ] spins as lives (needs owner's refill rate)
+- [x] 1. Wheel pays every prize kind (D165): [x] typed prize table (coins, gems, hint tokens, spins) edited in the admin, no free spins by default; [x] clothing/hats (shop items with effect `cosmetic`, wardrobe, wheel kind, worn on the profile avatar; art = existing icons for now); [x] real-money price on shop items (D170); [x] spins as lives (built, off by default: `wheel.refill_hours`, D175)
 - [x] 2. Board cards: names and icons fit (fixed layout policy, auto-shrink floor, short names)
 - [x] 3. «تکمیل پروفایل» nudge / guide says «برو این کار را بکن، سکه بگیر»
 - [x] 4. Missions (profile, social follow, store reviews, invite …) paying coins
 - [x] 5. Shorter opponent search; bots fill the seat sooner
 - [x] 6. Options greyed out when it is not my turn, coloured on my turn
-- [ ] 7. Phone-only gate: on desktop show Dozari + QR «با گوشی بیا»; Android → downloads, iPhone → PWA install
-- [ ] 8. Landing site `mrdozari.ir` (`apps/landing`, own container, admin-managed content, game story with the cast, blog, full SEO/GEO — owner's spreadsheet adapted from Laravel)
-- [ ] 9. Short domain `2oi.ir`: self-hosted shortener for outgoing links; all domains editable in the admin panel
+- [x] 7. Phone-only gate: on desktop show Dozari + QR «با گوشی بیا»; Android → downloads, iPhone → PWA install (D171)
+- [x] 8. Landing site `mrdozari.ir` (`apps/landing`, own container, admin-managed content, game story with the cast, blog, full SEO/GEO — owner's spreadsheet adapted from Laravel) (code done, D173/D174; copy from the owner's SEO/GEO sheet and DNS are the owner's steps)
+- [x] 9. Short domain `2oi.ir`: self-hosted shortener for outgoing links; all domains editable in the admin panel (code done, D172; DNS/proxy is the owner's step)
 - [x] 10. Admin panel tidy-up: grouped sidebar, page helper text, «add» actions as modal forms, consistent tables/toasts (UI only)
-- [ ] 11. Birth date in the profile with a «show my age» tick (policy D160; users columns, profile UI, birthday gift/badge, admin age stats)
-- [ ] 12. Gems (الماس) currency (D164): [x] stage 1 own ledger + balance + admin adjust + Home pill; [x] shop prices in gems; [x] tournament entry in gems; [ ] wheel and birthday prizes in gems
+- [x] 11. Birth date in the profile with a «show my age» tick (policy D160; users columns, profile UI, birthday gift/badge, admin age stats) (built, D160/D169)
+- [x] 12. Gems (الماس) currency (D164): [x] stage 1 own ledger + balance + admin adjust + Home pill; [x] shop prices in gems; [x] tournament entry in gems; [x] wheel, birthday and tournament prizes in gems (D175)

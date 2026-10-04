@@ -48,7 +48,7 @@ export function Versus({ me, rival, mate, rivals, waitedSec, countdown, onCancel
         <View style={styles.chip}><Text style={styles.chipText}>{rival ? a.found : fa.duel.searching}</Text></View>
         <View style={styles.pairRow}>
           <Fighter who="dozari" pose="coin" name={me.nickname || a.you} level={me.level} side="me" small={team} />
-          {team && mate ? <Fighter who={characterFor(mate.avatarKey || mate.nickname)} pose="wave" name={mate.nickname} level={mate.level} side="me" small /> : null}
+          {team && mate ? <Fighter who={characterFor(mate.avatarKey || mate.nickname)} pose="wave" name={mate.nickname} level={mate.level} side="me" small party={mate.birthday} /> : null}
         </View>
       </View>
 
@@ -62,10 +62,10 @@ export function Versus({ me, rival, mate, rivals, waitedSec, countdown, onCancel
       <View style={styles.bottom}>
         {team && rivals && rivals.length > 0 ? (
           <View style={styles.pairRow}>
-            {rivals.map((r) => <Fighter key={r.userId ?? r.nickname} who={characterFor(r.avatarKey || r.nickname)} pose="angry" name={r.nickname} level={r.level} side="rival" small />)}
+            {rivals.map((r) => <Fighter key={r.userId ?? r.nickname} who={characterFor(r.avatarKey || r.nickname)} pose="angry" name={r.nickname} level={r.level} side="rival" small party={r.birthday} />)}
           </View>
         ) : rival ? (
-          <Fighter who={characterFor(rival.avatarKey || rival.nickname)} pose="angry" name={rival.nickname} level={rival.level} side="rival" />
+          <Fighter who={characterFor(rival.avatarKey || rival.nickname)} pose="angry" name={rival.nickname} level={rival.level} side="rival" party={rival.birthday} />
         ) : (
           <View style={styles.mystery}><Text style={styles.mysteryText}>{a.unknown}</Text></View>
         )}
@@ -92,7 +92,7 @@ export function Versus({ me, rival, mate, rivals, waitedSec, countdown, onCancel
   );
 }
 
-function Fighter({ who, pose, name, level, side, small = false }: { who: 'dozari' | ReturnType<typeof characterFor>; pose: 'coin' | 'angry' | 'wave'; name: string; level?: number; side: 'me' | 'rival'; small?: boolean }) {
+function Fighter({ who, pose, name, level, side, small = false, party = false }: { who: 'dozari' | ReturnType<typeof characterFor>; pose: 'coin' | 'angry' | 'wave'; name: string; level?: number; side: 'me' | 'rival'; small?: boolean; party?: boolean }) {
   return (
     <View style={styles.fighter}>
       <View style={[styles.body, small ? styles.bodySmall : null, side === 'rival' ? styles.flip : null]}>
@@ -101,6 +101,7 @@ function Fighter({ who, pose, name, level, side, small = false }: { who: 'dozari
       <View style={styles.plate}>
         {level ? <View style={[styles.lv, { backgroundColor: side === 'me' ? colors.candy.sky : colors.candy.pink }]}><Text style={styles.lvText}>{a.level(level)}</Text></View> : null}
         <Text style={styles.name} numberOfLines={1}>{name}</Text>
+        {party ? <Text accessibilityLabel={fa.birthday.badge}>🎂</Text> : null}
       </View>
     </View>
   );

@@ -9,6 +9,7 @@ import { CandyButton } from '../components/CandyButton';
 import { Icon } from '../components/Icon';
 import { Item } from '../components/Item';
 import { Scene } from '../components/Scene';
+import { ReportDialog } from '../feedback/ReportDialog';
 import { HubTile } from '../home/HubTile';
 import { ProvinceBadge } from '../components/ProvinceBadge';
 import { useConfirm } from '../components/useConfirm';
@@ -19,6 +20,7 @@ import { avatarOf } from './avatarOf';
 import { skillText } from '../badges/text';
 import { TransferSheet } from '../transfers/TransferSheet';
 import { useHardwareBack } from '../nav/useHardwareBack';
+import { BirthdayBadge, PartyBanner } from './BirthdayBadge';
 
 const INK = '#3A2418';
 
@@ -28,6 +30,7 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
   const [p, setP] = useState<PlayerProfile | null>(null);
   const [failed, setFailed] = useState(false);
   const [send, setSend] = useState<'gift' | 'loan' | null>(null);
+  const [reporting, setReporting] = useState(false);
   const { ask, dialog } = useConfirm();
 
   const load = useCallback(() => {
@@ -59,7 +62,7 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
         {p ? (
           <View style={styles.body}>
             <View style={styles.avatarWrap}>
-              <View style={styles.avatarRing}><Avatar avatar={avatarOf(p.avatarKey)} size={86} /></View>
+              <View style={styles.avatarRing}><Avatar avatar={avatarOf(p.avatarKey)} size={86} worn={p.worn} /></View>
               <View style={styles.hex} accessibilityLabel={`${fa.player.level} ${p.level}`}>
                 <Svg width={42} height={48} viewBox="0 0 46 52">
                   <Polygon points="23,1 45,8 45,33 23,51 1,33 1,8" fill={colors.ink} />
@@ -72,7 +75,10 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
             <View style={styles.nameRow}>
               {p.isMe ? null : <OnlineDot online={p.online} />}
               <Text style={styles.name} numberOfLines={1}>{p.nickname}</Text>
+              {p.birthday ? <BirthdayBadge /> : null}
             </View>
+            {p.birthday ? <PartyBanner own={p.isMe} name={p.nickname} /> : null}
+            {p.age !== null ? <Text style={styles.sub}>{fa.player.age(p.age)}</Text> : null}
             <View style={styles.subRow}>
               <Text style={styles.sub}>{skillText(p.badges.skill)}</Text>
               {p.badges.badge ? <View style={styles.titleChip}><Text style={styles.titleChipText}>{p.badges.badge.titleFa}</Text></View> : null}
@@ -104,6 +110,10 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
               </View>
             ) : null}
 
+            {p.isMe ? null : (
+              <Pressable onPress={() => setReporting(true)} accessibilityRole="button" hitSlop={8}><Text style={styles.reportLink}>{fa.feedback.report.open}</Text></Pressable>
+            )}
+
             {p.isMe ? null : p.relation === 'none' ? (
               <CandyButton label={fa.player.request} color={colors.candy.lime} onPress={act(requestFriend)} />
             ) : p.relation === 'sent' ? (
@@ -117,9 +127,9 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
               <>
                 <View style={styles.friendTag}><Icon name="check" size={14} color="#fff" strokeWidth={4} /><Text style={styles.friendTagText}>{fa.player.friends}</Text></View>
                 <View style={styles.actions}>
-                  <HubTile icon="gift" label={fa.transfers.gift} color={colors.candy.lime} onPress={() => setSend('gift')} />
-                  <HubTile icon="wallet" label={fa.transfers.loan} color={colors.candy.orange} onPress={() => setSend('loan')} />
-                  <HubTile icon="trash" label={fa.player.unfriend} color={colors.candy.pink} onPress={() => ask({ title: fa.confirm.unfriend.title, message: fa.confirm.unfriend.message, confirmLabel: fa.confirm.unfriend.yes, onConfirm: act(removeFriend) })} />
+                  <HubTile onLight icon="gift" label={fa.transfers.gift} color={colors.candy.lime} onPress={() => setSend('gift')} />
+                  <HubTile onLight icon="wallet" label={fa.transfers.loan} color={colors.candy.orange} onPress={() => setSend('loan')} />
+                  <HubTile onLight icon="trash" label={fa.player.unfriend} color={colors.candy.pink} onPress={() => ask({ title: fa.confirm.unfriend.title, message: fa.confirm.unfriend.message, confirmLabel: fa.confirm.unfriend.yes, onConfirm: act(removeFriend) })} />
                 </View>
               </>
             )}
@@ -127,6 +137,7 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
         ) : null}
       </Pressable>
       {dialog}
+      {reporting ? <ReportDialog target={{ kind: 'user', userId: playerId }} onClose={() => setReporting(false)} /> : null}
     </Pressable>
   );
 }
@@ -136,6 +147,7 @@ const MEDAL_COLORS = ['#FF4D8D', '#7E46D6', '#3FA36B'];
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 
 const styles = StyleSheet.create({
+  reportLink: { fontFamily: fonts.bold, fontSize: 12, color: '#8E7B6B', textDecorationLine: 'underline', textAlign: 'center' },
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 40, backgroundColor: 'rgba(20,8,32,0.6)', alignItems: 'center', justifyContent: 'center', padding: 20 },
   card: { width: '100%', maxWidth: 340, borderRadius: 30, borderWidth: 4, borderColor: INK, backgroundColor: '#FBF1DE', overflow: 'hidden', ...lift(8) },
   header: { height: 104, overflow: 'hidden' },

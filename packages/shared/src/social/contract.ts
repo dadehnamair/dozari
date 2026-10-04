@@ -85,6 +85,12 @@ export const playerProfileSchema = z.object({
   isMe: z.boolean(),
   /** Has the app open right now (a live socket). */
   online: z.boolean().default(false),
+  /** Inside their birthday week: a party badge for everybody; never the date. */
+  birthday: z.boolean().default(false),
+  /** Whole years, only when the player ticked «سنم نمایش داده شود». */
+  age: z.number().int().nonnegative().nullable().default(null),
+  /** Cosmetics they wear (hat, hair, glasses, clothes), drawn on their character. */
+  worn: z.array(z.object({ slot: z.string(), iconKey: z.string().nullable() })).default([]),
 });
 export type PlayerProfile = z.infer<typeof playerProfileSchema>;
 
@@ -108,7 +114,7 @@ export type MyProfile = z.infer<typeof myProfileSchema>;
 
 const playerRow = z.object({ id: z.string().uuid(), nickname: z.string(), avatarKey: z.string() });
 /** `GET /friends`: accepted friends and requests waiting for the caller's answer. */
-export const friendsSchema = z.object({ friends: z.array(playerRow.extend({ online: z.boolean().default(false) })), incoming: z.array(playerRow) });
+export const friendsSchema = z.object({ friends: z.array(playerRow.extend({ online: z.boolean().default(false), birthday: z.boolean().default(false) })), incoming: z.array(playerRow) });
 export type Friends = z.infer<typeof friendsSchema>;
 
 /** `GET /me/games`: the player's last finished games, newest first («بازی‌های اخیر» on the profile). */

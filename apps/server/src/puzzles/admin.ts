@@ -70,7 +70,8 @@ export function makePuzzles(catalog: Catalog, count: number, rng: Rng): Generate
   const seen = new Set<string>();
   for (let tries = 0; tries < count * 3 && out.length < count; tries++) {
     const g = generatePuzzle(catalog, rng);
-    if (!g) break;
+    // One failed draw (the generator can miss on a random seed) must not end the run: the try limit bounds it.
+    if (!g) continue;
     const key = g.groups.flatMap((x) => x.productIds).sort().join(',');
     if (seen.has(key)) continue;
     seen.add(key);

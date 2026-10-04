@@ -90,7 +90,7 @@ Settings (admin → economy): `duel.entry_fee` 20, `duel.house_cut_percent` 10, 
   `WHEEL_SLICES_DEFAULT` (10 slices) and edited in the admin «گردونه‌ی شانس». A spin pays by kind: coins `wheel_spin` (coin ledger), gems `wheel_prize`
   (gem ledger), hint tokens into `user_inventory`, `wheel_spin` as new spin rows (`source = wheel`). `wheel_spins.prize_kind/prize_amount` record the result.
   No free spins by default: `wheel.daily_spins` = 0 and `wheel.win_spins` (a won human duel gives a spin) = off. Clothing/hats arrive with cosmetics.
-- **Cosmetics (D165)**: shop items with `effect = cosmetic` + `slot` (`hat|outfit|accessory`); bought once (409 `owned`), kept in `user_cosmetics`, worn via `POST /shop/:id/equip`
+- **Cosmetics (D165)**: shop items with `effect = cosmetic` + `slot` (`hat|outfit|accessory|hair|glasses`; D176); bought once (409 `owned`), kept in `user_cosmetics`, worn via `POST /shop/:id/equip`
   (one worn item per slot), listed by `GET /me/cosmetics`. Wheel kind `cosmetic` gives such an item (`wheel_prizes.item_id`); an owned one pays `wheel.cosmetic_dupe_coins`.
 - Numbers: `WHEEL_SLICES_DEFAULT` in `config/economy.ts` (expected ≈ 9 coins plus other kinds); admin settings `wheel.enabled`, `wheel.win_spins`
   and `wheel.prize_scale_percent` (scales coin prizes only). Needs the economy simulation before launch (faucet next to the 20-coin entry fee).
@@ -177,6 +177,7 @@ below zero is refused (CLAUDE.md rule 6 applies to gems too; never `UPDATE user_
 - **Admin:** the player sheet has «تغییر الماس» (`POST /admin/users/:id/gems`, ±10 000 per call, audited as `user.gems`).
 - **Shop (stage 2)**: each `shop_items` row has `currency` (`coins`|`gems`) plus `price_coins` / `price_gems`; only the matching price counts. A gem purchase debits through `applyGemEntry` (`shop_purchase`) in the same transaction as the grant; `GET /shop` and the buy reply carry `gems`, and a short balance shows as `blocked: GEMS`. The admin «فروشگاه» page picks the currency per item. Migration 0043.
 - **Tournaments (stage 3)**: `tournaments.entry_gems` is charged on top of `entry_coins` (either may be 0), in the same transaction as the seat (`tournament_entry`); leaving or cancelling refunds both (`tournament_refund`, key per joinedAt). `entries.paid_gems` keeps what was paid. A short gem balance blocks with `GEMS` (HTTP 402). Admin builder has «ورودی الماس». Prizes in gems are not built yet. Migration 0044.
+- **Real money (D170)**: a shop item may also have `price_rials`; bought via a Bale invoice or a store receipt under `/shop-pay` (switch `feature.coin_packages`), granted without moving coins or gems. See DECISIONS D170.
 - **Gems are not sold**: they come from gifts and prizes (birthday, wheel, tournaments, missions, admin).
 - **Next stages:** shop items priced in coins or gems; tournament entry fee in gems; wheel prize kind `gems`; birthday gift (100 coins + 5 gems + 2 spins).
 

@@ -8,7 +8,7 @@ const toView = (row: ShopItemRow, level: number, balance: number, gems: number, 
   const owned = row.effect === 'cosmetic' && wardrobe.has(row.id);
   const leftToday = row.perDayLimit > 0 ? Math.max(0, row.perDayLimit - bought) : null;
   const blocked = owned ? 'OWNED' : level < row.minLevel ? 'LEVEL' : leftToday === 0 ? 'DAILY_LIMIT' : row.currency === 'gems' ? (gems < row.priceGems ? 'GEMS' : null) : balance < row.priceCoins ? 'COINS' : null;
-  return { id: row.id, titleFa: row.titleFa, descriptionFa: row.descriptionFa, effect: row.effect, amount: row.amount, currency: row.currency, priceCoins: row.priceCoins, priceGems: row.priceGems, minLevel: row.minLevel, iconKey: row.iconKey, slot: row.slot, owned, equipped: owned && wardrobe.get(row.id) === true, blocked, leftToday };
+  return { id: row.id, titleFa: row.titleFa, descriptionFa: row.descriptionFa, effect: row.effect, amount: row.amount, currency: row.currency, priceCoins: row.priceCoins, priceGems: row.priceGems, priceToman: Math.floor(row.priceRials / 10), minLevel: row.minLevel, iconKey: row.iconKey, slot: row.slot, owned, equipped: owned && wardrobe.get(row.id) === true, blocked, leftToday };
 };
 
 /** The coin shop: what a player sees and what a purchase checks (level, daily limit, coins). */

@@ -62,6 +62,19 @@ export class MessageCenter {
     return { ok: true, id, recipients };
   }
 
+  /** Puts one message in these players' in-app inbox only (system messages such as «امروز تولد X است»); no channel or admin audience involved. */
+  async tellUsers(userIds: readonly string[], title: string, body: string): Promise<void> {
+    if (userIds.length === 0) return;
+    const id = await this.store.create({ title, body, audience: 'user', targetUserId: null });
+    await this.store.deliverInbox(id, [...userIds]);
+    await this.store.setChannel(id, 'in_app', userIds.length);
+    try {
+      this.onDelivered?.(userIds);
+    } catch {
+      /* a failed live nudge never fails the message */
+    }
+  }
+
   history(limit = 50) {
     return this.store.list(limit);
   }

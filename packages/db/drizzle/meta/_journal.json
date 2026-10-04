@@ -330,6 +330,55 @@
       "when": 1791032215628,
       "tag": "0046_loose_scarlet_witch",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "5",
+      "when": 1791038371805,
+      "tag": "0047_jittery_penance",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "5",
+      "when": 1791038936351,
+      "tag": "0048_tough_slapstick",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "5",
+      "when": 1791039970797,
+      "tag": "0049_wet_gorilla_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "5",
+      "when": 1791040172997,
+      "tag": "0050_low_crusher_hogan",
+      "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "5",
+      "when": 1791040745679,
+      "tag": "0051_lying_scalphunter",
+      "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "5",
+      "when": 1791093691270,
+      "tag": "0052_sloppy_star_brand",
+      "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "5",
+      "when": 1791094354986,
+      "tag": "0053_luxuriant_frightful_four",
+      "breakpoints": true
     }
   ]
 }

@@ -6,7 +6,7 @@ export interface GateVerdict {
 }
 
 /** Paths that keep working in maintenance mode: health checks, the client config, the admin panel and static images. */
-const ALWAYS_OPEN = ['/health', '/config', '/admin', '/images'];
+const ALWAYS_OPEN = ['/health', '/config', '/admin', '/images', '/public'];
 
 const FEATURE_OF: [prefix: string, setting: string][] = [
   ['/lookup', 'feature.lookup'],
@@ -15,6 +15,7 @@ const FEATURE_OF: [prefix: string, setting: string][] = [
   ['/inbox', 'feature.inbox'],
   ['/bale', 'feature.bale'],
   ['/coin-packages', 'feature.coin_packages'],
+  ['/shop-pay', 'feature.coin_packages'],
   ['/tables', 'feature.tables'],
   ['/shop', 'feature.shop'],
   ['/chat', 'feature.chat'],

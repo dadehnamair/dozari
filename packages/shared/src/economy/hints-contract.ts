@@ -36,7 +36,7 @@ export type SoloHintResult = z.infer<typeof soloHintResultSchema>;
 /** `GET /shop`: items a player can buy with coins (docs/logic/shop.md). */
 /** `hint_token` adds hint tokens; `wheel_spin` adds lucky-wheel spins (one row per spin in `wheel_spins`). */
 export const SHOP_EFFECTS = ['hint_token', 'wheel_spin', 'cosmetic'] as const;
-export const COSMETIC_SLOTS = ['hat', 'outfit', 'accessory'] as const;
+export const COSMETIC_SLOTS = ['hat', 'outfit', 'accessory', 'hair', 'glasses'] as const;
 export const shopEffectSchema = z.enum(SHOP_EFFECTS);
 
 export const shopItemSchema = z.object({
@@ -50,6 +50,8 @@ export const shopItemSchema = z.object({
   currency: z.enum(['coins', 'gems']).default('coins'),
   priceCoins: z.number().int().nonnegative(),
   priceGems: z.number().int().nonnegative().default(0),
+  /** Real-money price in toman (0 = not sold for money); only offered when the switch is on. */
+  priceToman: z.number().int().nonnegative().default(0),
   minLevel: z.number().int().positive(),
   iconKey: z.string().nullable(),
   /** Slot a cosmetic is worn in (null for other effects). */

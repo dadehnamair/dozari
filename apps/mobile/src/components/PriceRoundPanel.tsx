@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TextInput, View } from 'react-native';
-import { formatPersianNumber, parseTomanInput } from '@dozari/shared';
+import { formatPersianNumber, groupTypedNumber, parseTomanInput } from '@dozari/shared';
 import type { SoloPriceResult, SoloPriceRounds } from '@dozari/shared';
 import { fa } from '../i18n/fa';
 import { fetchPriceRounds, guessPrice } from '../solo/api';
 import { priceText, questionText, totalPoints } from '../solo/priceRound';
 import { colors } from '../theme/colors';
+import { PriceFeedbackLink } from '../feedback/SuggestDialog';
 import { CandyButton } from './CandyButton';
 
 /** Bonus round after the puzzle: one hidden price per group, scored on the 5-tier staircase. */
@@ -90,14 +91,15 @@ export function PriceRoundPanel({ sessionId, onDone }: { sessionId: string; onDo
           <Text style={styles.row}>{p.yourGuess}: {priceText(result.guessRials)}</Text>
           <Text style={styles.total}>{p.actual}: {priceText(result.actualRials)}</Text>
           <Text style={styles.row}>{p.points}: {formatPersianNumber(result.points)}</Text>
+          {round ? <PriceFeedbackLink product={{ id: round.productId, nameFa: round.nameFa, year: round.year }} color={colors.cream} /> : null}
           <CandyButton label={results.length >= total ? p.finish : p.next} color={colors.candy.lime} onPress={() => setReviewing(false)} />
         </>
       ) : (
         <>
           <View style={styles.inputRow}>
             <TextInput
-              value={text}
-              onChangeText={setText}
+              value={groupTypedNumber(text)}
+              onChangeText={(v) => setText(groupTypedNumber(v))}
               keyboardType="numeric"
               placeholder={p.placeholder}
               placeholderTextColor="rgba(255,255,255,0.4)"

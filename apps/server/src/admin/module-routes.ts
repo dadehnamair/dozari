@@ -22,6 +22,12 @@ import type { PlayerStore } from '../player/store.js';
 import type { CoinPackageService } from '../economy/coin-packages.js';
 import type { ShopStore } from '../economy/shop-store.js';
 import type { WheelService } from '../wheel/service.js';
+import { registerLandingAdminRoutes } from '../landing/routes.js';
+import type { LandingService } from '../landing/service.js';
+import { registerShortLinkAdminRoutes } from '../shortlinks/routes.js';
+import { registerFeedbackAdminRoutes } from '../feedback/routes.js';
+import type { FeedbackService } from '../feedback/service.js';
+import type { ShortLinkService } from '../shortlinks/service.js';
 import type { BadgeService } from '../badges/service.js';
 import type { BadgeStore } from '../badges/store.js';
 import type { ChatStore } from '../chat/store.js';
@@ -43,6 +49,12 @@ export interface AdminModules {
   cities?: PlayerStore;
   /** Coin shop items (price, level gate, daily limit, visibility). */
   shop?: ShopStore;
+  /** Blog, cast and FAQ of the landing site. */
+  landing?: LandingService;
+  /** User reports and the suggestion queue. */
+  feedback?: FeedbackService;
+  /** Self-hosted short links (the short domain). */
+  shortLinks?: { service: ShortLinkService; base: () => Promise<string> };
   /** Lucky-wheel prize table (kind, amount, odds, visibility). */
   wheel?: WheelService;
   /** Coin packages sold for real money (catalog only; buying is gated by a feature flag). */
@@ -133,7 +145,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     settingGroups: SETTING_GROUPS,
     icons: ITEMS,
     iconGroups: ITEM_GROUPS,
-    modules: { puzzles: !!m.puzzles, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, wheel: !!m.wheel, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages },
+    modules: { puzzles: !!m.puzzles, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, wheel: !!m.wheel, shortLinks: !!m.shortLinks, feedback: !!m.feedback, landing: !!m.landing, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages },
   }));
 
   if (m.stats) {
@@ -533,7 +545,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       startsAt: z.number().int(),
       botFill: z.boolean().optional(),
       allowConcurrent: z.boolean().optional(),
-      prizes: z.array(z.object({ place: z.number().int().min(1).max(3), coins: z.number().int().min(0).max(1_000_000), spins: z.number().int().min(0).max(20).default(0) })).max(3),
+      prizes: z.array(z.object({ place: z.number().int().min(1).max(3), coins: z.number().int().min(0).max(1_000_000), gems: z.number().int().min(0).max(500).default(0), spins: z.number().int().min(0).max(20).default(0) })).max(3),
     };
     const fail = (reply: FastifyReply, error: string) => reply.code(error === 'NOT_FOUND' ? 404 : error === 'BAD_STATE' ? 409 : 400).send({ error });
     g.get('/admin/tournaments', async () => ({ tournaments: await tournaments.adminList() }));
@@ -763,6 +775,10 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       currency: z.enum(['coins', 'gems']),
       priceCoins: z.number().int().min(0).max(1_000_000),
       priceGems: z.number().int().min(0).max(100_000),
+      /** Real-money price in rials (0 = not sold for money). */
+      priceRials: z.number().int().min(0).max(1_000_000_000).default(0),
+      skuBazaar: z.string().trim().max(80).nullable().default(null),
+      skuMyket: z.string().trim().max(80).nullable().default(null),
       minLevel: z.number().int().min(1).max(500),
       perDayLimit: z.number().int().min(0).max(1000),
       iconKey: z.string().max(30).nullable(),
@@ -785,6 +801,10 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       return { ok: true };
     });
   }
+
+  if (m.landing) registerLandingAdminRoutes(g, m.landing, (a, t, d) => void audit(a, t, d));
+  if (m.feedback) registerFeedbackAdminRoutes(g, m.feedback, (a, t, d) => void audit(a, t, d));
+  if (m.shortLinks) registerShortLinkAdminRoutes(g, m.shortLinks.service, m.shortLinks.base, (a, t, d) => void audit(a, t, d));
 
   if (m.wheel) {
     const wheel = m.wheel;

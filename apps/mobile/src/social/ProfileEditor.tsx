@@ -8,6 +8,7 @@ import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
 import { saveEmail, saveNickname } from './api';
 import { nicknameHint } from './nicknameHint';
+import { BirthdayEditor } from './BirthdayEditor';
 import { TEXT_LEFT } from '../theme/direction';
 
 const INK = '#3A2418';
@@ -87,6 +88,8 @@ export function ProfileEditor({ me, onChange, onPickCity }: { me: MyProfile; onC
       </View>
       <Text style={styles.hint}>{fa.profile.emailHint}</Text>
       {note ? <Text style={[styles.hint, note.bad && styles.bad]}>{note.text}</Text> : null}
+
+      <BirthdayEditor />
     </View>
   );
 }

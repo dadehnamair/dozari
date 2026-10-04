@@ -8,6 +8,7 @@ import { ProfileSheet } from '../social/ProfileSheet';
 import { SettingsPage } from '../social/SettingsPage';
 import { LeaderboardPage } from '../social/LeaderboardPage';
 import { CityHub } from '../hub/CityHub';
+import { SchoolSheet } from '../feedback/SchoolSheet';
 import { Item } from '../components/Item';
 import { fetchFriends, fetchMyProfile } from '../social/api';
 import { connectNotices } from '../notices/connectNotices';
@@ -120,6 +121,7 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [boardOpen, setBoardOpen] = useState(false);
   const [hubOpen, setHubOpen] = useState(false);
+  const [schoolOpen, setSchoolOpen] = useState(false);
   const [gender, setGender] = useState<Gender | null>(null);
   const [level, setLevel] = useState<number | null>(null);
   /** The player's province (D101): its badge and local greeting sit under the wordmark. */
@@ -234,7 +236,7 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
 
   return (
     <SceneBackground scene="bazaar">
-      <View style={styles.root}>
+      <View style={styles.root} onTouchStart={() => setTip(null)}>
         <View style={styles.pills}>
           {daily.status ? <StatPill color={colors.candy.yellow} icon="coin" value={fmt(daily.status.balance)} label={`${daily.status.balance} ${h.coins}`} onPress={() => setLedgerOpen(true)} /> : null}
           {gems > 0 ? <StatPill color={colors.candy.sky} glyph="💎" value={fmt(gems)} label={`${gems} ${h.gems}`} /> : null}
@@ -271,12 +273,15 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
             ) : nudge ? (
               <GuideBubble who={heroFor(gender)} text={fa.home.profileNudge[nudge.action === 'claim' ? 'claim' : nudge.key](fmt(nudge.task.coins))} onPress={onNudge} />
             ) : null}
+            {/* A touch on the character itself must not count as «a tap elsewhere» that closes the tip. */}
+            <View onTouchStart={(e) => e.stopPropagation()}>
             <Pressable onPress={() => (setTip((cur) => nextTip(cur, tips.length)), hop())} accessibilityRole="button" accessibilityLabel={fa.home.guide.name}>
               <Animated.View style={[styles.hero, compact ? styles.heroCompact : null, { transform: [{ translateY: Animated.add(float, jump.interpolate({ inputRange: [0, 1], outputRange: [0, -30] })) }, { scaleX: squash.interpolate({ inputRange: [0, 1], outputRange: [1, 1.1] }) }, { scaleY: squash.interpolate({ inputRange: [0, 1], outputRange: [1, 0.86] }) }] }]}>
                 <Character who={heroFor(gender)} pose="wave" month={month} />
                 <HeroCoinToss width={compact ? 130 : 180} height={compact ? 142 : 197} tossKey={tossKey} enabled={!prefs.reduceMotion} />
               </Animated.View>
             </Pressable>
+            </View>
           </View>
           <View style={[styles.column, compact ? styles.columnCompact : null]}>{left.map(({ key, ...t }) => <HubTile key={key} {...t} />)}</View>
         </View>
@@ -318,10 +323,12 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
             if (a === 'solo') onSolo();
             else if (a === 'daily') onDaily?.();
             else if (a === 'duel') onDuel?.();
+            else if (a === 'suggest') setSchoolOpen(true);
             else setTournamentOpen(true);
           }}
         />
       ) : null}
+      {schoolOpen ? <SchoolSheet onClose={() => setSchoolOpen(false)} /> : null}
       {boardOpen ? <LeaderboardPage onClose={() => setBoardOpen(false)} /> : null}
       {settingsOpen ? <SettingsPage onClose={() => (setSettingsOpen(false), loadTasks())} onProfile={() => (setSettingsOpen(false), setProfileOpen(true))} onTutorial={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} onAccountGone={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} /> : null}
       {ledgerOpen ? <LedgerSheet onClose={() => setLedgerOpen(false)} /> : null}
@@ -329,7 +336,7 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
       {tableOpen ? <TableSheet initialCode={tableCode} onMatch={onDuelResume ? () => (setTableOpen(false), onDuelResume()) : undefined} onClose={() => (setTableOpen(false), setTableCode(undefined))} onShare={() => shareTable()} /> : null}
       {tournamentOpen ? <TournamentSheet onClose={() => setTournamentOpen(false)} /> : null}
       {chatOpen ? <ChatSheet onClose={() => setChatOpen(false)} onJoinTable={(code) => (setChatOpen(false), setTableCode(code), setTableOpen(true))} /> : null}
-      {shopOpen ? <ShopSheet onClose={() => { setShopOpen(false); daily.reload(); }} /> : null}
+      {shopOpen ? <ShopSheet realMoney={Number(settings['feature.coin_packages']) === 1} onClose={() => { setShopOpen(false); daily.reload(); }} /> : null}
       {wheelOpen ? <WheelPage onClose={() => (setWheelOpen(false), loadSpins(), daily.reload())} /> : null}
       {missionsOpen ? (
         <MissionsSheet

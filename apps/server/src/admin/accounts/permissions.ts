@@ -33,7 +33,7 @@ export function permissionFor(method: string, path: string): Permission {
   if (path.startsWith('/admin/daily-reward') || path.startsWith('/admin/shop') || path.startsWith('/admin/wheel') || path.startsWith('/admin/coin-packages') || path.startsWith('/admin/tournaments') || path.startsWith('/admin/invites')) return 'economy';
   if (path.startsWith('/admin/users') || path.startsWith('/admin/bots') || path.startsWith('/admin/badges') || path.startsWith('/admin/user-notes')) return 'users';
   if (path.startsWith('/admin/messages')) return 'messages';
-  if (path.startsWith('/admin/words') || path.startsWith('/admin/taunt') || path.startsWith('/admin/chat') || path.startsWith('/admin/cities') || path.startsWith('/admin/daily-puzzle') || path.startsWith('/admin/puzzles')) return 'content';
+  if (path.startsWith('/admin/short-links') || path.startsWith('/admin/landing') || path.startsWith('/admin/words') || path.startsWith('/admin/taunt') || path.startsWith('/admin/chat') || path.startsWith('/admin/cities') || path.startsWith('/admin/daily-puzzle') || path.startsWith('/admin/puzzles')) return 'content';
   if (path.startsWith('/admin/catalog') || path.startsWith('/admin/prices') || path.startsWith('/admin/products') || path.startsWith('/admin/bot')) return 'content';
   if (path.startsWith('/admin/bale/broadcast')) return 'messages';
   return 'system'; // settings, bale test, anything new

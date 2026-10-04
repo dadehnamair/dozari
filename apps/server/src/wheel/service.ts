@@ -93,6 +93,11 @@ export class WheelService {
     const rules = await this.rules();
     // The free daily spin is handed out the first time the player looks at the wheel that day.
     const daily = rules.enabled && (rules.dailySpins ?? 0) > 0 ? await this.store.give(userId, 'daily', dailyDateKey(this.now()), rules.dailySpins ?? 0) : 0;
+    // A spin that refills like a life (off by default): one per window while fewer than the cap wait; the window number is the idempotency key.
+    if (rules.enabled && (rules.refillHours ?? 0) > 0 && (await this.store.pending(userId)) < (rules.refillCap ?? 3)) {
+      const bucket = Math.floor(this.now() / ((rules.refillHours ?? 1) * 3_600_000));
+      await this.store.give(userId, 'refill', String(bucket), 1);
+    }
     const [pending, balance, gems] = await Promise.all([this.store.pending(userId), this.store.balance(userId), this.store.gems(userId)]);
     return { enabled: rules.enabled, pending: rules.enabled ? pending : 0, daily, slices: rules.slices.map((s) => ({ kind: s.kind, amount: s.amount, iconKey: s.iconKey ?? null, titleFa: s.titleFa })), balance, gems };
   }

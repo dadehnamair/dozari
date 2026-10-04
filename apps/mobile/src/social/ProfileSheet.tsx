@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { fetchWorn } from '../shop/api';
+import { fetchBirthday } from './birthdayApi';
+import { PartyBanner } from './BirthdayBadge';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Svg, { Polygon } from 'react-native-svg';
 import { provinceOf, toPersianDigits } from '@dozari/shared';
 import type { Friends, Gender, MyBadges, MyProfile, RecentGames } from '@dozari/shared';
-import { Avatar } from '../components/Avatar';
+import { Character } from '../components/Character';
 import { CandyButton } from '../components/CandyButton';
 import { GradientFill } from '../components/GradientFill';
 import { Icon } from '../components/Icon';
@@ -47,6 +49,10 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
   const [badges, setBadges] = useState<MyBadges | null>(null);
   const [games, setGames] = useState<RecentGames['games']>([]);
   const [worn, setWorn] = useState<{ slot: string; iconKey: string | null }[]>([]);
+  const [party, setParty] = useState(false);
+  useEffect(() => {
+    fetchBirthday().then((b) => setParty(b.inWeek), () => undefined);
+  }, []);
   useEffect(() => {
     fetchWorn().then((r) => setWorn(r.worn), () => undefined);
   }, []);
@@ -57,6 +63,9 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
   const compact = useWindowDimensions().height < 720;
   const heroH = compact ? 118 : 140;
   const avatar = compact ? 92 : 108;
+  /** The whole character stands in the header, so hair, hat, glasses and clothes all show. */
+  const charH = Math.round(avatar * (compact ? 1.5 : 1.6));
+  const charW = Math.round((charH * 240) / 276);
 
   const load = useCallback(() => {
     Promise.all([fetchMyProfile(), fetchFriends()]).then(
@@ -126,9 +135,9 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
           )}
         </Pressable>
       </View>
-      <View style={[styles.column, { paddingTop: heroH - avatar / 2 - 6, gap: compact ? 6 : 9 }]}>
+      <View style={[styles.column, { paddingTop: heroH + avatar / 2 - 6 - charH, gap: compact ? 6 : 9 }]}>
         <View style={styles.avatarWrap}>
-          {me ? <Avatar avatar={avatarOf(me.avatarKey)} size={avatar} worn={worn} /> : <View style={{ width: avatar, height: avatar }} />}
+          {me ? <View style={{ width: charW, height: charH }}><Character skin={avatarOf(me.avatarKey).skin} pose={avatarOf(me.avatarKey).pose} worn={worn} /></View> : <View style={{ width: charW, height: charH }} />}
           {lv ? (
             <View style={styles.hex} accessibilityLabel={`${fa.profile.level} ${lv.level}`}>
               <Svg width={46} height={52} viewBox="0 0 46 52">
@@ -143,6 +152,7 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
         {failed ? <Text style={styles.hint}>{fa.profile.error}</Text> : null}
         {me && lv ? (
           <>
+            {party ? <PartyBanner own /> : null}
             <View style={styles.nameBlock}>
               <Text style={[styles.name, compact ? styles.nameCompact : null]} numberOfLines={1}>{me.nickname}</Text>
               <View style={styles.cityRow}>
@@ -188,7 +198,7 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
             </Pressable>
 
             <View style={styles.grid}>
-              {tiles.map((x) => <HubTile key={x.key} icon={x.icon} label={x.label} color={x.color} badge={x.badge} onPress={x.onPress} />)}
+              {tiles.map((x) => <HubTile onLight key={x.key} icon={x.icon} label={x.label} color={x.color} badge={x.badge} onPress={x.onPress} />)}
             </View>
           </>
         ) : null}

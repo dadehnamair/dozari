@@ -9,6 +9,8 @@ const authed = <T>(path: string, method: 'GET' | 'POST', parse: (v: unknown) => 
 export const fetchShop = (): Promise<Shop> => authed('/shop', 'GET', (v) => shopSchema.parse(v));
 export const buyItem = (id: string): Promise<{ balance: number; gems: number; tokens: number }> =>
   authed(`/shop/${id}/buy`, 'POST', (v) => v as { balance: number; gems: number; tokens: number });
+/** Asks the server to send a Bale wallet invoice for a shop item bought with real money (D170). */
+export const payWithMoney = (id: string): Promise<void> => authed(`/shop-pay/${id}/bale-invoice`, 'POST', () => undefined);
 export const equipItem = (id: string, equipped: boolean): Promise<{ ok: true }> => authed(`/shop/${id}/equip`, 'POST', (v) => v as { ok: true }, { equipped });
 export const fetchWorn = (): Promise<{ worn: { id: string; slot: string; iconKey: string | null }[] }> => authed('/me/cosmetics', 'GET', (v) => v as { worn: { id: string; slot: string; iconKey: string | null }[] });
 export const fetchHints = (sessionId: string): Promise<SoloHints> => authed(`/solo/${sessionId}/hints`, 'GET', (v) => soloHintsSchema.parse(v));

@@ -80,7 +80,7 @@ export function CityHub({ onClose, onEnter, features, dailyReady }: { onClose: (
             const info = t.buildings[b.key];
             const badge = b.key === 'tower' && dailyReady ? t.isNew : b.key === 'caravan' && features.tournament ? t.live : null;
             return (
-              <Pressable key={b.key} onPress={() => setSel(b)} accessibilityRole="button" accessibilityLabel={`${info?.name} · ${info?.mode}`} style={[styles.tag, { left: b.x * k - 70, top: (b.by + 8) * k, opacity: canEnter(b, features) ? 1 : 0.8 }]}>
+              <Pressable key={b.key} onPress={() => (b.action && canEnter(b, features) ? onEnter(b.action) : setSel(b))} accessibilityRole="button" accessibilityLabel={`${info?.name} · ${info?.mode}`} style={[styles.tag, { left: b.x * k - 70, top: (b.by + 8) * k, opacity: canEnter(b, features) ? 1 : 0.8 }]}>
                 <View style={[styles.mode, { backgroundColor: b.chip }]}><Text style={styles.modeText}>{info?.mode}</Text></View>
                 <View style={[styles.plate, sel?.key === b.key ? styles.plateOn : null]}>
                   <Text style={styles.plateText}>{info?.name}</Text>
