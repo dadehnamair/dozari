@@ -1,4 +1,4 @@
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { solarMonthOf, toPersianDigits } from '@dozari/shared';
 import type { PriceRoundView } from '@dozari/shared';
 import { Character } from '../components/Character';
@@ -41,6 +41,7 @@ export function DuelResult({ outcome, reason, lines, priceRound, onHome, onAgain
         </View>
         <Text style={styles.sub}>{reason || look.sub}</Text>
 
+        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollIn} showsVerticalScrollIndicator={false}>
         <View style={styles.board}>
           <View style={styles.head}>
             <Text style={[styles.headText, styles.grow]}>{a.player}</Text>
@@ -73,6 +74,7 @@ export function DuelResult({ outcome, reason, lines, priceRound, onHome, onAgain
             ))}
           </View>
         ) : null}
+        </ScrollView>
 
         <View style={styles.spacer} />
         <View style={styles.actions}>
@@ -89,6 +91,8 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#3C1A66' },
   shade: { backgroundColor: 'rgba(43,18,64,0.55)' },
   column: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', paddingHorizontal: 12, paddingTop: 28 + nativeTopInset(), paddingBottom: 28, alignItems: 'stretch', gap: 8 },
+  scroll: { flexShrink: 1, flexGrow: 0 },
+  scrollIn: { gap: 8, paddingBottom: 6 },
   hero: { width: 140, height: 162, alignSelf: 'center' },
   banner: { alignSelf: 'center', paddingHorizontal: 30, paddingVertical: 6, borderRadius: 18, borderWidth: 4, borderColor: colors.ink, overflow: 'hidden', shadowColor: colors.ink, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 1, shadowRadius: 0, elevation: 6 },
   bannerText: { fontFamily: fonts.display, fontSize: 32, lineHeight: 44, color: colors.ink },
