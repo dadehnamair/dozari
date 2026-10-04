@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, I18nManager, Platform, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { initialWindowMetrics } from 'react-native-safe-area-context';
 // Per-weight imports: the package index pulls in all nine Vazirmatn weights, which the web export would ship and the
 // PWA precache (D102); only these two are used. The files are bundled and self-hosted, never fetched from Google.
 import { Lalezar_400Regular } from '@expo-google-fonts/lalezar/400Regular';
@@ -48,6 +49,8 @@ if (!I18nManager.isRTL) {
 if (Platform.OS !== 'web') I18nManager.swapLeftAndRightInRTL(false);
 
 const SPLASH_MS = 1800;
+/** Android draws edge-to-edge, so a 3-button/gesture navigation bar would cover the bottom of every screen: keep it clear. */
+const NAV_BAR_INSET = Platform.OS === 'android' ? Math.round(initialWindowMetrics?.insets.bottom ?? 0) : 0;
 
 export default function App() {
   const shell = useRef<View>(null);
@@ -122,7 +125,7 @@ export default function App() {
   }
 
   return (
-    <View key={epoch} ref={shell} style={[styles.container, keyboard ? { marginBottom: keyboard } : null]}>
+    <View key={epoch} ref={shell} style={[styles.container, keyboard ? { marginBottom: keyboard } : NAV_BAR_INSET ? { paddingBottom: NAV_BAR_INSET } : null]}>
       <StatusBar style="light" />
       {screen === 'splash' ? <SplashScreen /> : null}
       {screen === 'login' ? (
