@@ -43,6 +43,13 @@ describe('buildChartData', () => {
     expect(d.series[0]!.points).toHaveLength(1);
   });
 
+  it('takes the first year and the widest joined gap from the options (the admin can change them)', () => {
+    const wide = buildChartData([item('g', { 1370: 10, 1375: 20, 1381: 30 })], { gapBreakYears: 10 });
+    expect(wide.series[0]!.points.map((p) => p.breakBefore)).toEqual([false, false, false]);
+    const narrow = buildChartData([item('g', { 1370: 10, 1375: 20, 1381: 30 })], { gapBreakYears: 4, minYear: 1375 });
+    expect(narrow.series[0]!.points.map((p) => [p.year, p.breakBefore])).toEqual([[1375, false], [1381, true]]);
+  });
+
   it('adds a rule-year marker only when it falls inside the domain', () => {
     expect(buildChartData(items, { ruleYear: 1375 }).markers).toEqual([{ kind: 'rule_year', year: 1375, label: 'سال ۷۵' }]);
     expect(buildChartData(items, { ruleYear: 1365 }).markers).toEqual([]);

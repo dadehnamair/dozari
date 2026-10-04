@@ -21,6 +21,11 @@ All values in *italics* are config in `packages/shared/src/config/game.ts`.
 - Submitting an identical set twice is rejected client- and server-side (no penalty, "already tried").
 - When 3 groups are solved, the last group is auto-revealed (no one scores it).
 
+**Match numbers are admin settings** (`game.turn_seconds`, `game.match_max_mistakes`, `game.max_consecutive_timeouts`, `score.group_points`,
+`score.first_blood_bonus`): `MatchService` reads them when a match starts and the reducer keeps that snapshot in `MatchState.rules`, so an edit
+never changes a game in progress (the shared config is the default). The chart limits `chart.min_year` / `chart.gap_break_years` reach the
+client through `GET /config` (`apps/mobile/src/config/chartRules.ts`).
+
 ## Solo
 
 Classic Connections: *SOLO_MAX_MISTAKES* = 4 mistakes allowed; game over at the 4th wrong guess
