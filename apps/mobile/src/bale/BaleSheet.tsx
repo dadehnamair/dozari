@@ -69,7 +69,7 @@ export function BaleSheet({ onClose }: { onClose: () => void }) {
             <CandyButton label={fa.bale.getCode} color={colors.candy.lime} onPress={() => void getCode()} />
           )
         ) : null}
-        <CandyButton label={fa.bale.close} color={colors.candy.sky} onPress={onClose} />
+        <CandyButton label={fa.bale.close} sfx="back" color={colors.candy.sky} onPress={onClose} />
       </Pressable>
       {dialog}
     </Pressable>

@@ -114,7 +114,7 @@ export function LoginScreen({ onDone }: { onDone: (r: { signedIn: boolean; creat
           </>
         )}
         {note ? <Text style={styles.error}>{note}</Text> : null}
-        <SlabButton label={busy ? l.sending : step === 'phone' ? l.sendCode : l.enter} color={colors.candy.lime} height={tight ? 50 : 56} fontSize={22} grow={0} disabled={busy || (step === 'phone' ? !phone : code.length !== OTP_LENGTH)} onPress={step === 'phone' ? send : () => enter(code)} />
+        <SlabButton label={busy ? l.sending : step === 'phone' ? l.sendCode : l.enter} sfx="confirm" color={colors.candy.lime} height={tight ? 50 : 56} fontSize={22} grow={0} disabled={busy || (step === 'phone' ? !phone : code.length !== OTP_LENGTH)} onPress={step === 'phone' ? send : () => enter(code)} />
         <View style={styles.orRow}><View style={styles.orLine} /><Text style={styles.orText}>{l.or}</Text><View style={styles.orLine} /></View>
         <Pressable accessibilityRole="button" onPress={() => onDone({ signedIn: false, created: false })} style={({ pressed }) => [styles.guest, pressed ? styles.guestPressed : null]}>
           <Text style={styles.guestText}>{l.guest}</Text>

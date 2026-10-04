@@ -19,7 +19,7 @@ import {
 export function BrandScreen({ onBack }: { onBack: () => void }) {
   return (
     <ScrollView contentContainerStyle={styles.screen}>
-      <CandyButton label={fa.solo.back} color={colors.candy.sky} onPress={onBack} />
+      <CandyButton label={fa.solo.back} sfx="back" color={colors.candy.sky} onPress={onBack} />
       <Item id="brand-icon" label="app-icon · 1024">
         <AppIconArt size={1024} />
       </Item>

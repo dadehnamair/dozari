@@ -1,4 +1,5 @@
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { playSfx } from '../sound/engine';
 import Svg, { Circle, Defs, Pattern, Rect } from 'react-native-svg';
 import { useId } from 'react';
 import { colors, fonts, toneOf } from '../theme/colors';
@@ -35,7 +36,7 @@ export function PageShell({ title, color, backLabel, onBack, action, bandHeight 
       </View>
       <View style={styles.column}>
         <View style={styles.head}>
-          <Pressable accessibilityRole="button" accessibilityLabel={backLabel} onPress={onBack}>
+          <Pressable accessibilityRole="button" accessibilityLabel={backLabel} onPress={() => (playSfx('back'), onBack())}>
             {({ pressed }) => (
               <View style={[styles.back, pressed ? styles.pressed : null]}>
                 <GradientFill from="#FFE48A" to={colors.candy.yellow} />

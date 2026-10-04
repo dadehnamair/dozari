@@ -5,6 +5,7 @@ import type { SoloCard, SoloSolvedGroup } from '@dozari/shared';
 import { colors, groupShelf, tile } from '../theme/colors';
 import { fa } from '../i18n/fa';
 import { NAME_FLOOR, cardMetrics, cellWidth } from './boardLayout';
+import { playSfx } from '../sound/engine';
 import { Item } from './Item';
 
 const GAP = 8;
@@ -45,7 +46,7 @@ export function Board({ solved, cards, names, selected, onToggle, disabled, hint
               disabled={disabled}
               accessibilityRole="button"
               accessibilityState={{ selected: on }}
-              onPress={() => onToggle(c.id)}
+              onPress={() => (playSfx(on ? 'deselect' : 'select'), onToggle(c.id))}
               style={[styles.cell, w > 0 && { width: w, height: m.height }, on && styles.cellOn, hinted.includes(c.id) && styles.cellHint, muted && styles.cellMuted]}
             >
               {c.iconKey ? (

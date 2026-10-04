@@ -3,6 +3,8 @@ import { colors, fonts, toneOf } from '../theme/colors';
 import { GradientFill } from './GradientFill';
 import { Icon } from './Icon';
 import type { IconName } from '../theme/icons';
+import { playSfx } from '../sound/engine';
+import type { Sfx } from '../sound/engine';
 
 const SHELF = 6;
 
@@ -12,10 +14,10 @@ const OFF = { light: '#B8AFC4', base: '#8E83A0', dark: '#6B5F80' };
  * Big candy slab button of the screen designs: the two bottom buttons of screen-home (68px, Lalezar 28) and the
  * action row of screen-match (58px, Lalezar 20). Fills its row share (`grow`; 0 = natural size, e.g. full width in a column), optional pink corner badge.
  */
-export function SlabButton({ label, color, badge, onPress, height = 68, fontSize = 28, grow = 1, disabled = false, icon }: { label: string; color: string; badge?: string; onPress: () => void; height?: number; fontSize?: number; grow?: number; disabled?: boolean; /** Line icon shown before the label. */ icon?: IconName }) {
+export function SlabButton({ label, color, badge, onPress, height = 68, fontSize = 28, grow = 1, disabled = false, icon, sfx = 'press' }: { label: string; color: string; badge?: string; onPress: () => void; height?: number; fontSize?: number; grow?: number; disabled?: boolean; /** Line icon shown before the label. */ icon?: IconName; /** Click sound: `press`, `back` or `confirm`. */ sfx?: Sfx }) {
   const tone = disabled ? OFF : toneOf(color);
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={[styles.wrap, grow > 0 ? { flex: grow } : null]}>
+    <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled} onPress={() => (playSfx(sfx), onPress())} style={[styles.wrap, grow > 0 ? { flex: grow } : null]}>
       {({ pressed }) => (
         <>
           <View style={styles.shelf} />

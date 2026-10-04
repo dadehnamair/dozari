@@ -48,7 +48,7 @@ export function ErrorCard({ kind, sub, detail, onRetry, retryLabel, onBack, back
       <Text style={styles.sub}>{sub ?? text.sub}</Text>
       {detail ? <Text style={styles.detail}>{detail}</Text> : null}
       {onRetry ? <CandyButton label={retryLabel ?? text.action} color={candyTone[spec.tone].base} onPress={onRetry} /> : null}
-      {onBack ? <CandyButton label={backLabel ?? fa.duel.back} color={candyTone.sky.base} onPress={onBack} /> : null}
+      {onBack ? <CandyButton label={backLabel ?? fa.duel.back} sfx="back" color={candyTone.sky.base} onPress={onBack} /> : null}
     </View>
   );
 }

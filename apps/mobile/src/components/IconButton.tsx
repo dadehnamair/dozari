@@ -3,6 +3,8 @@ import { colors, fonts, toneOf } from '../theme/colors';
 import type { IconName } from '../theme/icons';
 import { GradientFill } from './GradientFill';
 import { Icon } from './Icon';
+import { playSfx } from '../sound/engine';
+import type { Sfx } from '../sound/engine';
 
 interface Props {
   icon: IconName;
@@ -13,6 +15,7 @@ interface Props {
   shape?: 'round' | 'square';
   badge?: string;
   size?: number;
+  sfx?: Sfx;
 }
 
 const SHELF = 6;
@@ -26,11 +29,12 @@ export function IconButton({
   shape = 'round',
   badge,
   size = 56,
+  sfx = 'press',
 }: Props) {
   const tone = toneOf(color);
   const radius = shape === 'round' ? size / 2 : 20;
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress}>
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={() => (playSfx(sfx), onPress())}>
       {({ pressed }) => (
         <View style={{ width: size, paddingBottom: SHELF }}>
           <View style={[styles.shelf, { borderRadius: radius }]} />

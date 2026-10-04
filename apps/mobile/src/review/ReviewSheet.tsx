@@ -20,7 +20,7 @@ export function ReviewSheet({ message, url, onReview, onLater, onNever }: { mess
             onReview();
           }}
         />
-        <CandyButton label={fa.review.later} color={colors.candy.sky} onPress={onLater} />
+        <CandyButton label={fa.review.later} sfx="back" color={colors.candy.sky} onPress={onLater} />
         <Pressable onPress={onNever} accessibilityRole="button">
           <Text style={styles.never}>{fa.review.never}</Text>
         </Pressable>

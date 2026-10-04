@@ -313,7 +313,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
           </View>
           <View style={styles.toastSlot}>{toast ? <View style={styles.toast}><Text style={styles.toastText} numberOfLines={2}>{toast}</Text></View> : null}</View>
 
-          <Board solved={boardSolved(view)} cards={arrange(view.cards, order)} names={state.names} selected={selected} onToggle={(id) => (playSfx('tap'), setSelected((s) => toggleSelection(s, id)))} disabled={!playing || !mine} muted={playing && !mine} />
+          <Board solved={boardSolved(view)} cards={arrange(view.cards, order)} names={state.names} selected={selected} onToggle={(id) => setSelected((s) => toggleSelection(s, id))} disabled={!playing || !mine} muted={playing && !mine} />
 
           <View style={styles.tools}>
             {taunts.length > 0 ? (
@@ -335,7 +335,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
           <View style={styles.actions}>
             <SlabButton label={fa.solo.shuffle} color={colors.candy.sky} height={58} fontSize={20} onPress={() => setOrder(shuffled(view.cards.map((c) => c.id)))} />
             <SlabButton label={fa.solo.deselect} color={colors.candy.orange} height={58} fontSize={20} onPress={() => setSelected([])} disabled={selected.length === 0} />
-            <SlabButton label={fa.solo.submit} color={colors.candy.lime} height={58} fontSize={24} grow={1.4} onPress={submit} disabled={!canSubmit(selected) || !mine} />
+            <SlabButton label={fa.solo.submit} sfx="confirm" color={colors.candy.lime} height={58} fontSize={24} grow={1.4} onPress={submit} disabled={!canSubmit(selected) || !mine} />
           </View>
         </View>
       </ScrollView>

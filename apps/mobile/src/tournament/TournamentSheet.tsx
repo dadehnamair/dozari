@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { playSfx } from '../sound/engine';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { TournamentDetail, TournamentListItem } from '@dozari/shared';
 import { toPersianDigits } from '@dozari/shared';
@@ -89,7 +90,7 @@ function TournamentPage({ id, onBack }: { id: string; onBack: () => void }) {
       <ScrollView contentContainerStyle={styles.page}>
         <View style={styles.column}>
           <View style={styles.top}>
-            <Pressable accessibilityRole="button" accessibilityLabel={fa.tournament.back} onPress={onBack}>
+            <Pressable accessibilityRole="button" accessibilityLabel={fa.tournament.back} onPress={() => (playSfx('back'), onBack())}>
               {({ pressed }) => (
                 <View style={[styles.back, pressed ? styles.pressed : null]}>
                   <GradientFill from="#C9A3FF" to="#A66BF0" />

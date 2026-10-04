@@ -84,7 +84,7 @@ export function BadgesSheet({ onClose }: { onClose: () => void }) {
             </>
           ) : null}
         </ScrollView>
-        <CandyButton label={fa.badges.close} color={colors.candy.sky} onPress={onClose} />
+        <CandyButton label={fa.badges.close} sfx="back" color={colors.candy.sky} onPress={onClose} />
       </Pressable>
     </Pressable>
   );

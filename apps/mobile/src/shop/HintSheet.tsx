@@ -68,7 +68,7 @@ export function HintSheet({ sessionId, onGiven, onClose }: { sessionId: string; 
           </>
         ) : null}
         {note ? <Text style={styles.warn}>{note}</Text> : null}
-        <CandyButton label={fa.hints.close} color={colors.candy.sky} onPress={onClose} />
+        <CandyButton label={fa.hints.close} sfx="back" color={colors.candy.sky} onPress={onClose} />
       </Pressable>
     </Pressable>
   );

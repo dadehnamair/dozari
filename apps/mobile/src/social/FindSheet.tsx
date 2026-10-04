@@ -90,7 +90,7 @@ export function FindSheet({ onClose }: { onClose: () => void }) {
           </Pressable>
         ) : null}
         {note ? <Text style={[styles.hint, styles.bad]}>{note}</Text> : null}
-        <CandyButton label={fa.find.close} color={colors.candy.sky} onPress={onClose} />
+        <CandyButton label={fa.find.close} sfx="back" color={colors.candy.sky} onPress={onClose} />
       </Pressable>
     </Pressable>
   );
