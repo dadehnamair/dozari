@@ -19,12 +19,14 @@ interface BoardProps {
   disabled: boolean;
   /** Cards a paid hint pointed at; drawn with a gold frame. */
   hinted?: readonly string[];
+  /** Cards softly lit by the idle nudge (a gentle pulse, not the hard frame of a paid hint). */
+  nudged?: readonly string[];
   /** Opponent's turn: cards are drawn desaturated so the turn reads at a glance. */
   muted?: boolean;
 }
 
 /** Solved rows stack on top (in the order found), the remaining cards fill a 4-wide grid below. */
-export function Board({ solved, cards, names, selected, onToggle, disabled, hinted = [], muted = false }: BoardProps) {
+export function Board({ solved, cards, names, selected, onToggle, disabled, hinted = [], nudged = [], muted = false }: BoardProps) {
   const [width, setWidth] = useState(0);
   const w = cellWidth(width, GAP, GROUP_SIZE);
   return (
@@ -47,7 +49,7 @@ export function Board({ solved, cards, names, selected, onToggle, disabled, hint
               accessibilityRole="button"
               accessibilityState={{ selected: on }}
               onPress={() => (playSfx(on ? 'deselect' : 'select'), onToggle(c.id))}
-              style={[styles.cell, w > 0 && { width: w, height: m.height }, on && styles.cellOn, hinted.includes(c.id) && styles.cellHint, muted && styles.cellMuted]}
+              style={[styles.cell, w > 0 && { width: w, height: m.height }, on && styles.cellOn, hinted.includes(c.id) && styles.cellHint, nudged.includes(c.id) && !on && styles.cellNudge, muted && styles.cellMuted]}
             >
               {c.iconKey ? (
                 <View style={{ width: m.icon, height: m.icon }}>
@@ -66,6 +68,7 @@ export function Board({ solved, cards, names, selected, onToggle, disabled, hint
 
 const styles = StyleSheet.create({
   cellMuted: { backgroundColor: '#D9D9DE', borderBottomColor: '#B5B5BC', opacity: 0.7 },
+  cellNudge: { backgroundColor: '#FFF3C4', borderColor: 'rgba(255,201,60,0.8)', borderWidth: 3 },
   cellHint: { borderColor: '#FFC93C', borderWidth: 4 },
   board: { gap: GAP, width: '100%', maxWidth: 520, alignSelf: 'center' },
   row: { borderRadius: 16, borderWidth: 3, borderColor: colors.ink, borderBottomWidth: 6, paddingVertical: 10, paddingHorizontal: 12, alignItems: 'center', gap: 2 },

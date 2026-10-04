@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { isLastLife, solarMonthOf } from '@dozari/shared';
+import { NUDGE_IDLE_SECONDS, isLastLife, solarMonthOf } from '@dozari/shared';
 import type { HintPayload, SoloView } from '@dozari/shared';
 import { Board } from '../components/Board';
 import { ChartPanel } from '../components/ChartPanel';
@@ -29,6 +29,7 @@ import { ErrorCard } from '../components/EmptyState';
 import { canSubmit, feedbackFor, pruneSelection, toggleSelection } from './selection';
 import { recordGameFinished } from '../review/state';
 import { HintSheet } from '../shop/HintSheet';
+import { takeNudge } from '../shop/api';
 import { hintedCardIds, hintedTitles } from '../shop/hintView';
 import type { FeedbackKey } from './selection';
 import { nativeTopInset } from '../theme/safeArea';
@@ -55,6 +56,9 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
   const [priceReady, setPriceReady] = useState(false);
   const [hintOpen, setHintOpen] = useState(false);
   const [given, setGiven] = useState<HintPayload[]>([]);
+  /** Cards the free level-1 nudge lit up, and whether the server said this player is past that stage (then we stop asking). */
+  const [nudged, setNudged] = useState<string[]>([]);
+  const nudgeOff = useRef(false);
   const feedbackTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const combo = useCombo();
   const lastLife = phase.kind === 'ready' && isLastLife(phase.view.mistakes, phase.view.maxMistakes, phase.view.status === 'playing');
@@ -65,6 +69,26 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
     setSelected((prev) => pruneSelection(prev, view.cards));
     setPhase({ kind: 'ready', view });
   }, []);
+
+  // A brand-new player who stands still for a while gets two cards of one group softly lit (the server decides who may: level 1 only).
+  const idleKey = phase.kind === 'ready' ? `${phase.view.sessionId}:${phase.view.solved.length}:${phase.view.mistakes}:${phase.view.status}:${selected.join(',')}:${busy}` : '';
+  useEffect(() => {
+    if (phase.kind !== 'ready' || phase.view.status !== 'playing' || busy || nudgeOff.current) return undefined;
+    const sessionId = phase.view.sessionId;
+    const ids = phase.view.cards.map((c) => c.id);
+    const timer = setTimeout(() => {
+      takeNudge(sessionId).then(
+        (h) => setNudged(h.kind === 'pair' ? h.productIds.filter((id) => ids.includes(id)) : []),
+        (err) => {
+          const code = (err as { code?: string; status?: number } | null)?.status;
+          if (code === 403 || code === 409) nudgeOff.current = true; // past level 1, or the per-game limit was reached
+        },
+      );
+    }, NUDGE_IDLE_SECONDS * 1000);
+    return () => clearTimeout(timer);
+    // idleKey carries every input that counts as "the player did something".
+  }, [idleKey]);
+  useEffect(() => setNudged([]), [idleKey]);
 
   const alive = useRef(true);
   useEffect(() => () => void (alive.current = false), []);
@@ -107,6 +131,7 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
     setNames({});
     setPriceDone(false);
     setPriceReady(false);
+    nudgeOff.current = false;
     setGiven([]);
     setHintOpen(false);
     combo.reset();
@@ -253,7 +278,7 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
         ) : null}
 
         <View>
-          <Board solved={view.solved} cards={view.cards} names={names} selected={selected} onToggle={(id) => setSelected((s) => toggleSelection(s, id))} disabled={!playing || busy} hinted={hintedCardIds(given)} />
+          <Board solved={view.solved} cards={view.cards} names={names} selected={selected} onToggle={(id) => setSelected((s) => toggleSelection(s, id))} disabled={!playing || busy} hinted={hintedCardIds(given)} nudged={nudged} />
           {feedback === 'oneAway' ? <View style={styles.nearMiss} pointerEvents="none"><NearMissPill /></View> : null}
         </View>
         {hintedCardIds(given).length > 0 && playing ? <Text style={styles.hintLine}>{fa.hints.framed}</Text> : null}

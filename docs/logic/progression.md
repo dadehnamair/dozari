@@ -111,3 +111,10 @@ Tracked as `DECISIONS.md` open question 17.
   `economy.md`'s numbers — not blocking Phase 0-A/0.
 - Whether `difficulty_tier` is curator-set only or ever auto-inferred from validator near-miss
   counts is a Phase 2 content-pipeline decision (`puzzle-generation.md` §Content bootstrap order).
+
+## Level-1 nudge (free hint)
+
+A level-1 player who stands still in a solo game for `NUDGE_IDLE_SECONDS` (20 s) gets two cards of one unsolved group lit softly on
+the board (`POST /solo/:id/nudge`, server-side so the solution stays hidden). Free, at most `NUDGE_MAX_PER_GAME` (2) per game, only while
+level ≤ `NUDGE_MAX_LEVEL` (1); everyone above gets 403 `level` and the client stops asking. Paid hints (`HINT_MIN_LEVEL` 2) are unchanged.
+Config: `packages/shared/src/config/game.ts`.

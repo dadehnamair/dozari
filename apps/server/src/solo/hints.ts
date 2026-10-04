@@ -1,5 +1,5 @@
-import { hintBlock, hintPrice } from '@dozari/shared';
-import type { HintKind, HintRules, SoloHintResult, SoloHints } from '@dozari/shared';
+import { NUDGE_MAX_LEVEL, NUDGE_MAX_PER_GAME, hintBlock, hintPrice } from '@dozari/shared';
+import type { HintKind, HintPayload, HintRules, SoloHintResult, SoloHints } from '@dozari/shared';
 import type { ShopStore } from '../economy/shop-store.js';
 import type { SoloService } from './service.js';
 
@@ -37,6 +37,19 @@ export class HintService {
       blocked: hintBlock(level, used, rules),
       given: [...st.given],
     };
+  }
+
+  /** Free hint for level-1 players only: two cards of one unsolved group, at most `NUDGE_MAX_PER_GAME` per game. Costs nothing. */
+  async nudge(sessionId: string, userId: string): Promise<{ hint: HintPayload } | HintFailure> {
+    const st = this.own(sessionId, userId);
+    if (typeof st === 'string') return st;
+    if (!st.playing) return 'game_over';
+    if ((await this.levelOf(userId)) > NUDGE_MAX_LEVEL) return 'level';
+    if (st.given.length >= NUDGE_MAX_PER_GAME) return 'limit';
+    const hint = this.solo.previewHint(sessionId, 'pair');
+    if (!hint) return 'nothing_left';
+    this.solo.recordHint(sessionId, hint);
+    return { hint };
   }
 
   async take(sessionId: string, userId: string, kind: HintKind): Promise<SoloHintResult | HintFailure> {

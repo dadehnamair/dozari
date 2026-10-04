@@ -120,6 +120,24 @@ describe('solo hints', () => {
     expect(store.ledger.map((l) => l.delta)).toEqual([-15, -40]);
   });
 
+  it('gives level-1 players a free nudge (two cards, twice a game) and nobody else', async () => {
+    const { app, login, store, start, levels } = boot(3);
+    const a = await login(1);
+    const id = await start(a.h);
+    levels.set(a.id, 1);
+    const nudge = () => app.inject({ method: 'POST', url: `/solo/${id}/nudge`, headers: a.h });
+    const first = (await nudge()).json();
+    expect(first.hint.kind).toBe('pair');
+    expect((await nudge()).statusCode).toBe(200);
+    const third = await nudge();
+    expect(third.statusCode).toBe(409);
+    expect(third.json()).toEqual({ error: 'limit' });
+    expect(store.ledger).toEqual([]);
+    levels.set(a.id, 2);
+    expect((await nudge()).json()).toEqual({ error: 'level' });
+    expect((await app.inject({ method: 'POST', url: `/solo/${id}/nudge` })).statusCode).toBe(401);
+  });
+
   it('uses a hint token before coins', async () => {
     const { app, login, store, start } = boot(3);
     const a = await login(1);

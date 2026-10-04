@@ -34,6 +34,11 @@ export const PRICE_GUESS_ROUND_POINTS = 1;
 
 /** Competitive match (docs/logic/game-rules.md §Competitive). Proposed defaults, to be playtested. */
 export const TURN_SECONDS = 45;
+
+/** Free «nudge» for brand-new players (docs/logic/progression.md): idle this long in solo and two cards of one group light up. */
+export const NUDGE_MAX_LEVEL = 1;
+export const NUDGE_IDLE_SECONDS = 20;
+export const NUDGE_MAX_PER_GAME = 2;
 export const MATCH_MAX_MISTAKES = 4;
 /** Boards (16-card packs) played in a 2v2 match; a 1v1 is always one board. Scores add up, mistakes reset per board. */
 export const TEAM_MATCH_BOARDS = 3;

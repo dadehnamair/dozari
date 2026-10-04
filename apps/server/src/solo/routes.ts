@@ -95,6 +95,15 @@ export function registerSoloRoutes(app: FastifyInstance, solo: SoloService, auth
       return typeof out === 'string' ? reply.code(status[out]).send({ error: out }) : out;
     });
 
+    app.post('/solo/:id/nudge', async (req, reply) => {
+      const user = await currentUser(auth, req);
+      const params = paramsSchema.safeParse(req.params);
+      if (!user) return reply.code(401).send({ error: 'unauthorized' });
+      if (!params.success) return reply.code(400).send({ error: 'invalid_id' });
+      const out = await hints.nudge(params.data.id, user.id);
+      return typeof out === 'string' ? reply.code(status[out]).send({ error: out }) : out;
+    });
+
     app.post('/solo/:id/hint', async (req, reply) => {
       const user = await currentUser(auth, req);
       const params = paramsSchema.safeParse(req.params);
