@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, ne, notExists, sql, ugcSubmissions, ugcVotes, userReports, users } from '@dozari/db';
+import { and, desc, eq, gte, ne, notExists, products, sql, ugcSubmissions, ugcVotes, userReports, users } from '@dozari/db';
 import type { Db } from '@dozari/db';
 import { uuidv7 } from 'uuidv7';
 import type { ReportCategory, SubmissionKind, SubmissionStatus } from '@dozari/shared';
@@ -63,6 +63,11 @@ const toSubmission = (r: typeof ugcSubmissions.$inferSelect): SubmissionRow => (
   id: r.id, userId: r.userId, kind: r.kind, status: r.status, productId: r.productId, nameFa: r.nameFa, category: r.category, unitFa: r.unitFa, year: r.year,
   priceRials: r.priceRials, sourceType: r.sourceType, sourceText: r.sourceText, note: r.note, score: r.score, rewarded: r.rewardedAt !== null, createdAt: r.createdAt.getTime(), decidedAt: r.decidedAt ? r.decidedAt.getTime() : null,
 });
+
+/** The catalog's product ids and names (for «this item already exists» and card titles). */
+export function createDbCatalogLookup(db: Db): () => Promise<{ id: string; nameFa: string }[]> {
+  return async () => db.select({ id: products.id, nameFa: products.nameFa }).from(products);
+}
 
 export function createDbFeedbackStore(db: Db): FeedbackStore {
   return {

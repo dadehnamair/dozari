@@ -6,7 +6,7 @@ import { resolve } from 'node:path';
 import { rialsToTomanString } from '@dozari/shared';
 import { CHAT_RETENTION_DAYS, MISSION_KEYS, TOURNAMENT_TICK_SECONDS, WHEEL_SLICES_DEFAULT, scaleSlices } from '@dozari/shared';
 import type { HintRules, MissionKey } from '@dozari/shared';
-import { createDb, products } from '@dozari/db';
+import { createDb } from '@dozari/db';
 import { createDbCatalogRepository } from './catalog/db-repository.js';
 import { DailyRewardService } from './economy/daily-reward.js';
 import { createDbDailyRewardStore } from './economy/daily-reward-db.js';
@@ -120,10 +120,9 @@ import { createDbGemWallet, registerGemRoutes } from './economy/gems.js';
 import type { GemWalletReader } from './economy/gems.js';
 import { createDbProfileTaskStore } from './profile/tasks-store.js';
 import { BirthdayService, registerBirthdayRoutes } from './profile/birthday.js';
-import { FeedbackService } from './feedback/service.js';
-import { createDbFeedbackStore } from './feedback/store.js';
+import { buildFeedbackService } from './feedback/build.js';
+import type { FeedbackService } from './feedback/service.js';
 import { registerFeedbackRoutes } from './feedback/routes.js';
-import { applyLedgerEntry } from './economy/ledger.js';
 import { createDbBirthdayStore } from './profile/birthday-store.js';
 import { ShopService } from './economy/shop.js';
 import { createDbShopStore } from './economy/shop-store.js';
@@ -540,24 +539,7 @@ if (isMainModule(import.meta.url)) {
         })
       : undefined;
   const productAdmin = db ? createDbProductAdmin(db) : undefined;
-  const feedback =
-    db && settings && productAdmin
-      ? new FeedbackService({
-          store: createDbFeedbackStore(db),
-          rules: async () => {
-            const [dailyLimit, voterMinGames, approveScore, rejectScore, rewardCoins, reportDailyLimit] = await Promise.all(['ugc.daily_limit', 'ugc.voter_min_games', 'ugc.approve_score', 'ugc.reject_score', 'ugc.reward_coins', 'report.daily_limit'].map((k) => settings.num(k)));
-            return { dailyLimit: dailyLimit!, voterMinGames: voterMinGames!, approveScore: approveScore!, rejectScore: rejectScore!, rewardCoins: rewardCoins!, reportDailyLimit: reportDailyLimit! };
-          },
-          games: async (id) => (player ? (await player.levelOf(id)).stats.games : 0),
-          userExists: async (id) => !!(await socialStore?.publicRow(id)),
-          products: async () => db.select({ id: products.id, nameFa: products.nameFa }).from(products),
-          reward: (userId, id, coins) => db.transaction(async (tx) => void (await applyLedgerEntry(tx, { userId, delta: coins, reason: 'ugc_reward', refType: 'ugc', refId: id, idempotencyKey: `ugc_reward:${id}` }))),
-          catalog: {
-            createProduct: (p) => productAdmin.create({ slug: p.slug, nameFa: p.nameFa, category: p.category, unitFa: p.unitFa }),
-            addPrice: (p) => productAdmin.addPrice({ productId: p.productId, year: p.year, month: null, priceRials: p.priceRials, sourceType: p.sourceType, sourceNote: p.sourceNote, confidence: p.confidence }),
-          },
-        })
-      : undefined;
+  const feedback = db && settings && productAdmin ? buildFeedbackService({ db, settings, productAdmin, player, socialStore }) : undefined;
   const duelStakes =
     db && settings
       ? new DuelStakes(createDbStakeStore(db), {
