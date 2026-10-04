@@ -4,7 +4,7 @@ import { toPersianDigits } from '@dozari/shared';
 import { Character } from '../components/Character';
 import { Scene } from '../components/Scene';
 import { SlabButton } from '../components/SlabButton';
-import { Wordmark } from '../components/Wordmark';
+import { AnimatedLogo } from '../components/AnimatedLogo';
 import { fa } from '../i18n/fa';
 import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
@@ -80,7 +80,7 @@ export function LoginScreen({ onDone }: { onDone: (r: { signedIn: boolean; creat
       <View style={StyleSheet.absoluteFill}><Scene scene="bazaar" mood="dusk" /></View>
       <View style={[StyleSheet.absoluteFill, styles.shade]} />
       <View style={[styles.top, { paddingTop: safeTop(tight ? 24 : 44) }]}>
-        <Wordmark width={tight ? 190 : 230} />
+        <AnimatedLogo width={tight ? 190 : 230} />
         <View style={tight ? styles.heroTight : styles.hero}><Character who="dozari" pose="wave" /></View>
       </View>
       <View style={[styles.card, tight ? styles.cardTight : null]}>
