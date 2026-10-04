@@ -592,3 +592,10 @@ Owner: the hub drawer had only a purple border on top (a top-only border with ro
 - **D196 — Hub drawer motion is a spring.** Opening uses `Animated.spring` (damping 22, stiffness 150, clamped, native driver) instead of a 320 ms cubic ease; closing is a 280 ms Material standard bezier. Smoother start/stop, same native-driver cost.
 
 - **D197 — Animated logo on Home, centred as a group.** The Home screen uses `AnimatedLogo` (as Splash and Login do) instead of the static `Wordmark`. Inside the animated logo the lettering and the coin are shifted right together (~0.04 × width) so the coin-plus-lettering group, not the lettering alone, sits at the centre of the box.
+
+## D196 — Price-guess round after the 1v1 duel, behind a setting (2026-10-04, proposed)
+
+The owner-approved bonus round (D-series 2026-09-27) is now built for live 1v1 duels, **off by default** (`match.price_round`) so nothing changes until the owner
+switches it on and has seen it on a device. The puzzle winner stands; the rounds only break a tie and give a locked-out side a small bonus (rules already in
+shared). The coin wager per round is not built yet: it moves coins inside a running match and needs the owner's numbers (2–5 coins proposed). 2v2 keeps the
+puzzle-only ending until the captain-pooled guess is designed. Details: `docs/logic/price-guess-round.md` §As built.

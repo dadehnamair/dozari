@@ -20,6 +20,7 @@ import { canSubmit, pruneSelection, toggleSelection } from '../solo/selection';
 import { TableSheet } from '../tables/TableSheet';
 import { colors, fonts } from '../theme/colors';
 import { arenaNumbers, arrange, characterFor, clockText, endReason, groupsBy, shuffled } from './arena';
+import { DuelPriceRound } from './DuelPriceRound';
 import { DuelResult } from './DuelResult';
 import { InviteSheet } from '../invite/InviteSheet';
 import { MatchHud } from './MatchHud';
@@ -228,6 +229,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
           outcome={outcome}
           reason={endReason(outcome, state.ended.result.reason)}
           lines={lines.map((l) => ({ ...l, points: scores[l.me ? me : them] }))}
+          priceRound={state.ended.priceRound}
           onHome={onBack}
           onAgain={stage === 'queue' ? again : undefined}
           onInvite={() => setInviteOpen(true)}
@@ -239,6 +241,24 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
         {inviteOpen ? <InviteSheet onClose={() => setInviteOpen(false)} /> : null}
         {wheelOpen ? <WheelPage onClose={() => (setWheelOpen(false), void fetchWheel().then((w) => setSpinsWaiting(w.pending), () => undefined))} /> : null}
       </View>
+    );
+  }
+
+  // The board is over but the match is not: the price-guess round replaces the board until the server ends the match.
+  if (view.priceRound) {
+    return (
+      <MatchBackground>
+        <ScrollView contentContainerStyle={styles.screen}>
+          <DuelPriceRound
+            round={view.priceRound}
+            now={now}
+            onGuess={async (rials) => {
+              const ack = await conn.current?.priceGuess(rials);
+              return !ack || ack.ok ? null : (fa.duel.errors[ack.error] ?? fa.duel.errors.generic ?? '');
+            }}
+          />
+        </ScrollView>
+      </MatchBackground>
     );
   }
 

@@ -1,11 +1,13 @@
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { solarMonthOf, toPersianDigits } from '@dozari/shared';
+import type { PriceRoundView } from '@dozari/shared';
 import { Character } from '../components/Character';
 import { GradientFill } from '../components/GradientFill';
 import { Item } from '../components/Item';
 import { Scene } from '../components/Scene';
 import { SlabButton } from '../components/SlabButton';
 import { fa } from '../i18n/fa';
+import { priceText } from '../solo/priceRound';
 import { colors, fonts } from '../theme/colors';
 import type { CharacterId } from '../theme/character';
 import { nativeTopInset } from '../theme/safeArea';
@@ -24,7 +26,7 @@ const LOOK: Record<Outcome, { title: string; sub: string; pose: 'win' | 'sad' | 
 };
 
 /** screen-results of `13 Match Screens`: the hero's pose, a banner, why it ended, the scoreboard, home / play again. */
-export function DuelResult({ outcome, reason, lines, onHome, onAgain, onInvite }: { outcome: Outcome; reason: string; lines: Line[]; onHome: () => void; onAgain?: () => void; /** Opens the invite sheet: the best moment to ask a friend to play is right after a game. */ onInvite?: () => void }) {
+export function DuelResult({ outcome, reason, lines, priceRound, onHome, onAgain, onInvite }: { outcome: Outcome; reason: string; lines: Line[]; /** The finished price-guess round, when the duel had one. */ priceRound?: PriceRoundView; onHome: () => void; onAgain?: () => void; /** Opens the invite sheet: the best moment to ask a friend to play is right after a game. */ onInvite?: () => void }) {
   const look = LOOK[outcome];
   const sorted = [...lines].sort((x, y) => y.points - x.points);
   return (
@@ -61,6 +63,17 @@ export function DuelResult({ outcome, reason, lines, onHome, onAgain, onInvite }
           ))}
         </View>
 
+        {priceRound && priceRound.revealed.length > 0 ? (
+          <View style={styles.priceBox}>
+            <Text style={styles.priceTitle}>{fa.duel.price.resultTitle}</Text>
+            {priceRound.revealed.map((r) => (
+              <Text key={r.index} style={styles.priceLine} numberOfLines={1}>
+                {r.winner === 'you' ? '✔' : r.winner === 'opponent' ? '✘' : '＝'} {r.nameFa} · {fa.duel.price.actual}: {priceText(r.actualRials)}
+              </Text>
+            ))}
+          </View>
+        ) : null}
+
         <View style={styles.spacer} />
         <View style={styles.actions}>
           <SlabButton label={a.home} color={colors.candy.sky} height={58} fontSize={20} onPress={onHome} />
@@ -96,6 +109,9 @@ const styles = StyleSheet.create({
   crown: { width: 22, height: 22 },
   num: { fontFamily: fonts.display, fontSize: 18, color: colors.ink },
   pts: { color: '#7E46D6' },
+  priceBox: { marginTop: 6, padding: 8, borderRadius: 14, backgroundColor: 'rgba(43,18,64,0.7)', gap: 2 },
+  priceTitle: { fontFamily: fonts.display, fontSize: 15, color: colors.candy.yellow, textAlign: 'center' },
+  priceLine: { fontFamily: fonts.bold, fontSize: 12, color: colors.cream, textAlign: TEXT_RIGHT },
   spacer: { flex: 1, minHeight: 12 },
   actions: { flexDirection: ROW, gap: 9 },
 });

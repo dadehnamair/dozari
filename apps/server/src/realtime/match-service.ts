@@ -77,9 +77,9 @@ const defaultSchedule = (ms: number, fn: () => void) => {
 
 /**
  * Live 1v1 matches around the shared reducer (docs/logic/matchmaking.md). In memory, server authoritative; the turn
- * clock is a timer that sends the reducer a `timeout` for the turn it was set for. Not built yet: entry-fee escrow and
- * payouts, the price-guess round, the ready handshake, reconnect grace and bot takeover. Until then an AFK player
- * is ended by the reducer's consecutive-timeout rule.
+ * clock is a timer that sends the reducer a `timeout` for the turn it was set for. A 1v1 may end with the price-guess round (setting
+ * `match.price_round`, docs/logic/price-guess-round.md). Not built yet: the ready handshake, reconnect grace and bot takeover. Until then an
+ * AFK player is ended by the reducer's consecutive-timeout rule (entry-fee stakes are in `duel/stakes.ts`).
  */
 export class MatchService {
   private readonly matches = new Map<string, Active>();

@@ -478,6 +478,23 @@ export const fa = {
     feedback: { correct: 'درست بود!', one_away: 'یکی مانده!', wrong: 'اشتباه بود.', timeout: 'وقتت تمام شد.' } as Record<string, string>,
     back: 'برگشت',
     again: 'دوئل دوباره',
+    /** The price-guess round that follows a 1v1 puzzle (docs/logic/price-guess-round.md). */
+    price: {
+      title: 'دور حدس قیمت',
+      intro: 'پازل تمام شد. حالا قیمت‌ها را حدس بزنید؛ حدس‌ها تا وقتی هر دو نزده‌اید پنهان می‌ماند.',
+      round: (n: number, of: number) => `دور ${toPersianDigits(String(n))} از ${toPersianDigits(String(of))}`,
+      lockedIn: 'حدست ثبت شد. منتظر حریف…',
+      opponentLocked: 'حریف حدسش را زد!',
+      secondsLeft: (s: number) => `${toPersianDigits(String(s))} ثانیه`,
+      yourGuess: 'حدس تو',
+      opponentGuess: 'حدس حریف',
+      actual: 'قیمت واقعی',
+      noGuess: 'حدس نزد',
+      youWon: 'این دور مال تو!',
+      theyWon: 'این دور مال حریف بود',
+      draw: 'مساوی',
+      resultTitle: 'دورهای حدس قیمت',
+    },
     /** Screens of `docs/design/Dozari - 13 Match Screens` (D99). */
     arena: {
       title: 'میدان رقابت',
@@ -524,6 +541,7 @@ export const fa = {
     errors: {
       MAINTENANCE: 'بازی در حال تعمیر است.',
       FEATURE_OFF: 'دوئل زنده فعلاً خاموش است.',
+      NO_PRICE_ROUND: 'دور حدس قیمت تمام شده است.',
       DAILY_CAP: 'به سقف بازی امروزت رسیدی؛ فردا دوباره بیا.',
       INSUFFICIENT_COINS: 'سکه‌ی کافی برای ورودی نداری؛ بازی رایگان امروزت هم تمام شده.',
       ALREADY_IN_MATCH: 'یک بازی در جریان داری.',

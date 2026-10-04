@@ -99,3 +99,19 @@ see updated flow in that file / the result-screen section of `docs/PLAN.md`.
   the simultaneous reveal). A missing guess is the worst possible; two missing is a draw.
 - Not here yet: the coin wager (LedgerService), persistence to `match_events`, the locked-out-side match rule
   (belongs to the match reducer, Phase 4).
+
+## As built in the live 1v1 duel (D196)
+
+- Admin setting `match.price_round` (default **off**; read when a match starts, so a running duel keeps its rules). 1v1 only: a 2v2 and any
+  forfeit/abandon end with the puzzle as before.
+- After the board is finished by play (`solved` / `locked_out`), `MatchService` draws the 4 rounds from the board just played (`selectRounds`, prices
+  from `PuzzleSource.pricesFor`; no usable price = no round, the match just ends) and runs them blind and simultaneously: socket `price:submit
+  {guessRials}` (decimal string), one clock per round (`game.turn_seconds`) after which unanswered sides get the worst guess. While it runs the
+  snapshot says `status: 'playing'`, `result: null` and carries `priceRound` (current item, who locked in, the rounds revealed so far — the real
+  price and the opponent's guess only after the reveal); the `finished` event is held back.
+- The result then comes from shared `resolveWinner` / `finalScores`: **the puzzle winner stands**, a puzzle tie falls through to rounds won, a
+  locked-out side cannot win off them but gets `PRICE_GUESS_LOSER_BONUS_PER_ROUND` per round won. `match:ended` carries `priceRound` (all guesses
+  and prices) for the result screen. Leaving during the rounds ends the match with the puzzle result.
+- Bots guess near the real price by skill (`chooseBotPriceGuess`; the price comes from `MatchService.priceAnswerFor`, server side only).
+- App: `DuelPriceRound` replaces the board while `view.priceRound` is set; `DuelResult` lists the four rounds.
+- Still to do: the coin wager and `bot_match_subsidy`, persistence to `match_events`, 2v2 (captain pools one guess).
