@@ -1157,6 +1157,8 @@ export const fa = {
     dailyTitle: 'پازل روزانه',
     subtitle: 'شونزده کالا، چهار دسته. چهارتا چهارتا پیداشون کن!',
     lives: 'فرصت‌ها',
+    combo: 'کمبو',
+    lastLife: 'آخرین فرصت!',
     coins: 'سکه',
     shuffle: 'بُر بزن',
     deselect: 'پاک کن',

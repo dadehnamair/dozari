@@ -6,6 +6,10 @@ export const BOARD_SIZE = GROUP_COUNT * GROUP_SIZE;
 
 /** Solo: the 4th wrong guess ends the game and reveals the remaining groups. */
 export const SOLO_MAX_MISTAKES = 4;
+/** Solo combo (D178): a group solved within this many seconds of the previous one keeps the combo going; the timer ring shows what is left. Cosmetic only (no points, no coins). */
+export const COMBO_WINDOW_SECONDS = 25;
+/** Solo last chance (D178): the heartbeat on the final life repeats at this interval. */
+export const LAST_LIFE_HEARTBEAT_MS = 1100;
 /** A product needs at least this many approved price points (distinct dates) to show a price range; the admin flags fewer. */
 export const MIN_PRICE_POINTS_PER_PRODUCT = 3;
 

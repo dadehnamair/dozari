@@ -33,6 +33,14 @@ set (any order) is `duplicate` and free; anything that is not 4 distinct cards o
 `won`; at the 4th mistake the rest are revealed and the game is `lost`. The initial board never lays
 out a row as a whole group. The reducer needs the solution, so it runs server-side (rule 4).
 
+**Excitement layer (D178, client-only, cosmetic: no points, no coins).** A *combo* is groups solved back to back,
+each within *COMBO_WINDOW_SECONDS* of the previous one (pure `packages/shared/src/game/combo.ts`); from the second
+group on the top bar shows «×N» with a ring that empties over the window, and a rising sound plays. A wrong or
+one-away guess, or an expired window, ends it; a repeated set changes nothing. «یکی مونده!» (one away) pops as a
+pill over the board with the existing tone. On the last life (one mistake left) the life dot beats, the label turns
+into «آخرین فرصت!» and a soft lub-dub plays / vibrates every *LAST_LIFE_HEARTBEAT_MS*. Reduced motion keeps the
+text and sound but drops the animation.
+
 Served by `apps/server/src/solo/` (practice, no coins): `POST /solo/start` (503 `no_puzzles` when no
 `approved` puzzle exists), `GET /solo/:id`, `POST /solo/:id/guess {productIds[4]}`,
 `POST /solo/:id/shuffle`. Sessions live in memory (2 h idle TTL) until solo results are persisted.

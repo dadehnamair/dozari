@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { solarMonthOf } from '@dozari/shared';
+import { isLastLife, solarMonthOf } from '@dozari/shared';
 import type { HintPayload, SoloView } from '@dozari/shared';
 import { Board } from '../components/Board';
 import { ChartPanel } from '../components/ChartPanel';
@@ -13,6 +13,10 @@ import { Icon } from '../components/Icon';
 import { MatchBackground } from '../game/MatchBackground';
 import { GameTopBar } from '../game/GameTopBar';
 import { Lives } from '../game/Lives';
+import { ComboRing } from '../game/ComboRing';
+import { NearMissPill } from '../game/NearMissPill';
+import { useCombo } from '../game/useCombo';
+import { useHeartbeat } from '../game/useHeartbeat';
 import { Rain } from '../components/Rain';
 import { PriceRoundPanel } from '../components/PriceRoundPanel';
 import { useConfirm } from '../components/useConfirm';
@@ -50,6 +54,9 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
   const [hintOpen, setHintOpen] = useState(false);
   const [given, setGiven] = useState<HintPayload[]>([]);
   const feedbackTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const combo = useCombo();
+  const lastLife = phase.kind === 'ready' && isLastLife(phase.view.mistakes, phase.view.maxMistakes, phase.view.status === 'playing');
+  useHeartbeat(lastLife);
 
   const adopt = useCallback((view: SoloView) => {
     setNames((prev) => ({ ...prev, ...Object.fromEntries(view.cards.map((c) => [c.id, c.nameFa])) }));
@@ -76,13 +83,14 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
     setPriceDone(false);
     setGiven([]);
     setHintOpen(false);
+    combo.reset();
     flash(null);
     try {
       adopt(await (daily ? beginDaily() : beginSolo()));
     } catch (err) {
       fail(err);
     }
-  }, [adopt, daily, fail, flash]);
+  }, [adopt, combo.reset, daily, fail, flash]);
 
   useEffect(() => {
     void begin();
@@ -112,6 +120,7 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
       flash(fb);
       if (fb === 'correct' || fb === 'oneAway' || fb === 'wrong') playSfx(fb);
       if (fb === 'wrong') buzz(60);
+      if (combo.record(result.outcome) >= 2) playSfx('combo');
       if (result.view.status === 'won') playSfx('win');
       else if (result.view.status === 'lost') playSfx('lose');
       adopt(result.view);
@@ -174,6 +183,7 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
     <ScrollView contentContainerStyle={styles.screen}>
       <View style={styles.column}>
         <GameTopBar title={daily ? fa.solo.dailyTitle : fa.solo.title} backLabel={fa.solo.back} onBack={() => ask({ title: daily ? fa.confirm.leaveDaily.title : fa.confirm.leaveSolo.title, message: daily ? fa.confirm.leaveDaily.message : fa.confirm.leaveSolo.message, confirmLabel: fa.confirm.leaveSolo.yes, onConfirm: onBack })}>
+          <ComboRing streak={combo.streak} left={combo.left} showLabel={false} />
           {hintsEnabled && playing ? (
             <Pressable accessibilityRole="button" accessibilityLabel={fa.hints.open} onPress={() => setHintOpen(true)} disabled={busy}>
               {({ pressed }) => (
@@ -195,12 +205,15 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
           </View>
         ) : null}
 
-        <Board solved={view.solved} cards={view.cards} names={names} selected={selected} onToggle={(id) => (playSfx('tap'), setSelected((s) => toggleSelection(s, id)))} disabled={!playing || busy} hinted={hintedCardIds(given)} />
+        <View>
+          <Board solved={view.solved} cards={view.cards} names={names} selected={selected} onToggle={(id) => (playSfx('tap'), setSelected((s) => toggleSelection(s, id)))} disabled={!playing || busy} hinted={hintedCardIds(given)} />
+          {feedback === 'oneAway' ? <View style={styles.nearMiss} pointerEvents="none"><NearMissPill /></View> : null}
+        </View>
         {hintedCardIds(given).length > 0 && playing ? <Text style={styles.hintLine}>{fa.hints.framed}</Text> : null}
 
         {playing ? (
           <>
-            <Lives mistakes={view.mistakes} max={view.maxMistakes} />
+            <Lives mistakes={view.mistakes} max={view.maxMistakes} last={lastLife} />
             <View style={styles.actions}>
               <SlabButton label={fa.solo.shuffle} color={colors.candy.sky} height={58} fontSize={20} onPress={() => void shuffle()} disabled={busy} />
               <SlabButton label={fa.solo.deselect} color={colors.candy.orange} height={58} fontSize={20} onPress={() => setSelected([])} disabled={selected.length === 0} />
@@ -235,6 +248,7 @@ const styles = StyleSheet.create({
   stage: { flex: 1, minHeight: 0, borderRadius: 22, borderWidth: 3, borderColor: colors.ink, backgroundColor: 'rgba(26,8,44,0.55)', paddingHorizontal: 12, paddingBottom: 12, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   endActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginTop: 8 },
   detail: { fontFamily: 'Vazirmatn_400Regular', fontSize: 12, color: colors.cream, opacity: 0.7, textAlign: 'center', writingDirection: 'ltr' },
+  nearMiss: { position: 'absolute', top: '38%', left: 0, right: 0, alignItems: 'center' },
   hintLine: { fontFamily: 'Vazirmatn_700Bold', fontSize: 13, color: colors.candy.yellow, textAlign: 'center' },
   msg: { fontFamily: 'Vazirmatn_700Bold', fontSize: 18, color: colors.cream, textAlign: 'center' },
 });
