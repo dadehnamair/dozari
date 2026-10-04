@@ -576,3 +576,7 @@ The owner's logo animation (`docs/design/Dozari - 23 Logo Animation.dc.html`, `L
 ## D192 — Fitting room list is a recycled FlashList (2026-10-04)
 
 Owner: scrolling the fitting room was not smooth. All cards (each with several SVGs and shadows) were built at once inside a `ScrollView`. The list is now a `@shopify/flash-list` (2.3.3, JS-only, no Google deps) of flat rows — a header row per pack, then the cards two to a row — so only the visible cards exist and rows are recycled. Pack chips jump with `scrollToIndex`. The rounded frame around each pack is dropped (a flat list cannot wrap a group). Not measured on a phone.
+
+## D193 — Animated logo without the shine; forced LTR box (2026-10-04)
+
+Owner: on the phone the logo did not animate and sat to the left. Likely cause: the shine animated the SVG `LinearGradient` through `setNativeProps`, which has no native view in the new architecture and breaks the JS-driven frame updates. The shine is removed (the coin drop, pop, sparks and breathing stay, all on the native driver), and the logo box is `alignSelf: 'center'` with `direction: 'ltr'` so the forced RTL cannot move its parts. Not seen on a phone yet.
