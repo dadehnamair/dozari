@@ -475,7 +475,7 @@ export const fa = {
     lost: 'باختی.',
     draw: 'مساوی شد.',
     reasons: { solved: 'همه‌ی گروه‌ها پیدا شد.', locked_out: 'یکی از بازیکن‌ها از دور خارج شد.', forfeit: 'حریف تسلیم شد.', abandon: 'حریف بازی را رها کرد.' } as Record<string, string>,
-    feedback: { correct: 'درست بود!', one_away: 'یکی مانده!', wrong: 'اشتباه بود.', timeout: 'وقتت تمام شد.' } as Record<string, string>,
+    feedback: { correct: 'درست بود!', one_away: '۳ تا از ۴ تا درسته؛ یکی‌شون اشتباهه', wrong: 'اشتباه بود.', timeout: 'وقتت تمام شد.' } as Record<string, string>,
     back: 'برگشت',
     again: 'دوئل دوباره',
     /** The price-guess round that follows a 1v1 puzzle (docs/logic/price-guess-round.md). */
@@ -1232,7 +1232,7 @@ export const fa = {
     revealed: 'نمایش داده شد',
     feedback: {
       correct: 'درسته!',
-      oneAway: 'یکی مونده!',
+      oneAway: '۳ تا از ۴ تا درسته؛ یکی‌شون اشتباهه',
       wrong: 'نه، اینطور نیست',
       duplicate: 'این رو قبلاً امتحان کردی',
     },

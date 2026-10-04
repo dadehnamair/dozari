@@ -16,7 +16,7 @@ All values in *italics* are config in `packages/shared/src/config/game.ts`.
 - Board shows 16 items. A player selects exactly 4 and submits.
 - Result of a submission:
   - **correct** → that group is solved, revealed (title + explanation + color), items leave the board.
-  - **one away** → exactly 3 of the 4 belong to one unsolved group. Feedback «یکی مونده!» shown.
+  - **one away** → exactly 3 of the 4 belong to one unsolved group. Feedback «۳ تا از ۴ تا درسته؛ یکی‌شون اشتباهه» shown (clearer than «یکی مونده»).
   - **wrong** → otherwise.
 - Submitting an identical set twice is rejected client- and server-side (no penalty, "already tried").
 - When 3 groups are solved, the last group is auto-revealed (no one scores it).
@@ -41,7 +41,7 @@ out a row as a whole group. The reducer needs the solution, so it runs server-si
 **Excitement layer (D178, client-only, cosmetic: no points, no coins).** A *combo* is groups solved back to back,
 each within *COMBO_WINDOW_SECONDS* of the previous one (pure `packages/shared/src/game/combo.ts`); from the second
 group on the top bar shows «×N» with a ring that empties over the window, and a rising sound plays. A wrong or
-one-away guess, or an expired window, ends it; a repeated set changes nothing. «یکی مونده!» (one away) pops as a
+one-away guess, or an expired window, ends it; a repeated set changes nothing. «۳ تا از ۴ تا درسته؛ یکی‌شون اشتباهه» (one away) pops as a
 pill over the board with the existing tone. On the last life (one mistake left) the life dot beats, the label turns
 into «آخرین فرصت!» and a soft lub-dub plays / vibrates every *LAST_LIFE_HEARTBEAT_MS*. Reduced motion keeps the
 text and sound but drops the animation.
