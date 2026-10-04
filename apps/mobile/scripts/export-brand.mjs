@@ -18,6 +18,7 @@ const OUT = [
   ['brand-icon-female', 'assets/icon-female.png', false],
   ['brand-android-fg-female', 'assets/adaptive-icon-female.png', true],
   ['brand-android-bg', 'assets/adaptive-background.png', false],
+  ['brand-android-bg-female', 'assets/adaptive-background-female.png', false],
   ['brand-mono', 'assets/adaptive-monochrome.png', true],
   ['brand-notification', 'assets/notification-icon.png', true],
   ['brand-favicon', 'assets/favicon.png', true],
