@@ -552,3 +552,7 @@ Owner: age was not handled in the profile. The birth date, the age tick and the 
 
 Also in this commit: the new seed file `products-2026-10-04-01.json` made `db` tests fail (nan-sangak 1359 = 26 rials, then 15 rials in 1364: a 42% nominal drop, with the 1359 note saying «بر حسب وزن»). That point is set to `pending` with a note until someone checks the unit; the rest of the file is untouched.
 
+## D187 — Fitting room rebuilt after the design (2026-10-04)
+
+Owner: the fitting room was not like the design and the level text («از سطح ۲») sat outside the card. Rebuilt (`apps/mobile/src/wardrobe/`: `FittingRoom`, `WardrobeStage`, `PackCard`, `RadialFill`, `rarity.ts`) as described in `docs/logic/app-screens.md` §Fitting room: sunburst stage, worn chips, a chip per pack, pack sections with rarity-tinted cards, price buttons with coin/gem icons, the level as a chip inside the picture. Checked in headless Chromium with react-native-web at 390×780 and 360×640 (mock shop data; not on a phone). **Proposed defaults:** rarity is derived from the price (no DB column yet); the bundle buttons («پک ۴۰٪ ارزان‌تر») are **not built** — they need a decision on the bundle price rule and a new ledger reason; the model switch is dropped. Packs the design has and the app has no slot for (crown, beard & moustache, skin tone, badge) are still open.
+
