@@ -28,6 +28,6 @@ They reach `apps/landing` through `site.seo` of `GET /public/landing`. Links and
 
 The owner's Laravel SEO/GEO spreadsheet (page copy, keywords, schema choices) — it will refine copy and may add pages; DNS and the reverse-proxy forward for `mrdozari.ir` (`docs/deploy.md`); the values of the fields above (a raster `og:image`, the font file URL, the verification codes) — all are set in the admin panel, no code change.
 
-Cast members that have an `image` (admin-set) show it as a round photo on the home page and a card photo on `/cast`; without one the initial letter is used.
+Characters and icons: the designed SVG cast (`docs/design/Character.dc.html`, `Item.dc.html`) is rendered once into `apps/landing/assets/{characters,items}` and served at `/characters/*` and `/items/*`. A cast row's `image` is a character key (`khale`) or a picture URL; otherwise the character is paired by name. Posts without a cover get a character picked from the slug. The download page draws a real QR code (`qrcode-generator`) of `/download`; the contact form opens the visitor's mail program (`mailto:`) because the landing has no database or mail service; stores without a real link show «به‌زودی».
 
 Fonts are self-hosted from `apps/landing/assets/fonts` (Lalezar for display/headings per D58, Vazirmatn for text; both OFL, licences alongside) and served at `/fonts/*`; no external font requests (rule 8).

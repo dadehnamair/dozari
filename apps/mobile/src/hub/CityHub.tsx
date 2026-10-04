@@ -36,11 +36,12 @@ export function CityHub({ onClose, onEnter, features, dailyReady }: { onClose: (
   useEffect(() => {
     if (!hasSel) return;
     if (reduce) return void slide.setValue(1);
-    Animated.timing(slide, { toValue: 1, duration: 320, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
+    // A soft spring (slight settle, no bounce past the edge) feels smoother than a fixed-duration ease.
+    Animated.spring(slide, { toValue: 1, damping: 22, stiffness: 150, mass: 1, overshootClamping: true, useNativeDriver: true }).start();
   }, [hasSel, reduce, slide]);
   const closeSheet = useCallback(() => {
     if (reduce) return setSel(null);
-    Animated.timing(slide, { toValue: 0, duration: 220, easing: Easing.in(Easing.cubic), useNativeDriver: true }).start(({ finished }) => finished && setSel(null));
+    Animated.timing(slide, { toValue: 0, duration: 280, easing: Easing.bezier(0.4, 0, 0.2, 1), useNativeDriver: true }).start(({ finished }) => finished && setSel(null));
   }, [reduce, slide]);
   const animated = !reduce; // the cloud drifts and the palms sway unless «حرکت کمتر» is on
   // The whole town fits the screen (nothing scrolls): scale by whichever of width / height is tighter.

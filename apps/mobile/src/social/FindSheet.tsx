@@ -6,7 +6,8 @@ import { CandyButton } from '../components/CandyButton';
 import { fa } from '../i18n/fa';
 import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
-import { fetchMyFind, saveFindable, searchPlayer } from './api';
+import { fetchMyFind, findContacts, saveFindable, searchPlayer } from './api';
+import { readContacts } from './readContacts';
 import { avatarOf } from './avatarOf';
 import { PlayerSheet } from './PlayerSheet';
 import { useHardwareBack } from '../nav/useHardwareBack';
@@ -22,6 +23,7 @@ export function FindSheet({ onClose }: { onClose: () => void }) {
   const [found, setFound] = useState<FoundPlayer | null | undefined>(undefined);
   const [open, setOpen] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  const [fromContacts, setFromContacts] = useState<FoundPlayer[] | null>(null);
 
   useEffect(() => {
     fetchMyFind().then(setMe, () => setNote(fa.find.error));
@@ -34,6 +36,15 @@ export function FindSheet({ onClose }: { onClose: () => void }) {
     );
   const share = () => {
     if (me) void Share.share({ message: fa.find.shareMessage(me.shareUrl) }).catch(() => undefined);
+  };
+  const scanContacts = async () => {
+    const read = await readContacts().catch(() => ({ ok: false as const, reason: 'denied' as const }));
+    if (!read.ok) return setNote(read.reason === 'unsupported' ? fa.find.contactsUnsupported : fa.find.contactsDenied);
+    if (read.phones.length === 0) return (setFromContacts([]), setNote(null));
+    findContacts(read.phones).then(
+      (players) => (setFromContacts(players), setNote(null)),
+      (e) => setNote(e instanceof ApiError && e.status === 429 ? fa.find.rateLimited : fa.find.error),
+    );
   };
   const toggle = () => me && saveFindable(!me.findableByPhone).then(setMe, () => setNote(fa.find.error));
 
@@ -61,6 +72,16 @@ export function FindSheet({ onClose }: { onClose: () => void }) {
           <TextInput value={q} onChangeText={setQ} autoCapitalize="characters" autoCorrect={false} maxLength={40} placeholder={fa.find.searchPlaceholder} style={styles.input} accessibilityLabel={fa.find.search} />
           <Pressable onPress={() => void search()} style={[styles.pill, styles.on]} accessibilityRole="button"><Text style={styles.pillText}>{fa.find.search}</Text></Pressable>
         </View>
+        <CandyButton label={fa.find.fromContacts} color={colors.candy.grape} onPress={() => void scanContacts()} />
+        <Text style={styles.hint}>{fa.find.contactsHint}</Text>
+        {fromContacts && fromContacts.length === 0 ? <Text style={styles.hint}>{fa.find.contactsNone}</Text> : null}
+        {fromContacts && fromContacts.length > 0 ? <Text style={styles.hint}>{fa.find.contactsFound(fromContacts.length)}</Text> : null}
+        {(fromContacts ?? []).slice(0, 8).map((p) => (
+          <Pressable key={p.id} onPress={() => setOpen(p.id)} style={styles.person} accessibilityRole="button">
+            <Avatar avatar={avatarOf(p.avatarKey)} size={40} />
+            <Text style={styles.personName}>{p.nickname}</Text>
+          </Pressable>
+        ))}
         {found === null ? <Text style={styles.hint}>{fa.find.notFound}</Text> : null}
         {found ? (
           <Pressable onPress={() => setOpen(found.id)} style={styles.person} accessibilityRole="button">

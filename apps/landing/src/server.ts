@@ -53,14 +53,20 @@ export function buildLanding(opts: LandingOptions): FastifyInstance {
     return send(reply, 503, html, 'no-store');
   });
 
-  // Self-hosted fonts (rule 8): a fixed allow-list, so the name in the URL can never reach another file.
-  const FONTS = new Set(['Lalezar-Regular', 'Vazirmatn-400', 'Vazirmatn-800', 'Vazirmatn-900']);
-  app.get('/fonts/:file', async (req, reply) => {
-    const name = (req.params as { file: string }).file.replace(/\.woff2$/, '');
-    if (!FONTS.has(name)) return reply.code(404).send('not found');
-    const buf = await readFile(new URL(`../assets/fonts/${name}.woff2`, import.meta.url));
-    return reply.header('content-type', 'font/woff2').header('cache-control', 'public, max-age=31536000, immutable').send(buf);
-  });
+  // Self-hosted fonts, characters and item icons (rule 8): the name must match a strict pattern, so it can never reach another file.
+  const asset = (dir: string, ext: string, type: string, pattern: RegExp) => async (req: { params: unknown }, reply: FastifyReply) => {
+    const name = (req.params as { file: string }).file.replace(new RegExp(`\\.${ext}$`), '');
+    if (!pattern.test(name)) return reply.code(404).send('not found');
+    try {
+      const buf = await readFile(new URL(`../assets/${dir}/${name}.${ext}`, import.meta.url));
+      return reply.header('content-type', type).header('cache-control', 'public, max-age=31536000, immutable').send(buf);
+    } catch {
+      return reply.code(404).send('not found');
+    }
+  };
+  app.get('/fonts/:file', asset('fonts', 'woff2', 'font/woff2', /^(Lalezar-Regular|Vazirmatn-(400|800|900))$/));
+  app.get('/characters/:file', asset('characters', 'svg', 'image/svg+xml', /^[A-Za-z]+-[A-Za-z-]+$/));
+  app.get('/items/:file', asset('items', 'svg', 'image/svg+xml', /^[A-Za-z]+$/));
 
   app.get('/health', async () => ({ ok: true }));
 
@@ -94,7 +100,10 @@ export function buildLanding(opts: LandingOptions): FastifyInstance {
     return send(reply, 200, castPage(siteOf(data, opts.siteUrl), data.cast));
   });
 
-  app.get('/about', async (_req, reply) => send(reply, 200, aboutPage(siteOf(await api.landing(), opts.siteUrl))));
+  app.get('/about', async (_req, reply) => {
+    const data = await api.landing();
+    return send(reply, 200, aboutPage(siteOf(data, opts.siteUrl), data.cast));
+  });
   app.get('/download', async (_req, reply) => send(reply, 200, downloadPage(siteOf(await api.landing(), opts.siteUrl))));
   app.get('/contact', async (_req, reply) => {
     const data = await api.landing();

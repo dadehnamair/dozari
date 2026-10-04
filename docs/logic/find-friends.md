@@ -14,8 +14,7 @@ minute per player.
 Search by phone and the address-book lookup find only players whose number is **verified** (D81) and who allow it
 (`users.findable_by_phone`, default **on**, a switch in «پیدا کردن دوست»; proposed default, owner may flip it). The number is never
 returned. A hidden or unknown number gives the same empty answer. `POST /friends/find-contacts` takes up to 500 numbers, normalises them
-(Iranian mobiles only), returns the matching players; 6 uploads per hour per player. The app side of reading the address book needs the
-native contacts permission (a module not added yet): the server API is ready, the screen is the follow-up.
+(Iranian mobiles only), returns the matching players; 6 uploads per hour per player. The app reads the address book in `FindSheet` («پیدا کردن از مخاطبین»): native through `expo-contacts` (permission text in `app.json`, needs a new native build), web through the Contact Picker API (Android Chrome; the player ticks the people; other browsers get a «not supported» note). Only Iranian mobiles (`09xxxxxxxxx`, `+98`, Persian digits handled) leave the phone, deduplicated and capped at 500 (`social/contactNumbers.ts`); nothing is stored on the device. The first 8 matches are listed and open the player sheet.
 
 ## Invite link
 

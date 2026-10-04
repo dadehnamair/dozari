@@ -588,3 +588,7 @@ Owner: the building drawer of the city hub appeared at once. It now rises from t
 ## D195 — Hub drawer is a full bordered card; animated logo has pixel sizes (2026-10-04)
 
 Owner: the hub drawer had only a purple border on top (a top-only border with rounded corners draws as a tapering crescent on Android), and the splash logo sat a little left of the centre. The drawer is now a floating card (10 px from the sides, 12 px from the bottom) with a 4 px ink border all round, a hard shadow and fully rounded corners. The animated logo's SVG gets the box's pixel width / height instead of `100%`, as the static wordmark has, so its viewBox is centred the same way. Not seen on a phone yet.
+
+- **D196 — Hub drawer motion is a spring.** Opening uses `Animated.spring` (damping 22, stiffness 150, clamped, native driver) instead of a 320 ms cubic ease; closing is a 280 ms Material standard bezier. Smoother start/stop, same native-driver cost.
+
+- **D197 — Animated logo on Home, centred as a group.** The Home screen uses `AnimatedLogo` (as Splash and Login do) instead of the static `Wordmark`. Inside the animated logo the lettering and the coin are shifted right together (~0.04 × width) so the coin-plus-lettering group, not the lettering alone, sits at the centre of the box.

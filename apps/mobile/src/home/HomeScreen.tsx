@@ -37,7 +37,7 @@ import { shareTable } from '../tables/api';
 import { TableSheet } from '../tables/TableSheet';
 import { TournamentSheet } from '../tournament/TournamentSheet';
 import { SlabButton } from '../components/SlabButton';
-import { Wordmark } from '../components/Wordmark';
+import { AnimatedLogo } from '../components/AnimatedLogo';
 import { useDailyReward } from '../daily/useDailyReward';
 import { solarMonthOf, toPersianDigits } from '@dozari/shared';
 import { ProvinceBadge } from '../components/ProvinceBadge';
@@ -188,7 +188,7 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
         <View style={styles.middle}>
           <View style={[styles.column, compact ? styles.columnCompact : null]}>{right.map(({ key, ...t }) => <HubTile key={key} {...t} />)}</View>
           <View style={styles.center}>
-            <Wordmark width={200} />
+            <AnimatedLogo width={200} />
             <Pressable onPress={dailyOpenForPlay ? onDaily : undefined} disabled={!dailyOpenForPlay} accessibilityRole={dailyOpenForPlay ? 'button' : 'text'}>
               <Text style={styles.bubble} numberOfLines={2}>{bubble}</Text>
             </Pressable>

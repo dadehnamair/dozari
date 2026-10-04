@@ -262,7 +262,7 @@ describe('design pages: about, download, contact', () => {
   it('contact lists the FAQ with FAQPage markup', async () => {
     const html = (await buildLanding({ api: fakeApi(), siteUrl: 'https://mrdozari.ir' }).inject({ method: 'GET', url: '/contact' })).body;
     expect(html).toContain('FAQPage');
-    expect(html).toContain('<details class="faq">');
+    expect(html).toContain('<details class="faq"');
   });
 });
 
@@ -277,5 +277,29 @@ describe('self-hosted fonts', () => {
     const home = await app.inject({ method: 'GET', url: '/' });
     expect(home.body).toContain('/fonts/Lalezar-Regular.woff2');
     expect(home.body).not.toContain('fonts.googleapis.com');
+  });
+
+  it('serves the designed characters and item icons, and nothing else', async () => {
+    const app = boot();
+    const ch = await app.inject({ method: 'GET', url: '/characters/dozari-cheer-anim.svg' });
+    expect(ch.statusCode).toBe(200);
+    expect(ch.headers['content-type']).toContain('image/svg+xml');
+    expect(ch.body).toContain('@keyframes dzc-bob');
+    expect((await app.inject({ method: 'GET', url: '/items/coin.svg' })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'GET', url: '/characters/nobody-idle.svg' })).statusCode).toBe(404);
+    expect((await app.inject({ method: 'GET', url: '/characters/..%2F..%2Fserver.svg' })).statusCode).toBe(404);
+  });
+
+  it('draws the cast on the home page and a QR code with a mail form on the pages that need them', async () => {
+    const app = boot();
+    const home = (await app.inject({ method: 'GET', url: '/' })).body;
+    expect(home).toContain('/characters/dozari-cheer-anim.svg');
+    expect(home).toContain('-idle.svg');
+    const dl = (await app.inject({ method: 'GET', url: '/download' })).body;
+    expect(dl).toContain('<svg version="1.1"');
+    const withMail: LandingData = { ...DATA, site: { ...DATA.site, contactEmail: 'hi@mrdozari.ir' } };
+    const mailApp = buildLanding({ api: fakeApi({}, [POST], {}, withMail), siteUrl: 'https://mrdozari.ir' });
+    expect((await mailApp.inject({ method: 'GET', url: '/contact' })).body).toContain('action="mailto:hi@mrdozari.ir"');
+    expect((await app.inject({ method: 'GET', url: '/contact' })).body).not.toContain('action="mailto:');
   });
 });
