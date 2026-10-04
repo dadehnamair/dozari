@@ -66,6 +66,29 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
     setPhase({ kind: 'ready', view });
   }, []);
 
+  const alive = useRef(true);
+  useEffect(() => () => void (alive.current = false), []);
+  /** The last four cards: instead of jumping to the result, they light up one by one, then the final row opens (reduced motion skips this). */
+  const playFinale = async (prev: SoloView, final: SoloView, picked: readonly string[]) => {
+    const pause = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+    const rest = prev.cards.filter((c) => !picked.includes(c.id));
+    adopt({ ...final, status: 'playing', solved: final.solved.slice(0, 3), cards: rest });
+    setSelected([]);
+    await pause(450);
+    for (const c of rest) {
+      if (!alive.current) return;
+      setSelected((cur) => [...cur, c.id]);
+      playSfx('tap');
+      await pause(280);
+    }
+    await pause(420);
+    if (!alive.current) return;
+    playSfx('correct');
+    adopt({ ...final, status: 'playing', cards: [] });
+    setSelected([]);
+    await pause(1500);
+  };
+
   const flash = useCallback((key: FeedbackKey | null) => {
     clearTimeout(feedbackTimer.current);
     setFeedback(key);
@@ -124,8 +147,13 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
       if (fb === 'correct' || fb === 'oneAway' || fb === 'wrong') playSfx(fb);
       if (fb === 'wrong') buzz(60);
       if (combo.record(result.outcome) >= 2) playSfx('combo');
-      if (result.view.status === 'won') playSfx('win');
+      const finale = result.outcome === 'correct' && view.solved.length === 2 && result.view.solved.length === 4 && !prefs.reduceMotion;
+      if (result.view.status === 'won' && !finale) playSfx('win');
       else if (result.view.status === 'lost') playSfx('lose');
+      if (finale) {
+        await playFinale(view, result.view, selected);
+        playSfx('win');
+      }
       adopt(result.view);
       if (result.outcome === 'correct' || result.view.status !== 'playing') setSelected([]);
       if (result.view.status !== 'playing') void recordGameFinished();
