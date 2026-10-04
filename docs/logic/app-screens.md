@@ -47,7 +47,7 @@ Laid out as **screen-home** of `docs/design/Dozari - 01 Screens.dc.html` (D99, r
   it can be played, otherwise the month's mood line.
 - **Corner tiles**, one column per side (54px candy squares with a label; a tile shows only when its
   feature flag is on). Right: daily reward (badge when claimable), private tables, tournaments, price
-  lookup. Left: settings/profile, messages (unread badge), city chat, shop, Bale.
+  lookup. Left: settings/profile, messages (unread badge), city chat, shop, fitting room, Bale.
 - The **hero** character floating over the bazaar background. It is also the **guide** (owner note 4):
   tapping it cycles short tips (`fa.home.guide.tips`, one per menu; tips of switched-off features are
   skipped) shown in a `GuideBubble` (mascot + speech bubble) above it; the tip fades after 12 s.
@@ -181,11 +181,22 @@ story, prizes, rules, results and players; a large «ثبت‌نام» / «ان�
 ## Shop (D105)
 
 screen-shop of `17 Chat Shop Unlocks`: the hujre scene under a dark veil, the yellow «حجرهٔ دوزاری»
-plate with the coin count, six tabs (سکه، جم، کمکی، لباس، آواتار، ویژه) and a two-column grid of goods.
+plate with the coin count, four tabs (سکه، جم، کمکی، ویژه) and a two-column grid of goods. Character items (hair, hats, glasses, clothes) are not sold here: see *Fitting room* below.
 Only «کمکی» has goods today (hint tokens, bought with coins; level gate and daily limit show on the
 card, a locked card is veiled with a padlock); the other tabs are dimmed and say «به‌زودی» — coin
-packs wait on the payment decision, gems/outfits/avatars/offers on their own features. A purchase
+packs wait on the payment decision, gems/offers on their own features. A purchase
 ends in the «مال خودت شد!» card.
+
+## Fitting room (D179)
+
+«اتاق پرو», a left-column Home tile (shirt icon, shown with the shop flag), after the idea of `21 Cosmetic Packs`:
+the player's own character (`heroFor(gender)`) on a warm stage, the coin / gem counts, a row of what is worn
+(tap a chip to take it off in the preview, «همه را دربیار» for the real thing), one tab per slot (کلاه، مو، عینک،
+لباس، زیورآلات) and a shelf of cards. Tapping a card **tries it on for free** (tapping again bares the slot; «برگردان»
+drops all tries). The bottom button then does what the item allows: «بپوش» / «دربیار» for an owned item, the price
+(coins or gems) to buy-and-wear, «رایگان · بپوش» for a 0 price, the toman price (Bale invoice) when real money is on,
+or the guide's reason when it is locked (level, not enough coins). Prices, levels and currencies are set per item in the
+admin panel. An empty slot says it is coming. The Home hero wears what is equipped (`GET /me/cosmetics`).
 
 ## City page (D101)
 

@@ -10,14 +10,14 @@ import { Scene } from '../components/Scene';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { ApiError } from '../net/http';
-import { buyItem, equipItem, fetchShop, payWithMoney } from './api';
+import { buyItem, fetchShop, payWithMoney } from './api';
 import { pageTop } from '../theme/safeArea';
 import { useHardwareBack } from '../nav/useHardwareBack';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const n = (v: number) => toPersianDigits(String(v));
 
-/** Tabs of screen-shop (design 17). Only «کمکی» (hint tokens) has goods today; the rest open with later features. */
+/** Tabs of screen-shop (design 17). Only «کمکی» (hint tokens, wheel spins) has goods today; the rest open with later features. The character's items are in the fitting room. */
 const CARD_H = 190;
 const CARD_H_TIGHT = 140;
 const CARD_GAP = 10;
@@ -27,8 +27,6 @@ const TABS = [
   { key: 'coins', icon: 'coinStack' },
   { key: 'gems', icon: 'gem' },
   { key: 'boost', icon: 'magnifier' },
-  { key: 'outfit', icon: 'medal' },
-  { key: 'avatar', icon: 'crown' },
   { key: 'offer', icon: 'gift' },
 ] as const;
 type TabKey = (typeof TABS)[number]['key'];
@@ -66,8 +64,9 @@ export function ShopSheet({ onClose, onBalance, realMoney = false }: { onClose: 
   const cardH = (realMoney ? 36 : 0) + (tight ? CARD_H_TIGHT : CARD_H);
   const rows = Math.max(1, Math.floor((boxH - PAGER_H + CARD_GAP) / (cardH + CARD_GAP)));
   const perPage = rows * 2;
-  const shown = tab === 'boost' || tab === 'outfit';
-  const items = tab === 'boost' ? (shop?.items ?? []).filter((i) => i.effect !== 'cosmetic') : tab === 'outfit' ? (shop?.items ?? []).filter((i) => i.effect === 'cosmetic') : [];
+  const shown = tab === 'boost';
+  // Hair, hats, glasses and clothes are not sold here: they live in the fitting room (D179).
+  const items = tab === 'boost' ? (shop?.items ?? []).filter((i) => i.effect !== 'cosmetic') : [];
   const pages = Math.max(1, Math.ceil(items.length / perPage));
   const at = Math.min(page, pages - 1);
 
@@ -84,13 +83,12 @@ export function ShopSheet({ onClose, onBalance, realMoney = false }: { onClose: 
       () => (setBought(it), load()),
       () => (setNote(fa.shop.error), load()),
     );
-  const pick = (k: TabKey) => (setTab(k), setPage(0), setNote(k === 'boost' || k === 'outfit' ? null : fa.shop.soon));
+  const pick = (k: TabKey) => (setTab(k), setPage(0), setNote(k === 'boost' ? null : fa.shop.soon));
   const pay = (it: ShopItem) =>
     payWithMoney(it.id).then(
       () => setNote(fa.shop.invoiceSent),
       (e) => setNote(e instanceof ApiError && e.code === 'bale_not_linked' ? fa.shop.linkBale : fa.shop.payError),
     );
-  const wear = (it: ShopItem) => equipItem(it.id, !it.equipped).then(load, () => (setNote(fa.shop.error), load()));
 
   return (
     <View style={styles.root}>
@@ -129,7 +127,7 @@ export function ShopSheet({ onClose, onBalance, realMoney = false }: { onClose: 
             const on = tab === t.key;
             return (
               <Pressable key={t.key} onPress={() => pick(t.key)} accessibilityRole="tab" accessibilityState={{ selected: on }} style={styles.tabCell}>
-                <View style={[styles.tab, on ? styles.tabOn : null, t.key !== 'boost' && t.key !== 'outfit' ? styles.tabSoon : null]}>
+                <View style={[styles.tab, on ? styles.tabOn : null, t.key !== 'boost' ? styles.tabSoon : null]}>
                   <View style={styles.tabIcon}><Item icon={t.icon} /></View>
                   <Text style={styles.tabText} numberOfLines={1}>{fa.shop.tabs[t.key]}</Text>
                 </View>
@@ -146,8 +144,8 @@ export function ShopSheet({ onClose, onBalance, realMoney = false }: { onClose: 
         <View style={styles.grid}>
           {shown
             ? items.slice(at * perPage, (at + 1) * perPage).map((it) => {
-                const why = it.owned ? (it.equipped ? fa.shop.worn : fa.shop.owned) : stateText(it);
-                const locked = it.blocked !== null && !it.owned;
+                const why = stateText(it);
+                const locked = it.blocked !== null;
                 return (
                   <View key={it.id} style={styles.cell}>
                     <View style={[styles.card, tight ? styles.cardTight : null]}>
@@ -157,11 +155,11 @@ export function ShopSheet({ onClose, onBalance, realMoney = false }: { onClose: 
                       </View>
                       <Text style={styles.name} numberOfLines={1}>{it.titleFa}</Text>
                       <Text style={[styles.sub, tight ? styles.subTight : null]} numberOfLines={2}>{why ?? fa.shop.amount(it.amount)}</Text>
-                      <Pressable onPress={() => (it.owned ? void wear(it) : locked ? setWhyLocked(whyText(it)) : void buy(it))} accessibilityRole="button" accessibilityLabel={`${fa.shop.buy} ${it.titleFa}`} style={({ pressed }) => [styles.buy, tight ? styles.buyTight : null, locked ? styles.buyOff : null, pressed ? styles.pressed : null]}>
-                        {it.owned ? null : <View style={styles.buyIcon}><Item icon={it.currency === 'gems' ? 'gem' : 'coin'} /></View>}
-                        <Text style={styles.buyText}>{it.owned ? (it.equipped ? fa.shop.takeOff : fa.shop.wear) : (it.currency === 'gems' ? it.priceGems : it.priceCoins) === 0 ? fa.shop.free : n(it.currency === 'gems' ? it.priceGems : it.priceCoins)}</Text>
+                      <Pressable onPress={() => (locked ? setWhyLocked(whyText(it)) : void buy(it))} accessibilityRole="button" accessibilityLabel={`${fa.shop.buy} ${it.titleFa}`} style={({ pressed }) => [styles.buy, tight ? styles.buyTight : null, locked ? styles.buyOff : null, pressed ? styles.pressed : null]}>
+                        <View style={styles.buyIcon}><Item icon={it.currency === 'gems' ? 'gem' : 'coin'} /></View>
+                        <Text style={styles.buyText}>{(it.currency === 'gems' ? it.priceGems : it.priceCoins) === 0 ? fa.shop.free : n(it.currency === 'gems' ? it.priceGems : it.priceCoins)}</Text>
                       </Pressable>
-                      {realMoney && it.priceToman > 0 && !it.owned ? (
+                      {realMoney && it.priceToman > 0 ? (
                         <Pressable onPress={() => void pay(it)} accessibilityRole="button" accessibilityLabel={`${fa.shop.payMoney} ${it.titleFa}`} style={({ pressed }) => [styles.money, pressed ? styles.pressed : null]}>
                           <Text style={styles.moneyText}>{fa.shop.toman(it.priceToman)}</Text>
                         </Pressable>

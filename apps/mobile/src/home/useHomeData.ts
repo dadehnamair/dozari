@@ -4,6 +4,7 @@ import type { DailyStatus, Gender, Province, ProfileTask } from '@dozari/shared'
 import { applyAppIcon } from '../appIcon/appIcon';
 import { fetchDailyStatus } from '../daily/puzzleApi';
 import { fetchMatchActive } from '../duel/api';
+import { fetchWorn } from '../shop/api';
 import { fetchGems } from '../ledger/gemsApi';
 import { fetchMyProfile } from '../social/api';
 import { fetchProfileTasks } from '../social/profileTasksApi';
@@ -28,6 +29,10 @@ export function useHomeData(features: ClientConfig['features']) {
     fetchMyProfile().then((p) => (setGender(p.gender), applyAppIcon(p.gender), setLevel(p.level.level), setProvince(provinceOf(p.city?.province))), () => undefined);
   }, []);
   useEffect(loadMe, [loadMe]);
+  /** What the hero wears (set in the fitting room). */
+  const [worn, setWorn] = useState<{ slot: string; iconKey: string | null }[]>([]);
+  const loadWorn = useCallback(() => void fetchWorn().then((r) => setWorn(r.worn), () => undefined), []);
+  useEffect(loadWorn, [loadWorn]);
   const [profileTasks, setProfileTasks] = useState<ProfileTask[]>([]);
   const [gems, setGems] = useState(0);
   const loadGems = useCallback(() => void fetchGems().then((w) => setGems(w.balance), () => undefined), []);
@@ -37,5 +42,5 @@ export function useHomeData(features: ClientConfig['features']) {
   useEffect(() => {
     if (features.daily) fetchDailyStatus().then(setDailyPuzzle, () => undefined);
   }, [features.daily]);
-  return { spins, loadSpins, liveMatch, gender, setGender, level, province, dailyPuzzle, loadMe, profileTasks, loadTasks, gems };
+  return { spins, loadSpins, liveMatch, gender, setGender, level, province, dailyPuzzle, loadMe, profileTasks, loadTasks, gems, worn, loadWorn };
 }
