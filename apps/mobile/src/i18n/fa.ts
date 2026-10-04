@@ -91,7 +91,10 @@ export const fa = {
     } as Record<string, string>,
   },
   /** Item and product icon names, grouped as in the design's icon pack. */
-  net: { down: 'ارتباط با سرور برقرار نیست؛ نگران نباش، به‌زودی برمی‌گردیم. خودمان دوباره امتحان می‌کنیم.' },
+  net: {
+    downTitle: 'ارتباط قطع شد',
+    down: 'اینترنتت وصل نیست یا سرور جواب نمی‌دهد. بخش‌های آنلاین تا وصل شدن کار نمی‌کنند؛ خودمان هر چند ثانیه دوباره امتحان می‌کنیم.',
+  },
   /** Birth date, the birthday week and its gift (D160). */
   birthday: {
     title: 'تاریخ تولد',
