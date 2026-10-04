@@ -1,6 +1,7 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Defs, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
-import { useId } from 'react';
+import { useEffect, useId, useRef } from 'react';
+import { usePrefs } from '../prefs/store';
 import { ICON_PATHS } from '../theme/icons';
 import type { IconName } from '../theme/icons';
 import { colors, fonts, toneOf } from '../theme/colors';
@@ -11,13 +12,28 @@ const SIZE = 54;
  * Hub corner tile of `docs/design/Dozari - 01 Screens` (screen-home): 54px rounded candy square with a radial
  * gloss, an ink-outlined white icon, the label under it and an optional corner badge.
  */
-export function HubTile({ icon, label, color, badge, badgeColor = colors.candy.pink, onPress, onLight = false }: { icon: IconName; label: string; color: string; badge?: string; badgeColor?: string; onPress: () => void; onLight?: boolean }) {
+export function HubTile({ icon, label, color, badge, badgeColor = colors.candy.pink, onPress, onLight = false, glow = false }: { icon: IconName; label: string; color: string; badge?: string; badgeColor?: string; onPress: () => void; onLight?: boolean; /** Pulsing halo: something is waiting here (e.g. the unclaimed daily reward). */ glow?: boolean }) {
   const tone = toneOf(color);
   const gid = `ht${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
+  const reduce = usePrefs().reduceMotion;
+  const beat = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!glow || reduce) return undefined;
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(beat, { toValue: 1, duration: 800, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      Animated.timing(beat, { toValue: 0, duration: 800, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [glow, reduce, beat]);
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={styles.wrap}>
       {({ pressed }) => (
         <>
+          {glow ? (
+            <Animated.View pointerEvents="none" style={[styles.halo, { opacity: reduce ? 0.8 : beat.interpolate({ inputRange: [0, 1], outputRange: [0.25, 0.95] }), transform: [{ scale: reduce ? 1.1 : beat.interpolate({ inputRange: [0, 1], outputRange: [1, 1.28] }) }] }]} />
+          ) : null}
+          <Animated.View style={glow && !reduce ? { transform: [{ scale: beat.interpolate({ inputRange: [0, 1], outputRange: [1, 1.07] }) }] } : undefined}>
           <View style={[styles.tile, pressed ? styles.pressed : null]}>
             <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" viewBox="0 0 1 1" preserveAspectRatio="none">
               <Defs>
@@ -38,6 +54,7 @@ export function HubTile({ icon, label, color, badge, badgeColor = colors.candy.p
               </Svg>
             </View>
           </View>
+          </Animated.View>
           {badge ? (
             <View style={[styles.badge, { backgroundColor: badgeColor }]}>
               <Text style={styles.badgeText}>{badge}</Text>
@@ -70,6 +87,7 @@ const styles = StyleSheet.create({
     shadowRadius: 0,
     elevation: 5,
   },
+  halo: { position: 'absolute', top: -3, width: SIZE + 6, height: SIZE + 6, borderRadius: 22, backgroundColor: colors.candy.yellow },
   pressed: { transform: [{ scale: 0.92 }] },
   // Positioned so it paints above the absolute gradient and gloss layers (web paints positioned boxes last).
   icon: { position: 'relative', zIndex: 1 },
