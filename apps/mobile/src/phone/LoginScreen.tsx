@@ -37,6 +37,8 @@ export function LoginScreen({ onDone }: { onDone: (r: { signedIn: boolean; creat
     return () => sub.remove();
   }, []);
   const showKeyboard = () => {
+    // iOS Safari only opens the keyboard when focus() runs inside the tap itself (the web input also covers the boxes).
+    if (Platform.OS === 'web') return codeInput.current?.focus();
     codeInput.current?.blur();
     setTimeout(() => codeInput.current?.focus(), 30);
   };
@@ -144,7 +146,7 @@ const styles = StyleSheet.create({
   box: { width: 48, height: 56, borderRadius: 14, borderWidth: 3, borderColor: INK, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', ...lift(4) },
   boxOn: { backgroundColor: '#FFE48A' },
   boxText: { fontFamily: fonts.display, fontSize: 28, color: INK },
-  hiddenInput: { position: 'absolute', opacity: 0, width: 1, height: 1 },
+  hiddenInput: Platform.OS === 'web' ? { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0 } : { position: 'absolute', opacity: 0, width: 1, height: 1 },
   resendRow: { flexDirection: ROW, justifyContent: 'space-between', alignItems: 'center' },
   link: { fontFamily: fonts.bold, fontSize: 12.5, color: '#E8743B', textDecorationLine: 'underline' },
   error: { fontFamily: fonts.bold, fontSize: 12.5, color: '#B3261E', textAlign: 'center' },
