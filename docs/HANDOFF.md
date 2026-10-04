@@ -67,7 +67,7 @@ auto top-up on a fresh DB (only unit-tested).
 - Screens follow the owner's designs (`docs/design/*.dc.html`, D99). One decision entry per feature.
 
 ## Deployed / ops
-- Owner's server (`~/projects/dozari`, user `shahkochaki`) runs `docker-compose.prod.yml` + `.env.prod`; web on `127.0.0.1:8081`, API on `127.0.0.1:3000`; the host's own proxy forwards `2oi.ir` and `api.2oi.ir` (TLS comes from the CDN, no certbot). See `docs/deploy.md`, D110, D113.
+- Owner's server (`~/projects/dozari`, user `shahkochaki`) runs `docker-compose.prod.yml` + `.env.prod`; web on `127.0.0.1:8081`, API on `127.0.0.1:3000`; the host's own proxy forwards `mrbots.ir` and `api.mrbots.ir` (TLS comes from the CDN, no certbot). See `docs/deploy.md`, D110, D113.
 - **Sample catalogue (D149, 2026-10-03):** 119 `sample-*` products with rough prices + 10 curated puzzles + generated ones; remove with `... run.ts --remove-sample` before launch (docs/deploy.md §sample). Older note on the seed:
 - Seed on the server: `$dc run --rm --user root -w /app/packages/db server pnpm exec tsx src/seed/run.ts` (only ONE starter product exists in `packages/db/seed/products/_starter.json`; `seed/images` is empty). `demo-puzzle.ts` makes one fake playable puzzle. Real content must come from the admin panel / content bot — the owner has not got a real catalogue yet. Offer: write a bigger real seed.
 - Bale bot uses long polling (`notify/runner.ts`) — **no webhook needed**; set `BALE_BOT_TOKEN` and `BALE_BOT_USERNAME` in `.env.prod`, restart `server`. (The owner asked how to connect a Bale webhook; answer pending in chat — give this.)

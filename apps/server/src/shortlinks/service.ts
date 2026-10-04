@@ -29,19 +29,13 @@ export class ShortLinkService {
     private readonly store: ShortLinkStore,
     /** The short domain from the admin settings (may be empty), used to refuse loops. */
     private readonly shortHost: () => Promise<string>,
-    /** The web app's domain: when it is also the short domain, only another `/s/…` link counts as a loop. */
-    private readonly appHost: () => Promise<string> = async () => '',
   ) {}
 
   async create(targetRaw: string, wantedCode: string | undefined, note: string): Promise<CreateResult> {
     const target = cleanTarget(targetRaw);
     if (!target) return { ok: false, error: 'invalid_url' };
     const host = (await this.shortHost()).trim().toLowerCase();
-    const to = new URL(target);
-    if (host && to.hostname.toLowerCase() === host) {
-      const shared = (await this.appHost()).trim().toLowerCase() === host;
-      if (!shared || to.pathname === '/s' || to.pathname.startsWith('/s/')) return { ok: false, error: 'self_link' };
-    }
+    if (host && new URL(target).hostname.toLowerCase() === host) return { ok: false, error: 'self_link' };
     if (wantedCode !== undefined && wantedCode !== '') {
       const code = wantedCode.trim().toLowerCase();
       if (!CODE.test(code)) return { ok: false, error: 'invalid_code' };
