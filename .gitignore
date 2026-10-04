@@ -20,3 +20,7 @@ web-build/
 
 # local dev data (docker-free image store)
 .local/
+
+*.keystore
+*.jks
+keystore.properties

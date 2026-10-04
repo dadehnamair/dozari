@@ -51,3 +51,21 @@ The app forces RTL natively (`app.config.js`, `Application.onCreate`) so the fir
 ## Not verified
 
 A local Windows build (Android Studio, JDK 21, hoisted pnpm) produces a working release APK. The GitHub Actions path (A) is not verified yet.
+
+## Store release (Myket / Bazaar) on your own computer
+
+1. One-time: make the upload key and **back it up outside the repo (a lost key means no more updates)**:
+   `keytool -genkeypair -v -keystore dozari-release.keystore -alias dozari -keyalg RSA -keysize 2048 -validity 10000`
+2. Build (PowerShell; `EXPO_PUBLIC_STORE` = `myket` or `bazaar`):
+   ```powershell
+   $env:EXPO_PUBLIC_API_URL="https://api.mrbots.ir"; $env:EXPO_PUBLIC_STORE="myket"
+   cd apps\mobile; Remove-Item -Recurse -Force android; pnpm exec expo prebuild --platform android
+   cd android
+   .\gradlew assembleRelease `
+     -Pandroid.injected.signing.store.file="C:\keys\dozari-release.keystore" `
+     -Pandroid.injected.signing.store.password="<store pass>" `
+     -Pandroid.injected.signing.key.alias="dozari" `
+     -Pandroid.injected.signing.key.password="<key pass>"
+   ```
+3. Check: `apksigner verify --print-certs app\build\outputs\apk\release\app-release.apk` must not show the Android Debug certificate.
+4. Every store update needs a higher `android.versionCode` in `apps/mobile/app.json` (and a new `version` for users); build one APK per market.
