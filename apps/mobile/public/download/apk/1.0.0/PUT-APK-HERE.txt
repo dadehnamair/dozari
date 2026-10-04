@@ -1,0 +1,1 @@
+Put dozari.apk here (apps/mobile/public/download/apk/1.0.0/dozari.apk) and commit it: the web build copies public/ into the image and Caddy serves it at /download/apk/1.0.0/dozari.apk.
