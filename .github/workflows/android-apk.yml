@@ -10,7 +10,7 @@ on:
     inputs:
       api_url:
         description: API address baked into the app
-        default: https://api.mrbots.ir
+        default: https://api.2oi.ir
       store:
         description: Market this build is for (myket, bazaar, bale or empty)
         default: ''

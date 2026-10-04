@@ -2,7 +2,7 @@
 
 The app is Expo (React Native). There is no EAS dependency: `expo prebuild` writes the native `android/` project and Gradle builds it.
 Package id `ir.dozari.app` (`apps/mobile/app.json`). The API address and the market are baked in at build time:
-`EXPO_PUBLIC_API_URL` (e.g. `https://api.mrbots.ir`) and `EXPO_PUBLIC_STORE` (`myket` | `bazaar` | `bale` | empty).
+`EXPO_PUBLIC_API_URL` (e.g. `https://api.2oi.ir`) and `EXPO_PUBLIC_STORE` (`myket` | `bazaar` | `bale` | empty).
 
 ## A. On GitHub (easiest, nothing to install)
 
@@ -19,7 +19,7 @@ Needs Node 22, pnpm, JDK 17 and the Android SDK (platform 35+, build-tools).
 ```bash
 pnpm install
 cd apps/mobile
-EXPO_PUBLIC_API_URL=https://api.mrbots.ir pnpm exec expo prebuild --platform android
+EXPO_PUBLIC_API_URL=https://api.2oi.ir pnpm exec expo prebuild --platform android
 cd android && ./gradlew assembleRelease     # app/build/outputs/apk/release/app-release.apk
 ```
 

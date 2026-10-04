@@ -19,10 +19,10 @@ that proxy keeps the domains and https and forwards two names to the containers 
 
 | Public name (DNS A record to the server) | Forward to |
 |---|---|
-| `mrbots.ir` (`APP_DOMAIN`, the web app) | `127.0.0.1:8081` |
-| `api.mrbots.ir` (`API_DOMAIN`, the game server; product images live at `/images/`) | `127.0.0.1:3000`, **websockets on** |
+| `2oi.ir` (`APP_DOMAIN`, the web app) | `127.0.0.1:8081` |
+| `api.2oi.ir` (`API_DOMAIN`, the game server; product images live at `/images/`) | `127.0.0.1:3000`, **websockets on** |
 | `mrdozari.ir` (`LANDING_DOMAIN`, the landing site and blog, D173) | `127.0.0.1:8083` (`LANDING_PORT`) |
-| `2oi.ir` (the short-link domain, `domain.short`, D172) | `127.0.0.1:3000` with the original `Host` header kept |
+| `2oi.ir/s/*` (short links, `domain.short`, D172 — the same domain as the web app) | `127.0.0.1:3000` with the original `Host` header kept |
 
 The API address is baked into the web build, so changing `API_DOMAIN` later means editing `.env.prod` and
 rebuilding `s-dozari-web`.
@@ -40,7 +40,7 @@ cp deploy/.env.example .env.prod
 nano .env.prod          # every line: domains, MYSQL_*, JWT_SECRET, ADMIN_TOKEN (openssl rand -hex 24)
 docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 docker compose -f docker-compose.prod.yml --env-file .env.prod ps     # s-dozari-migrate: exited (0), others: running
-curl http://127.0.0.1:3000/health   # once the proxy forwards: https://api.mrbots.ir/health
+curl http://127.0.0.1:3000/health   # once the proxy forwards: https://api.2oi.ir/health
 ```
 
 The server **refuses to start in production** with a short or default `JWT_SECRET` / `ADMIN_TOKEN`
@@ -54,16 +54,16 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod run --rm -w /app/
 ## Reverse proxy
 
 Add the two forwards from the table above in whatever proxy owns 80/443. `deploy/nginx.example.conf` is a
-ready nginx example. In Nginx Proxy Manager add two Proxy Hosts — `mrbots.ir` → `http://127.0.0.1:8081` and
-`api.mrbots.ir` → `http://127.0.0.1:3000` with *Websockets Support* on — and request a Let's Encrypt certificate
+ready nginx example. In Nginx Proxy Manager add two Proxy Hosts — `2oi.ir` → `http://127.0.0.1:8081` and
+`api.2oi.ir` → `http://127.0.0.1:3000` with *Websockets Support* on — and request a Let's Encrypt certificate
 for each. Two things matter: **websockets** (live duels and chat use Socket.io on the API host) and passing
-`X-Forwarded-*` headers (the server runs with `TRUST_PROXY=1`). Check: `https://api.mrbots.ir/health` answers,
-`https://mrbots.ir` shows the game, and a duel connects.
+`X-Forwarded-*` headers (the server runs with `TRUST_PROXY=1`). Check: `https://api.2oi.ir/health` answers,
+`https://2oi.ir` shows the game, and a duel connects.
 
 ## phpMyAdmin
 
 The `s-dozari-phpmyadmin` service is already in `docker-compose.prod.yml`, bound to **`127.0.0.1:8082`** (change with `PMA_PORT` in `.env.prod`). Forward a domain of your
-choice (say `pma.mrbots.ir`) to that port in the host's proxy — like the other two, with https from the proxy/CDN — and **protect that domain** (basic auth or an
+choice (say `pma.2oi.ir`) to that port in the host's proxy — like the other two, with https from the proxy/CDN — and **protect that domain** (basic auth or an
 IP allow-list; `deploy/nginx.example.conf` has a block with basic auth). Log in with user `dozari` and `MYSQL_PASSWORD` (database `dozari`), or `root` and
 `MYSQL_ROOT_PASSWORD`. Start it with the rest: `docker compose -f docker-compose.prod.yml --env-file .env.prod up -d s-dozari-phpmyadmin`. For local development
 the root `docker-compose.yml` has Adminer on `:8080`.
@@ -141,4 +141,4 @@ the copy: run it once now and about monthly. (Both scripts were syntax-checked o
 ## Landing site and short domain (items 8 and 9)
 
 - **`s-dozari-landing` service** (`mrdozari.ir`): server-rendered pages (home, blog, cast, `sitemap.xml`, `robots.txt`, `llms.txt`). It has no database; it reads the game server's public content API (`API_URL=http://s-dozari-server:3000`), so start it with the rest (`up -d --build s-dozari-landing`). Content (blog posts, cast, FAQ, hero text) is edited in the game's admin panel under «سایت معرفی». If the game server is down the site keeps serving its last answers for a while and then shows a calm 503 page. Forward `LANDING_DOMAIN` to `127.0.0.1:LANDING_PORT` and give it a certificate like the other names.
-- **`2oi.ir`**: point it at the same reverse proxy and forward it to the **game server** (`127.0.0.1:3000`) **keeping the original `Host` header** (nginx: `proxy_set_header Host $host;`). The server turns requests for `domain.short` into redirects (docs/logic/short-links.md). Links are made in the admin page «لینک کوتاه».
+- **`2oi.ir`** is the web app *and* the short-link domain: the proxy sends only `2oi.ir/s/*` to the **game server** (`127.0.0.1:3000`) **keeping the original `Host` header** (nginx: `location /s/ { … proxy_set_header Host $host; }`, see `deploy/nginx.example.conf`); everything else goes to the web app. Short links look like `2oi.ir/s/<code>` (docs/logic/short-links.md). Links are made in the admin page «لینک کوتاه».
