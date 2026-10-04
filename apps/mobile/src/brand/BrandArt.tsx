@@ -1,6 +1,6 @@
 import { useId } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import Svg, { Circle, Defs, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
+import Svg, { Defs, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { Character } from '../components/Character';
 import type { CharacterId } from '../theme/character';
 import { Wordmark } from '../components/Wordmark';
