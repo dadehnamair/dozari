@@ -49,7 +49,7 @@ export function PackCard({ item, on, onTry, onAct, onPay, realMoney }: { item: S
 const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0, height: h }, shadowOpacity: 1, shadowRadius: 0, elevation: h });
 
 const styles = StyleSheet.create({
-  card: { width: '48%', borderRadius: 20, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#FFF6E8', padding: 6, paddingBottom: 8, gap: 4, ...lift(4) },
+  card: { width: '48.5%', borderRadius: 20, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#FFF6E8', padding: 6, paddingBottom: 8, gap: 4, ...lift(4) },
   cardOn: { borderColor: colors.candy.yellow, backgroundColor: '#FFF1C9' },
   pic: { height: 124, borderRadius: 14, overflow: 'hidden', alignItems: 'center', justifyContent: 'flex-end' },
   face: { width: 100, height: 108 },

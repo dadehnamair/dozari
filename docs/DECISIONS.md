@@ -572,3 +572,7 @@ The Home pill «🔥 N روز» is the **daily puzzle streak** (consecutive days
 
 The owner's logo animation (`docs/design/Dozari - 23 Logo Animation.dc.html`, `Logo.dc.html`) is `apps/mobile/src/components/AnimatedLogo.tsx`: the coin falls spinning and lands with a squash and one rebound (1 s), the wordmark pops in with a squash-stretch at 0.45 s, six candy sparks burst out, the wordmark keeps breathing (3.2 s loop) and a shine sweeps over the letters every ~3.6 s. «حرکت کمتر» shows the finished logo. Used on the **splash** and **login** screens (the static `Wordmark` stays on Home and in the share card). Checked frame by frame in headless Chromium (react-native-web); the shine is drawn with an animated gradient that react-native-web does not animate, so it is only seen on phones — not verified on a phone here. The style sheet (`22 Style Sheet`) is the theme still to be applied to the landing site.
 
+
+## D192 — Fitting room list is a recycled FlashList (2026-10-04)
+
+Owner: scrolling the fitting room was not smooth. All cards (each with several SVGs and shadows) were built at once inside a `ScrollView`. The list is now a `@shopify/flash-list` (2.3.3, JS-only, no Google deps) of flat rows — a header row per pack, then the cards two to a row — so only the visible cards exist and rows are recycled. Pack chips jump with `scrollToIndex`. The rounded frame around each pack is dropped (a flat list cannot wrap a group). Not measured on a phone.
