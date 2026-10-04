@@ -932,6 +932,9 @@ export const fa = {
     slots: { hat: 'کلاه', hair: 'مو', glasses: 'عینک', makeup: 'آرایش', outfit: 'لباس', accessory: 'زیورآلات' } as Record<string, string>,
     error: 'نتوانستیم اتاق پرو را باز کنیم.',
     tryHint: 'در حال امتحان',
+    default: 'پیش‌فرض',
+    pack: (name: string) => `پک ${name}`,
+    count: (total: number, owned: number) => `${toPersianDigits(String(total))} آیتم · ${toPersianDigits(String(owned))} تا داری`,
   },
   /** The result-chart share card (docs/logic/result-chart.md §Share card). */
   share: {

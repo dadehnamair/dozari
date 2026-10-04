@@ -106,9 +106,9 @@
         "year": 1359,
         "rials": 26,
         "source_type": "official_list",
-        "source_note": "تعرفه وزارت بازرگانی بر حسب وزن",
-        "confidence": 3,
-        "status": "approved"
+        "source_note": "تعرفه وزارت بازرگانی بر حسب وزن — واحد با نرخ ۱۳۶۴ یکی نیست و قیمت از ۱۳۶۴ بیشتر است؛ تا بررسی در انتظار می‌ماند",
+        "confidence": 2,
+        "status": "pending"
       },
       {
         "year": 1364,

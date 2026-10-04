@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ageOn, birthdayIn, birthdayStatus, isAcceptableBirth, isValidJalaliDate, jalaliDayNumber, jalaliToGregorian } from '../birthday.js';
+import { ageBandCounts, ageOn, birthdayIn, birthdayStatus, isAcceptableBirth, isValidJalaliDate, jalaliDayNumber, jalaliToGregorian } from '../birthday.js';
 import { gregorianToJalali } from '../solar-month.js';
 
 describe('Jalali conversion', () => {
@@ -56,3 +56,26 @@ describe('birthday week', () => {
     expect(early).toMatchObject({ inWeek: true, year: 1406 });
   });
 });
+
+describe('age bands', () => {
+  const today = { year: 1405, month: 7, day: 12 };
+  it('counts players by exact age on the day, edges included', () => {
+    const out = ageBandCounts(
+      [
+        { birth: { year: 1395, month: 7, day: 12 }, n: 2 }, // 10 today
+        { birth: { year: 1395, month: 7, day: 13 }, n: 1 }, // 9: below the first band, still counted in it
+        { birth: { year: 1387, month: 7, day: 12 }, n: 4 }, // 18
+        { birth: { year: 1388, month: 7, day: 13 }, n: 1 }, // 16
+        { birth: { year: 1371, month: 1, day: 1 }, n: 3 }, // 34
+        { birth: { year: 1370, month: 12, day: 29 }, n: 5 }, // 34 (birthday later this year? no: Esfand is after Mehr, so 34)
+        { birth: { year: 1360, month: 1, day: 1 }, n: 7 }, // 45
+      ],
+      today,
+    );
+    expect(out).toEqual([{ key: '10-17', count: 4 }, { key: '18-24', count: 4 }, { key: '25-34', count: 8 }, { key: '35-44', count: 0 }, { key: '45+', count: 7 }]);
+  });
+  it('is all zeros without players', () => {
+    expect(ageBandCounts([], today).every((b) => b.count === 0)).toBe(true);
+  });
+});
+

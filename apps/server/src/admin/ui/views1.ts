@@ -22,6 +22,13 @@ VIEWS.dashboard = function (root) {
         statCard('پازل‌ها', faNum(b.puzzles), 'پازل ثبت‌شده', '#ff7a3d')
       ]));
     }
+    if (d.ok && d.body.ageBands) {
+      var ab = d.body.ageBands, abTotal = ab.reduce(function (t, x) { return t + x.count; }, 0);
+      wrap.appendChild(card('سن بازیکن‌ها', 'فقط آمار کلی؛ ' + fa(d.body.ageUnknown) + ' نفر تاریخ تولد نداده‌اند', abTotal === 0 ? [empty('هنوز کسی تاریخ تولدش را نگفته')] : ab.map(function (x) {
+        var pct = Math.round((x.count / abTotal) * 100);
+        return h('div', { class: 'kv' }, [h('span', { text: fa(x.key.replace('+', '')) + (x.key.indexOf('+') > -1 ? '+' : '') + ' سال' }), h('span', {}, [h('b', { class: 'num', text: faNum(x.count) }), ' ', h('span', { class: 'sub', text: fa(pct) + '٪' })])]);
+      })));
+    }
     if (sock.ok) {
       var s = sock.body;
       wrap.appendChild(card('سرویس سوکت', 'وضعیت زنده', [h('div', { class: 'grid' }, [

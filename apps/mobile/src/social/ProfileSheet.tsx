@@ -50,8 +50,10 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
   const [games, setGames] = useState<RecentGames['games']>([]);
   const [worn, setWorn] = useState<{ slot: string; iconKey: string | null }[]>([]);
   const [party, setParty] = useState(false);
+  /** Own age, shown to the player whatever the «show my age» tick says (the tick only decides what others see). */
+  const [age, setAge] = useState<number | null>(null);
   useEffect(() => {
-    fetchBirthday().then((b) => setParty(b.inWeek), () => undefined);
+    fetchBirthday().then((b) => (setParty(b.inWeek), setAge(b.age)), () => undefined);
   }, []);
   useEffect(() => {
     fetchWorn().then((r) => setWorn(r.worn), () => undefined);
@@ -157,6 +159,7 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
               <Text style={[styles.name, compact ? styles.nameCompact : null]} numberOfLines={1}>{me.nickname}</Text>
               <View style={styles.cityRow}>
                 {badges ? <Text style={styles.rank}>{skillText(badges.skill)}</Text> : null}
+                {age !== null ? <Text style={styles.rank}>{badges ? '· ' : ''}{fa.player.age(age)}</Text> : null}
                 {me.city ? (
                   <Pressable onPress={() => setSub('city')} accessibilityRole="button" style={styles.cityRow}>
                     {badges ? <Text style={styles.rank}>·</Text> : null}

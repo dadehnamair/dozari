@@ -43,6 +43,7 @@ function userModal(id, done) {
         h('div', { class: 'kv' }, [h('span', { text: 'ثبت‌نام' }), h('span', { text: ago(u.createdAt) })]),
         h('div', { class: 'kv' }, [h('span', { text: 'آخرین حضور' }), h('span', { text: ago(u.lastSeenAt) })]),
         h('div', { class: 'kv' }, [h('span', { text: 'دوستان' }), h('b', { class: 'num', text: fa(u.friends) })]),
+        h('div', { class: 'kv' }, [h('span', { text: 'سن' }), h('span', { text: u.age === null ? 'نگفته' : fa(u.age) + ' ساله' + (u.birth ? ' · تولد ' + u.birth.year + '/' + u.birth.month + '/' + u.birth.day : '') })]),
         h('div', { class: 'kv' }, [h('span', { text: 'جنسیت (خصوصی)' }), h('span', { text: GENDER_FA[u.gender] || 'نگفته' })]),
         h('div', { class: 'kv' }, [h('span', { text: 'بله' }), u.baleLinked ? badge('وصل است', 'b-ok') : badge('وصل نیست', 'b-mute')]),
         u.isBanned ? h('div', { class: 'kv' }, [h('span', { text: 'مسدود از' }), h('span', { text: (u.bannedAt ? ago(u.bannedAt) : '') + (u.banReason ? ' — ' + u.banReason : '') })]) : null

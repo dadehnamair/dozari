@@ -1,8 +1,12 @@
+import { ageBandCounts, todayInTehran } from '@dozari/shared';
 import { botRuns, coinLedger, count, desc, eq, gte, priceCandidates, pricePoints, products, puzzles, sql, userBalances, users } from '@dozari/db';
 import type { Db } from '@dozari/db';
 
 export interface DashboardStats {
   users: { total: number; newToday: number; activeToday: number; banned: number };
+  /** Players per age band (aggregate only) and how many gave no birth date. */
+  ageBands: { key: string; count: number }[];
+  ageUnknown: number;
   catalog: { products: number; activeProducts: number; withoutIcon: number; withoutApprovedPrice: number; pricesPending: number; pricesApproved: number; pricesRejected: number };
   puzzles: number;
   economy: { coinsInCirculation: number; dailyClaimsToday: number };
@@ -37,9 +41,17 @@ export function createDbStatsAdmin(db: Db): StatsAdmin {
         one(db.select({ n: count() }).from(coinLedger).where(sql`${coinLedger.reason} = 'daily_login' AND ${coinLedger.createdAt} >= ${since}`)),
         one(db.select({ n: count() }).from(priceCandidates).where(eq(priceCandidates.status, 'pending'))),
       ]);
+      const birthGroups = await db
+        .select({ y: users.birthYear, m: users.birthMonth, d: users.birthDay, n: count() })
+        .from(users)
+        .where(sql`${users.birthYear} IS NOT NULL AND ${users.birthMonth} IS NOT NULL AND ${users.birthDay} IS NOT NULL`)
+        .groupBy(users.birthYear, users.birthMonth, users.birthDay);
+      const ageBands = ageBandCounts(birthGroups.map((g) => ({ birth: { year: g.y as number, month: g.m as number, day: g.d as number }, n: Number(g.n) })), todayInTehran(now));
       const [lastRun] = await db.select().from(botRuns).orderBy(desc(botRuns.startedAt)).limit(1);
       return {
         users: { total: uTotal, newToday: uNew, activeToday: uActive, banned: uBanned },
+        ageBands,
+        ageUnknown: Math.max(0, uTotal - ageBands.reduce((s, b) => s + b.count, 0)),
         catalog: { products: pTotal, activeProducts: pActive, withoutIcon: pNoIcon, withoutApprovedPrice: pNoPrice, pricesPending: prPending, pricesApproved: prApproved, pricesRejected: prRejected },
         puzzles: nPuzzles,
         economy: { coinsInCirculation: circulation, dailyClaimsToday: claims },

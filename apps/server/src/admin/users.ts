@@ -1,6 +1,6 @@
 import { and, baleLinks, coinLedger, count, desc, eq, friendships, like, or, userBalances, userNotes, users } from '@dozari/db';
 import type { Db } from '@dozari/db';
-import { AVATAR_KEYS, randomGuestIdentity } from '@dozari/shared';
+import { AVATAR_KEYS, ageOn, randomGuestIdentity, todayInTehran } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
 import { applyGemEntry } from '../economy/gems.js';
 import { applyLedgerEntry } from '../economy/ledger.js';
@@ -33,6 +33,10 @@ export interface UserDetail extends AdminUserRow {
   banReason: string | null;
   bannedAt: number | null;
   friends: number;
+  /** Whole years from the player's own optional birth date; null when none. */
+  age: number | null;
+  /** The exact Solar Hijri date: only the owner role may see it (the route removes it for other roles). */
+  birth: { year: number; month: number; day: number } | null;
   baleLinked: boolean;
   notes: { id: string; note: string; at: number }[];
 }
@@ -90,6 +94,11 @@ export function createDbUsersAdmin(db: Db): UsersAdmin {
         banReason: r.u.banReason,
         bannedAt: r.u.bannedAt?.getTime() ?? null,
         friends: f?.n ?? 0,
+        ...(() => {
+          const { birthYear: y, birthMonth: m, birthDay: d } = r.u;
+          if (y == null || m == null || d == null) return { age: null, birth: null };
+          return { age: ageOn({ year: y, month: m, day: d }, todayInTehran(Date.now())), birth: { year: y, month: m, day: d } };
+        })(),
         baleLinked: link.length > 0,
         notes: notes.map((n) => ({ id: n.id, note: n.note, at: n.createdAt.getTime() })),
       };

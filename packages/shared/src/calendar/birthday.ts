@@ -101,3 +101,23 @@ export function birthdayStatus(birth: JalaliDate, today: JalaliDate, before = 3,
 
 /** Today's Solar Hijri date in Tehran for an epoch-ms instant (re-exported so callers need one import). */
 export const todayInTehran = (epochMs: number): JalaliDate => jalaliDateInTehran(epochMs);
+
+/** Age bands of the admin dashboard (aggregate only, never per player; the minimum age is 10). */
+export const AGE_BANDS = [
+  { key: '10-17', min: 10, max: 17 },
+  { key: '18-24', min: 18, max: 24 },
+  { key: '25-34', min: 25, max: 34 },
+  { key: '35-44', min: 35, max: 44 },
+  { key: '45+', min: 45, max: Infinity },
+] as const;
+
+/** How many players fall into each band, from `n` players sharing a birth date; an age below the first band counts in it. */
+export function ageBandCounts(groups: readonly { birth: JalaliDate; n: number }[], today: JalaliDate): { key: string; count: number }[] {
+  const counts = AGE_BANDS.map((b) => ({ key: b.key as string, count: 0 }));
+  for (const g of groups) {
+    const age = ageOn(g.birth, today);
+    const i = Math.max(0, AGE_BANDS.findIndex((b) => age >= b.min && age <= b.max));
+    (counts[i] as { count: number }).count += g.n;
+  }
+  return counts;
+}

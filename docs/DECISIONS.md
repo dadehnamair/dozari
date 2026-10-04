@@ -542,3 +542,17 @@ The owner added the makeup pack to the design («21 Cosmetic Packs», `Character
 
 Owner: the suggestion / «price is wrong» card scrolled without showing it, and the text «قیمت اشتباهه؟» should be a nice icon. Done: `PriceFeedbackLink` is now a round yellow button with the new `priceAlert` icon (a price tag with «!»; label kept for screen readers) on the result of a price-guess round and the price lookup; the form (`FormDialog`) keeps scrolling when it must but its bar is always visible (`persistentScrollbar`), and the price form is denser (amount and unit on one row, shorter note box). Not seen on a real phone.
 
+## D185 — City hub: tapping a building opens its bottom drawer again (2026-10-04)
+
+Owner: the hub without the bottom drawer looked worse; tapping an icon should open that building's menu. The change of #128 («the hub opens modes directly») is undone: a tap always raises the drawer (host, description, «ورود» / «به‌زودی», close), as `docs/logic/app-screens.md` §City hub always said. Entering is the drawer's button.
+
+## D186 — Age in the profile and the admin (2026-10-04)
+
+Owner: age was not handled in the profile. The birth date, the age tick and the birthday week were already built (D160); what was missing is now added: the own profile shows the age; the admin user sheet shows age (owner role: also the exact date); the dashboard shows age-band counts. Rules unchanged: age is derived, others see it only with the tick, the date never leaves the owner view.
+
+Also in this commit: the new seed file `products-2026-10-04-01.json` made `db` tests fail (nan-sangak 1359 = 26 rials, then 15 rials in 1364: a 42% nominal drop, with the 1359 note saying «بر حسب وزن»). That point is set to `pending` with a note until someone checks the unit; the rest of the file is untouched.
+
+## D187 — Fitting room rebuilt after the design (2026-10-04)
+
+Owner: the fitting room was not like the design and the level text («از سطح ۲») sat outside the card. Rebuilt (`apps/mobile/src/wardrobe/`: `FittingRoom`, `WardrobeStage`, `PackCard`, `RadialFill`, `rarity.ts`) as described in `docs/logic/app-screens.md` §Fitting room: sunburst stage, worn chips, a chip per pack, pack sections with rarity-tinted cards, price buttons with coin/gem icons, the level as a chip inside the picture. Checked in headless Chromium with react-native-web at 390×780 and 360×640 (mock shop data; not on a phone). **Proposed defaults:** rarity is derived from the price (no DB column yet); the bundle buttons («پک ۴۰٪ ارزان‌تر») are **not built** — they need a decision on the bundle price rule and a new ledger reason; the model switch is dropped. Packs the design has and the app has no slot for (crown, beard & moustache, skin tone, badge) are still open.
+
