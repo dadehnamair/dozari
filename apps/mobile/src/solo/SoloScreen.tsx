@@ -51,6 +51,8 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
   const [feedback, setFeedback] = useState<FeedbackKey | null>(null);
   const [busy, setBusy] = useState(false);
   const [priceDone, setPriceDone] = useState(false);
+  /** After the puzzle: look at the board and answers first, then choose to play the price round or skip to the chart. */
+  const [priceReady, setPriceReady] = useState(false);
   const [hintOpen, setHintOpen] = useState(false);
   const [given, setGiven] = useState<HintPayload[]>([]);
   const feedbackTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -81,6 +83,7 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
     setSelected([]);
     setNames({});
     setPriceDone(false);
+    setPriceReady(false);
     setGiven([]);
     setHintOpen(false);
     combo.reset();
@@ -164,7 +167,23 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
             </View>
           </View>
           <View style={styles.stage}>
-            {priceDone ? <ChartPanel sessionId={view.sessionId} height={chartH} /> : <PriceRoundPanel sessionId={view.sessionId} onDone={() => setPriceDone(true)} />}
+            {priceDone ? (
+              <ChartPanel sessionId={view.sessionId} height={chartH} />
+            ) : priceReady ? (
+              <PriceRoundPanel sessionId={view.sessionId} onDone={() => setPriceDone(true)} />
+            ) : (
+              <View style={styles.review}>
+                <Board solved={view.solved} cards={view.cards} names={names} selected={[]} onToggle={() => undefined} disabled hinted={[]} />
+                <View style={styles.askCard}>
+                  <Text style={styles.askTitle}>{fa.solo.price.readyTitle}</Text>
+                  <Text style={styles.askSub}>{fa.solo.price.readySub}</Text>
+                  <View style={styles.actions}>
+                    <SlabButton label={fa.solo.price.skip} color={colors.candy.sky} height={50} fontSize={18} onPress={() => setPriceDone(true)} />
+                    <SlabButton label={fa.solo.price.go} color={colors.candy.lime} height={50} fontSize={20} grow={1.4} onPress={() => setPriceReady(true)} />
+                  </View>
+                </View>
+              </View>
+            )}
           </View>
           {priceDone ? (
             <View style={styles.actions}>
@@ -230,6 +249,10 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
 }
 
 const styles = StyleSheet.create({
+  review: { gap: 10 },
+  askCard: { padding: 12, gap: 6, borderRadius: 20, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#FBF1DE' },
+  askTitle: { fontFamily: fonts.display, fontSize: 18, color: colors.ink, textAlign: 'center' },
+  askSub: { fontFamily: fonts.bold, fontSize: 12.5, lineHeight: 20, color: '#5A3A7A', textAlign: 'center' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24, backgroundColor: '#4E2585' },
   screen: { flexGrow: 1, paddingHorizontal: 12, paddingTop: 14 + nativeTopInset(), paddingBottom: 24, alignItems: 'center' },
   column: { width: '100%', maxWidth: 520, gap: 12 },
