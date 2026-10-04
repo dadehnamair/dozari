@@ -15,6 +15,7 @@ import { fetchFriends } from '../social/api';
 import { OnlineDot } from '../components/OnlineDot';
 import { createTable, inviteToTable, extendTable, fetchMyTable, fetchTable, joinTable, kickFromTable, leaveTable, setTableLocked, setTableReady, setTableSide, startTable } from './api';
 import { useHardwareBack } from '../nav/useHardwareBack';
+import { TableChat } from './TableChat';
 import { TEXT_RIGHT } from '../theme/direction';
 
 const INK = '#3A2418';
@@ -90,6 +91,7 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
                 </View>
               ))}
               {table.youAreHost && !table.inMatch && table.players.length < table.seats ? <InviteFriends onNote={setNote} /> : null}
+              <TableChat code={table.code} meId={table.players.find((p) => p.isYou)?.id ?? null} />
               <Text style={styles.hint}>{fa.tables.friendly}</Text>
               {note ? <Text style={styles.warn}>{note}</Text> : null}
               {table.youAreHost ? (

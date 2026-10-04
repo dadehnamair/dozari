@@ -63,6 +63,7 @@ describe('chat', () => {
       mute: async (id) => (state.muted.has(id) ? { until: state.muted.get(id)!, reason: 'تست' } : null),
       hasContactPerk: async (id) => state.perk.has(id),
       areFriends: async (a, b) => (await socialStore.pair(a, b))?.status === 'accepted',
+      tableMembers: () => null,
       rules: async () => ({ maxLen: 40, textNeedsActivation: opts.needsActivation ?? true, enabled: true, globalEnabled: true }),
       filter: new TextFilterService(wordStore(['بد'])),
     });
