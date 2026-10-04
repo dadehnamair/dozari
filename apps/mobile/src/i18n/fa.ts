@@ -933,6 +933,17 @@ export const fa = {
     error: 'نتوانستیم اتاق پرو را باز کنیم.',
     tryHint: 'در حال امتحان',
   },
+  /** The result-chart share card (docs/logic/result-chart.md §Share card). */
+  share: {
+    button: 'اشتراک‌گذاری نمودار',
+    sharing: 'در حال ساخت کارت…',
+    title: 'نمودار قیمت‌ها',
+    /** «سال ۷۵ با ۱۰۰ تومن می‌شد نان خرید!» */
+    line: (year: string, price: string, name: string) => `سال ${year} با ${price} می‌شد ${name} خرید!`,
+    code: (code: string) => `کد معرف من: ${code}`,
+    message: (line: string | null, code: string | null) => `${line ? `${line} ` : ''}تو هم دوزاری بازی کن و قیمت‌های قدیمی را حدس بزن!${code ? ` کد معرف من: ${code}` : ''}`,
+    failed: 'ساختن کارت نشد؛ دوباره امتحان کن.',
+  },
   missions: {
     title: 'ماموریت‌ها',
     close: 'بستن',
