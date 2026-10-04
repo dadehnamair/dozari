@@ -94,3 +94,49 @@ describe('hand-built puzzles in the admin panel', () => {
     expect((await app.inject({ method: 'POST', url: '/admin/puzzles/generate', headers: h, payload: { count: 0 } })).statusCode).toBe(400);
   });
 });
+
+describe('puzzle tiers in the admin panel', () => {
+  it('starts with five default tiers and lets the admin add, edit and delete them', async () => {
+    const { app, h } = boot();
+    const first = (await app.inject({ method: 'GET', url: '/admin/puzzles/tiers', headers: h })).json().tiers as { id: string; nameFa: string }[];
+    expect(first.map((t) => t.nameFa)).toEqual(['خیلی آسان', 'آسان', 'متوسط', 'سخت', 'خیلی سخت']);
+    const add = await app.inject({ method: 'POST', url: '/admin/puzzles/tiers', headers: h, payload: { nameFa: 'مبتدی ویژه', sortOrder: 0, minLevel: 1, maxLevel: 2 } });
+    expect(add.statusCode).toBe(200);
+    const id = add.json().id as string;
+    const edit = await app.inject({ method: 'POST', url: '/admin/puzzles/tiers', headers: h, payload: { id, nameFa: 'مبتدی', sortOrder: 0, minLevel: 1, maxLevel: null } });
+    expect(edit.statusCode).toBe(200);
+    const after = (await app.inject({ method: 'GET', url: '/admin/puzzles/tiers', headers: h })).json().tiers as { id: string; nameFa: string; maxLevel: number | null }[];
+    expect(after[0]).toMatchObject({ id, nameFa: 'مبتدی', maxLevel: null });
+    expect((await app.inject({ method: 'DELETE', url: `/admin/puzzles/tiers/${id}`, headers: h })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'DELETE', url: `/admin/puzzles/tiers/${id}`, headers: h })).statusCode).toBe(404);
+  });
+
+  it('refuses a nameless tier and a max level below the min', async () => {
+    const { app, h } = boot();
+    const bad = (payload: object) => app.inject({ method: 'POST', url: '/admin/puzzles/tiers', headers: h, payload });
+    expect((await bad({ nameFa: ' ', sortOrder: 1, minLevel: 1, maxLevel: null })).statusCode).toBe(400);
+    const range = await bad({ nameFa: 'خراب', sortOrder: 1, minLevel: 5, maxLevel: 3 });
+    expect(range.statusCode).toBe(400);
+    expect(range.json()).toEqual({ error: 'level_range' });
+  });
+
+  it('puts a puzzle in a tier, shows it in the list, and unrates it when the tier is deleted', async () => {
+    const { app, h } = boot();
+    const made = await app.inject({ method: 'POST', url: '/admin/puzzles', headers: h, payload: { groups: groupsOf(ids) } });
+    const puzzleId = made.json().id as string;
+    const tiers = (await app.inject({ method: 'GET', url: '/admin/puzzles/tiers', headers: h })).json().tiers as { id: string }[];
+    const tierId = tiers[1]!.id;
+    expect((await app.inject({ method: 'PUT', url: `/admin/puzzles/${puzzleId}/tier`, headers: h, payload: { tierId } })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'GET', url: '/admin/puzzles', headers: h })).json().puzzles[0].tierId).toBe(tierId);
+    expect((await app.inject({ method: 'PUT', url: `/admin/puzzles/${puzzleId}/tier`, headers: h, payload: { tierId: '00000000-0000-7000-a000-0000000000ff' } })).json()).toEqual({ error: 'unknown_tier' });
+    await app.inject({ method: 'DELETE', url: `/admin/puzzles/tiers/${tierId}`, headers: h });
+    expect((await app.inject({ method: 'GET', url: '/admin/puzzles', headers: h })).json().puzzles[0].tierId).toBeNull();
+  });
+
+  it('can create a puzzle straight into a tier', async () => {
+    const { app, h } = boot();
+    const tiers = (await app.inject({ method: 'GET', url: '/admin/puzzles/tiers', headers: h })).json().tiers as { id: string }[];
+    await app.inject({ method: 'POST', url: '/admin/puzzles', headers: h, payload: { groups: groupsOf(ids), tierId: tiers[0]!.id } });
+    expect((await app.inject({ method: 'GET', url: '/admin/puzzles', headers: h })).json().puzzles[0].tierId).toBe(tiers[0]!.id);
+  });
+});
