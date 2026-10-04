@@ -6,19 +6,19 @@ import { breadcrumbList, description, graphScript } from '../seo.js';
 import { buildLanding } from '../server.js';
 
 const DATA: LandingData = {
-  site: { name: 'دوزاری', tagline: 'بازی نوستالژی قیمت‌ها', heroTitle: 'قیمت‌های قدیمی را حدس بزن', heroText: 'دوزاری یک بازی آنلاین فارسی است.', contactEmail: null, instagram: 'https://instagram.com/dozari', channel: null, androidApp: null, appUrl: 'https://mrbots.ir', domains: { app: 'mrbots.ir', landing: 'mrdozari.ir', short: '2oi.ir' } },
+  site: { name: 'دوزاری', tagline: 'بازی نوستالژی قیمت‌ها', heroTitle: 'قیمت‌های قدیمی را حدس بزن', heroText: 'دوزاری یک بازی آنلاین فارسی است.', contactEmail: null, instagram: 'https://instagram.com/dozari', channel: null, androidApp: null, appUrl: 'https://mrbots.ir', domains: { app: 'mrbots.ir', landing: 'mrdozari.ir', short: '2oi.ir' }, seo: { title: null, description: null, keywords: [], ogImage: null, ogImageAlt: null, sameAs: [], fontUrl: null, indexable: true, verify: { google: null, bing: null, yandex: null } } },
   cast: [{ id: 'c1', name: 'دوزاری', role: 'راهنمای بازار', bio: 'نگهبان بازار است.', image: 'dozari' }],
   faq: [{ question: 'دوزاری چیست؟', answer: 'یک بازی فارسی است.' }],
 };
 const POST: Post = { slug: 'نان-۱۳۵۰', title: 'قیمت نان در ۱۳۵۰', summary: 'نان چند بود؟', coverUrl: null, author: 'تحریریه', publishedAt: Date.UTC(2026, 8, 1), updatedAt: Date.UTC(2026, 8, 5), bodyMd: '## نان\nنان ارزان بود.\n\n## شیر\nشیر هم.\n\n## چای\nچای هم.\n\n- یک\n- دو', metaTitle: null, metaDescription: null };
 
 /** A fake game server: `fail` makes every call error out. */
-function fakeApi(state: { fail?: boolean } = {}, posts: Post[] = [POST], redirects: Record<string, string> = {}) {
+function fakeApi(state: { fail?: boolean } = {}, posts: Post[] = [POST], redirects: Record<string, string> = {}, data: LandingData = DATA) {
   const fetcher = async (url: string) => {
     if (state.fail) throw new Error('down');
     const path = url.replace(/^https?:\/\/[^/]+/, '');
     const json = (v: unknown, status = 200) => ({ ok: status < 400, status, json: async () => v });
-    if (path === '/public/landing') return json(DATA);
+    if (path === '/public/landing') return json(data);
     if (path.startsWith('/public/posts?')) {
       const q = new URLSearchParams(path.split('?')[1]);
       const page = Number(q.get('page') ?? 1);
@@ -172,3 +172,48 @@ function fakeApiFetcher(state: { fail?: boolean }) {
     return { ok: true, status: 200, json: async () => DATA };
   };
 }
+
+describe('admin-set SEO (group «سئو و سایت معرفی»)', () => {
+  const withSeo = (seo: Partial<LandingData['site']['seo']>): LandingData => ({ ...DATA, site: { ...DATA.site, seo: { ...DATA.site.seo, ...seo } } });
+  const boot = (data: LandingData) => buildLanding({ api: fakeApi({}, [POST], {}, data), siteUrl: 'https://mrdozari.ir' });
+  type Node = { '@type': string; sameAs?: string[]; keywords?: string };
+
+  it('uses the home title and description, the og image with its alt text, verification tags and extra sameAs', async () => {
+    const html = (await boot(withSeo({ title: 'دوزاری | بازی قیمت‌های قدیمی', description: 'توضیح دلخواه من', ogImage: 'https://cdn.example/og.png', ogImageAlt: 'کارت دوزاری', sameAs: ['https://aparat.com/dozari'], keywords: ['دوزاری', 'قیمت قدیم'], verify: { google: 'abc123', bing: 'bing-1', yandex: 'yan_2' } })).inject({ method: 'GET', url: '/' })).body;
+    expect(html).toContain('<title>دوزاری | بازی قیمت‌های قدیمی</title>');
+    expect(html).toContain('<meta name="description" content="توضیح دلخواه من">');
+    expect(html).toContain('<meta property="og:image" content="https://cdn.example/og.png">');
+    expect(html).toContain('<meta property="og:image:alt" content="کارت دوزاری">');
+    expect(html).toContain('<meta name="google-site-verification" content="abc123">');
+    expect(html).toContain('<meta name="msvalidate.01" content="bing-1">');
+    expect(html).toContain('<meta name="yandex-verification" content="yan_2">');
+    const graph = jsonLd(html)[0]['@graph'] as Node[];
+    expect(graph.find((n) => n['@type'] === 'Organization')?.sameAs).toContain('https://aparat.com/dozari');
+    expect(graph.find((n) => n['@type'] === 'WebSite')?.keywords).toBe('دوزاری, قیمت قدیم');
+  });
+
+  it('adds the web font only when a font address is set', async () => {
+    const plain = (await boot(DATA).inject({ method: 'GET', url: '/' })).body;
+    expect(plain).not.toContain('@font-face');
+    const html = (await boot(withSeo({ fontUrl: 'https://mrdozari.ir/fonts/v.woff2' })).inject({ method: 'GET', url: '/' })).body;
+    expect(html).toContain('rel="preload" href="https://mrdozari.ir/fonts/v.woff2"');
+    expect(html).toContain('@font-face');
+  });
+
+  it('closes the whole site while indexing is off, and opens it again', async () => {
+    const closed = boot(withSeo({ indexable: false }));
+    expect((await closed.inject({ method: 'GET', url: '/robots.txt' })).body).toBe('User-agent: *\nDisallow: /\n');
+    expect((await closed.inject({ method: 'GET', url: '/' })).body).toContain('content="noindex, follow"');
+    expect((await closed.inject({ method: 'GET', url: '/sitemap.xml' })).body).not.toContain('/blog/');
+    expect((await boot(DATA).inject({ method: 'GET', url: '/' })).body).toContain('index, follow');
+  });
+
+  it('serves a plain brand card at /og.svg and uses it when no image is set', async () => {
+    const app = boot(DATA);
+    const svg = await app.inject({ method: 'GET', url: '/og.svg' });
+    expect(svg.statusCode).toBe(200);
+    expect(svg.headers['content-type']).toContain('image/svg+xml');
+    expect(svg.body).toContain('دوزاری');
+    expect((await app.inject({ method: 'GET', url: '/' })).body).toContain('content="https://mrdozari.ir/og.svg"');
+  });
+});

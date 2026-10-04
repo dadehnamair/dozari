@@ -62,4 +62,27 @@ describe('landing content', () => {
     expect(one.json().post.slug).toBe(saved.slug);
     expect((await app.inject({ method: 'GET', url: '/public/posts/none' })).statusCode).toBe(404);
   });
+
+  it('publishes the admin-set SEO fields, keeping only safe values', async () => {
+    const settings = new SettingsService(createMemorySettingsStore());
+    const app = buildServer({ landing: new LandingService(createMemoryLandingStore()), settings });
+    const read = async () => (await app.inject({ method: 'GET', url: '/public/landing' })).json().site.seo;
+    expect(await read()).toMatchObject({ title: null, description: null, keywords: [], ogImage: null, sameAs: [], fontUrl: null, indexable: true, verify: { google: null, bing: null, yandex: null } });
+
+    await settings.set('landing.seo_title', 'عنوان من');
+    await settings.set('landing.keywords', 'دوزاری، قیمت قدیم, نوستالژی');
+    await settings.set('landing.og_image', 'https://cdn.example/og.png');
+    await settings.set('landing.same_as', 'https://aparat.com/dozari, javascript:alert(1), https://linkedin.com/company/dozari');
+    await settings.set('landing.indexable', '0');
+    await settings.set('seo.verify_google', 'abc_123-XYZ');
+    await settings.set('seo.verify_bing', '"><script>');
+    expect(await read()).toMatchObject({
+      title: 'عنوان من',
+      keywords: ['دوزاری', 'قیمت قدیم', 'نوستالژی'],
+      ogImage: 'https://cdn.example/og.png',
+      sameAs: ['https://aparat.com/dozari', 'https://linkedin.com/company/dozari'],
+      indexable: false,
+      verify: { google: 'abc_123-XYZ', bing: null, yandex: null },
+    });
+  });
 });

@@ -15,6 +15,14 @@ export interface Site {
   sameAs: string[];
   appUrl: string | null;
   androidApp: string | null;
+  /** Admin-set extras (group «سئو و سایت معرفی»); all optional. */
+  ogImage?: string | null;
+  ogImageAlt?: string | null;
+  keywords?: string[];
+  fontUrl?: string | null;
+  /** False = every page is noindex and robots.txt closes the site (pre-launch). */
+  indexable?: boolean;
+  verify?: { google: string | null; bing: string | null; yandex: string | null };
 }
 
 export interface Crumb {
@@ -56,9 +64,10 @@ export const ids = (site: Site) => ({ org: `${site.url}/#organization`, site: `$
 export function siteNodes(site: Site): Record<string, unknown>[] {
   const i = ids(site);
   const org: Record<string, unknown> = { '@type': 'Organization', '@id': i.org, name: site.name, url: `${site.url}/` };
+  if (site.ogImage) org.logo = site.ogImage;
   if (site.sameAs.length > 0) org.sameAs = site.sameAs;
   if (site.contactEmail) org.email = site.contactEmail;
-  return [org, { '@type': 'WebSite', '@id': i.site, url: `${site.url}/`, name: site.name, inLanguage: 'fa-IR', publisher: { '@id': i.org } }];
+  return [org, { '@type': 'WebSite', '@id': i.site, url: `${site.url}/`, name: site.name, inLanguage: 'fa-IR', publisher: { '@id': i.org }, ...(site.keywords && site.keywords.length > 0 ? { keywords: site.keywords.join(', ') } : {}) }];
 }
 
 export function breadcrumbList(site: Site, crumbs: Crumb[]): Record<string, unknown> {
@@ -82,14 +91,14 @@ export function faqNode(pairs: { question: string; answer: string }[]): Record<s
 /** Everything inside `<head>` for a page. */
 export function head(site: Site, h: HeadInput): string {
   const url = absolute(site, h.path);
-  const image = h.image ?? `${site.url}/og.svg`;
+  const image = h.image ?? site.ogImage ?? `${site.url}/og.svg`;
   const tags = [
     '<meta charset="utf-8">',
     '<meta name="viewport" content="width=device-width, initial-scale=1">',
     `<title>${escapeHtml(h.title)}</title>`,
     `<meta name="description" content="${escapeHtml(h.description)}">`,
     `<link rel="canonical" href="${escapeHtml(url)}">`,
-    `<meta name="robots" content="${h.noindex ? 'noindex, follow' : 'index, follow, max-image-preview:large'}">`,
+    `<meta name="robots" content="${h.noindex || site.indexable === false ? 'noindex, follow' : 'index, follow, max-image-preview:large'}">`,
     `<link rel="alternate" hreflang="fa-IR" href="${escapeHtml(url)}">`,
     `<link rel="alternate" hreflang="x-default" href="${escapeHtml(url)}">`,
     `<meta property="og:type" content="${h.type ?? 'website'}">`,
@@ -99,12 +108,17 @@ export function head(site: Site, h: HeadInput): string {
     `<meta property="og:description" content="${escapeHtml(h.description)}">`,
     `<meta property="og:url" content="${escapeHtml(url)}">`,
     `<meta property="og:image" content="${escapeHtml(image)}">`,
+    ...(site.ogImageAlt ? [`<meta property="og:image:alt" content="${escapeHtml(site.ogImageAlt)}">`, `<meta name="twitter:image:alt" content="${escapeHtml(site.ogImageAlt)}">`] : []),
     '<meta name="twitter:card" content="summary_large_image">',
     `<meta name="twitter:title" content="${escapeHtml(h.title)}">`,
     `<meta name="twitter:description" content="${escapeHtml(h.description)}">`,
     `<meta name="twitter:image" content="${escapeHtml(image)}">`,
     '<meta name="theme-color" content="#2B1240">',
   ];
+  if (site.verify?.google) tags.push(`<meta name="google-site-verification" content="${escapeHtml(site.verify.google)}">`);
+  if (site.verify?.bing) tags.push(`<meta name="msvalidate.01" content="${escapeHtml(site.verify.bing)}">`);
+  if (site.verify?.yandex) tags.push(`<meta name="yandex-verification" content="${escapeHtml(site.verify.yandex)}">`);
+  if (site.fontUrl) tags.push(`<link rel="preload" href="${escapeHtml(site.fontUrl)}" as="font" type="font/woff2" crossorigin>`, `<style>@font-face{font-family:"DozariWeb";src:url("${escapeHtml(site.fontUrl)}") format("woff2");font-display:swap}body{font-family:DozariWeb,Vazirmatn,Tahoma,system-ui,sans-serif}</style>`);
   if (h.publishedTime) tags.push(`<meta property="article:published_time" content="${new Date(h.publishedTime).toISOString()}">`);
   if (h.modifiedTime) tags.push(`<meta property="article:modified_time" content="${new Date(h.modifiedTime).toISOString()}">`);
   const nodes = [...siteNodes(site), ...(h.crumbs && h.crumbs.length > 1 ? [breadcrumbList(site, h.crumbs)] : []), ...(h.nodes ?? [])];

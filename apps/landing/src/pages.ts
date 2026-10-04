@@ -79,8 +79,8 @@ const HOW_TO = [
 export function homePage(site: Site, data: LandingData, latest: PostSummary[]): string {
   const { site: s, cast, faq } = data;
   const i = ids(site);
-  const title = `${s.name} — ${s.tagline}`;
-  const desc = description(s.heroText || s.tagline);
+  const title = s.seo?.title || `${s.name} — ${s.tagline}`;
+  const desc = description(s.seo?.description || s.heroText || s.tagline);
   const nodes: Record<string, unknown>[] = [
     { '@type': 'WebPage', '@id': `${site.url}/#webpage`, url: `${site.url}/`, name: title, description: desc, inLanguage: 'fa-IR', isPartOf: { '@id': i.site }, about: { '@id': i.org } },
     {

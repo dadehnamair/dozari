@@ -12,6 +12,16 @@ Server-rendered HTML (all content is in the markup, no scripts needed): `/`, `/b
 
 Rules built into `src/seo.ts` / `pages.ts`, the only places markup is made: exactly one `h1`; `<title>`, description, canonical, `og:*`, `twitter:*`, `robots`, `hreflang fa-IR / x-default`; one JSON-LD `@graph` per page with a single `Organization` and `WebSite` (only real facts — no invented ratings or addresses), page nodes (`WebPage`, `CollectionPage` + `ItemList`, `AboutPage`, `BlogPosting` with real dates, `HowTo`, `FAQPage`) and a `BreadcrumbList` on inner pages; every page is linked from the header, footer or a list; headings carry anchor ids (citable sections); post body is escaped Markdown (raw HTML never passes, unsafe links dropped). Tests: `apps/landing/src/__tests__`.
 
+## SEO fields in the admin panel (D180)
+
+Admin panel → settings → group «سئو و سایت معرفی» (`seo`): the `landing.*` texts, plus `landing.seo_title`, `landing.seo_description`
+(home `<title>` / description; empty = built from name, tagline and hero text), `landing.keywords` (JSON-LD `keywords` of the WebSite),
+`landing.og_image` + `landing.og_image_alt` (every page's `og:image`; empty = the generated card at `/og.svg`), `landing.same_as`
+(more official profile URLs for `sameAs`, http(s) only), `landing.font_url` (a self-hosted woff2 → `@font-face` + preload; no Google
+fonts), `landing.indexable` (off = every page `noindex`, `robots.txt` closes the site, the sitemap lists no posts) and the
+site-verification codes `seo.verify_google|bing|yandex` (letters, digits, `-`, `_` only; emitted as the matching `<meta>`).
+They reach `apps/landing` through `site.seo` of `GET /public/landing`. Links and domains (`link.*`, `domain.*`) are in the group «مدیریت اپ».
+
 ## Waiting for the owner
 
-The owner's Laravel SEO/GEO spreadsheet (page copy, keywords, schema choices) — it will refine copy and may add pages; DNS and the reverse-proxy forward for `mrdozari.ir` (`docs/deploy.md`); a raster `og:image` (`/og.svg` is only a placeholder address until one exists); a real font file for web fonts (no Google fonts, rule 8; pages use the system Persian font stack).
+The owner's Laravel SEO/GEO spreadsheet (page copy, keywords, schema choices) — it will refine copy and may add pages; DNS and the reverse-proxy forward for `mrdozari.ir` (`docs/deploy.md`); the values of the fields above (a raster `og:image`, the font file URL, the verification codes) — all are set in the admin panel, no code change.

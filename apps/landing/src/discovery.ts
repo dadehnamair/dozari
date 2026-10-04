@@ -8,6 +8,7 @@ const iso = (ms: number): string => new Date(ms).toISOString();
 
 /** `sitemap.xml`: every indexable page with its real last-modified time and `hreflang` alternates; noindex pages never appear. */
 export function sitemap(site: Site, posts: PostSummary[]): string {
+  if (site.indexable === false) posts = [];
   const latest = posts.reduce((m, p) => Math.max(m, p.updatedAt), 0);
   const urls: { path: string; lastmod?: number }[] = [{ path: '/', lastmod: latest || undefined }, { path: '/blog', lastmod: latest || undefined }, { path: '/cast' }, ...posts.map((p) => ({ path: `/blog/${encodeURIComponent(p.slug)}`, lastmod: p.updatedAt }))];
   const entries = urls
@@ -19,10 +20,16 @@ export function sitemap(site: Site, posts: PostSummary[]): string {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${entries}\n</urlset>\n`;
 }
 
+/** A plain brand card (1200x630) served at `/og.svg` until the owner sets a real `landing.og_image` in the admin panel. */
+export function ogCard(site: Site): string {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630"><rect width="1200" height="630" fill="#2B1240"/><rect x="40" y="40" width="1120" height="550" rx="48" fill="#40166A" stroke="#FFC93C" stroke-width="8"/><text x="600" y="300" text-anchor="middle" font-family="Vazirmatn,Tahoma,sans-serif" font-size="140" font-weight="800" fill="#FFC93C">${xml(site.name)}</text><text x="600" y="410" text-anchor="middle" font-family="Vazirmatn,Tahoma,sans-serif" font-size="52" fill="#FFF6E8">${xml(site.tagline)}</text></svg>`;
+}
+
 /** AI crawlers named explicitly so the permission is visible; nothing on this site is private. */
 export const AI_AGENTS = ['GPTBot', 'OAI-SearchBot', 'ChatGPT-User', 'ClaudeBot', 'Claude-User', 'Claude-SearchBot', 'PerplexityBot', 'Perplexity-User', 'Google-Extended', 'Applebot-Extended'] as const;
 
 export function robots(site: Site): string {
+  if (site.indexable === false) return 'User-agent: *\nDisallow: /\n';
   const groups = ['*', ...AI_AGENTS].map((a) => `User-agent: ${a}\nAllow: /`).join('\n\n');
   return `${groups}\n\nSitemap: ${absolute(site, '/sitemap.xml')}\n`;
 }

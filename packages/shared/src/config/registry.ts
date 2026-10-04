@@ -29,7 +29,7 @@ import { LEVEL_MAX, NICKNAME_MAX_LEN, NICKNAME_MIN_LEN, XP_CURVE_BASE, XP_DUEL_B
  * Every tunable the admin panel can change. The defaults come from the constants in `config/*.ts` (CLAUDE.md rule 9);
  * an override is a row in `app_settings`. Values are integers or short lists of integers (stored as "1,2,3,4", no JSON).
  */
-export const SETTING_GROUPS = ['app', 'gameplay', 'scoring', 'profile', 'economy', 'chart', 'bot', 'notify', 'review'] as const;
+export const SETTING_GROUPS = ['app', 'gameplay', 'scoring', 'profile', 'economy', 'chart', 'bot', 'notify', 'review', 'seo'] as const;
 export type SettingGroup = (typeof SETTING_GROUPS)[number];
 
 export interface SettingDef {
@@ -126,11 +126,22 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'domain.api', group: 'app', label: 'دامنه‌ی سرور (API)', kind: 'text', min: 0, max: 100, default: 'api.mrbots.ir' },
   { key: 'domain.landing', group: 'app', label: 'دامنه‌ی سایت معرفی و بلاگ', kind: 'text', min: 0, max: 100, default: 'mrdozari.ir' },
   { key: 'domain.short', group: 'app', label: 'دامنه‌ی لینک کوتاه', hint: 'درخواست‌هایی که با این دامنه برسند به لینک کوتاه تبدیل می‌شوند', kind: 'text', min: 0, max: 100, default: '2oi.ir' },
-  { key: 'landing.site_name', group: 'app', label: 'نام سایت معرفی', kind: 'text', min: 1, max: 60, default: 'دوزاری' },
-  { key: 'landing.tagline', group: 'app', label: 'شعار سایت معرفی', kind: 'text', min: 0, max: 120, default: 'بازی نوستالژی قیمت‌ها' },
-  { key: 'landing.hero_title', group: 'app', label: 'تیتر اصلی صفحه‌ی اول سایت معرفی', kind: 'text', min: 0, max: 120, default: 'قیمت‌های قدیمی را حدس بزن، با دوستانت بازی کن' },
-  { key: 'landing.hero_text', group: 'app', label: 'متن زیر تیتر صفحه‌ی اول', hint: 'جمله‌ی اول باید مستقیم بگوید بازی چیست', kind: 'text', min: 0, max: 400, default: 'دوزاری یک بازی آنلاین فارسی است: ۱۶ کالا را در ۴ دسته‌ی چهارتایی بر اساس قیمت‌های واقعی سال‌های گذشته ایران گروه‌بندی می‌کنی، تکی یا زنده با دوستانت.' },
-  { key: 'landing.contact_email', group: 'app', label: 'ایمیل تماس سایت معرفی', hint: 'خالی = نشان داده نمی‌شود', kind: 'text', min: 0, max: 120, default: '' },
+  { key: 'landing.site_name', group: 'seo', label: 'نام سایت معرفی', kind: 'text', min: 1, max: 60, default: 'دوزاری' },
+  { key: 'landing.tagline', group: 'seo', label: 'شعار سایت معرفی', kind: 'text', min: 0, max: 120, default: 'بازی نوستالژی قیمت‌ها' },
+  { key: 'landing.hero_title', group: 'seo', label: 'تیتر اصلی صفحه‌ی اول سایت معرفی', kind: 'text', min: 0, max: 120, default: 'قیمت‌های قدیمی را حدس بزن، با دوستانت بازی کن' },
+  { key: 'landing.hero_text', group: 'seo', label: 'متن زیر تیتر صفحه‌ی اول', hint: 'جمله‌ی اول باید مستقیم بگوید بازی چیست', kind: 'text', min: 0, max: 400, default: 'دوزاری یک بازی آنلاین فارسی است: ۱۶ کالا را در ۴ دسته‌ی چهارتایی بر اساس قیمت‌های واقعی سال‌های گذشته ایران گروه‌بندی می‌کنی، تکی یا زنده با دوستانت.' },
+  { key: 'landing.contact_email', group: 'seo', label: 'ایمیل تماس سایت معرفی', hint: 'خالی = نشان داده نمی‌شود', kind: 'text', min: 0, max: 120, default: '' },
+  { key: 'landing.seo_title', group: 'seo', label: 'عنوان گوگل صفحه‌ی اول (title)', hint: 'حدود ۶۰ نویسه؛ خالی = از نام و شعار ساخته می‌شود', kind: 'text', min: 0, max: 90, default: '' },
+  { key: 'landing.seo_description', group: 'seo', label: 'توضیح گوگل صفحه‌ی اول (description)', hint: 'حدود ۱۵۵ نویسه؛ خالی = از متن زیر تیتر ساخته می‌شود', kind: 'text', min: 0, max: 220, default: '' },
+  { key: 'landing.keywords', group: 'seo', label: 'کلیدواژه‌های سایت', hint: 'با ویرگول جدا کن؛ در داده‌ی ساخت‌یافته‌ی سایت (JSON-LD) می‌آید، نه متای keywords', kind: 'text', min: 0, max: 300, default: '' },
+  { key: 'landing.og_image', group: 'seo', label: 'تصویر اشتراک‌گذاری (og:image)', hint: 'آدرس کامل یک عکس PNG/JPG حدود ۱۲۰۰×۶۳۰؛ خالی = یک کارت ساده‌ی خودکار', kind: 'text', min: 0, max: 300, default: '' },
+  { key: 'landing.og_image_alt', group: 'seo', label: 'متن جایگزین تصویر اشتراک‌گذاری', kind: 'text', min: 0, max: 200, default: '' },
+  { key: 'landing.same_as', group: 'seo', label: 'نشانی‌های دیگر پروفایل رسمی', hint: 'مثل اینستاگرام، آپارات، لینکدین؛ با ویرگول جدا کن (به sameAs می‌رود)', kind: 'text', min: 0, max: 400, default: '' },
+  { key: 'landing.font_url', group: 'seo', label: 'آدرس فایل فونت وب (woff2)', hint: 'روی سرور خودت؛ خالی = فونت فارسی سیستم. از فونت‌های گوگل استفاده نکن', kind: 'text', min: 0, max: 300, default: '' },
+  { key: 'landing.indexable', group: 'seo', label: 'موتورهای جستجو سایت را ایندکس کنند', hint: 'خاموش = همه‌ی صفحه‌ها noindex و robots.txt همه چیز را می‌بندد (برای پیش از راه‌اندازی)', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'seo.verify_google', group: 'seo', label: 'کد تأیید مالکیت سرچ‌کنسول گوگل', hint: 'فقط مقدار content تگ google-site-verification', kind: 'text', min: 0, max: 100, default: '' },
+  { key: 'seo.verify_bing', group: 'seo', label: 'کد تأیید مالکیت Bing', hint: 'مقدار content تگ msvalidate.01', kind: 'text', min: 0, max: 100, default: '' },
+  { key: 'seo.verify_yandex', group: 'seo', label: 'کد تأیید مالکیت Yandex', hint: 'مقدار content تگ yandex-verification', kind: 'text', min: 0, max: 100, default: '' },
   { key: 'gate.phone_only', group: 'app', label: 'مرورگر کامپیوتر فقط کارت «با گوشی بیا» + QR ببیند', hint: 'گوشی اندروید کارت دانلود و آیفون راهنمای نصب می‌بیند؛ هر کدام دکمه‌ی «ادامه با مرورگر» دارند', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'link.app_url', group: 'app', label: 'آدرس بازی برای QR (خالی = همان صفحه)', kind: 'text', min: 0, max: 200, default: '' },
   { key: 'link.android_app', group: 'app', label: 'لینک دانلود برنامه‌ی اندروید', hint: 'خالی = دکمه‌ی دانلود نشان داده نمی‌شود', kind: 'text', min: 0, max: 300, default: '' },
