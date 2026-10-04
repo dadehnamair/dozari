@@ -222,8 +222,8 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
         </View>
 
         <View style={styles.buttons}>
-          <SlabButton label={h.play} color={colors.candy.lime} onPress={onSolo} />
-          {second ? <SlabButton label={second.label} color={second.color} badge={second.badge} onPress={second.onPress} /> : null}
+          <SlabButton label={h.play} color={colors.candy.lime} icon="puzzle" onPress={onSolo} />
+          {second ? <SlabButton label={second.label} color={second.color} badge={second.badge} icon="swords" onPress={second.onPress} /> : null}
         </View>
       </View>
 
