@@ -10,13 +10,13 @@
     "lint": "eslint . --max-warnings=0",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx --env-file=../../.env src/migrate.ts",
-    "seed": "tsx --env-file=../../.env src/seed/run.ts",
-    "demo:puzzle": "tsx --env-file=../../.env src/seed/demo-puzzle.ts",
-    "demo:puzzle:remove": "tsx --env-file=../../.env src/seed/demo-puzzle.ts --remove",
+    "db:migrate": "tsx --env-file=../../.env.prod src/migrate.ts",
+    "seed": "tsx --env-file=../../.env.prod src/seed/run.ts",
+    "demo:puzzle": "tsx --env-file=../../.env.prod src/seed/demo-puzzle.ts",
+    "demo:puzzle:remove": "tsx --env-file=../../.env.prod src/seed/demo-puzzle.ts --remove",
     "seed:check": "tsx src/seed/run.ts --check",
-    "seed:remove-sample": "tsx --env-file=../../.env src/seed/run.ts --remove-sample",
-    "images:upload": "tsx --env-file=../../.env src/seed/upload-images.ts"
+    "seed:remove-sample": "tsx --env-file=../../.env.prod src/seed/run.ts --remove-sample",
+    "images:upload": "tsx --env-file=../../.env.prod src/seed/upload-images.ts"
   },
   "dependencies": {
     "@dozari/shared": "workspace:*",
