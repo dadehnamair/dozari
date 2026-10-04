@@ -25,10 +25,10 @@ describe('device gate', () => {
     expect(gateVerdict({ ...base, escaped: true })).toBe('pass');
   });
   it('only trusts web addresses for the QR and the download', () => {
-    expect(appAddress('https://mrbots.ir', 'https://x.test')).toBe('https://mrbots.ir');
+    expect(appAddress('https://2oi.ir', 'https://x.test')).toBe('https://2oi.ir');
     expect(appAddress('javascript:alert(1)', 'https://x.test')).toBe('https://x.test');
     expect(appAddress('', 'https://x.test')).toBe('https://x.test');
-    expect(downloadLink('https://mrbots.ir/app.apk')).toBe('https://mrbots.ir/app.apk');
+    expect(downloadLink('https://2oi.ir/app.apk')).toBe('https://2oi.ir/app.apk');
     expect(downloadLink('ftp://x')).toBeNull();
     expect(downloadLink(undefined)).toBeNull();
   });

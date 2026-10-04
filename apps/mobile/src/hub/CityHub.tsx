@@ -76,6 +76,10 @@ export function CityHub({ onClose, onEnter, features, dailyReady }: { onClose: (
             </G>
           </Svg>
 
+          {/* The drawing of each building is a tap target too (like its plate): both raise the same bottom drawer. */}
+          {HUB_BUILDINGS.map((b) => (
+            <Pressable key={`art-${b.key}`} onPress={() => setSel(b)} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{ position: 'absolute', left: (b.x - b.w / 2 - 6) * k, top: (b.by - b.h - 26) * k, width: (b.w + 12) * k, height: (b.h + 34) * k }} />
+          ))}
           {HUB_BUILDINGS.map((b) => {
             const info = t.buildings[b.key];
             const badge = b.key === 'tower' && dailyReady ? t.isNew : b.key === 'caravan' && features.tournament ? t.live : null;

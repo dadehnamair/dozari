@@ -1,6 +1,6 @@
 /** `EXPO_PUBLIC_API_URL` wins; otherwise a dev bundle talks to the local server and a release build to production. */
 const DEV = typeof __DEV__ !== 'undefined' && __DEV__;
-export const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? (DEV ? 'http://localhost:3000' : 'https://api.mrbots.ir');
+export const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? (DEV ? 'http://localhost:3000' : 'https://api.2oi.ir');
 
 import { reportServer } from './health';
 
