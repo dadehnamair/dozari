@@ -584,3 +584,7 @@ Owner: on the phone the logo did not animate and sat to the left. Likely cause: 
 ## D194 — Hub drawer slides up and down (2026-10-04)
 
 Owner: the building drawer of the city hub appeared at once. It now rises from the bottom (320 ms, ease-out) with the dim layer fading in, and sinks again on close (220 ms); «حرکت کمتر» keeps it instant. Native driver only. Not seen on a phone yet.
+
+## D195 — Hub drawer is a full bordered card; animated logo has pixel sizes (2026-10-04)
+
+Owner: the hub drawer had only a purple border on top (a top-only border with rounded corners draws as a tapering crescent on Android), and the splash logo sat a little left of the centre. The drawer is now a floating card (10 px from the sides, 12 px from the bottom) with a 4 px ink border all round, a hard shadow and fully rounded corners. The animated logo's SVG gets the box's pixel width / height instead of `100%`, as the static wordmark has, so its viewBox is centred the same way. Not seen on a phone yet.

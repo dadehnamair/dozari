@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
   hint: { position: 'absolute', top: 92, left: 0, right: 0, alignItems: 'center' },
   hintText: { paddingHorizontal: 14, paddingVertical: 5, borderRadius: 99, borderWidth: 2, borderColor: colors.ink, backgroundColor: '#FFF6E8', fontFamily: fonts.bold, fontSize: 12, color: colors.ink, overflow: 'hidden' },
   dim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(26,8,44,0.35)' },
-  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: ROW, alignItems: 'flex-end', gap: 10, paddingTop: 18, paddingHorizontal: 16, paddingBottom: 26, borderTopLeftRadius: 30, borderTopRightRadius: 30, borderTopWidth: 4, borderColor: colors.ink, backgroundColor: '#FBF1DE' },
+  sheet: { position: 'absolute', left: 10, right: 10, bottom: 12, flexDirection: ROW, alignItems: 'flex-end', gap: 10, paddingTop: 16, paddingHorizontal: 14, paddingBottom: 14, borderRadius: 30, borderWidth: 4, borderColor: colors.ink, backgroundColor: '#FBF1DE', ...lift(5) },
   host: { width: 104, height: 120, marginTop: -50 },
   sheetBody: { flex: 1, gap: 6, minWidth: 0 },
   sheetHead: { flexDirection: ROW, alignItems: 'center', gap: 8 },
