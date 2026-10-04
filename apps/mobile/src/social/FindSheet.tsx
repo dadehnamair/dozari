@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Pressable, Share, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { FoundPlayer, MyFind } from '@dozari/shared';
 import { Avatar } from '../components/Avatar';
 import { CandyButton } from '../components/CandyButton';
@@ -14,6 +14,8 @@ import { useHardwareBack } from '../nav/useHardwareBack';
 import { TEXT_LEFT } from '../theme/direction';
 
 const INK = '#3A2418';
+/** iPhone browsers (Safari, Chrome) have no contact picker at all: offer the share sheet there instead of a button that can only fail. */
+const CONTACTS_OK = Platform.OS !== 'web' || !!(globalThis.navigator as unknown as { contacts?: unknown } | undefined)?.contacts;
 
 /** «پیدا کردن دوست»: my public ID and invite link, the phone-findability switch, and an exact search by ID or phone number. */
 export function FindSheet({ onClose }: { onClose: () => void }) {
@@ -72,8 +74,17 @@ export function FindSheet({ onClose }: { onClose: () => void }) {
           <TextInput value={q} onChangeText={setQ} autoCapitalize="characters" autoCorrect={false} maxLength={40} placeholder={fa.find.searchPlaceholder} style={styles.input} accessibilityLabel={fa.find.search} />
           <Pressable onPress={() => void search()} style={[styles.pill, styles.on]} accessibilityRole="button"><Text style={styles.pillText}>{fa.find.search}</Text></Pressable>
         </View>
-        <CandyButton label={fa.find.fromContacts} color={colors.candy.grape} onPress={() => void scanContacts()} />
-        <Text style={styles.hint}>{fa.find.contactsHint}</Text>
+        {CONTACTS_OK ? (
+          <>
+            <CandyButton label={fa.find.fromContacts} color={colors.candy.grape} onPress={() => void scanContacts()} />
+            <Text style={styles.hint}>{fa.find.contactsHint}</Text>
+          </>
+        ) : (
+          <>
+            <CandyButton label={fa.find.inviteViaShare} color={colors.candy.grape} onPress={share} />
+            <Text style={styles.hint}>{fa.find.inviteViaShareHint}</Text>
+          </>
+        )}
         {fromContacts && fromContacts.length === 0 ? <Text style={styles.hint}>{fa.find.contactsNone}</Text> : null}
         {fromContacts && fromContacts.length > 0 ? <Text style={styles.hint}>{fa.find.contactsFound(fromContacts.length)}</Text> : null}
         {(fromContacts ?? []).slice(0, 8).map((p) => (
