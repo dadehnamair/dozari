@@ -200,10 +200,10 @@ describe('admin-set SEO (group «سئو و سایت معرفی»)', () => {
 
   it('adds the web font only when a font address is set', async () => {
     const plain = (await boot(DATA).inject({ method: 'GET', url: '/' })).body;
-    expect(plain).not.toContain('@font-face');
+    expect(plain).not.toContain('DozariWeb');
     const html = (await boot(withSeo({ fontUrl: 'https://mrdozari.ir/fonts/v.woff2' })).inject({ method: 'GET', url: '/' })).body;
     expect(html).toContain('rel="preload" href="https://mrdozari.ir/fonts/v.woff2"');
-    expect(html).toContain('@font-face');
+    expect(html).toContain('DozariWeb');
   });
 
   it('closes the whole site while indexing is off, and opens it again', async () => {
@@ -263,5 +263,19 @@ describe('design pages: about, download, contact', () => {
     const html = (await buildLanding({ api: fakeApi(), siteUrl: 'https://mrdozari.ir' }).inject({ method: 'GET', url: '/contact' })).body;
     expect(html).toContain('FAQPage');
     expect(html).toContain('<details class="faq">');
+  });
+});
+
+describe('self-hosted fonts', () => {
+  const boot = () => buildLanding({ api: fakeApi(), siteUrl: 'https://mrdozari.ir' });
+  it('serves the bundled woff2 files and refuses any other name', async () => {
+    const app = boot();
+    const ok = await app.inject({ method: 'GET', url: '/fonts/Lalezar-Regular.woff2' });
+    expect(ok.statusCode).toBe(200);
+    expect(ok.headers['content-type']).toBe('font/woff2');
+    expect((await app.inject({ method: 'GET', url: '/fonts/..%2Fserver.ts' })).statusCode).toBe(404);
+    const home = await app.inject({ method: 'GET', url: '/' });
+    expect(home.body).toContain('/fonts/Lalezar-Regular.woff2');
+    expect(home.body).not.toContain('fonts.googleapis.com');
   });
 });

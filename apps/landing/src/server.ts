@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises';
 import Fastify from 'fastify';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import type { ContentApi, LandingData, Post, PostSummary } from './api.js';
@@ -50,6 +51,15 @@ export function buildLanding(opts: LandingOptions): FastifyInstance {
       /* the plain fallback above */
     }
     return send(reply, 503, html, 'no-store');
+  });
+
+  // Self-hosted fonts (rule 8): a fixed allow-list, so the name in the URL can never reach another file.
+  const FONTS = new Set(['Lalezar-Regular', 'Vazirmatn-400', 'Vazirmatn-800', 'Vazirmatn-900']);
+  app.get('/fonts/:file', async (req, reply) => {
+    const name = (req.params as { file: string }).file.replace(/\.woff2$/, '');
+    if (!FONTS.has(name)) return reply.code(404).send('not found');
+    const buf = await readFile(new URL(`../assets/fonts/${name}.woff2`, import.meta.url));
+    return reply.header('content-type', 'font/woff2').header('cache-control', 'public, max-age=31536000, immutable').send(buf);
   });
 
   app.get('/health', async () => ({ ok: true }));

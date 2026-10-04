@@ -7,15 +7,19 @@ import type { Crumb, Site } from './seo.js';
 export const faDate = (ms: number): string => new Intl.DateTimeFormat('fa-IR-u-ca-persian', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Tehran' }).format(ms);
 
 const CSS = `
-:root{--ink:#2B1240;--cream:#FFF6E8;--yellow:#FFC93C;--orange:#FF7A3D;--lime:#7ED957;--pink:#FF4D8D;--sky:#3FC1F0;--violet:#A66BF0}
+@font-face{font-family:Vazirmatn;src:url(/fonts/Vazirmatn-400.woff2) format("woff2");font-weight:400 700;font-display:swap}
+@font-face{font-family:Vazirmatn;src:url(/fonts/Vazirmatn-800.woff2) format("woff2");font-weight:800;font-display:swap}
+@font-face{font-family:Vazirmatn;src:url(/fonts/Vazirmatn-900.woff2) format("woff2");font-weight:900;font-display:swap}
+@font-face{font-family:Lalezar;src:url(/fonts/Lalezar-Regular.woff2) format("woff2");font-weight:400;font-display:swap}
+:root{--ink:#2B1240;--cream:#FFF6E8;--yellow:#FFC93C;--orange:#FF7A3D;--lime:#7ED957;--pink:#FF4D8D;--sky:#3FC1F0;--violet:#A66BF0;--display:Lalezar,Vazirmatn,Tahoma,sans-serif}
 *{box-sizing:border-box}html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
 body{margin:0;font-family:Vazirmatn,Tahoma,"Segoe UI",system-ui,sans-serif;background:var(--cream);color:var(--ink);line-height:1.9;font-size:17px}
 a{color:#7E46D6}a:hover{color:var(--pink)}
-h1,h2,h3{font-weight:900;margin:0}
+h1,h2,h3{font-family:var(--display);font-weight:400;margin:0}
 .wrap{max-width:1200px;margin:0 auto;padding:0 24px}
 header.top{position:sticky;top:0;z-index:20;background:var(--cream);border-bottom:4px solid var(--ink)}
 .bar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:12px 24px;max-width:1200px;margin:0 auto}
-.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink);font-weight:900;font-size:32px;line-height:1}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink);font-family:var(--display);font-weight:400;font-size:36px;line-height:1}
 .brand i{width:46px;height:46px;border-radius:50%;background:var(--yellow);border:3px solid var(--ink);display:grid;place-items:center;font-style:normal;font-size:24px}
 nav.main{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 nav.main a{font-weight:800;font-size:15px;padding:6px 14px;border-radius:999px;text-decoration:none;color:var(--ink);border:3px solid transparent}
@@ -75,7 +79,7 @@ footer.bottom .wrap{padding-top:48px;padding-bottom:24px}
 .fgrid{display:grid;gap:32px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
 footer.bottom h2{font-size:22px;margin:0 0 8px}footer.bottom ul{list-style:none;padding:0;margin:0}footer.bottom li{margin:4px 0}
 footer.bottom a{color:var(--cream);text-decoration:none;font-weight:600}footer.bottom a:hover{color:var(--yellow)}
-footer.bottom .brandname{font-size:38px;font-weight:900;color:var(--yellow);line-height:1.2}
+footer.bottom .brandname{font-family:var(--display);font-size:42px;font-weight:400;color:var(--yellow);line-height:1.2}
 .legal{margin-top:28px;padding-top:16px;border-top:2px solid rgba(255,246,232,.2);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:13px;opacity:.75;font-weight:600}
 @media(max-width:560px){.band .wrap{padding-top:36px;padding-bottom:36px}.promo{padding:24px}}
 `;
