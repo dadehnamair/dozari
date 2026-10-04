@@ -96,6 +96,10 @@ BEFORE YOU FINISH
 1. Put the file(s) in `packages/db/seed/products/` (any `*.json`; every file in the folder is loaded).
 2. Validate: `pnpm --filter @dozari/db seed:check` → `seed ok: N products …`
 3. Load (idempotent — re-running updates in place by `slug` and `(slug, year, month)`): `pnpm --filter @dozari/db seed`
+   - **Inside the production container** the `pnpm … seed` script fails (`../../.env: not found`: the env is already injected, there is no .env file).
+     Run the runner directly: `cd /app/packages/db && pnpm exec tsx src/seed/run.ts --check`, then `pnpm exec tsx src/seed/run.ts`.
+     The new JSON must exist inside the image: `git pull` on the host, then `docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build`
+     (with `SEED_ON_START=1` the seed service loads it automatically), or `docker cp file.json c-dozari-server:/app/packages/db/seed/products/`.
    - On the production host, see `docs/deploy.md` §seed (`SEED_ON_START=1` re-runs the seed on every `up -d --build`;
      the default `empty` mode only seeds an empty DB).
    - Remove placeholder data once real data is in: `pnpm --filter @dozari/db seed:remove-sample`.
