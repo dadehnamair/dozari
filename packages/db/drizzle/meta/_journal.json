@@ -372,6 +372,13 @@
       "when": 1791093691270,
       "tag": "0052_sloppy_star_brand",
       "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "5",
+      "when": 1791094354986,
+      "tag": "0053_luxuriant_frightful_four",
+      "breakpoints": true
     }
   ]
 }

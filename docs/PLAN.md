@@ -169,11 +169,11 @@ human opponent is found.
 
 ## Phase 7 — UGC phase 1 (single item suggestions)
 
-- [ ] 🗄 `ugc_submissions`, `ugc_votes`
-- [ ] 🖥 Submit item (name, year, price, source, photo), vote, admin approve → product/price_point
-- [ ] 📱 "Suggest an item" form + "Review suggestions" voting feed — reachable from its **own
-      card on the Home screen**, alongside the mode cards (owner decision, 2026-09-27)
-- [ ] Coin reward on approval (ledger)
+- [x] 🗄 `ugc_submissions`, `ugc_votes` (+ `user_reports`) — D177
+- [x] 🖥 Submit item (name, year, price, source — photo not yet), vote, admin approve → product/price_point
+- [x] 📱 "Suggest an item" form + "Review suggestions" voting feed — reached from the hub's «مکتب‌خانه» building (D177); price links on result/lookup open the same form
+- [ ] 📱 Own Home-screen card for it (owner decision 2026-09-27) — the hub building stands in for now
+- [x] Coin reward on approval (ledger, `ugc.reward_coins`)
 - [ ] `apps/admin` minimal moderation panel (or protected Expo web routes)
 
 ## Phase 8 — Launch hardening

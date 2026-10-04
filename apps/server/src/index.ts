@@ -6,7 +6,7 @@ import { resolve } from 'node:path';
 import { rialsToTomanString } from '@dozari/shared';
 import { CHAT_RETENTION_DAYS, MISSION_KEYS, TOURNAMENT_TICK_SECONDS, WHEEL_SLICES_DEFAULT, scaleSlices } from '@dozari/shared';
 import type { HintRules, MissionKey } from '@dozari/shared';
-import { createDb } from '@dozari/db';
+import { createDb, products } from '@dozari/db';
 import { createDbCatalogRepository } from './catalog/db-repository.js';
 import { DailyRewardService } from './economy/daily-reward.js';
 import { createDbDailyRewardStore } from './economy/daily-reward-db.js';
@@ -120,6 +120,10 @@ import { createDbGemWallet, registerGemRoutes } from './economy/gems.js';
 import type { GemWalletReader } from './economy/gems.js';
 import { createDbProfileTaskStore } from './profile/tasks-store.js';
 import { BirthdayService, registerBirthdayRoutes } from './profile/birthday.js';
+import { FeedbackService } from './feedback/service.js';
+import { createDbFeedbackStore } from './feedback/store.js';
+import { registerFeedbackRoutes } from './feedback/routes.js';
+import { applyLedgerEntry } from './economy/ledger.js';
 import { createDbBirthdayStore } from './profile/birthday-store.js';
 import { ShopService } from './economy/shop.js';
 import { createDbShopStore } from './economy/shop-store.js';
@@ -214,6 +218,8 @@ export interface ServerDeps {
   profileTasks?: ProfileTaskService;
   /** Birth date, birthday week, yearly gift and friend messages (D160). */
   birthday?: BirthdayService;
+  /** Reports of players and the suggestion / vote / approve loop (D177). */
+  feedback?: FeedbackService;
   gems?: Pick<GemWalletReader, 'wallet'>;
   /** Coin packages bought with real money (`/coin-packages`, off by default); needs `auth`. */
   coinPackages?: CoinPackageService;
@@ -324,6 +330,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.levelRoad) registerRoadRoutes(app, deps.auth, deps.levelRoad);
   if (deps.auth && deps.profileTasks) registerProfileTaskRoutes(app, deps.auth, deps.profileTasks);
   if (deps.auth && deps.birthday) registerBirthdayRoutes(app, deps.auth, deps.birthday);
+  if (deps.auth && deps.feedback) registerFeedbackRoutes(app, deps.auth, deps.feedback);
   if (deps.auth && deps.gems) registerGemRoutes(app, deps.auth, deps.gems);
   if (deps.landing && deps.settings) registerLandingPublicRoutes(app, deps.landing, deps.settings);
   if (deps.shortLinks) registerShortLinkRoutes(app, deps.shortLinks);
@@ -532,6 +539,25 @@ if (isMainModule(import.meta.url)) {
           texts: { weekTitle: BIRTHDAY_TITLE.week, weekBody: BALE_TEXT.birthdayWeek, dayTitle: BIRTHDAY_TITLE.day, dayBody: BALE_TEXT.birthdayDay },
         })
       : undefined;
+  const productAdmin = db ? createDbProductAdmin(db) : undefined;
+  const feedback =
+    db && settings && productAdmin
+      ? new FeedbackService({
+          store: createDbFeedbackStore(db),
+          rules: async () => {
+            const [dailyLimit, voterMinGames, approveScore, rejectScore, rewardCoins, reportDailyLimit] = await Promise.all(['ugc.daily_limit', 'ugc.voter_min_games', 'ugc.approve_score', 'ugc.reject_score', 'ugc.reward_coins', 'report.daily_limit'].map((k) => settings.num(k)));
+            return { dailyLimit: dailyLimit!, voterMinGames: voterMinGames!, approveScore: approveScore!, rejectScore: rejectScore!, rewardCoins: rewardCoins!, reportDailyLimit: reportDailyLimit! };
+          },
+          games: async (id) => (player ? (await player.levelOf(id)).stats.games : 0),
+          userExists: async (id) => !!(await socialStore?.publicRow(id)),
+          products: async () => db.select({ id: products.id, nameFa: products.nameFa }).from(products),
+          reward: (userId, id, coins) => db.transaction(async (tx) => void (await applyLedgerEntry(tx, { userId, delta: coins, reason: 'ugc_reward', refType: 'ugc', refId: id, idempotencyKey: `ugc_reward:${id}` }))),
+          catalog: {
+            createProduct: (p) => productAdmin.create({ slug: p.slug, nameFa: p.nameFa, category: p.category, unitFa: p.unitFa }),
+            addPrice: (p) => productAdmin.addPrice({ productId: p.productId, year: p.year, month: null, priceRials: p.priceRials, sourceType: p.sourceType, sourceNote: p.sourceNote, confidence: p.confidence }),
+          },
+        })
+      : undefined;
   const duelStakes =
     db && settings
       ? new DuelStakes(createDbStakeStore(db), {
@@ -613,7 +639,7 @@ if (isMainModule(import.meta.url)) {
     auth,
     settings,
     adminModules: db
-      ? { products: createDbProductAdmin(db), stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, wheel, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, daily, puzzles: createDbPuzzleAdmin(db), levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      ? { products: productAdmin!, feedback, stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, wheel, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, daily, puzzles: createDbPuzzleAdmin(db), levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
     match: db
@@ -694,6 +720,7 @@ if (isMainModule(import.meta.url)) {
         : undefined,
     gems: db ? createDbGemWallet(db) : undefined,
     birthday,
+    feedback,
     profileTasks:
       db && settings
         ? new ProfileTaskService({
