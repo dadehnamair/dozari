@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TextInput, View } from 'react-native';
-import { formatPersianNumber, parseTomanInput } from '@dozari/shared';
+import { formatPersianNumber, groupTypedNumber, parseTomanInput } from '@dozari/shared';
 import type { SoloPriceResult, SoloPriceRounds } from '@dozari/shared';
 import { fa } from '../i18n/fa';
 import { fetchPriceRounds, guessPrice } from '../solo/api';
@@ -96,8 +96,8 @@ export function PriceRoundPanel({ sessionId, onDone }: { sessionId: string; onDo
         <>
           <View style={styles.inputRow}>
             <TextInput
-              value={text}
-              onChangeText={setText}
+              value={groupTypedNumber(text)}
+              onChangeText={(v) => setText(groupTypedNumber(v))}
               keyboardType="numeric"
               placeholder={p.placeholder}
               placeholderTextColor="rgba(255,255,255,0.4)"

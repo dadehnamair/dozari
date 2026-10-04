@@ -198,7 +198,7 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
             </Pressable>
 
             <View style={styles.grid}>
-              {tiles.map((x) => <HubTile key={x.key} icon={x.icon} label={x.label} color={x.color} badge={x.badge} onPress={x.onPress} />)}
+              {tiles.map((x) => <HubTile onLight key={x.key} icon={x.icon} label={x.label} color={x.color} badge={x.badge} onPress={x.onPress} />)}
             </View>
           </>
         ) : null}

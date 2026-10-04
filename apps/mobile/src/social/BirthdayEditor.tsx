@@ -59,9 +59,9 @@ export function BirthdayEditor({ onGift }: { onGift?: () => void }) {
         </Pressable>
       ) : null}
       <View style={styles.row}>
-        <TextInput value={year} onChangeText={setYear} placeholder={t.year} keyboardType="number-pad" maxLength={4} style={[styles.input, styles.year]} accessibilityLabel={t.year} />
-        <TextInput value={month} onChangeText={setMonth} placeholder={t.month} keyboardType="number-pad" maxLength={2} style={[styles.input, styles.small]} accessibilityLabel={t.month} />
-        <TextInput value={day} onChangeText={setDay} placeholder={t.day} keyboardType="number-pad" maxLength={2} style={[styles.input, styles.small]} accessibilityLabel={t.day} />
+        <TextInput value={toPersianDigits(year)} onChangeText={setYear} placeholder={t.year} keyboardType="number-pad" maxLength={4} style={[styles.input, styles.year]} accessibilityLabel={t.year} />
+        <TextInput value={toPersianDigits(month)} onChangeText={setMonth} placeholder={t.month} keyboardType="number-pad" maxLength={2} style={[styles.input, styles.small]} accessibilityLabel={t.month} />
+        <TextInput value={toPersianDigits(day)} onChangeText={setDay} placeholder={t.day} keyboardType="number-pad" maxLength={2} style={[styles.input, styles.small]} accessibilityLabel={t.day} />
       </View>
       <Pressable onPress={() => setShowAge((v) => !v)} style={styles.tick} accessibilityRole="checkbox" accessibilityState={{ checked: showAge }}>
         <View style={[styles.box2, showAge && styles.box2On]} />

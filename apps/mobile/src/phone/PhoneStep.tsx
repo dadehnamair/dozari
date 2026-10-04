@@ -103,7 +103,7 @@ export function PhoneStep({ onChange }: { onChange?: (s: PhoneStatus) => void })
               <Pressable onPress={() => void sms()} style={styles.pill} accessibilityRole="button"><Text style={styles.pillText}>{fa.phone.sendSms}</Text></Pressable>
               {smsSent ? (
                 <>
-                  <TextInput value={code} onChangeText={setCode} keyboardType="number-pad" maxLength={8} style={styles.input} accessibilityLabel={fa.phone.smsCode} />
+                  <TextInput value={toPersianDigits(code)} onChangeText={setCode} keyboardType="number-pad" maxLength={8} style={styles.input} accessibilityLabel={fa.phone.smsCode} />
                   <Pressable onPress={() => void verify()} style={[styles.pill, styles.on]} accessibilityRole="button"><Text style={styles.pillText}>{fa.phone.verify}</Text></Pressable>
                 </>
               ) : null}
@@ -113,7 +113,7 @@ export function PhoneStep({ onChange }: { onChange?: (s: PhoneStatus) => void })
       ) : null}
       {!status.verified ? (
         <View style={styles.row}>
-          <TextInput value={phone} onChangeText={setPhone} keyboardType="phone-pad" maxLength={20} placeholder={fa.phone.placeholder} style={styles.input} accessibilityLabel={fa.phone.title} />
+          <TextInput value={toPersianDigits(phone)} onChangeText={setPhone} keyboardType="phone-pad" maxLength={20} placeholder={fa.phone.placeholder} style={styles.input} accessibilityLabel={fa.phone.title} />
           <Pressable onPress={() => void save()} style={[styles.pill, styles.on]} accessibilityRole="button"><Text style={styles.pillText}>{fa.phone.save}</Text></Pressable>
         </View>
       ) : null}

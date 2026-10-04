@@ -121,9 +121,9 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
               <>
                 <View style={styles.friendTag}><Icon name="check" size={14} color="#fff" strokeWidth={4} /><Text style={styles.friendTagText}>{fa.player.friends}</Text></View>
                 <View style={styles.actions}>
-                  <HubTile icon="gift" label={fa.transfers.gift} color={colors.candy.lime} onPress={() => setSend('gift')} />
-                  <HubTile icon="wallet" label={fa.transfers.loan} color={colors.candy.orange} onPress={() => setSend('loan')} />
-                  <HubTile icon="trash" label={fa.player.unfriend} color={colors.candy.pink} onPress={() => ask({ title: fa.confirm.unfriend.title, message: fa.confirm.unfriend.message, confirmLabel: fa.confirm.unfriend.yes, onConfirm: act(removeFriend) })} />
+                  <HubTile onLight icon="gift" label={fa.transfers.gift} color={colors.candy.lime} onPress={() => setSend('gift')} />
+                  <HubTile onLight icon="wallet" label={fa.transfers.loan} color={colors.candy.orange} onPress={() => setSend('loan')} />
+                  <HubTile onLight icon="trash" label={fa.player.unfriend} color={colors.candy.pink} onPress={() => ask({ title: fa.confirm.unfriend.title, message: fa.confirm.unfriend.message, confirmLabel: fa.confirm.unfriend.yes, onConfirm: act(removeFriend) })} />
                 </View>
               </>
             )}

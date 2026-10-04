@@ -11,7 +11,7 @@ const SIZE = 54;
  * Hub corner tile of `docs/design/Dozari - 01 Screens` (screen-home): 54px rounded candy square with a radial
  * gloss, an ink-outlined white icon, the label under it and an optional corner badge.
  */
-export function HubTile({ icon, label, color, badge, badgeColor = colors.candy.pink, onPress }: { icon: IconName; label: string; color: string; badge?: string; badgeColor?: string; onPress: () => void }) {
+export function HubTile({ icon, label, color, badge, badgeColor = colors.candy.pink, onPress, onLight = false }: { icon: IconName; label: string; color: string; badge?: string; badgeColor?: string; onPress: () => void; onLight?: boolean }) {
   const tone = toneOf(color);
   const gid = `ht${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   return (
@@ -43,7 +43,7 @@ export function HubTile({ icon, label, color, badge, badgeColor = colors.candy.p
               <Text style={styles.badgeText}>{badge}</Text>
             </View>
           ) : null}
-          <Text style={styles.label} numberOfLines={1}>{label}</Text>
+          <Text style={[styles.label, onLight ? styles.labelOnLight : null]} numberOfLines={1}>{label}</Text>
         </>
       )}
     </Pressable>
@@ -51,6 +51,8 @@ export function HubTile({ icon, label, color, badge, badgeColor = colors.candy.p
 }
 
 const styles = StyleSheet.create({
+  /** For cream sheets (profile): the white-on-scene label would vanish. */
+  labelOnLight: { color: colors.ink, textShadowColor: 'transparent', textShadowRadius: 0 },
   wrap: { alignItems: 'center', gap: 3, width: 72 },
   tile: {
     width: SIZE,
