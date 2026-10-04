@@ -27,3 +27,5 @@ They reach `apps/landing` through `site.seo` of `GET /public/landing`. Links and
 ## Waiting for the owner
 
 The owner's Laravel SEO/GEO spreadsheet (page copy, keywords, schema choices) — it will refine copy and may add pages; DNS and the reverse-proxy forward for `mrdozari.ir` (`docs/deploy.md`); the values of the fields above (a raster `og:image`, the font file URL, the verification codes) — all are set in the admin panel, no code change.
+
+Cast members that have an `image` (admin-set) show it as a round photo on the home page and a card photo on `/cast`; without one the initial letter is used.

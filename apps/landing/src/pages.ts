@@ -45,6 +45,8 @@ h2{font-size:clamp(30px,4vw,44px);line-height:1.3;margin:1.4em 0 .4em;text-wrap:
 .steps .num{width:56px;height:56px;border-radius:50%;background:var(--yellow);border:3px solid var(--ink);display:grid;place-items:center;font-weight:900;font-size:28px}
 .cast{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;background:var(--ink);border-radius:36px;padding:28px 20px;list-style:none;margin:20px 0}
 .cast a{display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--cream);text-decoration:none;font-weight:800;min-width:110px}
+.cast img{width:84px;height:84px;border-radius:50%;object-fit:cover;background:var(--yellow);border:3px solid var(--cream)}
+.cast-photo{float:inline-start;width:96px;height:96px;border-radius:24px;object-fit:cover;border:3px solid var(--ink);margin-inline-end:14px;background:var(--yellow)}
 .cast b{width:84px;height:84px;border-radius:50%;background:var(--yellow);border:3px solid var(--cream);display:grid;place-items:center;font-size:36px;color:var(--ink)}
 .cards{display:grid;gap:20px;padding:0;list-style:none;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
 .card{background:#fff;border:4px solid var(--ink);border-radius:28px;padding:20px;box-shadow:0 6px 0 var(--ink)}.card h2,.card h3{margin:.1em 0}.card h3 a{color:var(--ink);text-decoration:none}.card h3 a:hover{color:var(--pink)}
@@ -172,7 +174,7 @@ export function homePage(site: Site, data: LandingData, latest: PostSummary[]): 
 <ul class="grid">${FEATURES.map(([ic, bg, t, d]) => `<li class="tile"><div class="ic" style="background:${bg}" aria-hidden="true">${ic}</div><h3>${escapeHtml(t)}</h3><p>${escapeHtml(d)}</p></li>`).join('')}</ul></section>
 <section class="band sky" style="border-block:4px solid var(--ink)"><div class="wrap"><h2 class="center" style="margin-top:0">${escapeHtml(s.name)} چطور بازی می‌شود؟</h2>
 <ol class="steps">${HOW_TO.map(([n, t], k) => `<li><span class="num" aria-hidden="true">${faNum(k + 1)}</span><h3>${escapeHtml(n)}</h3><p>${escapeHtml(t)}</p></li>`).join('')}</ol></div></section>
-${cast.length ? `<section class="wrap section"><h2 class="center" style="margin-top:0">با شخصیت‌های ${escapeHtml(s.name)} آشنا شو</h2><ul class="cast">${cast.slice(0, 8).map((c) => `<li><a href="/cast#${escapeHtml(c.id)}"><b aria-hidden="true">${escapeHtml([...c.name][0] ?? '')}</b>${escapeHtml(c.name)}</a></li>`).join('')}</ul><p class="center"><a href="/cast">معرفی کامل بازیگران دوزاری</a></p></section>` : ''}
+${cast.length ? `<section class="wrap section"><h2 class="center" style="margin-top:0">با شخصیت‌های ${escapeHtml(s.name)} آشنا شو</h2><ul class="cast">${cast.slice(0, 8).map((c) => `<li><a href="/cast#${escapeHtml(c.id)}">${c.image ? `<img src="${escapeHtml(c.image)}" alt="${escapeHtml(c.name)}" width="84" height="84" loading="lazy">` : `<b aria-hidden="true">${escapeHtml([...c.name][0] ?? '')}</b>`}${escapeHtml(c.name)}</a></li>`).join('')}</ul><p class="center"><a href="/cast">معرفی کامل بازیگران دوزاری</a></p></section>` : ''}
 ${latest.length ? `<section class="wrap" style="padding-bottom:24px"><h2 style="margin-top:0">تازه‌ترین مقاله‌های بلاگ</h2><ul class="cards">${latest.map(postCard).join('')}</ul><p><a href="/blog">همه‌ی مقاله‌های بلاگ دوزاری</a></p></section>` : ''}
 ${faq.length ? `<section class="wrap"><h2>پرسش‌های متداول</h2>${faqList(faq)}</section>` : ''}
 <section class="wrap"><div class="promo"><div><h2>همین حالا رایگان بازی کن</h2><p>روی گوشی یا همین مرورگر، بدون ثبت‌نام طولانی.</p></div><a class="btn alt" href="/download">دانلود ${escapeHtml(s.name)}</a></div></section>`;
@@ -287,7 +289,7 @@ export function castPage(site: Site, cast: CastMember[]): string {
   const desc = description(`با شخصیت‌ها و آدم‌های ${site.name} آشنا شو: کی راهنمای بازی است و هر کس چه نقشی دارد.`);
   const crumbs: Crumb[] = [{ name: 'صفحه‌ی اول', path: '/' }, { name: 'بازیگران' }];
   const nodes: Record<string, unknown>[] = [{ '@type': 'AboutPage', '@id': `${site.url}/cast#webpage`, url: absolute(site, '/cast'), name: title, description: desc, inLanguage: 'fa-IR', isPartOf: { '@id': ids(site).site } }];
-  const body = `<h1>بازیگران ${escapeHtml(site.name)}</h1><p>${escapeHtml(desc)}</p>${cast.length ? cast.map((c) => `<section class="card" id="${escapeHtml(c.id)}"><h2>${escapeHtml(c.name)}</h2>${c.role ? `<p class="meta">${escapeHtml(c.role)}</p>` : ''}<p>${escapeHtml(c.bio)}</p></section>`).join('') : '<p>به‌زودی معرفی می‌شوند.</p>'}`;
+  const body = `<h1>بازیگران ${escapeHtml(site.name)}</h1><p>${escapeHtml(desc)}</p>${cast.length ? cast.map((c) => `<section class="card" id="${escapeHtml(c.id)}">${c.image ? `<img class="cast-photo" src="${escapeHtml(c.image)}" alt="${escapeHtml(c.name)}" width="96" height="96" loading="lazy">` : ''}<h2>${escapeHtml(c.name)}</h2>${c.role ? `<p class="meta">${escapeHtml(c.role)}</p>` : ''}<p>${escapeHtml(c.bio)}</p></section>`).join('') : '<p>به‌زودی معرفی می‌شوند.</p>'}`;
   return layout(site, head(site, { title, description: desc, path: '/cast', nodes, crumbs }), crumbs, body);
 }
 
