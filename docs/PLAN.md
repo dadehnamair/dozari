@@ -129,13 +129,13 @@ human opponent is found.
 
 ## Phase 4-A — Profile screen (`logic/profile-and-identity.md`)
 
-- [ ] 🗄 `user_tags`, tag catalog table, `users.equipped_tag_id`, avatar/nickname gallery tables
+- [x] 🗄 Tags became badges/medals (D83: badge catalog, earned rows, one equipped badge); no separate `user_tags` table. Avatar/nickname galleries are content in the app (the avatar-unlock-by-games number `AVATAR_UNLOCK_GAMES` is only a config constant and is not enforced yet)
 - [x] 🖥 Play-count tracking + unlock checks (avatar @3 games, nickname @10 games)
 - [x] 🖥 Optional phone-link/OTP endpoint (account merge, not creation) — Iranian SMS provider (D18) — link in `phone/service.ts`, sign-in by number in `phone/login.ts`
 - [x] 📱 Profile screen: stats, match history, achievements/tags, chat-lock status + redeem CTA,
       invite/referral block (copyable code, share sheet, live tracker), phone-link button
 - [x] 📱 Share-invite action also reachable from the match-result screen
-- [ ] 🧪 Unlock-threshold tests; tag equip/unequip tests
+- [x] 🧪 Nickname unlock-threshold test (`player.test.ts`), badge equip/unequip tests (`badges.test.ts`)
 
 **Exit:** a returning player has a profile that shows real progress, not just a coin balance.
 
