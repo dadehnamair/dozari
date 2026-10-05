@@ -15,6 +15,7 @@ export interface Site {
   sameAs: string[];
   appUrl: string | null;
   androidApp: string | null;
+  badges?: { id: string; url: string | null }[];
   /** Admin-set extras (group «سئو و سایت معرفی»); all optional. */
   ogImage?: string | null;
   ogImageAlt?: string | null;
@@ -22,7 +23,7 @@ export interface Site {
   fontUrl?: string | null;
   /** False = every page is noindex and robots.txt closes the site (pre-launch). */
   indexable?: boolean;
-  verify?: { google: string | null; bing: string | null; yandex: string | null };
+  verify?: { google: string | null; bing: string | null; yandex: string | null; enamad?: string | null };
   /** Self-hosted analytics script (never a third-party service). */
   analytics?: { scriptUrl: string; siteId: string } | null;
 }
@@ -93,7 +94,7 @@ export function faqNode(pairs: { question: string; answer: string }[]): Record<s
 /** Everything inside `<head>` for a page. */
 export function head(site: Site, h: HeadInput): string {
   const url = absolute(site, h.path);
-  const image = h.image ?? site.ogImage ?? `${site.url}/og.svg`;
+  const image = h.image ?? site.ogImage ?? `${site.url}/banners/og.jpg`;
   const tags = [
     '<meta charset="utf-8">',
     '<meta name="viewport" content="width=device-width, initial-scale=1">',
@@ -116,9 +117,14 @@ export function head(site: Site, h: HeadInput): string {
     `<meta name="twitter:description" content="${escapeHtml(h.description)}">`,
     `<meta name="twitter:image" content="${escapeHtml(image)}">`,
     '<meta name="theme-color" content="#2B1240">',
+    '<link rel="icon" href="/favicon.ico" sizes="48x48">',
+    '<link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32.png">',
+    '<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">',
+    '<link rel="manifest" href="/site.webmanifest">',
   ];
   if (site.verify?.google) tags.push(`<meta name="google-site-verification" content="${escapeHtml(site.verify.google)}">`);
   if (site.verify?.bing) tags.push(`<meta name="msvalidate.01" content="${escapeHtml(site.verify.bing)}">`);
+  if (site.verify?.enamad) tags.push(`<meta name="enamad" content="${escapeHtml(site.verify.enamad)}">`);
   if (site.verify?.yandex) tags.push(`<meta name="yandex-verification" content="${escapeHtml(site.verify.yandex)}">`);
   if (site.analytics) tags.push(`<script defer src="${escapeHtml(site.analytics.scriptUrl)}" data-website-id="${escapeHtml(site.analytics.siteId)}"></script>`);
   if (site.fontUrl) tags.push(`<link rel="preload" href="${escapeHtml(site.fontUrl)}" as="font" type="font/woff2" crossorigin>`, `<style>@font-face{font-family:"DozariWeb";src:url("${escapeHtml(site.fontUrl)}") format("woff2");font-display:swap}body{font-family:DozariWeb,Vazirmatn,Tahoma,system-ui,sans-serif}</style>`);

@@ -1,9 +1,10 @@
 import { Platform } from 'react-native';
 import { getPrefs } from '../prefs/store';
 import { SFX_NOTES } from './engineNotes';
+import { playNativeSfx } from './nativeSfx';
 import type { Sfx } from './engineNotes';
 
-/** Game sound effects, synthesised (no audio files to ship, nothing from Google). Web uses WebAudio; native has no engine yet and stays silent. */
+/** Game sound effects, synthesised (no audio files to ship, nothing from Google). Web uses WebAudio; phones play the same notes rendered to a WAV (nativeSfx.ts). */
 
 export type { Sfx };
 
@@ -49,6 +50,7 @@ export function context(): Ctx | null {
 /** Plays an effect unless the player turned sound off. Never throws. */
 export function playSfx(name: Sfx): void {
   if (!getPrefs().sound) return;
+  if (Platform.OS !== 'web') return playNativeSfx(name);
   const c = context();
   if (!c) return;
   try {

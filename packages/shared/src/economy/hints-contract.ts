@@ -33,6 +33,10 @@ export const soloHintResultSchema = z.object({
 });
 export type SoloHintResult = z.infer<typeof soloHintResultSchema>;
 
+/** `POST /solo/:id/nudge`: the free hint a level-1 player gets after standing still. */
+export const soloNudgeResultSchema = z.object({ hint: hintPayloadSchema });
+export type SoloNudgeResult = z.infer<typeof soloNudgeResultSchema>;
+
 /** `GET /shop`: items a player can buy with coins (docs/logic/shop.md). */
 /** `hint_token` adds hint tokens; `wheel_spin` adds lucky-wheel spins (one row per spin in `wheel_spins`). */
 export const SHOP_EFFECTS = ['hint_token', 'wheel_spin', 'cosmetic'] as const;

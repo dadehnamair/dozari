@@ -27,6 +27,15 @@ that proxy keeps the domains and https and forwards two names to the containers 
 The API address is baked into the web build, so changing `API_DOMAIN` later means editing `.env.prod` and
 rebuilding `s-dozari-web`.
 
+## Android file (direct download)
+
+The web container also serves downloads: `apps/mobile/public/download/**` is copied into the web build and Caddy serves `/download/*` as plain files
+(no compression, no app fallback, `Content-Disposition: attachment`, Range requests so a broken download resumes). The owner's path is
+`apps/mobile/public/download/apk/1.0.0/dozari.apk` → `https://<APP_DOMAIN>/download/apk/1.0.0/dozari.apk`. Commit the file, rebuild
+`s-dozari-web`, then set the admin setting `link.android_app` to that address (the landing `/download` page and the phone gate read it). The service worker
+(`public/sw.js`) ignores `/download/` and the PWA precache skips files over 2 MB, so the file never lands in the app cache. Every committed rebuild of
+the apk stays in git history (~one apk of size per commit): prefer one commit per released version (`1.0.1/...`), not one per build; GitHub refuses files over 100 MB.
+
 ## Before you start
 
 - A Linux server with Docker and the Compose plugin.

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { swr } from '../net/cache';
 import { Animated, Easing, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Svg, { G, Path } from 'react-native-svg';
 import type { LevelRoad, Unlock } from '@dozari/shared';
@@ -43,7 +44,7 @@ export function LevelRoadPage({ onClose }: { onClose: () => void }) {
   const width = Math.min(520, win.width);
 
   useEffect(() => {
-    fetchLevelRoad().then(setRoad, () => setFailed(true));
+    return swr('levelroad', fetchLevelRoad, setRoad, () => setFailed(true));
   }, []);
   const nodes = road ? roadNodes(road) : [];
   const ready = road ? claimableCoins(road) + claimableSpins(road) : 0;
@@ -53,7 +54,7 @@ export function LevelRoadPage({ onClose }: { onClose: () => void }) {
     claimLevelRewards().then(
       (out) => {
         setGot({ coins: out.coins, spins: out.spins });
-        return fetchLevelRoad().then(setRoad);
+        return swr.refresh('levelroad', fetchLevelRoad).then(setRoad);
       },
       () => setFailed(true),
     ).finally(() => setClaiming(false));

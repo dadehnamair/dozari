@@ -46,6 +46,8 @@ export const ICON_PATHS = {
   wallet: 'M3 7h16v13H3zM3 7l12-4v4M15 12h6v4h-6z',
   target: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 12.5v-1',
   chat: 'M4 5h16v11H9l-5 4z',
+  swords: 'M4 4L16 16M13 17L17 13M16 16L20 20M20 4L8 16M7 13L11 17M8 16L4 20',
+  puzzle: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',
 } as const;
 
 export type IconName = keyof typeof ICON_PATHS;

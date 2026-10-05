@@ -19,14 +19,14 @@ export function PhoneGate({ kind, address, download, onContinue }: { kind: Exclu
           <Text style={styles.title}>{t.title}</Text>
           {kind === 'desktop' ? (
             <>
-              <Text style={styles.text}>{t.desktop}</Text>
+              <View style={styles.bubble}><Text style={styles.text}>{t.desktop}</Text></View>
               <View style={styles.qr}><QrCode value={address} size={220} /></View>
               <Text style={styles.addr} selectable>{address}</Text>
             </>
           ) : null}
           {kind === 'android' ? (
             <>
-              <Text style={styles.text}>{t.android}</Text>
+              <View style={styles.bubble}><Text style={styles.text}>{t.android}</Text></View>
               {download ? (
                 <Pressable accessibilityRole="link" onPress={() => void Linking.openURL(download)} style={styles.cta}>
                   <Text style={styles.ctaText}>{t.download}</Text>
@@ -38,7 +38,7 @@ export function PhoneGate({ kind, address, download, onContinue }: { kind: Exclu
           ) : null}
           {kind === 'ios' ? (
             <>
-              <Text style={styles.text}>{t.ios}</Text>
+              <View style={styles.bubble}><Text style={styles.text}>{t.ios}</Text></View>
               {fa.pwa.iosSteps.map((step, i) => (
                 <View key={i} style={styles.step}>
                   <View style={styles.num}><Text style={styles.numText}>{['۱', '۲', '۳'][i]}</Text></View>
@@ -65,6 +65,7 @@ const styles = StyleSheet.create({
   card: { width: '100%', maxWidth: 440, alignItems: 'center', gap: 12, padding: 22, borderRadius: 26, borderWidth: 4, borderColor: colors.ink, backgroundColor: '#FFF6E8' },
   hero: { width: 150, height: 164 },
   title: { fontFamily: fonts.display, fontSize: 30, color: colors.ink, textAlign: 'center' },
+  bubble: { alignSelf: 'stretch', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 20, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#FFE9B0' },
   text: { fontFamily: fonts.bold, fontSize: 15, lineHeight: 25, color: colors.ink, textAlign: 'center' },
   small: { fontFamily: fonts.bold, fontSize: 12.5, lineHeight: 20, color: colors.ink, opacity: 0.7, textAlign: 'center' },
   qr: { padding: 8, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#fff' },

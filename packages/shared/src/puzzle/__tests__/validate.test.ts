@@ -97,4 +97,15 @@ describe('validatePuzzle', () => {
     expect(r3.ok).toBe(true);
     expect(r3.warnings.map((w) => w.code)).toContain('difficulty.order');
   });
+
+  it('keeps adult-only items out of kid and teen puzzles', () => {
+    const catalog = fixtureCatalog().map((p, i) => (i === 0 ? { ...p, ageTrack: 'adult' as const } : { ...p, ageTrack: 'kid' as const }));
+    const kid = { ...valid(), ageTrack: 'kid' as const };
+    expect(codes(validatePuzzle(kid, catalog))).toEqual(['track.item_too_old']);
+    expect(codes(validatePuzzle({ ...valid(), ageTrack: 'teen' as const }, catalog))).toEqual(['track.item_too_old']);
+    expect(codes(validatePuzzle({ ...valid(), ageTrack: 'adult' as const }, catalog))).toEqual([]);
+    // Items without a track read as adult, so an unmarked catalog never leaks into a kid puzzle.
+    expect(codes(validatePuzzle(kid, fixtureCatalog()))).toContain('track.item_too_old');
+    expect(codes(validatePuzzle(valid(), fixtureCatalog()))).toEqual([]);
+  });
 });

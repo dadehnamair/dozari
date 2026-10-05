@@ -2,6 +2,7 @@
 const DEV = typeof __DEV__ !== 'undefined' && __DEV__;
 export const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? (DEV ? 'http://localhost:3000' : 'https://api.mrbots.ir');
 
+import { clientHeaders } from './clientHeaders';
 import { reportServer } from './health';
 
 export class ApiError extends Error {
@@ -15,7 +16,7 @@ export class ApiError extends Error {
 
 /** JSON call to the Dozari server; throws `ApiError` for non-2xx. `token` adds the guest session header. */
 export async function callJson(path: string, method: 'GET' | 'POST' | 'DELETE' | 'PUT', body?: unknown, token?: string): Promise<unknown> {
-  const headers: Record<string, string> = {};
+  const headers: Record<string, string> = clientHeaders();
   if (body !== undefined) headers['content-type'] = 'application/json';
   if (token) headers.authorization = `Bearer ${token}`;
   let res: Response;

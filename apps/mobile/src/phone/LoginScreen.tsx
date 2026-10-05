@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Keyboard, Platform, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { toPersianDigits } from '@dozari/shared';
+import { ChildCodeSheet } from '../agetrack/ChildCodeSheet';
 import { Character } from '../components/Character';
 import { Scene } from '../components/Scene';
 import { SlabButton } from '../components/SlabButton';
-import { Wordmark } from '../components/Wordmark';
+import { AnimatedLogo } from '../components/AnimatedLogo';
 import { fa } from '../i18n/fa';
 import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
@@ -21,7 +22,8 @@ const errText = (e: unknown): string => fa.phoneLogin.errors[e instanceof ApiErr
  * «+98», then the five-box code — with «مهمان بازی کن» under it. Shown once on a fresh install when the server can send codes;
  * playing never needs it.
  */
-export function LoginScreen({ onDone }: { onDone: (r: { signedIn: boolean; created: boolean }) => void }) {
+export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { signedIn: boolean; created: boolean }) => void; /** The server's age-track switch: shows «ورود با کد والدین» for a child's own device. */ ageTracksOn?: boolean }) {
+  const [childCodeOpen, setChildCodeOpen] = useState(false);
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [typed, setTyped] = useState('');
   const [code, setCode] = useState('');
@@ -37,6 +39,8 @@ export function LoginScreen({ onDone }: { onDone: (r: { signedIn: boolean; creat
     return () => sub.remove();
   }, []);
   const showKeyboard = () => {
+    // iOS Safari only opens the keyboard when focus() runs inside the tap itself (the web input also covers the boxes).
+    if (Platform.OS === 'web') return codeInput.current?.focus();
     codeInput.current?.blur();
     setTimeout(() => codeInput.current?.focus(), 30);
   };
@@ -80,7 +84,7 @@ export function LoginScreen({ onDone }: { onDone: (r: { signedIn: boolean; creat
       <View style={StyleSheet.absoluteFill}><Scene scene="bazaar" mood="dusk" /></View>
       <View style={[StyleSheet.absoluteFill, styles.shade]} />
       <View style={[styles.top, { paddingTop: safeTop(tight ? 24 : 44) }]}>
-        <Wordmark width={tight ? 190 : 230} />
+        <AnimatedLogo width={tight ? 190 : 230} />
         <View style={tight ? styles.heroTight : styles.hero}><Character who="dozari" pose="wave" /></View>
       </View>
       <View style={[styles.card, tight ? styles.cardTight : null]}>
@@ -112,12 +116,18 @@ export function LoginScreen({ onDone }: { onDone: (r: { signedIn: boolean; creat
           </>
         )}
         {note ? <Text style={styles.error}>{note}</Text> : null}
-        <SlabButton label={busy ? l.sending : step === 'phone' ? l.sendCode : l.enter} color={colors.candy.lime} height={tight ? 50 : 56} fontSize={22} grow={0} disabled={busy || (step === 'phone' ? !phone : code.length !== OTP_LENGTH)} onPress={step === 'phone' ? send : () => enter(code)} />
+        <SlabButton label={busy ? l.sending : step === 'phone' ? l.sendCode : l.enter} sfx="confirm" color={colors.candy.lime} height={tight ? 50 : 56} fontSize={22} grow={0} disabled={busy || (step === 'phone' ? !phone : code.length !== OTP_LENGTH)} onPress={step === 'phone' ? send : () => enter(code)} />
         <View style={styles.orRow}><View style={styles.orLine} /><Text style={styles.orText}>{l.or}</Text><View style={styles.orLine} /></View>
         <Pressable accessibilityRole="button" onPress={() => onDone({ signedIn: false, created: false })} style={({ pressed }) => [styles.guest, pressed ? styles.guestPressed : null]}>
           <Text style={styles.guestText}>{l.guest}</Text>
         </Pressable>
+        {ageTracksOn ? (
+          <Pressable accessibilityRole="button" onPress={() => setChildCodeOpen(true)}>
+            <Text style={styles.link}>{fa.guardian.childLoginRow}</Text>
+          </Pressable>
+        ) : null}
       </View>
+      {childCodeOpen ? <ChildCodeSheet onClose={() => setChildCodeOpen(false)} onDone={() => onDone({ signedIn: true, created: true })} /> : null}
     </View>
   );
 }
@@ -139,11 +149,12 @@ const styles = StyleSheet.create({
   prefix: { height: 52, paddingHorizontal: 12, borderRadius: 14, borderWidth: 3, borderColor: INK, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   prefixText: { fontFamily: fonts.bold, fontSize: 15, color: INK },
   phoneInput: { flex: 1, minWidth: 0, height: 52, borderRadius: 14, borderWidth: 3, borderColor: INK, backgroundColor: '#fff', paddingHorizontal: 12, fontFamily: fonts.bold, fontSize: 17, letterSpacing: 1, color: INK, textAlign: TEXT_LEFT },
-  boxes: { flexDirection: 'row', gap: 8, justifyContent: 'center' },
+  // `direction: 'ltr'` so the first digit fills the left box on the RTL Android layout too (codes read left to right).
+  boxes: { flexDirection: 'row', direction: 'ltr', gap: 8, justifyContent: 'center' },
   box: { width: 48, height: 56, borderRadius: 14, borderWidth: 3, borderColor: INK, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', ...lift(4) },
   boxOn: { backgroundColor: '#FFE48A' },
   boxText: { fontFamily: fonts.display, fontSize: 28, color: INK },
-  hiddenInput: { position: 'absolute', opacity: 0, width: 1, height: 1 },
+  hiddenInput: Platform.OS === 'web' ? { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0 } : { position: 'absolute', opacity: 0, width: 1, height: 1 },
   resendRow: { flexDirection: ROW, justifyContent: 'space-between', alignItems: 'center' },
   link: { fontFamily: fonts.bold, fontSize: 12.5, color: '#E8743B', textDecorationLine: 'underline' },
   error: { fontFamily: fonts.bold, fontSize: 12.5, color: '#B3261E', textAlign: 'center' },

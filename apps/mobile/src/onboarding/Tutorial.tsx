@@ -54,6 +54,16 @@ export function Tutorial({ onDone }: { onDone: () => void }) {
             <Pressable onPress={onDone} style={styles.skip} accessibilityRole="button"><Text style={styles.skipText}>{t.skip}</Text></Pressable>
           </View>
 
+          <View style={styles.bubbleSlot}>
+            <View style={styles.bubble}>
+              <View style={styles.bubbleHead}>
+                <View style={styles.tag}><Text style={styles.tagText}>{t.guide}</Text></View>
+                <Text style={styles.title}>{oops ? t.oopsTitle : step.title}</Text>
+              </View>
+              <Text style={styles.text}>{oops ? t.oops : step.text}</Text>
+            </View>
+          </View>
+
           <View style={styles.grid}>
             {TILE_ICONS.map((icon, k) => {
               const lit = i >= 1 && FOOD.includes(k);
@@ -75,15 +85,6 @@ export function Tutorial({ onDone }: { onDone: () => void }) {
           </View>
 
           <View style={styles.spacer} />
-          <View>
-            <View style={styles.bubble}>
-              <View style={styles.bubbleHead}>
-                <View style={styles.tag}><Text style={styles.tagText}>{t.guide}</Text></View>
-                <Text style={styles.title}>{oops ? t.oopsTitle : step.title}</Text>
-              </View>
-              <Text style={styles.text}>{oops ? t.oops : step.text}</Text>
-            </View>
-          </View>
           <View style={styles.footer}>
             <View style={styles.cta}>
               {step.cta ? <SlabButton label={step.cta} color={colors.candy.yellow} height={58} fontSize={22} grow={0} onPress={() => (last ? onDone() : setI(i + 1))} /> : null}
@@ -122,6 +123,7 @@ const styles = StyleSheet.create({
   submitSlot: { height: 72, alignItems: 'center', justifyContent: 'center' },
   submit: { height: 52, paddingHorizontal: 34, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.candy.lime, justifyContent: 'center', ...lift(5) },
   submitText: { fontFamily: fonts.display, fontSize: 22, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
+  bubbleSlot: { marginBottom: 18 },
   spacer: { flex: 1, minHeight: 8 },
   bubble: { padding: 12, paddingHorizontal: 14, borderRadius: 20, borderBottomLeftRadius: 6, backgroundColor: '#fff', borderWidth: 3, borderColor: colors.ink, gap: 4, ...lift(5) },
   bubbleHead: { flexDirection: ROW, alignItems: 'center', gap: 6 },

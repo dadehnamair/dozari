@@ -84,7 +84,7 @@ export function Versus({ me, rival, mate, rivals, waitedSec, countdown, onCancel
         ) : (
           <>
             <Text style={styles.waited}>{fa.duel.waited(steppedSec(waitedSec))}</Text>
-            <SlabButton label={fa.duel.cancel} color={colors.candy.orange} height={58} fontSize={22} grow={0} onPress={onCancel} />
+            <SlabButton label={fa.duel.cancel} sfx="back" color={colors.candy.orange} height={58} fontSize={22} grow={0} onPress={onCancel} />
           </>
         )}
       </View>

@@ -144,12 +144,4 @@ VIEWS.admins = function (root) {
   }));
   draw();
 };
-VIEWS.audit = function (root) {
-  api('/admin/audit').then(function (r) {
-    if (r.status === 404) return root.appendChild(empty('گزارش تغییرها روی این سرور فعال نیست'));
-    if (!r.ok) return fail(r);
-    root.appendChild(card('گزارش تغییرها', 'صد تغییر آخر', r.body.entries.length ? [h('div', { class: 'tbl-wrap' }, [h('table', {}, [h('thead', {}, [h('tr', {}, ['زمان', 'چه کسی', 'کار', 'هدف', 'جزئیات'].map(function (x) { return h('th', { text: x }); }))]), h('tbody', {}, r.body.entries.map(function (e) { return h('tr', {}, [h('td', { text: ago(e.at) }), h('td', { text: e.actor || '—' }), h('td', {}, [badge(e.action, 'b-info')]), h('td', { class: 'ltr', text: e.target }), h('td', { class: 'ltr', text: e.detail || '' })]); }))])])] : [empty('هنوز چیزی ثبت نشده')]));
-  });
-};
-
 `;

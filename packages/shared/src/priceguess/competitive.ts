@@ -29,7 +29,9 @@ export interface PriceGuessState {
 export type PriceGuessCommand =
   | { type: 'submit_guess'; side: Side; guessRials: bigint }
   /** The round timer ran out (server-issued): unsubmitted sides get the worst possible guess. */
-  | { type: 'timeout' };
+  | { type: 'timeout' }
+  /** The side could not put its wager down: it plays no guess this round (the worst possible one). */
+  | { type: 'sit_out'; side: Side };
 
 const NOT_SUBMITTED = { a: false, b: false } as const;
 const NO_GUESS = { a: null, b: null } as const;
@@ -80,6 +82,11 @@ function reveal(state: PriceGuessState): PriceGuessState {
 export function applyPriceGuessCommand(state: PriceGuessState, cmd: PriceGuessCommand): PriceGuessState {
   if (state.status !== 'playing') return state;
   if (cmd.type === 'timeout') return reveal(state);
+  if (cmd.type === 'sit_out') {
+    if (state.submitted[cmd.side]) return state;
+    const next: PriceGuessState = { ...state, submitted: { ...state.submitted, [cmd.side]: true } };
+    return next.submitted.a && next.submitted.b ? reveal(next) : next;
+  }
   if (state.submitted[cmd.side] || cmd.guessRials <= 0n) return state;
   const next: PriceGuessState = {
     ...state,

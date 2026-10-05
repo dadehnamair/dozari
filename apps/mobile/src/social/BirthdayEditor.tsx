@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { MyBirthday } from '@dozari/shared';
-import { toPersianDigits } from '@dozari/shared';
+import { jalaliDateInTehran, toPersianDigits } from '@dozari/shared';
 import { fa } from '../i18n/fa';
 import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
 import { claimBirthdayGift, fetchBirthday, saveBirthday } from './birthdayApi';
-import { birthFromText } from './birthdayInput';
+import { birthYearOptions, daysInMonth } from './birthdayInput';
 
 const INK = '#3A2418';
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
@@ -16,18 +16,20 @@ const n = (v: number) => toPersianDigits(String(v));
 export function BirthdayEditor({ onGift }: { onGift?: () => void }) {
   const t = fa.birthday;
   const [b, setB] = useState<MyBirthday | null>(null);
-  const [year, setYear] = useState('');
-  const [month, setMonth] = useState('');
-  const [day, setDay] = useState('');
+  const [year, setYear] = useState<number | null>(null);
+  const [month, setMonth] = useState<number | null>(null);
+  const [day, setDay] = useState<number | null>(null);
+  const [open, setOpen] = useState<'year' | 'month' | 'day' | null>(null);
   const [showAge, setShowAge] = useState(false);
   const [notify, setNotify] = useState(true);
   const [note, setNote] = useState<{ text: string; bad: boolean } | null>(null);
 
   const apply = (v: MyBirthday) => {
     setB(v);
-    setYear(v.birth ? n(v.birth.year) : '');
-    setMonth(v.birth ? n(v.birth.month) : '');
-    setDay(v.birth ? n(v.birth.day) : '');
+    setYear(v.birth ? v.birth.year : null);
+    setMonth(v.birth ? v.birth.month : null);
+    setDay(v.birth ? v.birth.day : null);
+    setOpen(null);
     setShowAge(v.showAge);
     setNotify(v.notifyFriends);
   };
@@ -36,12 +38,29 @@ export function BirthdayEditor({ onGift }: { onGift?: () => void }) {
   }, [t.error]);
   if (!b) return note ? <Text style={[styles.hint, styles.bad]}>{note.text}</Text> : null;
 
-  const save = (birth: ReturnType<typeof birthFromText>) =>
+  const save = (birth: { year: number; month: number; day: number } | null) =>
     saveBirthday({ birth, showAge, notifyFriends: notify }).then(
       (v) => (apply(v), setNote({ text: t.saved, bad: false })),
       (e) => setNote({ text: e instanceof ApiError && e.code === 'invalid_birth_date' ? t.invalid(b.minAge) : t.error, bad: true }),
     );
-  const typed = birthFromText(year, month, day);
+  const typed = year !== null && month !== null && day !== null && day <= daysInMonth(year, month) ? { year, month, day } : null;
+  const choose = (kind: 'year' | 'month' | 'day', v: number) => {
+    const y = kind === 'year' ? v : year;
+    const m = kind === 'month' ? v : month;
+    // a day beyond the new month's length is dropped rather than kept invalid
+    const d = kind === 'day' ? v : day !== null && m !== null && day > daysInMonth(y, m) ? null : day;
+    setYear(y);
+    setMonth(m);
+    setDay(d);
+    // walk on to the next empty part: year → month → day
+    setOpen(m === null ? 'month' : d === null ? 'day' : null);
+  };
+  const options: { value: number; label: string }[] =
+    open === 'year' ? birthYearOptions(jalaliDateInTehran(Date.now()).year, b.minAge).map((y) => ({ value: y, label: n(y) }))
+    : open === 'month' ? fa.months.map((m, i) => ({ value: i + 1, label: m.name }))
+    : open === 'day' ? Array.from({ length: month === null ? 31 : daysInMonth(year, month) }, (_, i) => ({ value: i + 1, label: n(i + 1) }))
+    : [];
+  const picked = open === 'year' ? year : open === 'month' ? month : day;
   const claim = () =>
     claimBirthdayGift().then(
       (c) => (setNote({ text: t.claimed(c.coins, c.gems, c.spins), bad: false }), fetchBirthday().then(apply, () => undefined), onGift?.()),
@@ -59,10 +78,22 @@ export function BirthdayEditor({ onGift }: { onGift?: () => void }) {
         </Pressable>
       ) : null}
       <View style={styles.row}>
-        <TextInput value={toPersianDigits(year)} onChangeText={setYear} placeholder={t.year} keyboardType="number-pad" maxLength={4} style={[styles.input, styles.year]} accessibilityLabel={t.year} />
-        <TextInput value={toPersianDigits(month)} onChangeText={setMonth} placeholder={t.month} keyboardType="number-pad" maxLength={2} style={[styles.input, styles.small]} accessibilityLabel={t.month} />
-        <TextInput value={toPersianDigits(day)} onChangeText={setDay} placeholder={t.day} keyboardType="number-pad" maxLength={2} style={[styles.input, styles.small]} accessibilityLabel={t.day} />
+        {([['year', year === null ? t.year : n(year), styles.year], ['month', month === null ? t.month : fa.months[month - 1]!.name, styles.small], ['day', day === null ? t.day : n(day), styles.small]] as const).map(([k, label, w]) => (
+          <Pressable key={k} onPress={() => setOpen((o) => (o === k ? null : k))} style={[styles.field, w, open === k && styles.fieldOn]} accessibilityRole="button" accessibilityLabel={t[k]}>
+            <Text style={[styles.fieldText, (k === 'year' ? year : k === 'month' ? month : day) === null && styles.fieldEmpty]} numberOfLines={1}>{label}</Text>
+            <Text style={styles.caret}>{open === k ? '▲' : '▼'}</Text>
+          </Pressable>
+        ))}
       </View>
+      {open ? (
+        <ScrollView style={styles.panel} contentContainerStyle={styles.grid} nestedScrollEnabled>
+          {options.map((o) => (
+            <Pressable key={o.value} onPress={() => choose(open, o.value)} style={[styles.cell, open === 'month' && styles.cellWide, picked === o.value && styles.cellOn]} accessibilityRole="button">
+              <Text style={styles.cellText}>{o.label}</Text>
+            </Pressable>
+          ))}
+        </ScrollView>
+      ) : null}
       <Pressable onPress={() => setShowAge((v) => !v)} style={styles.tick} accessibilityRole="checkbox" accessibilityState={{ checked: showAge }}>
         <View style={[styles.box2, showAge && styles.box2On]} />
         <Text style={styles.tickText}>{t.showAge}</Text>
@@ -93,8 +124,18 @@ const styles = StyleSheet.create({
   hint: { fontFamily: fonts.bold, fontSize: 12, color: INK, opacity: 0.7 },
   bad: { color: '#B3261E', opacity: 1 },
   row: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-  input: { fontFamily: fonts.bold, fontSize: 15, color: INK, borderWidth: 2, borderColor: INK, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: '#fff', textAlign: 'center' },
-  year: { flex: 2 },
+  field: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 4, borderWidth: 2.5, borderColor: INK, borderRadius: 14, paddingHorizontal: 10, paddingVertical: 7, backgroundColor: '#fff' },
+  fieldOn: { backgroundColor: '#FFE48A' },
+  fieldText: { flexShrink: 1, fontFamily: fonts.bold, fontSize: 15, color: INK },
+  fieldEmpty: { opacity: 0.5 },
+  caret: { fontFamily: fonts.bold, fontSize: 9, color: INK },
+  panel: { maxHeight: 176, borderWidth: 2.5, borderColor: INK, borderRadius: 16, backgroundColor: colors.cream },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, padding: 8, justifyContent: 'center' },
+  cell: { minWidth: 52, paddingVertical: 6, paddingHorizontal: 8, borderRadius: 10, borderWidth: 2, borderColor: INK, backgroundColor: '#fff', alignItems: 'center' },
+  cellWide: { minWidth: 82 },
+  cellOn: { backgroundColor: colors.candy.lime },
+  cellText: { fontFamily: fonts.bold, fontSize: 14, color: INK },
+  year: { flex: 1.2 },
   small: { flex: 1 },
   tick: { flexDirection: ROW, alignItems: 'center', gap: 8 },
   box2: { width: 22, height: 22, borderRadius: 7, borderWidth: 2.5, borderColor: INK, backgroundColor: '#fff' },

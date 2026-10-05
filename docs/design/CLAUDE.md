@@ -14,6 +14,7 @@
 
 ## Files
 - "Dozari - 01…12 *.dc.html" = one file per section; "Dozari Visual Assets.dc.html" = all-in-one.
+- "Dozari Site - Home/About/Download/Contact/Blog/Blog Post.dc.html" + `SiteNav`/`SiteFooter` = the landing site (`mrdozari.ir`, `apps/landing`, spec `docs/logic/landing-site.md`). Keep them in this folder: `support.js` loads components only from the page's own directory. The product is a price-nostalgia game (not a word game); show only real facts (no invented versions, stores, ratings or team). The Google Fonts `<link>` is mock-only; production uses system fonts / `landing.font_url`.
 
 ## Open TODO
 - (Resolved) Eyes verified for all who × pose × anim combos. Blink wrapper now uses transform-box:fill-box.

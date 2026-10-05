@@ -1,24 +1,62 @@
 export const ADMIN_SHELL_JS = String.raw`
 var VIEWS = {};
-`;
-export const ADMIN_BOOT_JS = String.raw`
-var ICON_D = {
-  dashboard: 'M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10', catalog: 'M4 6h16v4H4zM4 14h16v4H4z', prices: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v10M15 9.5H10.5a1.5 1.5 0 0 0 0 3h3a1.5 1.5 0 0 1 0 3H9',
-  inbox: 'M3 5h18v14H3zM3 13h5l1 3h6l1-3h5', sources: 'M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1', daily: 'M3 9h18v4H3zM5 13h14v8H5zM12 9v12',
-  settings: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1', users: 'M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5M16 4.5a3.5 3.5 0 0 1 0 6.5M18 14.5c2.5.5 4 2.5 4 5.5',
-  dailypuzzle: 'M3 5h18v14H3zM3 10h18M8 3v4M16 3v4',
-  levels: 'M3 20h5v-5h5v-5h5V5h3M3 20h18',
-  puzzles: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',
-  socket: 'M4 12h4l3-7 4 14 3-7h2', admins: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM9 12l2 2 4-4', audit: 'M5 4h14v16H5zM9 9h6M9 13h6M9 17h3', words: 'M12 3l9 16H3zM12 10v4M12 17v.5', invites: 'M3 8h18v10H3zM3 8l9 6 9-6', bots: 'M12 3v3M7 8h10a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-6a3 3 0 0 1 3-3zM9 13h.01M15 13h.01M9 17h6', tournaments: 'M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3', taunts: 'M4 5h16v11H9l-5 4z', chatreports: 'M5 4h14v16H5zM9 9h6M9 13h4', userreports: 'M12 3l9 16H3zM12 10v4M12 17v.5', ugc: 'M12 3v18M3 12h18M5 5h14v14H5z', badges: 'M12 2l3 6 6 1-4.5 4.5L18 20l-6-3-6 3 1.5-6.5L3 9l6-1z', shop: 'M4 8h16l-1.5 11h-13zM8 8a4 4 0 0 1 8 0', wheel: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 3v18M3 12h18', landingposts: 'M5 4h14v16H5zM8 9h8M8 13h8M8 17h5', landingcast: 'M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0', landingfaq: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17v.5', shortlinks: 'M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1', cities: 'M3 21h18M5 21V8l7-5 7 5v13M9 21v-6h6v6', bale: 'M21 4L3 11l6 2 2 6 3-4 5 3z', messages: 'M3 5h18v14H3zM3 6l9 7 9-7'
-};
-var NAV = [
-  ['main', 'نگاه کلی'], ['dashboard', 'داشبورد'],
-  ['main', 'کاتالوگ و قیمت‌ها'], ['catalog', 'کاتالوگ محصولات'], ['prices', 'بازبینی قیمت‌ها', 'prices'], ['inbox', 'صندوق ربات', 'inbox'], ['sources', 'منبع‌های ربات'],
-  ['main', 'پازل و بازی'], ['puzzles', 'ساخت پازل'], ['dailypuzzle', 'پازل روز'], ['levels', 'جاده‌ی لول‌ها'], ['tournaments', 'تورنومنت‌ها'], ['taunts', 'کل‌کل‌های آماده'],
-  ['main', 'اقتصاد و جایزه'], ['daily', 'جایزه‌ی روزانه'], ['shop', 'فروشگاه'], ['wheel', 'گردونه‌ی شانس'], ['badges', 'نشان‌ها و مدال‌ها'], ['invites', 'کد معرف'],
-  ['main', 'بازیکن‌ها و ارتباط'], ['users', 'کاربران'], ['bots', 'بازیکن‌های ربات'], ['cities', 'شهرها'], ['messages', 'مرکز پیام'], ['chatreports', 'گزارش‌های چت'], ['userreports', 'گزارش بازیکن‌ها'], ['ugc', 'پیشنهاد قیمت و کالا'],
-  ['main', 'سایت معرفی'], ['landingposts', 'بلاگ'], ['landingcast', 'بازیگران'], ['landingfaq', 'سوالات متداول'],
-  ['main', 'سیستم'], ['settings', 'تنظیمات'], ['words', 'فیلتر کلمات'], ['bale', 'ربات بله'], ['shortlinks', 'لینک کوتاه'], ['socket', 'سرویس سوکت'], ['admins', 'مدیران پنل'], ['audit', 'گزارش تغییرها']
+/*
+ * Information architecture. Seven sections, each with tabs; a tab key is also the key of its view in VIEWS.
+ * Tab = [key, label, description, keywords for the quick-jump search].
+ * Routes look like #/players/users; old flat links such as #/users are redirected.
+ */
+var TREE = [
+  { id: 'dashboard', title: 'نمای کلی', icon: 'dashboard', tabs: [
+    ['dashboard', 'نمای کلی', 'وضعیت بازی، کارهای منتظر تو و میان‌برها', 'داشبورد آمار خانه']
+  ] },
+  { id: 'players', title: 'بازیکنان و نظارت', icon: 'players', tabs: [
+    ['users', 'کاربران', 'جستجو، مسدودسازی، سکه، نشان و یادداشت برای هر بازیکن', 'بازیکن کاربر بن مسدود سکه اسم'],
+    ['agetracks', 'رده‌های سنی', 'تعداد بازیکن، پازل و درس کودک در هر رده و وضعیت کلید رده‌ها', 'رده سنی کودک نوجوان بزرگسال ولی'],
+    ['userreports', 'گزارش از بازیکن‌ها', 'گزارش‌هایی که بازیکن‌ها از پروفایل هم داده‌اند', 'گزارش پروفایل بازیکن'],
+    ['chatreports', 'گزارش‌های چت', 'پیام‌هایی که بازیکن‌ها گزارش کرده‌اند', 'گزارش چت توهین'],
+    ['words', 'فیلتر کلمات', 'کلمه‌های ممنوع در چت و اسم', 'فیلتر کلمه توهین ممنوع'],
+    ['badges', 'نشان‌ها و مدال‌ها', 'تعریف نشان‌ها و امتیازهایشان', 'نشان مدال'],
+    ['bots', 'بازیکن‌های ربات', 'بازیکن‌های ساختگی برای پر کردن صف', 'ربات بازیکن صف'],
+    ['invites', 'کد معرف', 'کدهای دعوت و کمپین‌ها', 'کد دعوت معرف کمپین']
+  ] },
+  { id: 'catalog', title: 'محتوا و قیمت‌ها', icon: 'catalog', tabs: [
+    ['catalog', 'کاتالوگ محصولات', 'محصول‌ها، آیکن‌ها و تاریخچه‌ی قیمت', 'محصول کالا آیکن'],
+    ['prices', 'بازبینی قیمت‌ها', 'قیمت‌هایی که دستی ثبت شده و منتظر تأییدند', 'قیمت تایید'],
+    ['inbox', 'صندوق ربات', 'پیشنهاد قیمت‌هایی که ربات پیدا کرده', 'ربات پیشنهاد صندوق'],
+    ['sources', 'منبع‌های ربات', 'جایی که ربات قیمت‌ها را از آن می‌خواند', 'منبع ربات'],
+    ['ugc', 'پیشنهاد بازیکن‌ها', 'کالا و قیمتی که بازیکن‌ها پیشنهاد داده‌اند', 'پیشنهاد بازیکن ugc گزارش غلط']
+  ] },
+  { id: 'game', title: 'بازی و پازل', icon: 'game', tabs: [
+    ['puzzles', 'ساخت پازل', 'تولید و ویرایش پازل‌های بازی', 'پازل گروه'],
+    ['lessons', 'کلمه‌آموزی کودک', 'متن درس هر آیتم کودک: کلمه، داستان کوتاه و تأیید', 'کودک درس کلمه حرف آموزش'],
+    ['dailypuzzle', 'پازل روز', 'برنامه‌ی پازل روزانه و تم‌ها', 'روزانه تم'],
+    ['levels', 'جاده‌ی لول‌ها', 'جدول لول، امتیاز و جایزه‌ها', 'لول سطح جاده'],
+    ['cities', 'شهرها', 'فهرست شهرهای قابل انتخاب', 'شهر استان'],
+    ['taunts', 'کل‌کل‌های آماده', 'پیام‌های آماده‌ی چت', 'کل‌کل پیام چت']
+  ] },
+  { id: 'economy', title: 'اقتصاد', icon: 'economy', tabs: [
+    ['daily', 'جایزه‌ی روزانه', 'سکه‌ی ورود روزانه و زنجیره', 'جایزه سکه روزانه'],
+    ['shop', 'فروشگاه', 'اقلام فروشگاه، بسته‌های سکه و راهنما', 'فروشگاه بسته سکه خرید'],
+    ['wheel', 'گردونه‌ی شانس', 'جایزه‌های گردونه', 'گردونه شانس جایزه'],
+    ['tournaments', 'تورنومنت‌ها', 'ساخت و مدیریت مسابقه‌های ویژه', 'تورنومنت مسابقه'],
+    ['sponsors', 'اسپانسرها', 'اسپانسرهای تورنومنت‌ها', 'اسپانسر حامی بنر']
+  ] },
+  { id: 'comms', title: 'ارتباط با بازیکن', icon: 'comms', tabs: [
+    ['messages', 'مرکز پیام', 'ارسال پیام همگانی و پیگیری گیرنده‌ها', 'پیام اعلان همگانی'],
+    ['bale', 'ربات بله', 'وضعیت ربات بله و اعلان‌ها', 'بله اعلان']
+  ] },
+  { id: 'site', title: 'سایت معرفی و لینک‌ها', icon: 'site', tabs: [
+    ['landingposts', 'بلاگ', 'مقاله‌های بلاگ سایت معرفی', 'بلاگ مقاله سایت'],
+    ['landingcast', 'بازیگران', 'شخصیت‌های صفحه‌ی بازیگران', 'بازیگران شخصیت'],
+    ['landingfaq', 'سوالات متداول', 'پرسش و پاسخ صفحه‌ی اول', 'سوال متداول faq'],
+    ['shortlinks', 'لینک کوتاه', 'لینک‌های کوتاه و شمارش کلیک', 'لینک کوتاه']
+  ] },
+  { id: 'system', title: 'سیستم', icon: 'system', tabs: [
+    ['settings', 'تنظیمات', 'تنظیمات زنده‌ی سرور؛ حالت تعمیر، حداقل نسخه و کلیدهای قابلیت‌ها', 'تنظیم تعمیر نسخه'],
+    ['admins', 'مدیران پنل', 'حساب‌ها و نقش‌های ادمین', 'ادمین نقش رمز'],
+    ['socket', 'سرویس سوکت', 'اتصال‌ها، صف و مسابقه‌های زنده', 'سوکت صف زنده'],
+    ['audit', 'گزارش تغییرها', 'هر کاری که در پنل انجام شده', 'گزارش لاگ تغییر']
+  ] }
 ];
 var DESC = {
   dashboard: 'خلاصه‌ی وضعیت بازی: بازیکن‌ها، کاتالوگ، ربات‌ها و کارهای در انتظار.',
@@ -28,8 +66,11 @@ var DESC = {
   sources: 'سایت‌هایی که ربات از آن‌ها قیمت جمع می‌کند.',
   puzzles: 'پازل دستی یا خودکار بسازید. هر پازل ۱۶ کالا در ۴ دسته‌ی چهارتایی است.',
   dailypuzzle: 'تم‌های پازل روز و برنامه‌ی روزها.',
+  agetracks: 'نمای کلی رده‌های سنی. کلید «رده‌های سنی» در تنظیمات تا وقتی محتوای کودک آماده و تأیید نشده روشن نشود.',
+  lessons: 'برای هر آیتم رده‌ی کودک یک کارت درس بنویس: کلمه، داستان کوتاه و (اختیاری) هجاها. فقط درس‌های تأییدشده به بچه‌ها نشان داده می‌شود.',
   levels: 'جاده‌ی لول‌ها: امتیاز (XP) لازم و جایزه‌ی هر لول.',
   tournaments: 'مسابقه‌ی زمان‌دار با ورودی و جایزه‌ی مشخص.',
+  sponsors: 'اسپانسرها با بنر و معرفی؛ در صفحه‌ی تورنومنت‌هایی که حمایت می‌کنند نشان داده می‌شوند.',
   taunts: 'جمله‌های آماده‌ای که بازیکن‌ها بدون چت آزاد برای هم می‌فرستند.',
   daily: 'جایزه‌ی هر روز از ورود پشت‌سرهم.',
   shop: 'آیتم‌هایی که بازیکن با سکه یا الماس می‌خرد، و متن راهنمای فروشگاه.',
@@ -54,32 +95,124 @@ var DESC = {
   admins: 'حساب مدیران پنل و نقش هر کدام.',
   audit: 'فهرست همه‌ی تغییرهایی که مدیرها داده‌اند، با نام و زمان.'
 };
-var TITLES = { puzzles: 'ساخت پازل', dashboard: 'داشبورد', catalog: 'کاتالوگ محصولات', prices: 'بازبینی قیمت‌ها', inbox: 'صندوق پیشنهادهای ربات', sources: 'منبع‌های ربات', daily: 'جایزه‌ی روزانه', levels: 'جاده‌ی لول‌ها', users: 'کاربران', settings: 'تنظیمات', socket: 'سرویس سوکت', audit: 'گزارش تغییرها', admins: 'مدیران پنل', words: 'فیلتر کلمات توهین‌آمیز', cities: 'شهرهای بازی', shop: 'فروشگاه و راهنما', wheel: 'گردونه‌ی شانس', shortlinks: 'لینک کوتاه', landingposts: 'بلاگ', landingcast: 'بازیگران', landingfaq: 'سوالات متداول', dailypuzzle: 'پازل روز', invites: 'کدهای معرف', badges: 'نشان‌ها و مدال‌ها', taunts: 'کل‌کل‌های آماده', tournaments: 'تورنومنت‌ها', bots: 'بازیکن‌های ربات', chatreports: 'گزارش‌های چت', userreports: 'گزارش بازیکن‌ها', ugc: 'پیشنهاد قیمت و کالا', bale: 'ربات بله و اعلان‌ها', messages: 'مرکز پیام' };
-function navIcon(key) { var s = svgEl('svg', { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }); s.appendChild(svgEl('path', { d: ICON_D[key] || ICON_D.dashboard })); return s; }
+var TAB_HOME = {};
+TREE.forEach(function (sec) { sec.tabs.forEach(function (t) { TAB_HOME[t[0]] = sec.id; }); });
+`;
+export const ADMIN_BOOT_JS = String.raw`
+var ROLE_FA = { owner: 'مالک', editor: 'ویرایشگر', support: 'پشتیبان', viewer: 'فقط‌خواندن' };
+var TAB_COUNT = { prices: 'prices', inbox: 'inbox', chatreports: 'reports' };
+var openSec = {};
+function secVisible(sec) { return true; }
+function tabVisible(sec, t) { return !(t[0] === 'admins' && !(S.me && S.me.permissions.indexOf('system') >= 0)); }
+function tabCount(t) { var k = TAB_COUNT[t[0]]; return k ? (S.counts[k] || 0) : 0; }
+function secCount(sec) { return sec.tabs.reduce(function (a, t) { return a + tabCount(t); }, 0); }
+function href(secId, key) { return secId === 'dashboard' ? '#/dashboard' : '#/' + secId + '/' + key; }
+
 function drawNav() {
   var nav = clear($('nav'));
-  NAV.forEach(function (n) {
-    if (n[0] === 'admins' && !(S.me && S.me.permissions.indexOf('system') >= 0)) return;
-    if (n[0] === 'main') return nav.appendChild(h('div', { class: 'nav-title', text: n[1] }));
-    var c = n[2] ? S.counts[n[2]] : 0;
-    nav.appendChild(h('a', { href: '#/' + n[0], 'aria-current': S.route === n[0] ? 'page' : null, onclick: function () { document.body.classList.remove('nav-open'); } }, [navIcon(n[0]), h('span', { text: n[1] }), c ? h('span', { class: 'count', text: fa(c) }) : null]));
+  TREE.forEach(function (sec) {
+    var tabs = sec.tabs.filter(function (t) { return tabVisible(sec, t); });
+    if (!tabs.length) return;
+    var active = S.sec === sec.id, c = secCount(sec);
+    if (sec.tabs.length === 1) {
+      nav.appendChild(h('div', { class: 'nav-sec' + (active ? ' active' : '') }, [h('a', { class: 'nav-head', href: href(sec.id, tabs[0][0]), style: 'text-decoration:none', 'aria-current': active ? 'page' : null, onclick: function () { document.body.classList.remove('nav-open'); } }, [ic(sec.icon), h('span', { text: sec.title })])]));
+      return;
+    }
+    var open = openSec[sec.id] === undefined ? active : openSec[sec.id];
+    var box = h('div', { class: 'nav-sec' + (open ? ' open' : '') + (active ? ' active' : '') });
+    box.appendChild(h('button', { class: 'nav-head', type: 'button', 'aria-expanded': String(open), onclick: function () { openSec[sec.id] = !open; drawNav(); } }, [ic(sec.icon), h('span', { text: sec.title }), c && !open ? h('span', { class: 'count', text: fa(c) }) : null, h('span', { class: 'chev' }, [ic('chev')])]));
+    box.appendChild(h('div', { class: 'nav-sub' }, tabs.map(function (t) {
+      var n = tabCount(t);
+      return h('a', { href: href(sec.id, t[0]), 'aria-current': active && S.route === t[0] ? 'page' : null, onclick: function () { document.body.classList.remove('nav-open'); } }, [h('span', { text: t[1] }), n ? h('span', { class: 'count', text: fa(n) }) : null]);
+    })));
+    nav.appendChild(box);
   });
 }
 function refreshCounts() {
-  api('/admin/dashboard').then(function (r) { if (!r.ok) return; S.counts = { prices: r.body.catalog.pricesPending, inbox: r.body.bot.candidatesPending }; drawNav(); });
+  api('/admin/dashboard').then(function (r) { if (!r.ok) return; S.counts.prices = r.body.catalog.pricesPending; S.counts.inbox = r.body.bot.candidatesPending; drawNav(); });
+  api('/admin/chat/reports').then(function (r) { if (!r.ok) return; S.counts.reports = r.body.reports.filter(function (x) { return !x.resolved; }).length; drawNav(); });
 }
+function findSection(id) { return TREE.filter(function (s) { return s.id === id; })[0]; }
 function route() {
-  var r = (location.hash || '#/dashboard').replace(/^#\//, '').split('?')[0];
-  if (!VIEWS[r]) r = 'dashboard';
-  S.route = r;
-  $('title').textContent = TITLES[r] || '';
+  var parts = (location.hash || '#/dashboard').replace(/^#\/?/, '').split('?')[0].split('/');
+  var sec = findSection(parts[0]);
+  if (!sec && TAB_HOME[parts[0]]) { location.replace(href(TAB_HOME[parts[0]], parts[0])); return; } // an old flat link
+  if (!sec) sec = TREE[0];
+  var tabs = sec.tabs.filter(function (t) { return tabVisible(sec, t); });
+  var tab = tabs.filter(function (t) { return t[0] === parts[1]; })[0] || tabs.filter(function (t) { return t[0] === load('tab.' + sec.id); })[0] || tabs[0];
+  if (!tab) { location.replace('#/dashboard'); return; }
+  if (sec.tabs.length > 1) store('tab.' + sec.id, tab[0]);
+  S.sec = sec.id; S.route = tab[0];
+  document.title = tab[1] + ' · مرکز مدیریت دوزاری';
+  clear($('crumb')).appendChild(h('span', {}, [sec.id === 'dashboard' ? h('b', { text: 'نمای کلی' }) : [h('span', { text: sec.title }), ' › ', h('b', { text: tab[1] })]]));
   drawNav();
   var root = clear($('view'));
-  if (DESC[r]) root.appendChild(h('p', { class: 'page-desc', text: DESC[r] }));
-  VIEWS[r](root);
+  if (sec.tabs.length > 1) {
+    root.appendChild(pageHead(sec.title, null));
+    root.appendChild(h('nav', { class: 'tabs', 'aria-label': sec.title }, tabs.map(function (t) {
+      var n = tabCount(t);
+      return h('a', { href: href(sec.id, t[0]), 'aria-current': t[0] === tab[0] ? 'page' : null }, [h('span', { text: t[1] }), n ? h('span', { class: 'count', text: fa(n) }) : null]);
+    })));
+  }
+  if (S.me && S.me.role === 'viewer') root.appendChild(banner('info', 'حساب تو فقط‌خواندنی است؛ دکمه‌های تغییر از سرور خطای دسترسی می‌گیرند.'));
+  var body = h('div', { class: 'view-body' });
+  root.appendChild(body);
+  if (sec.tabs.length === 1) { /* dashboard draws its own heading */ } else body.appendChild(h('p', { class: 'muted', style: 'margin:-6px 0 16px;font-size:13.5px', text: DESC[tab[0]] || tab[2] }));
+  VIEWS[tab[0]](body);
   window.scrollTo(0, 0);
 }
 function setTheme(t) { S.theme = t; if (t) document.documentElement.setAttribute('data-theme', t); else document.documentElement.removeAttribute('data-theme'); store('theme', t); }
+
+/* ---------------- quick jump (Ctrl+K) ---------------- */
+function openPalette() {
+  if (!S.me || document.querySelector('.palette')) return;
+  var input = h('input', { type: 'text', placeholder: 'برو به صفحه یا دنبال بازیکن بگرد (اسم یا شناسه)…', 'aria-label': 'جستجوی سریع', autocomplete: 'off' });
+  var list = h('div', { class: 'res', role: 'listbox' }), items = [], sel = 0, timer, seq = 0, close;
+  var all = [];
+  TREE.forEach(function (sec) { sec.tabs.forEach(function (t) { if (tabVisible(sec, t)) all.push({ g: 'صفحه‌ها', label: t[1], hint: sec.id === 'dashboard' ? '' : sec.title, icon: t[0] in ICON_D ? t[0] : sec.icon, kw: t[1] + ' ' + sec.title + ' ' + (t[3] || ''), run: function () { location.hash = href(sec.id, t[0]); } }); }); });
+  all.push({ g: 'کارها', label: 'تغییر تم روشن/تاریک', hint: '', icon: 'sun', kw: 'تم تاریک روشن دارک', run: toggleTheme });
+  all.push({ g: 'کارها', label: 'خروج از حساب', hint: '', icon: 'logout', kw: 'خروج', run: logout });
+  var users = [];
+  function draw() {
+    var q = input.value.trim().toLowerCase();
+    var base = all.filter(function (a) { return !q || a.kw.toLowerCase().indexOf(q) >= 0; });
+    items = users.concat(base).slice(0, 40);
+    if (sel >= items.length) sel = 0;
+    clear(list);
+    if (!items.length) return list.appendChild(h('div', { class: 'empty-state', text: 'چیزی پیدا نشد' }));
+    var lastG = null;
+    items.forEach(function (it, i) {
+      if (it.g !== lastG) { list.appendChild(h('div', { class: 'grp', text: it.g })); lastG = it.g; }
+      list.appendChild(h('div', { class: 'it', role: 'option', 'aria-selected': String(i === sel), onmousemove: function () { if (sel !== i) { sel = i; mark(); } }, onclick: function () { go(it); } }, [ic(it.icon), h('span', { text: it.label }), it.hint ? h('small', { text: it.hint }) : null]));
+    });
+    var cur = list.querySelector('[aria-selected=true]'); if (cur && cur.scrollIntoView) cur.scrollIntoView({ block: 'nearest' });
+  }
+  function mark() { Array.prototype.forEach.call(list.querySelectorAll('.it'), function (el, i) { el.setAttribute('aria-selected', String(i === sel)); }); }
+  function go(it) { close(); it.run(); }
+  input.addEventListener('input', function () {
+    sel = 0; clearTimeout(timer);
+    var q = input.value.trim(), my = ++seq;
+    if (q.length < 2) { users = []; return draw(); }
+    draw();
+    timer = setTimeout(function () {
+      api('/admin/users?q=' + encodeURIComponent(q) + '&filter=all&sort=lastSeen&offset=0').then(function (r) {
+        if (my !== seq || !r.ok) return;
+        users = r.body.users.slice(0, 6).map(function (u) { return { g: 'بازیکن‌ها', label: u.nickname, hint: faNum(u.balance) + ' سکه' + (u.isBanned ? ' · مسدود' : ''), icon: 'users', kw: '', run: function () { location.hash = '#/players/users'; setTimeout(function () { userDrawer(u.id, function () { if (S.route === 'users') route(); }); }, 60); } }; });
+        draw();
+      });
+    }, 250);
+  });
+  input.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowDown') { e.preventDefault(); sel = Math.min(items.length - 1, sel + 1); mark(); var c = list.querySelector('[aria-selected=true]'); if (c) c.scrollIntoView({ block: 'nearest' }); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); sel = Math.max(0, sel - 1); mark(); var d = list.querySelector('[aria-selected=true]'); if (d) d.scrollIntoView({ block: 'nearest' }); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (items[sel]) go(items[sel]); }
+  });
+  var box = h('div', { class: 'palette', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'جستجوی سریع' }, [input, list, h('div', { class: 'hint' }, [h('span', { text: '↑↓ حرکت' }), h('span', { text: '↵ باز کردن' }), h('span', { text: 'Esc بستن' })])]);
+  close = overlay('', box);
+  draw(); input.focus();
+}
+
+/* ---------------- sign-in / session ---------------- */
 var tokenMode = false;
 function showLogin(msg) {
   $('app').hidden = true; $('login').hidden = false;
@@ -91,7 +224,8 @@ function setLoginMode(tm) {
   $('login-user').hidden = tm; $('login-pass').hidden = tm; $('login-token').hidden = !tm;
   $('login-mode').textContent = tm ? 'ورود با نام کاربری و رمز' : 'ورود با توکن اصلی';
 }
-var ROLE_FA = { owner: 'مالک', editor: 'ویرایشگر', support: 'پشتیبان', viewer: 'فقط‌خواندن' };
+function logout() { sstore('tok', null); S.token = ''; S.me = null; S.counts = {}; while (OVERLAYS.length) closeTop(); showLogin(''); }
+function toggleTheme() { var dark = S.theme === 'dark' || (S.theme === null && window.matchMedia('(prefers-color-scheme: dark)').matches); setTheme(dark ? 'light' : 'dark'); }
 function enter(token) {
   S.token = token;
   api('/admin/me').then(function (m) {
@@ -101,13 +235,18 @@ function enter(token) {
     api('/admin/meta').then(function (r) {
       if (!r.ok) return showLogin('پنل روی این سرور فعال نیست.');
       S.meta = r.body; sstore('tok', token);
-      $('who').textContent = S.me.name + ' · ' + (ROLE_FA[S.me.role] || S.me.role);
+      $('who-name').textContent = S.me.name; $('who-role').textContent = ROLE_FA[S.me.role] || S.me.role;
+      $('avatar').textContent = initials(S.me.name);
       $('login').hidden = true; $('app').hidden = false;
       refreshCounts(); route();
     });
   });
 }
 window.addEventListener('hashchange', route);
+document.addEventListener('keydown', function (e) {
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); if (S.me) openPalette(); }
+  else if (e.key === '/' && S.me && !/^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || '') && !OVERLAYS.length) { e.preventDefault(); openPalette(); }
+});
 $('login-mode').addEventListener('click', function () { setLoginMode(!tokenMode); showLogin(''); });
 $('login-form').addEventListener('submit', function (e) {
   e.preventDefault();
@@ -119,9 +258,12 @@ $('login-form').addEventListener('submit', function (e) {
     .then(function (r) { $('login-pass').value = ''; if (r.status === 200) return enter(r.body.token); showLogin(ERR[r.body.error] || ('خطا (' + r.status + ')')); })
     .catch(function () { showLogin('اتصال به سرور برقرار نشد.'); });
 });
-$('logout').addEventListener('click', function () { sstore('tok', null); S.token = ''; S.me = null; showLogin(''); });
+$('logout').appendChild(ic('logout')); $('menu').appendChild(ic('menu')); $('theme').appendChild(ic('sun'));
+$('logout').addEventListener('click', logout);
 $('menu').addEventListener('click', function () { document.body.classList.toggle('nav-open'); });
-$('theme').addEventListener('click', function () { var dark = S.theme === 'dark' || (S.theme === null && window.matchMedia('(prefers-color-scheme: dark)').matches); setTheme(dark ? 'light' : 'dark'); });
+$('theme').addEventListener('click', toggleTheme);
+$('quick').addEventListener('click', openPalette);
+$('side-search').addEventListener('click', function () { document.body.classList.remove('nav-open'); openPalette(); });
 setTheme(load('theme'));
 var saved = sload('tok');
 if (saved) enter(saved); else showLogin('');

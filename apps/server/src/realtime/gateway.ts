@@ -2,7 +2,8 @@ import type { Server as HttpServer } from 'node:http';
 import { Server } from 'socket.io';
 import type { Socket } from 'socket.io';
 import type { QueueProblem } from '@dozari/shared';
-import { ClientEvent, ServerEvent, chatTauntSchema, matchProposeSchema, matchResumeSchema, matchSubmitSchema, queueJoinSchema } from '@dozari/shared';
+import type { AgeTrack } from '@dozari/shared';
+import { ClientEvent, ServerEvent, chatTauntSchema, matchProposeSchema, matchResumeSchema, matchSubmitSchema, priceSubmitSchema, queueJoinSchema } from '@dozari/shared';
 import type { Ack, LiveNotice } from '@dozari/shared';
 import type { UserRecord } from '../auth/service.js';
 import { ChatService } from '../chat/service.js';
@@ -18,6 +19,8 @@ export interface GatewayOptions {
   corsOrigin?: string;
   /** Admin kill switches: a non-null answer refuses new connections' queue joins (maintenance mode, duel feature off). */
   gate?: () => Promise<'MAINTENANCE' | 'FEATURE_OFF' | null>;
+  /** True when this player's level is high enough for the live duel queue. */
+  levelGate?: (userId: string) => Promise<boolean>;
   /** Daily duel cap: `canPlay` refuses a queue join over the cap, `onStarted` counts a real match for both players. */
   limit?: { canPlay: (userId: string) => Promise<boolean>; onStarted: (userId: string) => Promise<void> };
   /** Before queueing: false answers INSUFFICIENT_COINS (a free match or a rescue may apply). */
@@ -35,8 +38,10 @@ export interface GatewayOptions {
   presence?: Presence;
   /** Pushes a small notice to one player's live sockets (friend request, inbox message); the gateway fills in `push`. */
   notices?: LiveNotices;
+  /** A player's age track (docs/logic/age-tracks.md); the queues only pair players of one track. Missing = everyone is adult. */
+  trackOf?: (userId: string) => Promise<AgeTrack>;
   /** Why a player who has waited `waitedSec` is not being matched (nothing to play, nobody to play against); null = just wait. */
-  diagnose?: (waitedSec: number) => Promise<QueueProblem | null>;
+  diagnose?: (waitedSec: number, track?: AgeTrack) => Promise<QueueProblem | null>;
 }
 
 export interface Gateway {
@@ -59,6 +64,9 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
   const now = opts.now ?? Date.now;
   const queue = new DuelQueue();
   const teamQueue = new DuelQueue();
+  /** Track of everyone now in a line, so a pair that fails to start goes back to the right track. */
+  const lineTracks = new Map<string, AgeTrack>();
+  const rejoin = (line: DuelQueue, id: string) => line.join(id, now(), lineTracks.get(id) ?? 'adult');
   let matches: MatchService | undefined;
   const stats = new SocketStats({ queueLength: () => queue.length + teamQueue.length, activeMatches: () => matches?.activeCount ?? 0, longestWaitMs: (t) => Math.max(queue.longestWaitMs(t), teamQueue.longestWaitMs(t)) }, now);
   const io = new Server(http, {
@@ -99,8 +107,9 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
     const pair = queue.takePair();
     if (!pair) return;
     const handled = matches ? await matches.start(pair[0], pair[1]) : opts.onPair ? await opts.onPair(pair[0], pair[1]) : false;
-    if (!handled) for (const id of pair) queue.join(id, now());
-    else if (opts.limit) for (const id of pair) void opts.limit.onStarted(id).catch(() => undefined);
+    if (!handled) for (const id of pair) rejoin(queue, id);
+    else for (const id of pair) lineTracks.delete(id);
+    if (handled && opts.limit) for (const id of pair) void opts.limit.onStarted(id).catch(() => undefined);
   }
 
   async function tryPairTeam() {
@@ -108,13 +117,15 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
     if (!four || !matches) return;
     // The two longest waiters play together against the next two.
     const handled = await matches.startTeam([[four[0]!, four[1]!], [four[2]!, four[3]!]]);
-    if (!handled) for (const id of four) teamQueue.join(id, now());
-    else if (opts.limit) for (const id of four) void opts.limit.onStarted(id).catch(() => undefined);
+    if (!handled) for (const id of four) rejoin(teamQueue, id);
+    else for (const id of four) lineTracks.delete(id);
+    if (handled && opts.limit) for (const id of four) void opts.limit.onStarted(id).catch(() => undefined);
   }
 
   function leaveQueue(userId: string) {
     queue.leave(userId);
     teamQueue.leave(userId);
+    lineTracks.delete(userId);
   }
 
   io.on('connection', (socket: Socket) => {
@@ -135,12 +146,16 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
       const team = joined.data.mode === 'team';
       const closed = await opts.gate?.();
       if (closed) return ack?.({ ok: false, error: closed });
+      // New players sit out the live duel until they know the game (docs/logic/matchmaking.md §Level gate).
+      if (opts.levelGate && !(await opts.levelGate(userId))) return ack?.({ ok: false, error: 'LEVEL_TOO_LOW' });
       if (opts.limit && !(await opts.limit.canPlay(userId))) return ack?.({ ok: false, error: 'DAILY_CAP' });
       if (!team && opts.canAfford && !(await opts.canAfford(userId))) return ack?.({ ok: false, error: 'INSUFFICIENT_COINS' });
       if (matches?.inMatch(userId)) return ack?.({ ok: false, error: 'ALREADY_IN_MATCH' });
       if (queue.has(userId) || teamQueue.has(userId)) return ack?.({ ok: false, error: 'ALREADY_QUEUED' });
       const line = team ? teamQueue : queue;
-      line.join(userId, now());
+      const track = (await opts.trackOf?.(userId)) ?? 'adult';
+      lineTracks.set(userId, track);
+      line.join(userId, now(), track);
       ack?.({ ok: true });
       socket.emit(ServerEvent.queueStatus, { waitedSec: 0, position: line.position(userId) ?? 1 });
       await (team ? tryPairTeam() : tryPair());
@@ -180,6 +195,13 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
       ack?.(matches ? matches.submit(userId, body.data.itemIds) : { ok: false, error: 'NOT_IN_MATCH' });
     });
 
+    // A hidden guess in the duel's price-guess round (the rials arrive as a decimal string).
+    socket.on(ClientEvent.priceSubmit, (payload: unknown, ack?: (a: Ack) => void) => {
+      const body = priceSubmitSchema.safeParse(payload);
+      if (!body.success) return ack?.({ ok: false, error: 'INVALID_PAYLOAD' });
+      ack?.(matches ? matches.submitPrice(userId, BigInt(body.data.guessRials)) : { ok: false, error: 'NOT_IN_MATCH' });
+    });
+
     socket.on(ClientEvent.matchPropose, (payload: unknown, ack?: (a: Ack) => void) => {
       const body = matchProposeSchema.safeParse(payload);
       if (!body.success) return ack?.({ ok: false, error: 'INVALID_PAYLOAD' });
@@ -209,9 +231,9 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
   const statusTimer = setInterval(() => {
     void (async () => {
       for (const line of [queue, teamQueue]) {
-        for (const { userId, since } of line.waiting()) {
+        for (const { userId, since, track } of line.waiting()) {
           const waitedSec = Math.max(0, Math.floor((now() - since) / 1000));
-          const problem = (await opts.diagnose?.(waitedSec).catch(() => null)) ?? undefined;
+          const problem = (await opts.diagnose?.(waitedSec, track).catch(() => null)) ?? undefined;
           io.to(room(userId)).emit(ServerEvent.queueStatus, { waitedSec, position: line.position(userId) ?? 1, ...(problem ? { problem } : {}) });
         }
       }

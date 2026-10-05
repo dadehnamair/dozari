@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { Platform } from 'react-native';
 import { getPrefs, usePrefs } from '../prefs/store';
 import { context } from './engine';
 import type { AudioCtx } from './engine';
@@ -14,6 +13,8 @@ import type { DrumHit, Mood } from './musicPattern';
  * frame drum from filtered noise, all through a gentle low-pass and a short echo so it sounds like a room, not a beeper.
  */
 
+/** The owner's songs are the app music (D189). The synthesised pattern remains for a build that cannot load them. */
+const SONGS_ON = true;
 const LOOKAHEAD_S = 0.2;
 const TICK_MS = 60;
 
@@ -138,7 +139,8 @@ function tick() {
 
 /** Sets the mood (null = silence). Switching mood restarts the loop so the tempo changes at once. */
 export function setMusicMood(next: Mood | null): void {
-  if (Platform.OS !== 'web') return setNativeMusic(next);
+  // Both phones and the web play the songs; the WebAudio synth below stays only as the fallback when the songs are switched off in code.
+  if (SONGS_ON) return setNativeMusic(next);
   if (next === mood) return;
   mood = next;
   step = 0;

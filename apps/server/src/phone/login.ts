@@ -62,9 +62,8 @@ export class PhoneLoginService {
     return { ok: true };
   }
 
-  async verify(rawPhone: string, code: string, deviceId: string): Promise<LoginVerifyResult> {
-    const phone = normalizeIranPhone(rawPhone);
-    if (!phone) return { ok: false, error: 'invalid_phone' };
+  /** Checks a code and burns it on success. */
+  private async consume(phone: string, code: string): Promise<{ ok: true } | { ok: false; error: 'no_code' | 'expired' | 'wrong' | 'too_many' }> {
     const o = this.codes.get(phone);
     if (!o) return { ok: false, error: 'no_code' };
     if (this.now() > o.expiresAt) {
@@ -77,6 +76,22 @@ export class PhoneLoginService {
       return { ok: false, error: 'wrong' };
     }
     this.codes.delete(phone);
+    return { ok: true };
+  }
+
+  /** Proves a number without touching any account (a guardian's number): the normalized phone on success. */
+  async prove(rawPhone: string, code: string): Promise<{ ok: true; phone: string } | { ok: false; error: 'invalid_phone' | 'no_code' | 'expired' | 'wrong' | 'too_many' }> {
+    const phone = normalizeIranPhone(rawPhone);
+    if (!phone) return { ok: false, error: 'invalid_phone' };
+    const out = await this.consume(phone, code);
+    return out.ok ? { ok: true, phone } : out;
+  }
+
+  async verify(rawPhone: string, code: string, deviceId: string): Promise<LoginVerifyResult> {
+    const phone = normalizeIranPhone(rawPhone);
+    if (!phone) return { ok: false, error: 'invalid_phone' };
+    const proven = await this.consume(phone, code);
+    if (!proven.ok) return proven;
     const holder = await this.store.holderOf(phone);
     if (holder) {
       const session = await this.auth.sessionFor(holder, deviceId);

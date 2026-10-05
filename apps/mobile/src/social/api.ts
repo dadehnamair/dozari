@@ -1,4 +1,4 @@
-import { citiesSchema, recentGamesSchema, friendsSchema, leaderboardSchema, myFindSchema, myProfileSchema, playerProfileSchema, searchResultSchema } from '@dozari/shared';
+import { citiesSchema, recentGamesSchema, friendsSchema, leaderboardSchema, myFindSchema, myProfileSchema, playerProfileSchema, searchResultSchema, contactsResultSchema } from '@dozari/shared';
 import type { RecentGames, City, Friends, FoundPlayer, Gender, Leaderboard, LeaderboardPeriod, LeaderboardScope, MyFind, MyProfile, PlayerProfile } from '@dozari/shared';
 import { session } from '../auth';
 import { callJson } from '../net/http';
@@ -21,6 +21,8 @@ export const saveNickname = (nickname: string): Promise<string> => authed('/me/n
 export const fetchMyFind = (): Promise<MyFind> => authed('/me/find', 'GET', (v) => myFindSchema.parse(v));
 export const saveFindable = (findableByPhone: boolean): Promise<MyFind> => authed('/me/find', 'PUT', (v) => myFindSchema.parse(v), { findableByPhone });
 export const searchPlayer = (q: string): Promise<FoundPlayer | null> => authed(`/players/search?q=${encodeURIComponent(q)}`, 'GET', (v) => searchResultSchema.parse(v).player);
+/** Address-book lookup: up to 500 Iranian mobile numbers; returns the players whose verified, findable number matches. */
+export const findContacts = (phones: string[]): Promise<FoundPlayer[]> => authed('/friends/find-contacts', 'POST', (v) => contactsResultSchema.parse(v).players, { phones });
 export const friendByLink = (handle: string): Promise<{ status: string }> => authed('/friends/link', 'POST', (v) => v as { status: string }, { handle });
 
 export const fetchRecentGames = (): Promise<RecentGames> => authed('/me/games', 'GET', (v) => recentGamesSchema.parse(v));

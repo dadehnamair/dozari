@@ -8,8 +8,8 @@ describe('catalog seed files', () => {
     expect(seed.length).toBeGreaterThan(0);
   });
 
-  it('gives every product at least one price point', () => {
-    for (const p of seed) expect(p.prices.length, p.slug).toBeGreaterThanOrEqual(1);
+  it('gives every non-kid product at least one price point (kid items need none)', () => {
+    for (const p of seed.filter((x) => x.age_track !== 'kid')) expect(p.prices.length, p.slug).toBeGreaterThanOrEqual(1);
   });
 
   it('keeps one unit per product and flags year-over-year drops above 30%', () => {
@@ -59,5 +59,22 @@ describe('the generator on the sample catalog', () => {
       if (g) keys.add(g.groups.flatMap((x) => x.productIds).sort().join(','));
     }
     expect(keys.size).toBeGreaterThanOrEqual(8);
+  });
+});
+
+describe('kid starter seed (D198)', () => {
+  const seed = readSeedProducts();
+  const kid = seed.filter((p) => p.age_track === 'kid');
+  it('has a draft lesson for every kid item and an icon', () => {
+    expect(kid.length).toBeGreaterThanOrEqual(48);
+    for (const p of kid) {
+      expect(p.lesson?.word_fa, p.slug).toBeTruthy();
+      expect(p.icon_key, p.slug).toBeTruthy();
+    }
+  });
+  it('seeds kid puzzles as drafts that only use kid items', () => {
+    const kidPuzzles = readSeedPuzzles(seed).filter((p) => p.age_track === 'kid');
+    expect(kidPuzzles.length).toBeGreaterThanOrEqual(3);
+    for (const p of kidPuzzles) expect(p.status).toBe('draft');
   });
 });

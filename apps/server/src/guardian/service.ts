@@ -1,0 +1,247 @@
+import type { FastifyInstance } from 'fastify';
+import { GUARDIAN_LINK_CODE_LENGTH, GUARDIAN_LINK_CODE_TTL_SEC, GUARDIAN_MAX_CHILDREN, childCreateSchema, childLinkRequestSchema, childTrackPutSchema, guardianConfirmSchema, guardianRequestSchema } from '@dozari/shared';
+import type { ChildRow, ChildrenResponse, Session } from '@dozari/shared';
+import type { AuthService } from '../auth/service.js';
+import { currentUser } from '../auth/routes.js';
+import type { AgeTrackStore } from '../agetrack/service.js';
+import { RateLimiter } from '../security/rate-limit.js';
+
+/** I/O boundary of guardian links (docs/logic/age-tracks.md): child profiles, link codes, new child accounts. */
+export interface GuardianStore {
+  guardianOf(childId: string): Promise<string | null>;
+  childrenOf(guardianId: string): Promise<ChildRow[]>;
+  /** False when the child already has a guardian. */
+  link(guardianId: string, childId: string): Promise<boolean>;
+  unlink(guardianId: string, childId: string): Promise<boolean>;
+  isChildOf(guardianId: string, childId: string): Promise<boolean>;
+  /** Makes a child account (no device, no phone) of the given track and links it. Returns its id. */
+  createChild(guardianId: string, track: 'kid' | 'teen'): Promise<string>;
+  /** Replaces any live code of this child; false when the code is already taken by another child. */
+  putCode(code: string, childId: string, guardianId: string, expiresAt: number): Promise<boolean>;
+  /** Uses a code up: the child it opens, or null when unknown or expired. */
+  takeCode(code: string, now: number): Promise<{ childId: string; guardianId: string } | null>;
+}
+
+/** The slice of the SMS-code service the guardian flow needs (`PhoneLoginService`). */
+export interface GuardianProof {
+  sendCode(phone: string): Promise<{ ok: true } | { ok: false; error: string; retryAfterSec?: number }>;
+  prove(phone: string, code: string): Promise<{ ok: true; phone: string } | { ok: false; error: string }>;
+}
+
+/** The slice of the phone store the guardian flow needs. */
+export interface GuardianPhones {
+  holderOf(phone: string): Promise<string | null>;
+  markVerified(userId: string, phone: string, now: number): Promise<boolean>;
+  state(userId: string): Promise<{ phone: string | null }>;
+}
+
+export type GuardianError =
+  | 'not_a_child'
+  | 'already_linked'
+  | 'not_adult'
+  | 'phone_required'
+  | 'too_many_children'
+  | 'not_found'
+  | 'self'
+  | 'sms_unavailable'
+  | 'too_soon'
+  | 'rate_limited'
+  | 'send_failed'
+  | 'invalid_phone'
+  | 'no_code'
+  | 'expired'
+  | 'wrong'
+  | 'too_many'
+  | 'account_failed'
+  | 'code_failed';
+export type Result<T = object> = ({ ok: true } & T) | { ok: false; error: GuardianError; retryAfterSec?: number };
+
+export class GuardianService {
+  constructor(
+    private readonly store: GuardianStore,
+    private readonly tracks: AgeTrackStore,
+    private readonly proof: GuardianProof,
+    private readonly phones: GuardianPhones,
+    private readonly auth: AuthService,
+    private readonly newDeviceId: () => string,
+    private readonly rng: () => number = Math.random,
+    private readonly now: () => number = Date.now,
+  ) {}
+
+  async mine(userId: string): Promise<{ linked: boolean }> {
+    return { linked: (await this.store.guardianOf(userId)) !== null };
+  }
+
+  /** The child side: may this account ask a guardian to link? Only a kid or teen without a guardian. */
+  private async childCheck(childId: string): Promise<GuardianError | null> {
+    const t = (await this.tracks.get(childId)).track;
+    if (t === 'adult') return 'not_a_child';
+    if (await this.store.guardianOf(childId)) return 'already_linked';
+    return null;
+  }
+
+  async requestCode(childId: string, phone: string): Promise<Result> {
+    const bad = await this.childCheck(childId);
+    if (bad) return { ok: false, error: bad };
+    const out = await this.proof.sendCode(phone);
+    return out.ok ? { ok: true } : { ok: false, error: out.error as GuardianError, ...(out.retryAfterSec ? { retryAfterSec: out.retryAfterSec } : {}) };
+  }
+
+  /** The guardian proved their number: find or make their account and link the asking child to it. */
+  async confirm(childId: string, phone: string, code: string): Promise<Result> {
+    const bad = await this.childCheck(childId);
+    if (bad) return { ok: false, error: bad };
+    const proven = await this.proof.prove(phone, code);
+    if (!proven.ok) return { ok: false, error: proven.error as GuardianError };
+    let guardianId = await this.phones.holderOf(proven.phone);
+    if (!guardianId) {
+      const made = await this.auth.guestLogin(this.newDeviceId());
+      if (!made.ok) return { ok: false, error: 'account_failed' };
+      guardianId = made.session.user.id;
+      if (!(await this.phones.markVerified(guardianId, proven.phone, this.now()))) return { ok: false, error: 'account_failed' };
+    }
+    if (guardianId === childId) return { ok: false, error: 'self' };
+    if ((await this.tracks.get(guardianId)).track !== 'adult') return { ok: false, error: 'not_adult' };
+    if ((await this.store.childrenOf(guardianId)).length >= GUARDIAN_MAX_CHILDREN) return { ok: false, error: 'too_many_children' };
+    return (await this.store.link(guardianId, childId)) ? { ok: true } : { ok: false, error: 'already_linked' };
+  }
+
+  /** The guardian side: may this account hold children? An adult with a verified number. */
+  private async guardianCheck(guardianId: string): Promise<GuardianError | null> {
+    if ((await this.tracks.get(guardianId)).track !== 'adult') return 'not_adult';
+    if (!(await this.phones.state(guardianId)).phone) return 'phone_required';
+    return null;
+  }
+
+  async children(guardianId: string): Promise<ChildrenResponse> {
+    return { children: await this.store.childrenOf(guardianId), phoneVerified: !!(await this.phones.state(guardianId)).phone, max: GUARDIAN_MAX_CHILDREN };
+  }
+
+  async addChild(guardianId: string, track: 'kid' | 'teen'): Promise<Result<{ childId: string }>> {
+    const bad = await this.guardianCheck(guardianId);
+    if (bad) return { ok: false, error: bad };
+    if ((await this.store.childrenOf(guardianId)).length >= GUARDIAN_MAX_CHILDREN) return { ok: false, error: 'too_many_children' };
+    return { ok: true, childId: await this.store.createChild(guardianId, track) };
+  }
+
+  async linkCode(guardianId: string, childId: string): Promise<Result<{ code: string; expiresInSec: number }>> {
+    if (!(await this.store.isChildOf(guardianId, childId))) return { ok: false, error: 'not_found' };
+    for (let i = 0; i < 5; i++) {
+      const code = String(Math.floor(this.rng() * 10 ** GUARDIAN_LINK_CODE_LENGTH)).padStart(GUARDIAN_LINK_CODE_LENGTH, '0');
+      if (await this.store.putCode(code, childId, guardianId, this.now() + GUARDIAN_LINK_CODE_TTL_SEC * 1000)) return { ok: true, code, expiresInSec: GUARDIAN_LINK_CODE_TTL_SEC };
+    }
+    return { ok: false, error: 'code_failed' };
+  }
+
+  /** The child's device shows the code: it signs in as the child. Null for an unknown or expired code (and for a banned child). */
+  async redeem(code: string, deviceId: string): Promise<Session | null> {
+    const hit = await this.store.takeCode(code, this.now());
+    if (!hit) return null;
+    return this.auth.sessionFor(hit.childId, deviceId);
+  }
+
+  /** A guardian may move their child to any child track (an older one needs their say, which is this call). */
+  async setTrack(guardianId: string, childId: string, track: 'kid' | 'teen'): Promise<Result> {
+    if (!(await this.store.isChildOf(guardianId, childId))) return { ok: false, error: 'not_found' };
+    await this.tracks.save(childId, track, new Date(this.now()));
+    return { ok: true };
+  }
+
+  async remove(guardianId: string, childId: string): Promise<Result> {
+    return (await this.store.unlink(guardianId, childId)) ? { ok: true } : { ok: false, error: 'not_found' };
+  }
+}
+
+const STATUS: Partial<Record<GuardianError, number>> = {
+  not_a_child: 409,
+  already_linked: 409,
+  not_adult: 403,
+  phone_required: 403,
+  too_many_children: 409,
+  not_found: 404,
+  self: 409,
+  sms_unavailable: 503,
+  too_soon: 429,
+  rate_limited: 429,
+  send_failed: 502,
+  invalid_phone: 400,
+  no_code: 400,
+  expired: 400,
+  wrong: 400,
+  too_many: 429,
+};
+
+export function registerGuardianRoutes(app: FastifyInstance, auth: AuthService, svc: GuardianService, now: () => number = Date.now) {
+  /** The link code is 6 digits: 10 tries per 10 minutes per address keeps guessing hopeless. */
+  const guesses = new RateLimiter(10, 10 * 60_000, now);
+  type Reply = { code(n: number): { send(b: unknown): unknown } };
+  const fail = (reply: Reply, out: { ok: false; error: GuardianError; retryAfterSec?: number }) =>
+    reply.code(STATUS[out.error] ?? 400).send({ error: out.error, ...(out.retryAfterSec ? { retryAfterSec: out.retryAfterSec } : {}) });
+
+  // Child side: a kid or teen asks a guardian to link by proving the guardian's phone number.
+  app.get('/me/guardian', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    return svc.mine(user.id);
+  });
+  app.post('/guardian/request', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    const body = guardianRequestSchema.safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'invalid_request' });
+    const out = await svc.requestCode(user.id, body.data.phone);
+    return out.ok ? { ok: true } : fail(reply, out);
+  });
+  app.post('/guardian/confirm', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    const body = guardianConfirmSchema.safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'invalid_request' });
+    const out = await svc.confirm(user.id, body.data.phone, body.data.code);
+    return out.ok ? { ok: true } : fail(reply, out);
+  });
+
+  // Guardian side.
+  app.get('/guardian/children', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    return svc.children(user.id);
+  });
+  app.post('/guardian/children', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    const body = childCreateSchema.safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'invalid_request' });
+    const out = await svc.addChild(user.id, body.data.track);
+    return out.ok ? reply.code(201).send({ childId: out.childId }) : fail(reply, out);
+  });
+  app.post<{ Params: { id: string } }>('/guardian/children/:id/link-code', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    const out = await svc.linkCode(user.id, req.params.id);
+    return out.ok ? { code: out.code, expiresInSec: out.expiresInSec } : fail(reply, out);
+  });
+  app.put<{ Params: { id: string } }>('/guardian/children/:id/track', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    const body = childTrackPutSchema.safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'invalid_request' });
+    const out = await svc.setTrack(user.id, req.params.id, body.data.track);
+    return out.ok ? { ok: true } : fail(reply, out);
+  });
+  app.delete<{ Params: { id: string } }>('/guardian/children/:id', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    const out = await svc.remove(user.id, req.params.id);
+    return out.ok ? { ok: true } : fail(reply, out);
+  });
+
+  // The child's device, signed out: the code the guardian shows opens the child's account on it.
+  app.post('/auth/child-link', async (req, reply) => {
+    const body = childLinkRequestSchema.safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'invalid_request' });
+    if (!guesses.take(req.ip)) return reply.code(429).send({ error: 'rate_limited' });
+    const session = await svc.redeem(body.data.code, body.data.deviceId);
+    return session ? session : reply.code(400).send({ error: 'invalid_code' });
+  });
+}

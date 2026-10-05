@@ -1,4 +1,4 @@
-import { randomInt } from 'node:crypto';
+import { randomInt, randomUUID } from 'node:crypto';
 import Fastify from 'fastify';
 import fastifyCors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
@@ -13,6 +13,9 @@ import { createDbDailyRewardStore } from './economy/daily-reward-db.js';
 import { registerDailyRewardRoutes } from './economy/routes.js';
 import { AuthService } from './auth/service.js';
 import { createDbUserRepository } from './auth/db-repository.js';
+import { createClientRecorder, parseClientInfo } from './clients/info.js';
+import type { ClientInfoStore } from './clients/info.js';
+import { createDbClientInfoStore } from './clients/store.js';
 import { attachGateway } from './realtime/gateway.js';
 import { Presence } from './realtime/presence.js';
 import { createLiveNotices } from './realtime/notices.js';
@@ -40,6 +43,7 @@ import { createDbDailyStore } from './daily/store.js';
 import { registerTournamentRoutes } from './tournament/routes.js';
 import { TournamentService } from './tournament/service.js';
 import { createDbTournamentStore } from './tournament/store.js';
+import { createDbSponsorStore } from './sponsor/store.js';
 import { BotDriver } from './botplayers/driver.js';
 import { BotPlayerService } from './botplayers/service.js';
 import { createDbBotPlayerStore } from './botplayers/store.js';
@@ -126,6 +130,14 @@ import { applyLedgerEntry } from './economy/ledger.js';
 import type { FeedbackService } from './feedback/service.js';
 import { registerFeedbackRoutes } from './feedback/routes.js';
 import { createDbBirthdayStore } from './profile/birthday-store.js';
+import { AgeTrackService, registerAgeTrackRoutes } from './agetrack/service.js';
+import { createDbAgeTrackStore } from './agetrack/store.js';
+import { createDbAgeTrackAdmin } from './agetrack/overview.js';
+import { GuardianService, registerGuardianRoutes } from './guardian/service.js';
+import { createDbGuardianStore } from './guardian/store.js';
+import { registerLessonRoutes } from './lessons/service.js';
+import type { LessonStore } from './lessons/service.js';
+import { createDbLessonStore } from './lessons/store.js';
 import { ShopService } from './economy/shop.js';
 import { createDbShopStore } from './economy/shop-store.js';
 import { HintService } from './solo/hints.js';
@@ -139,6 +151,9 @@ import { TableService } from './tables/service.js';
 import { registerTableRoutes } from './tables/routes.js';
 import { currentUser } from './auth/routes.js';
 import { registerSoloRoutes } from './solo/routes.js';
+import { registerPriceOnlyRoutes } from './priceonly/routes.js';
+import { PriceOnlyService } from './priceonly/service.js';
+import { createDbPriceOnlySource } from './priceonly/db-source.js';
 import { SoloService } from './solo/service.js';
 import type { CatalogRepository } from './catalog/routes.js';
 
@@ -152,6 +167,8 @@ export interface ServerDeps {
   admin?: { repo: AdminRepository; token?: string; accounts?: AdminAccounts };
   /** Guest accounts and sessions (`/auth/guest`, `/me`). */
   auth?: AuthService;
+  /** Remembers the platform / app version / market each signed-in player's app reports (admin panel «آخرین دستگاه»). */
+  clientInfo?: ClientInfoStore;
   /** Daily reward (`/daily-reward`, and the admin editor); needs `auth` for the player routes. */
   dailyReward?: DailyRewardService;
   /** Lucky wheel: a spin earned by winning a duel. */
@@ -206,6 +223,10 @@ export interface ServerDeps {
   adminModules?: Omit<AdminModules, 'settings'>;
   /** Solo practice sessions (`/solo/*`). */
   solo?: SoloService;
+  /** Is this player's level enough for the live duel queue (`duel.min_level`)? Absent = everyone may. */
+  duelLevelGate?: (userId: string) => Promise<boolean>;
+  /** Price-only games (`/price-only/*`). */
+  priceOnly?: PriceOnlyService;
   /** Paid hints of solo games; needs `solo` and `auth`. */
   hints?: HintService;
   /** Private tables (`/tables`); needs `auth` and the live-match service. */
@@ -221,6 +242,12 @@ export interface ServerDeps {
   profileTasks?: ProfileTaskService;
   /** Birth date, birthday week, yearly gift and friend messages (D160). */
   birthday?: BirthdayService;
+  /** Chosen age track: kid / teen / adult (D198); queues only pair one track. */
+  ageTracks?: AgeTrackService;
+  /** Kid word lessons (D198). */
+  lessons?: LessonStore;
+  /** Guardian links: child profiles, link codes, band-change approval (D198). */
+  guardian?: GuardianService;
   /** Reports of players and the suggestion / vote / approve loop (D177). */
   feedback?: FeedbackService;
   gems?: Pick<GemWalletReader, 'wallet'>;
@@ -271,6 +298,23 @@ export function buildServer(deps: ServerDeps = {}) {
     const limited = !anyLimit.take(req.ip) ? anyLimit : req.url.split('?')[0] === '/auth/guest' && !guestLimit.take(req.ip) ? guestLimit : null;
     if (limited) return reply.header('retry-after', String(limited.retryAfterSec(req.ip))).code(429).send({ error: 'rate_limited' });
   });
+
+  if (deps.auth && deps.clientInfo) {
+    // After the response is sent, so it costs the player nothing; a failure is only logged.
+    const auth = deps.auth;
+    const record = createClientRecorder(deps.clientInfo);
+    app.addHook('onResponse', async (req) => {
+      const info = parseClientInfo(req.headers);
+      const m = /^Bearer (.+)$/.exec(req.headers.authorization ?? '');
+      if (!info || !m?.[1]) return;
+      try {
+        const user = await auth.authenticate(m[1]);
+        if (user) await record(user.id, info);
+      } catch (err) {
+        req.log.warn({ err }, 'client info not recorded');
+      }
+    });
+  }
 
   app.get('/health', async () => ({
     status: 'ok',
@@ -330,10 +374,14 @@ export function buildServer(deps: ServerDeps = {}) {
     return { ok: true, online };
   } : undefined);
   if (deps.solo) registerSoloRoutes(app, deps.solo, deps.auth, deps.hints, deps.limiter);
+  if (deps.priceOnly) registerPriceOnlyRoutes(app, deps.priceOnly, deps.auth);
   if (deps.auth && deps.shop) registerShopRoutes(app, deps.auth, deps.shop);
   if (deps.auth && deps.levelRoad) registerRoadRoutes(app, deps.auth, deps.levelRoad);
   if (deps.auth && deps.profileTasks) registerProfileTaskRoutes(app, deps.auth, deps.profileTasks);
   if (deps.auth && deps.birthday) registerBirthdayRoutes(app, deps.auth, deps.birthday);
+  if (deps.auth && deps.ageTracks) registerAgeTrackRoutes(app, deps.auth, deps.ageTracks);
+  if (deps.auth && deps.lessons) registerLessonRoutes(app, deps.auth, deps.lessons);
+  if (deps.auth && deps.guardian) registerGuardianRoutes(app, deps.auth, deps.guardian);
   if (deps.auth && deps.feedback) registerFeedbackRoutes(app, deps.auth, deps.feedback);
   if (deps.auth && deps.gems) registerGemRoutes(app, deps.auth, deps.gems);
   if (deps.landing && deps.settings) registerLandingPublicRoutes(app, deps.landing, deps.settings);
@@ -343,7 +391,7 @@ export function buildServer(deps: ServerDeps = {}) {
   let gateway: Gateway | undefined;
   if (deps.auth && deps.realtime) {
     const auth = deps.auth;
-    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin: deps.corsOrigin, match: deps.match, canAfford: deps.duelStakes ? (u) => deps.duelStakes!.canQueue(u) : undefined, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, limit: deps.limiter ? { canPlay: async (u) => (await deps.limiter!.check(u, 'duel')).ok, onStarted: (u) => deps.limiter!.record(u, 'duel') } : undefined, chat: deps.chat, presence: deps.presence, notices: deps.notices, onEmit: deps.botDriver ? (u, e, p) => deps.botDriver!.onEmit(u, e, p) : undefined, diagnose: deps.match ? createQueueDiagnosis({ hasPuzzle: async () => (await deps.match!.puzzles.pickRandom()) !== null, botsReady: () => deps.botDriver?.ready() ?? false, graceSec: 45 }) : undefined });
+    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin: deps.corsOrigin, match: deps.match, canAfford: deps.duelStakes ? (u) => deps.duelStakes!.canQueue(u) : undefined, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, levelGate: deps.duelLevelGate, limit: deps.limiter ? { canPlay: async (u) => (await deps.limiter!.check(u, 'duel')).ok, onStarted: (u) => deps.limiter!.record(u, 'duel') } : undefined, chat: deps.chat, presence: deps.presence, notices: deps.notices, onEmit: deps.botDriver ? (u, e, p) => deps.botDriver!.onEmit(u, e, p) : undefined, trackOf: deps.ageTracks ? (u) => deps.ageTracks!.effective(u).catch(() => 'adult' as const) : undefined, diagnose: deps.match ? createQueueDiagnosis({ hasPuzzle: async (tracks) => (await deps.match!.puzzles.pickRandom({ tracks })) !== null, botsReady: () => deps.botDriver?.ready() ?? false, graceSec: 45 }) : undefined });
     if (deps.live) {
       deps.live.matches = gateway.matches;
       deps.live.queue = gateway.queue;
@@ -472,6 +520,8 @@ if (isMainModule(import.meta.url)) {
     };
   }
   const chatStore = db ? createDbChatStore(db) : undefined;
+  /** The table service is built after the chat service (the tables need matches); table chat reaches it through this holder. */
+  const tableRef: { svc?: TableService } = {};
   const chat =
     chatStore && settings && player && socialStore && badges && inviteStore
       ? new ChatService(chatStore, {
@@ -482,6 +532,7 @@ if (isMainModule(import.meta.url)) {
           mute: (id) => badges.isMuted(id),
           hasContactPerk: (id) => badges.hasPerk(id, 'share_contact'),
           areFriends: async (a, b) => (await socialStore.pair(a, b))?.status === 'accepted',
+          tableMembers: (id, code) => tableRef.svc?.memberIds(id, code) ?? null,
           rules: () => chatRulesFromSettings(settings),
           filter: words,
         })
@@ -507,11 +558,13 @@ if (isMainModule(import.meta.url)) {
         })
       : undefined;
   if (chat && botDriver) chat.onCityMessage = (cityId, message) => void botDriver.onCityMessage(cityId, message);
+  const sponsorStore = db ? createDbSponsorStore(db) : undefined;
   const tournamentService =
     db && settings && player && socialStore
       ? new TournamentService(createDbTournamentStore(db), {
           levelOf: async (id) => (await player.levelOf(id)).level.level,
           profileOf: async (id) => socialStore.publicRow(id),
+          sponsorOf: async (id) => (await sponsorStore?.get(id)) ?? null,
           startMatch: async (a, b) => (live.matches ? live.matches.start(a, b, { friendly: true }) : false),
           inMatch: (id) => live.matches?.inMatch(id) ?? false,
           fillBots: (n) => botDriver?.fillSeats(n) ?? [],
@@ -550,6 +603,11 @@ if (isMainModule(import.meta.url)) {
           texts: { weekTitle: BIRTHDAY_TITLE.week, weekBody: BALE_TEXT.birthdayWeek, dayTitle: BIRTHDAY_TITLE.day, dayBody: BALE_TEXT.birthdayDay },
         })
       : undefined;
+  const ageTracks = db && settings ? new AgeTrackService(createDbAgeTrackStore(db), async () => (await settings.num('feature.age_tracks')) === 1) : undefined;
+  const guardian =
+    db && auth && phoneLogin
+      ? new GuardianService(createDbGuardianStore(db), createDbAgeTrackStore(db), phoneLogin, createDbPhoneStore(db), auth, () => `guardian:${randomUUID()}`)
+      : undefined;
   const productAdmin = db ? createDbProductAdmin(db) : undefined;
   const feedback = db && settings && productAdmin ? buildFeedbackService({ db, settings, productAdmin, player, socialStore }) : undefined;
   const duelStakes =
@@ -565,6 +623,7 @@ if (isMainModule(import.meta.url)) {
             rescueTarget: await settings.num('duel.rescue_target'),
           }),
           isBot: (id) => botDriver?.isBot(id) ?? false,
+          priceWager: () => settings.num('duel.price_wager'),
           onWin: (matchId, userId) => wheel?.grantForWin(userId, matchId).catch((e) => console.error('[wheel] grant failed', matchId, e)) ?? Promise.resolve(),
         })
       : undefined;
@@ -578,6 +637,7 @@ if (isMainModule(import.meta.url)) {
           idleMs: async () => (await settings.num('table.idle_minutes')) * 60_000,
         })
       : undefined;
+  tableRef.svc = tableService;
   const transfers = db && settings && socialStore && inviteStore ? new TransferService(createDbTransferStore(db), socialStore, () => transferRulesFromSettings(settings), async (id) => (player ? (await player.levelOf(id)).level.level : 1), (id) => inviteStore.isActivated(id)) : undefined;
   const find =
     db && settings && socialStore
@@ -618,9 +678,20 @@ if (isMainModule(import.meta.url)) {
     db && settings
       ? new SoloService(createDbPuzzleSource(db), {
           rules: () => soloRules(settings),
+          levelOf,
+          trackOf: ageTracks ? (id) => ageTracks.effective(id) : undefined,
           onFinished: (id, outcome, tag) => {
             void player?.recordGame(id, { mode: 'solo', outcome });
             void dailyRef?.onFinished(id, outcome, tag).catch((err) => console.error('daily finish failed', err));
+          },
+        })
+      : undefined;
+  const priceOnly =
+    db && settings
+      ? new PriceOnlyService(createDbPriceOnlySource(db), {
+          rules: async () => {
+            const r = await soloRules(settings);
+            return { rounds: await settings.num('priceonly.rounds'), tiers: r.tiers, minPoints: r.minPoints };
           },
         })
       : undefined;
@@ -635,13 +706,15 @@ if (isMainModule(import.meta.url)) {
     auth,
     settings,
     adminModules: db
-      ? { products: productAdmin!, feedback, stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, wheel, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, daily, puzzles: createDbPuzzleAdmin(db), levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      ? { products: productAdmin!, feedback, stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, wheel, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, ageTracks: db ? createDbAgeTrackAdmin(db) : undefined, daily, puzzles: createDbPuzzleAdmin(db), levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
     match: db
       ? {
           puzzles: createDbPuzzleSource(db),
+          trackOf: ageTracks ? (id) => ageTracks.effective(id) : undefined,
           teamBoards: settings ? () => settings.num('match.team_boards') : undefined,
+          priceRound: settings ? async () => (await settings.num('match.price_round')) === 1 : undefined,
           rules: settings
             ? async () => {
                 const [turnSeconds, maxMistakes, maxTimeouts, groupPoints, firstBloodBonus] = await Promise.all([settings.num('game.turn_seconds'), settings.num('game.match_max_mistakes'), settings.num('game.max_consecutive_timeouts'), settings.list('score.group_points'), settings.num('score.first_blood_bonus')]);
@@ -698,6 +771,8 @@ if (isMainModule(import.meta.url)) {
     dailyReward: db && settings ? new DailyRewardService(createDbDailyRewardStore(db), Date.now, () => dailyRules(settings)) : undefined,
     catalog: db ? createDbCatalogRepository(db) : undefined,
     solo,
+    priceOnly,
+    duelLevelGate: settings && player ? async (id) => (await player.levelOf(id)).level.level >= (await settings.num('duel.min_level')) : undefined,
     tables: tableService,
     duelStakes,
     limiter: db && settings ? new PlayLimiter(createDbPlayCountStore(db), async (mode) => settings.num(mode === 'solo' ? 'limit.solo_per_day' : 'limit.duel_per_day')) : undefined,
@@ -711,8 +786,8 @@ if (isMainModule(import.meta.url)) {
             table: levelTable ? () => levelTable.get() : undefined,
             gates: async () => {
               const get = async (key: string) => (await settings.num(key)) ?? undefined;
-              const [hint, invite, transfer, avatar, nickname] = await Promise.all(['hint.min_level', 'invite.min_level', 'transfer.min_level', 'profile.avatar_change_min_level', 'profile.nickname_change_min_level'].map(get));
-              return { hint, invite, transfer, avatar, nickname };
+              const [hint, invite, transfer, avatar, nickname, duel] = await Promise.all(['hint.min_level', 'invite.min_level', 'transfer.min_level', 'profile.avatar_change_min_level', 'profile.nickname_change_min_level', 'duel.min_level'].map(get));
+              return { hint, invite, transfer, avatar, nickname, duel };
             },
             shopItems: async () => (shopStore ? shopStore.items() : []),
             rewardRules: async () => ({ every: await settings.num('levelreward.every'), base: await settings.num('levelreward.base_coins') }),
@@ -722,6 +797,9 @@ if (isMainModule(import.meta.url)) {
         : undefined,
     gems: db ? createDbGemWallet(db) : undefined,
     birthday,
+    ageTracks,
+    lessons: db ? createDbLessonStore(db) : undefined,
+    guardian,
     feedback,
     profileTasks:
       db && settings
@@ -737,6 +815,7 @@ if (isMainModule(import.meta.url)) {
     shopReal,
     shortLinks: shortLinkService,
     landing: landingService,
+    clientInfo: db ? createDbClientInfoStore(db) : undefined,
     admin: db && jwtSecret ? { repo: createDbAdminRepository(db), token: adminToken, accounts: new AdminAccounts(createDbAdminStore(db), jwtSecret, adminToken) } : undefined,
     corsOrigin: process.env.CORS_ORIGIN,
     trustProxy: process.env.TRUST_PROXY === '1',

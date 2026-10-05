@@ -1,7 +1,34 @@
 # Admin panel (as built)
 
-Single-page app served at `GET /admin` (vanilla JS, no external requests, strict CSP). Login = the shared `ADMIN_TOKEN` (see `docs/security.md` for its limits).
-Sections: dashboard · catalog · price review · bot inbox & sources · daily reward · users · message center · word filter · Bale bot · settings · socket service · audit log.
+Single-page app served at `GET /admin` (vanilla JS, no external requests, strict CSP). Login = username + password (or the break-glass `ADMIN_TOKEN`, see below and `docs/security.md`).
+Source: `apps/server/src/admin/ui/` — `styles.ts` (design system, light/dark, RTL), `core.ts` (DOM/API helpers, modal, drawer, `ask` confirm), `kit.ts` (icons, page header, `dtable`, `seg`, `searchBox`…),
+`shell.ts` (navigation tree + router + Ctrl+K palette + sign-in), `views1/2/3.ts` (pages).
+
+## Information architecture
+
+Seven sections in a collapsible sidebar; sections with several pages show them as tabs (`#/section/tab`). Old flat links (`#/users`) redirect. Badge counts (pending prices, bot inbox, open chat reports) show on the
+sidebar and tabs.
+
+| section | tabs |
+|---|---|
+| نمای کلی | dashboard: «کارهای منتظر تو» (pending prices/bot/reports, failed bot run, catalog gaps), live server stats, maintenance warning, recent changes, shortcuts |
+| بازیکنان و نظارت | users · player reports · chat reports · word filter · badges · bot players · invite codes |
+| محتوا و قیمت‌ها | catalog · price review · bot inbox · bot sources · player suggestions (UGC) |
+| بازی و پازل | puzzles · daily puzzle · level road · cities · canned taunts |
+| اقتصاد | daily reward · shop · wheel · tournaments · sponsors |
+| ارتباط با بازیکن | message center · Bale bot |
+| سایت معرفی و لینک‌ها | blog · cast · FAQ · short links |
+| سیستم | settings (searchable) · admin accounts (owner) · socket service · audit log (searchable, filter by admin) |
+
+**Quick jump** — `Ctrl/⌘+K` (or `/`): jump to any page, toggle the theme, sign out, or search players by name/id and open the record straight away.
+Users open in a side drawer with tabs (overview + avatar picker · account & contact · game & items · coins/gems · moderation · notes). «حساب و تماس» shows handle, phone (+ verified),
+e-mail, device id, city, age track, privacy flags, chat unlock, Bale link and **the last device** (platform, OS version, app build, market now and market of the first install). Phone, e-mail
+and device id are only returned to roles with the `users` permission (owner, support); the exact birth date stays owner-only. The user list also searches phone / handle / e-mail for those roles.
+«بازی و آیتم‌ها»: XP, games/wins, gems, stock items, owned cosmetics (worn or not) and recent shop purchases.
+
+**Last device** — the app sends `x-client-platform|os|build|store` on every API call (`apps/mobile/src/net/clientHeaders.ts`); after the response the server records them for the signed-in
+player in `user_clients` (`apps/server/src/clients/`, at most once per 30 min unless something changed). The first row's store/build is kept as the install source. Client-reported: for display only.
+Users open in a side drawer; destructive actions use a styled confirmation dialog instead of the browser's `confirm`.
 
 ## Users (D74)
 
@@ -40,3 +67,7 @@ Enforced in one place (`permissionFor(method, path)` → permission → role che
 username, not trivially repetitive. 5 wrong passwords lock the account for 15 minutes; 10 failed sign-ins per IP block the IP for 15 minutes. A password change, a role change or a
 deactivation ends that admin's sessions (`session_version`). The last active owner cannot be demoted or deactivated (unless the break-glass token is configured). The audit log names the
 admin behind every change.
+
+## Age bands (D198, proposed, not built)
+
+A «رده‌های سنی» section plus an age-band filter on every list; see `age-tracks.md` §Admin panel.

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { swr } from '../net/cache';
 import { fetchWorn } from '../shop/api';
 import { fetchBirthday } from './birthdayApi';
 import { PartyBanner } from './BirthdayBadge';
@@ -70,14 +71,22 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
   const charW = Math.round((charH * 240) / 276);
 
   const load = useCallback(() => {
-    Promise.all([fetchMyProfile(), fetchFriends()]).then(
+    swr.refresh('profile', () => Promise.all([fetchMyProfile(), fetchFriends()])).then(
       ([m, f]) => (setMe(m), setFriends(f), setFailed(false)),
       () => setFailed(true),
     );
-    fetchMyBadges().then(setBadges, () => undefined);
-    fetchRecentGames().then((r) => setGames(r.games), () => undefined);
+    swr.refresh('profile.badges', fetchMyBadges).then(setBadges, () => undefined);
+    swr.refresh('profile.games', fetchRecentGames).then((r) => setGames(r.games), () => undefined);
   }, []);
-  useEffect(load, [load]);
+  // The profile seen last time shows at once and is refreshed behind it; coming back from a sub page reloads live.
+  useEffect(() => {
+    const stops = [
+      swr('profile', () => Promise.all([fetchMyProfile(), fetchFriends()]), ([m, f]) => (setMe(m), setFriends(f), setFailed(false)), () => setFailed(true)),
+      swr('profile.badges', fetchMyBadges, setBadges),
+      swr('profile.games', fetchRecentGames, (r) => setGames(r.games)),
+    ];
+    return () => stops.forEach((stop) => stop());
+  }, []);
 
   const pick = (g: Gender | null) => {
     setMe((m) => (m ? { ...m, gender: g } : m));
@@ -223,7 +232,7 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
                 ))}
               </View>
               <ProfileEditor me={me} onChange={(patch) => setMe((m) => (m ? { ...m, ...patch } : m))} onPickCity={() => (setEditing(false), setSub('city'))} />
-              <CandyButton label={fa.profile.close} color={colors.candy.sky} onPress={() => setEditing(false)} />
+              <CandyButton label={fa.profile.close} sfx="back" color={colors.candy.sky} onPress={() => setEditing(false)} />
             </ScrollView>
           </Pressable>
         </Pressable>
@@ -249,7 +258,7 @@ function RecentGamesSheet({ games, onClose }: { games: RecentGames['games']; onC
               <Text style={styles.gameAgo}>{agoText(g.at, Date.now())}</Text>
             </View>
           ))}
-          <CandyButton label={fa.profile.close} color={colors.candy.sky} onPress={onClose} />
+          <CandyButton label={fa.profile.close} sfx="back" color={colors.candy.sky} onPress={onClose} />
         </ScrollView>
       </Pressable>
     </Pressable>

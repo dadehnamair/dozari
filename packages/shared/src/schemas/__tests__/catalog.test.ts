@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { checkSeedProducts, seedPriceToRials, seedProductSchema } from '../catalog.js';
+import { checkSeedProducts, checkSeedPuzzles, seedPriceToRials, seedProductSchema } from '../catalog.js';
+import type { SeedPuzzle } from '../catalog.js';
 
 const base = {
   slug: 'nooshabe-kola',
@@ -57,5 +58,27 @@ describe('checkSeedProducts', () => {
       prices: [base.prices[0], { ...base.prices[0], toman: 60, status: 'pending' }],
     });
     expect(checkSeedProducts([p])).toEqual([]);
+  });
+});
+
+describe('kid items and puzzles (D198)', () => {
+  const kidItem = { slug: 'kid-apple', name_fa: 'سیب', category: 'food', age_track: 'kid', lesson: { word_fa: 'سیب', story_fa: 'میوه' } };
+  it('lets a kid item have no price and a lesson, but not an adult one', () => {
+    expect(seedProductSchema.safeParse(kidItem).success).toBe(true);
+    expect(seedProductSchema.safeParse({ ...kidItem, age_track: 'adult' }).success).toBe(false);
+    expect(seedProductSchema.safeParse({ slug: 'plain', name_fa: 'x', category: 'food' }).success).toBe(false);
+  });
+  const puzzle = (track: 'kid' | 'adult'): SeedPuzzle => ({
+    id: 'p1',
+    age_track: track,
+    status: 'draft',
+    groups: [0, 1, 2, 3].map((level) => ({ level, title_fa: 'گروه', explanation_fa: 'توضیح', products: [0, 1, 2, 3].map((i) => `s${level * 4 + i}`) })),
+  });
+  const slugs = new Set(Array.from({ length: 16 }, (_, i) => `s${i}`));
+  it('keeps adult items out of a kid puzzle', () => {
+    expect(checkSeedPuzzles([puzzle('kid')], slugs)).toHaveLength(16);
+    const tracks = new Map(Array.from({ length: 16 }, (_, i) => [`s${i}`, 'kid'] as const));
+    expect(checkSeedPuzzles([puzzle('kid')], slugs, tracks)).toEqual([]);
+    expect(checkSeedPuzzles([puzzle('adult')], slugs)).toEqual([]);
   });
 });

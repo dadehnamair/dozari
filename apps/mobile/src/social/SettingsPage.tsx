@@ -15,6 +15,8 @@ import { usePwa } from '../pwa/usePwa';
 import { playSfx } from '../sound/engine';
 import { colors, fonts } from '../theme/colors';
 import { PhoneLoginSheet } from '../phone/PhoneLoginSheet';
+import { ChildCodeSheet } from '../agetrack/ChildCodeSheet';
+import { ChildrenSheet } from '../agetrack/ChildrenSheet';
 import { CityPicker } from './CityPicker';
 import { fetchMyProfile } from './api';
 import type { City } from '@dozari/shared';
@@ -40,7 +42,7 @@ interface Row {
  * cards of rows — switches that work on this device (sound, vibration, less motion), shortcuts (profile, city,
  * install) and the account (replay the tutorial, sign out, delete with a second tap).
  */
-export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone }: { onClose: () => void; onProfile: () => void; onTutorial?: () => void; onAccountGone?: () => void }) {
+export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone, ageTracksOn = false }: { onClose: () => void; onProfile: () => void; onTutorial?: () => void; onAccountGone?: () => void; /** The server's age-track switch: shows the guardian rows. */ ageTracksOn?: boolean }) {
   useHardwareBack(onClose);
   const prefs = usePrefs();
   const pwa = usePwa();
@@ -52,6 +54,8 @@ export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone }: 
   const [note, setNote] = useState<string | null>(null);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
+  const [childrenOpen, setChildrenOpen] = useState(false);
+  const [childCodeOpen, setChildCodeOpen] = useState(false);
   const t = fa.settings;
   // Nothing scrolls: on a short screen the rows tighten instead.
   const compact = useWindowDimensions().height < 760;
@@ -90,6 +94,7 @@ export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone }: 
       rows: [
         { key: 'about', icon: 'lantern', tint: '#C9A3FF', label: t.about, onPress: () => setAboutOpen((v) => !v) },
         { key: 'phoneLogin', icon: 'phone', tint: '#7ED957', label: fa.phoneLogin.row, onPress: () => setLoginOpen(true) },
+        ...(ageTracksOn ? [{ key: 'children', icon: 'medal', tint: '#FFAA7A', label: fa.guardian.childrenRow, onPress: () => setChildrenOpen(true) }, { key: 'childLogin', icon: 'key', tint: '#C9A3FF', label: fa.guardian.childLoginRow, onPress: () => setChildCodeOpen(true) }] : []),
         { key: 'out', icon: 'key', tint: '#FFAA7A', label: t.signOut, onPress: () => setAskOut(true) },
         { key: 'del', icon: 'lock', tint: '#FF4D8D', label: t.delete, tone: '#B3261E', onPress: () => setAskDelete(true) },
       ],
@@ -149,6 +154,8 @@ export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone }: 
       ) : null}
       {askDelete ? <DeleteAccountDialog onCancel={() => setAskDelete(false)} onDeleted={() => (setAskDelete(false), setNote(fa.account.deleteDone), onAccountGone?.())} /> : null}
       {loginOpen ? <PhoneLoginSheet onClose={() => setLoginOpen(false)} /> : null}
+      {childrenOpen ? <ChildrenSheet onClose={() => setChildrenOpen(false)} /> : null}
+      {childCodeOpen ? <ChildCodeSheet onClose={() => setChildCodeOpen(false)} /> : null}
       {iosHelp ? <IosInstallSheet onClose={() => setIosHelp(false)} /> : null}
     </View>
   );

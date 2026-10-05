@@ -10,6 +10,8 @@ export interface PublicSite {
   androidApp: string | null;
   appUrl: string | null;
   domains: { app: string; landing: string; short: string };
+  /** Trust / store badges of the footer; `url` is null until the admin sets it. */
+  badges?: { id: string; url: string | null }[];
   /** Everything the owner sets in the admin panel group «سئو و سایت معرفی». */
   seo: {
     title: string | null;
@@ -20,7 +22,7 @@ export interface PublicSite {
     sameAs: string[];
     fontUrl: string | null;
     indexable: boolean;
-    verify: { google: string | null; bing: string | null; yandex: string | null };
+    verify: { google: string | null; bing: string | null; yandex: string | null; enamad?: string | null };
     /** Self-hosted analytics script (Umami style), or null. */
     analytics?: { scriptUrl: string; siteId: string } | null;
   };
