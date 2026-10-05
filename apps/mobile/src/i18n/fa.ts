@@ -38,6 +38,8 @@ export const fa = {
       level: 'سطح',
     },
     /** The guide character on Home: tap it to hear what each menu does (key = feature switch / menu). */
+    /** Tapped the duel button below the duel level. */
+    duelLocked: (n: number) => `دوئل از لول ${toPersianDigits(String(n))} باز می‌شود؛ با بازی تکی لول بگیر و برگرد.`,
     profileNudge: {
       gender: (coins: string) => `جنسیتت را در پروفایل انتخاب کن و ${coins} سکه بگیر.`,
       city: (coins: string) => `شهرت را در پروفایل انتخاب کن و ${coins} سکه بگیر.`,
@@ -397,6 +399,7 @@ export const fa = {
       transfer: { title: 'هدیه و قرض', text: 'به دوست‌هایت سکه هدیه بده یا قرض بده.', icon: 'gift' },
       avatar: { title: 'عوض کردن آواتار', text: 'قیافهٔ خودت را در بازی عوض کن.', icon: 'crown' },
       nickname: { title: 'عوض کردن اسم', text: 'اسم نمایشی‌ات را عوض کن.', icon: 'scroll' },
+      duel: { title: 'دوئل زنده', text: 'با بازیکن‌های واقعی رو در رو بازی کن.', icon: 'crown' },
     } as Record<string, { title: string; text: string; icon: string }>,
     popup: {
       opensAt: 'باز می‌شود در',
@@ -573,6 +576,7 @@ export const fa = {
       FEATURE_OFF: 'دوئل زنده فعلاً خاموش است.',
       NO_PRICE_ROUND: 'دور حدس قیمت تمام شده است.',
       DAILY_CAP: 'به سقف بازی امروزت رسیدی؛ فردا دوباره بیا.',
+      LEVEL_TOO_LOW: 'هنوز لولت به دوئل نرسیده؛ با بازی تکی لول بگیر و برگرد.',
       INSUFFICIENT_COINS: 'سکه‌ی کافی برای ورودی نداری؛ بازی رایگان امروزت هم تمام شده.',
       ALREADY_IN_MATCH: 'یک بازی در جریان داری.',
       ALREADY_QUEUED: 'همین حالا در صف هستی.',

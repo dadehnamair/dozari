@@ -63,6 +63,7 @@ export const ERROR_CODES = [
   'MAINTENANCE',
   'FEATURE_OFF',
   'DAILY_CAP',
+  'LEVEL_TOO_LOW',
   'NO_CITY',
   'MUTED',
   'UNKNOWN_TAUNT',

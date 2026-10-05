@@ -209,6 +209,8 @@ export interface ServerDeps {
   adminModules?: Omit<AdminModules, 'settings'>;
   /** Solo practice sessions (`/solo/*`). */
   solo?: SoloService;
+  /** Is this player's level enough for the live duel queue (`duel.min_level`)? Absent = everyone may. */
+  duelLevelGate?: (userId: string) => Promise<boolean>;
   /** Price-only games (`/price-only/*`). */
   priceOnly?: PriceOnlyService;
   /** Paid hints of solo games; needs `solo` and `auth`. */
@@ -349,7 +351,7 @@ export function buildServer(deps: ServerDeps = {}) {
   let gateway: Gateway | undefined;
   if (deps.auth && deps.realtime) {
     const auth = deps.auth;
-    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin: deps.corsOrigin, match: deps.match, canAfford: deps.duelStakes ? (u) => deps.duelStakes!.canQueue(u) : undefined, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, limit: deps.limiter ? { canPlay: async (u) => (await deps.limiter!.check(u, 'duel')).ok, onStarted: (u) => deps.limiter!.record(u, 'duel') } : undefined, chat: deps.chat, presence: deps.presence, notices: deps.notices, onEmit: deps.botDriver ? (u, e, p) => deps.botDriver!.onEmit(u, e, p) : undefined, diagnose: deps.match ? createQueueDiagnosis({ hasPuzzle: async () => (await deps.match!.puzzles.pickRandom()) !== null, botsReady: () => deps.botDriver?.ready() ?? false, graceSec: 45 }) : undefined });
+    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin: deps.corsOrigin, match: deps.match, canAfford: deps.duelStakes ? (u) => deps.duelStakes!.canQueue(u) : undefined, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, levelGate: deps.duelLevelGate, limit: deps.limiter ? { canPlay: async (u) => (await deps.limiter!.check(u, 'duel')).ok, onStarted: (u) => deps.limiter!.record(u, 'duel') } : undefined, chat: deps.chat, presence: deps.presence, notices: deps.notices, onEmit: deps.botDriver ? (u, e, p) => deps.botDriver!.onEmit(u, e, p) : undefined, diagnose: deps.match ? createQueueDiagnosis({ hasPuzzle: async () => (await deps.match!.puzzles.pickRandom()) !== null, botsReady: () => deps.botDriver?.ready() ?? false, graceSec: 45 }) : undefined });
     if (deps.live) {
       deps.live.matches = gateway.matches;
       deps.live.queue = gateway.queue;
@@ -721,6 +723,7 @@ if (isMainModule(import.meta.url)) {
     catalog: db ? createDbCatalogRepository(db) : undefined,
     solo,
     priceOnly,
+    duelLevelGate: settings && player ? async (id) => (await player.levelOf(id)).level.level >= (await settings.num('duel.min_level')) : undefined,
     tables: tableService,
     duelStakes,
     limiter: db && settings ? new PlayLimiter(createDbPlayCountStore(db), async (mode) => settings.num(mode === 'solo' ? 'limit.solo_per_day' : 'limit.duel_per_day')) : undefined,
@@ -734,8 +737,8 @@ if (isMainModule(import.meta.url)) {
             table: levelTable ? () => levelTable.get() : undefined,
             gates: async () => {
               const get = async (key: string) => (await settings.num(key)) ?? undefined;
-              const [hint, invite, transfer, avatar, nickname] = await Promise.all(['hint.min_level', 'invite.min_level', 'transfer.min_level', 'profile.avatar_change_min_level', 'profile.nickname_change_min_level'].map(get));
-              return { hint, invite, transfer, avatar, nickname };
+              const [hint, invite, transfer, avatar, nickname, duel] = await Promise.all(['hint.min_level', 'invite.min_level', 'transfer.min_level', 'profile.avatar_change_min_level', 'profile.nickname_change_min_level', 'duel.min_level'].map(get));
+              return { hint, invite, transfer, avatar, nickname, duel };
             },
             shopItems: async () => (shopStore ? shopStore.items() : []),
             rewardRules: async () => ({ every: await settings.num('levelreward.every'), base: await settings.num('levelreward.base_coins') }),
