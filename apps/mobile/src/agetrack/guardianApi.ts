@@ -42,3 +42,9 @@ export interface ChildFriend {
 export const fetchChildFriends = (childId: string): Promise<{ friends: ChildFriend[]; requests: ChildFriend[] }> => authed((r) => r as { friends: ChildFriend[]; requests: ChildFriend[] }, `/guardian/children/${childId}/friends`, 'GET');
 export const approveChildFriend = (childId: string, otherId: string): Promise<void> => authed(ok, `/guardian/children/${childId}/friends/${otherId}/approve`, 'POST');
 export const removeChildFriend = (childId: string, otherId: string): Promise<void> => authed(ok, `/guardian/children/${childId}/friends/${otherId}`, 'DELETE');
+
+export const fetchChildBlocks = (childId: string): Promise<ChildFriend[]> => authed((r) => (r as { blocked: ChildFriend[] }).blocked, `/guardian/children/${childId}/blocks`, 'GET');
+export const blockChildFriend = (childId: string, otherId: string): Promise<void> => authed(ok, `/guardian/children/${childId}/blocks/${otherId}`, 'POST');
+export const unblockChildFriend = (childId: string, otherId: string): Promise<void> => authed(ok, `/guardian/children/${childId}/blocks/${otherId}`, 'DELETE');
+/** The open app reports a minute of play (the guardian's reminder and digest). Errors are ignored: a missed minute is nothing. */
+export const sendHeartbeat = (): Promise<void> => authed(ok, '/me/heartbeat', 'POST', {}).catch(() => undefined);

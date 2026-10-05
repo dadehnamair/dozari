@@ -58,3 +58,7 @@ export function trackFeatureForPath(path: string): TrackFeature | null {
   const hit = TRACK_FEATURE_PATHS.find(([prefix]) => path === prefix || path.startsWith(`${prefix}/`));
   return hit ? hit[1] : null;
 }
+
+/** The app's once-a-minute heartbeat counts as a minute of play; a heartbeat sooner than this is ignored (no inflating it), and a day never counts more than the cap. */
+export const PLAY_HEARTBEAT_MIN_GAP_MS = 50_000;
+export const PLAY_MINUTES_DAY_CAP = 1_440;

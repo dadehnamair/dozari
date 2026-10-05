@@ -244,7 +244,7 @@ Setting `feature.age_tracks` (admin → settings → app, **default off**): off 
 - Phase 5, slice 4 (closes phase 5), **app**: «فرزندان من» → per child «تنظیمات و گزارش» (`ChildPanelSheet`): the digest card, the chat / new-friends / duels switches, quiet hours (start and end hour), the play reminder, the requests waiting for a yes and the friend list (remove).
   Each switch saves at once and rolls back with a note if the save fails. The child's app reads `limits` from `GET /me/age-track` every minute (`useMyTrack`): the **tables tile disappears** when duels are off and the **city chat tile is not drawn** for kid/teen (no lock, no refusal),
   `PlayerSheet` answers `ask_guardian` with one friendly line, and `RestCardView` (pure rule `restCardFor`) shows the **soft rest card** in quiet hours or after `reminderMinutes` in this app session, dismissible for `QUIET_CARD_SNOOZE_MINUTES` (10) — never a lock-out.
-  The play reminder counts the minutes of the current app session (a per-day total would need a play-time log, not built); quiet hours use the phone's own clock.
+  The play reminder counts the larger of this app session and the server's per-day minutes (see «Guardian extras»); quiet hours use the phone's own clock.
   Not yet: «block a friend» as its own switch (removing a friend is there; a re-request is possible), a per-day play-time log for a truer reminder, and a «preview the kid space» mode for a guardian.
 - **Audit pass, hard walls closed** (after phases 4–5 an audit found rules that existed only in `trackRules` and the app): 
   - **No coin wagers:** `MatchService` takes no stake (`wagerAllowed`) when either human is a kid or teen, so a queue duel is friendly (no entry fee, no payout); the queue's `canAfford` check skips them (`ageTracks.allows(user, 'coinWager')`).
@@ -262,6 +262,10 @@ Setting `feature.age_tracks` (admin → settings → app, **default off**): off 
   The leaderboard also hides the province of a kid/teen. Wheel prizes are coins, gems and cosmetics only, so they were left as they are.
 - **Admin completion:** kill switches per band (`TRACK_FEATURES`, settings `track.<kid|teen>.<feature>`; `AgeTrackService.featureOff`; HTTP paths via `trackFeatureForPath` answer `403 age_track`, chat answers `OFF`, the duel queue `FEATURE_OFF`),
   a guardians list with support actions (`/admin/guardians`), kid/teen filters on the puzzle list and catalog, message audiences `kid`/`teen` (adult broadcasts stay adult-only; migration 0065) and audit rows for band choices and guardian actions. See `admin-panel.md` §Age bands.
+- **Guardian extras** (migration 0066): **block a friend** (`guardian_blocks`; `POST|DELETE /guardian/children/:id/blocks/:otherId`, `GET …/blocks`): the friendship is removed and the two players no longer see, search, befriend or message each other
+  (one `meetable` gate in front of social and find, either direction); the panel has a «بلاک» button on each friend and a list to unblock. **Play time** (`play_minutes(user_id, day_key, minutes)`): a kid/teen's open app posts `POST /me/heartbeat` once a minute while
+  in front (`useMyTrack`); the server counts at most one minute per `PLAY_HEARTBEAT_MIN_GAP_MS` (50 s) so a modified client cannot inflate it, a day caps at `PLAY_MINUTES_DAY_CAP`, and the total comes back as `limits.playedToday`
+  (the rest card compares the larger of this session and today's minutes with the reminder) and as `minutesWeek` in the digest — **the reminder is now per day, not per session**.
 - Not yet: the rest of the 30–50 kid puzzles; a track filter on the other admin lists (puzzles, items, tournaments, reports…);
 
 ## Phases

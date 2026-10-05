@@ -144,7 +144,14 @@ export class AgeTrackService {
   }
 }
 
-export function registerAgeTrackRoutes(app: FastifyInstance, auth: AuthService, tracks: AgeTrackService) {
+export function registerAgeTrackRoutes(app: FastifyInstance, auth: AuthService, tracks: AgeTrackService, playTime?: { beat(userId: string): Promise<{ today: number; counted: boolean }> }) {
+  // The open app reports once a minute; the minutes feed the guardian's play reminder and digest (a child's own app only).
+  app.post('/me/heartbeat', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    return playTime ? playTime.beat(user.id) : { today: 0, counted: false };
+  });
+
   app.get('/me/age-track', async (req, reply) => {
     const user = await currentUser(auth, req);
     if (!user) return reply.code(401).send({ error: 'unauthorized' });

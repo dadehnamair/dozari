@@ -127,6 +127,28 @@ export const guardianSettings = mysqlTable('guardian_settings', {
   updatedAt: datetime('updated_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
 });
 
+/** A guardian blocked a player for one child: they cannot see, befriend or message each other (docs/logic/age-tracks.md §Guardian panel). */
+export const guardianBlocks = mysqlTable(
+  'guardian_blocks',
+  {
+    childId: fk('child_id').references(() => users.id, { onDelete: 'cascade' }),
+    blockedId: fk('blocked_id').references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.childId, table.blockedId] }) }),
+);
+
+/** Minutes a player was in the app per Tehran day (the guardian's play reminder and digest); filled by a once-a-minute heartbeat from the app. */
+export const playMinutes = mysqlTable(
+  'play_minutes',
+  {
+    userId: fk('user_id').references(() => users.id, { onDelete: 'cascade' }),
+    dayKey: char('day_key', { length: 10 }).notNull(),
+    minutes: smallint('minutes').notNull().default(0),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.userId, table.dayKey] }) }),
+);
+
 /** A short code a guardian shows so the child's device can sign in as the child: 6 digits, 10 minutes, one use. */
 export const guardianLinkCodes = mysqlTable('guardian_link_codes', {
   code: char('code', { length: 6 }).primaryKey(),

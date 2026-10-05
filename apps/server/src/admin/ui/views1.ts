@@ -10,8 +10,8 @@ VIEWS.dashboard = function (root) {
   var date = new Date().toLocaleDateString('fa-IR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   root.appendChild(pageHead(greeting() + '، ' + (S.me ? S.me.name : ''), date));
   var wrap = h('div'); root.appendChild(wrap);
-  Promise.all([api('/admin/dashboard'), api('/admin/socket'), api('/admin/audit'), api('/admin/chat/reports'), api('/admin/settings')]).then(function (rs) {
-    var d = rs[0], sock = rs[1], aud = rs[2], rep = rs[3], set = rs[4];
+  Promise.all([api('/admin/dashboard'), api('/admin/socket'), api('/admin/audit'), api('/admin/chat/reports'), api('/admin/settings'), api('/admin/age-tracks')]).then(function (rs) {
+    var d = rs[0], sock = rs[1], aud = rs[2], rep = rs[3], set = rs[4], ages = rs[5];
     if (d.status === 404) wrap.appendChild(banner('info', 'آمار فقط وقتی دیتابیس وصل باشد نمایش داده می‌شود.'));
     var maint = set.ok && set.body.settings.filter(function (x) { return x.key === 'app.maintenance_on'; })[0];
     if (maint && maint.value === 1) wrap.appendChild(banner('bad', 'حالت تعمیر روشن است؛ بازیکن‌ها فقط پیام تعمیر را می‌بینند.', ['#/system/settings', 'خاموش کردن']));
@@ -21,6 +21,17 @@ VIEWS.dashboard = function (root) {
       if (b.catalog.pricesPending) todos.push(todoRow(b.catalog.pricesPending, 'قیمت منتظر تأیید', 'قیمت‌هایی که دستی ثبت شده‌اند', 'warn', '#/catalog/prices'));
       if (b.bot.candidatesPending) todos.push(todoRow(b.bot.candidatesPending, 'پیشنهاد ربات منتظر بررسی', b.bot.lastRunAt ? 'آخرین اجرا ' + ago(b.bot.lastRunAt) : 'ربات هنوز اجرا نشده', 'warn', '#/catalog/inbox'));
       if (openReports) todos.push(todoRow(openReports, 'گزارش چت باز', 'پیام‌هایی که بازیکن‌ها گزارش کرده‌اند', 'bad', '#/players/chatreports'));
+      // Kid and teen content waits for a human: drafts nobody approved and lessons still unwritten or in draft (only shown once the age tracks exist).
+      if (ages.ok) {
+        var draftPuzzles = ages.body.puzzles.kid.draft + ages.body.puzzles.teen.draft;
+        var lessonsLeft = ages.body.kidItems.missing + ages.body.kidItems.draft;
+        if (draftPuzzles) todos.push(todoRow(draftPuzzles, 'پازل کودک و نوجوان منتظر تأیید', 'تا تأیید نشوند، رده‌ی سنی بازی‌کننده پازلی ندارد', 'warn', '#/game/puzzles'));
+        if (lessonsLeft) todos.push(todoRow(lessonsLeft, 'درس کودک ننوشته یا تأییدنشده', 'درس تأییدنشده به بچه‌ها نمایش داده نمی‌شود', 'info', '#/game/lessons'));
+      }
+      if (rep.ok && rep.body.minorsQueue) {
+        var openMinors = rep.body.reports.filter(function (x) { return !x.resolved && x.track && x.track !== 'adult'; }).length;
+        if (openMinors) todos.push(todoRow(openMinors, 'گزارش چت کودک و نوجوان باز', 'اولویت بالا: بررسی کن و در صورت نیاز پیام را حذف کن', 'bad', '#/players/chatreports'));
+      }
       if (b.bot.lastRunStatus === 'failed') todos.push(todoRow('!', 'آخرین اجرای ربات ناموفق بود', ago(b.bot.lastRunAt), 'bad', '#/catalog/sources'));
       if (b.catalog.withoutApprovedPrice) todos.push(todoRow(b.catalog.withoutApprovedPrice, 'محصول بدون قیمت تأییدشده', 'در پازل‌ها استفاده نمی‌شود', 'info', '#/catalog/catalog'));
       if (b.catalog.withoutIcon) todos.push(todoRow(b.catalog.withoutIcon, 'محصول بدون آیکن', 'آیکن را در کاتالوگ انتخاب کن', 'info', '#/catalog/catalog'));

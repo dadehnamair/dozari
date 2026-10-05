@@ -9,7 +9,7 @@ import { restCardFor, snoozeUntil } from './restCard';
 const INK = '#3A2418';
 const CHECK_MS = 30_000;
 
-/** The soft «rest» card of a child's guardian settings: quiet hours or a long session. One tap on «باشه» hides it for ten minutes; nothing is locked. */
+/** The soft «rest» card of a child's guardian settings: quiet hours or a long day of play (the larger of this session and the minutes today the server counted). One tap on «باشه» hides it for ten minutes; nothing is locked. */
 export function RestCardView({ limits }: { limits: ChildLimits | null }) {
   const [started] = useState(() => Date.now());
   const [snoozedUntil, setSnoozedUntil] = useState(0);
@@ -19,7 +19,7 @@ export function RestCardView({ limits }: { limits: ChildLimits | null }) {
     return () => clearInterval(timer);
   }, []);
   const d = new Date(tick);
-  const card = restCardFor(limits, { minuteOfDay: d.getHours() * 60 + d.getMinutes(), sessionMinutes: Math.floor((tick - started) / 60_000), now: tick, snoozedUntil });
+  const card = restCardFor(limits, { minuteOfDay: d.getHours() * 60 + d.getMinutes(), sessionMinutes: Math.max(Math.floor((tick - started) / 60_000), limits?.playedToday ?? 0), now: tick, snoozedUntil });
   if (!card) return null;
   const close = () => setSnoozedUntil(snoozeUntil(Date.now()));
   return (

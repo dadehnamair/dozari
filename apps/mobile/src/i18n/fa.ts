@@ -1191,6 +1191,7 @@ export const fa = {
       digestTitle: 'امروز چه یاد گرفت',
       digestWords: (week: string, total: string) => `این هفته ${week} کلمه‌ی تازه یاد گرفته (روی هم ${total}).`,
       digestGames: (games: string, wins: string, days: string) => `این هفته ${games} بازی کرده، ${wins} تا را برده، در ${days} روز.`,
+      digestMinutes: (n: string) => `این هفته ${n} دقیقه در بازی بوده.`,
       digestLevel: (level: string, friends: string) => `سطح ${level} · ${friends} دوست`,
       chat: 'گفتگو',
       chatModes: { friends_text: 'با دوستان، نوشتنی', phrases: 'فقط عبارت و ایموجی', off: 'خاموش' } as Record<string, string>,
@@ -1210,6 +1211,9 @@ export const fa = {
       decline: 'رد',
       friendList: 'دوست‌ها',
       removeFriend: 'حذف دوست',
+      block: 'بلاک',
+      unblock: 'برداشتن بلاک',
+      blockedList: 'بلاک‌شده‌ها',
     },
     rest: {
       quietTitle: 'وقت استراحته',

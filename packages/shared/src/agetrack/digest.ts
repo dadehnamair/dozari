@@ -27,5 +27,7 @@ export const childDigestSchema = z.object({
   daysPlayedWeek: z.number().int().min(0).max(7),
   level: z.number().int().min(1),
   friends: z.number().int().min(0),
+  /** Minutes in the app over the last 7 days (the app's heartbeat); 0 when the child's app never reported. */
+  minutesWeek: z.number().int().min(0).default(0),
 });
 export type ChildDigest = z.infer<typeof childDigestSchema>;

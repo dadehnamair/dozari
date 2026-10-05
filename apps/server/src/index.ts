@@ -4,7 +4,7 @@ import fastifyCors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
 import { resolve } from 'node:path';
 import { rialsToTomanString } from '@dozari/shared';
-import { CHAT_RETENTION_DAYS, MISSION_KEYS, TOURNAMENT_TICK_SECONDS, trackFeatureForPath, trackRuleForPath, WHEEL_SLICES_DEFAULT, scaleSlices } from '@dozari/shared';
+import { CHAT_RETENTION_DAYS, MISSION_KEYS, TOURNAMENT_TICK_SECONDS, dailyDateKey, trackFeatureForPath, trackRuleForPath, WHEEL_SLICES_DEFAULT, scaleSlices } from '@dozari/shared';
 import type { HintRules, MissionKey } from '@dozari/shared';
 import { createDb } from '@dozari/db';
 import { createDbCatalogRepository } from './catalog/db-repository.js';
@@ -141,6 +141,7 @@ import { GuardianService, registerGuardianRoutes } from './guardian/service.js';
 import { createDbGuardianStore } from './guardian/store.js';
 import { GuardianSettingsService, createDbGuardianSettingsStore } from './guardian/settings.js';
 import { createDigestBuilder } from './guardian/digest.js';
+import { PlayTimeService, createDbGuardianBlockStore, createDbPlayTimeStore } from './guardian/extras.js';
 import { createDbLessonSeenStore } from './lessons/seen.js';
 import type { LessonSeenStore } from './lessons/seen.js';
 import { registerLessonRoutes } from './lessons/service.js';
@@ -252,6 +253,8 @@ export interface ServerDeps {
   birthday?: BirthdayService;
   /** Chosen age track: kid / teen / adult (D198); queues only pair one track. */
   ageTracks?: AgeTrackService;
+  /** Minutes in the app per day (the app's heartbeat), for the guardian's reminder and digest. */
+  playTime?: PlayTimeService;
   /** Kid word lessons (D198). */
   lessons?: LessonStore;
   /** Which word lessons a player saw (the guardian's digest). */
@@ -408,7 +411,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.levelRoad) registerRoadRoutes(app, deps.auth, deps.levelRoad);
   if (deps.auth && deps.profileTasks) registerProfileTaskRoutes(app, deps.auth, deps.profileTasks);
   if (deps.auth && deps.birthday) registerBirthdayRoutes(app, deps.auth, deps.birthday);
-  if (deps.auth && deps.ageTracks) registerAgeTrackRoutes(app, deps.auth, deps.ageTracks);
+  if (deps.auth && deps.ageTracks) registerAgeTrackRoutes(app, deps.auth, deps.ageTracks, deps.playTime);
   if (deps.auth && deps.lessons) registerLessonRoutes(app, deps.auth, deps.lessons, deps.lessonSeen);
   if (deps.auth && deps.guardian) registerGuardianRoutes(app, deps.auth, deps.guardian);
   if (deps.auth && deps.feedback) registerFeedbackRoutes(app, deps.auth, deps.feedback);
@@ -633,7 +636,15 @@ if (isMainModule(import.meta.url)) {
       : undefined;
   const guardianStore = db ? createDbGuardianStore(db) : undefined;
   const guardianSettings = db ? new GuardianSettingsService(createDbGuardianSettingsStore(db)) : undefined;
-  const ageTracks = db && settings ? new AgeTrackService(createDbAgeTrackStore(db), async () => (await settings.num('feature.age_tracks')) === 1, () => new Date(), async (id) => (guardianStore ? (await guardianStore.guardianOf(id)) !== null : false), async (id) => (guardianStore && guardianSettings && (await guardianStore.guardianOf(id)) !== null ? guardianSettings.limits(id) : null)) : undefined;
+  const playTime = db ? new PlayTimeService(createDbPlayTimeStore(db), dailyDateKey) : undefined;
+  const blockStore = db ? createDbGuardianBlockStore(db) : undefined;
+  const ageTracks = db && settings ? new AgeTrackService(createDbAgeTrackStore(db), async () => (await settings.num('feature.age_tracks')) === 1, () => new Date(), async (id) => (guardianStore ? (await guardianStore.guardianOf(id)) !== null : false), async (id) => (guardianStore && guardianSettings && (await guardianStore.guardianOf(id)) !== null ? { ...(await guardianSettings.limits(id)), playedToday: playTime ? await playTime.today(id) : 0 } : null)) : undefined;
+  /** Same track and not blocked by a guardian (either direction): who a player may see, befriend, search and rank against. */
+  const meetable = async (me: string, others: readonly string[]): Promise<Set<string>> => {
+    const ok = ageTracks ? await ageTracks.meetable(me, others) : new Set(others);
+    if (blockStore) for (const id of [...ok]) if (await blockStore.between(me, id)) ok.delete(id);
+    return ok;
+  };
   const guardian =
     db && auth && phoneLogin
       ? new GuardianService(createDbGuardianStore(db), createDbAgeTrackStore(db), phoneLogin, createDbPhoneStore(db), auth, () => `guardian:${randomUUID()}`)
@@ -694,14 +705,14 @@ if (isMainModule(import.meta.url)) {
           createShortener(),
           () => randomInt(0, 2 ** 30) / 2 ** 30,
           Date.now,
-          ageTracks ? (me, others) => ageTracks.meetable(me, others) : undefined,
+          ageTracks ? (me, others) => meetable(me, others) : undefined,
           ageTracks ? (id) => ageTracks.socialBlocked(id) : undefined,
           ageTracks ? (id) => ageTracks.friendsNeedApproval(id) : undefined,
         )
       : undefined;
   if (chat && ageTracks) chat.managed = { trackOf: (id) => ageTracks.effective(id), hasGuardian: async (id) => (guardianStore ? (await guardianStore.guardianOf(id)) !== null : false), chatMode: async (id) => ((await ageTracks.featureOff(id, 'chat')) ? 'off' : guardianSettings ? (await guardianSettings.get(id)).chatMode : 'friends_text') };
   if (social && ageTracks) {
-    social.sameTrack = (me, others) => ageTracks.meetable(me, others);
+    social.sameTrack = meetable;
     social.blocked = (id) => ageTracks.socialBlocked(id);
     social.asksGuardian = (id) => ageTracks.friendsNeedApproval(id);
     social.cityVisible = (id) => ageTracks.allows(id, 'publicCity');
@@ -714,8 +725,9 @@ if (isMainModule(import.meta.url)) {
   if (guardian && playerAudit) guardian.audit = (a, t, d) => void playerAudit.record(a, t, d);
   if (invite && ageTracks) invite.canShare = (id) => ageTracks.allows(id, 'inviteShare');
   if (guardian && guardianSettings) guardian.settings = guardianSettings;
+  if (guardian && blockStore) guardian.blocks = blockStore;
   if (guardian && lessonSeen && player && socialStore) {
-    guardian.digest = createDigestBuilder({ seen: lessonSeen, recentGames: (id, n) => player.recentGames(id, n), level: async (id) => (await player.levelOf(id)).level.level, friendCount: async (id) => (await socialStore.friends(id)).length });
+    guardian.digest = createDigestBuilder({ seen: lessonSeen, recentGames: (id, n) => player.recentGames(id, n), level: async (id) => (await player.levelOf(id)).level.level, friendCount: async (id) => (await socialStore.friends(id)).length, minutesWeek: playTime ? (id) => playTime.week(id) : undefined });
   }
   if (guardian && social && socialStore) {
     guardian.friends = {
@@ -872,6 +884,7 @@ if (isMainModule(import.meta.url)) {
     gems: db ? createDbGemWallet(db) : undefined,
     birthday,
     ageTracks,
+    playTime,
     lessons: db ? createDbLessonStore(db) : undefined,
     lessonSeen,
     guardian,

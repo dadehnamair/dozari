@@ -37,7 +37,7 @@ export class GuardianSettingsService {
   /** What the child's own app may learn. */
   async limits(childId: string): Promise<ChildLimits> {
     const s = await this.get(childId);
-    return { chatMode: s.chatMode, friendApproval: s.friendApproval, duelsEnabled: s.duelsEnabled, quietFrom: s.quietFrom, quietTo: s.quietTo, reminderMinutes: s.reminderMinutes };
+    return { chatMode: s.chatMode, friendApproval: s.friendApproval, duelsEnabled: s.duelsEnabled, quietFrom: s.quietFrom, quietTo: s.quietTo, reminderMinutes: s.reminderMinutes, playedToday: 0 };
   }
 }
 
