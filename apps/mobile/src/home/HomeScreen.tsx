@@ -69,7 +69,7 @@ interface Tile {
  * speech bubble, corner tiles down both sides, the floating hero, and two big buttons at the bottom. Every feature
  * keeps its sheet; a tile only shows when its feature flag is on.
  */
-export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, onLookup, onGallery, features = OPEN_CONFIG.features, settings = OPEN_CONFIG.raw }: { onSolo: () => void; onDaily?: () => void; onDuel?: () => void; onDuelResume?: () => void; onTutorial?: () => void; onLookup: () => void; onGallery?: () => void; features?: ClientConfig['features']; settings?: ClientConfig['raw'] }) {
+export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume, onTutorial, onLookup, onGallery, features = OPEN_CONFIG.features, settings = OPEN_CONFIG.raw }: { onSolo: () => void; onPriceOnly?: () => void; onDaily?: () => void; onDuel?: () => void; onDuelResume?: () => void; onTutorial?: () => void; onLookup: () => void; onGallery?: () => void; features?: ClientConfig['features']; settings?: ClientConfig['raw'] }) {
   const month = useMemo(() => solarMonthOf(Date.now()), []);
   /** Short phones (≤700px tall) get tighter columns and a smaller hero so nothing runs into the bottom buttons. */
   const compact = useWindowDimensions().height <= 700;
@@ -168,6 +168,8 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
       ? { label: h.duel, color: colors.candy.orange, badge: undefined, onPress: onDuel }
       : null;
 
+  const priceOnlyOn = features.priceonly && !!onPriceOnly;
+
   return (
     <SceneBackground scene="bazaar">
       <View style={styles.root} onTouchStart={() => setTip(null)}>
@@ -223,8 +225,10 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
         </View>
 
         <View style={styles.buttons}>
-          <SlabButton label={h.play} sfx="confirm" color={colors.candy.lime} icon="puzzle" onPress={onSolo} />
-          {second ? <SlabButton label={second.label} color={second.color} badge={second.badge} icon="swords" onPress={second.onPress} /> : null}
+          {/* Three modes side by side: smaller type so «حدس قیمت» fits on a narrow phone. */}
+          <SlabButton label={h.play} sfx="confirm" color={colors.candy.lime} icon="puzzle" fontSize={priceOnlyOn ? 21 : 28} onPress={onSolo} />
+          {second ? <SlabButton label={second.label} color={second.color} badge={second.badge} icon="swords" fontSize={priceOnlyOn ? 21 : 28} onPress={second.onPress} /> : null}
+          {priceOnlyOn ? <SlabButton label={fa.priceOnly.play} sfx="confirm" color={colors.candy.yellow} icon="coin" fontSize={21} onPress={onPriceOnly!} /> : null}
         </View>
       </View>
 
