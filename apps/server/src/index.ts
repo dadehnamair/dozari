@@ -13,6 +13,9 @@ import { createDbDailyRewardStore } from './economy/daily-reward-db.js';
 import { registerDailyRewardRoutes } from './economy/routes.js';
 import { AuthService } from './auth/service.js';
 import { createDbUserRepository } from './auth/db-repository.js';
+import { createClientRecorder, parseClientInfo } from './clients/info.js';
+import type { ClientInfoStore } from './clients/info.js';
+import { createDbClientInfoStore } from './clients/store.js';
 import { attachGateway } from './realtime/gateway.js';
 import { Presence } from './realtime/presence.js';
 import { createLiveNotices } from './realtime/notices.js';
@@ -163,6 +166,8 @@ export interface ServerDeps {
   admin?: { repo: AdminRepository; token?: string; accounts?: AdminAccounts };
   /** Guest accounts and sessions (`/auth/guest`, `/me`). */
   auth?: AuthService;
+  /** Remembers the platform / app version / market each signed-in player's app reports (admin panel «آخرین دستگاه»). */
+  clientInfo?: ClientInfoStore;
   /** Daily reward (`/daily-reward`, and the admin editor); needs `auth` for the player routes. */
   dailyReward?: DailyRewardService;
   /** Lucky wheel: a spin earned by winning a duel. */
@@ -292,6 +297,23 @@ export function buildServer(deps: ServerDeps = {}) {
     const limited = !anyLimit.take(req.ip) ? anyLimit : req.url.split('?')[0] === '/auth/guest' && !guestLimit.take(req.ip) ? guestLimit : null;
     if (limited) return reply.header('retry-after', String(limited.retryAfterSec(req.ip))).code(429).send({ error: 'rate_limited' });
   });
+
+  if (deps.auth && deps.clientInfo) {
+    // After the response is sent, so it costs the player nothing; a failure is only logged.
+    const auth = deps.auth;
+    const record = createClientRecorder(deps.clientInfo);
+    app.addHook('onResponse', async (req) => {
+      const info = parseClientInfo(req.headers);
+      const m = /^Bearer (.+)$/.exec(req.headers.authorization ?? '');
+      if (!info || !m?.[1]) return;
+      try {
+        const user = await auth.authenticate(m[1]);
+        if (user) await record(user.id, info);
+      } catch (err) {
+        req.log.warn({ err }, 'client info not recorded');
+      }
+    });
+  }
 
   app.get('/health', async () => ({
     status: 'ok',
@@ -792,6 +814,7 @@ if (isMainModule(import.meta.url)) {
     shopReal,
     shortLinks: shortLinkService,
     landing: landingService,
+    clientInfo: db ? createDbClientInfoStore(db) : undefined,
     admin: db && jwtSecret ? { repo: createDbAdminRepository(db), token: adminToken, accounts: new AdminAccounts(createDbAdminStore(db), jwtSecret, adminToken) } : undefined,
     corsOrigin: process.env.CORS_ORIGIN,
     trustProxy: process.env.TRUST_PROXY === '1',

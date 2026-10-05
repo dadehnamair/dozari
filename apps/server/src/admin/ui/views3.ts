@@ -19,7 +19,7 @@ VIEWS.users = function (root) {
       if (!r.ok) return fail(r);
       var rows = r.body.users;
       out.appendChild(dtable([
-        { label: 'کاربر', render: function (u) { return h('div', { class: 'user-cell' }, [h('div', { class: 'av', text: initials(u.nickname) }), h('div', {}, [h('b', { text: u.nickname }), h('small', { class: 'ltr', text: u.id.slice(0, 13) + '…' })])]); } },
+        { label: 'کاربر', render: function (u) { return h('div', { class: 'user-cell' }, [avatarDisc(u.avatarKey, 32), h('div', {}, [h('b', { text: u.nickname }), h('small', { class: 'ltr', text: u.id.slice(0, 13) + '…' })])]); } },
         { label: 'سکه', cls: 'num', render: function (u) { return faNum(u.balance); } },
         { label: 'ثبت‌نام', render: function (u) { return ago(u.createdAt); } },
         { label: 'آخرین حضور', render: function (u) { return ago(u.lastSeenAt); } },
@@ -40,7 +40,7 @@ var GENDER_FA = { female: 'خانم', male: 'آقا' };
 function userDrawer(id, done) {
   var dw = drawer('کاربر', id), tab = 'overview', cache = null;
   dw.onClose(function () { if (done) done(); });
-  var TABS = [['overview', 'نمای کلی'], ['coins', 'سکه'], ['mod', 'نظارت'], ['notes', 'یادداشت']];
+  var TABS = [['overview', 'نمای کلی'], ['account', 'حساب و تماس'], ['items', 'بازی و آیتم‌ها'], ['coins', 'سکه و الماس'], ['mod', 'نظارت'], ['notes', 'یادداشت']];
   function drawTabs() {
     clear(dw.tabsEl); dw.tabsEl.hidden = false;
     TABS.forEach(function (t) { dw.tabsEl.appendChild(h('button', { type: 'button', 'aria-current': tab === t[0] ? 'page' : null, text: t[1], onclick: function () { tab = t[0]; paint(); } })); });
@@ -60,7 +60,7 @@ function userDrawer(id, done) {
     var u = cache, b = clear(dw.body);
     if (!u) return;
     if (tab === 'overview') {
-      b.appendChild(h('div', { style: 'display:flex;gap:14px;align-items:center' }, [h('div', { class: 'avatar', style: 'width:54px;height:54px;font-size:22px', text: initials(u.nickname) }), h('div', {}, [h('div', { style: 'font-size:18px;font-weight:700', text: u.nickname }), u.isBanned ? badge('مسدود', 'b-bad') : badge('فعال', 'b-ok')])]));
+      b.appendChild(h('div', { style: 'display:flex;gap:14px;align-items:center' }, [avatarDisc(u.avatarKey, 58), h('div', {}, [h('div', { style: 'font-size:18px;font-weight:700', text: u.nickname }), u.isBanned ? badge('مسدود', 'b-bad') : badge('فعال', 'b-ok')])]));
       if (u.isBanned) b.appendChild(banner('bad', 'مسدود' + (u.bannedAt ? ' از ' + ago(u.bannedAt) : '') + (u.banReason ? ' — ' + u.banReason : '')));
       b.appendChild(defs([
         ['شناسه', h('span', { class: 'ltr', text: u.id })], ['موجودی', faNum(u.balance) + ' سکه'], ['ثبت‌نام', ago(u.createdAt)], ['آخرین حضور', ago(u.lastSeenAt)],
@@ -70,11 +70,55 @@ function userDrawer(id, done) {
       b.appendChild(h('div', {}, [sectionTitle('اسم و هویت'), h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, [h('div', { style: 'flex:1;min-width:160px' }, [nick]),
         h('button', { class: 'btn', text: 'ذخیره‌ی اسم', onclick: function () { act('/admin/users/' + id + '/identity', { method: 'PUT', body: { nickname: nick.value.trim() } }, 'اسم عوض شد'); } }),
         h('button', { class: 'btn', text: 'اسم و آواتار تصادفی', onclick: function () { ask('اسم و آواتار این بازیکن با یک هویت تصادفی عوض شود؟', function () { act('/admin/users/' + id + '/identity', { method: 'PUT', body: {} }, 'هویت جدید داده شد'); }); } })])]));
+      var picks = h('div', { class: 'av-pick' });
+      for (var ai = 1; ai <= 24; ai++) (function (key) {
+        picks.appendChild(h('button', { type: 'button', title: key, 'aria-pressed': String(u.avatarKey === key), onclick: function () { act('/admin/users/' + id + '/identity', { method: 'PUT', body: { avatarKey: key } }, 'آواتار عوض شد'); } }, [avatarDisc(key, 36)]));
+      })('avatar-' + (ai < 10 ? '0' : '') + ai);
+      b.appendChild(h('div', {}, [sectionTitle('آواتار'), picks]));
       var reason = h('input', { type: 'text', placeholder: 'دلیل مسدودی (اختیاری)', maxlength: 200, 'aria-label': 'دلیل مسدودی' });
       b.appendChild(h('div', {}, [sectionTitle('دسترسی'),
         u.isBanned ? h('button', { class: 'btn ok', text: 'رفع مسدودی', onclick: function () { act('/admin/users/' + id + '/ban', { method: 'POST', body: { banned: false } }, 'رفع مسدودی شد'); } })
           : h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, [h('div', { style: 'flex:1;min-width:160px' }, [reason]), h('button', { class: 'btn bad', text: 'مسدود کردن', onclick: function () { ask('این کاربر مسدود شود؟ نشست‌هایش هم بسته می‌شود.', function () { act('/admin/users/' + id + '/ban', { method: 'POST', body: { banned: true, reason: reason.value.trim() || null } }, 'مسدود شد'); }, { danger: true, yes: 'مسدود کن' }); } })]),
         h('div', { style: 'margin-top:10px' }, [h('button', { class: 'btn', text: 'خروج از همه‌ی دستگاه‌ها', onclick: function () { ask('همه‌ی نشست‌های این بازیکن بسته شود؟ دفعه‌ی بعد دوباره وارد می‌شود.', function () { api('/admin/users/' + id + '/logout', { method: 'POST', body: {} }).then(function (x) { if (!x.ok) return fail(x); toast('نشست‌ها بسته شد'); }); }); } })])]));
+    } else if (tab === 'account') {
+      var a = u.account || {}, dash = function (x) { return x === null || x === undefined || x === '' ? h('span', { class: 'muted', text: 'ثبت نشده' }) : x; };
+      var hidden = a.phone === null && a.email === null && a.deviceId === null;
+      if (hidden) b.appendChild(banner('info', 'اطلاعات تماس (شماره، ایمیل، شناسه‌ی دستگاه) فقط برای نقش‌های «پشتیبان» و «مالک» نمایش داده می‌شود.'));
+      b.appendChild(sectionTitle('هویت'));
+      b.appendChild(defs([
+        ['اسم نمایشی', u.nickname], ['شناسه‌ی عمومی (handle)', dash(a.handle && h('span', { class: 'ltr', text: '@' + a.handle }))],
+        ['آواتار', h('span', { style: 'display:inline-flex;gap:8px;align-items:center' }, [avatarDisc(u.avatarKey, 26), h('span', { class: 'ltr', text: u.avatarKey })])],
+        ['شهر', dash(a.city)], ['رده‌ی سنی', { kid: 'کودک', teen: 'نوجوان', adult: 'بزرگسال' }[u.ageTrack] || u.ageTrack], ['حساب ربات؟', a.isBot ? badge('بله', 'b-warn') : 'خیر']
+      ]));
+      b.appendChild(sectionTitle('تماس'));
+      b.appendChild(defs([
+        ['شماره‌ی موبایل', hidden ? h('span', { class: 'muted', text: 'پنهان' }) : dash(a.phone && h('span', { class: 'ltr', text: a.phone }))],
+        ['تأیید شماره', a.phoneVerifiedAt ? badge('تأییدشده ' + ago(a.phoneVerifiedAt), 'b-ok') : badge('تأییدنشده', 'b-mute')],
+        ['ایمیل', hidden ? h('span', { class: 'muted', text: 'پنهان' }) : dash(a.email && h('span', { class: 'ltr', text: a.email }))],
+        ['بله', u.baleLinked ? badge('وصل است' + (a.baleLinkedAt ? ' · ' + ago(a.baleLinkedAt) : ''), 'b-ok') : badge('وصل نیست', 'b-mute')],
+        ['شناسه‌ی دستگاه', hidden ? h('span', { class: 'muted', text: 'پنهان' }) : dash(a.deviceId && h('span', { class: 'ltr', style: 'word-break:break-all', text: a.deviceId }))]
+      ]));
+      var cl = a.client, PLAT = { android: 'اندروید', ios: 'آی‌اواس', web: 'وب (مرورگر)' }, STORE_FA = { myket: 'مایکت', bazaar: 'بازار', bale: 'بله' };
+      b.appendChild(sectionTitle('آخرین دستگاه'));
+      b.appendChild(cl ? defs([
+        ['پلتفرم', PLAT[cl.platform] || cl.platform], ['نسخه‌ی سیستم‌عامل', dash(cl.osVersion && h('span', { class: 'ltr', text: cl.osVersion }))],
+        ['نسخه‌ی اپ (build)', cl.appBuild ? fa(cl.appBuild) : dash(null)], ['مرجع نصب (بازار فعلی)', cl.store ? STORE_FA[cl.store] || cl.store : (cl.platform === 'web' ? 'وب' : 'نامشخص / مستقیم')],
+        ['مرجع اولین نصب', cl.firstStore ? STORE_FA[cl.firstStore] || cl.firstStore : (cl.platform === 'web' ? 'وب' : 'نامشخص / مستقیم') + (cl.firstBuild ? ' · build ' + fa(cl.firstBuild) : '')],
+        ['اولین بار دیده شد', ago(cl.firstSeenAt)], ['آخرین گزارش', ago(cl.updatedAt)]
+      ]) : h('div', { class: 'muted', text: 'هنوز دستگاهی گزارش نشده؛ بعد از اولین درخواست یک نسخه‌ی به‌روز اپ ثبت می‌شود.' }));
+      b.appendChild(sectionTitle('حریم خصوصی و دسترسی'));
+      b.appendChild(defs([
+        ['جنسیت (خصوصی)', GENDER_FA[u.gender] || 'نگفته'], ['سن', u.age === null || u.age === undefined ? 'نگفته' : fa(u.age) + ' ساله' + (u.birth ? ' · تولد ' + u.birth.year + '/' + u.birth.month + '/' + u.birth.day : '')],
+        ['نمایش سن به دیگران', a.showAge ? 'بله' : 'خیر'], ['پیدا شدن با شماره', a.findableByPhone ? 'بله' : 'خیر'], ['اعلان تولد دوستان', a.notifyBirthday ? 'روشن' : 'خاموش'],
+        ['چت آزاد', a.chatUnlockedAt ? badge('باز شده ' + ago(a.chatUnlockedAt), 'b-ok') : badge('قفل (کد معرف نزده)', 'b-mute')],
+        ['انتخاب رده‌ی سنی', a.ageTrackSetAt ? ago(a.ageTrackSetAt) : 'هنوز انتخاب نکرده']
+      ]));
+    } else if (tab === 'items') {
+      var ac = u.account || {}, stt = ac.stats || {}, EFF = { hint_token: 'توکن راهنما', wheel_spin: 'چرخش گردونه' };
+      b.appendChild(h('div', { class: 'stat-row' }, [['سکه', faNum(u.balance)], ['الماس', faNum(ac.gems || 0)], ['XP', faNum(stt.xp || 0)], ['بازی', faNum(stt.games || 0)], ['برد', faNum(stt.wins || 0)], ['باخت', faNum(stt.losses || 0)], ['مساوی', faNum(stt.draws || 0)]].map(function (x) { return h('div', {}, [h('b', { class: 'num', text: x[1] }), h('span', { text: x[0] })]); })));
+      b.appendChild(h('div', {}, [sectionTitle('موجودی آیتم‌ها'), (ac.inventory || []).length ? h('div', {}, ac.inventory.map(function (i) { return h('div', { class: 'kv' }, [h('span', { text: EFF[i.effect] || i.effect }), h('b', { class: 'num', text: faNum(i.qty) })]); })) : h('div', { class: 'muted', text: 'آیتمی ندارد' })]));
+      b.appendChild(h('div', {}, [sectionTitle('لباس و کلاه‌ها'), (ac.cosmetics || []).length ? h('div', {}, ac.cosmetics.map(function (c) { return h('div', { class: 'kv' }, [h('span', {}, [c.titleFa, ' ', c.slot ? badge(c.slot, 'b-mute') : null, ' ', c.equipped ? badge('تن‌شده', 'b-ok') : null]), h('span', { class: 'muted', style: 'font-size:12.5px', text: (c.source === 'wheel' ? 'گردونه · ' : '') + ago(c.at) })]); })) : h('div', { class: 'muted', text: 'چیزی نخریده' })]));
+      b.appendChild(h('div', {}, [sectionTitle('آخرین خریدهای فروشگاه'), (ac.purchases || []).length ? h('div', {}, ac.purchases.map(function (p) { return h('div', { class: 'kv' }, [h('span', { text: p.titleFa }), h('b', { class: 'num', text: p.priceGems ? faNum(p.priceGems) + ' الماس' : faNum(p.priceCoins) + ' سکه' }), h('span', { class: 'muted', style: 'font-size:12.5px', text: ago(p.at) })]); })) : h('div', { class: 'muted', text: 'خریدی نکرده' })]));
     } else if (tab === 'coins') {
       var delta = h('input', { type: 'number', placeholder: 'مثلاً 50 یا -20', 'aria-label': 'تغییر موجودی' }), ledger = h('div');
       b.appendChild(h('div', { class: 'stat-card' }, [h('div', { class: 'l', text: 'موجودی فعلی' }), h('div', { class: 'n num', text: faNum(u.balance) }), h('div', { class: 'd', text: 'سکه' })]));

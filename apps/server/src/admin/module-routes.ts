@@ -1,6 +1,7 @@
 import { randomInt } from 'node:crypto';
 import type { PuzzleAdmin } from '../puzzles/admin.js';
 import type { FastifyInstance, FastifyReply } from 'fastify';
+import { can } from './accounts/permissions.js';
 import { z } from 'zod';
 import { accentColorSchema, checkLevelTable, httpsUrlSchema, isDateKey, ITEMS, ITEM_GROUPS, LEVEL_TABLE_MAX, levelRowSchema, PRODUCT_CATEGORIES, PROVINCES, provinceOf, SETTING_GROUPS, SHOP_EFFECTS, SPONSOR_LIMITS, COSMETIC_SLOTS, WHEEL_PRIZE_KINDS } from '@dozari/shared';
 import type { LevelRow } from '@dozari/shared';
@@ -226,7 +227,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
         .safeParse(req.query);
       if (!parsed.success) return reply.code(400).send({ error: 'invalid_request' });
       const q = parsed.data;
-      return { users: await users.list(q.q, 50, { filter: q.filter, sort: q.sort, offset: q.offset, ...(q.track ? { track: q.track } : {}) }) };
+      return { users: await users.list(q.q, 50, { filter: q.filter, sort: q.sort, offset: q.offset, ...(q.track ? { track: q.track } : {}), contact: !!req.adminActor && can(req.adminActor.role, 'users') }) };
     });
     g.get('/admin/users/:id', async (req, reply) => {
       const p = idParam.safeParse(req.params);
@@ -234,7 +235,10 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       const detail = await users.detail(p.data.id);
       if (!detail) return reply.code(404).send({ error: 'user_not_found' });
       // Privacy (profile-and-identity.md): age for everyone with access, the exact birth date for the owner only.
-      return req.adminActor?.role === 'owner' ? detail : { ...detail, birth: null };
+      const role = req.adminActor?.role;
+      const out = role === 'owner' ? detail : { ...detail, birth: null };
+      // Contact details (phone, e-mail, device id) are for roles that manage players; viewers and editors get them blanked.
+      return role && can(role, 'users') ? out : { ...out, account: { ...out.account, phone: null, email: null, deviceId: null } };
     });
     g.get('/admin/users/:id/ledger', async (req, reply) => {
       const p = idParam.safeParse(req.params);

@@ -96,6 +96,9 @@ Human/AI-written witty titles, matched to rule kinds; `times_chosen` counts how 
 chat_unlocked_at timestamptz null, invited_by uuid null, is_banned bool, created_at, last_seen_at,
 age_track enum(kid,teen,adult) default adult, age_track_set_at datetime(3) null` (D198, `logic/age-tracks.md`; `puzzles` and `products` also carry `age_track`)
 
+### `user_clients`
+One row per account: the app it used last (`platform` android|ios|web, `os_version`, `app_build`, `store` = market of the build now) and where it was first seen (`first_store`, `first_build`, `first_seen_at`). Client-reported via `x-client-*` headers; admin display only.
+
 ### `guardian_links`, `guardian_link_codes`
 `guardian_links(child_id PK/FK, guardian_id FK, created_at)`; `guardian_link_codes(code char(6) PK, child_id FK, guardian_id FK, expires_at)` (D198).
 

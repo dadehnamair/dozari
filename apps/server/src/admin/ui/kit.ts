@@ -70,6 +70,11 @@ function searchBox(placeholder, onInput, initial) {
   box.input = inp;
   return box;
 }
+/* Avatar disc for a key such as «avatar-07»: a hue per avatar plus its number (the artwork itself lives in the app). */
+function avatarDisc(key, size) {
+  var n = parseInt(String(key || '').replace(/\D/g, ''), 10) || 0, px = size || 32;
+  return h('div', { class: 'av-disc', title: key, style: 'width:' + px + 'px;height:' + px + 'px;font-size:' + Math.round(px * 0.38) + 'px;background:hsl(' + ((n * 47) % 360) + ' 70% 52%)', text: n ? fa(n) : '؟' });
+}
 /* A small initials avatar for list rows. */
 function initials(name) { var t = String(name || '?').trim(); return t ? Array.from(t)[0] : '?'; }
 /* Data table: cols = [{ label, render(row) -> node|string, sort(row) -> key, cls }]; opts = { onRow, empty, pageSize }. Client-side sort + paging. */

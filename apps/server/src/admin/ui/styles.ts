@@ -150,7 +150,10 @@ tr.click { cursor:pointer; }
 .tbl-wrap { overflow:auto; border:1px solid var(--line); border-radius:var(--r); background:var(--surface); box-shadow:var(--shadow); margin-bottom:14px; max-height:72vh; }
 .card .tbl-wrap { box-shadow:none; }
 .t-foot { display:flex; gap:10px; align-items:center; justify-content:space-between; color:var(--muted); font-size:13px; margin-bottom:10px; flex-wrap:wrap; }
-.user-cell { display:flex; gap:10px; align-items:center; } .user-cell .av { width:32px; height:32px; border-radius:50%; background:var(--brand-soft); color:var(--brand); display:grid; place-items:center; font-weight:700; flex:none; font-size:13px; } .user-cell b { display:block; line-height:1.3; } .user-cell small { color:var(--muted); font-size:11px; }
+.user-cell { display:flex; gap:10px; align-items:center; } .av-disc { border-radius:50%; color:#fff; display:grid; place-items:center; font-weight:700; flex:none; border:3px solid var(--surface); box-shadow:0 0 0 1px var(--line2); }
+.av-pick { display:grid; grid-template-columns:repeat(auto-fill,minmax(40px,1fr)); gap:8px; } .av-pick button { border:0; background:transparent; padding:2px; border-radius:50%; cursor:pointer; } .av-pick button[aria-pressed=true] .av-disc { box-shadow:0 0 0 3px var(--brand); }
+.stat-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:10px; } .stat-row > div { background:var(--surface2); border:1px solid var(--line); border-radius:10px; padding:8px 12px; } .stat-row b { display:block; font-size:19px; } .stat-row span { color:var(--muted); font-size:12px; }
+.user-cell .av { width:32px; height:32px; border-radius:50%; background:var(--brand-soft); color:var(--brand); display:grid; place-items:center; font-weight:700; flex:none; font-size:13px; } .user-cell b { display:block; line-height:1.3; } .user-cell small { color:var(--muted); font-size:11px; }
 
 /* ---------- catalog cards ---------- */
 .pgrid { display:grid; gap:12px; grid-template-columns:repeat(auto-fill,minmax(310px,1fr)); }
@@ -170,9 +173,11 @@ tr.click { cursor:pointer; }
 .modal .body { padding:20px; display:flex; flex-direction:column; gap:16px; } .modal footer { padding:12px 20px; border-top:1px solid var(--line); display:flex; gap:8px; justify-content:flex-end; background:var(--surface2); border-radius:0 0 16px 16px; }
 .overlay.drawer { padding:0; justify-content:flex-start; align-items:stretch; }
 .drawer .panel { background:var(--surface); width:min(620px,100%); min-height:100vh; box-shadow:var(--shadow-lg); display:flex; flex-direction:column; animation:slide .2s; border-inline-end:1px solid var(--line); }
+.drawer .panel > header, .drawer .panel > .tabs { flex:none; }
 .drawer .panel header { display:flex; align-items:center; gap:12px; padding:16px 22px; border-bottom:1px solid var(--line); }
 .drawer .panel header h3 { margin:0; font-size:17px; } .drawer .panel header .sub { color:var(--muted); font-size:12.5px; }
 .drawer .panel .tabs { margin:0; padding:0 14px; } .drawer .panel .tabs a, .drawer .panel .tabs button { cursor:pointer; }
+.drawer .panel .dbody > .sect-t { margin-bottom:-12px; }
 .drawer .panel .dbody { padding:20px 22px 40px; display:flex; flex-direction:column; gap:18px; flex:1; }
 .tabs button { border:0; background:transparent; padding:9px 15px; color:var(--muted); font-weight:600; font-size:14px; border-bottom:2px solid transparent; margin-bottom:-1px; cursor:pointer; white-space:nowrap; }
 .tabs button[aria-current=page] { color:var(--brand); border-bottom-color:var(--brand); }

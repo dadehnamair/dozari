@@ -382,6 +382,21 @@ export const users = mysqlTable(
   }),
 );
 
+/** The app the player used last (platform, OS and app version, market) plus where it was first seen: the install source. One row per account. */
+export const userClients = mysqlTable('user_clients', {
+  userId: char('user_id', { length: 36 }).primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+  platform: varchar('platform', { length: 12 }).notNull(),
+  osVersion: varchar('os_version', { length: 24 }),
+  appBuild: int('app_build'),
+  /** Market of the build in use now (`myket`, `bazaar`, `bale`), empty for web and development builds. */
+  store: varchar('store', { length: 12 }),
+  /** The market of the first build seen for this account. */
+  firstStore: varchar('first_store', { length: 12 }),
+  firstBuild: int('first_build'),
+  firstSeenAt: datetime('first_seen_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  updatedAt: datetime('updated_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+});
+
 /** Why coins moved (docs/logic/economy.md, data-model.md §Economy). */
 export const LEDGER_REASONS = [
   'signup_bonus',
