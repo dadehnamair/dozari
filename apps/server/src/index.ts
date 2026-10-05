@@ -634,6 +634,7 @@ if (isMainModule(import.meta.url)) {
           startMatch: async (a, b) => (live.matches ? live.matches.start(a, b, { friendly: true }) : false),
           startTeam: async (sides) => (live.matches ? live.matches.startTeam(sides) : false),
           inMatch: (id) => live.matches?.inMatch(id) ?? false,
+          trackOf: ageTracks ? (id) => ageTracks.effective(id) : undefined,
           idleMs: async () => (await settings.num('table.idle_minutes')) * 60_000,
         })
       : undefined;

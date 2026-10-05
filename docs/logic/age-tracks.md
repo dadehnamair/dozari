@@ -203,7 +203,11 @@ Setting `feature.age_tracks` (admin → settings → app, **default off**): off 
   (ctor param). Another track's player reads as *unknown*: `GET /players/:id` and `POST /friends/:id/request` answer 404, `accept` fails, search by ID/phone, contacts and invite links find nobody, and `GET /friends`
   and the leaderboards drop them (a friendship stored before one side moved track stays in the table but is hidden and unusable). Leaderboards are filtered after ranking, so a kid/teen board can be shorter than
   `LEADERBOARD_SIZE`, and `me.rank` is the place on the filtered list when the player is on it (otherwise the unfiltered rank: **open**, needs a per-track rank query). With the switch off everybody is adult, so nothing changes.
-  Still open in phase 4: friend duels and private tables limited to one track, managed chat (phrase library, filtered friends-only text, guardian switch → `chat_unlocked_at`, report queue), the «social needs a guardian» step, auto-accept between two kids.
+- Phase 4, slice 2, **friend duels and private tables per track** (a friend duel *is* a private table, `matchmaking.md` §Private tables): `TableService` stores the host's track on the table
+  (`TableDeps.trackOf`). Another track's player gets `NOT_FOUND` on join and `null` on `GET /tables/:code` (no table to find, nothing to explain); at `start` a seated player who moved track since joining is
+  freed and the host gets `NEED_PLAYERS`. The match's puzzle pool already follows the first (host) player's track. The invite card goes to friends only, who are already same-track. Open: the host's
+  «share to city chat» card still posts into the public city chat (leave to the chat slice: kid/teen must not use it), and the **family table** (guardian + own children) is phase 5.
+  Still open in phase 4: managed chat (phrase library, filtered friends-only text, guardian switch → `chat_unlocked_at`, report queue), the «social needs a guardian» step, auto-accept between two kids.
 - Not yet: the rest of the 30–50 kid puzzles; a track filter on the other admin lists (puzzles, items, tournaments, reports…); the separate report queue for kid/teen chats (phase 4);
 
 ## Phases

@@ -1,5 +1,5 @@
-import { makeTableCode, normalizeTableCode, seatsOfFormat } from '@dozari/shared';
-import type { CreateTableBody, TableError, TableFormat, TableView } from '@dozari/shared';
+import { canMeet, makeTableCode, normalizeTableCode, seatsOfFormat } from '@dozari/shared';
+import type { AgeTrack, CreateTableBody, TableError, TableFormat, TableView } from '@dozari/shared';
 
 export interface TableDeps {
   profileOf(userId: string): Promise<{ nickname: string; avatarKey: string } | null>;
@@ -7,6 +7,8 @@ export interface TableDeps {
   /** Starts a 2v2 (`sides[s]` = the two players of side s); omit to refuse 2v2 tables. */
   startTeam?(sides: readonly [readonly [string, string], readonly [string, string]]): Promise<boolean>;
   inMatch(userId: string): boolean;
+  /** A player's age track (docs/logic/age-tracks.md): a table seats one track only. Absent = everybody is adult. */
+  trackOf?(userId: string): Promise<AgeTrack>;
   idleMs(): Promise<number>;
   now?: () => number;
   rng?: () => number;
@@ -22,6 +24,8 @@ interface Table {
   requireReady: boolean;
   locked: boolean;
   hostId: string;
+  /** The host's track when the table opened; only players of it can see, join or start at the table. */
+  track: AgeTrack;
   /** Seated players in join order; the host is first. */
   seated: string[];
   ready: Set<string>;
@@ -40,6 +44,14 @@ export class TableService {
   private readonly byUser = new Map<string, string>();
 
   constructor(private readonly deps: TableDeps) {}
+
+  private async trackOf(userId: string): Promise<AgeTrack> {
+    try {
+      return (await this.deps.trackOf?.(userId)) ?? 'adult';
+    } catch {
+      return 'adult';
+    }
+  }
 
   private now(): number {
     return (this.deps.now ?? Date.now)();
@@ -85,7 +97,7 @@ export class TableService {
     for (let i = 0; i < 20 && this.tables.has(code); i++) code = makeTableCode(rng);
     if (this.tables.has(code)) return { ok: false, error: 'BUSY' };
     if (body.format === '2v2' && !this.deps.startTeam) return { ok: false, error: 'INVALID' };
-    const t: Table = { code, name: body.name, icon: body.icon, format: body.format, sides: new Map([[hostId, 0]]), requireReady: body.requireReady, locked: false, hostId, seated: [hostId], ready: new Set(), expiresAt: this.now() + (await this.deps.idleMs()) };
+    const t: Table = { code, name: body.name, icon: body.icon, format: body.format, sides: new Map([[hostId, 0]]), requireReady: body.requireReady, locked: false, hostId, track: await this.trackOf(hostId), seated: [hostId], ready: new Set(), expiresAt: this.now() + (await this.deps.idleMs()) };
     this.tables.set(code, t);
     this.byUser.set(hostId, code);
     return { ok: true, table: await this.view(t, hostId) };
@@ -93,7 +105,8 @@ export class TableService {
 
   async get(userId: string, code: string): Promise<TableView | null> {
     const t = this.live(code);
-    return t ? this.view(t, userId) : null;
+    if (!t || (!t.seated.includes(userId) && !canMeet(t.track, await this.trackOf(userId)))) return null;
+    return this.view(t, userId);
   }
 
   /** Everyone seated at the table, or null when it is gone or the player does not sit there (the chat of a table is for its players only). */
@@ -112,6 +125,8 @@ export class TableService {
     const t = this.live(code);
     if (!t) return { ok: false, error: normalizeTableCode(code) && this.tables.has(normalizeTableCode(code)!) ? 'EXPIRED' : 'NOT_FOUND' };
     if (t.seated.includes(userId)) return { ok: true, table: await this.view(t, userId) };
+    // Another track's table reads as no table at all: no refusal to explain, nothing to find.
+    if (!canMeet(t.track, await this.trackOf(userId))) return { ok: false, error: 'NOT_FOUND' };
     if (this.deps.inMatch(userId)) return { ok: false, error: 'IN_MATCH' };
     if (t.locked) return { ok: false, error: 'LOCKED' };
     if (t.seated.length >= seatsOfFormat(t.format)) return { ok: false, error: 'FULL' };
@@ -180,6 +195,10 @@ export class TableService {
   async start(hostId: string): Promise<TableResult> {
     const t = this.tableOf(hostId);
     if (!t || t.hostId !== hostId) return { ok: false, error: 'NOT_HOST' };
+    if (t.seated.length < seatsOfFormat(t.format)) return { ok: false, error: 'NEED_PLAYERS' };
+    // A seated player may have moved track since joining: such a seat is freed, never played.
+    for (const u of [...t.seated]) if (!canMeet(t.track, await this.trackOf(u))) this.removeSeat(t, u);
+    if (!this.tables.has(t.code)) return { ok: false, error: 'NOT_FOUND' };
     if (t.seated.length < seatsOfFormat(t.format)) return { ok: false, error: 'NEED_PLAYERS' };
     const guests = t.seated.filter((u) => u !== hostId);
     if (t.requireReady && guests.some((g) => !t.ready.has(g))) return { ok: false, error: 'NOT_READY' };
