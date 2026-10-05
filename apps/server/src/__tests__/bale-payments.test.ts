@@ -34,12 +34,14 @@ async function boot(opts: { level?: number; token?: string | null } = {}) {
   const pkg = await store.addPackage({ titleFa: 'بسته‌ی ۵۰۰ سکه‌ای', coins: 500, priceRials: 500_000n, skuBazaar: null, skuMyket: null, minLevel: 3, isActive: true });
   const packages = new CoinPackageService(store, async () => level.v);
   const invoices: { chatId: string; invoice: InvoiceRequest }[] = [];
+  const links: InvoiceRequest[] = [];
   const answers: { id: string; ok: boolean; message?: string }[] = [];
   const sent: { chatId: string; text: string }[] = [];
   const client: BaleClient = {
     async sendMessage(chatId, text) { sent.push({ chatId, text }); },
     async getUpdates() { return []; },
     async sendInvoice(chatId, invoice) { invoices.push({ chatId, invoice }); },
+    async createInvoiceLink(invoice) { links.push(invoice); return 'https://ble.ir/invoice/abc'; },
     async answerPreCheckoutQuery(id, ok, message) { answers.push({ id, ok, message }); },
   };
   const notify = new NotifyService(createMemoryNotifyStore(), client, () => 1_000_000, () => 'ABC234');
@@ -58,7 +60,7 @@ async function boot(opts: { level?: number; token?: string | null } = {}) {
   };
   const preCheckout = (id: string, from: number, payload: string, total = 500_000, currency = 'IRR') => notify.handleUpdate({ update_id: 2, pre_checkout_query: { id, from: { id: from }, currency, total_amount: total, invoice_payload: payload } });
   const paid = (chat: number, payload: string, charge: string, total = 500_000) => notify.handleUpdate({ update_id: 3, message: { message_id: 3, chat: { id: chat }, successful_payment: { currency: 'IRR', total_amount: total, invoice_payload: payload, telegram_payment_charge_id: charge } } });
-  return { app, login, link, store, pkg, level, invoices, answers, sent, preCheckout, paid, notify };
+  return { app, login, link, store, pkg, level, invoices, links, answers, sent, preCheckout, paid, notify };
 }
 
 describe('coin packages paid with the Bale wallet', () => {
@@ -113,6 +115,38 @@ describe('coin packages paid with the Bale wallet', () => {
     expect(t.answers.map((x) => [x.id, x.ok])).toEqual([['q1', true], ['q2', false], ['q3', false], ['q4', false], ['q5', false], ['q6', false]]);
     expect(t.answers[1]!.message).toBeTruthy();
     expect(t.store.balances.size).toBe(0); // nothing credited by a pre-checkout
+  });
+
+  it('gives a mini-app player a payment link (no bot link needed) and keeps the amount in integer rials', async () => {
+    const t = await boot();
+    const a = await t.login(1);
+    const res = await t.app.inject({ method: 'POST', url: `/coin-packages/${t.pkg.id}/bale-invoice-link`, headers: a.h });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ link: 'https://ble.ir/invoice/abc' });
+    expect(t.links[0]).toMatchObject({ providerToken: 'wallet-token', payload: invoicePayload(t.pkg.id, a.id), prices: [{ amount: 500_000 }] });
+  });
+
+  it('refuses the payment link without login, below the level, or without a provider token', async () => {
+    const t = await boot();
+    expect((await t.app.inject({ method: 'POST', url: `/coin-packages/${t.pkg.id}/bale-invoice-link` })).statusCode).toBe(401);
+    const a = await t.login(1);
+    t.level.v = 1;
+    expect((await t.app.inject({ method: 'POST', url: `/coin-packages/${t.pkg.id}/bale-invoice-link`, headers: a.h })).statusCode).toBe(403);
+    const none = await boot({ token: null });
+    const b = await none.login(1);
+    expect((await none.app.inject({ method: 'POST', url: `/coin-packages/${none.pkg.id}/bale-invoice-link`, headers: b.h })).statusCode).toBe(503);
+  });
+
+  it('accepts the pre-checkout of an unlinked mini-app player, and still refuses somebody else', async () => {
+    const t = await boot();
+    const a = await t.login(1);
+    const b = await t.login(2);
+    t.notify.miniAppUserOf = async (baleId) => ({ '555': a.id, '556': b.id })[baleId] ?? null;
+    const payload = invoicePayload(t.pkg.id, a.id);
+    await t.preCheckout('m1', 555, payload);
+    await t.preCheckout('m2', 556, payload); // another mini-app player paying a stranger's invoice
+    await t.preCheckout('m3', 999, payload); // a Bale user with no account at all
+    expect(t.answers.map((x) => [x.id, x.ok])).toEqual([['m1', true], ['m2', false], ['m3', false]]);
   });
 
   it('credits the coins exactly once on successful_payment, however often Bale repeats the update', async () => {

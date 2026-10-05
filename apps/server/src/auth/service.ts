@@ -47,6 +47,11 @@ export class AuthService {
     return { ok: true, session: { token: await this.tokens.sign(user.id), user: { id: user.id, nickname: user.nickname, avatarKey: user.avatarKey } } };
   }
 
+  /** The account a device id belongs to, or null (the Bale mini-app derives one device id per Bale user). */
+  async userByDevice(deviceId: string): Promise<UserRecord | null> {
+    return this.users.findByDeviceId(deviceId);
+  }
+
   /** A session for an existing account, for the moment the player proved they own it (phone proof, see `PhoneService.resolve`). */
   async sessionFor(userId: string, deviceId?: string): Promise<Session | null> {
     const user = await this.users.findById(userId);

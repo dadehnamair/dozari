@@ -14,14 +14,14 @@ export function registerLandingPublicRoutes(app: FastifyInstance, landing: Landi
     const t = (k: string) => settings.text(k);
     const badgeIds = ['enamad', 'samandehi', 'ersa', 'etehadieh', 'ircg', 'bazaar', 'myket'] as const;
     const badgeUrls = await Promise.all(badgeIds.map((b) => t(`link.badge_${b}`)));
-    const [name, tagline, heroTitle, heroText, email, instagram, channel, android, appUrl, dApp, dLanding, dShort, seoTitle, seoDescription, keywords, ogImage, ogAlt, sameAs, fontUrl, vGoogle, vBing, vYandex, vEnamad, indexable, statsUrl, statsId, cast, faq] = await Promise.all([
-      t('landing.site_name'), t('landing.tagline'), t('landing.hero_title'), t('landing.hero_text'), t('landing.contact_email'), t('link.instagram'), t('link.channel'), t('link.android_app'), t('link.app_url'),
+    const [name, tagline, heroTitle, heroText, email, instagram, channel, android, ios, appUrl, dApp, dLanding, dShort, seoTitle, seoDescription, keywords, ogImage, ogAlt, sameAs, fontUrl, vGoogle, vBing, vYandex, vEnamad, indexable, statsUrl, statsId, cast, faq] = await Promise.all([
+      t('landing.site_name'), t('landing.tagline'), t('landing.hero_title'), t('landing.hero_text'), t('landing.contact_email'), t('link.instagram'), t('link.channel'), t('link.android_app'), t('link.ios_app'), t('link.app_url'),
       t('domain.app'), t('domain.landing'), t('domain.short'),
       t('landing.seo_title'), t('landing.seo_description'), t('landing.keywords'), t('landing.og_image'), t('landing.og_image_alt'), t('landing.same_as'), t('landing.font_url'),
       t('seo.verify_google'), t('seo.verify_bing'), t('seo.verify_yandex'), t('seo.verify_enamad'), settings.num('landing.indexable'), t('analytics.script_url'), t('analytics.site_id'), landing.cast.publicList(), landing.faq.publicList(),
     ]);
     return {
-      site: { name, tagline, heroTitle, heroText, contactEmail: email.trim() || null, instagram: link(instagram), channel: link(channel), androidApp: link(android), appUrl: link(appUrl), domains: { app: dApp.trim(), landing: dLanding.trim(), short: dShort.trim() },
+      site: { name, tagline, heroTitle, heroText, contactEmail: email.trim() || null, instagram: link(instagram), channel: link(channel), androidApp: link(android), iosApp: link(ios), appUrl: link(appUrl), domains: { app: dApp.trim(), landing: dLanding.trim(), short: dShort.trim() },
         badges: badgeIds.map((id, n) => ({ id, url: link(badgeUrls[n] as string) })),
         seo: {
           title: seoTitle.trim() || null, description: seoDescription.trim() || null, keywords: list(keywords), ogImage: link(ogImage), ogImageAlt: ogAlt.trim() || null,
@@ -33,6 +33,12 @@ export function registerLandingPublicRoutes(app: FastifyInstance, landing: Landi
       cast: cast.map((c) => ({ id: c.id, name: c.nameFa, role: c.roleFa, bio: c.bioFa, image: c.imageKey })),
       faq: faq.map((f) => ({ question: f.questionFa, answer: f.answerFa })),
     };
+  });
+
+  // The try-it puzzle of the landing (an approved, non-daily puzzle); 404 until the catalog has an eligible one.
+  app.get('/public/landing-demo', async (_req, reply) => {
+    const demo = await landing.publicDemo();
+    return demo ?? reply.code(404).send({ error: 'not_found' });
   });
 
   app.get('/public/posts', async (req) => {

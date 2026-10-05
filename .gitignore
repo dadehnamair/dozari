@@ -24,3 +24,6 @@ web-build/
 *.keystore
 *.jks
 keystore.properties
+
+# Gradle caches (local native modules)
+.gradle/

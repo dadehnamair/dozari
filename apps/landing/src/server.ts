@@ -17,7 +17,7 @@ const HTML = 'text/html; charset=utf-8';
 function siteOf(data: LandingData, siteUrl: string | undefined): Site {
   const s = data.site;
   const url = (siteUrl && siteUrl.trim() !== '' ? siteUrl.trim() : s.domains.landing ? `https://${s.domains.landing}` : 'http://localhost:3100').replace(/\/+$/, '');
-  return { name: s.name, tagline: s.tagline, url, contactEmail: s.contactEmail, sameAs: [...new Set([s.instagram, s.channel, ...(s.seo?.sameAs ?? [])].filter((x): x is string => !!x))], appUrl: s.appUrl ?? (s.domains.app ? `https://${s.domains.app}` : null), androidApp: s.androidApp, badges: s.badges ?? [], ogImage: s.seo?.ogImage ?? null, ogImageAlt: s.seo?.ogImageAlt ?? null, keywords: s.seo?.keywords ?? [], fontUrl: s.seo?.fontUrl ?? null, indexable: s.seo?.indexable ?? true, verify: s.seo?.verify, analytics: s.seo?.analytics ?? null };
+  return { name: s.name, tagline: s.tagline, url, contactEmail: s.contactEmail, sameAs: [...new Set([s.instagram, s.channel, ...(s.seo?.sameAs ?? [])].filter((x): x is string => !!x))], appUrl: s.appUrl ?? (s.domains.app ? `https://${s.domains.app}` : null), androidApp: s.androidApp, iosApp: s.iosApp ?? null, badges: s.badges ?? [], ogImage: s.seo?.ogImage ?? null, ogImageAlt: s.seo?.ogImageAlt ?? null, keywords: s.seo?.keywords ?? [], fontUrl: s.seo?.fontUrl ?? null, indexable: s.seo?.indexable ?? true, verify: s.seo?.verify, analytics: s.seo?.analytics ?? null };
 }
 
 /** Every published post (the API pages them at 50). */
@@ -92,8 +92,8 @@ export function buildLanding(opts: LandingOptions): FastifyInstance {
   app.get('/health', async () => ({ ok: true }));
 
   app.get('/', async (_req, reply) => {
-    const [data, list] = await Promise.all([api.landing(), api.posts(1, 3)]);
-    return send(reply, 200, homePage(siteOf(data, opts.siteUrl), data, list.posts));
+    const [data, list, demo] = await Promise.all([api.landing(), api.posts(1, 3), api.demo()]);
+    return send(reply, 200, homePage(siteOf(data, opts.siteUrl), data, list.posts, demo));
   });
 
   app.get('/blog', async (req, reply) => {

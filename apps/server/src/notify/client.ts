@@ -30,6 +30,8 @@ export interface BaleClient {
   getUpdates(offset: number, timeoutSec: number): Promise<BaleUpdate[]>;
   /** Wallet payment request into a chat (`sendInvoice`). Optional so test doubles may leave it out. */
   sendInvoice?(chatId: string, invoice: InvoiceRequest): Promise<void>;
+  /** A payment link for mini-apps (`createInvoiceLink`; the page hands it to `Bale.WebApp.openInvoice`). */
+  createInvoiceLink?(invoice: InvoiceRequest): Promise<string>;
   /** Yes / no to a `pre_checkout_query` (`answerPreCheckoutQuery`); a «no» carries the message the user sees. */
   answerPreCheckoutQuery?(id: string, ok: boolean, errorMessage?: string): Promise<void>;
 }
@@ -71,6 +73,9 @@ export function createBaleClient(token: string, opts: { base?: string; fetchImpl
     },
     async sendInvoice(chatId, invoice) {
       await call('sendInvoice', { chat_id: chatId, title: invoice.title, description: invoice.description, payload: invoice.payload, provider_token: invoice.providerToken, prices: invoice.prices }, 15_000);
+    },
+    async createInvoiceLink(invoice) {
+      return call<string>('createInvoiceLink', { title: invoice.title, description: invoice.description, payload: invoice.payload, provider_token: invoice.providerToken, prices: invoice.prices }, 15_000);
     },
     async answerPreCheckoutQuery(id, ok, errorMessage) {
       await call('answerPreCheckoutQuery', { pre_checkout_query_id: id, ok, ...(ok ? {} : { error_message: errorMessage ?? 'پرداخت ممکن نیست.' }) }, 8_000);

@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
-import { ageTrackPutSchema, canSelfSwitchTrack, parseAgeTrack, trackRules } from '@dozari/shared';
-import type { AgeTrack, TrackRules } from '@dozari/shared';
+import { ageTrackPutSchema, canMeet, canSelfSwitchTrack, parseAgeTrack, trackRules } from '@dozari/shared';
+import type { AgeTrack, ChildLimits, TrackRules } from '@dozari/shared';
 import type { AuthService } from '../auth/service.js';
 import { currentUser } from '../auth/routes.js';
 
@@ -24,7 +24,15 @@ export interface MyAgeTrack {
   /** The first-run chooser has been answered (always true when the feature is off). */
   chosen: boolean;
   rules: TrackRules;
+  /** What the guardian chose for this child (kid/teen with a guardian), so the app can hide features and show the soft rest card; null for everybody else. */
+  limits: ChildLimits | null;
 }
+
+/** Which of `others` may `me` meet (friends, search, profiles, rankings)? Everybody reads as adult while the feature is off, so all may. */
+export type Meetable = (me: string, others: readonly string[]) => Promise<Set<string>>;
+
+/** True = this player may not use social features yet (needs a guardian). */
+export type SocialBlocked = (userId: string) => Promise<boolean>;
 
 export type ChooseResult = { ok: true; mine: MyAgeTrack } | { ok: false; error: 'feature_off' | 'needs_guardian' };
 
@@ -33,12 +41,17 @@ export class AgeTrackService {
     private readonly store: AgeTrackStore,
     private readonly enabled: () => Promise<boolean>,
     private readonly now: () => Date = () => new Date(),
+    /** Whether a child has a linked guardian (phase 2); absent = nobody does, so a kid/teen stays gated. */
+    private readonly hasGuardian: (userId: string) => Promise<boolean> = async () => false,
+    /** The guardian's choices for a child, or null when there is no guardian or no row. */
+    private readonly limitsOf: (userId: string) => Promise<ChildLimits | null> = async () => null,
   ) {}
 
   async mine(userId: string): Promise<MyAgeTrack> {
-    if (!(await this.enabled())) return { enabled: false, track: 'adult', chosen: true, rules: trackRules('adult') };
+    if (!(await this.enabled())) return { enabled: false, track: 'adult', chosen: true, rules: trackRules('adult'), limits: null };
     const rec = await this.store.get(userId);
-    return { enabled: true, track: rec.track, chosen: rec.setAt !== null, rules: trackRules(rec.track) };
+    const rules = trackRules(rec.track);
+    return { enabled: true, track: rec.track, chosen: rec.setAt !== null, rules, limits: rules.socialNeedsGuardian ? await this.limitsOf(userId) : null };
   }
 
   /**
@@ -48,6 +61,45 @@ export class AgeTrackService {
   async effective(userId: string): Promise<AgeTrack> {
     if (!(await this.enabled())) return 'adult';
     return parseAgeTrack((await this.store.get(userId)).track);
+  }
+
+  /**
+   * True when `userId` is a kid/teen who has no linked guardian yet: friends, requests, tables and friend duels are closed until the one-step
+   * guardian screen is done (docs/logic/age-tracks.md §First-run flow). Never true while the feature is off, and never for adults.
+   */
+  async socialBlocked(userId: string): Promise<boolean> {
+    if (!(await this.enabled())) return false;
+    const track = parseAgeTrack((await this.store.get(userId)).track);
+    return trackRules(track).socialNeedsGuardian && !(await this.hasGuardian(userId));
+  }
+
+  /** The guardian switched friend duels and tables off for this child. */
+  async duelsOff(userId: string): Promise<boolean> {
+    return (await this.limits(userId))?.duelsEnabled === false;
+  }
+
+  /** The guardian wants to approve this child's friends first (`friend_approval = ask`). */
+  async friendsNeedApproval(userId: string): Promise<boolean> {
+    return (await this.limits(userId))?.friendApproval === 'ask';
+  }
+
+  /** The guardian's limits for a kid/teen who has a guardian, else null (adults and unlinked children have none). Never throws. */
+  async limits(userId: string): Promise<ChildLimits | null> {
+    if (!(await this.enabled())) return null;
+    try {
+      if (!trackRules(parseAgeTrack((await this.store.get(userId)).track)).socialNeedsGuardian) return null;
+      return await this.limitsOf(userId);
+    } catch {
+      return null;
+    }
+  }
+
+  /** The subset of `others` on the same track as `me` (`canMeet`); with the feature off every id passes. */
+  async meetable(me: string, others: readonly string[]): Promise<Set<string>> {
+    if (!(await this.enabled())) return new Set(others);
+    const tracks = await this.store.getMany([me, ...others]);
+    const mine = parseAgeTrack(tracks.get(me));
+    return new Set(others.filter((id) => canMeet(mine, parseAgeTrack(tracks.get(id)))));
   }
 
   /**

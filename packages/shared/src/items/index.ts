@@ -11,3 +11,4 @@ export function isItemIconKey(key: string): boolean {
   return Object.prototype.hasOwnProperty.call(ITEMS, key);
 }
 export { SAMPLE_ICONS } from './data.js';
+export { itemSvg } from './svg.js';

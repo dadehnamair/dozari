@@ -17,7 +17,7 @@ import {
   varchar,
 } from 'drizzle-orm/mysql-core';
 import { COSMETIC_SLOTS } from '@dozari/shared/src/economy/slots';
-import { AGE_TRACKS } from '@dozari/shared/src/config/ageTracks';
+import { AGE_TRACKS, CHAT_MODES, FRIEND_APPROVALS, WORD_TRACKS } from '@dozari/shared/src/config/ageTracks';
 import { uuidv7 } from 'uuidv7';
 
 /**
@@ -111,6 +111,22 @@ export const guardianLinks = mysqlTable(
   }),
 );
 
+/** What a guardian chose for one child (docs/logic/age-tracks.md §Guardian panel). One row per child, made on the first save; no row = the open defaults. Plain columns, no JSON (D63). */
+export const guardianSettings = mysqlTable('guardian_settings', {
+  childId: fk('child_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  chatMode: mysqlEnum('chat_mode', CHAT_MODES).notNull().default('friends_text'),
+  friendApproval: mysqlEnum('friend_approval', FRIEND_APPROVALS).notNull().default('auto'),
+  duelsEnabled: boolean('duels_enabled').notNull().default(true),
+  /** Quiet hours as minutes from midnight (Tehran time); both null = none. A window may cross midnight. */
+  quietFrom: smallint('quiet_from'),
+  quietTo: smallint('quiet_to'),
+  /** Gentle «too much play» reminder after this many minutes in a day; null = off. */
+  reminderMinutes: smallint('reminder_minutes'),
+  updatedAt: datetime('updated_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+});
+
 /** A short code a guardian shows so the child's device can sign in as the child: 6 digits, 10 minutes, one use. */
 export const guardianLinkCodes = mysqlTable('guardian_link_codes', {
   code: char('code', { length: 6 }).primaryKey(),
@@ -118,6 +134,19 @@ export const guardianLinkCodes = mysqlTable('guardian_link_codes', {
   guardianId: fk('guardian_id').references(() => users.id, { onDelete: 'cascade' }),
   expiresAt: datetime('expires_at', { mode: 'date', fsp: 3 }).notNull(),
 });
+
+/** Which word lessons a player has seen (the guardian's digest «چه چیزی یاد گرفت»): one row per player and item, with the first and last time and how often. */
+export const lessonViews = mysqlTable(
+  'lesson_views',
+  {
+    userId: fk('user_id').references(() => users.id, { onDelete: 'cascade' }),
+    productId: fk('product_id').references(() => products.id, { onDelete: 'cascade' }),
+    firstSeenAt: datetime('first_seen_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    lastSeenAt: datetime('last_seen_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    times: int('times').notNull().default(1),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.userId, table.productId] }), byUser: index('lesson_views_user_idx').on(table.userId, table.lastSeenAt) }),
+);
 
 /** Kid word lesson of an item (D198): the word, a one-line story and an optional syllable split. Only `approved` lessons are served. */
 export const itemLessons = mysqlTable('item_lessons', {
@@ -642,6 +671,8 @@ export const blockedWords = mysqlTable(
     id: id(),
     word: varchar('word', { length: 100 }).notNull(),
     severity: mysqlEnum('severity', WORD_SEVERITIES).notNull().default('block'),
+    /** `kid_teen` words apply only to kid and teen readers (the stricter list, docs/logic/age-tracks.md). */
+    track: mysqlEnum('track', WORD_TRACKS).notNull().default('all'),
     createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
   },
   (table) => ({ uniqWord: uniqueIndex('blocked_words_word_uq').on(table.word) }),
@@ -1204,6 +1235,8 @@ export const tauntCategories = mysqlTable('taunt_categories', {
   cityId: char('city_id', { length: 36 }).references(() => cities.id, { onDelete: 'set null' }),
   sortOrder: int('sort_order').notNull().default(0),
   isActive: boolean('is_active').notNull().default(true),
+  /** The track whose players see the category: each track has its own taunt library (docs/logic/age-tracks.md). */
+  ageTrack: mysqlEnum('age_track', AGE_TRACKS).notNull().default('adult'),
 });
 
 export const cannedTaunts = mysqlTable(

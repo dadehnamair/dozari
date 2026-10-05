@@ -11,6 +11,7 @@ describe('trackRules', () => {
       expect(r.ugc).toBe(false);
       expect(r.publicCity).toBe(false);
       expect(r.socialSameTrackOnly).toBe(true);
+      expect(r.socialNeedsGuardian).toBe(true);
       expect(r.freeTextChat).toBe('guardian_switch');
     }
   });
