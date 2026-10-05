@@ -45,6 +45,8 @@ Shop items bought with money (`payWithMoney`, D170; coin packages have the same 
 CORS: the server itself adds the `null` origin whenever `BALE_BOT_TOKEN` is set (no env change needed; the compose file lists it too), because Bale's web client may sandbox the iframe (opaque origin). The API authenticates with bearer tokens only
 (no cookies), so a CORS allow-list is not what protects it. If `localStorage` is unusable there, the bridge installs an in-memory one.
 
+Inside the mini-app the phone-only gate (D171, «بازی را نصب کن» card) is skipped: `usePhoneGate` treats a Bale mini-app like the «ادامه با مرورگر» choice.
+
 ## Not verified
 
 Written from Bale's documentation and the Telegram-compatible scheme; never run inside the real Bale client. To check on first deploy: that `initData`
