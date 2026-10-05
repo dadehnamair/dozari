@@ -608,7 +608,7 @@ puzzle-only ending until the captain-pooled guess is designed. Details: `docs/lo
 - **D203 — Sponsors on tournaments (proposed).** Admin-defined `sponsors` (name, tagline, story, https banner/logo/link, accent, active switch) chosen per tournament (`tournaments.sponsor_id`); shown as a tag in the list and a card with banner on the tournament page. A «want to sponsor?» card at the end of the list is driven by three admin settings and hidden without a contact link. Images are pasted https links for now (no upload). See `docs/logic/sponsors.md`.
 
 
-## D197 — Age tracks: kid, teen and adult spaces (2026-10-05, proposed)
+## D198 — Age tracks: kid, teen and adult spaces (2026-10-05, proposed)
 
 Owner: one game for every age. Kids get an educational space (very easy picture puzzles, no price guessing, then a word lesson: the word and its
 letters). The player picks an age band on first run; a kid or teen is linked to a guardian by phone OTP, and one guardian number can hold several

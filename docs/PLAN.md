@@ -244,7 +244,7 @@ Start after the first Android build.
 - [ ] 5. Shorter opponent search; bots fill the seat sooner
 - [ ] 6. Options greyed out when it is not my turn, coloured on my turn
 
-## Age tracks (D197, proposed) — see `docs/logic/age-tracks.md`
+## Age tracks (D198, proposed) — see `docs/logic/age-tracks.md`
 
 - [ ] 1. Foundation: `age_band` on users/puzzles/items, `bandRules` config, first-run chooser, band-keyed queues, admin band filter
 - [ ] 2. Guardian link: phone OTP, child profiles, link code, guardian-approved band change

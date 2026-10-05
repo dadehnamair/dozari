@@ -41,6 +41,6 @@ username, not trivially repetitive. 5 wrong passwords lock the account for 15 mi
 deactivation ends that admin's sessions (`session_version`). The last active owner cannot be demoted or deactivated (unless the break-glass token is configured). The audit log names the
 admin behind every change.
 
-## Age bands (D197, proposed, not built)
+## Age bands (D198, proposed, not built)
 
 A «رده‌های سنی» section plus an age-band filter on every list; see `age-tracks.md` §Admin panel.

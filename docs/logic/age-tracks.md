@@ -1,6 +1,6 @@
 # Age tracks (رده‌ی سنی) — kid / teen / adult
 
-Status: **proposed**, nothing built yet (D197). Owner request 2026-10-05: one game for every age; kids get an educational space; a parent
+Status: **proposed**, nothing built yet (D198). Owner request 2026-10-05: one game for every age; kids get an educational space; a parent
 can hold the adult account and add the child; the admin panel can filter and manage everything by age band.
 
 ## Principles

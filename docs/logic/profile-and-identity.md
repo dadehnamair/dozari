@@ -181,7 +181,7 @@ picked reactively) is still open; the prototype puts it as a profile-only option
 city's `province` key maps to shared `PROVINCES`, which themes Home (badge + local greeting under
 the wordmark) and shows the badge beside the city on profiles. The admin sets a city's province.
 
-## Age band (D197, proposed)
+## Age band (D198, proposed)
 
 Each profile carries a chosen age band (kid / teen / adult) and, for kids and teens, a guardian link. Rules, flows and admin views: `age-tracks.md`.
 
