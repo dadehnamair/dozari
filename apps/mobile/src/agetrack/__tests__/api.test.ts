@@ -6,7 +6,7 @@ vi.mock('../../net/http', () => ({ callJson: (...args: unknown[]) => call(...arg
 
 import { ageTrackNeeded } from '../api';
 
-const rules = { priceGuess: true, coinWager: true, wordLesson: false, freeTextChat: 'invite_code', socialSameTrackOnly: false, socialNeedsGuardian: false, purchases: true, ugc: true, tournaments: true, publicCity: true, dailyPuzzle: true, priceOnly: true, lookup: true, puzzleTracks: ['adult'], tauntTrack: 'adult' };
+const rules = { priceGuess: true, coinWager: true, wordLesson: false, freeTextChat: 'invite_code', socialSameTrackOnly: false, socialNeedsGuardian: false, purchases: true, ugc: true, tournaments: true, transfers: true, inviteShare: true, publicProfile: 'full', publicCity: true, dailyPuzzle: true, priceOnly: true, lookup: true, puzzleTracks: ['adult'], tauntTrack: 'adult' };
 
 describe('ageTrackNeeded', () => {
   beforeEach(() => call.mockReset());

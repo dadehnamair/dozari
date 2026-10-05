@@ -14,6 +14,8 @@ describe('trackRules', () => {
       expect(r.socialNeedsGuardian).toBe(true);
       expect(r.coinWager).toBe(false);
       expect(r.tournaments).toBe(false);
+      expect(r.transfers).toBe(false);
+      expect(r.inviteShare).toBe(false);
       expect(r.freeTextChat).toBe('guardian_switch');
     }
   });
@@ -61,6 +63,11 @@ describe('trackRuleForPath', () => {
     expect(trackRuleForPath('/tournaments/1/join')).toBe('tournaments');
     expect(trackRuleForPath('/daily-puzzle')).toBe('dailyPuzzle');
     expect(trackRuleForPath('/lookup/search')).toBe('lookup');
+    expect(trackRuleForPath('/transfers')).toBe('transfers');
+    expect(trackRuleForPath('/loans/abc/repay')).toBe('transfers');
+    expect(trackRuleForPath('/friends/abc/gift')).toBe('transfers');
+    expect(trackRuleForPath('/friends/abc/loan')).toBe('transfers');
+    expect(trackRuleForPath('/friends/abc/request')).toBeNull(); // friend requests are not walled by this rule
     expect(trackRuleForPath('/shop')).toBeNull(); // the coin shop (gems and hints) stays open: only real money is walled
     expect(trackRuleForPath('/solo/start')).toBeNull();
     expect(trackRuleForPath('/coin-packagesX')).toBeNull();
@@ -73,5 +80,13 @@ describe('trackRuleForPath', () => {
       expect(trackRules('adult')[rule]).toBe(true);
       if (rule !== 'priceOnly') expect(trackRules('kid')[rule]).toBe(false);
     }
+  });
+});
+
+describe('publicProfile depth', () => {
+  it('shows a kid the least, a teen the record, an adult everything', () => {
+    expect(trackRules('kid').publicProfile).toBe('basic');
+    expect(trackRules('teen').publicProfile).toBe('stats');
+    expect(trackRules('adult').publicProfile).toBe('full');
   });
 });

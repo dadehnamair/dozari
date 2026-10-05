@@ -79,6 +79,11 @@ export class AgeTrackService {
     return trackRules(await this.effective(userId))[rule];
   }
 
+  /** How much of this player's public profile other players may see (`trackRules.publicProfile`). */
+  async profileDepth(userId: string): Promise<'basic' | 'stats' | 'full'> {
+    return trackRules(await this.effective(userId)).publicProfile;
+  }
+
   /** The guardian switched friend duels and tables off for this child. */
   async duelsOff(userId: string): Promise<boolean> {
     return (await this.limits(userId))?.duelsEnabled === false;

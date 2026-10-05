@@ -257,6 +257,9 @@ Setting `feature.age_tracks` (admin → settings → app, **default off**): off 
   (everyday food, drinks, school/street/home things; nothing alcohol- or adult-themed; each has at least 3 approved price points so the teen price-guess round works). A teen item may sit in adult puzzles too (an item only needs to be the puzzle's track or younger).
   Load with `pnpm --filter @dozari/db seed` (the product upsert re-tags in place; an existing puzzle id is left alone) and approve the puzzles in «ساخت پازل» — a teen has **no playable puzzle until an editor approves some**, same as kid content.
   Each puzzle is hand-checked so every item fits exactly one group of its own board (the sample-seed convention: curated groups, no price rule). Still open: the spec's «easy adult groups» for teens (the pool is the teen track only), more teen puzzles, and the adult option to play the teen pool.
+- **Audit pass 2 (leftovers):** three more rules in `trackRules`: `transfers` (gifts and loans of coins between friends are off for kid and teen: `/transfers`, `/loans/*` and `POST /friends/:id/gift|loan` answer `403 age_track`; the gift and loan tiles are not drawn),
+  `inviteShare` (a kid or teen can redeem a code but `GET /me/invite` shows no code of their own) and `publicProfile` (`basic` = name, avatar and level for a kid; `stats` = + the game record for a teen; both without coins; `PlayerProfile.limited` tells the app to draw less).
+  The leaderboard also hides the province of a kid/teen. Wheel prizes are coins, gems and cosmetics only, so they were left as they are.
 - Not yet: the rest of the 30–50 kid puzzles; a track filter on the other admin lists (puzzles, items, tournaments, reports…);
 
 ## Phases

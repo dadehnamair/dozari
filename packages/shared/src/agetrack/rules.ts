@@ -29,6 +29,12 @@ export interface TrackRules {
   tournaments: boolean;
   /** City and province on the public profile. */
   publicCity: boolean;
+  /** Gifts and loans of coins between friends: off for kid and teen (a loan is a debt). */
+  transfers: boolean;
+  /** Own invite code that can be shared outward: kid and teen may redeem a code but not hand one out. */
+  inviteShare: boolean;
+  /** What other players see on the public profile (D67): `basic` = nickname, avatar, level; `stats` adds the game record; `full` is today's. */
+  publicProfile: 'basic' | 'stats' | 'full';
   /** Puzzle pools the track is served from, in preference order. */
   puzzleTracks: readonly AgeTrack[];
   /** Taunt library the track uses. */
@@ -36,9 +42,9 @@ export interface TrackRules {
 }
 
 const RULES: Record<AgeTrack, TrackRules> = {
-  kid: { priceGuess: false, coinWager: false, wordLesson: true, freeTextChat: 'guardian_switch', socialSameTrackOnly: true, socialNeedsGuardian: true, purchases: false, ugc: false, tournaments: false, publicCity: false, dailyPuzzle: false, priceOnly: false, lookup: false, puzzleTracks: ['kid'], tauntTrack: 'kid' },
-  teen: { priceGuess: true, coinWager: false, wordLesson: false, freeTextChat: 'guardian_switch', socialSameTrackOnly: true, socialNeedsGuardian: true, purchases: false, ugc: false, tournaments: false, publicCity: false, dailyPuzzle: false, priceOnly: true, lookup: true, puzzleTracks: ['teen'], tauntTrack: 'teen' },
-  adult: { priceGuess: true, coinWager: true, wordLesson: false, freeTextChat: 'invite_code', socialSameTrackOnly: false, socialNeedsGuardian: false, purchases: true, ugc: true, tournaments: true, publicCity: true, dailyPuzzle: true, priceOnly: true, lookup: true, puzzleTracks: ['adult'], tauntTrack: 'adult' },
+  kid: { priceGuess: false, coinWager: false, wordLesson: true, freeTextChat: 'guardian_switch', socialSameTrackOnly: true, socialNeedsGuardian: true, purchases: false, ugc: false, tournaments: false, publicCity: false, transfers: false, inviteShare: false, publicProfile: 'basic', dailyPuzzle: false, priceOnly: false, lookup: false, puzzleTracks: ['kid'], tauntTrack: 'kid' },
+  teen: { priceGuess: true, coinWager: false, wordLesson: false, freeTextChat: 'guardian_switch', socialSameTrackOnly: true, socialNeedsGuardian: true, purchases: false, ugc: false, tournaments: false, publicCity: false, transfers: false, inviteShare: false, publicProfile: 'stats', dailyPuzzle: false, priceOnly: true, lookup: true, puzzleTracks: ['teen'], tauntTrack: 'teen' },
+  adult: { priceGuess: true, coinWager: true, wordLesson: false, freeTextChat: 'invite_code', socialSameTrackOnly: false, socialNeedsGuardian: false, purchases: true, ugc: true, tournaments: true, publicCity: true, transfers: true, inviteShare: true, publicProfile: 'full', dailyPuzzle: true, priceOnly: true, lookup: true, puzzleTracks: ['adult'], tauntTrack: 'adult' },
 };
 
 export function trackRules(track: AgeTrack): TrackRules {
@@ -79,6 +85,8 @@ export type BooleanTrackRule = { [K in keyof TrackRules]: TrackRules[K] extends 
  * Real-money buying, suggesting items, tournaments, the daily puzzle, price-only play and the price lookup.
  */
 const PATH_RULES: readonly (readonly [prefix: string, rule: BooleanTrackRule])[] = [
+  ['/transfers', 'transfers'],
+  ['/loans', 'transfers'],
   ['/coin-packages', 'purchases'],
   ['/shop-pay', 'purchases'],
   ['/ugc', 'ugc'],
@@ -88,7 +96,11 @@ const PATH_RULES: readonly (readonly [prefix: string, rule: BooleanTrackRule])[]
   ['/lookup', 'lookup'],
 ];
 
+/** `POST /friends/:id/gift|loan` sit under the friends prefix, so they are matched by shape. */
+const TRANSFER_PATH = /^\/friends\/[^/]+\/(gift|loan)$/;
+
 export function trackRuleForPath(path: string): BooleanTrackRule | null {
+  if (TRANSFER_PATH.test(path)) return 'transfers';
   const hit = PATH_RULES.find(([prefix]) => path === prefix || path.startsWith(`${prefix}/`));
   return hit ? hit[1] : null;
 }

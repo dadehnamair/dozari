@@ -698,8 +698,10 @@ if (isMainModule(import.meta.url)) {
     social.blocked = (id) => ageTracks.socialBlocked(id);
     social.asksGuardian = (id) => ageTracks.friendsNeedApproval(id);
     social.cityVisible = (id) => ageTracks.allows(id, 'publicCity');
+    social.profileDepth = (id) => ageTracks.profileDepth(id);
   }
   const lessonSeen = db ? createDbLessonSeenStore(db) : undefined;
+  if (invite && ageTracks) invite.canShare = (id) => ageTracks.allows(id, 'inviteShare');
   if (guardian && guardianSettings) guardian.settings = guardianSettings;
   if (guardian && lessonSeen && player && socialStore) {
     guardian.digest = createDigestBuilder({ seen: lessonSeen, recentGames: (id, n) => player.recentGames(id, n), level: async (id) => (await player.levelOf(id)).level.level, friendCount: async (id) => (await socialStore.friends(id)).length });

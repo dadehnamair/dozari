@@ -85,7 +85,7 @@ describe('walls by path and by profile', () => {
 
   it('answers 403 age_track to a kid on real-money, ugc, tournament, daily and lookup paths, and passes an adult', async () => {
     const { app, kid, adult } = await boot({});
-    for (const url of ['/coin-packages', '/shop-pay/x', '/ugc/feed', '/tournaments', '/daily-puzzle', '/lookup/search?q=a']) {
+    for (const url of ['/coin-packages', '/shop-pay/x', '/ugc/feed', '/tournaments', '/daily-puzzle', '/lookup/search?q=a', '/transfers', '/loans/x/repay']) {
       const res = await app.inject({ method: 'GET', url, headers: kid.h });
       expect(res.statusCode, url).toBe(403);
       expect(res.json()).toEqual({ error: 'age_track' });
@@ -108,5 +108,41 @@ describe('walls by path and by profile', () => {
     social.cityVisible = (id) => ages.allows(id, 'publicCity');
     expect((await social.profile('adult', 'kid'))?.cityName).toBeNull();
     expect((await social.profile('kid', 'adult'))?.cityName).toBe('اصفهان');
+  });
+});
+
+describe('minimal profile, invite code and gifts for kid and teen', () => {
+  const seed = ['kid', 'teen', 'adult'].map((id) => ({ id, nickname: id, avatarKey: 'a', createdAt: 1, coins: 50 }));
+  const player = {
+    levelOf: async () => ({ level: { level: 4 }, stats: { games: 9, wins: 5, losses: 3, draws: 1 } }),
+    cityOf: async () => ({ id: 'c', nameFa: 'اصفهان', province: 'isfahan' }),
+  } as never;
+  const make = () => {
+    const social = new SocialService(createMemorySocialStore(seed), Date.now, undefined, player);
+    const ages = tracksOf({ kid: 'kid', teen: 'teen' });
+    social.profileDepth = (id) => ages.profileDepth(id);
+    social.cityVisible = (id) => ages.allows(id, 'publicCity');
+    return { social, ages };
+  };
+
+  it('a kid shows only name, avatar and level; a teen adds the record but no coins; an adult everything', async () => {
+    const { social } = make();
+    const kid = await social.profile('adult', 'kid');
+    expect(kid).toMatchObject({ limited: true, coins: 0, stats: { games: 0, wins: 0 }, level: 4, cityName: null });
+    expect(kid?.badges.medals).toEqual([]);
+    const teen = await social.profile('adult', 'teen');
+    expect(teen).toMatchObject({ limited: true, coins: 0, stats: { games: 9, wins: 5 }, cityName: null });
+    expect(await social.profile('adult', 'adult')).toMatchObject({ limited: false, coins: 50, stats: { games: 9 }, cityName: 'اصفهان' });
+    expect(await social.profile('kid', 'kid')).toMatchObject({ isMe: true, limited: false }); // your own profile is yours
+  });
+
+  it('a kid has no invite code to share, an adult does', async () => {
+    const { InviteService } = await import('../invite/service.js');
+    const { createMemoryInviteStore } = await import('../invite/store.js');
+    const invite = new InviteService(createMemoryInviteStore(), async () => ({ minLevel: 1, maxUses: 5, inviteeBonus: 10, inviterReward: 20, rewardAfterGames: 1 }), async () => 5, async () => 0, mulberry32(3));
+    const { ages } = make();
+    invite.canShare = (id) => ages.allows(id, 'inviteShare');
+    expect((await invite.mine('kid')).code).toBeNull();
+    expect((await invite.mine('adult')).code).not.toBeNull();
   });
 });
