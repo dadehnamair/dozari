@@ -1,6 +1,6 @@
-// Turns the game's web export (apps/mobile/dist) into the Bale mini-app page: loads Bale's SDK and our bridge first, holds the
+// Turns the game's web export (apps/mobile/dist) into the mini-app page: loads Bale's SDK and our bridge first, holds the
 // game bundle back until the bridge has logged the player in, and drops the PWA parts (service worker, manifest) that make no
-// sense inside Bale's web view. Usage: node prepare-dist.mjs <dist dir> <api url>
+// sense inside a messenger's web view. Usage: node prepare-dist.mjs <dist dir> <api url>
 import { copyFileSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -23,7 +23,7 @@ export function transformIndex(html, apiUrl) {
 
   // Bale's docs: the SDK script goes before every other script, at the very start of <head>.
   const sdk = `<script src="${BALE_SDK}"></script>`;
-  const bridge = `<script>window.__BALE_MINIAPP__ = ${JSON.stringify({ apiUrl })};</script>\n    <script src="/bale-bridge.js"></script>\n`;
+  const bridge = `<script>window.__MINIAPP__ = ${JSON.stringify({ apiUrl })};</script>\n    <script src="/miniapp-bridge.js"></script>\n`;
   return stubbed
     .replace(/<link rel="manifest"[^>]*>\s*/, '')
     .replace('<head>', `<head>\n    ${sdk}`)
@@ -38,7 +38,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   if (!dist || !apiUrl) throw new Error('usage: node prepare-dist.mjs <dist dir> <api url>');
   const here = dirname(fileURLToPath(import.meta.url));
   writeFileSync(join(dist, 'index.html'), transformIndex(readFileSync(join(dist, 'index.html'), 'utf8'), apiUrl));
-  copyFileSync(join(here, '..', 'bale-bridge.js'), join(dist, 'bale-bridge.js'));
+  copyFileSync(join(here, '..', 'miniapp-bridge.js'), join(dist, 'miniapp-bridge.js'));
   writeFileSync(join(dist, 'sw.js'), KILL_SW);
   console.log(`prepare-dist: mini-app page written to ${dist} (api ${apiUrl})`);
 }

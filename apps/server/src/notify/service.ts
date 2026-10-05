@@ -1,4 +1,5 @@
 import { randomInt } from 'node:crypto';
+import { normalizeIranPhone } from '@dozari/shared';
 import { RateLimiter } from '../security/rate-limit.js';
 import type { BaleClient, BaleUpdate } from './client.js';
 import type { BaleInvoice, BalePaid, PreCheckout } from '../economy/coin-packages.js';
@@ -26,6 +27,9 @@ export class NotifyService {
 
   /** Set at start-up when phone verification exists; lets the bot accept a shared contact. */
   phone?: PhoneService;
+
+  /** Set at start-up: finds the player holding this verified number or creates one (no app visit needed); `created` tells which. */
+  signup?: (phone: string) => Promise<{ userId: string; created: boolean }>;
 
   /** Set at start-up when coin packages exist: judges `pre_checkout_query` and credits `successful_payment`. */
   payments?: {
@@ -146,6 +150,11 @@ export class NotifyService {
     }
     // «/start CODE» (deep link) or just the code typed by hand.
     const candidate = (cmd === '/start' ? text.split(/\s+/)[1] : text)?.trim().toUpperCase();
+    if (cmd === '/start' && !candidate && this.signup) {
+      // Someone opened the bot from the website: not linked yet -> ask for their own contact, which creates the account.
+      if (await this.store.userOfChat(chatId)) return void (await reply(BALE_TEXT.statusLinked));
+      return void (await this.client.sendMessage(chatId, BALE_TEXT.welcome, { contactButton: BALE_TEXT.contactButton }).catch(() => undefined));
+    }
     if (!candidate || !/^[A-Z0-9]{4,12}$/.test(candidate)) return void (await reply(BALE_TEXT.help));
     if (this.badCodes.blocked(chatId)) return;
     const linked = await this.store.redeemCode(candidate, chatId, this.now());
@@ -179,14 +188,35 @@ export class NotifyService {
     if (out && !out.duplicate) await this.client?.sendMessage(String(chatId), out.text ? BALE_TEXT.paidItem(out.text) : BALE_TEXT.paid(out.coins)).catch(() => undefined);
   }
 
+  /**
+   * An unlinked chat shared a contact. Only the sender's OWN contact counts (a forwarded one proves nothing); the number Bale vouches for
+   * becomes a verified account (or the existing holder of that number is linked), and the chat is linked to it.
+   */
+  private async handleSignupContact(update: BaleUpdate, say: (t: string, removeKeyboard?: boolean) => Promise<unknown>): Promise<void> {
+    const msg = update.message!;
+    const chatId = String(msg.chat.id);
+    const c = msg.contact!;
+    if (!this.signup) return void (await say(BALE_TEXT.help));
+    if (this.badCodes.blocked(chatId)) return;
+    const phone = normalizeIranPhone(c.phone_number);
+    const own = c.user_id !== undefined && msg.from?.id !== undefined && String(c.user_id) === String(msg.from.id);
+    if (!own || !phone) {
+      this.badCodes.take(chatId);
+      return void (await say(BALE_TEXT.contactNotYours));
+    }
+    const { userId, created } = await this.signup(phone);
+    await this.store.linkChat(userId, chatId, this.now());
+    await say(BALE_TEXT.signedUp(!created), true);
+  }
+
   /** The sender shared a contact: it verifies the phone number only for the linked player and only when it is their own contact. */
   private async handleContact(update: BaleUpdate): Promise<void> {
     const msg = update.message!;
     const chatId = String(msg.chat.id);
     const say = (t: string, removeKeyboard = false) => this.client!.sendMessage(chatId, t, removeKeyboard ? { removeKeyboard: true } : undefined).catch(() => undefined);
-    if (!this.phone) return;
     const userId = await this.store.userOfChat(chatId);
-    if (!userId) return void (await say(BALE_TEXT.help));
+    if (!userId) return void (await this.handleSignupContact(update, say));
+    if (!this.phone) return;
     if (this.badCodes.blocked(chatId)) return;
     const out = await this.phone.verifyByContact(userId, msg.contact!.phone_number, msg.contact!.user_id === undefined ? undefined : String(msg.contact!.user_id), msg.from?.id === undefined ? undefined : String(msg.from.id));
     if (out === 'verified' || out === 'already') return void (await say(BALE_TEXT.phoneVerified, true));

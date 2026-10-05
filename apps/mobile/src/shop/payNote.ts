@@ -1,5 +1,5 @@
 import { fa } from '../i18n/fa';
-import type { InvoiceStatus } from '../bale/miniapp';
+import type { InvoiceStatus } from '../miniapp/host';
 
 /** The line shown after a real-money purchase attempt; a payment page the player simply closed says nothing. */
 export const payNote = (result: 'sent' | InvoiceStatus): string | null =>

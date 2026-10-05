@@ -22,7 +22,7 @@ that proxy keeps the domains and https and forwards two names to the containers 
 | `mrbots.ir` (`APP_DOMAIN`, the web app) | `127.0.0.1:8081` |
 | `api.mrbots.ir` (`API_DOMAIN`, the game server; product images live at `/images/`) | `127.0.0.1:3000`, **websockets on** |
 | `mrdozari.ir` (`LANDING_DOMAIN`, the landing site and blog, D173) | `127.0.0.1:8083` (`LANDING_PORT`) |
-| `bale.mrbots.ir` (`BALE_APP_DOMAIN`, the Bale mini-app, D180; needs `BALE_BOT_TOKEN`) | `127.0.0.1:8084` (`BALE_APP_PORT`) |
+| `mini-app.mrbots.ir` (`MINIAPP_DOMAIN`, the mini-app for Bale/Telegram, D180; needs `BALE_BOT_TOKEN` and/or `TELEGRAM_BOT_TOKEN`) | `127.0.0.1:8084` (`MINIAPP_PORT`) |
 | `2oi.ir` (the short-link domain, `domain.short`, D172) | `127.0.0.1:3000` with the original `Host` header kept |
 
 The API address is baked into the web build, so changing `API_DOMAIN` later means editing `.env.prod` and

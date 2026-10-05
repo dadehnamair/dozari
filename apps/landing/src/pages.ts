@@ -215,6 +215,7 @@ main{overflow-x:clip}
 /* final cta with banner */
 .fin{display:block;width:100%;max-width:1100px;border:4px solid var(--ink);border-radius:40px;box-shadow:0 8px 0 var(--ink);overflow:hidden;transition:transform .35s}.fin:hover{transform:scale(1.015) rotate(-.6deg)}.fin img{width:100%;height:auto}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.js .rv{opacity:1;transform:none}.mq{overflow-x:auto}}
+@media(max-width:700px){header.top{border-bottom-width:3px}.bar{padding:8px 14px;gap:6px 10px}.brand{font-size:26px;gap:8px}.brand .face{width:38px!important;height:38px!important}.bar>.btn{font-size:16px;padding:6px 14px 3px;border-width:2px;box-shadow:0 3px 0 var(--ink)}nav.main{order:3;flex:0 0 100%;flex-wrap:nowrap;overflow-x:auto;gap:2px;scrollbar-width:none;margin:0 -14px;padding:0 14px 2px}nav.main::-webkit-scrollbar{display:none}nav.main a{font-size:13px;padding:2px 12px;border-width:2px;white-space:nowrap;line-height:1.7}}
 @media(max-width:560px){.fl{display:none}.band>.in{padding-top:40px;padding-bottom:40px}.sec{padding-top:48px;padding-bottom:48px}.promo{padding:26px}.sticky{position:static}.cc{flex-direction:column}}
 `;
 
@@ -342,7 +343,7 @@ function storeBadges(site: Site): string {
     const inner = `${icon(ic)}<span class="tx"><small>${small}</small><b>${name}</b></span>`;
     return href ? `<a class="badge" href="${escapeHtml(href)}">${inner}</a>` : `<span class="badge off" aria-disabled="true">${inner}</span>`;
   };
-  return [b('web', 'بازی آنلاین', 'نسخهٔ وب', site.appUrl), b('android', 'دریافت فایل', 'اندروید', site.androidApp), b('apple', site.iosApp ? 'دریافت برنامه' : 'به‌زودی', 'iOS', site.iosApp)].join('');
+  return [b('web', 'بازی آنلاین', 'نسخهٔ وب', site.appUrl), b('android', 'دریافت فایل', 'اندروید', site.androidApp), b('apple', site.iosApp ? 'دریافت برنامه' : 'به‌زودی', 'iOS', site.iosApp), ...(site.baleBot ? [b('chat', 'بازی از طریق ربات', 'بله', site.baleBot)] : []), ...(site.telegramApp ? [b('chat', 'بازی بدون نصب', 'تلگرام', site.telegramApp)] : [])].join('');
 }
 
 const postCard = (p: PostSummary): string => {
@@ -537,12 +538,14 @@ ${promo('lime', 'می‌خوای با ما کار کنی؟', 'همکاری، ت�
 /* ---- download ---- */
 
 export function downloadPage(site: Site): string {
-  const title = `دانلود ${site.name}: رایگان برای اندروید و مرورگر`;
-  const desc = description(`${site.name} را رایگان روی گوشی اندروید نصب کن یا همین حالا در مرورگر بازی کن.`);
+  const title = `دانلود ${site.name}: رایگان برای اندروید، مرورگر و بله`;
+  const desc = description(`${site.name} را رایگان روی گوشی اندروید نصب کن، همین حالا در مرورگر بازی کن یا از طریق ربات بله شروع کن.`);
   type Store = { fa: string; os: string; ab: string; bg: string; cta: string; href: string | null };
   const stores: Store[] = [
     { fa: 'نسخهٔ وب', os: 'مرورگر', ab: icon('web'), bg: '#FF7A3D', cta: 'بازی آنلاین', href: site.appUrl },
     { fa: 'دانلود مستقیم', os: 'فایل APK اندروید', ab: icon('android'), bg: '#FFC93C', cta: 'دریافت فایل', href: site.androidApp },
+    { fa: 'بله', os: 'بازی از طریق ربات', ab: 'ب', bg: '#3FC1F0', cta: 'شروع در بله', href: site.baleBot ?? null },
+    ...(site.telegramApp ? [{ fa: 'تلگرام', os: 'بازی در مینی‌اپ، بدون نصب', ab: 'T', bg: '#3FC1F0', cta: 'بازی در تلگرام', href: site.telegramApp }] : []),
     { fa: 'گوگل‌پلی', os: 'اندروید', ab: 'G', bg: '#7ED957', cta: 'به‌زودی', href: null },
     { fa: 'کافه‌بازار', os: 'اندروید', ab: 'ب', bg: '#7ED957', cta: 'به‌زودی', href: null },
     { fa: 'مایکت', os: 'اندروید', ab: 'م', bg: '#3FC1F0', cta: 'به‌زودی', href: null },

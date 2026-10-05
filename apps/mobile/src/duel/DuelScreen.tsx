@@ -31,6 +31,7 @@ import { connectDuel } from './socket';
 import type { DuelConnection } from './socket';
 import { SearchScreen } from '../search/SearchScreen';
 import { Versus } from './Versus';
+import { LeaveGuard } from './LeaveGuard';
 import { fetchWheel } from '../wheel/api';
 import { WheelPage } from '../wheel/WheelPage';
 
@@ -315,6 +316,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
 
   return (
     <MatchBackground>
+      {playing ? <LeaveGuard onLeave={leave} /> : null}
       <ScrollView contentContainerStyle={styles.screen}>
         <View style={styles.column}>
           <View style={styles.bar}>

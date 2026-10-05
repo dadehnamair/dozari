@@ -9,6 +9,10 @@ export interface PublicSite {
   channel: string | null;
   androidApp: string | null;
   iosApp: string | null;
+  /** Link of the Bale bot where the game can be played; null until the admin sets it. */
+  baleBot?: string | null;
+  /** Telegram mini-app link; null while the admin switch is off or the link is empty. */
+  telegramApp?: string | null;
   appUrl: string | null;
   domains: { app: string; landing: string; short: string };
   /** Trust / store badges of the footer; `url` is null until the admin sets it. */
