@@ -17,6 +17,19 @@ own folder, own container, own domain. The sample from Bale (`miniapp.js`, `Bale
   The bridge stores `dozari.token` and `dozari.deviceId` where the game reads them. Outside Bale (no `initData`) the page just starts the game as a guest.
 - **CORS**: the compose file adds `https://BALE_APP_DOMAIN` to the server's `CORS_ORIGIN`.
 
+## SDK features in use (all in `bale-bridge.js`, the game itself is untouched)
+
+| Feature | What it does |
+|---|---|
+| `ready()` / `expand()` | loading screen ends at once, full-screen |
+| `setHeaderColor('#2B1240')` | Bale's header matches the game's purple |
+| `openLink(url)` | external links (`window.open` of http(s) outside our origin) open in Bale's browser |
+| `?startapp=solo\|daily\|duel` | `https://ble.ir/<bot>?startapp=daily` opens that screen (mapped to the game's `?go=`) |
+| `isMiniAppSupported` | an old Bale app gets a Persian «update Bale» notice instead of a blank page |
+
+Not wired yet (need game-side work): BackButton (needs in-memory routing, Bale's own warning), closing confirmation during a live duel, `openInvoice`
+for coin packages, `requestContact` for phone proof (the verified path stays the bot's `contact.user_id == from.id` check), theme (the game keeps its own look).
+
 ## Not verified
 
 Written from Bale's documentation and the Telegram-compatible scheme; never run inside the real Bale client. To check on first deploy: that `initData`

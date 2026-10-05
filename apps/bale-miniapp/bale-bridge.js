@@ -81,15 +81,58 @@
       .catch(showError);
   }
 
+  // Link ?startapp=daily|solo|duel (https://ble.ir/<bot>?startapp=daily) opens that screen: the game reads its own `?go=` once.
+  function applyStartParam() {
+    var raw = (webApp && webApp.initDataUnsafe && webApp.initDataUnsafe.start_param) || '';
+    if (!raw) {
+      var m = /[?&#]tgWebAppStartParam=([^&#]*)/.exec(location.search + location.hash);
+      raw = m ? decodeURIComponent(m[1]) : '';
+    }
+    if (/^(solo|daily|duel)$/.test(raw) && location.search.indexOf('go=') === -1) {
+      try {
+        history.replaceState(null, '', location.pathname + '?go=' + raw + location.hash);
+      } catch (e) {
+        /* the game then opens on its home screen */
+      }
+    }
+  }
+
+  // Old Bale apps cannot run mini-apps at all: say so instead of a blank page.
+  function showUpdateNotice() {
+    var box = document.createElement('div');
+    box.setAttribute('dir', 'rtl');
+    box.style.cssText =
+      'position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#2b1240;color:#fff;font:16px sans-serif;text-align:center;padding:24px;z-index:99999';
+    box.textContent = 'برای بازی دوزاری، بله را به آخرین نسخه به‌روزرسانی کن.';
+    document.body.appendChild(box);
+  }
+
+  // External links (sponsors, downloads...) open in Bale's own browser instead of replacing the game.
+  function routeLinksThroughBale() {
+    var open = window.open;
+    window.open = function (url) {
+      if (typeof url === 'string' && /^https?:\/\//.test(url) && url.indexOf(location.origin) !== 0 && webApp && webApp.openLink) {
+        webApp.openLink(url);
+        return null;
+      }
+      return open.apply(window, arguments);
+    };
+  }
+
   if (webApp) {
     try {
       webApp.ready();
       webApp.expand();
+      if (webApp.setHeaderColor) webApp.setHeaderColor('#2B1240'); // the game's own purple, in light and dark Bale themes alike
+      routeLinksThroughBale();
     } catch (e) {
       /* older Bale clients lack some calls */
     }
+    applyStartParam();
+    if (webApp.isMiniAppSupported === false) window.addEventListener('DOMContentLoaded', showUpdateNotice);
   }
   // Opened outside Bale (a plain browser): no signed data to send, so the game starts as an ordinary guest.
+  if (webApp && webApp.isMiniAppSupported === false) return;
   if (initData) window.addEventListener('DOMContentLoaded', login);
   else window.addEventListener('DOMContentLoaded', startGame);
 })();
