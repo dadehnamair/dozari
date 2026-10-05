@@ -1,24 +1,25 @@
 import { describe, expect, it } from 'vitest';
 import { ContentApi } from '../api.js';
-import type { LandingData, Post } from '../api.js';
+import type { DemoPuzzle, LandingData, Post } from '../api.js';
 import { headingId, plainText, renderMarkdown } from '../markdown.js';
 import { breadcrumbList, description, graphScript } from '../seo.js';
 import { buildLanding } from '../server.js';
 
 const DATA: LandingData = {
-  site: { name: 'دوزاری', tagline: 'بازی نوستالژی قیمت‌ها', heroTitle: 'قیمت‌های قدیمی را حدس بزن', heroText: 'دوزاری یک بازی آنلاین فارسی است.', contactEmail: null, instagram: 'https://instagram.com/dozari', channel: null, androidApp: null, appUrl: 'https://mrbots.ir', domains: { app: 'mrbots.ir', landing: 'mrdozari.ir', short: '2oi.ir' }, seo: { title: null, description: null, keywords: [], ogImage: null, ogImageAlt: null, sameAs: [], fontUrl: null, indexable: true, verify: { google: null, bing: null, yandex: null } } },
+  site: { name: 'دوزاری', tagline: 'بازی نوستالژی قیمت‌ها', heroTitle: 'قیمت‌های قدیمی را حدس بزن', heroText: 'دوزاری یک بازی آنلاین فارسی است.', contactEmail: null, instagram: 'https://instagram.com/dozari', channel: null, androidApp: null, iosApp: null, appUrl: 'https://mrbots.ir', domains: { app: 'mrbots.ir', landing: 'mrdozari.ir', short: '2oi.ir' }, seo: { title: null, description: null, keywords: [], ogImage: null, ogImageAlt: null, sameAs: [], fontUrl: null, indexable: true, verify: { google: null, bing: null, yandex: null } } },
   cast: [{ id: 'c1', name: 'دوزاری', role: 'راهنمای بازار', bio: 'نگهبان بازار است.', image: 'dozari' }],
   faq: [{ question: 'دوزاری چیست؟', answer: 'یک بازی فارسی است.' }],
 };
 const POST: Post = { slug: 'نان-۱۳۵۰', title: 'قیمت نان در ۱۳۵۰', summary: 'نان چند بود؟', coverUrl: null, author: 'تحریریه', publishedAt: Date.UTC(2026, 8, 1), updatedAt: Date.UTC(2026, 8, 5), bodyMd: '## نان\nنان ارزان بود.\n\n## شیر\nشیر هم.\n\n## چای\nچای هم.\n\n- یک\n- دو', metaTitle: null, metaDescription: null };
 
 /** A fake game server: `fail` makes every call error out. */
-function fakeApi(state: { fail?: boolean } = {}, posts: Post[] = [POST], redirects: Record<string, string> = {}, data: LandingData = DATA) {
+function fakeApi(state: { fail?: boolean } = {}, posts: Post[] = [POST], redirects: Record<string, string> = {}, data: LandingData = DATA, demo: DemoPuzzle | null = null) {
   const fetcher = async (url: string) => {
     if (state.fail) throw new Error('down');
     const path = url.replace(/^https?:\/\/[^/]+/, '');
     const json = (v: unknown, status = 200) => ({ ok: status < 400, status, json: async () => v });
     if (path === '/public/landing') return json(data);
+    if (path === '/public/landing-demo') return demo ? json(demo) : json({ error: 'not_found' }, 404);
     if (path.startsWith('/public/posts?')) {
       const q = new URLSearchParams(path.split('?')[1]);
       const page = Number(q.get('page') ?? 1);
@@ -89,7 +90,7 @@ describe('seo helpers', () => {
   });
   it('escapes < inside JSON-LD and numbers the breadcrumb', () => {
     expect(graphScript([{ '@type': 'Thing', name: '</script><b>' }])).not.toContain('</script><b>');
-    const b = breadcrumbList({ name: 'x', tagline: '', url: 'https://s.test', contactEmail: null, sameAs: [], appUrl: null, androidApp: null }, [{ name: 'a', path: '/' }, { name: 'b' }]) as { itemListElement: { position: number; item?: string }[] };
+    const b = breadcrumbList({ name: 'x', tagline: '', url: 'https://s.test', contactEmail: null, sameAs: [], appUrl: null, androidApp: null, iosApp: null }, [{ name: 'a', path: '/' }, { name: 'b' }]) as { itemListElement: { position: number; item?: string }[] };
     expect(b.itemListElement.map((i) => i.position)).toEqual([1, 2]);
     expect(b.itemListElement[1]).not.toHaveProperty('item');
   });
@@ -112,6 +113,18 @@ describe('landing site', () => {
     expect(graph.map((n) => n['@type'])).toEqual(expect.arrayContaining(['WebSite', 'WebPage', 'HowTo', 'FAQPage']));
     expect(html).toContain('href="/blog/%D9%86%D8%A7%D9%86-%DB%B1%DB%B3%DB%B5%DB%B0"');
     expect(html).toContain('href="/cast"');
+  });
+
+  it('draws the try-it puzzle from the catalog with icons, and keeps the static one when there is none', async () => {
+    const demo: DemoPuzzle = { groups: [0, 1, 2, 3].map((level) => ({ level, title: `گروه ${level}`, items: [0, 1, 2, 3].map((n) => ({ name: `کالا ${level}${n}`, svg: '<svg viewBox="0 0 8 8"></svg>', image: n === 0 ? 'https://cdn.example/p.jpg' : null })) })) };
+    const live = (await buildLanding({ api: fakeApi({}, [POST], {}, DATA, demo), siteUrl: 'https://mrdozari.ir' }).inject({ method: 'GET', url: '/' })).body;
+    expect(live).toContain('class="demo icons"');
+    expect(live.match(/<button class="t"[^>]*><svg/g)).toHaveLength(12);
+    expect(live.match(/<button class="t"[^>]*><img src="https:\/\/cdn.example\/p.jpg"/g)).toHaveLength(4);
+    expect(live).toContain('کالا 00');
+    const fallback = (await boot().inject({ method: 'GET', url: '/' })).body;
+    expect(fallback).not.toContain('demo icons');
+    expect(fallback.match(/<button class="t"/g)).toHaveLength(16);
   });
 
   it('renders a post with BlogPosting data, breadcrumbs, anchors and a table of contents', async () => {

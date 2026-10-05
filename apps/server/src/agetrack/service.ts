@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { ageTrackPutSchema, canSelfSwitchTrack, parseAgeTrack, trackRules } from '@dozari/shared';
+import { ageTrackPutSchema, canMeet, canSelfSwitchTrack, parseAgeTrack, trackRules } from '@dozari/shared';
 import type { AgeTrack, TrackRules } from '@dozari/shared';
 import type { AuthService } from '../auth/service.js';
 import { currentUser } from '../auth/routes.js';
@@ -26,6 +26,9 @@ export interface MyAgeTrack {
   rules: TrackRules;
 }
 
+/** Which of `others` may `me` meet (friends, search, profiles, rankings)? Everybody reads as adult while the feature is off, so all may. */
+export type Meetable = (me: string, others: readonly string[]) => Promise<Set<string>>;
+
 export type ChooseResult = { ok: true; mine: MyAgeTrack } | { ok: false; error: 'feature_off' | 'needs_guardian' };
 
 export class AgeTrackService {
@@ -48,6 +51,14 @@ export class AgeTrackService {
   async effective(userId: string): Promise<AgeTrack> {
     if (!(await this.enabled())) return 'adult';
     return parseAgeTrack((await this.store.get(userId)).track);
+  }
+
+  /** The subset of `others` on the same track as `me` (`canMeet`); with the feature off every id passes. */
+  async meetable(me: string, others: readonly string[]): Promise<Set<string>> {
+    if (!(await this.enabled())) return new Set(others);
+    const tracks = await this.store.getMany([me, ...others]);
+    const mine = parseAgeTrack(tracks.get(me));
+    return new Set(others.filter((id) => canMeet(mine, parseAgeTrack(tracks.get(id)))));
   }
 
   /**

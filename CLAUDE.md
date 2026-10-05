@@ -66,3 +66,7 @@ tell the user in Persian.
 Read only the spec/skill for the task at hand, with line ranges for big files (`PLAN.md`,
 `DECISIONS.md`, `prototype/index.html`). Search with Grep before reading whole files.
 Don't restate docs in replies — link paths.
+
+## Branches
+
+When a task's branch is finished (merged or no longer needed), delete it — remote and local — so stale branches don't pile up. Never delete `main`.

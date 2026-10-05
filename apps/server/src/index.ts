@@ -654,8 +654,11 @@ if (isMainModule(import.meta.url)) {
           }),
           createShortener(),
           () => randomInt(0, 2 ** 30) / 2 ** 30,
+          Date.now,
+          ageTracks ? (me, others) => ageTracks.meetable(me, others) : undefined,
         )
       : undefined;
+  if (social && ageTracks) social.sameTrack = (me, others) => ageTracks.meetable(me, others);
   const levelOf = async (id: string) => (player ? (await player.levelOf(id)).level.level : 1);
   const shopStore = db ? createDbShopStore(db) : undefined;
   const landingService = db ? new LandingService(createDbLandingStore(db)) : undefined;
