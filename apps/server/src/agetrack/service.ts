@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { ageTrackPutSchema, canMeet, canSelfSwitchTrack, parseAgeTrack, trackRules } from '@dozari/shared';
+import type { BooleanTrackRule } from '@dozari/shared';
 import type { AgeTrack, ChildLimits, TrackRules } from '@dozari/shared';
 import type { AuthService } from '../auth/service.js';
 import { currentUser } from '../auth/routes.js';
@@ -71,6 +72,11 @@ export class AgeTrackService {
     if (!(await this.enabled())) return false;
     const track = parseAgeTrack((await this.store.get(userId)).track);
     return trackRules(track).socialNeedsGuardian && !(await this.hasGuardian(userId));
+  }
+
+  /** May this player use what a yes/no track rule guards (coin wagers, real-money buying, tournaments…)? Everybody may while the feature is off; a failing lookup reads as the track's narrower answer only through `effective`, which is adult. */
+  async allows(userId: string, rule: BooleanTrackRule): Promise<boolean> {
+    return trackRules(await this.effective(userId))[rule];
   }
 
   /** The guardian switched friend duels and tables off for this child. */

@@ -61,10 +61,11 @@ export function createDbMessageStore(db: Db): MessageStore {
         return r ? [r.id] : [];
       }
       if (audience === 'bale_linked') {
-        const rows = await db.select({ id: users.id }).from(baleLinks).innerJoin(users, eq(users.id, baleLinks.userId)).where(eq(users.isBanned, false));
+        // Broadcasts (all players, Bale-linked) never reach a kid or teen profile: adult marketing text stays with adults (docs/logic/age-tracks.md §Admin panel). A message to one named player is still allowed.
+        const rows = await db.select({ id: users.id }).from(baleLinks).innerJoin(users, eq(users.id, baleLinks.userId)).where(and(eq(users.isBanned, false), eq(users.ageTrack, 'adult')));
         return rows.map((r) => r.id);
       }
-      return (await db.select({ id: users.id }).from(users).where(eq(users.isBanned, false))).map((r) => r.id);
+      return (await db.select({ id: users.id }).from(users).where(and(eq(users.isBanned, false), eq(users.ageTrack, 'adult')))).map((r) => r.id);
     },
     async create(msg) {
       const id = uuidv7();

@@ -246,6 +246,13 @@ Setting `feature.age_tracks` (admin → settings → app, **default off**): off 
   `PlayerSheet` answers `ask_guardian` with one friendly line, and `RestCardView` (pure rule `restCardFor`) shows the **soft rest card** in quiet hours or after `reminderMinutes` in this app session, dismissible for `QUIET_CARD_SNOOZE_MINUTES` (10) — never a lock-out.
   The play reminder counts the minutes of the current app session (a per-day total would need a play-time log, not built); quiet hours use the phone's own clock.
   Not yet: «block a friend» as its own switch (removing a friend is there; a re-request is possible), a per-day play-time log for a truer reminder, and a «preview the kid space» mode for a guardian.
+- **Audit pass, hard walls closed** (after phases 4–5 an audit found rules that existed only in `trackRules` and the app): 
+  - **No coin wagers:** `MatchService` takes no stake (`wagerAllowed`) when either human is a kid or teen, so a queue duel is friendly (no entry fee, no payout); the queue's `canAfford` check skips them (`ageTracks.allows(user, 'coinWager')`).
+  - **Request gate by path** (`trackRuleForPath`, one `onRequest` hook): a kid or teen gets `403 {error:"age_track"}` on `/coin-packages`, `/shop-pay` (real money, rule `purchases`), `/ugc` (`ugc`), `/tournaments` (new rule `tournaments`: adult only until kid/teen tournaments exist),
+    `/daily-puzzle` (`dailyPuzzle`) and `/lookup` (`lookup`); `/price-only` follows `priceOnly`. The app already hid these entries; now the server refuses too. The in-app coin shop (gems and hints, no real money) stays open.
+  - **City and province** are hidden on a kid/teen public profile (`SocialService.cityVisible`, rule `publicCity`).
+  - **Message center broadcasts** (all players, Bale-linked) reach adults only; a message to one named player still goes through.
+  - app: the tournaments tile and the real-money part of the shop follow `rules.tournaments` / `rules.purchases`.
 - Not yet: the rest of the 30–50 kid puzzles; a track filter on the other admin lists (puzzles, items, tournaments, reports…);
 
 ## Phases

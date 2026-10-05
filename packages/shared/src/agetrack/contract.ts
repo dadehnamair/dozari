@@ -14,6 +14,7 @@ const trackRulesSchema = z.object({
   socialNeedsGuardian: z.boolean(),
   purchases: z.boolean(),
   ugc: z.boolean(),
+  tournaments: z.boolean(),
   publicCity: z.boolean(),
   dailyPuzzle: z.boolean(),
   priceOnly: z.boolean(),

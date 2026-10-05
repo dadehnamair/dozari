@@ -37,6 +37,8 @@ export class SocialService {
   blocked?: SocialBlocked;
   /** Kid/teen whose guardian wants to approve friends first: they neither send nor accept requests; the guardian accepts for them. */
   asksGuardian?: SocialBlocked;
+  /** May this player's city and province show on their public profile (`trackRules.publicCity`)? Absent = yes. */
+  cityVisible?: (userId: string) => Promise<boolean>;
 
   private async meets(me: string, other: string): Promise<boolean> {
     return !this.sameTrack || (await this.sameTrack(me, [other])).has(other);
@@ -50,7 +52,7 @@ export class SocialService {
     const row = await this.store.publicRow(id);
     if (!row || (me !== id && !(await this.meets(me, id)))) return null;
     const lv = (await this.player?.levelOf(id)) ?? { level: { level: 1 }, stats: { games: 0, wins: 0, losses: 0, draws: 0 } };
-    const city = (await this.player?.cityOf(id)) ?? null;
+    const city = (await this.cityVisible?.(id)) === false ? null : ((await this.player?.cityOf(id)) ?? null);
     const party = (await this.birthdayInfo([id])).get(id);
     return { id, nickname: row.nickname, avatarKey: row.avatarKey, level: lv.level.level, coins: row.coins, stats: lv.stats, cityName: city?.nameFa ?? null, cityProvince: city?.province ?? null, badges: (await this.badges?.publicOf(id)) ?? { badge: null, medals: [], skill: 'novice' as const }, memberSince: row.createdAt, relation: me === id ? 'none' : await this.relation(me, id), isMe: me === id, online: this.isOnline(id), birthday: party?.badge ?? false, age: party?.age ?? null, worn: ((await this.wornOf?.(id)) ?? []).map(({ slot, iconKey }) => ({ slot, iconKey })) };
   }
