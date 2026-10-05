@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { TOURNAMENT_SIZES } from '../config/tournament.js';
+import { sponsorBriefSchema, sponsorSchema } from './sponsor.js';
 
 export const TOURNAMENT_STATUSES = ['draft', 'open', 'running', 'finished', 'cancelled'] as const;
 export const tournamentStatusSchema = z.enum(TOURNAMENT_STATUSES);
@@ -18,6 +19,8 @@ export const tournamentListItemSchema = z.object({
   iconKey: z.string().nullable(),
   /** Is the caller entered. */
   entered: z.boolean(),
+  /** The sponsor of this tournament (short form), if any. */
+  sponsor: sponsorBriefSchema.nullable().default(null),
 });
 export type TournamentListItem = z.infer<typeof tournamentListItemSchema>;
 export const tournamentListSchema = z.object({ tournaments: z.array(tournamentListItemSchema) });
@@ -34,6 +37,8 @@ export const bracketMatchSchema = z.object({
 /** `GET /tournaments/:id`: the tournament's own page. */
 export const tournamentDetailSchema = tournamentListItemSchema.extend({
   descriptionFa: z.string(),
+  /** The sponsor with banner and story (replaces the list's short form). */
+  sponsor: sponsorSchema.nullable().default(null),
   prizes: z.array(z.object({ place: z.number().int().positive(), coins: z.number().int().nonnegative(), gems: z.number().int().nonnegative().default(0), spins: z.number().int().nonnegative().default(0) })),
   players: z.array(z.object({ id: z.string().uuid(), nickname: z.string(), avatarKey: z.string() })),
   bracket: z.array(bracketMatchSchema),

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { swr } from '../net/cache';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { toPersianDigits } from '@dozari/shared';
 import type { LedgerPage } from '@dozari/shared';
@@ -29,7 +30,11 @@ export function LedgerSheet({ onClose }: { onClose: () => void }) {
       () => setFailed(true),
     ).finally(() => setLoading(false));
   }, []);
-  useEffect(() => load(), [load]);
+  // The first page of the history shows from the cache at once; «more» pages are always live.
+  useEffect(() => {
+    setLoading(true);
+    return swr('ledger.first', () => fetchLedger(), (p) => (setPage(p), setFailed(false), setLoading(false)), () => (setFailed(true), setLoading(false)));
+  }, []);
 
   return (
     <PageShell title={l.title} color={colors.candy.yellow} backLabel={l.close} onBack={onClose}>

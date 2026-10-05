@@ -35,3 +35,7 @@ a live bracket push over sockets (the page refreshes every 10 s).
 ## One tournament at a time (D92)
 
 By default a player may hold a seat in only one open or running tournament. Each tournament has an admin switch **allowConcurrent** («کسی که در تورنومنت دیگری هست هم بتواند وارد شود»); when on, players already in another tournament may still join this one. The check is on the tournament being joined: `join` answers `BUSY` (HTTP 409) and the detail page shows `blocked: 'BUSY'`. Store: `busyElsewhere(userId, exceptId)`; column `tournaments.allow_concurrent`.
+
+## Sponsor
+
+A tournament may have an admin-defined sponsor (banner and story on its page, a tag in the list): `docs/logic/sponsors.md`.

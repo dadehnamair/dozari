@@ -18,7 +18,7 @@ import {
   TEAM_MATCH_BOARDS,
   TURN_SECONDS,
 } from './game.js';
-import { BROKE_RESCUE_TARGET, DAILY_FREE_MATCHES, SIGNUP_BONUS, ENTRY_FEE_BASE, FREE_MATCH_PAYOUT_PERCENT, HOUSE_CUT_PERCENT, LOSS_CONSOLATION, LOSS_CONSOLATION_DAILY_CAP, DAILY_REWARD_COOLDOWN_HOURS, DAILY_REWARD_STREAK_WINDOW_HOURS, HINT_MAX_PER_GAME, HINT_MIN_LEVEL, HINT_PRICES, HINT_REPEAT_PERCENT, DAILY_PUZZLE_REWARD, DAILY_PUZZLE_STREAK_MAX_DAYS, DAILY_PUZZLE_STREAK_STEP, DAILY_PUZZLE_REPEAT_DAYS } from './economy.js';
+import { BROKE_RESCUE_TARGET, DAILY_FREE_MATCHES, SIGNUP_BONUS, ENTRY_FEE_BASE, FREE_MATCH_PAYOUT_PERCENT, HOUSE_CUT_PERCENT, LOSS_CONSOLATION, LOSS_CONSOLATION_DAILY_CAP, DAILY_REWARD_COOLDOWN_HOURS, DAILY_REWARD_STREAK_WINDOW_HOURS, DUEL_MIN_LEVEL, HINT_MAX_PER_GAME, HINT_MIN_LEVEL, HINT_PRICES, HINT_REPEAT_PERCENT, DAILY_PUZZLE_REWARD, DAILY_PUZZLE_STREAK_MAX_DAYS, DAILY_PUZZLE_STREAK_STEP, DAILY_PUZZLE_REPEAT_DAYS } from './economy.js';
 import { CHART_GAP_BREAK_YEARS, CHART_MIN_YEAR } from './chart.js';
 import { INVITE_INVITEE_BONUS, INVITE_INVITER_REWARD, INVITE_MAX_USES, INVITE_MIN_LEVEL, INVITE_REWARD_AFTER_GAMES } from './invite.js';
 import { LOAN_DUE_DAYS, LOAN_MAX_OPEN, TRANSFER_MAX_AMOUNT, TRANSFER_MIN_AMOUNT, TRANSFER_MIN_FRIEND_DAYS, TRANSFER_MIN_LEVEL, TRANSFER_WEEKLY_CAP } from './transfers.js';
@@ -128,6 +128,9 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'profiletask.coins_follow_channel', group: 'economy', label: 'ماموریت: عضویت در کانال', hint: 'قابل بررسی نیست (ادعای خود بازیکن)، پس کم بگذار. ۰ = بدون جایزه', kind: 'int', min: 0, max: 10000, default: 15, unit: 'سکه' },
   { key: 'profiletask.coins_rate_app', group: 'economy', label: 'ماموریت: نظر دادن در فروشگاه', hint: 'قابل بررسی نیست (ادعای خود بازیکن). ۰ = بدون جایزه', kind: 'int', min: 0, max: 10000, default: 40, unit: 'سکه' },
   { key: 'link.instagram', group: 'app', label: 'لینک صفحه‌ی اینستاگرام', hint: 'خالی = ماموریت دنبال‌کردن اینستاگرام نمایش داده نمی‌شود', kind: 'text', min: 0, max: 200, default: '' },
+  { key: 'sponsor.cta_title', group: 'app', label: 'دعوت به اسپانسری: عنوان', kind: 'text', min: 0, max: 60, default: 'می‌خوای اسپانسر بشی؟' },
+  { key: 'sponsor.cta_body', group: 'app', label: 'دعوت به اسپانسری: متن', kind: 'text', min: 0, max: 300, default: 'اسم و بنر کسب‌وکارت بالای تورنومنت‌های دوزاری می‌ماند و جلوی چشم هزاران بازیکن قرار می‌گیرد.' },
+  { key: 'sponsor.contact_url', group: 'app', label: 'دعوت به اسپانسری: لینک تماس', hint: 'لینک https یا mailto:. خالی = کارت «اسپانسر شو» نمایش داده نمی‌شود', kind: 'text', min: 0, max: 300, default: '' },
   { key: 'domain.app', group: 'app', label: 'دامنه‌ی بازی (وب)', hint: 'فقط نام دامنه، مثل mrbots.ir', kind: 'text', min: 0, max: 100, default: 'mrbots.ir' },
   { key: 'domain.api', group: 'app', label: 'دامنه‌ی سرور (API)', kind: 'text', min: 0, max: 100, default: 'api.mrbots.ir' },
   { key: 'domain.landing', group: 'app', label: 'دامنه‌ی سایت معرفی و بلاگ', kind: 'text', min: 0, max: 100, default: 'mrdozari.ir' },
@@ -179,6 +182,7 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'hint.price_group_title', group: 'economy', label: 'قیمت راهنما: نام یک دسته', hint: 'سکه برای هر بار گرفتن راهنما در بازی تکی', kind: 'int', min: 0, max: 5000, default: HINT_PRICES.group_title, unit: 'سکه' },
   { key: 'hint.price_one_card', group: 'economy', label: 'قیمت راهنما: یک کارت از یک دسته', kind: 'int', min: 0, max: 5000, default: HINT_PRICES.one_card, unit: 'سکه' },
   { key: 'hint.price_pair', group: 'economy', label: 'قیمت راهنما: دو کارت هم‌دسته', kind: 'int', min: 0, max: 5000, default: HINT_PRICES.pair, unit: 'سکه' },
+  { key: 'duel.min_level', group: 'economy', label: 'کمترین لول برای دوئل زنده', hint: 'بازیکن تازه‌کار تا این لول فقط بازی تکی دارد', kind: 'int', min: 1, max: 100, default: DUEL_MIN_LEVEL },
   { key: 'hint.min_level', group: 'economy', label: 'کمترین لول برای گرفتن راهنما', kind: 'int', min: 1, max: 100, default: HINT_MIN_LEVEL },
   { key: 'hint.max_per_game', group: 'economy', label: 'حداکثر راهنما در هر بازی', kind: 'int', min: 1, max: 10, default: HINT_MAX_PER_GAME },
   { key: 'hint.repeat_percent', group: 'economy', label: 'قیمت راهنمای دوم به بعد (درصد قیمت اول)', hint: '۲۰۰ یعنی دو برابر', kind: 'int', min: 100, max: 1000, default: HINT_REPEAT_PERCENT, unit: '٪' },
