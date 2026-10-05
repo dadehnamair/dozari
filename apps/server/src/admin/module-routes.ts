@@ -89,7 +89,7 @@ export interface AdminModules {
   bot?: { repo: BotRepository; service: BotService };
 }
 
-const wordBody = z.object({ word: z.string().trim().min(2).max(100), severity: z.enum(['block', 'mask']).default('block') });
+const wordBody = z.object({ word: z.string().trim().min(2).max(100), severity: z.enum(['block', 'mask']).default('block'), track: z.enum(['all', 'kid_teen']).default('all') });
 const httpUrl = z.string().max(1000).refine(isHttpUrl, 'http(s) only');
 const idParam = z.object({ id: z.string().uuid() });
 const rials = z.string().regex(/^\d{1,15}$/);
@@ -373,9 +373,9 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     g.post('/admin/words', async (req, reply) => {
       const b = wordBody.safeParse(req.body);
       if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
-      const out = await words.add(b.data.word, b.data.severity);
+      const out = await words.add(b.data.word, b.data.severity, b.data.track);
       if (out === 'duplicate') return reply.code(409).send({ error: 'duplicate' });
-      void audit('word.add', out.id, b.data.severity);
+      void audit('word.add', out.id, `${b.data.severity}/${b.data.track}`);
       return reply.code(201).send({ id: out.id });
     });
     g.patch('/admin/words/:id', async (req, reply) => {
@@ -502,15 +502,15 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     const chat = m.chat;
     g.get('/admin/taunts', async () => ({ categories: await chat.taunts({ includeHidden: true }) }));
     g.post('/admin/taunt-categories', async (req, reply) => {
-      const b = z.object({ nameFa: z.string().trim().min(2).max(40), cityId: z.string().uuid().nullable().optional() }).safeParse(req.body);
+      const b = z.object({ nameFa: z.string().trim().min(2).max(40), cityId: z.string().uuid().nullable().optional(), ageTrack: z.enum(['kid', 'teen', 'adult']).optional() }).safeParse(req.body);
       if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
-      const c = await chat.addCategory(b.data.nameFa, b.data.cityId ?? null);
+      const c = await chat.addCategory(b.data.nameFa, b.data.cityId ?? null, b.data.ageTrack ?? 'adult');
       void audit('taunt_category.add', c.id, b.data.nameFa);
       return reply.code(201).send({ id: c.id });
     });
     g.patch('/admin/taunt-categories/:id', async (req, reply) => {
       const p = idParam.safeParse(req.params);
-      const b = z.object({ nameFa: z.string().trim().min(2).max(40).optional(), isActive: z.boolean().optional(), sortOrder: z.number().int().min(0).max(1000).optional(), cityId: z.string().uuid().nullable().optional() }).safeParse(req.body);
+      const b = z.object({ nameFa: z.string().trim().min(2).max(40).optional(), isActive: z.boolean().optional(), sortOrder: z.number().int().min(0).max(1000).optional(), cityId: z.string().uuid().nullable().optional(), ageTrack: z.enum(['kid', 'teen', 'adult']).optional() }).safeParse(req.body);
       if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
       if ((await chat.updateCategory(p.data.id, b.data)) === 'not_found') return reply.code(404).send({ error: 'category_not_found' });
       void audit('taunt_category.update', p.data.id, JSON.stringify(b.data));
@@ -532,7 +532,14 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       void audit('taunt.update', p.data.id, JSON.stringify(b.data));
       return { ok: true };
     });
-    g.get('/admin/chat/reports', async () => ({ reports: await chat.reports({ openOnly: false, limit: 100 }) }));
+    // `?queue=minors` is the separate kid/teen review queue (docs/logic/age-tracks.md §Admin panel); `adults` the rest; default everything.
+    // Only moderating roles (players or messages) read the lines of kid/teen chats; a viewer gets the adult queue whatever was asked.
+    g.get('/admin/chat/reports', async (req) => {
+      const q = z.object({ queue: z.enum(['all', 'minors', 'adults']).default('all') }).safeParse(req.query);
+      const role = req.adminActor?.role;
+      const moderates = !!role && (can(role, 'users') || can(role, 'messages'));
+      return { reports: await chat.reports({ openOnly: false, limit: 100, queue: moderates && q.success ? q.data.queue : 'adults' }), minorsQueue: moderates };
+    });
     g.post('/admin/chat/reports/:id/resolve', async (req, reply) => {
       const p = idParam.safeParse(req.params);
       if (!p.success) return reply.code(400).send({ error: 'invalid_request' });

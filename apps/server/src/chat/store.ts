@@ -1,5 +1,5 @@
-import { and, asc, cannedTaunts, chatMessages, chatReports, desc, eq, isNull, lt, sql, tauntCategories } from '@dozari/db';
-import type { ChatRoom } from '@dozari/shared';
+import { and, asc, cannedTaunts, chatMessages, chatReports, desc, eq, inArray, isNull, lt, sql, tauntCategories, users } from '@dozari/db';
+import type { AgeTrack, ChatRoom } from '@dozari/shared';
 import type { Db } from '@dozari/db';
 import { uuidv7 } from 'uuidv7';
 
@@ -8,6 +8,8 @@ export interface TauntRow {
   categoryId: string;
   /** City of the category (null = everyone); filled by `taunt()`. */
   cityId?: string | null;
+  /** Track of the category (filled by `taunt()`): a player may only send taunts of their own track's library. */
+  ageTrack?: AgeTrack;
   text: string;
   sortOrder: number;
   isActive: boolean;
@@ -16,6 +18,7 @@ export interface TauntCategoryRow {
   id: string;
   nameFa: string;
   cityId: string | null;
+  ageTrack: AgeTrack;
   sortOrder: number;
   isActive: boolean;
   taunts: TauntRow[];
@@ -40,7 +43,12 @@ export interface ReportRow {
   resolved: boolean;
   messageText: string;
   messageUserId: string;
+  /** Track of the player who wrote the reported line (kid and teen reports go to their own queue). */
+  track: AgeTrack;
 }
+
+/** Which reports an admin lists: everything, the kid/teen queue (`minors`), or the adult one. */
+export type ReportQueue = 'all' | 'minors' | 'adults';
 
 /** Starter taunts (playful, never insulting; brand voice in docs/brand.md). Edited and extended in the admin panel. */
 export const DEFAULT_TAUNTS: readonly { nameFa: string; texts: readonly string[] }[] = [
@@ -51,12 +59,28 @@ export const DEFAULT_TAUNTS: readonly { nameFa: string; texts: readonly string[]
   { nameFa: 'واکنش', texts: ['وای نه!', 'عجب!', 'باور نمی‌کنم 😮'] },
 ];
 
+/** Starter taunt libraries of the kid and teen tracks (kind, funny, no price talk). Seeded once per track; edited in the admin panel. */
+export const TRACK_TAUNTS: Record<'kid' | 'teen', readonly { nameFa: string; texts: readonly string[] }[]> = {
+  kid: [
+    { nameFa: 'سلام و احوال‌پرسی', texts: ['سلام دوست من! 👋', 'بیا با هم بازی کنیم!', 'خوش اومدی! 🌟'] },
+    { nameFa: 'آفرین', texts: ['آفرین! چه باحال! 🎉', 'وای چه زرنگی! 👏', 'دمت گرم! ⭐'] },
+    { nameFa: 'نزدیک بود', texts: ['وای، چقدر نزدیک بود! 😮', 'اشکال نداره، دوباره!', 'یه ذره مونده بود!'] },
+    { nameFa: 'دوباره بازی', texts: ['دوباره بازی کنیم؟ 🎈', 'خیلی خوش گذشت! 😄', 'بازی بعدی مال من!'] },
+  ],
+  teen: [
+    { nameFa: 'سلام و احوال‌پرسی', texts: ['سلام! آماده‌ای؟ 😎', 'بزن بریم!', 'خوش اومدی به بازی!'] },
+    { nameFa: 'لاف‌زنی دوستانه', texts: ['این یکی رو بلد بودم! 😄', 'امروز روزمه ⭐', 'قیمت‌ها رو از بر بودم!'] },
+    { nameFa: 'خداقوت', texts: ['دمت گرم، بازی خوبی بود 👏', 'حریف قَدی بودی!', 'دوباره بازی کنیم؟'] },
+    { nameFa: 'واکنش', texts: ['وای نه! 😮', 'عجب!', 'باور نمی‌کنم 😅'] },
+  ],
+};
+
 /** I/O boundary of chat: canned taunts, messages, reports. */
 export interface ChatStore {
   taunts(opts?: { includeHidden?: boolean }): Promise<TauntCategoryRow[]>;
   taunt(id: string): Promise<TauntRow | null>;
-  addCategory(nameFa: string, cityId?: string | null): Promise<TauntCategoryRow>;
-  updateCategory(id: string, patch: { nameFa?: string; isActive?: boolean; sortOrder?: number; cityId?: string | null }): Promise<'ok' | 'not_found'>;
+  addCategory(nameFa: string, cityId?: string | null, ageTrack?: AgeTrack): Promise<TauntCategoryRow>;
+  updateCategory(id: string, patch: { nameFa?: string; isActive?: boolean; sortOrder?: number; cityId?: string | null; ageTrack?: AgeTrack }): Promise<'ok' | 'not_found'>;
   addTaunt(categoryId: string, text: string): Promise<TauntRow | 'no_category'>;
   updateTaunt(id: string, patch: { text?: string; isActive?: boolean; categoryId?: string; sortOrder?: number }): Promise<'ok' | 'not_found'>;
   addMessage(m: Omit<MessageRow, 'id' | 'createdAt'>): Promise<MessageRow>;
@@ -65,7 +89,7 @@ export interface ChatStore {
   message(id: string): Promise<MessageRow | null>;
   removeMessage(id: string): Promise<boolean>;
   report(messageId: string, reporterId: string, reason: string): Promise<'ok' | 'duplicate' | 'not_found'>;
-  reports(opts: { openOnly: boolean; limit: number }): Promise<ReportRow[]>;
+  reports(opts: { openOnly: boolean; limit: number; queue?: ReportQueue }): Promise<ReportRow[]>;
   resolveReport(id: string): Promise<boolean>;
   /** Deletes messages older than the cut-off (retention); returns how many. */
   purgeBefore(ms: number): Promise<number>;
@@ -85,6 +109,16 @@ export function createDbChatStore(db: Db): ChatStore {
         for (const [j, text] of c.texts.entries()) await db.insert(cannedTaunts).values({ id: uuidv7(), categoryId: id, text, sortOrder: j });
       }
     }
+    // Each younger track gets its own starter library once (a track with no category yet), also on a database that already has adult taunts.
+    for (const track of ['kid', 'teen'] as const) {
+      const [have] = await db.select({ id: tauntCategories.id }).from(tauntCategories).where(eq(tauntCategories.ageTrack, track)).limit(1);
+      if (have) continue;
+      for (const [i, c] of TRACK_TAUNTS[track].entries()) {
+        const id = uuidv7();
+        await db.insert(tauntCategories).values({ id, nameFa: c.nameFa, sortOrder: 100 + i, ageTrack: track });
+        for (const [j, text] of c.texts.entries()) await db.insert(cannedTaunts).values({ id: uuidv7(), categoryId: id, text, sortOrder: j });
+      }
+    }
     seeded = true;
   };
   return {
@@ -96,13 +130,13 @@ export function createDbChatStore(db: Db): ChatStore {
     },
     async taunt(id) {
       await seed();
-      const [t] = await db.select({ t: cannedTaunts, cityId: tauntCategories.cityId }).from(cannedTaunts).innerJoin(tauntCategories, eq(tauntCategories.id, cannedTaunts.categoryId)).where(eq(cannedTaunts.id, id));
-      return t ? { ...t.t, cityId: t.cityId } : null;
+      const [t] = await db.select({ t: cannedTaunts, cityId: tauntCategories.cityId, ageTrack: tauntCategories.ageTrack }).from(cannedTaunts).innerJoin(tauntCategories, eq(tauntCategories.id, cannedTaunts.categoryId)).where(eq(cannedTaunts.id, id));
+      return t ? { ...t.t, cityId: t.cityId, ageTrack: t.ageTrack } : null;
     },
-    async addCategory(nameFa, cityId = null) {
+    async addCategory(nameFa, cityId = null, ageTrack = 'adult') {
       await seed();
       const [agg] = await db.select({ top: sql<number>`COALESCE(MAX(${tauntCategories.sortOrder}), 0)` }).from(tauntCategories);
-      const row = { id: uuidv7(), nameFa, cityId, sortOrder: Number(agg?.top ?? 0) + 1, isActive: true };
+      const row = { id: uuidv7(), nameFa, cityId, ageTrack, sortOrder: Number(agg?.top ?? 0) + 1, isActive: true };
       await db.insert(tauntCategories).values(row);
       return { ...row, taunts: [] };
     },
@@ -156,15 +190,16 @@ export function createDbChatStore(db: Db): ChatStore {
       }
       return 'ok';
     },
-    async reports({ openOnly, limit }) {
+    async reports({ openOnly, limit, queue = 'all' }) {
       const rows = await db
-        .select({ r: chatReports, m: chatMessages })
+        .select({ r: chatReports, m: chatMessages, track: users.ageTrack })
         .from(chatReports)
         .innerJoin(chatMessages, eq(chatMessages.id, chatReports.messageId))
-        .where(openOnly ? isNull(chatReports.resolvedAt) : undefined)
+        .innerJoin(users, eq(users.id, chatMessages.userId))
+        .where(and(openOnly ? isNull(chatReports.resolvedAt) : undefined, queue === 'minors' ? inArray(users.ageTrack, ['kid', 'teen']) : queue === 'adults' ? eq(users.ageTrack, 'adult') : undefined))
         .orderBy(desc(chatReports.createdAt))
         .limit(limit);
-      return rows.map(({ r, m }) => ({ id: r.id, messageId: r.messageId, reporterId: r.reporterId, reason: r.reason, createdAt: r.createdAt.getTime(), resolved: r.resolvedAt !== null, messageText: m.text, messageUserId: m.userId }));
+      return rows.map(({ r, m, track }) => ({ id: r.id, messageId: r.messageId, reporterId: r.reporterId, reason: r.reason, createdAt: r.createdAt.getTime(), resolved: r.resolvedAt !== null, messageText: m.text, messageUserId: m.userId, track }));
     },
     async resolveReport(id) {
       const [r] = await db.select({ id: chatReports.id }).from(chatReports).where(and(eq(chatReports.id, id), isNull(chatReports.resolvedAt)));
@@ -182,23 +217,27 @@ export function createDbChatStore(db: Db): ChatStore {
 }
 
 
-export function createMemoryChatStore(): ChatStore & { clock: { ms: number } } {
+export function createMemoryChatStore(): ChatStore & { clock: { ms: number }; tracks: Map<string, AgeTrack> } {
   const clock = { ms: Date.now() };
   const cats: TauntCategoryRow[] = DEFAULT_TAUNTS.map((c, i) => ({
     id: `00000000-0000-7000-8000-${String(i + 1).padStart(12, '0')}`,
     nameFa: c.nameFa,
     cityId: null,
+    ageTrack: 'adult' as AgeTrack,
     sortOrder: i,
     isActive: true,
     taunts: c.texts.map((text, j) => ({ id: `00000000-0000-7000-9000-${String(i * 10 + j + 1).padStart(12, '0')}`, categoryId: `00000000-0000-7000-8000-${String(i + 1).padStart(12, '0')}`, text, sortOrder: j, isActive: true })),
   }));
   const msgs: (MessageRow & { deleted: boolean })[] = [];
+  /** Track of each player, for the kid/teen report queue (default adult). */
+  const tracks = new Map<string, AgeTrack>();
   const reports: { id: string; messageId: string; reporterId: string; reason: string; createdAt: number; resolved: boolean }[] = [];
   let seq = 0;
   const id = () => `00000000-0000-7000-a000-${String(++seq).padStart(12, '0')}`;
   const allTaunts = () => cats.flatMap((c) => c.taunts);
   return {
     clock,
+    tracks,
     async taunts(opts) {
       return cats
         .filter((c) => opts?.includeHidden || c.isActive)
@@ -206,10 +245,11 @@ export function createMemoryChatStore(): ChatStore & { clock: { ms: number } } {
     },
     async taunt(tid) {
       const t = allTaunts().find((x) => x.id === tid);
-      return t ? { ...t, cityId: cats.find((c) => c.id === t.categoryId)?.cityId ?? null } : null;
+      const cat = cats.find((c) => c.id === t?.categoryId);
+      return t ? { ...t, cityId: cat?.cityId ?? null, ageTrack: cat?.ageTrack ?? 'adult' } : null;
     },
-    async addCategory(nameFa, cityId = null) {
-      const c = { id: id(), nameFa, cityId, sortOrder: cats.length, isActive: true, taunts: [] as TauntRow[] };
+    async addCategory(nameFa, cityId = null, ageTrack = 'adult') {
+      const c = { id: id(), nameFa, cityId, ageTrack, sortOrder: cats.length, isActive: true, taunts: [] as TauntRow[] };
       cats.push(c);
       return { ...c };
     },
@@ -256,14 +296,14 @@ export function createMemoryChatStore(): ChatStore & { clock: { ms: number } } {
       reports.push({ id: id(), messageId, reporterId, reason, createdAt: clock.ms, resolved: false });
       return 'ok';
     },
-    async reports({ openOnly, limit }) {
+    async reports({ openOnly, limit, queue = 'all' }) {
       return reports
-        .filter((r) => !openOnly || !r.resolved)
-        .slice(-limit)
         .map((r) => {
           const m = msgs.find((x) => x.id === r.messageId)!;
-          return { ...r, messageText: m.text, messageUserId: m.userId };
-        });
+          return { ...r, messageText: m.text, messageUserId: m.userId, track: tracks.get(m.userId) ?? ('adult' as AgeTrack) };
+        })
+        .filter((r) => (!openOnly || !r.resolved) && (queue === 'all' || (queue === 'minors') === (r.track !== 'adult')))
+        .slice(-limit);
     },
     async resolveReport(rid) {
       const r = reports.find((x) => x.id === rid && !x.resolved);
