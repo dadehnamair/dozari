@@ -49,8 +49,8 @@ h2.big{font-size:clamp(34px,4.5vw,52px);line-height:1.15;text-align:center}
 .stage .disc{position:absolute;width:380px;height:380px;max-width:90%;aspect-ratio:1;border-radius:50%;background:var(--orange);border:4px solid var(--ink)}
 .stage img{position:relative;width:min(320px,80%);height:auto}
 .badges{display:flex;gap:12px;flex-wrap:wrap}
-.badge{display:flex;flex-direction:column;gap:2px;padding:10px 18px;border:3px solid var(--ink);border-radius:18px;background:var(--ink);color:var(--cream);text-decoration:none;box-shadow:0 4px 0 var(--pink);min-width:130px;line-height:1.5}
-.badge:hover{color:var(--cream)}.badge small{font-size:11px;font-weight:600;opacity:.75}.badge b{font-family:var(--display);font-weight:400;font-size:20px;line-height:1.2}
+.badge{display:flex;align-items:center;gap:12px;padding:10px 18px;border:3px solid var(--ink);border-radius:18px;background:var(--ink);color:var(--cream);text-decoration:none;box-shadow:0 4px 0 var(--pink);min-width:130px;line-height:1.5}
+.badge .ic{width:28px;height:28px;flex:none;color:var(--yellow)}.badge .tx{display:flex;flex-direction:column;gap:2px}.badge.off{opacity:.6;box-shadow:none}.badge:hover{color:var(--cream)}.badge small{font-size:11px;font-weight:600;opacity:.75}.badge b{font-family:var(--display);font-weight:400;font-size:20px;line-height:1.2}
 .cards4{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;padding:0;list-style:none;margin:0}
 .tile{background:#fff;border:4px solid var(--ink);border-radius:28px;padding:24px;box-shadow:0 6px 0 var(--ink);display:flex;flex-direction:column;gap:12px}
 .tile.cream{background:var(--cream)}
@@ -97,7 +97,7 @@ details.faq p{margin:0;padding:0 22px 20px;font-weight:500;font-size:16px}
 .stores{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;padding:0;list-style:none;margin:0}
 .store{text-decoration:none;color:var(--ink);background:#fff;border:4px solid var(--ink);border-radius:28px;padding:22px;box-shadow:0 6px 0 var(--ink);display:flex;flex-direction:column;gap:14px;height:100%}
 .store:hover{color:var(--ink)}.store.off{opacity:.55;box-shadow:none}
-.store .top2{display:flex;align-items:center;gap:12px}.store .ab{width:56px;height:56px;border-radius:16px;border:3px solid var(--ink);display:grid;place-items:center;font-family:var(--display);font-size:26px;line-height:1;flex:none}
+.store .top2{display:flex;align-items:center;gap:12px}.store .ab .ic{width:30px;height:30px}.store .ab{width:56px;height:56px;border-radius:16px;border:3px solid var(--ink);display:grid;place-items:center;font-family:var(--display);font-size:26px;line-height:1;flex:none}
 .store .t{display:flex;flex-direction:column;line-height:1.5}.store .t b{font-family:var(--display);font-weight:400;font-size:26px;line-height:1.2}.store .t small{font-weight:600;font-size:13px;opacity:.65}
 .store .cta{align-self:flex-start;font-weight:800;font-size:15px;padding:6px 18px;border-radius:999px;background:var(--ink);color:var(--cream);line-height:1.8}
 .reqs{display:flex;flex-direction:column;gap:16px}
@@ -148,8 +148,8 @@ footer.bottom .in{padding-top:56px;padding-bottom:28px;display:flex;flex-directi
 footer.bottom h2{font-size:22px;margin:0 0 10px}footer.bottom ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px}
 footer.bottom a{color:var(--cream);text-decoration:none;font-weight:600;font-size:15px}footer.bottom a:hover{color:var(--yellow)}
 footer.bottom .brandname{font-family:var(--display);font-size:40px;color:var(--yellow);line-height:1}footer.bottom p{margin:12px 0 0;font-weight:500;font-size:15px;opacity:.85}
-.social{display:flex;gap:8px;flex-wrap:wrap}.social a{font-weight:800;font-size:14px;padding:6px 14px;border-radius:999px;line-height:1.8}
-.badges{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:center;border-top:2px solid rgba(255,246,232,.2);padding-top:20px}.badges a,.badges span{display:flex;align-items:center;justify-content:center;background:#fff;border-radius:12px;padding:6px;height:88px;min-width:88px}.badges img{max-height:76px;max-width:120px;width:auto;height:auto;display:block}
+.social{display:flex;gap:8px;flex-wrap:wrap}.social a{display:inline-flex;align-items:center;gap:6px;font-weight:800;font-size:14px;padding:6px 14px;border-radius:999px;line-height:1.8}.social .ic{width:18px;height:18px}
+footer.bottom .badges{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:center;border-top:2px solid rgba(255,246,232,.2);padding-top:20px}footer.bottom .badges a,footer.bottom .badges span{display:flex;align-items:center;justify-content:center;background:#fff;border-radius:12px;padding:6px;height:88px;min-width:88px}footer.bottom .badges img{max-height:76px;max-width:120px;width:auto;height:auto;display:block}
 .legal{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border-top:2px solid rgba(255,246,232,.2);padding-top:20px;font-weight:600;font-size:13px;opacity:.7}.legal .ltr{direction:ltr}
 /* motion + home extras (all animation is off under prefers-reduced-motion; content is visible without scripts) */
 .prog{position:fixed;inset-block-start:0;inset-inline:0;height:5px;background:var(--pink);transform:scaleX(0);transform-origin:right;z-index:50;pointer-events:none}
@@ -255,6 +255,18 @@ const NAV: [NavKey, string, string][] = [['home', '/', 'خانه'], ['about', '/
 const SOCIAL_LABEL: [RegExp, string][] = [[/instagram\.com/, 'اینستاگرام'], [/t\.me|telegram/, 'تلگرام'], [/aparat\.com/, 'آپارات'], [/bale\.ai|ble\.ir/, 'بله'], [/eitaa/, 'ایتا'], [/rubika/, 'روبیکا']];
 const hostOf = (u: string): string => u.replace(/^https?:\/\/(www\.)?/, '').replace(/\/+$/, '');
 const socialLabel = (u: string): string => SOCIAL_LABEL.find(([re]) => re.test(u))?.[1] ?? hostOf(u);
+/** Inline 24×24 glyphs (currentColor): no external requests. */
+const ICON_PATH: Record<string, string> = {
+  web: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm6.9 9h-3.1a15.6 15.6 0 0 0-1.4-6A8 8 0 0 1 18.9 11ZM12 4c.9 1 1.9 3.1 2.2 7H9.8C10.1 7.100 11.100 5 12 4ZM4.600 13h3.100c.1 2.200.6 4.300 1.400 6A8 8 0 0 1 4.600 13Zm3.100-2H4.600a8 8 0 0 1 4.500-6c-.8 1.700-1.300 3.800-1.400 6Zm4.300 9c-.9-1-1.900-3.100-2.200-7h4.400c-.3 3.900-1.300 6-2.200 7Zm2.900-1c.8-1.700 1.300-3.800 1.400-6h3.100a8 8 0 0 1-4.500 6Z',
+  android: 'M6 18a1 1 0 0 0 1 1h1v3a1.500 1.500 0 0 0 3 0v-3h2v3a1.500 1.500 0 0 0 3 0v-3h1a1 1 0 0 0 1-1V8H6v10ZM3.500 8A1.500 1.500 0 0 0 2 9.500v6a1.500 1.500 0 0 0 3 0v-6A1.500 1.500 0 0 0 3.500 8Zm17 0A1.500 1.500 0 0 0 19 9.500v6a1.500 1.500 0 0 0 3 0v-6A1.500 1.500 0 0 0 20.500 8ZM15.500 2.700l1.200-1.800a.5.500 0 0 0-.8-.6L14.600 2.200a6 6 0 0 0-5.200 0L8.100.3a.5.500 0 0 0-.8.600L8.500 2.700A5.900 5.900 0 0 0 6 7h12a5.900 5.900 0 0 0-2.500-4.300ZM9.500 5.500a.75.75 0 1 1 0-1.500.75.75 0 0 1 0 1.500Zm5 0a.75.75 0 1 1 0-1.500.75.75 0 0 1 0 1.500Z',
+  apple: 'M16.400 12.700c0-2.400 2-3.500 2.100-3.600a4.500 4.500 0 0 0-3.600-1.900c-1.500-.2-3 .9-3.700.9-.8 0-2-.9-3.300-.9a4.900 4.900 0 0 0-4.100 2.500c-1.800 3.100-.5 7.600 1.300 10.100.8 1.200 1.800 2.600 3.100 2.500 1.300-.1 1.700-.8 3.200-.8s1.900.8 3.200.8c1.400 0 2.200-1.200 3-2.500a10 10 0 0 0 1.400-2.900c0 0-2.600-1-2.600-4.200ZM14 5.200A4.300 4.300 0 0 0 15 2a4.400 4.400 0 0 0-2.900 1.500 4.100 4.100 0 0 0-1 3.100A3.600 3.600 0 0 0 14 5.200Z',
+  instagram: 'M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5Zm0 2a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H7Zm5 3.500a4.500 4.500 0 1 1 0 9 4.500 4.500 0 0 1 0-9Zm0 2a2.500 2.500 0 1 0 0 5 2.500 2.500 0 0 0 0-5Zm5.200-3.200a1.100 1.100 0 1 1 0 2.200 1.100 1.100 0 0 1 0-2.200Z',
+  telegram: 'M21.900 4.200 18.600 19.800c-.2 1.100-.9 1.400-1.800.9l-5-3.700-2.400 2.300c-.3.300-.5.500-1 .5l.4-5.100 9.300-8.400c.4-.4-.1-.6-.6-.2L6 13.300 1.100 11.800c-1.100-.3-1.100-1 .2-1.500L20.400 3c.9-.3 1.700.2 1.500 1.200Z',
+  mail: 'M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm0 2v.5l8 5 8-5V6H4Zm16 3L12 14 4 9v9h16V9Z',
+  link: 'M10.600 13.400a1 1 0 0 1 0-1.400l3-3a3 3 0 1 1 4.200 4.200l-1.800 1.800-1.400-1.400 1.800-1.800a1 1 0 0 0-1.400-1.400l-3 3a1 1 0 0 1-1.400 0ZM13.400 10.600a1 1 0 0 1 0 1.400l-3 3a3 3 0 1 1-4.200-4.200L8 9l1.400 1.400-1.800 1.800a1 1 0 0 0 1.400 1.400l3-3a1 1 0 0 1 1.400 0Z',
+};
+const icon = (k: string): string => `<svg class="ic" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="${ICON_PATH[k] ?? ICON_PATH.link}"/></svg>`;
+const socialIcon = (u: string): string => (/instagram\.com/.test(u) ? 'instagram' : /t\.me|telegram/.test(u) ? 'telegram' : 'link');
 const SOCIAL_BG = [['#FF4D8D', '#FFF6E8'], ['#3FC1F0', '#2B1240'], ['#FFC93C', '#2B1240'], ['#7ED957', '#2B1240'], ['#FF7A3D', '#2B1240']] as const;
 
 /** Every page: scroll progress bar, sticky-header shadow and the scroll-reveal of `.rv` blocks. */
@@ -310,7 +322,7 @@ ${content}
 <div><div class="brandname">${escapeHtml(site.name)}</div><p>${escapeHtml(site.tagline)}</p></div>
 <div><h2 style="color:var(--sky)">صفحه‌ها</h2><ul><li><a href="/">خانه</a></li><li><a href="/about">درباره ما</a></li><li><a href="/blog">وبلاگ</a></li><li><a href="/cast">آدم‌های بازار</a></li><li><a href="/download">دانلود</a></li><li><a href="/contact">تماس و سوالات</a></li></ul></div>
 <div><h2 style="color:var(--lime)">قوانین</h2><ul><li><a href="/terms">قوانین و شرایط</a></li><li><a href="/privacy">حریم خصوصی</a></li></ul></div>
-<div><h2 style="color:var(--orange)">ما را دنبال کنید</h2><div class="social">${social.map((s) => `<a href="${escapeHtml(s.u)}" rel="noopener me" style="background:${s.c[0]};color:${s.c[1]}">${escapeHtml(s.label)}</a>`).join('')}${site.contactEmail ? `<a href="mailto:${escapeHtml(site.contactEmail)}" style="background:#FFF6E8;color:#2B1240">ایمیل</a>` : ''}</div></div>
+<div><h2 style="color:var(--orange)">ما را دنبال کنید</h2><div class="social">${social.map((s) => `<a href="${escapeHtml(s.u)}" rel="noopener me" style="background:${s.c[0]};color:${s.c[1]}">${icon(socialIcon(s.u))}${escapeHtml(s.label)}</a>`).join('')}${site.contactEmail ? `<a href="mailto:${escapeHtml(site.contactEmail)}" style="background:#FFF6E8;color:#2B1240">${icon('mail')}ایمیل</a>` : ''}</div></div>
 </div>
 ${badgesHtml(site)}
 <div class="legal"><span>© ${escapeHtml(year)} ${escapeHtml(site.name)} · همهٔ حقوق محفوظ است</span><span class="ltr">${escapeHtml(site.url.replace(/^https?:\/\//, ''))}</span></div>
@@ -326,11 +338,11 @@ const faqList = (faq: FaqPair[], open = -1): string => `<div class="faqs">${faq.
 
 /** Real download links only: the web app and the Android file, when the admin has set them. */
 function storeBadges(site: Site): string {
-  const b = [
-    site.appUrl ? `<a class="badge" href="${escapeHtml(site.appUrl)}"><small>بازی آنلاین</small><b>نسخهٔ وب</b></a>` : '',
-    site.androidApp ? `<a class="badge" href="${escapeHtml(site.androidApp)}"><small>دریافت فایل</small><b>اندروید</b></a>` : '',
-  ].join('');
-  return b || '<a class="badge" href="/download"><small>دریافت</small><b>دانلود دوزاری</b></a>';
+  const b = (ic: string, small: string, name: string, href: string | null): string => {
+    const inner = `${icon(ic)}<span class="tx"><small>${small}</small><b>${name}</b></span>`;
+    return href ? `<a class="badge" href="${escapeHtml(href)}">${inner}</a>` : `<span class="badge off" aria-disabled="true">${inner}</span>`;
+  };
+  return [b('web', 'بازی آنلاین', 'نسخهٔ وب', site.appUrl), b('android', 'دریافت فایل', 'اندروید', site.androidApp), b('apple', 'به‌زودی', 'iOS', null)].join('');
 }
 
 const postCard = (p: PostSummary): string => {
@@ -526,12 +538,12 @@ export function downloadPage(site: Site): string {
   const desc = description(`${site.name} را رایگان روی گوشی اندروید نصب کن یا همین حالا در مرورگر بازی کن.`);
   type Store = { fa: string; os: string; ab: string; bg: string; cta: string; href: string | null };
   const stores: Store[] = [
-    { fa: 'نسخهٔ وب', os: 'مرورگر', ab: 'W', bg: '#FF7A3D', cta: 'بازی آنلاین', href: site.appUrl },
-    { fa: 'دانلود مستقیم', os: 'فایل APK اندروید', ab: '↓', bg: '#FFC93C', cta: 'دریافت فایل', href: site.androidApp },
+    { fa: 'نسخهٔ وب', os: 'مرورگر', ab: icon('web'), bg: '#FF7A3D', cta: 'بازی آنلاین', href: site.appUrl },
+    { fa: 'دانلود مستقیم', os: 'فایل APK اندروید', ab: icon('android'), bg: '#FFC93C', cta: 'دریافت فایل', href: site.androidApp },
     { fa: 'گوگل‌پلی', os: 'اندروید', ab: 'G', bg: '#7ED957', cta: 'به‌زودی', href: null },
     { fa: 'کافه‌بازار', os: 'اندروید', ab: 'ب', bg: '#7ED957', cta: 'به‌زودی', href: null },
     { fa: 'مایکت', os: 'اندروید', ab: 'م', bg: '#3FC1F0', cta: 'به‌زودی', href: null },
-    { fa: 'اپ‌استور', os: 'iOS', ab: 'A', bg: '#A66BF0', cta: 'به‌زودی', href: null },
+    { fa: 'اپ‌استور', os: 'iOS', ab: icon('apple'), bg: '#A66BF0', cta: 'به‌زودی', href: null },
   ];
   const reqs = [['اتصال اینترنت', 'برای بازی زنده و ذخیره‌ی پیشرفت'], ['حساب', 'مهمان؛ شماره‌ی تلفن اختیاری است'], ['مرورگر', 'نسخه‌ی تازه‌ی کروم، فایرفاکس، سافاری یا ادج'], ['هزینه', 'رایگان']] as const;
   const inGame = ['تکی، زنده دونفره، دو در دو و میز خصوصی', 'جدول تازه هر روز', 'آواتار، کلاه و لباس با سکه‌ی بازی', 'نمودار قیمت پایان هر بازی برای دیدن مسیر قیمت‌ها'];
