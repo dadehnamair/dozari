@@ -148,6 +148,8 @@ returns median/p10/p90 balance, % of player-days stuck and faucet/burn per playe
 `PRINT_ECONOMY=1 pnpm --filter @dozari/shared exec vitest run src/economy/__tests__/simulate.test.ts`.
 Target: < 2% stuck, median balance slowly rising (so the shop/cosmetics sink has room). Run it whenever config changes.
 
+> Update 2026-10-05: the 90-day v2 model (`simulate-v2.ts`) shows the old economy reaching a median of ≈ 5200 and faucet/sink 8.2. See `economy-v2.md` §Simulation result.
+
 ### Audit result (launch defaults, 2026-10-02, D90)
 
 | metric | value |

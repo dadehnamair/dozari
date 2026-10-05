@@ -61,3 +61,37 @@ export const WHEEL_SLICES_DEFAULT: readonly { kind: WheelPrizeKind; amount: numb
   { kind: 'gems', amount: 3, weight: 3 },
   { kind: 'coins', amount: 100, weight: 1 },
 ];
+
+/**
+ * Economy v2 (docs/logic/economy-v2.md, D204, proposed). Nothing here is wired to the live game yet; the balance simulator
+ * (`simulateEconomyV2`) reads it first so the numbers are checked before they are built.
+ */
+export interface StakeTier {
+  id: string;
+  /** Entry fee per player, coins. */
+  fee: number;
+  /** Lowest player level that may sit at this table. */
+  minLevel: number;
+}
+export const STAKE_TIERS: readonly StakeTier[] = [
+  { id: 'bronze', fee: ENTRY_FEE_BASE, minLevel: DUEL_MIN_LEVEL },
+  { id: 'silver', fee: 100, minLevel: 8 },
+  { id: 'gold', fee: 500, minLevel: 15 },
+];
+/** Share of a friend gift burned by the house, percent. */
+export const GIFT_FEE_PERCENT = 5;
+/** Soft daily ceiling on coins from non-skill faucets (daily reward, daily puzzle, wheel, missions). 0 = no cap. */
+export const NON_SKILL_DAILY_CAP = 40;
+/** Streak shield: protects the daily-reward streak across one missed day. */
+export const STREAK_SHIELD_PRICE = 30;
+export const STREAK_SHIELD_MAX_HELD = 2;
+/** Daily rotating shop: coin prices of the slots offered each Tehran day. */
+export const DAILY_SHOP_COIN_PRICES: readonly number[] = [40, 90, 180, 350];
+/** Keepsake collection («یادگار», pieces called «تکه»). */
+export const KEEPSAKE_PIECES = 4;
+export const KEEPSAKE_PIECE_SHOP_PRICE = 60;
+/** Chance a human-vs-human win drops one piece. */
+export const KEEPSAKE_DROP_CHANCE = 0.15;
+/** Coins to upgrade one completed keepsake one level (up to `KEEPSAKE_MAX_LEVEL`). */
+export const KEEPSAKE_UPGRADE_COST = 150;
+export const KEEPSAKE_MAX_LEVEL = 3;

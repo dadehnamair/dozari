@@ -7,3 +7,4 @@ export * from './duel.js';
 export * from './wheel.js';
 export * from './gems.js';
 export * from './wager.js';
+export * from './simulate-v2.js';
