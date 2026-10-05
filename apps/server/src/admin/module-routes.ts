@@ -618,12 +618,13 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
 
   if (m.puzzles) {
     const puzzles = m.puzzles;
-    const groupBody = z.object({ level: z.number().int().min(0).max(3), titleFa: z.string().trim().min(2).max(100), explanationFa: z.string().trim().min(2).max(300), productIds: z.array(z.string().uuid()).length(4) });
+    const groupBody = z.object({ level: z.number().int().min(0).max(3), titleFa: z.string().trim().min(2).max(100), explanationFa: z.string().trim().max(300).optional(), productIds: z.array(z.string().uuid()).length(4) });
     g.get('/admin/puzzles', async () => ({ readiness: await puzzles.readiness(), puzzles: await puzzles.list(200), tiers: await puzzles.tiers() }));
     g.post('/admin/puzzles', async (req, reply) => {
       const b = z.object({ groups: z.array(groupBody).length(4), tierId: z.string().uuid().nullable().optional() }).safeParse(req.body);
       if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
-      const out = await puzzles.create(b.data.groups, b.data.tierId);
+      // The explanation is optional in the form: it falls back to the title.
+      const out = await puzzles.create(b.data.groups.map((x) => ({ ...x, explanationFa: x.explanationFa && x.explanationFa.length >= 2 ? x.explanationFa : x.titleFa })), b.data.tierId);
       if (!out.ok) return reply.code(out.error === 'unknown_product' ? 404 : 400).send({ error: out.error });
       void audit('puzzle.create', out.id);
       return reply.code(201).send({ id: out.id });
