@@ -17,7 +17,7 @@ import {
   varchar,
 } from 'drizzle-orm/mysql-core';
 import { COSMETIC_SLOTS } from '@dozari/shared/src/economy/slots';
-import { AGE_TRACKS } from '@dozari/shared/src/config/ageTracks';
+import { AGE_TRACKS, WORD_TRACKS } from '@dozari/shared/src/config/ageTracks';
 import { uuidv7 } from 'uuidv7';
 
 /**
@@ -642,6 +642,8 @@ export const blockedWords = mysqlTable(
     id: id(),
     word: varchar('word', { length: 100 }).notNull(),
     severity: mysqlEnum('severity', WORD_SEVERITIES).notNull().default('block'),
+    /** `kid_teen` words apply only to kid and teen readers (the stricter list, docs/logic/age-tracks.md). */
+    track: mysqlEnum('track', WORD_TRACKS).notNull().default('all'),
     createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
   },
   (table) => ({ uniqWord: uniqueIndex('blocked_words_word_uq').on(table.word) }),
@@ -1204,6 +1206,8 @@ export const tauntCategories = mysqlTable('taunt_categories', {
   cityId: char('city_id', { length: 36 }).references(() => cities.id, { onDelete: 'set null' }),
   sortOrder: int('sort_order').notNull().default(0),
   isActive: boolean('is_active').notNull().default(true),
+  /** The track whose players see the category: each track has its own taunt library (docs/logic/age-tracks.md). */
+  ageTrack: mysqlEnum('age_track', AGE_TRACKS).notNull().default('adult'),
 });
 
 export const cannedTaunts = mysqlTable(

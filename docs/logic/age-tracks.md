@@ -211,7 +211,11 @@ Setting `feature.age_tracks` (admin → settings → app, **default off**): off 
   city and global rooms are closed (`OFF`, no socket room joined, no city «share» card); free text goes **only in a private chat with a same-track friend** and only while a guardian is linked
   (`guardian_links` row = the redemption of rule 7, so no invite code; no link → `NEEDS_GUARDIAN`; table or match text → `PHRASES_ONLY`, phrases always work); numbers, links and handles are blocked even with a contact perk;
   a private chat never crosses tracks even for an old friendship (`NOT_FRIENDS`); the composer flag `canType` follows the same rules. Removing the guardian link therefore closes text again (the interim «off switch»).
-  Open in phase 4: kid/teen **taunt and emoji library** (`canned_taunts.age_track` + admin), the stricter word list (`word_filter.track`), the separate kid/teen report queue in the admin, the «social needs a guardian» step
+- Phase 4, slice 4, **per-track taunt library and stricter word list** (migration 0062): `taunt_categories.age_track` (the library is chosen per *category*, not per taunt, because categories already carry the city audience; this replaces the earlier `canned_taunts.age_track` sketch)
+  and `blocked_words.track` (`all` | `kid_teen`). `ChatService.taunts(user)` lists only the categories of `trackRules(track).tauntTrack`, and sending a taunt of another library answers `UNKNOWN_TAUNT` (private chat and match alike); bots keep to the adult library.
+  Free text of a kid/teen goes through the general list **plus** the `kid_teen` words (`TextFilterService.check(text, 'kid_teen')`). The store seeds a starter kid and teen library once per track (also on a database that already has adult taunts);
+  the strict word list ships **empty** (a content call for the owner/moderators, edited in «فیلتر کلمات» with a «برای چه کسانی» select), and taunt categories get a library select in «کل‌کل‌های آماده». Emoji/sticker packs are not a separate table: emoji live inside taunt texts.
+  Open in phase 4: the separate kid/teen report queue in the admin, the «social needs a guardian» step
   before friends/tables, auto-accept between two kids with a quiet notice; the guardian's own chat switch (phrases only / off) is phase 5.
 - Not yet: the rest of the 30–50 kid puzzles; a track filter on the other admin lists (puzzles, items, tournaments, reports…); the separate report queue for kid/teen chats (phase 4);
 

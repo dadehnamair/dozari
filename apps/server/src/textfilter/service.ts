@@ -1,17 +1,19 @@
 import { asc, blockedWords, eq } from '@dozari/db';
 import type { Db } from '@dozari/db';
 import { filterText } from '@dozari/shared';
-import type { FilterResult, FilterWord, WordSeverity } from '@dozari/shared';
+import type { FilterResult, FilterWord, WordSeverity, WordTrack } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
 
 export interface WordRow extends FilterWord {
   id: string;
+  /** `kid_teen` = part of the stricter list, applied only to kid and teen readers. */
+  track: WordTrack;
 }
 
 /** Where the list lives; the DB in production, memory in tests. */
 export interface WordStore {
   list(): Promise<WordRow[]>;
-  add(word: string, severity: WordSeverity): Promise<{ id: string } | 'duplicate'>;
+  add(word: string, severity: WordSeverity, track?: WordTrack): Promise<{ id: string } | 'duplicate'>;
   setSeverity(id: string, severity: WordSeverity): Promise<'ok' | 'not_found'>;
   remove(id: string): Promise<'ok' | 'not_found'>;
 }
@@ -35,16 +37,18 @@ export class TextFilterService {
   }
 
   /** `ok:false` means reject the text with a friendly notice; `ok:true` carries the (possibly masked) text to use. */
-  async check(text: string): Promise<FilterResult> {
-    return filterText(text, await this.words());
+  async check(text: string, reader: WordTrack = 'all'): Promise<FilterResult> {
+    // The general list applies to everybody; the stricter list is added on top for kid and teen readers.
+    const words = (await this.words()).filter((w) => w.track === 'all' || reader === 'kid_teen');
+    return filterText(text, words);
   }
 
   list(): Promise<WordRow[]> {
     return this.store.list();
   }
 
-  async add(word: string, severity: WordSeverity) {
-    const out = await this.store.add(word.trim(), severity);
+  async add(word: string, severity: WordSeverity, track: WordTrack = 'all') {
+    const out = await this.store.add(word.trim(), severity, track);
     this.cache = null;
     return out;
   }
@@ -71,12 +75,12 @@ export function createDbWordStore(db: Db): WordStore {
   return {
     async list() {
       const rows = await db.select().from(blockedWords).orderBy(asc(blockedWords.word));
-      return rows.map((r) => ({ id: r.id, word: r.word, severity: r.severity }));
+      return rows.map((r) => ({ id: r.id, word: r.word, severity: r.severity, track: r.track }));
     },
-    async add(word, severity) {
+    async add(word, severity, track = 'all') {
       const id = uuidv7();
       try {
-        await db.insert(blockedWords).values({ id, word, severity });
+        await db.insert(blockedWords).values({ id, word, severity, track });
       } catch (err) {
         if (isDuplicateKey(err)) return 'duplicate';
         throw err;
@@ -104,10 +108,10 @@ export function createMemoryWordStore(): WordStore {
     async list() {
       return rows.map((r) => ({ ...r }));
     },
-    async add(word, severity) {
+    async add(word, severity, track = 'all') {
       if (rows.some((r) => r.word === word)) return 'duplicate';
       const id = uuidv7();
-      rows.push({ id, word, severity });
+      rows.push({ id, word, severity, track });
       return { id };
     },
     async setSeverity(id, severity) {

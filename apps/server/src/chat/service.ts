@@ -128,7 +128,8 @@ export class ChatService {
   /** The taunt list for a player: general categories plus the dialect ones of their own city. */
   async taunts(userId?: string): Promise<TauntCategory[]> {
     const cityId = userId ? ((await this.deps.cityOf(userId))?.id ?? null) : null;
-    return (await this.store.taunts()).filter((c) => c.taunts.length > 0 && (!c.cityId || c.cityId === cityId)).map((c) => ({ id: c.id, nameFa: c.nameFa, taunts: c.taunts.map((t) => ({ id: t.id, text: t.text })) }));
+    const library = userId ? (await this.rulesOf(userId)).tauntTrack : 'adult';
+    return (await this.store.taunts()).filter((c) => c.taunts.length > 0 && c.ageTrack === library && (!c.cityId || c.cityId === cityId)).map((c) => ({ id: c.id, nameFa: c.nameFa, taunts: c.taunts.map((t) => ({ id: t.id, text: t.text })) }));
   }
 
   /** History of the city room (needs a city) or the global room (open to everyone while `chat.global_enabled`). */
@@ -270,6 +271,7 @@ export class ChatService {
       const t = await this.store.taunt(input.tauntId);
       if (!t || !t.isActive) return { ok: false, error: 'UNKNOWN_TAUNT' };
       if (t.cityId && t.cityId !== (await this.deps.cityOf(userId))?.id) return { ok: false, error: 'UNKNOWN_TAUNT' };
+      if ((t.ageTrack ?? 'adult') !== (await this.rulesOf(userId)).tauntTrack) return { ok: false, error: 'UNKNOWN_TAUNT' }; // each track has its own library
       return { ok: true, text: t.text };
     }
     const rules = await this.deps.rules();
@@ -285,7 +287,7 @@ export class ChatService {
     // Phone numbers, links and handles: a contact perk never lifts this for kid/teen.
     if (containsContactInfo(raw) && (managed || !(await this.deps.hasContactPerk(userId)))) return { ok: false, error: 'CONTACT_BLOCKED' };
     if (this.deps.filter) {
-      const verdict = await this.deps.filter.check(raw);
+      const verdict = await this.deps.filter.check(raw, managed ? 'kid_teen' : 'all');
       if (!verdict.ok) return { ok: false, error: 'FILTERED' };
       return { ok: true, text: verdict.text };
     }

@@ -10,3 +10,7 @@ export const AGE_TRACK_EDGES = { kidMax: 11, teenMax: 17 } as const;
 /** Chat modes a guardian can pick for a child (docs/logic/age-tracks.md §Guardian panel). */
 export const CHAT_MODES = ['friends_text', 'phrases', 'off'] as const;
 export type ChatMode = (typeof CHAT_MODES)[number];
+
+/** Which readers a blocked word applies to: everybody, or only the kid and teen tracks (the stricter list). */
+export const WORD_TRACKS = ['all', 'kid_teen'] as const;
+export type WordTrack = (typeof WORD_TRACKS)[number];
