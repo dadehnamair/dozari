@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
+import { SkeletonRows } from '../components/Skeleton';
+import { swr } from '../net/cache';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Shop, ShopItem } from '@dozari/shared';
 import { toPersianDigits } from '@dozari/shared';
@@ -9,13 +11,15 @@ import { Item } from '../components/Item';
 import { Scene } from '../components/Scene';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
-import { buyItem, fetchShop } from './api';
+import { ApiError } from '../net/http';
+import { buyItem, fetchShop, payWithMoney } from './api';
 import { pageTop } from '../theme/safeArea';
+import { useHardwareBack } from '../nav/useHardwareBack';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const n = (v: number) => toPersianDigits(String(v));
 
-/** Tabs of screen-shop (design 17). Only «کمکی» (hint tokens) has goods today; the rest open with later features. */
+/** Tabs of screen-shop (design 17). Only «کمکی» (hint tokens, wheel spins) has goods today; the rest open with later features. The character's items are in the fitting room. */
 const CARD_H = 190;
 const CARD_H_TIGHT = 140;
 const CARD_GAP = 10;
@@ -25,8 +29,6 @@ const TABS = [
   { key: 'coins', icon: 'coinStack' },
   { key: 'gems', icon: 'gem' },
   { key: 'boost', icon: 'magnifier' },
-  { key: 'outfit', icon: 'medal' },
-  { key: 'avatar', icon: 'crown' },
   { key: 'offer', icon: 'gift' },
 ] as const;
 type TabKey = (typeof TABS)[number]['key'];
@@ -41,6 +43,7 @@ const stateText = (it: ShopItem): string | null => {
   if (it.blocked === 'LEVEL') return fa.shop.needLevel(it.minLevel);
   if (it.blocked === 'DAILY_LIMIT') return fa.shop.dailyLimit;
   if (it.blocked === 'COINS') return fa.shop.needCoins;
+  if (it.blocked === 'GEMS') return fa.shop.needGems;
   return it.leftToday !== null ? fa.shop.leftToday(it.leftToday) : null;
 };
 
@@ -49,7 +52,8 @@ const stateText = (it: ShopItem): string | null => {
  * coin count, six tabs and a two-column grid of goods; a purchase ends in the «مال خودت شد!» card. Everything is
  * bought with coins (`shop.md`); the level gate and daily limit show on the card before the player taps.
  */
-export function ShopSheet({ onClose, onBalance }: { onClose: () => void; onBalance?: (coins: number) => void }) {
+export function ShopSheet({ onClose, onBalance, realMoney = false }: { onClose: () => void; onBalance?: (coins: number) => void; /** `feature.coin_packages` is on: items with a money price get a pay button. */ realMoney?: boolean }) {
+  useHardwareBack(onClose);
   const [shop, setShop] = useState<Shop | null>(null);
   const [tab, setTab] = useState<TabKey>('boost');
   const [note, setNote] = useState<string | null>(null);
@@ -59,26 +63,35 @@ export function ShopSheet({ onClose, onBalance }: { onClose: () => void; onBalan
   const [boxH, setBoxH] = useState(0);
   const [page, setPage] = useState(0);
   const tight = boxH > 0 && boxH < 470;
-  const rows = Math.max(1, Math.floor((boxH - PAGER_H + CARD_GAP) / ((tight ? CARD_H_TIGHT : CARD_H) + CARD_GAP)));
+  const cardH = (realMoney ? 36 : 0) + (tight ? CARD_H_TIGHT : CARD_H);
+  const rows = Math.max(1, Math.floor((boxH - PAGER_H + CARD_GAP) / (cardH + CARD_GAP)));
   const perPage = rows * 2;
-  const items = tab === 'boost' ? (shop?.items ?? []) : [];
+  const shown = tab === 'boost';
+  // Hair, hats, glasses and clothes are not sold here: they live in the fitting room (D179).
+  const items = tab === 'boost' ? (shop?.items ?? []).filter((i) => i.effect !== 'cosmetic') : [];
   const pages = Math.max(1, Math.ceil(items.length / perPage));
   const at = Math.min(page, pages - 1);
 
   const load = useCallback(() => {
-    fetchShop().then(
+    swr.refresh('shop', fetchShop).then(
       (s) => (setShop(s), setNote(null), onBalance?.(s.balance)),
       () => setNote(fa.shop.error),
     );
   }, [onBalance]);
-  useEffect(load, [load]);
+  // The last shop seen shows at once and is refreshed behind it; a reload after a purchase skips the old copy.
+  useEffect(() => swr('shop', fetchShop, (s) => (setShop(s), setNote(null), onBalance?.(s.balance)), () => setNote(fa.shop.error)), [onBalance]);
 
   const buy = (it: ShopItem) =>
     buyItem(it.id).then(
       () => (setBought(it), load()),
       () => (setNote(fa.shop.error), load()),
     );
-  const pick = (k: TabKey) => (setTab(k), setNote(k === 'boost' ? null : fa.shop.soon));
+  const pick = (k: TabKey) => (setTab(k), setPage(0), setNote(k === 'boost' ? null : fa.shop.soon));
+  const pay = (it: ShopItem) =>
+    payWithMoney(it.id).then(
+      () => setNote(fa.shop.invoiceSent),
+      (e) => setNote(e instanceof ApiError && e.code === 'bale_not_linked' ? fa.shop.linkBale : fa.shop.payError),
+    );
 
   return (
     <View style={styles.root}>
@@ -104,6 +117,12 @@ export function ShopSheet({ onClose, onBalance }: { onClose: () => void; onBalan
               <View style={styles.pillIcon}><Item icon="coin" /></View>
             </View>
           ) : null}
+          {shop && shop.gems > 0 ? (
+            <View style={styles.pill} accessibilityLabel={`${fa.home.hub.gems} ${shop.gems}`}>
+              <Text style={styles.pillText}>{n(shop.gems)}</Text>
+              <View style={styles.pillIcon}><Item icon="gem" /></View>
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.tabs}>
@@ -126,7 +145,8 @@ export function ShopSheet({ onClose, onBalance }: { onClose: () => void; onBalan
 
         <View style={styles.list} onLayout={(e) => setBoxH(e.nativeEvent.layout.height)}>
         <View style={styles.grid}>
-          {tab === 'boost'
+          {shown && shop === null && !note ? <SkeletonRows rows={5} avatar={false} /> : null}
+          {shown
             ? items.slice(at * perPage, (at + 1) * perPage).map((it) => {
                 const why = stateText(it);
                 const locked = it.blocked !== null;
@@ -140,9 +160,14 @@ export function ShopSheet({ onClose, onBalance }: { onClose: () => void; onBalan
                       <Text style={styles.name} numberOfLines={1}>{it.titleFa}</Text>
                       <Text style={[styles.sub, tight ? styles.subTight : null]} numberOfLines={2}>{why ?? fa.shop.amount(it.amount)}</Text>
                       <Pressable onPress={() => (locked ? setWhyLocked(whyText(it)) : void buy(it))} accessibilityRole="button" accessibilityLabel={`${fa.shop.buy} ${it.titleFa}`} style={({ pressed }) => [styles.buy, tight ? styles.buyTight : null, locked ? styles.buyOff : null, pressed ? styles.pressed : null]}>
-                        <View style={styles.buyIcon}><Item icon="coin" /></View>
-                        <Text style={styles.buyText}>{it.priceCoins === 0 ? fa.shop.free : n(it.priceCoins)}</Text>
+                        <View style={styles.buyIcon}><Item icon={it.currency === 'gems' ? 'gem' : 'coin'} /></View>
+                        <Text style={styles.buyText}>{(it.currency === 'gems' ? it.priceGems : it.priceCoins) === 0 ? fa.shop.free : n(it.currency === 'gems' ? it.priceGems : it.priceCoins)}</Text>
                       </Pressable>
+                      {realMoney && it.priceToman > 0 ? (
+                        <Pressable onPress={() => void pay(it)} accessibilityRole="button" accessibilityLabel={`${fa.shop.payMoney} ${it.titleFa}`} style={({ pressed }) => [styles.money, pressed ? styles.pressed : null]}>
+                          <Text style={styles.moneyText}>{fa.shop.toman(it.priceToman)}</Text>
+                        </Pressable>
+                      ) : null}
                     </View>
                   </View>
                 );
@@ -217,6 +242,8 @@ const styles = StyleSheet.create({
   sub: { fontFamily: fonts.bold, fontSize: 10, color: '#7E46D6', minHeight: 28, textAlign: 'center' },
   buy: { width: '100%', height: 36, borderRadius: 12, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.candy.lime, flexDirection: ROW, alignItems: 'center', justifyContent: 'center', gap: 4, ...lift(3) },
   buyOff: { opacity: 0.45 },
+  money: { width: '100%', height: 30, borderRadius: 12, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.candy.sky, alignItems: 'center', justifyContent: 'center', marginTop: 2 },
+  moneyText: { fontFamily: fonts.display, fontSize: 14, color: colors.ink },
   buyIcon: { width: 20, height: 20 },
   buyText: { fontFamily: fonts.display, fontSize: 16, color: colors.ink },
   won: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9, backgroundColor: 'rgba(26,8,44,0.86)', alignItems: 'center', justifyContent: 'center', gap: 14 },

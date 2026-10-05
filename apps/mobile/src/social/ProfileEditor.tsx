@@ -8,6 +8,8 @@ import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
 import { saveEmail, saveNickname } from './api';
 import { nicknameHint } from './nicknameHint';
+import { BirthdayEditor } from './BirthdayEditor';
+import { TEXT_LEFT } from '../theme/direction';
 
 const INK = '#3A2418';
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
@@ -86,6 +88,8 @@ export function ProfileEditor({ me, onChange, onPickCity }: { me: MyProfile; onC
       </View>
       <Text style={styles.hint}>{fa.profile.emailHint}</Text>
       {note ? <Text style={[styles.hint, note.bad && styles.bad]}>{note.text}</Text> : null}
+
+      <BirthdayEditor />
     </View>
   );
 }
@@ -96,12 +100,12 @@ const styles = StyleSheet.create({
   hint: { fontFamily: fonts.bold, fontSize: 12, color: INK, opacity: 0.7 },
   bad: { color: '#B3261E', opacity: 1 },
   row: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-  bar: { height: 12, borderRadius: 99, borderWidth: 2, borderColor: INK, backgroundColor: colors.cream, overflow: 'hidden' },
+  bar: { height: 12, borderRadius: 99, borderWidth: 2, borderColor: INK, backgroundColor: colors.cream, overflow: 'hidden', direction: 'ltr' },
   barFill: { height: '100%', backgroundColor: '#7ED957' },
   stat: { flex: 1, alignItems: 'center' },
   statNum: { fontFamily: fonts.display, fontSize: 18, color: INK },
   input: { flex: 1, fontFamily: fonts.bold, fontSize: 15, color: INK, borderWidth: 2, borderColor: INK, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: '#fff' },
-  ltr: { textAlign: 'left', writingDirection: 'ltr' },
+  ltr: { textAlign: TEXT_LEFT, writingDirection: 'ltr' },
   disabled: { opacity: 0.5 },
   pill: { paddingHorizontal: 14, paddingVertical: 5, borderRadius: 99, borderWidth: 2, borderColor: INK, backgroundColor: colors.cream, alignSelf: 'flex-start' },
   pillOn: { backgroundColor: '#FFC93C' },

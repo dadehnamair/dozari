@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Character } from '../components/Character';
 import { Item } from '../components/Item';
@@ -6,6 +6,8 @@ import { Scene } from '../components/Scene';
 import { SlabButton } from '../components/SlabButton';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
+import { nativeTopInset } from '../theme/safeArea';
+import { TEXT_RIGHT } from '../theme/direction';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const t = fa.tutorial;
@@ -20,7 +22,24 @@ const FOOD = [0, 5, 10, 13];
  */
 export function Tutorial({ onDone }: { onDone: () => void }) {
   const [i, setI] = useState(0);
+  /** Tiles the player has tapped on the «pick the food group» step. */
+  const [picked, setPicked] = useState<number[]>([]);
+  /** Shown instead of the step text for a moment after a wrong tap. */
+  const [oops, setOops] = useState(false);
+  useEffect(() => {
+    if (!oops) return;
+    const timer = setTimeout(() => setOops(false), 2200);
+    return () => clearTimeout(timer);
+  }, [oops]);
   const step = t.steps[i]!;
+  const tapTile = (k: number) => {
+    if (i !== 1) return;
+    if (!FOOD.includes(k)) return setOops(true);
+    const next = picked.includes(k) ? picked : [...picked, k];
+    setPicked(next);
+    setOops(false);
+    if (next.length === FOOD.length) setTimeout(() => setI(2), 350);
+  };
   const last = i === t.steps.length - 1;
   return (
     <View style={styles.root}>
@@ -35,37 +54,40 @@ export function Tutorial({ onDone }: { onDone: () => void }) {
             <Pressable onPress={onDone} style={styles.skip} accessibilityRole="button"><Text style={styles.skipText}>{t.skip}</Text></Pressable>
           </View>
 
+          <View style={styles.bubbleSlot}>
+            <View style={styles.bubble}>
+              <View style={styles.bubbleHead}>
+                <View style={styles.tag}><Text style={styles.tagText}>{t.guide}</Text></View>
+                <Text style={styles.title}>{oops ? t.oopsTitle : step.title}</Text>
+              </View>
+              <Text style={styles.text}>{oops ? t.oops : step.text}</Text>
+            </View>
+          </View>
+
           <View style={styles.grid}>
             {TILE_ICONS.map((icon, k) => {
               const lit = i >= 1 && FOOD.includes(k);
               const solved = i === 3 && lit;
+              const isPicked = lit && (i === 2 || picked.includes(k));
               return (
                 <View key={icon} style={styles.cell}>
-                  <View style={[styles.tile, lit ? styles.tileLit : null, i >= 1 && !lit ? styles.tileDim : null, lit && i === 2 ? styles.tilePicked : null, solved ? styles.tileSolved : null]}>
+                  <Pressable onPress={() => tapTile(k)} disabled={i !== 1} accessibilityRole="button" accessibilityLabel={t.words[k]}
+                    style={[styles.tile, lit && !isPicked ? styles.tileLit : null, i >= 1 && !lit && i !== 1 ? styles.tileDim : null, isPicked ? styles.tilePicked : null, solved ? styles.tileSolved : null]}>
                     <View style={styles.tileIcon}><Item icon={icon} /></View>
                     <Text style={styles.tileText} numberOfLines={1}>{t.words[k]}</Text>
-                  </View>
+                  </Pressable>
                 </View>
               );
             })}
           </View>
           <View style={styles.submitSlot}>
-            {i === 2 ? <View style={styles.submit}><Text style={styles.submitText}>{t.submit}</Text></View> : null}
+            {i === 2 ? <Pressable onPress={() => setI(3)} style={styles.submit} accessibilityRole="button"><Text style={styles.submitText}>{t.submit}</Text></Pressable> : null}
           </View>
 
           <View style={styles.spacer} />
-          <View>
-            <View style={styles.bubble}>
-              <View style={styles.bubbleHead}>
-                <View style={styles.tag}><Text style={styles.tagText}>{t.guide}</Text></View>
-                <Text style={styles.title}>{step.title}</Text>
-              </View>
-              <Text style={styles.text}>{step.text}</Text>
-            </View>
-          </View>
           <View style={styles.footer}>
             <View style={styles.cta}>
-              <SlabButton label={step.cta} color={colors.candy.yellow} height={58} fontSize={22} grow={0} onPress={() => (last ? onDone() : setI(i + 1))} />
+              {step.cta ? <SlabButton label={step.cta} color={colors.candy.yellow} height={58} fontSize={22} grow={0} onPress={() => (last ? onDone() : setI(i + 1))} /> : null}
             </View>
             <View style={styles.guide}><Character who="ajan" pose={step.pose} /></View>
           </View>
@@ -80,7 +102,7 @@ const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#4E2585' },
   shade: { backgroundColor: 'rgba(26,8,44,0.55)' },
-  scroll: { flexGrow: 1, paddingHorizontal: 12, paddingTop: 20, paddingBottom: 24, alignItems: 'center' },
+  scroll: { flexGrow: 1, paddingHorizontal: 12, paddingTop: 20 + nativeTopInset(), paddingBottom: 24, alignItems: 'center' },
   column: { flex: 1, width: '100%', maxWidth: 480 },
   top: { flexDirection: ROW, alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
   dots: { flexDirection: ROW, gap: 5 },
@@ -101,13 +123,14 @@ const styles = StyleSheet.create({
   submitSlot: { height: 72, alignItems: 'center', justifyContent: 'center' },
   submit: { height: 52, paddingHorizontal: 34, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.candy.lime, justifyContent: 'center', ...lift(5) },
   submitText: { fontFamily: fonts.display, fontSize: 22, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
+  bubbleSlot: { marginBottom: 18 },
   spacer: { flex: 1, minHeight: 8 },
   bubble: { padding: 12, paddingHorizontal: 14, borderRadius: 20, borderBottomLeftRadius: 6, backgroundColor: '#fff', borderWidth: 3, borderColor: colors.ink, gap: 4, ...lift(5) },
   bubbleHead: { flexDirection: ROW, alignItems: 'center', gap: 6 },
   tag: { paddingHorizontal: 8, borderRadius: 99, backgroundColor: '#3F72D0', borderWidth: 2, borderColor: colors.ink },
   tagText: { fontFamily: fonts.display, fontSize: 12, lineHeight: 20, color: '#fff' },
   title: { fontFamily: fonts.display, fontSize: 16, color: colors.ink },
-  text: { fontFamily: fonts.bold, fontSize: 12.5, lineHeight: 21, color: colors.ink, textAlign: 'right' },
+  text: { fontFamily: fonts.bold, fontSize: 12.5, lineHeight: 21, color: colors.ink, textAlign: TEXT_RIGHT },
   footer: { flexDirection: ROW, alignItems: 'flex-end', gap: 8, marginTop: 4 },
   guide: { width: 132, height: 153, marginBottom: -6 },
   cta: { flex: 1, paddingBottom: 6 },

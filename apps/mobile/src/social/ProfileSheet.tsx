@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
+import { swr } from '../net/cache';
+import { fetchWorn } from '../shop/api';
+import { fetchBirthday } from './birthdayApi';
+import { PartyBanner } from './BirthdayBadge';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Svg, { Polygon } from 'react-native-svg';
 import { provinceOf, toPersianDigits } from '@dozari/shared';
 import type { Friends, Gender, MyBadges, MyProfile, RecentGames } from '@dozari/shared';
-import { Avatar } from '../components/Avatar';
+import { Character } from '../components/Character';
 import { CandyButton } from '../components/CandyButton';
 import { GradientFill } from '../components/GradientFill';
 import { Icon } from '../components/Icon';
@@ -27,6 +31,8 @@ import { FriendsPage } from './FriendsPage';
 import { BadgesSheet } from '../badges/BadgesSheet';
 import { LevelRoadPage } from '../levels/LevelRoadPage';
 import { pageTop } from '../theme/safeArea';
+import { useHardwareBack } from '../nav/useHardwareBack';
+import { TEXT_LEFT, TEXT_RIGHT } from '../theme/direction';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const TAGS = ['#FF4D8D', '#7E46D6', '#3FA36B', '#E8743B', '#3FC1F0'];
@@ -37,28 +43,50 @@ const n = (v: number) => toPersianDigits(String(v));
  * rank, the level bar, four stat tiles, earned badges, then shortcuts (friends, find, gifts, invite, badges). The
  * pencil opens the editor (nickname, gender, city, e-mail); settings live on their own page.
  */
-export function ProfileSheet({ onClose, onGender }: { onClose: () => void; onGender: (g: Gender | null) => void }) {
+export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () => void; onGender: (g: Gender | null) => void; /** Opens straight on a sub page (e.g. the friends list from a friend-request notice). */ start?: 'friends' | null }) {
+  useHardwareBack(onClose);
   const [me, setMe] = useState<MyProfile | null>(null);
   const [friends, setFriends] = useState<Friends | null>(null);
   const [badges, setBadges] = useState<MyBadges | null>(null);
   const [games, setGames] = useState<RecentGames['games']>([]);
+  const [worn, setWorn] = useState<{ slot: string; iconKey: string | null }[]>([]);
+  const [party, setParty] = useState(false);
+  /** Own age, shown to the player whatever the «show my age» tick says (the tick only decides what others see). */
+  const [age, setAge] = useState<number | null>(null);
+  useEffect(() => {
+    fetchBirthday().then((b) => (setParty(b.inWeek), setAge(b.age)), () => undefined);
+  }, []);
+  useEffect(() => {
+    fetchWorn().then((r) => setWorn(r.worn), () => undefined);
+  }, []);
   const [failed, setFailed] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [sub, setSub] = useState<'invite' | 'loans' | 'find' | 'badges' | 'friends' | 'city' | 'levels' | 'recent' | null>(null);
+  const [sub, setSub] = useState<'invite' | 'loans' | 'find' | 'badges' | 'friends' | 'city' | 'levels' | 'recent' | null>(start);
   // Nothing scrolls: on a short phone the header and the tiles tighten instead.
   const compact = useWindowDimensions().height < 720;
   const heroH = compact ? 118 : 140;
   const avatar = compact ? 92 : 108;
+  /** The whole character stands in the header, so hair, hat, glasses and clothes all show. */
+  const charH = Math.round(avatar * (compact ? 1.5 : 1.6));
+  const charW = Math.round((charH * 240) / 276);
 
   const load = useCallback(() => {
-    Promise.all([fetchMyProfile(), fetchFriends()]).then(
+    swr.refresh('profile', () => Promise.all([fetchMyProfile(), fetchFriends()])).then(
       ([m, f]) => (setMe(m), setFriends(f), setFailed(false)),
       () => setFailed(true),
     );
-    fetchMyBadges().then(setBadges, () => undefined);
-    fetchRecentGames().then((r) => setGames(r.games), () => undefined);
+    swr.refresh('profile.badges', fetchMyBadges).then(setBadges, () => undefined);
+    swr.refresh('profile.games', fetchRecentGames).then((r) => setGames(r.games), () => undefined);
   }, []);
-  useEffect(load, [load]);
+  // The profile seen last time shows at once and is refreshed behind it; coming back from a sub page reloads live.
+  useEffect(() => {
+    const stops = [
+      swr('profile', () => Promise.all([fetchMyProfile(), fetchFriends()]), ([m, f]) => (setMe(m), setFriends(f), setFailed(false)), () => setFailed(true)),
+      swr('profile.badges', fetchMyBadges, setBadges),
+      swr('profile.games', fetchRecentGames, (r) => setGames(r.games)),
+    ];
+    return () => stops.forEach((stop) => stop());
+  }, []);
 
   const pick = (g: Gender | null) => {
     setMe((m) => (m ? { ...m, gender: g } : m));
@@ -118,9 +146,9 @@ export function ProfileSheet({ onClose, onGender }: { onClose: () => void; onGen
           )}
         </Pressable>
       </View>
-      <View style={[styles.column, { paddingTop: heroH - avatar / 2 - 6, gap: compact ? 6 : 9 }]}>
+      <View style={[styles.column, { paddingTop: heroH + avatar / 2 - 6 - charH, gap: compact ? 6 : 9 }]}>
         <View style={styles.avatarWrap}>
-          {me ? <Avatar avatar={avatarOf(me.avatarKey)} size={avatar} /> : <View style={{ width: avatar, height: avatar }} />}
+          {me ? <View style={{ width: charW, height: charH }}><Character skin={avatarOf(me.avatarKey).skin} pose={avatarOf(me.avatarKey).pose} worn={worn} /></View> : <View style={{ width: charW, height: charH }} />}
           {lv ? (
             <View style={styles.hex} accessibilityLabel={`${fa.profile.level} ${lv.level}`}>
               <Svg width={46} height={52} viewBox="0 0 46 52">
@@ -135,10 +163,12 @@ export function ProfileSheet({ onClose, onGender }: { onClose: () => void; onGen
         {failed ? <Text style={styles.hint}>{fa.profile.error}</Text> : null}
         {me && lv ? (
           <>
+            {party ? <PartyBanner own /> : null}
             <View style={styles.nameBlock}>
               <Text style={[styles.name, compact ? styles.nameCompact : null]} numberOfLines={1}>{me.nickname}</Text>
               <View style={styles.cityRow}>
                 {badges ? <Text style={styles.rank}>{skillText(badges.skill)}</Text> : null}
+                {age !== null ? <Text style={styles.rank}>{badges ? '· ' : ''}{fa.player.age(age)}</Text> : null}
                 {me.city ? (
                   <Pressable onPress={() => setSub('city')} accessibilityRole="button" style={styles.cityRow}>
                     {badges ? <Text style={styles.rank}>·</Text> : null}
@@ -180,7 +210,7 @@ export function ProfileSheet({ onClose, onGender }: { onClose: () => void; onGen
             </Pressable>
 
             <View style={styles.grid}>
-              {tiles.map((x) => <HubTile key={x.key} icon={x.icon} label={x.label} color={x.color} badge={x.badge} onPress={x.onPress} />)}
+              {tiles.map((x) => <HubTile onLight key={x.key} icon={x.icon} label={x.label} color={x.color} badge={x.badge} onPress={x.onPress} />)}
             </View>
           </>
         ) : null}
@@ -202,7 +232,7 @@ export function ProfileSheet({ onClose, onGender }: { onClose: () => void; onGen
                 ))}
               </View>
               <ProfileEditor me={me} onChange={(patch) => setMe((m) => (m ? { ...m, ...patch } : m))} onPickCity={() => (setEditing(false), setSub('city'))} />
-              <CandyButton label={fa.profile.close} color={colors.candy.sky} onPress={() => setEditing(false)} />
+              <CandyButton label={fa.profile.close} sfx="back" color={colors.candy.sky} onPress={() => setEditing(false)} />
             </ScrollView>
           </Pressable>
         </Pressable>
@@ -213,6 +243,7 @@ export function ProfileSheet({ onClose, onGender }: { onClose: () => void; onGen
 
 /** The last games, opened from the «بازی‌ها» tile (they used to stretch the profile page). */
 function RecentGamesSheet({ games, onClose }: { games: RecentGames['games']; onClose: () => void }) {
+  useHardwareBack(onClose);
   return (
     <Pressable style={styles.overlay} onPress={onClose} accessibilityLabel={fa.profile.close}>
       <Pressable style={styles.editor} onPress={() => undefined}>
@@ -227,7 +258,7 @@ function RecentGamesSheet({ games, onClose }: { games: RecentGames['games']; onC
               <Text style={styles.gameAgo}>{agoText(g.at, Date.now())}</Text>
             </View>
           ))}
-          <CandyButton label={fa.profile.close} color={colors.candy.sky} onPress={onClose} />
+          <CandyButton label={fa.profile.close} sfx="back" color={colors.candy.sky} onPress={onClose} />
         </ScrollView>
       </Pressable>
     </Pressable>
@@ -239,9 +270,9 @@ const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0
 const styles = StyleSheet.create({
   gameRow: { alignSelf: 'stretch', flexDirection: ROW, alignItems: 'center', gap: 8, paddingVertical: 4 },
   gameDot: { width: 12, height: 12, borderRadius: 6, borderWidth: 2, borderColor: colors.ink },
-  gameText: { flex: 1, fontFamily: fonts.bold, fontSize: 13, color: colors.ink, textAlign: 'right' },
+  gameText: { flex: 1, fontFamily: fonts.bold, fontSize: 13, color: colors.ink, textAlign: TEXT_RIGHT },
   gameXp: { fontFamily: fonts.display, fontSize: 13, color: '#7E46D6' },
-  gameAgo: { fontFamily: fonts.bold, fontSize: 11, color: colors.ink, opacity: 0.6, minWidth: 54, textAlign: 'left' },
+  gameAgo: { fontFamily: fonts.bold, fontSize: 11, color: colors.ink, opacity: 0.6, minWidth: 54, textAlign: TEXT_LEFT },
   root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20, backgroundColor: '#FBF1DE' },
   hero: { position: 'absolute', top: 0, left: 0, right: 0, overflow: 'hidden' },
   heroLine: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 4, backgroundColor: colors.ink },
@@ -261,7 +292,7 @@ const styles = StyleSheet.create({
   levelHead: { flexDirection: ROW, justifyContent: 'space-between' },
   levelText: { fontFamily: fonts.display, fontSize: 14, color: colors.ink },
   levelXp: { fontFamily: fonts.display, fontSize: 13, color: colors.ink, opacity: 0.6 },
-  track: { height: 18, borderRadius: 99, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#E6D3B4', overflow: 'hidden' },
+  track: { height: 18, borderRadius: 99, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#E6D3B4', overflow: 'hidden', direction: 'ltr' },
   fill: { height: '100%', borderRadius: 99, backgroundColor: '#A66BF0' },
   stats: { alignSelf: 'stretch', flexDirection: ROW, gap: 7 },
   stat: { flex: 1, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center', ...lift(3) },
@@ -272,8 +303,8 @@ const styles = StyleSheet.create({
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 30, backgroundColor: 'rgba(20,8,32,0.55)', alignItems: 'center', justifyContent: 'center', padding: 18 },
   editor: { width: '100%', maxWidth: 400, maxHeight: '88%', borderRadius: 22, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#FFF6E8', overflow: 'hidden' },
   editorContent: { gap: 8, padding: 14 },
-  sectionTitle: { fontFamily: fonts.display, fontSize: 17, color: colors.ink, textAlign: 'right' },
-  hint: { fontFamily: fonts.bold, fontSize: 12, color: colors.ink, opacity: 0.7, textAlign: 'right' },
+  sectionTitle: { fontFamily: fonts.display, fontSize: 17, color: colors.ink, textAlign: TEXT_RIGHT },
+  hint: { fontFamily: fonts.bold, fontSize: 12, color: colors.ink, opacity: 0.7, textAlign: TEXT_RIGHT },
   pills: { flexDirection: ROW, gap: 8 },
   pill: { paddingHorizontal: 14, paddingVertical: 5, borderRadius: 99, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.cream },
   pillOn: { backgroundColor: '#FFC93C' },

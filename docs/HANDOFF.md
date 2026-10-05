@@ -1,3 +1,40 @@
+# Handoff — update 2026-10-04 (later the same day)
+
+Done on `main`: **A** architecture tidy-up (feedback wiring in `feedback/build.ts`; one `CosmeticSlot` and one wear-key table in shared; `Character`, `HomeScreen`, `admin/ui/views2` split, rendering/output verified byte-identical) · **B** SVG wearable pipeline (`apps/mobile/assets/wear/README.md`, `wear:build`, `wear:check` in CI) · **C** solo combo + timer ring, near-miss pill, last-life heartbeat (D178) · **E** fitting room, the hujre keeps only non-character goods (D179). Not seen on a real phone / live MySQL / Docker (compose services were renamed `s-dozari-*`, containers `c-dozari-*`: on the server run `up -d --build --remove-orphans`).
+Still open: the cosmetic pack's extra slots (crown, beard & moustache, skin tone, jewels, badge), bundles, and worn items on leaderboard/friend/chat avatars (D); real art goes in `assets/wear/`.
+
+---
+
+# Handoff — state at 2026-10-04 (read this section first in a new chat)
+
+Everything up to PR #129 is merged to `main` and green. No half-finished branch. Owner talks Persian; reply in Persian.
+
+## Mine, in proposed order
+**A. Architecture tidy-up (no behaviour change; existing tests must stay green)**
+1. Move the inline wiring in `apps/server/src/index.ts` into builder files; first `FeedbackService` (two direct `products` queries live there).
+2. `CosmeticSlot` is declared three times (shared hints-contract, db schema, server shop-store): keep one source.
+3. Merge wear keys: `apps/mobile/src/components/wearArt.tsx` (`WEAR_SLOT_OF`) vs default items in `apps/server/src/economy/shop-store.ts`.
+4. Split big files: `Character.tsx`, `HomeScreen.tsx`, `admin/ui/views2.ts`.
+
+**B. Owner-drawn wearable pipeline (owner agreed to draw the art)**
+- Folder `apps/mobile/assets/wear/<slot>/<key>.svg`; script converting SVG -> react-native-svg component registered in `wearArt.tsx`.
+- Art spec for the designer: `viewBox="-20 -18 240 276"`, head centred x=100, eyes y~74, chin y~140, crown of head y~32; outline `#3A2418` width 2.5-3; only path/circle/rect/g; transparent bg; two-layer items as `<key>.front.svg` + `<key>.back.svg`. Slots: hat, hair, glasses, outfit, accessory.
+- Adding an item afterwards = drop the file + one shop row with that `iconKey`.
+
+**C. Solo-game excitement (ASK the owner first)**: 1) combo + timer ring, 2) «یکی مونده!» near-miss + last-life heartbeat; later: friend ghost times, nightly rule, boss rounds.
+
+**D. Not built**: worn items on leaderboard/friend/chat avatars (needs `worn` in those lists); admin age-band stats + exact birth date in the admin user sheet; UGC photo upload, outlier guard, Home card; admin number-input grouping.
+
+## Owner's side
+DNS/proxy `mrdozari.ir` -> 127.0.0.1:8083 and `2oi.ir` -> 127.0.0.1:3000 (keep Host); `link.android_app` / `link.app_url`; run the Android APK workflow; SEO/GEO sheet, real OG PNG + font; Bale token, store receipt verifier, `feature.coin_packages`; real clothing art; decision on PR #92. Deploy runs `migrate` (up to 0054: the makeup slot).
+
+## Not verified
+Real phone, live MySQL, Bale, Docker. Only typecheck/lint/tests (landing 11, shared 284, db 24, mobile 154, server 352) and one headless-Chromium look at the wearables.
+
+Suggested first message in the new chat: "Do A, then B. Ask about C."
+
+---
+
 # Handoff — state at 2026-10-02 (end of session 01FSfm13JSuXPhZuFaMnZPnv)
 
 For the next chat. Read `CLAUDE.md`, then this file, then `docs/DECISIONS.md` from D99 on.

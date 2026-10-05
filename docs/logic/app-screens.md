@@ -47,7 +47,7 @@ Laid out as **screen-home** of `docs/design/Dozari - 01 Screens.dc.html` (D99, r
   it can be played, otherwise the month's mood line.
 - **Corner tiles**, one column per side (54px candy squares with a label; a tile shows only when its
   feature flag is on). Right: daily reward (badge when claimable), private tables, tournaments, price
-  lookup. Left: settings/profile, messages (unread badge), city chat, shop, Bale.
+  lookup. Left: settings/profile, messages (unread badge), city chat, shop, fitting room, Bale.
 - The **hero** character floating over the bazaar background. It is also the **guide** (owner note 4):
   tapping it cycles short tips (`fa.home.guide.tips`, one per menu; tips of switched-off features are
   skipped) shown in a `GuideBubble` (mascot + speech bubble) above it; the tip fades after 12 s.
@@ -181,11 +181,24 @@ story, prizes, rules, results and players; a large «ثبت‌نام» / «ان�
 ## Shop (D105)
 
 screen-shop of `17 Chat Shop Unlocks`: the hujre scene under a dark veil, the yellow «حجرهٔ دوزاری»
-plate with the coin count, six tabs (سکه، جم، کمکی، لباس، آواتار، ویژه) and a two-column grid of goods.
+plate with the coin count, four tabs (سکه، جم، کمکی، ویژه) and a two-column grid of goods. Character items (hair, hats, glasses, clothes) are not sold here: see *Fitting room* below.
 Only «کمکی» has goods today (hint tokens, bought with coins; level gate and daily limit show on the
 card, a locked card is veiled with a padlock); the other tabs are dimmed and say «به‌زودی» — coin
-packs wait on the payment decision, gems/outfits/avatars/offers on their own features. A purchase
+packs wait on the payment decision, gems/offers on their own features. A purchase
 ends in the «مال خودت شد!» card.
+
+## Fitting room (D179, redone D187)
+
+«اتاق پرو», a left-column Home tile (shirt icon, shown with the shop flag), laid out like `21 Cosmetic Packs`, one phone column: the top row (back, title, coin and
+gem pills); the **stage** — the player's own character (`heroFor(gender)`) over a warm radial backdrop with a slowly turning sunburst, a floor shadow and a green
+toast for messages; the **worn** row (a chip per worn item, tap = take it off in the preview; «برگردان» drops all tries, «پیش‌فرض» takes everything off for real);
+a **chip per pack** with its item count (tap scrolls to the pack); then the **packs** one under the other (کلاه، مو، عینک، آرایش، لباس، زیورآلات — only packs that have
+items), each with a coloured bar, «پک X» and «N آیتم · M تا داری», and a two-column grid of cards. A card: a backdrop tinted by rarity with the item on a face, the rarity
+badge (top right), a green ✓ when it is on the stage (top left), a **chip «از سطح N» inside the picture** when the level is missing, the name, and the price button — gold =
+to buy (coin or gem icon + the price, or «رایگان»), white «بپوش» = owned, green «پوشیده‌ای» = worn (tap takes it off); a sky-blue toman button when real money is on. Tapping the
+card tries the item on for free. Rarity follows the price (`wardrobe/rarity.ts`: coins ≤ 500 common, more rare; gems < 90 epic, ≥ 90 legendary). Prices, levels and
+currencies are per item in the admin panel. Only the pack list scrolls (its bar stays visible). The Home hero wears what is equipped (`GET /me/cosmetics`).
+Not built from the design: the male/female model switch (the character follows the profile), and the 40 %-off pack bundles (they need an economy decision).
 
 ## City page (D101)
 

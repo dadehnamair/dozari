@@ -33,9 +33,16 @@ export const soloHintResultSchema = z.object({
 });
 export type SoloHintResult = z.infer<typeof soloHintResultSchema>;
 
+/** `POST /solo/:id/nudge`: the free hint a level-1 player gets after standing still. */
+export const soloNudgeResultSchema = z.object({ hint: hintPayloadSchema });
+export type SoloNudgeResult = z.infer<typeof soloNudgeResultSchema>;
+
 /** `GET /shop`: items a player can buy with coins (docs/logic/shop.md). */
 /** `hint_token` adds hint tokens; `wheel_spin` adds lucky-wheel spins (one row per spin in `wheel_spins`). */
-export const SHOP_EFFECTS = ['hint_token', 'wheel_spin'] as const;
+export const SHOP_EFFECTS = ['hint_token', 'wheel_spin', 'cosmetic'] as const;
+import { COSMETIC_SLOTS } from './slots.js';
+export { COSMETIC_SLOTS };
+export type { CosmeticSlot } from './slots.js';
 export const shopEffectSchema = z.enum(SHOP_EFFECTS);
 
 export const shopItemSchema = z.object({
@@ -45,11 +52,21 @@ export const shopItemSchema = z.object({
   effect: shopEffectSchema,
   /** Units of the effect one purchase grants (e.g. 5 hint tokens). */
   amount: z.number().int().positive(),
+  /** Currency that pays for it; only the matching price counts. */
+  currency: z.enum(['coins', 'gems']).default('coins'),
   priceCoins: z.number().int().nonnegative(),
+  priceGems: z.number().int().nonnegative().default(0),
+  /** Real-money price in toman (0 = not sold for money); only offered when the switch is on. */
+  priceToman: z.number().int().nonnegative().default(0),
   minLevel: z.number().int().positive(),
   iconKey: z.string().nullable(),
+  /** Slot a cosmetic is worn in (null for other effects). */
+  slot: z.enum(COSMETIC_SLOTS).nullable().default(null),
+  /** Cosmetics: the caller owns it / wears it. */
+  owned: z.boolean().default(false),
+  equipped: z.boolean().default(false),
   /** Why the player cannot buy it right now, or null. */
-  blocked: z.enum(['LEVEL', 'DAILY_LIMIT', 'COINS']).nullable(),
+  blocked: z.enum(['LEVEL', 'DAILY_LIMIT', 'COINS', 'GEMS', 'OWNED']).nullable(),
   /** Purchases left today when the item has a daily limit. */
   leftToday: z.number().int().nonnegative().nullable(),
 });
@@ -58,6 +75,7 @@ export type ShopItem = z.infer<typeof shopItemSchema>;
 export const shopSchema = z.object({
   items: z.array(shopItemSchema),
   balance: z.number().int().nonnegative(),
+  gems: z.number().int().nonnegative().default(0),
   level: z.number().int().positive(),
   tokens: z.number().int().nonnegative(),
 });

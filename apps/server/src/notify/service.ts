@@ -163,7 +163,7 @@ export class NotifyService {
   private async handlePaid(chatId: number | string, p: NonNullable<NonNullable<BaleUpdate['message']>['successful_payment']>): Promise<void> {
     if (!this.payments || p.currency !== 'IRR') return;
     const out = await this.payments.creditPaid(p.invoice_payload, p.telegram_payment_charge_id, p.total_amount);
-    if (out && !out.duplicate) await this.client?.sendMessage(String(chatId), BALE_TEXT.paid(out.coins)).catch(() => undefined);
+    if (out && !out.duplicate) await this.client?.sendMessage(String(chatId), out.text ? BALE_TEXT.paidItem(out.text) : BALE_TEXT.paid(out.coins)).catch(() => undefined);
   }
 
   /** The sender shared a contact: it verifies the phone number only for the linked player and only when it is their own contact. */

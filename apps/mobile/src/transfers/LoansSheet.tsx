@@ -9,6 +9,7 @@ import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
 import { answerLoan, fetchTransfers, repayLoan } from './api';
 import { transferErrorText } from './rulesText';
+import { useHardwareBack } from '../nav/useHardwareBack';
 
 const INK = '#3A2418';
 const n = (v: number) => toPersianDigits(String(v));
@@ -21,6 +22,7 @@ const title = (t: TransferRow): string => {
 
 /** «هدیه و قرض‌ها»: what I sent and received; accept or decline offers, repay, cancel. */
 export function LoansSheet({ onClose }: { onClose: () => void }) {
+  useHardwareBack(onClose);
   const [rows, setRows] = useState<TransferRow[] | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const load = useCallback(() => {
@@ -67,7 +69,7 @@ export function LoansSheet({ onClose }: { onClose: () => void }) {
           ))}
         </ScrollView>
         {note ? <Text style={[styles.hint, styles.bad]}>{note}</Text> : null}
-        <CandyButton label={fa.transfers.close} color={colors.candy.sky} onPress={onClose} />
+        <CandyButton label={fa.transfers.close} sfx="back" color={colors.candy.sky} onPress={onClose} />
       </Pressable>
     </Pressable>
   );

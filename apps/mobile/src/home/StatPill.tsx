@@ -30,9 +30,9 @@ export function StatPill({ color, glyph, icon, glyphColor = '#fff', value, label
 }
 
 const styles = StyleSheet.create({
-  pill: { flex: 1, height: 36, borderRadius: 99, backgroundColor: 'rgba(43,18,64,0.6)', borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)', flexDirection: Platform.OS === 'web' ? 'row-reverse' : 'row', alignItems: 'center', gap: 6, paddingHorizontal: 3 },
+  pill: { flex: 1, height: 40, borderRadius: 99, backgroundColor: 'rgba(43,18,64,0.6)', borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)', flexDirection: Platform.OS === 'web' ? 'row-reverse' : 'row', alignItems: 'center', gap: 6, paddingHorizontal: 5 },
   ball: { width: 30, height: 30, borderRadius: 15, borderWidth: 2.5, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
-  ballIcon: { width: 24, height: 24, marginTop: -2 },
+  ballIcon: { width: 18, height: 18 },
   glyph: { fontFamily: fonts.display, fontSize: 15, lineHeight: 22 },
-  value: { flexShrink: 1, fontFamily: fonts.display, fontSize: 18, color: '#fff' },
+  value: { flexShrink: 1, fontFamily: fonts.display, fontSize: 17, color: '#fff', paddingHorizontal: 6 },
 });

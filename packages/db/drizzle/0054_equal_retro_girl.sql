@@ -1,0 +1,1 @@
+ALTER TABLE `shop_items` MODIFY COLUMN `slot` enum('hat','outfit','accessory','hair','glasses','makeup');

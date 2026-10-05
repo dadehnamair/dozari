@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
-/** `global`: one room for every player (D103), beside the room of the player's city. `dm`: a private chat between two friends (D115). */
-export const CHAT_ROOMS = ['city', 'match', 'global', 'dm'] as const;
+/** `global`: one room for every player (D103), beside the room of the player's city. `dm`: a private chat between two friends (D115). `table`: the chat of a private table, for the players sitting at it. */
+export const CHAT_ROOMS = ['city', 'match', 'global', 'dm', 'table'] as const;
 export type ChatRoom = (typeof CHAT_ROOMS)[number];
 
 export const chatMessageSchema = z.object({
@@ -40,7 +40,7 @@ export const tauntCategorySchema = z.object({
 export const tauntsSchema = z.object({ categories: z.array(tauntCategorySchema) });
 export type TauntCategory = z.infer<typeof tauntCategorySchema>;
 
-export const CHAT_ERRORS = ['NO_CITY', 'NEEDS_ACTIVATION', 'MUTED', 'RATE_LIMITED', 'CONTACT_BLOCKED', 'FILTERED', 'TOO_LONG', 'EMPTY', 'UNKNOWN_TAUNT', 'NOT_IN_MATCH', 'NOT_FOUND', 'NOT_FRIENDS', 'OFF'] as const;
+export const CHAT_ERRORS = ['NO_CITY', 'NEEDS_ACTIVATION', 'MUTED', 'RATE_LIMITED', 'CONTACT_BLOCKED', 'FILTERED', 'TOO_LONG', 'EMPTY', 'UNKNOWN_TAUNT', 'NOT_IN_MATCH', 'NOT_FOUND', 'NOT_FRIENDS', 'NOT_IN_TABLE', 'OFF'] as const;
 export type ChatError = (typeof CHAT_ERRORS)[number];
 
 /** Socket `chat:taunt`: a canned taunt to the opponent of the current duel. */

@@ -14,12 +14,16 @@ import { colors, fonts } from '../theme/colors';
 import { fetchFriends } from '../social/api';
 import { OnlineDot } from '../components/OnlineDot';
 import { createTable, inviteToTable, extendTable, fetchMyTable, fetchTable, joinTable, kickFromTable, leaveTable, setTableLocked, setTableReady, setTableSide, startTable } from './api';
+import { useHardwareBack } from '../nav/useHardwareBack';
+import { TableChat } from './TableChat';
+import { TEXT_RIGHT } from '../theme/direction';
 
 const INK = '#3A2418';
 const errText = (e: unknown) => fa.tables.errors[e instanceof ApiError ? e.code : 'generic'] ?? fa.tables.errors.generic ?? '';
 
 /** «میز اختصاصی»: create a table or enter one by its code, then wait for the guest and start a duel. `initialCode` opens a shared table. */
 export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose: () => void; initialCode?: string; /** The table's match started: open the duel board. */ onMatch?: () => void; onShare?: (table: TableView) => Promise<void> }) {
+  useHardwareBack(onClose);
   const { ask, dialog } = useConfirm();
   const [table, setTable] = useState<TableView | null>(null);
   const [note, setNote] = useState<string | null>(null);
@@ -87,6 +91,7 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
                 </View>
               ))}
               {table.youAreHost && !table.inMatch && table.players.length < table.seats ? <InviteFriends onNote={setNote} /> : null}
+              <TableChat code={table.code} meId={table.players.find((p) => p.isYou)?.id ?? null} />
               <Text style={styles.hint}>{fa.tables.friendly}</Text>
               {note ? <Text style={styles.warn}>{note}</Text> : null}
               {table.youAreHost ? (
@@ -144,7 +149,7 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
                 </Pressable>
                 {note ? <Text style={styles.warn}>{note}</Text> : null}
                 <CandyButton label={fa.tables.create} color={colors.candy.lime} disabled={name.trim().length === 0} onPress={() => createTable({ name: name.trim(), icon: icon as (typeof TABLE_ICONS)[number], requireReady, format }).then((t) => (setNote(null), setTable(t)), (e) => setNote(errText(e)))} />
-                <CandyButton label={fa.tables.back} color={colors.candy.sky} onPress={() => (setNote(null), setMode('menu'))} />
+                <CandyButton label={fa.tables.back} sfx="back" color={colors.candy.sky} onPress={() => (setNote(null), setMode('menu'))} />
               </>
             ) : (
               <>
@@ -153,12 +158,12 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
                   <Pressable onPress={() => enter(code)} style={styles.pill} accessibilityRole="button"><Text style={styles.pillText}>{fa.tables.join}</Text></Pressable>
                 </View>
                 {note ? <Text style={styles.warn}>{note}</Text> : null}
-                <CandyButton label={fa.tables.back} color={colors.candy.sky} onPress={() => (setNote(null), setMode('menu'))} />
+                <CandyButton label={fa.tables.back} sfx="back" color={colors.candy.sky} onPress={() => (setNote(null), setMode('menu'))} />
               </>
             )
           )}
         </ScrollView>
-        <CandyButton label={fa.tables.close} color={colors.candy.sky} onPress={onClose} />
+        <CandyButton label={fa.tables.close} sfx="back" color={colors.candy.sky} onPress={onClose} />
       </Pressable>
       {dialog}
     </Pressable>
@@ -212,13 +217,13 @@ const styles = StyleSheet.create({
   name: { fontFamily: fonts.bold, fontSize: 14, color: INK, flex: 1 },
   hint: { fontFamily: fonts.bold, fontSize: 12, color: INK, opacity: 0.8 },
   warn: { fontFamily: fonts.bold, fontSize: 13, color: '#B3261E' },
-  input: { fontFamily: fonts.bold, fontSize: 14, color: INK, borderWidth: 2, borderColor: INK, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: '#fff', textAlign: 'right' },
+  input: { fontFamily: fonts.bold, fontSize: 14, color: INK, borderWidth: 2, borderColor: INK, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: '#fff', textAlign: TEXT_RIGHT },
   grow: { flex: 1 },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   titleIcon: { width: 34, height: 34 },
   choice: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, borderRadius: 18, borderWidth: 3, borderColor: INK },
   choiceIcon: { width: 44, height: 44 },
-  choiceTitle: { fontFamily: fonts.display, fontSize: 18, color: INK, textAlign: 'right' },
+  choiceTitle: { fontFamily: fonts.display, fontSize: 18, color: INK, textAlign: TEXT_RIGHT },
   icons: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
   iconCell: { width: 48, height: 48, padding: 5, borderRadius: 12, borderWidth: 2, borderColor: 'transparent', backgroundColor: '#fff' },
   iconOn: { borderColor: INK, backgroundColor: colors.candy.yellow },

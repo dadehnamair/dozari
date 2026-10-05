@@ -1,19 +1,23 @@
-import { Platform, StyleSheet, Text, View } from 'react-native';
-import { solarMonthOf, toPersianDigits } from '@dozari/shared';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { PRICE_GUESS_ROUND_POINTS, solarMonthOf, toPersianDigits } from '@dozari/shared';
+import type { PriceRoundView } from '@dozari/shared';
 import { Character } from '../components/Character';
 import { GradientFill } from '../components/GradientFill';
 import { Item } from '../components/Item';
 import { Scene } from '../components/Scene';
 import { SlabButton } from '../components/SlabButton';
 import { fa } from '../i18n/fa';
+import { priceText } from '../solo/priceRound';
 import { colors, fonts } from '../theme/colors';
 import type { CharacterId } from '../theme/character';
+import { nativeTopInset } from '../theme/safeArea';
+import { TEXT_RIGHT } from '../theme/direction';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const a = fa.duel.arena;
 
 type Outcome = 'won' | 'lost' | 'draw';
-type Line = { name: string; who: CharacterId; groups: number; points: number; me: boolean };
+type Line = { name: string; who: CharacterId; groups: number; points: number; me: boolean; /** Tap the row to open this player's profile (an opponent in a 1v1). */ playerId?: string };
 
 const LOOK: Record<Outcome, { title: string; sub: string; pose: 'win' | 'sad' | 'thinking'; ban: [string, string]; again: string; againColor: string }> = {
   won: { title: fa.duel.won, sub: a.winSub, pose: 'win', ban: ['#FFE48A', colors.candy.yellow], again: a.againWin, againColor: colors.candy.pink },
@@ -22,7 +26,7 @@ const LOOK: Record<Outcome, { title: string; sub: string; pose: 'win' | 'sad' | 
 };
 
 /** screen-results of `13 Match Screens`: the hero's pose, a banner, why it ended, the scoreboard, home / play again. */
-export function DuelResult({ outcome, reason, lines, onHome, onAgain }: { outcome: Outcome; reason: string; lines: Line[]; onHome: () => void; onAgain?: () => void }) {
+export function DuelResult({ outcome, reason, lines, priceRound, onHome, onAgain, onInvite, onPlayer }: { outcome: Outcome; reason: string; lines: Line[]; /** The finished price-guess round, when the duel had one. */ priceRound?: PriceRoundView; onHome: () => void; onAgain?: () => void; /** Opens the invite sheet: the best moment to ask a friend to play is right after a game. */ onInvite?: () => void; /** Opens a player's profile sheet. */ onPlayer?: (id: string) => void }) {
   const look = LOOK[outcome];
   const sorted = [...lines].sort((x, y) => y.points - x.points);
   return (
@@ -37,6 +41,7 @@ export function DuelResult({ outcome, reason, lines, onHome, onAgain }: { outcom
         </View>
         <Text style={styles.sub}>{reason || look.sub}</Text>
 
+        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollIn} showsVerticalScrollIndicator={false}>
         <View style={styles.board}>
           <View style={styles.head}>
             <Text style={[styles.headText, styles.grow]}>{a.player}</Text>
@@ -44,7 +49,7 @@ export function DuelResult({ outcome, reason, lines, onHome, onAgain }: { outcom
             <Text style={[styles.headText, styles.cell]}>{a.points}</Text>
           </View>
           {sorted.map((l, i) => (
-            <View key={l.name + i} style={[styles.line, l.me ? styles.lineMe : null]}>
+            <Pressable key={l.name + i} disabled={!l.playerId || !onPlayer} onPress={() => l.playerId && onPlayer?.(l.playerId)} accessibilityRole={l.playerId ? 'button' : undefined} accessibilityLabel={l.name} style={[styles.line, l.me ? styles.lineMe : null]}>
               <View style={[styles.stripe, { backgroundColor: l.me ? colors.candy.sky : colors.candy.pink }]} />
               <View style={[styles.face, { backgroundColor: l.me ? colors.candy.sky : colors.candy.pink }]}>
                 <View style={[styles.faceIn, l.me ? null : styles.flip]}><Character who={l.who} pose="idle" crop="face" month={l.who === 'dozari' ? solarMonthOf(Date.now()) : undefined} /></View>
@@ -55,13 +60,33 @@ export function DuelResult({ outcome, reason, lines, onHome, onAgain }: { outcom
               </View>
               <Text style={[styles.num, styles.cell]}>{toPersianDigits(String(l.groups))}</Text>
               <Text style={[styles.num, styles.cell, styles.pts]}>{toPersianDigits(String(l.points))}</Text>
-            </View>
+            </Pressable>
           ))}
         </View>
+
+        {priceRound && priceRound.revealed.length > 0 ? (
+          <View style={styles.priceBox}>
+            <Text style={styles.priceTitle}>{fa.duel.price.resultTitle}</Text>
+            {priceRound.revealed.map((r) => (
+              <Text key={r.index} style={styles.priceLine} numberOfLines={1}>
+                {r.winner === 'you' ? '✔' : r.winner === 'opponent' ? '✘' : '＝'} {r.nameFa} · {fa.duel.price.actual}: {priceText(r.actualRials)}
+                {r.winner === 'draw' ? '' : ` · ${r.winner === 'you' ? '+' : '−'}${toPersianDigits(String(PRICE_GUESS_ROUND_POINTS))}`}
+              </Text>
+            ))}
+            <Text style={styles.priceSum}>
+              {fa.duel.price.earned(
+                toPersianDigits(String(priceRound.revealed.filter((r) => r.winner === 'you').length * PRICE_GUESS_ROUND_POINTS)),
+                toPersianDigits(String(priceRound.revealed.filter((r) => r.winner === 'opponent').length * PRICE_GUESS_ROUND_POINTS)),
+              )}
+            </Text>
+          </View>
+        ) : null}
+        </ScrollView>
 
         <View style={styles.spacer} />
         <View style={styles.actions}>
           <SlabButton label={a.home} color={colors.candy.sky} height={58} fontSize={20} onPress={onHome} />
+          {onInvite ? <SlabButton label={a.invite} color={colors.candy.lime} height={58} fontSize={18} onPress={onInvite} /> : null}
           {onAgain ? <SlabButton label={look.again} color={look.againColor} height={58} fontSize={24} grow={1.6} onPress={onAgain} /> : null}
         </View>
       </View>
@@ -72,14 +97,16 @@ export function DuelResult({ outcome, reason, lines, onHome, onAgain }: { outcom
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#3C1A66' },
   shade: { backgroundColor: 'rgba(43,18,64,0.55)' },
-  column: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', paddingHorizontal: 12, paddingTop: 28, paddingBottom: 28, alignItems: 'stretch', gap: 8 },
+  column: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', paddingHorizontal: 12, paddingTop: 28 + nativeTopInset(), paddingBottom: 28, alignItems: 'stretch', gap: 8 },
+  scroll: { flexShrink: 1, flexGrow: 0 },
+  scrollIn: { gap: 8, paddingBottom: 6 },
   hero: { width: 140, height: 162, alignSelf: 'center' },
   banner: { alignSelf: 'center', paddingHorizontal: 30, paddingVertical: 6, borderRadius: 18, borderWidth: 4, borderColor: colors.ink, overflow: 'hidden', shadowColor: colors.ink, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 1, shadowRadius: 0, elevation: 6 },
   bannerText: { fontFamily: fonts.display, fontSize: 32, lineHeight: 44, color: colors.ink },
   sub: { fontFamily: fonts.bold, fontSize: 13, color: colors.cream, textAlign: 'center' },
   board: { marginTop: 10, borderRadius: 20, backgroundColor: '#FBF1DE', borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', shadowColor: colors.ink, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 1, shadowRadius: 0, elevation: 5 },
   head: { height: 30, flexDirection: ROW, alignItems: 'center', paddingHorizontal: 12, gap: 8, backgroundColor: colors.ink },
-  headText: { fontFamily: fonts.bold, fontSize: 11, color: 'rgba(255,246,232,0.75)', textAlign: 'right' },
+  headText: { fontFamily: fonts.bold, fontSize: 11, color: 'rgba(255,246,232,0.75)', textAlign: TEXT_RIGHT },
   grow: { flex: 1, minWidth: 0 },
   cell: { width: 50, textAlign: 'center' },
   line: { height: 46, flexDirection: ROW, alignItems: 'center', gap: 8, paddingHorizontal: 10, borderTopWidth: 1.5, borderStyle: 'dashed', borderColor: 'rgba(43,18,64,0.2)' },
@@ -93,6 +120,10 @@ const styles = StyleSheet.create({
   crown: { width: 22, height: 22 },
   num: { fontFamily: fonts.display, fontSize: 18, color: colors.ink },
   pts: { color: '#7E46D6' },
+  priceBox: { marginTop: 6, padding: 8, borderRadius: 14, backgroundColor: 'rgba(43,18,64,0.7)', gap: 2 },
+  priceTitle: { fontFamily: fonts.display, fontSize: 15, color: colors.candy.yellow, textAlign: 'center' },
+  priceSum: { marginTop: 4, fontFamily: fonts.display, fontSize: 13, lineHeight: 22, color: colors.candy.lime, textAlign: 'center' },
+  priceLine: { fontFamily: fonts.bold, fontSize: 12, color: colors.cream, textAlign: TEXT_RIGHT },
   spacer: { flex: 1, minHeight: 12 },
   actions: { flexDirection: ROW, gap: 9 },
 });

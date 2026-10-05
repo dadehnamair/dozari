@@ -1,3 +1,4 @@
+import { toPersianDigits } from '@dozari/shared';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput } from 'react-native';
 import { CandyButton } from '../components/CandyButton';
@@ -5,6 +6,7 @@ import { fa } from '../i18n/fa';
 import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
 import { loginWithCode, requestLoginCode } from './loginApi';
+import { useHardwareBack } from '../nav/useHardwareBack';
 
 const INK = '#3A2418';
 const t = fa.phoneLogin;
@@ -12,6 +14,7 @@ const textOf = (e: unknown): string => t.errors[e instanceof ApiError ? e.code :
 
 /** Sign in with a number: type it, get an SMS code, type the code. Reachable from settings; nothing here is needed to play. */
 export function PhoneLoginSheet({ onClose }: { onClose: () => void }) {
+  useHardwareBack(onClose);
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
   const [sent, setSent] = useState(false);
@@ -35,12 +38,12 @@ export function PhoneLoginSheet({ onClose }: { onClose: () => void }) {
       <Pressable style={styles.sheet} onPress={() => undefined}>
         <Text style={styles.title}>{t.title}</Text>
         <Text style={styles.text}>{t.intro}</Text>
-        <TextInput value={phone} onChangeText={setPhone} keyboardType="phone-pad" maxLength={20} placeholder={fa.phone.placeholder} style={styles.input} accessibilityLabel={t.phone} editable={!sent} />
-        {sent ? <TextInput value={code} onChangeText={setCode} keyboardType="number-pad" maxLength={8} placeholder={t.code} style={styles.input} accessibilityLabel={t.code} /> : null}
+        <TextInput value={toPersianDigits(phone)} onChangeText={setPhone} keyboardType="phone-pad" maxLength={20} placeholder={fa.phone.placeholder} style={styles.input} accessibilityLabel={t.phone} editable={!sent} />
+        {sent ? <TextInput value={toPersianDigits(code)} onChangeText={setCode} keyboardType="number-pad" maxLength={8} placeholder={t.code} style={styles.input} accessibilityLabel={t.code} /> : null}
         {note ? <Text style={[styles.text, note.bad && styles.bad]}>{note.text}</Text> : null}
         {sent ? <CandyButton label={t.login} color={colors.candy.lime} disabled={busy || code.trim().length === 0} onPress={login} /> : null}
         <CandyButton label={t.send} color={sent ? colors.candy.sky : colors.candy.lime} disabled={busy || phone.trim().length === 0} onPress={send} />
-        <CandyButton label={t.close} color={colors.candy.sky} onPress={onClose} />
+        <CandyButton label={t.close} sfx="back" color={colors.candy.sky} onPress={onClose} />
       </Pressable>
     </Pressable>
   );

@@ -96,6 +96,12 @@ export class TableService {
     return t ? this.view(t, userId) : null;
   }
 
+  /** Everyone seated at the table, or null when it is gone or the player does not sit there (the chat of a table is for its players only). */
+  memberIds(userId: string, code: string): string[] | null {
+    const t = this.live(code);
+    return t && t.seated.includes(userId) ? [...t.seated] : null;
+  }
+
   /** The table the player currently sits at, if any (to reopen the screen). */
   async mine(userId: string): Promise<TableView | null> {
     const code = this.byUser.get(userId);

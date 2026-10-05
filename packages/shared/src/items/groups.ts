@@ -731,5 +731,391 @@ export const ITEM_GROUPS: readonly ItemGroup[] = [
     "fa": "چرخ خرید"
    }
   ]
+ },
+ {
+  "id": "sample-14",
+  "titleFa": "نان و بقالی",
+  "color": "#FFE48A",
+  "icons": [
+   {
+    "key": "peykanJ",
+    "fa": "پیکان جوانان"
+   },
+   {
+    "key": "barbari",
+    "fa": "نان بربری"
+   },
+   {
+    "key": "lavash",
+    "fa": "نان لواش"
+   },
+   {
+    "key": "taftoon",
+    "fa": "نان تافتون"
+   },
+   {
+    "key": "yogurt",
+    "fa": "ماست"
+   },
+   {
+    "key": "meat",
+    "fa": "گوشت گوسفندی"
+   },
+   {
+    "key": "halvaArde",
+    "fa": "حلوا ارده"
+   }
+  ]
+ },
+ {
+  "id": "sample-15",
+  "titleFa": "تنقلات",
+  "color": "#FF8FB6",
+  "icons": [
+   {
+    "key": "pofak",
+    "fa": "پفک نمکی"
+   },
+   {
+    "key": "chips",
+    "fa": "چیپس"
+   },
+   {
+    "key": "gum",
+    "fa": "آدامس"
+   },
+   {
+    "key": "chocolate",
+    "fa": "شکلات تکی"
+   },
+   {
+    "key": "gummy",
+    "fa": "پاستیل"
+   },
+   {
+    "key": "nokhodchi",
+    "fa": "نخودچی کشمش"
+   },
+   {
+    "key": "ajil",
+    "fa": "آجیل مخلوط"
+   },
+   {
+    "key": "bastaniSonati",
+    "fa": "بستنی سنتی"
+   },
+   {
+    "key": "zoolbia",
+    "fa": "زولبیا بامیه"
+   }
+  ]
+ },
+ {
+  "id": "sample-16",
+  "titleFa": "نوشیدنی",
+  "color": "#8FDCFA",
+  "icons": [
+   {
+    "key": "doogh",
+    "fa": "دوغ"
+   },
+   {
+    "key": "sharbat",
+    "fa": "شربت آلبالو"
+   },
+   {
+    "key": "araq",
+    "fa": "عرق نعنا"
+   }
+  ]
+ },
+ {
+  "id": "sample-17",
+  "titleFa": "غذا",
+  "color": "#FFAA7A",
+  "icons": [
+   {
+    "key": "falafel",
+    "fa": "ساندویچ فلافل"
+   },
+   {
+    "key": "dizi",
+    "fa": "دیزی سنگی"
+   },
+   {
+    "key": "ash",
+    "fa": "آش رشته"
+   },
+   {
+    "key": "halim",
+    "fa": "حلیم"
+   },
+   {
+    "key": "sandwich",
+    "fa": "ساندویچ کالباس"
+   }
+  ]
+ },
+ {
+  "id": "sample-18",
+  "titleFa": "حمل‌ونقل",
+  "color": "#B8F08F",
+  "icons": [
+   {
+    "key": "busTicket",
+    "fa": "بلیت اتوبوس شهری"
+   },
+   {
+    "key": "metroTicket",
+    "fa": "بلیت مترو"
+   },
+   {
+    "key": "taxi",
+    "fa": "کرایه‌ی تاکسی"
+   },
+   {
+    "key": "gasPump",
+    "fa": "بنزین"
+   },
+   {
+    "key": "cng",
+    "fa": "گاز CNG"
+   },
+   {
+    "key": "bus",
+    "fa": "اتوبوس تهران–شیراز"
+   },
+   {
+    "key": "train",
+    "fa": "قطار تهران–مشهد"
+   },
+   {
+    "key": "peykan",
+    "fa": "پیکان"
+   },
+   {
+    "key": "vanet",
+    "fa": "پیکان وانت"
+   },
+   {
+    "key": "pride",
+    "fa": "پراید"
+   },
+   {
+    "key": "samand",
+    "fa": "سمند"
+   },
+   {
+    "key": "p206",
+    "fa": "پژو ۲۰۶"
+   },
+   {
+    "key": "motorbike",
+    "fa": "موتور هندا ۱۲۵"
+   },
+   {
+    "key": "bicycle",
+    "fa": "دوچرخه"
+   }
+  ]
+ },
+ {
+  "id": "sample-19",
+  "titleFa": "لوازم برقی و سرگرمی",
+  "color": "#C9A3FF",
+  "icons": [
+   {
+    "key": "tv",
+    "fa": "تلویزیون ۲۱ اینچ"
+   },
+   {
+    "key": "nokia",
+    "fa": "نوکیا ۱۱۰۰"
+   },
+   {
+    "key": "cd",
+    "fa": "سی‌دی بازی"
+   },
+   {
+    "key": "flash",
+    "fa": "فلش ۴ گیگ"
+   },
+   {
+    "key": "atari",
+    "fa": "آتاری"
+   },
+   {
+    "key": "handheld",
+    "fa": "بازی‌ماشین"
+   },
+   {
+    "key": "fridge",
+    "fa": "یخچال ساید"
+   },
+   {
+    "key": "washer",
+    "fa": "لباس‌شویی"
+   },
+   {
+    "key": "filmRoll",
+    "fa": "فیلم عکاسی"
+   },
+   {
+    "key": "newspaper",
+    "fa": "روزنامه"
+   },
+   {
+    "key": "magazine",
+    "fa": "مجله‌ی کودک"
+   },
+   {
+    "key": "gamenet",
+    "fa": "گیم‌نت"
+   },
+   {
+    "key": "vhs",
+    "fa": "فیلم ویدیو"
+   }
+  ]
+ },
+ {
+  "id": "sample-20",
+  "titleFa": "اسباب‌بازی",
+  "color": "#FFE48A",
+  "icons": [
+   {
+    "key": "domino",
+    "fa": "دومینو"
+   },
+   {
+    "key": "beachBall",
+    "fa": "توپ پلاستیکی"
+   },
+   {
+    "key": "football",
+    "fa": "توپ چرمی"
+   }
+  ]
+ },
+ {
+  "id": "sample-21",
+  "titleFa": "نوشت‌افزار",
+  "color": "#8FDCFA",
+  "icons": [
+   {
+    "key": "notebook",
+    "fa": "دفتر ۴۰ برگ"
+   },
+   {
+    "key": "pen",
+    "fa": "خودکار بیک"
+   },
+   {
+    "key": "testBook",
+    "fa": "کتاب تست"
+   },
+   {
+    "key": "ruler",
+    "fa": "خط‌کش"
+   },
+   {
+    "key": "storybook",
+    "fa": "کتاب قصه"
+   }
+  ]
+ },
+ {
+  "id": "sample-22",
+  "titleFa": "پوشاک و بهداشت",
+  "color": "#FF8FB6",
+  "icons": [
+   {
+    "key": "sock",
+    "fa": "جوراب نخی"
+   },
+   {
+    "key": "beanie",
+    "fa": "کلاه نخی"
+   },
+   {
+    "key": "jeans",
+    "fa": "شلوار جین"
+   },
+   {
+    "key": "toothpaste",
+    "fa": "خمیردندان"
+   },
+   {
+    "key": "shampoo",
+    "fa": "شامپو بچه"
+   },
+   {
+    "key": "tissue",
+    "fa": "دستمال کاغذی"
+   },
+   {
+    "key": "diaper",
+    "fa": "پوشک بچه"
+   }
+  ]
+ },
+ {
+  "id": "sample-23",
+  "titleFa": "خدمات، خانه و پول",
+  "color": "#B8F08F",
+  "icons": [
+   {
+    "key": "barber",
+    "fa": "آرایشگاه"
+   },
+   {
+    "key": "photoId",
+    "fa": "عکس ۳×۴"
+   },
+   {
+    "key": "apartment",
+    "fa": "اجاره‌ی ماهانه"
+   },
+   {
+    "key": "house",
+    "fa": "متر خانه"
+   },
+   {
+    "key": "bill",
+    "fa": "قبض گاز"
+   },
+   {
+    "key": "payphone",
+    "fa": "تلفن سکه‌ای"
+   },
+   {
+    "key": "pump",
+    "fa": "پمپ دوچرخه"
+   },
+   {
+    "key": "bulb",
+    "fa": "لامپ رشته‌ای"
+   },
+   {
+    "key": "battery",
+    "fa": "باتری قلمی"
+   },
+   {
+    "key": "postcard",
+    "fa": "کارت پستال"
+   },
+   {
+    "key": "lighter",
+    "fa": "فندک"
+   },
+   {
+    "key": "goldCoin",
+    "fa": "سکه بهار آزادی"
+   },
+   {
+    "key": "dollar",
+    "fa": "دلار"
+   }
+  ]
  }
 ];

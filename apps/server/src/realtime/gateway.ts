@@ -2,8 +2,8 @@ import type { Server as HttpServer } from 'node:http';
 import { Server } from 'socket.io';
 import type { Socket } from 'socket.io';
 import type { QueueProblem } from '@dozari/shared';
-import { ClientEvent, ServerEvent, chatTauntSchema, matchProposeSchema, matchResumeSchema, matchSubmitSchema, queueJoinSchema } from '@dozari/shared';
-import type { Ack } from '@dozari/shared';
+import { ClientEvent, ServerEvent, chatTauntSchema, matchProposeSchema, matchResumeSchema, matchSubmitSchema, priceSubmitSchema, queueJoinSchema } from '@dozari/shared';
+import type { Ack, LiveNotice } from '@dozari/shared';
 import type { UserRecord } from '../auth/service.js';
 import { ChatService } from '../chat/service.js';
 import { RateLimiter } from '../security/rate-limit.js';
@@ -18,6 +18,8 @@ export interface GatewayOptions {
   corsOrigin?: string;
   /** Admin kill switches: a non-null answer refuses new connections' queue joins (maintenance mode, duel feature off). */
   gate?: () => Promise<'MAINTENANCE' | 'FEATURE_OFF' | null>;
+  /** True when this player's level is high enough for the live duel queue. */
+  levelGate?: (userId: string) => Promise<boolean>;
   /** Daily duel cap: `canPlay` refuses a queue join over the cap, `onStarted` counts a real match for both players. */
   limit?: { canPlay: (userId: string) => Promise<boolean>; onStarted: (userId: string) => Promise<void> };
   /** Before queueing: false answers INSUFFICIENT_COINS (a free match or a rescue may apply). */
@@ -33,6 +35,8 @@ export interface GatewayOptions {
   onEmit?: (userId: string, event: string, payload: unknown) => void;
   /** Receives every socket connect and disconnect, so friends can show who is online. */
   presence?: Presence;
+  /** Pushes a small notice to one player's live sockets (friend request, inbox message); the gateway fills in `push`. */
+  notices?: LiveNotices;
   /** Why a player who has waited `waitedSec` is not being matched (nothing to play, nobody to play against); null = just wait. */
   diagnose?: (waitedSec: number) => Promise<QueueProblem | null>;
 }
@@ -48,6 +52,7 @@ export interface Gateway {
 }
 
 import type { Presence } from './presence.js';
+import type { LiveNotices } from './notices.js';
 
 const room = (userId: string) => `user:${userId}`;
 
@@ -63,6 +68,10 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
     maxHttpBufferSize: 16 * 1024,
     cors: opts.corsOrigin ? { origin: opts.corsOrigin === '*' ? true : opts.corsOrigin.split(',').map((o) => o.trim()) } : undefined,
   });
+  if (opts.notices) {
+    const push = (userId: string, payload: LiveNotice) => void io.to(room(userId)).emit(ServerEvent.notice, payload);
+    opts.notices.push = push;
+  }
   if (opts.chat) {
     const chat = opts.chat;
     chat.broadcast = (roomName, message) => void io.to(roomName).emit(ServerEvent.chatMessage, message);
@@ -128,6 +137,8 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
       const team = joined.data.mode === 'team';
       const closed = await opts.gate?.();
       if (closed) return ack?.({ ok: false, error: closed });
+      // New players sit out the live duel until they know the game (docs/logic/matchmaking.md §Level gate).
+      if (opts.levelGate && !(await opts.levelGate(userId))) return ack?.({ ok: false, error: 'LEVEL_TOO_LOW' });
       if (opts.limit && !(await opts.limit.canPlay(userId))) return ack?.({ ok: false, error: 'DAILY_CAP' });
       if (!team && opts.canAfford && !(await opts.canAfford(userId))) return ack?.({ ok: false, error: 'INSUFFICIENT_COINS' });
       if (matches?.inMatch(userId)) return ack?.({ ok: false, error: 'ALREADY_IN_MATCH' });
@@ -171,6 +182,13 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
       const body = matchSubmitSchema.safeParse(payload);
       if (!body.success) return ack?.({ ok: false, error: 'INVALID_PAYLOAD' });
       ack?.(matches ? matches.submit(userId, body.data.itemIds) : { ok: false, error: 'NOT_IN_MATCH' });
+    });
+
+    // A hidden guess in the duel's price-guess round (the rials arrive as a decimal string).
+    socket.on(ClientEvent.priceSubmit, (payload: unknown, ack?: (a: Ack) => void) => {
+      const body = priceSubmitSchema.safeParse(payload);
+      if (!body.success) return ack?.({ ok: false, error: 'INVALID_PAYLOAD' });
+      ack?.(matches ? matches.submitPrice(userId, BigInt(body.data.guessRials)) : { ok: false, error: 'NOT_IN_MATCH' });
     });
 
     socket.on(ClientEvent.matchPropose, (payload: unknown, ack?: (a: Ack) => void) => {

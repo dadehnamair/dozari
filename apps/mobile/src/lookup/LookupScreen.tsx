@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { PRODUCT_CATEGORIES } from '@dozari/shared';
 import type { LookupDetail, LookupHit } from '@dozari/shared';
+import { PriceFeedbackLink } from '../feedback/SuggestDialog';
 import { CandyButton } from '../components/CandyButton';
 import { Item } from '../components/Item';
 import { SceneBackground } from '../components/SceneBackground';
@@ -11,6 +12,7 @@ import { colors, fonts } from '../theme/colors';
 import { fetchLookup, searchProducts } from './api';
 import { dateLabel, priceLabel, rangeLine, yearsWithData } from './model';
 import { safeTop } from '../theme/safeArea';
+import { TEXT_RIGHT } from '../theme/direction';
 
 const INK = '#3A2418';
 
@@ -101,8 +103,9 @@ export function LookupScreen({ onBack }: { onBack: () => void }) {
                 ))}
               </>
             ) : null}
+            <PriceFeedbackLink product={{ id: detail.product.id, nameFa: detail.product.nameFa, year: year ?? undefined }} />
             <Text style={styles.note}>{fa.lookup.nominal}</Text>
-            <CandyButton label={fa.lookup.back} color={colors.candy.sky} onPress={() => setDetail(null)} />
+            <CandyButton label={fa.lookup.back} sfx="back" color={colors.candy.sky} onPress={() => setDetail(null)} />
           </View>
         ) : (
           <>
@@ -129,7 +132,7 @@ export function LookupScreen({ onBack }: { onBack: () => void }) {
                 </View>
               </Pressable>
             ))}
-            <CandyButton label={fa.lookup.back} color={colors.candy.sky} onPress={onBack} />
+            <CandyButton label={fa.lookup.back} sfx="back" color={colors.candy.sky} onPress={onBack} />
           </>
         )}
       </ScrollView>
@@ -141,7 +144,7 @@ const styles = StyleSheet.create({
   content: { padding: 20, paddingTop: safeTop(48), gap: 12 },
   title: { fontFamily: fonts.display, fontSize: 30, color: INK, textAlign: 'center' },
   hint: { fontFamily: fonts.bold, fontSize: 14, color: INK, textAlign: 'center' },
-  input: { backgroundColor: colors.cream, borderWidth: 3, borderColor: INK, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 10, fontFamily: fonts.bold, fontSize: 16, color: INK, textAlign: 'right' },
+  input: { backgroundColor: colors.cream, borderWidth: 3, borderColor: INK, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 10, fontFamily: fonts.bold, fontSize: 16, color: INK, textAlign: TEXT_RIGHT },
   card: { backgroundColor: 'rgba(251,241,222,0.95)', borderWidth: 3, borderColor: INK, borderRadius: 18, padding: 12, gap: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   flex: { flex: 1 },

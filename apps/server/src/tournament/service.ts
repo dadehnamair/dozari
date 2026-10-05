@@ -1,6 +1,6 @@
-import { TOURNAMENT_MAX_ENTRY_COINS, TOURNAMENT_MAX_PRIZE_COINS, TOURNAMENT_SIZES, buildBracket, finalPlaces, nextSlot, roundCount } from '@dozari/shared';
-import type { TournamentDetail, TournamentError, TournamentListItem } from '@dozari/shared';
-import type { MatchRow, NewTournament, TournamentRow, TournamentStore } from './store.js';
+import { TOURNAMENT_MAX_ENTRY_COINS, TOURNAMENT_MAX_ENTRY_GEMS, TOURNAMENT_MAX_PRIZE_GEMS, TOURNAMENT_MAX_PRIZE_COINS, TOURNAMENT_SIZES, buildBracket, finalPlaces, nextSlot, roundCount } from '@dozari/shared';
+import type { Sponsor, TournamentDetail, TournamentError, TournamentListItem } from '@dozari/shared';
+import type { MatchRow, NewTournament, PrizeRow, TournamentRow, TournamentStore } from './store.js';
 
 export interface TournamentDeps {
   levelOf(userId: string): Promise<number>;
@@ -12,6 +12,8 @@ export interface TournamentDeps {
   fillBots?(n: number): string[];
   /** Bots take part but are never paid prize coins. */
   isBot?(userId: string): boolean;
+  /** Looks a sponsor up (admin-defined); omit and tournaments carry no sponsor. */
+  sponsorOf?(id: string): Promise<(Sponsor & { isActive: boolean }) | null>;
   /** Tell a player something (Bale); must not throw into the flow. */
   notify?(userId: string, text: string): void;
   now?: () => number;
@@ -24,12 +26,16 @@ export interface TournamentInput {
   size: number;
   minPlayers: number;
   entryCoins: number;
+  /** Gems charged on top of the coins; may be left out = 0. */
+  entryGems?: number;
   minLevel: number;
   startsAt: number;
   botFill?: boolean;
   allowConcurrent?: boolean;
+  /** The sponsor of the tournament (must exist and be active); null / left out = none. */
+  sponsorId?: string | null;
   /** `spins` (lucky-wheel spins) may be left out = 0. */
-  prizes: { place: number; coins: number; spins?: number }[];
+  prizes: { place: number; coins: number; gems?: number; spins?: number }[];
 }
 
 export type Result<T = object> = ({ ok: true } & T) | { ok: false; error: TournamentError | 'INVALID' };
@@ -52,9 +58,10 @@ export class TournamentService {
       (TOURNAMENT_SIZES as readonly number[]).includes(i.size) &&
       i.minPlayers >= 2 && i.minPlayers <= i.size &&
       i.entryCoins >= 0 && i.entryCoins <= TOURNAMENT_MAX_ENTRY_COINS &&
+      (i.entryGems ?? 0) >= 0 && (i.entryGems ?? 0) <= TOURNAMENT_MAX_ENTRY_GEMS &&
       i.minLevel >= 1 &&
       i.titleFa.trim().length >= 2 &&
-      i.prizes.every((p) => [1, 2, 3].includes(p.place) && p.coins >= 0 && p.coins <= TOURNAMENT_MAX_PRIZE_COINS && (p.spins ?? 0) >= 0 && (p.spins ?? 0) <= 20) &&
+      i.prizes.every((p) => [1, 2, 3].includes(p.place) && p.coins >= 0 && p.coins <= TOURNAMENT_MAX_PRIZE_COINS && (p.spins ?? 0) >= 0 && (p.spins ?? 0) <= 20 && (p.gems ?? 0) >= 0 && (p.gems ?? 0) <= TOURNAMENT_MAX_PRIZE_GEMS) &&
       new Set(i.prizes.map((p) => p.place)).size === i.prizes.length
     );
   }
@@ -62,8 +69,9 @@ export class TournamentService {
   async create(input: TournamentInput, publish: boolean): Promise<Result<{ id: string }>> {
     if (!this.validate(input)) return { ok: false, error: 'INVALID' };
     if (publish && input.startsAt <= this.now()) return { ok: false, error: 'INVALID' };
-    const t: NewTournament = { titleFa: input.titleFa.trim(), descriptionFa: input.descriptionFa.trim(), iconKey: input.iconKey, status: publish ? 'open' : 'draft', size: input.size, minPlayers: input.minPlayers, entryCoins: input.entryCoins, minLevel: input.minLevel, botFill: input.botFill ?? false, allowConcurrent: input.allowConcurrent ?? false, startsAt: input.startsAt };
-    const row = await this.store.create(t, input.prizes.map((p) => ({ ...p, spins: p.spins ?? 0 })));
+    if (!(await this.sponsorOk(input.sponsorId))) return { ok: false, error: 'INVALID' };
+    const t: NewTournament = { titleFa: input.titleFa.trim(), descriptionFa: input.descriptionFa.trim(), iconKey: input.iconKey, status: publish ? 'open' : 'draft', size: input.size, minPlayers: input.minPlayers, entryCoins: input.entryCoins, entryGems: input.entryGems ?? 0, minLevel: input.minLevel, botFill: input.botFill ?? false, allowConcurrent: input.allowConcurrent ?? false, sponsorId: input.sponsorId ?? null, startsAt: input.startsAt };
+    const row = await this.store.create(t, input.prizes.map((p) => ({ ...p, gems: p.gems ?? 0, spins: p.spins ?? 0 })));
     return { ok: true, id: row.id };
   }
 
@@ -73,13 +81,29 @@ export class TournamentService {
     if (!t) return { ok: false, error: 'NOT_FOUND' };
     if (t.status !== 'draft' && t.status !== 'open') return { ok: false, error: 'BAD_STATE' };
     const entered = (await this.store.entries(id)).length > 0;
-    const structural = ['size', 'minPlayers', 'entryCoins', 'minLevel'] as const;
+    const structural = ['size', 'minPlayers', 'entryCoins', 'entryGems', 'minLevel'] as const;
     if (entered && structural.some((k) => input[k] !== undefined && input[k] !== t[k])) return { ok: false, error: 'BAD_STATE' };
-    const merged: TournamentInput = { titleFa: t.titleFa, descriptionFa: t.descriptionFa, iconKey: t.iconKey, size: t.size, minPlayers: t.minPlayers, entryCoins: t.entryCoins, minLevel: t.minLevel, botFill: t.botFill, allowConcurrent: t.allowConcurrent, startsAt: t.startsAt, prizes: input.prizes ?? (await this.store.prizes(id)), ...input };
+    const merged: TournamentInput = { titleFa: t.titleFa, descriptionFa: t.descriptionFa, iconKey: t.iconKey, size: t.size, minPlayers: t.minPlayers, entryCoins: t.entryCoins, entryGems: t.entryGems, minLevel: t.minLevel, botFill: t.botFill, allowConcurrent: t.allowConcurrent, sponsorId: t.sponsorId, startsAt: t.startsAt, prizes: input.prizes ?? (await this.store.prizes(id)), ...input };
     if (!this.validate(merged)) return { ok: false, error: 'INVALID' };
-    await this.store.update(id, { titleFa: merged.titleFa.trim(), descriptionFa: merged.descriptionFa.trim(), iconKey: merged.iconKey, size: merged.size, minPlayers: merged.minPlayers, entryCoins: merged.entryCoins, minLevel: merged.minLevel, botFill: merged.botFill ?? false, allowConcurrent: merged.allowConcurrent ?? false, startsAt: merged.startsAt });
-    if (input.prizes) await this.store.setPrizes(id, input.prizes.map((p) => ({ ...p, spins: p.spins ?? 0 })));
+    // An unchanged sponsor stays even if it was switched off since; only a newly chosen one has to be active.
+    if (input.sponsorId !== undefined && input.sponsorId !== t.sponsorId && !(await this.sponsorOk(input.sponsorId))) return { ok: false, error: 'INVALID' };
+    await this.store.update(id, { titleFa: merged.titleFa.trim(), descriptionFa: merged.descriptionFa.trim(), iconKey: merged.iconKey, size: merged.size, minPlayers: merged.minPlayers, entryCoins: merged.entryCoins, entryGems: merged.entryGems ?? 0, minLevel: merged.minLevel, botFill: merged.botFill ?? false, allowConcurrent: merged.allowConcurrent ?? false, sponsorId: merged.sponsorId ?? null, startsAt: merged.startsAt });
+    if (input.prizes) await this.store.setPrizes(id, input.prizes.map((p) => ({ ...p, gems: p.gems ?? 0, spins: p.spins ?? 0 })));
     return { ok: true };
+  }
+
+  private async sponsorOk(id: string | null | undefined): Promise<boolean> {
+    if (!id) return true;
+    const s = await this.deps.sponsorOf?.(id);
+    return !!s && s.isActive;
+  }
+
+  /** The sponsor of a tournament in full (what its page shows); a sponsor switched off later is hidden. */
+  private async sponsorFor(id: string | null): Promise<Sponsor | null> {
+    if (!id || !this.deps.sponsorOf) return null;
+    const s = await this.deps.sponsorOf(id);
+    if (!s || !s.isActive) return null;
+    return { id: s.id, nameFa: s.nameFa, taglineFa: s.taglineFa, descriptionFa: s.descriptionFa, bannerUrl: s.bannerUrl, logoUrl: s.logoUrl, linkUrl: s.linkUrl, accent: s.accent };
   }
 
   async publish(id: string): Promise<Result> {
@@ -110,7 +134,7 @@ export class TournamentService {
     return { ok: true, refunded };
   }
 
-  async adminList(): Promise<(TournamentRow & { joined: number; prizes: { place: number; coins: number; spins: number }[] })[]> {
+  async adminList(): Promise<(TournamentRow & { joined: number; prizes: PrizeRow[] })[]> {
     const rows = await this.store.list(['draft', 'open', 'running', 'finished', 'cancelled'], 100);
     return Promise.all(rows.map(async (t) => ({ ...t, joined: (await this.store.entries(t.id)).length, prizes: await this.store.prizes(t.id) })));
   }
@@ -120,13 +144,16 @@ export class TournamentService {
   async list(userId: string): Promise<TournamentListItem[]> {
     const rows = await this.store.list(['open', 'running', 'finished'], 40);
     const mine = await this.store.entriesOf(userId, rows.map((r) => r.id));
-    return Promise.all(rows.map(async (t) => ({ id: t.id, titleFa: t.titleFa, status: t.status, size: t.size, entryCoins: t.entryCoins, minLevel: t.minLevel, startsAt: t.startsAt, joined: (await this.store.entries(t.id)).length, iconKey: t.iconKey, entered: mine.has(t.id) })));
+    return Promise.all(rows.map(async (t) => {
+      const sp = await this.sponsorFor(t.sponsorId);
+      return { id: t.id, titleFa: t.titleFa, status: t.status, size: t.size, entryCoins: t.entryCoins, entryGems: t.entryGems, minLevel: t.minLevel, startsAt: t.startsAt, joined: (await this.store.entries(t.id)).length, iconKey: t.iconKey, entered: mine.has(t.id), sponsor: sp ? { id: sp.id, nameFa: sp.nameFa, logoUrl: sp.logoUrl } : null };
+    }));
   }
 
   async detail(userId: string, id: string): Promise<TournamentDetail | null> {
     const t = await this.store.get(id);
     if (!t || t.status === 'draft') return null;
-    const [entries, prizes, matches, level, balance] = await Promise.all([this.store.entries(id), this.store.prizes(id), this.store.matches(id), this.deps.levelOf(userId), this.store.balance(userId)]);
+    const [entries, prizes, matches, level, balance, gems] = await Promise.all([this.store.entries(id), this.store.prizes(id), this.store.matches(id), this.deps.levelOf(userId), this.store.balance(userId), this.store.gemBalance(userId)]);
     const names = new Map<string, { nickname: string; avatarKey: string }>();
     const who = async (uid: string | null) => {
       if (!uid) return null;
@@ -143,7 +170,7 @@ export class TournamentService {
     }
     const entered = entries.some((e) => e.userId === userId);
     const busy = !entered && !t.allowConcurrent && t.status === 'open' && (await this.store.busyElsewhere(userId, id));
-    const blocked = entered ? null : t.status !== 'open' ? 'CLOSED' : entries.length >= t.size ? 'FULL' : level < t.minLevel ? 'LEVEL' : busy ? 'BUSY' : balance < t.entryCoins ? 'COINS' : null;
+    const blocked = entered ? null : t.status !== 'open' ? 'CLOSED' : entries.length >= t.size ? 'FULL' : level < t.minLevel ? 'LEVEL' : busy ? 'BUSY' : balance < t.entryCoins ? 'COINS' : gems < t.entryGems ? 'GEMS' : null;
     const prizeOf = new Map(prizes.map((p) => [p.place, p.coins]));
     const results = t.status === 'finished' ? finalPlaces(matches, t.size) : [];
     const resultRows = [];
@@ -151,7 +178,7 @@ export class TournamentService {
       const w = (await who(r.userId))!;
       resultRows.push({ id: r.userId, nickname: w.nickname, place: r.place as 1 | 2 | 3, coins: prizeOf.get(r.place) ?? 0 });
     }
-    return { id: t.id, titleFa: t.titleFa, status: t.status, size: t.size, entryCoins: t.entryCoins, minLevel: t.minLevel, startsAt: t.startsAt, joined: entries.length, iconKey: t.iconKey, entered, descriptionFa: t.descriptionFa, prizes, players, bracket, rounds: roundCount(t.size), blocked, results: resultRows.sort((x, y) => x.place - y.place) };
+    return { id: t.id, titleFa: t.titleFa, status: t.status, size: t.size, entryCoins: t.entryCoins, entryGems: t.entryGems, minLevel: t.minLevel, startsAt: t.startsAt, joined: entries.length, iconKey: t.iconKey, entered, descriptionFa: t.descriptionFa, sponsor: await this.sponsorFor(t.sponsorId), prizes, players, bracket, rounds: roundCount(t.size), blocked, results: resultRows.sort((x, y) => x.place - y.place) };
   }
 
   async join(userId: string, id: string): Promise<Result<{ balance: number }>> {
@@ -160,9 +187,9 @@ export class TournamentService {
     if (t.status !== 'open') return { ok: false, error: 'CLOSED' };
     if ((await this.deps.levelOf(userId)) < t.minLevel) return { ok: false, error: 'LEVEL' };
     if (!t.allowConcurrent && (await this.store.busyElsewhere(userId, id))) return { ok: false, error: 'BUSY' };
-    const out = await this.store.join(id, userId, t.entryCoins, this.now());
+    const out = await this.store.join(id, userId, t.entryCoins, t.entryGems, this.now());
     if (out === 'ok') return { ok: true, balance: await this.store.balance(userId) };
-    return { ok: false, error: out === 'full' ? 'FULL' : out === 'already' ? 'ALREADY_IN' : out === 'insufficient' ? 'COINS' : 'CLOSED' };
+    return { ok: false, error: out === 'full' ? 'FULL' : out === 'already' ? 'ALREADY_IN' : out === 'insufficient' ? ((await this.store.balance(userId)) < t.entryCoins ? 'COINS' : 'GEMS') : 'CLOSED' };
   }
 
   async leave(userId: string, id: string): Promise<Result<{ balance: number }>> {
@@ -196,7 +223,7 @@ export class TournamentService {
     let entries = await this.store.entries(t.id);
     if (t.botFill && this.deps.fillBots && entries.length < t.size) {
       // Empty seats go to idle bot accounts (no entry fee); they play like anyone else.
-      for (const botId of this.deps.fillBots(t.size - entries.length)) await this.store.join(t.id, botId, 0, this.now());
+      for (const botId of this.deps.fillBots(t.size - entries.length)) await this.store.join(t.id, botId, 0, 0, this.now());
       entries = await this.store.entries(t.id);
     }
     if (entries.length < t.minPlayers) {
@@ -257,7 +284,7 @@ export class TournamentService {
     if (!fresh || fresh.status === 'finished') return;
     const prizes = new Map((await this.store.prizes(t.id)).map((p) => [p.place, p]));
     const places = finalPlaces(matches, t.size);
-    const awards = places.filter((p) => !this.deps.isBot?.(p.userId)).map((p) => ({ userId: p.userId, coins: prizes.get(p.place)?.coins ?? 0, spins: prizes.get(p.place)?.spins ?? 0 }));
+    const awards = places.filter((p) => !this.deps.isBot?.(p.userId)).map((p) => ({ userId: p.userId, coins: prizes.get(p.place)?.coins ?? 0, gems: prizes.get(p.place)?.gems ?? 0, spins: prizes.get(p.place)?.spins ?? 0 }));
     await this.store.payout(t.id, awards);
     await this.store.update(t.id, { status: 'finished', finishedAt: this.now() });
     for (const p of places) {

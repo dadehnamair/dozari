@@ -34,7 +34,12 @@ Daily limits reset at 00:00 Asia/Tehran. Two starter items are created on first 
 max 3 packs a day) — edit or hide them in the admin panel. The player sees the level gate, the daily limit and "not enough coins"
 on the item before buying.
 
-Paid-for-real-money items (cosmetics unlocked at a level) will be shop items with another currency; not built.
+**Character items live in the fitting room, not here (D179).** `effect = cosmetic` rows (hat, hair, glasses, outfit,
+accessory) are still `shop_items` priced in the admin panel — free (0), coins, gems, and/or a real-money price in toman —
+but the client lists them only in the «اتاق پرو» screen (`apps/mobile/src/wardrobe/`); the hujre shows the other effects.
+The server API is unchanged (`GET /shop`, `POST /shop/:id/buy`, `POST /shop/:id/equip`, the Bale invoice for real money).
+
+Paid-for-real-money items are shop items with a toman price (D170, only offered when `feature.coin_packages` is on).
 
 ## API
 

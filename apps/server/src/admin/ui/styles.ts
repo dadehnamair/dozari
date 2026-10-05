@@ -24,7 +24,7 @@ input, select, textarea, button { font:inherit; color:inherit; }
 .side { background:var(--card); color:var(--ink); border-inline-end:1px solid var(--line); padding:14px 10px; position:sticky; top:0; height:100vh; overflow:auto; display:flex; flex-direction:column; gap:2px; }
 .brand { display:flex; align-items:center; gap:10px; padding:4px 10px 14px; font-size:20px; font-weight:800; }
 .brand i { width:34px; height:34px; border-radius:50%; background:radial-gradient(circle at 35% 30%,#fff4b0,#ffc93c 55%,#d98a0b); display:grid; place-items:center; color:#7a4a00; font-style:normal; font-size:18px; }
-.nav-title { font-size:11px; color:var(--muted); padding:14px 12px 4px; font-weight:700; }
+.nav-title { font-size:12px; font-weight:700; color:var(--muted); padding:16px 12px 4px; margin-top:6px; border-top:1px solid var(--line); } .nav-title:first-child { border-top:0; margin-top:0; }
 .nav a { display:flex; align-items:center; gap:10px; padding:7px 12px; border-radius:10px; color:var(--ink); text-decoration:none; font-size:14px; }
 .nav a:hover { background:var(--card2); }
 .nav a[aria-current=page] { background:color-mix(in srgb,var(--brand) 13%,transparent); color:var(--brand); font-weight:700; }
@@ -38,6 +38,8 @@ input, select, textarea, button { font:inherit; color:inherit; }
 .menu-btn { display:none; }
 .card { background:var(--card); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow); padding:18px; margin-bottom:16px; }
 .card h2 { margin:0 0 4px; font-size:17px; }
+.add-head { display:flex; align-items:flex-start; gap:12px; justify-content:space-between; flex-wrap:wrap; } .add-head .sub { margin-bottom:0; max-width:62ch; } .add-head .btn { flex:none; }
+.page-desc { color:var(--muted); font-size:13px; margin:0 0 14px; max-width:80ch; }
 .card > .sub { color:var(--muted); font-size:13px; margin-bottom:12px; }
 .grid { display:grid; gap:14px; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); }
 .stat-card { background:var(--card); border:1px solid var(--line); border-radius:var(--r); box-shadow:var(--shadow); padding:16px; display:flex; flex-direction:column; gap:2px; position:relative; overflow:hidden; }

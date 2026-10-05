@@ -4,8 +4,8 @@ import fastifyCors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
 import { resolve } from 'node:path';
 import { rialsToTomanString } from '@dozari/shared';
-import { CHAT_RETENTION_DAYS, TOURNAMENT_TICK_SECONDS, WHEEL_SLICES_DEFAULT, scaleSlices } from '@dozari/shared';
-import type { HintRules } from '@dozari/shared';
+import { CHAT_RETENTION_DAYS, MISSION_KEYS, TOURNAMENT_TICK_SECONDS, WHEEL_SLICES_DEFAULT, scaleSlices } from '@dozari/shared';
+import type { HintRules, MissionKey } from '@dozari/shared';
 import { createDb } from '@dozari/db';
 import { createDbCatalogRepository } from './catalog/db-repository.js';
 import { DailyRewardService } from './economy/daily-reward.js';
@@ -15,6 +15,8 @@ import { AuthService } from './auth/service.js';
 import { createDbUserRepository } from './auth/db-repository.js';
 import { attachGateway } from './realtime/gateway.js';
 import { Presence } from './realtime/presence.js';
+import { createLiveNotices } from './realtime/notices.js';
+import type { LiveNotices } from './realtime/notices.js';
 import type { Gateway } from './realtime/gateway.js';
 import type { MatchDeps } from './realtime/match-service.js';
 import { PlayerService, rulesFromSettings } from './player/service.js';
@@ -38,6 +40,7 @@ import { createDbDailyStore } from './daily/store.js';
 import { registerTournamentRoutes } from './tournament/routes.js';
 import { TournamentService } from './tournament/service.js';
 import { createDbTournamentStore } from './tournament/store.js';
+import { createDbSponsorStore } from './sponsor/store.js';
 import { BotDriver } from './botplayers/driver.js';
 import { BotPlayerService } from './botplayers/service.js';
 import { createDbBotPlayerStore } from './botplayers/store.js';
@@ -90,7 +93,7 @@ import { registerSecurityHeaders } from './security/headers.js';
 import { checkProductionConfig } from './security/config.js';
 import { createDbNotifyStore } from './notify/store.js';
 import type { NotifyStore } from './notify/store.js';
-import { BALE_TEXT } from './notify/texts.js';
+import { BALE_TEXT, BIRTHDAY_TITLE } from './notify/texts.js';
 import { createDbSettingsStore } from './settings/db-store.js';
 import { SettingsService } from './settings/service.js';
 import type { AdminRepository } from './admin/routes.js';
@@ -103,9 +106,27 @@ import { createDbPuzzleAdmin } from './puzzles/admin.js';
 import { startPuzzlePoolScheduler } from './puzzles/pool.js';
 import { registerCoinPackageRoutes } from './economy/coin-packages-routes.js';
 import { createDbCoinPackageStore } from './economy/coin-packages-store.js';
-import { registerShopRoutes } from './economy/shop-routes.js';
+import { ShopRealMoney } from './economy/shop-real.js';
+import { createDbLandingStore } from './landing/store.js';
+import { LandingService } from './landing/service.js';
+import { registerLandingPublicRoutes } from './landing/routes.js';
+import { createDbShortLinkStore } from './shortlinks/store.js';
+import { ShortLinkService } from './shortlinks/service.js';
+import { handleShortHost, registerShortLinkRoutes } from './shortlinks/routes.js';
+import { registerShopPayRoutes, registerShopRoutes } from './economy/shop-routes.js';
 import { LevelRoadService, registerRoadRoutes } from './progress/road.js';
 import { createDbRewardStore } from './progress/rewards-store.js';
+import { ProfileTaskService, registerProfileTaskRoutes } from './profile/tasks.js';
+import { createDbGemWallet, registerGemRoutes } from './economy/gems.js';
+import type { GemWalletReader } from './economy/gems.js';
+import { createDbProfileTaskStore } from './profile/tasks-store.js';
+import { BirthdayService, registerBirthdayRoutes } from './profile/birthday.js';
+import { createErrorReporter } from './errors/report.js';
+import { buildFeedbackService } from './feedback/build.js';
+import { applyLedgerEntry } from './economy/ledger.js';
+import type { FeedbackService } from './feedback/service.js';
+import { registerFeedbackRoutes } from './feedback/routes.js';
+import { createDbBirthdayStore } from './profile/birthday-store.js';
 import { ShopService } from './economy/shop.js';
 import { createDbShopStore } from './economy/shop-store.js';
 import { HintService } from './solo/hints.js';
@@ -119,12 +140,17 @@ import { TableService } from './tables/service.js';
 import { registerTableRoutes } from './tables/routes.js';
 import { currentUser } from './auth/routes.js';
 import { registerSoloRoutes } from './solo/routes.js';
+import { registerPriceOnlyRoutes } from './priceonly/routes.js';
+import { PriceOnlyService } from './priceonly/service.js';
+import { createDbPriceOnlySource } from './priceonly/db-source.js';
 import { SoloService } from './solo/service.js';
 import type { CatalogRepository } from './catalog/routes.js';
 
 export interface ServerDeps {
   /** Behind a reverse proxy: trust `X-Forwarded-For` for the client IP (needed for the per-IP rate limits to see real clients). */
   trustProxy?: boolean;
+  /** Called with every unexpected server error (and crash); wired to the self-hosted collector by `SENTRY_DSN`. */
+  reportError?: (err: unknown, where?: string) => void;
   catalog?: CatalogRepository;
   /** Interim catalog review page + API at `/admin`; registered only when a token is provided. */
   admin?: { repo: AdminRepository; token?: string; accounts?: AdminAccounts };
@@ -160,6 +186,12 @@ export interface ServerDeps {
   botDriver?: BotDriver;
   /** Live-socket tracker shared by the gateway and the friends list. */
   presence?: Presence;
+  /** Blog, cast and FAQ for the landing site: `/public/*` and the admin pages. */
+  landing?: LandingService;
+  /** Self-hosted short links: `/s/:code` everywhere and the whole short domain. */
+  shortLinks?: ShortLinkService;
+  /** Live «something new» pushes (friend request, inbox message) over the socket. */
+  notices?: LiveNotices;
   /** Bale outbox, used to nudge an offline friend about a table invite. */
   notify?: NotifyService;
   /** Admin message center; its in-app channel feeds `GET /inbox`. */
@@ -178,6 +210,10 @@ export interface ServerDeps {
   adminModules?: Omit<AdminModules, 'settings'>;
   /** Solo practice sessions (`/solo/*`). */
   solo?: SoloService;
+  /** Is this player's level enough for the live duel queue (`duel.min_level`)? Absent = everyone may. */
+  duelLevelGate?: (userId: string) => Promise<boolean>;
+  /** Price-only games (`/price-only/*`). */
+  priceOnly?: PriceOnlyService;
   /** Paid hints of solo games; needs `solo` and `auth`. */
   hints?: HintService;
   /** Private tables (`/tables`); needs `auth` and the live-match service. */
@@ -190,8 +226,16 @@ export interface ServerDeps {
   shop?: ShopService;
   /** Level road (`/me/levels`, D109); needs `auth`. */
   levelRoad?: LevelRoadService;
+  profileTasks?: ProfileTaskService;
+  /** Birth date, birthday week, yearly gift and friend messages (D160). */
+  birthday?: BirthdayService;
+  /** Reports of players and the suggestion / vote / approve loop (D177). */
+  feedback?: FeedbackService;
+  gems?: Pick<GemWalletReader, 'wallet'>;
   /** Coin packages bought with real money (`/coin-packages`, off by default); needs `auth`. */
   coinPackages?: CoinPackageService;
+  /** Shop items bought with real money (`/shop-pay`, behind the same switch as coin packages). */
+  shopReal?: ShopRealMoney;
   /** Allowed browser origins (e.g. Expo web dev). `*` allows any. Off when unset: native apps don't need CORS. */
   corsOrigin?: string;
   /** Docker-free dev: directory of uploaded product images, served at `/images/*`. */
@@ -208,6 +252,7 @@ export function buildServer(deps: ServerDeps = {}) {
     const status = err.statusCode && err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 500;
     if (status >= 500) {
       req.log.error({ err }, 'request failed');
+      deps.reportError?.(err, `${req.method} ${req.routeOptions?.url ?? 'unknown'}`);
       return reply.code(500).send({ error: 'internal' });
     }
     return reply.code(status).send({ error: status === 413 ? 'payload_too_large' : status === 429 ? 'rate_limited' : 'invalid_request' });
@@ -217,6 +262,16 @@ export function buildServer(deps: ServerDeps = {}) {
   const anyLimit = new RateLimiter(300, 60_000);
   const guestLimit = new RateLimiter(20, 60_000);
   app.addHook('onRequest', async (req, reply) => {
+    if (deps.settings && deps.shortLinks) {
+      // A request that arrives on the short domain is a short link (or the home redirect), answered before any other rule.
+      const host = (req.headers.host ?? '').split(':')[0]?.toLowerCase() ?? '';
+      const short = (await deps.settings.text('domain.short')).trim().toLowerCase();
+      if (short && host === short) {
+        const landing = (await deps.settings.text('domain.landing')).trim();
+        const out = await handleShortHost(deps.shortLinks, req.url.split('?')[0] ?? '/', landing ? `https://${landing}` : null);
+        return out.location ? reply.header('cache-control', 'no-store').redirect(out.location, 302) : reply.code(404).send({ error: 'not_found' });
+      }
+    }
     if (deps.settings) {
       const verdict = await gateForPath(deps.settings, req.url.split('?')[0] ?? '');
       if (verdict) return reply.code(503).send(verdict);
@@ -283,13 +338,21 @@ export function buildServer(deps: ServerDeps = {}) {
     return { ok: true, online };
   } : undefined);
   if (deps.solo) registerSoloRoutes(app, deps.solo, deps.auth, deps.hints, deps.limiter);
+  if (deps.priceOnly) registerPriceOnlyRoutes(app, deps.priceOnly, deps.auth);
   if (deps.auth && deps.shop) registerShopRoutes(app, deps.auth, deps.shop);
   if (deps.auth && deps.levelRoad) registerRoadRoutes(app, deps.auth, deps.levelRoad);
+  if (deps.auth && deps.profileTasks) registerProfileTaskRoutes(app, deps.auth, deps.profileTasks);
+  if (deps.auth && deps.birthday) registerBirthdayRoutes(app, deps.auth, deps.birthday);
+  if (deps.auth && deps.feedback) registerFeedbackRoutes(app, deps.auth, deps.feedback);
+  if (deps.auth && deps.gems) registerGemRoutes(app, deps.auth, deps.gems);
+  if (deps.landing && deps.settings) registerLandingPublicRoutes(app, deps.landing, deps.settings);
+  if (deps.shortLinks) registerShortLinkRoutes(app, deps.shortLinks);
+  if (deps.auth && deps.shopReal) registerShopPayRoutes(app, deps.auth, deps.shopReal, deps.notify ? { send: (id, inv) => deps.notify!.sendInvoice(id, inv) } : undefined);
   if (deps.auth && deps.coinPackages) registerCoinPackageRoutes(app, deps.auth, deps.coinPackages, deps.notify ? { send: (id, inv) => deps.notify!.sendInvoice(id, inv) } : undefined);
   let gateway: Gateway | undefined;
   if (deps.auth && deps.realtime) {
     const auth = deps.auth;
-    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin: deps.corsOrigin, match: deps.match, canAfford: deps.duelStakes ? (u) => deps.duelStakes!.canQueue(u) : undefined, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, limit: deps.limiter ? { canPlay: async (u) => (await deps.limiter!.check(u, 'duel')).ok, onStarted: (u) => deps.limiter!.record(u, 'duel') } : undefined, chat: deps.chat, presence: deps.presence, onEmit: deps.botDriver ? (u, e, p) => deps.botDriver!.onEmit(u, e, p) : undefined, diagnose: deps.match ? createQueueDiagnosis({ hasPuzzle: async () => (await deps.match!.puzzles.pickRandom()) !== null, botsReady: () => deps.botDriver?.ready() ?? false, graceSec: 45 }) : undefined });
+    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin: deps.corsOrigin, match: deps.match, canAfford: deps.duelStakes ? (u) => deps.duelStakes!.canQueue(u) : undefined, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, levelGate: deps.duelLevelGate, limit: deps.limiter ? { canPlay: async (u) => (await deps.limiter!.check(u, 'duel')).ok, onStarted: (u) => deps.limiter!.record(u, 'duel') } : undefined, chat: deps.chat, presence: deps.presence, notices: deps.notices, onEmit: deps.botDriver ? (u, e, p) => deps.botDriver!.onEmit(u, e, p) : undefined, diagnose: deps.match ? createQueueDiagnosis({ hasPuzzle: async () => (await deps.match!.puzzles.pickRandom()) !== null, botsReady: () => deps.botDriver?.ready() ?? false, graceSec: 45 }) : undefined });
     if (deps.live) {
       deps.live.matches = gateway.matches;
       deps.live.queue = gateway.queue;
@@ -337,9 +400,17 @@ if (isMainModule(import.meta.url)) {
   const adminToken = process.env.ADMIN_TOKEN;
   const jwtSecret = process.env.JWT_SECRET ?? (process.env.NODE_ENV === 'production' ? undefined : 'dev-only-secret-change-me');
   if (db && !jwtSecret) throw new Error('JWT_SECRET is required in production');
-  const auth = db && jwtSecret ? new AuthService(createDbUserRepository(db), createTokenSigner(jwtSecret)) : undefined;
+  const auth =
+    db && jwtSecret
+      ? new AuthService(createDbUserRepository(db), createTokenSigner(jwtSecret), Math.random, async (userId) => {
+          // The signup faucet (docs/logic/economy.md): once per new account; the key makes a retry a no-op.
+          const bonus = (await settings?.num('economy.signup_bonus')) ?? 0;
+          if (bonus > 0) await db.transaction(async (tx) => void (await applyLedgerEntry(tx, { userId, delta: bonus, reason: 'signup_bonus', refType: 'user', refId: userId, idempotencyKey: `signup_bonus:${userId}` })));
+        })
+      : undefined;
   const settings = db ? new SettingsService(createDbSettingsStore(db)) : undefined;
   const presence = new Presence();
+  const notices = createLiveNotices();
   const baleToken = process.env.BALE_BOT_TOKEN;
   const baleUsername = process.env.BALE_BOT_USERNAME?.replace(/^@/, '') ?? null;
   const baleClient = baleToken ? createBaleClient(baleToken, { base: process.env.BALE_API_BASE }) : null;
@@ -386,13 +457,22 @@ if (isMainModule(import.meta.url)) {
         Date.now,
         (targetId, nickname) => {
           void notify?.notify(targetId, 'friend_request', BALE_TEXT.friendRequest(nickname)).catch(() => undefined);
+          notices.push(targetId, { kind: 'friend_request', from: nickname });
         },
         player,
         badges,
         (id) => presence.isOnline(id),
+        (ids) => birthday?.info(ids) ?? Promise.resolve(new Map()),
       )
     : undefined;
   const messages = db ? new MessageCenter(createDbMessageStore(db), notify ?? null) : undefined;
+  if (messages) {
+    // Online recipients get a nudge so the inbox badge moves without a reload; offline ones see it on the next load.
+    messages.onDelivered = (ids) => {
+      const online = new Set(presence.onlineIds());
+      for (const id of ids) if (online.has(id)) notices.push(id, { kind: 'inbox' });
+    };
+  }
   const invite = inviteStore && settings && player ? new InviteService(inviteStore, () => inviteRulesFromSettings(settings), async (id) => (await player.levelOf(id)).level.level, async (id) => (await player.levelOf(id)).stats.games, () => randomInt(0, 2 ** 30) / 2 ** 30) : undefined;
   if (player) {
     player.afterGame = async (id) => {
@@ -401,6 +481,8 @@ if (isMainModule(import.meta.url)) {
     };
   }
   const chatStore = db ? createDbChatStore(db) : undefined;
+  /** The table service is built after the chat service (the tables need matches); table chat reaches it through this holder. */
+  const tableRef: { svc?: TableService } = {};
   const chat =
     chatStore && settings && player && socialStore && badges && inviteStore
       ? new ChatService(chatStore, {
@@ -411,6 +493,7 @@ if (isMainModule(import.meta.url)) {
           mute: (id) => badges.isMuted(id),
           hasContactPerk: (id) => badges.hasPerk(id, 'share_contact'),
           areFriends: async (a, b) => (await socialStore.pair(a, b))?.status === 'accepted',
+          tableMembers: (id, code) => tableRef.svc?.memberIds(id, code) ?? null,
           rules: () => chatRulesFromSettings(settings),
           filter: words,
         })
@@ -436,11 +519,13 @@ if (isMainModule(import.meta.url)) {
         })
       : undefined;
   if (chat && botDriver) chat.onCityMessage = (cityId, message) => void botDriver.onCityMessage(cityId, message);
+  const sponsorStore = db ? createDbSponsorStore(db) : undefined;
   const tournamentService =
     db && settings && player && socialStore
       ? new TournamentService(createDbTournamentStore(db), {
           levelOf: async (id) => (await player.levelOf(id)).level.level,
           profileOf: async (id) => socialStore.publicRow(id),
+          sponsorOf: async (id) => (await sponsorStore?.get(id)) ?? null,
           startMatch: async (a, b) => (live.matches ? live.matches.start(a, b, { friendly: true }) : false),
           inMatch: (id) => live.matches?.inMatch(id) ?? false,
           fillBots: (n) => botDriver?.fillSeats(n) ?? [],
@@ -448,14 +533,39 @@ if (isMainModule(import.meta.url)) {
           notify: (id, text) => void notify?.notify(id, 'admin', text).catch(() => undefined),
         })
       : undefined;
+  const wheelStore = db ? createDbWheelStore(db) : undefined;
   const wheel =
-    db && settings
-      ? new WheelService(createDbWheelStore(db), async () => ({
-          enabled: (await settings.num('wheel.enabled')) === 1,
-          slices: scaleSlices(WHEEL_SLICES_DEFAULT, await settings.num('wheel.prize_scale_percent')),
-          dailySpins: await settings.num('wheel.daily_spins'),
-        }), () => randomInt(0, 2 ** 32) / 2 ** 32)
+    db && settings && wheelStore
+      ? new WheelService(wheelStore, async () => {
+          // The live table (admin-edited); a slice with no odds never shows. An empty table falls back to the shared default.
+          const live = (await wheelStore.prizes()).filter((p) => p.weight > 0 && (p.kind !== 'cosmetic' || p.itemId)).map((p) => ({ kind: p.kind, amount: p.amount, weight: p.weight, itemId: p.itemId ?? undefined, iconKey: p.iconKey, titleFa: p.titleFa ?? undefined }));
+          return {
+            enabled: (await settings.num('wheel.enabled')) === 1,
+            slices: scaleSlices(live.length > 0 ? live : WHEEL_SLICES_DEFAULT, await settings.num('wheel.prize_scale_percent')),
+            dailySpins: await settings.num('wheel.daily_spins'),
+            winSpins: (await settings.num('wheel.win_spins')) === 1,
+            refillHours: await settings.num('wheel.refill_hours'),
+            refillCap: await settings.num('wheel.refill_cap'),
+            dupeCoins: await settings.num('wheel.cosmetic_dupe_coins'),
+          };
+        }, () => randomInt(0, 2 ** 32) / 2 ** 32)
       : undefined;
+  const birthday =
+    db && settings && socialStore
+      ? new BirthdayService({
+          store: createDbBirthdayStore(db),
+          rules: async () => {
+            const [minAge, before, length, coins, gems, spins] = await Promise.all(['birthday.min_age', 'birthday.week_before_days', 'birthday.week_days', 'birthday.gift_coins', 'birthday.gift_gems', 'birthday.gift_spins'].map((k) => settings.num(k)));
+            return { minAge: minAge!, before: before!, length: length!, coins: coins!, gems: gems!, spins: spins! };
+          },
+          friendsOf: async (id) => (await socialStore.friends(id)).map((f) => f.id),
+          giveSpins: (id, ref, n) => wheel?.give(id, 'birthday', ref, n) ?? Promise.resolve(0),
+          tell: (ids, title, body) => messages?.tellUsers(ids, title, body) ?? Promise.resolve(),
+          texts: { weekTitle: BIRTHDAY_TITLE.week, weekBody: BALE_TEXT.birthdayWeek, dayTitle: BIRTHDAY_TITLE.day, dayBody: BALE_TEXT.birthdayDay },
+        })
+      : undefined;
+  const productAdmin = db ? createDbProductAdmin(db) : undefined;
+  const feedback = db && settings && productAdmin ? buildFeedbackService({ db, settings, productAdmin, player, socialStore }) : undefined;
   const duelStakes =
     db && settings
       ? new DuelStakes(createDbStakeStore(db), {
@@ -469,6 +579,7 @@ if (isMainModule(import.meta.url)) {
             rescueTarget: await settings.num('duel.rescue_target'),
           }),
           isBot: (id) => botDriver?.isBot(id) ?? false,
+          priceWager: () => settings.num('duel.price_wager'),
           onWin: (matchId, userId) => wheel?.grantForWin(userId, matchId).catch((e) => console.error('[wheel] grant failed', matchId, e)) ?? Promise.resolve(),
         })
       : undefined;
@@ -482,6 +593,7 @@ if (isMainModule(import.meta.url)) {
           idleMs: async () => (await settings.num('table.idle_minutes')) * 60_000,
         })
       : undefined;
+  tableRef.svc = tableService;
   const transfers = db && settings && socialStore && inviteStore ? new TransferService(createDbTransferStore(db), socialStore, () => transferRulesFromSettings(settings), async (id) => (player ? (await player.levelOf(id)).level.level : 1), (id) => inviteStore.isActivated(id)) : undefined;
   const find =
     db && settings && socialStore
@@ -500,10 +612,21 @@ if (isMainModule(import.meta.url)) {
       : undefined;
   const levelOf = async (id: string) => (player ? (await player.levelOf(id)).level.level : 1);
   const shopStore = db ? createDbShopStore(db) : undefined;
+  const landingService = db ? new LandingService(createDbLandingStore(db)) : undefined;
+  const shortLinkService = db && settings ? new ShortLinkService(createDbShortLinkStore(db), () => settings.text('domain.short')) : undefined;
+  if (social && shopStore) {
+    const wardrobe = new ShopService(shopStore, levelOf);
+    social.wornOf = (id) => wardrobe.worn(id);
+  }
+  const shopReal = shopStore ? new ShopRealMoney(shopStore, levelOf) : undefined;
   const coinPackageService = db ? new CoinPackageService(createDbCoinPackageStore(db), levelOf) : undefined;
   if (notify && coinPackageService) {
     // Coins bought with the Bale wallet: the bot judges the pre-checkout and credits the successful payment (docs/logic/bale-payments.md).
-    notify.payments = coinPackageService;
+    // `si:` payloads are shop items bought for money (D170), `cp:` payloads are coin packages.
+    notify.payments = {
+      preCheckout: (payload, amount, currency, payer) => (payload.startsWith('si:') && shopReal ? shopReal.preCheckout(payload, amount, currency, payer) : coinPackageService.preCheckout(payload, amount, currency, payer)),
+      creditPaid: (payload, chargeId, amount) => (payload.startsWith('si:') && shopReal ? shopReal.creditPaid(payload, chargeId, amount) : coinPackageService.creditPaid(payload, chargeId, amount)),
+    };
     notify.providerToken = process.env.BALE_PROVIDER_TOKEN ?? null;
   }
   let dailyRef: DailyService | undefined;
@@ -511,9 +634,19 @@ if (isMainModule(import.meta.url)) {
     db && settings
       ? new SoloService(createDbPuzzleSource(db), {
           rules: () => soloRules(settings),
+          levelOf,
           onFinished: (id, outcome, tag) => {
             void player?.recordGame(id, { mode: 'solo', outcome });
             void dailyRef?.onFinished(id, outcome, tag).catch((err) => console.error('daily finish failed', err));
+          },
+        })
+      : undefined;
+  const priceOnly =
+    db && settings
+      ? new PriceOnlyService(createDbPriceOnlySource(db), {
+          rules: async () => {
+            const r = await soloRules(settings);
+            return { rounds: await settings.num('priceonly.rounds'), tiers: r.tiers, minPoints: r.minPoints };
           },
         })
       : undefined;
@@ -522,19 +655,36 @@ if (isMainModule(import.meta.url)) {
   dailyRef = daily;
   const botRepo = db ? createDbBotRepository(db) : undefined;
   const bot = botRepo ? new BotService(botRepo) : undefined;
+  const reportError = createErrorReporter({ dsn: process.env.SENTRY_DSN, environment: process.env.NODE_ENV, release: process.env.APP_RELEASE });
   const app = buildServer({
+    reportError,
     auth,
     settings,
     adminModules: db
-      ? { products: createDbProductAdmin(db), stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, daily, puzzles: createDbPuzzleAdmin(db), levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      ? { products: productAdmin!, feedback, stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, wheel, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, daily, puzzles: createDbPuzzleAdmin(db), levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
     match: db
       ? {
           puzzles: createDbPuzzleSource(db),
           teamBoards: settings ? () => settings.num('match.team_boards') : undefined,
+          priceRound: settings ? async () => (await settings.num('match.price_round')) === 1 : undefined,
+          rules: settings
+            ? async () => {
+                const [turnSeconds, maxMistakes, maxTimeouts, groupPoints, firstBloodBonus] = await Promise.all([settings.num('game.turn_seconds'), settings.num('game.match_max_mistakes'), settings.num('game.max_consecutive_timeouts'), settings.list('score.group_points'), settings.num('score.first_blood_bonus')]);
+                return { turnSeconds, maxMistakes, maxTimeouts, groupPoints, firstBloodBonus };
+              }
+            : undefined,
           stakes: duelStakes,
-          profile: createDbProfileLookup(db, player ? async (id) => (await player.levelOf(id)).level.level : undefined),
+          profile: (() => {
+            const base = createDbProfileLookup(db, player ? async (id) => (await player.levelOf(id)).level.level : undefined);
+            return async (id: string) => {
+              const p = await base(id);
+              if (!p) return p;
+              const party = await birthday?.info([id]);
+              return party?.get(id)?.badge ? { ...p, birthday: true } : p;
+            };
+          })(),
           onEnded: ({ players, result }) => {
             if (tournamentService) void tournamentService.onMatchEnded(players, result.winner);
             if (result.reason !== 'abandon') {
@@ -565,6 +715,7 @@ if (isMainModule(import.meta.url)) {
     live,
     botDriver,
     presence,
+    notices,
     notify,
     messages,
     social,
@@ -574,6 +725,8 @@ if (isMainModule(import.meta.url)) {
     dailyReward: db && settings ? new DailyRewardService(createDbDailyRewardStore(db), Date.now, () => dailyRules(settings)) : undefined,
     catalog: db ? createDbCatalogRepository(db) : undefined,
     solo,
+    priceOnly,
+    duelLevelGate: settings && player ? async (id) => (await player.levelOf(id)).level.level >= (await settings.num('duel.min_level')) : undefined,
     tables: tableService,
     duelStakes,
     limiter: db && settings ? new PlayLimiter(createDbPlayCountStore(db), async (mode) => settings.num(mode === 'solo' ? 'limit.solo_per_day' : 'limit.duel_per_day')) : undefined,
@@ -587,8 +740,8 @@ if (isMainModule(import.meta.url)) {
             table: levelTable ? () => levelTable.get() : undefined,
             gates: async () => {
               const get = async (key: string) => (await settings.num(key)) ?? undefined;
-              const [hint, invite, transfer, avatar, nickname] = await Promise.all(['hint.min_level', 'invite.min_level', 'transfer.min_level', 'profile.avatar_change_min_level', 'profile.nickname_change_min_level'].map(get));
-              return { hint, invite, transfer, avatar, nickname };
+              const [hint, invite, transfer, avatar, nickname, duel] = await Promise.all(['hint.min_level', 'invite.min_level', 'transfer.min_level', 'profile.avatar_change_min_level', 'profile.nickname_change_min_level', 'duel.min_level'].map(get));
+              return { hint, invite, transfer, avatar, nickname, duel };
             },
             shopItems: async () => (shopStore ? shopStore.items() : []),
             rewardRules: async () => ({ every: await settings.num('levelreward.every'), base: await settings.num('levelreward.base_coins') }),
@@ -596,7 +749,23 @@ if (isMainModule(import.meta.url)) {
             payRewards: (id, rewards) => (db ? createDbRewardStore(db).payRewards(id, rewards) : Promise.resolve({ paid: [], balance: 0 })),
           })
         : undefined,
+    gems: db ? createDbGemWallet(db) : undefined,
+    birthday,
+    feedback,
+    profileTasks:
+      db && settings
+        ? new ProfileTaskService({
+            ...createDbProfileTaskStore(db),
+            coins: async () => {
+              const entries = await Promise.all(MISSION_KEYS.map(async (k) => [k, (await settings.num(`profiletask.coins_${k}`)) ?? 0] as const));
+              return Object.fromEntries(entries) as Record<MissionKey, number>;
+            },
+          })
+        : undefined,
     coinPackages: coinPackageService,
+    shopReal,
+    shortLinks: shortLinkService,
+    landing: landingService,
     admin: db && jwtSecret ? { repo: createDbAdminRepository(db), token: adminToken, accounts: new AdminAccounts(createDbAdminStore(db), jwtSecret, adminToken) } : undefined,
     corsOrigin: process.env.CORS_ORIGIN,
     trustProxy: process.env.TRUST_PROXY === '1',
@@ -611,6 +780,14 @@ if (isMainModule(import.meta.url)) {
   if (tournamentService) {
     const timer = setInterval(() => void tournamentService.tick().catch((err) => app.log.error({ err }, 'tournament tick failed')), TOURNAMENT_TICK_SECONDS * 1000);
     timer.unref();
+    app.addHook('onClose', async () => clearInterval(timer));
+  }
+  if (birthday) {
+    // Friend messages for a birthday week and the day itself: checked every 2 hours, the log makes a repeat harmless.
+    const run = () => void birthday.announce().catch((err) => app.log.error({ err }, 'birthday announce failed'));
+    const timer = setInterval(run, 2 * 3_600_000);
+    timer.unref();
+    setTimeout(run, 30_000).unref();
     app.addHook('onClose', async () => clearInterval(timer));
   }
   if (chat) {
@@ -639,6 +816,8 @@ if (isMainModule(import.meta.url)) {
     );
   }
   const port = Number(process.env.PORT ?? 3000);
+  process.on('unhandledRejection', (err) => (app.log.error({ err }, 'unhandled rejection'), reportError(err, 'unhandledRejection')));
+  process.on('uncaughtException', (err) => (app.log.error({ err }, 'uncaught exception'), reportError(err, 'uncaughtException')));
   app.listen({ port, host: '0.0.0.0' }).catch((err) => {
     app.log.error(err);
     process.exit(1);

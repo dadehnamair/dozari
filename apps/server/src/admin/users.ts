@@ -1,7 +1,8 @@
 import { and, baleLinks, coinLedger, count, desc, eq, friendships, like, or, userBalances, userNotes, users } from '@dozari/db';
 import type { Db } from '@dozari/db';
-import { AVATAR_KEYS, randomGuestIdentity } from '@dozari/shared';
+import { AVATAR_KEYS, ageOn, randomGuestIdentity, todayInTehran } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
+import { applyGemEntry } from '../economy/gems.js';
 import { applyLedgerEntry } from '../economy/ledger.js';
 
 export interface AdminUserRow {
@@ -32,6 +33,10 @@ export interface UserDetail extends AdminUserRow {
   banReason: string | null;
   bannedAt: number | null;
   friends: number;
+  /** Whole years from the player's own optional birth date; null when none. */
+  age: number | null;
+  /** The exact Solar Hijri date: only the owner role may see it (the route removes it for other roles). */
+  birth: { year: number; month: number; day: number } | null;
   baleLinked: boolean;
   notes: { id: string; note: string; at: number }[];
 }
@@ -50,6 +55,8 @@ export interface UsersAdmin {
   removeNote(noteId: string): Promise<'ok' | 'not_found'>;
   /** Signed coins through the ledger (`admin_adjust`); refused when the balance would go negative. */
   adjustCoins(userId: string, delta: number): Promise<{ balance: number } | 'not_found' | 'insufficient'>;
+  /** Signed gems through the gem ledger (`admin_adjust`, D164); refused when the balance would go negative. */
+  adjustGems(userId: string, delta: number): Promise<{ balance: number } | 'not_found' | 'insufficient'>;
 }
 
 function rowOf(u: typeof users.$inferSelect, balance: number | null): AdminUserRow {
@@ -87,6 +94,11 @@ export function createDbUsersAdmin(db: Db): UsersAdmin {
         banReason: r.u.banReason,
         bannedAt: r.u.bannedAt?.getTime() ?? null,
         friends: f?.n ?? 0,
+        ...(() => {
+          const { birthYear: y, birthMonth: m, birthDay: d } = r.u;
+          if (y == null || m == null || d == null) return { age: null, birth: null };
+          return { age: ageOn({ year: y, month: m, day: d }, todayInTehran(Date.now())), birth: { year: y, month: m, day: d } };
+        })(),
         baleLinked: link.length > 0,
         notes: notes.map((n) => ({ id: n.id, note: n.note, at: n.createdAt.getTime() })),
       };
@@ -142,6 +154,12 @@ export function createDbUsersAdmin(db: Db): UsersAdmin {
       const out = await db.transaction((tx) =>
         applyLedgerEntry(tx, { userId, delta, reason: 'admin_adjust', refType: 'admin', refId: uuidv7(), idempotencyKey: `admin_adjust:${uuidv7()}:${userId}` }),
       );
+      return out.applied ? { balance: out.balance } : 'insufficient';
+    },
+    async adjustGems(userId, delta) {
+      const [u] = await db.select({ id: users.id }).from(users).where(eq(users.id, userId));
+      if (!u) return 'not_found';
+      const out = await db.transaction((tx) => applyGemEntry(tx, { userId, delta, reason: 'admin_adjust', refType: 'admin', refId: uuidv7(), idempotencyKey: `admin_adjust:${uuidv7()}:${userId}` }));
       return out.applied ? { balance: out.balance } : 'insufficient';
     },
   };

@@ -1,17 +1,24 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Animated, Pressable, Text, View, useWindowDimensions } from 'react-native';
 import { SceneBackground } from '../components/SceneBackground';
 import { Character } from '../components/Character';
-import { DailyRewardCard } from '../components/DailyRewardCard';
-import { Toast } from '../components/Toast';
 import { ProfileSheet } from '../social/ProfileSheet';
 import { SettingsPage } from '../social/SettingsPage';
 import { LeaderboardPage } from '../social/LeaderboardPage';
 import { CityHub } from '../hub/CityHub';
+import { SchoolSheet } from '../feedback/SchoolSheet';
 import { Item } from '../components/Item';
-import { fetchMyProfile } from '../social/api';
+import { fetchFriends } from '../social/api';
+import { connectNotices } from '../notices/connectNotices';
+import { FriendRequestSheet } from '../notices/FriendRequestSheet';
+import { claimProfileTask } from '../social/profileTasksApi';
+import { profileNudge } from './profileNudge';
+import { MissionsSheet } from '../missions/MissionsSheet';
+import { missionRows } from '../missions/model';
+import type { MissionAvailability } from '../missions/model';
+import { InviteSheet } from '../invite/InviteSheet';
 import { heroFor } from '../social/heroFor';
-import type { Gender } from '@dozari/shared';
+import { applyAppIcon } from '../appIcon/appIcon';
 import { ReviewSheet } from '../review/ReviewSheet';
 import { useReviewPrompt } from '../review/useReviewPrompt';
 import { OPEN_CONFIG } from '../config/gate';
@@ -23,28 +30,27 @@ import { availableTips, nextTip } from './guideTips';
 import { useInbox } from '../inbox/useInbox';
 import { BaleSheet } from '../bale/BaleSheet';
 import { ShopSheet } from '../shop/ShopSheet';
-import { fetchWheel } from '../wheel/api';
+import { FittingRoom } from '../wardrobe/FittingRoom';
 import { WheelPage } from '../wheel/WheelPage';
 import { ChatSheet } from '../chat/ChatSheet';
-import { fetchDailyStatus } from '../daily/puzzleApi';
-import type { DailyStatus } from '@dozari/shared';
-import { fetchMatchActive } from '../duel/api';
 import { shareTable } from '../tables/api';
 import { TableSheet } from '../tables/TableSheet';
 import { TournamentSheet } from '../tournament/TournamentSheet';
 import { SlabButton } from '../components/SlabButton';
-import { Wordmark } from '../components/Wordmark';
+import { AnimatedLogo } from '../components/AnimatedLogo';
 import { useDailyReward } from '../daily/useDailyReward';
-import { provinceOf, solarMonthOf, toPersianDigits } from '@dozari/shared';
-import type { Province } from '@dozari/shared';
+import { solarMonthOf, toPersianDigits } from '@dozari/shared';
 import { ProvinceBadge } from '../components/ProvinceBadge';
 import type { IconName } from '../theme/icons';
 import { fa } from '../i18n/fa';
-import { colors, fonts } from '../theme/colors';
+import { colors } from '../theme/colors';
 import { Icon } from '../components/Icon';
-import { usePrefs } from '../prefs/store';
 import { HeroCoinToss } from './HeroCoinToss';
 import { HubTile } from './HubTile';
+import { DailyRewardOverlay } from './DailyRewardOverlay';
+import { fmt, styles } from './homeStyles';
+import { useHeroMotion } from './useHeroMotion';
+import { useHomeData } from './useHomeData';
 import { StatPill } from './StatPill';
 
 interface Tile {
@@ -54,41 +60,30 @@ interface Tile {
   color: string;
   badge?: string;
   badgeColor?: string;
+  glow?: boolean;
   onPress: () => void;
 }
-
-/**
- * Right-to-left rows on every platform: native flips `row` itself once RTL is forced (App.tsx); react-native-web
- * reports RTL but lays rows out left-to-right, so web needs `row-reverse`.
- */
-const RTL_ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
-
-const fmt = (n: number) => toPersianDigits(n.toLocaleString('en-US').replace(/,/g, '٬'));
 
 /**
  * Home hub, laid out as screen-home of `docs/design/Dozari - 01 Screens`: three counters on top, the wordmark and a
  * speech bubble, corner tiles down both sides, the floating hero, and two big buttons at the bottom. Every feature
  * keeps its sheet; a tile only shows when its feature flag is on.
  */
-export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, onLookup, onGallery, features = OPEN_CONFIG.features, settings = OPEN_CONFIG.raw }: { onSolo: () => void; onDaily?: () => void; onDuel?: () => void; onDuelResume?: () => void; onTutorial?: () => void; onLookup: () => void; onGallery?: () => void; features?: ClientConfig['features']; settings?: ClientConfig['raw'] }) {
+export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume, onTutorial, onLookup, onGallery, features = OPEN_CONFIG.features, settings = OPEN_CONFIG.raw }: { onSolo: () => void; onPriceOnly?: () => void; onDaily?: () => void; onDuel?: () => void; onDuelResume?: () => void; onTutorial?: () => void; onLookup: () => void; onGallery?: () => void; features?: ClientConfig['features']; settings?: ClientConfig['raw'] }) {
   const month = useMemo(() => solarMonthOf(Date.now()), []);
   /** Short phones (≤700px tall) get tighter columns and a smaller hero so nothing runs into the bottom buttons. */
   const compact = useWindowDimensions().height <= 700;
   const daily = useDailyReward();
+  const { spins, loadSpins, liveMatch, gender, setGender, level, province, dailyPuzzle, loadMe, profileTasks, loadTasks, gems, worn, loadWorn } = useHomeData(features);
+  const hero = useHeroMotion();
   const [dailyOpen, setDailyOpen] = useState(false);
   const [wheelOpen, setWheelOpen] = useState(false);
-  const [spins, setSpins] = useState(0);
-  const loadSpins = () => void fetchWheel().then((w) => setSpins(w.pending), () => undefined);
-  useEffect(loadSpins, []);
   const [baleOpen, setBaleOpen] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
+  const [wardrobeOpen, setWardrobeOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [tournamentOpen, setTournamentOpen] = useState(false);
   const [tableOpen, setTableOpen] = useState(false);
-  const [liveMatch, setLiveMatch] = useState(false);
-  useEffect(() => {
-    if (features.duel) void fetchMatchActive().then(setLiveMatch, () => undefined);
-  }, [features.duel]);
   const [tableCode, setTableCode] = useState<string | undefined>(undefined);
   const [inboxOpen, setInboxOpen] = useState(false);
   const [ledgerOpen, setLedgerOpen] = useState(false);
@@ -101,59 +96,55 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
     return () => clearTimeout(timer);
   }, [tip]);
   const [profileOpen, setProfileOpen] = useState(false);
+  /** Opens the profile straight on the friends list (from a friend-request notice). */
+  const [profileStart, setProfileStart] = useState<'friends' | null>(null);
+  /** A friend request is waiting: who sent the latest one (when pushed live) and how many wait in all. */
+  const [friendNotice, setFriendNotice] = useState<{ from?: string; count: number } | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [boardOpen, setBoardOpen] = useState(false);
   const [hubOpen, setHubOpen] = useState(false);
-  const [gender, setGender] = useState<Gender | null>(null);
-  const [level, setLevel] = useState<number | null>(null);
-  /** The player's province (D101): its badge and local greeting sit under the wordmark. */
-  const [province, setProvince] = useState<Province | null>(null);
-  const [dailyPuzzle, setDailyPuzzle] = useState<DailyStatus | null>(null);
-  const loadMe = useCallback(() => {
-    fetchMyProfile().then((p) => (setGender(p.gender), setLevel(p.level.level), setProvince(provinceOf(p.city?.province))), () => undefined);
-  }, []);
-  useEffect(loadMe, [loadMe]);
-  useEffect(() => {
-    if (features.daily) fetchDailyStatus().then(setDailyPuzzle, () => undefined);
-  }, [features.daily]);
-  const inbox = useInbox();
-  const review = useReviewPrompt(settings);
-  const prefs = usePrefs();
-  const float = useRef(new Animated.Value(0)).current;
-  useEffect(() => {
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(float, { toValue: -10, duration: 1500, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-        Animated.timing(float, { toValue: 0, duration: 1500, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
-      ]),
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [float]);
-
-  // A tap makes Dozari hop (squash, spring up, land) and flip his coin right away.
-  const jump = useRef(new Animated.Value(0)).current;
-  const squash = useRef(new Animated.Value(0)).current;
-  const [tossKey, setTossKey] = useState(0);
-  const hop = () => {
-    setTossKey((k) => k + 1);
-    if (prefs.reduceMotion) return;
-    Animated.sequence([
-      Animated.timing(squash, { toValue: 1, duration: 90, useNativeDriver: true }),
-      Animated.parallel([
-        Animated.timing(squash, { toValue: 0, duration: 120, useNativeDriver: true }),
-        Animated.timing(jump, { toValue: 1, duration: 200, easing: Easing.out(Easing.quad), useNativeDriver: true }),
-      ]),
-      Animated.timing(jump, { toValue: 0, duration: 190, easing: Easing.in(Easing.quad), useNativeDriver: true }),
-      Animated.timing(squash, { toValue: 0.6, duration: 70, useNativeDriver: true }),
-      Animated.spring(squash, { toValue: 0, friction: 4, tension: 160, useNativeDriver: true }),
-    ]).start();
+  const [schoolOpen, setSchoolOpen] = useState(false);
+  const [missionsOpen, setMissionsOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [nudgeToast, setNudgeToast] = useState<string | null>(null);
+  const nudge = profileNudge(profileTasks, (k) => (k === 'bale' ? features.bale : k === 'phone' ? features.friends : true));
+  const onNudge = () => {
+    if (!nudge) return;
+    if (nudge.action === 'claim') {
+      void claimProfileTask(nudge.task.key).then((r) => (setNudgeToast(fa.home.profileNudge.got(fmt(r.coins))), loadTasks()), () => loadTasks());
+    } else if (nudge.action === 'profile') setProfileOpen(true);
+    else if (nudge.action === 'settings') setSettingsOpen(true);
+    else setBaleOpen(true);
   };
+  useEffect(() => {
+    if (!nudgeToast) return;
+    const timer = setTimeout(() => setNudgeToast(null), 3000);
+    return () => clearTimeout(timer);
+  }, [nudgeToast]);
+  const inbox = useInbox();
+  const inboxReload = inbox.reload;
+  useEffect(() => {
+    if (!features.friends) return undefined;
+    // Requests already waiting when the app opens, then pushes while it is open (a quiet socket, D168).
+    fetchFriends().then((f) => f.incoming.length > 0 && setFriendNotice({ count: f.incoming.length }), () => undefined);
+    return connectNotices((n) => {
+      if (n.kind === 'inbox') return inboxReload();
+      setFriendNotice((cur) => ({ from: n.from, count: (cur?.count ?? 0) + 1 }));
+    });
+  }, [features.friends, inboxReload]);
+  const review = useReviewPrompt(settings);
+  const text = (v: unknown): string | null => (typeof v === 'string' && /^https?:\/\//i.test(v) ? v : null);
+  const missionAvail: MissionAvailability = {
+    link: (k) => (k === 'follow_instagram' ? text(settings['link.instagram']) : k === 'follow_channel' ? text(settings['link.channel']) : k === 'rate_app' ? review.url ?? null : null),
+    feature: (k) => (k === 'bale' ? features.bale : k === 'phone' ? features.friends : true),
+  };
+  const missionsReady = missionRows(profileTasks, missionAvail, new Set()).filter((r) => r.state === 'claim').length;
 
   const h = fa.home.hub;
   const unread = inbox.inbox?.unread ?? 0;
   const right: Tile[] = [
-    ...(daily.status ? [{ key: 'daily', icon: 'calendar' as const, label: h.daily, color: colors.candy.yellow, badge: daily.status.canClaim ? '!' : undefined, onPress: () => setDailyOpen(true) }] : []),
+    { key: 'missions', icon: 'target' as const, label: h.missions, color: colors.candy.lime, badge: missionsReady > 0 ? toPersianDigits(String(missionsReady)) : undefined, badgeColor: colors.candy.pink, onPress: () => setMissionsOpen(true) },
+    ...(daily.status ? [{ key: 'daily', icon: 'calendar' as const, label: h.daily, color: colors.candy.yellow, badge: daily.status.canClaim ? '!' : undefined, glow: daily.status.canClaim, onPress: () => setDailyOpen(true) }] : []),
     ...(features.tables ? [{ key: 'tables', icon: 'users' as const, label: h.tables, color: colors.candy.sky, onPress: () => setTableOpen(true) }] : []),
     ...(features.tournament ? [{ key: 'tour', icon: 'trophy' as const, label: h.tournaments, color: colors.candy.orange, onPress: () => setTournamentOpen(true) }] : []),
     ...(features.friends ? [{ key: 'board', icon: 'crown' as const, label: h.leaderboard, color: colors.candy.pink, onPress: () => setBoardOpen(true) }] : []),
@@ -165,23 +156,33 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
     ...(features.inbox ? [{ key: 'inbox', icon: 'mail' as const, label: h.messages, color: colors.candy.pink, badge: unread > 0 ? toPersianDigits(String(unread)) : undefined, badgeColor: colors.candy.lime, onPress: () => (inbox.reload(), setInboxOpen(true)) }] : []),
     ...(features.chat ? [{ key: 'chat', icon: 'chat' as const, label: h.chat, color: colors.candy.sky, onPress: () => setChatOpen(true) }] : []),
     ...(features.shop ? [{ key: 'shop', icon: 'gift' as const, label: h.shop, color: colors.candy.lime, onPress: () => setShopOpen(true) }] : []),
+    ...(features.shop ? [{ key: 'wardrobe', icon: 'shirt' as const, label: h.wardrobe, color: colors.candy.pink, onPress: () => setWardrobeOpen(true) }] : []),
     ...(features.bale ? [{ key: 'bale', icon: 'bolt' as const, label: h.bale, color: colors.candy.orange, onPress: () => setBaleOpen(true) }] : []),
   ];
 
   const dailyOpenForPlay = features.daily && onDaily && dailyPuzzle && (dailyPuzzle.state === 'available' || dailyPuzzle.state === 'playing');
   const bubble = dailyOpenForPlay ? (dailyPuzzle.state === 'playing' ? h.dailyPlaying : h.dailyReady) : `${fa.months[month - 1]?.name ?? ''} · ${fa.months[month - 1]?.mood ?? ''}`;
+  // New players sit out the live duel until `duel.min_level` (the server enforces it too): the button stays, with a lock and an explanation.
+  const contact = typeof settings['sponsor.contact_url'] === 'string' ? settings['sponsor.contact_url'].trim() : '';
+  const sponsorInvite = /^(https:\/\/|mailto:)/i.test(contact) ? { title: String(settings['sponsor.cta_title'] ?? ''), body: String(settings['sponsor.cta_body'] ?? ''), url: contact } : null;
+  const duelMin = typeof settings['duel.min_level'] === 'number' ? settings['duel.min_level'] : 3;
+  const duelLocked = level !== null && level < duelMin && !liveMatch;
+  const openDuel = () => (duelLocked ? setNudgeToast(fa.home.duelLocked(duelMin)) : onDuel?.());
   const second = liveMatch && onDuelResume
     ? { label: h.resume, color: colors.candy.orange, badge: '!', onPress: onDuelResume }
     : features.duel && onDuel
-      ? { label: h.duel, color: colors.candy.orange, badge: undefined, onPress: onDuel }
+      ? { label: h.duel, color: duelLocked ? colors.candy.grape : colors.candy.orange, badge: undefined, onPress: openDuel }
       : null;
+
+  const priceOnlyOn = features.priceonly && !!onPriceOnly;
 
   return (
     <SceneBackground scene="bazaar">
-      <View style={styles.root}>
+      <View style={styles.root} onTouchStart={() => setTip(null)}>
         <View style={styles.pills}>
           {daily.status ? <StatPill color={colors.candy.yellow} icon="coin" value={fmt(daily.status.balance)} label={`${daily.status.balance} ${h.coins}`} onPress={() => setLedgerOpen(true)} /> : null}
-          {dailyPuzzle && dailyPuzzle.state !== 'unavailable' ? <StatPill color={colors.candy.pink} glyph="🔥" value={`${toPersianDigits(String(dailyPuzzle.streak))} ${h.streak}`} label={`${dailyPuzzle.streak} ${h.streak}`} /> : null}
+          {gems > 0 ? <StatPill color={colors.candy.sky} glyph="💎" value={fmt(gems)} label={`${gems} ${h.gems}`} /> : null}
+          {dailyPuzzle && dailyPuzzle.state !== 'unavailable' && dailyPuzzle.streak > 0 ? <StatPill color={colors.candy.pink} glyph="🔥" value={`${toPersianDigits(String(dailyPuzzle.streak))} ${h.streak}`} label={`${dailyPuzzle.streak} ${h.streak}`} /> : null}
           <Pressable onPress={() => setHubOpen(true)} accessibilityRole="button" accessibilityLabel={fa.hub.open} style={styles.mapBtn}>
             <View style={styles.mapIcon}><Item icon="map" /></View>
           </Pressable>
@@ -190,13 +191,15 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
             <Icon name="wheel" size={22} color="#fff" strokeWidth={2.2} />
             {spins > 0 ? <View style={styles.spinBadge}><Text style={styles.spinBadgeText}>{toPersianDigits(String(spins))}</Text></View> : null}
           </Pressable>
+          {/* A spacer keeps the level pill at the far (left) end of the row, whether or not the streak pill is showing. */}
+          <View style={styles.pillsGap} />
           {level !== null ? <StatPill color={colors.candy.grape} icon="rosette" value={toPersianDigits(String(level))} label={`${h.level} ${level}`} onPress={() => setProfileOpen(true)} /> : null}
         </View>
 
         <View style={styles.middle}>
           <View style={[styles.column, compact ? styles.columnCompact : null]}>{right.map(({ key, ...t }) => <HubTile key={key} {...t} />)}</View>
           <View style={styles.center}>
-            <Wordmark width={200} />
+            <AnimatedLogo width={200} />
             <Pressable onPress={dailyOpenForPlay ? onDaily : undefined} disabled={!dailyOpenForPlay} accessibilityRole={dailyOpenForPlay ? 'button' : 'text'}>
               <Text style={styles.bubble} numberOfLines={2}>{bubble}</Text>
             </Pressable>
@@ -207,43 +210,38 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
               </Pressable>
             ) : null}
             <View style={styles.spacer} />
-            {tip !== null && tips[tip] ? <GuideBubble who={heroFor(gender)} text={tips[tip].text} /> : null}
-            <Pressable onPress={() => (setTip((cur) => nextTip(cur, tips.length)), hop())} accessibilityRole="button" accessibilityLabel={fa.home.guide.name}>
-              <Animated.View style={[styles.hero, compact ? styles.heroCompact : null, { transform: [{ translateY: Animated.add(float, jump.interpolate({ inputRange: [0, 1], outputRange: [0, -30] })) }, { scaleX: squash.interpolate({ inputRange: [0, 1], outputRange: [1, 1.1] }) }, { scaleY: squash.interpolate({ inputRange: [0, 1], outputRange: [1, 0.86] }) }] }]}>
-                <Character who={heroFor(gender)} pose="wave" month={month} />
-                <HeroCoinToss width={compact ? 130 : 180} height={compact ? 142 : 197} tossKey={tossKey} enabled={!prefs.reduceMotion} />
+            {tip !== null && tips[tip] ? (
+              <GuideBubble who={heroFor(gender)} text={tips[tip].text} />
+            ) : nudgeToast ? (
+              <GuideBubble who={heroFor(gender)} text={nudgeToast} />
+            ) : nudge ? (
+              <GuideBubble who={heroFor(gender)} text={fa.home.profileNudge[nudge.action === 'claim' ? 'claim' : nudge.key](fmt(nudge.task.coins))} onPress={onNudge} />
+            ) : null}
+            {/* A touch on the character itself must not count as «a tap elsewhere» that closes the tip. */}
+            <View onTouchStart={(e) => e.stopPropagation()}>
+            <Pressable onPress={() => (setTip((cur) => nextTip(cur, tips.length)), hero.hop())} accessibilityRole="button" accessibilityLabel={fa.home.guide.name}>
+              <Animated.View style={[styles.hero, compact ? styles.heroCompact : null, { transform: hero.transform }]}>
+                <Character who={heroFor(gender)} pose="wave" month={month} worn={worn} />
+                <HeroCoinToss width={compact ? 130 : 180} height={compact ? 142 : 197} tossKey={hero.tossKey} enabled={!hero.reduceMotion} />
               </Animated.View>
             </Pressable>
+            </View>
           </View>
           <View style={[styles.column, compact ? styles.columnCompact : null]}>{left.map(({ key, ...t }) => <HubTile key={key} {...t} />)}</View>
         </View>
 
         <View style={styles.buttons}>
-          <SlabButton label={h.play} color={colors.candy.lime} onPress={onSolo} />
-          {second ? <SlabButton label={second.label} color={second.color} badge={second.badge} onPress={second.onPress} /> : null}
+          {/* Three modes side by side: smaller type so «حدس قیمت» fits on a narrow phone. */}
+          <SlabButton label={h.play} sfx="confirm" color={colors.candy.lime} icon="puzzle" fontSize={priceOnlyOn ? 21 : 28} onPress={onSolo} />
+          {second ? <SlabButton label={second.label} color={second.color} badge={second.badge} icon={duelLocked ? "lock" : "swords"} fontSize={priceOnlyOn ? 21 : 28} onPress={second.onPress} /> : null}
+          {priceOnlyOn ? <SlabButton label={fa.priceOnly.play} sfx="confirm" color={colors.candy.yellow} icon="coin" fontSize={21} onPress={onPriceOnly!} /> : null}
         </View>
       </View>
 
-      {dailyOpen && daily.status ? (
-        <Pressable style={styles.overlay} onPress={() => setDailyOpen(false)} accessibilityLabel={fa.solo.back}>
-          <Pressable style={styles.sheet} onPress={() => undefined}>
-            <DailyRewardCard
-              steps={daily.status.steps}
-              day={daily.status.day}
-              canClaim={daily.status.canClaim && !daily.claiming}
-              onClaim={daily.claim}
-              waitText={daily.countdown ? `${daily.countdown} ${fa.daily.wait}` : undefined}
-            />
-            {daily.won !== null ? (
-              <View style={styles.won}>
-                <Toast text={`${toPersianDigits(String(daily.won))} ${fa.daily.won}`} tone={colors.candy.yellow} />
-              </View>
-            ) : null}
-          </Pressable>
-        </Pressable>
-      ) : null}
+      {dailyOpen ? <DailyRewardOverlay daily={daily} onClose={() => setDailyOpen(false)} /> : null}
       {review.open && review.url ? <ReviewSheet message={review.message} url={review.url} onReview={review.onReview} onLater={review.onLater} onNever={review.onNever} /> : null}
-      {profileOpen ? <ProfileSheet onClose={() => (setProfileOpen(false), loadMe())} onGender={setGender} /> : null}
+      {friendNotice && !profileOpen ? <FriendRequestSheet from={friendNotice.from} count={friendNotice.count} onSee={() => (setFriendNotice(null), setProfileStart('friends'), setProfileOpen(true))} onLater={() => setFriendNotice(null)} /> : null}
+      {profileOpen ? <ProfileSheet start={profileStart} onClose={() => (setProfileOpen(false), setProfileStart(null), loadMe(), loadTasks())} onGender={(g) => (setGender(g), applyAppIcon(g))} /> : null}
       {hubOpen ? (
         <CityHub
           onClose={() => setHubOpen(false)}
@@ -253,57 +251,41 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
             setHubOpen(false);
             if (a === 'solo') onSolo();
             else if (a === 'daily') onDaily?.();
-            else if (a === 'duel') onDuel?.();
+            else if (a === 'duel') openDuel();
+            else if (a === 'suggest') setSchoolOpen(true);
             else setTournamentOpen(true);
           }}
         />
       ) : null}
+      {schoolOpen ? <SchoolSheet onClose={() => setSchoolOpen(false)} /> : null}
       {boardOpen ? <LeaderboardPage onClose={() => setBoardOpen(false)} /> : null}
-      {settingsOpen ? <SettingsPage onClose={() => setSettingsOpen(false)} onProfile={() => (setSettingsOpen(false), setProfileOpen(true))} onTutorial={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} onAccountGone={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} /> : null}
+      {settingsOpen ? <SettingsPage onClose={() => (setSettingsOpen(false), loadTasks())} onProfile={() => (setSettingsOpen(false), setProfileOpen(true))} onTutorial={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} onAccountGone={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} /> : null}
       {ledgerOpen ? <LedgerSheet onClose={() => setLedgerOpen(false)} /> : null}
       {inboxOpen ? <InboxSheet inbox={inbox.inbox} failed={inbox.failed} onRead={inbox.markRead} onReadAll={inbox.markAll} onClose={() => setInboxOpen(false)} /> : null}
       {tableOpen ? <TableSheet initialCode={tableCode} onMatch={onDuelResume ? () => (setTableOpen(false), onDuelResume()) : undefined} onClose={() => (setTableOpen(false), setTableCode(undefined))} onShare={() => shareTable()} /> : null}
-      {tournamentOpen ? <TournamentSheet onClose={() => setTournamentOpen(false)} /> : null}
+      {tournamentOpen ? <TournamentSheet onClose={() => setTournamentOpen(false)} invite={sponsorInvite} /> : null}
       {chatOpen ? <ChatSheet onClose={() => setChatOpen(false)} onJoinTable={(code) => (setChatOpen(false), setTableCode(code), setTableOpen(true))} /> : null}
-      {shopOpen ? <ShopSheet onClose={() => { setShopOpen(false); daily.reload(); }} /> : null}
+      {shopOpen ? <ShopSheet realMoney={Number(settings['feature.coin_packages']) === 1} onClose={() => { setShopOpen(false); daily.reload(); }} /> : null}
+      {wardrobeOpen ? <FittingRoom who={heroFor(gender)} realMoney={Number(settings['feature.coin_packages']) === 1} onClose={() => (setWardrobeOpen(false), loadWorn(), daily.reload())} /> : null}
       {wheelOpen ? <WheelPage onClose={() => (setWheelOpen(false), loadSpins(), daily.reload())} /> : null}
-      {baleOpen ? <BaleSheet onClose={() => setBaleOpen(false)} /> : null}
+      {missionsOpen ? (
+        <MissionsSheet
+          avail={missionAvail}
+          links={missionAvail.link}
+          onClose={() => (setMissionsOpen(false), loadTasks())}
+          onChanged={loadTasks}
+          onGo={(go) => {
+            if (go === 'play') return (setMissionsOpen(false), onSolo());
+            if (go === 'profile') return setProfileOpen(true);
+            if (go === 'settings') return setSettingsOpen(true);
+            if (go === 'bale') return setBaleOpen(true);
+            return setInviteOpen(true);
+          }}
+        />
+      ) : null}
+      {inviteOpen ? <InviteSheet onClose={() => (setInviteOpen(false), loadTasks())} /> : null}
+      {baleOpen ? <BaleSheet onClose={() => (setBaleOpen(false), loadTasks())} /> : null}
     </SceneBackground>
   );
 }
 
-const styles = StyleSheet.create({
-  root: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingTop: 14, paddingBottom: 22, paddingHorizontal: 12 },
-  pills: { flexDirection: RTL_ROW, gap: 8, minHeight: 36, alignItems: 'center' },
-  mapBtn: { width: 38, height: 38, borderRadius: 19, borderWidth: 2, borderColor: 'rgba(255,255,255,0.35)', backgroundColor: 'rgba(43,18,64,0.65)', alignItems: 'center', justifyContent: 'center' },
-  mapIcon: { width: 26, height: 26 },
-  spinBadge: { position: 'absolute', top: -6, right: -6, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, backgroundColor: colors.candy.lime, borderWidth: 2, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
-  spinBadgeText: { fontFamily: fonts.bold, fontSize: 10, color: colors.ink },
-  middle: { flex: 1, flexDirection: RTL_ROW, justifyContent: 'space-between', paddingTop: 12 },
-  column: { width: 72, gap: 12, alignItems: 'center', paddingTop: 44 },
-  columnCompact: { gap: 2, paddingTop: 20 },
-  center: { flex: 1, alignItems: 'center' },
-  greet: { flexDirection: RTL_ROW, alignItems: 'center', gap: 4, marginTop: 6, maxWidth: '100%' },
-  hello: { flexShrink: 1, fontFamily: fonts.display, fontSize: 17, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
-  bubble: {
-    marginTop: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 4,
-    borderRadius: 99,
-    overflow: 'hidden',
-    backgroundColor: colors.cream,
-    borderWidth: 3,
-    borderColor: colors.ink,
-    fontFamily: fonts.bold,
-    fontSize: 13,
-    color: colors.ink,
-    textAlign: 'center',
-  },
-  spacer: { flex: 1 },
-  hero: { width: 180, height: 197, marginBottom: 8 },
-  heroCompact: { width: 130, height: 142 },
-  buttons: { flexDirection: RTL_ROW, gap: 12, paddingTop: 6 },
-  overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,8,32,0.55)', alignItems: 'center', justifyContent: 'center', padding: 24 },
-  sheet: { width: '100%', maxWidth: 360, backgroundColor: 'rgba(60,30,90,0.92)', borderRadius: 30, padding: 4, gap: 10 },
-  won: { alignItems: 'center', paddingBottom: 10 },
-});

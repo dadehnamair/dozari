@@ -10,6 +10,7 @@ export const ICON_PATHS = {
   plus: 'M12 5v14M5 12h14',
   back: 'M9 5l7 7-7 7',
   heart: 'M12 20s-8-5-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 9c0 6-8 11-8 11z',
+  shirt: 'M8.5 3L3 5.5l1.6 4 2.9-1V21h9V8.5l2.9 1L21 5.5 15.5 3a3.6 3.6 0 0 1-7 0z',
   star: 'M12 3l2.8 5.7 6.2.9-4.5 4.4 1 6.2L12 17.3 6.5 20.2l1-6.2L3 9.6l6.2-.9z',
   trophy: 'M8 4h8v5a4 4 0 0 1-8 0zM8 6H4a3 3 0 0 0 4 4M16 6h4a3 3 0 0 1-4 4M12 13v4M8 20h8M10 17h4',
   bell: 'M6 16V11a6 6 0 0 1 12 0v5l2 2H4zM10 21h4',
@@ -35,6 +36,8 @@ export const ICON_PATHS = {
   pause: 'M7 4h3v16H7zM14 4h3v16h-3z',
   crown: 'M3 8l4 4 5-7 5 7 4-4-2 11H5zM5 21h14',
   flag: 'M5 21V4M5 4h12l-2 4 2 4H5',
+  /** A price tag with an exclamation mark: «this price looks wrong». */
+  priceAlert: 'M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8zM9.5 6.8v3.4M9.5 12.9h.01',
   mail: 'M3 5h18v14H3zM3 6l9 7 9-7',
   eye: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
   bolt: 'M13 2L4 14h7l-1 8 9-12h-7z',
@@ -43,6 +46,8 @@ export const ICON_PATHS = {
   wallet: 'M3 7h16v13H3zM3 7l12-4v4M15 12h6v4h-6z',
   target: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 12.5v-1',
   chat: 'M4 5h16v11H9l-5 4z',
+  swords: 'M4 4L16 16M13 17L17 13M16 16L20 20M20 4L8 16M7 13L11 17M8 16L4 20',
+  puzzle: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',
 } as const;
 
 export type IconName = keyof typeof ICON_PATHS;

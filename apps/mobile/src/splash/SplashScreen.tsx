@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { SceneBackground } from '../components/SceneBackground';
 import { Character } from '../components/Character';
-import { Wordmark } from '../components/Wordmark';
+import { AnimatedLogo } from '../components/AnimatedLogo';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 
@@ -100,7 +100,7 @@ export function SplashScreen() {
       <FlippingCoin top={210} side={{ left: 28 }} size={28} duration={2.1} />
       <FlippingCoin top={470} side={{ right: 22 }} size={24} duration={1.3} />
       <View style={styles.center}>
-        <Wordmark />
+        <AnimatedLogo width={270} />
         <Text style={styles.tagline}>{fa.kit.splash.tagline}</Text>
         <Animated.View style={[styles.mascot, { transform: [{ translateY: float }] }]}>
           <Character pose="wave" month={solarMonthOf(Date.now())} />
@@ -147,6 +147,7 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: colors.ink,
     overflow: 'hidden',
+    direction: 'ltr', // the bar fills from the left, as in the web design
   },
   fill: {
     height: '100%',

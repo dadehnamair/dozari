@@ -10,6 +10,7 @@ import { colors, fonts } from '../theme/colors';
 import { agoText } from './ago';
 import { filterInbox } from './filter';
 import type { InboxFilter } from './filter';
+import { TEXT_RIGHT } from '../theme/direction';
 
 const FILTERS: InboxFilter[] = ['all', 'unread', 'read'];
 
@@ -78,8 +79,8 @@ const styles = StyleSheet.create({
   tile: { width: 46, height: 46, borderRadius: 14, borderWidth: 2.5, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   icon: { width: 34, height: 34 },
   body: { flex: 1, minWidth: 0, gap: 1 },
-  title: { fontFamily: fonts.display, fontSize: 15, lineHeight: 20, color: colors.ink, textAlign: 'right' },
-  text: { fontFamily: fonts.bold, fontSize: 11, lineHeight: 17, color: '#5A3A7A', textAlign: 'right' },
+  title: { fontFamily: fonts.display, fontSize: 15, lineHeight: 20, color: colors.ink, textAlign: TEXT_RIGHT },
+  text: { fontFamily: fonts.bold, fontSize: 11, lineHeight: 17, color: '#5A3A7A', textAlign: TEXT_RIGHT },
   meta: { alignItems: 'center', gap: 6 },
   time: { fontFamily: fonts.bold, fontSize: 10, color: '#7E46D6' },
   dot: { width: 12, height: 12, borderRadius: 6, backgroundColor: colors.candy.pink, borderWidth: 2, borderColor: colors.ink },

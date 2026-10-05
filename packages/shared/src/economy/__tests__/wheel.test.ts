@@ -11,15 +11,16 @@ describe('lucky wheel', () => {
     expect(earnsWheelSpin({ winner: 0, reason: 'solved' }, ['paid', 'house'])).toBe(false); // bot opponent
   });
   it('picks slices by weight and never a zero-weight one', () => {
-    const slices = [{ coins: 5, weight: 1 }, { coins: 9, weight: 0 }, { coins: 20, weight: 3 }];
+    const slices = [{ kind: 'coins' as const, amount: 5, weight: 1 }, { kind: 'coins' as const, amount: 9, weight: 0 }, { kind: 'gems' as const, amount: 2, weight: 3 }];
     expect(pickSlice(slices, 0)).toBe(0);
     expect(pickSlice(slices, 0.24)).toBe(0);
     expect(pickSlice(slices, 0.26)).toBe(2);
     expect(pickSlice(slices, 0.9999)).toBe(2);
   });
   it('scales prizes and reports the expected value', () => {
-    expect(scaleSlices([{ coins: 5, weight: 1 }], 50)[0]!.coins).toBe(3);
-    expect(scaleSlices([{ coins: 5, weight: 1 }], 0)[0]!.coins).toBe(1);
+    expect(scaleSlices([{ kind: 'coins', amount: 5, weight: 1 }], 50)[0]!.amount).toBe(3);
+    expect(scaleSlices([{ kind: 'coins', amount: 5, weight: 1 }], 0)[0]!.amount).toBe(1);
+    expect(scaleSlices([{ kind: 'gems', amount: 3, weight: 1 }], 10)[0]!.amount).toBe(3);
     expect(wheelExpectedCoins(DEFAULT_WHEEL_RULES.slices)).toBeGreaterThan(5);
   });
 });

@@ -1,9 +1,10 @@
 import { Platform } from 'react-native';
 import { getPrefs } from '../prefs/store';
 import { SFX_NOTES } from './engineNotes';
+import { playNativeSfx } from './nativeSfx';
 import type { Sfx } from './engineNotes';
 
-/** Game sound effects, synthesised (no audio files to ship, nothing from Google). Web uses WebAudio; native has no engine yet and stays silent. */
+/** Game sound effects, synthesised (no audio files to ship, nothing from Google). Web uses WebAudio; phones play the same notes rendered to a WAV (nativeSfx.ts). */
 
 export type { Sfx };
 
@@ -19,10 +20,15 @@ interface Node {
 interface Ctx {
   state: string;
   currentTime: number;
+  sampleRate: number;
   destination: Node;
   resume(): Promise<void>;
   createOscillator(): Node & { type: string; frequency: Param; start(t: number): void; stop(t: number): void };
   createGain(): Node & { gain: Param };
+  createBiquadFilter(): Node & { type: string; frequency: Param; Q: Param };
+  createDelay(maxSeconds?: number): Node & { delayTime: Param };
+  createBuffer(channels: number, length: number, sampleRate: number): { getChannelData(channel: number): Float32Array };
+  createBufferSource(): Node & { buffer: unknown; start(t: number): void; stop(t: number): void };
 }
 type AudioCtor = new () => Ctx;
 let ctx: Ctx | null = null;
@@ -44,6 +50,7 @@ export function context(): Ctx | null {
 /** Plays an effect unless the player turned sound off. Never throws. */
 export function playSfx(name: Sfx): void {
   if (!getPrefs().sound) return;
+  if (Platform.OS !== 'web') return playNativeSfx(name);
   const c = context();
   if (!c) return;
   try {

@@ -24,3 +24,17 @@ export function toPersianDigits(input: string | number): string {
 export function formatPersianNumber(value: number, maximumFractionDigits = 0): string {
   return value.toLocaleString('fa-IR', { maximumFractionDigits });
 }
+
+/**
+ * What a number field shows while the player types: any digits (Persian, Arabic-Indic or Latin) read as one whole number,
+ * grouped by three with «٬» and written with Persian digits. Anything that is not a digit is dropped; `parseTomanInput`
+ * and friends read the result back.
+ */
+export function groupTypedNumber(raw: string): string {
+  const ascii = raw
+    .replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
+    .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+    .replace(/\D/g, '')
+    .replace(/^0+(?=\d)/, '');
+  return toPersianDigits(ascii.replace(/\B(?=(\d{3})+(?!\d))/g, '٬'));
+}
