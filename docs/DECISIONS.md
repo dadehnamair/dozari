@@ -423,7 +423,7 @@ Owner listed six follow-ups to start after the first Android build (`docs/logic/
 should be able to pay every prize kind (gems, clothing, hats …), and **no one gets free spins for now**; later spins behave like lives (a small refilling
 stock) while prizes stay valuable. Until the owner confirms, nothing changes in code; the proposed first step is `wheel.daily_spins` = 0 when item 1 is built.
 
-## D157 — Phone-only gate, landing site and short domain (2026-10-03, proposed)
+## D197 — Phone-only gate, landing site and short domain (2026-10-03, proposed)
 
 Owner added three items to the backlog (`docs/logic/owner-backlog-2026-10-03.md`, items 7–9), none started: (7) the desktop web layout is unsuitable, so a
 non-phone browser shows a «come with your phone» card with a QR code (Android → downloads, iPhone → PWA install); (8) `mrdozari.ir` becomes a separate
@@ -606,3 +606,13 @@ puzzle-only ending until the captain-pooled guess is designed. Details: `docs/lo
 - **D201 — Offline solo is practice only; data pages are cached (proposed).** The app keeps 5 whole puzzles for playing without internet and shows cached copies of the data pages while refreshing them. Because a saved puzzle contains its solutions (an exception to rule 4), offline games grant no XP, coins or stats and are never synced; the download endpoint is signed-in only and capped at 15 puzzles per day. Details: `docs/logic/offline-solo.md`.
 - **D202 — Live duel opens at level 3 (proposed).** `duel.min_level` (default 3, admin-editable) gates the 1v1 and 2v2 queue on the server; solo, daily, price-only, friend tables and bots are not gated. Details: `docs/logic/matchmaking.md` §Level gate.
 - **D203 — Sponsors on tournaments (proposed).** Admin-defined `sponsors` (name, tagline, story, https banner/logo/link, accent, active switch) chosen per tournament (`tournaments.sponsor_id`); shown as a tag in the list and a card with banner on the tournament page. A «want to sponsor?» card at the end of the list is driven by three admin settings and hidden without a contact link. Images are pasted https links for now (no upload). See `docs/logic/sponsors.md`.
+
+
+## D197 — Age tracks: kid, teen and adult spaces (2026-10-05, proposed)
+
+Owner: one game for every age. Kids get an educational space (very easy picture puzzles, no price guessing, then a word lesson: the word and its
+letters). The player picks an age band on first run; a kid or teen is linked to a guardian by phone OTP, and one guardian number can hold several
+child profiles. Adults must never feel they are in a kids' game, and the admin panel must let every list be filtered and managed by band.
+Proposed defaults in `docs/logic/age-tracks.md`: three bands (up to 11 / 12–17 / 18+) chosen, not computed, with no birth date used for it (the D160 birth date stays optional and independent); kid and teen
+have no free chat and no coin wagers, match only inside their band, and cannot raise their own band; kid content needs an editor's approval. Nothing
+is built yet. Owner to confirm: band edges, whether the guardian step is a hard gate for kids, and store age-labelling rules for Bazaar/Myket.

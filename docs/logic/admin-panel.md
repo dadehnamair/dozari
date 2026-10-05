@@ -40,3 +40,7 @@ Enforced in one place (`permissionFor(method, path)` → permission → role che
 username, not trivially repetitive. 5 wrong passwords lock the account for 15 minutes; 10 failed sign-ins per IP block the IP for 15 minutes. A password change, a role change or a
 deactivation ends that admin's sessions (`session_version`). The last active owner cannot be demoted or deactivated (unless the break-glass token is configured). The audit log names the
 admin behind every change.
+
+## Age bands (D197, proposed, not built)
+
+A «رده‌های سنی» section plus an age-band filter on every list; see `age-tracks.md` §Admin panel.
