@@ -16,6 +16,10 @@ export const MIN_PRICE_POINTS_PER_PRODUCT = 3;
 /** Price-guess bonus round (docs/logic/price-guess-round.md). All four groups get one round. */
 export const PRICE_GUESS_ROUNDS = GROUP_COUNT;
 
+/** Standalone price-guess mode (docs/logic/price-guess-round.md §Price-only mode): rounds per game, admin-editable (`priceonly.rounds`). */
+export const PRICE_ONLY_ROUNDS = 5;
+export const PRICE_ONLY_MAX_ROUNDS = 10;
+
 /**
  * Solo staircase, best tier first: a guess within `maxErrorPct` percent of the real price earns
  * `points`. Anything beyond the last tier earns PRICE_GUESS_MIN_POINTS. Proposed defaults, to be
