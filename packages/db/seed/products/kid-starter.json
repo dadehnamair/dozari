@@ -1,0 +1,718 @@
+[
+ {
+  "slug": "kid-apple",
+  "name_fa": "سیب",
+  "category": "food",
+  "icon_key": "apple",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "سیب",
+   "story_fa": "سیب سرخ و آب‌دار؛ هر روز یک سیب بخور!",
+   "syllables_fa": "سیب"
+  }
+ },
+ {
+  "slug": "kid-pear",
+  "name_fa": "گلابی",
+  "category": "food",
+  "icon_key": "pear",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "گلابی",
+   "story_fa": "گلابی نرم و شیرین است و آب زیادی دارد.",
+   "syllables_fa": "گ-لا-بی"
+  }
+ },
+ {
+  "slug": "kid-banana",
+  "name_fa": "موز",
+  "category": "food",
+  "icon_key": "banana",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "موز",
+   "story_fa": "موز پوست زرد دارد؛ پوستش را باید باز کنی.",
+   "syllables_fa": "موز"
+  }
+ },
+ {
+  "slug": "kid-orange",
+  "name_fa": "پرتقال",
+  "category": "food",
+  "icon_key": "orange",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "پرتقال",
+   "story_fa": "پرتقال نارنجی است و ویتامین زیادی دارد.",
+   "syllables_fa": "پر-تقال"
+  }
+ },
+ {
+  "slug": "kid-notebook",
+  "name_fa": "دفتر",
+  "category": "education",
+  "icon_key": "notebook",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "دفتر",
+   "story_fa": "توی دفتر می‌نویسیم و نقاشی می‌کشیم.",
+   "syllables_fa": "دف-تر"
+  }
+ },
+ {
+  "slug": "kid-pencil",
+  "name_fa": "مداد",
+  "category": "education",
+  "icon_key": "pencil",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "مداد",
+   "story_fa": "با مداد می‌نویسیم؛ اگر اشتباه شد پاکش می‌کنیم.",
+   "syllables_fa": "م-داد"
+  }
+ },
+ {
+  "slug": "kid-ruler",
+  "name_fa": "خط‌کش",
+  "category": "education",
+  "icon_key": "ruler",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "خط‌کش",
+   "story_fa": "با خط‌کش خط صاف می‌کشیم و اندازه می‌گیریم.",
+   "syllables_fa": "خط-کش"
+  }
+ },
+ {
+  "slug": "kid-eraser",
+  "name_fa": "پاک‌کن",
+  "category": "education",
+  "icon_key": "eraser",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "پاک‌کن",
+   "story_fa": "پاک‌کن نوشته‌ی اشتباه را پاک می‌کند.",
+   "syllables_fa": "پاک-کن"
+  }
+ },
+ {
+  "slug": "kid-ball",
+  "name_fa": "توپ",
+  "category": "entertainment",
+  "icon_key": "ball",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "توپ",
+   "story_fa": "با توپ بازی می‌کنیم؛ می‌شود پرتش کرد و گرفتش.",
+   "syllables_fa": "توپ"
+  }
+ },
+ {
+  "slug": "kid-teddy",
+  "name_fa": "خرس عروسکی",
+  "category": "entertainment",
+  "icon_key": "teddy",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "خرس عروسکی",
+   "story_fa": "خرس عروسکی نرم است و بغل کردنش خوب است."
+  }
+ },
+ {
+  "slug": "kid-kite",
+  "name_fa": "بادبادک",
+  "category": "entertainment",
+  "icon_key": "kite",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "بادبادک",
+   "story_fa": "بادبادک با باد بالا می‌رود و توی آسمان می‌رقصد.",
+   "syllables_fa": "باد-با-دک"
+  }
+ },
+ {
+  "slug": "kid-marbles",
+  "name_fa": "تیله",
+  "category": "entertainment",
+  "icon_key": "marbles",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "تیله",
+   "story_fa": "تیله‌ها گرد و رنگی‌اند و با آن‌ها بازی می‌کنیم.",
+   "syllables_fa": "تی-له"
+  }
+ },
+ {
+  "slug": "kid-sock",
+  "name_fa": "جوراب",
+  "category": "clothing",
+  "icon_key": "sock",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "جوراب",
+   "story_fa": "جوراب پاهایمان را گرم نگه می‌دارد.",
+   "syllables_fa": "جو-راب"
+  }
+ },
+ {
+  "slug": "kid-beanie",
+  "name_fa": "کلاه بافتنی",
+  "category": "clothing",
+  "icon_key": "beanie",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "کلاه بافتنی",
+   "story_fa": "کلاه بافتنی توی زمستان سرمان را گرم می‌کند."
+  }
+ },
+ {
+  "slug": "kid-shoe",
+  "name_fa": "کفش",
+  "category": "clothing",
+  "icon_key": "shoe",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "کفش",
+   "story_fa": "کفش را می‌پوشیم تا موقع راه رفتن پایمان اذیت نشود.",
+   "syllables_fa": "کفش"
+  }
+ },
+ {
+  "slug": "kid-hat",
+  "name_fa": "کلاه",
+  "category": "clothing",
+  "icon_key": "hat",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "کلاه",
+   "story_fa": "کلاه سرمان را از آفتاب نگه می‌دارد.",
+   "syllables_fa": "ک-لاه"
+  }
+ },
+ {
+  "slug": "kid-carrot",
+  "name_fa": "هویج",
+  "category": "food",
+  "icon_key": "carrot",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "هویج",
+   "story_fa": "هویج نارنجی و ترد است و برای چشم‌ها خوب است.",
+   "syllables_fa": "ه-ویج"
+  }
+ },
+ {
+  "slug": "kid-potato",
+  "name_fa": "سیب‌زمینی",
+  "category": "food",
+  "icon_key": "potato",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "سیب‌زمینی",
+   "story_fa": "سیب‌زمینی زیر خاک رشد می‌کند.",
+   "syllables_fa": "سیب-زَ-مینی"
+  }
+ },
+ {
+  "slug": "kid-onion",
+  "name_fa": "پیاز",
+  "category": "food",
+  "icon_key": "onion",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "پیاز",
+   "story_fa": "پیاز بوی تندی دارد و گاهی اشکمان را درمی‌آورد.",
+   "syllables_fa": "پیاز"
+  }
+ },
+ {
+  "slug": "kid-corn",
+  "name_fa": "ذرت",
+  "category": "food",
+  "icon_key": "corn",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "ذرت",
+   "story_fa": "ذرت دانه‌های زرد کوچک زیادی دارد.",
+   "syllables_fa": "ذُرت"
+  }
+ },
+ {
+  "slug": "kid-cookie",
+  "name_fa": "بیسکویت",
+  "category": "snack",
+  "icon_key": "cookie",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "بیسکویت",
+   "story_fa": "بیسکویت ترد و شیرین است؛ با چای و شیر می‌چسبد.",
+   "syllables_fa": "بی-س-کویت"
+  }
+ },
+ {
+  "slug": "kid-cake",
+  "name_fa": "کیک",
+  "category": "snack",
+  "icon_key": "cake",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "کیک",
+   "story_fa": "کیک را برای تولد می‌خوریم و شمع روی آن می‌گذاریم.",
+   "syllables_fa": "کیک"
+  }
+ },
+ {
+  "slug": "kid-icecream",
+  "name_fa": "بستنی",
+  "category": "snack",
+  "icon_key": "icecream",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "بستنی",
+   "story_fa": "بستنی سرد و شیرین است و توی تابستان می‌چسبد.",
+   "syllables_fa": "بس-تَ-نی"
+  }
+ },
+ {
+  "slug": "kid-lollipop",
+  "name_fa": "آبنبات چوبی",
+  "category": "snack",
+  "icon_key": "lollipop",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "آبنبات چوبی",
+   "story_fa": "آبنبات چوبی را می‌شود لیس زد؛ دندان‌هایت را هم بشور!"
+  }
+ },
+ {
+  "slug": "kid-bus",
+  "name_fa": "اتوبوس",
+  "category": "transport",
+  "icon_key": "bus",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "اتوبوس",
+   "story_fa": "اتوبوس آدم‌های زیادی را با هم جابه‌جا می‌کند.",
+   "syllables_fa": "او-تو-بوس"
+  }
+ },
+ {
+  "slug": "kid-train",
+  "name_fa": "قطار",
+  "category": "transport",
+  "icon_key": "train",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "قطار",
+   "story_fa": "قطار روی ریل می‌رود و واگن‌های زیادی دارد.",
+   "syllables_fa": "قَ-طار"
+  }
+ },
+ {
+  "slug": "kid-bicycle",
+  "name_fa": "دوچرخه",
+  "category": "transport",
+  "icon_key": "bicycle",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "دوچرخه",
+   "story_fa": "دوچرخه دو چرخ دارد و با پا رکاب می‌زنیم.",
+   "syllables_fa": "دو-چر-خه"
+  }
+ },
+ {
+  "slug": "kid-motorbike",
+  "name_fa": "موتور",
+  "category": "transport",
+  "icon_key": "motorbike",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "موتور",
+   "story_fa": "موتور دو چرخ دارد و صدایش بلند است.",
+   "syllables_fa": "مو-تور"
+  }
+ },
+ {
+  "slug": "kid-rose",
+  "name_fa": "گل رز",
+  "category": "other",
+  "icon_key": "rose",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "گل رز",
+   "story_fa": "گل رز خوشبوست؛ ولی ساقه‌اش خار دارد."
+  }
+ },
+ {
+  "slug": "kid-tulip",
+  "name_fa": "لاله",
+  "category": "other",
+  "icon_key": "tulip",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "لاله",
+   "story_fa": "لاله گل قشنگ و رنگی بهار است.",
+   "syllables_fa": "لا-له"
+  }
+ },
+ {
+  "slug": "kid-sunflower",
+  "name_fa": "آفتابگردان",
+  "category": "other",
+  "icon_key": "sunflower",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "آفتابگردان",
+   "story_fa": "آفتابگردان همیشه رویش را به سمت خورشید می‌چرخاند.",
+   "syllables_fa": "آف-تاب-گر-دان"
+  }
+ },
+ {
+  "slug": "kid-cactus",
+  "name_fa": "کاکتوس",
+  "category": "other",
+  "icon_key": "cactus",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "کاکتوس",
+   "story_fa": "کاکتوس خار دارد و آب کمی می‌خواهد.",
+   "syllables_fa": "کاک-توس"
+  }
+ },
+ {
+  "slug": "kid-lamp",
+  "name_fa": "چراغ",
+  "category": "other",
+  "icon_key": "lamp",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "چراغ",
+   "story_fa": "چراغ شب‌ها خانه را روشن می‌کند.",
+   "syllables_fa": "چَ-راغ"
+  }
+ },
+ {
+  "slug": "kid-clock",
+  "name_fa": "ساعت",
+  "category": "other",
+  "icon_key": "clock",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "ساعت",
+   "story_fa": "ساعت به ما می‌گوید چه وقتی از روز است.",
+   "syllables_fa": "سا-عت"
+  }
+ },
+ {
+  "slug": "kid-mirror",
+  "name_fa": "آینه",
+  "category": "other",
+  "icon_key": "mirror",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "آینه",
+   "story_fa": "توی آینه خودمان را می‌بینیم.",
+   "syllables_fa": "آ-ی-نه"
+  }
+ },
+ {
+  "slug": "kid-candle",
+  "name_fa": "شمع",
+  "category": "other",
+  "icon_key": "candle",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "شمع",
+   "story_fa": "شمع نور کمی می‌دهد و آرام آب می‌شود.",
+   "syllables_fa": "شمع"
+  }
+ },
+ {
+  "slug": "kid-fish",
+  "name_fa": "ماهی",
+  "category": "food",
+  "icon_key": "fish",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "ماهی",
+   "story_fa": "ماهی توی آب شنا می‌کند.",
+   "syllables_fa": "ما-هی"
+  }
+ },
+ {
+  "slug": "kid-chicken",
+  "name_fa": "مرغ",
+  "category": "food",
+  "icon_key": "chicken",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "مرغ",
+   "story_fa": "مرغ تخم می‌گذارد.",
+   "syllables_fa": "مرغ"
+  }
+ },
+ {
+  "slug": "kid-egg",
+  "name_fa": "تخم‌مرغ",
+  "category": "food",
+  "icon_key": "egg",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "تخم‌مرغ",
+   "story_fa": "از تخم‌مرغ املت و نیمرو درست می‌کنند.",
+   "syllables_fa": "تُخم-مرغ"
+  }
+ },
+ {
+  "slug": "kid-milk",
+  "name_fa": "شیر",
+  "category": "drink",
+  "icon_key": "milk",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "شیر",
+   "story_fa": "شیر سفید است و استخوان‌هایمان را قوی می‌کند.",
+   "syllables_fa": "شیر"
+  }
+ },
+ {
+  "slug": "kid-spoon",
+  "name_fa": "قاشق",
+  "category": "other",
+  "icon_key": "spoon",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "قاشق",
+   "story_fa": "با قاشق سوپ و غذا می‌خوریم.",
+   "syllables_fa": "قا-شق"
+  }
+ },
+ {
+  "slug": "kid-plate",
+  "name_fa": "بشقاب",
+  "category": "other",
+  "icon_key": "plate",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "بشقاب",
+   "story_fa": "غذا را توی بشقاب می‌کشیم.",
+   "syllables_fa": "بُش-قاب"
+  }
+ },
+ {
+  "slug": "kid-pot",
+  "name_fa": "قابلمه",
+  "category": "other",
+  "icon_key": "pot",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "قابلمه",
+   "story_fa": "توی قابلمه غذا می‌پزیم.",
+   "syllables_fa": "قا-بل-مه"
+  }
+ },
+ {
+  "slug": "kid-pan",
+  "name_fa": "ماهیتابه",
+  "category": "other",
+  "icon_key": "pan",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "ماهیتابه",
+   "story_fa": "توی ماهیتابه نیمرو درست می‌کنیم.",
+   "syllables_fa": "ما-هی-تا-به"
+  }
+ },
+ {
+  "slug": "kid-juice",
+  "name_fa": "آبمیوه",
+  "category": "drink",
+  "icon_key": "juice",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "آبمیوه",
+   "story_fa": "آبمیوه را از میوه‌ی تازه می‌گیرند.",
+   "syllables_fa": "آب-می-وه"
+  }
+ },
+ {
+  "slug": "kid-tea",
+  "name_fa": "چای",
+  "category": "drink",
+  "icon_key": "tea",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "چای",
+   "story_fa": "چای داغ را فوت می‌کنیم تا خنک شود.",
+   "syllables_fa": "چای"
+  }
+ },
+ {
+  "slug": "kid-water",
+  "name_fa": "آب",
+  "category": "drink",
+  "icon_key": "water",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "آب",
+   "story_fa": "آب بدون رنگ است و همه به آن نیاز داریم.",
+   "syllables_fa": "آب"
+  }
+ },
+ {
+  "slug": "kid-doogh",
+  "name_fa": "دوغ",
+  "category": "drink",
+  "icon_key": "doogh",
+  "audience": [
+   "kids"
+  ],
+  "age_track": "kid",
+  "lesson": {
+   "word_fa": "دوغ",
+   "story_fa": "دوغ را با غذا می‌خوریم؛ خنک و ترش است.",
+   "syllables_fa": "دوغ"
+  }
+ }
+]

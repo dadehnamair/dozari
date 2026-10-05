@@ -21,7 +21,7 @@ export async function loadSeedPuzzles(db: Db, seed: readonly SeedPuzzle[]): Prom
     const idOf = new Map(rows.map((r) => [r.slug, r.id]));
     if (slugs.some((s) => !idOf.has(s))) throw new Error(`puzzle ${sp.id}: a product is not in the database (run the product seed first)`);
     await db.transaction(async (tx) => {
-      const [puzzle] = await tx.insert(puzzles).values({ status: 'approved', source: 'curated' }).$returningId();
+      const [puzzle] = await tx.insert(puzzles).values({ status: sp.status, source: 'curated', ageTrack: sp.age_track }).$returningId();
       if (!puzzle) throw new Error('puzzle insert failed');
       for (const g of sp.groups) {
         const [group] = await tx

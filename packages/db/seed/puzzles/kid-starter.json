@@ -1,0 +1,155 @@
+[
+ {
+  "id": "kid-01",
+  "age_track": "kid",
+  "status": "draft",
+  "groups": [
+   {
+    "level": 0,
+    "title_fa": "خوشمزه‌های میوه‌فروشی",
+    "explanation_fa": "همه‌شان میوه‌اند",
+    "products": [
+     "kid-apple",
+     "kid-pear",
+     "kid-banana",
+     "kid-orange"
+    ]
+   },
+   {
+    "level": 1,
+    "title_fa": "توی کیف مدرسه",
+    "explanation_fa": "وسیله‌های مدرسه",
+    "products": [
+     "kid-notebook",
+     "kid-pencil",
+     "kid-ruler",
+     "kid-eraser"
+    ]
+   },
+   {
+    "level": 2,
+    "title_fa": "وقت بازی",
+    "explanation_fa": "اسباب‌بازی‌ها",
+    "products": [
+     "kid-ball",
+     "kid-teddy",
+     "kid-kite",
+     "kid-marbles"
+    ]
+   },
+   {
+    "level": 3,
+    "title_fa": "لباس‌های سرما و گرما",
+    "explanation_fa": "چیزهایی که می‌پوشیم",
+    "products": [
+     "kid-sock",
+     "kid-beanie",
+     "kid-shoe",
+     "kid-hat"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "kid-02",
+  "age_track": "kid",
+  "status": "draft",
+  "groups": [
+   {
+    "level": 0,
+    "title_fa": "زیر خاک و روی بوته",
+    "explanation_fa": "سبزی‌ها و صیفی‌ها",
+    "products": [
+     "kid-carrot",
+     "kid-potato",
+     "kid-onion",
+     "kid-corn"
+    ]
+   },
+   {
+    "level": 1,
+    "title_fa": "شیرینی‌های خوشمزه",
+    "explanation_fa": "چیزهای شیرین",
+    "products": [
+     "kid-cookie",
+     "kid-cake",
+     "kid-icecream",
+     "kid-lollipop"
+    ]
+   },
+   {
+    "level": 2,
+    "title_fa": "برای رفتن به همه‌جا",
+    "explanation_fa": "وسیله‌های رفت‌وآمد",
+    "products": [
+     "kid-bus",
+     "kid-train",
+     "kid-bicycle",
+     "kid-motorbike"
+    ]
+   },
+   {
+    "level": 3,
+    "title_fa": "باغچه‌ی قشنگ",
+    "explanation_fa": "گل‌ها و گیاه‌ها",
+    "products": [
+     "kid-rose",
+     "kid-tulip",
+     "kid-sunflower",
+     "kid-cactus"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "kid-03",
+  "age_track": "kid",
+  "status": "draft",
+  "groups": [
+   {
+    "level": 0,
+    "title_fa": "روشنایی و نگاه",
+    "explanation_fa": "چیزهای خانه",
+    "products": [
+     "kid-lamp",
+     "kid-clock",
+     "kid-mirror",
+     "kid-candle"
+    ]
+   },
+   {
+    "level": 1,
+    "title_fa": "از دریا و مزرعه",
+    "explanation_fa": "خوراکی‌هایی که از جانورها می‌آیند",
+    "products": [
+     "kid-fish",
+     "kid-chicken",
+     "kid-egg",
+     "kid-milk"
+    ]
+   },
+   {
+    "level": 2,
+    "title_fa": "سر سفره و روی گاز",
+    "explanation_fa": "ظرف‌های آشپزخانه",
+    "products": [
+     "kid-spoon",
+     "kid-plate",
+     "kid-pot",
+     "kid-pan"
+    ]
+   },
+   {
+    "level": 3,
+    "title_fa": "یک لیوان بنوش",
+    "explanation_fa": "نوشیدنی‌ها",
+    "products": [
+     "kid-juice",
+     "kid-tea",
+     "kid-water",
+     "kid-doogh"
+    ]
+   }
+  ]
+ }
+]

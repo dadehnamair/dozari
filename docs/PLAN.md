@@ -248,6 +248,6 @@ Start after the first Android build.
 
 - [ ] 1. Foundation: `age_track` on users/puzzles/items, `trackRules` config, first-run chooser, track-keyed queues, admin band filter — **built behind `feature.age_tracks` (off)**: users/puzzles/products columns, rules, chooser, queue pairing, admin user filter; still open: puzzle serving by track, per-track bots, admin section + filters on other lists
 - [ ] 2. Guardian link: phone OTP, child profiles, link code, guardian-approved band change
-- [ ] 3. Kid content and word lesson: kid pool, `item_lessons`, `splitWordLetters`, lesson cards, review queue — **pipeline built behind the switch** (track-pool serving, `item_lessons`, `splitWordLetters`, lesson cards, admin editor + approval, kid puzzle builder); **still open: the content itself** (kid items, lessons, 30–50 puzzles)
+- [ ] 3. Kid content and word lesson: kid pool, `item_lessons`, `splitWordLetters`, lesson cards, review queue — **pipeline built behind the switch** (track-pool serving, `item_lessons`, `splitWordLetters`, lesson cards, admin editor + approval, kid puzzle builder); **starter content seeded as drafts** (48 items with lessons, 3 puzzles; an editor approves them); still open: the rest of the 30–50 puzzles
 - [ ] 4. Social for kids and teens: track-bound friends, friend duels and tables, managed chat (D198 update)
 - [ ] 5. Guardian panel and digest, family table
