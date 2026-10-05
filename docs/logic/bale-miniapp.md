@@ -25,9 +25,10 @@ own folder, own container, own domain. The sample from Bale (`miniapp.js`, `Bale
 | `setHeaderColor('#2B1240')` | Bale's header matches the game's purple |
 | `openLink(url)` | external links (`window.open` of http(s) outside our origin) open in Bale's browser |
 | `?startapp=solo\|daily\|duel` | `https://ble.ir/<bot>?startapp=daily` opens that screen (mapped to the game's `?go=`) |
+| `BackButton` | Bale's header back button shows while a screen or sheet can go back and runs the same handler as the phone's back button (`nav/backStack.ts`, filled by `useHardwareBack` on the web; `bale/useBaleBack.ts`); on Home it hides |
 | `isMiniAppSupported` | an old Bale app gets a Persian «update Bale» notice instead of a blank page |
 
-Not wired yet (need game-side work): BackButton (needs in-memory routing, Bale's own warning), closing confirmation during a live duel, `requestContact` for phone proof (the verified path stays the bot's `contact.user_id == from.id` check), theme (the game keeps its own look).
+Not wired yet (need game-side work): closing confirmation during a live duel, `requestContact` for phone proof (the verified path stays the bot's `contact.user_id == from.id` check), theme (the game keeps its own look).
 
 ## Payments inside the mini-app (`openInvoice`)
 
@@ -44,6 +45,8 @@ Shop items bought with money (`payWithMoney`, D170; coin packages have the same 
 
 CORS: the server itself adds the `null` origin whenever `BALE_BOT_TOKEN` is set (no env change needed; the compose file lists it too), because Bale's web client may sandbox the iframe (opaque origin). The API authenticates with bearer tokens only
 (no cookies), so a CORS allow-list is not what protects it. If `localStorage` is unusable there, the bridge installs an in-memory one.
+
+Inside the mini-app the phone-only gate (D171, «بازی را نصب کن» card) is skipped: `usePhoneGate` treats a Bale mini-app like the «ادامه با مرورگر» choice.
 
 ## Not verified
 

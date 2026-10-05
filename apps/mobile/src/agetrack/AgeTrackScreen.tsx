@@ -45,6 +45,7 @@ export function AgeTrackScreen({ onDone }: { onDone: (track: AgeTrack) => void }
         <Text style={styles.heading}>{l.title}</Text>
         <Text style={styles.subHeading}>{l.sub}</Text>
       </View>
+      <View style={[styles.cardWrap, tight ? styles.cardWrapTight : null]} pointerEvents="box-none">
       <View style={[styles.card, tight ? styles.cardTight : null]}>
         {picked ? <GuardianStep onDone={() => onDone(picked)} /> : null}
         {picked ? null : rows.map((r) => (
@@ -54,6 +55,7 @@ export function AgeTrackScreen({ onDone }: { onDone: (track: AgeTrack) => void }
           </View>
         ))}
         {failed && !picked ? <Text style={styles.error}>{l.failed}</Text> : null}
+      </View>
       </View>
     </View>
   );
@@ -65,8 +67,11 @@ const styles = StyleSheet.create({
   top: { alignItems: 'center', paddingHorizontal: 24, gap: 8 },
   heading: { fontFamily: fonts.display, fontSize: 34, color: '#fff', textAlign: 'center' },
   subHeading: { fontFamily: fonts.body, fontSize: 15, color: '#F3E8FF', textAlign: 'center', maxWidth: 360 },
-  card: { position: 'absolute', left: 14, right: 14, bottom: 26, maxWidth: 420, alignSelf: 'center', padding: 14, paddingTop: 16, gap: 12, borderRadius: 26, borderWidth: 4, borderColor: INK, backgroundColor: '#FBF1DE' },
-  cardTight: { bottom: 12, gap: 8, padding: 12 },
+  // Centring wrapper: `alignSelf` does nothing on an absolute box (the card stuck to the left on wide screens).
+  cardWrap: { position: 'absolute', left: 14, right: 14, bottom: 26, alignItems: 'center' },
+  cardWrapTight: { bottom: 12 },
+  card: { width: '100%', maxWidth: 420, padding: 14, paddingTop: 16, gap: 12, borderRadius: 26, borderWidth: 4, borderColor: INK, backgroundColor: '#FBF1DE' },
+  cardTight: { gap: 8, padding: 12 },
   row: { gap: 4 },
   hint: { fontFamily: fonts.body, fontSize: 13, color: '#5B4A70', textAlign: 'center' },
   error: { fontFamily: fonts.body, fontSize: 14, color: '#B8235A', textAlign: 'center' },
