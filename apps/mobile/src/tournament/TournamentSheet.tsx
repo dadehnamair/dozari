@@ -21,6 +21,7 @@ import { ApiError } from '../net/http';
 import { avatarOf } from '../social/avatarOf';
 import { colors, fonts } from '../theme/colors';
 import { fetchTournament, fetchTournaments, joinTournament, leaveTournament } from './api';
+import { SponsorCard, SponsorInvite, SponsorTag } from './Sponsor';
 import { blockedText, placeLabel, roundLabel } from './text';
 import { pageTop } from '../theme/safeArea';
 import { TEXT_RIGHT } from '../theme/direction';
@@ -32,7 +33,8 @@ const TINTS = ['#FFE48A', '#3FC1F0', '#FF8FB6', '#B8F08F', '#C9A3FF', '#FFAA7A']
 const STATUS_TONE: Record<string, string> = { open: '#7ED957', running: '#FFC93C', finished: '#C9A3FF', draft: '#C9A3FF', cancelled: '#FF8FB6' };
 
 /** «تورنومنت‌ها»: the list (orange page) and a tournament's own page (screen-tournament of `11 More Screens`). */
-export function TournamentSheet({ onClose }: { onClose: () => void }) {
+/** `invite`: the admin's «become a sponsor» card (hidden when there is no contact link). */
+export function TournamentSheet({ onClose, invite = null }: { onClose: () => void; invite?: { title: string; body: string; url: string } | null }) {
   const [list, setList] = useState<TournamentListItem[] | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   useEffect(() => {
@@ -57,12 +59,14 @@ export function TournamentSheet({ onClose }: { onClose: () => void }) {
                   <Text style={styles.cardTitle} numberOfLines={1}>{t.titleFa}</Text>
                   <Text style={styles.cardSub}>{fa.tournament.joined(t.joined, t.size)} · {fa.tournament.entry(t.entryCoins, t.entryGems)}</Text>
                   <Text style={styles.cardSub}>{fa.tournament.starts}: {when(t.startsAt)}{t.entered ? ` · ${fa.tournament.mine}` : ''}</Text>
+                  {t.sponsor ? <SponsorTag sponsor={t.sponsor} /> : null}
                 </View>
                 <View style={[styles.chip, { backgroundColor: STATUS_TONE[t.status] ?? '#C9A3FF' }]}><Text style={styles.chipText}>{fa.tournament.status[t.status]}</Text></View>
               </View>
             )}
           </Pressable>
         ))}
+        {list && invite ? <SponsorInvite title={invite.title} body={invite.body} url={invite.url} /> : null}
       </ScrollView>
     </PageShell>
   );
@@ -156,6 +160,8 @@ function TournamentPage({ id, onBack }: { id: string; onBack: () => void }) {
                   ))}
                 </ScrollView>
               ) : null}
+
+              {t.sponsor ? <SponsorCard sponsor={t.sponsor} /> : null}
 
               <View style={styles.panel}>
                 {t.descriptionFa ? <Text style={styles.text}>{t.descriptionFa}</Text> : null}
