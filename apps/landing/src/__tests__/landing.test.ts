@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ContentApi } from '../api.js';
-import type { LandingData, Post } from '../api.js';
+import type { DemoPuzzle, LandingData, Post } from '../api.js';
 import { headingId, plainText, renderMarkdown } from '../markdown.js';
 import { breadcrumbList, description, graphScript } from '../seo.js';
 import { buildLanding } from '../server.js';
@@ -13,12 +13,13 @@ const DATA: LandingData = {
 const POST: Post = { slug: 'نان-۱۳۵۰', title: 'قیمت نان در ۱۳۵۰', summary: 'نان چند بود؟', coverUrl: null, author: 'تحریریه', publishedAt: Date.UTC(2026, 8, 1), updatedAt: Date.UTC(2026, 8, 5), bodyMd: '## نان\nنان ارزان بود.\n\n## شیر\nشیر هم.\n\n## چای\nچای هم.\n\n- یک\n- دو', metaTitle: null, metaDescription: null };
 
 /** A fake game server: `fail` makes every call error out. */
-function fakeApi(state: { fail?: boolean } = {}, posts: Post[] = [POST], redirects: Record<string, string> = {}, data: LandingData = DATA) {
+function fakeApi(state: { fail?: boolean } = {}, posts: Post[] = [POST], redirects: Record<string, string> = {}, data: LandingData = DATA, demo: DemoPuzzle | null = null) {
   const fetcher = async (url: string) => {
     if (state.fail) throw new Error('down');
     const path = url.replace(/^https?:\/\/[^/]+/, '');
     const json = (v: unknown, status = 200) => ({ ok: status < 400, status, json: async () => v });
     if (path === '/public/landing') return json(data);
+    if (path === '/public/landing-demo') return demo ? json(demo) : json({ error: 'not_found' }, 404);
     if (path.startsWith('/public/posts?')) {
       const q = new URLSearchParams(path.split('?')[1]);
       const page = Number(q.get('page') ?? 1);
@@ -112,6 +113,17 @@ describe('landing site', () => {
     expect(graph.map((n) => n['@type'])).toEqual(expect.arrayContaining(['WebSite', 'WebPage', 'HowTo', 'FAQPage']));
     expect(html).toContain('href="/blog/%D9%86%D8%A7%D9%86-%DB%B1%DB%B3%DB%B5%DB%B0"');
     expect(html).toContain('href="/cast"');
+  });
+
+  it('draws the try-it puzzle from the catalog with icons, and keeps the static one when there is none', async () => {
+    const demo: DemoPuzzle = { groups: [0, 1, 2, 3].map((level) => ({ level, title: `گروه ${level}`, items: [0, 1, 2, 3].map((n) => ({ name: `کالا ${level}${n}`, svg: '<svg viewBox="0 0 8 8"></svg>' })) })) };
+    const live = (await buildLanding({ api: fakeApi({}, [POST], {}, DATA, demo), siteUrl: 'https://mrdozari.ir' }).inject({ method: 'GET', url: '/' })).body;
+    expect(live).toContain('class="demo icons"');
+    expect(live.match(/<button class="t"[^>]*><svg/g)).toHaveLength(16);
+    expect(live).toContain('کالا 00');
+    const fallback = (await boot().inject({ method: 'GET', url: '/' })).body;
+    expect(fallback).not.toContain('demo icons');
+    expect(fallback.match(/<button class="t"/g)).toHaveLength(16);
   });
 
   it('renders a post with BlogPosting data, breadcrumbs, anchors and a table of contents', async () => {

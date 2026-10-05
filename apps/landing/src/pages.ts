@@ -1,4 +1,4 @@
-import type { CastMember, FaqPair, LandingData, Post, PostList, PostSummary } from './api.js';
+import type { CastMember, DemoPuzzle, FaqPair, LandingData, Post, PostList, PostSummary } from './api.js';
 import { escapeHtml, plainText, renderMarkdown } from './markdown.js';
 import { qrSvg } from './qr.js';
 import { absolute, description, faqNode, head, ids } from './seo.js';
@@ -201,7 +201,7 @@ main{overflow-x:clip}
 .demo{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
 .dgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 .dgrid .t{font:800 17px/1.3 Vazirmatn,sans-serif;min-height:68px;padding:8px 4px;border:3px solid var(--ink);border-radius:16px;background:var(--cream);color:var(--ink);cursor:pointer;box-shadow:0 4px 0 var(--ink);transition:transform .12s,background .15s}
-.dgrid .t:hover{transform:translateY(-2px)}.dgrid .t[aria-pressed=true]{background:var(--violet);color:var(--cream);transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.demo.icons .dgrid .t{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:14px;min-height:96px}.demo.icons .dgrid .t svg{width:46px;height:46px;flex:none;pointer-events:none}.demo.icons .dgrid .t span{pointer-events:none}.dgrid .t:hover{transform:translateY(-2px)}.dgrid .t[aria-pressed=true]{background:var(--violet);color:var(--cream);transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
 .dgrid .t.done{cursor:default;box-shadow:none;transform:none;color:var(--ink);background:var(--gc)}
 .dgrid .t.shake{animation:shake .45s}.dgrid .t.pop{animation:pop .5s}
 .dgrid .gb{grid-column:1/-1;border:3px solid var(--ink);border-radius:16px;padding:6px 12px;text-align:center;font-family:var(--display);font-size:22px;line-height:1.5;background:var(--gc);color:var(--ink)}
@@ -408,14 +408,17 @@ const DEMO_GROUPS = [
   ['چای‌خانه‌ی سنتی', ['نی', 'استکان', 'سماور', 'قلیون']],
 ] as const;
 const DEMO_ORDER = [4, 12, 1, 9, 7, 0, 14, 5, 10, 3, 13, 8, 2, 15, 6, 11];
-const demo = (): string => {
-  const words = DEMO_GROUPS.flatMap(([, w], g) => w.map((x) => ({ x, g })));
-  const tiles = DEMO_ORDER.map((i) => words[i] as { x: string; g: number });
-  return `<div class="demo" id="demo" data-groups='${JSON.stringify(DEMO_GROUPS.map(([t]) => t))}'>
-<div class="dgrid">${tiles.map((t) => `<button class="t" type="button" data-g="${t.g}" aria-pressed="false">${escapeHtml(t.x)}</button>`).join('')}</div>
-<p class="dmsg" role="status" aria-live="polite">چهارتا کلمه‌ی هم‌دسته را انتخاب کن</p>
+type DemoTile = { x: string; g: number; svg?: string };
+const demo = (live: DemoPuzzle | null): string => {
+  const ok = live !== null && live.groups.length === 4 && live.groups.every((g) => g.items.length === 4);
+  const titles = ok ? live.groups.map((g) => g.title) : DEMO_GROUPS.map(([t]) => t);
+  const words: DemoTile[] = ok ? live.groups.flatMap((g, n) => g.items.map((i) => ({ x: i.name, g: n, svg: i.svg }))) : DEMO_GROUPS.flatMap(([, w], g) => w.map((x) => ({ x, g })));
+  const tiles = DEMO_ORDER.map((i) => words[i] as DemoTile);
+  return `<div class="demo${ok ? ' icons' : ''}" id="demo" data-groups='${escapeHtml(JSON.stringify(titles))}'>
+<div class="dgrid">${tiles.map((t) => `<button class="t" type="button" data-g="${t.g}" aria-pressed="false">${t.svg ?? ''}<span>${escapeHtml(t.x)}</span></button>`).join('')}</div>
+<p class="dmsg" role="status" aria-live="polite">چهارتا کالای هم‌دسته را انتخاب کن</p>
 <div class="dbar"><button class="btn" type="button" data-act="submit" disabled>ثبت کن</button><button class="btn yellow" type="button" data-act="reset">از اول</button></div>
-<p class="dnote">نمونه‌ی ساده با کلمه‌ها؛ در بازی اصلی گروه‌ها بر پایه‌ی قیمت کالاها در سال‌های گذشته‌اند.</p></div>`;
+<p class="dnote">${ok ? 'یک پازل واقعی از بازی؛ گروه‌ها بر پایه‌ی قیمت کالاها در سال‌های گذشته‌اند.' : 'نمونه‌ی ساده با کلمه‌ها؛ در بازی اصلی گروه‌ها بر پایه‌ی قیمت کالاها در سال‌های گذشته‌اند.'}</p></div>`;
 };
 
 /** The page script: banner auto-play, animated numbers and the try-it puzzle. */
@@ -434,14 +437,14 @@ if(!R)setInterval(function(){if(!hold&&!d.hidden)go(cur+1)},4500);}
 var cs=d.querySelectorAll('[data-to]');
 if(cs.length&&'IntersectionObserver' in window&&!R){var io=new IntersectionObserver(function(es){es.forEach(function(e){if(!e.isIntersecting)return;io.unobserve(e.target);var el=e.target,to=Number(el.dataset.to),s=performance.now();(function f(now){var p=Math.min(1,(now-s)/1200);el.textContent=fa(Math.round(to*(1-Math.pow(1-p,3))));if(p<1)requestAnimationFrame(f)})(s)})},{threshold:.6});cs.forEach(function(c){io.observe(c)})}
 var demo=d.getElementById('demo');
-if(demo){var names=JSON.parse(demo.dataset.groups),colors=['#FFC93C','#7ED957','#3FC1F0','#A66BF0'],grid=demo.querySelector('.dgrid'),msg=demo.querySelector('.dmsg'),ok=demo.querySelector('[data-act=submit]'),sel=[],solved=0,miss=0;
+if(demo){var names=JSON.parse(demo.dataset.groups),colors=['#FFC93C','#7ED957','#3FC1F0','#A66BF0'],grid=demo.querySelector('.dgrid'),msg=demo.querySelector('.dmsg'),m0=demo.querySelector('.dmsg').textContent,ok=demo.querySelector('[data-act=submit]'),sel=[],solved=0,miss=0;
 var tiles=[].slice.call(grid.querySelectorAll('.t'));
 var sync=function(){tiles.forEach(function(t){t.setAttribute('aria-pressed',sel.indexOf(t)>-1)});ok.disabled=sel.length!==4};
 grid.addEventListener('click',function(e){var t=e.target.closest('.t');if(!t||t.classList.contains('done'))return;var i=sel.indexOf(t);if(i>-1)sel.splice(i,1);else if(sel.length<4)sel.push(t);sync()});
 ok.addEventListener('click',function(){if(sel.length!==4)return;var g=sel[0].dataset.g,same=sel.filter(function(t){return t.dataset.g===g}).length;
 if(same===4){var bar=d.createElement('div');bar.className='gb';bar.textContent=names[g];bar.style.setProperty('--gc',colors[g]);bar.style.order=solved*5;grid.appendChild(bar);sel.forEach(function(t,k){t.classList.add('done','pop');t.style.setProperty('--gc',colors[g]);t.style.order=solved*5+1+k;t.setAttribute('aria-pressed','false')});solved++;sel=[];msg.textContent=solved===4?'دوزاری‌ات افتاد! همه‌ی گروه‌ها را پیدا کردی.':'آفرین! یک گروه پیدا شد.';sync();tiles.forEach(function(t){if(!t.classList.contains('done'))t.style.order=100})}
 else{miss++;sel.forEach(function(t){t.classList.remove('shake');void t.offsetWidth;t.classList.add('shake')});msg.textContent=same===3?'یکی‌شون جاش اشتباهه!':'این‌ها هم‌دسته نیستند؛ دوباره فکر کن.';sel=[];sync()}});
-demo.querySelector('[data-act=reset]').addEventListener('click',function(){grid.querySelectorAll('.gb').forEach(function(b){b.remove()});tiles.forEach(function(t){t.className='t';t.style.order='';t.style.removeProperty('--gc')});sel=[];solved=0;miss=0;msg.textContent='چهارتا کلمه‌ی هم‌دسته را انتخاب کن';sync()})}
+demo.querySelector('[data-act=reset]').addEventListener('click',function(){grid.querySelectorAll('.gb').forEach(function(b){b.remove()});tiles.forEach(function(t){t.className='t';t.style.order='';t.style.removeProperty('--gc')});sel=[];solved=0;miss=0;msg.textContent=m0;sync()})}
 })();`;
 
 /** The people of the game for the home strip and the about page: the game's own cast list, else the designed one. */
@@ -450,7 +453,7 @@ const castOf = (cast: CastMember[]): { name: string; role: string; who: Who; id:
 
 const FLOATERS: [string, string, string, string][] = [['coin', '38%', '52%', '0s'], ['gift', '44%', '4%', '1.2s'], ['crown', '3%', '66%', '2.1s'], ['coinStack', '47%', '82%', '.6s'], ['hat', '90%', '8%', '1.7s'], ['map', '92%', '70%', '2.8s']];
 
-export function homePage(site: Site, data: LandingData, latest: PostSummary[]): string {
+export function homePage(site: Site, data: LandingData, latest: PostSummary[], demoPuzzle: DemoPuzzle | null = null): string {
   const { site: s, cast, faq } = data;
   const i = ids(site);
   const title = s.seo?.title || `${s.name} — ${s.tagline}`;
@@ -487,7 +490,7 @@ ${showRow('s', { h: 'با رفقات رقابت کن', p: 'حریف پیدا ک�
 ${showRow('o', { h: 'هر روز یه جایزه', p: 'گردونه‌ی روزانه را بچرخان و سکه ببر؛ سکه‌ها برای آواتار، کلاه و لباس مخصوص خودت خرج می‌شوند.', chips: ['گردونه‌ی روزانه', 'سکه‌ی بازی', 'ظاهر اختصاصی'], art: frame('banner7', '2deg'), flip: true })}
 <section class="band v"><div class="in col" style="gap:36px;padding-top:80px;padding-bottom:80px"><h2 class="big rv" style="color:var(--cream)">دوزاری در یک نگاه</h2>
 <div class="stats">${stats.map(([n, l, c], k) => `<div class="stat rv z" style="--c:${c};--d:${k * 0.1}s"><b data-to="${n}">${faNum(n)}</b><span>${l}</span></div>`).join('')}</div></div></section>
-<section class="in sec col" style="gap:28px"><div class="col" style="align-items:center;text-align:center;gap:6px"><h2 class="big rv">همین‌جا امتحان کن</h2><p class="rv" style="margin:0;font-weight:600;font-size:17px;opacity:.8">دوزاری‌ات می‌افتد؟ شانزده کلمه، چهار دسته</p></div><div class="rv z">${demo()}</div></section>
+<section class="in sec col" style="gap:28px"><div class="col" style="align-items:center;text-align:center;gap:6px"><h2 class="big rv">همین‌جا امتحان کن</h2><p class="rv" style="margin:0;font-weight:600;font-size:17px;opacity:.8">دوزاری‌ات می‌افتد؟ شانزده کالا، چهار دسته</p></div><div class="rv z">${demo(demoPuzzle)}</div></section>
 <section class="band s"><div class="in col" style="gap:36px;padding-top:80px;padding-bottom:80px"><h2 class="big rv">${escapeHtml(s.name)} چطور بازی می‌شود؟</h2>
 <ol class="steps">${HOW_TO.map(([n, t, art], k) => `<li class="rv" style="--d:${k * 0.12}s"><div class="shot">${img(art, 216, 248)}</div><span class="num">${faNum(k + 1)}</span><h3>${escapeHtml(n)}</h3><p>${escapeHtml(t)}</p></li>`).join('')}</ol></div></section>
 <section class="in sec col" style="gap:28px"><div class="col" style="align-items:center;text-align:center;gap:6px"><h2 class="big rv">آدم‌های بازار</h2><p style="margin:0;font-weight:600;font-size:17px;opacity:.8">هر کدوم یه قصه دارن و یه عالمه کالا</p></div>

@@ -1,3 +1,4 @@
+import { itemSvg } from '@dozari/shared';
 import type { LandingStore, NewCast, NewFaq, NewPost, PostRow } from './store.js';
 
 /** A URL slug from a Persian or Latin title: letters and digits kept, spaces and `_` → `-`, everything else dropped, lower-cased. */
@@ -86,6 +87,13 @@ export class LandingService {
     add: (c: NewCast) => this.store.addCast(c),
     update: (id: string, patch: Partial<NewCast & { sortOrder: number }>) => this.store.updateCast(id, patch),
   };
+
+  /** The try-it puzzle of the landing: today's pick among the eligible approved puzzles, as four titled groups of four icons. */
+  async publicDemo(): Promise<{ groups: { level: number; title: string; items: { name: string; svg: string }[] }[] } | null> {
+    const day = Math.floor(this.now() / 86_400_000);
+    const groups = await this.store.demoPuzzle((n) => day % n);
+    return groups ? { groups: groups.map((g) => ({ level: g.level, title: g.titleFa, items: g.items.map((i) => ({ name: i.nameFa, svg: itemSvg(i.iconKey) })) })) } : null;
+  }
 
   faq = {
     list: () => this.store.faq({ includeHidden: true }),

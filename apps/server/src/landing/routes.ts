@@ -35,6 +35,12 @@ export function registerLandingPublicRoutes(app: FastifyInstance, landing: Landi
     };
   });
 
+  // The try-it puzzle of the landing (an approved, non-daily puzzle); 404 until the catalog has an eligible one.
+  app.get('/public/landing-demo', async (_req, reply) => {
+    const demo = await landing.publicDemo();
+    return demo ?? reply.code(404).send({ error: 'not_found' });
+  });
+
   app.get('/public/posts', async (req) => {
     const q = z.object({ page: z.coerce.number().int().min(1).max(10_000).default(1), pageSize: z.coerce.number().int().min(1).max(50).default(12) }).parse(req.query);
     return landing.publicPosts(q.page, q.pageSize);

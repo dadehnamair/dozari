@@ -92,8 +92,8 @@ export function buildLanding(opts: LandingOptions): FastifyInstance {
   app.get('/health', async () => ({ ok: true }));
 
   app.get('/', async (_req, reply) => {
-    const [data, list] = await Promise.all([api.landing(), api.posts(1, 3)]);
-    return send(reply, 200, homePage(siteOf(data, opts.siteUrl), data, list.posts));
+    const [data, list, demo] = await Promise.all([api.landing(), api.posts(1, 3), api.demo()]);
+    return send(reply, 200, homePage(siteOf(data, opts.siteUrl), data, list.posts, demo));
   });
 
   app.get('/blog', async (req, reply) => {
