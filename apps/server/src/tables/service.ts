@@ -1,4 +1,4 @@
-import { canMeet, makeTableCode, normalizeTableCode, seatsOfFormat } from '@dozari/shared';
+import { canMeet, makeTableCode, trackRank, normalizeTableCode, seatsOfFormat } from '@dozari/shared';
 import type { AgeTrack, CreateTableBody, TableError, TableFormat, TableView } from '@dozari/shared';
 
 export interface TableDeps {
@@ -11,6 +11,10 @@ export interface TableDeps {
   trackOf?(userId: string): Promise<AgeTrack>;
   /** A kid/teen with no linked guardian may not open or join a table (docs/logic/age-tracks.md). */
   socialBlocked?(userId: string): Promise<boolean>;
+  /** Does this player belong to a family (a guardian with children, or a child with a guardian)? Only they may open a family table. */
+  hasFamily?(userId: string): Promise<boolean>;
+  /** Are these two the same family: a guardian and their child, or two children of one guardian? */
+  sameFamily?(a: string, b: string): Promise<boolean>;
   /** The guardian switched friend duels and tables off for this child: the app hides them, the server refuses. */
   duelsOff?(userId: string): Promise<boolean>;
   idleMs(): Promise<number>;
@@ -23,6 +27,8 @@ interface Table {
   name: string;
   icon: string;
   format: TableFormat;
+  /** A guardian's table with their own children: it crosses tracks and is closed to everybody else. */
+  family: boolean;
   /** Team of each seated player (0/1). */
   sides: Map<string, 0 | 1>;
   requireReady: boolean;
@@ -48,6 +54,12 @@ export class TableService {
   private readonly byUser = new Map<string, string>();
 
   constructor(private readonly deps: TableDeps) {}
+
+  /** May this player see and sit at the table: the same track, or for a family table the same family as the host. */
+  private async mayEnter(t: Table, userId: string): Promise<boolean> {
+    if (t.family) return userId === t.hostId || ((await this.deps.sameFamily?.(t.hostId, userId)) ?? false);
+    return canMeet(t.track, await this.trackOf(userId));
+  }
 
   private async trackOf(userId: string): Promise<AgeTrack> {
     try {
@@ -93,9 +105,14 @@ export class TableService {
     this.byUser.delete(userId);
   }
 
-  async create(hostId: string, body: CreateTableBody): Promise<TableResult<{ table: TableView }>> {
-    if (await this.deps.socialBlocked?.(hostId)) return { ok: false, error: 'NEEDS_GUARDIAN' };
-    if (await this.deps.duelsOff?.(hostId)) return { ok: false, error: 'FEATURE_OFF' };
+  async create(hostId: string, body: Omit<CreateTableBody, 'family'> & { family?: boolean }): Promise<TableResult<{ table: TableView }>> {
+    if (body.family) {
+      // A family table is the guardian's own flow: no track gate, and the guardian's duel switch does not apply to a table they sit at.
+      if (!(await this.deps.hasFamily?.(hostId))) return { ok: false, error: 'INVALID' };
+    } else {
+      if (await this.deps.socialBlocked?.(hostId)) return { ok: false, error: 'NEEDS_GUARDIAN' };
+      if (await this.deps.duelsOff?.(hostId)) return { ok: false, error: 'FEATURE_OFF' };
+    }
     if (this.deps.inMatch(hostId)) return { ok: false, error: 'IN_MATCH' };
     this.leaveCurrent(hostId);
     const rng = this.deps.rng ?? Math.random;
@@ -103,7 +120,7 @@ export class TableService {
     for (let i = 0; i < 20 && this.tables.has(code); i++) code = makeTableCode(rng);
     if (this.tables.has(code)) return { ok: false, error: 'BUSY' };
     if (body.format === '2v2' && !this.deps.startTeam) return { ok: false, error: 'INVALID' };
-    const t: Table = { code, name: body.name, icon: body.icon, format: body.format, sides: new Map([[hostId, 0]]), requireReady: body.requireReady, locked: false, hostId, track: await this.trackOf(hostId), seated: [hostId], ready: new Set(), expiresAt: this.now() + (await this.deps.idleMs()) };
+    const t: Table = { code, name: body.name, icon: body.icon, format: body.format, family: !!body.family, sides: new Map([[hostId, 0]]), requireReady: body.requireReady, locked: false, hostId, track: await this.trackOf(hostId), seated: [hostId], ready: new Set(), expiresAt: this.now() + (await this.deps.idleMs()) };
     this.tables.set(code, t);
     this.byUser.set(hostId, code);
     return { ok: true, table: await this.view(t, hostId) };
@@ -111,7 +128,7 @@ export class TableService {
 
   async get(userId: string, code: string): Promise<TableView | null> {
     const t = this.live(code);
-    if (!t || (!t.seated.includes(userId) && !canMeet(t.track, await this.trackOf(userId)))) return null;
+    if (!t || (!t.seated.includes(userId) && !(await this.mayEnter(t, userId)))) return null;
     return this.view(t, userId);
   }
 
@@ -131,10 +148,12 @@ export class TableService {
     const t = this.live(code);
     if (!t) return { ok: false, error: normalizeTableCode(code) && this.tables.has(normalizeTableCode(code)!) ? 'EXPIRED' : 'NOT_FOUND' };
     if (t.seated.includes(userId)) return { ok: true, table: await this.view(t, userId) };
-    if (await this.deps.socialBlocked?.(userId)) return { ok: false, error: 'NEEDS_GUARDIAN' };
-    if (await this.deps.duelsOff?.(userId)) return { ok: false, error: 'FEATURE_OFF' };
-    // Another track's table reads as no table at all: no refusal to explain, nothing to find.
-    if (!canMeet(t.track, await this.trackOf(userId))) return { ok: false, error: 'NOT_FOUND' };
+    if (!t.family) {
+      if (await this.deps.socialBlocked?.(userId)) return { ok: false, error: 'NEEDS_GUARDIAN' };
+      if (await this.deps.duelsOff?.(userId)) return { ok: false, error: 'FEATURE_OFF' };
+    }
+    // Another track's table (or a family table of another family) reads as no table at all: no refusal to explain, nothing to find.
+    if (!(await this.mayEnter(t, userId))) return { ok: false, error: 'NOT_FOUND' };
     if (this.deps.inMatch(userId)) return { ok: false, error: 'IN_MATCH' };
     if (t.locked) return { ok: false, error: 'LOCKED' };
     if (t.seated.length >= seatsOfFormat(t.format)) return { ok: false, error: 'FULL' };
@@ -205,7 +224,7 @@ export class TableService {
     if (!t || t.hostId !== hostId) return { ok: false, error: 'NOT_HOST' };
     if (t.seated.length < seatsOfFormat(t.format)) return { ok: false, error: 'NEED_PLAYERS' };
     // A seated player may have moved track since joining: such a seat is freed, never played.
-    for (const u of [...t.seated]) if (!canMeet(t.track, await this.trackOf(u))) this.removeSeat(t, u);
+    for (const u of [...t.seated]) if (!(await this.mayEnter(t, u))) this.removeSeat(t, u);
     if (!this.tables.has(t.code)) return { ok: false, error: 'NOT_FOUND' };
     if (t.seated.length < seatsOfFormat(t.format)) return { ok: false, error: 'NEED_PLAYERS' };
     const guests = t.seated.filter((u) => u !== hostId);
@@ -215,11 +234,27 @@ export class TableService {
       const side = (n: 0 | 1) => t.seated.filter((u) => t.sides.get(u) === n);
       const [a, b] = [side(0), side(1)];
       if (a.length !== 2 || b.length !== 2) return { ok: false, error: 'NEED_PLAYERS' };
-      if (!(await this.deps.startTeam?.([[a[0]!, a[1]!], [b[0]!, b[1]!]]))) return { ok: false, error: 'START_FAILED' };
-    } else if (!(await this.deps.startMatch(hostId, guests[0]!))) return { ok: false, error: 'START_FAILED' };
+      // The match draws its puzzles from the first player's track pool: at a family table the youngest sits first.
+      const [sa, sb] = t.family ? [await this.youngestFirst(a), await this.youngestFirst(b)] : [a, b];
+      const sides: [string[], string[]] = t.family && (await this.rankOf(sb[0]!)) < (await this.rankOf(sa[0]!)) ? [sb, sa] : [sa, sb];
+      if (!(await this.deps.startTeam?.([[sides[0][0]!, sides[0][1]!], [sides[1][0]!, sides[1][1]!]]))) return { ok: false, error: 'START_FAILED' };
+    } else {
+      const [first, second] = t.family ? await this.youngestFirst([hostId, guests[0]!]) : [hostId, guests[0]!];
+      if (!(await this.deps.startMatch(first!, second!))) return { ok: false, error: 'START_FAILED' };
+    }
     t.ready.clear();
     t.expiresAt = this.now() + (await this.deps.idleMs());
     return { ok: true };
+  }
+
+  private async rankOf(userId: string): Promise<number> {
+    return trackRank(await this.trackOf(userId));
+  }
+
+  /** The same players, the youngest track first (a stable order otherwise). */
+  private async youngestFirst(ids: readonly string[]): Promise<string[]> {
+    const ranked = await Promise.all(ids.map(async (id, i) => ({ id, i, rank: await this.rankOf(id) })));
+    return ranked.sort((x, y) => x.rank - y.rank || x.i - y.i).map((r) => r.id);
   }
 
   private tableOf(userId: string): Table | null {
@@ -233,6 +268,6 @@ export class TableService {
       const p = (await this.deps.profileOf(id)) ?? { nickname: '؟', avatarKey: 'avatar-01' };
       players.push({ id, nickname: p.nickname, avatarKey: p.avatarKey, ready: t.ready.has(id), isHost: id === t.hostId, isYou: id === forUser, side: t.sides.get(id) ?? 0 });
     }
-    return { code: t.code, name: t.name, icon: t.icon, format: t.format, requireReady: t.requireReady, locked: t.locked, hostId: t.hostId, youAreHost: t.hostId === forUser, youAreIn: t.seated.includes(forUser), expiresAt: t.expiresAt, inMatch: t.seated.some((u) => this.deps.inMatch(u)), players, seats: seatsOfFormat(t.format) };
+    return { code: t.code, name: t.name, icon: t.icon, format: t.format, family: t.family, requireReady: t.requireReady, locked: t.locked, hostId: t.hostId, youAreHost: t.hostId === forUser, youAreIn: t.seated.includes(forUser), expiresAt: t.expiresAt, inMatch: t.seated.some((u) => this.deps.inMatch(u)), players, seats: seatsOfFormat(t.format) };
   }
 }

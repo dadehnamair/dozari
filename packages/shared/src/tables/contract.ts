@@ -11,6 +11,8 @@ export const createTableBodySchema = z.object({
   requireReady: z.boolean().default(false),
   /** 1v1 (two seats) or 2v2 (four seats, two per side). */
   format: z.enum(TABLE_FORMATS).default('1v1'),
+  /** A family table: only a guardian and their own children sit there, across tracks (docs/logic/age-tracks.md §Friends, duels and chat). */
+  family: z.boolean().default(false),
 });
 export type CreateTableBody = z.infer<typeof createTableBodySchema>;
 
@@ -19,6 +21,7 @@ export const tableViewSchema = z.object({
   name: z.string(),
   icon: z.string(),
   format: z.enum(TABLE_FORMATS).default('1v1'),
+  family: z.boolean().default(false),
   requireReady: z.boolean(),
   locked: z.boolean(),
   hostId: z.string().uuid(),

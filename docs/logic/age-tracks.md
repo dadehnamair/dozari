@@ -237,7 +237,11 @@ Setting `feature.age_tracks` (admin → settings → app, **default off**): off 
 - Phase 5, slice 2, **digest «امروز چه یاد گرفت»** (migration 0064, table `lesson_views(user_id, product_id, first_seen_at, last_seen_at, times)`): `POST /lessons` records each lesson card that was shown to a signed-in player (best effort; a failing write never costs the lesson).
   `GET /guardian/children/:id/digest` (only the child's own guardian) returns `ChildDigest`: words learned (total, this week, the last five), games and wins in the last 7 days, days played, level and friend count — counts and words only,
   **never chat text** (`shared/agetrack/digest.ts`: `weekSummary`, `childDigestSchema`; builder `guardian/digest.ts`). The «who they played» line of the first sketch is dropped: the game keeps no opponent history, and friends are listed in the panel.
-  Not yet: «block a friend» as its own switch (removing a friend is there; a re-request is possible), the family table, the guardian panel screens and the soft rest card in the app.
+- Phase 5, slice 3, **family table** (`createTableBodySchema.family`, `TableView.family`): a table that a guardian and their own children sit at across tracks, closed to everybody else. `TableService` takes `hasFamily` and `sameFamily` (a guardian and their child, or two children of
+  one guardian; the `guardian_links` row is the whole proof). Only someone with a family may open one (`INVALID` otherwise); a non-family player gets `NOT_FOUND` on join and `null` on view. A family table skips the track gate **and the duel-off switch of the child**
+  (the guardian is sitting there). The match draws its puzzles from the first player's track pool, so at a family table the **youngest track plays first** (1v1, and in 2v2 the youngest leads the first side). Open: the price-guess round still differs per player (kid has the word lesson,
+  the guardian the price round); the app offers the toggle only to a guardian with children or a child with a guardian.
+  Not yet: «block a friend» as its own switch (removing a friend is there; a re-request is possible), the guardian panel screens and the soft rest card in the app.
 - Not yet: the rest of the 30–50 kid puzzles; a track filter on the other admin lists (puzzles, items, tournaments, reports…);
 
 ## Phases

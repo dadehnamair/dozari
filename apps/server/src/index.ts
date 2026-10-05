@@ -645,6 +645,14 @@ if (isMainModule(import.meta.url)) {
           trackOf: ageTracks ? (id) => ageTracks.effective(id) : undefined,
           socialBlocked: ageTracks ? (id) => ageTracks.socialBlocked(id) : undefined,
           duelsOff: ageTracks ? (id) => ageTracks.duelsOff(id) : undefined,
+          // A family is a guardian and their children (the guardian link is the whole proof; nobody else can open a family table).
+          hasFamily: guardianStore ? async (id) => (await guardianStore.guardianOf(id)) !== null || (await guardianStore.childrenOf(id)).length > 0 : undefined,
+          sameFamily: guardianStore
+            ? async (a, b) => {
+                const [ga, gb] = await Promise.all([guardianStore.guardianOf(a), guardianStore.guardianOf(b)]);
+                return ga === b || gb === a || (ga !== null && ga === gb);
+              }
+            : undefined,
           idleMs: async () => (await settings.num('table.idle_minutes')) * 60_000,
         })
       : undefined;

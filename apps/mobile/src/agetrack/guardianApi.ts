@@ -12,6 +12,8 @@ const ok = (raw: unknown): void => void raw;
 export const requestGuardianCode = (phone: string): Promise<void> => authed(ok, '/guardian/request', 'POST', { phone });
 export const confirmGuardian = (phone: string, code: string): Promise<void> => authed(ok, '/guardian/confirm', 'POST', { phone, code });
 
+export const fetchMyGuardian = (): Promise<boolean> => authed((r) => (r as { linked?: boolean }).linked === true, '/me/guardian', 'GET');
+
 /** Guardian side. */
 export const fetchChildren = (): Promise<ChildrenResponse> => authed((r) => childrenResponseSchema.parse(r), '/guardian/children', 'GET');
 export const addChild = (track: 'kid' | 'teen'): Promise<void> => authed(ok, '/guardian/children', 'POST', { track });
