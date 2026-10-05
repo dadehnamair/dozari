@@ -1,6 +1,7 @@
 [
   {
     "slug": "nan-barbari",
+    "age_track": "teen",
     "name_fa": "نان بربری سنتی",
     "category": "food",
     "unit_fa": "یک عدد",
@@ -37,6 +38,7 @@
   },
   {
     "slug": "nan-taftoon",
+    "age_track": "teen",
     "name_fa": "نان تافتون سنتی",
     "category": "food",
     "unit_fa": "یک عدد",
@@ -73,6 +75,7 @@
   },
   {
     "slug": "nan-lavash",
+    "age_track": "teen",
     "name_fa": "نان لواش سنتی",
     "category": "food",
     "unit_fa": "یک عدد",
@@ -109,6 +112,7 @@
   },
   {
     "slug": "berenj-tarem",
+    "age_track": "teen",
     "name_fa": "برنج طارم اعلا ایرانی",
     "category": "food",
     "unit_fa": "یک کیلوگرم",
@@ -181,6 +185,7 @@
   },
   {
     "slug": "makaroni-reshtei",
+    "age_track": "teen",
     "name_fa": "ماکارونی رشته‌ای (۷۰۰ گرمی)",
     "brand": "مانا / زرماکارون",
     "category": "food",
@@ -290,6 +295,7 @@
   },
   {
     "slug": "ard-gandom",
+    "age_track": "teen",
     "name_fa": "آرد گندم خبازی",
     "category": "food",
     "unit_fa": "یک کیلوگرم",
@@ -326,6 +332,7 @@
   },
   {
     "slug": "goosht-gusfand",
+    "age_track": "teen",
     "name_fa": "گوشت ران گوسفندی",
     "category": "food",
     "unit_fa": "یک کیلوگرم",
@@ -362,6 +369,7 @@
   },
   {
     "slug": "goosht-goosale",
+    "age_track": "teen",
     "name_fa": "گوشت گوساله بی‌استخوان",
     "category": "food",
     "unit_fa": "یک کیلوگرم",
@@ -398,6 +406,7 @@
   },
   {
     "slug": "morgh-keshtar",
+    "age_track": "teen",
     "name_fa": "مرغ تازه کشتار روز",
     "category": "food",
     "unit_fa": "یک کیلوگرم",
@@ -434,6 +443,7 @@
   },
   {
     "slug": "tokhm-morgh",
+    "age_track": "teen",
     "name_fa": "تخم‌‌مرغ رسمی (شانه ۳۰ عددی)",
     "category": "food",
     "unit_fa": "یک شانه",
@@ -470,6 +480,7 @@
   },
   {
     "slug": "shir-shishei",
+    "age_track": "teen",
     "name_fa": "شیر پاستوریزه شیشه‌ای",
     "brand": "صنایع شیر ایران (پگاه)",
     "category": "food",
@@ -507,6 +518,7 @@
   },
   {
     "slug": "mast-sonati",
+    "age_track": "teen",
     "name_fa": "ماست سنتی پیاله‌ای",
     "category": "food",
     "unit_fa": "یک کیلوگرم",
@@ -543,6 +555,7 @@
   },
   {
     "slug": "panir-lighvan",
+    "age_track": "teen",
     "name_fa": "پنیر لیقوان تبریز",
     "category": "food",
     "unit_fa": "یک کیلوگرم",
@@ -579,6 +592,7 @@
   },
   {
     "slug": "panir-sefid",
+    "age_track": "teen",
     "name_fa": "پنیر سفید پاستوریزه قوطی فلزی (۴۰۰ گرم)",
     "brand": "پاک / پگاه",
     "category": "food",
@@ -616,6 +630,7 @@
   },
   {
     "slug": "kareh-pasteurize",
+    "age_track": "teen",
     "name_fa": "کره پاستوریزه حیوانی (۱۰۰ گرم)",
     "brand": "پاک",
     "category": "food",
@@ -653,6 +668,7 @@
   },
   {
     "slug": "mahi-ghezelala",
+    "age_track": "teen",
     "name_fa": "ماهی قزل‌آلا پرورشی",
     "category": "food",
     "unit_fa": "یک کیلوگرم",
@@ -689,6 +705,7 @@
   },
   {
     "slug": "gojeh-farangi",
+    "age_track": "teen",
     "name_fa": "گوجه‌فرنگی بوته‌ای",
     "category": "food",
     "unit_fa": "یک کیلوگرم",
@@ -725,6 +742,7 @@
   },
   {
     "slug": "khiar-rasmi",
+    "age_track": "teen",
     "name_fa": "خیار رسمی معطر",
     "category": "food",
     "unit_fa": "یک کیلوگرم",
@@ -761,6 +779,7 @@
   },
   {
     "slug": "sibzamini",
+    "age_track": "teen",
     "name_fa": "سیب‌زمینی پشندی",
     "category": "food",
     "unit_fa": "یک کیلوگرم",
@@ -797,6 +816,7 @@
   },
   {
     "slug": "piaz-ghermez",
+    "age_track": "teen",
     "name_fa": "پیاز قرمز خوراکی",
     "category": "food",
     "unit_fa": "یک کیلوگرم",
@@ -833,6 +853,7 @@
   },
   {
     "slug": "hendevaneh",
+    "age_track": "teen",
     "name_fa": "هندوانه دشت مغان",
     "category": "food",
     "unit_fa": "یک کیلوگرم",
@@ -869,6 +890,7 @@
   },
   {
     "slug": "sib-derakhti",
+    "age_track": "teen",
     "name_fa": "سیب درختی قرمز دماوند",
     "category": "food",
     "unit_fa": "یک کیلوگرم",
@@ -942,6 +964,7 @@
   },
   {
     "slug": "roghan-nabati-ghoo",
+    "age_track": "teen",
     "name_fa": "روغن نباتی جامد ۴.۵ کیلویی",
     "brand": "قو / شاه‌پسند",
     "category": "food",
@@ -1051,6 +1074,7 @@
   },
   {
     "slug": "pofak-namaki-minoo",
+    "age_track": "teen",
     "name_fa": "پفک نمکی مینو (۱۱۰ گرمی)",
     "brand": "مینو",
     "category": "snack",
@@ -1125,6 +1149,7 @@
   },
   {
     "slug": "biscuit-sagheh-talaei",
+    "age_track": "teen",
     "name_fa": "بیسکویت ساقه‌طلایی مینو (۲۰۰ گرمی)",
     "brand": "مینو",
     "category": "snack",
@@ -1162,6 +1187,7 @@
   },
   {
     "slug": "chips-chitoz",
+    "age_track": "teen",
     "name_fa": "چیپس نمکی چیتوز (۶۰ گرمی)",
     "brand": "چیتوز (دینا)",
     "category": "snack",
@@ -1199,6 +1225,7 @@
   },
   {
     "slug": "adams-shik",
+    "age_track": "teen",
     "name_fa": "آدامس شیک دارچینی/نعنایی",
     "brand": "شیک",
     "category": "snack",
@@ -1236,6 +1263,7 @@
   },
   {
     "slug": "chocolate-minoo",
+    "age_track": "teen",
     "name_fa": "شکلات تخته‌ای کاکائویی مینو (۵۰ گرم)",
     "brand": "مینو",
     "category": "snack",
@@ -1273,6 +1301,7 @@
   },
   {
     "slug": "cake-titap",
+    "age_track": "teen",
     "name_fa": "کیک لایه‌ای تی‌تاپ سالمین",
     "brand": "سالمین",
     "category": "snack",
@@ -1310,6 +1339,7 @@
   },
   {
     "slug": "bastani-kim",
+    "age_track": "teen",
     "name_fa": "بستنی چوبی کیم دوقلو روکش شکلاتی",
     "brand": "میهن / پاک",
     "category": "snack",
@@ -1347,6 +1377,7 @@
   },
   {
     "slug": "bastani-gheifi",
+    "age_track": "teen",
     "name_fa": "بستنی قیفی وانیلی کارخانه‌ای",
     "brand": "میهن",
     "category": "snack",
@@ -1420,6 +1451,7 @@
   },
   {
     "slug": "nooshabeh-zamzam",
+    "age_track": "teen",
     "name_fa": "نوشابه گازدار شیشه‌ای زمزم (۲۵۰ سی‌سی)",
     "brand": "زمزم",
     "category": "food",
@@ -1457,6 +1489,7 @@
   },
   {
     "slug": "nooshabeh-coca",
+    "age_track": "teen",
     "name_fa": "نوشابه شیشه‌ای کوکاکولا مشهد (۲۵۰ سی‌سی)",
     "brand": "خوشگوار (کوکاکولا)",
     "category": "food",
@@ -1494,6 +1527,7 @@
   },
   {
     "slug": "doogh-abali",
+    "age_track": "teen",
     "name_fa": "دوغ شیشه‌ای گازدار آبعلی",
     "brand": "آبعلی",
     "category": "food",
@@ -1531,6 +1565,7 @@
   },
   {
     "slug": "abmiveh-rani",
+    "age_track": "teen",
     "name_fa": "آبمیوه قوطی تکه‌دار رانی (۲۴۰ میلی‌لیتر)",
     "brand": "رانی (عوجان)",
     "category": "food",
@@ -1642,6 +1677,7 @@
   },
   {
     "slug": "shir-kakao-shishei",
+    "age_track": "teen",
     "name_fa": "شیرکاکائو شیشه‌ای پاستوریزه",
     "brand": "پاک",
     "category": "food",
@@ -1679,6 +1715,7 @@
   },
   {
     "slug": "sharbat-albaloo",
+    "age_track": "teen",
     "name_fa": "شربت سنتی آلبالو (بطری یک لیتری)",
     "brand": "سن‌ایچ",
     "category": "food",
@@ -1716,6 +1753,7 @@
   },
   {
     "slug": "chaye-golestan",
+    "age_track": "teen",
     "name_fa": "چای سیاه بسته ۵۰۰ گرمی گلستان",
     "brand": "گلستان",
     "category": "food",
@@ -1790,6 +1828,7 @@
   },
   {
     "slug": "powder-darya",
+    "age_track": "teen",
     "name_fa": "پودر لباسشویی دستی دریا (۵۰۰ گرم)",
     "brand": "دریا (پاکسان)",
     "category": "hygiene",
@@ -1827,6 +1866,7 @@
   },
   {
     "slug": "maye-zarfshooee-rika",
+    "age_track": "teen",
     "name_fa": "مایع ظرفشویی ریکا (یک لیتری)",
     "brand": "ریکا (داروگر)",
     "category": "hygiene",
@@ -1864,6 +1904,7 @@
   },
   {
     "slug": "shampoo-sehat-cedar",
+    "age_track": "teen",
     "name_fa": "شامپو سدر صحت (۳۰۰ میلی‌لیتر)",
     "brand": "صحت",
     "category": "hygiene",
@@ -1901,6 +1942,7 @@
   },
   {
     "slug": "saboon-golnar",
+    "age_track": "teen",
     "name_fa": "صابون حمام سنتی گلنار (قالب سبز)",
     "brand": "گلنار (پاکسان)",
     "category": "hygiene",
@@ -1974,6 +2016,7 @@
   },
   {
     "slug": "khamirdandan-nasim",
+    "age_track": "teen",
     "name_fa": "خمیردندان نسیم (۱۰۰ گرمی)",
     "brand": "نسیم (پاکسان)",
     "category": "hygiene",
@@ -2011,6 +2054,7 @@
   },
   {
     "slug": "sefidkonandeh-vaytex",
+    "age_track": "teen",
     "name_fa": "مایع سفیدکننده وایتکس (یک لیتری)",
     "brand": "وایتکس",
     "category": "hygiene",
@@ -2085,6 +2129,7 @@
   },
   {
     "slug": "spray-pifpaf",
+    "age_track": "teen",
     "name_fa": "اسپری حشره‌کش پیف‌پاف (۴۰۰ میلی‌لیتر)",
     "brand": "پیف‌پاف",
     "category": "hygiene",
@@ -2122,6 +2167,7 @@
   },
   {
     "slug": "dastmal-kaghazi-cheshmak",
+    "age_track": "teen",
     "name_fa": "دستمال کاغذی جعبه‌ای ۲۰۰ برگ",
     "brand": "چشمک / کلینکس",
     "category": "hygiene",
@@ -2159,6 +2205,7 @@
   },
   {
     "slug": "paykan-carluxe",
+    "age_track": "teen",
     "name_fa": "سواری پیکان کارلوکس",
     "brand": "ایران ناسیونال (ایران خودرو)",
     "category": "car",
@@ -2254,6 +2301,7 @@
   },
   {
     "slug": "pride-131",
+    "age_track": "teen",
     "name_fa": "خودروی پراید (صبا / ۱۳۱)",
     "brand": "سایپا",
     "category": "car",
@@ -2291,6 +2339,7 @@
   },
   {
     "slug": "peugeot-405-glx",
+    "age_track": "teen",
     "name_fa": "خودروی پژو ۴۰۵ GLX",
     "brand": "ایران خودرو",
     "category": "car",
@@ -2328,6 +2377,7 @@
   },
   {
     "slug": "peugeot-206-tip2",
+    "age_track": "teen",
     "name_fa": "خودروی پژو ۲۰۶ تیپ ۲",
     "brand": "ایران خودرو",
     "category": "car",
@@ -2365,6 +2415,7 @@
   },
   {
     "slug": "samand-lx",
+    "age_track": "teen",
     "name_fa": "خودروی سمند LX",
     "brand": "ایران خودرو",
     "category": "car",
@@ -2468,6 +2519,7 @@
   },
   {
     "slug": "honda-125-cdi",
+    "age_track": "teen",
     "name_fa": "موتورسیکلت هوندا ۱۲۵ CDI",
     "brand": "هوندا / تیزرو",
     "category": "transport",
@@ -2563,6 +2615,7 @@
   },
   {
     "slug": "pankeh-pars-khazar",
+    "age_track": "teen",
     "name_fa": "پنکه رومیزی/ایستاده پارس خزر",
     "brand": "پارس خزر",
     "category": "electronics",
@@ -2600,6 +2653,7 @@
   },
   {
     "slug": "polowpaz-pars-khazar",
+    "age_track": "teen",
     "name_fa": "پلوپز اتوماتیک تیان پارس خزر",
     "brand": "پارس خزر",
     "category": "electronics",
@@ -2637,6 +2691,7 @@
   },
   {
     "slug": "yakhchal-arj",
+    "age_track": "teen",
     "name_fa": "یخچال خانگی ۱۲ فوت ارج",
     "brand": "ارج",
     "category": "electronics",
@@ -2674,6 +2729,7 @@
   },
   {
     "slug": "bokhari-alaeddin",
+    "age_track": "teen",
     "name_fa": "بخاری نفتی والور علاءالدین سبز",
     "brand": "علاءالدین",
     "category": "electronics",
@@ -2711,6 +2767,7 @@
   },
   {
     "slug": "cassette-tdk",
+    "age_track": "teen",
     "name_fa": "نوار کاست خام ۶۰ دقیقه‌ای TDK",
     "brand": "TDK",
     "category": "entertainment",
@@ -2798,6 +2855,7 @@
   },
   {
     "slug": "charkh-khayati-marshal",
+    "age_track": "teen",
     "name_fa": "چرخ خیاطی دستی خانگی مارشال",
     "brand": "مارشال (Marshal)",
     "category": "electronics",
@@ -2835,6 +2893,7 @@
   },
   {
     "slug": "bilet-cinema",
+    "age_track": "teen",
     "name_fa": "بلیت سینما درجه یک ممتاز",
     "category": "entertainment",
     "unit_fa": "یک قطعه",
@@ -2879,6 +2938,7 @@
   },
   {
     "slug": "bilet-otoboos-vahed",
+    "age_track": "teen",
     "name_fa": "بلیت کاغذی اتوبوس شرکت واحد",
     "brand": "شرکت واحد اتوبوسرانی",
     "category": "transport",
@@ -2924,6 +2984,7 @@
   },
   {
     "slug": "bilet-metro-tehran",
+    "age_track": "teen",
     "name_fa": "بلیت تک‌سفره متروی تهران",
     "brand": "شرکت بهره‌برداری مترو تهران",
     "category": "transport",
@@ -2961,6 +3022,7 @@
   },
   {
     "slug": "bilet-otoboos-mashhad",
+    "age_track": "teen",
     "name_fa": "بلیت اتوبوس تهران-مشهد (دولوکس)",
     "brand": "ایران پیما / تی‌بی‌تی",
     "category": "transport",
@@ -3026,6 +3088,7 @@
   },
   {
     "slug": "kart-telephone-omoomi",
+    "age_track": "teen",
     "name_fa": "کارت اعتباری تلفن همگانی (۵۰ پالسی)",
     "brand": "شرکت مخابرات ایران",
     "category": "service",
@@ -3104,6 +3167,7 @@
   },
   {
     "slug": "zheton-daneshjooyi",
+    "age_track": "teen",
     "name_fa": "ژتون غذای دانشجویی دانشگاه",
     "category": "food",
     "unit_fa": "یک وعده",
@@ -3148,6 +3212,7 @@
   },
   {
     "slug": "tambr-posti-shahri",
+    "age_track": "teen",
     "name_fa": "تمبر پستی نامه عادی شهری",
     "brand": "شرکت ملی پست ایران",
     "category": "service",
@@ -3193,6 +3258,7 @@
   },
   {
     "slug": "benzin-azad",
+    "age_track": "teen",
     "name_fa": "بنزین آزاد خودرو (هر لیتر)",
     "brand": "شرکت ملی پخش فرآورده‌های نفتی",
     "category": "transport",
@@ -3246,6 +3312,7 @@
   },
   {
     "slug": "benzin-super",
+    "age_track": "teen",
     "name_fa": "بنزین سوپر خودرو (هر لیتر)",
     "brand": "شرکت ملی پخش فرآورده‌های نفتی",
     "category": "transport",
@@ -3320,6 +3387,7 @@
   },
   {
     "slug": "naft-sefid-gallon",
+    "age_track": "teen",
     "name_fa": "نفت سفید گرمایشی (هر گالن ۲۰ لیتری)",
     "brand": "شرکت ملی پخش فرآورده‌های نفتی",
     "category": "transport",
@@ -3357,6 +3425,7 @@
   },
   {
     "slug": "capsule-gaz-11kg",
+    "age_track": "teen",
     "name_fa": "کپسول گاز مایع ۱۱ کیلویی پرسی‌گاز",
     "brand": "پرسی‌گاز / بوتان",
     "category": "transport",
@@ -3394,6 +3463,7 @@
   },
   {
     "slug": "sekke-bahar-azadi",
+    "age_track": "teen",
     "name_fa": "سکه تمام بهار آزادی",
     "brand": "بانک مرکزی جمهوری اسلامی ایران",
     "category": "other",
@@ -3439,6 +3509,7 @@
   },
   {
     "slug": "rob-sekke-bahar-azadi",
+    "age_track": "teen",
     "name_fa": "ربع سکه بهار آزادی",
     "brand": "بانک مرکزی جمهوری اسلامی ایران",
     "category": "other",
@@ -3476,6 +3547,7 @@
   },
   {
     "slug": "tala-18-ayar",
+    "age_track": "teen",
     "name_fa": "یک گرم طلای ۱۸ عیار خام",
     "category": "other",
     "unit_fa": "یک گرم",
@@ -3512,6 +3584,7 @@
   },
   {
     "slug": "dolar-usa",
+    "age_track": "teen",
     "name_fa": "اسکناس یک دلاری آمریکا (بازار آزاد)",
     "brand": "فدرال رزرو",
     "category": "other",
@@ -3565,6 +3638,7 @@
   },
   {
     "slug": "maskan-tehran-metr",
+    "age_track": "teen",
     "name_fa": "متوسط قیمت یک مترمربع مسکن در تهران",
     "category": "other",
     "unit_fa": "یک مترمربع",

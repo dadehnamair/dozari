@@ -253,6 +253,10 @@ Setting `feature.age_tracks` (admin → settings → app, **default off**): off 
   - **City and province** are hidden on a kid/teen public profile (`SocialService.cityVisible`, rule `publicCity`).
   - **Message center broadcasts** (all players, Bale-linked) reach adults only; a message to one named player still goes through.
   - app: the tournaments tile and the real-money part of the shop follow `rules.tournaments` / `rules.purchases`.
+- **Teen starter content** (`seed/puzzles/teen-starter.json`, 7 puzzles `teen-01`..`teen-07`, all `draft`): curated category puzzles over the **real catalog**, not new prices. 74 existing products of `products-2026-10-05.json` are now tagged `age_track: teen`
+  (everyday food, drinks, school/street/home things; nothing alcohol- or adult-themed; each has at least 3 approved price points so the teen price-guess round works). A teen item may sit in adult puzzles too (an item only needs to be the puzzle's track or younger).
+  Load with `pnpm --filter @dozari/db seed` (the product upsert re-tags in place; an existing puzzle id is left alone) and approve the puzzles in «ساخت پازل» — a teen has **no playable puzzle until an editor approves some**, same as kid content.
+  Each puzzle is hand-checked so every item fits exactly one group of its own board (the sample-seed convention: curated groups, no price rule). Still open: the spec's «easy adult groups» for teens (the pool is the teen track only), more teen puzzles, and the adult option to play the teen pool.
 - Not yet: the rest of the 30–50 kid puzzles; a track filter on the other admin lists (puzzles, items, tournaments, reports…);
 
 ## Phases
