@@ -149,9 +149,9 @@ step for social features.
 ## Server rules
 
 - Every endpoint that can reach another player or serve content calls `trackRules(user.age_track)` and refuses (`403 {error:"age_track"}`) what the band does not
-  allow; matchmaking queues are **keyed by band** (`queue:{mode}:{track}`), so a kid can never be paired with an adult by a bug in one filter.
+  allow; every matchmaking queue entry **carries its track** and `DuelQueue.takePair/takeGroup` only ever pair or group entries of one track, so a kid can never be paired with an adult by a bug in one filter.
 - Bots in a band (`bots.md`) get the same band and a band-appropriate nickname list.
-- `POST /age/track {track}` (own band, younger or same: free; older: needs the guardian's confirmation through the guardian's session).
+- `GET /me/age-track` and `PUT /me/age-track {track}` (own track; the first pick is free, later the same or a younger track is free, an older one needs the guardian's confirmation through the guardian's session, answered `403 needs_guardian` until phase 2).
 - `POST /guardian/children`, `POST /guardian/link-code`, `POST /guardian/children/:id/track|revoke`, `GET /guardian/children` (guardian-only).
 - Coins stay in `coin_ledger` only; a guardian cannot move coins to a child outside the existing gift path (D-wallet rules unchanged).
 
@@ -174,6 +174,15 @@ bots, message center audience, coin ledger, matches):
 - The chooser's adult card is first and wears the main brand voice; kid art, stars and the word lesson never appear in an adult account.
 - Store listing, splash, icon and home shell are the one «دوزاری» brand; «دوزاری کوچولو» is only a track label inside the app (principle 1).
 - **Preview mode** («پیش‌نمایش کودک») lets a guardian open the kid space read-only (no progress, no coins) to judge it.
+
+## As built (phase 1, behind a switch)
+
+Setting `feature.age_tracks` (admin → settings → app, **default off**): off means everybody plays the adult game, no chooser shows and `PUT /me/age-track` answers 503.
+- shared: `config/ageTracks.ts` (tracks, edges, chat modes), `agetrack/rules.ts` (`trackRules`, `canSelfSwitchTrack`, `canMeet`, `parseAgeTrack`), `agetrack/contract.ts` (zod).
+- db: migration 0058, `users.age_track` + `age_track_set_at`, `puzzles.age_track`, `products.age_track` (all default `adult`).
+- server: `apps/server/src/agetrack/` (service, DB store, `GET/PUT /me/age-track`); `DuelQueue` entries carry the track and pair only within one; the gateway reads it through `trackOf`; the admin user list filters by track (`/admin/users?track=`) and rows carry `ageTrack`.
+- app: `src/agetrack/` — the chooser screen (shown once after login, before the tutorial, only when the switch is on and the account was never asked; a failed lookup never blocks play).
+- Not yet: serving puzzles by track (needs kid content, phase 3), bots per track, the guardian link (phase 2), the admin «رده‌های سنی» section and filters on the other lists.
 
 ## Phases
 

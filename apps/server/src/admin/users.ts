@@ -11,6 +11,8 @@ export interface AdminUserRow {
   avatarKey: string;
   isBanned: boolean;
   balance: number;
+  /** Chosen age track (D198). */
+  ageTrack: 'kid' | 'teen' | 'adult';
   createdAt: number;
   lastSeenAt: number;
 }
@@ -26,6 +28,8 @@ export interface UserListOptions {
   filter?: 'all' | 'banned' | 'new';
   sort?: 'lastSeen' | 'created' | 'coins';
   offset?: number;
+  /** Only players of this age track (D198). */
+  track?: 'kid' | 'teen' | 'adult';
 }
 
 export interface UserDetail extends AdminUserRow {
@@ -60,7 +64,7 @@ export interface UsersAdmin {
 }
 
 function rowOf(u: typeof users.$inferSelect, balance: number | null): AdminUserRow {
-  return { id: u.id, nickname: u.nickname, avatarKey: u.avatarKey, isBanned: u.isBanned, balance: balance ?? 0, createdAt: u.createdAt.getTime(), lastSeenAt: u.lastSeenAt.getTime() };
+  return { id: u.id, nickname: u.nickname, avatarKey: u.avatarKey, isBanned: u.isBanned, balance: balance ?? 0, ageTrack: u.ageTrack, createdAt: u.createdAt.getTime(), lastSeenAt: u.lastSeenAt.getTime() };
 }
 
 export function createDbUsersAdmin(db: Db): UsersAdmin {
@@ -69,12 +73,13 @@ export function createDbUsersAdmin(db: Db): UsersAdmin {
       const q = query.trim();
       const search = q ? or(like(users.nickname, `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`), eq(users.id, q)) : undefined;
       const filter = opts.filter === 'banned' ? eq(users.isBanned, true) : undefined;
+      const track = opts.track ? eq(users.ageTrack, opts.track) : undefined;
       const order = opts.sort === 'coins' ? desc(userBalances.balance) : opts.sort === 'created' || opts.filter === 'new' ? desc(users.createdAt) : desc(users.lastSeenAt);
       const rows = await db
         .select({ u: users, balance: userBalances.balance })
         .from(users)
         .leftJoin(userBalances, eq(userBalances.userId, users.id))
-        .where(and(search, filter))
+        .where(and(search, filter, track))
         .orderBy(order)
         .limit(limit)
         .offset(opts.offset ?? 0);

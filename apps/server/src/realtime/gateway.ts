@@ -2,6 +2,7 @@ import type { Server as HttpServer } from 'node:http';
 import { Server } from 'socket.io';
 import type { Socket } from 'socket.io';
 import type { QueueProblem } from '@dozari/shared';
+import type { AgeTrack } from '@dozari/shared';
 import { ClientEvent, ServerEvent, chatTauntSchema, matchProposeSchema, matchResumeSchema, matchSubmitSchema, priceSubmitSchema, queueJoinSchema } from '@dozari/shared';
 import type { Ack, LiveNotice } from '@dozari/shared';
 import type { UserRecord } from '../auth/service.js';
@@ -37,6 +38,8 @@ export interface GatewayOptions {
   presence?: Presence;
   /** Pushes a small notice to one player's live sockets (friend request, inbox message); the gateway fills in `push`. */
   notices?: LiveNotices;
+  /** A player's age track (docs/logic/age-tracks.md); the queues only pair players of one track. Missing = everyone is adult. */
+  trackOf?: (userId: string) => Promise<AgeTrack>;
   /** Why a player who has waited `waitedSec` is not being matched (nothing to play, nobody to play against); null = just wait. */
   diagnose?: (waitedSec: number) => Promise<QueueProblem | null>;
 }
@@ -61,6 +64,9 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
   const now = opts.now ?? Date.now;
   const queue = new DuelQueue();
   const teamQueue = new DuelQueue();
+  /** Track of everyone now in a line, so a pair that fails to start goes back to the right track. */
+  const lineTracks = new Map<string, AgeTrack>();
+  const rejoin = (line: DuelQueue, id: string) => line.join(id, now(), lineTracks.get(id) ?? 'adult');
   let matches: MatchService | undefined;
   const stats = new SocketStats({ queueLength: () => queue.length + teamQueue.length, activeMatches: () => matches?.activeCount ?? 0, longestWaitMs: (t) => Math.max(queue.longestWaitMs(t), teamQueue.longestWaitMs(t)) }, now);
   const io = new Server(http, {
@@ -101,8 +107,9 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
     const pair = queue.takePair();
     if (!pair) return;
     const handled = matches ? await matches.start(pair[0], pair[1]) : opts.onPair ? await opts.onPair(pair[0], pair[1]) : false;
-    if (!handled) for (const id of pair) queue.join(id, now());
-    else if (opts.limit) for (const id of pair) void opts.limit.onStarted(id).catch(() => undefined);
+    if (!handled) for (const id of pair) rejoin(queue, id);
+    else for (const id of pair) lineTracks.delete(id);
+    if (handled && opts.limit) for (const id of pair) void opts.limit.onStarted(id).catch(() => undefined);
   }
 
   async function tryPairTeam() {
@@ -110,13 +117,15 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
     if (!four || !matches) return;
     // The two longest waiters play together against the next two.
     const handled = await matches.startTeam([[four[0]!, four[1]!], [four[2]!, four[3]!]]);
-    if (!handled) for (const id of four) teamQueue.join(id, now());
-    else if (opts.limit) for (const id of four) void opts.limit.onStarted(id).catch(() => undefined);
+    if (!handled) for (const id of four) rejoin(teamQueue, id);
+    else for (const id of four) lineTracks.delete(id);
+    if (handled && opts.limit) for (const id of four) void opts.limit.onStarted(id).catch(() => undefined);
   }
 
   function leaveQueue(userId: string) {
     queue.leave(userId);
     teamQueue.leave(userId);
+    lineTracks.delete(userId);
   }
 
   io.on('connection', (socket: Socket) => {
@@ -144,7 +153,9 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
       if (matches?.inMatch(userId)) return ack?.({ ok: false, error: 'ALREADY_IN_MATCH' });
       if (queue.has(userId) || teamQueue.has(userId)) return ack?.({ ok: false, error: 'ALREADY_QUEUED' });
       const line = team ? teamQueue : queue;
-      line.join(userId, now());
+      const track = (await opts.trackOf?.(userId)) ?? 'adult';
+      lineTracks.set(userId, track);
+      line.join(userId, now(), track);
       ack?.({ ok: true });
       socket.emit(ServerEvent.queueStatus, { waitedSec: 0, position: line.position(userId) ?? 1 });
       await (team ? tryPairTeam() : tryPair());

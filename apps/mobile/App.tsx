@@ -27,6 +27,8 @@ import { SearchScreen } from './src/search/SearchScreen';
 import { Tutorial } from './src/onboarding/Tutorial';
 import { loginSeen, markLoginSeen, markTutorialSeen, tutorialSeen } from './src/onboarding/state';
 import { LoginScreen } from './src/phone/LoginScreen';
+import { AgeTrackScreen } from './src/agetrack/AgeTrackScreen';
+import { ageTrackNeeded } from './src/agetrack/api';
 import { SplashScreen } from './src/splash/SplashScreen';
 import { DuelScreen } from './src/duel/DuelScreen';
 import { SoloScreen } from './src/solo/SoloScreen';
@@ -65,7 +67,7 @@ export default function App() {
   const [fontsLoaded] = useFonts({ Vazirmatn_400Regular, Vazirmatn_700Bold, Lalezar_400Regular });
 
   // Minimal navigation until a real router lands with the hub screen (docs/logic/app-screens.md).
-  const [screen, setScreen] = useState<'splash' | 'login' | 'home' | 'solo' | 'daily' | 'duel' | 'tutorial' | 'duelResume' | 'gallery' | 'search' | 'brand' | 'lookup' | 'priceonly'>(
+  const [screen, setScreen] = useState<'splash' | 'login' | 'ageTrack' | 'home' | 'solo' | 'daily' | 'duel' | 'tutorial' | 'duelResume' | 'gallery' | 'search' | 'brand' | 'lookup' | 'priceonly'>(
     'splash',
   );
 
@@ -80,12 +82,23 @@ export default function App() {
     if (!fontsLoaded || screen !== 'splash') return;
     let alive = true;
     // First run: the sign-in screen (when the server can send codes), then the tutorial; a returning player goes straight on.
-    const timer = setTimeout(() => void Promise.all([tutorialSeen(), loginSeen()]).then(([seen, logged]) => alive && setScreen(BRAND_SHEET ? 'brand' : config.phoneLogin && !logged ? 'login' : !seen ? 'tutorial' : launchOn && launch ? launch : 'home')), SPLASH_MS);
+    const timer = setTimeout(
+      () =>
+        void Promise.all([tutorialSeen(), loginSeen()]).then(async ([seen, logged]) => {
+          if (!alive) return;
+          if (BRAND_SHEET) return setScreen('brand');
+          if (config.phoneLogin && !logged) return setScreen('login');
+          // The one-time «who is playing?» question (age tracks), only when the server switch is on and this account was never asked.
+          if (await ageTrackNeeded(config.raw)) return alive && setScreen('ageTrack');
+          setScreen(!seen ? 'tutorial' : launchOn && launch ? launch : 'home');
+        }),
+      SPLASH_MS,
+    );
     return () => {
       alive = false;
       clearTimeout(timer);
     };
-  }, [fontsLoaded, screen, launch, launchOn, config.phoneLogin]);
+  }, [fontsLoaded, screen, launch, launchOn, config.phoneLogin, config.raw]);
 
   // The phone's back button leaves a full-screen mode for the screen it came from (sheets close first, they register later).
   useHardwareBack(
@@ -139,9 +152,16 @@ export default function App() {
       {screen === 'splash' ? <SplashScreen /> : null}
       {screen === 'login' ? (
         <LoginScreen
-          onDone={(r) => void markLoginSeen().then(async () => (r.signedIn && !r.created ? (await markTutorialSeen(), setScreen('home')) : setScreen((await tutorialSeen()) ? 'home' : 'tutorial')))}
+          onDone={(r) =>
+            void markLoginSeen().then(async () => {
+              if (await ageTrackNeeded(config.raw)) return setScreen('ageTrack');
+              if (r.signedIn && !r.created) return (await markTutorialSeen(), setScreen('home'));
+              setScreen((await tutorialSeen()) ? 'home' : 'tutorial');
+            })
+          }
         />
       ) : null}
+      {screen === 'ageTrack' ? <AgeTrackScreen onDone={() => void tutorialSeen().then((seen) => setScreen(seen ? 'home' : 'tutorial'))} /> : null}
       {screen === 'solo' ? <SoloScreen onBack={() => setScreen('home')} hintsEnabled={config.features.shop} /> : null}
       {screen === 'priceonly' ? <PriceOnlyScreen onBack={() => setScreen('home')} /> : null}
       {screen === 'daily' ? <SoloScreen daily onBack={() => setScreen('home')} hintsEnabled={config.features.shop} /> : null}

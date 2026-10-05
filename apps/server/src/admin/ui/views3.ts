@@ -2,16 +2,18 @@
 export const ADMIN_VIEWS3_JS = String.raw`
 /* ---------------- users ---------------- */
 VIEWS.users = function (root) {
-  var st = { q: '', filter: load('users.filter') || 'all', sort: load('users.sort') || 'lastSeen', offset: 0 };
+  var st = { q: '', filter: load('users.filter') || 'all', sort: load('users.sort') || 'lastSeen', track: load('users.track') || '', offset: 0 };
   var out = h('div');
   var search = searchBox('جستجوی اسم یا شناسه…', function (v) { st.q = v; st.offset = 0; pull(); });
   var filt = seg([['all', 'همه'], ['new', 'تازه‌ها'], ['banned', 'مسدودها']], st.filter, function (v) { st.filter = v; store('users.filter', v); st.offset = 0; pull(); });
   var sortSel = select([['lastSeen', 'مرتب‌سازی: آخرین حضور'], ['created', 'مرتب‌سازی: تازه‌ترین'], ['coins', 'مرتب‌سازی: بیشترین سکه']], st.sort);
   sortSel.addEventListener('change', function () { st.sort = sortSel.value; store('users.sort', st.sort); st.offset = 0; pull(); });
-  root.appendChild(h('div', { class: 'toolbar' }, [search, filt, h('span', { style: 'flex:1' }), sortSel]));
+  var trackSel = select([['', 'همه‌ی رده‌های سنی'], ['kid', 'کودک'], ['teen', 'نوجوان'], ['adult', 'بزرگسال']], st.track);
+  trackSel.addEventListener('change', function () { st.track = trackSel.value; store('users.track', st.track); st.offset = 0; pull(); });
+  root.appendChild(h('div', { class: 'toolbar' }, [search, filt, h('span', { style: 'flex:1' }), trackSel, sortSel]));
   root.appendChild(out);
   function pull() {
-    api('/admin/users?q=' + encodeURIComponent(st.q) + '&filter=' + st.filter + '&sort=' + st.sort + '&offset=' + st.offset).then(function (r) {
+    api('/admin/users?q=' + encodeURIComponent(st.q) + '&filter=' + st.filter + '&sort=' + st.sort + (st.track ? '&track=' + st.track : '') + '&offset=' + st.offset).then(function (r) {
       clear(out);
       if (r.status === 404) return out.appendChild(empty('مدیریت کاربران روی این سرور فعال نیست'));
       if (!r.ok) return fail(r);

@@ -127,6 +127,8 @@ import { applyLedgerEntry } from './economy/ledger.js';
 import type { FeedbackService } from './feedback/service.js';
 import { registerFeedbackRoutes } from './feedback/routes.js';
 import { createDbBirthdayStore } from './profile/birthday-store.js';
+import { AgeTrackService, registerAgeTrackRoutes } from './agetrack/service.js';
+import { createDbAgeTrackStore } from './agetrack/store.js';
 import { ShopService } from './economy/shop.js';
 import { createDbShopStore } from './economy/shop-store.js';
 import { HintService } from './solo/hints.js';
@@ -229,6 +231,8 @@ export interface ServerDeps {
   profileTasks?: ProfileTaskService;
   /** Birth date, birthday week, yearly gift and friend messages (D160). */
   birthday?: BirthdayService;
+  /** Chosen age track: kid / teen / adult (D198); queues only pair one track. */
+  ageTracks?: AgeTrackService;
   /** Reports of players and the suggestion / vote / approve loop (D177). */
   feedback?: FeedbackService;
   gems?: Pick<GemWalletReader, 'wallet'>;
@@ -343,6 +347,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.levelRoad) registerRoadRoutes(app, deps.auth, deps.levelRoad);
   if (deps.auth && deps.profileTasks) registerProfileTaskRoutes(app, deps.auth, deps.profileTasks);
   if (deps.auth && deps.birthday) registerBirthdayRoutes(app, deps.auth, deps.birthday);
+  if (deps.auth && deps.ageTracks) registerAgeTrackRoutes(app, deps.auth, deps.ageTracks);
   if (deps.auth && deps.feedback) registerFeedbackRoutes(app, deps.auth, deps.feedback);
   if (deps.auth && deps.gems) registerGemRoutes(app, deps.auth, deps.gems);
   if (deps.landing && deps.settings) registerLandingPublicRoutes(app, deps.landing, deps.settings);
@@ -352,7 +357,7 @@ export function buildServer(deps: ServerDeps = {}) {
   let gateway: Gateway | undefined;
   if (deps.auth && deps.realtime) {
     const auth = deps.auth;
-    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin: deps.corsOrigin, match: deps.match, canAfford: deps.duelStakes ? (u) => deps.duelStakes!.canQueue(u) : undefined, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, levelGate: deps.duelLevelGate, limit: deps.limiter ? { canPlay: async (u) => (await deps.limiter!.check(u, 'duel')).ok, onStarted: (u) => deps.limiter!.record(u, 'duel') } : undefined, chat: deps.chat, presence: deps.presence, notices: deps.notices, onEmit: deps.botDriver ? (u, e, p) => deps.botDriver!.onEmit(u, e, p) : undefined, diagnose: deps.match ? createQueueDiagnosis({ hasPuzzle: async () => (await deps.match!.puzzles.pickRandom()) !== null, botsReady: () => deps.botDriver?.ready() ?? false, graceSec: 45 }) : undefined });
+    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin: deps.corsOrigin, match: deps.match, canAfford: deps.duelStakes ? (u) => deps.duelStakes!.canQueue(u) : undefined, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, levelGate: deps.duelLevelGate, limit: deps.limiter ? { canPlay: async (u) => (await deps.limiter!.check(u, 'duel')).ok, onStarted: (u) => deps.limiter!.record(u, 'duel') } : undefined, chat: deps.chat, presence: deps.presence, notices: deps.notices, onEmit: deps.botDriver ? (u, e, p) => deps.botDriver!.onEmit(u, e, p) : undefined, trackOf: deps.ageTracks ? (u) => deps.ageTracks!.effective(u).catch(() => 'adult' as const) : undefined, diagnose: deps.match ? createQueueDiagnosis({ hasPuzzle: async () => (await deps.match!.puzzles.pickRandom()) !== null, botsReady: () => deps.botDriver?.ready() ?? false, graceSec: 45 }) : undefined });
     if (deps.live) {
       deps.live.matches = gateway.matches;
       deps.live.queue = gateway.queue;
@@ -564,6 +569,7 @@ if (isMainModule(import.meta.url)) {
           texts: { weekTitle: BIRTHDAY_TITLE.week, weekBody: BALE_TEXT.birthdayWeek, dayTitle: BIRTHDAY_TITLE.day, dayBody: BALE_TEXT.birthdayDay },
         })
       : undefined;
+  const ageTracks = db && settings ? new AgeTrackService(createDbAgeTrackStore(db), async () => (await settings.num('feature.age_tracks')) === 1) : undefined;
   const productAdmin = db ? createDbProductAdmin(db) : undefined;
   const feedback = db && settings && productAdmin ? buildFeedbackService({ db, settings, productAdmin, player, socialStore }) : undefined;
   const duelStakes =
@@ -751,6 +757,7 @@ if (isMainModule(import.meta.url)) {
         : undefined,
     gems: db ? createDbGemWallet(db) : undefined,
     birthday,
+    ageTracks,
     feedback,
     profileTasks:
       db && settings

@@ -59,6 +59,7 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'feature.lookup', group: 'app', label: 'استعلام قیمت روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'feature.duel', group: 'app', label: 'بازی دونفره‌ی زنده روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'feature.friends', group: 'app', label: 'دوستان و پروفایل بازیکن‌ها روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'feature.age_tracks', group: 'app', label: 'رده‌های سنی (کودک، نوجوان، بزرگسال) روشن باشد', hint: 'خاموش = همه بزرگسال‌اند و صفحه‌ی انتخاب رده دیده نمی‌شود؛ بعد از آماده شدن محتوای کودک روشنش کن', kind: 'bool', min: 0, max: 1, default: 0 },
   { key: 'feature.inbox', group: 'app', label: 'صندوق پیام داخل اپ روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'feature.bale', group: 'app', label: 'اتصال به بله روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'review.enabled', group: 'review', label: 'درخواست نظر در فروشگاه روشن باشد', hint: 'پیش‌فرض خاموش؛ بعد از پر کردن لینک فروشگاه‌ها روشنش کن', kind: 'bool', min: 0, max: 1, default: 0 },

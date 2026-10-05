@@ -135,7 +135,7 @@ describe('admin modules', () => {
     const audit = createMemoryAuditLog();
     const users: UsersAdmin = {
       list: async (q, limit, opts) => (calls.push(['list', q, limit, opts]), []),
-      detail: async (id) => (id === ID ? { id, nickname: 'n', avatarKey: 'avatar-01', isBanned: false, balance: 5, createdAt: 1, lastSeenAt: 2, gender: 'female', banReason: null, bannedAt: null, friends: 2, age: 24, birth: { year: 1381, month: 5, day: 9 }, baleLinked: true, notes: [] } : null),
+      detail: async (id) => (id === ID ? { id, nickname: 'n', avatarKey: 'avatar-01', isBanned: false, balance: 5, ageTrack: 'adult' as const, createdAt: 1, lastSeenAt: 2, gender: 'female', banReason: null, bannedAt: null, friends: 2, age: 24, birth: { year: 1381, month: 5, day: 9 }, baleLinked: true, notes: [] } : null),
       ledger: async () => [],
       setBanned: async (id, banned, reason) => (calls.push(['ban', id, banned, reason]), 'ok'),
       logoutEverywhere: async (id) => (calls.push(['logout', id]), 'ok'),

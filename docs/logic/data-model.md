@@ -93,7 +93,8 @@ Human/AI-written witty titles, matched to rule kinds; `times_chosen` counts how 
 
 ### `users`
 `id, device_id unique null, phone text unique null, nickname text, avatar_key text,
-chat_unlocked_at timestamptz null, invited_by uuid null, is_banned bool, created_at, last_seen_at`
+chat_unlocked_at timestamptz null, invited_by uuid null, is_banned bool, created_at, last_seen_at,
+age_track enum(kid,teen,adult) default adult, age_track_set_at datetime(3) null` (D198, `logic/age-tracks.md`; `puzzles` and `products` also carry `age_track`)
 
 ### `invite_codes`
 `code text PK (6 chars, no ambiguous chars), owner_id FK, max_uses int, uses int, created_at`

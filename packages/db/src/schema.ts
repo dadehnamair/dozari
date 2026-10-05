@@ -17,6 +17,7 @@ import {
   varchar,
 } from 'drizzle-orm/mysql-core';
 import { COSMETIC_SLOTS } from '@dozari/shared/src/economy/slots';
+import { AGE_TRACKS } from '@dozari/shared/src/config/ageTracks';
 import { uuidv7 } from 'uuidv7';
 
 /**
@@ -85,6 +86,8 @@ export const products = mysqlTable('products', {
     .notNull()
     .default('in_production'),
   isActive: boolean('is_active').notNull().default(true),
+  /** Lowest age track the item is meant for (D198); kid puzzles may only use kid items. */
+  ageTrack: mysqlEnum('age_track', AGE_TRACKS).notNull().default('adult'),
   createdBy: char('created_by', { length: 36 }),
   createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
   updatedAt: datetime('updated_at', { mode: 'date', fsp: 3 })
@@ -204,6 +207,8 @@ export const puzzles = mysqlTable('puzzles', {
   difficultyScore: double('difficulty_score'),
   /** Tier of the puzzle as a whole; null = not rated yet (served to everyone). */
   tierId: char('tier_id', { length: 36 }),
+  /** Which age track's pool the puzzle belongs to (D198). */
+  ageTrack: mysqlEnum('age_track', AGE_TRACKS).notNull().default('adult'),
   timesPlayed: int('times_played').notNull().default(0),
   avgSolveRate: double('avg_solve_rate'),
   createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
@@ -318,6 +323,10 @@ export const users = mysqlTable(
     phoneVerifiedAt: datetime('phone_verified_at', { mode: 'date', fsp: 3 }),
     /** Optional contact e-mail; private and not verified yet. */
     email: varchar('email', { length: 120 }),
+    /** Chosen age track (D198), never computed from the birth date; adult for every existing account. */
+    ageTrack: mysqlEnum('age_track', AGE_TRACKS).notNull().default('adult'),
+    /** When the player picked a track; null = not asked yet, so the chooser shows once. */
+    ageTrackSetAt: datetime('age_track_set_at', { mode: 'date', fsp: 3 }),
     /** Why and when an admin banned the player. */
     banReason: varchar('ban_reason', { length: 200 }),
     bannedAt: datetime('banned_at', { mode: 'date', fsp: 3 }),

@@ -217,11 +217,11 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     const users = m.users;
     g.get('/admin/users', async (req, reply) => {
       const parsed = z
-        .object({ q: z.string().max(60).default(''), filter: z.enum(['all', 'banned', 'new']).default('all'), sort: z.enum(['lastSeen', 'created', 'coins']).default('lastSeen'), offset: z.coerce.number().int().min(0).max(100_000).default(0) })
+        .object({ q: z.string().max(60).default(''), filter: z.enum(['all', 'banned', 'new']).default('all'), sort: z.enum(['lastSeen', 'created', 'coins']).default('lastSeen'), track: z.enum(['kid', 'teen', 'adult']).optional(), offset: z.coerce.number().int().min(0).max(100_000).default(0) })
         .safeParse(req.query);
       if (!parsed.success) return reply.code(400).send({ error: 'invalid_request' });
       const q = parsed.data;
-      return { users: await users.list(q.q, 50, { filter: q.filter, sort: q.sort, offset: q.offset }) };
+      return { users: await users.list(q.q, 50, { filter: q.filter, sort: q.sort, offset: q.offset, ...(q.track ? { track: q.track } : {}) }) };
     });
     g.get('/admin/users/:id', async (req, reply) => {
       const p = idParam.safeParse(req.params);
