@@ -31,6 +31,7 @@ import { useInbox } from '../inbox/useInbox';
 import { BaleSheet } from '../bale/BaleSheet';
 import { ShopSheet } from '../shop/ShopSheet';
 import { FittingRoom } from '../wardrobe/FittingRoom';
+import { TreasuryPage } from '../keepsake/TreasuryPage';
 import { WheelPage } from '../wheel/WheelPage';
 import { ChatSheet } from '../chat/ChatSheet';
 import { shareTable } from '../tables/api';
@@ -82,6 +83,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
   const [baleOpen, setBaleOpen] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
   const [wardrobeOpen, setWardrobeOpen] = useState(false);
+  const [treasuryOpen, setTreasuryOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [tournamentOpen, setTournamentOpen] = useState(false);
   const [tableOpen, setTableOpen] = useState(false);
@@ -159,6 +161,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
     ...(features.chat && myTrack?.rules?.freeTextChat !== 'guardian_switch' ? [{ key: 'chat', icon: 'chat' as const, label: h.chat, color: colors.candy.sky, onPress: () => setChatOpen(true) }] : []),
     ...(features.shop ? [{ key: 'shop', icon: 'gift' as const, label: h.shop, color: colors.candy.lime, onPress: () => setShopOpen(true) }] : []),
     ...(features.shop ? [{ key: 'wardrobe', icon: 'shirt' as const, label: h.wardrobe, color: colors.candy.pink, onPress: () => setWardrobeOpen(true) }] : []),
+    ...(features.shop ? [{ key: 'treasury', icon: 'puzzle' as const, label: h.treasury, color: colors.candy.yellow, onPress: () => setTreasuryOpen(true) }] : []),
     ...(features.bale ? [{ key: 'bale', icon: 'bolt' as const, label: h.bale, color: colors.candy.orange, onPress: () => setBaleOpen(true) }] : []),
   ];
 
@@ -268,6 +271,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
       {tournamentOpen ? <TournamentSheet onClose={() => setTournamentOpen(false)} invite={sponsorInvite} /> : null}
       {chatOpen ? <ChatSheet onClose={() => setChatOpen(false)} onJoinTable={(code) => (setChatOpen(false), setTableCode(code), setTableOpen(true))} /> : null}
       {shopOpen ? <ShopSheet realMoney={Number(settings['feature.coin_packages']) === 1 && myTrack?.rules?.purchases !== false} onClose={() => { setShopOpen(false); daily.reload(); }} /> : null}
+      {treasuryOpen ? <TreasuryPage onClose={() => (setTreasuryOpen(false), daily.reload())} /> : null}
       {wardrobeOpen ? <FittingRoom who={heroFor(gender)} realMoney={Number(settings['feature.coin_packages']) === 1 && myTrack?.rules?.purchases !== false} onClose={() => (setWardrobeOpen(false), loadWorn(), daily.reload())} /> : null}
       {wheelOpen ? <WheelPage onClose={() => (setWheelOpen(false), loadSpins(), daily.reload())} /> : null}
       {missionsOpen ? (

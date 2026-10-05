@@ -24,6 +24,7 @@ import { useTrackRules } from '../agetrack/useTrackRules';
 import { TransferSheet } from '../transfers/TransferSheet';
 import { useHardwareBack } from '../nav/useHardwareBack';
 import { BirthdayBadge, PartyBanner } from './BirthdayBadge';
+import { ShowcaseStrip } from '../keepsake/ShowcaseStrip';
 
 const INK = '#3A2418';
 
@@ -108,6 +109,8 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
                 </View>
               ))}
             </View>}
+
+            {p.limited ? null : <ShowcaseStrip playerId={p.id} />}
 
             {p.limited ? null : (
               <View style={styles.chips}>

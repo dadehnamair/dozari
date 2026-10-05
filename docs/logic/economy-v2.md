@@ -49,6 +49,7 @@ Naming (owner: not «card»): a completed product is a **«یادگار»** (`ke
 - Rarity weights 60/25/10/5 pick which keepsake drops; a piece costs `KEEPSAKE_PIECE_SHOP_PRICE` (60) × 1 / 1.5 / 2.5 / 4; upgrade costs 150 × level up to level 3. Drop chance is the setting `keepsake.drop_percent` (default 15); a drop happens after a real win against a human in a queue duel (same condition as a wheel spin), deterministic per match.
 - Completing a keepsake pays its `reward_gems` once; completing the last active keepsake of a set pays the set's gems once.
 - API: `GET /keepsakes`, `POST /keepsakes/:id/piece` (buy), `POST /keepsakes/:id/upgrade`, `PUT /me/showcase {ids}`, `GET /players/:id/showcase`; admin `/admin/keepsakes`, `/admin/keepsake-sets` (permission `economy`, page «یادگارها (گنجینه)»). The art is the `art_key` the owner's designer supplies; with none the app draws a placeholder frame.
+- Mobile: `apps/mobile/src/keepsake/` (`TreasuryPage`, `ShowcaseStrip`, pure `model.ts`); texts in `fa.ts` `treasury`; the strip is hidden on a kid/teen (`limited`) profile. Home has a «گنجینه» tile (left column: check the layout on a real device, it is now seven tiles).
 - Open: `GET /players/:id/showcase` ignores the kid/teen public-profile rules; decide before kids can have keepsakes.
 
 ## Showcase profile (pride)
@@ -87,7 +88,7 @@ Reading:
 1. Simulator — **done** (`simulate-v2.ts`).
 2. Stake tables + gift fee — **done** (server, admin settings, mobile chooser; see `economy.md` §Live duel stakes).
 3. Streak shield + daily rotating shop — **done** (see `shop.md`; rotation is off until the admin flags items; shield icon is a placeholder).
-4. Keepsake collection + showcase profile — **server, admin and shared rules done** (this section); mobile screens and the starter texts follow. 5. city pot + season pass, 6. gem sales — not started.
+4. Keepsake collection + showcase profile — **done** except art and the shareable profile-card image: server, admin, 18 starter texts (`seed:keepsakes`), mobile «گنجینه» page (Home tile) and the showcase strip on a player's sheet. Placeholder frames use the product's catalog icon until the designer's `art_key` images arrive. 5. city pot + season pass, 6. gem sales — not started.
 
 ## Rollout (small phase-scoped PRs)
 
