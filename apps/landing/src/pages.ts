@@ -149,6 +149,7 @@ footer.bottom h2{font-size:22px;margin:0 0 10px}footer.bottom ul{list-style:none
 footer.bottom a{color:var(--cream);text-decoration:none;font-weight:600;font-size:15px}footer.bottom a:hover{color:var(--yellow)}
 footer.bottom .brandname{font-family:var(--display);font-size:40px;color:var(--yellow);line-height:1}footer.bottom p{margin:12px 0 0;font-weight:500;font-size:15px;opacity:.85}
 .social{display:flex;gap:8px;flex-wrap:wrap}.social a{font-weight:800;font-size:14px;padding:6px 14px;border-radius:999px;line-height:1.8}
+.badges{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:center;border-top:2px solid rgba(255,246,232,.2);padding-top:20px}.badges a,.badges span{display:flex;align-items:center;justify-content:center;background:#fff;border-radius:12px;padding:6px;height:88px;min-width:88px}.badges img{max-height:76px;max-width:120px;width:auto;height:auto;display:block}
 .legal{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border-top:2px solid rgba(255,246,232,.2);padding-top:20px;font-weight:600;font-size:13px;opacity:.7}.legal .ltr{direction:ltr}
 /* motion + home extras (all animation is off under prefers-reduced-motion; content is visible without scripts) */
 .prog{position:fixed;inset-block-start:0;inset-inline:0;height:5px;background:var(--pink);transform:scaleX(0);transform-origin:right;z-index:50;pointer-events:none}
@@ -261,6 +262,25 @@ const BASE_JS = `(function(){var d=document,h=d.documentElement,p=d.querySelecto
 function sc(){p.style.transform='scaleX('+(h.scrollTop/((h.scrollHeight-h.clientHeight)||1))+')';t.classList.toggle('sc',h.scrollTop>8)}addEventListener('scroll',sc,{passive:true});sc();
 if('IntersectionObserver' in window&&!matchMedia('(prefers-reduced-motion: reduce)').matches){var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in-v');io.unobserve(e.target)}})},{threshold:.12});els.forEach(function(e){io.observe(e)})}else els.forEach(function(e){e.classList.add('in-v')})})();`;
 
+const BADGES: Record<string, { file: string; ext: string; alt: string }> = {
+  enamad: { file: 'enamad', ext: 'png', alt: 'نماد اعتماد الکترونیکی' },
+  samandehi: { file: 'samandehi', ext: 'webp', alt: 'نماد ساماندهی' },
+  ersa: { file: 'ersa', ext: 'png', alt: 'نماد ارسا' },
+  etehadieh: { file: 'etehadieh', ext: 'webp', alt: 'اتحادیه کسب‌وکارهای مجازی' },
+  ircg: { file: 'ircg', ext: 'png', alt: 'ircg' },
+  bazaar: { file: 'cafebazaar', ext: 'png', alt: 'کافه‌بازار' },
+  myket: { file: 'myket', ext: 'svg', alt: 'مایکت' },
+};
+function badgesHtml(site: Site): string {
+  const items = (site.badges ?? []).flatMap((b) => {
+    const m = BADGES[b.id];
+    if (!m) return [];
+    const img = `<img src="/badges/${m.file}.${m.ext}" alt="${escapeHtml(m.alt)}" loading="lazy">`;
+    return [b.url ? `<a href="${escapeHtml(b.url)}" target="_blank" rel="noopener nofollow" title="${escapeHtml(m.alt)}">${img}</a>` : `<span>${img}</span>`];
+  });
+  return items.length > 0 ? `<div class="badges">${items.join('')}</div>` : '';
+}
+
 function layout(site: Site, headHtml: string, crumbs: Crumb[] | null, body: string, opts: { active?: NavKey; wide?: boolean } = {}): string {
   const crumbHtml =
     crumbs && crumbs.length > 1
@@ -292,6 +312,7 @@ ${content}
 <div><h2 style="color:var(--lime)">قوانین</h2><ul><li><a href="/terms">قوانین و شرایط</a></li><li><a href="/privacy">حریم خصوصی</a></li></ul></div>
 <div><h2 style="color:var(--orange)">ما را دنبال کنید</h2><div class="social">${social.map((s) => `<a href="${escapeHtml(s.u)}" rel="noopener me" style="background:${s.c[0]};color:${s.c[1]}">${escapeHtml(s.label)}</a>`).join('')}${site.contactEmail ? `<a href="mailto:${escapeHtml(site.contactEmail)}" style="background:#FFF6E8;color:#2B1240">ایمیل</a>` : ''}</div></div>
 </div>
+${badgesHtml(site)}
 <div class="legal"><span>© ${escapeHtml(year)} ${escapeHtml(site.name)} · همهٔ حقوق محفوظ است</span><span class="ltr">${escapeHtml(site.url.replace(/^https?:\/\//, ''))}</span></div>
 </div></footer>
 <script>${BASE_JS}</script>

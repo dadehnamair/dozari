@@ -15,6 +15,7 @@ export interface Site {
   sameAs: string[];
   appUrl: string | null;
   androidApp: string | null;
+  badges?: { id: string; url: string | null }[];
   /** Admin-set extras (group «سئو و سایت معرفی»); all optional. */
   ogImage?: string | null;
   ogImageAlt?: string | null;

@@ -12,6 +12,8 @@ const list = (v: string): string[] => v.split(/[,،\n]/).map((x) => x.trim()).fi
 export function registerLandingPublicRoutes(app: FastifyInstance, landing: LandingService, settings: SettingsService) {
   app.get('/public/landing', async () => {
     const t = (k: string) => settings.text(k);
+    const badgeIds = ['enamad', 'samandehi', 'ersa', 'etehadieh', 'ircg', 'bazaar', 'myket'] as const;
+    const badgeUrls = await Promise.all(badgeIds.map((b) => t(`link.badge_${b}`)));
     const [name, tagline, heroTitle, heroText, email, instagram, channel, android, appUrl, dApp, dLanding, dShort, seoTitle, seoDescription, keywords, ogImage, ogAlt, sameAs, fontUrl, vGoogle, vBing, vYandex, vEnamad, indexable, statsUrl, statsId, cast, faq] = await Promise.all([
       t('landing.site_name'), t('landing.tagline'), t('landing.hero_title'), t('landing.hero_text'), t('landing.contact_email'), t('link.instagram'), t('link.channel'), t('link.android_app'), t('link.app_url'),
       t('domain.app'), t('domain.landing'), t('domain.short'),
@@ -20,6 +22,7 @@ export function registerLandingPublicRoutes(app: FastifyInstance, landing: Landi
     ]);
     return {
       site: { name, tagline, heroTitle, heroText, contactEmail: email.trim() || null, instagram: link(instagram), channel: link(channel), androidApp: link(android), appUrl: link(appUrl), domains: { app: dApp.trim(), landing: dLanding.trim(), short: dShort.trim() },
+        badges: badgeIds.map((id, n) => ({ id, url: link(badgeUrls[n] as string) })),
         seo: {
           title: seoTitle.trim() || null, description: seoDescription.trim() || null, keywords: list(keywords), ogImage: link(ogImage), ogImageAlt: ogAlt.trim() || null,
           sameAs: list(sameAs).map(link).filter((x): x is string => x !== null), fontUrl: link(fontUrl), indexable: indexable !== 0,
