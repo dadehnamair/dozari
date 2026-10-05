@@ -113,6 +113,12 @@ VIEWS.chatreports = function (root) {
   var queue = select([['all', 'همه‌ی گزارش‌ها'], ['minors', 'صف کودک و نوجوان'], ['adults', 'صف بزرگسال']], 'all');
   queue.onchange = function () { draw(); };
   function draw() {
+    api('/admin/chat/reports?queue=minors').then(function (m) {
+      // The kid/teen queue is for moderating roles only: others never see it, and its open count rides on the select.
+      queue.options[1].hidden = !(m.ok && m.body.minorsQueue);
+      if (m.ok && m.body.minorsQueue) queue.options[1].text = 'صف کودک و نوجوان (' + fa(m.body.reports.filter(function (x) { return !x.resolved; }).length) + ' باز)';
+      else if (queue.value !== 'adults') queue.value = 'all';
+    });
     api('/admin/chat/reports?queue=' + queue.value).then(function (r) {
       clear(list);
       if (r.status === 404) return list.appendChild(empty('چت روی این سرور فعال نیست'));

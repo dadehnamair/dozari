@@ -533,9 +533,12 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       return { ok: true };
     });
     // `?queue=minors` is the separate kid/teen review queue (docs/logic/age-tracks.md §Admin panel); `adults` the rest; default everything.
+    // Only moderating roles (players or messages) read the lines of kid/teen chats; a viewer gets the adult queue whatever was asked.
     g.get('/admin/chat/reports', async (req) => {
       const q = z.object({ queue: z.enum(['all', 'minors', 'adults']).default('all') }).safeParse(req.query);
-      return { reports: await chat.reports({ openOnly: false, limit: 100, queue: q.success ? q.data.queue : 'all' }) };
+      const role = req.adminActor?.role;
+      const moderates = !!role && (can(role, 'users') || can(role, 'messages'));
+      return { reports: await chat.reports({ openOnly: false, limit: 100, queue: moderates && q.success ? q.data.queue : 'adults' }), minorsQueue: moderates };
     });
     g.post('/admin/chat/reports/:id/resolve', async (req, reply) => {
       const p = idParam.safeParse(req.params);

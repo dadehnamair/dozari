@@ -222,8 +222,11 @@ Setting `feature.age_tracks` (admin → settings → app, **default off**): off 
 - Phase 4, slice 6, **separate kid/teen report queue**: `GET /admin/chat/reports?queue=all|minors|adults` (default `all`, so the old callers and the nav count are unchanged); each row carries the reported player's `track`, and `minors` = kid + teen
   authors (`ChatStore.reports({ queue })`, joined on `users.age_track`). The «گزارش‌های چت» view has a queue select and a track badge. A report row holds only the reported line and the reason (no surrounding chat), matching the privacy rule that a guardian
   or moderator reads a child's talk only when it is reported. Open: a role restriction for who may open the minors queue (all admin roles that can open chat reports can for now), and a separate nav count for it.
-  Open in phase 4: the invite-link and contacts screens do not yet open the guardian step (they just show a failed line); the guardian's own chat switch (phrases only / off) is phase 5.
-- Not yet: the rest of the 30–50 kid puzzles; a track filter on the other admin lists (puzzles, items, tournaments, reports…); the separate report queue for kid/teen chats (phase 4);
+- Phase 4, slice 7 (closes phase 4): the invite-link deep link now opens the guardian step for a kid/teen with no guardian (`useInviteLink` returns the gate, rendered at the app root); search and contacts results open `PlayerSheet`, whose friend button already does.
+  The kid/teen report queue is **role-gated**: `GET /admin/chat/reports` answers `minorsQueue: true` and serves `minors`/`all` only to roles that moderate (`users` or `messages`: owner, editor, support); a read-only viewer always gets the adult queue,
+  whatever `queue` they ask for. The «گزارش‌های چت» select hides the minors option from others and shows its open count.
+  Phase 4 is done; the guardian's own chat switch (phrases only / off) is phase 5.
+- Not yet: the rest of the 30–50 kid puzzles; a track filter on the other admin lists (puzzles, items, tournaments, reports…);
 
 ## Phases
 

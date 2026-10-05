@@ -65,7 +65,7 @@ export default function App() {
   const config = useClientConfig();
   const phone = usePhoneGate(config.raw);
   const gate = gateState(config, APP_BUILD);
-  useInviteLink(gate === 'ok' && config.features.friends);
+  const inviteGate = useInviteLink(gate === 'ok' && config.features.friends);
   const ageTracksOn = config.raw['feature.age_tracks'] === 1;
   const [fontsLoaded] = useFonts({ Vazirmatn_400Regular, Vazirmatn_700Bold, Lalezar_400Regular });
 
@@ -204,6 +204,7 @@ export default function App() {
       ) : null}
       <ServerDownBanner />
       <PwaLayer home={screen === 'home'} />
+      {inviteGate}
     </View>
   );
 }
