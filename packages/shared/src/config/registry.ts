@@ -164,6 +164,7 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'link.badge_myket', group: 'seo', label: 'لینک پایین سایت معرفی: مایکت', hint: 'نشانی کامل با https؛ نماد همیشه در فوتر سایت معرفی است و اگر این خالی باشد بدون لینک نشان داده می‌شود', kind: 'text', min: 0, max: 300, default: 'https://myket.ir' },
   { key: 'gate.phone_only', group: 'app', label: 'مرورگر کامپیوتر فقط کارت «با گوشی بیا» + QR ببیند', hint: 'گوشی اندروید کارت دانلود و آیفون راهنمای نصب می‌بیند؛ هر کدام دکمه‌ی «ادامه با مرورگر» دارند', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'link.app_url', group: 'app', label: 'آدرس بازی برای QR (خالی = همان صفحه)', kind: 'text', min: 0, max: 200, default: '' },
+  { key: 'link.ios_app', group: 'app', label: 'لینک دانلود برنامه‌ی iOS', hint: 'خالی = «به‌زودی» نشان داده می‌شود', kind: 'text', min: 0, max: 300, default: '' },
   { key: 'link.android_app', group: 'app', label: 'لینک دانلود برنامه‌ی اندروید', hint: 'خالی = دکمه‌ی دانلود نشان داده نمی‌شود', kind: 'text', min: 0, max: 300, default: '' },
   { key: 'link.channel', group: 'app', label: 'لینک کانال (بله یا تلگرام‌مانند)', hint: 'خالی = ماموریت عضویت در کانال نمایش داده نمی‌شود', kind: 'text', min: 0, max: 200, default: '' },
   { key: 'levelreward.every', group: 'economy', label: 'جایزه‌ی سکه‌ی جاده‌ی لول: هر چند لول یک بار', hint: '۰ = خاموش', kind: 'int', min: 0, max: 50, default: LEVEL_REWARD_EVERY, unit: 'لول' },

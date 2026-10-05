@@ -6,7 +6,7 @@ import { breadcrumbList, description, graphScript } from '../seo.js';
 import { buildLanding } from '../server.js';
 
 const DATA: LandingData = {
-  site: { name: 'دوزاری', tagline: 'بازی نوستالژی قیمت‌ها', heroTitle: 'قیمت‌های قدیمی را حدس بزن', heroText: 'دوزاری یک بازی آنلاین فارسی است.', contactEmail: null, instagram: 'https://instagram.com/dozari', channel: null, androidApp: null, appUrl: 'https://mrbots.ir', domains: { app: 'mrbots.ir', landing: 'mrdozari.ir', short: '2oi.ir' }, seo: { title: null, description: null, keywords: [], ogImage: null, ogImageAlt: null, sameAs: [], fontUrl: null, indexable: true, verify: { google: null, bing: null, yandex: null } } },
+  site: { name: 'دوزاری', tagline: 'بازی نوستالژی قیمت‌ها', heroTitle: 'قیمت‌های قدیمی را حدس بزن', heroText: 'دوزاری یک بازی آنلاین فارسی است.', contactEmail: null, instagram: 'https://instagram.com/dozari', channel: null, androidApp: null, iosApp: null, appUrl: 'https://mrbots.ir', domains: { app: 'mrbots.ir', landing: 'mrdozari.ir', short: '2oi.ir' }, seo: { title: null, description: null, keywords: [], ogImage: null, ogImageAlt: null, sameAs: [], fontUrl: null, indexable: true, verify: { google: null, bing: null, yandex: null } } },
   cast: [{ id: 'c1', name: 'دوزاری', role: 'راهنمای بازار', bio: 'نگهبان بازار است.', image: 'dozari' }],
   faq: [{ question: 'دوزاری چیست؟', answer: 'یک بازی فارسی است.' }],
 };
@@ -89,7 +89,7 @@ describe('seo helpers', () => {
   });
   it('escapes < inside JSON-LD and numbers the breadcrumb', () => {
     expect(graphScript([{ '@type': 'Thing', name: '</script><b>' }])).not.toContain('</script><b>');
-    const b = breadcrumbList({ name: 'x', tagline: '', url: 'https://s.test', contactEmail: null, sameAs: [], appUrl: null, androidApp: null }, [{ name: 'a', path: '/' }, { name: 'b' }]) as { itemListElement: { position: number; item?: string }[] };
+    const b = breadcrumbList({ name: 'x', tagline: '', url: 'https://s.test', contactEmail: null, sameAs: [], appUrl: null, androidApp: null, iosApp: null }, [{ name: 'a', path: '/' }, { name: 'b' }]) as { itemListElement: { position: number; item?: string }[] };
     expect(b.itemListElement.map((i) => i.position)).toEqual([1, 2]);
     expect(b.itemListElement[1]).not.toHaveProperty('item');
   });

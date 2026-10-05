@@ -8,6 +8,7 @@ export interface PublicSite {
   instagram: string | null;
   channel: string | null;
   androidApp: string | null;
+  iosApp: string | null;
   appUrl: string | null;
   domains: { app: string; landing: string; short: string };
   /** Trust / store badges of the footer; `url` is null until the admin sets it. */

@@ -342,7 +342,7 @@ function storeBadges(site: Site): string {
     const inner = `${icon(ic)}<span class="tx"><small>${small}</small><b>${name}</b></span>`;
     return href ? `<a class="badge" href="${escapeHtml(href)}">${inner}</a>` : `<span class="badge off" aria-disabled="true">${inner}</span>`;
   };
-  return [b('web', 'بازی آنلاین', 'نسخهٔ وب', site.appUrl), b('android', 'دریافت فایل', 'اندروید', site.androidApp), b('apple', 'به‌زودی', 'iOS', null)].join('');
+  return [b('web', 'بازی آنلاین', 'نسخهٔ وب', site.appUrl), b('android', 'دریافت فایل', 'اندروید', site.androidApp), b('apple', site.iosApp ? 'دریافت برنامه' : 'به‌زودی', 'iOS', site.iosApp)].join('');
 }
 
 const postCard = (p: PostSummary): string => {
@@ -543,7 +543,7 @@ export function downloadPage(site: Site): string {
     { fa: 'گوگل‌پلی', os: 'اندروید', ab: 'G', bg: '#7ED957', cta: 'به‌زودی', href: null },
     { fa: 'کافه‌بازار', os: 'اندروید', ab: 'ب', bg: '#7ED957', cta: 'به‌زودی', href: null },
     { fa: 'مایکت', os: 'اندروید', ab: 'م', bg: '#3FC1F0', cta: 'به‌زودی', href: null },
-    { fa: 'اپ‌استور', os: 'iOS', ab: icon('apple'), bg: '#A66BF0', cta: 'به‌زودی', href: null },
+    { fa: 'iOS', os: 'آیفون و آیپد', ab: icon('apple'), bg: '#A66BF0', cta: site.iosApp ? 'دریافت برنامه' : 'به‌زودی', href: site.iosApp },
   ];
   const reqs = [['اتصال اینترنت', 'برای بازی زنده و ذخیره‌ی پیشرفت'], ['حساب', 'مهمان؛ شماره‌ی تلفن اختیاری است'], ['مرورگر', 'نسخه‌ی تازه‌ی کروم، فایرفاکس، سافاری یا ادج'], ['هزینه', 'رایگان']] as const;
   const inGame = ['تکی، زنده دونفره، دو در دو و میز خصوصی', 'جدول تازه هر روز', 'آواتار، کلاه و لباس با سکه‌ی بازی', 'نمودار قیمت پایان هر بازی برای دیدن مسیر قیمت‌ها'];
