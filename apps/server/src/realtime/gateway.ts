@@ -18,6 +18,8 @@ export interface GatewayOptions {
   corsOrigin?: string;
   /** Admin kill switches: a non-null answer refuses new connections' queue joins (maintenance mode, duel feature off). */
   gate?: () => Promise<'MAINTENANCE' | 'FEATURE_OFF' | null>;
+  /** True when this player's level is high enough for the live duel queue. */
+  levelGate?: (userId: string) => Promise<boolean>;
   /** Daily duel cap: `canPlay` refuses a queue join over the cap, `onStarted` counts a real match for both players. */
   limit?: { canPlay: (userId: string) => Promise<boolean>; onStarted: (userId: string) => Promise<void> };
   /** Before queueing: false answers INSUFFICIENT_COINS (a free match or a rescue may apply). */
@@ -135,6 +137,8 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
       const team = joined.data.mode === 'team';
       const closed = await opts.gate?.();
       if (closed) return ack?.({ ok: false, error: closed });
+      // New players sit out the live duel until they know the game (docs/logic/matchmaking.md §Level gate).
+      if (opts.levelGate && !(await opts.levelGate(userId))) return ack?.({ ok: false, error: 'LEVEL_TOO_LOW' });
       if (opts.limit && !(await opts.limit.canPlay(userId))) return ack?.({ ok: false, error: 'DAILY_CAP' });
       if (!team && opts.canAfford && !(await opts.canAfford(userId))) return ack?.({ ok: false, error: 'INSUFFICIENT_COINS' });
       if (matches?.inMatch(userId)) return ack?.({ ok: false, error: 'ALREADY_IN_MATCH' });

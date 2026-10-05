@@ -121,6 +121,19 @@ VIEWS.chatreports = function (root) {
 };
 VIEWS.tournaments = function (root) {
   var list = h('div');
+  var sponsorNames = {};
+  var sponsorSel = document.createElement('select');
+  sponsorSel.appendChild(h('option', { value: '', text: 'بدون اسپانسر' }));
+  function loadSponsors() {
+    api('/admin/sponsors').then(function (r) {
+      if (!r.ok) return;
+      r.body.sponsors.forEach(function (sp) {
+        sponsorNames[sp.id] = sp.nameFa;
+        if (sp.isActive) sponsorSel.appendChild(h('option', { value: sp.id, text: sp.nameFa }));
+      });
+      draw();
+    });
+  }
   var STATUS = { draft: ['پیش‌نویس', 'b-mute'], open: ['ثبت‌نام باز', 'b-ok'], running: ['در حال برگزاری', 'b-warn'], finished: ['تمام‌شده', 'b-ok'], cancelled: ['لغوشده', 'b-bad'] };
   function when(ms) { return new Date(ms).toLocaleString('fa-IR'); }
   function draw() {
@@ -134,7 +147,7 @@ VIEWS.tournaments = function (root) {
         var prizes = t.prizes.map(function (p) { return 'مقام ' + fa(p.place) + ': ' + faNum(p.coins) + (p.gems ? ' + ' + faNum(p.gems) + ' الماس' : '') + (p.spins ? ' + ' + faNum(p.spins) + ' چرخش' : ''); }).join(' · ');
         function act(path, ask) { return function () { if (ask && !confirm(ask)) return; api('/admin/tournaments/' + t.id + '/' + path, { method: 'POST' }).then(function (x) { if (!x.ok) return fail(x); toast('انجام شد'); draw(); }); }; }
         list.appendChild(h('div', { class: 'card', style: 'padding:12px' }, [
-          h('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap' }, [h('b', { text: t.titleFa }), badge(st[0], st[1]), h('span', { class: 'h', text: fa(t.joined) + ' از ' + fa(t.size) + ' نفر · ورودی ' + faNum(t.entryCoins) + ' سکه' + (t.entryGems ? ' + ' + faNum(t.entryGems) + ' الماس' : '') + ' · از لول ' + fa(t.minLevel) + ' · شروع ' + when(t.startsAt) })]),
+          h('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap' }, [h('b', { text: t.titleFa }), badge(st[0], st[1]), t.sponsorId && sponsorNames[t.sponsorId] ? badge('اسپانسر: ' + sponsorNames[t.sponsorId], 'b-mute') : null, h('span', { class: 'h', text: fa(t.joined) + ' از ' + fa(t.size) + ' نفر · ورودی ' + faNum(t.entryCoins) + ' سکه' + (t.entryGems ? ' + ' + faNum(t.entryGems) + ' الماس' : '') + ' · از لول ' + fa(t.minLevel) + ' · شروع ' + when(t.startsAt) })]),
           h('div', { class: 'h', style: 'margin-top:4px', text: prizes || 'بدون جایزه' }),
           h('div', { class: 'toolbar', style: 'margin-top:8px' }, [
             t.status === 'draft' ? h('button', { class: 'btn primary', text: 'منتشر کن (باز کردن ثبت‌نام)', onclick: act('publish') }) : null,
@@ -159,7 +172,7 @@ VIEWS.tournaments = function (root) {
   root.appendChild(card('تورنومنت‌ها', 'جدول حذفی تک‌حذفی؛ هر دور با یک دوئل. بازیکنی که نرسد یا ببازد حذف می‌شود، تساوی دوباره بازی می‌شود.', [list]));
   root.appendChild(addCard('تورنومنت تازه', 'مقام سوم به هر دو بازنده‌ی نیمه‌نهایی داده می‌شود. اگر تعداد ثبت‌نام‌ها کمتر از ظرفیت باشد، جدول با «بای» پر می‌شود (به شرط رسیدن به حداقل نفرات).', 'تورنومنت تازه', [
     ['نام', title], ['توضیحات', desc],
-    h('div', { class: 'toolbar' }, [field('ظرفیت', size), field('حداقل نفرات برای برگزاری', minPlayers), field('ورودی (سکه، ۰ = رایگان)', fee), field('ورودی الماس (۰ = بدون الماس)', gemFee), field('کمترین لول (۱ = همه)', level), field('شروع و بسته‌شدن ثبت‌نام', startsAt)]),
+    h('div', { class: 'toolbar' }, [field('ظرفیت', size), field('حداقل نفرات برای برگزاری', minPlayers), field('ورودی (سکه، ۰ = رایگان)', fee), field('ورودی الماس (۰ = بدون الماس)', gemFee), field('کمترین لول (۱ = همه)', level), field('شروع و بسته‌شدن ثبت‌نام', startsAt), field('اسپانسر', sponsorSel)]),
     h('div', { class: 'toolbar' }, [field('جایزه‌ی مقام اول', p1), field('مقام دوم', p2), field('مقام سوم (به هر نفر)', p3)]),
     h('div', { class: 'toolbar' }, [field('الماس مقام اول', g1), field('مقام دوم', g2), field('مقام سوم (به هر نفر)', g3)]),
     h('div', { class: 'toolbar' }, [field('چرخش گردونه‌ی مقام اول', s1), field('مقام دوم', s2), field('مقام سوم (به هر نفر)', s3)]),
@@ -168,7 +181,56 @@ VIEWS.tournaments = function (root) {
   ], function () {
     if (!startsAt.value) { toast('زمان شروع را بگذار', true); return false; }
     var prizes = [{ place: 1, coins: +p1.value, gems: +g1.value, spins: +s1.value }, { place: 2, coins: +p2.value, gems: +g2.value, spins: +s2.value }, { place: 3, coins: +p3.value, gems: +g3.value, spins: +s3.value }].filter(function (p) { return p.coins > 0 || p.gems > 0 || p.spins > 0; });
-    return api('/admin/tournaments', { method: 'POST', body: { titleFa: title.value.trim(), descriptionFa: desc.value.trim(), iconKey: 'trophy', size: +size.value, minPlayers: +minPlayers.value, entryCoins: +fee.value, entryGems: +gemFee.value, minLevel: +level.value, startsAt: new Date(startsAt.value).getTime(), botFill: botFill.checked, allowConcurrent: concurrent.checked, prizes: prizes, publish: publish.checked } }).then(function (x) { if (!x.ok) { fail(x); return false; } toast('تورنومنت ساخته شد'); title.value = ''; desc.value = ''; draw(); return true; });
+    return api('/admin/tournaments', { method: 'POST', body: { titleFa: title.value.trim(), descriptionFa: desc.value.trim(), iconKey: 'trophy', size: +size.value, minPlayers: +minPlayers.value, entryCoins: +fee.value, entryGems: +gemFee.value, minLevel: +level.value, startsAt: new Date(startsAt.value).getTime(), botFill: botFill.checked, allowConcurrent: concurrent.checked, sponsorId: sponsorSel.value || null, prizes: prizes, publish: publish.checked } }).then(function (x) { if (!x.ok) { fail(x); return false; } toast('تورنومنت ساخته شد'); title.value = ''; desc.value = ''; draw(); return true; });
+  }));
+  draw();
+  loadSponsors();
+};
+VIEWS.sponsors = function (root) {
+  var list = h('div');
+  function draw() {
+    api('/admin/sponsors').then(function (r) {
+      clear(list);
+      if (r.status === 404) return list.appendChild(empty('اسپانسر روی این سرور فعال نیست'));
+      if (!r.ok) return fail(r);
+      if (!r.body.sponsors.length) return list.appendChild(empty('هنوز اسپانسری تعریف نکرده‌ای'));
+      r.body.sponsors.forEach(function (sp) {
+        var toggle = h('button', { class: 'btn sm', text: sp.isActive ? 'غیرفعال کن' : 'فعال کن', onclick: function () { api('/admin/sponsors/' + sp.id, { method: 'PATCH', body: { isActive: !sp.isActive } }).then(function (x) { if (!x.ok) return fail(x); toast('انجام شد'); draw(); }); } });
+        var edit = h('button', { class: 'btn sm', text: 'ویرایش', onclick: function () {
+          var name = prompt('نام اسپانسر', sp.nameFa); if (name === null) return;
+          var tagline = prompt('شعار کوتاه', sp.taglineFa); if (tagline === null) return;
+          var desc = prompt('معرفی', sp.descriptionFa); if (desc === null) return;
+          var banner = prompt('لینک https بنر (خالی = بدون بنر)', sp.bannerUrl || ''); if (banner === null) return;
+          var logo = prompt('لینک https لوگو (خالی = بدون لوگو)', sp.logoUrl || ''); if (logo === null) return;
+          var link = prompt('لینک https سایت اسپانسر (خالی = بدون لینک)', sp.linkUrl || ''); if (link === null) return;
+          var accent = prompt('رنگ کارت مثل #FFAA7A (خالی = پیش‌فرض)', sp.accent || ''); if (accent === null) return;
+          api('/admin/sponsors/' + sp.id, { method: 'PATCH', body: { nameFa: name, taglineFa: tagline, descriptionFa: desc, bannerUrl: banner.trim() || null, logoUrl: logo.trim() || null, linkUrl: link.trim() || null, accent: accent.trim() || null } }).then(function (x) { if (!x.ok) return fail(x); toast('ذخیره شد'); draw(); });
+        } });
+        list.appendChild(h('div', { class: 'card', style: 'padding:12px' }, [
+          h('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap' }, [
+            sp.logoUrl ? h('img', { src: sp.logoUrl, style: 'width:36px;height:36px;border-radius:8px;object-fit:cover', alt: '' }) : null,
+            h('b', { text: sp.nameFa }), badge(sp.isActive ? 'فعال' : 'غیرفعال', sp.isActive ? 'b-ok' : 'b-mute'), h('span', { class: 'h', text: sp.taglineFa })]),
+          sp.bannerUrl ? h('img', { src: sp.bannerUrl, style: 'margin-top:8px;max-width:100%;max-height:120px;border-radius:10px', alt: '' }) : null,
+          h('div', { class: 'toolbar', style: 'margin-top:8px' }, [edit, toggle])
+        ]));
+      });
+    });
+  }
+  var name = h('input', { type: 'text', placeholder: 'نام اسپانسر', maxlength: 60 });
+  var tagline = h('input', { type: 'text', placeholder: 'شعار کوتاه (زیر نام نشان داده می‌شود)', maxlength: 120 });
+  var desc = h('textarea', { placeholder: 'معرفی اسپانسر برای صفحه‌ی تورنومنت…', maxlength: 1000, style: 'min-height:80px' });
+  var banner = h('input', { type: 'text', placeholder: 'https://… لینک بنر (پیشنهاد: ۱۰۰۰×۴۰۰)', maxlength: 300 });
+  var logo = h('input', { type: 'text', placeholder: 'https://… لینک لوگوی مربع', maxlength: 300 });
+  var link = h('input', { type: 'text', placeholder: 'https://… سایت یا صفحه‌ی اسپانسر', maxlength: 300 });
+  var accent = h('input', { type: 'text', placeholder: '#FFAA7A', maxlength: 7, style: 'width:100px' });
+  root.appendChild(card('اسپانسرها', 'اسپانسر را یک بار تعریف کن و در ساخت تورنومنت انتخابش کن. اسپانسر غیرفعال‌شده دیگر نشان داده نمی‌شود. تصویرها باید روی سرور خودمان (لینک https) باشند.', [list]));
+  root.appendChild(addCard('اسپانسر تازه', 'بنر بالای صفحه‌ی تورنومنت و لوگو کنار نام او در فهرست نشان داده می‌شود.', 'اسپانسر تازه', [
+    ['نام', name], ['شعار', tagline], ['معرفی', desc], ['لینک بنر', banner], ['لینک لوگو', logo], ['لینک سایت', link], ['رنگ کارت', accent]
+  ], function () {
+    return api('/admin/sponsors', { method: 'POST', body: { nameFa: name.value.trim(), taglineFa: tagline.value.trim(), descriptionFa: desc.value.trim(), bannerUrl: banner.value.trim() || null, logoUrl: logo.value.trim() || null, linkUrl: link.value.trim() || null, accent: accent.value.trim() || null } }).then(function (x) {
+      if (!x.ok) { fail(x); return false; }
+      toast('اسپانسر ساخته شد'); [name, tagline, desc, banner, logo, link, accent].forEach(function (el) { el.value = ''; }); draw(); return true;
+    });
   }));
   draw();
 };

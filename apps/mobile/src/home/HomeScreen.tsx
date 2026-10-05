@@ -162,10 +162,16 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
 
   const dailyOpenForPlay = features.daily && onDaily && dailyPuzzle && (dailyPuzzle.state === 'available' || dailyPuzzle.state === 'playing');
   const bubble = dailyOpenForPlay ? (dailyPuzzle.state === 'playing' ? h.dailyPlaying : h.dailyReady) : `${fa.months[month - 1]?.name ?? ''} · ${fa.months[month - 1]?.mood ?? ''}`;
+  // New players sit out the live duel until `duel.min_level` (the server enforces it too): the button stays, with a lock and an explanation.
+  const contact = typeof settings['sponsor.contact_url'] === 'string' ? settings['sponsor.contact_url'].trim() : '';
+  const sponsorInvite = /^(https:\/\/|mailto:)/i.test(contact) ? { title: String(settings['sponsor.cta_title'] ?? ''), body: String(settings['sponsor.cta_body'] ?? ''), url: contact } : null;
+  const duelMin = typeof settings['duel.min_level'] === 'number' ? settings['duel.min_level'] : 3;
+  const duelLocked = level !== null && level < duelMin && !liveMatch;
+  const openDuel = () => (duelLocked ? setNudgeToast(fa.home.duelLocked(duelMin)) : onDuel?.());
   const second = liveMatch && onDuelResume
     ? { label: h.resume, color: colors.candy.orange, badge: '!', onPress: onDuelResume }
     : features.duel && onDuel
-      ? { label: h.duel, color: colors.candy.orange, badge: undefined, onPress: onDuel }
+      ? { label: h.duel, color: duelLocked ? colors.candy.grape : colors.candy.orange, badge: undefined, onPress: openDuel }
       : null;
 
   const priceOnlyOn = features.priceonly && !!onPriceOnly;
@@ -227,7 +233,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
         <View style={styles.buttons}>
           {/* Three modes side by side: smaller type so «حدس قیمت» fits on a narrow phone. */}
           <SlabButton label={h.play} sfx="confirm" color={colors.candy.lime} icon="puzzle" fontSize={priceOnlyOn ? 21 : 28} onPress={onSolo} />
-          {second ? <SlabButton label={second.label} color={second.color} badge={second.badge} icon="swords" fontSize={priceOnlyOn ? 21 : 28} onPress={second.onPress} /> : null}
+          {second ? <SlabButton label={second.label} color={second.color} badge={second.badge} icon={duelLocked ? "lock" : "swords"} fontSize={priceOnlyOn ? 21 : 28} onPress={second.onPress} /> : null}
           {priceOnlyOn ? <SlabButton label={fa.priceOnly.play} sfx="confirm" color={colors.candy.yellow} icon="coin" fontSize={21} onPress={onPriceOnly!} /> : null}
         </View>
       </View>
@@ -245,7 +251,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
             setHubOpen(false);
             if (a === 'solo') onSolo();
             else if (a === 'daily') onDaily?.();
-            else if (a === 'duel') onDuel?.();
+            else if (a === 'duel') openDuel();
             else if (a === 'suggest') setSchoolOpen(true);
             else setTournamentOpen(true);
           }}
@@ -257,7 +263,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
       {ledgerOpen ? <LedgerSheet onClose={() => setLedgerOpen(false)} /> : null}
       {inboxOpen ? <InboxSheet inbox={inbox.inbox} failed={inbox.failed} onRead={inbox.markRead} onReadAll={inbox.markAll} onClose={() => setInboxOpen(false)} /> : null}
       {tableOpen ? <TableSheet initialCode={tableCode} onMatch={onDuelResume ? () => (setTableOpen(false), onDuelResume()) : undefined} onClose={() => (setTableOpen(false), setTableCode(undefined))} onShare={() => shareTable()} /> : null}
-      {tournamentOpen ? <TournamentSheet onClose={() => setTournamentOpen(false)} /> : null}
+      {tournamentOpen ? <TournamentSheet onClose={() => setTournamentOpen(false)} invite={sponsorInvite} /> : null}
       {chatOpen ? <ChatSheet onClose={() => setChatOpen(false)} onJoinTable={(code) => (setChatOpen(false), setTableCode(code), setTableOpen(true))} /> : null}
       {shopOpen ? <ShopSheet realMoney={Number(settings['feature.coin_packages']) === 1} onClose={() => { setShopOpen(false); daily.reload(); }} /> : null}
       {wardrobeOpen ? <FittingRoom who={heroFor(gender)} realMoney={Number(settings['feature.coin_packages']) === 1} onClose={() => (setWardrobeOpen(false), loadWorn(), daily.reload())} /> : null}

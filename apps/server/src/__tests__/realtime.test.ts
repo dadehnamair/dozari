@@ -75,10 +75,10 @@ describe('socket gateway', () => {
     await Promise.all(apps.splice(0).map((a) => a.close()));
   });
 
-  async function boot() {
+  async function boot(extra: { duelLevelGate?: (userId: string) => Promise<boolean> } = {}) {
     const auth = new AuthService(memoryUsers(), createTokenSigner('a-test-secret-that-is-long-enough'), mulberry32(3));
     const admin = { repo: { listCatalog: async () => [], setPriceStatus: async () => 'ok' as const }, token: 'secret-admin-token' };
-    const app = buildServer({ auth, realtime: true, admin });
+    const app = buildServer({ auth, realtime: true, admin, ...extra });
     apps.push(app);
     await app.listen({ port: 0, host: '127.0.0.1' });
     const url = `http://127.0.0.1:${(app.server.address() as AddressInfo).port}`;
@@ -129,6 +129,19 @@ describe('socket gateway', () => {
     expect(await s.emitWithAck('queue:leave', {})).toEqual({ ok: true });
     expect(await s.emitWithAck('queue:leave', {})).toEqual({ ok: false, error: 'NOT_QUEUED' });
     expect((await stats()).queueLength).toBe(0);
+  });
+
+  it('keeps players below the duel level out of both queues, and lets the rest in', async () => {
+    const levels = new Map<string, number>();
+    const { login, dial, stats } = await boot({ duelLevelGate: async (id) => (levels.get(id) ?? 1) >= 3 });
+    const rookie = dial(await login(5));
+    await once(rookie, 'connect');
+    expect(await rookie.emitWithAck('queue:join', { mode: 'duel' })).toEqual({ ok: false, error: 'LEVEL_TOO_LOW' });
+    expect(await rookie.emitWithAck('queue:join', { mode: 'team' })).toEqual({ ok: false, error: 'LEVEL_TOO_LOW' });
+    expect((await stats()).queueLength).toBe(0);
+    // Reaching the level opens the queue for the same connection (the gate is asked on every join).
+    levels.set('00000000-0000-7000-8000-000000000001', 3);
+    expect(await rookie.emitWithAck('queue:join', { mode: 'duel' })).toEqual({ ok: true });
   });
 
   it('drops a player from the queue when the connection closes', async () => {

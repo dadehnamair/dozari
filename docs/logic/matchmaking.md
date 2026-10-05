@@ -14,6 +14,13 @@ No rating/ELO at launch (D12). Values in `config/game.ts`.
   no human match, an **undisclosed AI opponent ("bot")** fills the match instead (D23, owner
   request 2026-09-27). The waiting screen still offers "play solo while waiting" alongside this.
 
+## Level gate (`duel.min_level`)
+
+Owner request: new players who do not know the game yet get beaten in duels, so the live queue (1v1 and 2v2) opens at level `DUEL_MIN_LEVEL` = 3
+(admin setting `duel.min_level`, `config/economy.ts`). Enforced on the server in `queue:join` (error `LEVEL_TOO_LOW`, checked after the maintenance switch and before the
+daily cap), so a modified client cannot skip it. Not gated: solo, the daily puzzle, price-only mode, private tables with friends, and bots. The app shows the duel
+button with a lock below the level and explains it; the level road lists «دوئل زنده» as an unlock at that level.
+
 ## Opponent-search show (D144)
 
 While a player waits, the search screen's 4×4 grid scans through real faces: `GET /duel/candidates` returns up to 16 `{nickname, avatarKey, level}` — players online right now first (shuffled, never the caller), topped up from the active bot roster when few are online, so the grid is never empty while bots exist (it falls back to the design's placeholder names only when there are none). Bots and humans are indistinguishable and nothing says who is online. A few faces repeat around the grid. The app refreshes the list every 12 s. It is a show: the queue alone decides who the match pairs with.

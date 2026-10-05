@@ -5,7 +5,7 @@ import type { AuthService } from '../auth/service.js';
 import { currentUser } from '../auth/routes.js';
 
 /** Level gates read from the admin settings, one per kind (`hint.min_level`, `invite.min_level` …). */
-export type SettingGates = Partial<Record<'hint' | 'invite' | 'transfer' | 'avatar' | 'nickname', number>>;
+export type SettingGates = Partial<Record<'hint' | 'invite' | 'transfer' | 'avatar' | 'nickname' | 'duel', number>>;
 
 export interface RoadDeps {
   levelOf(userId: string): Promise<LevelInfo>;

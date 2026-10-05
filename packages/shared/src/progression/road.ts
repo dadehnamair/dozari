@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 /** What a level opens. The first five come from admin settings (one gate each); `shop` is one per shop item. */
-export const UNLOCK_KINDS = ['hint', 'invite', 'transfer', 'avatar', 'nickname', 'shop'] as const;
+export const UNLOCK_KINDS = ['hint', 'invite', 'transfer', 'avatar', 'nickname', 'duel', 'shop'] as const;
 export type UnlockKind = (typeof UNLOCK_KINDS)[number];
 
 export const unlockSchema = z.object({

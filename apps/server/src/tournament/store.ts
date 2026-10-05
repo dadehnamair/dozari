@@ -22,6 +22,8 @@ export interface TournamentRow {
   botFill: boolean;
   /** A player already in another open or running tournament may still join this one. */
   allowConcurrent: boolean;
+  /** The sponsor shown on the tournament, or null. */
+  sponsorId: string | null;
   startsAt: number;
   startedAt: number | null;
   finishedAt: number | null;
@@ -96,6 +98,7 @@ const toRow = (r: typeof tournaments.$inferSelect): TournamentRow => ({
   minLevel: r.minLevel,
   botFill: r.botFill,
   allowConcurrent: r.allowConcurrent,
+  sponsorId: r.sponsorId,
   startsAt: r.startsAt.getTime(),
   startedAt: r.startedAt ? r.startedAt.getTime() : null,
   finishedAt: r.finishedAt ? r.finishedAt.getTime() : null,
@@ -106,7 +109,7 @@ export function createDbTournamentStore(db: Db): TournamentStore {
   return {
     async create(t, prizes) {
       const id = uuidv7();
-      await db.insert(tournaments).values({ id, titleFa: t.titleFa, descriptionFa: t.descriptionFa, iconKey: t.iconKey, status: t.status, size: t.size, minPlayers: t.minPlayers, entryCoins: t.entryCoins, entryGems: t.entryGems, minLevel: t.minLevel, botFill: t.botFill, allowConcurrent: t.allowConcurrent, startsAt: new Date(t.startsAt) });
+      await db.insert(tournaments).values({ id, titleFa: t.titleFa, descriptionFa: t.descriptionFa, iconKey: t.iconKey, status: t.status, size: t.size, minPlayers: t.minPlayers, entryCoins: t.entryCoins, entryGems: t.entryGems, minLevel: t.minLevel, botFill: t.botFill, allowConcurrent: t.allowConcurrent, sponsorId: t.sponsorId, startsAt: new Date(t.startsAt) });
       if (prizes.length > 0) await db.insert(tournamentPrizes).values(prizes.map((p) => ({ tournamentId: id, place: p.place, coins: p.coins, gems: p.gems, spins: p.spins })));
       const [r] = await db.select().from(tournaments).where(eq(tournaments.id, id));
       return toRow(r!);

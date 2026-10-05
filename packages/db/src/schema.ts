@@ -1184,6 +1184,22 @@ export const chatReports = mysqlTable(
   (table) => ({ oncePerReporter: uniqueIndex('chat_reports_once_idx').on(table.messageId, table.reporterId) }),
 );
 
+/** A sponsor defined in the admin panel: name, banner and story shown on the tournaments it sponsors (docs/logic/sponsors.md). */
+export const sponsors = mysqlTable('sponsors', {
+  id: id(),
+  nameFa: varchar('name_fa', { length: 60 }).notNull(),
+  taglineFa: varchar('tagline_fa', { length: 120 }).notNull().default(''),
+  descriptionFa: text('description_fa').notNull(),
+  /** https URL of the banner / logo (self-hosted image; rule 8: nothing from Google). */
+  bannerUrl: varchar('banner_url', { length: 300 }),
+  logoUrl: varchar('logo_url', { length: 300 }),
+  linkUrl: varchar('link_url', { length: 300 }),
+  /** `#RRGGBB` accent of the sponsor card. */
+  accent: varchar('accent', { length: 7 }),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+});
+
 export const TOURNAMENT_STATUS_VALUES = ['draft', 'open', 'running', 'finished', 'cancelled'] as const;
 
 /** A single-elimination tournament built in the admin panel (docs/logic/tournaments.md). */
@@ -1207,6 +1223,8 @@ export const tournaments = mysqlTable(
     botFill: boolean('bot_fill').notNull().default(false),
     /** Off by default: a player may be in one open or running tournament at a time. On = they may also join this one while in another. */
     allowConcurrent: boolean('allow_concurrent').notNull().default(false),
+    /** Who sponsors this tournament (shown with a banner on its page); null = nobody. */
+    sponsorId: char('sponsor_id', { length: 36 }),
     /** Registration closes and the first round starts at this time. */
     startsAt: datetime('starts_at', { mode: 'date', fsp: 3 }).notNull(),
     startedAt: datetime('started_at', { mode: 'date', fsp: 3 }),

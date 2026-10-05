@@ -2,7 +2,7 @@ import { randomInt } from 'node:crypto';
 import type { PuzzleAdmin } from '../puzzles/admin.js';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { checkLevelTable, isDateKey, ITEMS, ITEM_GROUPS, LEVEL_TABLE_MAX, levelRowSchema, PRODUCT_CATEGORIES, PROVINCES, provinceOf, SETTING_GROUPS, SHOP_EFFECTS, COSMETIC_SLOTS, WHEEL_PRIZE_KINDS } from '@dozari/shared';
+import { accentColorSchema, checkLevelTable, httpsUrlSchema, isDateKey, ITEMS, ITEM_GROUPS, LEVEL_TABLE_MAX, levelRowSchema, PRODUCT_CATEGORIES, PROVINCES, provinceOf, SETTING_GROUPS, SHOP_EFFECTS, SPONSOR_LIMITS, COSMETIC_SLOTS, WHEEL_PRIZE_KINDS } from '@dozari/shared';
 import type { LevelRow } from '@dozari/shared';
 import type { LevelTable } from '../progress/table.js';
 import type { SettingsService } from '../settings/service.js';
@@ -32,6 +32,7 @@ import type { BadgeService } from '../badges/service.js';
 import type { BadgeStore } from '../badges/store.js';
 import type { ChatStore } from '../chat/store.js';
 import type { TournamentService } from '../tournament/service.js';
+import type { SponsorStore } from '../sponsor/store.js';
 import type { DailyService } from '../daily/service.js';
 import { THEME_KINDS } from '../daily/store.js';
 import type { BotPlayerService } from '../botplayers/service.js';
@@ -67,6 +68,8 @@ export interface AdminModules {
   chat?: ChatStore;
   /** Tournament builder and management. */
   tournaments?: TournamentService;
+  /** Sponsors shown on tournaments. */
+  sponsors?: SponsorStore;
   daily?: DailyService;
   /** The level table: XP each level starts at and the coin reward for reaching it. */
   levelRoad?: { table: LevelTable; defaults: () => Promise<LevelRow[]> };
@@ -548,6 +551,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       startsAt: z.number().int(),
       botFill: z.boolean().optional(),
       allowConcurrent: z.boolean().optional(),
+      sponsorId: z.string().uuid().nullable().optional(),
       prizes: z.array(z.object({ place: z.number().int().min(1).max(3), coins: z.number().int().min(0).max(1_000_000), gems: z.number().int().min(0).max(500).default(0), spins: z.number().int().min(0).max(20).default(0) })).max(3),
     };
     const fail = (reply: FastifyReply, error: string) => reply.code(error === 'NOT_FOUND' ? 404 : error === 'BAD_STATE' ? 409 : 400).send({ error });
@@ -580,6 +584,36 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
         return { ok: true, ...('refunded' in out ? { refunded: out.refunded } : {}) };
       });
     }
+  }
+
+  if (m.sponsors) {
+    const sponsors = m.sponsors;
+    const body = z.object({
+      nameFa: z.string().trim().min(2).max(SPONSOR_LIMITS.name),
+      taglineFa: z.string().trim().max(SPONSOR_LIMITS.tagline).default(''),
+      descriptionFa: z.string().trim().max(SPONSOR_LIMITS.description).default(''),
+      bannerUrl: httpsUrlSchema.nullable().default(null),
+      logoUrl: httpsUrlSchema.nullable().default(null),
+      linkUrl: httpsUrlSchema.nullable().default(null),
+      accent: accentColorSchema.nullable().default(null),
+      isActive: z.boolean().default(true),
+    });
+    g.get('/admin/sponsors', async () => ({ sponsors: await sponsors.list() }));
+    g.post('/admin/sponsors', async (req, reply) => {
+      const b = body.safeParse(req.body);
+      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const row = await sponsors.create(b.data);
+      void audit('sponsor.create', row.id, row.nameFa);
+      return reply.code(201).send({ id: row.id });
+    });
+    g.patch('/admin/sponsors/:id', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = body.partial().safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      if ((await sponsors.update(p.data.id, b.data)) === 'not_found') return reply.code(404).send({ error: 'NOT_FOUND' });
+      void audit('sponsor.update', p.data.id, JSON.stringify(b.data).slice(0, 200));
+      return { ok: true };
+    });
   }
 
   if (m.puzzles) {
