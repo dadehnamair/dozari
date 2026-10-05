@@ -135,6 +135,19 @@ export const guardianLinkCodes = mysqlTable('guardian_link_codes', {
   expiresAt: datetime('expires_at', { mode: 'date', fsp: 3 }).notNull(),
 });
 
+/** Which word lessons a player has seen (the guardian's digest «چه چیزی یاد گرفت»): one row per player and item, with the first and last time and how often. */
+export const lessonViews = mysqlTable(
+  'lesson_views',
+  {
+    userId: fk('user_id').references(() => users.id, { onDelete: 'cascade' }),
+    productId: fk('product_id').references(() => products.id, { onDelete: 'cascade' }),
+    firstSeenAt: datetime('first_seen_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    lastSeenAt: datetime('last_seen_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    times: int('times').notNull().default(1),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.userId, table.productId] }), byUser: index('lesson_views_user_idx').on(table.userId, table.lastSeenAt) }),
+);
+
 /** Kid word lesson of an item (D198): the word, a one-line story and an optional syllable split. Only `approved` lessons are served. */
 export const itemLessons = mysqlTable('item_lessons', {
   productId: fk('product_id')

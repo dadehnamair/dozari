@@ -136,6 +136,9 @@ import { createDbAgeTrackAdmin } from './agetrack/overview.js';
 import { GuardianService, registerGuardianRoutes } from './guardian/service.js';
 import { createDbGuardianStore } from './guardian/store.js';
 import { GuardianSettingsService, createDbGuardianSettingsStore } from './guardian/settings.js';
+import { createDigestBuilder } from './guardian/digest.js';
+import { createDbLessonSeenStore } from './lessons/seen.js';
+import type { LessonSeenStore } from './lessons/seen.js';
 import { registerLessonRoutes } from './lessons/service.js';
 import type { LessonStore } from './lessons/service.js';
 import { createDbLessonStore } from './lessons/store.js';
@@ -247,6 +250,8 @@ export interface ServerDeps {
   ageTracks?: AgeTrackService;
   /** Kid word lessons (D198). */
   lessons?: LessonStore;
+  /** Which word lessons a player saw (the guardian's digest). */
+  lessonSeen?: LessonSeenStore;
   /** Guardian links: child profiles, link codes, band-change approval (D198). */
   guardian?: GuardianService;
   /** Reports of players and the suggestion / vote / approve loop (D177). */
@@ -381,7 +386,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.profileTasks) registerProfileTaskRoutes(app, deps.auth, deps.profileTasks);
   if (deps.auth && deps.birthday) registerBirthdayRoutes(app, deps.auth, deps.birthday);
   if (deps.auth && deps.ageTracks) registerAgeTrackRoutes(app, deps.auth, deps.ageTracks);
-  if (deps.auth && deps.lessons) registerLessonRoutes(app, deps.auth, deps.lessons);
+  if (deps.auth && deps.lessons) registerLessonRoutes(app, deps.auth, deps.lessons, deps.lessonSeen);
   if (deps.auth && deps.guardian) registerGuardianRoutes(app, deps.auth, deps.guardian);
   if (deps.auth && deps.feedback) registerFeedbackRoutes(app, deps.auth, deps.feedback);
   if (deps.auth && deps.gems) registerGemRoutes(app, deps.auth, deps.gems);
@@ -670,7 +675,11 @@ if (isMainModule(import.meta.url)) {
     social.blocked = (id) => ageTracks.socialBlocked(id);
     social.asksGuardian = (id) => ageTracks.friendsNeedApproval(id);
   }
+  const lessonSeen = db ? createDbLessonSeenStore(db) : undefined;
   if (guardian && guardianSettings) guardian.settings = guardianSettings;
+  if (guardian && lessonSeen && player && socialStore) {
+    guardian.digest = createDigestBuilder({ seen: lessonSeen, recentGames: (id, n) => player.recentGames(id, n), level: async (id) => (await player.levelOf(id)).level.level, friendCount: async (id) => (await socialStore.friends(id)).length });
+  }
   if (guardian && social && socialStore) {
     guardian.friends = {
       friends: (id) => socialStore.friends(id),
@@ -824,6 +833,7 @@ if (isMainModule(import.meta.url)) {
     birthday,
     ageTracks,
     lessons: db ? createDbLessonStore(db) : undefined,
+    lessonSeen,
     guardian,
     feedback,
     profileTasks:

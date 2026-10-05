@@ -5,7 +5,7 @@ import type { AuthService } from '../auth/service.js';
 import { currentUser } from '../auth/routes.js';
 import type { AgeTrackStore } from '../agetrack/service.js';
 import { RateLimiter } from '../security/rate-limit.js';
-import type { GuardianSettings } from '@dozari/shared';
+import type { ChildDigest, GuardianSettings } from '@dozari/shared';
 import type { GuardianSettingsService } from './settings.js';
 
 /** I/O boundary of guardian links (docs/logic/age-tracks.md): child profiles, link codes, new child accounts. */
@@ -72,6 +72,8 @@ export class GuardianService {
   settings?: GuardianSettingsService;
   /** A child's friendships, for the panel; set at start-up. */
   friends?: GuardianFriends;
+  /** Builds the digest of a child; set at start-up. */
+  digest?: (childId: string) => Promise<ChildDigest>;
 
   constructor(
     private readonly store: GuardianStore,
@@ -172,6 +174,12 @@ export class GuardianService {
   async putSettings(guardianId: string, childId: string, next: GuardianSettings): Promise<Result<{ settings: GuardianSettings }>> {
     if (!this.settings || !(await this.store.isChildOf(guardianId, childId))) return { ok: false, error: 'not_found' };
     return { ok: true, settings: await this.settings.put(childId, next) };
+  }
+
+  /** «امروز چه یاد گرفت»: words learned, games this week, level and friends. */
+  async digestOf(guardianId: string, childId: string): Promise<Result<{ digest: ChildDigest }>> {
+    if (!this.digest || !(await this.store.isChildOf(guardianId, childId))) return { ok: false, error: 'not_found' };
+    return { ok: true, digest: await this.digest(childId) };
   }
 
   /** Friends and the requests waiting for the guardian's yes (`friend_approval = ask`). */
@@ -285,6 +293,12 @@ export function registerGuardianRoutes(app: FastifyInstance, auth: AuthService, 
     if (!body.success) return reply.code(400).send({ error: 'invalid_request' });
     const out = await svc.putSettings(user.id, req.params.id, body.data);
     return out.ok ? out.settings : fail(reply, out);
+  });
+  app.get<{ Params: { id: string } }>('/guardian/children/:id/digest', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    const out = await svc.digestOf(user.id, req.params.id);
+    return out.ok ? out.digest : fail(reply, out);
   });
   app.get<{ Params: { id: string } }>('/guardian/children/:id/friends', async (req, reply) => {
     const user = await currentUser(auth, req);

@@ -234,7 +234,10 @@ Setting `feature.age_tracks` (admin → settings → app, **default off**): off 
     **ask first** → the child neither sends nor accepts friend requests (`403 ask_guardian`, also on invite links), the guardian sees the waiting requests and approves (`SocialService.approveFor`, which accepts for the child and still checks the track).
     Under *ask first* a child cannot send requests at all (stricter than «approve what happens», chosen because a request the other side accepts later would need approval state we do not store).
   - quiet hours and the reminder are **not enforced by the server** (no lock-out, principle 4): they ride in `limits` and the app shows a soft card.
-  Not yet: «block a friend» as its own switch (removing a friend is there; a re-request is possible), the digest, the family table, the guardian panel screens and the soft rest card in the app.
+- Phase 5, slice 2, **digest «امروز چه یاد گرفت»** (migration 0064, table `lesson_views(user_id, product_id, first_seen_at, last_seen_at, times)`): `POST /lessons` records each lesson card that was shown to a signed-in player (best effort; a failing write never costs the lesson).
+  `GET /guardian/children/:id/digest` (only the child's own guardian) returns `ChildDigest`: words learned (total, this week, the last five), games and wins in the last 7 days, days played, level and friend count — counts and words only,
+  **never chat text** (`shared/agetrack/digest.ts`: `weekSummary`, `childDigestSchema`; builder `guardian/digest.ts`). The «who they played» line of the first sketch is dropped: the game keeps no opponent history, and friends are listed in the panel.
+  Not yet: «block a friend» as its own switch (removing a friend is there; a re-request is possible), the family table, the guardian panel screens and the soft rest card in the app.
 - Not yet: the rest of the 30–50 kid puzzles; a track filter on the other admin lists (puzzles, items, tournaments, reports…);
 
 ## Phases
