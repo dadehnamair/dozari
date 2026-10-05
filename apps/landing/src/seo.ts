@@ -22,7 +22,7 @@ export interface Site {
   fontUrl?: string | null;
   /** False = every page is noindex and robots.txt closes the site (pre-launch). */
   indexable?: boolean;
-  verify?: { google: string | null; bing: string | null; yandex: string | null };
+  verify?: { google: string | null; bing: string | null; yandex: string | null; enamad?: string | null };
   /** Self-hosted analytics script (never a third-party service). */
   analytics?: { scriptUrl: string; siteId: string } | null;
 }
@@ -123,6 +123,7 @@ export function head(site: Site, h: HeadInput): string {
   ];
   if (site.verify?.google) tags.push(`<meta name="google-site-verification" content="${escapeHtml(site.verify.google)}">`);
   if (site.verify?.bing) tags.push(`<meta name="msvalidate.01" content="${escapeHtml(site.verify.bing)}">`);
+  if (site.verify?.enamad) tags.push(`<meta name="enamad" content="${escapeHtml(site.verify.enamad)}">`);
   if (site.verify?.yandex) tags.push(`<meta name="yandex-verification" content="${escapeHtml(site.verify.yandex)}">`);
   if (site.analytics) tags.push(`<script defer src="${escapeHtml(site.analytics.scriptUrl)}" data-website-id="${escapeHtml(site.analytics.siteId)}"></script>`);
   if (site.fontUrl) tags.push(`<link rel="preload" href="${escapeHtml(site.fontUrl)}" as="font" type="font/woff2" crossorigin>`, `<style>@font-face{font-family:"DozariWeb";src:url("${escapeHtml(site.fontUrl)}") format("woff2");font-display:swap}body{font-family:DozariWeb,Vazirmatn,Tahoma,system-ui,sans-serif}</style>`);

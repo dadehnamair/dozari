@@ -12,18 +12,18 @@ const list = (v: string): string[] => v.split(/[,،\n]/).map((x) => x.trim()).fi
 export function registerLandingPublicRoutes(app: FastifyInstance, landing: LandingService, settings: SettingsService) {
   app.get('/public/landing', async () => {
     const t = (k: string) => settings.text(k);
-    const [name, tagline, heroTitle, heroText, email, instagram, channel, android, appUrl, dApp, dLanding, dShort, seoTitle, seoDescription, keywords, ogImage, ogAlt, sameAs, fontUrl, vGoogle, vBing, vYandex, indexable, statsUrl, statsId, cast, faq] = await Promise.all([
+    const [name, tagline, heroTitle, heroText, email, instagram, channel, android, appUrl, dApp, dLanding, dShort, seoTitle, seoDescription, keywords, ogImage, ogAlt, sameAs, fontUrl, vGoogle, vBing, vYandex, vEnamad, indexable, statsUrl, statsId, cast, faq] = await Promise.all([
       t('landing.site_name'), t('landing.tagline'), t('landing.hero_title'), t('landing.hero_text'), t('landing.contact_email'), t('link.instagram'), t('link.channel'), t('link.android_app'), t('link.app_url'),
       t('domain.app'), t('domain.landing'), t('domain.short'),
       t('landing.seo_title'), t('landing.seo_description'), t('landing.keywords'), t('landing.og_image'), t('landing.og_image_alt'), t('landing.same_as'), t('landing.font_url'),
-      t('seo.verify_google'), t('seo.verify_bing'), t('seo.verify_yandex'), settings.num('landing.indexable'), t('analytics.script_url'), t('analytics.site_id'), landing.cast.publicList(), landing.faq.publicList(),
+      t('seo.verify_google'), t('seo.verify_bing'), t('seo.verify_yandex'), t('seo.verify_enamad'), settings.num('landing.indexable'), t('analytics.script_url'), t('analytics.site_id'), landing.cast.publicList(), landing.faq.publicList(),
     ]);
     return {
       site: { name, tagline, heroTitle, heroText, contactEmail: email.trim() || null, instagram: link(instagram), channel: link(channel), androidApp: link(android), appUrl: link(appUrl), domains: { app: dApp.trim(), landing: dLanding.trim(), short: dShort.trim() },
         seo: {
           title: seoTitle.trim() || null, description: seoDescription.trim() || null, keywords: list(keywords), ogImage: link(ogImage), ogImageAlt: ogAlt.trim() || null,
           sameAs: list(sameAs).map(link).filter((x): x is string => x !== null), fontUrl: link(fontUrl), indexable: indexable !== 0,
-          verify: { google: token(vGoogle), bing: token(vBing), yandex: token(vYandex) },
+          verify: { google: token(vGoogle), bing: token(vBing), yandex: token(vYandex), enamad: token(vEnamad) },
           analytics: link(statsUrl) && token(statsId) ? { scriptUrl: link(statsUrl) as string, siteId: token(statsId) as string } : null,
         },
       },

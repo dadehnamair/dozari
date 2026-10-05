@@ -20,7 +20,7 @@ export interface PublicSite {
     sameAs: string[];
     fontUrl: string | null;
     indexable: boolean;
-    verify: { google: string | null; bing: string | null; yandex: string | null };
+    verify: { google: string | null; bing: string | null; yandex: string | null; enamad?: string | null };
     /** Self-hosted analytics script (Umami style), or null. */
     analytics?: { scriptUrl: string; siteId: string } | null;
   };
