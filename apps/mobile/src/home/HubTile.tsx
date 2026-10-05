@@ -2,6 +2,7 @@ import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-nativ
 import Svg, { Defs, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { useEffect, useId, useRef } from 'react';
 import { usePrefs } from '../prefs/store';
+import { playSfx } from '../sound/engine';
 import { ICON_PATHS } from '../theme/icons';
 import type { IconName } from '../theme/icons';
 import { colors, fonts, toneOf } from '../theme/colors';
@@ -27,7 +28,7 @@ export function HubTile({ icon, label, color, badge, badgeColor = colors.candy.p
     return () => loop.stop();
   }, [glow, reduce, beat]);
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={styles.wrap}>
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={() => (playSfx('press'), onPress())} style={styles.wrap}>
       {({ pressed }) => (
         <>
           {glow ? (

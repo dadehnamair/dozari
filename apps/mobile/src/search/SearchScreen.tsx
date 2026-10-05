@@ -217,7 +217,7 @@ export function SearchScreen({ onCancel, waitedSec, team = false, note }: { onCa
         </View>
         {note ? <Text style={styles.note}>{note}</Text> : null}
         <View style={styles.cancel}>
-          <CandyButton label={s.cancel} color={candyTone.orange.base} onPress={onCancel} />
+          <CandyButton label={s.cancel} sfx="back" color={candyTone.orange.base} onPress={onCancel} />
         </View>
       </View>
     </DiamondBackground>

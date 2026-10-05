@@ -110,7 +110,7 @@ export function PriceRoundPanel({ sessionId, onDone }: { sessionId: string; onDo
             <Text style={styles.msg}>{p.unit}</Text>
           </View>
           {invalid ? <Text style={styles.error}>{p.invalid}</Text> : null}
-          <CandyButton label={p.submit} color={colors.candy.yellow} onPress={() => void submit()} disabled={busy} />
+          <CandyButton label={p.submit} sfx="confirm" color={colors.candy.yellow} onPress={() => void submit()} disabled={busy} />
         </>
       )}
     </View>

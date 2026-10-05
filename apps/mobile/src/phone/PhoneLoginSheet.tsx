@@ -43,7 +43,7 @@ export function PhoneLoginSheet({ onClose }: { onClose: () => void }) {
         {note ? <Text style={[styles.text, note.bad && styles.bad]}>{note.text}</Text> : null}
         {sent ? <CandyButton label={t.login} color={colors.candy.lime} disabled={busy || code.trim().length === 0} onPress={login} /> : null}
         <CandyButton label={t.send} color={sent ? colors.candy.sky : colors.candy.lime} disabled={busy || phone.trim().length === 0} onPress={send} />
-        <CandyButton label={t.close} color={colors.candy.sky} onPress={onClose} />
+        <CandyButton label={t.close} sfx="back" color={colors.candy.sky} onPress={onClose} />
       </Pressable>
     </Pressable>
   );

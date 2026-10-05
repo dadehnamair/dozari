@@ -1,4 +1,4 @@
-import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PRICE_GUESS_ROUND_POINTS, solarMonthOf, toPersianDigits } from '@dozari/shared';
 import type { PriceRoundView } from '@dozari/shared';
 import { Character } from '../components/Character';
@@ -17,7 +17,7 @@ const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const a = fa.duel.arena;
 
 type Outcome = 'won' | 'lost' | 'draw';
-type Line = { name: string; who: CharacterId; groups: number; points: number; me: boolean };
+type Line = { name: string; who: CharacterId; groups: number; points: number; me: boolean; /** Tap the row to open this player's profile (an opponent in a 1v1). */ playerId?: string };
 
 const LOOK: Record<Outcome, { title: string; sub: string; pose: 'win' | 'sad' | 'thinking'; ban: [string, string]; again: string; againColor: string }> = {
   won: { title: fa.duel.won, sub: a.winSub, pose: 'win', ban: ['#FFE48A', colors.candy.yellow], again: a.againWin, againColor: colors.candy.pink },
@@ -26,7 +26,7 @@ const LOOK: Record<Outcome, { title: string; sub: string; pose: 'win' | 'sad' | 
 };
 
 /** screen-results of `13 Match Screens`: the hero's pose, a banner, why it ended, the scoreboard, home / play again. */
-export function DuelResult({ outcome, reason, lines, priceRound, onHome, onAgain, onInvite }: { outcome: Outcome; reason: string; lines: Line[]; /** The finished price-guess round, when the duel had one. */ priceRound?: PriceRoundView; onHome: () => void; onAgain?: () => void; /** Opens the invite sheet: the best moment to ask a friend to play is right after a game. */ onInvite?: () => void }) {
+export function DuelResult({ outcome, reason, lines, priceRound, onHome, onAgain, onInvite, onPlayer }: { outcome: Outcome; reason: string; lines: Line[]; /** The finished price-guess round, when the duel had one. */ priceRound?: PriceRoundView; onHome: () => void; onAgain?: () => void; /** Opens the invite sheet: the best moment to ask a friend to play is right after a game. */ onInvite?: () => void; /** Opens a player's profile sheet. */ onPlayer?: (id: string) => void }) {
   const look = LOOK[outcome];
   const sorted = [...lines].sort((x, y) => y.points - x.points);
   return (
@@ -49,7 +49,7 @@ export function DuelResult({ outcome, reason, lines, priceRound, onHome, onAgain
             <Text style={[styles.headText, styles.cell]}>{a.points}</Text>
           </View>
           {sorted.map((l, i) => (
-            <View key={l.name + i} style={[styles.line, l.me ? styles.lineMe : null]}>
+            <Pressable key={l.name + i} disabled={!l.playerId || !onPlayer} onPress={() => l.playerId && onPlayer?.(l.playerId)} accessibilityRole={l.playerId ? 'button' : undefined} accessibilityLabel={l.name} style={[styles.line, l.me ? styles.lineMe : null]}>
               <View style={[styles.stripe, { backgroundColor: l.me ? colors.candy.sky : colors.candy.pink }]} />
               <View style={[styles.face, { backgroundColor: l.me ? colors.candy.sky : colors.candy.pink }]}>
                 <View style={[styles.faceIn, l.me ? null : styles.flip]}><Character who={l.who} pose="idle" crop="face" month={l.who === 'dozari' ? solarMonthOf(Date.now()) : undefined} /></View>
@@ -60,7 +60,7 @@ export function DuelResult({ outcome, reason, lines, priceRound, onHome, onAgain
               </View>
               <Text style={[styles.num, styles.cell]}>{toPersianDigits(String(l.groups))}</Text>
               <Text style={[styles.num, styles.cell, styles.pts]}>{toPersianDigits(String(l.points))}</Text>
-            </View>
+            </Pressable>
           ))}
         </View>
 

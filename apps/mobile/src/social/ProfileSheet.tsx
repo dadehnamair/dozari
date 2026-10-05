@@ -223,7 +223,7 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
                 ))}
               </View>
               <ProfileEditor me={me} onChange={(patch) => setMe((m) => (m ? { ...m, ...patch } : m))} onPickCity={() => (setEditing(false), setSub('city'))} />
-              <CandyButton label={fa.profile.close} color={colors.candy.sky} onPress={() => setEditing(false)} />
+              <CandyButton label={fa.profile.close} sfx="back" color={colors.candy.sky} onPress={() => setEditing(false)} />
             </ScrollView>
           </Pressable>
         </Pressable>
@@ -249,7 +249,7 @@ function RecentGamesSheet({ games, onClose }: { games: RecentGames['games']; onC
               <Text style={styles.gameAgo}>{agoText(g.at, Date.now())}</Text>
             </View>
           ))}
-          <CandyButton label={fa.profile.close} color={colors.candy.sky} onPress={onClose} />
+          <CandyButton label={fa.profile.close} sfx="back" color={colors.candy.sky} onPress={onClose} />
         </ScrollView>
       </Pressable>
     </Pressable>

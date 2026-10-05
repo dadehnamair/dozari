@@ -105,7 +105,7 @@ export function LookupScreen({ onBack }: { onBack: () => void }) {
             ) : null}
             <PriceFeedbackLink product={{ id: detail.product.id, nameFa: detail.product.nameFa, year: year ?? undefined }} />
             <Text style={styles.note}>{fa.lookup.nominal}</Text>
-            <CandyButton label={fa.lookup.back} color={colors.candy.sky} onPress={() => setDetail(null)} />
+            <CandyButton label={fa.lookup.back} sfx="back" color={colors.candy.sky} onPress={() => setDetail(null)} />
           </View>
         ) : (
           <>
@@ -132,7 +132,7 @@ export function LookupScreen({ onBack }: { onBack: () => void }) {
                 </View>
               </Pressable>
             ))}
-            <CandyButton label={fa.lookup.back} color={colors.candy.sky} onPress={onBack} />
+            <CandyButton label={fa.lookup.back} sfx="back" color={colors.candy.sky} onPress={onBack} />
           </>
         )}
       </ScrollView>

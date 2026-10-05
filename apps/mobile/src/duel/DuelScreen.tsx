@@ -23,6 +23,7 @@ import { arenaNumbers, arrange, characterFor, clockText, endReason, groupsBy, sh
 import { DuelPriceRound } from './DuelPriceRound';
 import { DuelResult } from './DuelResult';
 import { InviteSheet } from '../invite/InviteSheet';
+import { PlayerSheet } from '../social/PlayerSheet';
 import { MatchHud } from './MatchHud';
 import { ModeSelect } from './ModeSelect';
 import { boardSolved, duelReducer, initialDuel, isCaptain, isMyTurn, myOutcome, sideName, sidePlayers, turnSecondsLeft } from './model';
@@ -51,6 +52,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   const [stage, setStage] = useState<Stage>(resume ? 'resume' : 'pick');
   const [round, setRound] = useState(0);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [profileId, setProfileId] = useState<string | null>(null);
   const [state, dispatch] = useReducer(duelReducer, initialDuel);
   const [selected, setSelected] = useState<string[]>([]);
   const [order, setOrder] = useState<string[]>([]);
@@ -126,9 +128,6 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   useEffect(() => {
     if (foundId && stage === 'queue') setIntroUntil(Date.now() + INTRO_MS);
   }, [foundId, stage]);
-  useEffect(() => {
-    if (state.phase === 'ended' && state.ended && state.view) playSfx(myOutcome(state.ended, state.view.you) === 'won' ? 'win' : 'lose');
-  }, [state.phase, state.ended, state.view]);
   // A win earns a wheel spin; the server records it just after the result, so ask once shortly after and once more later.
   const wonMatch = state.phase === 'ended' && state.ended && state.view ? myOutcome(state.ended, state.view.you) === 'won' : false;
   useEffect(() => {
@@ -146,6 +145,36 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
     const id = setTimeout(() => setLeaveArmed(false), LEAVE_ARM_MS);
     return () => clearTimeout(id);
   }, [leaveArmed]);
+
+  // When the board is won by finding groups, the last cards light up one by one and the rows stay visible for a moment before the result.
+  const [finaleFor, setFinaleFor] = useState<string | null>(null);
+  const finalePending = state.phase === 'ended' && state.ended?.result.reason === 'solved' && !!state.view && !prefs.reduceMotion && finaleFor !== (foundId ?? '');
+  useEffect(() => {
+    if (!finalePending || !state.view) return undefined;
+    let alive = true;
+    const rest = state.view.cards.map((c) => c.id);
+    const run = async () => {
+      const pause = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+      await pause(450);
+      for (const id of rest) {
+        if (!alive) return;
+        setSelected((cur) => [...cur, id]);
+        playSfx('select');
+        await pause(280);
+      }
+      await pause(rest.length ? 1400 : 1800);
+      if (alive) setFinaleFor(foundId ?? '');
+    };
+    void run();
+    return () => {
+      alive = false;
+    };
+    // The script runs once per finished match.
+  }, [finalePending, foundId]);
+
+  useEffect(() => {
+    if (state.phase === 'ended' && state.ended && state.view && !finalePending) playSfx(myOutcome(state.ended, state.view.you) === 'won' ? 'win' : 'lose');
+  }, [state.phase, state.ended, state.view, finalePending]);
 
   const again = () => {
     dispatch({ t: 'reset' });
@@ -217,10 +246,10 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   const rivalWho = characterFor(sidePlayers(state.found, them)[0]?.avatarKey || rivalName);
   const lines = [
     { name: myName, who: 'dozari' as const, groups: groupsBy(view, me), me: true },
-    { name: rivalName, who: rivalWho, groups: groupsBy(view, them), me: false },
+    { name: rivalName, who: rivalWho, groups: groupsBy(view, them), me: false, playerId: sidePlayers(state.found, them).length === 1 ? sidePlayers(state.found, them)[0]?.userId : undefined },
   ];
 
-  if (state.phase === 'ended' && state.ended) {
+  if (state.phase === 'ended' && state.ended && !finalePending) {
     const outcome = myOutcome(state.ended, me);
     const scores = state.ended.scores;
     return (
@@ -233,12 +262,14 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
           onHome={onBack}
           onAgain={stage === 'queue' ? again : undefined}
           onInvite={() => setInviteOpen(true)}
+          onPlayer={(id) => setProfileId(id)}
         />
         {!prefs.reduceMotion ? (outcome === 'won' ? <Confetti distance={500} /> : <Rain distance={800} />) : null}
         {outcome === 'won' && spinsWaiting > 0 ? (
           <View style={styles.wheelCta}><SlabButton label={fa.wheel.open} color={colors.candy.yellow} badge={toPersianDigits(String(spinsWaiting))} onPress={() => setWheelOpen(true)} /></View>
         ) : null}
         {inviteOpen ? <InviteSheet onClose={() => setInviteOpen(false)} /> : null}
+        {profileId ? <PlayerSheet playerId={profileId} onClose={() => setProfileId(null)} /> : null}
         {wheelOpen ? <WheelPage onClose={() => (setWheelOpen(false), void fetchWheel().then((w) => setSpinsWaiting(w.pending), () => undefined))} /> : null}
       </View>
     );
@@ -313,7 +344,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
           </View>
           <View style={styles.toastSlot}>{toast ? <View style={styles.toast}><Text style={styles.toastText} numberOfLines={2}>{toast}</Text></View> : null}</View>
 
-          <Board solved={boardSolved(view)} cards={arrange(view.cards, order)} names={state.names} selected={selected} onToggle={(id) => (playSfx('tap'), setSelected((s) => toggleSelection(s, id)))} disabled={!playing || !mine} muted={playing && !mine} />
+          <Board solved={boardSolved(view)} cards={arrange(view.cards, order)} names={state.names} selected={selected} onToggle={(id) => setSelected((s) => toggleSelection(s, id))} disabled={!playing || !mine} muted={playing && !mine} />
 
           <View style={styles.tools}>
             {taunts.length > 0 ? (
@@ -335,7 +366,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
           <View style={styles.actions}>
             <SlabButton label={fa.solo.shuffle} color={colors.candy.sky} height={58} fontSize={20} onPress={() => setOrder(shuffled(view.cards.map((c) => c.id)))} />
             <SlabButton label={fa.solo.deselect} color={colors.candy.orange} height={58} fontSize={20} onPress={() => setSelected([])} disabled={selected.length === 0} />
-            <SlabButton label={fa.solo.submit} color={colors.candy.lime} height={58} fontSize={24} grow={1.4} onPress={submit} disabled={!canSubmit(selected) || !mine} />
+            <SlabButton label={fa.solo.submit} sfx="confirm" color={colors.candy.lime} height={58} fontSize={24} grow={1.4} onPress={submit} disabled={!canSubmit(selected) || !mine} />
           </View>
         </View>
       </ScrollView>

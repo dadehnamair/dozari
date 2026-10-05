@@ -71,7 +71,7 @@ export function DuelPriceRound({ round, now, onGuess }: { round: PriceRoundView;
                 <Text style={styles.unit}>{fa.solo.price.unit}</Text>
               </View>
               {round.opponentSubmitted ? <Text style={styles.hint}>{p.opponentLocked}</Text> : null}
-              <SlabButton label={fa.solo.price.submit} color={colors.candy.lime} height={54} fontSize={22} onPress={() => void send()} disabled={busy} />
+              <SlabButton label={fa.solo.price.submit} sfx="confirm" color={colors.candy.lime} height={54} fontSize={22} onPress={() => void send()} disabled={busy} />
             </>
           )}
           {note ? <Text style={styles.error}>{note}</Text> : null}

@@ -69,7 +69,7 @@ export function LoansSheet({ onClose }: { onClose: () => void }) {
           ))}
         </ScrollView>
         {note ? <Text style={[styles.hint, styles.bad]}>{note}</Text> : null}
-        <CandyButton label={fa.transfers.close} color={colors.candy.sky} onPress={onClose} />
+        <CandyButton label={fa.transfers.close} sfx="back" color={colors.candy.sky} onPress={onClose} />
       </Pressable>
     </Pressable>
   );

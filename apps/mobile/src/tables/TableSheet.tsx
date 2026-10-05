@@ -149,7 +149,7 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
                 </Pressable>
                 {note ? <Text style={styles.warn}>{note}</Text> : null}
                 <CandyButton label={fa.tables.create} color={colors.candy.lime} disabled={name.trim().length === 0} onPress={() => createTable({ name: name.trim(), icon: icon as (typeof TABLE_ICONS)[number], requireReady, format }).then((t) => (setNote(null), setTable(t)), (e) => setNote(errText(e)))} />
-                <CandyButton label={fa.tables.back} color={colors.candy.sky} onPress={() => (setNote(null), setMode('menu'))} />
+                <CandyButton label={fa.tables.back} sfx="back" color={colors.candy.sky} onPress={() => (setNote(null), setMode('menu'))} />
               </>
             ) : (
               <>
@@ -158,12 +158,12 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
                   <Pressable onPress={() => enter(code)} style={styles.pill} accessibilityRole="button"><Text style={styles.pillText}>{fa.tables.join}</Text></Pressable>
                 </View>
                 {note ? <Text style={styles.warn}>{note}</Text> : null}
-                <CandyButton label={fa.tables.back} color={colors.candy.sky} onPress={() => (setNote(null), setMode('menu'))} />
+                <CandyButton label={fa.tables.back} sfx="back" color={colors.candy.sky} onPress={() => (setNote(null), setMode('menu'))} />
               </>
             )
           )}
         </ScrollView>
-        <CandyButton label={fa.tables.close} color={colors.candy.sky} onPress={onClose} />
+        <CandyButton label={fa.tables.close} sfx="back" color={colors.candy.sky} onPress={onClose} />
       </Pressable>
       {dialog}
     </Pressable>

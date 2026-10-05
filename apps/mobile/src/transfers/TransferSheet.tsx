@@ -63,7 +63,7 @@ export function TransferSheet({ friendId, kind, onClose }: { friendId: string; k
           </>
         ) : null}
         {note ? <Text style={[styles.hint, note.bad && styles.bad]}>{note.text}</Text> : null}
-        <CandyButton label={fa.transfers.close} color={colors.candy.sky} onPress={onClose} />
+        <CandyButton label={fa.transfers.close} sfx="back" color={colors.candy.sky} onPress={onClose} />
       </Pressable>
     </Pressable>
   );
