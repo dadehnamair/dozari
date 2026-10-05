@@ -78,6 +78,20 @@ biases which puzzles a player is served:
   weighted toward the stronger one's level rather than always the easiest.
 - Config: `PUZZLE_TIER_WEIGHTS` in `packages/shared/src/config/game.ts`.
 
+## Puzzle tiers (admin-defined, replaces the fixed آسان/متوسط/سخت)
+
+Owner request: the admin defines the tiers himself, more than three, and sees which puzzle is for which levels.
+
+- Table `puzzle_tiers` (`name_fa`, `sort_order`, `min_level`, `max_level` (null = no cap)); `puzzles.tier_id` (null = unrated). A fresh install gets
+  five proposed tiers — خیلی آسان 1–3, آسان 4–8, متوسط 9–15, سخت 16–25, خیلی سخت 26+ (`DEFAULT_PUZZLE_TIERS`, `packages/shared/src/puzzle/tiers.ts`).
+- **Serving:** `PuzzleSource.pickRandom({ level })` picks a random approved puzzle whose tier's range holds the player's level
+  (`tiersForLevel`); with none in those tiers (or none rated yet) it falls back to any approved puzzle, so nothing ever dead-ends.
+  Solo uses the signed-in player's level (a guest, and the daily puzzle, are unfiltered); a duel/team match uses the **higher** level of the
+  players, as D34 says. This is selection, not matchmaking.
+- **Admin «ساخت پازل»:** a tier editor (add / edit / delete; deleting un-rates its puzzles), a tier picker on every puzzle and on the manual
+  builder, and each puzzle card lists its groups with their items.
+- This supersedes the `PUZZLE_TIER_WEIGHTS` 70/20/10 sketch above for now; weighting across neighbouring tiers is a possible later refinement.
+
 ## Board size as a difficulty lever (D47)
 
 A further extension the owner asked for on top of D34: easier tiers can offer a **smaller board**

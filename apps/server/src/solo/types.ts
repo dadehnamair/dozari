@@ -25,8 +25,8 @@ export interface PricePointRow {
 export interface PuzzleSource {
   /** Approved price points per product, for the result chart. */
   pricesFor(productIds: readonly string[]): Promise<Record<string, PricePointRow[]>>;
-  /** A random approved puzzle, or null when none exist. */
-  pickRandom(): Promise<ServedPuzzle | null>;
+  /** A random approved puzzle, or null when none exist. With a player `level`, puzzles of the tiers open to that level come first (docs/logic/progression.md §Puzzle tiers). */
+  pickRandom(opts?: { level?: number }): Promise<ServedPuzzle | null>;
   /** A specific approved puzzle (the daily one), or null. */
   byId?(id: string): Promise<ServedPuzzle | null>;
 }

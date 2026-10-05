@@ -134,8 +134,11 @@ export class MatchService {
   /** Starts a match for a paired couple; false when it could not be created (no puzzle, unknown or busy player). */
   async start(a: string, b: string, opts: { friendly?: boolean } = {}): Promise<boolean> {
     if (a === b || this.inMatch(a) || this.inMatch(b)) return false;
-    const [pa, pb, puzzle] = await Promise.all([this.deps.profile(a), this.deps.profile(b), this.deps.puzzles.pickRandom()]);
-    if (!pa || !pb || !puzzle) return false;
+    const [pa, pb] = await Promise.all([this.deps.profile(a), this.deps.profile(b)]);
+    if (!pa || !pb) return false;
+    // The stronger of the two sets the puzzle tier (docs/logic/progression.md).
+    const puzzle = await this.deps.puzzles.pickRandom({ level: Math.max(pa.level, pb.level) });
+    if (!puzzle) return false;
     if (this.inMatch(a) || this.inMatch(b)) return false; // raced with another start while loading
     const rng: Rng = mulberry32(this.newSeed());
     const id = uuidv7();
@@ -169,8 +172,11 @@ export class MatchService {
   async startTeam(sides: readonly [readonly [string, string], readonly [string, string]]): Promise<boolean> {
     const all = [...sides[0], ...sides[1]];
     if (new Set(all).size !== 4 || all.some((u) => this.inMatch(u))) return false;
-    const [profiles, boards] = await Promise.all([Promise.all(all.map((u) => this.deps.profile(u))), this.pickBoards(await this.boardCount())]);
-    if (boards.length === 0 || profiles.some((p) => !p)) return false;
+    const profiles = await Promise.all(all.map((u) => this.deps.profile(u)));
+    if (profiles.some((p) => !p)) return false;
+    // The strongest player sets the puzzle tier, so nobody gets dumbed down (docs/logic/progression.md).
+    const boards = await this.pickBoards(await this.boardCount(), Math.max(...profiles.map((p) => p!.level)));
+    if (boards.length === 0) return false;
     if (all.some((u) => this.inMatch(u))) return false; // raced with another start while loading
     const id = uuidv7();
     const entry: Active = { id, puzzles: boards, state: startTeamMatch(boards.map(toSolo), sides, mulberry32(this.newSeed()), this.now(), undefined, await this.matchRules()), cancel: null, proposals: [null, null] };
@@ -208,10 +214,10 @@ export class MatchService {
   }
 
   /** Up to `n` different random puzzles (fewer when the pool is small; at least one or none). */
-  private async pickBoards(n: number): Promise<ServedPuzzle[]> {
+  private async pickBoards(n: number, level?: number): Promise<ServedPuzzle[]> {
     const out: ServedPuzzle[] = [];
     for (let i = 0; i < n * 3 && out.length < n; i++) {
-      const p = await this.deps.puzzles.pickRandom();
+      const p = await this.deps.puzzles.pickRandom({ level });
       if (!p) break;
       if (!out.some((o) => o.id === p.id)) out.push(p);
     }

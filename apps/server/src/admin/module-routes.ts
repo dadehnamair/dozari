@@ -585,11 +585,11 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
   if (m.puzzles) {
     const puzzles = m.puzzles;
     const groupBody = z.object({ level: z.number().int().min(0).max(3), titleFa: z.string().trim().min(2).max(100), explanationFa: z.string().trim().min(2).max(300), productIds: z.array(z.string().uuid()).length(4) });
-    g.get('/admin/puzzles', async () => ({ readiness: await puzzles.readiness(), puzzles: await puzzles.list(200) }));
+    g.get('/admin/puzzles', async () => ({ readiness: await puzzles.readiness(), puzzles: await puzzles.list(200), tiers: await puzzles.tiers() }));
     g.post('/admin/puzzles', async (req, reply) => {
-      const b = z.object({ groups: z.array(groupBody).length(4) }).safeParse(req.body);
+      const b = z.object({ groups: z.array(groupBody).length(4), tierId: z.string().uuid().nullable().optional() }).safeParse(req.body);
       if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
-      const out = await puzzles.create(b.data.groups);
+      const out = await puzzles.create(b.data.groups, b.data.tierId);
       if (!out.ok) return reply.code(out.error === 'unknown_product' ? 404 : 400).send({ error: out.error });
       void audit('puzzle.create', out.id);
       return reply.code(201).send({ id: out.id });
@@ -600,6 +600,34 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       const out = await puzzles.generate(b.data.count, () => randomInt(0, 2 ** 30) / 2 ** 30);
       void audit('puzzle.generate', 'puzzles', `${out.created}/${out.requested}`);
       return out;
+    });
+    // Difficulty tiers: the ladder the admin defines, and which puzzle sits on which rung (docs/logic/progression.md §Puzzle tiers).
+    const tierBody = z.object({ id: z.string().uuid().optional(), nameFa: z.string().trim().min(1).max(40), sortOrder: z.number().int().min(0).max(1000), minLevel: z.number().int().min(1).max(1000), maxLevel: z.number().int().min(1).max(1000).nullable() });
+    g.get('/admin/puzzles/tiers', async () => ({ tiers: await puzzles.tiers() }));
+    g.post('/admin/puzzles/tiers', async (req, reply) => {
+      const b = tierBody.safeParse(req.body);
+      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await puzzles.saveTier(b.data);
+      if (!out.ok) return reply.code(out.error === 'not_found' ? 404 : 400).send({ error: out.error });
+      void audit('puzzle.tier.save', out.id, b.data.nameFa);
+      return { id: out.id };
+    });
+    g.delete('/admin/puzzles/tiers/:id', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await puzzles.deleteTier(p.data.id);
+      if (out === 'not_found') return reply.code(404).send({ error: out });
+      void audit('puzzle.tier.delete', p.data.id);
+      return { ok: true };
+    });
+    g.put('/admin/puzzles/:id/tier', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object({ tierId: z.string().uuid().nullable() }).safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await puzzles.setTier(p.data.id, b.data.tierId);
+      if (out !== 'ok') return reply.code(404).send({ error: out });
+      void audit('puzzle.tier', p.data.id, b.data.tierId ?? '-');
+      return { ok: true };
     });
     g.put('/admin/puzzles/:id/titles', async (req, reply) => {
       const p = idParam.safeParse(req.params);

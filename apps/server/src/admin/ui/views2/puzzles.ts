@@ -2,7 +2,46 @@
 export const ADMIN_VIEWS2_PUZZLES_JS = String.raw`VIEWS.puzzles = function (root) {
   var LEVELS = [['زرد (آسان)', '#f5c542'], ['سبز', '#6cc24a'], ['آبی', '#3fa5e0'], ['بنفش (سخت)', '#9b59d0']];
   var prods = [];
-  var readyBox = h('div'), listBox = h('div'), formBox = h('div'), autoBox = h('div');
+  var tiers = [];
+  var readyBox = h('div'), listBox = h('div'), formBox = h('div'), autoBox = h('div'), tierBox = h('div');
+  function tierLabel(t) { return t.nameFa + ' (لول ' + fa(t.minLevel) + (t.maxLevel === null ? ' به بالا' : ' تا ' + fa(t.maxLevel)) + ')'; }
+  function tierOpts() { return [['', '— بدون سطح —']].concat(tiers.map(function (t) { return [t.id, tierLabel(t)]; })); }
+  function drawTiers() {
+    clear(tierBox);
+    var rows = tiers.map(function (t) {
+      var name = h('input', { value: t.nameFa, style: 'width:140px' });
+      var order = h('input', { type: 'number', value: String(t.sortOrder), style: 'width:64px', title: 'ترتیب (کوچک‌تر = آسان‌تر)' });
+      var min = h('input', { type: 'number', min: '1', value: String(t.minLevel), style: 'width:64px', title: 'از لول' });
+      var max = h('input', { type: 'number', min: '1', value: t.maxLevel === null ? '' : String(t.maxLevel), placeholder: 'بی‌نهایت', style: 'width:84px', title: 'تا لول (خالی = بدون سقف)' });
+      return h('div', { style: 'display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding:6px 0;border-bottom:1px solid var(--line)' }, [
+        name, h('span', { class: 'muted', text: 'ترتیب' }), order, h('span', { class: 'muted', text: 'از لول' }), min, h('span', { class: 'muted', text: 'تا لول' }), max,
+        h('button', { class: 'btn ok sm', text: 'ذخیره', onclick: function () {
+          api('/admin/puzzles/tiers', { method: 'POST', body: { id: t.id, nameFa: name.value, sortOrder: Number(order.value), minLevel: Number(min.value), maxLevel: max.value === '' ? null : Number(max.value) } }).then(function (r) {
+            if (!r.ok) return r.body && r.body.error === 'level_range' ? toast('بازه‌ی لول درست نیست (سقف نباید از شروع کمتر باشد)', true) : r.body && r.body.error === 'name' ? toast('اسم سطح را بنویس', true) : fail(r);
+            toast('ذخیره شد'); load();
+          });
+        } }),
+        h('button', { class: 'btn bad sm', text: 'حذف', onclick: function () {
+          if (!confirm('سطح «' + t.nameFa + '» حذف شود؟ پازل‌های این سطح بدون سطح می‌شوند.')) return;
+          api('/admin/puzzles/tiers/' + t.id, { method: 'DELETE' }).then(function (r) { r.ok ? (toast('حذف شد'), load()) : fail(r); });
+        } })
+      ]);
+    });
+    var nn = h('input', { placeholder: 'اسم سطح تازه', style: 'width:140px' });
+    var nmin = h('input', { type: 'number', min: '1', value: '1', style: 'width:64px' });
+    var nmax = h('input', { type: 'number', min: '1', placeholder: 'بی‌نهایت', style: 'width:84px' });
+    var add = h('div', { style: 'display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding-top:8px' }, [
+      nn, h('span', { class: 'muted', text: 'از لول' }), nmin, h('span', { class: 'muted', text: 'تا لول' }), nmax,
+      h('button', { class: 'btn', text: 'افزودن سطح', onclick: function () {
+        var order = tiers.length ? Math.max.apply(null, tiers.map(function (t) { return t.sortOrder; })) + 1 : 1;
+        api('/admin/puzzles/tiers', { method: 'POST', body: { nameFa: nn.value, sortOrder: order, minLevel: Number(nmin.value) || 1, maxLevel: nmax.value === '' ? null : Number(nmax.value) } }).then(function (r) {
+          if (!r.ok) return r.body && r.body.error === 'level_range' ? toast('بازه‌ی لول درست نیست', true) : r.body && r.body.error === 'name' ? toast('اسم سطح را بنویس', true) : fail(r);
+          toast('سطح اضافه شد'); load();
+        });
+      } })
+    ]);
+    tierBox.appendChild(card('سطح‌بندی پازل‌ها', 'هر پازل را در یک سطح بگذار؛ بازیکن‌های لول پایین پازل‌های سطح آسان‌تر می‌گیرند. در دوئل، لولِ بالاترین بازیکن تعیین می‌کند. پازلِ بدون سطح فقط وقتی پخش می‌شود که پازل هم‌سطحی نباشد.', rows.concat([add])));
+  }
   function drawReady(r) {
     clear(readyBox);
     var ok = r.products >= r.productsPerPuzzle;
@@ -16,6 +55,7 @@ export const ADMIN_VIEWS2_PUZZLES_JS = String.raw`VIEWS.puzzles = function (root
   function drawForm() {
     clear(formBox);
     var titles = [], expls = [], sels = [];
+    var tierSel = select(tierOpts(), '');
     var opts = [['', '— کالا را انتخاب کن —']].concat(prods.map(function (p) { return [p.id, p.nameFa]; }));
     var blocks = LEVELS.map(function (lv, i) {
       titles[i] = h('input', { placeholder: 'عنوان بامزه‌ی دسته' });
@@ -30,12 +70,12 @@ export const ADMIN_VIEWS2_PUZZLES_JS = String.raw`VIEWS.puzzles = function (root
     var btn = h('button', { class: 'btn', text: 'ساخت پازل', onclick: function () {
       var groups = LEVELS.map(function (lv, i) { return { level: i, titleFa: titles[i].value, explanationFa: expls[i].value, productIds: sels[i].map(function (s) { return s.value; }) }; });
       if (groups.some(function (g) { return g.productIds.some(function (id) { return !id; }); })) return toast('هر ۱۶ کالا را انتخاب کن', true);
-      api('/admin/puzzles', { method: 'POST', body: { groups: groups } }).then(function (r) {
+      api('/admin/puzzles', { method: 'POST', body: { groups: groups, tierId: tierSel.value || null } }).then(function (r) {
         if (!r.ok) return r.body && r.body.error === 'duplicate_product' ? toast('یک کالا نباید دو بار در پازل بیاید', true) : fail(r);
         toast('پازل ساخته شد و قابل بازی است'); load();
       });
     } });
-    formBox.appendChild(card('ساخت پازل دستی', 'چهار دسته، هر دسته چهار کالا؛ بعد از ساخت همان لحظه در بازی تکی و دوئل پخش می‌شود', blocks.concat([btn])));
+    formBox.appendChild(card('ساخت پازل دستی', 'چهار دسته، هر دسته چهار کالا؛ بعد از ساخت همان لحظه در بازی تکی و دوئل پخش می‌شود', blocks.concat([field('سطح پازل', tierSel), btn])));
   }
   function drawList(rows) {
     clear(listBox);
@@ -50,7 +90,12 @@ export const ADMIN_VIEWS2_PUZZLES_JS = String.raw`VIEWS.puzzles = function (root
       ]);
       var body = draft
         ? h('div', {}, p.groups.map(function (g, i) { return h('div', { style: 'margin:4px 0' }, [h('div', { style: 'font-size:12px;color:var(--muted)', text: g.items.join('، ') }), inputs[i]]); }))
-        : h('div', { style: 'font-size:13px;color:var(--muted)', text: p.groups.map(function (g) { return g.titleFa || '—'; }).join(' · ') });
+        : h('div', { style: 'font-size:13px' }, p.groups.map(function (g, i) { return h('div', { style: 'margin:3px 0;border-inline-start:5px solid ' + LEVELS[g.level][1] + ';padding:1px 8px' }, [h('b', { text: g.titleFa || '—' }), h('div', { style: 'font-size:12px;color:var(--muted)', text: g.items.join('، ') })]); }));
+      var tierPick = select(tierOpts(), p.tierId || '');
+      tierPick.onchange = function () {
+        api('/admin/puzzles/' + p.id + '/tier', { method: 'PUT', body: { tierId: tierPick.value || null } }).then(function (r) { r.ok ? toast('سطح پازل ذخیره شد') : fail(r); });
+      };
+      head.appendChild(h('span', { class: 'muted', text: 'سطح:' })); head.appendChild(tierPick);
       var btns = h('div', { style: 'display:flex;gap:6px;margin-top:6px' }, draft ? [
         h('button', { class: 'btn ok sm', text: 'ذخیره‌ی عنوان‌ها و تأیید', onclick: function () {
           var titles = inputs.map(function (i) { return { level: Number(i.getAttribute('data-level')), titleFa: i.value }; });
@@ -81,10 +126,10 @@ export const ADMIN_VIEWS2_PUZZLES_JS = String.raw`VIEWS.puzzles = function (root
     api('/admin/puzzles').then(function (r) {
       if (r.status === 404) { clear(root); return root.appendChild(empty('بخش پازل روی این سرور فعال نیست')); }
       if (!r.ok) return fail(r);
-      drawReady(r.body.readiness); drawList(r.body.puzzles);
+      tiers = r.body.tiers || []; drawReady(r.body.readiness); drawTiers(); drawList(r.body.puzzles);
     });
   }
-  root.appendChild(readyBox); root.appendChild(autoBox); root.appendChild(listBox); root.appendChild(formBox); drawAuto();
+  root.appendChild(readyBox); root.appendChild(tierBox); root.appendChild(autoBox); root.appendChild(listBox); root.appendChild(formBox); drawAuto();
   api('/admin/catalog').then(function (r) { if (!r.ok) return fail(r); prods = r.body.products; drawForm(); load(); });
 };
 

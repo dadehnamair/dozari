@@ -1,6 +1,6 @@
-import { and, asc, eq, inArray, pricePoints, products, puzzleGroupItems, puzzleGroups, puzzles, sql } from '@dozari/db';
+import { and, asc, eq, inArray, pricePoints, products, puzzleGroupItems, puzzleGroups, puzzleTiers, puzzles, sql } from '@dozari/db';
 import type { Db } from '@dozari/db';
-import { GROUP_COUNT, GROUP_SIZE } from '@dozari/shared';
+import { GROUP_COUNT, GROUP_SIZE, tiersForLevel } from '@dozari/shared';
 import type { GroupLevel } from '@dozari/shared';
 import type { PricePointRow, PuzzleSource, ServedPuzzle } from './types.js';
 
@@ -21,20 +21,27 @@ export function createDbPuzzleSource(db: Db): PuzzleSource {
       for (const r of rows) (out[r.productId] ??= []).push({ year: r.year, month: r.month, priceRials: r.priceRials });
       return out;
     },
-    async pickRandom() {
+    async pickRandom(opts) {
       // A few random candidates, not one: an approved puzzle with missing groups or items is skipped instead of
       // turning the whole request into "no puzzle" while playable ones exist.
-      const candidates = await db
-        .select({ id: puzzles.id })
-        .from(puzzles)
-        .where(eq(puzzles.status, 'approved'))
-        .orderBy(sql`RAND()`)
-        .limit(PICK_ATTEMPTS);
-      for (const c of candidates) {
-        const served = await load(c.id);
-        if (served) return served;
+      const attempt = async (where: ReturnType<typeof eq>) => {
+        const candidates = await db.select({ id: puzzles.id }).from(puzzles).where(where).orderBy(sql`RAND()`).limit(PICK_ATTEMPTS);
+        for (const c of candidates) {
+          const served = await load(c.id);
+          if (served) return served;
+        }
+        return null;
+      };
+      // A player of a known level gets a puzzle of a tier open to that level; with none rated yet, any approved puzzle.
+      if (opts?.level !== undefined) {
+        const tiers = await db.select().from(puzzleTiers);
+        const open = tiersForLevel(tiers, opts.level);
+        if (open.length > 0) {
+          const rated = await attempt(and(eq(puzzles.status, 'approved'), inArray(puzzles.tierId, open.map((t) => t.id)))!);
+          if (rated) return rated;
+        }
       }
-      return null;
+      return attempt(eq(puzzles.status, 'approved'));
     },
     async byId(id) {
       const [puzzle] = await db.select({ id: puzzles.id }).from(puzzles).where(and(eq(puzzles.id, id), eq(puzzles.status, 'approved'))).limit(1);
