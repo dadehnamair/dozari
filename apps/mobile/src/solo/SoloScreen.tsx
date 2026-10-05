@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { NUDGE_IDLE_SECONDS, isLastLife, solarMonthOf } from '@dozari/shared';
-import type { HintPayload, SoloView } from '@dozari/shared';
+import { NUDGE_IDLE_SECONDS, isLastLife, localGuess, localShuffle, localView, mulberry32, solarMonthOf, startLocalSolo } from '@dozari/shared';
+import type { HintPayload, LocalSoloSession, SoloView } from '@dozari/shared';
 import { Board } from '../components/Board';
 import { ChartPanel } from '../components/ChartPanel';
 import { Confetti } from '../components/Confetti';
@@ -28,6 +28,7 @@ import { describeError, errorKind } from './errors';
 import { ErrorCard } from '../components/EmptyState';
 import { canSubmit, feedbackFor, pruneSelection, toggleSelection } from './selection';
 import { recordGameFinished } from '../review/state';
+import { refillPack, takeOfflinePuzzle } from '../offline/pack';
 import { HintSheet } from '../shop/HintSheet';
 import { takeNudge } from '../shop/api';
 import { hintedCardIds, hintedTitles } from '../shop/hintView';
@@ -59,6 +60,9 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
   /** Cards the free level-1 nudge lit up, and whether the server said this player is past that stage (then we stop asking). */
   const [nudged, setNudged] = useState<string[]>([]);
   const nudgeOff = useRef(false);
+  /** Playing a saved puzzle without internet: a practice game (no XP, coins, hints or price round). */
+  const [offline, setOffline] = useState(false);
+  const local = useRef<LocalSoloSession | null>(null);
   const feedbackTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const combo = useCombo();
   const lastLife = phase.kind === 'ready' && isLastLife(phase.view.mistakes, phase.view.maxMistakes, phase.view.status === 'playing');
@@ -136,10 +140,19 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
     setHintOpen(false);
     combo.reset();
     flash(null);
+    setOffline(false);
+    local.current = null;
     try {
       adopt(await (daily ? beginDaily() : beginSolo()));
+      void refillPack(); // online: keep the saved puzzles topped up for next time
     } catch (err) {
-      fail(err);
+      // No internet: a saved puzzle keeps the player busy (not for the daily one, which is one shared online attempt).
+      const saved = !daily && errorKind(err) === 'noInternet' ? await takeOfflinePuzzle() : null;
+      if (!saved) return fail(err);
+      local.current = startLocalSolo(saved, mulberry32(Math.floor(Math.random() * 2 ** 31)), `offline-${saved.id}`);
+      setOffline(true);
+      nudgeOff.current = true;
+      adopt(localView(local.current));
     }
   }, [adopt, combo.reset, daily, fail, flash]);
 
@@ -166,7 +179,13 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
     if (!canSubmit(selected) || busy) return;
     setBusy(true);
     try {
-      const result = await guessSolo(view.sessionId, selected);
+      const result = local.current
+        ? (() => {
+            const out = localGuess(local.current, selected);
+            local.current = out.session;
+            return out.result;
+          })()
+        : await guessSolo(view.sessionId, selected);
       const fb = feedbackFor(result.outcome);
       flash(fb);
       if (fb === 'correct' || fb === 'oneAway' || fb === 'wrong') playSfx(fb);
@@ -181,7 +200,7 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
       }
       adopt(result.view);
       if (result.outcome === 'correct' || result.view.status !== 'playing') setSelected([]);
-      if (result.view.status !== 'playing') void recordGameFinished();
+      if (result.view.status !== 'playing' && !local.current) void recordGameFinished();
     } catch (err) {
       fail(err);
     } finally {
@@ -193,7 +212,10 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
     if (busy) return;
     setBusy(true);
     try {
-      adopt(await shuffleSolo(view.sessionId));
+      if (local.current) {
+        local.current = localShuffle(local.current, mulberry32(Math.floor(Math.random() * 2 ** 31)));
+        adopt(localView(local.current));
+      } else adopt(await shuffleSolo(view.sessionId));
     } catch (err) {
       fail(err);
     } finally {
@@ -202,7 +224,7 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
   };
 
   const pose = feedback === 'correct' ? 'cheer' : feedback === 'wrong' ? 'shocked' : feedback === 'oneAway' ? 'thinking' : 'idle';
-  const bubble = feedback ? fa.solo.feedback[feedback] : hintedTitles(given).length > 0 ? `${fa.hints.revealedTitle}: ${hintedTitles(given).join('، ')}` : fa.solo.subtitle;
+  const bubble = feedback ? fa.solo.feedback[feedback] : hintedTitles(given).length > 0 ? `${fa.hints.revealedTitle}: ${hintedTitles(given).join('، ')}` : offline ? fa.offline.banner : fa.solo.subtitle;
 
   if (!playing) {
     const won = view.status === 'won';
@@ -220,7 +242,15 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
             </View>
           </View>
           <View style={styles.stage}>
-            {priceDone ? (
+            {offline ? (
+              <View style={styles.review}>
+                <Board solved={view.solved} cards={view.cards} names={names} selected={[]} onToggle={() => undefined} disabled hinted={[]} />
+                <View style={styles.askCard}>
+                  <Text style={styles.askTitle}>{fa.offline.endTitle}</Text>
+                  <Text style={styles.askSub}>{fa.offline.endSub}</Text>
+                </View>
+              </View>
+            ) : priceDone ? (
               <ChartPanel sessionId={view.sessionId} height={chartH} />
             ) : priceReady ? (
               <PriceRoundPanel sessionId={view.sessionId} onDone={() => setPriceDone(true)} />
@@ -238,7 +268,7 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
               </View>
             )}
           </View>
-          {priceDone ? (
+          {priceDone || offline ? (
             <View style={styles.actions}>
               <SlabButton label={fa.solo.back} sfx="back" color={colors.candy.sky} height={58} fontSize={20} onPress={onBack} />
               {daily ? null : <SlabButton label={fa.solo.newGame} color={colors.candy.lime} height={58} fontSize={22} grow={1.4} onPress={() => void begin()} />}
@@ -256,7 +286,7 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
       <View style={styles.column}>
         <GameTopBar title={daily ? fa.solo.dailyTitle : fa.solo.title} backLabel={fa.solo.back} onBack={() => ask({ title: daily ? fa.confirm.leaveDaily.title : fa.confirm.leaveSolo.title, message: daily ? fa.confirm.leaveDaily.message : fa.confirm.leaveSolo.message, confirmLabel: fa.confirm.leaveSolo.yes, onConfirm: onBack })}>
           <ComboRing streak={combo.streak} left={combo.left} showLabel={false} />
-          {hintsEnabled && playing ? (
+          {hintsEnabled && playing && !offline ? (
             <Pressable accessibilityRole="button" accessibilityLabel={fa.hints.open} onPress={() => setHintOpen(true)} disabled={busy}>
               {({ pressed }) => (
                 <View style={[styles.hintBtn, pressed ? styles.pressed : null]}>

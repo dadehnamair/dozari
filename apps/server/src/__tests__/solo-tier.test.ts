@@ -34,7 +34,7 @@ describe('offline pack', () => {
     let k = 0;
     const src: PuzzleSource = { pickRandom: async (o) => (asked.push(o?.level), make(k++ % 3)), pricesFor: async () => ({}) };
     const solo = new SoloService(src, { levelOf: async () => 2 });
-    const pack = await solo.offlinePack('u1', 3);
+    const pack = (await solo.offlinePack('u1', 3))!;
     expect(pack.puzzles.map((p) => p.id).sort()).toEqual(['pz0', 'pz1', 'pz2']);
     expect(asked.every((l) => l === 2)).toBe(true);
     expect(pack.puzzles[0]!.groups).toHaveLength(4);
@@ -43,9 +43,21 @@ describe('offline pack', () => {
 
   it('gives fewer when the pool is small and nothing when it is empty', async () => {
     const one = new SoloService({ pickRandom: async () => make(1), pricesFor: async () => ({}) });
-    expect((await one.offlinePack('u1', 5)).puzzles).toHaveLength(1);
+    expect((await one.offlinePack('u1', 5))?.puzzles).toHaveLength(1);
     const none = new SoloService({ pickRandom: async () => null, pricesFor: async () => ({}) });
     expect(await none.offlinePack('u1', 5)).toEqual({ puzzles: [] });
+  });
+
+  it('stops handing out puzzles once the account has used its daily allowance, and starts again the next day', async () => {
+    let k = 0;
+    const clock = { ms: 1_000 };
+    const solo = new SoloService({ pickRandom: async () => make(k++), pricesFor: async () => ({}) }, { now: () => clock.ms });
+    const got: number[] = [];
+    for (let i = 0; i < 6; i++) got.push((await solo.offlinePack('u1', 5))?.puzzles.length ?? -1);
+    expect(got).toEqual([5, 5, 5, -1, -1, -1]); // 15 in all
+    expect(await solo.offlinePack('someone-else', 5)).not.toBeNull();
+    clock.ms += 25 * 60 * 60 * 1000;
+    expect((await solo.offlinePack('u1', 5))?.puzzles).toHaveLength(5);
   });
 
   it('is for signed-in players only', async () => {

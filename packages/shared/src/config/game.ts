@@ -46,6 +46,8 @@ export const NUDGE_MAX_PER_GAME = 2;
 
 /** Solo puzzles kept on the phone for playing without internet (docs/logic/offline-solo.md). Practice only: no XP, no coins. */
 export const OFFLINE_PACK_SIZE = 5;
+/** Puzzles one account may download per rolling 24 h, so the offline pack cannot be used to collect every solution. */
+export const OFFLINE_PACK_DAILY_LIMIT = 15;
 export const MATCH_MAX_MISTAKES = 4;
 /** Boards (16-card packs) played in a 2v2 match; a 1v1 is always one board. Scores add up, mistakes reset per board. */
 export const TEAM_MATCH_BOARDS = 3;

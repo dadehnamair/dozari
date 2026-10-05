@@ -91,6 +91,13 @@ export const fa = {
     } as Record<string, string>,
   },
   /** Item and product icon names, grouped as in the design's icon pack. */
+  /** Playing a saved puzzle without internet. */
+  offline: {
+    banner: 'بدون اینترنت بازی می‌کنی؛ این دور تمرین است.',
+    endTitle: 'این دور آفلاین بود',
+    endSub: 'برای تمرین بود و امتیاز، سکه یا حدس قیمت ندارد. وقتی اینترنت وصل شد، بازی‌های آنلاین امتیاز می‌دهند.',
+    needsInternet: 'این بخش اینترنت می‌خواهد.',
+  },
   /** «فقط حدس قیمت»: a short game of price questions only. */
   priceOnly: {
     title: 'حدس قیمت',

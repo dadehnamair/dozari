@@ -1,5 +1,6 @@
 import { randomInt } from 'node:crypto';
 import { PRICE_GUESS_MIN_POINTS, pickHint, PRICE_GUESS_STAIRCASE, SOLO_MAX_MISTAKES, mulberry32, selectRounds, shuffleBoard, staircasePoints, startSolo, submitGuess } from '@dozari/shared';
+import { OFFLINE_PACK_DAILY_LIMIT } from '@dozari/shared';
 import type { CatalogProduct, GroupLevel, SoloOfflinePack, HintKind, HintPayload, PriceGuessRound, Rng, SoloChart, SoloPriceResult, SoloPriceRounds, SoloState, SubmitOutcome } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
 import type { PuzzleSource, ServedPuzzle, SoloView } from './types.js';
@@ -87,8 +88,19 @@ export class SoloService {
     return this.toView(sessionId, session);
   }
 
-  /** Whole puzzles (solutions included) for a signed-in player to practise without internet; distinct, fit for their level, nothing is recorded. */
-  async offlinePack(userId: string, n: number): Promise<SoloOfflinePack> {
+  /** Puzzles each account downloaded in the last 24 h: [timestamp, count] pairs. */
+  private readonly packLog = new Map<string, [number, number][]>();
+
+  /**
+   * Whole puzzles (solutions included) for a signed-in player to practise without internet; distinct, fit for their level, nothing is recorded.
+   * Capped per account per day (`OFFLINE_PACK_DAILY_LIMIT`); null = the day's allowance is used up.
+   */
+  async offlinePack(userId: string, n: number): Promise<SoloOfflinePack | null> {
+    const since = this.now() - 24 * 60 * 60 * 1000;
+    const recent = (this.packLog.get(userId) ?? []).filter(([at]) => at > since);
+    const left = OFFLINE_PACK_DAILY_LIMIT - recent.reduce((sum, [, c]) => sum + c, 0);
+    if (left <= 0) return null;
+    n = Math.min(n, left);
     const level = this.levelOf ? await this.levelOf(userId).catch(() => undefined) : undefined;
     const puzzles: SoloOfflinePack['puzzles'] = [];
     for (let i = 0; i < n * 3 && puzzles.length < n; i++) {
@@ -101,6 +113,8 @@ export class SoloService {
         items: Object.fromEntries(Object.entries(p.items).map(([id, it]) => [id, { nameFa: it.nameFa, unitFa: it.unitFa, iconKey: it.iconKey ?? null }])),
       });
     }
+    if (puzzles.length > 0) recent.push([this.now(), puzzles.length]);
+    this.packLog.set(userId, recent);
     return { puzzles };
   }
 

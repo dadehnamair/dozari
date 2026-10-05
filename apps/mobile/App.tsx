@@ -34,6 +34,7 @@ import { useInviteLink } from './src/social/useInviteLink';
 import { safeInsetTop } from './src/theme/safeArea';
 import { PwaLayer } from './src/pwa/PwaLayer';
 import { PriceOnlyScreen } from './src/priceonly/PriceOnlyScreen';
+import { refillPack } from './src/offline/pack';
 import { ServerDownBanner } from './src/net/ServerDownBanner';
 import { takeLaunchTarget } from './src/pwa/usePwa';
 
@@ -94,6 +95,11 @@ export default function App() {
         ? () => setScreen('home')
         : null,
   );
+
+  // Whenever Home is shown (so the player is signed in and probably online), keep the saved offline puzzles topped up.
+  useEffect(() => {
+    if (screen === 'home') void refillPack();
+  }, [screen]);
 
   // Soft music everywhere; a livelier loop during a duel (the competitive screens).
   useMusic(screen === 'splash' || screen === 'tutorial' || screen === 'login' ? null : screen === 'duel' || screen === 'duelResume' ? 'tense' : 'calm');

@@ -10,3 +10,6 @@ const owner = async (): Promise<string> => (await session.token()).slice(-16);
 
 /** `swr(key, fetcher, onData, onError)`: cached copy first, live copy after; see `createSwr`. */
 export const swr = createSwr({ store: bigStore, owner });
+
+/** Same owner tag the cache uses, for other per-account data kept on the device (the offline puzzle pack). */
+export const cacheOwner = owner;

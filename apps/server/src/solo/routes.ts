@@ -34,7 +34,8 @@ export function registerSoloRoutes(app: FastifyInstance, solo: SoloService, auth
     if (!user) return reply.code(401).send({ error: 'unauthorized' });
     const q = z.object({ n: z.coerce.number().int().min(1).max(OFFLINE_PACK_SIZE).default(OFFLINE_PACK_SIZE) }).safeParse(req.query);
     if (!q.success) return reply.code(400).send({ error: 'invalid_request' });
-    return solo.offlinePack(user.id, q.data.n);
+    const pack = await solo.offlinePack(user.id, q.data.n);
+    return pack ?? reply.code(429).send({ error: 'daily_cap' });
   });
 
   app.get('/solo/:id', async (req, reply) => {
