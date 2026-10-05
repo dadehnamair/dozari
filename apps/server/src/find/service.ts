@@ -1,7 +1,7 @@
 import { generateHandle, normalizeInviteCode, normalizeIranPhone } from '@dozari/shared';
 import type { FoundPlayer, MyFind, Rng } from '@dozari/shared';
 import { RateLimiter } from '../security/rate-limit.js';
-import type { Meetable } from '../agetrack/service.js';
+import type { Meetable, SocialBlocked } from '../agetrack/service.js';
 import type { SocialStore } from '../social/store.js';
 import type { FindStore } from './store.js';
 import type { Shortener } from './shortener.js';
@@ -13,7 +13,7 @@ export interface FindSettings {
   autoFriendPerDay: number;
 }
 
-export type LinkFriendResult = 'friends' | 'sent' | 'already' | 'self' | 'unknown' | 'limit';
+export type LinkFriendResult = 'friends' | 'sent' | 'already' | 'self' | 'unknown' | 'limit' | 'needs_guardian';
 
 const DAY_MS = 86_400_000;
 const looksLikeHandle = (s: string) => /^[2-9A-HJKMNP-Z]{4,12}$/.test(s);
@@ -34,6 +34,8 @@ export class FindService {
     private readonly now: () => number = Date.now,
     /** Age-track gate: only players on `me`'s own track are found or befriended (docs/logic/age-tracks.md). Absent = no rule. */
     private readonly sameTrack?: Meetable,
+    /** Kid/teen without a linked guardian cannot make friends through a link yet. */
+    private readonly blocked?: SocialBlocked,
   ) {}
 
   /** The player's public ID, made on first use. */
@@ -102,6 +104,7 @@ export class FindService {
   async friendByLink(me: string, rawHandle: string): Promise<LinkFriendResult> {
     const handle = normalizeInviteCode(rawHandle);
     if (!looksLikeHandle(handle)) return 'unknown';
+    if (await this.blocked?.(me)) return 'needs_guardian';
     const owner = await this.find.byHandle(handle);
     if (!owner) return 'unknown';
     if (owner === me) return 'self';

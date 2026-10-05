@@ -215,8 +215,11 @@ Setting `feature.age_tracks` (admin → settings → app, **default off**): off 
   and `blocked_words.track` (`all` | `kid_teen`). `ChatService.taunts(user)` lists only the categories of `trackRules(track).tauntTrack`, and sending a taunt of another library answers `UNKNOWN_TAUNT` (private chat and match alike); bots keep to the adult library.
   Free text of a kid/teen goes through the general list **plus** the `kid_teen` words (`TextFilterService.check(text, 'kid_teen')`). The store seeds a starter kid and teen library once per track (also on a database that already has adult taunts);
   the strict word list ships **empty** (a content call for the owner/moderators, edited in «فیلتر کلمات» with a «برای چه کسانی» select), and taunt categories get a library select in «کل‌کل‌های آماده». Emoji/sticker packs are not a separate table: emoji live inside taunt texts.
-  Open in phase 4: the separate kid/teen report queue in the admin, the «social needs a guardian» step
-  before friends/tables, auto-accept between two kids with a quiet notice; the guardian's own chat switch (phrases only / off) is phase 5.
+- Phase 4, slice 5, **social needs a guardian** (`trackRules.socialNeedsGuardian`: kid and teen true, adult false): `AgeTrackService.socialBlocked(userId)` is true for a kid/teen with no `guardian_links` row (never while the feature is off). It closes
+  friend requests and accepts (`403 {error:"needs_guardian"}`), invite-link friending (`/friends/link`), and opening or joining a table (`403 NEEDS_GUARDIAN`). Play, bots, the same-track quick match, solo, the lesson and phrases never need it.
+  The app opens the existing one-step `GuardianStep` over the current sheet the first time a friend or table call answers that code (`useGuardianGate` in `PlayerSheet` and `TableSheet`; «بعداً» just closes it), and asks again only while no guardian is linked.
+  **Auto-accept between two kids needs no extra code:** the other child's accept is enough, with no guardian approval step (the default of §Friends, duels and chat). What is left is the quiet notice to the guardian, which belongs to the phase 5 digest, with the «ask me first» switch.
+  Open in phase 4: the separate kid/teen report queue in the admin, the invite-link and contacts screens do not yet open the guardian step (they just show a failed line); the guardian's own chat switch (phrases only / off) is phase 5.
 - Not yet: the rest of the 30–50 kid puzzles; a track filter on the other admin lists (puzzles, items, tournaments, reports…); the separate report queue for kid/teen chats (phase 4);
 
 ## Phases

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { TABLE_FORMATS, TABLE_ICONS, TABLE_NAME_MAX } from './code.js';
 
-export const TABLE_ERRORS = ['NOT_FOUND', 'FULL', 'LOCKED', 'EXPIRED', 'NOT_HOST', 'NOT_IN', 'NOT_READY', 'NEED_PLAYERS', 'BUSY', 'IN_MATCH', 'START_FAILED', 'INVALID', 'NOT_TEAM'] as const;
+export const TABLE_ERRORS = ['NOT_FOUND', 'FULL', 'LOCKED', 'EXPIRED', 'NOT_HOST', 'NOT_IN', 'NOT_READY', 'NEED_PLAYERS', 'BUSY', 'IN_MATCH', 'START_FAILED', 'INVALID', 'NOT_TEAM', 'NEEDS_GUARDIAN'] as const;
 export type TableError = (typeof TABLE_ERRORS)[number];
 
 export const createTableBodySchema = z.object({

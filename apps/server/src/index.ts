@@ -603,7 +603,8 @@ if (isMainModule(import.meta.url)) {
           texts: { weekTitle: BIRTHDAY_TITLE.week, weekBody: BALE_TEXT.birthdayWeek, dayTitle: BIRTHDAY_TITLE.day, dayBody: BALE_TEXT.birthdayDay },
         })
       : undefined;
-  const ageTracks = db && settings ? new AgeTrackService(createDbAgeTrackStore(db), async () => (await settings.num('feature.age_tracks')) === 1) : undefined;
+  const guardianStore = db ? createDbGuardianStore(db) : undefined;
+  const ageTracks = db && settings ? new AgeTrackService(createDbAgeTrackStore(db), async () => (await settings.num('feature.age_tracks')) === 1, () => new Date(), async (id) => (guardianStore ? (await guardianStore.guardianOf(id)) !== null : false)) : undefined;
   const guardian =
     db && auth && phoneLogin
       ? new GuardianService(createDbGuardianStore(db), createDbAgeTrackStore(db), phoneLogin, createDbPhoneStore(db), auth, () => `guardian:${randomUUID()}`)
@@ -635,6 +636,7 @@ if (isMainModule(import.meta.url)) {
           startTeam: async (sides) => (live.matches ? live.matches.startTeam(sides) : false),
           inMatch: (id) => live.matches?.inMatch(id) ?? false,
           trackOf: ageTracks ? (id) => ageTracks.effective(id) : undefined,
+          socialBlocked: ageTracks ? (id) => ageTracks.socialBlocked(id) : undefined,
           idleMs: async () => (await settings.num('table.idle_minutes')) * 60_000,
         })
       : undefined;
@@ -655,11 +657,14 @@ if (isMainModule(import.meta.url)) {
           () => randomInt(0, 2 ** 30) / 2 ** 30,
           Date.now,
           ageTracks ? (me, others) => ageTracks.meetable(me, others) : undefined,
+          ageTracks ? (id) => ageTracks.socialBlocked(id) : undefined,
         )
       : undefined;
-  const guardianStore = db ? createDbGuardianStore(db) : undefined;
   if (chat && ageTracks) chat.managed = { trackOf: (id) => ageTracks.effective(id), hasGuardian: async (id) => (guardianStore ? (await guardianStore.guardianOf(id)) !== null : false) };
-  if (social && ageTracks) social.sameTrack = (me, others) => ageTracks.meetable(me, others);
+  if (social && ageTracks) {
+    social.sameTrack = (me, others) => ageTracks.meetable(me, others);
+    social.blocked = (id) => ageTracks.socialBlocked(id);
+  }
   const levelOf = async (id: string) => (player ? (await player.levelOf(id)).level.level : 1);
   const shopStore = db ? createDbShopStore(db) : undefined;
   const landingService = db ? new LandingService(createDbLandingStore(db)) : undefined;

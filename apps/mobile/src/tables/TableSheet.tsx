@@ -9,6 +9,7 @@ import { GuideBubble } from '../components/GuideBubble';
 import { useConfirm } from '../components/useConfirm';
 import { fa } from '../i18n/fa';
 import { ApiError } from '../net/http';
+import { useGuardianGate } from '../agetrack/GuardianGate';
 import { avatarOf } from '../social/avatarOf';
 import { colors, fonts } from '../theme/colors';
 import { fetchFriends } from '../social/api';
@@ -25,6 +26,9 @@ const errText = (e: unknown) => fa.tables.errors[e instanceof ApiError ? e.code 
 export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose: () => void; initialCode?: string; /** The table's match started: open the duel board. */ onMatch?: () => void; onShare?: (table: TableView) => Promise<void> }) {
   useHardwareBack(onClose);
   const { ask, dialog } = useConfirm();
+  const { gate, intercept } = useGuardianGate();
+  /** A kid/teen with no guardian opens the guardian step instead of seeing an error line. */
+  const fail = (e: unknown) => (intercept(e) ? setNote(null) : setNote(errText(e)));
   const [table, setTable] = useState<TableView | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [name, setName] = useState('');
@@ -55,11 +59,11 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
     if (started) onMatch?.();
   }, [started, onMatch]);
 
-  const run = (fn: () => Promise<unknown>) => fn().then(() => (setNote(null), refresh()), (e) => (setNote(errText(e)), refresh()));
+  const run = (fn: () => Promise<unknown>) => fn().then(() => (setNote(null), refresh()), (e) => (fail(e), refresh()));
   const enter = (c: string) => {
     const norm = normalizeTableCode(c);
     if (!norm) return setNote(fa.tables.errors.NOT_FOUND ?? '');
-    joinTable(norm).then((t) => (setNote(null), setTable(t)), (e) => setNote(errText(e)));
+    joinTable(norm).then((t) => (setNote(null), setTable(t)), fail);
   };
 
   return (
@@ -148,7 +152,7 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
                   <Text style={styles.hint}>{requireReady ? '☑' : '☐'} {fa.tables.requireReady}</Text>
                 </Pressable>
                 {note ? <Text style={styles.warn}>{note}</Text> : null}
-                <CandyButton label={fa.tables.create} color={colors.candy.lime} disabled={name.trim().length === 0} onPress={() => createTable({ name: name.trim(), icon: icon as (typeof TABLE_ICONS)[number], requireReady, format }).then((t) => (setNote(null), setTable(t)), (e) => setNote(errText(e)))} />
+                <CandyButton label={fa.tables.create} color={colors.candy.lime} disabled={name.trim().length === 0} onPress={() => createTable({ name: name.trim(), icon: icon as (typeof TABLE_ICONS)[number], requireReady, format }).then((t) => (setNote(null), setTable(t)), fail)} />
                 <CandyButton label={fa.tables.back} sfx="back" color={colors.candy.sky} onPress={() => (setNote(null), setMode('menu'))} />
               </>
             ) : (
@@ -166,6 +170,7 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
         <CandyButton label={fa.tables.close} sfx="back" color={colors.candy.sky} onPress={onClose} />
       </Pressable>
       {dialog}
+      {gate}
     </Pressable>
   );
 }

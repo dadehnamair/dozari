@@ -10,6 +10,7 @@ const trackRulesSchema = z.object({
   wordLesson: z.boolean(),
   freeTextChat: z.enum(['invite_code', 'guardian_switch']),
   socialSameTrackOnly: z.boolean(),
+  socialNeedsGuardian: z.boolean(),
   purchases: z.boolean(),
   ugc: z.boolean(),
   publicCity: z.boolean(),
