@@ -1,4 +1,4 @@
-// node --test apps/bale-miniapp/scripts
+// node --test apps/miniapp/scripts
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { transformIndex } from './prepare-dist.mjs';

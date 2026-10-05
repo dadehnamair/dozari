@@ -66,7 +66,8 @@ import { registerCandidateRoutes } from './realtime/candidates.js';
 import { createDbProfileLookup } from './realtime/profile.js';
 import { AccountDeletion, createDbDeleteCodeStore } from './account/deletion.js';
 import { registerAuthRoutes } from './auth/routes.js';
-import { baleDeviceId } from './auth/bale-miniapp.js';
+import type { MiniAppTokens } from './auth/routes.js';
+import { miniAppDeviceId } from './auth/miniapp.js';
 import { createTokenSigner } from './auth/tokens.js';
 import { createDbAdminRepository } from './admin/db-repository.js';
 import { registerAdminRoutes } from './admin/routes.js';
@@ -266,8 +267,8 @@ export interface ServerDeps {
   corsOrigin?: string;
   /** Docker-free dev: directory of uploaded product images, served at `/images/*`. */
   localImagesDir?: string;
-  /** The Bale bot token; turns on `POST /auth/bale-miniapp` (the Bale mini-app login, docs/logic/bale-miniapp.md). */
-  baleBotToken?: string;
+  /** Bot tokens per messenger; turns on `POST /auth/miniapp` (the mini-app login, docs/logic/miniapp.md). */
+  miniApp?: MiniAppTokens;
 }
 
 export function buildServer(deps: ServerDeps = {}) {
@@ -331,14 +332,14 @@ export function buildServer(deps: ServerDeps = {}) {
     sample: rialsToTomanString(1_500),
   }));
 
-  // Bale's web client may open the mini-app in a sandboxed iframe, whose requests carry `Origin: null`. The API takes bearer tokens only
-  // (no cookies), so allowing that origin adds no cross-site risk; it is on only when the Bale login is.
-  const corsOrigin = deps.corsOrigin && deps.baleBotToken && deps.corsOrigin !== '*' && !deps.corsOrigin.split(',').some((o) => o.trim() === 'null') ? `${deps.corsOrigin},null` : deps.corsOrigin;
+  // A messenger's web client may open the mini-app in a sandboxed iframe, whose requests carry `Origin: null`. The API takes bearer tokens
+  // only (no cookies), so allowing that origin adds no cross-site risk; it is on only when a mini-app login is.
+  const corsOrigin = deps.corsOrigin && (deps.miniApp?.bale || deps.miniApp?.telegram) && deps.corsOrigin !== '*' && !deps.corsOrigin.split(',').some((o) => o.trim() === 'null') ? `${deps.corsOrigin},null` : deps.corsOrigin;
   if (corsOrigin) {
     // @fastify/cors ≥10 allows only GET/HEAD/POST by default; the web app also sends PUT, PATCH and DELETE.
     void app.register(fastifyCors, { origin: corsOrigin === '*' ? true : corsOrigin.split(',').map((o) => o.trim()), methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'] });
   }
-  if (deps.auth) registerAuthRoutes(app, deps.auth, deps.deletion, deps.baleBotToken);
+  if (deps.auth) registerAuthRoutes(app, deps.auth, deps.deletion, deps.miniApp);
   if (deps.auth && deps.dailyReward) registerDailyRewardRoutes(app, deps.auth, deps.dailyReward);
   if (deps.auth && deps.wheel) registerWheelRoutes(app, deps.auth, deps.wheel);
   if (deps.auth && deps.social) registerSocialRoutes(app, deps.auth, deps.social);
@@ -721,7 +722,7 @@ if (isMainModule(import.meta.url)) {
     };
     notify.providerToken = process.env.BALE_PROVIDER_TOKEN ?? null;
     // Mini-app players pay without linking the bot: the paying Bale user maps to their mini-app account (same device id as the login).
-    if (baleToken) notify.miniAppUserOf = async (baleUserId) => (await auth?.userByDevice(baleDeviceId(baleToken, baleUserId)))?.id ?? null;
+    if (baleToken) notify.miniAppUserOf = async (baleUserId) => (await auth?.userByDevice(miniAppDeviceId(baleToken, baleUserId)))?.id ?? null;
   }
   let dailyRef: DailyService | undefined;
   const solo =
@@ -869,7 +870,7 @@ if (isMainModule(import.meta.url)) {
     clientInfo: db ? createDbClientInfoStore(db) : undefined,
     admin: db && jwtSecret ? { repo: createDbAdminRepository(db), token: adminToken, accounts: new AdminAccounts(createDbAdminStore(db), jwtSecret, adminToken) } : undefined,
     corsOrigin: process.env.CORS_ORIGIN,
-    baleBotToken: baleToken,
+    miniApp: { bale: baleToken, telegram: process.env.TELEGRAM_BOT_TOKEN },
     trustProxy: process.env.TRUST_PROXY === '1',
     localImagesDir: process.env.LOCAL_IMAGES_DIR,
   });

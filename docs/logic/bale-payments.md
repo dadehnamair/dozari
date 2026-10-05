@@ -58,4 +58,4 @@ Coin packages (`coin_packages`, switch `feature.coin_packages`, see `economy.md`
 Money stays integer rials (rule 2); nothing is credited from `pre_checkout_query`.
 
 
-Mini-app: `createInvoiceLink` + `openInvoice` and the unlinked-payer rule are in `bale-miniapp.md` §Payments.
+Mini-app: `createInvoiceLink` + `openInvoice` and the unlinked-payer rule are in `miniapp.md` §Payments.

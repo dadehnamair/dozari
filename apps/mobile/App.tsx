@@ -20,7 +20,7 @@ import { HomeScreen } from './src/home/HomeScreen';
 import { onAccountSwitched } from './src/auth/switched';
 import { useMusic } from './src/sound/music';
 import { useHardwareBack } from './src/nav/useHardwareBack';
-import { useBaleBack } from './src/bale/useBaleBack';
+import { useMiniAppBack } from './src/miniapp/useMiniAppBack';
 import { useKeyboardInset } from './src/nav/useKeyboardInset';
 import { BrandScreen } from './src/brand/BrandScreen';
 import { KitGallery } from './src/kit/KitGallery';
@@ -122,8 +122,8 @@ export default function App() {
         : null,
   );
 
-  // Inside the Bale mini-app the header back button does the same.
-  useBaleBack();
+  // Inside a mini-app the host's header back button does the same.
+  useMiniAppBack();
 
   // Whenever Home is shown (so the player is signed in and probably online), keep the saved offline puzzles topped up.
   useEffect(() => {
