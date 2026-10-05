@@ -2,7 +2,7 @@ import { adminMessageChannels, adminMessages, and, baleLinks, desc, eq, inArray,
 import type { Db } from '@dozari/db';
 import { uuidv7 } from 'uuidv7';
 
-export type Audience = 'all' | 'bale_linked' | 'user';
+export type Audience = 'all' | 'bale_linked' | 'user' | 'kid' | 'teen';
 export type Channel = 'in_app' | 'bale' | 'sms' | 'email' | 'push';
 
 export interface NewMessage {
@@ -59,6 +59,9 @@ export function createDbMessageStore(db: Db): MessageStore {
         if (!userId) return [];
         const [r] = await db.select({ id: users.id }).from(users).where(and(eq(users.id, userId), eq(users.isBanned, false)));
         return r ? [r.id] : [];
+      }
+      if (audience === 'kid' || audience === 'teen') {
+        return (await db.select({ id: users.id }).from(users).where(and(eq(users.isBanned, false), eq(users.isBot, false), eq(users.ageTrack, audience)))).map((r) => r.id);
       }
       if (audience === 'bale_linked') {
         // Broadcasts (all players, Bale-linked) never reach a kid or teen profile: adult marketing text stays with adults (docs/logic/age-tracks.md §Admin panel). A message to one named player is still allowed.

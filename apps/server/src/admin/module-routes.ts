@@ -318,7 +318,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       .object({
         title: z.string().trim().min(1).max(150),
         body: z.string().trim().min(1).max(2000),
-        audience: z.enum(['all', 'bale_linked', 'user']),
+        audience: z.enum(['all', 'bale_linked', 'user', 'kid', 'teen']),
         targetUserId: z.string().uuid().nullable().default(null),
         channels: z.array(z.enum(['in_app', 'bale', 'sms', 'email', 'push'])).min(1).max(5),
       })
@@ -608,6 +608,28 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
   if (m.ageTracks) {
     const tracks = m.ageTracks;
     g.get('/admin/age-tracks', async () => tracks.overview());
+    // Guardians: who holds which children, with support actions (all audited). The number is contact data: only roles that manage players see it.
+    g.get('/admin/guardians', async (req) => {
+      const q = z.object({ q: z.string().max(40).default('') }).safeParse(req.query);
+      const rows = await tracks.guardians(q.success ? q.data.q : '', 100);
+      const contact = !!req.adminActor && can(req.adminActor.role, 'users');
+      return { guardians: rows.map((r) => (contact ? r : { ...r, phone: null })) };
+    });
+    g.post('/admin/guardians/children/:id/unlink', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
+      if (!(await tracks.unlink(p.data.id))) return reply.code(404).send({ error: 'not_linked' });
+      void audit('guardian.unlink', p.data.id);
+      return { ok: true };
+    });
+    g.put('/admin/guardians/children/:id/track', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object({ track: z.enum(['kid', 'teen']) }).safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      if (!(await tracks.setChildTrack(p.data.id, b.data.track))) return reply.code(404).send({ error: 'not_linked' });
+      void audit('guardian.child_track', p.data.id, b.data.track);
+      return { ok: true };
+    });
   }
 
   if (m.lessons) {

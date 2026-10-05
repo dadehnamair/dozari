@@ -260,6 +260,8 @@ Setting `feature.age_tracks` (admin → settings → app, **default off**): off 
 - **Audit pass 2 (leftovers):** three more rules in `trackRules`: `transfers` (gifts and loans of coins between friends are off for kid and teen: `/transfers`, `/loans/*` and `POST /friends/:id/gift|loan` answer `403 age_track`; the gift and loan tiles are not drawn),
   `inviteShare` (a kid or teen can redeem a code but `GET /me/invite` shows no code of their own) and `publicProfile` (`basic` = name, avatar and level for a kid; `stats` = + the game record for a teen; both without coins; `PlayerProfile.limited` tells the app to draw less).
   The leaderboard also hides the province of a kid/teen. Wheel prizes are coins, gems and cosmetics only, so they were left as they are.
+- **Admin completion:** kill switches per band (`TRACK_FEATURES`, settings `track.<kid|teen>.<feature>`; `AgeTrackService.featureOff`; HTTP paths via `trackFeatureForPath` answer `403 age_track`, chat answers `OFF`, the duel queue `FEATURE_OFF`),
+  a guardians list with support actions (`/admin/guardians`), kid/teen filters on the puzzle list and catalog, message audiences `kid`/`teen` (adult broadcasts stay adult-only; migration 0065) and audit rows for band choices and guardian actions. See `admin-panel.md` §Age bands.
 - Not yet: the rest of the 30–50 kid puzzles; a track filter on the other admin lists (puzzles, items, tournaments, reports…);
 
 ## Phases

@@ -300,6 +300,61 @@ VIEWS.agetracks = function (root) {
       h('div', { class: 'kv' }, [h('span', { text: 'تأییدشده' }), h('b', { class: 'num', text: faNum(k.approved) })]),
       h('div', { class: 'kv' }, [h('span', { text: 'فرزندهای وصل‌شده به ولی' }), h('b', { class: 'num', text: faNum(d.linkedChildren) })])
     ]));
+    drawSwitches(root);
+    drawGuardians(root);
   });
+  /* Kill switches per band: one on/off per feature and kid/teen track (settings track.<band>.<feature>). */
+  function drawSwitches(into) {
+    var FEATURES = [['chat', 'گفتگو (پیام خصوصی و کل‌کل)'], ['friends', 'دوستان و پروفایل بازیکن‌ها'], ['tables', 'میز خصوصی و دوئل دوستانه'], ['duel_queue', 'صف دوئل زنده'], ['wheel', 'گردونه‌ی شانس'], ['shop', 'فروشگاه سکه (بدون پول واقعی)']];
+    var BANDS = [['kid', 'کودک'], ['teen', 'نوجوان']];
+    var box = h('div');
+    function draw(rows) {
+      clear(box);
+      var on = {};
+      rows.forEach(function (r) { if (r.key.indexOf('track.') === 0) on[r.key] = Number(r.value) !== 0; });
+      box.appendChild(h('div', { class: 'tbl-wrap' }, [h('table', {}, [
+        h('thead', {}, [h('tr', {}, [h('th', { text: 'بخش' })].concat(BANDS.map(function (b) { return h('th', { text: b[1] }); })))]),
+        h('tbody', {}, FEATURES.map(function (f) {
+          return h('tr', {}, [h('td', { text: f[1] })].concat(BANDS.map(function (b) {
+            var key = 'track.' + b[0] + '.' + f[0], isOn = on[key] !== false;
+            return h('td', {}, [h('button', { class: 'btn sm ' + (isOn ? 'ok' : 'bad'), text: isOn ? 'روشن' : 'خاموش', onclick: function () {
+              api('/admin/settings/' + encodeURIComponent(key), { method: 'PUT', body: { value: isOn ? 0 : 1 } }).then(function (x) { if (!x.ok) return fail(x); toast(isOn ? 'برای این رده خاموش شد' : 'برای این رده روشن شد'); draw(x.body.settings); });
+            } })]);
+          })));
+        }))
+      ])]));
+    }
+    into.appendChild(h('section', { class: 'card' }, [h('h2', { text: 'کلیدهای ایمنی رده‌ها' }), h('div', { class: 'sub', text: 'هر بخش را می‌شود فقط برای کودک یا فقط برای نوجوان خاموش کرد؛ بزرگسال‌ها تأثیری نمی‌گیرند. فقط وقتی «رده‌های سنی» روشن است اثر دارد.' }), box]));
+    api('/admin/settings').then(function (r) { if (r.ok) draw(r.body.settings); });
+  }
+  /* Guardians and their children (support: look up, move a child, unlink). */
+  function drawGuardians(into) {
+    var list = h('div'), q = h('input', { type: 'search', placeholder: 'جستجوی ولی (نام یا شماره)…' });
+    function draw() {
+      api('/admin/guardians?q=' + encodeURIComponent(q.value.trim())).then(function (r) {
+        clear(list);
+        if (!r.ok) return fail(r);
+        if (!r.body.guardians.length) return list.appendChild(empty('هنوز ولی‌ای ثبت نشده'));
+        r.body.guardians.forEach(function (g) {
+          list.appendChild(h('div', { class: 'card', style: 'padding:12px;margin-bottom:8px' }, [
+            h('div', { class: 'kv' }, [h('b', { text: g.nickname }), h('span', { class: 'ltr', text: g.phone || '—' })]),
+            h('div', {}, g.children.map(function (c) {
+              var other = c.track === 'kid' ? 'teen' : 'kid';
+              return h('div', { class: 'kv' }, [
+                h('span', { text: c.nickname + ' · ' + (c.track === 'kid' ? 'کودک' : 'نوجوان') }),
+                h('span', { style: 'display:flex;gap:6px' }, [
+                  h('button', { class: 'btn sm', text: 'انتقال به ' + (other === 'kid' ? 'کودک' : 'نوجوان'), onclick: function () { api('/admin/guardians/children/' + c.id + '/track', { method: 'PUT', body: { track: other } }).then(function (x) { if (!x.ok) return fail(x); toast('رده‌ی فرزند عوض شد'); draw(); }); } }),
+                  h('button', { class: 'btn bad sm', text: 'قطع اتصال به ولی', onclick: function () { ask('پروفایل فرزند می‌ماند ولی دوستان و میز و گفتگوی نوشتنی برایش بسته می‌شود تا دوباره به ولی وصل شود.', function () { api('/admin/guardians/children/' + c.id + '/unlink', { method: 'POST' }).then(function (x) { if (!x.ok) return fail(x); toast('اتصال قطع شد'); draw(); }); }, { title: 'قطع اتصال به ولی؟', yes: 'قطع شود', danger: true }); } })
+                ])
+              ]);
+            }))
+          ]));
+        });
+      });
+    }
+    q.addEventListener('input', function () { clearTimeout(q._t); q._t = setTimeout(draw, 300); });
+    into.appendChild(h('section', { class: 'card' }, [h('h2', { text: 'ولی‌ها و فرزندانشان' }), q, list]));
+    draw();
+  }
 };
 `;

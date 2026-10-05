@@ -600,7 +600,8 @@ export const friendships = mysqlTable(
   (table) => ({ pk: primaryKey({ columns: [table.userLow, table.userHigh] }), byHigh: index('friendships_high_idx').on(table.userHigh) }),
 );
 
-export const MESSAGE_AUDIENCES = ['all', 'bale_linked', 'user'] as const;
+/** `all` and `bale_linked` reach adults only; `kid` and `teen` are the deliberate, child-safe audiences (docs/logic/age-tracks.md §Admin panel). */
+export const MESSAGE_AUDIENCES = ['all', 'bale_linked', 'user', 'kid', 'teen'] as const;
 export const MESSAGE_CHANNELS = ['in_app', 'bale', 'sms', 'email', 'push'] as const;
 
 /** A message the admin sent from the message center (one row per send); `retractedAt` hides it from players' inboxes. */

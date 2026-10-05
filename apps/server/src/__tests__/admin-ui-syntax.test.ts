@@ -12,3 +12,10 @@ describe('admin panel script', () => {
     expect(() => new Function([ADMIN_CORE_JS, ADMIN_KIT_JS, ADMIN_SHELL_JS, ADMIN_VIEWS1_JS, ADMIN_VIEWS2_JS, ADMIN_VIEWS3_JS, ADMIN_BOOT_JS].join('\n'))).not.toThrow();
   });
 });
+
+describe('admin age-track switches stay in step with the shared list', () => {
+  it('the «رده‌های سنی» tab knows every kill-switch feature', async () => {
+    const { TRACK_FEATURES } = await import('@dozari/shared');
+    for (const f of TRACK_FEATURES) expect(ADMIN_VIEWS3_JS, f).toContain(`['${f}',`);
+  });
+});

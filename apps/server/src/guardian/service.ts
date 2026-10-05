@@ -74,6 +74,8 @@ export class GuardianService {
   friends?: GuardianFriends;
   /** Builds the digest of a child; set at start-up. */
   digest?: (childId: string) => Promise<ChildDigest>;
+  /** Writes a row to the audit log (guardian links, band moves, settings changes); set at start-up, best effort. */
+  audit?: (action: string, target: string, detail?: string) => void;
 
   constructor(
     private readonly store: GuardianStore,
@@ -121,7 +123,9 @@ export class GuardianService {
     if (guardianId === childId) return { ok: false, error: 'self' };
     if ((await this.tracks.get(guardianId)).track !== 'adult') return { ok: false, error: 'not_adult' };
     if ((await this.store.childrenOf(guardianId)).length >= GUARDIAN_MAX_CHILDREN) return { ok: false, error: 'too_many_children' };
-    return (await this.store.link(guardianId, childId)) ? { ok: true } : { ok: false, error: 'already_linked' };
+    if (!(await this.store.link(guardianId, childId))) return { ok: false, error: 'already_linked' };
+    this.audit?.('guardian.link', childId, guardianId);
+    return { ok: true };
   }
 
   /** The guardian side: may this account hold children? An adult with a verified number. */
@@ -139,7 +143,9 @@ export class GuardianService {
     const bad = await this.guardianCheck(guardianId);
     if (bad) return { ok: false, error: bad };
     if ((await this.store.childrenOf(guardianId)).length >= GUARDIAN_MAX_CHILDREN) return { ok: false, error: 'too_many_children' };
-    return { ok: true, childId: await this.store.createChild(guardianId, track) };
+    const childId = await this.store.createChild(guardianId, track);
+    this.audit?.('guardian.add_child', childId, `${guardianId} ${track}`);
+    return { ok: true, childId };
   }
 
   async linkCode(guardianId: string, childId: string): Promise<Result<{ code: string; expiresInSec: number }>> {
@@ -162,6 +168,7 @@ export class GuardianService {
   async setTrack(guardianId: string, childId: string, track: 'kid' | 'teen'): Promise<Result> {
     if (!(await this.store.isChildOf(guardianId, childId))) return { ok: false, error: 'not_found' };
     await this.tracks.save(childId, track, new Date(this.now()));
+    this.audit?.('guardian.child_track', childId, `${guardianId} ${track}`);
     return { ok: true };
   }
 
@@ -173,7 +180,9 @@ export class GuardianService {
 
   async putSettings(guardianId: string, childId: string, next: GuardianSettings): Promise<Result<{ settings: GuardianSettings }>> {
     if (!this.settings || !(await this.store.isChildOf(guardianId, childId))) return { ok: false, error: 'not_found' };
-    return { ok: true, settings: await this.settings.put(childId, next) };
+    const saved = await this.settings.put(childId, next);
+    this.audit?.('guardian.settings', childId, `${guardianId} chat=${next.chatMode} friends=${next.friendApproval} duels=${next.duelsEnabled}`);
+    return { ok: true, settings: saved };
   }
 
   /** «امروز چه یاد گرفت»: words learned, games this week, level and friends. */
@@ -199,7 +208,9 @@ export class GuardianService {
   }
 
   async remove(guardianId: string, childId: string): Promise<Result> {
-    return (await this.store.unlink(guardianId, childId)) ? { ok: true } : { ok: false, error: 'not_found' };
+    if (!(await this.store.unlink(guardianId, childId))) return { ok: false, error: 'not_found' };
+    this.audit?.('guardian.remove_child', childId, guardianId);
+    return { ok: true };
   }
 }
 

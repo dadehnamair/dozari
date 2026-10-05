@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { ageTrackPutSchema, canMeet, canSelfSwitchTrack, parseAgeTrack, trackRules } from '@dozari/shared';
-import type { BooleanTrackRule } from '@dozari/shared';
+import { trackFeatureKey } from '@dozari/shared';
+import type { BooleanTrackRule, TrackFeature } from '@dozari/shared';
 import type { AgeTrack, ChildLimits, TrackRules } from '@dozari/shared';
 import type { AuthService } from '../auth/service.js';
 import { currentUser } from '../auth/routes.js';
@@ -38,6 +39,11 @@ export type SocialBlocked = (userId: string) => Promise<boolean>;
 export type ChooseResult = { ok: true; mine: MyAgeTrack } | { ok: false; error: 'feature_off' | 'needs_guardian' };
 
 export class AgeTrackService {
+  /** Reads an on/off admin switch (`track.kid.chat` …); set at start-up. Absent = every switch is on. */
+  featureSwitch?: (key: string) => Promise<boolean>;
+  /** Writes a row to the audit log (every band change is recorded, docs/logic/age-tracks.md §Admin panel); set at start-up, best effort. */
+  audit?: (action: string, target: string, detail?: string) => void;
+
   constructor(
     private readonly store: AgeTrackStore,
     private readonly enabled: () => Promise<boolean>,
@@ -77,6 +83,18 @@ export class AgeTrackService {
   /** May this player use what a yes/no track rule guards (coin wagers, real-money buying, tournaments…)? Everybody may while the feature is off; a failing lookup reads as the track's narrower answer only through `effective`, which is adult. */
   async allows(userId: string, rule: BooleanTrackRule): Promise<boolean> {
     return trackRules(await this.effective(userId))[rule];
+  }
+
+  /** Has the admin switched this feature off for the player's whole track (kid or teen)? Never for adults, and never while the age-track feature is off. */
+  async featureOff(userId: string, feature: TrackFeature): Promise<boolean> {
+    if (!this.featureSwitch || !(await this.enabled())) return false;
+    const track = await this.effective(userId);
+    if (track === 'adult') return false;
+    try {
+      return !(await this.featureSwitch(trackFeatureKey(track, feature)));
+    } catch {
+      return false; // a failing lookup never locks a feature
+    }
   }
 
   /** How much of this player's public profile other players may see (`trackRules.publicProfile`). */
@@ -121,6 +139,7 @@ export class AgeTrackService {
     const rec = await this.store.get(userId);
     if (rec.setAt !== null && !canSelfSwitchTrack(rec.track, track)) return { ok: false, error: 'needs_guardian' };
     await this.store.save(userId, track, this.now());
+    this.audit?.('age_track.choose', userId, `${rec.setAt === null ? 'first' : rec.track}->${track}`);
     return { ok: true, mine: await this.mine(userId) };
   }
 }

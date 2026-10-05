@@ -68,6 +68,14 @@ username, not trivially repetitive. 5 wrong passwords lock the account for 15 mi
 deactivation ends that admin's sessions (`session_version`). The last active owner cannot be demoted or deactivated (unless the break-glass token is configured). The audit log names the
 admin behind every change.
 
-## Age bands (D198, proposed, not built)
+## Age bands (D198)
 
-A «رده‌های سنی» section plus an age-band filter on every list; see `age-tracks.md` §Admin panel.
+Built behind `feature.age_tracks` (full spec and status: `age-tracks.md`). In the panel:
+
+- **«رده‌های سنی» tab** (بازیکنان و نظارت): players per track, puzzles per track and status, kid lesson counts, linked children; **kill switches per band** (a grid of on/off buttons for chat, friends,
+  tables, the live duel queue, the wheel and the coin shop, one column for kids and one for teens; stored as the settings `track.kid.*` / `track.teen.*`, default on, audited like every setting; adults are unaffected);
+  **ولی‌ها و فرزندانشان** (search by name or number; the number is blanked for roles without `users`; support actions: move a child between kid/teen and unlink a child, both audited).
+- **Filters:** the user list (`?track=`), the puzzle list (track select + a badge on kid/teen puzzles), the catalog (chips «کالای کودک / نوجوان») and the chat-report queue (`?queue=minors|adults|all`, role-gated).
+- **Message center:** audiences `all` and `bale_linked` reach **adults only**; `kid` and `teen` are separate, deliberate audiences (migration 0065).
+- **Content:** «کلمه‌آموزی کودک» (lesson editor and approval), the kid/teen puzzle builder and per-track taunt libraries («کل‌کل‌های آماده») and the stricter word list («فیلتر کلمات»).
+- **Audit log:** every band choice of a player (`age_track.choose`), guardian link / add child / child band move / settings change / removal (`guardian.*`) and the admin actions above are recorded.

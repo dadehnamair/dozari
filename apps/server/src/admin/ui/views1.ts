@@ -76,7 +76,7 @@ VIEWS.catalog = function (root) {
   var list = h('div', { class: 'pgrid' });
   var search = h('input', { type: 'search', placeholder: 'جستجوی محصول…', value: CAT.q });
   var chips = h('div', { style: 'display:flex;gap:6px;flex-wrap:wrap' });
-  var FILTERS = [['all', 'همه'], ['noicon', 'بدون آیکن'], ['noprice', 'بدون قیمت تأییدشده'], ['few', 'قیمت کم (زیر حداقل)'], ['inactive', 'غیرفعال']];
+  var FILTERS = [['all', 'همه'], ['noicon', 'بدون آیکن'], ['noprice', 'بدون قیمت تأییدشده'], ['few', 'قیمت کم (زیر حداقل)'], ['inactive', 'غیرفعال'], ['kid', 'کالای کودک'], ['teen', 'کالای نوجوان']];
   function draw() {
     clear(chips);
     FILTERS.forEach(function (f) { chips.appendChild(h('button', { class: 'chip', 'aria-pressed': String(CAT.filter === f[0]), text: f[1], onclick: function () { CAT.filter = f[0]; draw(); } })); });
@@ -88,6 +88,7 @@ VIEWS.catalog = function (root) {
       if (CAT.filter === 'noprice') return !productHasApproved(p);
       if (CAT.filter === 'few') return p.needsMorePrices === true;
       if (CAT.filter === 'inactive') return p.isActive === false;
+      if (CAT.filter === 'kid' || CAT.filter === 'teen') return (p.ageTrack || 'adult') === CAT.filter;
       return true;
     });
     if (!rows.length) list.appendChild(empty('محصولی پیدا نشد'));

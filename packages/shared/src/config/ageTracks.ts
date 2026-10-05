@@ -23,3 +23,38 @@ export type FriendApproval = (typeof FRIEND_APPROVALS)[number];
 export const GUARDIAN_REMINDER_CHOICES = [15, 30, 45, 60, 90] as const;
 /** The soft «rest» card can be dismissed for this long; it never locks the child out. */
 export const QUIET_CARD_SNOOZE_MINUTES = 10;
+
+/**
+ * Kill switches per kid/teen track (docs/logic/age-tracks.md §Admin panel): the admin can switch one feature off for a whole track without touching the others.
+ * Each is the setting `track.<kid|teen>.<feature>` (1 = on, the default).
+ */
+export const TRACK_FEATURES = ['chat', 'friends', 'tables', 'duel_queue', 'wheel', 'shop'] as const;
+export type TrackFeature = (typeof TRACK_FEATURES)[number];
+export const SWITCHABLE_TRACKS = ['kid', 'teen'] as const;
+export type SwitchableTrack = (typeof SWITCHABLE_TRACKS)[number];
+
+export const trackFeatureKey = (track: SwitchableTrack, feature: TrackFeature): string => `track.${track}.${feature}`;
+
+export const TRACK_FEATURE_LABEL_FA: Record<TrackFeature, string> = {
+  chat: 'گفتگو (پیام خصوصی و کل‌کل)',
+  friends: 'دوستان و پروفایل بازیکن‌ها',
+  tables: 'میز خصوصی و دوئل دوستانه',
+  duel_queue: 'صف دوئل زنده',
+  wheel: 'گردونه‌ی شانس',
+  shop: 'فروشگاه سکه (بدون پول واقعی)',
+};
+
+/** Path prefixes each switch closes for a switched-off track (the HTTP side; chat and the duel queue are checked where they run). */
+export const TRACK_FEATURE_PATHS: readonly (readonly [prefix: string, feature: TrackFeature])[] = [
+  ['/friends', 'friends'],
+  ['/players', 'friends'],
+  ['/tables', 'tables'],
+  ['/chat', 'chat'],
+  ['/wheel', 'wheel'],
+  ['/shop', 'shop'],
+];
+
+export function trackFeatureForPath(path: string): TrackFeature | null {
+  const hit = TRACK_FEATURE_PATHS.find(([prefix]) => path === prefix || path.startsWith(`${prefix}/`));
+  return hit ? hit[1] : null;
+}

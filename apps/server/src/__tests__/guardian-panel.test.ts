@@ -108,3 +108,17 @@ describe('guardian panel (age-tracks phase 5)', () => {
     expect((await guardian.friendsOf(G, K1)).ok && (await guardian.friendsOf(G, K1))).toMatchObject({ friends: [] });
   });
 });
+
+describe('audit of band changes and guardian actions', () => {
+  it('records the child’s band choice and the guardian’s settings change', async () => {
+    const { tracks, guardian } = setup();
+    const rows: string[] = [];
+    tracks.audit = (action, target, detail) => void rows.push(`${action} ${target} ${detail ?? ''}`);
+    guardian.audit = (action, target, detail) => void rows.push(`${action} ${target} ${detail ?? ''}`);
+    await tracks.choose('fresh', 'teen');
+    await guardian.putSettings(G, K1, { ...DEFAULT_GUARDIAN_SETTINGS, chatMode: 'off' });
+    expect(rows[0]).toBe('age_track.choose fresh first->teen');
+    expect(rows[1]).toContain('guardian.settings k1');
+    expect(rows[1]).toContain('chat=off');
+  });
+});

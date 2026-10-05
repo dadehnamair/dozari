@@ -146,3 +146,60 @@ describe('minimal profile, invite code and gifts for kid and teen', () => {
     expect((await invite.mine('adult')).code).not.toBeNull();
   });
 });
+
+describe('per-track kill switches (admin)', () => {
+  const switches: Record<string, number> = {};
+  const make = (map: Record<string, AgeTrack>, enabled = true) => {
+    const ages = tracksOf(map, enabled);
+    ages.featureSwitch = async (key) => (switches[key] ?? 1) !== 0;
+    return ages;
+  };
+
+  it('switches a feature off for one track only', async () => {
+    const ages = make({ kid: 'kid', teen: 'teen' });
+    expect(await ages.featureOff('kid', 'chat')).toBe(false);
+    switches['track.kid.chat'] = 0;
+    expect(await ages.featureOff('kid', 'chat')).toBe(true);
+    expect(await ages.featureOff('teen', 'chat')).toBe(false);
+    expect(await ages.featureOff('adult', 'chat')).toBe(false); // adults have no switch
+    expect(await ages.featureOff('kid', 'tables')).toBe(false);
+    delete switches['track.kid.chat'];
+  });
+
+  it('does nothing while age tracks are off, and a failing switch lookup never closes anything', async () => {
+    switches['track.kid.chat'] = 0;
+    expect(await make({ kid: 'kid' }, false).featureOff('kid', 'chat')).toBe(false);
+    const broken = make({ kid: 'kid' });
+    broken.featureSwitch = async () => {
+      throw new Error('db down');
+    };
+    expect(await broken.featureOff('kid', 'chat')).toBe(false);
+    delete switches['track.kid.chat'];
+  });
+
+  it('answers 403 age_track on the paths of a switched-off feature', async () => {
+    const SECRET = 'a-test-secret-that-is-long-enough';
+    const byId = new Map<string, UserRecord & { deviceId: string }>();
+    const repo: UserRepository = {
+      findByDeviceId: async (d) => [...byId.values()].find((u) => u.deviceId === d) ?? null,
+      findById: async (id) => byId.get(id) ?? null,
+      createGuest: async (deviceId, identity) => {
+        const user = { id: `00000000-0000-7000-8000-${String(byId.size + 1).padStart(12, '0')}`, deviceId, ...identity, isBanned: false };
+        byId.set(user.id, user);
+        return user;
+      },
+      touch: async () => undefined,
+    };
+    const auth = new AuthService(repo, createTokenSigner(SECRET, () => 1_700_000_000_000), mulberry32(3));
+    const login = await auth.guestLogin('0f8fad5b-d9cb-469f-a165-708677289577');
+    if (!login.ok) throw new Error('login');
+    const kid = { authorization: `Bearer ${login.session.token}` };
+    const ages = make({ [login.session.user.id]: 'kid' });
+    const app = buildServer({ auth, ageTracks: ages });
+    switches['track.kid.wheel'] = 0;
+    expect((await app.inject({ method: 'GET', url: '/wheel', headers: kid })).statusCode).toBe(403);
+    expect((await app.inject({ method: 'GET', url: '/tables/mine', headers: kid })).statusCode).not.toBe(403);
+    delete switches['track.kid.wheel'];
+    expect((await app.inject({ method: 'GET', url: '/wheel', headers: kid })).statusCode).not.toBe(403);
+  });
+});
