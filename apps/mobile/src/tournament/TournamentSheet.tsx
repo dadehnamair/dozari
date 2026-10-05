@@ -12,7 +12,6 @@ import { Item } from '../components/Item';
 import { PageShell } from '../components/PageShell';
 import { Scene } from '../components/Scene';
 import { SlabButton } from '../components/SlabButton';
-import { formatCountdown } from '../daily/countdown';
 import { GuideBubble } from '../components/GuideBubble';
 import { useConfirm } from '../components/useConfirm';
 import { EmptyNote } from '../components/EmptyState';
@@ -22,7 +21,7 @@ import { avatarOf } from '../social/avatarOf';
 import { colors, fonts } from '../theme/colors';
 import { fetchTournament, fetchTournaments, joinTournament, leaveTournament } from './api';
 import { SponsorCard, SponsorInvite, SponsorTag } from './Sponsor';
-import { blockedText, placeLabel, roundLabel } from './text';
+import { blockedText, placeLabel, roundLabel, startsInText } from './text';
 import { pageTop } from '../theme/safeArea';
 import { TEXT_RIGHT } from '../theme/direction';
 
@@ -122,7 +121,7 @@ function TournamentPage({ id, onBack }: { id: string; onBack: () => void }) {
                   <Text style={styles.ribbonText} numberOfLines={1}>{t.titleFa}</Text>
                 </View>
                 {t.status === 'open' ? (
-                  <View style={styles.countdown}><Text style={styles.countdownText}>{fa.tournament.startsIn} <Text style={styles.mono}>{formatCountdown(t.startsAt, now)}</Text></Text></View>
+                  <View style={styles.countdown}><Text style={styles.countdownText}>{fa.tournament.startsIn} <Text style={styles.mono}>{startsInText(t.startsAt, now)}</Text></Text></View>
                 ) : (
                   <View style={styles.countdown}><Text style={styles.countdownText}>{fa.tournament.startedAt}: {when(t.startsAt)}</Text></View>
                 )}

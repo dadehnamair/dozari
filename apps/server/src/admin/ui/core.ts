@@ -145,16 +145,17 @@ function badge(text, cls) { return h('span', { class: 'badge ' + (cls || 'b-mute
 function field(label, input, hint) { return h('label', { class: 'f' }, [label, input, hint ? h('span', { class: 'h', text: hint, style: 'font-size:12px' }) : null]); }
 function card(title, sub, kids) { return h('section', { class: 'card' }, [title ? h('h2', { text: title }) : null, sub ? h('div', { class: 'sub', text: sub }) : null].concat(kids || [])); }
 /* A card with a «＋ add» button; the form opens in a modal. fields: [[label, input, hint?]] or ready-made nodes; save() resolves true to close it. */
+function formModal(title, fields, save) {
+  var busy = false;
+  var body = h('div', { class: 'form-grid' }, fields.map(function (f) { return Array.isArray(f) ? field(f[0], f[1], f[2]) : f; }));
+  modal(title, body, [{ label: 'انصراف' }, { label: 'ذخیره', cls: 'primary', keepOpen: true, run: function (close) {
+    if (busy) return; busy = true;
+    Promise.resolve(save()).then(function (ok) { busy = false; if (ok) close(); });
+  } }]);
+  var first = body.querySelector('input,select,textarea'); if (first) first.focus();
+}
 function addCard(title, sub, btnLabel, fields, save) {
-  function open() {
-    var busy = false;
-    var body = h('div', { class: 'form-grid' }, fields.map(function (f) { return Array.isArray(f) ? field(f[0], f[1], f[2]) : f; }));
-    modal(title, body, [{ label: 'انصراف' }, { label: 'ذخیره', cls: 'primary', keepOpen: true, run: function (close) {
-      if (busy) return; busy = true;
-      Promise.resolve(save()).then(function (ok) { busy = false; if (ok) close(); });
-    } }]);
-    var first = body.querySelector('input,select,textarea'); if (first) first.focus();
-  }
+  function open() { formModal(title, fields, save); }
   return h('section', { class: 'card add-card' }, [h('div', { class: 'add-head' }, [h('div', {}, [h('h2', { text: title }), sub ? h('div', { class: 'sub', text: sub }) : null]), h('button', { class: 'btn primary', text: '＋ ' + btnLabel, onclick: open })])]);
 }
 function empty(text) { return h('div', { class: 'empty-state', text: text }); }

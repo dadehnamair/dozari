@@ -231,10 +231,10 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
         </View>
 
         <View style={styles.buttons}>
-          {/* Three modes side by side: smaller type so «حدس قیمت» fits on a narrow phone. */}
-          <SlabButton label={h.play} sfx="confirm" color={colors.candy.lime} icon="puzzle" fontSize={priceOnlyOn ? 21 : 28} onPress={onSolo} />
-          {second ? <SlabButton label={second.label} color={second.color} badge={second.badge} icon={duelLocked ? "lock" : "swords"} fontSize={priceOnlyOn ? 21 : 28} onPress={second.onPress} /> : null}
-          {priceOnlyOn ? <SlabButton label={fa.priceOnly.play} sfx="confirm" color={colors.candy.yellow} icon="coin" fontSize={21} onPress={onPriceOnly!} /> : null}
+          {/* Three modes side by side: icon above the label so each name fits on a narrow phone. */}
+          <SlabButton label={h.play} sfx="confirm" color={colors.candy.lime} icon="puzzle" stacked={priceOnlyOn} height={priceOnlyOn ? 88 : 68} fontSize={priceOnlyOn ? 19 : 28} onPress={onSolo} />
+          {second ? <SlabButton label={second.label} color={second.color} badge={second.badge} icon={duelLocked ? "lock" : "swords"} stacked={priceOnlyOn} height={priceOnlyOn ? 88 : 68} fontSize={priceOnlyOn ? 19 : 28} onPress={second.onPress} /> : null}
+          {priceOnlyOn ? <SlabButton label={fa.priceOnly.play} sfx="confirm" color={colors.candy.yellow} icon="coin" stacked height={88} fontSize={19} onPress={onPriceOnly!} /> : null}
         </View>
       </View>
 

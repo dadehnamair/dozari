@@ -236,3 +236,17 @@ Start after the first Android build.
 - [x] 10. Admin panel tidy-up: grouped sidebar, page helper text, «add» actions as modal forms, consistent tables/toasts (UI only)
 - [x] 11. Birth date in the profile with a «show my age» tick (policy D160; users columns, profile UI, birthday gift/badge, admin age stats) (built, D160/D169)
 - [x] 12. Gems (الماس) currency (D164): [x] stage 1 own ledger + balance + admin adjust + Home pill; [x] shop prices in gems; [x] tournament entry in gems; [x] wheel, birthday and tournament prizes in gems (D175)
+
+- [ ] 1. Wheel pays every prize kind (coins, gems, clothing, hats …); no free spins until the policy is set, then spins behave like lives (D156)
+- [ ] 2. Board cards: names and icons fit (fixed layout policy, auto-shrink floor, short names)
+- [ ] 3. «تکمیل پروفایل» nudge / guide says «برو این کار را بکن، سکه بگیر»
+- [ ] 4. Missions (profile, social follow, store reviews, invite …) paying coins
+- [ ] 5. Shorter opponent search; bots fill the seat sooner
+- [ ] 6. Options greyed out when it is not my turn, coloured on my turn
+
+## Age tracks (D198, proposed) — see `docs/logic/age-tracks.md`
+
+- [ ] 1. Foundation: `age_band` on users/puzzles/items, `bandRules` config, first-run chooser, band-keyed queues, admin band filter
+- [ ] 2. Guardian link: phone OTP, child profiles, link code, guardian-approved band change
+- [ ] 3. Kid content and word lesson: kid pool, `item_lessons`, `splitWordLetters`, lesson cards, review queue
+- [ ] 4. Family play: guardian + child private table, guardian digest

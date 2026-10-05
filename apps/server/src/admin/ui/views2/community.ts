@@ -150,6 +150,7 @@ VIEWS.tournaments = function (root) {
           h('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap' }, [h('b', { text: t.titleFa }), badge(st[0], st[1]), t.sponsorId && sponsorNames[t.sponsorId] ? badge('اسپانسر: ' + sponsorNames[t.sponsorId], 'b-mute') : null, h('span', { class: 'h', text: fa(t.joined) + ' از ' + fa(t.size) + ' نفر · ورودی ' + faNum(t.entryCoins) + ' سکه' + (t.entryGems ? ' + ' + faNum(t.entryGems) + ' الماس' : '') + ' · از لول ' + fa(t.minLevel) + ' · شروع ' + when(t.startsAt) })]),
           h('div', { class: 'h', style: 'margin-top:4px', text: prizes || 'بدون جایزه' }),
           h('div', { class: 'toolbar', style: 'margin-top:8px' }, [
+            t.status === 'draft' || t.status === 'open' ? h('button', { class: 'btn', text: 'ویرایش', onclick: function () { openForm(t); } }) : null,
             t.status === 'draft' ? h('button', { class: 'btn primary', text: 'منتشر کن (باز کردن ثبت‌نام)', onclick: act('publish') }) : null,
             t.status === 'open' ? h('button', { class: 'btn primary', text: 'همین حالا شروع کن', onclick: act('start', 'ثبت‌نام بسته و تورنومنت شروع شود؟ اگر به حد نصاب نرسیده باشد لغو و ورودی‌ها برگردانده می‌شود.') }) : null,
             t.status === 'draft' || t.status === 'open' || t.status === 'running' ? h('button', { class: 'btn bad', text: 'لغو و بازپرداخت', onclick: act('cancel', 'تورنومنت لغو شود و ورودی همه برگردانده شود؟') }) : null
@@ -158,31 +159,51 @@ VIEWS.tournaments = function (root) {
       });
     });
   }
-  var title = h('input', { type: 'text', placeholder: 'نام تورنومنت', maxlength: 80 }), desc = h('textarea', { placeholder: 'توضیحات برای صفحه‌ی اختصاصی تورنومنت (قانون‌ها، جایزه‌ها، داستان)…', maxlength: 4000, style: 'min-height:90px' });
-  var size = select([['4', '۴ نفر'], ['8', '۸ نفر'], ['16', '۱۶ نفر'], ['32', '۳۲ نفر']], '16');
+  function pad(n) { return n < 10 ? '0' + n : '' + n; }
+  function localInput(ms) { var d = new Date(ms); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes()); }
   function num(v, min) { return h('input', { type: 'number', value: v, min: min === undefined ? 0 : min, style: 'width:100px' }); }
-  var minPlayers = num(4, 2), fee = num(20), gemFee = num(0), level = num(1, 1), p1 = num(100), p2 = num(40), p3 = num(10), s1 = num(0), s2 = num(0), s3 = num(0), g1 = num(0), g2 = num(0), g3 = num(0);
-  var startsAt = h('input', { type: 'datetime-local' });
-  var publish = h('input', { type: 'checkbox' });
-  var botFill = h('input', { type: 'checkbox' });
-  var concurrent = h('input', { type: 'checkbox' });
-  var note = h('div', { class: 'h' });
-  function recalc() { var pool = +fee.value * +size.value, prizes = (+p1.value) + (+p2.value) + 2 * (+p3.value); note.textContent = 'جمع ورودی اگر پر شود: ' + faNum(pool) + ' سکه · جمع جایزه‌ها: ' + faNum(prizes) + ' سکه' + (prizes > pool ? ' ← جایزه از ورودی بیشتر است؛ این تفاوت سکه‌ی تازه به اقتصاد اضافه می‌کند.' : ''); }
-  [fee, size, p1, p2, p3].forEach(function (el) { el.addEventListener('input', recalc); }); recalc();
+  /* One form for both: openForm() creates, openForm(t) edits a draft / open tournament (structural fields lock once someone joined). */
+  function openForm(t) {
+    var prize = function (place, key) { var p = t && t.prizes.filter(function (x) { return x.place === place; })[0]; return p ? p[key] : 0; };
+    var title = h('input', { type: 'text', placeholder: 'نام تورنومنت', maxlength: 80, value: t ? t.titleFa : '' });
+    var desc = h('textarea', { placeholder: 'توضیحات برای صفحه‌ی اختصاصی تورنومنت (قانون‌ها، جایزه‌ها، داستان)…', maxlength: 4000, style: 'min-height:90px' }); desc.value = t ? (t.descriptionFa || '') : '';
+    var size = select([['4', '۴ نفر'], ['8', '۸ نفر'], ['16', '۱۶ نفر'], ['32', '۳۲ نفر']], t ? String(t.size) : '16');
+    var minPlayers = num(t ? t.minPlayers : 4, 2), fee = num(t ? t.entryCoins : 20), gemFee = num(t ? t.entryGems || 0 : 0), level = num(t ? t.minLevel : 1, 1);
+    var p1 = num(prize(1, 'coins') || (t ? 0 : 100)), p2 = num(prize(2, 'coins') || (t ? 0 : 40)), p3 = num(prize(3, 'coins') || (t ? 0 : 10));
+    var s1 = num(prize(1, 'spins')), s2 = num(prize(2, 'spins')), s3 = num(prize(3, 'spins')), g1 = num(prize(1, 'gems')), g2 = num(prize(2, 'gems')), g3 = num(prize(3, 'gems'));
+    var startsAt = h('input', { type: 'datetime-local', value: t ? localInput(t.startsAt) : '' });
+    var sponsor = document.createElement('select');
+    Array.prototype.forEach.call(sponsorSel.options, function (o) { sponsor.appendChild(h('option', { value: o.value, text: o.text })); });
+    if (t && t.sponsorId && !Array.prototype.some.call(sponsor.options, function (o) { return o.value === t.sponsorId; })) sponsor.appendChild(h('option', { value: t.sponsorId, text: sponsorNames[t.sponsorId] || 'اسپانسر فعلی' }));
+    sponsor.value = t && t.sponsorId ? t.sponsorId : '';
+    var publish = h('input', { type: 'checkbox' }), botFill = h('input', { type: 'checkbox' }), concurrent = h('input', { type: 'checkbox' });
+    botFill.checked = !!(t && t.botFill); concurrent.checked = !!(t && t.allowConcurrent);
+    var note = h('div', { class: 'h' });
+    function recalc() { var pool = +fee.value * +size.value, prizes = (+p1.value) + (+p2.value) + 2 * (+p3.value); note.textContent = 'جمع ورودی اگر پر شود: ' + faNum(pool) + ' سکه · جمع جایزه‌ها: ' + faNum(prizes) + ' سکه' + (prizes > pool ? ' ← جایزه از ورودی بیشتر است؛ این تفاوت سکه‌ی تازه به اقتصاد اضافه می‌کند.' : ''); }
+    [fee, size, p1, p2, p3].forEach(function (el) { el.addEventListener('input', recalc); }); recalc();
+    var flags = [h('label', {}, [botFill, ' جای خالی با ربات پر شود']), h('label', {}, [concurrent, ' کسی که در تورنومنت دیگری هست هم بتواند وارد شود'])];
+    if (!t) flags.push(h('label', {}, [publish, ' همین حالا منتشر شود']));
+    formModal(t ? 'ویرایش تورنومنت' : 'تورنومنت تازه', [
+      ['نام', title], ['توضیحات', desc],
+      h('div', { class: 'toolbar' }, [field('ظرفیت', size), field('حداقل نفرات برای برگزاری', minPlayers), field('ورودی (سکه، ۰ = رایگان)', fee), field('ورودی الماس (۰ = بدون الماس)', gemFee), field('کمترین لول (۱ = همه)', level), field('شروع و بسته‌شدن ثبت‌نام', startsAt), field('اسپانسر', sponsor)]),
+      h('div', { class: 'toolbar' }, [field('جایزه‌ی مقام اول', p1), field('مقام دوم', p2), field('مقام سوم (به هر نفر)', p3)]),
+      h('div', { class: 'toolbar' }, [field('الماس مقام اول', g1), field('مقام دوم', g2), field('مقام سوم (به هر نفر)', g3)]),
+      h('div', { class: 'toolbar' }, [field('چرخش گردونه‌ی مقام اول', s1), field('مقام دوم', s2), field('مقام سوم (به هر نفر)', s3)]),
+      note, h('div', { class: 'toolbar' }, flags)
+    ], function () {
+      if (!startsAt.value) { toast('زمان شروع را بگذار', true); return false; }
+      var prizes = [{ place: 1, coins: +p1.value, gems: +g1.value, spins: +s1.value }, { place: 2, coins: +p2.value, gems: +g2.value, spins: +s2.value }, { place: 3, coins: +p3.value, gems: +g3.value, spins: +s3.value }].filter(function (p) { return p.coins > 0 || p.gems > 0 || p.spins > 0; });
+      var body = { titleFa: title.value.trim(), descriptionFa: desc.value.trim(), iconKey: 'trophy', size: +size.value, minPlayers: +minPlayers.value, entryCoins: +fee.value, entryGems: +gemFee.value, minLevel: +level.value, startsAt: new Date(startsAt.value).getTime(), botFill: botFill.checked, allowConcurrent: concurrent.checked, sponsorId: sponsor.value || null, prizes: prizes };
+      if (!t) body.publish = publish.checked;
+      return api(t ? '/admin/tournaments/' + t.id : '/admin/tournaments', { method: t ? 'PATCH' : 'POST', body: body }).then(function (x) {
+        if (x.status === 409) { toast('کسی ثبت‌نام کرده؛ ظرفیت، ورودی، لول و حداقل نفرات دیگر قابل تغییر نیست', true); return false; }
+        if (!x.ok) { fail(x); return false; }
+        toast(t ? 'تغییرات ذخیره شد' : 'تورنومنت ساخته شد'); draw(); return true;
+      });
+    });
+  }
   root.appendChild(card('تورنومنت‌ها', 'جدول حذفی تک‌حذفی؛ هر دور با یک دوئل. بازیکنی که نرسد یا ببازد حذف می‌شود، تساوی دوباره بازی می‌شود.', [list]));
-  root.appendChild(addCard('تورنومنت تازه', 'مقام سوم به هر دو بازنده‌ی نیمه‌نهایی داده می‌شود. اگر تعداد ثبت‌نام‌ها کمتر از ظرفیت باشد، جدول با «بای» پر می‌شود (به شرط رسیدن به حداقل نفرات).', 'تورنومنت تازه', [
-    ['نام', title], ['توضیحات', desc],
-    h('div', { class: 'toolbar' }, [field('ظرفیت', size), field('حداقل نفرات برای برگزاری', minPlayers), field('ورودی (سکه، ۰ = رایگان)', fee), field('ورودی الماس (۰ = بدون الماس)', gemFee), field('کمترین لول (۱ = همه)', level), field('شروع و بسته‌شدن ثبت‌نام', startsAt), field('اسپانسر', sponsorSel)]),
-    h('div', { class: 'toolbar' }, [field('جایزه‌ی مقام اول', p1), field('مقام دوم', p2), field('مقام سوم (به هر نفر)', p3)]),
-    h('div', { class: 'toolbar' }, [field('الماس مقام اول', g1), field('مقام دوم', g2), field('مقام سوم (به هر نفر)', g3)]),
-    h('div', { class: 'toolbar' }, [field('چرخش گردونه‌ی مقام اول', s1), field('مقام دوم', s2), field('مقام سوم (به هر نفر)', s3)]),
-    note,
-    h('div', { class: 'toolbar' }, [h('label', {}, [botFill, ' جای خالی با ربات پر شود']), h('label', {}, [concurrent, ' کسی که در تورنومنت دیگری هست هم بتواند وارد شود']), h('label', {}, [publish, ' همین حالا منتشر شود'])])
-  ], function () {
-    if (!startsAt.value) { toast('زمان شروع را بگذار', true); return false; }
-    var prizes = [{ place: 1, coins: +p1.value, gems: +g1.value, spins: +s1.value }, { place: 2, coins: +p2.value, gems: +g2.value, spins: +s2.value }, { place: 3, coins: +p3.value, gems: +g3.value, spins: +s3.value }].filter(function (p) { return p.coins > 0 || p.gems > 0 || p.spins > 0; });
-    return api('/admin/tournaments', { method: 'POST', body: { titleFa: title.value.trim(), descriptionFa: desc.value.trim(), iconKey: 'trophy', size: +size.value, minPlayers: +minPlayers.value, entryCoins: +fee.value, entryGems: +gemFee.value, minLevel: +level.value, startsAt: new Date(startsAt.value).getTime(), botFill: botFill.checked, allowConcurrent: concurrent.checked, sponsorId: sponsorSel.value || null, prizes: prizes, publish: publish.checked } }).then(function (x) { if (!x.ok) { fail(x); return false; } toast('تورنومنت ساخته شد'); title.value = ''; desc.value = ''; draw(); return true; });
-  }));
+  root.appendChild(h('section', { class: 'card add-card' }, [h('div', { class: 'add-head' }, [h('div', {}, [h('h2', { text: 'تورنومنت تازه' }), h('div', { class: 'sub', text: 'مقام سوم به هر دو بازنده‌ی نیمه‌نهایی داده می‌شود. اگر تعداد ثبت‌نام‌ها کمتر از ظرفیت باشد، جدول با «بای» پر می‌شود (به شرط رسیدن به حداقل نفرات).' })]), h('button', { class: 'btn primary', text: '＋ تورنومنت تازه', onclick: function () { openForm(); } })])]));
   draw();
   loadSponsors();
 };

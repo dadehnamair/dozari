@@ -241,7 +241,7 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
               <Text style={styles.bubbleTitle}>{won ? fa.solo.won : fa.solo.lost}</Text>
             </View>
           </View>
-          <View style={styles.stage}>
+          <ScrollView style={styles.stage} contentContainerStyle={styles.stageContent} showsVerticalScrollIndicator={false} nestedScrollEnabled>
             {offline ? (
               <View style={styles.review}>
                 <Board solved={view.solved} cards={view.cards} names={names} selected={[]} onToggle={() => undefined} disabled hinted={[]} />
@@ -267,7 +267,7 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
                 </View>
               </View>
             )}
-          </View>
+          </ScrollView>
           {priceDone || offline ? (
             <View style={styles.actions}>
               <SlabButton label={fa.solo.back} sfx="back" color={colors.candy.sky} height={58} fontSize={20} onPress={onBack} />
@@ -332,7 +332,7 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
 }
 
 const styles = StyleSheet.create({
-  review: { gap: 10 },
+  review: { gap: 10, width: '100%' },
   askCard: { padding: 12, gap: 6, borderRadius: 20, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#FBF1DE' },
   askTitle: { fontFamily: fonts.display, fontSize: 18, color: colors.ink, textAlign: 'center' },
   askSub: { fontFamily: fonts.bold, fontSize: 12.5, lineHeight: 20, color: '#5A3A7A', textAlign: 'center' },
@@ -351,7 +351,9 @@ const styles = StyleSheet.create({
   endSceneCompact: { paddingTop: 8, paddingBottom: 12, gap: 6 },
   talkerSmall: { width: 72, height: 80 },
   bubbleTitle: { fontFamily: fonts.display, fontSize: 18, lineHeight: 28, color: colors.ink, textAlign: TEXT_RIGHT },
-  stage: { flex: 1, minHeight: 0, borderRadius: 22, borderWidth: 3, borderColor: colors.ink, backgroundColor: 'rgba(26,8,44,0.55)', paddingHorizontal: 12, paddingBottom: 12, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  /** The result frame keeps its size; whatever is taller than it (chart, tabs, share) scrolls inside it instead of spilling. */
+  stage: { flex: 1, minHeight: 0, borderRadius: 22, borderWidth: 3, borderColor: colors.ink, backgroundColor: 'rgba(26,8,44,0.55)', overflow: 'hidden' },
+  stageContent: { flexGrow: 1, paddingHorizontal: 12, paddingTop: 4, paddingBottom: 14, alignItems: 'center', justifyContent: 'center' },
   endActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginTop: 8 },
   detail: { fontFamily: 'Vazirmatn_400Regular', fontSize: 12, color: colors.cream, opacity: 0.7, textAlign: 'center', writingDirection: 'ltr' },
   nearMiss: { position: 'absolute', top: '38%', left: 0, right: 0, alignItems: 'center' },
