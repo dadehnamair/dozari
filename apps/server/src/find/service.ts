@@ -1,6 +1,7 @@
 import { generateHandle, normalizeInviteCode, normalizeIranPhone } from '@dozari/shared';
 import type { FoundPlayer, MyFind, Rng } from '@dozari/shared';
 import { RateLimiter } from '../security/rate-limit.js';
+import type { Meetable, SocialBlocked } from '../agetrack/service.js';
 import type { SocialStore } from '../social/store.js';
 import type { FindStore } from './store.js';
 import type { Shortener } from './shortener.js';
@@ -12,7 +13,7 @@ export interface FindSettings {
   autoFriendPerDay: number;
 }
 
-export type LinkFriendResult = 'friends' | 'sent' | 'already' | 'self' | 'unknown' | 'limit';
+export type LinkFriendResult = 'friends' | 'sent' | 'already' | 'self' | 'unknown' | 'limit' | 'needs_guardian' | 'ask_guardian';
 
 const DAY_MS = 86_400_000;
 const looksLikeHandle = (s: string) => /^[2-9A-HJKMNP-Z]{4,12}$/.test(s);
@@ -31,6 +32,12 @@ export class FindService {
     private readonly shortener: Shortener,
     private readonly rng: Rng,
     private readonly now: () => number = Date.now,
+    /** Age-track gate: only players on `me`'s own track are found or befriended (docs/logic/age-tracks.md). Absent = no rule. */
+    private readonly sameTrack?: Meetable,
+    /** Kid/teen without a linked guardian cannot make friends through a link yet. */
+    private readonly blocked?: SocialBlocked,
+    /** The guardian wants to approve this child's friends first. */
+    private readonly asks?: SocialBlocked,
   ) {}
 
   /** The player's public ID, made on first use. */
@@ -57,7 +64,7 @@ export class FindService {
   }
 
   private async card(me: string, id: string): Promise<FoundPlayer | null> {
-    if (id === me) return null;
+    if (id === me || (this.sameTrack && !(await this.sameTrack(me, [id])).has(id))) return null;
     const row = await this.social.publicRow(id);
     if (!row) return null;
     const p = await this.social.pair(me, id);
@@ -99,9 +106,12 @@ export class FindService {
   async friendByLink(me: string, rawHandle: string): Promise<LinkFriendResult> {
     const handle = normalizeInviteCode(rawHandle);
     if (!looksLikeHandle(handle)) return 'unknown';
+    if (await this.blocked?.(me)) return 'needs_guardian';
+    if (await this.asks?.(me)) return 'ask_guardian';
     const owner = await this.find.byHandle(handle);
     if (!owner) return 'unknown';
     if (owner === me) return 'self';
+    if (this.sameTrack && !(await this.sameTrack(me, [owner])).has(owner)) return 'unknown';
     const [mine, s, pair] = await Promise.all([this.social.publicRow(me), this.settings(), this.social.pair(me, owner)]);
     if (!mine) return 'unknown';
     if (pair?.status === 'accepted') return 'already';

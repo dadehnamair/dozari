@@ -164,6 +164,7 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'link.badge_myket', group: 'seo', label: 'لینک پایین سایت معرفی: مایکت', hint: 'نشانی کامل با https؛ نماد همیشه در فوتر سایت معرفی است و اگر این خالی باشد بدون لینک نشان داده می‌شود', kind: 'text', min: 0, max: 300, default: 'https://myket.ir' },
   { key: 'gate.phone_only', group: 'app', label: 'مرورگر کامپیوتر فقط کارت «با گوشی بیا» + QR ببیند', hint: 'گوشی اندروید کارت دانلود و آیفون راهنمای نصب می‌بیند؛ هر کدام دکمه‌ی «ادامه با مرورگر» دارند', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'link.app_url', group: 'app', label: 'آدرس بازی برای QR (خالی = همان صفحه)', kind: 'text', min: 0, max: 200, default: '' },
+  { key: 'link.ios_app', group: 'app', label: 'لینک دانلود برنامه‌ی iOS', hint: 'خالی = «به‌زودی» نشان داده می‌شود', kind: 'text', min: 0, max: 300, default: '' },
   { key: 'link.android_app', group: 'app', label: 'لینک دانلود برنامه‌ی اندروید', hint: 'خالی = دکمه‌ی دانلود نشان داده نمی‌شود', kind: 'text', min: 0, max: 300, default: '' },
   { key: 'link.bale_bot', group: 'app', label: 'لینک ربات بله (بازی از طریق ربات)', hint: 'مثلاً https://ble.ir/dozari_bot؛ خالی = دکمه‌ی «بازی در بله» در صفحه‌ی دانلود نشان داده نمی‌شود', kind: 'text', min: 0, max: 200, default: '' },
   { key: 'feature.telegram_app', group: 'app', label: 'بازی از طریق تلگرام (مینی‌اپ) در سایت نشان داده شود', hint: 'فعلاً خاموش؛ وقتی روشن شود و لینک پایین پر باشد، دکمه‌ی «بازی در تلگرام» در صفحه‌ی دانلود می‌آید', kind: 'bool', min: 0, max: 1, default: 0 },

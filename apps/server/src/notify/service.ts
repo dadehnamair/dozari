@@ -53,6 +53,19 @@ export class NotifyService {
     }
   }
 
+  /** Set at start-up: the player behind a Bale user id who logs in through the mini-app, so they can pay without linking the bot first. */
+  miniAppUserOf?: (baleUserId: string) => Promise<string | null>;
+
+  /** A payment link for the mini-app (`openInvoice`); no chat link is needed. */
+  async invoiceLink(invoice: BaleInvoice): Promise<{ ok: true; link: string } | { ok: false; error: 'unavailable' | 'failed' }> {
+    if (!this.client?.createInvoiceLink || !this.providerToken) return { ok: false, error: 'unavailable' };
+    try {
+      return { ok: true, link: await this.client.createInvoiceLink({ title: invoice.title, description: invoice.description, payload: invoice.payload, providerToken: this.providerToken, prices: [{ label: invoice.label, amount: invoice.amountRials }] }) };
+    } catch {
+      return { ok: false, error: 'failed' };
+    }
+  }
+
   get configured(): boolean {
     return this.client !== null;
   }
@@ -161,7 +174,7 @@ export class NotifyService {
     let verdict: PreCheckout = { ok: false, message: 'پرداخت فعلاً ممکن نیست.' };
     try {
       // A private chat's id is the user's id, so the paying Bale user maps to the linked player the same way a chat does.
-      if (this.payments) verdict = await this.payments.preCheckout(q.invoice_payload, q.total_amount, q.currency, await this.store.userOfChat(String(q.from.id)));
+      if (this.payments) verdict = await this.payments.preCheckout(q.invoice_payload, q.total_amount, q.currency, (await this.store.userOfChat(String(q.from.id))) ?? (await this.miniAppUserOf?.(String(q.from.id))) ?? null);
     } catch {
       /* answer «no» below */
     }

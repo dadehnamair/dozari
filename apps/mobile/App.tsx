@@ -20,6 +20,7 @@ import { HomeScreen } from './src/home/HomeScreen';
 import { onAccountSwitched } from './src/auth/switched';
 import { useMusic } from './src/sound/music';
 import { useHardwareBack } from './src/nav/useHardwareBack';
+import { useBaleBack } from './src/bale/useBaleBack';
 import { useKeyboardInset } from './src/nav/useKeyboardInset';
 import { BrandScreen } from './src/brand/BrandScreen';
 import { KitGallery } from './src/kit/KitGallery';
@@ -35,6 +36,8 @@ import { SplashScreen } from './src/splash/SplashScreen';
 import { DuelScreen } from './src/duel/DuelScreen';
 import { SoloScreen } from './src/solo/SoloScreen';
 import { useInviteLink } from './src/social/useInviteLink';
+import { useMyTrack } from './src/agetrack/useMyTrack';
+import { RestCardView } from './src/agetrack/RestCardView';
 import { safeInsetTop } from './src/theme/safeArea';
 import { PwaLayer } from './src/pwa/PwaLayer';
 import { PriceOnlyScreen } from './src/priceonly/PriceOnlyScreen';
@@ -65,8 +68,9 @@ export default function App() {
   const config = useClientConfig();
   const phone = usePhoneGate(config.raw);
   const gate = gateState(config, APP_BUILD);
-  useInviteLink(gate === 'ok' && config.features.friends);
+  const inviteGate = useInviteLink(gate === 'ok' && config.features.friends);
   const ageTracksOn = config.raw['feature.age_tracks'] === 1;
+  const myTrack = useMyTrack(ageTracksOn && gate === 'ok');
   const [fontsLoaded] = useFonts({ Vazirmatn_400Regular, Vazirmatn_700Bold, Lalezar_400Regular });
 
   // Minimal navigation until a real router lands with the hub screen (docs/logic/app-screens.md).
@@ -117,6 +121,9 @@ export default function App() {
         ? () => setScreen('home')
         : null,
   );
+
+  // Inside the Bale mini-app the header back button does the same.
+  useBaleBack();
 
   // Whenever Home is shown (so the player is signed in and probably online), keep the saved offline puzzles topped up.
   useEffect(() => {
@@ -199,11 +206,14 @@ export default function App() {
           onLookup={() => setScreen('lookup')}
           features={homeFeatures}
           settings={config.raw}
+          myTrack={myTrack}
           onGallery={__DEV__ ? () => setScreen('gallery') : undefined}
         />
       ) : null}
       <ServerDownBanner />
       <PwaLayer home={screen === 'home'} />
+      {inviteGate}
+      {myTrack.limits ? <RestCardView limits={myTrack.limits} /> : null}
     </View>
   );
 }

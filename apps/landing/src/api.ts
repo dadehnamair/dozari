@@ -8,6 +8,7 @@ export interface PublicSite {
   instagram: string | null;
   channel: string | null;
   androidApp: string | null;
+  iosApp: string | null;
   /** Link of the Bale bot where the game can be played; null until the admin sets it. */
   baleBot?: string | null;
   /** Telegram mini-app link; null while the admin switch is off or the link is empty. */
@@ -46,6 +47,10 @@ export interface LandingData {
   site: PublicSite;
   cast: CastMember[];
   faq: FaqPair[];
+}
+/** The try-it puzzle: groups in difficulty order (level 0 = easiest), each item an icon drawn by the game server. */
+export interface DemoPuzzle {
+  groups: { level: number; title: string; items: { name: string; svg: string; image: string | null }[] }[];
 }
 export interface PostSummary {
   slug: string;
@@ -105,6 +110,14 @@ export class ContentApi {
 
   async landing(): Promise<LandingData> {
     return (await this.get<LandingData>('/public/landing')) as LandingData;
+  }
+  /** The catalog-backed try-it puzzle, or null when the server has none (or cannot say): the page then shows its static one. */
+  async demo(): Promise<DemoPuzzle | null> {
+    try {
+      return await this.get<DemoPuzzle>('/public/landing-demo', true);
+    } catch {
+      return null;
+    }
   }
   async posts(page = 1, pageSize = 12): Promise<PostList> {
     return (await this.get<PostList>(`/public/posts?page=${page}&pageSize=${pageSize}`)) as PostList;

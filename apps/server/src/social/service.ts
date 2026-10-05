@@ -2,9 +2,10 @@ import { LEADERBOARD_SIZE, PERIOD_DAYS } from '@dozari/shared';
 import type { FriendRelation, Friends, Gender, Leaderboard, LeaderboardPeriod, LeaderboardScope, MyProfile, PlayerProfile } from '@dozari/shared';
 import type { PlayerService } from '../player/service.js';
 import type { BadgeService } from '../badges/service.js';
+import type { Meetable, SocialBlocked } from '../agetrack/service.js';
 import type { SocialStore } from './store.js';
 
-export type RequestResult = 'ok' | 'self' | 'unknown_player' | 'already' | 'accepted';
+export type RequestResult = 'ok' | 'self' | 'unknown_player' | 'already' | 'accepted' | 'needs_guardian' | 'ask_guardian';
 
 /** Public profiles, friend requests and the private gender setting. */
 export class SocialService {
@@ -30,13 +31,24 @@ export class SocialService {
     return p.requestedBy === me ? 'sent' : 'received';
   }
 
+  /** Age-track gate (docs/logic/age-tracks.md §Friends): who `me` may see, befriend and rank against. Absent = no track rule. */
+  sameTrack?: Meetable;
+  /** Kid/teen without a linked guardian: no friend requests or accepts yet. */
+  blocked?: SocialBlocked;
+  /** Kid/teen whose guardian wants to approve friends first: they neither send nor accept requests; the guardian accepts for them. */
+  asksGuardian?: SocialBlocked;
+
+  private async meets(me: string, other: string): Promise<boolean> {
+    return !this.sameTrack || (await this.sameTrack(me, [other])).has(other);
+  }
+
   /** What a player wears now (set at start-up when the shop exists); shown on their public profile. */
   wornOf?: (userId: string) => Promise<{ slot: string; iconKey: string | null }[]>;
 
   /** What anybody may see of a player. */
   async profile(me: string, id: string): Promise<PlayerProfile | null> {
     const row = await this.store.publicRow(id);
-    if (!row) return null;
+    if (!row || (me !== id && !(await this.meets(me, id)))) return null;
     const lv = (await this.player?.levelOf(id)) ?? { level: { level: 1 }, stats: { games: 0, wins: 0, losses: 0, draws: 0 } };
     const city = (await this.player?.cityOf(id)) ?? null;
     const party = (await this.birthdayInfo([id])).get(id);
@@ -45,8 +57,10 @@ export class SocialService {
 
   async request(me: string, target: string): Promise<RequestResult> {
     if (me === target) return 'self';
+    if (await this.blocked?.(me)) return 'needs_guardian';
+    if (await this.asksGuardian?.(me)) return 'ask_guardian';
     const [mine, theirs] = await Promise.all([this.store.publicRow(me), this.store.publicRow(target)]);
-    if (!theirs || !mine) return 'unknown_player';
+    if (!theirs || !mine || !(await this.meets(me, target))) return 'unknown_player';
     const p = await this.store.pair(me, target);
     if (p?.status === 'accepted') return 'already';
     if (p?.status === 'pending') {
@@ -64,8 +78,17 @@ export class SocialService {
     return 'ok';
   }
 
-  async accept(me: string, other: string): Promise<boolean> {
+  async accept(me: string, other: string): Promise<boolean | 'needs_guardian' | 'ask_guardian'> {
+    if (await this.blocked?.(me)) return 'needs_guardian';
+    if (await this.asksGuardian?.(me)) return 'ask_guardian';
+    if (!(await this.meets(me, other))) return false;
     return this.store.accept(me, other, this.now());
+  }
+
+  /** The guardian's yes: accepts a pending request for the child (the request must come from the other side, and the other must be on the child's track). */
+  async approveFor(child: string, other: string): Promise<boolean> {
+    if (!(await this.meets(child, other))) return false;
+    return this.store.accept(child, other, this.now());
   }
 
   /** Cancels a request, declines one, or unfriends. */
@@ -74,7 +97,11 @@ export class SocialService {
   }
 
   async friends(me: string): Promise<Friends> {
-    const [friends, incoming] = await Promise.all([this.store.friends(me), this.store.incoming(me)]);
+    const [allFriends, allIncoming] = await Promise.all([this.store.friends(me), this.store.incoming(me)]);
+    // A friendship that crossed tracks (one side moved) stays stored but is not shown or used.
+    const ok = this.sameTrack ? await this.sameTrack(me, [...allFriends, ...allIncoming].map((f) => f.id)) : null;
+    const friends = ok ? allFriends.filter((f) => ok.has(f.id)) : allFriends;
+    const incoming = ok ? allIncoming.filter((f) => ok.has(f.id)) : allIncoming;
     const party = await this.birthdayInfo(friends.map((f) => f.id));
     return { friends: friends.map((f) => ({ ...f, online: this.isOnline(f.id), birthday: party.get(f.id)?.badge ?? false })), incoming };
   }
@@ -93,7 +120,12 @@ export class SocialService {
     } else if (scope === 'friends') {
       filter = { userIds: [me, ...(await this.store.friends(me)).map((f) => f.id)] };
     }
-    const rows = await player.ranking(filter, LEADERBOARD_SIZE, since);
+    let rows = await player.ranking(filter, LEADERBOARD_SIZE, since);
+    if (this.sameTrack) {
+      // Other tracks never appear on a board. The list is cut after ranking, so a kid/teen board can be shorter than the usual size.
+      const ok = await this.sameTrack(me, rows.map((r) => r.userId).filter((id) => id !== me));
+      rows = rows.filter((r) => r.userId === me || ok.has(r.userId));
+    }
     const entries = [];
     for (const [i, r] of rows.entries()) {
       const [who, lv, city] = await Promise.all([this.store.publicRow(r.userId), player.levelOf(r.userId), player.cityOf(r.userId)]);
@@ -101,7 +133,7 @@ export class SocialService {
       entries.push({ rank: i + 1, id: r.userId, nickname: who.nickname, avatarKey: who.avatarKey, level: lv.level.level, xp: r.xp, province: city?.province ?? null, isMe: r.userId === me });
     }
     const mine = await player.levelOf(me);
-    return { scope, period, entries, me: { rank: await player.rankOf(me, filter, since), xp: since === undefined ? mine.level.xp : await player.xpSince(me, since), level: mine.level.level }, hasCity: true };
+    return { scope, period, entries, me: { rank: this.sameTrack ? (entries.find((e) => e.isMe)?.rank ?? (await player.rankOf(me, filter, since))) : await player.rankOf(me, filter, since), xp: since === undefined ? mine.level.xp : await player.xpSince(me, since), level: mine.level.level }, hasCity: true };
   }
 
   async mine(me: string): Promise<MyProfile | null> {

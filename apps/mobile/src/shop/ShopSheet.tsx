@@ -13,6 +13,7 @@ import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { ApiError } from '../net/http';
 import { buyItem, fetchShop, payWithMoney } from './api';
+import { payNote } from './payNote';
 import { pageTop } from '../theme/safeArea';
 import { useHardwareBack } from '../nav/useHardwareBack';
 
@@ -89,7 +90,10 @@ export function ShopSheet({ onClose, onBalance, realMoney = false }: { onClose: 
   const pick = (k: TabKey) => (setTab(k), setPage(0), setNote(k === 'boost' ? null : fa.shop.soon));
   const pay = (it: ShopItem) =>
     payWithMoney(it.id).then(
-      () => setNote(fa.shop.invoiceSent),
+      (r) =>
+        r === 'paid'
+          ? swr.refresh('shop', fetchShop).then((s) => (setShop(s), onBalance?.(s.balance), setNote(payNote(r))), () => setNote(payNote(r)))
+          : setNote(payNote(r)),
       (e) => setNote(e instanceof ApiError && e.code === 'bale_not_linked' ? fa.shop.linkBale : fa.shop.payError),
     );
 

@@ -66,6 +66,7 @@ import { registerCandidateRoutes } from './realtime/candidates.js';
 import { createDbProfileLookup } from './realtime/profile.js';
 import { AccountDeletion, createDbDeleteCodeStore } from './account/deletion.js';
 import { registerAuthRoutes } from './auth/routes.js';
+import { baleDeviceId } from './auth/bale-miniapp.js';
 import { createTokenSigner } from './auth/tokens.js';
 import { createDbAdminRepository } from './admin/db-repository.js';
 import { registerAdminRoutes } from './admin/routes.js';
@@ -136,6 +137,10 @@ import { createDbAgeTrackStore } from './agetrack/store.js';
 import { createDbAgeTrackAdmin } from './agetrack/overview.js';
 import { GuardianService, registerGuardianRoutes } from './guardian/service.js';
 import { createDbGuardianStore } from './guardian/store.js';
+import { GuardianSettingsService, createDbGuardianSettingsStore } from './guardian/settings.js';
+import { createDigestBuilder } from './guardian/digest.js';
+import { createDbLessonSeenStore } from './lessons/seen.js';
+import type { LessonSeenStore } from './lessons/seen.js';
 import { registerLessonRoutes } from './lessons/service.js';
 import type { LessonStore } from './lessons/service.js';
 import { createDbLessonStore } from './lessons/store.js';
@@ -247,6 +252,8 @@ export interface ServerDeps {
   ageTracks?: AgeTrackService;
   /** Kid word lessons (D198). */
   lessons?: LessonStore;
+  /** Which word lessons a player saw (the guardian's digest). */
+  lessonSeen?: LessonSeenStore;
   /** Guardian links: child profiles, link codes, band-change approval (D198). */
   guardian?: GuardianService;
   /** Reports of players and the suggestion / vote / approve loop (D177). */
@@ -260,6 +267,8 @@ export interface ServerDeps {
   corsOrigin?: string;
   /** Docker-free dev: directory of uploaded product images, served at `/images/*`. */
   localImagesDir?: string;
+  /** The Bale bot token; turns on `POST /auth/bale-miniapp` (the Bale mini-app login, docs/logic/bale-miniapp.md). */
+  baleBotToken?: string;
 }
 
 export function buildServer(deps: ServerDeps = {}) {
@@ -323,11 +332,14 @@ export function buildServer(deps: ServerDeps = {}) {
     sample: rialsToTomanString(1_500),
   }));
 
-  if (deps.corsOrigin) {
+  // Bale's web client may open the mini-app in a sandboxed iframe, whose requests carry `Origin: null`. The API takes bearer tokens only
+  // (no cookies), so allowing that origin adds no cross-site risk; it is on only when the Bale login is.
+  const corsOrigin = deps.corsOrigin && deps.baleBotToken && deps.corsOrigin !== '*' && !deps.corsOrigin.split(',').some((o) => o.trim() === 'null') ? `${deps.corsOrigin},null` : deps.corsOrigin;
+  if (corsOrigin) {
     // @fastify/cors ≥10 allows only GET/HEAD/POST by default; the web app also sends PUT, PATCH and DELETE.
-    void app.register(fastifyCors, { origin: deps.corsOrigin === '*' ? true : deps.corsOrigin.split(',').map((o) => o.trim()), methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'] });
+    void app.register(fastifyCors, { origin: corsOrigin === '*' ? true : corsOrigin.split(',').map((o) => o.trim()), methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'] });
   }
-  if (deps.auth) registerAuthRoutes(app, deps.auth, deps.deletion);
+  if (deps.auth) registerAuthRoutes(app, deps.auth, deps.deletion, deps.baleBotToken);
   if (deps.auth && deps.dailyReward) registerDailyRewardRoutes(app, deps.auth, deps.dailyReward);
   if (deps.auth && deps.wheel) registerWheelRoutes(app, deps.auth, deps.wheel);
   if (deps.auth && deps.social) registerSocialRoutes(app, deps.auth, deps.social);
@@ -381,18 +393,18 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.profileTasks) registerProfileTaskRoutes(app, deps.auth, deps.profileTasks);
   if (deps.auth && deps.birthday) registerBirthdayRoutes(app, deps.auth, deps.birthday);
   if (deps.auth && deps.ageTracks) registerAgeTrackRoutes(app, deps.auth, deps.ageTracks);
-  if (deps.auth && deps.lessons) registerLessonRoutes(app, deps.auth, deps.lessons);
+  if (deps.auth && deps.lessons) registerLessonRoutes(app, deps.auth, deps.lessons, deps.lessonSeen);
   if (deps.auth && deps.guardian) registerGuardianRoutes(app, deps.auth, deps.guardian);
   if (deps.auth && deps.feedback) registerFeedbackRoutes(app, deps.auth, deps.feedback);
   if (deps.auth && deps.gems) registerGemRoutes(app, deps.auth, deps.gems);
   if (deps.landing && deps.settings) registerLandingPublicRoutes(app, deps.landing, deps.settings);
   if (deps.shortLinks) registerShortLinkRoutes(app, deps.shortLinks);
-  if (deps.auth && deps.shopReal) registerShopPayRoutes(app, deps.auth, deps.shopReal, deps.notify ? { send: (id, inv) => deps.notify!.sendInvoice(id, inv) } : undefined);
-  if (deps.auth && deps.coinPackages) registerCoinPackageRoutes(app, deps.auth, deps.coinPackages, deps.notify ? { send: (id, inv) => deps.notify!.sendInvoice(id, inv) } : undefined);
+  if (deps.auth && deps.shopReal) registerShopPayRoutes(app, deps.auth, deps.shopReal, deps.notify ? { send: (id, inv) => deps.notify!.sendInvoice(id, inv), link: (inv) => deps.notify!.invoiceLink(inv) } : undefined);
+  if (deps.auth && deps.coinPackages) registerCoinPackageRoutes(app, deps.auth, deps.coinPackages, deps.notify ? { send: (id, inv) => deps.notify!.sendInvoice(id, inv), link: (inv) => deps.notify!.invoiceLink(inv) } : undefined);
   let gateway: Gateway | undefined;
   if (deps.auth && deps.realtime) {
     const auth = deps.auth;
-    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin: deps.corsOrigin, match: deps.match, canAfford: deps.duelStakes ? (u) => deps.duelStakes!.canQueue(u) : undefined, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, levelGate: deps.duelLevelGate, limit: deps.limiter ? { canPlay: async (u) => (await deps.limiter!.check(u, 'duel')).ok, onStarted: (u) => deps.limiter!.record(u, 'duel') } : undefined, chat: deps.chat, presence: deps.presence, notices: deps.notices, onEmit: deps.botDriver ? (u, e, p) => deps.botDriver!.onEmit(u, e, p) : undefined, trackOf: deps.ageTracks ? (u) => deps.ageTracks!.effective(u).catch(() => 'adult' as const) : undefined, diagnose: deps.match ? createQueueDiagnosis({ hasPuzzle: async (tracks) => (await deps.match!.puzzles.pickRandom({ tracks })) !== null, botsReady: () => deps.botDriver?.ready() ?? false, graceSec: 45 }) : undefined });
+    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin, match: deps.match, canAfford: deps.duelStakes ? (u) => deps.duelStakes!.canQueue(u) : undefined, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, levelGate: deps.duelLevelGate, limit: deps.limiter ? { canPlay: async (u) => (await deps.limiter!.check(u, 'duel')).ok, onStarted: (u) => deps.limiter!.record(u, 'duel') } : undefined, chat: deps.chat, presence: deps.presence, notices: deps.notices, onEmit: deps.botDriver ? (u, e, p) => deps.botDriver!.onEmit(u, e, p) : undefined, trackOf: deps.ageTracks ? (u) => deps.ageTracks!.effective(u).catch(() => 'adult' as const) : undefined, diagnose: deps.match ? createQueueDiagnosis({ hasPuzzle: async (tracks) => (await deps.match!.puzzles.pickRandom({ tracks })) !== null, botsReady: () => deps.botDriver?.ready() ?? false, graceSec: 45 }) : undefined });
     if (deps.live) {
       deps.live.matches = gateway.matches;
       deps.live.queue = gateway.queue;
@@ -553,7 +565,7 @@ if (isMainModule(import.meta.url)) {
           chat: () => chat,
           settings: async () => ({ enabled: (await settings.num('bots.enabled')) === 1, fallbackSec: await settings.num('bots.fallback_seconds'), jitterSec: await settings.num('bots.fallback_jitter_seconds'), cityReplyPercent: await settings.num('bots.city_reply_percent'), autofillMin: await settings.num('bots.autofill_min') }),
           topUp: botService ? async (missing) => void (await botService.generate({ count: missing, levelMin: 3, levelMax: 25, skillMin: 30, skillMax: 75, winPercentMin: 40, winPercentMax: 65, thinkMinMs: 4000, thinkMaxMs: 20_000, tauntPercent: 25, cityIds: playerStore ? (await playerStore.cities()).map((c) => c.id) : [] })) : undefined,
-          taunts: chatStore ? async () => (await chatStore.taunts()).map((c) => ({ nameFa: c.nameFa, ids: c.taunts.map((t) => t.id) })) : undefined,
+          taunts: chatStore ? async () => (await chatStore.taunts()).filter((c) => c.ageTrack === 'adult').map((c) => ({ nameFa: c.nameFa, ids: c.taunts.map((t) => t.id) })) : undefined,
           rng: () => randomInt(0, 2 ** 30) / 2 ** 30,
         })
       : undefined;
@@ -603,7 +615,9 @@ if (isMainModule(import.meta.url)) {
           texts: { weekTitle: BIRTHDAY_TITLE.week, weekBody: BALE_TEXT.birthdayWeek, dayTitle: BIRTHDAY_TITLE.day, dayBody: BALE_TEXT.birthdayDay },
         })
       : undefined;
-  const ageTracks = db && settings ? new AgeTrackService(createDbAgeTrackStore(db), async () => (await settings.num('feature.age_tracks')) === 1) : undefined;
+  const guardianStore = db ? createDbGuardianStore(db) : undefined;
+  const guardianSettings = db ? new GuardianSettingsService(createDbGuardianSettingsStore(db)) : undefined;
+  const ageTracks = db && settings ? new AgeTrackService(createDbAgeTrackStore(db), async () => (await settings.num('feature.age_tracks')) === 1, () => new Date(), async (id) => (guardianStore ? (await guardianStore.guardianOf(id)) !== null : false), async (id) => (guardianStore && guardianSettings && (await guardianStore.guardianOf(id)) !== null ? guardianSettings.limits(id) : null)) : undefined;
   const guardian =
     db && auth && phoneLogin
       ? new GuardianService(createDbGuardianStore(db), createDbAgeTrackStore(db), phoneLogin, createDbPhoneStore(db), auth, () => `guardian:${randomUUID()}`)
@@ -634,6 +648,17 @@ if (isMainModule(import.meta.url)) {
           startMatch: async (a, b) => (live.matches ? live.matches.start(a, b, { friendly: true }) : false),
           startTeam: async (sides) => (live.matches ? live.matches.startTeam(sides) : false),
           inMatch: (id) => live.matches?.inMatch(id) ?? false,
+          trackOf: ageTracks ? (id) => ageTracks.effective(id) : undefined,
+          socialBlocked: ageTracks ? (id) => ageTracks.socialBlocked(id) : undefined,
+          duelsOff: ageTracks ? (id) => ageTracks.duelsOff(id) : undefined,
+          // A family is a guardian and their children (the guardian link is the whole proof; nobody else can open a family table).
+          hasFamily: guardianStore ? async (id) => (await guardianStore.guardianOf(id)) !== null || (await guardianStore.childrenOf(id)).length > 0 : undefined,
+          sameFamily: guardianStore
+            ? async (a, b) => {
+                const [ga, gb] = await Promise.all([guardianStore.guardianOf(a), guardianStore.guardianOf(b)]);
+                return ga === b || gb === a || (ga !== null && ga === gb);
+              }
+            : undefined,
           idleMs: async () => (await settings.num('table.idle_minutes')) * 60_000,
         })
       : undefined;
@@ -652,8 +677,31 @@ if (isMainModule(import.meta.url)) {
           }),
           createShortener(),
           () => randomInt(0, 2 ** 30) / 2 ** 30,
+          Date.now,
+          ageTracks ? (me, others) => ageTracks.meetable(me, others) : undefined,
+          ageTracks ? (id) => ageTracks.socialBlocked(id) : undefined,
+          ageTracks ? (id) => ageTracks.friendsNeedApproval(id) : undefined,
         )
       : undefined;
+  if (chat && ageTracks) chat.managed = { trackOf: (id) => ageTracks.effective(id), hasGuardian: async (id) => (guardianStore ? (await guardianStore.guardianOf(id)) !== null : false), chatMode: async (id) => (guardianSettings ? (await guardianSettings.get(id)).chatMode : 'friends_text') };
+  if (social && ageTracks) {
+    social.sameTrack = (me, others) => ageTracks.meetable(me, others);
+    social.blocked = (id) => ageTracks.socialBlocked(id);
+    social.asksGuardian = (id) => ageTracks.friendsNeedApproval(id);
+  }
+  const lessonSeen = db ? createDbLessonSeenStore(db) : undefined;
+  if (guardian && guardianSettings) guardian.settings = guardianSettings;
+  if (guardian && lessonSeen && player && socialStore) {
+    guardian.digest = createDigestBuilder({ seen: lessonSeen, recentGames: (id, n) => player.recentGames(id, n), level: async (id) => (await player.levelOf(id)).level.level, friendCount: async (id) => (await socialStore.friends(id)).length });
+  }
+  if (guardian && social && socialStore) {
+    guardian.friends = {
+      friends: (id) => socialStore.friends(id),
+      incoming: (id) => socialStore.incoming(id),
+      approve: (childId, otherId) => social.approveFor(childId, otherId),
+      remove: (childId, otherId) => social.remove(childId, otherId),
+    };
+  }
   const levelOf = async (id: string) => (player ? (await player.levelOf(id)).level.level : 1);
   const shopStore = db ? createDbShopStore(db) : undefined;
   const landingService = db ? new LandingService(createDbLandingStore(db)) : undefined;
@@ -672,6 +720,8 @@ if (isMainModule(import.meta.url)) {
       creditPaid: (payload, chargeId, amount) => (payload.startsWith('si:') && shopReal ? shopReal.creditPaid(payload, chargeId, amount) : coinPackageService.creditPaid(payload, chargeId, amount)),
     };
     notify.providerToken = process.env.BALE_PROVIDER_TOKEN ?? null;
+    // Mini-app players pay without linking the bot: the paying Bale user maps to their mini-app account (same device id as the login).
+    if (baleToken) notify.miniAppUserOf = async (baleUserId) => (await auth?.userByDevice(baleDeviceId(baleToken, baleUserId)))?.id ?? null;
   }
   let dailyRef: DailyService | undefined;
   const solo =
@@ -799,6 +849,7 @@ if (isMainModule(import.meta.url)) {
     birthday,
     ageTracks,
     lessons: db ? createDbLessonStore(db) : undefined,
+    lessonSeen,
     guardian,
     feedback,
     profileTasks:
@@ -818,6 +869,7 @@ if (isMainModule(import.meta.url)) {
     clientInfo: db ? createDbClientInfoStore(db) : undefined,
     admin: db && jwtSecret ? { repo: createDbAdminRepository(db), token: adminToken, accounts: new AdminAccounts(createDbAdminStore(db), jwtSecret, adminToken) } : undefined,
     corsOrigin: process.env.CORS_ORIGIN,
+    baleBotToken: baleToken,
     trustProxy: process.env.TRUST_PROXY === '1',
     localImagesDir: process.env.LOCAL_IMAGES_DIR,
   });

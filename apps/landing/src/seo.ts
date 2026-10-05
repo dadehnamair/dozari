@@ -15,6 +15,7 @@ export interface Site {
   sameAs: string[];
   appUrl: string | null;
   androidApp: string | null;
+  iosApp: string | null;
   baleBot?: string | null;
   telegramApp?: string | null;
   badges?: { id: string; url: string | null }[];

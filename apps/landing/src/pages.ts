@@ -1,4 +1,4 @@
-import type { CastMember, FaqPair, LandingData, Post, PostList, PostSummary } from './api.js';
+import type { CastMember, DemoPuzzle, FaqPair, LandingData, Post, PostList, PostSummary } from './api.js';
 import { escapeHtml, plainText, renderMarkdown } from './markdown.js';
 import { qrSvg } from './qr.js';
 import { absolute, description, faqNode, head, ids } from './seo.js';
@@ -49,8 +49,8 @@ h2.big{font-size:clamp(34px,4.5vw,52px);line-height:1.15;text-align:center}
 .stage .disc{position:absolute;width:380px;height:380px;max-width:90%;aspect-ratio:1;border-radius:50%;background:var(--orange);border:4px solid var(--ink)}
 .stage img{position:relative;width:min(320px,80%);height:auto}
 .badges{display:flex;gap:12px;flex-wrap:wrap}
-.badge{display:flex;flex-direction:column;gap:2px;padding:10px 18px;border:3px solid var(--ink);border-radius:18px;background:var(--ink);color:var(--cream);text-decoration:none;box-shadow:0 4px 0 var(--pink);min-width:130px;line-height:1.5}
-.badge:hover{color:var(--cream)}.badge small{font-size:11px;font-weight:600;opacity:.75}.badge b{font-family:var(--display);font-weight:400;font-size:20px;line-height:1.2}
+.badge{display:flex;align-items:center;gap:12px;padding:10px 18px;border:3px solid var(--ink);border-radius:18px;background:var(--ink);color:var(--cream);text-decoration:none;box-shadow:0 4px 0 var(--pink);min-width:130px;line-height:1.5}
+.badge .ic{width:28px;height:28px;flex:none;color:var(--yellow)}.badge .tx{display:flex;flex-direction:column;gap:2px}.badge.off{opacity:.6;box-shadow:none}.badge:hover{color:var(--cream)}.badge small{font-size:11px;font-weight:600;opacity:.75}.badge b{font-family:var(--display);font-weight:400;font-size:20px;line-height:1.2}
 .cards4{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;padding:0;list-style:none;margin:0}
 .tile{background:#fff;border:4px solid var(--ink);border-radius:28px;padding:24px;box-shadow:0 6px 0 var(--ink);display:flex;flex-direction:column;gap:12px}
 .tile.cream{background:var(--cream)}
@@ -97,7 +97,7 @@ details.faq p{margin:0;padding:0 22px 20px;font-weight:500;font-size:16px}
 .stores{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;padding:0;list-style:none;margin:0}
 .store{text-decoration:none;color:var(--ink);background:#fff;border:4px solid var(--ink);border-radius:28px;padding:22px;box-shadow:0 6px 0 var(--ink);display:flex;flex-direction:column;gap:14px;height:100%}
 .store:hover{color:var(--ink)}.store.off{opacity:.55;box-shadow:none}
-.store .top2{display:flex;align-items:center;gap:12px}.store .ab{width:56px;height:56px;border-radius:16px;border:3px solid var(--ink);display:grid;place-items:center;font-family:var(--display);font-size:26px;line-height:1;flex:none}
+.store .top2{display:flex;align-items:center;gap:12px}.store .ab .ic{width:30px;height:30px}.store .ab{width:56px;height:56px;border-radius:16px;border:3px solid var(--ink);display:grid;place-items:center;font-family:var(--display);font-size:26px;line-height:1;flex:none}
 .store .t{display:flex;flex-direction:column;line-height:1.5}.store .t b{font-family:var(--display);font-weight:400;font-size:26px;line-height:1.2}.store .t small{font-weight:600;font-size:13px;opacity:.65}
 .store .cta{align-self:flex-start;font-weight:800;font-size:15px;padding:6px 18px;border-radius:999px;background:var(--ink);color:var(--cream);line-height:1.8}
 .reqs{display:flex;flex-direction:column;gap:16px}
@@ -148,8 +148,8 @@ footer.bottom .in{padding-top:56px;padding-bottom:28px;display:flex;flex-directi
 footer.bottom h2{font-size:22px;margin:0 0 10px}footer.bottom ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px}
 footer.bottom a{color:var(--cream);text-decoration:none;font-weight:600;font-size:15px}footer.bottom a:hover{color:var(--yellow)}
 footer.bottom .brandname{font-family:var(--display);font-size:40px;color:var(--yellow);line-height:1}footer.bottom p{margin:12px 0 0;font-weight:500;font-size:15px;opacity:.85}
-.social{display:flex;gap:8px;flex-wrap:wrap}.social a{font-weight:800;font-size:14px;padding:6px 14px;border-radius:999px;line-height:1.8}
-.badges{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:center;border-top:2px solid rgba(255,246,232,.2);padding-top:20px}.badges a,.badges span{display:flex;align-items:center;justify-content:center;background:#fff;border-radius:12px;padding:6px;height:88px;min-width:88px}.badges img{max-height:76px;max-width:120px;width:auto;height:auto;display:block}
+.social{display:flex;gap:8px;flex-wrap:wrap}.social a{display:inline-flex;align-items:center;gap:6px;font-weight:800;font-size:14px;padding:6px 14px;border-radius:999px;line-height:1.8}.social .ic{width:18px;height:18px}
+footer.bottom .badges{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:center;border-top:2px solid rgba(255,246,232,.2);padding-top:20px}footer.bottom .badges a,footer.bottom .badges span{display:flex;align-items:center;justify-content:center;background:#fff;border-radius:12px;padding:6px;height:88px;min-width:88px}footer.bottom .badges img{max-height:76px;max-width:120px;width:auto;height:auto;display:block}
 .legal{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border-top:2px solid rgba(255,246,232,.2);padding-top:20px;font-weight:600;font-size:13px;opacity:.7}.legal .ltr{direction:ltr}
 /* motion + home extras (all animation is off under prefers-reduced-motion; content is visible without scripts) */
 .prog{position:fixed;inset-block-start:0;inset-inline:0;height:5px;background:var(--pink);transform:scaleX(0);transform-origin:right;z-index:50;pointer-events:none}
@@ -201,7 +201,7 @@ main{overflow-x:clip}
 .demo{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
 .dgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 .dgrid .t{font:800 17px/1.3 Vazirmatn,sans-serif;min-height:68px;padding:8px 4px;border:3px solid var(--ink);border-radius:16px;background:var(--cream);color:var(--ink);cursor:pointer;box-shadow:0 4px 0 var(--ink);transition:transform .12s,background .15s}
-.dgrid .t:hover{transform:translateY(-2px)}.dgrid .t[aria-pressed=true]{background:var(--violet);color:var(--cream);transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.demo.icons .dgrid .t{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:14px;min-height:96px}.demo.icons .dgrid .t svg{width:46px;height:46px;flex:none;pointer-events:none}.demo.icons .dgrid .t img{width:56px;height:56px;object-fit:cover;border-radius:12px;border:2px solid var(--ink);background:#fff;flex:none;pointer-events:none}.demo.icons .dgrid .t span{pointer-events:none}.dgrid .t:hover{transform:translateY(-2px)}.dgrid .t[aria-pressed=true]{background:var(--violet);color:var(--cream);transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
 .dgrid .t.done{cursor:default;box-shadow:none;transform:none;color:var(--ink);background:var(--gc)}
 .dgrid .t.shake{animation:shake .45s}.dgrid .t.pop{animation:pop .5s}
 .dgrid .gb{grid-column:1/-1;border:3px solid var(--ink);border-radius:16px;padding:6px 12px;text-align:center;font-family:var(--display);font-size:22px;line-height:1.5;background:var(--gc);color:var(--ink)}
@@ -215,6 +215,7 @@ main{overflow-x:clip}
 /* final cta with banner */
 .fin{display:block;width:100%;max-width:1100px;border:4px solid var(--ink);border-radius:40px;box-shadow:0 8px 0 var(--ink);overflow:hidden;transition:transform .35s}.fin:hover{transform:scale(1.015) rotate(-.6deg)}.fin img{width:100%;height:auto}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.js .rv{opacity:1;transform:none}.mq{overflow-x:auto}}
+@media(max-width:700px){header.top{border-bottom-width:3px}.bar{padding:8px 14px;gap:6px 10px}.brand{font-size:26px;gap:8px}.brand .face{width:38px!important;height:38px!important}.bar>.btn{font-size:16px;padding:6px 14px 3px;border-width:2px;box-shadow:0 3px 0 var(--ink)}nav.main{order:3;flex:0 0 100%;flex-wrap:nowrap;overflow-x:auto;gap:2px;scrollbar-width:none;margin:0 -14px;padding:0 14px 2px}nav.main::-webkit-scrollbar{display:none}nav.main a{font-size:13px;padding:2px 12px;border-width:2px;white-space:nowrap;line-height:1.7}}
 @media(max-width:560px){.fl{display:none}.band>.in{padding-top:40px;padding-bottom:40px}.sec{padding-top:48px;padding-bottom:48px}.promo{padding:26px}.sticky{position:static}.cc{flex-direction:column}}
 `;
 
@@ -255,6 +256,18 @@ const NAV: [NavKey, string, string][] = [['home', '/', 'خانه'], ['about', '/
 const SOCIAL_LABEL: [RegExp, string][] = [[/instagram\.com/, 'اینستاگرام'], [/t\.me|telegram/, 'تلگرام'], [/aparat\.com/, 'آپارات'], [/bale\.ai|ble\.ir/, 'بله'], [/eitaa/, 'ایتا'], [/rubika/, 'روبیکا']];
 const hostOf = (u: string): string => u.replace(/^https?:\/\/(www\.)?/, '').replace(/\/+$/, '');
 const socialLabel = (u: string): string => SOCIAL_LABEL.find(([re]) => re.test(u))?.[1] ?? hostOf(u);
+/** Inline 24×24 glyphs (currentColor): no external requests. */
+const ICON_PATH: Record<string, string> = {
+  web: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm6.9 9h-3.1a15.6 15.6 0 0 0-1.4-6A8 8 0 0 1 18.9 11ZM12 4c.9 1 1.9 3.1 2.2 7H9.8C10.1 7.100 11.100 5 12 4ZM4.600 13h3.100c.1 2.200.6 4.300 1.400 6A8 8 0 0 1 4.600 13Zm3.100-2H4.600a8 8 0 0 1 4.500-6c-.8 1.700-1.300 3.800-1.400 6Zm4.300 9c-.9-1-1.900-3.100-2.200-7h4.400c-.3 3.900-1.300 6-2.200 7Zm2.900-1c.8-1.700 1.300-3.800 1.400-6h3.100a8 8 0 0 1-4.500 6Z',
+  android: 'M6 18a1 1 0 0 0 1 1h1v3a1.500 1.500 0 0 0 3 0v-3h2v3a1.500 1.500 0 0 0 3 0v-3h1a1 1 0 0 0 1-1V8H6v10ZM3.500 8A1.500 1.500 0 0 0 2 9.500v6a1.500 1.500 0 0 0 3 0v-6A1.500 1.500 0 0 0 3.500 8Zm17 0A1.500 1.500 0 0 0 19 9.500v6a1.500 1.500 0 0 0 3 0v-6A1.500 1.500 0 0 0 20.500 8ZM15.500 2.700l1.200-1.800a.5.500 0 0 0-.8-.6L14.600 2.200a6 6 0 0 0-5.200 0L8.100.3a.5.500 0 0 0-.8.600L8.500 2.700A5.900 5.900 0 0 0 6 7h12a5.900 5.900 0 0 0-2.500-4.300ZM9.500 5.500a.75.75 0 1 1 0-1.500.75.75 0 0 1 0 1.500Zm5 0a.75.75 0 1 1 0-1.500.75.75 0 0 1 0 1.500Z',
+  apple: 'M16.400 12.700c0-2.400 2-3.500 2.100-3.600a4.500 4.500 0 0 0-3.600-1.900c-1.500-.2-3 .9-3.700.9-.8 0-2-.9-3.300-.9a4.900 4.900 0 0 0-4.100 2.500c-1.800 3.100-.5 7.600 1.300 10.100.8 1.200 1.800 2.600 3.100 2.500 1.300-.1 1.700-.8 3.200-.8s1.900.8 3.200.8c1.400 0 2.200-1.200 3-2.500a10 10 0 0 0 1.400-2.900c0 0-2.600-1-2.600-4.200ZM14 5.200A4.300 4.300 0 0 0 15 2a4.400 4.400 0 0 0-2.900 1.500 4.100 4.100 0 0 0-1 3.100A3.600 3.600 0 0 0 14 5.200Z',
+  instagram: 'M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5Zm0 2a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H7Zm5 3.500a4.500 4.500 0 1 1 0 9 4.500 4.500 0 0 1 0-9Zm0 2a2.500 2.500 0 1 0 0 5 2.500 2.500 0 0 0 0-5Zm5.200-3.200a1.100 1.100 0 1 1 0 2.200 1.100 1.100 0 0 1 0-2.200Z',
+  telegram: 'M21.900 4.200 18.600 19.800c-.2 1.100-.9 1.400-1.800.9l-5-3.700-2.400 2.300c-.3.300-.5.500-1 .5l.4-5.100 9.300-8.400c.4-.4-.1-.6-.6-.2L6 13.300 1.100 11.800c-1.100-.3-1.100-1 .2-1.500L20.400 3c.9-.3 1.700.2 1.500 1.200Z',
+  mail: 'M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm0 2v.5l8 5 8-5V6H4Zm16 3L12 14 4 9v9h16V9Z',
+  link: 'M10.600 13.400a1 1 0 0 1 0-1.400l3-3a3 3 0 1 1 4.200 4.200l-1.800 1.800-1.400-1.400 1.800-1.800a1 1 0 0 0-1.400-1.400l-3 3a1 1 0 0 1-1.400 0ZM13.400 10.600a1 1 0 0 1 0 1.400l-3 3a3 3 0 1 1-4.200-4.200L8 9l1.400 1.400-1.800 1.800a1 1 0 0 0 1.400 1.400l3-3a1 1 0 0 1 1.400 0Z',
+};
+const icon = (k: string): string => `<svg class="ic" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="${ICON_PATH[k] ?? ICON_PATH.link}"/></svg>`;
+const socialIcon = (u: string): string => (/instagram\.com/.test(u) ? 'instagram' : /t\.me|telegram/.test(u) ? 'telegram' : 'link');
 const SOCIAL_BG = [['#FF4D8D', '#FFF6E8'], ['#3FC1F0', '#2B1240'], ['#FFC93C', '#2B1240'], ['#7ED957', '#2B1240'], ['#FF7A3D', '#2B1240']] as const;
 
 /** Every page: scroll progress bar, sticky-header shadow and the scroll-reveal of `.rv` blocks. */
@@ -310,7 +323,7 @@ ${content}
 <div><div class="brandname">${escapeHtml(site.name)}</div><p>${escapeHtml(site.tagline)}</p></div>
 <div><h2 style="color:var(--sky)">صفحه‌ها</h2><ul><li><a href="/">خانه</a></li><li><a href="/about">درباره ما</a></li><li><a href="/blog">وبلاگ</a></li><li><a href="/cast">آدم‌های بازار</a></li><li><a href="/download">دانلود</a></li><li><a href="/contact">تماس و سوالات</a></li></ul></div>
 <div><h2 style="color:var(--lime)">قوانین</h2><ul><li><a href="/terms">قوانین و شرایط</a></li><li><a href="/privacy">حریم خصوصی</a></li></ul></div>
-<div><h2 style="color:var(--orange)">ما را دنبال کنید</h2><div class="social">${social.map((s) => `<a href="${escapeHtml(s.u)}" rel="noopener me" style="background:${s.c[0]};color:${s.c[1]}">${escapeHtml(s.label)}</a>`).join('')}${site.contactEmail ? `<a href="mailto:${escapeHtml(site.contactEmail)}" style="background:#FFF6E8;color:#2B1240">ایمیل</a>` : ''}</div></div>
+<div><h2 style="color:var(--orange)">ما را دنبال کنید</h2><div class="social">${social.map((s) => `<a href="${escapeHtml(s.u)}" rel="noopener me" style="background:${s.c[0]};color:${s.c[1]}">${icon(socialIcon(s.u))}${escapeHtml(s.label)}</a>`).join('')}${site.contactEmail ? `<a href="mailto:${escapeHtml(site.contactEmail)}" style="background:#FFF6E8;color:#2B1240">${icon('mail')}ایمیل</a>` : ''}</div></div>
 </div>
 ${badgesHtml(site)}
 <div class="legal"><span>© ${escapeHtml(year)} ${escapeHtml(site.name)} · همهٔ حقوق محفوظ است</span><span class="ltr">${escapeHtml(site.url.replace(/^https?:\/\//, ''))}</span></div>
@@ -326,13 +339,11 @@ const faqList = (faq: FaqPair[], open = -1): string => `<div class="faqs">${faq.
 
 /** Real download links only: the web app and the Android file, when the admin has set them. */
 function storeBadges(site: Site): string {
-  const b = [
-    site.appUrl ? `<a class="badge" href="${escapeHtml(site.appUrl)}"><small>بازی آنلاین</small><b>نسخهٔ وب</b></a>` : '',
-    site.androidApp ? `<a class="badge" href="${escapeHtml(site.androidApp)}"><small>دریافت فایل</small><b>اندروید</b></a>` : '',
-    site.baleBot ? `<a class="badge" href="${escapeHtml(site.baleBot)}"><small>بازی از طریق ربات</small><b>بله</b></a>` : '',
-    site.telegramApp ? `<a class="badge" href="${escapeHtml(site.telegramApp)}"><small>بازی بدون نصب</small><b>تلگرام</b></a>` : '',
-  ].join('');
-  return b || '<a class="badge" href="/download"><small>دریافت</small><b>دانلود دوزاری</b></a>';
+  const b = (ic: string, small: string, name: string, href: string | null): string => {
+    const inner = `${icon(ic)}<span class="tx"><small>${small}</small><b>${name}</b></span>`;
+    return href ? `<a class="badge" href="${escapeHtml(href)}">${inner}</a>` : `<span class="badge off" aria-disabled="true">${inner}</span>`;
+  };
+  return [b('web', 'بازی آنلاین', 'نسخهٔ وب', site.appUrl), b('android', 'دریافت فایل', 'اندروید', site.androidApp), b('apple', site.iosApp ? 'دریافت برنامه' : 'به‌زودی', 'iOS', site.iosApp), ...(site.baleBot ? [b('chat', 'بازی از طریق ربات', 'بله', site.baleBot)] : []), ...(site.telegramApp ? [b('chat', 'بازی بدون نصب', 'تلگرام', site.telegramApp)] : [])].join('');
 }
 
 const postCard = (p: PostSummary): string => {
@@ -398,14 +409,17 @@ const DEMO_GROUPS = [
   ['چای‌خانه‌ی سنتی', ['نی', 'استکان', 'سماور', 'قلیون']],
 ] as const;
 const DEMO_ORDER = [4, 12, 1, 9, 7, 0, 14, 5, 10, 3, 13, 8, 2, 15, 6, 11];
-const demo = (): string => {
-  const words = DEMO_GROUPS.flatMap(([, w], g) => w.map((x) => ({ x, g })));
-  const tiles = DEMO_ORDER.map((i) => words[i] as { x: string; g: number });
-  return `<div class="demo" id="demo" data-groups='${JSON.stringify(DEMO_GROUPS.map(([t]) => t))}'>
-<div class="dgrid">${tiles.map((t) => `<button class="t" type="button" data-g="${t.g}" aria-pressed="false">${escapeHtml(t.x)}</button>`).join('')}</div>
-<p class="dmsg" role="status" aria-live="polite">چهارتا کلمه‌ی هم‌دسته را انتخاب کن</p>
+type DemoTile = { x: string; g: number; svg?: string; image?: string | null };
+const demo = (live: DemoPuzzle | null): string => {
+  const ok = live !== null && live.groups.length === 4 && live.groups.every((g) => g.items.length === 4);
+  const titles = ok ? live.groups.map((g) => g.title) : DEMO_GROUPS.map(([t]) => t);
+  const words: DemoTile[] = ok ? live.groups.flatMap((g, n) => g.items.map((i) => ({ x: i.name, g: n, svg: i.svg, image: i.image }))) : DEMO_GROUPS.flatMap(([, w], g) => w.map((x) => ({ x, g })));
+  const tiles = DEMO_ORDER.map((i) => words[i] as DemoTile);
+  return `<div class="demo${ok ? ' icons' : ''}" id="demo" data-groups='${escapeHtml(JSON.stringify(titles))}'>
+<div class="dgrid">${tiles.map((t) => `<button class="t" type="button" data-g="${t.g}" aria-pressed="false">${t.image && /^https?:\/\//.test(t.image) ? `<img src="${escapeHtml(t.image)}" alt="" loading="lazy" decoding="async">` : (t.svg ?? '')}<span>${escapeHtml(t.x)}</span></button>`).join('')}</div>
+<p class="dmsg" role="status" aria-live="polite">چهارتا کالای هم‌دسته را انتخاب کن</p>
 <div class="dbar"><button class="btn" type="button" data-act="submit" disabled>ثبت کن</button><button class="btn yellow" type="button" data-act="reset">از اول</button></div>
-<p class="dnote">نمونه‌ی ساده با کلمه‌ها؛ در بازی اصلی گروه‌ها بر پایه‌ی قیمت کالاها در سال‌های گذشته‌اند.</p></div>`;
+<p class="dnote">${ok ? 'یک پازل واقعی از بازی؛ گروه‌ها بر پایه‌ی قیمت کالاها در سال‌های گذشته‌اند.' : 'نمونه‌ی ساده با کلمه‌ها؛ در بازی اصلی گروه‌ها بر پایه‌ی قیمت کالاها در سال‌های گذشته‌اند.'}</p></div>`;
 };
 
 /** The page script: banner auto-play, animated numbers and the try-it puzzle. */
@@ -424,14 +438,14 @@ if(!R)setInterval(function(){if(!hold&&!d.hidden)go(cur+1)},4500);}
 var cs=d.querySelectorAll('[data-to]');
 if(cs.length&&'IntersectionObserver' in window&&!R){var io=new IntersectionObserver(function(es){es.forEach(function(e){if(!e.isIntersecting)return;io.unobserve(e.target);var el=e.target,to=Number(el.dataset.to),s=performance.now();(function f(now){var p=Math.min(1,(now-s)/1200);el.textContent=fa(Math.round(to*(1-Math.pow(1-p,3))));if(p<1)requestAnimationFrame(f)})(s)})},{threshold:.6});cs.forEach(function(c){io.observe(c)})}
 var demo=d.getElementById('demo');
-if(demo){var names=JSON.parse(demo.dataset.groups),colors=['#FFC93C','#7ED957','#3FC1F0','#A66BF0'],grid=demo.querySelector('.dgrid'),msg=demo.querySelector('.dmsg'),ok=demo.querySelector('[data-act=submit]'),sel=[],solved=0,miss=0;
+if(demo){var names=JSON.parse(demo.dataset.groups),colors=['#FFC93C','#7ED957','#3FC1F0','#A66BF0'],grid=demo.querySelector('.dgrid'),msg=demo.querySelector('.dmsg'),m0=demo.querySelector('.dmsg').textContent,ok=demo.querySelector('[data-act=submit]'),sel=[],solved=0,miss=0;
 var tiles=[].slice.call(grid.querySelectorAll('.t'));
 var sync=function(){tiles.forEach(function(t){t.setAttribute('aria-pressed',sel.indexOf(t)>-1)});ok.disabled=sel.length!==4};
 grid.addEventListener('click',function(e){var t=e.target.closest('.t');if(!t||t.classList.contains('done'))return;var i=sel.indexOf(t);if(i>-1)sel.splice(i,1);else if(sel.length<4)sel.push(t);sync()});
 ok.addEventListener('click',function(){if(sel.length!==4)return;var g=sel[0].dataset.g,same=sel.filter(function(t){return t.dataset.g===g}).length;
 if(same===4){var bar=d.createElement('div');bar.className='gb';bar.textContent=names[g];bar.style.setProperty('--gc',colors[g]);bar.style.order=solved*5;grid.appendChild(bar);sel.forEach(function(t,k){t.classList.add('done','pop');t.style.setProperty('--gc',colors[g]);t.style.order=solved*5+1+k;t.setAttribute('aria-pressed','false')});solved++;sel=[];msg.textContent=solved===4?'دوزاری‌ات افتاد! همه‌ی گروه‌ها را پیدا کردی.':'آفرین! یک گروه پیدا شد.';sync();tiles.forEach(function(t){if(!t.classList.contains('done'))t.style.order=100})}
 else{miss++;sel.forEach(function(t){t.classList.remove('shake');void t.offsetWidth;t.classList.add('shake')});msg.textContent=same===3?'یکی‌شون جاش اشتباهه!':'این‌ها هم‌دسته نیستند؛ دوباره فکر کن.';sel=[];sync()}});
-demo.querySelector('[data-act=reset]').addEventListener('click',function(){grid.querySelectorAll('.gb').forEach(function(b){b.remove()});tiles.forEach(function(t){t.className='t';t.style.order='';t.style.removeProperty('--gc')});sel=[];solved=0;miss=0;msg.textContent='چهارتا کلمه‌ی هم‌دسته را انتخاب کن';sync()})}
+demo.querySelector('[data-act=reset]').addEventListener('click',function(){grid.querySelectorAll('.gb').forEach(function(b){b.remove()});tiles.forEach(function(t){t.className='t';t.style.order='';t.style.removeProperty('--gc')});sel=[];solved=0;miss=0;msg.textContent=m0;sync()})}
 })();`;
 
 /** The people of the game for the home strip and the about page: the game's own cast list, else the designed one. */
@@ -440,7 +454,7 @@ const castOf = (cast: CastMember[]): { name: string; role: string; who: Who; id:
 
 const FLOATERS: [string, string, string, string][] = [['coin', '38%', '52%', '0s'], ['gift', '44%', '4%', '1.2s'], ['crown', '3%', '66%', '2.1s'], ['coinStack', '47%', '82%', '.6s'], ['hat', '90%', '8%', '1.7s'], ['map', '92%', '70%', '2.8s']];
 
-export function homePage(site: Site, data: LandingData, latest: PostSummary[]): string {
+export function homePage(site: Site, data: LandingData, latest: PostSummary[], demoPuzzle: DemoPuzzle | null = null): string {
   const { site: s, cast, faq } = data;
   const i = ids(site);
   const title = s.seo?.title || `${s.name} — ${s.tagline}`;
@@ -477,7 +491,7 @@ ${showRow('s', { h: 'با رفقات رقابت کن', p: 'حریف پیدا ک�
 ${showRow('o', { h: 'هر روز یه جایزه', p: 'گردونه‌ی روزانه را بچرخان و سکه ببر؛ سکه‌ها برای آواتار، کلاه و لباس مخصوص خودت خرج می‌شوند.', chips: ['گردونه‌ی روزانه', 'سکه‌ی بازی', 'ظاهر اختصاصی'], art: frame('banner7', '2deg'), flip: true })}
 <section class="band v"><div class="in col" style="gap:36px;padding-top:80px;padding-bottom:80px"><h2 class="big rv" style="color:var(--cream)">دوزاری در یک نگاه</h2>
 <div class="stats">${stats.map(([n, l, c], k) => `<div class="stat rv z" style="--c:${c};--d:${k * 0.1}s"><b data-to="${n}">${faNum(n)}</b><span>${l}</span></div>`).join('')}</div></div></section>
-<section class="in sec col" style="gap:28px"><div class="col" style="align-items:center;text-align:center;gap:6px"><h2 class="big rv">همین‌جا امتحان کن</h2><p class="rv" style="margin:0;font-weight:600;font-size:17px;opacity:.8">دوزاری‌ات می‌افتد؟ شانزده کلمه، چهار دسته</p></div><div class="rv z">${demo()}</div></section>
+<section class="in sec col" style="gap:28px"><div class="col" style="align-items:center;text-align:center;gap:6px"><h2 class="big rv">همین‌جا امتحان کن</h2><p class="rv" style="margin:0;font-weight:600;font-size:17px;opacity:.8">دوزاری‌ات می‌افتد؟ شانزده کالا، چهار دسته</p></div><div class="rv z">${demo(demoPuzzle)}</div></section>
 <section class="band s"><div class="in col" style="gap:36px;padding-top:80px;padding-bottom:80px"><h2 class="big rv">${escapeHtml(s.name)} چطور بازی می‌شود؟</h2>
 <ol class="steps">${HOW_TO.map(([n, t, art], k) => `<li class="rv" style="--d:${k * 0.12}s"><div class="shot">${img(art, 216, 248)}</div><span class="num">${faNum(k + 1)}</span><h3>${escapeHtml(n)}</h3><p>${escapeHtml(t)}</p></li>`).join('')}</ol></div></section>
 <section class="in sec col" style="gap:28px"><div class="col" style="align-items:center;text-align:center;gap:6px"><h2 class="big rv">آدم‌های بازار</h2><p style="margin:0;font-weight:600;font-size:17px;opacity:.8">هر کدوم یه قصه دارن و یه عالمه کالا</p></div>
@@ -528,14 +542,14 @@ export function downloadPage(site: Site): string {
   const desc = description(`${site.name} را رایگان روی گوشی اندروید نصب کن، همین حالا در مرورگر بازی کن یا از طریق ربات بله شروع کن.`);
   type Store = { fa: string; os: string; ab: string; bg: string; cta: string; href: string | null };
   const stores: Store[] = [
-    { fa: 'نسخهٔ وب', os: 'مرورگر', ab: 'W', bg: '#FF7A3D', cta: 'بازی آنلاین', href: site.appUrl },
-    { fa: 'دانلود مستقیم', os: 'فایل APK اندروید', ab: '↓', bg: '#FFC93C', cta: 'دریافت فایل', href: site.androidApp },
+    { fa: 'نسخهٔ وب', os: 'مرورگر', ab: icon('web'), bg: '#FF7A3D', cta: 'بازی آنلاین', href: site.appUrl },
+    { fa: 'دانلود مستقیم', os: 'فایل APK اندروید', ab: icon('android'), bg: '#FFC93C', cta: 'دریافت فایل', href: site.androidApp },
     { fa: 'بله', os: 'بازی از طریق ربات', ab: 'ب', bg: '#3FC1F0', cta: 'شروع در بله', href: site.baleBot ?? null },
     ...(site.telegramApp ? [{ fa: 'تلگرام', os: 'بازی در مینی‌اپ، بدون نصب', ab: 'T', bg: '#3FC1F0', cta: 'بازی در تلگرام', href: site.telegramApp }] : []),
     { fa: 'گوگل‌پلی', os: 'اندروید', ab: 'G', bg: '#7ED957', cta: 'به‌زودی', href: null },
     { fa: 'کافه‌بازار', os: 'اندروید', ab: 'ب', bg: '#7ED957', cta: 'به‌زودی', href: null },
     { fa: 'مایکت', os: 'اندروید', ab: 'م', bg: '#3FC1F0', cta: 'به‌زودی', href: null },
-    { fa: 'اپ‌استور', os: 'iOS', ab: 'A', bg: '#A66BF0', cta: 'به‌زودی', href: null },
+    { fa: 'iOS', os: 'آیفون و آیپد', ab: icon('apple'), bg: '#A66BF0', cta: site.iosApp ? 'دریافت برنامه' : 'به‌زودی', href: site.iosApp },
   ];
   const reqs = [['اتصال اینترنت', 'برای بازی زنده و ذخیره‌ی پیشرفت'], ['حساب', 'مهمان؛ شماره‌ی تلفن اختیاری است'], ['مرورگر', 'نسخه‌ی تازه‌ی کروم، فایرفاکس، سافاری یا ادج'], ['هزینه', 'رایگان']] as const;
   const inGame = ['تکی، زنده دونفره، دو در دو و میز خصوصی', 'جدول تازه هر روز', 'آواتار، کلاه و لباس با سکه‌ی بازی', 'نمودار قیمت پایان هر بازی برای دیدن مسیر قیمت‌ها'];
