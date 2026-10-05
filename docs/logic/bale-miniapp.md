@@ -42,7 +42,7 @@ Shop items bought with money (`payWithMoney`, D170; coin packages have the same 
    `NotifyService.miniAppUserOf` also maps `from.id` → `baleDeviceId(botToken, id)` → account. Only the Bale user the account was created for can pay its invoice.
 5. Outside the mini-app nothing changes: the invoice goes into the linked chat.
 
-CORS: the compose file also allows the `null` origin, because Bale's web client may sandbox the iframe (opaque origin). The API authenticates with bearer tokens only
+CORS: the server itself adds the `null` origin whenever `BALE_BOT_TOKEN` is set (no env change needed; the compose file lists it too), because Bale's web client may sandbox the iframe (opaque origin). The API authenticates with bearer tokens only
 (no cookies), so a CORS allow-list is not what protects it. If `localStorage` is unusable there, the bridge installs an in-memory one.
 
 ## Not verified

@@ -84,6 +84,16 @@ describe('POST /auth/bale-miniapp', () => {
     expect((await app.inject({ method: 'POST', url: '/auth/bale-miniapp', payload: { initData: forged } })).statusCode).toBe(401);
     expect((await app.inject({ method: 'POST', url: '/auth/bale-miniapp', payload: {} })).statusCode).toBe(400);
   });
+  it('answers the preflight of a sandboxed iframe (Origin: null) and of the mini-app domain, but not of a stranger', async () => {
+    const mk = (token?: string) => buildServer({ auth: new AuthService({ async findByDeviceId() { return null; }, async findById() { return null; }, async createGuest() { throw new Error('unused'); }, async touch() {} }, createTokenSigner('a-test-secret-that-is-long-enough'), mulberry32(3)), baleBotToken: token, corsOrigin: 'https://app.example.ir' });
+    const preflight = async (app: ReturnType<typeof mk>, origin: string) =>
+      (await app.inject({ method: 'OPTIONS', url: '/auth/bale-miniapp', headers: { origin, 'access-control-request-method': 'POST', 'access-control-request-headers': 'content-type' } })).headers['access-control-allow-origin'];
+    const on = mk(BOT);
+    expect(await preflight(on, 'null')).toBe('null');
+    expect(await preflight(on, 'https://app.example.ir')).toBe('https://app.example.ir');
+    expect(await preflight(on, 'https://evil.example')).toBeUndefined();
+    expect(await preflight(mk(), 'null')).toBeUndefined(); // no Bale login, no sandbox origin
+  });
   it('is not there without a bot token', async () => {
     const app = setup();
     expect((await app.inject({ method: 'POST', url: '/auth/bale-miniapp', payload: { initData: fresh() } })).statusCode).toBe(404);
