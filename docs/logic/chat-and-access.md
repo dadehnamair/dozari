@@ -93,3 +93,7 @@ A canned-taunt category may be tied to a city (`taunt_categories.city_id`, null 
 
 Room `dm`, `roomKey` = the two user ids sorted and joined by `:`. Only accepted friends may read or write (`NOT_FRIENDS` otherwise). Text follows the normal rules (activation, filter, contact-info block, mute, rate limit); a `table` card (code + icon + name) needs no activation. Both players get the message live; history is polled.
 Presence (`online` on friends and profiles) = the player has at least one live socket.
+
+## Kid and teen tracks (D198, proposed)
+
+For kid and teen profiles the chat gate keeps its shape but changes who opens it: the guardian's «فعال‌سازی گفتگو» sets `chat_unlocked_at` (no invite code needed), and free text is allowed only between accepted friends of the same track, through a stricter word list. Details: `age-tracks.md` §Friends, duels and chat.
