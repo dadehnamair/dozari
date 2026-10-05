@@ -41,7 +41,7 @@ export interface GatewayOptions {
   /** A player's age track (docs/logic/age-tracks.md); the queues only pair players of one track. Missing = everyone is adult. */
   trackOf?: (userId: string) => Promise<AgeTrack>;
   /** Why a player who has waited `waitedSec` is not being matched (nothing to play, nobody to play against); null = just wait. */
-  diagnose?: (waitedSec: number) => Promise<QueueProblem | null>;
+  diagnose?: (waitedSec: number, track?: AgeTrack) => Promise<QueueProblem | null>;
 }
 
 export interface Gateway {
@@ -231,9 +231,9 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
   const statusTimer = setInterval(() => {
     void (async () => {
       for (const line of [queue, teamQueue]) {
-        for (const { userId, since } of line.waiting()) {
+        for (const { userId, since, track } of line.waiting()) {
           const waitedSec = Math.max(0, Math.floor((now() - since) / 1000));
-          const problem = (await opts.diagnose?.(waitedSec).catch(() => null)) ?? undefined;
+          const problem = (await opts.diagnose?.(waitedSec, track).catch(() => null)) ?? undefined;
           io.to(room(userId)).emit(ServerEvent.queueStatus, { waitedSec, position: line.position(userId) ?? 1, ...(problem ? { problem } : {}) });
         }
       }

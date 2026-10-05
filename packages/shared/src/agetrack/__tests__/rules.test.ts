@@ -19,7 +19,8 @@ describe('trackRules', () => {
     expect(r).toMatchObject({ priceGuess: true, coinWager: true, wordLesson: false, freeTextChat: 'invite_code', purchases: true });
   });
   it('only the kid track has the word lesson and no price round', () => {
-    expect(trackRules('kid')).toMatchObject({ wordLesson: true, priceGuess: false });
+    expect(trackRules('kid')).toMatchObject({ wordLesson: true, priceGuess: false, dailyPuzzle: false, priceOnly: false, lookup: false });
+    expect(trackRules('adult')).toMatchObject({ dailyPuzzle: true, priceOnly: true, lookup: true });
     expect(trackRules('teen').wordLesson).toBe(false);
   });
   it('serves each track from its own puzzle pool', () => {

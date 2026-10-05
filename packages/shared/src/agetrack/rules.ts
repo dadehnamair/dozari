@@ -17,6 +17,10 @@ export interface TrackRules {
   socialSameTrackOnly: boolean;
   /** Real-money purchases (when enabled at all). */
   purchases: boolean;
+  /** Home entries that need adult content or price knowledge: the daily puzzle (adult pool), «فقط حدس قیمت» and the price lookup. */
+  dailyPuzzle: boolean;
+  priceOnly: boolean;
+  lookup: boolean;
   /** Suggesting items (UGC). */
   ugc: boolean;
   /** City and province on the public profile. */
@@ -28,9 +32,9 @@ export interface TrackRules {
 }
 
 const RULES: Record<AgeTrack, TrackRules> = {
-  kid: { priceGuess: false, coinWager: false, wordLesson: true, freeTextChat: 'guardian_switch', socialSameTrackOnly: true, purchases: false, ugc: false, publicCity: false, puzzleTracks: ['kid'], tauntTrack: 'kid' },
-  teen: { priceGuess: true, coinWager: false, wordLesson: false, freeTextChat: 'guardian_switch', socialSameTrackOnly: true, purchases: false, ugc: false, publicCity: false, puzzleTracks: ['teen'], tauntTrack: 'teen' },
-  adult: { priceGuess: true, coinWager: true, wordLesson: false, freeTextChat: 'invite_code', socialSameTrackOnly: false, purchases: true, ugc: true, publicCity: true, puzzleTracks: ['adult'], tauntTrack: 'adult' },
+  kid: { priceGuess: false, coinWager: false, wordLesson: true, freeTextChat: 'guardian_switch', socialSameTrackOnly: true, purchases: false, ugc: false, publicCity: false, dailyPuzzle: false, priceOnly: false, lookup: false, puzzleTracks: ['kid'], tauntTrack: 'kid' },
+  teen: { priceGuess: true, coinWager: false, wordLesson: false, freeTextChat: 'guardian_switch', socialSameTrackOnly: true, purchases: false, ugc: false, publicCity: false, dailyPuzzle: false, priceOnly: true, lookup: true, puzzleTracks: ['teen'], tauntTrack: 'teen' },
+  adult: { priceGuess: true, coinWager: true, wordLesson: false, freeTextChat: 'invite_code', socialSameTrackOnly: false, purchases: true, ugc: true, publicCity: true, dailyPuzzle: true, priceOnly: true, lookup: true, puzzleTracks: ['adult'], tauntTrack: 'adult' },
 };
 
 export function trackRules(track: AgeTrack): TrackRules {

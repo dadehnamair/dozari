@@ -17,7 +17,7 @@ const HTML = 'text/html; charset=utf-8';
 function siteOf(data: LandingData, siteUrl: string | undefined): Site {
   const s = data.site;
   const url = (siteUrl && siteUrl.trim() !== '' ? siteUrl.trim() : s.domains.landing ? `https://${s.domains.landing}` : 'http://localhost:3100').replace(/\/+$/, '');
-  return { name: s.name, tagline: s.tagline, url, contactEmail: s.contactEmail, sameAs: [...new Set([s.instagram, s.channel, ...(s.seo?.sameAs ?? [])].filter((x): x is string => !!x))], appUrl: s.appUrl ?? (s.domains.app ? `https://${s.domains.app}` : null), androidApp: s.androidApp, ogImage: s.seo?.ogImage ?? null, ogImageAlt: s.seo?.ogImageAlt ?? null, keywords: s.seo?.keywords ?? [], fontUrl: s.seo?.fontUrl ?? null, indexable: s.seo?.indexable ?? true, verify: s.seo?.verify, analytics: s.seo?.analytics ?? null };
+  return { name: s.name, tagline: s.tagline, url, contactEmail: s.contactEmail, sameAs: [...new Set([s.instagram, s.channel, ...(s.seo?.sameAs ?? [])].filter((x): x is string => !!x))], appUrl: s.appUrl ?? (s.domains.app ? `https://${s.domains.app}` : null), androidApp: s.androidApp, badges: s.badges ?? [], ogImage: s.seo?.ogImage ?? null, ogImageAlt: s.seo?.ogImageAlt ?? null, keywords: s.seo?.keywords ?? [], fontUrl: s.seo?.fontUrl ?? null, indexable: s.seo?.indexable ?? true, verify: s.seo?.verify, analytics: s.seo?.analytics ?? null };
 }
 
 /** Every published post (the API pages them at 50). */
@@ -66,6 +66,11 @@ export function buildLanding(opts: LandingOptions): FastifyInstance {
   };
   app.get('/fonts/:file', asset('fonts', 'woff2', 'font/woff2', /^(Lalezar-Regular|Vazirmatn-(400|800|900))$/));
   app.get('/characters/:file', asset('characters', 'svg', 'image/svg+xml', /^[A-Za-z]+-[A-Za-z-]+$/));
+  app.get('/badges/:file', async (req, reply) => {
+    const file = (req.params as { file: string }).file;
+    const ext = file.endsWith('.svg') ? 'svg' : file.endsWith('.webp') ? 'webp' : 'png';
+    return asset('badges', ext, ext === 'svg' ? 'image/svg+xml' : `image/${ext}`, /^(enamad|samandehi|ersa|etehadieh|ircg|cafebazaar|myket)$/)(req, reply);
+  });
   app.get('/items/:file', asset('items', 'svg', 'image/svg+xml', /^[A-Za-z]+$/));
   // Promo banners (docs/design/banner, resized to webp) and the social card; favicons and the web-app icons.
   app.get('/banners/:file', async (req, reply) => {

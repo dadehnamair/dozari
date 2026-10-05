@@ -13,6 +13,9 @@ const trackRulesSchema = z.object({
   purchases: z.boolean(),
   ugc: z.boolean(),
   publicCity: z.boolean(),
+  dailyPuzzle: z.boolean(),
+  priceOnly: z.boolean(),
+  lookup: z.boolean(),
   puzzleTracks: z.array(ageTrackSchema),
   tauntTrack: ageTrackSchema,
 });

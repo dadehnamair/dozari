@@ -15,6 +15,7 @@ import { PhoneGate } from './src/config/PhoneGate';
 import { usePhoneGate } from './src/config/usePhoneGate';
 import { gateState } from './src/config/gate';
 import { useClientConfig } from './src/config/useClientConfig';
+import type { ClientConfig } from './src/config/gate';
 import { HomeScreen } from './src/home/HomeScreen';
 import { onAccountSwitched } from './src/auth/switched';
 import { useMusic } from './src/sound/music';
@@ -29,6 +30,7 @@ import { loginSeen, markLoginSeen, markTutorialSeen, tutorialSeen } from './src/
 import { LoginScreen } from './src/phone/LoginScreen';
 import { AgeTrackScreen } from './src/agetrack/AgeTrackScreen';
 import { ageTrackNeeded } from './src/agetrack/api';
+import { useTrackRules } from './src/agetrack/useTrackRules';
 import { SplashScreen } from './src/splash/SplashScreen';
 import { DuelScreen } from './src/duel/DuelScreen';
 import { SoloScreen } from './src/solo/SoloScreen';
@@ -64,12 +66,19 @@ export default function App() {
   const phone = usePhoneGate(config.raw);
   const gate = gateState(config, APP_BUILD);
   useInviteLink(gate === 'ok' && config.features.friends);
+  const ageTracksOn = config.raw['feature.age_tracks'] === 1;
   const [fontsLoaded] = useFonts({ Vazirmatn_400Regular, Vazirmatn_700Bold, Lalezar_400Regular });
 
   // Minimal navigation until a real router lands with the hub screen (docs/logic/app-screens.md).
   const [screen, setScreen] = useState<'splash' | 'login' | 'ageTrack' | 'home' | 'solo' | 'daily' | 'duel' | 'tutorial' | 'duelResume' | 'gallery' | 'search' | 'brand' | 'lookup' | 'priceonly'>(
     'splash',
   );
+
+  // A kid or teen track hides what needs adult content or price knowledge (docs/logic/age-tracks.md); the rules come from the server.
+  const trackRules = useTrackRules(ageTracksOn, screen);
+  const homeFeatures: ClientConfig['features'] = trackRules
+    ? { ...config.features, daily: config.features.daily && trackRules.dailyPuzzle, priceonly: config.features.priceonly && trackRules.priceOnly, lookup: config.features.lookup && trackRules.lookup }
+    : config.features;
 
   /** A home-screen shortcut (`?go=`, D102) opens its screen straight after the splash, when that mode is on. */
   const [launch] = useState(takeLaunchTarget);
@@ -188,7 +197,7 @@ export default function App() {
           onDuel={() => setScreen('duel')}
           onDuelResume={() => setScreen('duelResume')}
           onLookup={() => setScreen('lookup')}
-          features={config.features}
+          features={homeFeatures}
           settings={config.raw}
           onGallery={__DEV__ ? () => setScreen('gallery') : undefined}
         />
