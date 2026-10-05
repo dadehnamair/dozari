@@ -532,7 +532,11 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       void audit('taunt.update', p.data.id, JSON.stringify(b.data));
       return { ok: true };
     });
-    g.get('/admin/chat/reports', async () => ({ reports: await chat.reports({ openOnly: false, limit: 100 }) }));
+    // `?queue=minors` is the separate kid/teen review queue (docs/logic/age-tracks.md §Admin panel); `adults` the rest; default everything.
+    g.get('/admin/chat/reports', async (req) => {
+      const q = z.object({ queue: z.enum(['all', 'minors', 'adults']).default('all') }).safeParse(req.query);
+      return { reports: await chat.reports({ openOnly: false, limit: 100, queue: q.success ? q.data.queue : 'all' }) };
+    });
     g.post('/admin/chat/reports/:id/resolve', async (req, reply) => {
       const p = idParam.safeParse(req.params);
       if (!p.success) return reply.code(400).send({ error: 'invalid_request' });

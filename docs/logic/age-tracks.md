@@ -219,7 +219,10 @@ Setting `feature.age_tracks` (admin → settings → app, **default off**): off 
   friend requests and accepts (`403 {error:"needs_guardian"}`), invite-link friending (`/friends/link`), and opening or joining a table (`403 NEEDS_GUARDIAN`). Play, bots, the same-track quick match, solo, the lesson and phrases never need it.
   The app opens the existing one-step `GuardianStep` over the current sheet the first time a friend or table call answers that code (`useGuardianGate` in `PlayerSheet` and `TableSheet`; «بعداً» just closes it), and asks again only while no guardian is linked.
   **Auto-accept between two kids needs no extra code:** the other child's accept is enough, with no guardian approval step (the default of §Friends, duels and chat). What is left is the quiet notice to the guardian, which belongs to the phase 5 digest, with the «ask me first» switch.
-  Open in phase 4: the separate kid/teen report queue in the admin, the invite-link and contacts screens do not yet open the guardian step (they just show a failed line); the guardian's own chat switch (phrases only / off) is phase 5.
+- Phase 4, slice 6, **separate kid/teen report queue**: `GET /admin/chat/reports?queue=all|minors|adults` (default `all`, so the old callers and the nav count are unchanged); each row carries the reported player's `track`, and `minors` = kid + teen
+  authors (`ChatStore.reports({ queue })`, joined on `users.age_track`). The «گزارش‌های چت» view has a queue select and a track badge. A report row holds only the reported line and the reason (no surrounding chat), matching the privacy rule that a guardian
+  or moderator reads a child's talk only when it is reported. Open: a role restriction for who may open the minors queue (all admin roles that can open chat reports can for now), and a separate nav count for it.
+  Open in phase 4: the invite-link and contacts screens do not yet open the guardian step (they just show a failed line); the guardian's own chat switch (phrases only / off) is phase 5.
 - Not yet: the rest of the 30–50 kid puzzles; a track filter on the other admin lists (puzzles, items, tournaments, reports…); the separate report queue for kid/teen chats (phase 4);
 
 ## Phases

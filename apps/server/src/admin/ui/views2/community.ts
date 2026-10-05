@@ -110,21 +110,23 @@ VIEWS.taunts = function (root) {
 };
 VIEWS.chatreports = function (root) {
   var list = h('div');
+  var queue = select([['all', 'همه‌ی گزارش‌ها'], ['minors', 'صف کودک و نوجوان'], ['adults', 'صف بزرگسال']], 'all');
+  queue.onchange = function () { draw(); };
   function draw() {
-    api('/admin/chat/reports').then(function (r) {
+    api('/admin/chat/reports?queue=' + queue.value).then(function (r) {
       clear(list);
       if (r.status === 404) return list.appendChild(empty('چت روی این سرور فعال نیست'));
       if (!r.ok) return fail(r);
       if (!r.body.reports.length) return list.appendChild(empty('گزارشی نیست'));
       r.body.reports.forEach(function (x) {
         list.appendChild(h('div', { class: 'kv' }, [
-          h('span', { text: x.messageText }), h('span', { style: 'color:var(--muted);font-size:12px', text: (x.reason || 'بدون دلیل') + ' · ' + ago(x.createdAt) }),
+          h('span', { text: x.messageText }), x.track === 'adult' ? null : badge(x.track === 'kid' ? 'کودک' : 'نوجوان', 'b-warn'), h('span', { style: 'color:var(--muted);font-size:12px', text: (x.reason || 'بدون دلیل') + ' · ' + ago(x.createdAt) }),
           x.resolved ? badge('بررسی شد', 'b-ok') : h('button', { class: 'btn sm', text: 'بررسی شد', onclick: function () { api('/admin/chat/reports/' + x.id + '/resolve', { method: 'POST' }).then(function (y) { if (!y.ok) return fail(y); draw(); }); } }),
           h('button', { class: 'btn bad sm', text: 'حذف پیام', onclick: function () { api('/admin/chat/messages/' + x.messageId, { method: 'DELETE' }).then(function (y) { if (y.status === 404) toast('پیام قبلاً حذف شده', true); else if (!y.ok) return fail(y); draw(); }); } })]));
       });
     });
   }
-  root.appendChild(card('گزارش‌های چت', 'پیام گزارش‌شده را ببین؛ حذف کن، یا از «کاربران» اخطار/سکوت بده.', [list]));
+  root.appendChild(card('گزارش‌های چت', 'پیام گزارش‌شده را ببین؛ حذف کن، یا از «کاربران» اخطار/سکوت بده. گزارش‌های چت کودک و نوجوان صف جدا دارند و فقط همان خط گزارش‌شده نمایش داده می‌شود.', [queue, list]));
   draw();
 };
 VIEWS.tournaments = function (root) {

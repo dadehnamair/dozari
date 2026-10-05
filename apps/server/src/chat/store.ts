@@ -1,4 +1,4 @@
-import { and, asc, cannedTaunts, chatMessages, chatReports, desc, eq, isNull, lt, sql, tauntCategories } from '@dozari/db';
+import { and, asc, cannedTaunts, chatMessages, chatReports, desc, eq, inArray, isNull, lt, sql, tauntCategories, users } from '@dozari/db';
 import type { AgeTrack, ChatRoom } from '@dozari/shared';
 import type { Db } from '@dozari/db';
 import { uuidv7 } from 'uuidv7';
@@ -43,7 +43,12 @@ export interface ReportRow {
   resolved: boolean;
   messageText: string;
   messageUserId: string;
+  /** Track of the player who wrote the reported line (kid and teen reports go to their own queue). */
+  track: AgeTrack;
 }
+
+/** Which reports an admin lists: everything, the kid/teen queue (`minors`), or the adult one. */
+export type ReportQueue = 'all' | 'minors' | 'adults';
 
 /** Starter taunts (playful, never insulting; brand voice in docs/brand.md). Edited and extended in the admin panel. */
 export const DEFAULT_TAUNTS: readonly { nameFa: string; texts: readonly string[] }[] = [
@@ -84,7 +89,7 @@ export interface ChatStore {
   message(id: string): Promise<MessageRow | null>;
   removeMessage(id: string): Promise<boolean>;
   report(messageId: string, reporterId: string, reason: string): Promise<'ok' | 'duplicate' | 'not_found'>;
-  reports(opts: { openOnly: boolean; limit: number }): Promise<ReportRow[]>;
+  reports(opts: { openOnly: boolean; limit: number; queue?: ReportQueue }): Promise<ReportRow[]>;
   resolveReport(id: string): Promise<boolean>;
   /** Deletes messages older than the cut-off (retention); returns how many. */
   purgeBefore(ms: number): Promise<number>;
@@ -185,15 +190,16 @@ export function createDbChatStore(db: Db): ChatStore {
       }
       return 'ok';
     },
-    async reports({ openOnly, limit }) {
+    async reports({ openOnly, limit, queue = 'all' }) {
       const rows = await db
-        .select({ r: chatReports, m: chatMessages })
+        .select({ r: chatReports, m: chatMessages, track: users.ageTrack })
         .from(chatReports)
         .innerJoin(chatMessages, eq(chatMessages.id, chatReports.messageId))
-        .where(openOnly ? isNull(chatReports.resolvedAt) : undefined)
+        .innerJoin(users, eq(users.id, chatMessages.userId))
+        .where(and(openOnly ? isNull(chatReports.resolvedAt) : undefined, queue === 'minors' ? inArray(users.ageTrack, ['kid', 'teen']) : queue === 'adults' ? eq(users.ageTrack, 'adult') : undefined))
         .orderBy(desc(chatReports.createdAt))
         .limit(limit);
-      return rows.map(({ r, m }) => ({ id: r.id, messageId: r.messageId, reporterId: r.reporterId, reason: r.reason, createdAt: r.createdAt.getTime(), resolved: r.resolvedAt !== null, messageText: m.text, messageUserId: m.userId }));
+      return rows.map(({ r, m, track }) => ({ id: r.id, messageId: r.messageId, reporterId: r.reporterId, reason: r.reason, createdAt: r.createdAt.getTime(), resolved: r.resolvedAt !== null, messageText: m.text, messageUserId: m.userId, track }));
     },
     async resolveReport(id) {
       const [r] = await db.select({ id: chatReports.id }).from(chatReports).where(and(eq(chatReports.id, id), isNull(chatReports.resolvedAt)));
@@ -211,7 +217,7 @@ export function createDbChatStore(db: Db): ChatStore {
 }
 
 
-export function createMemoryChatStore(): ChatStore & { clock: { ms: number } } {
+export function createMemoryChatStore(): ChatStore & { clock: { ms: number }; tracks: Map<string, AgeTrack> } {
   const clock = { ms: Date.now() };
   const cats: TauntCategoryRow[] = DEFAULT_TAUNTS.map((c, i) => ({
     id: `00000000-0000-7000-8000-${String(i + 1).padStart(12, '0')}`,
@@ -223,12 +229,15 @@ export function createMemoryChatStore(): ChatStore & { clock: { ms: number } } {
     taunts: c.texts.map((text, j) => ({ id: `00000000-0000-7000-9000-${String(i * 10 + j + 1).padStart(12, '0')}`, categoryId: `00000000-0000-7000-8000-${String(i + 1).padStart(12, '0')}`, text, sortOrder: j, isActive: true })),
   }));
   const msgs: (MessageRow & { deleted: boolean })[] = [];
+  /** Track of each player, for the kid/teen report queue (default adult). */
+  const tracks = new Map<string, AgeTrack>();
   const reports: { id: string; messageId: string; reporterId: string; reason: string; createdAt: number; resolved: boolean }[] = [];
   let seq = 0;
   const id = () => `00000000-0000-7000-a000-${String(++seq).padStart(12, '0')}`;
   const allTaunts = () => cats.flatMap((c) => c.taunts);
   return {
     clock,
+    tracks,
     async taunts(opts) {
       return cats
         .filter((c) => opts?.includeHidden || c.isActive)
@@ -287,14 +296,14 @@ export function createMemoryChatStore(): ChatStore & { clock: { ms: number } } {
       reports.push({ id: id(), messageId, reporterId, reason, createdAt: clock.ms, resolved: false });
       return 'ok';
     },
-    async reports({ openOnly, limit }) {
+    async reports({ openOnly, limit, queue = 'all' }) {
       return reports
-        .filter((r) => !openOnly || !r.resolved)
-        .slice(-limit)
         .map((r) => {
           const m = msgs.find((x) => x.id === r.messageId)!;
-          return { ...r, messageText: m.text, messageUserId: m.userId };
-        });
+          return { ...r, messageText: m.text, messageUserId: m.userId, track: tracks.get(m.userId) ?? ('adult' as AgeTrack) };
+        })
+        .filter((r) => (!openOnly || !r.resolved) && (queue === 'all' || (queue === 'minors') === (r.track !== 'adult')))
+        .slice(-limit);
     },
     async resolveReport(rid) {
       const r = reports.find((x) => x.id === rid && !x.resolved);
