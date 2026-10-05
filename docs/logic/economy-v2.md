@@ -73,6 +73,13 @@ Reading:
 - **Proposal (not applied):** lower `duel.free_payout_percent` 50 → 25 *when the daily shop and keepsakes ship* (not before: today it is the new player's main income). Keep `NON_SKILL_DAILY_CAP` at 40 as a soft ceiling.
 - Assumptions that are guesses, to refit from the real ledger after launch: spending appetites, reserve of 3 fees, bot share 25 %, level coins 1.2 per match, mission 60 % × 15.
 
+## Rollout status
+
+1. Simulator — **done** (`simulate-v2.ts`).
+2. Stake tables + gift fee — **done** (server, admin settings, mobile chooser; see `economy.md` §Live duel stakes).
+3. Streak shield + daily rotating shop — next.
+4. Keepsake collection + showcase profile, 5. city pot + season pass, 6. gem sales — not started.
+
 ## Rollout (small phase-scoped PRs)
 
 1. Extend `simulateEconomy` to every faucet and sink above; report median/p10/p90, stuck %, faucet/sink ratio. Tune before building.

@@ -36,14 +36,14 @@ export interface MatchDeps {
   /** Called once when a match ends, with the two players' ids by side (e.g. to send results to Bale). */
   /** Coin stakes of queue duels. Absent = everything is friendly. */
   stakes?: {
-    open(matchId: string, players: readonly [string, string]): Promise<[Stake, Stake] | null>;
+    open(matchId: string, players: readonly [string, string], tier?: string): Promise<[Stake, Stake] | null>;
     /** The match never started: give every taken fee back in full. */
-    cancel(matchId: string, players: readonly [string, string], stakes: readonly [Stake, Stake]): Promise<void>;
+    cancel(matchId: string, players: readonly [string, string], stakes: readonly [Stake, Stake], tier?: string): Promise<void>;
     /** Per-round coin wager of the price-guess round, or null for none (see `DuelStakes.wagerRules`). */
     wagerRules?(): Promise<{ amount: number; cutPercent: number; isBot: (userId: string) => boolean } | null>;
     takeWager?(matchId: string, round: number, userId: string, amount: number): Promise<boolean>;
     creditWager?(matchId: string, round: number, userId: string, coins: number): Promise<void>;
-    settle(matchId: string, players: readonly [string, string], stakes: readonly [Stake, Stake], result: { winner: 0 | 1 | null; reason: 'solved' | 'locked_out' | 'forfeit' | 'abandon' }): Promise<void>;
+    settle(matchId: string, players: readonly [string, string], stakes: readonly [Stake, Stake], result: { winner: 0 | 1 | null; reason: 'solved' | 'locked_out' | 'forfeit' | 'abandon' }, tier?: string): Promise<void>;
   };
   onEnded?: (info: { players: readonly [string, string]; result: NonNullable<MatchState['result']> }) => void;
 }
@@ -56,6 +56,8 @@ interface Active {
   cancel: (() => void) | null;
   /** How each seat entered, when the match carried coin stakes. */
   stakes?: [Stake, Stake];
+  /** Stake table the match was queued at (settles with its fee). */
+  tier?: string;
   /** Frozen at the start: this match ends with the price-guess round (1v1 only). */
   priceRound?: boolean;
   /** The board is over and the price rounds are being drawn (the clients must not see a finished match yet). */
@@ -136,7 +138,7 @@ export class MatchService {
   }
 
   /** Starts a match for a paired couple; false when it could not be created (no puzzle, unknown or busy player). */
-  async start(a: string, b: string, opts: { friendly?: boolean } = {}): Promise<boolean> {
+  async start(a: string, b: string, opts: { friendly?: boolean; tier?: string } = {}): Promise<boolean> {
     if (a === b || this.inMatch(a) || this.inMatch(b)) return false;
     const [pa, pb] = await Promise.all([this.deps.profile(a), this.deps.profile(b)]);
     if (!pa || !pb) return false;
@@ -150,16 +152,16 @@ export class MatchService {
     // No wagers for kid and teen (docs/logic/age-tracks.md): if either human may not wager, nobody pays and nobody wins coins.
     const noWager = this.deps.wagerAllowed ? !(await Promise.all([this.deps.wagerAllowed(a), this.deps.wagerAllowed(b)])).every(Boolean) : false;
     if (this.deps.stakes && !opts.friendly && !noWager) {
-      const taken = await this.deps.stakes.open(id, [a, b]);
+      const taken = await this.deps.stakes.open(id, [a, b], opts.tier);
       if (!taken) return false;
       stakes = taken;
       if (this.inMatch(a) || this.inMatch(b)) {
         // Raced with another start while the stakes were taken: give them back in full.
-        await this.deps.stakes.cancel(id, [a, b], taken);
+        await this.deps.stakes.cancel(id, [a, b], taken, opts.tier);
         return false;
       }
     }
-    const entry: Active = { id, puzzles: [puzzle], state: startMatch(puzzle, [a, b], rng, this.now(), undefined, await this.matchRules()), cancel: null, stakes, priceRound: await this.wantsPriceRound(), proposals: [null, null] };
+    const entry: Active = { id, puzzles: [puzzle], state: startMatch(puzzle, [a, b], rng, this.now(), undefined, await this.matchRules()), cancel: null, stakes, tier: stakes ? opts.tier : undefined, priceRound: await this.wantsPriceRound(), proposals: [null, null] };
     if (entry.priceRound && stakes) entry.wager = (await this.deps.stakes?.wagerRules?.().catch(() => null)) ?? undefined;
     this.matches.set(id, entry);
     this.byUser.set(a, id);
@@ -539,7 +541,7 @@ export class MatchService {
     }
     if (result && entry.stakes && this.deps.stakes) {
       const players: [string, string] = [entry.state.players[0]!.userId, entry.state.players[1]!.userId];
-      void this.deps.stakes.settle(entry.id, players, entry.stakes, { winner: result.winner, reason: result.reason }).catch((e) => console.error('[duel] settle failed', entry.id, e));
+      void this.deps.stakes.settle(entry.id, players, entry.stakes, { winner: result.winner, reason: result.reason }, entry.tier).catch((e) => console.error('[duel] settle failed', entry.id, e));
     }
     for (const p of entry.state.players) this.byUser.delete(p.userId);
     this.matches.delete(entry.id);

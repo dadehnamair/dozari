@@ -18,7 +18,7 @@ import {
   TEAM_MATCH_BOARDS,
   TURN_SECONDS,
 } from './game.js';
-import { BROKE_RESCUE_TARGET, DAILY_FREE_MATCHES, SIGNUP_BONUS, ENTRY_FEE_BASE, FREE_MATCH_PAYOUT_PERCENT, HOUSE_CUT_PERCENT, LOSS_CONSOLATION, LOSS_CONSOLATION_DAILY_CAP, DAILY_REWARD_COOLDOWN_HOURS, DAILY_REWARD_STREAK_WINDOW_HOURS, DUEL_MIN_LEVEL, HINT_MAX_PER_GAME, HINT_MIN_LEVEL, HINT_PRICES, HINT_REPEAT_PERCENT, DAILY_PUZZLE_REWARD, DAILY_PUZZLE_STREAK_MAX_DAYS, DAILY_PUZZLE_STREAK_STEP, DAILY_PUZZLE_REPEAT_DAYS } from './economy.js';
+import { BROKE_RESCUE_TARGET, DAILY_FREE_MATCHES, SIGNUP_BONUS, ENTRY_FEE_BASE, FREE_MATCH_PAYOUT_PERCENT, HOUSE_CUT_PERCENT, LOSS_CONSOLATION, LOSS_CONSOLATION_DAILY_CAP, DAILY_REWARD_COOLDOWN_HOURS, DAILY_REWARD_STREAK_WINDOW_HOURS, DUEL_MIN_LEVEL, HINT_MAX_PER_GAME, HINT_MIN_LEVEL, HINT_PRICES, HINT_REPEAT_PERCENT, DAILY_PUZZLE_REWARD, DAILY_PUZZLE_STREAK_MAX_DAYS, DAILY_PUZZLE_STREAK_STEP, DAILY_PUZZLE_REPEAT_DAYS, STAKE_TIERS, GIFT_FEE_PERCENT } from './economy.js';
 import { CHART_GAP_BREAK_YEARS, CHART_MIN_YEAR } from './chart.js';
 import { INVITE_INVITEE_BONUS, INVITE_INVITER_REWARD, INVITE_MAX_USES, INVITE_MIN_LEVEL, INVITE_REWARD_AFTER_GAMES } from './invite.js';
 import { LOAN_DUE_DAYS, LOAN_MAX_OPEN, TRANSFER_MAX_AMOUNT, TRANSFER_MIN_AMOUNT, TRANSFER_MIN_FRIEND_DAYS, TRANSFER_MIN_LEVEL, TRANSFER_WEEKLY_CAP } from './transfers.js';
@@ -126,6 +126,10 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'limit.solo_per_day', group: 'gameplay', label: 'سقف بازی تکی در روز برای هر بازیکن', hint: '۰ یعنی بدون سقف؛ ساعت صفر به وقت تهران صفر می‌شود', kind: 'int', min: 0, max: 1000, default: 0 },
   { key: 'limit.duel_per_day', group: 'gameplay', label: 'سقف بازی دونفره‌ی زنده در روز برای هر بازیکن', hint: '۰ یعنی بدون سقف', kind: 'int', min: 0, max: 1000, default: 0 },
   { key: 'duel.entry_fee', group: 'economy', label: 'ورودی بازی دونفره‌ی زنده (سکه برای هر نفر)', hint: 'جمع دو ورودی می‌شود جایزه‌ی برنده', kind: 'int', min: 0, max: 10000, default: ENTRY_FEE_BASE, unit: 'سکه' },
+  { key: 'duel.silver_fee', group: 'economy', label: 'ورودی میز نقره‌ای (سکه برای هر نفر)', hint: '۰ = میز نقره‌ای خاموش. فقط صف دوئل؛ بازی رایگان روزانه فقط روی میز برنزی است', kind: 'int', min: 0, max: 100000, default: STAKE_TIERS[1]!.fee, unit: 'سکه' },
+  { key: 'duel.silver_min_level', group: 'economy', label: 'حداقل لول برای میز نقره‌ای', kind: 'int', min: 1, max: 200, default: STAKE_TIERS[1]!.minLevel },
+  { key: 'duel.gold_fee', group: 'economy', label: 'ورودی میز طلایی (سکه برای هر نفر)', hint: '۰ = میز طلایی خاموش', kind: 'int', min: 0, max: 100000, default: STAKE_TIERS[2]!.fee, unit: 'سکه' },
+  { key: 'duel.gold_min_level', group: 'economy', label: 'حداقل لول برای میز طلایی', kind: 'int', min: 1, max: 200, default: STAKE_TIERS[2]!.minLevel },
   { key: 'duel.price_wager', group: 'economy', label: 'شرط هر دور حدس قیمت در دوئل (سکه برای هر نفر)', hint: '۰ = بدون شرط. برنده‌ی هر دور جمع دو شرط منهای سهم خانه را می‌گیرد، مساوی یعنی پس‌گرفتن هر شرط منهای سهم خانه. کسی که سکه‌ی کافی ندارد آن دور را بدون شرط و بدون حدس می‌گذراند. فقط وقتی «دور حدس قیمت» روشن است اثر دارد.', kind: 'int', min: 0, max: 50, default: 0 },
   { key: 'duel.house_cut_percent', group: 'economy', label: 'سهم خانه از جایزه‌ی هر بازی', kind: 'int', min: 0, max: 90, default: HOUSE_CUT_PERCENT, unit: '٪' },
   { key: 'economy.signup_bonus', group: 'economy', label: 'سکه‌ی هدیه‌ی ثبت‌نام (یک بار برای هر حساب تازه)', hint: '۰ = بدون هدیه؛ فقط روی حساب‌های تازه اثر دارد', kind: 'int', min: 0, max: 100_000, default: SIGNUP_BONUS, unit: 'سکه' },
@@ -229,6 +233,7 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'transfer.weekly_cap', group: 'economy', label: 'سقف سکه‌ی فرستادنی در هفته (هدیه + قرض)', hint: 'جمع در هر ۷ روز گذشته', kind: 'int', min: 0, max: 100000, default: TRANSFER_WEEKLY_CAP, unit: 'سکه' },
   { key: 'transfer.min_amount', group: 'economy', label: 'کمترین مبلغ هر انتقال', kind: 'int', min: 1, max: 100000, default: TRANSFER_MIN_AMOUNT, unit: 'سکه' },
   { key: 'transfer.max_amount', group: 'economy', label: 'بیشترین مبلغ هر انتقال', kind: 'int', min: 1, max: 100000, default: TRANSFER_MAX_AMOUNT, unit: 'سکه' },
+  { key: 'transfer.gift_fee_percent', group: 'economy', label: 'کارمزد هدیه‌ی سکه (درصد سوخته‌شده)', hint: 'گیرنده مبلغ منهای این سهم را می‌گیرد؛ قرض کارمزد ندارد. ۰ = بدون کارمزد', kind: 'int', min: 0, max: 50, default: GIFT_FEE_PERCENT, unit: '٪' },
   { key: 'transfer.needs_activation', group: 'economy', label: 'فرستنده باید حسابش را با کد معرف فعال کرده باشد', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'loan.due_days', group: 'economy', label: 'مهلت پس‌دادن قرض', kind: 'int', min: 1, max: 90, default: LOAN_DUE_DAYS, unit: 'روز' },
   { key: 'loan.max_open', group: 'economy', label: 'حداکثر قرض باز برای هر نفر', kind: 'int', min: 1, max: 10, default: LOAN_MAX_OPEN },

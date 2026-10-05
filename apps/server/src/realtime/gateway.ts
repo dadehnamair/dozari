@@ -10,7 +10,7 @@ import { ChatService } from '../chat/service.js';
 import { RateLimiter } from '../security/rate-limit.js';
 import { MatchService } from './match-service.js';
 import type { MatchDeps } from './match-service.js';
-import { DuelQueue } from './queue.js';
+import { DuelQueue, type QueueTier } from './queue.js';
 import { SocketStats } from './stats.js';
 
 export interface GatewayOptions {
@@ -23,8 +23,10 @@ export interface GatewayOptions {
   levelGate?: (userId: string) => Promise<boolean>;
   /** Daily duel cap: `canPlay` refuses a queue join over the cap, `onStarted` counts a real match for both players. */
   limit?: { canPlay: (userId: string) => Promise<boolean>; onStarted: (userId: string) => Promise<void> };
-  /** Before queueing: false answers INSUFFICIENT_COINS (a free match or a rescue may apply). */
-  canAfford?: (userId: string) => Promise<boolean>;
+  /** Before queueing: false answers INSUFFICIENT_COINS (a free match or a rescue may apply on the bronze table). */
+  canAfford?: (userId: string, tier?: QueueTier) => Promise<boolean>;
+  /** Is this table on offer and open to the player's level? Answers an error code, or null when fine. Absent = bronze only. */
+  tierGate?: (userId: string, tier: QueueTier) => Promise<'UNKNOWN_TIER' | 'LEVEL_TOO_LOW' | null>;
   now?: () => number;
   /** Called when two players are paired; return false to put them back in line. Ignored when `match` is given. */
   onPair?: (a: string, b: string) => Promise<boolean> | boolean;
@@ -68,7 +70,8 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
   const teamQueue = new DuelQueue();
   /** Track of everyone now in a line, so a pair that fails to start goes back to the right track. */
   const lineTracks = new Map<string, AgeTrack>();
-  const rejoin = (line: DuelQueue, id: string) => line.join(id, now(), lineTracks.get(id) ?? 'adult');
+  const lineTiers = new Map<string, QueueTier>();
+  const rejoin = (line: DuelQueue, id: string) => line.join(id, now(), lineTracks.get(id) ?? 'adult', lineTiers.get(id) ?? 'bronze');
   let matches: MatchService | undefined;
   const stats = new SocketStats({ queueLength: () => queue.length + teamQueue.length, activeMatches: () => matches?.activeCount ?? 0, longestWaitMs: (t) => Math.max(queue.longestWaitMs(t), teamQueue.longestWaitMs(t)) }, now);
   const io = new Server(http, {
@@ -106,11 +109,15 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
   });
 
   async function tryPair() {
-    const pair = queue.takePair();
-    if (!pair) return;
-    const handled = matches ? await matches.start(pair[0], pair[1]) : opts.onPair ? await opts.onPair(pair[0], pair[1]) : false;
+    const taken = queue.takePairWithTier();
+    if (!taken) return;
+    const { pair, tier } = taken;
+    const handled = matches ? await matches.start(pair[0], pair[1], { tier }) : opts.onPair ? await opts.onPair(pair[0], pair[1]) : false;
     if (!handled) for (const id of pair) rejoin(queue, id);
-    else for (const id of pair) lineTracks.delete(id);
+    else for (const id of pair) {
+      lineTracks.delete(id);
+      lineTiers.delete(id);
+    }
     if (handled && opts.limit) for (const id of pair) void opts.limit.onStarted(id).catch(() => undefined);
   }
 
@@ -120,7 +127,10 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
     // The two longest waiters play together against the next two.
     const handled = await matches.startTeam([[four[0]!, four[1]!], [four[2]!, four[3]!]]);
     if (!handled) for (const id of four) rejoin(teamQueue, id);
-    else for (const id of four) lineTracks.delete(id);
+    else for (const id of four) {
+      lineTracks.delete(id);
+      lineTiers.delete(id);
+    }
     if (handled && opts.limit) for (const id of four) void opts.limit.onStarted(id).catch(() => undefined);
   }
 
@@ -128,6 +138,7 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
     queue.leave(userId);
     teamQueue.leave(userId);
     lineTracks.delete(userId);
+    lineTiers.delete(userId);
   }
 
   io.on('connection', (socket: Socket) => {
@@ -152,13 +163,20 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
       // New players sit out the live duel until they know the game (docs/logic/matchmaking.md §Level gate).
       if (opts.levelGate && !(await opts.levelGate(userId))) return ack?.({ ok: false, error: 'LEVEL_TOO_LOW' });
       if (opts.limit && !(await opts.limit.canPlay(userId))) return ack?.({ ok: false, error: 'DAILY_CAP' });
-      if (!team && opts.canAfford && !(await opts.canAfford(userId))) return ack?.({ ok: false, error: 'INSUFFICIENT_COINS' });
+      const tier: QueueTier = team ? 'bronze' : (joined.data.tier ?? 'bronze');
+      if (tier !== 'bronze') {
+        // Higher tables are for adults who can pay and have the level; kids and teens never wager (age-tracks.md).
+        const refused = opts.tierGate ? await opts.tierGate(userId, tier) : 'UNKNOWN_TIER';
+        if (refused) return ack?.({ ok: false, error: refused });
+      }
+      if (!team && opts.canAfford && !(await opts.canAfford(userId, tier))) return ack?.({ ok: false, error: 'INSUFFICIENT_COINS' });
       if (matches?.inMatch(userId)) return ack?.({ ok: false, error: 'ALREADY_IN_MATCH' });
       if (queue.has(userId) || teamQueue.has(userId)) return ack?.({ ok: false, error: 'ALREADY_QUEUED' });
       const line = team ? teamQueue : queue;
       const track = (await opts.trackOf?.(userId)) ?? 'adult';
       lineTracks.set(userId, track);
-      line.join(userId, now(), track);
+      lineTiers.set(userId, tier);
+      line.join(userId, now(), track, tier);
       ack?.({ ok: true });
       socket.emit(ServerEvent.queueStatus, { waitedSec: 0, position: line.position(userId) ?? 1 });
       await (team ? tryPairTeam() : tryPair());

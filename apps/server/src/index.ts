@@ -3,7 +3,7 @@ import Fastify from 'fastify';
 import fastifyCors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
 import { resolve } from 'node:path';
-import { rialsToTomanString } from '@dozari/shared';
+import { duelTiers, rialsToTomanString } from '@dozari/shared';
 import { CHAT_RETENTION_DAYS, MISSION_KEYS, TOURNAMENT_TICK_SECONDS, dailyDateKey, trackFeatureForPath, trackRuleForPath, WHEEL_SLICES_DEFAULT, scaleSlices } from '@dozari/shared';
 import type { HintRules, MissionKey } from '@dozari/shared';
 import { createDb } from '@dozari/db';
@@ -234,6 +234,8 @@ export interface ServerDeps {
   solo?: SoloService;
   /** Is this player's level enough for the live duel queue (`duel.min_level`)? Absent = everyone may. */
   duelLevelGate?: (userId: string) => Promise<boolean>;
+  /** A player's level (the stake tables of the live queue are level-gated). */
+  levelOf?: (userId: string) => Promise<number>;
   /** Price-only games (`/price-only/*`). */
   priceOnly?: PriceOnlyService;
   /** Paid hints of solo games; needs `solo` and `auth`. */
@@ -425,7 +427,7 @@ export function buildServer(deps: ServerDeps = {}) {
   let gateway: Gateway | undefined;
   if (deps.auth && deps.realtime) {
     const auth = deps.auth;
-    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin, match: deps.match, canAfford: deps.duelStakes ? async (u) => (deps.ageTracks && !(await deps.ageTracks.allows(u, 'coinWager'))) || deps.duelStakes!.canQueue(u) : undefined, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, levelGate: deps.duelLevelGate, limit: deps.limiter ? { canPlay: async (u) => (await deps.limiter!.check(u, 'duel')).ok, onStarted: (u) => deps.limiter!.record(u, 'duel') } : undefined, chat: deps.chat, presence: deps.presence, notices: deps.notices, onEmit: deps.botDriver ? (u, e, p) => deps.botDriver!.onEmit(u, e, p) : undefined, trackOf: deps.ageTracks ? (u) => deps.ageTracks!.effective(u).catch(() => 'adult' as const) : undefined, trackGate: deps.ageTracks ? (u) => deps.ageTracks!.featureOff(u, 'duel_queue') : undefined, diagnose: deps.match ? createQueueDiagnosis({ hasPuzzle: async (tracks) => (await deps.match!.puzzles.pickRandom({ tracks })) !== null, botsReady: () => deps.botDriver?.ready() ?? false, graceSec: 45 }) : undefined });
+    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin, match: deps.match, canAfford: deps.duelStakes ? async (u, tier) => (deps.ageTracks && !(await deps.ageTracks.allows(u, 'coinWager'))) || deps.duelStakes!.canQueue(u, tier) : undefined, tierGate: deps.duelStakes && deps.levelOf ? async (u, tier) => { if (deps.ageTracks && !(await deps.ageTracks.allows(u, 'coinWager'))) return 'UNKNOWN_TIER'; const t = (await deps.duelStakes!.tiers()).find((x) => x.id === tier); if (!t) return 'UNKNOWN_TIER'; return (await deps.levelOf!(u)) >= t.minLevel ? null : 'LEVEL_TOO_LOW'; } : undefined, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, levelGate: deps.duelLevelGate, limit: deps.limiter ? { canPlay: async (u) => (await deps.limiter!.check(u, 'duel')).ok, onStarted: (u) => deps.limiter!.record(u, 'duel') } : undefined, chat: deps.chat, presence: deps.presence, notices: deps.notices, onEmit: deps.botDriver ? (u, e, p) => deps.botDriver!.onEmit(u, e, p) : undefined, trackOf: deps.ageTracks ? (u) => deps.ageTracks!.effective(u).catch(() => 'adult' as const) : undefined, trackGate: deps.ageTracks ? (u) => deps.ageTracks!.featureOff(u, 'duel_queue') : undefined, diagnose: deps.match ? createQueueDiagnosis({ hasPuzzle: async (tracks) => (await deps.match!.puzzles.pickRandom({ tracks })) !== null, botsReady: () => deps.botDriver?.ready() ?? false, graceSec: 45 }) : undefined });
     if (deps.live) {
       deps.live.matches = gateway.matches;
       deps.live.queue = gateway.queue;
@@ -665,6 +667,15 @@ if (isMainModule(import.meta.url)) {
             consolationCap: await settings.num('duel.consolation_cap'),
             rescueTarget: await settings.num('duel.rescue_target'),
           }),
+          tiers: async () =>
+            duelTiers({
+              bronzeFee: await settings.num('duel.entry_fee'),
+              bronzeMinLevel: await settings.num('duel.min_level'),
+              silverFee: await settings.num('duel.silver_fee'),
+              silverMinLevel: await settings.num('duel.silver_min_level'),
+              goldFee: await settings.num('duel.gold_fee'),
+              goldMinLevel: await settings.num('duel.gold_min_level'),
+            }),
           isBot: (id) => botDriver?.isBot(id) ?? false,
           priceWager: () => settings.num('duel.price_wager'),
           onWin: (matchId, userId) => wheel?.grantForWin(userId, matchId).catch((e) => console.error('[wheel] grant failed', matchId, e)) ?? Promise.resolve(),
@@ -860,6 +871,7 @@ if (isMainModule(import.meta.url)) {
     catalog: db ? createDbCatalogRepository(db) : undefined,
     solo,
     priceOnly,
+    levelOf,
     duelLevelGate: settings && player ? async (id) => (await player.levelOf(id)).level.level >= (await settings.num('duel.min_level')) : undefined,
     tables: tableService,
     duelStakes,

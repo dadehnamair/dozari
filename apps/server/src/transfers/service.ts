@@ -9,10 +9,10 @@ const WEEK_MS = 7 * DAY_MS;
 
 export async function transferRulesFromSettings(settings: SettingsService): Promise<TransferRules> {
   const n = (k: string) => settings.num(k);
-  const [gifts, loans, minFriendDays, minLevel, weeklyCap, minAmount, maxAmount, needsActivation, loanDueDays, loanMaxOpen] = await Promise.all(
-    ['transfer.gifts_on', 'transfer.loans_on', 'transfer.min_friend_days', 'transfer.min_level', 'transfer.weekly_cap', 'transfer.min_amount', 'transfer.max_amount', 'transfer.needs_activation', 'loan.due_days', 'loan.max_open'].map(n),
+  const [gifts, loans, minFriendDays, minLevel, weeklyCap, minAmount, maxAmount, needsActivation, loanDueDays, loanMaxOpen, giftFee] = await Promise.all(
+    ['transfer.gifts_on', 'transfer.loans_on', 'transfer.min_friend_days', 'transfer.min_level', 'transfer.weekly_cap', 'transfer.min_amount', 'transfer.max_amount', 'transfer.needs_activation', 'loan.due_days', 'loan.max_open', 'transfer.gift_fee_percent'].map(n),
   );
-  return { gifts: gifts === 1, loans: loans === 1, minFriendDays: minFriendDays!, minLevel: minLevel!, weeklyCap: weeklyCap!, minAmount: minAmount!, maxAmount: Math.max(maxAmount!, minAmount!), loanDueDays: loanDueDays!, loanMaxOpen: loanMaxOpen!, needsActivation: needsActivation === 1 };
+  return { gifts: gifts === 1, loans: loans === 1, minFriendDays: minFriendDays!, minLevel: minLevel!, weeklyCap: weeklyCap!, minAmount: minAmount!, maxAmount: Math.max(maxAmount!, minAmount!), loanDueDays: loanDueDays!, loanMaxOpen: loanMaxOpen!, needsActivation: needsActivation === 1, giftFeePercent: giftFee! };
 }
 
 export type SendResult = { ok: true; balance: number; id?: string } | { ok: false; error: TransferError };
@@ -51,7 +51,8 @@ export class TransferService {
   async gift(from: string, to: string, amount: number): Promise<SendResult> {
     const blocked = await this.check('gift', from, to, amount);
     if (blocked) return { ok: false, error: blocked };
-    const out = await this.store.sendGift(from, to, amount);
+    const fee = Math.floor((amount * ((await this.rules()).giftFeePercent ?? 0)) / 100);
+    const out = await this.store.sendGift(from, to, amount, fee);
     return out.ok ? out : { ok: false, error: 'INSUFFICIENT' };
   }
 

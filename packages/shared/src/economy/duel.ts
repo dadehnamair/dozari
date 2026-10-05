@@ -51,3 +51,21 @@ export function settleDuel(rules: DuelRules, stakes: readonly [Stake, Stake], wi
   }
   return out;
 }
+
+/** One stake table of the live queue (docs/logic/economy-v2.md §Sinks, D204). Bronze is the original fee table. */
+export interface DuelTier {
+  id: 'bronze' | 'silver' | 'gold';
+  fee: number;
+  minLevel: number;
+}
+export const DUEL_TIER_IDS = ['bronze', 'silver', 'gold'] as const;
+
+/** Builds the tables on offer from settings: a table with a fee of 0 is off, bronze (the base fee) is always the first. */
+export function duelTiers(v: { bronzeFee: number; bronzeMinLevel: number; silverFee: number; silverMinLevel: number; goldFee: number; goldMinLevel: number }): DuelTier[] {
+  const all: DuelTier[] = [
+    { id: 'bronze', fee: v.bronzeFee, minLevel: v.bronzeMinLevel },
+    { id: 'silver', fee: v.silverFee, minLevel: v.silverMinLevel },
+    { id: 'gold', fee: v.goldFee, minLevel: v.goldMinLevel },
+  ];
+  return all.filter((t, i) => i === 0 || t.fee > 0);
+}

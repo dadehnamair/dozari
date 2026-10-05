@@ -7,6 +7,7 @@ export function transferRuleLines(info: TransferInfo, kind: 'gift' | 'loan'): st
   const t = fa.transfers.rule;
   const lines = [t.friends(r.minFriendDays), t.level(r.minLevel), t.amount(r.minAmount, r.maxAmount), t.weekly(r.weeklyCap, info.leftThisWeek)];
   if (r.needsActivation) lines.push(t.activation);
+  if (kind === 'gift' && (r.giftFeePercent ?? 0) > 0) lines.push(t.giftFee(r.giftFeePercent!));
   if (kind === 'loan') lines.push(t.loanDue(r.loanDueDays), t.loanLimit(r.loanMaxOpen));
   return lines;
 }
