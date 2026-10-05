@@ -5,10 +5,11 @@ import { fetchAgeTrack } from './api';
 let cached: TrackRulesDto | null | undefined;
 
 /** The player's track rules, from the server once per app run. `null` while loading, when the feature is off or when the lookup fails (everyone then plays the adult game). */
-export function useTrackRules(enabled: boolean): TrackRulesDto | null {
+export function useTrackRules(enabled: boolean, refreshKey?: unknown): TrackRulesDto | null {
   const [rules, setRules] = useState<TrackRulesDto | null>(enabled && cached ? cached : null);
   useEffect(() => {
     if (!enabled) return;
+    if (cached) return setRules(cached);
     let alive = true;
     fetchAgeTrack().then(
       (mine) => {
@@ -20,7 +21,7 @@ export function useTrackRules(enabled: boolean): TrackRulesDto | null {
     return () => {
       alive = false;
     };
-  }, [enabled]);
+  }, [enabled, refreshKey]);
   return rules;
 }
 

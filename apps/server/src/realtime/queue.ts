@@ -36,8 +36,8 @@ export class DuelQueue {
   }
 
   /** Everyone in line with the time they joined, longest waiting first. */
-  waiting(): { userId: string; since: number }[] {
-    return [...this.entries].map(([userId, e]) => ({ userId, since: e.since }));
+  waiting(): { userId: string; since: number; track: AgeTrack }[] {
+    return [...this.entries].map(([userId, e]) => ({ userId, since: e.since, track: e.track }));
   }
 
   waitedMs(userId: string, now: number): number {

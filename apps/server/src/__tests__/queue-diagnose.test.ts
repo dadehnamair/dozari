@@ -26,4 +26,13 @@ describe('queue diagnosis', () => {
     await diagnose(7);
     expect(calls).toBe(2);
   });
+
+  it('asks the pool of the waiting player\'s track, so an empty kid pool does not hide behind adult puzzles', async () => {
+    const asked: string[][] = [];
+    const diagnose = createQueueDiagnosis({ hasPuzzle: async (tracks) => (asked.push([...tracks]), tracks.includes('adult')), botsReady: () => true, graceSec: 20 });
+    expect(await diagnose(0, 'adult')).toBeNull();
+    expect(await diagnose(0, 'kid')).toBe('no_puzzles');
+    expect(await diagnose(1)).toBeNull();
+    expect(asked).toEqual([['adult'], ['kid']]);
+  });
 });

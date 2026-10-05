@@ -234,4 +234,28 @@ VIEWS.lessons = function (root) {
   }
   pull();
 };
+
+/* ---------------- age tracks overview (D198) ---------------- */
+VIEWS.agetracks = function (root) {
+  var TR = [['kid', 'کودک'], ['teen', 'نوجوان'], ['adult', 'بزرگسال']];
+  api('/admin/age-tracks').then(function (r) {
+    if (r.status === 404) return root.appendChild(empty('رده‌های سنی روی این سرور فعال نیست (دیتابیس لازم است)'));
+    if (!r.ok) return fail(r);
+    var d = r.body;
+    root.appendChild(h('div', { class: 'callout', text: 'کلید «رده‌های سنی» در تنظیمات (گروه مدیریت اپ) را فقط وقتی روشن کن که پازل و درس کودک تأیید شده باشد.' }));
+    root.appendChild(h('div', { class: 'tbl-wrap' }, [h('table', {}, [
+      h('thead', {}, [h('tr', {}, ['رده', 'بازیکن', 'پازل تأییدشده', 'پازل پیش‌نویس'].map(function (x) { return h('th', { text: x }); }))]),
+      h('tbody', {}, TR.map(function (t) { var p = d.puzzles[t[0]]; return h('tr', {}, [h('td', {}, [h('b', { text: t[1] })]), h('td', { class: 'num', text: faNum(d.players[t[0]]) }), h('td', { class: 'num', text: faNum(p.approved) }), h('td', { class: 'num', text: faNum(p.draft) })]); }))
+    ])]));
+    var k = d.kidItems;
+    root.appendChild(h('section', { class: 'card' }, [
+      h('h2', { text: 'کلمه‌آموزی کودک' }),
+      h('div', { class: 'kv' }, [h('span', { text: 'آیتم‌های کودک' }), h('b', { class: 'num', text: faNum(k.total) })]),
+      h('div', { class: 'kv' }, [h('span', { text: 'بدون درس' }), h('b', { class: 'num', text: faNum(k.missing) })]),
+      h('div', { class: 'kv' }, [h('span', { text: 'پیش‌نویس' }), h('b', { class: 'num', text: faNum(k.draft) })]),
+      h('div', { class: 'kv' }, [h('span', { text: 'تأییدشده' }), h('b', { class: 'num', text: faNum(k.approved) })]),
+      h('div', { class: 'kv' }, [h('span', { text: 'فرزندهای وصل‌شده به ولی' }), h('b', { class: 'num', text: faNum(d.linkedChildren) })])
+    ]));
+  });
+};
 `;

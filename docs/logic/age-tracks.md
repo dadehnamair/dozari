@@ -194,7 +194,12 @@ Setting `feature.age_tracks` (admin → settings → app, **default off**): off 
   - app: the guardian step right after a kid or teen picks a track (`GuardianStep`: number, code; «بعداً» always skips, it never gates play); settings rows «فرزندان من» (`ChildrenSheet`: list, add kid/teen, sign-in code, move track, remove) and «ورود با کد والدین» (`ChildCodeSheet`, also on the first-run login screen); shown only when the switch is on.
   - Still open: enforcing «social features need a guardian» (phase 4 with the social rules), guardian settings (phase 5).
 - Starter content (draft, for the owner to review): `packages/db/seed/products/kid-starter.json` (48 kid items with icon and lesson text) and `seed/puzzles/kid-starter.json` (3 kid puzzles). The product seed accepts `age_track` and `lesson` (kid items need no price); lessons are inserted as **drafts** and never overwritten by a re-seed; kid puzzles are seeded as **drafts** (`status`), so nothing reaches players until an editor approves the lessons («کلمه‌آموزی کودک») and the puzzles («ساخت پازل»). Load it on an existing database with `pnpm --filter @dozari/db seed` (not `--if-empty`, which skips a non-empty catalogue).
-- Not yet (content): the rest of the 30–50 kid puzzles; the queue «no puzzle» diagnosis still looks at the adult pool; kid daily puzzle, price-only mode and lookup are not hidden for kids yet; the rest of the list below.
+- Phase 1 leftovers closed:
+  - **Home hides what needs adult content or price knowledge**: `trackRules` gained `dailyPuzzle`, `priceOnly` and `lookup` (kid: all off; teen: price-only and lookup on, daily off; adult: all on), and the app drops those entries for a kid/teen track. The daily puzzle returns for a track once it has its own pool.
+  - **Queue diagnosis is per track**: a waiting player's pool is checked (`diagnose(waitedSec, track)`), so an empty kid pool says «no puzzles» instead of hiding behind adult ones.
+  - **Bots are track-neutral by design**: a bot fills any track's queue; the match's puzzle pool follows the human (`MatchService` picks by the first player, humans are always first), so no per-track bot roster is needed. A kid-friendly bot nickname list can come with the content.
+  - **Admin «رده‌های سنی» tab** (under «بازیکنان و نظارت»): players per track, puzzles per track by status, kid lesson counts, linked children (`GET /admin/age-tracks`). The user list filters by track; the product editor and puzzle builder carry the track.
+- Not yet: the rest of the 30–50 kid puzzles; a track filter on the other admin lists (puzzles, items, tournaments, reports…); the separate report queue for kid/teen chats (phase 4);
 
 ## Phases
 
