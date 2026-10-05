@@ -616,3 +616,5 @@ child profiles. Adults must never feel they are in a kids' game, and the admin p
 Proposed defaults in `docs/logic/age-tracks.md`: three bands (up to 11 / 12–17 / 18+) chosen, not computed, with no birth date used for it (the D160 birth date stays optional and independent); kid and teen
 have no free chat and no coin wagers, match only inside their band, and cannot raise their own band; kid content needs an editor's approval. Nothing
 is built yet. Owner to confirm: band edges, whether the guardian step is a hard gate for kids, and store age-labelling rules for Bazaar/Myket.
+
+**Update 2026-10-05 (owner):** the brand stays whole (only logic changes; «دوزاری کوچولو» is just the kid track's label inside the app). Kids and teens get friends, friend duels, private tables and **managed chat** inside their own track (strict filter, friends-only free text switched on by the guardian, report queue), so the fun stays; restrictions are built in and invisible, not shown as locks. The guardian profile panel only narrows defaults; the guardian link is needed once, for the social features only.
