@@ -150,7 +150,71 @@ footer.bottom a{color:var(--cream);text-decoration:none;font-weight:600;font-siz
 footer.bottom .brandname{font-family:var(--display);font-size:40px;color:var(--yellow);line-height:1}footer.bottom p{margin:12px 0 0;font-weight:500;font-size:15px;opacity:.85}
 .social{display:flex;gap:8px;flex-wrap:wrap}.social a{font-weight:800;font-size:14px;padding:6px 14px;border-radius:999px;line-height:1.8}
 .legal{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;border-top:2px solid rgba(255,246,232,.2);padding-top:20px;font-weight:600;font-size:13px;opacity:.7}.legal .ltr{direction:ltr}
-@media(max-width:560px){.band>.in{padding-top:40px;padding-bottom:40px}.sec{padding-top:48px;padding-bottom:48px}.promo{padding:26px}.sticky{position:static}.cc{flex-direction:column}}
+/* motion + home extras (all animation is off under prefers-reduced-motion; content is visible without scripts) */
+.prog{position:fixed;inset-block-start:0;inset-inline:0;height:5px;background:var(--pink);transform:scaleX(0);transform-origin:right;z-index:50;pointer-events:none}
+header.top{transition:box-shadow .25s}header.top.sc{box-shadow:0 6px 0 rgba(43,18,64,.12)}
+.brand .face{transition:transform .4s}.brand:hover .face{transform:rotate(-12deg) scale(1.08)}
+.btn{transition:transform .15s,box-shadow .15s}
+.btn.pulse{animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+main{overflow-x:clip}
+.js .rv{opacity:0;transform:translateY(34px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.8,.2,1);transition-delay:var(--d,0s)}
+.js .rv.l{transform:translateX(60px)}.js .rv.r{transform:translateX(-60px)}.js .rv.z{transform:scale(.88)}
+.js .rv.in-v{opacity:1;transform:none}
+/* hero */
+.hero{position:relative;overflow:hidden}
+.stage .disc{width:min(380px,80%);height:auto}.hero .stage .disc::after{content:"";position:absolute;inset:-14px;border-radius:50%;border:4px dashed var(--ink);animation:spin 40s linear infinite}
+.hero .stage img{animation:bob 4s ease-in-out infinite}
+@keyframes spin{to{transform:rotate(360deg)}}@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+.fl{position:absolute;width:56px;height:56px;animation:float 6s ease-in-out infinite;animation-delay:var(--d,0s);filter:drop-shadow(0 4px 0 rgba(43,18,64,.25));pointer-events:none}
+@keyframes float{0%,100%{transform:translateY(0) rotate(-8deg)}50%{transform:translateY(-22px) rotate(10deg)}}
+.hero .h1w{display:inline-block}.hero h1 span.hl{display:inline-block;color:var(--pink);-webkit-text-stroke:0;text-shadow:3px 3px 0 var(--ink);animation:wob 3s ease-in-out infinite}
+@keyframes wob{0%,100%{transform:rotate(-2deg)}50%{transform:rotate(2deg) scale(1.04)}}
+/* marquee */
+.mq{background:var(--ink);color:var(--yellow);border-bottom:4px solid var(--ink);overflow:hidden;white-space:nowrap;direction:ltr}
+.mq .tr{display:inline-flex;gap:0;animation:mq 38s linear infinite;will-change:transform}.mq:hover .tr{animation-play-state:paused}
+.mq span{font-family:var(--display);font-size:26px;line-height:1;padding:16px 28px;direction:rtl;display:inline-flex;align-items:center;gap:56px}.mq span::after{content:"✦";color:var(--pink);font-size:22px}
+@keyframes mq{to{transform:translateX(-50%)}}
+/* carousel */
+.car{position:relative;max-width:1100px;margin:0 auto}
+.car .track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;border:4px solid var(--ink);border-radius:36px;box-shadow:0 8px 0 var(--ink);background:var(--ink);-webkit-overflow-scrolling:touch}
+.car .track::-webkit-scrollbar{display:none}
+.car figure{margin:0;flex:0 0 100%;scroll-snap-align:center;aspect-ratio:16/9}.car figure img{width:100%;height:100%;object-fit:cover}
+.car .nav{display:flex;justify-content:center;align-items:center;gap:10px;margin-top:26px}
+.car .dots{display:flex;gap:10px}
+.car .dot{width:16px;height:16px;border-radius:50%;border:3px solid var(--ink);background:var(--cream);padding:0;cursor:pointer;transition:transform .2s,background .2s}.car .dot[aria-current=true]{background:var(--pink);transform:scale(1.35)}
+.car .arr{width:46px;height:46px;border-radius:50%;border:3px solid var(--ink);background:var(--yellow);font-family:var(--display);font-size:24px;line-height:1;cursor:pointer;box-shadow:0 3px 0 var(--ink);color:var(--ink)}.car .arr:active{transform:translateY(2px);box-shadow:none}
+/* showcase rows */
+.show{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:48px;align-items:center}
+.show .tx{display:flex;flex-direction:column;gap:16px}.show h2{font-size:clamp(34px,4.6vw,56px);line-height:1.15}.show p{margin:0;font-weight:600;font-size:18px;max-width:520px}
+.show .chips .pill{background:var(--cream)}
+.frame{border:4px solid var(--ink);border-radius:28px;box-shadow:0 10px 0 var(--ink);overflow:hidden;background:var(--ink);transform:rotate(var(--t,-2deg));transition:transform .4s cubic-bezier(.2,.8,.2,1)}.frame:hover{transform:rotate(0) scale(1.02)}.frame img{width:100%;height:auto;aspect-ratio:16/9;object-fit:cover}
+.js .rv.in-v.frame{transform:rotate(var(--t,-2deg))}.js .rv.in-v.frame:hover{transform:rotate(0) scale(1.02)}
+.band.p{background:var(--pink);color:var(--cream)}.band.o{background:var(--orange)}
+.pair{display:grid;gap:18px}.pair .frame:nth-child(2){--t:2.5deg;margin-inline-start:12%}.pair .frame:nth-child(1){margin-inline-end:12%}
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;text-align:center}
+.stat{background:var(--cream);border:4px solid var(--ink);border-radius:28px;box-shadow:0 6px 0 var(--ink);padding:26px 16px;transition:transform .25s}.stat:hover{transform:translateY(-6px) rotate(-1.5deg)}
+.stat b{font-family:var(--display);font-weight:400;font-size:clamp(56px,7vw,84px);line-height:1;display:block;color:var(--c,var(--pink))}.stat span{font-weight:800;font-size:17px;color:var(--ink)}
+/* demo puzzle */
+.demo{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.dgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.dgrid .t{font:800 17px/1.3 Vazirmatn,sans-serif;min-height:68px;padding:8px 4px;border:3px solid var(--ink);border-radius:16px;background:var(--cream);color:var(--ink);cursor:pointer;box-shadow:0 4px 0 var(--ink);transition:transform .12s,background .15s}
+.dgrid .t:hover{transform:translateY(-2px)}.dgrid .t[aria-pressed=true]{background:var(--violet);color:var(--cream);transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.dgrid .t.done{cursor:default;box-shadow:none;transform:none;color:var(--ink);background:var(--gc)}
+.dgrid .t.shake{animation:shake .45s}.dgrid .t.pop{animation:pop .5s}
+.dgrid .gb{grid-column:1/-1;border:3px solid var(--ink);border-radius:16px;padding:6px 12px;text-align:center;font-family:var(--display);font-size:22px;line-height:1.5;background:var(--gc);color:var(--ink)}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}@keyframes pop{50%{transform:scale(1.12)}}
+.dbar{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}.dbar .btn{cursor:pointer;font-size:20px}.dbar .btn[disabled]{opacity:.45;cursor:not-allowed}
+.dmsg{min-height:34px;text-align:center;font-weight:800;font-size:17px;margin:0}
+.dnote{font-size:13px;font-weight:600;opacity:.75;text-align:center;margin:0}
+/* cast */
+.castbox a{transition:transform .25s}.castbox a:hover{transform:translateY(-12px) rotate(-3deg)}.castbox a:nth-child(even):hover{transform:translateY(-12px) rotate(3deg)}
+.castbox img{animation:bob 4.5s ease-in-out infinite;animation-delay:var(--d,0s)}
+/* final cta with banner */
+.fin{display:block;width:100%;max-width:1100px;border:4px solid var(--ink);border-radius:40px;box-shadow:0 8px 0 var(--ink);overflow:hidden;transition:transform .35s}.fin:hover{transform:scale(1.015) rotate(-.6deg)}.fin img{width:100%;height:auto}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.js .rv{opacity:1;transform:none}.mq{overflow-x:auto}}
+@media(max-width:560px){.fl{display:none}.band>.in{padding-top:40px;padding-bottom:40px}.sec{padding-top:48px;padding-bottom:48px}.promo{padding:26px}.sticky{position:static}.cc{flex-direction:column}}
 `;
 
 /* ---- characters and icons (assets rendered from the design's own components) ---- */
@@ -192,6 +256,11 @@ const hostOf = (u: string): string => u.replace(/^https?:\/\/(www\.)?/, '').repl
 const socialLabel = (u: string): string => SOCIAL_LABEL.find(([re]) => re.test(u))?.[1] ?? hostOf(u);
 const SOCIAL_BG = [['#FF4D8D', '#FFF6E8'], ['#3FC1F0', '#2B1240'], ['#FFC93C', '#2B1240'], ['#7ED957', '#2B1240'], ['#FF7A3D', '#2B1240']] as const;
 
+/** Every page: scroll progress bar, sticky-header shadow and the scroll-reveal of `.rv` blocks. */
+const BASE_JS = `(function(){var d=document,h=d.documentElement,p=d.querySelector('.prog'),t=d.querySelector('header.top'),els=[].slice.call(d.querySelectorAll('.rv'));
+function sc(){p.style.transform='scaleX('+(h.scrollTop/((h.scrollHeight-h.clientHeight)||1))+')';t.classList.toggle('sc',h.scrollTop>8)}addEventListener('scroll',sc,{passive:true});sc();
+if('IntersectionObserver' in window&&!matchMedia('(prefers-reduced-motion: reduce)').matches){var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in-v');io.unobserve(e.target)}})},{threshold:.12});els.forEach(function(e){io.observe(e)})}else els.forEach(function(e){e.classList.add('in-v')})})();`;
+
 function layout(site: Site, headHtml: string, crumbs: Crumb[] | null, body: string, opts: { active?: NavKey; wide?: boolean } = {}): string {
   const crumbHtml =
     crumbs && crumbs.length > 1
@@ -206,8 +275,10 @@ function layout(site: Site, headHtml: string, crumbs: Crumb[] | null, body: stri
 <head>
 ${headHtml}
 <style>${CSS}</style>
+<script>document.documentElement.classList.add("js")</script>
 </head>
 <body>
+<div class="prog" aria-hidden="true"></div>
 <header class="top"><div class="bar">
 <a class="brand" href="/">${face('dozari', 48)}<span>${escapeHtml(site.name)}</span></a>
 <nav class="main" aria-label="منوی اصلی">${nav}</nav>
@@ -223,6 +294,7 @@ ${content}
 </div>
 <div class="legal"><span>© ${escapeHtml(year)} ${escapeHtml(site.name)} · همهٔ حقوق محفوظ است</span><span class="ltr">${escapeHtml(site.url.replace(/^https?:\/\//, ''))}</span></div>
 </div></footer>
+<script>${BASE_JS}</script>
 </body>
 </html>`;
 }
@@ -263,9 +335,87 @@ const FEATURES = [
   ['hat', '#A66BF0', 'ظاهر مخصوص خودت', 'آواتار، کلاه و لباس‌هایی که با سکه‌های بازی به دست می‌آوری.'],
 ] as const;
 
+/** The promo banners of `docs/design/banner` (resized to webp in `assets/banners`); the alt text is what the banner itself says. */
+const BANNERS = [
+  ['banner1', 'دوزاری: بالاخره دوزاریت می‌افته! پازل، رقابت با رفقا، سفر به ۳۱ استان'],
+  ['banner2', '۱۶ کلمه، ۴ دسته! کلمه‌های هم‌خانواده را کنار هم بچین'],
+  ['banner4', 'قیمت قدیما یادته؟ از نون سنگک تا پیکان جوانان'],
+  ['banner3', 'با رفقات رقابت کن؛ رو در رو، زنده، همین الان'],
+  ['banner5', 'سفر به ۳۱ استان؛ هر شهر یه بازارچه و یه سوغاتی'],
+  ['banner6', 'نصف جهان تا شیراز؛ گز اصفهان، گل‌محمدی فارس'],
+  ['banner7', 'هر روز یه جایزه؛ گردونه را بچرخون و سکه ببر'],
+  ['banner8', 'با کل محل آشنا شو؛ همین حالا رایگان نصب کن'],
+] as const;
+const banner = (name: string, alt: string, opts: { eager?: boolean; cls?: string } = {}): string =>
+  `<img${opts.cls ? ` class="${opts.cls}"` : ''} src="/banners/${name}.webp" alt="${escapeHtml(alt)}" width="1600" height="900"${opts.eager ? ' fetchpriority="high"' : ' loading="lazy"'} decoding="async">`;
+const bannerAlt = (name: string): string => BANNERS.find((b) => b[0] === name)?.[1] ?? '';
+
+/** The sliding banner strip: plain scroll-snap (works without scripts); the script only adds auto-play, arrows and dots. */
+const carousel = (): string =>
+  `<div class="car" role="region" aria-roledescription="carousel" aria-label="بنرهای معرفی بازی"><div class="track" tabindex="0">${BANNERS.map(([n, alt], k) => `<figure aria-label="${faNum(k + 1)} از ${faNum(BANNERS.length)}">${banner(n, alt, { eager: k === 0 })}</figure>`).join('')}</div>
+<div class="nav" dir="ltr"><button class="arr" type="button" data-go="-1" aria-label="قبلی">‹</button><span class="dots">${BANNERS.map((_, k) => `<button class="dot" type="button" data-i="${k}" aria-label="بنر ${faNum(k + 1)}"${k === 0 ? ' aria-current="true"' : ''}></button>`).join('')}</span><button class="arr" type="button" data-go="1" aria-label="بعدی">›</button></div></div>`;
+
+const TICKER = ['قیمت اسمی، بدون تعدیل تورم', '۱۶ کالا، ۴ گروه', 'چالش روزانه', 'رقابت زنده با رفقا', 'سفر به ۳۱ استان', 'گردونه‌ی جایزه‌ی هر روز', 'بازی رایگان'];
+const ticker = (): string => {
+  const row = TICKER.map((t) => `<span>${escapeHtml(t)}</span>`).join('');
+  return `<div class="mq" aria-hidden="true"><div class="tr">${row}${row}</div></div>`;
+};
+
+/** One alternating feature row: a banner in a tilted frame next to the text. `flip` puts the picture on the other side. */
+const showRow = (cls: string, a: { h: string; p: string; chips: string[]; art: string; flip?: boolean }): string =>
+  `<section class="band ${cls}"><div class="in show" style="padding-top:80px;padding-bottom:80px"><div class="tx rv ${a.flip ? 'r' : 'l'}"><h2>${escapeHtml(a.h)}</h2><p>${escapeHtml(a.p)}</p><div class="chips">${a.chips.map((c) => `<span class="pill sm">${escapeHtml(c)}</span>`).join('')}</div></div><div style="order:${a.flip ? -1 : 0}">${a.art}</div></div></section>`;
+
+const frame = (name: string, t = '-2deg', d = '0s'): string => `<div class="frame rv z" style="--t:${t};--d:${d}">${banner(name, bannerAlt(name))}</div>`;
+
+/** The try-it puzzle: the grouping mechanic with plain words (a red herring included: «نی» is also an instrument). Behaviour in `HOME_JS`. */
+const DEMO_GROUPS = [
+  ['میوه‌های پاییزی', ['انار', 'به', 'خرمالو', 'انگور']],
+  ['سازهای ایرانی', ['تار', 'دف', 'کمانچه', 'سنتور']],
+  ['ماشین‌های قدیمی', ['سمند', 'پیکان', 'ژیان', 'پراید']],
+  ['چای‌خانه‌ی سنتی', ['نی', 'استکان', 'سماور', 'قلیون']],
+] as const;
+const DEMO_ORDER = [4, 12, 1, 9, 7, 0, 14, 5, 10, 3, 13, 8, 2, 15, 6, 11];
+const demo = (): string => {
+  const words = DEMO_GROUPS.flatMap(([, w], g) => w.map((x) => ({ x, g })));
+  const tiles = DEMO_ORDER.map((i) => words[i] as { x: string; g: number });
+  return `<div class="demo" id="demo" data-groups='${JSON.stringify(DEMO_GROUPS.map(([t]) => t))}'>
+<div class="dgrid">${tiles.map((t) => `<button class="t" type="button" data-g="${t.g}" aria-pressed="false">${escapeHtml(t.x)}</button>`).join('')}</div>
+<p class="dmsg" role="status" aria-live="polite">چهارتا کلمه‌ی هم‌دسته را انتخاب کن</p>
+<div class="dbar"><button class="btn" type="button" data-act="submit" disabled>ثبت کن</button><button class="btn yellow" type="button" data-act="reset">از اول</button></div>
+<p class="dnote">نمونه‌ی ساده با کلمه‌ها؛ در بازی اصلی گروه‌ها بر پایه‌ی قیمت کالاها در سال‌های گذشته‌اند.</p></div>`;
+};
+
+/** The page script: banner auto-play, animated numbers and the try-it puzzle. */
+const HOME_JS = `(function(){
+var d=document,R=matchMedia('(prefers-reduced-motion: reduce)').matches;
+var fa=function(n){return String(n).replace(/\\d/g,function(x){return '۰۱۲۳۴۵۶۷۸۹'[x]})};
+var car=d.querySelector('.car');
+if(car){var tr=car.querySelector('.track'),dots=car.querySelectorAll('.dot'),n=dots.length,cur=0,hold=false,t;
+var rtl=function(){return getComputedStyle(tr).direction==='rtl'};
+var go=function(i){cur=(i+n)%n;tr.scrollTo({left:(rtl()?-1:1)*cur*tr.clientWidth,behavior:R?'auto':'smooth'})};
+tr.addEventListener('scroll',function(){var i=Math.round(Math.abs(tr.scrollLeft)/tr.clientWidth);if(i!==cur&&i<n){cur=i}dots.forEach(function(b,k){b.setAttribute('aria-current',k===cur)})},{passive:true});
+car.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;if(b.dataset.go)go(cur+(rtl()?-1:1)*Number(b.dataset.go));else if(b.dataset.i)go(Number(b.dataset.i))});
+['mouseenter','focusin','touchstart'].forEach(function(ev){car.addEventListener(ev,function(){hold=true},{passive:true})});
+['mouseleave','focusout'].forEach(function(ev){car.addEventListener(ev,function(){hold=false})});
+if(!R)setInterval(function(){if(!hold&&!d.hidden)go(cur+1)},4500);}
+var cs=d.querySelectorAll('[data-to]');
+if(cs.length&&'IntersectionObserver' in window&&!R){var io=new IntersectionObserver(function(es){es.forEach(function(e){if(!e.isIntersecting)return;io.unobserve(e.target);var el=e.target,to=Number(el.dataset.to),s=performance.now();(function f(now){var p=Math.min(1,(now-s)/1200);el.textContent=fa(Math.round(to*(1-Math.pow(1-p,3))));if(p<1)requestAnimationFrame(f)})(s)})},{threshold:.6});cs.forEach(function(c){io.observe(c)})}
+var demo=d.getElementById('demo');
+if(demo){var names=JSON.parse(demo.dataset.groups),colors=['#FFC93C','#7ED957','#3FC1F0','#A66BF0'],grid=demo.querySelector('.dgrid'),msg=demo.querySelector('.dmsg'),ok=demo.querySelector('[data-act=submit]'),sel=[],solved=0,miss=0;
+var tiles=[].slice.call(grid.querySelectorAll('.t'));
+var sync=function(){tiles.forEach(function(t){t.setAttribute('aria-pressed',sel.indexOf(t)>-1)});ok.disabled=sel.length!==4};
+grid.addEventListener('click',function(e){var t=e.target.closest('.t');if(!t||t.classList.contains('done'))return;var i=sel.indexOf(t);if(i>-1)sel.splice(i,1);else if(sel.length<4)sel.push(t);sync()});
+ok.addEventListener('click',function(){if(sel.length!==4)return;var g=sel[0].dataset.g,same=sel.filter(function(t){return t.dataset.g===g}).length;
+if(same===4){var bar=d.createElement('div');bar.className='gb';bar.textContent=names[g];bar.style.setProperty('--gc',colors[g]);bar.style.order=solved*5;grid.appendChild(bar);sel.forEach(function(t,k){t.classList.add('done','pop');t.style.setProperty('--gc',colors[g]);t.style.order=solved*5+1+k;t.setAttribute('aria-pressed','false')});solved++;sel=[];msg.textContent=solved===4?'دوزاری‌ات افتاد! همه‌ی گروه‌ها را پیدا کردی.':'آفرین! یک گروه پیدا شد.';sync();tiles.forEach(function(t){if(!t.classList.contains('done'))t.style.order=100})}
+else{miss++;sel.forEach(function(t){t.classList.remove('shake');void t.offsetWidth;t.classList.add('shake')});msg.textContent=same===3?'یکی‌شون جاش اشتباهه!':'این‌ها هم‌دسته نیستند؛ دوباره فکر کن.';sel=[];sync()}});
+demo.querySelector('[data-act=reset]').addEventListener('click',function(){grid.querySelectorAll('.gb').forEach(function(b){b.remove()});tiles.forEach(function(t){t.className='t';t.style.order='';t.style.removeProperty('--gc')});sel=[];solved=0;miss=0;msg.textContent='چهارتا کلمه‌ی هم‌دسته را انتخاب کن';sync()})}
+})();`;
+
 /** The people of the game for the home strip and the about page: the game's own cast list, else the designed one. */
 const castOf = (cast: CastMember[]): { name: string; role: string; who: Who; id: string; image: string | null }[] =>
   (cast.length ? cast : WHO.slice(0, 8).map((w) => ({ id: w, name: CAST_NAMES[w], role: '', bio: '', image: null }))).map((c, n) => ({ id: c.id, name: c.name, role: c.role, who: whoOf(c, n), image: photoOf(c.image) }));
+
+const FLOATERS: [string, string, string, string][] = [['coin', '38%', '52%', '0s'], ['gift', '44%', '4%', '1.2s'], ['crown', '3%', '66%', '2.1s'], ['coinStack', '47%', '82%', '.6s'], ['hat', '90%', '8%', '1.7s'], ['map', '92%', '70%', '2.8s']];
 
 export function homePage(site: Site, data: LandingData, latest: PostSummary[]): string {
   const { site: s, cast, faq } = data;
@@ -273,7 +423,7 @@ export function homePage(site: Site, data: LandingData, latest: PostSummary[]): 
   const title = s.seo?.title || `${s.name} — ${s.tagline}`;
   const desc = description(s.seo?.description || s.heroText || s.tagline);
   const nodes: Record<string, unknown>[] = [
-    { '@type': 'WebPage', '@id': `${site.url}/#webpage`, url: `${site.url}/`, name: title, description: desc, inLanguage: 'fa-IR', isPartOf: { '@id': i.site }, about: { '@id': i.org } },
+    { '@type': 'WebPage', '@id': `${site.url}/#webpage`, url: `${site.url}/`, name: title, description: desc, inLanguage: 'fa-IR', isPartOf: { '@id': i.site }, about: { '@id': i.org }, primaryImageOfPage: { '@type': 'ImageObject', url: absolute(site, '/banners/banner1.webp'), width: 1600, height: 900 } },
     {
       '@type': 'HowTo',
       name: `${s.name} چطور بازی می‌شود؟`,
@@ -283,24 +433,37 @@ export function homePage(site: Site, data: LandingData, latest: PostSummary[]): 
   const faqN = faqNode(faq);
   if (faqN) nodes.push(faqN);
   const people = castOf(cast).slice(0, 8);
+  const stats: [number, string, string][] = [[16, 'کالا روی هر جدول', '#FF4D8D'], [4, 'گروه پنهان', '#7E46D6'], [31, 'استان برای سفر', '#2FA84F'], [4, 'حالت بازی', '#E8612A']];
   const body = `
-<section class="band y"><div class="in grid2">
-<div class="col" style="gap:22px"><span class="pill">بازی قیمت‌های قدیمی ایران · رایگان</span>
+<section class="band y hero"><div class="in grid2">
+${FLOATERS.map(([n, x, y, dl]) => `<img class="fl" src="/items/${n}.svg" alt="" width="56" height="56" style="inset-inline-start:${x};top:${y};--d:${dl}" aria-hidden="true">`).join('')}
+<div class="col" style="gap:22px;position:relative"><span class="pill">بازی قیمت‌های قدیمی ایران · رایگان</span>
 <h1>${escapeHtml(s.heroTitle || s.name)}</h1>
 <p class="lead">${escapeHtml(s.heroText)}</p>
 <div class="badges">${storeBadges(site)}</div></div>
 <div class="stage"><span class="disc"></span>${img('dozari-cheer-anim', 320, 368, { eager: true, alt: `${s.name}، شخصیت اصلی بازی` })}</div>
 </div></section>
-<section class="in sec col" style="gap:36px"><h2 class="big">چرا ${escapeHtml(s.name)}؟</h2>
-<ul class="cards4">${FEATURES.map(([ic, bg, t, d]) => `<li class="tile"><div class="ic" style="background:${bg}">${item(ic)}</div><h3>${escapeHtml(t)}</h3><p>${escapeHtml(d)}</p></li>`).join('')}</ul></section>
-<section class="band s"><div class="in col" style="gap:36px;padding-top:80px;padding-bottom:80px"><h2 class="big">${escapeHtml(s.name)} چطور بازی می‌شود؟</h2>
-<ol class="steps">${HOW_TO.map(([n, t, art], k) => `<li><div class="shot">${img(art, 216, 248)}</div><span class="num">${faNum(k + 1)}</span><h3>${escapeHtml(n)}</h3><p>${escapeHtml(t)}</p></li>`).join('')}</ol></div></section>
-<section class="in sec col" style="gap:28px"><div class="col" style="align-items:center;text-align:center;gap:6px"><h2 class="big">آدم‌های بازار</h2><p style="margin:0;font-weight:600;font-size:17px;opacity:.8">هر کدوم یه قصه دارن و یه عالمه کالا</p></div>
-<div class="castbox">${people.map((c) => `<a href="/cast#${escapeHtml(c.id)}">${c.image ? `<img src="${escapeHtml(c.image)}" alt="${escapeHtml(c.name)}" width="120" height="138" loading="lazy" style="object-fit:contain">` : img(`${c.who}-idle`, 120, 138, { alt: c.name })}<span>${escapeHtml(c.name)}</span></a>`).join('')}</div>
+${ticker()}
+<section class="in sec col" style="gap:36px;padding-bottom:56px"><h2 class="big rv">بازار دوزاری را ببین</h2><div class="rv z">${carousel()}</div></section>
+<section class="in col" style="gap:36px;padding-bottom:80px"><h2 class="big rv">چرا ${escapeHtml(s.name)}؟</h2>
+<ul class="cards4">${FEATURES.map(([ic, bg, t, d], k) => `<li class="tile rv" style="--d:${k * 0.1}s"><div class="ic" style="background:${bg}">${item(ic)}</div><h3>${escapeHtml(t)}</h3><p>${escapeHtml(d)}</p></li>`).join('')}</ul></section>
+${showRow('p', { h: '۱۶ کلمه، ۴ دسته!', p: 'شانزده کالا روی صفحه است و فقط چهار قاعده‌ی پنهان. کالاهای هم‌دسته را کنار هم بچین تا هر گروه رنگ خودش را بگیرد.', chips: ['پازل روزانه', 'چهار گروه رنگی', 'اشتباه محدود'], art: frame('banner2', '-2deg') })}
+${showRow('y', { h: 'قیمت قدیما یادته؟', p: 'از نون سنگک تا پیکان جوانان؛ قیمت اسمی هر کالا در یک سال شمسی، همان عددی که آن روز روی برچسب بود.', chips: ['قیمت اسمی', 'بدون تعدیل تورم', 'سال‌های شمسی'], art: frame('banner4', '2deg'), flip: true })}
+${showRow('s', { h: 'با رفقات رقابت کن', p: 'حریف پیدا کن و ببین دوزاری کی زودتر می‌افتد؛ تکی، زنده دونفره، دو در دو، میز خصوصی یا تورنومنت.', chips: ['رو در رو', 'دو در دو', 'میز خصوصی', 'تورنومنت'], art: frame('banner3', '-2deg') })}
+<section class="band g"><div class="in show" style="padding-top:80px;padding-bottom:80px"><div class="tx rv l"><h2>سفر به ۳۱ استان</h2><p>هر شهر یه بازارچه و یه سوغاتی دارد؛ از گز اصفهان تا گل‌محمدی فارس. استان‌ها را یکی‌یکی باز کن و جدول‌های تازه‌اش را بازی کن.</p><div class="chips"><span class="pill sm">نقشه‌ی سفر</span><span class="pill sm">سوغاتی هر استان</span></div></div><div class="pair">${frame('banner5', '-2deg')}${frame('banner6', '2.5deg', '.15s')}</div></div></section>
+${showRow('o', { h: 'هر روز یه جایزه', p: 'گردونه‌ی روزانه را بچرخان و سکه ببر؛ سکه‌ها برای آواتار، کلاه و لباس مخصوص خودت خرج می‌شوند.', chips: ['گردونه‌ی روزانه', 'سکه‌ی بازی', 'ظاهر اختصاصی'], art: frame('banner7', '2deg'), flip: true })}
+<section class="band v"><div class="in col" style="gap:36px;padding-top:80px;padding-bottom:80px"><h2 class="big rv" style="color:var(--cream)">دوزاری در یک نگاه</h2>
+<div class="stats">${stats.map(([n, l, c], k) => `<div class="stat rv z" style="--c:${c};--d:${k * 0.1}s"><b data-to="${n}">${faNum(n)}</b><span>${l}</span></div>`).join('')}</div></div></section>
+<section class="in sec col" style="gap:28px"><div class="col" style="align-items:center;text-align:center;gap:6px"><h2 class="big rv">همین‌جا امتحان کن</h2><p class="rv" style="margin:0;font-weight:600;font-size:17px;opacity:.8">دوزاری‌ات می‌افتد؟ شانزده کلمه، چهار دسته</p></div><div class="rv z">${demo()}</div></section>
+<section class="band s"><div class="in col" style="gap:36px;padding-top:80px;padding-bottom:80px"><h2 class="big rv">${escapeHtml(s.name)} چطور بازی می‌شود؟</h2>
+<ol class="steps">${HOW_TO.map(([n, t, art], k) => `<li class="rv" style="--d:${k * 0.12}s"><div class="shot">${img(art, 216, 248)}</div><span class="num">${faNum(k + 1)}</span><h3>${escapeHtml(n)}</h3><p>${escapeHtml(t)}</p></li>`).join('')}</ol></div></section>
+<section class="in sec col" style="gap:28px"><div class="col" style="align-items:center;text-align:center;gap:6px"><h2 class="big rv">آدم‌های بازار</h2><p style="margin:0;font-weight:600;font-size:17px;opacity:.8">هر کدوم یه قصه دارن و یه عالمه کالا</p></div>
+<div class="castbox rv z">${people.map((c, k) => `<a href="/cast#${escapeHtml(c.id)}" style="--d:${(k % 4) * 0.4}s">${c.image ? `<img src="${escapeHtml(c.image)}" alt="${escapeHtml(c.name)}" width="120" height="138" loading="lazy" style="object-fit:contain">` : img(`${c.who}-idle`, 120, 138, { alt: c.name })}<span>${escapeHtml(c.name)}</span></a>`).join('')}</div>
 <p style="text-align:center;margin:0"><a href="/cast">معرفی کامل بازیگران دوزاری</a></p></section>
-${latest.length ? `<section class="in col" style="gap:28px;padding-bottom:80px"><div class="row"><h2 class="big" style="text-align:start">تازه‌های وبلاگ</h2><a class="more" href="/blog">همهٔ مطالب ←</a></div><ul class="pgrid">${latest.map(postCard).join('')}</ul></section>` : ''}
-${faq.length ? `<section class="in col" style="gap:28px;padding-bottom:80px"><h2 class="big">پرسش‌های متداول</h2>${faqList(faq)}</section>` : ''}
-${promo('pk', 'همین حالا رایگان دانلود کن', 'روی گوشی یا همین مرورگر، بدون ثبت‌نام طولانی', '<a class="btn big yellow" href="/download">دانلود ' + escapeHtml(s.name) + '</a>')}`;
+${latest.length ? `<section class="in col" style="gap:28px;padding-bottom:80px"><div class="row"><h2 class="big rv" style="text-align:start">تازه‌های وبلاگ</h2><a class="more" href="/blog">همهٔ مطالب ←</a></div><ul class="pgrid">${latest.map(postCard).join('')}</ul></section>` : ''}
+${faq.length ? `<section class="in col" style="gap:28px;padding-bottom:80px"><h2 class="big rv">پرسش‌های متداول</h2>${faqList(faq)}</section>` : ''}
+<section class="in col" style="gap:28px;padding-bottom:80px;align-items:center"><h2 class="big rv">همین حالا رایگان دانلود کن</h2><a class="fin rv z" href="/download" aria-label="دانلود ${escapeHtml(s.name)}">${banner('banner8', bannerAlt('banner8'))}</a><a class="btn big yellow pulse" href="/download">دانلود ${escapeHtml(s.name)}</a></section>
+<script>${HOME_JS}</script>`;
   return layout(site, head(site, { title, description: desc, path: '/', nodes }), null, body, { active: 'home', wide: true });
 }
 

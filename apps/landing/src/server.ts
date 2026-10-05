@@ -67,6 +67,22 @@ export function buildLanding(opts: LandingOptions): FastifyInstance {
   app.get('/fonts/:file', asset('fonts', 'woff2', 'font/woff2', /^(Lalezar-Regular|Vazirmatn-(400|800|900))$/));
   app.get('/characters/:file', asset('characters', 'svg', 'image/svg+xml', /^[A-Za-z]+-[A-Za-z-]+$/));
   app.get('/items/:file', asset('items', 'svg', 'image/svg+xml', /^[A-Za-z]+$/));
+  // Promo banners (docs/design/banner, resized to webp) and the social card; favicons and the web-app icons.
+  app.get('/banners/:file', async (req, reply) => {
+    const file = (req.params as { file: string }).file;
+    return file === 'og.jpg' ? asset('banners', 'jpg', 'image/jpeg', /^og$/)(req, reply) : asset('banners', 'webp', 'image/webp', /^banner[1-8]$/)(req, reply);
+  });
+  app.get('/icons/:file', async (req, reply) => {
+    const file = (req.params as { file: string }).file;
+    const ext = file.endsWith('.ico') ? 'ico' : 'png';
+    return asset('icons', ext, ext === 'ico' ? 'image/x-icon' : 'image/png', /^(favicon|favicon-32|icon-192|icon-512|apple-touch-icon)$/)(req, reply);
+  });
+  app.get('/favicon.ico', async (_req, reply) => asset('icons', 'ico', 'image/x-icon', /^favicon$/)({ params: { file: 'favicon.ico' } }, reply));
+  app.get('/site.webmanifest', async (_req, reply) => {
+    const data = await api.landing();
+    const s = siteOf(data, opts.siteUrl);
+    return reply.header('content-type', 'application/manifest+json; charset=utf-8').header('cache-control', 'public, max-age=86400').send(JSON.stringify({ name: s.name, short_name: s.name, lang: 'fa', dir: 'rtl', start_url: '/', display: 'browser', background_color: '#FFF6E8', theme_color: '#2B1240', icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }, { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' }] }));
+  });
 
   app.get('/health', async () => ({ ok: true }));
 
