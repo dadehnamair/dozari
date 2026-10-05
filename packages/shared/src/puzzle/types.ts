@@ -11,9 +11,13 @@ export interface CatalogPricePoint {
   priceRials: bigint;
 }
 
+import type { AgeTrack } from '../config/ageTracks.js';
+
 export interface CatalogProduct {
   id: string;
   category: string;
+  /** Lowest age track the item is meant for (D198); missing = adult. */
+  ageTrack?: AgeTrack;
   eraTags: readonly string[];
   prices: readonly CatalogPricePoint[];
 }

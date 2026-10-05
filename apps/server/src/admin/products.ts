@@ -2,6 +2,7 @@ import { asc, eq, pricePoints, products } from '@dozari/db';
 import type { Db } from '@dozari/db';
 import { uuidv7 } from 'uuidv7';
 import { PRODUCT_CATEGORIES, isItemIconKey } from '@dozari/shared';
+import type { AgeTrack } from '@dozari/shared';
 
 export interface ProductPatch {
   nameFa?: string;
@@ -11,6 +12,8 @@ export interface ProductPatch {
   storyFa?: string | null;
   iconKey?: string | null;
   isActive?: boolean;
+  /** Lowest age track the item is meant for (D198). */
+  ageTrack?: AgeTrack;
   status?: 'in_production' | 'discontinued' | 'changed';
 }
 
@@ -20,6 +23,7 @@ export interface NewProduct {
   category: string;
   unitFa?: string | null;
   iconKey?: string | null;
+  ageTrack?: AgeTrack;
 }
 
 export interface NewPrice {
@@ -35,7 +39,7 @@ export interface NewPrice {
 
 export interface ProductAdmin {
   /** Product fields beyond the review list: category, icon, active flag, story, brand. */
-  details(): Promise<Record<string, { category: string; iconKey: string | null; isActive: boolean; brand: string | null; storyFa: string | null; status: string }>>;
+  details(): Promise<Record<string, { category: string; iconKey: string | null; isActive: boolean; brand: string | null; storyFa: string | null; status: string; ageTrack: AgeTrack }>>;
   update(id: string, patch: ProductPatch): Promise<'ok' | 'not_found' | 'invalid'>;
   create(input: NewProduct): Promise<{ id: string } | 'duplicate' | 'invalid'>;
   /** A price typed by hand; always stored as pending so the review step still applies. */
@@ -58,7 +62,7 @@ export function createDbProductAdmin(db: Db): ProductAdmin {
     async details() {
       const rows = await db.select().from(products).orderBy(asc(products.slug));
       return Object.fromEntries(
-        rows.map((p) => [p.id, { category: p.category, iconKey: p.iconKey, isActive: p.isActive, brand: p.brand, storyFa: p.storyFa, status: p.status }]),
+        rows.map((p) => [p.id, { category: p.category, iconKey: p.iconKey, isActive: p.isActive, brand: p.brand, storyFa: p.storyFa, status: p.status, ageTrack: p.ageTrack }]),
       );
     },
     async update(id, patch) {
@@ -83,6 +87,7 @@ export function createDbProductAdmin(db: Db): ProductAdmin {
           category: input.category as (typeof products.$inferInsert)['category'],
           unitFa: input.unitFa ?? null,
           iconKey: input.iconKey ?? null,
+          ageTrack: input.ageTrack ?? 'adult',
         });
       } catch (err) {
         if (isDuplicateKey(err)) return 'duplicate';

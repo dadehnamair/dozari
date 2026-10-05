@@ -7,6 +7,7 @@ import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { safeTop } from '../theme/safeArea';
 import { saveAgeTrack } from './api';
+import { forgetTrackRules } from './useTrackRules';
 
 const INK = '#2B1240';
 
@@ -24,7 +25,7 @@ export function AgeTrackScreen({ onDone }: { onDone: (track: AgeTrack) => void }
     setBusy(true);
     setFailed(false);
     saveAgeTrack(track).then(
-      () => onDone(track),
+      () => (forgetTrackRules(), onDone(track)),
       () => (setBusy(false), setFailed(true)),
     );
   };

@@ -5,7 +5,7 @@ import { checkSeedProducts, checkSeedPuzzles, seedFileSchema, seedPriceToRials, 
 import type { SeedProduct, SeedPuzzle } from '@dozari/shared';
 import { and, eq, isNull } from 'drizzle-orm';
 import type { Db } from '../client.js';
-import { pricePoints, productAudiences, productEraTags, products } from '../schema.js';
+import { itemLessons, pricePoints, productAudiences, productEraTags, products } from '../schema.js';
 
 /** A seed folder may be absent (git does not keep empty directories): that just means no seed files. */
 const jsonFiles = (dir: string): string[] => (existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith('.json')).sort() : []);
@@ -22,7 +22,7 @@ export function readSeedPuzzles(products: readonly SeedProduct[] = readSeedProdu
     if (!parsed.success) problems.push(...parsed.error.issues.map((i) => `${file}: ${i.path.join('.')}: ${i.message}`));
     else all.push(...parsed.data);
   }
-  problems.push(...checkSeedPuzzles(all, new Set(products.map((p) => p.slug))));
+  problems.push(...checkSeedPuzzles(all, new Set(products.map((p) => p.slug)), new Map(products.map((p) => [p.slug, p.age_track] as const))));
   if (problems.length > 0) throw new Error(`Invalid puzzle seed:\n${problems.join('\n')}`);
   return all;
 }
@@ -59,6 +59,7 @@ export async function loadSeed(db: Db, seed: readonly SeedProduct[] = readSeedPr
         iconKey: p.icon_key ?? null,
         storyFa: p.story_fa ?? null,
         status: p.status,
+        ageTrack: p.age_track,
       };
       // MySQL has no RETURNING: upsert, then look the id up by its unique slug.
       await tx
@@ -70,6 +71,14 @@ export async function loadSeed(db: Db, seed: readonly SeedProduct[] = readSeedPr
         .from(products)
         .where(eq(products.slug, p.slug));
       if (!row) throw new Error(`upsert failed for ${p.slug}`);
+
+      // A kid word lesson is seeded once, as a draft; an edit or approval made in the admin is never overwritten.
+      if (p.lesson) {
+        await tx
+          .insert(itemLessons)
+          .ignore()
+          .values({ productId: row.id, wordFa: p.lesson.word_fa, storyFa: p.lesson.story_fa, syllablesFa: p.lesson.syllables_fa ?? null, status: 'draft' });
+      }
 
       // Tag tables are fully owned by the seed: replace them so removed tags disappear.
       await tx.delete(productAudiences).where(eq(productAudiences.productId, row.id));

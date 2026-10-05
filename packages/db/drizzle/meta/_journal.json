@@ -414,6 +414,13 @@
       "when": 1791195615718,
       "tag": "0058_long_magma",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "5",
+      "when": 1791196884270,
+      "tag": "0059_heavy_molten_man",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { AGE_TRACKS } from '../config/ageTracks.js';
+import type { AgeTrack } from '../config/ageTracks.js';
 import { ITEM_ICON_KEYS } from '../items/index.js';
 
 /** Mirrors the `product_category` enum in packages/db (docs/logic/data-model.md §Catalog). */
@@ -92,14 +94,26 @@ export const seedProductSchema = z
     story_fa: z.string().optional(),
     status: z.enum(PRODUCT_STATUSES).default('in_production'),
     images: z.array(seedImageSchema).default([]),
-    prices: z.array(seedPricePointSchema).min(1),
+    /** Lowest age track the item is meant for (D198); kid items need no price history. */
+    age_track: z.enum(AGE_TRACKS).default('adult'),
+    /** Kid word lesson (D198); seeded as a draft that an editor approves in the admin. */
+    lesson: z.object({ word_fa: z.string().min(1).max(60), story_fa: z.string().max(300).default(''), syllables_fa: z.string().max(80).optional() }).strict().optional(),
+    prices: z.array(seedPricePointSchema).default([]),
   })
-  .strict();
+  .strict()
+  .superRefine((p, ctx) => {
+    if (p.age_track !== 'kid' && p.prices.length === 0) ctx.addIssue({ code: 'custom', path: ['prices'], message: 'at least one price is required (only kid items may have none)' });
+    if (p.lesson && p.age_track !== 'kid') ctx.addIssue({ code: 'custom', path: ['lesson'], message: 'a word lesson belongs to a kid item' });
+  });
 
 /** One curated puzzle of the sample seed: 4 groups of 4 product slugs (`packages/db/seed/puzzles/*.json`). */
 export const seedPuzzleSchema = z
   .object({
     id: z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/),
+    /** Track pool of the puzzle (D198). */
+    age_track: z.enum(AGE_TRACKS).default('adult'),
+    /** Kid and teen puzzles are seeded as drafts for an editor to approve; adult samples go live. */
+    status: z.enum(['draft', 'approved']).default('approved'),
     groups: z
       .array(
         z
@@ -118,7 +132,7 @@ export const seedPuzzleFileSchema = z.array(seedPuzzleSchema);
 export type SeedPuzzle = z.infer<typeof seedPuzzleSchema>;
 
 /** A seed puzzle's problems: levels 0–3 once each, 16 distinct products, every slug in the catalog seed. */
-export function checkSeedPuzzles(puzzles: readonly SeedPuzzle[], slugs: ReadonlySet<string>): string[] {
+export function checkSeedPuzzles(puzzles: readonly SeedPuzzle[], slugs: ReadonlySet<string>, tracks: ReadonlyMap<string, AgeTrack> = new Map()): string[] {
   const errors: string[] = [];
   const ids = new Set<string>();
   for (const p of puzzles) {
@@ -128,6 +142,8 @@ export function checkSeedPuzzles(puzzles: readonly SeedPuzzle[], slugs: Readonly
     const all = p.groups.flatMap((g) => g.products);
     if (new Set(all).size !== all.length) errors.push(`${p.id}: a product appears twice`);
     for (const s of all) if (!slugs.has(s)) errors.push(`${p.id}: unknown product ${s}`);
+    // An item may only be in a puzzle of its own track or an older one (a kid puzzle holds kid items only).
+    for (const s of all) if (AGE_TRACKS.indexOf(tracks.get(s) ?? 'adult') > AGE_TRACKS.indexOf(p.age_track)) errors.push(`${p.id}: ${s} is not meant for the ${p.age_track} track`);
   }
   return errors;
 }

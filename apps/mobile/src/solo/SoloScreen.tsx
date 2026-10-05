@@ -19,6 +19,8 @@ import { useCombo } from '../game/useCombo';
 import { useHeartbeat } from '../game/useHeartbeat';
 import { Rain } from '../components/Rain';
 import { PriceRoundPanel } from '../components/PriceRoundPanel';
+import { LessonPanel } from '../agetrack/LessonPanel';
+import { useTrackRules } from '../agetrack/useTrackRules';
 import { useConfirm } from '../components/useConfirm';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
@@ -42,8 +44,10 @@ const FEEDBACK_MS = 1600;
 /** Right-to-left rows on web too (react-native-web does not flip rows; native does under forced RTL). */
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 
-export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onBack: () => void; hintsEnabled?: boolean; /** Today's daily puzzle: one attempt, no "new game". */ daily?: boolean }) {
+export function SoloScreen({ onBack, hintsEnabled = true, daily = false, ageTracksOn = false }: { onBack: () => void; hintsEnabled?: boolean; /** Today's daily puzzle: one attempt, no "new game". */ daily?: boolean; /** The server's age-track switch: a kid then gets the word lesson instead of the price round. */ ageTracksOn?: boolean }) {
   const prefs = usePrefs();
+  const trackRules = useTrackRules(ageTracksOn);
+  const lessonMode = trackRules?.wordLesson === true;
   const { ask, dialog } = useConfirm();
   /** Short screens get a smaller character and chart so the end scene still fits without scrolling. */
   const compact = useWindowDimensions().height <= 700;
@@ -250,6 +254,15 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false }: { onB
                   <Text style={styles.askSub}>{fa.offline.endSub}</Text>
                 </View>
               </View>
+            ) : lessonMode ? (
+              priceDone ? (
+                <View style={styles.review}>
+                  <Board solved={view.solved} cards={view.cards} names={names} selected={[]} onToggle={() => undefined} disabled hinted={[]} />
+                  <View style={styles.askCard}><Text style={styles.askTitle}>{won ? fa.lesson.kidWon : fa.lesson.kidLost}</Text></View>
+                </View>
+              ) : (
+                <LessonPanel productIds={Object.keys(names)} onDone={() => setPriceDone(true)} />
+              )
             ) : priceDone ? (
               <ChartPanel sessionId={view.sessionId} height={chartH} />
             ) : priceReady ? (

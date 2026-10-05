@@ -18,7 +18,7 @@ function setup() {
   const audit = createMemoryAuditLog();
   const calls: unknown[][] = [];
   const products: ProductAdmin = {
-    details: async () => ({ [ID]: { category: 'food', iconKey: 'bread', isActive: true, brand: null, storyFa: null, status: 'in_production' } }),
+    details: async () => ({ [ID]: { category: 'food', iconKey: 'bread', isActive: true, brand: null, storyFa: null, status: 'in_production', ageTrack: 'adult' as const } }),
     update: async (id, patch) => {
       calls.push(['update', id, patch]);
       return patch.iconKey === 'nope' ? 'invalid' : 'ok';

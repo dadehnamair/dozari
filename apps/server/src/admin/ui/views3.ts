@@ -195,4 +195,43 @@ VIEWS.audit = function (root) {
     draw();
   });
 };
+
+/* ---------------- kid word lessons (D198) ---------------- */
+VIEWS.lessons = function (root) {
+  var st = { status: load('lessons.status') || 'all' };
+  var box = h('div');
+  var filt = seg([['all', 'همه'], ['missing', 'بدون درس'], ['draft', 'پیش‌نویس'], ['approved', 'تأییدشده']], st.status, function (v) { st.status = v; store('lessons.status', v); pull(); });
+  root.appendChild(h('div', { class: 'toolbar' }, [filt]));
+  root.appendChild(box);
+  function row(it) {
+    var l = it.lesson;
+    var word = h('input', { type: 'text', value: l ? l.wordFa : it.nameFa, maxlength: 60 });
+    var story = h('input', { type: 'text', value: l ? l.storyFa : '', maxlength: 300, placeholder: 'یک جمله‌ی کوتاه درباره‌اش' });
+    var syl = h('input', { type: 'text', value: l && l.syllablesFa ? l.syllablesFa : '', maxlength: 80, placeholder: 'هجاها (اختیاری)، مثلاً سی-ب' });
+    function save() {
+      api('/admin/lessons/' + it.productId, { method: 'PUT', body: { wordFa: word.value, storyFa: story.value, syllablesFa: syl.value || null } }).then(function (r) { if (!r.ok) return fail(r); toast('ذخیره شد؛ برای نمایش به بچه‌ها تأیید کن'); pull(); });
+    }
+    function setStatus(action) { api('/admin/lessons/' + it.productId + '/' + action, { method: 'POST', body: {} }).then(function (r) { if (!r.ok) return fail(r); toast(action === 'approve' ? 'تأیید شد' : 'به پیش‌نویس برگشت'); pull(); }); }
+    var state = !l ? badge('بدون درس', 'b-mute') : l.status === 'approved' ? badge('تأییدشده', 'b-ok') : badge('پیش‌نویس', 'b-warn');
+    return h('section', { class: 'card' }, [
+      h('div', { style: 'display:flex;gap:10px;align-items:center;margin-bottom:8px' }, [it.iconKey ? iconTile(it.iconKey) : null, h('h2', { text: it.nameFa, style: 'margin:0' }), state]),
+      h('div', { class: 'form-grid' }, [field('کلمه', word), field('داستان کوتاه', story), field('هجاها', syl)]),
+      h('div', { style: 'display:flex;gap:8px;margin-top:8px' }, [
+        h('button', { class: 'btn primary', text: 'ذخیره', onclick: save }),
+        l && l.status !== 'approved' ? h('button', { class: 'btn ok', text: 'تأیید', onclick: function () { setStatus('approve'); } }) : null,
+        l && l.status === 'approved' ? h('button', { class: 'btn', text: 'برگرداندن به پیش‌نویس', onclick: function () { setStatus('unapprove'); } }) : null
+      ])
+    ]);
+  }
+  function pull() {
+    api('/admin/lessons' + (st.status === 'all' ? '' : '?status=' + st.status)).then(function (r) {
+      clear(box);
+      if (r.status === 404) return box.appendChild(empty('کلمه‌آموزی روی این سرور فعال نیست (دیتابیس لازم است)'));
+      if (!r.ok) return fail(r);
+      if (!r.body.items.length) return box.appendChild(empty('آیتمی با این فیلتر نیست', 'در «کاتالوگ محصولات» رده‌ی سنی یک آیتم را «کودک» کن تا اینجا بیاید.'));
+      r.body.items.forEach(function (it) { box.appendChild(row(it)); });
+    });
+  }
+  pull();
+};
 `;

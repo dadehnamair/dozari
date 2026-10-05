@@ -1,7 +1,7 @@
 import { randomInt } from 'node:crypto';
 import { PRICE_GUESS_MIN_POINTS, pickHint, PRICE_GUESS_STAIRCASE, SOLO_MAX_MISTAKES, mulberry32, selectRounds, shuffleBoard, staircasePoints, startSolo, submitGuess } from '@dozari/shared';
-import { OFFLINE_PACK_DAILY_LIMIT } from '@dozari/shared';
-import type { CatalogProduct, GroupLevel, SoloOfflinePack, HintKind, HintPayload, PriceGuessRound, Rng, SoloChart, SoloPriceResult, SoloPriceRounds, SoloState, SubmitOutcome } from '@dozari/shared';
+import { OFFLINE_PACK_DAILY_LIMIT, trackRules } from '@dozari/shared';
+import type { AgeTrack, CatalogProduct, GroupLevel, SoloOfflinePack, HintKind, HintPayload, PriceGuessRound, Rng, SoloChart, SoloPriceResult, SoloPriceRounds, SoloState, SubmitOutcome } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
 import type { PuzzleSource, ServedPuzzle, SoloView } from './types.js';
 
@@ -49,6 +49,8 @@ export interface SoloServiceOptions {
   onFinished?: (userId: string, outcome: 'win' | 'loss', tag?: string) => void;
   /** A signed-in player's level, so easier puzzles come first (docs/logic/progression.md §Puzzle tiers). */
   levelOf?: (userId: string) => Promise<number>;
+  /** The player's age track (D198): which puzzle pools they are served from. Absent = adult. */
+  trackOf?: (userId: string) => Promise<AgeTrack>;
 }
 
 const DEFAULT_TTL_MS = 2 * 60 * 60 * 1000;
@@ -62,6 +64,7 @@ export class SoloService {
   private readonly loadRules: () => Promise<SoloRules>;
   private readonly onFinished?: (userId: string, outcome: 'win' | 'loss', tag?: string) => void;
   private readonly levelOf?: (userId: string) => Promise<number>;
+  private readonly trackOf?: (userId: string) => Promise<AgeTrack>;
 
   constructor(
     private readonly source: PuzzleSource,
@@ -73,12 +76,13 @@ export class SoloService {
     this.loadRules = opts.rules ?? (async () => DEFAULT_RULES);
     this.onFinished = opts.onFinished;
     this.levelOf = opts.levelOf;
+    this.trackOf = opts.trackOf;
   }
 
   /** Starts a session, or null when there is no puzzle to play. */
   async start(userId?: string, opts: { puzzleId?: string; tag?: string } = {}): Promise<SoloView | null> {
     this.sweep();
-    const puzzle = opts.puzzleId ? await this.source.byId?.(opts.puzzleId) : await this.source.pickRandom({ level: userId && this.levelOf ? await this.levelOf(userId).catch(() => undefined) : undefined });
+    const puzzle = opts.puzzleId ? await this.source.byId?.(opts.puzzleId) : await this.source.pickRandom({ level: userId && this.levelOf ? await this.levelOf(userId).catch(() => undefined) : undefined, tracks: await this.tracksOf(userId) });
     if (!puzzle) return null;
     const rng = mulberry32(this.newSeed());
     const state = startSolo(puzzle, rng);
@@ -86,6 +90,13 @@ export class SoloService {
     const session: Session = { puzzle, state, rng, touchedAt: this.now(), priceResults: [], rules: await this.loadRules(), userId, hints: [], tag: opts.tag };
     this.sessions.set(sessionId, session);
     return this.toView(sessionId, session);
+  }
+
+  /** Puzzle pools a player is served from; a lookup failure reads as adult. */
+  private async tracksOf(userId?: string): Promise<readonly AgeTrack[]> {
+    if (!userId || !this.trackOf) return ['adult'];
+    const track = await this.trackOf(userId).catch(() => 'adult' as const);
+    return trackRules(track).puzzleTracks;
   }
 
   /** Puzzles each account downloaded in the last 24 h: [timestamp, count] pairs. */
@@ -104,7 +115,7 @@ export class SoloService {
     const level = this.levelOf ? await this.levelOf(userId).catch(() => undefined) : undefined;
     const puzzles: SoloOfflinePack['puzzles'] = [];
     for (let i = 0; i < n * 3 && puzzles.length < n; i++) {
-      const p = await this.source.pickRandom({ level });
+      const p = await this.source.pickRandom({ level, tracks: await this.tracksOf(userId) });
       if (!p) break;
       if (puzzles.some((x) => x.id === p.id)) continue;
       puzzles.push({

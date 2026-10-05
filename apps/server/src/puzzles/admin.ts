@@ -1,7 +1,7 @@
 import { and, asc, count, desc, eq, inArray, pricePoints, productEraTags, products, puzzleGroupItems, puzzleGroups, puzzleTiers, puzzles, sql } from '@dozari/db';
 import type { Db } from '@dozari/db';
-import { DEFAULT_PUZZLE_TIERS, GROUP_COUNT, GROUP_SIZE, MIN_PRICE_POINTS_PER_PRODUCT, explainRule, generatePuzzle, tierProblem } from '@dozari/shared';
-import type { Catalog, GeneratedPuzzle, PuzzleTier, Rng, Rule } from '@dozari/shared';
+import { DEFAULT_PUZZLE_TIERS, GROUP_COUNT, GROUP_SIZE, MIN_PRICE_POINTS_PER_PRODUCT, explainRule, generatePuzzle, tierProblem, trackRank } from '@dozari/shared';
+import type { AgeTrack, Catalog, GeneratedPuzzle, PuzzleTier, Rng, Rule } from '@dozari/shared';
 
 export interface NewGroup {
   level: number;
@@ -17,6 +17,8 @@ export interface PuzzleAdminRow {
   createdAt: number;
   /** The puzzle's difficulty tier (admin-defined), or null while unrated. */
   tierId: string | null;
+  /** Which age track's pool the puzzle belongs to (D198). */
+  ageTrack: AgeTrack;
   groups: { level: number; titleFa: string | null; items: string[] }[];
 }
 
@@ -34,7 +36,7 @@ export interface Readiness {
   productsPerPuzzle: number;
 }
 
-export type CreateResult = { ok: true; id: string } | { ok: false; error: 'shape' | 'duplicate_product' | 'unknown_product' };
+export type CreateResult = { ok: true; id: string } | { ok: false; error: 'shape' | 'duplicate_product' | 'unknown_product' | 'item_track' };
 
 /** Shape rules of a hand-built puzzle: 4 groups with levels 0–3 once each, 4 products each, 16 distinct products overall. */
 export function checkShape(groups: readonly NewGroup[]): 'ok' | 'shape' | 'duplicate_product' {
@@ -49,7 +51,8 @@ export function checkShape(groups: readonly NewGroup[]): 'ok' | 'shape' | 'dupli
 export interface PuzzleAdmin {
   list(limit: number): Promise<PuzzleAdminRow[]>;
   readiness(): Promise<Readiness>;
-  create(groups: NewGroup[], tierId?: string | null): Promise<CreateResult>;
+  /** `ageTrack` (default adult): a kid or teen puzzle may only hold items of its own track or younger (`item_track` otherwise). */
+  create(groups: NewGroup[], tierId?: string | null, ageTrack?: AgeTrack): Promise<CreateResult>;
   /** The difficulty tiers, easiest first; a fresh install gets `DEFAULT_PUZZLE_TIERS`. */
   tiers(): Promise<PuzzleTier[]>;
   saveTier(tier: TierInput): Promise<SaveTierResult>;
@@ -110,6 +113,7 @@ export function createDbPuzzleAdmin(db: Db): PuzzleAdmin {
         source: r.source,
         createdAt: r.createdAt.getTime(),
         tierId: r.tierId,
+        ageTrack: r.ageTrack,
         groups: groups
           .filter((g) => g.puzzleId === r.id)
           .sort((a, b) => a.level - b.level)
@@ -125,14 +129,15 @@ export function createDbPuzzleAdmin(db: Db): PuzzleAdmin {
       const [a] = await db.select({ n: count() }).from(puzzles).where(eq(puzzles.status, 'approved'));
       return { products: Number(p?.n ?? 0), withPrices: Number(w?.n ?? 0), approvedPuzzles: Number(a?.n ?? 0), productsPerPuzzle: GROUP_COUNT * GROUP_SIZE };
     },
-    async create(groups, tierId) {
+    async create(groups, tierId, ageTrack = 'adult') {
       const shape = checkShape(groups);
       if (shape !== 'ok') return { ok: false, error: shape };
       const ids = groups.flatMap((g) => g.productIds);
-      const have = await db.select({ id: products.id }).from(products).where(inArray(products.id, ids));
+      const have = await db.select({ id: products.id, ageTrack: products.ageTrack }).from(products).where(inArray(products.id, ids));
       if (have.length !== ids.length) return { ok: false, error: 'unknown_product' };
+      if (have.some((p) => trackRank(p.ageTrack) > trackRank(ageTrack))) return { ok: false, error: 'item_track' };
       return db.transaction(async (tx) => {
-        const [puzzle] = await tx.insert(puzzles).values({ status: 'approved', source: 'curated', tierId: tierId ?? null }).$returningId();
+        const [puzzle] = await tx.insert(puzzles).values({ status: 'approved', source: 'curated', tierId: tierId ?? null, ageTrack }).$returningId();
         if (!puzzle) throw new Error('puzzle insert failed');
         for (const g of groups) {
           const [group] = await tx
@@ -249,12 +254,12 @@ export function createMemoryPuzzleAdmin(known: Set<string>, catalog: Catalog = [
     async readiness() {
       return { products: known.size, withPrices: 0, approvedPuzzles: rows.filter((r) => r.status === 'approved').length, productsPerPuzzle: GROUP_COUNT * GROUP_SIZE };
     },
-    async create(groups, tierId) {
+    async create(groups, tierId, ageTrack = 'adult') {
       const shape = checkShape(groups);
       if (shape !== 'ok') return { ok: false, error: shape };
       if (groups.some((g) => g.productIds.some((id) => !known.has(id)))) return { ok: false, error: 'unknown_product' };
       const id = `00000000-0000-7000-9000-${String(rows.length + 1).padStart(12, "0")}`;
-      rows.unshift({ id, status: 'approved', source: 'curated', createdAt: 0, tierId: tierId ?? null, groups: groups.map((g) => ({ level: g.level, titleFa: g.titleFa, items: g.productIds })) });
+      rows.unshift({ id, status: 'approved', source: 'curated', createdAt: 0, tierId: tierId ?? null, ageTrack, groups: groups.map((g) => ({ level: g.level, titleFa: g.titleFa, items: g.productIds })) });
       return { ok: true, id };
     },
     async generate(count, rng) {
@@ -263,7 +268,7 @@ export function createMemoryPuzzleAdmin(known: Set<string>, catalog: Catalog = [
       for (const g of made) {
         const id = `00000000-0000-7000-9000-${String(rows.length + 1).padStart(12, '0')}`;
         ids.push(id);
-        rows.unshift({ id, status: 'draft', source: 'generated', createdAt: 0, tierId: null, groups: g.groups.map((x) => ({ level: x.level, titleFa: explainRule(x.rule), items: [...x.productIds] })) });
+        rows.unshift({ id, status: 'draft', source: 'generated', createdAt: 0, tierId: null, ageTrack: 'adult', groups: g.groups.map((x) => ({ level: x.level, titleFa: explainRule(x.rule), items: [...x.productIds] })) });
       }
       return { requested: count, created: made.length, catalogSize: catalog.length, ids };
     },
