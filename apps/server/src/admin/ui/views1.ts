@@ -1,39 +1,57 @@
 export const ADMIN_VIEWS1_JS = String.raw`
 /* ---------------- dashboard ---------------- */
-function statCard(label, value, detail, tint, link) {
-  return h('div', { class: 'stat-card', style: '--tint:' + (tint || 'var(--brand2)') }, [
-    h('div', { class: 'n num', text: value }), h('div', { class: 'l', text: label }), detail ? h('div', { class: 'd', text: detail }) : null,
-    link ? h('a', { class: 'go', href: '#/' + link[0], text: link[1] }) : null
-  ]);
+function statCard(label, value, detail, tint, link, pct) {
+  var kids = [h('div', { class: 'l' }, [h('i'), label]), h('div', { class: 'n num', text: value }), detail ? h('div', { class: 'd', text: detail }) : null,
+    pct !== undefined && pct !== null ? h('div', { class: 'bar' }, [h('i', { style: 'width:' + Math.max(2, Math.min(100, pct)) + '%' })]) : null];
+  return link ? h('a', { class: 'stat-card', style: '--tint:' + (tint || 'var(--brand)'), href: '#/' + link }, kids) : h('div', { class: 'stat-card', style: '--tint:' + (tint || 'var(--brand)') }, kids);
 }
+function greeting() { var hr = new Date().getHours(); return hr < 5 ? 'شب بخیر' : hr < 12 ? 'صبح بخیر' : hr < 17 ? 'ظهر بخیر' : hr < 20 ? 'عصر بخیر' : 'شب بخیر'; }
 VIEWS.dashboard = function (root) {
+  var date = new Date().toLocaleDateString('fa-IR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  root.appendChild(pageHead(greeting() + '، ' + (S.me ? S.me.name : ''), date));
   var wrap = h('div'); root.appendChild(wrap);
-  Promise.all([api('/admin/dashboard'), api('/admin/socket'), api('/admin/audit')]).then(function (rs) {
-    var d = rs[0], sock = rs[1], aud = rs[2];
-    if (d.status === 404) { wrap.appendChild(card('خوش آمدی', 'آمار فقط وقتی دیتابیس وصل باشد نمایش داده می‌شود.', [])); }
+  Promise.all([api('/admin/dashboard'), api('/admin/socket'), api('/admin/audit'), api('/admin/chat/reports'), api('/admin/settings')]).then(function (rs) {
+    var d = rs[0], sock = rs[1], aud = rs[2], rep = rs[3], set = rs[4];
+    if (d.status === 404) wrap.appendChild(banner('info', 'آمار فقط وقتی دیتابیس وصل باشد نمایش داده می‌شود.'));
+    var maint = set.ok && set.body.settings.filter(function (x) { return x.key === 'app.maintenance_on'; })[0];
+    if (maint && maint.value === 1) wrap.appendChild(banner('bad', 'حالت تعمیر روشن است؛ بازیکن‌ها فقط پیام تعمیر را می‌بینند.', ['#/system/settings', 'خاموش کردن']));
     if (d.ok) {
-      var b = d.body;
-      wrap.appendChild(h('div', { class: 'grid' }, [
-        statCard('کل بازیکنان', faNum(b.users.total), fa(b.users.newToday) + ' جدید · ' + fa(b.users.activeToday) + ' فعال در ۲۴ ساعت', '#7a3fd1', ['users', 'مدیریت کاربران']),
-        statCard('محصولات', faNum(b.catalog.products), fa(b.catalog.withoutIcon) + ' بدون آیکن · ' + fa(b.catalog.withoutApprovedPrice) + ' بدون قیمت تأییدشده', '#ffc93c', ['catalog', 'کاتالوگ']),
-        statCard('قیمت در انتظار تأیید', faNum(b.catalog.pricesPending), fa(b.catalog.pricesApproved) + ' تأییدشده · ' + fa(b.catalog.pricesRejected) + ' ردشده', '#3fc1f0', ['prices', 'بازبینی قیمت‌ها']),
-        statCard('پیشنهاد ربات', faNum(b.bot.candidatesPending), b.bot.lastRunAt ? 'آخرین اجرا ' + ago(b.bot.lastRunAt) + (b.bot.lastRunStatus === 'failed' ? ' (ناموفق)' : '') : 'ربات هنوز اجرا نشده', '#ff4d8d', ['inbox', 'صندوق پیشنهادها']),
-        statCard('سکه در گردش', faNum(b.economy.coinsInCirculation), fa(b.economy.dailyClaimsToday) + ' جایزه‌ی روزانه در ۲۴ ساعت', '#7ed957', ['users', 'کاربران و سکه']),
-        statCard('پازل‌ها', faNum(b.puzzles), 'پازل ثبت‌شده', '#ff7a3d')
-      ]));
-    }
-    if (sock.ok) {
-      var s = sock.body;
-      wrap.appendChild(card('سرویس سوکت', 'وضعیت زنده', [h('div', { class: 'grid' }, [
-        statCard('اتصال فعال', fa(s.connections), 'بیشترین: ' + fa(s.peakConnections), '#3fc1f0'),
-        statCard('در صف', fa(s.queueLength), 'بیشترین انتظار ' + fa(s.longestWaitSec) + ' ثانیه', '#a66bf0'),
-        statCard('مسابقه فعال', fa(s.activeMatches), '', '#ff7a3d')
-      ])]));
+      var b = d.body, todos = [];
+      var openReports = rep.ok ? rep.body.reports.filter(function (x) { return !x.resolved; }).length : 0;
+      if (b.catalog.pricesPending) todos.push(todoRow(b.catalog.pricesPending, 'قیمت منتظر تأیید', 'قیمت‌هایی که دستی ثبت شده‌اند', 'warn', '#/catalog/prices'));
+      if (b.bot.candidatesPending) todos.push(todoRow(b.bot.candidatesPending, 'پیشنهاد ربات منتظر بررسی', b.bot.lastRunAt ? 'آخرین اجرا ' + ago(b.bot.lastRunAt) : 'ربات هنوز اجرا نشده', 'warn', '#/catalog/inbox'));
+      if (openReports) todos.push(todoRow(openReports, 'گزارش چت باز', 'پیام‌هایی که بازیکن‌ها گزارش کرده‌اند', 'bad', '#/players/chatreports'));
+      if (b.bot.lastRunStatus === 'failed') todos.push(todoRow('!', 'آخرین اجرای ربات ناموفق بود', ago(b.bot.lastRunAt), 'bad', '#/catalog/sources'));
+      if (b.catalog.withoutApprovedPrice) todos.push(todoRow(b.catalog.withoutApprovedPrice, 'محصول بدون قیمت تأییدشده', 'در پازل‌ها استفاده نمی‌شود', 'info', '#/catalog/catalog'));
+      if (b.catalog.withoutIcon) todos.push(todoRow(b.catalog.withoutIcon, 'محصول بدون آیکن', 'آیکن را در کاتالوگ انتخاب کن', 'info', '#/catalog/catalog'));
+      var kpis = h('div', { class: 'grid kpis' }, [
+        statCard('کل بازیکنان', faNum(b.users.total), fa(b.users.newToday) + ' جدید · ' + fa(b.users.banned) + ' مسدود', '#4f46e5', 'players/users', b.users.total ? (b.users.activeToday / b.users.total) * 100 : 0),
+        statCard('فعال در ۲۴ ساعت', faNum(b.users.activeToday), b.users.total ? fa(Math.round((b.users.activeToday / b.users.total) * 100)) + '٪ از بازیکن‌ها' : '', '#14b8a6', 'players/users'),
+        statCard('محصولات', faNum(b.catalog.products), fa(b.catalog.activeProducts) + ' فعال · ' + faNum(b.catalog.pricesApproved) + ' قیمت تأییدشده', '#f5b73b', 'catalog/catalog'),
+        statCard('پازل‌ها', faNum(b.puzzles), 'ثبت‌شده', '#ef6c3d', 'game/puzzles'),
+        statCard('سکه در گردش', faNum(b.economy.coinsInCirculation), fa(b.economy.dailyClaimsToday) + ' جایزه‌ی روزانه در ۲۴ ساعت', '#22a45d', 'economy/daily')
+      ]);
+      wrap.appendChild(kpis);
+      var left = h('section', { class: 'card flush' }, [h('div', { class: 'card-h' }, [h('h2', { text: 'کارهای منتظر تو' }), todos.length ? badge(fa(todos.length), 'b-warn') : null]),
+        todos.length ? h('div', {}, todos) : h('div', { class: 'empty-state' }, [h('b', { text: 'همه‌چیز مرتب است 🎉' }), 'کار معوقی نیست.'])]);
+      var live = h('section', { class: 'card flush' }, [h('div', { class: 'card-h' }, [h('h2', { text: 'سرور زنده' }), h('a', { href: '#/system/socket', class: 'btn sm', text: 'جزئیات' })]),
+        sock.ok ? h('div', { style: 'padding:6px 20px 12px' }, [
+          h('div', { class: 'kv' }, [h('span', { text: 'اتصال فعال' }), h('b', { class: 'num', text: fa(sock.body.connections) })]),
+          h('div', { class: 'kv' }, [h('span', { text: 'در صف مسابقه' }), h('b', { class: 'num', text: fa(sock.body.queueLength) + ' نفر' })]),
+          h('div', { class: 'kv' }, [h('span', { text: 'طولانی‌ترین انتظار در صف' }), h('b', { class: 'num', text: fa(sock.body.longestWaitSec) + ' ثانیه' })]),
+          h('div', { class: 'kv' }, [h('span', { text: 'مسابقه‌ی جاری' }), h('b', { class: 'num', text: fa(sock.body.activeMatches) })]),
+          h('div', { class: 'kv' }, [h('span', { text: 'بیشترین اتصال همزمان' }), h('b', { class: 'num', text: fa(sock.body.peakConnections) })])
+        ]) : h('div', { class: 'empty-state', text: 'سرویس سوکت فعال نیست' })]);
+      wrap.appendChild(h('div', { class: 'cols' }, [left, live]));
     }
     var entries = aud.ok ? aud.body.entries.slice(0, 8) : [];
-    wrap.appendChild(card('آخرین تغییرها', 'هر کاری که در پنل انجام شود اینجا ثبت می‌شود', entries.length ? entries.map(function (e) {
-      return h('div', { class: 'kv' }, [h('span', {}, [badge(e.action, 'b-info'), ' ' + e.target.slice(0, 60)]), h('span', { class: 'sub', text: ago(e.at) })]);
-    }) : [empty('هنوز تغییری ثبت نشده')]));
+    wrap.appendChild(h('div', { style: 'height:16px' }));
+    wrap.appendChild(h('section', { class: 'card flush' }, [h('div', { class: 'card-h' }, [h('h2', { text: 'آخرین تغییرها' }), h('a', { href: '#/system/audit', class: 'btn sm', text: 'همه' })]),
+      entries.length ? h('div', { style: 'padding:4px 20px 10px' }, entries.map(function (e) {
+        return h('div', { class: 'kv' }, [h('span', {}, [badge(e.action, 'b-info'), ' ', h('span', { text: String(e.target).slice(0, 60) })]), h('span', { class: 'muted', style: 'font-size:12.5px', text: (e.actor ? e.actor + ' · ' : '') + ago(e.at) })]);
+      })) : h('div', { class: 'empty-state', text: 'هنوز تغییری ثبت نشده' })]));
+    var links = [['players/users', 'users', 'کاربران'], ['catalog/prices', 'prices', 'بازبینی قیمت'], ['game/puzzles', 'puzzles', 'ساخت پازل'], ['comms/messages', 'messages', 'پیام همگانی'], ['system/settings', 'settings', 'تنظیمات']];
+    wrap.appendChild(h('section', { class: 'card flush' }, [h('div', { class: 'card-h' }, [h('h2', { text: 'میان‌برها' })]), h('div', { class: 'quick-links' }, links.map(function (l) { return h('a', { href: '#/' + l[0] }, [ic(l[1]), l[2]]); }))]));
   });
 };
 

@@ -68,23 +68,59 @@ function toast(msg, err) {
 var ERR = { invalid_code: 'کد نامعتبر است: ۴ تا ۱۲ حرف/عدد، فقط از «۲۳۴۵۶۷۸۹ و ABCDEFGHJKMNPQRSTUVWXYZ» (بدون ۰ ۱ O I L)', invalid_request: 'ورودی نادرست است؛ کد، نام کمپین و تعداد استفاده را بررسی کن', unauthorized: 'توکن اشتباه است', forbidden: 'نقش تو اجازه‌ی این کار را ندارد', rate_limited: 'تلاش‌های زیاد؛ کمی بعد دوباره امتحان کن', invalid_credentials: 'نام کاربری یا رمز درست نیست', account_locked: 'حساب برای چند دقیقه قفل شد', duplicate: 'این نام کاربری قبلاً هست', invalid_username: 'نام کاربری: ۳ تا ۳۰ حرف انگلیسی کوچک، عدد، نقطه یا خط تیره', weak_password: 'رمز ضعیف است (حداقل ۱۰ نویسه، بدون نام کاربری، متنوع)', last_owner: 'آخرین مالک را نمی‌شود برداشت یا غیرفعال کرد', not_found: 'پیدا نشد', invalid_request: 'ورودی نامعتبر است', product_not_found: 'محصول پیدا نشد', slug_taken: 'این شناسه (slug) قبلاً استفاده شده', price_exists: 'همین قیمت قبلاً ثبت شده', approved_price_exists: 'برای این سال قبلاً یک قیمت تأییدشده هست', conflict: 'برای این محصول و سال قبلاً قیمت تأییدشده هست', needs_product: 'یک محصول انتخاب کن یا محصول جدید بساز', duplicate_slug: 'این شناسه قبلاً استفاده شده', already_decided: 'قبلاً تصمیم گرفته شده', insufficient: 'موجودی کافی نیست', source_not_found: 'منبع پیدا نشد', user_not_found: 'کاربر پیدا نشد', invalid_value: 'مقدار خارج از محدوده است', invalid_key: 'تنظیم ناشناخته است' };
 function fail(r) { toast(ERR[r.body && r.body.error] || ('خطا (' + r.status + ')'), true); }
 
-function modal(title, body, buttons) {
-  var overlay = h('div', { class: 'overlay' });
-  function close() { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); document.removeEventListener('keydown', onKey); }
-  function onKey(e) { if (e.key === 'Escape') close(); }
-  document.addEventListener('keydown', onKey);
-  overlay.addEventListener('mousedown', function (e) { if (e.target === overlay) close(); });
+var OVERLAYS = [];
+function closeTop() { var o = OVERLAYS[OVERLAYS.length - 1]; if (o) o(); }
+document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && OVERLAYS.length) { e.stopPropagation(); closeTop(); } });
+/* Shared overlay plumbing for modal / drawer / palette: Escape closes only the top one, focus returns to where it came from. */
+function overlay(cls, content, onClose) {
+  var prev = document.activeElement;
+  var ov = h('div', { class: 'overlay ' + (cls || '') });
+  function close() {
+    var i = OVERLAYS.indexOf(close); if (i >= 0) OVERLAYS.splice(i, 1);
+    if (ov.parentNode) ov.parentNode.removeChild(ov);
+    if (prev && prev.focus) { try { prev.focus(); } catch (e) { /* gone */ } }
+    if (onClose) onClose();
+  }
+  OVERLAYS.push(close);
+  ov.addEventListener('mousedown', function (e) { if (e.target === ov) close(); });
+  ov.appendChild(content);
+  document.body.appendChild(ov);
+  return close;
+}
+function modal(title, body, buttons, opts) {
+  opts = opts || {};
+  var close;
   var foot = h('footer', {}, (buttons || []).map(function (b) {
     return h('button', { class: 'btn ' + (b.cls || ''), text: b.label, onclick: function () { var r = b.run ? b.run(close) : undefined; if (!b.keepOpen && r !== false) close(); } });
   }));
-  var box = h('div', { class: 'modal', role: 'dialog', 'aria-label': title }, [
-    h('header', {}, [h('h3', { text: title }), h('button', { class: 'btn ghost sm', text: 'بستن', onclick: close })]),
+  var box = h('div', { class: 'modal' + (opts.small ? ' sm' : ''), role: 'dialog', 'aria-modal': 'true', 'aria-label': title }, [
+    h('header', {}, [h('h3', { text: title }), h('button', { class: 'btn ghost sm', text: 'بستن', onclick: function () { close(); } })]),
     h('div', { class: 'body' }, [body]),
     buttons && buttons.length ? foot : null
   ]);
-  overlay.appendChild(box);
-  document.body.appendChild(overlay);
+  close = overlay('', box);
+  var first = box.querySelector('input,select,textarea');
+  if (first && !opts.noFocus) first.focus();
   return close;
+}
+/* Styled replacement for window.confirm: ask('…', function () { …on yes… }, { danger: true, yes: 'حذف' }). */
+function ask(message, onYes, opts) {
+  opts = opts || {};
+  modal(opts.title || 'مطمئنی؟', h('p', { text: message, style: 'margin:0;line-height:1.9' }), [
+    { label: 'انصراف' },
+    { label: opts.yes || 'بله، انجام بده', cls: opts.danger ? 'bad' : 'primary', run: function () { onYes(); } }
+  ], { small: true, noFocus: true });
+}
+/* Side drawer for records (a user, a product…): drawer(title, sub) -> { body, tabs, close }. */
+function drawer(title, sub) {
+  var close, body = h('div', { class: 'dbody' }), tabsEl = h('div', { class: 'tabs', hidden: true });
+  var panel = h('div', { class: 'panel', role: 'dialog', 'aria-modal': 'true', 'aria-label': title }, [
+    h('header', {}, [h('div', { style: 'flex:1;min-width:0' }, [h('h3', { text: title }), sub ? h('div', { class: 'sub', text: sub }) : null]), h('button', { class: 'btn ghost sm', text: 'بستن ✕', onclick: function () { close(); } })]),
+    tabsEl, body
+  ]);
+  var onClose = null;
+  close = overlay('drawer', panel, function () { if (onClose) onClose(); });
+  return { body: body, tabsEl: tabsEl, close: close, onClose: function (f) { onClose = f; } };
 }
 
 function svgEl(tag, attrs) { var el = document.createElementNS(NS, tag); Object.keys(attrs || {}).forEach(function (k) { el.setAttribute(k, attrs[k]); }); return el; }
@@ -144,7 +180,7 @@ function iconPicker(current, onPick) {
 function badge(text, cls) { return h('span', { class: 'badge ' + (cls || 'b-mute'), text: text }); }
 function field(label, input, hint) { return h('label', { class: 'f' }, [label, input, hint ? h('span', { class: 'h', text: hint, style: 'font-size:12px' }) : null]); }
 function card(title, sub, kids) { return h('section', { class: 'card' }, [title ? h('h2', { text: title }) : null, sub ? h('div', { class: 'sub', text: sub }) : null].concat(kids || [])); }
-function empty(text) { return h('div', { class: 'empty-state', text: text }); }
+function empty(text, sub) { return sub ? h('div', { class: 'empty-state' }, [h('b', { text: text }), sub]) : h('div', { class: 'empty-state', text: text }); }
 function select(options, value) { var s = h('select'); options.forEach(function (o) { var v = Array.isArray(o) ? o[0] : o, l = Array.isArray(o) ? o[1] : o; s.appendChild(h('option', { value: v, text: l })); }); s.value = value === undefined || value === null ? options[0] && (Array.isArray(options[0]) ? options[0][0] : options[0]) : value; return s; }
 
 var CAT_FA = { car: 'خودرو', food: 'خوراکی', snack: 'تنقلات', drink: 'نوشیدنی', digital: 'دیجیتال', electronics: 'لوازم برقی', housing: 'مسکن', transport: 'حمل‌ونقل', education: 'آموزش', entertainment: 'سرگرمی', clothing: 'پوشاک', hygiene: 'بهداشتی', service: 'خدمات', other: 'سایر' };

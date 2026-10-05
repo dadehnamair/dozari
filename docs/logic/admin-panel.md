@@ -1,7 +1,26 @@
 # Admin panel (as built)
 
-Single-page app served at `GET /admin` (vanilla JS, no external requests, strict CSP). Login = the shared `ADMIN_TOKEN` (see `docs/security.md` for its limits).
-Sections: dashboard · catalog · price review · bot inbox & sources · daily reward · users · message center · word filter · Bale bot · settings · socket service · audit log.
+Single-page app served at `GET /admin` (vanilla JS, no external requests, strict CSP). Login = username + password (or the break-glass `ADMIN_TOKEN`, see below and `docs/security.md`).
+Source: `apps/server/src/admin/ui/` — `styles.ts` (design system, light/dark, RTL), `core.ts` (DOM/API helpers, modal, drawer, `ask` confirm), `kit.ts` (icons, page header, `dtable`, `seg`, `searchBox`…),
+`shell.ts` (navigation tree + router + Ctrl+K palette + sign-in), `views1/2/3.ts` (pages).
+
+## Information architecture
+
+Seven sections in a collapsible sidebar; sections with several pages show them as tabs (`#/section/tab`). Old flat links (`#/users`) redirect. Badge counts (pending prices, bot inbox, open chat reports) show on the
+sidebar and tabs.
+
+| section | tabs |
+|---|---|
+| نمای کلی | dashboard: «کارهای منتظر تو» (pending prices/bot/reports, failed bot run, catalog gaps), live server stats, maintenance warning, recent changes, shortcuts |
+| بازیکنان و نظارت | users · chat reports · word filter · badges · bot players · invite codes |
+| محتوا و قیمت‌ها | catalog · price review · bot inbox · bot sources |
+| بازی و پازل | puzzles · daily puzzle · level road · cities · canned taunts |
+| اقتصاد | daily reward · shop · tournaments |
+| ارتباط با بازیکن | message center · Bale bot |
+| سیستم | settings (searchable) · admin accounts (owner) · socket service · audit log (searchable, filter by admin) |
+
+**Quick jump** — `Ctrl/⌘+K` (or `/`): jump to any page, toggle the theme, sign out, or search players by name/id and open the record straight away.
+Users open in a side drawer with tabs (overview · coins · moderation · notes); destructive actions use a styled confirmation dialog instead of the browser's `confirm`.
 
 ## Users (D74)
 
