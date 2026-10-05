@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>دوزاری — بازی نوستالژی قیمت‌ها</title>
+<meta name="description" content="۱۶ تا جنس، ۴ تا دسته، یه دوزاری. قیمت‌های قدیمی ایران رو بچین، با رفیقت رقابت کن. دوزاریت می‌افته؟">
+<meta name="theme-color" content="#2A0E52">
+<meta property="og:title" content="دوزاری — دوزاریت می‌افته؟">
+<meta property="og:description" content="بازی آنلاین نوستالژی قیمت‌ها؛ ۱۶ تا جنس، ۴ تا دسته.">
+<meta property="og:type" content="website">
+<style>
+@font-face{font-family:Vazirmatn;src:url(fonts/Vazirmatn-Regular.ttf) format("truetype");font-weight:400;font-display:swap}
+@font-face{font-family:Vazirmatn;src:url(fonts/Vazirmatn-Bold.ttf) format("truetype");font-weight:700 900;font-display:swap}
+:root{
+  --ink:#2B1240;--cream:#FFF6E8;
+  --pink:#FF4D8D;--orange:#FF7A3D;--yellow:#FFC93C;--sky:#3FC1F0;--grape:#A66BF0;--lime:#7ED957;
+  --g1:#F9DF6D;--g2:#A0C35A;--g3:#B0C4EF;--g4:#BA81C5;
+  --glass:rgba(255,255,255,.14);--line:rgba(255,255,255,.22);
+  --gut:clamp(16px,5vw,32px);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{
+  font-family:Vazirmatn,Tahoma,sans-serif;color:var(--cream);line-height:1.8;
+  background:#2A0E52 linear-gradient(165deg,#2A0E52 0%,#7A1E86 45%,#FF3D77 80%,#FF8A3D 100%) fixed;
+  min-height:100vh;overflow-x:hidden;
+}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;
+  background:radial-gradient(60vmax 40vmax at 90% 5%,rgba(255,201,60,.22),transparent 60%),
+             radial-gradient(50vmax 40vmax at 5% 60%,rgba(63,193,240,.18),transparent 60%)}
+img,svg{max-width:100%;display:block}
+a{color:inherit;text-decoration:none}
+.wrap{width:100%;max-width:1080px;margin-inline:auto;padding-inline:var(--gut)}
+section{padding-block:clamp(40px,8vw,88px)}
+h1,h2,h3{font-weight:900;line-height:1.25}
+.sticker{text-shadow:2px 2px 0 var(--ink),-2px 2px 0 var(--ink),2px -2px 0 var(--ink),-2px -2px 0 var(--ink),0 5px 0 var(--ink)}
+h2{font-size:clamp(26px,6.5vw,44px);text-align:center;margin-bottom:12px}
+.sub{text-align:center;opacity:.9;max-width:34em;margin:0 auto clamp(24px,5vw,44px);font-size:clamp(15px,3.8vw,18px)}
+
+/* nav */
+nav{position:sticky;top:0;z-index:20;padding-top:env(safe-area-inset-top);
+  background:rgba(42,14,82,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;align-items:center;justify-content:space-between;height:56px;gap:12px}
+.logo{display:flex;align-items:center;gap:8px;font-size:24px;font-weight:900}
+.coin{width:30px;height:30px;border-radius:50%;flex:none;background:radial-gradient(circle at 35% 30%,#FFE98A,var(--yellow) 55%,#E09A10);
+  border:2px solid var(--ink);display:grid;place-items:center;font-size:14px;color:var(--ink);font-weight:900;box-shadow:0 3px 0 var(--ink)}
+.links{display:none;gap:22px;font-weight:700;font-size:15px}
+.links a:hover{color:var(--yellow)}
+
+/* candy buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:10px 24px;border-radius:16px;
+  font:inherit;font-weight:900;font-size:17px;color:var(--ink);cursor:pointer;border:0;
+  background:linear-gradient(180deg,#FFE27A,var(--yellow));box-shadow:0 5px 0 #C98F0A,0 10px 20px -6px rgba(0,0,0,.4);
+  transition:transform .12s,box-shadow .12s}
+.btn:active{transform:translateY(4px);box-shadow:0 1px 0 #C98F0A}
+.btn.pink{background:linear-gradient(180deg,#FF7FAE,var(--pink));color:#fff;box-shadow:0 5px 0 #B52460,0 10px 20px -6px rgba(0,0,0,.4)}
+.btn.pink:active{box-shadow:0 1px 0 #B52460}
+.btn.sm{min-height:40px;padding:6px 16px;font-size:15px;border-radius:12px}
+
+/* hero */
+.hero{padding-top:clamp(28px,6vw,64px);padding-bottom:clamp(28px,6vw,72px)}
+.hero .wrap{display:grid;gap:32px;align-items:center}
+.pill{display:inline-block;background:var(--glass);border:1px solid var(--line);border-radius:99px;padding:2px 14px;font-size:14px;font-weight:700;margin-bottom:14px}
+.hero h1{font-size:clamp(40px,12vw,84px);margin-bottom:10px}
+.hero h1 em{font-style:normal;color:var(--yellow)}
+.hero p.lead{font-size:clamp(16px,4.2vw,21px);max-width:28em;margin-bottom:22px}
+.cta{display:flex;flex-direction:column;gap:12px}
+.cta .btn{width:100%}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:26px;text-align:center}
+.stats div{background:var(--glass);border:1px solid var(--line);border-radius:14px;padding:8px 4px}
+.stats b{display:block;font-size:clamp(20px,6vw,28px);color:var(--yellow);line-height:1.3}
+.stats span{font-size:12.5px;opacity:.9}
+
+/* demo board */
+.phone{width:min(100%,340px);margin-inline:auto;background:#3A1768;border:3px solid var(--ink);border-radius:30px;padding:14px;
+  box-shadow:0 8px 0 var(--ink),0 30px 50px -10px rgba(0,0,0,.5);transform:rotate(-2deg)}
+.bar{display:flex;justify-content:space-between;font-size:13px;font-weight:700;margin-bottom:10px;padding-inline:4px}
+.bar span:last-child{color:var(--yellow)}
+.board{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.tile{aspect-ratio:1/1;border-radius:10px;background:var(--cream);color:var(--ink);display:grid;place-items:center;text-align:center;
+  font-size:clamp(10.5px,2.9vw,12.5px);font-weight:700;line-height:1.3;padding:3px;box-shadow:0 3px 0 rgba(0,0,0,.35);
+  animation:solve 9s infinite;animation-delay:calc(var(--d)*1s)}
+.tile i{display:block;font-style:normal;font-size:clamp(17px,5vw,22px)}
+.tile small{display:block;font-size:.85em;opacity:.7;font-weight:400}
+@keyframes solve{0%,18%{background:var(--cream)}24%,88%{background:var(--c)}95%,100%{background:var(--cream)}}
+.caption{text-align:center;margin-top:12px;font-weight:900;font-size:17px;color:var(--yellow)}
+
+/* steps / cards */
+.grid{display:grid;gap:14px}
+.card{background:var(--glass);border:1px solid var(--line);border-radius:22px;padding:22px;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.card .ico{width:54px;height:54px;border-radius:16px;display:grid;place-items:center;font-size:28px;margin-bottom:12px;
+  background:var(--c);box-shadow:0 4px 0 rgba(0,0,0,.3);color:var(--ink)}
+.card h3{font-size:21px;margin-bottom:4px}
+.card p{opacity:.92;font-size:15.5px}
+.card .n{float:left;font-size:44px;font-weight:900;opacity:.25;line-height:1}
+
+/* price ticker */
+.ticker{overflow:hidden;background:var(--ink);border-block:3px solid var(--yellow);padding-block:10px;direction:ltr}
+.ticker div{display:flex;gap:40px;width:max-content;animation:tick 40s linear infinite;direction:rtl}
+.ticker span{white-space:nowrap;font-weight:700;font-size:16px}
+.ticker b{color:var(--yellow)}
+@keyframes tick{to{transform:translateX(-50%)}}
+
+/* quote */
+.quote{background:var(--glass);border:1px solid var(--line);border-radius:26px;padding:clamp(22px,5vw,44px);text-align:center}
+.quote q{display:block;font-size:clamp(22px,5.6vw,38px);font-weight:900;line-height:1.5;quotes:none}
+.quote q em{font-style:normal;color:var(--yellow)}
+.quote p{margin:12px auto 22px;max-width:32em;opacity:.92}
+
+footer{padding:32px var(--gut) calc(32px + env(safe-area-inset-bottom));text-align:center;font-size:14px;opacity:.85;border-top:1px solid var(--line)}
+footer .logo{justify-content:center;margin-bottom:6px}
+
+/* sticky mobile CTA */
+.dock{position:fixed;inset-inline:0;bottom:0;z-index:30;padding:10px var(--gut) calc(10px + env(safe-area-inset-bottom));
+  background:linear-gradient(0deg,rgba(42,14,82,.95),rgba(42,14,82,.7));backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.dock .btn{width:100%}
+body{padding-bottom:78px}
+
+/* reveal */
+.rv{opacity:0;transform:translateY(22px);transition:opacity .6s,transform .6s}
+.rv.in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){
+  .tile,.ticker div{animation:none}.tile{background:var(--c)}
+  .rv{opacity:1;transform:none;transition:none}html{scroll-behavior:auto}
+}
+
+/* ≥ 640 */
+@media (min-width:640px){
+  .grid.g2,.grid.g4{grid-template-columns:repeat(2,1fr)}
+  .cta{flex-direction:row}.cta .btn{width:auto}
+  .stats{max-width:420px}
+}
+/* ≥ 900 */
+@media (min-width:900px){
+  .links{display:flex}
+  .hero .wrap{grid-template-columns:1.1fr .9fr;gap:56px}
+  .grid.g3{grid-template-columns:repeat(3,1fr)}
+  .grid.g4{grid-template-columns:repeat(4,1fr)}
+  .dock{display:none}body{padding-bottom:0}
+  .phone{width:360px}
+}
+@media (max-width:360px){.btn{font-size:16px;padding-inline:16px}.logo{font-size:21px}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="logo sticker" href="#top" aria-label="دوزاری"><span class="coin" aria-hidden="true">۲</span>دوزاری</a>
+    <div class="links"><a href="#how">چطور بازی می‌شه</a><a href="#modes">حالت‌ها</a><a href="#nostalgia">نوستالژی</a></div>
+    <a class="btn sm" href="#download">شروع بازی</a>
+  </div>
+</nav>
+
+<main id="top">
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <span class="pill">🪙 بازی آنلاین نوستالژی قیمت‌ها</span>
+      <h1 class="sticker">دوزاریت <em>می‌افته؟</em></h1>
+      <p class="lead">۱۶ تا جنس، ۴ تا دسته، یه دوزاری. قیمت‌های قدیمی ایران رو بچین، تو بازی زنده با رفیقت رقابت کن و ببین کی زودتر می‌فهمه!</p>
+      <div class="cta" id="download">
+        <a class="btn pink" href="#">▶ بازی کن</a>
+        <a class="btn" href="#how">چطوری بازی می‌شه؟</a>
+      </div>
+      <div class="stats">
+        <div><b>۱۶</b><span>جنس روی میز</span></div>
+        <div><b>۴</b><span>دستهٔ پنهان</span></div>
+        <div><b>۱ در ۱</b><span>یا ۲ در ۲</span></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="phone" aria-hidden="true">
+        <div class="bar"><span>نوبت تو</span><span>🪙 ۱۲۰</span></div>
+        <div class="board">
+          <div class="tile" style="--c:var(--g1);--d:0"><span><i>🥤</i>نوشابه</span></div>
+          <div class="tile" style="--c:var(--g2);--d:.3"><span><i>🚌</i>بلیت اتوبوس</span></div>
+          <div class="tile" style="--c:var(--g3);--d:.6"><span><i>📞</i>تلفن عمومی</span></div>
+          <div class="tile" style="--c:var(--g4);--d:.9"><span><i>🍞</i>نون سنگک</span></div>
+          <div class="tile" style="--c:var(--g1);--d:.15"><span><i>🍦</i>بستنی</span></div>
+          <div class="tile" style="--c:var(--g2);--d:.45"><span><i>⛽</i>بنزین</span></div>
+          <div class="tile" style="--c:var(--g3);--d:.75"><span><i>🎬</i>بلیت سینما</span></div>
+          <div class="tile" style="--c:var(--g4);--d:1.05"><span><i>🥛</i>شیر</span></div>
+          <div class="tile" style="--c:var(--g1);--d:.3"><span><i>🍬</i>آدامس</span></div>
+          <div class="tile" style="--c:var(--g2);--d:.6"><span><i>🚕</i>تاکسی</span></div>
+          <div class="tile" style="--c:var(--g3);--d:.9"><span><i>📼</i>کاست</span></div>
+          <div class="tile" style="--c:var(--g4);--d:1.2"><span><i>🥚</i>تخم‌مرغ</span></div>
+          <div class="tile" style="--c:var(--g1);--d:.45"><span><i>🧃</i>آب‌میوه</span></div>
+          <div class="tile" style="--c:var(--g2);--d:.75"><span><i>🚇</i>مترو</span></div>
+          <div class="tile" style="--c:var(--g3);--d:1.05"><span><i>🕹️</i>ژتون بازی</span></div>
+          <div class="tile" style="--c:var(--g4);--d:1.35"><span><i>🍚</i>برنج</span></div>
+        </div>
+        <p class="caption">دوزاریت افتاد! 🪙</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="ticker" aria-hidden="true" id="nostalgia">
+  <div>
+    <span>🥤 نوشابه <b>۱۰ تومان</b></span><span>📞 تلفن عمومی <b>۲ ریال</b></span><span>🍞 نون سنگک <b>۵ تومان</b></span>
+    <span>🚌 بلیت اتوبوس <b>۲ تومان</b></span><span>🎬 سینما <b>۵۰ تومان</b></span><span>⛽ بنزین <b>۲۰ تومان</b></span><span>🍦 بستنی <b>۱۵ تومان</b></span>
+    <span>🥤 نوشابه <b>۱۰ تومان</b></span><span>📞 تلفن عمومی <b>۲ ریال</b></span><span>🍞 نون سنگک <b>۵ تومان</b></span>
+    <span>🚌 بلیت اتوبوس <b>۲ تومان</b></span><span>🎬 سینما <b>۵۰ تومان</b></span><span>⛽ بنزین <b>۲۰ تومان</b></span><span>🍦 بستنی <b>۱۵ تومان</b></span>
+  </div>
+</div>
+
+<section id="how">
+  <div class="wrap">
+    <h2 class="sticker rv">چطور بازی می‌شه؟</h2>
+    <p class="sub rv">قانونش ساده‌ست، ولی دوزاری افتادنش سخته.</p>
+    <div class="grid g3">
+      <div class="card rv"><span class="n">۱</span><div class="ico" style="--c:var(--g1)">🧩</div><h3>۱۶ تا جنس می‌بینی</h3><p>نوشابه، بنزین، بلیت سینما... هر کدوم قیمتی داشته تو یه سالی.</p></div>
+      <div class="card rv"><span class="n">۲</span><div class="ico" style="--c:var(--g2)">🔍</div><h3>رابطه‌شون رو پیدا کن</h3><p>چهار تا چهار تا دسته کن؛ مثلاً «اون موقع ۱۰ تومن بود». حواست به جنس‌های فریبنده باشه!</p></div>
+      <div class="card rv"><span class="n">۳</span><div class="ico" style="--c:var(--g3)">🪙</div><h3>دوزاریت بیفته</h3><p>هر دسته که درست بچینی یه دوزاری می‌افته و امتیاز و سکه می‌گیری.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="modes">
+  <div class="wrap">
+    <h2 class="sticker rv">با هر کی دلت می‌خواد</h2>
+    <p class="sub rv">بدون ثبت‌نام سنگین؛ بیا و بازی کن.</p>
+    <div class="grid g4">
+      <div class="card rv"><div class="ico" style="--c:var(--pink)">⚔️</div><h3>یک‌به‌یک</h3><p>حریف تصادفی، نبرد زنده.</p></div>
+      <div class="card rv"><div class="ico" style="--c:var(--sky)">🤝</div><h3>دو در دو</h3><p>با رفیقت هم‌تیمی شو.</p></div>
+      <div class="card rv"><div class="ico" style="--c:var(--lime)">🍽️</div><h3>سفره‌خانه</h3><p>میز خصوصی با کد دعوت.</p></div>
+      <div class="card rv"><div class="ico" style="--c:var(--orange)">📈</div><h3>چارت قیمت</h3><p>آخر هر دست ببین قیمت‌ها چطور رفتن بالا.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="quote rv">
+      <q>«مامان‌بزرگت <em>بلده</em>، تو چی؟»</q>
+      <p>قیمت‌ها اسمی و بدون تعدیل تورم‌ان؛ همون عددی که اون سال رو برچسب بود.</p>
+      <a class="btn pink" href="#download">یه دوزاری بنداز</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="logo sticker"><span class="coin" aria-hidden="true">۲</span>دوزاری</div>
+  <p>قیمت‌های قدیم، رفیق‌های جدید.</p>
+</footer>
+
+<div class="dock"><a class="btn pink" href="#download">▶ بازی کن</a></div>
+
+<script>
+(function(){
+  var els=document.querySelectorAll('.rv');
+  if(!('IntersectionObserver' in window)){els.forEach(function(e){e.classList.add('in')});return}
+  var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})},{threshold:.15});
+  els.forEach(function(e,i){e.style.transitionDelay=(i%4)*70+'ms';io.observe(e)});
+})();
+</script>
+</body>
+</html>
