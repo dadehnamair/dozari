@@ -480,6 +480,8 @@ export const LEDGER_REASONS = [
   'level_reward',
   'profile_task',
   'birthday_gift',
+  'keepsake_piece',
+  'keepsake_upgrade',
 ] as const;
 
 /** Append-only. Coins move only through the server's ledger function; a repeated idempotency key is a no-op. */
@@ -509,7 +511,7 @@ export const userBalances = mysqlTable('user_balances', {
 });
 
 /** Why gems moved (docs/logic/economy.md §Gems, D164). */
-export const GEM_REASONS = ['admin_adjust', 'birthday_gift', 'wheel_prize', 'shop_purchase', 'tournament_entry', 'tournament_refund', 'tournament_prize', 'mission_reward'] as const;
+export const GEM_REASONS = ['admin_adjust', 'birthday_gift', 'wheel_prize', 'shop_purchase', 'tournament_entry', 'tournament_refund', 'tournament_prize', 'mission_reward', 'keepsake_reward'] as const;
 
 /** Cached gem balance per player; changed only together with a `gem_ledger` row. */
 export const userGems = mysqlTable('user_gems', {
@@ -916,6 +918,82 @@ export const userCosmetics = mysqlTable(
     acquiredAt: datetime('acquired_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
   },
   (table) => ({ pk: primaryKey({ columns: [table.userId, table.itemId] }) }),
+);
+
+/** Keepsake rarity; a copy of `KEEPSAKE_RARITIES` in shared (drizzle-kit cannot load the shared ESM config), a server test keeps them equal. */
+export const KEEPSAKE_RARITY_VALUES = ['common', 'rare', 'epic', 'legendary'] as const;
+
+/** A group of keepsakes («مجموعه»): completing every active keepsake of it pays `reward_gems` once (docs/logic/economy-v2.md). */
+export const keepsakeSets = mysqlTable('keepsake_sets', {
+  id: id(),
+  titleFa: varchar('title_fa', { length: 120 }).notNull(),
+  rewardGems: int('reward_gems').notNull().default(10),
+  sortOrder: int('sort_order').notNull().default(0),
+  isActive: boolean('is_active').notNull().default(true),
+});
+
+/** One collectible product-in-an-era, bought piece by piece («یادگار»). The art is supplied by the owner's designer through `art_key`. */
+export const keepsakeDefs = mysqlTable(
+  'keepsake_defs',
+  {
+    id: id(),
+    /** The catalog product it is made from (its icon and story are the fallback); null = a free-standing keepsake. */
+    productId: char('product_id', { length: 36 }).references(() => products.id),
+    titleFa: varchar('title_fa', { length: 120 }).notNull(),
+    storyFa: text('story_fa').notNull(),
+    /** Solar Hijri year of the era it recalls. */
+    eraYear: int('era_year'),
+    rarity: mysqlEnum('rarity', KEEPSAKE_RARITY_VALUES).notNull().default('common'),
+    pieces: int('pieces').notNull().default(4),
+    artKey: varchar('art_key', { length: 60 }),
+    setId: char('set_id', { length: 36 }).references(() => keepsakeSets.id),
+    rewardGems: int('reward_gems').notNull().default(3),
+    sortOrder: int('sort_order').notNull().default(0),
+    isActive: boolean('is_active').notNull().default(true),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ bySet: index('keepsake_defs_set_idx').on(table.setId) }),
+);
+
+/** Pieces a player owns (one row per piece; a drop or a purchase is always a missing piece, so there are no duplicates). `ref` makes a grant idempotent. */
+export const userKeepsakePieces = mysqlTable(
+  'user_keepsake_pieces',
+  {
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    keepsakeId: char('keepsake_id', { length: 36 }).notNull().references(() => keepsakeDefs.id),
+    piece: int('piece').notNull(),
+    source: mysqlEnum('source', ['drop', 'shop', 'admin']).notNull(),
+    ref: varchar('ref', { length: 100 }).notNull(),
+    acquiredAt: datetime('acquired_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.userId, table.keepsakeId, table.piece] }),
+    refUnique: uniqueIndex('user_keepsake_pieces_ref_idx').on(table.userId, table.ref),
+  }),
+);
+
+/** A completed keepsake: its upgrade level (frame tier) and its place on the profile showcase (1..6, null = not pinned). */
+export const userKeepsakes = mysqlTable(
+  'user_keepsakes',
+  {
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    keepsakeId: char('keepsake_id', { length: 36 }).notNull().references(() => keepsakeDefs.id),
+    level: int('level').notNull().default(1),
+    showcaseSlot: int('showcase_slot'),
+    completedAt: datetime('completed_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.userId, table.keepsakeId] }) }),
+);
+
+/** A completed set, so its gem reward is paid once. */
+export const userKeepsakeSets = mysqlTable(
+  'user_keepsake_sets',
+  {
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    setId: char('set_id', { length: 36 }).notNull().references(() => keepsakeSets.id),
+    completedAt: datetime('completed_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.userId, table.setId] }) }),
 );
 
 /** Fixed coin packages sold for real money through a store (built, switched off by `feature.coin_packages`). */

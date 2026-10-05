@@ -97,3 +97,13 @@ export const KEEPSAKE_DROP_CHANCE = 0.15;
 /** Coins to upgrade one completed keepsake one level (up to `KEEPSAKE_MAX_LEVEL`). */
 export const KEEPSAKE_UPGRADE_COST = 150;
 export const KEEPSAKE_MAX_LEVEL = 3;
+
+/** Keepsake rarity (docs/logic/economy-v2.md §Keepsake collection): how often a piece of it drops, and what a shop piece costs (percent of the base price). */
+export const KEEPSAKE_RARITIES = ['common', 'rare', 'epic', 'legendary'] as const;
+export type KeepsakeRarity = (typeof KEEPSAKE_RARITIES)[number];
+export const KEEPSAKE_RARITY_WEIGHT: Readonly<Record<KeepsakeRarity, number>> = { common: 60, rare: 25, epic: 10, legendary: 5 };
+export const KEEPSAKE_PRICE_PERCENT: Readonly<Record<KeepsakeRarity, number>> = { common: 100, rare: 150, epic: 250, legendary: 400 };
+/** Most keepsakes pinned on the profile showcase. */
+export const SHOWCASE_MAX = 6;
+/** Gems a completed keepsake pays by default (each keepsake may override it). */
+export const KEEPSAKE_REWARD_GEMS = 3;

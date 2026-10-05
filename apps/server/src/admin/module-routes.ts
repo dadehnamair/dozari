@@ -3,7 +3,7 @@ import type { PuzzleAdmin } from '../puzzles/admin.js';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { can } from './accounts/permissions.js';
 import { z } from 'zod';
-import { accentColorSchema, checkLevelTable, httpsUrlSchema, isDateKey, ITEMS, ITEM_GROUPS, LEVEL_TABLE_MAX, levelRowSchema, PRODUCT_CATEGORIES, PROVINCES, provinceOf, SETTING_GROUPS, SHOP_EFFECTS, SPONSOR_LIMITS, COSMETIC_SLOTS, WHEEL_PRIZE_KINDS } from '@dozari/shared';
+import { accentColorSchema, checkLevelTable, KEEPSAKE_RARITIES, KEEPSAKE_REWARD_GEMS, httpsUrlSchema, isDateKey, ITEMS, ITEM_GROUPS, LEVEL_TABLE_MAX, levelRowSchema, PRODUCT_CATEGORIES, PROVINCES, provinceOf, SETTING_GROUPS, SHOP_EFFECTS, SPONSOR_LIMITS, COSMETIC_SLOTS, WHEEL_PRIZE_KINDS } from '@dozari/shared';
 import type { LevelRow } from '@dozari/shared';
 import type { LevelTable } from '../progress/table.js';
 import type { SettingsService } from '../settings/service.js';
@@ -24,6 +24,7 @@ import type { TextFilterService } from '../textfilter/service.js';
 import type { UsersAdmin } from './users.js';
 import type { PlayerStore } from '../player/store.js';
 import type { CoinPackageService } from '../economy/coin-packages.js';
+import type { KeepsakeStore } from '../keepsakes/store.js';
 import type { ShopStore } from '../economy/shop-store.js';
 import type { WheelService } from '../wheel/service.js';
 import { registerLandingAdminRoutes } from '../landing/routes.js';
@@ -54,6 +55,8 @@ export interface AdminModules {
   cities?: PlayerStore;
   /** Coin shop items (price, level gate, daily limit, visibility). */
   shop?: ShopStore;
+  /** Keepsakes («یادگار») and their sets: `/admin/keepsakes`, `/admin/keepsake-sets`. */
+  keepsakes?: KeepsakeStore;
   /** Blog, cast and FAQ of the landing site. */
   landing?: LandingService;
   /** User reports and the suggestion queue. */
@@ -160,7 +163,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     settingGroups: SETTING_GROUPS,
     icons: ITEMS,
     iconGroups: ITEM_GROUPS,
-    modules: { puzzles: !!m.puzzles, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, wheel: !!m.wheel, shortLinks: !!m.shortLinks, feedback: !!m.feedback, landing: !!m.landing, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, lessons: !!m.lessons, ageTracks: !!m.ageTracks, economy: !!m.economy, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages },
+    modules: { puzzles: !!m.puzzles, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, keepsakes: !!m.keepsakes, wheel: !!m.wheel, shortLinks: !!m.shortLinks, feedback: !!m.feedback, landing: !!m.landing, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, lessons: !!m.lessons, ageTracks: !!m.ageTracks, economy: !!m.economy, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages },
   }));
 
   if (m.stats) {
@@ -950,6 +953,55 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
       if ((await shop.updateItem(p.data.id, b.data)) === 'not_found') return reply.code(404).send({ error: 'item_not_found' });
       void audit('shop.update', p.data.id, JSON.stringify(b.data));
+      return { ok: true };
+    });
+  }
+
+  if (m.keepsakes) {
+    const ks = m.keepsakes;
+    const defFields = {
+      productId: z.string().uuid().nullable().default(null),
+      titleFa: z.string().trim().min(2).max(120),
+      storyFa: z.string().trim().min(2).max(2000),
+      eraYear: z.number().int().min(1300).max(1500).nullable().default(null),
+      rarity: z.enum(KEEPSAKE_RARITIES),
+      pieces: z.number().int().min(1).max(12).default(4),
+      /** Key of the art supplied by the designer; null = placeholder frame. */
+      artKey: z.string().trim().max(60).nullable().default(null),
+      setId: z.string().uuid().nullable().default(null),
+      rewardGems: z.number().int().min(0).max(1000).default(KEEPSAKE_REWARD_GEMS),
+      isActive: z.boolean().default(true),
+    };
+    const setFields = { titleFa: z.string().trim().min(2).max(120), rewardGems: z.number().int().min(0).max(10_000).default(10), isActive: z.boolean().default(true) };
+    g.get('/admin/keepsakes', async () => ({ defs: await ks.defs({ includeHidden: true }), sets: await ks.sets({ includeHidden: true }) }));
+    g.post('/admin/keepsakes', async (req, reply) => {
+      const b = z.object(defFields).safeParse(req.body);
+      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const row = await ks.addDef(b.data);
+      void audit('keepsake.add', row.id, b.data.titleFa);
+      return reply.code(201).send({ id: row.id });
+    });
+    g.patch('/admin/keepsakes/:id', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object(defFields).partial().safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      if ((await ks.updateDef(p.data.id, b.data)) === 'not_found') return reply.code(404).send({ error: 'keepsake_not_found' });
+      void audit('keepsake.update', p.data.id, JSON.stringify(b.data));
+      return { ok: true };
+    });
+    g.post('/admin/keepsake-sets', async (req, reply) => {
+      const b = z.object(setFields).safeParse(req.body);
+      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const row = await ks.addSet(b.data);
+      void audit('keepsake.set.add', row.id, b.data.titleFa);
+      return reply.code(201).send({ id: row.id });
+    });
+    g.patch('/admin/keepsake-sets/:id', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object(setFields).partial().safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      if ((await ks.updateSet(p.data.id, b.data)) === 'not_found') return reply.code(404).send({ error: 'set_not_found' });
+      void audit('keepsake.set.update', p.data.id, JSON.stringify(b.data));
       return { ok: true };
     });
   }

@@ -27,6 +27,9 @@ import { LevelTable, createDbLevelTableStore } from './progress/table.js';
 import { defaultLevelTable } from '@dozari/shared';
 import { createDbPlayerStore } from './player/store.js';
 import { registerTransferRoutes } from './transfers/routes.js';
+import { registerKeepsakeRoutes } from './keepsakes/routes.js';
+import { KeepsakeService } from './keepsakes/service.js';
+import { createDbKeepsakeStore } from './keepsakes/store.js';
 import { TransferService, transferRulesFromSettings } from './transfers/service.js';
 import { createDbTransferStore } from './transfers/store.js';
 import { registerBadgeRoutes } from './badges/routes.js';
@@ -224,6 +227,8 @@ export interface ServerDeps {
   invite?: InviteService;
   /** Gifts and loans between friends; needs `auth`. */
   transfers?: TransferService;
+  /** The keepsake collection («گنجینه»): `/keepsakes`, the profile showcase, and the piece a human win may drop. */
+  keepsakes?: KeepsakeService;
   /** Where live matches get puzzles and player cards from; without it queue pairs are put back in line. */
   match?: Omit<MatchDeps, 'emit'>;
   /** Admin-editable tunables; also served to clients at `GET /config`. */
@@ -368,6 +373,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.social) registerSocialRoutes(app, deps.auth, deps.social);
   if (deps.auth && deps.invite) registerInviteRoutes(app, deps.auth, deps.invite);
   if (deps.auth && deps.transfers) registerTransferRoutes(app, deps.auth, deps.transfers);
+  if (deps.auth && deps.keepsakes) registerKeepsakeRoutes(app, deps.auth, deps.keepsakes);
   if (deps.auth && deps.messages) registerInboxRoutes(app, deps.auth, deps.messages);
   if (deps.auth && deps.phone) registerPhoneRoutes(app, deps.auth, deps.phone);
   if (deps.phoneLogin) registerPhoneLoginRoutes(app, deps.phoneLogin);
@@ -655,6 +661,8 @@ if (isMainModule(import.meta.url)) {
       : undefined;
   const productAdmin = db ? createDbProductAdmin(db) : undefined;
   const feedback = db && settings && productAdmin ? buildFeedbackService({ db, settings, productAdmin, player, socialStore }) : undefined;
+  const keepsakeStore = db ? createDbKeepsakeStore(db) : undefined;
+  const keepsakes = keepsakeStore && settings ? new KeepsakeService(keepsakeStore, async () => (await settings.num('keepsake.drop_percent')) / 100) : undefined;
   const duelStakes =
     db && settings
       ? new DuelStakes(createDbStakeStore(db), {
@@ -678,7 +686,10 @@ if (isMainModule(import.meta.url)) {
             }),
           isBot: (id) => botDriver?.isBot(id) ?? false,
           priceWager: () => settings.num('duel.price_wager'),
-          onWin: (matchId, userId) => wheel?.grantForWin(userId, matchId).catch((e) => console.error('[wheel] grant failed', matchId, e)) ?? Promise.resolve(),
+          onWin: async (matchId, userId) => {
+            await (wheel?.grantForWin(userId, matchId).catch((e) => console.error('[wheel] grant failed', matchId, e)) ?? Promise.resolve());
+            await keepsakes?.dropForWin(userId, matchId);
+          },
         })
       : undefined;
   const tableService =
@@ -804,7 +815,7 @@ if (isMainModule(import.meta.url)) {
     auth,
     settings,
     adminModules: db
-      ? { products: productAdmin!, feedback, stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, wheel, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, ageTracks: db ? createDbAgeTrackAdmin(db) : undefined, economy: db ? createDbEconomyAdmin(db) : undefined, daily, puzzles: createDbPuzzleAdmin(db), levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      ? { products: productAdmin!, feedback, stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, keepsakes: keepsakeStore, wheel, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, ageTracks: db ? createDbAgeTrackAdmin(db) : undefined, economy: db ? createDbEconomyAdmin(db) : undefined, daily, puzzles: createDbPuzzleAdmin(db), levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
     match: db
@@ -866,6 +877,7 @@ if (isMainModule(import.meta.url)) {
     social,
     invite,
     transfers,
+    keepsakes,
     wheel,
     dailyReward: db && settings ? new DailyRewardService(createDbDailyRewardStore(db), Date.now, () => dailyRules(settings)) : undefined,
     catalog: db ? createDbCatalogRepository(db) : undefined,

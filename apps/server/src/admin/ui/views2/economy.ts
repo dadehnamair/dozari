@@ -115,4 +115,63 @@ VIEWS.shortlinks = function (root) {
   }));
   draw();
 };
+VIEWS.keepsakes = function (root) {
+  var RARITY = [['common', 'معمولی'], ['rare', 'کمیاب'], ['epic', 'حماسی'], ['legendary', 'افسانه‌ای']];
+  var setSel = function (sets, cur) { return select([['', '— بدون مجموعه —']].concat(sets.map(function (x) { return [x.id, x.titleFa]; })), cur || ''); };
+  var setList = h('div'), list = h('div');
+  function num(v, min) { return h('input', { type: 'number', value: v, min: min === undefined ? 0 : min, style: 'width:80px' }); }
+  function txt(v, ph, w) { return h('input', { type: 'text', value: v || '', placeholder: ph || '', maxlength: 120, style: 'width:' + (w || 160) + 'px' }); }
+  function rowDef(d, sets) {
+    var title = txt(d.titleFa, 'عنوان', 180), story = h('textarea', { rows: 3, maxlength: 2000, style: 'width:100%' }), era = num(d.eraYear || '', 1300), art = txt(d.artKey, 'کلید طرح (از دیزاینر)', 170);
+    story.value = d.storyFa;
+    var rar = select(RARITY, d.rarity), pcs = num(d.pieces, 1), gems = num(d.rewardGems), st = setSel(sets, d.setId);
+    function save(patch) { api('/admin/keepsakes/' + d.id, { method: 'PATCH', body: patch }).then(function (x) { if (!x.ok) return fail(x); toast('ذخیره شد'); draw(); }); }
+    return h('div', { class: 'card', style: 'padding:12px' }, [
+      h('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap' }, [h('b', { text: d.titleFa }), d.isActive ? badge('فعال', 'b-ok') : badge('پنهان', 'b-warn'), d.artKey ? badge('طرح دارد', 'b-ok') : badge('بدون طرح', 'b-mute')]),
+      h('div', { class: 'toolbar', style: 'margin-top:8px' }, [
+        field('عنوان', title), field('نادری', rar), field('تعداد تکه', pcs), field('سال (شمسی)', era), field('کلید طرح', art), field('مجموعه', st), field('الماس جایزه', gems)
+      ]),
+      field('داستان / متن', story),
+      h('div', { class: 'toolbar' }, [
+        h('button', { class: 'btn primary', text: 'ذخیره', onclick: function () { save({ titleFa: title.value.trim(), storyFa: story.value.trim(), rarity: rar.value, pieces: +pcs.value, eraYear: era.value ? +era.value : null, artKey: art.value.trim() || null, setId: st.value || null, rewardGems: +gems.value }); } }),
+        h('button', { class: 'btn', text: d.isActive ? 'پنهان کن' : 'فعال کن', onclick: function () { save({ isActive: !d.isActive }); } })
+      ])
+    ]);
+  }
+  function rowSet(s) {
+    var title = txt(s.titleFa, 'عنوان مجموعه', 200), gems = num(s.rewardGems);
+    function save(patch) { api('/admin/keepsake-sets/' + s.id, { method: 'PATCH', body: patch }).then(function (x) { if (!x.ok) return fail(x); toast('ذخیره شد'); draw(); }); }
+    return h('div', { class: 'toolbar' }, [
+      s.isActive ? badge('فعال', 'b-ok') : badge('پنهان', 'b-warn'), field('عنوان', title), field('الماس جایزه‌ی تکمیل مجموعه', gems),
+      h('button', { class: 'btn primary', text: 'ذخیره', onclick: function () { save({ titleFa: title.value.trim(), rewardGems: +gems.value }); } }),
+      h('button', { class: 'btn', text: s.isActive ? 'پنهان کن' : 'فعال کن', onclick: function () { save({ isActive: !s.isActive }); } })
+    ]);
+  }
+  var addSetTitle = txt('', 'مثلا: قهرمان دهه‌ی شصت', 220), addSetGems = num(10);
+  var title = txt('', 'عنوان (مثلا: پفک نمکی)', 220), story = h('textarea', { rows: 3, maxlength: 2000, style: 'width:100%', placeholder: 'متن کوتاه نوستالژیک؛ بدون ادعای قیمت یا تاریخ ناپایدار' });
+  var rar = select(RARITY, 'common'), pcs = num(4, 1), era = num('', 1300), art = txt('', 'کلید طرح', 170), gems = num(3);
+  var addSel = select([['', '— بدون مجموعه —']], '');
+  function draw() {
+    api('/admin/keepsakes').then(function (r) {
+      clear(list); clear(setList);
+      if (r.status === 404) return list.appendChild(empty('گنجینه روی این سرور فعال نیست'));
+      if (!r.ok) return fail(r);
+      var sets = r.body.sets;
+      clear(addSel); addSel.appendChild(h('option', { value: '', text: '— بدون مجموعه —' })); sets.forEach(function (x) { addSel.appendChild(h('option', { value: x.id, text: x.titleFa })); });
+      sets.forEach(function (x) { setList.appendChild(rowSet(x)); });
+      if (!sets.length) setList.appendChild(empty('هنوز مجموعه‌ای نیست'));
+      r.body.defs.forEach(function (d) { list.appendChild(rowDef(d, sets)); });
+      if (!r.body.defs.length) list.appendChild(empty('هنوز یادگاری نیست', 'از فرم پایین بسازید؛ طرح را بعدا با «کلید طرح» وصل کنید.'));
+    });
+  }
+  root.appendChild(card('یادگارها (گنجینه)', 'هر یادگار یک محصول است که بازیکن تکه‌تکه جمع می‌کند. طرح‌ها را دیزاینر می‌دهد؛ تا آن موقع قاب ساده نشان داده می‌شود. شانس افتادن تکه بعد از برد در «تنظیمات ← اقتصاد» است.', [list]));
+  root.appendChild(card('مجموعه‌ها', 'با کامل شدن همه‌ی یادگارهای فعال یک مجموعه، جایزه‌ی الماس یک بار پرداخت می‌شود.', [setList]));
+  root.appendChild(addCard('مجموعه‌ی تازه', '', 'بساز', [['عنوان', addSetTitle], ['الماس جایزه', addSetGems]], function () {
+    return api('/admin/keepsake-sets', { method: 'POST', body: { titleFa: addSetTitle.value.trim(), rewardGems: +addSetGems.value } }).then(function (x) { if (!x.ok) { fail(x); return false; } toast('مجموعه ساخته شد'); addSetTitle.value = ''; draw(); return true; });
+  }));
+  root.appendChild(addCard('یادگار تازه', 'تعداد تکه معمولا ۴ (برای نادرها ۶). متن را کوتاه و دلنشین بنویس.', 'بساز', [['عنوان', title], ['متن', story], ['نادری', rar], ['تعداد تکه', pcs], ['سال شمسی (اختیاری)', era], ['کلید طرح (اختیاری)', art], ['مجموعه', addSel], ['الماس جایزه', gems]], function () {
+    return api('/admin/keepsakes', { method: 'POST', body: { titleFa: title.value.trim(), storyFa: story.value.trim(), rarity: rar.value, pieces: +pcs.value, eraYear: era.value ? +era.value : null, artKey: art.value.trim() || null, setId: addSel.value || null, rewardGems: +gems.value } }).then(function (x) { if (!x.ok) { fail(x); return false; } toast('یادگار ساخته شد'); title.value = ''; story.value = ''; draw(); return true; });
+  }));
+  draw();
+};
 `;
