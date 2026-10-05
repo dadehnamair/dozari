@@ -199,6 +199,11 @@ Setting `feature.age_tracks` (admin → settings → app, **default off**): off 
   - **Queue diagnosis is per track**: a waiting player's pool is checked (`diagnose(waitedSec, track)`), so an empty kid pool says «no puzzles» instead of hiding behind adult ones.
   - **Bots are track-neutral by design**: a bot fills any track's queue; the match's puzzle pool follows the human (`MatchService` picks by the first player, humans are always first), so no per-track bot roster is needed. A kid-friendly bot nickname list can come with the content.
   - **Admin «رده‌های سنی» tab** (under «بازیکنان و نظارت»): players per track, puzzles per track by status, kid lesson counts, linked children (`GET /admin/age-tracks`). The user list filters by track; the product editor and puzzle builder carry the track.
+- Phase 4 (social for kids and teens), slice 1, **track-bound friends** (same switch): one gate `AgeTrackService.meetable(me, ids)` (server) is applied by `SocialService.sameTrack` and `FindService`
+  (ctor param). Another track's player reads as *unknown*: `GET /players/:id` and `POST /friends/:id/request` answer 404, `accept` fails, search by ID/phone, contacts and invite links find nobody, and `GET /friends`
+  and the leaderboards drop them (a friendship stored before one side moved track stays in the table but is hidden and unusable). Leaderboards are filtered after ranking, so a kid/teen board can be shorter than
+  `LEADERBOARD_SIZE`, and `me.rank` is the place on the filtered list when the player is on it (otherwise the unfiltered rank: **open**, needs a per-track rank query). With the switch off everybody is adult, so nothing changes.
+  Still open in phase 4: friend duels and private tables limited to one track, managed chat (phrase library, filtered friends-only text, guardian switch → `chat_unlocked_at`, report queue), the «social needs a guardian» step, auto-accept between two kids.
 - Not yet: the rest of the 30–50 kid puzzles; a track filter on the other admin lists (puzzles, items, tournaments, reports…); the separate report queue for kid/teen chats (phase 4);
 
 ## Phases

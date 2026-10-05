@@ -1,6 +1,7 @@
 import { generateHandle, normalizeInviteCode, normalizeIranPhone } from '@dozari/shared';
 import type { FoundPlayer, MyFind, Rng } from '@dozari/shared';
 import { RateLimiter } from '../security/rate-limit.js';
+import type { Meetable } from '../agetrack/service.js';
 import type { SocialStore } from '../social/store.js';
 import type { FindStore } from './store.js';
 import type { Shortener } from './shortener.js';
@@ -31,6 +32,8 @@ export class FindService {
     private readonly shortener: Shortener,
     private readonly rng: Rng,
     private readonly now: () => number = Date.now,
+    /** Age-track gate: only players on `me`'s own track are found or befriended (docs/logic/age-tracks.md). Absent = no rule. */
+    private readonly sameTrack?: Meetable,
   ) {}
 
   /** The player's public ID, made on first use. */
@@ -57,7 +60,7 @@ export class FindService {
   }
 
   private async card(me: string, id: string): Promise<FoundPlayer | null> {
-    if (id === me) return null;
+    if (id === me || (this.sameTrack && !(await this.sameTrack(me, [id])).has(id))) return null;
     const row = await this.social.publicRow(id);
     if (!row) return null;
     const p = await this.social.pair(me, id);
@@ -102,6 +105,7 @@ export class FindService {
     const owner = await this.find.byHandle(handle);
     if (!owner) return 'unknown';
     if (owner === me) return 'self';
+    if (this.sameTrack && !(await this.sameTrack(me, [owner])).has(owner)) return 'unknown';
     const [mine, s, pair] = await Promise.all([this.social.publicRow(me), this.settings(), this.social.pair(me, owner)]);
     if (!mine) return 'unknown';
     if (pair?.status === 'accepted') return 'already';
