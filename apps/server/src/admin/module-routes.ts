@@ -10,6 +10,7 @@ import { BOT_ADAPTER_KEYS, SOURCE_TYPES } from '../bot/constants.js';
 import type { BotRepository } from '../bot/repository.js';
 import type { BotService } from '../bot/service.js';
 import type { AuditLog } from './audit.js';
+import type { LessonStore } from '../lessons/service.js';
 import type { ProductAdmin } from './products.js';
 import type { StatsAdmin } from './stats.js';
 import { isHttpUrl } from '../security/url-guard.js';
@@ -70,6 +71,8 @@ export interface AdminModules {
   tournaments?: TournamentService;
   /** Sponsors shown on tournaments. */
   sponsors?: SponsorStore;
+  /** Kid word lessons: the editor list, save text, approve (D198). */
+  lessons?: LessonStore;
   daily?: DailyService;
   /** The level table: XP each level starts at and the coin reward for reaching it. */
   levelRoad?: { table: LevelTable; defaults: () => Promise<LevelRow[]> };
@@ -97,6 +100,7 @@ const productPatch = z
     storyFa: z.string().max(4000).nullable(),
     iconKey: z.string().max(40).nullable(),
     isActive: z.boolean(),
+    ageTrack: z.enum(['kid', 'teen', 'adult']),
     status: z.enum(['in_production', 'discontinued', 'changed']),
   })
   .partial()
@@ -108,6 +112,7 @@ const newProduct = z.object({
   category: z.enum(PRODUCT_CATEGORIES),
   unitFa: z.string().trim().max(100).nullable().optional(),
   iconKey: z.string().max(40).nullable().optional(),
+  ageTrack: z.enum(['kid', 'teen', 'adult']).optional(),
 });
 
 const newPrice = z.object({
@@ -148,7 +153,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     settingGroups: SETTING_GROUPS,
     icons: ITEMS,
     iconGroups: ITEM_GROUPS,
-    modules: { puzzles: !!m.puzzles, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, wheel: !!m.wheel, shortLinks: !!m.shortLinks, feedback: !!m.feedback, landing: !!m.landing, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages },
+    modules: { puzzles: !!m.puzzles, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, wheel: !!m.wheel, shortLinks: !!m.shortLinks, feedback: !!m.feedback, landing: !!m.landing, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, lessons: !!m.lessons, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages },
   }));
 
   if (m.stats) {
@@ -586,6 +591,33 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     }
   }
 
+  if (m.lessons) {
+    const lessons = m.lessons;
+    const productParam = z.object({ productId: z.string().min(1).max(36) });
+    const lessonBody = z.object({ wordFa: z.string().trim().min(1).max(60), storyFa: z.string().trim().max(300).default(''), syllablesFa: z.string().trim().max(80).nullable().default(null) });
+    g.get('/admin/lessons', async (req) => {
+      const q = z.object({ status: z.enum(['draft', 'approved', 'missing']).optional() }).safeParse(req.query);
+      return { items: await lessons.listKidItems(q.success ? q.data.status : undefined) };
+    });
+    g.put('/admin/lessons/:productId', async (req, reply) => {
+      const p = productParam.safeParse(req.params);
+      const b = lessonBody.safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      if (!(await lessons.save(p.data.productId, { ...b.data, syllablesFa: b.data.syllablesFa || null }))) return reply.code(404).send({ error: 'NOT_FOUND' });
+      void audit('lesson.save', p.data.productId, b.data.wordFa);
+      return { ok: true };
+    });
+    for (const [action, status] of [['approve', 'approved'], ['unapprove', 'draft']] as const) {
+      g.post(`/admin/lessons/:productId/${action}`, async (req, reply) => {
+        const p = productParam.safeParse(req.params);
+        if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
+        if ((await lessons.setStatus(p.data.productId, status, null)) === 'not_found') return reply.code(404).send({ error: 'NOT_FOUND' });
+        void audit(`lesson.${action}`, p.data.productId);
+        return { ok: true };
+      });
+    }
+  }
+
   if (m.sponsors) {
     const sponsors = m.sponsors;
     const body = z.object({
@@ -621,10 +653,10 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     const groupBody = z.object({ level: z.number().int().min(0).max(3), titleFa: z.string().trim().min(2).max(100), explanationFa: z.string().trim().max(300).optional(), productIds: z.array(z.string().uuid()).length(4) });
     g.get('/admin/puzzles', async () => ({ readiness: await puzzles.readiness(), puzzles: await puzzles.list(200), tiers: await puzzles.tiers() }));
     g.post('/admin/puzzles', async (req, reply) => {
-      const b = z.object({ groups: z.array(groupBody).length(4), tierId: z.string().uuid().nullable().optional() }).safeParse(req.body);
+      const b = z.object({ groups: z.array(groupBody).length(4), tierId: z.string().uuid().nullable().optional(), ageTrack: z.enum(['kid', 'teen', 'adult']).optional() }).safeParse(req.body);
       if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
       // The explanation is optional in the form: it falls back to the title.
-      const out = await puzzles.create(b.data.groups.map((x) => ({ ...x, explanationFa: x.explanationFa && x.explanationFa.length >= 2 ? x.explanationFa : x.titleFa })), b.data.tierId);
+      const out = await puzzles.create(b.data.groups.map((x) => ({ ...x, explanationFa: x.explanationFa && x.explanationFa.length >= 2 ? x.explanationFa : x.titleFa })), b.data.tierId, b.data.ageTrack);
       if (!out.ok) return reply.code(out.error === 'unknown_product' ? 404 : 400).send({ error: out.error });
       void audit('puzzle.create', out.id);
       return reply.code(201).send({ id: out.id });

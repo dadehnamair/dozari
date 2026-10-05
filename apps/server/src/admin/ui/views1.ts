@@ -117,6 +117,7 @@ function productForm(p) {
     nameFa: h('input', { type: 'text', value: p.nameFa || '' }), unitFa: h('input', { type: 'text', value: p.unitFa || '', placeholder: 'مثلاً: یک عدد، هر لیتر' }),
     brand: h('input', { type: 'text', value: p.brand || '' }), category: select(catOptions(), p.category || 'food'),
     status: select([['in_production', 'در حال تولید'], ['discontinued', 'متوقف‌شده'], ['changed', 'تغییرکرده']], p.status || 'in_production'),
+    ageTrack: select([['adult', 'بزرگسال'], ['teen', 'نوجوان'], ['kid', 'کودک']], p.ageTrack || 'adult'),
     isActive: h('input', { type: 'checkbox', checked: p.isActive !== false }), storyFa: h('textarea', { text: p.storyFa || '' })
   };
   f.storyFa.value = p.storyFa || '';
@@ -163,14 +164,14 @@ function editProduct(p) {
     });
   } });
   var body = h('div', { style: 'display:flex;flex-direction:column;gap:16px' }, [
-    h('div', { class: 'form-grid' }, [field('نام فارسی', f.nameFa), field('واحد', f.unitFa), field('برند', f.brand), field('دسته', f.category), field('وضعیت تولید', f.status), h('label', { class: 'f' }, ['فعال', f.isActive])]),
+    h('div', { class: 'form-grid' }, [field('نام فارسی', f.nameFa), field('واحد', f.unitFa), field('برند', f.brand), field('دسته', f.category), field('وضعیت تولید', f.status), field('رده‌ی سنی', f.ageTrack), h('label', { class: 'f' }, ['فعال', f.isActive])]),
     field('داستان کوتاه محصول', f.storyFa),
     h('div', {}, [h('div', { text: 'آیکن', style: 'font-weight:700;margin-bottom:6px' }), tile, picker]),
     h('div', {}, [h('div', { text: 'قیمت‌ها', style: 'font-weight:700;margin-bottom:6px' }), h('div', { class: 'm', style: 'color:var(--muted);font-size:13px;margin-bottom:8px', text: rangeText(p) + (p.needsMorePrices ? ' — برای نمایش بازه حداقل چند قیمت در تاریخ‌های مختلف لازم است' : '') }), prices]),
     h('div', {}, [h('div', { text: 'افزودن قیمت دستی', style: 'font-weight:700;margin-bottom:6px' }), h('div', { class: 'form-grid' }, [field('سال شمسی', yr), field('قیمت (تومان)', price), field('نوع منبع', srcT), field('لینک منبع', srcU), field('توضیح منبع', note)]), h('div', { style: 'margin-top:8px' }, [addBtn])])
   ]);
   modal(p.nameFa, body, [{ label: 'بستن' }, { label: 'ذخیره', cls: 'primary', keepOpen: true, run: function (close) {
-    api('/admin/products/' + p.id, { method: 'PATCH', body: { nameFa: f.nameFa.value.trim(), unitFa: f.unitFa.value.trim() || null, brand: f.brand.value.trim() || null, category: f.category.value, status: f.status.value, isActive: f.isActive.checked, storyFa: f.storyFa.value.trim() || null, iconKey: icon } }).then(function (r) {
+    api('/admin/products/' + p.id, { method: 'PATCH', body: { nameFa: f.nameFa.value.trim(), unitFa: f.unitFa.value.trim() || null, brand: f.brand.value.trim() || null, category: f.category.value, status: f.status.value, ageTrack: f.ageTrack.value, isActive: f.isActive.checked, storyFa: f.storyFa.value.trim() || null, iconKey: icon } }).then(function (r) {
       if (!r.ok) return fail(r); toast('ذخیره شد'); close(); route();
     }); return false; } }]);
 }

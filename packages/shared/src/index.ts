@@ -8,6 +8,7 @@ export * from './chart/index.js';
 export * from './priceguess/index.js';
 export * from './identity/index.js';
 export * from './agetrack/index.js';
+export * from './lesson/index.js';
 export * from './socket/index.js';
 export * from './economy/index.js';
 export * from './calendar/solar-month.js';

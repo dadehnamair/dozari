@@ -162,7 +162,7 @@ export default function App() {
         />
       ) : null}
       {screen === 'ageTrack' ? <AgeTrackScreen onDone={() => void tutorialSeen().then((seen) => setScreen(seen ? 'home' : 'tutorial'))} /> : null}
-      {screen === 'solo' ? <SoloScreen onBack={() => setScreen('home')} hintsEnabled={config.features.shop} /> : null}
+      {screen === 'solo' ? <SoloScreen onBack={() => setScreen('home')} hintsEnabled={config.features.shop} ageTracksOn={config.raw['feature.age_tracks'] === 1} /> : null}
       {screen === 'priceonly' ? <PriceOnlyScreen onBack={() => setScreen('home')} /> : null}
       {screen === 'daily' ? <SoloScreen daily onBack={() => setScreen('home')} hintsEnabled={config.features.shop} /> : null}
       {screen === 'tutorial' ? <Tutorial onDone={() => void markTutorialSeen().then(() => setScreen('home'))} /> : null}

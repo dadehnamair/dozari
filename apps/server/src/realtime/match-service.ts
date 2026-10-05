@@ -1,6 +1,6 @@
 import { randomInt } from 'node:crypto';
-import { DEFAULT_MATCH_RULES, TEAM_MATCH_BOARDS, applyCommand, settleWager, applyPriceGuessCommand, finalScores, matchClientView, mulberry32, resolveWinner, selectRounds, ServerEvent, startMatch, startPriceGuess, startTeamMatch, toPriceRoundView, turnDeadline } from '@dozari/shared';
-import type { CatalogProduct, Command, RevealedRound, WagerSeat, ErrorCode, PriceGuessState, Stake, MatchEnded, MatchRules, MatchEvent, MatchEventPayload, MatchFound, MatchState, MatchView, Rng, RuleError } from '@dozari/shared';
+import { DEFAULT_MATCH_RULES, TEAM_MATCH_BOARDS, applyCommand, settleWager, applyPriceGuessCommand, finalScores, matchClientView, mulberry32, resolveWinner, selectRounds, ServerEvent, startMatch, startPriceGuess, startTeamMatch, toPriceRoundView, trackRules, turnDeadline } from '@dozari/shared';
+import type { AgeTrack, CatalogProduct, Command, RevealedRound, WagerSeat, ErrorCode, PriceGuessState, Stake, MatchEnded, MatchRules, MatchEvent, MatchEventPayload, MatchFound, MatchState, MatchView, Rng, RuleError } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
 import type { PuzzleSource, ServedPuzzle } from '../solo/types.js';
 
@@ -15,6 +15,8 @@ export interface PlayerProfile {
 
 export interface MatchDeps {
   puzzles: PuzzleSource;
+  /** A player's age track (D198); queues pair one track, so the first player's track picks the puzzle pool. Absent = adult. */
+  trackOf?: (userId: string) => Promise<AgeTrack>;
   /** Public facts about a player for the opponent's card; null = unknown user (match is not created). */
   profile(userId: string): Promise<PlayerProfile | null>;
   /** Pushes a server event to every open socket of a user. */
@@ -137,7 +139,7 @@ export class MatchService {
     const [pa, pb] = await Promise.all([this.deps.profile(a), this.deps.profile(b)]);
     if (!pa || !pb) return false;
     // The stronger of the two sets the puzzle tier (docs/logic/progression.md).
-    const puzzle = await this.deps.puzzles.pickRandom({ level: Math.max(pa.level, pb.level) });
+    const puzzle = await this.deps.puzzles.pickRandom({ level: Math.max(pa.level, pb.level), tracks: await this.tracksOf(a) });
     if (!puzzle) return false;
     if (this.inMatch(a) || this.inMatch(b)) return false; // raced with another start while loading
     const rng: Rng = mulberry32(this.newSeed());
@@ -175,7 +177,7 @@ export class MatchService {
     const profiles = await Promise.all(all.map((u) => this.deps.profile(u)));
     if (profiles.some((p) => !p)) return false;
     // The strongest player sets the puzzle tier, so nobody gets dumbed down (docs/logic/progression.md).
-    const boards = await this.pickBoards(await this.boardCount(), Math.max(...profiles.map((p) => p!.level)));
+    const boards = await this.pickBoards(await this.boardCount(), Math.max(...profiles.map((p) => p!.level)), await this.tracksOf(sides[0][0]));
     if (boards.length === 0) return false;
     if (all.some((u) => this.inMatch(u))) return false; // raced with another start while loading
     const id = uuidv7();
@@ -214,10 +216,16 @@ export class MatchService {
   }
 
   /** Up to `n` different random puzzles (fewer when the pool is small; at least one or none). */
-  private async pickBoards(n: number, level?: number): Promise<ServedPuzzle[]> {
+  /** Puzzle pools for a match: those of this player's track; a failing lookup reads as adult. */
+  private async tracksOf(userId: string): Promise<readonly AgeTrack[]> {
+    if (!this.deps.trackOf) return ['adult'];
+    return trackRules(await this.deps.trackOf(userId).catch(() => 'adult' as const)).puzzleTracks;
+  }
+
+  private async pickBoards(n: number, level?: number, tracks?: readonly AgeTrack[]): Promise<ServedPuzzle[]> {
     const out: ServedPuzzle[] = [];
     for (let i = 0; i < n * 3 && out.length < n; i++) {
-      const p = await this.deps.puzzles.pickRandom({ level });
+      const p = await this.deps.puzzles.pickRandom({ level, tracks });
       if (!p) break;
       if (!out.some((o) => o.id === p.id)) out.push(p);
     }

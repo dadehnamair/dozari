@@ -182,7 +182,13 @@ Setting `feature.age_tracks` (admin → settings → app, **default off**): off 
 - db: migration 0058, `users.age_track` + `age_track_set_at`, `puzzles.age_track`, `products.age_track` (all default `adult`).
 - server: `apps/server/src/agetrack/` (service, DB store, `GET/PUT /me/age-track`); `DuelQueue` entries carry the track and pair only within one; the gateway reads it through `trackOf`; the admin user list filters by track (`/admin/users?track=`) and rows carry `ageTrack`.
 - app: `src/agetrack/` — the chooser screen (shown once after login, before the tutorial, only when the switch is on and the account was never asked; a failed lookup never blocks play).
-- Not yet: serving puzzles by track (needs kid content, phase 3), bots per track, the guardian link (phase 2), the admin «رده‌های سنی» section and filters on the other lists.
+- Phase 3 (kid content pipeline, same switch):
+  - shared: `lesson/letters.ts` (`splitWordLetters`, `letterForms`, joins), `lesson/contract.ts` (`POST /lessons` card schema), `validatePuzzle` check `track.item_too_old` (an item may only be in puzzles of its own or an older track; items without a track read as adult).
+  - db: migration 0059, table `item_lessons` (word, story, syllables, `draft`/`approved`, reviewer).
+  - server: puzzles are picked **by track pool** (`PuzzleSource.pickRandom({tracks})`, default adult only, so kid content never leaks) in solo, offline packs and live/2v2 matches (the first player's track; queues pair one track). `POST /lessons` returns approved cards; `/admin/lessons` (list kid items with their lesson, save as draft, approve/unapprove); admin product edit and create carry `ageTrack`; the hand-built puzzle builder has a track select and the picker hides items that are too old (`item_track` is refused by the server).
+  - admin: tab «کلمه‌آموزی کودک» under «بازی و پازل».
+  - app: `LessonPanel` (word, letters one by one, count, story) replaces the price round and chart for a player whose track rules have `wordLesson`; `useTrackRules` reads the rules once per run.
+- Not yet (content): kid items, lessons and the 30–50 hand-made kid puzzles (nothing is seeded); the queue «no puzzle» diagnosis still looks at the adult pool; kid daily puzzle, price-only mode and lookup are not hidden for kids yet; the rest of the list below.
 
 ## Phases
 

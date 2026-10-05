@@ -2,7 +2,8 @@
 export const ADMIN_VIEWS2_PUZZLES_JS = String.raw`VIEWS.puzzles = function (root) {
   var LEVELS = [['آسان', '#f5c542', 'زرد'], ['متوسط', '#6cc24a', 'سبز'], ['سخت', '#3fa5e0', 'آبی'], ['خیلی سخت', '#9b59d0', 'بنفش']];
   var P = { prods: [], byId: {}, rows: [], tab: 'draft', ready: null, tiers: [] };
-  var B = { slots: [[], [], [], []], titles: ['', '', '', ''], expls: ['', '', '', ''], active: 0, q: '', cat: 'all', tier: '' };
+  var B = { slots: [[], [], [], []], titles: ['', '', '', ''], expls: ['', '', '', ''], active: 0, q: '', cat: 'all', tier: '', track: 'adult' };
+  var TRACK_RANK = { kid: 0, teen: 1, adult: 2 };
   var head = h('div'), body = h('div');
   function yearsOf(p) {
     var ys = (p.prices || []).filter(function (x) { return x.status === 'approved'; }).map(function (x) { return x.year; });
@@ -158,19 +159,20 @@ export const ADMIN_VIEWS2_PUZZLES_JS = String.raw`VIEWS.puzzles = function (root
     function drawList2() {
       clear(list);
       var t = B.q.trim(), u = usedIds();
-      var rows = P.prods.filter(function (p) { return !u[p.id] && (B.cat === 'all' || p.category === B.cat) && (!t || (p.nameFa + ' ' + p.slug).indexOf(t) >= 0); });
+      var rows = P.prods.filter(function (p) { return !u[p.id] && (TRACK_RANK[p.ageTrack || 'adult'] <= TRACK_RANK[B.track]) && (B.cat === 'all' || p.category === B.cat) && (!t || (p.nameFa + ' ' + p.slug).indexOf(t) >= 0); });
       if (!rows.length) list.appendChild(empty('کالایی پیدا نشد'));
       rows.forEach(function (p) {
         list.appendChild(h('button', { type: 'button', class: 'pick', onclick: function () { place(p.id); } }, [p.iconKey ? iconTile(p.iconKey) : null, h('span', { class: 'pn' }, [h('b', { text: p.nameFa }), h('small', { text: (CAT_FA[p.category] || '') + ' · ' + yearsOf(p) })])]));
       });
     }
     var tierSel = select(tierOpts(), B.tier); tierSel.onchange = function () { B.tier = tierSel.value; };
+    var trackSel = select([['adult', 'پازل بزرگسال'], ['teen', 'پازل نوجوان'], ['kid', 'پازل کودک']], B.track); trackSel.onchange = function () { B.track = trackSel.value; drawBuilder(); };
     var submit = h('button', { class: 'btn primary', text: 'ساخت پازل', onclick: submitPuzzle });
     function refreshSubmit() { submit.disabled = !(filled() === 16 && B.titles.every(function (x) { return x.trim().length >= 2; })); }
     var bar = h('div', { class: 'bd-bar' }, [
       h('div', { class: 'progress' }, [h('i', { style: 'width:' + (n / 16 * 100) + '%' })]),
       h('span', { class: 'sub', text: fa(n) + ' از ۱۶ کالا' }),
-      h('span', { style: 'flex:1' }), tierSel,
+      h('span', { style: 'flex:1' }), trackSel, tierSel,
       h('button', { class: 'btn', text: 'پاک‌کردن همه', onclick: function () { B.slots = [[], [], [], []]; B.titles = ['', '', '', '']; B.expls = ['', '', '', '']; B.active = 0; drawBuilder(); } }),
       submit
     ]);
@@ -183,7 +185,7 @@ export const ADMIN_VIEWS2_PUZZLES_JS = String.raw`VIEWS.puzzles = function (root
   }
   function submitPuzzle() {
     var groups = LEVELS.map(function (lv, i) { var t = B.titles[i].trim(); return { level: i, titleFa: t, explanationFa: B.expls[i].trim().length >= 2 ? B.expls[i].trim() : t, productIds: B.slots[i].slice() }; });
-    api('/admin/puzzles', { method: 'POST', body: { groups: groups, tierId: B.tier || null } }).then(function (r) {
+    api('/admin/puzzles', { method: 'POST', body: { groups: groups, tierId: B.tier || null, ageTrack: B.track } }).then(function (r) {
       if (!r.ok) return r.body && r.body.error === 'duplicate_product' ? toast('یک کالا نباید دو بار در پازل بیاید', true) : fail(r);
       toast('پازل ساخته شد و قابل بازی است');
       B.slots = [[], [], [], []]; B.titles = ['', '', '', '']; B.expls = ['', '', '', '']; B.active = 0;

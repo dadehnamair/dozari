@@ -96,6 +96,23 @@ export const products = mysqlTable('products', {
     .$onUpdate(() => new Date()),
 });
 
+/** Kid word lesson of an item (D198): the word, a one-line story and an optional syllable split. Only `approved` lessons are served. */
+export const itemLessons = mysqlTable('item_lessons', {
+  productId: fk('product_id')
+    .primaryKey()
+    .references(() => products.id, { onDelete: 'cascade' }),
+  wordFa: varchar('word_fa', { length: 60 }).notNull(),
+  storyFa: varchar('story_fa', { length: 300 }).notNull().default(''),
+  syllablesFa: varchar('syllables_fa', { length: 80 }),
+  status: mysqlEnum('status', ['draft', 'approved']).notNull().default('draft'),
+  reviewedBy: char('reviewed_by', { length: 36 }),
+  reviewedAt: datetime('reviewed_at', { mode: 'date', fsp: 3 }),
+  updatedAt: datetime('updated_at', { mode: 'date', fsp: 3 })
+    .notNull()
+    .default(now())
+    .$onUpdate(() => new Date()),
+});
+
 /** Who a product resonates with: kids, teens, adults, elderly, family. One row per tag. */
 export const productAudiences = mysqlTable(
   'product_audiences',

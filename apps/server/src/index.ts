@@ -129,6 +129,9 @@ import { registerFeedbackRoutes } from './feedback/routes.js';
 import { createDbBirthdayStore } from './profile/birthday-store.js';
 import { AgeTrackService, registerAgeTrackRoutes } from './agetrack/service.js';
 import { createDbAgeTrackStore } from './agetrack/store.js';
+import { registerLessonRoutes } from './lessons/service.js';
+import type { LessonStore } from './lessons/service.js';
+import { createDbLessonStore } from './lessons/store.js';
 import { ShopService } from './economy/shop.js';
 import { createDbShopStore } from './economy/shop-store.js';
 import { HintService } from './solo/hints.js';
@@ -233,6 +236,8 @@ export interface ServerDeps {
   birthday?: BirthdayService;
   /** Chosen age track: kid / teen / adult (D198); queues only pair one track. */
   ageTracks?: AgeTrackService;
+  /** Kid word lessons (D198). */
+  lessons?: LessonStore;
   /** Reports of players and the suggestion / vote / approve loop (D177). */
   feedback?: FeedbackService;
   gems?: Pick<GemWalletReader, 'wallet'>;
@@ -348,6 +353,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.profileTasks) registerProfileTaskRoutes(app, deps.auth, deps.profileTasks);
   if (deps.auth && deps.birthday) registerBirthdayRoutes(app, deps.auth, deps.birthday);
   if (deps.auth && deps.ageTracks) registerAgeTrackRoutes(app, deps.auth, deps.ageTracks);
+  if (deps.auth && deps.lessons) registerLessonRoutes(app, deps.auth, deps.lessons);
   if (deps.auth && deps.feedback) registerFeedbackRoutes(app, deps.auth, deps.feedback);
   if (deps.auth && deps.gems) registerGemRoutes(app, deps.auth, deps.gems);
   if (deps.landing && deps.settings) registerLandingPublicRoutes(app, deps.landing, deps.settings);
@@ -641,6 +647,7 @@ if (isMainModule(import.meta.url)) {
       ? new SoloService(createDbPuzzleSource(db), {
           rules: () => soloRules(settings),
           levelOf,
+          trackOf: ageTracks ? (id) => ageTracks.effective(id) : undefined,
           onFinished: (id, outcome, tag) => {
             void player?.recordGame(id, { mode: 'solo', outcome });
             void dailyRef?.onFinished(id, outcome, tag).catch((err) => console.error('daily finish failed', err));
@@ -667,12 +674,13 @@ if (isMainModule(import.meta.url)) {
     auth,
     settings,
     adminModules: db
-      ? { products: productAdmin!, feedback, stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, wheel, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, daily, puzzles: createDbPuzzleAdmin(db), levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      ? { products: productAdmin!, feedback, stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, wheel, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, daily, puzzles: createDbPuzzleAdmin(db), levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
     match: db
       ? {
           puzzles: createDbPuzzleSource(db),
+          trackOf: ageTracks ? (id) => ageTracks.effective(id) : undefined,
           teamBoards: settings ? () => settings.num('match.team_boards') : undefined,
           priceRound: settings ? async () => (await settings.num('match.price_round')) === 1 : undefined,
           rules: settings
@@ -758,6 +766,7 @@ if (isMainModule(import.meta.url)) {
     gems: db ? createDbGemWallet(db) : undefined,
     birthday,
     ageTracks,
+    lessons: db ? createDbLessonStore(db) : undefined,
     feedback,
     profileTasks:
       db && settings
