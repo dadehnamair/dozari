@@ -122,3 +122,14 @@ see updated flow in that file / the result-screen section of `docs/PLAN.md`.
   pot top-up of `bot_match_subsidy` is implicit, exactly as for the entry fee (no ledger row for the house). Leaving mid-round returns every open wager.
   The snapshot carries `wager` and `youIn`. The economy simulator (`economy/simulate.ts`) does not model this wager yet — check it before switching it on.
 - Still to do: persistence to `match_events`, 2v2 (captain pools one guess), the reveal animation.
+
+## Price-only mode («فقط حدس قیمت»)
+
+Owner request: a way to play only the price guessing. A third home button next to «بازی تکی» and «دوئل».
+
+- A game is `priceonly.rounds` questions (admin setting, default `PRICE_ONLY_ROUNDS` = 5, max 10): distinct products with ≥ `MIN_PRICE_POINTS_PER_PRODUCT` approved
+  prices, each asked in a random year that has a price (`selectPriceOnlyRounds`, `packages/shared/src/priceguess/only.ts`), so the player sees prices across eras.
+- Scored on the same 5-step staircase as the solo bonus round (`score.staircase_*`); the best possible total is shown as «x از y».
+- Server (`apps/server/src/priceonly/`): in-memory sessions like solo; `POST /price-only/start`, `GET /price-only/:id`, `POST /price-only/:id/guess`.
+  A question never carries its price; the real price appears only in the answer to that round (server authoritative, rule 4). Switch: `feature.priceonly`.
+- Solo only for now: no coins at stake (the coin wager stays a duel feature) and no XP yet.

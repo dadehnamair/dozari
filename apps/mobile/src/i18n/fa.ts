@@ -91,6 +91,21 @@ export const fa = {
     } as Record<string, string>,
   },
   /** Item and product icon names, grouped as in the design's icon pack. */
+  /** «فقط حدس قیمت»: a short game of price questions only. */
+  priceOnly: {
+    title: 'حدس قیمت',
+    intro: 'قیمت هر کالا را در سالی که می‌پرسم حدس بزن. هر چه به قیمت واقعی نزدیک‌تر باشی، امتیاز بیشتری می‌گیری.',
+    finished: (got: string, max: string) => `تمام شد! ${got} امتیاز از ${max} گرفتی.`,
+    summary: 'نتیجه‌ی دورها',
+    score: (n: string) => `امتیاز تا اینجا: ${n}`,
+    yourGuess: 'حدس تو',
+    actual: 'قیمت واقعی',
+    points: 'امتیاز',
+    seeResult: 'دیدن نتیجه',
+    again: 'یک دور دیگر',
+    noProducts: 'هنوز کالای کافی برای این بازی نداریم.',
+    play: 'حدس قیمت',
+  },
   net: {
     downTitle: 'ارتباط قطع شد',
     down: 'اینترنتت وصل نیست یا سرور جواب نمی‌دهد. بخش‌های آنلاین تا وصل شدن کار نمی‌کنند؛ خودمان هر چند ثانیه دوباره امتحان می‌کنیم.',

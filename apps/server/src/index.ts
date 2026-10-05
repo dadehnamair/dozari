@@ -139,6 +139,9 @@ import { TableService } from './tables/service.js';
 import { registerTableRoutes } from './tables/routes.js';
 import { currentUser } from './auth/routes.js';
 import { registerSoloRoutes } from './solo/routes.js';
+import { registerPriceOnlyRoutes } from './priceonly/routes.js';
+import { PriceOnlyService } from './priceonly/service.js';
+import { createDbPriceOnlySource } from './priceonly/db-source.js';
 import { SoloService } from './solo/service.js';
 import type { CatalogRepository } from './catalog/routes.js';
 
@@ -206,6 +209,8 @@ export interface ServerDeps {
   adminModules?: Omit<AdminModules, 'settings'>;
   /** Solo practice sessions (`/solo/*`). */
   solo?: SoloService;
+  /** Price-only games (`/price-only/*`). */
+  priceOnly?: PriceOnlyService;
   /** Paid hints of solo games; needs `solo` and `auth`. */
   hints?: HintService;
   /** Private tables (`/tables`); needs `auth` and the live-match service. */
@@ -330,6 +335,7 @@ export function buildServer(deps: ServerDeps = {}) {
     return { ok: true, online };
   } : undefined);
   if (deps.solo) registerSoloRoutes(app, deps.solo, deps.auth, deps.hints, deps.limiter);
+  if (deps.priceOnly) registerPriceOnlyRoutes(app, deps.priceOnly, deps.auth);
   if (deps.auth && deps.shop) registerShopRoutes(app, deps.auth, deps.shop);
   if (deps.auth && deps.levelRoad) registerRoadRoutes(app, deps.auth, deps.levelRoad);
   if (deps.auth && deps.profileTasks) registerProfileTaskRoutes(app, deps.auth, deps.profileTasks);
@@ -630,6 +636,15 @@ if (isMainModule(import.meta.url)) {
           },
         })
       : undefined;
+  const priceOnly =
+    db && settings
+      ? new PriceOnlyService(createDbPriceOnlySource(db), {
+          rules: async () => {
+            const r = await soloRules(settings);
+            return { rounds: await settings.num('priceonly.rounds'), tiers: r.tiers, minPoints: r.minPoints };
+          },
+        })
+      : undefined;
   const dailyStore = db ? createDbDailyStore(db) : undefined;
   const daily = dailyStore && solo && settings ? new DailyService(dailyStore, solo, { num: (k) => settings.num(k) }) : undefined;
   dailyRef = daily;
@@ -705,6 +720,7 @@ if (isMainModule(import.meta.url)) {
     dailyReward: db && settings ? new DailyRewardService(createDbDailyRewardStore(db), Date.now, () => dailyRules(settings)) : undefined,
     catalog: db ? createDbCatalogRepository(db) : undefined,
     solo,
+    priceOnly,
     tables: tableService,
     duelStakes,
     limiter: db && settings ? new PlayLimiter(createDbPlayCountStore(db), async (mode) => settings.num(mode === 'solo' ? 'limit.solo_per_day' : 'limit.duel_per_day')) : undefined,
