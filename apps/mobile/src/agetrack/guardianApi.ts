@@ -1,5 +1,5 @@
-import { childrenResponseSchema, linkCodeResponseSchema, sessionSchema } from '@dozari/shared';
-import type { ChildrenResponse } from '@dozari/shared';
+import { childDigestSchema, childrenResponseSchema, guardianSettingsSchema, linkCodeResponseSchema, sessionSchema } from '@dozari/shared';
+import type { ChildDigest, ChildrenResponse, GuardianSettings } from '@dozari/shared';
 import { session } from '../auth';
 import { announceAccountSwitched } from '../auth/switched';
 import { callJson } from '../net/http';
@@ -28,3 +28,17 @@ export async function signInWithChildCode(code: string, opts: { announce?: boole
   await session.adopt(out.token);
   if (opts.announce !== false) announceAccountSwitched();
 }
+
+/** The guardian panel of one child (docs/logic/age-tracks.md §Guardian panel). */
+export const fetchChildSettings = (childId: string): Promise<GuardianSettings> => authed((r) => guardianSettingsSchema.parse(r), `/guardian/children/${childId}/settings`, 'GET');
+export const saveChildSettings = (childId: string, settings: GuardianSettings): Promise<GuardianSettings> => authed((r) => guardianSettingsSchema.parse(r), `/guardian/children/${childId}/settings`, 'PUT', settings);
+export const fetchChildDigest = (childId: string): Promise<ChildDigest> => authed((r) => childDigestSchema.parse(r), `/guardian/children/${childId}/digest`, 'GET');
+
+export interface ChildFriend {
+  id: string;
+  nickname: string;
+  avatarKey: string;
+}
+export const fetchChildFriends = (childId: string): Promise<{ friends: ChildFriend[]; requests: ChildFriend[] }> => authed((r) => r as { friends: ChildFriend[]; requests: ChildFriend[] }, `/guardian/children/${childId}/friends`, 'GET');
+export const approveChildFriend = (childId: string, otherId: string): Promise<void> => authed(ok, `/guardian/children/${childId}/friends/${otherId}/approve`, 'POST');
+export const removeChildFriend = (childId: string, otherId: string): Promise<void> => authed(ok, `/guardian/children/${childId}/friends/${otherId}`, 'DELETE');

@@ -241,7 +241,11 @@ Setting `feature.age_tracks` (admin → settings → app, **default off**): off 
   one guardian; the `guardian_links` row is the whole proof). Only someone with a family may open one (`INVALID` otherwise); a non-family player gets `NOT_FOUND` on join and `null` on view. A family table skips the track gate **and the duel-off switch of the child**
   (the guardian is sitting there). The match draws its puzzles from the first player's track pool, so at a family table the **youngest track plays first** (1v1, and in 2v2 the youngest leads the first side). Open: the price-guess round still differs per player (kid has the word lesson,
   the guardian the price round); the app offers the toggle only to a guardian with children or a child with a guardian.
-  Not yet: «block a friend» as its own switch (removing a friend is there; a re-request is possible), the guardian panel screens and the soft rest card in the app.
+- Phase 5, slice 4 (closes phase 5), **app**: «فرزندان من» → per child «تنظیمات و گزارش» (`ChildPanelSheet`): the digest card, the chat / new-friends / duels switches, quiet hours (start and end hour), the play reminder, the requests waiting for a yes and the friend list (remove).
+  Each switch saves at once and rolls back with a note if the save fails. The child's app reads `limits` from `GET /me/age-track` every minute (`useMyTrack`): the **tables tile disappears** when duels are off and the **city chat tile is not drawn** for kid/teen (no lock, no refusal),
+  `PlayerSheet` answers `ask_guardian` with one friendly line, and `RestCardView` (pure rule `restCardFor`) shows the **soft rest card** in quiet hours or after `reminderMinutes` in this app session, dismissible for `QUIET_CARD_SNOOZE_MINUTES` (10) — never a lock-out.
+  The play reminder counts the minutes of the current app session (a per-day total would need a play-time log, not built); quiet hours use the phone's own clock.
+  Not yet: «block a friend» as its own switch (removing a friend is there; a re-request is possible), a per-day play-time log for a truer reminder, and a «preview the kid space» mode for a guardian.
 - Not yet: the rest of the 30–50 kid puzzles; a track filter on the other admin lists (puzzles, items, tournaments, reports…);
 
 ## Phases

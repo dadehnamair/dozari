@@ -14,6 +14,7 @@ import { HubTile } from '../home/HubTile';
 import { ProvinceBadge } from '../components/ProvinceBadge';
 import { useConfirm } from '../components/useConfirm';
 import { fa } from '../i18n/fa';
+import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
 import { acceptFriend, fetchPlayer, removeFriend, requestFriend } from './api';
 import { avatarOf } from './avatarOf';
@@ -30,6 +31,8 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
   useHardwareBack(onClose);
   const [p, setP] = useState<PlayerProfile | null>(null);
   const [failed, setFailed] = useState(false);
+  /** The guardian wants to approve this child's friends first (`ask_guardian`): a friendly line, not an error. */
+  const [asking, setAsking] = useState(false);
   const [send, setSend] = useState<'gift' | 'loan' | null>(null);
   const [reporting, setReporting] = useState(false);
   const { ask, dialog } = useConfirm();
@@ -43,7 +46,7 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
   }, [playerId]);
   useEffect(load, [load]);
 
-  const act = (fn: (id: string) => Promise<void>) => () => fn(playerId).then(load, (e) => void (intercept(e) || setFailed(true)));
+  const act = (fn: (id: string) => Promise<void>) => () => fn(playerId).then(load, (e) => void (intercept(e) || (e instanceof ApiError && e.code === 'ask_guardian' ? setAsking(true) : setFailed(true))));
   const since = p ? new Intl.DateTimeFormat('fa-IR-u-ca-persian', { year: 'numeric', month: 'long' }).format(new Date(p.memberSince)) : '';
 
   if (send) return <TransferSheet friendId={playerId} kind={send} onClose={() => setSend(null)} />;
@@ -61,6 +64,7 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
           </Pressable>
         </View>
         {failed ? <Text style={[styles.text, styles.failed]}>{fa.player.error}</Text> : null}
+        {asking ? <Text style={styles.text}>{fa.player.askGuardian}</Text> : null}
         {p ? (
           <View style={styles.body}>
             <View style={styles.avatarWrap}>
