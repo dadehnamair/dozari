@@ -135,6 +135,7 @@ import { createDbAgeTrackStore } from './agetrack/store.js';
 import { createDbAgeTrackAdmin } from './agetrack/overview.js';
 import { GuardianService, registerGuardianRoutes } from './guardian/service.js';
 import { createDbGuardianStore } from './guardian/store.js';
+import { GuardianSettingsService, createDbGuardianSettingsStore } from './guardian/settings.js';
 import { registerLessonRoutes } from './lessons/service.js';
 import type { LessonStore } from './lessons/service.js';
 import { createDbLessonStore } from './lessons/store.js';
@@ -604,7 +605,8 @@ if (isMainModule(import.meta.url)) {
         })
       : undefined;
   const guardianStore = db ? createDbGuardianStore(db) : undefined;
-  const ageTracks = db && settings ? new AgeTrackService(createDbAgeTrackStore(db), async () => (await settings.num('feature.age_tracks')) === 1, () => new Date(), async (id) => (guardianStore ? (await guardianStore.guardianOf(id)) !== null : false)) : undefined;
+  const guardianSettings = db ? new GuardianSettingsService(createDbGuardianSettingsStore(db)) : undefined;
+  const ageTracks = db && settings ? new AgeTrackService(createDbAgeTrackStore(db), async () => (await settings.num('feature.age_tracks')) === 1, () => new Date(), async (id) => (guardianStore ? (await guardianStore.guardianOf(id)) !== null : false), async (id) => (guardianStore && guardianSettings && (await guardianStore.guardianOf(id)) !== null ? guardianSettings.limits(id) : null)) : undefined;
   const guardian =
     db && auth && phoneLogin
       ? new GuardianService(createDbGuardianStore(db), createDbAgeTrackStore(db), phoneLogin, createDbPhoneStore(db), auth, () => `guardian:${randomUUID()}`)
@@ -637,6 +639,7 @@ if (isMainModule(import.meta.url)) {
           inMatch: (id) => live.matches?.inMatch(id) ?? false,
           trackOf: ageTracks ? (id) => ageTracks.effective(id) : undefined,
           socialBlocked: ageTracks ? (id) => ageTracks.socialBlocked(id) : undefined,
+          duelsOff: ageTracks ? (id) => ageTracks.duelsOff(id) : undefined,
           idleMs: async () => (await settings.num('table.idle_minutes')) * 60_000,
         })
       : undefined;
@@ -658,12 +661,23 @@ if (isMainModule(import.meta.url)) {
           Date.now,
           ageTracks ? (me, others) => ageTracks.meetable(me, others) : undefined,
           ageTracks ? (id) => ageTracks.socialBlocked(id) : undefined,
+          ageTracks ? (id) => ageTracks.friendsNeedApproval(id) : undefined,
         )
       : undefined;
-  if (chat && ageTracks) chat.managed = { trackOf: (id) => ageTracks.effective(id), hasGuardian: async (id) => (guardianStore ? (await guardianStore.guardianOf(id)) !== null : false) };
+  if (chat && ageTracks) chat.managed = { trackOf: (id) => ageTracks.effective(id), hasGuardian: async (id) => (guardianStore ? (await guardianStore.guardianOf(id)) !== null : false), chatMode: async (id) => (guardianSettings ? (await guardianSettings.get(id)).chatMode : 'friends_text') };
   if (social && ageTracks) {
     social.sameTrack = (me, others) => ageTracks.meetable(me, others);
     social.blocked = (id) => ageTracks.socialBlocked(id);
+    social.asksGuardian = (id) => ageTracks.friendsNeedApproval(id);
+  }
+  if (guardian && guardianSettings) guardian.settings = guardianSettings;
+  if (guardian && social && socialStore) {
+    guardian.friends = {
+      friends: (id) => socialStore.friends(id),
+      incoming: (id) => socialStore.incoming(id),
+      approve: (childId, otherId) => social.approveFor(childId, otherId),
+      remove: (childId, otherId) => social.remove(childId, otherId),
+    };
   }
   const levelOf = async (id: string) => (player ? (await player.levelOf(id)).level.level : 1);
   const shopStore = db ? createDbShopStore(db) : undefined;

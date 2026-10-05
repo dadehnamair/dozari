@@ -442,6 +442,13 @@
       "when": 1791203211403,
       "tag": "0062_tan_xorn",
       "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "5",
+      "when": 1791206158963,
+      "tag": "0063_luxuriant_angel",
+      "breakpoints": true
     }
   ]
 }

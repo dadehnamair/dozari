@@ -17,7 +17,7 @@ import {
   varchar,
 } from 'drizzle-orm/mysql-core';
 import { COSMETIC_SLOTS } from '@dozari/shared/src/economy/slots';
-import { AGE_TRACKS, WORD_TRACKS } from '@dozari/shared/src/config/ageTracks';
+import { AGE_TRACKS, CHAT_MODES, FRIEND_APPROVALS, WORD_TRACKS } from '@dozari/shared/src/config/ageTracks';
 import { uuidv7 } from 'uuidv7';
 
 /**
@@ -110,6 +110,22 @@ export const guardianLinks = mysqlTable(
     byGuardian: index('guardian_links_guardian_idx').on(table.guardianId),
   }),
 );
+
+/** What a guardian chose for one child (docs/logic/age-tracks.md §Guardian panel). One row per child, made on the first save; no row = the open defaults. Plain columns, no JSON (D63). */
+export const guardianSettings = mysqlTable('guardian_settings', {
+  childId: fk('child_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  chatMode: mysqlEnum('chat_mode', CHAT_MODES).notNull().default('friends_text'),
+  friendApproval: mysqlEnum('friend_approval', FRIEND_APPROVALS).notNull().default('auto'),
+  duelsEnabled: boolean('duels_enabled').notNull().default(true),
+  /** Quiet hours as minutes from midnight (Tehran time); both null = none. A window may cross midnight. */
+  quietFrom: smallint('quiet_from'),
+  quietTo: smallint('quiet_to'),
+  /** Gentle «too much play» reminder after this many minutes in a day; null = off. */
+  reminderMinutes: smallint('reminder_minutes'),
+  updatedAt: datetime('updated_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+});
 
 /** A short code a guardian shows so the child's device can sign in as the child: 6 digits, 10 minutes, one use. */
 export const guardianLinkCodes = mysqlTable('guardian_link_codes', {

@@ -48,7 +48,7 @@ export function registerFindRoutes(app: FastifyInstance, auth: AuthService, find
     if (out === 'unknown') return reply.code(404).send({ error: 'player_not_found' });
     if (out === 'self') return reply.code(400).send({ error: 'cannot_friend_self' });
     if (out === 'limit') return reply.code(429).send({ error: 'rate_limited' });
-    if (out === 'needs_guardian') return reply.code(403).send({ error: 'needs_guardian' });
+    if (out === 'needs_guardian' || out === 'ask_guardian') return reply.code(403).send({ error: out });
     return { status: out };
   });
 }

@@ -21,7 +21,7 @@ async function setup() {
     tableMembers: () => null,
     rules: async () => ({ maxLen: 60, textNeedsActivation: false, enabled: true, globalEnabled: true }),
   });
-  chat.managed = { trackOf: async (id) => store.tracks.get(id) ?? 'adult', hasGuardian: async () => true };
+  chat.managed = { trackOf: async (id) => store.tracks.get(id) ?? 'adult', hasGuardian: async () => true, chatMode: async () => 'friends_text' };
   const kidLine = await chat.sendDm(K1, K2, { kind: 'text', text: 'یک خط از کودک' });
   const teenLine = await chat.sendDm(T1, T2, { kind: 'text', text: 'یک خط از نوجوان' });
   const adultLine = await chat.sendCity(A1, { kind: 'text', text: 'یک خط از بزرگسال' });

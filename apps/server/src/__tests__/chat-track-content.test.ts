@@ -24,7 +24,7 @@ async function setup() {
     rules: async () => ({ maxLen: 60, textNeedsActivation: true, enabled: true, globalEnabled: true }),
     filter: words,
   });
-  chat.managed = { trackOf: async (id) => tracks[id] ?? 'adult', hasGuardian: async () => true };
+  chat.managed = { trackOf: async (id) => tracks[id] ?? 'adult', hasGuardian: async () => true, chatMode: async () => 'friends_text' };
   const kidCat = await store.addCategory('کودکانه', null, 'kid');
   const kidTaunt = await store.addTaunt(kidCat.id, 'آفرین! 🎉');
   if (kidTaunt === 'no_category') throw new Error('category');

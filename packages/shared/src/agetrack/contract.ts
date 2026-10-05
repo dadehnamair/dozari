@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { AGE_TRACKS } from '../config/ageTracks.js';
+import { childLimitsSchema } from './guardianSettings.js';
 
 export const ageTrackSchema = z.enum(AGE_TRACKS);
 
@@ -27,6 +28,8 @@ export const myAgeTrackSchema = z.object({
   track: ageTrackSchema,
   chosen: z.boolean(),
   rules: trackRulesSchema,
+  /** The guardian's choices for this child; null when there are none. */
+  limits: childLimitsSchema.nullable().optional(),
 });
 export type MyAgeTrackDto = z.infer<typeof myAgeTrackSchema>;
 

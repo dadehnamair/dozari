@@ -1,5 +1,5 @@
 import { CHAT_HISTORY_LIMIT, CHAT_TAUNT_RATE, CHAT_TEXT_RATE, containsContactInfo, normalizeTableCode, trackRules } from '@dozari/shared';
-import type { AgeTrack, ChatError, ChatHistory, ChatMessage, TauntCategory } from '@dozari/shared';
+import type { AgeTrack, ChatError, ChatMode, ChatHistory, ChatMessage, TauntCategory } from '@dozari/shared';
 
 /** Rooms a player reads and writes from the chat sheet (the duel room is socket-only). */
 export type PublicRoom = 'city' | 'global';
@@ -42,6 +42,8 @@ export interface ManagedChat {
   trackOf(userId: string): Promise<AgeTrack>;
   /** A kid/teen's free text is allowed once a guardian is linked (the link is the redemption of rule 7 for them). */
   hasGuardian(userId: string): Promise<boolean>;
+  /** The guardian's chat switch for this child (docs/logic/age-tracks.md §Guardian panel): free text / phrases only / off. */
+  chatMode(userId: string): Promise<ChatMode>;
 }
 
 /** Where a text goes: a friend's private chat, or somewhere with several or unknown readers. */
@@ -91,10 +93,20 @@ export class ChatService {
     }
   }
 
+  /** The mode for a managed (kid/teen) player; adults are always `friends_text` here (their own rule is the invite code). */
+  private async chatMode(userId: string): Promise<ChatMode> {
+    if ((await this.rulesOf(userId)).freeTextChat !== 'guardian_switch') return 'friends_text';
+    try {
+      return (await this.managed?.chatMode(userId)) ?? 'friends_text';
+    } catch {
+      return 'phrases'; // a failing lookup falls to the narrower choice, never the wider
+    }
+  }
+
   /** Whether the composer shows for this player in this place (the server still checks every send). */
   private async canType(userId: string, where: Where, muted: boolean, activated: boolean, rules: ChatRules): Promise<boolean> {
     if (muted) return false;
-    if ((await this.rulesOf(userId)).freeTextChat === 'guardian_switch') return where === 'dm' && (await this.managed!.hasGuardian(userId));
+    if ((await this.rulesOf(userId)).freeTextChat === 'guardian_switch') return where === 'dm' && (await this.chatMode(userId)) === 'friends_text' && (await this.managed!.hasGuardian(userId));
     return activated || !rules.textNeedsActivation;
   }
 
@@ -152,6 +164,7 @@ export class ChatService {
     const rules = await this.deps.rules();
     if (!rules.enabled) return 'OFF';
     if (!(await this.deps.areFriends(userId, friendId)) || !(await this.sameTrack(userId, friendId))) return 'NOT_FRIENDS';
+    if ((await this.chatMode(userId)) === 'off') return 'OFF';
     const [rows, mute, activated] = await Promise.all([this.store.history('dm', ChatService.dmKey(userId, friendId), CHAT_HISTORY_LIMIT), this.deps.mute(userId), this.deps.isActivated(userId)]);
     const cache = new Map();
     const messages: ChatMessage[] = [];
@@ -176,6 +189,7 @@ export class ChatService {
     const rules = await this.deps.rules();
     if (!rules.enabled) return 'OFF';
     if (!this.deps.tableMembers(userId, code)) return 'NOT_IN_TABLE';
+    if ((await this.chatMode(userId)) === 'off') return 'OFF';
     const [rows, mute, activated] = await Promise.all([this.store.history('table', (normalizeTableCode(code) ?? code), CHAT_HISTORY_LIMIT), this.deps.mute(userId), this.deps.isActivated(userId)]);
     const cache = new Map();
     const messages: ChatMessage[] = [];
@@ -260,6 +274,8 @@ export class ChatService {
   private async resolveText(userId: string, input: SendInput, where: Where): Promise<{ ok: true; text: string } | { ok: false; error: ChatError; mutedUntil?: number }> {
     const blocked = await this.gate(userId, input.kind);
     if (blocked) return blocked;
+    const mode = await this.chatMode(userId);
+    if (mode === 'off') return { ok: false, error: 'OFF' }; // the guardian switched this child's chat off: phrases and emoji too
     if (input.kind === 'table') {
       // A table invite is structured (a code and a name), so it needs no activation; the name still goes through the word filter.
       const label = input.label.replace(/\s+/g, ' ').trim().slice(0, 60);
@@ -281,7 +297,7 @@ export class ChatService {
     const managed = (await this.rulesOf(userId)).freeTextChat === 'guardian_switch';
     if (managed) {
       // Kid/teen: text only to a friend of the track, and only once a guardian is linked (that link stands in for the invite code).
-      if (where !== 'dm') return { ok: false, error: 'PHRASES_ONLY' };
+      if (where !== 'dm' || mode !== 'friends_text') return { ok: false, error: 'PHRASES_ONLY' };
       if (!(await this.managed!.hasGuardian(userId))) return { ok: false, error: 'NEEDS_GUARDIAN' };
     } else if (rules.textNeedsActivation && !(await this.deps.isActivated(userId))) return { ok: false, error: 'NEEDS_ACTIVATION' };
     // Phone numbers, links and handles: a contact perk never lifts this for kid/teen.

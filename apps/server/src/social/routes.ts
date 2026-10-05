@@ -99,7 +99,7 @@ export function registerSocialRoutes(app: FastifyInstance, auth: AuthService, so
     if (out === 'unknown_player') return reply.code(404).send({ error: 'player_not_found' });
     if (out === 'self') return reply.code(400).send({ error: 'cannot_friend_self' });
     if (out === 'already') return reply.code(409).send({ error: 'already' });
-    if (out === 'needs_guardian') return reply.code(403).send({ error: 'needs_guardian' });
+    if (out === 'needs_guardian' || out === 'ask_guardian') return reply.code(403).send({ error: out });
     return { status: out === 'accepted' ? 'friends' : 'sent' };
   });
 
@@ -109,7 +109,7 @@ export function registerSocialRoutes(app: FastifyInstance, auth: AuthService, so
     if (!user) return reply.code(401).send({ error: 'unauthorized' });
     if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
     const out = await social.accept(user.id, p.data.id);
-    if (out === 'needs_guardian') return reply.code(403).send({ error: 'needs_guardian' });
+    if (out === 'needs_guardian' || out === 'ask_guardian') return reply.code(403).send({ error: out });
     return out ? { status: 'friends' } : reply.code(404).send({ error: 'no_request' });
   });
 

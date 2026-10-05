@@ -225,7 +225,16 @@ Setting `feature.age_tracks` (admin → settings → app, **default off**): off 
 - Phase 4, slice 7 (closes phase 4): the invite-link deep link now opens the guardian step for a kid/teen with no guardian (`useInviteLink` returns the gate, rendered at the app root); search and contacts results open `PlayerSheet`, whose friend button already does.
   The kid/teen report queue is **role-gated**: `GET /admin/chat/reports` answers `minorsQueue: true` and serves `minors`/`all` only to roles that moderate (`users` or `messages`: owner, editor, support); a read-only viewer always gets the adult queue,
   whatever `queue` they ask for. The «گزارش‌های چت» select hides the minors option from others and shows its open count.
-  Phase 4 is done; the guardian's own chat switch (phrases only / off) is phase 5.
+  Phase 4 is done.
+- Phase 5, slice 1, **guardian settings** (migration 0063, table `guardian_settings`: `chat_mode`, `friend_approval`, `duels_enabled`, `quiet_from`, `quiet_to`, `reminder_minutes`; one row per child, made on the first save; **no row = the open defaults**):
+  - shared: `agetrack/guardianSettings.ts` (`GuardianSettings`, `DEFAULT_GUARDIAN_SETTINGS`, `guardianSettingsSchema` with the quiet-hours pair rule and the reminder choices from config, `childLimitsSchema`, `inQuietHours`); config `FRIEND_APPROVALS`, `GUARDIAN_REMINDER_CHOICES`, `QUIET_CARD_SNOOZE_MINUTES`.
+  - server: `guardian/settings.ts` (store + a 5 s cached `GuardianSettingsService`), `GET|PUT /guardian/children/:id/settings`, `GET /guardian/children/:id/friends` (friends + the requests waiting), `POST …/friends/:otherId/approve`, `DELETE …/friends/:otherId` (only the child's own guardian; anyone else gets `not_found`).
+    `GET /me/age-track` carries `limits` (kid/teen with a guardian only) so the app can hide features and draw the soft rest card.
+  - enforced on the server: **chat mode** (`phrases` → text refused `PHRASES_ONLY`; `off` → every send and both histories answer `OFF`, phrases and emoji too); **duels off** → `FEATURE_OFF` on opening or joining a table (the app hides them);
+    **ask first** → the child neither sends nor accepts friend requests (`403 ask_guardian`, also on invite links), the guardian sees the waiting requests and approves (`SocialService.approveFor`, which accepts for the child and still checks the track).
+    Under *ask first* a child cannot send requests at all (stricter than «approve what happens», chosen because a request the other side accepts later would need approval state we do not store).
+  - quiet hours and the reminder are **not enforced by the server** (no lock-out, principle 4): they ride in `limits` and the app shows a soft card.
+  Not yet: «block a friend» as its own switch (removing a friend is there; a re-request is possible), the digest, the family table, the guardian panel screens and the soft rest card in the app.
 - Not yet: the rest of the 30–50 kid puzzles; a track filter on the other admin lists (puzzles, items, tournaments, reports…);
 
 ## Phases

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { AgeTrack } from '@dozari/shared';
+import type { AgeTrack, ChatMode } from '@dozari/shared';
 import { ChatService } from '../chat/service.js';
 import { createMemoryChatStore } from '../chat/store.js';
 
@@ -8,6 +8,7 @@ const [K1, K2, T1, A1] = ['k1', 'k2', 't1', 'a1'];
 function setup(over: { guardians?: string[]; tracks?: Record<string, AgeTrack>; perk?: boolean } = {}) {
   const tracks: Record<string, AgeTrack> = over.tracks ?? { [K1]: 'kid', [K2]: 'kid', [T1]: 'teen', [A1]: 'adult' };
   const guardians = new Set(over.guardians ?? [K1, K2]);
+  const modes = new Map<string, ChatMode>();
   const chat = new ChatService(createMemoryChatStore(), {
     cityOf: async () => ({ id: 'c1', nameFa: 'شهر' }),
     profileOf: async (id) => ({ nickname: id, avatarKey: 'avatar-01' }),
@@ -19,8 +20,8 @@ function setup(over: { guardians?: string[]; tracks?: Record<string, AgeTrack>; 
     tableMembers: (id) => [K1, K2, id].filter((v, i, a) => a.indexOf(v) === i),
     rules: async () => ({ maxLen: 40, textNeedsActivation: true, enabled: true, globalEnabled: true }),
   });
-  chat.managed = { trackOf: async (id) => tracks[id] ?? 'adult', hasGuardian: async (id) => guardians.has(id) };
-  return { chat, tracks, guardians };
+  chat.managed = { trackOf: async (id) => tracks[id] ?? 'adult', hasGuardian: async (id) => guardians.has(id), chatMode: async (id) => modes.get(id) ?? 'friends_text' };
+  return { chat, tracks, guardians, modes };
 }
 
 describe('managed chat for kid and teen (age-tracks phase 4)', () => {

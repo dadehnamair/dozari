@@ -13,7 +13,7 @@ export interface FindSettings {
   autoFriendPerDay: number;
 }
 
-export type LinkFriendResult = 'friends' | 'sent' | 'already' | 'self' | 'unknown' | 'limit' | 'needs_guardian';
+export type LinkFriendResult = 'friends' | 'sent' | 'already' | 'self' | 'unknown' | 'limit' | 'needs_guardian' | 'ask_guardian';
 
 const DAY_MS = 86_400_000;
 const looksLikeHandle = (s: string) => /^[2-9A-HJKMNP-Z]{4,12}$/.test(s);
@@ -36,6 +36,8 @@ export class FindService {
     private readonly sameTrack?: Meetable,
     /** Kid/teen without a linked guardian cannot make friends through a link yet. */
     private readonly blocked?: SocialBlocked,
+    /** The guardian wants to approve this child's friends first. */
+    private readonly asks?: SocialBlocked,
   ) {}
 
   /** The player's public ID, made on first use. */
@@ -105,6 +107,7 @@ export class FindService {
     const handle = normalizeInviteCode(rawHandle);
     if (!looksLikeHandle(handle)) return 'unknown';
     if (await this.blocked?.(me)) return 'needs_guardian';
+    if (await this.asks?.(me)) return 'ask_guardian';
     const owner = await this.find.byHandle(handle);
     if (!owner) return 'unknown';
     if (owner === me) return 'self';

@@ -5,7 +5,7 @@ import type { BadgeService } from '../badges/service.js';
 import type { Meetable, SocialBlocked } from '../agetrack/service.js';
 import type { SocialStore } from './store.js';
 
-export type RequestResult = 'ok' | 'self' | 'unknown_player' | 'already' | 'accepted' | 'needs_guardian';
+export type RequestResult = 'ok' | 'self' | 'unknown_player' | 'already' | 'accepted' | 'needs_guardian' | 'ask_guardian';
 
 /** Public profiles, friend requests and the private gender setting. */
 export class SocialService {
@@ -35,6 +35,8 @@ export class SocialService {
   sameTrack?: Meetable;
   /** Kid/teen without a linked guardian: no friend requests or accepts yet. */
   blocked?: SocialBlocked;
+  /** Kid/teen whose guardian wants to approve friends first: they neither send nor accept requests; the guardian accepts for them. */
+  asksGuardian?: SocialBlocked;
 
   private async meets(me: string, other: string): Promise<boolean> {
     return !this.sameTrack || (await this.sameTrack(me, [other])).has(other);
@@ -56,6 +58,7 @@ export class SocialService {
   async request(me: string, target: string): Promise<RequestResult> {
     if (me === target) return 'self';
     if (await this.blocked?.(me)) return 'needs_guardian';
+    if (await this.asksGuardian?.(me)) return 'ask_guardian';
     const [mine, theirs] = await Promise.all([this.store.publicRow(me), this.store.publicRow(target)]);
     if (!theirs || !mine || !(await this.meets(me, target))) return 'unknown_player';
     const p = await this.store.pair(me, target);
@@ -75,10 +78,17 @@ export class SocialService {
     return 'ok';
   }
 
-  async accept(me: string, other: string): Promise<boolean | 'needs_guardian'> {
+  async accept(me: string, other: string): Promise<boolean | 'needs_guardian' | 'ask_guardian'> {
     if (await this.blocked?.(me)) return 'needs_guardian';
+    if (await this.asksGuardian?.(me)) return 'ask_guardian';
     if (!(await this.meets(me, other))) return false;
     return this.store.accept(me, other, this.now());
+  }
+
+  /** The guardian's yes: accepts a pending request for the child (the request must come from the other side, and the other must be on the child's track). */
+  async approveFor(child: string, other: string): Promise<boolean> {
+    if (!(await this.meets(child, other))) return false;
+    return this.store.accept(child, other, this.now());
   }
 
   /** Cancels a request, declines one, or unfriends. */

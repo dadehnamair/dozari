@@ -11,6 +11,8 @@ export interface TableDeps {
   trackOf?(userId: string): Promise<AgeTrack>;
   /** A kid/teen with no linked guardian may not open or join a table (docs/logic/age-tracks.md). */
   socialBlocked?(userId: string): Promise<boolean>;
+  /** The guardian switched friend duels and tables off for this child: the app hides them, the server refuses. */
+  duelsOff?(userId: string): Promise<boolean>;
   idleMs(): Promise<number>;
   now?: () => number;
   rng?: () => number;
@@ -93,6 +95,7 @@ export class TableService {
 
   async create(hostId: string, body: CreateTableBody): Promise<TableResult<{ table: TableView }>> {
     if (await this.deps.socialBlocked?.(hostId)) return { ok: false, error: 'NEEDS_GUARDIAN' };
+    if (await this.deps.duelsOff?.(hostId)) return { ok: false, error: 'FEATURE_OFF' };
     if (this.deps.inMatch(hostId)) return { ok: false, error: 'IN_MATCH' };
     this.leaveCurrent(hostId);
     const rng = this.deps.rng ?? Math.random;
@@ -129,6 +132,7 @@ export class TableService {
     if (!t) return { ok: false, error: normalizeTableCode(code) && this.tables.has(normalizeTableCode(code)!) ? 'EXPIRED' : 'NOT_FOUND' };
     if (t.seated.includes(userId)) return { ok: true, table: await this.view(t, userId) };
     if (await this.deps.socialBlocked?.(userId)) return { ok: false, error: 'NEEDS_GUARDIAN' };
+    if (await this.deps.duelsOff?.(userId)) return { ok: false, error: 'FEATURE_OFF' };
     // Another track's table reads as no table at all: no refusal to explain, nothing to find.
     if (!canMeet(t.track, await this.trackOf(userId))) return { ok: false, error: 'NOT_FOUND' };
     if (this.deps.inMatch(userId)) return { ok: false, error: 'IN_MATCH' };
