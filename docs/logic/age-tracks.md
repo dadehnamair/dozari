@@ -207,7 +207,12 @@ Setting `feature.age_tracks` (admin → settings → app, **default off**): off 
   (`TableDeps.trackOf`). Another track's player gets `NOT_FOUND` on join and `null` on `GET /tables/:code` (no table to find, nothing to explain); at `start` a seated player who moved track since joining is
   freed and the host gets `NEED_PLAYERS`. The match's puzzle pool already follows the first (host) player's track. The invite card goes to friends only, who are already same-track. Open: the host's
   «share to city chat» card still posts into the public city chat (leave to the chat slice: kid/teen must not use it), and the **family table** (guardian + own children) is phase 5.
-  Still open in phase 4: managed chat (phrase library, filtered friends-only text, guardian switch → `chat_unlocked_at`, report queue), the «social needs a guardian» step, auto-accept between two kids.
+- Phase 4, slice 3, **managed chat core** (owner confirmed the default: free text **on** between same-track friends once linked): `ChatService.managed` (`trackOf`, `hasGuardian`). For kid and teen:
+  city and global rooms are closed (`OFF`, no socket room joined, no city «share» card); free text goes **only in a private chat with a same-track friend** and only while a guardian is linked
+  (`guardian_links` row = the redemption of rule 7, so no invite code; no link → `NEEDS_GUARDIAN`; table or match text → `PHRASES_ONLY`, phrases always work); numbers, links and handles are blocked even with a contact perk;
+  a private chat never crosses tracks even for an old friendship (`NOT_FRIENDS`); the composer flag `canType` follows the same rules. Removing the guardian link therefore closes text again (the interim «off switch»).
+  Open in phase 4: kid/teen **taunt and emoji library** (`canned_taunts.age_track` + admin), the stricter word list (`word_filter.track`), the separate kid/teen report queue in the admin, the «social needs a guardian» step
+  before friends/tables, auto-accept between two kids with a quiet notice; the guardian's own chat switch (phrases only / off) is phase 5.
 - Not yet: the rest of the 30–50 kid puzzles; a track filter on the other admin lists (puzzles, items, tournaments, reports…); the separate report queue for kid/teen chats (phase 4);
 
 ## Phases

@@ -657,6 +657,8 @@ if (isMainModule(import.meta.url)) {
           ageTracks ? (me, others) => ageTracks.meetable(me, others) : undefined,
         )
       : undefined;
+  const guardianStore = db ? createDbGuardianStore(db) : undefined;
+  if (chat && ageTracks) chat.managed = { trackOf: (id) => ageTracks.effective(id), hasGuardian: async (id) => (guardianStore ? (await guardianStore.guardianOf(id)) !== null : false) };
   if (social && ageTracks) social.sameTrack = (me, others) => ageTracks.meetable(me, others);
   const levelOf = async (id: string) => (player ? (await player.levelOf(id)).level.level : 1);
   const shopStore = db ? createDbShopStore(db) : undefined;
