@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { GROUP_SIZE, hintKindSchema } from '@dozari/shared';
+import { GROUP_SIZE, OFFLINE_PACK_SIZE, hintKindSchema } from '@dozari/shared';
 import type { GroupLevel } from '@dozari/shared';
 import type { AuthService } from '../auth/service.js';
 import { currentUser } from '../auth/routes.js';
@@ -26,6 +26,15 @@ export function registerSoloRoutes(app: FastifyInstance, solo: SoloService, auth
     if (view && user && limiter) void limiter.record(user.id, 'solo').catch(() => undefined);
     if (!view) return reply.code(503).send({ error: 'no_puzzles' });
     return view;
+  });
+
+  // Practice without internet: whole puzzles with their solutions (an owner-approved exception to rule 4; such games record nothing).
+  app.get('/solo/offline-pack', async (req, reply) => {
+    const user = auth ? await currentUser(auth, req) : null;
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    const q = z.object({ n: z.coerce.number().int().min(1).max(OFFLINE_PACK_SIZE).default(OFFLINE_PACK_SIZE) }).safeParse(req.query);
+    if (!q.success) return reply.code(400).send({ error: 'invalid_request' });
+    return solo.offlinePack(user.id, q.data.n);
   });
 
   app.get('/solo/:id', async (req, reply) => {

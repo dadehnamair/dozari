@@ -1,6 +1,6 @@
 import { randomInt } from 'node:crypto';
 import { PRICE_GUESS_MIN_POINTS, pickHint, PRICE_GUESS_STAIRCASE, SOLO_MAX_MISTAKES, mulberry32, selectRounds, shuffleBoard, staircasePoints, startSolo, submitGuess } from '@dozari/shared';
-import type { CatalogProduct, GroupLevel, HintKind, HintPayload, PriceGuessRound, Rng, SoloChart, SoloPriceResult, SoloPriceRounds, SoloState, SubmitOutcome } from '@dozari/shared';
+import type { CatalogProduct, GroupLevel, SoloOfflinePack, HintKind, HintPayload, PriceGuessRound, Rng, SoloChart, SoloPriceResult, SoloPriceRounds, SoloState, SubmitOutcome } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
 import type { PuzzleSource, ServedPuzzle, SoloView } from './types.js';
 
@@ -85,6 +85,23 @@ export class SoloService {
     const session: Session = { puzzle, state, rng, touchedAt: this.now(), priceResults: [], rules: await this.loadRules(), userId, hints: [], tag: opts.tag };
     this.sessions.set(sessionId, session);
     return this.toView(sessionId, session);
+  }
+
+  /** Whole puzzles (solutions included) for a signed-in player to practise without internet; distinct, fit for their level, nothing is recorded. */
+  async offlinePack(userId: string, n: number): Promise<SoloOfflinePack> {
+    const level = this.levelOf ? await this.levelOf(userId).catch(() => undefined) : undefined;
+    const puzzles: SoloOfflinePack['puzzles'] = [];
+    for (let i = 0; i < n * 3 && puzzles.length < n; i++) {
+      const p = await this.source.pickRandom({ level });
+      if (!p) break;
+      if (puzzles.some((x) => x.id === p.id)) continue;
+      puzzles.push({
+        id: p.id,
+        groups: p.groups.map((g) => ({ level: g.level, titleFa: g.titleFa, explanationFa: g.explanationFa, productIds: [...g.productIds] })),
+        items: Object.fromEntries(Object.entries(p.items).map(([id, it]) => [id, { nameFa: it.nameFa, unitFa: it.unitFa, iconKey: it.iconKey ?? null }])),
+      });
+    }
+    return { puzzles };
   }
 
   view(sessionId: string): SoloView | null {
