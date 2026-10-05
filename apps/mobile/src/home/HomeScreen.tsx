@@ -60,6 +60,7 @@ interface Tile {
   color: string;
   badge?: string;
   badgeColor?: string;
+  glow?: boolean;
   onPress: () => void;
 }
 
@@ -143,7 +144,7 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
   const unread = inbox.inbox?.unread ?? 0;
   const right: Tile[] = [
     { key: 'missions', icon: 'target' as const, label: h.missions, color: colors.candy.lime, badge: missionsReady > 0 ? toPersianDigits(String(missionsReady)) : undefined, badgeColor: colors.candy.pink, onPress: () => setMissionsOpen(true) },
-    ...(daily.status ? [{ key: 'daily', icon: 'calendar' as const, label: h.daily, color: colors.candy.yellow, badge: daily.status.canClaim ? '!' : undefined, onPress: () => setDailyOpen(true) }] : []),
+    ...(daily.status ? [{ key: 'daily', icon: 'calendar' as const, label: h.daily, color: colors.candy.yellow, badge: daily.status.canClaim ? '!' : undefined, glow: daily.status.canClaim, onPress: () => setDailyOpen(true) }] : []),
     ...(features.tables ? [{ key: 'tables', icon: 'users' as const, label: h.tables, color: colors.candy.sky, onPress: () => setTableOpen(true) }] : []),
     ...(features.tournament ? [{ key: 'tour', icon: 'trophy' as const, label: h.tournaments, color: colors.candy.orange, onPress: () => setTournamentOpen(true) }] : []),
     ...(features.friends ? [{ key: 'board', icon: 'crown' as const, label: h.leaderboard, color: colors.candy.pink, onPress: () => setBoardOpen(true) }] : []),
@@ -222,8 +223,8 @@ export function HomeScreen({ onSolo, onDaily, onDuel, onDuelResume, onTutorial, 
         </View>
 
         <View style={styles.buttons}>
-          <SlabButton label={h.play} color={colors.candy.lime} onPress={onSolo} />
-          {second ? <SlabButton label={second.label} color={second.color} badge={second.badge} onPress={second.onPress} /> : null}
+          <SlabButton label={h.play} color={colors.candy.lime} icon="puzzle" onPress={onSolo} />
+          {second ? <SlabButton label={second.label} color={second.color} badge={second.badge} icon="swords" onPress={second.onPress} /> : null}
         </View>
       </View>
 

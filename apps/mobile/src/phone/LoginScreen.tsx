@@ -37,6 +37,8 @@ export function LoginScreen({ onDone }: { onDone: (r: { signedIn: boolean; creat
     return () => sub.remove();
   }, []);
   const showKeyboard = () => {
+    // iOS Safari only opens the keyboard when focus() runs inside the tap itself (the web input also covers the boxes).
+    if (Platform.OS === 'web') return codeInput.current?.focus();
     codeInput.current?.blur();
     setTimeout(() => codeInput.current?.focus(), 30);
   };
@@ -139,11 +141,12 @@ const styles = StyleSheet.create({
   prefix: { height: 52, paddingHorizontal: 12, borderRadius: 14, borderWidth: 3, borderColor: INK, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   prefixText: { fontFamily: fonts.bold, fontSize: 15, color: INK },
   phoneInput: { flex: 1, minWidth: 0, height: 52, borderRadius: 14, borderWidth: 3, borderColor: INK, backgroundColor: '#fff', paddingHorizontal: 12, fontFamily: fonts.bold, fontSize: 17, letterSpacing: 1, color: INK, textAlign: TEXT_LEFT },
-  boxes: { flexDirection: 'row', gap: 8, justifyContent: 'center' },
+  // `direction: 'ltr'` so the first digit fills the left box on the RTL Android layout too (codes read left to right).
+  boxes: { flexDirection: 'row', direction: 'ltr', gap: 8, justifyContent: 'center' },
   box: { width: 48, height: 56, borderRadius: 14, borderWidth: 3, borderColor: INK, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', ...lift(4) },
   boxOn: { backgroundColor: '#FFE48A' },
   boxText: { fontFamily: fonts.display, fontSize: 28, color: INK },
-  hiddenInput: { position: 'absolute', opacity: 0, width: 1, height: 1 },
+  hiddenInput: Platform.OS === 'web' ? { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0 } : { position: 'absolute', opacity: 0, width: 1, height: 1 },
   resendRow: { flexDirection: ROW, justifyContent: 'space-between', alignItems: 'center' },
   link: { fontFamily: fonts.bold, fontSize: 12.5, color: '#E8743B', textDecorationLine: 'underline' },
   error: { fontFamily: fonts.bold, fontSize: 12.5, color: '#B3261E', textAlign: 'center' },

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, I18nManager, Platform, StyleSheet, View } from 'react-native';
+import { I18nManager, Image, Platform, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import loadingArt from './assets/adaptive-icon.png';
+import { initialWindowMetrics } from 'react-native-safe-area-context';
 // Per-weight imports: the package index pulls in all nine Vazirmatn weights, which the web export would ship and the
 // PWA precache (D102); only these two are used. The files are bundled and self-hosted, never fetched from Google.
 import { Lalezar_400Regular } from '@expo-google-fonts/lalezar/400Regular';
@@ -48,6 +50,8 @@ if (!I18nManager.isRTL) {
 if (Platform.OS !== 'web') I18nManager.swapLeftAndRightInRTL(false);
 
 const SPLASH_MS = 1800;
+/** Android draws edge-to-edge, so a 3-button/gesture navigation bar would cover the bottom of every screen: keep it clear. */
+const NAV_BAR_INSET = Platform.OS === 'android' ? Math.round(initialWindowMetrics?.insets.bottom ?? 0) : 0;
 
 export default function App() {
   const shell = useRef<View>(null);
@@ -96,7 +100,8 @@ export default function App() {
   if (!fontsLoaded) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator color="#FFC93C" />
+        {/* Static on purpose (no spinner): fonts are not loaded yet, so it is just the mascot on the splash colour. */}
+        <Image source={loadingArt} style={styles.loadingArt} resizeMode="contain" accessibilityLabel="دوزاری" />
       </View>
     );
   }
@@ -122,7 +127,7 @@ export default function App() {
   }
 
   return (
-    <View key={epoch} ref={shell} style={[styles.container, keyboard ? { marginBottom: keyboard } : null]}>
+    <View key={epoch} ref={shell} style={[styles.container, keyboard ? { marginBottom: keyboard } : NAV_BAR_INSET ? { paddingBottom: NAV_BAR_INSET } : null]}>
       <StatusBar style="light" />
       {screen === 'splash' ? <SplashScreen /> : null}
       {screen === 'login' ? (
@@ -167,5 +172,6 @@ export default function App() {
 const styles = StyleSheet.create({
   // On a notched phone the home-screen web app draws under the status bar: keep the screens below it (the band stays dark purple).
   container: { flex: 1, backgroundColor: '#2A0E52', paddingTop: safeInsetTop() },
+  loadingArt: { width: 190, height: 190 },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2A0E52' },
 });

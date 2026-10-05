@@ -16,12 +16,29 @@
         "backgroundImage": "./assets/adaptive-background.png",
         "monochromeImage": "./assets/adaptive-monochrome.png"
       },
-      "versionCode": 1
+      "versionCode": 1,
+      "splash": {
+        "image": "./assets/adaptive-icon.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#2A0E52"
+      }
     },
-    "plugins": [["expo-contacts", { "contactsPermission": "دوزاری شماره‌ی مخاطبینت را فقط برای پیدا کردن دوستانت می‌فرستد و ذخیره نمی‌کند." }]],
+    "plugins": [
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "دوزاری شماره‌ی مخاطبینت را فقط برای پیدا کردن دوستانت می‌فرستد و ذخیره نمی‌کند."
+        }
+      ]
+    ],
     "icon": "./assets/icon.png",
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "splash": {
+      "image": "./assets/adaptive-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#2A0E52"
     }
   }
 }

@@ -1,5 +1,5 @@
-import { Platform, StyleSheet, Text, View } from 'react-native';
-import { solarMonthOf, toPersianDigits } from '@dozari/shared';
+import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { PRICE_GUESS_ROUND_POINTS, solarMonthOf, toPersianDigits } from '@dozari/shared';
 import type { PriceRoundView } from '@dozari/shared';
 import { Character } from '../components/Character';
 import { GradientFill } from '../components/GradientFill';
@@ -41,6 +41,7 @@ export function DuelResult({ outcome, reason, lines, priceRound, onHome, onAgain
         </View>
         <Text style={styles.sub}>{reason || look.sub}</Text>
 
+        <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollIn} showsVerticalScrollIndicator={false}>
         <View style={styles.board}>
           <View style={styles.head}>
             <Text style={[styles.headText, styles.grow]}>{a.player}</Text>
@@ -69,10 +70,18 @@ export function DuelResult({ outcome, reason, lines, priceRound, onHome, onAgain
             {priceRound.revealed.map((r) => (
               <Text key={r.index} style={styles.priceLine} numberOfLines={1}>
                 {r.winner === 'you' ? '✔' : r.winner === 'opponent' ? '✘' : '＝'} {r.nameFa} · {fa.duel.price.actual}: {priceText(r.actualRials)}
+                {r.winner === 'draw' ? '' : ` · ${r.winner === 'you' ? '+' : '−'}${toPersianDigits(String(PRICE_GUESS_ROUND_POINTS))}`}
               </Text>
             ))}
+            <Text style={styles.priceSum}>
+              {fa.duel.price.earned(
+                toPersianDigits(String(priceRound.revealed.filter((r) => r.winner === 'you').length * PRICE_GUESS_ROUND_POINTS)),
+                toPersianDigits(String(priceRound.revealed.filter((r) => r.winner === 'opponent').length * PRICE_GUESS_ROUND_POINTS)),
+              )}
+            </Text>
           </View>
         ) : null}
+        </ScrollView>
 
         <View style={styles.spacer} />
         <View style={styles.actions}>
@@ -89,6 +98,8 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#3C1A66' },
   shade: { backgroundColor: 'rgba(43,18,64,0.55)' },
   column: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', paddingHorizontal: 12, paddingTop: 28 + nativeTopInset(), paddingBottom: 28, alignItems: 'stretch', gap: 8 },
+  scroll: { flexShrink: 1, flexGrow: 0 },
+  scrollIn: { gap: 8, paddingBottom: 6 },
   hero: { width: 140, height: 162, alignSelf: 'center' },
   banner: { alignSelf: 'center', paddingHorizontal: 30, paddingVertical: 6, borderRadius: 18, borderWidth: 4, borderColor: colors.ink, overflow: 'hidden', shadowColor: colors.ink, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 1, shadowRadius: 0, elevation: 6 },
   bannerText: { fontFamily: fonts.display, fontSize: 32, lineHeight: 44, color: colors.ink },
@@ -111,6 +122,7 @@ const styles = StyleSheet.create({
   pts: { color: '#7E46D6' },
   priceBox: { marginTop: 6, padding: 8, borderRadius: 14, backgroundColor: 'rgba(43,18,64,0.7)', gap: 2 },
   priceTitle: { fontFamily: fonts.display, fontSize: 15, color: colors.candy.yellow, textAlign: 'center' },
+  priceSum: { marginTop: 4, fontFamily: fonts.display, fontSize: 13, lineHeight: 22, color: colors.candy.lime, textAlign: 'center' },
   priceLine: { fontFamily: fonts.bold, fontSize: 12, color: colors.cream, textAlign: TEXT_RIGHT },
   spacer: { flex: 1, minHeight: 12 },
   actions: { flexDirection: ROW, gap: 9 },

@@ -1,6 +1,5 @@
-import { useEffect, useId, useRef } from 'react';
-import { Animated, Easing, StyleSheet, View } from 'react-native';
-import Svg, { Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-svg';
+import { useEffect, useRef } from 'react';
+import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { fa } from '../i18n/fa';
 import { usePrefs } from '../prefs/store';
 import { colors, fonts } from '../theme/colors';
@@ -50,10 +49,29 @@ function Spark({ spec, width, on }: { spec: (typeof SPARKS)[number]; width: numb
   );
 }
 
+/** Outline offsets (unit circle); the wordmark is plain RN <Text> layers because stroked SVG text draws streaks through Persian glyph joins. */
+const RING = [0, 45, 90, 135, 180, 225, 270, 315].map((d) => [Math.cos((d * Math.PI) / 180), Math.sin((d * Math.PI) / 180)] as const);
+
+function WordmarkText({ width }: { width: number }) {
+  const fs = width * 0.24;
+  const r = width * 0.02;
+  const line = fs * 1.55;
+  const box = { position: 'absolute' as const, left: width * 0.04, width, top: (width * AR - line) / 2 - width * 0.01, height: line };
+  const base = { fontFamily: fonts.display, fontSize: fs, lineHeight: line, textAlign: 'center' as const };
+  return (
+    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+      <Text style={[box, base, { color: '#2B1240', top: box.top + r * 0.9 }]}>{fa.home.title}</Text>
+      {RING.map(([dx, dy], i) => (
+        <Text key={i} style={[box, base, { color: '#2B1240', left: box.left + dx * r, top: box.top + dy * r }]}>{fa.home.title}</Text>
+      ))}
+      <Text style={[box, base, { color: '#FFC93C' }]}>{fa.home.title}</Text>
+    </View>
+  );
+}
+
 export function AnimatedLogo({ width = 270, onDone }: { width?: number; onDone?: () => void }) {
   const reduce = usePrefs().reduceMotion;
   const on = !reduce;
-  const gid = `al${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   const drop = useRef(new Animated.Value(on ? 0 : 1)).current;
   const pop = useRef(new Animated.Value(on ? 0 : 1)).current;
   const wobble = useRef(new Animated.Value(0)).current;
@@ -97,18 +115,7 @@ export function AnimatedLogo({ width = 270, onDone }: { width?: number; onDone?:
       {SPARKS.map((s, i) => <Spark key={i} spec={s} width={width} on={on} />)}
       <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ scaleX: popScaleX }, { scaleY: popScaleY }, { rotate: popRotate }] }]}>
         <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ rotate: wobRotate }, { scale: wobScale }] }]}>
-          <Svg width={width} height={width * AR} viewBox="-118 0 700 220" style={{ overflow: 'visible' }}>
-            <Defs>
-              <LinearGradient id={`${gid}g`} x1="0" y1="0" x2="0" y2="1">
-                <Stop offset="0" stopColor="#FFF6A8" />
-                <Stop offset="0.5" stopColor="#FFC93C" />
-                <Stop offset="1" stopColor="#FF7A3D" />
-              </LinearGradient>
-            </Defs>
-            <SvgText x={260} y={168} textAnchor="middle" fontFamily={fonts.display} fontSize={168} fill="#2B1240" stroke="#2B1240" strokeWidth={26} strokeLinejoin="round">{fa.home.title}</SvgText>
-            <SvgText x={260} y={156} textAnchor="middle" fontFamily={fonts.display} fontSize={168} fill="#2B1240" stroke="#2B1240" strokeWidth={14} strokeLinejoin="round">{fa.home.title}</SvgText>
-            <SvgText x={260} y={156} textAnchor="middle" fontFamily={fonts.display} fontSize={168} fill={`url(#${gid}g)`}>{fa.home.title}</SvgText>
-          </Svg>
+          <WordmarkText width={width} />
         </Animated.View>
       </Animated.View>
       <Animated.View pointerEvents="none" style={{ position: 'absolute', left: 0.01 * width, top: 0.02 * width * AR, width: coin, height: coin, opacity: dropOpacity, transform: [{ translateY: dropY }, { rotate: dropRot }, { scaleX: dropSX }, { scaleY: dropSY }] }}>

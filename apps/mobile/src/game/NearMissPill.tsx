@@ -24,6 +24,6 @@ export function NearMissPill() {
 }
 
 const styles = StyleSheet.create({
-  pill: { alignSelf: 'center', paddingHorizontal: 22, paddingVertical: 6, borderRadius: 99, borderWidth: 4, borderColor: colors.ink, backgroundColor: colors.candy.orange, shadowColor: colors.ink, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 1, shadowRadius: 0, elevation: 6 },
-  text: { fontFamily: fonts.display, fontSize: 26, lineHeight: 38, color: '#fff' },
+  pill: { alignSelf: 'center', paddingHorizontal: 18, paddingVertical: 6, maxWidth: '92%', borderRadius: 99, borderWidth: 4, borderColor: colors.ink, backgroundColor: colors.candy.orange, shadowColor: colors.ink, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 1, shadowRadius: 0, elevation: 6 },
+  text: { fontFamily: fonts.display, fontSize: 18, lineHeight: 28, color: '#fff', textAlign: 'center' },
 });

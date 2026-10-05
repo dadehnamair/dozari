@@ -91,7 +91,10 @@ export const fa = {
     } as Record<string, string>,
   },
   /** Item and product icon names, grouped as in the design's icon pack. */
-  net: { down: 'ارتباط با سرور برقرار نیست؛ نگران نباش، به‌زودی برمی‌گردیم. خودمان دوباره امتحان می‌کنیم.' },
+  net: {
+    downTitle: 'ارتباط قطع شد',
+    down: 'اینترنتت وصل نیست یا سرور جواب نمی‌دهد. بخش‌های آنلاین تا وصل شدن کار نمی‌کنند؛ خودمان هر چند ثانیه دوباره امتحان می‌کنیم.',
+  },
   /** Birth date, the birthday week and its gift (D160). */
   birthday: {
     title: 'تاریخ تولد',
@@ -265,7 +268,7 @@ export const fa = {
       { title: 'خوش اومدی!', text: 'من آجانم، نگهبان بازار. اینجا ۱۶ کالا داری که باید ۴ دستهٔ ۴تایی ازشون بسازی.', cta: 'فهمیدم', pose: 'wave' },
       { title: 'ببین این چهارتا…', text: 'انار، پسته، هندوانه و نان همه خوراکی بازارن. این یعنی یه دسته! خودت روی همین چهارتا بزن تا انتخابشون کنی.', cta: null, pose: 'pointing' },
       { title: 'حالا ثبت کن', text: 'آفرین، هر چهارتا انتخاب شد! حالا دکمهٔ «ثبت کن» رو بزن. تو بازی اصلی فرصت‌هات محدوده، حواست باشه.', cta: null, pose: 'thinking' },
-      { title: 'آفرین، دوزاریت افتاد!', text: 'قیمت‌ها همون قیمت روی برچسب همون ساله، بدون حساب تورم. با بازی و دعوت دوستات سکه جمع کن. بزن بریم!', cta: 'بزن بریم!', pose: 'cheer' },
+      { title: 'آفرین، دوزاریت افتاد!', text: 'تو بازی اصلی، دسته‌ها پنهونن. باید حدس بزنی کدوم کالاها یه چیز مشترک دارن؛ مثلاً قیمتشون تو یه سال یا هم‌قیمت بودنشون. قیمت‌ها همون عددِ روی برچسب اون سالن، بدون حساب تورم. بزن بریم!', cta: 'بزن بریم!', pose: 'cheer' },
     ] as readonly { title: string; text: string; cta: string | null; pose: 'wave' | 'pointing' | 'thinking' | 'cheer' }[],
   },
   /** Reports of players and price suggestions (D177). */
@@ -475,7 +478,7 @@ export const fa = {
     lost: 'باختی.',
     draw: 'مساوی شد.',
     reasons: { solved: 'همه‌ی گروه‌ها پیدا شد.', locked_out: 'یکی از بازیکن‌ها از دور خارج شد.', forfeit: 'حریف تسلیم شد.', abandon: 'حریف بازی را رها کرد.' } as Record<string, string>,
-    feedback: { correct: 'درست بود!', one_away: 'یکی مانده!', wrong: 'اشتباه بود.', timeout: 'وقتت تمام شد.' } as Record<string, string>,
+    feedback: { correct: 'درست بود!', one_away: '۳ تا از ۴ تا درسته؛ یکی‌شون اشتباهه', wrong: 'اشتباه بود.', timeout: 'وقتت تمام شد.' } as Record<string, string>,
     back: 'برگشت',
     again: 'دوئل دوباره',
     /** The price-guess round that follows a 1v1 puzzle (docs/logic/price-guess-round.md). */
@@ -497,6 +500,8 @@ export const fa = {
       theyWon: 'این دور مال حریف بود',
       draw: 'مساوی',
       resultTitle: 'دورهای حدس قیمت',
+      /** Points the price-guess rounds added to each side's final score. */
+      earned: (you: string, them: string) => `امتیاز حدس قیمت: تو ${you} · حریف ${them}`,
     },
     /** Screens of `docs/design/Dozari - 13 Match Screens` (D99). */
     arena: {
@@ -1232,7 +1237,7 @@ export const fa = {
     revealed: 'نمایش داده شد',
     feedback: {
       correct: 'درسته!',
-      oneAway: 'یکی مونده!',
+      oneAway: '۳ تا از ۴ تا درسته؛ یکی‌شون اشتباهه',
       wrong: 'نه، اینطور نیست',
       duplicate: 'این رو قبلاً امتحان کردی',
     },
@@ -1244,6 +1249,9 @@ export const fa = {
       loadFailed: 'نمودار بارگذاری نشد',
     },
     price: {
+      readyTitle: 'آماده‌ای قیمت‌ها را حدس بزنی؟',
+      readySub: 'قیمت چهار کالا در سال‌های مختلف؛ هر چه حدست دقیق‌تر باشد امتیاز بیشتری می‌گیری. اول دسته‌ها را ببین، بعد بزن بریم.',
+      go: 'بزن بریم',
       title: 'حدس قیمت',
       round: 'مرحله',
       question: 'قیمت این کالا در سال {year} چند تومن بود؟',
