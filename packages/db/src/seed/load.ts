@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { checkSeedProducts, checkSeedPuzzles, seedFileSchema, seedPriceToRials, seedPuzzleFileSchema } from '@dozari/shared';
@@ -7,6 +7,9 @@ import { and, eq, isNull } from 'drizzle-orm';
 import type { Db } from '../client.js';
 import { pricePoints, productAudiences, productEraTags, products } from '../schema.js';
 
+/** A seed folder may be absent (git does not keep empty directories): that just means no seed files. */
+const jsonFiles = (dir: string): string[] => (existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith('.json')).sort() : []);
+
 export const SEED_DIR = join(fileURLToPath(new URL('../../seed/products', import.meta.url)));
 export const PUZZLE_SEED_DIR = join(fileURLToPath(new URL('../../seed/puzzles', import.meta.url)));
 
@@ -14,7 +17,7 @@ export const PUZZLE_SEED_DIR = join(fileURLToPath(new URL('../../seed/puzzles', 
 export function readSeedPuzzles(products: readonly SeedProduct[] = readSeedProducts(), dir: string = PUZZLE_SEED_DIR): SeedPuzzle[] {
   const all: SeedPuzzle[] = [];
   const problems: string[] = [];
-  for (const file of readdirSync(dir).filter((f) => f.endsWith('.json')).sort()) {
+  for (const file of jsonFiles(dir)) {
     const parsed = seedPuzzleFileSchema.safeParse(JSON.parse(readFileSync(join(dir, file), 'utf8')));
     if (!parsed.success) problems.push(...parsed.error.issues.map((i) => `${file}: ${i.path.join('.')}: ${i.message}`));
     else all.push(...parsed.data);
@@ -28,7 +31,7 @@ export function readSeedPuzzles(products: readonly SeedProduct[] = readSeedProdu
 export function readSeedProducts(dir: string = SEED_DIR): SeedProduct[] {
   const all: SeedProduct[] = [];
   const problems: string[] = [];
-  for (const file of readdirSync(dir).filter((f) => f.endsWith('.json')).sort()) {
+  for (const file of jsonFiles(dir)) {
     const parsed = seedFileSchema.safeParse(JSON.parse(readFileSync(join(dir, file), 'utf8')));
     if (!parsed.success) {
       for (const issue of parsed.error.issues) {
