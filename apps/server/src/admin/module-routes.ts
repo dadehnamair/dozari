@@ -12,6 +12,7 @@ import type { BotRepository } from '../bot/repository.js';
 import type { BotService } from '../bot/service.js';
 import type { AuditLog } from './audit.js';
 import type { LessonStore } from '../lessons/service.js';
+import type { EconomyAdmin } from './economy.js';
 import type { AgeTrackAdmin } from '../agetrack/overview.js';
 import type { ProductAdmin } from './products.js';
 import type { StatsAdmin } from './stats.js';
@@ -77,6 +78,8 @@ export interface AdminModules {
   lessons?: LessonStore;
   /** Numbers per age track for the admin overview tab (D198). */
   ageTracks?: AgeTrackAdmin;
+  /** Coin flow and circulation numbers («سلامت اقتصاد»). */
+  economy?: EconomyAdmin;
   daily?: DailyService;
   /** The level table: XP each level starts at and the coin reward for reaching it. */
   levelRoad?: { table: LevelTable; defaults: () => Promise<LevelRow[]> };
@@ -157,7 +160,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     settingGroups: SETTING_GROUPS,
     icons: ITEMS,
     iconGroups: ITEM_GROUPS,
-    modules: { puzzles: !!m.puzzles, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, wheel: !!m.wheel, shortLinks: !!m.shortLinks, feedback: !!m.feedback, landing: !!m.landing, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, lessons: !!m.lessons, ageTracks: !!m.ageTracks, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages },
+    modules: { puzzles: !!m.puzzles, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, wheel: !!m.wheel, shortLinks: !!m.shortLinks, feedback: !!m.feedback, landing: !!m.landing, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, lessons: !!m.lessons, ageTracks: !!m.ageTracks, economy: !!m.economy, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages },
   }));
 
   if (m.stats) {
@@ -318,7 +321,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       .object({
         title: z.string().trim().min(1).max(150),
         body: z.string().trim().min(1).max(2000),
-        audience: z.enum(['all', 'bale_linked', 'user']),
+        audience: z.enum(['all', 'bale_linked', 'user', 'kid', 'teen']),
         targetUserId: z.string().uuid().nullable().default(null),
         channels: z.array(z.enum(['in_app', 'bale', 'sms', 'email', 'push'])).min(1).max(5),
       })
@@ -605,9 +608,39 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     }
   }
 
+  if (m.economy) {
+    const economy = m.economy;
+    g.get('/admin/economy', async (req) => {
+      const q = z.object({ days: z.coerce.number().int().min(1).max(90).default(7) }).safeParse(req.query);
+      return economy.overview(q.success ? q.data.days : 7, Date.now());
+    });
+  }
+
   if (m.ageTracks) {
     const tracks = m.ageTracks;
     g.get('/admin/age-tracks', async () => tracks.overview());
+    // Guardians: who holds which children, with support actions (all audited). The number is contact data: only roles that manage players see it.
+    g.get('/admin/guardians', async (req) => {
+      const q = z.object({ q: z.string().max(40).default('') }).safeParse(req.query);
+      const rows = await tracks.guardians(q.success ? q.data.q : '', 100);
+      const contact = !!req.adminActor && can(req.adminActor.role, 'users');
+      return { guardians: rows.map((r) => (contact ? r : { ...r, phone: null })) };
+    });
+    g.post('/admin/guardians/children/:id/unlink', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
+      if (!(await tracks.unlink(p.data.id))) return reply.code(404).send({ error: 'not_linked' });
+      void audit('guardian.unlink', p.data.id);
+      return { ok: true };
+    });
+    g.put('/admin/guardians/children/:id/track', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object({ track: z.enum(['kid', 'teen']) }).safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      if (!(await tracks.setChildTrack(p.data.id, b.data.track))) return reply.code(404).send({ error: 'not_linked' });
+      void audit('guardian.child_track', p.data.id, b.data.track);
+      return { ok: true };
+    });
   }
 
   if (m.lessons) {

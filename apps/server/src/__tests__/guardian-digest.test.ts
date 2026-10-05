@@ -20,12 +20,12 @@ describe('guardian digest (age-tracks phase 5)', () => {
       friendCount: async () => 2,
       now: () => NOW,
     });
-    expect(await build('kid')).toEqual({ wordsTotal: 3, wordsWeek: 2, recentWords: ['سیب', 'گل', 'نان'], gamesWeek: 2, winsWeek: 1, daysPlayedWeek: 2, level: 4, friends: 2 });
+    expect(await build('kid')).toEqual({ minutesWeek: 0, wordsTotal: 3, wordsWeek: 2, recentWords: ['سیب', 'گل', 'نان'], gamesWeek: 2, winsWeek: 1, daysPlayedWeek: 2, level: 4, friends: 2 });
   });
 
   it('only the child’s own guardian may read it', async () => {
     const svc = new GuardianService({ isChildOf: async (g: string, c: string) => g === 'g1' && c === 'k1' } as unknown as GuardianStore, {} as never, {} as never, {} as never, {} as never, () => 'd');
-    svc.digest = async () => ({ wordsTotal: 0, wordsWeek: 0, recentWords: [], gamesWeek: 0, winsWeek: 0, daysPlayedWeek: 0, level: 1, friends: 0 });
+    svc.digest = async () => ({ wordsTotal: 0, wordsWeek: 0, recentWords: [], gamesWeek: 0, winsWeek: 0, daysPlayedWeek: 0, level: 1, friends: 0, minutesWeek: 0 });
     expect(await svc.digestOf('g1', 'k1')).toMatchObject({ ok: true });
     expect(await svc.digestOf('g2', 'k1')).toMatchObject({ ok: false, error: 'not_found' });
   });

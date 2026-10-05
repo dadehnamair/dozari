@@ -40,6 +40,8 @@ export interface GatewayOptions {
   notices?: LiveNotices;
   /** A player's age track (docs/logic/age-tracks.md); the queues only pair players of one track. Missing = everyone is adult. */
   trackOf?: (userId: string) => Promise<AgeTrack>;
+  /** True when the admin switched the live duel queue off for this player's track (kid/teen kill switch). */
+  trackGate?: (userId: string) => Promise<boolean>;
   /** Why a player who has waited `waitedSec` is not being matched (nothing to play, nobody to play against); null = just wait. */
   diagnose?: (waitedSec: number, track?: AgeTrack) => Promise<QueueProblem | null>;
 }
@@ -146,6 +148,7 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
       const team = joined.data.mode === 'team';
       const closed = await opts.gate?.();
       if (closed) return ack?.({ ok: false, error: closed });
+      if (opts.trackGate && (await opts.trackGate(userId).catch(() => false))) return ack?.({ ok: false, error: 'FEATURE_OFF' });
       // New players sit out the live duel until they know the game (docs/logic/matchmaking.md §Level gate).
       if (opts.levelGate && !(await opts.levelGate(userId))) return ack?.({ ok: false, error: 'LEVEL_TOO_LOW' });
       if (opts.limit && !(await opts.limit.canPlay(userId))) return ack?.({ ok: false, error: 'DAILY_CAP' });

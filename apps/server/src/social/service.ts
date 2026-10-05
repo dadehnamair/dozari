@@ -37,6 +37,10 @@ export class SocialService {
   blocked?: SocialBlocked;
   /** Kid/teen whose guardian wants to approve friends first: they neither send nor accept requests; the guardian accepts for them. */
   asksGuardian?: SocialBlocked;
+  /** May this player's city and province show on their public profile (`trackRules.publicCity`)? Absent = yes. */
+  cityVisible?: (userId: string) => Promise<boolean>;
+  /** How much of a player's profile others may see (`trackRules.publicProfile`). Absent = everything. */
+  profileDepth?: (userId: string) => Promise<'basic' | 'stats' | 'full'>;
 
   private async meets(me: string, other: string): Promise<boolean> {
     return !this.sameTrack || (await this.sameTrack(me, [other])).has(other);
@@ -50,9 +54,14 @@ export class SocialService {
     const row = await this.store.publicRow(id);
     if (!row || (me !== id && !(await this.meets(me, id)))) return null;
     const lv = (await this.player?.levelOf(id)) ?? { level: { level: 1 }, stats: { games: 0, wins: 0, losses: 0, draws: 0 } };
-    const city = (await this.player?.cityOf(id)) ?? null;
+    const city = (await this.cityVisible?.(id)) === false ? null : ((await this.player?.cityOf(id)) ?? null);
     const party = (await this.birthdayInfo([id])).get(id);
-    return { id, nickname: row.nickname, avatarKey: row.avatarKey, level: lv.level.level, coins: row.coins, stats: lv.stats, cityName: city?.nameFa ?? null, cityProvince: city?.province ?? null, badges: (await this.badges?.publicOf(id)) ?? { badge: null, medals: [], skill: 'novice' as const }, memberSince: row.createdAt, relation: me === id ? 'none' : await this.relation(me, id), isMe: me === id, online: this.isOnline(id), birthday: party?.badge ?? false, age: party?.age ?? null, worn: ((await this.wornOf?.(id)) ?? []).map(({ slot, iconKey }) => ({ slot, iconKey })) };
+    const full: PlayerProfile = { id, nickname: row.nickname, avatarKey: row.avatarKey, level: lv.level.level, coins: row.coins, stats: lv.stats, cityName: city?.nameFa ?? null, cityProvince: city?.province ?? null, badges: (await this.badges?.publicOf(id)) ?? { badge: null, medals: [], skill: 'novice' as const }, memberSince: row.createdAt, relation: me === id ? 'none' : await this.relation(me, id), isMe: me === id, online: this.isOnline(id), birthday: party?.badge ?? false, age: party?.age ?? null, worn: ((await this.wornOf?.(id)) ?? []).map(({ slot, iconKey }) => ({ slot, iconKey })), limited: false };
+    // Kid and teen show less: a kid only name, avatar and level; a teen adds the record but no coins.
+    const depth = (await this.profileDepth?.(id)) ?? 'full';
+    if (me === id || depth === 'full') return full;
+    const noStats = { games: 0, wins: 0, losses: 0, draws: 0 };
+    return { ...full, coins: 0, ...(depth === 'basic' ? { stats: noStats, badges: { badge: null, medals: [], skill: 'novice' as const }, birthday: false, age: null } : {}), limited: true };
   }
 
   async request(me: string, target: string): Promise<RequestResult> {
@@ -130,7 +139,7 @@ export class SocialService {
     for (const [i, r] of rows.entries()) {
       const [who, lv, city] = await Promise.all([this.store.publicRow(r.userId), player.levelOf(r.userId), player.cityOf(r.userId)]);
       if (!who) continue;
-      entries.push({ rank: i + 1, id: r.userId, nickname: who.nickname, avatarKey: who.avatarKey, level: lv.level.level, xp: r.xp, province: city?.province ?? null, isMe: r.userId === me });
+      entries.push({ rank: i + 1, id: r.userId, nickname: who.nickname, avatarKey: who.avatarKey, level: lv.level.level, xp: r.xp, province: (await this.cityVisible?.(r.userId)) === false ? null : (city?.province ?? null), isMe: r.userId === me });
     }
     const mine = await player.levelOf(me);
     return { scope, period, entries, me: { rank: this.sameTrack ? (entries.find((e) => e.isMe)?.rank ?? (await player.rankOf(me, filter, since))) : await player.rankOf(me, filter, since), xp: since === undefined ? mine.level.xp : await player.xpSince(me, since), level: mine.level.level }, hasCity: true };

@@ -91,6 +91,8 @@ export const playerProfileSchema = z.object({
   age: z.number().int().nonnegative().nullable().default(null),
   /** Cosmetics they wear (hat, hair, glasses, clothes), drawn on their character. */
   worn: z.array(z.object({ slot: z.string(), iconKey: z.string().nullable() })).default([]),
+  /** The player's track shows only a minimal profile (no coins, record or medals); the app draws just the name, avatar and level. */
+  limited: z.boolean().default(false),
 });
 export type PlayerProfile = z.infer<typeof playerProfileSchema>;
 

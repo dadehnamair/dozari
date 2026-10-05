@@ -12,6 +12,8 @@ export interface DigestDeps {
   recentGames(userId: string, limit: number): Promise<DigestGame[]>;
   level(userId: string): Promise<number>;
   friendCount(userId: string): Promise<number>;
+  /** Minutes in the app over the last 7 days. */
+  minutesWeek?(userId: string): Promise<number>;
   now?: () => number;
 }
 
@@ -20,8 +22,8 @@ export function createDigestBuilder(deps: DigestDeps): (childId: string) => Prom
   const now = deps.now ?? Date.now;
   return async (childId) => {
     const t = now();
-    const [words, games, level, friends] = await Promise.all([deps.seen.summary(childId, t - WEEK_MS, RECENT_WORDS), deps.recentGames(childId, GAME_WINDOW), deps.level(childId), deps.friendCount(childId)]);
+    const [words, games, level, friends, minutesWeek] = await Promise.all([deps.seen.summary(childId, t - WEEK_MS, RECENT_WORDS), deps.recentGames(childId, GAME_WINDOW), deps.level(childId), deps.friendCount(childId), deps.minutesWeek?.(childId) ?? Promise.resolve(0)]);
     const week = weekSummary(games, t);
-    return { wordsTotal: words.total, wordsWeek: words.since, recentWords: words.recent, gamesWeek: week.games, winsWeek: week.wins, daysPlayedWeek: week.daysPlayed, level, friends };
+    return { wordsTotal: words.total, wordsWeek: words.since, recentWords: words.recent, gamesWeek: week.games, winsWeek: week.wins, daysPlayedWeek: week.daysPlayed, level, friends, minutesWeek };
   };
 }

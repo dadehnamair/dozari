@@ -24,6 +24,7 @@ import { INVITE_INVITEE_BONUS, INVITE_INVITER_REWARD, INVITE_MAX_USES, INVITE_MI
 import { LOAN_DUE_DAYS, LOAN_MAX_OPEN, TRANSFER_MAX_AMOUNT, TRANSFER_MIN_AMOUNT, TRANSFER_MIN_FRIEND_DAYS, TRANSFER_MIN_LEVEL, TRANSFER_WEEKLY_CAP } from './transfers.js';
 import { TABLE_IDLE_MINUTES } from '../tables/code.js';
 import { CHAT_MAX_LEN } from './chat.js';
+import { SWITCHABLE_TRACKS, TRACK_FEATURES, TRACK_FEATURE_LABEL_FA, trackFeatureKey } from './ageTracks.js';
 import { SKILL_MIN_GAMES, SKILL_PRO_GAMES, SKILL_PRO_WIN_PERCENT } from './progression.js';
 import { LEVEL_MAX, NICKNAME_MAX_LEN, NICKNAME_MIN_LEN, XP_CURVE_BASE, XP_DUEL_BASE, XP_SOLO_BASE, XP_WIN_BONUS } from './progression.js';
 
@@ -48,6 +49,20 @@ export interface SettingDef {
   default: number | readonly number[] | string;
   unit?: string;
 }
+
+/** One on/off switch per kid/teen track and feature (`track.kid.chat` …): a whole track can lose a feature without touching the others. */
+const TRACK_FEATURE_DEFS: SettingDef[] = SWITCHABLE_TRACKS.flatMap((track) =>
+  TRACK_FEATURES.map((feature): SettingDef => ({
+    key: trackFeatureKey(track, feature),
+    group: 'app',
+    label: `${track === 'kid' ? 'کودک' : 'نوجوان'}: ${TRACK_FEATURE_LABEL_FA[feature]}`,
+    hint: 'کلید ایمنی رده‌ی سنی؛ خاموش = این رده این بخش را نمی‌بیند (فقط وقتی «رده‌های سنی» روشن است)',
+    kind: 'bool',
+    min: 0,
+    max: 1,
+    default: 1,
+  })),
+);
 
 export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'app.maintenance_on', group: 'app', label: 'حالت تعمیر (بازیکن‌ها فقط پیام تعمیر را می‌بینند)', kind: 'bool', min: 0, max: 1, default: 0 },
@@ -251,6 +266,7 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'bot.check_minutes', group: 'bot', label: 'هر چند دقیقه یک بار منبع‌های سررسید را بررسی کند', kind: 'int', min: 5, max: 1440, default: 60, unit: 'دقیقه' },
   { key: 'notify.match_result', group: 'notify', label: 'نتیجه‌ی بازی به بله فرستاده شود', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'notify.daily_ready', group: 'notify', label: 'آماده شدن جایزه‌ی روزانه به بله فرستاده شود', kind: 'bool', min: 0, max: 1, default: 1 },
+  ...TRACK_FEATURE_DEFS,
   { key: 'bot.max_candidates_per_run', group: 'bot', label: 'سقف پیشنهاد در هر اجرا', hint: 'برای اینکه صف تأیید یک‌جا پر نشود', kind: 'int', min: 1, max: 500, default: 100 },
 ];
 

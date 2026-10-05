@@ -16,7 +16,7 @@ const trackName = (t: string): string => (t === 'kid' ? l.kid : l.teen);
 const textOf = (e: unknown): string => l.errors[e instanceof ApiError ? e.code : 'generic'] ?? l.errors.generic ?? '';
 
 /** The guardian's panel («فرزندان من»): the child profiles, a sign-in code for each, moving a child to another track and removing one. */
-export function ChildrenSheet({ onClose }: { onClose: () => void }) {
+export function ChildrenSheet({ onClose, onPreview }: { onClose: () => void; /** Opens a read-only look at the kid or teen space for the guardian (nothing is saved). */ onPreview?: (track: 'kid' | 'teen') => void }) {
   useHardwareBack(onClose);
   const [data, setData] = useState<ChildrenResponse | 'failed' | null>(null);
   const [codes, setCodes] = useState<Record<string, string>>({});
@@ -46,6 +46,7 @@ export function ChildrenSheet({ onClose }: { onClose: () => void }) {
                     <CandyButton label={l.moveTo(trackName(c.track === 'kid' ? 'teen' : 'kid'))} color={colors.candy.sky} onPress={() => void run(setChildTrack(c.id, c.track === 'kid' ? 'teen' : 'kid'))} />
                   </View>
                   <CandyButton label={l.panel.settings} color={colors.candy.orange} onPress={() => setPanel(c)} />
+                  {onPreview ? <CandyButton label={l.previewOf(trackName(c.track))} color={colors.candy.grape} onPress={() => onPreview(c.track === 'kid' ? 'kid' : 'teen')} /> : null}
                   <CandyButton label={l.remove} color={colors.candy.pink} onPress={() => void run(removeChild(c.id))} />
                 </View>
               ))

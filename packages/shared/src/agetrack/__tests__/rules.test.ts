@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AGE_TRACKS } from '../../config/ageTracks.js';
-import { canMeet, canSelfSwitchTrack, isAgeTrack, parseAgeTrack, trackRules } from '../rules.js';
+import { canMeet, canSelfSwitchTrack, isAgeTrack, parseAgeTrack, trackRuleForPath, trackRules } from '../rules.js';
 
 describe('trackRules', () => {
   it('keeps the hard walls for kid and teen', () => {
@@ -12,6 +12,10 @@ describe('trackRules', () => {
       expect(r.publicCity).toBe(false);
       expect(r.socialSameTrackOnly).toBe(true);
       expect(r.socialNeedsGuardian).toBe(true);
+      expect(r.coinWager).toBe(false);
+      expect(r.tournaments).toBe(false);
+      expect(r.transfers).toBe(false);
+      expect(r.inviteShare).toBe(false);
       expect(r.freeTextChat).toBe('guardian_switch');
     }
   });
@@ -47,5 +51,42 @@ describe('track helpers', () => {
     expect(canMeet('kid', 'kid')).toBe(true);
     expect(canMeet('kid', 'teen')).toBe(false);
     expect(canMeet('teen', 'adult')).toBe(false);
+  });
+});
+
+describe('trackRuleForPath', () => {
+  it('names the rule a path needs, and nothing for open paths', () => {
+    expect(trackRuleForPath('/coin-packages')).toBe('purchases');
+    expect(trackRuleForPath('/coin-packages/abc/redeem')).toBe('purchases');
+    expect(trackRuleForPath('/shop-pay/x')).toBe('purchases');
+    expect(trackRuleForPath('/ugc/submissions')).toBe('ugc');
+    expect(trackRuleForPath('/tournaments/1/join')).toBe('tournaments');
+    expect(trackRuleForPath('/daily-puzzle')).toBe('dailyPuzzle');
+    expect(trackRuleForPath('/lookup/search')).toBe('lookup');
+    expect(trackRuleForPath('/transfers')).toBe('transfers');
+    expect(trackRuleForPath('/loans/abc/repay')).toBe('transfers');
+    expect(trackRuleForPath('/friends/abc/gift')).toBe('transfers');
+    expect(trackRuleForPath('/friends/abc/loan')).toBe('transfers');
+    expect(trackRuleForPath('/friends/abc/request')).toBeNull(); // friend requests are not walled by this rule
+    expect(trackRuleForPath('/shop')).toBeNull(); // the coin shop (gems and hints) stays open: only real money is walled
+    expect(trackRuleForPath('/solo/start')).toBeNull();
+    expect(trackRuleForPath('/coin-packagesX')).toBeNull();
+  });
+
+  it('a kid cannot reach what the path rules wall off, an adult can reach all of it', () => {
+    const paths = ['/coin-packages', '/shop-pay', '/ugc/feed', '/tournaments', '/daily-puzzle', '/lookup/1'];
+    for (const path of paths) {
+      const rule = trackRuleForPath(path)!;
+      expect(trackRules('adult')[rule]).toBe(true);
+      if (rule !== 'priceOnly') expect(trackRules('kid')[rule]).toBe(false);
+    }
+  });
+});
+
+describe('publicProfile depth', () => {
+  it('shows a kid the least, a teen the record, an adult everything', () => {
+    expect(trackRules('kid').publicProfile).toBe('basic');
+    expect(trackRules('teen').publicProfile).toBe('stats');
+    expect(trackRules('adult').publicProfile).toBe('full');
   });
 });

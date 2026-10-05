@@ -1,7 +1,7 @@
 /** Admin panel views: Puzzles, user reports, suggestions (UGC) (browser JS, concatenated into one script by ../views2.ts). */
 export const ADMIN_VIEWS2_PUZZLES_JS = String.raw`VIEWS.puzzles = function (root) {
   var LEVELS = [['آسان', '#f5c542', 'زرد'], ['متوسط', '#6cc24a', 'سبز'], ['سخت', '#3fa5e0', 'آبی'], ['خیلی سخت', '#9b59d0', 'بنفش']];
-  var P = { prods: [], byId: {}, rows: [], tab: 'draft', ready: null, tiers: [] };
+  var P = { prods: [], byId: {}, rows: [], tab: 'draft', ready: null, tiers: [], track: '' };
   var B = { slots: [[], [], [], []], titles: ['', '', '', ''], expls: ['', '', '', ''], active: 0, q: '', cat: 'all', tier: '', track: 'adult' };
   var TRACK_RANK = { kid: 0, teen: 1, adult: 2 };
   var head = h('div'), body = h('div');
@@ -94,14 +94,17 @@ export const ADMIN_VIEWS2_PUZZLES_JS = String.raw`VIEWS.puzzles = function (root
       api('/admin/puzzles/' + p.id + '/tier', { method: 'PUT', body: { tierId: tierPick.value || null } }).then(function (r) { r.ok ? toast('سطح پازل ذخیره شد') : fail(r); });
     };
     return h('div', { class: 'card pz' }, [
-      h('div', { class: 'pz-head' }, [badge(p.source === 'generated' ? 'ساخته‌ی خودکار' : 'دستی', 'b-info'), h('span', { class: 'sub', text: ago(p.createdAt) }), h('span', { style: 'flex:1' }), h('span', { class: 'sub', text: 'سطح:' }), tierPick]),
+      h('div', { class: 'pz-head' }, [badge(p.source === 'generated' ? 'ساخته‌ی خودکار' : 'دستی', 'b-info'), p.ageTrack && p.ageTrack !== 'adult' ? badge(p.ageTrack === 'kid' ? 'کودک' : 'نوجوان', 'b-warn') : null, h('span', { class: 'sub', text: ago(p.createdAt) }), h('span', { style: 'flex:1' }), h('span', { class: 'sub', text: 'سطح:' }), tierPick]),
       h('div', { class: 'pz-groups' }, groups),
       h('div', { class: 'actions' }, actions)
     ]);
   }
   function drawList() {
-    var rows = P.rows.filter(function (x) { return x.status === P.tab; });
+    var rows = P.rows.filter(function (x) { return x.status === P.tab && (!P.track || (x.ageTrack || 'adult') === P.track); });
     var box = h('div');
+    var trackFilter = select([['', 'همه‌ی رده‌های سنی'], ['kid', 'کودک'], ['teen', 'نوجوان'], ['adult', 'بزرگسال']], P.track);
+    trackFilter.onchange = function () { P.track = trackFilter.value; reload(); };
+    box.appendChild(h('div', { class: 'toolbar' }, [h('span', { class: 'sub', text: 'رده‌ی سنی پازل' }), trackFilter]));
     if (P.tab === 'draft') {
       var n = h('input', { type: 'number', min: '1', max: '20', value: '5', style: 'width:84px' });
       box.appendChild(h('div', { class: 'card inline' }, [

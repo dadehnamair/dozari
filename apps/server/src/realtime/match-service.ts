@@ -17,6 +17,8 @@ export interface MatchDeps {
   puzzles: PuzzleSource;
   /** A player's age track (D198); queues pair one track, so the first player's track picks the puzzle pool. Absent = adult. */
   trackOf?: (userId: string) => Promise<AgeTrack>;
+  /** May this player put coins on a match (`trackRules(track).coinWager`)? A kid or teen never does: such a match is friendly. Absent = everybody may. */
+  wagerAllowed?: (userId: string) => Promise<boolean>;
   /** Public facts about a player for the opponent's card; null = unknown user (match is not created). */
   profile(userId: string): Promise<PlayerProfile | null>;
   /** Pushes a server event to every open socket of a user. */
@@ -145,7 +147,9 @@ export class MatchService {
     const rng: Rng = mulberry32(this.newSeed());
     const id = uuidv7();
     let stakes: [Stake, Stake] | undefined;
-    if (this.deps.stakes && !opts.friendly) {
+    // No wagers for kid and teen (docs/logic/age-tracks.md): if either human may not wager, nobody pays and nobody wins coins.
+    const noWager = this.deps.wagerAllowed ? !(await Promise.all([this.deps.wagerAllowed(a), this.deps.wagerAllowed(b)])).every(Boolean) : false;
+    if (this.deps.stakes && !opts.friendly && !noWager) {
       const taken = await this.deps.stakes.open(id, [a, b]);
       if (!taken) return false;
       stakes = taken;

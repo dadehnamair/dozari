@@ -20,6 +20,7 @@ import { acceptFriend, fetchPlayer, removeFriend, requestFriend } from './api';
 import { avatarOf } from './avatarOf';
 import { skillText } from '../badges/text';
 import { useGuardianGate } from '../agetrack/GuardianGate';
+import { useTrackRules } from '../agetrack/useTrackRules';
 import { TransferSheet } from '../transfers/TransferSheet';
 import { useHardwareBack } from '../nav/useHardwareBack';
 import { BirthdayBadge, PartyBanner } from './BirthdayBadge';
@@ -37,6 +38,8 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
   const [reporting, setReporting] = useState(false);
   const { ask, dialog } = useConfirm();
   const { gate, intercept } = useGuardianGate();
+  /** Gifts and loans are not drawn for a kid or teen (the server refuses them too). While the rules load, nothing is hidden. */
+  const canSendCoins = useTrackRules(true)?.transfers !== false;
 
   const load = useCallback(() => {
     fetchPlayer(playerId).then(
@@ -96,21 +99,24 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
               </View>
             ) : null}
 
-            <View style={styles.stats}>
+            {/* A kid or teen profile is minimal (`limited`): no coins, no medals, and for a kid no record either. */}
+            {p.limited && p.stats.games === 0 ? null : <View style={styles.stats}>
               {stats.map(([label, v, c]) => (
                 <View key={label} style={[styles.stat, { backgroundColor: c }]}>
                   <Text style={styles.statValue}>{toPersianDigits(String(v))}</Text>
                   <Text style={styles.statLabel}>{label}</Text>
                 </View>
               ))}
-            </View>
+            </View>}
 
-            <View style={styles.chips}>
-              <View style={styles.chip}><View style={styles.chipIcon}><Item icon="coinStack" /></View><Text style={styles.chipText}>{toPersianDigits(String(p.coins))}</Text></View>
-              <View style={styles.chip}><Icon name="calendar" size={16} color={INK} strokeWidth={2.6} /><Text style={styles.chipText}>{fa.player.since} {since}</Text></View>
-            </View>
+            {p.limited ? null : (
+              <View style={styles.chips}>
+                <View style={styles.chip}><View style={styles.chipIcon}><Item icon="coinStack" /></View><Text style={styles.chipText}>{toPersianDigits(String(p.coins))}</Text></View>
+                <View style={styles.chip}><Icon name="calendar" size={16} color={INK} strokeWidth={2.6} /><Text style={styles.chipText}>{fa.player.since} {since}</Text></View>
+              </View>
+            )}
 
-            {medals.length > 0 ? (
+            {medals.length > 0 && !p.limited ? (
               <View style={styles.chips}>
                 {medals.map((m, i) => <View key={m.titleFa} style={[styles.medal, { backgroundColor: MEDAL_COLORS[i % MEDAL_COLORS.length] }]}><Text style={styles.medalText} numberOfLines={1}>{m.titleFa}</Text></View>)}
               </View>
@@ -133,8 +139,8 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
               <>
                 <View style={styles.friendTag}><Icon name="check" size={14} color="#fff" strokeWidth={4} /><Text style={styles.friendTagText}>{fa.player.friends}</Text></View>
                 <View style={styles.actions}>
-                  <HubTile onLight icon="gift" label={fa.transfers.gift} color={colors.candy.lime} onPress={() => setSend('gift')} />
-                  <HubTile onLight icon="wallet" label={fa.transfers.loan} color={colors.candy.orange} onPress={() => setSend('loan')} />
+                  {canSendCoins ? <HubTile onLight icon="gift" label={fa.transfers.gift} color={colors.candy.lime} onPress={() => setSend('gift')} /> : null}
+                  {canSendCoins ? <HubTile onLight icon="wallet" label={fa.transfers.loan} color={colors.candy.orange} onPress={() => setSend('loan')} /> : null}
                   <HubTile onLight icon="trash" label={fa.player.unfriend} color={colors.candy.pink} onPress={() => ask({ title: fa.confirm.unfriend.title, message: fa.confirm.unfriend.message, confirmLabel: fa.confirm.unfriend.yes, onConfirm: act(removeFriend) })} />
                 </View>
               </>

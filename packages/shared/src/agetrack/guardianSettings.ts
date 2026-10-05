@@ -43,6 +43,8 @@ export const childLimitsSchema = z.object({
   quietFrom: minuteOfDay.nullable(),
   quietTo: minuteOfDay.nullable(),
   reminderMinutes: z.number().int().nullable(),
+  /** Minutes the child has been in the app today (Tehran day), counted by the app's heartbeat; the reminder card compares it with `reminderMinutes`. */
+  playedToday: z.number().int().min(0).default(0),
 });
 export type ChildLimits = z.infer<typeof childLimitsSchema>;
 

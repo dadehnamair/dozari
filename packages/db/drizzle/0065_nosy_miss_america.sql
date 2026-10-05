@@ -1,0 +1,1 @@
+ALTER TABLE `admin_messages` MODIFY COLUMN `audience` enum('all','bale_linked','user','kid','teen') NOT NULL;

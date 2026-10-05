@@ -244,9 +244,36 @@ Setting `feature.age_tracks` (admin → settings → app, **default off**): off 
 - Phase 5, slice 4 (closes phase 5), **app**: «فرزندان من» → per child «تنظیمات و گزارش» (`ChildPanelSheet`): the digest card, the chat / new-friends / duels switches, quiet hours (start and end hour), the play reminder, the requests waiting for a yes and the friend list (remove).
   Each switch saves at once and rolls back with a note if the save fails. The child's app reads `limits` from `GET /me/age-track` every minute (`useMyTrack`): the **tables tile disappears** when duels are off and the **city chat tile is not drawn** for kid/teen (no lock, no refusal),
   `PlayerSheet` answers `ask_guardian` with one friendly line, and `RestCardView` (pure rule `restCardFor`) shows the **soft rest card** in quiet hours or after `reminderMinutes` in this app session, dismissible for `QUIET_CARD_SNOOZE_MINUTES` (10) — never a lock-out.
-  The play reminder counts the minutes of the current app session (a per-day total would need a play-time log, not built); quiet hours use the phone's own clock.
-  Not yet: «block a friend» as its own switch (removing a friend is there; a re-request is possible), a per-day play-time log for a truer reminder, and a «preview the kid space» mode for a guardian.
-- Not yet: the rest of the 30–50 kid puzzles; a track filter on the other admin lists (puzzles, items, tournaments, reports…);
+  The play reminder counts the larger of this app session and the server's per-day minutes (see «Guardian extras»); quiet hours use the phone's own clock.
+- **Audit pass, hard walls closed** (after phases 4–5 an audit found rules that existed only in `trackRules` and the app): 
+  - **No coin wagers:** `MatchService` takes no stake (`wagerAllowed`) when either human is a kid or teen, so a queue duel is friendly (no entry fee, no payout); the queue's `canAfford` check skips them (`ageTracks.allows(user, 'coinWager')`).
+  - **Request gate by path** (`trackRuleForPath`, one `onRequest` hook): a kid or teen gets `403 {error:"age_track"}` on `/coin-packages`, `/shop-pay` (real money, rule `purchases`), `/ugc` (`ugc`), `/tournaments` (new rule `tournaments`: adult only until kid/teen tournaments exist),
+    `/daily-puzzle` (`dailyPuzzle`) and `/lookup` (`lookup`); `/price-only` follows `priceOnly`. The app already hid these entries; now the server refuses too. The in-app coin shop (gems and hints, no real money) stays open.
+  - **City and province** are hidden on a kid/teen public profile (`SocialService.cityVisible`, rule `publicCity`).
+  - **Message center broadcasts** (all players, Bale-linked) reach adults only; a message to one named player still goes through.
+  - app: the tournaments tile and the real-money part of the shop follow `rules.tournaments` / `rules.purchases`.
+- **Teen starter content** (`seed/puzzles/teen-starter.json`, 7 puzzles `teen-01`..`teen-07`, all `draft`): curated category puzzles over the **real catalog**, not new prices. 74 existing products of `products-2026-10-05.json` are now tagged `age_track: teen`
+  (everyday food, drinks, school/street/home things; nothing alcohol- or adult-themed; each has at least 3 approved price points so the teen price-guess round works). A teen item may sit in adult puzzles too (an item only needs to be the puzzle's track or younger).
+  Load with `pnpm --filter @dozari/db seed` (the product upsert re-tags in place; an existing puzzle id is left alone) and approve the puzzles in «ساخت پازل» — a teen has **no playable puzzle until an editor approves some**, same as kid content.
+  Each puzzle is hand-checked so every item fits exactly one group of its own board (the sample-seed convention: curated groups, no price rule). Still open: the spec's «easy adult groups» for teens (the pool is the teen track only), more teen puzzles, and the adult option to play the teen pool.
+- **Audit pass 2 (leftovers):** three more rules in `trackRules`: `transfers` (gifts and loans of coins between friends are off for kid and teen: `/transfers`, `/loans/*` and `POST /friends/:id/gift|loan` answer `403 age_track`; the gift and loan tiles are not drawn),
+  `inviteShare` (a kid or teen can redeem a code but `GET /me/invite` shows no code of their own) and `publicProfile` (`basic` = name, avatar and level for a kid; `stats` = + the game record for a teen; both without coins; `PlayerProfile.limited` tells the app to draw less).
+  The leaderboard also hides the province of a kid/teen. Wheel prizes are coins, gems and cosmetics only, so they were left as they are.
+- **Admin completion:** kill switches per band (`TRACK_FEATURES`, settings `track.<kid|teen>.<feature>`; `AgeTrackService.featureOff`; HTTP paths via `trackFeatureForPath` answer `403 age_track`, chat answers `OFF`, the duel queue `FEATURE_OFF`),
+  a guardians list with support actions (`/admin/guardians`), kid/teen filters on the puzzle list and catalog, message audiences `kid`/`teen` (adult broadcasts stay adult-only; migration 0065) and audit rows for band choices and guardian actions. See `admin-panel.md` §Age bands.
+- **Guardian extras** (migration 0066): **block a friend** (`guardian_blocks`; `POST|DELETE /guardian/children/:id/blocks/:otherId`, `GET …/blocks`): the friendship is removed and the two players no longer see, search, befriend or message each other
+  (one `meetable` gate in front of social and find, either direction); the panel has a «بلاک» button on each friend and a list to unblock. **Play time** (`play_minutes(user_id, day_key, minutes)`): a kid/teen's open app posts `POST /me/heartbeat` once a minute while
+  in front (`useMyTrack`); the server counts at most one minute per `PLAY_HEARTBEAT_MIN_GAP_MS` (50 s) so a modified client cannot inflate it, a day caps at `PLAY_MINUTES_DAY_CAP`, and the total comes back as `limits.playedToday`
+  (the rest card compares the larger of this session and today's minutes with the reminder) and as `minutesWeek` in the digest — **the reminder is now per day, not per session**.
+- **Guardian preview** («پیش‌نمایش فضای کودک/نوجوان» in «فرزندان من»): `POST /solo/start {preview:"kid"|"teen"}` serves a real puzzle of that track's pool to a guardian (an adult with at least one child; anyone else gets `403 not_a_guardian`) as a session
+  with **no account behind it**, so no level, XP, coins, daily cap or hint is touched. The app opens `SoloScreen` with `previewTrack` (the shared `trackRules(track)` apply: word lesson for kid, no price round for kid), a yellow banner says nothing is saved, and there is no offline fallback.
+- **Still open** (content or product calls, nothing blocks the code):
+  - content: the rest of the 30–50 kid puzzles, more teen puzzles, and **approving** the seeded kid/teen drafts (a track with no approved puzzle has nothing to play);
+  - teen pool: the spec's «easy adult groups» for teens and the adult option to play the teen pool; kid and teen tournaments (adults only until they exist);
+  - bots stay track-neutral (a kid-friendly nickname list and a kid taunt set for bots); match history does not record `age_track` because matches are not persisted yet;
+  - admin: a track filter on the bot-player, ledger and tournament lists (the economy page and ledger are not split by band);
+  - owner calls: the strict word list for kid/teen, store rules for a kids' section (Bazaar, Myket, Bale), a mascot or kid art.
+
 
 ## Phases
 

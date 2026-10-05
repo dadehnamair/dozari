@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { NUDGE_IDLE_SECONDS, isLastLife, localGuess, localShuffle, localView, mulberry32, solarMonthOf, startLocalSolo } from '@dozari/shared';
+import { NUDGE_IDLE_SECONDS, isLastLife, localGuess, localShuffle, localView, mulberry32, solarMonthOf, startLocalSolo, trackRules as rulesOfTrack } from '@dozari/shared';
 import type { HintPayload, LocalSoloSession, SoloView } from '@dozari/shared';
 import { Board } from '../components/Board';
 import { ChartPanel } from '../components/ChartPanel';
@@ -44,9 +44,10 @@ const FEEDBACK_MS = 1600;
 /** Right-to-left rows on web too (react-native-web does not flip rows; native does under forced RTL). */
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 
-export function SoloScreen({ onBack, hintsEnabled = true, daily = false, ageTracksOn = false }: { onBack: () => void; hintsEnabled?: boolean; /** Today's daily puzzle: one attempt, no "new game". */ daily?: boolean; /** The server's age-track switch: a kid then gets the word lesson instead of the price round. */ ageTracksOn?: boolean }) {
+export function SoloScreen({ onBack, hintsEnabled = true, daily = false, ageTracksOn = false, previewTrack }: { onBack: () => void; /** A guardian previews this track's space: its rules apply, nothing is saved, no offline fallback. */ previewTrack?: 'kid' | 'teen'; hintsEnabled?: boolean; /** Today's daily puzzle: one attempt, no "new game". */ daily?: boolean; /** The server's age-track switch: a kid then gets the word lesson instead of the price round. */ ageTracksOn?: boolean }) {
   const prefs = usePrefs();
-  const trackRules = useTrackRules(ageTracksOn);
+  const fetchedRules = useTrackRules(ageTracksOn);
+  const trackRules = previewTrack ? rulesOfTrack(previewTrack) : fetchedRules;
   const lessonMode = trackRules?.wordLesson === true;
   const { ask, dialog } = useConfirm();
   /** Short screens get a smaller character and chart so the end scene still fits without scrolling. */
@@ -147,18 +148,18 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false, ageTrac
     setOffline(false);
     local.current = null;
     try {
-      adopt(await (daily ? beginDaily() : beginSolo()));
+      adopt(await (daily ? beginDaily() : beginSolo(previewTrack)));
       void refillPack(); // online: keep the saved puzzles topped up for next time
     } catch (err) {
       // No internet: a saved puzzle keeps the player busy (not for the daily one, which is one shared online attempt).
-      const saved = !daily && errorKind(err) === 'noInternet' ? await takeOfflinePuzzle() : null;
+      const saved = !daily && !previewTrack && errorKind(err) === 'noInternet' ? await takeOfflinePuzzle() : null;
       if (!saved) return fail(err);
       local.current = startLocalSolo(saved, mulberry32(Math.floor(Math.random() * 2 ** 31)), `offline-${saved.id}`);
       setOffline(true);
       nudgeOff.current = true;
       adopt(localView(local.current));
     }
-  }, [adopt, combo.reset, daily, fail, flash]);
+  }, [adopt, combo.reset, daily, fail, flash, previewTrack]);
 
   useEffect(() => {
     void begin();
@@ -297,6 +298,7 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false, ageTrac
     <MatchBackground>
     <ScrollView contentContainerStyle={styles.screen}>
       <View style={styles.column}>
+        {previewTrack ? <Text style={styles.previewBanner}>{fa.guardian.previewBanner}</Text> : null}
         <GameTopBar title={daily ? fa.solo.dailyTitle : fa.solo.title} backLabel={fa.solo.back} onBack={() => ask({ title: daily ? fa.confirm.leaveDaily.title : fa.confirm.leaveSolo.title, message: daily ? fa.confirm.leaveDaily.message : fa.confirm.leaveSolo.message, confirmLabel: fa.confirm.leaveSolo.yes, onConfirm: onBack })}>
           <ComboRing streak={combo.streak} left={combo.left} showLabel={false} />
           {hintsEnabled && playing && !offline ? (
@@ -345,6 +347,7 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false, ageTrac
 }
 
 const styles = StyleSheet.create({
+  previewBanner: { alignSelf: 'center', fontFamily: fonts.bold, fontSize: 13, color: '#2B1240', backgroundColor: '#FFE48A', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 5, overflow: 'hidden', textAlign: 'center' },
   review: { gap: 10, width: '100%' },
   askCard: { padding: 12, gap: 6, borderRadius: 20, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#FBF1DE' },
   askTitle: { fontFamily: fonts.display, fontSize: 18, color: colors.ink, textAlign: 'center' },

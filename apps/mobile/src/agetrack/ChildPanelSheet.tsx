@@ -6,7 +6,7 @@ import { CandyButton } from '../components/CandyButton';
 import { fa } from '../i18n/fa';
 import { useHardwareBack } from '../nav/useHardwareBack';
 import { colors, fonts } from '../theme/colors';
-import { approveChildFriend, fetchChildDigest, fetchChildFriends, fetchChildSettings, removeChildFriend, saveChildSettings } from './guardianApi';
+import { approveChildFriend, blockChildFriend, fetchChildBlocks, fetchChildDigest, fetchChildFriends, fetchChildSettings, removeChildFriend, saveChildSettings, unblockChildFriend } from './guardianApi';
 import type { ChildFriend } from './guardianApi';
 import { QUIET_HOURS, minutesToHour, sameSettings, withQuietHours } from './guardianPanel';
 
@@ -34,8 +34,12 @@ export function ChildPanelSheet({ child, onClose }: { child: ChildRow; onClose: 
   const [s, setS] = useState<GuardianSettings | null>(null);
   const [digest, setDigest] = useState<ChildDigest | null>(null);
   const [friends, setFriends] = useState<{ friends: ChildFriend[]; requests: ChildFriend[] } | null>(null);
+  const [blocked, setBlocked] = useState<ChildFriend[]>([]);
   const [note, setNote] = useState<string | null>(null);
-  const reloadFriends = useCallback(() => void fetchChildFriends(child.id).then(setFriends, () => undefined), [child.id]);
+  const reloadFriends = useCallback(() => {
+    void fetchChildFriends(child.id).then(setFriends, () => undefined);
+    void fetchChildBlocks(child.id).then(setBlocked, () => undefined);
+  }, [child.id]);
   useEffect(() => {
     void fetchChildSettings(child.id).then(setS, () => setNote(p.failed));
     void fetchChildDigest(child.id).then(setDigest, () => undefined);
@@ -66,6 +70,7 @@ export function ChildPanelSheet({ child, onClose }: { child: ChildRow; onClose: 
               <Text style={styles.text}>{p.digestWords(toPersianDigits(String(digest.wordsWeek)), toPersianDigits(String(digest.wordsTotal)))}</Text>
               {digest.recentWords.length > 0 ? <Text style={styles.text}>{digest.recentWords.join('، ')}</Text> : null}
               <Text style={styles.text}>{p.digestGames(toPersianDigits(String(digest.gamesWeek)), toPersianDigits(String(digest.winsWeek)), toPersianDigits(String(digest.daysPlayedWeek)))}</Text>
+              {digest.minutesWeek > 0 ? <Text style={styles.text}>{p.digestMinutes(toPersianDigits(String(digest.minutesWeek)))}</Text> : null}
               <Text style={styles.text}>{p.digestLevel(toPersianDigits(String(digest.level)), toPersianDigits(String(digest.friends)))}</Text>
             </View>
           ) : null}
@@ -117,6 +122,18 @@ export function ChildPanelSheet({ child, onClose }: { child: ChildRow; onClose: 
                 <View key={f.id} style={styles.friend}>
                   <Text style={styles.name}>{f.nickname}</Text>
                   <CandyButton label={p.removeFriend} color={colors.candy.pink} sfx="back" onPress={() => void act(removeChildFriend(child.id, f.id))} />
+                  <CandyButton label={p.block} color={colors.candy.grape} sfx="back" onPress={() => void act(blockChildFriend(child.id, f.id))} />
+                </View>
+              ))}
+            </>
+          ) : null}
+          {blocked.length > 0 ? (
+            <>
+              <Text style={styles.section}>{p.blockedList}</Text>
+              {blocked.map((f) => (
+                <View key={f.id} style={styles.friend}>
+                  <Text style={styles.name}>{f.nickname}</Text>
+                  <CandyButton label={p.unblock} color={colors.candy.sky} onPress={() => void act(unblockChildFriend(child.id, f.id))} />
                 </View>
               ))}
             </>

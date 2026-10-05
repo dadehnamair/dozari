@@ -4,7 +4,7 @@ import fastifyCors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
 import { resolve } from 'node:path';
 import { rialsToTomanString } from '@dozari/shared';
-import { CHAT_RETENTION_DAYS, MISSION_KEYS, TOURNAMENT_TICK_SECONDS, WHEEL_SLICES_DEFAULT, scaleSlices } from '@dozari/shared';
+import { CHAT_RETENTION_DAYS, MISSION_KEYS, TOURNAMENT_TICK_SECONDS, dailyDateKey, trackFeatureForPath, trackRuleForPath, WHEEL_SLICES_DEFAULT, scaleSlices } from '@dozari/shared';
 import type { HintRules, MissionKey } from '@dozari/shared';
 import { createDb } from '@dozari/db';
 import { createDbCatalogRepository } from './catalog/db-repository.js';
@@ -75,6 +75,7 @@ import type { AdminModules } from './admin/module-routes.js';
 import { AdminAccounts } from './admin/accounts/service.js';
 import { createDbAdminStore } from './admin/accounts/store.js';
 import { createDbAuditLog } from './admin/audit.js';
+import { createDbEconomyAdmin } from './admin/economy.js';
 import { createDbProductAdmin } from './admin/products.js';
 import { createDbStatsAdmin } from './admin/stats.js';
 import { createDbUsersAdmin } from './admin/users.js';
@@ -140,6 +141,7 @@ import { GuardianService, registerGuardianRoutes } from './guardian/service.js';
 import { createDbGuardianStore } from './guardian/store.js';
 import { GuardianSettingsService, createDbGuardianSettingsStore } from './guardian/settings.js';
 import { createDigestBuilder } from './guardian/digest.js';
+import { PlayTimeService, createDbGuardianBlockStore, createDbPlayTimeStore } from './guardian/extras.js';
 import { createDbLessonSeenStore } from './lessons/seen.js';
 import type { LessonSeenStore } from './lessons/seen.js';
 import { registerLessonRoutes } from './lessons/service.js';
@@ -251,6 +253,10 @@ export interface ServerDeps {
   birthday?: BirthdayService;
   /** Chosen age track: kid / teen / adult (D198); queues only pair one track. */
   ageTracks?: AgeTrackService;
+  /** Minutes in the app per day (the app's heartbeat), for the guardian's reminder and digest. */
+  playTime?: PlayTimeService;
+  /** May this player preview the kid and teen space (a guardian with at least one child)? */
+  canPreview?: (userId: string) => Promise<boolean>;
   /** Kid word lessons (D198). */
   lessons?: LessonStore;
   /** Which word lessons a player saw (the guardian's digest). */
@@ -305,6 +311,20 @@ export function buildServer(deps: ServerDeps = {}) {
     if (deps.settings) {
       const verdict = await gateForPath(deps.settings, req.url.split('?')[0] ?? '');
       if (verdict) return reply.code(503).send(verdict);
+    }
+    if (deps.auth && deps.ageTracks) {
+      // What a kid or teen track does not have is refused here too (the app only hides it): real-money buying, suggesting items, tournaments, the daily puzzle, the price lookup.
+      const rule = trackRuleForPath(req.url.split('?')[0] ?? '');
+      if (rule) {
+        const user = await currentUser(deps.auth, req);
+        if (user && !(await deps.ageTracks.allows(user.id, rule))) return reply.code(403).send({ error: 'age_track' });
+      }
+      // The admin's per-track kill switches (`track.kid.chat` …): a switched-off feature answers the same way.
+      const feature = trackFeatureForPath(req.url.split('?')[0] ?? '');
+      if (feature) {
+        const user = await currentUser(deps.auth, req);
+        if (user && (await deps.ageTracks.featureOff(user.id, feature))) return reply.code(403).send({ error: 'age_track' });
+      }
     }
     const limited = !anyLimit.take(req.ip) ? anyLimit : req.url.split('?')[0] === '/auth/guest' && !guestLimit.take(req.ip) ? guestLimit : null;
     if (limited) return reply.header('retry-after', String(limited.retryAfterSec(req.ip))).code(429).send({ error: 'rate_limited' });
@@ -387,13 +407,13 @@ export function buildServer(deps: ServerDeps = {}) {
     if (!online) void deps.notify?.notify(friendId, 'table_invite', BALE_TEXT.tableInvite(r.message.nickname)).catch(() => undefined);
     return { ok: true, online };
   } : undefined);
-  if (deps.solo) registerSoloRoutes(app, deps.solo, deps.auth, deps.hints, deps.limiter);
+  if (deps.solo) registerSoloRoutes(app, deps.solo, deps.auth, deps.hints, deps.limiter, deps.canPreview);
   if (deps.priceOnly) registerPriceOnlyRoutes(app, deps.priceOnly, deps.auth);
   if (deps.auth && deps.shop) registerShopRoutes(app, deps.auth, deps.shop);
   if (deps.auth && deps.levelRoad) registerRoadRoutes(app, deps.auth, deps.levelRoad);
   if (deps.auth && deps.profileTasks) registerProfileTaskRoutes(app, deps.auth, deps.profileTasks);
   if (deps.auth && deps.birthday) registerBirthdayRoutes(app, deps.auth, deps.birthday);
-  if (deps.auth && deps.ageTracks) registerAgeTrackRoutes(app, deps.auth, deps.ageTracks);
+  if (deps.auth && deps.ageTracks) registerAgeTrackRoutes(app, deps.auth, deps.ageTracks, deps.playTime);
   if (deps.auth && deps.lessons) registerLessonRoutes(app, deps.auth, deps.lessons, deps.lessonSeen);
   if (deps.auth && deps.guardian) registerGuardianRoutes(app, deps.auth, deps.guardian);
   if (deps.auth && deps.feedback) registerFeedbackRoutes(app, deps.auth, deps.feedback);
@@ -405,7 +425,7 @@ export function buildServer(deps: ServerDeps = {}) {
   let gateway: Gateway | undefined;
   if (deps.auth && deps.realtime) {
     const auth = deps.auth;
-    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin, match: deps.match, canAfford: deps.duelStakes ? (u) => deps.duelStakes!.canQueue(u) : undefined, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, levelGate: deps.duelLevelGate, limit: deps.limiter ? { canPlay: async (u) => (await deps.limiter!.check(u, 'duel')).ok, onStarted: (u) => deps.limiter!.record(u, 'duel') } : undefined, chat: deps.chat, presence: deps.presence, notices: deps.notices, onEmit: deps.botDriver ? (u, e, p) => deps.botDriver!.onEmit(u, e, p) : undefined, trackOf: deps.ageTracks ? (u) => deps.ageTracks!.effective(u).catch(() => 'adult' as const) : undefined, diagnose: deps.match ? createQueueDiagnosis({ hasPuzzle: async (tracks) => (await deps.match!.puzzles.pickRandom({ tracks })) !== null, botsReady: () => deps.botDriver?.ready() ?? false, graceSec: 45 }) : undefined });
+    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin, match: deps.match, canAfford: deps.duelStakes ? async (u) => (deps.ageTracks && !(await deps.ageTracks.allows(u, 'coinWager'))) || deps.duelStakes!.canQueue(u) : undefined, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, levelGate: deps.duelLevelGate, limit: deps.limiter ? { canPlay: async (u) => (await deps.limiter!.check(u, 'duel')).ok, onStarted: (u) => deps.limiter!.record(u, 'duel') } : undefined, chat: deps.chat, presence: deps.presence, notices: deps.notices, onEmit: deps.botDriver ? (u, e, p) => deps.botDriver!.onEmit(u, e, p) : undefined, trackOf: deps.ageTracks ? (u) => deps.ageTracks!.effective(u).catch(() => 'adult' as const) : undefined, trackGate: deps.ageTracks ? (u) => deps.ageTracks!.featureOff(u, 'duel_queue') : undefined, diagnose: deps.match ? createQueueDiagnosis({ hasPuzzle: async (tracks) => (await deps.match!.puzzles.pickRandom({ tracks })) !== null, botsReady: () => deps.botDriver?.ready() ?? false, graceSec: 45 }) : undefined });
     if (deps.live) {
       deps.live.matches = gateway.matches;
       deps.live.queue = gateway.queue;
@@ -618,7 +638,15 @@ if (isMainModule(import.meta.url)) {
       : undefined;
   const guardianStore = db ? createDbGuardianStore(db) : undefined;
   const guardianSettings = db ? new GuardianSettingsService(createDbGuardianSettingsStore(db)) : undefined;
-  const ageTracks = db && settings ? new AgeTrackService(createDbAgeTrackStore(db), async () => (await settings.num('feature.age_tracks')) === 1, () => new Date(), async (id) => (guardianStore ? (await guardianStore.guardianOf(id)) !== null : false), async (id) => (guardianStore && guardianSettings && (await guardianStore.guardianOf(id)) !== null ? guardianSettings.limits(id) : null)) : undefined;
+  const playTime = db ? new PlayTimeService(createDbPlayTimeStore(db), dailyDateKey) : undefined;
+  const blockStore = db ? createDbGuardianBlockStore(db) : undefined;
+  const ageTracks = db && settings ? new AgeTrackService(createDbAgeTrackStore(db), async () => (await settings.num('feature.age_tracks')) === 1, () => new Date(), async (id) => (guardianStore ? (await guardianStore.guardianOf(id)) !== null : false), async (id) => (guardianStore && guardianSettings && (await guardianStore.guardianOf(id)) !== null ? { ...(await guardianSettings.limits(id)), playedToday: playTime ? await playTime.today(id) : 0 } : null)) : undefined;
+  /** Same track and not blocked by a guardian (either direction): who a player may see, befriend, search and rank against. */
+  const meetable = async (me: string, others: readonly string[]): Promise<Set<string>> => {
+    const ok = ageTracks ? await ageTracks.meetable(me, others) : new Set(others);
+    if (blockStore) for (const id of [...ok]) if (await blockStore.between(me, id)) ok.delete(id);
+    return ok;
+  };
   const guardian =
     db && auth && phoneLogin
       ? new GuardianService(createDbGuardianStore(db), createDbAgeTrackStore(db), phoneLogin, createDbPhoneStore(db), auth, () => `guardian:${randomUUID()}`)
@@ -679,21 +707,29 @@ if (isMainModule(import.meta.url)) {
           createShortener(),
           () => randomInt(0, 2 ** 30) / 2 ** 30,
           Date.now,
-          ageTracks ? (me, others) => ageTracks.meetable(me, others) : undefined,
+          ageTracks ? (me, others) => meetable(me, others) : undefined,
           ageTracks ? (id) => ageTracks.socialBlocked(id) : undefined,
           ageTracks ? (id) => ageTracks.friendsNeedApproval(id) : undefined,
         )
       : undefined;
-  if (chat && ageTracks) chat.managed = { trackOf: (id) => ageTracks.effective(id), hasGuardian: async (id) => (guardianStore ? (await guardianStore.guardianOf(id)) !== null : false), chatMode: async (id) => (guardianSettings ? (await guardianSettings.get(id)).chatMode : 'friends_text') };
+  if (chat && ageTracks) chat.managed = { trackOf: (id) => ageTracks.effective(id), hasGuardian: async (id) => (guardianStore ? (await guardianStore.guardianOf(id)) !== null : false), chatMode: async (id) => ((await ageTracks.featureOff(id, 'chat')) ? 'off' : guardianSettings ? (await guardianSettings.get(id)).chatMode : 'friends_text') };
   if (social && ageTracks) {
-    social.sameTrack = (me, others) => ageTracks.meetable(me, others);
+    social.sameTrack = meetable;
     social.blocked = (id) => ageTracks.socialBlocked(id);
     social.asksGuardian = (id) => ageTracks.friendsNeedApproval(id);
+    social.cityVisible = (id) => ageTracks.allows(id, 'publicCity');
+    social.profileDepth = (id) => ageTracks.profileDepth(id);
   }
   const lessonSeen = db ? createDbLessonSeenStore(db) : undefined;
+  if (ageTracks && settings) ageTracks.featureSwitch = async (key) => (await settings.num(key)) !== 0;
+  const playerAudit = db ? createDbAuditLog(db) : undefined;
+  if (ageTracks && playerAudit) ageTracks.audit = (a, t, d) => void playerAudit.record(a, t, d);
+  if (guardian && playerAudit) guardian.audit = (a, t, d) => void playerAudit.record(a, t, d);
+  if (invite && ageTracks) invite.canShare = (id) => ageTracks.allows(id, 'inviteShare');
   if (guardian && guardianSettings) guardian.settings = guardianSettings;
+  if (guardian && blockStore) guardian.blocks = blockStore;
   if (guardian && lessonSeen && player && socialStore) {
-    guardian.digest = createDigestBuilder({ seen: lessonSeen, recentGames: (id, n) => player.recentGames(id, n), level: async (id) => (await player.levelOf(id)).level.level, friendCount: async (id) => (await socialStore.friends(id)).length });
+    guardian.digest = createDigestBuilder({ seen: lessonSeen, recentGames: (id, n) => player.recentGames(id, n), level: async (id) => (await player.levelOf(id)).level.level, friendCount: async (id) => (await socialStore.friends(id)).length, minutesWeek: playTime ? (id) => playTime.week(id) : undefined });
   }
   if (guardian && social && socialStore) {
     guardian.friends = {
@@ -757,13 +793,14 @@ if (isMainModule(import.meta.url)) {
     auth,
     settings,
     adminModules: db
-      ? { products: productAdmin!, feedback, stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, wheel, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, ageTracks: db ? createDbAgeTrackAdmin(db) : undefined, daily, puzzles: createDbPuzzleAdmin(db), levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      ? { products: productAdmin!, feedback, stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, wheel, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, ageTracks: db ? createDbAgeTrackAdmin(db) : undefined, economy: db ? createDbEconomyAdmin(db) : undefined, daily, puzzles: createDbPuzzleAdmin(db), levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
     match: db
       ? {
           puzzles: createDbPuzzleSource(db),
           trackOf: ageTracks ? (id) => ageTracks.effective(id) : undefined,
+          wagerAllowed: ageTracks ? (id) => ageTracks.allows(id, 'coinWager') : undefined,
           teamBoards: settings ? () => settings.num('match.team_boards') : undefined,
           priceRound: settings ? async () => (await settings.num('match.price_round')) === 1 : undefined,
           rules: settings
@@ -849,6 +886,8 @@ if (isMainModule(import.meta.url)) {
     gems: db ? createDbGemWallet(db) : undefined,
     birthday,
     ageTracks,
+    playTime,
+    canPreview: guardianStore ? async (id) => (await guardianStore.childrenOf(id)).length > 0 : undefined,
     lessons: db ? createDbLessonStore(db) : undefined,
     lessonSeen,
     guardian,
