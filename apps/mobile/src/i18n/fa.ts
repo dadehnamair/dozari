@@ -977,8 +977,12 @@ export const fa = {
       DAILY_LIMIT: 'سقف خرید امروز این کالا پر شده؛ فردا دوباره می‌توانی بخری.',
       COINS: 'سکه‌ات برای این کالا کافی نیست. بازی کن و جایزه‌ی روزانه‌ات را بگیر تا سکه جمع کنی.',
       GEMS: 'الماس‌ات برای این کالا کافی نیست. الماس را از جایزه‌ها و مناسبت‌ها می‌گیری.',
+      MAX_HELD: 'سپر کافی داری؛ وقتی یکی‌اش خرج شد، دوباره می‌توانی بخری.',
     } as Record<string, string | ((n: number) => string)>,
     dailyLimit: 'سقف خرید امروز پر شد',
+    maxHeld: 'سپر کافی داری',
+    /** A rotating item: it leaves at midnight (Tehran) and may not come back for days. */
+    todayOnly: (h: number) => `فقط امروز · ${toPersianDigits(String(h))} ساعت مانده`,
     leftToday: (n: number) => `${toPersianDigits(String(n))} بار دیگر امروز`,
     needCoins: 'سکه‌ات کافی نیست',
     needGems: 'الماست کافی نیست',

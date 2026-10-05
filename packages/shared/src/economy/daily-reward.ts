@@ -12,7 +12,7 @@ export interface DailyRewardState {
 
 export type DailyRewardDecision =
   /** `day` is the streak day being claimed, `coins` what it pays. */
-  | { status: 'ready'; day: number; coins: number }
+  | { status: 'ready'; day: number; coins: number; /** A streak shield bridges one missed day: the caller spends one. */ shield?: true }
   /** Claimed too recently: try again at `availableAt` (epoch ms). */
   | { status: 'wait'; availableAt: number }
   /** No reward steps are configured. */
@@ -34,7 +34,7 @@ export interface DailyRules {
 }
 export const DEFAULT_DAILY_RULES: DailyRules = { cooldownHours: DAILY_REWARD_COOLDOWN_HOURS, windowHours: DAILY_REWARD_STREAK_WINDOW_HOURS };
 
-export function nextDailyReward(state: DailyRewardState, steps: readonly number[], now: number, rules: DailyRules = DEFAULT_DAILY_RULES): DailyRewardDecision {
+export function nextDailyReward(state: DailyRewardState, steps: readonly number[], now: number, rules: DailyRules = DEFAULT_DAILY_RULES, shields = 0): DailyRewardDecision {
   if (steps.length === 0) return { status: 'disabled' };
   if (state.lastClaimedAt === null) return { status: 'ready', day: 1, coins: coinsForDay(steps, 1) };
 
@@ -42,8 +42,10 @@ export function nextDailyReward(state: DailyRewardState, steps: readonly number[
   if (now < availableAt) return { status: 'wait', availableAt };
 
   const continues = now < state.lastClaimedAt + rules.windowHours * HOUR_MS;
-  const day = continues ? state.streakDay + 1 : 1;
-  return { status: 'ready', day, coins: coinsForDay(steps, day) };
+  // A shield covers exactly one missed day (economy-v2): a claim up to one more cooldown past the window keeps the streak.
+  const shielded = !continues && shields > 0 && state.streakDay > 0 && now < state.lastClaimedAt + (rules.windowHours + rules.cooldownHours) * HOUR_MS;
+  const day = continues || shielded ? state.streakDay + 1 : 1;
+  return shielded ? { status: 'ready', day, coins: coinsForDay(steps, day), shield: true } : { status: 'ready', day, coins: coinsForDay(steps, day) };
 }
 
 /** State after a successful claim. */

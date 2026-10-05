@@ -85,6 +85,8 @@ export const NON_SKILL_DAILY_CAP = 40;
 /** Streak shield: protects the daily-reward streak across one missed day. */
 export const STREAK_SHIELD_PRICE = 30;
 export const STREAK_SHIELD_MAX_HELD = 2;
+/** Rotating shop items offered per Tehran day (setting `shop.daily_slots`; 0 = every rotating item is always on offer). */
+export const DAILY_SHOP_SLOTS = 4;
 /** Daily rotating shop: coin prices of the slots offered each Tehran day. */
 export const DAILY_SHOP_COIN_PRICES: readonly number[] = [40, 90, 180, 350];
 /** Keepsake collection («یادگار», pieces called «تکه»). */

@@ -933,6 +933,8 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       perDayLimit: z.number().int().min(0).max(1000),
       iconKey: z.string().max(30).nullable(),
       isActive: z.boolean(),
+      /** In the daily rotating pool (`shop.daily_slots` of the rotating items are on offer each day). */
+      rotating: z.boolean().default(false),
     };
     g.get('/admin/shop', async () => ({ items: await shop.items({ includeHidden: true }) }));
     g.post('/admin/shop', async (req, reply) => {

@@ -13,10 +13,12 @@ export interface DailyRewardStatus {
   /** Coins for every configured day, for the "7-day card". */
   steps: number[];
   balance: number;
+  /** Streak shields the player holds (each saves the streak across one missed day). */
+  shields: number;
 }
 
 export type ClaimResult =
-  | { ok: true; day: number; coins: number; balance: number; nextClaimAt: number }
+  | { ok: true; day: number; coins: number; balance: number; nextClaimAt: number; /** A streak shield was spent to keep the streak. */ shieldUsed?: boolean }
   | { ok: false; error: 'TOO_EARLY'; nextClaimAt: number }
   | { ok: false; error: 'DISABLED' };
 
@@ -24,7 +26,7 @@ export type ClaimResult =
 export interface DailyRewardStore {
   getSteps(): Promise<number[] | null>;
   setSteps(steps: number[]): Promise<void>;
-  getState(userId: string): Promise<{ state: DailyRewardState; balance: number }>;
+  getState(userId: string): Promise<{ state: DailyRewardState; balance: number; /** Streak shields held; absent = none. */ shields?: number }>;
   /**
    * Atomically (one transaction, row locked): re-read the player's state, ask `decide`, and when it says `ready` record the
    * claim and credit the coins through the ledger. Returns what happened.
@@ -45,15 +47,15 @@ export class DailyRewardService {
   }
 
   async status(userId: string): Promise<DailyRewardStatus> {
-    const [steps, { state, balance }] = await Promise.all([this.steps(), this.store.getState(userId)]);
-    const d = nextDailyReward(state, steps, this.now(), await this.rules());
-    if (d.status === 'disabled') return { canClaim: false, day: 1, coins: 0, nextClaimAt: null, steps, balance };
+    const [steps, { state, balance, shields = 0 }] = await Promise.all([this.steps(), this.store.getState(userId)]);
+    const d = nextDailyReward(state, steps, this.now(), await this.rules(), shields);
+    if (d.status === 'disabled') return { canClaim: false, day: 1, coins: 0, nextClaimAt: null, steps, balance, shields };
     if (d.status === 'wait') {
       // The day it will be when the cooldown ends: the streak continues (the window is wider than the cooldown).
       const day = state.streakDay + 1;
-      return { canClaim: false, day, coins: coinsForDay(steps, day), nextClaimAt: d.availableAt, steps, balance };
+      return { canClaim: false, day, coins: coinsForDay(steps, day), nextClaimAt: d.availableAt, steps, balance, shields };
     }
-    return { canClaim: true, day: d.day, coins: d.coins, nextClaimAt: null, steps, balance };
+    return { canClaim: true, day: d.day, coins: d.coins, nextClaimAt: null, steps, balance, shields };
   }
 
   async claim(userId: string): Promise<ClaimResult> {
@@ -69,10 +71,10 @@ export class DailyRewardService {
 }
 
 /** Shared decision used by every store implementation, so the rule exists once. */
-export function decideClaim(state: DailyRewardState, steps: number[], now: number, rules: DailyRules = DEFAULT_DAILY_RULES) {
-  const d = nextDailyReward(state, steps, now, rules);
+export function decideClaim(state: DailyRewardState, steps: number[], now: number, rules: DailyRules = DEFAULT_DAILY_RULES, shields = 0) {
+  const d = nextDailyReward(state, steps, now, rules, shields);
   if (d.status === 'ready') {
-    return { kind: 'ready' as const, day: d.day, coins: d.coins, next: afterClaim(d.day, now), nextClaimAt: now + rules.cooldownHours * 3_600_000 };
+    return { kind: 'ready' as const, day: d.day, coins: d.coins, shield: d.shield === true, next: afterClaim(d.day, now), nextClaimAt: now + rules.cooldownHours * 3_600_000 };
   }
   return d.status === 'wait' ? { kind: 'wait' as const, nextClaimAt: d.availableAt } : { kind: 'disabled' as const };
 }

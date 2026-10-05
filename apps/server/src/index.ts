@@ -877,7 +877,7 @@ if (isMainModule(import.meta.url)) {
     duelStakes,
     limiter: db && settings ? new PlayLimiter(createDbPlayCountStore(db), async (mode) => settings.num(mode === 'solo' ? 'limit.solo_per_day' : 'limit.duel_per_day')) : undefined,
     hints: solo && shopStore && settings ? new HintService(solo, shopStore, () => hintRules(settings), levelOf) : undefined,
-    shop: shopStore ? new ShopService(shopStore, levelOf) : undefined,
+    shop: shopStore ? new ShopService(shopStore, levelOf, Date.now, settings ? () => settings.num('shop.daily_slots') : undefined) : undefined,
     levelRoad:
       player && settings
         ? new LevelRoadService({

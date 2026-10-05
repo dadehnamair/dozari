@@ -40,11 +40,13 @@ const whyText = (it: ShopItem): string | null => {
   return typeof w === 'function' ? w(it.minLevel) : (w ?? null);
 };
 
-const stateText = (it: ShopItem): string | null => {
+const stateText = (it: ShopItem, rotatesAt: number | null): string | null => {
   if (it.blocked === 'LEVEL') return fa.shop.needLevel(it.minLevel);
   if (it.blocked === 'DAILY_LIMIT') return fa.shop.dailyLimit;
+  if (it.blocked === 'MAX_HELD') return fa.shop.maxHeld;
   if (it.blocked === 'COINS') return fa.shop.needCoins;
   if (it.blocked === 'GEMS') return fa.shop.needGems;
+  if (it.rotating && rotatesAt) return fa.shop.todayOnly(Math.max(1, Math.ceil((rotatesAt - Date.now()) / 3_600_000)));
   return it.leftToday !== null ? fa.shop.leftToday(it.leftToday) : null;
 };
 
@@ -152,7 +154,7 @@ export function ShopSheet({ onClose, onBalance, realMoney = false }: { onClose: 
           {shown && shop === null && !note ? <SkeletonRows rows={5} avatar={false} /> : null}
           {shown
             ? items.slice(at * perPage, (at + 1) * perPage).map((it) => {
-                const why = stateText(it);
+                const why = stateText(it, shop?.rotatesAt ?? null);
                 const locked = it.blocked !== null;
                 return (
                   <View key={it.id} style={styles.cell}>

@@ -77,7 +77,7 @@ Reading:
 
 1. Simulator — **done** (`simulate-v2.ts`).
 2. Stake tables + gift fee — **done** (server, admin settings, mobile chooser; see `economy.md` §Live duel stakes).
-3. Streak shield + daily rotating shop — next.
+3. Streak shield + daily rotating shop — **done** (see `shop.md`; rotation is off until the admin flags items; shield icon is a placeholder).
 4. Keepsake collection + showcase profile, 5. city pot + season pass, 6. gem sales — not started.
 
 ## Rollout (small phase-scoped PRs)
