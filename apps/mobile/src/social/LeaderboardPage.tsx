@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { SkeletonRows } from '../components/Skeleton';
+import { swr } from '../net/cache';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { LEADERBOARD_PERIODS, LEADERBOARD_SCOPES, provinceOf, toPersianDigits } from '@dozari/shared';
 import type { Leaderboard, LeaderboardEntry, LeaderboardPeriod, LeaderboardScope } from '@dozari/shared';
@@ -43,14 +45,11 @@ export function LeaderboardPage({ onClose }: { onClose: () => void }) {
   const [nonce, setNonce] = useState(0);
   const t = fa.leaderboard;
 
+  // The last board seen for this tab shows at once (with placeholders only the very first time) and is refreshed behind it.
   useEffect(() => {
-    let alive = true;
     setBoard(null);
     setFailed(false);
-    fetchLeaderboard(scope, period).then((b) => alive && setBoard(b), () => alive && setFailed(true));
-    return () => {
-      alive = false;
-    };
+    return swr(`board.${scope}.${period}`, () => fetchLeaderboard(scope, period), (b) => setBoard(b), () => setFailed(true));
   }, [scope, period, nonce]);
 
   if (pickCity) return <CityPicker current={null} onPicked={() => (setPickCity(false), setNonce((v) => v + 1))} onClose={() => setPickCity(false)} />;
@@ -122,6 +121,7 @@ export function LeaderboardPage({ onClose }: { onClose: () => void }) {
         <View style={styles.sheet}>
           <ScrollView contentContainerStyle={styles.rows}>
             {board && entries.length === 0 ? null : <GuideBubble who="pahlevan" text={fa.leaderboard.pahlevanHello} />}
+            {board === null && !failed ? <SkeletonRows rows={7} /> : null}
             {failed ? <Text style={styles.note}>{t.error}</Text> : null}
             {board && entries.length === 0 ? <EmptyNote skin={3} pose="thinking" text={scope === 'city' && board.hasCity ? t.emptyCity : t.empty[scope]} /> : null}
             {board && scope === 'city' && !board.hasCity ? (

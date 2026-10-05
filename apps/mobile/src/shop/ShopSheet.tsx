@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
+import { SkeletonRows } from '../components/Skeleton';
+import { swr } from '../net/cache';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Shop, ShopItem } from '@dozari/shared';
 import { toPersianDigits } from '@dozari/shared';
@@ -71,12 +73,13 @@ export function ShopSheet({ onClose, onBalance, realMoney = false }: { onClose: 
   const at = Math.min(page, pages - 1);
 
   const load = useCallback(() => {
-    fetchShop().then(
+    swr.refresh('shop', fetchShop).then(
       (s) => (setShop(s), setNote(null), onBalance?.(s.balance)),
       () => setNote(fa.shop.error),
     );
   }, [onBalance]);
-  useEffect(load, [load]);
+  // The last shop seen shows at once and is refreshed behind it; a reload after a purchase skips the old copy.
+  useEffect(() => swr('shop', fetchShop, (s) => (setShop(s), setNote(null), onBalance?.(s.balance)), () => setNote(fa.shop.error)), [onBalance]);
 
   const buy = (it: ShopItem) =>
     buyItem(it.id).then(
@@ -142,6 +145,7 @@ export function ShopSheet({ onClose, onBalance, realMoney = false }: { onClose: 
 
         <View style={styles.list} onLayout={(e) => setBoxH(e.nativeEvent.layout.height)}>
         <View style={styles.grid}>
+          {shown && shop === null && !note ? <SkeletonRows rows={5} avatar={false} /> : null}
           {shown
             ? items.slice(at * perPage, (at + 1) * perPage).map((it) => {
                 const why = stateText(it);

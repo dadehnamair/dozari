@@ -38,13 +38,29 @@ export function createSwr(deps: SwrDeps) {
     }
   }
 
-  return function swr<T>(key: string, fetcher: () => Promise<T>, onData: (data: T, fromCache: boolean) => void, onError?: (err: unknown) => void): () => void {
+  async function save<T>(key: string, data: T): Promise<void> {
+    let owner = '';
+    try {
+      owner = await deps.owner();
+    } catch {
+      return;
+    }
+    await deps.store.set(storeKey(key), JSON.stringify({ owner, savedAt: now(), data } satisfies Entry<T>));
+  }
+
+  /** A plain fetch that also keeps the result as the cached copy: for the reload after an action (a purchase, a claim), where showing the old copy first would mislead. */
+  async function refresh<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
+    const data = await fetcher();
+    void save(key, data);
+    return data;
+  }
+
+  function swr<T>(key: string, fetcher: () => Promise<T>, onData: (data: T, fromCache: boolean) => void, onError?: (err: unknown) => void): () => void {
     let alive = true;
     void (async () => {
       let shown = false;
-      let owner = '';
       try {
-        owner = await deps.owner();
+        const owner = await deps.owner();
         const cached = await read<T>(key, owner);
         if (cached !== null && alive) {
           shown = true;
@@ -57,7 +73,7 @@ export function createSwr(deps: SwrDeps) {
         const fresh = await fetcher();
         if (!alive) return;
         onData(fresh, false);
-        void deps.store.set(storeKey(key), JSON.stringify({ owner, savedAt: now(), data: fresh } satisfies Entry<T>));
+        void save(key, fresh);
       } catch (err) {
         if (alive && !shown) onError?.(err);
       }
@@ -65,5 +81,7 @@ export function createSwr(deps: SwrDeps) {
     return () => {
       alive = false;
     };
-  };
+  }
+
+  return Object.assign(swr, { refresh });
 }

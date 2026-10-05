@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
+import { SkeletonRows } from '../components/Skeleton';
+import { swr } from '../net/cache';
 import { playSfx } from '../sound/engine';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { TournamentDetail, TournamentListItem } from '@dozari/shared';
@@ -34,13 +36,15 @@ export function TournamentSheet({ onClose }: { onClose: () => void }) {
   const [list, setList] = useState<TournamentListItem[] | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   useEffect(() => {
-    if (openId === null) fetchTournaments().then(setList, () => setList([]));
+    if (openId === null) return swr('tournaments', fetchTournaments, setList, () => setList([]));
+    return undefined;
   }, [openId]);
   if (openId) return <TournamentPage id={openId} onBack={() => setOpenId(null)} />;
   return (
     <PageShell title={fa.tournament.title} color={colors.candy.orange} backLabel={fa.tournament.close} onBack={onClose}>
       <ScrollView contentContainerStyle={styles.list}>
         <GuideBubble who="pahlevan" text={fa.tournament.pahlevanHello} />
+        {list === null ? <SkeletonRows rows={4} avatar={false} /> : null}
         {list && list.length === 0 ? <EmptyNote skin={0} pose="sad" text={fa.tournament.empty} /> : null}
         {list?.map((t, i) => (
           <Pressable key={t.id} onPress={() => setOpenId(t.id)} accessibilityRole="button">

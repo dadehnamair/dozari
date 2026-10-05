@@ -1,4 +1,6 @@
 import { OnlineDot } from '../components/OnlineDot';
+import { SkeletonRows } from '../components/Skeleton';
+import { swr } from '../net/cache';
 import { useCallback, useEffect, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { Friends } from '@dozari/shared';
@@ -32,9 +34,9 @@ export function FriendsPage({ onClose }: { onClose: () => void }) {
   const [find, setFind] = useState(false);
 
   const load = useCallback(() => {
-    fetchFriends().then((f) => (setData(f), setFailed(false)), () => setFailed(true));
+    swr.refresh('friends', fetchFriends).then((f) => (setData(f), setFailed(false)), () => setFailed(true));
   }, []);
-  useEffect(load, [load]);
+  useEffect(() => swr('friends', fetchFriends, (f) => (setData(f), setFailed(false)), () => setFailed(true)), []);
 
   if (find) return <FindSheet onClose={() => (setFind(false), load())} />;
   if (open) return <PlayerSheet playerId={open} onClose={() => (setOpen(null), load())} />;
@@ -53,6 +55,7 @@ export function FriendsPage({ onClose }: { onClose: () => void }) {
       <TextInput value={q} onChangeText={setQ} placeholder={fa.friends.search} placeholderTextColor="rgba(43,18,64,0.45)" style={styles.search} accessibilityLabel={fa.friends.search} />
       <ScrollView contentContainerStyle={styles.list}>
         <GuideBubble who="goli" text={fa.friends.goliHello} />
+        {data === null && !failed ? <SkeletonRows rows={6} /> : null}
         {failed ? <Text style={styles.note}>{fa.profile.error}</Text> : null}
         {data && data.incoming.length > 0 ? <Text style={styles.section}>{fa.profile.incoming}</Text> : null}
         {data?.incoming.map((p, i) => (

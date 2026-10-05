@@ -89,6 +89,18 @@ describe('swr', () => {
     expect(late).toEqual([['fresh', false]]);
   });
 
+  it('refresh fetches live, keeps the result for next time, and does not show an old copy first', async () => {
+    const { swr } = setup();
+    swr('shop', async () => 'before-purchase', () => undefined);
+    await tick();
+    expect(await swr.refresh('shop', async () => 'after-purchase')).toBe('after-purchase');
+    await tick();
+    const seen: [string, boolean][] = [];
+    swr('shop', async () => 'live', (d, c) => seen.push([d, c]));
+    await tick();
+    expect(seen[0]).toEqual(['after-purchase', true]);
+  });
+
   it('delivers nothing after it is cancelled', async () => {
     const { swr } = setup();
     const seen: string[] = [];
