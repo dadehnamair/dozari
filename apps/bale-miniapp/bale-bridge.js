@@ -13,7 +13,31 @@
     }
   }
 
+  // Bale's web view has no console: collect script errors and, if the game has drawn nothing after a while, show them on screen.
+  var errors = [];
+  window.addEventListener('error', function (e) {
+    errors.push(String(e.message || e) + (e.filename ? ' @' + e.filename.split('/').pop() + ':' + e.lineno : ''));
+  });
+  window.addEventListener('unhandledrejection', function (e) {
+    errors.push('promise: ' + String((e.reason && e.reason.message) || e.reason));
+  });
+  function watchStart() {
+    setTimeout(function () {
+      var root = document.getElementById('root');
+      if (root && root.childNodes.length) return;
+      var box = document.createElement('pre');
+      box.setAttribute('dir', 'ltr');
+      box.style.cssText =
+        'position:fixed;left:0;right:0;bottom:0;max-height:60%;overflow:auto;margin:0;padding:12px;background:#000c;color:#fff;font:11px monospace;white-space:pre-wrap;z-index:99999';
+      box.textContent =
+        'dozari: game did not start\nsdk=' + !!webApp + ' initData=' + initData.length + ' platform=' + ((webApp && webApp.platform) || '-') +
+        '\nua=' + navigator.userAgent + '\n' + errors.join('\n');
+      document.body.appendChild(box);
+    }, 8000);
+  }
+
   function startGame() {
+    watchStart();
     var holders = document.querySelectorAll('script[data-src]');
     for (var i = 0; i < holders.length; i++) {
       var s = document.createElement('script');
