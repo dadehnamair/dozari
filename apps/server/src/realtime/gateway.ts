@@ -168,7 +168,7 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
     // Chat: joining puts this socket in the global room (when open) and the room of the player's city; messages
     // arrive as `chat:message`.
     socket.on(ClientEvent.chatJoin, async (_payload: unknown, ack?: (a: Ack) => void) => {
-      if (opts.chat && (await opts.chat.globalOpen())) await socket.join(ChatService.GLOBAL_ROOM);
+      if (opts.chat && (await opts.chat.globalOpen(userId))) await socket.join(ChatService.GLOBAL_ROOM);
       const target = opts.chat ? await opts.chat.roomFor(userId) : null;
       if (!target) return ack?.({ ok: false, error: opts.chat ? 'NO_CITY' : 'FEATURE_OFF' });
       await socket.join(target);

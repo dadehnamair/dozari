@@ -3,6 +3,7 @@ import { lessonsRequestSchema } from '@dozari/shared';
 import type { LessonCard, LessonStatus } from '@dozari/shared';
 import type { AuthService } from '../auth/service.js';
 import { currentUser } from '../auth/routes.js';
+import type { LessonSeenStore } from './seen.js';
 
 export interface LessonInput {
   wordFa: string;
@@ -30,12 +31,15 @@ export interface LessonStore {
   setStatus(productId: string, status: LessonStatus, reviewer: string | null): Promise<'ok' | 'not_found'>;
 }
 
-export function registerLessonRoutes(app: FastifyInstance, auth: AuthService, store: LessonStore) {
+export function registerLessonRoutes(app: FastifyInstance, auth: AuthService, store: LessonStore, seen?: LessonSeenStore) {
   app.post('/lessons', async (req, reply) => {
     const user = await currentUser(auth, req);
     if (!user) return reply.code(401).send({ error: 'unauthorized' });
     const body = lessonsRequestSchema.safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: 'invalid_request' });
-    return { lessons: await store.approvedFor(body.data.productIds) };
+    const lessons = await store.approvedFor(body.data.productIds);
+    // Showing the cards is what the digest counts as learned; a failing write never costs the child their lesson.
+    await seen?.record(user.id, lessons.map((l) => l.productId), Date.now()).catch(() => undefined);
+    return { lessons };
   });
 }

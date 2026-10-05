@@ -1,0 +1,2 @@
+ALTER TABLE `blocked_words` ADD `track` enum('all','kid_teen') DEFAULT 'all' NOT NULL;--> statement-breakpoint
+ALTER TABLE `taunt_categories` ADD `age_track` enum('kid','teen','adult') DEFAULT 'adult' NOT NULL;

@@ -15,6 +15,8 @@ export interface TrackRules {
   freeTextChat: 'invite_code' | 'guardian_switch';
   /** Friends, friend duels and private tables only among the same track. */
   socialSameTrackOnly: boolean;
+  /** Friends, friend requests, private tables and friend duels need a linked guardian (asked once, when the child first opens them). Play, bots and the same-track quick match never do. */
+  socialNeedsGuardian: boolean;
   /** Real-money purchases (when enabled at all). */
   purchases: boolean;
   /** Home entries that need adult content or price knowledge: the daily puzzle (adult pool), «فقط حدس قیمت» and the price lookup. */
@@ -32,9 +34,9 @@ export interface TrackRules {
 }
 
 const RULES: Record<AgeTrack, TrackRules> = {
-  kid: { priceGuess: false, coinWager: false, wordLesson: true, freeTextChat: 'guardian_switch', socialSameTrackOnly: true, purchases: false, ugc: false, publicCity: false, dailyPuzzle: false, priceOnly: false, lookup: false, puzzleTracks: ['kid'], tauntTrack: 'kid' },
-  teen: { priceGuess: true, coinWager: false, wordLesson: false, freeTextChat: 'guardian_switch', socialSameTrackOnly: true, purchases: false, ugc: false, publicCity: false, dailyPuzzle: false, priceOnly: true, lookup: true, puzzleTracks: ['teen'], tauntTrack: 'teen' },
-  adult: { priceGuess: true, coinWager: true, wordLesson: false, freeTextChat: 'invite_code', socialSameTrackOnly: false, purchases: true, ugc: true, publicCity: true, dailyPuzzle: true, priceOnly: true, lookup: true, puzzleTracks: ['adult'], tauntTrack: 'adult' },
+  kid: { priceGuess: false, coinWager: false, wordLesson: true, freeTextChat: 'guardian_switch', socialSameTrackOnly: true, socialNeedsGuardian: true, purchases: false, ugc: false, publicCity: false, dailyPuzzle: false, priceOnly: false, lookup: false, puzzleTracks: ['kid'], tauntTrack: 'kid' },
+  teen: { priceGuess: true, coinWager: false, wordLesson: false, freeTextChat: 'guardian_switch', socialSameTrackOnly: true, socialNeedsGuardian: true, purchases: false, ugc: false, publicCity: false, dailyPuzzle: false, priceOnly: true, lookup: true, puzzleTracks: ['teen'], tauntTrack: 'teen' },
+  adult: { priceGuess: true, coinWager: true, wordLesson: false, freeTextChat: 'invite_code', socialSameTrackOnly: false, socialNeedsGuardian: false, purchases: true, ugc: true, publicCity: true, dailyPuzzle: true, priceOnly: true, lookup: true, puzzleTracks: ['adult'], tauntTrack: 'adult' },
 };
 
 export function trackRules(track: AgeTrack): TrackRules {
