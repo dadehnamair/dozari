@@ -150,6 +150,7 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'landing.indexable', group: 'seo', label: 'موتورهای جستجو سایت را ایندکس کنند', hint: 'خاموش = همه‌ی صفحه‌ها noindex و robots.txt همه چیز را می‌بندد (برای پیش از راه‌اندازی)', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'seo.verify_google', group: 'seo', label: 'کد تأیید مالکیت سرچ‌کنسول گوگل', hint: 'فقط مقدار content تگ google-site-verification', kind: 'text', min: 0, max: 100, default: '' },
   { key: 'seo.verify_bing', group: 'seo', label: 'کد تأیید مالکیت Bing', hint: 'مقدار content تگ msvalidate.01', kind: 'text', min: 0, max: 100, default: '' },
+  { key: 'seo.verify_enamad', group: 'seo', label: 'کد تأیید ای‌نماد', hint: 'مقدار content تگ enamad', kind: 'text', min: 0, max: 100, default: '40890646' },
   { key: 'seo.verify_yandex', group: 'seo', label: 'کد تأیید مالکیت Yandex', hint: 'مقدار content تگ yandex-verification', kind: 'text', min: 0, max: 100, default: '' },
   { key: 'analytics.script_url', group: 'seo', label: 'آدرس اسکریپت آمار خودمیزبان (مثل Umami)', hint: 'مثل https://stats.example.ir/script.js روی سرور خودت؛ خالی = بدون آمار. از سرویس‌های گوگل استفاده نکن', kind: 'text', min: 0, max: 300, default: '' },
   { key: 'analytics.site_id', group: 'seo', label: 'شناسه‌ی سایت در سرویس آمار (data-website-id)', kind: 'text', min: 0, max: 100, default: '' },

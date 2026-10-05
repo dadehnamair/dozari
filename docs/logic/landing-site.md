@@ -21,7 +21,7 @@ Admin panel → settings → group «سئو و سایت معرفی» (`seo`): th
 `landing.og_image` + `landing.og_image_alt` (every page's `og:image`; empty = the generated card at `/og.svg`), `landing.same_as`
 (more official profile URLs for `sameAs`, http(s) only), `landing.font_url` (a self-hosted woff2 → `@font-face` + preload; no Google
 fonts), `landing.indexable` (off = every page `noindex`, `robots.txt` closes the site, the sitemap lists no posts) and the
-site-verification codes `seo.verify_google|bing|yandex` (letters, digits, `-`, `_` only; emitted as the matching `<meta>`).
+site-verification codes `seo.verify_google|bing|yandex|enamad` (enamad defaults to the owner's code; letters, digits, `-`, `_` only; emitted as the matching `<meta>`).
 They reach `apps/landing` through `site.seo` of `GET /public/landing`. Links and domains (`link.*`, `domain.*`) are in the group «مدیریت اپ».
 
 ## Waiting for the owner
