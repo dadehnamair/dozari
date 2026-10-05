@@ -1,5 +1,7 @@
 # Coin economy (defaults accepted, tunable — D9, confirmed 2026-09-27)
 
+> Next steps for sinks, daily habit, collection cards and the showcase profile: `docs/logic/economy-v2.md` (D204, proposed).
+
 Goal from the brief: coins come from inviting friends and playing; entering matches/tables costs coins;
 an active player should **never get stuck** at zero. All numbers → `packages/shared/src/config/economy.ts`.
 
