@@ -89,10 +89,10 @@ export class LandingService {
   };
 
   /** The try-it puzzle of the landing: today's pick among the eligible approved puzzles, as four titled groups of four icons. */
-  async publicDemo(): Promise<{ groups: { level: number; title: string; items: { name: string; svg: string }[] }[] } | null> {
+  async publicDemo(): Promise<{ groups: { level: number; title: string; items: { name: string; svg: string; image: string | null }[] }[] } | null> {
     const day = Math.floor(this.now() / 86_400_000);
     const groups = await this.store.demoPuzzle((n) => day % n);
-    return groups ? { groups: groups.map((g) => ({ level: g.level, title: g.titleFa, items: g.items.map((i) => ({ name: i.nameFa, svg: itemSvg(i.iconKey) })) })) } : null;
+    return groups ? { groups: groups.map((g) => ({ level: g.level, title: g.titleFa, items: g.items.map((i) => ({ name: i.nameFa, svg: itemSvg(i.iconKey), image: i.imageUrl && /^https?:\/\//.test(i.imageUrl) ? i.imageUrl : null })) })) } : null;
   }
 
   faq = {

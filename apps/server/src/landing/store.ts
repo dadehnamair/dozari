@@ -1,4 +1,4 @@
-import { and, asc, dailyPuzzles, desc, eq, landingCast, landingFaq, landingPosts, landingSlugRedirects, products, puzzleGroupItems, puzzleGroups, puzzles, sql } from '@dozari/db';
+import { and, asc, dailyPuzzles, desc, eq, landingCast, landingFaq, landingPosts, landingSlugRedirects, productImages, products, puzzleGroupItems, puzzleGroups, puzzles, sql } from '@dozari/db';
 import type { Db } from '@dozari/db';
 import { uuidv7 } from 'uuidv7';
 
@@ -43,7 +43,7 @@ export type NewFaq = Omit<FaqRow, 'id' | 'sortOrder'>;
 export interface DemoGroupRow {
   level: number;
   titleFa: string;
-  items: { nameFa: string; iconKey: string }[];
+  items: { nameFa: string; iconKey: string; imageUrl: string | null }[];
 }
 
 /** I/O boundary of the landing content (blog, cast, FAQ). */
@@ -159,7 +159,14 @@ export function createDbLandingStore(db: Db): LandingStore {
       if (candidates.length === 0) return null;
       const chosen = candidates[Math.min(Math.max(pick(candidates.length), 0), candidates.length - 1)]!.id;
       const rows = await db
-        .select({ level: puzzleGroups.level, titleFa: puzzleGroups.titleFa, nameFa: products.nameFa, iconKey: products.iconKey })
+        .select({
+          level: puzzleGroups.level,
+          titleFa: puzzleGroups.titleFa,
+          nameFa: products.nameFa,
+          iconKey: products.iconKey,
+          // The primary photo, else the oldest one; only absolute web addresses (the landing is another origin).
+          imageUrl: sql<string | null>`(SELECT ${productImages.url} FROM ${productImages} WHERE ${productImages.productId} = ${products.id} AND ${productImages.url} LIKE 'http%' ORDER BY ${productImages.isPrimary} DESC, ${productImages.createdAt} ASC LIMIT 1)`,
+        })
         .from(puzzleGroups)
         .innerJoin(puzzleGroupItems, eq(puzzleGroupItems.groupId, puzzleGroups.id))
         .innerJoin(products, eq(products.id, puzzleGroupItems.productId))
@@ -169,7 +176,7 @@ export function createDbLandingStore(db: Db): LandingStore {
       for (const r of rows) {
         if (!r.titleFa || !r.iconKey) return null;
         const g = byLevel.get(r.level) ?? { level: r.level, titleFa: r.titleFa, items: [] };
-        g.items.push({ nameFa: r.nameFa, iconKey: r.iconKey });
+        g.items.push({ nameFa: r.nameFa, iconKey: r.iconKey, imageUrl: r.imageUrl });
         byLevel.set(r.level, g);
       }
       const groups = [...byLevel.values()];

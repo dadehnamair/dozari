@@ -116,10 +116,11 @@ describe('landing site', () => {
   });
 
   it('draws the try-it puzzle from the catalog with icons, and keeps the static one when there is none', async () => {
-    const demo: DemoPuzzle = { groups: [0, 1, 2, 3].map((level) => ({ level, title: `گروه ${level}`, items: [0, 1, 2, 3].map((n) => ({ name: `کالا ${level}${n}`, svg: '<svg viewBox="0 0 8 8"></svg>' })) })) };
+    const demo: DemoPuzzle = { groups: [0, 1, 2, 3].map((level) => ({ level, title: `گروه ${level}`, items: [0, 1, 2, 3].map((n) => ({ name: `کالا ${level}${n}`, svg: '<svg viewBox="0 0 8 8"></svg>', image: n === 0 ? 'https://cdn.example/p.jpg' : null })) })) };
     const live = (await buildLanding({ api: fakeApi({}, [POST], {}, DATA, demo), siteUrl: 'https://mrdozari.ir' }).inject({ method: 'GET', url: '/' })).body;
     expect(live).toContain('class="demo icons"');
-    expect(live.match(/<button class="t"[^>]*><svg/g)).toHaveLength(16);
+    expect(live.match(/<button class="t"[^>]*><svg/g)).toHaveLength(12);
+    expect(live.match(/<button class="t"[^>]*><img src="https:\/\/cdn.example\/p.jpg"/g)).toHaveLength(4);
     expect(live).toContain('کالا 00');
     const fallback = (await boot().inject({ method: 'GET', url: '/' })).body;
     expect(fallback).not.toContain('demo icons');

@@ -46,7 +46,7 @@ export interface LandingData {
 }
 /** The try-it puzzle: groups in difficulty order (level 0 = easiest), each item an icon drawn by the game server. */
 export interface DemoPuzzle {
-  groups: { level: number; title: string; items: { name: string; svg: string }[] }[];
+  groups: { level: number; title: string; items: { name: string; svg: string; image: string | null }[] }[];
 }
 export interface PostSummary {
   slug: string;

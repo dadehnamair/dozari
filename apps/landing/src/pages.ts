@@ -201,7 +201,7 @@ main{overflow-x:clip}
 .demo{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
 .dgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 .dgrid .t{font:800 17px/1.3 Vazirmatn,sans-serif;min-height:68px;padding:8px 4px;border:3px solid var(--ink);border-radius:16px;background:var(--cream);color:var(--ink);cursor:pointer;box-shadow:0 4px 0 var(--ink);transition:transform .12s,background .15s}
-.demo.icons .dgrid .t{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:14px;min-height:96px}.demo.icons .dgrid .t svg{width:46px;height:46px;flex:none;pointer-events:none}.demo.icons .dgrid .t span{pointer-events:none}.dgrid .t:hover{transform:translateY(-2px)}.dgrid .t[aria-pressed=true]{background:var(--violet);color:var(--cream);transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.demo.icons .dgrid .t{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:14px;min-height:96px}.demo.icons .dgrid .t svg{width:46px;height:46px;flex:none;pointer-events:none}.demo.icons .dgrid .t img{width:56px;height:56px;object-fit:cover;border-radius:12px;border:2px solid var(--ink);background:#fff;flex:none;pointer-events:none}.demo.icons .dgrid .t span{pointer-events:none}.dgrid .t:hover{transform:translateY(-2px)}.dgrid .t[aria-pressed=true]{background:var(--violet);color:var(--cream);transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
 .dgrid .t.done{cursor:default;box-shadow:none;transform:none;color:var(--ink);background:var(--gc)}
 .dgrid .t.shake{animation:shake .45s}.dgrid .t.pop{animation:pop .5s}
 .dgrid .gb{grid-column:1/-1;border:3px solid var(--ink);border-radius:16px;padding:6px 12px;text-align:center;font-family:var(--display);font-size:22px;line-height:1.5;background:var(--gc);color:var(--ink)}
@@ -408,14 +408,14 @@ const DEMO_GROUPS = [
   ['چای‌خانه‌ی سنتی', ['نی', 'استکان', 'سماور', 'قلیون']],
 ] as const;
 const DEMO_ORDER = [4, 12, 1, 9, 7, 0, 14, 5, 10, 3, 13, 8, 2, 15, 6, 11];
-type DemoTile = { x: string; g: number; svg?: string };
+type DemoTile = { x: string; g: number; svg?: string; image?: string | null };
 const demo = (live: DemoPuzzle | null): string => {
   const ok = live !== null && live.groups.length === 4 && live.groups.every((g) => g.items.length === 4);
   const titles = ok ? live.groups.map((g) => g.title) : DEMO_GROUPS.map(([t]) => t);
-  const words: DemoTile[] = ok ? live.groups.flatMap((g, n) => g.items.map((i) => ({ x: i.name, g: n, svg: i.svg }))) : DEMO_GROUPS.flatMap(([, w], g) => w.map((x) => ({ x, g })));
+  const words: DemoTile[] = ok ? live.groups.flatMap((g, n) => g.items.map((i) => ({ x: i.name, g: n, svg: i.svg, image: i.image }))) : DEMO_GROUPS.flatMap(([, w], g) => w.map((x) => ({ x, g })));
   const tiles = DEMO_ORDER.map((i) => words[i] as DemoTile);
   return `<div class="demo${ok ? ' icons' : ''}" id="demo" data-groups='${escapeHtml(JSON.stringify(titles))}'>
-<div class="dgrid">${tiles.map((t) => `<button class="t" type="button" data-g="${t.g}" aria-pressed="false">${t.svg ?? ''}<span>${escapeHtml(t.x)}</span></button>`).join('')}</div>
+<div class="dgrid">${tiles.map((t) => `<button class="t" type="button" data-g="${t.g}" aria-pressed="false">${t.image && /^https?:\/\//.test(t.image) ? `<img src="${escapeHtml(t.image)}" alt="" loading="lazy" decoding="async">` : (t.svg ?? '')}<span>${escapeHtml(t.x)}</span></button>`).join('')}</div>
 <p class="dmsg" role="status" aria-live="polite">چهارتا کالای هم‌دسته را انتخاب کن</p>
 <div class="dbar"><button class="btn" type="button" data-act="submit" disabled>ثبت کن</button><button class="btn yellow" type="button" data-act="reset">از اول</button></div>
 <p class="dnote">${ok ? 'یک پازل واقعی از بازی؛ گروه‌ها بر پایه‌ی قیمت کالاها در سال‌های گذشته‌اند.' : 'نمونه‌ی ساده با کلمه‌ها؛ در بازی اصلی گروه‌ها بر پایه‌ی قیمت کالاها در سال‌های گذشته‌اند.'}</p></div>`;
