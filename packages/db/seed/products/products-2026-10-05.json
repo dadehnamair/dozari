@@ -2758,14 +2758,6 @@
     "status": "discontinued",
     "prices": [
       {
-        "year": 1368,
-        "toman": 250000,
-        "source_type": "archive_newspaper",
-        "source_note": "نرخ غیررسمی بازار سیاه لوازم صوتی",
-        "confidence": 3,
-        "status": "approved"
-      },
-      {
         "year": 1378,
         "toman": 140000,
         "source_type": "archive_newspaper",
@@ -3087,22 +3079,6 @@
         "source_note": "مبلغ رسمی ثبت‌نام اولین دوره تلفن همراه",
         "confidence": 3,
         "status": "approved"
-      },
-      {
-        "year": 1382,
-        "toman": 1000000,
-        "source_type": "archive_newspaper",
-        "source_note": "قیمت بازار آزاد سیم‌کارت کد یک",
-        "confidence": 3,
-        "status": "approved"
-      },
-      {
-        "year": 1388,
-        "toman": 288000,
-        "source_type": "official_list",
-        "source_note": "ثبت‌نام رسمی سیم‌کارت دائمی دولتی",
-        "confidence": 3,
-        "status": "approved"
       }
     ]
   },
@@ -3116,14 +3092,6 @@
     "story_fa": "کارت‌های مستطیلی با روکش اسکرچ و صدای معروف بوق مودم برای اتصال به وب.",
     "status": "discontinued",
     "prices": [
-      {
-        "year": 1378,
-        "toman": 15000,
-        "source_type": "archive_newspaper",
-        "source_note": "تعرفه اشتراک ماهانه شرکت‌های ندا",
-        "confidence": 3,
-        "status": "approved"
-      },
       {
         "year": 1385,
         "toman": 5000,
