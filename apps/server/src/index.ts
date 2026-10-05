@@ -84,6 +84,7 @@ import { startBotScheduler } from './bot/scheduler.js';
 import { TextFilterService, createDbWordStore } from './textfilter/service.js';
 import { createBaleClient } from './notify/client.js';
 import { NotifyService } from './notify/service.js';
+import { createBaleSignup } from './notify/signup.js';
 import { startNotifyRunner } from './notify/runner.js';
 import { registerBaleRoutes } from './notify/routes.js';
 import { MessageCenter } from './messages/service.js';
@@ -452,14 +453,12 @@ if (isMainModule(import.meta.url)) {
   const adminToken = process.env.ADMIN_TOKEN;
   const jwtSecret = process.env.JWT_SECRET ?? (process.env.NODE_ENV === 'production' ? undefined : 'dev-only-secret-change-me');
   if (db && !jwtSecret) throw new Error('JWT_SECRET is required in production');
-  const auth =
-    db && jwtSecret
-      ? new AuthService(createDbUserRepository(db), createTokenSigner(jwtSecret), Math.random, async (userId) => {
-          // The signup faucet (docs/logic/economy.md): once per new account; the key makes a retry a no-op.
-          const bonus = (await settings?.num('economy.signup_bonus')) ?? 0;
-          if (bonus > 0) await db.transaction(async (tx) => void (await applyLedgerEntry(tx, { userId, delta: bonus, reason: 'signup_bonus', refType: 'user', refId: userId, idempotencyKey: `signup_bonus:${userId}` })));
-        })
-      : undefined;
+  // The signup faucet (docs/logic/economy.md): once per new account; the key makes a retry a no-op.
+  const grantSignupBonus = async (userId: string) => {
+    const bonus = (await settings?.num('economy.signup_bonus')) ?? 0;
+    if (db && bonus > 0) await db.transaction(async (tx) => void (await applyLedgerEntry(tx, { userId, delta: bonus, reason: 'signup_bonus', refType: 'user', refId: userId, idempotencyKey: `signup_bonus:${userId}` })));
+  };
+  const auth = db && jwtSecret ? new AuthService(createDbUserRepository(db), createTokenSigner(jwtSecret), Math.random, grantSignupBonus) : undefined;
   const settings = db ? new SettingsService(createDbSettingsStore(db)) : undefined;
   const presence = new Presence();
   const notices = createLiveNotices();
@@ -479,6 +478,7 @@ if (isMainModule(import.meta.url)) {
         return { nickname: row?.nickname ?? '', avatarKey: row?.avatarKey ?? 'avatar-01', level: lv?.level.level ?? 1, coins: row?.coins ?? 0 };
       }) : undefined;
   if (notify && phone) notify.phone = phone;
+  if (notify && db) notify.signup = createBaleSignup(db, grantSignupBonus);
   const phoneLogin = db && auth ? new PhoneLoginService(createDbPhoneStore(db), auth, smsClient) : undefined;
   const deletion = db ? new AccountDeletion(createDbDeleteCodeStore(db), createDbPhoneStore(db), smsClient, notify ? (id, text) => notify.notify(id, 'security', text) : null) : undefined;
   const words = db ? new TextFilterService(createDbWordStore(db)) : undefined;
