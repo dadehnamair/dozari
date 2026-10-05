@@ -152,6 +152,7 @@ export default function App() {
       {screen === 'splash' ? <SplashScreen /> : null}
       {screen === 'login' ? (
         <LoginScreen
+          ageTracksOn={config.raw['feature.age_tracks'] === 1}
           onDone={(r) =>
             void markLoginSeen().then(async () => {
               if (await ageTrackNeeded(config.raw)) return setScreen('ageTrack');

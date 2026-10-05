@@ -1,4 +1,4 @@
-import { randomInt } from 'node:crypto';
+import { randomInt, randomUUID } from 'node:crypto';
 import Fastify from 'fastify';
 import fastifyCors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
@@ -129,6 +129,8 @@ import { registerFeedbackRoutes } from './feedback/routes.js';
 import { createDbBirthdayStore } from './profile/birthday-store.js';
 import { AgeTrackService, registerAgeTrackRoutes } from './agetrack/service.js';
 import { createDbAgeTrackStore } from './agetrack/store.js';
+import { GuardianService, registerGuardianRoutes } from './guardian/service.js';
+import { createDbGuardianStore } from './guardian/store.js';
 import { registerLessonRoutes } from './lessons/service.js';
 import type { LessonStore } from './lessons/service.js';
 import { createDbLessonStore } from './lessons/store.js';
@@ -238,6 +240,8 @@ export interface ServerDeps {
   ageTracks?: AgeTrackService;
   /** Kid word lessons (D198). */
   lessons?: LessonStore;
+  /** Guardian links: child profiles, link codes, band-change approval (D198). */
+  guardian?: GuardianService;
   /** Reports of players and the suggestion / vote / approve loop (D177). */
   feedback?: FeedbackService;
   gems?: Pick<GemWalletReader, 'wallet'>;
@@ -354,6 +358,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.birthday) registerBirthdayRoutes(app, deps.auth, deps.birthday);
   if (deps.auth && deps.ageTracks) registerAgeTrackRoutes(app, deps.auth, deps.ageTracks);
   if (deps.auth && deps.lessons) registerLessonRoutes(app, deps.auth, deps.lessons);
+  if (deps.auth && deps.guardian) registerGuardianRoutes(app, deps.auth, deps.guardian);
   if (deps.auth && deps.feedback) registerFeedbackRoutes(app, deps.auth, deps.feedback);
   if (deps.auth && deps.gems) registerGemRoutes(app, deps.auth, deps.gems);
   if (deps.landing && deps.settings) registerLandingPublicRoutes(app, deps.landing, deps.settings);
@@ -576,6 +581,10 @@ if (isMainModule(import.meta.url)) {
         })
       : undefined;
   const ageTracks = db && settings ? new AgeTrackService(createDbAgeTrackStore(db), async () => (await settings.num('feature.age_tracks')) === 1) : undefined;
+  const guardian =
+    db && auth && phoneLogin
+      ? new GuardianService(createDbGuardianStore(db), createDbAgeTrackStore(db), phoneLogin, createDbPhoneStore(db), auth, () => `guardian:${randomUUID()}`)
+      : undefined;
   const productAdmin = db ? createDbProductAdmin(db) : undefined;
   const feedback = db && settings && productAdmin ? buildFeedbackService({ db, settings, productAdmin, player, socialStore }) : undefined;
   const duelStakes =
@@ -767,6 +776,7 @@ if (isMainModule(import.meta.url)) {
     birthday,
     ageTracks,
     lessons: db ? createDbLessonStore(db) : undefined,
+    guardian,
     feedback,
     profileTasks:
       db && settings

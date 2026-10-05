@@ -24,6 +24,9 @@ const FEATURE_OF: [prefix: string, setting: string][] = [
   ['/price-only', 'feature.priceonly'],
   ['/transfers', 'feature.friends'],
   ['/loans', 'feature.friends'],
+  ['/guardian', 'feature.age_tracks'],
+  ['/me/guardian', 'feature.age_tracks'],
+  ['/lessons', 'feature.age_tracks'],
 ];
 
 /** Admin kill switches (maintenance mode, feature flags) applied to an HTTP path; null = let it through. */

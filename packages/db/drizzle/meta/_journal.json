@@ -421,6 +421,13 @@
       "when": 1791196884270,
       "tag": "0059_heavy_molten_man",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "5",
+      "when": 1791198179570,
+      "tag": "0060_spicy_major_mapleleaf",
+      "breakpoints": true
     }
   ]
 }

@@ -96,6 +96,9 @@ Human/AI-written witty titles, matched to rule kinds; `times_chosen` counts how 
 chat_unlocked_at timestamptz null, invited_by uuid null, is_banned bool, created_at, last_seen_at,
 age_track enum(kid,teen,adult) default adult, age_track_set_at datetime(3) null` (D198, `logic/age-tracks.md`; `puzzles` and `products` also carry `age_track`)
 
+### `guardian_links`, `guardian_link_codes`
+`guardian_links(child_id PK/FK, guardian_id FK, created_at)`; `guardian_link_codes(code char(6) PK, child_id FK, guardian_id FK, expires_at)` (D198).
+
 ### `item_lessons`
 `product_id PK/FK, word_fa, story_fa, syllables_fa null, status enum(draft,approved), reviewed_by, reviewed_at, updated_at` — kid word lesson of an item; only `approved` rows are served (D198).
 

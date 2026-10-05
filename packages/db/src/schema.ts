@@ -96,6 +96,29 @@ export const products = mysqlTable('products', {
     .$onUpdate(() => new Date()),
 });
 
+/** A child profile held by a guardian (D198, docs/logic/age-tracks.md). One guardian per child; revoking deletes the row. */
+export const guardianLinks = mysqlTable(
+  'guardian_links',
+  {
+    childId: fk('child_id')
+      .primaryKey()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    guardianId: fk('guardian_id').references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({
+    byGuardian: index('guardian_links_guardian_idx').on(table.guardianId),
+  }),
+);
+
+/** A short code a guardian shows so the child's device can sign in as the child: 6 digits, 10 minutes, one use. */
+export const guardianLinkCodes = mysqlTable('guardian_link_codes', {
+  code: char('code', { length: 6 }).primaryKey(),
+  childId: fk('child_id').references(() => users.id, { onDelete: 'cascade' }),
+  guardianId: fk('guardian_id').references(() => users.id, { onDelete: 'cascade' }),
+  expiresAt: datetime('expires_at', { mode: 'date', fsp: 3 }).notNull(),
+});
+
 /** Kid word lesson of an item (D198): the word, a one-line story and an optional syllable split. Only `approved` lessons are served. */
 export const itemLessons = mysqlTable('item_lessons', {
   productId: fk('product_id')

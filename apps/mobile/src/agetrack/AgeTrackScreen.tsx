@@ -7,6 +7,7 @@ import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { safeTop } from '../theme/safeArea';
 import { saveAgeTrack } from './api';
+import { GuardianStep } from './GuardianStep';
 import { forgetTrackRules } from './useTrackRules';
 
 const INK = '#2B1240';
@@ -19,13 +20,15 @@ export function AgeTrackScreen({ onDone }: { onDone: (track: AgeTrack) => void }
   const l = fa.ageTrack;
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  /** A kid or teen who just picked: the guardian step comes next (skippable). */
+  const [picked, setPicked] = useState<AgeTrack | null>(null);
   const tight = useWindowDimensions().height < 700;
   const pick = (track: AgeTrack) => {
     if (busy) return;
     setBusy(true);
     setFailed(false);
     saveAgeTrack(track).then(
-      () => (forgetTrackRules(), onDone(track)),
+      () => (forgetTrackRules(), track === 'adult' ? onDone(track) : (setBusy(false), setPicked(track))),
       () => (setBusy(false), setFailed(true)),
     );
   };
@@ -43,13 +46,14 @@ export function AgeTrackScreen({ onDone }: { onDone: (track: AgeTrack) => void }
         <Text style={styles.subHeading}>{l.sub}</Text>
       </View>
       <View style={[styles.card, tight ? styles.cardTight : null]}>
-        {rows.map((r) => (
+        {picked ? <GuardianStep onDone={() => onDone(picked)} /> : null}
+        {picked ? null : rows.map((r) => (
           <View key={r.track} style={styles.row}>
             <SlabButton label={busy ? l.saving : r.label} color={r.color} height={tight ? 50 : 58} fontSize={24} grow={0} disabled={busy} sfx="confirm" onPress={() => pick(r.track)} />
             <Text style={styles.hint}>{r.hint}</Text>
           </View>
         ))}
-        {failed ? <Text style={styles.error}>{l.failed}</Text> : null}
+        {failed && !picked ? <Text style={styles.error}>{l.failed}</Text> : null}
       </View>
     </View>
   );

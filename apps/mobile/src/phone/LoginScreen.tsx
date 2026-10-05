@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Keyboard, Platform, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { toPersianDigits } from '@dozari/shared';
+import { ChildCodeSheet } from '../agetrack/ChildCodeSheet';
 import { Character } from '../components/Character';
 import { Scene } from '../components/Scene';
 import { SlabButton } from '../components/SlabButton';
@@ -21,7 +22,8 @@ const errText = (e: unknown): string => fa.phoneLogin.errors[e instanceof ApiErr
  * «+98», then the five-box code — with «مهمان بازی کن» under it. Shown once on a fresh install when the server can send codes;
  * playing never needs it.
  */
-export function LoginScreen({ onDone }: { onDone: (r: { signedIn: boolean; created: boolean }) => void }) {
+export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { signedIn: boolean; created: boolean }) => void; /** The server's age-track switch: shows «ورود با کد والدین» for a child's own device. */ ageTracksOn?: boolean }) {
+  const [childCodeOpen, setChildCodeOpen] = useState(false);
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [typed, setTyped] = useState('');
   const [code, setCode] = useState('');
@@ -119,7 +121,13 @@ export function LoginScreen({ onDone }: { onDone: (r: { signedIn: boolean; creat
         <Pressable accessibilityRole="button" onPress={() => onDone({ signedIn: false, created: false })} style={({ pressed }) => [styles.guest, pressed ? styles.guestPressed : null]}>
           <Text style={styles.guestText}>{l.guest}</Text>
         </Pressable>
+        {ageTracksOn ? (
+          <Pressable accessibilityRole="button" onPress={() => setChildCodeOpen(true)}>
+            <Text style={styles.link}>{fa.guardian.childLoginRow}</Text>
+          </Pressable>
+        ) : null}
       </View>
+      {childCodeOpen ? <ChildCodeSheet onClose={() => setChildCodeOpen(false)} onDone={() => onDone({ signedIn: true, created: true })} /> : null}
     </View>
   );
 }
