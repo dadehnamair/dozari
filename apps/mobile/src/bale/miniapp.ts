@@ -4,6 +4,7 @@ import { Platform } from 'react-native';
 export interface BaleWebApp {
   initData: string;
   openInvoice(link: string, callback?: (result: { status: string }) => void): void;
+  BackButton?: { show(): void; hide(): void; onClick(callback: () => void): void; offClick(callback: () => void): void };
 }
 
 export type InvoiceStatus = 'paid' | 'cancelled' | 'failed' | 'pending';
