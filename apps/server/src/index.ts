@@ -255,6 +255,8 @@ export interface ServerDeps {
   ageTracks?: AgeTrackService;
   /** Minutes in the app per day (the app's heartbeat), for the guardian's reminder and digest. */
   playTime?: PlayTimeService;
+  /** May this player preview the kid and teen space (a guardian with at least one child)? */
+  canPreview?: (userId: string) => Promise<boolean>;
   /** Kid word lessons (D198). */
   lessons?: LessonStore;
   /** Which word lessons a player saw (the guardian's digest). */
@@ -405,7 +407,7 @@ export function buildServer(deps: ServerDeps = {}) {
     if (!online) void deps.notify?.notify(friendId, 'table_invite', BALE_TEXT.tableInvite(r.message.nickname)).catch(() => undefined);
     return { ok: true, online };
   } : undefined);
-  if (deps.solo) registerSoloRoutes(app, deps.solo, deps.auth, deps.hints, deps.limiter);
+  if (deps.solo) registerSoloRoutes(app, deps.solo, deps.auth, deps.hints, deps.limiter, deps.canPreview);
   if (deps.priceOnly) registerPriceOnlyRoutes(app, deps.priceOnly, deps.auth);
   if (deps.auth && deps.shop) registerShopRoutes(app, deps.auth, deps.shop);
   if (deps.auth && deps.levelRoad) registerRoadRoutes(app, deps.auth, deps.levelRoad);
@@ -885,6 +887,7 @@ if (isMainModule(import.meta.url)) {
     birthday,
     ageTracks,
     playTime,
+    canPreview: guardianStore ? async (id) => (await guardianStore.childrenOf(id)).length > 0 : undefined,
     lessons: db ? createDbLessonStore(db) : undefined,
     lessonSeen,
     guardian,

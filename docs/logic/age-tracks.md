@@ -245,7 +245,6 @@ Setting `feature.age_tracks` (admin → settings → app, **default off**): off 
   Each switch saves at once and rolls back with a note if the save fails. The child's app reads `limits` from `GET /me/age-track` every minute (`useMyTrack`): the **tables tile disappears** when duels are off and the **city chat tile is not drawn** for kid/teen (no lock, no refusal),
   `PlayerSheet` answers `ask_guardian` with one friendly line, and `RestCardView` (pure rule `restCardFor`) shows the **soft rest card** in quiet hours or after `reminderMinutes` in this app session, dismissible for `QUIET_CARD_SNOOZE_MINUTES` (10) — never a lock-out.
   The play reminder counts the larger of this app session and the server's per-day minutes (see «Guardian extras»); quiet hours use the phone's own clock.
-  Not yet: «block a friend» as its own switch (removing a friend is there; a re-request is possible), a per-day play-time log for a truer reminder, and a «preview the kid space» mode for a guardian.
 - **Audit pass, hard walls closed** (after phases 4–5 an audit found rules that existed only in `trackRules` and the app): 
   - **No coin wagers:** `MatchService` takes no stake (`wagerAllowed`) when either human is a kid or teen, so a queue duel is friendly (no entry fee, no payout); the queue's `canAfford` check skips them (`ageTracks.allows(user, 'coinWager')`).
   - **Request gate by path** (`trackRuleForPath`, one `onRequest` hook): a kid or teen gets `403 {error:"age_track"}` on `/coin-packages`, `/shop-pay` (real money, rule `purchases`), `/ugc` (`ugc`), `/tournaments` (new rule `tournaments`: adult only until kid/teen tournaments exist),
@@ -266,7 +265,15 @@ Setting `feature.age_tracks` (admin → settings → app, **default off**): off 
   (one `meetable` gate in front of social and find, either direction); the panel has a «بلاک» button on each friend and a list to unblock. **Play time** (`play_minutes(user_id, day_key, minutes)`): a kid/teen's open app posts `POST /me/heartbeat` once a minute while
   in front (`useMyTrack`); the server counts at most one minute per `PLAY_HEARTBEAT_MIN_GAP_MS` (50 s) so a modified client cannot inflate it, a day caps at `PLAY_MINUTES_DAY_CAP`, and the total comes back as `limits.playedToday`
   (the rest card compares the larger of this session and today's minutes with the reminder) and as `minutesWeek` in the digest — **the reminder is now per day, not per session**.
-- Not yet: the rest of the 30–50 kid puzzles; a track filter on the other admin lists (puzzles, items, tournaments, reports…);
+- **Guardian preview** («پیش‌نمایش فضای کودک/نوجوان» in «فرزندان من»): `POST /solo/start {preview:"kid"|"teen"}` serves a real puzzle of that track's pool to a guardian (an adult with at least one child; anyone else gets `403 not_a_guardian`) as a session
+  with **no account behind it**, so no level, XP, coins, daily cap or hint is touched. The app opens `SoloScreen` with `previewTrack` (the shared `trackRules(track)` apply: word lesson for kid, no price round for kid), a yellow banner says nothing is saved, and there is no offline fallback.
+- **Still open** (content or product calls, nothing blocks the code):
+  - content: the rest of the 30–50 kid puzzles, more teen puzzles, and **approving** the seeded kid/teen drafts (a track with no approved puzzle has nothing to play);
+  - teen pool: the spec's «easy adult groups» for teens and the adult option to play the teen pool; kid and teen tournaments (adults only until they exist);
+  - bots stay track-neutral (a kid-friendly nickname list and a kid taunt set for bots); match history does not record `age_track` because matches are not persisted yet;
+  - admin: a track filter on the bot-player, ledger and tournament lists (the economy page and ledger are not split by band);
+  - owner calls: the strict word list for kid/teen, store rules for a kids' section (Bazaar, Myket, Bale), a mascot or kid art.
+
 
 ## Phases
 

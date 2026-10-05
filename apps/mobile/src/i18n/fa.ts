@@ -1182,6 +1182,8 @@ export const fa = {
     childLoginCode: 'کد ۶ رقمی',
     childLoginGo: 'ورود',
     childLoginBad: 'کد درست نیست یا تمام شده.',
+    previewOf: (track: string) => `پیش‌نمایش فضای ${track}`,
+    previewBanner: 'پیش‌نمایش برای بزرگ‌تر: چیزی ذخیره نمی‌شود و سکه‌ای جابه‌جا نمی‌شود.',
     panel: {
       settings: 'تنظیمات و گزارش',
       close: 'بستن',

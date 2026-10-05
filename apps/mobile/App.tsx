@@ -74,6 +74,8 @@ export default function App() {
   const [fontsLoaded] = useFonts({ Vazirmatn_400Regular, Vazirmatn_700Bold, Lalezar_400Regular });
 
   // Minimal navigation until a real router lands with the hub screen (docs/logic/app-screens.md).
+  /** A guardian's read-only look at the kid or teen space (no progress is saved). */
+  const [previewTrack, setPreviewTrack] = useState<'kid' | 'teen' | null>(null);
   const [screen, setScreen] = useState<'splash' | 'login' | 'ageTrack' | 'home' | 'solo' | 'daily' | 'duel' | 'tutorial' | 'duelResume' | 'gallery' | 'search' | 'brand' | 'lookup' | 'priceonly'>(
     'splash',
   );
@@ -179,7 +181,7 @@ export default function App() {
         />
       ) : null}
       {screen === 'ageTrack' ? <AgeTrackScreen onDone={() => void tutorialSeen().then((seen) => setScreen(seen ? 'home' : 'tutorial'))} /> : null}
-      {screen === 'solo' ? <SoloScreen onBack={() => setScreen('home')} hintsEnabled={config.features.shop} ageTracksOn={config.raw['feature.age_tracks'] === 1} /> : null}
+      {screen === 'solo' ? <SoloScreen key={previewTrack ?? 'own'} previewTrack={previewTrack ?? undefined} onBack={() => (setPreviewTrack(null), setScreen('home'))} hintsEnabled={config.features.shop} ageTracksOn={config.raw['feature.age_tracks'] === 1} /> : null}
       {screen === 'priceonly' ? <PriceOnlyScreen onBack={() => setScreen('home')} /> : null}
       {screen === 'daily' ? <SoloScreen daily onBack={() => setScreen('home')} hintsEnabled={config.features.shop} /> : null}
       {screen === 'tutorial' ? <Tutorial onDone={() => void markTutorialSeen().then(() => setScreen('home'))} /> : null}
@@ -207,6 +209,7 @@ export default function App() {
           features={homeFeatures}
           settings={config.raw}
           myTrack={myTrack}
+          onPreview={(t) => (setPreviewTrack(t), setScreen('solo'))}
           onGallery={__DEV__ ? () => setScreen('gallery') : undefined}
         />
       ) : null}
