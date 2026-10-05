@@ -5,7 +5,7 @@ import { copyFileSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export const BALE_SDK = 'https://tapi.bale.ai/miniapp.js?1';
+export const BALE_SDK = 'https://tapi.bale.ai/miniapp.js';
 
 /** Pure: the mini-app version of the exported index.html. */
 export function transformIndex(html, apiUrl) {
@@ -21,11 +21,13 @@ export function transformIndex(html, apiUrl) {
   if (!pwa.test(held)) throw new Error('prepare-dist: PWA glue block not found in index.html');
   const stubbed = held.replace(pwa, '<script>window.__dozariPwa = { install: null, waiting: null };</script>');
 
-  const head =
-    `<script>window.__BALE_MINIAPP__ = ${JSON.stringify({ apiUrl })};</script>\n` +
-    `    <script src="${BALE_SDK}"></script>\n` +
-    `    <script src="/bale-bridge.js"></script>\n`;
-  return stubbed.replace(/<link rel="manifest"[^>]*>\s*/, '').replace('</head>', `${head}  </head>`);
+  // Bale's docs: the SDK script goes before every other script, at the very start of <head>.
+  const sdk = `<script src="${BALE_SDK}"></script>`;
+  const bridge = `<script>window.__BALE_MINIAPP__ = ${JSON.stringify({ apiUrl })};</script>\n    <script src="/bale-bridge.js"></script>\n`;
+  return stubbed
+    .replace(/<link rel="manifest"[^>]*>\s*/, '')
+    .replace('<head>', `<head>\n    ${sdk}`)
+    .replace('</head>', `    ${bridge}  </head>`);
 }
 
 /** A service worker that removes itself, in case the same origin ever served the PWA one. */

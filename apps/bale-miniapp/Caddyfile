@@ -14,8 +14,8 @@
 	@static path /_expo/static/*
 	header @static Cache-Control "public, max-age=31536000, immutable"
 
-	# Only Bale may embed it (and the page opens normally in a plain browser).
-	header Content-Security-Policy "frame-ancestors 'self' https://*.bale.ai https://bale.ai"
+	# Bale's web client opens mini-apps in an iframe: send no X-Frame-Options and no frame-ancestors limit (Bale docs).
+	header -X-Frame-Options
 
 	try_files {path} /index.html
 	file_server

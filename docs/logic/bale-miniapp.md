@@ -6,10 +6,10 @@ own folder, own container, own domain. The sample from Bale (`miniapp.js`, `Bale
 ## Shape
 
 - **Same game, no second client.** The mini-app is the Expo web export of `apps/mobile` (the same bundle as `s-dozari-web`), reshaped by
-  `apps/bale-miniapp/scripts/prepare-dist.mjs`: Bale's SDK (`https://tapi.bale.ai/miniapp.js?1`) and `bale-bridge.js` load first, the game bundle is held back
+  `apps/bale-miniapp/scripts/prepare-dist.mjs`: Bale's SDK (`https://tapi.bale.ai/miniapp.js`, the first script in `<head>` as Bale requires) and `bale-bridge.js` load first, the game bundle is held back
   until login is done, and the PWA parts (service worker, manifest) are dropped. Game changes reach both apps with no extra work.
 - **Own container** `s-dozari-bale-miniapp` (`c-dozari-bale-miniapp`), image from `deploy/Dockerfile.bale-miniapp`, Caddy config `apps/bale-miniapp/Caddyfile`
-  (no-cache page, immutable hashed bundles, `frame-ancestors` limited to bale.ai). Loopback `BALE_APP_PORT` (8084); the host's proxy forwards `BALE_APP_DOMAIN` to it.
+  (no-cache page, immutable hashed bundles, no `X-Frame-Options`: Bale's web client embeds mini-apps in an iframe, so the host's reverse proxy must not add one either). Loopback `BALE_APP_PORT` (8084); the host's proxy forwards `BALE_APP_DOMAIN` to it.
   Set that address as the mini-app URL in Bale's bot father.
 - **Login** `POST /auth/bale-miniapp {initData}` (only when `BALE_BOT_TOKEN` is set): the signature is checked like a Telegram web app
   (HMAC-SHA256 of the sorted lines, key = HMAC("WebAppData", bot token); `auth_date` at most 24 h old). The Bale user id maps to a fixed device id
