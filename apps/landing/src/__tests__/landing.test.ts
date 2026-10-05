@@ -37,6 +37,28 @@ function fakeApi(state: { fail?: boolean } = {}, posts: Post[] = [POST], redirec
 
 const jsonLd = (html: string) => [...html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)].map((m) => JSON.parse(m[1] as string));
 
+describe('banners and icons', () => {
+  it('serves the banners, the social card, the favicon and the manifest, and nothing outside them', async () => {
+    const app = buildLanding({ api: fakeApi(), siteUrl: 'https://mrdozari.ir' });
+    const b = await app.inject({ method: 'GET', url: '/banners/banner1.webp' });
+    expect(b.statusCode).toBe(200);
+    expect(b.headers['content-type']).toBe('image/webp');
+    expect((await app.inject({ method: 'GET', url: '/banners/og.jpg' })).headers['content-type']).toBe('image/jpeg');
+    expect((await app.inject({ method: 'GET', url: '/banners/banner9.webp' })).statusCode).toBe(404);
+    expect((await app.inject({ method: 'GET', url: '/banners/..%2Fserver.ts' })).statusCode).toBe(404);
+    expect((await app.inject({ method: 'GET', url: '/favicon.ico' })).headers['content-type']).toBe('image/x-icon');
+    expect((await app.inject({ method: 'GET', url: '/icons/apple-touch-icon.png' })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'GET', url: '/icons/nope.png' })).statusCode).toBe(404);
+    const m = JSON.parse((await app.inject({ method: 'GET', url: '/site.webmanifest' })).body);
+    expect(m.name).toBe('دوزاری');
+    const home = (await app.inject({ method: 'GET', url: '/' })).body;
+    expect(home).toContain('rel="icon"');
+    expect(home).toContain('rel="manifest"');
+    expect(home).toContain('/banners/banner2.webp');
+    expect(home.match(/<h1[ >]/g)).toHaveLength(1);
+  });
+});
+
 describe('markdown', () => {
   it('escapes raw HTML and refuses unsafe links', () => {
     const { html } = renderMarkdown('<script>alert(1)</script>\n\n[bad](javascript:alert(1)) [ok](https://x.test/a?b=1&c=2) [rel](/blog)');
@@ -220,7 +242,7 @@ describe('admin-set SEO (group «سئو و سایت معرفی»)', () => {
     expect(svg.statusCode).toBe(200);
     expect(svg.headers['content-type']).toContain('image/svg+xml');
     expect(svg.body).toContain('دوزاری');
-    expect((await app.inject({ method: 'GET', url: '/' })).body).toContain('content="https://mrdozari.ir/og.svg"');
+    expect((await app.inject({ method: 'GET', url: '/about' })).body).toContain('content="https://mrdozari.ir/banners/og.jpg"');
   });
 });
 
