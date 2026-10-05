@@ -13,6 +13,7 @@ import { fa } from '../i18n/fa';
 import { useHardwareBack } from '../nav/useHardwareBack';
 import { ApiError } from '../net/http';
 import { buyItem, equipItem, fetchShop, payWithMoney } from '../shop/api';
+import { payNote } from '../shop/payNote';
 import { pageTop } from '../theme/safeArea';
 import { colors, fonts } from '../theme/colors';
 import type { CharacterId } from '../theme/character';
@@ -100,7 +101,7 @@ export function FittingRoom({ who, realMoney = false, onClose }: { who: Characte
   };
   const pay = (it: ShopItem) =>
     payWithMoney(it.id).then(
-      () => setToast(fa.shop.invoiceSent),
+      (r) => (setToast(payNote(r)), r === 'paid' ? load() : undefined),
       (e) => setToast(e instanceof ApiError && e.code === 'bale_not_linked' ? fa.shop.linkBale : fa.shop.payError),
     );
   const takeOffAll = () => {

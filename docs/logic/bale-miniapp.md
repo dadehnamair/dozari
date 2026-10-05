@@ -27,8 +27,23 @@ own folder, own container, own domain. The sample from Bale (`miniapp.js`, `Bale
 | `?startapp=solo\|daily\|duel` | `https://ble.ir/<bot>?startapp=daily` opens that screen (mapped to the game's `?go=`) |
 | `isMiniAppSupported` | an old Bale app gets a Persian «update Bale» notice instead of a blank page |
 
-Not wired yet (need game-side work): BackButton (needs in-memory routing, Bale's own warning), closing confirmation during a live duel, `openInvoice`
-for coin packages, `requestContact` for phone proof (the verified path stays the bot's `contact.user_id == from.id` check), theme (the game keeps its own look).
+Not wired yet (need game-side work): BackButton (needs in-memory routing, Bale's own warning), closing confirmation during a live duel, `requestContact` for phone proof (the verified path stays the bot's `contact.user_id == from.id` check), theme (the game keeps its own look).
+
+## Payments inside the mini-app (`openInvoice`)
+
+Shop items bought with money (`payWithMoney`, D170; coin packages have the same route) use Bale's payment page when the game runs in the mini-app:
+
+1. `POST /shop-pay/:id/bale-invoice-link` (and `/coin-packages/:id/bale-invoice-link`) → server builds the same invoice as the bot flow and calls Bale's
+   `createInvoiceLink`; answers `{link}` (`503 payments_unavailable` without `BALE_PROVIDER_TOKEN`).
+2. The game calls `Bale.WebApp.openInvoice(link, cb)` (`apps/mobile/src/bale/miniapp.ts`); the callback status `paid | cancelled | failed | pending` picks the
+   line shown (`shop/payNote.ts`); `paid` reloads the shop.
+3. Credit is unchanged: only Bale's `successful_payment` credits (ledger, idempotent). The callback is only for the screen, never for the credit.
+4. **No bot link needed.** `pre_checkout_query` normally maps the paying Bale user to a player through the linked chat; a mini-app player has no link, so
+   `NotifyService.miniAppUserOf` also maps `from.id` → `baleDeviceId(botToken, id)` → account. Only the Bale user the account was created for can pay its invoice.
+5. Outside the mini-app nothing changes: the invoice goes into the linked chat.
+
+CORS: the compose file also allows the `null` origin, because Bale's web client may sandbox the iframe (opaque origin). The API authenticates with bearer tokens only
+(no cookies), so a CORS allow-list is not what protects it. If `localStorage` is unusable there, the bridge installs an in-memory one.
 
 ## Not verified
 
@@ -38,4 +53,4 @@ Bale-specific extras (back button, share, in-app payments through `openInvoice`,
 
 ## Tests
 
-`apps/server/src/__tests__/bale-miniapp.test.ts` (signature, device id, route) and `node --test apps/bale-miniapp/scripts/prepare-dist.test.mjs` (page rewrite).
+`apps/server/src/__tests__/bale-miniapp.test.ts` (signature, device id, route), `bale-payments.test.ts` (invoice link, mini-app payer) and `node --test apps/bale-miniapp/scripts/prepare-dist.test.mjs` (page rewrite).

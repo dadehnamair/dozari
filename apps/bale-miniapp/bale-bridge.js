@@ -5,6 +5,31 @@
   var webApp = window.Bale && window.Bale.WebApp;
   var initData = (webApp && webApp.initData) || '';
 
+  // Bale's web client may open the page in a sandboxed iframe: no usable localStorage (it throws). Fall back to an in-memory
+  // one so the game keeps its token for this visit; the next open logs in through Bale again.
+  try {
+    window.localStorage.getItem('dozari.probe');
+  } catch (e) {
+    var mem = {};
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      value: {
+        getItem: function (k) {
+          return Object.prototype.hasOwnProperty.call(mem, k) ? mem[k] : null;
+        },
+        setItem: function (k, v) {
+          mem[k] = String(v);
+        },
+        removeItem: function (k) {
+          delete mem[k];
+        },
+        clear: function () {
+          mem = {};
+        },
+      },
+    });
+  }
+
   function store(key, value) {
     try {
       window.localStorage.setItem(key, value);
