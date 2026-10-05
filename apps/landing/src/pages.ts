@@ -329,6 +329,8 @@ function storeBadges(site: Site): string {
   const b = [
     site.appUrl ? `<a class="badge" href="${escapeHtml(site.appUrl)}"><small>بازی آنلاین</small><b>نسخهٔ وب</b></a>` : '',
     site.androidApp ? `<a class="badge" href="${escapeHtml(site.androidApp)}"><small>دریافت فایل</small><b>اندروید</b></a>` : '',
+    site.baleBot ? `<a class="badge" href="${escapeHtml(site.baleBot)}"><small>بازی از طریق ربات</small><b>بله</b></a>` : '',
+    site.telegramApp ? `<a class="badge" href="${escapeHtml(site.telegramApp)}"><small>بازی بدون نصب</small><b>تلگرام</b></a>` : '',
   ].join('');
   return b || '<a class="badge" href="/download"><small>دریافت</small><b>دانلود دوزاری</b></a>';
 }
@@ -522,12 +524,14 @@ ${promo('lime', 'می‌خوای با ما کار کنی؟', 'همکاری، ت�
 /* ---- download ---- */
 
 export function downloadPage(site: Site): string {
-  const title = `دانلود ${site.name}: رایگان برای اندروید و مرورگر`;
-  const desc = description(`${site.name} را رایگان روی گوشی اندروید نصب کن یا همین حالا در مرورگر بازی کن.`);
+  const title = `دانلود ${site.name}: رایگان برای اندروید، مرورگر و بله`;
+  const desc = description(`${site.name} را رایگان روی گوشی اندروید نصب کن، همین حالا در مرورگر بازی کن یا از طریق ربات بله شروع کن.`);
   type Store = { fa: string; os: string; ab: string; bg: string; cta: string; href: string | null };
   const stores: Store[] = [
     { fa: 'نسخهٔ وب', os: 'مرورگر', ab: 'W', bg: '#FF7A3D', cta: 'بازی آنلاین', href: site.appUrl },
     { fa: 'دانلود مستقیم', os: 'فایل APK اندروید', ab: '↓', bg: '#FFC93C', cta: 'دریافت فایل', href: site.androidApp },
+    { fa: 'بله', os: 'بازی از طریق ربات', ab: 'ب', bg: '#3FC1F0', cta: 'شروع در بله', href: site.baleBot ?? null },
+    ...(site.telegramApp ? [{ fa: 'تلگرام', os: 'بازی در مینی‌اپ، بدون نصب', ab: 'T', bg: '#3FC1F0', cta: 'بازی در تلگرام', href: site.telegramApp }] : []),
     { fa: 'گوگل‌پلی', os: 'اندروید', ab: 'G', bg: '#7ED957', cta: 'به‌زودی', href: null },
     { fa: 'کافه‌بازار', os: 'اندروید', ab: 'ب', bg: '#7ED957', cta: 'به‌زودی', href: null },
     { fa: 'مایکت', os: 'اندروید', ab: 'م', bg: '#3FC1F0', cta: 'به‌زودی', href: null },
