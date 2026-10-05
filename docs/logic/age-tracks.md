@@ -177,7 +177,7 @@ bots, message center audience, coin ledger, matches):
 
 ## Phases
 
-1. **Foundation:** `age_track` on users/puzzles/items, `trackRules`, chooser screen, band-keyed queues, admin band filter and config. No kid content yet.
+1. **Foundation:** `age_track` on users/puzzles/items, `trackRules`, chooser screen, track-keyed queues, admin band filter and config. No kid content yet.
 2. **Guardian link:** phone OTP for the guardian, child profiles, link code, band-change confirmation.
 3. **Kid content & lesson:** kid puzzle pool (30–50 hand-made to start), `item_lessons`, `splitWordLetters`, lesson cards, review queue.
 4. **Social for kids and teens:** track-bound friends, friend duels and tables, managed chat (phrase library, filtered friends-only text, report queue).

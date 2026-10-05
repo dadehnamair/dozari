@@ -246,7 +246,7 @@ Start after the first Android build.
 
 ## Age tracks (D198, proposed) — see `docs/logic/age-tracks.md`
 
-- [ ] 1. Foundation: `age_band` on users/puzzles/items, `bandRules` config, first-run chooser, band-keyed queues, admin band filter
+- [ ] 1. Foundation: `age_track` on users/puzzles/items, `trackRules` config, first-run chooser, track-keyed queues, admin band filter
 - [ ] 2. Guardian link: phone OTP, child profiles, link code, guardian-approved band change
 - [ ] 3. Kid content and word lesson: kid pool, `item_lessons`, `splitWordLetters`, lesson cards, review queue
 - [ ] 4. Social for kids and teens: track-bound friends, friend duels and tables, managed chat (D198 update)
