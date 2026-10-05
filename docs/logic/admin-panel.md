@@ -15,7 +15,7 @@ sidebar and tabs.
 | بازیکنان و نظارت | users · player reports · chat reports · word filter · badges · bot players · invite codes |
 | محتوا و قیمت‌ها | catalog · price review · bot inbox · bot sources · player suggestions (UGC) |
 | بازی و پازل | puzzles · daily puzzle · level road · cities · canned taunts |
-| اقتصاد | daily reward · shop · wheel · tournaments · sponsors |
+| اقتصاد | daily reward · **economy health** · shop · wheel · tournaments · sponsors |
 | ارتباط با بازیکن | message center · Bale bot |
 | سایت معرفی و لینک‌ها | blog · cast · FAQ · short links |
 | سیستم | settings (searchable) · admin accounts (owner) · socket service · audit log (searchable, filter by admin) |
@@ -29,6 +29,12 @@ and device id are only returned to roles with the `users` permission (owner, sup
 **Last device** — the app sends `x-client-platform|os|build|store` on every API call (`apps/mobile/src/net/clientHeaders.ts`); after the response the server records them for the signed-in
 player in `user_clients` (`apps/server/src/clients/`, at most once per 30 min unless something changed). The first row's store/build is kept as the install source. Client-reported: for display only.
 Users open in a side drawer; destructive actions use a styled confirmation dialog instead of the browser's `confirm`.
+
+## Economy health (`GET /admin/economy?days=7|30|90`)
+
+Read-only page «سلامت اقتصاد» (`admin/economy.ts`): coins held by real players (bots excluded), how many hold any and the ten biggest balances; the coin ledger over the window split **per reason** into faucets (coins that
+reached players) and sinks (coins that left them) with the net (a positive net = inflation); a per-day series; and the biggest single movements (`BIG_MOVEMENT_COINS` = 500) for spotting abuse or a bug. Every ledger reason has a Persian
+label (a test keeps the label list in step with `LEDGER_REASONS`). It complements the dashboard's «سکه در گردش» and the economy simulator (`economy.md`); it never writes.
 
 ## Users (D74)
 

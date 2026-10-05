@@ -12,6 +12,7 @@ import type { BotRepository } from '../bot/repository.js';
 import type { BotService } from '../bot/service.js';
 import type { AuditLog } from './audit.js';
 import type { LessonStore } from '../lessons/service.js';
+import type { EconomyAdmin } from './economy.js';
 import type { AgeTrackAdmin } from '../agetrack/overview.js';
 import type { ProductAdmin } from './products.js';
 import type { StatsAdmin } from './stats.js';
@@ -77,6 +78,8 @@ export interface AdminModules {
   lessons?: LessonStore;
   /** Numbers per age track for the admin overview tab (D198). */
   ageTracks?: AgeTrackAdmin;
+  /** Coin flow and circulation numbers («سلامت اقتصاد»). */
+  economy?: EconomyAdmin;
   daily?: DailyService;
   /** The level table: XP each level starts at and the coin reward for reaching it. */
   levelRoad?: { table: LevelTable; defaults: () => Promise<LevelRow[]> };
@@ -157,7 +160,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     settingGroups: SETTING_GROUPS,
     icons: ITEMS,
     iconGroups: ITEM_GROUPS,
-    modules: { puzzles: !!m.puzzles, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, wheel: !!m.wheel, shortLinks: !!m.shortLinks, feedback: !!m.feedback, landing: !!m.landing, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, lessons: !!m.lessons, ageTracks: !!m.ageTracks, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages },
+    modules: { puzzles: !!m.puzzles, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, wheel: !!m.wheel, shortLinks: !!m.shortLinks, feedback: !!m.feedback, landing: !!m.landing, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, lessons: !!m.lessons, ageTracks: !!m.ageTracks, economy: !!m.economy, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages },
   }));
 
   if (m.stats) {
@@ -603,6 +606,14 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
         return { ok: true, ...('refunded' in out ? { refunded: out.refunded } : {}) };
       });
     }
+  }
+
+  if (m.economy) {
+    const economy = m.economy;
+    g.get('/admin/economy', async (req) => {
+      const q = z.object({ days: z.coerce.number().int().min(1).max(90).default(7) }).safeParse(req.query);
+      return economy.overview(q.success ? q.data.days : 7, Date.now());
+    });
   }
 
   if (m.ageTracks) {

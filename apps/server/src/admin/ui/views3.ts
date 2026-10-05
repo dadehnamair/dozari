@@ -279,6 +279,47 @@ VIEWS.lessons = function (root) {
   pull();
 };
 
+/* ---------------- coin economy health ---------------- */
+VIEWS.economyhealth = function (root) {
+  var REASON_FA = { signup_bonus: 'هدیه‌ی ثبت‌نام', daily_login: 'جایزه‌ی روزانه', match_entry: 'ورودی دوئل', match_payout: 'برد دوئل', match_refund: 'بازگشت ورودی', invite_reward: 'پاداش دعوت', ugc_reward: 'پاداش پیشنهاد', admin_adjust: 'تغییر دستی ادمین', purchase: 'خرید سکه', bot_match_subsidy: 'یارانه‌ی ربات', price_guess_wager: 'شرط حدس قیمت', price_guess_payout: 'جایزه‌ی حدس قیمت', shop_purchase: 'خرید از فروشگاه', hint_purchase: 'خرید راهنما', gift_out: 'هدیه‌ی فرستاده', gift_in: 'هدیه‌ی گرفته', loan_out: 'وام داده', loan_in: 'وام گرفته', repay_out: 'بازپرداخت', repay_in: 'دریافت بازپرداخت', daily_puzzle: 'پازل روز', tournament_entry: 'ورودی تورنومنت', tournament_refund: 'بازگشت تورنومنت', tournament_prize: 'جایزه‌ی تورنومنت', match_consolation: 'دلداری باخت', broke_rescue: 'کمک به بی‌سکه', wheel_spin: 'گردونه', level_reward: 'جایزه‌ی لول', profile_task: 'تکمیل پروفایل', birthday_gift: 'هدیه‌ی تولد' };
+  var days = select([['7', '۷ روز گذشته'], ['30', '۳۰ روز گذشته'], ['90', '۹۰ روز گذشته']], '7');
+  var body = h('div');
+  function draw() {
+    api('/admin/economy?days=' + days.value).then(function (r) {
+      clear(body);
+      if (r.status === 404) return body.appendChild(empty('سلامت اقتصاد روی این سرور فعال نیست (دیتابیس لازم است)'));
+      if (!r.ok) return fail(r);
+      var d = r.body, t = d.totals;
+      body.appendChild(h('div', { class: 'grid kpis' }, [
+        statCard('سکه‌ی در گردش', faNum(d.circulation.coins), 'پیش بازیکن‌های واقعی', '#22a45d'),
+        statCard('بازیکن دارای سکه', faNum(d.circulation.holders), '', '#14b8a6'),
+        statCard('تولیدشده در بازه', faNum(t.faucet), 'سکه‌ی رسیده به بازیکن‌ها', '#4f46e5'),
+        statCard('مصرف‌شده در بازه', faNum(t.sink), 'سکه‌ی رفته از دست بازیکن‌ها', '#ef6c3d'),
+        statCard('خالص', (t.net > 0 ? '+' : '') + faNum(t.net), t.net > 0 ? 'تورم: سکه بیشتر تولید می‌شود' : 'سکه بیشتر مصرف می‌شود', t.net > 0 ? '#f5b73b' : '#22a45d')
+      ]));
+      body.appendChild(card('جریان سکه به تفکیک دلیل', 'هر ردیف یک دلیل در دفتر سکه است؛ «تولید» یعنی سکه به بازیکن‌ها رسیده و «مصرف» یعنی از دستشان رفته.', [h('div', { class: 'tbl-wrap' }, [h('table', {}, [
+        h('thead', {}, [h('tr', {}, ['دلیل', 'تولید', 'مصرف', 'تعداد'].map(function (x) { return h('th', { text: x }); }))]),
+        h('tbody', {}, d.flow.length ? d.flow.map(function (f) { return h('tr', {}, [h('td', { text: REASON_FA[f.reason] || f.reason }), h('td', { class: 'num', text: faNum(f.faucet) }), h('td', { class: 'num', text: faNum(f.sink) }), h('td', { class: 'num', text: faNum(f.entries) })]); }) : [h('tr', {}, [h('td', { colspan: '4', text: 'در این بازه حرکتی ثبت نشده' })])])
+      ])])]));
+      body.appendChild(card('روزانه', 'تولید و مصرف هر روز؛ اگر یک روز عجیب بالا بود، «حرکت‌های بزرگ» را ببین.', [h('div', { class: 'tbl-wrap' }, [h('table', {}, [
+        h('thead', {}, [h('tr', {}, ['روز', 'تولید', 'مصرف'].map(function (x) { return h('th', { text: x }); }))]),
+        h('tbody', {}, d.daily.map(function (x) { return h('tr', {}, [h('td', { class: 'ltr', text: x.day }), h('td', { class: 'num', text: faNum(x.faucet) }), h('td', { class: 'num', text: faNum(x.sink) })]); }))
+      ])])]));
+      body.appendChild(card('بیشترین موجودی‌ها', null, [h('div', { class: 'tbl-wrap' }, [h('table', {}, [
+        h('thead', {}, [h('tr', {}, ['بازیکن', 'موجودی'].map(function (x) { return h('th', { text: x }); }))]),
+        h('tbody', {}, d.circulation.top.map(function (u) { return h('tr', {}, [h('td', { text: u.nickname }), h('td', { class: 'num', text: faNum(u.balance) })]); }))
+      ])])]));
+      body.appendChild(card('حرکت‌های بزرگ', 'تک‌حرکت‌های ۵۰۰ سکه یا بیشتر در این بازه؛ برای پیدا کردن سوءاستفاده یا باگ.', [d.big.length ? h('div', { class: 'tbl-wrap' }, [h('table', {}, [
+        h('thead', {}, [h('tr', {}, ['زمان', 'بازیکن', 'مقدار', 'دلیل'].map(function (x) { return h('th', { text: x }); }))]),
+        h('tbody', {}, d.big.map(function (m) { return h('tr', {}, [h('td', { text: ago(m.at) }), h('td', { text: m.nickname }), h('td', { class: 'num', style: 'color:var(' + (m.delta > 0 ? '--ok' : '--bad') + ')', text: (m.delta > 0 ? '+' : '') + faNum(m.delta) }), h('td', { text: REASON_FA[m.reason] || m.reason })]); }))
+      ])]) : empty('حرکت بزرگی نیست')]));
+    });
+  }
+  days.onchange = draw;
+  root.appendChild(h('div', { class: 'toolbar' }, [days]));
+  root.appendChild(body);
+  draw();
+};
 /* ---------------- age tracks overview (D198) ---------------- */
 VIEWS.agetracks = function (root) {
   var TR = [['kid', 'کودک'], ['teen', 'نوجوان'], ['adult', 'بزرگسال']];
