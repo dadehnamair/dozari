@@ -691,6 +691,12 @@ export const fa = {
     needGems: (g: number) => `برای ورود ${toPersianDigits(String(g))} الماس لازم است.`,
     blocked: { FULL: 'ظرفیت پر شده است.', CLOSED: 'ثبت‌نام بسته است.', NOT_ACTIVATED: 'اول حسابت را با کد معرف فعال کن.', BUSY: 'هم‌زمان در تورنومنت دیگری هستی.' } as Record<string, string>,
     errors: { LEVEL: 'سطحت کافی نیست.', COINS: 'سکه‌ات کافی نیست.', GEMS: 'الماست کافی نیست.', FULL: 'ظرفیت پر شده است.', CLOSED: 'ثبت‌نام بسته است.', ALREADY_IN: 'قبلاً ثبت‌نام کرده‌ای.', BUSY: 'هم‌زمان در تورنومنت دیگری هستی.', generic: 'نتوانستیم انجام بدهیم.' } as Record<string, string>,
+    sponsor: {
+      by: (name: string) => `با حمایت ${name}`,
+      title: 'اسپانسر این تورنومنت',
+      visit: 'دیدن صفحه‌ی اسپانسر',
+      ctaButton: 'تماس برای اسپانسری',
+    },
     close: 'بستن',
     back: 'بازگشت',
   },
