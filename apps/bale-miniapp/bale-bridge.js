@@ -29,7 +29,7 @@
     box.style.cssText =
       'position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;' +
       'background:#2b1240;color:#fff;font:16px sans-serif;text-align:center;padding:24px';
-    box.innerHTML = '<div>اتصال به دوزاری برقرار نشد.</div><div dir="ltr" style="font-size:12px;opacity:.7">' + String((err && err.message) || err) + '</div><button style="padding:10px 24px;border:0;border-radius:12px;font-size:16px">تلاش دوباره</button>';
+    box.innerHTML = '<div>اتصال به دوزاری برقرار نشد.</div><div dir="ltr" style="font-size:12px;opacity:.7">' + String((err && err.message) || err) + '<br>page ' + location.origin + '<br>api ' + cfg.apiUrl + '</div><button style="padding:10px 24px;border:0;border-radius:12px;font-size:16px">تلاش دوباره</button>';
     box.lastChild.onclick = function () {
       box.remove();
       login();
