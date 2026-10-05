@@ -37,6 +37,28 @@ function fakeApi(state: { fail?: boolean } = {}, posts: Post[] = [POST], redirec
 
 const jsonLd = (html: string) => [...html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)].map((m) => JSON.parse(m[1] as string));
 
+describe('banners and icons', () => {
+  it('serves the banners, the social card, the favicon and the manifest, and nothing outside them', async () => {
+    const app = buildLanding({ api: fakeApi(), siteUrl: 'https://mrdozari.ir' });
+    const b = await app.inject({ method: 'GET', url: '/banners/banner1.webp' });
+    expect(b.statusCode).toBe(200);
+    expect(b.headers['content-type']).toBe('image/webp');
+    expect((await app.inject({ method: 'GET', url: '/banners/og.jpg' })).headers['content-type']).toBe('image/jpeg');
+    expect((await app.inject({ method: 'GET', url: '/banners/banner9.webp' })).statusCode).toBe(404);
+    expect((await app.inject({ method: 'GET', url: '/banners/..%2Fserver.ts' })).statusCode).toBe(404);
+    expect((await app.inject({ method: 'GET', url: '/favicon.ico' })).headers['content-type']).toBe('image/x-icon');
+    expect((await app.inject({ method: 'GET', url: '/icons/apple-touch-icon.png' })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'GET', url: '/icons/nope.png' })).statusCode).toBe(404);
+    const m = JSON.parse((await app.inject({ method: 'GET', url: '/site.webmanifest' })).body);
+    expect(m.name).toBe('دوزاری');
+    const home = (await app.inject({ method: 'GET', url: '/' })).body;
+    expect(home).toContain('rel="icon"');
+    expect(home).toContain('rel="manifest"');
+    expect(home).toContain('/banners/banner2.webp');
+    expect(home.match(/<h1[ >]/g)).toHaveLength(1);
+  });
+});
+
 describe('markdown', () => {
   it('escapes raw HTML and refuses unsafe links', () => {
     const { html } = renderMarkdown('<script>alert(1)</script>\n\n[bad](javascript:alert(1)) [ok](https://x.test/a?b=1&c=2) [rel](/blog)');
@@ -200,10 +222,10 @@ describe('admin-set SEO (group «سئو و سایت معرفی»)', () => {
 
   it('adds the web font only when a font address is set', async () => {
     const plain = (await boot(DATA).inject({ method: 'GET', url: '/' })).body;
-    expect(plain).not.toContain('@font-face');
+    expect(plain).not.toContain('DozariWeb');
     const html = (await boot(withSeo({ fontUrl: 'https://mrdozari.ir/fonts/v.woff2' })).inject({ method: 'GET', url: '/' })).body;
     expect(html).toContain('rel="preload" href="https://mrdozari.ir/fonts/v.woff2"');
-    expect(html).toContain('@font-face');
+    expect(html).toContain('DozariWeb');
   });
 
   it('closes the whole site while indexing is off, and opens it again', async () => {
@@ -220,7 +242,7 @@ describe('admin-set SEO (group «سئو و سایت معرفی»)', () => {
     expect(svg.statusCode).toBe(200);
     expect(svg.headers['content-type']).toContain('image/svg+xml');
     expect(svg.body).toContain('دوزاری');
-    expect((await app.inject({ method: 'GET', url: '/' })).body).toContain('content="https://mrdozari.ir/og.svg"');
+    expect((await app.inject({ method: 'GET', url: '/about' })).body).toContain('content="https://mrdozari.ir/banners/og.jpg"');
   });
 });
 
@@ -244,3 +266,74 @@ describe('privacy policy page', () => {
   });
 });
 
+
+describe('design pages: about, download, contact', () => {
+  it('are indexable pages with one h1, the five-link nav, canonical and a sitemap entry', async () => {
+    const app = buildLanding({ api: fakeApi(), siteUrl: 'https://mrdozari.ir' });
+    const map = (await app.inject({ method: 'GET', url: '/sitemap.xml' })).body;
+    for (const path of ['/about', '/download', '/contact']) {
+      const res = await app.inject({ method: 'GET', url: path });
+      expect(res.statusCode).toBe(200);
+      expect(res.body.match(/<h1[ >]/g)).toHaveLength(1);
+      expect(res.body).toContain(`<link rel="canonical" href="https://mrdozari.ir${path}">`);
+      expect(res.body).toContain(`<a href="${path}" aria-current="page">`);
+      expect(map).toContain(`<loc>https://mrdozari.ir${path}</loc>`);
+    }
+  });
+
+  it('contact lists the FAQ with FAQPage markup', async () => {
+    const html = (await buildLanding({ api: fakeApi(), siteUrl: 'https://mrdozari.ir' }).inject({ method: 'GET', url: '/contact' })).body;
+    expect(html).toContain('FAQPage');
+    expect(html).toContain('<details class="faq"');
+  });
+});
+
+describe('self-hosted fonts', () => {
+  const boot = () => buildLanding({ api: fakeApi(), siteUrl: 'https://mrdozari.ir' });
+  it('serves the bundled woff2 files and refuses any other name', async () => {
+    const app = boot();
+    const ok = await app.inject({ method: 'GET', url: '/fonts/Lalezar-Regular.woff2' });
+    expect(ok.statusCode).toBe(200);
+    expect(ok.headers['content-type']).toBe('font/woff2');
+    expect((await app.inject({ method: 'GET', url: '/fonts/..%2Fserver.ts' })).statusCode).toBe(404);
+    const home = await app.inject({ method: 'GET', url: '/' });
+    expect(home.body).toContain('/fonts/Lalezar-Regular.woff2');
+    expect(home.body).not.toContain('fonts.googleapis.com');
+  });
+
+  it('serves the designed characters and item icons, and nothing else', async () => {
+    const app = boot();
+    const ch = await app.inject({ method: 'GET', url: '/characters/dozari-cheer-anim.svg' });
+    expect(ch.statusCode).toBe(200);
+    expect(ch.headers['content-type']).toContain('image/svg+xml');
+    expect(ch.body).toContain('@keyframes dzc-bob');
+    expect((await app.inject({ method: 'GET', url: '/items/coin.svg' })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'GET', url: '/characters/nobody-idle.svg' })).statusCode).toBe(404);
+    expect((await app.inject({ method: 'GET', url: '/characters/..%2F..%2Fserver.svg' })).statusCode).toBe(404);
+  });
+
+  it('draws the cast on the home page and a QR code with a mail form on the pages that need them', async () => {
+    const app = boot();
+    const home = (await app.inject({ method: 'GET', url: '/' })).body;
+    expect(home).toContain('/characters/dozari-cheer-anim.svg');
+    expect(home).toContain('-idle.svg');
+    const dl = (await app.inject({ method: 'GET', url: '/download' })).body;
+    expect(dl).toContain('<svg version="1.1"');
+    const withMail: LandingData = { ...DATA, site: { ...DATA.site, contactEmail: 'hi@mrdozari.ir' } };
+    const mailApp = buildLanding({ api: fakeApi({}, [POST], {}, withMail), siteUrl: 'https://mrdozari.ir' });
+    expect((await mailApp.inject({ method: 'GET', url: '/contact' })).body).toContain('action="mailto:hi@mrdozari.ir"');
+    expect((await app.inject({ method: 'GET', url: '/contact' })).body).not.toContain('action="mailto:');
+  });
+});
+
+describe('terms page', () => {
+  it('is a real indexable page with one h1, listed in the sitemap and linked from the footer', async () => {
+    const app = buildLanding({ api: fakeApi(), siteUrl: 'https://mrdozari.ir' });
+    const res = await app.inject({ method: 'GET', url: '/terms' });
+    expect(res.statusCode).toBe(200);
+    expect(res.body.match(/<h1>/g)).toHaveLength(1);
+    expect(res.body).toContain('<link rel="canonical" href="https://mrdozari.ir/terms">');
+    expect((await app.inject({ method: 'GET', url: '/sitemap.xml' })).body).toContain('<loc>https://mrdozari.ir/terms</loc>');
+    expect((await app.inject({ method: 'GET', url: '/' })).body).toContain('<a href="/terms">قوانین و شرایط</a>');
+  });
+});

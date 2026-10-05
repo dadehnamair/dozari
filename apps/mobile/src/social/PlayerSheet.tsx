@@ -119,7 +119,7 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
             ) : p.relation === 'sent' ? (
               <View style={styles.actionsCol}>
                 <Text style={styles.text}>{fa.player.sent}</Text>
-                <CandyButton label={fa.player.cancel} color={colors.candy.orange} onPress={act(removeFriend)} />
+                <CandyButton label={fa.player.cancel} sfx="back" color={colors.candy.orange} onPress={act(removeFriend)} />
               </View>
             ) : p.relation === 'received' ? (
               <CandyButton label={fa.player.accept} color={colors.candy.lime} onPress={act(acceptFriend)} />

@@ -31,7 +31,7 @@ export function SchoolSheet({ onClose }: { onClose: () => void }) {
               <GuideBubble who="mirza" text={t.school.hint} />
               <CandyButton label={t.school.suggest} color={colors.candy.lime} onPress={() => setSuggesting(true)} />
               <CandyButton label={t.school.vote} color={colors.candy.sky} onPress={() => setVoting(true)} />
-              <CandyButton label={fa.hub.close} color={colors.candy.orange} onPress={onClose} />
+              <CandyButton label={fa.hub.close} sfx="back" color={colors.candy.orange} onPress={onClose} />
             </>
           )}
         </View>
@@ -61,7 +61,7 @@ function VoteCard({ onBack }: { onBack: () => void }) {
     return (
       <>
         <GuideBubble who="mirza" text={card === 'locked' ? t.vote.locked(need) : (note ?? t.vote.empty)} />
-        <CandyButton label={fa.hub.close} color={colors.candy.orange} onPress={onBack} />
+        <CandyButton label={fa.hub.close} sfx="back" color={colors.candy.orange} onPress={onBack} />
       </>
     );
   }
@@ -81,7 +81,7 @@ function VoteCard({ onBack }: { onBack: () => void }) {
         <Pressable onPress={() => vote(card, 1)} accessibilityRole="button" accessibilityLabel={t.vote.up} style={[styles.vote, { backgroundColor: colors.candy.lime }]}><Text style={styles.voteText}>👍 {t.vote.up}</Text></Pressable>
         <Pressable onPress={() => vote(card, -1)} accessibilityRole="button" accessibilityLabel={t.vote.down} style={[styles.vote, { backgroundColor: '#FF8FB6' }]}><Text style={styles.voteText}>👎 {t.vote.down}</Text></Pressable>
       </View>
-      <CandyButton label={fa.hub.close} color={colors.candy.orange} onPress={onBack} />
+      <CandyButton label={fa.hub.close} sfx="back" color={colors.candy.orange} onPress={onBack} />
     </>
   );
 }

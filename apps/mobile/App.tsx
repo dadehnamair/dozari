@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, I18nManager, Platform, StyleSheet, View } from 'react-native';
+import { I18nManager, Image, Platform, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import loadingArt from './assets/adaptive-icon.png';
+import { initialWindowMetrics } from 'react-native-safe-area-context';
 // Per-weight imports: the package index pulls in all nine Vazirmatn weights, which the web export would ship and the
 // PWA precache (D102); only these two are used. The files are bundled and self-hosted, never fetched from Google.
 import { Lalezar_400Regular } from '@expo-google-fonts/lalezar/400Regular';
@@ -13,6 +15,7 @@ import { PhoneGate } from './src/config/PhoneGate';
 import { usePhoneGate } from './src/config/usePhoneGate';
 import { gateState } from './src/config/gate';
 import { useClientConfig } from './src/config/useClientConfig';
+import type { ClientConfig } from './src/config/gate';
 import { HomeScreen } from './src/home/HomeScreen';
 import { onAccountSwitched } from './src/auth/switched';
 import { useMusic } from './src/sound/music';
@@ -25,12 +28,17 @@ import { SearchScreen } from './src/search/SearchScreen';
 import { Tutorial } from './src/onboarding/Tutorial';
 import { loginSeen, markLoginSeen, markTutorialSeen, tutorialSeen } from './src/onboarding/state';
 import { LoginScreen } from './src/phone/LoginScreen';
+import { AgeTrackScreen } from './src/agetrack/AgeTrackScreen';
+import { ageTrackNeeded } from './src/agetrack/api';
+import { useTrackRules } from './src/agetrack/useTrackRules';
 import { SplashScreen } from './src/splash/SplashScreen';
 import { DuelScreen } from './src/duel/DuelScreen';
 import { SoloScreen } from './src/solo/SoloScreen';
 import { useInviteLink } from './src/social/useInviteLink';
 import { safeInsetTop } from './src/theme/safeArea';
 import { PwaLayer } from './src/pwa/PwaLayer';
+import { PriceOnlyScreen } from './src/priceonly/PriceOnlyScreen';
+import { refillPack } from './src/offline/pack';
 import { ServerDownBanner } from './src/net/ServerDownBanner';
 import { takeLaunchTarget } from './src/pwa/usePwa';
 
@@ -48,6 +56,8 @@ if (!I18nManager.isRTL) {
 if (Platform.OS !== 'web') I18nManager.swapLeftAndRightInRTL(false);
 
 const SPLASH_MS = 1800;
+/** Android draws edge-to-edge, so a 3-button/gesture navigation bar would cover the bottom of every screen: keep it clear. */
+const NAV_BAR_INSET = Platform.OS === 'android' ? Math.round(initialWindowMetrics?.insets.bottom ?? 0) : 0;
 
 export default function App() {
   const shell = useRef<View>(null);
@@ -56,12 +66,19 @@ export default function App() {
   const phone = usePhoneGate(config.raw);
   const gate = gateState(config, APP_BUILD);
   useInviteLink(gate === 'ok' && config.features.friends);
+  const ageTracksOn = config.raw['feature.age_tracks'] === 1;
   const [fontsLoaded] = useFonts({ Vazirmatn_400Regular, Vazirmatn_700Bold, Lalezar_400Regular });
 
   // Minimal navigation until a real router lands with the hub screen (docs/logic/app-screens.md).
-  const [screen, setScreen] = useState<'splash' | 'login' | 'home' | 'solo' | 'daily' | 'duel' | 'tutorial' | 'duelResume' | 'gallery' | 'search' | 'brand' | 'lookup'>(
+  const [screen, setScreen] = useState<'splash' | 'login' | 'ageTrack' | 'home' | 'solo' | 'daily' | 'duel' | 'tutorial' | 'duelResume' | 'gallery' | 'search' | 'brand' | 'lookup' | 'priceonly'>(
     'splash',
   );
+
+  // A kid or teen track hides what needs adult content or price knowledge (docs/logic/age-tracks.md); the rules come from the server.
+  const trackRules = useTrackRules(ageTracksOn, screen);
+  const homeFeatures: ClientConfig['features'] = trackRules
+    ? { ...config.features, daily: config.features.daily && trackRules.dailyPuzzle, priceonly: config.features.priceonly && trackRules.priceOnly, lookup: config.features.lookup && trackRules.lookup }
+    : config.features;
 
   /** A home-screen shortcut (`?go=`, D102) opens its screen straight after the splash, when that mode is on. */
   const [launch] = useState(takeLaunchTarget);
@@ -74,21 +91,37 @@ export default function App() {
     if (!fontsLoaded || screen !== 'splash') return;
     let alive = true;
     // First run: the sign-in screen (when the server can send codes), then the tutorial; a returning player goes straight on.
-    const timer = setTimeout(() => void Promise.all([tutorialSeen(), loginSeen()]).then(([seen, logged]) => alive && setScreen(BRAND_SHEET ? 'brand' : config.phoneLogin && !logged ? 'login' : !seen ? 'tutorial' : launchOn && launch ? launch : 'home')), SPLASH_MS);
+    const timer = setTimeout(
+      () =>
+        void Promise.all([tutorialSeen(), loginSeen()]).then(async ([seen, logged]) => {
+          if (!alive) return;
+          if (BRAND_SHEET) return setScreen('brand');
+          if (config.phoneLogin && !logged) return setScreen('login');
+          // The one-time «who is playing?» question (age tracks), only when the server switch is on and this account was never asked.
+          if (await ageTrackNeeded(config.raw)) return alive && setScreen('ageTrack');
+          setScreen(!seen ? 'tutorial' : launchOn && launch ? launch : 'home');
+        }),
+      SPLASH_MS,
+    );
     return () => {
       alive = false;
       clearTimeout(timer);
     };
-  }, [fontsLoaded, screen, launch, launchOn, config.phoneLogin]);
+  }, [fontsLoaded, screen, launch, launchOn, config.phoneLogin, config.raw]);
 
   // The phone's back button leaves a full-screen mode for the screen it came from (sheets close first, they register later).
   useHardwareBack(
     screen === 'brand' || screen === 'search'
       ? () => setScreen('gallery')
-      : screen === 'solo' || screen === 'daily' || screen === 'duel' || screen === 'duelResume' || screen === 'lookup' || screen === 'gallery'
+      : screen === 'solo' || screen === 'priceonly' || screen === 'daily' || screen === 'duel' || screen === 'duelResume' || screen === 'lookup' || screen === 'gallery'
         ? () => setScreen('home')
         : null,
   );
+
+  // Whenever Home is shown (so the player is signed in and probably online), keep the saved offline puzzles topped up.
+  useEffect(() => {
+    if (screen === 'home') void refillPack();
+  }, [screen]);
 
   // Soft music everywhere; a livelier loop during a duel (the competitive screens).
   useMusic(screen === 'splash' || screen === 'tutorial' || screen === 'login' ? null : screen === 'duel' || screen === 'duelResume' ? 'tense' : 'calm');
@@ -96,7 +129,8 @@ export default function App() {
   if (!fontsLoaded) {
     return (
       <View style={styles.loading}>
-        <ActivityIndicator color="#FFC93C" />
+        {/* Static on purpose (no spinner): fonts are not loaded yet, so it is just the mascot on the splash colour. */}
+        <Image source={loadingArt} style={styles.loadingArt} resizeMode="contain" accessibilityLabel="دوزاری" />
       </View>
     );
   }
@@ -122,15 +156,24 @@ export default function App() {
   }
 
   return (
-    <View key={epoch} ref={shell} style={[styles.container, keyboard ? { marginBottom: keyboard } : null]}>
+    <View key={epoch} ref={shell} style={[styles.container, keyboard ? { marginBottom: keyboard } : NAV_BAR_INSET ? { paddingBottom: NAV_BAR_INSET } : null]}>
       <StatusBar style="light" />
       {screen === 'splash' ? <SplashScreen /> : null}
       {screen === 'login' ? (
         <LoginScreen
-          onDone={(r) => void markLoginSeen().then(async () => (r.signedIn && !r.created ? (await markTutorialSeen(), setScreen('home')) : setScreen((await tutorialSeen()) ? 'home' : 'tutorial')))}
+          ageTracksOn={config.raw['feature.age_tracks'] === 1}
+          onDone={(r) =>
+            void markLoginSeen().then(async () => {
+              if (await ageTrackNeeded(config.raw)) return setScreen('ageTrack');
+              if (r.signedIn && !r.created) return (await markTutorialSeen(), setScreen('home'));
+              setScreen((await tutorialSeen()) ? 'home' : 'tutorial');
+            })
+          }
         />
       ) : null}
-      {screen === 'solo' ? <SoloScreen onBack={() => setScreen('home')} hintsEnabled={config.features.shop} /> : null}
+      {screen === 'ageTrack' ? <AgeTrackScreen onDone={() => void tutorialSeen().then((seen) => setScreen(seen ? 'home' : 'tutorial'))} /> : null}
+      {screen === 'solo' ? <SoloScreen onBack={() => setScreen('home')} hintsEnabled={config.features.shop} ageTracksOn={config.raw['feature.age_tracks'] === 1} /> : null}
+      {screen === 'priceonly' ? <PriceOnlyScreen onBack={() => setScreen('home')} /> : null}
       {screen === 'daily' ? <SoloScreen daily onBack={() => setScreen('home')} hintsEnabled={config.features.shop} /> : null}
       {screen === 'tutorial' ? <Tutorial onDone={() => void markTutorialSeen().then(() => setScreen('home'))} /> : null}
       {screen === 'duel' ? <DuelScreen onBack={() => setScreen('home')} settings={config.raw} /> : null}
@@ -148,12 +191,13 @@ export default function App() {
       {screen === 'home' ? (
         <HomeScreen
           onSolo={() => setScreen('solo')}
+          onPriceOnly={() => setScreen('priceonly')}
           onDaily={() => setScreen('daily')}
           onTutorial={() => setScreen('tutorial')}
           onDuel={() => setScreen('duel')}
           onDuelResume={() => setScreen('duelResume')}
           onLookup={() => setScreen('lookup')}
-          features={config.features}
+          features={homeFeatures}
           settings={config.raw}
           onGallery={__DEV__ ? () => setScreen('gallery') : undefined}
         />
@@ -167,5 +211,6 @@ export default function App() {
 const styles = StyleSheet.create({
   // On a notched phone the home-screen web app draws under the status bar: keep the screens below it (the band stays dark purple).
   container: { flex: 1, backgroundColor: '#2A0E52', paddingTop: safeInsetTop() },
+  loadingArt: { width: 190, height: 190 },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#2A0E52' },
 });

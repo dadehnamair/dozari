@@ -44,6 +44,8 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(req.url);
   if (req.method !== 'GET' || url.origin !== self.location.origin) return;
   if (url.pathname === '/sw.js') return;
+  // The Android file (and anything else under /download/) is a plain download: a navigation to it must never be cached as the app shell.
+  if (url.pathname.startsWith('/download/')) return;
   if (url.pathname.startsWith('/_expo/static/') || url.pathname.startsWith('/assets/')) {
     event.respondWith(
       caches.match(req).then(

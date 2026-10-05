@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
+import type { FlashListRef } from '@shopify/flash-list';
 import { COSMETIC_SLOTS, toPersianDigits } from '@dozari/shared';
 import type { CosmeticSlot, Shop, ShopItem } from '@dozari/shared';
 import { GradientFill } from '../components/GradientFill';
@@ -22,6 +24,9 @@ import type { Tried } from './tryOn';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const n = (v: number) => toPersianDigits(String(v));
+type Row =
+  | { kind: 'head'; slot: CosmeticSlot; count: number; owned: number }
+  | { kind: 'cards'; slot: CosmeticSlot; key: string; cards: ShopItem[]; last: boolean };
 const RANK = { c: 0, r: 1, e: 2, l: 3 } as const;
 
 /** Colour of each pack's bar and navigation chip (from the design; outfit and accessories take the free colours). */
@@ -46,8 +51,7 @@ export function FittingRoom({ who, realMoney = false, onClose }: { who: Characte
   const [tried, setTried] = useState<Tried>({});
   const [toast, setToast] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const scroller = useRef<ScrollView>(null);
-  const tops = useRef<Partial<Record<CosmeticSlot, number>>>({});
+  const scroller = useRef<FlashListRef<Row>>(null);
 
   const load = useCallback(() => {
     fetchShop().then((s) => (setShop(s), setFailed(false)), () => setFailed(true));
@@ -64,6 +68,16 @@ export function FittingRoom({ who, realMoney = false, onClose }: { who: Characte
     () =>
       COSMETIC_SLOTS.map((slot) => ({ slot, items: [...inSlot(items, slot)].sort((a, b) => RANK[rarityOf(a)] - RANK[rarityOf(b)] || priceOf(a) - priceOf(b)) })).filter((p) => p.items.length > 0),
     [items],
+  );
+  /** The list is flat so it can be recycled: a header row per pack, then the pack's cards two to a row. */
+  const rows = useMemo<Row[]>(
+    () =>
+      packs.flatMap((p) => {
+        const out: Row[] = [{ kind: 'head', slot: p.slot, count: p.items.length, owned: p.items.filter((i) => i.owned).length }];
+        for (let i = 0; i < p.items.length; i += 2) out.push({ kind: 'cards', slot: p.slot, key: p.items[i]!.id, cards: p.items.slice(i, i + 2), last: i + 2 >= p.items.length });
+        return out;
+      }),
+    [packs],
   );
   const worn = previewWorn(items, tried);
   const wornNow = cosmeticsOf(items).filter((i) => shownIn(items, tried, i.slot!) === i.id);
@@ -147,32 +161,42 @@ export function FittingRoom({ who, realMoney = false, onClose }: { who: Characte
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.navScroll} contentContainerStyle={styles.nav}>
           {packs.map((p) => (
-            <Pressable key={p.slot} onPress={() => scroller.current?.scrollTo({ y: Math.max(0, (tops.current[p.slot] ?? 0) - 4), animated: true })} accessibilityRole="button" style={[styles.navChip, { backgroundColor: PACK_COLOR[p.slot] }]}>
+            <Pressable key={p.slot} onPress={() => scroller.current?.scrollToIndex({ index: Math.max(0, rows.findIndex((r) => r.kind === 'head' && r.slot === p.slot)), animated: true })} accessibilityRole="button" style={[styles.navChip, { backgroundColor: PACK_COLOR[p.slot] }]}>
               <Text style={styles.navText}>{fa.wardrobe.slots[p.slot]}</Text>
               <Text style={styles.navCount}>{n(p.items.length)}</Text>
             </Pressable>
           ))}
         </ScrollView>
 
-        <ScrollView ref={scroller} style={styles.list} contentContainerStyle={styles.sections} showsVerticalScrollIndicator persistentScrollbar>
-          {shop && packs.length === 0 ? <Text style={styles.empty}>{fa.wardrobe.empty}</Text> : null}
-          {packs.map((p) => (
-            <View key={p.slot} style={styles.section} onLayout={(e) => void (tops.current[p.slot] = e.nativeEvent.layout.y)}>
+        <FlashList
+          ref={scroller}
+          data={rows}
+          style={styles.list}
+          contentContainerStyle={styles.sections}
+          keyExtractor={(r) => (r.kind === 'head' ? `h-${r.slot}` : `c-${r.key}`)}
+          getItemType={(r) => r.kind}
+          showsVerticalScrollIndicator
+          persistentScrollbar
+          extraData={[tried, busy, realMoney]}
+          ListEmptyComponent={shop ? <Text style={styles.empty}>{fa.wardrobe.empty}</Text> : null}
+          renderItem={({ item: r }) =>
+            r.kind === 'head' ? (
               <View style={styles.sectionHead}>
-                <View style={[styles.bar, { backgroundColor: PACK_COLOR[p.slot] }]} />
+                <View style={[styles.bar, { backgroundColor: PACK_COLOR[r.slot] }]} />
                 <View style={styles.titles}>
-                  <Text style={styles.sectionTitle}>{fa.wardrobe.pack(fa.wardrobe.slots[p.slot] ?? '')}</Text>
-                  <Text style={styles.sectionSub}>{fa.wardrobe.count(p.items.length, p.items.filter((i) => i.owned).length)}</Text>
+                  <Text style={styles.sectionTitle}>{fa.wardrobe.pack(fa.wardrobe.slots[r.slot] ?? '')}</Text>
+                  <Text style={styles.sectionSub}>{fa.wardrobe.count(r.count, r.owned)}</Text>
                 </View>
               </View>
-              <View style={styles.grid}>
-                {p.items.map((it) => (
-                  <PackCard key={it.id} item={it} realMoney={realMoney} on={shownIn(items, tried, p.slot) === it.id} onTry={() => setTried((t) => toggleTry(items, t, it))} onAct={() => act(it)} onPay={() => void pay(it)} />
+            ) : (
+              <View style={[styles.grid, r.last ? styles.gridLast : null]}>
+                {r.cards.map((it) => (
+                  <PackCard key={it.id} item={it} realMoney={realMoney} on={shownIn(items, tried, r.slot) === it.id} onTry={() => setTried((t) => toggleTry(items, t, it))} onAct={() => act(it)} onPay={() => void pay(it)} />
                 ))}
               </View>
-            </View>
-          ))}
-        </ScrollView>
+            )
+          }
+        />
       </View>
     </View>
   );
@@ -208,13 +232,13 @@ const styles = StyleSheet.create({
   navText: { fontFamily: fonts.display, fontSize: 16, color: colors.ink },
   navCount: { fontFamily: fonts.bold, fontSize: 11, color: colors.ink, opacity: 0.7 },
   list: { flex: 1 },
-  sections: { gap: 14, paddingBottom: 16, paddingRight: 4 },
+  sections: { paddingBottom: 16, paddingRight: 4 },
   empty: { fontFamily: fonts.bold, fontSize: 13, color: colors.cream, textAlign: 'center', marginTop: 20 },
-  section: { borderRadius: 24, borderWidth: 2, borderColor: 'rgba(255,255,255,0.14)', backgroundColor: 'rgba(255,255,255,0.06)', padding: 10, gap: 10 },
-  sectionHead: { flexDirection: ROW, alignItems: 'center', gap: 10 },
+  sectionHead: { flexDirection: ROW, alignItems: 'center', gap: 10, paddingTop: 14, paddingBottom: 10, paddingHorizontal: 4 },
   bar: { width: 12, height: 38, borderRadius: 6, borderWidth: 3, borderColor: colors.ink },
   titles: { flex: 1 },
   sectionTitle: { fontFamily: fonts.display, fontSize: 24, lineHeight: 30, color: colors.cream, textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
   sectionSub: { fontFamily: fonts.bold, fontSize: 12, color: '#E3CCFF' },
-  grid: { flexDirection: ROW, flexWrap: 'wrap', justifyContent: 'space-between', rowGap: 10 },
+  grid: { flexDirection: ROW, justifyContent: 'space-between', paddingBottom: 10, paddingHorizontal: 4 },
+  gridLast: { paddingBottom: 4 },
 });

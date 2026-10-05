@@ -38,7 +38,7 @@ export function ModeSelect({ entry, prize, mode, onMode, onGo, onFriend, onBack 
               <Text style={styles.friendText}>{a.friend}</Text>
             </Pressable>
           ) : null}
-          <SlabButton label={a.go} color={colors.candy.lime} height={62} grow={0} onPress={onGo} />
+          <SlabButton label={a.go} sfx="confirm" color={colors.candy.lime} height={62} grow={0} onPress={onGo} />
         </View>
       </View>
     </View>

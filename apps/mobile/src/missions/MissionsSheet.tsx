@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { swr } from '../net/cache';
 import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { toPersianDigits } from '@dozari/shared';
 import type { MissionKey, ProfileTask } from '@dozari/shared';
@@ -27,8 +28,8 @@ export function MissionsSheet({ avail, links, onGo, onClose, onChanged }: { avai
   const [got, setGot] = useState<string | null>(null);
   const m = fa.missions;
 
-  const load = useCallback(() => void fetchProfileTasks().then((r) => (setTasks(r.tasks), setFailed(false)), () => setFailed(true)), []);
-  useEffect(load, [load]);
+  const load = useCallback(() => void swr.refresh('missions', fetchProfileTasks).then((r) => (setTasks(r.tasks), setFailed(false)), () => setFailed(true)), []);
+  useEffect(() => swr('missions', fetchProfileTasks, (r) => (setTasks(r.tasks), setFailed(false)), () => setFailed(true)), []);
   useEffect(() => {
     if (!got) return;
     const timer = setTimeout(() => setGot(null), 3000);

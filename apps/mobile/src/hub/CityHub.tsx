@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Svg, { G, Path } from 'react-native-svg';
 import { Character } from '../components/Character';
 import { GradientFill } from '../components/GradientFill';
@@ -30,7 +30,20 @@ export function CityHub({ onClose, onEnter, features, dailyReady }: { onClose: (
   useHardwareBack(onClose);
   const { width, height } = useWindowDimensions();
   const [sel, setSel] = useState<HubBuilding | null>(null);
-  const animated = !usePrefs().reduceMotion; // the cloud drifts and the palms sway unless «حرکت کمتر» is on
+  const slide = useRef(new Animated.Value(0)).current; // 0 = drawer hidden below the screen, 1 = raised
+  const reduce = usePrefs().reduceMotion;
+  const hasSel = sel !== null;
+  useEffect(() => {
+    if (!hasSel) return;
+    if (reduce) return void slide.setValue(1);
+    // A soft spring (slight settle, no bounce past the edge) feels smoother than a fixed-duration ease.
+    Animated.spring(slide, { toValue: 1, damping: 22, stiffness: 150, mass: 1, overshootClamping: true, useNativeDriver: true }).start();
+  }, [hasSel, reduce, slide]);
+  const closeSheet = useCallback(() => {
+    if (reduce) return setSel(null);
+    Animated.timing(slide, { toValue: 0, duration: 280, easing: Easing.bezier(0.4, 0, 0.2, 1), useNativeDriver: true }).start(({ finished }) => finished && setSel(null));
+  }, [reduce, slide]);
+  const animated = !reduce; // the cloud drifts and the palms sway unless «حرکت کمتر» is on
   // The whole town fits the screen (nothing scrolls): scale by whichever of width / height is tighter.
   const k = Math.min(Math.min(width, 520) / MAP_W, height / MAP_H);
   const mapW = MAP_W * k;
@@ -76,6 +89,10 @@ export function CityHub({ onClose, onEnter, features, dailyReady }: { onClose: (
             </G>
           </Svg>
 
+          {/* The drawing of each building is a tap target too (like its plate): both raise the same bottom drawer. */}
+          {HUB_BUILDINGS.map((b) => (
+            <Pressable key={`art-${b.key}`} onPress={() => setSel(b)} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{ position: 'absolute', left: (b.x - b.w / 2 - 6) * k, top: (b.by - b.h - 26) * k, width: (b.w + 12) * k, height: (b.h + 34) * k }} />
+          ))}
           {HUB_BUILDINGS.map((b) => {
             const info = t.buildings[b.key];
             const badge = b.key === 'tower' && dailyReady ? t.isNew : b.key === 'caravan' && features.tournament ? t.live : null;
@@ -111,8 +128,10 @@ export function CityHub({ onClose, onEnter, features, dailyReady }: { onClose: (
 
       {sel ? (
         <>
-          <Pressable style={styles.dim} onPress={() => setSel(null)} accessibilityLabel={t.close} />
-          <View style={styles.sheet}>
+          <Animated.View style={[styles.dim, { opacity: slide }]}>
+            <Pressable style={StyleSheet.absoluteFill} onPress={closeSheet} accessibilityLabel={t.close} />
+          </Animated.View>
+          <Animated.View style={[styles.sheet, { transform: [{ translateY: slide.interpolate({ inputRange: [0, 1], outputRange: [Math.max(300, height * 0.4), 0] }) }] }]}>
             <View style={styles.host}><Character who={sel.host} pose="wave" /></View>
             <View style={styles.sheetBody}>
               <View style={styles.sheetHead}>
@@ -130,13 +149,13 @@ export function CityHub({ onClose, onEnter, features, dailyReady }: { onClose: (
                     </Pressable>
                   );
                 })()}
-                <Pressable accessibilityRole="button" accessibilityLabel={t.close} onPress={() => setSel(null)} style={({ pressed }) => [styles.x, pressed ? styles.pressed : null]}>
+                <Pressable accessibilityRole="button" accessibilityLabel={t.close} onPress={closeSheet} style={({ pressed }) => [styles.x, pressed ? styles.pressed : null]}>
                   <GradientFill from="#FFAA7A" to="#FF7A3D" />
                   <Icon name="close" size={20} color="#fff" strokeWidth={3} />
                 </Pressable>
               </View>
             </View>
-          </View>
+          </Animated.View>
         </>
       ) : null}
     </View>
@@ -168,7 +187,7 @@ const styles = StyleSheet.create({
   hint: { position: 'absolute', top: 92, left: 0, right: 0, alignItems: 'center' },
   hintText: { paddingHorizontal: 14, paddingVertical: 5, borderRadius: 99, borderWidth: 2, borderColor: colors.ink, backgroundColor: '#FFF6E8', fontFamily: fonts.bold, fontSize: 12, color: colors.ink, overflow: 'hidden' },
   dim: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(26,8,44,0.35)' },
-  sheet: { position: 'absolute', left: 0, right: 0, bottom: 0, flexDirection: ROW, alignItems: 'flex-end', gap: 10, paddingTop: 18, paddingHorizontal: 16, paddingBottom: 26, borderTopLeftRadius: 30, borderTopRightRadius: 30, borderTopWidth: 4, borderColor: colors.ink, backgroundColor: '#FBF1DE' },
+  sheet: { position: 'absolute', left: 10, right: 10, bottom: 12, flexDirection: ROW, alignItems: 'flex-end', gap: 10, paddingTop: 16, paddingHorizontal: 14, paddingBottom: 14, borderRadius: 30, borderWidth: 4, borderColor: colors.ink, backgroundColor: '#FBF1DE', ...lift(5) },
   host: { width: 104, height: 120, marginTop: -50 },
   sheetBody: { flex: 1, gap: 6, minWidth: 0 },
   sheetHead: { flexDirection: ROW, alignItems: 'center', gap: 8 },

@@ -1,5 +1,5 @@
-import { shopSchema, soloHintResultSchema, soloHintsSchema } from '@dozari/shared';
-import type { HintKind, Shop, SoloHintResult, SoloHints } from '@dozari/shared';
+import { shopSchema, soloHintResultSchema, soloHintsSchema, soloNudgeResultSchema } from '@dozari/shared';
+import type { HintKind, HintPayload, Shop, SoloHintResult, SoloHints } from '@dozari/shared';
 import { session } from '../auth';
 import { callJson } from '../net/http';
 
@@ -14,5 +14,8 @@ export const payWithMoney = (id: string): Promise<void> => authed(`/shop-pay/${i
 export const equipItem = (id: string, equipped: boolean): Promise<{ ok: true }> => authed(`/shop/${id}/equip`, 'POST', (v) => v as { ok: true }, { equipped });
 export const fetchWorn = (): Promise<{ worn: { id: string; slot: string; iconKey: string | null }[] }> => authed('/me/cosmetics', 'GET', (v) => v as { worn: { id: string; slot: string; iconKey: string | null }[] });
 export const fetchHints = (sessionId: string): Promise<SoloHints> => authed(`/solo/${sessionId}/hints`, 'GET', (v) => soloHintsSchema.parse(v));
+/** The free nudge a level-1 player gets after standing still (403 `level` for everyone else: stop asking). */
+export const takeNudge = (sessionId: string): Promise<HintPayload> =>
+  authed(`/solo/${sessionId}/nudge`, 'POST', (v) => soloNudgeResultSchema.parse(v).hint, {}).then((h) => h);
 export const takeHint = (sessionId: string, kind: HintKind): Promise<SoloHintResult> =>
   authed(`/solo/${sessionId}/hint`, 'POST', (v) => soloHintResultSchema.parse(v), { kind });

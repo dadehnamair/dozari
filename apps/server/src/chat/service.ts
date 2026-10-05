@@ -1,4 +1,4 @@
-import { CHAT_HISTORY_LIMIT, CHAT_TAUNT_RATE, CHAT_TEXT_RATE, containsContactInfo } from '@dozari/shared';
+import { CHAT_HISTORY_LIMIT, CHAT_TAUNT_RATE, CHAT_TEXT_RATE, containsContactInfo, normalizeTableCode } from '@dozari/shared';
 import type { ChatError, ChatHistory, ChatMessage, TauntCategory } from '@dozari/shared';
 
 /** Rooms a player reads and writes from the chat sheet (the duel room is socket-only). */
@@ -30,6 +30,8 @@ export interface ChatDeps {
   hasContactPerk(userId: string): Promise<boolean>;
   /** Private chat is for accepted friends only. */
   areFriends(a: string, b: string): Promise<boolean>;
+  /** Players seated at a private table, or null when the table is gone or `userId` does not sit there. */
+  tableMembers(userId: string, code: string): string[] | null;
   rules(): Promise<ChatRules>;
   filter?: TextFilterService;
   now?: () => number;
@@ -122,6 +124,31 @@ export class ChatService {
     const message = await this.view(row, new Map());
     this.toUser?.(friendId, message);
     this.toUser?.(userId, message);
+    return { ok: true, message };
+  }
+
+  /** History of a private table's chat; only players seated at it may read. */
+  async tableHistory(userId: string, code: string): Promise<ChatHistory | 'NOT_IN_TABLE' | 'OFF'> {
+    const rules = await this.deps.rules();
+    if (!rules.enabled) return 'OFF';
+    if (!this.deps.tableMembers(userId, code)) return 'NOT_IN_TABLE';
+    const [rows, mute, activated] = await Promise.all([this.store.history('table', (normalizeTableCode(code) ?? code), CHAT_HISTORY_LIMIT), this.deps.mute(userId), this.deps.isActivated(userId)]);
+    const cache = new Map();
+    const messages: ChatMessage[] = [];
+    for (const r of rows) messages.push(await this.view(r, cache));
+    return { cityName: null, globalOn: rules.globalEnabled, messages, canType: !mute && (activated || !rules.textNeedsActivation), muted: mute };
+  }
+
+  /** A message to everyone at the table (same rules as the other rooms, plus: only seated players). Reaches them live. */
+  async sendTable(userId: string, code: string, input: SendInput): Promise<SendResult> {
+    const members = this.deps.tableMembers(userId, code);
+    if (!members) return { ok: false, error: 'NOT_IN_TABLE' };
+    if (input.kind === 'table') return { ok: false, error: 'EMPTY' };
+    const text = await this.resolveText(userId, input);
+    if (!text.ok) return text;
+    const row = await this.store.addMessage({ room: 'table', roomKey: (normalizeTableCode(code) ?? code), userId, kind: input.kind, text: text.text });
+    const message = await this.view(row, new Map());
+    for (const m of members) this.toUser?.(m, message);
     return { ok: true, message };
   }
 

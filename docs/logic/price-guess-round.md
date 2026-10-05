@@ -99,3 +99,37 @@ see updated flow in that file / the result-screen section of `docs/PLAN.md`.
   the simultaneous reveal). A missing guess is the worst possible; two missing is a draw.
 - Not here yet: the coin wager (LedgerService), persistence to `match_events`, the locked-out-side match rule
   (belongs to the match reducer, Phase 4).
+
+## As built in the live 1v1 duel (D196)
+
+- Admin setting `match.price_round` (default **off**; read when a match starts, so a running duel keeps its rules). 1v1 only: a 2v2 and any
+  forfeit/abandon end with the puzzle as before.
+- After the board is finished by play (`solved` / `locked_out`), `MatchService` draws the 4 rounds from the board just played (`selectRounds`, prices
+  from `PuzzleSource.pricesFor`; no usable price = no round, the match just ends) and runs them blind and simultaneously: socket `price:submit
+  {guessRials}` (decimal string), one clock per round (`game.turn_seconds`) after which unanswered sides get the worst guess. While it runs the
+  snapshot says `status: 'playing'`, `result: null` and carries `priceRound` (current item, who locked in, the rounds revealed so far — the real
+  price and the opponent's guess only after the reveal); the `finished` event is held back.
+- The result then comes from shared `resolveWinner` / `finalScores`: **the puzzle winner stands**, a puzzle tie falls through to rounds won, a
+  locked-out side cannot win off them but gets `PRICE_GUESS_LOSER_BONUS_PER_ROUND` per round won. `match:ended` carries `priceRound` (all guesses
+  and prices) for the result screen. Leaving during the rounds ends the match with the puzzle result.
+- Bots guess near the real price by skill (`chooseBotPriceGuess`; the price comes from `MatchService.priceAnswerFor`, server side only).
+- App: `DuelPriceRound` replaces the board while `view.priceRound` is set; `DuelResult` lists the four rounds.
+- **Coin wager (built, off by default):** admin setting `duel.price_wager` (0 = none, max 50; proposed 2–5), frozen when the match starts, **queue duels only**
+  (private tables and tournaments are friendly: no coins). When a round opens each human's wager is taken through the stake store (`price_guess_wager`,
+  key `price_guess_wager:<match>:<round>:<user>`); a side that cannot pay sits the round out (no guess, worst result, nothing moves). The reveal pays
+  `settleWager` (shared): winner = pot minus `duel.house_cut_percent` (rounded down), draw = each wager minus the cut, `price_guess_payout` rows; if only one
+  side is in play its wager comes back in full. A **bot seat plays for the house**: the human risks only their own wager and the bot never collects, so the
+  pot top-up of `bot_match_subsidy` is implicit, exactly as for the entry fee (no ledger row for the house). Leaving mid-round returns every open wager.
+  The snapshot carries `wager` and `youIn`. The economy simulator (`economy/simulate.ts`) does not model this wager yet — check it before switching it on.
+- Still to do: persistence to `match_events`, 2v2 (captain pools one guess), the reveal animation.
+
+## Price-only mode («فقط حدس قیمت»)
+
+Owner request: a way to play only the price guessing. A third home button next to «بازی تکی» and «دوئل».
+
+- A game is `priceonly.rounds` questions (admin setting, default `PRICE_ONLY_ROUNDS` = 5, max 10): distinct products with ≥ `MIN_PRICE_POINTS_PER_PRODUCT` approved
+  prices, each asked in a random year that has a price (`selectPriceOnlyRounds`, `packages/shared/src/priceguess/only.ts`), so the player sees prices across eras.
+- Scored on the same 5-step staircase as the solo bonus round (`score.staircase_*`); the best possible total is shown as «x از y».
+- Server (`apps/server/src/priceonly/`): in-memory sessions like solo; `POST /price-only/start`, `GET /price-only/:id`, `POST /price-only/:id/guess`.
+  A question never carries its price; the real price appears only in the answer to that round (server authoritative, rule 4). Switch: `feature.priceonly`.
+- Solo only for now: no coins at stake (the coin wager stays a duel feature) and no XP yet.

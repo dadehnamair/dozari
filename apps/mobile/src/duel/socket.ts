@@ -15,6 +15,8 @@ export interface DuelConnection {
   /** 2v2: show the captain the cards the player has picked (replaces the previous proposal). */
   propose(itemIds: string[]): Promise<Ack>;
   leave(): Promise<Ack>;
+  /** A hidden guess in the price-guess round (rials). */
+  priceGuess(guessRials: bigint): Promise<Ack>;
   taunt(tauntId: string): Promise<Ack>;
   close(): void;
 }
@@ -87,6 +89,7 @@ export async function connectDuel(dispatch: (a: DuelAction) => void): Promise<Du
     submit: (itemIds) => ask(socket, ClientEvent.matchSubmit, { itemIds }),
     propose: (itemIds) => ask(socket, ClientEvent.matchPropose, { itemIds }),
     leave: () => ask(socket, ClientEvent.matchLeave),
+    priceGuess: (guessRials) => ask(socket, ClientEvent.priceSubmit, { guessRials: guessRials.toString() }),
     taunt: (tauntId) => ask(socket, ClientEvent.chatTaunt, { tauntId }),
     close: () => {
       socket.removeAllListeners();

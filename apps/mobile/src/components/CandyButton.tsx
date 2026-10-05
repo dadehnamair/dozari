@@ -1,12 +1,16 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts, toneOf } from '../theme/colors';
 import { GradientFill } from './GradientFill';
+import { playSfx } from '../sound/engine';
+import type { Sfx } from '../sound/engine';
 
 interface Props {
   label: string;
   onPress: () => void;
   color?: string;
   disabled?: boolean;
+  /** Click sound; `press` is the normal one, `back` for going back, `confirm` for the main action. */
+  sfx?: Sfx;
 }
 
 const SHELF = 6;
@@ -18,6 +22,7 @@ export function CandyButton({
   onPress,
   color = colors.candy.pink,
   disabled = false,
+  sfx = 'press',
 }: Props) {
   const tone = toneOf(color);
   const face = disabled
@@ -29,7 +34,7 @@ export function CandyButton({
       accessibilityRole="button"
       accessibilityState={{ disabled }}
       disabled={disabled}
-      onPress={onPress}
+      onPress={() => (playSfx(sfx), onPress())}
     >
       {({ pressed }) => (
         <View style={styles.wrap}>

@@ -1,8 +1,9 @@
+import { readFile } from 'node:fs/promises';
 import Fastify from 'fastify';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import type { ContentApi, LandingData, Post, PostSummary } from './api.js';
 import { llmsFull, llmsTxt, ogCard, robots, sitemap } from './discovery.js';
-import { blogIndexPage, castPage, homePage, notFoundPage, postPage, privacyPage, unavailablePage } from './pages.js';
+import { aboutPage, blogIndexPage, castPage, contactPage, downloadPage, homePage, notFoundPage, postPage, privacyPage, termsPage, unavailablePage } from './pages.js';
 import type { Site } from './seo.js';
 
 export interface LandingOptions {
@@ -16,7 +17,7 @@ const HTML = 'text/html; charset=utf-8';
 function siteOf(data: LandingData, siteUrl: string | undefined): Site {
   const s = data.site;
   const url = (siteUrl && siteUrl.trim() !== '' ? siteUrl.trim() : s.domains.landing ? `https://${s.domains.landing}` : 'http://localhost:3100').replace(/\/+$/, '');
-  return { name: s.name, tagline: s.tagline, url, contactEmail: s.contactEmail, sameAs: [...new Set([s.instagram, s.channel, ...(s.seo?.sameAs ?? [])].filter((x): x is string => !!x))], appUrl: s.appUrl ?? (s.domains.app ? `https://${s.domains.app}` : null), androidApp: s.androidApp, ogImage: s.seo?.ogImage ?? null, ogImageAlt: s.seo?.ogImageAlt ?? null, keywords: s.seo?.keywords ?? [], fontUrl: s.seo?.fontUrl ?? null, indexable: s.seo?.indexable ?? true, verify: s.seo?.verify, analytics: s.seo?.analytics ?? null };
+  return { name: s.name, tagline: s.tagline, url, contactEmail: s.contactEmail, sameAs: [...new Set([s.instagram, s.channel, ...(s.seo?.sameAs ?? [])].filter((x): x is string => !!x))], appUrl: s.appUrl ?? (s.domains.app ? `https://${s.domains.app}` : null), androidApp: s.androidApp, badges: s.badges ?? [], ogImage: s.seo?.ogImage ?? null, ogImageAlt: s.seo?.ogImageAlt ?? null, keywords: s.seo?.keywords ?? [], fontUrl: s.seo?.fontUrl ?? null, indexable: s.seo?.indexable ?? true, verify: s.seo?.verify, analytics: s.seo?.analytics ?? null };
 }
 
 /** Every published post (the API pages them at 50). */
@@ -52,6 +53,42 @@ export function buildLanding(opts: LandingOptions): FastifyInstance {
     return send(reply, 503, html, 'no-store');
   });
 
+  // Self-hosted fonts, characters and item icons (rule 8): the name must match a strict pattern, so it can never reach another file.
+  const asset = (dir: string, ext: string, type: string, pattern: RegExp) => async (req: { params: unknown }, reply: FastifyReply) => {
+    const name = (req.params as { file: string }).file.replace(new RegExp(`\\.${ext}$`), '');
+    if (!pattern.test(name)) return reply.code(404).send('not found');
+    try {
+      const buf = await readFile(new URL(`../assets/${dir}/${name}.${ext}`, import.meta.url));
+      return reply.header('content-type', type).header('cache-control', 'public, max-age=31536000, immutable').send(buf);
+    } catch {
+      return reply.code(404).send('not found');
+    }
+  };
+  app.get('/fonts/:file', asset('fonts', 'woff2', 'font/woff2', /^(Lalezar-Regular|Vazirmatn-(400|800|900))$/));
+  app.get('/characters/:file', asset('characters', 'svg', 'image/svg+xml', /^[A-Za-z]+-[A-Za-z-]+$/));
+  app.get('/badges/:file', async (req, reply) => {
+    const file = (req.params as { file: string }).file;
+    const ext = file.endsWith('.svg') ? 'svg' : file.endsWith('.webp') ? 'webp' : 'png';
+    return asset('badges', ext, ext === 'svg' ? 'image/svg+xml' : `image/${ext}`, /^(enamad|samandehi|ersa|etehadieh|ircg|cafebazaar|myket)$/)(req, reply);
+  });
+  app.get('/items/:file', asset('items', 'svg', 'image/svg+xml', /^[A-Za-z]+$/));
+  // Promo banners (docs/design/banner, resized to webp) and the social card; favicons and the web-app icons.
+  app.get('/banners/:file', async (req, reply) => {
+    const file = (req.params as { file: string }).file;
+    return file === 'og.jpg' ? asset('banners', 'jpg', 'image/jpeg', /^og$/)(req, reply) : asset('banners', 'webp', 'image/webp', /^banner[1-8]$/)(req, reply);
+  });
+  app.get('/icons/:file', async (req, reply) => {
+    const file = (req.params as { file: string }).file;
+    const ext = file.endsWith('.ico') ? 'ico' : 'png';
+    return asset('icons', ext, ext === 'ico' ? 'image/x-icon' : 'image/png', /^(favicon|favicon-32|icon-192|icon-512|apple-touch-icon)$/)(req, reply);
+  });
+  app.get('/favicon.ico', async (_req, reply) => asset('icons', 'ico', 'image/x-icon', /^favicon$/)({ params: { file: 'favicon.ico' } }, reply));
+  app.get('/site.webmanifest', async (_req, reply) => {
+    const data = await api.landing();
+    const s = siteOf(data, opts.siteUrl);
+    return reply.header('content-type', 'application/manifest+json; charset=utf-8').header('cache-control', 'public, max-age=86400').send(JSON.stringify({ name: s.name, short_name: s.name, lang: 'fa', dir: 'rtl', start_url: '/', display: 'browser', background_color: '#FFF6E8', theme_color: '#2B1240', icons: [{ src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' }, { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' }] }));
+  });
+
   app.get('/health', async () => ({ ok: true }));
 
   app.get('/', async (_req, reply) => {
@@ -84,6 +121,17 @@ export function buildLanding(opts: LandingOptions): FastifyInstance {
     return send(reply, 200, castPage(siteOf(data, opts.siteUrl), data.cast));
   });
 
+  app.get('/about', async (_req, reply) => {
+    const data = await api.landing();
+    return send(reply, 200, aboutPage(siteOf(data, opts.siteUrl), data.cast));
+  });
+  app.get('/download', async (_req, reply) => send(reply, 200, downloadPage(siteOf(await api.landing(), opts.siteUrl))));
+  app.get('/contact', async (_req, reply) => {
+    const data = await api.landing();
+    return send(reply, 200, contactPage(siteOf(data, opts.siteUrl), data.faq));
+  });
+
+  app.get('/terms', async (_req, reply) => send(reply, 200, termsPage(siteOf(await api.landing(), opts.siteUrl))));
   app.get('/privacy', async (_req, reply) => send(reply, 200, privacyPage(siteOf(await api.landing(), opts.siteUrl))));
 
   app.get('/sitemap.xml', async (_req, reply) => {

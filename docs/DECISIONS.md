@@ -423,7 +423,7 @@ Owner listed six follow-ups to start after the first Android build (`docs/logic/
 should be able to pay every prize kind (gems, clothing, hats …), and **no one gets free spins for now**; later spins behave like lives (a small refilling
 stock) while prizes stay valuable. Until the owner confirms, nothing changes in code; the proposed first step is `wheel.daily_spins` = 0 when item 1 is built.
 
-## D157 — Phone-only gate, landing site and short domain (2026-10-03, proposed)
+## D197 — Phone-only gate, landing site and short domain (2026-10-03, proposed)
 
 Owner added three items to the backlog (`docs/logic/owner-backlog-2026-10-03.md`, items 7–9), none started: (7) the desktop web layout is unsuitable, so a
 non-phone browser shows a «come with your phone» card with a QR code (Android → downloads, iPhone → PWA install); (8) `mrdozari.ir` becomes a separate
@@ -556,3 +556,65 @@ Also in this commit: the new seed file `products-2026-10-04-01.json` made `db` t
 
 Owner: the fitting room was not like the design and the level text («از سطح ۲») sat outside the card. Rebuilt (`apps/mobile/src/wardrobe/`: `FittingRoom`, `WardrobeStage`, `PackCard`, `RadialFill`, `rarity.ts`) as described in `docs/logic/app-screens.md` §Fitting room: sunburst stage, worn chips, a chip per pack, pack sections with rarity-tinted cards, price buttons with coin/gem icons, the level as a chip inside the picture. Checked in headless Chromium with react-native-web at 390×780 and 360×640 (mock shop data; not on a phone). **Proposed defaults:** rarity is derived from the price (no DB column yet); the bundle buttons («پک ۴۰٪ ارزان‌تر») are **not built** — they need a decision on the bundle price rule and a new ledger reason; the model switch is dropped. Packs the design has and the app has no slot for (crown, beard & moustache, skin tone, badge) are still open.
 
+## D188 — Domains back to mrbots.ir / api.mrbots.ir (2026-10-04)
+
+D188 (moving the app to `2oi.ir` / `api.2oi.ir`) is **withdrawn**: the owner found `2oi.ir` unreachable from Iran, so the phones could not connect to the server. Everything is back on `mrbots.ir` (web) and `api.mrbots.ir` (API), including the Android release default address and the APK workflow. `2oi.ir` stays the separate short-link domain (D172); the host-equals-app special case of the move is gone with it.
+
+## D189 — The owner's two songs are the app music (2026-10-04)
+
+`docs/music/background.mp3` (4:00) and `competition.mp3` (3:30) are re-encoded to 80 kbps (≈ 2.4 / 2.1 MB, `apps/mobile/assets/music/`) and loop through `expo-audio` on phones **and the web**: the background song plays under every screen except a match, the competition song during one (`useMusic` in `App.tsx`, mood `calm` / `tense`); the settings «موسیقی» / «صدا» switches still apply. If a song cannot be played the old synthesised loop of that mood takes over on phones. Browsers block sound before the first tap, so the web retries on the first touch. The two files are above the PWA precache limit (2 MB) and load on first use. Not heard on a real phone/browser here.
+
+## D190 — Streak pill only when there is a streak; the competitive price round is deferred (2026-10-04)
+
+The Home pill «🔥 N روز» is the **daily puzzle streak** (consecutive days the daily puzzle was solved; it feeds the daily bonus, `docs/logic/daily-puzzle.md`). Showing «۰ روز» confused the owner, so it now appears only from a streak of 1. **Deferred, not built:** the competitive price-guess round with the coin wager and the bot subsidy (PLAN Phase 3-A / 6, GAPS B1). It touches the live match flow (a new phase after the board, hidden entry + simultaneous reveal for both sides and for 2v2 captains, escrow per round, bots that must guess, reconnects) and cannot be exercised end to end in the cloud container (no MySQL, no phones), so shipping it blind could break every duel. Proposed path when the owner wants it: (1) server phase behind a switch `duel.price_round` (default off), (2) bot guesses, (3) wager through the ledger with `price_guess_wager` / `price_guess_payout`, (4) client hidden-entry screen and reveal, (5) try it on the owner's server with the switch on for a few testers, then default it on.
+
+## D191 — Animated logo (2026-10-04)
+
+The owner's logo animation (`docs/design/Dozari - 23 Logo Animation.dc.html`, `Logo.dc.html`) is `apps/mobile/src/components/AnimatedLogo.tsx`: the coin falls spinning and lands with a squash and one rebound (1 s), the wordmark pops in with a squash-stretch at 0.45 s, six candy sparks burst out, the wordmark keeps breathing (3.2 s loop) and a shine sweeps over the letters every ~3.6 s. «حرکت کمتر» shows the finished logo. Used on the **splash** and **login** screens (the static `Wordmark` stays on Home and in the share card). Checked frame by frame in headless Chromium (react-native-web); the shine is drawn with an animated gradient that react-native-web does not animate, so it is only seen on phones — not verified on a phone here. The style sheet (`22 Style Sheet`) is the theme still to be applied to the landing site.
+
+
+## D192 — Fitting room list is a recycled FlashList (2026-10-04)
+
+Owner: scrolling the fitting room was not smooth. All cards (each with several SVGs and shadows) were built at once inside a `ScrollView`. The list is now a `@shopify/flash-list` (2.3.3, JS-only, no Google deps) of flat rows — a header row per pack, then the cards two to a row — so only the visible cards exist and rows are recycled. Pack chips jump with `scrollToIndex`. The rounded frame around each pack is dropped (a flat list cannot wrap a group). Not measured on a phone.
+
+## D193 — Animated logo without the shine; forced LTR box (2026-10-04)
+
+Owner: on the phone the logo did not animate and sat to the left. Likely cause: the shine animated the SVG `LinearGradient` through `setNativeProps`, which has no native view in the new architecture and breaks the JS-driven frame updates. The shine is removed (the coin drop, pop, sparks and breathing stay, all on the native driver), and the logo box is `alignSelf: 'center'` with `direction: 'ltr'` so the forced RTL cannot move its parts. Not seen on a phone yet.
+
+## D194 — Hub drawer slides up and down (2026-10-04)
+
+Owner: the building drawer of the city hub appeared at once. It now rises from the bottom (320 ms, ease-out) with the dim layer fading in, and sinks again on close (220 ms); «حرکت کمتر» keeps it instant. Native driver only. Not seen on a phone yet.
+
+## D195 — Hub drawer is a full bordered card; animated logo has pixel sizes (2026-10-04)
+
+Owner: the hub drawer had only a purple border on top (a top-only border with rounded corners draws as a tapering crescent on Android), and the splash logo sat a little left of the centre. The drawer is now a floating card (10 px from the sides, 12 px from the bottom) with a 4 px ink border all round, a hard shadow and fully rounded corners. The animated logo's SVG gets the box's pixel width / height instead of `100%`, as the static wordmark has, so its viewBox is centred the same way. Not seen on a phone yet.
+
+- **D196 — Hub drawer motion is a spring.** Opening uses `Animated.spring` (damping 22, stiffness 150, clamped, native driver) instead of a 320 ms cubic ease; closing is a 280 ms Material standard bezier. Smoother start/stop, same native-driver cost.
+
+- **D197 — Animated logo on Home, centred as a group.** The Home screen uses `AnimatedLogo` (as Splash and Login do) instead of the static `Wordmark`. Inside the animated logo the lettering and the coin are shifted right together (~0.04 × width) so the coin-plus-lettering group, not the lettering alone, sits at the centre of the box.
+
+## D196 — Price-guess round after the 1v1 duel, behind a setting (2026-10-04, proposed)
+
+The owner-approved bonus round (D-series 2026-09-27) is now built for live 1v1 duels, **off by default** (`match.price_round`) so nothing changes until the owner
+switches it on and has seen it on a device. The puzzle winner stands; the rounds only break a tie and give a locked-out side a small bonus (rules already in
+shared). The per-round coin wager is built too, behind its own setting `duel.price_wager` (0 = off, queue duels only, 2–5 coins proposed): owner picks the number after checking the economy simulator, which does not model it yet. 2v2 keeps the
+puzzle-only ending until the captain-pooled guess is designed. Details: `docs/logic/price-guess-round.md` §As built.
+
+- **D198 — Terms page.** The landing site serves `/terms` (قوانین و شرایط) next to `/privacy`: conduct, chat, in-game-only coins, suggestions, bans, liability. In the sitemap and footer. Plain-language draft, not legal advice: the owner should read it before the store review.
+- **D199 — Admin-defined puzzle tiers, level-aware serving (proposed).** The fixed آسان/متوسط/سخت of D34 becomes an admin-edited list (`puzzle_tiers`: name, order, player-level range; five defaults 1–3 / 4–8 / 9–15 / 16–25 / 26+). Each puzzle carries an optional `tier_id`; solo serves the signed-in player's level, a duel the higher of the two. No rated puzzle for that level → any approved puzzle. The level ranges are guesses: tune them in the admin after playtesting. Details: `docs/logic/progression.md` §Puzzle tiers.
+- **D200 — Free idle nudge for level-1 players (proposed).** After 20 s without a move in a solo game, two cards of one unsolved group light up softly (server-side, free, max 2 per game, level ≤ 1). Numbers in `config/game.ts`.
+- **D201 — Offline solo is practice only; data pages are cached (proposed).** The app keeps 5 whole puzzles for playing without internet and shows cached copies of the data pages while refreshing them. Because a saved puzzle contains its solutions (an exception to rule 4), offline games grant no XP, coins or stats and are never synced; the download endpoint is signed-in only and capped at 15 puzzles per day. Details: `docs/logic/offline-solo.md`.
+- **D202 — Live duel opens at level 3 (proposed).** `duel.min_level` (default 3, admin-editable) gates the 1v1 and 2v2 queue on the server; solo, daily, price-only, friend tables and bots are not gated. Details: `docs/logic/matchmaking.md` §Level gate.
+- **D203 — Sponsors on tournaments (proposed).** Admin-defined `sponsors` (name, tagline, story, https banner/logo/link, accent, active switch) chosen per tournament (`tournaments.sponsor_id`); shown as a tag in the list and a card with banner on the tournament page. A «want to sponsor?» card at the end of the list is driven by three admin settings and hidden without a contact link. Images are pasted https links for now (no upload). See `docs/logic/sponsors.md`.
+
+
+## D198 — Age tracks: kid, teen and adult spaces (2026-10-05, proposed)
+
+Owner: one game for every age. Kids get an educational space (very easy picture puzzles, no price guessing, then a word lesson: the word and its
+letters). The player picks an age band on first run; a kid or teen is linked to a guardian by phone OTP, and one guardian number can hold several
+child profiles. Adults must never feel they are in a kids' game, and the admin panel must let every list be filtered and managed by band.
+Proposed defaults in `docs/logic/age-tracks.md`: three bands (up to 11 / 12–17 / 18+) chosen, not computed, with no birth date used for it (the D160 birth date stays optional and independent); kid and teen
+have no free chat and no coin wagers, match only inside their band, and cannot raise their own band; kid content needs an editor's approval. Nothing
+is built yet. Owner to confirm: band edges, whether the guardian step is a hard gate for kids, and store age-labelling rules for Bazaar/Myket.
+
+**Update 2026-10-05 (owner):** the brand stays whole (only logic changes; «دوزاری کوچولو» is just the kid track's label inside the app). Kids and teens get friends, friend duels, private tables and **managed chat** inside their own track (strict filter, friends-only free text switched on by the guardian, report queue), so the fun stays; restrictions are built in and invisible, not shown as locks. The guardian profile panel only narrows defaults; the guardian link is needed once, for the social features only.

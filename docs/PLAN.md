@@ -94,7 +94,7 @@ browser — both need the owner's own machine (see Phase 0-A).
 - [x] 🧩 Round item selection (1 random item/group) + solo staircase scorer — `selectRounds`, `staircasePoints`, `parseTomanInput` in shared
 - [x] 🧩 Competitive blind-simultaneous-guess reducer (4 rounds, reuses turn timer) — `applyPriceGuessCommand`, `priceGuessClientView` in shared (the timer itself is the server's `timeout` command)
 - [x] 📱 Solo price-guess UI (numeric input, staircase feedback) — `PriceRoundPanel` + `GET /solo/:id/price-rounds`, `POST /solo/:id/price-guess`; runs after the puzzle, before the chart
-- [ ] 📱 Competitive price-guess UI (hidden entry, simultaneous reveal animation)
+- [x] 📱 Competitive price-guess round in the live 1v1 duel (server phase, bots, hidden entry, reveal list; setting `match.price_round`, off by default — D196). Reveal *animation* and 2v2 still open
 - [~] 🧪 Scoring tests (staircase tiers, tie-on-distance draw done; the locked-out-side match rule waits for the match reducer)
 
 **Exit:** every finished puzzle (solo or competitive) flows into a price-guess round before the result screen.
@@ -129,13 +129,13 @@ human opponent is found.
 
 ## Phase 4-A — Profile screen (`logic/profile-and-identity.md`)
 
-- [ ] 🗄 `user_tags`, tag catalog table, `users.equipped_tag_id`, avatar/nickname gallery tables
+- [x] 🗄 Tags became badges/medals (D83: badge catalog, earned rows, one equipped badge); no separate `user_tags` table. Avatar/nickname galleries are content in the app (the avatar-unlock-by-games number `AVATAR_UNLOCK_GAMES` is only a config constant and is not enforced yet)
 - [x] 🖥 Play-count tracking + unlock checks (avatar @3 games, nickname @10 games)
 - [x] 🖥 Optional phone-link/OTP endpoint (account merge, not creation) — Iranian SMS provider (D18) — link in `phone/service.ts`, sign-in by number in `phone/login.ts`
 - [x] 📱 Profile screen: stats, match history, achievements/tags, chat-lock status + redeem CTA,
       invite/referral block (copyable code, share sheet, live tracker), phone-link button
 - [x] 📱 Share-invite action also reachable from the match-result screen
-- [ ] 🧪 Unlock-threshold tests; tag equip/unequip tests
+- [x] 🧪 Nickname unlock-threshold test (`player.test.ts`), badge equip/unequip tests (`badges.test.ts`)
 
 **Exit:** a returning player has a profile that shows real progress, not just a coin balance.
 
@@ -158,8 +158,8 @@ human opponent is found.
 - [x] 🧩 `config/economy.ts` + pure calculators; 🧪 simulation (D90, `economy/simulate.ts`) for faucet/sink balance
 - [x] 🖥 LedgerService (single write path), entry fee escrow at match start, payout at end, refunds on abort
 - [x] 🖥 Daily free games + daily login bonus + invite reward (with anti-abuse rules)
-- [ ] 🖥 `bot_match_subsidy` ledger reason + pot top-up when a bot fills a seat (`logic/bots.md`)
-- [ ] 🧩 Price-guess round wager: per-round escrow, winner-takes-pot-minus-cut, auto-sit-out if
+- [x] 🖥 Bot pot top-up when a bot fills a seat: implicit house cover in `settleDuel` / `settleWager` (no ledger row for the house, `economy.md`); the `bot_match_subsidy` reason stays reserved
+- [x] 🧩 (built, setting `duel.price_wager` off by default, D196) Price-guess round wager: per-round escrow, winner-takes-pot-minus-cut, auto-sit-out if
       unaffordable (`logic/price-guess-round.md` §Real coin side-bet)
 - [x] 🗄 `coin_packages` table + `purchase`/IAP ledger plumbing, **built but disabled** at MVP
       (`economy.md` §Real-money coin purchases) — enabling real purchases is a separate, later task
@@ -215,9 +215,9 @@ human opponent is found.
 
 - [x] A. Player record: stats, XP/level, skill tier, city, optional e-mail, nickname rules, warnings/commendations/badges/medals (items 24, 8, 7, 14; D83)
 - [ ] B. Coin economy — [x] shop + solo hints (D78); [x] referral "gold" (D79); [x] gifts and loans (D80); [x] coin packages built, off (D91, item 3), [x] economy audit + simulator (D90, item 4)
-- [ ] C. Contact and friends — [x] phone + Bale contact verification, SMS adapter (D81, item 6); [x] public ID, search by ID/phone, contacts API, shortener + link-friend (items 19, 20; app contacts screen pending); [x] badge-gated sharing: perk + `containsContactInfo` (item 22; chat must enforce it)
-- [x] D. Chat and moderation — city chat, canned taunt categories, duel taunts, reports (D84) with agent powers (D83); [ ] private-table chat and shared tables (items 16, 17, 18, 21, 23) — rest of D: chat, shared tables, city room, canned taunt categories, "Agent Dozari" powers (items 16, 17, 18, 21, 23)
-- [x] E. Content control — [x] daily puzzle by day conditions/trends (item 15; D87); [x] tournament entry rules (coins + level), builder, own page, bracket engine (items 26, 27; D85); [x] admin bot players: accounts, queue fill, human-like play, taunt replies, tournament fill (item 25; D86); [ ] trend-based daily puzzle (15)
+- [ ] C. Contact and friends — [x] phone + Bale contact verification, SMS adapter (D81, item 6); [x] public ID, search by ID/phone, contacts API, shortener + link-friend (items 19, 20; app contacts lookup built, needs a new native build); [x] badge-gated sharing: perk + `containsContactInfo` (item 22; chat must enforce it)
+- [x] D. Chat and moderation — city chat, canned taunt categories, duel taunts, reports (D84) with agent powers (D83); [x] private-table chat (items 16, 17; `table` room, migration 0055); [ ] still open: items 18, 21, 23 — check each against `chat-and-access.md` before building — rest of D: chat, shared tables, city room, canned taunt categories, "Agent Dozari" powers (items 16, 17, 18, 21, 23)
+- [x] E. Content control — [x] daily puzzle by day conditions/trends (item 15; D87); [x] tournament entry rules (coins + level), builder, own page, bracket engine (items 26, 27; D85); [x] admin bot players: accounts, queue fill, human-like play, taunt replies, tournament fill (item 25; D86); [x] trend-based daily puzzle (15): `trend` themes with yearly/absolute windows are built (D87); auto-suggesting trends from price data stays a later idea (`daily-puzzle.md` §Not built)
 - [ ] F. Feel: [x] city dialect phrases (item 9; D88); [x] personal settings + web sound effects (items 10, 12; D89; native sound pending); dialects, sounds, city backgrounds, personal settings, touch-everything polish (items 9, 10, 11, 12, 13)
 
 ## Owner backlog 2026-10-03 (12 items) — see `docs/logic/owner-backlog-2026-10-03.md`
@@ -236,3 +236,18 @@ Start after the first Android build.
 - [x] 10. Admin panel tidy-up: grouped sidebar, page helper text, «add» actions as modal forms, consistent tables/toasts (UI only)
 - [x] 11. Birth date in the profile with a «show my age» tick (policy D160; users columns, profile UI, birthday gift/badge, admin age stats) (built, D160/D169)
 - [x] 12. Gems (الماس) currency (D164): [x] stage 1 own ledger + balance + admin adjust + Home pill; [x] shop prices in gems; [x] tournament entry in gems; [x] wheel, birthday and tournament prizes in gems (D175)
+
+- [ ] 1. Wheel pays every prize kind (coins, gems, clothing, hats …); no free spins until the policy is set, then spins behave like lives (D156)
+- [ ] 2. Board cards: names and icons fit (fixed layout policy, auto-shrink floor, short names)
+- [ ] 3. «تکمیل پروفایل» nudge / guide says «برو این کار را بکن، سکه بگیر»
+- [ ] 4. Missions (profile, social follow, store reviews, invite …) paying coins
+- [ ] 5. Shorter opponent search; bots fill the seat sooner
+- [ ] 6. Options greyed out when it is not my turn, coloured on my turn
+
+## Age tracks (D198, proposed) — see `docs/logic/age-tracks.md`
+
+- [ ] 1. Foundation: `age_track` on users/puzzles/items, `trackRules` config, first-run chooser, track-keyed queues, admin band filter — **built behind `feature.age_tracks` (off)**: users/puzzles/products columns, rules, chooser, queue pairing, admin user filter; still open: puzzle serving by track, per-track bots, admin section + filters on other lists
+- [ ] 2. Guardian link: phone OTP, child profiles, link code, guardian-approved band change — **built behind the switch** (migration 0060, `/guardian/*`, child sign-in code, app steps and settings rows); social enforcement waits for item 4
+- [ ] 3. Kid content and word lesson: kid pool, `item_lessons`, `splitWordLetters`, lesson cards, review queue — **pipeline built behind the switch** (track-pool serving, `item_lessons`, `splitWordLetters`, lesson cards, admin editor + approval, kid puzzle builder); **starter content seeded as drafts** (48 items with lessons, 3 puzzles; an editor approves them); still open: the rest of the 30–50 puzzles
+- [ ] 4. Social for kids and teens: track-bound friends, friend duels and tables, managed chat (D198 update)
+- [ ] 5. Guardian panel and digest, family table

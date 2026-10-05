@@ -17,6 +17,7 @@ import {
   varchar,
 } from 'drizzle-orm/mysql-core';
 import { COSMETIC_SLOTS } from '@dozari/shared/src/economy/slots';
+import { AGE_TRACKS } from '@dozari/shared/src/config/ageTracks';
 import { uuidv7 } from 'uuidv7';
 
 /**
@@ -85,8 +86,50 @@ export const products = mysqlTable('products', {
     .notNull()
     .default('in_production'),
   isActive: boolean('is_active').notNull().default(true),
+  /** Lowest age track the item is meant for (D198); kid puzzles may only use kid items. */
+  ageTrack: mysqlEnum('age_track', AGE_TRACKS).notNull().default('adult'),
   createdBy: char('created_by', { length: 36 }),
   createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  updatedAt: datetime('updated_at', { mode: 'date', fsp: 3 })
+    .notNull()
+    .default(now())
+    .$onUpdate(() => new Date()),
+});
+
+/** A child profile held by a guardian (D198, docs/logic/age-tracks.md). One guardian per child; revoking deletes the row. */
+export const guardianLinks = mysqlTable(
+  'guardian_links',
+  {
+    childId: fk('child_id')
+      .primaryKey()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    guardianId: fk('guardian_id').references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({
+    byGuardian: index('guardian_links_guardian_idx').on(table.guardianId),
+  }),
+);
+
+/** A short code a guardian shows so the child's device can sign in as the child: 6 digits, 10 minutes, one use. */
+export const guardianLinkCodes = mysqlTable('guardian_link_codes', {
+  code: char('code', { length: 6 }).primaryKey(),
+  childId: fk('child_id').references(() => users.id, { onDelete: 'cascade' }),
+  guardianId: fk('guardian_id').references(() => users.id, { onDelete: 'cascade' }),
+  expiresAt: datetime('expires_at', { mode: 'date', fsp: 3 }).notNull(),
+});
+
+/** Kid word lesson of an item (D198): the word, a one-line story and an optional syllable split. Only `approved` lessons are served. */
+export const itemLessons = mysqlTable('item_lessons', {
+  productId: fk('product_id')
+    .primaryKey()
+    .references(() => products.id, { onDelete: 'cascade' }),
+  wordFa: varchar('word_fa', { length: 60 }).notNull(),
+  storyFa: varchar('story_fa', { length: 300 }).notNull().default(''),
+  syllablesFa: varchar('syllables_fa', { length: 80 }),
+  status: mysqlEnum('status', ['draft', 'approved']).notNull().default('draft'),
+  reviewedBy: char('reviewed_by', { length: 36 }),
+  reviewedAt: datetime('reviewed_at', { mode: 'date', fsp: 3 }),
   updatedAt: datetime('updated_at', { mode: 'date', fsp: 3 })
     .notNull()
     .default(now())
@@ -183,6 +226,18 @@ export const pricePoints = mysqlTable(
  * (no JSON, D63): `rule_kind` says which of the nullable `rule_*` columns apply. Convert with
  * `ruleToColumns` / `columnsToRule` (puzzle-rule.ts), which validate through the shared zod schema.
  */
+/** Difficulty ladder of whole puzzles, edited in the admin panel; `min_level`..`max_level` is the player-level range a tier is served to (docs/logic/progression.md). */
+export const puzzleTiers = mysqlTable('puzzle_tiers', {
+  id: id(),
+  nameFa: varchar('name_fa', { length: 40 }).notNull(),
+  /** Easiest first. */
+  sortOrder: int('sort_order').notNull(),
+  minLevel: int('min_level').notNull().default(1),
+  /** Null = no upper bound. */
+  maxLevel: int('max_level'),
+  createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+});
+
 export const puzzles = mysqlTable('puzzles', {
   id: id(),
   status: mysqlEnum('status', ['draft', 'approved', 'retired']).notNull().default('draft'),
@@ -190,6 +245,10 @@ export const puzzles = mysqlTable('puzzles', {
   authorId: char('author_id', { length: 36 }),
   seed: bigint('seed', { mode: 'bigint' }),
   difficultyScore: double('difficulty_score'),
+  /** Tier of the puzzle as a whole; null = not rated yet (served to everyone). */
+  tierId: char('tier_id', { length: 36 }),
+  /** Which age track's pool the puzzle belongs to (D198). */
+  ageTrack: mysqlEnum('age_track', AGE_TRACKS).notNull().default('adult'),
   timesPlayed: int('times_played').notNull().default(0),
   avgSolveRate: double('avg_solve_rate'),
   createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
@@ -304,6 +363,10 @@ export const users = mysqlTable(
     phoneVerifiedAt: datetime('phone_verified_at', { mode: 'date', fsp: 3 }),
     /** Optional contact e-mail; private and not verified yet. */
     email: varchar('email', { length: 120 }),
+    /** Chosen age track (D198), never computed from the birth date; adult for every existing account. */
+    ageTrack: mysqlEnum('age_track', AGE_TRACKS).notNull().default('adult'),
+    /** When the player picked a track; null = not asked yet, so the chooser shows once. */
+    ageTrackSetAt: datetime('age_track_set_at', { mode: 'date', fsp: 3 }),
     /** Why and when an admin banned the player. */
     banReason: varchar('ban_reason', { length: 200 }),
     bannedAt: datetime('banned_at', { mode: 'date', fsp: 3 }),
@@ -318,6 +381,21 @@ export const users = mysqlTable(
     handleUnique: uniqueIndex('users_handle_idx').on(table.handle),
   }),
 );
+
+/** The app the player used last (platform, OS and app version, market) plus where it was first seen: the install source. One row per account. */
+export const userClients = mysqlTable('user_clients', {
+  userId: char('user_id', { length: 36 }).primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+  platform: varchar('platform', { length: 12 }).notNull(),
+  osVersion: varchar('os_version', { length: 24 }),
+  appBuild: int('app_build'),
+  /** Market of the build in use now (`myket`, `bazaar`, `bale`), empty for web and development builds. */
+  store: varchar('store', { length: 12 }),
+  /** The market of the first build seen for this account. */
+  firstStore: varchar('first_store', { length: 12 }),
+  firstBuild: int('first_build'),
+  firstSeenAt: datetime('first_seen_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  updatedAt: datetime('updated_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+});
 
 /** Why coins moved (docs/logic/economy.md, data-model.md §Economy). */
 export const LEDGER_REASONS = [
@@ -1140,12 +1218,12 @@ export const cannedTaunts = mysqlTable(
   (table) => ({ byCategory: index('canned_taunts_category_idx').on(table.categoryId, table.sortOrder) }),
 );
 
-/** One row per chat message. `roomKey` is the city id for the city room, the match id for a duel, `all` for the global room, the two user ids sorted and joined by `:` for a friends' private chat. Kept 30 days for moderation. */
+/** One row per chat message. `roomKey` is the city id for the city room, the match id for a duel, `all` for the global room, the table code for a private table, the two user ids sorted and joined by `:` for a friends' private chat. Kept 30 days for moderation. */
 export const chatMessages = mysqlTable(
   'chat_messages',
   {
     id: id(),
-    room: mysqlEnum('room', ['city', 'match', 'global', 'dm']).notNull(),
+    room: mysqlEnum('room', ['city', 'match', 'global', 'dm', 'table']).notNull(),
     roomKey: varchar('room_key', { length: 64 }).notNull(),
     userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
     kind: mysqlEnum('kind', ['text', 'taunt', 'table']).notNull(),
@@ -1170,6 +1248,22 @@ export const chatReports = mysqlTable(
   (table) => ({ oncePerReporter: uniqueIndex('chat_reports_once_idx').on(table.messageId, table.reporterId) }),
 );
 
+/** A sponsor defined in the admin panel: name, banner and story shown on the tournaments it sponsors (docs/logic/sponsors.md). */
+export const sponsors = mysqlTable('sponsors', {
+  id: id(),
+  nameFa: varchar('name_fa', { length: 60 }).notNull(),
+  taglineFa: varchar('tagline_fa', { length: 120 }).notNull().default(''),
+  descriptionFa: text('description_fa').notNull(),
+  /** https URL of the banner / logo (self-hosted image; rule 8: nothing from Google). */
+  bannerUrl: varchar('banner_url', { length: 300 }),
+  logoUrl: varchar('logo_url', { length: 300 }),
+  linkUrl: varchar('link_url', { length: 300 }),
+  /** `#RRGGBB` accent of the sponsor card. */
+  accent: varchar('accent', { length: 7 }),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+});
+
 export const TOURNAMENT_STATUS_VALUES = ['draft', 'open', 'running', 'finished', 'cancelled'] as const;
 
 /** A single-elimination tournament built in the admin panel (docs/logic/tournaments.md). */
@@ -1193,6 +1287,8 @@ export const tournaments = mysqlTable(
     botFill: boolean('bot_fill').notNull().default(false),
     /** Off by default: a player may be in one open or running tournament at a time. On = they may also join this one while in another. */
     allowConcurrent: boolean('allow_concurrent').notNull().default(false),
+    /** Who sponsors this tournament (shown with a banner on its page); null = nobody. */
+    sponsorId: char('sponsor_id', { length: 36 }),
     /** Registration closes and the first round starts at this time. */
     startsAt: datetime('starts_at', { mode: 'date', fsp: 3 }).notNull(),
     startedAt: datetime('started_at', { mode: 'date', fsp: 3 }),

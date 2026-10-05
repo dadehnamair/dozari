@@ -1,3 +1,5 @@
+import { trackRank } from '../agetrack/rules.js';
+import type { AgeTrack } from '../config/ageTracks.js';
 import { estimateDifficulty, evaluateRule, relaxRule } from './rules/index.js';
 import type { Rule } from './rules/index.js';
 import { makeRuleContext } from './types.js';
@@ -13,6 +15,8 @@ export interface PuzzleGroupInput {
 
 export interface PuzzleInput {
   groups: readonly PuzzleGroupInput[];
+  /** Track pool the puzzle is for (D198); missing = adult. */
+  ageTrack?: AgeTrack;
 }
 
 export interface ValidationIssue {
@@ -77,6 +81,13 @@ export function validatePuzzle(puzzle: PuzzleInput, catalog: Catalog): Validatio
       else list.push(product);
     }
     members.set(g.level, list);
+  }
+  // Age track: an item may only appear in puzzles of its own track or an older one (a kid puzzle holds kid items only).
+  const puzzleRank = trackRank(puzzle.ageTrack ?? 'adult');
+  for (const list of members.values()) {
+    for (const item of list) {
+      if (trackRank(item.ageTrack ?? 'adult') > puzzleRank) errors.push({ code: 'track.item_too_old', message: `product ${item.id} is not meant for this puzzle's age track`, productId: item.id });
+    }
   }
   if (errors.length > 0) return finish(errors, warnings, nearMisses);
 

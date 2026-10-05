@@ -189,33 +189,4 @@ VIEWS.daily = function (root) {
   });
 };
 
-/* ---------------- settings ---------------- */
-var GROUP_FA = { app: 'مدیریت اپ', gameplay: 'بازی', scoring: 'امتیاز', profile: 'پروفایل', economy: 'اقتصاد', chart: 'نمودار', bot: 'ربات محتوا', notify: 'اعلان‌های بله', review: 'نظر در فروشگاه‌ها', seo: 'سئو و سایت معرفی' };
-VIEWS.settings = function (root) {
-  var group = load('settings.group') || 'app', tabs = h('div', { style: 'display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px' }), box = h('div'), rows = [];
-  root.appendChild(tabs); root.appendChild(box);
-  function draw() {
-    clear(tabs); clear(box);
-    Object.keys(GROUP_FA).forEach(function (g) { tabs.appendChild(h('button', { class: 'chip', 'aria-pressed': String(g === group), text: GROUP_FA[g], onclick: function () { group = g; store('settings.group', g); draw(); } })); });
-    var items = rows.filter(function (r) { return r.group === group; });
-    box.appendChild(card(GROUP_FA[group], 'تغییرها همان لحظه ذخیره می‌شود و تا چند ثانیه روی سرور اثر می‌گذارد.', items.map(function (r) {
-      var inp = h('input', { type: r.kind === 'bool' ? 'checkbox' : 'text', dir: r.kind === 'text' ? 'auto' : 'ltr', maxlength: r.kind === 'text' ? r.max : undefined, value: Array.isArray(r.value) ? r.value.join(',') : String(r.value), checked: r.kind === 'bool' ? r.value === 1 : undefined });
-      var def = Array.isArray(r.default) ? r.default.join(',') : String(r.default) || '(خالی)';
-      return h('div', { class: 'setting' }, [
-        h('div', {}, [h('div', { class: 'l', text: r.label + (r.unit ? ' (' + r.unit + ')' : '') }), r.hint ? h('div', { class: 'h', text: r.hint }) : null, h('div', { class: 'h ltr', text: r.key + ' · پیش‌فرض ' + def })]),
-        r.kind === 'bool' ? h('label', { class: 'f' }, [inp]) : inp,
-        h('div', { style: 'display:flex;gap:6px;align-items:center' }, [
-          r.overridden ? badge('تغییر‌یافته', 'b-warn') : null,
-          h('button', { class: 'btn primary sm', text: 'ذخیره', onclick: function () {
-            var val = r.kind === 'bool' ? (inp.checked ? 1 : 0) : inp.value;
-            api('/admin/settings/' + encodeURIComponent(r.key), { method: 'PUT', body: { value: val } }).then(function (x) { if (!x.ok) return fail(x); rows = x.body.settings; toast('ذخیره شد'); draw(); });
-          } }),
-          r.overridden ? h('button', { class: 'btn sm', text: 'پیش‌فرض', onclick: function () { api('/admin/settings/' + encodeURIComponent(r.key), { method: 'DELETE' }).then(function (x) { if (!x.ok) return fail(x); rows = x.body.settings; toast('به پیش‌فرض برگشت'); draw(); }); } }) : null
-        ])
-      ]);
-    })));
-  }
-  api('/admin/settings').then(function (r) { if (r.status === 404) return root.appendChild(empty('تنظیمات روی این سرور فعال نیست (دیتابیس لازم است)')); if (!r.ok) return fail(r); rows = r.body.settings; draw(); });
-};
-
 `;

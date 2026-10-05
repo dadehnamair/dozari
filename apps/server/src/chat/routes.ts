@@ -7,7 +7,7 @@ import type { ChatService } from './service.js';
 
 const STATUS: Record<ChatError, number> = {
   NO_CITY: 409, NEEDS_ACTIVATION: 403, MUTED: 403, RATE_LIMITED: 429, CONTACT_BLOCKED: 403, FILTERED: 422, TOO_LONG: 400, EMPTY: 400,
-  UNKNOWN_TAUNT: 404, NOT_IN_MATCH: 409, NOT_FOUND: 404, NOT_FRIENDS: 403, OFF: 503,
+  UNKNOWN_TAUNT: 404, NOT_IN_MATCH: 409, NOT_FOUND: 404, NOT_FRIENDS: 403, NOT_IN_TABLE: 403, OFF: 503,
 };
 
 const sendBody = z.union([z.object({ kind: z.literal('text'), text: z.string().max(1000) }), z.object({ kind: z.literal('taunt'), tauntId: z.string().uuid() })]);
@@ -57,6 +57,26 @@ export function registerChatRoutes(app: FastifyInstance, auth: AuthService, chat
     if (!user) return reply.code(401).send({ error: 'unauthorized' });
     if (!params.success || !body.success) return reply.code(400).send({ error: 'invalid_request' });
     const out = await chat.sendDm(user.id, params.data.id, body.data);
+    return out.ok ? { message: out.message } : reply.code(STATUS[out.error]).send({ error: out.error, mutedUntil: out.mutedUntil });
+  });
+
+  // Chat of a private table: only players seated at it (checked in the service).
+  app.get('/chat/table/:code', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    const params = z.object({ code: z.string().min(3).max(12) }).safeParse(req.params);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    if (!params.success) return reply.code(400).send({ error: 'invalid_request' });
+    const out = await chat.tableHistory(user.id, params.data.code);
+    return typeof out === 'string' ? reply.code(STATUS[out]).send({ error: out }) : out;
+  });
+
+  app.post('/chat/table/:code', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    const params = z.object({ code: z.string().min(3).max(12) }).safeParse(req.params);
+    const body = sendBody.safeParse(req.body);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    if (!params.success || !body.success) return reply.code(400).send({ error: 'invalid_request' });
+    const out = await chat.sendTable(user.id, params.data.code, body.data);
     return out.ok ? { message: out.message } : reply.code(STATUS[out.error]).send({ error: out.error, mutedUntil: out.mutedUntil });
   });
 

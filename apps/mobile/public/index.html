@@ -1,9 +1,12 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fa">
   <head>
     <meta charset="utf-8" />
     <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, shrink-to-fit=no, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, shrink-to-fit=no, viewport-fit=cover"
+    />
     <title>دوزاری</title>
     <meta name="description" content="بازی آنلاین نوستالژی قیمت‌ها" />
     <meta name="theme-color" content="#2B1240" />
@@ -54,11 +57,22 @@
     <script>
       // iOS Safari ignores user-scalable=no: block its pinch gestures, and desktop ctrl+wheel / ctrl +,- zoom, too.
       (function () {
-        var stop = function (e) { e.preventDefault(); };
-        ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (t) { document.addEventListener(t, stop, { passive: false }); });
-        document.addEventListener('wheel', function (e) { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
+        var stop = function (e) {
+          e.preventDefault();
+        };
+        ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (t) {
+          document.addEventListener(t, stop, { passive: false });
+        });
+        document.addEventListener(
+          'wheel',
+          function (e) {
+            if (e.ctrlKey) e.preventDefault();
+          },
+          { passive: false },
+        );
         document.addEventListener('keydown', function (e) {
-          if ((e.ctrlKey || e.metaKey) && ['+', '-', '=', '0'].indexOf(e.key) !== -1) e.preventDefault();
+          if ((e.ctrlKey || e.metaKey) && ['+', '-', '=', '0'].indexOf(e.key) !== -1)
+            e.preventDefault();
         });
       })();
     </script>
@@ -86,7 +100,11 @@
           tell();
         });
         // The service worker only works on https or localhost; elsewhere this is a no-op.
-        if (!('serviceWorker' in navigator) || !(location.protocol === 'https:' || location.hostname === 'localhost')) return;
+        if (
+          !('serviceWorker' in navigator) ||
+          !(location.protocol === 'https:' || location.hostname === 'localhost')
+        )
+          return;
         var reloading = false;
         navigator.serviceWorker.addEventListener('controllerchange', function () {
           // Only after the player asked for the new version (a first install takes over without reloading).
@@ -115,9 +133,12 @@
                 waitFor(reg.installing);
               });
               // Long sessions (the app stays open on a phone for days) still notice a release.
-              setInterval(function () {
-                reg.update().catch(function () {});
-              }, 30 * 60 * 1000);
+              setInterval(
+                function () {
+                  reg.update().catch(function () {});
+                },
+                30 * 60 * 1000,
+              );
             })
             .catch(function () {});
         });
