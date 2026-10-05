@@ -15,7 +15,7 @@ test('holds the bundle back, adds the SDK and bridge, drops the PWA parts', () =
   assert.match(out, /tapi\.bale\.ai\/miniapp\.js/);
   assert.match(out, /"apiUrl":"https:\/\/api\.example\.ir"/);
   assert.doesNotMatch(out, /manifest|serviceWorker|PWA glue/);
-  assert.ok(out.indexOf('tapi.bale.ai/miniapp.js') < out.indexOf('<script'), 'the Bale SDK must be the first script');
+  assert.ok(out.slice(out.indexOf('<script')).startsWith('<script src="https://tapi.bale.ai/miniapp.js">'), 'the Bale SDK must be the first script');
   assert.match(out, /__dozariPwa = \{ install: null/);
 });
 
