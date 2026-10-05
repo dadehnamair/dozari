@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link href="https://fonts.googleapis.com/css2?family=Lalezar&amp;family=Vazirmatn:wght@600;700;800;900&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>body{margin:0;background:#2B1240;color:#FFF6E8;font-family:Vazirmatn}a{color:#FFC93C}a:hover{color:#FF7A3D}*{box-sizing:border-box}</style>
+</helmet>
+<div dir="rtl" style="padding:56px;display:flex;flex-direction:column;gap:56px;min-width:1200px">
+<header style="display:flex;flex-direction:column;gap:6px">
+  <div style="font:14px 'JetBrains Mono',monospace;color:#FFC93C;direction:ltr;text-align:right">Dozari · 20 Store Banners · icon 512 · feature 1024×500 · screenshots 1080×1920 (export @2x)</div>
+  <h1 style="margin:0;font:56px/1 Lalezar;color:#FFF6E8">پکیج بنرهای مارکت</h1>
+</header>
+
+<section style="display:flex;gap:48px;align-items:flex-start;flex-wrap:wrap">
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <div style="font:13px 'JetBrains Mono',monospace;color:rgba(255,246,232,.7);direction:ltr;text-align:right">feature-graphic · 1024×500</div>
+    <div id="feature" style="width:1024px;height:500px;position:relative;overflow:hidden;background:#5CC8F2">
+      <div style="position:absolute;inset:0"><dc-import name="Scene" scene="bazaar" mood="dusk" hint-size="100%,100%" style="width:100%;height:100%"></dc-import></div>
+      <div style="position:absolute;inset:0;background:linear-gradient(270deg,rgba(43,18,64,.82) 0%,rgba(43,18,64,.55) 42%,rgba(43,18,64,0) 70%)"></div>
+      <div style="position:absolute;top:70px;right:56px;width:440px;display:flex;flex-direction:column;align-items:center;gap:6px">
+        <svg viewBox="-90 0 700 200" width="420" style="overflow:visible"><defs><linearGradient id="fgW" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFF6A8"></stop><stop offset=".5" stop-color="#FFC93C"></stop><stop offset="1" stop-color="#FF7A3D"></stop></linearGradient></defs><text x="260" y="158" text-anchor="middle" font-family="Lalezar" font-size="168" fill="#2B1240" stroke="#2B1240" stroke-width="26" stroke-linejoin="round">دوزاری</text><text x="260" y="146" text-anchor="middle" font-family="Lalezar" font-size="168" fill="url(#fgW)" stroke="#2B1240" stroke-width="14" stroke-linejoin="round" paint-order="stroke">دوزاری</text></svg>
+        <div style="font:38px/1.2 Lalezar;color:#FFF6E8;text-shadow:0 3px 0 #2B1240">بالاخره دوزاریت می‌افته!</div>
+        <div style="font:700 20px/1.6 Vazirmatn;color:#FFE48A;text-align:center">پازل کلمه، رقابت با رفقا، سفر به ۳۱ استان</div>
+        <div style="margin-top:14px;padding:10px 34px;border-radius:20px;border:3px solid #2B1240;background:linear-gradient(180deg,#B8F08F,#7ED957 60%,#5DBB3C);box-shadow:inset 0 4px 0 rgba(255,255,255,.55),0 6px 0 #2B1240;font:28px Lalezar;color:#fff;text-shadow:0 2px 0 #2B1240">رایگان بازی کن</div>
+      </div>
+      <div style="position:absolute;bottom:-10px;left:20px;width:200px;height:220px"><dc-import name="Character" who="khale" pose="cheer" hint-size="200px,220px" style="width:200px;height:220px"></dc-import></div>
+      <div style="position:absolute;bottom:-14px;left:170px;width:260px;height:290px"><dc-import name="Character" who="dozari" pose="wave" hint-size="260px,290px" style="width:260px;height:290px"></dc-import></div>
+      <div style="position:absolute;bottom:-10px;left:380px;width:190px;height:210px"><dc-import name="Character" who="dozariF" pose="pointing" hint-size="190px,210px" style="width:190px;height:210px"></dc-import></div>
+      <div style="position:absolute;top:40px;left:80px;width:70px;height:70px;transform:rotate(-14deg)"><dc-import name="Item" icon="coin" hint-size="70px,70px" style="width:70px;height:70px"></dc-import></div>
+      <div style="position:absolute;top:110px;left:300px;width:60px;height:60px;transform:rotate(10deg)"><dc-import name="Item" icon="pomegranate" hint-size="60px,60px" style="width:60px;height:60px"></dc-import></div>
+      <div style="position:absolute;top:30px;left:470px;width:64px;height:64px;transform:rotate(-8deg)"><dc-import name="Item" icon="sangak" hint-size="64px,64px" style="width:64px;height:64px"></dc-import></div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <div style="font:13px 'JetBrains Mono',monospace;color:rgba(255,246,232,.7);direction:ltr;text-align:right">app-icon · 512×512</div>
+    <div id="icon" style="width:512px;height:512px;position:relative;overflow:hidden;border-radius:112px;background:radial-gradient(circle at 50% 30%,#FFE48A,#FFC93C 50%,#FF7A3D)">
+      <div style="position:absolute;left:50%;top:50%;width:900px;height:900px;margin:-450px 0 0 -450px;border-radius:50%;background:repeating-conic-gradient(rgba(255,255,255,.22) 0 10deg,transparent 10deg 20deg)"></div>
+      <div style="position:absolute;left:66px;top:66px;width:380px;height:380px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#FFF4B0,#FFC93C 55%,#D98A0B);border:12px solid #2B1240;box-shadow:inset 0 -14px 0 rgba(0,0,0,.14),0 14px 0 #2B1240"></div>
+      <div style="position:absolute;left:96px;top:70px;width:320px;height:350px"><dc-import name="Character" who="dozari" pose="wave" crop="face" hint-size="320px,350px" style="width:320px;height:350px"></dc-import></div>
+    </div>
+  </div>
+</section>
+
+<section style="display:flex;flex-direction:column;gap:14px">
+  <div style="font:13px 'JetBrains Mono',monospace;color:rgba(255,246,232,.7);direction:ltr;text-align:right">screenshots · 540×960 artboards → export @2x = 1080×1920</div>
+  <div style="display:flex;gap:32px;flex-wrap:wrap">
+
+    <!-- 01 MATCH -->
+    <div id="shot-01" data-screen-label="01 Match" style="width:540px;height:960px;position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 0%,#FF8FB6,#FF4D8D 45%,#B8235A)">
+      <div style="position:absolute;top:44px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center">
+        <div style="font:58px/1 Lalezar;color:#fff;text-shadow:0 4px 0 #2B1240">۱۶ کلمه، ۴ دسته!</div>
+        <div style="font:800 22px Vazirmatn;color:#FFF6E8">کلمه‌های هم‌خانواده رو کنار هم بچین</div>
+      </div>
+      <div style="position:absolute;top:190px;left:150px;width:350px;height:720px;border-radius:46px;border:10px solid #140A22;overflow:hidden;box-shadow:0 30px 60px rgba(0,0,0,.4);background:#4E2585;transform:rotate(3deg)">
+        <div style="position:absolute;inset:0"><dc-import name="Scene" scene="hojre" hint-size="100%,100%" style="width:100%;height:100%"></dc-import></div>
+        <div style="position:absolute;top:34px;left:14px;right:14px;height:46px;border-radius:14px;background:linear-gradient(180deg,#FFE48A,#FFC93C);border:3px solid #2B1240;box-shadow:0 4px 0 #2B1240;display:grid;place-items:center;font:22px Lalezar;color:#2B1240">پازل روزانه #۱۲۴</div>
+        <div style="position:absolute;top:150px;left:12px;right:12px;display:flex;flex-direction:column;gap:7px">
+          <div style="height:68px;border-radius:14px;background:#FFC93C;border:3px solid #2B1240;box-shadow:inset 0 3px 0 rgba(255,255,255,.55),0 5px 0 #C48A0E;display:flex;flex-direction:column;align-items:center;justify-content:center"><div style="font:21px/1.1 Lalezar;color:#2B1240">میوه‌های پاییزی</div><div style="font:700 13px Vazirmatn;color:#2B1240">انار · به · خرمالو · انگور</div></div>
+          <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px">
+            <sc-for list="{{ tiles }}" as="t" hint-placeholder-count="12">
+              <div style="height:68px;border-radius:14px;border:3px solid #2B1240;background:{{ t.bg }};color:{{ t.fg }};box-shadow:inset 0 3px 0 rgba(255,255,255,.5),0 5px 0 #2B1240;transform:{{ t.tr }};font:800 15px Vazirmatn;display:grid;place-items:center">{{ t.w }}</div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="position:absolute;bottom:30px;left:14px;right:14px;display:flex;gap:9px">
+          <div style="flex:1;height:56px;border-radius:18px;border:3px solid #2B1240;background:linear-gradient(180deg,#8FDCFA,#3FC1F0 60%,#1E9AD0);box-shadow:0 5px 0 #2B1240;font:20px/50px Lalezar;color:#fff;text-align:center;text-shadow:0 2px 0 #2B1240">بُر بزن</div>
+          <div style="flex:1.4;height:56px;border-radius:18px;border:3px solid #2B1240;background:linear-gradient(180deg,#B8F08F,#7ED957 60%,#5DBB3C);box-shadow:0 5px 0 #2B1240;font:24px/50px Lalezar;color:#fff;text-align:center;text-shadow:0 2px 0 #2B1240">ثبت کن</div>
+        </div>
+      </div>
+      <div style="position:absolute;bottom:20px;left:-30px;width:250px;height:275px"><dc-import name="Character" who="dozari" pose="pointing" hint-size="250px,275px" style="width:250px;height:275px"></dc-import></div>
+      <div style="position:absolute;bottom:300px;left:22px;width:190px;padding:14px 16px;border-radius:22px;background:#FFF6E8;border:4px solid #2B1240;box-shadow:0 6px 0 #2B1240;font:800 18px/1.5 Vazirmatn;color:#2B1240;text-wrap:pretty">این چهارتا رو با هم بزن، دسته‌شون یکیه!<div style="position:absolute;bottom:-14px;left:50px;width:22px;height:22px;background:#FFF6E8;border-right:4px solid #2B1240;border-bottom:4px solid #2B1240;transform:rotate(45deg)"></div></div>
+    </div>
+
+    <!-- 02 PVP -->
+    <div id="shot-02" data-screen-label="02 PvP" style="width:540px;height:960px;position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 0%,#8FDCFA,#3FC1F0 45%,#1E7AB0)">
+      <div style="position:absolute;top:44px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center">
+        <div style="font:58px/1 Lalezar;color:#fff;text-shadow:0 4px 0 #2B1240">با رفقات رقابت کن</div>
+        <div style="font:800 22px Vazirmatn;color:#FFF6E8">رو در رو، زنده، همین الان</div>
+      </div>
+      <div style="position:absolute;top:190px;left:40px;width:350px;height:720px;border-radius:46px;border:10px solid #140A22;overflow:hidden;box-shadow:0 30px 60px rgba(0,0,0,.4);background:#3C2A8E;transform:rotate(-3deg)">
+        <div style="position:absolute;left:50%;top:50%;width:900px;height:900px;margin:-450px 0 0 -450px;transform:rotate(45deg);background:repeating-conic-gradient(#4A36A6 0 25%,#3C2A8E 0 50%) 0 0/64px 64px"></div>
+        <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 45%,rgba(198,120,255,.6),transparent 62%)"></div>
+        <div style="position:absolute;top:60px;left:0;right:0;text-align:center;font:40px Lalezar;color:#FF8FD0;text-shadow:0 3px 0 #2B1240">حریف پیدا شد!</div>
+        <div style="position:absolute;top:150px;left:20px;right:20px;display:flex;flex-direction:column;align-items:center;gap:18px">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:130px;height:130px;border-radius:50%;background:radial-gradient(circle at 50% 35%,#FFAA7A,#FF7A3D);border:5px solid #FFF6E8;box-shadow:0 0 0 4px #2B1240;overflow:hidden;padding:8px"><dc-import name="Character" who="goli" pose="angry" crop="face" hint-size="100%,100%" style="width:100%;height:100%"></dc-import></div><div style="font:24px Lalezar">گلی · سطح ۲۴</div></div>
+          <div style="font:64px/1 Lalezar;color:#FFC93C;direction:ltr;text-shadow:0 4px 0 #2B1240,0 0 24px rgba(255,201,60,.7)">VS</div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><div style="width:130px;height:130px;border-radius:50%;background:radial-gradient(circle at 50% 35%,#B8F08F,#7ED957);border:5px solid #FFF6E8;box-shadow:0 0 0 4px #2B1240;overflow:hidden;padding:8px"><dc-import name="Character" who="dozari" pose="cheer" crop="face" hint-size="100%,100%" style="width:100%;height:100%"></dc-import></div><div style="font:24px Lalezar">تو · سطح ۲۱</div></div>
+        </div>
+        <div style="position:absolute;bottom:34px;left:20px;right:20px;height:60px;border-radius:20px;border:3px solid #2B1240;background:linear-gradient(180deg,#FFE48A,#FFC93C);box-shadow:0 5px 0 #2B1240;display:flex;align-items:center;justify-content:center;gap:10px;font:24px Lalezar;color:#2B1240">جایزه: ۲۰۰ <dc-import name="Item" icon="coin" hint-size="34px,34px" style="width:34px;height:34px"></dc-import></div>
+      </div>
+      <div style="position:absolute;bottom:20px;right:-30px;width:260px;height:286px"><dc-import name="Character" who="pahlevan" pose="cheer" hint-size="260px,286px" style="width:260px;height:286px"></dc-import></div>
+      <div style="position:absolute;bottom:310px;right:24px;width:190px;padding:14px 16px;border-radius:22px;background:#FFF6E8;border:4px solid #2B1240;box-shadow:0 6px 0 #2B1240;font:800 18px/1.5 Vazirmatn;color:#2B1240;text-wrap:pretty">بیا ببینیم دوزاری کی زودتر می‌افته!<div style="position:absolute;bottom:-14px;right:60px;width:22px;height:22px;background:#FFF6E8;border-right:4px solid #2B1240;border-bottom:4px solid #2B1240;transform:rotate(45deg)"></div></div>
+    </div>
+
+    <!-- 03 PRICES -->
+    <div id="shot-03" data-screen-label="03 Prices" style="width:540px;height:960px;position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 0%,#FFF4B0,#FFC93C 45%,#E8A01A)">
+      <div style="position:absolute;top:44px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center">
+        <div style="font:58px/1 Lalezar;color:#2B1240;text-shadow:0 4px 0 #FFF6E8">قیمت قدیما یادته؟</div>
+        <div style="font:800 22px Vazirmatn;color:#2B1240">از نون سنگک تا پیکان جوانان</div>
+      </div>
+      <div style="position:absolute;top:190px;left:150px;width:350px;height:720px;border-radius:46px;border:10px solid #140A22;overflow:hidden;box-shadow:0 30px 60px rgba(0,0,0,.35);background:#F6CF9C;transform:rotate(3deg)">
+        <div style="position:absolute;inset:0"><dc-import name="Scene" scene="bazaar" hint-size="100%,100%" style="width:100%;height:100%"></dc-import></div>
+        <div style="position:absolute;top:70px;left:24px;right:24px;padding:20px 16px 18px;border-radius:26px;background:#FFF6E8;border:4px solid #2B1240;box-shadow:0 7px 0 #2B1240;display:flex;flex-direction:column;align-items:center;gap:8px">
+          <div style="width:150px;height:150px"><dc-import name="Item" icon="sample-peykan" hint-size="150px,150px" style="width:150px;height:150px"></dc-import></div>
+          <div style="font:30px/1 Lalezar;color:#2B1240">پیکان</div>
+          <div style="padding:2px 14px;border-radius:99px;background:#2B1240;font:18px Lalezar;color:#FFC93C">سال ۱۳۶۵</div>
+        </div>
+        <div style="position:absolute;top:400px;left:24px;right:24px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+          <sc-for list="{{ prices }}" as="p" hint-placeholder-count="4">
+            <div style="height:64px;border-radius:18px;border:3px solid #2B1240;background:{{ p.bg }};box-shadow:0 5px 0 #2B1240;display:grid;place-items:center;font:21px Lalezar;color:#2B1240">{{ p.t }}</div>
+          </sc-for>
+        </div>
+        <div style="position:absolute;bottom:40px;left:24px;right:24px;display:flex;justify-content:center;gap:10px">
+          <sc-for list="{{ minis }}" as="m" hint-placeholder-count="4"><div style="width:62px;height:62px;border-radius:16px;background:#fff;border:3px solid #2B1240;box-shadow:0 4px 0 #2B1240;padding:6px"><dc-import name="Item" icon="{{ m }}" hint-size="100%,100%" style="width:100%;height:100%"></dc-import></div></sc-for>
+        </div>
+      </div>
+      <div style="position:absolute;bottom:20px;left:-30px;width:250px;height:275px"><dc-import name="Character" who="baqal" pose="thinking" hint-size="250px,275px" style="width:250px;height:275px"></dc-import></div>
+      <div style="position:absolute;bottom:300px;left:22px;width:190px;padding:14px 16px;border-radius:22px;background:#FFF6E8;border:4px solid #2B1240;box-shadow:0 6px 0 #2B1240;font:800 18px/1.5 Vazirmatn;color:#2B1240;text-wrap:pretty">یه زمانی با دو زار نون می‌خریدیم!<div style="position:absolute;bottom:-14px;left:50px;width:22px;height:22px;background:#FFF6E8;border-right:4px solid #2B1240;border-bottom:4px solid #2B1240;transform:rotate(45deg)"></div></div>
+    </div>
+
+    <!-- 04 PROVINCES -->
+    <div id="shot-04" data-screen-label="04 Provinces" style="width:540px;height:960px;position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 0%,#D8F8B8,#7ED957 45%,#3FA36B)">
+      <div style="position:absolute;top:44px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center">
+        <div style="font:58px/1 Lalezar;color:#fff;text-shadow:0 4px 0 #2B1240">سفر به ۳۱ استان</div>
+        <div style="font:800 22px Vazirmatn;color:#2B1240">هر شهر، یه بازارچه و یه سوغاتی</div>
+      </div>
+      <div style="position:absolute;top:190px;left:40px;width:350px;height:720px;border-radius:46px;border:10px solid #140A22;overflow:hidden;box-shadow:0 30px 60px rgba(0,0,0,.35);background:#FFF6E8;transform:rotate(-3deg)">
+        <div style="position:absolute;top:34px;left:14px;right:14px;height:46px;border-radius:14px;background:linear-gradient(180deg,#C9A3FF,#A66BF0);border:3px solid #2B1240;box-shadow:0 4px 0 #2B1240;display:grid;place-items:center;font:22px Lalezar;color:#fff;text-shadow:0 2px 0 #2B1240">نقشهٔ سفر</div>
+        <div style="position:absolute;top:100px;left:14px;right:14px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+          <sc-for list="{{ provs }}" as="v" hint-placeholder-count="8">
+            <div style="height:118px;border-radius:20px;border:3px solid #2B1240;background:{{ v.c }};box-shadow:0 5px 0 #2B1240;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;position:relative;opacity:{{ v.op }}">
+              <div style="width:60px;height:60px"><dc-import name="Item" icon="{{ v.i }}" hint-size="60px,60px" style="width:60px;height:60px"></dc-import></div>
+              <div style="font:20px/1 Lalezar;color:#2B1240">{{ v.n }}</div>
+              <div style="font:700 11px Vazirmatn;color:#2B1240">{{ v.s }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="position:absolute;bottom:20px;right:-30px;width:250px;height:275px"><dc-import name="Character" who="mashti" pose="wave" hint-size="250px,275px" style="width:250px;height:275px"></dc-import></div>
+      <div style="position:absolute;bottom:300px;right:22px;width:190px;padding:14px 16px;border-radius:22px;background:#FFF6E8;border:4px solid #2B1240;box-shadow:0 6px 0 #2B1240;font:800 18px/1.5 Vazirmatn;color:#2B1240;text-wrap:pretty">بارو ببند، بریم سوهان قم!<div style="position:absolute;bottom:-14px;right:60px;width:22px;height:22px;background:#FFF6E8;border-right:4px solid #2B1240;border-bottom:4px solid #2B1240;transform:rotate(45deg)"></div></div>
+    </div>
+
+    <!-- 07 ISFAHAN + FARS -->
+    <div id="shot-07" data-screen-label="07 Isfahan Fars" style="width:540px;height:960px;position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 0%,#8FDCFA,#3FC1F0 40%,#2B7FB8)">
+      <div style="position:absolute;top:44px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center">
+        <div style="font:58px/1 Lalezar;color:#fff;text-shadow:0 4px 0 #2B1240">نصف جهان تا شیراز</div>
+        <div style="font:800 22px Vazirmatn;color:#FFF6E8">گز اصفهان، گل‌محمدی فارس</div>
+      </div>
+      <div style="position:absolute;top:190px;left:150px;width:350px;height:720px;border-radius:46px;border:10px solid #140A22;overflow:hidden;box-shadow:0 30px 60px rgba(0,0,0,.35);background:#F6CF9C;transform:rotate(3deg)">
+        <div style="position:absolute;inset:0"><dc-import name="Scene" scene="caravan" mood="dusk" hint-size="100%,100%" style="width:100%;height:100%"></dc-import></div>
+        <div style="position:absolute;top:34px;left:14px;right:14px;height:46px;border-radius:14px;background:linear-gradient(180deg,#C9A3FF,#A66BF0);border:3px solid #2B1240;box-shadow:0 4px 0 #2B1240;display:grid;place-items:center;font:22px Lalezar;color:#fff;text-shadow:0 2px 0 #2B1240">مقصد بعدی</div>
+        <div style="position:absolute;top:100px;left:20px;right:20px;display:flex;flex-direction:column;gap:16px">
+          <div style="height:250px;border-radius:26px;border:4px solid #2B1240;background:#FFE48A;box-shadow:0 7px 0 #2B1240;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px">
+            <div style="width:120px;height:120px"><dc-import name="Item" icon="gaz" hint-size="120px,120px" style="width:120px;height:120px"></dc-import></div>
+            <div style="font:34px/1 Lalezar;color:#2B1240">اصفهان</div>
+            <div style="padding:2px 14px;border-radius:99px;background:#2B1240;font:16px Lalezar;color:#FFC93C">سوغاتی: گز</div>
+          </div>
+          <div style="height:250px;border-radius:26px;border:4px solid #2B1240;background:#FF8FB6;box-shadow:0 7px 0 #2B1240;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px">
+            <div style="width:120px;height:120px"><dc-import name="Item" icon="rose" hint-size="120px,120px" style="width:120px;height:120px"></dc-import></div>
+            <div style="font:34px/1 Lalezar;color:#2B1240">فارس</div>
+            <div style="padding:2px 14px;border-radius:99px;background:#2B1240;font:16px Lalezar;color:#FFC93C">سوغاتی: گلاب</div>
+          </div>
+        </div>
+      </div>
+      <div style="position:absolute;bottom:20px;left:-30px;width:250px;height:275px"><dc-import name="Character" who="mirza" pose="pointing" hint-size="250px,275px" style="width:250px;height:275px"></dc-import></div>
+      <div style="position:absolute;bottom:300px;left:22px;width:170px;padding:14px 16px;border-radius:22px;background:#FFF6E8;border:4px solid #2B1240;box-shadow:0 6px 0 #2B1240;font:800 18px/1.5 Vazirmatn;color:#2B1240;text-wrap:pretty">اول سی‌وسه‌پل، بعد حافظیه!<div style="position:absolute;bottom:-14px;left:50px;width:22px;height:22px;background:#FFF6E8;border-right:4px solid #2B1240;border-bottom:4px solid #2B1240;transform:rotate(45deg)"></div></div>
+    </div>
+
+    <!-- 05 WHEEL -->
+    <div id="shot-05" data-screen-label="05 Daily wheel" style="width:540px;height:960px;position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 0%,#FFAA7A,#FF7A3D 45%,#C8501A)">
+      <div style="position:absolute;top:44px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center">
+        <div style="font:58px/1 Lalezar;color:#fff;text-shadow:0 4px 0 #2B1240">هر روز یه جایزه</div>
+        <div style="font:800 22px Vazirmatn;color:#FFF6E8">گردونه رو بچرخون، سکه ببر</div>
+      </div>
+      <div style="position:absolute;top:190px;left:150px;width:350px;height:720px;border-radius:46px;border:10px solid #140A22;overflow:hidden;box-shadow:0 30px 60px rgba(0,0,0,.35);background:#2B1240;transform:rotate(3deg)">
+        <div style="position:absolute;left:50%;top:330px;width:1200px;height:1200px;margin:-600px 0 0 -600px;border-radius:50%;background:repeating-conic-gradient(rgba(255,201,60,.16) 0 9deg,transparent 9deg 18deg)"></div>
+        <div style="position:absolute;top:60px;left:0;right:0;text-align:center;font:34px Lalezar;color:#FFC93C;text-shadow:0 3px 0 #000">گردونهٔ روزانه</div>
+        <div style="position:absolute;top:150px;left:25px;width:280px;height:280px;border-radius:50%;border:8px solid #2B1240;box-shadow:0 0 0 6px #FFC93C,0 10px 0 6px #C48A0E;background:conic-gradient(#FF4D8D 0 45deg,#FFC93C 45deg 90deg,#3FC1F0 90deg 135deg,#7ED957 135deg 180deg,#A66BF0 180deg 225deg,#FF7A3D 225deg 270deg,#FF8FB6 270deg 315deg,#FFE48A 315deg 360deg);transform:rotate(12deg)"></div>
+        <div style="position:absolute;top:252px;left:127px;width:76px;height:76px"><dc-import name="Item" icon="coinBag" hint-size="76px,76px" style="width:76px;height:76px"></dc-import></div>
+        <div style="position:absolute;top:126px;left:149px;width:0;height:0;border-left:16px solid transparent;border-right:16px solid transparent;border-top:34px solid #FFF6E8;filter:drop-shadow(0 3px 0 #2B1240)"></div>
+        <div style="position:absolute;top:480px;left:30px;right:30px;padding:10px;border-radius:20px;background:#FFF6E8;border:3px solid #2B1240;display:flex;align-items:center;justify-content:center;gap:8px;font:26px Lalezar;color:#2B1240">+۵۰۰ <dc-import name="Item" icon="coin" hint-size="40px,40px" style="width:40px;height:40px"></dc-import></div>
+        <div style="position:absolute;bottom:40px;left:30px;right:30px;height:62px;border-radius:20px;border:3px solid #2B1240;background:linear-gradient(180deg,#B8F08F,#7ED957 60%,#5DBB3C);box-shadow:0 5px 0 #2B1240;font:26px/56px Lalezar;color:#fff;text-align:center;text-shadow:0 2px 0 #2B1240">بچرخون!</div>
+      </div>
+      <div style="position:absolute;bottom:20px;left:-30px;width:250px;height:275px"><dc-import name="Character" who="khale" pose="cheer" hint-size="250px,275px" style="width:250px;height:275px"></dc-import></div>
+      <div style="position:absolute;bottom:300px;left:22px;width:190px;padding:14px 16px;border-radius:22px;background:#FFF6E8;border:4px solid #2B1240;box-shadow:0 6px 0 #2B1240;font:800 18px/1.5 Vazirmatn;color:#2B1240;text-wrap:pretty">ننه جون، امروزم سر بزن، جایزه داری!<div style="position:absolute;bottom:-14px;left:50px;width:22px;height:22px;background:#FFF6E8;border-right:4px solid #2B1240;border-bottom:4px solid #2B1240;transform:rotate(45deg)"></div></div>
+    </div>
+
+    <!-- 06 CAST -->
+    <div id="shot-06" data-screen-label="06 Cast" style="width:540px;height:960px;position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 30%,#C9A3FF,#A66BF0 45%,#5A2D91)">
+      <div style="position:absolute;left:50%;top:40%;width:1600px;height:1600px;margin:-800px 0 0 -800px;border-radius:50%;background:repeating-conic-gradient(rgba(255,255,255,.1) 0 9deg,transparent 9deg 18deg)"></div>
+      <div style="position:absolute;top:70px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:8px">
+        <svg viewBox="-90 0 700 200" width="420" style="overflow:visible"><defs><linearGradient id="s6W" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFF6A8"></stop><stop offset=".5" stop-color="#FFC93C"></stop><stop offset="1" stop-color="#FF7A3D"></stop></linearGradient></defs><text x="260" y="158" text-anchor="middle" font-family="Lalezar" font-size="168" fill="#2B1240" stroke="#2B1240" stroke-width="26" stroke-linejoin="round">دوزاری</text><text x="260" y="146" text-anchor="middle" font-family="Lalezar" font-size="168" fill="url(#s6W)" stroke="#2B1240" stroke-width="14" stroke-linejoin="round" paint-order="stroke">دوزاری</text></svg>
+        <div style="font:40px/1.2 Lalezar;color:#fff;text-shadow:0 3px 0 #2B1240">با کل محل آشنا شو</div>
+      </div>
+      <div style="position:absolute;top:350px;left:20px;width:190px;height:210px"><dc-import name="Character" who="mirza" pose="thinking" hint-size="190px,210px" style="width:190px;height:210px"></dc-import></div>
+      <div style="position:absolute;top:330px;right:20px;width:190px;height:210px"><dc-import name="Character" who="ajan" pose="wave" hint-size="190px,210px" style="width:190px;height:210px"></dc-import></div>
+      <div style="position:absolute;top:500px;left:-10px;width:220px;height:242px"><dc-import name="Character" who="goli" pose="win" hint-size="220px,242px" style="width:220px;height:242px"></dc-import></div>
+      <div style="position:absolute;top:500px;right:-10px;width:220px;height:242px"><dc-import name="Character" who="dozariF" pose="cheer" hint-size="220px,242px" style="width:220px;height:242px"></dc-import></div>
+      <div style="position:absolute;top:420px;left:135px;width:270px;height:297px"><dc-import name="Character" who="dozari" pose="win" anim="true" hint-size="270px,297px" style="width:270px;height:297px"></dc-import></div>
+      <div style="position:absolute;bottom:70px;left:60px;right:60px;height:84px;border-radius:26px;border:4px solid #2B1240;background:linear-gradient(180deg,#B8F08F,#7ED957 60%,#5DBB3C);box-shadow:inset 0 5px 0 rgba(255,255,255,.55),0 8px 0 #2B1240;font:36px/76px Lalezar;color:#fff;text-align:center;text-shadow:0 3px 0 #2B1240">همین حالا رایگان نصب کن</div>
+    </div>
+
+  </div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals(){
+    const W=['تار','دف','پیکان','سمند','سنتور','پراید','کمانچه','ژیان','قلیون','سماور','استکان','نی'];
+    const sel=new Set([0,1,4,6]);
+    const tiles=W.map((w,i)=>sel.has(i)?{w,bg:'linear-gradient(180deg,#C9A3FF,#A66BF0)',fg:'#fff',tr:'translateY(-3px) scale(1.04)'}:{w,bg:'#FFF6E8',fg:'#2B1240',tr:'none'});
+    const prices=[['۴۵۰ هزار تومن','#FFF6E8'],['۱ میلیون تومن','#7ED957'],['۳ میلیون تومن','#FFF6E8'],['۸۰ هزار تومن','#FFF6E8']].map(([t,bg])=>({t,bg}));
+    const provs=[['تهران','#FFC93C','sample-metro-ticket','باز'],['قم','#FFAA7A','sohan','باز'],['یزد','#FF8FB6','baklava','باز'],['تبریز','#8FDCFA','rug','باز'],['مشهد','#B8F08F','saffron','باز'],['اصفهان','#FFE48A','gaz','باز'],['فارس','#FF8FB6','rose','باز'],['گیلان','#C9A3FF','sample-chai-irani','۲۰ ستاره لازمه']].map(([n,c,i,s],k)=>({n,c,i,s,op:k>6?.6:1}));
+    return {tiles,prices,provs,minis:['sample-nan-sangak','sample-nokia-1100','sample-gold-coin','sample-tv-21']};
+  }
+}
+</script>
+</body>
+</html>

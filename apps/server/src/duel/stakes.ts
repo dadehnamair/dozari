@@ -5,6 +5,8 @@ import type { StakeStore } from './stakes-store.js';
 export interface StakeDeps {
   rules(): Promise<DuelRules>;
   isBot(userId: string): boolean;
+  /** Coins each side puts on every round of the price-guess round (setting `duel.price_wager`); 0 or absent = no wager. */
+  priceWager?(): Promise<number>;
   /** The winner of a duel that earns a lucky-wheel spin (a real win against a human). */
   onWin?(matchId: string, userId: string): Promise<unknown>;
   now?: () => number;
@@ -74,6 +76,23 @@ export class DuelStakes {
   async cancel(matchId: string, players: readonly [string, string], stakes: readonly [Stake, Stake]): Promise<void> {
     const rules = await this.deps.rules();
     for (const s of [0, 1] as const) if (stakes[s] === 'paid') await this.store.apply(players[s], rules.entryFee, 'match_refund', matchId, `match_refund:${matchId}:${players[s]}:cancelled`);
+  }
+
+  /** The per-round wager of the price-guess round and the house cut, or null when there is no wager. */
+  async wagerRules(): Promise<{ amount: number; cutPercent: number; isBot: (userId: string) => boolean } | null> {
+    const amount = (await this.deps.priceWager?.()) ?? 0;
+    if (amount <= 0) return null;
+    return { amount, cutPercent: (await this.deps.rules()).houseCutPercent, isBot: (id) => this.deps.isBot(id) };
+  }
+
+  /** Puts a player's wager for one round down; false when they cannot afford it (they sit the round out). */
+  takeWager(matchId: string, round: number, userId: string, amount: number): Promise<boolean> {
+    return this.store.apply(userId, -amount, 'price_guess_wager', matchId, `price_guess_wager:${matchId}:${round}:${userId}`);
+  }
+
+  /** Gives coins back after a round: the winner's pot, a draw's refund, or a wager returned in full. Idempotent. */
+  async creditWager(matchId: string, round: number, userId: string, coins: number): Promise<void> {
+    if (coins > 0) await this.store.apply(userId, coins, 'price_guess_payout', matchId, `price_guess_payout:${matchId}:${round}:${userId}`);
   }
 
   /** Pays out a finished duel. Safe to call twice (idempotent keys). */

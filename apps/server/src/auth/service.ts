@@ -33,11 +33,15 @@ export class AuthService {
     private readonly users: UserRepository,
     private readonly tokens: TokenSigner,
     private readonly rng: Rng = Math.random,
+    /** Runs once, right after an account is created (the signup bonus); a failure never blocks the login. */
+    private readonly onCreated?: (userId: string) => Promise<void>,
   ) {}
 
   /** Device id in, session out: the account is created on first sight, so there is no sign-up step. */
   async guestLogin(deviceId: string): Promise<LoginResult> {
-    const user = (await this.users.findByDeviceId(deviceId)) ?? (await this.users.createGuest(deviceId, randomGuestIdentity(this.rng)));
+    const existing = await this.users.findByDeviceId(deviceId);
+    const user = existing ?? (await this.users.createGuest(deviceId, randomGuestIdentity(this.rng)));
+    if (!existing) await this.onCreated?.(user.id).catch((err: unknown) => console.warn('[auth] onCreated failed', err));
     if (user.isBanned) return { ok: false, error: 'BANNED' };
     await this.users.touch(user.id);
     return { ok: true, session: { token: await this.tokens.sign(user.id), user: { id: user.id, nickname: user.nickname, avatarKey: user.avatarKey } } };

@@ -12,11 +12,12 @@ sidebar and tabs.
 | section | tabs |
 |---|---|
 | نمای کلی | dashboard: «کارهای منتظر تو» (pending prices/bot/reports, failed bot run, catalog gaps), live server stats, maintenance warning, recent changes, shortcuts |
-| بازیکنان و نظارت | users · chat reports · word filter · badges · bot players · invite codes |
-| محتوا و قیمت‌ها | catalog · price review · bot inbox · bot sources |
+| بازیکنان و نظارت | users · player reports · chat reports · word filter · badges · bot players · invite codes |
+| محتوا و قیمت‌ها | catalog · price review · bot inbox · bot sources · player suggestions (UGC) |
 | بازی و پازل | puzzles · daily puzzle · level road · cities · canned taunts |
-| اقتصاد | daily reward · shop · tournaments |
+| اقتصاد | daily reward · shop · wheel · tournaments · sponsors |
 | ارتباط با بازیکن | message center · Bale bot |
+| سایت معرفی و لینک‌ها | blog · cast · FAQ · short links |
 | سیستم | settings (searchable) · admin accounts (owner) · socket service · audit log (searchable, filter by admin) |
 
 **Quick jump** — `Ctrl/⌘+K` (or `/`): jump to any page, toggle the theme, sign out, or search players by name/id and open the record straight away.
@@ -59,3 +60,7 @@ Enforced in one place (`permissionFor(method, path)` → permission → role che
 username, not trivially repetitive. 5 wrong passwords lock the account for 15 minutes; 10 failed sign-ins per IP block the IP for 15 minutes. A password change, a role change or a
 deactivation ends that admin's sessions (`session_version`). The last active owner cannot be demoted or deactivated (unless the break-glass token is configured). The audit log names the
 admin behind every change.
+
+## Age bands (D198, proposed, not built)
+
+A «رده‌های سنی» section plus an age-band filter on every list; see `age-tracks.md` §Admin panel.

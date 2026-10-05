@@ -5,3 +5,4 @@ export type { PriceRange, PriceMark } from './price-range.js';
 export * from './rules/index.js';
 export * from './validate.js';
 export * from './generate.js';
+export * from './tiers.js';

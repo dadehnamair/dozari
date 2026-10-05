@@ -16,10 +16,15 @@ All values in *italics* are config in `packages/shared/src/config/game.ts`.
 - Board shows 16 items. A player selects exactly 4 and submits.
 - Result of a submission:
   - **correct** → that group is solved, revealed (title + explanation + color), items leave the board.
-  - **one away** → exactly 3 of the 4 belong to one unsolved group. Feedback «یکی مونده!» shown.
+  - **one away** → exactly 3 of the 4 belong to one unsolved group. Feedback «۳ تا از ۴ تا درسته؛ یکی‌شون اشتباهه» shown (clearer than «یکی مونده»).
   - **wrong** → otherwise.
 - Submitting an identical set twice is rejected client- and server-side (no penalty, "already tried").
 - When 3 groups are solved, the last group is auto-revealed (no one scores it).
+
+**Match numbers are admin settings** (`game.turn_seconds`, `game.match_max_mistakes`, `game.max_consecutive_timeouts`, `score.group_points`,
+`score.first_blood_bonus`): `MatchService` reads them when a match starts and the reducer keeps that snapshot in `MatchState.rules`, so an edit
+never changes a game in progress (the shared config is the default). The chart limits `chart.min_year` / `chart.gap_break_years` reach the
+client through `GET /config` (`apps/mobile/src/config/chartRules.ts`).
 
 ## Solo
 
@@ -32,6 +37,14 @@ set (any order) is `duplicate` and free; anything that is not 4 distinct cards o
 `invalid` and changes nothing; after three solved groups the fourth is auto-revealed and the game is
 `won`; at the 4th mistake the rest are revealed and the game is `lost`. The initial board never lays
 out a row as a whole group. The reducer needs the solution, so it runs server-side (rule 4).
+
+**Excitement layer (D178, client-only, cosmetic: no points, no coins).** A *combo* is groups solved back to back,
+each within *COMBO_WINDOW_SECONDS* of the previous one (pure `packages/shared/src/game/combo.ts`); from the second
+group on the top bar shows «×N» with a ring that empties over the window, and a rising sound plays. A wrong or
+one-away guess, or an expired window, ends it; a repeated set changes nothing. «۳ تا از ۴ تا درسته؛ یکی‌شون اشتباهه» (one away) pops as a
+pill over the board with the existing tone. On the last life (one mistake left) the life dot beats, the label turns
+into «آخرین فرصت!» and a soft lub-dub plays / vibrates every *LAST_LIFE_HEARTBEAT_MS*. Reduced motion keeps the
+text and sound but drops the animation.
 
 Served by `apps/server/src/solo/` (practice, no coins): `POST /solo/start` (503 `no_puzzles` when no
 `approved` puzzle exists), `GET /solo/:id`, `POST /solo/:id/guess {productIds[4]}`,

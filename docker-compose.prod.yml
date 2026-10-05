@@ -4,7 +4,8 @@
 #   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 # Steps and upkeep: docs/deploy.md
 services:
-  mysql:
+  s-dozari-mysql:
+    container_name: c-dozari-mysql
     image: mysql:8.4
     restart: unless-stopped
     environment:
@@ -23,7 +24,8 @@ services:
     # No published ports: only the server reaches it, over the compose network.
 
   # Applies the database migrations (safe to repeat) and exits; the server starts after it succeeds.
-  migrate:
+  s-dozari-migrate:
+    container_name: c-dozari-migrate
     build:
       context: .
       dockerfile: deploy/Dockerfile.server
@@ -32,15 +34,16 @@ services:
     command: ['pnpm', 'exec', 'tsx', 'src/migrate.ts']
     restart: 'no'
     depends_on:
-      mysql:
+      s-dozari-mysql:
         condition: service_healthy
     environment:
-      DATABASE_URL: mysql://dozari:${MYSQL_PASSWORD}@mysql:3306/dozari
+      DATABASE_URL: mysql://dozari:${MYSQL_PASSWORD}@s-dozari-mysql:3306/dozari
 
   # Loads the catalogue (products, prices, sample puzzles) after the migrations. SEED_ON_START in .env.prod:
   #   empty (default) = only when the database has no products yet, so a fresh install fills itself and real data is never touched;
-  #   1 = run the full idempotent seed on every `up`;  0 = never. Check the result with `logs seed`.
-  seed:
+  #   1 = run the full idempotent seed on every `up`;  0 = never. Check the result with `logs s-dozari-seed`.
+  s-dozari-seed:
+    container_name: c-dozari-seed
     build:
       context: .
       dockerfile: deploy/Dockerfile.server
@@ -54,38 +57,40 @@ services:
       ]
     restart: 'no'
     depends_on:
-      mysql:
+      s-dozari-mysql:
         condition: service_healthy
-      migrate:
+      s-dozari-migrate:
         condition: service_completed_successfully
     environment:
-      DATABASE_URL: mysql://dozari:${MYSQL_PASSWORD}@mysql:3306/dozari
+      DATABASE_URL: mysql://dozari:${MYSQL_PASSWORD}@s-dozari-mysql:3306/dozari
       SEED_ON_START: ${SEED_ON_START:-empty}
 
-  server:
-    # Same build as `migrate` (cached): a service with only `image:` would make compose try to pull it.
+  s-dozari-server:
+    container_name: c-dozari-server
+    # Same build as `s-dozari-migrate` (cached): a service with only `image:` would make compose try to pull it.
     build:
       context: .
       dockerfile: deploy/Dockerfile.server
     image: dozari-server
     restart: unless-stopped
     depends_on:
-      mysql:
+      s-dozari-mysql:
         condition: service_healthy
-      migrate:
+      s-dozari-migrate:
         condition: service_completed_successfully
-      seed:
+      s-dozari-seed:
         condition: service_completed_successfully
     environment:
       NODE_ENV: production
       PORT: 3000
-      DATABASE_URL: mysql://dozari:${MYSQL_PASSWORD}@mysql:3306/dozari
+      DATABASE_URL: mysql://dozari:${MYSQL_PASSWORD}@s-dozari-mysql:3306/dozari
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET (32+ random chars)}
       ADMIN_TOKEN: ${ADMIN_TOKEN:?set ADMIN_TOKEN (long random value)}
       CORS_ORIGIN: https://${APP_DOMAIN:?set APP_DOMAIN}
       TRUST_PROXY: '1'
       LOCAL_IMAGES_DIR: /data/images
       LOCAL_IMAGES_PUBLIC_URL: https://${API_DOMAIN:?set API_DOMAIN}/images
+      SENTRY_DSN: ${SENTRY_DSN:-}
       BALE_BOT_TOKEN: ${BALE_BOT_TOKEN:-}
       BALE_BOT_USERNAME: ${BALE_BOT_USERNAME:-}
       IRNOTI_API_KEY: ${IRNOTI_API_KEY:-}
@@ -100,14 +105,15 @@ services:
   # phpMyAdmin for the same MySQL. Loopback only (host port PMA_PORT, default 8082): the host's reverse proxy forwards a domain of your
   # choice to it. Log in with the database user (dozari / MYSQL_PASSWORD) or root. Protect the domain (basic auth / IP allow-list) —
   # anyone who reaches this page can try passwords against the database.
-  phpmyadmin:
+  s-dozari-phpmyadmin:
+    container_name: c-dozari-phpmyadmin
     image: phpmyadmin:5
     restart: unless-stopped
     depends_on:
-      mysql:
+      s-dozari-mysql:
         condition: service_healthy
     environment:
-      PMA_HOST: mysql
+      PMA_HOST: s-dozari-mysql
       PMA_PORT: 3306
       PMA_ARBITRARY: 0
       UPLOAD_LIMIT: 256M
@@ -115,7 +121,8 @@ services:
     ports:
       - '${PMA_PORT:-8082}:80'
 
-  web:
+  s-dozari-web:
+    container_name: c-dozari-web
     build:
       context: .
       dockerfile: deploy/Dockerfile.web
@@ -123,11 +130,28 @@ services:
         API_URL: https://${API_DOMAIN}
     restart: unless-stopped
     depends_on:
-      - server
+      - s-dozari-server
     # Plain HTTP on the host's loopback: the reverse proxy already on the server (which owns 80/443) forwards the app
     # domain here and the API domain to 127.0.0.1:3000. Nothing in this stack binds 80 or 443.
     ports:
       - '${WEB_PORT:-8081}:80'
+
+  # Landing site (mrdozari.ir): server-rendered pages and blog, content managed in the game's admin panel (D173). No database of its own:
+  # it reads the game server over the compose network. Loopback only; the host's reverse proxy forwards LANDING_DOMAIN here.
+  s-dozari-landing:
+    container_name: c-dozari-landing
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.landing
+    restart: unless-stopped
+    depends_on:
+      - s-dozari-server
+    environment:
+      PORT: 3100
+      API_URL: http://s-dozari-server:3000
+      SITE_URL: https://${LANDING_DOMAIN:-mrdozari.ir}
+    ports:
+      - '${LANDING_PORT:-8083}:3100'
 
 volumes:
   mysql-data:

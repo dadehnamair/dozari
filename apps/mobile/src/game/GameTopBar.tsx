@@ -1,4 +1,5 @@
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { playSfx } from '../sound/engine';
 import { GradientFill } from '../components/GradientFill';
 import { Icon } from '../components/Icon';
 import { colors, fonts } from '../theme/colors';
@@ -10,7 +11,7 @@ const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 export function GameTopBar({ title, backLabel, onBack, children }: { title: string; backLabel: string; onBack: () => void; children?: React.ReactNode }) {
   return (
     <View style={styles.bar}>
-      <Pressable accessibilityRole="button" accessibilityLabel={backLabel} onPress={onBack}>
+      <Pressable accessibilityRole="button" accessibilityLabel={backLabel} onPress={() => (playSfx('back'), onBack())}>
         {({ pressed }) => (
           <View style={[styles.back, pressed ? styles.pressed : null]}>
             <GradientFill from="#C9A3FF" to={colors.candy.grape} />

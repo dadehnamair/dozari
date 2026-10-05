@@ -1,16 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, G, Path } from 'react-native-svg';
-import type { WheelStatus } from '@dozari/shared';
+import type { WheelPrize, WheelStatus } from '@dozari/shared';
 import { toPersianDigits } from '@dozari/shared';
 import { GradientFill } from '../components/GradientFill';
 import { Icon } from '../components/Icon';
+import { GuideBubble } from '../components/GuideBubble';
 import { Item } from '../components/Item';
+import { Scene } from '../components/Scene';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { fetchWheel, spinWheel } from './api';
 import { spinAngle } from './geometry';
 import { pageTop } from '../theme/safeArea';
+import { useHardwareBack } from '../nav/useHardwareBack';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const SIZE = 290;
@@ -46,11 +49,17 @@ const rays = (() => {
  * The lucky wheel (D116): a chance only a won duel earns. The server rolls the prize and pays it; the wheel is drawn from
  * the real slices of `GET /wheel` and, once `POST /wheel/spin` answers, turns to stop on the slice the server chose.
  */
+/** Icon of each prize kind on the wheel and in the result card. */
+const PRIZE_ICON = { coins: 'coin', gems: 'gem', hint_token: 'magnifier', wheel_spin: 'dice', cosmetic: 'gift' } as const;
+const iconOf = (p: { kind: keyof typeof PRIZE_ICON; iconKey?: string | null }): string => (p.kind === 'cosmetic' && p.iconKey ? p.iconKey : PRIZE_ICON[p.kind]);
+
 export function WheelPage({ onClose }: { onClose: () => void }) {
+  useHardwareBack(onClose);
   const [status, setStatus] = useState<WheelStatus | null>(null);
   const [failed, setFailed] = useState(false);
   const [spinning, setSpinning] = useState(false);
-  const [prize, setPrize] = useState<number | null>(null);
+  const [prize, setPrize] = useState<(WheelPrize & { duplicate?: boolean }) | null>(null);
+  const [tipAt, setTipAt] = useState(0);
   const turn = useRef(new Animated.Value(0)).current;
   const [dailyNote, setDailyNote] = useState(false);
   const raysTurn = useRef(new Animated.Value(0)).current;
@@ -85,8 +94,8 @@ export function WheelPage({ onClose }: { onClose: () => void }) {
       turn.setValue(0);
       Animated.timing(turn, { toValue: spinAngle(out.slice, status.slices.length), duration: SPIN_MS, easing: Easing.bezier(0.12, 0.7, 0.15, 1), useNativeDriver: Platform.OS !== 'web' }).start(() => {
         setSpinning(false);
-        setPrize(out.coins);
-        setStatus({ ...status, pending: out.pending, balance: out.balance });
+        setPrize({ kind: out.kind, amount: out.amount, iconKey: out.iconKey, titleFa: out.titleFa, duplicate: out.duplicate });
+        setStatus({ ...status, pending: out.pending, balance: out.balance, gems: out.gems });
       });
     } catch {
       setFailed(true);
@@ -113,7 +122,9 @@ export function WheelPage({ onClose }: { onClose: () => void }) {
 
   return (
     <View style={styles.root}>
-      <View style={styles.glow} pointerEvents="none"><GradientFill from="#7A2C9E" to="#2B1240" /></View>
+      {/* The bazaar paints the whole page; a plum shade keeps the wheel and the text readable over it. */}
+      <View style={styles.glow} pointerEvents="none"><Scene scene="bazaar" /></View>
+      <View style={[styles.glow, styles.shade]} pointerEvents="none" />
       <Animated.View style={[styles.rays, { transform: [{ rotate: raysRotate }] }]} pointerEvents="none">
         <Svg width={RAYS_SIZE} height={RAYS_SIZE} viewBox={`0 0 ${RAYS_SIZE} ${RAYS_SIZE}`}>
           {rays.map((d, i) => <Path key={i} d={d} fill="rgba(255,201,60,0.13)" />)}
@@ -139,10 +150,10 @@ export function WheelPage({ onClose }: { onClose: () => void }) {
                 </G>
               ))}
             </Svg>
-            {status.slices.map((coins, i) => (
+            {status.slices.map((p, i) => (
               <View key={i} style={[styles.slice, { transform: [{ rotate: `${(i * 360) / count}deg` }] }]} pointerEvents="none">
-                <View style={styles.sliceIcon}><Item icon="coin" /></View>
-                <Text style={styles.sliceText}>{n(coins)}</Text>
+                <View style={styles.sliceIcon}><Item icon={iconOf(p)} /></View>
+                <Text style={styles.sliceText}>{n(p.amount)}</Text>
               </View>
             ))}
           </Animated.View>
@@ -164,6 +175,7 @@ export function WheelPage({ onClose }: { onClose: () => void }) {
         </View>
 
         <View style={styles.bottom}>
+          <Pressable onPress={() => setTipAt((x) => (x + 1) % t.tips.length)} accessibilityRole="button" style={styles.tip}><GuideBubble who="baqal" text={t.tips[tipAt] ?? ''} /></Pressable>
           <Text style={styles.noteLight}>{note}</Text>
           <Pressable onPress={() => void go()} disabled={!can} accessibilityRole="button" accessibilityLabel={t.spin} style={({ pressed }) => [styles.spin, !can ? styles.spinOff : null, pressed ? styles.pressed : null]}>
             <GradientFill from={can ? '#FF8FB6' : '#C9BBD9'} to={can ? '#D63A72' : '#9C8DB5'} />
@@ -174,12 +186,12 @@ export function WheelPage({ onClose }: { onClose: () => void }) {
 
       {prize !== null ? (
         <Pressable style={styles.prize} onPress={() => setPrize(null)} accessibilityLabel={t.close}>
-          <View style={styles.prizeIcon}><Item icon="coinStack" /></View>
+          <View style={styles.prizeIcon}><Item icon={prize.kind === 'coins' ? 'coinStack' : iconOf(prize)} /></View>
           <View style={styles.prizePlate}>
             <GradientFill from="#FFE48A" to={colors.candy.yellow} />
-            <Text style={styles.prizeText}>{n(prize)} {fa.daily.coins}</Text>
+            <Text style={styles.prizeText}>{prize.kind === 'cosmetic' ? (prize.titleFa ?? t.kinds.cosmetic) : `${n(prize.amount)} ${t.kinds[prize.kind]}`}</Text>
           </View>
-          <Text style={styles.noteLight}>{t.won}</Text>
+          <Text style={styles.noteLight}>{prize.duplicate ? t.dupe : t.won[prize.kind]}</Text>
         </Pressable>
       ) : null}
     </View>
@@ -205,6 +217,8 @@ const styles = StyleSheet.create({
   root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20, backgroundColor: '#40166A', overflow: 'hidden' },
   rays: { position: 'absolute', left: '50%', top: pageTop() + 46 + 70 + SIZE / 2 - RAYS_SIZE / 2, width: RAYS_SIZE, height: RAYS_SIZE, marginLeft: -RAYS_SIZE / 2 },
   glow: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+  shade: { backgroundColor: 'rgba(43,18,64,0.62)' },
+  tip: { alignSelf: 'stretch' },
   column: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingHorizontal: 12, paddingTop: pageTop(), alignItems: 'center' },
   head: { alignSelf: 'stretch', flexDirection: ROW, alignItems: 'center', gap: 8 },
   back: { width: 42, height: 42, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...lift(4) },

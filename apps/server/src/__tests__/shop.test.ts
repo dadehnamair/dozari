@@ -59,11 +59,11 @@ describe('coin shop', () => {
     const shop = shopSchema.parse((await app.inject({ method: 'GET', url: '/shop', headers: a.h })).json());
     expect(shop).toMatchObject({ balance: 100, level: 3, tokens: 0 });
     // Level 3: the first two items are open, the higher tiers (levels 10 / 20 / 35) are locked.
-    expect(shop.items.map((i) => i.blocked)).toEqual([null, null, 'LEVEL', 'LEVEL', 'LEVEL', null, 'LEVEL']);
-    expect(shop.items.map((i) => i.minLevel)).toEqual([2, 3, 10, 20, 35, 3, 5]);
+    expect(shop.items.slice(0, 7).map((i) => i.blocked)).toEqual([null, null, 'LEVEL', 'LEVEL', 'LEVEL', null, 'LEVEL']);
+    expect(shop.items.slice(0, 7).map((i) => i.minLevel)).toEqual([2, 3, 10, 20, 35, 3, 5]);
     const pack = shop.items[1]!;
     const bought = (await app.inject({ method: 'POST', url: `/shop/${pack.id}/buy`, headers: a.h })).json();
-    expect(bought).toEqual({ balance: 20, tokens: 5 });
+    expect(bought).toEqual({ balance: 20, gems: 0, tokens: 5 });
     expect(store.ledger).toEqual([{ userId: a.id, delta: -80, reason: 'shop_purchase' }]);
     const again = await app.inject({ method: 'POST', url: `/shop/${pack.id}/buy`, headers: a.h });
     expect(again.statusCode).toBe(402);
@@ -120,6 +120,24 @@ describe('solo hints', () => {
     expect(store.ledger.map((l) => l.delta)).toEqual([-15, -40]);
   });
 
+  it('gives level-1 players a free nudge (two cards, twice a game) and nobody else', async () => {
+    const { app, login, store, start, levels } = boot(3);
+    const a = await login(1);
+    const id = await start(a.h);
+    levels.set(a.id, 1);
+    const nudge = () => app.inject({ method: 'POST', url: `/solo/${id}/nudge`, headers: a.h });
+    const first = (await nudge()).json();
+    expect(first.hint.kind).toBe('pair');
+    expect((await nudge()).statusCode).toBe(200);
+    const third = await nudge();
+    expect(third.statusCode).toBe(409);
+    expect(third.json()).toEqual({ error: 'limit' });
+    expect(store.ledger).toEqual([]);
+    levels.set(a.id, 2);
+    expect((await nudge()).json()).toEqual({ error: 'level' });
+    expect((await app.inject({ method: 'POST', url: `/solo/${id}/nudge` })).statusCode).toBe(401);
+  });
+
   it('uses a hint token before coins', async () => {
     const { app, login, store, start } = boot(3);
     const a = await login(1);
@@ -158,5 +176,42 @@ describe('solo hints', () => {
     expect((await hint(app, a.h, id, 'group_title')).statusCode).toBe(200);
     expect((await hint(app, a.h, id, 'group_title')).json()).toEqual({ error: 'nothing_left' });
     expect(store.ledger).toHaveLength(2);
+  });
+
+  it('sells a gem-priced item for gems and leaves coins alone', async () => {
+    const { app, login, store } = boot(5);
+    const a = await login(7);
+    const [it] = await store.items();
+    await store.updateItem(it!.id, { currency: 'gems', priceGems: 3, minLevel: 1 });
+    store.give(a.id, 50, 0, 2);
+    const poor = shopSchema.parse((await app.inject({ method: 'GET', url: '/shop', headers: a.h })).json());
+    expect(poor.items.find((x) => x.id === it!.id)).toMatchObject({ currency: 'gems', priceGems: 3, blocked: 'GEMS' });
+    expect((await app.inject({ method: 'POST', url: `/shop/${it!.id}/buy`, headers: a.h })).statusCode).toBe(402);
+    store.give(a.id, 0, 0, 5);
+    const res = await app.inject({ method: 'POST', url: `/shop/${it!.id}/buy`, headers: a.h });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ balance: 50, gems: 4 });
+    expect(store.gemLedger).toEqual([{ userId: a.id, delta: -3, reason: 'shop_purchase' }]);
+  });
+
+  it('sells a cosmetic once, lets the owner wear one item per slot, and lists what is worn', async () => {
+    const { app, login, store } = boot(10);
+    const a = await login(8);
+    store.give(a.id, 1000);
+    const items = await store.items();
+    const hats = items.filter((i) => i.effect === 'cosmetic' && i.slot === 'hat' && i.currency === 'coins');
+    const hat = hats[0]!;
+    const crown = items.find((i) => i.slot === 'hat' && i.currency === 'gems')!;
+    expect((await app.inject({ method: 'POST', url: `/shop/${hat.id}/buy`, headers: a.h })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'POST', url: `/shop/${hat.id}/buy`, headers: a.h })).statusCode).toBe(409);
+    expect(store.ledger.filter((l) => l.reason === 'shop_purchase')).toHaveLength(1);
+    const shop = shopSchema.parse((await app.inject({ method: 'GET', url: '/shop', headers: a.h })).json());
+    expect(shop.items.find((x) => x.id === hat.id)).toMatchObject({ owned: true, blocked: 'OWNED', slot: 'hat' });
+    expect((await app.inject({ method: 'POST', url: `/shop/${hat.id}/equip`, headers: a.h, payload: { equipped: true } })).json()).toMatchObject({ ok: true, worn: [{ id: hat.id, slot: 'hat' }] });
+    store.give(a.id, 0, 0, 100);
+    await app.inject({ method: 'POST', url: `/shop/${crown.id}/buy`, headers: a.h });
+    const worn = (await app.inject({ method: 'POST', url: `/shop/${crown.id}/equip`, headers: a.h, payload: { equipped: true } })).json() as { worn: { id: string }[] };
+    expect(worn.worn.map((w) => w.id)).toEqual([crown.id]);
+    expect((await app.inject({ method: 'POST', url: `/shop/${items[0]!.id}/equip`, headers: a.h, payload: { equipped: true } })).statusCode).toBe(404);
   });
 });

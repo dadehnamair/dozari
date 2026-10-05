@@ -19,7 +19,7 @@ import Svg, {
 } from 'react-native-svg';
 import { usePrefs } from '../prefs/store';
 import { fonts } from '../theme/colors';
-import { Drift, Glow, Sway } from './sceneMotion';
+import { Drift, Glow, Musician, Sway } from './sceneMotion';
 
 export const SCENES = ['bazaar', 'alley', 'hojre', 'caravan', 'win'] as const;
 export type SceneName = (typeof SCENES)[number];
@@ -327,6 +327,7 @@ function paint(scene: SceneName, u: string, animated: boolean) {
             strokeWidth={2}
             opacity={0.7}
           />
+          <Musician animated={animated} />
           <G transform="translate(195 714)">
             <Path d="M-84 -22 L84 -22 L100 24 L-100 24Z" fill="#B8235A" />
             <Path

@@ -15,7 +15,10 @@ mkdirSync('assets', { recursive: true });
 const OUT = [
   ['brand-icon', 'assets/icon.png', false],
   ['brand-android-fg', 'assets/adaptive-icon.png', true],
+  ['brand-icon-female', 'assets/icon-female.png', false],
+  ['brand-android-fg-female', 'assets/adaptive-icon-female.png', true],
   ['brand-android-bg', 'assets/adaptive-background.png', false],
+  ['brand-android-bg-female', 'assets/adaptive-background-female.png', false],
   ['brand-mono', 'assets/adaptive-monochrome.png', true],
   ['brand-notification', 'assets/notification-icon.png', true],
   ['brand-favicon', 'assets/favicon.png', true],
@@ -25,12 +28,10 @@ const OUT = [
 
 const browser = await chromium.launch({ executablePath: CHROME });
 const page = await browser.newPage({ viewport: { width: 1200, height: 1300 } });
-await page.goto(URL);
-await page.waitForTimeout(9000); // splash
-await page.locator('[role=button]').nth(1).click(); // gallery
+await page.goto(`${URL}?brand`);
+await page.waitForTimeout(9000); // splash, then the brand sheet opens by itself
+await page.waitForSelector('#brand-icon', { timeout: 180000 });
 await page.waitForTimeout(1500);
-await page.getByText('برند و آیکن اپ').click();
-await page.waitForTimeout(2500);
 
 // the Expo dev-tools button floats above the page and would end up in the screenshots
 await page.evaluate(() => {

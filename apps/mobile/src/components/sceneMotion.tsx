@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Circle, G } from 'react-native-svg';
+import { Circle, Ellipse, G, Path } from 'react-native-svg';
 import { across, phase } from './sceneMath';
 
 /**
@@ -57,4 +57,60 @@ export function Sway({ x, y, dur, animated, children }: { x: number; y: number; 
   const t = useSceneClock(animated);
   const angle = animated ? -2 + 4.5 * (0.5 - 0.5 * Math.cos(2 * Math.PI * phase(t, dur))) : 0;
   return <G transform={`rotate(${angle.toFixed(2)} ${x} ${y})`}>{children}</G>;
+}
+
+/** A music note rising from the instrument: drifts by (`dx`, `dy`) and fades in and out every 3.4 s (`begin` offsets the second note). */
+function Note({ dx, dy, begin, animated, children }: { dx: number; dy: number; begin: number; animated: boolean; children: ReactNode }) {
+  const t = useSceneClock(animated);
+  const p = phase(t, 3.4, begin);
+  return (
+    <G transform={animated ? `translate(${(dx * p).toFixed(1)} ${(dy * p).toFixed(1)})` : undefined} opacity={animated ? across([0, 0.9, 0], p) : 0.9}>
+      {children}
+    </G>
+  );
+}
+
+/** The player's tapping hand: up 1.6 and back every 0.6 s. */
+function Tap({ animated, children }: { animated: boolean; children: ReactNode }) {
+  const t = useSceneClock(animated);
+  const y = animated ? across([0, -1.6, 0], phase(t, 0.6)) : 0;
+  return <G transform={`translate(0 ${y.toFixed(2)})`}>{children}</G>;
+}
+
+/**
+ * The musician on the bazaar rug (docs/design/Scene.dc.html): a seated player with a round-bellied instrument, a tapping hand
+ * and two notes floating up. Drawn at the design's coordinates (the group is moved by `translate(43 9)` there).
+ */
+export function Musician({ animated }: { animated: boolean }) {
+  return (
+    <G transform="translate(43 9)">
+      <G strokeWidth={1.3}>
+        <Ellipse cx={226} cy={649} rx={15} ry={3} fill="#A33A2A" />
+        <Path d="M214 649 C213 637 218 629 226 629 C234 629 239 637 238 649Z" fill="#5A6FA8" />
+        <Path d="M212 649 C214 643 222 642 228 645 C234 642 240 644 240 649Z" fill="#46568A" />
+        <Circle cx={226} cy={622} r={6} fill="#E8B48A" />
+        <Path d="M220 620 C220 612 232 612 232 620Z" fill="#3A2418" />
+        <Path d="M221 625 q5 4 10 0" fill="#3A2418" stroke="none" />
+        <Path d="M227 637 L210 621" strokeWidth={2.2} fill="none" />
+        <Path d="M207 618 l4 -1 l2 4 l-4 1Z" fill="#8A4E22" />
+        <Ellipse cx={230} cy={640} rx={5} ry={4.2} fill="#B8743E" />
+        <Ellipse cx={226.5} cy={635.5} rx={3.4} ry={3} fill="#C98A4E" />
+        <Circle cx={230} cy={640} r={2} fill="#F2E2C2" stroke="none" />
+        <Tap animated={animated}>
+          <Circle cx={234} cy={638} r={2.4} fill="#E8B48A" />
+        </Tap>
+        <Circle cx={216} cy={627} r={2.2} fill="#E8B48A" />
+        <G fill="#FFF6E8" stroke="#4A2E1E" strokeWidth={1}>
+          <Note dx={-6} dy={-26} begin={0} animated={animated}>
+            <Path d="M238 616 v-7 l4 -1 v6" fill="none" />
+            <Ellipse cx={236.6} cy={616.4} rx={2} ry={1.5} />
+          </Note>
+          <Note dx={4} dy={-24} begin={-1.7} animated={animated}>
+            <Path d="M222 610 v-7" fill="none" />
+            <Ellipse cx={220.6} cy={610.4} rx={2} ry={1.5} />
+          </Note>
+        </G>
+      </G>
+    </G>
+  );
 }

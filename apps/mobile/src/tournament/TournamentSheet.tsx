@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
+import { SkeletonRows } from '../components/Skeleton';
+import { swr } from '../net/cache';
+import { playSfx } from '../sound/engine';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { TournamentDetail, TournamentListItem } from '@dozari/shared';
 import { toPersianDigits } from '@dozari/shared';
@@ -9,7 +12,6 @@ import { Item } from '../components/Item';
 import { PageShell } from '../components/PageShell';
 import { Scene } from '../components/Scene';
 import { SlabButton } from '../components/SlabButton';
-import { formatCountdown } from '../daily/countdown';
 import { GuideBubble } from '../components/GuideBubble';
 import { useConfirm } from '../components/useConfirm';
 import { EmptyNote } from '../components/EmptyState';
@@ -18,8 +20,10 @@ import { ApiError } from '../net/http';
 import { avatarOf } from '../social/avatarOf';
 import { colors, fonts } from '../theme/colors';
 import { fetchTournament, fetchTournaments, joinTournament, leaveTournament } from './api';
-import { blockedText, placeLabel, roundLabel } from './text';
+import { SponsorCard, SponsorInvite, SponsorTag } from './Sponsor';
+import { blockedText, placeLabel, roundLabel, startsInText } from './text';
 import { pageTop } from '../theme/safeArea';
+import { TEXT_RIGHT } from '../theme/direction';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const n = (v: number) => toPersianDigits(String(v));
@@ -28,17 +32,20 @@ const TINTS = ['#FFE48A', '#3FC1F0', '#FF8FB6', '#B8F08F', '#C9A3FF', '#FFAA7A']
 const STATUS_TONE: Record<string, string> = { open: '#7ED957', running: '#FFC93C', finished: '#C9A3FF', draft: '#C9A3FF', cancelled: '#FF8FB6' };
 
 /** «تورنومنت‌ها»: the list (orange page) and a tournament's own page (screen-tournament of `11 More Screens`). */
-export function TournamentSheet({ onClose }: { onClose: () => void }) {
+/** `invite`: the admin's «become a sponsor» card (hidden when there is no contact link). */
+export function TournamentSheet({ onClose, invite = null }: { onClose: () => void; invite?: { title: string; body: string; url: string } | null }) {
   const [list, setList] = useState<TournamentListItem[] | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   useEffect(() => {
-    if (openId === null) fetchTournaments().then(setList, () => setList([]));
+    if (openId === null) return swr('tournaments', fetchTournaments, setList, () => setList([]));
+    return undefined;
   }, [openId]);
   if (openId) return <TournamentPage id={openId} onBack={() => setOpenId(null)} />;
   return (
     <PageShell title={fa.tournament.title} color={colors.candy.orange} backLabel={fa.tournament.close} onBack={onClose}>
       <ScrollView contentContainerStyle={styles.list}>
         <GuideBubble who="pahlevan" text={fa.tournament.pahlevanHello} />
+        {list === null ? <SkeletonRows rows={4} avatar={false} /> : null}
         {list && list.length === 0 ? <EmptyNote skin={0} pose="sad" text={fa.tournament.empty} /> : null}
         {list?.map((t, i) => (
           <Pressable key={t.id} onPress={() => setOpenId(t.id)} accessibilityRole="button">
@@ -49,14 +56,16 @@ export function TournamentSheet({ onClose }: { onClose: () => void }) {
                 </View>
                 <View style={styles.cardBody}>
                   <Text style={styles.cardTitle} numberOfLines={1}>{t.titleFa}</Text>
-                  <Text style={styles.cardSub}>{fa.tournament.joined(t.joined, t.size)} · {fa.tournament.entry(t.entryCoins)}</Text>
+                  <Text style={styles.cardSub}>{fa.tournament.joined(t.joined, t.size)} · {fa.tournament.entry(t.entryCoins, t.entryGems)}</Text>
                   <Text style={styles.cardSub}>{fa.tournament.starts}: {when(t.startsAt)}{t.entered ? ` · ${fa.tournament.mine}` : ''}</Text>
+                  {t.sponsor ? <SponsorTag sponsor={t.sponsor} /> : null}
                 </View>
                 <View style={[styles.chip, { backgroundColor: STATUS_TONE[t.status] ?? '#C9A3FF' }]}><Text style={styles.chipText}>{fa.tournament.status[t.status]}</Text></View>
               </View>
             )}
           </Pressable>
         ))}
+        {list && invite ? <SponsorInvite title={invite.title} body={invite.body} url={invite.url} /> : null}
       </ScrollView>
     </PageShell>
   );
@@ -88,7 +97,7 @@ function TournamentPage({ id, onBack }: { id: string; onBack: () => void }) {
       <ScrollView contentContainerStyle={styles.page}>
         <View style={styles.column}>
           <View style={styles.top}>
-            <Pressable accessibilityRole="button" accessibilityLabel={fa.tournament.back} onPress={onBack}>
+            <Pressable accessibilityRole="button" accessibilityLabel={fa.tournament.back} onPress={() => (playSfx('back'), onBack())}>
               {({ pressed }) => (
                 <View style={[styles.back, pressed ? styles.pressed : null]}>
                   <GradientFill from="#C9A3FF" to="#A66BF0" />
@@ -112,14 +121,14 @@ function TournamentPage({ id, onBack }: { id: string; onBack: () => void }) {
                   <Text style={styles.ribbonText} numberOfLines={1}>{t.titleFa}</Text>
                 </View>
                 {t.status === 'open' ? (
-                  <View style={styles.countdown}><Text style={styles.countdownText}>{fa.tournament.startsIn} <Text style={styles.mono}>{formatCountdown(t.startsAt, now)}</Text></Text></View>
+                  <View style={styles.countdown}><Text style={styles.countdownText}>{fa.tournament.startsIn} <Text style={styles.mono}>{startsInText(t.startsAt, now)}</Text></Text></View>
                 ) : (
                   <View style={styles.countdown}><Text style={styles.countdownText}>{fa.tournament.startedAt}: {when(t.startsAt)}</Text></View>
                 )}
               </View>
 
               <View style={styles.stats}>
-                {([['players', `${n(t.joined)}/${n(t.size)}`, '#B8F08F'], ['entry', t.entryCoins === 0 ? fa.tournament.free : n(t.entryCoins), '#FFE48A'], ['prize', n(first), '#FF8FB6']] as const).map(([k, v, c]) => (
+                {([['players', `${n(t.joined)}/${n(t.size)}`, '#B8F08F'], ['entry', t.entryCoins === 0 && t.entryGems === 0 ? fa.tournament.free : [t.entryCoins > 0 ? n(t.entryCoins) : '', t.entryGems > 0 ? `${n(t.entryGems)}💎` : ''].filter(Boolean).join('+'), '#FFE48A'], ['prize', n(first), '#FF8FB6']] as const).map(([k, v, c]) => (
                   <View key={k} style={[styles.stat, { backgroundColor: c }]}>
                     <Text style={styles.statValue}>{v}</Text>
                     <Text style={styles.statLabel}>{fa.tournament.statTitle[k]}</Text>
@@ -151,16 +160,18 @@ function TournamentPage({ id, onBack }: { id: string; onBack: () => void }) {
                 </ScrollView>
               ) : null}
 
+              {t.sponsor ? <SponsorCard sponsor={t.sponsor} /> : null}
+
               <View style={styles.panel}>
                 {t.descriptionFa ? <Text style={styles.text}>{t.descriptionFa}</Text> : null}
                 {t.prizes.length > 0 ? (
                   <>
                     <Text style={styles.label}>{fa.tournament.prizes}</Text>
-                    {t.prizes.map((p) => <Text key={p.place} style={styles.text}>{fa.tournament.prizeLine(placeLabel(p.place), p.coins, p.spins)}</Text>)}
+                    {t.prizes.map((p) => <Text key={p.place} style={styles.text}>{fa.tournament.prizeLine(placeLabel(p.place), p.coins, p.spins, p.gems)}</Text>)}
                   </>
                 ) : null}
                 <Text style={styles.label}>{fa.tournament.rulesTitle}</Text>
-                {[fa.tournament.rules.elimination, fa.tournament.rules.fee(t.entryCoins), fa.tournament.rules.byes, fa.tournament.rules.cancel, fa.tournament.rules.online].map((r) => <Text key={r} style={styles.small}>• {r}</Text>)}
+                {[fa.tournament.rules.elimination, fa.tournament.rules.fee(t.entryCoins, t.entryGems), fa.tournament.rules.byes, fa.tournament.rules.cancel, fa.tournament.rules.online].map((r) => <Text key={r} style={styles.small}>• {r}</Text>)}
                 {t.results.length > 0 ? (
                   <>
                     <Text style={styles.label}>{fa.tournament.results}</Text>
@@ -207,8 +218,8 @@ const styles = StyleSheet.create({
   tile: { width: 50, height: 50, borderRadius: 14, borderWidth: 2.5, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   tileIcon: { width: 38, height: 38 },
   cardBody: { flex: 1, minWidth: 0, gap: 1 },
-  cardTitle: { fontFamily: fonts.display, fontSize: 16, color: colors.ink, textAlign: 'right' },
-  cardSub: { fontFamily: fonts.bold, fontSize: 10.5, color: '#5A3A7A', textAlign: 'right' },
+  cardTitle: { fontFamily: fonts.display, fontSize: 16, color: colors.ink, textAlign: TEXT_RIGHT },
+  cardSub: { fontFamily: fonts.bold, fontSize: 10.5, color: '#5A3A7A', textAlign: TEXT_RIGHT },
   chip: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 99, borderWidth: 2, borderColor: colors.ink },
   chipText: { fontFamily: fonts.display, fontSize: 11, color: colors.ink },
 
@@ -240,13 +251,13 @@ const styles = StyleSheet.create({
   matchLive: { borderColor: '#7ED957' },
   player: { height: 28, flexDirection: ROW, alignItems: 'center', gap: 4, paddingHorizontal: 6, borderBottomWidth: 1, borderColor: 'rgba(43,18,64,0.15)' },
   playerWon: { backgroundColor: '#E4F7D0' },
-  playerName: { flex: 1, fontFamily: fonts.bold, fontSize: 11, color: colors.ink, textAlign: 'right' },
+  playerName: { flex: 1, fontFamily: fonts.bold, fontSize: 11, color: colors.ink, textAlign: TEXT_RIGHT },
   dim: { opacity: 0.5 },
   check: { fontFamily: fonts.display, fontSize: 13, color: '#3FA36B' },
   panel: { gap: 6, padding: 12, borderRadius: 20, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#FBF1DE', ...lift(5) },
-  label: { fontFamily: fonts.display, fontSize: 16, color: '#7E46D6', textAlign: 'right', marginTop: 4 },
-  text: { fontFamily: fonts.bold, fontSize: 13, lineHeight: 21, color: colors.ink, textAlign: 'right' },
-  small: { fontFamily: fonts.bold, fontSize: 11.5, lineHeight: 19, color: colors.ink, opacity: 0.85, textAlign: 'right' },
+  label: { fontFamily: fonts.display, fontSize: 16, color: '#7E46D6', textAlign: TEXT_RIGHT, marginTop: 4 },
+  text: { fontFamily: fonts.bold, fontSize: 13, lineHeight: 21, color: colors.ink, textAlign: TEXT_RIGHT },
+  small: { fontFamily: fonts.bold, fontSize: 11.5, lineHeight: 19, color: colors.ink, opacity: 0.85, textAlign: TEXT_RIGHT },
   people: { flexDirection: ROW, flexWrap: 'wrap', gap: 8 },
   person: { flexDirection: ROW, alignItems: 'center', gap: 4 },
   warnLight: { fontFamily: fonts.bold, fontSize: 12, color: '#FFE48A', textAlign: 'center' },

@@ -1,3 +1,4 @@
+import { toPersianDigits } from '@dozari/shared';
 import { useState } from 'react';
 import { StyleSheet, TextInput } from 'react-native';
 import { ConfirmDialog } from '../components/ConfirmDialog';
@@ -39,7 +40,7 @@ export function DeleteAccountDialog({ onDeleted, onCancel }: { onDeleted: () => 
   }
   return (
     <ConfirmDialog danger busy={busy || code.trim().length < 4} title={t.codeTitle} message={channel === 'sms' ? t.sentSms : t.sentBale} error={error} confirmLabel={t.confirm} cancelLabel={t.cancel} onConfirm={remove} onCancel={onCancel}>
-      <TextInput value={code} onChangeText={setCode} keyboardType="number-pad" maxLength={8} autoFocus style={styles.input} accessibilityLabel={t.codeTitle} />
+      <TextInput value={toPersianDigits(code)} onChangeText={setCode} keyboardType="number-pad" maxLength={8} autoFocus style={styles.input} accessibilityLabel={t.codeTitle} />
     </ConfirmDialog>
   );
 }

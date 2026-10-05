@@ -62,7 +62,7 @@ function userDrawer(id, done) {
       if (u.isBanned) b.appendChild(banner('bad', 'مسدود' + (u.bannedAt ? ' از ' + ago(u.bannedAt) : '') + (u.banReason ? ' — ' + u.banReason : '')));
       b.appendChild(defs([
         ['شناسه', h('span', { class: 'ltr', text: u.id })], ['موجودی', faNum(u.balance) + ' سکه'], ['ثبت‌نام', ago(u.createdAt)], ['آخرین حضور', ago(u.lastSeenAt)],
-        ['دوستان', fa(u.friends)], ['جنسیت (خصوصی)', GENDER_FA[u.gender] || 'نگفته'], ['بله', u.baleLinked ? badge('وصل است', 'b-ok') : badge('وصل نیست', 'b-mute')]
+        ['دوستان', fa(u.friends)], ['سن', u.age === null || u.age === undefined ? 'نگفته' : fa(u.age) + ' ساله' + (u.birth ? ' · تولد ' + u.birth.year + '/' + u.birth.month + '/' + u.birth.day : '')], ['جنسیت (خصوصی)', GENDER_FA[u.gender] || 'نگفته'], ['بله', u.baleLinked ? badge('وصل است', 'b-ok') : badge('وصل نیست', 'b-mute')]
       ]));
       var nick = h('input', { type: 'text', value: u.nickname, maxlength: 30, 'aria-label': 'اسم نمایشی' });
       b.appendChild(h('div', {}, [sectionTitle('اسم و هویت'), h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, [h('div', { style: 'flex:1;min-width:160px' }, [nick]),
@@ -79,6 +79,11 @@ function userDrawer(id, done) {
       b.appendChild(h('div', {}, [sectionTitle('تغییر موجودی (از طریق دفتر سکه، با ثبت در گزارش)'), h('div', { style: 'display:flex;gap:8px' }, [h('div', { style: 'flex:1' }, [delta]), h('button', { class: 'btn primary', text: 'اعمال', onclick: function () {
         var d = Number(delta.value); if (!d) return toast('عدد غیرصفر وارد کن', true);
         ask((d > 0 ? 'اضافه کردن ' : 'کم کردن ') + faNum(Math.abs(d)) + ' سکه ' + (d > 0 ? 'به ' : 'از ') + u.nickname + '؟', function () { api('/admin/users/' + id + '/coins', { method: 'POST', body: { delta: d } }).then(function (x) { if (!x.ok) return fail(x); toast('موجودی جدید: ' + faNum(x.body.balance)); reload(); }); });
+      } })])]));
+      var gemDelta = h('input', { type: 'number', placeholder: 'مثلاً 5 یا -2', 'aria-label': 'تغییر الماس' });
+      b.appendChild(h('div', {}, [sectionTitle('تغییر الماس (از طریق دفتر الماس)'), h('div', { style: 'display:flex;gap:8px' }, [h('div', { style: 'flex:1' }, [gemDelta]), h('button', { class: 'btn primary', text: 'اعمال', onclick: function () {
+        var d = Number(gemDelta.value); if (!d) return toast('عدد غیرصفر وارد کن', true);
+        ask((d > 0 ? 'اضافه کردن ' : 'کم کردن ') + faNum(Math.abs(d)) + ' الماس ' + (d > 0 ? 'به ' : 'از ') + u.nickname + '؟', function () { api('/admin/users/' + id + '/gems', { method: 'POST', body: { delta: d } }).then(function (x) { if (!x.ok) return fail(x); toast('الماس جدید: ' + faNum(x.body.balance)); gemDelta.value = ''; }); });
       } })])]));
       b.appendChild(h('div', {}, [sectionTitle('آخرین تراکنش‌ها'), ledger]));
       api('/admin/users/' + id + '/ledger').then(function (x) {

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { swr } from '../net/cache';
 import { Animated, Easing, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Svg, { G, Path } from 'react-native-svg';
 import type { LevelRoad, Unlock } from '@dozari/shared';
@@ -14,6 +15,8 @@ import { claimableCoins, claimableSpins, levelProgress, roadNodes, xpToReach } f
 import type { RoadNode } from './road';
 import { roadLayout, skyStars } from './roadPath';
 import { pageTop } from '../theme/safeArea';
+import { useHardwareBack } from '../nav/useHardwareBack';
+import { TEXT_RIGHT } from '../theme/direction';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const n = (v: number) => toPersianDigits(String(v));
@@ -30,6 +33,7 @@ const view = (u: Unlock): { title: string; text: string; icon: string } => {
  * What each level opens comes from the real gates (`GET /me/levels`).
  */
 export function LevelRoadPage({ onClose }: { onClose: () => void }) {
+  useHardwareBack(onClose);
   const [road, setRoad] = useState<LevelRoad | null>(null);
   const [failed, setFailed] = useState(false);
   const [locked, setLocked] = useState<{ unlock: Unlock } | null>(null);
@@ -40,7 +44,7 @@ export function LevelRoadPage({ onClose }: { onClose: () => void }) {
   const width = Math.min(520, win.width);
 
   useEffect(() => {
-    fetchLevelRoad().then(setRoad, () => setFailed(true));
+    return swr('levelroad', fetchLevelRoad, setRoad, () => setFailed(true));
   }, []);
   const nodes = road ? roadNodes(road) : [];
   const ready = road ? claimableCoins(road) + claimableSpins(road) : 0;
@@ -50,7 +54,7 @@ export function LevelRoadPage({ onClose }: { onClose: () => void }) {
     claimLevelRewards().then(
       (out) => {
         setGot({ coins: out.coins, spins: out.spins });
-        return fetchLevelRoad().then(setRoad);
+        return swr.refresh('levelroad', fetchLevelRoad).then(setRoad);
       },
       () => setFailed(true),
     ).finally(() => setClaiming(false));
@@ -218,6 +222,7 @@ function Cards({ node, dim, reached, onLocked, onClaim }: { node: RoadNode; dim:
 
 /** popup-locked of the design: what is here, when it opens, how far the player is, Ajan's line. */
 function LockedPopup({ road, unlock, onClose }: { road: LevelRoad; unlock: Unlock; onClose: () => void }) {
+  useHardwareBack(onClose);
   const v = view(unlock);
   const left = Math.max(0, unlock.level - road.level);
   const pct = Math.round(levelProgress(road) * 100);
@@ -290,8 +295,8 @@ const styles = StyleSheet.create({
   cardIconInner: { width: 30, height: 30 },
   gray: { opacity: 0.45 },
   cardText: { flexShrink: 1, gap: 1 },
-  cardTitle: { fontFamily: fonts.display, fontSize: 13, color: colors.ink, textAlign: 'right' },
-  cardSub: { fontFamily: fonts.bold, fontSize: 9.5, color: '#7E46D6', textAlign: 'right' },
+  cardTitle: { fontFamily: fonts.display, fontSize: 13, color: colors.ink, textAlign: TEXT_RIGHT },
+  cardSub: { fontFamily: fonts.bold, fontSize: 9.5, color: '#7E46D6', textAlign: TEXT_RIGHT },
   cardDone: { color: '#3FA36B' },
   cardReward: { backgroundColor: '#FFF1B8' },
   cardClaim: { color: '#E8743B' },
@@ -322,11 +327,11 @@ const styles = StyleSheet.create({
   barFill: { position: 'absolute', top: 0, bottom: 0, left: 0, backgroundColor: '#A66BF0' },
   barText: { fontFamily: fonts.display, fontSize: 12, color: colors.ink, textAlign: 'center' },
   what: { alignSelf: 'stretch', gap: 4, padding: 10, borderRadius: 16, borderWidth: 2, borderStyle: 'dashed', borderColor: 'rgba(43,18,64,0.3)', backgroundColor: 'rgba(166,107,240,0.12)' },
-  whatTitle: { fontFamily: fonts.display, fontSize: 15, color: '#7E46D6', textAlign: 'right' },
-  whatText: { fontFamily: fonts.bold, fontSize: 12.5, lineHeight: 20, color: colors.ink, textAlign: 'right' },
+  whatTitle: { fontFamily: fonts.display, fontSize: 15, color: '#7E46D6', textAlign: TEXT_RIGHT },
+  whatText: { fontFamily: fonts.bold, fontSize: 12.5, lineHeight: 20, color: colors.ink, textAlign: TEXT_RIGHT },
   ok: { alignSelf: 'stretch', height: 54, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...lift(4) },
   okText: { fontFamily: fonts.display, fontSize: 18, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
   ajan: { position: 'absolute', bottom: 22, left: 8, width: 100, height: 116 },
   ajanBubble: { position: 'absolute', bottom: 52, left: 112, right: 14, padding: 10, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#fff', ...lift(4) },
-  ajanText: { fontFamily: fonts.bold, fontSize: 11.5, lineHeight: 18, color: colors.ink, textAlign: 'right' },
+  ajanText: { fontFamily: fonts.bold, fontSize: 11.5, lineHeight: 18, color: colors.ink, textAlign: TEXT_RIGHT },
 });

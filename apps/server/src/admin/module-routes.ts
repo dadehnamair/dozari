@@ -2,7 +2,7 @@ import { randomInt } from 'node:crypto';
 import type { PuzzleAdmin } from '../puzzles/admin.js';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { checkLevelTable, isDateKey, ITEMS, ITEM_GROUPS, LEVEL_TABLE_MAX, levelRowSchema, PRODUCT_CATEGORIES, PROVINCES, provinceOf, SETTING_GROUPS, SHOP_EFFECTS } from '@dozari/shared';
+import { accentColorSchema, checkLevelTable, httpsUrlSchema, isDateKey, ITEMS, ITEM_GROUPS, LEVEL_TABLE_MAX, levelRowSchema, PRODUCT_CATEGORIES, PROVINCES, provinceOf, SETTING_GROUPS, SHOP_EFFECTS, SPONSOR_LIMITS, COSMETIC_SLOTS, WHEEL_PRIZE_KINDS } from '@dozari/shared';
 import type { LevelRow } from '@dozari/shared';
 import type { LevelTable } from '../progress/table.js';
 import type { SettingsService } from '../settings/service.js';
@@ -21,10 +21,18 @@ import type { UsersAdmin } from './users.js';
 import type { PlayerStore } from '../player/store.js';
 import type { CoinPackageService } from '../economy/coin-packages.js';
 import type { ShopStore } from '../economy/shop-store.js';
+import type { WheelService } from '../wheel/service.js';
+import { registerLandingAdminRoutes } from '../landing/routes.js';
+import type { LandingService } from '../landing/service.js';
+import { registerShortLinkAdminRoutes } from '../shortlinks/routes.js';
+import { registerFeedbackAdminRoutes } from '../feedback/routes.js';
+import type { FeedbackService } from '../feedback/service.js';
+import type { ShortLinkService } from '../shortlinks/service.js';
 import type { BadgeService } from '../badges/service.js';
 import type { BadgeStore } from '../badges/store.js';
 import type { ChatStore } from '../chat/store.js';
 import type { TournamentService } from '../tournament/service.js';
+import type { SponsorStore } from '../sponsor/store.js';
 import type { DailyService } from '../daily/service.js';
 import { THEME_KINDS } from '../daily/store.js';
 import type { BotPlayerService } from '../botplayers/service.js';
@@ -42,6 +50,14 @@ export interface AdminModules {
   cities?: PlayerStore;
   /** Coin shop items (price, level gate, daily limit, visibility). */
   shop?: ShopStore;
+  /** Blog, cast and FAQ of the landing site. */
+  landing?: LandingService;
+  /** User reports and the suggestion queue. */
+  feedback?: FeedbackService;
+  /** Self-hosted short links (the short domain). */
+  shortLinks?: { service: ShortLinkService; base: () => Promise<string> };
+  /** Lucky-wheel prize table (kind, amount, odds, visibility). */
+  wheel?: WheelService;
   /** Coin packages sold for real money (catalog only; buying is gated by a feature flag). */
   coinPackages?: CoinPackageService;
   /** Invite codes: list, special campaign codes, limits. */
@@ -52,6 +68,8 @@ export interface AdminModules {
   chat?: ChatStore;
   /** Tournament builder and management. */
   tournaments?: TournamentService;
+  /** Sponsors shown on tournaments. */
+  sponsors?: SponsorStore;
   daily?: DailyService;
   /** The level table: XP each level starts at and the coin reward for reaching it. */
   levelRoad?: { table: LevelTable; defaults: () => Promise<LevelRow[]> };
@@ -130,7 +148,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     settingGroups: SETTING_GROUPS,
     icons: ITEMS,
     iconGroups: ITEM_GROUPS,
-    modules: { puzzles: !!m.puzzles, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages },
+    modules: { puzzles: !!m.puzzles, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, wheel: !!m.wheel, shortLinks: !!m.shortLinks, feedback: !!m.feedback, landing: !!m.landing, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages },
   }));
 
   if (m.stats) {
@@ -208,7 +226,10 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     g.get('/admin/users/:id', async (req, reply) => {
       const p = idParam.safeParse(req.params);
       if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
-      return (await users.detail(p.data.id)) ?? reply.code(404).send({ error: 'user_not_found' });
+      const detail = await users.detail(p.data.id);
+      if (!detail) return reply.code(404).send({ error: 'user_not_found' });
+      // Privacy (profile-and-identity.md): age for everyone with access, the exact birth date for the owner only.
+      return req.adminActor?.role === 'owner' ? detail : { ...detail, birth: null };
     });
     g.get('/admin/users/:id/ledger', async (req, reply) => {
       const p = idParam.safeParse(req.params);
@@ -265,6 +286,16 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       if (out === 'not_found') return reply.code(404).send({ error: 'user_not_found' });
       if (out === 'insufficient') return reply.code(409).send({ error: 'insufficient' });
       void audit('user.coins', p.data.id, String(b.data.delta));
+      return { ok: true, balance: out.balance };
+    });
+    g.post('/admin/users/:id/gems', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object({ delta: z.number().int().min(-10_000).max(10_000).refine((n) => n !== 0) }).safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await users.adjustGems(p.data.id, b.data.delta);
+      if (out === 'not_found') return reply.code(404).send({ error: 'user_not_found' });
+      if (out === 'insufficient') return reply.code(409).send({ error: 'insufficient' });
+      void audit('user.gems', p.data.id, String(b.data.delta));
       return { ok: true, balance: out.balance };
     });
   }
@@ -515,11 +546,13 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       size: z.number().int(),
       minPlayers: z.number().int().min(2).max(32),
       entryCoins: z.number().int().min(0).max(100_000),
+      entryGems: z.number().int().min(0).max(1_000).default(0),
       minLevel: z.number().int().min(1).max(500),
       startsAt: z.number().int(),
       botFill: z.boolean().optional(),
       allowConcurrent: z.boolean().optional(),
-      prizes: z.array(z.object({ place: z.number().int().min(1).max(3), coins: z.number().int().min(0).max(1_000_000), spins: z.number().int().min(0).max(20).default(0) })).max(3),
+      sponsorId: z.string().uuid().nullable().optional(),
+      prizes: z.array(z.object({ place: z.number().int().min(1).max(3), coins: z.number().int().min(0).max(1_000_000), gems: z.number().int().min(0).max(500).default(0), spins: z.number().int().min(0).max(20).default(0) })).max(3),
     };
     const fail = (reply: FastifyReply, error: string) => reply.code(error === 'NOT_FOUND' ? 404 : error === 'BAD_STATE' ? 409 : 400).send({ error });
     g.get('/admin/tournaments', async () => ({ tournaments: await tournaments.adminList() }));
@@ -553,14 +586,45 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     }
   }
 
+  if (m.sponsors) {
+    const sponsors = m.sponsors;
+    const body = z.object({
+      nameFa: z.string().trim().min(2).max(SPONSOR_LIMITS.name),
+      taglineFa: z.string().trim().max(SPONSOR_LIMITS.tagline).default(''),
+      descriptionFa: z.string().trim().max(SPONSOR_LIMITS.description).default(''),
+      bannerUrl: httpsUrlSchema.nullable().default(null),
+      logoUrl: httpsUrlSchema.nullable().default(null),
+      linkUrl: httpsUrlSchema.nullable().default(null),
+      accent: accentColorSchema.nullable().default(null),
+      isActive: z.boolean().default(true),
+    });
+    g.get('/admin/sponsors', async () => ({ sponsors: await sponsors.list() }));
+    g.post('/admin/sponsors', async (req, reply) => {
+      const b = body.safeParse(req.body);
+      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const row = await sponsors.create(b.data);
+      void audit('sponsor.create', row.id, row.nameFa);
+      return reply.code(201).send({ id: row.id });
+    });
+    g.patch('/admin/sponsors/:id', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = body.partial().safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      if ((await sponsors.update(p.data.id, b.data)) === 'not_found') return reply.code(404).send({ error: 'NOT_FOUND' });
+      void audit('sponsor.update', p.data.id, JSON.stringify(b.data).slice(0, 200));
+      return { ok: true };
+    });
+  }
+
   if (m.puzzles) {
     const puzzles = m.puzzles;
-    const groupBody = z.object({ level: z.number().int().min(0).max(3), titleFa: z.string().trim().min(2).max(100), explanationFa: z.string().trim().min(2).max(300), productIds: z.array(z.string().uuid()).length(4) });
-    g.get('/admin/puzzles', async () => ({ readiness: await puzzles.readiness(), puzzles: await puzzles.list(200) }));
+    const groupBody = z.object({ level: z.number().int().min(0).max(3), titleFa: z.string().trim().min(2).max(100), explanationFa: z.string().trim().max(300).optional(), productIds: z.array(z.string().uuid()).length(4) });
+    g.get('/admin/puzzles', async () => ({ readiness: await puzzles.readiness(), puzzles: await puzzles.list(200), tiers: await puzzles.tiers() }));
     g.post('/admin/puzzles', async (req, reply) => {
-      const b = z.object({ groups: z.array(groupBody).length(4) }).safeParse(req.body);
+      const b = z.object({ groups: z.array(groupBody).length(4), tierId: z.string().uuid().nullable().optional() }).safeParse(req.body);
       if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
-      const out = await puzzles.create(b.data.groups);
+      // The explanation is optional in the form: it falls back to the title.
+      const out = await puzzles.create(b.data.groups.map((x) => ({ ...x, explanationFa: x.explanationFa && x.explanationFa.length >= 2 ? x.explanationFa : x.titleFa })), b.data.tierId);
       if (!out.ok) return reply.code(out.error === 'unknown_product' ? 404 : 400).send({ error: out.error });
       void audit('puzzle.create', out.id);
       return reply.code(201).send({ id: out.id });
@@ -571,6 +635,34 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       const out = await puzzles.generate(b.data.count, () => randomInt(0, 2 ** 30) / 2 ** 30);
       void audit('puzzle.generate', 'puzzles', `${out.created}/${out.requested}`);
       return out;
+    });
+    // Difficulty tiers: the ladder the admin defines, and which puzzle sits on which rung (docs/logic/progression.md §Puzzle tiers).
+    const tierBody = z.object({ id: z.string().uuid().optional(), nameFa: z.string().trim().min(1).max(40), sortOrder: z.number().int().min(0).max(1000), minLevel: z.number().int().min(1).max(1000), maxLevel: z.number().int().min(1).max(1000).nullable() });
+    g.get('/admin/puzzles/tiers', async () => ({ tiers: await puzzles.tiers() }));
+    g.post('/admin/puzzles/tiers', async (req, reply) => {
+      const b = tierBody.safeParse(req.body);
+      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await puzzles.saveTier(b.data);
+      if (!out.ok) return reply.code(out.error === 'not_found' ? 404 : 400).send({ error: out.error });
+      void audit('puzzle.tier.save', out.id, b.data.nameFa);
+      return { id: out.id };
+    });
+    g.delete('/admin/puzzles/tiers/:id', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await puzzles.deleteTier(p.data.id);
+      if (out === 'not_found') return reply.code(404).send({ error: out });
+      void audit('puzzle.tier.delete', p.data.id);
+      return { ok: true };
+    });
+    g.put('/admin/puzzles/:id/tier', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object({ tierId: z.string().uuid().nullable() }).safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await puzzles.setTier(p.data.id, b.data.tierId);
+      if (out !== 'ok') return reply.code(404).send({ error: out });
+      void audit('puzzle.tier', p.data.id, b.data.tierId ?? '-');
+      return { ok: true };
     });
     g.put('/admin/puzzles/:id/titles', async (req, reply) => {
       const p = idParam.safeParse(req.params);
@@ -744,8 +836,15 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       titleFa: z.string().trim().min(2).max(80),
       descriptionFa: z.string().trim().max(300),
       effect: z.enum(SHOP_EFFECTS),
+      slot: z.enum(COSMETIC_SLOTS).nullable().default(null),
       amount: z.number().int().min(1).max(1000),
+      currency: z.enum(['coins', 'gems']),
       priceCoins: z.number().int().min(0).max(1_000_000),
+      priceGems: z.number().int().min(0).max(100_000),
+      /** Real-money price in rials (0 = not sold for money). */
+      priceRials: z.number().int().min(0).max(1_000_000_000).default(0),
+      skuBazaar: z.string().trim().max(80).nullable().default(null),
+      skuMyket: z.string().trim().max(80).nullable().default(null),
       minLevel: z.number().int().min(1).max(500),
       perDayLimit: z.number().int().min(0).max(1000),
       iconKey: z.string().max(30).nullable(),
@@ -765,6 +864,38 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
       if ((await shop.updateItem(p.data.id, b.data)) === 'not_found') return reply.code(404).send({ error: 'item_not_found' });
       void audit('shop.update', p.data.id, JSON.stringify(b.data));
+      return { ok: true };
+    });
+  }
+
+  if (m.landing) registerLandingAdminRoutes(g, m.landing, (a, t, d) => void audit(a, t, d));
+  if (m.feedback) registerFeedbackAdminRoutes(g, m.feedback, (a, t, d) => void audit(a, t, d));
+  if (m.shortLinks) registerShortLinkAdminRoutes(g, m.shortLinks.service, m.shortLinks.base, (a, t, d) => void audit(a, t, d));
+
+  if (m.wheel) {
+    const wheel = m.wheel;
+    const prizeFields = {
+      kind: z.enum(WHEEL_PRIZE_KINDS),
+      amount: z.number().int().min(1).max(100_000),
+      /** The shop item a `cosmetic` slice gives. */
+      itemId: z.string().uuid().nullable().default(null),
+      weight: z.number().int().min(0).max(1000),
+      isActive: z.boolean(),
+    };
+    g.get('/admin/wheel/prizes', async () => ({ prizes: await wheel.prizes.list() }));
+    g.post('/admin/wheel/prizes', async (req, reply) => {
+      const b = z.object(prizeFields).safeParse(req.body);
+      if (!b.success || (b.data.kind === 'cosmetic' && !b.data.itemId)) return reply.code(400).send({ error: 'invalid_request' });
+      const row = await wheel.prizes.add(b.data);
+      void audit('wheel.add', row.id, `${b.data.kind} ${b.data.amount} w${b.data.weight}`);
+      return reply.code(201).send({ id: row.id });
+    });
+    g.patch('/admin/wheel/prizes/:id', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object(prizeFields).partial().safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      if ((await wheel.prizes.update(p.data.id, b.data)) === 'not_found') return reply.code(404).send({ error: 'prize_not_found' });
+      void audit('wheel.update', p.data.id, JSON.stringify(b.data));
       return { ok: true };
     });
   }

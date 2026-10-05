@@ -9,6 +9,7 @@ import { GameTopBar } from '../game/GameTopBar';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import type { CharacterId, CharacterPose } from '../theme/character';
+import { nativeTopInset } from '../theme/safeArea';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const a = fa.duel.arena;
@@ -37,7 +38,7 @@ export function ModeSelect({ entry, prize, mode, onMode, onGo, onFriend, onBack 
               <Text style={styles.friendText}>{a.friend}</Text>
             </Pressable>
           ) : null}
-          <SlabButton label={a.go} color={colors.candy.lime} height={62} grow={0} onPress={onGo} />
+          <SlabButton label={a.go} sfx="confirm" color={colors.candy.lime} height={62} grow={0} onPress={onGo} />
         </View>
       </View>
     </View>
@@ -97,12 +98,12 @@ const shadow = { shadowColor: colors.ink, shadowOffset: { width: 0, height: 6 },
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#3C1A66' },
   shade: { backgroundColor: 'rgba(43,18,64,0.5)' },
-  scrollTight: { paddingTop: 8, paddingBottom: 10 },
+  scrollTight: { paddingTop: 8 + nativeTopInset(), paddingBottom: 10 },
   columnTight: { gap: 8 },
   stageTight: { height: 76 },
   castTight: { width: 62, height: 70 },
   castSmallTight: { width: 46, height: 62 },
-  scroll: { flexGrow: 1, paddingHorizontal: 14, paddingTop: 14, paddingBottom: 20, alignItems: 'center' },
+  scroll: { flexGrow: 1, paddingHorizontal: 14, paddingTop: 14 + nativeTopInset(), paddingBottom: 20, alignItems: 'center' },
   column: { flex: 1, width: '100%', maxWidth: 480, gap: 14 },
   card: { borderRadius: 24, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', transform: [{ scale: 0.96 }], ...shadow },
   cardPicked: { transform: [{ scale: 1 }], shadowColor: colors.candy.yellow, shadowOffset: { width: 0, height: 0 }, shadowRadius: 18, shadowOpacity: 0.8 },
@@ -120,7 +121,7 @@ const styles = StyleSheet.create({
   stat: { flexDirection: ROW, alignItems: 'center', gap: 4 },
   statIcon: { width: 22, height: 22 },
   statText: { fontFamily: fonts.bold, fontSize: 13, color: colors.ink },
-  check: { position: 'absolute', top: 50, [Platform.OS === 'web' ? 'left' : 'right']: 10, width: 30, height: 30, borderRadius: 15, backgroundColor: colors.candy.lime, borderWidth: 3, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  check: { position: 'absolute', top: 50, left: 10, width: 30, height: 30, borderRadius: 15, backgroundColor: colors.candy.lime, borderWidth: 3, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   checkText: { fontFamily: fonts.bold, fontSize: 15, lineHeight: 20, color: '#fff' },
   vs: { alignSelf: 'center', borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '-8deg' }], zIndex: 1 },
   vsText: { fontFamily: fonts.display, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },

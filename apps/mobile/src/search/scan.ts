@@ -12,8 +12,14 @@ export function cellLevel(index: number): number {
 }
 
 /** `m:ss` for a real wait of `sec` seconds (the duel queue reports it). */
+/** The waiting time shown to the player moves in steps of this many seconds, not every second (owner). */
+export const WAIT_STEP_SEC = 3;
+
+/** Seconds rounded down to the shown step (0, 3, 6, …). */
+export const steppedSec = (sec: number): number => Math.floor(Math.max(0, sec) / WAIT_STEP_SEC) * WAIT_STEP_SEC;
+
 export function waitClock(sec: number): string {
-  const s = Math.max(0, Math.floor(sec));
+  const s = steppedSec(sec);
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 

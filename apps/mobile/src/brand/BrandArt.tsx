@@ -1,7 +1,8 @@
 import { useId } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import Svg, { Defs, LinearGradient, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
+import Svg, { Defs, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { Character } from '../components/Character';
+import type { CharacterId } from '../theme/character';
 import { Wordmark } from '../components/Wordmark';
 import { fonts } from '../theme/colors';
 
@@ -17,61 +18,56 @@ const rays = (() => {
   return d;
 })();
 
-/** Violet radial backdrop with a sunburst; also the Android adaptive background. */
-export function IconBackdrop({ size }: { size: number }) {
+const TONES = {
+  warm: ['#FFE48A', '#FFC93C', '#FF7A3D'],
+  rose: ['#FFD3E4', '#FF9EC4', '#C95BA0'],
+} as const;
+
+/** Warm radial backdrop (yellow to orange, or rose for the female icon) with a sunburst; also the Android adaptive background. */
+export function IconBackdrop({ size, tone = 'warm' }: { size: number; tone?: keyof typeof TONES }) {
   const gid = `ib${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
+  const [c0, c1, c2] = TONES[tone];
   return (
     <Svg width={size} height={size} viewBox="-50 -50 100 100" style={StyleSheet.absoluteFill}>
       <Defs>
-        <RadialGradient id={gid} cx="50%" cy="45%" r="60%">
-          <Stop offset="0" stopColor="#C9A3FF" />
-          <Stop offset="0.45" stopColor="#A66BF0" />
-          <Stop offset="1" stopColor="#5A2D91" />
+        <RadialGradient id={gid} cx="50%" cy="30%" r="86%">
+          <Stop offset="0" stopColor={c0} />
+          <Stop offset="0.5" stopColor={c1} />
+          <Stop offset="1" stopColor={c2} />
         </RadialGradient>
       </Defs>
       <Rect x={-50} y={-50} width={100} height={100} fill={`url(#${gid})`} />
-      <Path d={rays} transform="scale(0.5)" fill="rgba(255,255,255,0.14)" />
+      <Path d={rays} transform="scale(0.5)" fill="rgba(255,255,255,0.22)" />
     </Svg>
   );
 }
 
-function Gloss({ size }: { size: number }) {
-  const gid = `gl${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
+/** The hero's waving face alone (no coin), centred with breathing room. `width` is the face width as a share of the canvas. */
+function FaceHero({ size, who, width }: { size: number; who?: CharacterId; width: number }) {
+  const w = size * width;
+  const h = w * (0.6833 / 0.625);
   return (
-    <Svg width={size} height={size * 0.46} style={{ position: 'absolute', top: 0, left: 0 }}>
-      <Defs>
-        <LinearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor="#fff" stopOpacity={0.28} />
-          <Stop offset="1" stopColor="#fff" stopOpacity={0} />
-        </LinearGradient>
-      </Defs>
-      <Rect width={size} height={size * 0.46} fill={`url(#${gid})`} />
-    </Svg>
-  );
-}
-
-/** app-icon 1024: backdrop, the hero's face, gloss. */
-export function AppIconArt({ size = 1024 }: { size?: number }) {
-  const inset = size * (16 / 180);
-  return (
-    <View style={{ width: size, height: size, overflow: 'hidden' }}>
-      <IconBackdrop size={size} />
-      <View style={{ position: 'absolute', top: inset, left: inset, right: inset, bottom: inset }}>
-        <Character crop="face" pose="idle" />
-      </View>
-      <Gloss size={size} />
+    <View style={{ position: 'absolute', left: (size - w) / 2, top: (size - h) / 2, width: w, height: h }}>
+      <Character who={who} crop="face" pose="wave" />
     </View>
   );
 }
 
-/** android-fg: transparent, the face inside the 66% safe zone of the adaptive icon. */
-export function AndroidForeground({ size = 1024 }: { size?: number }) {
-  const inset = size * 0.17;
+/** app-icon 1024: backdrop with the hero waving, centred. */
+export function AppIconArt({ size = 1024, who }: { size?: number; who?: CharacterId }) {
+  return (
+    <View style={{ width: size, height: size, overflow: 'hidden' }}>
+      <IconBackdrop size={size} tone={who === 'dozariF' ? 'rose' : 'warm'} />
+      <FaceHero size={size} who={who} width={0.52} />
+    </View>
+  );
+}
+
+/** android-fg: transparent hero face, well inside the 66% safe zone of the adaptive icon. */
+export function AndroidForeground({ size = 1024, who }: { size?: number; who?: CharacterId }) {
   return (
     <View style={{ width: size, height: size }}>
-      <View style={{ position: 'absolute', top: inset, left: inset, right: inset, bottom: inset }}>
-        <Character crop="face" pose="idle" />
-      </View>
+      <FaceHero size={size} who={who} width={0.46} />
     </View>
   );
 }

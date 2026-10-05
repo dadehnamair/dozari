@@ -8,6 +8,7 @@ import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
 import { fetchPhone, requestSms, resolvePhone, savePhone, verifySmsCode } from './api';
 import { phoneErrorText } from './errors';
+import { TEXT_LEFT } from '../theme/direction';
 
 const INK = '#3A2418';
 const codeOf = (e: unknown): string => (e instanceof ApiError ? e.code : 'generic');
@@ -102,7 +103,7 @@ export function PhoneStep({ onChange }: { onChange?: (s: PhoneStatus) => void })
               <Pressable onPress={() => void sms()} style={styles.pill} accessibilityRole="button"><Text style={styles.pillText}>{fa.phone.sendSms}</Text></Pressable>
               {smsSent ? (
                 <>
-                  <TextInput value={code} onChangeText={setCode} keyboardType="number-pad" maxLength={8} style={styles.input} accessibilityLabel={fa.phone.smsCode} />
+                  <TextInput value={toPersianDigits(code)} onChangeText={setCode} keyboardType="number-pad" maxLength={8} style={styles.input} accessibilityLabel={fa.phone.smsCode} />
                   <Pressable onPress={() => void verify()} style={[styles.pill, styles.on]} accessibilityRole="button"><Text style={styles.pillText}>{fa.phone.verify}</Text></Pressable>
                 </>
               ) : null}
@@ -112,7 +113,7 @@ export function PhoneStep({ onChange }: { onChange?: (s: PhoneStatus) => void })
       ) : null}
       {!status.verified ? (
         <View style={styles.row}>
-          <TextInput value={phone} onChangeText={setPhone} keyboardType="phone-pad" maxLength={20} placeholder={fa.phone.placeholder} style={styles.input} accessibilityLabel={fa.phone.title} />
+          <TextInput value={toPersianDigits(phone)} onChangeText={setPhone} keyboardType="phone-pad" maxLength={20} placeholder={fa.phone.placeholder} style={styles.input} accessibilityLabel={fa.phone.title} />
           <Pressable onPress={() => void save()} style={[styles.pill, styles.on]} accessibilityRole="button"><Text style={styles.pillText}>{fa.phone.save}</Text></Pressable>
         </View>
       ) : null}
@@ -141,7 +142,7 @@ const styles = StyleSheet.create({
   hint: { fontFamily: fonts.bold, fontSize: 12, color: INK, opacity: 0.75 },
   bad: { color: '#B3261E', opacity: 1 },
   row: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
-  input: { flex: 1, minWidth: 120, fontFamily: fonts.bold, fontSize: 16, color: INK, borderWidth: 2, borderColor: INK, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: '#fff', textAlign: 'left', writingDirection: 'ltr' },
+  input: { flex: 1, minWidth: 120, fontFamily: fonts.bold, fontSize: 16, color: INK, borderWidth: 2, borderColor: INK, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: '#fff', textAlign: TEXT_LEFT, writingDirection: 'ltr' },
   pill: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 99, borderWidth: 2, borderColor: INK, backgroundColor: colors.cream },
   on: { backgroundColor: '#FFC93C' },
   pillText: { fontFamily: fonts.bold, fontSize: 14, color: INK },

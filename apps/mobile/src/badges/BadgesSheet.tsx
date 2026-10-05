@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { swr } from '../net/cache';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { MyBadges } from '@dozari/shared';
 import { CandyButton } from '../components/CandyButton';
@@ -8,21 +9,23 @@ import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { equipBadge, fetchMyBadges, markNoticesRead } from './api';
 import { progressText, skillText } from './text';
+import { useHardwareBack } from '../nav/useHardwareBack';
 
 const INK = '#3A2418';
 
 /** «نشان‌ها و پیام‌ها»: skill tier, earned and locked badges (with how far along), which one is shown, warnings and commendations. */
 export function BadgesSheet({ onClose }: { onClose: () => void }) {
+  useHardwareBack(onClose);
   const [me, setMe] = useState<MyBadges | null>(null);
   const [failed, setFailed] = useState(false);
 
   const load = useCallback(() => {
-    fetchMyBadges().then(
+    swr.refresh('badges', fetchMyBadges).then(
       (m) => (setMe(m), setFailed(false)),
       () => setFailed(true),
     );
   }, []);
-  useEffect(load, [load]);
+  useEffect(() => swr('badges', fetchMyBadges, (m) => (setMe(m), setFailed(false)), () => setFailed(true)), []);
   useEffect(() => {
     if (me?.notices.some((n) => !n.read)) void markNoticesRead().catch(() => undefined);
   }, [me]);
@@ -82,7 +85,7 @@ export function BadgesSheet({ onClose }: { onClose: () => void }) {
             </>
           ) : null}
         </ScrollView>
-        <CandyButton label={fa.badges.close} color={colors.candy.sky} onPress={onClose} />
+        <CandyButton label={fa.badges.close} sfx="back" color={colors.candy.sky} onPress={onClose} />
       </Pressable>
     </Pressable>
   );

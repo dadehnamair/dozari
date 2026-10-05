@@ -16,6 +16,7 @@ import {
   uniqueIndex,
   varchar,
 } from 'drizzle-orm/mysql-core';
+import { COSMETIC_SLOTS } from '@dozari/shared/src/economy/slots';
 import { uuidv7 } from 'uuidv7';
 
 /**
@@ -182,6 +183,18 @@ export const pricePoints = mysqlTable(
  * (no JSON, D63): `rule_kind` says which of the nullable `rule_*` columns apply. Convert with
  * `ruleToColumns` / `columnsToRule` (puzzle-rule.ts), which validate through the shared zod schema.
  */
+/** Difficulty ladder of whole puzzles, edited in the admin panel; `min_level`..`max_level` is the player-level range a tier is served to (docs/logic/progression.md). */
+export const puzzleTiers = mysqlTable('puzzle_tiers', {
+  id: id(),
+  nameFa: varchar('name_fa', { length: 40 }).notNull(),
+  /** Easiest first. */
+  sortOrder: int('sort_order').notNull(),
+  minLevel: int('min_level').notNull().default(1),
+  /** Null = no upper bound. */
+  maxLevel: int('max_level'),
+  createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+});
+
 export const puzzles = mysqlTable('puzzles', {
   id: id(),
   status: mysqlEnum('status', ['draft', 'approved', 'retired']).notNull().default('draft'),
@@ -189,6 +202,8 @@ export const puzzles = mysqlTable('puzzles', {
   authorId: char('author_id', { length: 36 }),
   seed: bigint('seed', { mode: 'bigint' }),
   difficultyScore: double('difficulty_score'),
+  /** Tier of the puzzle as a whole; null = not rated yet (served to everyone). */
+  tierId: char('tier_id', { length: 36 }),
   timesPlayed: int('times_played').notNull().default(0),
   avgSolveRate: double('avg_solve_rate'),
   createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
@@ -277,6 +292,14 @@ export const users = mysqlTable(
     isBanned: boolean('is_banned').notNull().default(false),
     /** Optional, picked from a fixed list (D68); switches the hero character. Never shown publicly. */
     gender: mysqlEnum('gender', ['female', 'male']),
+    /** Solar Hijri birth date (D160), all three set or all null; never sent to other players. */
+    birthYear: smallint('birth_year'),
+    birthMonth: tinyint('birth_month'),
+    birthDay: tinyint('birth_day'),
+    /** Others may see the age (whole years) on the public profile; default off. */
+    showAge: boolean('show_age').notNull().default(false),
+    /** Friends get an inbox message when the birthday week starts and on the day; default on. */
+    notifyBirthday: boolean('notify_birthday').notNull().default(true),
     /** Set when the player redeems an invite code: it activates free chat, renaming and gifts (chat-and-access.md). */
     chatUnlockedAt: datetime('chat_unlocked_at', { mode: 'date', fsp: 3 }),
     /** Home city (a row of `cities`), optional; shown on the profile and used for the city room. */
@@ -340,6 +363,8 @@ export const LEDGER_REASONS = [
   'broke_rescue',
   'wheel_spin',
   'level_reward',
+  'profile_task',
+  'birthday_gift',
 ] as const;
 
 /** Append-only. Coins move only through the server's ledger function; a repeated idempotency key is a no-op. */
@@ -367,6 +392,35 @@ export const userBalances = mysqlTable('user_balances', {
   balance: int('balance').notNull().default(0),
   updatedAt: datetime('updated_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
 });
+
+/** Why gems moved (docs/logic/economy.md §Gems, D164). */
+export const GEM_REASONS = ['admin_adjust', 'birthday_gift', 'wheel_prize', 'shop_purchase', 'tournament_entry', 'tournament_refund', 'tournament_prize', 'mission_reward'] as const;
+
+/** Cached gem balance per player; changed only together with a `gem_ledger` row. */
+export const userGems = mysqlTable('user_gems', {
+  userId: char('user_id', { length: 36 }).primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+  balance: int('balance').notNull().default(0),
+  updatedAt: datetime('updated_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+});
+
+/** Append-only gem movements, like `coin_ledger`: a repeated idempotency key is a no-op. */
+export const gemLedger = mysqlTable(
+  'gem_ledger',
+  {
+    id: id(),
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    delta: int('delta').notNull(),
+    reason: mysqlEnum('reason', GEM_REASONS).notNull(),
+    refType: varchar('ref_type', { length: 30 }),
+    refId: varchar('ref_id', { length: 64 }),
+    idempotencyKey: varchar('idempotency_key', { length: 150 }).notNull(),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({
+    keyUnique: uniqueIndex('gem_ledger_idempotency_key_idx').on(table.idempotencyKey),
+    byUser: index('gem_ledger_user_idx').on(table.userId, table.createdAt),
+  }),
+);
 
 /** Admin-editable coins per streak day (day 1, 2, 3 …). Empty table = the defaults in shared config. */
 export const dailyRewardSteps = mysqlTable('daily_reward_steps', {
@@ -681,7 +735,10 @@ export const userStats = mysqlTable('user_stats', {
   updatedAt: datetime('updated_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
 });
 
-export const SHOP_EFFECTS = ['hint_token', 'wheel_spin'] as const;
+/** What a shop item gives. `cosmetic` is a hat / clothing item the player keeps and wears (no stock). */
+export const SHOP_EFFECTS = ['hint_token', 'wheel_spin', 'cosmetic'] as const;
+/** Stockable effects of `user_inventory` (a cosmetic is owned in `user_cosmetics`, not counted). */
+export const INVENTORY_EFFECTS = ['hint_token', 'wheel_spin'] as const;
 
 /** Things a player can buy with coins (docs/logic/shop.md). Prices, level gates and daily limits are edited in the admin panel. */
 export const shopItems = mysqlTable(
@@ -693,15 +750,52 @@ export const shopItems = mysqlTable(
     effect: mysqlEnum('effect', SHOP_EFFECTS).notNull(),
     /** Units of the effect one purchase grants. */
     amount: int('amount').notNull().default(1),
+    /** Which currency pays for it (`price_coins` or `price_gems` is the one that counts). */
+    currency: mysqlEnum('currency', ['coins', 'gems']).notNull().default('coins'),
     priceCoins: int('price_coins').notNull(),
+    priceGems: int('price_gems').notNull().default(0),
+    /** Real-money price in rials (0 = not sold for money); paid through Bale or a store receipt (D170). */
+    priceRials: bigint('price_rials', { mode: 'number' }).notNull().default(0),
+    skuBazaar: varchar('sku_bazaar', { length: 80 }),
+    skuMyket: varchar('sku_myket', { length: 80 }),
     minLevel: int('min_level').notNull().default(1),
     /** 0 = no daily limit. */
     perDayLimit: int('per_day_limit').notNull().default(0),
+    /** Slot a `cosmetic` item is worn in (one worn item per slot); null for other effects. */
+    slot: mysqlEnum('slot', COSMETIC_SLOTS),
     iconKey: varchar('icon_key', { length: 30 }),
     sortOrder: int('sort_order').notNull().default(0),
     isActive: boolean('is_active').notNull().default(true),
   },
   (table) => ({ bySort: index('shop_items_sort_idx').on(table.sortOrder) }),
+);
+
+/** One verified real-money purchase of a shop item; the unique order id makes a replayed callback harmless (D170). */
+export const shopRealPurchases = mysqlTable(
+  'shop_real_purchases',
+  {
+    id: id(),
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    itemId: char('item_id', { length: 36 }).notNull().references(() => shopItems.id),
+    store: mysqlEnum('store', ['bazaar', 'myket', 'bale']).notNull(),
+    storeOrderId: varchar('store_order_id', { length: 120 }).notNull(),
+    rials: bigint('rials', { mode: 'number' }).notNull(),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ orderUnique: uniqueIndex('shop_real_purchases_order_idx').on(table.store, table.storeOrderId) }),
+);
+
+/** Cosmetic shop items a player owns (bought, or won on the wheel), and which of them are worn. */
+export const userCosmetics = mysqlTable(
+  'user_cosmetics',
+  {
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    itemId: char('item_id', { length: 36 }).notNull().references(() => shopItems.id),
+    equipped: boolean('equipped').notNull().default(false),
+    source: varchar('source', { length: 16 }).notNull().default('shop'),
+    acquiredAt: datetime('acquired_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.userId, table.itemId] }) }),
 );
 
 /** Fixed coin packages sold for real money through a store (built, switched off by `feature.coin_packages`). */
@@ -743,7 +837,7 @@ export const userInventory = mysqlTable(
   'user_inventory',
   {
     userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
-    effect: mysqlEnum('effect', SHOP_EFFECTS).notNull(),
+    effect: mysqlEnum('effect', INVENTORY_EFFECTS).notNull(),
     qty: int('qty').notNull().default(0),
   },
   (table) => ({ pk: primaryKey({ columns: [table.userId, table.effect] }) }),
@@ -757,9 +851,124 @@ export const shopPurchases = mysqlTable(
     userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
     itemId: char('item_id', { length: 36 }).notNull(),
     priceCoins: int('price_coins').notNull(),
+    priceGems: int('price_gems').notNull().default(0),
     createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
   },
   (table) => ({ byUserDay: index('shop_purchases_user_idx').on(table.userId, table.createdAt) }),
+);
+
+export const LANDING_POST_STATUS = ['draft', 'published'] as const;
+
+/** Blog posts of the landing site `mrdozari.ir` (item 8, D173); written in Markdown in the admin panel. */
+export const landingPosts = mysqlTable(
+  'landing_posts',
+  {
+    id: id(),
+    slug: varchar('slug', { length: 120 }).notNull(),
+    titleFa: varchar('title_fa', { length: 160 }).notNull(),
+    summaryFa: varchar('summary_fa', { length: 400 }).notNull().default(''),
+    bodyMd: text('body_md').notNull(),
+    metaTitle: varchar('meta_title', { length: 70 }),
+    metaDescription: varchar('meta_description', { length: 200 }),
+    coverUrl: varchar('cover_url', { length: 300 }),
+    authorName: varchar('author_name', { length: 80 }).notNull().default(''),
+    status: mysqlEnum('status', LANDING_POST_STATUS).notNull().default('draft'),
+    publishedAt: datetime('published_at', { mode: 'date', fsp: 3 }),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    updatedAt: datetime('updated_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (t) => ({ slugUnique: uniqueIndex('landing_posts_slug_idx').on(t.slug), byPublished: index('landing_posts_published_idx').on(t.status, t.publishedAt) }),
+);
+
+/** Old slugs of a renamed post: the landing site answers them with a 301 to the new one. */
+export const landingSlugRedirects = mysqlTable('landing_slug_redirects', {
+  oldSlug: varchar('old_slug', { length: 120 }).primaryKey(),
+  postId: char('post_id', { length: 36 }).notNull().references(() => landingPosts.id, { onDelete: 'cascade' }),
+});
+
+/** The cast page: the characters and people of the game. */
+export const landingCast = mysqlTable('landing_cast', {
+  id: id(),
+  nameFa: varchar('name_fa', { length: 80 }).notNull(),
+  roleFa: varchar('role_fa', { length: 120 }).notNull().default(''),
+  bioFa: text('bio_fa').notNull(),
+  /** A character key of the app's art (`dozari`, `dozariF`, …) or an image address. */
+  imageKey: varchar('image_key', { length: 200 }),
+  sortOrder: int('sort_order').notNull().default(0),
+  isActive: boolean('is_active').notNull().default(true),
+});
+
+/** Questions and answers of the landing page (also published as FAQ structured data). */
+export const landingFaq = mysqlTable('landing_faq', {
+  id: id(),
+  questionFa: varchar('question_fa', { length: 200 }).notNull(),
+  answerFa: text('answer_fa').notNull(),
+  sortOrder: int('sort_order').notNull().default(0),
+  isActive: boolean('is_active').notNull().default(true),
+});
+
+/** Self-hosted short links for outgoing addresses (the `2oi.ir` domain, D172); the redirect counts every click. */
+export const shortLinks = mysqlTable('short_links', {
+  code: varchar('code', { length: 24 }).primaryKey(),
+  targetUrl: varchar('target_url', { length: 1000 }).notNull(),
+  note: varchar('note', { length: 120 }).notNull().default(''),
+  clicks: int('clicks').notNull().default(0),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  lastClickAt: datetime('last_click_at', { mode: 'date', fsp: 3 }),
+});
+
+/** A player reported another player (profile), optionally over one chat message; the admin reviews them (docs/logic/ugc.md §Reports). */
+export const userReports = mysqlTable(
+  'user_reports',
+  {
+    id: id(),
+    reporterId: char('reporter_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    targetId: char('target_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    category: mysqlEnum('category', ['abuse', 'spam', 'cheating', 'bad_name', 'other']).notNull(),
+    details: varchar('details', { length: 500 }).notNull().default(''),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    resolvedAt: datetime('resolved_at', { mode: 'date', fsp: 3 }),
+  },
+  (table) => ({ byTarget: index('user_reports_target_idx').on(table.targetId, table.createdAt), byReporter: index('user_reports_reporter_idx').on(table.reporterId, table.createdAt) }),
+);
+
+/** A player's suggestion: a new item, a price for an item, or «this price is wrong» (docs/logic/ugc.md). */
+export const ugcSubmissions = mysqlTable(
+  'ugc_submissions',
+  {
+    id: id(),
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    kind: mysqlEnum('kind', ['item', 'price_point', 'price_report']).notNull(),
+    status: mysqlEnum('status', ['pending', 'ready_for_review', 'approved', 'rejected']).notNull().default('pending'),
+    productId: char('product_id', { length: 36 }),
+    nameFa: varchar('name_fa', { length: 200 }).notNull().default(''),
+    category: varchar('category', { length: 40 }),
+    unitFa: varchar('unit_fa', { length: 100 }),
+    year: smallint('year'),
+    priceRials: bigint('price_rials', { mode: 'number' }),
+    sourceType: mysqlEnum('source_type', ['website', 'user_memory', 'other']).notNull().default('user_memory'),
+    sourceText: varchar('source_text', { length: 300 }).notNull().default(''),
+    note: varchar('note', { length: 500 }).notNull().default(''),
+    score: int('score').notNull().default(0),
+    /** Set once when the reward was paid (the claim that makes approval pay exactly once). */
+    rewardedAt: datetime('rewarded_at', { mode: 'date', fsp: 3 }),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    decidedAt: datetime('decided_at', { mode: 'date', fsp: 3 }),
+  },
+  (table) => ({ byStatus: index('ugc_submissions_status_idx').on(table.status, table.createdAt), byUser: index('ugc_submissions_user_idx').on(table.userId, table.createdAt) }),
+);
+
+/** One vote (+1 / −1) of a player on a submission; the key makes it one per player. */
+export const ugcVotes = mysqlTable(
+  'ugc_votes',
+  {
+    submissionId: char('submission_id', { length: 36 }).notNull().references(() => ugcSubmissions.id, { onDelete: 'cascade' }),
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    value: tinyint('value').notNull(),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.submissionId, table.userId] }) }),
 );
 
 /** Invite ("gold") codes: one personal code per player, plus special codes an admin makes for campaigns (owner null). */
@@ -945,12 +1154,12 @@ export const cannedTaunts = mysqlTable(
   (table) => ({ byCategory: index('canned_taunts_category_idx').on(table.categoryId, table.sortOrder) }),
 );
 
-/** One row per chat message. `roomKey` is the city id for the city room, the match id for a duel, `all` for the global room, the two user ids sorted and joined by `:` for a friends' private chat. Kept 30 days for moderation. */
+/** One row per chat message. `roomKey` is the city id for the city room, the match id for a duel, `all` for the global room, the table code for a private table, the two user ids sorted and joined by `:` for a friends' private chat. Kept 30 days for moderation. */
 export const chatMessages = mysqlTable(
   'chat_messages',
   {
     id: id(),
-    room: mysqlEnum('room', ['city', 'match', 'global', 'dm']).notNull(),
+    room: mysqlEnum('room', ['city', 'match', 'global', 'dm', 'table']).notNull(),
     roomKey: varchar('room_key', { length: 64 }).notNull(),
     userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
     kind: mysqlEnum('kind', ['text', 'taunt', 'table']).notNull(),
@@ -975,6 +1184,22 @@ export const chatReports = mysqlTable(
   (table) => ({ oncePerReporter: uniqueIndex('chat_reports_once_idx').on(table.messageId, table.reporterId) }),
 );
 
+/** A sponsor defined in the admin panel: name, banner and story shown on the tournaments it sponsors (docs/logic/sponsors.md). */
+export const sponsors = mysqlTable('sponsors', {
+  id: id(),
+  nameFa: varchar('name_fa', { length: 60 }).notNull(),
+  taglineFa: varchar('tagline_fa', { length: 120 }).notNull().default(''),
+  descriptionFa: text('description_fa').notNull(),
+  /** https URL of the banner / logo (self-hosted image; rule 8: nothing from Google). */
+  bannerUrl: varchar('banner_url', { length: 300 }),
+  logoUrl: varchar('logo_url', { length: 300 }),
+  linkUrl: varchar('link_url', { length: 300 }),
+  /** `#RRGGBB` accent of the sponsor card. */
+  accent: varchar('accent', { length: 7 }),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+});
+
 export const TOURNAMENT_STATUS_VALUES = ['draft', 'open', 'running', 'finished', 'cancelled'] as const;
 
 /** A single-elimination tournament built in the admin panel (docs/logic/tournaments.md). */
@@ -991,11 +1216,15 @@ export const tournaments = mysqlTable(
     /** The tournament still starts with at least this many players (the rest of the bracket gets byes). */
     minPlayers: int('min_players').notNull().default(4),
     entryCoins: int('entry_coins').notNull().default(0),
+    /** Gems charged on top of the coins (0 = none). */
+    entryGems: int('entry_gems').notNull().default(0),
     minLevel: int('min_level').notNull().default(1),
     /** When the bracket is not full at the start, empty seats are filled with bot players. */
     botFill: boolean('bot_fill').notNull().default(false),
     /** Off by default: a player may be in one open or running tournament at a time. On = they may also join this one while in another. */
     allowConcurrent: boolean('allow_concurrent').notNull().default(false),
+    /** Who sponsors this tournament (shown with a banner on its page); null = nobody. */
+    sponsorId: char('sponsor_id', { length: 36 }),
     /** Registration closes and the first round starts at this time. */
     startsAt: datetime('starts_at', { mode: 'date', fsp: 3 }).notNull(),
     startedAt: datetime('started_at', { mode: 'date', fsp: 3 }),
@@ -1012,6 +1241,8 @@ export const tournamentPrizes = mysqlTable(
     tournamentId: char('tournament_id', { length: 36 }).notNull().references(() => tournaments.id, { onDelete: 'cascade' }),
     place: int('place').notNull(),
     coins: int('coins').notNull(),
+    /** Gems given besides the coins. */
+    gems: int('gems').notNull().default(0),
     /** Lucky-wheel spins given besides the coins. */
     spins: int('spins').notNull().default(0),
   },
@@ -1026,6 +1257,7 @@ export const tournamentEntries = mysqlTable(
     joinedAt: datetime('joined_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
     /** Fee paid, kept for the refund. */
     paid: int('paid').notNull().default(0),
+    paidGems: int('paid_gems').notNull().default(0),
   },
   (table) => ({ pk: primaryKey({ columns: [table.tournamentId, table.userId] }) }),
 );
@@ -1112,6 +1344,25 @@ export const dailyPlayCounts = mysqlTable(
  * A lucky-wheel spin (docs/logic/economy.md §Lucky wheel). `source`: `win` (a won duel, `match_id`), `shop`, `level`, `tournament`, `daily`, `admin`;
  * non-win spins carry a `ref` that makes the grant idempotent. `coins` stays null until it is spun.
  */
+export const WHEEL_PRIZE_KIND_VALUES = ['coins', 'gems', 'hint_token', 'wheel_spin', 'cosmetic'] as const;
+
+/** The wheel's live prize table (docs/logic/economy.md §Lucky wheel, D165): one row per slice, edited in the admin panel. Seeded from the shared default when empty. */
+export const wheelPrizes = mysqlTable(
+  'wheel_prizes',
+  {
+    id: id(),
+    kind: mysqlEnum('kind', WHEEL_PRIZE_KIND_VALUES).notNull(),
+    amount: int('amount').notNull(),
+    /** The shop item (effect `cosmetic`) a `cosmetic` slice gives. */
+    itemId: char('item_id', { length: 36 }),
+    /** Relative odds; 0 never wins. */
+    weight: int('weight').notNull(),
+    sortOrder: int('sort_order').notNull().default(0),
+    isActive: boolean('is_active').notNull().default(true),
+  },
+  (t) => ({ bySort: index('wheel_prizes_sort_idx').on(t.sortOrder) }),
+);
+
 export const wheelSpins = mysqlTable(
   'wheel_spins',
   {
@@ -1121,6 +1372,9 @@ export const wheelSpins = mysqlTable(
     source: varchar('source', { length: 16 }).notNull().default('win'),
     ref: varchar('ref', { length: 80 }),
     coins: int('coins'),
+    /** What the spin won (set when spun); `coins` above keeps the coin amount for older rows. */
+    prizeKind: varchar('prize_kind', { length: 16 }),
+    prizeAmount: int('prize_amount'),
     createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
     spunAt: datetime('spun_at', { mode: 'date', fsp: 3 }),
   },
@@ -1145,6 +1399,40 @@ export const levelRewardClaims = mysqlTable(
     claimedAt: datetime('claimed_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
   },
   (t) => ({ pk: primaryKey({ columns: [t.userId, t.level] }) }),
+);
+
+/** Profile-completion rewards a player has taken, one row per step (docs/logic/profile-and-identity.md, D161). */
+export const profileTaskClaims = mysqlTable(
+  'profile_task_claims',
+  {
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    taskKey: varchar('task_key', { length: 20 }).notNull(),
+    claimedAt: datetime('claimed_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.userId, t.taskKey] }) }),
+);
+
+/** The birthday gift taken in a Solar Hijri year: one row per player and year is the once-a-year lock (D160). */
+export const birthdayClaims = mysqlTable(
+  'birthday_claims',
+  {
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    year: smallint('year').notNull(),
+    claimedAt: datetime('claimed_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.userId, t.year] }) }),
+);
+
+/** Which friend messages were already sent for a player's birthday in a year (`week` = the week started, `day` = the day itself). */
+export const birthdayNotices = mysqlTable(
+  'birthday_notices',
+  {
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    year: smallint('year').notNull(),
+    stage: mysqlEnum('stage', ['week', 'day']).notNull(),
+    sentAt: datetime('sent_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.userId, t.year, t.stage] }) }),
 );
 
 /** One attempt per player per day. */

@@ -16,7 +16,7 @@ Read both before any product-level change. Roadmap: `docs/PLAN.md`. Stack: `docs
 ## Layout (create as phases progress)
 
 `apps/mobile` Expo RN client (RTL) · `apps/server` Fastify + Socket.io, authoritative ·
-`apps/admin` (later) moderation · `packages/shared` pure TS (types, zod, socket contracts, rules,
+`apps/admin` (later) moderation · `apps/landing` landing site + blog (own container, no DB; `docs/logic/landing-site.md`) · `packages/shared` pure TS (types, zod, socket contracts, rules,
 validator, scoring, config; no I/O) · `packages/db` Drizzle schema/migrations/seed ·
 `prototype/index.html` static demo (large; read only when needed).
 
@@ -24,7 +24,7 @@ validator, scoring, config; no I/O) · `packages/db` Drizzle schema/migrations/s
 
 data-model · puzzle-generation · game-rules · matchmaking · economy · chat-and-access · ugc ·
 result-chart · price-guess-round · profile-and-identity · bots · app-screens (screen-by-screen UI) ·
-progression (level/XP, skill-tier puzzle difficulty).
+progression (level/XP, skill-tier puzzle difficulty) · offline-solo (cached pages, saved puzzles) · sponsors (tournament sponsors).
 Code and spec must never diverge: fix one or the other in the same change.
 
 ## Non-negotiable rules

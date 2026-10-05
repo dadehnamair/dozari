@@ -42,7 +42,29 @@ export interface MatchResult {
   reason: EndReason;
 }
 
+/** The tunable numbers of a match, frozen when it starts so an admin edit never changes a game in progress. */
+export interface MatchRules {
+  turnSeconds: number;
+  /** Lock-out limit per side per board. */
+  maxMistakes: number;
+  /** Consecutive timeouts that make a side forfeit. */
+  maxTimeouts: number;
+  /** Points for a group, yellow to purple. */
+  groupPoints: readonly number[];
+  firstBloodBonus: number;
+}
+
+export const DEFAULT_MATCH_RULES: MatchRules = {
+  turnSeconds: TURN_SECONDS,
+  maxMistakes: MATCH_MAX_MISTAKES,
+  maxTimeouts: MAX_CONSECUTIVE_TIMEOUTS,
+  groupPoints: GROUP_POINTS,
+  firstBloodBonus: FIRST_BLOOD_BONUS,
+};
+
 export interface MatchState {
+  /** The numbers this match plays by (admin settings at the moment it started; the shared config by default). */
+  rules: MatchRules;
   /** The board in play (of `rounds`; a 2v2 plays several). The solution. Server-side only; `matchClientView` is the only thing that may leave the server. */
   puzzle: SoloPuzzle;
   /** 2 players (1v1) or 4 (2v2: two per side). */
@@ -125,8 +147,9 @@ export function startMatch(
   rng: Rng,
   now: number,
   startingSide?: MatchSide,
+  rules?: MatchRules,
 ): MatchState {
-  return startTeamMatch(puzzle, [[players[0]], [players[1]]], rng, now, startingSide);
+  return startTeamMatch(puzzle, [[players[0]], [players[1]]], rng, now, startingSide, rules);
 }
 
 /**
@@ -139,6 +162,7 @@ export function startTeamMatch(
   rng: Rng,
   now: number,
   startingSide?: MatchSide,
+  rules: MatchRules = DEFAULT_MATCH_RULES,
 ): MatchState {
   const size = sides[0].length;
   if ((size !== 1 && size !== 2) || sides[1].length !== size) throw new Error('a match is 1v1 or 2v2');
@@ -149,6 +173,7 @@ export function startTeamMatch(
   const first = boards[0] as SoloPuzzle;
   const turn: MatchSide = startingSide ?? (rng() < 0.5 ? 0 : 1);
   return {
+    rules,
     puzzle: first,
     upcoming: boards.slice(1).map((p) => ({ puzzle: p, order: initialBoardOrder(p, rng) })),
     round: 0,
@@ -182,7 +207,7 @@ export const isTeamMatch = (state: MatchState): boolean => state.players.length 
 
 const set = <T>(pair: readonly [T, T], side: MatchSide, value: T): [T, T] => (side === 0 ? [value, pair[1]] : [pair[0], value]);
 
-export const turnDeadline = (state: MatchState): number => state.turnStartedAt + TURN_SECONDS * 1000;
+export const turnDeadline = (state: MatchState): number => state.turnStartedAt + state.rules.turnSeconds * 1000;
 
 export function sideOf(state: MatchState, userId: string): MatchSide | null {
   return state.players.find((p) => p.userId === userId)?.side ?? null;
@@ -300,7 +325,7 @@ export function applyCommand(state: MatchState, cmd: Command, ctx: Ctx): ApplyRe
       events.push({ t: 'timeout', side });
       const count = state.timeouts[side] + 1;
       let next: MatchState = { ...state, timeouts: set(state.timeouts, side, count) };
-      if (count >= MAX_CONSECUTIVE_TIMEOUTS) return { state: forfeit(next, side, 'forfeit', events), events };
+      if (count >= state.rules.maxTimeouts) return { state: forfeit(next, side, 'forfeit', events), events };
       next = startTurn(next, nextTurn(next, side), ctx.now, events);
       return { state: next, events };
     }
@@ -340,7 +365,7 @@ export function applyCommand(state: MatchState, cmd: Command, ctx: Ctx): ApplyRe
       if (exact) {
         events.push({ t: 'guess', side, itemIds: ids, outcome: 'correct' });
         const firstBlood = state.round === 0 && state.solved.length === 0;
-        const points = GROUP_POINTS[exact.level] + (firstBlood ? FIRST_BLOOD_BONUS : 0);
+        const points = (state.rules.groupPoints[exact.level] ?? 0) + (firstBlood ? state.rules.firstBloodBonus : 0);
         next = {
           ...next,
           remaining: next.remaining.filter((id) => !chosen.has(id)),
@@ -360,7 +385,7 @@ export function applyCommand(state: MatchState, cmd: Command, ctx: Ctx): ApplyRe
       events.push({ t: 'guess', side, itemIds: ids, outcome: oneAway ? 'one_away' : 'wrong' });
       const mistakes = next.mistakes[side] + 1;
       next = { ...next, mistakes: set(next.mistakes, side, mistakes) };
-      if (mistakes >= MATCH_MAX_MISTAKES) {
+      if (mistakes >= state.rules.maxMistakes) {
         next = { ...next, lockedOut: set(next.lockedOut, side, true) };
         events.push({ t: 'locked_out', side });
         if (next.lockedOut[otherSide(side)]) {

@@ -1,4 +1,4 @@
-import { botThinkDelay, chooseBotMove } from '@dozari/shared';
+import { botThinkDelay, chooseBotMove, chooseBotPriceGuess } from '@dozari/shared';
 import type { ChatMessage, MatchView, Rng } from '@dozari/shared';
 import { createHash } from 'node:crypto';
 import type { ChatService } from '../chat/service.js';
@@ -94,6 +94,7 @@ export class BotDriver {
   }
 
   private planTurn(bot: BotRow, v: MatchView): void {
+    if (v.priceRound) return this.planPriceGuess(bot, v);
     if (v.status !== 'playing' || v.turn !== v.you) return;
     if (v.captain && v.captain[v.you] !== bot.userId) return; // a bot teammate who is not the captain waits
     const key = `${bot.userId}:${v.matchId}:${v.turnId}`;
@@ -102,6 +103,21 @@ export class BotDriver {
     if (this.planned.size > 5000) this.planned.clear();
     const delay = botThinkDelay(bot.thinkMinMs, bot.thinkMaxMs, v.turnEndsAt - this.now(), this.deps.rng);
     this.schedule(delay, () => this.move(bot));
+  }
+
+  /** The duel's price-guess round: after a human-like pause the bot guesses near the real price (more precisely the higher its skill). */
+  private planPriceGuess(bot: BotRow, v: MatchView): void {
+    const r = v.priceRound;
+    if (!r || !r.current || r.youSubmitted) return;
+    const key = `${bot.userId}:${v.matchId}:price:${r.roundIndex}`;
+    if (this.planned.has(key)) return;
+    this.planned.add(key);
+    const delay = botThinkDelay(bot.thinkMinMs, bot.thinkMaxMs, r.endsAt - this.now(), this.deps.rng);
+    this.schedule(delay, () => {
+      const matches = this.deps.matches();
+      const actual = matches?.priceAnswerFor(bot.userId);
+      if (matches && actual !== null && actual !== undefined) matches.submitPrice(bot.userId, chooseBotPriceGuess({ actualRials: actual, skill: bot.skill, rng: this.deps.rng }));
+    });
   }
 
   private move(bot: BotRow): void {

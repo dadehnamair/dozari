@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<title>درباره دوزاری</title>
+<meta name="description" content="دوزاری چیه و اسمش از کجا اومده؟ بازی نوستالژی قیمت‌ها، با حال‌وهوای بازار قدیم.">
+<link href="https://fonts.googleapis.com/css2?family=Lalezar&amp;family=Vazirmatn:wght@400;600;800;900&amp;family=JetBrains+Mono:wght@500;700&amp;display=swap" rel="stylesheet">
+<style>body{margin:0;background:#FFF6E8;font-family:Vazirmatn,system-ui,sans-serif;color:#2B1240}a{color:#A66BF0}a:hover{color:#FF4D8D}</style>
+</helmet>
+<div dir="rtl" style="background:#FFF6E8;min-height:100vh">
+<dc-import name="SiteNav" active="about" hint-size="100%,80px"></dc-import>
+
+<section style="background:#A66BF0;border-bottom:4px solid #2B1240">
+  <div style="max-width:1200px;margin:0 auto;padding:64px 24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:40px;align-items:center">
+    <div style="display:flex;flex-direction:column;gap:18px;color:#FFF6E8">
+      <span style="font:700 13px 'JetBrains Mono',monospace;color:#FFC93C">ABOUT US</span>
+      <h1 style="margin:0;font:clamp(44px,6vw,76px)/1.1 Lalezar;text-wrap:balance">ما عاشق قیمت‌های قدیمیم</h1>
+      <p style="margin:0;font:600 18px/1.9 Vazirmatn;max-width:540px;text-wrap:pretty">دوزاری رو ساختیم چون دلمون برای قیمت‌های قدیم تنگ شده بود: نوشابه، بستنی، بلیت سینما، مکالمهٔ تلفن عمومی. بازی‌ای که هم سرگرم می‌کنه، هم خاطره‌ها رو زنده می‌کنه، هم یه دورهمی خونوادگیه.</p>
+    </div>
+    <div style="display:flex;justify-content:center;align-items:flex-end;gap:0;flex-wrap:wrap">
+      <dc-import name="Character" who="mashti" pose="wave" hint-size="200px,230px" style="width:200px;height:230px"></dc-import>
+      <dc-import name="Character" who="dozari" pose="cheer" anim="{{ true }}" hint-size="240px,276px" style="width:240px;height:276px"></dc-import>
+      <dc-import name="Character" who="khale" pose="idle" hint-size="200px,230px" style="width:200px;height:230px"></dc-import>
+    </div>
+  </div>
+</section>
+
+<section style="max-width:900px;margin:0 auto;padding:80px 24px;display:flex;flex-direction:column;gap:20px">
+  <h2 style="margin:0;font:clamp(34px,5.5vw,48px)/1.1 Lalezar">قصهٔ اسم «دوزاری»</h2>
+  <p style="margin:0;font:500 18px/2 Vazirmatn;text-wrap:pretty">قدیم‌ها توی تلفن‌های عمومی سکهٔ دوریالی می‌انداختن و تا سکه نمی‌افتاد، تماس وصل نمی‌شد. از همون‌جا اصطلاح «دوزاری‌اش افتاد» اومد؛ یعنی بالاخره فهمید. توی بازی ما هم هر دسته‌ای که پیدا می‌کنی، یه دوزاری‌ه که می‌افته.</p>
+</section>
+
+<section style="background:#FFC93C;border-block:4px solid #2B1240">
+  <div style="max-width:1200px;margin:0 auto;padding:72px 24px;display:flex;flex-direction:column;gap:32px">
+    <h2 style="margin:0;font:clamp(34px,5.5vw,48px)/1.1 Lalezar;text-align:center">چیزهایی که برامون مهمه</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px">
+      <sc-for list="{{ values }}" as="v" hint-placeholder-count="3">
+        <article style="background:#FFF6E8;border:4px solid #2B1240;border-radius:28px;padding:26px;box-shadow:0 6px 0 #2B1240;display:flex;flex-direction:column;gap:10px">
+          <div style="font:40px/1 Lalezar;color:{{ v.c }}">{{ v.n }}</div>
+          <h3 style="margin:0;font:28px/1.2 Lalezar">{{ v.t }}</h3>
+          <p style="margin:0;font:500 15px/1.9 Vazirmatn;text-wrap:pretty">{{ v.d }}</p>
+        </article>
+      </sc-for>
+    </div>
+  </div>
+</section>
+
+<section style="max-width:1200px;margin:0 auto;padding:80px 24px;display:flex;flex-direction:column;gap:32px">
+  <h2 style="margin:0;font:clamp(34px,5.5vw,48px)/1.1 Lalezar;text-align:center">آدم‌های بازار</h2>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px">
+    <sc-for list="{{ team }}" as="m" hint-placeholder-count="4">
+      <div style="background:#fff;border:4px solid #2B1240;border-radius:28px;padding:22px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center">
+        <div style="width:120px;height:120px;border-radius:50%;overflow:hidden;background:{{ m.bg }};border:3px solid #2B1240">
+          <dc-import name="Character" who="{{ m.who }}" pose="idle" crop="face" hint-size="120px,120px" style="width:120px;height:120px"></dc-import>
+        </div>
+        <div style="font:26px/1.2 Lalezar">{{ m.name }}</div>
+      </div>
+    </sc-for>
+  </div>
+</section>
+
+<section style="max-width:1200px;margin:0 auto 80px;padding:0 24px">
+  <div style="background:#7ED957;border:4px solid #2B1240;border-radius:40px;box-shadow:0 8px 0 #2B1240;padding:40px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <h2 style="margin:0;font:42px/1.1 Lalezar">پیشنهاد یا همکاری داری؟</h2>
+      <p style="margin:0;font:600 17px Vazirmatn">همکاری، پیشنهاد جنس و قیمت یا گزارش خطا؟ خوشحال می‌شیم بشنویم.</p>
+    </div>
+    <a href="Dozari Site - Contact.dc.html" style="font:26px Lalezar;padding:12px 30px 8px;border:4px solid #2B1240;border-radius:999px;background:#2B1240;color:#FFF6E8;text-decoration:none">تماس با ما</a>
+  </div>
+</section>
+
+<dc-import name="SiteFooter" hint-size="100%,380px"></dc-import>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      values: [
+        { n:'۰۱', c:'#FF4D8D', t:'قیمت‌های واقعی', d:'قیمت‌ها اسمی‌ان و با منبع ثبت می‌شن؛ هر پازل فقط یک جواب درست داره.' },
+        { n:'۰۲', c:'#3FC1F0', t:'بازی منصفانه', d:'داور سرور‌ه، نه گوشی. جوابِ دسته‌های حل‌نشده هیچ‌وقت به دست بازیکن نمی‌رسه و سکه‌ها فقط با بازی کردن جمع می‌شن.' },
+        { n:'۰۳', c:'#A66BF0', t:'دورهمی و خانوادگی', d:'مامان‌بزرگت بلده، تو چی؟ دوئل یک‌به‌یک، تیمی یا میز خصوصی با کد دعوت.' }
+      ],
+      team: [
+        { name:'میرزا', who:'mirza', bg:'#FFC93C' },
+        { name:'گلی', who:'goli', bg:'#FF4D8D' },
+        { name:'پهلوون', who:'pahlevan', bg:'#3FC1F0' },
+        { name:'خاله', who:'khale', bg:'#7ED957' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

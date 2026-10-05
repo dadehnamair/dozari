@@ -15,6 +15,9 @@ export interface ChartOptions {
   colors?: readonly string[];
   /** Year the group's rule refers to, if any: drawn as a vertical dashed marker. */
   ruleYear?: number;
+  /** First year drawn and the widest gap (in years) a line still crosses; default = `config/chart.ts`, the admin can change both. */
+  minYear?: number;
+  gapBreakYears?: number;
 }
 
 export interface ChartPoint {
@@ -57,13 +60,13 @@ export function buildChartData(items: readonly ChartItem[], options: ChartOption
   const colors = options.colors ?? CHART_SERIES_COLORS.light;
 
   const series: ChartSeries[] = items.map((item, i) => {
-    const years = [...new Set(item.prices.map((p) => p.year))].filter((y) => y >= CHART_MIN_YEAR).sort((a, b) => a - b);
+    const years = [...new Set(item.prices.map((p) => p.year))].filter((y) => y >= (options.minYear ?? CHART_MIN_YEAR)).sort((a, b) => a - b);
     const points: ChartPoint[] = [];
     for (const year of years) {
       const rials = priceAt({ id: item.productId, category: '', eraTags: [], prices: item.prices }, year);
       if (rials === null || rials <= 0n) continue;
       const prev = points[points.length - 1];
-      points.push({ year, rials, breakBefore: prev !== undefined && year - prev.year > CHART_GAP_BREAK_YEARS });
+      points.push({ year, rials, breakBefore: prev !== undefined && year - prev.year > (options.gapBreakYears ?? CHART_GAP_BREAK_YEARS) });
     }
     return { productId: item.productId, name: item.name, color: colors[i % colors.length] as string, points };
   });

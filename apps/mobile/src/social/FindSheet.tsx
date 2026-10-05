@@ -1,24 +1,31 @@
 import { useEffect, useState } from 'react';
-import { Pressable, Share, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { FoundPlayer, MyFind } from '@dozari/shared';
 import { Avatar } from '../components/Avatar';
 import { CandyButton } from '../components/CandyButton';
 import { fa } from '../i18n/fa';
 import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
-import { fetchMyFind, saveFindable, searchPlayer } from './api';
+import { fetchMyFind, findContacts, saveFindable, searchPlayer } from './api';
+import { readContacts } from './readContacts';
 import { avatarOf } from './avatarOf';
 import { PlayerSheet } from './PlayerSheet';
+import { useHardwareBack } from '../nav/useHardwareBack';
+import { TEXT_LEFT } from '../theme/direction';
 
 const INK = '#3A2418';
+/** iPhone browsers (Safari, Chrome) have no contact picker at all: offer the share sheet there instead of a button that can only fail. */
+const CONTACTS_OK = Platform.OS !== 'web' || !!(globalThis.navigator as unknown as { contacts?: unknown } | undefined)?.contacts;
 
 /** «پیدا کردن دوست»: my public ID and invite link, the phone-findability switch, and an exact search by ID or phone number. */
 export function FindSheet({ onClose }: { onClose: () => void }) {
+  useHardwareBack(onClose);
   const [me, setMe] = useState<MyFind | null>(null);
   const [q, setQ] = useState('');
   const [found, setFound] = useState<FoundPlayer | null | undefined>(undefined);
   const [open, setOpen] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  const [fromContacts, setFromContacts] = useState<FoundPlayer[] | null>(null);
 
   useEffect(() => {
     fetchMyFind().then(setMe, () => setNote(fa.find.error));
@@ -31,6 +38,15 @@ export function FindSheet({ onClose }: { onClose: () => void }) {
     );
   const share = () => {
     if (me) void Share.share({ message: fa.find.shareMessage(me.shareUrl) }).catch(() => undefined);
+  };
+  const scanContacts = async () => {
+    const read = await readContacts().catch(() => ({ ok: false as const, reason: 'denied' as const }));
+    if (!read.ok) return setNote(read.reason === 'unsupported' ? fa.find.contactsUnsupported : fa.find.contactsDenied);
+    if (read.phones.length === 0) return (setFromContacts([]), setNote(null));
+    findContacts(read.phones).then(
+      (players) => (setFromContacts(players), setNote(null)),
+      (e) => setNote(e instanceof ApiError && e.status === 429 ? fa.find.rateLimited : fa.find.error),
+    );
   };
   const toggle = () => me && saveFindable(!me.findableByPhone).then(setMe, () => setNote(fa.find.error));
 
@@ -58,6 +74,25 @@ export function FindSheet({ onClose }: { onClose: () => void }) {
           <TextInput value={q} onChangeText={setQ} autoCapitalize="characters" autoCorrect={false} maxLength={40} placeholder={fa.find.searchPlaceholder} style={styles.input} accessibilityLabel={fa.find.search} />
           <Pressable onPress={() => void search()} style={[styles.pill, styles.on]} accessibilityRole="button"><Text style={styles.pillText}>{fa.find.search}</Text></Pressable>
         </View>
+        {CONTACTS_OK ? (
+          <>
+            <CandyButton label={fa.find.fromContacts} color={colors.candy.grape} onPress={() => void scanContacts()} />
+            <Text style={styles.hint}>{fa.find.contactsHint}</Text>
+          </>
+        ) : (
+          <>
+            <CandyButton label={fa.find.inviteViaShare} color={colors.candy.grape} onPress={share} />
+            <Text style={styles.hint}>{fa.find.inviteViaShareHint}</Text>
+          </>
+        )}
+        {fromContacts && fromContacts.length === 0 ? <Text style={styles.hint}>{fa.find.contactsNone}</Text> : null}
+        {fromContacts && fromContacts.length > 0 ? <Text style={styles.hint}>{fa.find.contactsFound(fromContacts.length)}</Text> : null}
+        {(fromContacts ?? []).slice(0, 8).map((p) => (
+          <Pressable key={p.id} onPress={() => setOpen(p.id)} style={styles.person} accessibilityRole="button">
+            <Avatar avatar={avatarOf(p.avatarKey)} size={40} />
+            <Text style={styles.personName}>{p.nickname}</Text>
+          </Pressable>
+        ))}
         {found === null ? <Text style={styles.hint}>{fa.find.notFound}</Text> : null}
         {found ? (
           <Pressable onPress={() => setOpen(found.id)} style={styles.person} accessibilityRole="button">
@@ -66,7 +101,7 @@ export function FindSheet({ onClose }: { onClose: () => void }) {
           </Pressable>
         ) : null}
         {note ? <Text style={[styles.hint, styles.bad]}>{note}</Text> : null}
-        <CandyButton label={fa.find.close} color={colors.candy.sky} onPress={onClose} />
+        <CandyButton label={fa.find.close} sfx="back" color={colors.candy.sky} onPress={onClose} />
       </Pressable>
     </Pressable>
   );
@@ -81,7 +116,7 @@ const styles = StyleSheet.create({
   bad: { color: '#B3261E', opacity: 1 },
   code: { fontFamily: fonts.display, fontSize: 30, letterSpacing: 3, color: INK, writingDirection: 'ltr' },
   row: { flexDirection: 'row', gap: 8, alignItems: 'center', alignSelf: 'stretch', justifyContent: 'space-between' },
-  input: { flex: 1, fontFamily: fonts.bold, fontSize: 16, color: INK, borderWidth: 2, borderColor: INK, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: '#fff', textAlign: 'left', writingDirection: 'ltr' },
+  input: { flex: 1, fontFamily: fonts.bold, fontSize: 16, color: INK, borderWidth: 2, borderColor: INK, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: '#fff', textAlign: TEXT_LEFT, writingDirection: 'ltr' },
   pill: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 99, borderWidth: 2, borderColor: INK, backgroundColor: colors.cream },
   on: { backgroundColor: '#FFC93C' },
   pillText: { fontFamily: fonts.bold, fontSize: 14, color: INK },

@@ -83,7 +83,7 @@ pnpm --filter @dozari/server dev      # API on :3000
 pnpm --filter @dozari/mobile start    # then press `w` for web, or scan the QR with Expo Go
 ```
 
-The app reads the API address from `EXPO_PUBLIC_API_URL` (default `http://localhost:3000`; on a phone use
+The app reads the API address from `EXPO_PUBLIC_API_URL` (default `http://localhost:3000` in a dev bundle and `https://api.mrbots.ir` in a release build; on a phone use
 your computer's LAN IP). For the **web** build also set `CORS_ORIGIN=http://localhost:8081` in `.env`
 (native apps don't need CORS).
 

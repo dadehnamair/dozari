@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { SkeletonRows } from '../components/Skeleton';
+import { swr } from '../net/cache';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { LEADERBOARD_PERIODS, LEADERBOARD_SCOPES, provinceOf, toPersianDigits } from '@dozari/shared';
 import type { Leaderboard, LeaderboardEntry, LeaderboardPeriod, LeaderboardScope } from '@dozari/shared';
@@ -15,6 +17,8 @@ import { avatarOf } from './avatarOf';
 import { CityPicker } from './CityPicker';
 import { PlayerSheet } from './PlayerSheet';
 import { pageTop } from '../theme/safeArea';
+import { useHardwareBack } from '../nav/useHardwareBack';
+import { TEXT_RIGHT } from '../theme/direction';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const n = (v: number) => toPersianDigits(String(v));
@@ -31,6 +35,7 @@ const PODIUM = {
  * bottom, the player's own place. Ranked by XP of the chosen window: all time, last 7 days, last 30 days (D123).
  */
 export function LeaderboardPage({ onClose }: { onClose: () => void }) {
+  useHardwareBack(onClose);
   const [scope, setScope] = useState<LeaderboardScope>('all');
   const [period, setPeriod] = useState<LeaderboardPeriod>('all');
   const [board, setBoard] = useState<Leaderboard | null>(null);
@@ -40,14 +45,11 @@ export function LeaderboardPage({ onClose }: { onClose: () => void }) {
   const [nonce, setNonce] = useState(0);
   const t = fa.leaderboard;
 
+  // The last board seen for this tab shows at once (with placeholders only the very first time) and is refreshed behind it.
   useEffect(() => {
-    let alive = true;
     setBoard(null);
     setFailed(false);
-    fetchLeaderboard(scope, period).then((b) => alive && setBoard(b), () => alive && setFailed(true));
-    return () => {
-      alive = false;
-    };
+    return swr(`board.${scope}.${period}`, () => fetchLeaderboard(scope, period), (b) => setBoard(b), () => setFailed(true));
   }, [scope, period, nonce]);
 
   if (pickCity) return <CityPicker current={null} onPicked={() => (setPickCity(false), setNonce((v) => v + 1))} onClose={() => setPickCity(false)} />;
@@ -119,6 +121,7 @@ export function LeaderboardPage({ onClose }: { onClose: () => void }) {
         <View style={styles.sheet}>
           <ScrollView contentContainerStyle={styles.rows}>
             {board && entries.length === 0 ? null : <GuideBubble who="pahlevan" text={fa.leaderboard.pahlevanHello} />}
+            {board === null && !failed ? <SkeletonRows rows={7} /> : null}
             {failed ? <Text style={styles.note}>{t.error}</Text> : null}
             {board && entries.length === 0 ? <EmptyNote skin={3} pose="thinking" text={scope === 'city' && board.hasCity ? t.emptyCity : t.empty[scope]} /> : null}
             {board && scope === 'city' && !board.hasCity ? (
@@ -188,6 +191,6 @@ const styles = StyleSheet.create({
   score: { fontFamily: fonts.display, fontSize: 16, color: colors.ink },
   mine: { position: 'absolute', left: 10, right: 10, bottom: 18, height: 52, flexDirection: ROW, alignItems: 'center', gap: 8, paddingHorizontal: 10, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', ...lift(5) },
   mineRank: { width: 30, fontFamily: fonts.display, fontSize: 20, color: colors.ink, textAlign: 'center' },
-  mineName: { flex: 1, fontFamily: fonts.display, fontSize: 15, color: colors.ink, textAlign: 'right' },
+  mineName: { flex: 1, fontFamily: fonts.display, fontSize: 15, color: colors.ink, textAlign: TEXT_RIGHT },
   mineScore: { fontFamily: fonts.display, fontSize: 18, color: colors.ink },
 });

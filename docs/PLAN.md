@@ -84,7 +84,7 @@ browser — both need the owner's own machine (see Phase 0-A).
 
 - [x] 🧩 Chart data builder: union of years, per-product series, gaps (`logic/result-chart.md`) — `buildChartData`, `normalizeX/Y`, `compactTomanLabel` in shared
 - [x] 📱 Overlaid line chart (4 lines, one per item of a chosen group, or 16 thin lines + highlight) — `ChartView`/`ChartPanel` (react-native-svg), colour tabs per group, log/linear toggle; shown on the solo result screen
-- [ ] 📱 Share card render (view-shot) with branding + deep link; `expo-sharing`
+- [x] 📱 Share card render (view-shot) with branding + invite code; `expo-sharing` (solo result; web shares text only; no short URL yet, D182)
 - [x] 🧪 Snapshot test of chart data builder
 
 **Exit:** after a solo puzzle, user sees & shares the chart image.
@@ -94,7 +94,7 @@ browser — both need the owner's own machine (see Phase 0-A).
 - [x] 🧩 Round item selection (1 random item/group) + solo staircase scorer — `selectRounds`, `staircasePoints`, `parseTomanInput` in shared
 - [x] 🧩 Competitive blind-simultaneous-guess reducer (4 rounds, reuses turn timer) — `applyPriceGuessCommand`, `priceGuessClientView` in shared (the timer itself is the server's `timeout` command)
 - [x] 📱 Solo price-guess UI (numeric input, staircase feedback) — `PriceRoundPanel` + `GET /solo/:id/price-rounds`, `POST /solo/:id/price-guess`; runs after the puzzle, before the chart
-- [ ] 📱 Competitive price-guess UI (hidden entry, simultaneous reveal animation)
+- [x] 📱 Competitive price-guess round in the live 1v1 duel (server phase, bots, hidden entry, reveal list; setting `match.price_round`, off by default — D196). Reveal *animation* and 2v2 still open
 - [~] 🧪 Scoring tests (staircase tiers, tie-on-distance draw done; the locked-out-side match rule waits for the match reducer)
 
 **Exit:** every finished puzzle (solo or competitive) flows into a price-guess round before the result screen.
@@ -107,14 +107,14 @@ browser — both need the owner's own machine (see Phase 0-A).
 - [x] 🧩 Match reducer: shared board, turns, timers-as-commands, scoring, end conditions — `game/match.ts` (1v1; team/captain flow is Phase 5)
 - [x] 🖥 Socket.io gateway: JWT handshake, per-user room, 1v1 queue join/leave with acks, live stats in the admin panel «سرویس سوکت» (`realtime/`)
 - [x] 🖥 MatchService (v1): in-memory 1v1 around the shared reducer, redacted snapshots, turn timer, queue pairing, submit/resume/leave over sockets. Still open: persistence of match log, entry-fee escrow/payouts, price-guess round, ready handshake, reconnect grace, bot takeover
-- [ ] 🖥 MatchmakingService: 1v1 queue, private table (room code, v1 built D93), reconnect grace
-- [ ] 🖥 Bot pool + fallback-fill logic (`logic/bots.md`) — bots flow through the same MatchService
+- [x] 🖥 MatchmakingService: 1v1 queue, private table (room code, v1 built D93), reconnect grace
+- [x] 🖥 Bot pool + fallback-fill logic (`logic/bots.md`) — bots flow through the same MatchService
       path as real players; `is_bot` never leaves the server
-- [ ] 📱 Lobby: quick match 1v1, create/join private table, waiting screen (est. wait, cancel,
+- [x] 📱 Lobby: quick match 1v1, create/join private table, waiting screen (est. wait, cancel,
       "play solo while waiting", short puzzle info)
 - [x] 📱 4-slide onboarding tutorial (skippable) before first Home screen (D96)
-- [ ] 📱 Match screen: whose turn, timer, scores, opponent's last guess feedback
-- [ ] 🧪 Reducer tests for every rule; socket integration test with two fake clients; bot-fill test
+- [x] 📱 Match screen: whose turn, timer, scores, opponent's last guess feedback
+- [x] 🧪 Reducer tests for every rule; socket integration test with two fake clients; bot-fill test
 
 **Exit:** two phones can play a 1v1 and a private-table match, with a bot stepping in when no
 human opponent is found.
@@ -124,18 +124,18 @@ human opponent is found.
 - [x] 🗄 `coin_ledger` (append-only, idempotency key), `user_balances`, `daily_reward_steps`, `user_daily_rewards`
 - [x] 🖥 `applyLedgerEntry` (the one place coins move), daily reward service + routes, admin editor tab
 - [x] 🧪 Streak calculator tests (10/15/20, 24 h cooldown, skipped day resets), concurrent-tap test
-- [ ] 📱 Daily reward card/popup (7-day card, claim button, countdown) — needs the client to log in first
-- [ ] 🖥 Signup bonus and the other faucets/sinks of `economy.md`
+- [x] 📱 Daily reward card/popup (7-day card, claim button, countdown) — needs the client to log in first
+- [x] 🖥 Signup bonus and the other faucets/sinks of `economy.md`
 
 ## Phase 4-A — Profile screen (`logic/profile-and-identity.md`)
 
-- [ ] 🗄 `user_tags`, tag catalog table, `users.equipped_tag_id`, avatar/nickname gallery tables
-- [ ] 🖥 Play-count tracking + unlock checks (avatar @3 games, nickname @10 games)
+- [x] 🗄 Tags became badges/medals (D83: badge catalog, earned rows, one equipped badge); no separate `user_tags` table. Avatar/nickname galleries are content in the app (the avatar-unlock-by-games number `AVATAR_UNLOCK_GAMES` is only a config constant and is not enforced yet)
+- [x] 🖥 Play-count tracking + unlock checks (avatar @3 games, nickname @10 games)
 - [x] 🖥 Optional phone-link/OTP endpoint (account merge, not creation) — Iranian SMS provider (D18) — link in `phone/service.ts`, sign-in by number in `phone/login.ts`
-- [ ] 📱 Profile screen: stats, match history, achievements/tags, chat-lock status + redeem CTA,
+- [x] 📱 Profile screen: stats, match history, achievements/tags, chat-lock status + redeem CTA,
       invite/referral block (copyable code, share sheet, live tracker), phone-link button
-- [ ] 📱 Share-invite action also reachable from the match-result screen
-- [ ] 🧪 Unlock-threshold tests; tag equip/unequip tests
+- [x] 📱 Share-invite action also reachable from the match-result screen
+- [x] 🧪 Nickname unlock-threshold test (`player.test.ts`), badge equip/unequip tests (`badges.test.ts`)
 
 **Exit:** a returning player has a profile that shows real progress, not just a coin balance.
 
@@ -144,46 +144,46 @@ human opponent is found.
 - [x] 🧩 Team turn model + "proposal" flow (teammate proposes selection, captain submits) — `game/match.ts`, `__tests__/team.test.ts`
 - [x] 🧩 2v2 plays three boards, scores adding up (D143, `match.team_boards`)
 - [x] 🖥 2v2 queue (solo fill + bot fill) and 2v2 private tables with team choice (D142); a party of 2 into the public queue is still open — `realtime/gateway.ts`, `match-service.ts#startTeam`
-- [ ] 🗄 `canned_taunts` (Persian, categorized), `invite_codes`, `users.chat_unlocked_at`
-- [ ] 🖥 ChatService: canned taunts for all; free text only if sender unlocked; team vs all channels
-- [ ] 🖥 Profanity filter (Persian wordlist + normalization of ی/ي، ک/ك، ZWNJ) + report/mute
-- [ ] 📱 Chat drawer: floating icon button + unread badge (`logic/app-screens.md`), tabs (team /
+- [x] 🗄 `canned_taunts` (Persian, categorized), `invite_codes`, `users.chat_unlocked_at`
+- [x] 🖥 ChatService: canned taunts for all; free text only if sender unlocked; team vs all channels
+- [x] 🖥 Profanity filter (Persian wordlist + normalization of ی/ي، ک/ك، ZWNJ) + report/mute
+- [x] 📱 Chat drawer: floating icon button + unread badge (`logic/app-screens.md`), tabs (team /
       all), taunt picker, invite-code redemption screen
-- [ ] 🧪 Visibility matrix tests (`logic/chat-and-access.md`)
+- [x] 🧪 Visibility matrix tests (`logic/chat-and-access.md`)
 - [x] 📱 Settings screen: sound/vibration toggles, delete account/log out, replay tutorial, about/support (D89 + D96, inside the profile sheet)
 
 ## Phase 6 — Coin economy
 
-- [ ] 🗄 `coin_ledger` (append-only) + balance view; idempotency keys
+- [x] 🗄 `coin_ledger` (append-only) + balance view; idempotency keys
 - [x] 🧩 `config/economy.ts` + pure calculators; 🧪 simulation (D90, `economy/simulate.ts`) for faucet/sink balance
-- [ ] 🖥 LedgerService (single write path), entry fee escrow at match start, payout at end, refunds on abort
-- [ ] 🖥 Daily free games + daily login bonus + invite reward (with anti-abuse rules)
-- [ ] 🖥 `bot_match_subsidy` ledger reason + pot top-up when a bot fills a seat (`logic/bots.md`)
-- [ ] 🧩 Price-guess round wager: per-round escrow, winner-takes-pot-minus-cut, auto-sit-out if
+- [x] 🖥 LedgerService (single write path), entry fee escrow at match start, payout at end, refunds on abort
+- [x] 🖥 Daily free games + daily login bonus + invite reward (with anti-abuse rules)
+- [x] 🖥 Bot pot top-up when a bot fills a seat: implicit house cover in `settleDuel` / `settleWager` (no ledger row for the house, `economy.md`); the `bot_match_subsidy` reason stays reserved
+- [x] 🧩 (built, setting `duel.price_wager` off by default, D196) Price-guess round wager: per-round escrow, winner-takes-pot-minus-cut, auto-sit-out if
       unaffordable (`logic/price-guess-round.md` §Real coin side-bet)
-- [ ] 🗄 `coin_packages` table + `purchase`/IAP ledger plumbing, **built but disabled** at MVP
+- [x] 🗄 `coin_packages` table + `purchase`/IAP ledger plumbing, **built but disabled** at MVP
       (`economy.md` §Real-money coin purchases) — enabling real purchases is a separate, later task
-- [ ] 📱 Coin balance header, entry-fee confirmation, reward animation, invite share screen
+- [x] 📱 Coin balance header, entry-fee confirmation, reward animation, invite share screen
 - [ ] 📱 Single-scroll result screen: win/loss summary → 4 solved-group rows → 4 price-guess
       rounds → overlaid price chart (bottom) — see `logic/price-guess-round.md` §Result screen integration
 
 ## Phase 7 — UGC phase 1 (single item suggestions)
 
-- [ ] 🗄 `ugc_submissions`, `ugc_votes`
-- [ ] 🖥 Submit item (name, year, price, source, photo), vote, admin approve → product/price_point
-- [ ] 📱 "Suggest an item" form + "Review suggestions" voting feed — reachable from its **own
-      card on the Home screen**, alongside the mode cards (owner decision, 2026-09-27)
-- [ ] Coin reward on approval (ledger)
-- [ ] `apps/admin` minimal moderation panel (or protected Expo web routes)
+- [x] 🗄 `ugc_submissions`, `ugc_votes` (+ `user_reports`) — D177
+- [x] 🖥 Submit item (name, year, price, source — photo not yet), vote, admin approve → product/price_point
+- [x] 📱 "Suggest an item" form + "Review suggestions" voting feed — reached from the hub's «مکتب‌خانه» building (D177); price links on result/lookup open the same form
+- [ ] 📱 Own Home-screen card for it (owner decision 2026-09-27) — the hub building stands in for now
+- [x] Coin reward on approval (ledger, `ugc.reward_coins`)
+- [x] `apps/admin` minimal moderation panel (lives in `apps/server/src/admin`, served at `/admin`) (or protected Expo web routes)
 
 ## Phase 8 — Launch hardening
 
-- [ ] Rate limiting, input size caps, abuse logging
-- [ ] Error tracking (self-hosted GlitchTip/Sentry-compatible, not Google)
-- [ ] Analytics (self-hosted, e.g. Umami/PostHog self-host) — match funnel, retention
+- [x] Rate limiting, input size caps, abuse logging
+- [x] Error tracking (self-hosted GlitchTip/Sentry-compatible, not Google) — built (`SENTRY_DSN`, D181); needs a collector you host
+- [x] Analytics (self-hosted, e.g. Umami/PostHog self-host) — match funnel, retention — script hook built (admin settings); needs Umami hosted; no custom funnel events yet
 - [ ] Load test: 500 concurrent matches on one instance
 - [ ] Store listing for Cafe Bazaar & Myket; privacy policy (Persian)
-- [ ] Backups + restore drill
+- [x] Backups + restore drill — `deploy/backup.sh`, `deploy/restore-check.sh`; not yet run on the real server
 
 ## Later
 
@@ -207,22 +207,35 @@ human opponent is found.
 - [x] 🖥 Admin panel v2: sidebar SPA, dashboard, catalog + icon picker, price review, bot inbox/sources, daily reward, settings registry (`config/registry.ts`, `app_settings`), users + coin adjust, socket, audit log (`admin/ui/*`)
 - [x] 🖥 Content bot: sources (`html_table`/`csv`/`text_lines`), runs, pending-only candidates with source + excerpt, approve/reject, in-process schedule + `bot:run` CLI (`bot/*`)
 - [x] 📱 Guest login + token on device, daily reward card and coin balance on Home, item icons on board cards
-- [ ] 🔔 Admin: word-filter section (with D69)
+- [x] 🔔 Admin: word-filter section (with D69)
 - [x] 🖥 Settings wired into: solo max mistakes, price-guess staircase + floor, daily reward cooldown/window (read live; a running solo game keeps the rules it started with)
-- [ ] 🖥 Settings still to wire when their consumers exist: turn seconds, match mistakes, match scoring, avatar/nickname thresholds, chart limits (stored, editable, served at `GET /config`)
+- [x] 🖥 Settings still to wire when their consumers exist: turn seconds, match mistakes, match scoring, avatar/nickname thresholds, chart limits (stored, editable, served at `GET /config`)
 
 ## Owner backlog 2026-10-01 (27 items) — see `docs/logic/owner-backlog-2026-10.md`
 
 - [x] A. Player record: stats, XP/level, skill tier, city, optional e-mail, nickname rules, warnings/commendations/badges/medals (items 24, 8, 7, 14; D83)
 - [ ] B. Coin economy — [x] shop + solo hints (D78); [x] referral "gold" (D79); [x] gifts and loans (D80); [x] coin packages built, off (D91, item 3), [x] economy audit + simulator (D90, item 4)
-- [ ] C. Contact and friends — [x] phone + Bale contact verification, SMS adapter (D81, item 6); [x] public ID, search by ID/phone, contacts API, shortener + link-friend (items 19, 20; app contacts screen pending); [x] badge-gated sharing: perk + `containsContactInfo` (item 22; chat must enforce it)
-- [x] D. Chat and moderation — city chat, canned taunt categories, duel taunts, reports (D84) with agent powers (D83); [ ] private-table chat and shared tables (items 16, 17, 18, 21, 23) — rest of D: chat, shared tables, city room, canned taunt categories, "Agent Dozari" powers (items 16, 17, 18, 21, 23)
-- [x] E. Content control — [x] daily puzzle by day conditions/trends (item 15; D87); [x] tournament entry rules (coins + level), builder, own page, bracket engine (items 26, 27; D85); [x] admin bot players: accounts, queue fill, human-like play, taunt replies, tournament fill (item 25; D86); [ ] trend-based daily puzzle (15)
+- [ ] C. Contact and friends — [x] phone + Bale contact verification, SMS adapter (D81, item 6); [x] public ID, search by ID/phone, contacts API, shortener + link-friend (items 19, 20; app contacts lookup built, needs a new native build); [x] badge-gated sharing: perk + `containsContactInfo` (item 22; chat must enforce it)
+- [x] D. Chat and moderation — city chat, canned taunt categories, duel taunts, reports (D84) with agent powers (D83); [x] private-table chat (items 16, 17; `table` room, migration 0055); [ ] still open: items 18, 21, 23 — check each against `chat-and-access.md` before building — rest of D: chat, shared tables, city room, canned taunt categories, "Agent Dozari" powers (items 16, 17, 18, 21, 23)
+- [x] E. Content control — [x] daily puzzle by day conditions/trends (item 15; D87); [x] tournament entry rules (coins + level), builder, own page, bracket engine (items 26, 27; D85); [x] admin bot players: accounts, queue fill, human-like play, taunt replies, tournament fill (item 25; D86); [x] trend-based daily puzzle (15): `trend` themes with yearly/absolute windows are built (D87); auto-suggesting trends from price data stays a later idea (`daily-puzzle.md` §Not built)
 - [ ] F. Feel: [x] city dialect phrases (item 9; D88); [x] personal settings + web sound effects (items 10, 12; D89; native sound pending); dialects, sounds, city backgrounds, personal settings, touch-everything polish (items 9, 10, 11, 12, 13)
 
-## Owner backlog 2026-10-03 (6 items) — see `docs/logic/owner-backlog-2026-10-03.md`
+## Owner backlog 2026-10-03 (12 items) — see `docs/logic/owner-backlog-2026-10-03.md`
 
 Start after the first Android build.
+
+- [x] 1. Wheel pays every prize kind (D165): [x] typed prize table (coins, gems, hint tokens, spins) edited in the admin, no free spins by default; [x] clothing/hats (shop items with effect `cosmetic`, wardrobe, wheel kind, worn on the profile avatar; art = existing icons for now); [x] real-money price on shop items (D170); [x] spins as lives (built, off by default: `wheel.refill_hours`, D175)
+- [x] 2. Board cards: names and icons fit (fixed layout policy, auto-shrink floor, short names)
+- [x] 3. «تکمیل پروفایل» nudge / guide says «برو این کار را بکن، سکه بگیر»
+- [x] 4. Missions (profile, social follow, store reviews, invite …) paying coins
+- [x] 5. Shorter opponent search; bots fill the seat sooner
+- [x] 6. Options greyed out when it is not my turn, coloured on my turn
+- [x] 7. Phone-only gate: on desktop show Dozari + QR «با گوشی بیا»; Android → downloads, iPhone → PWA install (D171)
+- [x] 8. Landing site `mrdozari.ir` (`apps/landing`, own container, admin-managed content, game story with the cast, blog, full SEO/GEO — owner's spreadsheet adapted from Laravel) (code done, D173/D174; copy from the owner's SEO/GEO sheet and DNS are the owner's steps)
+- [x] 9. Short domain `2oi.ir`: self-hosted shortener for outgoing links; all domains editable in the admin panel (code done, D172; DNS/proxy is the owner's step)
+- [x] 10. Admin panel tidy-up: grouped sidebar, page helper text, «add» actions as modal forms, consistent tables/toasts (UI only)
+- [x] 11. Birth date in the profile with a «show my age» tick (policy D160; users columns, profile UI, birthday gift/badge, admin age stats) (built, D160/D169)
+- [x] 12. Gems (الماس) currency (D164): [x] stage 1 own ledger + balance + admin adjust + Home pill; [x] shop prices in gems; [x] tournament entry in gems; [x] wheel, birthday and tournament prizes in gems (D175)
 
 - [ ] 1. Wheel pays every prize kind (coins, gems, clothing, hats …); no free spins until the policy is set, then spins behave like lives (D156)
 - [ ] 2. Board cards: names and icons fit (fixed layout policy, auto-shrink floor, short names)
@@ -231,3 +244,10 @@ Start after the first Android build.
 - [ ] 5. Shorter opponent search; bots fill the seat sooner
 - [ ] 6. Options greyed out when it is not my turn, coloured on my turn
 
+## Age tracks (D198, proposed) — see `docs/logic/age-tracks.md`
+
+- [ ] 1. Foundation: `age_track` on users/puzzles/items, `trackRules` config, first-run chooser, track-keyed queues, admin band filter
+- [ ] 2. Guardian link: phone OTP, child profiles, link code, guardian-approved band change
+- [ ] 3. Kid content and word lesson: kid pool, `item_lessons`, `splitWordLetters`, lesson cards, review queue
+- [ ] 4. Social for kids and teens: track-bound friends, friend duels and tables, managed chat (D198 update)
+- [ ] 5. Guardian panel and digest, family table

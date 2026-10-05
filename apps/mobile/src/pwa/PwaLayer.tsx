@@ -4,6 +4,7 @@ import { Item } from '../components/Item';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { usePwa } from './usePwa';
+import { TEXT_RIGHT } from '../theme/direction';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 
@@ -80,11 +81,11 @@ const styles = StyleSheet.create({
   offlineText: { fontFamily: fonts.bold, fontSize: 12, color: '#fff', textAlign: 'center', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 1 },
   bar: { position: 'absolute', left: 12, right: 12, bottom: 128, zIndex: 40, maxWidth: 496, alignSelf: 'center', flexDirection: ROW, alignItems: 'center', gap: 8, padding: 10, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#FBF1DE', ...lift },
   updateBar: { backgroundColor: '#FFE48A' },
-  barText: { flex: 1, fontFamily: fonts.bold, fontSize: 13, color: colors.ink, textAlign: 'right' },
+  barText: { flex: 1, fontFamily: fonts.bold, fontSize: 13, color: colors.ink, textAlign: TEXT_RIGHT },
   icon: { width: 40, height: 40 },
   body: { flex: 1, gap: 2 },
-  title: { fontFamily: fonts.display, fontSize: 15, color: colors.ink, textAlign: 'right' },
-  small: { fontFamily: fonts.bold, fontSize: 11, lineHeight: 18, color: '#5A3A7A', textAlign: 'right' },
+  title: { fontFamily: fonts.display, fontSize: 15, color: colors.ink, textAlign: TEXT_RIGHT },
+  small: { fontFamily: fonts.bold, fontSize: 11, lineHeight: 18, color: '#5A3A7A', textAlign: TEXT_RIGHT },
   actions: { alignItems: 'center', gap: 4 },
   cta: { paddingHorizontal: 14, height: 38, borderRadius: 12, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.candy.lime, alignItems: 'center', justifyContent: 'center', ...lift },
   ctaText: { fontFamily: fonts.display, fontSize: 15, color: colors.ink },
@@ -95,6 +96,6 @@ const styles = StyleSheet.create({
   step: { flexDirection: ROW, alignItems: 'center', gap: 8 },
   num: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.candy.yellow, alignItems: 'center', justifyContent: 'center' },
   numText: { fontFamily: fonts.display, fontSize: 14, color: colors.ink },
-  stepText: { flex: 1, fontFamily: fonts.bold, fontSize: 12.5, lineHeight: 20, color: colors.ink, textAlign: 'right' },
+  stepText: { flex: 1, fontFamily: fonts.bold, fontSize: 12.5, lineHeight: 20, color: colors.ink, textAlign: TEXT_RIGHT },
   sheetCta: { alignSelf: 'center', marginTop: 4 },
 });

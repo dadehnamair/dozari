@@ -101,3 +101,19 @@ export const soloPriceRoundsSchema = z.object({
 export type SoloPriceRound = z.infer<typeof soloPriceRoundSchema>;
 export type SoloPriceResult = z.infer<typeof soloPriceResultSchema>;
 export type SoloPriceRounds = z.infer<typeof soloPriceRoundsSchema>;
+
+/**
+ * Offline pack (`GET /solo/offline-pack`): whole puzzles with their solutions, for practice without internet.
+ * This is the one place a client receives solutions (an owner-approved exception to rule 4, docs/logic/offline-solo.md):
+ * games played from a pack grant no XP, coins or stats, so there is nothing to gain by tampering with them.
+ */
+export const soloOfflinePuzzleSchema = z.object({
+  id: z.string(),
+  groups: z
+    .array(z.object({ level, titleFa: z.string(), explanationFa: z.string(), productIds: z.array(z.string()).length(4) }))
+    .length(4),
+  items: z.record(z.string(), z.object({ nameFa: z.string(), unitFa: z.string().nullable(), iconKey: z.string().nullable().default(null) })),
+});
+export const soloOfflinePackSchema = z.object({ puzzles: z.array(soloOfflinePuzzleSchema) });
+export type SoloOfflinePuzzle = z.infer<typeof soloOfflinePuzzleSchema>;
+export type SoloOfflinePack = z.infer<typeof soloOfflinePackSchema>;

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { swr } from '../net/cache';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { toPersianDigits } from '@dozari/shared';
 import type { LedgerPage } from '@dozari/shared';
@@ -9,6 +10,7 @@ import { fa } from '../i18n/fa';
 import { agoText } from '../inbox/ago';
 import { colors, fonts } from '../theme/colors';
 import { fetchLedger } from './api';
+import { TEXT_RIGHT } from '../theme/direction';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const fmt = (n: number) => toPersianDigits(Math.abs(n).toLocaleString('en-US').replace(/,/g, '٬'));
@@ -28,7 +30,11 @@ export function LedgerSheet({ onClose }: { onClose: () => void }) {
       () => setFailed(true),
     ).finally(() => setLoading(false));
   }, []);
-  useEffect(() => load(), [load]);
+  // The first page of the history shows from the cache at once; «more» pages are always live.
+  useEffect(() => {
+    setLoading(true);
+    return swr('ledger.first', () => fetchLedger(), (p) => (setPage(p), setFailed(false), setLoading(false)), () => (setFailed(true), setLoading(false)));
+  }, []);
 
   return (
     <PageShell title={l.title} color={colors.candy.yellow} backLabel={l.close} onBack={onClose}>
@@ -62,8 +68,8 @@ const styles = StyleSheet.create({
   note: { fontFamily: fonts.bold, fontSize: 14, color: colors.ink, textAlign: 'center', marginTop: 12 },
   card: { flexDirection: ROW, alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#fff' },
   body: { flex: 1, minWidth: 0, gap: 1 },
-  title: { fontFamily: fonts.display, fontSize: 15, color: colors.ink, textAlign: 'right' },
-  time: { fontFamily: fonts.bold, fontSize: 11, color: '#7A6A4A', textAlign: 'right' },
+  title: { fontFamily: fonts.display, fontSize: 15, color: colors.ink, textAlign: TEXT_RIGHT },
+  time: { fontFamily: fonts.bold, fontSize: 11, color: '#7A6A4A', textAlign: TEXT_RIGHT },
   delta: { fontFamily: fonts.display, fontSize: 18 },
   gain: { color: '#1F8A3B' },
   loss: { color: '#C23B3B' },

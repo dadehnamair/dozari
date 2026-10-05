@@ -9,12 +9,15 @@ export const BALE_TEXT = {
   phoneMismatch: 'این شماره با شماره‌ای که در بازی نوشته‌ای یکی نیست، یا مخاطب خودت نیست. شماره را در بازی درست کن و دوباره بفرست.',
   phoneConflict: 'این شماره قبلاً روی یک حساب دیگر ثبت شده بود. به بازی برگرد و انتخاب کن: امتیازهای همین حساب با این شماره بماند، یا امتیازهای قبلی بارگذاری شود.',
   paid: (coins: number) => `پرداخت انجام شد ✅ ${coins} سکه به حسابت اضافه شد. موفق باشی!`,
+  paidItem: (title: string) => `پرداخت انجام شد ✅ «${title}» به حسابت اضافه شد. موفق باشی!`,
   phoneTaken: 'این شماره روی حساب دیگری تأیید شده است.',
   noPhonePending: 'اول در بازی شماره‌ی موبایلت را بنویس، بعد اینجا بفرست.',
   stopped: 'اتصال قطع شد. هر وقت خواستی دوباره کد بگیر و بفرست.',
   notLinked: 'هنوز به حسابی وصل نیستی.',
   statusLinked: 'به حسابت وصل هستی ✅',
   dailyReady: 'جایزه‌ی روزانه‌ات آماده است 🎁 بیا بگیرش!',
+  birthdayWeek: (nickname: string, days: number) => `تولد ${nickname} ${days} روز دیگر است 🎂`,
+  birthdayDay: (nickname: string) => `امروز تولد ${nickname} است 🎉 تبریک بگو!`,
   friendRequest: (nickname: string) => `${nickname} برایت درخواست دوستی فرستاد 🤝 در بازی جوابش را بده.`,
   tableInvite: (nickname: string) => `${nickname} تو را به یک میز دعوت کرد 🎲 بیا بازی کنیم!`,
   matchWon: (reason: string) => `بازی را بردی 🏆 ${reason}`,
@@ -22,3 +25,6 @@ export const BALE_TEXT = {
   matchDraw: 'بازی مساوی شد.',
   reasons: { solved: 'همه‌ی گروه‌ها پیدا شد.', locked_out: 'خطاها تمام شد.', forfeit: 'نوبت‌ها از دست رفت.', abandon: 'حریف بازی را ترک کرد.' } as Record<string, string>,
 } as const;
+
+/** Titles of the friend-birthday inbox messages. */
+export const BIRTHDAY_TITLE = { week: 'تولد دوستت نزدیک است', day: 'امروز تولد یکی از دوستانت است' } as const;

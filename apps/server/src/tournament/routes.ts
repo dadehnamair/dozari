@@ -6,7 +6,7 @@ import { currentUser } from '../auth/routes.js';
 import type { TournamentService } from './service.js';
 
 const idParam = z.object({ id: z.string().uuid() });
-const STATUS: Record<TournamentError | 'INVALID', number> = { NOT_FOUND: 404, CLOSED: 409, FULL: 409, ALREADY_IN: 409, NOT_IN: 409, LEVEL: 403, COINS: 402, NOT_ACTIVATED: 403, BUSY: 409, BAD_STATE: 409, TOO_FEW: 409, INVALID: 400 };
+const STATUS: Record<TournamentError | 'INVALID', number> = { NOT_FOUND: 404, CLOSED: 409, FULL: 409, ALREADY_IN: 409, NOT_IN: 409, LEVEL: 403, COINS: 402, GEMS: 402, NOT_ACTIVATED: 403, BUSY: 409, BAD_STATE: 409, TOO_FEW: 409, INVALID: 400 };
 
 /** Player side: the list, a tournament's own page, join and leave. */
 export function registerTournamentRoutes(app: FastifyInstance, auth: AuthService, tournaments: TournamentService) {

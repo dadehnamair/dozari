@@ -91,9 +91,26 @@ describe('tournament entry', () => {
     expect((await t.join(c, id)).json()).toEqual({ error: 'COINS' });
     const detail = tournamentDetailSchema.parse((await t.app.inject({ method: 'GET', url: `/tournaments/${id}`, headers: a.h })).json());
     expect(detail).toMatchObject({ entered: true, joined: 1, blocked: null, rounds: 2 });
-    expect(detail.prizes).toEqual([{ place: 1, coins: 120, spins: 0 }, { place: 2, coins: 50, spins: 0 }, { place: 3, coins: 10, spins: 0 }]);
+    expect(detail.prizes).toEqual([{ place: 1, coins: 120, gems: 0, spins: 0 }, { place: 2, coins: 50, gems: 0, spins: 0 }, { place: 3, coins: 10, gems: 0, spins: 0 }]);
     expect((await t.app.inject({ method: 'POST', url: `/tournaments/${id}/leave`, headers: a.h })).json()).toEqual({ ok: true, balance: 100 });
     expect((await t.app.inject({ method: 'POST', url: `/tournaments/${id}/leave`, headers: a.h })).json()).toEqual({ error: 'NOT_IN' });
+  });
+
+  it('charges a gem fee on top of coins, refuses without gems, and refunds both on leaving', async () => {
+    const t = boot();
+    const a = await t.login(1);
+    const created = await t.service.create(t.input({ entryCoins: 10, entryGems: 3 }), true);
+    if (!created.ok) throw new Error('create failed');
+    t.store.coins.set(a.id, 100);
+    t.store.gems.set(a.id, 2);
+    expect(tournamentDetailSchema.parse((await t.app.inject({ method: 'GET', url: `/tournaments/${created.id}`, headers: a.h })).json())).toMatchObject({ entryGems: 3, blocked: 'GEMS' });
+    expect((await t.join(a, created.id)).json()).toEqual({ error: 'GEMS' });
+    expect(t.store.coins.get(a.id)).toBe(100);
+    t.store.gems.set(a.id, 5);
+    expect((await t.join(a, created.id)).json()).toEqual({ ok: true, balance: 90 });
+    expect(t.store.gems.get(a.id)).toBe(2);
+    await t.app.inject({ method: 'POST', url: `/tournaments/${created.id}/leave`, headers: a.h });
+    expect([t.store.coins.get(a.id), t.store.gems.get(a.id)]).toEqual([100, 5]);
   });
 
   it('one tournament at a time unless the tournament allows concurrent players', async () => {
@@ -156,6 +173,18 @@ describe('running a tournament', () => {
     await t.service.tick();
     await t.finishMatches(() => 1); // p2 wins the final
     expect([t.store.spins.get(p2), t.store.spins.get(p1)]).toEqual([3, undefined]);
+  });
+
+  it('pays gems next to the coins of a place and refuses a gem prize over the cap', async () => {
+    const t = await fourPlayers({ prizes: [{ place: 1, coins: 120, gems: 7 }, { place: 2, coins: 50 }] });
+    const [p1, p2] = t.users.map((u) => u.id) as [string, string];
+    t.clock.ms += 61 * MIN;
+    await t.service.tick();
+    await t.finishMatches(() => 0);
+    await t.service.tick();
+    await t.finishMatches(() => 1);
+    expect([t.store.gems.get(p2), t.store.gems.get(p1) ?? 0]).toEqual([7, 0]);
+    expect((await t.service.create(t.input({ prizes: [{ place: 1, coins: 1, gems: 501 }] }), false)).ok).toBe(false);
   });
 
   it('starts at the start time, seeds by level, plays round by round, pays the prizes', async () => {
@@ -262,7 +291,7 @@ describe('running a tournament', () => {
     await t.join(b, c.id);
     expect(await t.service.update(c.id, { entryCoins: 99 })).toEqual({ ok: false, error: 'BAD_STATE' });
     expect((await t.service.update(c.id, { descriptionFa: 'متن تازه', prizes: [{ place: 1, coins: 77 }] })).ok).toBe(true);
-    expect((await t.service.detail(a.id, c.id))?.prizes).toEqual([{ place: 1, coins: 77, spins: 0 }]);
+    expect((await t.service.detail(a.id, c.id))?.prizes).toEqual([{ place: 1, coins: 77, gems: 0, spins: 0 }]);
     expect((await t.service.startNow(c.id)).ok).toBe(true);
     expect(t.started).toHaveLength(1);
   });

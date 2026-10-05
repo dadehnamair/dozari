@@ -11,7 +11,7 @@ hardcoded literal, so they can be tuned post-launch from real play data without 
 
 | source | amount | rule |
 |---|---|---|
-| Signup bonus | 200 | once per account (device-bound for guests) |
+| Signup bonus | 200 (`economy.signup_bonus`, admin) | once per new account, granted at first guest login through the ledger (`signup_bonus:<userId>`); accounts created before this was wired are not paid retroactively |
 | Daily reward (D64) | 10 / 15 / 20 … | one claim per 24 h; a streak grows day by day (admin-editable list, last amount repeats), restarts at day 1 after a skipped day. Built: `economy/daily-reward.ts`, `GET /daily-reward`, `POST /daily-reward/claim`, admin editor |
 | Daily free matches | 3 / day | entry fee waived; payout from a **house pot** = normal win payout × 0.5 |
 | Win payout | pot × 0.9 | pot = sum of entry fees; 10% burned (sink) |
@@ -86,8 +86,14 @@ Settings (admin → economy): `duel.entry_fee` 20, `duel.house_cut_percent` 10, 
 - The server rolls (`pickSlice`, crypto random) and pays through the ledger, reason `wheel_spin`, key `wheel_spin:<spinId>`.
   The client only animates to the slice the server returns. API: `GET /wheel` (enabled, pending, slices, balance),
   `POST /wheel/spin` (409 `NO_SPIN` when none waits).
-- Numbers: `WHEEL_SLICES_DEFAULT` in `config/economy.ts` (8 slices, expected ≈ 13 coins); admin settings `wheel.enabled`
-  and `wheel.prize_scale_percent`. Needs the economy simulation before launch (faucet next to the 20-coin entry fee).
+- **Typed prizes (D165)**: the slices live in table `wheel_prizes` (kind `coins|gems|hint_token|wheel_spin`, amount, weight, active), seeded from
+  `WHEEL_SLICES_DEFAULT` (10 slices) and edited in the admin «گردونه‌ی شانس». A spin pays by kind: coins `wheel_spin` (coin ledger), gems `wheel_prize`
+  (gem ledger), hint tokens into `user_inventory`, `wheel_spin` as new spin rows (`source = wheel`). `wheel_spins.prize_kind/prize_amount` record the result.
+  No free spins by default: `wheel.daily_spins` = 0 and `wheel.win_spins` (a won human duel gives a spin) = off. Clothing/hats arrive with cosmetics.
+- **Cosmetics (D165)**: shop items with `effect = cosmetic` + `slot` (`hat|outfit|accessory|hair|glasses`; D176); bought once (409 `owned`), kept in `user_cosmetics`, worn via `POST /shop/:id/equip`
+  (one worn item per slot), listed by `GET /me/cosmetics`. Wheel kind `cosmetic` gives such an item (`wheel_prizes.item_id`); an owned one pays `wheel.cosmetic_dupe_coins`.
+- Numbers: `WHEEL_SLICES_DEFAULT` in `config/economy.ts` (expected ≈ 9 coins plus other kinds); admin settings `wheel.enabled`, `wheel.win_spins`
+  and `wheel.prize_scale_percent` (scales coin prizes only). Needs the economy simulation before launch (faucet next to the 20-coin entry fee).
 - App: Home's wheel button and, after a win, the result screen show «گردونه!» once the server confirms a waiting spin (`apps/mobile/src/wheel`).
 
 ## Rules
@@ -158,3 +164,20 @@ if inflation shows in production lower `FREE_MATCH_PAYOUT_PERCENT` first (settin
 ## Daily game caps (D92)
 
 Admin settings `limit.solo_per_day` and `limit.duel_per_day` (0 = unlimited, default) cap how many games of a mode one player may start per Tehran day. Counted in `daily_play_counts (user, date, mode)`; solo `POST /solo/start` answers 429 `daily_cap`, the duel queue answers `DAILY_CAP`. A duel is counted when the match actually starts (leaving the queue costs nothing). The daily puzzle has its own one-attempt rule and is not counted.
+
+## Gems (الماس, D164, stage 1)
+
+A second currency beside coins. It has its own append-only `gem_ledger` and cached `user_gems.balance`, and moves only through
+`applyGemEntry` (apps/server `economy/gems.ts`), the twin of `applyLedgerEntry`: same transaction, same idempotency key rule, a debit
+below zero is refused (CLAUDE.md rule 6 applies to gems too; never `UPDATE user_gems` by hand).
+
+- **Reasons** (`GEM_REASONS`): `admin_adjust`, `birthday_gift`, `wheel_prize`, `shop_purchase`, `tournament_entry`, `tournament_refund`,
+  `tournament_prize`, `mission_reward`. Only `admin_adjust` is wired in stage 1; the others are reserved for the stages below.
+- **Read:** `GET /me/gems` → balance + the newest 30 movements. Home shows a «الماس» pill once the balance is above 0.
+- **Admin:** the player sheet has «تغییر الماس» (`POST /admin/users/:id/gems`, ±10 000 per call, audited as `user.gems`).
+- **Shop (stage 2)**: each `shop_items` row has `currency` (`coins`|`gems`) plus `price_coins` / `price_gems`; only the matching price counts. A gem purchase debits through `applyGemEntry` (`shop_purchase`) in the same transaction as the grant; `GET /shop` and the buy reply carry `gems`, and a short balance shows as `blocked: GEMS`. The admin «فروشگاه» page picks the currency per item. Migration 0043.
+- **Tournaments (stage 3)**: `tournaments.entry_gems` is charged on top of `entry_coins` (either may be 0), in the same transaction as the seat (`tournament_entry`); leaving or cancelling refunds both (`tournament_refund`, key per joinedAt). `entries.paid_gems` keeps what was paid. A short gem balance blocks with `GEMS` (HTTP 402). Admin builder has «ورودی الماس». Prizes in gems are not built yet. Migration 0044.
+- **Real money (D170)**: a shop item may also have `price_rials`; bought via a Bale invoice or a store receipt under `/shop-pay` (switch `feature.coin_packages`), granted without moving coins or gems. See DECISIONS D170.
+- **Gems are not sold**: they come from gifts and prizes (birthday, wheel, tournaments, missions, admin).
+- **Next stages:** shop items priced in coins or gems; tournament entry fee in gems; wheel prize kind `gems`; birthday gift (100 coins + 5 gems + 2 spins).
+

@@ -31,6 +31,9 @@ export class MessageCenter {
     ];
   }
 
+  /** Called with the recipients after an in-app message is stored (the live socket nudges the ones who are online). */
+  onDelivered?: (userIds: readonly string[]) => void;
+
   async send(msg: NewMessage, channels: readonly Channel[]): Promise<SendResult> {
     const wanted = [...new Set(channels)];
     if (wanted.length === 0) return { ok: false, error: 'NO_CHANNEL' };
@@ -43,6 +46,11 @@ export class MessageCenter {
     const recipients: Partial<Record<Channel, number>> = {};
     if (wanted.includes('in_app')) {
       await this.store.deliverInbox(id, audience);
+      try {
+        this.onDelivered?.(audience);
+      } catch {
+        /* a failed live nudge never fails the send */
+      }
       recipients.in_app = audience.length;
     }
     if (wanted.includes('bale') && this.bale) {
@@ -52,6 +60,19 @@ export class MessageCenter {
     }
     for (const [channel, n] of Object.entries(recipients) as [Channel, number][]) await this.store.setChannel(id, channel, n);
     return { ok: true, id, recipients };
+  }
+
+  /** Puts one message in these players' in-app inbox only (system messages such as «امروز تولد X است»); no channel or admin audience involved. */
+  async tellUsers(userIds: readonly string[], title: string, body: string): Promise<void> {
+    if (userIds.length === 0) return;
+    const id = await this.store.create({ title, body, audience: 'user', targetUserId: null });
+    await this.store.deliverInbox(id, [...userIds]);
+    await this.store.setChannel(id, 'in_app', userIds.length);
+    try {
+      this.onDelivered?.(userIds);
+    } catch {
+      /* a failed live nudge never fails the message */
+    }
   }
 
   history(limit = 50) {

@@ -288,6 +288,125 @@
       "when": 1791004978399,
       "tag": "0040_gifted_surge",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "5",
+      "when": 1791025475143,
+      "tag": "0041_pale_famine",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "5",
+      "when": 1791027919186,
+      "tag": "0042_thankful_blazing_skull",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "5",
+      "when": 1791029166936,
+      "tag": "0043_reflective_the_hand",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "5",
+      "when": 1791031034287,
+      "tag": "0044_cool_rick_jones",
+      "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "5",
+      "when": 1791031772277,
+      "tag": "0045_fantastic_lake",
+      "breakpoints": true
+    },
+    {
+      "idx": 46,
+      "version": "5",
+      "when": 1791032215628,
+      "tag": "0046_loose_scarlet_witch",
+      "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "5",
+      "when": 1791038371805,
+      "tag": "0047_jittery_penance",
+      "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "5",
+      "when": 1791038936351,
+      "tag": "0048_tough_slapstick",
+      "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "5",
+      "when": 1791039970797,
+      "tag": "0049_wet_gorilla_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "5",
+      "when": 1791040172997,
+      "tag": "0050_low_crusher_hogan",
+      "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "5",
+      "when": 1791040745679,
+      "tag": "0051_lying_scalphunter",
+      "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "5",
+      "when": 1791093691270,
+      "tag": "0052_sloppy_star_brand",
+      "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "5",
+      "when": 1791094354986,
+      "tag": "0053_luxuriant_frightful_four",
+      "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "5",
+      "when": 1791101702440,
+      "tag": "0054_equal_retro_girl",
+      "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "5",
+      "when": 1791120691616,
+      "tag": "0055_dashing_timeslip",
+      "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "5",
+      "when": 1791149368788,
+      "tag": "0056_slippery_galactus",
+      "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "5",
+      "when": 1791184903827,
+      "tag": "0057_fixed_spencer_smythe",
+      "breakpoints": true
     }
   ]
 }

@@ -43,6 +43,14 @@ VIEWS.dashboard = function (root) {
           h('div', { class: 'kv' }, [h('span', { text: 'بیشترین اتصال همزمان' }), h('b', { class: 'num', text: fa(sock.body.peakConnections) })])
         ]) : h('div', { class: 'empty-state', text: 'سرویس سوکت فعال نیست' })]);
       wrap.appendChild(h('div', { class: 'cols' }, [left, live]));
+      wrap.appendChild(h('div', { style: 'height:16px' }));
+      if (b.ageBands) {
+        var abTotal = b.ageBands.reduce(function (t, x) { return t + x.count; }, 0);
+        wrap.appendChild(h('section', { class: 'card' }, [h('h2', { text: 'سن بازیکن‌ها' }), h('div', { class: 'sub', text: 'فقط آمار کلی؛ ' + fa(b.ageUnknown) + ' نفر تاریخ تولد نداده‌اند' })].concat(abTotal === 0 ? [empty('هنوز کسی تاریخ تولدش را نگفته')] : b.ageBands.map(function (x) {
+          var pct = Math.round((x.count / abTotal) * 100);
+          return h('div', { class: 'kv' }, [h('span', { text: fa(x.key.replace('+', '')) + (x.key.indexOf('+') > -1 ? '+' : '') + ' سال' }), h('span', { style: 'flex:1;margin:0 14px' }, [h('div', { class: 'bar', style: 'margin:0' }, [h('i', { style: 'width:' + Math.max(2, pct) + '%' })])]), h('span', {}, [h('b', { class: 'num', text: faNum(x.count) }), ' ', h('span', { class: 'muted', text: fa(pct) + '٪' })])]);
+        }))));
+      }
     }
     var entries = aud.ok ? aud.body.entries.slice(0, 8) : [];
     wrap.appendChild(h('div', { style: 'height:16px' }));

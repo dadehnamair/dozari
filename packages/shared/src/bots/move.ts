@@ -43,3 +43,22 @@ export function botThinkDelay(minMs: number, maxMs: number, msLeft: number, rng:
   const wanted = minMs + Math.floor(rng() * (span + 1));
   return Math.max(0, Math.min(wanted, msLeft - margin));
 }
+
+export interface BotPriceGuessInput {
+  actualRials: bigint;
+  /** 0 = wild guesses, 100 = close. */
+  skill: number;
+  rng: Rng;
+}
+
+/**
+ * A human-like price guess: the real price off by a random error that shrinks with skill (about ±5 % at 100, ±65 % at 0), never zero.
+ * Server side only: the caller reads the real price from the match, the bot never sees it over a socket.
+ */
+export function chooseBotPriceGuess(input: BotPriceGuessInput): bigint {
+  const skill = Math.max(0, Math.min(100, input.skill));
+  const maxError = 0.05 + 0.6 * (1 - skill / 100);
+  const error = (input.rng() * 2 - 1) * maxError;
+  const guess = BigInt(Math.round(Number(input.actualRials) * (1 + error)));
+  return guess > 0n ? guess : 1n;
+}

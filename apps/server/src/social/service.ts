@@ -19,6 +19,8 @@ export class SocialService {
     readonly badges?: BadgeService,
     /** Whether a player has a live socket (see `realtime/presence.ts`); without it nobody shows as online. */
     private readonly isOnline: (userId: string) => boolean = () => false,
+    /** Birthday-week flag and the age of those who show it (never the date); without it nobody has a party badge. */
+    private readonly birthdayInfo: (ids: string[]) => Promise<Map<string, { badge: boolean; age: number | null }>> = async () => new Map(),
   ) {}
 
   private async relation(me: string, other: string): Promise<FriendRelation> {
@@ -28,13 +30,17 @@ export class SocialService {
     return p.requestedBy === me ? 'sent' : 'received';
   }
 
+  /** What a player wears now (set at start-up when the shop exists); shown on their public profile. */
+  wornOf?: (userId: string) => Promise<{ slot: string; iconKey: string | null }[]>;
+
   /** What anybody may see of a player. */
   async profile(me: string, id: string): Promise<PlayerProfile | null> {
     const row = await this.store.publicRow(id);
     if (!row) return null;
     const lv = (await this.player?.levelOf(id)) ?? { level: { level: 1 }, stats: { games: 0, wins: 0, losses: 0, draws: 0 } };
     const city = (await this.player?.cityOf(id)) ?? null;
-    return { id, nickname: row.nickname, avatarKey: row.avatarKey, level: lv.level.level, coins: row.coins, stats: lv.stats, cityName: city?.nameFa ?? null, cityProvince: city?.province ?? null, badges: (await this.badges?.publicOf(id)) ?? { badge: null, medals: [], skill: 'novice' as const }, memberSince: row.createdAt, relation: me === id ? 'none' : await this.relation(me, id), isMe: me === id, online: this.isOnline(id) };
+    const party = (await this.birthdayInfo([id])).get(id);
+    return { id, nickname: row.nickname, avatarKey: row.avatarKey, level: lv.level.level, coins: row.coins, stats: lv.stats, cityName: city?.nameFa ?? null, cityProvince: city?.province ?? null, badges: (await this.badges?.publicOf(id)) ?? { badge: null, medals: [], skill: 'novice' as const }, memberSince: row.createdAt, relation: me === id ? 'none' : await this.relation(me, id), isMe: me === id, online: this.isOnline(id), birthday: party?.badge ?? false, age: party?.age ?? null, worn: ((await this.wornOf?.(id)) ?? []).map(({ slot, iconKey }) => ({ slot, iconKey })) };
   }
 
   async request(me: string, target: string): Promise<RequestResult> {
@@ -69,7 +75,8 @@ export class SocialService {
 
   async friends(me: string): Promise<Friends> {
     const [friends, incoming] = await Promise.all([this.store.friends(me), this.store.incoming(me)]);
-    return { friends: friends.map((f) => ({ ...f, online: this.isOnline(f.id) })), incoming };
+    const party = await this.birthdayInfo(friends.map((f) => f.id));
+    return { friends: friends.map((f) => ({ ...f, online: this.isOnline(f.id), birthday: party.get(f.id)?.badge ?? false })), incoming };
   }
 
   /** Top of a scope by total XP plus the caller's own place (D108). A scope that does not apply (no city) is empty. */

@@ -39,3 +39,10 @@ Default: the **purple** (hardest) group — it carries the best story. The user 
 - Capture with `react-native-view-shot`, share with `expo-sharing`. Include the user's invite code in the
   URL (growth loop → invite reward).
 - Share button available on result screen and in match history.
+
+**Built (H6, D182):** `apps/mobile/src/share/` — `ShareCard` (360×450 logical, captured at 3× = 1080×1350) is rendered off screen inside `ChartPanel`,
+under the chart's group tab that is selected; the line «سال ۷۵ با ۱۰۰ تومن می‌شد نان خرید!» comes from `shareLine` (rule year, else earliest year, cheapest
+product); the footer shows the player's invite code (`GET /me/invite`, left out when none). The «اشتراک‌گذاری نمودار» button captures with
+`react-native-view-shot` and shares the PNG with `expo-sharing` on phones (`shareCapture.native.ts`); the **web build has no capture** and shares the same
+words plus the code as text (`shareCapture.ts`), so the web bundle never imports the native modules. Not built: the short URL in the footer, the
+share button in match history and after a duel (there is no duel chart yet, GAPS B2). Not seen on a real phone.
