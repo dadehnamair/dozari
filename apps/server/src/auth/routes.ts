@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { guestLoginSchema } from '@dozari/shared';
 import { z } from 'zod';
 import type { AccountDeletion } from '../account/deletion.js';
+import { baleDeviceId, verifyBaleInitData } from './bale-miniapp.js';
 import type { AuthService, UserRecord } from './service.js';
 
 const bearer = (req: FastifyRequest): string | null => {
@@ -15,7 +16,20 @@ export async function currentUser(auth: AuthService, req: FastifyRequest): Promi
   return token ? auth.authenticate(token) : null;
 }
 
-export function registerAuthRoutes(app: FastifyInstance, auth: AuthService, deletion?: AccountDeletion) {
+export function registerAuthRoutes(app: FastifyInstance, auth: AuthService, deletion?: AccountDeletion, baleBotToken?: string) {
+  // Bale mini-app login: the page sends the signed `initData`; the same Bale user always lands on the same account.
+  if (baleBotToken) {
+    app.post('/auth/bale-miniapp', async (req, reply) => {
+      const body = z.object({ initData: z.string().min(1).max(4096) }).safeParse(req.body);
+      if (!body.success) return reply.code(400).send({ error: 'invalid_request' });
+      const user = verifyBaleInitData(body.data.initData, baleBotToken);
+      if (!user) return reply.code(401).send({ error: 'invalid_init_data' });
+      const result = await auth.guestLogin(baleDeviceId(baleBotToken, user.id));
+      if (!result.ok) return reply.code(403).send({ error: 'banned' });
+      return { ...result.session, deviceId: baleDeviceId(baleBotToken, user.id) };
+    });
+  }
+
   app.post('/auth/guest', async (req, reply) => {
     const body = guestLoginSchema.safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: 'invalid_request' });

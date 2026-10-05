@@ -86,7 +86,7 @@ services:
       DATABASE_URL: mysql://dozari:${MYSQL_PASSWORD}@s-dozari-mysql:3306/dozari
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET (32+ random chars)}
       ADMIN_TOKEN: ${ADMIN_TOKEN:?set ADMIN_TOKEN (long random value)}
-      CORS_ORIGIN: https://${APP_DOMAIN:?set APP_DOMAIN}
+      CORS_ORIGIN: https://${APP_DOMAIN:?set APP_DOMAIN},https://${BALE_APP_DOMAIN:-bale.mrbots.ir}
       TRUST_PROXY: '1'
       LOCAL_IMAGES_DIR: /data/images
       LOCAL_IMAGES_PUBLIC_URL: https://${API_DOMAIN:?set API_DOMAIN}/images
@@ -152,6 +152,22 @@ services:
       SITE_URL: https://${LANDING_DOMAIN:-mrdozari.ir}
     ports:
       - '${LANDING_PORT:-8083}:3100'
+
+  # Bale mini-app (docs/logic/bale-miniapp.md): the same game, opened inside Bale and logged in through Bale's signed initData
+  # (needs BALE_BOT_TOKEN on the server). Own build, own container, own domain; loopback only, the host's reverse proxy forwards
+  # BALE_APP_DOMAIN here. Bale's bot father needs this domain as the mini-app address.
+  s-dozari-bale-miniapp:
+    container_name: c-dozari-bale-miniapp
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.bale-miniapp
+      args:
+        API_URL: https://${API_DOMAIN}
+    restart: unless-stopped
+    depends_on:
+      - s-dozari-server
+    ports:
+      - '${BALE_APP_PORT:-8084}:80'
 
 volumes:
   mysql-data:
