@@ -285,7 +285,9 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
           onClose={() => (setMissionsOpen(false), loadTasks())}
           onChanged={loadTasks}
           onGo={(go) => {
-            if (go === 'play') return (setMissionsOpen(false), onSolo());
+            // The missions sheet paints over the pages opened from it: close it first so the page can be used.
+            setMissionsOpen(false);
+            if (go === 'play') return onSolo();
             if (go === 'profile') return (setProfileStart('edit'), setProfileOpen(true));
             if (go === 'settings') return setSettingsOpen(true);
             if (go === 'bale') return setBaleOpen(true);
