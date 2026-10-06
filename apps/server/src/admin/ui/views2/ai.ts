@@ -110,7 +110,7 @@ VIEWS.ai = function (root) {
     go.disabled = true; go.textContent = 'در حال تولید… (تا یک دقیقه)';
     api('/admin/ai/generate', { method: 'POST', body: request() }).then(function (r) {
       go.disabled = false; go.textContent = 'تولید پیش‌نویس';
-      if (!r.ok) return toast(AI_ERR[r.body && r.body.error] || 'درخواست درست نیست؛ فیلدها را بررسی کن', true);
+      if (!r.ok) return toast((AI_ERR[r.body && r.body.error] || 'درخواست درست نیست؛ فیلدها را بررسی کن') + (r.body && r.body.providerStatus ? ' [' + r.body.providerStatus + (r.body.providerMessage ? ': ' + r.body.providerMessage : '') + ']' : ''), true);
       result = r.body; if (result.kind === 'puzzle_titles') result.puzzleId = ctl.puzzle.value;
       showDrafts();
     });

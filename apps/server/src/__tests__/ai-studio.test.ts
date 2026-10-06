@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { buildServer } from '../index.js';
 import { AiStudio } from '../ai/studio.js';
 import { extractJson, buildPrompt, generateRequestSchema } from '../ai/content.js';
-import { resolveProviders } from '../ai/providers.js';
+import { resolveProviders, chat } from '../ai/providers.js';
 import type { FetchLike } from '../ai/providers.js';
 import type { ProductAdmin } from '../admin/products.js';
 import type { LessonStore } from '../lessons/service.js';
@@ -119,5 +119,23 @@ describe('AI studio', () => {
     const p = buildPrompt(req);
     expect(p.system).toContain('Never invent prices');
     expect(p.user).toContain('1000');
+  });
+
+  it('speaks Anthropic natively for Claude and OpenAI-style for Gemini', async () => {
+    const [claude, gemini] = resolveProviders({ AI_ANTHROPIC_API_KEY: 'a-key', AI_GEMINI_API_KEY: 'g-key' });
+    let seen: { url: string; headers: Record<string, string>; body: { system?: string; messages: { role: string }[] } } | undefined;
+    const spy: FetchLike = async (url, init) => {
+      seen = { url, headers: init.headers, body: JSON.parse(init.body) };
+      return { ok: true, status: 200, json: async () => ({ content: [{ type: 'text', text: 'سلام' }], choices: [{ message: { content: 'hi' } }] }) };
+    };
+    const req = { system: 'sys', user: 'u', model: 'm', maxTokens: 10 };
+    expect(await chat(claude!, req, spy)).toBe('سلام');
+    expect(seen!.url).toBe('https://api.anthropic.com/v1/messages');
+    expect(seen!.headers['x-api-key']).toBe('a-key');
+    expect(seen!.body.system).toBe('sys');
+    expect(seen!.body.messages).toEqual([{ role: 'user', content: 'u' }]);
+    expect(await chat(gemini!, req, spy)).toBe('hi');
+    expect(seen!.url).toBe('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions');
+    expect(seen!.headers.authorization).toBe('Bearer g-key');
   });
 });
