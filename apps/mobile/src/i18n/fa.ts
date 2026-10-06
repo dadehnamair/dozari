@@ -305,6 +305,7 @@ export const fa = {
     sent: 'رسید؛ ممنونیم!',
     report: {
       open: 'گزارش این بازیکن',
+      short: 'گزارش',
       title: 'گزارش بازیکن',
       pick: 'چرا گزارشش می‌کنی؟',
       categories: { abuse: 'توهین و فحاشی', spam: 'اسپم و تبلیغ', cheating: 'تقلب', bad_name: 'اسم یا عکس نامناسب', other: 'چیز دیگر' } as Record<string, string>,
@@ -559,6 +560,7 @@ export const fa = {
       secondsMore: 'ثانیهٔ دیگه',
       level: (n: number) => toPersianDigits(String(n)),
       you: 'تو',
+      nameHint: (name: string, minLevel: number, level: number) => (level >= minLevel ? `اسمت توی بازی «${name}» است؛ از پروفایلت می‌توانی عوضش کنی.` : `اسمت توی بازی «${name}» است؛ از لول ${toPersianDigits(String(minLevel))} می‌توانی عوضش کنی.`),
       rival: 'حریف',
       unknown: '؟',
       leave: 'ترک بازی',

@@ -26,7 +26,7 @@ const LOOK: Record<Outcome, { title: string; sub: string; pose: 'win' | 'sad' | 
 };
 
 /** screen-results of `13 Match Screens`: the hero's pose, a banner, why it ended, the scoreboard, home / play again. */
-export function DuelResult({ outcome, reason, lines, priceRound, onHome, onAgain, onInvite, onPlayer }: { outcome: Outcome; reason: string; lines: Line[]; /** The finished price-guess round, when the duel had one. */ priceRound?: PriceRoundView; onHome: () => void; onAgain?: () => void; /** Opens the invite sheet: the best moment to ask a friend to play is right after a game. */ onInvite?: () => void; /** Opens a player's profile sheet. */ onPlayer?: (id: string) => void }) {
+export function DuelResult({ outcome, reason, lines, priceRound, onHome, onAgain, onInvite, onPlayer, onReport }: { outcome: Outcome; reason: string; lines: Line[]; /** The finished price-guess round, when the duel had one. */ priceRound?: PriceRoundView; onHome: () => void; onAgain?: () => void; /** Opens the invite sheet: the best moment to ask a friend to play is right after a game. */ onInvite?: () => void; /** Opens a player's profile sheet. */ onPlayer?: (id: string) => void; /** Opens the report dialog for the opponent (1v1). */ onReport?: (id: string) => void }) {
   const look = LOOK[outcome];
   const sorted = [...lines].sort((x, y) => y.points - x.points);
   return (
@@ -58,6 +58,7 @@ export function DuelResult({ outcome, reason, lines, priceRound, onHome, onAgain
                 <Text style={styles.name} numberOfLines={1}>{l.name}</Text>
                 {i === 0 && l.points > 0 && sorted[1]?.points !== l.points ? <View style={styles.crown}><Item icon="crown" /></View> : null}
               </View>
+              {l.playerId && onReport ? <Pressable onPress={() => onReport(l.playerId as string)} accessibilityRole="button" hitSlop={8}><Text style={styles.report}>{fa.feedback.report.short}</Text></Pressable> : null}
               <Text style={[styles.num, styles.cell]}>{toPersianDigits(String(l.groups))}</Text>
               <Text style={[styles.num, styles.cell, styles.pts]}>{toPersianDigits(String(l.points))}</Text>
             </Pressable>
@@ -107,6 +108,7 @@ const styles = StyleSheet.create({
   board: { marginTop: 10, borderRadius: 20, backgroundColor: colors.paper, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', shadowColor: colors.ink, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 1, shadowRadius: 0, elevation: 5 },
   head: { height: 30, flexDirection: ROW, alignItems: 'center', paddingHorizontal: 12, gap: 8, backgroundColor: colors.ink },
   headText: { fontFamily: fonts.bold, fontSize: 11, color: 'rgba(255,246,232,0.75)', textAlign: TEXT_RIGHT },
+  report: { fontFamily: fonts.bold, fontSize: 12, color: '#8E7B6B', textDecorationLine: 'underline' },
   grow: { flex: 1, minWidth: 0 },
   cell: { width: 50, textAlign: 'center' },
   line: { height: 46, flexDirection: ROW, alignItems: 'center', gap: 8, paddingHorizontal: 10, borderTopWidth: 1.5, borderStyle: 'dashed', borderColor: 'rgba(43,18,64,0.2)' },

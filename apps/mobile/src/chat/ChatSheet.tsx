@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
   tableIcon: { width: 26, height: 26 },
   tableCard: { gap: 4, padding: 8, borderRadius: 14, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: '#FFF3C4', ...lift(3) },
   join: { fontFamily: fonts.display, fontSize: 14, color: '#7E46D6', textAlign: TEXT_RIGHT },
-  report: { fontFamily: fonts.bold, fontSize: 10, color: colors.ink, opacity: 0.45, paddingHorizontal: 6 },
+  report: { fontFamily: fonts.bold, fontSize: 12, color: colors.ink, opacity: 0.7, textDecorationLine: 'underline', paddingHorizontal: 6 },
   footer: { gap: 6, paddingBottom: 14, paddingTop: 4 },
   quick: { flexDirection: ROW, gap: 6, paddingVertical: 2 },
   chip: { height: 38, paddingHorizontal: 12, borderRadius: 99, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.tint, justifyContent: 'center', ...lift(3) },

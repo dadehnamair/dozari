@@ -189,3 +189,9 @@ Each profile carries a chosen age band (kid / teen / adult) and, for kids and te
 
 - Exact skill-rank tier thresholds and the full achievement catalog are content work, not logic —
   track as a Phase 6/7 content task in `docs/PLAN.md`, not blocking Phase 0-A/0.
+
+### Name hint before a match (owner 2026-10-06)
+The versus screen (`Versus.tsx`) shows under the player's own plate: «اسمت توی بازی X است؛ از لول N می‌توانی عوضش کنی» (N = `NICKNAME_CHANGE_MIN_LEVEL`; once reached, «از پروفایلت…»).
+
+### Report affordance (owner 2026-10-06)
+Every place that can report someone carries a visible «گزارش» text link: player sheet, each chat message (`ChatSheet`), and the opponent row of the 1v1 result (`DuelResult` → `ReportDialog`).
