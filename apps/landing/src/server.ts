@@ -75,7 +75,7 @@ export function buildLanding(opts: LandingOptions): FastifyInstance {
   // Promo banners (docs/design/banner, resized to webp) and the social card; favicons and the web-app icons.
   app.get('/banners/:file', async (req, reply) => {
     const file = (req.params as { file: string }).file;
-    return file === 'og.jpg' ? asset('banners', 'jpg', 'image/jpeg', /^og$/)(req, reply) : asset('banners', 'webp', 'image/webp', /^banner[1-8]$/)(req, reply);
+    return file === 'og.jpg' ? asset('banners', 'jpg', 'image/jpeg', /^og$/)(req, reply) : asset('banners', 'webp', 'image/webp', /^(banner[1-8]|age-(adult|kid|teen))$/)(req, reply);
   });
   app.get('/icons/:file', async (req, reply) => {
     const file = (req.params as { file: string }).file;

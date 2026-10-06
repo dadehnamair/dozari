@@ -300,6 +300,7 @@ describe('design pages: about, download, contact', () => {
     expect(html.indexOf('id="adult"')).toBeGreaterThan(-1);
     expect(html.indexOf('id="adult"')).toBeLessThan(html.indexOf('id="kids"'));
     for (const b of ['age-adult', 'age-kid', 'age-teen']) expect(html).toContain(`/banners/${b}.webp`);
+    for (const b of ['age-adult', 'age-kid', 'age-teen']) expect((await app.inject({ method: 'GET', url: `/banners/${b}.webp` })).statusCode).toBe(200);
     expect(html).toContain('FAQPage');
     expect((await app.inject({ method: 'GET', url: '/llms.txt' })).body).toContain('/ages');
   });
