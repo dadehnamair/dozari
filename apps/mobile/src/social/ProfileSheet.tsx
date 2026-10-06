@@ -17,6 +17,7 @@ import type { IconName } from '../theme/icons';
 import { Scene } from '../components/Scene';
 import { agoText } from '../inbox/ago';
 import { fa } from '../i18n/fa';
+import { ShowcaseStrip } from '../keepsake/ShowcaseStrip';
 import { colors, fonts } from '../theme/colors';
 import { fetchMyBadges } from '../badges/api';
 import { skillText } from '../badges/text';
@@ -198,6 +199,9 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
                 </View>
               ))}
             </View>
+
+            {/* Your own window: the keepsakes you pinned in the treasury, as other players see them. */}
+            <ShowcaseStrip playerId={me.id} />
 
             <Pressable onPress={() => setSub('badges')} accessibilityRole="button" style={styles.tagsRow}>
               {shownBadges.length > 0 ? (

@@ -150,3 +150,12 @@ Not in the app yet: price-guess round inside a duel.
 - **Last row finale** (all duels, tables, every board of a 2v2): the four cards the game reveals by itself light up one by one, then their row opens, before the next board or the result.
 - **Table lobby:** two team cards face to face (VS), own team blue; 2v2 starts only with two per side; polling tolerates two failed requests and only «not found» closes the screen; one table action at a time with an 8 s lock release.
 - **Table invites** have their own rate bucket (`CHAT_INVITE_RATE`), separate from the one-taunt-per-3-s limit.
+
+## Tables: rounds, entry, public list, requests (2026-10)
+
+- **Rounds.** The host picks `rounds` (boards, `TABLE_ROUNDS_MIN..MAX` = 1..3, `config/tables.ts`) for 1v1 and 2v2 alike; a 1v1 with more than one board plays them as a multi-board match (each board a different puzzle).
+- **Price questions.** A 1v1 host chooses `priceRounds` 0..4 (0 = none) instead of the global `match.price_round`; a 2v2 has none. They are asked after the last board (the first N of the board's four groups).
+- **Entry.** `entryFee` coins per player; the minimum is `TABLE_ENTRY_PER_ROUND × rounds` (more rounds, higher minimum), the cap `TABLE_ENTRY_MAX`. Where coins do not move (kid/teen, family table) the fee is 0. Fees are taken when the match starts (everybody or nobody; `NO_COINS` names the problem), the winning side splits the pot after a `TABLE_HOUSE_CUT_PERCENT` house cut (a coin sink), a draw refunds every fee (`TableStakes`, ledger reasons `match_entry` / `match_payout` / `match_refund`, idempotent per match and user).
+- **Public by default.** `isPrivate` hides a table from the list (family tables always); a private table is joined by code or invite. `GET /tables/public` lists open tables first, then full, playing and locked ones and the ones closed in the last 30 minutes (`status`; only `open` takes a request, the rest are view only so the list is rarely bare).
+- **Join requests.** `POST /tables/:code/request` (a live `table_request` notice to the host, at most `TABLE_REQUESTS_MAX` waiting, lapsing after `TABLE_REQUEST_TTL_MS`), `POST /tables/answer {userId, accept}` (host; the asker is seated at once on accept, told by `table_answer`; a turned-down request shows as «denied» for a minute). Joining or asking checks the entry against the balance.
+- **Live notices** (socket `notice:new`): `friend_request`, `inbox`, `table_invite` (with the chat card), `table_request`, `table_answer`; tested end to end over real sockets in `__tests__/socket-flows.test.ts`.

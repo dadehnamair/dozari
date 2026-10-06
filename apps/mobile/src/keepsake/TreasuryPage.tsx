@@ -11,6 +11,7 @@ import { useHardwareBack } from '../nav/useHardwareBack';
 import { pageTop } from '../theme/safeArea';
 import { colors, fonts } from '../theme/colors';
 import { buyPiece, fetchGallery, saveShowcase, upgradeKeepsake } from './api';
+import { YadegarMedal, YadegarPhoto, YadegarPuzzle, yadegarCard } from './YadegarArt';
 import type { PieceResult } from './api';
 import { RARITY_COLOR, actionOf, pinnedIds, priceOf, sections, togglePin } from './model';
 
@@ -21,9 +22,10 @@ const t = fa.treasury;
 /** What the toast after a purchase says: the piece, then completion, the gems and the set. */
 function gotText(r: PieceResult): string {
   const parts = [t.got(r.piece)];
-  if (r.completed) parts.push(t.completed);
+  if (r.completed) parts.push(t.completed, t.pinNow);
   if (r.gems > 0) parts.push(t.gemsGot(r.gems));
   if (r.setCompleted) parts.push(t.setDone);
+  for (const m of r.milestones ?? []) parts.push(t.milestones.got(m.count, m.gems, m.spins));
   return parts.join(' · ');
 }
 
@@ -114,6 +116,12 @@ export function TreasuryPage({ onClose }: { onClose: () => void }) {
         {note ? <Text style={styles.note} accessibilityLiveRegion="polite">{note}</Text> : null}
 
         <ScrollView style={styles.list} contentContainerStyle={styles.sections} showsVerticalScrollIndicator>
+          {g && g.items.length > 0 ? (
+            <>
+              <Shelf items={g.items.filter((k) => k.showcaseSlot !== null).sort((a, b) => a.showcaseSlot! - b.showcaseSlot!)} onUnpin={(k) => void pin(k)} />
+              <Milestones g={g} />
+            </>
+          ) : null}
           {g && g.items.length === 0 ? <Text style={styles.empty}>{t.empty}</Text> : null}
           {secs.map((s) => (
             <View key={s.key}>
@@ -129,10 +137,18 @@ export function TreasuryPage({ onClose }: { onClose: () => void }) {
                   return (
                     <View key={k.id} style={[styles.card, { borderColor: RARITY_COLOR[k.rarity] }]}>
                       <Pressable onPress={() => setOpen(open === k.id ? null : k.id)} accessibilityRole="button" accessibilityLabel={k.titleFa}>
-                        <View style={[styles.art, { backgroundColor: RARITY_COLOR[k.rarity] }, !k.complete ? styles.artDim : null]}>
-                          <View style={styles.artIcon}><Item icon={k.iconKey ?? 'coin'} /></View>
-                          {k.complete ? <View style={styles.levelTag}><Text style={styles.levelText}>{t.frame(k.level)}</Text></View> : null}
-                        </View>
+                        {yadegarCard(k.artKey) ? (
+                          <View style={styles.photo}>
+                            {k.complete ? <YadegarPhoto card={yadegarCard(k.artKey)!} width={140} /> : <YadegarPuzzle card={yadegarCard(k.artKey)!} owned={k.owned} width={112} />}
+                            {k.complete ? <View style={styles.medal}><YadegarMedal card={yadegarCard(k.artKey)!} size={44} /></View> : null}
+                            {k.complete ? <View style={styles.levelTag}><Text style={styles.levelText}>{t.frame(k.level)}</Text></View> : null}
+                          </View>
+                        ) : (
+                          <View style={[styles.art, { backgroundColor: RARITY_COLOR[k.rarity] }, !k.complete ? styles.artDim : null]}>
+                            <View style={styles.artIcon}><Item icon={k.iconKey ?? 'coin'} /></View>
+                            {k.complete ? <View style={styles.levelTag}><Text style={styles.levelText}>{t.frame(k.level)}</Text></View> : null}
+                          </View>
+                        )}
                         <Text style={styles.name} numberOfLines={2}>{k.titleFa}</Text>
                         <Text style={styles.sub}>{t.rarity[k.rarity] ?? ''}{k.eraYear ? ` · ${n(k.eraYear)}` : ''}</Text>
                       </Pressable>
@@ -167,6 +183,50 @@ export function TreasuryPage({ onClose }: { onClose: () => void }) {
   );
 }
 
+/** «ویترین من»: the six places for pinned keepsakes, each showing the medal; tap one to take it off. Empty places say how to fill them. */
+function Shelf({ items, onUnpin }: { items: KeepsakeView[]; onUnpin: (k: KeepsakeView) => void }) {
+  return (
+    <View style={styles.shelf} accessibilityLabel={t.shelf.title}>
+      <View style={styles.shelfHead}>
+        <Text style={styles.shelfTitle}>{t.shelf.title}</Text>
+        <Text style={styles.shelfSub}>{t.shelf.sub(items.length, SHOWCASE_MAX)}</Text>
+      </View>
+      <View style={styles.slots}>
+        {Array.from({ length: SHOWCASE_MAX }, (_, i) => {
+          const k = items[i];
+          const card = k ? yadegarCard(k.artKey) : null;
+          return k ? (
+            <Pressable key={k.id} onPress={() => onUnpin(k)} accessibilityRole="button" accessibilityLabel={`${k.titleFa} · ${t.shelf.tapToRemove}`} style={styles.slot}>
+              {card ? <YadegarMedal card={card} size={50} /> : <View style={[styles.slotIcon, { backgroundColor: RARITY_COLOR[k.rarity] }]}><Item icon={k.iconKey ?? 'coin'} /></View>}
+            </Pressable>
+          ) : (
+            <View key={`e${i}`} style={[styles.slot, styles.slotEmpty]} accessibilityLabel={t.shelf.emptySlot}><Text style={styles.slotPlus}>+</Text></View>
+          );
+        })}
+      </View>
+      <Text style={styles.shelfHint}>{items.length === 0 ? t.shelf.hint : t.shelf.tapToRemove}</Text>
+    </View>
+  );
+}
+
+/** The steps of the collection: how many completed keepsakes pay a bonus, with the next one named. */
+function Milestones({ g }: { g: KeepsakeGallery }) {
+  const next = g.milestones.find((m) => !m.reached);
+  return (
+    <View style={styles.steps}>
+      <Text style={styles.shelfTitle}>{t.milestones.title}</Text>
+      <View style={styles.stepRow}>
+        {g.milestones.map((m) => (
+          <View key={m.count} style={[styles.step, m.reached ? styles.stepOn : null]} accessibilityLabel={t.milestones.step(m.count, m.gems, m.spins)}>
+            <Text style={styles.stepNum}>{m.reached ? '✓' : n(m.count)}</Text>
+          </View>
+        ))}
+      </View>
+      <Text style={styles.shelfHint}>{next ? t.milestones.next(next.count - g.completed, next.gems, next.spins) : t.milestones.allDone}</Text>
+    </View>
+  );
+}
+
 const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0, height: h }, shadowOpacity: 1, shadowRadius: 0, elevation: h });
 
 const styles = StyleSheet.create({
@@ -193,6 +253,23 @@ const styles = StyleSheet.create({
   sectionSub: { fontFamily: fonts.bold, fontSize: 12, color: '#E3CCFF' },
   grid: { flexDirection: ROW, flexWrap: 'wrap', gap: 8 },
   card: { width: '48%', borderRadius: 18, borderWidth: 3, backgroundColor: colors.cream, padding: 8, gap: 6, ...lift(4) },
+  photo: { alignItems: 'center', justifyContent: 'center', minHeight: 150 },
+  medal: { position: 'absolute', top: -6, left: -4 },
+  shelf: { marginTop: 8, padding: 10, gap: 8, borderRadius: 18, borderWidth: 3, borderColor: 'rgba(255,255,255,0.4)', backgroundColor: 'rgba(26,8,44,0.55)' },
+  shelfHead: { flexDirection: ROW, justifyContent: 'space-between', alignItems: 'center' },
+  shelfTitle: { fontFamily: fonts.display, fontSize: 18, color: colors.candy.yellow },
+  shelfSub: { fontFamily: fonts.bold, fontSize: 12, color: '#E3CCFF' },
+  shelfHint: { fontFamily: fonts.bold, fontSize: 11.5, lineHeight: 18, color: '#E3CCFF', textAlign: 'center' },
+  slots: { flexDirection: ROW, flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
+  slot: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
+  slotEmpty: { borderWidth: 2.5, borderStyle: 'dashed', borderColor: 'rgba(255,255,255,0.45)', backgroundColor: 'rgba(255,255,255,0.08)' },
+  slotPlus: { fontFamily: fonts.display, fontSize: 24, lineHeight: 30, color: 'rgba(255,255,255,0.7)' },
+  slotIcon: { width: 50, height: 50, borderRadius: 25, borderWidth: 2.5, borderColor: colors.ink, padding: 8 },
+  steps: { marginTop: 8, padding: 10, gap: 8, borderRadius: 18, borderWidth: 3, borderColor: 'rgba(255,255,255,0.4)', backgroundColor: 'rgba(26,8,44,0.55)' },
+  stepRow: { flexDirection: ROW, justifyContent: 'space-between', gap: 6 },
+  step: { flex: 1, height: 40, borderRadius: 12, borderWidth: 2.5, borderColor: 'rgba(255,255,255,0.4)', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.08)' },
+  stepOn: { backgroundColor: colors.candy.lime, borderColor: colors.ink },
+  stepNum: { fontFamily: fonts.display, fontSize: 17, lineHeight: 24, color: '#fff' },
   art: { height: 92, borderRadius: 12, borderWidth: 2.5, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   artDim: { opacity: 0.55 },
   artIcon: { width: 64, height: 64 },

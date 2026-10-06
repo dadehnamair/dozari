@@ -7,6 +7,7 @@ import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { fetchShowcase } from './api';
 import { RARITY_COLOR } from './model';
+import { YadegarMedal, yadegarCard } from './YadegarArt';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const t = fa.treasury.showcase;
@@ -36,8 +37,8 @@ export function ShowcaseStrip({ playerId }: { playerId: string }) {
       ) : (
         <View style={styles.row}>
           {v.items.map((k) => (
-            <View key={k.id} style={[styles.slot, { backgroundColor: RARITY_COLOR[k.rarity] }]} accessibilityLabel={k.titleFa}>
-              <View style={styles.icon}><Item icon={k.iconKey ?? 'coin'} /></View>
+            <View key={k.id} style={[styles.slot, yadegarCard(k.artKey) ? styles.slotMedal : { backgroundColor: RARITY_COLOR[k.rarity] }]} accessibilityLabel={k.titleFa}>
+              {yadegarCard(k.artKey) ? <YadegarMedal card={yadegarCard(k.artKey)!} size={50} /> : <View style={styles.icon}><Item icon={k.iconKey ?? 'coin'} /></View>}
               {k.level > 1 ? <Text style={styles.level}>{toPersianDigits(String(k.level))}</Text> : null}
             </View>
           ))}
@@ -55,6 +56,7 @@ const styles = StyleSheet.create({
   empty: { fontFamily: fonts.bold, fontSize: 12, color: colors.ink, opacity: 0.6, textAlign: 'center' },
   row: { flexDirection: ROW, flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
   slot: { width: 46, height: 46, borderRadius: 12, borderWidth: 2.5, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  slotMedal: { width: 52, height: 52, borderRadius: 26, borderWidth: 0, backgroundColor: 'transparent' },
   icon: { width: 34, height: 34 },
   level: { position: 'absolute', bottom: -4, right: -4, minWidth: 16, height: 16, borderRadius: 8, textAlign: 'center', fontFamily: fonts.bold, fontSize: 10, lineHeight: 16, color: colors.candy.yellow, backgroundColor: colors.ink, overflow: 'hidden' },
 });

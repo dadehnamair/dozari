@@ -1124,6 +1124,21 @@ export const fa = {
     } as Record<string, string>,
     empty: 'هنوز یادگاری برای جمع‌کردن نیست؛ به‌زودی!',
     error: 'گنجینه باز نشد؛ اینترنتت را بررسی کن.',
+    shelf: {
+      title: 'ویترین من',
+      sub: (n: number, max: number) => `${toPersianDigits(String(n))} از ${toPersianDigits(String(max))} جا پر است`,
+      hint: 'هر یادگاری که کامل کنی، مُهرش را می‌توانی اینجا بزنی؛ این ویترین روی پروفایلت به همه نشان داده می‌شود.',
+      emptySlot: 'جای خالی: یک یادگار را کامل کن و «سنجاق به ویترین» را بزن.',
+      tapToRemove: 'برای برداشتن بزن',
+    },
+    milestones: {
+      title: 'پله‌های گنجینه',
+      next: (left: number, gems: number, spins: number) => `${toPersianDigits(String(left))} یادگار دیگر تا جایزه‌ی بعدی: ${toPersianDigits(String(gems))} الماس${spins > 0 ? ` و ${toPersianDigits(String(spins))} چرخش گردونه` : ''}`,
+      allDone: 'همه‌ی پله‌ها را رفتی! 🎉',
+      step: (count: number, gems: number, spins: number) => `${toPersianDigits(String(count))} یادگار · ${toPersianDigits(String(gems))} الماس${spins > 0 ? ` + ${toPersianDigits(String(spins))} چرخش` : ''}`,
+      got: (count: number, gems: number, spins: number) => `پله‌ی ${toPersianDigits(String(count))} یادگار: +${toPersianDigits(String(gems))} الماس${spins > 0 ? ` و ${toPersianDigits(String(spins))} چرخش گردونه` : ''} 🎁`,
+    },
+    pinNow: 'حالا مُهرش را به ویترینت بزن',
     showcase: {
       title: 'ویترین',
       empty: 'هنوز یادگاری روی ویترین نیست',

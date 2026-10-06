@@ -667,7 +667,7 @@ if (isMainModule(import.meta.url)) {
   const productAdmin = db ? createDbProductAdmin(db) : undefined;
   const feedback = db && settings && productAdmin ? buildFeedbackService({ db, settings, productAdmin, player, socialStore }) : undefined;
   const keepsakeStore = db ? createDbKeepsakeStore(db) : undefined;
-  const keepsakes = keepsakeStore && settings ? new KeepsakeService(keepsakeStore, async () => (await settings.num('keepsake.drop_percent')) / 100) : undefined;
+  const keepsakes = keepsakeStore && settings ? new KeepsakeService(keepsakeStore, async () => (await settings.num('keepsake.drop_percent')) / 100, undefined, (id, ref, n) => wheel?.give(id, 'keepsake', ref, n) ?? Promise.resolve(0)) : undefined;
   const duelStakes =
     db && settings
       ? new DuelStakes(createDbStakeStore(db), {
