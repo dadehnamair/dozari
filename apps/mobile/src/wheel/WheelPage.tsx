@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
   tabText: { fontFamily: fonts.bold, fontSize: 14, color: colors.cream },
   tabTextOn: { color: colors.ink },
   tabDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.candy.pink, borderWidth: 2, borderColor: colors.ink },
-  dailyBox: { alignSelf: 'stretch', marginTop: 24, alignItems: 'center', gap: 12 },
+  dailyBox: { alignSelf: 'stretch', marginTop: 24, alignItems: 'stretch', gap: 12 },
   rim: { position: 'absolute', top: -12, left: -12, right: -12, bottom: -12, borderRadius: 999, backgroundColor: colors.ink },
   wheel: { width: SIZE, height: SIZE },
   slice: { position: 'absolute', left: 0, top: 0, width: SIZE, height: SIZE, alignItems: 'center' },

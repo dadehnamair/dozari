@@ -7,6 +7,7 @@ import { fa } from '../i18n/fa';
 import { avatarOf } from '../social/avatarOf';
 import { colors, fonts } from '../theme/colors';
 import { TEXT_RIGHT } from '../theme/direction';
+import { DARK, useDark } from '../theme/skin';
 import { fetchMyTable, fetchPublicTables, requestSeat } from './api';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
@@ -21,6 +22,7 @@ const POLL_MS = 3000;
  * When the host lets the player in, the table they now sit at opens.
  */
 export function OpenTables({ onSeated, onNote, errText }: { onSeated: (table: TableView) => void; onNote: (text: string | null) => void; errText: (e: unknown) => string }) {
+  const dark = useDark();
   const [rows, setRows] = useState<PublicTable[] | null>(null);
   const seen = useRef<Set<string>>(new Set());
   const load = useCallback(() => {
@@ -55,36 +57,42 @@ export function OpenTables({ onSeated, onNote, errText }: { onSeated: (table: Ta
 
   return (
     <View style={styles.wrap}>
-      <Text style={styles.intro}>{o.intro}</Text>
-      {rows && rows.length === 0 ? <Text style={styles.empty}>{o.empty}</Text> : null}
+      <Text style={[styles.intro, dark ? dk.text : null]}>{o.intro}</Text>
+      {rows && rows.length === 0 ? <Text style={[styles.empty, dark ? dk.text : null]}>{o.empty}</Text> : null}
       {rows?.map((r) => {
         const live = r.status === 'open';
         return (
-          <View key={`${r.code}-${r.status}`} style={[styles.card, live ? null : styles.cardDim]}>
+          <View key={`${r.code}-${r.status}`} style={[styles.card, live ? null : styles.cardDim, dark ? (live ? dk.card : dk.cardDim) : null]}>
             <View style={styles.top}>
               <View style={styles.icon}><Item icon={r.icon} /></View>
               <View style={styles.body}>
-                <Text style={styles.name} numberOfLines={1}>{r.name}</Text>
+                <Text style={[styles.name, dark ? dk.text : null]} numberOfLines={1}>{r.name}</Text>
                 <View style={styles.hostRow}>
                   <Avatar avatar={avatarOf(r.hostAvatarKey)} size={20} />
-                  <Text style={styles.sub} numberOfLines={1}>{o.host(r.hostNickname)}</Text>
+                  <Text style={[styles.sub, dark ? dk.text : null]} numberOfLines={1}>{o.host(r.hostNickname)}</Text>
                 </View>
               </View>
               <View style={[styles.chip, { backgroundColor: TONE[r.status] }]}><Text style={styles.chipText}>{o.status[r.status]}</Text></View>
             </View>
-            <Text style={styles.facts}>
+            <Text style={[styles.facts, dark ? dk.text : null]}>
               {r.format === '2v2' ? fa.tables.format2v2 : fa.tables.format1v1} · {fa.tables.rounds(r.rounds)} · {r.format === '1v1' ? `${r.priceRounds > 0 ? fa.tables.priceCount(r.priceRounds) : fa.tables.noPrice} · ` : ''}{fa.tables.entry(r.entryFee)} · {o.seats(r.taken, r.seats)}
             </Text>
             {live ? (
               r.yourRequest === 'pending' ? <Text style={styles.waiting}>{o.pending}</Text>
               : <Pressable onPress={() => void ask(r.code)} style={styles.ask} accessibilityRole="button"><Text style={styles.askText}>{r.yourRequest === 'denied' ? `${o.denied} · ${o.ask}` : o.ask}</Text></Pressable>
-            ) : <Text style={styles.viewOnly}>{o.viewOnly}</Text>}
+            ) : <Text style={[styles.viewOnly, dark ? dk.text : null]}>{o.viewOnly}</Text>}
           </View>
         );
       })}
     </View>
   );
 }
+
+const dk = StyleSheet.create({
+  text: { color: DARK.text, opacity: 1 },
+  card: { backgroundColor: DARK.raised, borderColor: DARK.frame },
+  cardDim: { backgroundColor: DARK.field, borderColor: DARK.line },
+});
 
 const styles = StyleSheet.create({
   wrap: { gap: 8 },

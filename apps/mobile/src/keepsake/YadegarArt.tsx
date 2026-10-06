@@ -1,5 +1,5 @@
 import { useId } from 'react';
-import { Image as RNImage } from 'react-native';
+import { Image as RNImage, Platform } from 'react-native';
 import Svg, { ClipPath, Circle, Defs, G, Image as SvgImage, LinearGradient, Path, Rect, Stop } from 'react-native-svg';
 import art1 from '../../assets/keepsake/yadegar-1.webp';
 import art2 from '../../assets/keepsake/yadegar-2.webp';
@@ -21,8 +21,13 @@ export const yadegarCard = (artKey: string | null | undefined): string | null =>
   return m ? m[1]! : null;
 };
 
+/**
+ * Where the scene's picture is. On the web `Image.resolveAssetSource` does not exist (calling it crashed the whole page once a piece was owned),
+ * so the same files are also served from `public/keepsake/`; on a phone the bundled asset id is resolved.
+ */
 const src = (card: string) => {
-  const uri = RNImage.resolveAssetSource(ART[card]!)?.uri;
+  if (Platform.OS === 'web') return { uri: `/keepsake/yadegar-${card}.webp` };
+  const uri = typeof RNImage.resolveAssetSource === 'function' ? RNImage.resolveAssetSource(ART[card]!)?.uri : undefined;
   return uri ? { uri } : ART[card]!;
 };
 

@@ -5,6 +5,7 @@ import { Item } from '../components/Item';
 import { fa } from '../i18n/fa';
 import { avatarOf } from '../social/avatarOf';
 import { colors, fonts } from '../theme/colors';
+import { DARK } from '../theme/skin';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const INK = '#3A2418';
@@ -14,12 +15,14 @@ const t = fa.tables.lobby;
  * Who plays whom at a table: two team cards face to face with a VS coin between them. The caller's team is blue and first,
  * the rival team pink; empty seats say who is awaited, and in a 2v2 an empty seat of the other team is a button to sit there.
  */
-export function TableLobby({ table, onSit, onKick }: { table: TableView; onSit: (side: 0 | 1) => void; onKick: (userId: string) => void }) {
+export function TableLobby({ table, dark = false, onSit, onKick }: { table: TableView; /** The adult look: dark team cards in a gold frame with light text. */ dark?: boolean; onSit: (side: 0 | 1) => void; onKick: (userId: string) => void }) {
   const me = table.players.find((p) => p.isYou);
   const mySide = me?.side ?? 0;
   const perTeam = table.seats / 2;
   const order: (0 | 1)[] = [mySide, mySide === 0 ? 1 : 0];
   const team = table.format === '2v2';
+  const ink = dark ? DARK.text : INK;
+  const frame = dark ? DARK.frame : INK;
   return (
     <View style={styles.wrap} accessibilityLabel={t.vs}>
       <View style={styles.row}>
@@ -28,8 +31,8 @@ export function TableLobby({ table, onSit, onKick }: { table: TableView; onSit: 
           const players = table.players.filter((p) => p.side === side);
           const tone = mine ? colors.candy.sky : colors.candy.pink;
           return (
-            <View key={side} style={[styles.card, { borderColor: INK, backgroundColor: mine ? '#E4F6FD' : '#FFE6EF' }]}>
-              <View style={[styles.head, { backgroundColor: tone }]}>
+            <View key={side} style={[styles.card, { borderColor: frame, backgroundColor: dark ? DARK.raised : mine ? '#E4F6FD' : '#FFE6EF' }]}>
+              <View style={[styles.head, { backgroundColor: dark ? (mine ? '#1F5E7A' : '#7A2B4A') : tone, borderColor: frame }]}>
                 <Text style={styles.headText}>{me ? (mine ? t.yourTeam : t.rivalTeam) : fa.tables.team(side + 1)}</Text>
               </View>
               {Array.from({ length: perTeam }, (_, i) => {
@@ -38,13 +41,13 @@ export function TableLobby({ table, onSit, onKick }: { table: TableView; onSit: 
                   const canSit = team && !table.inMatch && !!me && side !== mySide;
                   return canSit ? (
                     <Pressable key={`e${i}`} onPress={() => onSit(side)} style={[styles.seat, styles.empty]} accessibilityRole="button" accessibilityLabel={t.sitHere}>
-                      <View style={styles.ghost}><Text style={styles.plus}>+</Text></View>
-                      <Text style={styles.sitText}>{t.sitHere}</Text>
+                      <View style={[styles.ghost, { borderColor: frame }, dark ? { backgroundColor: DARK.field } : null]}><Text style={[styles.plus, { color: ink }]}>+</Text></View>
+                      <Text style={[styles.sitText, dark ? { color: DARK.frame } : null]}>{t.sitHere}</Text>
                     </Pressable>
                   ) : (
                     <View key={`e${i}`} style={[styles.seat, styles.empty]}>
-                      <View style={styles.ghost}><Text style={styles.plus}>؟</Text></View>
-                      <Text style={styles.waitText}>{mine ? t.waitMate : t.waitRival}</Text>
+                      <View style={[styles.ghost, { borderColor: frame }, dark ? { backgroundColor: DARK.field } : null]}><Text style={[styles.plus, { color: ink }]}>؟</Text></View>
+                      <Text style={[styles.waitText, { color: ink }]}>{mine ? t.waitMate : t.waitRival}</Text>
                     </View>
                   );
                 }
@@ -54,8 +57,8 @@ export function TableLobby({ table, onSit, onKick }: { table: TableView; onSit: 
                       <Avatar avatar={avatarOf(p.avatarKey)} size={46} />
                       {p.isHost ? <View style={styles.crown}><Item icon="crown" /></View> : null}
                     </View>
-                    <Text style={styles.name} numberOfLines={1}>{p.isYou ? `${p.nickname} (${t.you})` : p.nickname}</Text>
-                    <Text style={[styles.state, p.ready || p.isHost ? styles.stateOk : null]}>{p.isHost ? fa.tables.host : p.ready ? `✓ ${fa.tables.ready}` : t.notYet}</Text>
+                    <Text style={[styles.name, { color: ink }]} numberOfLines={1}>{p.isYou ? `${p.nickname} (${t.you})` : p.nickname}</Text>
+                    <Text style={[styles.state, { color: ink }, p.ready || p.isHost ? [styles.stateOk, dark ? { color: '#8EE6A0' } : null] : null]}>{p.isHost ? fa.tables.host : p.ready ? `✓ ${fa.tables.ready}` : t.notYet}</Text>
                     {table.youAreHost && !p.isHost && !table.inMatch ? (
                       <Pressable onPress={() => onKick(p.id)} style={styles.kick} accessibilityRole="button"><Text style={styles.kickText}>{fa.tables.kick}</Text></Pressable>
                     ) : null}
@@ -65,9 +68,9 @@ export function TableLobby({ table, onSit, onKick }: { table: TableView; onSit: 
             </View>
           );
         })}
-        <View style={styles.vs} pointerEvents="none"><Text style={styles.vsText}>{t.vs}</Text></View>
+        <View style={[styles.vs, dark ? { borderColor: DARK.frame } : null]} pointerEvents="none"><Text style={styles.vsText}>{t.vs}</Text></View>
       </View>
-      <Text style={styles.count}>{fa.tables.seats(table.players.length, table.seats)}{team ? ` · ${t.perTeam}` : ''}</Text>
+      <Text style={[styles.count, { color: ink }]}>{fa.tables.seats(table.players.length, table.seats)}{team ? ` · ${t.perTeam}` : ''}</Text>
     </View>
   );
 }

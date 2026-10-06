@@ -143,7 +143,7 @@ function RoadCanvas({ road, nodes, width, onLocked, onClaim }: { road: LevelRoad
       {lay.points.map((p) => {
         const node = byLevel.get(p.level);
         if (!node) return null;
-        return <RoadStop key={p.level} node={node} x={p.x} y={p.y} left={p.left} reached={node.level <= road.level} onLocked={onLocked} onClaim={onClaim} />;
+        return <RoadStop key={p.level} node={node} x={p.x} y={p.y} left={p.left} width={width} reached={node.level <= road.level} onLocked={onLocked} onClaim={onClaim} />;
       })}
       {here ? (
         <View pointerEvents="none" style={{ position: 'absolute', left: here.x - 34, top: here.y - 50 - 79, width: 68, height: 79, zIndex: 3 }}>
@@ -154,9 +154,10 @@ function RoadCanvas({ road, nodes, width, onLocked, onClaim }: { road: LevelRoad
   );
 }
 
-const CARD_W = 156;
+/** The card takes the free half of the road beside its bend (bends sit at 30% / 70% of the width). */
+const cardWidth = (width: number): number => Math.max(150, Math.min(230, Math.round(width * 0.56)));
 
-function RoadStop({ node, x, y, left, reached, onLocked, onClaim }: { node: RoadNode; x: number; y: number; left: boolean; reached: boolean; onLocked: (u: Unlock) => void; onClaim: () => void }) {
+function RoadStop({ node, x, y, left, width, reached, onLocked, onClaim }: { node: RoadNode; x: number; y: number; left: boolean; width: number; reached: boolean; onLocked: (u: Unlock) => void; onClaim: () => void }) {
   const dim = node.state === 'locked';
   const current = node.state === 'current';
   const size = current ? 66 : 54;
@@ -171,7 +172,8 @@ function RoadStop({ node, x, y, left, reached, onLocked, onClaim }: { node: Road
     loop.start();
     return () => loop.stop();
   }, [current, pulse]);
-  const cardsH = count * 50 + Math.max(0, count - 1) * 4 + (node.unlocks.length > (node.reward ? 1 : 2) ? 14 : 0);
+  const cardW = cardWidth(width);
+  const cardsH = count * 62 + Math.max(0, count - 1) * 4 + (node.unlocks.length > (node.reward ? 1 : 2) ? 14 : 0);
   return (
     <>
       <Animated.View style={[styles.node, current ? styles.nodeCurrent : node.state === 'done' ? styles.nodeDone : styles.nodeLocked, { left: x - size / 2, top: y - size / 2, width: size, height: size, borderRadius: size / 2, transform: [{ scale: pulse }] }]}>
@@ -181,7 +183,7 @@ function RoadStop({ node, x, y, left, reached, onLocked, onClaim }: { node: Road
       </Animated.View>
       {current ? <Text style={[styles.youTag, { left: x - 45, top: y + size / 2 + 6 }]}>{fa.levels.hereNow}</Text> : null}
       {count > 0 ? (
-        <View style={[styles.cardsBox, { top: y - cardsH / 2, width: CARD_W }, left ? { left: x + 38 } : { left: Math.max(4, x - 38 - CARD_W) }]}>
+        <View style={[styles.cardsBox, { top: y - cardsH / 2, width: cardW }, left ? { left: Math.min(x + 38, width - cardW - 4) } : { left: Math.max(4, x - 38 - cardW) }]}>
           <Cards node={node} dim={dim} reached={reached} onLocked={onLocked} onClaim={onClaim} />
         </View>
       ) : null}
@@ -199,7 +201,7 @@ function Cards({ node, dim, reached, onLocked, onClaim }: { node: RoadNode; dim:
         <Pressable onPress={reached && !r.claimed ? onClaim : undefined} disabled={!reached || r.claimed} accessibilityRole={reached && !r.claimed ? 'button' : 'text'} accessibilityLabel={fa.levels.rewardTitle} style={[styles.card, styles.cardReward, !reached ? styles.cardDim : null]}>
           <View style={styles.cardIcon}><View style={[styles.cardIconInner, !reached ? styles.gray : null]}><Item icon={r.coins > 0 ? 'coinStack' : 'dice'} /></View></View>
           <View style={styles.cardText}>
-            <Text style={styles.cardTitle} numberOfLines={1}>{fa.levels.prize(r.coins, r.spins)}</Text>
+            <Text style={styles.cardTitle} numberOfLines={2}>{fa.levels.prize(r.coins, r.spins)}</Text>
             <Text style={[styles.cardSub, r.claimed ? styles.cardDone : reached ? styles.cardClaim : null]} numberOfLines={1}>{r.claimed ? fa.levels.claimed : reached ? fa.levels.claim : fa.levels.fromLevel(node.level)}</Text>
           </View>
         </Pressable>
@@ -211,7 +213,7 @@ function Cards({ node, dim, reached, onLocked, onClaim }: { node: RoadNode; dim:
           <Pressable key={`${u.kind}-${i}`} onPress={dim ? () => onLocked(u) : undefined} disabled={!dim} accessibilityRole={dim ? 'button' : 'text'} accessibilityLabel={v.title} style={[styles.card, dim ? styles.cardDim : null]}>
             <View style={styles.cardIcon}><View style={[styles.cardIconInner, dim ? styles.gray : null]}><Item icon={v.icon} /></View></View>
             <View style={styles.cardText}>
-              <Text style={styles.cardTitle} numberOfLines={1}>{v.title}</Text>
+              <Text style={styles.cardTitle} numberOfLines={2}>{v.title}</Text>
               <Text style={[styles.cardSub, dim ? null : styles.cardDone]} numberOfLines={1}>{dim ? fa.levels.fromLevel(node.level) : fa.levels.done}</Text>
             </View>
           </Pressable>
@@ -290,17 +292,17 @@ const styles = StyleSheet.create({
   youTag: { position: 'absolute', width: 90, textAlign: 'center', zIndex: 3, fontFamily: fonts.display, fontSize: 12, color: colors.ink, backgroundColor: colors.candy.yellow, borderWidth: 2, borderColor: colors.ink, borderRadius: 8, overflow: 'hidden' },
   more: { fontFamily: fonts.display, fontSize: 12, color: colors.cream, textAlign: 'center' },
   cards: { gap: 4 },
-  card: { flexDirection: ROW, alignItems: 'center', gap: 6, paddingVertical: 4, paddingHorizontal: 5, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.paper, ...lift(4) },
-  cardDim: { backgroundColor: '#D7C9EC', opacity: 0.92 },
-  cardIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
-  cardIconInner: { width: 30, height: 30 },
+  card: { flexDirection: ROW, alignItems: 'center', gap: 8, minHeight: 58, paddingVertical: 6, paddingHorizontal: 7, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.paper, ...lift(4) },
+  cardDim: { backgroundColor: '#E4D8F4' },
+  cardIcon: { width: 42, height: 42, borderRadius: 12, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
+  cardIconInner: { width: 34, height: 34 },
   gray: { opacity: 0.45 },
-  cardText: { flexShrink: 1, gap: 1 },
-  cardTitle: { fontFamily: fonts.display, fontSize: 13, color: colors.ink, textAlign: TEXT_RIGHT },
-  cardSub: { fontFamily: fonts.bold, fontSize: 9.5, color: '#7E46D6', textAlign: TEXT_RIGHT },
-  cardDone: { color: '#3FA36B' },
+  cardText: { flex: 1, gap: 1 },
+  cardTitle: { fontFamily: fonts.display, fontSize: 14.5, lineHeight: 21, color: colors.ink, textAlign: TEXT_RIGHT },
+  cardSub: { fontFamily: fonts.bold, fontSize: 12, color: '#6A33C2', textAlign: TEXT_RIGHT },
+  cardDone: { color: '#2E8A58' },
   cardReward: { backgroundColor: '#FFF1B8' },
-  cardClaim: { color: '#E8743B' },
+  cardClaim: { color: '#C4521C' },
   xpBox: { marginHorizontal: 14, marginBottom: 6, gap: 4 },
   xpHead: { flexDirection: ROW, justifyContent: 'space-between' },
   xpLevel: { fontFamily: fonts.display, fontSize: 16, color: colors.cream },
