@@ -141,6 +141,12 @@ export class GuardianService {
   }
 
   /** A guardian may move their child to any child track (an older one needs their say, which is this call). */
+  /** The guardian's device (just signed in by phone) picks one of their children to play as: a session for that child. */
+  async switchTo(guardianId: string, childId: string, deviceId: string): Promise<Session | null> {
+    if (!(await this.store.isChildOf(guardianId, childId))) return null;
+    return this.auth.sessionFor(childId, deviceId);
+  }
+
   async setTrack(guardianId: string, childId: string, track: 'kid' | 'teen'): Promise<Result> {
     if (!(await this.store.isChildOf(guardianId, childId))) return { ok: false, error: 'not_found' };
     await this.tracks.save(childId, track, new Date(this.now()));
@@ -220,6 +226,14 @@ export function registerGuardianRoutes(app: FastifyInstance, auth: AuthService, 
     if (!user) return reply.code(401).send({ error: 'unauthorized' });
     const out = await svc.linkCode(user.id, req.params.id);
     return out.ok ? { code: out.code, expiresInSec: out.expiresInSec } : fail(reply, out);
+  });
+  app.post<{ Params: { id: string } }>('/guardian/children/:id/switch', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    const body = childLinkRequestSchema.pick({ deviceId: true }).safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'invalid_request' });
+    const session = await svc.switchTo(user.id, req.params.id, body.data.deviceId);
+    return session ? session : reply.code(404).send({ error: 'not_found' });
   });
   app.put<{ Params: { id: string } }>('/guardian/children/:id/track', async (req, reply) => {
     const user = await currentUser(auth, req);

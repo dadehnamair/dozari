@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import type { AgeTrack } from '@dozari/shared';
 import { SlabButton } from '../components/SlabButton';
@@ -16,7 +16,7 @@ const INK = '#2B1240';
  * First-run «who is playing?» screen (docs/logic/age-tracks.md): three big cards on the same bazaar-at-dusk look as the sign-in screen.
  * Shown once per account, only when the server's age-track switch is on. The adult card comes first and wears the main colour.
  */
-export function AgeTrackScreen({ onDone }: { onDone: (track: AgeTrack) => void }) {
+export function AgeTrackScreen({ onDone, preset }: { onDone: (track: AgeTrack) => void; /** Already chosen with the icons on the sign-in screen: saved straight away, only the guardian step (kid/teen) is shown. */ preset?: AgeTrack }) {
   const l = fa.ageTrack;
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -32,6 +32,9 @@ export function AgeTrackScreen({ onDone }: { onDone: (track: AgeTrack) => void }
       () => (setBusy(false), setFailed(true)),
     );
   };
+  useEffect(() => {
+    if (preset) pick(preset);
+  }, []);
   const rows: { track: AgeTrack; label: string; hint: string; color: string }[] = [
     { track: 'adult', label: l.adult, hint: l.adultHint, color: colors.candy.lime },
     { track: 'teen', label: l.teen, hint: l.teenHint, color: colors.candy.sky },
@@ -47,7 +50,7 @@ export function AgeTrackScreen({ onDone }: { onDone: (track: AgeTrack) => void }
       </View>
       <View style={[styles.card, tight ? styles.cardTight : null]}>
         {picked ? <GuardianStep onDone={() => onDone(picked)} /> : null}
-        {picked ? null : rows.map((r) => (
+        {picked || (preset && !failed) ? null : rows.map((r) => (
           <View key={r.track} style={styles.row}>
             <SlabButton label={busy ? l.saving : r.label} color={r.color} height={tight ? 50 : 58} fontSize={24} grow={0} disabled={busy} sfx="confirm" onPress={() => pick(r.track)} />
             <Text style={styles.hint}>{r.hint}</Text>
