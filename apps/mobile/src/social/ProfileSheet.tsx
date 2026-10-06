@@ -62,7 +62,7 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
   const [failed, setFailed] = useState(false);
   const [editing, setEditing] = useState(false);
   const [sub, setSub] = useState<'invite' | 'loans' | 'find' | 'badges' | 'friends' | 'city' | 'levels' | 'recent' | null>(start);
-  // Nothing scrolls: on a short phone the header and the tiles tighten instead.
+  // On a short phone the header and the tiles tighten, and the page scrolls for whatever still does not fit.
   const compact = useWindowDimensions().height < 720;
   const heroH = compact ? 118 : 140;
   const avatar = compact ? 92 : 108;
@@ -124,10 +124,6 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
 
   return (
     <View style={styles.root}>
-      <View style={[styles.hero, { height: heroH }]}>
-        <Scene scene="caravan" />
-        <View style={styles.heroLine} />
-      </View>
       <View style={styles.bar}>
         <Pressable accessibilityRole="button" accessibilityLabel={fa.profile.close} onPress={onClose}>
           {({ pressed }) => (
@@ -146,7 +142,12 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
           )}
         </Pressable>
       </View>
-      <View style={[styles.column, { paddingTop: heroH + avatar / 2 - 6 - charH, gap: compact ? 6 : 9 }]}>
+      {/* The hero scrolls with the page; the back / edit bar above stays put. */}
+      <ScrollView style={styles.scroll} contentContainerStyle={[styles.column, { paddingTop: heroH + avatar / 2 - 6 - charH, gap: compact ? 6 : 9 }]} showsVerticalScrollIndicator={false}>
+        <View style={[styles.hero, { height: heroH }]}>
+          <Scene scene="caravan" />
+          <View style={styles.heroLine} />
+        </View>
         <View style={styles.avatarWrap}>
           {me ? <View style={{ width: charW, height: charH }}><Character skin={avatarOf(me.avatarKey).skin} pose={avatarOf(me.avatarKey).pose} worn={worn} /></View> : <View style={{ width: charW, height: charH }} />}
           {lv ? (
@@ -214,7 +215,7 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
             </View>
           </>
         ) : null}
-      </View>
+      </ScrollView>
 
       {sub === 'recent' ? <RecentGamesSheet games={games} onClose={() => setSub(null)} /> : null}
       {editing && me ? (
@@ -277,7 +278,8 @@ const styles = StyleSheet.create({
   hero: { position: 'absolute', top: 0, left: 0, right: 0, overflow: 'hidden' },
   heroLine: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 4, backgroundColor: colors.ink },
   bar: { position: 'absolute', top: pageTop(), left: 16, right: 16, zIndex: 3, flexDirection: ROW, justifyContent: 'space-between' },
-  column: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingHorizontal: 16, paddingBottom: 14, alignItems: 'center' },
+  scroll: { flex: 1 },
+  column: { flexGrow: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingHorizontal: 16, paddingBottom: 14, alignItems: 'center' },
   square: { width: 42, height: 42, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...lift(4) },
   pressed: { transform: [{ translateY: 3 }] },
   avatarWrap: { alignItems: 'center' },
@@ -299,7 +301,7 @@ const styles = StyleSheet.create({
   statValue: { fontFamily: fonts.display, fontSize: 22, color: colors.ink, lineHeight: 26 },
   statLabel: { fontFamily: fonts.bold, fontSize: 11, color: colors.ink, opacity: 0.8 },
   tagsRow: { alignSelf: 'stretch', flexDirection: ROW, alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 32 },
-  grid: { alignSelf: 'stretch', flexDirection: ROW, flexWrap: 'wrap', justifyContent: 'center', alignContent: 'center', columnGap: 8, rowGap: 10, flex: 1 },
+  grid: { alignSelf: 'stretch', flexDirection: ROW, flexWrap: 'wrap', justifyContent: 'center', alignContent: 'center', columnGap: 8, rowGap: 10, flexGrow: 1 },
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 30, backgroundColor: 'rgba(20,8,32,0.55)', alignItems: 'center', justifyContent: 'center', padding: 18 },
   editor: { width: '100%', maxWidth: 400, maxHeight: '88%', borderRadius: 22, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.cream, overflow: 'hidden' },
   editorContent: { gap: 8, padding: 14 },

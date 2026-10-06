@@ -15,6 +15,7 @@ import { usePwa } from '../pwa/usePwa';
 import { playSfx } from '../sound/engine';
 import { colors, fonts } from '../theme/colors';
 import { PhoneLoginSheet } from '../phone/PhoneLoginSheet';
+import { BaleSheet } from '../bale/BaleSheet';
 import { ChildCodeSheet } from '../agetrack/ChildCodeSheet';
 import { ChildrenSheet } from '../agetrack/ChildrenSheet';
 import { CityPicker } from './CityPicker';
@@ -42,7 +43,7 @@ interface Row {
  * cards of rows — switches that work on this device (sound, vibration, less motion), shortcuts (profile, city,
  * install) and the account (replay the tutorial, sign out, delete with a second tap).
  */
-export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone, ageTracksOn = false, onPreview }: { onClose: () => void; /** A guardian opens a read-only preview of the kid or teen space. */ onPreview?: (track: 'kid' | 'teen') => void; onProfile: () => void; onTutorial?: () => void; onAccountGone?: () => void; /** The server's age-track switch: shows the guardian rows. */ ageTracksOn?: boolean }) {
+export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone, ageTracksOn = false, baleOn = false, onPreview }: { onClose: () => void; /** A guardian opens a read-only preview of the kid or teen space. */ onPreview?: (track: 'kid' | 'teen') => void; onProfile: () => void; onTutorial?: () => void; onAccountGone?: () => void; /** The server's age-track switch: shows the guardian rows. */ ageTracksOn?: boolean; /** The Bale bot is set up: shows the «connect to Bale» row. */ baleOn?: boolean }) {
   useHardwareBack(onClose);
   const prefs = usePrefs();
   const pwa = usePwa();
@@ -56,6 +57,7 @@ export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone, ag
   const [loginOpen, setLoginOpen] = useState(false);
   const [childrenOpen, setChildrenOpen] = useState(false);
   const [childCodeOpen, setChildCodeOpen] = useState(false);
+  const [baleOpen, setBaleOpen] = useState(false);
   const t = fa.settings;
   // Nothing scrolls: on a short screen the rows tighten instead.
   const compact = useWindowDimensions().height < 760;
@@ -93,6 +95,7 @@ export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone, ag
       tint: colors.candy.pink,
       rows: [
         { key: 'about', icon: 'lantern', tint: '#C9A3FF', label: t.about, onPress: () => setAboutOpen((v) => !v) },
+        ...(baleOn ? [{ key: 'bale', icon: 'bolt', tint: '#FF7A3D', label: fa.bale.row, onPress: () => setBaleOpen(true) }] : []),
         { key: 'phoneLogin', icon: 'phone', tint: '#7ED957', label: fa.phoneLogin.row, onPress: () => setLoginOpen(true) },
         ...(ageTracksOn ? [{ key: 'children', icon: 'medal', tint: '#FFAA7A', label: fa.guardian.childrenRow, onPress: () => setChildrenOpen(true) }, { key: 'childLogin', icon: 'key', tint: '#C9A3FF', label: fa.guardian.childLoginRow, onPress: () => setChildCodeOpen(true) }] : []),
         { key: 'out', icon: 'key', tint: '#FFAA7A', label: t.signOut, onPress: () => setAskOut(true) },
@@ -156,6 +159,7 @@ export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone, ag
       {loginOpen ? <PhoneLoginSheet onClose={() => setLoginOpen(false)} /> : null}
       {childrenOpen ? <ChildrenSheet onClose={() => setChildrenOpen(false)} onPreview={onPreview ? (t) => (setChildrenOpen(false), onPreview(t)) : undefined} /> : null}
       {childCodeOpen ? <ChildCodeSheet onClose={() => setChildCodeOpen(false)} /> : null}
+      {baleOpen ? <BaleSheet onClose={() => setBaleOpen(false)} /> : null}
       {iosHelp ? <IosInstallSheet onClose={() => setIosHelp(false)} /> : null}
     </View>
   );

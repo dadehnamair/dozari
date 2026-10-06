@@ -4,6 +4,7 @@ import { toPersianDigits } from '@dozari/shared';
 import type { AgeTrack } from '@dozari/shared';
 import { ChildCodeSheet } from '../agetrack/ChildCodeSheet';
 import { Character } from '../components/Character';
+import { Icon } from '../components/Icon';
 import { Scene } from '../components/Scene';
 import { SlabButton } from '../components/SlabButton';
 import { AnimatedLogo } from '../components/AnimatedLogo';
@@ -141,8 +142,9 @@ export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { sig
           <Text style={[styles.guestText, adult ? ad.guestText : null]}>{l.guest}</Text>
         </Pressable>
         {ageTracksOn ? (
-          <Pressable accessibilityRole="button" onPress={() => setChildCodeOpen(true)}>
-            <Text style={[styles.link, adult ? ad.link : null]}>{fa.guardian.childLoginRow}</Text>
+          <Pressable accessibilityRole="button" onPress={() => setChildCodeOpen(true)} style={({ pressed }) => [styles.parent, adult ? ad.parent : null, pressed ? styles.parentPressed : null]}>
+            <Icon name="lock" size={16} color={adult ? '#E8B64A' : '#7E46D6'} strokeWidth={2.6} />
+            <Text style={[styles.parentText, adult ? ad.link : null]}>{fa.guardian.childLoginRow}</Text>
           </Pressable>
         ) : null}
       </View>
@@ -168,6 +170,7 @@ const ad = StyleSheet.create({
   orLine: { backgroundColor: 'rgba(232,182,74,0.25)' },
   guest: { backgroundColor: '#3A2412', borderColor: '#B8822A', shadowColor: '#000' },
   guestText: { color: '#FFE9A8' },
+  parent: { borderColor: 'rgba(232,182,74,0.55)', backgroundColor: 'rgba(232,182,74,0.08)' },
   agePill: { backgroundColor: '#3A2412', borderColor: '#B8822A' },
   agePillOn: { backgroundColor: '#E8B64A', borderColor: '#000' },
   agePillText: { color: '#FFE9A8' },
@@ -210,5 +213,9 @@ const styles = StyleSheet.create({
   agePill: { flex: 1, height: 40, borderRadius: 12, borderWidth: 3, borderColor: INK, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
   agePillOn: { backgroundColor: colors.hi },
   agePillText: { fontFamily: fonts.display, fontSize: 17, color: INK },
+  // A quiet dashed pill: for a child's own device, so it must not compete with the guest button.
+  parent: { height: 38, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, borderRadius: 14, borderWidth: 2, borderStyle: 'dashed', borderColor: 'rgba(126,70,214,0.55)', backgroundColor: 'rgba(126,70,214,0.08)' },
+  parentPressed: { backgroundColor: 'rgba(126,70,214,0.18)' },
+  parentText: { fontFamily: fonts.bold, fontSize: 13, color: '#7E46D6' },
   guestText: { fontFamily: fonts.display, fontSize: 17, color: INK },
 });
