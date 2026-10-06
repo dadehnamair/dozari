@@ -17,6 +17,11 @@ A provider shows in the panel only when its key exists in the server environment
 Keys are never stored in the DB, sent to the browser or written to the audit log. Base URLs come from env only (never from the admin UI), so an admin cannot point the server at an internal address.
 The model name may be typed per request (letters, digits, inner spaces, `. _ - : /`); empty = the preset default.
 
+## Model picker and odd answers
+
+The panel's «مدل» is a dropdown filled from the provider (`GET /admin/ai/models?provider=…` → the provider's `GET {base}/models`, cached 10 min; embedding/audio/image models hidden). The first, empty option means the preset default; an empty or failing list leaves only that option.
+Answers are cleaned before parsing: `<think>…</think>` blocks removed, array-of-parts `content` joined, trailing commas tolerated. An empty answer or unreadable JSON gives `ai_bad_output` with a short reason (e.g. the output hit `max_tokens` because a reasoning model spent it thinking, or the first 160 characters of what came back); the same detail is logged server-side (`ai studio call failed`).
+
 ## Kinds
 
 | kind | options | output → saved as |
@@ -24,6 +29,7 @@ The model name may be typed per request (letters, digits, inner spaces, `. _ - :
 | `products` | count ≤20, category, age band, from/to Solar year, free hint | name, latin slug, unit, category, one nostalgic sentence → **inactive** product (`ProductAdmin.create`, then `isActive=false`); duplicate slug retries `-2`, `-3`. Each draft may carry up to 8 nominal prices (year + toman, integer); they are saved as **`pending`** price points (×10 → rials, confidence 1, note «AI-suggested, unverified») and an editor approves them in the catalog like any other price. Products already in the catalog (name or slug, Persian-normalised) are sent to the model as «do not repeat» and filtered out again on parse and on save. |
 | `kid_lessons` | count ≤20 (kid items that have no lesson yet) | word, one-sentence story, syllables → `item_lessons` **draft** (an editor approves in «کلمه‌آموزی کودک») |
 | `puzzle_titles` | one puzzle, style witty/plain | one title per group level → `PuzzleAdmin.setTitles` (editor reviews the titles in the same page before saving) |
+| `puzzle_groups` | count ≤3, age track, title style | **whole puzzles**: the model gets up to 300 active catalog products (numbered, filtered by age track) and returns 4 groups (levels 0–3) × 4 distinct products with a title and a plain rule sentence each → `PuzzleAdmin.create(…, 'draft')` (`source: curated`, **draft**: an editor approves it in «ساخت پازل»). Numbers outside the list, repeated products or wrong shapes drop the puzzle. |
 | `blog` | topic, count ≤3, length short/medium/long, tone, keywords | title, summary, markdown body, SEO title/description → blog post **draft** (`LandingService.savePost`, `status: draft`) |
 
 ## Safety rules

@@ -1,11 +1,11 @@
-import { AI_LIMITS } from '@dozari/shared';
+import { AI_LIMITS, AI_PUZZLE_CATALOG_MAX, trackRank } from '@dozari/shared';
 import type { AiKind } from '@dozari/shared';
 import type { LessonStore } from '../lessons/service.js';
 import type { PuzzleAdmin } from '../puzzles/admin.js';
 import type { ProductAdmin } from '../admin/products.js';
 import type { LandingService } from '../landing/service.js';
 import { slugify } from '../landing/service.js';
-import { AiError, chat, resolveProviders } from './providers.js';
+import { AiError, chat, listModels, resolveProviders } from './providers.js';
 import type { Env, FetchLike, ResolvedProvider } from './providers.js';
 import { buildPrompt, nameKey, parseDrafts } from './content.js';
 import type { GenerateRequest, PromptContext, SaveRequest } from './content.js';
@@ -17,7 +17,7 @@ export interface AiDeps {
   products?: ProductAdmin;
   landing?: LandingService;
   /** The catalog as it is now, to keep suggestions from repeating existing products. */
-  catalog?: () => Promise<{ slug: string; nameFa: string }[]>;
+  catalog?: () => Promise<{ id: string; slug: string; nameFa: string }[]>;
   fetch?: FetchLike;
   now?: () => number;
 }
@@ -54,9 +54,23 @@ export class AiStudio {
   describe() {
     return {
       providers: this.providers.map((p) => ({ id: p.id, label: p.label, defaultModel: p.defaultModel })),
-      kinds: { products: !!this.deps.products, kid_lessons: !!this.deps.lessons, puzzle_titles: !!this.deps.puzzles, blog: !!this.deps.landing },
+      kinds: { products: !!this.deps.products, kid_lessons: !!this.deps.lessons, puzzle_titles: !!this.deps.puzzles, puzzle_groups: !!(this.deps.puzzles && this.deps.catalog && this.deps.products), blog: !!this.deps.landing },
       maxCallsPerHour: AI_LIMITS.maxCallsPerHour,
     };
+  }
+
+  private readonly modelCache = new Map<string, { at: number; ids: string[] }>();
+
+  /** Model names of one provider for the panel's picker; cached for ten minutes. */
+  async models(providerId: string): Promise<string[]> {
+    const provider = this.providers.find((p) => p.id === providerId);
+    if (!provider) throw new AiError('ai_unknown_provider');
+    const now = (this.deps.now ?? Date.now)();
+    const hit = this.modelCache.get(providerId);
+    if (hit && now - hit.at < 600_000) return hit.ids;
+    const ids = await listModels(provider, this.deps.fetch);
+    if (ids.length > 0) this.modelCache.set(providerId, { at: now, ids });
+    return ids;
   }
 
   private takeSlot(): void {
@@ -77,6 +91,18 @@ export class AiStudio {
       if (ctx.kidItems.length === 0) throw new AiError('ai_not_found');
     }
     if (req.kind === 'products' && this.deps.catalog) ctx.existing = await this.deps.catalog();
+    if (req.kind === 'puzzle_groups') {
+      if (!this.deps.puzzles || !this.deps.catalog || !this.deps.products) throw new AiError('ai_not_found');
+      const [all, details] = await Promise.all([this.deps.catalog(), this.deps.products.details()]);
+      const usable = all.filter((p) => details[p.id]?.isActive && trackRank(details[p.id]!.ageTrack) <= trackRank(req.ageTrack));
+      // A random sample so repeated runs do not always see the same slice of a big catalog.
+      for (let i = usable.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [usable[i], usable[j]] = [usable[j]!, usable[i]!];
+      }
+      ctx.pool = usable.slice(0, AI_PUZZLE_CATALOG_MAX).map((p) => ({ productId: p.id, nameFa: p.nameFa, category: details[p.id]?.category }));
+      if (ctx.pool.length < 16) throw new AiError('ai_not_found');
+    }
     if (req.kind === 'puzzle_titles') {
       const row = (await this.deps.puzzles?.list(500))?.find((p) => p.id === req.puzzleId);
       if (!row) throw new AiError('ai_not_found');
@@ -86,8 +112,8 @@ export class AiStudio {
     const prompt = buildPrompt(req, ctx);
     const model = req.model?.trim() || provider.defaultModel;
     const text = await chat(provider, { ...prompt, model, maxTokens: AI_LIMITS.maxTokens[req.kind] }, this.deps.fetch);
-    const parsed = parseDrafts(req.kind, text, ctx, req.kind === 'products' ? req.ageTrack : 'adult');
-    if (!parsed) throw new AiError('ai_bad_output');
+    const parsed = parseDrafts(req.kind, text, ctx, req.kind === 'products' || req.kind === 'puzzle_groups' ? req.ageTrack : 'adult');
+    if (!parsed) throw new AiError('ai_bad_output', undefined, `جواب مدل JSON قابل‌خواندن نبود: «${text.replace(/\s+/g, ' ').slice(0, 160)}»`);
     return { kind: req.kind, provider: provider.id, model, drafts: parsed.drafts, dropped: parsed.dropped, context: ctx };
   }
 
@@ -143,6 +169,15 @@ export class AiStudio {
         if (!d.puzzles) throw new AiError('ai_not_found');
         const res = await d.puzzles.setTitles(req.puzzleId, req.drafts);
         return [{ label: req.puzzleId, ok: res === 'ok', ...(res === 'ok' ? {} : { error: res }) }];
+      }
+      case 'puzzle_groups': {
+        if (!d.puzzles) throw new AiError('ai_not_found');
+        const out: SaveOutcome[] = [];
+        for (const [i, p] of req.drafts.entries()) {
+          const res = await d.puzzles.create(p.groups.map((g) => ({ level: g.level, titleFa: g.titleFa, explanationFa: g.explanationFa, productIds: g.items.map((x) => x.productId) })), null, p.ageTrack, 'draft');
+          out.push({ label: `پازل ${i + 1}`, ok: res.ok, ...(res.ok ? {} : { error: res.error }) });
+        }
+        return out;
       }
       case 'blog': {
         if (!d.landing) throw new AiError('ai_not_found');

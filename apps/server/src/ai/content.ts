@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AI_BLOG_LENGTHS, AI_LIMITS, AGE_TRACKS, PRODUCT_CATEGORIES } from '@dozari/shared';
+import { AI_BLOG_LENGTHS, AI_LIMITS, AGE_TRACKS, GROUP_COUNT, GROUP_SIZE, PRODUCT_CATEGORIES } from '@dozari/shared';
 import type { AiKind } from '@dozari/shared';
 
 /**
@@ -22,6 +22,13 @@ export const generateSchemas = {
   }),
   kid_lessons: z.object({ ...base, kind: z.literal('kid_lessons'), count: z.number().int().min(1).max(AI_LIMITS.maxCount.kid_lessons) }),
   puzzle_titles: z.object({ ...base, kind: z.literal('puzzle_titles'), puzzleId: z.string().min(1).max(36), style: z.enum(['witty', 'plain']).default('witty') }),
+  puzzle_groups: z.object({
+    ...base,
+    kind: z.literal('puzzle_groups'),
+    count: z.number().int().min(1).max(AI_LIMITS.maxCount.puzzle_groups),
+    ageTrack: z.enum(AGE_TRACKS).default('adult'),
+    style: z.enum(['witty', 'plain']).default('witty'),
+  }),
   blog: z.object({
     ...base,
     kind: z.literal('blog'),
@@ -32,7 +39,7 @@ export const generateSchemas = {
     keywords: z.array(z.string().trim().min(1).max(40)).max(8).default([]),
   }),
 };
-export const generateRequestSchema = z.discriminatedUnion('kind', [generateSchemas.products, generateSchemas.kid_lessons, generateSchemas.puzzle_titles, generateSchemas.blog]);
+export const generateRequestSchema = z.discriminatedUnion('kind', [generateSchemas.products, generateSchemas.kid_lessons, generateSchemas.puzzle_titles, generateSchemas.puzzle_groups, generateSchemas.blog]);
 export type GenerateRequest = z.infer<typeof generateRequestSchema>;
 
 export const productDraft = z.object({
@@ -53,6 +60,20 @@ export const lessonDraft = z.object({
   syllablesFa: z.string().trim().max(80).nullable().default(null),
 });
 export const titleDraft = z.object({ level: z.number().int().min(0).max(3), titleFa: z.string().trim().min(2).max(100) });
+/** A whole hand-style puzzle: 4 groups (levels 0–3 once each) × 4 distinct catalog products. Saved as a `draft` puzzle; an editor approves it. */
+export const puzzleDraft = z.object({
+  groups: z
+    .array(z.object({
+      level: z.number().int().min(0).max(GROUP_COUNT - 1),
+      titleFa: z.string().trim().min(2).max(100),
+      explanationFa: z.string().trim().min(2).max(300),
+      items: z.array(z.object({ productId: z.string().min(1).max(36), nameFa: z.string().max(80).optional() })).length(GROUP_SIZE),
+    }))
+    .length(GROUP_COUNT)
+    .refine((gs) => new Set(gs.map((g) => g.level)).size === GROUP_COUNT, 'levels')
+    .refine((gs) => new Set(gs.flatMap((g) => g.items.map((i) => i.productId))).size === GROUP_COUNT * GROUP_SIZE, 'distinct'),
+  ageTrack: z.enum(AGE_TRACKS).default('adult'),
+});
 export const blogDraft = z.object({
   titleFa: z.string().trim().min(2).max(160),
   summaryFa: z.string().trim().max(400).default(''),
@@ -66,6 +87,7 @@ export const saveSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('products'), drafts: z.array(productDraft).min(1).max(AI_LIMITS.maxCount.products) }),
   z.object({ kind: z.literal('kid_lessons'), drafts: z.array(lessonDraft).min(1).max(AI_LIMITS.maxCount.kid_lessons) }),
   z.object({ kind: z.literal('puzzle_titles'), puzzleId: z.string().min(1).max(36), drafts: z.array(titleDraft).min(1).max(4) }),
+  z.object({ kind: z.literal('puzzle_groups'), drafts: z.array(puzzleDraft).min(1).max(AI_LIMITS.maxCount.puzzle_groups) }),
   z.object({ kind: z.literal('blog'), drafts: z.array(blogDraft).min(1).max(AI_LIMITS.maxCount.blog) }),
 ]);
 export type SaveRequest = z.infer<typeof saveSchema>;
@@ -74,10 +96,12 @@ export type SaveRequest = z.infer<typeof saveSchema>;
 export function extractJson(text: string): unknown {
   const stripped = text.replace(/```(?:json)?/gi, '');
   for (const candidate of [stripped.trim(), stripped.slice(stripped.indexOf('{'), stripped.lastIndexOf('}') + 1)]) {
-    try {
-      return JSON.parse(candidate);
-    } catch {
-      /* try the next shape */
+    for (const text of [candidate, candidate.replace(/,\s*([}\]])/g, '$1')]) {
+      try {
+        return JSON.parse(text);
+      } catch {
+        /* try the next shape */
+      }
     }
   }
   return null;
@@ -105,6 +129,8 @@ export interface PromptContext {
   puzzleGroups?: { level: number; titleFa: string | null; items: string[] }[];
   /** Products already in the catalog (products): the model must not suggest them again. */
   existing?: { slug: string; nameFa: string }[];
+  /** Catalog products the model may use in whole puzzles (puzzle_groups); the model refers to them by position. */
+  pool?: { productId: string; nameFa: string; category?: string }[];
 }
 
 /** Persian-insensitive key for comparing product names and slugs: Arabic ya/kaf, ZWNJ, spaces and punctuation are ignored. */
@@ -140,6 +166,16 @@ JSON shape: {"items":[{"productId":"…","wordFa":"…","storyFa":"…","syllabl
 Groups:
 ${groups.map((g) => `- level ${g.level}: ${g.items.join('، ')}${g.titleFa ? ` (current title: ${g.titleFa})` : ''}`).join('\n')}
 JSON shape: {"titles":[{"level":0,"titleFa":"…"}]} with one entry per level above.`,
+      };
+    }
+    case 'puzzle_groups': {
+      const pool = ctx.pool ?? [];
+      return {
+        system: `${COMMON}\nTask: build complete Connections-style puzzles from the numbered product list. Each puzzle has exactly ${GROUP_COUNT} groups; a group is ${GROUP_SIZE} products that share ONE clear, checkable idea (same category, same era, same brand family, same use, same price class…). Use ONLY the numbers given; never invent products.`,
+        user: `Make ${req.count} puzzle(s). Levels: ${LEVELS}; every puzzle uses levels 0,1,2,3 once each. Style of titles: ${req.style === 'witty' ? 'witty, playful, 2–6 words' : 'plain and clear, 2–5 words'}. For each group also write explanationFa: one plain sentence that states the real rule. A product number may appear only ONCE per puzzle (16 different numbers per puzzle); try to add 1–2 red herrings (a product that looks like it fits another group).${extra}
+Products (number: name):
+${pool.map((p, i) => `${i + 1}: ${p.nameFa}${p.category ? ` (${p.category})` : ''}`).join('\n')}
+JSON shape: {"puzzles":[{"groups":[{"level":0,"titleFa":"…","explanationFa":"…","items":[12,5,88,3]}]}]}`,
       };
     }
     case 'blog':
@@ -190,6 +226,22 @@ export function parseDrafts(kind: AiKind, text: string, ctx: PromptContext = {},
       const levels = new Set((ctx.puzzleGroups ?? []).map((g) => g.level));
       const seen = new Set<number>();
       out = take(json.titles, titleDraft, (d) => levels.has(d.level) && !seen.has(d.level) && !!seen.add(d.level));
+      break;
+    }
+    case 'puzzle_groups': {
+      const pool = ctx.pool ?? [];
+      const rows = Array.isArray(json.puzzles) ? json.puzzles : [];
+      const drafts: z.infer<typeof puzzleDraft>[] = [];
+      for (const r of rows) {
+        const groups = (Array.isArray((r as { groups?: unknown })?.groups) ? (r as { groups: unknown[] }).groups : []).map((g) => {
+          const gg = g as { items?: unknown };
+          const items = (Array.isArray(gg.items) ? gg.items : []).map((n) => pool[Number(n) - 1]).filter((p): p is NonNullable<typeof p> => !!p).map((p) => ({ productId: p.productId, nameFa: p.nameFa }));
+          return { ...(g as object), items };
+        });
+        const ok = puzzleDraft.safeParse({ groups, ageTrack });
+        if (ok.success) drafts.push(ok.data);
+      }
+      out = { drafts, dropped: rows.length - drafts.length };
       break;
     }
     case 'blog':

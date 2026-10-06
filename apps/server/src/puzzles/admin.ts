@@ -52,7 +52,7 @@ export interface PuzzleAdmin {
   list(limit: number): Promise<PuzzleAdminRow[]>;
   readiness(): Promise<Readiness>;
   /** `ageTrack` (default adult): a kid or teen puzzle may only hold items of its own track or younger (`item_track` otherwise). */
-  create(groups: NewGroup[], tierId?: string | null, ageTrack?: AgeTrack): Promise<CreateResult>;
+  create(groups: NewGroup[], tierId?: string | null, ageTrack?: AgeTrack, status?: 'approved' | 'draft'): Promise<CreateResult>;
   /** The difficulty tiers, easiest first; a fresh install gets `DEFAULT_PUZZLE_TIERS`. */
   tiers(): Promise<PuzzleTier[]>;
   saveTier(tier: TierInput): Promise<SaveTierResult>;
@@ -129,7 +129,7 @@ export function createDbPuzzleAdmin(db: Db): PuzzleAdmin {
       const [a] = await db.select({ n: count() }).from(puzzles).where(eq(puzzles.status, 'approved'));
       return { products: Number(p?.n ?? 0), withPrices: Number(w?.n ?? 0), approvedPuzzles: Number(a?.n ?? 0), productsPerPuzzle: GROUP_COUNT * GROUP_SIZE };
     },
-    async create(groups, tierId, ageTrack = 'adult') {
+    async create(groups, tierId, ageTrack = 'adult', status = 'approved') {
       const shape = checkShape(groups);
       if (shape !== 'ok') return { ok: false, error: shape };
       const ids = groups.flatMap((g) => g.productIds);
@@ -137,7 +137,7 @@ export function createDbPuzzleAdmin(db: Db): PuzzleAdmin {
       if (have.length !== ids.length) return { ok: false, error: 'unknown_product' };
       if (have.some((p) => trackRank(p.ageTrack) > trackRank(ageTrack))) return { ok: false, error: 'item_track' };
       return db.transaction(async (tx) => {
-        const [puzzle] = await tx.insert(puzzles).values({ status: 'approved', source: 'curated', tierId: tierId ?? null, ageTrack }).$returningId();
+        const [puzzle] = await tx.insert(puzzles).values({ status, source: 'curated', tierId: tierId ?? null, ageTrack }).$returningId();
         if (!puzzle) throw new Error('puzzle insert failed');
         for (const g of groups) {
           const [group] = await tx
@@ -254,12 +254,12 @@ export function createMemoryPuzzleAdmin(known: Set<string>, catalog: Catalog = [
     async readiness() {
       return { products: known.size, withPrices: 0, approvedPuzzles: rows.filter((r) => r.status === 'approved').length, productsPerPuzzle: GROUP_COUNT * GROUP_SIZE };
     },
-    async create(groups, tierId, ageTrack = 'adult') {
+    async create(groups, tierId, ageTrack = 'adult', status = 'approved') {
       const shape = checkShape(groups);
       if (shape !== 'ok') return { ok: false, error: shape };
       if (groups.some((g) => g.productIds.some((id) => !known.has(id)))) return { ok: false, error: 'unknown_product' };
       const id = `00000000-0000-7000-9000-${String(rows.length + 1).padStart(12, "0")}`;
-      rows.unshift({ id, status: 'approved', source: 'curated', createdAt: 0, tierId: tierId ?? null, ageTrack, groups: groups.map((g) => ({ level: g.level, titleFa: g.titleFa, items: g.productIds })) });
+      rows.unshift({ id, status, source: 'curated', createdAt: 0, tierId: tierId ?? null, ageTrack, groups: groups.map((g) => ({ level: g.level, titleFa: g.titleFa, items: g.productIds })) });
       return { ok: true, id };
     },
     async generate(count, rng) {

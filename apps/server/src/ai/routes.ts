@@ -19,6 +19,11 @@ export function registerAiAdminRoutes(g: FastifyInstance, studio: AiStudio, audi
 
   g.get('/admin/ai', async () => studio.describe());
 
+  g.get('/admin/ai/models', async (req, reply) => {
+    const provider = (req.query as { provider?: string }).provider ?? '';
+    return run(reply, async () => ({ provider, models: await studio.models(provider) }));
+  });
+
   g.post('/admin/ai/generate', async (req, reply) => {
     const body = generateRequestSchema.safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: 'invalid_request' });
