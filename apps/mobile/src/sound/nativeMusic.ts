@@ -22,6 +22,18 @@ let player: AudioPlayer | null = null;
 let playing: Mood | null = null;
 let wanted: Mood | null = null;
 let modeSet = false;
+/** The player's volume setting (0..1), applied on top of each song's own level. */
+let userVolume = 1;
+
+/** Sets the player's music volume; takes effect on the song that is playing right now. */
+export function setNativeMusicVolume(v: number): void {
+  userVolume = Math.min(1, Math.max(0, v));
+  try {
+    if (player && playing) player.volume = SONGS[playing].volume * userVolume;
+  } catch {
+    /* music is a nicety */
+  }
+}
 
 function stop() {
   try {
@@ -49,7 +61,7 @@ export function setNativeMusic(mood: Mood | null): void {
       }
       try {
         player = createAudioPlayer(SONGS[mood].source);
-        player.volume = SONGS[mood].volume;
+        player.volume = SONGS[mood].volume * userVolume;
       } catch {
         player = null;
       }
@@ -61,7 +73,7 @@ export function setNativeMusic(mood: Mood | null): void {
         }
         if (wanted !== mood) return;
         player = createAudioPlayer({ uri });
-        player.volume = 0.8;
+        player.volume = 0.8 * userVolume;
       }
       if (wanted !== mood) return;
       player.loop = true;

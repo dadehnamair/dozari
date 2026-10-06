@@ -10,6 +10,7 @@ import { fa } from '../i18n/fa';
 import { signOutEverywhere } from '../account/api';
 import { DeleteAccountDialog } from '../account/DeleteAccountDialog';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { MUSIC_VOLUMES } from '../prefs/model';
 import { setPref, usePrefs } from '../prefs/store';
 import { IosInstallSheet } from '../pwa/PwaLayer';
 import { usePwa } from '../pwa/usePwa';
@@ -142,6 +143,18 @@ export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone, ag
                   ) : null}
                 </Pressable>
               ))}
+              {g.title === t.groups.game && prefs.music ? (
+                <View style={[styles.volume, dark ? dk.row : null]}>
+                  <Text style={[styles.volumeLabel, dark ? dk.text : null]}>{fa.prefs.musicVolume}</Text>
+                  <View style={styles.volumeSteps}>
+                    {MUSIC_VOLUMES.map((v, i) => (
+                      <Pressable key={v} onPress={() => setPref('musicVolume', v)} accessibilityRole="button" accessibilityState={{ selected: prefs.musicVolume === v }} style={[styles.step, dark ? dk.step : null, prefs.musicVolume === v ? styles.stepOn : null]}>
+                        <Text style={[styles.stepText, dark && prefs.musicVolume !== v ? dk.text : null]}>{fa.prefs.musicVolumes[i]}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+              ) : null}
               {g.title === t.groups.account && aboutOpen ? <Text style={[styles.about, dark ? dk.text : null]}>{fa.account.aboutText}</Text> : null}
               {g.title === t.groups.account && note ? <Text style={[styles.about, dark ? dk.text : null]}>{note}</Text> : null}
             </View>
@@ -177,6 +190,7 @@ const dk = StyleSheet.create({
   row: { borderColor: DARK.line },
   text: { color: DARK.text, opacity: 1 },
   track: { borderColor: DARK.frame },
+  step: { backgroundColor: DARK.raised, borderColor: DARK.frame },
 });
 
 const styles = StyleSheet.create({
@@ -203,5 +217,11 @@ const styles = StyleSheet.create({
   track: { width: 52, height: 30, borderRadius: 99, borderWidth: 2.5, borderColor: colors.ink, justifyContent: 'center', paddingHorizontal: 2 },
   knob: { width: 21, height: 21, borderRadius: 11, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.cream, alignSelf: 'flex-start' },
   knobOn: { alignSelf: 'flex-end' },
+  volume: { gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderTopWidth: 1.5, borderStyle: 'dashed', borderColor: 'rgba(43,18,64,0.2)' },
+  volumeLabel: { fontFamily: fonts.bold, fontSize: 13.5, color: colors.ink, textAlign: TEXT_RIGHT },
+  volumeSteps: { flexDirection: ROW, gap: 6 },
+  step: { flex: 1, alignItems: 'center', paddingVertical: 5, borderRadius: 99, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.cream },
+  stepOn: { backgroundColor: '#FFC93C' },
+  stepText: { fontFamily: fonts.bold, fontSize: 12, color: colors.ink },
   about: { fontFamily: fonts.bold, fontSize: 11.5, lineHeight: 19, color: colors.ink, opacity: 0.8, textAlign: TEXT_RIGHT, padding: 12 },
 });
