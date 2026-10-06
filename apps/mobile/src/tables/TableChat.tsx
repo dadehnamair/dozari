@@ -70,7 +70,7 @@ export function TableChat({ code, meId }: { code: string; meId: string | null })
           </Pressable>
         </View>
       ) : <Text style={styles.hint}>{fa.chat.needsActivation}</Text>}
-      {reporting ? <ReportDialog target={{ kind: 'message', messageId: reporting }} onClose={() => (setReporting(null), setNote(fa.chat.reported))} /> : null}
+      {reporting ? <ReportDialog target={{ kind: 'message', messageId: reporting }} onClose={(sent) => (setReporting(null), sent ? setNote(fa.chat.reported) : undefined)} /> : null}
     </View>
   );
 }

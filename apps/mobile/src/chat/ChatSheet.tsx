@@ -176,7 +176,7 @@ export function ChatSheet({ onClose, onJoinTable, initialTab = 'city' }: { onClo
         </View>
       )}
       </>}
-      {reporting ? <ReportDialog target={{ kind: 'message', messageId: reporting }} onClose={() => (setReporting(null), setNote(fa.chat.reported))} /> : null}
+      {reporting ? <ReportDialog target={{ kind: 'message', messageId: reporting }} onClose={(sent) => (setReporting(null), sent ? setNote(fa.chat.reported) : undefined)} /> : null}
     </PageShell>
   );
 }
