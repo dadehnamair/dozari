@@ -19,6 +19,7 @@ import Svg, {
 } from 'react-native-svg';
 import { usePrefs } from '../prefs/store';
 import { fonts } from '../theme/colors';
+import { useTheme } from '../theme/themeStore';
 import { Drift, Glow, Musician, Sway } from './sceneMotion';
 
 export const SCENES = ['bazaar', 'alley', 'hojre', 'caravan', 'win', 'sarafi'] as const;
@@ -63,13 +64,17 @@ interface Props {
 
 /** Painted backgrounds (docs/design/Dozari - 02 Backgrounds.dc.html, Scene.dc.html), 390 x 844 canvas, cropped to fill. */
 export function Scene({
-  scene,
-  mood = 'day',
+  scene: sceneProp,
+  mood: moodProp = 'day',
   width = '100%',
   height = '100%',
   wobble: wobbleProp = Platform.OS === 'web',
   animated: animatedProp,
 }: Props) {
+  /** The adult look paints every scene but the celebration as the vault room (docs/design/adult/). */
+  const adult = useTheme() === 'adult';
+  const scene = adult && sceneProp !== 'win' ? 'sarafi' : sceneProp;
+  const mood = adult ? 'day' : moodProp;
   const reduce = usePrefs().reduceMotion;
   const animated = animatedProp ?? !reduce;
   // The pencil-wobble filter over the whole scene is recomputed on every animation frame (60 → 25 fps even on a desktop,
