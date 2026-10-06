@@ -17,6 +17,7 @@ export const PRESETS: readonly ProviderPreset[] = [
   { id: 'deepseek', label: 'DeepSeek', baseUrl: 'https://api.deepseek.com/v1', defaultModel: 'deepseek-chat', keyEnv: 'AI_DEEPSEEK_API_KEY' },
   { id: 'gapgpt', label: 'GapGPT (ایرانی)', baseUrl: 'https://api.gapgpt.app/v1', defaultModel: 'gpt-4o-mini', keyEnv: 'AI_GAPGPT_API_KEY' },
   { id: 'avalai', label: 'AvalAI (ایرانی)', baseUrl: 'https://api.avalai.ir/v1', defaultModel: 'gpt-4o-mini', keyEnv: 'AI_AVALAI_API_KEY' },
+  { id: 'parspack', label: 'ParsPack AI Studio (ایرانی)', baseUrl: 'https://ai.parspack.com/v1', defaultModel: 'Grok 4', keyEnv: 'AI_PARSPACK_API_KEY' },
   { id: 'anthropic', label: 'Claude (Anthropic)', baseUrl: 'https://api.anthropic.com/v1', defaultModel: 'claude-sonnet-5-5', keyEnv: 'AI_ANTHROPIC_API_KEY', dialect: 'anthropic' },
   // Gemini's OpenAI-compatibility endpoint; server-side, optional, admin tool only.
   { id: 'gemini', label: 'Gemini (Google)', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', defaultModel: 'gemini-2.5-flash', keyEnv: 'AI_GEMINI_API_KEY' },
@@ -60,10 +61,10 @@ export interface ChatRequest {
   temperature?: number;
 }
 
-export type FetchLike = (url: string, init: { method: string; headers: Record<string, string>; body: string; signal: AbortSignal }) => Promise<{ ok: boolean; status: number; json(): Promise<unknown> }>;
+export type FetchLike = (url: string, init: { method: string; headers: Record<string, string>; body?: string; signal: AbortSignal }) => Promise<{ ok: boolean; status: number; json(): Promise<unknown> }>;
 
-/** A model name as gateways spell them: letters, digits and `. _ - : /`. Anything else is refused so it cannot smuggle path or header text. */
-export const isModelName = (s: string): boolean => /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,79}$/.test(s);
+/** A model name as gateways spell them: letters, digits, inner spaces (ParsPack has «Grok 4») and `. _ - : /`. Anything else is refused so it cannot smuggle path or header text. */
+export const isModelName = (s: string): boolean => /^[A-Za-z0-9][A-Za-z0-9._:/ -]{0,79}$/.test(s);
 
 /** The provider's own error message (`{error:{message}}`, or an array of those), cut short and with the key scrubbed. */
 async function errorDetail(res: { json(): Promise<unknown> }, apiKey: string): Promise<string | undefined> {
@@ -76,6 +77,36 @@ async function errorDetail(res: { json(): Promise<unknown> }, apiKey: string): P
     return msg.split(apiKey).join('***').replace(/\s+/g, ' ').slice(0, 300);
   } catch {
     return undefined;
+  }
+}
+
+/** Text of a model answer: a string, or an array of text parts (some gateways), without `<think>…</think>` reasoning blocks. Empty string when there is none. */
+export function cleanAnswer(content: unknown): string {
+  const raw = typeof content === 'string' ? content : Array.isArray(content) ? content.map((p) => (typeof p === 'string' ? p : (p as { text?: unknown } | null)?.text)).filter((t): t is string => typeof t === 'string').join('') : '';
+  return raw.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/^[\s\S]*?<\/think>/i, '').trim();
+}
+
+const NOT_CHAT = /embed|tts|whisper|speech|audio|image|dall|moderation|rerank|transcri|vision-preview|imagen|veo|sora/i;
+
+/** The chat models a provider offers (`GET {base}/models`), for the panel's picker. Empty list when the provider has no listing or it fails. */
+export async function listModels(provider: ResolvedProvider, doFetch: FetchLike = fetch as unknown as FetchLike): Promise<string[]> {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 15_000);
+  try {
+    const res = await doFetch(`${provider.baseUrl}/models${provider.dialect === 'anthropic' ? '?limit=100' : ''}`, {
+      method: 'GET',
+      headers: provider.dialect === 'anthropic' ? { 'x-api-key': provider.apiKey, 'anthropic-version': '2023-06-01' } : { authorization: `Bearer ${provider.apiKey}` },
+      signal: ctl.signal,
+    });
+    if (!res.ok) return [];
+    const body = (await res.json()) as { data?: unknown } | unknown[];
+    const rows = Array.isArray(body) ? body : Array.isArray((body as { data?: unknown }).data) ? ((body as { data: unknown[] }).data) : [];
+    const ids = rows.map((r) => (typeof r === 'string' ? r : (r as { id?: unknown } | null)?.id)).filter((x): x is string => typeof x === 'string').map((x) => x.replace(/^models\//, ''));
+    return [...new Set(ids)].filter((x) => isModelName(x) && !NOT_CHAT.test(x)).sort((a, b) => a.localeCompare(b));
+  } catch {
+    return [];
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -109,9 +140,12 @@ export async function chat(provider: ResolvedProvider, req: ChatRequest, doFetch
       signal: ctl.signal,
     });
     if (!res.ok) throw new AiError('ai_http_error', res.status, await errorDetail(res, provider.apiKey));
-    const data = (await res.json()) as { choices?: { message?: { content?: unknown } }[]; content?: { type?: string; text?: unknown }[] };
-    const text = anthropic ? data.content?.find((b) => b.type === 'text')?.text : data.choices?.[0]?.message?.content;
-    if (typeof text !== 'string' || text.trim() === '') throw new AiError('ai_bad_output');
+    const data = (await res.json()) as { choices?: { message?: { content?: unknown }; finish_reason?: string }[]; content?: { type?: string; text?: unknown }[]; stop_reason?: string };
+    const text = cleanAnswer(anthropic ? data.content?.filter((b) => b.type === 'text').map((b) => b.text) : data.choices?.[0]?.message?.content);
+    if (text === '') {
+      const why = anthropic ? data.stop_reason : data.choices?.[0]?.finish_reason;
+      throw new AiError('ai_bad_output', undefined, why === 'length' || why === 'max_tokens' ? 'خروجی مدل به سقف طول رسید و خالی ماند (مدل «استدلالی» است؛ مدل دیگری انتخاب کن)' : `پاسخ خالی از مدل${why ? ` (${why})` : ''}`);
+    }
     return text;
   } catch (err) {
     if (err instanceof AiError) throw err;

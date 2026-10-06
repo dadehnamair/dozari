@@ -641,3 +641,7 @@ D206 fourth pass (screens of `adult/Dozari Adult - Login Home`): Home (dark stat
 ## D199 — Products v2 icons join the pack: 282 icons (2026-10-06)
 
 The designer's `docs/design/products/` folder (`ProductIcon.dc.html`, `products.json`, `Dozari Products v1/v2`) adds 46 hand-drawn product icons keyed by product slug (rice coupon, Paykan Carluxe, Renault 5, Titap, Pars fan …). `gen-items.mjs` merges the `N` map into `ITEMS` (builders renamed `PCAR`/`PCB`/`POR` because `Item.dc.html` has a `CAR` with another signature and a different orange), names them from `products.json` in a new «محصولات ۲» category, and takes the sample-catalogue groups from `Dozari Products v1.dc.html` (design 14 moved there). Pack: 236 → 282 icons. Product `icon_key` can now be any of the 46 slugs; the seed catalogue is not changed here.
+
+## D205 — AI studio suggests nominal prices too, always `pending` (2026-10-06, proposed)
+
+Owner request: the products tab must bring prices, not only names, and never repeat what the catalog already has. Extends D204/D26: each product draft may carry ≤8 `{year, priceToman}` pairs; saved as `pending` price points (rials = toman × 10, confidence 1, note «AI-suggested, unverified») so nothing reaches players before an editor approves it. Existing catalog names/slugs are sent to the model as exclusions and filtered again on parse and on save.
