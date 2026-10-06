@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { provinceOf } from '@dozari/shared';
 import type { DailyStatus, Gender, Province, ProfileTask } from '@dozari/shared';
-import { applyAppIcon } from '../appIcon/appIcon';
+import { fetchAgeTrack } from '../agetrack/api';
+import { setLookGender, setLookTrack } from '../theme/look';
 import { fetchDailyStatus } from '../daily/puzzleApi';
 import { fetchMatchActive } from '../duel/api';
 import { fetchWorn } from '../shop/api';
@@ -27,8 +28,11 @@ export function useHomeData(features: ClientConfig['features']) {
   /** The city's own slogan (admin-written), shown under the greeting. */
   const [slogan, setSlogan] = useState<string | null>(null);
   const [dailyPuzzle, setDailyPuzzle] = useState<DailyStatus | null>(null);
+  useEffect(() => {
+    void fetchAgeTrack().then((m) => setLookTrack(m.enabled ? m.track : null), () => undefined);
+  }, []);
   const loadMe = useCallback(() => {
-    fetchMyProfile().then((p) => (setGender(p.gender), applyAppIcon(p.gender), setLevel(p.level.level), setProvince(provinceOf(p.city?.province)), setSlogan(p.city?.sloganFa ?? null)), () => undefined);
+    fetchMyProfile().then((p) => (setGender(p.gender), setLookGender(p.gender), setLevel(p.level.level), setProvince(provinceOf(p.city?.province)), setSlogan(p.city?.sloganFa ?? null)), () => undefined);
   }, []);
   useEffect(loadMe, [loadMe]);
   /** What the hero wears (set in the fitting room). */

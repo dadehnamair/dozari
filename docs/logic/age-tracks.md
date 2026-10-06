@@ -5,10 +5,13 @@ can hold the adult account and add the child; the admin panel can filter and man
 
 ## Principles
 
-1. **One brand, one app, three tracks (owner, 2026-10-05).** Only the *logic* changes per track. Name, logo, icon, palette, fonts, voice, home
-   shell, store listing and splash stay the one «دوزاری» brand (`brand.md`, `brand-visual.md`); there is no second app, theme or icon. «دوزاری
-   کوچولو» appears **only as the label of the kid track inside the app** (the title of the kid home and of its mode card), nowhere else. The
-   adult track stays the full price-nostalgia game and never shows kid content. Wording: «بازی برای هر سن».
+1. **One brand, one app, three tracks, two looks (owner, 2026-10-06; amends the 2026-10-05 «one theme» rule, D206).** Rules and content differ per
+   track; so does the *look*, in two sets: **kid + teen share the current candy look and icon** (unchanged), **adult gets «صرافی و گاوصندوق»**
+   (near-black + gold, brass buttons, `sarafi` vault scene, gold-coin app icon; designs in `docs/design/adult/`, rules in `docs/design/CLAUDE.md`).
+   Name, logo, fonts, voice and the home layout stay the one «دوزاری» brand. The look follows the track and switches with it everywhere: in-app theme,
+   Android launcher icon (four aliases: default, female, adult, adultFemale), PWA manifest, icons and address-bar colour. «دوزاری کوچولو» still
+   appears only as the label of the kid track inside the app. The adult track stays the full price-nostalgia game and never shows kid content.
+   Wording: «بازی برای هر سن». Code: `apps/mobile/src/theme/{appTheme,themeStore,look}.ts`, `src/appIcon`, `plugins/withGenderIcon.js`.
 2. **The track is chosen, never computed from a birth date.** We store a coarse track chosen by the user (kid / teen / adult); no ID, no school. The optional
    birth date of D160 (minimum age 10) stays as it is and is **independent**: it never picks or changes a track and no rule reads it. A kid profile
    created through a guardian has no birth date field (under the D160 minimum), so the birthday week simply does not apply to it. In code the word is
@@ -172,7 +175,7 @@ bots, message center audience, coin ledger, matches):
 ## Adult experience (guardrails)
 
 - The chooser's adult card is first and wears the main brand voice; kid art, stars and the word lesson never appear in an adult account.
-- Store listing, splash, icon and home shell are the one «دوزاری» brand; «دوزاری کوچولو» is only a track label inside the app (principle 1).
+- Store listing and splash are the one «دوزاری» brand; the in-app look and launcher/PWA icon follow the track (kid/teen candy, adult gold; principle 1); «دوزاری کوچولو» is only a track label inside the app.
 - **Preview mode** («پیش‌نمایش کودک») lets a guardian open the kid space read-only (no progress, no coins) to judge it.
 
 ## As built (phase 1, behind a switch)
