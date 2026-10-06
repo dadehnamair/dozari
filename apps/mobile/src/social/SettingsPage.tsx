@@ -46,7 +46,7 @@ interface Row {
  * cards of rows — switches that work on this device (sound, vibration, less motion), shortcuts (profile, city,
  * install) and the account (replay the tutorial, sign out, delete with a second tap).
  */
-export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone, ageTracksOn = false, baleOn = false, onPreview }: { onClose: () => void; /** A guardian opens a read-only preview of the kid or teen space. */ onPreview?: (track: 'kid' | 'teen') => void; onProfile: () => void; onTutorial?: () => void; onAccountGone?: () => void; /** The server's age-track switch: shows the guardian rows. */ ageTracksOn?: boolean; /** The Bale bot is set up: shows the «connect to Bale» row. */ baleOn?: boolean }) {
+export function SettingsPage({ onClose, onProfile, onMissions, missionsReady = 0, onTutorial, onAccountGone, ageTracksOn = false, baleOn = false, onPreview }: { onClose: () => void; /** A guardian opens a read-only preview of the kid or teen space. */ onPreview?: (track: 'kid' | 'teen') => void; onProfile: () => void; /** Opens the missions (they live in the workshop) and how many rewards wait. */ onMissions?: () => void; missionsReady?: number; onTutorial?: () => void; onAccountGone?: () => void; /** The server's age-track switch: shows the guardian rows. */ ageTracksOn?: boolean; /** The Bale bot is set up: shows the «connect to Bale» row. */ baleOn?: boolean }) {
   useHardwareBack(onClose);
   const dark = useDark();
   const prefs = usePrefs();
@@ -88,6 +88,8 @@ export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone, ag
       title: t.groups.me,
       tint: colors.candy.lime,
       rows: [
+        // The missions live here (the workshop); a ready reward is announced on Home, on the level badge and on this row.
+        ...(onMissions ? [{ key: 'missions', icon: 'target', tint: '#7ED957', label: missionsReady > 0 ? t.missionsReady(missionsReady) : t.missions, tone: missionsReady > 0 ? '#2E7D32' : undefined, onPress: onMissions }] : []),
         { key: 'profile', icon: 'medal', tint: '#FFC93C', label: t.profile, onPress: onProfile },
         { key: 'city', icon: 'map', tint: '#7ED957', label: t.city, onPress: openCity },
         ...(pwa.installMode !== 'none' ? [{ key: 'install', icon: 'phone', tint: '#FF7A3D', label: t.install, onPress: () => void pwa.promptInstall().then((r) => r === 'ios' && setIosHelp(true)) }] : []),

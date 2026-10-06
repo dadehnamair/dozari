@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { TableView } from '@dozari/shared';
-import { DEFAULT_TABLE_ICON, TABLE_ICONS, normalizeTableCode } from '@dozari/shared';
+import { DEFAULT_TABLE_ICON, TABLE_ENTRY_MAX, TABLE_HOUSE_CUT_PERCENT, TABLE_ROUNDS_MAX, TABLE_ROUNDS_MIN, TABLE_ICONS, normalizeTableCode, tableMinEntry, toPersianDigits } from '@dozari/shared';
 import { Avatar } from '../components/Avatar';
 import { CandyButton } from '../components/CandyButton';
 import { playSfx } from '../sound/engine';
@@ -17,7 +17,8 @@ import { avatarOf } from '../social/avatarOf';
 import { colors, fonts } from '../theme/colors';
 import { fetchFriends } from '../social/api';
 import { OnlineDot } from '../components/OnlineDot';
-import { createTable, inviteToTable, extendTable, fetchMyTable, fetchTable, joinTable, kickFromTable, leaveTable, setTableLocked, setTableReady, setTableSide, startTable } from './api';
+import { OpenTables } from './OpenTables';
+import { answerRequest, createTable, inviteToTable, extendTable, fetchMyTable, fetchTable, joinTable, kickFromTable, leaveTable, setTableLocked, setTableReady, setTableSide, startTable } from './api';
 import { useHardwareBack } from '../nav/useHardwareBack';
 import { TableChat } from './TableChat';
 import { TableLobby } from './TableLobby';
@@ -47,7 +48,17 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
   const [name, setName] = useState('');
   const [icon, setIcon] = useState<string>(DEFAULT_TABLE_ICON);
   /** Before sitting at a table: the two-choice menu, then the form of the chosen one. */
-  const [mode, setMode] = useState<'menu' | 'make' | 'join'>(initialCode ? 'join' : 'menu');
+  const [mode, setMode] = useState<'menu' | 'make' | 'join' | 'open'>(initialCode ? 'join' : 'menu');
+  /** Boards played, the entry each player pays (never below the minimum for the rounds) and whether the table hides from the open list. */
+  const [rounds, setRounds] = useState<number>(TABLE_ROUNDS_MIN);
+  const [entry, setEntry] = useState<number>(tableMinEntry(TABLE_ROUNDS_MIN));
+  const [isPrivate, setIsPrivate] = useState(false);
+  const minEntry = tableMinEntry(rounds);
+  const pickRounds = (n: number) => {
+    const next = Math.min(TABLE_ROUNDS_MAX, Math.max(TABLE_ROUNDS_MIN, n));
+    setRounds(next);
+    setEntry((e) => Math.max(e, tableMinEntry(next)));
+  };
   const [requireReady, setRequireReady] = useState(false);
   const [family, setFamily] = useState(false);
   /** A guardian with children, or a child with a guardian: only they are offered a family table. Errors (feature off) read as no family. */
@@ -124,13 +135,32 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
             <View style={styles.titleIcon}><Item icon={table.icon} /></View>
             <Text style={[styles.title, dark ? dk.text : null]}>{table.name}</Text>
           </View>
-        ) : <Text style={[styles.title, dark ? dk.text : null]}>{mode === 'make' ? fa.tables.createTitle : mode === 'join' ? fa.tables.joinTitle : fa.tables.title}</Text>}
+        ) : <Text style={[styles.title, dark ? dk.text : null]}>{mode === 'make' ? fa.tables.createTitle : mode === 'join' ? fa.tables.joinTitle : mode === 'open' ? fa.tables.openList.title : fa.tables.title}</Text>}
         <ScrollView style={styles.list} contentContainerStyle={styles.content}>
           <GuideBubble who="goli" text={fa.tables.goliHello} />
           {table ? (
             <>
               <Text style={[styles.code, dark ? dk.text : null]} selectable>{fa.tables.code(table.code)}</Text>
               <Text style={[styles.hint, dark ? dk.text : null]}>{table.inMatch ? fa.tables.inMatch : table.players.length < table.seats ? fa.tables.waiting : fa.tables.seats(table.players.length, table.seats)}</Text>
+              <View style={styles.chipsRow}>
+                <Text style={styles.infoChip}>{fa.tables.rounds(table.rounds)}</Text>
+                <Text style={styles.infoChip}>{fa.tables.entry(table.entryFee)}</Text>
+                <Text style={styles.infoChip}>{table.isPrivate ? fa.tables.privateTag : fa.tables.publicTag}</Text>
+              </View>
+              {table.entryFee > 0 ? <Text style={[styles.hint, dark ? dk.text : null]}>{fa.tables.prizeNote((table.entryFee * table.seats * (100 - TABLE_HOUSE_CUT_PERCENT)) / 100, TABLE_HOUSE_CUT_PERCENT)}</Text> : null}
+              {table.youAreHost && table.requests.length > 0 ? (
+                <View style={styles.requests}>
+                  <Text style={styles.label}>{fa.tables.requestsTitle}</Text>
+                  {table.requests.map((r) => (
+                    <View key={r.id} style={styles.row}>
+                      <Avatar avatar={avatarOf(r.avatarKey)} size={32} />
+                      <Text style={styles.name} numberOfLines={1}>{r.nickname}</Text>
+                      <Pressable onPress={() => void run(() => answerRequest(r.id, true))} style={[styles.pill, { backgroundColor: colors.candy.lime }]} accessibilityRole="button"><Text style={styles.pillText}>{fa.tables.accept}</Text></Pressable>
+                      <Pressable onPress={() => void run(() => answerRequest(r.id, false))} style={styles.pill} accessibilityRole="button"><Text style={styles.pillText}>{fa.tables.decline}</Text></Pressable>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
               <TableLobby table={table} onSit={(side) => void run(() => setTableSide(side))} onKick={(id) => void run(() => kickFromTable(id))} />
               {note ? <Text style={styles.warn}>{note}</Text> : null}
               {table.youAreHost && !table.inMatch && table.players.length < table.seats ? <InviteFriends onNote={setNote} /> : null}
@@ -155,6 +185,13 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
             mode === 'menu' ? (
               <>
                 <Text style={[styles.hint, dark ? dk.text : null]}>{fa.tables.intro}</Text>
+                <Pressable onPress={() => setMode('open')} style={[styles.choice, { backgroundColor: colors.candy.yellow }]} accessibilityRole="button">
+                  <View style={styles.choiceIcon}><Item icon="lantern" /></View>
+                  <View style={styles.grow}>
+                    <Text style={styles.choiceTitle}>{fa.tables.menuOpen}</Text>
+                    <Text style={styles.hint}>{fa.tables.menuOpenHint}</Text>
+                  </View>
+                </Pressable>
                 <Pressable onPress={() => setMode('join')} style={[styles.choice, { backgroundColor: colors.candy.sky }]} accessibilityRole="button">
                   <View style={styles.choiceIcon}><Item icon="key" /></View>
                   <View style={styles.grow}>
@@ -189,6 +226,14 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
                     </Pressable>
                   ))}
                 </View>
+                <Text style={styles.label}>{fa.tables.roundsTitle}</Text>
+                <Stepper label={fa.tables.rounds(rounds)} onMinus={() => pickRounds(rounds - 1)} onPlus={() => pickRounds(rounds + 1)} minusOff={rounds <= TABLE_ROUNDS_MIN} plusOff={rounds >= TABLE_ROUNDS_MAX} />
+                <Text style={styles.label}>{fa.tables.entryTitle}</Text>
+                <Stepper label={`${toPersianDigits(String(entry))} ${fa.tables.coins}`} onMinus={() => setEntry((e) => Math.max(minEntry, e - 10))} onPlus={() => setEntry((e) => Math.min(TABLE_ENTRY_MAX, e + 10))} minusOff={entry <= minEntry} plusOff={entry >= TABLE_ENTRY_MAX} />
+                <Text style={styles.hint}>{fa.tables.entryHint(minEntry)}</Text>
+                <Pressable onPress={() => setIsPrivate(!isPrivate)} accessibilityRole="checkbox" accessibilityState={{ checked: isPrivate }}>
+                  <Text style={styles.hint}>{isPrivate ? '☑' : '☐'} {fa.tables.isPrivate}</Text>
+                </Pressable>
                 <Pressable onPress={() => setRequireReady(!requireReady)} accessibilityRole="checkbox" accessibilityState={{ checked: requireReady }}>
                   <Text style={[styles.hint, dark ? dk.text : null]}>{requireReady ? '☑' : '☐'} {fa.tables.requireReady}</Text>
                 </Pressable>
@@ -198,8 +243,14 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
                   </Pressable>
                 ) : null}
                 {note ? <Text style={styles.warn}>{note}</Text> : null}
-                <CandyButton label={fa.tables.create} color={colors.candy.lime} disabled={name.trim().length === 0} onPress={() => createTable({ name: name.trim(), icon: icon as (typeof TABLE_ICONS)[number], requireReady, format, family: hasFamily && family }).then((t) => (setNote(null), setTable(t)), fail)} />
+                <CandyButton label={fa.tables.create} color={colors.candy.lime} disabled={name.trim().length === 0} onPress={() => createTable({ name: name.trim(), icon: icon as (typeof TABLE_ICONS)[number], requireReady, format, family: hasFamily && family, rounds, entryFee: Math.max(entry, minEntry), isPrivate }).then((t) => (setNote(null), setTable(t)), fail)} />
                 <View style={styles.chips}><Chip label={fa.tables.back} color={colors.candy.sky} onPress={() => (setNote(null), setMode('menu'))} /></View>
+              </>
+            ) : mode === 'open' ? (
+              <>
+                <OpenTables onSeated={(t) => (setNote(null), setTable(t))} onNote={setNote} errText={errText} />
+                {note ? <Text style={styles.warn}>{note}</Text> : null}
+                <CandyButton label={fa.tables.back} sfx="back" color={colors.candy.sky} onPress={() => (setNote(null), setMode('menu'))} />
               </>
             ) : (
               <>
@@ -218,6 +269,17 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
       {dialog}
       {gate}
     </Pressable>
+  );
+}
+
+/** A − / + control around a value (rounds, entry fee). */
+function Stepper({ label, onMinus, onPlus, minusOff, plusOff }: { label: string; onMinus: () => void; onPlus: () => void; minusOff: boolean; plusOff: boolean }) {
+  return (
+    <View style={styles.stepper}>
+      <Pressable onPress={onPlus} disabled={plusOff} style={[styles.stepBtn, plusOff ? styles.stepOff : null]} accessibilityRole="button" accessibilityLabel="+"><Text style={styles.stepMark}>+</Text></Pressable>
+      <Text style={styles.stepValue}>{label}</Text>
+      <Pressable onPress={onMinus} disabled={minusOff} style={[styles.stepBtn, minusOff ? styles.stepOff : null]} accessibilityRole="button" accessibilityLabel="−"><Text style={styles.stepMark}>−</Text></Pressable>
+    </View>
   );
 }
 
@@ -256,6 +318,14 @@ function InviteFriends({ onNote }: { onNote: (text: string | null) => void }) {
 
 const styles = StyleSheet.create({
   invites: { gap: 6 },
+  requests: { gap: 6, padding: 8, borderRadius: 14, borderWidth: 2.5, borderColor: INK, backgroundColor: '#FFF3C4' },
+  chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
+  infoChip: { fontFamily: fonts.bold, fontSize: 12, color: INK, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 99, borderWidth: 2, borderColor: INK, backgroundColor: '#fff', overflow: 'hidden' },
+  stepper: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 },
+  stepBtn: { width: 40, height: 40, borderRadius: 12, borderWidth: 2.5, borderColor: INK, backgroundColor: colors.candy.yellow, alignItems: 'center', justifyContent: 'center' },
+  stepOff: { opacity: 0.35 },
+  stepMark: { fontFamily: fonts.display, fontSize: 22, lineHeight: 30, color: INK },
+  stepValue: { minWidth: 110, textAlign: 'center', fontFamily: fonts.display, fontSize: 18, color: INK },
   dotPos: { position: 'absolute', bottom: -2, right: -2 },
   pillDone: { opacity: 0.5 },
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,8,32,0.55)', alignItems: 'center', justifyContent: 'center', padding: 16 },

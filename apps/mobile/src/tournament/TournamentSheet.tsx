@@ -29,7 +29,7 @@ const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const n = (v: number) => toPersianDigits(String(v));
 const when = (ms: number) => new Intl.DateTimeFormat('fa-IR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(ms));
 const TINTS = ['#FFE48A', '#3FC1F0', '#FF8FB6', '#B8F08F', '#C9A3FF', '#FFAA7A'];
-const STATUS_TONE: Record<string, string> = { open: '#7ED957', running: '#FFC93C', finished: '#C9A3FF', draft: '#C9A3FF', cancelled: '#FF8FB6' };
+const STATUS_TONE: Record<string, string> = { full: '#FFAA7A', open: '#7ED957', running: '#FFC93C', finished: '#C9A3FF', draft: '#C9A3FF', cancelled: '#FF8FB6' };
 
 /** «تورنومنت‌ها»: the list (orange page) and a tournament's own page (screen-tournament of `11 More Screens`). */
 /** `invite`: the admin's «become a sponsor» card (hidden when there is no contact link). */
@@ -60,7 +60,10 @@ export function TournamentSheet({ onClose, invite = null }: { onClose: () => voi
                   <Text style={styles.cardSub}>{fa.tournament.starts}: {when(t.startsAt)}{t.entered ? ` · ${fa.tournament.mine}` : ''}</Text>
                   {t.sponsor ? <SponsorTag sponsor={t.sponsor} /> : null}
                 </View>
-                <View style={[styles.chip, { backgroundColor: STATUS_TONE[t.status] ?? '#C9A3FF' }]}><Text style={styles.chipText}>{fa.tournament.status[t.status]}</Text></View>
+                {(() => {
+                  const label = t.status === 'open' && t.joined >= t.size && !t.entered ? 'full' : t.status;
+                  return <View style={[styles.chip, { backgroundColor: STATUS_TONE[label] ?? '#C9A3FF' }]}><Text style={styles.chipText}>{fa.tournament.status[label]}</Text></View>;
+                })()}
               </View>
             )}
           </Pressable>

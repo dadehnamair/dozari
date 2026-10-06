@@ -49,6 +49,12 @@ export interface MatchDeps {
     creditWager?(matchId: string, round: number, userId: string, coins: number): Promise<void>;
     settle(matchId: string, players: readonly [string, string], stakes: readonly [Stake, Stake], result: { winner: 0 | 1 | null; reason: 'solved' | 'locked_out' | 'forfeit' | 'abandon' }, tier?: string): Promise<void>;
   };
+  /** Coin entry of private-table matches (every seated player pays the table's fee; the winning side splits the pot). Absent = tables stay friendly. */
+  tableStakes?: {
+    open(matchId: string, players: readonly string[], fee: number): Promise<boolean>;
+    cancel(matchId: string, players: readonly string[], fee: number): Promise<void>;
+    settle(matchId: string, sides: readonly [readonly string[], readonly string[]], fee: number, result: { winner: 0 | 1 | null; reason: string }): Promise<void>;
+  };
   onEnded?: (info: { players: readonly [string, string]; result: NonNullable<MatchState['result']> }) => void;
 }
 
@@ -72,6 +78,8 @@ interface Active {
   wager?: { amount: number; cutPercent: number; isBot: (userId: string) => boolean };
   /** Wagers put down for the round in play and not settled yet. */
   pgRound?: { index: number; seats: [WagerSeat, WagerSeat] };
+  /** A private table's entry fee and who sat on which side when it started (settled when the match ends). */
+  table?: { fee: number; sides: [string[], string[]] };
   /** Who sits where, as sent with `match:found` (a returning player gets it again on resume). */
   players?: MatchFound['players'];
   /** Latest proposal per side (2v2); only that side's own players ever see it. */
@@ -144,13 +152,17 @@ export class MatchService {
   }
 
   /** Starts a match for a paired couple; false when it could not be created (no puzzle, unknown or busy player). */
-  async start(a: string, b: string, opts: { friendly?: boolean; tier?: string } = {}): Promise<boolean> {
+  async start(a: string, b: string, opts: { friendly?: boolean; tier?: string; /** Table match: boards to play (1 = one puzzle then the price round) and the entry fee each player pays. */ boards?: number; fee?: number } = {}): Promise<boolean> {
     if (a === b || this.inMatch(a) || this.inMatch(b)) return false;
     const [pa, pb] = await Promise.all([this.deps.profile(a), this.deps.profile(b)]);
     if (!pa || !pb) return false;
     // The stronger of the two sets the puzzle tier (docs/logic/progression.md).
     const tracks = await this.tracksOf(a);
-    const puzzle = await pickUnseen(this.deps.history, [a, b], [], (exclude) => this.deps.puzzles.pickRandom({ level: Math.max(pa.level, pb.level), tracks, exclude }));
+    const level = Math.max(pa.level, pb.level);
+    const boardCount = Math.max(1, opts.boards ?? 1);
+    // Several boards: the same different-puzzle rules as 2v2; one board keeps the classic path.
+    const picked = boardCount > 1 ? await this.pickBoards(boardCount, level, tracks, [a, b]) : [];
+    const puzzle = boardCount > 1 ? picked[0] : await pickUnseen(this.deps.history, [a, b], [], (exclude) => this.deps.puzzles.pickRandom({ level, tracks, exclude }));
     if (!puzzle) return false;
     if (this.inMatch(a) || this.inMatch(b)) return false; // raced with another start while loading
     const rng: Rng = mulberry32(this.newSeed());
@@ -168,7 +180,16 @@ export class MatchService {
         return false;
       }
     }
-    const entry: Active = { id, puzzles: [puzzle], state: startMatch(puzzle, [a, b], rng, this.now(), undefined, await this.matchRules()), cancel: null, stakes, tier: stakes ? opts.tier : undefined, priceRound: await this.wantsPriceRound(), proposals: [null, null] };
+    const fee = opts.fee ?? 0;
+    if (fee > 0 && this.deps.tableStakes && !(await this.deps.tableStakes.open(id, [a, b], fee))) return false;
+    if (this.inMatch(a) || this.inMatch(b)) {
+      // Raced with another start while the table fees were taken: give them back.
+      if (fee > 0) await this.deps.tableStakes?.cancel(id, [a, b], fee);
+      return false;
+    }
+    const boards = boardCount > 1 ? picked : [puzzle];
+    const state = boards.length > 1 ? startTeamMatch(boards.map(toSolo), [[a], [b]], rng, this.now(), undefined, await this.matchRules()) : startMatch(puzzle, [a, b], rng, this.now(), undefined, await this.matchRules());
+    const entry: Active = { id, puzzles: boards, state, cancel: null, stakes, tier: stakes ? opts.tier : undefined, priceRound: await this.wantsPriceRound(), proposals: [null, null], table: fee > 0 && this.deps.tableStakes ? { fee, sides: [[a], [b]] } : undefined };
     if (entry.priceRound && stakes) entry.wager = (await this.deps.stakes?.wagerRules?.().catch(() => null)) ?? undefined;
     this.matches.set(id, entry);
     this.byUser.set(a, id);
@@ -185,17 +206,23 @@ export class MatchService {
   }
 
   /** Starts a 2v2 for four players (`sides[s]` = side s); no coin stakes yet. False when it could not be created. */
-  async startTeam(sides: readonly [readonly [string, string], readonly [string, string]]): Promise<boolean> {
+  async startTeam(sides: readonly [readonly [string, string], readonly [string, string]], opts: { /** Boards to play; absent = the `match.team_boards` setting. */ boards?: number; /** Entry fee each of the four pays (private tables). */ fee?: number } = {}): Promise<boolean> {
     const all = [...sides[0], ...sides[1]];
     if (new Set(all).size !== 4 || all.some((u) => this.inMatch(u))) return false;
     const profiles = await Promise.all(all.map((u) => this.deps.profile(u)));
     if (profiles.some((p) => !p)) return false;
     // The strongest player sets the puzzle tier, so nobody gets dumbed down (docs/logic/progression.md).
-    const boards = await this.pickBoards(await this.boardCount(), Math.max(...profiles.map((p) => p!.level)), await this.tracksOf(sides[0][0]), all);
+    const boards = await this.pickBoards(opts.boards ?? (await this.boardCount()), Math.max(...profiles.map((p) => p!.level)), await this.tracksOf(sides[0][0]), all);
     if (boards.length === 0) return false;
     if (all.some((u) => this.inMatch(u))) return false; // raced with another start while loading
     const id = uuidv7();
-    const entry: Active = { id, puzzles: boards, state: startTeamMatch(boards.map(toSolo), sides, mulberry32(this.newSeed()), this.now(), undefined, await this.matchRules()), cancel: null, proposals: [null, null] };
+    const fee = opts.fee ?? 0;
+    if (fee > 0 && this.deps.tableStakes && !(await this.deps.tableStakes.open(id, all, fee))) return false;
+    if (all.some((u) => this.inMatch(u))) {
+      if (fee > 0) await this.deps.tableStakes?.cancel(id, all, fee);
+      return false;
+    }
+    const entry: Active = { id, puzzles: boards, table: fee > 0 && this.deps.tableStakes ? { fee, sides: [[...sides[0]], [...sides[1]]] } : undefined, state: startTeamMatch(boards.map(toSolo), sides, mulberry32(this.newSeed()), this.now(), undefined, await this.matchRules()), cancel: null, proposals: [null, null] };
     this.matches.set(id, entry);
     for (const u of all) this.byUser.set(u, id);
     const players: MatchFound['players'] = all.map((u, i) => ({ userId: u, side: i < 2 ? 0 : 1, ...(profiles[i] as PlayerProfile) }));
@@ -555,6 +582,10 @@ export class MatchService {
     if (result && entry.stakes && this.deps.stakes) {
       const players: [string, string] = [entry.state.players[0]!.userId, entry.state.players[1]!.userId];
       void this.deps.stakes.settle(entry.id, players, entry.stakes, { winner: result.winner, reason: result.reason }, entry.tier).catch((e) => console.error('[duel] settle failed', entry.id, e));
+    }
+    if (result && entry.table && this.deps.tableStakes) {
+      const t = entry.table;
+      void this.deps.tableStakes.settle(entry.id, t.sides, t.fee, { winner: result.winner, reason: result.reason }).catch((e) => console.error('[table] settle failed', entry.id, e));
     }
     for (const p of entry.state.players) this.byUser.delete(p.userId);
     this.matches.delete(entry.id);

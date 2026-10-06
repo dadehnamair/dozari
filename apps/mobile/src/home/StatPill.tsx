@@ -6,7 +6,7 @@ import { colors, fonts, toneOf } from '../theme/colors';
 import { useTheme } from '../theme/themeStore';
 
 /** Top-bar counter of screen-home: translucent ink pill, a glossy candy ball with a glyph, then the value. */
-export function StatPill({ color, glyph, icon, glyphColor = '#fff', value, label, onPress }: { color: string; glyph?: string; /** An icon of the item pack instead of a text glyph. */ icon?: string; glyphColor?: string; value: string; label: string; onPress?: () => void }) {
+export function StatPill({ color, glyph, icon, glyphColor = '#fff', value, label, onPress, badge }: { color: string; glyph?: string; /** An icon of the item pack instead of a text glyph. */ icon?: string; glyphColor?: string; value: string; label: string; onPress?: () => void; /** A small pink count in the corner (something waits behind this counter). */ badge?: string }) {
   const adult = useTheme() === 'adult';
   const tone = toneOf(color);
   const gid = `sp${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
@@ -26,6 +26,7 @@ export function StatPill({ color, glyph, icon, glyphColor = '#fff', value, label
         {icon ? <View style={styles.ballIcon}><Item icon={icon} /></View> : <Text style={[styles.glyph, { color: glyphColor }]}>{glyph}</Text>}
       </View>
       <Text style={[styles.value, adult ? styles.valueAdult : null]} numberOfLines={1}>{value}</Text>
+      {badge ? <View style={styles.badge}><Text style={styles.badgeText}>{badge}</Text></View> : null}
     </View>
   );
   return onPress ? <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label}>{body}</Pressable> : body;
@@ -39,5 +40,7 @@ const styles = StyleSheet.create({
   valueAdult: { color: '#FFE9A8' },
   ballIcon: { width: 18, height: 18 },
   glyph: { fontFamily: fonts.display, fontSize: 15, lineHeight: 22 },
+  badge: { position: 'absolute', top: -6, left: -4, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, backgroundColor: colors.candy.pink, borderWidth: 2, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  badgeText: { fontFamily: fonts.display, fontSize: 12, lineHeight: 16, color: '#fff' },
   value: { flexShrink: 1, fontFamily: fonts.display, fontSize: 17, color: '#fff', paddingHorizontal: 6 },
 });

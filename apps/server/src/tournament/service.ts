@@ -142,7 +142,8 @@ export class TournamentService {
   // ---- players -----------------------------------------------------------------------------------------------------
 
   async list(userId: string): Promise<TournamentListItem[]> {
-    const rows = await this.store.list(['open', 'running', 'finished'], 40);
+    // Past, cancelled and full ones stay listed too (the app labels their status and they are view only), so the list is never bare.
+    const rows = await this.store.list(['open', 'running', 'finished', 'cancelled'], 40);
     const mine = await this.store.entriesOf(userId, rows.map((r) => r.id));
     return Promise.all(rows.map(async (t) => {
       const sp = await this.sponsorFor(t.sponsorId);

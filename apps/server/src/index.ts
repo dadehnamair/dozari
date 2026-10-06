@@ -162,6 +162,7 @@ import { WheelService } from './wheel/service.js';
 import { createDbWheelStore } from './wheel/store.js';
 import { createDbStakeStore } from './duel/stakes-store.js';
 import { TableService } from './tables/service.js';
+import { TableStakes } from './tables/stakes.js';
 import { registerTableRoutes } from './tables/routes.js';
 import { currentUser } from './auth/routes.js';
 import { registerSoloRoutes } from './solo/routes.js';
@@ -414,6 +415,8 @@ export function buildServer(deps: ServerDeps = {}) {
     const r = await deps.chat!.sendDm(host, friendId, { kind: 'table', code: t.code, label: `${t.icon}|${t.name}` });
     if (!r.ok) return { ok: false, error: r.error };
     const online = deps.presence?.isOnline(friendId) ?? false;
+    // A live nudge on top of the chat card, so the friend sees «X invited you» wherever they are in the app.
+    if (online) deps.notices?.push(friendId, { kind: 'table_invite', from: r.message.nickname, code: t.code });
     if (!online) void deps.notify?.notify(friendId, 'table_invite', BALE_TEXT.tableInvite(r.message.nickname)).catch(() => undefined);
     return { ok: true, online };
   } : undefined);
@@ -694,12 +697,17 @@ if (isMainModule(import.meta.url)) {
           },
         })
       : undefined;
+  /** Entry fees of private tables (the coin side of rounds + entry). */
+  const tableStakes = db ? new TableStakes(createDbStakeStore(db)) : undefined;
   const tableService =
     settings && socialStore
       ? new TableService({
           profileOf: async (id) => socialStore.publicRow(id),
-          startMatch: async (a, b) => (live.matches ? live.matches.start(a, b, { friendly: true }) : false),
-          startTeam: async (sides) => (live.matches ? live.matches.startTeam(sides) : false),
+          startMatch: async (a, b, opts) => (live.matches ? live.matches.start(a, b, { friendly: true, boards: opts?.boards, fee: opts?.fee }) : false),
+          startTeam: async (sides, opts) => (live.matches ? live.matches.startTeam(sides, opts) : false),
+          coinsAllowed: ageTracks ? (id) => ageTracks.allows(id, 'coinWager') : undefined,
+          balanceOf: tableStakes ? (id) => tableStakes.balance(id) : undefined,
+          notify: (id, n) => notices.push(id, n),
           inMatch: (id) => live.matches?.inMatch(id) ?? false,
           trackOf: ageTracks ? (id) => ageTracks.effective(id) : undefined,
           socialBlocked: ageTracks ? (id) => ageTracks.socialBlocked(id) : undefined,
@@ -838,6 +846,7 @@ if (isMainModule(import.meta.url)) {
               }
             : undefined,
           stakes: duelStakes,
+          tableStakes,
           profile: (() => {
             const base = createDbProfileLookup(db, player ? async (id) => (await player.levelOf(id)).level.level : undefined);
             return async (id: string) => {
