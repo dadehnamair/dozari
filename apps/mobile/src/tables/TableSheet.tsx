@@ -4,6 +4,7 @@ import type { TableView } from '@dozari/shared';
 import { DEFAULT_TABLE_ICON, TABLE_ICONS, normalizeTableCode } from '@dozari/shared';
 import { Avatar } from '../components/Avatar';
 import { CandyButton } from '../components/CandyButton';
+import { playSfx } from '../sound/engine';
 import { Item } from '../components/Item';
 import { GuideBubble } from '../components/GuideBubble';
 import { useConfirm } from '../components/useConfirm';
@@ -112,14 +113,16 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
               {table.youAreHost ? (
                 <>
                   <CandyButton label={fa.tables.start} color={colors.candy.lime} disabled={table.inMatch || table.players.length < table.seats} onPress={() => void run(startTable)} />
-                  <CandyButton label={table.locked ? fa.tables.unlock : fa.tables.lock} color={colors.candy.sky} onPress={() => void run(() => setTableLocked(!table.locked))} />
-                  <CandyButton label={fa.tables.extend} color={colors.candy.yellow} onPress={() => void run(extendTable)} />
-                  {onShare ? <CandyButton label={fa.tables.share} color={colors.candy.grape} onPress={() => void onShare(table).then(() => setNote(fa.tables.shared), (e) => setNote(errText(e)))} /> : null}
+                  <View style={styles.chips}>
+                    <Chip label={table.locked ? fa.tables.unlock : fa.tables.lock} color={colors.candy.sky} onPress={() => void run(() => setTableLocked(!table.locked))} />
+                    <Chip label={fa.tables.extend} color={colors.candy.yellow} onPress={() => void run(extendTable)} />
+                    {onShare ? <Chip label={fa.tables.share} color={colors.candy.grape} onPress={() => void onShare(table).then(() => setNote(fa.tables.shared), (e) => setNote(errText(e)))} /> : null}
+                  </View>
                 </>
               ) : table.requireReady ? (
                 <CandyButton label={table.players.find((p) => p.isYou)?.ready ? fa.tables.notReady : fa.tables.imReady} color={colors.candy.lime} onPress={() => void run(() => setTableReady(!table.players.find((p) => p.isYou)?.ready))} />
               ) : null}
-              <CandyButton label={fa.tables.leave} color={colors.candy.orange} onPress={() => ask({ title: fa.confirm.leaveTable.title, message: fa.confirm.leaveTable.message, confirmLabel: fa.confirm.leaveTable.yes, onConfirm: () => void leaveTable().then(() => setTable(null), () => setTable(null)) })} />
+              <View style={styles.chips}><Chip label={fa.tables.leave} color={colors.candy.orange} onPress={() => ask({ title: fa.confirm.leaveTable.title, message: fa.confirm.leaveTable.message, confirmLabel: fa.confirm.leaveTable.yes, onConfirm: () => void leaveTable().then(() => setTable(null), () => setTable(null)) })} /></View>
             </>
           ) : (
             mode === 'menu' ? (
@@ -169,7 +172,7 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
                 ) : null}
                 {note ? <Text style={styles.warn}>{note}</Text> : null}
                 <CandyButton label={fa.tables.create} color={colors.candy.lime} disabled={name.trim().length === 0} onPress={() => createTable({ name: name.trim(), icon: icon as (typeof TABLE_ICONS)[number], requireReady, format, family: hasFamily && family }).then((t) => (setNote(null), setTable(t)), fail)} />
-                <CandyButton label={fa.tables.back} sfx="back" color={colors.candy.sky} onPress={() => (setNote(null), setMode('menu'))} />
+                <View style={styles.chips}><Chip label={fa.tables.back} color={colors.candy.sky} onPress={() => (setNote(null), setMode('menu'))} /></View>
               </>
             ) : (
               <>
@@ -178,12 +181,12 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
                   <Pressable onPress={() => enter(code)} style={styles.pill} accessibilityRole="button"><Text style={styles.pillText}>{fa.tables.join}</Text></Pressable>
                 </View>
                 {note ? <Text style={styles.warn}>{note}</Text> : null}
-                <CandyButton label={fa.tables.back} sfx="back" color={colors.candy.sky} onPress={() => (setNote(null), setMode('menu'))} />
+                <View style={styles.chips}><Chip label={fa.tables.back} color={colors.candy.sky} onPress={() => (setNote(null), setMode('menu'))} /></View>
               </>
             )
           )}
         </ScrollView>
-        <CandyButton label={fa.tables.close} sfx="back" color={colors.candy.sky} onPress={onClose} />
+        <View style={styles.chips}><Chip label={fa.tables.close} color={colors.candy.sky} onPress={onClose} /></View>
       </Pressable>
       {dialog}
       {gate}
@@ -248,6 +251,17 @@ const styles = StyleSheet.create({
   icons: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
   iconCell: { width: 48, height: 48, padding: 5, borderRadius: 12, borderWidth: 2, borderColor: 'transparent', backgroundColor: colors.card },
   iconOn: { borderColor: INK, backgroundColor: colors.candy.yellow },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 },
+  chip: { minWidth: 84, alignItems: 'center', borderWidth: 2.5, borderColor: INK, borderRadius: 99, paddingHorizontal: 16, paddingVertical: 6 },
   pill: { borderWidth: 2, borderColor: INK, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: colors.candy.yellow },
   pillText: { fontFamily: fonts.bold, fontSize: 13, color: INK },
 });
+
+/** A small ink-outlined pill, like the gender pills of the profile editor: for the secondary actions under a table. */
+function Chip({ label, color, onPress }: { label: string; color: string; onPress: () => void }) {
+  return (
+    <Pressable onPress={() => (playSfx('press'), onPress())} accessibilityRole="button" accessibilityLabel={label} style={({ pressed }) => [styles.chip, { backgroundColor: color }, pressed ? { opacity: 0.8 } : null]}>
+      <Text style={styles.pillText}>{label}</Text>
+    </Pressable>
+  );
+}
