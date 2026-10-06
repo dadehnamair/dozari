@@ -7,7 +7,7 @@ import type { LandingService } from '../landing/service.js';
 import { slugify } from '../landing/service.js';
 import { AiError, chat, resolveProviders } from './providers.js';
 import type { Env, FetchLike, ResolvedProvider } from './providers.js';
-import { buildPrompt, parseDrafts } from './content.js';
+import { buildPrompt, nameKey, parseDrafts } from './content.js';
 import type { GenerateRequest, PromptContext, SaveRequest } from './content.js';
 
 export interface AiDeps {
@@ -16,6 +16,8 @@ export interface AiDeps {
   puzzles?: PuzzleAdmin;
   products?: ProductAdmin;
   landing?: LandingService;
+  /** The catalog as it is now, to keep suggestions from repeating existing products. */
+  catalog?: () => Promise<{ slug: string; nameFa: string }[]>;
   fetch?: FetchLike;
   now?: () => number;
 }
@@ -74,6 +76,7 @@ export class AiStudio {
       ctx.kidItems = (await this.deps.lessons.listKidItems('missing')).slice(0, req.count).map((i) => ({ productId: i.productId, nameFa: i.nameFa }));
       if (ctx.kidItems.length === 0) throw new AiError('ai_not_found');
     }
+    if (req.kind === 'products' && this.deps.catalog) ctx.existing = await this.deps.catalog();
     if (req.kind === 'puzzle_titles') {
       const row = (await this.deps.puzzles?.list(500))?.find((p) => p.id === req.puzzleId);
       if (!row) throw new AiError('ai_not_found');
@@ -95,7 +98,14 @@ export class AiStudio {
       case 'products': {
         if (!d.products) throw new AiError('ai_not_found');
         const out: SaveOutcome[] = [];
+        const known = new Set((await d.catalog?.() ?? []).flatMap((e) => [nameKey(e.nameFa), nameKey(e.slug)]));
         for (const p of req.drafts) {
+          if (known.has(nameKey(p.nameFa)) || known.has(nameKey(p.slug))) {
+            out.push({ label: p.nameFa, ok: false, error: 'duplicate' });
+            continue;
+          }
+          known.add(nameKey(p.nameFa));
+          known.add(nameKey(p.slug));
           let made: Awaited<ReturnType<ProductAdmin['create']>> = 'duplicate';
           for (const slug of [p.slug, `${p.slug}-2`, `${p.slug}-3`]) {
             made = await d.products.create({ slug, nameFa: p.nameFa, category: p.category, unitFa: p.unitFa, ageTrack: p.ageTrack });
@@ -107,7 +117,16 @@ export class AiStudio {
           }
           // Hidden until an editor has checked it and added approved prices.
           await d.products.update(made.id, { isActive: false, ...(p.storyFa ? { storyFa: p.storyFa } : {}) });
-          out.push({ label: p.nameFa, ok: true });
+          // Prices land as `pending`, low confidence, flagged as AI-suggested; they never reach players before an editor approves them.
+          const seenYears = new Set<number>();
+          let priced = 0;
+          for (const pr of p.prices) {
+            if (seenYears.has(pr.year)) continue;
+            seenYears.add(pr.year);
+            const added = await d.products.addPrice({ productId: made.id, year: pr.year, month: null, priceRials: BigInt(pr.priceToman) * 10n, sourceType: 'other', sourceNote: 'AI-suggested, unverified', confidence: 1 });
+            if (typeof added !== 'string') priced++;
+          }
+          out.push({ label: priced ? `${p.nameFa} (${priced})` : p.nameFa, ok: true });
         }
         return out;
       }

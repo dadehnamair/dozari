@@ -21,7 +21,7 @@ The model name may be typed per request (letters, digits, `. _ - : /`); empty = 
 
 | kind | options | output → saved as |
 |---|---|---|
-| `products` | count ≤20, category, age band, from/to Solar year, free hint | name, latin slug, unit, category, one nostalgic sentence → **inactive** product (`ProductAdmin.create`, then `isActive=false`); duplicate slug retries `-2`, `-3`. **No prices** are ever requested or stored. |
+| `products` | count ≤20, category, age band, from/to Solar year, free hint | name, latin slug, unit, category, one nostalgic sentence → **inactive** product (`ProductAdmin.create`, then `isActive=false`); duplicate slug retries `-2`, `-3`. Each draft may carry up to 8 nominal prices (year + toman, integer); they are saved as **`pending`** price points (×10 → rials, confidence 1, note «AI-suggested, unverified») and an editor approves them in the catalog like any other price. Products already in the catalog (name or slug, Persian-normalised) are sent to the model as «do not repeat» and filtered out again on parse and on save. |
 | `kid_lessons` | count ≤20 (kid items that have no lesson yet) | word, one-sentence story, syllables → `item_lessons` **draft** (an editor approves in «کلمه‌آموزی کودک») |
 | `puzzle_titles` | one puzzle, style witty/plain | one title per group level → `PuzzleAdmin.setTitles` (editor reviews the titles in the same page before saving) |
 | `blog` | topic, count ≤3, length short/medium/long, tone, keywords | title, summary, markdown body, SEO title/description → blog post **draft** (`LandingService.savePost`, `status: draft`) |
@@ -30,7 +30,7 @@ The model name may be typed per request (letters, digits, `. _ - : /`); empty = 
 
 - Output is JSON validated with zod twice (after the model, and again on save); invalid items are dropped and counted. Lesson drafts must match the requested items; title drafts must match real levels.
 - Nothing is published, approved or activated by the model. A human reads every draft (the UI says so).
-- Prompts forbid invented prices/statistics/quotes, politics, religion, insults, tobacco/alcohol promotion; kid prompts ask for simple, safe words. Hints typed by the editor are passed as content hints only.
+- Prompts forbid invented statistics/quotes (prices only as best-recollection nominal values, never served before approval), politics, religion, insults, tobacco/alcohol promotion; kid prompts ask for simple, safe words. Hints typed by the editor are passed as content hints only.
 - Cost bound: `AI_LIMITS.maxCallsPerHour` (30, whole server, in memory), `timeoutSeconds` (90), max output tokens per kind.
 - Permission: `content` (editor and owner); audited as `ai.generate` / `ai.save` (kind, provider/model, counts — never the key or the text).
 - The result of a failed call maps to `ai_*` errors with a Persian explanation in the UI (not configured, rate limited, timeout, unreachable, provider HTTP error, unusable output).

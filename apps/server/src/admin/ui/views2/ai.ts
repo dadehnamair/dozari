@@ -20,8 +20,17 @@ function aiErrorText(b, fallback) {
 }
 var AI_KINDS = [['products', 'محصول'], ['kid_lessons', 'کلمه‌آموزی کودک'], ['puzzle_titles', 'عنوان گروه‌های پازل'], ['blog', 'مقاله‌ی بلاگ']];
 /* Editable fields of one draft, per kind: [key, label, 'text' | 'area' | 'select', options]. */
+function aiPricesText(list) { return (list || []).map(function (p) { return p.year + ': ' + p.priceToman; }).join('\n'); }
+function aiParsePrices(text) {
+  var out = [];
+  text.split('\n').forEach(function (line) {
+    var m = line.replace(/[۰-۹]/g, function (c) { return String(c.charCodeAt(0) - 1776); }).replace(/[,٬،\s]/g, '').match(/^(\d{4})[:=\-](\d+)$/);
+    if (m) out.push({ year: +m[1], priceToman: +m[2] });
+  });
+  return out;
+}
 function aiFields(kind) {
-  if (kind === 'products') return [['nameFa', 'نام', 'text'], ['slug', 'شناسه‌ی لاتین', 'text'], ['unitFa', 'واحد', 'text'], ['category', 'دسته', 'select', (S.meta && S.meta.categories) || []], ['storyFa', 'جمله‌ی نوستالژیک', 'area']];
+  if (kind === 'products') return [['nameFa', 'نام', 'text'], ['slug', 'شناسه‌ی لاتین', 'text'], ['unitFa', 'واحد', 'text'], ['category', 'دسته', 'select', (S.meta && S.meta.categories) || []], ['storyFa', 'جمله‌ی نوستالژیک', 'area'], ['prices', 'قیمت‌ها (هر خط «سال: قیمت به تومان»)', 'area']];
   if (kind === 'kid_lessons') return [['wordFa', 'کلمه', 'text'], ['syllablesFa', 'هجاها', 'text'], ['storyFa', 'داستان کوتاه', 'area']];
   if (kind === 'puzzle_titles') return [['titleFa', 'عنوان', 'text']];
   return [['titleFa', 'عنوان', 'text'], ['summaryFa', 'خلاصه', 'area'], ['bodyMd', 'متن (مارک‌داون)', 'area'], ['metaTitle', 'عنوان سئو', 'text'], ['metaDescription', 'توضیح سئو', 'area']];
@@ -80,10 +89,11 @@ VIEWS.ai = function (root) {
       var use = h('input', { type: 'checkbox' }); use.checked = true;
       var inputs = {};
       var fields = aiFields(result.kind).map(function (f) {
-        var el = f[2] === 'select' ? select(f[3], d[f[1]]) : h(f[2] === 'area' ? 'textarea' : 'input', f[2] === 'area' ? { rows: f[1] === 'bodyMd' ? 12 : 2, text: d[f[1]] || '' } : { type: 'text', value: d[f[1]] || '' });
-        if (f[1] === 'slug') el.style.direction = 'ltr';
-        inputs[f[1]] = el;
-        return field(f[0], el);
+        var key = f[0], cur = key === 'prices' ? aiPricesText(d.prices) : d[key];
+        var el = f[2] === 'select' ? select(f[3], cur) : h(f[2] === 'area' ? 'textarea' : 'input', f[2] === 'area' ? { rows: key === 'bodyMd' ? 12 : key === 'prices' ? 4 : 2, text: cur || '' } : { type: 'text', value: cur || '' });
+        if (key === 'slug' || key === 'prices') el.style.direction = 'ltr';
+        inputs[key] = el;
+        return field(f[1], el);
       });
       var title = result.kind === 'kid_lessons' ? (d.nameFa || '') : result.kind === 'puzzle_titles' ? 'سطح ' + fa(d.level + 1) : '';
       return { use: use, inputs: inputs, draft: d, node: h('section', { class: 'card' }, [h('label', { style: 'display:flex;gap:8px;align-items:center;margin-bottom:8px' }, [use, h('b', { text: 'پیشنهاد ' + fa(i + 1) + (title ? ' · ' + title : '') })]), h('div', { class: 'form-grid' }, fields)]) };
@@ -91,7 +101,7 @@ VIEWS.ai = function (root) {
     function collect(row) {
       var d = {};
       Object.keys(row.draft).forEach(function (k) { d[k] = row.draft[k]; });
-      Object.keys(row.inputs).forEach(function (k) { var v = row.inputs[k].value.trim(); d[k] = (k === 'unitFa' || k === 'syllablesFa' || k === 'metaTitle' || k === 'metaDescription') && v === '' ? null : v; });
+      Object.keys(row.inputs).forEach(function (k) { var v = row.inputs[k].value.trim(); if (k === 'prices') { d.prices = aiParsePrices(v); return; } d[k] = (k === 'unitFa' || k === 'syllablesFa' || k === 'metaTitle' || k === 'metaDescription') && v === '' ? null : v; });
       if (result.kind === 'kid_lessons') delete d.nameFa;
       return d;
     }
