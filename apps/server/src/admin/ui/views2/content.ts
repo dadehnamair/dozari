@@ -94,7 +94,7 @@ VIEWS.cities = function (root) {
     body.appendChild(card('اطلاعات شهر', null, [
       field('نام', nm), field('استان', ps, 'نشان، رنگ و خوش‌آمدگویی همین استان به بازیکن‌های این شهر نشان داده می‌شود'), field('سوغات', sov, 'روی کارت شهر در صفحه‌ی انتخاب شهر نشان داده می‌شود؛ خالی = سوغات پیش‌فرض استان'), field('شعار', slo, 'زیر خوش‌آمدگویی روی صفحه‌ی اصلی بازیکن‌های این شهر می‌آید؛ خالی = بدون شعار'), field('ترتیب در فهرست', ord),
       h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, [
-        h('button', { class: 'btn primary', text: 'ذخیره', onclick: function () { patch({ nameFa: nm.value.trim(), province: ps.value || null, sortOrder: +ord.value || 0, souvenirFa: sov.value.trim() || null, sloganFa: slo.value.trim() || null }, 'ذخیره شد'); } }),
+        h('button', { class: 'btn primary', text: 'ذخیره', onclick: function () { patch({ nameFa: nm.value.trim(), province: ps.value || null, sortOrder: +ord.value || 0, souvenirFa: sov.value.trim() || null, sloganFa: slo.value.trim() }, 'ذخیره شد'); } }),
         h('button', { class: 'btn', text: c.isActive ? 'پنهان کن' : 'نشان بده', onclick: function (e) { var b = e.target; patch({ isActive: !c.isActive }, c.isActive ? 'شهر پنهان شد' : 'شهر نمایان شد').then(function () { b.textContent = c.isActive ? 'پنهان کن' : 'نشان بده'; }); } })
       ])
     ]));

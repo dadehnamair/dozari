@@ -3,6 +3,7 @@ import { buildServer } from '../index.js';
 import { SettingsService } from '../settings/service.js';
 import { createMemorySettingsStore } from '../settings/db-store.js';
 import { createMemoryAuditLog } from '../admin/audit.js';
+import { DEFAULT_CITIES } from '@dozari/shared';
 import { createMemoryPlayerStore } from '../player/store.js';
 
 const TOKEN = 'secret-admin-token';
@@ -34,8 +35,9 @@ describe('admin cities', () => {
     expect(up.statusCode).toBe(200);
     expect((await players.city(a!.id))).toMatchObject({ souvenirFa: 'گز', sloganFa: 'نصف جهان' });
     await app.inject({ method: 'PATCH', url: `/admin/cities/${a!.id}`, headers: h, payload: { sloganFa: '' } });
-    expect((await players.city(a!.id))!.sloganFa).toBeNull(); // empty clears it
+    expect((await players.city(a!.id))!.sloganFa).toBe(''); // cleared on purpose: stays empty, not re-seeded
 
+    expect(DEFAULT_CITIES.every((c) => c.sloganFa.length > 5 && c.sloganFa.length <= 120)).toBe(true);
     const mv = await app.inject({ method: 'PUT', url: `/admin/cities/${a!.id}/players/${U2}`, headers: h, payload: { cityId: b!.id } });
     expect(mv.statusCode).toBe(200);
     expect((await players.privateRow(U2)).cityId).toBe(b!.id);

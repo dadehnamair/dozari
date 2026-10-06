@@ -88,15 +88,20 @@ export interface PlayerStore {
 export function createDbPlayerStore(db: Db): PlayerStore {
   let seeded = false;
   /**
-   * Adds the default cities an older table lacks (abroad cities came later) and fills a missing province from the
+   * Adds the default cities an older table lacks (abroad cities came later) and fills a missing province / slogan from the
    * defaults; rows the admin renamed, hid, reordered or gave a province keep those changes.
    */
   const ensureCities = async () => {
     if (seeded) return;
-    const have = new Map((await db.select({ slug: cities.slug, province: cities.province }).from(cities)).map((r) => [r.slug, r.province]));
+    const have = new Map((await db.select({ slug: cities.slug, province: cities.province, slogan: cities.sloganFa }).from(cities)).map((r) => [r.slug, r]));
     for (const [i, c] of DEFAULT_CITIES.entries()) {
-      if (!have.has(c.slug)) await db.insert(cities).values({ id: uuidv7(), slug: c.slug, nameFa: c.nameFa, province: c.province, sortOrder: i }).onDuplicateKeyUpdate({ set: { slug: sql`${cities.slug}` } });
-      else if (have.get(c.slug) === null && c.province) await db.update(cities).set({ province: c.province }).where(and(eq(cities.slug, c.slug), isNull(cities.province)));
+      if (!have.has(c.slug)) await db.insert(cities).values({ id: uuidv7(), slug: c.slug, nameFa: c.nameFa, province: c.province, sloganFa: c.sloganFa, sortOrder: i }).onDuplicateKeyUpdate({ set: { slug: sql`${cities.slug}` } });
+      else {
+        const row = have.get(c.slug)!;
+        if (row.province === null && c.province) await db.update(cities).set({ province: c.province }).where(and(eq(cities.slug, c.slug), isNull(cities.province)));
+        // null = never set: take the default once; an admin who clears it stores '' (no slogan), which stays.
+        if (row.slogan === null) await db.update(cities).set({ sloganFa: c.sloganFa }).where(and(eq(cities.slug, c.slug), isNull(cities.sloganFa)));
+      }
     }
     seeded = true;
   };
@@ -243,7 +248,7 @@ export function createDbPlayerStore(db: Db): PlayerStore {
 }
 
 /** Memory store for tests; `seedCities` mirrors the default list when omitted. */
-export function createMemoryPlayerStore(seedCities: readonly { slug: string; nameFa: string; province?: string | null }[] = DEFAULT_CITIES, now: () => number = Date.now): PlayerStore & { nicknames: Map<string, string> } {
+export function createMemoryPlayerStore(seedCities: readonly { slug: string; nameFa: string; province?: string | null; sloganFa?: string }[] = DEFAULT_CITIES, now: () => number = Date.now): PlayerStore & { nicknames: Map<string, string> } {
   const stats = new Map<string, StatsRow>();
   const events: { userId: string; xp: number; at: number; mode: 'solo' | 'duel' | null; outcome: 'win' | 'loss' | 'draw' | null }[] = [];
   const priv = new Map<string, PrivateRow>();
@@ -254,7 +259,7 @@ export function createMemoryPlayerStore(seedCities: readonly { slug: string; nam
       .map((userId) => ({ userId, xp: xpOf(userId, since) }))
       .filter((r) => since === undefined || r.xp > 0)
       .filter((r) => (f.cityId ? priv.get(r.userId)?.cityId === f.cityId : true) && (f.userIds ? f.userIds.includes(r.userId) : true));
-  const rows: CityRow[] = seedCities.map((c, i) => ({ id: `00000000-0000-7000-8000-${String(i + 1).padStart(12, '0')}`, slug: c.slug, nameFa: c.nameFa, province: c.province ?? null, souvenirFa: null, sloganFa: null, sortOrder: i, isActive: true }));
+  const rows: CityRow[] = seedCities.map((c, i) => ({ id: `00000000-0000-7000-8000-${String(i + 1).padStart(12, '0')}`, slug: c.slug, nameFa: c.nameFa, province: c.province ?? null, souvenirFa: null, sloganFa: c.sloganFa ?? null, sortOrder: i, isActive: true }));
   return {
     nicknames,
     async stats(id) {

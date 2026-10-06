@@ -438,7 +438,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     });
     g.patch('/admin/cities/:id', async (req, reply) => {
       const p = idParam.safeParse(req.params);
-      const b = z.object({ nameFa: z.string().trim().min(2).max(60).optional(), isActive: z.boolean().optional(), sortOrder: z.number().int().min(0).max(10000).optional(), province: provinceKey.optional(), souvenirFa: z.string().trim().max(60).transform((v) => v || null).nullable().optional(), sloganFa: z.string().trim().max(120).transform((v) => v || null).nullable().optional() }).safeParse(req.body);
+      const b = z.object({ nameFa: z.string().trim().min(2).max(60).optional(), isActive: z.boolean().optional(), sortOrder: z.number().int().min(0).max(10000).optional(), province: provinceKey.optional(), souvenirFa: z.string().trim().max(60).transform((v) => v || null).nullable().optional(), sloganFa: z.string().trim().max(120).optional() }).safeParse(req.body);
       if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
       if ((await cities.updateCity(p.data.id, b.data)) === 'not_found') return reply.code(404).send({ error: 'city_not_found' });
       void audit('city.update', p.data.id, JSON.stringify(b.data));
