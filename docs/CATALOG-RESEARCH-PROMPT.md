@@ -95,7 +95,7 @@ BEFORE YOU FINISH
 
 1. Put the file(s) in `packages/db/seed/products/` (any `*.json`; every file in the folder is loaded).
 2. Validate: `pnpm --filter @dozari/db seed:check` → `seed ok: N products …`
-3. Load (idempotent — re-running updates in place by `slug` and `(slug, year, month)`): `pnpm --filter @dozari/db seed`
+3. Load (idempotent, insert-only — existing rows matched by `slug` and `(slug, year, month)` are left untouched): `pnpm --filter @dozari/db seed`
    - **Inside the production container** the `pnpm … seed` script fails (`../../.env: not found`: the env is already injected, there is no .env file).
      Run the runner directly: `cd /app/packages/db && pnpm exec tsx src/seed/run.ts --check`, then `pnpm exec tsx src/seed/run.ts`.
      The new JSON must exist inside the image: `git pull` on the host, then `docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build`

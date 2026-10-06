@@ -1,0 +1,1342 @@
+[
+{
+"id": "01a100e9-e2f6-7284-9279-1ce22926c07f",
+"slug": "peykan-javanan",
+"name_fa": "پیکان جوانان"
+},
+{
+"id": "01a100e9-e31e-7877-9787-9fcd3026df42",
+"slug": "sample-nan-sangak",
+"name_fa": "نان سنگک"
+},
+{
+"id": "01a100e9-e34c-736a-a0af-69c4b9183fcc",
+"slug": "sample-nan-barbari",
+"name_fa": "نان بربری"
+},
+{
+"id": "01a100e9-e375-7089-bb71-5524c58615e0",
+"slug": "sample-nan-lavash",
+"name_fa": "نان لواش"
+},
+{
+"id": "01a100e9-e3a0-7549-932a-ed2bf9280b84",
+"slug": "sample-nan-taftoon",
+"name_fa": "نان تافتون"
+},
+{
+"id": "01a100e9-e3ca-7d90-9969-c8673bfa0fc7",
+"slug": "sample-panir-lighvan",
+"name_fa": "پنیر لیقوان"
+},
+{
+"id": "01a100e9-e3ee-7d48-a071-c11f8c96c10a",
+"slug": "sample-tokhm-morgh",
+"name_fa": "تخم‌مرغ"
+},
+{
+"id": "01a100e9-e415-7d57-9012-f5842c5730c4",
+"slug": "sample-berenj-irani",
+"name_fa": "برنج ایرانی"
+},
+{
+"id": "01a100e9-e43d-7d5f-a258-0c3894349078",
+"slug": "sample-roghan-nabati",
+"name_fa": "روغن نباتی"
+},
+{
+"id": "01a100e9-e461-79db-bbac-26c7dca4db0c",
+"slug": "sample-shekar",
+"name_fa": "شکر"
+},
+{
+"id": "01a100e9-e488-7141-9489-9b9d84619407",
+"slug": "sample-chai-irani",
+"name_fa": "چای ایرانی"
+},
+{
+"id": "01a100e9-e4af-7d0d-aa7c-cfc2cdb2c5d1",
+"slug": "sample-mast",
+"name_fa": "ماست"
+},
+{
+"id": "01a100e9-e4e0-7d49-b0f8-b3fa551b55b2",
+"slug": "sample-shir",
+"name_fa": "شیر پاکتی"
+},
+{
+"id": "01a100e9-e504-7924-8e6a-595f81039781",
+"slug": "sample-goosht-gusfand",
+"name_fa": "گوشت گوسفندی"
+},
+{
+"id": "01a100e9-e52a-72b1-9c3b-5327fe1ac722",
+"slug": "sample-morgh",
+"name_fa": "مرغ"
+},
+{
+"id": "01a100e9-e54f-73c1-a99a-e8daed388c51",
+"slug": "sample-sib-zamini",
+"name_fa": "سیب‌زمینی"
+},
+{
+"id": "01a100e9-e582-7c7a-a440-89b93676ee1c",
+"slug": "sample-piaz",
+"name_fa": "پیاز"
+},
+{
+"id": "01a100e9-e5b0-7a21-98a6-4e35c86233b8",
+"slug": "sample-gojeh",
+"name_fa": "گوجه‌فرنگی"
+},
+{
+"id": "01a100e9-e5d8-79a5-8909-7057bb5e8e39",
+"slug": "sample-pesteh",
+"name_fa": "پسته‌ی اکبری"
+},
+{
+"id": "01a100e9-e5fc-7be8-b69e-0707a921d7db",
+"slug": "sample-zaferan",
+"name_fa": "زعفران"
+},
+{
+"id": "01a100e9-e61d-7205-b311-0b05d3d6a356",
+"slug": "sample-halva-arde",
+"name_fa": "حلوا ارده"
+},
+{
+"id": "01a100e9-e639-704f-b3db-f20b5af49f55",
+"slug": "sample-sohan",
+"name_fa": "سوهان قم"
+},
+{
+"id": "01a100e9-e65b-72fb-a597-caf68fffeeb1",
+"slug": "sample-pashmak",
+"name_fa": "پشمک"
+},
+{
+"id": "01a100e9-e686-7958-824f-2d7cd0f60ee7",
+"slug": "sample-asal",
+"name_fa": "عسل طبیعی"
+},
+{
+"id": "01a100e9-e6a3-7136-9299-bc1389ccb472",
+"slug": "sample-pofak",
+"name_fa": "پفک نمکی"
+},
+{
+"id": "01a100e9-e6c1-7330-8171-35587468deae",
+"slug": "sample-chips",
+"name_fa": "چیپس"
+},
+{
+"id": "01a100e9-e6dc-72d4-a008-96e4f2f7c2d9",
+"slug": "sample-adams",
+"name_fa": "آدامس"
+},
+{
+"id": "01a100e9-e707-796d-a80e-fa2438f7be04",
+"slug": "sample-shokolat",
+"name_fa": "شکلات تکی"
+},
+{
+"id": "01a100e9-e72d-7902-9add-fe9c96f715d3",
+"slug": "sample-bastani-ghifi",
+"name_fa": "بستنی قیفی"
+},
+{
+"id": "01a100e9-e753-72c3-85c0-79c70010159a",
+"slug": "sample-pastil",
+"name_fa": "پاستیل"
+},
+{
+"id": "01a100e9-e770-7cd5-aafd-6754aa54ed5d",
+"slug": "sample-chupachups",
+"name_fa": "آبنبات چوبی"
+},
+{
+"id": "01a100e9-e78c-7867-a8b6-fe330ce91fa4",
+"slug": "sample-nokhodchi",
+"name_fa": "نخودچی کشمش"
+},
+{
+"id": "01a100e9-e7a9-792f-be25-3aa72cee7507",
+"slug": "sample-mixed-nuts",
+"name_fa": "آجیل مخلوط"
+},
+{
+"id": "01a100e9-e7ce-78a8-9e69-3f2ea898e5b1",
+"slug": "sample-bastani-sonati",
+"name_fa": "بستنی سنتی"
+},
+{
+"id": "01a100e9-e7ee-7d7a-a421-463722e823c4",
+"slug": "sample-zoolbia",
+"name_fa": "زولبیا بامیه"
+},
+{
+"id": "01a100e9-e80d-76e9-a149-d54d37392994",
+"slug": "sample-noshabe",
+"name_fa": "نوشابه‌ی شیشه‌ای"
+},
+{
+"id": "01a100e9-e82f-7620-a27d-08fef7906e7b",
+"slug": "sample-doogh",
+"name_fa": "دوغ"
+},
+{
+"id": "01a100e9-e84c-78f7-9509-f32481a5ed9f",
+"slug": "sample-ab-madani",
+"name_fa": "آب‌معدنی"
+},
+{
+"id": "01a100e9-e864-7635-a7b5-6de4339ad8b8",
+"slug": "sample-abmive",
+"name_fa": "آبمیوه‌ی پاکتی"
+},
+{
+"id": "01a100e9-e87e-745e-af4a-c6f1cd971714",
+"slug": "sample-chai-qahveh",
+"name_fa": "چای قهوه‌خانه"
+},
+{
+"id": "01a100e9-e89f-7ebe-995e-705aad0e52f6",
+"slug": "sample-sharbat-albaloo",
+"name_fa": "شربت آلبالو"
+},
+{
+"id": "01a100e9-e8bd-78c6-ab54-1823905640ff",
+"slug": "sample-nescafe",
+"name_fa": "قهوه‌ی فوری"
+},
+{
+"id": "01a100e9-e8d6-70b1-9d88-f7237a930de4",
+"slug": "sample-araq-nana",
+"name_fa": "عرق نعنا"
+},
+{
+"id": "01a100e9-e8f5-7965-8c9e-b699adfc3d39",
+"slug": "sample-sandwich-falafel",
+"name_fa": "ساندویچ فلافل"
+},
+{
+"id": "01a100e9-e913-7f7e-aa76-6a438ea7cce9",
+"slug": "sample-kabab-koobideh",
+"name_fa": "کباب کوبیده"
+},
+{
+"id": "01a100e9-e92e-7100-bb83-0c4006242c7b",
+"slug": "sample-dizi",
+"name_fa": "دیزی سنگی"
+},
+{
+"id": "01a100e9-e94d-73be-9822-e2b753f1201c",
+"slug": "sample-ash-reshteh",
+"name_fa": "آش رشته"
+},
+{
+"id": "01a100e9-e96d-7e5f-8e8d-289030c30194",
+"slug": "sample-halim",
+"name_fa": "حلیم"
+},
+{
+"id": "01a100e9-e989-7402-a87e-3b6edd138d2d",
+"slug": "sample-sandwich-kalbas",
+"name_fa": "ساندویچ کالباس"
+},
+{
+"id": "01a100e9-e9a5-7aa4-ba0b-556fecf7fb11",
+"slug": "sample-pizza",
+"name_fa": "پیتزا"
+},
+{
+"id": "01a100e9-e9bb-7333-83a5-94c99b39060c",
+"slug": "sample-bus-ticket",
+"name_fa": "بلیت اتوبوس شهری"
+},
+{
+"id": "01a100e9-e9dd-76a5-95e2-0f73c2f5d688",
+"slug": "sample-metro-ticket",
+"name_fa": "بلیت مترو"
+},
+{
+"id": "01a100e9-e9f8-7117-8125-3a503d3fd07c",
+"slug": "sample-taxi-start",
+"name_fa": "کرایه‌ی تاکسی شروع"
+},
+{
+"id": "01a100e9-ea1a-7816-bc9b-2db4a7b6fff5",
+"slug": "sample-gasoline",
+"name_fa": "بنزین"
+},
+{
+"id": "01a100e9-ea35-727b-bd32-d32c62604240",
+"slug": "sample-cng",
+"name_fa": "گاز مایع CNG"
+},
+{
+"id": "01a100e9-ea47-7efd-9769-20cad7e0d8df",
+"slug": "sample-bus-intercity",
+"name_fa": "بلیت اتوبوس تهران–شیراز"
+},
+{
+"id": "01a100e9-ea62-72db-9948-57ea1380970c",
+"slug": "sample-train-ticket",
+"name_fa": "بلیت قطار تهران–مشهد"
+},
+{
+"id": "01a100e9-ea7c-7311-8fd3-372add7f02a1",
+"slug": "sample-peykan",
+"name_fa": "پیکان"
+},
+{
+"id": "01a100e9-ea9c-70e5-a787-a416434dd3e7",
+"slug": "sample-paykan-vanet",
+"name_fa": "پیکان وانت"
+},
+{
+"id": "01a100e9-eab8-782e-8a28-5c8a2a21d3ce",
+"slug": "sample-pride",
+"name_fa": "پراید"
+},
+{
+"id": "01a100e9-ead0-73af-b70f-d67bb4614b1e",
+"slug": "sample-samand",
+"name_fa": "سمند"
+},
+{
+"id": "01a100e9-eae2-7baf-8685-b0303c156dcc",
+"slug": "sample-peugeot-206",
+"name_fa": "پژو ۲۰۶"
+},
+{
+"id": "01a100e9-eafc-7074-912f-022f61e910ca",
+"slug": "sample-motor-honda",
+"name_fa": "موتور هندا ۱۲۵"
+},
+{
+"id": "01a100e9-eb1b-7ff9-88d9-65785d74b985",
+"slug": "sample-bicycle",
+"name_fa": "دوچرخه‌ی رودخانه"
+},
+{
+"id": "01a100e9-eb41-78d2-ade7-2195baa9f808",
+"slug": "sample-tv-21",
+"name_fa": "تلویزیون رنگی ۲۱ اینچ"
+},
+{
+"id": "01a100e9-eb5c-7d90-9f41-7d407a51115a",
+"slug": "sample-radio-cassette",
+"name_fa": "رادیو ضبط"
+},
+{
+"id": "01a100e9-eb7c-742f-bc38-c951a5c9e7f4",
+"slug": "sample-cassette-noor",
+"name_fa": "نوار کاست"
+},
+{
+"id": "01a100e9-eb9e-7c34-b4ff-5e0f2f42261e",
+"slug": "sample-nokia-1100",
+"name_fa": "موبایل نوکیا ۱۱۰۰"
+},
+{
+"id": "01a100e9-ebb7-79af-8180-7f1dd6985b16",
+"slug": "sample-cd-bazi",
+"name_fa": "سی‌دی بازی کامپیوتری"
+},
+{
+"id": "01a100e9-ebd1-7c68-91ef-1b1f341e201b",
+"slug": "sample-flash-4gb",
+"name_fa": "فلش مموری ۴ گیگ"
+},
+{
+"id": "01a100e9-ebe4-7b9e-994e-e6095aab6d0c",
+"slug": "sample-atari",
+"name_fa": "ریزرایانه‌ی آتاری"
+},
+{
+"id": "01a100e9-ec01-74b2-97bf-877a09d637b3",
+"slug": "sample-handheld-game",
+"name_fa": "کنسول دستی (بازی‌ماشین)"
+},
+{
+"id": "01a100e9-ec21-7e37-8a53-0d930dde6f7a",
+"slug": "sample-refrigerator",
+"name_fa": "یخچال ساید"
+},
+{
+"id": "01a100e9-ec43-7dc8-a699-2bc1ce36964b",
+"slug": "sample-washing-machine",
+"name_fa": "ماشین لباس‌شویی"
+},
+{
+"id": "01a100e9-ec60-784f-af55-e37700d7f2c9",
+"slug": "sample-camera-film",
+"name_fa": "فیلم عکاسی ۳۶ تایی"
+},
+{
+"id": "01a100e9-ec80-76b1-afba-c64a1d330414",
+"slug": "sample-cinema",
+"name_fa": "بلیت سینما"
+},
+{
+"id": "01a100e9-ec9f-7968-9a8f-085f3bf7bd30",
+"slug": "sample-newspaper",
+"name_fa": "روزنامه"
+},
+{
+"id": "01a100e9-ecbe-745a-bd3a-0900bae3df50",
+"slug": "sample-majalleh-kudak",
+"name_fa": "مجله‌ی کودک"
+},
+{
+"id": "01a100e9-ecde-7ee6-a97c-e30794bb4ea8",
+"slug": "sample-gamenet",
+"name_fa": "گیم‌نت"
+},
+{
+"id": "01a100e9-ecf3-7001-aa16-7c7a45dc6aed",
+"slug": "sample-video-rental",
+"name_fa": "سینمای خانگی (فیلم ویدیو)"
+},
+{
+"id": "01a100e9-ed06-77b8-92cb-b0c0e6d3885f",
+"slug": "sample-teddy-bear",
+"name_fa": "عروسک خرسی"
+},
+{
+"id": "01a100e9-ed21-7e8f-ab8c-509bad644714",
+"slug": "sample-domino",
+"name_fa": "دومینو"
+},
+{
+"id": "01a100e9-ed3a-70aa-820a-7c1f3639e948",
+"slug": "sample-top-plastiki",
+"name_fa": "توپ پلاستیکی"
+},
+{
+"id": "01a100e9-ed5c-76b3-a9d8-777a90463cee",
+"slug": "sample-golee",
+"name_fa": "تیله"
+},
+{
+"id": "01a100e9-ed7c-7626-bf35-b5d44db1b66c",
+"slug": "sample-fanoos",
+"name_fa": "بادبادک"
+},
+{
+"id": "01a100e9-ed9e-79b7-b9d4-c813a3f55b39",
+"slug": "sample-leather-football",
+"name_fa": "توپ فوتبال چرمی"
+},
+{
+"id": "01a100e9-edb9-7079-8d29-81ef4ec49d01",
+"slug": "sample-daftar",
+"name_fa": "دفتر ۴۰ برگ"
+},
+{
+"id": "01a100e9-edd9-72a5-bc9e-4e0760728867",
+"slug": "sample-khodkar-bic",
+"name_fa": "خودکار بیک"
+},
+{
+"id": "01a100e9-edf8-7ac3-98a7-589aa6fb5e42",
+"slug": "sample-medad",
+"name_fa": "مداد مشکی"
+},
+{
+"id": "01a100e9-ee17-79ab-8420-1cb48706c40a",
+"slug": "sample-pakkon",
+"name_fa": "پاک‌کن"
+},
+{
+"id": "01a100e9-ee36-79d0-b039-45d5edcb09d5",
+"slug": "sample-kif-madreseh",
+"name_fa": "کیف مدرسه"
+},
+{
+"id": "01a100e9-ee54-71c2-a2ca-37c3239310af",
+"slug": "sample-ketab-test",
+"name_fa": "کتاب تست کنکور"
+},
+{
+"id": "01a100e9-ee68-7074-9624-58299059d421",
+"slug": "sample-regle",
+"name_fa": "خط‌کش"
+},
+{
+"id": "01a100e9-ee87-7d9c-9e91-127627512e2c",
+"slug": "sample-kids-storybook",
+"name_fa": "کتاب قصه‌ی کودک"
+},
+{
+"id": "01a100e9-eea6-776a-8f90-f52b044019d6",
+"slug": "sample-kafsh-meli",
+"name_fa": "کفش ملی"
+},
+{
+"id": "01a100e9-eec6-71a1-9b92-033b0d6169d7",
+"slug": "sample-jorab",
+"name_fa": "جوراب نخی"
+},
+{
+"id": "01a100e9-eee5-7f32-bc71-d9b6cf7649bc",
+"slug": "sample-kolah-nakhi",
+"name_fa": "کلاه نخی"
+},
+{
+"id": "01a100e9-ef07-798a-8209-eb0f8eef22d4",
+"slug": "sample-shalvar-jin",
+"name_fa": "شلوار جین"
+},
+{
+"id": "01a100e9-ef21-724e-a6a5-06241afbc1ad",
+"slug": "sample-perahan-mardaneh",
+"name_fa": "پیراهن مردانه"
+},
+{
+"id": "01a100e9-ef41-718e-a869-d08ecdc8d6cb",
+"slug": "sample-roosari",
+"name_fa": "روسری نخی"
+},
+{
+"id": "01a100e9-ef60-745b-9eba-a2ef089bba14",
+"slug": "sample-sabun-golnar",
+"name_fa": "صابون گلنار"
+},
+{
+"id": "01a100e9-ef7f-7e33-bac6-7864d388a72f",
+"slug": "sample-khamir-dandan",
+"name_fa": "خمیردندان"
+},
+{
+"id": "01a100e9-efa4-7b0e-9ecc-78f20cab73b8",
+"slug": "sample-shampoo",
+"name_fa": "شامپو بچه"
+},
+{
+"id": "01a100e9-efcd-7a97-b608-cf4b46e86286",
+"slug": "sample-mesvak",
+"name_fa": "مسواک"
+},
+{
+"id": "01a100e9-efef-7709-bab2-b969376efde7",
+"slug": "sample-dastmal-kaghazi",
+"name_fa": "دستمال کاغذی"
+},
+{
+"id": "01a100e9-f006-7ff9-92f5-aa2bb4529200",
+"slug": "sample-pamper",
+"name_fa": "پوشک بچه"
+},
+{
+"id": "01a100e9-f01d-7ab2-a61b-ae542f164775",
+"slug": "sample-arayeshgah",
+"name_fa": "اصلاح مو (آرایشگاه مردانه)"
+},
+{
+"id": "01a100e9-f043-795f-8bb1-03af95d334ee",
+"slug": "sample-aks-pesari",
+"name_fa": "عکس ۳×۴"
+},
+{
+"id": "01a100e9-f063-7479-906b-cafc8e14b866",
+"slug": "sample-rent-month",
+"name_fa": "اجاره‌ی ماهانه‌ی آپارتمان ۷۵ متری تهران"
+},
+{
+"id": "01a100e9-f07d-7944-9be0-988f0c978809",
+"slug": "sample-metr-khaneh",
+"name_fa": "هر متر خانه در تهران"
+},
+{
+"id": "01a100e9-f097-7f5b-8430-89b6d0744566",
+"slug": "sample-gaz-ghabz",
+"name_fa": "قبض گاز ماهانه"
+},
+{
+"id": "01a100e9-f0b1-72bf-be18-4e8d12d69609",
+"slug": "sample-coin-phone",
+"name_fa": "تلفن سکه‌ای"
+},
+{
+"id": "01a100e9-f0cb-700c-9777-488e01432993",
+"slug": "sample-bike-pump",
+"name_fa": "پمپ دوچرخه"
+},
+{
+"id": "01a100e9-f0ec-76fa-96db-424a9216f1ad",
+"slug": "sample-light-bulb",
+"name_fa": "لامپ رشته‌ای"
+},
+{
+"id": "01a100e9-f115-7090-9165-30750b4c6278",
+"slug": "sample-battery-aa",
+"name_fa": "باتری قلمی"
+},
+{
+"id": "01a100e9-f133-78af-95a0-697e9ccaa947",
+"slug": "sample-postcard",
+"name_fa": "کارت پستال"
+},
+{
+"id": "01a100e9-f152-71ab-83c7-a7bb60bbd954",
+"slug": "sample-lighter",
+"name_fa": "فندک"
+},
+{
+"id": "01a100e9-f174-72a1-bd80-d652d2707b79",
+"slug": "sample-gold-coin",
+"name_fa": "سکه‌ی طلا (تمام بهار آزادی)"
+},
+{
+"id": "01a100e9-f195-7448-b8ba-2f332a6d0d59",
+"slug": "sample-dollar",
+"name_fa": "دلار آمریکا"
+},
+{
+"id": "01a100e9-f1b6-7b77-b076-6f64df4d5913",
+"slug": "sample-gold-gram",
+"name_fa": "طلای ۱۸ عیار"
+},
+{
+"id": "01a106ba-0863-7d09-ba27-4fe34f213bc4",
+"slug": "benzin-azad",
+"name_fa": "بنزین"
+},
+{
+"id": "01a106ba-0898-74b6-a195-20f32858b63e",
+"slug": "nan-sangak",
+"name_fa": "نان سنگک"
+},
+{
+"id": "01a106ba-08b8-77a6-ba3f-ed4eb23b7423",
+"slug": "bilet-cinema",
+"name_fa": "بلیت سینما"
+},
+{
+"id": "01a106ba-08f1-76e6-928a-951ba3f834be",
+"slug": "pride-131",
+"name_fa": "خودروی پراید (صبا / ۱۳۱)"
+},
+{
+"id": "01a106ba-0914-7dde-816f-15e2f63a9afa",
+"slug": "peugeot-405-glx",
+"name_fa": "خودروی پژو ۴۰۵ GLX"
+},
+{
+"id": "01a106ba-093c-7d86-aefe-8cd20229ac2b",
+"slug": "samand-lx",
+"name_fa": "خودروی سمند LX"
+},
+{
+"id": "01a106ba-0950-7afe-8762-9cf9539555f5",
+"slug": "pofak-namaki-minoo",
+"name_fa": "پفک نمکی مینو (۱۱۰ گرمی)"
+},
+{
+"id": "01a106ba-096a-780d-9389-4d589d15eaa2",
+"slug": "shampoo-sehat-cedar",
+"name_fa": "شامپو سدر صحت (۳۰۰ میلی‌لیتر)"
+},
+{
+"id": "01a106ba-0986-799a-a12c-46a1c0e447fa",
+"slug": "sekke-bahar-azadi",
+"name_fa": "سکه تمام بهار آزادی"
+},
+{
+"id": "01a106ba-09cd-72bf-a4d2-164fc2f01a7b",
+"slug": "dolar-usa",
+"name_fa": "اسکناس یک دلاری آمریکا (بازار آزاد)"
+},
+{
+"id": "01a10bc7-413b-712f-b497-bcd07e7adce3",
+"slug": "kid-apple",
+"name_fa": "سیب"
+},
+{
+"id": "01a10bc7-414a-7d49-87d2-ca2531e248c2",
+"slug": "kid-pear",
+"name_fa": "گلابی"
+},
+{
+"id": "01a10bc7-4155-76dc-a5e2-10771ee599c4",
+"slug": "kid-banana",
+"name_fa": "موز"
+},
+{
+"id": "01a10bc7-415f-75fd-b870-b55f93423968",
+"slug": "kid-orange",
+"name_fa": "پرتقال"
+},
+{
+"id": "01a10bc7-416c-7104-9454-4fd81a1493c3",
+"slug": "kid-notebook",
+"name_fa": "دفتر"
+},
+{
+"id": "01a10bc7-4178-7b14-9a60-755b185fd55f",
+"slug": "kid-pencil",
+"name_fa": "مداد"
+},
+{
+"id": "01a10bc7-4183-7901-8dfb-340bcb6edac4",
+"slug": "kid-ruler",
+"name_fa": "خط‌کش"
+},
+{
+"id": "01a10bc7-4196-72f0-a283-89d27ebd63b5",
+"slug": "kid-eraser",
+"name_fa": "پاک‌کن"
+},
+{
+"id": "01a10bc7-41a2-79c0-a834-4d1332a4222a",
+"slug": "kid-ball",
+"name_fa": "توپ"
+},
+{
+"id": "01a10bc7-41b1-7862-a0e9-309c07cf4a43",
+"slug": "kid-teddy",
+"name_fa": "خرس عروسکی"
+},
+{
+"id": "01a10bc7-41b9-7073-a922-562ecc32c869",
+"slug": "kid-kite",
+"name_fa": "بادبادک"
+},
+{
+"id": "01a10bc7-41c4-7434-8177-39c5129e0d1a",
+"slug": "kid-marbles",
+"name_fa": "تیله"
+},
+{
+"id": "01a10bc7-41cd-7277-95a3-96e653298c3b",
+"slug": "kid-sock",
+"name_fa": "جوراب"
+},
+{
+"id": "01a10bc7-41d9-7611-98a9-12ca88e2eb54",
+"slug": "kid-beanie",
+"name_fa": "کلاه بافتنی"
+},
+{
+"id": "01a10bc7-41e4-7de6-815c-eb43c5eaa266",
+"slug": "kid-shoe",
+"name_fa": "کفش"
+},
+{
+"id": "01a10bc7-41ef-7245-ac5b-951d525715e8",
+"slug": "kid-hat",
+"name_fa": "کلاه"
+},
+{
+"id": "01a10bc7-41f9-71a6-b1aa-70de94a9b4f2",
+"slug": "kid-carrot",
+"name_fa": "هویج"
+},
+{
+"id": "01a10bc7-4205-71e4-b28d-3d473c222982",
+"slug": "kid-potato",
+"name_fa": "سیب‌زمینی"
+},
+{
+"id": "01a10bc7-420e-73af-aabe-2d666ef85561",
+"slug": "kid-onion",
+"name_fa": "پیاز"
+},
+{
+"id": "01a10bc7-4216-7dc5-8738-bdd1ca4c2516",
+"slug": "kid-corn",
+"name_fa": "ذرت"
+},
+{
+"id": "01a10bc7-421d-75d2-8f69-87a7fed29f32",
+"slug": "kid-cookie",
+"name_fa": "بیسکویت"
+},
+{
+"id": "01a10bc7-4227-7e5d-b3fa-ff5201aca6de",
+"slug": "kid-cake",
+"name_fa": "کیک"
+},
+{
+"id": "01a10bc7-422e-77ec-b730-f8fbd37b503b",
+"slug": "kid-icecream",
+"name_fa": "بستنی"
+},
+{
+"id": "01a10bc7-4236-700f-bf12-beadfc90aff3",
+"slug": "kid-lollipop",
+"name_fa": "آبنبات چوبی"
+},
+{
+"id": "01a10bc7-423f-739a-b78a-0b4a946531f9",
+"slug": "kid-bus",
+"name_fa": "اتوبوس"
+},
+{
+"id": "01a10bc7-4246-758a-b007-ee5669448c35",
+"slug": "kid-train",
+"name_fa": "قطار"
+},
+{
+"id": "01a10bc7-424e-7ea2-b185-b2cbd55068de",
+"slug": "kid-bicycle",
+"name_fa": "دوچرخه"
+},
+{
+"id": "01a10bc7-4256-70d7-b073-a0de634f5fd0",
+"slug": "kid-motorbike",
+"name_fa": "موتور"
+},
+{
+"id": "01a10bc7-4267-77c8-b99e-d2a815004e09",
+"slug": "kid-rose",
+"name_fa": "گل رز"
+},
+{
+"id": "01a10bc7-426f-782f-b4b5-f002a4024fc7",
+"slug": "kid-tulip",
+"name_fa": "لاله"
+},
+{
+"id": "01a10bc7-4278-7e54-96dc-e60d34dfdbd1",
+"slug": "kid-sunflower",
+"name_fa": "آفتابگردان"
+},
+{
+"id": "01a10bc7-4282-73d0-8985-205256850c50",
+"slug": "kid-cactus",
+"name_fa": "کاکتوس"
+},
+{
+"id": "01a10bc7-428a-75b9-ab4c-59d6907b8474",
+"slug": "kid-lamp",
+"name_fa": "چراغ"
+},
+{
+"id": "01a10bc7-4292-7620-a45d-a5fcf58cda37",
+"slug": "kid-clock",
+"name_fa": "ساعت"
+},
+{
+"id": "01a10bc7-429b-7404-a5c2-488f4b51b84e",
+"slug": "kid-mirror",
+"name_fa": "آینه"
+},
+{
+"id": "01a10bc7-42a7-7a0c-940e-6b062444a82b",
+"slug": "kid-candle",
+"name_fa": "شمع"
+},
+{
+"id": "01a10bc7-42ae-7551-8b94-c4b807c59873",
+"slug": "kid-fish",
+"name_fa": "ماهی"
+},
+{
+"id": "01a10bc7-42b7-7bdc-9981-78c98452fc09",
+"slug": "kid-chicken",
+"name_fa": "مرغ"
+},
+{
+"id": "01a10bc7-42c2-7a03-b150-5901885c43a2",
+"slug": "kid-egg",
+"name_fa": "تخم‌مرغ"
+},
+{
+"id": "01a10bc7-42cb-7d44-ab6a-e45142cdfc2f",
+"slug": "kid-milk",
+"name_fa": "شیر"
+},
+{
+"id": "01a10bc7-42d5-7504-9065-006c9645ed2b",
+"slug": "kid-spoon",
+"name_fa": "قاشق"
+},
+{
+"id": "01a10bc7-42e0-7068-96eb-ff0f76187730",
+"slug": "kid-plate",
+"name_fa": "بشقاب"
+},
+{
+"id": "01a10bc7-42ea-75a5-b469-58656a0c4af2",
+"slug": "kid-pot",
+"name_fa": "قابلمه"
+},
+{
+"id": "01a10bc7-42f4-7319-9ffc-0e97084db08a",
+"slug": "kid-pan",
+"name_fa": "ماهیتابه"
+},
+{
+"id": "01a10bc7-42fc-7a76-8f8b-7dbfc43d21c8",
+"slug": "kid-juice",
+"name_fa": "آبمیوه"
+},
+{
+"id": "01a10bc7-4304-7890-93be-554e003b4441",
+"slug": "kid-tea",
+"name_fa": "چای"
+},
+{
+"id": "01a10bc7-430d-7ea9-bfbe-be5cfbe83f04",
+"slug": "kid-water",
+"name_fa": "آب"
+},
+{
+"id": "01a10bc7-4314-764f-829e-38c444daeaac",
+"slug": "kid-doogh",
+"name_fa": "دوغ"
+},
+{
+"id": "01a10c3e-6c0d-726b-b565-6a37d1263827",
+"slug": "nan-barbari",
+"name_fa": "نان بربری سنتی"
+},
+{
+"id": "01a10c3e-6c22-7ef1-b648-19bfa696315c",
+"slug": "nan-taftoon",
+"name_fa": "نان تافتون سنتی"
+},
+{
+"id": "01a10c3e-6c43-7f95-98fb-dc635298614e",
+"slug": "nan-lavash",
+"name_fa": "نان لواش سنتی"
+},
+{
+"id": "01a10c3e-6c59-731a-93ab-eb70c29ece3c",
+"slug": "berenj-tarem",
+"name_fa": "برنج طارم اعلا"
+},
+{
+"id": "01a10c3e-6c72-7608-a8fb-674e1f30a254",
+"slug": "berenj-koopeni",
+"name_fa": "برنج خارجی (کوپنی)"
+},
+{
+"id": "01a10c3e-6c87-7ea8-9d89-9625e3acbfd1",
+"slug": "makaroni-reshtei",
+"name_fa": "ماکارونی رشته‌ای (۷۰۰ گرمی)"
+},
+{
+"id": "01a10c3e-6c9a-7434-84c4-77a0442c9fc6",
+"slug": "ghand-shekaste",
+"name_fa": "قند شکسته اعلا"
+},
+{
+"id": "01a10c3e-6caa-72e3-8ec8-15246e210ac5",
+"slug": "shekar-sefid",
+"name_fa": "شکر سفید خوراکی"
+},
+{
+"id": "01a10c3e-6cc0-7a82-b047-0be95564ad1c",
+"slug": "ard-gandom",
+"name_fa": "آرد گندم"
+},
+{
+"id": "01a10c3e-6cd5-77c9-9a6d-88f365e15bcf",
+"slug": "goosht-gusfand",
+"name_fa": "گوشت ران گوسفندی"
+},
+{
+"id": "01a10c3e-6ce7-7324-9253-81c67b672d79",
+"slug": "goosht-goosale",
+"name_fa": "گوشت گوساله بی‌استخوان"
+},
+{
+"id": "01a10c3e-6cfa-73af-9b22-98cdc20896a5",
+"slug": "morgh-keshtar",
+"name_fa": "مرغ تازه کشتار روز"
+},
+{
+"id": "01a10c3e-6d0e-7835-b6a3-4dab78f12f00",
+"slug": "tokhm-morgh",
+"name_fa": "تخم‌‌مرغ رسمی (شانه ۳۰ عددی)"
+},
+{
+"id": "01a10c3e-6d20-78e1-bc2f-470dd9490a6c",
+"slug": "shir-shishei",
+"name_fa": "شیر پاستوریزه شیشه‌ای"
+},
+{
+"id": "01a10c3e-6d32-7657-a35c-108f9790f701",
+"slug": "mast-sonati",
+"name_fa": "ماست سنتی پیاله‌ای"
+},
+{
+"id": "01a10c3e-6d44-79b5-bdb0-9cb15da3cca7",
+"slug": "panir-lighvan",
+"name_fa": "پنیر لیقوان تبریز"
+},
+{
+"id": "01a10c3e-6d54-7caa-a002-ac3922513f6b",
+"slug": "panir-sefid",
+"name_fa": "پنیر سفید پاستوریزه قوطی فلزی (۴۰۰ گرم)"
+},
+{
+"id": "01a10c3e-6d64-7e95-8d02-884fbef0e8d5",
+"slug": "kareh-pasteurize",
+"name_fa": "کره پاستوریزه حیوانی (۱۰۰ گرم)"
+},
+{
+"id": "01a10c3e-6d86-78c1-a423-3572ede33569",
+"slug": "mahi-ghezelala",
+"name_fa": "ماهی قزل‌آلا پرورشی"
+},
+{
+"id": "01a10c3e-6d9c-729f-8432-3cd112d8a049",
+"slug": "gojeh-farangi",
+"name_fa": "گوجه‌فرنگی بوته‌ای"
+},
+{
+"id": "01a10c3e-6db0-75e4-8c89-ed07cab627ae",
+"slug": "khiar-rasmi",
+"name_fa": "خیار رسمی معطر"
+},
+{
+"id": "01a10c3e-6dd9-7c12-b9e8-538d834ee6e2",
+"slug": "sibzamini",
+"name_fa": "سیب‌زمینی پشندی"
+},
+{
+"id": "01a10c3e-6deb-7cea-8333-7e090bd73612",
+"slug": "piaz-ghermez",
+"name_fa": "پیاز قرمز خوراکی"
+},
+{
+"id": "01a10c3e-6dfd-7e82-a3a2-f80b41748392",
+"slug": "hendevaneh",
+"name_fa": "هندوانه دشت مغان"
+},
+{
+"id": "01a10c3e-6e1d-7b3b-b56a-11a5b189db5b",
+"slug": "sib-derakhti",
+"name_fa": "سیب درختی قرمز دماوند"
+},
+{
+"id": "01a10c3e-6e2f-7382-bec4-39551fcb96cf",
+"slug": "rob-gojeh",
+"name_fa": "رب گوجه‌فرنگی قوطی فلزی (۱ کیلوگرم)"
+},
+{
+"id": "01a10c3e-6e3f-734b-bac1-e899437ae032",
+"slug": "roghan-nabati-ghoo",
+"name_fa": "روغن نباتی جامد ۴.۵ کیلویی"
+},
+{
+"id": "01a10c3e-6e50-7c32-b008-06944fb1a39b",
+"slug": "zaferan-sargol",
+"name_fa": "زعفران سرگل قائنات (یک مثقال)"
+},
+{
+"id": "01a10c3e-6e63-7eb7-8f3f-c27311030bd5",
+"slug": "maghz-gerdoo",
+"name_fa": "مغز گردو اعلا خوراکی"
+},
+{
+"id": "01a10c3e-6e9b-773f-92e3-949fd2e0b311",
+"slug": "biscuit-madar",
+"name_fa": "بیسکویت مادر"
+},
+{
+"id": "01a10c3e-6eb3-7504-837d-7fb48e67405d",
+"slug": "biscuit-sagheh-talaei",
+"name_fa": "بیسکویت ساقه‌طلایی مینو (۲۰۰ گرمی)"
+},
+{
+"id": "01a10c3e-6ecc-7396-946f-b6fae3cdb99a",
+"slug": "chips-chitoz",
+"name_fa": "چیپس نمکی چیتوز (۶۰ گرمی)"
+},
+{
+"id": "01a10c3e-6efb-7f00-90d3-bd17c430dbf9",
+"slug": "adams-shik",
+"name_fa": "آدامس شیک"
+},
+{
+"id": "01a10c3e-6f0e-7aeb-a354-2a37d387407f",
+"slug": "chocolate-minoo",
+"name_fa": "شکلات تخته‌ای کاکائویی مینو (۵۰ گرم)"
+},
+{
+"id": "01a10c3e-6f23-7c16-ab94-c947e296ec6b",
+"slug": "cake-titap",
+"name_fa": "کیک لایه‌ای تی‌تاپ سالمین"
+},
+{
+"id": "01a10c3e-6f37-767e-bb7e-da38db371f2a",
+"slug": "bastani-kim",
+"name_fa": "بستنی کیم"
+},
+{
+"id": "01a10c3e-6f47-73c7-9f75-f3d092803b90",
+"slug": "bastani-gheifi",
+"name_fa": "بستنی قیفی"
+},
+{
+"id": "01a10c3e-6f5a-7895-94b5-06634d7c7b36",
+"slug": "alaska-yakhi",
+"name_fa": "آلاسکا بستنی یخی"
+},
+{
+"id": "01a10c3e-6f6e-75c4-a669-69733ecca507",
+"slug": "nooshabeh-zamzam",
+"name_fa": "نوشابه گازدار شیشه‌ای زمزم (۲۵۰ سی‌سی)"
+},
+{
+"id": "01a10c3e-6f7e-7cb2-b34b-189b164af495",
+"slug": "nooshabeh-coca",
+"name_fa": "نوشابه شیشه‌ای کوکاکولا مشهد (۲۵۰ سی‌سی)"
+},
+{
+"id": "01a10c3e-6f91-7de8-98b4-f12d7df4daff",
+"slug": "doogh-abali",
+"name_fa": "دوغ شیشه‌ای گازدار آبعلی"
+},
+{
+"id": "01a10c3e-6fa1-74cf-8653-6d2650083e90",
+"slug": "abmiveh-rani",
+"name_fa": "رانی"
+},
+{
+"id": "01a10c3e-6fb2-70b9-88d9-4b9523bcc7dc",
+"slug": "maolshair-behnoosh",
+"name_fa": "ماءالشعیر شیشه‌ای کلاسیک بهنوش"
+},
+{
+"id": "01a10c3e-6fc3-7a80-882b-317503cfc620",
+"slug": "ablimoo-shiraz",
+"name_fa": "آبلیموی طبیعی"
+},
+{
+"id": "01a10c3e-6fd3-73b9-8cbf-4fca431cbcf2",
+"slug": "shir-kakao-shishei",
+"name_fa": "شیرکاکائو شیشه‌ای پاستوریزه"
+},
+{
+"id": "01a10c3e-6fe6-75a9-869e-5365975d7473",
+"slug": "sharbat-albaloo",
+"name_fa": "شربت سنتی آلبالو (بطری یک لیتری)"
+},
+{
+"id": "01a10c3e-6ff7-7523-a662-82df54328187",
+"slug": "chaye-golestan",
+"name_fa": "چای سیاه بسته ۵۰۰ گرمی گلستان"
+},
+{
+"id": "01a10c3e-701a-76dd-9ab6-64225a06831f",
+"slug": "serkeh-taghtiri-verda",
+"name_fa": "سرکه سفید تقطیری وردا (یک لیتری)"
+},
+{
+"id": "01a10c3e-702d-7d3d-ac04-17610bb8b7c9",
+"slug": "powder-darya",
+"name_fa": "پودر لباسشویی دستی دریا (۵۰۰ گرم)"
+},
+{
+"id": "01a10c3e-703d-7c45-a10a-b4b8341aaa59",
+"slug": "maye-zarfshooee-rika",
+"name_fa": "مایع ظرفشویی ریکا (یک لیتری)"
+},
+{
+"id": "01a10c3e-7075-7c81-8e79-cce64147fd46",
+"slug": "saboon-golnar",
+"name_fa": "صابون حمام سنتی گلنار (قالب سبز)"
+},
+{
+"id": "01a10c3e-7085-7c2f-bf08-dc99d39a8dce",
+"slug": "saboon-maragheh",
+"name_fa": "صابون طبیعی مراغه"
+},
+{
+"id": "01a10c3e-7095-787b-be77-3ce9e9a5c14a",
+"slug": "khamirdandan-nasim",
+"name_fa": "خمیردندان نسیم (۱۰۰ گرمی)"
+},
+{
+"id": "01a10c3e-70b6-7385-8858-0bcc97a8a50c",
+"slug": "sefidkonandeh-vaytex",
+"name_fa": "مایع سفیدکننده وایتکس (یک لیتری)"
+},
+{
+"id": "01a10c3e-70c5-795b-baa7-8f487fedd35f",
+"slug": "tigh-nacet",
+"name_fa": "تیغ خودتراش سنتی ناست (بسته ۵ عددی)"
+},
+{
+"id": "01a10c3e-70d7-7645-9332-70cc59fe7666",
+"slug": "spray-pifpaf",
+"name_fa": "اسپری حشره‌کش پیف‌پاف (۴۰۰ میلی‌لیتر)"
+},
+{
+"id": "01a10c3e-70e9-7076-bb84-b58e92def405",
+"slug": "dastmal-kaghazi-cheshmak",
+"name_fa": "دستمال کاغذی جعبه‌ای ۲۰۰ برگ"
+},
+{
+"id": "01a10c3e-7106-785c-95d5-f8c67b086539",
+"slug": "paykan-carluxe",
+"name_fa": "سواری پیکان کارلوکس"
+},
+{
+"id": "01a10c3e-7126-7e6c-9f42-a8e3192cd908",
+"slug": "paykan-javanan",
+"name_fa": "پیکان جوانان (موتور ۱۷۲۵ دوکاربراتور)"
+},
+{
+"id": "01a10c3e-7141-7bc3-8d95-205d360b2253",
+"slug": "renault-5",
+"name_fa": "خودروی رنو ۵ هاچ‌بک"
+},
+{
+"id": "01a10c3e-717c-79b1-8a9f-2a4e155b3a9e",
+"slug": "peugeot-206-tip2",
+"name_fa": "خودروی پژو ۲۰۶ تیپ ۲"
+},
+{
+"id": "01a10c3e-719e-7fab-8f75-31a9e539d3d1",
+"slug": "citroen-xantia",
+"name_fa": "سواری سیتروئن زانتیا ۲.۰ لیتری"
+},
+{
+"id": "01a10c3e-71aa-7b2c-a881-060778d981d1",
+"slug": "nissan-zamyad-2400",
+"name_fa": "وانت نیسان زامیاد ۲۴۰۰ (نیسان آبی)"
+},
+{
+"id": "01a10c3e-71be-7f25-b1fc-fe1365724574",
+"slug": "honda-125-cdi",
+"name_fa": "موتورسیکلت هوندا ۱۲۵ CDI"
+},
+{
+"id": "01a10c3e-71d3-72b4-8bc2-945b664db5d9",
+"slug": "tv-pars-black-white",
+"name_fa": "تلویزیون سیاه و سفید ۱۴ اینچ پارس"
+},
+{
+"id": "01a10c3e-71e2-7eb5-9304-c21100bb0e6b",
+"slug": "tv-pars-color-21",
+"name_fa": "تلویزیون رنگی ۲۱ اینچ پارس"
+},
+{
+"id": "01a10c3e-71f2-73d8-be7c-3f989449d5c5",
+"slug": "pankeh-pars-khazar",
+"name_fa": "پنکه رومیزی/ایستاده پارس خزر"
+},
+{
+"id": "01a10c3e-720c-7e8b-999b-4dedfa899e7e",
+"slug": "polowpaz-pars-khazar",
+"name_fa": "پلوپز اتوماتیک تیان پارس خزر"
+},
+{
+"id": "01a10c3e-7221-7fdd-9bce-306b40893358",
+"slug": "yakhchal-arj",
+"name_fa": "یخچال خانگی ۱۲ فوت ارج"
+},
+{
+"id": "01a10c3e-7232-7776-ad08-f350903b3378",
+"slug": "bokhari-alaeddin",
+"name_fa": "بخاری نفتی والور علاءالدین سبز"
+},
+{
+"id": "01a10c3e-7242-723c-9994-bc3378f2a61e",
+"slug": "cassette-tdk",
+"name_fa": "نوار کاست خام ۶۰ دقیقه‌ای TDK"
+},
+{
+"id": "01a10c3e-7256-7c29-8118-67161bfcc1fa",
+"slug": "video-vhs-national",
+"name_fa": "دستگاه پخش ویدئو VHS ناسیونال"
+},
+{
+"id": "01a10c3e-7266-75b6-9a17-03cac0445fc6",
+"slug": "radio-zabt-sony",
+"name_fa": "رادیو ضبط صوت دوکاسته سونی"
+},
+{
+"id": "01a10c3e-7275-7cbc-a7ea-db9954f9bb22",
+"slug": "charkh-khayati-marshal",
+"name_fa": "چرخ خیاطی دستی خانگی مارشال"
+},
+{
+"id": "01a10c3e-72a4-7822-b6e7-699eccfce956",
+"slug": "bilet-otoboos-vahed",
+"name_fa": "بلیط اتوبوس واحد"
+},
+{
+"id": "01a10c3e-72bb-7bcb-941d-269f8ab04622",
+"slug": "bilet-metro-tehran",
+"name_fa": "بلیت متروی تهران"
+},
+{
+"id": "01a10c3e-72cb-7e1a-b612-e956c5b0df88",
+"slug": "bilet-otoboos-mashhad",
+"name_fa": "بلیط اتوبوس تهران-مشهد"
+},
+{
+"id": "01a10c3e-72db-724e-84ff-d4579b2d8197",
+"slug": "sekke-dozari-telephone",
+"name_fa": "سکه دو ریالی (دوزاری) باجه تلفن عمومی"
+},
+{
+"id": "01a10c3e-72ec-7b79-b7f5-b1857286e3f4",
+"slug": "kart-telephone-omoomi",
+"name_fa": "کارت اعتباری تلفن همگانی (۵۰ پالسی)"
+},
+{
+"id": "01a10c3e-7305-78f7-bb32-a5a113a3a3cf",
+"slug": "simkart-hamrah-aval",
+"name_fa": "ثبت‌نام سیم‌کارت دائمی همراه اول"
+},
+{
+"id": "01a10c3e-7311-78ae-b7fa-4774335ab2b7",
+"slug": "dialup-internet-monthly",
+"name_fa": "اشتراک اینترنت دیال‌آپ ماهانه (شبانه)"
+},
+{
+"id": "01a10c3e-732b-7395-83c8-7fd3dcd0edc9",
+"slug": "zheton-daneshjooyi",
+"name_fa": "ژتون غذای دانشجویی دانشگاه"
+},
+{
+"id": "01a10c3e-733d-77eb-96e9-3216cdf5292e",
+"slug": "tambr-posti-shahri",
+"name_fa": "تمبر پستی نامه عادی شهری"
+},
+{
+"id": "01a10c3e-738f-76ff-a0c1-c679a79aa068",
+"slug": "benzin-super",
+"name_fa": "بنزین سوپر"
+},
+{
+"id": "01a10c3e-739f-75bd-bc54-00d8542edef4",
+"slug": "gazooil-yaraneyi",
+"name_fa": "گازوئیل حمل‌ونقل (هر لیتر)"
+},
+{
+"id": "01a10c3e-73b0-7562-8785-372c26c9bd0f",
+"slug": "naft-sefid-gallon",
+"name_fa": "نفت سفید گرمایشی (هر گالن ۲۰ لیتری)"
+},
+{
+"id": "01a10c3e-73c3-7a76-a5d8-0ae323b93d75",
+"slug": "capsule-gaz-11kg",
+"name_fa": "کپسول گاز مایع ۱۱ کیلویی پرسی‌گاز"
+},
+{
+"id": "01a10c3e-73f5-7078-bd65-2dcc815adeb4",
+"slug": "rob-sekke-bahar-azadi",
+"name_fa": "ربع سکه بهار آزادی"
+},
+{
+"id": "01a10c3e-741e-7475-aada-dfeaf5cbb371",
+"slug": "tala-18-ayar",
+"name_fa": "یک گرم طلای ۱۸ عیار خام"
+},
+{
+"id": "01a10c3e-744d-7cc0-ad2d-408c487f398c",
+"slug": "maskan-tehran-metr",
+"name_fa": "متوسط قیمت یک مترمربع مسکن در تهران"
+}
+]

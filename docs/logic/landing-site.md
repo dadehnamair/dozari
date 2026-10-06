@@ -41,3 +41,9 @@ The eight promo banners of `docs/design/banner` are resized to 1600px webp in `a
 ## Try-it puzzle (home page)
 
 `GET /public/landing-demo` (game server) returns one approved, adult, non-daily puzzle whose 16 products all have an `icon_key`: four groups (`level`, `title`) of four items (`name`, `svg` from shared `itemSvg`, `image` = the product's primary absolute photo URL or null; the page shows the photo when there is one, else the icon). The pick is stable per day. The landing home page draws the tiles with those icons; it falls back to the built-in word puzzle when the endpoint answers 404 or fails. The solution is in the page by nature of a client-side demo, hence daily puzzles are excluded.
+
+## Age tracks on the landing (adult first)
+
+`docs/design/adult/Dozari Adult - Banner.dc.html` and `docs/design/kids/Dozari Kids - Banners.dc.html` are rendered (1600x900 webp) into `assets/banners/age-{adult,kid,teen}.webp`. The kid banner's «زیر نظر کارشناسان» box is hidden in the render: no unverifiable claim goes on the public site.
+- Home: the adult banner is the 2nd carousel slide; right under the carousel a dark gold «صرافی بزرگ‌ترها» band (`#adult`, adult look of `design/CLAUDE.md`) and a «بازی برای هر سن» strip with the kid and teen cards; the hero links to `/ages#adult`.
+- `/ages` (nav «رده‌های سنی», sitemap, llms.txt, footer): adult hero and six metal feature cards first (`#adult`), how to start, kid and teen cards (`#kids`), comparison table, parents' guide (`#parents`), FAQ with `FAQPage`. Copy comes from `docs/logic/age-tracks.md` §What each band gets; change both together.
