@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link href="https://fonts.googleapis.com/css2?family=Lalezar&amp;family=Vazirmatn:wght@600;700;800;900&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>body{margin:0;background:#1A1210;color:#FFF6E8;font-family:Vazirmatn}a{color:#E8B64A}a:hover{color:#FFF1B8}*{box-sizing:border-box}button,input{font-family:inherit}</style>
+</helmet>
+<section dir="rtl" style="padding:56px;display:flex;flex-direction:column;gap:32px">
+  <header style="display:flex;flex-direction:column;gap:6px">
+    <div style="font:14px 'JetBrains Mono',monospace;color:#E8B64A;direction:ltr;text-align:right">Dozari Adult · Login · Home · Hub · style: صرافی و گاوصندوق · metals: gold=play · copper=duel · silver=price-guess</div>
+    <h1 style="margin:0;font:52px/1 Lalezar;color:#FFE9A8">بزرگسال · لاگین، خانه، بازارچه</h1>
+    <div style="font:700 17px/1.7 Vazirmatn;color:rgba(255,233,168,.7);max-width:1000px">چیدمان خانه همان HomeScreen اپ است: شمارنده‌ها، دو ستون کاشی، لوگو و راهنما، سه دکمه‌ی پایین (بازی تکی · دوئل · حدس). اجزا در <a href="./Dozari Adult - UI Kit.dc.html">UI Kit بزرگسال</a>.</div>
+  </header>
+  <div style="display:flex;gap:36px;flex-wrap:wrap;align-items:flex-start">
+
+    <div data-screen-label="Adult Login" style="display:flex;flex-direction:column;gap:10px;align-items:center">
+      <div style="width:340px;height:736px;border-radius:52px;border:11px solid #000;box-shadow:0 30px 60px rgba(0,0,0,.6),0 0 0 2px rgba(232,182,74,.35);position:relative;overflow:hidden;background:#0E0A08">
+        <div style="position:absolute;inset:0"><dc-import name="Scene" scene="sarafi" hint-size="100%,100%" style="width:100%;height:100%"></dc-import></div>
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(14,10,8,.15),rgba(14,10,8,.35) 45%,rgba(14,10,8,.9))"></div>
+        <div style="position:absolute;top:46px;left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:2px">
+          <svg viewBox="-90 0 700 200" width="236" style="overflow:visible"><defs><linearGradient id="gaL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFF1B8"></stop><stop offset=".45" stop-color="#E8B64A"></stop><stop offset="1" stop-color="#9A6A1C"></stop></linearGradient></defs><text x="260" y="158" text-anchor="middle" font-family="Lalezar" font-size="168" fill="#000" stroke="#000" stroke-width="28" stroke-linejoin="round">دوزاری</text><text x="260" y="146" text-anchor="middle" font-family="Lalezar" font-size="168" fill="url(#gaL)" stroke="#000" stroke-width="12" stroke-linejoin="round" paint-order="stroke">دوزاری</text></svg>
+          <div style="padding:3px 12px;border-radius:99px;background:rgba(14,10,8,.85);border:1.5px solid #8A5A16;font:800 13px Vazirmatn;color:#E8B64A">قیمت‌های قدیمی، حس نوستالژی</div>
+        </div>
+        <div style="position:absolute;top:150px;left:50%;width:180px;height:198px;margin-left:-90px"><dc-import name="Character" who="mashti" pose="wave" anim="true" hint-size="180px,198px" style="width:180px;height:198px"></dc-import></div>
+        <div style="position:absolute;left:12px;right:12px;bottom:24px;padding:16px 14px 14px;border-radius:24px;background:linear-gradient(180deg,#2A1E16,#17100C);border:3px solid #E8B64A;box-shadow:0 0 0 3px #000,0 8px 0 #000;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;flex-direction:column;gap:2px"><span style="font:24px/1.2 Lalezar;color:#FFE9A8">خوش اومدی به صرافی!</span><span style="font:700 12px/1.6 Vazirmatn;color:rgba(255,233,168,.7)">شماره‌ات رو بزن، کد رو برات می‌فرستیم</span></div>
+          <div style="display:flex;gap:6px;direction:ltr">
+            <div style="height:50px;padding:0 10px;border-radius:12px;border:2px solid #8A5A16;background:#0E0A08;display:grid;place-items:center;font:800 15px Vazirmatn;color:#E8B64A">+98</div>
+            <input value="{{ phone }}" onChange="{{ onPhone }}" inputMode="numeric" placeholder="912 345 6789" style="flex:1;min-width:0;height:50px;border-radius:12px;border:2px solid #8A5A16;background:#0E0A08;padding:0 12px;font:800 17px Vazirmatn;color:#FFE9A8;outline:none;letter-spacing:1px"></input>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <span style="font:800 12px Vazirmatn;color:rgba(255,233,168,.75)">کی بازی می‌کنه؟</span>
+            <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px">
+              <sc-for list="{{ ages }}" as="a" hint-placeholder-count="3">
+                <button onClick="{{ a.pick }}" style="height:40px;border-radius:12px;border:2px solid {{ a.bd }};background:{{ a.bg }};color:{{ a.fg }};box-shadow:{{ a.sh }};font:17px Lalezar;cursor:pointer">{{ a.n }}</button>
+              </sc-for>
+            </div>
+            <span style="font:700 11.5px/1.5 Vazirmatn;color:#E8B64A">{{ ageHint }}</span>
+          </div>
+          <button style="height:56px;border-radius:16px;border:3px solid #000;background:linear-gradient(180deg,#FFF1B8 0%,#E8B64A 38%,#B8822A 72%,#8A5A16 100%);box-shadow:inset 0 2px 0 rgba(255,255,255,.75),inset 0 -4px 0 rgba(0,0,0,.25),0 5px 0 #000;font:23px Lalezar;color:#2A1606;text-shadow:0 1px 0 rgba(255,255,255,.55);cursor:pointer" style-active="transform:translateY(3px);box-shadow:inset 0 2px 0 rgba(255,255,255,.75),0 2px 0 #000">{{ cta }}</button>
+          <button style="height:44px;border-radius:14px;background:linear-gradient(180deg,#5A3A1C 0%,#3A2412 60%,#24160A 100%);border:2px solid #B8822A;box-shadow:inset 0 2px 0 rgba(255,241,184,.35),0 4px 0 #000;font:18px Lalezar;color:#FFE9A8;text-shadow:0 1px 0 #000;cursor:pointer" style-active="transform:translateY(3px)">مهمان بازی کن</button>
+        </div>
+      </div>
+      <div style="font:12px 'JetBrains Mono',monospace;color:rgba(255,233,168,.6)">adult · screen-login · age inside card</div>
+    </div>
+
+    <div data-screen-label="Adult Home" style="display:flex;flex-direction:column;gap:10px;align-items:center">
+      <div style="width:340px;height:736px;border-radius:52px;border:11px solid #000;box-shadow:0 30px 60px rgba(0,0,0,.6),0 0 0 2px rgba(232,182,74,.35);position:relative;overflow:hidden;background:#0E0A08">
+        <div style="position:absolute;inset:0"><dc-import name="Scene" scene="sarafi" hint-size="100%,100%" style="width:100%;height:100%"></dc-import></div>
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(14,10,8,.55),rgba(14,10,8,.1) 30%,rgba(14,10,8,.1) 70%,rgba(14,10,8,.7))"></div>
+
+        <div style="position:absolute;top:36px;left:8px;right:8px;display:flex;gap:3px;align-items:center">
+          <div style="height:30px;flex:none;border-radius:99px;background:rgba(14,10,8,.85);border:2px solid #8A5A16;display:flex;align-items:center;gap:3px;padding:0 3px 0 7px;cursor:pointer"><div style="width:22px;height:22px"><dc-import name="Item" icon="coin" hint-size="22px,22px" style="width:22px;height:22px"></dc-import></div><span style="font:14px Lalezar;color:#FFE9A8;white-space:nowrap">۲٬۲۱۳</span></div>
+          <div style="height:30px;flex:none;border-radius:99px;background:rgba(14,10,8,.85);border:2px solid #8A5A16;display:flex;align-items:center;gap:3px;padding:0 3px 0 7px"><div style="width:20px;height:20px"><dc-import name="Item" icon="gem" hint-size="20px,20px" style="width:20px;height:20px"></dc-import></div><span style="font:14px Lalezar;color:#FFE9A8">۴۲</span></div>
+          <div style="height:30px;flex:none;border-radius:99px;background:rgba(14,10,8,.85);border:2px solid #8A5A16;display:flex;align-items:center;gap:3px;padding:0 3px 0 7px"><svg viewBox="0 0 24 24" width="18" height="18"><path d="{{ ic.flame }}" fill="#C4302B" stroke="#000" stroke-width="2.4" stroke-linejoin="round"></path></svg><span style="font:14px Lalezar;color:#FFE9A8">۷</span></div>
+          <div style="width:30px;height:30px;flex:none;border-radius:9px;background:linear-gradient(180deg,#5A3A1C,#24160A);border:2px solid #B8822A;padding:3px;cursor:pointer"><dc-import name="Item" icon="map" hint-size="20px,20px" style="width:20px;height:20px"></dc-import></div>
+          <div style="width:30px;height:30px;flex:none;border-radius:9px;background:linear-gradient(180deg,#5A3A1C,#24160A);border:2px solid #B8822A;display:grid;place-items:center;position:relative;cursor:pointer"><svg viewBox="0 0 24 24" width="18" height="18"><path d="{{ ic.wheel }}" fill="none" stroke="#FFE9A8" stroke-width="2.2" stroke-linecap="round"></path></svg><span style="position:absolute;top:-7px;left:-7px;min-width:18px;height:18px;border-radius:99px;background:#C4302B;border:2px solid #000;font:11px/14px Lalezar;color:#fff;text-align:center">۲</span></div>
+          <div style="flex:1;min-width:0"></div>
+          <div style="height:30px;flex:none;border-radius:99px;background:rgba(14,10,8,.85);border:2px solid #8A5A16;display:flex;align-items:center;gap:3px;padding:0 3px 0 7px;cursor:pointer"><div style="width:22px;height:22px;border-radius:50%;background:linear-gradient(180deg,#FFF1B8,#E8B64A 45%,#B8822A);border:2px solid #000;display:grid;place-items:center"><svg viewBox="0 0 24 24" width="13" height="13"><path d="{{ ic.crown }}" fill="none" stroke="#2A1606" stroke-width="2.6" stroke-linejoin="round"></path></svg></div><span style="font:14px Lalezar;color:#FFE9A8">۲۷</span></div>
+        </div>
+
+        <sc-for list="{{ cols }}" as="col" hint-placeholder-count="2">
+          <div style="position:absolute;top:84px;bottom:128px;right:{{ col.r }};left:{{ col.l }};width:66px;display:flex;flex-direction:column;justify-content:space-between;align-items:center">
+            <sc-for list="{{ col.items }}" as="t" hint-placeholder-count="6">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;transition:transform .15s" style-hover="transform:translateY(-2px)" style-active="transform:scale(.94)">
+                <div style="width:48px;height:48px;border-radius:15px;position:relative;background:radial-gradient(circle at 35% 25%,#5A3A1C,#2A1A0E 65%,#140C06);border:2px solid {{ t.fr }};box-shadow:0 0 0 2px #000,0 4px 0 #000,{{ t.glow }};display:grid;place-items:center">
+                  <div style="position:absolute;top:3px;left:6px;right:6px;height:36%;border-radius:10px 10px 14px 14px;background:linear-gradient(180deg,rgba(255,241,184,.22),rgba(255,241,184,0))"></div>
+                  <svg viewBox="0 0 24 24" width="26" height="26" style="position:relative"><path d="{{ t.d }}" fill="none" stroke="#000" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="{{ t.d }}" fill="none" stroke="{{ t.ink }}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                  <sc-if value="{{ t.badge }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:-8px;left:-8px;min-width:20px;height:20px;padding:0 4px;border-radius:99px;background:{{ t.bc }};border:2px solid #000;font:12px/16px Lalezar;color:{{ t.bt }};text-align:center">{{ t.badge }}</span></sc-if>
+                </div>
+                <span style="font:12.5px/1 Lalezar;color:#FFE9A8;text-shadow:0 1px 0 #000,0 0 4px #000;white-space:nowrap">{{ t.n }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+
+        <div style="position:absolute;top:88px;left:72px;right:72px;display:flex;flex-direction:column;align-items:center;gap:8px">
+          <svg viewBox="-90 0 700 200" width="160" style="overflow:visible"><defs><linearGradient id="gaH" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFF1B8"></stop><stop offset=".45" stop-color="#E8B64A"></stop><stop offset="1" stop-color="#9A6A1C"></stop></linearGradient></defs><text x="260" y="158" text-anchor="middle" font-family="Lalezar" font-size="168" fill="#000" stroke="#000" stroke-width="28" stroke-linejoin="round">دوزاری</text><text x="260" y="146" text-anchor="middle" font-family="Lalezar" font-size="168" fill="url(#gaH)" stroke="#000" stroke-width="12" stroke-linejoin="round" paint-order="stroke">دوزاری</text></svg>
+          <div style="padding:4px 12px;border-radius:99px;background:#FFE9A8;border:2px solid #000;box-shadow:0 3px 0 #000;font:800 12.5px Vazirmatn;color:#2A1606;white-space:nowrap;cursor:pointer">پازل امروز آماده‌ست!</div>
+        </div>
+        <sc-if value="{{ showTip }}" hint-placeholder-val="{{ true }}">
+          <div style="position:absolute;top:322px;left:72px;right:72px;padding:9px 11px;border-radius:14px;background:#17100C;border:2px solid #E8B64A;box-shadow:0 0 0 2px #000,0 4px 0 #000;font:800 11.5px/1.6 Vazirmatn;color:#FFE9A8;text-wrap:pretty">در «دوئل» با یک حریف واقعی رو در رو می‌شوی؛ برنده سکه می‌برد.<div style="position:absolute;bottom:-9px;left:50%;margin-left:-7px;width:14px;height:14px;background:#17100C;border-right:2px solid #E8B64A;border-bottom:2px solid #E8B64A;transform:rotate(45deg)"></div></div>
+        </sc-if>
+        <div style="position:absolute;top:404px;left:50%;width:164px;height:180px;margin-left:-82px;cursor:pointer"><dc-import name="Character" who="mashti" pose="wave" anim="true" hint-size="164px,180px" style="width:164px;height:180px"></dc-import></div>
+
+        <div style="position:absolute;bottom:22px;left:10px;right:10px;display:flex;gap:8px">
+          <button style="flex:1;height:68px;border-radius:18px;border:3px solid #000;background:linear-gradient(180deg,#FFF1B8 0%,#E8B64A 38%,#B8822A 72%,#8A5A16 100%);box-shadow:inset 0 2px 0 rgba(255,255,255,.75),inset 0 -5px 0 rgba(0,0,0,.25),0 5px 0 #000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer" style-active="transform:translateY(3px);box-shadow:inset 0 2px 0 rgba(255,255,255,.75),0 2px 0 #000"><span style="font:22px/1 Lalezar;color:#2A1606;text-shadow:0 1px 0 rgba(255,255,255,.55);white-space:nowrap">بازی تکی</span></button>
+          <button style="flex:1;height:68px;border-radius:18px;border:3px solid #000;background:linear-gradient(180deg,#FFD2B0 0%,#E0895A 38%,#B0552A 72%,#7A3414 100%);box-shadow:inset 0 2px 0 rgba(255,255,255,.65),inset 0 -5px 0 rgba(0,0,0,.25),0 5px 0 #000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer" style-active="transform:translateY(3px);box-shadow:inset 0 2px 0 rgba(255,255,255,.65),0 2px 0 #000"><span style="font:22px/1 Lalezar;color:#2A1206;text-shadow:0 1px 0 rgba(255,255,255,.45)">دوئل</span></button>
+          <button style="flex:1;height:68px;border-radius:18px;border:3px solid #000;background:linear-gradient(180deg,#FFFFFF 0%,#D6DCE4 38%,#9AA5B4 72%,#66707E 100%);box-shadow:inset 0 2px 0 rgba(255,255,255,.9),inset 0 -5px 0 rgba(0,0,0,.22),0 5px 0 #000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;position:relative" style-active="transform:translateY(3px);box-shadow:inset 0 2px 0 rgba(255,255,255,.9),0 2px 0 #000"><span style="font:22px/1 Lalezar;color:#1E242C;text-shadow:0 1px 0 rgba(255,255,255,.7)">حدس</span><span style="position:absolute;top:-10px;left:-6px;padding:0 7px;height:20px;border-radius:99px;background:#C4302B;border:2px solid #000;font:12px/16px Lalezar;color:#fff">جدید</span></button>
+        </div>
+      </div>
+      <div style="font:12px 'JetBrains Mono',monospace;color:rgba(255,233,168,.6)">adult · screen-home · HomeScreen layout · 3 slab buttons</div>
+    </div>
+
+    <div data-screen-label="Adult Hub" style="display:flex;flex-direction:column;gap:10px;align-items:center">
+      <div style="width:340px;height:736px;border-radius:52px;border:11px solid #000;box-shadow:0 30px 60px rgba(0,0,0,.6),0 0 0 2px rgba(232,182,74,.35);position:relative;overflow:hidden;background:#120B07">
+        <svg viewBox="0 0 318 714" width="318" height="714" style="position:absolute;inset:0;display:block">
+          <defs><radialGradient id="hbG"><stop offset="0" stop-color="#FFD98A" stop-opacity=".5"></stop><stop offset="1" stop-color="#FFD98A" stop-opacity="0"></stop></radialGradient><linearGradient id="hbS" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0A0712"></stop><stop offset=".35" stop-color="#1E140E"></stop><stop offset="1" stop-color="#2A1A10"></stop></linearGradient></defs>
+          <rect width="318" height="714" fill="url(#hbS)"></rect>
+          <circle cx="60" cy="130" r="20" fill="#FFE9A8"></circle><circle cx="70" cy="124" r="18" fill="#0E0A10"></circle>
+          <g fill="#E8B64A"><circle cx="140" cy="120" r="1.6"></circle><circle cx="200" cy="140" r="1.2"></circle><circle cx="290" cy="118" r="1.6"></circle><circle cx="110" cy="170" r="1.1"></circle><circle cx="260" cy="176" r="1.3"></circle><circle cx="30" cy="190" r="1.2"></circle></g>
+          <path d="M236 250 C236 290 82 282 82 322 C82 364 236 358 236 400 C236 440 82 436 82 476 C82 516 236 512 236 552 C236 592 82 588 82 628 V714" fill="none" stroke="#0A0604" stroke-width="30" stroke-linecap="round"></path>
+          <path d="M236 250 C236 290 82 282 82 322 C82 364 236 358 236 400 C236 440 82 436 82 476 C82 516 236 512 236 552 C236 592 82 588 82 628 V714" fill="none" stroke="#3A2618" stroke-width="24" stroke-linecap="round"></path>
+          <path d="M236 250 C236 290 82 282 82 322 C82 364 236 358 236 400 C236 440 82 436 82 476 C82 516 236 512 236 552 C236 592 82 588 82 628 V714" fill="none" stroke="#B8822A" stroke-width="2" stroke-dasharray="6 9" opacity=".8"></path>
+          <sc-for list="{{ glows }}" as="g" hint-placeholder-count="6"><circle cx="{{ g.x }}" cy="{{ g.y }}" r="44" fill="url(#hbG)"></circle></sc-for>
+          <g stroke-linejoin="round" stroke-linecap="round">
+            <sc-for list="{{ hubParts }}" as="p" hint-placeholder-count="40"><path d="{{ p.d }}" fill="{{ p.f }}" stroke="{{ p.s }}" stroke-width="{{ p.w }}" opacity="{{ p.o }}"></path></sc-for>
+          </g>
+        </svg>
+        <div style="position:absolute;top:36px;left:12px;right:12px;display:flex;align-items:center;justify-content:space-between">
+          <div style="display:flex;flex-direction:column;gap:2px"><span style="font:26px/1.1 Lalezar;color:#FFE9A8;text-shadow:0 2px 0 #000">بازارچه‌ی دوزاری</span><span style="font:700 11.5px Vazirmatn;color:#E8B64A">روی یه ساختمون بزن!</span></div>
+          <button style="height:38px;padding:0 14px;border-radius:12px;background:linear-gradient(180deg,#5A3A1C 0%,#3A2412 60%,#24160A 100%);border:2px solid #B8822A;box-shadow:inset 0 2px 0 rgba(255,241,184,.35),0 3px 0 #000;font:16px Lalezar;color:#FFE9A8;cursor:pointer">برگشت</button>
+        </div>
+        <sc-for list="{{ plates }}" as="b" hint-placeholder-count="6">
+          <div onClick="{{ b.pick }}" style="position:absolute;top:{{ b.top }};left:{{ b.left }};width:104px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer">
+            <div style="padding:3px 10px;border-radius:10px;background:{{ b.bg }};border:2px solid {{ b.bd }};box-shadow:0 0 0 2px #000,0 3px 0 #000;font:15px/1.2 Lalezar;color:{{ b.fg }};white-space:nowrap">{{ b.name }}</div>
+            <div style="padding:1px 8px;border-radius:99px;background:#0E0A08;border:1.5px solid #8A5A16;font:800 10.5px Vazirmatn;color:{{ b.mc }};white-space:nowrap">{{ b.mode }}</div>
+          </div>
+        </sc-for>
+        <sc-if value="{{ hasSel }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:10px;right:10px;top:{{ sel.top }};padding:12px;border-radius:20px;background:linear-gradient(180deg,#2A1E16,#120C09);border:3px solid #E8B64A;box-shadow:0 0 0 3px #000,0 6px 0 #000;display:flex;gap:10px;align-items:center">
+          <div style="flex:none;width:66px;height:66px;border-radius:16px;background:radial-gradient(circle at 50% 35%,#5A3A1C,#17100C);border:2px solid #8A5A16;overflow:hidden;padding:4px"><dc-import name="Character" who="{{ sel.host }}" pose="idle" crop="face" hint-size="100%,100%" style="width:100%;height:100%"></dc-import></div>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px">
+            <div style="display:flex;align-items:center;gap:6px"><span style="font:20px/1.1 Lalezar;color:#FFE9A8">{{ sel.name }}</span><span style="padding:1px 8px;border-radius:99px;background:#E8B64A;font:11px/1.6 Lalezar;color:#2A1606">{{ sel.mode }}</span></div>
+            <span style="font:700 11px/1.55 Vazirmatn;color:rgba(255,233,168,.8);text-wrap:pretty">{{ sel.desc }}</span>
+          </div>
+          <button style="flex:none;width:68px;height:52px;border-radius:14px;border:3px solid #000;background:{{ sel.btn }};box-shadow:inset 0 2px 0 rgba(255,255,255,.6),0 4px 0 #000;font:18px Lalezar;color:{{ sel.btnFg }};cursor:pointer">{{ sel.cta }}</button>
+        </div></sc-if>
+      </div>
+      <div style="font:12px 'JetBrains Mono',monospace;color:rgba(255,233,168,.6)">adult · screen-hub (CityHub) · night bazaar</div>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showTip&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Home&quot;}}">
+const IC={target:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 12.5v-1',calendar:'M4 6h16v15H4zM4 10h16M8 3v4M16 3v4',users:'M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM2 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5M16 4.5a3.5 3.5 0 0 1 0 6.5M18 14.5c2.5.5 4 2.5 4 5.5',trophy:'M8 4h8v5a4 4 0 0 1-8 0zM8 6H4a3 3 0 0 0 4 4M16 6h4a3 3 0 0 1-4 4M12 13v4M8 20h8M10 17h4',crown:'M3 8l4 4 5-7 5 7 4-4-2 11H5zM5 21h14',search:'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM21 21l-5-5',settings:'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1',mail:'M3 5h18v14H3zM3 6l9 7 9-7',chat:'M4 5h16v11H9l-5 4z',gift:'M3 9h18v4H3zM5 13h14v8H5zM12 9v12M12 9c-2 0-5-1-5-3a2 2 0 0 1 4-1l1 4 1-4a2 2 0 0 1 4 1c0 2-3 3-5 3',shirt:'M8.5 3L3 5.5l1.6 4 2.9-1V21h9V8.5l2.9 1L21 5.5 15.5 3a3.6 3.6 0 0 1-7 0z',puzzle:'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',bolt:'M13 2L4 14h7l-1 8 9-12h-7z',flame:'M12 22c4 0 7-3 7-7 0-4-3-6-4-10-2 2-3 4-3 6-1-1-2-2-2-4-2 2-5 5-5 8 0 4 3 7 7 7z',wheel:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4',swords:'M4 4L16 16M13 17L17 13M16 16L20 20M20 4L8 16M7 13L11 17M8 16L4 20',coin:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v10M15 9.5H10.5a1.5 1.5 0 0 0 0 3h3a1.5 1.5 0 0 1 0 3H9'};
+const HB=[
+ {key:'caravan',host:'pahlevan',x:236,by:250,w:87,h:38,type:'crenel',body:'#E9A85C',roof:'#C98A4E',name:'کاروانسرا',mode:'تورنومنت',desc:'جدول حذفی با جایزه؛ ثبت‌نام کن و تا فینال برو.',on:true},
+ {key:'tower',host:'mashti',x:82,by:322,w:34,h:58,type:'tower',body:'#F4CB8E',roof:'#3E93B8',name:'برج ساعت',mode:'پازل روزانه',desc:'هر روز یک پازل تازه. زنجیره‌ات رو نگه دار تا جایزه بگیری.',on:true},
+ {key:'shop',host:'baqal',x:236,by:400,w:75,h:44,type:'shop',body:'#EDB46A',roof:'#C98A4E',awn:'#E84A3C',name:'دکه‌ی تمرین',mode:'تک‌نفره',desc:'مرحله‌به‌مرحله پیش برو و تمرین کن.',on:true},
+ {key:'zur',host:'pahlevan',x:82,by:476,w:74,h:41,type:'dome',body:'#F0BE78',roof:'#E84A3C',name:'زورخانه',mode:'دوئل',desc:'یک‌به‌یک با یه حریف؛ هر کی زودتر حل کنه برنده‌ست.',on:true},
+ {key:'chai',host:'goli',x:236,by:552,w:77,h:43,type:'badgir',body:'#E9A85C',roof:'#3FA36B',awn:'#3FA36B',name:'چایخانه',mode:'تیمی',desc:'با دوستات تیم بزن و با هم پازل حل کنید.',on:false},
+ {key:'maktab',host:'mirza',x:82,by:628,w:74,h:40,type:'dome',body:'#F4CB8E',roof:'#3E93B8',name:'مکتب‌خانه',mode:'پیشنهاد و رأی',desc:'کالا و قیمت پیشنهاد بده، به پیشنهاد بقیه رأی بده و سکه بگیر.',on:true}];
+const PAL={'#E9A85C':'#6E4626','#F4CB8E':'#7E5634','#EDB46A':'#744C2A','#F0BE78':'#7A5232','#C98A4E':'#B8822A','#3E93B8':'#E8B64A','#E84A3C':'#9A2E1C','#3FA36B':'#2F6E4A','#6A3018':'#0E0805','#E0803E':'#FFD98A','#5A2A14':'#FFC960','#FFF6E8':'#FFE9A8','#FFF3E0':'#E8B64A','#3A2418':'#000','#fff':'#FFF1B8'};
+function parts(b){const {x,by,w,h}=b,L=x-w/2,top=by-h,P=[];const add=(d,f,s,wd,o)=>P.push({d,f:PAL[f]||f,s:s==='none'?'none':(PAL[s]&&s!=='#4A2E1E'?PAL[s]:'#0A0604'),w:wd??2.4,o:o??1});
+ add(`M${L-10} ${by} Q${x} ${by+16} ${L+w+10} ${by}Z`,'#3A2418','none',0,.4);
+ if(b.type==='tower'){add(`M${L-6} ${top} L${x} ${top-40} L${L+w+6} ${top}Z`,b.roof);add(`M${x} ${top-40} v-10`,'none');}
+ if(b.type==='dome'){const r=w*.34;add(`M${x-r} ${top} C${x-r} ${top-r*1.5} ${x+r} ${top-r*1.5} ${x+r} ${top}Z`,b.roof);add(`M${x} ${top-r*1.12} v-12`,'none');add(`M${x-r*.6} ${top-r*.5} Q${x-r*.4} ${top-r*.95} ${x-r*.05} ${top-r*1.05}`,'none','#fff',2.2,.35);}
+ if(b.type==='badgir'){add(`M${L+w-30} ${top} V${top-36} h22 V${top}Z`,b.body);add(`M${L+w-25} ${top-30} v14 M${L+w-19} ${top-30} v14 M${L+w-13} ${top-30} v14`,'none','#4A2E1E',2.2);add(`M${L+w-33} ${top-40} h28 v6 h-28Z`,b.roof);}
+ add(`M${L} ${by} V${top} H${L+w} V${by}Z`,b.body);
+ if(b.type==='crenel'){let d='';for(let cx=L;cx<L+w-4;cx+=20)d+=`M${cx} ${top} v-10 h12 v10Z `;add(d,b.roof);}
+ add(`M${L-4} ${top-2} h${w+8} v9 h-${w+8}Z`,b.roof);
+ add(`M${L} ${top+12} h${w} v6 h-${w}Z`,'#3E93B8');
+ const dw=Math.min(28,w*.3),dh=h*.56;add(`M${x-dw/2} ${by} V${by-dh+dw/2} A${dw/2} ${dw/2} 0 0 1 ${x+dw/2} ${by-dh+dw/2} V${by}Z`,'#6A3018');
+ add(`M${x-dw/2+4} ${by} V${by-dh+dw/2+2} A${dw/2-4} ${dw/2-4} 0 0 1 ${x+dw/2-4} ${by-dh+dw/2+2} V${by}Z`,'#E0803E','none',0,.75);
+ if(w>60){const ww=12;[L+w*.18,L+w*.82].forEach(cx=>add(`M${cx-ww/2} ${top+44} V${top+32} A${ww/2} ${ww/2} 0 0 1 ${cx+ww/2} ${top+32} V${top+44}Z`,'#5A2A14'));}
+ if(b.type==='tower'){add(`M${x} ${top+30} m-11 0 a11 11 0 1 0 22 0 a11 11 0 1 0 -22 0`,'#FFF6E8');add(`M${x} ${top+30} v-7 M${x} ${top+30} h5`,'none','#4A2E1E',2.2);}
+ if(b.awn){add(`M${L-4} ${top+20} h${w+8} l-8 16 h-${w-8}Z`,b.awn);let d='';for(let sx=L+4;sx<L+w-6;sx+=14)d+=`M${sx} ${top+20} l-2 16 h7 l2 -16Z `;add(d,'#FFF3E0','none',0,.9);}
+ return P;}
+const HUBPARTS=HB.flatMap(parts);
+class Component extends DCLogic {
+  state = { age:'adult', phone:'', hub:'zur' };
+  renderVals(){
+    const s=this.state;
+    const A=[['kid','کودک'],['teen','نوجوان'],['adult','بزرگسال']];
+    const H={kid:'دوزاری کوچولو: پازل‌های ساده و یادگیری کلمه · ورود با کد والدین',teen:'همون بازی، با پازل‌های راحت‌تر',adult:'پازل‌های قیمت و خاطره‌ی قدیمی؛ بازی کامل'};
+    const ages=A.map(([k,n])=>{const on=s.age===k;return{n,pick:()=>this.setState({age:k}),bd:on?'#000':'#B8822A',bg:on?'linear-gradient(180deg,#FFF1B8 0%,#E8B64A 38%,#B8822A 72%,#8A5A16 100%)':'linear-gradient(180deg,#5A3A1C 0%,#3A2412 60%,#24160A 100%)',fg:on?'#2A1606':'#FFE9A8',sh:on?'inset 0 2px 0 rgba(255,255,255,.75),0 3px 0 #000':'inset 0 2px 0 rgba(255,241,184,.3),0 3px 0 #000'};});
+    const T=(n,k,o={})=>({n,d:IC[k],fr:o.glow?'#FFF1B8':'#B8822A',ink:'#FFE9A8',glow:o.glow?'0 0 14px rgba(255,217,138,.75)':'0 0 0 transparent',badge:o.badge||'',bc:o.bc||'#C4302B',bt:o.bt||'#fff'});
+    const right=[T('ماموریت‌ها','target',{badge:'۲'}),T('عیدی','calendar',{badge:'!',glow:true,bc:'#E8B64A',bt:'#2A1606'}),T('سفره‌خانه','users'),T('جام','trophy'),T('جارچی','crown'),T('صراف','search')];
+    const left=[T('کارگاه','settings'),T('پیک','mail',{badge:'۳'}),T('قهوه‌خانه','chat'),T('حجره','gift'),T('اتاق پرو','shirt'),T('گنجینه','puzzle'),T('گاوصندوق','bolt')];
+    const sb=HB.find(b=>b.key===s.hub)||HB[3];const selTop=sb.by>=440?'96px':(sb.by+40)+'px';
+    const plates=HB.map(b=>{const on=b.key===s.hub;return{name:b.name,mode:b.on?b.mode:'به‌زودی',top:(b.by+6)+'px',left:(b.x-52)+'px',pick:()=>this.setState(st=>({hub:st.hub===b.key?null:b.key})),bg:on?'linear-gradient(180deg,#FFF1B8,#E8B64A 45%,#B8822A)':'#17100C',bd:on?'#000':'#E8B64A',fg:on?'#2A1606':'#FFE9A8',mc:b.on?'#E8B64A':'rgba(255,233,168,.5)'};});
+    return {
+      phone:s.phone,onPhone:e=>this.setState({phone:e.target.value.slice(0,13)}),ages,ageHint:H[s.age],cta:s.age==='kid'?'ورود با کد والدین':'ارسال کد',
+      ic:IC,showTip:this.props.showTip??true,
+      cols:[{r:'6px',l:'auto',items:right},{l:'6px',r:'auto',items:left}],
+      hubParts:HUBPARTS,glows:HB.map(b=>({x:b.x,y:b.by-16})),plates,
+      hasSel:!!s.hub,sel:{top:selTop,host:sb.host,name:sb.name,mode:sb.on?sb.mode:'به‌زودی',desc:sb.desc,cta:sb.on?'ورود':'به‌زودی',btn:sb.on?'linear-gradient(180deg,#FFF1B8 0%,#E8B64A 38%,#B8822A 72%,#8A5A16 100%)':'linear-gradient(180deg,#5A3A1C,#24160A)',btnFg:sb.on?'#2A1606':'rgba(255,233,168,.6)'}
+    };
+  }
+}
+</script>
+</body>
+</html>
