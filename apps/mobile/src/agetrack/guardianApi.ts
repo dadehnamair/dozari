@@ -21,6 +21,13 @@ export const childLinkCode = (childId: string): Promise<{ code: string; expiresI
 export const setChildTrack = (childId: string, track: 'kid' | 'teen'): Promise<void> => authed(ok, `/guardian/children/${childId}/track`, 'PUT', { track });
 export const removeChild = (childId: string): Promise<void> => authed(ok, `/guardian/children/${childId}`, 'DELETE');
 
+/** Right after a phone sign-in: play as one of this number's children instead of the number's own account. */
+export async function switchToChild(childId: string): Promise<void> {
+  const deviceId = await session.deviceId();
+  const out = await authed((r) => sessionSchema.parse(r), `/guardian/children/${childId}/switch`, 'POST', { deviceId });
+  await session.adopt(out.token);
+}
+
 /** The child's device, signed out: the code the guardian shows signs this device in as the child (the whole app starts over). */
 export async function signInWithChildCode(code: string, opts: { announce?: boolean } = {}): Promise<void> {
   const deviceId = await session.deviceId();

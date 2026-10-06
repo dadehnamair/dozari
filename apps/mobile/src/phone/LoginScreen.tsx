@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Keyboard, Platform, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { toPersianDigits } from '@dozari/shared';
+import type { AgeTrack, ChildRow } from '@dozari/shared';
+import { fetchChildren, switchToChild } from '../agetrack/guardianApi';
 import { ChildCodeSheet } from '../agetrack/ChildCodeSheet';
 import { Character } from '../components/Character';
 import { Scene } from '../components/Scene';
@@ -15,6 +17,12 @@ import { loginWithCode, requestLoginCode } from './loginApi';
 import { TEXT_LEFT, TEXT_RIGHT } from '../theme/direction';
 
 const INK = '#2B1240';
+const l = fa.login;
+const TRACKS: { track: AgeTrack; emoji: string; label: (l: typeof fa.ageTrack) => string }[] = [
+  { track: 'adult', emoji: '🧑', label: (l) => l.adult },
+  { track: 'teen', emoji: '🧑‍🎓', label: (l) => l.teen },
+  { track: 'kid', emoji: '🧸', label: (l) => l.kid },
+];
 const errText = (e: unknown): string => fa.phoneLogin.errors[e instanceof ApiError ? e.code : 'generic'] ?? fa.phoneLogin.errors.generic ?? '';
 
 /**
@@ -22,9 +30,13 @@ const errText = (e: unknown): string => fa.phoneLogin.errors[e instanceof ApiErr
  * «+98», then the five-box code — with «مهمان بازی کن» under it. Shown once on a fresh install when the server can send codes;
  * playing never needs it.
  */
-export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { signedIn: boolean; created: boolean }) => void; /** The server's age-track switch: shows «ورود با کد والدین» for a child's own device. */ ageTracksOn?: boolean }) {
+export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { signedIn: boolean; created: boolean; track: AgeTrack }) => void; /** The server's age-track switch: shows «ورود با کد والدین» for a child's own device. */ ageTracksOn?: boolean }) {
   const [childCodeOpen, setChildCodeOpen] = useState(false);
-  const [step, setStep] = useState<'phone' | 'otp'>('phone');
+  const [step, setStep] = useState<'phone' | 'otp' | 'pick'>('phone');
+  /** The age band chosen with the little icons (adult by default); saved by the app once the player is signed in. */
+  const [track, setTrack] = useState<AgeTrack>('adult');
+  /** Children behind the number that just signed in: the player picks which account to play as. */
+  const [accounts, setAccounts] = useState<ChildRow[]>([]);
   const [typed, setTyped] = useState('');
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
@@ -68,8 +80,25 @@ export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { sig
     setBusy(true);
     setNote(null);
     loginWithCode(phone, digits, { announce: false }).then(
-      (r) => onDone({ signedIn: true, created: r.created }),
+      async (r) => {
+        // A number can hold a guardian with children: ask which account to open.
+        const kids = ageTracksOn && !r.created ? await fetchChildren().then((c) => c.children, () => []) : [];
+        if (kids.length === 0) return onDone({ signedIn: true, created: r.created, track });
+        setAccounts(kids);
+        setStep('pick');
+        setBusy(false);
+      },
       (e) => (setBusy(false), setCode(''), setNote(errText(e))),
+    );
+  };
+  const playAs = (childId: string | null) => {
+    if (busy) return;
+    if (!childId) return onDone({ signedIn: true, created: false, track });
+    setBusy(true);
+    setNote(null);
+    switchToChild(childId).then(
+      () => onDone({ signedIn: true, created: false, track }),
+      () => (setBusy(false), setNote(l.pickFailed)),
     );
   };
   const onCode = (raw: string) => {
@@ -78,7 +107,6 @@ export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { sig
     if (d.length === OTP_LENGTH) enter(d);
   };
 
-  const l = fa.login;
   return (
     <View style={styles.root}>
       <View style={StyleSheet.absoluteFill}><Scene scene="bazaar" mood="dusk" /></View>
@@ -97,6 +125,28 @@ export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { sig
               <View style={styles.prefix}><Text style={styles.prefixText}>+98</Text></View>
               <TextInput value={toPersianDigits(typed)} onChangeText={(v) => setTyped(onlyDigits(v, 11))} onSubmitEditing={send} keyboardType="phone-pad" maxLength={13} placeholder={toPersianDigits('912 345 6789')} placeholderTextColor="#B8A9CC" style={styles.phoneInput} accessibilityLabel={fa.phoneLogin.phone} />
             </View>
+            {ageTracksOn ? (
+              <View style={styles.tracks} accessibilityLabel={l.trackLabel}>
+                {TRACKS.map((t) => (
+                  <Pressable key={t.track} accessibilityRole="button" accessibilityState={{ selected: track === t.track }} onPress={() => setTrack(t.track)} style={[styles.trackChip, track === t.track ? styles.trackOn : null]}>
+                    <Text style={styles.trackEmoji}>{t.emoji}</Text>
+                    <Text style={styles.trackText}>{t.label(fa.ageTrack)}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+          </>
+        ) : step === 'pick' ? (
+          <>
+            <Text style={styles.title}>{l.pickTitle}</Text>
+            <Pressable accessibilityRole="button" disabled={busy} onPress={() => playAs(null)} style={({ pressed }) => [styles.guest, pressed ? styles.guestPressed : null]}>
+              <Text style={styles.guestText}>{l.pickMe}</Text>
+            </Pressable>
+            {accounts.map((c) => (
+              <Pressable key={c.id} accessibilityRole="button" disabled={busy} onPress={() => playAs(c.id)} style={({ pressed }) => [styles.guest, pressed ? styles.guestPressed : null]}>
+                <Text style={styles.guestText}>{`${TRACKS.find((t) => t.track === c.track)?.emoji ?? ''} ${c.nickname}`}</Text>
+              </Pressable>
+            ))}
           </>
         ) : (
           <>
@@ -117,9 +167,10 @@ export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { sig
           </>
         )}
         {note ? <Text style={styles.error}>{note}</Text> : null}
+        {step === 'pick' ? null : <>
         <SlabButton label={busy ? l.sending : step === 'phone' ? l.sendCode : l.enter} sfx="confirm" color={colors.candy.lime} height={tight ? 50 : 56} fontSize={22} grow={0} disabled={busy || (step === 'phone' ? !phone : code.length !== OTP_LENGTH)} onPress={step === 'phone' ? send : () => enter(code)} />
         <View style={styles.orRow}><View style={styles.orLine} /><Text style={styles.orText}>{l.or}</Text><View style={styles.orLine} /></View>
-        <Pressable accessibilityRole="button" onPress={() => onDone({ signedIn: false, created: false })} style={({ pressed }) => [styles.guest, pressed ? styles.guestPressed : null]}>
+        <Pressable accessibilityRole="button" onPress={() => onDone({ signedIn: false, created: false, track })} style={({ pressed }) => [styles.guest, pressed ? styles.guestPressed : null]}>
           <Text style={styles.guestText}>{l.guest}</Text>
         </Pressable>
         {ageTracksOn ? (
@@ -127,9 +178,10 @@ export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { sig
             <Text style={styles.link}>{fa.guardian.childLoginRow}</Text>
           </Pressable>
         ) : null}
+        </>}
       </View>
       </View>
-      {childCodeOpen ? <ChildCodeSheet onClose={() => setChildCodeOpen(false)} onDone={() => onDone({ signedIn: true, created: true })} /> : null}
+      {childCodeOpen ? <ChildCodeSheet onClose={() => setChildCodeOpen(false)} onDone={() => onDone({ signedIn: true, created: true, track })} /> : null}
     </View>
   );
 }
@@ -163,6 +215,11 @@ const styles = StyleSheet.create({
   resendRow: { flexDirection: ROW, justifyContent: 'space-between', alignItems: 'center' },
   link: { fontFamily: fonts.bold, fontSize: 12.5, color: '#E8743B', textDecorationLine: 'underline' },
   error: { fontFamily: fonts.bold, fontSize: 12.5, color: '#B3261E', textAlign: 'center' },
+  tracks: { flexDirection: 'row', direction: 'ltr', justifyContent: 'center', gap: 8 },
+  trackChip: { flex: 1, height: 40, flexDirection: 'row', direction: 'rtl', gap: 5, alignItems: 'center', justifyContent: 'center', borderRadius: 12, borderWidth: 2.5, borderColor: 'rgba(43,18,64,0.25)', backgroundColor: 'rgba(255,255,255,0.55)' },
+  trackOn: { borderColor: INK, backgroundColor: '#FFE48A' },
+  trackEmoji: { fontSize: 18 },
+  trackText: { fontFamily: fonts.bold, fontSize: 12, color: INK },
   orRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   orLine: { flex: 1, height: 2, backgroundColor: 'rgba(43,18,64,0.15)' },
   orText: { fontFamily: fonts.bold, fontSize: 11, color: 'rgba(43,18,64,0.55)' },

@@ -29,6 +29,7 @@ import { SearchScreen } from './src/search/SearchScreen';
 import { Tutorial } from './src/onboarding/Tutorial';
 import { loginSeen, markLoginSeen, markTutorialSeen, tutorialSeen } from './src/onboarding/state';
 import { LoginScreen } from './src/phone/LoginScreen';
+import type { AgeTrack } from '@dozari/shared';
 import { AgeTrackScreen } from './src/agetrack/AgeTrackScreen';
 import { ageTrackNeeded } from './src/agetrack/api';
 import { useTrackRules } from './src/agetrack/useTrackRules';
@@ -90,6 +91,7 @@ export default function App() {
   const [launch] = useState(takeLaunchTarget);
   // Another account was loaded on this device (phone proof): remount every screen so nothing shows the old account.
   const [epoch, setEpoch] = useState(0);
+  const [presetTrack, setPresetTrack] = useState<AgeTrack | undefined>(undefined);
   useEffect(() => onAccountSwitched(() => (setScreen('home'), setEpoch((e) => e + 1))), []);
   const launchOn = launch === 'solo' || (launch === 'daily' && config.features.daily) || (launch === 'duel' && config.features.duel);
 
@@ -173,14 +175,14 @@ export default function App() {
           ageTracksOn={config.raw['feature.age_tracks'] === 1}
           onDone={(r) =>
             void markLoginSeen().then(async () => {
-              if (await ageTrackNeeded(config.raw)) return setScreen('ageTrack');
+              if (await ageTrackNeeded(config.raw)) return (setPresetTrack(r.track), setScreen('ageTrack'));
               if (r.signedIn && !r.created) return (await markTutorialSeen(), setScreen('home'));
               setScreen((await tutorialSeen()) ? 'home' : 'tutorial');
             })
           }
         />
       ) : null}
-      {screen === 'ageTrack' ? <AgeTrackScreen onDone={() => void tutorialSeen().then((seen) => setScreen(seen ? 'home' : 'tutorial'))} /> : null}
+      {screen === 'ageTrack' ? <AgeTrackScreen preset={presetTrack} onDone={() => void tutorialSeen().then((seen) => setScreen(seen ? 'home' : 'tutorial'))} /> : null}
       {screen === 'solo' ? <SoloScreen key={previewTrack ?? 'own'} previewTrack={previewTrack ?? undefined} onBack={() => (setPreviewTrack(null), setScreen('home'))} hintsEnabled={config.features.shop} ageTracksOn={config.raw['feature.age_tracks'] === 1} /> : null}
       {screen === 'priceonly' ? <PriceOnlyScreen onBack={() => setScreen('home')} /> : null}
       {screen === 'daily' ? <SoloScreen daily onBack={() => setScreen('home')} hintsEnabled={config.features.shop} /> : null}
