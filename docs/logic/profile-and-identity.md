@@ -194,4 +194,4 @@ Each profile carries a chosen age band (kid / teen / adult) and, for kids and te
 The versus screen (`Versus.tsx`) shows under the player's own plate: «اسمت توی بازی X است؛ از لول N می‌توانی عوضش کنی» (N = `NICKNAME_CHANGE_MIN_LEVEL`; once reached, «از پروفایلت…»).
 
 ### Report affordance (owner 2026-10-06)
-Every place that can report someone carries a visible «گزارش» text link: player sheet, each chat message (`ChatSheet`), and the opponent row of the 1v1 result (`DuelResult` → `ReportDialog`).
+Every place that can report someone carries a visible «گزارش» text link: player sheet, each chat message (`ChatSheet`, `TableChat`), and the opponent row(s) of the duel result (`DuelResult` → `ReportDialog`; in 2v2 one link per rival, labelled with the name).

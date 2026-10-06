@@ -251,7 +251,8 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   const rivalWho = characterFor(sidePlayers(state.found, them)[0]?.avatarKey || rivalName);
   const lines = [
     { name: myName, who: 'dozari' as const, groups: groupsBy(view, me), me: true },
-    { name: rivalName, who: rivalWho, groups: groupsBy(view, them), me: false, playerId: sidePlayers(state.found, them).length === 1 ? sidePlayers(state.found, them)[0]?.userId : undefined },
+    { name: rivalName, who: rivalWho, groups: groupsBy(view, them), me: false, playerId: sidePlayers(state.found, them).length === 1 ? sidePlayers(state.found, them)[0]?.userId : undefined,
+      reportable: sidePlayers(state.found, them).flatMap((p) => (p.userId ? [{ id: p.userId, name: p.nickname }] : [])) },
   ];
 
   if (state.phase === 'ended' && state.ended && !finalePending) {

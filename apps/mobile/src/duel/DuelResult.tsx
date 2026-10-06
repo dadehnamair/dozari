@@ -17,7 +17,7 @@ const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const a = fa.duel.arena;
 
 type Outcome = 'won' | 'lost' | 'draw';
-type Line = { name: string; who: CharacterId; groups: number; points: number; me: boolean; /** Tap the row to open this player's profile (an opponent in a 1v1). */ playerId?: string };
+type Line = { name: string; who: CharacterId; groups: number; points: number; me: boolean; /** Tap the row to open this player's profile (an opponent in a 1v1). */ playerId?: string; /** Opponents who can be reported from this row (one in 1v1, two in 2v2). */ reportable?: { id: string; name: string }[] };
 
 const LOOK: Record<Outcome, { title: string; sub: string; pose: 'win' | 'sad' | 'thinking'; ban: [string, string]; again: string; againColor: string }> = {
   won: { title: fa.duel.won, sub: a.winSub, pose: 'win', ban: ['#FFE48A', colors.candy.yellow], again: a.againWin, againColor: colors.candy.pink },
@@ -58,7 +58,9 @@ export function DuelResult({ outcome, reason, lines, priceRound, onHome, onAgain
                 <Text style={styles.name} numberOfLines={1}>{l.name}</Text>
                 {i === 0 && l.points > 0 && sorted[1]?.points !== l.points ? <View style={styles.crown}><Item icon="crown" /></View> : null}
               </View>
-              {l.playerId && onReport ? <Pressable onPress={() => onReport(l.playerId as string)} accessibilityRole="button" hitSlop={8}><Text style={styles.report}>{fa.feedback.report.short}</Text></Pressable> : null}
+              {onReport ? l.reportable?.map((r) => (
+                <Pressable key={r.id} onPress={() => onReport(r.id)} accessibilityRole="button" hitSlop={8}><Text style={styles.report}>{l.reportable && l.reportable.length > 1 ? `${fa.feedback.report.short} ${r.name}` : fa.feedback.report.short}</Text></Pressable>
+              )) : null}
               <Text style={[styles.num, styles.cell]}>{toPersianDigits(String(l.groups))}</Text>
               <Text style={[styles.num, styles.cell, styles.pts]}>{toPersianDigits(String(l.points))}</Text>
             </Pressable>

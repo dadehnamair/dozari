@@ -4,6 +4,7 @@ import type { ChatMessage } from '@dozari/shared';
 import { fetchTableChat, sendTableChat } from '../chat/api';
 import { chatErrorText, mergeMessages } from '../chat/errors';
 import { GradientFill } from '../components/GradientFill';
+import { ReportDialog } from '../feedback/ReportDialog';
 import { fa } from '../i18n/fa';
 import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
@@ -18,6 +19,7 @@ export function TableChat({ code, meId }: { code: string; meId: string | null })
   const [canType, setCanType] = useState(true);
   const [text, setText] = useState('');
   const [note, setNote] = useState<string | null>(null);
+  const [reporting, setReporting] = useState<string | null>(null);
   const scroller = useRef<ScrollView>(null);
   const fail = (e: unknown) => setNote(chatErrorText(e instanceof ApiError ? e.code : 'generic'));
   const load = useCallback(() => {
@@ -49,6 +51,11 @@ export function TableChat({ code, meId }: { code: string; meId: string | null })
                 {mine ? null : <Text style={styles.who}>{m.nickname}</Text>}
                 <Text style={styles.text}>{m.text}</Text>
               </View>
+              {mine ? null : (
+                <Pressable onPress={() => setReporting(m.id)} accessibilityRole="button" hitSlop={6}>
+                  <Text style={styles.report}>{fa.chat.report}</Text>
+                </Pressable>
+              )}
             </View>
           );
         })}
@@ -63,6 +70,7 @@ export function TableChat({ code, meId }: { code: string; meId: string | null })
           </Pressable>
         </View>
       ) : <Text style={styles.hint}>{fa.chat.needsActivation}</Text>}
+      {reporting ? <ReportDialog target={{ kind: 'message', messageId: reporting }} onClose={() => (setReporting(null), setNote(fa.chat.reported))} /> : null}
     </View>
   );
 }
@@ -78,6 +86,7 @@ const styles = StyleSheet.create({
   bubbleMine: { backgroundColor: colors.candy.yellow },
   who: { fontFamily: fonts.display, fontSize: 11, color: '#7E46D6', textAlign: TEXT_RIGHT },
   text: { fontFamily: fonts.bold, fontSize: 13, lineHeight: 20, color: colors.ink, textAlign: TEXT_RIGHT },
+  report: { fontFamily: fonts.bold, fontSize: 12, color: colors.ink, opacity: 0.7, textDecorationLine: 'underline', paddingHorizontal: 6, alignSelf: 'flex-end' },
   hint: { fontFamily: fonts.bold, fontSize: 12, lineHeight: 20, color: colors.ink, textAlign: 'center' },
   warn: { fontFamily: fonts.bold, fontSize: 12, color: '#B3261E', textAlign: 'center' },
   inputRow: { flexDirection: ROW, gap: 8, alignItems: 'center' },
