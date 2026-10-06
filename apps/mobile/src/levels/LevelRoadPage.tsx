@@ -143,7 +143,7 @@ function RoadCanvas({ road, nodes, width, onLocked, onClaim }: { road: LevelRoad
       {lay.points.map((p) => {
         const node = byLevel.get(p.level);
         if (!node) return null;
-        return <RoadStop key={p.level} node={node} x={p.x} y={p.y} left={p.left} width={width} reached={node.level <= road.level} onLocked={onLocked} onClaim={onClaim} />;
+        return <RoadStop key={p.level} node={node} x={p.x} y={p.y} left={p.left} reached={node.level <= road.level} onLocked={onLocked} onClaim={onClaim} />;
       })}
       {here ? (
         <View pointerEvents="none" style={{ position: 'absolute', left: here.x - 34, top: here.y - 50 - 79, width: 68, height: 79, zIndex: 3 }}>
@@ -154,10 +154,9 @@ function RoadCanvas({ road, nodes, width, onLocked, onClaim }: { road: LevelRoad
   );
 }
 
-/** The card takes the free half of the road beside its bend (bends sit at 30% / 70% of the width). */
-const cardWidth = (width: number): number => Math.max(150, Math.min(230, Math.round(width * 0.56)));
+const BADGE = 40;
 
-function RoadStop({ node, x, y, left, width, reached, onLocked, onClaim }: { node: RoadNode; x: number; y: number; left: boolean; width: number; reached: boolean; onLocked: (u: Unlock) => void; onClaim: () => void }) {
+function RoadStop({ node, x, y, left, reached, onLocked, onClaim }: { node: RoadNode; x: number; y: number; left: boolean; reached: boolean; onLocked: (u: Unlock) => void; onClaim: () => void }) {
   const dim = node.state === 'locked';
   const current = node.state === 'current';
   const size = current ? 66 : 54;
@@ -172,8 +171,7 @@ function RoadStop({ node, x, y, left, width, reached, onLocked, onClaim }: { nod
     loop.start();
     return () => loop.stop();
   }, [current, pulse]);
-  const cardW = cardWidth(width);
-  const cardsH = count * 62 + Math.max(0, count - 1) * 4 + (node.unlocks.length > (node.reward ? 1 : 2) ? 14 : 0);
+  const cardsH = count * BADGE + Math.max(0, count - 1) * 4 + (node.unlocks.length > (node.reward ? 1 : 2) ? 14 : 0);
   return (
     <>
       <Animated.View style={[styles.node, current ? styles.nodeCurrent : node.state === 'done' ? styles.nodeDone : styles.nodeLocked, { left: x - size / 2, top: y - size / 2, width: size, height: size, borderRadius: size / 2, transform: [{ scale: pulse }] }]}>
@@ -183,7 +181,7 @@ function RoadStop({ node, x, y, left, width, reached, onLocked, onClaim }: { nod
       </Animated.View>
       {current ? <Text style={[styles.youTag, { left: x - 45, top: y + size / 2 + 6 }]}>{fa.levels.hereNow}</Text> : null}
       {count > 0 ? (
-        <View style={[styles.cardsBox, { top: y - cardsH / 2, width: cardW }, left ? { left: Math.min(x + 38, width - cardW - 4) } : { left: Math.max(4, x - 38 - cardW) }]}>
+        <View style={[styles.cardsBox, { top: y - cardsH / 2, width: BADGE }, left ? { left: x + 40 } : { left: x - 40 - BADGE }]}>
           <Cards node={node} dim={dim} reached={reached} onLocked={onLocked} onClaim={onClaim} />
         </View>
       ) : null}
@@ -195,30 +193,24 @@ function Cards({ node, dim, reached, onLocked, onClaim }: { node: RoadNode; dim:
   if (node.unlocks.length === 0 && !node.reward) return null;
   const room = node.reward ? 1 : 2;
   const r = node.reward;
+  // Icon-only badges: what a level opens is told by the picture; a tap opens the popup with the name and the story.
   return (
     <View style={styles.cards}>
       {r ? (
-        <Pressable onPress={reached && !r.claimed ? onClaim : undefined} disabled={!reached || r.claimed} accessibilityRole={reached && !r.claimed ? 'button' : 'text'} accessibilityLabel={fa.levels.rewardTitle} style={[styles.card, styles.cardReward, !reached ? styles.cardDim : null]}>
-          <View style={styles.cardIcon}><View style={[styles.cardIconInner, !reached ? styles.gray : null]}><Item icon={r.coins > 0 ? 'coinStack' : 'dice'} /></View></View>
-          <View style={styles.cardText}>
-            <Text style={styles.cardTitle} numberOfLines={2}>{fa.levels.prize(r.coins, r.spins)}</Text>
-            <Text style={[styles.cardSub, r.claimed ? styles.cardDone : reached ? styles.cardClaim : null]} numberOfLines={1}>{r.claimed ? fa.levels.claimed : reached ? fa.levels.claim : fa.levels.fromLevel(node.level)}</Text>
-          </View>
+        <Pressable onPress={reached && !r.claimed ? onClaim : undefined} disabled={!reached || r.claimed} accessibilityRole={reached && !r.claimed ? 'button' : 'text'} accessibilityLabel={fa.levels.prize(r.coins, r.spins)} style={[styles.badge, styles.badgeReward, !reached ? styles.cardDim : null, reached && !r.claimed ? styles.badgeClaim : null]}>
+          <View style={[styles.badgeIcon, !reached || r.claimed ? styles.gray : null]}><Item icon={r.coins > 0 ? 'coinStack' : 'dice'} /></View>
+          {r.claimed ? <View style={styles.badgeTick}><Icon name="check" size={10} color="#fff" strokeWidth={4} /></View> : null}
         </Pressable>
       ) : null}
-      {node.unlocks.length > room ? <Text style={styles.more}>{`+${n(node.unlocks.length - room)}`}</Text> : null}
       {node.unlocks.slice(0, room).map((u, i) => {
         const v = view(u);
         return (
-          <Pressable key={`${u.kind}-${i}`} onPress={dim ? () => onLocked(u) : undefined} disabled={!dim} accessibilityRole={dim ? 'button' : 'text'} accessibilityLabel={v.title} style={[styles.card, dim ? styles.cardDim : null]}>
-            <View style={styles.cardIcon}><View style={[styles.cardIconInner, dim ? styles.gray : null]}><Item icon={v.icon} /></View></View>
-            <View style={styles.cardText}>
-              <Text style={styles.cardTitle} numberOfLines={2}>{v.title}</Text>
-              <Text style={[styles.cardSub, dim ? null : styles.cardDone]} numberOfLines={1}>{dim ? fa.levels.fromLevel(node.level) : fa.levels.done}</Text>
-            </View>
+          <Pressable key={`${u.kind}-${i}`} onPress={() => onLocked(u)} accessibilityRole="button" accessibilityLabel={v.title} style={[styles.badge, dim ? styles.cardDim : null]}>
+            <View style={[styles.badgeIcon, dim ? styles.gray : null]}><Item icon={v.icon} /></View>
           </Pressable>
         );
       })}
+      {node.unlocks.length > room ? <Text style={styles.more}>{`+${n(node.unlocks.length - room)}`}</Text> : null}
     </View>
   );
 }
@@ -291,7 +283,12 @@ const styles = StyleSheet.create({
   lockBadge: { position: 'absolute', top: -10, left: -10, width: 26, height: 26 },
   youTag: { position: 'absolute', width: 90, textAlign: 'center', zIndex: 3, fontFamily: fonts.display, fontSize: 12, color: colors.ink, backgroundColor: colors.candy.yellow, borderWidth: 2, borderColor: colors.ink, borderRadius: 8, overflow: 'hidden' },
   more: { fontFamily: fonts.display, fontSize: 12, color: colors.cream, textAlign: 'center' },
-  cards: { gap: 4 },
+  cards: { gap: 4, alignItems: 'center' },
+  badge: { width: BADGE, height: BADGE, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.paper, alignItems: 'center', justifyContent: 'center', ...lift(3) },
+  badgeReward: { backgroundColor: '#FFF1B8' },
+  badgeClaim: { borderColor: '#E8743B' },
+  badgeIcon: { width: 28, height: 28 },
+  badgeTick: { position: 'absolute', top: -6, right: -6, width: 18, height: 18, borderRadius: 9, borderWidth: 2, borderColor: colors.ink, backgroundColor: '#3FA36B', alignItems: 'center', justifyContent: 'center' },
   card: { flexDirection: ROW, alignItems: 'center', gap: 8, minHeight: 58, paddingVertical: 6, paddingHorizontal: 7, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.paper, ...lift(4) },
   cardDim: { backgroundColor: '#E4D8F4' },
   cardIcon: { width: 42, height: 42, borderRadius: 12, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
