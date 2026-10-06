@@ -408,7 +408,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     g.get('/admin/cities', async () => {
       const [list, stats] = await Promise.all([cities.cities({ includeHidden: true }), cities.cityStats()]);
       const none = { players: 0, active7d: 0, bots: 0, xp: 0 };
-      return { cities: list.map((c) => ({ ...c, stats: stats.get(c.id) ?? none })), provinces: PROVINCES.map((p) => ({ key: p.key, nameFa: p.nameFa, abroad: p.abroad })) };
+      return { cities: list.map((c) => ({ ...c, stats: stats.get(c.id) ?? none })), provinces: PROVINCES.map((p) => ({ key: p.key, nameFa: p.nameFa, abroad: p.abroad, giftFa: p.giftFa })) };
     });
     g.get('/admin/cities/:id/players', async (req, reply) => {
       const p = idParam.safeParse(req.params);
@@ -438,7 +438,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     });
     g.patch('/admin/cities/:id', async (req, reply) => {
       const p = idParam.safeParse(req.params);
-      const b = z.object({ nameFa: z.string().trim().min(2).max(60).optional(), isActive: z.boolean().optional(), sortOrder: z.number().int().min(0).max(10000).optional(), province: provinceKey.optional() }).safeParse(req.body);
+      const b = z.object({ nameFa: z.string().trim().min(2).max(60).optional(), isActive: z.boolean().optional(), sortOrder: z.number().int().min(0).max(10000).optional(), province: provinceKey.optional(), souvenirFa: z.string().trim().max(60).transform((v) => v || null).nullable().optional(), sloganFa: z.string().trim().max(120).transform((v) => v || null).nullable().optional() }).safeParse(req.body);
       if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
       if ((await cities.updateCity(p.data.id, b.data)) === 'not_found') return reply.code(404).send({ error: 'city_not_found' });
       void audit('city.update', p.data.id, JSON.stringify(b.data));

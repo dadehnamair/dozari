@@ -618,3 +618,7 @@ have no free chat and no coin wagers, match only inside their band, and cannot r
 is built yet. Owner to confirm: band edges, whether the guardian step is a hard gate for kids, and store age-labelling rules for Bazaar/Myket.
 
 **Update 2026-10-05 (owner):** the brand stays whole (only logic changes; «دوزاری کوچولو» is just the kid track's label inside the app). Kids and teens get friends, friend duels, private tables and **managed chat** inside their own track (strict filter, friends-only free text switched on by the guardian, report queue), so the fun stays; restrictions are built in and invisible, not shown as locks. The guardian profile panel only narrows defaults; the guardian link is needed once, for the social features only.
+
+## D199 — City souvenir and slogan, city management page (proposed)
+
+Owner: every city has a souvenir and a slogan that show on the screen. `cities.souvenir_fa` / `cities.slogan_fa` (nullable, admin-edited in the city drawer). The souvenir overrides the province's `giftFa` on the city picker card; the slogan shows under the local greeting on Home and under the city on the profile editor. Empty = province default souvenir / no slogan (no seed text: the admin writes them). The admin «شهرها» page lists per-city players, activity and XP, per-city taunt categories, and lets staff move or remove a player from a city.

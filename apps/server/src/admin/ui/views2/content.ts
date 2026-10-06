@@ -45,6 +45,7 @@ VIEWS.cities = function (root) {
   }
   var prov = h('select');
   function provName(key) { var p = provinces.filter(function (x) { return x.key === key; })[0]; return p ? p.nameFa : ''; }
+  function provSouvenir(c) { var p = provinces.filter(function (x) { return x.key === c.province; })[0]; return p && p.giftFa || ''; }
   function catsOf(c) { return tauntCats.filter(function (t) { return t.cityId === c.id; }); }
   function load() {
     return Promise.all([api('/admin/cities'), api('/admin/taunts')]).then(function (rs) {
@@ -73,6 +74,7 @@ VIEWS.cities = function (root) {
     out.appendChild(dtable([
       { label: 'شهر', sort: function (c) { return c.nameFa; }, render: function (c) { return h('div', {}, [h('b', { text: c.nameFa }), h('small', { class: 'ltr', style: 'display:block;opacity:.6', text: c.slug })]); } },
       { label: 'استان', sort: function (c) { return provName(c.province); }, render: function (c) { return c.province ? provName(c.province) : badge('بدون استان', 'b-mute'); } },
+      { label: 'سوغات و شعار', render: function (c) { var sv = c.souvenirFa || provSouvenir(c); return h('div', {}, [sv ? h('div', { text: '🎁 ' + sv }) : null, c.sloganFa ? h('small', { style: 'display:block;opacity:.7', text: '«' + c.sloganFa + '»' }) : badge('بدون شعار', 'b-mute')]); } },
       { label: 'بازیکن', cls: 'num', sort: function (c) { return c.stats.players; }, render: function (c) { return faNum(c.stats.players) + (c.stats.bots ? ' (' + faNum(c.stats.bots) + ' ربات)' : ''); } },
       { label: 'فعال ۷ روز', cls: 'num', sort: function (c) { return c.stats.active7d; }, render: function (c) { return faNum(c.stats.active7d); } },
       { label: 'مجموع XP', cls: 'num', sort: function (c) { return c.stats.xp; }, render: function (c) { return faNum(c.stats.xp); } },
@@ -86,11 +88,13 @@ VIEWS.cities = function (root) {
     dw.onClose(load);
     var nm = h('input', { type: 'text', value: c.nameFa, maxlength: 60 }), ps = provSel(c.province);
     var ord = h('input', { type: 'number', value: c.sortOrder, min: 0, max: 10000 });
+    var sov = h('input', { type: 'text', value: c.souvenirFa || '', maxlength: 60, placeholder: provSouvenir(c) || 'مثلاً گز' });
+    var slo = h('input', { type: 'text', value: c.sloganFa || '', maxlength: 120, placeholder: 'مثلاً «اصفهان نصف جهان است!»' });
     function patch(b, msg) { return api('/admin/cities/' + c.id, { method: 'PATCH', body: b }).then(function (x) { if (!x.ok) return fail(x); toast(msg); Object.keys(b).forEach(function (k) { c[k] = b[k]; }); return x; }); }
     body.appendChild(card('اطلاعات شهر', null, [
-      field('نام', nm), field('استان', ps, 'نشان، رنگ و خوش‌آمدگویی همین استان به بازیکن‌های این شهر نشان داده می‌شود'), field('ترتیب در فهرست', ord),
+      field('نام', nm), field('استان', ps, 'نشان، رنگ و خوش‌آمدگویی همین استان به بازیکن‌های این شهر نشان داده می‌شود'), field('سوغات', sov, 'روی کارت شهر در صفحه‌ی انتخاب شهر نشان داده می‌شود؛ خالی = سوغات پیش‌فرض استان'), field('شعار', slo, 'زیر خوش‌آمدگویی روی صفحه‌ی اصلی بازیکن‌های این شهر می‌آید؛ خالی = بدون شعار'), field('ترتیب در فهرست', ord),
       h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, [
-        h('button', { class: 'btn primary', text: 'ذخیره', onclick: function () { patch({ nameFa: nm.value.trim(), province: ps.value || null, sortOrder: +ord.value || 0 }, 'ذخیره شد'); } }),
+        h('button', { class: 'btn primary', text: 'ذخیره', onclick: function () { patch({ nameFa: nm.value.trim(), province: ps.value || null, sortOrder: +ord.value || 0, souvenirFa: sov.value.trim() || null, sloganFa: slo.value.trim() || null }, 'ذخیره شد'); } }),
         h('button', { class: 'btn', text: c.isActive ? 'پنهان کن' : 'نشان بده', onclick: function (e) { var b = e.target; patch({ isActive: !c.isActive }, c.isActive ? 'شهر پنهان شد' : 'شهر نمایان شد').then(function () { b.textContent = c.isActive ? 'پنهان کن' : 'نشان بده'; }); } })
       ])
     ]));

@@ -30,6 +30,12 @@ describe('admin cities', () => {
     const ps = (await app.inject({ method: 'GET', url: `/admin/cities/${a!.id}/players`, headers: h })).json() as { players: { id: string }[] };
     expect(ps.players.map((p) => p.id)).toEqual([U1, U2]); // strongest first
 
+    const up = await app.inject({ method: 'PATCH', url: `/admin/cities/${a!.id}`, headers: h, payload: { souvenirFa: ' گز ', sloganFa: 'نصف جهان' } });
+    expect(up.statusCode).toBe(200);
+    expect((await players.city(a!.id))).toMatchObject({ souvenirFa: 'گز', sloganFa: 'نصف جهان' });
+    await app.inject({ method: 'PATCH', url: `/admin/cities/${a!.id}`, headers: h, payload: { sloganFa: '' } });
+    expect((await players.city(a!.id))!.sloganFa).toBeNull(); // empty clears it
+
     const mv = await app.inject({ method: 'PUT', url: `/admin/cities/${a!.id}/players/${U2}`, headers: h, payload: { cityId: b!.id } });
     expect(mv.statusCode).toBe(200);
     expect((await players.privateRow(U2)).cityId).toBe(b!.id);

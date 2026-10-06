@@ -17,6 +17,9 @@ export interface CityRow {
   nameFa: string;
   /** Key into shared `PROVINCES`; null = no regional identity. */
   province: string | null;
+  /** Admin-written souvenir and slogan; null = the province's souvenir / no slogan. */
+  souvenirFa: string | null;
+  sloganFa: string | null;
   sortOrder: number;
   isActive: boolean;
 }
@@ -75,7 +78,7 @@ export interface PlayerStore {
   cities(opts?: { includeHidden?: boolean }): Promise<CityRow[]>;
   city(id: string): Promise<CityRow | null>;
   addCity(slug: string, nameFa: string, province?: string | null): Promise<CityRow | 'duplicate'>;
-  updateCity(id: string, patch: { nameFa?: string; isActive?: boolean; sortOrder?: number; province?: string | null }): Promise<'ok' | 'not_found'>;
+  updateCity(id: string, patch: { nameFa?: string; isActive?: boolean; sortOrder?: number; province?: string | null; souvenirFa?: string | null; sloganFa?: string | null }): Promise<'ok' | 'not_found'>;
   /** Admin: player / activity / XP totals per city id (cities without players are absent). */
   cityStats(): Promise<Map<string, CityStats>>;
   /** Admin: the players of one city, strongest first. */
@@ -98,7 +101,7 @@ export function createDbPlayerStore(db: Db): PlayerStore {
     seeded = true;
   };
   const rankWhere = (f: RankFilter) => [f.cityId ? eq(users.cityId, f.cityId) : undefined, f.userIds ? (f.userIds.length > 0 ? inArray(users.id, [...f.userIds]) : sql`1 = 0`) : undefined];
-  const toCity = (r: typeof cities.$inferSelect): CityRow => ({ id: r.id, slug: r.slug, nameFa: r.nameFa, province: r.province, sortOrder: r.sortOrder, isActive: r.isActive });
+  const toCity = (r: typeof cities.$inferSelect): CityRow => ({ id: r.id, slug: r.slug, nameFa: r.nameFa, province: r.province, souvenirFa: r.souvenirFa, sloganFa: r.sloganFa, sortOrder: r.sortOrder, isActive: r.isActive });
   return {
     async stats(userId) {
       const [r] = await db.select().from(userStats).where(eq(userStats.userId, userId));
@@ -197,7 +200,7 @@ export function createDbPlayerStore(db: Db): PlayerStore {
       if (dup) return 'duplicate';
       const [agg] = await db.select({ top: sql<number>`COALESCE(MAX(${cities.sortOrder}), 0)` }).from(cities);
       const top = agg?.top ?? 0;
-      const row = { id: uuidv7(), slug, nameFa, province, sortOrder: Number(top) + 1, isActive: true };
+      const row = { id: uuidv7(), slug, nameFa, province, souvenirFa: null, sloganFa: null, sortOrder: Number(top) + 1, isActive: true };
       await db.insert(cities).values(row);
       return row;
     },
@@ -251,7 +254,7 @@ export function createMemoryPlayerStore(seedCities: readonly { slug: string; nam
       .map((userId) => ({ userId, xp: xpOf(userId, since) }))
       .filter((r) => since === undefined || r.xp > 0)
       .filter((r) => (f.cityId ? priv.get(r.userId)?.cityId === f.cityId : true) && (f.userIds ? f.userIds.includes(r.userId) : true));
-  const rows: CityRow[] = seedCities.map((c, i) => ({ id: `00000000-0000-7000-8000-${String(i + 1).padStart(12, '0')}`, slug: c.slug, nameFa: c.nameFa, province: c.province ?? null, sortOrder: i, isActive: true }));
+  const rows: CityRow[] = seedCities.map((c, i) => ({ id: `00000000-0000-7000-8000-${String(i + 1).padStart(12, '0')}`, slug: c.slug, nameFa: c.nameFa, province: c.province ?? null, souvenirFa: null, sloganFa: null, sortOrder: i, isActive: true }));
   return {
     nicknames,
     async stats(id) {
@@ -304,7 +307,7 @@ export function createMemoryPlayerStore(seedCities: readonly { slug: string; nam
     },
     async addCity(slug, nameFa, province = null) {
       if (rows.some((r) => r.slug === slug)) return 'duplicate';
-      const row = { id: `00000000-0000-7000-8000-${String(rows.length + 1).padStart(12, '0')}`, slug, nameFa, province, sortOrder: rows.length, isActive: true };
+      const row = { id: `00000000-0000-7000-8000-${String(rows.length + 1).padStart(12, '0')}`, slug, nameFa, province, souvenirFa: null, sloganFa: null, sortOrder: rows.length, isActive: true };
       rows.push(row);
       return { ...row };
     },

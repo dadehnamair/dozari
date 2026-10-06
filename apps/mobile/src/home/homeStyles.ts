@@ -25,6 +25,7 @@ export const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center' },
   greet: { flexDirection: RTL_ROW, alignItems: 'center', gap: 4, marginTop: 6, maxWidth: '100%' },
   hello: { flexShrink: 1, fontFamily: fonts.display, fontSize: 17, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
+  slogan: { fontFamily: fonts.display, fontSize: 13, color: '#fff', textAlign: 'center', opacity: 0.9, marginTop: 2, paddingHorizontal: 16, textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 1 },
   bubble: {
     marginTop: 16,
     paddingHorizontal: 14,
