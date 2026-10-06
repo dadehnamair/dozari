@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { TABLE_ENTRY_MAX, TABLE_ROUNDS_MAX, TABLE_ROUNDS_MIN } from '../config/tables.js';
+import { TABLE_ENTRY_MAX, TABLE_PRICE_ROUNDS_MAX, TABLE_ROUNDS_MAX, TABLE_ROUNDS_MIN } from '../config/tables.js';
 import { TABLE_FORMATS, TABLE_ICONS, TABLE_NAME_MAX } from './code.js';
 
 export const TABLE_ERRORS = ['NOT_FOUND', 'FULL', 'LOCKED', 'EXPIRED', 'NOT_HOST', 'NOT_IN', 'NOT_READY', 'NEED_PLAYERS', 'BUSY', 'IN_MATCH', 'START_FAILED', 'INVALID', 'NOT_TEAM', 'NEEDS_GUARDIAN', 'FEATURE_OFF', 'NO_COINS', 'LOW_ENTRY', 'TOO_MANY', 'NOT_REQUESTED', 'ALREADY_IN'] as const;
@@ -18,6 +18,8 @@ export const createTableBodySchema = z.object({
   rounds: z.number().int().min(TABLE_ROUNDS_MIN).max(TABLE_ROUNDS_MAX).default(TABLE_ROUNDS_MIN),
   /** Coins each player puts in; absent = the minimum for the rounds. The server refuses less than that (0 only where coins do not move). */
   entryFee: z.number().int().min(0).max(TABLE_ENTRY_MAX).optional(),
+  /** Price-guess questions («سوال قیمتی») asked after the boards: 0 = none; only a 1v1 table has them. Absent = all of them. */
+  priceRounds: z.number().int().min(0).max(TABLE_PRICE_ROUNDS_MAX).optional(),
   /** Hidden from the open-tables list: only people with the code (or an invite) come in. Tables are public by default. */
   isPrivate: z.boolean().default(false),
 });
@@ -41,6 +43,8 @@ export const tableViewSchema = z.object({
   players: z.array(z.object({ id: z.string().uuid(), nickname: z.string(), avatarKey: z.string(), ready: z.boolean(), isHost: z.boolean(), /** The row of the caller. */ isYou: z.boolean().default(false), /** Team of a 2v2 table (0 or 1); a 1v1 table has host 0, guest 1. */ side: z.union([z.literal(0), z.literal(1)]).default(0) })),
   seats: z.number().int(),
   rounds: z.number().int().default(1),
+  /** Price-guess questions after the boards (0 = none). */
+  priceRounds: z.number().int().default(0),
   entryFee: z.number().int().default(0),
   isPrivate: z.boolean().default(false),
   /** Host only: people asking to sit down, oldest first. */
@@ -55,6 +59,7 @@ export const publicTableSchema = z.object({
   icon: z.string(),
   format: z.enum(TABLE_FORMATS),
   rounds: z.number().int(),
+  priceRounds: z.number().int().default(0),
   entryFee: z.number().int(),
   seats: z.number().int(),
   taken: z.number().int(),

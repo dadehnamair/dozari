@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, TextInput } from 'react-native';
 import { toPersianDigits } from '@dozari/shared';
 import { CandyButton } from '../components/CandyButton';
 import { fa } from '../i18n/fa';
+import { SheetClose } from '../components/SheetClose';
 import { useHardwareBack } from '../nav/useHardwareBack';
 import { onlyDigits } from '../phone/loginInput';
 import { colors, fonts } from '../theme/colors';
@@ -28,12 +29,12 @@ export function ChildCodeSheet({ onClose, onDone }: { onClose: () => void; /** F
   return (
     <Pressable style={styles.overlay} onPress={onClose} accessibilityLabel={l.close}>
       <Pressable style={styles.sheet} onPress={() => undefined}>
+        <SheetClose onPress={onClose} label={l.close} />
         <Text style={styles.title}>{l.childLoginTitle}</Text>
         <Text style={styles.text}>{l.childLoginIntro}</Text>
         <TextInput value={toPersianDigits(code)} onChangeText={(v) => setCode(onlyDigits(v, 6))} keyboardType="number-pad" maxLength={8} placeholder={l.childLoginCode} style={styles.input} accessibilityLabel={l.childLoginCode} />
         {bad ? <Text style={[styles.text, styles.bad]}>{l.childLoginBad}</Text> : null}
         <CandyButton label={l.childLoginGo} sfx="confirm" color={colors.candy.lime} disabled={busy || code.length !== 6} onPress={go} />
-        <CandyButton label={l.close} sfx="back" color={colors.candy.sky} onPress={onClose} />
       </Pressable>
     </Pressable>
   );

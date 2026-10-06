@@ -70,6 +70,8 @@ interface Active {
   tier?: string;
   /** Frozen at the start: this match ends with the price-guess round (1v1 only). */
   priceRound?: boolean;
+  /** How many price questions it asks (a table's choice); absent = all of them. */
+  priceRoundCount?: number;
   /** The board is over and the price rounds are being drawn (the clients must not see a finished match yet). */
   pgPending?: boolean;
   /** The running price-guess phase; `busy` while a round's wagers are being settled or taken (no guesses then). */
@@ -152,7 +154,7 @@ export class MatchService {
   }
 
   /** Starts a match for a paired couple; false when it could not be created (no puzzle, unknown or busy player). */
-  async start(a: string, b: string, opts: { friendly?: boolean; tier?: string; /** Table match: boards to play (1 = one puzzle then the price round) and the entry fee each player pays. */ boards?: number; fee?: number } = {}): Promise<boolean> {
+  async start(a: string, b: string, opts: { friendly?: boolean; tier?: string; /** Table match: boards to play (1 = one puzzle then the price round) and the entry fee each player pays. */ boards?: number; fee?: number; /** Price-guess questions after the boards: 0 = none, absent = the `match.price_round` setting. */ priceRounds?: number } = {}): Promise<boolean> {
     if (a === b || this.inMatch(a) || this.inMatch(b)) return false;
     const [pa, pb] = await Promise.all([this.deps.profile(a), this.deps.profile(b)]);
     if (!pa || !pb) return false;
@@ -189,7 +191,7 @@ export class MatchService {
     }
     const boards = boardCount > 1 ? picked : [puzzle];
     const state = boards.length > 1 ? startTeamMatch(boards.map(toSolo), [[a], [b]], rng, this.now(), undefined, await this.matchRules()) : startMatch(puzzle, [a, b], rng, this.now(), undefined, await this.matchRules());
-    const entry: Active = { id, puzzles: boards, state, cancel: null, stakes, tier: stakes ? opts.tier : undefined, priceRound: await this.wantsPriceRound(), proposals: [null, null], table: fee > 0 && this.deps.tableStakes ? { fee, sides: [[a], [b]] } : undefined };
+    const entry: Active = { id, puzzles: boards, state, cancel: null, stakes, tier: stakes ? opts.tier : undefined, priceRound: opts.priceRounds === undefined ? await this.wantsPriceRound() : opts.priceRounds > 0, priceRoundCount: opts.priceRounds, proposals: [null, null], table: fee > 0 && this.deps.tableStakes ? { fee, sides: [[a], [b]] } : undefined };
     if (entry.priceRound && stakes) entry.wager = (await this.deps.stakes?.wagerRules?.().catch(() => null)) ?? undefined;
     this.matches.set(id, entry);
     this.byUser.set(a, id);
@@ -206,7 +208,7 @@ export class MatchService {
   }
 
   /** Starts a 2v2 for four players (`sides[s]` = side s); no coin stakes yet. False when it could not be created. */
-  async startTeam(sides: readonly [readonly [string, string], readonly [string, string]], opts: { /** Boards to play; absent = the `match.team_boards` setting. */ boards?: number; /** Entry fee each of the four pays (private tables). */ fee?: number } = {}): Promise<boolean> {
+  async startTeam(sides: readonly [readonly [string, string], readonly [string, string]], opts: { /** Boards to play; absent = the `match.team_boards` setting. */ boards?: number; /** Entry fee each of the four pays (private tables). */ fee?: number; /** Ignored: a 2v2 has no price-guess questions. */ priceRounds?: number } = {}): Promise<boolean> {
     const all = [...sides[0], ...sides[1]];
     if (new Set(all).size !== 4 || all.some((u) => this.inMatch(u))) return false;
     const profiles = await Promise.all(all.map((u) => this.deps.profile(u)));
@@ -421,7 +423,8 @@ export class MatchService {
       const ids = puzzle.groups.flatMap((g) => g.productIds);
       const prices = await this.deps.puzzles.pricesFor(ids);
       const catalog: CatalogProduct[] = ids.map((id) => ({ id, category: '', eraTags: [], prices: prices[id] ?? [] }));
-      const rounds = selectRounds(puzzle.groups.map((g) => ({ level: g.level, productIds: g.productIds, ruleYear: g.ruleYear })), catalog, mulberry32(this.newSeed()));
+      const all = selectRounds(puzzle.groups.map((g) => ({ level: g.level, productIds: g.productIds, ruleYear: g.ruleYear })), catalog, mulberry32(this.newSeed()));
+      const rounds = entry.priceRoundCount === undefined ? all : all.slice(0, entry.priceRoundCount);
       if (!this.matches.has(entry.id)) return;
       if (rounds.length === 0) {
         entry.pgPending = false;

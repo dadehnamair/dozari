@@ -1,4 +1,4 @@
-import { TABLE_PUBLIC_LIST_MAX, TABLE_REQUESTS_MAX, TABLE_REQUEST_TTL_MS, canMeet, clampTableRounds, makeTableCode, tableEntryOk, tableMinEntry, trackRank, normalizeTableCode, seatsOfFormat } from '@dozari/shared';
+import { TABLE_PRICE_ROUNDS_MAX, TABLE_PUBLIC_LIST_MAX, TABLE_REQUESTS_MAX, TABLE_REQUEST_TTL_MS, canMeet, clampTableRounds, makeTableCode, tableEntryOk, tableMinEntry, trackRank, normalizeTableCode, seatsOfFormat } from '@dozari/shared';
 import type { AgeTrack, CreateTableBody, LiveNotice, PublicTable, TableError, TableFormat, TableView } from '@dozari/shared';
 
 /** A closed public table stays in the open-tables list this long, labelled as closed (view only). */
@@ -9,9 +9,9 @@ const DENIED_MS = 60_000;
 
 export interface TableDeps {
   profileOf(userId: string): Promise<{ nickname: string; avatarKey: string } | null>;
-  startMatch(a: string, b: string, opts?: { boards: number; fee: number }): Promise<boolean>;
+  startMatch(a: string, b: string, opts?: { boards: number; fee: number; priceRounds: number }): Promise<boolean>;
   /** Starts a 2v2 (`sides[s]` = the two players of side s); omit to refuse 2v2 tables. */
-  startTeam?(sides: readonly [readonly [string, string], readonly [string, string]], opts?: { boards: number; fee: number }): Promise<boolean>;
+  startTeam?(sides: readonly [readonly [string, string], readonly [string, string]], opts?: { boards: number; fee: number; priceRounds: number }): Promise<boolean>;
   inMatch(userId: string): boolean;
   /** A player's age track (docs/logic/age-tracks.md): a table seats one track only. Absent = everybody is adult. */
   trackOf?(userId: string): Promise<AgeTrack>;
@@ -47,6 +47,8 @@ interface Table {
   locked: boolean;
   /** Boards played and the coins each player puts in. */
   rounds: number;
+  /** Price-guess questions after the boards (0 = none; a 2v2 has none). */
+  priceRounds: number;
   entryFee: number;
   /** Hidden from the open-tables list (family tables always are). */
   isPrivate: boolean;
@@ -132,7 +134,7 @@ export class TableService {
     this.byUser.delete(userId);
   }
 
-  async create(hostId: string, body: Omit<CreateTableBody, 'family' | 'rounds' | 'entryFee' | 'isPrivate'> & { family?: boolean; rounds?: number; entryFee?: number; isPrivate?: boolean }): Promise<TableResult<{ table: TableView }>> {
+  async create(hostId: string, body: Omit<CreateTableBody, 'family' | 'rounds' | 'entryFee' | 'isPrivate' | 'priceRounds'> & { family?: boolean; rounds?: number; entryFee?: number; isPrivate?: boolean; priceRounds?: number }): Promise<TableResult<{ table: TableView }>> {
     if (body.family) {
       // A family table is the guardian's own flow: no track gate, and the guardian's duel switch does not apply to a table they sit at.
       if (!(await this.deps.hasFamily?.(hostId))) return { ok: false, error: 'INVALID' };
@@ -154,7 +156,7 @@ export class TableService {
     if (this.tables.has(code)) return { ok: false, error: 'BUSY' };
     if (body.format === '2v2' && !this.deps.startTeam) return { ok: false, error: 'INVALID' };
     const host = (await this.deps.profileOf(hostId)) ?? { nickname: '؟', avatarKey: 'avatar-01' };
-    const t: Table = { code, name: body.name, icon: body.icon, format: body.format, family: !!body.family, rounds, entryFee, isPrivate: !!body.isPrivate || !!body.family, hostNickname: host.nickname, hostAvatarKey: host.avatarKey, requests: new Map(), denied: new Map(), sides: new Map([[hostId, 0]]), requireReady: body.requireReady, locked: false, hostId, track: await this.trackOf(hostId), seated: [hostId], ready: new Set(), expiresAt: this.now() + (await this.deps.idleMs()) };
+    const t: Table = { code, name: body.name, icon: body.icon, format: body.format, family: !!body.family, rounds, priceRounds: body.format === '2v2' ? 0 : Math.min(TABLE_PRICE_ROUNDS_MAX, Math.max(0, Math.floor(body.priceRounds ?? TABLE_PRICE_ROUNDS_MAX))), entryFee, isPrivate: !!body.isPrivate || !!body.family, hostNickname: host.nickname, hostAvatarKey: host.avatarKey, requests: new Map(), denied: new Map(), sides: new Map([[hostId, 0]]), requireReady: body.requireReady, locked: false, hostId, track: await this.trackOf(hostId), seated: [hostId], ready: new Set(), expiresAt: this.now() + (await this.deps.idleMs()) };
     this.tables.set(code, t);
     this.byUser.set(hostId, code);
     return { ok: true, table: await this.view(t, hostId) };
@@ -242,7 +244,7 @@ export class TableService {
   }
 
   private row(t: Table, yourRequest: PublicTable['yourRequest']): PublicTable {
-    return { code: t.code, name: t.name, icon: t.icon, format: t.format, rounds: t.rounds, entryFee: t.entryFee, seats: seatsOfFormat(t.format), taken: t.seated.length, hostNickname: t.hostNickname, hostAvatarKey: t.hostAvatarKey, yourRequest, status: this.statusOf(t) };
+    return { code: t.code, name: t.name, icon: t.icon, format: t.format, rounds: t.rounds, priceRounds: t.priceRounds, entryFee: t.entryFee, seats: seatsOfFormat(t.format), taken: t.seated.length, hostNickname: t.hostNickname, hostAvatarKey: t.hostAvatarKey, yourRequest, status: this.statusOf(t) };
   }
 
   private statusOf(t: Table): PublicTable['status'] {
@@ -388,7 +390,7 @@ export class TableService {
     if (t.seated.some((u) => this.deps.inMatch(u))) return { ok: false, error: 'IN_MATCH' };
     // Everybody pays the entry at the start: whoever cannot keeps the match from starting (the host sees why).
     for (const u of t.seated) if (!(await this.canPay(t, u))) return { ok: false, error: 'NO_COINS' };
-    const opts = { boards: t.rounds, fee: t.entryFee };
+    const opts = { boards: t.rounds, fee: t.entryFee, priceRounds: t.priceRounds };
     if (t.format === '2v2') {
       const side = (n: 0 | 1) => t.seated.filter((u) => t.sides.get(u) === n);
       const [a, b] = [side(0), side(1)];
@@ -437,6 +439,6 @@ export class TableService {
       const p = (await this.deps.profileOf(id)) ?? { nickname: '؟', avatarKey: 'avatar-01' };
       players.push({ id, nickname: p.nickname, avatarKey: p.avatarKey, ready: t.ready.has(id), isHost: id === t.hostId, isYou: id === forUser, side: t.sides.get(id) ?? 0 });
     }
-    return { code: t.code, name: t.name, icon: t.icon, format: t.format, family: t.family, requireReady: t.requireReady, locked: t.locked, hostId: t.hostId, youAreHost: t.hostId === forUser, youAreIn: t.seated.includes(forUser), expiresAt: t.expiresAt, inMatch: t.seated.some((u) => this.deps.inMatch(u)), players, seats: seatsOfFormat(t.format), rounds: t.rounds, entryFee: t.entryFee, isPrivate: t.isPrivate, requests: forUser === t.hostId ? await this.requestRows(t) : [] };
+    return { code: t.code, name: t.name, icon: t.icon, format: t.format, family: t.family, requireReady: t.requireReady, locked: t.locked, hostId: t.hostId, youAreHost: t.hostId === forUser, youAreIn: t.seated.includes(forUser), expiresAt: t.expiresAt, inMatch: t.seated.some((u) => this.deps.inMatch(u)), players, seats: seatsOfFormat(t.format), rounds: t.rounds, priceRounds: t.priceRounds, entryFee: t.entryFee, isPrivate: t.isPrivate, requests: forUser === t.hostId ? await this.requestRows(t) : [] };
   }
 }

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { TableView } from '@dozari/shared';
-import { DEFAULT_TABLE_ICON, TABLE_ENTRY_MAX, TABLE_HOUSE_CUT_PERCENT, TABLE_ROUNDS_MAX, TABLE_ROUNDS_MIN, TABLE_ICONS, normalizeTableCode, tableMinEntry, toPersianDigits } from '@dozari/shared';
+import { DEFAULT_TABLE_ICON, TABLE_ENTRY_MAX, TABLE_PRICE_ROUNDS_MAX, TABLE_HOUSE_CUT_PERCENT, TABLE_ROUNDS_MAX, TABLE_ROUNDS_MIN, TABLE_ICONS, normalizeTableCode, tableMinEntry, toPersianDigits } from '@dozari/shared';
 import { Avatar } from '../components/Avatar';
 import { CandyButton } from '../components/CandyButton';
 import { playSfx } from '../sound/engine';
@@ -10,6 +10,7 @@ import { Item } from '../components/Item';
 import { GuideBubble } from '../components/GuideBubble';
 import { useConfirm } from '../components/useConfirm';
 import { fa } from '../i18n/fa';
+import { SheetClose } from '../components/SheetClose';
 import { ApiError } from '../net/http';
 import { useGuardianGate } from '../agetrack/GuardianGate';
 import { fetchChildren, fetchMyGuardian } from '../agetrack/guardianApi';
@@ -53,6 +54,9 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
   const [rounds, setRounds] = useState<number>(TABLE_ROUNDS_MIN);
   const [entry, setEntry] = useState<number>(tableMinEntry(TABLE_ROUNDS_MIN));
   const [isPrivate, setIsPrivate] = useState(false);
+  /** Price-guess questions after the boards: on/off and how many (a 1v1 table only). */
+  const [pricing, setPricing] = useState(true);
+  const [priceCount, setPriceCount] = useState<number>(TABLE_PRICE_ROUNDS_MAX);
   const minEntry = tableMinEntry(rounds);
   const pickRounds = (n: number) => {
     const next = Math.min(TABLE_ROUNDS_MAX, Math.max(TABLE_ROUNDS_MIN, n));
@@ -130,6 +134,7 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
   return (
     <Pressable style={styles.overlay} onPress={onClose} accessibilityLabel={fa.tables.close}>
       <Pressable style={[styles.sheet, dark ? dk.sheet : null]} onPress={() => undefined}>
+        <SheetClose onPress={onClose} label={fa.tables.close} />
         {table ? (
           <View style={styles.titleRow}>
             <View style={styles.titleIcon}><Item icon={table.icon} /></View>
@@ -144,6 +149,7 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
               <Text style={[styles.hint, dark ? dk.text : null]}>{table.inMatch ? fa.tables.inMatch : table.players.length < table.seats ? fa.tables.waiting : fa.tables.seats(table.players.length, table.seats)}</Text>
               <View style={styles.chipsRow}>
                 <Text style={styles.infoChip}>{fa.tables.rounds(table.rounds)}</Text>
+                {table.format === '1v1' ? <Text style={styles.infoChip}>{table.priceRounds > 0 ? fa.tables.priceCount(table.priceRounds) : fa.tables.noPrice}</Text> : null}
                 <Text style={styles.infoChip}>{fa.tables.entry(table.entryFee)}</Text>
                 <Text style={styles.infoChip}>{table.isPrivate ? fa.tables.privateTag : fa.tables.publicTag}</Text>
               </View>
@@ -228,6 +234,15 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
                 </View>
                 <Text style={styles.label}>{fa.tables.roundsTitle}</Text>
                 <Stepper label={fa.tables.rounds(rounds)} onMinus={() => pickRounds(rounds - 1)} onPlus={() => pickRounds(rounds + 1)} minusOff={rounds <= TABLE_ROUNDS_MIN} plusOff={rounds >= TABLE_ROUNDS_MAX} />
+                <Text style={styles.label}>{fa.tables.priceTitle}</Text>
+                {format === '2v2' ? <Text style={styles.hint}>{fa.tables.priceTeamNote}</Text> : (
+                  <>
+                    <Pressable onPress={() => setPricing(!pricing)} accessibilityRole="checkbox" accessibilityState={{ checked: pricing }}>
+                      <Text style={styles.hint}>{pricing ? '☑' : '☐'} {fa.tables.priceOn}</Text>
+                    </Pressable>
+                    {pricing ? <Stepper label={fa.tables.priceCount(priceCount)} onMinus={() => setPriceCount((c) => Math.max(1, c - 1))} onPlus={() => setPriceCount((c) => Math.min(TABLE_PRICE_ROUNDS_MAX, c + 1))} minusOff={priceCount <= 1} plusOff={priceCount >= TABLE_PRICE_ROUNDS_MAX} /> : null}
+                  </>
+                )}
                 <Text style={styles.label}>{fa.tables.entryTitle}</Text>
                 <Stepper label={`${toPersianDigits(String(entry))} ${fa.tables.coins}`} onMinus={() => setEntry((e) => Math.max(minEntry, e - 10))} onPlus={() => setEntry((e) => Math.min(TABLE_ENTRY_MAX, e + 10))} minusOff={entry <= minEntry} plusOff={entry >= TABLE_ENTRY_MAX} />
                 <Text style={styles.hint}>{fa.tables.entryHint(minEntry)}</Text>
@@ -243,7 +258,7 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
                   </Pressable>
                 ) : null}
                 {note ? <Text style={styles.warn}>{note}</Text> : null}
-                <CandyButton label={fa.tables.create} color={colors.candy.lime} disabled={name.trim().length === 0} onPress={() => createTable({ name: name.trim(), icon: icon as (typeof TABLE_ICONS)[number], requireReady, format, family: hasFamily && family, rounds, entryFee: Math.max(entry, minEntry), isPrivate }).then((t) => (setNote(null), setTable(t)), fail)} />
+                <CandyButton label={fa.tables.create} color={colors.candy.lime} disabled={name.trim().length === 0} onPress={() => createTable({ name: name.trim(), icon: icon as (typeof TABLE_ICONS)[number], requireReady, format, family: hasFamily && family, rounds, entryFee: Math.max(entry, minEntry), isPrivate, priceRounds: format === '2v2' || !pricing ? 0 : priceCount }).then((t) => (setNote(null), setTable(t)), fail)} />
                 <View style={styles.chips}><Chip label={fa.tables.back} color={colors.candy.sky} onPress={() => (setNote(null), setMode('menu'))} /></View>
               </>
             ) : mode === 'open' ? (
@@ -264,7 +279,6 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
             )
           )}
         </ScrollView>
-        <View style={styles.chips}><Chip label={fa.tables.close} color={colors.candy.sky} onPress={onClose} /></View>
       </Pressable>
       {dialog}
       {gate}

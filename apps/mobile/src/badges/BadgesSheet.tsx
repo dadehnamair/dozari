@@ -2,10 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { swr } from '../net/cache';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { MyBadges } from '@dozari/shared';
-import { CandyButton } from '../components/CandyButton';
 import { Item } from '../components/Item';
 import { GuideBubble } from '../components/GuideBubble';
 import { fa } from '../i18n/fa';
+import { SheetClose } from '../components/SheetClose';
 import { colors, fonts } from '../theme/colors';
 import { equipBadge, fetchMyBadges, markNoticesRead } from './api';
 import { progressText, skillText } from './text';
@@ -36,6 +36,7 @@ export function BadgesSheet({ onClose }: { onClose: () => void }) {
   return (
     <Pressable style={styles.overlay} onPress={onClose} accessibilityLabel={fa.badges.close}>
       <Pressable style={styles.sheet} onPress={() => undefined}>
+        <SheetClose onPress={onClose} label={fa.badges.close} />
         <Text style={styles.title}>{fa.badges.title}</Text>
         {failed ? <Text style={styles.warn}>{fa.badges.error}</Text> : null}
         <ScrollView style={styles.list} contentContainerStyle={styles.content}>
@@ -85,7 +86,6 @@ export function BadgesSheet({ onClose }: { onClose: () => void }) {
             </>
           ) : null}
         </ScrollView>
-        <CandyButton label={fa.badges.close} sfx="back" color={colors.candy.sky} onPress={onClose} />
       </Pressable>
     </Pressable>
   );

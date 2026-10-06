@@ -17,7 +17,7 @@ const source: PuzzleSource = {
 };
 const profile = async (userId: string): Promise<PlayerProfile> => ({ nickname: `n-${userId}`, avatarKey: 'a', level: 1, coins: 0 });
 
-function harness(opts: { priceRound: boolean; prices?: boolean }) {
+function harness(opts: { priceRound: boolean; prices?: boolean; /** A private table's own choice of price questions (overrides the setting). */ priceRounds?: number }) {
   let t = 1_000_000;
   const timers: { at: number; fn: () => void; live: boolean }[] = [];
   const sent: { to: string; event: string; payload: unknown }[] = [];
@@ -44,7 +44,7 @@ function harness(opts: { priceRound: boolean; prices?: boolean }) {
   const last = (to: string, event: string) => sent.filter((s) => s.to === to && s.event === event).at(-1)?.payload;
   /** Whoever has the turn solves three groups, which ends the board. */
   const playPuzzle = async () => {
-    await svc.start('A', 'B');
+    await svc.start('A', 'B', opts.priceRounds === undefined ? {} : { priceRounds: opts.priceRounds });
     const v = matchViewSchema.parse(last('A', 'match:state'));
     const first = v.turn === 0 ? 'A' : 'B';
     for (const level of [0, 1, 2]) svc.submit(first, ids(level));
@@ -237,5 +237,28 @@ describe('price-round wager', () => {
     await h.flush();
     expect(h.bank.A).toBe(100);
     expect(h.bank.B).toBe(100);
+  });
+});
+
+describe('a private table chooses its price questions', () => {
+  it('none: the match ends with the puzzle even when the setting is on', async () => {
+    const { svc, last, playPuzzle } = harness({ priceRound: true, priceRounds: 0 });
+    await playPuzzle();
+    expect(matchEndedSchema.parse(last('A', 'match:ended')).result.reason).toBe('solved');
+    expect(svc.activeCount).toBe(0);
+  });
+  it('two: only two questions are asked, even when the setting is off', async () => {
+    const { svc, last, playPuzzle } = harness({ priceRound: false, priceRounds: 2 });
+    const first = await playPuzzle();
+    const other = first === 'A' ? 'B' : 'A';
+    const during = matchViewSchema.parse(last('A', 'match:state'));
+    expect(during.priceRound?.totalRounds).toBe(2);
+    for (let round = 0; round < 2; round++) {
+      svc.submitPrice(first, 8_000_000n);
+      svc.submitPrice(other, 5_000_000n);
+      await new Promise((r) => setTimeout(r, 0));
+    }
+    expect(last('A', 'match:ended')).toBeDefined();
+    expect(svc.activeCount).toBe(0);
   });
 });

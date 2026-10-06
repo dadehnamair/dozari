@@ -3,6 +3,7 @@ import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-n
 import { SHOP_GIFT_EFFECTS, SHOP_GIFT_MAX_COINS } from '@dozari/shared';
 import type { ShopItem } from '@dozari/shared';
 import { GuideBubble } from '../components/GuideBubble';
+import { SheetClose } from '../components/SheetClose';
 import { Item } from '../components/Item';
 import { fa } from '../i18n/fa';
 import { ApiError } from '../net/http';
@@ -35,6 +36,7 @@ export function GiftSheet({ friendId, friendName, onClose }: { friendId: string;
   return (
     <Pressable style={styles.overlay} onPress={onClose} accessibilityLabel={g.close}>
       <Pressable style={styles.sheet} onPress={() => undefined}>
+        <SheetClose onPress={onClose} label={g.close} />
         <Text style={styles.title}>{g.title(friendName)}</Text>
         <GuideBubble who="baqal" text={g.intro} />
         {balance !== null ? <Text style={styles.balance}>{g.balance(balance)}</Text> : null}
@@ -52,7 +54,6 @@ export function GiftSheet({ friendId, friendName, onClose }: { friendId: string;
           ))}
         </ScrollView>
         {note ? <Text style={styles.note}>{note}</Text> : null}
-        <Pressable onPress={onClose} style={styles.close} accessibilityRole="button"><Text style={styles.closeText}>{g.close}</Text></Pressable>
       </Pressable>
     </Pressable>
   );
@@ -74,6 +75,4 @@ const styles = StyleSheet.create({
   off: { opacity: 0.5 },
   giveText: { fontFamily: fonts.display, fontSize: 14, color: colors.ink },
   note: { fontFamily: fonts.bold, fontSize: 13, color: colors.ink, textAlign: 'center' },
-  close: { alignSelf: 'center', paddingHorizontal: 22, height: 36, borderRadius: 12, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.candy.sky, alignItems: 'center', justifyContent: 'center' },
-  closeText: { fontFamily: fonts.display, fontSize: 14, color: colors.ink },
 });

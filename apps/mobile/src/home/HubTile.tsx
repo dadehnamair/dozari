@@ -63,7 +63,7 @@ export function HubTile({ icon, label, color, badge, badgeColor = colors.candy.p
               <Text style={styles.badgeText}>{badge}</Text>
             </View>
           ) : null}
-          <Text style={[styles.label, adult ? styles.labelAdult : null, onLight ? styles.labelOnLight : null]} numberOfLines={1}>{label}</Text>
+          <Text style={[styles.label, adult ? styles.labelAdult : null, onLight ? styles.labelOnLight : null]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{label}</Text>
         </>
       )}
     </Pressable>
@@ -101,5 +101,5 @@ const styles = StyleSheet.create({
   shade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 5, backgroundColor: 'rgba(0,0,0,0.18)' },
   badge: { position: 'absolute', top: -9, left: 0, minWidth: 24, height: 24, paddingHorizontal: 4, borderRadius: 99, borderWidth: 2.5, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   badgeText: { fontFamily: fonts.display, fontSize: 13, lineHeight: 19, color: '#fff' },
-  label: { fontFamily: fonts.display, fontSize: 13, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
+  label: { fontFamily: fonts.display, fontSize: 13, lineHeight: 20, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
 });

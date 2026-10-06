@@ -5,6 +5,7 @@ import { CandyButton } from '../components/CandyButton';
 import { GuideBubble } from '../components/GuideBubble';
 import { useConfirm } from '../components/useConfirm';
 import { fa } from '../i18n/fa';
+import { SheetClose } from '../components/SheetClose';
 import { colors, fonts } from '../theme/colors';
 import { ApiError } from '../net/http';
 import { phoneErrorText } from '../phone/errors';
@@ -49,6 +50,7 @@ export function BaleSheet({ onClose }: { onClose: () => void }) {
   return (
     <Pressable style={styles.overlay} onPress={onClose} accessibilityLabel={fa.bale.close}>
       <Pressable style={[styles.sheet, adult ? styles.sheetAdult : null]} onPress={() => undefined}>
+        <SheetClose onPress={onClose} label={fa.bale.close} />
         <Text style={[styles.title, adult ? styles.textAdult : null]}>{fa.bale.title}</Text>
         <GuideBubble who="mirza" text={fa.bale.intro} />
         <PhoneStep />
@@ -78,7 +80,6 @@ export function BaleSheet({ onClose }: { onClose: () => void }) {
             <CandyButton label={fa.bale.getCode} color={colors.candy.lime} onPress={() => void getCode()} />
           )
         ) : null}
-        <CandyButton label={fa.bale.close} sfx="back" color={colors.candy.sky} onPress={onClose} />
       </Pressable>
       {dialog}
     </Pressable>

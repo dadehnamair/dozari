@@ -11,6 +11,8 @@ export const TABLE_ENTRY_MAX = 500;
 export const TABLE_HOUSE_CUT_PERCENT = 10;
 /** A join request waits this long for the host, then lapses. */
 export const TABLE_REQUEST_TTL_MS = 2 * 60_000;
+/** A table's price-guess questions after the boards (1v1 only): 0 = none, up to one per group of the last board. */
+export const TABLE_PRICE_ROUNDS_MAX = 4;
 /** At most this many requests wait at one table. */
 export const TABLE_REQUESTS_MAX = 6;
 /** The open-tables list shows at most this many tables. */

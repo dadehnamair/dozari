@@ -9,7 +9,7 @@ function boot(opts: { kids?: string[] } = {}) {
   const clock = { ms: 1_000_000 };
   const store = createMemoryStakeStore();
   const sent: { to: string; n: LiveNotice }[] = [];
-  const started: { boards?: number; fee?: number }[] = [];
+  const started: { boards?: number; fee?: number; priceRounds?: number }[] = [];
   const inMatch = new Set<string>();
   const svc = new TableService({
     profileOf: async (id) => ({ nickname: `p-${id}`, avatarKey: 'avatar-01' }),
@@ -59,7 +59,26 @@ describe('rounds and entry fee', () => {
     expect(await t.svc.start('h')).toEqual({ ok: false, error: 'NO_COINS' });
     t.store.balances.set('g', 40);
     expect(await t.svc.start('h')).toEqual({ ok: true });
-    expect(t.started).toEqual([{ boards: 2, fee: 30 }]);
+    expect(t.started).toEqual([{ boards: 2, fee: 30, priceRounds: 4 }]);
+  });
+});
+
+describe('price questions of a table', () => {
+  it('a 1v1 host picks how many (0 = none); the choice is clamped and reaches the match; a 2v2 has none', async () => {
+    const t = boot();
+    for (const u of ['a', 'b', 'c']) t.store.balances.set(u, 100);
+    const none = await t.svc.create('a', { ...body, priceRounds: 0 });
+    expect(none.ok && none.table.priceRounds).toBe(0);
+    const two = await t.svc.create('b', { ...body, priceRounds: 2 });
+    expect(two.ok && two.table.priceRounds).toBe(2);
+    const many = await t.svc.create('c', { ...body, priceRounds: 99 });
+    expect(many.ok && many.table.priceRounds).toBe(4);
+    const team = await t.svc.create('a', { ...body, format: '2v2', priceRounds: 3 });
+    expect(team.ok && team.table.priceRounds).toBe(0);
+    if (!two.ok) throw new Error('create');
+    await t.svc.join('c', two.table.code);
+    await t.svc.start('b');
+    expect(t.started.at(-1)).toMatchObject({ priceRounds: 2 });
   });
 });
 

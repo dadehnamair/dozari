@@ -73,7 +73,7 @@ export function OpenTables({ onSeated, onNote, errText }: { onSeated: (table: Ta
               <View style={[styles.chip, { backgroundColor: TONE[r.status] }]}><Text style={styles.chipText}>{o.status[r.status]}</Text></View>
             </View>
             <Text style={styles.facts}>
-              {r.format === '2v2' ? fa.tables.format2v2 : fa.tables.format1v1} · {fa.tables.rounds(r.rounds)} · {fa.tables.entry(r.entryFee)} · {o.seats(r.taken, r.seats)}
+              {r.format === '2v2' ? fa.tables.format2v2 : fa.tables.format1v1} · {fa.tables.rounds(r.rounds)} · {r.format === '1v1' ? `${r.priceRounds > 0 ? fa.tables.priceCount(r.priceRounds) : fa.tables.noPrice} · ` : ''}{fa.tables.entry(r.entryFee)} · {o.seats(r.taken, r.seats)}
             </Text>
             {live ? (
               r.yourRequest === 'pending' ? <Text style={styles.waiting}>{o.pending}</Text>

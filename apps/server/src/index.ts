@@ -703,7 +703,7 @@ if (isMainModule(import.meta.url)) {
     settings && socialStore
       ? new TableService({
           profileOf: async (id) => socialStore.publicRow(id),
-          startMatch: async (a, b, opts) => (live.matches ? live.matches.start(a, b, { friendly: true, boards: opts?.boards, fee: opts?.fee }) : false),
+          startMatch: async (a, b, opts) => (live.matches ? live.matches.start(a, b, { friendly: true, boards: opts?.boards, fee: opts?.fee, priceRounds: opts?.priceRounds }) : false),
           startTeam: async (sides, opts) => (live.matches ? live.matches.startTeam(sides, opts) : false),
           coinsAllowed: ageTracks ? (id) => ageTracks.allows(id, 'coinWager') : undefined,
           balanceOf: tableStakes ? (id) => tableStakes.balance(id) : undefined,
@@ -756,6 +756,8 @@ if (isMainModule(import.meta.url)) {
   if (ageTracks && settings) ageTracks.featureSwitch = async (key) => (await settings.num(key)) !== 0;
   const playerAudit = db ? createDbAuditLog(db) : undefined;
   if (ageTracks && playerAudit) ageTracks.audit = (a, t, d) => void playerAudit.record(a, t, d);
+  // A child with games played or friends has a record: removing them needs a code.
+  if (guardian && player && socialStore) guardian.history = async (id) => (await player.levelOf(id)).stats.games > 0 || (await socialStore.friends(id)).length > 0;
   if (guardian && playerAudit) guardian.audit = (a, t, d) => void playerAudit.record(a, t, d);
   if (invite && ageTracks) invite.canShare = (id) => ageTracks.allows(id, 'inviteShare');
   if (guardian && guardianSettings) guardian.settings = guardianSettings;

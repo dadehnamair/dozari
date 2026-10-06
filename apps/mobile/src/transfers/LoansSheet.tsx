@@ -2,9 +2,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { TransferRow } from '@dozari/shared';
 import { toPersianDigits } from '@dozari/shared';
-import { CandyButton } from '../components/CandyButton';
 import { GuideBubble } from '../components/GuideBubble';
 import { fa } from '../i18n/fa';
+import { SheetClose } from '../components/SheetClose';
 import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
 import { answerLoan, fetchTransfers, repayLoan } from './api';
@@ -39,6 +39,7 @@ export function LoansSheet({ onClose }: { onClose: () => void }) {
   return (
     <Pressable style={styles.overlay} onPress={onClose} accessibilityLabel={fa.transfers.close}>
       <Pressable style={styles.sheet} onPress={() => undefined}>
+        <SheetClose onPress={onClose} label={fa.transfers.close} />
         <Text style={styles.title}>{fa.transfers.loansOpen}</Text>
         <ScrollView style={styles.list} contentContainerStyle={styles.content}>
           <GuideBubble who="baqal" text={fa.transfers.baqalHello} />
@@ -69,7 +70,6 @@ export function LoansSheet({ onClose }: { onClose: () => void }) {
           ))}
         </ScrollView>
         {note ? <Text style={[styles.hint, styles.bad]}>{note}</Text> : null}
-        <CandyButton label={fa.transfers.close} sfx="back" color={colors.candy.sky} onPress={onClose} />
       </Pressable>
     </Pressable>
   );
