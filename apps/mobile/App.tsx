@@ -21,6 +21,9 @@ import { onAccountSwitched } from './src/auth/switched';
 import { useMusic } from './src/sound/music';
 import { useHardwareBack } from './src/nav/useHardwareBack';
 import { useMiniAppBack } from './src/miniapp/useMiniAppBack';
+import { miniAppHost } from './src/miniapp/host';
+import { installWebHistory } from './src/nav/webHistory';
+import type { HistoryWindow } from './src/nav/webHistory';
 import { useKeyboardInset } from './src/nav/useKeyboardInset';
 import { BrandScreen } from './src/brand/BrandScreen';
 import { KitGallery } from './src/kit/KitGallery';
@@ -47,6 +50,12 @@ import { PriceOnlyScreen } from './src/priceonly/PriceOnlyScreen';
 import { refillPack } from './src/offline/pack';
 import { ServerDownBanner } from './src/net/ServerDownBanner';
 import { takeLaunchTarget } from './src/pwa/usePwa';
+
+// The browser's and the installed PWA's Back / Forward drive the in-app back stack (not inside a messenger mini-app, which has its own back button).
+if (Platform.OS === 'web' && !miniAppHost()) {
+  const win = (globalThis as { window?: HistoryWindow }).window;
+  if (win?.history) installWebHistory(win);
+}
 
 // The adult look has dark text on brass and silver faces: a shadow under it only smears, so it is dropped app-wide.
 if (bootTheme() === 'adult') installDarkTextShadowFix();
