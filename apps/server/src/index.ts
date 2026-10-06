@@ -62,6 +62,7 @@ import { registerPhoneLoginRoutes, registerPhoneRoutes } from './phone/routes.js
 import { PhoneService, phoneRulesFromSettings } from './phone/service.js';
 import { createIrnotiClient, createKavenegarClient } from './phone/sms.js';
 import { createDbPhoneStore } from './phone/store.js';
+import { PuzzleHistory } from './solo/history.js';
 import { registerInviteRoutes } from './invite/routes.js';
 import { InviteService, inviteRulesFromSettings } from './invite/service.js';
 import { createDbInviteStore } from './invite/store.js';
@@ -783,9 +784,12 @@ if (isMainModule(import.meta.url)) {
     if (baleToken) notify.miniAppUserOf = async (baleUserId) => (await auth?.userByDevice(miniAppDeviceId(baleToken, baleUserId)))?.id ?? null;
   }
   let dailyRef: DailyService | undefined;
+  /** One memory of served puzzles for solo, duels, tables and 2v2: nobody gets the same puzzle again while others remain. */
+  const puzzleHistory = new PuzzleHistory();
   const solo =
     db && settings
       ? new SoloService(createDbPuzzleSource(db), {
+          history: puzzleHistory,
           rules: () => soloRules(settings),
           levelOf,
           trackOf: ageTracks ? (id) => ageTracks.effective(id) : undefined,
@@ -821,6 +825,7 @@ if (isMainModule(import.meta.url)) {
     match: db
       ? {
           puzzles: createDbPuzzleSource(db),
+          history: puzzleHistory,
           trackOf: ageTracks ? (id) => ageTracks.effective(id) : undefined,
           wagerAllowed: ageTracks ? (id) => ageTracks.allows(id, 'coinWager') : undefined,
           teamBoards: settings ? () => settings.num('match.team_boards') : undefined,

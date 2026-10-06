@@ -3,6 +3,8 @@ import { DEFAULT_MATCH_RULES, TEAM_MATCH_BOARDS, applyCommand, settleWager, appl
 import type { AgeTrack, CatalogProduct, Command, RevealedRound, WagerSeat, ErrorCode, PriceGuessState, Stake, MatchEnded, MatchRules, MatchEvent, MatchEventPayload, MatchFound, MatchState, MatchView, Rng, RuleError } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
 import type { PuzzleSource, ServedPuzzle } from '../solo/types.js';
+import { pickUnseen } from '../solo/history.js';
+import type { PuzzleHistory } from '../solo/history.js';
 
 export interface PlayerProfile {
   nickname: string;
@@ -15,6 +17,8 @@ export interface PlayerProfile {
 
 export interface MatchDeps {
   puzzles: PuzzleSource;
+  /** Puzzles each player has already had: a duel, table or 2v2 never serves one of them again (until the pool runs dry). */
+  history?: PuzzleHistory;
   /** A player's age track (D198); queues pair one track, so the first player's track picks the puzzle pool. Absent = adult. */
   trackOf?: (userId: string) => Promise<AgeTrack>;
   /** May this player put coins on a match (`trackRules(track).coinWager`)? A kid or teen never does: such a match is friendly. Absent = everybody may. */
@@ -68,6 +72,8 @@ interface Active {
   wager?: { amount: number; cutPercent: number; isBot: (userId: string) => boolean };
   /** Wagers put down for the round in play and not settled yet. */
   pgRound?: { index: number; seats: [WagerSeat, WagerSeat] };
+  /** Who sits where, as sent with `match:found` (a returning player gets it again on resume). */
+  players?: MatchFound['players'];
   /** Latest proposal per side (2v2); only that side's own players ever see it. */
   proposals: [{ by: string; itemIds: readonly string[] } | null, { by: string; itemIds: readonly string[] } | null];
 }
@@ -143,7 +149,8 @@ export class MatchService {
     const [pa, pb] = await Promise.all([this.deps.profile(a), this.deps.profile(b)]);
     if (!pa || !pb) return false;
     // The stronger of the two sets the puzzle tier (docs/logic/progression.md).
-    const puzzle = await this.deps.puzzles.pickRandom({ level: Math.max(pa.level, pb.level), tracks: await this.tracksOf(a) });
+    const tracks = await this.tracksOf(a);
+    const puzzle = await pickUnseen(this.deps.history, [a, b], [], (exclude) => this.deps.puzzles.pickRandom({ level: Math.max(pa.level, pb.level), tracks, exclude }));
     if (!puzzle) return false;
     if (this.inMatch(a) || this.inMatch(b)) return false; // raced with another start while loading
     const rng: Rng = mulberry32(this.newSeed());
@@ -167,6 +174,7 @@ export class MatchService {
     this.byUser.set(a, id);
     this.byUser.set(b, id);
     const profiles: MatchFound['players'] = [{ userId: a, side: 0, ...pa }, { userId: b, side: 1, ...pb }];
+    entry.players = profiles;
     for (const [userId, you] of [[a, 0], [b, 1]] as const) {
       const found: MatchFound = { matchId: id, you, youId: userId, players: profiles };
       this.deps.emit(userId, ServerEvent.matchFound, found);
@@ -183,7 +191,7 @@ export class MatchService {
     const profiles = await Promise.all(all.map((u) => this.deps.profile(u)));
     if (profiles.some((p) => !p)) return false;
     // The strongest player sets the puzzle tier, so nobody gets dumbed down (docs/logic/progression.md).
-    const boards = await this.pickBoards(await this.boardCount(), Math.max(...profiles.map((p) => p!.level)), await this.tracksOf(sides[0][0]));
+    const boards = await this.pickBoards(await this.boardCount(), Math.max(...profiles.map((p) => p!.level)), await this.tracksOf(sides[0][0]), all);
     if (boards.length === 0) return false;
     if (all.some((u) => this.inMatch(u))) return false; // raced with another start while loading
     const id = uuidv7();
@@ -191,6 +199,7 @@ export class MatchService {
     this.matches.set(id, entry);
     for (const u of all) this.byUser.set(u, id);
     const players: MatchFound['players'] = all.map((u, i) => ({ userId: u, side: i < 2 ? 0 : 1, ...(profiles[i] as PlayerProfile) }));
+    entry.players = players;
     for (const [i, u] of all.entries()) this.deps.emit(u, ServerEvent.matchFound, { matchId: id, you: i < 2 ? 0 : 1, youId: u, players } satisfies MatchFound);
     this.pushState(entry);
     this.armTimer(entry);
@@ -228,10 +237,11 @@ export class MatchService {
     return trackRules(await this.deps.trackOf(userId).catch(() => 'adult' as const)).puzzleTracks;
   }
 
-  private async pickBoards(n: number, level?: number, tracks?: readonly AgeTrack[]): Promise<ServedPuzzle[]> {
+  private async pickBoards(n: number, level: number | undefined, tracks: readonly AgeTrack[] | undefined, players: readonly string[]): Promise<ServedPuzzle[]> {
     const out: ServedPuzzle[] = [];
     for (let i = 0; i < n * 3 && out.length < n; i++) {
-      const p = await this.deps.puzzles.pickRandom({ level, tracks });
+      // Never the same board twice in one match, and none any of the four has played before.
+      const p = await pickUnseen(this.deps.history, players, out.map((o) => o.id), (exclude) => this.deps.puzzles.pickRandom({ level, tracks, exclude }));
       if (!p) break;
       if (!out.some((o) => o.id === p.id)) out.push(p);
     }
@@ -270,6 +280,9 @@ export class MatchService {
   resume(userId: string, matchId?: string): { ok: true } | { ok: false; error: ErrorCode } {
     const entry = this.entryOf(userId);
     if (!entry || (matchId && entry.id !== matchId)) return { ok: false, error: matchId ? 'UNKNOWN_MATCH' : 'NOT_IN_MATCH' };
+    // A player who joins the match late (a table started it before their screen opened) learns who plays whom.
+    const you = entry.state.players.find((p) => p.userId === userId)?.side;
+    if (entry.players && you !== undefined) this.deps.emit(userId, ServerEvent.matchFound, { matchId: entry.id, you, youId: userId, players: entry.players } satisfies MatchFound);
     this.deps.emit(userId, ServerEvent.matchState, this.view(entry, userId));
     return { ok: true };
   }

@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
   plate: { flex: 1, height: 46, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...lift(4) },
   plateText: { fontFamily: fonts.display, fontSize: 24, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
   spacer: { width: 42 },
-  tabs: { flexDirection: ROW, marginHorizontal: 30, marginTop: 12, height: 40, padding: 3, gap: 3, borderRadius: 99, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: 'rgba(43,18,64,0.6)' },
+  tabs: { flexDirection: ROW, marginHorizontal: 30, marginTop: 12, height: 40, padding: 3, gap: 3, borderRadius: 99, borderWidth: 2.5, borderColor: 'rgba(255,255,255,0.4)', backgroundColor: 'rgba(43,18,64,0.6)' },
   tab: { flex: 1, borderRadius: 99, alignItems: 'center', justifyContent: 'center' },
   tabOn: { backgroundColor: colors.candy.yellow, borderWidth: 2, borderColor: colors.ink },
   tabText: { fontFamily: fonts.display, fontSize: 15, color: '#E3CCFF' },

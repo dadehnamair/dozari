@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
   pillText: { fontFamily: fonts.display, fontSize: 15, color: '#fff' },
   pillIcon: { width: 28, height: 28 },
   progress: { gap: 4 },
-  bar: { height: 14, borderRadius: 99, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: 'rgba(26,8,44,0.6)', overflow: 'hidden' },
+  bar: { height: 14, borderRadius: 99, borderWidth: 2.5, borderColor: 'rgba(255,255,255,0.4)', backgroundColor: 'rgba(26,8,44,0.6)', overflow: 'hidden' },
   barFill: { height: '100%', backgroundColor: colors.candy.lime },
   progressText: { fontFamily: fonts.bold, fontSize: 12, color: '#E3CCFF', textAlign: 'center' },
   note: { fontFamily: fonts.bold, fontSize: 13, color: colors.candy.yellow, textAlign: 'center' },

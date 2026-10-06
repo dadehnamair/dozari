@@ -63,3 +63,44 @@ describe('duel taunts', () => {
     expect(s.taunt).toBeNull();
   });
 });
+
+describe('finale and notices', () => {
+  const card = (id: string) => ({ id, nameFa: id, unitFa: null, iconKey: null });
+  const row = (level: 0 | 1 | 2 | 3, ids: string[], by: 0 | 1 | null) => ({ level, titleFa: `t${level}`, explanationFa: `e${level}`, productIds: ids, by });
+  const g = (level: number, ids: string[]) => ({ level, titleFa: `t${level}`, explanationFa: `e${level}`, productIds: ids });
+  const before = view({ cards: ['c1', 'c2', 'c3', 'c4', 'd1', 'd2', 'd3', 'd4'].map(card), solved: [row(0, ['a1', 'a2', 'a3', 'a4'], 0), row(1, ['b1', 'b2', 'b3', 'b4'], 1)] });
+  const after = view({ cards: [], status: 'finished', solved: [row(0, ['a1', 'a2', 'a3', 'a4'], 0), row(1, ['b1', 'b2', 'b3', 'b4'], 1), row(2, ['c1', 'c2', 'c3', 'c4'], 0), row(3, ['d1', 'd2', 'd3', 'd4'], null)] });
+
+  it('builds the finale of the last row once the game reveals it', () => {
+    let s = duelReducer(initialDuel, { t: 'state', view: before });
+    s = duelReducer(s, { t: 'state', view: after });
+    expect(s.prevBoard?.cards).toHaveLength(8);
+    s = duelReducer(s, { t: 'revealed', level: 3 });
+    expect(s.finale?.cards.map((c) => c.id)).toEqual(['d1', 'd2', 'd3', 'd4']);
+    expect(s.finale?.solved.map((r) => r.level)).toEqual([0, 1, 2]);
+    expect(s.finale?.last.level).toBe(3);
+    expect(duelReducer(s, { t: 'clearFinale' }).finale).toBeNull();
+  });
+
+  it('waits for board_done when the next board has already replaced the old one', () => {
+    let s = duelReducer(initialDuel, { t: 'state', view: before });
+    s = duelReducer(s, { t: 'state', view: view({ round: 1, rounds: 2, cards: ['x1', 'x2'].map(card), solved: [] }) });
+    s = duelReducer(s, { t: 'revealed', level: 3 });
+    expect(s.finale).toBeNull();
+    s = duelReducer(s, { t: 'boardDone', round: 0, groups: [g(0, ['a1', 'a2', 'a3', 'a4']), g(1, ['b1', 'b2', 'b3', 'b4']), g(2, ['c1', 'c2', 'c3', 'c4']), g(3, ['d1', 'd2', 'd3', 'd4'])] });
+    expect(s.finale?.cards).toHaveLength(4);
+  });
+
+  it('a refused submit is a notice, never a dead end; a result clears any stale error', () => {
+    let s = duelReducer(initialDuel, { t: 'state', view: view() });
+    s = duelReducer(s, { t: 'notice', error: 'DUPLICATE_SELECTION' });
+    expect(s.notice).toBe('DUPLICATE_SELECTION');
+    expect(s.error).toBeNull();
+    s = duelReducer(s, { t: 'error', error: 'NETWORK' });
+    s = duelReducer(s, { t: 'state', view: view() });
+    expect(s.error).toBeNull();
+    s = duelReducer(s, { t: 'error', error: 'INTERNAL' });
+    s = duelReducer(s, { t: 'ended', ended: { matchId: ID, result: { winner: 0, reason: 'solved' }, scores: [1, 0], groups: [] } as unknown as MatchEnded });
+    expect(s.error).toBeNull();
+  });
+});

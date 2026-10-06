@@ -4,6 +4,8 @@ export const CHAT_MAX_LEN = 120;
 export const CHAT_TEXT_RATE = { count: 5, windowMs: 10_000 } as const;
 /** Canned taunts: one per 3 seconds per player. */
 export const CHAT_TAUNT_RATE = { count: 1, windowMs: 3_000 } as const;
+/** Table invite cards (a host asking several friends one after another). */
+export const CHAT_INVITE_RATE = { count: 10, windowMs: 30_000 } as const;
 export const CHAT_HISTORY_LIMIT = 50;
 /** Chat history is kept this many days for moderation, then purged. */
 export const CHAT_RETENTION_DAYS = 30;

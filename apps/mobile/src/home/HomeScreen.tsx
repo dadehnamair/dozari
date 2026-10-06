@@ -54,6 +54,7 @@ import { fmt, styles } from './homeStyles';
 import { useHeroMotion } from './useHeroMotion';
 import { useHomeData } from './useHomeData';
 import { StatPill } from './StatPill';
+import { StatInfoSheet } from './StatInfoSheet';
 
 interface Tile {
   key: string;
@@ -90,6 +91,8 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
   const [tableCode, setTableCode] = useState<string | undefined>(undefined);
   const [inboxOpen, setInboxOpen] = useState(false);
   const [ledgerOpen, setLedgerOpen] = useState(false);
+  /** The explainer page of the 💎 or 🔥 counter. */
+  const [infoOpen, setInfoOpen] = useState<'gems' | 'streak' | null>(null);
   const [tip, setTip] = useState<number | null>(null);
   const tips = availableTips(fa.home.guide.tips, new Set(['duel', 'daily', 'shop', 'chat', 'inbox'].filter((k) => !features[k as 'duel' | 'daily' | 'shop' | 'chat' | 'inbox'])));
   // A tip fades after a while so the guide never covers the menu for good.
@@ -186,8 +189,8 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
       <View style={styles.root} onTouchStart={() => setTip(null)}>
         <View style={styles.pills}>
           {daily.status ? <StatPill color={colors.candy.yellow} icon="coin" value={fmt(daily.status.balance)} label={`${daily.status.balance} ${h.coins}`} onPress={() => setLedgerOpen(true)} /> : null}
-          {gems > 0 ? <StatPill color={colors.candy.sky} glyph="💎" value={fmt(gems)} label={`${gems} ${h.gems}`} /> : null}
-          {dailyPuzzle && dailyPuzzle.state !== 'unavailable' && dailyPuzzle.streak > 0 ? <StatPill color={colors.candy.pink} glyph="🔥" value={`${toPersianDigits(String(dailyPuzzle.streak))} ${h.streak}`} label={`${dailyPuzzle.streak} ${h.streak}`} /> : null}
+          {gems > 0 ? <StatPill color={colors.candy.sky} glyph="💎" value={fmt(gems)} label={`${gems} ${h.gems}`} onPress={() => setInfoOpen('gems')} /> : null}
+          {dailyPuzzle && dailyPuzzle.state !== 'unavailable' && dailyPuzzle.streak > 0 ? <StatPill color={colors.candy.pink} glyph="🔥" value={`${toPersianDigits(String(dailyPuzzle.streak))} ${h.streak}`} label={`${dailyPuzzle.streak} ${h.streak}`} onPress={() => setInfoOpen('streak')} /> : null}
           <Pressable onPress={() => setHubOpen(true)} accessibilityRole="button" accessibilityLabel={fa.hub.open} style={styles.mapBtn}>
             <View style={styles.mapIcon}><Item icon="map" /></View>
           </Pressable>
@@ -266,6 +269,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
       {boardOpen ? <LeaderboardPage onClose={() => setBoardOpen(false)} /> : null}
       {settingsOpen ? <SettingsPage onClose={() => (setSettingsOpen(false), loadTasks())} onProfile={() => (setSettingsOpen(false), setProfileOpen(true))} onTutorial={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} onAccountGone={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} ageTracksOn={settings['feature.age_tracks'] === 1} onPreview={onPreview ? (t) => (setSettingsOpen(false), onPreview(t)) : undefined} /> : null}
       {ledgerOpen ? <LedgerSheet onClose={() => setLedgerOpen(false)} /> : null}
+      {infoOpen ? <StatInfoSheet kind={infoOpen} value={infoOpen === 'gems' ? gems : dailyPuzzle?.streak ?? 0} onClose={() => setInfoOpen(null)} /> : null}
       {inboxOpen ? <InboxSheet inbox={inbox.inbox} failed={inbox.failed} onRead={inbox.markRead} onReadAll={inbox.markAll} onClose={() => setInboxOpen(false)} /> : null}
       {tableOpen ? <TableSheet initialCode={tableCode} onMatch={onDuelResume ? () => (setTableOpen(false), onDuelResume()) : undefined} onClose={() => (setTableOpen(false), setTableCode(undefined))} onShare={() => shareTable()} /> : null}
       {tournamentOpen ? <TournamentSheet onClose={() => setTournamentOpen(false)} invite={sponsorInvite} /> : null}

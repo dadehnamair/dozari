@@ -140,3 +140,13 @@ persistence of the match log, level (everyone is level 1 on the opponent card).
 Home button «دوئل زنده» (`feature.duel`). A private table's match opens the same screen in resume mode (`match:resume` without a match id → the server re-sends the current snapshot).
 Also: canned-taunt buttons (socket `chat:taunt`, the opponent's taunt shows for 4 s) and the «برگشت به بازی در جریان» button on Home from `GET /match/active` (D42).
 Not in the app yet: price-guess round inside a duel.
+
+## No repeated puzzles, no dead ends (2026-10)
+
+- **No repeats.** One in-memory `PuzzleHistory` (`apps/server/src/solo/history.ts`) is shared by solo, queue duels, private tables and 2v2: a puzzle any seated player already had is excluded (`pickRandom({ exclude })`), and the boards of one 2v2 are all different. Only when a player has seen the whole pool does their history reset (a small catalog must still play).
+- **Who plays whom on resume.** `MatchService.resume` re-sends `match:found` before the snapshot, so a table player whose screen opened after the match started still sees both sides' names.
+- **Disconnect grace.** A player with no open socket for 25 s (`disconnectGraceMs`) leaves their live match; the partner/rival is not held hostage.
+- **Client watchdogs** (`DuelScreen`): no first snapshot after 6 s → resume again, after 20 s an error card; a turn 6 s past its deadline → resume; a finished board whose `match:ended` never arrived → the result is built from the last snapshot after 5 s; `NOT_IN_MATCH` on resume closes the match. A refused submit is a toast (`notice`), never an error screen; one submit in flight at a time.
+- **Last row finale** (all duels, tables, every board of a 2v2): the four cards the game reveals by itself light up one by one, then their row opens, before the next board or the result.
+- **Table lobby:** two team cards face to face (VS), own team blue; 2v2 starts only with two per side; polling tolerates two failed requests and only «not found» closes the screen; one table action at a time with an 8 s lock release.
+- **Table invites** have their own rate bucket (`CHAT_INVITE_RATE`), separate from the one-taunt-per-3-s limit.

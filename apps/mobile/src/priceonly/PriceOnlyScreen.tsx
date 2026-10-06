@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
   talker: { width: 110, height: 128 },
   bubble: { flex: 1, padding: 12, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#fff' },
   bubbleText: { fontFamily: fonts.bold, fontSize: 13.5, lineHeight: 22, color: colors.ink, textAlign: TEXT_RIGHT },
-  card: { padding: 14, gap: 10, alignItems: 'center', borderRadius: 22, borderWidth: 3, borderColor: colors.ink, backgroundColor: 'rgba(43,18,64,0.72)' },
+  card: { padding: 14, gap: 10, alignItems: 'center', borderRadius: 22, borderWidth: 3, borderColor: 'rgba(255,255,255,0.35)', backgroundColor: 'rgba(43,18,64,0.72)' },
   title: { fontFamily: fonts.display, fontSize: 20, color: colors.candy.yellow },
   sub: { fontFamily: fonts.bold, fontSize: 12.5, color: colors.cream, opacity: 0.85 },
   icon: { width: 84, height: 84 },

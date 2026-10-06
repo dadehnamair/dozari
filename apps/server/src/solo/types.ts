@@ -27,7 +27,7 @@ export interface PuzzleSource {
   /** Approved price points per product, for the result chart. */
   pricesFor(productIds: readonly string[]): Promise<Record<string, PricePointRow[]>>;
   /** A random approved puzzle, or null when none exist. With a player `level`, puzzles of the tiers open to that level come first (docs/logic/progression.md §Puzzle tiers). */
-  pickRandom(opts?: { level?: number; tracks?: readonly AgeTrack[] }): Promise<ServedPuzzle | null>;
+  pickRandom(opts?: { level?: number; tracks?: readonly AgeTrack[]; /** Puzzle ids that must not come back (already played by the player(s)). */ exclude?: readonly string[] }): Promise<ServedPuzzle | null>;
   /** A specific approved puzzle (the daily one), or null. */
   byId?(id: string): Promise<ServedPuzzle | null>;
 }

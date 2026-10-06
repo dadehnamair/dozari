@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { TableView } from '@dozari/shared';
 import { DEFAULT_TABLE_ICON, TABLE_ICONS, normalizeTableCode } from '@dozari/shared';
@@ -18,10 +18,11 @@ import { OnlineDot } from '../components/OnlineDot';
 import { createTable, inviteToTable, extendTable, fetchMyTable, fetchTable, joinTable, kickFromTable, leaveTable, setTableLocked, setTableReady, setTableSide, startTable } from './api';
 import { useHardwareBack } from '../nav/useHardwareBack';
 import { TableChat } from './TableChat';
+import { TableLobby } from './TableLobby';
 import { TEXT_RIGHT } from '../theme/direction';
 
 const INK = '#3A2418';
-const errText = (e: unknown) => fa.tables.errors[e instanceof ApiError ? e.code : 'generic'] ?? fa.tables.errors.generic ?? '';
+const errText = (e: unknown) => fa.tables.errors[e instanceof ApiError ? e.code : 'network'] ?? fa.tables.errors.generic ?? '';
 
 /** «میز اختصاصی»: create a table or enter one by its code, then wait for the guest and start a duel. `initialCode` opens a shared table. */
 export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose: () => void; initialCode?: string; /** The table's match started: open the duel board. */ onMatch?: () => void; onShare?: (table: TableView) => Promise<void> }) {
@@ -54,9 +55,24 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
   useEffect(() => {
     void fetchMyTable().then((t) => (t ? setTable(t) : initialCode ? enter(initialCode) : undefined), () => undefined);
   }, []);
+  /** Failed polls in a row: one lost request must not throw the player out of the table; only «not found» does. */
+  const misses = useRef(0);
   const refresh = useCallback(() => {
     if (!table) return;
-    fetchTable(table.code).then(setTable, () => setTable(null));
+    fetchTable(table.code).then(
+      (t) => ((misses.current = 0), setTable(t)),
+      (e) => {
+        if (e instanceof ApiError && (e.status === 404 || e.status === 410 || e.status === 401)) {
+          // The host closed the table, it timed out, or this seat was taken away.
+          setTable(null);
+          setMode('menu');
+          setNote(fa.tables.errors[e.status === 410 ? 'EXPIRED' : 'NOT_FOUND'] ?? null);
+          return;
+        }
+        misses.current += 1;
+        if (misses.current >= 3) setNote(fa.tables.lobby.connection);
+      },
+    );
   }, [table]);
   useEffect(() => {
     if (!table) return;
@@ -66,11 +82,23 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
 
   // Both players are taken to the board as soon as the host starts the match.
   const started = table?.inMatch && table.youAreIn;
+  const full = !!table && table.players.length >= table.seats;
+  /** A 2v2 starts only with two on each team. */
+  const teamsOk = !table || table.format !== '2v2' || ([0, 1] as const).every((sd) => table.players.filter((p) => p.side === sd).length === 2);
   useEffect(() => {
     if (started) onMatch?.();
   }, [started, onMatch]);
 
-  const run = (fn: () => Promise<unknown>) => fn().then(() => (setNote(null), refresh()), (e) => (fail(e), refresh()));
+  /** One table action at a time: a second tap while the first is on its way is ignored, and the lock always lets go (an action that never answers must not freeze the buttons). */
+  const [busy, setBusy] = useState(false);
+  const run = (fn: () => Promise<unknown>) => {
+    if (busy) return Promise.resolve();
+    setBusy(true);
+    const release = setTimeout(() => setBusy(false), 8000);
+    return fn()
+      .then(() => (setNote(null), refresh()), (e) => (fail(e), refresh()))
+      .finally(() => (clearTimeout(release), setBusy(false)));
+  };
   const enter = (c: string) => {
     const norm = normalizeTableCode(c);
     if (!norm) return setNote(fa.tables.errors.NOT_FOUND ?? '');
@@ -92,33 +120,22 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
             <>
               <Text style={styles.code} selectable>{fa.tables.code(table.code)}</Text>
               <Text style={styles.hint}>{table.inMatch ? fa.tables.inMatch : table.players.length < table.seats ? fa.tables.waiting : fa.tables.seats(table.players.length, table.seats)}</Text>
-              {table.players.map((p) => (
-                <View key={p.id} style={styles.row}>
-                  <Avatar avatar={avatarOf(p.avatarKey)} size={32} />
-                  <Text style={styles.name}>{p.nickname}</Text>
-                  <Text style={styles.hint}>{table.format === '2v2' ? `${fa.tables.team(p.side + 1)} ` : ''}{p.isHost ? fa.tables.host : p.ready ? fa.tables.ready : ''}</Text>
-                  {table.format === '2v2' && p.isYou && !table.inMatch ? (
-                    <Pressable onPress={() => void run(() => setTableSide(p.side === 0 ? 1 : 0))} style={styles.pill} accessibilityRole="button"><Text style={styles.pillText}>{fa.tables.switchTeam}</Text></Pressable>
-                  ) : null}
-                  {table.youAreHost && !p.isHost ? (
-                    <Pressable onPress={() => void run(() => kickFromTable(p.id))} style={styles.pill} accessibilityRole="button"><Text style={styles.pillText}>{fa.tables.kick}</Text></Pressable>
-                  ) : null}
-                </View>
-              ))}
+              <TableLobby table={table} onSit={(side) => void run(() => setTableSide(side))} onKick={(id) => void run(() => kickFromTable(id))} />
+              {note ? <Text style={styles.warn}>{note}</Text> : null}
               {table.youAreHost && !table.inMatch && table.players.length < table.seats ? <InviteFriends onNote={setNote} /> : null}
               <TableChat code={table.code} meId={table.players.find((p) => p.isYou)?.id ?? null} />
               <Text style={styles.hint}>{fa.tables.friendly}</Text>
-              {note ? <Text style={styles.warn}>{note}</Text> : null}
               {table.youAreHost ? (
                 <>
-                  <CandyButton label={fa.tables.start} color={colors.candy.lime} disabled={table.inMatch || table.players.length < table.seats} onPress={() => void run(startTable)} />
+                  {!full ? <Text style={styles.hint}>{fa.tables.lobby.hostNeeds(table.seats - table.players.length)}</Text> : !teamsOk ? <Text style={styles.warn}>{fa.tables.lobby.teamsUneven}</Text> : null}
+                  <CandyButton label={fa.tables.start} color={colors.candy.lime} disabled={table.inMatch || !full || !teamsOk || busy} onPress={() => void run(startTable)} />
                   <CandyButton label={table.locked ? fa.tables.unlock : fa.tables.lock} color={colors.candy.sky} onPress={() => void run(() => setTableLocked(!table.locked))} />
                   <CandyButton label={fa.tables.extend} color={colors.candy.yellow} onPress={() => void run(extendTable)} />
                   {onShare ? <CandyButton label={fa.tables.share} color={colors.candy.grape} onPress={() => void onShare(table).then(() => setNote(fa.tables.shared), (e) => setNote(errText(e)))} /> : null}
                 </>
               ) : table.requireReady ? (
                 <CandyButton label={table.players.find((p) => p.isYou)?.ready ? fa.tables.notReady : fa.tables.imReady} color={colors.candy.lime} onPress={() => void run(() => setTableReady(!table.players.find((p) => p.isYou)?.ready))} />
-              ) : null}
+              ) : <Text style={styles.hint}>{fa.tables.lobby.waitingHost}</Text>}
               <CandyButton label={fa.tables.leave} color={colors.candy.orange} onPress={() => ask({ title: fa.confirm.leaveTable.title, message: fa.confirm.leaveTable.message, confirmLabel: fa.confirm.leaveTable.yes, onConfirm: () => void leaveTable().then(() => setTable(null), () => setTable(null)) })} />
             </>
           ) : (

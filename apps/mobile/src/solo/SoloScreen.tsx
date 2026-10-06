@@ -368,7 +368,7 @@ const styles = StyleSheet.create({
   talkerSmall: { width: 72, height: 80 },
   bubbleTitle: { fontFamily: fonts.display, fontSize: 18, lineHeight: 28, color: colors.ink, textAlign: TEXT_RIGHT },
   /** The result frame keeps its size; whatever is taller than it (chart, tabs, share) scrolls inside it instead of spilling. */
-  stage: { flex: 1, minHeight: 0, borderRadius: 22, borderWidth: 3, borderColor: colors.ink, backgroundColor: 'rgba(26,8,44,0.55)', overflow: 'hidden' },
+  stage: { flex: 1, minHeight: 0, borderRadius: 22, borderWidth: 3, borderColor: 'rgba(255,255,255,0.35)', backgroundColor: 'rgba(26,8,44,0.55)', overflow: 'hidden' },
   stageContent: { flexGrow: 1, paddingHorizontal: 12, paddingTop: 4, paddingBottom: 14, alignItems: 'center', justifyContent: 'center' },
   endActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginTop: 8 },
   detail: { fontFamily: 'Vazirmatn_400Regular', fontSize: 12, color: colors.cream, opacity: 0.7, textAlign: 'center', writingDirection: 'ltr' },
