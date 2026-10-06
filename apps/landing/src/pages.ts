@@ -214,6 +214,25 @@ main{overflow-x:clip}
 .castbox img{animation:bob 4.5s ease-in-out infinite;animation-delay:var(--d,0s)}
 /* final cta with banner */
 .fin{display:block;width:100%;max-width:1100px;border:4px solid var(--ink);border-radius:40px;box-shadow:0 8px 0 var(--ink);overflow:hidden;transition:transform .35s}.fin:hover{transform:scale(1.015) rotate(-.6deg)}.fin img{width:100%;height:auto}
+/* age tracks: the adult band (gold on near-black, docs/design/adult), the kid/teen cards and the comparison table */
+.band.ad{background:#0E0A08;color:#FFE9A8;border-block:4px solid #E8B64A;position:relative;overflow:hidden}
+.band.ad::before{content:"";position:absolute;inset:0;background:repeating-conic-gradient(from 0deg at 15% 120%,rgba(232,182,74,.07) 0 6deg,transparent 6deg 12deg);pointer-events:none}
+.adg{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:44px;align-items:center;position:relative}
+.adk{font:26px/1.2 var(--display);color:#E8B64A}.adrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.adbadge{display:inline-block;padding:2px 16px;border-radius:12px;border:3px solid #000;background:linear-gradient(180deg,#FFF1B8,#E8B64A 45%,#B8822A);box-shadow:inset 0 2px 0 rgba(255,255,255,.7),0 4px 0 #000;font:800 26px/1.4 Vazirmatn,sans-serif;color:#2A1606;direction:ltr}
+.band.ad h2,.band.ad h1{color:#FFE9A8;text-shadow:0 3px 0 #000;font-size:clamp(34px,5vw,60px);line-height:1.3}.band.ad h2 em,.band.ad h1 em{font-style:normal;background:linear-gradient(180deg,#FFF1B8,#E8B64A 55%,#9A6A1C);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none;-webkit-text-stroke:0}
+.band.ad p{color:#FFE9A8;font-weight:600;margin:0}
+.adlist{list-style:none;margin:0;padding:0;display:grid;gap:10px}.adlist li{display:flex;gap:10px;align-items:flex-start;font-weight:700;color:#FFE9A8}.adlist li::before{content:"";flex:none;width:12px;height:12px;margin-top:11px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#FFF1B8,#E8B64A 60%,#8A5A16);box-shadow:0 0 0 2px #000}
+.brass{display:inline-block;align-self:flex-start;padding:8px 36px 4px;border-radius:20px;border:4px solid #000;background:linear-gradient(180deg,#FFF1B8 0%,#E8B64A 38%,#B8822A 72%,#8A5A16 100%);box-shadow:inset 0 3px 0 rgba(255,255,255,.75),inset 0 -5px 0 rgba(0,0,0,.25),0 7px 0 #000;font:32px/1.5 var(--display);color:#2A1606;text-decoration:none;text-shadow:0 1px 0 rgba(255,255,255,.55);transition:transform .15s}.brass:hover{color:#2A1606;transform:translateY(-3px)}
+.adart{border:3px solid #E8B64A;border-radius:30px;box-shadow:0 0 0 4px #000,0 14px 40px rgba(232,182,74,.18);overflow:hidden;background:#000}.adart img{width:100%;height:auto}
+.metals{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;position:relative}
+.metals li{--m:#E8B64A;background:#17100C;border:2px solid #8A5A16;border-top:6px solid var(--m);border-radius:20px;padding:20px 22px;box-shadow:0 6px 0 #000}
+.metals h3{font-size:26px;color:var(--m);margin-bottom:6px;line-height:1.5}.metals p{font-size:16px;line-height:1.9}.metals .gold{--m:#E8B64A}.metals .copper{--m:#D2793E}.metals .silver{--m:#C9D2DC}.metals .bronze{--m:#B07A3C}
+.ages3{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:28px}
+.agec{display:flex;flex-direction:column;border:4px solid var(--ink);border-radius:28px;background:#fff;box-shadow:0 8px 0 var(--ink);overflow:hidden}.agec img{width:100%;height:auto;border-bottom:4px solid var(--ink)}.agec .b{padding:18px 22px 22px;display:flex;flex-direction:column;gap:8px}.agec h3{font-size:30px}.agec p{margin:0;font-size:16px}.agec ul{margin:0;padding-inline-start:1.2em;font-size:15px;font-weight:600}
+.cmp{width:100%;border-collapse:separate;border-spacing:0;border:3px solid var(--ink);border-radius:18px;overflow:hidden;background:#fff;font-size:15px}.cmp th,.cmp td{padding:10px 14px;text-align:start;border-bottom:2px solid rgba(43,18,64,.15);vertical-align:top}.cmp thead th{background:var(--ink);color:var(--cream);font-family:var(--display);font-weight:400;font-size:20px}.cmp tbody th{background:#FFF1B8;font-weight:800;white-space:nowrap}.cmp td.ad{background:#17100C;color:#FFE9A8;font-weight:700}.cmp thead th.ad{background:#B8822A;color:#2A1606}
+.cmpbox{overflow-x:auto;-webkit-overflow-scrolling:touch;padding:0 2px 8px}
+.agelink{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-weight:800}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.js .rv{opacity:1;transform:none}.mq{overflow-x:auto}}
 @media(max-width:700px){header.top{border-bottom-width:3px}.bar{padding:8px 14px;gap:6px 10px}.brand{font-size:26px;gap:8px}.brand .face{width:38px!important;height:38px!important}.bar>.btn{font-size:16px;padding:6px 14px 3px;border-width:2px;box-shadow:0 3px 0 var(--ink)}nav.main{order:3;flex:0 0 100%;flex-wrap:nowrap;overflow-x:auto;gap:2px;scrollbar-width:none;margin:0 -14px;padding:0 14px 2px}nav.main::-webkit-scrollbar{display:none}nav.main a{font-size:13px;padding:2px 12px;border-width:2px;white-space:nowrap;line-height:1.7}}
 @media(max-width:560px){.fl{display:none}.band>.in{padding-top:40px;padding-bottom:40px}.sec{padding-top:48px;padding-bottom:48px}.promo{padding:26px}.sticky{position:static}.cc{flex-direction:column}}
@@ -250,8 +269,8 @@ const li = (items: string[]): string => items.map((i) => `<li>${i}</li>`).join('
 
 /* ---- layout ---- */
 
-export type NavKey = 'home' | 'about' | 'blog' | 'download' | 'contact';
-const NAV: [NavKey, string, string][] = [['home', '/', 'خانه'], ['about', '/about', 'درباره ما'], ['blog', '/blog', 'وبلاگ'], ['download', '/download', 'دانلود'], ['contact', '/contact', 'تماس و سوالات']];
+export type NavKey = 'home' | 'ages' | 'about' | 'blog' | 'download' | 'contact';
+const NAV: [NavKey, string, string][] = [['home', '/', 'خانه'], ['ages', '/ages', 'رده‌های سنی'], ['about', '/about', 'درباره ما'], ['blog', '/blog', 'وبلاگ'], ['download', '/download', 'دانلود'], ['contact', '/contact', 'تماس و سوالات']];
 
 const SOCIAL_LABEL: [RegExp, string][] = [[/instagram\.com/, 'اینستاگرام'], [/t\.me|telegram/, 'تلگرام'], [/aparat\.com/, 'آپارات'], [/bale\.ai|ble\.ir/, 'بله'], [/eitaa/, 'ایتا'], [/rubika/, 'روبیکا']];
 const hostOf = (u: string): string => u.replace(/^https?:\/\/(www\.)?/, '').replace(/\/+$/, '');
@@ -321,7 +340,7 @@ ${content}
 <footer class="bottom"><div class="in">
 <div class="fgrid">
 <div><div class="brandname">${escapeHtml(site.name)}</div><p>${escapeHtml(site.tagline)}</p></div>
-<div><h2 style="color:var(--sky)">صفحه‌ها</h2><ul><li><a href="/">خانه</a></li><li><a href="/about">درباره ما</a></li><li><a href="/blog">وبلاگ</a></li><li><a href="/cast">آدم‌های بازار</a></li><li><a href="/download">دانلود</a></li><li><a href="/contact">تماس و سوالات</a></li></ul></div>
+<div><h2 style="color:var(--sky)">صفحه‌ها</h2><ul><li><a href="/">خانه</a></li><li><a href="/ages">رده‌های سنی</a></li><li><a href="/about">درباره ما</a></li><li><a href="/blog">وبلاگ</a></li><li><a href="/cast">آدم‌های بازار</a></li><li><a href="/download">دانلود</a></li><li><a href="/contact">تماس و سوالات</a></li></ul></div>
 <div><h2 style="color:var(--lime)">قوانین</h2><ul><li><a href="/terms">قوانین و شرایط</a></li><li><a href="/privacy">حریم خصوصی</a></li></ul></div>
 <div><h2 style="color:var(--orange)">ما را دنبال کنید</h2><div class="social">${social.map((s) => `<a href="${escapeHtml(s.u)}" rel="noopener me" style="background:${s.c[0]};color:${s.c[1]}">${icon(socialIcon(s.u))}${escapeHtml(s.label)}</a>`).join('')}${site.contactEmail ? `<a href="mailto:${escapeHtml(site.contactEmail)}" style="background:#FFF6E8;color:#2B1240">${icon('mail')}ایمیل</a>` : ''}</div></div>
 </div>
@@ -372,6 +391,7 @@ const FEATURES = [
 /** The promo banners of `docs/design/banner` (resized to webp in `assets/banners`); the alt text is what the banner itself says. */
 const BANNERS = [
   ['banner1', 'دوزاری: بالاخره دوزاریت می‌افته! پازل، رقابت با رفقا، سفر به ۳۱ استان'],
+  ['age-adult', 'دوزاری بزرگسال ۱۸+؛ صرافی بزرگ‌ترها: بازی کامل با دوئل زنده و حدس قیمت با شرط سکه'],
   ['banner2', '۱۶ کلمه، ۴ دسته! کلمه‌های هم‌خانواده را کنار هم بچین'],
   ['banner4', 'قیمت قدیما یادته؟ از نون سنگک تا پیکان جوانان'],
   ['banner3', 'با رفقات رقابت کن؛ رو در رو، زنده، همین الان'],
@@ -382,7 +402,9 @@ const BANNERS = [
 ] as const;
 const banner = (name: string, alt: string, opts: { eager?: boolean; cls?: string } = {}): string =>
   `<img${opts.cls ? ` class="${opts.cls}"` : ''} src="/banners/${name}.webp" alt="${escapeHtml(alt)}" width="1600" height="900"${opts.eager ? ' fetchpriority="high"' : ' loading="lazy"'} decoding="async">`;
-const bannerAlt = (name: string): string => BANNERS.find((b) => b[0] === name)?.[1] ?? '';
+/** Banners that are not in the carousel (the kid and teen age cards). */
+const AGE_BANNERS = [['age-kid', 'دوزاری کوچولو؛ فضای آموزشی کودک تا ۱۱ سال با حرف، کلمه و معنی'], ['age-teen', 'نوجوان ۱۲ تا ۱۷ سال؛ همون بازی با پازل راحت‌تر، رقابت و دوئل با رفقا']] as const;
+const bannerAlt = (name: string): string => [...BANNERS, ...AGE_BANNERS].find((b) => b[0] === name)?.[1] ?? '';
 
 /** The sliding banner strip: plain scroll-snap (works without scripts); the script only adds auto-play, arrows and dots. */
 const carousel = (): string =>
@@ -400,6 +422,40 @@ const showRow = (cls: string, a: { h: string; p: string; chips: string[]; art: s
   `<section class="band ${cls}"><div class="in show" style="padding-top:80px;padding-bottom:80px"><div class="tx rv ${a.flip ? 'r' : 'l'}"><h2>${escapeHtml(a.h)}</h2><p>${escapeHtml(a.p)}</p><div class="chips">${a.chips.map((c) => `<span class="pill sm">${escapeHtml(c)}</span>`).join('')}</div></div><div style="order:${a.flip ? -1 : 0}">${a.art}</div></div></section>`;
 
 const frame = (name: string, t = '-2deg', d = '0s'): string => `<div class="frame rv z" style="--t:${t};--d:${d}">${banner(name, bannerAlt(name))}</div>`;
+
+/* ---- age tracks (docs/logic/age-tracks.md): the adult game first, the kid and teen spaces beside it ---- */
+
+/** What the adult track really has (`age-tracks.md` §What each band gets): [metal, title, text]. Metals follow the adult UI kit: gold play, copper competition, silver price guess, bronze the rest. */
+const ADULT_FEATURES = [
+  ['gold', 'پازل کامل قیمت', 'شانزده کالا، چهار گروه پنهان؛ همه‌ی پازل‌های بزرگسال، از چالش روزانه تا جدول‌های سخت، با قیمت اسمی و بدون تعدیل تورم.'],
+  ['silver', 'حدس قیمت با شرط سکه', 'بعد از پازل، قیمت کالا را حدس بزن؛ فقط در حالت بزرگسال می‌توانی روی حدست سکه شرط ببندی.'],
+  ['copper', 'دوئل زنده و میز خصوصی', 'رو در رو، دو در دو یا میز خصوصی با رفقا؛ حریف‌یابی فقط بین بزرگسال‌هاست.'],
+  ['copper', 'تورنومنت و جدول رتبه‌ها', 'تورنومنت‌ها و جدول رتبه‌ی بزرگسال‌ها از بقیه‌ی رده‌ها جداست؛ رقابت بین هم‌سن‌وسال‌ها.'],
+  ['bronze', 'گفت‌وگوی آزاد', 'با کد دعوت، گفت‌وگوی آزاد باز می‌شود؛ تا آن موقع تیکه‌های آماده‌ی بازی را داری.'],
+  ['bronze', 'کالا و قیمت پیشنهادی', 'کالا یا قیمتی که یادت هست را برای بازی پیشنهاد بده؛ این بخش مخصوص بزرگسال‌هاست.'],
+] as const;
+
+const metalCards = (): string => `<ul class="metals">${ADULT_FEATURES.map(([m, t, d], k) => `<li class="${m} rv" style="--d:${(k % 3) * 0.1}s"><h3>${escapeHtml(t)}</h3><p>${escapeHtml(d)}</p></li>`).join('')}</ul>`;
+
+/** Home: the adult band, big and dark, right under the banner strip. */
+const adultBand = (name: string): string =>
+  `<section class="band ad" id="adult"><div class="in adg" style="padding-top:72px;padding-bottom:72px">
+<div class="col rv l" style="gap:18px"><div class="adrow"><span class="adbadge">18+</span><span class="adk">صرافی بزرگ‌ترها</span></div>
+<h2>${escapeHtml(name)} بزرگسال؛ <em>بازی کامل</em></h2>
+<p style="font-size:19px">همان بازی قیمت و خاطره‌ی قدیمی، بدون محدودیت‌های فضای بچه‌ها: پازل کامل، دوئل زنده، حدس قیمت با شرط سکه و رقابت فقط با بزرگسال‌ها.</p>
+<ul class="adlist"><li>پازل‌های کامل با قیمت اسمی و بدون تعدیل تورم</li><li>دوئل زنده، دو در دو و میز خصوصی با رفقا</li><li>حدس قیمت با شرط سکه، تورنومنت و جدول رتبه‌ی بزرگسال‌ها</li><li>هیچ محتوای کودک در حساب بزرگسال دیده نمی‌شود</li></ul>
+<a class="brass" href="/ages#adult">معرفی کامل بزرگسال</a></div>
+<div class="adart rv z">${banner('age-adult', bannerAlt('age-adult'))}</div></div></section>`;
+
+const kidTeenCards = (name: string): string => {
+  const card = (n: string, t: string, ageLabel: string, lines: string[]): string =>
+    `<article class="agec rv z">${banner(n, bannerAlt(n))}<div class="b"><h3>${escapeHtml(t)} <small style="font:700 15px Vazirmatn">${escapeHtml(ageLabel)}</small></h3><ul>${lines.map((l) => `<li>${escapeHtml(l)}</li>`).join('')}</ul></div></article>`;
+  return `<div class="ages3">${card('age-kid', `${name} کوچولو`, 'تا ۱۱ سال', ['پازل ساده‌ی تصویری از چیزهایی که بچه‌ها می‌شناسند', 'بعد از پازل، درس کلمه: حرف، کلمه، تصویر و یک قصه‌ی کوتاه', 'گفت‌وگوی امن با تیکه‌های آماده، بدون شرط‌بندی و بدون خرید'])}${card('age-teen', 'نوجوان', '۱۲ تا ۱۷ سال', ['همان بازی اصلی، با پازل‌های آسان‌تر در ابتدا', 'حدس قیمت بدون شرط سکه', 'دوستی و میز خانوادگی با تأیید بزرگ‌تر'])}</div>`;
+};
+
+/** Home: a short «every age» strip under the adult band; the details live on `/ages`. */
+const agesStrip = (name: string): string =>
+  `<section class="in sec col" style="gap:30px"><div class="col" style="align-items:center;text-align:center;gap:6px"><h2 class="big rv">بازی برای هر سن</h2><p class="rv" style="margin:0;font-weight:600;font-size:17px;opacity:.8">یک ${escapeHtml(name)}، سه رده؛ هر کس فضای خودش را دارد</p></div>${kidTeenCards(name)}<p class="agelink" style="justify-content:center;margin:0"><a href="/ages">مقایسه‌ی کامل رده‌ها و راهنمای والدین ←</a></p></section>`;
 
 /** The try-it puzzle: the grouping mechanic with plain words (a red herring included: «نی» is also an instrument). Behaviour in `HOME_JS`. */
 const DEMO_GROUPS = [
@@ -477,11 +533,14 @@ ${FLOATERS.map(([n, x, y, dl]) => `<img class="fl" src="/items/${n}.svg" alt="" 
 <div class="col" style="gap:22px;position:relative"><span class="pill">بازی قیمت‌های قدیمی ایران · رایگان</span>
 <h1>${escapeHtml(s.heroTitle || s.name)}</h1>
 <p class="lead">${escapeHtml(s.heroText)}</p>
-<div class="badges">${storeBadges(site)}</div></div>
+<div class="badges">${storeBadges(site)}</div>
+<a class="agelink" href="/ages#adult"><span class="adbadge" style="font-size:18px;padding:0 10px;box-shadow:0 3px 0 #000">18+</span> نسخه‌ی بزرگسال با دوئل زنده و حدس قیمت با شرط سکه ←</a></div>
 <div class="stage"><span class="disc"></span>${img('dozari-cheer-anim', 320, 368, { eager: true, alt: `${s.name}، شخصیت اصلی بازی` })}</div>
 </div></section>
 ${ticker()}
 <section class="in sec col" style="gap:36px;padding-bottom:56px"><h2 class="big rv">بازار دوزاری را ببین</h2><div class="rv z">${carousel()}</div></section>
+${adultBand(s.name)}
+${agesStrip(s.name)}
 <section class="in col" style="gap:36px;padding-bottom:80px"><h2 class="big rv">چرا ${escapeHtml(s.name)}؟</h2>
 <ul class="cards4">${FEATURES.map(([ic, bg, t, d], k) => `<li class="tile rv" style="--d:${k * 0.1}s"><div class="ic" style="background:${bg}">${item(ic)}</div><h3>${escapeHtml(t)}</h3><p>${escapeHtml(d)}</p></li>`).join('')}</ul></section>
 ${showRow('p', { h: '۱۶ کلمه، ۴ دسته!', p: 'شانزده کالا روی صفحه است و فقط چهار قاعده‌ی پنهان. کالاهای هم‌دسته را کنار هم بچین تا هر گروه رنگ خودش را بگیرد.', chips: ['پازل روزانه', 'چهار گروه رنگی', 'اشتباه محدود'], art: frame('banner2', '-2deg') })}
@@ -672,6 +731,58 @@ export function castPage(site: Site, cast: CastMember[]): string {
   const people = cast.map((c, n) => ({ ...c, who: whoOf(c, n), image: photoOf(c.image) }));
   const body = `<h1>بازیگران ${escapeHtml(site.name)}</h1><p>${escapeHtml(desc)}</p>${people.length ? `<div class="castlist">${people.map((c) => `<section class="cc" id="${escapeHtml(c.id)}">${c.image ? `<img class="photo" src="${escapeHtml(c.image)}" alt="${escapeHtml(c.name)}" width="110" height="110" loading="lazy">` : img(`${c.who}-idle`, 110, 126, { alt: c.name })}<div><h2>${escapeHtml(c.name)}</h2>${c.role ? `<p class="meta">${escapeHtml(c.role)}</p>` : ''}<p>${escapeHtml(c.bio)}</p></div></section>`).join('')}</div>` : '<p>به‌زودی معرفی می‌شوند.</p>'}`;
   return layout(site, head(site, { title, description: desc, path: '/cast', nodes, crumbs }), crumbs, body);
+}
+
+/* ---- ages ---- */
+
+const AGE_FAQ: FaqPair[] = [
+  { question: 'دوزاری بزرگسال چه فرقی با نسخه‌ی بچه‌ها دارد؟', answer: 'بزرگسال همه‌ی بازی است: پازل‌های کامل، حدس قیمت با شرط سکه، دوئل و تورنومنت فقط با بزرگسال‌ها و پیشنهاد کالا و قیمت. فضای کودک و نوجوان ساده‌تر و امن‌تر است و بدون شرط‌بندی و خرید.' },
+  { question: 'رده‌ی سنی را خودم انتخاب می‌کنم؟', answer: 'بله؛ بعد از ورود می‌پرسیم «چه کسی بازی می‌کنه؟» و یکی از کودک، نوجوان یا بزرگسال را انتخاب می‌کنی. تاریخ تولد هیچ نقشی در انتخاب ندارد. رفتن به رده‌ی بالاتر برای کودک و نوجوان فقط با تأیید بزرگ‌تر ممکن است.' },
+  { question: 'بچه‌ام با غریبه‌ها بازی می‌کند؟', answer: 'نه. حریف‌یابی هر رده فقط بین همان رده است و دوست و میز کودک و نوجوان با تأیید والد باز می‌شود. گفت‌وگو هم با تیکه‌های آماده‌ی امن است.' },
+  { question: 'والدین می‌توانند فضای بچه‌ها را ببینند؟', answer: 'بله. حساب والد می‌تواند «پیش‌نمایش» فضای کودک و نوجوان را بدون ثبت پیشرفت و سکه باز کند و فرزندانش را از یک حساب مدیریت کند.' },
+];
+
+/** The comparison table: one row per thing a parent or a player asks about (`age-tracks.md` §What each band gets). */
+const CMP_ROWS: [string, string, string, string][] = [
+  ['پازل', 'ساده و تصویری، با درس کلمه', 'پازل‌های آسان‌تر در شروع', 'همه‌ی پازل‌ها'],
+  ['حدس قیمت', 'ندارد', 'بدون شرط سکه', 'با شرط سکه'],
+  ['حریف‌یابی', 'فقط کودک‌ها', 'فقط نوجوان‌ها', 'فقط بزرگسال‌ها'],
+  ['گفت‌وگو', 'تیکه‌های آماده‌ی امن', 'تیکه‌های آماده؛ متن آزاد پس از اتصال به والد', 'متن آزاد با کد دعوت'],
+  ['دوست و میز', 'با تأیید والد', 'با تأیید والد', 'آزاد بین بزرگسال‌ها'],
+  ['تورنومنت و جدول', 'جدول خودشان', 'جدول خودشان', 'جدول و تورنومنت بزرگسال'],
+  ['پیشنهاد کالا و قیمت', 'ندارد', 'ندارد', 'دارد'],
+];
+
+export function agesPage(site: Site): string {
+  const n = escapeHtml(site.name);
+  const title = `رده‌های سنی ${site.name}: کودک، نوجوان و بزرگسال`;
+  const desc = description(`${site.name} برای هر سن یک فضا دارد؛ بزرگسال‌ها بازی کامل با دوئل زنده و حدس قیمت با شرط سکه را دارند و بچه‌ها فضایی ساده و امن.`);
+  const crumbs: Crumb[] = [{ name: 'صفحه‌ی اول', path: '/' }, { name: 'رده‌های سنی' }];
+  const nodes: Record<string, unknown>[] = [{ '@type': 'WebPage', '@id': `${site.url}/ages#webpage`, url: absolute(site, '/ages'), name: title, description: desc, inLanguage: 'fa-IR', isPartOf: { '@id': ids(site).site }, primaryImageOfPage: { '@type': 'ImageObject', url: absolute(site, '/banners/age-adult.webp'), width: 1600, height: 900 } }];
+  const faqN = faqNode(AGE_FAQ);
+  if (faqN) nodes.push(faqN);
+  const steps: [string, string][] = [['برنامه را باز کن', 'بازی رایگان است و با نسخه‌ی وب، اندروید یا ربات بله شروع می‌شود.'], ['«بزرگسال» را انتخاب کن', 'در صفحه‌ی «چه کسی بازی می‌کنه؟» کارت بزرگسال اولین کارت است؛ همان بازی کامل شروع می‌شود.'], ['بازی کن و رقابت کن', 'پازل روزانه را حل کن، با رفقا دوئل بزن و روی حدس قیمتت سکه شرط ببند.']];
+  const head1 = head(site, { title, description: desc, path: '/ages', nodes, crumbs });
+  const body = `
+<section class="band ad" id="adult"><div class="in adg" style="padding-top:64px;padding-bottom:64px">
+<div class="col rv l" style="gap:18px"><div class="adrow"><span class="adbadge">18+</span><span class="adk">صرافی بزرگ‌ترها</span></div>
+<h1>رده‌های سنی ${n}؛ <em>بزرگسال‌ها بازی کامل را دارند</em></h1>
+<p style="font-size:19px">${n} یک بازی قیمت و خاطره‌ی قدیمی است و برای هر سن یک فضا دارد. در رده‌ی بزرگسال همه‌چیز باز است: پازل کامل، دوئل زنده، حدس قیمت با شرط سکه و رقابت با هم‌سن‌وسال‌ها. بچه‌ها فضای ساده و امن خودشان را دارند.</p>
+<a class="brass" href="/download">همین حالا بازی کن</a></div>
+<div class="adart rv z">${banner('age-adult', bannerAlt('age-adult'), { eager: true })}</div></div></section>
+<section class="band ad" style="border-top:0"><div class="in col" style="gap:30px;padding-top:24px;padding-bottom:72px;position:relative"><h2 class="rv">در رده‌ی بزرگسال چه خبر است؟</h2>${metalCards()}
+<p class="rv" style="font-size:17px">حریف‌یابی، دوست و تورنومنت بزرگسال‌ها از رده‌های کودک و نوجوان جداست و هیچ محتوای کودک در حساب بزرگسال دیده نمی‌شود. اگر فرزندی داری می‌توانی با او پشت یک میز خانوادگی بنشینی.</p></div></section>
+<section class="in sec col" style="gap:28px"><h2 class="big rv">از کجا شروع کنم؟</h2>
+<ol class="steps">${steps.map(([t, d], k) => `<li class="rv" style="--d:${k * 0.12}s"><span class="num">${faNum(k + 1)}</span><h3>${escapeHtml(t)}</h3><p>${escapeHtml(d)}</p></li>`).join('')}</ol>
+<p style="text-align:center;margin:0"><a href="/download">دانلود و نصب رایگان</a></p></section>
+<section class="band yb"><div class="in col" style="gap:30px;padding-top:72px;padding-bottom:72px" id="kids"><h2 class="big rv">و برای بچه‌ها و نوجوان‌ها</h2><p class="rv" style="margin:0;font-weight:600;font-size:18px;text-align:center">فضای کودک و نوجوان همان برند و همان بازی است، با قانون‌های محتاط‌تر؛ رده‌ی ${n} کوچولو فقط داخل برنامه برای کودک‌ها نام دارد.</p>${kidTeenCards(site.name)}</div></section>
+<section class="in sec col" style="gap:24px"><h2 class="big rv">مقایسه‌ی سه رده</h2>
+<div class="cmpbox rv"><table class="cmp"><thead><tr><th scope="col"></th><th scope="col">کودک · تا ۱۱ سال</th><th scope="col">نوجوان · ۱۲ تا ۱۷</th><th scope="col" class="ad">بزرگسال · ۱۸+</th></tr></thead><tbody>${CMP_ROWS.map(([a, k, t, d]) => `<tr><th scope="row">${escapeHtml(a)}</th><td>${escapeHtml(k)}</td><td>${escapeHtml(t)}</td><td class="ad">${escapeHtml(d)}</td></tr>`).join('')}</tbody></table></div></section>
+<section class="band s"><div class="in col" style="gap:20px;padding-top:64px;padding-bottom:64px" id="parents"><h2 class="big rv">راهنمای والدین</h2>
+<ul class="rv" style="margin:0;font-weight:700;font-size:18px"><li>رده را خودت انتخاب می‌کنی؛ یک شماره‌ی تلفن می‌تواند چند فرزند را در یک حساب نگه دارد.</li><li>بچه‌ها بلافاصله و تکی بازی می‌کنند؛ دوست، میز و گفت‌وگو با تأیید والد باز می‌شود.</li><li>رفتن به رده‌ی بالاتر برای کودک و نوجوان فقط با تأیید والد ممکن است.</li><li>شرط‌بندی با سکه و خرید واقعی در فضای کودک و نوجوان وجود ندارد.</li><li>«پیش‌نمایش» فضای کودک و نوجوان را بدون ثبت پیشرفت و سکه ببین.</li></ul></div></section>
+<section class="in col" style="gap:24px;padding-top:72px;padding-bottom:72px"><h2 class="big rv">پرسش‌های رده‌ی سنی</h2>${faqList(AGE_FAQ)}</section>
+<section class="in col" style="gap:24px;padding-bottom:80px;align-items:center"><h2 class="big rv">دوزاری‌ات را بینداز</h2><a class="btn big yellow pulse" href="/download">دانلود ${n}</a></section>`;
+  return layout(site, head1, crumbs, body, { active: 'ages', wide: true });
 }
 
 /** The privacy policy (needed for the store listings). Facts only: what the app really stores, from `users` and the chat/ledger tables. */
