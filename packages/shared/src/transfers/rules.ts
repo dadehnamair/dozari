@@ -10,6 +10,8 @@ export interface TransferRules {
   loanMaxOpen: number;
   /** The sender must have redeemed an invite code (an activated account). */
   needsActivation: boolean;
+  /** Share of a gift burned by the house, percent (economy-v2 sink); absent = no fee. Loans never carry a fee. */
+  giftFeePercent?: number;
 }
 
 export type TransferBlock = 'OFF' | 'NOT_ACTIVATED' | 'LEVEL' | 'NOT_FRIENDS' | 'TOO_NEW' | 'AMOUNT' | 'CAP';

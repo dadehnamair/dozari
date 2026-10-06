@@ -3,6 +3,7 @@ export const ADMIN_VIEWS2_CONTENT_JS = String.raw`VIEWS.words = function (root) 
   var list = h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' });
   var word = h('input', { type: 'text', placeholder: 'کلمه…', maxlength: 100 });
   var sev = select([['block', 'مسدود (پیام ارسال نمی‌شود)'], ['mask', 'ستاره‌دار (کلمه با * جایگزین می‌شود)']], 'block');
+  var track = select([['all', 'همه‌ی رده‌ها'], ['kid_teen', 'فقط کودک و نوجوان (فهرست سخت‌گیرانه)']], 'all');
   var test = h('input', { type: 'text', placeholder: 'یک متن بنویس تا ببینی چه می‌شود' }), verdict = h('div');
   function draw() {
     api('/admin/words').then(function (r) {
@@ -12,15 +13,15 @@ export const ADMIN_VIEWS2_CONTENT_JS = String.raw`VIEWS.words = function (root) 
       if (!r.body.words.length) list.appendChild(empty('هنوز کلمه‌ای اضافه نشده؛ فیلتر تا وقتی کلمه‌ای نباشد چیزی را رد نمی‌کند.'));
       r.body.words.forEach(function (w) {
         list.appendChild(h('span', { class: 'chip', style: 'display:inline-flex;gap:6px;align-items:center' }, [
-          h('span', { text: w.word }), badge(w.severity === 'block' ? 'مسدود' : 'ستاره', w.severity === 'block' ? 'b-bad' : 'b-warn'),
+          h('span', { text: w.word }), badge(w.severity === 'block' ? 'مسدود' : 'ستاره', w.severity === 'block' ? 'b-bad' : 'b-warn'), w.track === 'kid_teen' ? badge('کودک/نوجوان', 'b-warn') : null,
           h('button', { class: 'btn sm', text: w.severity === 'block' ? 'ستاره‌دار' : 'مسدود', onclick: function () { api('/admin/words/' + w.id, { method: 'PATCH', body: { severity: w.severity === 'block' ? 'mask' : 'block' } }).then(function (x) { if (!x.ok) return fail(x); draw(); }); } }),
           h('button', { class: 'btn bad sm', text: 'حذف', onclick: function () { if (!confirm('این کلمه از فیلتر حذف شود؟')) return; api('/admin/words/' + w.id, { method: 'DELETE' }).then(function (x) { if (!x.ok) return fail(x); draw(); }); } })
         ]));
       });
     });
   }
-  root.appendChild(addCard('افزودن کلمه', 'املا و ریخت‌های مختلف (ی/ي، ک/ك، نیم‌فاصله، حروف تکراری، حروف جداشده) خودکار گرفته می‌شود؛ فقط خود کلمه را بنویس.', 'کلمه‌ی تازه', [['کلمه', word], ['شدت', sev]], function () {
-    return api('/admin/words', { method: 'POST', body: { word: word.value.trim(), severity: sev.value } }).then(function (x) { if (x.status === 409) { toast('این کلمه از قبل هست', true); return false; } if (!x.ok) { fail(x); return false; } toast('کلمه اضافه شد'); word.value = ''; draw(); return true; });
+  root.appendChild(addCard('افزودن کلمه', 'املا و ریخت‌های مختلف (ی/ي، ک/ك، نیم‌فاصله، حروف تکراری، حروف جداشده) خودکار گرفته می‌شود؛ فقط خود کلمه را بنویس.', 'کلمه‌ی تازه', [['کلمه', word], ['شدت', sev], ['برای چه کسانی', track]], function () {
+    return api('/admin/words', { method: 'POST', body: { word: word.value.trim(), severity: sev.value, track: track.value } }).then(function (x) { if (x.status === 409) { toast('این کلمه از قبل هست', true); return false; } if (!x.ok) { fail(x); return false; } toast('کلمه اضافه شد'); word.value = ''; draw(); return true; });
   }));
   root.appendChild(card('فهرست', 'روی همه‌ی متن‌هایی که بازیکن تایپ می‌کند (چت و ...) در سرور اجرا می‌شود', [list]));
   root.appendChild(card('آزمایش', 'متن آزمایشی ذخیره نمی‌شود', [h('div', { class: 'toolbar' }, [test, h('button', { class: 'btn', text: 'بررسی', onclick: function () {

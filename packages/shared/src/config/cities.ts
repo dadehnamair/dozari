@@ -1,7 +1,7 @@
 /**
  * Starting list of cities; the admin panel can add, rename and hide cities (table `cities`). Slugs are stable keys.
  * `province` keys `PROVINCES` (D101): Iranian cities point at their province, abroad cities at their own entry,
- * «شهر دیگر» at none. Each has a default slogan (D199) the admin can rewrite. Missing defaults are added to an existing table at startup, in this order.
+ * «شهر دیگر» at none. Each has a default slogan (D205) the admin can rewrite. Missing defaults are added to an existing table at startup, in this order.
  */
 export const DEFAULT_CITIES: readonly { slug: string; nameFa: string; province: string | null; sloganFa: string }[] = [
   { slug: 'tehran', nameFa: 'تهران', province: 'tehran', sloganFa: 'تهران، جایی که همه‌چیز گرون‌تر از دیروزه!' },

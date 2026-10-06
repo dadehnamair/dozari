@@ -1,0 +1,2 @@
+ALTER TABLE `shop_items` MODIFY COLUMN `effect` enum('hint_token','wheel_spin','cosmetic','streak_shield') NOT NULL;--> statement-breakpoint
+ALTER TABLE `user_inventory` MODIFY COLUMN `effect` enum('hint_token','wheel_spin','streak_shield') NOT NULL;

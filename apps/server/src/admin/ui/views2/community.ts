@@ -66,6 +66,12 @@ VIEWS.taunts = function (root) {
     sel.value = cur || '';
     return sel;
   }
+  var TRACKS = [['adult', 'بزرگسال'], ['teen', 'نوجوان'], ['kid', 'کودک']];
+  function trackSel(cur) {
+    var sel = h('select', {}, TRACKS.map(function (t) { return h('option', { value: t[0], text: 'کتابخانه‌ی ' + t[1] }); }));
+    sel.value = cur || 'adult';
+    return sel;
+  }
   function draw() {
     api('/admin/taunts').then(function (r) {
       clear(list);
@@ -83,8 +89,10 @@ VIEWS.taunts = function (root) {
         body.appendChild(h('div', { style: 'display:flex;gap:6px' }, [text, h('button', { class: 'btn primary sm', text: 'افزودن', onclick: function () { api('/admin/taunts', { method: 'POST', body: { categoryId: c.id, text: text.value.trim() } }).then(function (x) { if (!x.ok) return fail(x); draw(); }); } })]));
         var where = citySel(c.cityId);
         where.onchange = function () { api('/admin/taunt-categories/' + c.id, { method: 'PATCH', body: { cityId: where.value || null } }).then(function (x) { if (!x.ok) return fail(x); toast('ذخیره شد'); }); };
+        var who = trackSel(c.ageTrack);
+        who.onchange = function () { api('/admin/taunt-categories/' + c.id, { method: 'PATCH', body: { ageTrack: who.value } }).then(function (x) { if (!x.ok) return fail(x); toast('ذخیره شد'); }); };
         list.appendChild(h('div', { class: 'card', style: 'padding:12px' }, [
-          h('div', { style: 'display:flex;gap:8px;align-items:center' }, [name, where, c.isActive ? null : badge('پنهان', 'b-warn'),
+          h('div', { style: 'display:flex;gap:8px;align-items:center' }, [name, who, where, c.isActive ? null : badge('پنهان', 'b-warn'),
             h('button', { class: 'btn sm', text: 'تغییر نام', onclick: function () { api('/admin/taunt-categories/' + c.id, { method: 'PATCH', body: { nameFa: name.value.trim() } }).then(function (x) { if (!x.ok) return fail(x); toast('ذخیره شد'); draw(); }); } }),
             h('button', { class: 'btn sm', text: c.isActive ? 'پنهان‌کردن دسته' : 'نمایش دسته', onclick: function () { api('/admin/taunt-categories/' + c.id, { method: 'PATCH', body: { isActive: !c.isActive } }).then(function (x) { if (!x.ok) return fail(x); draw(); }); } })]),
           body]));
@@ -92,9 +100,9 @@ VIEWS.taunts = function (root) {
     });
   }
   var cat = h('input', { type: 'text', placeholder: 'نام دسته‌ی تازه', maxlength: 40 });
-  var newWhere = citySel('');
-  root.appendChild(card('کل‌کل‌های آماده', 'بازیکن‌ها در چت و در دوئل فقط از این فهرست کل‌کل می‌فرستند (بدون نیاز به کد معرف). لحن را شوخ نگه دار و توهین نکن. دسته‌ی مخصوص یک شهر (لهجه و اصطلاح محلی) فقط به بازیکن‌های همان شهر نشان داده می‌شود.', [list]));
-  root.appendChild(card('دسته‌ی تازه', null, [h('div', { class: 'toolbar' }, [cat, newWhere, h('button', { class: 'btn primary', text: 'افزودن', onclick: function () { api('/admin/taunt-categories', { method: 'POST', body: { nameFa: cat.value.trim(), cityId: newWhere.value || null } }).then(function (x) { if (!x.ok) return fail(x); cat.value = ''; draw(); }); } })])]));
+  var newWhere = citySel(''), newTrack = trackSel('adult');
+  root.appendChild(card('کل‌کل‌های آماده', 'بازیکن‌ها در چت و در دوئل فقط از این فهرست کل‌کل می‌فرستند (بدون نیاز به کد معرف). لحن را شوخ نگه دار و توهین نکن. دسته‌ی مخصوص یک شهر (لهجه و اصطلاح محلی) فقط به بازیکن‌های همان شهر نشان داده می‌شود. هر رده‌ی سنی کتابخانه‌ی خودش را دارد: کودک و نوجوان فقط دسته‌های رده‌ی خودشان را می‌بینند.', [list]));
+  root.appendChild(card('دسته‌ی تازه', null, [h('div', { class: 'toolbar' }, [cat, newTrack, newWhere, h('button', { class: 'btn primary', text: 'افزودن', onclick: function () { api('/admin/taunt-categories', { method: 'POST', body: { nameFa: cat.value.trim(), cityId: newWhere.value || null, ageTrack: newTrack.value } }).then(function (x) { if (!x.ok) return fail(x); cat.value = ''; draw(); }); } })])]));
   api('/admin/cities').then(function (r) {
     if (r.ok) { cities = r.body.cities; var cur = newWhere.value; var fresh = citySel(cur); newWhere.innerHTML = fresh.innerHTML; newWhere.value = cur; }
     draw();
@@ -102,21 +110,29 @@ VIEWS.taunts = function (root) {
 };
 VIEWS.chatreports = function (root) {
   var list = h('div');
+  var queue = select([['all', 'همه‌ی گزارش‌ها'], ['minors', 'صف کودک و نوجوان'], ['adults', 'صف بزرگسال']], 'all');
+  queue.onchange = function () { draw(); };
   function draw() {
-    api('/admin/chat/reports').then(function (r) {
+    api('/admin/chat/reports?queue=minors').then(function (m) {
+      // The kid/teen queue is for moderating roles only: others never see it, and its open count rides on the select.
+      queue.options[1].hidden = !(m.ok && m.body.minorsQueue);
+      if (m.ok && m.body.minorsQueue) queue.options[1].text = 'صف کودک و نوجوان (' + fa(m.body.reports.filter(function (x) { return !x.resolved; }).length) + ' باز)';
+      else if (queue.value !== 'adults') queue.value = 'all';
+    });
+    api('/admin/chat/reports?queue=' + queue.value).then(function (r) {
       clear(list);
       if (r.status === 404) return list.appendChild(empty('چت روی این سرور فعال نیست'));
       if (!r.ok) return fail(r);
       if (!r.body.reports.length) return list.appendChild(empty('گزارشی نیست'));
       r.body.reports.forEach(function (x) {
         list.appendChild(h('div', { class: 'kv' }, [
-          h('span', { text: x.messageText }), h('span', { style: 'color:var(--muted);font-size:12px', text: (x.reason || 'بدون دلیل') + ' · ' + ago(x.createdAt) }),
+          h('span', { text: x.messageText }), x.track === 'adult' ? null : badge(x.track === 'kid' ? 'کودک' : 'نوجوان', 'b-warn'), h('span', { style: 'color:var(--muted);font-size:12px', text: (x.reason || 'بدون دلیل') + ' · ' + ago(x.createdAt) }),
           x.resolved ? badge('بررسی شد', 'b-ok') : h('button', { class: 'btn sm', text: 'بررسی شد', onclick: function () { api('/admin/chat/reports/' + x.id + '/resolve', { method: 'POST' }).then(function (y) { if (!y.ok) return fail(y); draw(); }); } }),
           h('button', { class: 'btn bad sm', text: 'حذف پیام', onclick: function () { api('/admin/chat/messages/' + x.messageId, { method: 'DELETE' }).then(function (y) { if (y.status === 404) toast('پیام قبلاً حذف شده', true); else if (!y.ok) return fail(y); draw(); }); } })]));
       });
     });
   }
-  root.appendChild(card('گزارش‌های چت', 'پیام گزارش‌شده را ببین؛ حذف کن، یا از «کاربران» اخطار/سکوت بده.', [list]));
+  root.appendChild(card('گزارش‌های چت', 'پیام گزارش‌شده را ببین؛ حذف کن، یا از «کاربران» اخطار/سکوت بده. گزارش‌های چت کودک و نوجوان صف جدا دارند و فقط همان خط گزارش‌شده نمایش داده می‌شود.', [queue, list]));
   draw();
 };
 VIEWS.tournaments = function (root) {

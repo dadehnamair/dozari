@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ITEM_GROUPS, ITEMS, ITEM_ICON_KEYS, SAMPLE_ICONS } from '../index.js';
+import { ITEM_GROUPS, ITEMS, ITEM_ICON_KEYS, SAMPLE_ICONS, itemSvg } from '../index.js';
 
 /** Characters a path of the 64-grid pack may contain: commands, numbers, separators. */
 const PATH = /^[MmLlHhVvCcSsQqTtAaZz0-9.,\s-]+$/;
@@ -33,5 +33,12 @@ describe('icon pack', () => {
 
   it('maps every sample product to an icon that exists', () => {
     expect(Object.values(SAMPLE_ICONS).filter((k) => !(k in ITEMS))).toEqual([]);
+  });
+});
+
+describe('itemSvg', () => {
+  it('draws a standalone svg for every icon and falls back to the coin', () => {
+    for (const key of ITEM_ICON_KEYS) expect(itemSvg(key), key).toMatch(/^<svg [^>]*>.*<\/svg>$/);
+    expect(itemSvg('no-such-icon')).toBe(itemSvg('coin'));
   });
 });

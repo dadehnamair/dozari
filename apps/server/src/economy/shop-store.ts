@@ -1,11 +1,12 @@
 import { and, asc, eq, gte, ne, shopItems, shopPurchases, shopRealPurchases, sql, userBalances, userCosmetics, userGems, userInventory, wheelSpins } from '@dozari/db';
 import type { Db } from '@dozari/db';
+import { STREAK_SHIELD_MAX_HELD, STREAK_SHIELD_PRICE } from '@dozari/shared';
 import type { CosmeticSlot } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
 import { applyGemEntry } from './gems.js';
 import { applyLedgerEntry } from './ledger.js';
 
-export type ShopEffect = 'hint_token' | 'wheel_spin' | 'cosmetic';
+export type ShopEffect = 'hint_token' | 'wheel_spin' | 'cosmetic' | 'streak_shield';
 
 export interface ShopItemRow {
   id: string;
@@ -28,11 +29,13 @@ export interface ShopItemRow {
   iconKey: string | null;
   sortOrder: number;
   isActive: boolean;
+  /** In the daily rotating pool. */
+  rotating?: boolean;
 }
 
 export type NewShopItem = Omit<ShopItemRow, 'id' | 'sortOrder'>;
 
-export type PurchaseOutcome = { ok: true; balance: number; gems: number; tokens: number } | { ok: false; error: 'insufficient' | 'daily_limit' | 'unavailable' | 'owned' };
+export type PurchaseOutcome = { ok: true; balance: number; gems: number; tokens: number } | { ok: false; error: 'insufficient' | 'daily_limit' | 'unavailable' | 'owned' | 'max_held' };
 export type PaidOutcome = { ok: true; duplicate: boolean } | { ok: false; error: 'unavailable' | 'owned' };
 export type SpendOutcome = { ok: true; paidWith: 'coins' | 'token'; balance: number; tokens: number } | { ok: false; error: 'insufficient' };
 
@@ -42,7 +45,7 @@ export interface ShopStore {
   item(id: string): Promise<ShopItemRow | null>;
   addItem(item: NewShopItem): Promise<ShopItemRow>;
   updateItem(id: string, patch: Partial<NewShopItem> & { sortOrder?: number }): Promise<'ok' | 'not_found'>;
-  wallet(userId: string): Promise<{ balance: number; gems: number; tokens: number }>;
+  wallet(userId: string): Promise<{ balance: number; gems: number; tokens: number; shields?: number }>;
   /** Purchases of one item by this player since `sinceMs`. */
   boughtSince(userId: string, itemId: string, sinceMs: number): Promise<number>;
   /** Buys one item: checks balance and the daily limit, debits coins (`shop_purchase`) and grants the effect, all or nothing. */
@@ -60,6 +63,8 @@ export interface ShopStore {
 export const DEFAULT_SHOP_ITEMS: readonly NewShopItem[] = [
   { titleFa: 'یک راهنما', descriptionFa: 'یک بار راهنما گرفتن در بازی تکی، بدون پرداخت سکه در همان لحظه.', effect: 'hint_token', amount: 1, priceCoins: 20, currency: 'coins', priceGems: 0, minLevel: 2, perDayLimit: 0, slot: null, priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'magnifier', isActive: true },
   { titleFa: 'بسته‌ی پنج‌تایی راهنما', descriptionFa: 'پنج راهنما با تخفیف نسبت به خرید تکی.', effect: 'hint_token', amount: 5, priceCoins: 80, currency: 'coins', priceGems: 0, minLevel: 3, perDayLimit: 3, slot: null, priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'potion', isActive: true },
+  // Streak shield (economy-v2): saves the daily-reward streak across one missed day; at most STREAK_SHIELD_MAX_HELD held.
+  { titleFa: 'سپر استریک', descriptionFa: 'اگر یک روز جایزه‌ی روزانه را جا بیندازی، زنجیره‌ات نمی‌پرد.', effect: 'streak_shield', amount: 1, priceCoins: STREAK_SHIELD_PRICE, currency: 'coins', priceGems: 0, minLevel: 2, perDayLimit: 1, slot: null, priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'umbrella', isActive: true },
   // Higher tiers open further along the level road (docs/logic/progression.md §Level rewards).
   { titleFa: 'بسته‌ی ده‌تایی راهنما', descriptionFa: 'ده راهنما، ارزان‌تر از خرید جدا.', effect: 'hint_token', amount: 10, priceCoins: 150, currency: 'coins', priceGems: 0, minLevel: 10, perDayLimit: 3, slot: null, priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'magnifier', isActive: true },
   { titleFa: 'بسته‌ی بیست‌تایی راهنما', descriptionFa: 'بیست راهنما برای بازی‌های سخت‌تر.', effect: 'hint_token', amount: 20, priceCoins: 280, currency: 'coins', priceGems: 0, minLevel: 20, perDayLimit: 2, slot: null, priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'potion', isActive: true },
@@ -163,7 +168,8 @@ export function createDbShopStore(db: Db): ShopStore {
     async wallet(userId) {
       const [b] = await db.select({ balance: userBalances.balance }).from(userBalances).where(eq(userBalances.userId, userId));
       const [g] = await db.select({ balance: userGems.balance }).from(userGems).where(eq(userGems.userId, userId));
-      return { balance: b?.balance ?? 0, gems: g?.balance ?? 0, tokens: await tokensOf(db, userId) };
+      const [sh] = await db.select({ qty: userInventory.qty }).from(userInventory).where(and(eq(userInventory.userId, userId), eq(userInventory.effect, 'streak_shield')));
+      return { balance: b?.balance ?? 0, gems: g?.balance ?? 0, tokens: await tokensOf(db, userId), shields: sh?.qty ?? 0 };
     },
     async boughtSince(userId, itemId, sinceMs) {
       const [r] = await db
@@ -201,6 +207,10 @@ export function createDbShopStore(db: Db): ShopStore {
           // Wheel spins are rows of their own (one per spin), not a counter.
           for (let i = 0; i < item.amount; i++) await tx.insert(wheelSpins).values({ id: uuidv7(), userId, source: 'shop', ref: `${purchaseId}#${i}` });
         } else {
+          if (item.effect === 'streak_shield') {
+            const [held] = await tx.select({ qty: userInventory.qty }).from(userInventory).where(and(eq(userInventory.userId, userId), eq(userInventory.effect, 'streak_shield')));
+            if ((held?.qty ?? 0) + item.amount > STREAK_SHIELD_MAX_HELD) throw new MaxHeld();
+          }
           await tx.insert(userInventory).values({ userId, effect: item.effect, qty: item.amount }).onDuplicateKeyUpdate({ set: { qty: sql`${userInventory.qty} + ${item.amount}` } });
         }
         const [coinRow] = await tx.select({ balance: userBalances.balance }).from(userBalances).where(eq(userBalances.userId, userId));
@@ -209,6 +219,7 @@ export function createDbShopStore(db: Db): ShopStore {
       }).catch((e: unknown) => {
         if (e instanceof DailyLimit) return { ok: false, error: 'daily_limit' } as const;
         if (e instanceof Owned) return { ok: false, error: 'owned' } as const;
+        if (e instanceof MaxHeld) return { ok: false, error: 'max_held' } as const;
         throw e;
       });
     },
@@ -273,12 +284,14 @@ export function createDbShopStore(db: Db): ShopStore {
 
 class DailyLimit extends Error {}
 class Owned extends Error {}
+class MaxHeld extends Error {}
 
 /** Memory store for tests: a tiny ledger of balances, tokens and purchases, with the same rules. */
 export function createMemoryShopStore(seed: readonly NewShopItem[] = DEFAULT_SHOP_ITEMS): ShopStore & { give(userId: string, coins: number, tokens?: number, gems?: number): void; now: { ms: number }; ledger: { userId: string; delta: number; reason: string }[]; gemLedger: { userId: string; delta: number; reason: string }[] } {
   const rows: ShopItemRow[] = seed.map((s, i) => ({ ...s, id: `00000000-0000-7000-8000-${String(i + 1).padStart(12, '0')}`, sortOrder: i }));
   const balances = new Map<string, number>();
   const tokens = new Map<string, number>();
+  const shieldBal = new Map<string, number>();
   const gemBal = new Map<string, number>();
   const wardrobe = new Map<string, Map<string, boolean>>();
   const paidOrders = new Set<string>();
@@ -315,7 +328,7 @@ export function createMemoryShopStore(seed: readonly NewShopItem[] = DEFAULT_SHO
       return 'ok';
     },
     async wallet(userId) {
-      return { balance: balances.get(userId) ?? 0, gems: gemBal.get(userId) ?? 0, tokens: tokens.get(userId) ?? 0 };
+      return { balance: balances.get(userId) ?? 0, gems: gemBal.get(userId) ?? 0, tokens: tokens.get(userId) ?? 0, shields: shieldBal.get(userId) ?? 0 };
     },
     async boughtSince(userId, itemId, since) {
       return bought.filter((b) => b.userId === userId && b.itemId === itemId && b.at >= since).length;
@@ -325,6 +338,7 @@ export function createMemoryShopStore(seed: readonly NewShopItem[] = DEFAULT_SHO
       if (!item || !item.isActive) return { ok: false, error: 'unavailable' };
       if (item.perDayLimit > 0 && bought.filter((b) => b.userId === userId && b.itemId === itemId && b.at >= since).length >= item.perDayLimit) return { ok: false, error: 'daily_limit' };
       if (item.effect === 'cosmetic' && wardrobe.get(userId)?.has(item.id)) return { ok: false, error: 'owned' };
+      if (item.effect === 'streak_shield' && (shieldBal.get(userId) ?? 0) + item.amount > STREAK_SHIELD_MAX_HELD) return { ok: false, error: 'max_held' };
       if (item.currency === 'gems') {
         const g = gemBal.get(userId) ?? 0;
         if (g < item.priceGems) return { ok: false, error: 'insufficient' };
@@ -337,6 +351,7 @@ export function createMemoryShopStore(seed: readonly NewShopItem[] = DEFAULT_SHO
         ledger.push({ userId, delta: -item.priceCoins, reason: 'shop_purchase' });
       }
       if (item.effect === 'cosmetic') wardrobe.set(userId, (wardrobe.get(userId) ?? new Map()).set(item.id, false));
+      else if (item.effect === 'streak_shield') shieldBal.set(userId, (shieldBal.get(userId) ?? 0) + item.amount);
       else tokens.set(userId, (tokens.get(userId) ?? 0) + item.amount);
       bought.push({ userId, itemId, at: now.ms });
       return { ok: true, balance: balances.get(userId) ?? 0, gems: gemBal.get(userId) ?? 0, tokens: tokens.get(userId) ?? 0 };

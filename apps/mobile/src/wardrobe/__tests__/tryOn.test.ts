@@ -5,7 +5,7 @@ import { actionFor, cosmeticsOf, isTrying, previewWorn, shownIn, toggleTry } fro
 let n = 0;
 const item = (o: Partial<ShopItem>): ShopItem => ({
   id: `00000000-0000-4000-8000-${String(++n).padStart(12, '0')}`, titleFa: 'x', descriptionFa: '', effect: 'cosmetic', amount: 1, currency: 'coins', priceCoins: 100, priceGems: 0, priceToman: 0,
-  minLevel: 1, iconKey: 'crown', slot: 'hat', owned: false, equipped: false, blocked: null, leftToday: null, ...o,
+  minLevel: 1, iconKey: 'crown', slot: 'hat', owned: false, equipped: false, blocked: null, leftToday: null, rotating: false, ...o,
 });
 
 const crown = item({ iconKey: 'crown', slot: 'hat', owned: true, equipped: true });

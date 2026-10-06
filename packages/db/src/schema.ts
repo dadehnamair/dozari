@@ -17,7 +17,7 @@ import {
   varchar,
 } from 'drizzle-orm/mysql-core';
 import { COSMETIC_SLOTS } from '@dozari/shared/src/economy/slots';
-import { AGE_TRACKS } from '@dozari/shared/src/config/ageTracks';
+import { AGE_TRACKS, CHAT_MODES, FRIEND_APPROVALS, WORD_TRACKS } from '@dozari/shared/src/config/ageTracks';
 import { uuidv7 } from 'uuidv7';
 
 /**
@@ -111,6 +111,44 @@ export const guardianLinks = mysqlTable(
   }),
 );
 
+/** What a guardian chose for one child (docs/logic/age-tracks.md §Guardian panel). One row per child, made on the first save; no row = the open defaults. Plain columns, no JSON (D63). */
+export const guardianSettings = mysqlTable('guardian_settings', {
+  childId: fk('child_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  chatMode: mysqlEnum('chat_mode', CHAT_MODES).notNull().default('friends_text'),
+  friendApproval: mysqlEnum('friend_approval', FRIEND_APPROVALS).notNull().default('auto'),
+  duelsEnabled: boolean('duels_enabled').notNull().default(true),
+  /** Quiet hours as minutes from midnight (Tehran time); both null = none. A window may cross midnight. */
+  quietFrom: smallint('quiet_from'),
+  quietTo: smallint('quiet_to'),
+  /** Gentle «too much play» reminder after this many minutes in a day; null = off. */
+  reminderMinutes: smallint('reminder_minutes'),
+  updatedAt: datetime('updated_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+});
+
+/** A guardian blocked a player for one child: they cannot see, befriend or message each other (docs/logic/age-tracks.md §Guardian panel). */
+export const guardianBlocks = mysqlTable(
+  'guardian_blocks',
+  {
+    childId: fk('child_id').references(() => users.id, { onDelete: 'cascade' }),
+    blockedId: fk('blocked_id').references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.childId, table.blockedId] }) }),
+);
+
+/** Minutes a player was in the app per Tehran day (the guardian's play reminder and digest); filled by a once-a-minute heartbeat from the app. */
+export const playMinutes = mysqlTable(
+  'play_minutes',
+  {
+    userId: fk('user_id').references(() => users.id, { onDelete: 'cascade' }),
+    dayKey: char('day_key', { length: 10 }).notNull(),
+    minutes: smallint('minutes').notNull().default(0),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.userId, table.dayKey] }) }),
+);
+
 /** A short code a guardian shows so the child's device can sign in as the child: 6 digits, 10 minutes, one use. */
 export const guardianLinkCodes = mysqlTable('guardian_link_codes', {
   code: char('code', { length: 6 }).primaryKey(),
@@ -118,6 +156,19 @@ export const guardianLinkCodes = mysqlTable('guardian_link_codes', {
   guardianId: fk('guardian_id').references(() => users.id, { onDelete: 'cascade' }),
   expiresAt: datetime('expires_at', { mode: 'date', fsp: 3 }).notNull(),
 });
+
+/** Which word lessons a player has seen (the guardian's digest «چه چیزی یاد گرفت»): one row per player and item, with the first and last time and how often. */
+export const lessonViews = mysqlTable(
+  'lesson_views',
+  {
+    userId: fk('user_id').references(() => users.id, { onDelete: 'cascade' }),
+    productId: fk('product_id').references(() => products.id, { onDelete: 'cascade' }),
+    firstSeenAt: datetime('first_seen_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    lastSeenAt: datetime('last_seen_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    times: int('times').notNull().default(1),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.userId, table.productId] }), byUser: index('lesson_views_user_idx').on(table.userId, table.lastSeenAt) }),
+);
 
 /** Kid word lesson of an item (D198): the word, a one-line story and an optional syllable split. Only `approved` lessons are served. */
 export const itemLessons = mysqlTable('item_lessons', {
@@ -429,6 +480,8 @@ export const LEDGER_REASONS = [
   'level_reward',
   'profile_task',
   'birthday_gift',
+  'keepsake_piece',
+  'keepsake_upgrade',
 ] as const;
 
 /** Append-only. Coins move only through the server's ledger function; a repeated idempotency key is a no-op. */
@@ -458,7 +511,7 @@ export const userBalances = mysqlTable('user_balances', {
 });
 
 /** Why gems moved (docs/logic/economy.md §Gems, D164). */
-export const GEM_REASONS = ['admin_adjust', 'birthday_gift', 'wheel_prize', 'shop_purchase', 'tournament_entry', 'tournament_refund', 'tournament_prize', 'mission_reward'] as const;
+export const GEM_REASONS = ['admin_adjust', 'birthday_gift', 'wheel_prize', 'shop_purchase', 'tournament_entry', 'tournament_refund', 'tournament_prize', 'mission_reward', 'keepsake_reward'] as const;
 
 /** Cached gem balance per player; changed only together with a `gem_ledger` row. */
 export const userGems = mysqlTable('user_gems', {
@@ -571,7 +624,8 @@ export const friendships = mysqlTable(
   (table) => ({ pk: primaryKey({ columns: [table.userLow, table.userHigh] }), byHigh: index('friendships_high_idx').on(table.userHigh) }),
 );
 
-export const MESSAGE_AUDIENCES = ['all', 'bale_linked', 'user'] as const;
+/** `all` and `bale_linked` reach adults only; `kid` and `teen` are the deliberate, child-safe audiences (docs/logic/age-tracks.md §Admin panel). */
+export const MESSAGE_AUDIENCES = ['all', 'bale_linked', 'user', 'kid', 'teen'] as const;
 export const MESSAGE_CHANNELS = ['in_app', 'bale', 'sms', 'email', 'push'] as const;
 
 /** A message the admin sent from the message center (one row per send); `retractedAt` hides it from players' inboxes. */
@@ -642,6 +696,8 @@ export const blockedWords = mysqlTable(
     id: id(),
     word: varchar('word', { length: 100 }).notNull(),
     severity: mysqlEnum('severity', WORD_SEVERITIES).notNull().default('block'),
+    /** `kid_teen` words apply only to kid and teen readers (the stricter list, docs/logic/age-tracks.md). */
+    track: mysqlEnum('track', WORD_TRACKS).notNull().default('all'),
     createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
   },
   (table) => ({ uniqWord: uniqueIndex('blocked_words_word_uq').on(table.word) }),
@@ -804,9 +860,9 @@ export const userStats = mysqlTable('user_stats', {
 });
 
 /** What a shop item gives. `cosmetic` is a hat / clothing item the player keeps and wears (no stock). */
-export const SHOP_EFFECTS = ['hint_token', 'wheel_spin', 'cosmetic'] as const;
+export const SHOP_EFFECTS = ['hint_token', 'wheel_spin', 'cosmetic', 'streak_shield'] as const;
 /** Stockable effects of `user_inventory` (a cosmetic is owned in `user_cosmetics`, not counted). */
-export const INVENTORY_EFFECTS = ['hint_token', 'wheel_spin'] as const;
+export const INVENTORY_EFFECTS = ['hint_token', 'wheel_spin', 'streak_shield'] as const;
 
 /** Things a player can buy with coins (docs/logic/shop.md). Prices, level gates and daily limits are edited in the admin panel. */
 export const shopItems = mysqlTable(
@@ -834,6 +890,8 @@ export const shopItems = mysqlTable(
     iconKey: varchar('icon_key', { length: 30 }),
     sortOrder: int('sort_order').notNull().default(0),
     isActive: boolean('is_active').notNull().default(true),
+    /** Part of the daily rotating pool: only `shop.daily_slots` of the rotating items are on offer each Tehran day. */
+    rotating: boolean('rotating').notNull().default(false),
   },
   (table) => ({ bySort: index('shop_items_sort_idx').on(table.sortOrder) }),
 );
@@ -864,6 +922,82 @@ export const userCosmetics = mysqlTable(
     acquiredAt: datetime('acquired_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
   },
   (table) => ({ pk: primaryKey({ columns: [table.userId, table.itemId] }) }),
+);
+
+/** Keepsake rarity; a copy of `KEEPSAKE_RARITIES` in shared (drizzle-kit cannot load the shared ESM config), a server test keeps them equal. */
+export const KEEPSAKE_RARITY_VALUES = ['common', 'rare', 'epic', 'legendary'] as const;
+
+/** A group of keepsakes («مجموعه»): completing every active keepsake of it pays `reward_gems` once (docs/logic/economy-v2.md). */
+export const keepsakeSets = mysqlTable('keepsake_sets', {
+  id: id(),
+  titleFa: varchar('title_fa', { length: 120 }).notNull(),
+  rewardGems: int('reward_gems').notNull().default(10),
+  sortOrder: int('sort_order').notNull().default(0),
+  isActive: boolean('is_active').notNull().default(true),
+});
+
+/** One collectible product-in-an-era, bought piece by piece («یادگار»). The art is supplied by the owner's designer through `art_key`. */
+export const keepsakeDefs = mysqlTable(
+  'keepsake_defs',
+  {
+    id: id(),
+    /** The catalog product it is made from (its icon and story are the fallback); null = a free-standing keepsake. */
+    productId: char('product_id', { length: 36 }).references(() => products.id),
+    titleFa: varchar('title_fa', { length: 120 }).notNull(),
+    storyFa: text('story_fa').notNull(),
+    /** Solar Hijri year of the era it recalls. */
+    eraYear: int('era_year'),
+    rarity: mysqlEnum('rarity', KEEPSAKE_RARITY_VALUES).notNull().default('common'),
+    pieces: int('pieces').notNull().default(4),
+    artKey: varchar('art_key', { length: 60 }),
+    setId: char('set_id', { length: 36 }).references(() => keepsakeSets.id),
+    rewardGems: int('reward_gems').notNull().default(3),
+    sortOrder: int('sort_order').notNull().default(0),
+    isActive: boolean('is_active').notNull().default(true),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ bySet: index('keepsake_defs_set_idx').on(table.setId) }),
+);
+
+/** Pieces a player owns (one row per piece; a drop or a purchase is always a missing piece, so there are no duplicates). `ref` makes a grant idempotent. */
+export const userKeepsakePieces = mysqlTable(
+  'user_keepsake_pieces',
+  {
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    keepsakeId: char('keepsake_id', { length: 36 }).notNull().references(() => keepsakeDefs.id),
+    piece: int('piece').notNull(),
+    source: mysqlEnum('source', ['drop', 'shop', 'admin']).notNull(),
+    ref: varchar('ref', { length: 100 }).notNull(),
+    acquiredAt: datetime('acquired_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.userId, table.keepsakeId, table.piece] }),
+    refUnique: uniqueIndex('user_keepsake_pieces_ref_idx').on(table.userId, table.ref),
+  }),
+);
+
+/** A completed keepsake: its upgrade level (frame tier) and its place on the profile showcase (1..6, null = not pinned). */
+export const userKeepsakes = mysqlTable(
+  'user_keepsakes',
+  {
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    keepsakeId: char('keepsake_id', { length: 36 }).notNull().references(() => keepsakeDefs.id),
+    level: int('level').notNull().default(1),
+    showcaseSlot: int('showcase_slot'),
+    completedAt: datetime('completed_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.userId, table.keepsakeId] }) }),
+);
+
+/** A completed set, so its gem reward is paid once. */
+export const userKeepsakeSets = mysqlTable(
+  'user_keepsake_sets',
+  {
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    setId: char('set_id', { length: 36 }).notNull().references(() => keepsakeSets.id),
+    completedAt: datetime('completed_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.userId, table.setId] }) }),
 );
 
 /** Fixed coin packages sold for real money through a store (built, switched off by `feature.coin_packages`). */
@@ -1208,6 +1342,8 @@ export const tauntCategories = mysqlTable('taunt_categories', {
   cityId: char('city_id', { length: 36 }).references(() => cities.id, { onDelete: 'set null' }),
   sortOrder: int('sort_order').notNull().default(0),
   isActive: boolean('is_active').notNull().default(true),
+  /** The track whose players see the category: each track has its own taunt library (docs/logic/age-tracks.md). */
+  ageTrack: mysqlEnum('age_track', AGE_TRACKS).notNull().default('adult'),
 });
 
 export const cannedTaunts = mysqlTable(

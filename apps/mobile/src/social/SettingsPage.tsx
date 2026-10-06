@@ -42,7 +42,7 @@ interface Row {
  * cards of rows — switches that work on this device (sound, vibration, less motion), shortcuts (profile, city,
  * install) and the account (replay the tutorial, sign out, delete with a second tap).
  */
-export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone, ageTracksOn = false }: { onClose: () => void; onProfile: () => void; onTutorial?: () => void; onAccountGone?: () => void; /** The server's age-track switch: shows the guardian rows. */ ageTracksOn?: boolean }) {
+export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone, ageTracksOn = false, onPreview }: { onClose: () => void; /** A guardian opens a read-only preview of the kid or teen space. */ onPreview?: (track: 'kid' | 'teen') => void; onProfile: () => void; onTutorial?: () => void; onAccountGone?: () => void; /** The server's age-track switch: shows the guardian rows. */ ageTracksOn?: boolean }) {
   useHardwareBack(onClose);
   const prefs = usePrefs();
   const pwa = usePwa();
@@ -154,7 +154,7 @@ export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone, ag
       ) : null}
       {askDelete ? <DeleteAccountDialog onCancel={() => setAskDelete(false)} onDeleted={() => (setAskDelete(false), setNote(fa.account.deleteDone), onAccountGone?.())} /> : null}
       {loginOpen ? <PhoneLoginSheet onClose={() => setLoginOpen(false)} /> : null}
-      {childrenOpen ? <ChildrenSheet onClose={() => setChildrenOpen(false)} /> : null}
+      {childrenOpen ? <ChildrenSheet onClose={() => setChildrenOpen(false)} onPreview={onPreview ? (t) => (setChildrenOpen(false), onPreview(t)) : undefined} /> : null}
       {childCodeOpen ? <ChildCodeSheet onClose={() => setChildCodeOpen(false)} /> : null}
       {iosHelp ? <IosInstallSheet onClose={() => setIosHelp(false)} /> : null}
     </View>

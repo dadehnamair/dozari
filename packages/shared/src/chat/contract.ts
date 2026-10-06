@@ -40,7 +40,7 @@ export const tauntCategorySchema = z.object({
 export const tauntsSchema = z.object({ categories: z.array(tauntCategorySchema) });
 export type TauntCategory = z.infer<typeof tauntCategorySchema>;
 
-export const CHAT_ERRORS = ['NO_CITY', 'NEEDS_ACTIVATION', 'MUTED', 'RATE_LIMITED', 'CONTACT_BLOCKED', 'FILTERED', 'TOO_LONG', 'EMPTY', 'UNKNOWN_TAUNT', 'NOT_IN_MATCH', 'NOT_FOUND', 'NOT_FRIENDS', 'NOT_IN_TABLE', 'OFF'] as const;
+export const CHAT_ERRORS = ['NO_CITY', 'NEEDS_ACTIVATION', 'MUTED', 'RATE_LIMITED', 'CONTACT_BLOCKED', 'FILTERED', 'TOO_LONG', 'EMPTY', 'UNKNOWN_TAUNT', 'NOT_IN_MATCH', 'NOT_FOUND', 'NOT_FRIENDS', 'NOT_IN_TABLE', 'OFF', 'PHRASES_ONLY', 'NEEDS_GUARDIAN'] as const;
 export type ChatError = (typeof CHAT_ERRORS)[number];
 
 /** Socket `chat:taunt`: a canned taunt to the opponent of the current duel. */

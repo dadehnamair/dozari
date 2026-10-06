@@ -56,3 +56,12 @@ describe('arena helpers', () => {
     expect(endReason('lost', 'solved')).toBe(fa.duel.reasons.solved);
   });
 });
+
+describe('arenaTiers', () => {
+  it('lists bronze alone until silver or gold get a fee', async () => {
+    const { arenaTiers } = await import('../arena');
+    expect(arenaTiers({}).map((t) => t.id)).toEqual(['bronze']);
+    const t = arenaTiers({ 'duel.entry_fee': 20, 'duel.silver_fee': 100, 'duel.silver_min_level': 8, 'duel.gold_fee': 500, 'duel.gold_min_level': 15 });
+    expect(t.map((x) => [x.id, x.fee, x.prize, x.minLevel])).toEqual([['bronze', 20, 36, 1], ['silver', 100, 180, 8], ['gold', 500, 900, 15]]);
+  });
+});

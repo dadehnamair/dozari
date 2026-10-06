@@ -188,13 +188,13 @@ export class BotDriver {
     const matches = this.deps.matches();
     if (!s.enabled || !queue || !matches || this.roster.size === 0) return;
     const now = this.now();
-    for (const { userId, since } of queue.waiting()) {
+    for (const { userId, since, track, tier } of queue.waiting()) {
       if (now - since < (s.fallbackSec + jitterOf(userId, s.jitterSec)) * 1000) continue;
       const idle = [...this.roster.values()].filter((b) => !matches.inMatch(b.userId) && !queue.has(b.userId));
       const bot = idle[Math.floor(this.deps.rng() * idle.length)];
       if (!bot) return;
       queue.leave(userId);
-      if (!(await matches.start(userId, bot.userId))) queue.join(userId, since); // could not start: back in line, original place in time
+      if (!(await matches.start(userId, bot.userId, { tier }))) queue.join(userId, since, track, tier); // could not start: back in line, original place in time
     }
     await this.fillTeams(s, now);
   }

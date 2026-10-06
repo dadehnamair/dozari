@@ -31,6 +31,7 @@ import { useInbox } from '../inbox/useInbox';
 import { BaleSheet } from '../bale/BaleSheet';
 import { ShopSheet } from '../shop/ShopSheet';
 import { FittingRoom } from '../wardrobe/FittingRoom';
+import { TreasuryPage } from '../keepsake/TreasuryPage';
 import { WheelPage } from '../wheel/WheelPage';
 import { ChatSheet } from '../chat/ChatSheet';
 import { shareTable } from '../tables/api';
@@ -40,6 +41,7 @@ import { SlabButton } from '../components/SlabButton';
 import { AnimatedLogo } from '../components/AnimatedLogo';
 import { useDailyReward } from '../daily/useDailyReward';
 import { solarMonthOf, toPersianDigits } from '@dozari/shared';
+import type { ChildLimits, TrackRulesDto } from '@dozari/shared';
 import { ProvinceBadge } from '../components/ProvinceBadge';
 import type { IconName } from '../theme/icons';
 import { fa } from '../i18n/fa';
@@ -69,7 +71,7 @@ interface Tile {
  * speech bubble, corner tiles down both sides, the floating hero, and two big buttons at the bottom. Every feature
  * keeps its sheet; a tile only shows when its feature flag is on.
  */
-export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume, onTutorial, onLookup, onGallery, features = OPEN_CONFIG.features, settings = OPEN_CONFIG.raw }: { onSolo: () => void; onPriceOnly?: () => void; onDaily?: () => void; onDuel?: () => void; onDuelResume?: () => void; onTutorial?: () => void; onLookup: () => void; onGallery?: () => void; features?: ClientConfig['features']; settings?: ClientConfig['raw'] }) {
+export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume, onTutorial, onLookup, onGallery, features = OPEN_CONFIG.features, settings = OPEN_CONFIG.raw, myTrack, onPreview }: { onSolo: () => void; onPreview?: (track: 'kid' | 'teen') => void; onPriceOnly?: () => void; onDaily?: () => void; onDuel?: () => void; onDuelResume?: () => void; onTutorial?: () => void; onLookup: () => void; onGallery?: () => void; features?: ClientConfig['features']; settings?: ClientConfig['raw']; /** Track rules and the guardian's limits; absent = no restriction. */ myTrack?: { rules: TrackRulesDto | null; limits: ChildLimits | null } }) {
   const month = useMemo(() => solarMonthOf(Date.now()), []);
   /** Short phones (≤700px tall) get tighter columns and a smaller hero so nothing runs into the bottom buttons. */
   const compact = useWindowDimensions().height <= 700;
@@ -81,6 +83,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
   const [baleOpen, setBaleOpen] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
   const [wardrobeOpen, setWardrobeOpen] = useState(false);
+  const [treasuryOpen, setTreasuryOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [tournamentOpen, setTournamentOpen] = useState(false);
   const [tableOpen, setTableOpen] = useState(false);
@@ -145,8 +148,8 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
   const right: Tile[] = [
     { key: 'missions', icon: 'target' as const, label: h.missions, color: colors.candy.lime, badge: missionsReady > 0 ? toPersianDigits(String(missionsReady)) : undefined, badgeColor: colors.candy.pink, onPress: () => setMissionsOpen(true) },
     ...(daily.status ? [{ key: 'daily', icon: 'calendar' as const, label: h.daily, color: colors.candy.yellow, badge: daily.status.canClaim ? '!' : undefined, glow: daily.status.canClaim, onPress: () => setDailyOpen(true) }] : []),
-    ...(features.tables ? [{ key: 'tables', icon: 'users' as const, label: h.tables, color: colors.candy.sky, onPress: () => setTableOpen(true) }] : []),
-    ...(features.tournament ? [{ key: 'tour', icon: 'trophy' as const, label: h.tournaments, color: colors.candy.orange, onPress: () => setTournamentOpen(true) }] : []),
+    ...(features.tables && myTrack?.limits?.duelsEnabled !== false ? [{ key: 'tables', icon: 'users' as const, label: h.tables, color: colors.candy.sky, onPress: () => setTableOpen(true) }] : []),
+    ...(features.tournament && myTrack?.rules?.tournaments !== false ? [{ key: 'tour', icon: 'trophy' as const, label: h.tournaments, color: colors.candy.orange, onPress: () => setTournamentOpen(true) }] : []),
     ...(features.friends ? [{ key: 'board', icon: 'crown' as const, label: h.leaderboard, color: colors.candy.pink, onPress: () => setBoardOpen(true) }] : []),
     ...(features.lookup ? [{ key: 'lookup', icon: 'search' as const, label: h.lookup, color: colors.candy.grape, onPress: onLookup }] : []),
     ...(onGallery ? [{ key: 'kit', icon: 'star' as const, label: h.gallery, color: colors.candy.lime, onPress: onGallery }] : []),
@@ -154,9 +157,11 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
   const left: Tile[] = [
     ...(features.friends ? [{ key: 'settings', icon: 'settings' as const, label: h.settings, color: colors.candy.grape, onPress: () => setSettingsOpen(true) }] : []),
     ...(features.inbox ? [{ key: 'inbox', icon: 'mail' as const, label: h.messages, color: colors.candy.pink, badge: unread > 0 ? toPersianDigits(String(unread)) : undefined, badgeColor: colors.candy.lime, onPress: () => (inbox.reload(), setInboxOpen(true)) }] : []),
-    ...(features.chat ? [{ key: 'chat', icon: 'chat' as const, label: h.chat, color: colors.candy.sky, onPress: () => setChatOpen(true) }] : []),
+    // A kid/teen has no public chat room: the entry is simply not drawn (their friends' chat lives with the friends).
+    ...(features.chat && myTrack?.rules?.freeTextChat !== 'guardian_switch' ? [{ key: 'chat', icon: 'chat' as const, label: h.chat, color: colors.candy.sky, onPress: () => setChatOpen(true) }] : []),
     ...(features.shop ? [{ key: 'shop', icon: 'gift' as const, label: h.shop, color: colors.candy.lime, onPress: () => setShopOpen(true) }] : []),
     ...(features.shop ? [{ key: 'wardrobe', icon: 'shirt' as const, label: h.wardrobe, color: colors.candy.pink, onPress: () => setWardrobeOpen(true) }] : []),
+    ...(features.shop ? [{ key: 'treasury', icon: 'puzzle' as const, label: h.treasury, color: colors.candy.yellow, onPress: () => setTreasuryOpen(true) }] : []),
     ...(features.bale ? [{ key: 'bale', icon: 'bolt' as const, label: h.bale, color: colors.candy.orange, onPress: () => setBaleOpen(true) }] : []),
   ];
 
@@ -260,14 +265,15 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
       ) : null}
       {schoolOpen ? <SchoolSheet onClose={() => setSchoolOpen(false)} /> : null}
       {boardOpen ? <LeaderboardPage onClose={() => setBoardOpen(false)} /> : null}
-      {settingsOpen ? <SettingsPage onClose={() => (setSettingsOpen(false), loadTasks())} onProfile={() => (setSettingsOpen(false), setProfileOpen(true))} onTutorial={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} onAccountGone={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} ageTracksOn={settings['feature.age_tracks'] === 1} /> : null}
+      {settingsOpen ? <SettingsPage onClose={() => (setSettingsOpen(false), loadTasks())} onProfile={() => (setSettingsOpen(false), setProfileOpen(true))} onTutorial={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} onAccountGone={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} ageTracksOn={settings['feature.age_tracks'] === 1} onPreview={onPreview ? (t) => (setSettingsOpen(false), onPreview(t)) : undefined} /> : null}
       {ledgerOpen ? <LedgerSheet onClose={() => setLedgerOpen(false)} /> : null}
       {inboxOpen ? <InboxSheet inbox={inbox.inbox} failed={inbox.failed} onRead={inbox.markRead} onReadAll={inbox.markAll} onClose={() => setInboxOpen(false)} /> : null}
       {tableOpen ? <TableSheet initialCode={tableCode} onMatch={onDuelResume ? () => (setTableOpen(false), onDuelResume()) : undefined} onClose={() => (setTableOpen(false), setTableCode(undefined))} onShare={() => shareTable()} /> : null}
       {tournamentOpen ? <TournamentSheet onClose={() => setTournamentOpen(false)} invite={sponsorInvite} /> : null}
       {chatOpen ? <ChatSheet onClose={() => setChatOpen(false)} onJoinTable={(code) => (setChatOpen(false), setTableCode(code), setTableOpen(true))} /> : null}
-      {shopOpen ? <ShopSheet realMoney={Number(settings['feature.coin_packages']) === 1} onClose={() => { setShopOpen(false); daily.reload(); }} /> : null}
-      {wardrobeOpen ? <FittingRoom who={heroFor(gender)} realMoney={Number(settings['feature.coin_packages']) === 1} onClose={() => (setWardrobeOpen(false), loadWorn(), daily.reload())} /> : null}
+      {shopOpen ? <ShopSheet realMoney={Number(settings['feature.coin_packages']) === 1 && myTrack?.rules?.purchases !== false} onClose={() => { setShopOpen(false); daily.reload(); }} /> : null}
+      {treasuryOpen ? <TreasuryPage onClose={() => (setTreasuryOpen(false), daily.reload())} /> : null}
+      {wardrobeOpen ? <FittingRoom who={heroFor(gender)} realMoney={Number(settings['feature.coin_packages']) === 1 && myTrack?.rules?.purchases !== false} onClose={() => (setWardrobeOpen(false), loadWorn(), daily.reload())} /> : null}
       {wheelOpen ? <WheelPage onClose={() => (setWheelOpen(false), loadSpins(), daily.reload())} /> : null}
       {missionsOpen ? (
         <MissionsSheet

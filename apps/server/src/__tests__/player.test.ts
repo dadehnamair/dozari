@@ -33,7 +33,7 @@ function memoryUsers(onCreate: (u: UserRecord) => void): UserRepository {
 }
 
 const wordStore = (words: string[]): WordStore => {
-  const rows: WordRow[] = words.map((w, i) => ({ id: String(i), word: w, key: w, severity: 'block' }));
+  const rows: WordRow[] = words.map((w, i) => ({ id: String(i), word: w, key: w, severity: 'block', track: 'all' }));
   return { list: async () => rows, add: async () => 'duplicate', setSeverity: async () => 'ok', remove: async () => 'ok' } as unknown as WordStore;
 };
 

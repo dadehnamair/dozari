@@ -1,4 +1,4 @@
-import { asc, dailyRewardSteps, eq, userBalances, userDailyRewards } from '@dozari/db';
+import { and, asc, dailyRewardSteps, eq, sql, userBalances, userDailyRewards, userInventory } from '@dozari/db';
 import type { Db } from '@dozari/db';
 import type { DailyRewardState } from '@dozari/shared';
 import { decideClaim } from './daily-reward.js';
@@ -23,7 +23,8 @@ export function createDbDailyRewardStore(db: Db): DailyRewardStore {
       const [row] = await db.select().from(userDailyRewards).where(eq(userDailyRewards.userId, userId)).limit(1);
       const [bal] = await db.select({ balance: userBalances.balance }).from(userBalances).where(eq(userBalances.userId, userId)).limit(1);
       const state: DailyRewardState = row ? { lastClaimedAt: row.lastClaimedAt.getTime(), streakDay: row.streakDay } : { lastClaimedAt: null, streakDay: 0 };
-      return { state, balance: bal?.balance ?? 0 };
+      const [inv] = await db.select({ qty: userInventory.qty }).from(userInventory).where(and(eq(userInventory.userId, userId), eq(userInventory.effect, 'streak_shield')));
+      return { state, balance: bal?.balance ?? 0, shields: inv?.qty ?? 0 };
     },
 
     async claim(userId, now, steps, rules): Promise<ClaimResult> {
@@ -34,7 +35,8 @@ export function createDbDailyRewardStore(db: Db): DailyRewardStore {
         if (!row) throw new Error('daily reward row missing');
         const state: DailyRewardState = row.claimsTotal === 0 ? { lastClaimedAt: null, streakDay: 0 } : { lastClaimedAt: row.lastClaimedAt.getTime(), streakDay: row.streakDay };
 
-        const d = decideClaim(state, steps, now, rules);
+        const [inv] = await tx.select({ qty: userInventory.qty }).from(userInventory).where(and(eq(userInventory.userId, userId), eq(userInventory.effect, 'streak_shield'))).for('update');
+        const d = decideClaim(state, steps, now, rules, inv?.qty ?? 0);
         if (d.kind === 'disabled') return { ok: false, error: 'DISABLED' };
         if (d.kind === 'wait') return { ok: false, error: 'TOO_EARLY', nextClaimAt: d.nextClaimAt };
 
@@ -52,7 +54,8 @@ export function createDbDailyRewardStore(db: Db): DailyRewardStore {
           .update(userDailyRewards)
           .set({ lastClaimedAt: new Date(now), streakDay: d.next.streakDay, claimsTotal: claimNo })
           .where(eq(userDailyRewards.userId, userId));
-        return { ok: true, day: d.day, coins: d.coins, balance: ledger.balance, nextClaimAt: d.nextClaimAt };
+        if (d.shield) await tx.update(userInventory).set({ qty: sql`${userInventory.qty} - 1` }).where(and(eq(userInventory.userId, userId), eq(userInventory.effect, 'streak_shield')));
+        return { ok: true, day: d.day, coins: d.coins, balance: ledger.balance, nextClaimAt: d.nextClaimAt, ...(d.shield ? { shieldUsed: true } : {}) };
       });
     },
   };

@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "325a0e71-fa4e-4aa1-8a69-202bf6accfb1",
+  "id": "e6348861-e070-4f3e-93be-72c0759e0caa",
   "prevId": "fff98169-b2df-43b0-b78c-fd2a3f3a18b6",
   "tables": {
     "account_delete_codes": {
@@ -783,6 +783,14 @@
           "autoincrement": false,
           "default": "'block'"
         },
+        "track": {
+          "name": "track",
+          "type": "enum('all','kid_teen')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'all'"
+        },
         "created_at": {
           "name": "created_at",
           "type": "datetime(3)",
@@ -1350,20 +1358,6 @@
         "province": {
           "name": "province",
           "type": "varchar(24)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "souvenir_fa": {
-          "name": "souvenir_fa",
-          "type": "varchar(60)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "slogan_fa": {
-          "name": "slogan_fa",
-          "type": "varchar(120)",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -5551,6 +5545,14 @@
           "notNull": true,
           "autoincrement": false,
           "default": true
+        },
+        "age_track": {
+          "name": "age_track",
+          "type": "enum('kid','teen','adult')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'adult'"
         }
       },
       "indexes": {},
