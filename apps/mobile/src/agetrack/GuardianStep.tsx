@@ -7,7 +7,7 @@ import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
 import { confirmGuardian, requestGuardianCode } from './guardianApi';
 
-const INK = '#2B1240';
+const INK = colors.ink;
 const l = fa.guardian;
 const textOf = (e: unknown): string => l.errors[e instanceof ApiError ? e.code : 'generic'] ?? l.errors.generic ?? '';
 

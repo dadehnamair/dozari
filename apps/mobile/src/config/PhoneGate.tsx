@@ -60,9 +60,9 @@ export function PhoneGate({ kind, address, download, onContinue }: { kind: Exclu
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 
 const styles = StyleSheet.create({
-  root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 200, backgroundColor: '#2B1240' },
+  root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 200, backgroundColor: colors.ink },
   scroll: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: 20 },
-  card: { width: '100%', maxWidth: 440, alignItems: 'center', gap: 12, padding: 22, borderRadius: 26, borderWidth: 4, borderColor: colors.ink, backgroundColor: '#FFF6E8' },
+  card: { width: '100%', maxWidth: 440, alignItems: 'center', gap: 12, padding: 22, borderRadius: 26, borderWidth: 4, borderColor: colors.ink, backgroundColor: colors.cream },
   hero: { width: 150, height: 164 },
   title: { fontFamily: fonts.display, fontSize: 30, color: colors.ink, textAlign: 'center' },
   bubble: { alignSelf: 'stretch', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 20, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#FFE9B0' },

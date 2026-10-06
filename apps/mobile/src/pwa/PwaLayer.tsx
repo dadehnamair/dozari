@@ -79,7 +79,7 @@ const lift = { shadowColor: colors.ink, shadowOffset: { width: 0, height: 4 }, s
 const styles = StyleSheet.create({
   offline: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 60, paddingVertical: 5, paddingHorizontal: 12, backgroundColor: colors.candy.pink, borderBottomWidth: 3, borderColor: colors.ink },
   offlineText: { fontFamily: fonts.bold, fontSize: 12, color: '#fff', textAlign: 'center', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 1 },
-  bar: { position: 'absolute', left: 12, right: 12, bottom: 128, zIndex: 40, maxWidth: 496, alignSelf: 'center', flexDirection: ROW, alignItems: 'center', gap: 8, padding: 10, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#FBF1DE', ...lift },
+  bar: { position: 'absolute', left: 12, right: 12, bottom: 128, zIndex: 40, maxWidth: 496, alignSelf: 'center', flexDirection: ROW, alignItems: 'center', gap: 8, padding: 10, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.paper, ...lift },
   updateBar: { backgroundColor: '#FFE48A' },
   barText: { flex: 1, fontFamily: fonts.bold, fontSize: 13, color: colors.ink, textAlign: TEXT_RIGHT },
   icon: { width: 40, height: 40 },
@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
   ctaText: { fontFamily: fonts.display, fontSize: 15, color: colors.ink },
   later: { fontFamily: fonts.bold, fontSize: 11, color: '#7E46D6' },
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 70, backgroundColor: 'rgba(20,8,32,0.55)', alignItems: 'center', justifyContent: 'center', padding: 24 },
-  sheet: { width: '100%', maxWidth: 360, gap: 10, padding: 16, borderRadius: 24, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#FBF1DE', ...lift },
+  sheet: { width: '100%', maxWidth: 360, gap: 10, padding: 16, borderRadius: 24, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.paper, ...lift },
   sheetTitle: { fontFamily: fonts.display, fontSize: 20, color: colors.ink, textAlign: 'center' },
   step: { flexDirection: ROW, alignItems: 'center', gap: 8 },
   num: { width: 28, height: 28, borderRadius: 14, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.candy.yellow, alignItems: 'center', justifyContent: 'center' },

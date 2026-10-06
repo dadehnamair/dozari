@@ -47,7 +47,7 @@ export const formStyles = StyleSheet.create({
 
 const styles = StyleSheet.create({
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 60, backgroundColor: 'rgba(26,8,44,0.6)', alignItems: 'center', justifyContent: 'center', padding: 16 },
-  card: { width: '100%', maxWidth: 400, maxHeight: '92%', padding: 16, borderRadius: 22, borderWidth: 4, borderColor: colors.ink, backgroundColor: '#FFF6E8', gap: 8 },
+  card: { width: '100%', maxWidth: 400, maxHeight: '92%', padding: 16, borderRadius: 22, borderWidth: 4, borderColor: colors.ink, backgroundColor: colors.cream, gap: 8 },
   title: { fontFamily: fonts.display, fontSize: 22, color: colors.ink, textAlign: 'center' },
   scroll: { flexGrow: 0 },
   body: { gap: 10, paddingRight: 6 },

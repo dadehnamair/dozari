@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
   tierChipOn: { backgroundColor: colors.candy.yellow },
   tierText: { fontFamily: fonts.bold, fontSize: 14, color: colors.ink },
   tierSub: { fontFamily: fonts.body, fontSize: 11, color: colors.ink },
-  root: { flex: 1, backgroundColor: '#3C1A66' },
+  root: { flex: 1, backgroundColor: colors.deep },
   shade: { backgroundColor: 'rgba(43,18,64,0.5)' },
   scrollTight: { paddingTop: 8 + nativeTopInset(), paddingBottom: 10 },
   columnTight: { gap: 8 },

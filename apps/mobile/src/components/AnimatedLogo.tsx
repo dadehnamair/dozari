@@ -60,9 +60,9 @@ function WordmarkText({ width }: { width: number }) {
   const base = { fontFamily: fonts.display, fontSize: fs, lineHeight: line, textAlign: 'center' as const };
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      <Text style={[box, base, { color: '#2B1240', top: box.top + r * 0.9 }]}>{fa.home.title}</Text>
+      <Text style={[box, base, { color: colors.ink, top: box.top + r * 0.9 }]}>{fa.home.title}</Text>
       {RING.map(([dx, dy], i) => (
-        <Text key={i} style={[box, base, { color: '#2B1240', left: box.left + dx * r, top: box.top + dy * r }]}>{fa.home.title}</Text>
+        <Text key={i} style={[box, base, { color: colors.ink, left: box.left + dx * r, top: box.top + dy * r }]}>{fa.home.title}</Text>
       ))}
       <Text style={[box, base, { color: '#FFC93C' }]}>{fa.home.title}</Text>
     </View>

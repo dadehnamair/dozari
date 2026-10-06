@@ -69,7 +69,7 @@ export function LevelRoadPage({ onClose }: { onClose: () => void }) {
 
   return (
     <View style={styles.root}>
-      <View style={styles.sky} pointerEvents="none"><GradientFill from="#5E1F7E" to="#2B1240" mid={{ at: 0.5, color: '#3C1A66' }} /></View>
+      <View style={styles.sky} pointerEvents="none"><GradientFill from="#5E1F7E" to={colors.ink} mid={{ at: 0.5, color: colors.deep }} /></View>
       <View style={styles.column}>
         <View style={styles.head}>
           <Pressable accessibilityRole="button" accessibilityLabel={fa.levels.close} onPress={onClose}>
@@ -128,7 +128,7 @@ function RoadCanvas({ road, nodes, width, onLocked, onClaim }: { road: LevelRoad
       ))}
       <Svg width={width} height={lay.height} style={StyleSheet.absoluteFill}>
         <G transform="translate(0 8)"><Path d={lay.pathD} fill="none" stroke="rgba(0,0,0,0.25)" strokeWidth={54} strokeLinecap="round" /></G>
-        <Path d={lay.pathD} fill="none" stroke="#2B1240" strokeWidth={54} strokeLinecap="round" />
+        <Path d={lay.pathD} fill="none" stroke={colors.ink} strokeWidth={54} strokeLinecap="round" />
         <Path d={lay.pathD} fill="none" stroke="#C9A06A" strokeWidth={44} strokeLinecap="round" />
         <Path d={lay.pathD} fill="none" stroke="#F6E2C2" strokeWidth={34} strokeLinecap="round" />
         {road.level > 1 ? (
@@ -266,7 +266,7 @@ function LockedPopup({ road, unlock, onClose }: { road: LevelRoad; unlock: Unloc
 const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0, height: h }, shadowOpacity: 1, shadowRadius: 0, elevation: h });
 
 const styles = StyleSheet.create({
-  root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20, backgroundColor: '#3C1A66' },
+  root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20, backgroundColor: colors.deep },
   sky: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   column: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingTop: pageTop() },
   head: { flexDirection: ROW, alignItems: 'center', gap: 8, paddingHorizontal: 12, marginBottom: 8 },
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
   youTag: { position: 'absolute', width: 90, textAlign: 'center', zIndex: 3, fontFamily: fonts.display, fontSize: 12, color: colors.ink, backgroundColor: colors.candy.yellow, borderWidth: 2, borderColor: colors.ink, borderRadius: 8, overflow: 'hidden' },
   more: { fontFamily: fonts.display, fontSize: 12, color: colors.cream, textAlign: 'center' },
   cards: { gap: 4 },
-  card: { flexDirection: ROW, alignItems: 'center', gap: 6, paddingVertical: 4, paddingHorizontal: 5, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#FBF1DE', ...lift(4) },
+  card: { flexDirection: ROW, alignItems: 'center', gap: 6, paddingVertical: 4, paddingHorizontal: 5, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.paper, ...lift(4) },
   cardDim: { backgroundColor: '#D7C9EC', opacity: 0.92 },
   cardIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   cardIconInner: { width: 30, height: 30 },
@@ -312,8 +312,8 @@ const styles = StyleSheet.create({
   gotIcon: { width: 130, height: 130 },
   gotText: { fontFamily: fonts.display, fontSize: 28, color: colors.candy.yellow, textAlign: 'center' },
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 30, backgroundColor: 'rgba(26,8,44,0.72)', alignItems: 'center', paddingTop: 90, paddingHorizontal: 18 },
-  popup: { width: '100%', maxWidth: 380, borderRadius: 28, borderWidth: 4, borderColor: colors.ink, backgroundColor: '#FBF1DE', alignItems: 'center', paddingHorizontal: 14, paddingBottom: 14, gap: 8, ...lift(8) },
-  popIcon: { marginTop: -30, width: 100, height: 100, borderRadius: 50, borderWidth: 4, borderColor: colors.ink, backgroundColor: '#3C1A66', alignItems: 'center', justifyContent: 'center' },
+  popup: { width: '100%', maxWidth: 380, borderRadius: 28, borderWidth: 4, borderColor: colors.ink, backgroundColor: colors.paper, alignItems: 'center', paddingHorizontal: 14, paddingBottom: 14, gap: 8, ...lift(8) },
+  popIcon: { marginTop: -30, width: 100, height: 100, borderRadius: 50, borderWidth: 4, borderColor: colors.ink, backgroundColor: colors.deep, alignItems: 'center', justifyContent: 'center' },
   popIconInner: { width: 70, height: 70 },
   popLock: { position: 'absolute', bottom: -6, left: -6, width: 48, height: 48 },
   popTitle: { fontFamily: fonts.display, fontSize: 26, color: colors.ink, textAlign: 'center' },

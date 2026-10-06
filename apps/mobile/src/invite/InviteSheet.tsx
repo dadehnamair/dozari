@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
   flip: { transform: [{ scaleX: -1 }] },
   headline: { fontFamily: fonts.display, fontSize: 26, color: '#fff', textAlign: 'center', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 3 }, textShadowRadius: 1 },
   sub: { fontFamily: fonts.bold, fontSize: 12, color: colors.cream, textAlign: 'center' },
-  card: { marginTop: 6, padding: 12, borderRadius: 22, backgroundColor: '#FBF1DE', borderWidth: 3, borderColor: colors.ink, gap: 8, ...lift(5) },
+  card: { marginTop: 6, padding: 12, borderRadius: 22, backgroundColor: colors.paper, borderWidth: 3, borderColor: colors.ink, gap: 8, ...lift(5) },
   label: { fontFamily: fonts.bold, fontSize: 12, color: '#7E46D6', textAlign: TEXT_RIGHT },
   codeRow: { flexDirection: ROW, gap: 6 },
   codeBox: { flex: 1, height: 52, borderRadius: 14, borderWidth: 3, borderStyle: 'dashed', borderColor: colors.ink, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },

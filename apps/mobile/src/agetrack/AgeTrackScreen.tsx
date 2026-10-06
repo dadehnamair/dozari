@@ -11,7 +11,7 @@ import { saveAgeTrack } from './api';
 import { GuardianStep } from './GuardianStep';
 import { forgetTrackRules } from './useTrackRules';
 
-const INK = '#2B1240';
+const INK = colors.ink;
 
 /**
  * First-run «who is playing?» screen (docs/logic/age-tracks.md): three big cards on the same bazaar-at-dusk look as the sign-in screen.
@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
   // Centring wrapper: `alignSelf` does nothing on an absolute box (the card stuck to the left on wide screens).
   cardWrap: { position: 'absolute', left: 14, right: 14, bottom: 26, alignItems: 'center' },
   cardWrapTight: { bottom: 12 },
-  card: { width: '100%', maxWidth: 420, padding: 14, paddingTop: 16, gap: 12, borderRadius: 26, borderWidth: 4, borderColor: INK, backgroundColor: '#FBF1DE' },
+  card: { width: '100%', maxWidth: 420, padding: 14, paddingTop: 16, gap: 12, borderRadius: 26, borderWidth: 4, borderColor: INK, backgroundColor: colors.paper },
   cardTight: { gap: 8, padding: 12 },
   row: { gap: 4 },
   hint: { fontFamily: fonts.body, fontSize: 13, color: '#5B4A70', textAlign: 'center' },

@@ -1,7 +1,7 @@
 import { useId } from 'react';
 import Svg, { Defs, LinearGradient, Stop, Text as SvgText } from 'react-native-svg';
 import { fa } from '../i18n/fa';
-import { fonts } from '../theme/colors';
+import { fonts, colors } from '../theme/colors';
 
 /** «دوزاری» wordmark: gold gradient letters over a thick ink outline, as on the kit's splash screen. */
 export function Wordmark({
@@ -44,8 +44,8 @@ export function Wordmark({
         textAnchor="middle"
         fontFamily={fonts.display}
         fontSize={168}
-        fill="#2B1240"
-        stroke="#2B1240"
+        fill={colors.ink}
+        stroke={colors.ink}
         strokeWidth={26}
         strokeLinejoin="round"
       >
@@ -57,8 +57,8 @@ export function Wordmark({
         textAnchor="middle"
         fontFamily={fonts.display}
         fontSize={168}
-        fill="#2B1240"
-        stroke="#2B1240"
+        fill={colors.ink}
+        stroke={colors.ink}
         strokeWidth={14}
         strokeLinejoin="round"
       >
