@@ -13,7 +13,7 @@ sidebar and tabs.
 |---|---|
 | نمای کلی | dashboard: «کارهای منتظر تو» (pending prices/bot/reports, failed bot run, catalog gaps), live server stats, maintenance warning, recent changes, shortcuts |
 | بازیکنان و نظارت | users · player reports · chat reports · word filter · badges · bot players · invite codes |
-| محتوا و قیمت‌ها | catalog · price review · bot inbox · bot sources · player suggestions (UGC) |
+| محتوا و قیمت‌ها | catalog · price review · bot inbox · bot sources · **AI studio** · player suggestions (UGC) |
 | بازی و پازل | puzzles · daily puzzle · level road · cities · canned taunts |
 | اقتصاد | daily reward · shop · wheel · tournaments · sponsors |
 | ارتباط با بازیکن | message center · Bale bot |

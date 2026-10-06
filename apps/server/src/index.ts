@@ -106,6 +106,7 @@ import { createDbPuzzleSource } from './solo/db-source.js';
 import { createQueueDiagnosis } from './realtime/diagnose.js';
 import { CoinPackageService } from './economy/coin-packages.js';
 import { createDbPuzzleAdmin } from './puzzles/admin.js';
+import { AiStudio } from './ai/studio.js';
 import { startPuzzlePoolScheduler } from './puzzles/pool.js';
 import { registerCoinPackageRoutes } from './economy/coin-packages-routes.js';
 import { createDbCoinPackageStore } from './economy/coin-packages-store.js';
@@ -700,13 +701,14 @@ if (isMainModule(import.meta.url)) {
   dailyRef = daily;
   const botRepo = db ? createDbBotRepository(db) : undefined;
   const bot = botRepo ? new BotService(botRepo) : undefined;
+  const aiStudio = db ? new AiStudio({ env: process.env, lessons: createDbLessonStore(db), puzzles: createDbPuzzleAdmin(db), products: productAdmin, landing: landingService }) : undefined;
   const reportError = createErrorReporter({ dsn: process.env.SENTRY_DSN, environment: process.env.NODE_ENV, release: process.env.APP_RELEASE });
   const app = buildServer({
     reportError,
     auth,
     settings,
     adminModules: db
-      ? { products: productAdmin!, feedback, stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, wheel, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, ageTracks: db ? createDbAgeTrackAdmin(db) : undefined, daily, puzzles: createDbPuzzleAdmin(db), levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      ? { products: productAdmin!, feedback, stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, wheel, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, ageTracks: db ? createDbAgeTrackAdmin(db) : undefined, daily, ai: aiStudio, puzzles: createDbPuzzleAdmin(db), levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
     match: db
