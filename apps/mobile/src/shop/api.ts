@@ -29,3 +29,5 @@ export const takeNudge = (sessionId: string): Promise<HintPayload> =>
   authed(`/solo/${sessionId}/nudge`, 'POST', (v) => soloNudgeResultSchema.parse(v).hint, {}).then((h) => h);
 export const takeHint = (sessionId: string, kind: HintKind): Promise<SoloHintResult> =>
   authed(`/solo/${sessionId}/hint`, 'POST', (v) => soloHintResultSchema.parse(v), { kind });
+/** A small gift from the shop for a friend in their birthday week. */
+export const giftItem = (itemId: string, friendId: string): Promise<{ ok: true; balance: number }> => authed('/shop/gift', 'POST', (v) => v as { ok: true; balance: number }, { itemId, friendId });

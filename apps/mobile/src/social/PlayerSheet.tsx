@@ -25,6 +25,7 @@ import { TransferSheet } from '../transfers/TransferSheet';
 import { useHardwareBack } from '../nav/useHardwareBack';
 import { BirthdayBadge, PartyBanner } from './BirthdayBadge';
 import { ShowcaseStrip } from '../keepsake/ShowcaseStrip';
+import { GiftSheet } from '../shop/GiftSheet';
 
 const INK = '#3A2418';
 
@@ -37,6 +38,7 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
   const [asking, setAsking] = useState(false);
   const [send, setSend] = useState<'gift' | 'loan' | null>(null);
   const [reporting, setReporting] = useState(false);
+  const [giftOpen, setGiftOpen] = useState(false);
   const { ask, dialog } = useConfirm();
   const { gate, intercept } = useGuardianGate();
   /** Gifts and loans are not drawn for a kid or teen (the server refuses them too). While the rules load, nothing is hidden. */
@@ -142,6 +144,7 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
               <>
                 <View style={styles.friendTag}><Icon name="check" size={14} color="#fff" strokeWidth={4} /><Text style={styles.friendTagText}>{fa.player.friends}</Text></View>
                 <View style={styles.actions}>
+                  {p.birthday ? <HubTile onLight icon="gift" label={fa.birthdayGift.open} color={colors.candy.yellow} onPress={() => setGiftOpen(true)} /> : null}
                   {canSendCoins ? <HubTile onLight icon="gift" label={fa.transfers.gift} color={colors.candy.lime} onPress={() => setSend('gift')} /> : null}
                   {canSendCoins ? <HubTile onLight icon="wallet" label={fa.transfers.loan} color={colors.candy.orange} onPress={() => setSend('loan')} /> : null}
                   <HubTile onLight icon="trash" label={fa.player.unfriend} color={colors.candy.pink} onPress={() => ask({ title: fa.confirm.unfriend.title, message: fa.confirm.unfriend.message, confirmLabel: fa.confirm.unfriend.yes, onConfirm: act(removeFriend) })} />
@@ -153,6 +156,7 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
       </Pressable>
       {dialog}
       {gate}
+      {giftOpen && p ? <GiftSheet friendId={playerId} friendName={p.nickname} onClose={() => setGiftOpen(false)} /> : null}
       {reporting ? <ReportDialog target={{ kind: 'user', userId: playerId }} onClose={() => setReporting(false)} /> : null}
     </Pressable>
   );

@@ -1242,6 +1242,28 @@ export const fa = {
       profile_task: 'ماموریت',
     } as Record<string, string>,
   },
+  /** A small shop gift for a friend whose birthday is near. */
+  birthdayGift: {
+    open: 'هدیه‌ی تولد',
+    title: (name: string) => `هدیه برای ${name}`,
+    intro: 'تولد دوستت نزدیک است؛ یک هدیه‌ی کوچک از فروشگاه برایش بخر. هدیه به حساب خودش می‌رود و به او خبر می‌دهیم.',
+    give: 'هدیه بده',
+    price: (n: number) => `${toPersianDigits(String(n))} سکه`,
+    balance: (n: number) => `موجودی تو: ${toPersianDigits(String(n))} سکه`,
+    sent: 'هدیه فرستاده شد! 🎁',
+    empty: 'فعلاً هدیه‌ی کوچکی در فروشگاه نیست.',
+    close: 'بستن',
+    errors: {
+      insufficient: 'سکه‌ی کافی نداری.',
+      duplicate: 'همین هدیه را قبلاً برای تولد امسالش فرستاده‌ای؛ یک چیز دیگر بده.',
+      not_birthday: 'تولدش هنوز نزدیک نیست.',
+      not_friends: 'فقط به دوست‌هایت می‌توانی هدیه بدهی.',
+      level: 'سطحت برای این هدیه کافی نیست.',
+      not_giftable: 'این یکی هدیه نمی‌شود.',
+      generic: 'نشد؛ دوباره امتحان کن.',
+    } as Record<string, string>,
+    openProfile: 'برای دیدن پروفایلش و فرستادن هدیه بزن',
+  },
   inbox: {
     open: 'پیک',
     ajanHello: 'آجان دوزاری اینجاست؛ هر خبر رسمی و هشداری که برایت باشد همین‌جا می‌رسد.',

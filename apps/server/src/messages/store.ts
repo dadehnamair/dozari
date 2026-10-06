@@ -10,6 +10,8 @@ export interface NewMessage {
   body: string;
   audience: Audience;
   targetUserId: string | null;
+  /** A player the message is about; the app opens their profile on a tap. */
+  linkUserId?: string | null;
 }
 
 export interface SentMessage extends NewMessage {
@@ -32,6 +34,8 @@ export interface InboxItem {
   body: string;
   createdAt: number;
   read: boolean;
+  /** The player this message is about, when it is about one. */
+  playerId?: string | null;
 }
 
 /** I/O boundary of the message center: sent messages, their channel counts and the players' inboxes. */
@@ -116,13 +120,13 @@ export function createDbMessageStore(db: Db): MessageStore {
     },
     async inbox(userId, limit) {
       const rows = await db
-        .select({ id: inboxMessages.id, title: adminMessages.title, body: adminMessages.body, createdAt: inboxMessages.createdAt, readAt: inboxMessages.readAt })
+        .select({ id: inboxMessages.id, title: adminMessages.title, body: adminMessages.body, createdAt: inboxMessages.createdAt, readAt: inboxMessages.readAt, playerId: adminMessages.linkUserId })
         .from(inboxMessages)
         .innerJoin(adminMessages, eq(adminMessages.id, inboxMessages.messageId))
         .where(and(eq(inboxMessages.userId, userId), isNull(adminMessages.retractedAt)))
         .orderBy(desc(inboxMessages.createdAt))
         .limit(limit);
-      return rows.map((r) => ({ id: r.id, title: r.title, body: r.body, createdAt: r.createdAt.getTime(), read: r.readAt !== null }));
+      return rows.map((r) => ({ id: r.id, title: r.title, body: r.body, createdAt: r.createdAt.getTime(), read: r.readAt !== null, playerId: r.playerId }));
     },
     async unread(userId) {
       const [r] = await db
@@ -186,7 +190,7 @@ export function createMemoryMessageStore(seed: { users: string[]; baleLinked?: s
         .slice(0, limit)
         .map((r) => {
           const m = messages.find((x) => x.id === r.messageId)!;
-          return { id: r.id, title: m.title, body: m.body, createdAt: r.createdAt, read: r.readAt !== null };
+          return { id: r.id, title: m.title, body: m.body, createdAt: r.createdAt, read: r.readAt !== null, playerId: m.linkUserId ?? null };
         });
     },
     async unread(userId) {

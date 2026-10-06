@@ -24,7 +24,7 @@ import type { Gateway } from './realtime/gateway.js';
 import type { MatchDeps } from './realtime/match-service.js';
 import { PlayerService, rulesFromSettings } from './player/service.js';
 import { LevelTable, createDbLevelTableStore } from './progress/table.js';
-import { defaultLevelTable } from '@dozari/shared';
+import { defaultLevelTable, todayInTehran } from '@dozari/shared';
 import { createDbPlayerStore } from './player/store.js';
 import { registerTransferRoutes } from './transfers/routes.js';
 import { registerKeepsakeRoutes } from './keepsakes/routes.js';
@@ -645,7 +645,7 @@ if (isMainModule(import.meta.url)) {
           },
           friendsOf: async (id) => (await socialStore.friends(id)).map((f) => f.id),
           giveSpins: (id, ref, n) => wheel?.give(id, 'birthday', ref, n) ?? Promise.resolve(0),
-          tell: (ids, title, body) => messages?.tellUsers(ids, title, body) ?? Promise.resolve(),
+          tell: (ids, title, body, about) => messages?.tellUsers(ids, title, body, about ?? null) ?? Promise.resolve(),
           texts: { weekTitle: BIRTHDAY_TITLE.week, weekBody: BALE_TEXT.birthdayWeek, dayTitle: BIRTHDAY_TITLE.day, dayBody: BALE_TEXT.birthdayDay },
         })
       : undefined;
@@ -904,7 +904,29 @@ if (isMainModule(import.meta.url)) {
     duelStakes,
     limiter: db && settings ? new PlayLimiter(createDbPlayCountStore(db), async (mode) => settings.num(mode === 'solo' ? 'limit.solo_per_day' : 'limit.duel_per_day')) : undefined,
     hints: solo && shopStore && settings ? new HintService(solo, shopStore, () => hintRules(settings), levelOf) : undefined,
-    shop: shopStore ? new ShopService(shopStore, levelOf, Date.now, settings ? () => settings.num('shop.daily_slots') : undefined) : undefined,
+    shop: shopStore
+      ? new ShopService(
+          shopStore,
+          levelOf,
+          Date.now,
+          settings ? () => settings.num('shop.daily_slots') : undefined,
+          // A gift goes to a friend in their birthday week, once per friend per birthday year.
+          socialStore && birthday
+            ? async (giver, to) => {
+                if (!(await socialStore.friends(giver)).some((f) => f.id === to)) return { ok: false, error: 'not_friends' } as const;
+                if (!(await birthday.info([to])).get(to)?.badge) return { ok: false, error: 'not_birthday' } as const;
+                return { ok: true, key: `${giver}:${to}:${todayInTehran(Date.now()).year}` } as const;
+              }
+            : undefined,
+          // The friend finds it in their inbox; tapping it opens the giver's profile.
+          (giver, to, item) => {
+            void (async () => {
+              const from = (await socialStore?.publicRow(giver))?.nickname ?? '';
+              await messages?.tellUsers([to], BIRTHDAY_TITLE.gift, BALE_TEXT.birthdayGift(from, item.titleFa), giver);
+            })().catch(() => undefined);
+          },
+        )
+      : undefined,
     levelRoad:
       player && settings
         ? new LevelRoadService({

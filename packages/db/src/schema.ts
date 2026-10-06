@@ -637,6 +637,8 @@ export const adminMessages = mysqlTable(
     body: text('body').notNull(),
     audience: mysqlEnum('audience', MESSAGE_AUDIENCES).notNull(),
     targetUserId: char('target_user_id', { length: 36 }),
+    /** A player this message is about (a friend's birthday): tapping the message in the inbox opens their profile. */
+    linkUserId: char('link_user_id', { length: 36 }),
     sentAt: datetime('sent_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
     retractedAt: datetime('retracted_at', { mode: 'date', fsp: 3 }),
   },
