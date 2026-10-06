@@ -2,6 +2,7 @@ import { StyleSheet, View } from 'react-native';
 import { Scene } from './Scene';
 import type { SceneName } from './Scene';
 import { useTheme } from '../theme/themeStore';
+import { WheelTouch } from './WheelTouch';
 
 /** Full-bleed painted scene behind the screen content. */
 export function SceneBackground({ scene, mood, children }: { scene: SceneName; mood?: 'day' | 'dusk'; children?: React.ReactNode }) {
@@ -11,6 +12,7 @@ export function SceneBackground({ scene, mood, children }: { scene: SceneName; m
       <View style={styles.fill} pointerEvents="none">
         <Scene scene={scene} mood={mood} />
       </View>
+      {adult ? <WheelTouch /> : null}
       {children}
     </View>
   );

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Circle, Ellipse, G, Path } from 'react-native-svg';
 import { across, phase } from './sceneMath';
+import { subscribeWheel, wheelRotation } from './wheelSpin';
 
 /**
  * The motion of the painted scenes (docs/design/Scene.dc.html): clouds drifting across, lantern glows pulsing, a palm swaying.
@@ -62,7 +63,10 @@ export function Sway({ x, y, dur, animated, children }: { x: number; y: number; 
 /** The vault wheel of the adult «صرافی» scene: turns 0 → 14° and back about (`x`, `y`) every `dur` seconds, eased. */
 export function Turn({ x, y, deg, dur, animated, children }: { x: number; y: number; deg: number; dur: number; animated: boolean; children: ReactNode }) {
   const t = useSceneClock(animated);
-  const angle = animated ? deg * (0.5 - 0.5 * Math.cos(2 * Math.PI * phase(t, dur))) : 0;
+  // The angle the player turned it to by hand (wheelSpin.ts) adds to the gentle sway.
+  const [, redraw] = useState(0);
+  useEffect(() => subscribeWheel(() => redraw((n) => n + 1)), []);
+  const angle = (animated ? deg * (0.5 - 0.5 * Math.cos(2 * Math.PI * phase(t, dur))) : 0) + wheelRotation();
   return <G transform={`rotate(${angle.toFixed(2)} ${x} ${y})`}>{children}</G>;
 }
 

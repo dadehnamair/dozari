@@ -1,6 +1,6 @@
 import { FACE_TEXT } from '../theme/skin';
 import { useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Character } from '../components/Character';
 import { GradientFill } from '../components/GradientFill';
 import { Icon } from '../components/Icon';
@@ -112,7 +112,8 @@ export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone, ag
     <View style={[styles.root, dark ? dk.root : null]}>
       <View style={styles.scene} pointerEvents="none"><Scene scene="hojre" /></View>
       <View style={styles.page}>
-        <View style={[styles.column, compact ? styles.columnTight : null]}>
+        {/* Rows tighten on a short screen, and the page scrolls for whatever still does not fit (the Bale and age rows come and go). */}
+        <ScrollView style={styles.scroll} contentContainerStyle={[styles.column, compact ? styles.columnTight : null, styles.columnScroll]} showsVerticalScrollIndicator={false}>
           <View style={styles.head}>
             <Pressable accessibilityRole="button" accessibilityLabel={t.close} onPress={onClose}>
               {({ pressed }) => (
@@ -159,7 +160,7 @@ export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone, ag
               {g.title === t.groups.account && note ? <Text style={[styles.about, dark ? dk.text : null]}>{note}</Text> : null}
             </View>
           ))}
-        </View>
+        </ScrollView>
       </View>
       {askOut ? (
         <ConfirmDialog
@@ -196,7 +197,9 @@ const dk = StyleSheet.create({
 const styles = StyleSheet.create({
   root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20, backgroundColor: '#D99A52' },
   scene: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.9 },
-  page: { flex: 1, paddingBottom: 12 },
+  page: { flex: 1 },
+  scroll: { flex: 1 },
+  columnScroll: { paddingBottom: 24 },
   column: { width: '100%', maxWidth: 520, alignSelf: 'center', paddingHorizontal: 12, paddingTop: pageTop(), gap: 8 },
   head: { flexDirection: ROW, alignItems: 'center', gap: 8 },
   back: { width: 42, height: 42, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...lift(4) },

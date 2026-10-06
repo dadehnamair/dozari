@@ -193,7 +193,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
   return (
     <SceneBackground scene="bazaar">
       {adult ? <View pointerEvents="none" style={StyleSheet.absoluteFill}><GradientFill from="rgba(14,10,8,0.55)" to="rgba(14,10,8,0.7)" mid={{ at: 0.5, color: 'rgba(14,10,8,0.1)' }} /></View> : null}
-      <View style={styles.root} onTouchStart={() => setTip(null)}>
+      <View style={styles.root} pointerEvents="box-none" onTouchStart={() => setTip(null)}>
         <View style={styles.pills}>
           {daily.status ? <StatPill color={colors.candy.yellow} icon="coin" value={fmt(daily.status.balance)} label={`${daily.status.balance} ${h.coins}`} onPress={() => setLedgerOpen(true)} /> : null}
           {gems > 0 ? <StatPill color={colors.candy.sky} glyph="💎" value={fmt(gems)} label={`${gems} ${h.gems}`} /> : null}
@@ -211,9 +211,9 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
           {level !== null ? <StatPill color={colors.candy.grape} icon="rosette" value={toPersianDigits(String(level))} label={`${h.level} ${level}`} onPress={() => setProfileOpen(true)} /> : null}
         </View>
 
-        <View style={styles.middle}>
+        <View style={styles.middle} pointerEvents="box-none">
           <View style={[styles.column, compact ? styles.columnCompact : null]}>{right.map(({ key, ...t }) => <HubTile key={key} {...t} />)}</View>
-          <View style={styles.center}>
+          <View style={styles.center} pointerEvents="box-none">
             <AnimatedLogo width={200} />
             <Pressable onPress={dailyOpenForPlay ? onDaily : undefined} disabled={!dailyOpenForPlay} accessibilityRole={dailyOpenForPlay ? 'button' : 'text'}>
               <Text style={styles.bubble} numberOfLines={2}>{bubble}</Text>
@@ -225,7 +225,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
               </Pressable>
             ) : null}
             {slogan ? <Text style={styles.slogan} numberOfLines={2}>{slogan}</Text> : null}
-            <View style={styles.spacer} />
+            <View style={styles.spacer} pointerEvents="none" />
             {tip !== null && tips[tip] ? (
               <GuideBubble who={heroFor(gender)} text={tips[tip].text} />
             ) : nudgeToast ? (
