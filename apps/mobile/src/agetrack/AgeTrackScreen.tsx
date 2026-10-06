@@ -6,6 +6,7 @@ import { Scene } from '../components/Scene';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { safeTop } from '../theme/safeArea';
+import { setLookTrack } from '../theme/look';
 import { saveAgeTrack } from './api';
 import { GuardianStep } from './GuardianStep';
 import { forgetTrackRules } from './useTrackRules';
@@ -28,7 +29,7 @@ export function AgeTrackScreen({ onDone }: { onDone: (track: AgeTrack) => void }
     setBusy(true);
     setFailed(false);
     saveAgeTrack(track).then(
-      () => (forgetTrackRules(), track === 'adult' ? onDone(track) : (setBusy(false), setPicked(track))),
+      () => (forgetTrackRules(), setLookTrack(track), track === 'adult' ? onDone(track) : (setBusy(false), setPicked(track))),
       () => (setBusy(false), setFailed(true)),
     );
   };

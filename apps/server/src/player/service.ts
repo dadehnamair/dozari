@@ -71,7 +71,7 @@ export class PlayerService {
   async cityOf(userId: string): Promise<City | null> {
     const { cityId } = await this.store.privateRow(userId);
     const c = cityId ? await this.store.city(cityId) : null;
-    return c ? { id: c.id, nameFa: c.nameFa, province: c.province } : null;
+    return c ? { id: c.id, nameFa: c.nameFa, province: c.province, souvenirFa: c.souvenirFa, sloganFa: c.sloganFa } : null;
   }
 
   async mine(userId: string) {
@@ -97,7 +97,7 @@ export class PlayerService {
   }
 
   async cities(): Promise<City[]> {
-    return (await this.store.cities()).map((c) => ({ id: c.id, nameFa: c.nameFa, province: c.province }));
+    return (await this.store.cities()).map((c) => ({ id: c.id, nameFa: c.nameFa, province: c.province, souvenirFa: c.souvenirFa, sloganFa: c.sloganFa }));
   }
 
   async setCity(userId: string, cityId: string | null): Promise<SimpleResult<'unknown_city'>> {

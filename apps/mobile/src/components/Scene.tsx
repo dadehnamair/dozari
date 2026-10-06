@@ -21,7 +21,7 @@ import { usePrefs } from '../prefs/store';
 import { fonts } from '../theme/colors';
 import { Drift, Glow, Musician, Sway } from './sceneMotion';
 
-export const SCENES = ['bazaar', 'alley', 'hojre', 'caravan', 'win'] as const;
+export const SCENES = ['bazaar', 'alley', 'hojre', 'caravan', 'win', 'sarafi'] as const;
 export type SceneName = (typeof SCENES)[number];
 
 const rays = () => {
@@ -148,6 +148,25 @@ export function Scene({
               fill="none"
               opacity={0.7}
             />
+          </Pattern>
+          <LinearGradient id={`${u}sfW`} x1="0" y1="0" x2="0" y2="1">
+            <Stop offset="0" stopColor="#2E1D14" />
+            <Stop offset="0.6" stopColor="#1E130D" />
+            <Stop offset="1" stopColor="#120B07" />
+          </LinearGradient>
+          <RadialGradient id={`${u}sfV`} cx="40%" cy="35%" r="75%">
+            <Stop offset="0" stopColor="#FFF1B8" />
+            <Stop offset="0.35" stopColor="#E8B64A" />
+            <Stop offset="0.75" stopColor="#B8822A" />
+            <Stop offset="1" stopColor="#6A4210" />
+          </RadialGradient>
+          <RadialGradient id={`${u}sfG`}>
+            <Stop offset="0" stopColor="#FFD98A" stopOpacity={0.55} />
+            <Stop offset="1" stopColor="#FFD98A" stopOpacity={0} />
+          </RadialGradient>
+          <Pattern id={`${u}sfP`} width={48} height={48} patternUnits="userSpaceOnUse">
+            <Rect width={48} height={48} fill="#24170F" />
+            <Path d="M0 0 L48 48 M48 0 L0 48" stroke="#3A2618" strokeWidth={2} />
           </Pattern>
         </Defs>
         <G
@@ -538,6 +557,55 @@ function paint(scene: SceneName, u: string, animated: boolean) {
             d="M20 740 h20 v24 h-20Z M150 730 C150 716 170 716 170 730 v20 h-20Z M300 720 h16 v20 h-16Z M340 740 h16 v20 h-16Z"
             fill="#7A3418"
           />
+        </>
+      );
+    case 'sarafi':
+      return (
+        <>
+<Rect width={390} height={844} fill={`url(#${u}sfW)`} stroke="none" />
+<Path d="M0 0 h390 v86 h-390Z" fill="#3A2416" />
+<Path d="M0 82 h390 v10 h-390Z" fill="#B8822A" />
+<Path d="M0 100 h390" stroke="#E8B64A" strokeWidth={2} opacity={.6} fill="none" />
+<Path d="M0 108 H390" stroke="#8A5A16" strokeWidth={5} strokeDasharray="4 10" fill="none" />
+<Path d="M30 640 V250 C30 160 140 160 140 250 V640 M250 640 V250 C250 160 360 160 360 250 V640" fill="none" stroke="#3A2618" strokeWidth={4} />
+<Path d="M30 260 h110 M250 260 h110" stroke="#2A1A10" strokeWidth={2} fill="none" />
+<G strokeWidth={2}>
+<Path d="M22 330 h126 v10 h-126Z M22 450 h126 v10 h-126Z M242 330 h126 v10 h-126Z M242 450 h126 v10 h-126Z" fill="#8A5A16" />
+<Path d="M22 340 l8 10 h110 l8 -10 M22 460 l8 10 h110 l8 -10 M242 340 l8 10 h110 l8 -10 M242 460 l8 10 h110 l8 -10" fill="#5A3A12" />
+<Ellipse cx={50} cy={326} rx={16} ry={5} fill="#C48A0E" /><Path d="M34 326 v-22 h32 v22" fill="#E8B64A" /><Ellipse cx={50} cy={304} rx={16} ry={5} fill="#FFE48A" />
+<Path d="M36 312 h28 M36 318 h28" fill="none" strokeWidth={1.4} />
+<Ellipse cx={86} cy={326} rx={14} ry={4.5} fill="#C48A0E" /><Path d="M72 326 v-14 h28 v14" fill="#E8B64A" /><Ellipse cx={86} cy={312} rx={14} ry={4.5} fill="#FFE48A" />
+<Path d="M104 330 l6 -14 h26 l6 14Z" fill="#E8B64A" /><Path d="M112 316 l4 -9 h16 l4 9Z" fill="#FFD75A" />
+<Path d="M30 450 l6 -14 h30 l6 14Z M54 436 l5 -11 h20 l5 11Z" fill="#E8B64A" />
+<Circle cx={110} cy={432} r={14} fill="#FFE48A" /><Circle cx={110} cy={432} r={9} fill="none" stroke="#B8822A" strokeWidth={2} />
+<Path d="M254 330 v-30 h36 v30Z" fill="#6A3018" /><Path d="M254 300 h36 v-6 h-36Z" fill="#E8B64A" /><Circle cx={272} cy={316} r={4} fill="#E8B64A" />
+<Ellipse cx={326} cy={326} rx={16} ry={5} fill="#C48A0E" /><Path d="M310 326 v-26 h32 v26" fill="#E8B64A" /><Ellipse cx={326} cy={300} rx={16} ry={5} fill="#FFE48A" />
+<Path d="M312 308 h28 M312 314 h28 M312 320 h28" fill="none" strokeWidth={1.4} />
+<Path d="M256 450 C250 430 262 418 278 422 C292 418 304 430 298 450Z" fill="#D9B37A" /><Path d="M266 424 l-4 -10 l10 4 l6 -6 l6 6 l10 -4 l-4 10" fill="#D9B37A" /><Circle cx={278} cy={436} r={6} fill="#E8B64A" />
+<Path d="M318 450 h40 v-24 h-40Z" fill="#E8E1CF" /><Path d="M322 432 h32 M322 438 h24 M322 444 h28" fill="none" strokeWidth={1.2} />
+</G>
+<Circle cx={195} cy={420} r={150} fill={`url(#${u}sfG)`} stroke="none" />
+<Circle cx={195} cy={420} r={118} fill="#3A2416" strokeWidth={3} />
+<Circle cx={195} cy={420} r={106} fill={`url(#${u}sfV)`} strokeWidth={3} />
+<Circle cx={195} cy={420} r={86} fill="none" stroke="#6A4210" strokeWidth={3} />
+<G fill="#FFE48A" strokeWidth={1.6}><Circle cx={195} cy={324} r={5} /><Circle cx={195} cy={516} r={5} /><Circle cx={99} cy={420} r={5} /><Circle cx={291} cy={420} r={5} /><Circle cx={127} cy={352} r={5} /><Circle cx={263} cy={352} r={5} /><Circle cx={127} cy={488} r={5} /><Circle cx={263} cy={488} r={5} /></G>
+<G>
+<Path d="M195 362 V478 M137 420 H253 M154 379 L236 461 M236 379 L154 461" stroke="#3A2416" strokeWidth={9} fill="none" />
+<Path d="M195 362 V478 M137 420 H253 M154 379 L236 461 M236 379 L154 461" stroke="#B8822A" strokeWidth={4} fill="none" />
+<G fill="#E8B64A" strokeWidth={2}><Circle cx={195} cy={362} r={7} /><Circle cx={195} cy={478} r={7} /><Circle cx={137} cy={420} r={7} /><Circle cx={253} cy={420} r={7} /><Circle cx={154} cy={379} r={6} /><Circle cx={236} cy={461} r={6} /><Circle cx={236} cy={379} r={6} /><Circle cx={154} cy={461} r={6} /></G>
+<Circle cx={195} cy={420} r={22} fill="#E8B64A" strokeWidth={3} /><Circle cx={195} cy={420} r={10} fill="#3A2416" /></G>
+<Path d="M140 360 q14 -24 40 -32" stroke="#FFF6E8" strokeWidth={3} opacity={.6} fill="none" />
+<Path d="M98 0 v130 M292 0 v130" fill="none" strokeWidth={1.8} />
+<G transform="translate(98 130)"><Circle cy={26} r={40} fill={`url(#${u}sfG)`} stroke="none" /><Path d="M-14 0 h28 l-4 -8 h-20Z" fill="#B8822A" /><Path d="M-12 0 C-18 16 -16 40 -8 48 H8 C16 40 18 16 12 0Z" fill="#E8B64A" /><Ellipse cy={24} rx={6} ry={10} fill="#FFF1B8" stroke="none" /></G>
+<G transform="translate(292 130)"><Circle cy={26} r={40} fill={`url(#${u}sfG)`} stroke="none" /><Path d="M-14 0 h28 l-4 -8 h-20Z" fill="#B8822A" /><Path d="M-12 0 C-18 16 -16 40 -8 48 H8 C16 40 18 16 12 0Z" fill="#E8B64A" /><Ellipse cy={24} rx={6} ry={10} fill="#FFF1B8" stroke="none" /></G>
+<Path d="M0 640 h390 v204 h-390Z" fill={`url(#${u}sfP)`} />
+<Path d="M0 640 h390 v8 h-390Z" fill="#000" opacity={.35} stroke="none" />
+<Path d="M0 690 h390 v86 h-390Z" fill="#3A2416" />
+<Path d="M0 690 h390 v12 h-390Z" fill="#8A5A16" />
+<Path d="M0 702 h390" stroke="#E8B64A" strokeWidth={2} fill="none" />
+<Path d="M20 720 h80 v40 h-80Z M155 720 h80 v40 h-80Z M290 720 h80 v40 h-80Z" fill="none" stroke="#5A3A20" strokeWidth={2.4} />
+<G transform="translate(60 690)" strokeWidth={1.8}><Path d="M0 0 V-34" fill="none" strokeWidth={3} /><Path d="M-24 -30 H24" fill="none" strokeWidth={2.4} /><Path d="M-24 -30 L-30 -16 H-18Z M24 -30 L18 -16 H30Z" fill="none" strokeWidth={1.4} /><Ellipse cx={-24} cy={-16} rx={9} ry={3} fill="#E8B64A" /><Ellipse cx={24} cy={-16} rx={9} ry={3} fill="#E8B64A" /><Circle cy={-36} r={3.5} fill="#E8B64A" /><Path d="M-10 0 h20 v-4 h-20Z" fill="#8A5A16" /></G>
+<G transform="translate(330 690)" strokeWidth={1.8}><Ellipse cy={-4} rx={18} ry={5} fill="#C48A0E" /><Path d="M-18 -4 v-10 h36 v10" fill="#E8B64A" /><Ellipse cy={-14} rx={18} ry={5} fill="#FFE48A" /><Ellipse cx={8} cy={-20} rx={13} ry={4} fill="#FFE48A" /></G>
         </>
       );
   }

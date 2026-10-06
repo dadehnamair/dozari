@@ -84,6 +84,7 @@ export function ProfileEditor({ me, onChange, onPickCity }: { me: MyProfile; onC
           <View style={styles.cityText}>
             <Text style={styles.pillText}>{me.city?.nameFa ?? fa.profile.pickCity}</Text>
             {province ? <Text style={styles.hint}>{province.hello} · {province.landmark}</Text> : null}
+            {me.city?.sloganFa ? <Text style={styles.hint}>{me.city.sloganFa}</Text> : null}
           </View>
         </Pressable>
         <Text style={styles.hint}>{fa.profile.cityHint}</Text>

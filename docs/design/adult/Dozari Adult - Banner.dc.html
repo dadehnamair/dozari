@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link href="https://fonts.googleapis.com/css2?family=Lalezar&amp;family=Vazirmatn:wght@600;700;800;900&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>body{margin:0;background:#1A1210;color:#FFF6E8;font-family:Vazirmatn}a{color:#E8B64A}a:hover{color:#FFF1B8}*{box-sizing:border-box}</style>
+</helmet>
+<div dir="rtl" style="padding:56px;display:flex;flex-direction:column;gap:40px;min-width:1400px">
+<header style="display:flex;flex-direction:column;gap:6px">
+  <div style="font:14px 'JetBrains Mono',monospace;color:#E8B64A;direction:ltr;text-align:right">Dozari Adult · Banner · 1280×720 · 18+ · style: صرافی و گاوصندوق</div>
+  <h1 style="margin:0;font:56px/1 Lalezar;color:#FFE9A8">بنر بزرگسال</h1>
+</header>
+
+<div style="display:flex;flex-direction:column;gap:10px">
+  <div style="font:13px 'JetBrains Mono',monospace;color:rgba(255,233,168,.6);direction:ltr;text-align:right">age-adult · 1280×720</div>
+  <div id="age-adult" data-screen-label="01 Adult" style="width:1280px;height:720px;position:relative;overflow:hidden;background:#0E0A08">
+    <div style="position:absolute;inset:0"><dc-import name="Scene" scene="sarafi" hint-size="100%,100%" style="width:100%;height:100%"></dc-import></div>
+    <div style="position:absolute;inset:0;background:linear-gradient(270deg,rgba(14,10,8,.96) 0%,rgba(14,10,8,.82) 45%,rgba(14,10,8,.2) 100%)"></div>
+    <div style="position:absolute;left:30%;top:100%;width:2000px;height:2000px;margin:-1000px 0 0 -1000px;border-radius:50%;background:repeating-conic-gradient(rgba(232,182,74,.1) 0 6deg,transparent 6deg 12deg)"></div>
+    <div style="position:absolute;inset:18px;border:3px solid #E8B64A;border-radius:28px;box-shadow:0 0 0 4px #000,inset 0 0 0 4px #000"></div>
+
+    <div style="position:absolute;top:0;bottom:0;right:72px;width:600px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:12px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="padding:4px 20px;border-radius:12px;background:linear-gradient(180deg,#FFF1B8,#E8B64A 45%,#B8822A);border:3px solid #000;box-shadow:inset 0 2px 0 rgba(255,255,255,.7),0 4px 0 #000;font:36px/1.2 Lalezar;color:#2A1606;direction:ltr">18+</div>
+        <div style="font:36px/1.1 Lalezar;color:#E8B64A">صرافی بزرگ‌ترها</div>
+      </div>
+      <svg viewBox="0 0 600 290" width="600" height="290" style="overflow:visible"><defs><linearGradient id="adG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFF1B8"></stop><stop offset=".45" stop-color="#E8B64A"></stop><stop offset="1" stop-color="#9A6A1C"></stop></linearGradient></defs><text x="600" y="124" text-anchor="start" direction="rtl" font-family="Lalezar" font-size="140" fill="#000" stroke="#000" stroke-width="26" stroke-linejoin="round">بازی کامل.</text><text x="600" y="112" text-anchor="start" direction="rtl" font-family="Lalezar" font-size="140" fill="url(#adG)" stroke="#000" stroke-width="12" stroke-linejoin="round" paint-order="stroke">بازی کامل.</text><text x="600" y="262" text-anchor="start" direction="rtl" font-family="Lalezar" font-size="140" fill="#000" stroke="#000" stroke-width="26" stroke-linejoin="round">بی‌تخفیف!</text><text x="600" y="250" text-anchor="start" direction="rtl" font-family="Lalezar" font-size="140" fill="#FFE9A8" stroke="#000" stroke-width="12" stroke-linejoin="round" paint-order="stroke">بی‌تخفیف!</text></svg>
+      <div style="font:800 28px/1.55 Vazirmatn;color:#FFE9A8;max-width:580px;text-wrap:pretty">پازل قیمت و خاطره‌ی قدیمی؛ دوئل زنده و حدس قیمت با شرط سکه</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <sc-for list="{{ chips }}" as="c" hint-placeholder-count="3">
+          <div style="display:flex;align-items:center;gap:8px;padding:6px 14px 6px 8px;border-radius:14px;background:#17100C;border:2px solid #8A5A16"><div style="width:36px;height:36px"><dc-import name="Item" icon="{{ c.i }}" hint-size="36px,36px" style="width:36px;height:36px"></dc-import></div><span style="font:21px Lalezar;color:#FFE9A8">{{ c.n }}</span></div>
+        </sc-for>
+      </div>
+      <sc-if value="{{ showCta }}" hint-placeholder-val="{{ true }}">
+        <div style="margin-top:12px;padding:12px 52px;border-radius:20px;border:4px solid #000;background:linear-gradient(180deg,#FFF1B8 0%,#E8B64A 38%,#B8822A 72%,#8A5A16 100%);box-shadow:inset 0 3px 0 rgba(255,255,255,.75),inset 0 -5px 0 rgba(0,0,0,.25),0 7px 0 #000;font:38px Lalezar;color:#2A1606;text-shadow:0 1px 0 rgba(255,255,255,.55)">بزن بریم!</div>
+      </sc-if>
+    </div>
+
+    <div style="position:absolute;bottom:-16px;left:40px;width:250px;height:275px"><dc-import name="Character" who="baqal" pose="thinking" hint-size="250px,275px" style="width:250px;height:275px"></dc-import></div>
+    <div style="position:absolute;bottom:-22px;left:220px;width:390px;height:429px"><dc-import name="Character" who="mashti" pose="pointing" hint-size="390px,429px" style="width:390px;height:429px"></dc-import></div>
+    <sc-if value="{{ showBubbles }}" hint-placeholder-val="{{ true }}">
+      <div style="position:absolute;top:70px;left:60px;width:310px;padding:16px 20px;border-radius:20px;background:#FFE9A8;border:4px solid #000;box-shadow:0 6px 0 #000;font:800 22px/1.55 Vazirmatn;color:#2A1606;text-wrap:pretty">بابا جان، اینجا حساب‌کتاب دقیقه؛ دوزاریت چقدر می‌ارزه؟<div style="position:absolute;bottom:-14px;left:200px;width:22px;height:22px;background:#FFE9A8;border-right:4px solid #000;border-bottom:4px solid #000;transform:rotate(45deg)"></div></div>
+    </sc-if>
+    <div style="position:absolute;top:96px;left:440px;width:110px;height:110px;transform:rotate(-8deg)"><dc-import name="Item" icon="chest" hint-size="110px,110px" style="width:110px;height:110px"></dc-import></div>
+    <div style="position:absolute;top:250px;left:560px;width:76px;height:76px;transform:rotate(12deg)"><dc-import name="Item" icon="sample-gold-coin" hint-size="76px,76px" style="width:76px;height:76px"></dc-import></div>
+    <div style="position:absolute;top:262px;left:400px;width:70px;height:70px;transform:rotate(-12deg)"><dc-import name="Item" icon="scale" hint-size="70px,70px" style="width:70px;height:70px"></dc-import></div>
+  </div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showBubbles&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;showCta&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  renderVals(){
+    return {
+      showBubbles: this.props.showBubbles ?? true, showCta: this.props.showCta ?? true,
+      chips:[{i:'trophy',n:'دوئل و جام'},{i:'scale',n:'صراف'},{i:'samovar',n:'قهوه‌خانه'}]
+    };
+  }
+}
+</script>
+</body>
+</html>
