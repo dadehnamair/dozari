@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 /** Why gems moved (mirrors `GEM_REASONS` of the DB; docs/logic/economy.md §Gems, D164). */
-export const GEM_REASON_KEYS = ['admin_adjust', 'birthday_gift', 'wheel_prize', 'shop_purchase', 'tournament_entry', 'tournament_refund', 'tournament_prize', 'mission_reward'] as const;
+export const GEM_REASON_KEYS = ['admin_adjust', 'birthday_gift', 'wheel_prize', 'shop_purchase', 'tournament_entry', 'tournament_refund', 'tournament_prize', 'mission_reward', 'keepsake_reward'] as const;
 export type GemReason = (typeof GEM_REASON_KEYS)[number];
 
 /** `GET /me/gems`: the balance and the newest movements. */

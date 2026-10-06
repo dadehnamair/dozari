@@ -2,6 +2,8 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { guestLoginSchema } from '@dozari/shared';
 import { z } from 'zod';
 import type { AccountDeletion } from '../account/deletion.js';
+import { checkMiniAppInitData, miniAppDeviceId } from './miniapp.js';
+import type { MiniAppPlatform } from './miniapp.js';
 import type { AuthService, UserRecord } from './service.js';
 
 const bearer = (req: FastifyRequest): string | null => {
@@ -15,7 +17,29 @@ export async function currentUser(auth: AuthService, req: FastifyRequest): Promi
   return token ? auth.authenticate(token) : null;
 }
 
-export function registerAuthRoutes(app: FastifyInstance, auth: AuthService, deletion?: AccountDeletion) {
+/** Bot tokens of the messengers that host the mini-app; a platform without a token has no login. */
+export type MiniAppTokens = Partial<Record<MiniAppPlatform, string>>;
+
+export function registerAuthRoutes(app: FastifyInstance, auth: AuthService, deletion?: AccountDeletion, miniApp: MiniAppTokens = {}) {
+  // Mini-app login: the page sends the signed `initData` of the messenger it runs in; the same messenger user always lands on the same account.
+  if (miniApp.bale || miniApp.telegram) {
+    app.post('/auth/miniapp', async (req, reply) => {
+      const body = z.object({ platform: z.enum(['bale', 'telegram']).default('bale'), initData: z.string().min(1).max(4096) }).safeParse(req.body);
+      if (!body.success) return reply.code(400).send({ error: 'invalid_request' });
+      const token = miniApp[body.data.platform];
+      if (!token) return reply.code(404).send({ error: 'platform_off' });
+      const checked = checkMiniAppInitData(body.data.initData, token);
+      if (!checked.ok) {
+        req.log.warn({ reason: checked.reason, platform: body.data.platform }, 'mini-app login refused');
+        return reply.code(401).send({ error: 'invalid_init_data', reason: checked.reason });
+      }
+      const deviceId = miniAppDeviceId(token, checked.user.id, body.data.platform);
+      const result = await auth.guestLogin(deviceId);
+      if (!result.ok) return reply.code(403).send({ error: 'banned' });
+      return { ...result.session, deviceId };
+    });
+  }
+
   app.post('/auth/guest', async (req, reply) => {
     const body = guestLoginSchema.safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: 'invalid_request' });

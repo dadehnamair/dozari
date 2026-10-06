@@ -3,7 +3,7 @@ import type { PuzzleAdmin } from '../puzzles/admin.js';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { can } from './accounts/permissions.js';
 import { z } from 'zod';
-import { accentColorSchema, checkLevelTable, httpsUrlSchema, isDateKey, ITEMS, ITEM_GROUPS, LEVEL_TABLE_MAX, levelRowSchema, PRODUCT_CATEGORIES, PROVINCES, provinceOf, SETTING_GROUPS, SHOP_EFFECTS, SPONSOR_LIMITS, COSMETIC_SLOTS, WHEEL_PRIZE_KINDS } from '@dozari/shared';
+import { accentColorSchema, checkLevelTable, KEEPSAKE_RARITIES, KEEPSAKE_REWARD_GEMS, httpsUrlSchema, isDateKey, ITEMS, ITEM_GROUPS, LEVEL_TABLE_MAX, levelRowSchema, PRODUCT_CATEGORIES, PROVINCES, provinceOf, SETTING_GROUPS, SHOP_EFFECTS, SPONSOR_LIMITS, COSMETIC_SLOTS, WHEEL_PRIZE_KINDS } from '@dozari/shared';
 import type { LevelRow } from '@dozari/shared';
 import type { LevelTable } from '../progress/table.js';
 import type { SettingsService } from '../settings/service.js';
@@ -12,6 +12,7 @@ import type { BotRepository } from '../bot/repository.js';
 import type { BotService } from '../bot/service.js';
 import type { AuditLog } from './audit.js';
 import type { LessonStore } from '../lessons/service.js';
+import type { EconomyAdmin } from './economy.js';
 import type { AgeTrackAdmin } from '../agetrack/overview.js';
 import type { ProductAdmin } from './products.js';
 import type { StatsAdmin } from './stats.js';
@@ -23,6 +24,7 @@ import type { TextFilterService } from '../textfilter/service.js';
 import type { UsersAdmin } from './users.js';
 import type { PlayerStore } from '../player/store.js';
 import type { CoinPackageService } from '../economy/coin-packages.js';
+import type { KeepsakeStore } from '../keepsakes/store.js';
 import type { ShopStore } from '../economy/shop-store.js';
 import type { WheelService } from '../wheel/service.js';
 import { registerLandingAdminRoutes } from '../landing/routes.js';
@@ -53,6 +55,8 @@ export interface AdminModules {
   cities?: PlayerStore;
   /** Coin shop items (price, level gate, daily limit, visibility). */
   shop?: ShopStore;
+  /** Keepsakes («یادگار») and their sets: `/admin/keepsakes`, `/admin/keepsake-sets`. */
+  keepsakes?: KeepsakeStore;
   /** Blog, cast and FAQ of the landing site. */
   landing?: LandingService;
   /** User reports and the suggestion queue. */
@@ -77,6 +81,8 @@ export interface AdminModules {
   lessons?: LessonStore;
   /** Numbers per age track for the admin overview tab (D198). */
   ageTracks?: AgeTrackAdmin;
+  /** Coin flow and circulation numbers («سلامت اقتصاد»). */
+  economy?: EconomyAdmin;
   daily?: DailyService;
   /** The level table: XP each level starts at and the coin reward for reaching it. */
   levelRoad?: { table: LevelTable; defaults: () => Promise<LevelRow[]> };
@@ -89,7 +95,7 @@ export interface AdminModules {
   bot?: { repo: BotRepository; service: BotService };
 }
 
-const wordBody = z.object({ word: z.string().trim().min(2).max(100), severity: z.enum(['block', 'mask']).default('block') });
+const wordBody = z.object({ word: z.string().trim().min(2).max(100), severity: z.enum(['block', 'mask']).default('block'), track: z.enum(['all', 'kid_teen']).default('all') });
 const httpUrl = z.string().max(1000).refine(isHttpUrl, 'http(s) only');
 const idParam = z.object({ id: z.string().uuid() });
 const rials = z.string().regex(/^\d{1,15}$/);
@@ -157,7 +163,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     settingGroups: SETTING_GROUPS,
     icons: ITEMS,
     iconGroups: ITEM_GROUPS,
-    modules: { puzzles: !!m.puzzles, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, wheel: !!m.wheel, shortLinks: !!m.shortLinks, feedback: !!m.feedback, landing: !!m.landing, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, lessons: !!m.lessons, ageTracks: !!m.ageTracks, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages },
+    modules: { puzzles: !!m.puzzles, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, keepsakes: !!m.keepsakes, wheel: !!m.wheel, shortLinks: !!m.shortLinks, feedback: !!m.feedback, landing: !!m.landing, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, lessons: !!m.lessons, ageTracks: !!m.ageTracks, economy: !!m.economy, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages },
   }));
 
   if (m.stats) {
@@ -318,7 +324,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       .object({
         title: z.string().trim().min(1).max(150),
         body: z.string().trim().min(1).max(2000),
-        audience: z.enum(['all', 'bale_linked', 'user']),
+        audience: z.enum(['all', 'bale_linked', 'user', 'kid', 'teen']),
         targetUserId: z.string().uuid().nullable().default(null),
         channels: z.array(z.enum(['in_app', 'bale', 'sms', 'email', 'push'])).min(1).max(5),
       })
@@ -373,9 +379,9 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     g.post('/admin/words', async (req, reply) => {
       const b = wordBody.safeParse(req.body);
       if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
-      const out = await words.add(b.data.word, b.data.severity);
+      const out = await words.add(b.data.word, b.data.severity, b.data.track);
       if (out === 'duplicate') return reply.code(409).send({ error: 'duplicate' });
-      void audit('word.add', out.id, b.data.severity);
+      void audit('word.add', out.id, `${b.data.severity}/${b.data.track}`);
       return reply.code(201).send({ id: out.id });
     });
     g.patch('/admin/words/:id', async (req, reply) => {
@@ -502,15 +508,15 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     const chat = m.chat;
     g.get('/admin/taunts', async () => ({ categories: await chat.taunts({ includeHidden: true }) }));
     g.post('/admin/taunt-categories', async (req, reply) => {
-      const b = z.object({ nameFa: z.string().trim().min(2).max(40), cityId: z.string().uuid().nullable().optional() }).safeParse(req.body);
+      const b = z.object({ nameFa: z.string().trim().min(2).max(40), cityId: z.string().uuid().nullable().optional(), ageTrack: z.enum(['kid', 'teen', 'adult']).optional() }).safeParse(req.body);
       if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
-      const c = await chat.addCategory(b.data.nameFa, b.data.cityId ?? null);
+      const c = await chat.addCategory(b.data.nameFa, b.data.cityId ?? null, b.data.ageTrack ?? 'adult');
       void audit('taunt_category.add', c.id, b.data.nameFa);
       return reply.code(201).send({ id: c.id });
     });
     g.patch('/admin/taunt-categories/:id', async (req, reply) => {
       const p = idParam.safeParse(req.params);
-      const b = z.object({ nameFa: z.string().trim().min(2).max(40).optional(), isActive: z.boolean().optional(), sortOrder: z.number().int().min(0).max(1000).optional(), cityId: z.string().uuid().nullable().optional() }).safeParse(req.body);
+      const b = z.object({ nameFa: z.string().trim().min(2).max(40).optional(), isActive: z.boolean().optional(), sortOrder: z.number().int().min(0).max(1000).optional(), cityId: z.string().uuid().nullable().optional(), ageTrack: z.enum(['kid', 'teen', 'adult']).optional() }).safeParse(req.body);
       if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
       if ((await chat.updateCategory(p.data.id, b.data)) === 'not_found') return reply.code(404).send({ error: 'category_not_found' });
       void audit('taunt_category.update', p.data.id, JSON.stringify(b.data));
@@ -532,7 +538,14 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       void audit('taunt.update', p.data.id, JSON.stringify(b.data));
       return { ok: true };
     });
-    g.get('/admin/chat/reports', async () => ({ reports: await chat.reports({ openOnly: false, limit: 100 }) }));
+    // `?queue=minors` is the separate kid/teen review queue (docs/logic/age-tracks.md §Admin panel); `adults` the rest; default everything.
+    // Only moderating roles (players or messages) read the lines of kid/teen chats; a viewer gets the adult queue whatever was asked.
+    g.get('/admin/chat/reports', async (req) => {
+      const q = z.object({ queue: z.enum(['all', 'minors', 'adults']).default('all') }).safeParse(req.query);
+      const role = req.adminActor?.role;
+      const moderates = !!role && (can(role, 'users') || can(role, 'messages'));
+      return { reports: await chat.reports({ openOnly: false, limit: 100, queue: moderates && q.success ? q.data.queue : 'adults' }), minorsQueue: moderates };
+    });
     g.post('/admin/chat/reports/:id/resolve', async (req, reply) => {
       const p = idParam.safeParse(req.params);
       if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
@@ -598,9 +611,39 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     }
   }
 
+  if (m.economy) {
+    const economy = m.economy;
+    g.get('/admin/economy', async (req) => {
+      const q = z.object({ days: z.coerce.number().int().min(1).max(90).default(7) }).safeParse(req.query);
+      return economy.overview(q.success ? q.data.days : 7, Date.now());
+    });
+  }
+
   if (m.ageTracks) {
     const tracks = m.ageTracks;
     g.get('/admin/age-tracks', async () => tracks.overview());
+    // Guardians: who holds which children, with support actions (all audited). The number is contact data: only roles that manage players see it.
+    g.get('/admin/guardians', async (req) => {
+      const q = z.object({ q: z.string().max(40).default('') }).safeParse(req.query);
+      const rows = await tracks.guardians(q.success ? q.data.q : '', 100);
+      const contact = !!req.adminActor && can(req.adminActor.role, 'users');
+      return { guardians: rows.map((r) => (contact ? r : { ...r, phone: null })) };
+    });
+    g.post('/admin/guardians/children/:id/unlink', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
+      if (!(await tracks.unlink(p.data.id))) return reply.code(404).send({ error: 'not_linked' });
+      void audit('guardian.unlink', p.data.id);
+      return { ok: true };
+    });
+    g.put('/admin/guardians/children/:id/track', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object({ track: z.enum(['kid', 'teen']) }).safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      if (!(await tracks.setChildTrack(p.data.id, b.data.track))) return reply.code(404).send({ error: 'not_linked' });
+      void audit('guardian.child_track', p.data.id, b.data.track);
+      return { ok: true };
+    });
   }
 
   if (m.lessons) {
@@ -893,6 +936,8 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       perDayLimit: z.number().int().min(0).max(1000),
       iconKey: z.string().max(30).nullable(),
       isActive: z.boolean(),
+      /** In the daily rotating pool (`shop.daily_slots` of the rotating items are on offer each day). */
+      rotating: z.boolean().default(false),
     };
     g.get('/admin/shop', async () => ({ items: await shop.items({ includeHidden: true }) }));
     g.post('/admin/shop', async (req, reply) => {
@@ -908,6 +953,55 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
       if ((await shop.updateItem(p.data.id, b.data)) === 'not_found') return reply.code(404).send({ error: 'item_not_found' });
       void audit('shop.update', p.data.id, JSON.stringify(b.data));
+      return { ok: true };
+    });
+  }
+
+  if (m.keepsakes) {
+    const ks = m.keepsakes;
+    const defFields = {
+      productId: z.string().uuid().nullable().default(null),
+      titleFa: z.string().trim().min(2).max(120),
+      storyFa: z.string().trim().min(2).max(2000),
+      eraYear: z.number().int().min(1300).max(1500).nullable().default(null),
+      rarity: z.enum(KEEPSAKE_RARITIES),
+      pieces: z.number().int().min(1).max(12).default(4),
+      /** Key of the art supplied by the designer; null = placeholder frame. */
+      artKey: z.string().trim().max(60).nullable().default(null),
+      setId: z.string().uuid().nullable().default(null),
+      rewardGems: z.number().int().min(0).max(1000).default(KEEPSAKE_REWARD_GEMS),
+      isActive: z.boolean().default(true),
+    };
+    const setFields = { titleFa: z.string().trim().min(2).max(120), rewardGems: z.number().int().min(0).max(10_000).default(10), isActive: z.boolean().default(true) };
+    g.get('/admin/keepsakes', async () => ({ defs: await ks.defs({ includeHidden: true }), sets: await ks.sets({ includeHidden: true }) }));
+    g.post('/admin/keepsakes', async (req, reply) => {
+      const b = z.object(defFields).safeParse(req.body);
+      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const row = await ks.addDef(b.data);
+      void audit('keepsake.add', row.id, b.data.titleFa);
+      return reply.code(201).send({ id: row.id });
+    });
+    g.patch('/admin/keepsakes/:id', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object(defFields).partial().safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      if ((await ks.updateDef(p.data.id, b.data)) === 'not_found') return reply.code(404).send({ error: 'keepsake_not_found' });
+      void audit('keepsake.update', p.data.id, JSON.stringify(b.data));
+      return { ok: true };
+    });
+    g.post('/admin/keepsake-sets', async (req, reply) => {
+      const b = z.object(setFields).safeParse(req.body);
+      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const row = await ks.addSet(b.data);
+      void audit('keepsake.set.add', row.id, b.data.titleFa);
+      return reply.code(201).send({ id: row.id });
+    });
+    g.patch('/admin/keepsake-sets/:id', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object(setFields).partial().safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      if ((await ks.updateSet(p.data.id, b.data)) === 'not_found') return reply.code(404).send({ error: 'set_not_found' });
+      void audit('keepsake.set.update', p.data.id, JSON.stringify(b.data));
       return { ok: true };
     });
   }

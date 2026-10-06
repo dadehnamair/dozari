@@ -27,6 +27,8 @@ export interface NotifyStore {
   createCode(userId: string, code: string, expiresAt: number): Promise<void>;
   /** Consumes a live code and links the chat to its user (an older link of either side is replaced); null = unknown/expired. */
   redeemCode(code: string, chatId: string, now: number): Promise<{ userId: string } | null>;
+  /** Links the chat to the player without a code (the chat proved the player's phone number); an older link of either side is replaced. */
+  linkChat(userId: string, chatId: string, now: number): Promise<void>;
   /** Removes the link of a chat; true if there was one. */
   unlinkChat(chatId: string): Promise<boolean>;
   unlinkUser(userId: string): Promise<boolean>;
@@ -68,6 +70,12 @@ export function createDbNotifyStore(db: Db): NotifyStore {
         await tx.delete(baleLinks).where(or(eq(baleLinks.userId, row.userId), eq(baleLinks.chatId, chatId)));
         await tx.insert(baleLinks).values({ userId: row.userId, chatId, linkedAt: new Date(now) });
         return { userId: row.userId };
+      });
+    },
+    async linkChat(userId, chatId, now) {
+      await db.transaction(async (tx) => {
+        await tx.delete(baleLinks).where(or(eq(baleLinks.userId, userId), eq(baleLinks.chatId, chatId)));
+        await tx.insert(baleLinks).values({ userId, chatId, linkedAt: new Date(now) });
       });
     },
     async unlinkChat(chatId) {
@@ -165,6 +173,10 @@ export function createMemoryNotifyStore(): NotifyStore & { outbox: (OutboxRow & 
       for (const [u, l] of links) if (u === row.userId || l.chatId === chatId) links.delete(u);
       links.set(row.userId, { chatId, dailyNotifiedFor: null });
       return { userId: row.userId };
+    },
+    async linkChat(userId, chatId) {
+      for (const [u, l] of links) if (u === userId || l.chatId === chatId) links.delete(u);
+      links.set(userId, { chatId, dailyNotifiedFor: null });
     },
     async unlinkChat(chatId) {
       for (const [u, l] of links) if (l.chatId === chatId) return links.delete(u);

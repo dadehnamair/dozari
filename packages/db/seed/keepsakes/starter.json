@@ -1,0 +1,49 @@
+{
+  "sets": [
+    { "key": "zang-tafrih", "title_fa": "زنگ تفریح", "reward_gems": 10 },
+    { "key": "khane-ghadimi", "title_fa": "خانه‌ی قدیمی", "reward_gems": 8 },
+    { "key": "seda-o-tasvir", "title_fa": "صدا و تصویر", "reward_gems": 10 },
+    { "key": "telephone-o-ertebat", "title_fa": "تلفن و ارتباط", "reward_gems": 12 }
+  ],
+  "keepsakes": [
+    { "key": "pofak-minoo", "product_slug": "pofak-namaki-minoo", "set": "zang-tafrih", "title_fa": "پفک نمکی مینو", "era_year": 1370, "rarity": "common", "pieces": 4, "reward_gems": 3,
+      "story_fa": "بسته‌ی براق قرمز، پفک‌های نارنجی و انگشت‌هایی که تا شب رنگ‌شان نمی‌رفت. یادت هست چطور آخرِ بسته را سر می‌کشیدی؟" },
+    { "key": "biscuit-madar", "product_slug": "biscuit-madar", "set": "zang-tafrih", "title_fa": "بیسکویت مادر", "era_year": 1365, "rarity": "common", "pieces": 4, "reward_gems": 3,
+      "story_fa": "همان که توی شیر آب می‌شد و نسل‌به‌نسل دست‌به‌دست رسید. یکی دیگر بخور، سیر نشدی هنوز." },
+    { "key": "adams-shik", "product_slug": "adams-shik", "set": "zang-tafrih", "title_fa": "آدامس شیک", "era_year": 1370, "rarity": "common", "pieces": 4, "reward_gems": 3,
+      "story_fa": "بسته‌ی کوچک مقوایی با چهار تکه‌ی دارچینی یا نعنایی؛ باقی‌پولِ بقالی که همیشه به آدامس می‌رسید." },
+    { "key": "cake-titap", "product_slug": "cake-titap", "set": "zang-tafrih", "title_fa": "کیک تی‌تاپ", "era_year": 1375, "rarity": "common", "pieces": 4, "reward_gems": 3,
+      "story_fa": "زنگ تفریح، لایه‌ی کرم دارچینی و کاراملی، و مسابقه‌ی اینکه چه کسی آخرین گاز را می‌زند." },
+    { "key": "bastani-kim", "product_slug": "bastani-kim", "set": "zang-tafrih", "title_fa": "بستنی کیم", "era_year": 1372, "rarity": "common", "pieces": 4, "reward_gems": 3,
+      "story_fa": "روکش ترد شکلاتی و چوب تخت چوبی. قبل از آب شدن باید تمامش می‌کردی؛ تابستان یعنی همین." },
+    { "key": "chips-chitoz", "product_slug": "chips-chitoz", "set": "zang-tafrih", "title_fa": "چیپس چیتوز", "era_year": 1378, "rarity": "common", "pieces": 4, "reward_gems": 3,
+      "story_fa": "میمونِ بازیگوشِ روی بسته و ورقه‌های برشته‌ی سیب‌زمینی. تا آخرین خرده، ته بسته را با انگشت می‌گشتی." },
+    { "key": "chocolate-minoo", "product_slug": "chocolate-minoo", "set": "zang-tafrih", "title_fa": "شکلات تخته‌ای مینو", "era_year": 1368, "rarity": "rare", "pieces": 4, "reward_gems": 4,
+      "story_fa": "کاغذ نقره‌ای زیر پوشش و عطر کاکائو که از اولین قطعه جلوتر می‌رسید." },
+
+    { "key": "yakhchal-arj", "product_slug": "yakhchal-arj", "set": "khane-ghadimi", "title_fa": "یخچال ارج", "era_year": 1368, "rarity": "rare", "pieces": 4, "reward_gems": 4,
+      "story_fa": "دستگیره‌ی قفل‌دار و موتور جان‌سخت؛ انگار هیچ‌وقت خراب نمی‌شد و در هر خانه‌ای پیدایش می‌کردی." },
+    { "key": "bokhari-alaeddin", "product_slug": "bokhari-alaeddin", "set": "khane-ghadimi", "title_fa": "بخاری علاءالدین", "era_year": 1362, "rarity": "rare", "pieces": 4, "reward_gems": 4,
+      "story_fa": "سبز و استوانه‌ای، با بوی آشنای نفت و کتری آب جوش که همیشه روی سرش بود. زمستان یعنی دورِ بخاری." },
+    { "key": "charkh-marshal", "product_slug": "charkh-khayati-marshal", "set": "khane-ghadimi", "title_fa": "چرخ خیاطی مارشال", "era_year": 1360, "rarity": "rare", "pieces": 4, "reward_gems": 4,
+      "story_fa": "بدنه‌ی چدنی با نقش‌های طلایی و جعبه‌ی چوبی قفل‌دار. صدای چرخ یعنی در خانه کسی دارد چیزی می‌دوزد." },
+
+    { "key": "tv-pars", "product_slug": "tv-pars-black-white", "set": "seda-o-tasvir", "title_fa": "تلویزیون سیاه‌وسفید پارس", "era_year": 1358, "rarity": "epic", "pieces": 4, "reward_gems": 6,
+      "story_fa": "جعبه‌ی جادویی با کلید چرخشی تق‌تق‌دار و آنتن خرگوشی. برای یک برنامه، همه‌ی خانه دور هم جمع می‌شدند." },
+    { "key": "cassette-tdk", "product_slug": "cassette-tdk", "set": "seda-o-tasvir", "title_fa": "نوار کاست TDK", "era_year": 1370, "rarity": "rare", "pieces": 4, "reward_gems": 4,
+      "story_fa": "زبانه‌ها را با چسب می‌پوشاندی تا رویش دوباره ضبط کنی. هر نوار یک مجموعه‌ی دست‌ساز بود." },
+    { "key": "radio-sony", "product_slug": "radio-zabt-sony", "set": "seda-o-tasvir", "title_fa": "رادیو ضبط دوکاسته‌ی سونی", "era_year": 1372, "rarity": "epic", "pieces": 4, "reward_gems": 6,
+      "story_fa": "دو کاسته و دکمه‌ی پرسرعتِ دوبینگ؛ نوار دوستت را می‌گذاشتی و از رویش برای خودت کپی می‌گرفتی." },
+    { "key": "video-vhs", "product_slug": "video-vhs-national", "set": "seda-o-tasvir", "title_fa": "ویدیوی VHS ناسیونال", "era_year": 1370, "rarity": "epic", "pieces": 4, "reward_gems": 6,
+      "story_fa": "دستگاه بزرگ و نوار بزرگ‌تر. نوارها با کاورِ پیچیده دست‌به‌دست می‌شد و کسی دلیلش را نمی‌پرسید." },
+
+    { "key": "dozari-phone", "product_slug": "sekke-dozari-telephone", "set": "telephone-o-ertebat", "title_fa": "دوزاری باجه‌ی تلفن", "era_year": 1360, "rarity": "legendary", "pieces": 6, "reward_gems": 15,
+      "story_fa": "سکه‌ی زرد برنجیِ دو ریالی که توی باجه‌ی تلفن زرد خیابان می‌افتاد. اسم این بازی از همین‌جاست." },
+    { "key": "kart-telephone", "product_slug": "kart-telephone-omoomi", "set": "telephone-o-ertebat", "title_fa": "کارت تلفن همگانی", "era_year": 1378, "rarity": "epic", "pieces": 4, "reward_gems": 6,
+      "story_fa": "کارت پلاستیکیِ چیپ‌دار با عکس جاذبه‌های ایران. بعضی‌ها فقط برای قشنگی‌اش جمعش می‌کردند." },
+    { "key": "dialup", "product_slug": "dialup-internet-monthly", "set": "telephone-o-ertebat", "title_fa": "اینترنت دیال‌آپ", "era_year": 1385, "rarity": "epic", "pieces": 4, "reward_gems": 6,
+      "story_fa": "کارت اسکرچ، بوق مودم و کلی صبر. تا یک صفحه باز شود، می‌شد چای ریخت و برگشت." },
+    { "key": "simcard-first", "product_slug": "simkart-hamrah-aval", "set": "telephone-o-ertebat", "title_fa": "سیم‌کارت همراه اول", "era_year": 1373, "rarity": "legendary", "pieces": 6, "reward_gems": 15,
+      "story_fa": "پیش‌شماره‌ی ۰۹۱۲، ودیعه‌ی سنگین و صف‌های طولانی. داشتن یک خط، یک اتفاق بود." }
+  ]
+}

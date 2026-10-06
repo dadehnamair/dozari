@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { AGE_TRACKS } from '../config/ageTracks.js';
+import { childLimitsSchema } from './guardianSettings.js';
 
 export const ageTrackSchema = z.enum(AGE_TRACKS);
 
@@ -10,8 +11,13 @@ const trackRulesSchema = z.object({
   wordLesson: z.boolean(),
   freeTextChat: z.enum(['invite_code', 'guardian_switch']),
   socialSameTrackOnly: z.boolean(),
+  socialNeedsGuardian: z.boolean(),
   purchases: z.boolean(),
   ugc: z.boolean(),
+  tournaments: z.boolean(),
+  transfers: z.boolean(),
+  inviteShare: z.boolean(),
+  publicProfile: z.enum(['basic', 'stats', 'full']),
   publicCity: z.boolean(),
   dailyPuzzle: z.boolean(),
   priceOnly: z.boolean(),
@@ -26,6 +32,8 @@ export const myAgeTrackSchema = z.object({
   track: ageTrackSchema,
   chosen: z.boolean(),
   rules: trackRulesSchema,
+  /** The guardian's choices for this child; null when there are none. */
+  limits: childLimitsSchema.nullable().optional(),
 });
 export type MyAgeTrackDto = z.infer<typeof myAgeTrackSchema>;
 

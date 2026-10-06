@@ -63,6 +63,22 @@ describe('landing content', () => {
     expect((await app.inject({ method: 'GET', url: '/public/posts/none' })).statusCode).toBe(404);
   });
 
+  it('serves the try-it puzzle as drawn icons, and 404 when the catalog has none', async () => {
+    const settings = new SettingsService(createMemorySettingsStore());
+    const store = createMemoryLandingStore();
+    const empty = buildServer({ landing: new LandingService(store), settings });
+    expect((await empty.inject({ method: 'GET', url: '/public/landing-demo' })).statusCode).toBe(404);
+
+    const group = (level: number) => ({ level, titleFa: `گروه ${level}`, items: ['coin', 'tv', 'nokia', 'pride'].map((iconKey, n) => ({ nameFa: `کالا ${level}${n}`, iconKey, imageUrl: n === 0 ? 'https://cdn.example/p.jpg' : null })) });
+    store.demoPuzzle = async () => [0, 1, 2, 3].map(group);
+    const app = buildServer({ landing: new LandingService(store), settings });
+    const res = (await app.inject({ method: 'GET', url: '/public/landing-demo' })).json();
+    expect(res.groups).toHaveLength(4);
+    expect(res.groups[0]).toMatchObject({ level: 0, title: 'گروه 0' });
+    expect(res.groups[0].items[0]).toMatchObject({ name: 'کالا 00', svg: expect.stringMatching(/^<svg /), image: 'https://cdn.example/p.jpg' });
+    expect(res.groups[0].items[1].image).toBeNull();
+  });
+
   it('publishes the admin-set SEO fields, keeping only safe values', async () => {
     const settings = new SettingsService(createMemorySettingsStore());
     const app = buildServer({ landing: new LandingService(createMemoryLandingStore()), settings });

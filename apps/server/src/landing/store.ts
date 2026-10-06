@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, landingCast, landingFaq, landingPosts, landingSlugRedirects, sql } from '@dozari/db';
+import { and, asc, dailyPuzzles, desc, eq, landingCast, landingFaq, landingPosts, landingSlugRedirects, productImages, products, puzzleGroupItems, puzzleGroups, puzzles, sql } from '@dozari/db';
 import type { Db } from '@dozari/db';
 import { uuidv7 } from 'uuidv7';
 
@@ -39,6 +39,13 @@ export interface FaqRow {
 }
 export type NewFaq = Omit<FaqRow, 'id' | 'sortOrder'>;
 
+/** One approved puzzle for the landing's try-it demo: four groups of four products that all have an icon. */
+export interface DemoGroupRow {
+  level: number;
+  titleFa: string;
+  items: { nameFa: string; iconKey: string; imageUrl: string | null }[];
+}
+
 /** I/O boundary of the landing content (blog, cast, FAQ). */
 export interface LandingStore {
   posts(opts: { publishedOnly: boolean; limit: number; offset: number }): Promise<{ rows: PostRow[]; total: number }>;
@@ -55,6 +62,8 @@ export interface LandingStore {
   faq(opts: { includeHidden: boolean }): Promise<FaqRow[]>;
   addFaq(f: NewFaq): Promise<FaqRow>;
   updateFaq(id: string, patch: Partial<NewFaq & { sortOrder: number }>): Promise<'ok' | 'not_found'>;
+  /** An approved adult puzzle whose 16 products all have icons and that is not a daily puzzle (no spoilers); `pick` chooses among the candidates. */
+  demoPuzzle(pick: (n: number) => number): Promise<DemoGroupRow[] | null>;
 }
 
 const toPost = (r: typeof landingPosts.$inferSelect): PostRow => ({ ...r, publishedAt: r.publishedAt ? r.publishedAt.getTime() : null, createdAt: r.createdAt.getTime(), updatedAt: r.updatedAt.getTime() });
@@ -136,6 +145,43 @@ export function createDbLandingStore(db: Db): LandingStore {
       if (Object.keys(patch).length > 0) await db.update(landingFaq).set(patch).where(eq(landingFaq.id, id));
       return 'ok';
     },
+    async demoPuzzle(pick) {
+      const candidates = await db
+        .select({ id: puzzles.id })
+        .from(puzzles)
+        .innerJoin(puzzleGroupItems, eq(puzzleGroupItems.puzzleId, puzzles.id))
+        .innerJoin(products, eq(products.id, puzzleGroupItems.productId))
+        .where(and(eq(puzzles.status, 'approved'), eq(puzzles.ageTrack, 'adult'), sql`${puzzles.id} NOT IN (SELECT ${dailyPuzzles.puzzleId} FROM ${dailyPuzzles})`))
+        .groupBy(puzzles.id)
+        .having(sql`COUNT(*) = 16 AND SUM(${products.iconKey} IS NULL) = 0`)
+        .orderBy(asc(puzzles.id))
+        .limit(50);
+      if (candidates.length === 0) return null;
+      const chosen = candidates[Math.min(Math.max(pick(candidates.length), 0), candidates.length - 1)]!.id;
+      const rows = await db
+        .select({
+          level: puzzleGroups.level,
+          titleFa: puzzleGroups.titleFa,
+          nameFa: products.nameFa,
+          iconKey: products.iconKey,
+          // The primary photo, else the oldest one; only absolute web addresses (the landing is another origin).
+          imageUrl: sql<string | null>`(SELECT ${productImages.url} FROM ${productImages} WHERE ${productImages.productId} = ${products.id} AND ${productImages.url} LIKE 'http%' ORDER BY ${productImages.isPrimary} DESC, ${productImages.createdAt} ASC LIMIT 1)`,
+        })
+        .from(puzzleGroups)
+        .innerJoin(puzzleGroupItems, eq(puzzleGroupItems.groupId, puzzleGroups.id))
+        .innerJoin(products, eq(products.id, puzzleGroupItems.productId))
+        .where(eq(puzzleGroups.puzzleId, chosen))
+        .orderBy(asc(puzzleGroups.level), asc(products.id));
+      const byLevel = new Map<number, DemoGroupRow>();
+      for (const r of rows) {
+        if (!r.titleFa || !r.iconKey) return null;
+        const g = byLevel.get(r.level) ?? { level: r.level, titleFa: r.titleFa, items: [] };
+        g.items.push({ nameFa: r.nameFa, iconKey: r.iconKey, imageUrl: r.imageUrl });
+        byLevel.set(r.level, g);
+      }
+      const groups = [...byLevel.values()];
+      return groups.length === 4 && groups.every((g) => g.items.length === 4) ? groups : null;
+    },
   };
 }
 
@@ -209,6 +255,9 @@ export function createMemoryLandingStore(): LandingStore {
       if (!f) return 'not_found';
       Object.assign(f, patch);
       return 'ok';
+    },
+    async demoPuzzle() {
+      return null;
     },
   };
 }

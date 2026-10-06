@@ -1,5 +1,7 @@
 # Coin economy (defaults accepted, tunable — D9, confirmed 2026-09-27)
 
+> Next steps for sinks, daily habit, collection cards and the showcase profile: `docs/logic/economy-v2.md` (D204, proposed).
+
 Goal from the brief: coins come from inviting friends and playing; entering matches/tables costs coins;
 an active player should **never get stuck** at zero. All numbers → `packages/shared/src/config/economy.ts`.
 
@@ -70,7 +72,9 @@ Settings (admin → economy): `duel.entry_fee` 20, `duel.house_cut_percent` 10, 
 - Queue join: free matches left → ok; else balance ≥ fee → ok; else once a day a rescue top-up to the target (`broke_rescue`); else `INSUFFICIENT_COINS`.
 - Start: a free match (counter `daily_play_counts.duel_free`) or the fee (`match_entry`); a bot seat is covered by the house (no ledger row). If a human cannot pay, fees already taken come back in full.
 - End: winner `match_payout` (pot − cut; a free-match win pays `free_payout_percent` of it; a bot win pays nothing); draw `match_refund` fee − cut for paid seats; loser `match_consolation` (capped per Tehran day, not for abandon/forfeit). Keys `<reason>:<matchId>:<userId>` → settling twice is a no-op.
-- Not built: difficulty-scaled fee (D51), team 2v2, private-table pots, abandon repeat cooldown.
+- **Stake tables (D204, built):** a queue duel can sit at *bronze* (the base fee above), *silver* or *gold*; the queue pairs only players of one table. Settings `duel.silver_fee` 100, `duel.silver_min_level` 8, `duel.gold_fee` 500, `duel.gold_min_level` 15 (fee 0 = table off; bronze keeps `duel.entry_fee` / `duel.min_level`). Higher tables have **no free daily match and no rescue top-up**, need the fee in hand and the level, and are for adults only (kid/teen never wager). `queue:join {mode, tier?}`; errors `UNKNOWN_TIER`, `LEVEL_TOO_LOW`, `INSUFFICIENT_COINS`. The match settles with its table's fee (pure `duelTiers` in shared; `DuelStakes.rulesFor(tier)`). The bot fallback keeps the human's table. Mobile: chips under the 1v1 card (`arenaTiers`).
+- **Gift fee (D204, built):** `transfer.gift_fee_percent` (default 5): the sender pays the amount, the receiver gets it minus the fee, the fee is burned (`gift_in` is smaller than `gift_out`); loans carry no fee; the weekly cap counts the full amount. The rules text shown before sending says so.
+- Not built: difficulty-scaled fee (D51, the tables above are the stake axis; a puzzle-difficulty multiplier is separate), team 2v2 tables, private-table pots, abandon repeat cooldown.
 
 ## Lucky wheel — built (D116)
 
@@ -145,6 +149,8 @@ ledger don't need retrofitting later).
 returns median/p10/p90 balance, % of player-days stuck and faucet/burn per player. Print it with
 `PRINT_ECONOMY=1 pnpm --filter @dozari/shared exec vitest run src/economy/__tests__/simulate.test.ts`.
 Target: < 2% stuck, median balance slowly rising (so the shop/cosmetics sink has room). Run it whenever config changes.
+
+> Update 2026-10-05: the 90-day v2 model (`simulate-v2.ts`) shows the old economy reaching a median of ≈ 5200 and faucet/sink 8.2. See `economy-v2.md` §Simulation result.
 
 ### Audit result (launch defaults, 2026-10-02, D90)
 

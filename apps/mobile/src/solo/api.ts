@@ -7,7 +7,8 @@ export { ApiError, BASE_URL };
 
 const call = callJson;
 
-export const startSolo = async (token?: string): Promise<SoloView> => soloViewSchema.parse(await call('/solo/start', 'POST', undefined, token));
+/** `preview`: a guardian looks at the kid or teen space; the server records nothing for such a game. */
+export const startSolo = async (token?: string, preview?: 'kid' | 'teen'): Promise<SoloView> => soloViewSchema.parse(await call('/solo/start', 'POST', preview ? { preview } : undefined, token));
 
 export const startDailySolo = async (token: string): Promise<SoloView> => soloViewSchema.parse(await call('/daily-puzzle/start', 'POST', undefined, token));
 
