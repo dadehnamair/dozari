@@ -24,9 +24,11 @@ export function useHomeData(features: ClientConfig['features']) {
   const [level, setLevel] = useState<number | null>(null);
   /** The player's province (D101): its badge and local greeting sit under the wordmark. */
   const [province, setProvince] = useState<Province | null>(null);
+  /** The city's own slogan (admin-written), shown under the greeting. */
+  const [slogan, setSlogan] = useState<string | null>(null);
   const [dailyPuzzle, setDailyPuzzle] = useState<DailyStatus | null>(null);
   const loadMe = useCallback(() => {
-    fetchMyProfile().then((p) => (setGender(p.gender), applyAppIcon(p.gender), setLevel(p.level.level), setProvince(provinceOf(p.city?.province))), () => undefined);
+    fetchMyProfile().then((p) => (setGender(p.gender), applyAppIcon(p.gender), setLevel(p.level.level), setProvince(provinceOf(p.city?.province)), setSlogan(p.city?.sloganFa ?? null)), () => undefined);
   }, []);
   useEffect(loadMe, [loadMe]);
   /** What the hero wears (set in the fitting room). */
@@ -42,5 +44,5 @@ export function useHomeData(features: ClientConfig['features']) {
   useEffect(() => {
     if (features.daily) fetchDailyStatus().then(setDailyPuzzle, () => undefined);
   }, [features.daily]);
-  return { spins, loadSpins, liveMatch, gender, setGender, level, province, dailyPuzzle, loadMe, profileTasks, loadTasks, gems, worn, loadWorn };
+  return { spins, loadSpins, liveMatch, gender, setGender, level, province, slogan, dailyPuzzle, loadMe, profileTasks, loadTasks, gems, worn, loadWorn };
 }

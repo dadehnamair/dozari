@@ -820,6 +820,10 @@ export const cities = mysqlTable(
     nameFa: varchar('name_fa', { length: 60 }).notNull(),
     /** Key into shared `PROVINCES` (D101); null = no regional identity («شهر دیگر»). */
     province: varchar('province', { length: 24 }),
+    /** The city's own souvenir (admin-written); null = the province's default one. */
+    souvenirFa: varchar('souvenir_fa', { length: 60 }),
+    /** Short slogan shown on Home for players of this city; null = none. */
+    sloganFa: varchar('slogan_fa', { length: 120 }),
     sortOrder: int('sort_order').notNull().default(0),
     isActive: boolean('is_active').notNull().default(true),
   },

@@ -417,7 +417,29 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     const cities = m.cities;
     /** A `PROVINCES` key, or null for no regional identity. */
     const provinceKey = z.string().refine((k) => provinceOf(k) !== null).nullable();
-    g.get('/admin/cities', async () => ({ cities: await cities.cities({ includeHidden: true }), provinces: PROVINCES.map((p) => ({ key: p.key, nameFa: p.nameFa, abroad: p.abroad })) }));
+    g.get('/admin/cities', async () => {
+      const [list, stats] = await Promise.all([cities.cities({ includeHidden: true }), cities.cityStats()]);
+      const none = { players: 0, active7d: 0, bots: 0, xp: 0 };
+      return { cities: list.map((c) => ({ ...c, stats: stats.get(c.id) ?? none })), provinces: PROVINCES.map((p) => ({ key: p.key, nameFa: p.nameFa, abroad: p.abroad, giftFa: p.giftFa })) };
+    });
+    g.get('/admin/cities/:id/players', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const q = z.object({ q: z.string().max(60).default(''), offset: z.coerce.number().int().min(0).max(100_000).default(0) }).safeParse(req.query);
+      if (!p.success || !q.success) return reply.code(400).send({ error: 'invalid_request' });
+      if (!(await cities.city(p.data.id))) return reply.code(404).send({ error: 'city_not_found' });
+      return { players: await cities.cityPlayers(p.data.id, { q: q.data.q, limit: 50, offset: q.data.offset }) };
+    });
+    /** Moves a player to another city, or out of any city (`cityId: null`). */
+    g.put('/admin/cities/:id/players/:userId', async (req, reply) => {
+      const p = z.object({ id: z.string().uuid(), userId: z.string().uuid() }).safeParse(req.params);
+      const b = z.object({ cityId: z.string().uuid().nullable() }).safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      if (b.data.cityId && !(await cities.city(b.data.cityId))) return reply.code(404).send({ error: 'city_not_found' });
+      if ((await cities.privateRow(p.data.userId)).cityId !== p.data.id) return reply.code(404).send({ error: 'user_not_found' });
+      await cities.setCity(p.data.userId, b.data.cityId);
+      void audit('city.player_move', p.data.userId, b.data.cityId ?? 'none');
+      return { ok: true };
+    });
     g.post('/admin/cities', async (req, reply) => {
       const b = z.object({ slug: z.string().trim().toLowerCase().regex(/^[a-z0-9-]{2,40}$/), nameFa: z.string().trim().min(2).max(60), province: provinceKey.optional() }).safeParse(req.body);
       if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
@@ -428,7 +450,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     });
     g.patch('/admin/cities/:id', async (req, reply) => {
       const p = idParam.safeParse(req.params);
-      const b = z.object({ nameFa: z.string().trim().min(2).max(60).optional(), isActive: z.boolean().optional(), sortOrder: z.number().int().min(0).max(10000).optional(), province: provinceKey.optional() }).safeParse(req.body);
+      const b = z.object({ nameFa: z.string().trim().min(2).max(60).optional(), isActive: z.boolean().optional(), sortOrder: z.number().int().min(0).max(10000).optional(), province: provinceKey.optional(), souvenirFa: z.string().trim().max(60).transform((v) => v || null).nullable().optional(), sloganFa: z.string().trim().max(120).optional() }).safeParse(req.body);
       if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
       if ((await cities.updateCity(p.data.id, b.data)) === 'not_found') return reply.code(404).send({ error: 'city_not_found' });
       void audit('city.update', p.data.id, JSON.stringify(b.data));
