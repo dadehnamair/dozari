@@ -274,14 +274,17 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false, ageTrac
                 <View style={styles.askCard}>
                   <Text style={styles.askTitle}>{fa.solo.price.readyTitle}</Text>
                   <Text style={styles.askSub}>{fa.solo.price.readySub}</Text>
-                  <View style={styles.actions}>
-                    <SlabButton label={fa.solo.price.skip} color={colors.candy.sky} height={50} fontSize={18} onPress={() => setPriceDone(true)} />
-                    <SlabButton label={fa.solo.price.go} sfx="confirm" color={colors.candy.lime} height={50} fontSize={20} grow={1.4} onPress={() => setPriceReady(true)} />
-                  </View>
                 </View>
               </View>
             )}
           </ScrollView>
+          {/* The choices stay pinned under the scrolling middle, whichever step the end of the game is on. */}
+          {!offline && !lessonMode && !priceDone && !priceReady ? (
+            <View style={styles.actions}>
+              <SlabButton label={fa.solo.price.skip} color={colors.candy.sky} height={58} fontSize={20} onPress={() => setPriceDone(true)} />
+              <SlabButton label={fa.solo.price.go} sfx="confirm" color={colors.candy.lime} height={58} fontSize={22} grow={1.4} onPress={() => setPriceReady(true)} />
+            </View>
+          ) : null}
           {priceDone || offline ? (
             <View style={styles.actions}>
               <SlabButton label={fa.solo.back} sfx="back" color={colors.candy.sky} height={58} fontSize={20} onPress={onBack} />

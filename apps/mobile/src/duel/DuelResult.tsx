@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.deep },
   shade: { backgroundColor: 'rgba(43,18,64,0.55)' },
   column: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', paddingHorizontal: 12, paddingTop: 28 + nativeTopInset(), paddingBottom: 28, alignItems: 'stretch', gap: 8 },
-  scroll: { flexShrink: 1, flexGrow: 0 },
+  scroll: { flexShrink: 1, flexGrow: 0, minHeight: 0 },
   scrollIn: { gap: 8, paddingBottom: 6 },
   hero: { width: 140, height: 162, alignSelf: 'center' },
   banner: { alignSelf: 'center', paddingHorizontal: 30, paddingVertical: 6, borderRadius: 18, borderWidth: 4, borderColor: colors.ink, overflow: 'hidden', shadowColor: colors.ink, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 1, shadowRadius: 0, elevation: 6 },
