@@ -7,6 +7,7 @@ import { GradientFill } from '../components/GradientFill';
 import { SlabButton } from '../components/SlabButton';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
+import { FACE_TEXT } from '../theme/skin';
 import { characterFor } from './arena';
 import { steppedSec } from '../search/scan';
 
@@ -115,7 +116,7 @@ const styles = StyleSheet.create({
   chipText: { fontFamily: fonts.display, fontSize: 16, color: colors.cream },
   coinWrap: { position: 'absolute', left: 0, right: 0, top: '50%', marginTop: -52, alignItems: 'center' },
   coin: { width: 96, height: 96, borderRadius: 48, borderWidth: 4, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', shadowColor: colors.ink, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 1, shadowRadius: 0, elevation: 6 },
-  coinText: { fontFamily: fonts.display, fontSize: 44, lineHeight: 60, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 3 }, textShadowRadius: 1 },
+  coinText: { fontFamily: fonts.display, fontSize: 44, lineHeight: 60, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 3 }, textShadowRadius: 1, ...FACE_TEXT },
   fighter: { alignItems: 'center', gap: 4 },
   body: { width: 120, height: 139 },
   bodySmall: { width: 86, height: 100 },

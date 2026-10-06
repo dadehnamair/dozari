@@ -30,6 +30,8 @@ import { Tutorial } from './src/onboarding/Tutorial';
 import { loginSeen, markLoginSeen, markTutorialSeen, tutorialSeen } from './src/onboarding/state';
 import type { AgeTrack } from '@dozari/shared';
 import { LoginScreen } from './src/phone/LoginScreen';
+import { bootTheme } from './src/theme/bootTheme';
+import { installDarkTextShadowFix } from './src/theme/darkTextShadow';
 import { AgeTrackScreen } from './src/agetrack/AgeTrackScreen';
 import { ageTrackNeeded } from './src/agetrack/api';
 import { useTrackRules } from './src/agetrack/useTrackRules';
@@ -45,6 +47,9 @@ import { PriceOnlyScreen } from './src/priceonly/PriceOnlyScreen';
 import { refillPack } from './src/offline/pack';
 import { ServerDownBanner } from './src/net/ServerDownBanner';
 import { takeLaunchTarget } from './src/pwa/usePwa';
+
+// The adult look has dark text on brass and silver faces: a shadow under it only smears, so it is dropped app-wide.
+if (bootTheme() === 'adult') installDarkTextShadowFix();
 
 // `?brand` on the web build opens the brand sheet directly (used by `scripts/export-brand.mjs`); read once, before anything rewrites the URL.
 const BRAND_SHEET = Platform.OS === 'web' && new URLSearchParams((globalThis as { location?: { search?: string } }).location?.search ?? '').has('brand');
