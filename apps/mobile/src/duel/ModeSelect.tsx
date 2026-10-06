@@ -10,12 +10,14 @@ import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import type { CharacterId, CharacterPose } from '../theme/character';
 import { nativeTopInset } from '../theme/safeArea';
+import type { ArenaTier, TierId } from './arena';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const a = fa.duel.arena;
 
 /** screen-mode of `13 Match Screens`: the 1v1 card, the 2v2 card, «رقابت با دوست», «بزن بریم!». */
-export function ModeSelect({ entry, prize, mode, onMode, onGo, onFriend, onBack }: { entry: number; prize: number; mode: 'duel' | 'team'; onMode: (m: 'duel' | 'team') => void; onGo: () => void; onFriend?: () => void; onBack: () => void }) {
+export function ModeSelect({ entry, prize, mode, onMode, onGo, onFriend, onBack, tiers = [], tier = 'bronze', onTier }: { entry: number; prize: number; mode: 'duel' | 'team'; onMode: (m: 'duel' | 'team') => void; onGo: () => void; onFriend?: () => void; onBack: () => void; /** Stake tables on offer (bronze first); the chooser shows when there is more than one. */ tiers?: ArenaTier[]; tier?: TierId; onTier?: (t: TierId) => void }) {
+  const picked = tiers.find((x) => x.id === tier);
   const tight = useWindowDimensions().height < 700; // nothing scrolls: shrink the cast on short screens
   return (
     <View style={styles.root}>
@@ -26,8 +28,18 @@ export function ModeSelect({ entry, prize, mode, onMode, onGo, onFriend, onBack 
           <GameTopBar title={a.title} backLabel={fa.duel.back} onBack={onBack} />
           <ModeCard tight={tight} title={a.duel} tag={a.oneVsOne} band="sky" picked={mode === 'duel'} onPress={() => onMode('duel')}
             cast={[{ who: 'dozari', pose: 'coin' }, { who: 'pahlevan', pose: 'angry', flip: true }]}
-            stats={[{ icon: 'ticket', text: a.entry(entry) }, { icon: 'coinStack', text: a.prize(prize) }]} />
-          <Text style={styles.note}>{a.freeNote}</Text>
+            stats={[{ icon: 'ticket', text: a.entry(picked?.fee ?? entry) }, { icon: 'coinStack', text: a.prize(picked?.prize ?? prize) }]} />
+          {mode === 'duel' && tiers.length > 1 && onTier ? (
+            <View style={styles.tierRow}>
+              {tiers.map((t) => (
+                <Pressable key={t.id} accessibilityRole="button" accessibilityState={{ selected: t.id === tier }} onPress={() => onTier(t.id)} style={[styles.tierChip, t.id === tier ? styles.tierChipOn : null]}>
+                  <Text style={styles.tierText}>{a.tierChip(a.tierNames[t.id] ?? t.id, t.fee)}</Text>
+                  {t.minLevel > 1 && t.id !== 'bronze' ? <Text style={styles.tierSub}>{a.tierLocked(t.minLevel)}</Text> : null}
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+          <Text style={styles.note}>{tier === 'bronze' ? a.freeNote : ''}</Text>
           <ModeCard tight={tight} title={a.team} tag={a.twoVsTwo} band="grape" picked={mode === 'team'} onPress={() => onMode('team')}
             cast={[{ who: 'goli', pose: 'cheer', small: true }, { who: 'dozari', pose: 'wave', small: true }, { who: 'pahlevan', pose: 'pointing', flip: true, small: true }, { who: 'baqal', pose: 'thinking', flip: true, small: true }]}
             stats={[{ icon: 'ticket', text: a.teamNote }]} />
@@ -96,6 +108,11 @@ export function VsBadge({ size = 44 }: { size?: number }) {
 const shadow = { shadowColor: colors.ink, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 1, shadowRadius: 0, elevation: 6 };
 
 const styles = StyleSheet.create({
+  tierRow: { flexDirection: ROW, gap: 8, justifyContent: 'center', marginTop: 6 },
+  tierChip: { minHeight: 44, paddingHorizontal: 12, borderRadius: 14, backgroundColor: colors.cream, borderWidth: 2, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  tierChipOn: { backgroundColor: colors.candy.yellow },
+  tierText: { fontFamily: fonts.bold, fontSize: 14, color: colors.ink },
+  tierSub: { fontFamily: fonts.body, fontSize: 11, color: colors.ink },
   root: { flex: 1, backgroundColor: '#3C1A66' },
   shade: { backgroundColor: 'rgba(43,18,64,0.5)' },
   scrollTight: { paddingTop: 8 + nativeTopInset(), paddingBottom: 10 },

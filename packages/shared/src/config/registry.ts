@@ -18,12 +18,13 @@ import {
   TEAM_MATCH_BOARDS,
   TURN_SECONDS,
 } from './game.js';
-import { BROKE_RESCUE_TARGET, DAILY_FREE_MATCHES, SIGNUP_BONUS, ENTRY_FEE_BASE, FREE_MATCH_PAYOUT_PERCENT, HOUSE_CUT_PERCENT, LOSS_CONSOLATION, LOSS_CONSOLATION_DAILY_CAP, DAILY_REWARD_COOLDOWN_HOURS, DAILY_REWARD_STREAK_WINDOW_HOURS, DUEL_MIN_LEVEL, HINT_MAX_PER_GAME, HINT_MIN_LEVEL, HINT_PRICES, HINT_REPEAT_PERCENT, DAILY_PUZZLE_REWARD, DAILY_PUZZLE_STREAK_MAX_DAYS, DAILY_PUZZLE_STREAK_STEP, DAILY_PUZZLE_REPEAT_DAYS } from './economy.js';
+import { BROKE_RESCUE_TARGET, DAILY_FREE_MATCHES, SIGNUP_BONUS, ENTRY_FEE_BASE, FREE_MATCH_PAYOUT_PERCENT, HOUSE_CUT_PERCENT, LOSS_CONSOLATION, LOSS_CONSOLATION_DAILY_CAP, DAILY_REWARD_COOLDOWN_HOURS, DAILY_REWARD_STREAK_WINDOW_HOURS, DUEL_MIN_LEVEL, HINT_MAX_PER_GAME, HINT_MIN_LEVEL, HINT_PRICES, HINT_REPEAT_PERCENT, DAILY_PUZZLE_REWARD, DAILY_PUZZLE_STREAK_MAX_DAYS, DAILY_PUZZLE_STREAK_STEP, DAILY_PUZZLE_REPEAT_DAYS, STAKE_TIERS, GIFT_FEE_PERCENT, DAILY_SHOP_SLOTS, KEEPSAKE_DROP_CHANCE } from './economy.js';
 import { CHART_GAP_BREAK_YEARS, CHART_MIN_YEAR } from './chart.js';
 import { INVITE_INVITEE_BONUS, INVITE_INVITER_REWARD, INVITE_MAX_USES, INVITE_MIN_LEVEL, INVITE_REWARD_AFTER_GAMES } from './invite.js';
 import { LOAN_DUE_DAYS, LOAN_MAX_OPEN, TRANSFER_MAX_AMOUNT, TRANSFER_MIN_AMOUNT, TRANSFER_MIN_FRIEND_DAYS, TRANSFER_MIN_LEVEL, TRANSFER_WEEKLY_CAP } from './transfers.js';
 import { TABLE_IDLE_MINUTES } from '../tables/code.js';
 import { CHAT_MAX_LEN } from './chat.js';
+import { SWITCHABLE_TRACKS, TRACK_FEATURES, TRACK_FEATURE_LABEL_FA, trackFeatureKey } from './ageTracks.js';
 import { SKILL_MIN_GAMES, SKILL_PRO_GAMES, SKILL_PRO_WIN_PERCENT } from './progression.js';
 import { LEVEL_MAX, NICKNAME_MAX_LEN, NICKNAME_MIN_LEN, XP_CURVE_BASE, XP_DUEL_BASE, XP_SOLO_BASE, XP_WIN_BONUS } from './progression.js';
 
@@ -48,6 +49,20 @@ export interface SettingDef {
   default: number | readonly number[] | string;
   unit?: string;
 }
+
+/** One on/off switch per kid/teen track and feature (`track.kid.chat` …): a whole track can lose a feature without touching the others. */
+const TRACK_FEATURE_DEFS: SettingDef[] = SWITCHABLE_TRACKS.flatMap((track) =>
+  TRACK_FEATURES.map((feature): SettingDef => ({
+    key: trackFeatureKey(track, feature),
+    group: 'app',
+    label: `${track === 'kid' ? 'کودک' : 'نوجوان'}: ${TRACK_FEATURE_LABEL_FA[feature]}`,
+    hint: 'کلید ایمنی رده‌ی سنی؛ خاموش = این رده این بخش را نمی‌بیند (فقط وقتی «رده‌های سنی» روشن است)',
+    kind: 'bool',
+    min: 0,
+    max: 1,
+    default: 1,
+  })),
+);
 
 export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'app.maintenance_on', group: 'app', label: 'حالت تعمیر (بازیکن‌ها فقط پیام تعمیر را می‌بینند)', kind: 'bool', min: 0, max: 1, default: 0 },
@@ -111,6 +126,10 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'limit.solo_per_day', group: 'gameplay', label: 'سقف بازی تکی در روز برای هر بازیکن', hint: '۰ یعنی بدون سقف؛ ساعت صفر به وقت تهران صفر می‌شود', kind: 'int', min: 0, max: 1000, default: 0 },
   { key: 'limit.duel_per_day', group: 'gameplay', label: 'سقف بازی دونفره‌ی زنده در روز برای هر بازیکن', hint: '۰ یعنی بدون سقف', kind: 'int', min: 0, max: 1000, default: 0 },
   { key: 'duel.entry_fee', group: 'economy', label: 'ورودی بازی دونفره‌ی زنده (سکه برای هر نفر)', hint: 'جمع دو ورودی می‌شود جایزه‌ی برنده', kind: 'int', min: 0, max: 10000, default: ENTRY_FEE_BASE, unit: 'سکه' },
+  { key: 'duel.silver_fee', group: 'economy', label: 'ورودی میز نقره‌ای (سکه برای هر نفر)', hint: '۰ = میز نقره‌ای خاموش. فقط صف دوئل؛ بازی رایگان روزانه فقط روی میز برنزی است', kind: 'int', min: 0, max: 100000, default: STAKE_TIERS[1]!.fee, unit: 'سکه' },
+  { key: 'duel.silver_min_level', group: 'economy', label: 'حداقل لول برای میز نقره‌ای', kind: 'int', min: 1, max: 200, default: STAKE_TIERS[1]!.minLevel },
+  { key: 'duel.gold_fee', group: 'economy', label: 'ورودی میز طلایی (سکه برای هر نفر)', hint: '۰ = میز طلایی خاموش', kind: 'int', min: 0, max: 100000, default: STAKE_TIERS[2]!.fee, unit: 'سکه' },
+  { key: 'duel.gold_min_level', group: 'economy', label: 'حداقل لول برای میز طلایی', kind: 'int', min: 1, max: 200, default: STAKE_TIERS[2]!.minLevel },
   { key: 'duel.price_wager', group: 'economy', label: 'شرط هر دور حدس قیمت در دوئل (سکه برای هر نفر)', hint: '۰ = بدون شرط. برنده‌ی هر دور جمع دو شرط منهای سهم خانه را می‌گیرد، مساوی یعنی پس‌گرفتن هر شرط منهای سهم خانه. کسی که سکه‌ی کافی ندارد آن دور را بدون شرط و بدون حدس می‌گذراند. فقط وقتی «دور حدس قیمت» روشن است اثر دارد.', kind: 'int', min: 0, max: 50, default: 0 },
   { key: 'duel.house_cut_percent', group: 'economy', label: 'سهم خانه از جایزه‌ی هر بازی', kind: 'int', min: 0, max: 90, default: HOUSE_CUT_PERCENT, unit: '٪' },
   { key: 'economy.signup_bonus', group: 'economy', label: 'سکه‌ی هدیه‌ی ثبت‌نام (یک بار برای هر حساب تازه)', hint: '۰ = بدون هدیه؛ فقط روی حساب‌های تازه اثر دارد', kind: 'int', min: 0, max: 100_000, default: SIGNUP_BONUS, unit: 'سکه' },
@@ -164,7 +183,11 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'link.badge_myket', group: 'seo', label: 'لینک پایین سایت معرفی: مایکت', hint: 'نشانی کامل با https؛ نماد همیشه در فوتر سایت معرفی است و اگر این خالی باشد بدون لینک نشان داده می‌شود', kind: 'text', min: 0, max: 300, default: 'https://myket.ir' },
   { key: 'gate.phone_only', group: 'app', label: 'مرورگر کامپیوتر فقط کارت «با گوشی بیا» + QR ببیند', hint: 'گوشی اندروید کارت دانلود و آیفون راهنمای نصب می‌بیند؛ هر کدام دکمه‌ی «ادامه با مرورگر» دارند', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'link.app_url', group: 'app', label: 'آدرس بازی برای QR (خالی = همان صفحه)', kind: 'text', min: 0, max: 200, default: '' },
+  { key: 'link.ios_app', group: 'app', label: 'لینک دانلود برنامه‌ی iOS', hint: 'خالی = «به‌زودی» نشان داده می‌شود', kind: 'text', min: 0, max: 300, default: '' },
   { key: 'link.android_app', group: 'app', label: 'لینک دانلود برنامه‌ی اندروید', hint: 'خالی = دکمه‌ی دانلود نشان داده نمی‌شود', kind: 'text', min: 0, max: 300, default: '' },
+  { key: 'link.bale_bot', group: 'app', label: 'لینک ربات بله (بازی از طریق ربات)', hint: 'مثلاً https://ble.ir/dozari_bot؛ خالی = دکمه‌ی «بازی در بله» در صفحه‌ی دانلود نشان داده نمی‌شود', kind: 'text', min: 0, max: 200, default: '' },
+  { key: 'feature.telegram_app', group: 'app', label: 'بازی از طریق تلگرام (مینی‌اپ) در سایت نشان داده شود', hint: 'فعلاً خاموش؛ وقتی روشن شود و لینک پایین پر باشد، دکمه‌ی «بازی در تلگرام» در صفحه‌ی دانلود می‌آید', kind: 'bool', min: 0, max: 1, default: 0 },
+  { key: 'link.telegram_app', group: 'app', label: 'لینک مینی‌اپ تلگرام', hint: 'مثلاً https://t.me/dozari_bot/play؛ فقط با روشن بودن گزینه‌ی بالا نمایش داده می‌شود', kind: 'text', min: 0, max: 200, default: '' },
   { key: 'link.channel', group: 'app', label: 'لینک کانال (بله یا تلگرام‌مانند)', hint: 'خالی = ماموریت عضویت در کانال نمایش داده نمی‌شود', kind: 'text', min: 0, max: 200, default: '' },
   { key: 'levelreward.every', group: 'economy', label: 'جایزه‌ی سکه‌ی جاده‌ی لول: هر چند لول یک بار', hint: '۰ = خاموش', kind: 'int', min: 0, max: 50, default: LEVEL_REWARD_EVERY, unit: 'لول' },
   { key: 'levelreward.base_coins', group: 'economy', label: 'جایزه‌ی جاده‌ی لول: سکه‌ی پایه', hint: 'جایزه = پایه × (لول ÷ فاصله)؛ مثلاً ۲۵ → لول ۵: ۲۵، لول ۱۰: ۵۰', kind: 'int', min: 0, max: 10000, default: LEVEL_REWARD_BASE_COINS, unit: 'سکه' },
@@ -210,6 +233,9 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'transfer.weekly_cap', group: 'economy', label: 'سقف سکه‌ی فرستادنی در هفته (هدیه + قرض)', hint: 'جمع در هر ۷ روز گذشته', kind: 'int', min: 0, max: 100000, default: TRANSFER_WEEKLY_CAP, unit: 'سکه' },
   { key: 'transfer.min_amount', group: 'economy', label: 'کمترین مبلغ هر انتقال', kind: 'int', min: 1, max: 100000, default: TRANSFER_MIN_AMOUNT, unit: 'سکه' },
   { key: 'transfer.max_amount', group: 'economy', label: 'بیشترین مبلغ هر انتقال', kind: 'int', min: 1, max: 100000, default: TRANSFER_MAX_AMOUNT, unit: 'سکه' },
+  { key: 'keepsake.drop_percent', group: 'economy', label: 'شانس افتادن یک تکه‌ی یادگار بعد از هر برد مقابل آدم', hint: 'درصد؛ ۰ = تکه‌ی جایزه‌ای نمی‌افتد (خرید با سکه همچنان هست)', kind: 'int', min: 0, max: 100, default: Math.round(KEEPSAKE_DROP_CHANCE * 100), unit: '٪' },
+  { key: 'shop.daily_slots', group: 'economy', label: 'تعداد کالای چرخان فروشگاه در روز', hint: 'از بین کالاهایی که «چرخان» علامت خورده‌اند هر روز (ساعت صفر تهران) همین تعداد نمایش داده می‌شود؛ ۰ = همه همیشه', kind: 'int', min: 0, max: 50, default: DAILY_SHOP_SLOTS },
+  { key: 'transfer.gift_fee_percent', group: 'economy', label: 'کارمزد هدیه‌ی سکه (درصد سوخته‌شده)', hint: 'گیرنده مبلغ منهای این سهم را می‌گیرد؛ قرض کارمزد ندارد. ۰ = بدون کارمزد', kind: 'int', min: 0, max: 50, default: GIFT_FEE_PERCENT, unit: '٪' },
   { key: 'transfer.needs_activation', group: 'economy', label: 'فرستنده باید حسابش را با کد معرف فعال کرده باشد', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'loan.due_days', group: 'economy', label: 'مهلت پس‌دادن قرض', kind: 'int', min: 1, max: 90, default: LOAN_DUE_DAYS, unit: 'روز' },
   { key: 'loan.max_open', group: 'economy', label: 'حداکثر قرض باز برای هر نفر', kind: 'int', min: 1, max: 10, default: LOAN_MAX_OPEN },
@@ -247,6 +273,7 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'bot.check_minutes', group: 'bot', label: 'هر چند دقیقه یک بار منبع‌های سررسید را بررسی کند', kind: 'int', min: 5, max: 1440, default: 60, unit: 'دقیقه' },
   { key: 'notify.match_result', group: 'notify', label: 'نتیجه‌ی بازی به بله فرستاده شود', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'notify.daily_ready', group: 'notify', label: 'آماده شدن جایزه‌ی روزانه به بله فرستاده شود', kind: 'bool', min: 0, max: 1, default: 1 },
+  ...TRACK_FEATURE_DEFS,
   { key: 'bot.max_candidates_per_run', group: 'bot', label: 'سقف پیشنهاد در هر اجرا', hint: 'برای اینکه صف تأیید یک‌جا پر نشود', kind: 'int', min: 1, max: 500, default: 100 },
 ];
 

@@ -20,6 +20,7 @@ import { HomeScreen } from './src/home/HomeScreen';
 import { onAccountSwitched } from './src/auth/switched';
 import { useMusic } from './src/sound/music';
 import { useHardwareBack } from './src/nav/useHardwareBack';
+import { useMiniAppBack } from './src/miniapp/useMiniAppBack';
 import { useKeyboardInset } from './src/nav/useKeyboardInset';
 import { BrandScreen } from './src/brand/BrandScreen';
 import { KitGallery } from './src/kit/KitGallery';
@@ -36,6 +37,8 @@ import { SplashScreen } from './src/splash/SplashScreen';
 import { DuelScreen } from './src/duel/DuelScreen';
 import { SoloScreen } from './src/solo/SoloScreen';
 import { useInviteLink } from './src/social/useInviteLink';
+import { useMyTrack } from './src/agetrack/useMyTrack';
+import { RestCardView } from './src/agetrack/RestCardView';
 import { safeInsetTop } from './src/theme/safeArea';
 import { PwaLayer } from './src/pwa/PwaLayer';
 import { PriceOnlyScreen } from './src/priceonly/PriceOnlyScreen';
@@ -66,11 +69,14 @@ export default function App() {
   const config = useClientConfig();
   const phone = usePhoneGate(config.raw);
   const gate = gateState(config, APP_BUILD);
-  useInviteLink(gate === 'ok' && config.features.friends);
+  const inviteGate = useInviteLink(gate === 'ok' && config.features.friends);
   const ageTracksOn = config.raw['feature.age_tracks'] === 1;
+  const myTrack = useMyTrack(ageTracksOn && gate === 'ok');
   const [fontsLoaded] = useFonts({ Vazirmatn_400Regular, Vazirmatn_700Bold, Lalezar_400Regular });
 
   // Minimal navigation until a real router lands with the hub screen (docs/logic/app-screens.md).
+  /** A guardian's read-only look at the kid or teen space (no progress is saved). */
+  const [previewTrack, setPreviewTrack] = useState<'kid' | 'teen' | null>(null);
   const [screen, setScreen] = useState<'splash' | 'login' | 'ageTrack' | 'home' | 'solo' | 'daily' | 'duel' | 'tutorial' | 'duelResume' | 'gallery' | 'search' | 'brand' | 'lookup' | 'priceonly'>(
     'splash',
   );
@@ -119,6 +125,9 @@ export default function App() {
         ? () => setScreen('home')
         : null,
   );
+
+  // Inside a mini-app the host's header back button does the same.
+  useMiniAppBack();
 
   // Whenever Home is shown (so the player is signed in and probably online), keep the saved offline puzzles topped up.
   useEffect(() => {
@@ -174,7 +183,7 @@ export default function App() {
         />
       ) : null}
       {screen === 'ageTrack' ? <AgeTrackScreen preset={presetTrack} onDone={() => void tutorialSeen().then((seen) => setScreen(seen ? 'home' : 'tutorial'))} /> : null}
-      {screen === 'solo' ? <SoloScreen onBack={() => setScreen('home')} hintsEnabled={config.features.shop} ageTracksOn={config.raw['feature.age_tracks'] === 1} /> : null}
+      {screen === 'solo' ? <SoloScreen key={previewTrack ?? 'own'} previewTrack={previewTrack ?? undefined} onBack={() => (setPreviewTrack(null), setScreen('home'))} hintsEnabled={config.features.shop} ageTracksOn={config.raw['feature.age_tracks'] === 1} /> : null}
       {screen === 'priceonly' ? <PriceOnlyScreen onBack={() => setScreen('home')} /> : null}
       {screen === 'daily' ? <SoloScreen daily onBack={() => setScreen('home')} hintsEnabled={config.features.shop} /> : null}
       {screen === 'tutorial' ? <Tutorial onDone={() => void markTutorialSeen().then(() => setScreen('home'))} /> : null}
@@ -201,11 +210,15 @@ export default function App() {
           onLookup={() => setScreen('lookup')}
           features={homeFeatures}
           settings={config.raw}
+          myTrack={myTrack}
+          onPreview={(t) => (setPreviewTrack(t), setScreen('solo'))}
           onGallery={__DEV__ ? () => setScreen('gallery') : undefined}
         />
       ) : null}
       <ServerDownBanner />
       <PwaLayer home={screen === 'home'} />
+      {inviteGate}
+      {myTrack.limits ? <RestCardView limits={myTrack.limits} /> : null}
     </View>
   );
 }

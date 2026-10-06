@@ -96,7 +96,7 @@ describe('daily reward routes', () => {
   it('shows the card before the first claim', async () => {
     const { app } = setup();
     const res = await app.inject({ method: 'GET', url: '/daily-reward', headers: await login(app) });
-    expect(res.json()).toEqual({ canClaim: true, day: 1, coins: 10, nextClaimAt: null, steps: [...DEFAULT_DAILY_REWARD_STEPS], balance: 0 });
+    expect(res.json()).toEqual({ canClaim: true, day: 1, coins: 10, nextClaimAt: null, steps: [...DEFAULT_DAILY_REWARD_STEPS], balance: 0, shields: 0 });
   });
 
   it('pays 10, 15, 20, 20 on consecutive days and refuses a second claim within 24 hours', async () => {

@@ -48,7 +48,7 @@ export function registerShopRoutes(app: FastifyInstance, auth: AuthService, shop
 const redeemBody = z.object({ store: z.enum(['bazaar', 'myket']), orderId: z.string().trim().min(3).max(120), token: z.string().min(3).max(4000) });
 
 /** Real-money side of the shop (D170); the gate turns the `/shop-pay` prefix off while `feature.coin_packages` is 0. */
-export function registerShopPayRoutes(app: FastifyInstance, auth: AuthService, real: ShopRealMoney, bale?: { send(userId: string, invoice: BaleInvoice): Promise<'ok' | 'unavailable' | 'not_linked' | 'failed'> }) {
+export function registerShopPayRoutes(app: FastifyInstance, auth: AuthService, real: ShopRealMoney, bale?: { send(userId: string, invoice: BaleInvoice): Promise<'ok' | 'unavailable' | 'not_linked' | 'failed'>; link?(invoice: BaleInvoice): Promise<{ ok: true; link: string } | { ok: false; error: 'unavailable' | 'failed' }> }) {
   const status = (error: string) => (error === 'unknown_item' ? 404 : error === 'level' ? 403 : error === 'not_verified' ? 402 : 409);
 
   app.post('/shop-pay/:id/bale-invoice', async (req, reply) => {
@@ -62,6 +62,20 @@ export function registerShopPayRoutes(app: FastifyInstance, auth: AuthService, r
     const sent = await bale.send(user.id, inv.invoice);
     if (sent === 'ok') return { ok: true };
     return reply.code(sent === 'not_linked' ? 409 : sent === 'failed' ? 502 : 503).send({ error: sent === 'unavailable' ? 'payments_unavailable' : sent === 'not_linked' ? 'bale_not_linked' : 'send_failed' });
+  });
+
+  // Bale mini-app: a payment link the page opens with `Bale.WebApp.openInvoice`; the credit still comes only from Bale's `successful_payment`.
+  app.post('/shop-pay/:id/bale-invoice-link', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    const p = idParam.safeParse(req.params);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
+    if (!bale?.link) return reply.code(503).send({ error: 'payments_unavailable' });
+    const inv = await real.invoice(user.id, p.data.id);
+    if (!inv.ok) return reply.code(status(inv.error)).send({ error: inv.error, ...(inv.minLevel ? { minLevel: inv.minLevel } : {}) });
+    const out = await bale.link(inv.invoice);
+    if (out.ok) return { link: out.link };
+    return reply.code(out.error === 'failed' ? 502 : 503).send({ error: out.error === 'failed' ? 'send_failed' : 'payments_unavailable' });
   });
 
   app.post('/shop-pay/:id/redeem', async (req, reply) => {

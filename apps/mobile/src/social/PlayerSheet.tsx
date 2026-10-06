@@ -14,13 +14,17 @@ import { HubTile } from '../home/HubTile';
 import { ProvinceBadge } from '../components/ProvinceBadge';
 import { useConfirm } from '../components/useConfirm';
 import { fa } from '../i18n/fa';
+import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
 import { acceptFriend, fetchPlayer, removeFriend, requestFriend } from './api';
 import { avatarOf } from './avatarOf';
 import { skillText } from '../badges/text';
+import { useGuardianGate } from '../agetrack/GuardianGate';
+import { useTrackRules } from '../agetrack/useTrackRules';
 import { TransferSheet } from '../transfers/TransferSheet';
 import { useHardwareBack } from '../nav/useHardwareBack';
 import { BirthdayBadge, PartyBanner } from './BirthdayBadge';
+import { ShowcaseStrip } from '../keepsake/ShowcaseStrip';
 
 const INK = '#3A2418';
 
@@ -29,9 +33,14 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
   useHardwareBack(onClose);
   const [p, setP] = useState<PlayerProfile | null>(null);
   const [failed, setFailed] = useState(false);
+  /** The guardian wants to approve this child's friends first (`ask_guardian`): a friendly line, not an error. */
+  const [asking, setAsking] = useState(false);
   const [send, setSend] = useState<'gift' | 'loan' | null>(null);
   const [reporting, setReporting] = useState(false);
   const { ask, dialog } = useConfirm();
+  const { gate, intercept } = useGuardianGate();
+  /** Gifts and loans are not drawn for a kid or teen (the server refuses them too). While the rules load, nothing is hidden. */
+  const canSendCoins = useTrackRules(true)?.transfers !== false;
 
   const load = useCallback(() => {
     fetchPlayer(playerId).then(
@@ -41,7 +50,7 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
   }, [playerId]);
   useEffect(load, [load]);
 
-  const act = (fn: (id: string) => Promise<void>) => () => fn(playerId).then(load, () => setFailed(true));
+  const act = (fn: (id: string) => Promise<void>) => () => fn(playerId).then(load, (e) => void (intercept(e) || (e instanceof ApiError && e.code === 'ask_guardian' ? setAsking(true) : setFailed(true))));
   const since = p ? new Intl.DateTimeFormat('fa-IR-u-ca-persian', { year: 'numeric', month: 'long' }).format(new Date(p.memberSince)) : '';
 
   if (send) return <TransferSheet friendId={playerId} kind={send} onClose={() => setSend(null)} />;
@@ -59,6 +68,7 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
           </Pressable>
         </View>
         {failed ? <Text style={[styles.text, styles.failed]}>{fa.player.error}</Text> : null}
+        {asking ? <Text style={styles.text}>{fa.player.askGuardian}</Text> : null}
         {p ? (
           <View style={styles.body}>
             <View style={styles.avatarWrap}>
@@ -90,21 +100,26 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
               </View>
             ) : null}
 
-            <View style={styles.stats}>
+            {/* A kid or teen profile is minimal (`limited`): no coins, no medals, and for a kid no record either. */}
+            {p.limited && p.stats.games === 0 ? null : <View style={styles.stats}>
               {stats.map(([label, v, c]) => (
                 <View key={label} style={[styles.stat, { backgroundColor: c }]}>
                   <Text style={styles.statValue}>{toPersianDigits(String(v))}</Text>
                   <Text style={styles.statLabel}>{label}</Text>
                 </View>
               ))}
-            </View>
+            </View>}
 
-            <View style={styles.chips}>
-              <View style={styles.chip}><View style={styles.chipIcon}><Item icon="coinStack" /></View><Text style={styles.chipText}>{toPersianDigits(String(p.coins))}</Text></View>
-              <View style={styles.chip}><Icon name="calendar" size={16} color={INK} strokeWidth={2.6} /><Text style={styles.chipText}>{fa.player.since} {since}</Text></View>
-            </View>
+            {p.limited ? null : <ShowcaseStrip playerId={p.id} />}
 
-            {medals.length > 0 ? (
+            {p.limited ? null : (
+              <View style={styles.chips}>
+                <View style={styles.chip}><View style={styles.chipIcon}><Item icon="coinStack" /></View><Text style={styles.chipText}>{toPersianDigits(String(p.coins))}</Text></View>
+                <View style={styles.chip}><Icon name="calendar" size={16} color={INK} strokeWidth={2.6} /><Text style={styles.chipText}>{fa.player.since} {since}</Text></View>
+              </View>
+            )}
+
+            {medals.length > 0 && !p.limited ? (
               <View style={styles.chips}>
                 {medals.map((m, i) => <View key={m.titleFa} style={[styles.medal, { backgroundColor: MEDAL_COLORS[i % MEDAL_COLORS.length] }]}><Text style={styles.medalText} numberOfLines={1}>{m.titleFa}</Text></View>)}
               </View>
@@ -127,8 +142,8 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
               <>
                 <View style={styles.friendTag}><Icon name="check" size={14} color="#fff" strokeWidth={4} /><Text style={styles.friendTagText}>{fa.player.friends}</Text></View>
                 <View style={styles.actions}>
-                  <HubTile onLight icon="gift" label={fa.transfers.gift} color={colors.candy.lime} onPress={() => setSend('gift')} />
-                  <HubTile onLight icon="wallet" label={fa.transfers.loan} color={colors.candy.orange} onPress={() => setSend('loan')} />
+                  {canSendCoins ? <HubTile onLight icon="gift" label={fa.transfers.gift} color={colors.candy.lime} onPress={() => setSend('gift')} /> : null}
+                  {canSendCoins ? <HubTile onLight icon="wallet" label={fa.transfers.loan} color={colors.candy.orange} onPress={() => setSend('loan')} /> : null}
                   <HubTile onLight icon="trash" label={fa.player.unfriend} color={colors.candy.pink} onPress={() => ask({ title: fa.confirm.unfriend.title, message: fa.confirm.unfriend.message, confirmLabel: fa.confirm.unfriend.yes, onConfirm: act(removeFriend) })} />
                 </View>
               </>
@@ -137,6 +152,7 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
         ) : null}
       </Pressable>
       {dialog}
+      {gate}
       {reporting ? <ReportDialog target={{ kind: 'user', userId: playerId }} onClose={() => setReporting(false)} /> : null}
     </Pressable>
   );

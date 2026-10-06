@@ -14,6 +14,26 @@ export function arenaNumbers(raw: Record<string, unknown>): { entry: number; pri
   return { entry, prize, maxMistakes: Math.max(1, int(raw['game.match_max_mistakes'], MATCH_MAX_MISTAKES)) };
 }
 
+export type TierId = 'bronze' | 'silver' | 'gold';
+export interface ArenaTier {
+  id: TierId;
+  fee: number;
+  prize: number;
+  minLevel: number;
+}
+
+/** The stake tables on offer from the public settings: bronze always, silver and gold when their fee is above 0. */
+export function arenaTiers(raw: Record<string, unknown>): ArenaTier[] {
+  const houseCutPercent = Math.min(90, int(raw['duel.house_cut_percent'], HOUSE_CUT_PERCENT));
+  const row = (id: TierId, fee: number, minLevel: number): ArenaTier => ({ id, fee, minLevel, prize: winnerPayout({ entryFee: fee, houseCutPercent, freePerDay: 0, freePayoutPercent: 0, consolation: 0, consolationCap: 0, rescueTarget: 0 }) });
+  const all = [
+    row('bronze', int(raw['duel.entry_fee'], ENTRY_FEE_BASE), int(raw['duel.min_level'], 1)),
+    row('silver', int(raw['duel.silver_fee'], 0), int(raw['duel.silver_min_level'], 1)),
+    row('gold', int(raw['duel.gold_fee'], 0), int(raw['duel.gold_min_level'], 1)),
+  ];
+  return all.filter((t, i) => i === 0 || t.fee > 0);
+}
+
 /** Market characters an opponent can appear as (the hero «dozari» is always the player). */
 const RIVALS: readonly CharacterId[] = ['pahlevan', 'baqal', 'mashti', 'khale', 'mirza', 'goli'];
 

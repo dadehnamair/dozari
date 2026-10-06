@@ -9,6 +9,8 @@ export const dailyRewardStatusSchema = z.object({
   nextClaimAt: z.number().int().nullable(),
   steps: z.array(z.number().int().positive()),
   balance: z.number().int().nonnegative(),
+  /** Streak shields held (each saves the streak across one missed day). */
+  shields: z.number().int().nonnegative().default(0),
 });
 export type DailyRewardStatus = z.infer<typeof dailyRewardStatusSchema>;
 
@@ -18,6 +20,8 @@ export const dailyRewardClaimSchema = z.object({
   coins: z.number().int().positive(),
   balance: z.number().int().nonnegative(),
   nextClaimAt: z.number().int(),
+  /** A streak shield was spent to keep the streak. */
+  shieldUsed: z.boolean().optional(),
 });
 export type DailyRewardClaim = z.infer<typeof dailyRewardClaimSchema>;
 

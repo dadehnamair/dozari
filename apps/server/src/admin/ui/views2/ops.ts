@@ -60,10 +60,10 @@ VIEWS.bale = function (root) {
   draw();
 };
 var CH_FA = { in_app: 'صندوق داخل اپ', bale: 'بله', sms: 'پیامک', email: 'ایمیل', push: 'اعلان پوش' };
-var AUD_FA = { all: 'همه‌ی بازیکنان', bale_linked: 'وصل‌شده‌ها به بله', user: 'یک بازیکن' };
+var AUD_FA = { all: 'همه‌ی بزرگسال‌ها', bale_linked: 'بزرگسال‌های وصل‌شده به بله', user: 'یک بازیکن', kid: 'کودک‌ها', teen: 'نوجوان‌ها' };
 VIEWS.messages = function (root) {
   var title = h('input', { type: 'text', placeholder: 'عنوان', maxlength: 150 }), text = h('textarea', { placeholder: 'متن پیام…', maxlength: 2000 });
-  var aud = select([['all', AUD_FA.all], ['bale_linked', AUD_FA.bale_linked], ['user', AUD_FA.user]], 'all');
+  var aud = select([['all', AUD_FA.all], ['bale_linked', AUD_FA.bale_linked], ['user', AUD_FA.user], ['kid', AUD_FA.kid], ['teen', AUD_FA.teen]], 'all');
   var target = h('input', { type: 'text', dir: 'ltr', placeholder: 'شناسه‌ی بازیکن (از بخش کاربران)', style: 'display:none' });
   aud.addEventListener('change', function () { target.style.display = aud.value === 'user' ? '' : 'none'; });
   var chBox = h('div', { style: 'display:flex;flex-direction:column;gap:6px' }), checks = {};

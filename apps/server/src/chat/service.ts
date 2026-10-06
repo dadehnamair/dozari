@@ -1,5 +1,5 @@
-import { CHAT_HISTORY_LIMIT, CHAT_TAUNT_RATE, CHAT_TEXT_RATE, containsContactInfo, normalizeTableCode } from '@dozari/shared';
-import type { ChatError, ChatHistory, ChatMessage, TauntCategory } from '@dozari/shared';
+import { CHAT_HISTORY_LIMIT, CHAT_TAUNT_RATE, CHAT_TEXT_RATE, containsContactInfo, normalizeTableCode, trackRules } from '@dozari/shared';
+import type { AgeTrack, ChatError, ChatMode, ChatHistory, ChatMessage, TauntCategory } from '@dozari/shared';
 
 /** Rooms a player reads and writes from the chat sheet (the duel room is socket-only). */
 export type PublicRoom = 'city' | 'global';
@@ -37,6 +37,18 @@ export interface ChatDeps {
   now?: () => number;
 }
 
+/** Age-track hook (docs/logic/age-tracks.md §Friends, duels and chat); set at start-up. Absent = everybody is adult. */
+export interface ManagedChat {
+  trackOf(userId: string): Promise<AgeTrack>;
+  /** A kid/teen's free text is allowed once a guardian is linked (the link is the redemption of rule 7 for them). */
+  hasGuardian(userId: string): Promise<boolean>;
+  /** The guardian's chat switch for this child (docs/logic/age-tracks.md §Guardian panel): free text / phrases only / off. */
+  chatMode(userId: string): Promise<ChatMode>;
+}
+
+/** Where a text goes: a friend's private chat, or somewhere with several or unknown readers. */
+type Where = 'dm' | 'table' | 'public';
+
 export type SendInput = { kind: 'text'; text: string } | { kind: 'taunt'; tauntId: string } | { kind: 'table'; code: string; label: string };
 export type SendResult = { ok: true; message: ChatMessage } | { ok: false; error: ChatError; mutedUntil?: number };
 
@@ -48,6 +60,8 @@ export class ChatService {
   onCityMessage?: (cityId: string, message: ChatMessage) => void;
   /** Called to push a message to one player (the opponent in a duel). */
   toUser?: (userId: string, message: ChatMessage) => void;
+  /** Kid and teen tracks get managed chat: no public rooms, free text only to a same-track friend and only with a linked guardian. */
+  managed?: ManagedChat;
   private readonly text = new RateLimiter(CHAT_TEXT_RATE.count, CHAT_TEXT_RATE.windowMs);
   private readonly taunt = new RateLimiter(CHAT_TAUNT_RATE.count, CHAT_TAUNT_RATE.windowMs);
 
@@ -55,6 +69,46 @@ export class ChatService {
     private readonly store: ChatStore,
     private readonly deps: ChatDeps,
   ) {}
+
+  private async rulesOf(userId: string) {
+    try {
+      return trackRules((await this.managed?.trackOf(userId)) ?? 'adult');
+    } catch {
+      return trackRules('adult'); // a failing lookup never locks an adult out
+    }
+  }
+
+  /** Managed tracks use no public rooms (city, global). */
+  private async publicRoomsOpen(userId: string): Promise<boolean> {
+    return (await this.rulesOf(userId)).freeTextChat === 'invite_code';
+  }
+
+  /** Both players on one track (private chat never crosses tracks, even for old friendships). */
+  private async sameTrack(a: string, b: string): Promise<boolean> {
+    if (!this.managed) return true;
+    try {
+      return (await this.managed.trackOf(a)) === (await this.managed.trackOf(b));
+    } catch {
+      return false;
+    }
+  }
+
+  /** The mode for a managed (kid/teen) player; adults are always `friends_text` here (their own rule is the invite code). */
+  private async chatMode(userId: string): Promise<ChatMode> {
+    if ((await this.rulesOf(userId)).freeTextChat !== 'guardian_switch') return 'friends_text';
+    try {
+      return (await this.managed?.chatMode(userId)) ?? 'friends_text';
+    } catch {
+      return 'phrases'; // a failing lookup falls to the narrower choice, never the wider
+    }
+  }
+
+  /** Whether the composer shows for this player in this place (the server still checks every send). */
+  private async canType(userId: string, where: Where, muted: boolean, activated: boolean, rules: ChatRules): Promise<boolean> {
+    if (muted) return false;
+    if ((await this.rulesOf(userId)).freeTextChat === 'guardian_switch') return where === 'dm' && (await this.chatMode(userId)) === 'friends_text' && (await this.managed!.hasGuardian(userId));
+    return activated || !rules.textNeedsActivation;
+  }
 
   private now(): number {
     return (this.deps.now ?? Date.now)();
@@ -86,7 +140,8 @@ export class ChatService {
   /** The taunt list for a player: general categories plus the dialect ones of their own city. */
   async taunts(userId?: string): Promise<TauntCategory[]> {
     const cityId = userId ? ((await this.deps.cityOf(userId))?.id ?? null) : null;
-    return (await this.store.taunts()).filter((c) => c.taunts.length > 0 && (!c.cityId || c.cityId === cityId)).map((c) => ({ id: c.id, nameFa: c.nameFa, taunts: c.taunts.map((t) => ({ id: t.id, text: t.text })) }));
+    const library = userId ? (await this.rulesOf(userId)).tauntTrack : 'adult';
+    return (await this.store.taunts()).filter((c) => c.taunts.length > 0 && c.ageTrack === library && (!c.cityId || c.cityId === cityId)).map((c) => ({ id: c.id, nameFa: c.nameFa, taunts: c.taunts.map((t) => ({ id: t.id, text: t.text })) }));
   }
 
   /** History of the city room (needs a city) or the global room (open to everyone while `chat.global_enabled`). */
@@ -94,31 +149,33 @@ export class ChatService {
     const rules = await this.deps.rules();
     if (!rules.enabled || (room === 'global' && !rules.globalEnabled)) return 'OFF';
     const city = await this.deps.cityOf(userId);
+    if (!(await this.publicRoomsOpen(userId))) return 'OFF';
     if (room === 'city' && !city) return 'NO_CITY';
     const key = room === 'global' ? ChatService.GLOBAL_KEY : city!.id;
     const [rows, mute, activated] = await Promise.all([this.store.history(room, key, CHAT_HISTORY_LIMIT), this.deps.mute(userId), this.deps.isActivated(userId)]);
     const cache = new Map();
     const messages: ChatMessage[] = [];
     for (const r of rows) messages.push(await this.view(r, cache));
-    return { cityName: city?.nameFa ?? null, globalOn: rules.globalEnabled, messages, canType: !mute && (activated || !rules.textNeedsActivation), muted: mute };
+    return { cityName: city?.nameFa ?? null, globalOn: rules.globalEnabled, messages, canType: await this.canType(userId, 'public', !!mute, activated, rules), muted: mute };
   }
 
   /** History of the private chat with a friend. */
   async dmHistory(userId: string, friendId: string): Promise<ChatHistory | 'NOT_FRIENDS' | 'OFF'> {
     const rules = await this.deps.rules();
     if (!rules.enabled) return 'OFF';
-    if (!(await this.deps.areFriends(userId, friendId))) return 'NOT_FRIENDS';
+    if (!(await this.deps.areFriends(userId, friendId)) || !(await this.sameTrack(userId, friendId))) return 'NOT_FRIENDS';
+    if ((await this.chatMode(userId)) === 'off') return 'OFF';
     const [rows, mute, activated] = await Promise.all([this.store.history('dm', ChatService.dmKey(userId, friendId), CHAT_HISTORY_LIMIT), this.deps.mute(userId), this.deps.isActivated(userId)]);
     const cache = new Map();
     const messages: ChatMessage[] = [];
     for (const r of rows) messages.push(await this.view(r, cache));
-    return { cityName: null, globalOn: rules.globalEnabled, messages, canType: !mute && (activated || !rules.textNeedsActivation), muted: mute };
+    return { cityName: null, globalOn: rules.globalEnabled, messages, canType: await this.canType(userId, 'dm', !!mute, activated, rules), muted: mute };
   }
 
   /** A message to a friend (same rules as the rooms, plus: only friends). It reaches both players live. */
   async sendDm(userId: string, friendId: string, input: SendInput): Promise<SendResult> {
-    if (!(await this.deps.areFriends(userId, friendId))) return { ok: false, error: 'NOT_FRIENDS' };
-    const text = await this.resolveText(userId, input);
+    if (!(await this.deps.areFriends(userId, friendId)) || !(await this.sameTrack(userId, friendId))) return { ok: false, error: 'NOT_FRIENDS' };
+    const text = await this.resolveText(userId, input, 'dm');
     if (!text.ok) return text;
     const row = await this.store.addMessage({ room: 'dm', roomKey: ChatService.dmKey(userId, friendId), userId, kind: input.kind, text: text.text });
     const message = await this.view(row, new Map());
@@ -132,11 +189,12 @@ export class ChatService {
     const rules = await this.deps.rules();
     if (!rules.enabled) return 'OFF';
     if (!this.deps.tableMembers(userId, code)) return 'NOT_IN_TABLE';
+    if ((await this.chatMode(userId)) === 'off') return 'OFF';
     const [rows, mute, activated] = await Promise.all([this.store.history('table', (normalizeTableCode(code) ?? code), CHAT_HISTORY_LIMIT), this.deps.mute(userId), this.deps.isActivated(userId)]);
     const cache = new Map();
     const messages: ChatMessage[] = [];
     for (const r of rows) messages.push(await this.view(r, cache));
-    return { cityName: null, globalOn: rules.globalEnabled, messages, canType: !mute && (activated || !rules.textNeedsActivation), muted: mute };
+    return { cityName: null, globalOn: rules.globalEnabled, messages, canType: await this.canType(userId, 'table', !!mute, activated, rules), muted: mute };
   }
 
   /** A message to everyone at the table (same rules as the other rooms, plus: only seated players). Reaches them live. */
@@ -144,7 +202,7 @@ export class ChatService {
     const members = this.deps.tableMembers(userId, code);
     if (!members) return { ok: false, error: 'NOT_IN_TABLE' };
     if (input.kind === 'table') return { ok: false, error: 'EMPTY' };
-    const text = await this.resolveText(userId, input);
+    const text = await this.resolveText(userId, input, 'table');
     if (!text.ok) return text;
     const row = await this.store.addMessage({ room: 'table', roomKey: (normalizeTableCode(code) ?? code), userId, kind: input.kind, text: text.text });
     const message = await this.view(row, new Map());
@@ -154,15 +212,15 @@ export class ChatService {
 
   /** The Socket.io room a player may join for the city chat, or null (no city / chat off). */
   async roomFor(userId: string): Promise<string | null> {
-    if (!(await this.deps.rules()).enabled) return null;
+    if (!(await this.deps.rules()).enabled || !(await this.publicRoomsOpen(userId))) return null;
     const city = await this.deps.cityOf(userId);
     return city ? ChatService.cityRoom(city.id) : null;
   }
 
   /** Whether the global Socket.io room is open. */
-  async globalOpen(): Promise<boolean> {
+  async globalOpen(userId?: string): Promise<boolean> {
     const rules = await this.deps.rules();
-    return rules.enabled && rules.globalEnabled;
+    return rules.enabled && rules.globalEnabled && (!userId || (await this.publicRoomsOpen(userId)));
   }
 
   /** Common checks: not muted, rate limit. */
@@ -176,8 +234,8 @@ export class ChatService {
 
   /** A message to the global room: same rules as the city room (filter, activation, mute, rate), no city needed. */
   async sendGlobal(userId: string, input: SendInput): Promise<SendResult> {
-    if (!(await this.globalOpen())) return { ok: false, error: 'OFF' };
-    const text = await this.resolveText(userId, input);
+    if (!(await this.globalOpen(userId))) return { ok: false, error: 'OFF' };
+    const text = await this.resolveText(userId, input, 'public');
     if (!text.ok) return text;
     const row = await this.store.addMessage({ room: 'global', roomKey: ChatService.GLOBAL_KEY, userId, kind: input.kind, text: text.text });
     const message = await this.view(row, new Map());
@@ -186,9 +244,10 @@ export class ChatService {
   }
 
   async sendCity(userId: string, input: SendInput): Promise<SendResult> {
+    if (!(await this.publicRoomsOpen(userId))) return { ok: false, error: 'OFF' };
     const city = await this.deps.cityOf(userId);
     if (!city) return { ok: false, error: 'NO_CITY' };
-    const text = await this.resolveText(userId, input);
+    const text = await this.resolveText(userId, input, 'public');
     if (!text.ok) return text;
     const row = await this.store.addMessage({ room: 'city', roomKey: city.id, userId, kind: input.kind, text: text.text });
     const message = await this.view(row, new Map());
@@ -203,7 +262,7 @@ export class ChatService {
 
   /** A canned taunt to the opponent in a duel (strangers get taunts only, never free text). */
   async sendMatchTaunt(userId: string, matchId: string, opponentId: string, tauntId: string): Promise<SendResult> {
-    const text = await this.resolveText(userId, { kind: 'taunt', tauntId });
+    const text = await this.resolveText(userId, { kind: 'taunt', tauntId }, 'public');
     if (!text.ok) return text;
     const row = await this.store.addMessage({ room: 'match', roomKey: matchId, userId, kind: 'taunt', text: text.text });
     const message = await this.view(row, new Map());
@@ -212,9 +271,11 @@ export class ChatService {
     return { ok: true, message };
   }
 
-  private async resolveText(userId: string, input: SendInput): Promise<{ ok: true; text: string } | { ok: false; error: ChatError; mutedUntil?: number }> {
+  private async resolveText(userId: string, input: SendInput, where: Where): Promise<{ ok: true; text: string } | { ok: false; error: ChatError; mutedUntil?: number }> {
     const blocked = await this.gate(userId, input.kind);
     if (blocked) return blocked;
+    const mode = await this.chatMode(userId);
+    if (mode === 'off') return { ok: false, error: 'OFF' }; // the guardian switched this child's chat off: phrases and emoji too
     if (input.kind === 'table') {
       // A table invite is structured (a code and a name), so it needs no activation; the name still goes through the word filter.
       const label = input.label.replace(/\s+/g, ' ').trim().slice(0, 60);
@@ -226,16 +287,23 @@ export class ChatService {
       const t = await this.store.taunt(input.tauntId);
       if (!t || !t.isActive) return { ok: false, error: 'UNKNOWN_TAUNT' };
       if (t.cityId && t.cityId !== (await this.deps.cityOf(userId))?.id) return { ok: false, error: 'UNKNOWN_TAUNT' };
+      if ((t.ageTrack ?? 'adult') !== (await this.rulesOf(userId)).tauntTrack) return { ok: false, error: 'UNKNOWN_TAUNT' }; // each track has its own library
       return { ok: true, text: t.text };
     }
     const rules = await this.deps.rules();
     const raw = input.text.replace(/\s+/g, ' ').trim();
     if (raw === '') return { ok: false, error: 'EMPTY' };
     if ([...raw].length > rules.maxLen) return { ok: false, error: 'TOO_LONG' };
-    if (rules.textNeedsActivation && !(await this.deps.isActivated(userId))) return { ok: false, error: 'NEEDS_ACTIVATION' };
-    if (containsContactInfo(raw) && !(await this.deps.hasContactPerk(userId))) return { ok: false, error: 'CONTACT_BLOCKED' };
+    const managed = (await this.rulesOf(userId)).freeTextChat === 'guardian_switch';
+    if (managed) {
+      // Kid/teen: text only to a friend of the track, and only once a guardian is linked (that link stands in for the invite code).
+      if (where !== 'dm' || mode !== 'friends_text') return { ok: false, error: 'PHRASES_ONLY' };
+      if (!(await this.managed!.hasGuardian(userId))) return { ok: false, error: 'NEEDS_GUARDIAN' };
+    } else if (rules.textNeedsActivation && !(await this.deps.isActivated(userId))) return { ok: false, error: 'NEEDS_ACTIVATION' };
+    // Phone numbers, links and handles: a contact perk never lifts this for kid/teen.
+    if (containsContactInfo(raw) && (managed || !(await this.deps.hasContactPerk(userId)))) return { ok: false, error: 'CONTACT_BLOCKED' };
     if (this.deps.filter) {
-      const verdict = await this.deps.filter.check(raw);
+      const verdict = await this.deps.filter.check(raw, managed ? 'kid_teen' : 'all');
       if (!verdict.ok) return { ok: false, error: 'FILTERED' };
       return { ok: true, text: verdict.text };
     }
