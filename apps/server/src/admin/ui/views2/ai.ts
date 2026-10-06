@@ -11,6 +11,13 @@ var AI_ERR = {
   ai_invalid_model: 'نام مدل درست نیست.',
   ai_not_found: 'موردی برای این کار پیدا نشد (مثلاً آیتم کودکِ بدون درس یا پازل).'
 };
+/* Persian reading of the provider's HTTP status, shown beside the provider's own message. */
+var AI_STATUS_HINT = { 400: 'درخواست یا نام مدل پذیرفته نشد', 401: 'کلید API نامعتبر است', 402: 'اعتبار حساب تمام شده؛ شارژ کن', 403: 'دسترسی رد شد (کلید، سهمیه یا محدودیت منطقه)', 404: 'مدل یا آدرس سرویس پیدا نشد', 429: 'سقف درخواست یا اعتبار تمام شده', 500: 'خطای داخلی سرویس', 503: 'سرویس شلوغ است' };
+function aiErrorText(b, fallback) {
+  var t = AI_ERR[b && b.error] || fallback;
+  if (b && b.providerStatus) t += ' — ' + (AI_STATUS_HINT[b.providerStatus] || 'کد ' + b.providerStatus) + ' (' + b.providerStatus + ')' + (b.providerMessage ? ': ' + b.providerMessage : '');
+  return t;
+}
 var AI_KINDS = [['products', 'محصول'], ['kid_lessons', 'کلمه‌آموزی کودک'], ['puzzle_titles', 'عنوان گروه‌های پازل'], ['blog', 'مقاله‌ی بلاگ']];
 /* Editable fields of one draft, per kind: [key, label, 'text' | 'area' | 'select', options]. */
 function aiFields(kind) {
@@ -110,7 +117,7 @@ VIEWS.ai = function (root) {
     go.disabled = true; go.textContent = 'در حال تولید… (تا یک دقیقه)';
     api('/admin/ai/generate', { method: 'POST', body: request() }).then(function (r) {
       go.disabled = false; go.textContent = 'تولید پیش‌نویس';
-      if (!r.ok) return toast((AI_ERR[r.body && r.body.error] || 'درخواست درست نیست؛ فیلدها را بررسی کن') + (r.body && r.body.providerStatus ? ' [' + r.body.providerStatus + (r.body.providerMessage ? ': ' + r.body.providerMessage : '') + ']' : ''), true);
+      if (!r.ok) return toast(aiErrorText(r.body, 'درخواست درست نیست؛ فیلدها را بررسی کن'), true);
       result = r.body; if (result.kind === 'puzzle_titles') result.puzzleId = ctl.puzzle.value;
       showDrafts();
     });
