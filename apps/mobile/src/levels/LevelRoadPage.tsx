@@ -1,3 +1,4 @@
+import { FACE_TEXT } from '../theme/skin';
 import { useEffect, useRef, useState } from 'react';
 import { swr } from '../net/cache';
 import { Animated, Easing, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
@@ -281,7 +282,7 @@ const styles = StyleSheet.create({
   nodeDone: { backgroundColor: '#7ED957' },
   nodeCurrent: { backgroundColor: '#FFC93C', shadowColor: colors.candy.yellow, shadowOpacity: 1, shadowRadius: 16, borderColor: colors.ink },
   nodeLocked: { backgroundColor: '#6A4A8E' },
-  nodeText: { fontFamily: fonts.display, fontSize: 22, color: '#fff', textShadowColor: '#2E7A22', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
+  nodeText: { fontFamily: fonts.display, fontSize: 22, color: '#fff', textShadowColor: '#2E7A22', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1, ...FACE_TEXT },
   nodeTextBig: { fontSize: 28, textShadowColor: '#B86E00' },
   nodeTextDim: { color: '#C9A3FF', textShadowColor: colors.ink },
   tick: { position: 'absolute', top: -8, left: -8, width: 24, height: 24, borderRadius: 12, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#FFC93C', alignItems: 'center', justifyContent: 'center' },
@@ -307,7 +308,7 @@ const styles = StyleSheet.create({
   xpBar: { height: 16, borderRadius: 99, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#E8D2B0', overflow: 'hidden' },
   xpFill: { position: 'absolute', top: 0, bottom: 0, left: 0, backgroundColor: colors.candy.yellow },
   claimAll: { height: 44, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', marginTop: 4, ...lift(4) },
-  claimAllText: { fontFamily: fonts.display, fontSize: 18, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
+  claimAllText: { fontFamily: fonts.display, fontSize: 18, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1, ...FACE_TEXT },
   gotBox: { marginTop: 80, alignItems: 'center', gap: 12 },
   gotIcon: { width: 130, height: 130 },
   gotText: { fontFamily: fonts.display, fontSize: 28, color: colors.candy.yellow, textAlign: 'center' },
@@ -330,7 +331,7 @@ const styles = StyleSheet.create({
   whatTitle: { fontFamily: fonts.display, fontSize: 15, color: '#7E46D6', textAlign: TEXT_RIGHT },
   whatText: { fontFamily: fonts.bold, fontSize: 12.5, lineHeight: 20, color: colors.ink, textAlign: TEXT_RIGHT },
   ok: { alignSelf: 'stretch', height: 54, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...lift(4) },
-  okText: { fontFamily: fonts.display, fontSize: 18, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
+  okText: { fontFamily: fonts.display, fontSize: 18, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1, ...FACE_TEXT },
   ajan: { position: 'absolute', bottom: 22, left: 8, width: 100, height: 116 },
   ajanBubble: { position: 'absolute', bottom: 52, left: 112, right: 14, padding: 10, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.card, ...lift(4) },
   ajanText: { fontFamily: fonts.bold, fontSize: 11.5, lineHeight: 18, color: colors.ink, textAlign: TEXT_RIGHT },

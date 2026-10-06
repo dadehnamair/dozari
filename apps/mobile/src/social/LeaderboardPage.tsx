@@ -1,3 +1,4 @@
+import { FACE_TEXT } from '../theme/skin';
 import { useEffect, useState } from 'react';
 import { SkeletonRows } from '../components/Skeleton';
 import { swr } from '../net/cache';
@@ -165,7 +166,7 @@ const styles = StyleSheet.create({
   back: { width: 42, height: 42, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...lift(4) },
   pressed: { transform: [{ translateY: 3 }] },
   plate: { flex: 1, height: 46, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...lift(4) },
-  plateText: { fontFamily: fonts.display, fontSize: 24, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
+  plateText: { fontFamily: fonts.display, fontSize: 24, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1, ...FACE_TEXT },
   spacer: { width: 42 },
   tabs: { flexDirection: ROW, marginHorizontal: 30, marginTop: 12, height: 40, padding: 3, gap: 3, borderRadius: 99, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: 'rgba(43,18,64,0.6)' },
   tab: { flex: 1, borderRadius: 99, alignItems: 'center', justifyContent: 'center' },

@@ -114,7 +114,7 @@ export const fa = {
     seeResult: 'دیدن نتیجه',
     again: 'یک دور دیگر',
     noProducts: 'هنوز کالای کافی برای این بازی نداریم.',
-    play: 'حدس قیمت',
+    play: 'حدس',
   },
   net: {
     downTitle: 'ارتباط قطع شد',

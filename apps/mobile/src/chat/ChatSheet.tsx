@@ -1,3 +1,4 @@
+import { FACE_TEXT } from '../theme/skin';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { ChatHistory, ChatMessage, TauntCategory } from '@dozari/shared';
@@ -219,5 +220,5 @@ const styles = StyleSheet.create({
   input: { flex: 1, minWidth: 0, height: 52, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.card, paddingHorizontal: 14, fontFamily: fonts.bold, fontSize: 14, color: colors.ink, textAlign: TEXT_RIGHT },
   send: { width: 52, height: 52, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...lift(4) },
   pressed: { transform: [{ translateY: 3 }] },
-  sendMark: { fontSize: 22, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
+  sendMark: { fontSize: 22, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1, ...FACE_TEXT },
 });

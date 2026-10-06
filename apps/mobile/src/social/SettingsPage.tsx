@@ -1,3 +1,4 @@
+import { FACE_TEXT } from '../theme/skin';
 import { useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Character } from '../components/Character';
@@ -187,14 +188,14 @@ const styles = StyleSheet.create({
   back: { width: 42, height: 42, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...lift(4) },
   pressed: { transform: [{ translateY: 3 }] },
   plate: { flex: 1, height: 46, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...lift(4) },
-  plateText: { fontFamily: fonts.display, fontSize: 24, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
+  plateText: { fontFamily: fonts.display, fontSize: 24, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1, ...FACE_TEXT },
   spacer: { width: 42 },
   mashti: { width: 42, height: 46 },
   columnTight: { paddingTop: safeTop(12), gap: 6 },
   rowTight: { minHeight: 36, paddingVertical: 1 },
   group: { borderRadius: 20, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.paper, overflow: 'hidden', ...lift(5) },
   groupHead: { paddingVertical: 6, paddingHorizontal: 14, borderBottomWidth: 3, borderColor: colors.ink },
-  groupTitle: { fontFamily: fonts.display, fontSize: 16, color: '#fff', textAlign: TEXT_RIGHT, textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 1 },
+  groupTitle: { fontFamily: fonts.display, fontSize: 16, color: '#fff', textAlign: TEXT_RIGHT, textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 1, ...FACE_TEXT },
   row: { minHeight: 46, flexDirection: ROW, alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 4, borderTopWidth: 1.5, borderStyle: 'dashed', borderColor: 'rgba(43,18,64,0.2)' },
   tile: { width: 32, height: 32, borderRadius: 10, borderWidth: 2, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   tileIcon: { width: 22, height: 22 },
