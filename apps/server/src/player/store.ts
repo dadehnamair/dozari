@@ -1,4 +1,4 @@
-import { and, asc, cities, desc, eq, gt, gte, inArray, isNull, sql, userStats, users, xpEvents } from '@dozari/db';
+import { and, asc, cities, desc, eq, gt, gte, inArray, isNull, like, sql, userStats, users, xpEvents } from '@dozari/db';
 import type { Db } from '@dozari/db';
 import { DEFAULT_CITIES } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
@@ -19,6 +19,27 @@ export interface CityRow {
   province: string | null;
   sortOrder: number;
   isActive: boolean;
+}
+
+/** Per-city numbers for the admin city list. */
+export interface CityStats {
+  players: number;
+  /** Players seen in the last 7 days. */
+  active7d: number;
+  bots: number;
+  /** Sum of the players' XP. */
+  xp: number;
+}
+
+export interface CityPlayerRow {
+  id: string;
+  nickname: string;
+  avatarKey: string;
+  isBanned: boolean;
+  isBot: boolean;
+  xp: number;
+  games: number;
+  lastSeenAt: number;
 }
 
 export interface PrivateRow {
@@ -55,6 +76,10 @@ export interface PlayerStore {
   city(id: string): Promise<CityRow | null>;
   addCity(slug: string, nameFa: string, province?: string | null): Promise<CityRow | 'duplicate'>;
   updateCity(id: string, patch: { nameFa?: string; isActive?: boolean; sortOrder?: number; province?: string | null }): Promise<'ok' | 'not_found'>;
+  /** Admin: player / activity / XP totals per city id (cities without players are absent). */
+  cityStats(): Promise<Map<string, CityStats>>;
+  /** Admin: the players of one city, strongest first. */
+  cityPlayers(cityId: string, opts: { q?: string; limit: number; offset: number }): Promise<CityPlayerRow[]>;
 }
 
 export function createDbPlayerStore(db: Db): PlayerStore {
@@ -182,6 +207,35 @@ export function createDbPlayerStore(db: Db): PlayerStore {
       await db.update(cities).set(patch).where(eq(cities.id, id));
       return 'ok';
     },
+    async cityStats() {
+      const since = new Date(Date.now() - 7 * 86_400_000);
+      const rows = await db
+        .select({
+          cityId: users.cityId,
+          players: sql<number>`COUNT(*)`,
+          active: sql<number>`SUM(CASE WHEN ${users.lastSeenAt} >= ${since} THEN 1 ELSE 0 END)`,
+          bots: sql<number>`SUM(CASE WHEN ${users.isBot} THEN 1 ELSE 0 END)`,
+          xp: sql<number>`COALESCE(SUM(${userStats.xp}), 0)`,
+        })
+        .from(users)
+        .leftJoin(userStats, eq(userStats.userId, users.id))
+        .where(sql`${users.cityId} IS NOT NULL`)
+        .groupBy(users.cityId);
+      return new Map(rows.map((r) => [r.cityId as string, { players: Number(r.players), active7d: Number(r.active), bots: Number(r.bots), xp: Number(r.xp) }]));
+    },
+    async cityPlayers(cityId, opts) {
+      const q = opts.q?.trim();
+      const pat = q ? `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%` : undefined;
+      const rows = await db
+        .select({ u: users, xp: userStats.xp, games: userStats.games })
+        .from(users)
+        .leftJoin(userStats, eq(userStats.userId, users.id))
+        .where(and(eq(users.cityId, cityId), pat ? like(users.nickname, pat) : undefined))
+        .orderBy(desc(sql`COALESCE(${userStats.xp}, 0)`), asc(users.id))
+        .limit(opts.limit)
+        .offset(opts.offset);
+      return rows.map(({ u, xp, games }) => ({ id: u.id, nickname: u.nickname, avatarKey: u.avatarKey, isBanned: u.isBanned, isBot: u.isBot, xp: xp ?? 0, games: games ?? 0, lastSeenAt: u.lastSeenAt.getTime() }));
+    },
   };
 }
 
@@ -259,6 +313,26 @@ export function createMemoryPlayerStore(seedCities: readonly { slug: string; nam
       if (!r) return 'not_found';
       Object.assign(r, patch);
       return 'ok';
+    },
+    async cityStats() {
+      const out = new Map<string, CityStats>();
+      for (const [id, p] of priv) {
+        if (!p.cityId) continue;
+        const c = out.get(p.cityId) ?? { players: 0, active7d: 0, bots: 0, xp: 0 };
+        c.players += 1;
+        c.active7d += 1;
+        c.xp += stats.get(id)?.xp ?? 0;
+        out.set(p.cityId, c);
+      }
+      return out;
+    },
+    async cityPlayers(cityId, opts) {
+      const q = opts.q?.trim();
+      return [...priv.entries()]
+        .filter(([id, p]) => p.cityId === cityId && (!q || (nicknames.get(id) ?? '').includes(q)))
+        .map(([id]) => ({ id, nickname: nicknames.get(id) ?? '', avatarKey: '', isBanned: false, isBot: false, xp: stats.get(id)?.xp ?? 0, games: stats.get(id)?.games ?? 0, lastSeenAt: now() }))
+        .sort((a, b) => b.xp - a.xp || a.id.localeCompare(b.id))
+        .slice(opts.offset, opts.offset + opts.limit);
     },
   };
 }
