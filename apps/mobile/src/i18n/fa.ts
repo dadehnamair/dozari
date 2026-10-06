@@ -1361,6 +1361,7 @@ export const fa = {
   bale: {
     open: 'بازیت رو نگه دار',
     row: 'اتصال به بله',
+    openBot: 'باز کردن در بله (بدون تایپ کد)',
     /** Server answers to «get a code», by error code. */
     errors: {
       bale_not_configured: 'ربات بله هنوز راه‌اندازی نشده.',

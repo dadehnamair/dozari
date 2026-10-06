@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { BaleLinkCode, BaleLinkStatus } from '@dozari/shared';
 import { CandyButton } from '../components/CandyButton';
 import { GuideBubble } from '../components/GuideBubble';
@@ -71,6 +71,7 @@ export function BaleSheet({ onClose }: { onClose: () => void }) {
               <Text selectable style={styles.code}>
                 {code.code}
               </Text>
+              {code.botUsername ? <CandyButton label={fa.bale.openBot} color={colors.candy.lime} onPress={() => void Linking.openURL(`https://ble.ir/${code.botUsername}?start=${code.code}`).catch(() => setFailed(true))} /> : null}
               <Text style={[styles.small, adult ? styles.textAdult : null]}>{fa.bale.expires}</Text>
             </View>
           ) : (
