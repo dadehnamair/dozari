@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
   mashti: { width: 42, height: 46 },
   columnTight: { paddingTop: safeTop(12), gap: 6 },
   rowTight: { minHeight: 36, paddingVertical: 1 },
-  group: { borderRadius: 20, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#FBF1DE', overflow: 'hidden', ...lift(5) },
+  group: { borderRadius: 20, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.paper, overflow: 'hidden', ...lift(5) },
   groupHead: { paddingVertical: 6, paddingHorizontal: 14, borderBottomWidth: 3, borderColor: colors.ink },
   groupTitle: { fontFamily: fonts.display, fontSize: 16, color: '#fff', textAlign: TEXT_RIGHT, textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 1 },
   row: { minHeight: 46, flexDirection: ROW, alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 4, borderTopWidth: 1.5, borderStyle: 'dashed', borderColor: 'rgba(43,18,64,0.2)' },
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
   tileIcon: { width: 22, height: 22 },
   rowText: { flex: 1, fontFamily: fonts.bold, fontSize: 13.5, lineHeight: 21, color: colors.ink, textAlign: TEXT_RIGHT },
   track: { width: 52, height: 30, borderRadius: 99, borderWidth: 2.5, borderColor: colors.ink, justifyContent: 'center', paddingHorizontal: 2 },
-  knob: { width: 21, height: 21, borderRadius: 11, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: '#FFF6E8', alignSelf: 'flex-start' },
+  knob: { width: 21, height: 21, borderRadius: 11, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.cream, alignSelf: 'flex-start' },
   knobOn: { alignSelf: 'flex-end' },
   about: { fontFamily: fonts.bold, fontSize: 11.5, lineHeight: 19, color: colors.ink, opacity: 0.8, textAlign: TEXT_RIGHT, padding: 12 },
 });

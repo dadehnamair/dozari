@@ -56,14 +56,14 @@ export function LessonPanel({ productIds, onDone }: { productIds: readonly strin
 }
 
 const styles = StyleSheet.create({
-  card: { alignSelf: 'stretch', gap: 10, alignItems: 'center', padding: 14, borderRadius: 22, borderWidth: 3, borderColor: '#2B1240', backgroundColor: '#FBF1DE' },
+  card: { alignSelf: 'stretch', gap: 10, alignItems: 'center', padding: 14, borderRadius: 22, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.paper },
   title: { fontFamily: fonts.display, fontSize: 18, color: '#5B4A70' },
-  word: { fontFamily: fonts.display, fontSize: 44, color: '#2B1240' },
+  word: { fontFamily: fonts.display, fontSize: 44, color: colors.ink },
   letters: { flexWrap: 'wrap', justifyContent: 'center', gap: 8 },
-  letter: { minWidth: 46, height: 52, paddingHorizontal: 8, borderRadius: 12, borderWidth: 2, borderColor: '#2B1240', backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
-  letterText: { fontFamily: fonts.display, fontSize: 30, color: '#2B1240' },
+  letter: { minWidth: 46, height: 52, paddingHorizontal: 8, borderRadius: 12, borderWidth: 2, borderColor: colors.ink, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  letterText: { fontFamily: fonts.display, fontSize: 30, color: colors.ink },
   count: { fontFamily: fonts.bold, fontSize: 15, color: '#5B4A70' },
   syllables: { fontFamily: fonts.bold, fontSize: 18, color: '#A66BF0' },
-  story: { fontFamily: fonts.body, fontSize: 16, color: '#2B1240', textAlign: 'center' },
+  story: { fontFamily: fonts.body, fontSize: 16, color: colors.ink, textAlign: 'center' },
   actions: { flexDirection: 'row', gap: 10, alignSelf: 'stretch' },
 });

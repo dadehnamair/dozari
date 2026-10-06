@@ -64,6 +64,9 @@ export const PALETTES = {
     bgTop: '#2A0E52',
     bgBottom: '#7A1E86',
     cream: '#FFF6E8',
+    paper: '#FBF1DE',
+    deep: '#3C1A66',
+    deeper: '#4E2585',
     ink: '#2B1240',
     candy: { pink: '#FF4D8D', orange: '#FF7A3D', yellow: '#FFC93C', sky: '#3FC1F0', grape: '#A66BF0', lime: '#7ED957' },
     tone: {
@@ -79,7 +82,10 @@ export const PALETTES = {
   adult: {
     bgTop: '#17100C',
     bgBottom: '#0E0A08',
-    cream: '#FFE9A8',
+    cream: '#F3DFA2',
+    paper: '#E9D197',
+    deep: '#24170F',
+    deeper: '#3A2618',
     ink: '#2A1606',
     candy: { pink: '#C2693A', orange: '#B8822A', yellow: '#E8B64A', sky: '#C9CED6', grape: '#8A5A16', lime: '#D9A441' },
     tone: {

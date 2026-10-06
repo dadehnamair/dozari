@@ -100,7 +100,7 @@ export function Tutorial({ onDone }: { onDone: () => void }) {
 const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0, height: h }, shadowOpacity: 1, shadowRadius: 0, elevation: h });
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#4E2585' },
+  root: { flex: 1, backgroundColor: colors.deeper },
   shade: { backgroundColor: 'rgba(26,8,44,0.55)' },
   scroll: { flexGrow: 1, paddingHorizontal: 12, paddingTop: 20 + nativeTopInset(), paddingBottom: 24, alignItems: 'center' },
   column: { flex: 1, width: '100%', maxWidth: 480 },

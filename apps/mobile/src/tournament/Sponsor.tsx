@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
   tag: { flexDirection: ROW, alignItems: 'center', gap: 4, marginTop: 1 },
   tagLogo: { width: 14, height: 14, borderRadius: 4 },
   tagText: { flexShrink: 1, fontFamily: fonts.bold, fontSize: 10.5, color: '#7E46D6', textAlign: TEXT_RIGHT },
-  card: { borderRadius: 20, borderWidth: 3, backgroundColor: '#FBF1DE', overflow: 'hidden', ...lift(5) },
+  card: { borderRadius: 20, borderWidth: 3, backgroundColor: colors.paper, overflow: 'hidden', ...lift(5) },
   kicker: { fontFamily: fonts.bold, fontSize: 11, color: '#7E46D6', textAlign: TEXT_RIGHT, paddingHorizontal: 12, paddingTop: 8 },
   banner: { width: '100%', aspectRatio: 2.5, marginTop: 6, backgroundColor: '#E9DDF5' },
   head: { flexDirection: ROW, alignItems: 'center', gap: 10, padding: 10, borderTopWidth: 3, borderBottomWidth: 3, borderColor: colors.ink, marginTop: -3 },
@@ -72,7 +72,7 @@ const styles = StyleSheet.create({
   link: { margin: 12, marginTop: 6, height: 40, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.candy.lime, alignItems: 'center', justifyContent: 'center', ...lift(3) },
   linkText: { fontFamily: fonts.display, fontSize: 15, color: colors.ink },
   pressed: { transform: [{ translateY: 2 }] },
-  invite: { marginTop: 6, borderRadius: 18, borderWidth: 3, borderStyle: 'dashed', borderColor: colors.ink, backgroundColor: '#FFF6E8', gap: 4, paddingTop: 12 },
+  invite: { marginTop: 6, borderRadius: 18, borderWidth: 3, borderStyle: 'dashed', borderColor: colors.ink, backgroundColor: colors.cream, gap: 4, paddingTop: 12 },
   inviteTitle: { fontFamily: fonts.display, fontSize: 17, color: colors.ink, textAlign: TEXT_RIGHT, paddingHorizontal: 12 },
   inviteBody: { fontFamily: fonts.bold, fontSize: 12, lineHeight: 19, color: colors.ink, opacity: 0.85, textAlign: TEXT_RIGHT, paddingHorizontal: 12 },
 });

@@ -14,7 +14,7 @@ import { OTP_LENGTH, onlyDigits, phoneFromInput, resendLeft } from './loginInput
 import { loginWithCode, requestLoginCode } from './loginApi';
 import { TEXT_LEFT, TEXT_RIGHT } from '../theme/direction';
 
-const INK = '#2B1240';
+const INK = colors.ink;
 const errText = (e: unknown): string => fa.phoneLogin.errors[e instanceof ApiError ? e.code : 'generic'] ?? fa.phoneLogin.errors.generic ?? '';
 
 /**
@@ -138,7 +138,7 @@ const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const lift = (h: number) => ({ shadowColor: INK, shadowOffset: { width: 0, height: h }, shadowOpacity: 1, shadowRadius: 0, elevation: h });
 
 const styles = StyleSheet.create({
-  root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, backgroundColor: '#3C1A66' },
+  root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, backgroundColor: colors.deep },
   shade: { backgroundColor: 'rgba(43,18,64,0.5)' },
   top: { alignItems: 'center' },
   hero: { width: 150, height: 172, marginTop: -4 },
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   // A centring wrapper: `alignSelf` does nothing on an absolute box, so a lone absolute card with `left`+`right`+`maxWidth` stuck to the left on wide screens.
   cardWrap: { position: 'absolute', left: 14, right: 14, bottom: 26, alignItems: 'center' },
   cardWrapTight: { bottom: 12 },
-  card: { width: '100%', maxWidth: 420, padding: 14, paddingTop: 16, gap: 10, borderRadius: 26, borderWidth: 4, borderColor: INK, backgroundColor: '#FBF1DE', ...lift(7) },
+  card: { width: '100%', maxWidth: 420, padding: 14, paddingTop: 16, gap: 10, borderRadius: 26, borderWidth: 4, borderColor: INK, backgroundColor: colors.paper, ...lift(7) },
   cardTight: { gap: 7, padding: 12 },
   title: { fontFamily: fonts.display, fontSize: 22, color: INK, textAlign: TEXT_RIGHT },
   sub: { fontFamily: fonts.bold, fontSize: 12, lineHeight: 19, color: '#7E46D6', textAlign: TEXT_RIGHT },

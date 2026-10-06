@@ -9,6 +9,11 @@ export const colors = {
   bgBottom: P.bgBottom,
   panel: 'rgba(255,255,255,0.14)',
   cream: P.cream,
+  /** Light sheet/panel surface: soft cream in play, aged parchment in adult (dark text stays readable on both). */
+  paper: P.paper,
+  /** Dark purple surfaces (chips, bars) — near-black brown in adult. */
+  deep: P.deep,
+  deeper: P.deeper,
   ink: P.ink,
   candy: P.candy,
   group: ['#F9DF6D', '#A0C35A', '#B0C4EF', '#BA81C5'],

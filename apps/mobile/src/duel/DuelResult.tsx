@@ -95,7 +95,7 @@ export function DuelResult({ outcome, reason, lines, priceRound, onHome, onAgain
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#3C1A66' },
+  root: { flex: 1, backgroundColor: colors.deep },
   shade: { backgroundColor: 'rgba(43,18,64,0.55)' },
   column: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', paddingHorizontal: 12, paddingTop: 28 + nativeTopInset(), paddingBottom: 28, alignItems: 'stretch', gap: 8 },
   scroll: { flexShrink: 1, flexGrow: 0 },
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
   banner: { alignSelf: 'center', paddingHorizontal: 30, paddingVertical: 6, borderRadius: 18, borderWidth: 4, borderColor: colors.ink, overflow: 'hidden', shadowColor: colors.ink, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 1, shadowRadius: 0, elevation: 6 },
   bannerText: { fontFamily: fonts.display, fontSize: 32, lineHeight: 44, color: colors.ink },
   sub: { fontFamily: fonts.bold, fontSize: 13, color: colors.cream, textAlign: 'center' },
-  board: { marginTop: 10, borderRadius: 20, backgroundColor: '#FBF1DE', borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', shadowColor: colors.ink, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 1, shadowRadius: 0, elevation: 5 },
+  board: { marginTop: 10, borderRadius: 20, backgroundColor: colors.paper, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', shadowColor: colors.ink, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 1, shadowRadius: 0, elevation: 5 },
   head: { height: 30, flexDirection: ROW, alignItems: 'center', paddingHorizontal: 12, gap: 8, backgroundColor: colors.ink },
   headText: { fontFamily: fonts.bold, fontSize: 11, color: 'rgba(255,246,232,0.75)', textAlign: TEXT_RIGHT },
   grow: { flex: 1, minWidth: 0 },

@@ -91,7 +91,7 @@ const styles = StyleSheet.create({
   column: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', paddingHorizontal: 14, paddingTop: pageTop() + 8, gap: 12 },
   title: { fontFamily: fonts.display, fontSize: 28, color: '#fff', textAlign: 'center', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
   sub: { fontFamily: fonts.bold, fontSize: 15, color: colors.cream, textAlign: 'center' },
-  card: { padding: 16, gap: 6, borderRadius: 22, borderWidth: 4, borderColor: colors.ink, backgroundColor: '#FFF6E8' },
+  card: { padding: 16, gap: 6, borderRadius: 22, borderWidth: 4, borderColor: colors.ink, backgroundColor: colors.cream },
   kind: { alignSelf: 'center', fontFamily: fonts.bold, fontSize: 12, color: '#fff', backgroundColor: '#3F72D0', paddingHorizontal: 10, borderRadius: 99, overflow: 'hidden' },
   name: { fontFamily: fonts.display, fontSize: 24, color: colors.ink, textAlign: 'center' },
   price: { fontFamily: fonts.display, fontSize: 22, color: '#B3590B', textAlign: 'center' },

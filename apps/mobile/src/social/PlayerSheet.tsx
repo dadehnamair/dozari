@@ -165,7 +165,7 @@ const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const styles = StyleSheet.create({
   reportLink: { fontFamily: fonts.bold, fontSize: 12, color: '#8E7B6B', textDecorationLine: 'underline', textAlign: 'center' },
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 40, backgroundColor: 'rgba(20,8,32,0.6)', alignItems: 'center', justifyContent: 'center', padding: 20 },
-  card: { width: '100%', maxWidth: 340, borderRadius: 30, borderWidth: 4, borderColor: INK, backgroundColor: '#FBF1DE', overflow: 'hidden', ...lift(8) },
+  card: { width: '100%', maxWidth: 340, borderRadius: 30, borderWidth: 4, borderColor: INK, backgroundColor: colors.paper, overflow: 'hidden', ...lift(8) },
   header: { height: 104, overflow: 'hidden' },
   headerLine: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 4, backgroundColor: INK },
   closeBtn: { position: 'absolute', top: 10, left: 10, width: 34, height: 34, borderRadius: 12, borderWidth: 3, borderColor: INK, backgroundColor: '#A66BF0', alignItems: 'center', justifyContent: 'center', ...lift(3) },
@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
   statValue: { fontFamily: fonts.display, fontSize: 21, lineHeight: 25, color: INK },
   statLabel: { fontFamily: fonts.bold, fontSize: 10.5, color: INK, opacity: 0.8 },
   chips: { flexDirection: ROW, flexWrap: 'wrap', justifyContent: 'center', gap: 6 },
-  chip: { flexDirection: ROW, alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99, borderWidth: 2.5, borderColor: INK, backgroundColor: '#FFF6E8' },
+  chip: { flexDirection: ROW, alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99, borderWidth: 2.5, borderColor: INK, backgroundColor: colors.cream },
   chipIcon: { width: 22, height: 22 },
   chipText: { fontFamily: fonts.display, fontSize: 13, color: INK },
   medal: { height: 26, maxWidth: 120, paddingHorizontal: 10, borderRadius: 99, borderWidth: 2.5, borderColor: INK, justifyContent: 'center', ...lift(2) },

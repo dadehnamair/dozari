@@ -18,7 +18,7 @@ export function GuideBubble({ text, who = 'dozari', onPress }: { text: string; w
 }
 
 const styles = StyleSheet.create({
-  root: { flexDirection: ROW, alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#FFF6E8' },
+  root: { flexDirection: ROW, alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.cream },
   mascot: { width: 54, height: 54 },
   bubble: { flex: 1, minWidth: 0 },
   text: { fontFamily: fonts.bold, fontSize: 13, lineHeight: 20, color: colors.ink, textAlign: TEXT_RIGHT },

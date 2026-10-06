@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   title: { fontFamily: fonts.display, fontSize: 28, color: colors.candy.yellow, textAlign: 'center' },
   sub: { fontFamily: fonts.bold, fontSize: 14, color: colors.cream, textAlign: 'center' },
   intro: { fontFamily: fonts.bold, fontSize: 13, lineHeight: 22, color: colors.cream, textAlign: 'center', opacity: 0.85 },
-  card: { gap: 8, padding: 14, borderRadius: 20, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#FBF1DE', alignItems: 'center' },
+  card: { gap: 8, padding: 14, borderRadius: 20, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.paper, alignItems: 'center' },
   icon: { width: 64, height: 64 },
   name: { fontFamily: fonts.display, fontSize: 24, color: colors.ink, textAlign: 'center' },
   question: { fontFamily: fonts.bold, fontSize: 14, color: colors.ink, textAlign: 'center' },

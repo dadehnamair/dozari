@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
   groupText: { fontFamily: fonts.display, fontSize: 17, color: colors.ink },
   grid: { flexDirection: ROW, flexWrap: 'wrap', gap: 8 },
   cell: { width: '31.5%' },
-  card: { alignItems: 'center', gap: 2, paddingVertical: 8, paddingHorizontal: 4, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#FFF6E8', shadowColor: colors.ink, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 1, shadowRadius: 0, elevation: 5 },
+  card: { alignItems: 'center', gap: 2, paddingVertical: 8, paddingHorizontal: 4, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.cream, shadowColor: colors.ink, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 1, shadowRadius: 0, elevation: 5 },
   cardOn: { backgroundColor: '#FFE48A' },
   cardDown: { transform: [{ translateY: 3 }], shadowOffset: { width: 0, height: 2 } },
   blank: { width: 64, height: 64, borderRadius: 32, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' },

@@ -207,7 +207,7 @@ export function ShopSheet({ onClose, onBalance, realMoney = false }: { onClose: 
 const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0, height: h }, shadowOpacity: 1, shadowRadius: 0, elevation: h });
 
 const styles = StyleSheet.create({
-  root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20, backgroundColor: '#3C1A66' },
+  root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20, backgroundColor: colors.deep },
   veil: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   column: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingHorizontal: 10, paddingTop: pageTop() },
   head: { flexDirection: ROW, alignItems: 'center', gap: 6, marginBottom: 12 },
@@ -220,7 +220,7 @@ const styles = StyleSheet.create({
   pillIcon: { width: 28, height: 28 },
   tabs: { flexDirection: ROW, gap: 4 },
   tabCell: { flex: 1, minWidth: 0 },
-  tab: { height: 58, borderRadius: 14, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: '#FFF6E8', alignItems: 'center', justifyContent: 'center', padding: 2, ...lift(4) },
+  tab: { height: 58, borderRadius: 14, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center', padding: 2, ...lift(4) },
   tabOn: { backgroundColor: colors.candy.yellow, transform: [{ translateY: 3 }], shadowOffset: { width: 0, height: 1 } },
   tabSoon: { opacity: 0.6 },
   tabIcon: { width: 28, height: 28 },
