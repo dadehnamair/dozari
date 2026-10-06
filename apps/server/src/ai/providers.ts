@@ -47,7 +47,7 @@ export function resolveProviders(env: Env): ResolvedProvider[] {
 export type AiErrorCode = 'ai_not_configured' | 'ai_unknown_provider' | 'ai_rate_limited' | 'ai_timeout' | 'ai_unreachable' | 'ai_http_error' | 'ai_bad_output' | 'ai_invalid_model' | 'ai_not_found';
 
 export class AiError extends Error {
-  constructor(readonly code: AiErrorCode, readonly status?: number) {
+  constructor(readonly code: AiErrorCode, readonly status?: number, readonly detail?: string) {
     super(code);
   }
 }
@@ -64,6 +64,20 @@ export type FetchLike = (url: string, init: { method: string; headers: Record<st
 
 /** A model name as gateways spell them: letters, digits and `. _ - : /`. Anything else is refused so it cannot smuggle path or header text. */
 export const isModelName = (s: string): boolean => /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,79}$/.test(s);
+
+/** The provider's own error message (`{error:{message}}`, or an array of those), cut short and with the key scrubbed. */
+async function errorDetail(res: { json(): Promise<unknown> }, apiKey: string): Promise<string | undefined> {
+  try {
+    const body = (await res.json()) as unknown;
+    const first = Array.isArray(body) ? body[0] : body;
+    const err = (first as { error?: unknown } | null)?.error;
+    const msg = typeof err === 'string' ? err : (err as { message?: unknown } | undefined)?.message;
+    if (typeof msg !== 'string') return undefined;
+    return msg.split(apiKey).join('***').replace(/\s+/g, ' ').slice(0, 300);
+  } catch {
+    return undefined;
+  }
+}
 
 /** One chat completion. Returns the assistant text. The API key only travels in the `Authorization` header and is never part of an error. */
 export async function chat(provider: ResolvedProvider, req: ChatRequest, doFetch: FetchLike = fetch as unknown as FetchLike): Promise<string> {
@@ -94,7 +108,7 @@ export async function chat(provider: ResolvedProvider, req: ChatRequest, doFetch
       }),
       signal: ctl.signal,
     });
-    if (!res.ok) throw new AiError('ai_http_error', res.status);
+    if (!res.ok) throw new AiError('ai_http_error', res.status, await errorDetail(res, provider.apiKey));
     const data = (await res.json()) as { choices?: { message?: { content?: unknown } }[]; content?: { type?: string; text?: unknown }[] };
     const text = anthropic ? data.content?.find((b) => b.type === 'text')?.text : data.choices?.[0]?.message?.content;
     if (typeof text !== 'string' || text.trim() === '') throw new AiError('ai_bad_output');
