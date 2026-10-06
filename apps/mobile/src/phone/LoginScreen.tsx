@@ -10,6 +10,7 @@ import { fa } from '../i18n/fa';
 import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
 import { safeTop } from '../theme/safeArea';
+import { useTheme } from '../theme/themeStore';
 import { OTP_LENGTH, onlyDigits, phoneFromInput, resendLeft } from './loginInput';
 import { loginWithCode, requestLoginCode } from './loginApi';
 import { TEXT_LEFT, TEXT_RIGHT } from '../theme/direction';
@@ -23,6 +24,7 @@ const errText = (e: unknown): string => fa.phoneLogin.errors[e instanceof ApiErr
  * playing never needs it.
  */
 export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { signedIn: boolean; created: boolean }) => void; /** The server's age-track switch: shows «ورود با کد والدین» for a child's own device. */ ageTracksOn?: boolean }) {
+  const adult = useTheme() === 'adult';
   const [childCodeOpen, setChildCodeOpen] = useState(false);
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [typed, setTyped] = useState('');
@@ -82,20 +84,20 @@ export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { sig
   return (
     <View style={styles.root}>
       <View style={StyleSheet.absoluteFill}><Scene scene="bazaar" mood="dusk" /></View>
-      <View style={[StyleSheet.absoluteFill, styles.shade]} />
+      <View style={[StyleSheet.absoluteFill, styles.shade, adult ? ad.shade : null]} />
       <View style={[styles.top, { paddingTop: safeTop(tight ? 24 : 44) }]}>
         <AnimatedLogo width={tight ? 190 : 230} />
-        <View style={tight ? styles.heroTight : styles.hero}><Character who="dozari" pose="wave" /></View>
+        <View style={tight ? styles.heroTight : styles.hero}><Character who={adult ? 'mashti' : 'dozari'} pose="wave" /></View>
       </View>
       <View style={[styles.cardWrap, tight ? styles.cardWrapTight : null]} pointerEvents="box-none">
-      <View style={[styles.card, tight ? styles.cardTight : null]}>
+      <View style={[styles.card, tight ? styles.cardTight : null, adult ? ad.card : null]}>
         {step === 'phone' ? (
           <>
-            <Text style={styles.title}>{l.welcome}</Text>
-            <Text style={styles.sub}>{l.phoneHint}</Text>
+            <Text style={[styles.title, adult ? ad.title : null]}>{l.welcome}</Text>
+            <Text style={[styles.sub, adult ? ad.sub : null]}>{l.phoneHint}</Text>
             <View style={styles.phoneRow}>
-              <View style={styles.prefix}><Text style={styles.prefixText}>+98</Text></View>
-              <TextInput value={toPersianDigits(typed)} onChangeText={(v) => setTyped(onlyDigits(v, 11))} onSubmitEditing={send} keyboardType="phone-pad" maxLength={13} placeholder={toPersianDigits('912 345 6789')} placeholderTextColor="#B8A9CC" style={styles.phoneInput} accessibilityLabel={fa.phoneLogin.phone} />
+              <View style={[styles.prefix, adult ? ad.field : null]}><Text style={[styles.prefixText, adult ? ad.fieldText : null]}>+98</Text></View>
+              <TextInput value={toPersianDigits(typed)} onChangeText={(v) => setTyped(onlyDigits(v, 11))} onSubmitEditing={send} keyboardType="phone-pad" maxLength={13} placeholder={toPersianDigits('912 345 6789')} placeholderTextColor={adult ? 'rgba(255,233,168,0.4)' : '#B8A9CC'} style={[styles.phoneInput, adult ? ad.field : null, adult ? ad.fieldText : null]} accessibilityLabel={fa.phoneLogin.phone} />
             </View>
           </>
         ) : (
@@ -104,27 +106,27 @@ export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { sig
             <Text style={styles.sub}>{l.otpSent(toPersianDigits(`0${(phone ?? '').replace(/^\+98/, '')}`))}</Text>
             <Pressable onPress={showKeyboard} accessibilityRole="button" accessibilityLabel={fa.phoneLogin.code} style={styles.boxes}>
               {Array.from({ length: OTP_LENGTH }, (_, i) => (
-                <View key={i} style={[styles.box, i === Math.min(code.length, OTP_LENGTH - 1) ? styles.boxOn : null]}>
-                  <Text style={styles.boxText}>{code[i] ? toPersianDigits(code[i]!) : ''}</Text>
+                <View key={i} style={[styles.box, adult ? ad.field : null, i === Math.min(code.length, OTP_LENGTH - 1) ? (adult ? ad.boxOn : styles.boxOn) : null]}>
+                  <Text style={[styles.boxText, adult ? ad.fieldText : null]}>{code[i] ? toPersianDigits(code[i]!) : ''}</Text>
                 </View>
               ))}
               <TextInput ref={codeInput} value={toPersianDigits(code)} onChangeText={onCode} keyboardType="number-pad" maxLength={OTP_LENGTH + 2} autoFocus style={styles.hiddenInput} caretHidden />
             </Pressable>
             <View style={styles.resendRow}>
-              <Pressable onPress={() => (setStep('phone'), setNote(null))} accessibilityRole="button"><Text style={styles.link}>{l.changeNumber}</Text></Pressable>
-              {left > 0 ? <Text style={styles.sub}>{l.resendIn(left)}</Text> : <Pressable onPress={send} accessibilityRole="button"><Text style={styles.link}>{l.resend}</Text></Pressable>}
+              <Pressable onPress={() => (setStep('phone'), setNote(null))} accessibilityRole="button"><Text style={[styles.link, adult ? ad.link : null]}>{l.changeNumber}</Text></Pressable>
+              {left > 0 ? <Text style={[styles.sub, adult ? ad.sub : null]}>{l.resendIn(left)}</Text> : <Pressable onPress={send} accessibilityRole="button"><Text style={[styles.link, adult ? ad.link : null]}>{l.resend}</Text></Pressable>}
             </View>
           </>
         )}
         {note ? <Text style={styles.error}>{note}</Text> : null}
         <SlabButton label={busy ? l.sending : step === 'phone' ? l.sendCode : l.enter} sfx="confirm" color={colors.candy.lime} height={tight ? 50 : 56} fontSize={22} grow={0} disabled={busy || (step === 'phone' ? !phone : code.length !== OTP_LENGTH)} onPress={step === 'phone' ? send : () => enter(code)} />
-        <View style={styles.orRow}><View style={styles.orLine} /><Text style={styles.orText}>{l.or}</Text><View style={styles.orLine} /></View>
-        <Pressable accessibilityRole="button" onPress={() => onDone({ signedIn: false, created: false })} style={({ pressed }) => [styles.guest, pressed ? styles.guestPressed : null]}>
-          <Text style={styles.guestText}>{l.guest}</Text>
+        <View style={styles.orRow}><View style={[styles.orLine, adult ? ad.orLine : null]} /><Text style={[styles.orText, adult ? ad.sub : null]}>{l.or}</Text><View style={[styles.orLine, adult ? ad.orLine : null]} /></View>
+        <Pressable accessibilityRole="button" onPress={() => onDone({ signedIn: false, created: false })} style={({ pressed }) => [styles.guest, adult ? ad.guest : null, pressed ? styles.guestPressed : null]}>
+          <Text style={[styles.guestText, adult ? ad.guestText : null]}>{l.guest}</Text>
         </Pressable>
         {ageTracksOn ? (
           <Pressable accessibilityRole="button" onPress={() => setChildCodeOpen(true)}>
-            <Text style={styles.link}>{fa.guardian.childLoginRow}</Text>
+            <Text style={[styles.link, adult ? ad.link : null]}>{fa.guardian.childLoginRow}</Text>
           </Pressable>
         ) : null}
       </View>
@@ -136,6 +138,21 @@ export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { sig
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const lift = (h: number) => ({ shadowColor: INK, shadowOffset: { width: 0, height: h }, shadowOpacity: 1, shadowRadius: 0, elevation: h });
+
+/** Adult overrides (docs/design/adult/Dozari Adult - Login Home): a near-black card with a gold frame and brass controls. */
+const ad = StyleSheet.create({
+  shade: { backgroundColor: 'rgba(14,10,8,0.5)' },
+  card: { backgroundColor: '#17100C', borderColor: '#E8B64A', shadowColor: '#000' },
+  title: { color: '#FFE9A8' },
+  sub: { color: 'rgba(255,233,168,0.75)' },
+  field: { backgroundColor: '#0E0A08', borderColor: '#8A5A16' },
+  fieldText: { color: '#FFE9A8' },
+  boxOn: { backgroundColor: '#3A2412', borderColor: '#E8B64A' },
+  link: { color: '#E8B64A' },
+  orLine: { backgroundColor: 'rgba(232,182,74,0.25)' },
+  guest: { backgroundColor: '#3A2412', borderColor: '#B8822A', shadowColor: '#000' },
+  guestText: { color: '#FFE9A8' },
+});
 
 const styles = StyleSheet.create({
   root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 50, backgroundColor: colors.deep },

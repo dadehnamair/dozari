@@ -11,7 +11,8 @@ export function registerAiAdminRoutes(g: FastifyInstance, studio: AiStudio, audi
     try {
       return await fn();
     } catch (err) {
-      if (err instanceof AiError) return reply.code(STATUS[err.code] ?? 500).send({ error: err.code, ...(err.status ? { providerStatus: err.status } : {}) });
+      if (err instanceof AiError) g.log.warn({ code: err.code, providerStatus: err.status, providerMessage: err.detail }, 'ai studio call failed');
+      if (err instanceof AiError) return reply.code(STATUS[err.code] ?? 500).send({ error: err.code, ...(err.status ? { providerStatus: err.status } : {}), ...(err.detail ? { providerMessage: err.detail } : {}) });
       throw err;
     }
   };

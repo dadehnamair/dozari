@@ -6,6 +6,7 @@ import { playSfx } from '../sound/engine';
 import { ICON_PATHS } from '../theme/icons';
 import type { IconName } from '../theme/icons';
 import { colors, fonts, toneOf } from '../theme/colors';
+import { useTheme } from '../theme/themeStore';
 
 const SIZE = 54;
 
@@ -14,7 +15,8 @@ const SIZE = 54;
  * gloss, an ink-outlined white icon, the label under it and an optional corner badge.
  */
 export function HubTile({ icon, label, color, badge, badgeColor = colors.candy.pink, onPress, onLight = false, glow = false }: { icon: IconName; label: string; color: string; badge?: string; badgeColor?: string; onPress: () => void; onLight?: boolean; /** Pulsing halo: something is waiting here (e.g. the unclaimed daily reward). */ glow?: boolean }) {
-  const tone = toneOf(color);
+  const adult = useTheme() === 'adult';
+  const tone = adult ? { light: '#5A3A1C', base: '#2A1A0E', dark: '#140C06' } : toneOf(color);
   const gid = `ht${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
   const reduce = usePrefs().reduceMotion;
   const beat = useRef(new Animated.Value(0)).current;
@@ -35,7 +37,7 @@ export function HubTile({ icon, label, color, badge, badgeColor = colors.candy.p
             <Animated.View pointerEvents="none" style={[styles.halo, { opacity: reduce ? 0.8 : beat.interpolate({ inputRange: [0, 1], outputRange: [0.25, 0.95] }), transform: [{ scale: reduce ? 1.1 : beat.interpolate({ inputRange: [0, 1], outputRange: [1, 1.28] }) }] }]} />
           ) : null}
           <Animated.View style={glow && !reduce ? { transform: [{ scale: beat.interpolate({ inputRange: [0, 1], outputRange: [1, 1.07] }) }] } : undefined}>
-          <View style={[styles.tile, pressed ? styles.pressed : null]}>
+          <View style={[styles.tile, adult ? (glow ? styles.tileAdultLit : styles.tileAdult) : null, pressed ? styles.pressed : null]}>
             <Svg style={StyleSheet.absoluteFill} width="100%" height="100%" viewBox="0 0 1 1" preserveAspectRatio="none">
               <Defs>
                 <RadialGradient id={gid} cx="0.3" cy="0.22" r="0.9">
@@ -50,8 +52,8 @@ export function HubTile({ icon, label, color, badge, badgeColor = colors.candy.p
             <View style={styles.shade} />
             <View style={styles.icon}>
               <Svg width={28} height={28} viewBox="0 0 24 24" fill="none">
-                <Path d={ICON_PATHS[icon]} stroke={colors.ink} strokeWidth={4.6} strokeLinecap="round" strokeLinejoin="round" />
-                <Path d={ICON_PATHS[icon]} stroke="#fff" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
+                <Path d={ICON_PATHS[icon]} stroke={adult ? '#000' : colors.ink} strokeWidth={4.6} strokeLinecap="round" strokeLinejoin="round" />
+                <Path d={ICON_PATHS[icon]} stroke={adult ? '#FFE9A8' : '#fff'} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
               </Svg>
             </View>
           </View>
@@ -61,7 +63,7 @@ export function HubTile({ icon, label, color, badge, badgeColor = colors.candy.p
               <Text style={styles.badgeText}>{badge}</Text>
             </View>
           ) : null}
-          <Text style={[styles.label, onLight ? styles.labelOnLight : null]} numberOfLines={1}>{label}</Text>
+          <Text style={[styles.label, adult ? styles.labelAdult : null, onLight ? styles.labelOnLight : null]} numberOfLines={1}>{label}</Text>
         </>
       )}
     </Pressable>
@@ -71,6 +73,9 @@ export function HubTile({ icon, label, color, badge, badgeColor = colors.candy.p
 const styles = StyleSheet.create({
   /** For cream sheets (profile): the white-on-scene label would vanish. */
   labelOnLight: { color: colors.ink, textShadowColor: 'transparent', textShadowRadius: 0 },
+  tileAdult: { borderColor: '#B8822A', shadowColor: '#000' },
+  tileAdultLit: { borderColor: '#FFF1B8', shadowColor: '#000' },
+  labelAdult: { color: '#FFE9A8', textShadowColor: '#000' },
   wrap: { alignItems: 'center', gap: 3, width: 72 },
   tile: {
     width: SIZE,

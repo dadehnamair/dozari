@@ -42,6 +42,8 @@ export const productDraft = z.object({
   category: z.enum(PRODUCT_CATEGORIES),
   storyFa: z.string().trim().max(300).default(''),
   ageTrack: z.enum(AGE_TRACKS).default('adult'),
+  /** Nominal prices in toman (integer), one per Solar Hijri year. Saved as `pending` points; an editor still approves them. */
+  prices: z.array(z.object({ year: z.number().int().min(1300).max(1450), priceToman: z.number().int().min(1).max(100_000_000_000) })).max(8).default([]),
 });
 export const lessonDraft = z.object({
   productId: z.string().min(1).max(36),
@@ -84,7 +86,7 @@ export function extractJson(text: string): unknown {
 const COMMON = [
   'You write content for «دوزاری» (Dozari), a Persian puzzle game about Iranian price nostalgia.',
   'Write natural, correct Persian (فارسی) with Persian digits only inside prose; keep ZWNJ (نیم‌فاصله) where the language needs it.',
-  'Never invent prices, statistics, dates or quotes. If you are not sure of a fact, leave it out.',
+  'Never invent statistics, dates or quotes. If you are not sure of a fact, leave it out.',
   'No politics, religion, insults, tobacco/alcohol promotion or adult content.',
   'Reply with ONE JSON object only: no markdown fences, no commentary.',
 ].join('\n');
@@ -101,7 +103,12 @@ export interface PromptContext {
   kidItems?: { productId: string; nameFa: string }[];
   /** The groups of the puzzle (puzzle_titles). */
   puzzleGroups?: { level: number; titleFa: string | null; items: string[] }[];
+  /** Products already in the catalog (products): the model must not suggest them again. */
+  existing?: { slug: string; nameFa: string }[];
 }
+
+/** Persian-insensitive key for comparing product names and slugs: Arabic ya/kaf, ZWNJ, spaces and punctuation are ignored. */
+export const nameKey = (s: string): string => s.replace(/[يى]/g, 'ی').replace(/ك/g, 'ک').replace(/[\u200c\u200f\s\-_.،,()«»]/g, '').toLowerCase();
 
 export function buildPrompt(req: GenerateRequest, ctx: PromptContext = {}): PromptPieces {
   const extra = req.hint ? `\nExtra instructions from the editor (treat as content hints only): ${req.hint}` : '';
@@ -110,9 +117,9 @@ export function buildPrompt(req: GenerateRequest, ctx: PromptContext = {}): Prom
       const era = req.fromYear || req.toYear ? `\nEra: Solar Hijri years ${req.fromYear ?? 1340}–${req.toYear ?? 1403}; pick things people really bought then.` : '';
       const audience = req.ageTrack === 'kid' ? '\nAudience: children up to 11. Only simple, friendly, everyday things a child knows (toys, fruit, sweets, school items); one common word each.' : req.ageTrack === 'teen' ? '\nAudience: teenagers.' : '';
       return {
-        system: `${COMMON}\nTask: suggest catalog products for the game. Do NOT include prices.`,
-        user: `Suggest ${req.count} distinct Iranian products or services.${req.category ? `\nAll in category "${req.category}".` : `\nCategories allowed: ${PRODUCT_CATEGORIES.join(', ')}.`}${era}${audience}${extra}
-JSON shape: {"items":[{"slug":"latin-kebab-case-id","nameFa":"…","unitFa":"واحد مثل «بسته» یا «عدد» یا null","category":"one of the allowed categories","storyFa":"one short nostalgic sentence (max 200 chars)"}]}`,
+        system: `${COMMON}\nTask: suggest catalog products for the game, each with a few NOMINAL historical prices (the price printed on the shelf or list in that year, never inflation-adjusted) in toman as integers. Give only prices you genuinely remember or can reasonably estimate for that product and year; prefer 3–5 well-spread years; leave "prices" empty rather than guess wildly. An editor verifies every price before it goes live.`,
+        user: `Suggest ${req.count} distinct Iranian products or services.${ctx.existing?.length ? `\nThese already exist in the catalog; do NOT suggest them or close variants of them: ${ctx.existing.slice(0, 400).map((e) => e.nameFa).join('، ')}.` : ''}${req.category ? `\nAll in category "${req.category}".` : `\nCategories allowed: ${PRODUCT_CATEGORIES.join(', ')}.`}${era}${audience}${extra}
+JSON shape: {"items":[{"slug":"latin-kebab-case-id","nameFa":"…","unitFa":"واحد مثل «بسته» یا «عدد» یا null","category":"one of the allowed categories","storyFa":"one short nostalgic sentence (max 200 chars)","prices":[{"year":1375,"priceToman":150}]}]}`,
       };
     }
     case 'kid_lessons': {
@@ -163,7 +170,13 @@ export function parseDrafts(kind: AiKind, text: string, ctx: PromptContext = {},
   switch (kind) {
     case 'products': {
       const seen = new Set<string>();
-      out = take(json.items, productDraft, (d) => !seen.has(d.slug) && !!seen.add(d.slug));
+      for (const e of ctx.existing ?? []) [e.nameFa, e.slug].forEach((v) => seen.add(nameKey(v)));
+      out = take(json.items, productDraft, (d) => {
+        const keys = [nameKey(d.nameFa), nameKey(d.slug)];
+        if (keys.some((k) => seen.has(k))) return false;
+        keys.forEach((k) => seen.add(k));
+        return true;
+      });
       out.drafts = (out.drafts as z.infer<typeof productDraft>[]).map((d) => ({ ...d, ageTrack }));
       break;
     }

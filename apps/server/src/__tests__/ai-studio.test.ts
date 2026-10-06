@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { buildServer } from '../index.js';
 import { AiStudio } from '../ai/studio.js';
-import { extractJson, buildPrompt, generateRequestSchema } from '../ai/content.js';
-import { resolveProviders } from '../ai/providers.js';
+import { extractJson, buildPrompt, generateRequestSchema, parseDrafts } from '../ai/content.js';
+import { resolveProviders, chat } from '../ai/providers.js';
 import type { FetchLike } from '../ai/providers.js';
 import type { ProductAdmin } from '../admin/products.js';
 import type { LessonStore } from '../lessons/service.js';
@@ -117,7 +117,60 @@ describe('AI studio', () => {
     expect(extractJson('nothing')).toBeNull();
     const req = generateRequestSchema.parse({ kind: 'blog', provider: 'x', topic: 'قیمت نان', count: 2, length: 'long', keywords: ['نان'] });
     const p = buildPrompt(req);
-    expect(p.system).toContain('Never invent prices');
+    expect(p.system).toContain('Never invent statistics');
     expect(p.user).toContain('1000');
+  });
+
+  it('speaks Anthropic natively for Claude and OpenAI-style for Gemini', async () => {
+    const [claude, gemini] = resolveProviders({ AI_ANTHROPIC_API_KEY: 'a-key', AI_GEMINI_API_KEY: 'g-key' });
+    let seen: { url: string; headers: Record<string, string>; body: { system?: string; messages: { role: string }[] } } | undefined;
+    const spy: FetchLike = async (url, init) => {
+      seen = { url, headers: init.headers, body: JSON.parse(init.body) };
+      return { ok: true, status: 200, json: async () => ({ content: [{ type: 'text', text: 'سلام' }], choices: [{ message: { content: 'hi' } }] }) };
+    };
+    const req = { system: 'sys', user: 'u', model: 'm', maxTokens: 10 };
+    expect(await chat(claude!, req, spy)).toBe('سلام');
+    expect(seen!.url).toBe('https://api.anthropic.com/v1/messages');
+    expect(seen!.headers['x-api-key']).toBe('a-key');
+    expect(seen!.body.system).toBe('sys');
+    expect(seen!.body.messages).toEqual([{ role: 'user', content: 'u' }]);
+    expect(await chat(gemini!, req, spy)).toBe('hi');
+    expect(seen!.url).toBe('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions');
+    expect(seen!.headers.authorization).toBe('Bearer g-key');
+  });
+
+  it('keeps prices on product drafts, drops products already in the catalog, saves prices as pending rials', async () => {
+    const text = JSON.stringify({ items: [
+      { slug: 'pepsi-can', nameFa: 'پپسی', category: 'food', prices: [{ year: 1375, priceToman: 150 }, { year: 1375, priceToman: 160 }, { year: 99, priceToman: 5 }] },
+      { slug: 'new-one', nameFa: 'كیك  تازه', category: 'food', prices: [{ year: 1380, priceToman: 300 }] },
+      { slug: 'other', nameFa: 'کیک‌تازه', category: 'food' },
+    ] });
+    const parsed = parseDrafts('products', text, { existing: [{ slug: 'pepsi', nameFa: 'پپسی' }] });
+    expect(parsed?.drafts).toHaveLength(1);
+    expect(parsed?.drafts[0]).toMatchObject({ slug: 'new-one', prices: [{ year: 1380, priceToman: 300 }] });
+
+    const added: unknown[] = [];
+    const products = {
+      details: async () => ({}), update: async () => 'ok' as const,
+      create: async (i: { slug: string }) => ({ id: i.slug }),
+      addPrice: async (i: { year: number; priceRials: bigint; confidence: number }) => (added.push([i.year, i.priceRials, i.confidence]), { id: 'p' }),
+    } as unknown as ProductAdmin;
+    const studio = new AiStudio({ env: {}, products, catalog: async () => [{ slug: 'pepsi', nameFa: 'پپسی' }] });
+    const out = await studio.save({ kind: 'products', drafts: [
+      { slug: 'pepsi-2', nameFa: 'پپسی', category: 'food', unitFa: null, storyFa: '', ageTrack: 'adult', prices: [] },
+      { slug: 'kook', nameFa: 'کوک', category: 'food', unitFa: null, storyFa: '', ageTrack: 'adult', prices: [{ year: 1375, priceToman: 150 }, { year: 1375, priceToman: 1 }] },
+    ] });
+    expect(out.map((o) => o.ok)).toEqual([false, true]);
+    expect(added).toEqual([[1375, 1500n, 1]]);
+  });
+
+  it('offers ParsPack and accepts model names with a space', async () => {
+    const [pp] = resolveProviders({ AI_PARSPACK_API_KEY: 'k' });
+    expect(pp).toMatchObject({ id: 'parspack', baseUrl: 'https://ai.parspack.com/v1', defaultModel: 'Grok 4' });
+    let body = '';
+    const spy: FetchLike = async (_u, init) => ((body = init.body), { ok: true, status: 200, json: async () => ({ choices: [{ message: { content: 'x' } }] }) });
+    expect(await chat(pp!, { system: 's', user: 'u', model: 'Grok 4', maxTokens: 5 }, spy)).toBe('x');
+    expect(JSON.parse(body).model).toBe('Grok 4');
+    await expect(chat(pp!, { system: 's', user: 'u', model: ' bad', maxTokens: 5 }, spy)).rejects.toMatchObject({ code: 'ai_invalid_model' });
   });
 });
