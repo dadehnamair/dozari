@@ -42,6 +42,8 @@ import type { DailyService } from '../daily/service.js';
 import { THEME_KINDS } from '../daily/store.js';
 import type { BotPlayerService } from '../botplayers/service.js';
 import { registerInviteAdminRoutes } from '../invite/routes.js';
+import { registerAiAdminRoutes } from '../ai/routes.js';
+import type { AiStudio } from '../ai/studio.js';
 import type { InviteStore } from '../invite/store.js';
 
 export interface AdminModules {
@@ -61,6 +63,8 @@ export interface AdminModules {
   landing?: LandingService;
   /** User reports and the suggestion queue. */
   feedback?: FeedbackService;
+  /** AI content studio: generates product, kid-lesson, puzzle-title and blog drafts through a chat provider. */
+  ai?: AiStudio;
   /** Self-hosted short links (the short domain). */
   shortLinks?: { service: ShortLinkService; base: () => Promise<string> };
   /** Lucky-wheel prize table (kind, amount, odds, visibility). */
@@ -163,8 +167,10 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     settingGroups: SETTING_GROUPS,
     icons: ITEMS,
     iconGroups: ITEM_GROUPS,
-    modules: { puzzles: !!m.puzzles, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, keepsakes: !!m.keepsakes, wheel: !!m.wheel, shortLinks: !!m.shortLinks, feedback: !!m.feedback, landing: !!m.landing, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, lessons: !!m.lessons, ageTracks: !!m.ageTracks, economy: !!m.economy, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages },
+    modules: { puzzles: !!m.puzzles, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, keepsakes: !!m.keepsakes, wheel: !!m.wheel, shortLinks: !!m.shortLinks, feedback: !!m.feedback, landing: !!m.landing, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, lessons: !!m.lessons, ai: !!m.ai, ageTracks: !!m.ageTracks, economy: !!m.economy, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages },
   }));
+
+  if (m.ai) registerAiAdminRoutes(g, m.ai, audit);
 
   if (m.stats) {
     const stats = m.stats;

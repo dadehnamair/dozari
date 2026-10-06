@@ -2,6 +2,7 @@ import { createDb } from '../client.js';
 import { products } from '../schema.js';
 import { loadSeedKeepsakes, readSeedKeepsakes } from './keepsakes.js';
 import { loadSeed, readSeedProducts, readSeedPuzzles } from './load.js';
+import { loadSeedLanding, readSeedLanding } from './landing.js';
 import { generateSamplePuzzles, loadSeedPuzzles, removeSampleData } from './puzzles.js';
 
 /**
@@ -13,6 +14,7 @@ import { generateSamplePuzzles, loadSeedPuzzles, removeSampleData } from './puzz
  * `... seed --remove-sample`                 delete everything `sample-*` and the puzzles made from it (run before launch)
  */
 const seed = readSeedProducts();
+const landingSeed = readSeedLanding();
 const puzzleSeed = readSeedPuzzles(seed);
 const keepsakeSeed = readSeedKeepsakes();
 if (process.argv.includes('--check')) {
@@ -27,11 +29,17 @@ if (process.argv.includes('--check')) {
   process.exit(0);
 } else {
   const db = createDb();
+  if (process.argv.includes('--landing-only')) {
+    console.log('landing content added:', await loadSeedLanding(db, landingSeed));
+    process.exit(0);
+  }
   if (process.argv.includes('--if-empty') && (await db.select({ id: products.id }).from(products).limit(1)).length > 0) {
-    console.log('catalogue already has products: skipping seed');
+    console.log('catalogue already has products: skipping product seed');
+    console.log('landing content added:', await loadSeedLanding(db, landingSeed));
     process.exit(0);
   }
   await loadSeed(db, seed);
+  console.log('landing content added:', await loadSeedLanding(db, landingSeed));
   console.log(`seeded ${seed.length} products`);
   const ks = await loadSeedKeepsakes(db, keepsakeSeed);
   console.log(`keepsakes: ${ks.keepsakes} added, ${ks.sets} set(s) added`);
