@@ -103,7 +103,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
   }, [tip]);
   const [profileOpen, setProfileOpen] = useState(false);
   /** Opens the profile straight on the friends list (from a friend-request notice). */
-  const [profileStart, setProfileStart] = useState<'friends' | null>(null);
+  const [profileStart, setProfileStart] = useState<'friends' | 'edit' | null>(null);
   /** A friend request is waiting: who sent the latest one (when pushed live) and how many wait in all. */
   const [friendNotice, setFriendNotice] = useState<{ from?: string; count: number } | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -118,7 +118,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
     if (!nudge) return;
     if (nudge.action === 'claim') {
       void claimProfileTask(nudge.task.key).then((r) => (setNudgeToast(fa.home.profileNudge.got(fmt(r.coins))), loadTasks()), () => loadTasks());
-    } else if (nudge.action === 'profile') setProfileOpen(true);
+    } else if (nudge.action === 'profile') { setProfileStart('edit'); setProfileOpen(true); }
     else if (nudge.action === 'settings') setSettingsOpen(true);
     else setBaleOpen(true);
   };
@@ -286,7 +286,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
           onChanged={loadTasks}
           onGo={(go) => {
             if (go === 'play') return (setMissionsOpen(false), onSolo());
-            if (go === 'profile') return setProfileOpen(true);
+            if (go === 'profile') return (setProfileStart('edit'), setProfileOpen(true));
             if (go === 'settings') return setSettingsOpen(true);
             if (go === 'bale') return setBaleOpen(true);
             return setInviteOpen(true);

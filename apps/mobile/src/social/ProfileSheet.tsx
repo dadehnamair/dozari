@@ -30,6 +30,7 @@ import { CityPicker } from './CityPicker';
 import { FriendsPage } from './FriendsPage';
 import { BadgesSheet } from '../badges/BadgesSheet';
 import { LevelRoadPage } from '../levels/LevelRoadPage';
+import { DARK, useDark } from '../theme/skin';
 import { pageTop } from '../theme/safeArea';
 import { useHardwareBack } from '../nav/useHardwareBack';
 import { TEXT_LEFT, TEXT_RIGHT } from '../theme/direction';
@@ -43,8 +44,9 @@ const n = (v: number) => toPersianDigits(String(v));
  * rank, the level bar, four stat tiles, earned badges, then shortcuts (friends, find, gifts, invite, badges). The
  * pencil opens the editor (nickname, gender, city, e-mail); settings live on their own page.
  */
-export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () => void; onGender: (g: Gender | null) => void; /** Opens straight on a sub page (e.g. the friends list from a friend-request notice). */ start?: 'friends' | null }) {
+export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () => void; onGender: (g: Gender | null) => void; /** Opens straight on a sub page (e.g. the friends list from a friend-request notice); `edit` opens the editor (gender, city, ...) for a mission. */ start?: 'friends' | 'edit' | null }) {
   useHardwareBack(onClose);
+  const dark = useDark();
   const [me, setMe] = useState<MyProfile | null>(null);
   const [friends, setFriends] = useState<Friends | null>(null);
   const [badges, setBadges] = useState<MyBadges | null>(null);
@@ -60,8 +62,8 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
     fetchWorn().then((r) => setWorn(r.worn), () => undefined);
   }, []);
   const [failed, setFailed] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const [sub, setSub] = useState<'invite' | 'loans' | 'find' | 'badges' | 'friends' | 'city' | 'levels' | 'recent' | null>(start);
+  const [editing, setEditing] = useState(start === 'edit');
+  const [sub, setSub] = useState<'invite' | 'loans' | 'find' | 'badges' | 'friends' | 'city' | 'levels' | 'recent' | null>(start === 'friends' ? 'friends' : null);
   // On a short phone the header and the tiles tighten, and the page scrolls for whatever still does not fit.
   const compact = useWindowDimensions().height < 720;
   const heroH = compact ? 118 : 140;
@@ -123,7 +125,7 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
   const moreBadges = badges ? Math.max(0, badges.earned.length - shownBadges.length) : 0;
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, dark ? dk.root : null]}>
       <View style={styles.bar}>
         <Pressable accessibilityRole="button" accessibilityLabel={fa.profile.close} onPress={onClose}>
           {({ pressed }) => (
@@ -161,20 +163,20 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
           ) : null}
         </View>
 
-        {failed ? <Text style={styles.hint}>{fa.profile.error}</Text> : null}
+        {failed ? <Text style={[styles.hint, dark ? dk.sub : null]}>{fa.profile.error}</Text> : null}
         {me && lv ? (
           <>
             {party ? <PartyBanner own /> : null}
             <View style={styles.nameBlock}>
-              <Text style={[styles.name, compact ? styles.nameCompact : null]} numberOfLines={1}>{me.nickname}</Text>
+              <Text style={[styles.name, compact ? styles.nameCompact : null, dark ? dk.text : null]} numberOfLines={1}>{me.nickname}</Text>
               <View style={styles.cityRow}>
-                {badges ? <Text style={styles.rank}>{skillText(badges.skill)}</Text> : null}
-                {age !== null ? <Text style={styles.rank}>{badges ? '· ' : ''}{fa.player.age(age)}</Text> : null}
+                {badges ? <Text style={[styles.rank, dark ? dk.sub : null]}>{skillText(badges.skill)}</Text> : null}
+                {age !== null ? <Text style={[styles.rank, dark ? dk.sub : null]}>{badges ? '· ' : ''}{fa.player.age(age)}</Text> : null}
                 {me.city ? (
                   <Pressable onPress={() => setSub('city')} accessibilityRole="button" style={styles.cityRow}>
-                    {badges ? <Text style={styles.rank}>·</Text> : null}
+                    {badges ? <Text style={[styles.rank, dark ? dk.sub : null]}>·</Text> : null}
                     {province ? <ProvinceBadge province={province} size={22} /> : null}
-                    <Text style={styles.rank}>{me.city.nameFa}</Text>
+                    <Text style={[styles.rank, dark ? dk.sub : null]}>{me.city.nameFa}</Text>
                   </Pressable>
                 ) : null}
               </View>
@@ -182,10 +184,10 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
 
             <View style={styles.levelBlock}>
               <View style={styles.levelHead}>
-                <Text style={styles.levelText}>{fa.profile.level} {n(lv.level)}</Text>
-                <Text style={styles.levelXp}>{lv.xpForNext === 0 ? `${n(lv.xp)} ${fa.profile.xp}` : `${n(lv.xpInLevel)} / ${n(lv.xpForNext)}`}</Text>
+                <Text style={[styles.levelText, dark ? dk.text : null]}>{fa.profile.level} {n(lv.level)}</Text>
+                <Text style={[styles.levelXp, dark ? dk.sub : null]}>{lv.xpForNext === 0 ? `${n(lv.xp)} ${fa.profile.xp}` : `${n(lv.xpInLevel)} / ${n(lv.xpForNext)}`}</Text>
               </View>
-              <View style={styles.track}><View style={[styles.fill, { width: `${pct}%` }]} /></View>
+              <View style={[styles.track, dark ? dk.track : null]}><View style={[styles.fill, { width: `${pct}%` }]} /></View>
             </View>
 
             <View style={styles.stats}>
@@ -206,29 +208,29 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
                   {moreBadges > 0 ? <View style={[styles.tag, { backgroundColor: colors.ink }]}><Text style={styles.tagText}>{`+${n(moreBadges)}`}</Text></View> : null}
                 </>
               ) : (
-                <Text style={styles.hint}>{fa.profile.noBadges}</Text>
+                <Text style={[styles.hint, dark ? dk.sub : null]}>{fa.profile.noBadges}</Text>
               )}
             </Pressable>
 
             <View style={styles.grid}>
-              {tiles.map((x) => <HubTile onLight key={x.key} icon={x.icon} label={x.label} color={x.color} badge={x.badge} onPress={x.onPress} />)}
+              {tiles.map((x) => <HubTile onLight={!dark} key={x.key} icon={x.icon} label={x.label} color={x.color} badge={x.badge} onPress={x.onPress} />)}
             </View>
           </>
         ) : null}
       </ScrollView>
 
-      {sub === 'recent' ? <RecentGamesSheet games={games} onClose={() => setSub(null)} /> : null}
+      {sub === 'recent' ? <RecentGamesSheet dark={dark} games={games} onClose={() => setSub(null)} /> : null}
       {editing && me ? (
         <Pressable style={styles.overlay} onPress={() => setEditing(false)} accessibilityLabel={fa.profile.close}>
-          <Pressable style={styles.editor} onPress={() => undefined}>
+          <Pressable style={[styles.editor, dark ? dk.editor : null]} onPress={() => undefined}>
             <ScrollView contentContainerStyle={styles.editorContent} showsVerticalScrollIndicator={false}>
-              <Text style={styles.sectionTitle}>{fa.profile.edit}</Text>
-              <Text style={styles.sectionTitle}>{fa.profile.gender}</Text>
-              <Text style={styles.hint}>{fa.profile.genderHint}</Text>
+              <Text style={[styles.sectionTitle, dark ? dk.text : null]}>{fa.profile.edit}</Text>
+              <Text style={[styles.sectionTitle, dark ? dk.text : null]}>{fa.profile.gender}</Text>
+              <Text style={[styles.hint, dark ? dk.sub : null]}>{fa.profile.genderHint}</Text>
               <View style={styles.pills}>
                 {options.map(([g, label]) => (
-                  <Pressable key={label} onPress={() => pick(g)} style={[styles.pill, me.gender === g && styles.pillOn]} accessibilityRole="button">
-                    <Text style={styles.pillText}>{label}</Text>
+                  <Pressable key={label} onPress={() => pick(g)} style={[styles.pill, dark ? dk.pill : null, me.gender === g && styles.pillOn]} accessibilityRole="button">
+                    <Text style={[styles.pillText, dark && me.gender !== g ? dk.text : null]}>{label}</Text>
                   </Pressable>
                 ))}
               </View>
@@ -243,20 +245,20 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
 }
 
 /** The last games, opened from the «بازی‌ها» tile (they used to stretch the profile page). */
-function RecentGamesSheet({ games, onClose }: { games: RecentGames['games']; onClose: () => void }) {
+function RecentGamesSheet({ games, onClose, dark }: { games: RecentGames['games']; onClose: () => void; dark: boolean }) {
   useHardwareBack(onClose);
   return (
     <Pressable style={styles.overlay} onPress={onClose} accessibilityLabel={fa.profile.close}>
-      <Pressable style={styles.editor} onPress={() => undefined}>
+      <Pressable style={[styles.editor, dark ? dk.editor : null]} onPress={() => undefined}>
         <ScrollView contentContainerStyle={styles.editorContent} showsVerticalScrollIndicator={false}>
-          <Text style={styles.sectionTitle}>{fa.profile.recentGames}</Text>
-          {games.length === 0 ? <Text style={styles.hint}>{fa.profile.noGames}</Text> : null}
+          <Text style={[styles.sectionTitle, dark ? dk.text : null]}>{fa.profile.recentGames}</Text>
+          {games.length === 0 ? <Text style={[styles.hint, dark ? dk.sub : null]}>{fa.profile.noGames}</Text> : null}
           {games.map((g, i) => (
             <View key={`${g.at}-${i}`} style={styles.gameRow}>
               <View style={[styles.gameDot, { backgroundColor: g.outcome === 'win' ? '#7ED957' : g.outcome === 'loss' ? '#FF8FB6' : '#FFE48A' }]} />
-              <Text style={styles.gameText}>{`${g.mode ? fa.profile.gameMode[g.mode] : fa.profile.gameMode.solo} · ${g.outcome ? fa.profile.gameOutcome[g.outcome] : ''}`}</Text>
+              <Text style={[styles.gameText, dark ? dk.text : null]}>{`${g.mode ? fa.profile.gameMode[g.mode] : fa.profile.gameMode.solo} · ${g.outcome ? fa.profile.gameOutcome[g.outcome] : ''}`}</Text>
               <Text style={styles.gameXp}>{`+${n(g.xp)} ${fa.leaderboard.xp}`}</Text>
-              <Text style={styles.gameAgo}>{agoText(g.at, Date.now())}</Text>
+              <Text style={[styles.gameAgo, dark ? dk.text : null]}>{agoText(g.at, Date.now())}</Text>
             </View>
           ))}
           <CandyButton label={fa.profile.close} sfx="back" color={colors.candy.sky} onPress={onClose} />
@@ -267,6 +269,16 @@ function RecentGamesSheet({ games, onClose }: { games: RecentGames['games']; onC
 }
 
 const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0, height: h }, shadowOpacity: 1, shadowRadius: 0, elevation: h });
+
+/** Overrides for the adult look: dark panels, cream-gold text. */
+const dk = StyleSheet.create({
+  root: { backgroundColor: DARK.panel },
+  text: { color: DARK.text },
+  sub: { color: DARK.sub, opacity: 1 },
+  track: { backgroundColor: DARK.field, borderColor: DARK.frame },
+  editor: { backgroundColor: DARK.panel, borderColor: DARK.frame },
+  pill: { backgroundColor: DARK.raised, borderColor: DARK.frame },
+});
 
 const styles = StyleSheet.create({
   gameRow: { alignSelf: 'stretch', flexDirection: ROW, alignItems: 'center', gap: 8, paddingVertical: 4 },

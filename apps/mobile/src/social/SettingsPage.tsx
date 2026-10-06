@@ -15,6 +15,7 @@ import { usePwa } from '../pwa/usePwa';
 import { playSfx } from '../sound/engine';
 import { colors, fonts } from '../theme/colors';
 import { PhoneLoginSheet } from '../phone/PhoneLoginSheet';
+import { DARK, useDark } from '../theme/skin';
 import { BaleSheet } from '../bale/BaleSheet';
 import { ChildCodeSheet } from '../agetrack/ChildCodeSheet';
 import { ChildrenSheet } from '../agetrack/ChildrenSheet';
@@ -45,6 +46,7 @@ interface Row {
  */
 export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone, ageTracksOn = false, baleOn = false, onPreview }: { onClose: () => void; /** A guardian opens a read-only preview of the kid or teen space. */ onPreview?: (track: 'kid' | 'teen') => void; onProfile: () => void; onTutorial?: () => void; onAccountGone?: () => void; /** The server's age-track switch: shows the guardian rows. */ ageTracksOn?: boolean; /** The Bale bot is set up: shows the «connect to Bale» row. */ baleOn?: boolean }) {
   useHardwareBack(onClose);
+  const dark = useDark();
   const prefs = usePrefs();
   const pwa = usePwa();
   const [iosHelp, setIosHelp] = useState(false);
@@ -105,7 +107,7 @@ export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone, ag
   ];
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, dark ? dk.root : null]}>
       <View style={styles.scene} pointerEvents="none"><Scene scene="hojre" /></View>
       <View style={styles.page}>
         <View style={[styles.column, compact ? styles.columnTight : null]}>
@@ -126,21 +128,21 @@ export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone, ag
           </View>
 
           {groups.map((g) => (
-            <View key={g.title} style={styles.group}>
+            <View key={g.title} style={[styles.group, dark ? dk.group : null]}>
               <View style={[styles.groupHead, { backgroundColor: g.tint }]}><Text style={styles.groupTitle}>{g.title}</Text></View>
               {g.rows.map((r) => (
-                <Pressable key={r.key} onPress={r.onPress} accessibilityRole={r.toggle === undefined ? 'button' : 'switch'} accessibilityState={r.toggle === undefined ? undefined : { checked: r.toggle }} style={[styles.row, compact ? styles.rowTight : null]}>
+                <Pressable key={r.key} onPress={r.onPress} accessibilityRole={r.toggle === undefined ? 'button' : 'switch'} accessibilityState={r.toggle === undefined ? undefined : { checked: r.toggle }} style={[styles.row, dark ? dk.row : null, compact ? styles.rowTight : null]}>
                   <View style={[styles.tile, { backgroundColor: r.tint }]}><View style={styles.tileIcon}><Item icon={r.icon} /></View></View>
-                  <Text style={[styles.rowText, r.tone ? { color: r.tone } : null]}>{r.label}</Text>
+                  <Text style={[styles.rowText, dark ? dk.text : null, r.tone ? { color: dark ? '#F08A80' : r.tone } : null]}>{r.label}</Text>
                   {r.toggle !== undefined ? (
-                    <View style={[styles.track, { backgroundColor: r.toggle ? '#7ED957' : '#D9C7A6' }]}>
+                    <View style={[styles.track, dark ? dk.track : null, { backgroundColor: r.toggle ? (dark ? '#E8B64A' : '#7ED957') : (dark ? '#0E0A08' : '#D9C7A6') }]}>
                       <View style={[styles.knob, r.toggle ? styles.knobOn : null]} />
                     </View>
                   ) : null}
                 </Pressable>
               ))}
-              {g.title === t.groups.account && aboutOpen ? <Text style={styles.about}>{fa.account.aboutText}</Text> : null}
-              {g.title === t.groups.account && note ? <Text style={styles.about}>{note}</Text> : null}
+              {g.title === t.groups.account && aboutOpen ? <Text style={[styles.about, dark ? dk.text : null]}>{fa.account.aboutText}</Text> : null}
+              {g.title === t.groups.account && note ? <Text style={[styles.about, dark ? dk.text : null]}>{note}</Text> : null}
             </View>
           ))}
         </View>
@@ -166,6 +168,15 @@ export function SettingsPage({ onClose, onProfile, onTutorial, onAccountGone, ag
 }
 
 const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0, height: h }, shadowOpacity: 1, shadowRadius: 0, elevation: h });
+
+/** Overrides for the adult look: dark panels with gold frames and cream-gold text. */
+const dk = StyleSheet.create({
+  root: { backgroundColor: DARK.field },
+  group: { backgroundColor: DARK.panel, borderColor: DARK.frame },
+  row: { borderColor: DARK.line },
+  text: { color: DARK.text, opacity: 1 },
+  track: { borderColor: DARK.frame },
+});
 
 const styles = StyleSheet.create({
   root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20, backgroundColor: '#D99A52' },

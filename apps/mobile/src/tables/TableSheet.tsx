@@ -5,6 +5,7 @@ import { DEFAULT_TABLE_ICON, TABLE_ICONS, normalizeTableCode } from '@dozari/sha
 import { Avatar } from '../components/Avatar';
 import { CandyButton } from '../components/CandyButton';
 import { playSfx } from '../sound/engine';
+import { DARK, useDark } from '../theme/skin';
 import { Item } from '../components/Item';
 import { GuideBubble } from '../components/GuideBubble';
 import { useConfirm } from '../components/useConfirm';
@@ -22,10 +23,19 @@ import { TableChat } from './TableChat';
 import { TEXT_RIGHT } from '../theme/direction';
 
 const INK = '#3A2418';
+
+/** Overrides for the adult look: a dark panel with a gold frame and cream-gold text. */
+const dk = StyleSheet.create({
+  sheet: { backgroundColor: DARK.panel, borderColor: DARK.frame },
+  text: { color: DARK.text, opacity: 1 },
+  input: { backgroundColor: DARK.field, borderColor: DARK.frame, color: DARK.text },
+  cell: { backgroundColor: DARK.raised },
+});
 const errText = (e: unknown) => fa.tables.errors[e instanceof ApiError ? e.code : 'generic'] ?? fa.tables.errors.generic ?? '';
 
 /** «میز اختصاصی»: create a table or enter one by its code, then wait for the guest and start a duel. `initialCode` opens a shared table. */
 export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose: () => void; initialCode?: string; /** The table's match started: open the duel board. */ onMatch?: () => void; onShare?: (table: TableView) => Promise<void> }) {
+  const dark = useDark();
   useHardwareBack(onClose);
   const { ask, dialog } = useConfirm();
   const { gate, intercept } = useGuardianGate();
@@ -80,24 +90,24 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
 
   return (
     <Pressable style={styles.overlay} onPress={onClose} accessibilityLabel={fa.tables.close}>
-      <Pressable style={styles.sheet} onPress={() => undefined}>
+      <Pressable style={[styles.sheet, dark ? dk.sheet : null]} onPress={() => undefined}>
         {table ? (
           <View style={styles.titleRow}>
             <View style={styles.titleIcon}><Item icon={table.icon} /></View>
-            <Text style={styles.title}>{table.name}</Text>
+            <Text style={[styles.title, dark ? dk.text : null]}>{table.name}</Text>
           </View>
-        ) : <Text style={styles.title}>{mode === 'make' ? fa.tables.createTitle : mode === 'join' ? fa.tables.joinTitle : fa.tables.title}</Text>}
+        ) : <Text style={[styles.title, dark ? dk.text : null]}>{mode === 'make' ? fa.tables.createTitle : mode === 'join' ? fa.tables.joinTitle : fa.tables.title}</Text>}
         <ScrollView style={styles.list} contentContainerStyle={styles.content}>
           <GuideBubble who="goli" text={fa.tables.goliHello} />
           {table ? (
             <>
-              <Text style={styles.code} selectable>{fa.tables.code(table.code)}</Text>
-              <Text style={styles.hint}>{table.inMatch ? fa.tables.inMatch : table.players.length < table.seats ? fa.tables.waiting : fa.tables.seats(table.players.length, table.seats)}</Text>
+              <Text style={[styles.code, dark ? dk.text : null]} selectable>{fa.tables.code(table.code)}</Text>
+              <Text style={[styles.hint, dark ? dk.text : null]}>{table.inMatch ? fa.tables.inMatch : table.players.length < table.seats ? fa.tables.waiting : fa.tables.seats(table.players.length, table.seats)}</Text>
               {table.players.map((p) => (
                 <View key={p.id} style={styles.row}>
                   <Avatar avatar={avatarOf(p.avatarKey)} size={32} />
-                  <Text style={styles.name}>{p.nickname}</Text>
-                  <Text style={styles.hint}>{table.format === '2v2' ? `${fa.tables.team(p.side + 1)} ` : ''}{p.isHost ? fa.tables.host : p.ready ? fa.tables.ready : ''}</Text>
+                  <Text style={[styles.name, dark ? dk.text : null]}>{p.nickname}</Text>
+                  <Text style={[styles.hint, dark ? dk.text : null]}>{table.format === '2v2' ? `${fa.tables.team(p.side + 1)} ` : ''}{p.isHost ? fa.tables.host : p.ready ? fa.tables.ready : ''}</Text>
                   {table.format === '2v2' && p.isYou && !table.inMatch ? (
                     <Pressable onPress={() => void run(() => setTableSide(p.side === 0 ? 1 : 0))} style={styles.pill} accessibilityRole="button"><Text style={styles.pillText}>{fa.tables.switchTeam}</Text></Pressable>
                   ) : null}
@@ -108,7 +118,7 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
               ))}
               {table.youAreHost && !table.inMatch && table.players.length < table.seats ? <InviteFriends onNote={setNote} /> : null}
               <TableChat code={table.code} meId={table.players.find((p) => p.isYou)?.id ?? null} />
-              <Text style={styles.hint}>{fa.tables.friendly}</Text>
+              <Text style={[styles.hint, dark ? dk.text : null]}>{fa.tables.friendly}</Text>
               {note ? <Text style={styles.warn}>{note}</Text> : null}
               {table.youAreHost ? (
                 <>
@@ -127,7 +137,7 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
           ) : (
             mode === 'menu' ? (
               <>
-                <Text style={styles.hint}>{fa.tables.intro}</Text>
+                <Text style={[styles.hint, dark ? dk.text : null]}>{fa.tables.intro}</Text>
                 <Pressable onPress={() => setMode('join')} style={[styles.choice, { backgroundColor: colors.candy.sky }]} accessibilityRole="button">
                   <View style={styles.choiceIcon}><Item icon="key" /></View>
                   <View style={styles.grow}>
@@ -145,16 +155,16 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
               </>
             ) : mode === 'make' ? (
               <>
-                <TextInput value={name} onChangeText={setName} maxLength={30} placeholder={fa.tables.namePlaceholder} style={styles.input} />
-                <Text style={styles.label}>{fa.tables.iconTitle}</Text>
+                <TextInput value={name} onChangeText={setName} maxLength={30} placeholder={fa.tables.namePlaceholder} style={[styles.input, dark ? dk.input : null]} />
+                <Text style={[styles.label, dark ? dk.text : null]}>{fa.tables.iconTitle}</Text>
                 <View style={styles.icons}>
                   {TABLE_ICONS.map((k) => (
-                    <Pressable key={k} onPress={() => setIcon(k)} accessibilityRole="button" accessibilityState={{ selected: icon === k }} style={[styles.iconCell, icon === k ? styles.iconOn : null]}>
+                    <Pressable key={k} onPress={() => setIcon(k)} accessibilityRole="button" accessibilityState={{ selected: icon === k }} style={[styles.iconCell, dark ? dk.cell : null, icon === k ? styles.iconOn : null]}>
                       <Item icon={k} />
                     </Pressable>
                   ))}
                 </View>
-                <Text style={styles.label}>{fa.tables.formatTitle}</Text>
+                <Text style={[styles.label, dark ? dk.text : null]}>{fa.tables.formatTitle}</Text>
                 <View style={styles.row}>
                   {(['1v1', '2v2'] as const).map((f) => (
                     <Pressable key={f} onPress={() => setFormat(f)} accessibilityRole="button" accessibilityState={{ selected: format === f }} style={[styles.pill, format === f ? { backgroundColor: colors.candy.lime } : null]}>
@@ -163,11 +173,11 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
                   ))}
                 </View>
                 <Pressable onPress={() => setRequireReady(!requireReady)} accessibilityRole="checkbox" accessibilityState={{ checked: requireReady }}>
-                  <Text style={styles.hint}>{requireReady ? '☑' : '☐'} {fa.tables.requireReady}</Text>
+                  <Text style={[styles.hint, dark ? dk.text : null]}>{requireReady ? '☑' : '☐'} {fa.tables.requireReady}</Text>
                 </Pressable>
                 {hasFamily ? (
                   <Pressable onPress={() => setFamily(!family)} accessibilityRole="checkbox" accessibilityState={{ checked: family }}>
-                    <Text style={styles.hint}>{family ? '☑' : '☐'} {fa.tables.family}</Text>
+                    <Text style={[styles.hint, dark ? dk.text : null]}>{family ? '☑' : '☐'} {fa.tables.family}</Text>
                   </Pressable>
                 ) : null}
                 {note ? <Text style={styles.warn}>{note}</Text> : null}
@@ -177,7 +187,7 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
             ) : (
               <>
                 <View style={styles.row}>
-                  <TextInput value={code} onChangeText={setCode} autoCapitalize="characters" autoCorrect={false} maxLength={10} placeholder={fa.tables.codePlaceholder} style={[styles.input, styles.grow]} />
+                  <TextInput value={code} onChangeText={setCode} autoCapitalize="characters" autoCorrect={false} maxLength={10} placeholder={fa.tables.codePlaceholder} style={[styles.input, styles.grow, dark ? dk.input : null]} />
                   <Pressable onPress={() => enter(code)} style={styles.pill} accessibilityRole="button"><Text style={styles.pillText}>{fa.tables.join}</Text></Pressable>
                 </View>
                 {note ? <Text style={styles.warn}>{note}</Text> : null}
@@ -196,6 +206,7 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
 
 /** Host-only: the friends list with online dots and an invite button each (a join card in their private chat; offline friends get a Bale nudge). */
 function InviteFriends({ onNote }: { onNote: (text: string | null) => void }) {
+  const dark = useDark();
   const [friends, setFriends] = useState<{ id: string; nickname: string; avatarKey: string; online: boolean }[] | null>(null);
   const [sent, setSent] = useState<Set<string>>(new Set());
   useEffect(() => {
@@ -208,15 +219,15 @@ function InviteFriends({ onNote }: { onNote: (text: string | null) => void }) {
     );
   return (
     <View style={styles.invites}>
-      <Text style={styles.label}>{fa.tables.inviteTitle}</Text>
-      {friends && friends.length === 0 ? <Text style={styles.hint}>{fa.tables.inviteNoFriends}</Text> : null}
+      <Text style={[styles.label, dark ? dk.text : null]}>{fa.tables.inviteTitle}</Text>
+      {friends && friends.length === 0 ? <Text style={[styles.hint, dark ? dk.text : null]}>{fa.tables.inviteNoFriends}</Text> : null}
       {friends?.map((f) => (
         <View key={f.id} style={styles.row}>
           <View>
             <Avatar avatar={avatarOf(f.avatarKey)} size={32} />
             <View style={styles.dotPos}><OnlineDot online={f.online} size={12} /></View>
           </View>
-          <Text style={styles.name} numberOfLines={1}>{f.nickname}</Text>
+          <Text style={[styles.name, dark ? dk.text : null]} numberOfLines={1}>{f.nickname}</Text>
           <Pressable onPress={() => void invite(f.id)} disabled={sent.has(f.id)} style={[styles.pill, sent.has(f.id) ? styles.pillDone : null]} accessibilityRole="button">
             <Text style={styles.pillText}>{sent.has(f.id) ? '✓' : fa.tables.invite}</Text>
           </Pressable>
