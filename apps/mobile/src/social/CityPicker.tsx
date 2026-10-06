@@ -55,7 +55,7 @@ export function CityPicker({ current, onPicked, onClose }: { current: City | nul
                         <View style={[styles.card, on ? styles.cardOn : null, pressed || on ? styles.cardDown : null]}>
                           {p ? <ProvinceBadge province={p} size={64} sunLeft={i % 2 === 1} /> : <View style={styles.blank}><Text style={styles.blankMark}>؟</Text></View>}
                           <Text style={styles.name} numberOfLines={1}>{c.nameFa}</Text>
-                          {p ? <Text style={styles.gift} numberOfLines={1}>{t.souvenir(p.giftFa)}</Text> : null}
+                          {p ? <Text style={styles.gift} numberOfLines={1}>{t.souvenir(c.souvenirFa ?? p.giftFa)}</Text> : null}
                         </View>
                       )}
                     </Pressable>

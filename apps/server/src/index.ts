@@ -986,6 +986,18 @@ if (isMainModule(import.meta.url)) {
   const port = Number(process.env.PORT ?? 3000);
   process.on('unhandledRejection', (err) => (app.log.error({ err }, 'unhandled rejection'), reportError(err, 'unhandledRejection')));
   process.on('uncaughtException', (err) => (app.log.error({ err }, 'uncaught exception'), reportError(err, 'uncaughtException')));
+  // Deploys send SIGTERM: stop accepting work and run every onClose hook (timers, sockets) instead of dying mid-request.
+  let closing = false;
+  const shutdown = (signal: string) => {
+    if (closing) return;
+    closing = true;
+    app.log.info(`${signal} received, shutting down`);
+    const force = setTimeout(() => process.exit(1), 10_000);
+    force.unref();
+    app.close().then(() => process.exit(0), (err) => (app.log.error({ err }, 'shutdown failed'), process.exit(1)));
+  };
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
   app.listen({ port, host: '0.0.0.0' }).catch((err) => {
     app.log.error(err);
     process.exit(1);

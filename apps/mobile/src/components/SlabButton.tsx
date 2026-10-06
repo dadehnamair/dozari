@@ -2,6 +2,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, fonts, toneOf } from '../theme/colors';
 import { GradientFill } from './GradientFill';
 import { Icon } from './Icon';
+import { toneIn } from '../theme/appTheme';
+import { useTheme } from '../theme/themeStore';
 import type { IconName } from '../theme/icons';
 import { playSfx } from '../sound/engine';
 import type { Sfx } from '../sound/engine';
@@ -15,7 +17,8 @@ const OFF = { light: '#B8AFC4', base: '#8E83A0', dark: '#6B5F80' };
  * action row of screen-match (58px, Lalezar 20). Fills its row share (`grow`; 0 = natural size, e.g. full width in a column), optional pink corner badge.
  */
 export function SlabButton({ label, color, badge, onPress, height = 68, fontSize = 28, grow = 1, disabled = false, icon, sfx = 'press', stacked = false }: { label: string; color: string; badge?: string; onPress: () => void; height?: number; fontSize?: number; grow?: number; disabled?: boolean; /** Line icon shown before the label. */ icon?: IconName; /** Click sound: `press`, `back` or `confirm`. */ sfx?: Sfx; /** Icon above the label (three buttons in a row): taller face, smaller type. */ stacked?: boolean }) {
-  const tone = disabled ? OFF : toneOf(color);
+  const theme = useTheme();
+  const tone = disabled ? { ...OFF, text: '#fff' } : toneIn(theme, color, toneOf(color));
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled }} disabled={disabled} onPress={() => (playSfx(sfx), onPress())} style={[styles.wrap, grow > 0 ? { flex: grow } : null]}>
       {({ pressed }) => (
@@ -25,8 +28,8 @@ export function SlabButton({ label, color, badge, onPress, height = 68, fontSize
             <GradientFill from={tone.light} to={tone.dark} mid={{ at: 0.55, color: tone.base }} />
             <View style={styles.topLight} />
             <View style={[styles.content, stacked ? styles.contentStacked : null]}>
-              {icon ? <Icon name={icon} size={stacked ? 34 : Math.round(fontSize * 1.05)} color="#fff" strokeWidth={2.8} /> : null}
-              <Text style={[styles.label, { fontSize }, disabled ? styles.labelOff : null]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{label}</Text>
+              {icon ? <Icon name={icon} size={stacked ? 34 : Math.round(fontSize * 1.05)} color={tone.text} strokeWidth={2.8} /> : null}
+              <Text style={[styles.label, { fontSize, color: tone.text, textShadowColor: theme === 'adult' ? 'transparent' : colors.ink }, disabled ? styles.labelOff : null]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{label}</Text>
             </View>
           </View>
           {badge ? (

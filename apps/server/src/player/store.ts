@@ -1,4 +1,4 @@
-import { and, asc, cities, desc, eq, gt, gte, inArray, isNull, sql, userStats, users, xpEvents } from '@dozari/db';
+import { and, asc, cities, desc, eq, gt, gte, inArray, isNull, like, sql, userStats, users, xpEvents } from '@dozari/db';
 import type { Db } from '@dozari/db';
 import { DEFAULT_CITIES } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
@@ -17,8 +17,32 @@ export interface CityRow {
   nameFa: string;
   /** Key into shared `PROVINCES`; null = no regional identity. */
   province: string | null;
+  /** Admin-written souvenir and slogan; null = the province's souvenir / no slogan. */
+  souvenirFa: string | null;
+  sloganFa: string | null;
   sortOrder: number;
   isActive: boolean;
+}
+
+/** Per-city numbers for the admin city list. */
+export interface CityStats {
+  players: number;
+  /** Players seen in the last 7 days. */
+  active7d: number;
+  bots: number;
+  /** Sum of the players' XP. */
+  xp: number;
+}
+
+export interface CityPlayerRow {
+  id: string;
+  nickname: string;
+  avatarKey: string;
+  isBanned: boolean;
+  isBot: boolean;
+  xp: number;
+  games: number;
+  lastSeenAt: number;
 }
 
 export interface PrivateRow {
@@ -54,26 +78,35 @@ export interface PlayerStore {
   cities(opts?: { includeHidden?: boolean }): Promise<CityRow[]>;
   city(id: string): Promise<CityRow | null>;
   addCity(slug: string, nameFa: string, province?: string | null): Promise<CityRow | 'duplicate'>;
-  updateCity(id: string, patch: { nameFa?: string; isActive?: boolean; sortOrder?: number; province?: string | null }): Promise<'ok' | 'not_found'>;
+  updateCity(id: string, patch: { nameFa?: string; isActive?: boolean; sortOrder?: number; province?: string | null; souvenirFa?: string | null; sloganFa?: string | null }): Promise<'ok' | 'not_found'>;
+  /** Admin: player / activity / XP totals per city id (cities without players are absent). */
+  cityStats(): Promise<Map<string, CityStats>>;
+  /** Admin: the players of one city, strongest first. */
+  cityPlayers(cityId: string, opts: { q?: string; limit: number; offset: number }): Promise<CityPlayerRow[]>;
 }
 
 export function createDbPlayerStore(db: Db): PlayerStore {
   let seeded = false;
   /**
-   * Adds the default cities an older table lacks (abroad cities came later) and fills a missing province from the
+   * Adds the default cities an older table lacks (abroad cities came later) and fills a missing province / slogan from the
    * defaults; rows the admin renamed, hid, reordered or gave a province keep those changes.
    */
   const ensureCities = async () => {
     if (seeded) return;
-    const have = new Map((await db.select({ slug: cities.slug, province: cities.province }).from(cities)).map((r) => [r.slug, r.province]));
+    const have = new Map((await db.select({ slug: cities.slug, province: cities.province, slogan: cities.sloganFa }).from(cities)).map((r) => [r.slug, r]));
     for (const [i, c] of DEFAULT_CITIES.entries()) {
-      if (!have.has(c.slug)) await db.insert(cities).values({ id: uuidv7(), slug: c.slug, nameFa: c.nameFa, province: c.province, sortOrder: i }).onDuplicateKeyUpdate({ set: { slug: sql`${cities.slug}` } });
-      else if (have.get(c.slug) === null && c.province) await db.update(cities).set({ province: c.province }).where(and(eq(cities.slug, c.slug), isNull(cities.province)));
+      if (!have.has(c.slug)) await db.insert(cities).values({ id: uuidv7(), slug: c.slug, nameFa: c.nameFa, province: c.province, sloganFa: c.sloganFa, sortOrder: i }).onDuplicateKeyUpdate({ set: { slug: sql`${cities.slug}` } });
+      else {
+        const row = have.get(c.slug)!;
+        if (row.province === null && c.province) await db.update(cities).set({ province: c.province }).where(and(eq(cities.slug, c.slug), isNull(cities.province)));
+        // null = never set: take the default once; an admin who clears it stores '' (no slogan), which stays.
+        if (row.slogan === null) await db.update(cities).set({ sloganFa: c.sloganFa }).where(and(eq(cities.slug, c.slug), isNull(cities.sloganFa)));
+      }
     }
     seeded = true;
   };
   const rankWhere = (f: RankFilter) => [f.cityId ? eq(users.cityId, f.cityId) : undefined, f.userIds ? (f.userIds.length > 0 ? inArray(users.id, [...f.userIds]) : sql`1 = 0`) : undefined];
-  const toCity = (r: typeof cities.$inferSelect): CityRow => ({ id: r.id, slug: r.slug, nameFa: r.nameFa, province: r.province, sortOrder: r.sortOrder, isActive: r.isActive });
+  const toCity = (r: typeof cities.$inferSelect): CityRow => ({ id: r.id, slug: r.slug, nameFa: r.nameFa, province: r.province, souvenirFa: r.souvenirFa, sloganFa: r.sloganFa, sortOrder: r.sortOrder, isActive: r.isActive });
   return {
     async stats(userId) {
       const [r] = await db.select().from(userStats).where(eq(userStats.userId, userId));
@@ -172,7 +205,7 @@ export function createDbPlayerStore(db: Db): PlayerStore {
       if (dup) return 'duplicate';
       const [agg] = await db.select({ top: sql<number>`COALESCE(MAX(${cities.sortOrder}), 0)` }).from(cities);
       const top = agg?.top ?? 0;
-      const row = { id: uuidv7(), slug, nameFa, province, sortOrder: Number(top) + 1, isActive: true };
+      const row = { id: uuidv7(), slug, nameFa, province, souvenirFa: null, sloganFa: null, sortOrder: Number(top) + 1, isActive: true };
       await db.insert(cities).values(row);
       return row;
     },
@@ -182,11 +215,40 @@ export function createDbPlayerStore(db: Db): PlayerStore {
       await db.update(cities).set(patch).where(eq(cities.id, id));
       return 'ok';
     },
+    async cityStats() {
+      const since = new Date(Date.now() - 7 * 86_400_000);
+      const rows = await db
+        .select({
+          cityId: users.cityId,
+          players: sql<number>`COUNT(*)`,
+          active: sql<number>`SUM(CASE WHEN ${users.lastSeenAt} >= ${since} THEN 1 ELSE 0 END)`,
+          bots: sql<number>`SUM(CASE WHEN ${users.isBot} THEN 1 ELSE 0 END)`,
+          xp: sql<number>`COALESCE(SUM(${userStats.xp}), 0)`,
+        })
+        .from(users)
+        .leftJoin(userStats, eq(userStats.userId, users.id))
+        .where(sql`${users.cityId} IS NOT NULL`)
+        .groupBy(users.cityId);
+      return new Map(rows.map((r) => [r.cityId as string, { players: Number(r.players), active7d: Number(r.active), bots: Number(r.bots), xp: Number(r.xp) }]));
+    },
+    async cityPlayers(cityId, opts) {
+      const q = opts.q?.trim();
+      const pat = q ? `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%` : undefined;
+      const rows = await db
+        .select({ u: users, xp: userStats.xp, games: userStats.games })
+        .from(users)
+        .leftJoin(userStats, eq(userStats.userId, users.id))
+        .where(and(eq(users.cityId, cityId), pat ? like(users.nickname, pat) : undefined))
+        .orderBy(desc(sql`COALESCE(${userStats.xp}, 0)`), asc(users.id))
+        .limit(opts.limit)
+        .offset(opts.offset);
+      return rows.map(({ u, xp, games }) => ({ id: u.id, nickname: u.nickname, avatarKey: u.avatarKey, isBanned: u.isBanned, isBot: u.isBot, xp: xp ?? 0, games: games ?? 0, lastSeenAt: u.lastSeenAt.getTime() }));
+    },
   };
 }
 
 /** Memory store for tests; `seedCities` mirrors the default list when omitted. */
-export function createMemoryPlayerStore(seedCities: readonly { slug: string; nameFa: string; province?: string | null }[] = DEFAULT_CITIES, now: () => number = Date.now): PlayerStore & { nicknames: Map<string, string> } {
+export function createMemoryPlayerStore(seedCities: readonly { slug: string; nameFa: string; province?: string | null; sloganFa?: string }[] = DEFAULT_CITIES, now: () => number = Date.now): PlayerStore & { nicknames: Map<string, string> } {
   const stats = new Map<string, StatsRow>();
   const events: { userId: string; xp: number; at: number; mode: 'solo' | 'duel' | null; outcome: 'win' | 'loss' | 'draw' | null }[] = [];
   const priv = new Map<string, PrivateRow>();
@@ -197,7 +259,7 @@ export function createMemoryPlayerStore(seedCities: readonly { slug: string; nam
       .map((userId) => ({ userId, xp: xpOf(userId, since) }))
       .filter((r) => since === undefined || r.xp > 0)
       .filter((r) => (f.cityId ? priv.get(r.userId)?.cityId === f.cityId : true) && (f.userIds ? f.userIds.includes(r.userId) : true));
-  const rows: CityRow[] = seedCities.map((c, i) => ({ id: `00000000-0000-7000-8000-${String(i + 1).padStart(12, '0')}`, slug: c.slug, nameFa: c.nameFa, province: c.province ?? null, sortOrder: i, isActive: true }));
+  const rows: CityRow[] = seedCities.map((c, i) => ({ id: `00000000-0000-7000-8000-${String(i + 1).padStart(12, '0')}`, slug: c.slug, nameFa: c.nameFa, province: c.province ?? null, souvenirFa: null, sloganFa: c.sloganFa ?? null, sortOrder: i, isActive: true }));
   return {
     nicknames,
     async stats(id) {
@@ -250,7 +312,7 @@ export function createMemoryPlayerStore(seedCities: readonly { slug: string; nam
     },
     async addCity(slug, nameFa, province = null) {
       if (rows.some((r) => r.slug === slug)) return 'duplicate';
-      const row = { id: `00000000-0000-7000-8000-${String(rows.length + 1).padStart(12, '0')}`, slug, nameFa, province, sortOrder: rows.length, isActive: true };
+      const row = { id: `00000000-0000-7000-8000-${String(rows.length + 1).padStart(12, '0')}`, slug, nameFa, province, souvenirFa: null, sloganFa: null, sortOrder: rows.length, isActive: true };
       rows.push(row);
       return { ...row };
     },
@@ -259,6 +321,26 @@ export function createMemoryPlayerStore(seedCities: readonly { slug: string; nam
       if (!r) return 'not_found';
       Object.assign(r, patch);
       return 'ok';
+    },
+    async cityStats() {
+      const out = new Map<string, CityStats>();
+      for (const [id, p] of priv) {
+        if (!p.cityId) continue;
+        const c = out.get(p.cityId) ?? { players: 0, active7d: 0, bots: 0, xp: 0 };
+        c.players += 1;
+        c.active7d += 1;
+        c.xp += stats.get(id)?.xp ?? 0;
+        out.set(p.cityId, c);
+      }
+      return out;
+    },
+    async cityPlayers(cityId, opts) {
+      const q = opts.q?.trim();
+      return [...priv.entries()]
+        .filter(([id, p]) => p.cityId === cityId && (!q || (nicknames.get(id) ?? '').includes(q)))
+        .map(([id]) => ({ id, nickname: nicknames.get(id) ?? '', avatarKey: '', isBanned: false, isBot: false, xp: stats.get(id)?.xp ?? 0, games: stats.get(id)?.games ?? 0, lastSeenAt: now() }))
+        .sort((a, b) => b.xp - a.xp || a.id.localeCompare(b.id))
+        .slice(opts.offset, opts.offset + opts.limit);
     },
   };
 }

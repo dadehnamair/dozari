@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link href="https://fonts.googleapis.com/css2?family=Lalezar&amp;family=Vazirmatn:wght@600;700;800;900&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>body{margin:0;background:#120B07;color:#FFE9A8;font-family:Vazirmatn}a{color:#E8B64A}a:hover{color:#FFF1B8}*{box-sizing:border-box}</style>
+</helmet>
+<div dir="rtl" style="padding:56px;display:flex;flex-direction:column;gap:44px;max-width:1500px">
+  <header style="display:flex;flex-direction:column;gap:6px">
+    <div style="font:14px 'JetBrains Mono',monospace;color:#E8B64A;direction:ltr;text-align:right">Dozari · App Icon variants · iconFor(gender, track) → default | female | adult | adultFemale</div>
+    <h1 style="margin:0;font:52px/1 Lalezar;color:#FFE9A8">آیکون برنامه · چهار حالت</h1>
+    <div style="font:700 16px/1.7 Vazirmatn;color:rgba(255,233,168,.7);max-width:960px;text-wrap:pretty">مثل عوض شدن آیکون با جنسیت (D165)، رده‌ی بزرگسال هم آیکون خودش را می‌گیرد: همان قهرمان، روی سکه‌ی طلایی و زمینه‌ی مشکی صرافی. کودک و نوجوان همان آیکون آبنباتی فعلی را نگه می‌دارند.</div>
+  </header>
+
+  <section style="display:flex;gap:28px;flex-wrap:wrap">
+    <sc-for list="{{ variants }}" as="v" hint-placeholder-count="4">
+      <div style="display:flex;flex-direction:column;gap:12px;align-items:center;padding:24px;border-radius:28px;background:#17100C;border:1px solid {{ v.bd }}">
+        <div style="width:200px;height:200px;border-radius:44px;overflow:hidden;position:relative;background:{{ v.bg }};box-shadow:0 14px 30px rgba(0,0,0,.5)">
+          <div style="position:absolute;left:50%;top:50%;width:352px;height:352px;margin:-176px 0 0 -176px;border-radius:50%;background:repeating-conic-gradient({{ v.ray }} 0 10deg,transparent 10deg 20deg)"></div>
+          <sc-if value="{{ v.adult }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;inset:8px;border-radius:38px;border:3px solid #E8B64A;box-shadow:inset 0 0 0 2px #000"></div></sc-if>
+          <div style="position:absolute;left:26px;top:26px;width:148px;height:148px;border-radius:50%;background:{{ v.coin }};border:5px solid {{ v.ink }};box-shadow:inset 0 -5px 0 rgba(0,0,0,.18),0 5px 0 {{ v.ink }}"></div>
+          <sc-if value="{{ v.adult }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:38px;top:38px;width:124px;height:124px;border-radius:50%;border:2px dashed rgba(106,66,16,.7)"></div></sc-if>
+          <div style="position:absolute;left:37px;top:27px;width:125px;height:137px"><dc-import name="Character" who="{{ v.who }}" pose="wave" crop="face" hint-size="125px,137px" style="width:125px;height:137px"></dc-import></div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:flex-end">
+          <div style="width:72px;height:72px;border-radius:18px;overflow:hidden;position:relative;background:{{ v.bg }}">
+            <div style="position:absolute;left:9px;top:9px;width:54px;height:54px;border-radius:50%;background:{{ v.coin }};border:2.5px solid {{ v.ink }}"></div>
+            <div style="position:absolute;left:13px;top:9px;width:46px;height:50px"><dc-import name="Character" who="{{ v.who }}" pose="wave" crop="face" hint-size="46px,50px" style="width:46px;height:50px"></dc-import></div>
+          </div>
+          <div style="width:72px;height:72px;border-radius:50%;background:{{ v.mono }};display:grid;place-items:center;border:2px solid rgba(255,255,255,.15)"><div style="width:46px;height:46px;border-radius:50%;border:5px solid {{ v.monoFg }};display:grid;place-items:center;font:26px/1 Lalezar;color:{{ v.monoFg }};padding-top:3px">۲</div></div>
+          <div style="width:40px;height:40px;border-radius:50%;background:{{ v.coin }};border:3px solid {{ v.ink }};display:grid;place-items:center;font:22px/1 Lalezar;color:{{ v.favFg }};padding-top:3px">د</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+          <span style="font:24px/1.2 Lalezar;color:#FFE9A8">{{ v.name }}</span>
+          <span style="font:12px 'JetBrains Mono',monospace;color:rgba(255,233,168,.6);direction:ltr">{{ v.key }} · {{ v.rule }}</span>
+        </div>
+      </div>
+    </sc-for>
+  </section>
+
+  <section style="display:flex;flex-direction:column;gap:16px">
+    <h2 style="margin:0;font:32px/1 Lalezar">روی صفحه‌ی گوشی</h2>
+    <div style="display:flex;gap:32px;flex-wrap:wrap">
+      <sc-for list="{{ phones }}" as="p" hint-placeholder-count="2">
+        <div style="display:flex;flex-direction:column;gap:10px;align-items:center">
+          <div style="width:300px;height:300px;border-radius:40px;border:10px solid #000;background:{{ p.wall }};padding:26px 18px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px 10px;align-content:start">
+            <sc-for list="{{ p.apps }}" as="a" hint-placeholder-count="8">
+              <div style="display:flex;flex-direction:column;align-items:center;gap:5px">
+                <div style="width:52px;height:52px;border-radius:14px;overflow:hidden;position:relative;background:{{ a.bg }}">
+                  <sc-if value="{{ a.me }}" hint-placeholder-val="{{ false }}">
+                    <div style="position:absolute;left:6px;top:6px;width:40px;height:40px;border-radius:50%;background:{{ a.coin }};border:2px solid {{ a.ink }}"></div>
+                    <div style="position:absolute;left:9px;top:6px;width:34px;height:37px"><dc-import name="Character" who="{{ a.who }}" pose="wave" crop="face" hint-size="34px,37px" style="width:34px;height:37px"></dc-import></div>
+                  </sc-if>
+                </div>
+                <span style="font:700 10px Vazirmatn;color:#fff;text-shadow:0 1px 2px #000">{{ a.n }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <span style="font:12px 'JetBrains Mono',monospace;color:rgba(255,233,168,.6)">{{ p.label }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="padding:20px 24px;border-radius:20px;background:#17100C;border:1px solid rgba(232,182,74,.25);display:flex;flex-direction:column;gap:8px;max-width:900px">
+    <span style="font:22px Lalezar;color:#FFE9A8">برای توسعه</span>
+    <span style="font:13px/1.8 'JetBrains Mono',monospace;color:rgba(255,233,168,.75);direction:ltr;text-align:left;white-space:pre-wrap">type IconVariant = 'default' | 'female' | 'adult' | 'adultFemale'
+iconFor(gender, track) = track === 'adult'
+  ? (gender === 'female' ? 'adultFemale' : 'adult')
+  : (gender === 'female' ? 'female' : 'default')
+applyAppIcon() → call on gender change AND on age-track change</span>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const CANDY={bg:'radial-gradient(circle at 50% 30%,#FFE48A,#FFC93C 50%,#FF7A3D)',ray:'rgba(255,255,255,.22)',coin:'radial-gradient(circle at 35% 30%,#FFF4B0,#FFC93C 55%,#D98A0B)',ink:'#2B1240',mono:'#2B1240',monoFg:'#FFF6E8',favFg:'#2B1240',bd:'rgba(255,201,60,.25)',adult:false};
+const GOLD={bg:'radial-gradient(circle at 50% 30%,#2E1D14,#17100C 55%,#0A0604)',ray:'rgba(232,182,74,.16)',coin:'radial-gradient(circle at 35% 30%,#FFF1B8,#E8B64A 50%,#8A5A16)',ink:'#000',mono:'#0E0A08',monoFg:'#E8B64A',favFg:'#2A1606',bd:'rgba(232,182,74,.45)',adult:true};
+class Component extends DCLogic {
+  renderVals(){
+    const v=[
+      {...CANDY,who:'dozari',name:'کودک/نوجوان · آقا',key:'default',rule:'kid|teen, male/none'},
+      {...CANDY,who:'dozariF',name:'کودک/نوجوان · خانم',key:'female',rule:'kid|teen, female'},
+      {...GOLD,who:'dozari',name:'بزرگسال · آقا',key:'adult',rule:'adult, male/none'},
+      {...GOLD,who:'dozariF',name:'بزرگسال · خانم',key:'adultFemale',rule:'adult, female'}];
+    const other=[['پیام‌ها','#3FA36B'],['دوربین','#555'],['نقشه','#3FC1F0'],['تقویم','#fff'],['موزیک','#FF4D8D'],['ساعت','#222'],['تنظیمات','#888']];
+    const mk=(me)=>[...other.slice(0,5).map(([n,bg])=>({n,bg,me:false})),{n:'دوزاری',bg:me.bg,coin:me.coin,ink:me.ink,who:me.who,me:true},...other.slice(5).map(([n,bg])=>({n,bg,me:false}))];
+    return {variants:v,phones:[{label:'kid/teen · default',wall:'linear-gradient(160deg,#3FC1F0,#A66BF0)',apps:mk(v[0])},{label:'adult · adult',wall:'linear-gradient(160deg,#2A1E16,#4A3A2A)',apps:mk(v[2])}]};
+  }
+}
+</script>
+</body>
+</html>

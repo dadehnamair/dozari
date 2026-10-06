@@ -1,4 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { toneIn } from '../theme/appTheme';
+import { useTheme } from '../theme/themeStore';
 import { colors, fonts, toneOf } from '../theme/colors';
 import { GradientFill } from './GradientFill';
 import { playSfx } from '../sound/engine';
@@ -24,7 +26,8 @@ export function CandyButton({
   disabled = false,
   sfx = 'press',
 }: Props) {
-  const tone = toneOf(color);
+  const theme = useTheme();
+  const tone = toneIn(theme, color, toneOf(color));
   const face = disabled
     ? { from: DISABLED.light, to: DISABLED.base }
     : { from: tone.light, to: tone.base };
@@ -48,7 +51,7 @@ export function CandyButton({
             <GradientFill from={face.from} to={face.to} mid={{ at: 0.6, color: face.to }} />
             <View style={styles.topLight} />
             {pressed || disabled ? null : <View style={styles.bottomShade} />}
-            <Text style={[styles.label, disabled ? styles.labelOff : null]}>{label}</Text>
+            <Text style={[styles.label, !disabled && theme === 'adult' ? { color: tone.text, textShadowColor: 'transparent' } : null, disabled ? styles.labelOff : null]}>{label}</Text>
           </View>
         </View>
       )}
