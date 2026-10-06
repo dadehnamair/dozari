@@ -179,7 +179,7 @@ picked reactively) is still open; the prototype puts it as a profile-only option
 
 **Built (D101):** the player picks a city on the «شهر من» page (badge grid, Iran then abroad); the
 city's `province` key maps to shared `PROVINCES`, which themes Home (badge + local greeting under
-the wordmark) and shows the badge beside the city on profiles. The admin sets a city's province.
+the wordmark) and shows the badge beside the city on profiles. The admin sets a city's province, its own souvenir and a slogan (D205): the souvenir replaces the province's on the picker card, the slogan shows on Home under the greeting.
 
 ## Age band (D198, proposed)
 

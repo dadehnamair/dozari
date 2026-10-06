@@ -76,7 +76,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
   /** Short phones (≤700px tall) get tighter columns and a smaller hero so nothing runs into the bottom buttons. */
   const compact = useWindowDimensions().height <= 700;
   const daily = useDailyReward();
-  const { spins, loadSpins, liveMatch, gender, setGender, level, province, dailyPuzzle, loadMe, profileTasks, loadTasks, gems, worn, loadWorn } = useHomeData(features);
+  const { spins, loadSpins, liveMatch, gender, setGender, level, province, slogan, dailyPuzzle, loadMe, profileTasks, loadTasks, gems, worn, loadWorn } = useHomeData(features);
   const hero = useHeroMotion();
   const [dailyOpen, setDailyOpen] = useState(false);
   const [wheelOpen, setWheelOpen] = useState(false);
@@ -214,6 +214,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
                 <Text style={styles.hello} numberOfLines={1}>{province.hello}</Text>
               </Pressable>
             ) : null}
+            {slogan ? <Text style={styles.slogan} numberOfLines={2}>{slogan}</Text> : null}
             <View style={styles.spacer} />
             {tip !== null && tips[tip] ? (
               <GuideBubble who={heroFor(gender)} text={tips[tip].text} />

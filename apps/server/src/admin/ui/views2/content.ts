@@ -33,10 +33,11 @@ export const ADMIN_VIEWS2_CONTENT_JS = String.raw`VIEWS.words = function (root) 
   draw();
 };
 VIEWS.cities = function (root) {
-  var list = h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' });
   var slug = h('input', { type: 'text', dir: 'ltr', placeholder: 'شناسه‌ی لاتین (مثل tehran)', maxlength: 40 });
   var name = h('input', { type: 'text', placeholder: 'نام شهر', maxlength: 60 });
-  var provinces = [];
+  var provinces = [], cityList = [], tauntCats = [];
+  var summary = h('div', { class: 'toolbar' }), out = h('div');
+  var st = { q: '', show: 'all' };
   /** Province picker (D101): the badge, colours and greeting the app shows for players of this city. */
   function provSel(cur) {
     var s = h('select', {}, [h('option', { value: '', text: 'بدون استان' })].concat(provinces.map(function (p) { return h('option', { value: p.key, text: (p.abroad ? 'خارج · ' : '') + p.nameFa }); })));
@@ -44,28 +45,117 @@ VIEWS.cities = function (root) {
     return s;
   }
   var prov = h('select');
-  function draw() {
-    api('/admin/cities').then(function (r) {
-      clear(list);
-      if (r.status === 404) return list.appendChild(empty('بخش شهرها روی این سرور فعال نیست'));
+  function provName(key) { var p = provinces.filter(function (x) { return x.key === key; })[0]; return p ? p.nameFa : ''; }
+  function provSouvenir(c) { var p = provinces.filter(function (x) { return x.key === c.province; })[0]; return p && p.giftFa || ''; }
+  function catsOf(c) { return tauntCats.filter(function (t) { return t.cityId === c.id; }); }
+  function load() {
+    return Promise.all([api('/admin/cities'), api('/admin/taunts')]).then(function (rs) {
+      var r = rs[0];
+      if (r.status === 404) { clear(out); return out.appendChild(empty('بخش شهرها روی این سرور فعال نیست')); }
       if (!r.ok) return fail(r);
-      provinces = r.body.provinces || [];
+      provinces = r.body.provinces || []; cityList = r.body.cities;
+      tauntCats = rs[1].ok ? rs[1].body.categories : [];
       var fresh = provSel(prov.value); prov.innerHTML = fresh.innerHTML; prov.value = fresh.value;
-      r.body.cities.forEach(function (c) {
-        var ps = provSel(c.province);
-        ps.onchange = function () { api('/admin/cities/' + c.id, { method: 'PATCH', body: { province: ps.value || null } }).then(function (x) { if (!x.ok) return fail(x); toast('استان ' + c.nameFa + ' ذخیره شد'); }); };
-        list.appendChild(h('span', { class: 'chip', style: 'display:inline-flex;gap:6px;align-items:center' }, [
-          h('span', { text: c.nameFa }), ps, c.isActive ? null : badge('پنهان', 'b-warn'),
-          h('button', { class: 'btn sm', text: c.isActive ? 'پنهان کن' : 'نشان بده', onclick: function () { api('/admin/cities/' + c.id, { method: 'PATCH', body: { isActive: !c.isActive } }).then(function (x) { if (!x.ok) return fail(x); draw(); }); } })
-        ]));
-      });
+      paint();
     });
   }
-  root.appendChild(addCard('افزودن شهر', 'بازیکن‌ها شهرشان را از این فهرست انتخاب می‌کنند؛ پنهان‌کردن، شهرِ کسانی که قبلاً انتخاب کرده‌اند را عوض نمی‌کند.', 'شهر تازه', [['شناسه (انگلیسی)', slug], ['نام شهر', name], ['استان', prov]], function () {
-    return api('/admin/cities', { method: 'POST', body: { slug: slug.value.trim(), nameFa: name.value.trim(), province: prov.value || null } }).then(function (x) { if (x.status === 409) { toast('این شناسه از قبل هست', true); return false; } if (!x.ok) { fail(x); return false; } toast('شهر اضافه شد'); slug.value = ''; name.value = ''; draw(); return true; });
-  }));
-  root.appendChild(card('فهرست شهرها', null, [list]));
-  draw();
+  function paint() {
+    var totalPlayers = 0, totalActive = 0;
+    cityList.forEach(function (c) { totalPlayers += c.stats.players; totalActive += c.stats.active7d; });
+    clear(summary);
+    [['شهرها', faNum(cityList.length)], ['بازیکن‌های دارای شهر', faNum(totalPlayers)], ['فعال در ۷ روز اخیر', faNum(totalActive)], ['شهر پنهان', faNum(cityList.filter(function (c) { return !c.isActive; }).length)]].forEach(function (x) {
+      summary.appendChild(h('div', { class: 'card', style: 'padding:10px 16px;margin:0;min-width:130px' }, [h('div', { class: 'sub', text: x[0] }), h('b', { style: 'font-size:20px', text: x[1] })]));
+    });
+    var rows = cityList.filter(function (c) {
+      if (st.show === 'hidden' && c.isActive) return false;
+      if (st.show === 'empty' && c.stats.players) return false;
+      return !st.q || c.nameFa.indexOf(st.q) >= 0 || c.slug.indexOf(st.q.toLowerCase()) >= 0;
+    });
+    clear(out);
+    out.appendChild(dtable([
+      { label: 'شهر', sort: function (c) { return c.nameFa; }, render: function (c) { return h('div', {}, [h('b', { text: c.nameFa }), h('small', { class: 'ltr', style: 'display:block;opacity:.6', text: c.slug })]); } },
+      { label: 'استان', sort: function (c) { return provName(c.province); }, render: function (c) { return c.province ? provName(c.province) : badge('بدون استان', 'b-mute'); } },
+      { label: 'سوغات و شعار', render: function (c) { var sv = c.souvenirFa || provSouvenir(c); return h('div', {}, [sv ? h('div', { text: '🎁 ' + sv }) : null, c.sloganFa ? h('small', { style: 'display:block;opacity:.7', text: '«' + c.sloganFa + '»' }) : badge('بدون شعار', 'b-mute')]); } },
+      { label: 'بازیکن', cls: 'num', sort: function (c) { return c.stats.players; }, render: function (c) { return faNum(c.stats.players) + (c.stats.bots ? ' (' + faNum(c.stats.bots) + ' ربات)' : ''); } },
+      { label: 'فعال ۷ روز', cls: 'num', sort: function (c) { return c.stats.active7d; }, render: function (c) { return faNum(c.stats.active7d); } },
+      { label: 'مجموع XP', cls: 'num', sort: function (c) { return c.stats.xp; }, render: function (c) { return faNum(c.stats.xp); } },
+      { label: 'کل‌کل اختصاصی', cls: 'num', sort: function (c) { return catsOf(c).length; }, render: function (c) { var n = catsOf(c).length; return n ? faNum(n) + ' دسته' : '—'; } },
+      { label: 'وضعیت', render: function (c) { return c.isActive ? badge('نمایان', 'b-ok') : badge('پنهان', 'b-warn'); } },
+      { label: '', render: function (c) { return h('button', { class: 'btn sm', text: 'مدیریت', onclick: function () { cityDrawer(c); } }); } }
+    ], rows, { onRow: cityDrawer, empty: 'شهری پیدا نشد', pageSize: 25 }));
+  }
+  function cityDrawer(c) {
+    var dw = drawer(c.nameFa, c.slug), body = dw.body;
+    dw.onClose(load);
+    var nm = h('input', { type: 'text', value: c.nameFa, maxlength: 60 }), ps = provSel(c.province);
+    var ord = h('input', { type: 'number', value: c.sortOrder, min: 0, max: 10000 });
+    var sov = h('input', { type: 'text', value: c.souvenirFa || '', maxlength: 60, placeholder: provSouvenir(c) || 'مثلاً گز' });
+    var slo = h('input', { type: 'text', value: c.sloganFa || '', maxlength: 120, placeholder: 'مثلاً «اصفهان نصف جهان است!»' });
+    function patch(b, msg) { return api('/admin/cities/' + c.id, { method: 'PATCH', body: b }).then(function (x) { if (!x.ok) return fail(x); toast(msg); Object.keys(b).forEach(function (k) { c[k] = b[k]; }); return x; }); }
+    body.appendChild(card('اطلاعات شهر', null, [
+      field('نام', nm), field('استان', ps, 'نشان، رنگ و خوش‌آمدگویی همین استان به بازیکن‌های این شهر نشان داده می‌شود'), field('سوغات', sov, 'روی کارت شهر در صفحه‌ی انتخاب شهر نشان داده می‌شود؛ خالی = سوغات پیش‌فرض استان'), field('شعار', slo, 'زیر خوش‌آمدگویی روی صفحه‌ی اصلی بازیکن‌های این شهر می‌آید؛ خالی = بدون شعار'), field('ترتیب در فهرست', ord),
+      h('div', { style: 'display:flex;gap:8px;flex-wrap:wrap' }, [
+        h('button', { class: 'btn primary', text: 'ذخیره', onclick: function () { patch({ nameFa: nm.value.trim(), province: ps.value || null, sortOrder: +ord.value || 0, souvenirFa: sov.value.trim() || null, sloganFa: slo.value.trim() }, 'ذخیره شد'); } }),
+        h('button', { class: 'btn', text: c.isActive ? 'پنهان کن' : 'نشان بده', onclick: function (e) { var b = e.target; patch({ isActive: !c.isActive }, c.isActive ? 'شهر پنهان شد' : 'شهر نمایان شد').then(function () { b.textContent = c.isActive ? 'پنهان کن' : 'نشان بده'; }); } })
+      ])
+    ]));
+    body.appendChild(card('آمار', 'پنهان‌کردن شهر، شهرِ بازیکن‌هایی که قبلاً انتخاب کرده‌اند را عوض نمی‌کند.', [h('div', { class: 'toolbar' }, [
+      badge(faNum(c.stats.players) + ' بازیکن', 'b-ok'), badge(faNum(c.stats.active7d) + ' فعال در ۷ روز', 'b-mute'), badge(faNum(c.stats.xp) + ' XP', 'b-mute'), c.stats.bots ? badge(faNum(c.stats.bots) + ' ربات', 'b-warn') : null])]));
+    var cats = catsOf(c);
+    body.appendChild(card('کل‌کل‌های اختصاصی این شهر', 'دسته‌های مخصوص این شهر (لهجه و اصطلاح محلی)؛ ساخت و ویرایش در بخش «کل‌کل‌ها».', cats.length ? cats.map(function (t) {
+      return h('div', { class: 'kv' }, [h('span', { text: t.nameFa }), h('span', {}, [badge(faNum(t.taunts.length) + ' جمله', 'b-mute'), ' ', t.isActive ? null : badge('پنهان', 'b-warn')])]);
+    }) : [empty('هنوز کل‌کل اختصاصی ندارد', 'در بخش کل‌کل‌ها دسته‌ی تازه بساز و این شهر را برایش انتخاب کن.')]));
+    var plist = h('div'), offset = 0, q = '';
+    var search = searchBox('جستجوی اسم بازیکن…', function (v) { q = v; offset = 0; pull(); });
+    function pull() {
+      api('/admin/cities/' + c.id + '/players?q=' + encodeURIComponent(q) + '&offset=' + offset).then(function (r) {
+        clear(plist);
+        if (!r.ok) return fail(r);
+        var rows = r.body.players;
+        plist.appendChild(dtable([
+          { label: 'بازیکن', render: function (u) { return h('div', { class: 'user-cell' }, [avatarDisc(u.avatarKey, 30), h('b', { text: u.nickname }), u.isBot ? badge('ربات', 'b-warn') : null, u.isBanned ? badge('مسدود', 'b-bad') : null]); } },
+          { label: 'XP', cls: 'num', render: function (u) { return faNum(u.xp); } },
+          { label: 'بازی', cls: 'num', render: function (u) { return faNum(u.games); } },
+          { label: 'آخرین حضور', render: function (u) { return ago(u.lastSeenAt); } },
+          { label: '', render: function (u) {
+            return h('span', { style: 'display:flex;gap:6px' }, [
+              h('button', { class: 'btn sm', text: 'پرونده', onclick: function () { userDrawer(u.id, pull); } }),
+              h('button', { class: 'btn sm', text: 'انتقال', onclick: function () { moveDialog(u); } }),
+              h('button', { class: 'btn bad sm', text: 'خروج', onclick: function () { ask(u.nickname + ' از شهر ' + c.nameFa + ' برداشته شود؟ می‌تواند دوباره شهرش را انتخاب کند.', function () { move(u, null); }, { yes: 'بردار' }); } })
+            ]);
+          } }
+        ], rows, { onRow: function (u) { userDrawer(u.id, pull); }, empty: 'بازیکنی در این شهر نیست' }));
+        if (offset > 0 || rows.length === 50) {
+          plist.appendChild(h('div', { class: 't-foot' }, [h('span', { text: 'ردیف ' + fa(offset + 1) + ' تا ' + fa(offset + rows.length) }), h('span', { style: 'display:flex;gap:6px' }, [
+            offset > 0 ? h('button', { class: 'btn sm', text: 'قبلی', onclick: function () { offset = Math.max(0, offset - 50); pull(); } }) : null,
+            rows.length === 50 ? h('button', { class: 'btn sm', text: 'بعدی', onclick: function () { offset += 50; pull(); } }) : null])]));
+        }
+      });
+    }
+    function move(u, cityId) {
+      api('/admin/cities/' + c.id + '/players/' + u.id, { method: 'PUT', body: { cityId: cityId } }).then(function (x) {
+        if (!x.ok) return fail(x);
+        toast(cityId ? 'منتقل شد' : 'از شهر برداشته شد'); c.stats.players = Math.max(0, c.stats.players - 1); pull();
+      });
+    }
+    function moveDialog(u) {
+      var sel = select(cityList.filter(function (x) { return x.id !== c.id; }).map(function (x) { return [x.id, x.nameFa]; }));
+      modal('انتقال ' + u.nickname, field('شهر مقصد', sel), [{ label: 'انصراف' }, { label: 'انتقال', cls: 'primary', run: function () { move(u, sel.value); } }], { small: true });
+    }
+    body.appendChild(card('بازیکن‌های این شهر', 'به ترتیب XP. روی هر ردیف بزنی پرونده‌ی کامل بازیکن باز می‌شود.', [h('div', { class: 'toolbar' }, [search]), plist]));
+    pull();
+  }
+  var show = seg([['all', 'همه'], ['hidden', 'پنهان‌ها'], ['empty', 'بدون بازیکن']], st.show, function (v) { st.show = v; paint(); });
+  root.appendChild(h('div', { class: 'toolbar' }, [searchBox('جستجوی شهر…', function (v) { st.q = v.trim(); paint(); }), show, h('span', { style: 'flex:1' }),
+    h('button', { class: 'btn primary', text: 'شهر تازه', onclick: function () { addFormOpen(); } })]));
+  root.appendChild(summary);
+  root.appendChild(card('فهرست شهرها', 'روی هر شهر بزن تا بازیکن‌ها، کل‌کل‌های اختصاصی و تنظیماتش را ببینی و مدیریت کنی.', [out]));
+  function addFormOpen() {
+    formModal('شهر تازه', [['شناسه (انگلیسی)', slug], ['نام شهر', name], ['استان', prov]], function () {
+      return api('/admin/cities', { method: 'POST', body: { slug: slug.value.trim(), nameFa: name.value.trim(), province: prov.value || null } }).then(function (x) { if (x.status === 409) { toast('این شناسه از قبل هست', true); return false; } if (!x.ok) { fail(x); return false; } toast('شهر اضافه شد'); slug.value = ''; name.value = ''; load(); return true; });
+    });
+  }
+  load();
 };
 VIEWS.dailypuzzle = function (root) {
   var KINDS = { occasion: 'مناسبت', season: 'فصل', trend: 'ترند', category: 'دسته', custom: 'دلخواه' };
