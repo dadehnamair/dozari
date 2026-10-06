@@ -163,4 +163,14 @@ describe('AI studio', () => {
     expect(out.map((o) => o.ok)).toEqual([false, true]);
     expect(added).toEqual([[1375, 1500n, 1]]);
   });
+
+  it('offers ParsPack and accepts model names with a space', async () => {
+    const [pp] = resolveProviders({ AI_PARSPACK_API_KEY: 'k' });
+    expect(pp).toMatchObject({ id: 'parspack', baseUrl: 'https://ai.parspack.com/v1', defaultModel: 'Grok 4' });
+    let body = '';
+    const spy: FetchLike = async (_u, init) => ((body = init.body), { ok: true, status: 200, json: async () => ({ choices: [{ message: { content: 'x' } }] }) });
+    expect(await chat(pp!, { system: 's', user: 'u', model: 'Grok 4', maxTokens: 5 }, spy)).toBe('x');
+    expect(JSON.parse(body).model).toBe('Grok 4');
+    await expect(chat(pp!, { system: 's', user: 'u', model: ' bad', maxTokens: 5 }, spy)).rejects.toMatchObject({ code: 'ai_invalid_model' });
+  });
 });

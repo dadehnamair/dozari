@@ -17,6 +17,7 @@ export const PRESETS: readonly ProviderPreset[] = [
   { id: 'deepseek', label: 'DeepSeek', baseUrl: 'https://api.deepseek.com/v1', defaultModel: 'deepseek-chat', keyEnv: 'AI_DEEPSEEK_API_KEY' },
   { id: 'gapgpt', label: 'GapGPT (ایرانی)', baseUrl: 'https://api.gapgpt.app/v1', defaultModel: 'gpt-4o-mini', keyEnv: 'AI_GAPGPT_API_KEY' },
   { id: 'avalai', label: 'AvalAI (ایرانی)', baseUrl: 'https://api.avalai.ir/v1', defaultModel: 'gpt-4o-mini', keyEnv: 'AI_AVALAI_API_KEY' },
+  { id: 'parspack', label: 'ParsPack AI Studio (ایرانی)', baseUrl: 'https://ai.parspack.com/v1', defaultModel: 'Grok 4', keyEnv: 'AI_PARSPACK_API_KEY' },
   { id: 'anthropic', label: 'Claude (Anthropic)', baseUrl: 'https://api.anthropic.com/v1', defaultModel: 'claude-sonnet-5-5', keyEnv: 'AI_ANTHROPIC_API_KEY', dialect: 'anthropic' },
   // Gemini's OpenAI-compatibility endpoint; server-side, optional, admin tool only.
   { id: 'gemini', label: 'Gemini (Google)', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', defaultModel: 'gemini-2.5-flash', keyEnv: 'AI_GEMINI_API_KEY' },
@@ -62,8 +63,8 @@ export interface ChatRequest {
 
 export type FetchLike = (url: string, init: { method: string; headers: Record<string, string>; body: string; signal: AbortSignal }) => Promise<{ ok: boolean; status: number; json(): Promise<unknown> }>;
 
-/** A model name as gateways spell them: letters, digits and `. _ - : /`. Anything else is refused so it cannot smuggle path or header text. */
-export const isModelName = (s: string): boolean => /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,79}$/.test(s);
+/** A model name as gateways spell them: letters, digits, inner spaces (ParsPack has «Grok 4») and `. _ - : /`. Anything else is refused so it cannot smuggle path or header text. */
+export const isModelName = (s: string): boolean => /^[A-Za-z0-9][A-Za-z0-9._:/ -]{0,79}$/.test(s);
 
 /** The provider's own error message (`{error:{message}}`, or an array of those), cut short and with the key scrubbed. */
 async function errorDetail(res: { json(): Promise<unknown> }, apiKey: string): Promise<string | undefined> {
