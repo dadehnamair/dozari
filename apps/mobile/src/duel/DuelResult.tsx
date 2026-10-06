@@ -26,7 +26,7 @@ const LOOK: Record<Outcome, { title: string; sub: string; pose: 'win' | 'sad' | 
 };
 
 /** screen-results of `13 Match Screens`: the hero's pose, a banner, why it ended, the scoreboard, home / play again. */
-export function DuelResult({ outcome, reason, lines, priceRound, onHome, onAgain, onInvite, onPlayer, onReport }: { outcome: Outcome; reason: string; lines: Line[]; /** The finished price-guess round, when the duel had one. */ priceRound?: PriceRoundView; onHome: () => void; onAgain?: () => void; /** Opens the invite sheet: the best moment to ask a friend to play is right after a game. */ onInvite?: () => void; /** Opens a player's profile sheet. */ onPlayer?: (id: string) => void; /** Opens the report dialog for the opponent (1v1). */ onReport?: (id: string) => void }) {
+export function DuelResult({ outcome, reason, lines, priceRound, onHome, onAgain, againLabel, onInvite, onPlayer, onReport }: { outcome: Outcome; reason: string; lines: Line[]; /** The finished price-guess round, when the duel had one. */ priceRound?: PriceRoundView; onHome: () => void; onAgain?: () => void; /** Replaces the outcome's «play again» wording (a private table goes back to its lobby). */ againLabel?: string; /** Opens the invite sheet: the best moment to ask a friend to play is right after a game. */ onInvite?: () => void; /** Opens a player's profile sheet. */ onPlayer?: (id: string) => void; /** Opens the report dialog for the opponent (1v1). */ onReport?: (id: string) => void }) {
   const look = LOOK[outcome];
   const sorted = [...lines].sort((x, y) => y.points - x.points);
   return (
@@ -90,7 +90,7 @@ export function DuelResult({ outcome, reason, lines, priceRound, onHome, onAgain
         <View style={styles.actions}>
           <SlabButton label={a.home} color={colors.candy.sky} height={58} fontSize={20} onPress={onHome} />
           {onInvite ? <SlabButton label={a.invite} color={colors.candy.lime} height={58} fontSize={18} onPress={onInvite} /> : null}
-          {onAgain ? <SlabButton label={look.again} color={look.againColor} height={58} fontSize={24} grow={1.6} onPress={onAgain} /> : null}
+          {onAgain ? <SlabButton label={againLabel ?? look.again}color={look.againColor} height={58} fontSize={24} grow={1.6} onPress={onAgain} /> : null}
         </View>
       </View>
     </View>

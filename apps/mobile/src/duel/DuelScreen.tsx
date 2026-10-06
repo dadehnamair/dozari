@@ -70,6 +70,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   const [tauntOpen, setTauntOpen] = useState(false);
   const [leaveArmed, setLeaveArmed] = useState(false);
   const [friendOpen, setFriendOpen] = useState(false);
+  const [tableOpen, setTableOpen] = useState(false);
   const [mode, setMode] = useState<'duel' | 'team'>('duel');
   const [tier, setTier] = useState<TierId>('bronze');
   const conn = useRef<DuelConnection | null>(null);
@@ -274,6 +275,16 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
     setRound((r) => r + 1);
   };
 
+  /** The private table started its next match: clear the old board and resume into the new one. */
+  const rematch = () => {
+    setTableOpen(false);
+    dispatch({ t: 'reset' });
+    setSelected([]);
+    setOrder([]);
+    setIntroUntil(0);
+    setRound((r) => r + 1);
+  };
+
   if (stage === 'pick') {
     return (
       <>
@@ -350,7 +361,8 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
           lines={lines.map((l) => ({ ...l, points: scores[l.me ? me : them] }))}
           priceRound={state.ended.priceRound}
           onHome={onBack}
-          onAgain={stage === 'queue' ? again : undefined}
+          onAgain={stage === 'queue' ? again : () => setTableOpen(true)}
+          againLabel={stage === 'resume' ? fa.tables.rematch : undefined}
           onInvite={() => setInviteOpen(true)}
           onPlayer={(id) => setProfileId(id)}
           onReport={(id) => setReportId(id)}
@@ -360,6 +372,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
           <View style={styles.wheelCta}><SlabButton label={fa.wheel.open} color={colors.candy.yellow} badge={toPersianDigits(String(spinsWaiting))} onPress={() => setWheelOpen(true)} /></View>
         ) : null}
         {inviteOpen ? <InviteSheet onClose={() => setInviteOpen(false)} /> : null}
+        {tableOpen ? <TableSheet onClose={() => setTableOpen(false)} onMatch={rematch} /> : null}
         {profileId ? <PlayerSheet playerId={profileId} onClose={() => setProfileId(null)} /> : null}
         {reportId ? <ReportDialog target={{ kind: 'user', userId: reportId }} onClose={() => setReportId(null)} /> : null}
         {wheelOpen ? <WheelPage onClose={() => (setWheelOpen(false), void fetchWheel().then((w) => setSpinsWaiting(w.pending), () => undefined))} /> : null}
