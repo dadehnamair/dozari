@@ -48,6 +48,14 @@ describe('NotifyService', () => {
     expect(bale.sent.at(-1)!.text).toContain('درست نیست');
   });
 
+  it('links with a code typed with Persian digits, zero-width marks or a deep-link start', async () => {
+    const { bale } = setup();
+    const svc2 = new NotifyService(createMemoryNotifyStore(), bale.client, () => 1_000_000, () => 'AB2345');
+    const { code } = await svc2.linkCode('u9');
+    await svc2.handleUpdate(msg(7, `/start ${code.replace('2345', '۲۳۴۵')}\u200c`));
+    expect(bale.sent.at(-1)?.text).toContain('وصل شدی');
+  });
+
   it('rejects an expired code', async () => {
     const { svc, bale, tick, store } = setup();
     await svc.linkCode('u1');

@@ -55,5 +55,5 @@ const styles = StyleSheet.create({
   title: { fontFamily: fonts.display, fontSize: 22, color: INK },
   text: { fontFamily: fonts.bold, fontSize: 13.5, color: INK, textAlign: 'center' },
   bad: { color: '#B3261E' },
-  input: { alignSelf: 'stretch', fontFamily: fonts.bold, fontSize: 16, color: INK, textAlign: 'center', backgroundColor: '#fff', borderWidth: 2.5, borderColor: INK, borderRadius: 12, paddingVertical: 8, paddingHorizontal: 10 },
+  input: { alignSelf: 'stretch', fontFamily: fonts.bold, fontSize: 16, color: INK, textAlign: 'center', backgroundColor: colors.card, borderWidth: 2.5, borderColor: INK, borderRadius: 12, paddingVertical: 8, paddingHorizontal: 10 },
 });

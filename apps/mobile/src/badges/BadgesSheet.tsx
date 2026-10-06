@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
   label: { fontFamily: fonts.bold, fontSize: 15, color: INK },
   hint: { fontFamily: fonts.bold, fontSize: 12, color: INK, opacity: 0.8 },
   warn: { fontFamily: fonts.bold, fontSize: 13, color: '#B3261E' },
-  item: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 8, borderRadius: 14, borderWidth: 2, borderColor: INK, backgroundColor: '#fff' },
+  item: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 8, borderRadius: 14, borderWidth: 2, borderColor: INK, backgroundColor: colors.card },
   lockedItem: { opacity: 0.6 },
   icon: { width: 40, height: 40 },
   itemText: { flex: 1, gap: 2 },

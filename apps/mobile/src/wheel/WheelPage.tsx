@@ -1,3 +1,4 @@
+import { FACE_TEXT } from '../theme/skin';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, G, Path } from 'react-native-svg';
@@ -241,7 +242,7 @@ const styles = StyleSheet.create({
   noteLight: { fontFamily: fonts.bold, fontSize: 12.5, color: colors.cream, textAlign: 'center' },
   spin: { width: '100%', height: 64, borderRadius: 20, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...lift(6) },
   spinOff: { opacity: 0.8 },
-  spinText: { fontFamily: fonts.display, fontSize: 28, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
+  spinText: { fontFamily: fonts.display, fontSize: 28, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1, ...FACE_TEXT },
   prize: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9, backgroundColor: 'rgba(26,8,44,0.86)', alignItems: 'center', justifyContent: 'center', gap: 12 },
   prizeIcon: { width: 130, height: 130 },
   prizePlate: { paddingHorizontal: 26, paddingVertical: 8, borderRadius: 16, borderWidth: 4, borderColor: colors.ink, overflow: 'hidden', ...lift(6) },

@@ -4,7 +4,7 @@ import Svg, { Defs, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { Character } from '../components/Character';
 import type { CharacterId } from '../theme/character';
 import { Wordmark } from '../components/Wordmark';
-import { fonts } from '../theme/colors';
+import { fonts, colors } from '../theme/colors';
 
 /** Brand art from docs/design/Dozari - 03 Brand.dc.html. Squares are full-bleed; the OS rounds the corners. */
 
@@ -113,7 +113,7 @@ export function FaviconArt({ size = 48 }: { size?: number }) {
         borderRadius: size,
         backgroundColor: '#FFC93C',
         borderWidth: size * 0.085,
-        borderColor: '#2B1240',
+        borderColor: colors.ink,
         alignItems: 'center',
         justifyContent: 'center',
       }}
@@ -123,7 +123,7 @@ export function FaviconArt({ size = 48 }: { size?: number }) {
           fontFamily: fonts.display,
           fontSize: size * 0.54,
           lineHeight: size * 0.7,
-          color: '#2B1240',
+          color: colors.ink,
           paddingTop: size * 0.06,
         }}
       >
@@ -142,7 +142,7 @@ function Coin({ size }: { size: number }) {
         borderRadius: size,
         backgroundColor: '#FFC93C',
         borderWidth: size * 0.07,
-        borderColor: '#2B1240',
+        borderColor: colors.ink,
         borderBottomWidth: size * 0.1,
         alignItems: 'center',
         justifyContent: 'center',

@@ -25,8 +25,8 @@ export function createDbPuzzleSource(db: Db): PuzzleSource {
       // A few random candidates, not one: an approved puzzle with missing groups or items is skipped instead of
       // turning the whole request into "no puzzle" while playable ones exist.
       // Only puzzles of the player's track pool; callers that name no track get the adult pool, so kid content never leaks by accident.
-      const inTrack = inArray(puzzles.ageTrack, [...(opts?.tracks ?? [DEFAULT_AGE_TRACK])]);
-      const notSeen = opts?.exclude && opts.exclude.length > 0 ? notInArray(puzzles.id, [...opts.exclude]) : undefined;
+      const tracks = inArray(puzzles.ageTrack, [...(opts?.tracks ?? [DEFAULT_AGE_TRACK])]);
+      const inTrack = opts?.exclude && opts.exclude.length > 0 ? and(tracks, notInArray(puzzles.id, [...opts.exclude]))! : tracks;
       const attempt = async (where: ReturnType<typeof eq>) => {
         const candidates = await db.select({ id: puzzles.id }).from(puzzles).where(where).orderBy(sql`RAND()`).limit(PICK_ATTEMPTS);
         for (const c of candidates) {
@@ -40,11 +40,11 @@ export function createDbPuzzleSource(db: Db): PuzzleSource {
         const tiers = await db.select().from(puzzleTiers);
         const open = tiersForLevel(tiers, opts.level);
         if (open.length > 0) {
-          const rated = await attempt(and(eq(puzzles.status, 'approved'), inTrack, notSeen, inArray(puzzles.tierId, open.map((t) => t.id)))!);
+          const rated = await attempt(and(eq(puzzles.status, 'approved'), inTrack, inArray(puzzles.tierId, open.map((t) => t.id)))!);
           if (rated) return rated;
         }
       }
-      return attempt(and(eq(puzzles.status, 'approved'), inTrack, notSeen)!);
+      return attempt(and(eq(puzzles.status, 'approved'), inTrack)!);
     },
     async byId(id) {
       const [puzzle] = await db.select({ id: puzzles.id }).from(puzzles).where(and(eq(puzzles.id, id), eq(puzzles.status, 'approved'))).limit(1);

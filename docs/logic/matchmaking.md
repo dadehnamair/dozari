@@ -143,7 +143,7 @@ Not in the app yet: price-guess round inside a duel.
 
 ## No repeated puzzles, no dead ends (2026-10)
 
-- **No repeats.** One in-memory `PuzzleHistory` (`apps/server/src/solo/history.ts`) is shared by solo, queue duels, private tables and 2v2: a puzzle any seated player already had is excluded (`pickRandom({ exclude })`), and the boards of one 2v2 are all different. Only when a player has seen the whole pool does their history reset (a small catalog must still play).
+- **No repeats.** Solo keeps its own recent list (`SoloService`); an in-memory `PuzzleHistory` (`apps/server/src/solo/history.ts`) does the same for queue duels, private tables and 2v2: a puzzle any seated player already had is excluded (`pickRandom({ exclude })`), and the boards of one 2v2 are all different. Only when a player has seen the whole pool does their history reset (a small catalog must still play).
 - **Who plays whom on resume.** `MatchService.resume` re-sends `match:found` before the snapshot, so a table player whose screen opened after the match started still sees both sides' names.
 - **Disconnect grace.** A player with no open socket for 25 s (`disconnectGraceMs`) leaves their live match; the partner/rival is not held hostage.
 - **Client watchdogs** (`DuelScreen`): no first snapshot after 6 s → resume again, after 20 s an error card; a turn 6 s past its deadline → resume; a finished board whose `match:ended` never arrived → the result is built from the last snapshot after 5 s; `NOT_IN_MATCH` on resume closes the match. A refused submit is a toast (`notice`), never an error screen; one submit in flight at a time.

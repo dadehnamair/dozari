@@ -38,7 +38,7 @@ export function ServerDownBanner() {
 const styles = StyleSheet.create({
   wrap: { position: 'absolute', left: 12, right: 12, zIndex: 100, alignItems: 'center' },
   strip: { maxWidth: 420, flexDirection: ROW, alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.candy.pink, shadowColor: colors.ink, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 6 },
-  dot: { width: 14, height: 14, borderRadius: 7, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: '#fff' },
+  dot: { width: 14, height: 14, borderRadius: 7, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.card },
   body: { flexShrink: 1, gap: 2 },
   title: { fontFamily: fonts.display, fontSize: 17, lineHeight: 26, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1, textAlign: TEXT_RIGHT },
   text: { fontFamily: fonts.bold, fontSize: 12.5, lineHeight: 19, color: '#fff', textAlign: TEXT_RIGHT },

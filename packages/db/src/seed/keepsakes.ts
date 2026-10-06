@@ -7,11 +7,11 @@ import { eq } from 'drizzle-orm';
 import { uuidv7 } from 'uuidv7';
 import type { Db } from '../client.js';
 import { keepsakeDefs, keepsakeSets, products } from '../schema.js';
-import { readSeedProducts } from './load.js';
+import { knownProductSlugs } from './catalog-index.js';
 
 export const KEEPSAKE_SEED_DIR = join(fileURLToPath(new URL('../../seed/keepsakes', import.meta.url)));
 
-/** Read + validate `seed/keepsakes/*.json` against the product seed; throws with every problem listed. */
+/** Read + validate `seed/keepsakes/*.json` against the catalogue index; throws with every problem listed. */
 export function readSeedKeepsakes(dir: string = KEEPSAKE_SEED_DIR): SeedKeepsakeFile[] {
   const files: SeedKeepsakeFile[] = [];
   const problems: string[] = [];
@@ -21,7 +21,7 @@ export function readSeedKeepsakes(dir: string = KEEPSAKE_SEED_DIR): SeedKeepsake
     if (!parsed.success) problems.push(...parsed.error.issues.map((i) => `${name}: ${i.path.join('.')}: ${i.message}`));
     else files.push(parsed.data);
   }
-  problems.push(...checkSeedKeepsakes(files, new Set(readSeedProducts().map((p) => p.slug))));
+  problems.push(...checkSeedKeepsakes(files, knownProductSlugs()));
   if (problems.length > 0) throw new Error(`Invalid keepsake seed:\n${problems.join('\n')}`);
   return files;
 }

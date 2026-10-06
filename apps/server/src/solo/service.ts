@@ -4,8 +4,9 @@ import { OFFLINE_PACK_DAILY_LIMIT, trackRules } from '@dozari/shared';
 import type { AgeTrack, CatalogProduct, GroupLevel, SoloOfflinePack, HintKind, HintPayload, PriceGuessRound, Rng, SoloChart, SoloPriceResult, SoloPriceRounds, SoloState, SubmitOutcome } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
 import type { PuzzleSource, ServedPuzzle, SoloView } from './types.js';
-import { pickUnseen } from './history.js';
-import type { PuzzleHistory } from './history.js';
+
+/** How many of a player's latest puzzles the next pick avoids. */
+const RECENT_PUZZLES = 30;
 
 interface Session {
   puzzle: ServedPuzzle;
@@ -41,8 +42,6 @@ export interface GuessResult {
 }
 
 export interface SoloServiceOptions {
-  /** Puzzles each player has already had, shared with the live matches: a puzzle does not come back while others are left. */
-  history?: PuzzleHistory;
   /** Idle sessions older than this are dropped (solo is practice: nothing is persisted yet). */
   ttlMs?: number;
   now?: () => number;
@@ -69,7 +68,6 @@ export class SoloService {
   private readonly onFinished?: (userId: string, outcome: 'win' | 'loss', tag?: string) => void;
   private readonly levelOf?: (userId: string) => Promise<number>;
   private readonly trackOf?: (userId: string) => Promise<AgeTrack>;
-  private readonly history?: PuzzleHistory;
 
   constructor(
     private readonly source: PuzzleSource,
@@ -82,20 +80,12 @@ export class SoloService {
     this.onFinished = opts.onFinished;
     this.levelOf = opts.levelOf;
     this.trackOf = opts.trackOf;
-    this.history = opts.history;
   }
 
   /** Starts a session, or null when there is no puzzle to play. */
   async start(userId?: string, opts: { puzzleId?: string; tag?: string; /** A guardian's read-only preview: the puzzle comes from this track's pool and nothing is recorded (pass no `userId`). */ previewTrack?: AgeTrack } = {}): Promise<SoloView | null> {
     this.sweep();
-    let puzzle: ServedPuzzle | null | undefined;
-    if (opts.puzzleId) puzzle = await this.source.byId?.(opts.puzzleId);
-    else {
-      const level = userId && this.levelOf ? await this.levelOf(userId).catch(() => undefined) : undefined;
-      const tracks = opts.previewTrack ? trackRules(opts.previewTrack).puzzleTracks : await this.tracksOf(userId);
-      // A signed-in player never gets a puzzle they already had while the pool has others (a guardian's preview records nothing).
-      puzzle = await pickUnseen(opts.previewTrack ? undefined : this.history, [userId], [], (exclude) => this.source.pickRandom({ level, tracks, exclude }));
-    }
+    const puzzle = opts.puzzleId ? await this.source.byId?.(opts.puzzleId) : await this.pickFresh(userId, opts.previewTrack);
     if (!puzzle) return null;
     const rng = mulberry32(this.newSeed());
     const state = startSolo(puzzle, rng);
@@ -103,6 +93,23 @@ export class SoloService {
     const session: Session = { puzzle, state, rng, touchedAt: this.now(), priceResults: [], rules: await this.loadRules(), userId, hints: [], tag: opts.tag };
     this.sessions.set(sessionId, session);
     return this.toView(sessionId, session);
+  }
+
+  /** The last puzzles each signed-in player was served, newest last: the next pick avoids them so a game is not the same puzzle again. */
+  private readonly recentPuzzles = new Map<string, string[]>();
+
+  /** A random puzzle the player did not just have; when they have had every puzzle of their pool, the memory restarts and any one will do. */
+  private async pickFresh(userId: string | undefined, previewTrack?: AgeTrack): Promise<ServedPuzzle | null> {
+    const level = userId && this.levelOf ? await this.levelOf(userId).catch(() => undefined) : undefined;
+    const tracks = previewTrack ? trackRules(previewTrack).puzzleTracks : await this.tracksOf(userId);
+    const seen = userId && !previewTrack ? this.recentPuzzles.get(userId) ?? [] : [];
+    let puzzle = await this.source.pickRandom({ level, tracks, exclude: seen });
+    if (!puzzle && seen.length > 0) {
+      this.recentPuzzles.delete(userId!);
+      puzzle = await this.source.pickRandom({ level, tracks });
+    }
+    if (puzzle && userId && !previewTrack) this.recentPuzzles.set(userId, [...(this.recentPuzzles.get(userId) ?? []), puzzle.id].slice(-RECENT_PUZZLES));
+    return puzzle;
   }
 
   /** Puzzle pools a player is served from; a lookup failure reads as adult. */
@@ -128,7 +135,7 @@ export class SoloService {
     const level = this.levelOf ? await this.levelOf(userId).catch(() => undefined) : undefined;
     const puzzles: SoloOfflinePack['puzzles'] = [];
     for (let i = 0; i < n * 3 && puzzles.length < n; i++) {
-      const p = await pickUnseen(this.history, [userId], puzzles.map((x) => x.id), async (exclude) => this.source.pickRandom({ level, tracks: await this.tracksOf(userId), exclude }));
+      const p = await this.source.pickRandom({ level, tracks: await this.tracksOf(userId) });
       if (!p) break;
       if (puzzles.some((x) => x.id === p.id)) continue;
       puzzles.push({

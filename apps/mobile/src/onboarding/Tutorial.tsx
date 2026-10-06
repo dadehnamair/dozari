@@ -1,3 +1,4 @@
+import { FACE_TEXT } from '../theme/skin';
 import { useEffect, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Character } from '../components/Character';
@@ -100,7 +101,7 @@ export function Tutorial({ onDone }: { onDone: () => void }) {
 const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0, height: h }, shadowOpacity: 1, shadowRadius: 0, elevation: h });
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#4E2585' },
+  root: { flex: 1, backgroundColor: colors.deeper },
   shade: { backgroundColor: 'rgba(26,8,44,0.55)' },
   scroll: { flexGrow: 1, paddingHorizontal: 12, paddingTop: 20 + nativeTopInset(), paddingBottom: 24, alignItems: 'center' },
   column: { flex: 1, width: '100%', maxWidth: 480 },
@@ -117,15 +118,15 @@ const styles = StyleSheet.create({
   tileLit: { transform: [{ scale: 1.04 }], shadowColor: colors.candy.yellow, shadowOffset: { width: 0, height: 0 }, shadowRadius: 12, shadowOpacity: 0.9 },
   tileDim: { opacity: 0.35 },
   tilePicked: { backgroundColor: '#C9A3FF' },
-  tileSolved: { backgroundColor: '#FFE48A' },
+  tileSolved: { backgroundColor: colors.hi },
   tileIcon: { width: 32, height: 32 },
   tileText: { fontFamily: fonts.bold, fontSize: 11.5, color: colors.ink },
   submitSlot: { height: 72, alignItems: 'center', justifyContent: 'center' },
   submit: { height: 52, paddingHorizontal: 34, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.candy.lime, justifyContent: 'center', ...lift(5) },
-  submitText: { fontFamily: fonts.display, fontSize: 22, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
+  submitText: { fontFamily: fonts.display, fontSize: 22, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1, ...FACE_TEXT },
   bubbleSlot: { marginBottom: 18 },
   spacer: { flex: 1, minHeight: 8 },
-  bubble: { padding: 12, paddingHorizontal: 14, borderRadius: 20, borderBottomLeftRadius: 6, backgroundColor: '#fff', borderWidth: 3, borderColor: colors.ink, gap: 4, ...lift(5) },
+  bubble: { padding: 12, paddingHorizontal: 14, borderRadius: 20, borderBottomLeftRadius: 6, backgroundColor: colors.card, borderWidth: 3, borderColor: colors.ink, gap: 4, ...lift(5) },
   bubbleHead: { flexDirection: ROW, alignItems: 'center', gap: 6 },
   tag: { paddingHorizontal: 8, borderRadius: 99, backgroundColor: '#3F72D0', borderWidth: 2, borderColor: colors.ink },
   tagText: { fontFamily: fonts.display, fontSize: 12, lineHeight: 20, color: '#fff' },

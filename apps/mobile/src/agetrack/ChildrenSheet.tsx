@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
   bad: { fontFamily: fonts.bold, fontSize: 13.5, color: '#B3261E', textAlign: 'center' },
   list: { flexGrow: 0 },
   listContent: { gap: 10 },
-  child: { gap: 8, padding: 10, borderRadius: 16, borderWidth: 2, borderColor: INK, backgroundColor: '#fff' },
+  child: { gap: 8, padding: 10, borderRadius: 16, borderWidth: 2, borderColor: INK, backgroundColor: colors.card },
   name: { fontFamily: fonts.display, fontSize: 18, color: INK, textAlign: 'center' },
   code: { fontFamily: fonts.bold, fontSize: 15, color: '#6634B0', textAlign: 'center' },
   row: { flexDirection: 'row', gap: 8, justifyContent: 'center', flexWrap: 'wrap' },

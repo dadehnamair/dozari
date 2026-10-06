@@ -1,3 +1,4 @@
+import { FACE_TEXT } from '../theme/skin';
 import { useEffect, useState } from 'react';
 import { SkeletonRows } from '../components/Skeleton';
 import { swr } from '../net/cache';
@@ -165,7 +166,7 @@ const styles = StyleSheet.create({
   back: { width: 42, height: 42, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...lift(4) },
   pressed: { transform: [{ translateY: 3 }] },
   plate: { flex: 1, height: 46, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...lift(4) },
-  plateText: { fontFamily: fonts.display, fontSize: 24, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
+  plateText: { fontFamily: fonts.display, fontSize: 24, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1, ...FACE_TEXT },
   spacer: { width: 42 },
   tabs: { flexDirection: ROW, marginHorizontal: 30, marginTop: 12, height: 40, padding: 3, gap: 3, borderRadius: 99, borderWidth: 2.5, borderColor: 'rgba(255,255,255,0.4)', backgroundColor: 'rgba(43,18,64,0.6)' },
   tab: { flex: 1, borderRadius: 99, alignItems: 'center', justifyContent: 'center' },
@@ -180,10 +181,10 @@ const styles = StyleSheet.create({
   spotXp: { fontFamily: fonts.bold, fontSize: 12, color: '#FFE48A', marginBottom: 4 },
   block: { width: '100%', borderTopLeftRadius: 14, borderTopRightRadius: 14, borderWidth: 3, borderBottomWidth: 0, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   blockRank: { fontFamily: fonts.display, fontSize: 40, color: '#fff', textShadowOffset: { width: 0, height: 3 }, textShadowRadius: 1 },
-  sheet: { flex: 1, backgroundColor: '#FBF1DE', borderTopWidth: 4, borderColor: colors.ink, borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingTop: 12, paddingHorizontal: 12 },
+  sheet: { flex: 1, backgroundColor: colors.paper, borderTopWidth: 4, borderColor: colors.ink, borderTopLeftRadius: 26, borderTopRightRadius: 26, paddingTop: 12, paddingHorizontal: 12 },
   rows: { gap: 6, paddingBottom: 90 },
   note: { fontFamily: fonts.bold, fontSize: 13, color: colors.ink, textAlign: 'center', marginTop: 10 },
-  row: { height: 46, flexDirection: ROW, alignItems: 'center', gap: 8, paddingHorizontal: 10, borderRadius: 14, borderWidth: 2, borderColor: 'rgba(43,18,64,0.25)', backgroundColor: '#FFF6E8' },
+  row: { height: 46, flexDirection: ROW, alignItems: 'center', gap: 8, paddingHorizontal: 10, borderRadius: 14, borderWidth: 2, borderColor: 'rgba(43,18,64,0.25)', backgroundColor: colors.cream },
   rowMe: { backgroundColor: '#FFF1B8', borderColor: colors.ink },
   rank: { width: 26, fontFamily: fonts.display, fontSize: 18, color: colors.ink, opacity: 0.7, textAlign: 'center' },
   rowName: { flex: 1, flexDirection: ROW, alignItems: 'center', gap: 4 },

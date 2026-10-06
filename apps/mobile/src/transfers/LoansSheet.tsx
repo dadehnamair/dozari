@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
   title: { fontFamily: fonts.display, fontSize: 24, color: INK },
   list: { alignSelf: 'stretch', flexGrow: 0 },
   content: { gap: 8 },
-  item: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, borderRadius: 14, borderWidth: 2, borderColor: INK, backgroundColor: '#fff' },
+  item: { flexDirection: 'row', alignItems: 'center', gap: 6, padding: 8, borderRadius: 14, borderWidth: 2, borderColor: INK, backgroundColor: colors.card },
   itemText: { flex: 1 },
   name: { fontFamily: fonts.bold, fontSize: 14, color: INK },
   hint: { fontFamily: fonts.bold, fontSize: 12, color: INK, opacity: 0.8 },

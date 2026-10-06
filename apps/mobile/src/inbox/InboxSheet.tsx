@@ -69,11 +69,11 @@ export function InboxSheet({ inbox, failed, onRead, onReadAll, onClose }: { inbo
 const styles = StyleSheet.create({
   list: { gap: 8, paddingBottom: 24 },
   filters: { flexDirection: ROW, gap: 6, marginBottom: 2 },
-  chip: { paddingHorizontal: 12, height: 32, borderRadius: 16, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  chip: { paddingHorizontal: 12, height: 32, borderRadius: 16, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
   chipOn: { backgroundColor: colors.candy.yellow },
   chipText: { fontFamily: fonts.bold, fontSize: 12, color: colors.ink },
   note: { fontFamily: fonts.bold, fontSize: 14, color: colors.ink, textAlign: 'center', marginTop: 12 },
-  card: { flexDirection: ROW, alignItems: 'center', gap: 10, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#fff', shadowColor: colors.ink, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4 },
+  card: { flexDirection: ROW, alignItems: 'center', gap: 10, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.card, shadowColor: colors.ink, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4 },
   unread: { backgroundColor: '#FFF6D8' },
   pressed: { transform: [{ translateY: 2 }] },
   tile: { width: 46, height: 46, borderRadius: 14, borderWidth: 2.5, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },

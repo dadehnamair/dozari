@@ -114,7 +114,7 @@ export const fa = {
     seeResult: 'دیدن نتیجه',
     again: 'یک دور دیگر',
     noProducts: 'هنوز کالای کافی برای این بازی نداریم.',
-    play: 'حدس قیمت',
+    play: 'حدس',
   },
   net: {
     downTitle: 'ارتباط قطع شد',
@@ -171,7 +171,7 @@ export const fa = {
     error: 'نتوانستیم گردونه را بگیریم.',
   },
   daily: { title: 'جایزهٔ روزانه', day: 'روز', today: 'امروز', claim: 'بگیر!', wait: 'تا جایزهٔ بعدی', won: 'سکه گرفتی!', coins: 'سکه', open: 'جایزهٔ روزانه' },
-  prefs: { title: 'تنظیمات من', hint: 'فقط روی همین دستگاه اثر می‌گذارد.', sound: 'صدا', music: 'موسیقی', vibration: 'لرزش', reduceMotion: 'حرکت کمتر' },
+  prefs: { title: 'تنظیمات من', hint: 'فقط روی همین دستگاه اثر می‌گذارد.', sound: 'صدا', music: 'موسیقی', musicVolume: 'بلندی موسیقی', musicVolumes: ['خیلی کم', 'کم', 'متوسط', 'زیاد'], vibration: 'لرزش', reduceMotion: 'حرکت کمتر' },
   dailyPuzzle: {
     title: 'پازل روز',
     play: 'بازی کن',
@@ -305,6 +305,7 @@ export const fa = {
     sent: 'رسید؛ ممنونیم!',
     report: {
       open: 'گزارش این بازیکن',
+      short: 'گزارش',
       title: 'گزارش بازیکن',
       pick: 'چرا گزارشش می‌کنی؟',
       categories: { abuse: 'توهین و فحاشی', spam: 'اسپم و تبلیغ', cheating: 'تقلب', bad_name: 'اسم یا عکس نامناسب', other: 'چیز دیگر' } as Record<string, string>,
@@ -561,6 +562,7 @@ export const fa = {
       secondsMore: 'ثانیهٔ دیگه',
       level: (n: number) => toPersianDigits(String(n)),
       you: 'تو',
+      nameHint: (name: string, minLevel: number, level: number) => (level >= minLevel ? `اسمت توی بازی «${name}» است؛ از پروفایلت می‌توانی عوضش کنی.` : `اسمت توی بازی «${name}» است؛ از لول ${toPersianDigits(String(minLevel))} می‌توانی عوضش کنی.`),
       rival: 'حریف',
       unknown: '؟',
       leave: 'ترک بازی',
@@ -1231,6 +1233,7 @@ export const fa = {
     sending: 'کمی صبر کن…',
   },
   ageTrack: {
+    whoPlays: 'کی بازی می‌کنه؟',
     title: 'چه کسی بازی می‌کنه؟',
     sub: 'دوزاری برای هر سنی بازی داره. رده‌ات رو انتخاب کن تا پازل‌ها و بازی‌ها به سن تو بخورن.',
     adult: 'بزرگسال',
@@ -1415,6 +1418,14 @@ export const fa = {
   },
   bale: {
     open: 'بازیت رو نگه دار',
+    row: 'اتصال به بله',
+    openBot: 'باز کردن در بله (بدون تایپ کد)',
+    /** Server answers to «get a code», by error code. */
+    errors: {
+      bale_not_configured: 'ربات بله هنوز راه‌اندازی نشده.',
+      unauthorized: 'ورودت منقضی شده؛ برنامه را ببند و دوباره باز کن.',
+      rate_limited: 'خیلی زود به زود زدی؛ کمی بعد دوباره امتحان کن.',
+    } as Record<string, string>,
     title: 'بازیت رو نگه دار',
     intro: 'به ربات دوزاری توی بله وصل شو تا بازیت ذخیره بمونه، هر وقت خواستی برگردی، و پیام‌ها، نتیجهٔ بازی‌ها و جایزهٔ روزانه رو همون‌جا بگیری.',
     getCode: 'گرفتن کد',

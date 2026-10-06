@@ -49,7 +49,7 @@ export function PackCard({ item, on, onTry, onAct, onPay, realMoney }: { item: S
 const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0, height: h }, shadowOpacity: 1, shadowRadius: 0, elevation: h });
 
 const styles = StyleSheet.create({
-  card: { width: '48.5%', borderRadius: 20, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#FFF6E8', padding: 6, paddingBottom: 8, gap: 4, ...lift(4) },
+  card: { width: '48.5%', borderRadius: 20, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.cream, padding: 6, paddingBottom: 8, gap: 4, ...lift(4) },
   cardOn: { borderColor: colors.candy.yellow, backgroundColor: '#FFF1C9' },
   pic: { height: 124, borderRadius: 14, overflow: 'hidden', alignItems: 'center', justifyContent: 'flex-end' },
   face: { width: 100, height: 108 },
@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
   lockText: { fontFamily: fonts.display, fontSize: 12, color: '#fff' },
   name: { fontFamily: fonts.display, fontSize: 15, lineHeight: 20, color: colors.ink, textAlign: 'center' },
   btn: { height: 34, borderRadius: 12, borderWidth: 2.5, borderColor: colors.ink, overflow: 'hidden', flexDirection: ROW, alignItems: 'center', justifyContent: 'center', gap: 4, ...lift(3) },
-  btnOwned: { backgroundColor: '#fff' },
+  btnOwned: { backgroundColor: colors.card },
   btnWorn: { backgroundColor: '#B8F08F' },
   btnOff: { opacity: 0.5 },
   pressed: { transform: [{ translateY: 2 }] },

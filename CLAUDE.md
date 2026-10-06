@@ -4,6 +4,15 @@ Online multiplayer Persian puzzle game about **Iranian price nostalgia**: NYT Co
 (16 items → 4 hidden groups of 4) over historical nominal prices of Iranian products; live 1v1, 2v2,
 private tables. Name/slogans/voice: `docs/brand.md` (D29); visual direction: `docs/brand-visual.md`.
 
+## Design files (`docs/design/`, owner-drawn `.dc.html`; rules in `docs/design/CLAUDE.md`)
+
+- Root = shared/general designs (`Dozari - 01…23`, `Character`, `Item`, `Scene`, `Logo`, `Mascot`, `Visual Assets`). Index: `docs/design/github.md`.
+- `kids/` = کودک/نوجوان designs (`Dozari Kids - Banners`). **Kid/teen keep the current theme and icon; do not restyle them.**
+- `adult/` = بزرگسال designs: style «صرافی و گاوصندوق» (near-black + gold; locked rules in `docs/design/CLAUDE.md`). `Dozari Adult - Login Home` (login, home, hub), `- UI Kit`, `- App Icon`, `- Banner`.
+- `yadegar/` = keepsake-card (کارت یادگار) set: `YCard`, Album, Medals, Profile, Puzzles. Code: `packages/shared/src/keepsake`, `apps/server/src/keepsakes`, `apps/mobile/src/keepsake`.
+- `site/` = landing site designs (`apps/landing`). Each subfolder has its own copy of `support.js`/`Character`/`Item`/`Scene`/`Logo`: keep in sync with root.
+- Age-based theme/icon (owner, 2026-10-06, overrides D198 principle 1 "one theme/icon"): adult track uses the `adult/` look and app icon, kid/teen the current one; applies to PWA and Android, and switching track switches icon + theme everywhere. Code: `apps/mobile/src/theme`, `src/appIcon`, `modules/app-icon`, `plugins/withGenderIcon.js`, `public/manifest.webmanifest`.
+
 Product source of truth: `docs/design-brief.fa.md`; refinements/overrides: `docs/DECISIONS.md`.
 Read both before any product-level change. Roadmap: `docs/PLAN.md`. Stack: `docs/ARCHITECTURE.md`.
 

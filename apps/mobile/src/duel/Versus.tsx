@@ -1,12 +1,13 @@
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import Svg, { Defs, Line, Pattern, Polygon, RadialGradient, Rect, Stop } from 'react-native-svg';
-import { solarMonthOf, toPersianDigits } from '@dozari/shared';
+import { NICKNAME_CHANGE_MIN_LEVEL, solarMonthOf, toPersianDigits } from '@dozari/shared';
 import type { MatchPlayerProfile } from '@dozari/shared';
 import { Character } from '../components/Character';
 import { GradientFill } from '../components/GradientFill';
 import { SlabButton } from '../components/SlabButton';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
+import { FACE_TEXT } from '../theme/skin';
 import { characterFor } from './arena';
 import { steppedSec } from '../search/scan';
 
@@ -50,6 +51,7 @@ export function Versus({ me, rival, mate, rivals, waitedSec, countdown, onCancel
           <Fighter who="dozari" pose="coin" name={me.nickname || a.you} level={me.level} side="me" small={team} />
           {team && mate ? <Fighter who={characterFor(mate.avatarKey || mate.nickname)} pose="wave" name={mate.nickname} level={mate.level} side="me" small party={mate.birthday} /> : null}
         </View>
+        {me.nickname ? <Text style={styles.nameHint}>{a.nameHint(me.nickname, NICKNAME_CHANGE_MIN_LEVEL, me.level ?? 1)}</Text> : null}
       </View>
 
       <View style={styles.coinWrap} pointerEvents="none">
@@ -112,10 +114,11 @@ const styles = StyleSheet.create({
   top: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', paddingTop: 24, paddingBottom: 70, gap: 10 },
   bottom: { flex: 1, alignItems: 'center', justifyContent: 'flex-start', paddingTop: 60 },
   chip: { paddingHorizontal: 16, paddingVertical: 4, borderRadius: 99, backgroundColor: 'rgba(43,18,64,0.7)', borderWidth: 2, borderColor: 'rgba(255,255,255,0.35)' },
+  nameHint: { fontFamily: fonts.bold, fontSize: 12, color: colors.cream, textAlign: 'center', paddingHorizontal: 24, opacity: 0.9 },
   chipText: { fontFamily: fonts.display, fontSize: 16, color: colors.cream },
   coinWrap: { position: 'absolute', left: 0, right: 0, top: '50%', marginTop: -52, alignItems: 'center' },
   coin: { width: 96, height: 96, borderRadius: 48, borderWidth: 4, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', shadowColor: colors.ink, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 1, shadowRadius: 0, elevation: 6 },
-  coinText: { fontFamily: fonts.display, fontSize: 44, lineHeight: 60, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 3 }, textShadowRadius: 1 },
+  coinText: { fontFamily: fonts.display, fontSize: 44, lineHeight: 60, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 3 }, textShadowRadius: 1, ...FACE_TEXT },
   fighter: { alignItems: 'center', gap: 4 },
   body: { width: 120, height: 139 },
   bodySmall: { width: 86, height: 100 },

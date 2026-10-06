@@ -29,6 +29,7 @@ import { DuelPriceRound } from './DuelPriceRound';
 import { DuelResult } from './DuelResult';
 import { InviteSheet } from '../invite/InviteSheet';
 import { PlayerSheet } from '../social/PlayerSheet';
+import { ReportDialog } from '../feedback/ReportDialog';
 import { MatchHud } from './MatchHud';
 import { ModeSelect } from './ModeSelect';
 import { boardSolved, duelReducer, endedFromView, initialDuel, isCaptain, isMyTurn, myOutcome, sideName, sidePlayers, turnSecondsLeft } from './model';
@@ -59,6 +60,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   const [round, setRound] = useState(0);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [profileId, setProfileId] = useState<string | null>(null);
+  const [reportId, setReportId] = useState<string | null>(null);
   const [state, dispatch] = useReducer(duelReducer, initialDuel);
   const [selected, setSelected] = useState<string[]>([]);
   const [order, setOrder] = useState<string[]>([]);
@@ -333,7 +335,8 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   const rivalWho = characterFor(sidePlayers(state.found, them)[0]?.avatarKey || rivalName);
   const lines = [
     { name: myName, who: 'dozari' as const, groups: groupsBy(view, me), me: true },
-    { name: rivalName, who: rivalWho, groups: groupsBy(view, them), me: false, playerId: sidePlayers(state.found, them).length === 1 ? sidePlayers(state.found, them)[0]?.userId : undefined },
+    { name: rivalName, who: rivalWho, groups: groupsBy(view, them), me: false, playerId: sidePlayers(state.found, them).length === 1 ? sidePlayers(state.found, them)[0]?.userId : undefined,
+      reportable: sidePlayers(state.found, them).flatMap((p) => (p.userId ? [{ id: p.userId, name: p.nickname }] : [])) },
   ];
 
   if (state.phase === 'ended' && state.ended && !state.finale) {
@@ -350,6 +353,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
           onAgain={stage === 'queue' ? again : undefined}
           onInvite={() => setInviteOpen(true)}
           onPlayer={(id) => setProfileId(id)}
+          onReport={(id) => setReportId(id)}
         />
         {!prefs.reduceMotion ? (outcome === 'won' ? <Confetti distance={500} /> : <Rain distance={800} />) : null}
         {outcome === 'won' && spinsWaiting > 0 ? (
@@ -357,6 +361,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
         ) : null}
         {inviteOpen ? <InviteSheet onClose={() => setInviteOpen(false)} /> : null}
         {profileId ? <PlayerSheet playerId={profileId} onClose={() => setProfileId(null)} /> : null}
+        {reportId ? <ReportDialog target={{ kind: 'user', userId: reportId }} onClose={() => setReportId(null)} /> : null}
         {wheelOpen ? <WheelPage onClose={() => (setWheelOpen(false), void fetchWheel().then((w) => setSpinsWaiting(w.pending), () => undefined))} /> : null}
       </View>
     );
@@ -506,7 +511,7 @@ const styles = StyleSheet.create({
   round: { width: 52, height: 52, borderRadius: 26, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center', ...lift },
   roundGap: { width: 52 },
   tauntBox: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
-  tauntChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, borderWidth: 2, borderColor: colors.ink, backgroundColor: '#E8D5FF' },
+  tauntChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.tint },
   tauntText: { fontFamily: fonts.bold, fontSize: 13, color: colors.ink },
   actions: { flexDirection: ROW, gap: 9 },
   nearMiss: { position: 'absolute', top: '38%', left: 0, right: 0, alignItems: 'center' },
