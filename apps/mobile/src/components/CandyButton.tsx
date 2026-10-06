@@ -51,7 +51,7 @@ export function CandyButton({
             <GradientFill from={face.from} to={face.to} mid={{ at: 0.6, color: face.to }} />
             <View style={styles.topLight} />
             {pressed || disabled ? null : <View style={styles.bottomShade} />}
-            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={[styles.label, { fontSize: label.length > 24 ? 15 : label.length > 17 ? 18 : 22 }, !disabled && theme === 'adult' ? { color: tone.text, textShadowColor: 'transparent' } : null, disabled ? styles.labelOff : null]}>{label}</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={[styles.label, { fontSize: label.length > 24 ? 15 : label.length > 17 ? 18 : 22 }, !disabled && theme === 'adult' ? { color: tone.text, textShadowColor: 'transparent', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 0 } : null, disabled ? styles.labelOff : null]}>{label}</Text>
           </View>
         </View>
       )}
@@ -99,5 +99,5 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 0,
   },
-  labelOff: { color: DISABLED.text, textShadowColor: 'transparent' },
+  labelOff: { color: DISABLED.text, textShadowColor: 'transparent', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 0 },
 });

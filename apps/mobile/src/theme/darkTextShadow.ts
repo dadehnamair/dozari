@@ -1,5 +1,5 @@
 import { StyleSheet, Text } from 'react-native';
-import { smearsDarkText } from './darkText';
+import { brightnessOf, smearsDarkText } from './darkText';
 
 type Renderable = { render?: (props: { style?: unknown }, ref: unknown) => unknown };
 
@@ -13,7 +13,10 @@ export function installDarkTextShadowFix(): void {
   target.__darkShadowFix = true;
   const original = target.render;
   target.render = function render(this: unknown, props, ref) {
-    const next = props && smearsDarkText(StyleSheet.flatten(props.style as never)) ? { ...props, style: [props.style, { textShadowColor: 'transparent', textShadowRadius: 0 }] } : props;
+    const flat = props ? (StyleSheet.flatten(props.style as never) as { color?: unknown; textShadowColor?: unknown } | undefined) : undefined;
+    // A «transparent» shadow still paints black on the web, so the shadow is also moved under the glyph and its blur removed.
+    const kill = !!flat && (smearsDarkText(flat) || (flat.textShadowColor === 'transparent' && (brightnessOf(flat.color) ?? 1) < 0.4));
+    const next = props && kill ? { ...props, style: [props.style, { textShadowColor: 'transparent', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 0 }] } : props;
     return original.call(this, next, ref);
   };
 }

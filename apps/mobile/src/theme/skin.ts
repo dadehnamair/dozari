@@ -24,7 +24,7 @@ const ADULT_BOOT = bootTheme() === 'adult';
  * Text on a candy-coloured face: white with an ink shadow in the play look; in the adult look the faces are brass and silver,
  * so the text turns dark and loses the shadow (a dark shadow under dark text only smears it). Spread it last in the text style.
  */
-export const FACE_TEXT = ADULT_BOOT ? ({ color: '#2A1606', textShadowColor: 'transparent', textShadowRadius: 0 } as const) : ({} as const);
+export const FACE_TEXT = ADULT_BOOT ? ({ color: '#2A1606', textShadowColor: 'transparent', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 0 } as const) : ({} as const);
 
 /** Text lying straight on a dark scene (splash, backdrops): ink in play where scenes are light, cream-gold with a black shadow in adult. */
 export const SCENE_TEXT = ADULT_BOOT ? ({ color: '#FFE9A8', textShadowColor: '#000', textShadowRadius: 2 } as const) : ({} as const);

@@ -196,7 +196,7 @@ const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0
 /** Adult overrides (night bazaar: near-black plates, gold frames, brass buttons). */
 const ad = StyleSheet.create({
   mode: { backgroundColor: '#0E0A08', borderColor: '#8A5A16' },
-  modeText: { color: '#E8B64A', textShadowColor: 'transparent' },
+  modeText: { color: '#E8B64A', textShadowColor: 'transparent', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 0 },
   plate: { backgroundColor: '#17100C', borderColor: '#E8B64A' },
   plateOn: { backgroundColor: '#E8B64A', borderColor: '#000' },
   plateText: { color: '#FFE9A8' },
@@ -207,10 +207,10 @@ const ad = StyleSheet.create({
   sheet: { backgroundColor: '#17100C', borderColor: '#E8B64A' },
   sheetName: { color: '#FFE9A8' },
   chipBig: { backgroundColor: '#E8B64A', borderColor: '#000' },
-  chipBigText: { color: '#2A1606', textShadowColor: 'transparent' },
+  chipBigText: { color: '#2A1606', textShadowColor: 'transparent', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 0 },
   desc: { color: 'rgba(255,233,168,0.85)' },
-  enterText: { color: '#2A1606', textShadowColor: 'transparent' },
-  enterTextOff: { color: 'rgba(255,233,168,0.6)', textShadowColor: 'transparent' },
+  enterText: { color: '#2A1606', textShadowColor: 'transparent', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 0 },
+  enterTextOff: { color: 'rgba(255,233,168,0.6)', textShadowColor: 'transparent', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 0 },
 });
 
 const styles = StyleSheet.create({

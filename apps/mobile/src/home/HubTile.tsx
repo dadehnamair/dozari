@@ -72,7 +72,7 @@ export function HubTile({ icon, label, color, badge, badgeColor = colors.candy.p
 
 const styles = StyleSheet.create({
   /** For cream sheets (profile): the white-on-scene label would vanish. */
-  labelOnLight: { color: colors.ink, textShadowColor: 'transparent', textShadowRadius: 0 },
+  labelOnLight: { color: colors.ink, textShadowColor: 'transparent', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 0 },
   tileAdult: { borderColor: '#B8822A', shadowColor: '#000' },
   tileAdultLit: { borderColor: '#FFF1B8', shadowColor: '#000' },
   labelAdult: { color: '#FFE9A8', textShadowColor: '#000' },

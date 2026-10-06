@@ -3,7 +3,7 @@ import { Platform, StyleSheet, Text, View } from 'react-native';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { TEXT_RIGHT } from '../theme/direction';
-import { safeInsetTop, nativeTopInset } from '../theme/safeArea';
+import { nativeTopInset } from '../theme/safeArea';
 import { BASE_URL } from './http';
 import { isServerDown, onServerDown, reportServer } from './health';
 
@@ -23,7 +23,7 @@ export function ServerDownBanner() {
   }, [down]);
   if (!down) return null;
   return (
-    <View style={[styles.wrap, { top: safeInsetTop() + nativeTopInset() + 6 }]} pointerEvents="none" accessibilityLiveRegion="polite">
+    <View style={[styles.wrap, { top: Platform.OS === 'web' ? (`calc(env(safe-area-inset-top, 0px) + 6px)` as unknown as number) : nativeTopInset() + 6 }]} pointerEvents="none" accessibilityLiveRegion="polite">
       <View style={styles.strip}>
         <View style={styles.dot} />
         <View style={styles.body}>

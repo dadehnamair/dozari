@@ -32,9 +32,14 @@ const dk = StyleSheet.create({
   sheet: { backgroundColor: DARK.panel, borderColor: DARK.frame },
   text: { color: DARK.text, opacity: 1 },
   input: { backgroundColor: DARK.field, borderColor: DARK.frame, color: DARK.text },
-  cell: { backgroundColor: DARK.raised },
+  cell: { backgroundColor: DARK.raised, borderColor: DARK.line },
+  on: { backgroundColor: DARK.frame, borderColor: DARK.frame },
+  gold: { color: DARK.frame },
+  card: { backgroundColor: DARK.raised, borderColor: DARK.line },
+  sub: { color: DARK.sub },
   chip: { backgroundColor: DARK.raised, borderColor: DARK.frame, color: DARK.text },
 });
+const f = fa.tables.form;
 const errText = (e: unknown) => fa.tables.errors[e instanceof ApiError ? e.code : 'network'] ?? fa.tables.errors.generic ?? '';
 
 /** «میز اختصاصی»: create a table or enter one by its code, then wait for the guest and start a duel. `initialCode` opens a shared table. */
@@ -50,7 +55,7 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
   const [name, setName] = useState('');
   const [icon, setIcon] = useState<string>(DEFAULT_TABLE_ICON);
   /** Before sitting at a table: the two-choice menu, then the form of the chosen one. */
-  const [mode, setMode] = useState<'menu' | 'make' | 'join' | 'open'>(initialCode ? 'join' : 'menu');
+  const [mode, setMode] = useState<'menu' | 'make' | 'join'>(initialCode ? 'join' : 'menu');
   /** Boards played, the entry each player pays (never below the minimum for the rounds) and whether the table hides from the open list. */
   const [rounds, setRounds] = useState<number>(TABLE_ROUNDS_MIN);
   const [entry, setEntry] = useState<number>(tableMinEntry(TABLE_ROUNDS_MIN));
@@ -141,7 +146,7 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
             <View style={styles.titleIcon}><Item icon={table.icon} /></View>
             <Text style={[styles.title, dark ? dk.text : null]}>{table.name}</Text>
           </View>
-        ) : <Text style={[styles.title, dark ? dk.text : null]}>{mode === 'make' ? fa.tables.createTitle : mode === 'join' ? fa.tables.joinTitle : mode === 'open' ? fa.tables.openList.title : fa.tables.title}</Text>}
+        ) : <Text style={[styles.title, dark ? dk.text : null]}>{mode === 'make' ? fa.tables.createTitle : mode === 'join' ? fa.tables.joinTitle : fa.tables.title}</Text>}
         <ScrollView style={styles.list} contentContainerStyle={styles.content}>
           <GuideBubble who="goli" text={fa.tables.goliHello} />
           {table ? (
@@ -172,7 +177,7 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
               {note ? <Text style={styles.warn}>{note}</Text> : null}
               {table.youAreHost && !table.inMatch && table.players.length < table.seats ? <InviteFriends onNote={setNote} /> : null}
               <TableChat code={table.code} meId={table.players.find((p) => p.isYou)?.id ?? null} />
-              <Text style={[styles.hint, dark ? dk.text : null]}>{fa.tables.friendly}</Text>
+              {table.entryFee === 0 ? <Text style={[styles.hint, dark ? dk.text : null]}>{fa.tables.friendly}</Text> : null}
               {table.youAreHost ? (
                 <>
                   {!full ? <Text style={[styles.hint, dark ? dk.text : null]}>{fa.tables.lobby.hostNeeds(table.seats - table.players.length)}</Text> : !teamsOk ? <Text style={styles.warn}>{fa.tables.lobby.teamsUneven}</Text> : null}
@@ -191,82 +196,66 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
           ) : (
             mode === 'menu' ? (
               <>
-                <Text style={[styles.hint, dark ? dk.text : null]}>{fa.tables.intro}</Text>
-                <Pressable onPress={() => setMode('open')} style={[styles.choice, { backgroundColor: colors.candy.yellow }]} accessibilityRole="button">
-                  <View style={styles.choiceIcon}><Item icon="lantern" /></View>
-                  <View style={styles.grow}>
-                    <Text style={styles.choiceTitle}>{fa.tables.menuOpen}</Text>
-                    <Text style={styles.choiceHint}>{fa.tables.menuOpenHint}</Text>
-                  </View>
-                </Pressable>
-                <Pressable onPress={() => setMode('join')} style={[styles.choice, { backgroundColor: colors.candy.sky }]} accessibilityRole="button">
-                  <View style={styles.choiceIcon}><Item icon="key" /></View>
-                  <View style={styles.grow}>
-                    <Text style={styles.choiceTitle}>{fa.tables.menuJoin}</Text>
-                    <Text style={styles.choiceHint}>{fa.tables.menuJoinHint}</Text>
-                  </View>
-                </Pressable>
-                <Pressable onPress={() => setMode('make')} style={[styles.choice, { backgroundColor: colors.candy.lime }]} accessibilityRole="button">
-                  <View style={styles.choiceIcon}><Item icon="samovar" /></View>
-                  <View style={styles.grow}>
-                    <Text style={styles.choiceTitle}>{fa.tables.menuMake}</Text>
-                    <Text style={styles.choiceHint}>{fa.tables.menuMakeHint}</Text>
-                  </View>
-                </Pressable>
+                <View style={styles.menuRow}>
+                  <Pressable onPress={() => setMode('make')} style={({ pressed }) => [styles.bigBtn, { backgroundColor: colors.candy.lime }, pressed ? { opacity: 0.85 } : null]} accessibilityRole="button">
+                    <View style={styles.bigIcon}><Item icon="samovar" /></View>
+                    <Text style={styles.bigText}>{fa.tables.menuMake}</Text>
+                  </Pressable>
+                  <Pressable onPress={() => setMode('join')} style={({ pressed }) => [styles.bigBtn, { backgroundColor: colors.candy.sky }, pressed ? { opacity: 0.85 } : null]} accessibilityRole="button">
+                    <View style={styles.bigIcon}><Item icon="key" /></View>
+                    <Text style={styles.bigText}>{fa.tables.menuJoin}</Text>
+                  </Pressable>
+                </View>
+                <Text style={[styles.sectionTitle, dark ? dk.gold : null]}>{fa.tables.openList.title}</Text>
+                <OpenTables onSeated={(t) => (setNote(null), setTable(t))} onNote={setNote} errText={errText} />
+                {note ? <Text style={styles.warn}>{note}</Text> : null}
               </>
             ) : mode === 'make' ? (
               <>
-                <TextInput value={name} onChangeText={setName} maxLength={30} placeholder={fa.tables.namePlaceholder} style={[styles.input, dark ? dk.input : null]} />
-                <Text style={[styles.label, dark ? dk.text : null]}>{fa.tables.iconTitle}</Text>
-                <View style={styles.icons}>
-                  {TABLE_ICONS.map((k) => (
-                    <Pressable key={k} onPress={() => setIcon(k)} accessibilityRole="button" accessibilityState={{ selected: icon === k }} style={[styles.iconCell, dark ? dk.cell : null, icon === k ? styles.iconOn : null]}>
-                      <Item icon={k} />
-                    </Pressable>
-                  ))}
-                </View>
-                <Text style={[styles.label, dark ? dk.text : null]}>{fa.tables.formatTitle}</Text>
-                <View style={styles.row}>
-                  {(['1v1', '2v2'] as const).map((f) => (
-                    <Pressable key={f} onPress={() => setFormat(f)} accessibilityRole="button" accessibilityState={{ selected: format === f }} style={[styles.pill, format === f ? { backgroundColor: colors.candy.lime } : null]}>
-                      <Text style={styles.pillText}>{f === '1v1' ? fa.tables.format1v1 : fa.tables.format2v2}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-                <Text style={[styles.label, dark ? dk.text : null]}>{fa.tables.roundsTitle}</Text>
-                <Stepper label={fa.tables.rounds(rounds)} onMinus={() => pickRounds(rounds - 1)} onPlus={() => pickRounds(rounds + 1)} minusOff={rounds <= TABLE_ROUNDS_MIN} plusOff={rounds >= TABLE_ROUNDS_MAX} />
-                <Text style={[styles.label, dark ? dk.text : null]}>{fa.tables.priceTitle}</Text>
-                {format === '2v2' ? <Text style={[styles.hint, dark ? dk.text : null]}>{fa.tables.priceTeamNote}</Text> : (
-                  <>
-                    <Pressable onPress={() => setPricing(!pricing)} accessibilityRole="checkbox" accessibilityState={{ checked: pricing }}>
-                      <Text style={[styles.hint, dark ? dk.text : null]}>{pricing ? '☑' : '☐'} {fa.tables.priceOn}</Text>
-                    </Pressable>
-                    {pricing ? <Stepper label={fa.tables.priceCount(priceCount)} onMinus={() => setPriceCount((c) => Math.max(1, c - 1))} onPlus={() => setPriceCount((c) => Math.min(TABLE_PRICE_ROUNDS_MAX, c + 1))} minusOff={priceCount <= 1} plusOff={priceCount >= TABLE_PRICE_ROUNDS_MAX} /> : null}
-                  </>
-                )}
-                <Text style={[styles.label, dark ? dk.text : null]}>{fa.tables.entryTitle}</Text>
-                <Stepper label={`${toPersianDigits(String(entry))} ${fa.tables.coins}`} onMinus={() => setEntry((e) => Math.max(minEntry, e - 10))} onPlus={() => setEntry((e) => Math.min(TABLE_ENTRY_MAX, e + 10))} minusOff={entry <= minEntry} plusOff={entry >= TABLE_ENTRY_MAX} />
-                <Text style={[styles.hint, dark ? dk.text : null]}>{fa.tables.entryHint(minEntry)}</Text>
-                <Pressable onPress={() => setIsPrivate(!isPrivate)} accessibilityRole="checkbox" accessibilityState={{ checked: isPrivate }}>
-                  <Text style={[styles.hint, dark ? dk.text : null]}>{isPrivate ? '☑' : '☐'} {fa.tables.isPrivate}</Text>
-                </Pressable>
-                <Pressable onPress={() => setRequireReady(!requireReady)} accessibilityRole="checkbox" accessibilityState={{ checked: requireReady }}>
-                  <Text style={[styles.hint, dark ? dk.text : null]}>{requireReady ? '☑' : '☐'} {fa.tables.requireReady}</Text>
-                </Pressable>
-                {hasFamily ? (
-                  <Pressable onPress={() => setFamily(!family)} accessibilityRole="checkbox" accessibilityState={{ checked: family }}>
-                    <Text style={[styles.hint, dark ? dk.text : null]}>{family ? '☑' : '☐'} {fa.tables.family}</Text>
-                  </Pressable>
-                ) : null}
+                <Card dark={dark} title={f.basics} hint={f.basicsHint}>
+                  <TextInput value={name} onChangeText={setName} maxLength={30} placeholder={fa.tables.namePlaceholder} placeholderTextColor={dark ? DARK.sub : '#8A7A6A'} style={[styles.input, dark ? dk.input : null]} />
+                  <View style={styles.icons}>
+                    {TABLE_ICONS.map((k) => (
+                      <Pressable key={k} onPress={() => setIcon(k)} accessibilityRole="button" accessibilityState={{ selected: icon === k }} style={[styles.iconCell, dark ? dk.cell : null, icon === k ? [styles.iconOn, dark ? dk.on : null] : null]}>
+                        <Item icon={k} />
+                      </Pressable>
+                    ))}
+                  </View>
+                </Card>
+                <Card dark={dark} title={fa.tables.formatTitle}>
+                  <View style={styles.seg}>
+                    {(['1v1', '2v2'] as const).map((k) => (
+                      <Pressable key={k} onPress={() => setFormat(k)} accessibilityRole="button" accessibilityState={{ selected: format === k }} style={[styles.segBtn, dark ? dk.cell : null, format === k ? [styles.segOn, dark ? dk.on : null] : null]}>
+                        <Text style={[styles.segText, dark && format !== k ? dk.text : null]}>{k === '1v1' ? fa.tables.format1v1 : fa.tables.format2v2}</Text>
+                        <Text style={[styles.segSub, dark && format !== k ? dk.sub : null]}>{k === '1v1' ? f.oneVone : f.twoVtwo}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </Card>
+                <Card dark={dark} title={f.rules}>
+                  <Text style={[styles.label, dark ? dk.text : null]}>{fa.tables.roundsTitle}</Text>
+                  <Stepper label={fa.tables.rounds(rounds)} onMinus={() => pickRounds(rounds - 1)} onPlus={() => pickRounds(rounds + 1)} minusOff={rounds <= TABLE_ROUNDS_MIN} plusOff={rounds >= TABLE_ROUNDS_MAX} />
+                  <Text style={[styles.hint, dark ? dk.sub : null]}>{f.roundsHint}</Text>
+                  {format === '2v2' ? <Text style={[styles.hint, dark ? dk.sub : null]}>{fa.tables.priceTeamNote}</Text> : (
+                    <>
+                      <Toggle dark={dark} on={pricing} label={fa.tables.priceTitle} hint={fa.tables.priceOn} onPress={() => setPricing(!pricing)} />
+                      {pricing ? <Stepper label={fa.tables.priceCount(priceCount)} onMinus={() => setPriceCount((c) => Math.max(1, c - 1))} onPlus={() => setPriceCount((c) => Math.min(TABLE_PRICE_ROUNDS_MAX, c + 1))} minusOff={priceCount <= 1} plusOff={priceCount >= TABLE_PRICE_ROUNDS_MAX} /> : null}
+                    </>
+                  )}
+                </Card>
+                <Card dark={dark} title={fa.tables.entryTitle} hint={fa.tables.entryHint(minEntry)}>
+                  <Stepper label={`${toPersianDigits(String(entry))} ${fa.tables.coins}`} onMinus={() => setEntry((e) => Math.max(minEntry, e - 10))} onPlus={() => setEntry((e) => Math.min(TABLE_ENTRY_MAX, e + 10))} minusOff={entry <= minEntry} plusOff={entry >= TABLE_ENTRY_MAX} />
+                  <Text style={[styles.hint, dark ? dk.sub : null]}>{fa.tables.prizeNote((entry * (format === '2v2' ? 4 : 2) * (100 - TABLE_HOUSE_CUT_PERCENT)) / 100, TABLE_HOUSE_CUT_PERCENT)}</Text>
+                </Card>
+                <Card dark={dark} title={f.access}>
+                  <Toggle dark={dark} on={isPrivate} label={f.privateLabel} hint={f.privateHint} onPress={() => setIsPrivate(!isPrivate)} />
+                  <Toggle dark={dark} on={requireReady} label={f.readyLabel} hint={f.readyHint} onPress={() => setRequireReady(!requireReady)} />
+                  {hasFamily ? <Toggle dark={dark} on={family} label={f.familyLabel} hint={fa.tables.family} onPress={() => setFamily(!family)} /> : null}
+                </Card>
                 {note ? <Text style={styles.warn}>{note}</Text> : null}
                 <CandyButton label={fa.tables.create} color={colors.candy.lime} disabled={name.trim().length === 0} onPress={() => createTable({ name: name.trim(), icon: icon as (typeof TABLE_ICONS)[number], requireReady, format, family: hasFamily && family, rounds, entryFee: Math.max(entry, minEntry), isPrivate, priceRounds: format === '2v2' || !pricing ? 0 : priceCount }).then((t) => (setNote(null), setTable(t)), fail)} />
+                {name.trim().length === 0 ? <Text style={[styles.hint, dark ? dk.sub : null, { textAlign: 'center' }]}>{f.needName}</Text> : null}
                 <View style={styles.chips}><Chip label={fa.tables.back} color={colors.candy.sky} onPress={() => (setNote(null), setMode('menu'))} /></View>
-              </>
-            ) : mode === 'open' ? (
-              <>
-                <OpenTables onSeated={(t) => (setNote(null), setTable(t))} onNote={setNote} errText={errText} />
-                {note ? <Text style={styles.warn}>{note}</Text> : null}
-                <CandyButton label={fa.tables.back} sfx="back" color={colors.candy.sky} onPress={() => (setNote(null), setMode('menu'))} />
               </>
             ) : (
               <>
@@ -283,6 +272,33 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
       </Pressable>
       {dialog}
       {gate}
+    </Pressable>
+  );
+}
+
+
+/** A titled section of the create form: a raised panel (dark + gold in the adult look) with a heading and an optional line under it. */
+function Card({ dark, title, hint, children }: { dark: boolean; title: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <View style={[styles.card, dark ? dk.card : null]}>
+      <Text style={[styles.cardTitle, dark ? dk.gold : null]}>{title}</Text>
+      {hint ? <Text style={[styles.hint, dark ? dk.sub : null]}>{hint}</Text> : null}
+      {children}
+    </View>
+  );
+}
+
+/** An on/off row: the name, what it does, and a switch that reads «روشن / خاموش» so no one has to guess the state of a tiny box. */
+function Toggle({ dark, on, label, hint, onPress }: { dark: boolean; on: boolean; label: string; hint: string; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} accessibilityRole="switch" accessibilityState={{ checked: on }} style={styles.toggle}>
+      <View style={styles.toggleText}>
+        <Text style={[styles.label, dark ? dk.text : null]}>{label}</Text>
+        <Text style={[styles.hint, dark ? dk.sub : null]}>{hint}</Text>
+      </View>
+      <View style={[styles.switch, on ? styles.switchOn : dark ? dk.cell : styles.switchOff]}>
+        <Text style={[styles.switchText, on ? null : dark ? dk.text : null]}>{on ? f.on : f.off}</Text>
+      </View>
     </Pressable>
   );
 }
@@ -333,6 +349,24 @@ function InviteFriends({ onNote }: { onNote: (text: string | null) => void }) {
 }
 
 const styles = StyleSheet.create({
+  menuRow: { flexDirection: 'row', gap: 10 },
+  bigBtn: { flex: 1, minHeight: 92, borderRadius: 18, borderWidth: 3, borderColor: INK, alignItems: 'center', justifyContent: 'center', gap: 4, padding: 8 },
+  bigIcon: { width: 40, height: 40 },
+  bigText: { fontFamily: fonts.display, fontSize: 18, lineHeight: 26, color: INK, textAlign: 'center' },
+  sectionTitle: { fontFamily: fonts.display, fontSize: 20, lineHeight: 28, color: INK, marginTop: 4, textAlign: TEXT_RIGHT },
+  card: { gap: 8, padding: 12, borderRadius: 16, borderWidth: 2, borderColor: INK, backgroundColor: '#FFF8E6' },
+  cardTitle: { fontFamily: fonts.display, fontSize: 18, lineHeight: 26, color: INK, textAlign: TEXT_RIGHT },
+  seg: { flexDirection: 'row', gap: 8 },
+  segBtn: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: 14, borderWidth: 2, borderColor: INK, backgroundColor: '#fff' },
+  segOn: { backgroundColor: colors.candy.yellow },
+  segText: { fontFamily: fonts.display, fontSize: 20, lineHeight: 28, color: INK },
+  segSub: { fontFamily: fonts.bold, fontSize: 11.5, color: INK, opacity: 0.8 },
+  toggle: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
+  toggleText: { flex: 1, gap: 2 },
+  switch: { minWidth: 64, alignItems: 'center', paddingVertical: 6, paddingHorizontal: 10, borderRadius: 99, borderWidth: 2, borderColor: INK },
+  switchOn: { backgroundColor: colors.candy.lime },
+  switchOff: { backgroundColor: '#E8DCC4' },
+  switchText: { fontFamily: fonts.display, fontSize: 14, lineHeight: 20, color: INK },
   invites: { gap: 6 },
   requests: { gap: 6, padding: 8, borderRadius: 14, borderWidth: 2.5, borderColor: INK, backgroundColor: '#FFF3C4' },
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
@@ -351,10 +385,10 @@ const styles = StyleSheet.create({
   content: { gap: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   code: { fontFamily: fonts.display, fontSize: 24, color: INK, textAlign: 'center', letterSpacing: 2 },
-  label: { fontFamily: fonts.bold, fontSize: 15, color: INK, marginTop: 6 },
+  label: { fontFamily: fonts.bold, fontSize: 15, color: INK, textAlign: TEXT_RIGHT },
   name: { fontFamily: fonts.bold, fontSize: 14, color: INK, flex: 1 },
   choiceHint: { fontFamily: fonts.bold, fontSize: 12, color: INK, opacity: 0.8, textAlign: TEXT_RIGHT },
-  hint: { fontFamily: fonts.bold, fontSize: 13, color: INK, opacity: 0.8 },
+  hint: { fontFamily: fonts.bold, fontSize: 13, lineHeight: 21, color: INK, opacity: 0.8, textAlign: TEXT_RIGHT },
   warn: { fontFamily: fonts.bold, fontSize: 13, color: '#B3261E' },
   input: { fontFamily: fonts.bold, fontSize: 14, color: INK, borderWidth: 2, borderColor: INK, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: colors.card, textAlign: TEXT_RIGHT },
   grow: { flex: 1 },
