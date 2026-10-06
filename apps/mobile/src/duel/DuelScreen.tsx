@@ -19,7 +19,8 @@ import { buzz, playSfx } from '../sound/engine';
 import { canSubmit, pruneSelection, toggleSelection } from '../solo/selection';
 import { TableSheet } from '../tables/TableSheet';
 import { colors, fonts } from '../theme/colors';
-import { arenaNumbers, arrange, characterFor, clockText, endReason, groupsBy, shuffled } from './arena';
+import { arenaNumbers, arenaTiers, arrange, characterFor, clockText, endReason, groupsBy, shuffled } from './arena';
+import type { TierId } from './arena';
 import { DuelPriceRound } from './DuelPriceRound';
 import { DuelResult } from './DuelResult';
 import { InviteSheet } from '../invite/InviteSheet';
@@ -31,6 +32,7 @@ import { connectDuel } from './socket';
 import type { DuelConnection } from './socket';
 import { SearchScreen } from '../search/SearchScreen';
 import { Versus } from './Versus';
+import { LeaveGuard } from './LeaveGuard';
 import { fetchWheel } from '../wheel/api';
 import { WheelPage } from '../wheel/WheelPage';
 
@@ -63,6 +65,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   const [leaveArmed, setLeaveArmed] = useState(false);
   const [friendOpen, setFriendOpen] = useState(false);
   const [mode, setMode] = useState<'duel' | 'team'>('duel');
+  const [tier, setTier] = useState<TierId>('bronze');
   const conn = useRef<DuelConnection | null>(null);
   const [wheelOpen, setWheelOpen] = useState(false);
   const [spinsWaiting, setSpinsWaiting] = useState(0);
@@ -74,7 +77,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
     void connectDuel((act) => alive && dispatch(act)).then(async (c) => {
       if (!alive) return c.close();
       conn.current = c;
-      const ack = await (stage === 'resume' ? c.resume() : c.joinQueue(mode));
+      const ack = await (stage === 'resume' ? c.resume() : c.joinQueue(mode, tier));
       if (!ack.ok) dispatch({ t: 'error', error: ack.error });
       else if (stage === 'queue') dispatch({ t: 'queued' });
     }, () => dispatch({ t: 'error', error: 'NETWORK' }));
@@ -188,7 +191,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   if (stage === 'pick') {
     return (
       <>
-        <ModeSelect entry={numbers.entry} prize={numbers.prize} mode={mode} onMode={setMode} onBack={onBack} onGo={() => setStage('queue')} onFriend={() => setFriendOpen(true)} />
+        <ModeSelect entry={numbers.entry} prize={numbers.prize} mode={mode} onMode={setMode} tiers={arenaTiers(settings)} tier={tier} onTier={setTier} onBack={onBack} onGo={() => setStage('queue')} onFriend={() => setFriendOpen(true)} />
         {friendOpen ? <TableSheet onClose={() => setFriendOpen(false)} onMatch={() => (setFriendOpen(false), setStage('resume'))} /> : null}
       </>
     );
@@ -315,6 +318,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
 
   return (
     <MatchBackground>
+      {playing ? <LeaveGuard onLeave={leave} /> : null}
       <ScrollView contentContainerStyle={styles.screen}>
         <View style={styles.column}>
           <View style={styles.bar}>

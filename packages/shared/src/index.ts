@@ -32,3 +32,4 @@ export * from './bots/index.js';
 export * from './daily/index.js';
 export * from './tables/index.js';
 export * from './feedback/index.js';
+export * from './keepsake/index.js';

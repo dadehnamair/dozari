@@ -7,6 +7,7 @@ import { fa } from '../i18n/fa';
 import { useHardwareBack } from '../nav/useHardwareBack';
 import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
+import { ChildPanelSheet } from './ChildPanelSheet';
 import { addChild, childLinkCode, fetchChildren, removeChild, setChildTrack } from './guardianApi';
 
 const INK = '#3A2418';
@@ -15,11 +16,12 @@ const trackName = (t: string): string => (t === 'kid' ? l.kid : l.teen);
 const textOf = (e: unknown): string => l.errors[e instanceof ApiError ? e.code : 'generic'] ?? l.errors.generic ?? '';
 
 /** The guardian's panel («فرزندان من»): the child profiles, a sign-in code for each, moving a child to another track and removing one. */
-export function ChildrenSheet({ onClose }: { onClose: () => void }) {
+export function ChildrenSheet({ onClose, onPreview }: { onClose: () => void; /** Opens a read-only look at the kid or teen space for the guardian (nothing is saved). */ onPreview?: (track: 'kid' | 'teen') => void }) {
   useHardwareBack(onClose);
   const [data, setData] = useState<ChildrenResponse | 'failed' | null>(null);
   const [codes, setCodes] = useState<Record<string, string>>({});
   const [note, setNote] = useState<string | null>(null);
+  const [panel, setPanel] = useState<ChildrenResponse['children'][number] | null>(null);
   const load = useCallback(() => void fetchChildren().then(setData, () => setData('failed')), []);
   useEffect(load, [load]);
   const run = (job: Promise<void>) => job.then(() => (setNote(null), load()), (e) => setNote(textOf(e)));
@@ -43,6 +45,8 @@ export function ChildrenSheet({ onClose }: { onClose: () => void }) {
                     <CandyButton label={l.makeCode} color={colors.candy.lime} onPress={() => void childLinkCode(c.id).then((r) => setCodes((p) => ({ ...p, [c.id]: r.code })), (e) => setNote(textOf(e)))} />
                     <CandyButton label={l.moveTo(trackName(c.track === 'kid' ? 'teen' : 'kid'))} color={colors.candy.sky} onPress={() => void run(setChildTrack(c.id, c.track === 'kid' ? 'teen' : 'kid'))} />
                   </View>
+                  <CandyButton label={l.panel.settings} color={colors.candy.orange} onPress={() => setPanel(c)} />
+                  {onPreview ? <CandyButton label={l.previewOf(trackName(c.track))} color={colors.candy.grape} onPress={() => onPreview(c.track === 'kid' ? 'kid' : 'teen')} /> : null}
                   <CandyButton label={l.remove} color={colors.candy.pink} onPress={() => void run(removeChild(c.id))} />
                 </View>
               ))
@@ -57,6 +61,7 @@ export function ChildrenSheet({ onClose }: { onClose: () => void }) {
         ) : null}
         <CandyButton label={l.close} sfx="back" color={colors.candy.sky} onPress={onClose} />
       </Pressable>
+      {panel ? <ChildPanelSheet child={panel} onClose={() => setPanel(null)} /> : null}
     </Pressable>
   );
 }

@@ -1,9 +1,11 @@
 import { dailyDateKey, earnsWheelSpin, rescueAmount, settleDuel, tehranDayStart } from '@dozari/shared';
-import type { DuelReason, DuelRules, Stake } from '@dozari/shared';
+import type { DuelReason, DuelRules, DuelTier, Stake } from '@dozari/shared';
 import type { StakeStore } from './stakes-store.js';
 
 export interface StakeDeps {
   rules(): Promise<DuelRules>;
+  /** The stake tables on offer (bronze first). Absent = bronze only. */
+  tiers?(): Promise<DuelTier[]>;
   isBot(userId: string): boolean;
   /** Coins each side puts on every round of the price-guess round (setting `duel.price_wager`); 0 or absent = no wager. */
   priceWager?(): Promise<number>;
@@ -26,10 +28,24 @@ export class DuelStakes {
     return (this.deps.now ?? Date.now)();
   }
 
-  /** May this player queue? A broke player with no free match left is topped up once a day. */
-  async canQueue(userId: string): Promise<boolean> {
+  /** The tables on offer; bronze (the base fee) is always the first. */
+  async tiers(): Promise<DuelTier[]> {
+    if (this.deps.tiers) return this.deps.tiers();
+    return [{ id: 'bronze', fee: (await this.deps.rules()).entryFee, minLevel: 0 }];
+  }
+
+  /** The rules with a table's fee in place of the base fee. Unknown table = bronze. */
+  async rulesFor(tier: string = 'bronze'): Promise<DuelRules> {
     const rules = await this.deps.rules();
+    const t = tier === 'bronze' ? undefined : (await this.tiers()).find((x) => x.id === tier);
+    return t ? { ...rules, entryFee: t.fee } : rules;
+  }
+
+  /** May this player queue at this table? Free matches and the broke rescue belong to bronze only; a higher table needs the fee in hand. */
+  async canQueue(userId: string, tier: string = 'bronze'): Promise<boolean> {
+    const rules = await this.rulesFor(tier);
     if (rules.entryFee <= 0) return true;
+    if (tier !== 'bronze') return (await this.store.balance(userId)) >= rules.entryFee;
     const day = dailyDateKey(this.now());
     if ((await this.store.freeUsed(userId, day)) < rules.freePerDay) return true;
     const balance = await this.store.balance(userId);
@@ -42,8 +58,8 @@ export class DuelStakes {
   }
 
   /** Takes each seat's stake (free match or fee). Null when a human cannot pay; anything already taken is returned. */
-  async open(matchId: string, players: readonly [string, string]): Promise<[Stake, Stake] | null> {
-    const rules = await this.deps.rules();
+  async open(matchId: string, players: readonly [string, string], tier: string = 'bronze'): Promise<[Stake, Stake] | null> {
+    const rules = await this.rulesFor(tier);
     const day = dailyDateKey(this.now());
     const stakes: Stake[] = [];
     const taken: string[] = [];
@@ -56,7 +72,7 @@ export class DuelStakes {
         stakes.push('free');
         continue;
       }
-      if ((await this.store.freeUsed(userId, day)) < rules.freePerDay) {
+      if (tier === 'bronze' && (await this.store.freeUsed(userId, day)) < rules.freePerDay) {
         await this.store.bumpFree(userId, day);
         stakes.push('free');
         continue;
@@ -73,8 +89,8 @@ export class DuelStakes {
   }
 
   /** The match could not start after the stakes were taken: paid fees come back in full, a used free match is not restored. */
-  async cancel(matchId: string, players: readonly [string, string], stakes: readonly [Stake, Stake]): Promise<void> {
-    const rules = await this.deps.rules();
+  async cancel(matchId: string, players: readonly [string, string], stakes: readonly [Stake, Stake], tier: string = 'bronze'): Promise<void> {
+    const rules = await this.rulesFor(tier);
     for (const s of [0, 1] as const) if (stakes[s] === 'paid') await this.store.apply(players[s], rules.entryFee, 'match_refund', matchId, `match_refund:${matchId}:${players[s]}:cancelled`);
   }
 
@@ -96,8 +112,8 @@ export class DuelStakes {
   }
 
   /** Pays out a finished duel. Safe to call twice (idempotent keys). */
-  async settle(matchId: string, players: readonly [string, string], stakes: readonly [Stake, Stake], result: { winner: 0 | 1 | null; reason: DuelReason }): Promise<void> {
-    const rules = await this.deps.rules();
+  async settle(matchId: string, players: readonly [string, string], stakes: readonly [Stake, Stake], result: { winner: 0 | 1 | null; reason: DuelReason }, tier: string = 'bronze'): Promise<void> {
+    const rules = await this.rulesFor(tier);
     const since = tehranDayStart(this.now());
     const left: [number, number] = [0, 0];
     for (const s of [0, 1] as const) left[s] = stakes[s] === 'house' ? 0 : Math.max(0, rules.consolationCap - (await this.store.creditedSince(players[s], 'match_consolation', since)).total);

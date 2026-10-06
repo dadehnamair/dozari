@@ -3,8 +3,8 @@ import Fastify from 'fastify';
 import fastifyCors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
 import { resolve } from 'node:path';
-import { rialsToTomanString } from '@dozari/shared';
-import { CHAT_RETENTION_DAYS, MISSION_KEYS, TOURNAMENT_TICK_SECONDS, WHEEL_SLICES_DEFAULT, scaleSlices } from '@dozari/shared';
+import { duelTiers, rialsToTomanString } from '@dozari/shared';
+import { CHAT_RETENTION_DAYS, MISSION_KEYS, TOURNAMENT_TICK_SECONDS, dailyDateKey, trackFeatureForPath, trackRuleForPath, WHEEL_SLICES_DEFAULT, scaleSlices } from '@dozari/shared';
 import type { HintRules, MissionKey } from '@dozari/shared';
 import { createDb } from '@dozari/db';
 import { createDbCatalogRepository } from './catalog/db-repository.js';
@@ -27,6 +27,9 @@ import { LevelTable, createDbLevelTableStore } from './progress/table.js';
 import { defaultLevelTable } from '@dozari/shared';
 import { createDbPlayerStore } from './player/store.js';
 import { registerTransferRoutes } from './transfers/routes.js';
+import { registerKeepsakeRoutes } from './keepsakes/routes.js';
+import { KeepsakeService } from './keepsakes/service.js';
+import { createDbKeepsakeStore } from './keepsakes/store.js';
 import { TransferService, transferRulesFromSettings } from './transfers/service.js';
 import { createDbTransferStore } from './transfers/store.js';
 import { registerBadgeRoutes } from './badges/routes.js';
@@ -66,6 +69,8 @@ import { registerCandidateRoutes } from './realtime/candidates.js';
 import { createDbProfileLookup } from './realtime/profile.js';
 import { AccountDeletion, createDbDeleteCodeStore } from './account/deletion.js';
 import { registerAuthRoutes } from './auth/routes.js';
+import type { MiniAppTokens } from './auth/routes.js';
+import { miniAppDeviceId } from './auth/miniapp.js';
 import { createTokenSigner } from './auth/tokens.js';
 import { createDbAdminRepository } from './admin/db-repository.js';
 import { registerAdminRoutes } from './admin/routes.js';
@@ -73,6 +78,7 @@ import type { AdminModules } from './admin/module-routes.js';
 import { AdminAccounts } from './admin/accounts/service.js';
 import { createDbAdminStore } from './admin/accounts/store.js';
 import { createDbAuditLog } from './admin/audit.js';
+import { createDbEconomyAdmin } from './admin/economy.js';
 import { createDbProductAdmin } from './admin/products.js';
 import { createDbStatsAdmin } from './admin/stats.js';
 import { createDbUsersAdmin } from './admin/users.js';
@@ -82,6 +88,7 @@ import { startBotScheduler } from './bot/scheduler.js';
 import { TextFilterService, createDbWordStore } from './textfilter/service.js';
 import { createBaleClient } from './notify/client.js';
 import { NotifyService } from './notify/service.js';
+import { createBaleSignup } from './notify/signup.js';
 import { startNotifyRunner } from './notify/runner.js';
 import { registerBaleRoutes } from './notify/routes.js';
 import { MessageCenter } from './messages/service.js';
@@ -136,6 +143,11 @@ import { createDbAgeTrackStore } from './agetrack/store.js';
 import { createDbAgeTrackAdmin } from './agetrack/overview.js';
 import { GuardianService, registerGuardianRoutes } from './guardian/service.js';
 import { createDbGuardianStore } from './guardian/store.js';
+import { GuardianSettingsService, createDbGuardianSettingsStore } from './guardian/settings.js';
+import { createDigestBuilder } from './guardian/digest.js';
+import { PlayTimeService, createDbGuardianBlockStore, createDbPlayTimeStore } from './guardian/extras.js';
+import { createDbLessonSeenStore } from './lessons/seen.js';
+import type { LessonSeenStore } from './lessons/seen.js';
 import { registerLessonRoutes } from './lessons/service.js';
 import type { LessonStore } from './lessons/service.js';
 import { createDbLessonStore } from './lessons/store.js';
@@ -216,6 +228,8 @@ export interface ServerDeps {
   invite?: InviteService;
   /** Gifts and loans between friends; needs `auth`. */
   transfers?: TransferService;
+  /** The keepsake collection («گنجینه»): `/keepsakes`, the profile showcase, and the piece a human win may drop. */
+  keepsakes?: KeepsakeService;
   /** Where live matches get puzzles and player cards from; without it queue pairs are put back in line. */
   match?: Omit<MatchDeps, 'emit'>;
   /** Admin-editable tunables; also served to clients at `GET /config`. */
@@ -226,6 +240,8 @@ export interface ServerDeps {
   solo?: SoloService;
   /** Is this player's level enough for the live duel queue (`duel.min_level`)? Absent = everyone may. */
   duelLevelGate?: (userId: string) => Promise<boolean>;
+  /** A player's level (the stake tables of the live queue are level-gated). */
+  levelOf?: (userId: string) => Promise<number>;
   /** Price-only games (`/price-only/*`). */
   priceOnly?: PriceOnlyService;
   /** Paid hints of solo games; needs `solo` and `auth`. */
@@ -245,8 +261,14 @@ export interface ServerDeps {
   birthday?: BirthdayService;
   /** Chosen age track: kid / teen / adult (D198); queues only pair one track. */
   ageTracks?: AgeTrackService;
+  /** Minutes in the app per day (the app's heartbeat), for the guardian's reminder and digest. */
+  playTime?: PlayTimeService;
+  /** May this player preview the kid and teen space (a guardian with at least one child)? */
+  canPreview?: (userId: string) => Promise<boolean>;
   /** Kid word lessons (D198). */
   lessons?: LessonStore;
+  /** Which word lessons a player saw (the guardian's digest). */
+  lessonSeen?: LessonSeenStore;
   /** Guardian links: child profiles, link codes, band-change approval (D198). */
   guardian?: GuardianService;
   /** Reports of players and the suggestion / vote / approve loop (D177). */
@@ -260,6 +282,8 @@ export interface ServerDeps {
   corsOrigin?: string;
   /** Docker-free dev: directory of uploaded product images, served at `/images/*`. */
   localImagesDir?: string;
+  /** Bot tokens per messenger; turns on `POST /auth/miniapp` (the mini-app login, docs/logic/miniapp.md). */
+  miniApp?: MiniAppTokens;
 }
 
 export function buildServer(deps: ServerDeps = {}) {
@@ -296,6 +320,20 @@ export function buildServer(deps: ServerDeps = {}) {
       const verdict = await gateForPath(deps.settings, req.url.split('?')[0] ?? '');
       if (verdict) return reply.code(503).send(verdict);
     }
+    if (deps.auth && deps.ageTracks) {
+      // What a kid or teen track does not have is refused here too (the app only hides it): real-money buying, suggesting items, tournaments, the daily puzzle, the price lookup.
+      const rule = trackRuleForPath(req.url.split('?')[0] ?? '');
+      if (rule) {
+        const user = await currentUser(deps.auth, req);
+        if (user && !(await deps.ageTracks.allows(user.id, rule))) return reply.code(403).send({ error: 'age_track' });
+      }
+      // The admin's per-track kill switches (`track.kid.chat` …): a switched-off feature answers the same way.
+      const feature = trackFeatureForPath(req.url.split('?')[0] ?? '');
+      if (feature) {
+        const user = await currentUser(deps.auth, req);
+        if (user && (await deps.ageTracks.featureOff(user.id, feature))) return reply.code(403).send({ error: 'age_track' });
+      }
+    }
     const limited = !anyLimit.take(req.ip) ? anyLimit : req.url.split('?')[0] === '/auth/guest' && !guestLimit.take(req.ip) ? guestLimit : null;
     if (limited) return reply.header('retry-after', String(limited.retryAfterSec(req.ip))).code(429).send({ error: 'rate_limited' });
   });
@@ -323,16 +361,20 @@ export function buildServer(deps: ServerDeps = {}) {
     sample: rialsToTomanString(1_500),
   }));
 
-  if (deps.corsOrigin) {
+  // A messenger's web client may open the mini-app in a sandboxed iframe, whose requests carry `Origin: null`. The API takes bearer tokens
+  // only (no cookies), so allowing that origin adds no cross-site risk; it is on only when a mini-app login is.
+  const corsOrigin = deps.corsOrigin && (deps.miniApp?.bale || deps.miniApp?.telegram) && deps.corsOrigin !== '*' && !deps.corsOrigin.split(',').some((o) => o.trim() === 'null') ? `${deps.corsOrigin},null` : deps.corsOrigin;
+  if (corsOrigin) {
     // @fastify/cors ≥10 allows only GET/HEAD/POST by default; the web app also sends PUT, PATCH and DELETE.
-    void app.register(fastifyCors, { origin: deps.corsOrigin === '*' ? true : deps.corsOrigin.split(',').map((o) => o.trim()), methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'] });
+    void app.register(fastifyCors, { origin: corsOrigin === '*' ? true : corsOrigin.split(',').map((o) => o.trim()), methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'] });
   }
-  if (deps.auth) registerAuthRoutes(app, deps.auth, deps.deletion);
+  if (deps.auth) registerAuthRoutes(app, deps.auth, deps.deletion, deps.miniApp);
   if (deps.auth && deps.dailyReward) registerDailyRewardRoutes(app, deps.auth, deps.dailyReward);
   if (deps.auth && deps.wheel) registerWheelRoutes(app, deps.auth, deps.wheel);
   if (deps.auth && deps.social) registerSocialRoutes(app, deps.auth, deps.social);
   if (deps.auth && deps.invite) registerInviteRoutes(app, deps.auth, deps.invite);
   if (deps.auth && deps.transfers) registerTransferRoutes(app, deps.auth, deps.transfers);
+  if (deps.auth && deps.keepsakes) registerKeepsakeRoutes(app, deps.auth, deps.keepsakes);
   if (deps.auth && deps.messages) registerInboxRoutes(app, deps.auth, deps.messages);
   if (deps.auth && deps.phone) registerPhoneRoutes(app, deps.auth, deps.phone);
   if (deps.phoneLogin) registerPhoneLoginRoutes(app, deps.phoneLogin);
@@ -374,25 +416,25 @@ export function buildServer(deps: ServerDeps = {}) {
     if (!online) void deps.notify?.notify(friendId, 'table_invite', BALE_TEXT.tableInvite(r.message.nickname)).catch(() => undefined);
     return { ok: true, online };
   } : undefined);
-  if (deps.solo) registerSoloRoutes(app, deps.solo, deps.auth, deps.hints, deps.limiter);
+  if (deps.solo) registerSoloRoutes(app, deps.solo, deps.auth, deps.hints, deps.limiter, deps.canPreview);
   if (deps.priceOnly) registerPriceOnlyRoutes(app, deps.priceOnly, deps.auth);
   if (deps.auth && deps.shop) registerShopRoutes(app, deps.auth, deps.shop);
   if (deps.auth && deps.levelRoad) registerRoadRoutes(app, deps.auth, deps.levelRoad);
   if (deps.auth && deps.profileTasks) registerProfileTaskRoutes(app, deps.auth, deps.profileTasks);
   if (deps.auth && deps.birthday) registerBirthdayRoutes(app, deps.auth, deps.birthday);
-  if (deps.auth && deps.ageTracks) registerAgeTrackRoutes(app, deps.auth, deps.ageTracks);
-  if (deps.auth && deps.lessons) registerLessonRoutes(app, deps.auth, deps.lessons);
+  if (deps.auth && deps.ageTracks) registerAgeTrackRoutes(app, deps.auth, deps.ageTracks, deps.playTime);
+  if (deps.auth && deps.lessons) registerLessonRoutes(app, deps.auth, deps.lessons, deps.lessonSeen);
   if (deps.auth && deps.guardian) registerGuardianRoutes(app, deps.auth, deps.guardian);
   if (deps.auth && deps.feedback) registerFeedbackRoutes(app, deps.auth, deps.feedback);
   if (deps.auth && deps.gems) registerGemRoutes(app, deps.auth, deps.gems);
   if (deps.landing && deps.settings) registerLandingPublicRoutes(app, deps.landing, deps.settings);
   if (deps.shortLinks) registerShortLinkRoutes(app, deps.shortLinks);
-  if (deps.auth && deps.shopReal) registerShopPayRoutes(app, deps.auth, deps.shopReal, deps.notify ? { send: (id, inv) => deps.notify!.sendInvoice(id, inv) } : undefined);
-  if (deps.auth && deps.coinPackages) registerCoinPackageRoutes(app, deps.auth, deps.coinPackages, deps.notify ? { send: (id, inv) => deps.notify!.sendInvoice(id, inv) } : undefined);
+  if (deps.auth && deps.shopReal) registerShopPayRoutes(app, deps.auth, deps.shopReal, deps.notify ? { send: (id, inv) => deps.notify!.sendInvoice(id, inv), link: (inv) => deps.notify!.invoiceLink(inv) } : undefined);
+  if (deps.auth && deps.coinPackages) registerCoinPackageRoutes(app, deps.auth, deps.coinPackages, deps.notify ? { send: (id, inv) => deps.notify!.sendInvoice(id, inv), link: (inv) => deps.notify!.invoiceLink(inv) } : undefined);
   let gateway: Gateway | undefined;
   if (deps.auth && deps.realtime) {
     const auth = deps.auth;
-    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin: deps.corsOrigin, match: deps.match, canAfford: deps.duelStakes ? (u) => deps.duelStakes!.canQueue(u) : undefined, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, levelGate: deps.duelLevelGate, limit: deps.limiter ? { canPlay: async (u) => (await deps.limiter!.check(u, 'duel')).ok, onStarted: (u) => deps.limiter!.record(u, 'duel') } : undefined, chat: deps.chat, presence: deps.presence, notices: deps.notices, onEmit: deps.botDriver ? (u, e, p) => deps.botDriver!.onEmit(u, e, p) : undefined, trackOf: deps.ageTracks ? (u) => deps.ageTracks!.effective(u).catch(() => 'adult' as const) : undefined, diagnose: deps.match ? createQueueDiagnosis({ hasPuzzle: async (tracks) => (await deps.match!.puzzles.pickRandom({ tracks })) !== null, botsReady: () => deps.botDriver?.ready() ?? false, graceSec: 45 }) : undefined });
+    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin, match: deps.match, canAfford: deps.duelStakes ? async (u, tier) => (deps.ageTracks && !(await deps.ageTracks.allows(u, 'coinWager'))) || deps.duelStakes!.canQueue(u, tier) : undefined, tierGate: deps.duelStakes && deps.levelOf ? async (u, tier) => { if (deps.ageTracks && !(await deps.ageTracks.allows(u, 'coinWager'))) return 'UNKNOWN_TIER'; const t = (await deps.duelStakes!.tiers()).find((x) => x.id === tier); if (!t) return 'UNKNOWN_TIER'; return (await deps.levelOf!(u)) >= t.minLevel ? null : 'LEVEL_TOO_LOW'; } : undefined, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, levelGate: deps.duelLevelGate, limit: deps.limiter ? { canPlay: async (u) => (await deps.limiter!.check(u, 'duel')).ok, onStarted: (u) => deps.limiter!.record(u, 'duel') } : undefined, chat: deps.chat, presence: deps.presence, notices: deps.notices, onEmit: deps.botDriver ? (u, e, p) => deps.botDriver!.onEmit(u, e, p) : undefined, trackOf: deps.ageTracks ? (u) => deps.ageTracks!.effective(u).catch(() => 'adult' as const) : undefined, trackGate: deps.ageTracks ? (u) => deps.ageTracks!.featureOff(u, 'duel_queue') : undefined, diagnose: deps.match ? createQueueDiagnosis({ hasPuzzle: async (tracks) => (await deps.match!.puzzles.pickRandom({ tracks })) !== null, botsReady: () => deps.botDriver?.ready() ?? false, graceSec: 45 }) : undefined });
     if (deps.live) {
       deps.live.matches = gateway.matches;
       deps.live.queue = gateway.queue;
@@ -440,14 +482,12 @@ if (isMainModule(import.meta.url)) {
   const adminToken = process.env.ADMIN_TOKEN;
   const jwtSecret = process.env.JWT_SECRET ?? (process.env.NODE_ENV === 'production' ? undefined : 'dev-only-secret-change-me');
   if (db && !jwtSecret) throw new Error('JWT_SECRET is required in production');
-  const auth =
-    db && jwtSecret
-      ? new AuthService(createDbUserRepository(db), createTokenSigner(jwtSecret), Math.random, async (userId) => {
-          // The signup faucet (docs/logic/economy.md): once per new account; the key makes a retry a no-op.
-          const bonus = (await settings?.num('economy.signup_bonus')) ?? 0;
-          if (bonus > 0) await db.transaction(async (tx) => void (await applyLedgerEntry(tx, { userId, delta: bonus, reason: 'signup_bonus', refType: 'user', refId: userId, idempotencyKey: `signup_bonus:${userId}` })));
-        })
-      : undefined;
+  // The signup faucet (docs/logic/economy.md): once per new account; the key makes a retry a no-op.
+  const grantSignupBonus = async (userId: string) => {
+    const bonus = (await settings?.num('economy.signup_bonus')) ?? 0;
+    if (db && bonus > 0) await db.transaction(async (tx) => void (await applyLedgerEntry(tx, { userId, delta: bonus, reason: 'signup_bonus', refType: 'user', refId: userId, idempotencyKey: `signup_bonus:${userId}` })));
+  };
+  const auth = db && jwtSecret ? new AuthService(createDbUserRepository(db), createTokenSigner(jwtSecret), Math.random, grantSignupBonus) : undefined;
   const settings = db ? new SettingsService(createDbSettingsStore(db)) : undefined;
   const presence = new Presence();
   const notices = createLiveNotices();
@@ -467,6 +507,7 @@ if (isMainModule(import.meta.url)) {
         return { nickname: row?.nickname ?? '', avatarKey: row?.avatarKey ?? 'avatar-01', level: lv?.level.level ?? 1, coins: row?.coins ?? 0 };
       }) : undefined;
   if (notify && phone) notify.phone = phone;
+  if (notify && db) notify.signup = createBaleSignup(db, grantSignupBonus);
   const phoneLogin = db && auth ? new PhoneLoginService(createDbPhoneStore(db), auth, smsClient) : undefined;
   const deletion = db ? new AccountDeletion(createDbDeleteCodeStore(db), createDbPhoneStore(db), smsClient, notify ? (id, text) => notify.notify(id, 'security', text) : null) : undefined;
   const words = db ? new TextFilterService(createDbWordStore(db)) : undefined;
@@ -554,7 +595,7 @@ if (isMainModule(import.meta.url)) {
           chat: () => chat,
           settings: async () => ({ enabled: (await settings.num('bots.enabled')) === 1, fallbackSec: await settings.num('bots.fallback_seconds'), jitterSec: await settings.num('bots.fallback_jitter_seconds'), cityReplyPercent: await settings.num('bots.city_reply_percent'), autofillMin: await settings.num('bots.autofill_min') }),
           topUp: botService ? async (missing) => void (await botService.generate({ count: missing, levelMin: 3, levelMax: 25, skillMin: 30, skillMax: 75, winPercentMin: 40, winPercentMax: 65, thinkMinMs: 4000, thinkMaxMs: 20_000, tauntPercent: 25, cityIds: playerStore ? (await playerStore.cities()).map((c) => c.id) : [] })) : undefined,
-          taunts: chatStore ? async () => (await chatStore.taunts()).map((c) => ({ nameFa: c.nameFa, ids: c.taunts.map((t) => t.id) })) : undefined,
+          taunts: chatStore ? async () => (await chatStore.taunts()).filter((c) => c.ageTrack === 'adult').map((c) => ({ nameFa: c.nameFa, ids: c.taunts.map((t) => t.id) })) : undefined,
           rng: () => randomInt(0, 2 ** 30) / 2 ** 30,
         })
       : undefined;
@@ -604,13 +645,25 @@ if (isMainModule(import.meta.url)) {
           texts: { weekTitle: BIRTHDAY_TITLE.week, weekBody: BALE_TEXT.birthdayWeek, dayTitle: BIRTHDAY_TITLE.day, dayBody: BALE_TEXT.birthdayDay },
         })
       : undefined;
-  const ageTracks = db && settings ? new AgeTrackService(createDbAgeTrackStore(db), async () => (await settings.num('feature.age_tracks')) === 1) : undefined;
+  const guardianStore = db ? createDbGuardianStore(db) : undefined;
+  const guardianSettings = db ? new GuardianSettingsService(createDbGuardianSettingsStore(db)) : undefined;
+  const playTime = db ? new PlayTimeService(createDbPlayTimeStore(db), dailyDateKey) : undefined;
+  const blockStore = db ? createDbGuardianBlockStore(db) : undefined;
+  const ageTracks = db && settings ? new AgeTrackService(createDbAgeTrackStore(db), async () => (await settings.num('feature.age_tracks')) === 1, () => new Date(), async (id) => (guardianStore ? (await guardianStore.guardianOf(id)) !== null : false), async (id) => (guardianStore && guardianSettings && (await guardianStore.guardianOf(id)) !== null ? { ...(await guardianSettings.limits(id)), playedToday: playTime ? await playTime.today(id) : 0 } : null)) : undefined;
+  /** Same track and not blocked by a guardian (either direction): who a player may see, befriend, search and rank against. */
+  const meetable = async (me: string, others: readonly string[]): Promise<Set<string>> => {
+    const ok = ageTracks ? await ageTracks.meetable(me, others) : new Set(others);
+    if (blockStore) for (const id of [...ok]) if (await blockStore.between(me, id)) ok.delete(id);
+    return ok;
+  };
   const guardian =
     db && auth && phoneLogin
       ? new GuardianService(createDbGuardianStore(db), createDbAgeTrackStore(db), phoneLogin, createDbPhoneStore(db), auth, () => `guardian:${randomUUID()}`)
       : undefined;
   const productAdmin = db ? createDbProductAdmin(db) : undefined;
   const feedback = db && settings && productAdmin ? buildFeedbackService({ db, settings, productAdmin, player, socialStore }) : undefined;
+  const keepsakeStore = db ? createDbKeepsakeStore(db) : undefined;
+  const keepsakes = keepsakeStore && settings ? new KeepsakeService(keepsakeStore, async () => (await settings.num('keepsake.drop_percent')) / 100) : undefined;
   const duelStakes =
     db && settings
       ? new DuelStakes(createDbStakeStore(db), {
@@ -623,9 +676,21 @@ if (isMainModule(import.meta.url)) {
             consolationCap: await settings.num('duel.consolation_cap'),
             rescueTarget: await settings.num('duel.rescue_target'),
           }),
+          tiers: async () =>
+            duelTiers({
+              bronzeFee: await settings.num('duel.entry_fee'),
+              bronzeMinLevel: await settings.num('duel.min_level'),
+              silverFee: await settings.num('duel.silver_fee'),
+              silverMinLevel: await settings.num('duel.silver_min_level'),
+              goldFee: await settings.num('duel.gold_fee'),
+              goldMinLevel: await settings.num('duel.gold_min_level'),
+            }),
           isBot: (id) => botDriver?.isBot(id) ?? false,
           priceWager: () => settings.num('duel.price_wager'),
-          onWin: (matchId, userId) => wheel?.grantForWin(userId, matchId).catch((e) => console.error('[wheel] grant failed', matchId, e)) ?? Promise.resolve(),
+          onWin: async (matchId, userId) => {
+            await (wheel?.grantForWin(userId, matchId).catch((e) => console.error('[wheel] grant failed', matchId, e)) ?? Promise.resolve());
+            await keepsakes?.dropForWin(userId, matchId);
+          },
         })
       : undefined;
   const tableService =
@@ -635,6 +700,17 @@ if (isMainModule(import.meta.url)) {
           startMatch: async (a, b) => (live.matches ? live.matches.start(a, b, { friendly: true }) : false),
           startTeam: async (sides) => (live.matches ? live.matches.startTeam(sides) : false),
           inMatch: (id) => live.matches?.inMatch(id) ?? false,
+          trackOf: ageTracks ? (id) => ageTracks.effective(id) : undefined,
+          socialBlocked: ageTracks ? (id) => ageTracks.socialBlocked(id) : undefined,
+          duelsOff: ageTracks ? (id) => ageTracks.duelsOff(id) : undefined,
+          // A family is a guardian and their children (the guardian link is the whole proof; nobody else can open a family table).
+          hasFamily: guardianStore ? async (id) => (await guardianStore.guardianOf(id)) !== null || (await guardianStore.childrenOf(id)).length > 0 : undefined,
+          sameFamily: guardianStore
+            ? async (a, b) => {
+                const [ga, gb] = await Promise.all([guardianStore.guardianOf(a), guardianStore.guardianOf(b)]);
+                return ga === b || gb === a || (ga !== null && ga === gb);
+              }
+            : undefined,
           idleMs: async () => (await settings.num('table.idle_minutes')) * 60_000,
         })
       : undefined;
@@ -653,8 +729,39 @@ if (isMainModule(import.meta.url)) {
           }),
           createShortener(),
           () => randomInt(0, 2 ** 30) / 2 ** 30,
+          Date.now,
+          ageTracks ? (me, others) => meetable(me, others) : undefined,
+          ageTracks ? (id) => ageTracks.socialBlocked(id) : undefined,
+          ageTracks ? (id) => ageTracks.friendsNeedApproval(id) : undefined,
         )
       : undefined;
+  if (chat && ageTracks) chat.managed = { trackOf: (id) => ageTracks.effective(id), hasGuardian: async (id) => (guardianStore ? (await guardianStore.guardianOf(id)) !== null : false), chatMode: async (id) => ((await ageTracks.featureOff(id, 'chat')) ? 'off' : guardianSettings ? (await guardianSettings.get(id)).chatMode : 'friends_text') };
+  if (social && ageTracks) {
+    social.sameTrack = meetable;
+    social.blocked = (id) => ageTracks.socialBlocked(id);
+    social.asksGuardian = (id) => ageTracks.friendsNeedApproval(id);
+    social.cityVisible = (id) => ageTracks.allows(id, 'publicCity');
+    social.profileDepth = (id) => ageTracks.profileDepth(id);
+  }
+  const lessonSeen = db ? createDbLessonSeenStore(db) : undefined;
+  if (ageTracks && settings) ageTracks.featureSwitch = async (key) => (await settings.num(key)) !== 0;
+  const playerAudit = db ? createDbAuditLog(db) : undefined;
+  if (ageTracks && playerAudit) ageTracks.audit = (a, t, d) => void playerAudit.record(a, t, d);
+  if (guardian && playerAudit) guardian.audit = (a, t, d) => void playerAudit.record(a, t, d);
+  if (invite && ageTracks) invite.canShare = (id) => ageTracks.allows(id, 'inviteShare');
+  if (guardian && guardianSettings) guardian.settings = guardianSettings;
+  if (guardian && blockStore) guardian.blocks = blockStore;
+  if (guardian && lessonSeen && player && socialStore) {
+    guardian.digest = createDigestBuilder({ seen: lessonSeen, recentGames: (id, n) => player.recentGames(id, n), level: async (id) => (await player.levelOf(id)).level.level, friendCount: async (id) => (await socialStore.friends(id)).length, minutesWeek: playTime ? (id) => playTime.week(id) : undefined });
+  }
+  if (guardian && social && socialStore) {
+    guardian.friends = {
+      friends: (id) => socialStore.friends(id),
+      incoming: (id) => socialStore.incoming(id),
+      approve: (childId, otherId) => social.approveFor(childId, otherId),
+      remove: (childId, otherId) => social.remove(childId, otherId),
+    };
+  }
   const levelOf = async (id: string) => (player ? (await player.levelOf(id)).level.level : 1);
   const shopStore = db ? createDbShopStore(db) : undefined;
   const landingService = db ? new LandingService(createDbLandingStore(db)) : undefined;
@@ -673,6 +780,8 @@ if (isMainModule(import.meta.url)) {
       creditPaid: (payload, chargeId, amount) => (payload.startsWith('si:') && shopReal ? shopReal.creditPaid(payload, chargeId, amount) : coinPackageService.creditPaid(payload, chargeId, amount)),
     };
     notify.providerToken = process.env.BALE_PROVIDER_TOKEN ?? null;
+    // Mini-app players pay without linking the bot: the paying Bale user maps to their mini-app account (same device id as the login).
+    if (baleToken) notify.miniAppUserOf = async (baleUserId) => (await auth?.userByDevice(miniAppDeviceId(baleToken, baleUserId)))?.id ?? null;
   }
   let dailyRef: DailyService | undefined;
   const solo =
@@ -708,13 +817,14 @@ if (isMainModule(import.meta.url)) {
     auth,
     settings,
     adminModules: db
-      ? { products: productAdmin!, feedback, stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, wheel, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, ageTracks: db ? createDbAgeTrackAdmin(db) : undefined, daily, ai: aiStudio, puzzles: createDbPuzzleAdmin(db), levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      ? { products: productAdmin!, feedback, stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, keepsakes: keepsakeStore, wheel, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, ageTracks: db ? createDbAgeTrackAdmin(db) : undefined, economy: db ? createDbEconomyAdmin(db) : undefined, daily, ai: aiStudio, puzzles: createDbPuzzleAdmin(db), levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
     match: db
       ? {
           puzzles: createDbPuzzleSource(db),
           trackOf: ageTracks ? (id) => ageTracks.effective(id) : undefined,
+          wagerAllowed: ageTracks ? (id) => ageTracks.allows(id, 'coinWager') : undefined,
           teamBoards: settings ? () => settings.num('match.team_boards') : undefined,
           priceRound: settings ? async () => (await settings.num('match.price_round')) === 1 : undefined,
           rules: settings
@@ -769,17 +879,19 @@ if (isMainModule(import.meta.url)) {
     social,
     invite,
     transfers,
+    keepsakes,
     wheel,
     dailyReward: db && settings ? new DailyRewardService(createDbDailyRewardStore(db), Date.now, () => dailyRules(settings)) : undefined,
     catalog: db ? createDbCatalogRepository(db) : undefined,
     solo,
     priceOnly,
+    levelOf,
     duelLevelGate: settings && player ? async (id) => (await player.levelOf(id)).level.level >= (await settings.num('duel.min_level')) : undefined,
     tables: tableService,
     duelStakes,
     limiter: db && settings ? new PlayLimiter(createDbPlayCountStore(db), async (mode) => settings.num(mode === 'solo' ? 'limit.solo_per_day' : 'limit.duel_per_day')) : undefined,
     hints: solo && shopStore && settings ? new HintService(solo, shopStore, () => hintRules(settings), levelOf) : undefined,
-    shop: shopStore ? new ShopService(shopStore, levelOf) : undefined,
+    shop: shopStore ? new ShopService(shopStore, levelOf, Date.now, settings ? () => settings.num('shop.daily_slots') : undefined) : undefined,
     levelRoad:
       player && settings
         ? new LevelRoadService({
@@ -800,7 +912,10 @@ if (isMainModule(import.meta.url)) {
     gems: db ? createDbGemWallet(db) : undefined,
     birthday,
     ageTracks,
+    playTime,
+    canPreview: guardianStore ? async (id) => (await guardianStore.childrenOf(id)).length > 0 : undefined,
     lessons: db ? createDbLessonStore(db) : undefined,
+    lessonSeen,
     guardian,
     feedback,
     profileTasks:
@@ -820,6 +935,7 @@ if (isMainModule(import.meta.url)) {
     clientInfo: db ? createDbClientInfoStore(db) : undefined,
     admin: db && jwtSecret ? { repo: createDbAdminRepository(db), token: adminToken, accounts: new AdminAccounts(createDbAdminStore(db), jwtSecret, adminToken) } : undefined,
     corsOrigin: process.env.CORS_ORIGIN,
+    miniApp: { bale: baleToken, telegram: process.env.TELEGRAM_BOT_TOKEN },
     trustProxy: process.env.TRUST_PROXY === '1',
     localImagesDir: process.env.LOCAL_IMAGES_DIR,
   });

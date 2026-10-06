@@ -38,7 +38,7 @@ describe('admin word routes', () => {
     expect(add.statusCode).toBe(201);
     expect((await app.inject({ method: 'POST', url: '/admin/words', payload: { word: 'بدکلمه' }, headers: h })).statusCode).toBe(409);
     const id = add.json().id as string;
-    expect((await app.inject({ method: 'GET', url: '/admin/words', headers: h })).json().words).toEqual([{ id, word: 'بدکلمه', severity: 'block' }]);
+    expect((await app.inject({ method: 'GET', url: '/admin/words', headers: h })).json().words).toEqual([{ id, word: 'بدکلمه', severity: 'block', track: 'all' }]);
     const bad = await app.inject({ method: 'POST', url: '/admin/words/test', payload: { text: 'ب د ک ل م ه' }, headers: h });
     expect(bad.json()).toMatchObject({ ok: false, hit: { word: 'بدکلمه' } });
     expect((await app.inject({ method: 'PATCH', url: `/admin/words/${id}`, payload: { severity: 'mask' }, headers: h })).statusCode).toBe(200);

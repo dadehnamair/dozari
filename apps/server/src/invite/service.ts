@@ -23,6 +23,9 @@ export type RedeemResponse = Extract<RedeemOutcome, { ok: true }> | { ok: false;
 
 /** Invite ("gold") codes: issued from a level, limited uses, redeemed once per player, inviter paid after the invitee has played. */
 export class InviteService {
+  /** May this player hand out their own code (`trackRules.inviteShare`)? Absent = yes. A kid or teen can redeem a code but has none to share. */
+  canShare?: (userId: string) => Promise<boolean>;
+
   // Guessing codes is the abuse to stop: 8 tries per 10 minutes per player.
   private readonly attempts = new RateLimiter(8, 10 * 60_000);
 
@@ -36,8 +39,9 @@ export class InviteService {
 
   async mine(userId: string): Promise<MyInvite> {
     const [rules, level, activated, counts] = await Promise.all([this.rules(), this.levelOf(userId), this.store.isActivated(userId), this.store.counts(userId)]);
+    const mayShare = (await this.canShare?.(userId)) !== false;
     let row = await this.store.ownCode(userId);
-    if (!row && level >= rules.minLevel) {
+    if (!row && mayShare && level >= rules.minLevel) {
       for (let i = 0; i < 8 && !row; i++) {
         const made = await this.store.createCode(generateInviteCode(this.rng), userId, null, rules.maxUses);
         if (made !== 'taken') row = made;
@@ -45,7 +49,7 @@ export class InviteService {
       }
     }
     return {
-      code: row?.code ?? null,
+      code: mayShare ? (row?.code ?? null) : null,
       minLevel: rules.minLevel,
       level,
       uses: row?.uses ?? 0,

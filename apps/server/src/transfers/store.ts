@@ -26,7 +26,8 @@ export type RepayOutcome = { ok: true; paid: number; remaining: number; balance:
 export interface TransferStore {
   /** Coins this player sent in gifts and loan principals since `sinceMs` (declined and cancelled offers do not count). */
   sentSince(userId: string, sinceMs: number): Promise<number>;
-  sendGift(from: string, to: string, amount: number): Promise<GiftOutcome>;
+  /** The sender pays `amount`; the receiver gets `amount - fee` and the fee is burned (never a coin the house keeps). */
+  sendGift(from: string, to: string, amount: number, fee?: number): Promise<GiftOutcome>;
   offerLoan(from: string, to: string, amount: number): Promise<TransferRecord>;
   get(id: string): Promise<TransferRecord | null>;
   /** Loans the borrower is waiting on or owes (offered + open). */
@@ -65,12 +66,12 @@ export function createDbTransferStore(db: Db): TransferStore {
         .where(and(eq(coinTransfers.fromUserId, userId), gte(coinTransfers.createdAt, new Date(sinceMs)), inArray(coinTransfers.status, COUNTED)));
       return rows.reduce((n, r) => n + r.amount, 0);
     },
-    async sendGift(from, to, amount) {
+    async sendGift(from, to, amount, fee = 0) {
       return db.transaction(async (tx): Promise<GiftOutcome> => {
         const id = uuidv7();
         const out = await applyLedgerEntry(tx, { userId: from, delta: -amount, reason: 'gift_out', refType: 'transfer', refId: id, idempotencyKey: `gift_out:${id}:${from}` });
         if (!out.applied) return { ok: false, error: 'INSUFFICIENT' };
-        await applyLedgerEntry(tx, { userId: to, delta: amount, reason: 'gift_in', refType: 'transfer', refId: id, idempotencyKey: `gift_in:${id}:${to}` });
+        await applyLedgerEntry(tx, { userId: to, delta: amount - fee, reason: 'gift_in', refType: 'transfer', refId: id, idempotencyKey: `gift_in:${id}:${to}` });
         await tx.insert(coinTransfers).values({ id, kind: 'gift', status: 'completed', fromUserId: from, toUserId: to, amount, closedAt: new Date() });
         return { ok: true, balance: out.balance };
       });
@@ -155,10 +156,10 @@ export function createMemoryTransferStore(): TransferStore & { coins: Map<string
     async sentSince(userId, since) {
       return rows.filter((r) => r.fromUserId === userId && r.createdAt >= since && COUNTED.includes(r.status)).reduce((n, r) => n + r.amount, 0);
     },
-    async sendGift(from, to, amount) {
+    async sendGift(from, to, amount, fee = 0) {
       if (bal(from) < amount) return { ok: false, error: 'INSUFFICIENT' };
       add(from, -amount);
-      add(to, amount);
+      add(to, amount - fee);
       rows.push({ id: newId(), kind: 'gift', status: 'completed', fromUserId: from, toUserId: to, amount, repaid: 0, dueAt: null, createdAt: now.ms });
       return { ok: true, balance: bal(from) };
     },

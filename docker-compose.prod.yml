@@ -86,7 +86,7 @@ services:
       DATABASE_URL: mysql://dozari:${MYSQL_PASSWORD}@s-dozari-mysql:3306/dozari
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET (32+ random chars)}
       ADMIN_TOKEN: ${ADMIN_TOKEN:?set ADMIN_TOKEN (long random value)}
-      CORS_ORIGIN: https://${APP_DOMAIN:?set APP_DOMAIN}
+      CORS_ORIGIN: https://${APP_DOMAIN:?set APP_DOMAIN},https://${MINIAPP_DOMAIN:-${BALE_APP_DOMAIN:-mini-app.mrbots.ir}},null
       TRUST_PROXY: '1'
       LOCAL_IMAGES_DIR: /data/images
       LOCAL_IMAGES_PUBLIC_URL: https://${API_DOMAIN:?set API_DOMAIN}/images
@@ -101,6 +101,7 @@ services:
       AI_CUSTOM_NAME: ${AI_CUSTOM_NAME:-}
       AI_CUSTOM_MODEL: ${AI_CUSTOM_MODEL:-}
       BALE_BOT_USERNAME: ${BALE_BOT_USERNAME:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       IRNOTI_API_KEY: ${IRNOTI_API_KEY:-}
       KAVENEGAR_API_KEY: ${KAVENEGAR_API_KEY:-}
       KAVENEGAR_TEMPLATE: ${KAVENEGAR_TEMPLATE:-}
@@ -160,6 +161,22 @@ services:
       SITE_URL: https://${LANDING_DOMAIN:-mrdozari.ir}
     ports:
       - '${LANDING_PORT:-8083}:3100'
+
+  # Mini-app (docs/logic/miniapp.md): the same game, opened inside Bale (or Telegram) and logged in through the messenger's signed initData
+  # (needs BALE_BOT_TOKEN on the server). Own build, own container, own domain; loopback only, the host's reverse proxy forwards
+  # MINIAPP_DOMAIN here. The messenger's bot father needs this domain as the mini-app address.
+  s-dozari-miniapp:
+    container_name: c-dozari-miniapp
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.miniapp
+      args:
+        API_URL: https://${API_DOMAIN}
+    restart: unless-stopped
+    depends_on:
+      - s-dozari-server
+    ports:
+      - '${MINIAPP_PORT:-${BALE_APP_PORT:-8084}}:80'
 
 volumes:
   mysql-data:

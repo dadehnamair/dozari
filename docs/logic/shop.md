@@ -41,6 +41,20 @@ The server API is unchanged (`GET /shop`, `POST /shop/:id/buy`, `POST /shop/:id/
 
 Paid-for-real-money items are shop items with a toman price (D170, only offered when `feature.coin_packages` is on).
 
+## Streak shield (D204, built)
+
+Effect `streak_shield` (inventory row, at most `STREAK_SHIELD_MAX_HELD` = 2 held; starter item «سپر استریک», 30 coins, level 2, one a day). A shield bridges
+**exactly one missed day** of the daily reward: a claim up to one more cooldown past the streak window keeps the streak (`nextDailyReward(..., shields)`), and the
+claim spends one shield inside the same transaction (`shieldUsed: true` in the reply; `GET /daily-reward` also returns `shields`). Beyond 2 held the shop answers
+`max_held` / item `blocked: MAX_HELD`. The store icon is a placeholder (`umbrella`) until the designer draws one.
+
+## Daily rotating shop (D204, built)
+
+Items carry `rotating`. Each Tehran day only `shop.daily_slots` (default 4; 0 = all) of the rotating pool are offered, the same for every player
+(`pickDailyShop`, seeded by the date key); non-rotating items are always there. `GET /shop` lists today's offer plus `rotatesAt`; buying a rotating item that is not on
+today's offer answers `not_today`. Admin «فروشگاه» has a «چرخان کن» toggle per item. **No item is rotating by default** (existing rows keep behaving as before):
+flag a few higher-priced items to switch the rotation on. The app shows «فقط امروز · N ساعت مانده» on them.
+
 ## API
 
 `GET /shop`, `POST /shop/:id/buy` · `GET /solo/:id/hints`, `POST /solo/:id/hint {kind}` · admin `GET|POST /admin/shop`, `PATCH /admin/shop/:id`

@@ -16,7 +16,7 @@ Read both before any product-level change. Roadmap: `docs/PLAN.md`. Stack: `docs
 ## Layout (create as phases progress)
 
 `apps/mobile` Expo RN client (RTL) · `apps/server` Fastify + Socket.io, authoritative ·
-`apps/admin` (later) moderation · `apps/landing` landing site + blog (own container, no DB; `docs/logic/landing-site.md`) · `packages/shared` pure TS (types, zod, socket contracts, rules,
+`apps/admin` (later) moderation · `apps/miniapp` mini-app for Bale/Telegram (own container; `docs/logic/miniapp.md`) · `apps/landing` landing site + blog (own container, no DB; `docs/logic/landing-site.md`) · `packages/shared` pure TS (types, zod, socket contracts, rules,
 validator, scoring, config; no I/O) · `packages/db` Drizzle schema/migrations/seed ·
 `prototype/index.html` static demo (large; read only when needed).
 
@@ -66,3 +66,7 @@ tell the user in Persian.
 Read only the spec/skill for the task at hand, with line ranges for big files (`PLAN.md`,
 `DECISIONS.md`, `prototype/index.html`). Search with Grep before reading whole files.
 Don't restate docs in replies — link paths.
+
+## Branches
+
+When a task's branch is finished (merged or no longer needed), delete it — remote and local — so stale branches don't pile up. Never delete `main`.

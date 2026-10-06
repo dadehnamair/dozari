@@ -6,7 +6,7 @@ import type { AuthService } from '../auth/service.js';
 import { currentUser } from '../auth/routes.js';
 import type { TableService } from './service.js';
 
-const STATUS: Record<TableError, number> = { NOT_FOUND: 404, FULL: 409, LOCKED: 403, EXPIRED: 410, NOT_HOST: 403, NOT_IN: 409, NOT_READY: 409, NEED_PLAYERS: 409, BUSY: 503, IN_MATCH: 409, START_FAILED: 409, INVALID: 400, NOT_TEAM: 409 };
+const STATUS: Record<TableError, number> = { NOT_FOUND: 404, FULL: 409, LOCKED: 403, EXPIRED: 410, NOT_HOST: 403, NOT_IN: 409, NOT_READY: 409, NEED_PLAYERS: 409, BUSY: 503, IN_MATCH: 409, START_FAILED: 409, INVALID: 400, NOT_TEAM: 409, NEEDS_GUARDIAN: 403, FEATURE_OFF: 403 };
 const codeParam = z.object({ code: z.string().min(3).max(12) });
 const targetBody = z.object({ userId: z.string().uuid() });
 

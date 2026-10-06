@@ -6,6 +6,8 @@ A separate app in this repo (`apps/landing`, its own container `landing`, no dat
 
 Blog posts (Markdown, draft/published, own Google title/description, cover, author), cast, FAQ, and the `landing.*` settings (name, tagline, hero title and text, contact e-mail). Stored in `landing_posts`, `landing_slug_redirects`, `landing_cast`, `landing_faq` (migration 0050) and served read-only by the game server at `GET /public/landing`, `/public/posts?page&pageSize`, `/public/posts/:slug` (open even in maintenance mode; drafts and hidden rows never leave). A renamed post's old slug answers `{redirectTo}` and the landing app turns it into a **301**.
 
+Starter content lives in `packages/db/seed/landing/{posts,cast,faq}.json` and is loaded by `pnpm --filter @dozari/db seed` (also on every production `seed` run, even with `--if-empty`) or alone with `seed --landing-only`. It is insert-only: posts match by slug, cast by name, FAQ by question, and rows that already exist (e.g. edited in the admin panel) are never overwritten.
+
 ## Pages and technical SEO/GEO
 
 Server-rendered HTML (all content is in the markup, no scripts needed): `/`, `/about`, `/download`, `/contact` (FAQ + e-mail, no form), `/blog` (`?page=N`, own canonical per page), `/blog/:slug`, `/cast`, `/terms`, `/privacy`; `/sitemap.xml` (every indexable URL with real `lastmod` and `hreflang` alternates), `/robots.txt` (named AI crawlers allowed), `/llms.txt` and `/llms-full.txt`; a missing page is a real **404** (noindex), an unreachable game server a **503**.
@@ -35,3 +37,7 @@ Fonts are self-hosted from `apps/landing/assets/fonts` (Lalezar for display/head
 ## Banners, icons and motion (home page)
 
 The eight promo banners of `docs/design/banner` are resized to 1600px webp in `apps/landing/assets/banners` (`/banners/bannerN.webp`; `og.jpg` = the 1200x630 social card, now the default `og:image`). The home page shows them as an auto-playing, swipeable carousel (CSS scroll-snap, so it works without scripts) and as tilted frames in alternating colour bands (puzzle, price guess, duel, 31 provinces, daily wheel), then animated counters, a playable sample puzzle (plain words, with a red herring) and a banner call-to-action. Favicon, apple-touch icon and `/site.webmanifest` come from the app icon (`assets/icons`, linked in every `<head>` by `seo.ts`). Motion = CSS animations + one small inline script (scroll reveal via `.rv`, progress bar, carousel, counters, sample puzzle); everything is visible without scripts and all animation stops under `prefers-reduced-motion`. Copy shows only real facts (16 items, 4 groups, 31 provinces, modes, daily wheel).
+
+## Try-it puzzle (home page)
+
+`GET /public/landing-demo` (game server) returns one approved, adult, non-daily puzzle whose 16 products all have an `icon_key`: four groups (`level`, `title`) of four items (`name`, `svg` from shared `itemSvg`, `image` = the product's primary absolute photo URL or null; the page shows the photo when there is one, else the icon). The pick is stable per day. The landing home page draws the tiles with those icons; it falls back to the built-in word puzzle when the endpoint answers 404 or fails. The solution is in the page by nature of a client-side demo, hence daily puzzles are excluded.

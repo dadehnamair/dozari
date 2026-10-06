@@ -80,9 +80,9 @@ export class SoloService {
   }
 
   /** Starts a session, or null when there is no puzzle to play. */
-  async start(userId?: string, opts: { puzzleId?: string; tag?: string } = {}): Promise<SoloView | null> {
+  async start(userId?: string, opts: { puzzleId?: string; tag?: string; /** A guardian's read-only preview: the puzzle comes from this track's pool and nothing is recorded (pass no `userId`). */ previewTrack?: AgeTrack } = {}): Promise<SoloView | null> {
     this.sweep();
-    const puzzle = opts.puzzleId ? await this.source.byId?.(opts.puzzleId) : await this.source.pickRandom({ level: userId && this.levelOf ? await this.levelOf(userId).catch(() => undefined) : undefined, tracks: await this.tracksOf(userId) });
+    const puzzle = opts.puzzleId ? await this.source.byId?.(opts.puzzleId) : await this.source.pickRandom({ level: userId && this.levelOf ? await this.levelOf(userId).catch(() => undefined) : undefined, tracks: opts.previewTrack ? trackRules(opts.previewTrack).puzzleTracks : await this.tracksOf(userId) });
     if (!puzzle) return null;
     const rng = mulberry32(this.newSeed());
     const state = startSolo(puzzle, rng);
