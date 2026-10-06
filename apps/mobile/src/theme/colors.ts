@@ -11,6 +11,11 @@ export const colors = {
   cream: P.cream,
   /** Light sheet/panel surface: soft cream in play, aged parchment in adult (dark text stays readable on both). */
   paper: P.paper,
+  /** White cards/inputs, selection highlight, lavender tint and page sand — parchment tones in the adult look. */
+  card: P.card,
+  hi: P.hi,
+  tint: P.tint,
+  sand: P.sand,
   /** Dark purple surfaces (chips, bars) — near-black brown in adult. */
   deep: P.deep,
   deeper: P.deeper,

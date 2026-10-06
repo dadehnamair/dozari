@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
   name: { fontFamily: fonts.display, fontSize: 15, color: colors.ink, textAlign: 'center', minHeight: 36 },
   sub: { fontFamily: fonts.bold, fontSize: 11, color: colors.ink, opacity: 0.7, textAlign: 'center' },
   dots: { flexDirection: ROW, gap: 4, justifyContent: 'center' },
-  dot: { width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: colors.ink, backgroundColor: '#fff' },
+  dot: { width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.card },
   dotOn: { backgroundColor: colors.candy.lime },
   story: { fontFamily: fonts.body, fontSize: 12, lineHeight: 19, color: colors.ink, textAlign: 'center' },
   buy: { flexDirection: ROW, alignItems: 'center', justifyContent: 'center', gap: 4, minHeight: 40, borderRadius: 12, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.candy.lime, ...lift(3) },
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   buyIcon: { width: 22, height: 22 },
   buyText: { fontFamily: fonts.display, fontSize: 13, color: colors.ink },
   maxed: { fontFamily: fonts.bold, fontSize: 12, color: colors.ink, textAlign: 'center', paddingVertical: 8 },
-  pin: { minHeight: 34, borderRadius: 10, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  pin: { minHeight: 34, borderRadius: 10, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
   pinOn: { backgroundColor: colors.candy.yellow },
   pinText: { fontFamily: fonts.bold, fontSize: 12, color: colors.ink },
 });

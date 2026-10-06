@@ -347,7 +347,7 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false, ageTrac
 }
 
 const styles = StyleSheet.create({
-  previewBanner: { alignSelf: 'center', fontFamily: fonts.bold, fontSize: 13, color: colors.ink, backgroundColor: '#FFE48A', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 5, overflow: 'hidden', textAlign: 'center' },
+  previewBanner: { alignSelf: 'center', fontFamily: fonts.bold, fontSize: 13, color: colors.ink, backgroundColor: colors.hi, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 5, overflow: 'hidden', textAlign: 'center' },
   review: { gap: 10, width: '100%' },
   askCard: { padding: 12, gap: 6, borderRadius: 20, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.paper },
   askTitle: { fontFamily: fonts.display, fontSize: 18, color: colors.ink, textAlign: 'center' },

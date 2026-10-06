@@ -68,7 +68,7 @@ export function TableChat({ code, meId }: { code: string; meId: string | null })
 }
 
 const styles = StyleSheet.create({
-  box: { gap: 6, padding: 8, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#fff' },
+  box: { gap: 6, padding: 8, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.card },
   title: { fontFamily: fonts.display, fontSize: 15, color: colors.ink, textAlign: TEXT_RIGHT },
   msgs: { maxHeight: 160 },
   msgsContent: { gap: 6, flexGrow: 1, justifyContent: 'flex-end' },
@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
   hint: { fontFamily: fonts.bold, fontSize: 12, lineHeight: 20, color: colors.ink, textAlign: 'center' },
   warn: { fontFamily: fonts.bold, fontSize: 12, color: '#B3261E', textAlign: 'center' },
   inputRow: { flexDirection: ROW, gap: 8, alignItems: 'center' },
-  input: { flex: 1, height: 40, borderRadius: 12, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#fff', paddingHorizontal: 10, fontFamily: fonts.bold, fontSize: 13, color: colors.ink, textAlign: TEXT_RIGHT },
+  input: { flex: 1, height: 40, borderRadius: 12, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.card, paddingHorizontal: 10, fontFamily: fonts.bold, fontSize: 13, color: colors.ink, textAlign: TEXT_RIGHT },
   send: { width: 40, height: 40, borderRadius: 12, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   sendMark: { fontFamily: fonts.display, fontSize: 18, color: colors.ink },
 });

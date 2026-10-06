@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
   chip: { flexDirection: ROW, alignItems: 'center', gap: 6, height: 30, paddingHorizontal: 10, borderRadius: 99, borderWidth: 2.5, borderColor: colors.ink },
   chipText: { fontFamily: fonts.bold, fontSize: 12, color: colors.ink },
   chipX: { fontFamily: fonts.display, fontSize: 14, color: colors.ink, opacity: 0.6 },
-  small: { height: 30, paddingHorizontal: 10, borderRadius: 10, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  small: { height: 30, paddingHorizontal: 10, borderRadius: 10, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
   smallText: { fontFamily: fonts.display, fontSize: 13, color: colors.ink },
   navScroll: { flexGrow: 0, minHeight: 42 },
   nav: { flexDirection: ROW, gap: 8, alignItems: 'center', paddingBottom: 4 },

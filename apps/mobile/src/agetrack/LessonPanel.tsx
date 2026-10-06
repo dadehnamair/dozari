@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
   title: { fontFamily: fonts.display, fontSize: 18, color: '#5B4A70' },
   word: { fontFamily: fonts.display, fontSize: 44, color: colors.ink },
   letters: { flexWrap: 'wrap', justifyContent: 'center', gap: 8 },
-  letter: { minWidth: 46, height: 52, paddingHorizontal: 8, borderRadius: 12, borderWidth: 2, borderColor: colors.ink, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  letter: { minWidth: 46, height: 52, paddingHorizontal: 8, borderRadius: 12, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
   letterText: { fontFamily: fonts.display, fontSize: 30, color: colors.ink },
   count: { fontFamily: fonts.bold, fontSize: 15, color: '#5B4A70' },
   syllables: { fontFamily: fonts.bold, fontSize: 18, color: '#A66BF0' },

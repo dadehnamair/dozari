@@ -93,7 +93,7 @@ const styles = StyleSheet.create({
   name: { fontFamily: fonts.display, fontSize: 24, color: colors.ink, textAlign: 'center' },
   question: { fontFamily: fonts.bold, fontSize: 14, color: colors.ink, textAlign: 'center' },
   inputRow: { flexDirection: ROW, alignItems: 'center', gap: 8 },
-  input: { minWidth: 170, borderWidth: 3, borderColor: colors.ink, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#fff', color: colors.ink, fontFamily: fonts.display, fontSize: 22, textAlign: 'center' },
+  input: { minWidth: 170, borderWidth: 3, borderColor: colors.ink, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: colors.card, color: colors.ink, fontFamily: fonts.display, fontSize: 22, textAlign: 'center' },
   unit: { fontFamily: fonts.bold, fontSize: 15, color: colors.ink },
   hint: { fontFamily: fonts.bold, fontSize: 12, color: '#7E46D6' },
   wait: { fontFamily: fonts.bold, fontSize: 15, color: '#7E46D6', textAlign: 'center' },

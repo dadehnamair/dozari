@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
   lockText: { fontFamily: fonts.display, fontSize: 12, color: '#fff' },
   name: { fontFamily: fonts.display, fontSize: 15, lineHeight: 20, color: colors.ink, textAlign: 'center' },
   btn: { height: 34, borderRadius: 12, borderWidth: 2.5, borderColor: colors.ink, overflow: 'hidden', flexDirection: ROW, alignItems: 'center', justifyContent: 'center', gap: 4, ...lift(3) },
-  btnOwned: { backgroundColor: '#fff' },
+  btnOwned: { backgroundColor: colors.card },
   btnWorn: { backgroundColor: '#B8F08F' },
   btnOff: { opacity: 0.5 },
   pressed: { transform: [{ translateY: 2 }] },

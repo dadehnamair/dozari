@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
   btn: { flex: 1, height: 44, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   ok: { backgroundColor: colors.candy.lime },
   danger: { backgroundColor: '#E5483C' },
-  cancel: { backgroundColor: '#fff' },
+  cancel: { backgroundColor: colors.card },
   off: { opacity: 0.5 },
   btnText: { fontFamily: fonts.display, fontSize: 16, color: colors.ink },
   dangerText: { color: '#fff' },

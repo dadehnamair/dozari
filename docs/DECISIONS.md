@@ -645,3 +645,5 @@ The designer's `docs/design/products/` folder (`ProductIcon.dc.html`, `products.
 ## D205 — AI studio suggests nominal prices too, always `pending` (2026-10-06, proposed)
 
 Owner request: the products tab must bring prices, not only names, and never repeat what the catalog already has. Extends D204/D26: each product draft may carry ≤8 `{year, priceToman}` pairs; saved as `pending` price points (rials = toman × 10, confidence 1, note «AI-suggested, unverified») so nothing reaches players before an editor approves it. Existing catalog names/slugs are sent to the model as exclusions and filtered again on parse and on save.
+
+D206 fifth pass: gold wordmark (`Wordmark`, `AnimatedLogo`) in the adult look; inner pages and sheets: `PageShell` gets a dark-bronze header with a gold rim and cream-gold title, and the remaining hard-coded surfaces moved to tokens (`colors.card`, `hi`, `tint`, `sand`: white, selection yellow, lavender and page sand in play; parchment tones in adult). Sheets keep their layout (parchment, dark text) — a full per-sheet redesign is not drawn in `adult/`.

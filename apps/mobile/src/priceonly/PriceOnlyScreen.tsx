@@ -168,7 +168,7 @@ const styles = StyleSheet.create({
   column: { width: '100%', maxWidth: 480, gap: 12 },
   talk: { flexDirection: ROW, alignItems: 'flex-end', gap: 8 },
   talker: { width: 110, height: 128 },
-  bubble: { flex: 1, padding: 12, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#fff' },
+  bubble: { flex: 1, padding: 12, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.card },
   bubbleText: { fontFamily: fonts.bold, fontSize: 13.5, lineHeight: 22, color: colors.ink, textAlign: TEXT_RIGHT },
   card: { padding: 14, gap: 10, alignItems: 'center', borderRadius: 22, borderWidth: 3, borderColor: colors.ink, backgroundColor: 'rgba(43,18,64,0.72)' },
   title: { fontFamily: fonts.display, fontSize: 20, color: colors.candy.yellow },

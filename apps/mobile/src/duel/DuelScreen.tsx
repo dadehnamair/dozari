@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
   round: { width: 52, height: 52, borderRadius: 26, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center', ...lift },
   roundGap: { width: 52 },
   tauntBox: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
-  tauntChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, borderWidth: 2, borderColor: colors.ink, backgroundColor: '#E8D5FF' },
+  tauntChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.tint },
   tauntText: { fontFamily: fonts.bold, fontSize: 13, color: colors.ink },
   actions: { flexDirection: ROW, gap: 9 },
   msg: { fontFamily: fonts.bold, fontSize: 18, color: colors.cream, textAlign: 'center' },

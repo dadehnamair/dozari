@@ -33,14 +33,14 @@ export function Chips<T extends string>({ options, value, onPick }: { options: r
 
 export const formStyles = StyleSheet.create({
   label: { fontFamily: fonts.bold, fontSize: 13, color: colors.ink, textAlign: 'right' },
-  input: { fontFamily: fonts.bold, fontSize: 15, color: colors.ink, borderWidth: 3, borderColor: colors.ink, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#fff', textAlign: 'right' },
+  input: { fontFamily: fonts.bold, fontSize: 15, color: colors.ink, borderWidth: 3, borderColor: colors.ink, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: colors.card, textAlign: 'right' },
   multiline: { minHeight: 64, textAlignVertical: 'top' },
   error: { fontFamily: fonts.bold, fontSize: 13, color: '#B3261E', textAlign: 'center' },
   ok: { fontFamily: fonts.bold, fontSize: 14, color: '#2E7D32', textAlign: 'center' },
   buttons: { flexDirection: ROW, gap: 10, marginTop: 4 },
   btn: { flex: 1, height: 44, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   go: { backgroundColor: colors.candy.lime },
-  cancel: { backgroundColor: '#fff' },
+  cancel: { backgroundColor: colors.card },
   off: { opacity: 0.5 },
   btnText: { fontFamily: fonts.display, fontSize: 17, color: colors.ink },
 });
@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
   scroll: { flexGrow: 0 },
   body: { gap: 10, paddingRight: 6 },
   chips: { flexDirection: ROW, flexWrap: 'wrap', gap: 6 },
-  chip: { paddingHorizontal: 12, height: 34, borderRadius: 99, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: '#fff', justifyContent: 'center' },
+  chip: { paddingHorizontal: 12, height: 34, borderRadius: 99, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.card, justifyContent: 'center' },
   chipOn: { backgroundColor: colors.candy.yellow },
   chipText: { fontFamily: fonts.bold, fontSize: 13, color: colors.ink },
 });

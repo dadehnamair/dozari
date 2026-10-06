@@ -34,6 +34,6 @@ const styles = StyleSheet.create({
   buttons: { flexDirection: ROW, gap: 10, marginTop: 4 },
   btn: { flex: 1, height: 46, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   ok: { backgroundColor: colors.candy.lime },
-  later: { backgroundColor: '#fff' },
+  later: { backgroundColor: colors.card },
   btnText: { fontFamily: fonts.display, fontSize: 16, color: colors.ink },
 });

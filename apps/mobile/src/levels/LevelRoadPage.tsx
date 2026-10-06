@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
   cards: { gap: 4 },
   card: { flexDirection: ROW, alignItems: 'center', gap: 6, paddingVertical: 4, paddingHorizontal: 5, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.paper, ...lift(4) },
   cardDim: { backgroundColor: '#D7C9EC', opacity: 0.92 },
-  cardIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  cardIcon: { width: 38, height: 38, borderRadius: 12, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
   cardIconInner: { width: 30, height: 30 },
   gray: { opacity: 0.45 },
   cardText: { flexShrink: 1, gap: 1 },
@@ -332,6 +332,6 @@ const styles = StyleSheet.create({
   ok: { alignSelf: 'stretch', height: 54, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...lift(4) },
   okText: { fontFamily: fonts.display, fontSize: 18, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
   ajan: { position: 'absolute', bottom: 22, left: 8, width: 100, height: 116 },
-  ajanBubble: { position: 'absolute', bottom: 52, left: 112, right: 14, padding: 10, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#fff', ...lift(4) },
+  ajanBubble: { position: 'absolute', bottom: 52, left: 112, right: 14, padding: 10, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.card, ...lift(4) },
   ajanText: { fontFamily: fonts.bold, fontSize: 11.5, lineHeight: 18, color: colors.ink, textAlign: TEXT_RIGHT },
 });

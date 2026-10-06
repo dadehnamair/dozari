@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
   modeBig: { marginBottom: 0 },
   modeText: { fontFamily: fonts.bold, fontSize: 10.5, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 1 },
   plate: { paddingHorizontal: 12, paddingTop: 3, paddingBottom: 2, borderRadius: 10, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.cream, ...lift(4) },
-  plateOn: { backgroundColor: '#FFE48A' },
+  plateOn: { backgroundColor: colors.hi },
   plateText: { fontFamily: fonts.display, fontSize: 15, color: colors.ink },
   badge: { position: 'absolute', top: -10, left: -14, minWidth: 22, height: 22, paddingHorizontal: 6, borderRadius: 99, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.candy.pink, alignItems: 'center', justifyContent: 'center' },
   badgeText: { fontFamily: fonts.display, fontSize: 11, color: '#fff' },

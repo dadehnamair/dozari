@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
   kicker: { fontFamily: fonts.bold, fontSize: 11, color: '#7E46D6', textAlign: TEXT_RIGHT, paddingHorizontal: 12, paddingTop: 8 },
   banner: { width: '100%', aspectRatio: 2.5, marginTop: 6, backgroundColor: '#E9DDF5' },
   head: { flexDirection: ROW, alignItems: 'center', gap: 10, padding: 10, borderTopWidth: 3, borderBottomWidth: 3, borderColor: colors.ink, marginTop: -3 },
-  logo: { width: 44, height: 44, borderRadius: 12, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: '#fff' },
+  logo: { width: 44, height: 44, borderRadius: 12, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.card },
   headText: { flex: 1, minWidth: 0 },
   name: { fontFamily: fonts.display, fontSize: 18, color: colors.ink, textAlign: TEXT_RIGHT },
   tagline: { fontFamily: fonts.bold, fontSize: 11.5, color: colors.ink, opacity: 0.8, textAlign: TEXT_RIGHT },
