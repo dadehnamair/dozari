@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Keyboard, Platform, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { toPersianDigits } from '@dozari/shared';
+import type { AgeTrack } from '@dozari/shared';
 import { ChildCodeSheet } from '../agetrack/ChildCodeSheet';
 import { Character } from '../components/Character';
 import { Scene } from '../components/Scene';
@@ -23,9 +24,12 @@ const errText = (e: unknown): string => fa.phoneLogin.errors[e instanceof ApiErr
  * «+98», then the five-box code — with «مهمان بازی کن» under it. Shown once on a fresh install when the server can send codes;
  * playing never needs it.
  */
-export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { signedIn: boolean; created: boolean }) => void; /** The server's age-track switch: shows «ورود با کد والدین» for a child's own device. */ ageTracksOn?: boolean }) {
+export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { signedIn: boolean; created: boolean; track?: AgeTrack }) => void; /** The server's age-track switch: shows «ورود با کد والدین» for a child's own device. */ ageTracksOn?: boolean }) {
   const adult = useTheme() === 'adult';
   const [childCodeOpen, setChildCodeOpen] = useState(false);
+  /** «Who is playing?» sits in the card (age tracks on); the choice is saved right after sign-in. */
+  const [age, setAge] = useState<AgeTrack>('adult');
+  const track = ageTracksOn ? age : undefined;
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [typed, setTyped] = useState('');
   const [code, setCode] = useState('');
@@ -70,7 +74,7 @@ export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { sig
     setBusy(true);
     setNote(null);
     loginWithCode(phone, digits, { announce: false }).then(
-      (r) => onDone({ signedIn: true, created: r.created }),
+      (r) => onDone({ signedIn: true, created: r.created, track }),
       (e) => (setBusy(false), setCode(''), setNote(errText(e))),
     );
   };
@@ -99,6 +103,18 @@ export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { sig
               <View style={[styles.prefix, adult ? ad.field : null]}><Text style={[styles.prefixText, adult ? ad.fieldText : null]}>+98</Text></View>
               <TextInput value={toPersianDigits(typed)} onChangeText={(v) => setTyped(onlyDigits(v, 11))} onSubmitEditing={send} keyboardType="phone-pad" maxLength={13} placeholder={toPersianDigits('912 345 6789')} placeholderTextColor={adult ? 'rgba(255,233,168,0.4)' : '#B8A9CC'} style={[styles.phoneInput, adult ? ad.field : null, adult ? ad.fieldText : null]} accessibilityLabel={fa.phoneLogin.phone} />
             </View>
+            {ageTracksOn ? (
+              <View style={styles.ageBlock}>
+                <Text style={[styles.sub, adult ? ad.sub : null]}>{fa.ageTrack.whoPlays}</Text>
+                <View style={styles.ageRow}>
+                  {([['kid', fa.ageTrack.kid], ['teen', fa.ageTrack.teen], ['adult', fa.ageTrack.adult]] as const).map(([k, n]) => (
+                    <Pressable key={k} accessibilityRole="button" accessibilityState={{ selected: age === k }} onPress={() => setAge(k)} style={[styles.agePill, adult ? ad.agePill : null, age === k ? (adult ? ad.agePillOn : styles.agePillOn) : null]}>
+                      <Text style={[styles.agePillText, adult ? ad.agePillText : null, age === k && adult ? ad.agePillTextOn : null]}>{n}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            ) : null}
           </>
         ) : (
           <>
@@ -121,7 +137,7 @@ export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { sig
         {note ? <Text style={styles.error}>{note}</Text> : null}
         <SlabButton label={busy ? l.sending : step === 'phone' ? l.sendCode : l.enter} sfx="confirm" color={colors.candy.lime} height={tight ? 50 : 56} fontSize={22} grow={0} disabled={busy || (step === 'phone' ? !phone : code.length !== OTP_LENGTH)} onPress={step === 'phone' ? send : () => enter(code)} />
         <View style={styles.orRow}><View style={[styles.orLine, adult ? ad.orLine : null]} /><Text style={[styles.orText, adult ? ad.sub : null]}>{l.or}</Text><View style={[styles.orLine, adult ? ad.orLine : null]} /></View>
-        <Pressable accessibilityRole="button" onPress={() => onDone({ signedIn: false, created: false })} style={({ pressed }) => [styles.guest, adult ? ad.guest : null, pressed ? styles.guestPressed : null]}>
+        <Pressable accessibilityRole="button" onPress={() => onDone({ signedIn: false, created: false, track })} style={({ pressed }) => [styles.guest, adult ? ad.guest : null, pressed ? styles.guestPressed : null]}>
           <Text style={[styles.guestText, adult ? ad.guestText : null]}>{l.guest}</Text>
         </Pressable>
         {ageTracksOn ? (
@@ -152,6 +168,10 @@ const ad = StyleSheet.create({
   orLine: { backgroundColor: 'rgba(232,182,74,0.25)' },
   guest: { backgroundColor: '#3A2412', borderColor: '#B8822A', shadowColor: '#000' },
   guestText: { color: '#FFE9A8' },
+  agePill: { backgroundColor: '#3A2412', borderColor: '#B8822A' },
+  agePillOn: { backgroundColor: '#E8B64A', borderColor: '#000' },
+  agePillText: { color: '#FFE9A8' },
+  agePillTextOn: { color: '#2A1606' },
 });
 
 const styles = StyleSheet.create({
@@ -185,5 +205,10 @@ const styles = StyleSheet.create({
   orText: { fontFamily: fonts.bold, fontSize: 11, color: 'rgba(43,18,64,0.55)' },
   guest: { height: 46, borderRadius: 16, borderWidth: 3, borderColor: INK, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', ...lift(4) },
   guestPressed: { transform: [{ translateY: 3 }] },
+  ageBlock: { gap: 6 },
+  ageRow: { flexDirection: ROW, gap: 6 },
+  agePill: { flex: 1, height: 40, borderRadius: 12, borderWidth: 3, borderColor: INK, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  agePillOn: { backgroundColor: '#FFE48A' },
+  agePillText: { fontFamily: fonts.display, fontSize: 17, color: INK },
   guestText: { fontFamily: fonts.display, fontSize: 17, color: INK },
 });

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import type { AgeTrack } from '@dozari/shared';
 import { SlabButton } from '../components/SlabButton';
@@ -17,7 +17,7 @@ const INK = colors.ink;
  * First-run «who is playing?» screen (docs/logic/age-tracks.md): three big cards on the same bazaar-at-dusk look as the sign-in screen.
  * Shown once per account, only when the server's age-track switch is on. The adult card comes first and wears the main colour.
  */
-export function AgeTrackScreen({ onDone }: { onDone: (track: AgeTrack) => void }) {
+export function AgeTrackScreen({ onDone, initial }: { onDone: (track: AgeTrack) => void; /** The track already picked on the sign-in card: saved at once, only the guardian step (kid, teen) is shown. */ initial?: AgeTrack }) {
   const l = fa.ageTrack;
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -33,6 +33,13 @@ export function AgeTrackScreen({ onDone }: { onDone: (track: AgeTrack) => void }
       () => (setBusy(false), setFailed(true)),
     );
   };
+  const auto = useRef(false);
+  useEffect(() => {
+    if (initial && !auto.current) {
+      auto.current = true;
+      pick(initial);
+    }
+  }, [initial]);
   const rows: { track: AgeTrack; label: string; hint: string; color: string }[] = [
     { track: 'adult', label: l.adult, hint: l.adultHint, color: colors.candy.lime },
     { track: 'teen', label: l.teen, hint: l.teenHint, color: colors.candy.sky },
