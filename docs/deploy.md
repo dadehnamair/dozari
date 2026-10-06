@@ -83,7 +83,7 @@ the root `docker-compose.yml` has Adminer on `:8080`.
 ## Catalogue (products, prices, images)
 
 The game needs product data. **No shell on the host?** Nothing to do: the `s-dozari-seed` service runs on every `up -d --build` and loads the catalogue when the database has no
-products yet (`SEED_ON_START=empty`, the default; check with `logs s-dozari-seed`). `SEED_ON_START=1` re-runs the full idempotent seed on every `up`, `0` turns it off.
+products yet (`SEED_ON_START=empty`, the default; check with `logs s-dozari-seed`). `SEED_ON_START=1` re-runs the full insert-only seed on every `up` (it adds what is missing and never overwrites edited products), `0` turns it off.
 Caveat: after `--remove-sample` with no real products loaded, the next `up` seeds the samples again; set `0` first. With a shell, load it once (and again after changing the seed files):
 
 ```bash
