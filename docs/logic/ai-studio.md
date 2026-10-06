@@ -5,12 +5,12 @@ Admin tab **«استودیوی هوش مصنوعی»** (`#/catalog/ai`, section 
 
 ## Providers
 
-Anything that speaks the OpenAI `POST {base}/chat/completions` dialect. Presets: ChatGPT (`openai`), DeepSeek (`deepseek`), GapGPT (`gapgpt`), AvalAI (`avalai`), plus one `custom` gateway.
+Anything that speaks the OpenAI `POST {base}/chat/completions` dialect. Presets: ChatGPT (`openai`), DeepSeek (`deepseek`), GapGPT (`gapgpt`), AvalAI (`avalai`), Gemini (`gemini`, via Google's OpenAI-compatible endpoint), plus one `custom` gateway. Claude (`anthropic`) uses Anthropic's native `POST {base}/messages` (`x-api-key`, `anthropic-version`). Gemini/Claude are server-side admin-only calls, never a client dependency (CLAUDE.md rule 8 concerns the app).
 A provider shows in the panel only when its key exists in the server environment:
 
 | env | meaning |
 |---|---|
-| `AI_OPENAI_API_KEY`, `AI_DEEPSEEK_API_KEY`, `AI_GAPGPT_API_KEY`, `AI_AVALAI_API_KEY` | key per preset |
+| `AI_OPENAI_API_KEY`, `AI_DEEPSEEK_API_KEY`, `AI_GAPGPT_API_KEY`, `AI_AVALAI_API_KEY`, `AI_ANTHROPIC_API_KEY`, `AI_GEMINI_API_KEY` | key per preset |
 | `AI_<ID>_BASE_URL` | override a preset's base URL (the Iranian gateway URLs are best-effort defaults: check the provider's docs) |
 | `AI_CUSTOM_BASE_URL`, `AI_CUSTOM_API_KEY`, `AI_CUSTOM_NAME`, `AI_CUSTOM_MODEL` | any other OpenAI-compatible gateway |
 

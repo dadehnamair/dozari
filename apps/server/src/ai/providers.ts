@@ -8,6 +8,8 @@ export interface ProviderPreset {
   defaultModel: string;
   /** Name of the environment variable that holds the API key. Keys are never stored in the database or sent to the browser. */
   keyEnv: string;
+  /** Wire format: OpenAI `/chat/completions` (default) or Anthropic's native `/messages`. */
+  dialect?: 'openai' | 'anthropic';
 }
 
 export const PRESETS: readonly ProviderPreset[] = [
@@ -15,6 +17,9 @@ export const PRESETS: readonly ProviderPreset[] = [
   { id: 'deepseek', label: 'DeepSeek', baseUrl: 'https://api.deepseek.com/v1', defaultModel: 'deepseek-chat', keyEnv: 'AI_DEEPSEEK_API_KEY' },
   { id: 'gapgpt', label: 'GapGPT (ایرانی)', baseUrl: 'https://api.gapgpt.app/v1', defaultModel: 'gpt-4o-mini', keyEnv: 'AI_GAPGPT_API_KEY' },
   { id: 'avalai', label: 'AvalAI (ایرانی)', baseUrl: 'https://api.avalai.ir/v1', defaultModel: 'gpt-4o-mini', keyEnv: 'AI_AVALAI_API_KEY' },
+  { id: 'anthropic', label: 'Claude (Anthropic)', baseUrl: 'https://api.anthropic.com/v1', defaultModel: 'claude-sonnet-5-5', keyEnv: 'AI_ANTHROPIC_API_KEY', dialect: 'anthropic' },
+  // Gemini's OpenAI-compatibility endpoint; server-side, optional, admin tool only.
+  { id: 'gemini', label: 'Gemini (Google)', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', defaultModel: 'gemini-2.5-flash', keyEnv: 'AI_GEMINI_API_KEY' },
 ];
 
 export type Env = Record<string, string | undefined>;
@@ -63,13 +68,22 @@ export const isModelName = (s: string): boolean => /^[A-Za-z0-9][A-Za-z0-9._:/-]
 /** One chat completion. Returns the assistant text. The API key only travels in the `Authorization` header and is never part of an error. */
 export async function chat(provider: ResolvedProvider, req: ChatRequest, doFetch: FetchLike = fetch as unknown as FetchLike): Promise<string> {
   if (!isModelName(req.model)) throw new AiError('ai_invalid_model');
+  const anthropic = provider.dialect === 'anthropic';
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), AI_LIMITS.timeoutSeconds * 1000);
   try {
-    const res = await doFetch(`${provider.baseUrl}/chat/completions`, {
+    const res = await doFetch(`${provider.baseUrl}${anthropic ? '/messages' : '/chat/completions'}`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${provider.apiKey}` },
-      body: JSON.stringify({
+      headers: anthropic
+        ? { 'content-type': 'application/json', 'x-api-key': provider.apiKey, 'anthropic-version': '2023-06-01' }
+        : { 'content-type': 'application/json', authorization: `Bearer ${provider.apiKey}` },
+      body: JSON.stringify(anthropic ? {
+        model: req.model,
+        temperature: Math.min(req.temperature ?? 0.8, 1),
+        max_tokens: req.maxTokens,
+        system: req.system,
+        messages: [{ role: 'user', content: req.user }],
+      } : {
         model: req.model,
         temperature: req.temperature ?? 0.8,
         max_tokens: req.maxTokens,
@@ -81,8 +95,8 @@ export async function chat(provider: ResolvedProvider, req: ChatRequest, doFetch
       signal: ctl.signal,
     });
     if (!res.ok) throw new AiError('ai_http_error', res.status);
-    const data = (await res.json()) as { choices?: { message?: { content?: unknown } }[] };
-    const text = data.choices?.[0]?.message?.content;
+    const data = (await res.json()) as { choices?: { message?: { content?: unknown } }[]; content?: { type?: string; text?: unknown }[] };
+    const text = anthropic ? data.content?.find((b) => b.type === 'text')?.text : data.choices?.[0]?.message?.content;
     if (typeof text !== 'string' || text.trim() === '') throw new AiError('ai_bad_output');
     return text;
   } catch (err) {
