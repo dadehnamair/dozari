@@ -64,6 +64,7 @@ export const ERROR_CODES = [
   'FEATURE_OFF',
   'DAILY_CAP',
   'LEVEL_TOO_LOW',
+  'UNKNOWN_TIER',
   'NO_CITY',
   'MUTED',
   'UNKNOWN_TAUNT',
@@ -82,7 +83,7 @@ export type Ack = z.infer<typeof ackSchema>;
 
 // ---- client -> server payloads -------------------------------------------------------------------------------
 
-export const queueJoinSchema = z.object({ mode: z.enum(['duel', 'team']) });
+export const queueJoinSchema = z.object({ mode: z.enum(['duel', 'team']), /** Stake table of a 1v1 (docs/logic/economy-v2.md); absent = bronze. */ tier: z.enum(['bronze', 'silver', 'gold']).optional() });
 /** A teammate's in-progress selection (0-4 cards) shown to the captain; never stored, only the latest counts. */
 export const matchProposeSchema = z.object({ itemIds: z.array(z.string().min(1).max(64)).max(4) });
 export const matchSubmitSchema = z.object({ itemIds: z.array(z.string().min(1).max(64)).length(4) });

@@ -87,6 +87,7 @@ export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { sig
         <AnimatedLogo width={tight ? 190 : 230} />
         <View style={tight ? styles.heroTight : styles.hero}><Character who="dozari" pose="wave" /></View>
       </View>
+      <View style={[styles.cardWrap, tight ? styles.cardWrapTight : null]} pointerEvents="box-none">
       <View style={[styles.card, tight ? styles.cardTight : null]}>
         {step === 'phone' ? (
           <>
@@ -127,6 +128,7 @@ export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { sig
           </Pressable>
         ) : null}
       </View>
+      </View>
       {childCodeOpen ? <ChildCodeSheet onClose={() => setChildCodeOpen(false)} onDone={() => onDone({ signedIn: true, created: true })} /> : null}
     </View>
   );
@@ -141,8 +143,11 @@ const styles = StyleSheet.create({
   top: { alignItems: 'center' },
   hero: { width: 150, height: 172, marginTop: -4 },
   heroTight: { width: 100, height: 115 },
-  card: { position: 'absolute', left: 14, right: 14, bottom: 26, maxWidth: 420, alignSelf: 'center', padding: 14, paddingTop: 16, gap: 10, borderRadius: 26, borderWidth: 4, borderColor: INK, backgroundColor: '#FBF1DE', ...lift(7) },
-  cardTight: { bottom: 12, gap: 7, padding: 12 },
+  // A centring wrapper: `alignSelf` does nothing on an absolute box, so a lone absolute card with `left`+`right`+`maxWidth` stuck to the left on wide screens.
+  cardWrap: { position: 'absolute', left: 14, right: 14, bottom: 26, alignItems: 'center' },
+  cardWrapTight: { bottom: 12 },
+  card: { width: '100%', maxWidth: 420, padding: 14, paddingTop: 16, gap: 10, borderRadius: 26, borderWidth: 4, borderColor: INK, backgroundColor: '#FBF1DE', ...lift(7) },
+  cardTight: { gap: 7, padding: 12 },
   title: { fontFamily: fonts.display, fontSize: 22, color: INK, textAlign: TEXT_RIGHT },
   sub: { fontFamily: fonts.bold, fontSize: 12, lineHeight: 19, color: '#7E46D6', textAlign: TEXT_RIGHT },
   phoneRow: { flexDirection: 'row', direction: 'ltr', gap: 6 },

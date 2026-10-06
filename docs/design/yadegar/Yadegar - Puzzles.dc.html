@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="fa">
+<head>
+<meta charset="utf-8">
+<title>تکه‌های پازل یادگار</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Lalezar&amp;family=Vazirmatn:wght@400;600;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+</style>
+</helmet>
+<div dir="rtl" style="width: 1600px; height: 1360px; box-sizing: border-box; padding: 64px; display: flex; flex-direction: column; gap: 36px; background: linear-gradient(180deg, #1a0b2a 0%, #120820 100%); font-family: Vazirmatn, Tahoma, sans-serif; color: #fff6e8">
+  <header style="display: flex; flex-direction: column; gap: 8px">
+    <h2 style="margin: 0; font: 56px/1.1 Lalezar, Vazirmatn, sans-serif; color: #e0b04a">تکه‌های پازل</h2>
+    <p style="margin: 0; font: 600 16px/1.9 Vazirmatn, sans-serif; color: rgba(255,246,232,.75)">هر کارت جدا فروخته می‌شه: کارت‌های معمولی ۴ تکه، کارت‌های کمیاب ۶ تکه. وقتی همهٔ تکه‌ها جمع بشه، عکس کامل توی آلبوم می‌شینه.</p>
+  </header>
+  <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 28px 32px; align-items: end">
+    <sc-for list="{{ items }}" as="it" hint-placeholder-count="8">
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 10px">
+        <div role="img" aria-label="{{ it.title }} در {{ it.pieces }}" style="width: 300px; height: {{ it.h }}"><dc-import name="Yadegar" card="{{ it.card }}" mode="puzzle" hint-size="300px,{{ it.h }}" style="width: 100%; height: 100%"></dc-import></div>
+        <div style="display: flex; gap: 10px; align-items: center">
+          <span style="font: 24px/1.2 Lalezar, Vazirmatn, sans-serif; color: #fff6e8">{{ it.title }}</span>
+          <span style="font: 800 12px/1 Vazirmatn, sans-serif; padding: 6px 12px; border-radius: 99px; border: 1.5px solid #e0b04a; color: #e0b04a">{{ it.pieces }}</span>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1600,"height":1360}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const rows = [
+      ['تلفن عمومی', '۴ تکه'],
+      ['چای عصر جمعه', '۴ تکه'],
+      ['شب یلدا', '۶ تکه'],
+      ['بادبادک پشت‌بوم', '۴ تکه'],
+      ['تیله‌بازی', '۴ تکه'],
+      ['بستنی سنتی', '۶ تکه'],
+      ['سفر با پیکان', '۶ تکه'],
+      ['نوار کاست', '۶ تکه']
+    ];
+    return { items: rows.map(([title, pieces], i) => ({ card: String(i + 1), title, pieces, h: pieces === '۶ تکه' ? '413px' : '379px' })) };
+  }
+}
+</script>
+</body>
+</html>

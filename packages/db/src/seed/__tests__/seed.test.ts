@@ -46,6 +46,32 @@ describe('sample seed (to be removed before launch)', () => {
   });
 });
 
+describe('teen starter puzzles (age tracks)', () => {
+  const seed = readSeedProducts();
+  const puzzles = readSeedPuzzles(seed).filter((p) => p.age_track === 'teen');
+  const bySlug = new Map(seed.map((p) => [p.slug, p]));
+
+  it('has a few teen puzzles, all drafts for an editor to approve', () => {
+    expect(puzzles.length).toBeGreaterThanOrEqual(5);
+    for (const p of puzzles) expect(p.status, p.id).toBe('draft');
+  });
+
+  it('uses only teen or younger items, each with enough approved prices for the price-guess round', () => {
+    for (const p of puzzles) {
+      for (const slug of p.groups.flatMap((g) => g.products)) {
+        const item = bySlug.get(slug)!;
+        expect(item.age_track, `${p.id} ${slug}`).not.toBe('adult');
+        expect(item.prices.filter((x) => x.status === 'approved').length, `${p.id} ${slug}`).toBeGreaterThanOrEqual(3);
+      }
+    }
+  });
+
+  it('never repeats the same group of four in two puzzles', () => {
+    const keys = puzzles.flatMap((p) => p.groups.map((g) => [...g.products].sort().join(',')));
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+});
+
 describe('the generator on the sample catalog', () => {
   it('makes valid, distinct puzzles from the sample products (so the seed script can top the pool up)', async () => {
     const { generatePuzzle, mulberry32, seedPriceToRials } = await import('@dozari/shared');

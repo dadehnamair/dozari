@@ -11,6 +11,7 @@ export const transferRulesViewSchema = z.object({
   loanDueDays: z.number().int(),
   loanMaxOpen: z.number().int(),
   needsActivation: z.boolean(),
+  giftFeePercent: z.number().optional(),
 });
 
 /** `GET /transfers/rules`: the rules (shown before first use) and how much this player may still send. */

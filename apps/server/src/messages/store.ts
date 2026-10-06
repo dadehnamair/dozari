@@ -2,7 +2,7 @@ import { adminMessageChannels, adminMessages, and, baleLinks, desc, eq, inArray,
 import type { Db } from '@dozari/db';
 import { uuidv7 } from 'uuidv7';
 
-export type Audience = 'all' | 'bale_linked' | 'user';
+export type Audience = 'all' | 'bale_linked' | 'user' | 'kid' | 'teen';
 export type Channel = 'in_app' | 'bale' | 'sms' | 'email' | 'push';
 
 export interface NewMessage {
@@ -60,11 +60,15 @@ export function createDbMessageStore(db: Db): MessageStore {
         const [r] = await db.select({ id: users.id }).from(users).where(and(eq(users.id, userId), eq(users.isBanned, false)));
         return r ? [r.id] : [];
       }
+      if (audience === 'kid' || audience === 'teen') {
+        return (await db.select({ id: users.id }).from(users).where(and(eq(users.isBanned, false), eq(users.isBot, false), eq(users.ageTrack, audience)))).map((r) => r.id);
+      }
       if (audience === 'bale_linked') {
-        const rows = await db.select({ id: users.id }).from(baleLinks).innerJoin(users, eq(users.id, baleLinks.userId)).where(eq(users.isBanned, false));
+        // Broadcasts (all players, Bale-linked) never reach a kid or teen profile: adult marketing text stays with adults (docs/logic/age-tracks.md §Admin panel). A message to one named player is still allowed.
+        const rows = await db.select({ id: users.id }).from(baleLinks).innerJoin(users, eq(users.id, baleLinks.userId)).where(and(eq(users.isBanned, false), eq(users.ageTrack, 'adult')));
         return rows.map((r) => r.id);
       }
-      return (await db.select({ id: users.id }).from(users).where(eq(users.isBanned, false))).map((r) => r.id);
+      return (await db.select({ id: users.id }).from(users).where(and(eq(users.isBanned, false), eq(users.ageTrack, 'adult')))).map((r) => r.id);
     },
     async create(msg) {
       const id = uuidv7();

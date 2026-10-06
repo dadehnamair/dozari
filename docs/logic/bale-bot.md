@@ -64,3 +64,17 @@ nobody learns who holds a number). When the player then **proves** it (Bale cont
   later token expiry logs in to it, not to the throw-away guest) and the app swaps its token and remounts every screen.
 - Both choices ask «مطمئنی؟» first; nothing is merged and coins are never combined.
 
+
+## Play from the bot: signup by contact (owner request 2026-10-05)
+
+The landing `/download` page and footer show «بله» (admin setting `link.bale_bot`; empty = hidden). Someone who opens the bot and sends `/start`
+without a link code gets a one-tap `request_contact` button. Their **own** contact (`contact.user_id` = sender id; forwarded contacts are
+refused and count as wrong codes) is normalised with `normalizeIranPhone`; `NotifyService.signup` (`notify/signup.ts`) then returns the
+account holding that verified number or creates a new one (random nickname, `phone` verified, no device, signup bonus like a guest) and
+`NotifyStore.linkChat` links the chat. The account appears in the admin user list with phone + Bale link. The app/mini app reaches it later
+through phone login (or the D126 conflict choice). Not verified against Bale's real servers (same caveat as above).
+
+## Telegram mini app (switch is OFF by default)
+
+Admin settings `feature.telegram_app` (0/1, default 0) and `link.telegram_app` (URL). Only when the switch is on **and** the link is set does
+`/public/landing` carry `telegramApp`, and the landing shows a «تلگرام» tile (play without install, PWA-like). Nothing else of Telegram is built.

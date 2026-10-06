@@ -38,8 +38,8 @@ export const soloNudgeResultSchema = z.object({ hint: hintPayloadSchema });
 export type SoloNudgeResult = z.infer<typeof soloNudgeResultSchema>;
 
 /** `GET /shop`: items a player can buy with coins (docs/logic/shop.md). */
-/** `hint_token` adds hint tokens; `wheel_spin` adds lucky-wheel spins (one row per spin in `wheel_spins`). */
-export const SHOP_EFFECTS = ['hint_token', 'wheel_spin', 'cosmetic'] as const;
+/** `hint_token` adds hint tokens; `wheel_spin` adds lucky-wheel spins (one row per spin in `wheel_spins`); `streak_shield` protects the daily-reward streak across one missed day. */
+export const SHOP_EFFECTS = ['hint_token', 'wheel_spin', 'cosmetic', 'streak_shield'] as const;
 import { COSMETIC_SLOTS } from './slots.js';
 export { COSMETIC_SLOTS };
 export type { CosmeticSlot } from './slots.js';
@@ -66,9 +66,11 @@ export const shopItemSchema = z.object({
   owned: z.boolean().default(false),
   equipped: z.boolean().default(false),
   /** Why the player cannot buy it right now, or null. */
-  blocked: z.enum(['LEVEL', 'DAILY_LIMIT', 'COINS', 'GEMS', 'OWNED']).nullable(),
+  blocked: z.enum(['LEVEL', 'DAILY_LIMIT', 'COINS', 'GEMS', 'OWNED', 'MAX_HELD']).nullable(),
   /** Purchases left today when the item has a daily limit. */
   leftToday: z.number().int().nonnegative().nullable(),
+  /** Part of today's rotating offer (it changes at midnight, Tehran time). */
+  rotating: z.boolean().default(false),
 });
 export type ShopItem = z.infer<typeof shopItemSchema>;
 
@@ -78,5 +80,9 @@ export const shopSchema = z.object({
   gems: z.number().int().nonnegative().default(0),
   level: z.number().int().positive(),
   tokens: z.number().int().nonnegative(),
+  /** Streak shields held (the cap is `STREAK_SHIELD_MAX_HELD`). */
+  shields: z.number().int().nonnegative().default(0),
+  /** When today's rotating offer changes (epoch ms); null when nothing rotates. */
+  rotatesAt: z.number().int().nullable().default(null),
 });
 export type Shop = z.infer<typeof shopSchema>;

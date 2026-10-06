@@ -58,9 +58,9 @@ describe('coin shop', () => {
     store.give(a.id, 100);
     const shop = shopSchema.parse((await app.inject({ method: 'GET', url: '/shop', headers: a.h })).json());
     expect(shop).toMatchObject({ balance: 100, level: 3, tokens: 0 });
-    // Level 3: the first two items are open, the higher tiers (levels 10 / 20 / 35) are locked.
-    expect(shop.items.slice(0, 7).map((i) => i.blocked)).toEqual([null, null, 'LEVEL', 'LEVEL', 'LEVEL', null, 'LEVEL']);
-    expect(shop.items.slice(0, 7).map((i) => i.minLevel)).toEqual([2, 3, 10, 20, 35, 3, 5]);
+    // Level 3: the first two items and the streak shield are open, the higher tiers (levels 10 / 20 / 35) are locked.
+    expect(shop.items.slice(0, 8).map((i) => i.blocked)).toEqual([null, null, null, 'LEVEL', 'LEVEL', 'LEVEL', null, 'LEVEL']);
+    expect(shop.items.slice(0, 8).map((i) => i.minLevel)).toEqual([2, 3, 2, 10, 20, 35, 3, 5]);
     const pack = shop.items[1]!;
     const bought = (await app.inject({ method: 'POST', url: `/shop/${pack.id}/buy`, headers: a.h })).json();
     expect(bought).toEqual({ balance: 20, gems: 0, tokens: 5 });
@@ -213,5 +213,70 @@ describe('solo hints', () => {
     const worn = (await app.inject({ method: 'POST', url: `/shop/${crown.id}/equip`, headers: a.h, payload: { equipped: true } })).json() as { worn: { id: string }[] };
     expect(worn.worn.map((w) => w.id)).toEqual([crown.id]);
     expect((await app.inject({ method: 'POST', url: `/shop/${items[0]!.id}/equip`, headers: a.h, payload: { equipped: true } })).statusCode).toBe(404);
+  });
+});
+
+describe('streak shield in the shop', () => {
+  it('sells a shield for coins, holds at most two, and says why a third is blocked', async () => {
+    const { app, login, store } = boot(3);
+    const a = await login(1);
+    store.give(a.id, 500);
+    const list = async () => shopSchema.parse((await app.inject({ method: 'GET', url: '/shop', headers: a.h })).json());
+    const shield = (await list()).items.find((i) => i.effect === 'streak_shield')!;
+    expect(shield).toMatchObject({ priceCoins: 30, blocked: null, minLevel: 2 });
+    const buy = () => app.inject({ method: 'POST', url: `/shop/${shield.id}/buy`, headers: a.h });
+    expect((await buy()).statusCode).toBe(200);
+    store.now.ms += 86_400_000 * 2; // the next Tehran days: one shield a day
+    expect((await buy()).statusCode).toBe(200);
+    const full = await list();
+    expect(full.shields).toBe(2);
+    expect(full.items.find((i) => i.effect === 'streak_shield')!.blocked).toBe('MAX_HELD');
+    store.now.ms += 86_400_000 * 2;
+    const third = await buy();
+    expect(third.statusCode).toBe(409);
+    expect(third.json()).toEqual({ error: 'max_held' });
+  });
+});
+
+describe('daily rotating shop', () => {
+  const rotatingSeed = (n: number) => Array.from({ length: n }, (_, i) => ({ titleFa: `کالا ${i}`, descriptionFa: '', effect: 'cosmetic' as const, amount: 1, priceCoins: 50, currency: 'coins' as const, priceGems: 0, priceRials: 0, skuBazaar: null, skuMyket: null, minLevel: 1, perDayLimit: 0, slot: 'hat' as const, iconKey: null, isActive: true, rotating: true }));
+  function rotatingApp(slots: number) {
+    const store = createMemoryShopStore([...rotatingSeed(8), { ...rotatingSeed(1)[0]!, titleFa: 'همیشگی', rotating: false }]);
+    const auth = new AuthService(memoryUsers(), createTokenSigner('a-test-secret-that-is-long-enough'), mulberry32(3));
+    const app = buildServer({ auth, shop: new ShopService(store, async () => 5, () => store.now.ms, async () => slots) });
+    return { app, store, auth };
+  }
+  const login = async (app: ReturnType<typeof buildServer>) => {
+    const r = (await app.inject({ method: 'POST', url: '/auth/guest', payload: { deviceId: '0f8fad5b-d9cb-469f-a165-708677289501' } })).json() as { token: string; user: { id: string } };
+    return { h: { authorization: `Bearer ${r.token}` }, id: r.user.id };
+  };
+
+  it('shows only today\'s slots of the rotating pool plus the fixed items, and says when it changes', async () => {
+    const { app, store } = rotatingApp(3);
+    const a = await login(app);
+    store.give(a.id, 500);
+    store.now.ms = Date.UTC(2026, 9, 5, 12);
+    const shop = shopSchema.parse((await app.inject({ method: 'GET', url: '/shop', headers: a.h })).json());
+    expect(shop.items.filter((i) => i.rotating)).toHaveLength(3);
+    expect(shop.items.filter((i) => !i.rotating)).toHaveLength(1);
+    expect(shop.rotatesAt).toBeGreaterThan(store.now.ms);
+    expect(shop.rotatesAt! - store.now.ms).toBeLessThanOrEqual(86_400_000);
+  });
+  it('refuses an item that is not on today\'s offer', async () => {
+    const { app, store } = rotatingApp(3);
+    const a = await login(app);
+    store.give(a.id, 500);
+    store.now.ms = Date.UTC(2026, 9, 5, 12);
+    const offered = new Set(shopSchema.parse((await app.inject({ method: 'GET', url: '/shop', headers: a.h })).json()).items.map((i) => i.id));
+    const hidden = Array.from({ length: 9 }, (_, i) => `00000000-0000-7000-8000-${String(i + 1).padStart(12, '0')}`).find((id) => !offered.has(id))!;
+    const res = await app.inject({ method: 'POST', url: `/shop/${hidden}/buy`, headers: a.h });
+    expect(res.statusCode).toBe(409);
+    expect(res.json()).toEqual({ error: 'not_today' });
+  });
+  it('offers every rotating item when slots is 0', async () => {
+    const { app, store } = rotatingApp(0);
+    const a = await login(app);
+    expect(shopSchema.parse((await app.inject({ method: 'GET', url: '/shop', headers: a.h })).json()).items).toHaveLength(9);
+    void store;
   });
 });

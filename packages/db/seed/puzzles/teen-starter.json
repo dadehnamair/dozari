@@ -1,0 +1,359 @@
+[
+ {
+  "id": "teen-01",
+  "age_track": "teen",
+  "status": "draft",
+  "groups": [
+   {
+    "level": 0,
+    "title_fa": "زنگ تفریح",
+    "explanation_fa": "تنقلات و خوراکی‌های زنگ تفریح",
+    "products": [
+     "pofak-namaki-minoo",
+     "chips-chitoz",
+     "chocolate-minoo",
+     "adams-shik"
+    ]
+   },
+   {
+    "level": 1,
+    "title_fa": "صبحونه‌ی جمعه",
+    "explanation_fa": "سفره‌ی صبحانه: نان، پنیر، تخم‌مرغ و چای",
+    "products": [
+     "nan-barbari",
+     "panir-sefid",
+     "tokhm-morgh",
+     "chaye-golestan"
+    ]
+   },
+   {
+    "level": 2,
+    "title_fa": "چرخ‌های کوچه",
+    "explanation_fa": "ماشین‌ها و موتوری که توی کوچه می‌دیدی",
+    "products": [
+     "pride-131",
+     "peugeot-206-tip2",
+     "samand-lx",
+     "honda-125-cdi"
+    ]
+   },
+   {
+    "level": 3,
+    "title_fa": "پول خرد جیب",
+    "explanation_fa": "هزینه‌های کوچک بیرون از خانه: بلیت اتوبوس، مترو و سینما و کارت تلفن",
+    "products": [
+     "bilet-otoboos-vahed",
+     "bilet-metro-tehran",
+     "bilet-cinema",
+     "kart-telephone-omoomi"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "teen-02",
+  "age_track": "teen",
+  "status": "draft",
+  "groups": [
+   {
+    "level": 0,
+    "title_fa": "یخچال و خنک",
+    "explanation_fa": "نوشیدنی‌های بطری و قوطی",
+    "products": [
+     "nooshabeh-coca",
+     "nooshabeh-zamzam",
+     "abmiveh-rani",
+     "shir-kakao-shishei"
+    ]
+   },
+   {
+    "level": 1,
+    "title_fa": "جالیز تابستان",
+    "explanation_fa": "میوه و صیفی‌های تابستان",
+    "products": [
+     "hendevaneh",
+     "khiar-rasmi",
+     "gojeh-farangi",
+     "sib-derakhti"
+    ]
+   },
+   {
+    "level": 2,
+    "title_fa": "کمد آشپزخانه",
+    "explanation_fa": "مواد پایه‌ی آشپزخانه",
+    "products": [
+     "berenj-tarem",
+     "makaroni-reshtei",
+     "roghan-nabati-ghoo",
+     "ard-gandom"
+    ]
+   },
+   {
+    "level": 3,
+    "title_fa": "حمام و دستشویی",
+    "explanation_fa": "لوازم بهداشتی روزانه",
+    "products": [
+     "khamirdandan-nasim",
+     "saboon-golnar",
+     "shampoo-sehat-cedar",
+     "dastmal-kaghazi-cheshmak"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "teen-03",
+  "age_track": "teen",
+  "status": "draft",
+  "groups": [
+   {
+    "level": 0,
+    "title_fa": "قصابی و ماهی‌فروشی",
+    "explanation_fa": "گوشت، مرغ و ماهی",
+    "products": [
+     "morgh-keshtar",
+     "goosht-gusfand",
+     "goosht-goosale",
+     "mahi-ghezelala"
+    ]
+   },
+   {
+    "level": 1,
+    "title_fa": "شیرینیِ بعد از ناهار",
+    "explanation_fa": "بستنی، بیسکویت و شکلات",
+    "products": [
+     "bastani-kim",
+     "bastani-gheifi",
+     "biscuit-sagheh-talaei",
+     "chocolate-minoo"
+    ]
+   },
+   {
+    "level": 2,
+    "title_fa": "پمپ و کپسول",
+    "explanation_fa": "سوخت‌ها: بنزین، نفت سفید و گاز",
+    "products": [
+     "benzin-azad",
+     "benzin-super",
+     "naft-sefid-gallon",
+     "capsule-gaz-11kg"
+    ]
+   },
+   {
+    "level": 3,
+    "title_fa": "سرمایه‌ی بزرگ‌ترها",
+    "explanation_fa": "دارایی‌هایی که برای نگه‌داشتن ارزش پول می‌خریدند: طلا، ارز، سکه و خانه",
+    "products": [
+     "rob-sekke-bahar-azadi",
+     "tala-18-ayar",
+     "dolar-usa",
+     "maskan-tehran-metr"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "teen-04",
+  "age_track": "teen",
+  "status": "draft",
+  "groups": [
+   {
+    "level": 0,
+    "title_fa": "وسیله‌های خانه",
+    "explanation_fa": "لوازم خانگی",
+    "products": [
+     "pankeh-pars-khazar",
+     "polowpaz-pars-khazar",
+     "yakhchal-arj",
+     "charkh-khayati-marshal"
+    ]
+   },
+   {
+    "level": 1,
+    "title_fa": "قفسه‌ی زیر سینک",
+    "explanation_fa": "شوینده‌ها و مواد پاک‌کننده‌ی خانه",
+    "products": [
+     "powder-darya",
+     "maye-zarfshooee-rika",
+     "sefidkonandeh-vaytex",
+     "spray-pifpaf"
+    ]
+   },
+   {
+    "level": 2,
+    "title_fa": "قبل از اینترنت",
+    "explanation_fa": "سرگرمی و ارتباط بدون اینترنت: نوار، کارت تلفن، تمبر و سینما",
+    "products": [
+     "cassette-tdk",
+     "kart-telephone-omoomi",
+     "tambr-posti-shahri",
+     "bilet-cinema"
+    ]
+   },
+   {
+    "level": 3,
+    "title_fa": "جیب دانشجو",
+    "explanation_fa": "ژتون غذا و بلیت رفت‌وآمد",
+    "products": [
+     "zheton-daneshjooyi",
+     "bilet-otoboos-mashhad",
+     "bilet-metro-tehran",
+     "bilet-otoboos-vahed"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "teen-05",
+  "age_track": "teen",
+  "status": "draft",
+  "groups": [
+   {
+    "level": 0,
+    "title_fa": "از ماست تا پنیر",
+    "explanation_fa": "لبنیات",
+    "products": [
+     "panir-sefid",
+     "mast-sonati",
+     "kareh-pasteurize",
+     "panir-lighvan"
+    ]
+   },
+   {
+    "level": 1,
+    "title_fa": "سبزی سفره",
+    "explanation_fa": "سبزی‌ها و صیفی‌های سفره",
+    "products": [
+     "sibzamini",
+     "piaz-ghermez",
+     "khiar-rasmi",
+     "gojeh-farangi"
+    ]
+   },
+   {
+    "level": 2,
+    "title_fa": "یه چیزی برای نوشیدن",
+    "explanation_fa": "نوشیدنی‌ها: شربت، نوشابه، آبمیوه و چای",
+    "products": [
+     "sharbat-albaloo",
+     "nooshabeh-coca",
+     "abmiveh-rani",
+     "chaye-golestan"
+    ]
+   },
+   {
+    "level": 3,
+    "title_fa": "زرد و درخشان",
+    "explanation_fa": "پول و طلا: سکه، طلا و دلار",
+    "products": [
+     "sekke-bahar-azadi",
+     "rob-sekke-bahar-azadi",
+     "tala-18-ayar",
+     "dolar-usa"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "teen-06",
+  "age_track": "teen",
+  "status": "draft",
+  "groups": [
+   {
+    "level": 0,
+    "title_fa": "ایران‌ساز",
+    "explanation_fa": "خودروهای ایرانی",
+    "products": [
+     "paykan-carluxe",
+     "pride-131",
+     "samand-lx",
+     "peugeot-405-glx"
+    ]
+   },
+   {
+    "level": 1,
+    "title_fa": "ته‌مزه‌ی شیرین",
+    "explanation_fa": "کیک، بستنی و بیسکویت",
+    "products": [
+     "cake-titap",
+     "bastani-kim",
+     "bastani-gheifi",
+     "biscuit-sagheh-talaei"
+    ]
+   },
+   {
+    "level": 2,
+    "title_fa": "بطری پس‌دادنی",
+    "explanation_fa": "چیزهایی که توی بطری شیشه‌ای می‌آمدند",
+    "products": [
+     "nooshabeh-zamzam",
+     "nooshabeh-coca",
+     "shir-shishei",
+     "doogh-abali"
+    ]
+   },
+   {
+    "level": 3,
+    "title_fa": "به‌جای پول نقد",
+    "explanation_fa": "ژتون، کارت، بلیت و تمبر: چیزهایی که از قبل پولشان را داده بودی",
+    "products": [
+     "zheton-daneshjooyi",
+     "kart-telephone-omoomi",
+     "bilet-otoboos-vahed",
+     "tambr-posti-shahri"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "teen-07",
+  "age_track": "teen",
+  "status": "draft",
+  "groups": [
+   {
+    "level": 0,
+    "title_fa": "ته‌دیگ و نان داغ",
+    "explanation_fa": "نان، برنج و ماکارونی",
+    "products": [
+     "nan-taftoon",
+     "nan-lavash",
+     "berenj-tarem",
+     "makaroni-reshtei"
+    ]
+   },
+   {
+    "level": 1,
+    "title_fa": "میان‌وعده",
+    "explanation_fa": "کیک، بیسکویت، شکلات و بستنی",
+    "products": [
+     "cake-titap",
+     "biscuit-sagheh-talaei",
+     "chocolate-minoo",
+     "bastani-kim"
+    ]
+   },
+   {
+    "level": 2,
+    "title_fa": "تابستان و زمستان خانه",
+    "explanation_fa": "گرم‌کردن، خنک‌کردن و پخت‌وپز: بخاری، پنکه، نفت و کپسول گاز",
+    "products": [
+     "pankeh-pars-khazar",
+     "bokhari-alaeddin",
+     "naft-sefid-gallon",
+     "capsule-gaz-11kg"
+    ]
+   },
+   {
+    "level": 3,
+    "title_fa": "از اینجا تا اون‌جا",
+    "explanation_fa": "رفت‌وآمد: موتور، ماشین، مترو و اتوبوس بین‌شهری",
+    "products": [
+     "honda-125-cdi",
+     "peugeot-206-tip2",
+     "bilet-metro-tehran",
+     "bilet-otoboos-mashhad"
+    ]
+   }
+  ]
+ }
+]

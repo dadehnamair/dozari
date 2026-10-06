@@ -248,6 +248,17 @@ Start after the first Android build.
 
 - [ ] 1. Foundation: `age_track` on users/puzzles/items, `trackRules` config, first-run chooser, track-keyed queues, admin band filter — **built behind `feature.age_tracks` (off)**: users/puzzles/products columns, rules, chooser, queue pairing, admin user filter; still open: puzzle serving by track, per-track bots, admin section + filters on other lists
 - [ ] 2. Guardian link: phone OTP, child profiles, link code, guardian-approved band change — **built behind the switch** (migration 0060, `/guardian/*`, child sign-in code, app steps and settings rows); social enforcement waits for item 4
-- [ ] 3. Kid content and word lesson: kid pool, `item_lessons`, `splitWordLetters`, lesson cards, review queue — **pipeline built behind the switch** (track-pool serving, `item_lessons`, `splitWordLetters`, lesson cards, admin editor + approval, kid puzzle builder); **starter content seeded as drafts** (48 items with lessons, 3 puzzles; an editor approves them); still open: the rest of the 30–50 puzzles
-- [ ] 4. Social for kids and teens: track-bound friends, friend duels and tables, managed chat (D198 update)
-- [ ] 5. Guardian panel and digest, family table
+- [ ] 3. Kid content and word lesson: kid pool, `item_lessons`, `splitWordLetters`, lesson cards, review queue — **pipeline built behind the switch** (track-pool serving, `item_lessons`, `splitWordLetters`, lesson cards, admin editor + approval, kid puzzle builder); **starter content seeded as drafts** (48 items with lessons, 3 puzzles; an editor approves them); **teen starter content seeded as drafts** (7 puzzles over 74 teen-tagged real products); still open: the rest of the 30–50 kid puzzles, more teen puzzles, easy adult groups for teens
+- [x] 4. Social for kids and teens: track-bound friends, friend duels and tables, managed chat (D198 update) — **built behind the switch (slices 1–7)**: track-bound friends (profile, request, accept, list, search, invite link, leaderboards), track-bound private tables / friend duels, and the managed-chat core (no public rooms, text only to same-track friends with a linked guardian), a taunt library per track, a stricter word list for kid/teen, and the guardian gate on friends/tables (app opens the guardian step); auto-accept between kids needs no extra code (the notice to the guardian is the phase 5 digest); a role-gated kid/teen report queue in the admin, and the guardian step on invite links; nothing left open in this item
+- [x] 5. Guardian panel and digest, family table — **built behind the switch** (migrations 0063–0064): guardian settings (chat mode, friend approval, duels, quiet hours, reminder) enforced on the server, the digest, the family table, the app panel and the soft rest card; later added: block a friend, per-day play time, guardian preview, kill switches per band, guardians tab (see `age-tracks.md`)
+
+## Economy v2 (D204, proposed) — see `docs/logic/economy-v2.md`
+
+- [x] 1. Balance simulator for every faucet and sink (`simulate-v2.ts`); result: the old economy inflates (median ≈ 5200 at day 90)
+- [x] 2. Stake tables bronze / silver / gold in the duel queue + gift fee (settings `duel.silver_*`, `duel.gold_*`, `transfer.gift_fee_percent`; mobile table chooser)
+- [x] 3. Streak shield (`streak_shield` shop effect) + daily rotating shop (`rotating`, `shop.daily_slots`; no item rotates until the admin flags some)
+- [x] 4. Keepsake collection «گنجینه» (pieces, drops after human wins, upgrades, sets, showcase on the player sheet, admin page, 18 starter texts via `pnpm --filter @dozari/db seed:keepsakes`)
+- [ ] 4b. Keepsake art from the owner's designer (`art_key`), shareable profile-card image, kid/teen showcase rule, a visual check of the seven-tile Home column
+- [ ] 5. City pot + weekly city ranking, season pass (needs the owner's reward decisions)
+- [ ] 6. Gem sales through the owner's gateway (store policy + legal review first; D170's per-item rials is replaced by gem packs)
+- [ ] 7. Re-run the simulator with real ledger data and lower `duel.free_payout_percent` 50 → 25 once the shop and keepsakes are live

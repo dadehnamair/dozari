@@ -7,7 +7,7 @@ import { BASE_URL, callJson } from '../net/http';
 import type { DuelAction } from './model';
 
 export interface DuelConnection {
-  joinQueue(mode?: 'duel' | 'team'): Promise<Ack>;
+  joinQueue(mode?: 'duel' | 'team', tier?: 'bronze' | 'silver' | 'gold'): Promise<Ack>;
   leaveQueue(): Promise<Ack>;
   /** Re-sends the snapshot of the match the player is already in (a table started it). */
   resume(): Promise<Ack>;
@@ -83,7 +83,7 @@ export async function connectDuel(dispatch: (a: DuelAction) => void): Promise<Du
   });
 
   return {
-    joinQueue: (mode = 'duel') => ask(socket, ClientEvent.queueJoin, { mode }),
+    joinQueue: (mode = 'duel', tier) => ask(socket, ClientEvent.queueJoin, tier && tier !== 'bronze' && mode === 'duel' ? { mode, tier } : { mode }),
     leaveQueue: () => ask(socket, ClientEvent.queueLeave),
     resume: () => ask(socket, ClientEvent.matchResume, {}),
     submit: (itemIds) => ask(socket, ClientEvent.matchSubmit, { itemIds }),

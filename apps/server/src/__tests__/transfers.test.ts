@@ -70,6 +70,32 @@ function boot(over: Partial<TransferRules> = {}) {
   return { app, clock, store, levels, activated, login, befriend, post };
 }
 
+describe('gift fee', () => {
+  it('burns the fee: the receiver gets the amount minus it, the weekly cap counts the full amount', async () => {
+    const { clock, store, login, befriend, post } = boot({ giftFeePercent: 5 });
+    const a = await login(1);
+    const b = await login(2);
+    store.coins.set(a.id, 500);
+    await befriend(a, b);
+    clock.ms += 8 * DAY;
+    expect((await post(a.h, `/friends/${b.id}/gift`, { amount: 100 })).statusCode).toBe(200);
+    expect(store.coins.get(a.id)).toBe(400);
+    expect(store.coins.get(b.id)).toBe(95);
+    expect((await post(a.h, `/friends/${b.id}/gift`, { amount: 100 })).statusCode).toBe(200);
+    expect((await post(a.h, `/friends/${b.id}/gift`, { amount: 10 })).json()).toEqual({ error: 'CAP' });
+  });
+  it('has no fee when the rule is absent or 0', async () => {
+    const { clock, store, login, befriend, post } = boot();
+    const a = await login(1);
+    const b = await login(2);
+    store.coins.set(a.id, 500);
+    await befriend(a, b);
+    clock.ms += 8 * DAY;
+    await post(a.h, `/friends/${b.id}/gift`, { amount: 100 });
+    expect(store.coins.get(b.id)).toBe(100);
+  });
+});
+
 describe('gifts between friends', () => {
   it('sends coins once the friendship is old enough, within the amount and the weekly cap', async () => {
     const { app, clock, store, login, befriend, post } = boot();

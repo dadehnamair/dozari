@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import { deviceStore } from '../auth/storage';
+import { miniAppHost } from '../miniapp/host';
 import { appAddress, deviceKind, downloadLink, gateVerdict } from './deviceGate';
 import type { GateVerdict } from './deviceGate';
 
@@ -15,7 +16,8 @@ const g = globalThis as unknown as Browser;
 
 /**
  * The phone-only gate (D171) for the web build: `verdict` says what to show instead of the app, `ready` is false until the saved
- * «ادامه با مرورگر» choice is read (so a tester never sees the card flash). Native builds always pass.
+ * «ادامه با مرورگر» choice is read (so a tester never sees the card flash). Native builds always pass, and so does a mini-app:
+ * the player is already inside the game there, so the card would only be in the way.
  */
 export function usePhoneGate(settings: Record<string, unknown>): { ready: boolean; verdict: GateVerdict; address: string; download: string | null; continueBrowser: () => void } {
   const web = Platform.OS === 'web';
@@ -24,7 +26,8 @@ export function usePhoneGate(settings: Record<string, unknown>): { ready: boolea
   useEffect(() => {
     if (!web) return;
     const viaLink = new URLSearchParams(g.location?.search ?? '').get('browser') === '1';
-    void deviceStore.get(KEY).then((v) => (setEscaped(viaLink || v === '1'), setReady(true)));
+    const inMiniApp = miniAppHost() !== null;
+    void deviceStore.get(KEY).then((v) => (setEscaped(viaLink || inMiniApp || v === '1'), setReady(true)));
   }, [web]);
   const continueBrowser = useCallback(() => {
     setEscaped(true);

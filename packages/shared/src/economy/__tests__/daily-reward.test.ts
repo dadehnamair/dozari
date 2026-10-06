@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_DAILY_REWARD_STEPS, MAX_DAILY_REWARD_COINS, MAX_DAILY_REWARD_DAYS } from '../../config/index.js';
-import { afterClaim, coinsForDay, nextDailyReward, validDailySteps } from '../daily-reward.js';
+import { DEFAULT_DAILY_RULES, afterClaim, coinsForDay, nextDailyReward, validDailySteps } from '../daily-reward.js';
 import type { DailyRewardState } from '../daily-reward.js';
 
 const H = 60 * 60 * 1000;
@@ -82,5 +82,22 @@ describe('custom rules (admin settings)', () => {
     expect(nextDailyReward(state, steps, 11 * H, rules)).toEqual({ status: 'wait', availableAt: 12 * H });
     expect(nextDailyReward(state, steps, 13 * H, rules)).toMatchObject({ status: 'ready', day: 2, coins: 15 });
     expect(nextDailyReward(state, steps, 21 * H, rules)).toMatchObject({ status: 'ready', day: 1, coins: 10 });
+  });
+});
+
+describe('streak shield', () => {
+  const steps = [10, 15, 20];
+
+  const state = { lastClaimedAt: 1_000_000_000, streakDay: 2 };
+  it('keeps the streak across exactly one missed day, and spends the shield', () => {
+    const d = nextDailyReward(state, steps, state.lastClaimedAt + 60 * H, DEFAULT_DAILY_RULES, 1);
+    expect(d).toEqual({ status: 'ready', day: 3, coins: 20, shield: true });
+  });
+  it('does nothing without a shield, and does not bridge two missed days', () => {
+    expect(nextDailyReward(state, steps, state.lastClaimedAt + 60 * H, DEFAULT_DAILY_RULES, 0)).toEqual({ status: 'ready', day: 1, coins: 10 });
+    expect(nextDailyReward(state, steps, state.lastClaimedAt + 100 * H, DEFAULT_DAILY_RULES, 2)).toEqual({ status: 'ready', day: 1, coins: 10 });
+  });
+  it('does not touch a streak that is still alive', () => {
+    expect(nextDailyReward(state, steps, state.lastClaimedAt + 30 * H, DEFAULT_DAILY_RULES, 1)).toEqual({ status: 'ready', day: 3, coins: 20 });
   });
 });

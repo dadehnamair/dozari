@@ -14,10 +14,17 @@ const guessSchema = z.object({ productIds: z.array(z.string().min(1).max(64)).le
 const priceGuessSchema = z.object({ level: z.number().int().min(0).max(3), guessRials: z.string().regex(/^\d{1,15}$/) });
 
 /** Solo practice (no coins): the client only ever receives `SoloView`, never the solution. */
-export function registerSoloRoutes(app: FastifyInstance, solo: SoloService, auth?: AuthService, hints?: HintService, limiter?: PlayLimiter) {
+export function registerSoloRoutes(app: FastifyInstance, solo: SoloService, auth?: AuthService, hints?: HintService, limiter?: PlayLimiter, canPreview?: (userId: string) => Promise<boolean>) {
   app.post('/solo/start', async (req, reply) => {
     // Playing needs no account; a signed-in player's finished game counts toward their level and stats.
     const user = auth ? await currentUser(auth, req) : null;
+    // A guardian's preview of the kid or teen space: a real puzzle of that pool, but no account behind the session, so no level, coins, limits or hints are touched.
+    const preview = z.object({ preview: z.enum(['kid', 'teen']) }).safeParse(req.body);
+    if (preview.success) {
+      if (!user || !canPreview || !(await canPreview(user.id))) return reply.code(403).send({ error: 'not_a_guardian' });
+      const view = await solo.start(undefined, { previewTrack: preview.data.preview });
+      return view ?? reply.code(503).send({ error: 'no_puzzles' });
+    }
     if (user && limiter) {
       const cap = await limiter.check(user.id, 'solo');
       if (!cap.ok) return reply.code(429).send({ error: 'daily_cap', cap: cap.cap });

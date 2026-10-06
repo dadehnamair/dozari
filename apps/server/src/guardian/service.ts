@@ -1,10 +1,13 @@
 import type { FastifyInstance } from 'fastify';
-import { GUARDIAN_LINK_CODE_LENGTH, GUARDIAN_LINK_CODE_TTL_SEC, GUARDIAN_MAX_CHILDREN, childCreateSchema, childLinkRequestSchema, childTrackPutSchema, guardianConfirmSchema, guardianRequestSchema } from '@dozari/shared';
+import { GUARDIAN_LINK_CODE_LENGTH, GUARDIAN_LINK_CODE_TTL_SEC, GUARDIAN_MAX_CHILDREN, childCreateSchema, childLinkRequestSchema, childTrackPutSchema, guardianConfirmSchema, guardianRequestSchema, guardianSettingsSchema } from '@dozari/shared';
 import type { ChildRow, ChildrenResponse, Session } from '@dozari/shared';
 import type { AuthService } from '../auth/service.js';
 import { currentUser } from '../auth/routes.js';
 import type { AgeTrackStore } from '../agetrack/service.js';
 import { RateLimiter } from '../security/rate-limit.js';
+import type { ChildDigest, GuardianSettings } from '@dozari/shared';
+import type { GuardianSettingsService } from './settings.js';
+import type { BlockedRow, GuardianBlockStore } from './extras.js';
 
 /** I/O boundary of guardian links (docs/logic/age-tracks.md): child profiles, link codes, new child accounts. */
 export interface GuardianStore {
@@ -35,6 +38,15 @@ export interface GuardianPhones {
   state(userId: string): Promise<{ phone: string | null }>;
 }
 
+/** The slice of the social service a guardian uses on a child's friendships: list, approve what the child may not accept, remove. */
+export interface GuardianFriends {
+  friends(childId: string): Promise<{ id: string; nickname: string; avatarKey: string }[]>;
+  incoming(childId: string): Promise<{ id: string; nickname: string; avatarKey: string }[]>;
+  /** Accepts a request on the child's behalf. */
+  approve(childId: string, otherId: string): Promise<boolean>;
+  remove(childId: string, otherId: string): Promise<boolean>;
+}
+
 export type GuardianError =
   | 'not_a_child'
   | 'already_linked'
@@ -57,6 +69,17 @@ export type GuardianError =
 export type Result<T = object> = ({ ok: true } & T) | { ok: false; error: GuardianError; retryAfterSec?: number };
 
 export class GuardianService {
+  /** Settings of each child (chat mode, friend approval, duels, quiet hours, reminder); set at start-up. */
+  settings?: GuardianSettingsService;
+  /** A child's friendships, for the panel; set at start-up. */
+  friends?: GuardianFriends;
+  /** Players blocked for each child; set at start-up. */
+  blocks?: GuardianBlockStore;
+  /** Builds the digest of a child; set at start-up. */
+  digest?: (childId: string) => Promise<ChildDigest>;
+  /** Writes a row to the audit log (guardian links, band moves, settings changes); set at start-up, best effort. */
+  audit?: (action: string, target: string, detail?: string) => void;
+
   constructor(
     private readonly store: GuardianStore,
     private readonly tracks: AgeTrackStore,
@@ -103,7 +126,9 @@ export class GuardianService {
     if (guardianId === childId) return { ok: false, error: 'self' };
     if ((await this.tracks.get(guardianId)).track !== 'adult') return { ok: false, error: 'not_adult' };
     if ((await this.store.childrenOf(guardianId)).length >= GUARDIAN_MAX_CHILDREN) return { ok: false, error: 'too_many_children' };
-    return (await this.store.link(guardianId, childId)) ? { ok: true } : { ok: false, error: 'already_linked' };
+    if (!(await this.store.link(guardianId, childId))) return { ok: false, error: 'already_linked' };
+    this.audit?.('guardian.link', childId, guardianId);
+    return { ok: true };
   }
 
   /** The guardian side: may this account hold children? An adult with a verified number. */
@@ -121,7 +146,9 @@ export class GuardianService {
     const bad = await this.guardianCheck(guardianId);
     if (bad) return { ok: false, error: bad };
     if ((await this.store.childrenOf(guardianId)).length >= GUARDIAN_MAX_CHILDREN) return { ok: false, error: 'too_many_children' };
-    return { ok: true, childId: await this.store.createChild(guardianId, track) };
+    const childId = await this.store.createChild(guardianId, track);
+    this.audit?.('guardian.add_child', childId, `${guardianId} ${track}`);
+    return { ok: true, childId };
   }
 
   async linkCode(guardianId: string, childId: string): Promise<Result<{ code: string; expiresInSec: number }>> {
@@ -144,11 +171,71 @@ export class GuardianService {
   async setTrack(guardianId: string, childId: string, track: 'kid' | 'teen'): Promise<Result> {
     if (!(await this.store.isChildOf(guardianId, childId))) return { ok: false, error: 'not_found' };
     await this.tracks.save(childId, track, new Date(this.now()));
+    this.audit?.('guardian.child_track', childId, `${guardianId} ${track}`);
     return { ok: true };
   }
 
+  /** The panel of one child: only their own guardian reads or changes it. */
+  async getSettings(guardianId: string, childId: string): Promise<Result<{ settings: GuardianSettings }>> {
+    if (!this.settings || !(await this.store.isChildOf(guardianId, childId))) return { ok: false, error: 'not_found' };
+    return { ok: true, settings: await this.settings.get(childId) };
+  }
+
+  async putSettings(guardianId: string, childId: string, next: GuardianSettings): Promise<Result<{ settings: GuardianSettings }>> {
+    if (!this.settings || !(await this.store.isChildOf(guardianId, childId))) return { ok: false, error: 'not_found' };
+    const saved = await this.settings.put(childId, next);
+    this.audit?.('guardian.settings', childId, `${guardianId} chat=${next.chatMode} friends=${next.friendApproval} duels=${next.duelsEnabled}`);
+    return { ok: true, settings: saved };
+  }
+
+  /** «امروز چه یاد گرفت»: words learned, games this week, level and friends. */
+  async digestOf(guardianId: string, childId: string): Promise<Result<{ digest: ChildDigest }>> {
+    if (!this.digest || !(await this.store.isChildOf(guardianId, childId))) return { ok: false, error: 'not_found' };
+    return { ok: true, digest: await this.digest(childId) };
+  }
+
+  /** Friends and the requests waiting for the guardian's yes (`friend_approval = ask`). */
+  async friendsOf(guardianId: string, childId: string): Promise<Result<{ friends: { id: string; nickname: string; avatarKey: string }[]; requests: { id: string; nickname: string; avatarKey: string }[] }>> {
+    if (!this.friends || !(await this.store.isChildOf(guardianId, childId))) return { ok: false, error: 'not_found' };
+    return { ok: true, friends: await this.friends.friends(childId), requests: await this.friends.incoming(childId) };
+  }
+
+  async listBlocks(guardianId: string, childId: string): Promise<Result<{ blocked: BlockedRow[] }>> {
+    if (!this.blocks || !(await this.store.isChildOf(guardianId, childId))) return { ok: false, error: 'not_found' };
+    return { ok: true, blocked: await this.blocks.list(childId) };
+  }
+
+  /** Blocks a player for the child: any friendship between them is removed and they can no longer find, see or befriend each other. */
+  async block(guardianId: string, childId: string, otherId: string): Promise<Result> {
+    if (!this.blocks || !(await this.store.isChildOf(guardianId, childId))) return { ok: false, error: 'not_found' };
+    if (otherId === childId || otherId === guardianId) return { ok: false, error: 'self' };
+    await this.blocks.add(childId, otherId);
+    await this.friends?.remove(childId, otherId);
+    this.audit?.('guardian.block', childId, `${guardianId} ${otherId}`);
+    return { ok: true };
+  }
+
+  async unblock(guardianId: string, childId: string, otherId: string): Promise<Result> {
+    if (!this.blocks || !(await this.store.isChildOf(guardianId, childId))) return { ok: false, error: 'not_found' };
+    if (!(await this.blocks.remove(childId, otherId))) return { ok: false, error: 'not_found' };
+    this.audit?.('guardian.unblock', childId, `${guardianId} ${otherId}`);
+    return { ok: true };
+  }
+
+  async approveFriend(guardianId: string, childId: string, otherId: string): Promise<Result> {
+    if (!this.friends || !(await this.store.isChildOf(guardianId, childId))) return { ok: false, error: 'not_found' };
+    return (await this.friends.approve(childId, otherId)) ? { ok: true } : { ok: false, error: 'not_found' };
+  }
+
+  async removeFriend(guardianId: string, childId: string, otherId: string): Promise<Result> {
+    if (!this.friends || !(await this.store.isChildOf(guardianId, childId))) return { ok: false, error: 'not_found' };
+    return (await this.friends.remove(childId, otherId)) ? { ok: true } : { ok: false, error: 'not_found' };
+  }
+
   async remove(guardianId: string, childId: string): Promise<Result> {
-    return (await this.store.unlink(guardianId, childId)) ? { ok: true } : { ok: false, error: 'not_found' };
+    if (!(await this.store.unlink(guardianId, childId))) return { ok: false, error: 'not_found' };
+    this.audit?.('guardian.remove_child', childId, guardianId);
+    return { ok: true };
   }
 }
 
@@ -227,6 +314,62 @@ export function registerGuardianRoutes(app: FastifyInstance, auth: AuthService, 
     const body = childTrackPutSchema.safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: 'invalid_request' });
     const out = await svc.setTrack(user.id, req.params.id, body.data.track);
+    return out.ok ? { ok: true } : fail(reply, out);
+  });
+  app.get<{ Params: { id: string } }>('/guardian/children/:id/settings', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    const out = await svc.getSettings(user.id, req.params.id);
+    return out.ok ? out.settings : fail(reply, out);
+  });
+  app.put<{ Params: { id: string } }>('/guardian/children/:id/settings', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    const body = guardianSettingsSchema.safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'invalid_request' });
+    const out = await svc.putSettings(user.id, req.params.id, body.data);
+    return out.ok ? out.settings : fail(reply, out);
+  });
+  app.get<{ Params: { id: string } }>('/guardian/children/:id/digest', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    const out = await svc.digestOf(user.id, req.params.id);
+    return out.ok ? out.digest : fail(reply, out);
+  });
+  app.get<{ Params: { id: string } }>('/guardian/children/:id/friends', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    const out = await svc.friendsOf(user.id, req.params.id);
+    return out.ok ? { friends: out.friends, requests: out.requests } : fail(reply, out);
+  });
+  app.get<{ Params: { id: string } }>('/guardian/children/:id/blocks', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    const out = await svc.listBlocks(user.id, req.params.id);
+    return out.ok ? { blocked: out.blocked } : fail(reply, out);
+  });
+  app.post<{ Params: { id: string; otherId: string } }>('/guardian/children/:id/blocks/:otherId', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    const out = await svc.block(user.id, req.params.id, req.params.otherId);
+    return out.ok ? { ok: true } : fail(reply, out);
+  });
+  app.delete<{ Params: { id: string; otherId: string } }>('/guardian/children/:id/blocks/:otherId', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    const out = await svc.unblock(user.id, req.params.id, req.params.otherId);
+    return out.ok ? { ok: true } : fail(reply, out);
+  });
+  app.post<{ Params: { id: string; otherId: string } }>('/guardian/children/:id/friends/:otherId/approve', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    const out = await svc.approveFriend(user.id, req.params.id, req.params.otherId);
+    return out.ok ? { ok: true } : fail(reply, out);
+  });
+  app.delete<{ Params: { id: string; otherId: string } }>('/guardian/children/:id/friends/:otherId', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    const out = await svc.removeFriend(user.id, req.params.id, req.params.otherId);
     return out.ok ? { ok: true } : fail(reply, out);
   });
   app.delete<{ Params: { id: string } }>('/guardian/children/:id', async (req, reply) => {
