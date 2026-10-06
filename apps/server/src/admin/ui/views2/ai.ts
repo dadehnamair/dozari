@@ -93,13 +93,37 @@ VIEWS.ai = function (root) {
   function showDrafts() {
     clear(out);
     if (!result) return;
+    if (result.kind === 'puzzle_groups') {
+      var dl = h('datalist', { id: 'ai-pool' });
+      ((result.context && result.context.pool) || []).forEach(function (p) { dl.appendChild(h('option', { value: p.nameFa })); });
+      out.appendChild(dl);
+    }
     var LEVEL_NAME = ['زرد (آسان)', 'سبز', 'آبی', 'بنفش (سخت)'];
     var rows = result.drafts.map(function (d, i) {
       if (result.kind === 'puzzle_groups') {
         var usePz = h('input', { type: 'checkbox' }); usePz.checked = true;
+        var pool = (result.context && result.context.pool) || [];
+        var byName = {}, byId = {};
+        pool.forEach(function (p) { byName[p.nameFa] = p; byId[p.productId] = p; });
         var edits = d.groups.map(function (g) {
           var t = h('input', { type: 'text', value: g.titleFa || '' }), e = h('input', { type: 'text', value: g.explanationFa || '' });
-          return { level: g.level, t: t, e: e, node: h('div', { class: 'card' }, [h('b', { text: LEVEL_NAME[g.level] || ('سطح ' + g.level) }), h('div', { class: 'form-grid' }, [field('عنوان', t), field('توضیح قاعده', e)]), h('div', { class: 'h', text: g.items.map(function (x) { return x.nameFa || x.productId; }).join(' · ') })]) };
+          var okG = h('input', { type: 'checkbox' });
+          var items = g.items.map(function (x) {
+            var cur = { productId: x.productId, nameFa: x.nameFa };
+            var inp = h('input', { type: 'text', value: x.nameFa || x.productId, list: 'ai-pool', style: 'width:150px' });
+            var cat = h('span', { class: 'h' });
+            var setCat = function () { var p = byId[cur.productId]; cat.textContent = p && p.category ? p.category : ''; };
+            inp.addEventListener('change', function () {
+              var p = byName[inp.value.trim()];
+              if (!p) { inp.value = cur.nameFa || ''; return toast('این محصول در فهرست کاتالوگ نیست؛ از پیشنهادهای لیست انتخاب کن', true); }
+              cur.productId = p.productId; cur.nameFa = p.nameFa; setCat(); okG.checked = false;
+            });
+            setCat();
+            return { cur: cur, node: h('div', { style: 'display:flex;flex-direction:column;gap:2px' }, [inp, cat]) };
+          });
+          var chips = h('div', { style: 'display:flex;flex-wrap:wrap;gap:8px;margin:6px 0' }, items.map(function (x) { return x.node; }));
+          var approve = h('label', { style: 'display:flex;gap:6px;align-items:center' }, [okG, h('span', { text: 'این چهار محصول به این دسته می‌خورند (تأیید می‌کنم)' })]);
+          return { level: g.level, t: t, e: e, ok: okG, items: items, node: h('div', { class: 'card' }, [h('b', { text: LEVEL_NAME[g.level] || ('سطح ' + g.level) }), h('div', { class: 'form-grid' }, [field('عنوان', t), field('قاعده‌ی دسته', e)]), h('div', { class: 'h', text: 'محصول‌هایی که هوش مصنوعی به این دسته وصل کرده (برای عوض‌کردن، نام را پاک کن و از لیست دیگری بگذار):' }), chips, approve]) };
         });
         return { use: usePz, pz: true, draft: d, edits: edits, node: h('section', { class: 'card' }, [h('label', { style: 'display:flex;gap:8px;align-items:center;margin-bottom:8px' }, [usePz, h('b', { text: 'پازل ' + fa(i + 1) })]), h('div', {}, edits.map(function (x) { return x.node; }))]) };
       }
@@ -116,7 +140,7 @@ VIEWS.ai = function (root) {
       return { use: use, inputs: inputs, draft: d, node: h('section', { class: 'card' }, [h('label', { style: 'display:flex;gap:8px;align-items:center;margin-bottom:8px' }, [use, h('b', { text: 'پیشنهاد ' + fa(i + 1) + (title ? ' · ' + title : '') })]), h('div', { class: 'form-grid' }, fields)]) };
     });
     function collect(row) {
-      if (row.pz) return { ageTrack: row.draft.ageTrack, groups: row.draft.groups.map(function (g, gi) { return { level: g.level, titleFa: row.edits[gi].t.value.trim(), explanationFa: row.edits[gi].e.value.trim(), items: g.items }; }) };
+      if (row.pz) return { ageTrack: row.draft.ageTrack, groups: row.draft.groups.map(function (g, gi) { return { level: g.level, titleFa: row.edits[gi].t.value.trim(), explanationFa: row.edits[gi].e.value.trim(), items: row.edits[gi].items.map(function (x) { return x.cur; }) }; }) };
       var d = {};
       Object.keys(row.draft).forEach(function (k) { d[k] = row.draft[k]; });
       Object.keys(row.inputs).forEach(function (k) { var v = row.inputs[k].value.trim(); if (k === 'prices') { d.prices = aiParsePrices(v); return; } d[k] = (k === 'unitFa' || k === 'syllablesFa' || k === 'metaTitle' || k === 'metaDescription') && v === '' ? null : v; });
@@ -124,7 +148,16 @@ VIEWS.ai = function (root) {
       return d;
     }
     var save = h('button', { class: 'btn ok', text: 'ذخیره‌ی موارد انتخاب‌شده', onclick: function () {
-      var picked = rows.filter(function (r) { return r.use.checked; }).map(collect);
+      var chosen = rows.filter(function (r) { return r.use.checked; });
+      for (var ci = 0; ci < chosen.length; ci++) {
+        var row = chosen[ci];
+        if (!row.pz) continue;
+        if (!row.edits.every(function (g) { return g.ok.checked; })) return toast('اول محصول‌های هر چهار دسته را بخوان و «تأیید می‌کنم» را بزن', true);
+        var ids = {}, dup = false;
+        row.edits.forEach(function (g) { g.items.forEach(function (x) { if (ids[x.cur.productId]) dup = true; ids[x.cur.productId] = 1; }); });
+        if (dup) return toast('یک محصول در دو دسته آمده؛ یکی را عوض کن', true);
+      }
+      var picked = chosen.map(collect);
       if (!picked.length) return toast('چیزی انتخاب نشده', true);
       var body = { kind: result.kind, drafts: picked };
       if (result.kind === 'puzzle_titles') body.puzzleId = result.puzzleId;
@@ -136,8 +169,9 @@ VIEWS.ai = function (root) {
         if (!bad.length) { result = null; showDrafts(); }
       });
     } });
+    var sent = result.context && (result.kind === 'products' ? (result.context.existing || []).length : result.kind === 'puzzle_groups' ? (result.context.existingPuzzles || []).length : 0);
     var note = { products: 'محصول‌ها غیرفعال ذخیره می‌شوند؛ در «کاتالوگ محصولات» بازبینی و فعالشان کن.', kid_lessons: 'درس‌ها پیش‌نویس می‌شوند؛ در «کلمه‌آموزی کودک» تأییدشان کن.', puzzle_titles: 'عنوان‌ها همان لحظه روی پازل می‌نشینند.', puzzle_groups: 'پازل‌ها پیش‌نویس ذخیره می‌شوند؛ در «ساخت پازل» بخوان و تأییدشان کن.', blog: 'مقاله‌ها پیش‌نویس می‌شوند؛ در «بلاگ» منتشرشان کن.' }[result.kind];
-    out.appendChild(h('div', { class: 'banner info' }, [h('span', { text: fa(result.drafts.length) + ' پیشنهاد از ' + result.provider + ' / ' + result.model + (result.dropped ? ' · ' + fa(result.dropped) + ' مورد نامعتبر کنار گذاشته شد' : '') + '. ' + note + ' محتوای هوش مصنوعی را قبل از انتشار خودت بخوان.' })]));
+    out.appendChild(h('div', { class: 'banner info' }, [h('span', { text: fa(result.drafts.length) + ' پیشنهاد از ' + result.provider + ' / ' + result.model + (result.dropped ? ' · ' + fa(result.dropped) + ' مورد نامعتبر کنار گذاشته شد' : '') + '. ' + note + ' محتوای هوش مصنوعی را قبل از انتشار خودت بخوان.' + (sent ? ' برای جلوگیری از تکراری‌شدن، فهرست ' + fa(sent) + (result.kind === 'products' ? ' محصول' : ' پازل') + ' موجود همراه درخواست به هوش مصنوعی داده شد.' : '') })]));
     rows.forEach(function (r) { out.appendChild(r.node); });
     out.appendChild(save);
   }

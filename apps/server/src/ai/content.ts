@@ -92,6 +92,22 @@ export const saveSchema = z.discriminatedUnion('kind', [
 ]);
 export type SaveRequest = z.infer<typeof saveSchema>;
 
+/** A puzzle's groups as sets of name keys, for comparing with puzzles that already exist. */
+const keySet = (names: string[]): Set<string> => new Set(names.map(nameKey));
+const asKnown = (d: z.infer<typeof puzzleDraft>): { titles: string[]; groups: string[][] } => ({ titles: d.groups.map((g) => g.titleFa), groups: d.groups.map((g) => g.items.map((i) => i.nameFa ?? i.productId)) });
+
+/** True when a draft puzzle repeats a known one: any group with the same four products, or 12+ of the 16 products in common. */
+export function repeatsExisting(d: z.infer<typeof puzzleDraft>, known: { groups: string[][] }[]): boolean {
+  const mine = asKnown(d).groups.map(keySet);
+  const all = new Set(mine.flatMap((s) => [...s]));
+  return known.some((k) => {
+    const theirs = k.groups.map(keySet);
+    const sameGroup = mine.some((m) => theirs.some((t) => t.size === m.size && [...m].every((x) => t.has(x))));
+    const shared = new Set(theirs.flatMap((s) => [...s]).filter((x) => all.has(x))).size;
+    return sameGroup || shared >= 12;
+  });
+}
+
 /** Pulls the JSON object out of a model answer: plain, fenced in ```json, or wrapped in chatter. Null when there is none. */
 export function extractJson(text: string): unknown {
   const stripped = text.replace(/```(?:json)?/gi, '');
@@ -129,6 +145,8 @@ export interface PromptContext {
   puzzleGroups?: { level: number; titleFa: string | null; items: string[] }[];
   /** Products already in the catalog (products): the model must not suggest them again. */
   existing?: { slug: string; nameFa: string }[];
+  /** Puzzles already in the catalog (puzzle_groups): their group titles and the product names of each group, so the model does not repeat them. */
+  existingPuzzles?: { titles: string[]; groups: string[][] }[];
   /** Catalog products the model may use in whole puzzles (puzzle_groups); the model refers to them by position. */
   pool?: { productId: string; nameFa: string; category?: string }[];
 }
@@ -144,7 +162,7 @@ export function buildPrompt(req: GenerateRequest, ctx: PromptContext = {}): Prom
       const audience = req.ageTrack === 'kid' ? '\nAudience: children up to 11. Only simple, friendly, everyday things a child knows (toys, fruit, sweets, school items); one common word each.' : req.ageTrack === 'teen' ? '\nAudience: teenagers.' : '';
       return {
         system: `${COMMON}\nTask: suggest catalog products for the game, each with a few NOMINAL historical prices (the price printed on the shelf or list in that year, never inflation-adjusted) in toman as integers. Give only prices you genuinely remember or can reasonably estimate for that product and year; prefer 3–5 well-spread years; leave "prices" empty rather than guess wildly. An editor verifies every price before it goes live.`,
-        user: `Suggest ${req.count} distinct Iranian products or services.${ctx.existing?.length ? `\nThese already exist in the catalog; do NOT suggest them or close variants of them: ${ctx.existing.slice(0, 400).map((e) => e.nameFa).join('، ')}.` : ''}${req.category ? `\nAll in category "${req.category}".` : `\nCategories allowed: ${PRODUCT_CATEGORIES.join(', ')}.`}${era}${audience}${extra}
+        user: `Suggest ${req.count} distinct Iranian products or services.${ctx.existing?.length ? `\nEXISTING PRODUCT LIST (${ctx.existing.length} products already in the catalog). Do NOT suggest any of them, a spelling variant, a plural, or a near-duplicate of one:\n${ctx.existing.slice(0, AI_LIMITS.maxExistingNames).map((e) => e.nameFa).join('، ')}\nEND OF EXISTING PRODUCT LIST.` : ''}${req.category ? `\nAll in category "${req.category}".` : `\nCategories allowed: ${PRODUCT_CATEGORIES.join(', ')}.`}${era}${audience}${extra}
 JSON shape: {"items":[{"slug":"latin-kebab-case-id","nameFa":"…","unitFa":"واحد مثل «بسته» یا «عدد» یا null","category":"one of the allowed categories","storyFa":"one short nostalgic sentence (max 200 chars)","prices":[{"year":1375,"priceToman":150}]}]}`,
       };
     }
@@ -173,6 +191,7 @@ JSON shape: {"titles":[{"level":0,"titleFa":"…"}]} with one entry per level ab
       return {
         system: `${COMMON}\nTask: build complete Connections-style puzzles from the numbered product list. Each puzzle has exactly ${GROUP_COUNT} groups; a group is ${GROUP_SIZE} products that share ONE clear, checkable idea (same category, same era, same brand family, same use, same price class…). Use ONLY the numbers given; never invent products.`,
         user: `Make ${req.count} puzzle(s). Levels: ${LEVELS}; every puzzle uses levels 0,1,2,3 once each. Style of titles: ${req.style === 'witty' ? 'witty, playful, 2–6 words' : 'plain and clear, 2–5 words'}. For each group also write explanationFa: one plain sentence that states the real rule. A product number may appear only ONCE per puzzle (16 different numbers per puzzle); try to add 1–2 red herrings (a product that looks like it fits another group).${extra}
+${ctx.existingPuzzles?.length ? `\nEXISTING PUZZLES (${ctx.existingPuzzles.length}); do NOT repeat any of these groups, their themes or their titles:\n${ctx.existingPuzzles.map((p) => p.titles.join(' | ')).join('\n')}\nEND OF EXISTING PUZZLES.\n` : ''}
 Products (number: name):
 ${pool.map((p, i) => `${i + 1}: ${p.nameFa}${p.category ? ` (${p.category})` : ''}`).join('\n')}
 JSON shape: {"puzzles":[{"groups":[{"level":0,"titleFa":"…","explanationFa":"…","items":[12,5,88,3]}]}]}`,
@@ -239,7 +258,7 @@ export function parseDrafts(kind: AiKind, text: string, ctx: PromptContext = {},
           return { ...(g as object), items };
         });
         const ok = puzzleDraft.safeParse({ groups, ageTrack });
-        if (ok.success) drafts.push(ok.data);
+        if (ok.success && !repeatsExisting(ok.data, [...(ctx.existingPuzzles ?? []), ...drafts.map(asKnown)])) drafts.push(ok.data);
       }
       out = { drafts, dropped: rows.length - drafts.length };
       break;

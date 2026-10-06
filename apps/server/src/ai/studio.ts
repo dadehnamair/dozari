@@ -102,6 +102,10 @@ export class AiStudio {
       }
       ctx.pool = usable.slice(0, AI_PUZZLE_CATALOG_MAX).map((p) => ({ productId: p.id, nameFa: p.nameFa, category: details[p.id]?.category }));
       if (ctx.pool.length < 16) throw new AiError('ai_not_found');
+      // Puzzles that already exist are sent too, so the model does not rebuild them; repeats are also dropped on parse.
+      const names = new Map(all.map((p) => [p.id, p.nameFa]));
+      const have = await this.deps.puzzles.list(AI_LIMITS.maxExistingPuzzles);
+      ctx.existingPuzzles = have.map((p) => ({ titles: p.groups.map((g) => g.titleFa).filter((t): t is string => !!t), groups: p.groups.map((g) => g.items.map((i) => names.get(i) ?? i)) }));
     }
     if (req.kind === 'puzzle_titles') {
       const row = (await this.deps.puzzles?.list(500))?.find((p) => p.id === req.puzzleId);

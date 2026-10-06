@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildServer } from '../index.js';
 import { AiStudio } from '../ai/studio.js';
-import { extractJson, buildPrompt, generateRequestSchema, parseDrafts } from '../ai/content.js';
+import { extractJson, buildPrompt, generateRequestSchema, parseDrafts, repeatsExisting } from '../ai/content.js';
 import { resolveProviders, chat, cleanAnswer, listModels } from '../ai/providers.js';
 import type { FetchLike } from '../ai/providers.js';
 import type { ProductAdmin } from '../admin/products.js';
@@ -212,5 +212,35 @@ describe('AI studio', () => {
     const [groups, tier, track, status] = created[0] as [{ productIds: string[] }[], unknown, string, string];
     expect(groups[3]!.productIds).toEqual(['p12', 'p13', 'p14', 'p15']);
     expect([tier, track, status]).toEqual([null, 'adult', 'draft']);
+  });
+});
+
+describe('no repeats of what the catalog already has', () => {
+  const draftOf = (names: string[][]) => ({
+    ageTrack: 'adult' as const,
+    groups: names.map((g, level) => ({ level, titleFa: `گروه ${level}`, explanationFa: 'قاعده', items: g.map((n) => ({ productId: n, nameFa: n })) })),
+  });
+  const four = (p: string) => [1, 2, 3, 4].map((i) => `${p}${i}`);
+
+  it('sends the whole existing product list in the products prompt', () => {
+    const existing = Array.from({ length: 900 }, (_, i) => ({ slug: `p${i}`, nameFa: `کالا${i}` }));
+    const { user } = buildPrompt({ kind: 'products', provider: 'x', count: 5, ageTrack: 'adult' } as never, { existing });
+    expect(user).toContain('EXISTING PRODUCT LIST (900');
+    expect(user).toContain('کالا899');
+  });
+
+  it('lists existing puzzles in the puzzle prompt', () => {
+    const pool = Array.from({ length: 20 }, (_, i) => ({ productId: `id${i}`, nameFa: `ن${i}` }));
+    const { user } = buildPrompt({ kind: 'puzzle_groups', provider: 'x', count: 1, ageTrack: 'adult', style: 'plain' } as never, { pool, existingPuzzles: [{ titles: ['نوشیدنی‌های قدیمی'], groups: [] }] });
+    expect(user).toContain('EXISTING PUZZLES (1)');
+    expect(user).toContain('نوشیدنی‌های قدیمی');
+  });
+
+  it('flags a puzzle that repeats a group or 12+ products of an existing one', () => {
+    const mine = draftOf([four('a'), four('b'), four('c'), four('d')]);
+    expect(repeatsExisting(mine, [{ groups: [four('x'), four('y')] }])).toBe(false);
+    expect(repeatsExisting(mine, [{ groups: [four('b'), four('z')] }])).toBe(true); // same group
+    expect(repeatsExisting(mine, [{ groups: [[...four('a').slice(0, 2), ...four('b').slice(0, 2)], [...four('c').slice(0, 2), ...four('d').slice(0, 2)], ['q1', 'q2', 'q3', 'q4'], four('a').slice(2)] }])).toBe(false); // 8 shared
+    expect(repeatsExisting(mine, [{ groups: [[...four('a').slice(0, 3), 'u1'], [...four('b').slice(0, 3), 'u2'], [...four('c').slice(0, 3), 'u3'], [...four('d').slice(0, 3), 'u4']] }])).toBe(true); // 12 shared
   });
 });

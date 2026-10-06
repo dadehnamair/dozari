@@ -11,6 +11,9 @@ export const AI_LIMITS = {
   timeoutSeconds: 90,
   /** Longest free-text hint an admin may add (theme, topic, extra instructions). */
   maxHintLength: 300,
+  /** Existing catalog product names sent to the model as «do not repeat» (products), and existing puzzles it must not repeat (puzzle_groups). */
+  maxExistingNames: 3000,
+  maxExistingPuzzles: 150,
   /** Output token ceiling per kind. */
   maxTokens: { products: 8000, kid_lessons: 5000, puzzle_titles: 3000, puzzle_groups: 8000, blog: 10000 } as Record<AiKind, number>,
 } as const;
