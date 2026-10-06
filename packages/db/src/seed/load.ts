@@ -13,8 +13,11 @@ const jsonFiles = (dir: string): string[] => (existsSync(dir) ? readdirSync(dir)
 export const SEED_DIR = join(fileURLToPath(new URL('../../seed/products', import.meta.url)));
 export const PUZZLE_SEED_DIR = join(fileURLToPath(new URL('../../seed/puzzles', import.meta.url)));
 
-/** Read + validate `seed/puzzles/*.json` against the catalog seed (every slug must exist). */
-export function readSeedPuzzles(products: readonly SeedProduct[] = readSeedProducts(), dir: string = PUZZLE_SEED_DIR): SeedPuzzle[] {
+/**
+ * Read + validate `seed/puzzles/*.json`: every slug must be in `known` (the catalogue index + dev seed products, see `knownProductSlugs`).
+ * Which age track a product belongs to is only known to the database, so that check runs when the puzzles are loaded.
+ */
+export function readSeedPuzzles(known: ReadonlySet<string>, dir: string = PUZZLE_SEED_DIR): SeedPuzzle[] {
   const all: SeedPuzzle[] = [];
   const problems: string[] = [];
   for (const file of jsonFiles(dir)) {
@@ -22,7 +25,8 @@ export function readSeedPuzzles(products: readonly SeedProduct[] = readSeedProdu
     if (!parsed.success) problems.push(...parsed.error.issues.map((i) => `${file}: ${i.path.join('.')}: ${i.message}`));
     else all.push(...parsed.data);
   }
-  problems.push(...checkSeedPuzzles(all, new Set(products.map((p) => p.slug)), new Map(products.map((p) => [p.slug, p.age_track] as const))));
+  // Offline every known slug counts as the most permissive track; the real age track of a product is enforced against the database on load.
+  problems.push(...checkSeedPuzzles(all, known, new Map([...known].map((slug) => [slug, 'kid'] as const))));
   if (problems.length > 0) throw new Error(`Invalid puzzle seed:\n${problems.join('\n')}`);
   return all;
 }
