@@ -107,11 +107,13 @@ export const ADMIN_VIEWS2_PUZZLES_JS = String.raw`VIEWS.puzzles = function (root
     box.appendChild(h('div', { class: 'toolbar' }, [h('span', { class: 'sub', text: 'رده‌ی سنی پازل' }), trackFilter]));
     if (P.tab === 'draft') {
       var n = h('input', { type: 'number', min: '1', max: '20', value: '5', style: 'width:84px' });
+      var genTier = select([['', 'همه‌ی سطح‌ها، به نوبت']].concat(P.tiers.map(function (t) { return [t.id, tierLabel(t)]; })), '');
       box.appendChild(h('div', { class: 'card inline' }, [
-        h('div', { style: 'flex:1;min-width:220px' }, [h('b', { text: 'ساخت خودکار' }), h('div', { class: 'sub', text: 'سیستم پازل یکتا و معتبر می‌سازد؛ تو فقط عنوان دسته‌ها را می‌نویسی و تأیید می‌کنی.' })]),
+        h('div', { style: 'flex:1;min-width:220px' }, [h('b', { text: 'ساخت خودکار' }), h('div', { class: 'sub', text: 'سیستم برای بازه‌ی لول بازیکنِ سطحِ انتخابی پازل یکتا و معتبر با ترکیب‌های گوناگون می‌سازد؛ تو فقط عنوان‌ها را صیقل می‌دهی و تأیید می‌کنی.' })]),
+        genTier,
         n,
         h('button', { class: 'btn primary', text: 'بساز', onclick: function () {
-          api('/admin/puzzles/generate', { method: 'POST', body: { count: Number(n.value) || 1 } }).then(function (r) {
+          api('/admin/puzzles/generate', { method: 'POST', body: genTier.value ? { count: Number(n.value) || 1, tierId: genTier.value } : { count: Number(n.value) || 1 } }).then(function (r) {
             if (!r.ok) return fail(r);
             toast(r.body.created ? fa(r.body.created) + ' پیش‌نویس ساخته شد' : 'پازلی ساخته نشد؛ کاتالوگ (' + fa(r.body.catalogSize) + ' کالای دارای قیمت) کم است', !r.body.created);
             reload();

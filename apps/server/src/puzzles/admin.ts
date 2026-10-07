@@ -1,7 +1,8 @@
 import { and, asc, count, desc, eq, inArray, pricePoints, productEraTags, products, puzzleGroupItems, puzzleGroups, puzzleTiers, puzzles, sql } from '@dozari/db';
+import { ruleToColumns } from '@dozari/db';
 import type { Db } from '@dozari/db';
-import { DEFAULT_PUZZLE_TIERS, GROUP_COUNT, GROUP_SIZE, MIN_PRICE_POINTS_PER_PRODUCT, explainRule, generatePuzzle, tierProblem, trackRank } from '@dozari/shared';
-import type { AgeTrack, Catalog, GeneratedPuzzle, PuzzleTier, Rng, Rule } from '@dozari/shared';
+import { DEFAULT_PUZZLE_TIERS, GROUP_COUNT, GROUP_SIZE, MIN_PRICE_POINTS_PER_PRODUCT, draftTitle, explainRule, generatePuzzle, representativeLevel, tierProblem, trackRank } from '@dozari/shared';
+import type { AgeTrack, Catalog, GeneratedPuzzle, PuzzleTier, Rng } from '@dozari/shared';
 
 export interface NewGroup {
   level: number;
@@ -61,36 +62,46 @@ export interface PuzzleAdmin {
   /** Puts a puzzle in a tier (null = unrated). */
   setTier(puzzleId: string, tierId: string | null): Promise<'ok' | 'not_found' | 'unknown_tier'>;
   setStatus(id: string, status: 'approved' | 'retired'): Promise<'ok' | 'not_found'>;
-  /** Makes up to `count` validated puzzles from the approved catalog and saves them as `draft` (a human writes the titles, then approves). */
-  generate(count: number, rng: Rng): Promise<{ requested: number; created: number; catalogSize: number; ids: string[] }>;
+  /**
+   * Makes up to `count` validated puzzles from the approved catalog and saves them as `draft` (a human polishes the titles, then approves).
+   * Each puzzle is made for the player levels of a tier (`opts.tierId`, or every tier in turn) and tagged with it.
+   */
+  generate(count: number, rng: Rng, opts?: GenerateOpts): Promise<{ requested: number; created: number; catalogSize: number; ids: string[] }>;
   /** How many puzzles wait as drafts and how many are live (approved). */
   counts(): Promise<{ draft: number; approved: number }>;
   /** Replaces the four titles of a puzzle (level → title). */
   setTitles(id: string, titles: { level: number; titleFa: string }[]): Promise<'ok' | 'not_found'>;
 }
 
-/** A rule as the columns of `puzzle_groups`. */
-export function ruleColumns(rule: Rule) {
-  const base = { ruleKind: rule.kind } as Record<string, unknown>;
-  if (rule.kind === 'price_band_at_year') Object.assign(base, { ruleYear: rule.year, ruleMinRials: BigInt(rule.min), ruleMaxRials: BigInt(rule.max) });
-  else if (rule.kind === 'multiplier_between') Object.assign(base, { ruleYear: rule.yearA, ruleYearB: rule.yearB, ruleMinX: rule.minX, ruleMaxX: rule.maxX });
-  else if (rule.kind === 'era_icon') Object.assign(base, { ruleEraTag: rule.eraTag });
-  else if (rule.kind === 'same_price_at_year') Object.assign(base, { ruleYear: rule.year, ruleTargetRials: BigInt(rule.target), ruleTolerancePct: rule.tolerancePct });
-  return base as { ruleKind: 'price_band_at_year' | 'multiplier_between' | 'era_icon' | 'same_price_at_year' | 'curated' };
+export interface GenerateOpts {
+  /** Make every puzzle for this tier's player levels; omitted = go through all tiers in turn. */
+  tierId?: string;
+  /** Title = the plain rule (for auto-approve, where no human polishes the title) instead of a varied draft title. */
+  plainTitles?: boolean;
 }
 
-/** Generates `count` puzzles from `catalog`, skipping repeats of the same 16 products; shared by the DB and memory admins. */
-export function makePuzzles(catalog: Catalog, count: number, rng: Rng): GeneratedPuzzle[] {
-  const out: GeneratedPuzzle[] = [];
+export interface MadePuzzle {
+  puzzle: GeneratedPuzzle;
+  tierId: string | null;
+}
+
+/**
+ * Generates `count` puzzles from `catalog`, skipping repeats of the same 16 products; shared by the DB and memory admins.
+ * Puzzle k is made for the player levels of tier k (round robin over `tiers`, or only `tierId`), so the pool covers every level range.
+ */
+export function makePuzzles(catalog: Catalog, count: number, rng: Rng, tiers: readonly PuzzleTier[] = [], tierId?: string): MadePuzzle[] {
+  const ladder = tierId ? tiers.filter((t) => t.id === tierId) : [...tiers].sort((a, b) => a.sortOrder - b.sortOrder);
+  const out: MadePuzzle[] = [];
   const seen = new Set<string>();
   for (let tries = 0; tries < count * 3 && out.length < count; tries++) {
-    const g = generatePuzzle(catalog, rng);
+    const tier = ladder.length > 0 ? (ladder[out.length % ladder.length] as PuzzleTier) : null;
+    const g = generatePuzzle(catalog, rng, tier ? { playerLevel: representativeLevel(tier.minLevel, tier.maxLevel) } : {});
     // One failed draw (the generator can miss on a random seed) must not end the run: the try limit bounds it.
     if (!g) continue;
     const key = g.groups.flatMap((x) => x.productIds).sort().join(',');
     if (seen.has(key)) continue;
     seen.add(key);
-    out.push(g);
+    out.push({ puzzle: g, tierId: tier?.id ?? null });
   }
   return out;
 }
@@ -150,13 +161,14 @@ export function createDbPuzzleAdmin(db: Db): PuzzleAdmin {
         return { ok: true as const, id: puzzle.id };
       });
     },
-    async generate(count, rng) {
+    async generate(count, rng, opts = {}) {
       const rows = await db
-        .select({ id: products.id, category: products.category, year: pricePoints.year, month: pricePoints.month, price: pricePoints.priceRials })
+        .select({ id: products.id, name: products.nameFa, category: products.category, year: pricePoints.year, month: pricePoints.month, price: pricePoints.priceRials })
         .from(products)
         .innerJoin(pricePoints, and(eq(pricePoints.productId, products.id), eq(pricePoints.status, 'approved')))
         .where(eq(products.isActive, true));
       const tags = await db.select({ productId: productEraTags.productId, tag: productEraTags.tag }).from(productEraTags);
+      const names = new Map(rows.map((r) => [r.id, r.name] as const));
       const byId = new Map<string, { id: string; category: string; eraTags: string[]; prices: { year: number; month: number | null; priceRials: bigint }[] }>();
       for (const r of rows) {
         const p = byId.get(r.id) ?? byId.set(r.id, { id: r.id, category: r.category, eraTags: [], prices: [] }).get(r.id)!;
@@ -164,16 +176,17 @@ export function createDbPuzzleAdmin(db: Db): PuzzleAdmin {
       }
       for (const t of tags) byId.get(t.productId)?.eraTags.push(t.tag);
       const catalog = [...byId.values()].filter((p) => new Set(p.prices.map((x) => x.year)).size >= MIN_PRICE_POINTS_PER_PRODUCT);
-      const made = makePuzzles(catalog, count, rng);
+      const made = makePuzzles(catalog, count, rng, await this.tiers(), opts.tierId);
       const ids: string[] = [];
-      for (const g of made) {
+      for (const { puzzle: g, tierId } of made) {
         await db.transaction(async (tx) => {
-          const [puzzle] = await tx.insert(puzzles).values({ status: 'draft', source: 'generated' }).$returningId();
+          const [puzzle] = await tx.insert(puzzles).values({ status: 'draft', source: 'generated', tierId }).$returningId();
           if (!puzzle) throw new Error('puzzle insert failed');
           ids.push(puzzle.id);
           for (const grp of g.groups) {
-            const text = explainRule(grp.rule);
-            const [group] = await tx.insert(puzzleGroups).values({ puzzleId: puzzle.id, level: grp.level, titleFa: text.slice(0, 100), explanationFa: text.slice(0, 300), ...ruleColumns(grp.rule) }).$returningId();
+            const text = explainRule(grp.rule, names);
+            const title = opts.plainTitles ? text : draftTitle(grp.rule, rng, names);
+            const [group] = await tx.insert(puzzleGroups).values({ puzzleId: puzzle.id, level: grp.level, titleFa: title.slice(0, 100), explanationFa: text.slice(0, 300), ...ruleToColumns(grp.rule) }).$returningId();
             if (!group) throw new Error('group insert failed');
             await tx.insert(puzzleGroupItems).values(grp.productIds.map((productId) => ({ groupId: group.id, puzzleId: puzzle.id, productId })));
           }
@@ -262,13 +275,13 @@ export function createMemoryPuzzleAdmin(known: Set<string>, catalog: Catalog = [
       rows.unshift({ id, status, source: 'curated', createdAt: 0, tierId: tierId ?? null, ageTrack, groups: groups.map((g) => ({ level: g.level, titleFa: g.titleFa, items: g.productIds })) });
       return { ok: true, id };
     },
-    async generate(count, rng) {
-      const made = makePuzzles(catalog, count, rng);
+    async generate(count, rng, opts = {}) {
+      const made = makePuzzles(catalog, count, rng, await this.tiers(), opts.tierId);
       const ids: string[] = [];
-      for (const g of made) {
+      for (const { puzzle: g, tierId } of made) {
         const id = `00000000-0000-7000-9000-${String(rows.length + 1).padStart(12, '0')}`;
         ids.push(id);
-        rows.unshift({ id, status: 'draft', source: 'generated', createdAt: 0, tierId: null, ageTrack: 'adult', groups: g.groups.map((x) => ({ level: x.level, titleFa: explainRule(x.rule), items: [...x.productIds] })) });
+        rows.unshift({ id, status: 'draft', source: 'generated', createdAt: 0, tierId, ageTrack: 'adult', groups: g.groups.map((x) => ({ level: x.level, titleFa: opts.plainTitles ? explainRule(x.rule) : draftTitle(x.rule, rng), items: [...x.productIds] })) });
       }
       return { requested: count, created: made.length, catalogSize: catalog.length, ids };
     },
