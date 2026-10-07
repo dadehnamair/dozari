@@ -617,14 +617,14 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       sponsorId: z.string().uuid().nullable().optional(),
       prizes: z.array(z.object({ place: z.number().int().min(1).max(3), coins: z.number().int().min(0).max(1_000_000), gems: z.number().int().min(0).max(500).default(0), spins: z.number().int().min(0).max(20).default(0) })).max(3),
     };
-    const fail = (reply: FastifyReply, error: string) => reply.code(error === 'NOT_FOUND' ? 404 : error === 'BAD_STATE' ? 409 : 400).send({ error });
+    const fail = (reply: FastifyReply, error: string, reason?: string) => reply.code(error === 'NOT_FOUND' ? 404 : error === 'BAD_STATE' ? 409 : 400).send({ error, ...(reason ? { reason } : {}) });
     g.get('/admin/tournaments', async () => ({ tournaments: await tournaments.adminList() }));
     g.post('/admin/tournaments', async (req, reply) => {
       const b = z.object({ ...fields, publish: z.boolean().default(false) }).safeParse(req.body);
       if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
       const { publish, ...input } = b.data;
       const out = await tournaments.create(input, publish);
-      if (!out.ok) return fail(reply, out.error);
+      if (!out.ok) return fail(reply, out.error, out.reason);
       void audit('tournament.create', out.id, `${input.titleFa} size=${input.size} fee=${input.entryCoins}`);
       return reply.code(201).send({ id: out.id });
     });
@@ -633,7 +633,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       const b = z.object(fields).partial().safeParse(req.body);
       if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
       const out = await tournaments.update(p.data.id, b.data);
-      if (!out.ok) return fail(reply, out.error);
+      if (!out.ok) return fail(reply, out.error, out.reason);
       void audit('tournament.update', p.data.id, JSON.stringify(b.data).slice(0, 200));
       return { ok: true };
     });
@@ -642,7 +642,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
         const p = idParam.safeParse(req.params);
         if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
         const out = await run(p.data.id);
-        if (!out.ok) return fail(reply, out.error);
+        if (!out.ok) return fail(reply, out.error, out.reason);
         void audit(`tournament.${action}`, p.data.id);
         return { ok: true, ...('refunded' in out ? { refunded: out.refunded } : {}) };
       });

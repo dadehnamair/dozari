@@ -38,7 +38,8 @@ export interface TournamentInput {
   prizes: { place: number; coins: number; gems?: number; spins?: number }[];
 }
 
-export type Result<T = object> = ({ ok: true } & T) | { ok: false; error: TournamentError | 'INVALID' };
+/** `reason` (INVALID only) names the exact field the admin form got wrong, so the panel can say what to fix. */
+export type Result<T = object> = ({ ok: true } & T) | { ok: false; error: TournamentError | 'INVALID'; reason?: string };
 
 /** Single-elimination tournaments: entry (coins + level), bracket, advancing from live duel results, prizes. D60. */
 export class TournamentService {
@@ -53,23 +54,24 @@ export class TournamentService {
 
   // ---- admin -------------------------------------------------------------------------------------------------------
 
-  private validate(i: TournamentInput): boolean {
-    return (
-      (TOURNAMENT_SIZES as readonly number[]).includes(i.size) &&
-      i.minPlayers >= 2 && i.minPlayers <= i.size &&
-      i.entryCoins >= 0 && i.entryCoins <= TOURNAMENT_MAX_ENTRY_COINS &&
-      (i.entryGems ?? 0) >= 0 && (i.entryGems ?? 0) <= TOURNAMENT_MAX_ENTRY_GEMS &&
-      i.minLevel >= 1 &&
-      i.titleFa.trim().length >= 2 &&
-      i.prizes.every((p) => [1, 2, 3].includes(p.place) && p.coins >= 0 && p.coins <= TOURNAMENT_MAX_PRIZE_COINS && (p.spins ?? 0) >= 0 && (p.spins ?? 0) <= 20 && (p.gems ?? 0) >= 0 && (p.gems ?? 0) <= TOURNAMENT_MAX_PRIZE_GEMS) &&
-      new Set(i.prizes.map((p) => p.place)).size === i.prizes.length
-    );
+  /** The first problem with the input as a reason code, or null when it is fine. */
+  private validate(i: TournamentInput): string | null {
+    if (!(TOURNAMENT_SIZES as readonly number[]).includes(i.size)) return 'bad_size';
+    if (i.minPlayers < 2 || i.minPlayers > i.size) return 'bad_min_players';
+    if (i.entryCoins < 0 || i.entryCoins > TOURNAMENT_MAX_ENTRY_COINS) return 'bad_entry_coins';
+    if ((i.entryGems ?? 0) < 0 || (i.entryGems ?? 0) > TOURNAMENT_MAX_ENTRY_GEMS) return 'bad_entry_gems';
+    if (i.minLevel < 1) return 'bad_min_level';
+    if (i.titleFa.trim().length < 2) return 'bad_title';
+    if (!i.prizes.every((p) => [1, 2, 3].includes(p.place) && p.coins >= 0 && p.coins <= TOURNAMENT_MAX_PRIZE_COINS && (p.spins ?? 0) >= 0 && (p.spins ?? 0) <= 20 && (p.gems ?? 0) >= 0 && (p.gems ?? 0) <= TOURNAMENT_MAX_PRIZE_GEMS)) return 'bad_prize';
+    if (new Set(i.prizes.map((p) => p.place)).size !== i.prizes.length) return 'dup_prize';
+    return null;
   }
 
   async create(input: TournamentInput, publish: boolean): Promise<Result<{ id: string }>> {
-    if (!this.validate(input)) return { ok: false, error: 'INVALID' };
-    if (publish && input.startsAt <= this.now()) return { ok: false, error: 'INVALID' };
-    if (!(await this.sponsorOk(input.sponsorId))) return { ok: false, error: 'INVALID' };
+    const bad = this.validate(input);
+    if (bad) return { ok: false, error: 'INVALID', reason: bad };
+    // A start time in the past is allowed on purpose (back-dated tournaments): once open, the next tick starts it at once.
+    if (!(await this.sponsorOk(input.sponsorId))) return { ok: false, error: 'INVALID', reason: 'bad_sponsor' };
     const t: NewTournament = { titleFa: input.titleFa.trim(), descriptionFa: input.descriptionFa.trim(), iconKey: input.iconKey, status: publish ? 'open' : 'draft', size: input.size, minPlayers: input.minPlayers, entryCoins: input.entryCoins, entryGems: input.entryGems ?? 0, minLevel: input.minLevel, botFill: input.botFill ?? false, allowConcurrent: input.allowConcurrent ?? false, sponsorId: input.sponsorId ?? null, startsAt: input.startsAt };
     const row = await this.store.create(t, input.prizes.map((p) => ({ ...p, gems: p.gems ?? 0, spins: p.spins ?? 0 })));
     return { ok: true, id: row.id };
@@ -84,9 +86,10 @@ export class TournamentService {
     const structural = ['size', 'minPlayers', 'entryCoins', 'entryGems', 'minLevel'] as const;
     if (entered && structural.some((k) => input[k] !== undefined && input[k] !== t[k])) return { ok: false, error: 'BAD_STATE' };
     const merged: TournamentInput = { titleFa: t.titleFa, descriptionFa: t.descriptionFa, iconKey: t.iconKey, size: t.size, minPlayers: t.minPlayers, entryCoins: t.entryCoins, entryGems: t.entryGems, minLevel: t.minLevel, botFill: t.botFill, allowConcurrent: t.allowConcurrent, sponsorId: t.sponsorId, startsAt: t.startsAt, prizes: input.prizes ?? (await this.store.prizes(id)), ...input };
-    if (!this.validate(merged)) return { ok: false, error: 'INVALID' };
+    const bad = this.validate(merged);
+    if (bad) return { ok: false, error: 'INVALID', reason: bad };
     // An unchanged sponsor stays even if it was switched off since; only a newly chosen one has to be active.
-    if (input.sponsorId !== undefined && input.sponsorId !== t.sponsorId && !(await this.sponsorOk(input.sponsorId))) return { ok: false, error: 'INVALID' };
+    if (input.sponsorId !== undefined && input.sponsorId !== t.sponsorId && !(await this.sponsorOk(input.sponsorId))) return { ok: false, error: 'INVALID', reason: 'bad_sponsor' };
     await this.store.update(id, { titleFa: merged.titleFa.trim(), descriptionFa: merged.descriptionFa.trim(), iconKey: merged.iconKey, size: merged.size, minPlayers: merged.minPlayers, entryCoins: merged.entryCoins, entryGems: merged.entryGems ?? 0, minLevel: merged.minLevel, botFill: merged.botFill ?? false, allowConcurrent: merged.allowConcurrent ?? false, sponsorId: merged.sponsorId ?? null, startsAt: merged.startsAt });
     if (input.prizes) await this.store.setPrizes(id, input.prizes.map((p) => ({ ...p, gems: p.gems ?? 0, spins: p.spins ?? 0 })));
     return { ok: true };
@@ -109,7 +112,7 @@ export class TournamentService {
   async publish(id: string): Promise<Result> {
     const t = await this.store.get(id);
     if (!t) return { ok: false, error: 'NOT_FOUND' };
-    if (t.status !== 'draft' || t.startsAt <= this.now()) return { ok: false, error: 'BAD_STATE' };
+    if (t.status !== 'draft') return { ok: false, error: 'BAD_STATE', reason: 'not_draft' };
     await this.store.update(id, { status: 'open' });
     return { ok: true };
   }
