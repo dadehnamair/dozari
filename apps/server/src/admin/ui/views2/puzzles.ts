@@ -212,6 +212,40 @@ export const ADMIN_VIEWS2_PUZZLES_JS = String.raw`VIEWS.puzzles = function (root
   });
 };
 
+VIEWS.clienterrors = function (root) {
+  var list = h('div');
+  var KIND = { crash: 'کرش', screen: 'صفحه‌ی خراب', manual: 'گزارش دستی' };
+  function draw() {
+    api('/admin/client-errors').then(function (r) {
+      clear(list);
+      if (r.status === 404) return list.appendChild(empty('گزارش خطای اپ روی این سرور فعال نیست'));
+      if (!r.ok) return fail(r);
+      if (!r.body.errors.length) return list.appendChild(empty('خطایی گزارش نشده'));
+      r.body.errors.forEach(function (x) {
+        var shot = h('div');
+        var more = h('div', { style: 'display:none;white-space:pre-wrap;direction:ltr;text-align:left;font-size:12px;color:var(--muted);margin-top:8px' }, [
+          h('div', { text: x.context }), h('div', { text: x.detail })]);
+        var row = h('div', { class: 'kv', style: 'flex-wrap:wrap;gap:8px' }, [
+          badge(KIND[x.kind] || x.kind, x.kind === 'crash' ? 'b-bad' : 'b-warn'),
+          h('b', { text: x.screen || '—' }),
+          h('span', { text: x.message || '' }),
+          h('span', { style: 'color:var(--muted);font-size:12px', text: (x.userName ? x.userName + ' · ' : '') + ago(x.createdAt) + (x.note ? ' · «' + x.note + '»' : '') }),
+          h('button', { class: 'btn sm', text: 'جزئیات', onclick: function () { more.style.display = more.style.display === 'none' ? 'block' : 'none'; } }),
+          x.hasScreenshot ? h('button', { class: 'btn sm', text: 'عکس صفحه', onclick: function () {
+            if (shot.firstChild) return clear(shot);
+            api('/admin/client-errors/' + x.id + '/screenshot').then(function (y) {
+              if (!y.ok) return fail(y);
+              shot.appendChild(h('img', { src: y.body.screenshot, style: 'max-width:320px;max-height:640px;border:2px solid var(--line);border-radius:12px;margin-top:8px' }));
+            });
+          } }) : null,
+          x.resolved ? badge('بررسی شد', 'b-ok') : h('button', { class: 'btn sm', text: 'بررسی شد', onclick: function () { api('/admin/client-errors/' + x.id + '/resolve', { method: 'POST' }).then(function (y) { if (!y.ok) return fail(y); draw(); }); } })]);
+        list.appendChild(h('div', {}, [row, more, shot]));
+      });
+    });
+  }
+  root.appendChild(card('خطاهای اپ', 'اپ بازیکن وقتی صفحه‌ای خراب شود یا خالی بماند، متن خطا، اطلاعات دستگاه و عکس صفحه را خودش می‌فرستد؛ بازیکن هم می‌تواند دستی گزارش بدهد.', [list]));
+  draw();
+};
 VIEWS.userreports = function (root) {
   var list = h('div');
   var CAT = { abuse: 'توهین و فحاشی', spam: 'اسپم', cheating: 'تقلب', bad_name: 'اسم یا عکس نامناسب', other: 'دیگر' };

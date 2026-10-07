@@ -12,3 +12,4 @@ export * from './ageTracks.js';
 export * from './ai.js';
 export * from './tables.js';
 export * from './gifts.js';
+export * from './botSkill.js';

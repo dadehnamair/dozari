@@ -112,3 +112,24 @@ bot accounts: the admin can pause, tune or add more, and the top-up never touche
 - **Tournaments.** A tournament with «جای خالی با ربات پر شود» takes idle bots for empty seats when it starts (no fee); bots are never paid prize coins.
 - Not built: bots accepting friend requests, bots in 2v2/private tables, mid-match takeover of an abandoned human seat (D43), coin escrow/subsidy (match entry fees do not
   exist yet), bot-chat beyond canned taunts.
+
+## Skill by level
+
+A bot's strength follows its **level** (from its `user_stats.xp` via the default XP curve), in the same five bands as the puzzle tiers
+(`DEFAULT_PUZZLE_TIERS`: 1-3, 4-8, 9-15, 16-25, 26+). Pure function `botSkillForLevel(level, skill)` in `packages/shared/src/bots/skill.ts`; every number is in
+`packages/shared/src/config/botSkill.ts` (`BOT_SKILL_BANDS` etc.). Level is not a new field: the admin generator already gives each bot XP that fits a level
+(`plausibleStats`), and persona levels are chosen in the asked range, so pick the range near the humans' levels (autofill uses 3-25) to keep opponents comparable.
+
+| level | real-group chance | one-away share of misses | think time × | price error ≤ |
+|---|---|---|---|---|
+| 1-3 | 25 % | 30 % | 1.8 | 70 % |
+| 4-8 | 40 % | 35 % | 1.5 | 55 % |
+| 9-15 | 55 % | 35 % | 1.2 | 40 % |
+| 16-25 | 70 % | 30 % | 1.0 | 28 % |
+| 26+ | 84 % | 25 % | 0.8 | 15 % |
+
+- The per-bot admin `skill` (0-100, neutral 50) nudges accuracy by 0.25 points per point off neutral (clamped 8-90 %) and the price error by -0.2 % per point (floor 5 %).
+- Think time: the bot's own range is multiplied by the band factor (still capped so it never misses its turn). Low levels are slower, make more wrong picks and wild price guesses.
+- Determinism: all randomness comes from the driver's injected RNG. Bots still play only through `MatchService.submit` / `submitPrice`; the level changes how often the
+  server-side driver uses the answer (`solutionFor` / `priceAnswerFor`), never what a client can see.
+- Level uses the default curve (an admin level table with custom `starts` is not read by the driver).

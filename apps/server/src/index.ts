@@ -138,6 +138,9 @@ import { buildFeedbackService } from './feedback/build.js';
 import { applyLedgerEntry } from './economy/ledger.js';
 import type { FeedbackService } from './feedback/service.js';
 import { registerFeedbackRoutes } from './feedback/routes.js';
+import { registerClientErrorRoutes } from './clienterrors/routes.js';
+import { createDbClientErrorStore } from './clienterrors/store.js';
+import type { ClientErrorStore } from './clienterrors/store.js';
 import { createDbBirthdayStore } from './profile/birthday-store.js';
 import { AgeTrackService, registerAgeTrackRoutes } from './agetrack/service.js';
 import { createDbAgeTrackStore } from './agetrack/store.js';
@@ -275,6 +278,8 @@ export interface ServerDeps {
   guardian?: GuardianService;
   /** Reports of players and the suggestion / vote / approve loop (D177). */
   feedback?: FeedbackService;
+  /** Errors the app reports with a screenshot (`POST /client-errors`, docs/logic/client-errors.md). */
+  clientErrors?: ClientErrorStore;
   gems?: Pick<GemWalletReader, 'wallet'>;
   /** Coin packages bought with real money (`/coin-packages`, off by default); needs `auth`. */
   coinPackages?: CoinPackageService;
@@ -430,6 +435,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.lessons) registerLessonRoutes(app, deps.auth, deps.lessons, deps.lessonSeen);
   if (deps.auth && deps.guardian) registerGuardianRoutes(app, deps.auth, deps.guardian);
   if (deps.auth && deps.feedback) registerFeedbackRoutes(app, deps.auth, deps.feedback);
+  if (deps.clientErrors) registerClientErrorRoutes(app, deps.clientErrors, deps.auth);
   if (deps.auth && deps.gems) registerGemRoutes(app, deps.auth, deps.gems);
   if (deps.landing && deps.settings) registerLandingPublicRoutes(app, deps.landing, deps.settings);
   if (deps.shortLinks) registerShortLinkRoutes(app, deps.shortLinks);
@@ -666,6 +672,7 @@ if (isMainModule(import.meta.url)) {
       : undefined;
   const productAdmin = db ? createDbProductAdmin(db) : undefined;
   const feedback = db && settings && productAdmin ? buildFeedbackService({ db, settings, productAdmin, player, socialStore }) : undefined;
+  const clientErrors = db ? createDbClientErrorStore(db) : undefined;
   const keepsakeStore = db ? createDbKeepsakeStore(db) : undefined;
   const keepsakes = keepsakeStore && settings ? new KeepsakeService(keepsakeStore, async () => (await settings.num('keepsake.drop_percent')) / 100, undefined, (id, ref, n) => wheel?.give(id, 'keepsake', ref, n) ?? Promise.resolve(0)) : undefined;
   const duelStakes =
@@ -830,7 +837,7 @@ if (isMainModule(import.meta.url)) {
     auth,
     settings,
     adminModules: db
-      ? { products: productAdmin!, feedback, stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, keepsakes: keepsakeStore, wheel, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, ageTracks: db ? createDbAgeTrackAdmin(db) : undefined, economy: db ? createDbEconomyAdmin(db) : undefined, daily, ai: aiStudio, puzzles: createDbPuzzleAdmin(db), levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      ? { products: productAdmin!, feedback, clientErrors, stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, keepsakes: keepsakeStore, wheel, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, ageTracks: db ? createDbAgeTrackAdmin(db) : undefined, economy: db ? createDbEconomyAdmin(db) : undefined, daily, ai: aiStudio, puzzles: createDbPuzzleAdmin(db), levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
     match: db
@@ -955,6 +962,7 @@ if (isMainModule(import.meta.url)) {
     lessonSeen,
     guardian,
     feedback,
+    clientErrors,
     profileTasks:
       db && settings
         ? new ProfileTaskService({

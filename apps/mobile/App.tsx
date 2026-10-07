@@ -50,6 +50,12 @@ import { PriceOnlyScreen } from './src/priceonly/PriceOnlyScreen';
 import { refillPack } from './src/offline/pack';
 import { ServerDownBanner } from './src/net/ServerDownBanner';
 import { takeLaunchTarget } from './src/pwa/usePwa';
+import { ErrorBoundary } from './src/errors/ErrorBoundary';
+import { installGlobalErrorReporting } from './src/errors/globalHandlers';
+import { setCurrentScreen } from './src/errors/breadcrumbs';
+import { setShotRoot } from './src/errors/screenshot';
+
+installGlobalErrorReporting();
 
 // The browser's and the installed PWA's Back / Forward drive the in-app back stack (not inside a messenger mini-app, which has its own back button).
 if (Platform.OS === 'web' && !miniAppHost()) {
@@ -77,8 +83,18 @@ const SPLASH_MS = 1800;
 /** Android draws edge-to-edge, so a 3-button/gesture navigation bar would cover the bottom of every screen: keep it clear. */
 const NAV_BAR_INSET = Platform.OS === 'android' ? Math.round(initialWindowMetrics?.insets.bottom ?? 0) : 0;
 
+/** The whole app inside the safety net: a screen that throws shows a card and reports itself instead of leaving a blank page. */
 export default function App() {
+  return (
+    <ErrorBoundary>
+      <AppInner />
+    </ErrorBoundary>
+  );
+}
+
+function AppInner() {
   const shell = useRef<View>(null);
+  useEffect(() => (setShotRoot(shell), () => setShotRoot(null)), []);
   const keyboard = useKeyboardInset(shell);
   const config = useClientConfig();
   const phone = usePhoneGate(config.raw);
@@ -96,6 +112,8 @@ export default function App() {
   const [screen, setScreen] = useState<'splash' | 'login' | 'ageTrack' | 'home' | 'solo' | 'daily' | 'duel' | 'tutorial' | 'duelResume' | 'gallery' | 'search' | 'brand' | 'lookup' | 'priceonly'>(
     'splash',
   );
+  // The screen name rides along with an error report.
+  useEffect(() => setCurrentScreen(screen), [screen]);
 
   // A kid or teen track hides what needs adult content or price knowledge (docs/logic/age-tracks.md); the rules come from the server.
   const trackRules = useTrackRules(ageTracksOn, screen);

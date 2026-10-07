@@ -31,6 +31,8 @@ import { registerLandingAdminRoutes } from '../landing/routes.js';
 import type { LandingService } from '../landing/service.js';
 import { registerShortLinkAdminRoutes } from '../shortlinks/routes.js';
 import { registerFeedbackAdminRoutes } from '../feedback/routes.js';
+import { registerClientErrorAdminRoutes } from '../clienterrors/routes.js';
+import type { ClientErrorStore } from '../clienterrors/store.js';
 import type { FeedbackService } from '../feedback/service.js';
 import type { ShortLinkService } from '../shortlinks/service.js';
 import type { BadgeService } from '../badges/service.js';
@@ -63,6 +65,7 @@ export interface AdminModules {
   landing?: LandingService;
   /** User reports and the suggestion queue. */
   feedback?: FeedbackService;
+  clientErrors?: ClientErrorStore;
   /** AI content studio: generates product, kid-lesson, puzzle-title and blog drafts through a chat provider. */
   ai?: AiStudio;
   /** Self-hosted short links (the short domain). */
@@ -167,7 +170,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     settingGroups: SETTING_GROUPS,
     icons: ITEMS,
     iconGroups: ITEM_GROUPS,
-    modules: { puzzles: !!m.puzzles, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, keepsakes: !!m.keepsakes, wheel: !!m.wheel, shortLinks: !!m.shortLinks, feedback: !!m.feedback, landing: !!m.landing, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, lessons: !!m.lessons, ai: !!m.ai, ageTracks: !!m.ageTracks, economy: !!m.economy, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages },
+    modules: { puzzles: !!m.puzzles, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, keepsakes: !!m.keepsakes, wheel: !!m.wheel, shortLinks: !!m.shortLinks, feedback: !!m.feedback, clientErrors: !!m.clientErrors, landing: !!m.landing, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, lessons: !!m.lessons, ai: !!m.ai, ageTracks: !!m.ageTracks, economy: !!m.economy, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages },
   }));
 
   if (m.ai) registerAiAdminRoutes(g, m.ai, audit);
@@ -1036,6 +1039,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
 
   if (m.landing) registerLandingAdminRoutes(g, m.landing, (a, t, d) => void audit(a, t, d));
   if (m.feedback) registerFeedbackAdminRoutes(g, m.feedback, (a, t, d) => void audit(a, t, d));
+  if (m.clientErrors) registerClientErrorAdminRoutes(g, m.clientErrors, (a, t, d) => void audit(a, t, d));
   if (m.shortLinks) registerShortLinkAdminRoutes(g, m.shortLinks.service, m.shortLinks.base, (a, t, d) => void audit(a, t, d));
 
   if (m.wheel) {

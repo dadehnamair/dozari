@@ -7,6 +7,7 @@ import {
   double,
   index,
   int,
+  mediumtext,
   mysqlEnum,
   mysqlTable,
   primaryKey,
@@ -1135,6 +1136,26 @@ export const userReports = mysqlTable(
     resolvedAt: datetime('resolved_at', { mode: 'date', fsp: 3 }),
   },
   (table) => ({ byTarget: index('user_reports_target_idx').on(table.targetId, table.createdAt), byReporter: index('user_reports_reporter_idx').on(table.reporterId, table.createdAt) }),
+);
+
+/** An error the player's app reported (crash, failed screen or a manual report) with a screenshot, for the admin panel (docs/logic/client-errors.md). */
+export const clientErrors = mysqlTable(
+  'client_errors',
+  {
+    id: id(),
+    userId: char('user_id', { length: 36 }).references(() => users.id, { onDelete: 'set null' }),
+    kind: mysqlEnum('kind', ['crash', 'screen', 'manual']).notNull(),
+    screen: varchar('screen', { length: 64 }).notNull().default(''),
+    message: varchar('message', { length: 500 }).notNull().default(''),
+    detail: text('detail'),
+    context: varchar('context', { length: 1500 }).notNull().default(''),
+    note: varchar('note', { length: 500 }).notNull().default(''),
+    /** `data:image/...;base64,` string; null when the screenshot could not be taken. */
+    screenshot: mediumtext('screenshot'),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    resolvedAt: datetime('resolved_at', { mode: 'date', fsp: 3 }),
+  },
+  (table) => ({ byTime: index('client_errors_time_idx').on(table.createdAt), byUser: index('client_errors_user_idx').on(table.userId, table.createdAt) }),
 );
 
 /** A player's suggestion: a new item, a price for an item, or «this price is wrong» (docs/logic/ugc.md). */

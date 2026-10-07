@@ -1,4 +1,4 @@
-import { botThinkDelay, chooseBotMove, chooseBotPriceGuess } from '@dozari/shared';
+import { botSkillForLevel, botThinkDelay, chooseBotMove, chooseBotPriceGuess, scaledThinkRange } from '@dozari/shared';
 import type { ChatMessage, MatchView, Rng } from '@dozari/shared';
 import { createHash } from 'node:crypto';
 import type { ChatService } from '../chat/service.js';
@@ -101,32 +101,36 @@ export class BotDriver {
     if (this.planned.has(key)) return;
     this.planned.add(key);
     if (this.planned.size > 5000) this.planned.clear();
-    const delay = botThinkDelay(bot.thinkMinMs, bot.thinkMaxMs, v.turnEndsAt - this.now(), this.deps.rng);
+    const think = scaledThinkRange(bot.thinkMinMs, bot.thinkMaxMs, botSkillForLevel(bot.level ?? 1, bot.skill));
+    const delay = botThinkDelay(think.minMs, think.maxMs, v.turnEndsAt - this.now(), this.deps.rng);
     this.schedule(delay, () => this.move(bot));
   }
 
-  /** The duel's price-guess round: after a human-like pause the bot guesses near the real price (more precisely the higher its skill). */
+  /** The duel's price-guess round: after a human-like pause the bot guesses near the real price (closer the higher its level). */
   private planPriceGuess(bot: BotRow, v: MatchView): void {
     const r = v.priceRound;
     if (!r || !r.current || r.youSubmitted) return;
     const key = `${bot.userId}:${v.matchId}:price:${r.roundIndex}`;
     if (this.planned.has(key)) return;
     this.planned.add(key);
-    const delay = botThinkDelay(bot.thinkMinMs, bot.thinkMaxMs, r.endsAt - this.now(), this.deps.rng);
+    const profile = botSkillForLevel(bot.level ?? 1, bot.skill);
+    const think = scaledThinkRange(bot.thinkMinMs, bot.thinkMaxMs, profile);
+    const delay = botThinkDelay(think.minMs, think.maxMs, r.endsAt - this.now(), this.deps.rng);
     this.schedule(delay, () => {
       const matches = this.deps.matches();
       const actual = matches?.priceAnswerFor(bot.userId);
-      if (matches && actual !== null && actual !== undefined) matches.submitPrice(bot.userId, chooseBotPriceGuess({ actualRials: actual, skill: bot.skill, rng: this.deps.rng }));
+      if (matches && actual !== null && actual !== undefined) matches.submitPrice(bot.userId, chooseBotPriceGuess({ actualRials: actual, skill: bot.skill, maxErrorPercent: profile.priceMaxErrorPercent, rng: this.deps.rng }));
     });
   }
 
   private move(bot: BotRow): void {
     const matches = this.deps.matches();
     if (!matches) return;
+    const profile = botSkillForLevel(bot.level ?? 1, bot.skill);
     for (let attempt = 0; attempt < 8; attempt++) {
       const sol = matches.solutionFor(bot.userId);
       if (!sol) return;
-      const itemIds = chooseBotMove({ groups: sol.groups, remaining: sol.remaining, skill: bot.skill, rng: this.deps.rng });
+      const itemIds = chooseBotMove({ groups: sol.groups, remaining: sol.remaining, skill: bot.skill, accuracyPercent: profile.accuracyPercent, nearMissPercent: profile.nearMissPercent, rng: this.deps.rng });
       const out = matches.submit(bot.userId, itemIds);
       if (out.ok || out.error !== 'DUPLICATE_SELECTION') return; // a duplicate set is simply re-chosen
     }
