@@ -9,6 +9,13 @@ import { BALE_TEXT } from './texts.js';
 
 export const LINK_CODE_TTL_MS = 10 * 60_000;
 const MAX_ATTEMPTS = 5;
+
+/** A typed or pasted link code: Persian/Arabic digits to Latin, zero-width and bidi marks and spaces dropped, upper case. */
+export function cleanCode(raw: string | undefined): string | undefined {
+  if (raw === undefined) return undefined;
+  const digits = raw.replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0)).replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660));
+  return digits.replace(/[\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff\s]/g, '').toUpperCase();
+}
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
 /** Kinds of notification; admin settings can switch the automatic ones off. */
@@ -149,7 +156,7 @@ export class NotifyService {
       return void (await reply(mine ? BALE_TEXT.statusLinked : BALE_TEXT.notLinked));
     }
     // «/start CODE» (deep link) or just the code typed by hand.
-    const candidate = (cmd === '/start' ? text.split(/\s+/)[1] : text)?.trim().toUpperCase();
+    const candidate = cleanCode(cmd === '/start' ? text.split(/\s+/)[1] : text);
     if (cmd === '/start' && !candidate && this.signup) {
       // Someone opened the bot from the website: not linked yet -> ask for their own contact, which creates the account.
       if (await this.store.userOfChat(chatId)) return void (await reply(BALE_TEXT.statusLinked));

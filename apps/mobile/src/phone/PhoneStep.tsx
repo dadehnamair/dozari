@@ -135,14 +135,14 @@ function AccountCard({ title, a }: { title: string; a: AccountSummary }) {
 
 const styles = StyleSheet.create({
   accounts: { flexDirection: 'row', gap: 8 },
-  account: { flex: 1, minWidth: 0, gap: 2, padding: 8, borderRadius: 12, borderWidth: 2, borderColor: INK, backgroundColor: '#fff' },
+  account: { flex: 1, minWidth: 0, gap: 2, padding: 8, borderRadius: 12, borderWidth: 2, borderColor: INK, backgroundColor: colors.card },
   box: { alignSelf: 'stretch', gap: 6 },
   label: { fontFamily: fonts.bold, fontSize: 15, color: INK },
   text: { fontFamily: fonts.bold, fontSize: 14, color: INK },
   hint: { fontFamily: fonts.bold, fontSize: 12, color: INK, opacity: 0.75 },
   bad: { color: '#B3261E', opacity: 1 },
   row: { flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' },
-  input: { flex: 1, minWidth: 120, fontFamily: fonts.bold, fontSize: 16, color: INK, borderWidth: 2, borderColor: INK, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: '#fff', textAlign: TEXT_LEFT, writingDirection: 'ltr' },
+  input: { flex: 1, minWidth: 120, fontFamily: fonts.bold, fontSize: 16, color: INK, borderWidth: 2, borderColor: INK, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: colors.card, textAlign: TEXT_LEFT, writingDirection: 'ltr' },
   pill: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 99, borderWidth: 2, borderColor: INK, backgroundColor: colors.cream },
   on: { backgroundColor: '#FFC93C' },
   pillText: { fontFamily: fonts.bold, fontSize: 14, color: INK },

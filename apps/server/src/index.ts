@@ -6,7 +6,7 @@ import { resolve } from 'node:path';
 import { duelTiers, rialsToTomanString } from '@dozari/shared';
 import { CHAT_RETENTION_DAYS, MISSION_KEYS, TOURNAMENT_TICK_SECONDS, dailyDateKey, trackFeatureForPath, trackRuleForPath, WHEEL_SLICES_DEFAULT, scaleSlices } from '@dozari/shared';
 import type { HintRules, MissionKey } from '@dozari/shared';
-import { createDb } from '@dozari/db';
+import { createDb, imageStoreFromEnv } from '@dozari/db';
 import { createDbCatalogRepository } from './catalog/db-repository.js';
 import { DailyRewardService } from './economy/daily-reward.js';
 import { createDbDailyRewardStore } from './economy/daily-reward-db.js';
@@ -24,7 +24,7 @@ import type { Gateway } from './realtime/gateway.js';
 import type { MatchDeps } from './realtime/match-service.js';
 import { PlayerService, rulesFromSettings } from './player/service.js';
 import { LevelTable, createDbLevelTableStore } from './progress/table.js';
-import { defaultLevelTable } from '@dozari/shared';
+import { defaultLevelTable, todayInTehran } from '@dozari/shared';
 import { createDbPlayerStore } from './player/store.js';
 import { registerTransferRoutes } from './transfers/routes.js';
 import { registerKeepsakeRoutes } from './keepsakes/routes.js';
@@ -62,6 +62,7 @@ import { registerPhoneLoginRoutes, registerPhoneRoutes } from './phone/routes.js
 import { PhoneService, phoneRulesFromSettings } from './phone/service.js';
 import { createIrnotiClient, createKavenegarClient } from './phone/sms.js';
 import { createDbPhoneStore } from './phone/store.js';
+import { PuzzleHistory } from './solo/history.js';
 import { registerInviteRoutes } from './invite/routes.js';
 import { InviteService, inviteRulesFromSettings } from './invite/service.js';
 import { createDbInviteStore } from './invite/store.js';
@@ -114,6 +115,7 @@ import { createQueueDiagnosis } from './realtime/diagnose.js';
 import { CoinPackageService } from './economy/coin-packages.js';
 import { createDbPuzzleAdmin } from './puzzles/admin.js';
 import { AiStudio } from './ai/studio.js';
+import { AiScheduler, createDbAiScheduleStore, startAiScheduler } from './ai/schedules.js';
 import { startPuzzlePoolScheduler } from './puzzles/pool.js';
 import { registerCoinPackageRoutes } from './economy/coin-packages-routes.js';
 import { createDbCoinPackageStore } from './economy/coin-packages-store.js';
@@ -137,6 +139,9 @@ import { buildFeedbackService } from './feedback/build.js';
 import { applyLedgerEntry } from './economy/ledger.js';
 import type { FeedbackService } from './feedback/service.js';
 import { registerFeedbackRoutes } from './feedback/routes.js';
+import { registerClientErrorRoutes } from './clienterrors/routes.js';
+import { createDbClientErrorStore } from './clienterrors/store.js';
+import type { ClientErrorStore } from './clienterrors/store.js';
 import { createDbBirthdayStore } from './profile/birthday-store.js';
 import { AgeTrackService, registerAgeTrackRoutes } from './agetrack/service.js';
 import { createDbAgeTrackStore } from './agetrack/store.js';
@@ -161,6 +166,7 @@ import { WheelService } from './wheel/service.js';
 import { createDbWheelStore } from './wheel/store.js';
 import { createDbStakeStore } from './duel/stakes-store.js';
 import { TableService } from './tables/service.js';
+import { TableStakes } from './tables/stakes.js';
 import { registerTableRoutes } from './tables/routes.js';
 import { currentUser } from './auth/routes.js';
 import { registerSoloRoutes } from './solo/routes.js';
@@ -273,6 +279,8 @@ export interface ServerDeps {
   guardian?: GuardianService;
   /** Reports of players and the suggestion / vote / approve loop (D177). */
   feedback?: FeedbackService;
+  /** Errors the app reports with a screenshot (`POST /client-errors`, docs/logic/client-errors.md). */
+  clientErrors?: ClientErrorStore;
   gems?: Pick<GemWalletReader, 'wallet'>;
   /** Coin packages bought with real money (`/coin-packages`, off by default); needs `auth`. */
   coinPackages?: CoinPackageService;
@@ -413,6 +421,8 @@ export function buildServer(deps: ServerDeps = {}) {
     const r = await deps.chat!.sendDm(host, friendId, { kind: 'table', code: t.code, label: `${t.icon}|${t.name}` });
     if (!r.ok) return { ok: false, error: r.error };
     const online = deps.presence?.isOnline(friendId) ?? false;
+    // A live nudge on top of the chat card, so the friend sees «X invited you» wherever they are in the app.
+    if (online) deps.notices?.push(friendId, { kind: 'table_invite', from: r.message.nickname, code: t.code });
     if (!online) void deps.notify?.notify(friendId, 'table_invite', BALE_TEXT.tableInvite(r.message.nickname)).catch(() => undefined);
     return { ok: true, online };
   } : undefined);
@@ -426,6 +436,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.lessons) registerLessonRoutes(app, deps.auth, deps.lessons, deps.lessonSeen);
   if (deps.auth && deps.guardian) registerGuardianRoutes(app, deps.auth, deps.guardian);
   if (deps.auth && deps.feedback) registerFeedbackRoutes(app, deps.auth, deps.feedback);
+  if (deps.clientErrors) registerClientErrorRoutes(app, deps.clientErrors, deps.auth);
   if (deps.auth && deps.gems) registerGemRoutes(app, deps.auth, deps.gems);
   if (deps.landing && deps.settings) registerLandingPublicRoutes(app, deps.landing, deps.settings);
   if (deps.shortLinks) registerShortLinkRoutes(app, deps.shortLinks);
@@ -450,6 +461,12 @@ export function buildServer(deps: ServerDeps = {}) {
   }
 
   return app;
+}
+
+/** The panel's upload target: S3 when `S3_ENDPOINT` is set, else the local images dir; off when neither is configured. */
+function adminImageStore() {
+  if (!process.env.S3_ENDPOINT && !process.env.LOCAL_IMAGES_DIR) return undefined;
+  return imageStoreFromEnv();
 }
 
 /** Live tunables for the daily reward (admin settings). */
@@ -594,8 +611,9 @@ if (isMainModule(import.meta.url)) {
           teamQueue: () => live.teamQueue,
           chat: () => chat,
           settings: async () => ({ enabled: (await settings.num('bots.enabled')) === 1, fallbackSec: await settings.num('bots.fallback_seconds'), jitterSec: await settings.num('bots.fallback_jitter_seconds'), cityReplyPercent: await settings.num('bots.city_reply_percent'), autofillMin: await settings.num('bots.autofill_min') }),
-          topUp: botService ? async (missing) => void (await botService.generate({ count: missing, levelMin: 3, levelMax: 25, skillMin: 30, skillMax: 75, winPercentMin: 40, winPercentMax: 65, thinkMinMs: 4000, thinkMaxMs: 20_000, tauntPercent: 25, cityIds: playerStore ? (await playerStore.cities()).map((c) => c.id) : [] })) : undefined,
+          topUp: botService ? async (missing) => void (await botService.generate({ count: missing, levelMin: 1, levelMax: 30, skillMin: 30, skillMax: 75, winPercentMin: 40, winPercentMax: 65, thinkMinMs: 4000, thinkMaxMs: 20_000, tauntPercent: 25, cityIds: playerStore ? (await playerStore.cities()).map((c) => c.id) : [] })) : undefined,
           taunts: chatStore ? async () => (await chatStore.taunts()).filter((c) => c.ageTrack === 'adult').map((c) => ({ nameFa: c.nameFa, ids: c.taunts.map((t) => t.id) })) : undefined,
+          levelOf: player ? async (id) => (await player.levelOf(id)).level.level : undefined,
           rng: () => randomInt(0, 2 ** 30) / 2 ** 30,
         })
       : undefined;
@@ -641,7 +659,7 @@ if (isMainModule(import.meta.url)) {
           },
           friendsOf: async (id) => (await socialStore.friends(id)).map((f) => f.id),
           giveSpins: (id, ref, n) => wheel?.give(id, 'birthday', ref, n) ?? Promise.resolve(0),
-          tell: (ids, title, body) => messages?.tellUsers(ids, title, body) ?? Promise.resolve(),
+          tell: (ids, title, body, about) => messages?.tellUsers(ids, title, body, about ?? null) ?? Promise.resolve(),
           texts: { weekTitle: BIRTHDAY_TITLE.week, weekBody: BALE_TEXT.birthdayWeek, dayTitle: BIRTHDAY_TITLE.day, dayBody: BALE_TEXT.birthdayDay },
         })
       : undefined;
@@ -662,8 +680,9 @@ if (isMainModule(import.meta.url)) {
       : undefined;
   const productAdmin = db ? createDbProductAdmin(db) : undefined;
   const feedback = db && settings && productAdmin ? buildFeedbackService({ db, settings, productAdmin, player, socialStore }) : undefined;
+  const clientErrors = db ? createDbClientErrorStore(db) : undefined;
   const keepsakeStore = db ? createDbKeepsakeStore(db) : undefined;
-  const keepsakes = keepsakeStore && settings ? new KeepsakeService(keepsakeStore, async () => (await settings.num('keepsake.drop_percent')) / 100) : undefined;
+  const keepsakes = keepsakeStore && settings ? new KeepsakeService(keepsakeStore, async () => (await settings.num('keepsake.drop_percent')) / 100, undefined, (id, ref, n) => wheel?.give(id, 'keepsake', ref, n) ?? Promise.resolve(0)) : undefined;
   const duelStakes =
     db && settings
       ? new DuelStakes(createDbStakeStore(db), {
@@ -693,12 +712,17 @@ if (isMainModule(import.meta.url)) {
           },
         })
       : undefined;
+  /** Entry fees of private tables (the coin side of rounds + entry). */
+  const tableStakes = db ? new TableStakes(createDbStakeStore(db)) : undefined;
   const tableService =
     settings && socialStore
       ? new TableService({
           profileOf: async (id) => socialStore.publicRow(id),
-          startMatch: async (a, b) => (live.matches ? live.matches.start(a, b, { friendly: true }) : false),
-          startTeam: async (sides) => (live.matches ? live.matches.startTeam(sides) : false),
+          startMatch: async (a, b, opts) => (live.matches ? live.matches.start(a, b, { friendly: true, boards: opts?.boards, fee: opts?.fee, priceRounds: opts?.priceRounds }) : false),
+          startTeam: async (sides, opts) => (live.matches ? live.matches.startTeam(sides, opts) : false),
+          coinsAllowed: ageTracks ? (id) => ageTracks.allows(id, 'coinWager') : undefined,
+          balanceOf: tableStakes ? (id) => tableStakes.balance(id) : undefined,
+          notify: (id, n) => notices.push(id, n),
           inMatch: (id) => live.matches?.inMatch(id) ?? false,
           trackOf: ageTracks ? (id) => ageTracks.effective(id) : undefined,
           socialBlocked: ageTracks ? (id) => ageTracks.socialBlocked(id) : undefined,
@@ -747,6 +771,8 @@ if (isMainModule(import.meta.url)) {
   if (ageTracks && settings) ageTracks.featureSwitch = async (key) => (await settings.num(key)) !== 0;
   const playerAudit = db ? createDbAuditLog(db) : undefined;
   if (ageTracks && playerAudit) ageTracks.audit = (a, t, d) => void playerAudit.record(a, t, d);
+  // A child with games played or friends has a record: removing them needs a code.
+  if (guardian && player && socialStore) guardian.history = async (id) => (await player.levelOf(id)).stats.games > 0 || (await socialStore.friends(id)).length > 0;
   if (guardian && playerAudit) guardian.audit = (a, t, d) => void playerAudit.record(a, t, d);
   if (invite && ageTracks) invite.canShare = (id) => ageTracks.allows(id, 'inviteShare');
   if (guardian && guardianSettings) guardian.settings = guardianSettings;
@@ -764,7 +790,7 @@ if (isMainModule(import.meta.url)) {
   }
   const levelOf = async (id: string) => (player ? (await player.levelOf(id)).level.level : 1);
   const shopStore = db ? createDbShopStore(db) : undefined;
-  const landingService = db ? new LandingService(createDbLandingStore(db)) : undefined;
+  const landingService = db ? new LandingService(createDbLandingStore(db), Date.now, words ? async (t) => { const r = await words.check(t); return r.ok ? { ok: true, text: r.text } : { ok: false }; } : undefined) : undefined;
   const shortLinkService = db && settings ? new ShortLinkService(createDbShortLinkStore(db), () => settings.text('domain.short')) : undefined;
   if (social && shopStore) {
     const wardrobe = new ShopService(shopStore, levelOf);
@@ -784,6 +810,8 @@ if (isMainModule(import.meta.url)) {
     if (baleToken) notify.miniAppUserOf = async (baleUserId) => (await auth?.userByDevice(miniAppDeviceId(baleToken, baleUserId)))?.id ?? null;
   }
   let dailyRef: DailyService | undefined;
+  /** Puzzles each player has had in duels, tables and 2v2: nobody gets the same one again while others remain (solo keeps its own recent list). */
+  const puzzleHistory = new PuzzleHistory();
   const solo =
     db && settings
       ? new SoloService(createDbPuzzleSource(db), {
@@ -810,19 +838,21 @@ if (isMainModule(import.meta.url)) {
   dailyRef = daily;
   const botRepo = db ? createDbBotRepository(db) : undefined;
   const bot = botRepo ? new BotService(botRepo) : undefined;
-  const aiStudio = db ? new AiStudio({ env: process.env, lessons: createDbLessonStore(db), puzzles: createDbPuzzleAdmin(db), products: productAdmin, landing: landingService }) : undefined;
+  const aiStudio = db ? new AiStudio({ env: process.env, lessons: createDbLessonStore(db), puzzles: createDbPuzzleAdmin(db), products: productAdmin, landing: landingService, catalog: async () => (await createDbAdminRepository(db).listCatalog()).map((p) => ({ id: p.id, slug: p.slug, nameFa: p.nameFa })) }) : undefined;
+  const aiScheduler = db && aiStudio ? new AiScheduler(createDbAiScheduleStore(db), aiStudio, { audit: (action, target, detail) => void playerAudit?.record(action, target, detail), log: (msg, err) => app.log.error({ err }, msg) }) : undefined;
   const reportError = createErrorReporter({ dsn: process.env.SENTRY_DSN, environment: process.env.NODE_ENV, release: process.env.APP_RELEASE });
   const app = buildServer({
     reportError,
     auth,
     settings,
     adminModules: db
-      ? { products: productAdmin!, feedback, stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, keepsakes: keepsakeStore, wheel, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, ageTracks: db ? createDbAgeTrackAdmin(db) : undefined, economy: db ? createDbEconomyAdmin(db) : undefined, daily, ai: aiStudio, puzzles: createDbPuzzleAdmin(db), levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      ? { images: adminImageStore(), products: productAdmin!, feedback, clientErrors, stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, keepsakes: keepsakeStore, wheel, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, ageTracks: db ? createDbAgeTrackAdmin(db) : undefined, economy: db ? createDbEconomyAdmin(db) : undefined, daily, ai: aiStudio, aiSchedules: aiScheduler, puzzles: createDbPuzzleAdmin(db), levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
     match: db
       ? {
           puzzles: createDbPuzzleSource(db),
+          history: puzzleHistory,
           trackOf: ageTracks ? (id) => ageTracks.effective(id) : undefined,
           wagerAllowed: ageTracks ? (id) => ageTracks.allows(id, 'coinWager') : undefined,
           teamBoards: settings ? () => settings.num('match.team_boards') : undefined,
@@ -834,6 +864,7 @@ if (isMainModule(import.meta.url)) {
               }
             : undefined,
           stakes: duelStakes,
+          tableStakes,
           profile: (() => {
             const base = createDbProfileLookup(db, player ? async (id) => (await player.levelOf(id)).level.level : undefined);
             return async (id: string) => {
@@ -891,7 +922,29 @@ if (isMainModule(import.meta.url)) {
     duelStakes,
     limiter: db && settings ? new PlayLimiter(createDbPlayCountStore(db), async (mode) => settings.num(mode === 'solo' ? 'limit.solo_per_day' : 'limit.duel_per_day')) : undefined,
     hints: solo && shopStore && settings ? new HintService(solo, shopStore, () => hintRules(settings), levelOf) : undefined,
-    shop: shopStore ? new ShopService(shopStore, levelOf, Date.now, settings ? () => settings.num('shop.daily_slots') : undefined) : undefined,
+    shop: shopStore
+      ? new ShopService(
+          shopStore,
+          levelOf,
+          Date.now,
+          settings ? () => settings.num('shop.daily_slots') : undefined,
+          // A gift goes to a friend in their birthday week, once per friend per birthday year.
+          socialStore && birthday
+            ? async (giver, to) => {
+                if (!(await socialStore.friends(giver)).some((f) => f.id === to)) return { ok: false, error: 'not_friends' } as const;
+                if (!(await birthday.info([to])).get(to)?.badge) return { ok: false, error: 'not_birthday' } as const;
+                return { ok: true, key: `${giver}:${to}:${todayInTehran(Date.now()).year}` } as const;
+              }
+            : undefined,
+          // The friend finds it in their inbox; tapping it opens the giver's profile.
+          (giver, to, item) => {
+            void (async () => {
+              const from = (await socialStore?.publicRow(giver))?.nickname ?? '';
+              await messages?.tellUsers([to], BIRTHDAY_TITLE.gift, BALE_TEXT.birthdayGift(from, item.titleFa), giver);
+            })().catch(() => undefined);
+          },
+        )
+      : undefined,
     levelRoad:
       player && settings
         ? new LevelRoadService({
@@ -918,6 +971,7 @@ if (isMainModule(import.meta.url)) {
     lessonSeen,
     guardian,
     feedback,
+    clientErrors,
     profileTasks:
       db && settings
         ? new ProfileTaskService({
@@ -971,6 +1025,10 @@ if (isMainModule(import.meta.url)) {
   if (db && settings && process.env.PUZZLE_SCHEDULER !== 'off') {
     const pool = startPuzzlePoolScheduler({ admin: createDbPuzzleAdmin(db), settings, rng: () => randomInt(0, 2 ** 30) / 2 ** 30, log: (msg, err) => (err ? app.log.error({ err }, msg) : app.log.info(msg)) });
     app.addHook('onClose', async () => pool.stop());
+  }
+  if (aiScheduler && process.env.AI_SCHEDULER !== 'off') {
+    const aiRuns = startAiScheduler({ scheduler: aiScheduler, log: (msg, err) => (err ? app.log.error({ err }, msg) : app.log.info(msg)) });
+    app.addHook('onClose', async () => aiRuns.stop());
   }
   if (notify && baleClient) {
     const runner = startNotifyRunner({ service: notify, client: baleClient, settings, log: (msg, err) => (err ? app.log.error({ err }, msg) : app.log.info(msg)) });

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Lalezar&amp;family=Vazirmatn:wght@600;800&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>body{margin:0;background:#FFF6E8;color:#2B1240}a{color:#A66BF0}a:hover{color:#FF4D8D}*{box-sizing:border-box}</style>
+</helmet>
+<div dir="rtl" style="max-width:1400px;margin:0 auto;padding:48px 32px 80px;display:flex;flex-direction:column;gap:32px">
+  <header style="display:flex;flex-direction:column;gap:6px">
+    <div style="font:13px 'JetBrains Mono',monospace;color:#A66BF0;direction:ltr;text-align:right">Dozari · Products v2 · products.json → ProductIcon.dc.html</div>
+    <h1 style="margin:0;font:48px/1.1 Lalezar">آیکون محصولات · نسخه ۲</h1>
+    <div style="font:600 15px Vazirmatn;opacity:.7">{{ summary }}</div>
+  </header>
+  <sc-for list="{{ groups }}" as="g" hint-placeholder-count="4">
+    <section style="display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:center;gap:10px"><div style="padding:2px 14px;border-radius:99px;background:{{ g.c }};border:2.5px solid #2B1240;font:20px Lalezar">{{ g.t }}</div><span style="font:12px 'JetBrains Mono',monospace;opacity:.6">{{ g.n }}</span></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px">
+        <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="12">
+          <div style="position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 6px 10px;border-radius:18px;background:#fff;border:2.5px solid #2B1240;box-shadow:0 4px 0 #2B1240;text-align:center">
+            <sc-if value="{{ it.isNew }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;top:-9px;left:8px;padding:0 8px;border-radius:99px;background:#7ED957;border:2px solid #2B1240;font:12px Lalezar">جدید</div></sc-if>
+            <div style="width:60px;height:60px"><dc-import name="ProductIcon" slug="{{ it.slug }}" hint-size="60px,60px" style="width:60px;height:60px"></dc-import></div>
+            <span style="font:800 12px/1.4 Vazirmatn;text-wrap:pretty">{{ it.name }}</span>
+            <span style="font:9px 'JetBrains Mono',monospace;opacity:.55;direction:ltr;word-break:break-all">{{ it.slug }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const NEW='berenj-koopeni makaroni-reshtei shekar-sefid goosht-goosale panir-sefid kareh-pasteurize rob-gojeh roghan-nabati-ghoo biscuit-madar biscuit-sagheh-talaei cake-titap bastani-kim alaska-yakhi abmiveh-rani maolshair-behnoosh ablimoo-shiraz shir-kakao-shishei shir-shishei chaye-golestan serkeh-taghtiri-verda powder-darya maye-zarfshooee-rika saboon-maragheh sefidkonandeh-vaytex tigh-nacet spray-pifpaf paykan-carluxe renault-5 citroen-xantia peugeot-405-glx nissan-zamyad-2400 tv-pars-black-white pankeh-pars-khazar polowpaz-pars-khazar bokhari-alaeddin charkh-khayati-marshal kart-telephone-omoomi simkart-hamrah-aval dialup-internet-monthly zheton-daneshjooyi tambr-posti-shahri gazooil-yaraneyi naft-sefid-gallon capsule-gaz-11kg rob-sekke-bahar-azadi sekke-dozari-telephone'.split(' ');
+class Component extends DCLogic{
+  state={rows:[]};
+  componentDidMount(){fetch('./products.json').then(r=>r.json()).then(j=>{const t=j.find(x=>x.type==='table');this.setState({rows:t?t.data:[]});}).catch(()=>{});}
+  renderVals(){
+    const all=this.state.rows.map(r=>({slug:r.slug,name:r.name_fa,isNew:NEW.includes(r.slug)}));
+    const mk=(t,c,items)=>({t,c,items,n:items.length+' items'});
+    const groups=all.length?[
+      mk('آیکون‌های جدید','#B8F08F',all.filter(x=>x.isNew)),
+      mk('محصولات اصلی','#FFE48A',all.filter(x=>!/^(sample|kid)-/.test(x.slug))),
+      mk('کودک','#FF8FB6',all.filter(x=>x.slug.startsWith('kid-'))),
+      mk('نمونه‌ها (sample)','#C9A3FF',all.filter(x=>x.slug.startsWith('sample-')))]:[];
+    return{groups,summary:all.length?`${all.length} محصول از products.json · ${all.filter(x=>x.isNew).length} آیکون جدید`:'در حال بارگذاری…'};
+  }
+}
+</script>
+</body>
+</html>

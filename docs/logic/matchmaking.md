@@ -70,6 +70,7 @@ static/cached recent-players sample, not a live query. Prototype: `prototype/scr
 
 `apps/server/src/tables/*` (in-memory like live matches), routes `POST /tables`, `GET /tables/mine|:code`, `POST /tables/:code/join`, `/tables/leave|start|ready|lock|extend|kick|share`; gate `feature.tables`; setting `table.idle_minutes`.
 Table = 1v1, name + emoji, optional "guest must be ready", host lock/kick/extend, the table stays for rematches, closes when idle. **Friendly only** (no entry fee, no payout) because duel coin escrow is not built;
+Rematch at a table: the result screen shows «بازی دوباره سر میز», which reopens the table lobby (the table outlives the match); the host starts again and every seated player resumes into the new match (entry fees are taken again).
 board difficulty and 2v2 are not built either. 2v2 tables (D142): `POST /tables {format:'2v2'}` makes a four-seat table; players get a team (0/1) on joining — the emptier team, on a tie the second, so a third joiner is the host's teammate — and `POST /tables/side {side}` moves a seated player to the other team when it has room (`FULL`, `NOT_TEAM` at a 1v1 table). The host starts when both teams have two players (`NEED_PLAYERS` otherwise; `requireReady` needs every guest ready); the match is `MatchService.startTeam`, friendly (no stakes). `TableView` carries `format`, per-player `side` and `isYou`.
 `share` posts a join card (`chat_messages.kind = 'table'`, text `CODE|emoji name`) into the host's city chat; tapping it opens the table.
 With age tracks on, a table belongs to its host's track: other tracks cannot see or join it (`logic/age-tracks.md` phase 4).
@@ -140,3 +141,22 @@ persistence of the match log, level (everyone is level 1 on the opponent card).
 Home button «دوئل زنده» (`feature.duel`). A private table's match opens the same screen in resume mode (`match:resume` without a match id → the server re-sends the current snapshot).
 Also: canned-taunt buttons (socket `chat:taunt`, the opponent's taunt shows for 4 s) and the «برگشت به بازی در جریان» button on Home from `GET /match/active` (D42).
 Not in the app yet: price-guess round inside a duel.
+
+## No repeated puzzles, no dead ends (2026-10)
+
+- **No repeats.** Solo keeps its own recent list (`SoloService`); an in-memory `PuzzleHistory` (`apps/server/src/solo/history.ts`) does the same for queue duels, private tables and 2v2: a puzzle any seated player already had is excluded (`pickRandom({ exclude })`), and the boards of one 2v2 are all different. Only when a player has seen the whole pool does their history reset (a small catalog must still play).
+- **Who plays whom on resume.** `MatchService.resume` re-sends `match:found` before the snapshot, so a table player whose screen opened after the match started still sees both sides' names.
+- **Disconnect grace.** A player with no open socket for 25 s (`disconnectGraceMs`) leaves their live match; the partner/rival is not held hostage.
+- **Client watchdogs** (`DuelScreen`): no first snapshot after 6 s → resume again, after 20 s an error card; a turn 6 s past its deadline → resume; a finished board whose `match:ended` never arrived → the result is built from the last snapshot after 5 s; `NOT_IN_MATCH` on resume closes the match. A refused submit is a toast (`notice`), never an error screen; one submit in flight at a time.
+- **Last row finale** (all duels, tables, every board of a 2v2): the four cards the game reveals by itself light up one by one, then their row opens, before the next board or the result.
+- **Table lobby:** two team cards face to face (VS), own team blue; 2v2 starts only with two per side; polling tolerates two failed requests and only «not found» closes the screen; one table action at a time with an 8 s lock release.
+- **Table invites** have their own rate bucket (`CHAT_INVITE_RATE`), separate from the one-taunt-per-3-s limit.
+
+## Tables: rounds, entry, public list, requests (2026-10)
+
+- **Rounds.** The host picks `rounds` (boards, `TABLE_ROUNDS_MIN..MAX` = 1..3, `config/tables.ts`) for 1v1 and 2v2 alike; a 1v1 with more than one board plays them as a multi-board match (each board a different puzzle).
+- **Price questions.** A 1v1 host chooses `priceRounds` 0..4 (0 = none) instead of the global `match.price_round`; a 2v2 has none. They are asked after the last board (the first N of the board's four groups).
+- **Entry.** `entryFee` coins per player; the minimum is `TABLE_ENTRY_PER_ROUND × rounds` (more rounds, higher minimum), the cap `TABLE_ENTRY_MAX`. Where coins do not move (kid/teen, family table) the fee is 0. Fees are taken when the match starts (everybody or nobody; `NO_COINS` names the problem), the winning side splits the pot after a `TABLE_HOUSE_CUT_PERCENT` house cut (a coin sink), a draw refunds every fee (`TableStakes`, ledger reasons `match_entry` / `match_payout` / `match_refund`, idempotent per match and user).
+- **Public by default.** `isPrivate` hides a table from the list (family tables always); a private table is joined by code or invite. `GET /tables/public` lists open tables first, then full, playing and locked ones and the ones closed in the last 30 minutes (`status`; only `open` takes a request, the rest are view only so the list is rarely bare).
+- **Join requests.** `POST /tables/:code/request` (a live `table_request` notice to the host, at most `TABLE_REQUESTS_MAX` waiting, lapsing after `TABLE_REQUEST_TTL_MS`), `POST /tables/answer {userId, accept}` (host; the asker is seated at once on accept, told by `table_answer`; a turned-down request shows as «denied» for a minute). Joining or asking checks the entry against the balance.
+- **Live notices** (socket `notice:new`): `friend_request`, `inbox`, `table_invite` (with the chat card), `table_request`, `table_answer`; tested end to end over real sockets in `__tests__/socket-flows.test.ts`.

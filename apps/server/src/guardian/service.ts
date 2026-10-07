@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { GUARDIAN_LINK_CODE_LENGTH, GUARDIAN_LINK_CODE_TTL_SEC, GUARDIAN_MAX_CHILDREN, childCreateSchema, childLinkRequestSchema, childTrackPutSchema, guardianConfirmSchema, guardianRequestSchema, guardianSettingsSchema } from '@dozari/shared';
+import { GUARDIAN_LINK_CODE_LENGTH, GUARDIAN_LINK_CODE_TTL_SEC, GUARDIAN_MAX_CHILDREN, childCreateSchema, childLinkRequestSchema, childTrackPutSchema, guardianConfirmCodeSchema, guardianConfirmSchema, guardianRequestSchema, guardianSettingsSchema } from '@dozari/shared';
 import type { ChildRow, ChildrenResponse, Session } from '@dozari/shared';
 import type { AuthService } from '../auth/service.js';
 import { currentUser } from '../auth/routes.js';
@@ -65,7 +65,9 @@ export type GuardianError =
   | 'wrong'
   | 'too_many'
   | 'account_failed'
-  | 'code_failed';
+  | 'code_failed'
+  /** Removing a child who has a record (games, friends) needs a code sent to the guardian's verified number. */
+  | 'code_required';
 export type Result<T = object> = ({ ok: true } & T) | { ok: false; error: GuardianError; retryAfterSec?: number };
 
 export class GuardianService {
@@ -79,6 +81,8 @@ export class GuardianService {
   digest?: (childId: string) => Promise<ChildDigest>;
   /** Writes a row to the audit log (guardian links, band moves, settings changes); set at start-up, best effort. */
   audit?: (action: string, target: string, detail?: string) => void;
+  /** Does this child have a record (games played or friends)? Set at start-up; removing such a child needs a code. */
+  history?: (childId: string) => Promise<boolean>;
 
   constructor(
     private readonly store: GuardianStore,
@@ -238,9 +242,38 @@ export class GuardianService {
     return (await this.friends.remove(childId, otherId)) ? { ok: true } : { ok: false, error: 'not_found' };
   }
 
+  /** Removing a child with no record is one tap (after the app's confirm); one with a record needs a code (`needsCode`). */
+  async removal(guardianId: string, childId: string): Promise<Result<{ needsCode: boolean }>> {
+    if (!(await this.store.isChildOf(guardianId, childId))) return { ok: false, error: 'not_found' };
+    return { ok: true, needsCode: (await this.history?.(childId)) ?? false };
+  }
+
   async remove(guardianId: string, childId: string): Promise<Result> {
+    if (!(await this.store.isChildOf(guardianId, childId))) return { ok: false, error: 'not_found' };
+    if (await this.history?.(childId)) return { ok: false, error: 'code_required' };
     if (!(await this.store.unlink(guardianId, childId))) return { ok: false, error: 'not_found' };
     this.audit?.('guardian.remove_child', childId, guardianId);
+    return { ok: true };
+  }
+
+  /** Sends the removal code by SMS to the guardian's verified number. */
+  async sendRemoveCode(guardianId: string, childId: string): Promise<Result> {
+    if (!(await this.store.isChildOf(guardianId, childId))) return { ok: false, error: 'not_found' };
+    const phone = (await this.phones.state(guardianId)).phone;
+    if (!phone) return { ok: false, error: 'phone_required' };
+    const out = await this.proof.sendCode(phone);
+    return out.ok ? { ok: true } : { ok: false, error: out.error as GuardianError, ...(out.retryAfterSec ? { retryAfterSec: out.retryAfterSec } : {}) };
+  }
+
+  /** Removes a child who has a record, after the guardian typed the code that was sent to their number. */
+  async removeWithCode(guardianId: string, childId: string, code: string): Promise<Result> {
+    if (!(await this.store.isChildOf(guardianId, childId))) return { ok: false, error: 'not_found' };
+    const phone = (await this.phones.state(guardianId)).phone;
+    if (!phone) return { ok: false, error: 'phone_required' };
+    const proven = await this.proof.prove(phone, code);
+    if (!proven.ok) return { ok: false, error: proven.error as GuardianError };
+    if (!(await this.store.unlink(guardianId, childId))) return { ok: false, error: 'not_found' };
+    this.audit?.('guardian.remove_child', childId, `${guardianId} confirmed by code`);
     return { ok: true };
   }
 }
@@ -262,11 +295,14 @@ const STATUS: Partial<Record<GuardianError, number>> = {
   expired: 400,
   wrong: 400,
   too_many: 429,
+  code_required: 409,
 };
 
 export function registerGuardianRoutes(app: FastifyInstance, auth: AuthService, svc: GuardianService, now: () => number = Date.now) {
   /** The link code is 6 digits: 10 tries per 10 minutes per address keeps guessing hopeless. */
   const guesses = new RateLimiter(10, 10 * 60_000, now);
+  /** Sending removal codes: a few per hour per guardian (each one is an SMS). */
+  const codeLimit = new RateLimiter(5, 60 * 60_000, now);
   type Reply = { code(n: number): { send(b: unknown): unknown } };
   const fail = (reply: Reply, out: { ok: false; error: GuardianError; retryAfterSec?: number }) =>
     reply.code(STATUS[out.error] ?? 400).send({ error: out.error, ...(out.retryAfterSec ? { retryAfterSec: out.retryAfterSec } : {}) });
@@ -384,6 +420,29 @@ export function registerGuardianRoutes(app: FastifyInstance, auth: AuthService, 
     const user = await currentUser(auth, req);
     if (!user) return reply.code(401).send({ error: 'unauthorized' });
     const out = await svc.removeFriend(user.id, req.params.id, req.params.otherId);
+    return out.ok ? { ok: true } : fail(reply, out);
+  });
+  // Removing a child: a child with a record (games, friends) needs the code sent to the guardian's number.
+  app.get<{ Params: { id: string } }>('/guardian/children/:id/removal', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    const out = await svc.removal(user.id, req.params.id);
+    return out.ok ? { needsCode: out.needsCode } : fail(reply, out);
+  });
+  app.post<{ Params: { id: string } }>('/guardian/children/:id/remove-code', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    if (!codeLimit.take(user.id)) return reply.code(429).send({ error: 'rate_limited' });
+    const out = await svc.sendRemoveCode(user.id, req.params.id);
+    return out.ok ? { ok: true } : fail(reply, out);
+  });
+  app.post<{ Params: { id: string } }>('/guardian/children/:id/remove', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    const body = guardianConfirmCodeSchema.safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'invalid_request' });
+    if (!guesses.take(`${user.id}:remove`)) return reply.code(429).send({ error: 'rate_limited' });
+    const out = await svc.removeWithCode(user.id, req.params.id, body.data.code);
     return out.ok ? { ok: true } : fail(reply, out);
   });
   app.delete<{ Params: { id: string } }>('/guardian/children/:id', async (req, reply) => {

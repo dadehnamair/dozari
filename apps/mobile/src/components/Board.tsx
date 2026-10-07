@@ -49,7 +49,7 @@ export function Board({ solved, cards, names, selected, onToggle, disabled, hint
               accessibilityRole="button"
               accessibilityState={{ selected: on }}
               onPress={() => (playSfx(on ? 'deselect' : 'select'), onToggle(c.id))}
-              style={[styles.cell, w > 0 && { width: w, height: m.height }, on && styles.cellOn, hinted.includes(c.id) && styles.cellHint, nudged.includes(c.id) && !on && styles.cellNudge, muted && styles.cellMuted]}
+              style={[styles.cell, w > 0 && { width: w, height: m.height }, on && styles.cellOn, hinted.includes(c.id) && styles.cellHint, nudged.includes(c.id) && !on && styles.cellNudge, muted && (on ? styles.cellMutedOn : styles.cellMuted)]}
             >
               {c.iconKey ? (
                 <View style={{ width: m.icon, height: m.icon }}>
@@ -67,6 +67,8 @@ export function Board({ solved, cards, names, selected, onToggle, disabled, hint
 }
 
 const styles = StyleSheet.create({
+  /** A selection shown while it is the other side's turn keeps its purple face and white text (the grey look would put white on grey). */
+  cellMutedOn: { opacity: 0.85 },
   cellMuted: { backgroundColor: '#D9D9DE', borderBottomColor: '#B5B5BC', opacity: 0.7 },
   cellNudge: { backgroundColor: '#FFF3C4', borderColor: 'rgba(255,201,60,0.8)', borderWidth: 3 },
   cellHint: { borderColor: '#FFC93C', borderWidth: 4 },
@@ -88,7 +90,7 @@ const styles = StyleSheet.create({
     padding: 4,
     overflow: 'hidden',
   },
-  cellOn: { backgroundColor: tile.selected.face, borderBottomColor: tile.selected.shelf, transform: [{ translateY: 2 }, { scale: 0.96 }] },
+  cellOn: { backgroundColor: tile.selected.face, borderColor: '#E8D5FF', borderBottomColor: tile.selected.shelf, transform: [{ translateY: 2 }, { scale: 0.96 }] },
   name: { fontFamily: 'Vazirmatn_700Bold', fontSize: 14, color: tile.idle.text, textAlign: 'center' },
   unit: { fontFamily: 'Vazirmatn_400Regular', fontSize: 11, color: colors.ink, opacity: 0.7, textAlign: 'center' },
   nameOn: { color: tile.selected.text },

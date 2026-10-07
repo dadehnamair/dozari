@@ -28,6 +28,8 @@ export interface GatewayOptions {
   /** Is this table on offer and open to the player's level? Answers an error code, or null when fine. Absent = bronze only. */
   tierGate?: (userId: string, tier: QueueTier) => Promise<'UNKNOWN_TIER' | 'LEVEL_TOO_LOW' | null>;
   now?: () => number;
+  /** How long a player with no open socket keeps their seat in a live match before they are counted as having left (default 25 s). */
+  disconnectGraceMs?: number;
   /** Called when two players are paired; return false to put them back in line. Ignored when `match` is given. */
   onPair?: (a: string, b: string) => Promise<boolean> | boolean;
   /** Live matches: everything but `emit` (the gateway supplies it). When set, pairs are handed to a `MatchService`. */
@@ -244,7 +246,16 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
       opts.presence?.disconnect(userId);
       // Leave the line only when this was the player's last open connection.
       const left = await io.in(room(userId)).fetchSockets();
-      if (left.length === 0) leaveQueue(userId);
+      if (left.length === 0) {
+        leaveQueue(userId);
+        // A player who is gone for good must not hold a match (and their partner or rival) hostage: after a grace period they leave it.
+        const timer = setTimeout(() => {
+          void io.in(room(userId)).fetchSockets().then((again) => {
+            if (again.length === 0 && matches?.inMatch(userId)) matches.leave(userId);
+          }).catch(() => undefined);
+        }, opts.disconnectGraceMs ?? 25_000);
+        timer.unref();
+      }
     });
   });
 

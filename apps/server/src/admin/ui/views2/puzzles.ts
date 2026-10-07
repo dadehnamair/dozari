@@ -107,11 +107,13 @@ export const ADMIN_VIEWS2_PUZZLES_JS = String.raw`VIEWS.puzzles = function (root
     box.appendChild(h('div', { class: 'toolbar' }, [h('span', { class: 'sub', text: 'رده‌ی سنی پازل' }), trackFilter]));
     if (P.tab === 'draft') {
       var n = h('input', { type: 'number', min: '1', max: '20', value: '5', style: 'width:84px' });
+      var genTier = select([['', 'همه‌ی سطح‌ها، به نوبت']].concat(P.tiers.map(function (t) { return [t.id, tierLabel(t)]; })), '');
       box.appendChild(h('div', { class: 'card inline' }, [
-        h('div', { style: 'flex:1;min-width:220px' }, [h('b', { text: 'ساخت خودکار' }), h('div', { class: 'sub', text: 'سیستم پازل یکتا و معتبر می‌سازد؛ تو فقط عنوان دسته‌ها را می‌نویسی و تأیید می‌کنی.' })]),
+        h('div', { style: 'flex:1;min-width:220px' }, [h('b', { text: 'ساخت خودکار' }), h('div', { class: 'sub', text: 'سیستم برای بازه‌ی لول بازیکنِ سطحِ انتخابی پازل یکتا و معتبر با ترکیب‌های گوناگون می‌سازد؛ تو فقط عنوان‌ها را صیقل می‌دهی و تأیید می‌کنی.' })]),
+        genTier,
         n,
         h('button', { class: 'btn primary', text: 'بساز', onclick: function () {
-          api('/admin/puzzles/generate', { method: 'POST', body: { count: Number(n.value) || 1 } }).then(function (r) {
+          api('/admin/puzzles/generate', { method: 'POST', body: genTier.value ? { count: Number(n.value) || 1, tierId: genTier.value } : { count: Number(n.value) || 1 } }).then(function (r) {
             if (!r.ok) return fail(r);
             toast(r.body.created ? fa(r.body.created) + ' پیش‌نویس ساخته شد' : 'پازلی ساخته نشد؛ کاتالوگ (' + fa(r.body.catalogSize) + ' کالای دارای قیمت) کم است', !r.body.created);
             reload();
@@ -212,6 +214,40 @@ export const ADMIN_VIEWS2_PUZZLES_JS = String.raw`VIEWS.puzzles = function (root
   });
 };
 
+VIEWS.clienterrors = function (root) {
+  var list = h('div');
+  var KIND = { crash: 'کرش', screen: 'صفحه‌ی خراب', manual: 'گزارش دستی' };
+  function draw() {
+    api('/admin/client-errors').then(function (r) {
+      clear(list);
+      if (r.status === 404) return list.appendChild(empty('گزارش خطای اپ روی این سرور فعال نیست'));
+      if (!r.ok) return fail(r);
+      if (!r.body.errors.length) return list.appendChild(empty('خطایی گزارش نشده'));
+      r.body.errors.forEach(function (x) {
+        var shot = h('div');
+        var more = h('div', { style: 'display:none;white-space:pre-wrap;direction:ltr;text-align:left;font-size:12px;color:var(--muted);margin-top:8px' }, [
+          h('div', { text: x.context }), h('div', { text: x.detail })]);
+        var row = h('div', { class: 'kv', style: 'flex-wrap:wrap;gap:8px' }, [
+          badge(KIND[x.kind] || x.kind, x.kind === 'crash' ? 'b-bad' : 'b-warn'),
+          h('b', { text: x.screen || '—' }),
+          h('span', { text: x.message || '' }),
+          h('span', { style: 'color:var(--muted);font-size:12px', text: (x.userName ? x.userName + ' · ' : '') + ago(x.createdAt) + (x.note ? ' · «' + x.note + '»' : '') }),
+          h('button', { class: 'btn sm', text: 'جزئیات', onclick: function () { more.style.display = more.style.display === 'none' ? 'block' : 'none'; } }),
+          x.hasScreenshot ? h('button', { class: 'btn sm', text: 'عکس صفحه', onclick: function () {
+            if (shot.firstChild) return clear(shot);
+            api('/admin/client-errors/' + x.id + '/screenshot').then(function (y) {
+              if (!y.ok) return fail(y);
+              shot.appendChild(h('img', { src: y.body.screenshot, style: 'max-width:320px;max-height:640px;border:2px solid var(--line);border-radius:12px;margin-top:8px' }));
+            });
+          } }) : null,
+          x.resolved ? badge('بررسی شد', 'b-ok') : h('button', { class: 'btn sm', text: 'بررسی شد', onclick: function () { api('/admin/client-errors/' + x.id + '/resolve', { method: 'POST' }).then(function (y) { if (!y.ok) return fail(y); draw(); }); } })]);
+        list.appendChild(h('div', {}, [row, more, shot]));
+      });
+    });
+  }
+  root.appendChild(card('خطاهای اپ', 'اپ بازیکن وقتی صفحه‌ای خراب شود یا خالی بماند، متن خطا، اطلاعات دستگاه و عکس صفحه را خودش می‌فرستد؛ بازیکن هم می‌تواند دستی گزارش بدهد.', [list]));
+  draw();
+};
 VIEWS.userreports = function (root) {
   var list = h('div');
   var CAT = { abuse: 'توهین و فحاشی', spam: 'اسپم', cheating: 'تقلب', bad_name: 'اسم یا عکس نامناسب', other: 'دیگر' };

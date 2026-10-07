@@ -14,8 +14,10 @@ export const seedKeepsakeSchema = z.object({
   rarity: z.enum(KEEPSAKE_RARITIES),
   pieces: z.number().int().min(1).max(12),
   reward_gems: z.number().int().min(0).max(1000),
+  /** The designer's art (`yadegar-1` … `yadegar-8`, drawn by the app from `assets/keepsake`); absent = the placeholder frame. */
+  art_key: z.string().min(2).max(60).nullable().optional(),
 });
-export const seedKeepsakeFileSchema = z.object({ sets: z.array(seedKeepsakeSetSchema), keepsakes: z.array(seedKeepsakeSchema) });
+export const seedKeepsakeFileSchema = z.object({ sets: z.array(seedKeepsakeSetSchema), keepsakes: z.array(seedKeepsakeSchema), /** Titles of earlier starter keepsakes that this file replaces: they are switched off (never deleted, so owned pieces stay). */ retire_titles: z.array(z.string()).optional() });
 export type SeedKeepsakeFile = z.infer<typeof seedKeepsakeFileSchema>;
 
 /** Cross-checks the schema cannot do: unique keys and titles, known sets, known products. Returns the problems found. */

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { SoloChart, YScale } from '@dozari/shared';
 import { fa } from '../i18n/fa';
 import { fetchSoloChart } from '../solo/api';
@@ -67,7 +67,7 @@ export function ChartPanel({ sessionId, height }: { sessionId: string; height?: 
         <Text style={styles.shareText}>{sharing ? fa.share.sharing : fa.share.button}</Text>
       </Pressable>
       {shareNote ? <Text style={styles.msg}>{shareNote}</Text> : null}
-      {Platform.OS !== 'web' ? <View pointerEvents="none" style={styles.offscreen}><ShareCard ref={cardRef} group={group} scale={scale} line={line} code={code} /></View> : null}
+      <View pointerEvents="none" style={styles.offscreen}><ShareCard ref={cardRef} group={group} scale={scale} line={line} code={code} /></View>
     </View>
   );
 }

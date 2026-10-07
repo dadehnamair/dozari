@@ -194,3 +194,27 @@ describe('bot roster top-up', () => {
     expect(asked).toEqual([6]);
   });
 });
+
+describe('bot opponent by level', () => {
+  it('pairs a level-3 player with the bot of a near level, never the high-level one', async () => {
+    const store = createMemoryBotPlayerStore();
+    const base = { nickname: 'ربات', avatarKey: 'avatar-01', gender: null, cityId: null, skill: 50, thinkMinMs: 2000, thinkMaxMs: 6000, tauntPercent: 0, coins: 100 };
+    const low = await store.create({ ...base, nickname: 'کم', stats: { xp: 150, games: 3, wins: 1, losses: 2, draws: 0 } });
+    const high = await store.create({ ...base, nickname: 'زیاد', stats: { xp: 60_000, games: 300, wins: 150, losses: 150, draws: 0 } });
+    const rows = await store.active();
+    expect(rows.find((r) => r.userId === high)!.level!).toBeGreaterThan(rows.find((r) => r.userId === low)!.level! + 5);
+    const queue = new DuelQueue();
+    const started: string[] = [];
+    const matches = { inMatch: () => false, start: async (_a: string, b: string) => (started.push(b), true) } as unknown as MatchService;
+    const clock = { ms: 1_000_000 };
+    for (let seed = 1; seed <= 12; seed++) {
+      started.length = 0;
+      const driver = new BotDriver({ store, matches: () => matches, queue: () => queue, settings: async () => ({ enabled: true, fallbackSec: 1, jitterSec: 0, cityReplyPercent: 0 }), levelOf: async () => rows.find((r) => r.userId === low)!.level!, rng: mulberry32(seed), now: () => clock.ms });
+      await driver.refresh();
+      queue.join('human', clock.ms - 5000);
+      await driver.tick();
+      queue.leave('human');
+      expect(started).toEqual([low]);
+    }
+  });
+});

@@ -55,6 +55,10 @@ Items carry `rotating`. Each Tehran day only `shop.daily_slots` (default 4; 0 = 
 today's offer answers `not_today`. Admin «فروشگاه» has a «چرخان کن» toggle per item. **No item is rotating by default** (existing rows keep behaving as before):
 flag a few higher-priced items to switch the rotation on. The app shows «فقط امروز · N ساعت مانده» on them.
 
+## Birthday gifts (built)
+
+A friend whose birthday week it is (`birthday.info(...).badge`) can be given a **small gift** from the shop: a coin-priced consumable (`hint_token` or `wheel_spin`, price ≤ `SHOP_GIFT_MAX_COINS` = 100, never rotating or owned items). `POST /shop/gift {itemId, friendId}`: the giver pays (ledger `shop_purchase`, ref `shop_gift`), the friend gets the effect, once per item per friend per birthday year (idempotency key), and the friend gets an inbox message that opens the giver's profile. The friend-birthday inbox messages (`announce`) carry `link_user_id` (`admin_messages`, migration 0071): tapping one opens that player's profile, where **«هدیه‌ی تولد»** opens the gift sheet.
+
 ## API
 
 `GET /shop`, `POST /shop/:id/buy` · `GET /solo/:id/hints`, `POST /solo/:id/hint {kind}` · admin `GET|POST /admin/shop`, `PATCH /admin/shop/:id`

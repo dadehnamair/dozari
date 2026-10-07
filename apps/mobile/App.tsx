@@ -21,6 +21,9 @@ import { onAccountSwitched } from './src/auth/switched';
 import { useMusic } from './src/sound/music';
 import { useHardwareBack } from './src/nav/useHardwareBack';
 import { useMiniAppBack } from './src/miniapp/useMiniAppBack';
+import { miniAppHost } from './src/miniapp/host';
+import { installWebHistory } from './src/nav/webHistory';
+import type { HistoryWindow } from './src/nav/webHistory';
 import { useKeyboardInset } from './src/nav/useKeyboardInset';
 import { BrandScreen } from './src/brand/BrandScreen';
 import { KitGallery } from './src/kit/KitGallery';
@@ -28,8 +31,10 @@ import { LookupScreen } from './src/lookup/LookupScreen';
 import { SearchScreen } from './src/search/SearchScreen';
 import { Tutorial } from './src/onboarding/Tutorial';
 import { loginSeen, markLoginSeen, markTutorialSeen, tutorialSeen } from './src/onboarding/state';
-import { LoginScreen } from './src/phone/LoginScreen';
 import type { AgeTrack } from '@dozari/shared';
+import { LoginScreen } from './src/phone/LoginScreen';
+import { bootTheme } from './src/theme/bootTheme';
+import { installDarkTextShadowFix } from './src/theme/darkTextShadow';
 import { AgeTrackScreen } from './src/agetrack/AgeTrackScreen';
 import { ageTrackNeeded } from './src/agetrack/api';
 import { useTrackRules } from './src/agetrack/useTrackRules';
@@ -45,6 +50,21 @@ import { PriceOnlyScreen } from './src/priceonly/PriceOnlyScreen';
 import { refillPack } from './src/offline/pack';
 import { ServerDownBanner } from './src/net/ServerDownBanner';
 import { takeLaunchTarget } from './src/pwa/usePwa';
+import { ErrorBoundary } from './src/errors/ErrorBoundary';
+import { installGlobalErrorReporting } from './src/errors/globalHandlers';
+import { setCurrentScreen } from './src/errors/breadcrumbs';
+import { setShotRoot } from './src/errors/screenshot';
+
+installGlobalErrorReporting();
+
+// The browser's and the installed PWA's Back / Forward drive the in-app back stack (not inside a messenger mini-app, which has its own back button).
+if (Platform.OS === 'web' && !miniAppHost()) {
+  const win = (globalThis as { window?: HistoryWindow }).window;
+  if (win?.history) installWebHistory(win);
+}
+
+// The adult look has dark text on brass and silver faces: a shadow under it only smears, so it is dropped app-wide.
+if (bootTheme() === 'adult') installDarkTextShadowFix();
 
 // `?brand` on the web build opens the brand sheet directly (used by `scripts/export-brand.mjs`); read once, before anything rewrites the URL.
 const BRAND_SHEET = Platform.OS === 'web' && new URLSearchParams((globalThis as { location?: { search?: string } }).location?.search ?? '').has('brand');
@@ -63,8 +83,18 @@ const SPLASH_MS = 1800;
 /** Android draws edge-to-edge, so a 3-button/gesture navigation bar would cover the bottom of every screen: keep it clear. */
 const NAV_BAR_INSET = Platform.OS === 'android' ? Math.round(initialWindowMetrics?.insets.bottom ?? 0) : 0;
 
+/** The whole app inside the safety net: a screen that throws shows a card and reports itself instead of leaving a blank page. */
 export default function App() {
+  return (
+    <ErrorBoundary>
+      <AppInner />
+    </ErrorBoundary>
+  );
+}
+
+function AppInner() {
   const shell = useRef<View>(null);
+  useEffect(() => (setShotRoot(shell), () => setShotRoot(null)), []);
   const keyboard = useKeyboardInset(shell);
   const config = useClientConfig();
   const phone = usePhoneGate(config.raw);
@@ -77,9 +107,13 @@ export default function App() {
   // Minimal navigation until a real router lands with the hub screen (docs/logic/app-screens.md).
   /** A guardian's read-only look at the kid or teen space (no progress is saved). */
   const [previewTrack, setPreviewTrack] = useState<'kid' | 'teen' | null>(null);
+  /** The track picked on the sign-in card (age tracks on); saved by the next screen. */
+  const [pickedTrack, setPickedTrack] = useState<AgeTrack | null>(null);
   const [screen, setScreen] = useState<'splash' | 'login' | 'ageTrack' | 'home' | 'solo' | 'daily' | 'duel' | 'tutorial' | 'duelResume' | 'gallery' | 'search' | 'brand' | 'lookup' | 'priceonly'>(
     'splash',
   );
+  // The screen name rides along with an error report.
+  useEffect(() => setCurrentScreen(screen), [screen]);
 
   // A kid or teen track hides what needs adult content or price knowledge (docs/logic/age-tracks.md); the rules come from the server.
   const trackRules = useTrackRules(ageTracksOn, screen);
@@ -175,14 +209,16 @@ export default function App() {
           ageTracksOn={config.raw['feature.age_tracks'] === 1}
           onDone={(r) =>
             void markLoginSeen().then(async () => {
-              if (await ageTrackNeeded(config.raw)) return (setPresetTrack(r.track), setScreen('ageTrack'));
+              if (r.track) setPickedTrack(r.track);
+              if (await ageTrackNeeded(config.raw)) return setScreen('ageTrack');
               if (r.signedIn && !r.created) return (await markTutorialSeen(), setScreen('home'));
               setScreen((await tutorialSeen()) ? 'home' : 'tutorial');
             })
           }
         />
       ) : null}
-      {screen === 'ageTrack' ? <AgeTrackScreen preset={presetTrack} onDone={() => void tutorialSeen().then((seen) => setScreen(seen ? 'home' : 'tutorial'))} /> : null}
+
+      {screen === 'ageTrack' ? <AgeTrackScreen initial={pickedTrack ?? undefined} onDone={() => void tutorialSeen().then((seen) => setScreen(seen ? 'home' : 'tutorial'))} /> : null}
       {screen === 'solo' ? <SoloScreen key={previewTrack ?? 'own'} previewTrack={previewTrack ?? undefined} onBack={() => (setPreviewTrack(null), setScreen('home'))} hintsEnabled={config.features.shop} ageTracksOn={config.raw['feature.age_tracks'] === 1} /> : null}
       {screen === 'priceonly' ? <PriceOnlyScreen onBack={() => setScreen('home')} /> : null}
       {screen === 'daily' ? <SoloScreen daily onBack={() => setScreen('home')} hintsEnabled={config.features.shop} /> : null}

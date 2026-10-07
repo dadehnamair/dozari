@@ -3,6 +3,7 @@ import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { fa } from '../i18n/fa';
 import { usePrefs } from '../prefs/store';
 import { colors, fonts } from '../theme/colors';
+import { useTheme } from '../theme/themeStore';
 import { Item } from './Item';
 
 /**
@@ -53,6 +54,7 @@ function Spark({ spec, width, on }: { spec: (typeof SPARKS)[number]; width: numb
 const RING = [0, 45, 90, 135, 180, 225, 270, 315].map((d) => [Math.cos((d * Math.PI) / 180), Math.sin((d * Math.PI) / 180)] as const);
 
 function WordmarkText({ width }: { width: number }) {
+  const adult = useTheme() === 'adult';
   const fs = width * 0.24;
   const r = width * 0.02;
   const line = fs * 1.55;
@@ -60,11 +62,11 @@ function WordmarkText({ width }: { width: number }) {
   const base = { fontFamily: fonts.display, fontSize: fs, lineHeight: line, textAlign: 'center' as const };
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-      <Text style={[box, base, { color: '#2B1240', top: box.top + r * 0.9 }]}>{fa.home.title}</Text>
+      <Text style={[box, base, { color: colors.ink, top: box.top + r * 0.9 }]}>{fa.home.title}</Text>
       {RING.map(([dx, dy], i) => (
-        <Text key={i} style={[box, base, { color: '#2B1240', left: box.left + dx * r, top: box.top + dy * r }]}>{fa.home.title}</Text>
+        <Text key={i} style={[box, base, { color: colors.ink, left: box.left + dx * r, top: box.top + dy * r }]}>{fa.home.title}</Text>
       ))}
-      <Text style={[box, base, { color: '#FFC93C' }]}>{fa.home.title}</Text>
+      <Text style={[box, base, { color: adult ? '#E8B64A' : '#FFC93C' }]}>{fa.home.title}</Text>
     </View>
   );
 }

@@ -44,7 +44,7 @@ Spec: `docs/logic/data-model.md` (§Catalog). Decisions D5, D6 in `docs/DECISION
 }
 ```
 
-Validated by zod (`packages/shared/src/schemas/catalog.ts`); seed is idempotent by `slug` + `(slug, year, month)`.
+Validated by zod (`packages/shared/src/schemas/catalog.ts`); seed is idempotent and insert-only by `slug` + `(slug, year, month)`: existing products/prices (admin edits) are never overwritten. In a populated database nothing seeds products at all; puzzles/keepsakes only reference existing slugs (`packages/db/seed/catalog-index.json`).
 
 ## Quality checks before adding prices
 

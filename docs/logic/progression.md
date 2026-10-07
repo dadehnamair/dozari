@@ -54,6 +54,8 @@ transaction (claim row, spin rows, ledger).
 
 ## Puzzle difficulty scales with skill tier (D34)
 
+**Variety (solo):** the server remembers the last 30 puzzles it served each signed-in player (in memory, per process) and skips them on the next pick (`SoloService.pickFresh`, `PuzzleSource.pickRandom({ exclude })`). When a player has had the whole pool, the memory restarts. Guests have no memory and may see repeats. A small approved pool still repeats quickly: the fix for that is more approved puzzles (admin → puzzles).
+
 Reuses the **skill-rank tag** that already exists in `profile-and-identity.md` (تازه‌کار /
 مبتدی / حرفه‌ای, derived automatically from win rate — cosmetic, no ELO). That tier now also
 biases which puzzles a player is served:

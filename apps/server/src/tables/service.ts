@@ -1,11 +1,17 @@
-import { canMeet, makeTableCode, trackRank, normalizeTableCode, seatsOfFormat } from '@dozari/shared';
-import type { AgeTrack, CreateTableBody, TableError, TableFormat, TableView } from '@dozari/shared';
+import { TABLE_PRICE_ROUNDS_MAX, TABLE_PUBLIC_LIST_MAX, TABLE_REQUESTS_MAX, TABLE_REQUEST_TTL_MS, canMeet, clampTableRounds, makeTableCode, tableEntryOk, tableMinEntry, trackRank, normalizeTableCode, seatsOfFormat } from '@dozari/shared';
+import type { AgeTrack, CreateTableBody, LiveNotice, PublicTable, TableError, TableFormat, TableView } from '@dozari/shared';
+
+/** A closed public table stays in the open-tables list this long, labelled as closed (view only). */
+const RECENT_MS = 30 * 60_000;
+const RECENT_MAX = 20;
+/** A turned-down request is remembered this long so the asker sees the answer. */
+const DENIED_MS = 60_000;
 
 export interface TableDeps {
   profileOf(userId: string): Promise<{ nickname: string; avatarKey: string } | null>;
-  startMatch(a: string, b: string): Promise<boolean>;
+  startMatch(a: string, b: string, opts?: { boards: number; fee: number; priceRounds: number }): Promise<boolean>;
   /** Starts a 2v2 (`sides[s]` = the two players of side s); omit to refuse 2v2 tables. */
-  startTeam?(sides: readonly [readonly [string, string], readonly [string, string]]): Promise<boolean>;
+  startTeam?(sides: readonly [readonly [string, string], readonly [string, string]], opts?: { boards: number; fee: number; priceRounds: number }): Promise<boolean>;
   inMatch(userId: string): boolean;
   /** A player's age track (docs/logic/age-tracks.md): a table seats one track only. Absent = everybody is adult. */
   trackOf?(userId: string): Promise<AgeTrack>;
@@ -17,6 +23,12 @@ export interface TableDeps {
   sameFamily?(a: string, b: string): Promise<boolean>;
   /** The guardian switched friend duels and tables off for this child: the app hides them, the server refuses. */
   duelsOff?(userId: string): Promise<boolean>;
+  /** May coins move for this player (not a kid or teen)? Absent = yes. */
+  coinsAllowed?(userId: string): Promise<boolean>;
+  /** The player's coin balance, to check an entry fee. Absent = nobody can pay a fee, so only free tables exist. */
+  balanceOf?(userId: string): Promise<number>;
+  /** A live nudge to a player (a join request, the host's answer). */
+  notify?(userId: string, notice: LiveNotice): void;
   idleMs(): Promise<number>;
   now?: () => number;
   rng?: () => number;
@@ -33,6 +45,18 @@ interface Table {
   sides: Map<string, 0 | 1>;
   requireReady: boolean;
   locked: boolean;
+  /** Boards played and the coins each player puts in. */
+  rounds: number;
+  /** Price-guess questions after the boards (0 = none; a 2v2 has none). */
+  priceRounds: number;
+  entryFee: number;
+  /** Hidden from the open-tables list (family tables always are). */
+  isPrivate: boolean;
+  hostNickname: string;
+  hostAvatarKey: string;
+  /** People asking to sit down (user id → asked at) and turned down recently. */
+  requests: Map<string, number>;
+  denied: Map<string, number>;
   hostId: string;
   /** The host's track when the table opened; only players of it can see, join or start at the table. */
   track: AgeTrack;
@@ -52,6 +76,8 @@ export type TableResult<T = object> = ({ ok: true } & T) | { ok: false; error: T
 export class TableService {
   private readonly tables = new Map<string, Table>();
   private readonly byUser = new Map<string, string>();
+  /** Public tables that closed lately, shown view-only so the list is never bare. */
+  private readonly recent: (PublicTable & { closedAt: number })[] = [];
 
   constructor(private readonly deps: TableDeps) {}
 
@@ -74,7 +100,10 @@ export class TableService {
   }
 
   private close(t: Table): void {
-    this.tables.delete(t.code);
+    if (this.tables.delete(t.code) && !t.isPrivate && !t.family) {
+      this.recent.unshift({ ...this.row(t, 'none'), closedAt: this.now() });
+      this.recent.length = Math.min(this.recent.length, RECENT_MAX);
+    }
     for (const u of t.seated) if (this.byUser.get(u) === t.code) this.byUser.delete(u);
   }
 
@@ -105,7 +134,7 @@ export class TableService {
     this.byUser.delete(userId);
   }
 
-  async create(hostId: string, body: Omit<CreateTableBody, 'family'> & { family?: boolean }): Promise<TableResult<{ table: TableView }>> {
+  async create(hostId: string, body: Omit<CreateTableBody, 'family' | 'rounds' | 'entryFee' | 'isPrivate' | 'priceRounds'> & { family?: boolean; rounds?: number; entryFee?: number; isPrivate?: boolean; priceRounds?: number }): Promise<TableResult<{ table: TableView }>> {
     if (body.family) {
       // A family table is the guardian's own flow: no track gate, and the guardian's duel switch does not apply to a table they sit at.
       if (!(await this.deps.hasFamily?.(hostId))) return { ok: false, error: 'INVALID' };
@@ -114,13 +143,20 @@ export class TableService {
       if (await this.deps.duelsOff?.(hostId)) return { ok: false, error: 'FEATURE_OFF' };
     }
     if (this.deps.inMatch(hostId)) return { ok: false, error: 'IN_MATCH' };
+    // Rounds and entry: the more rounds, the higher the minimum entry. Where coins do not move (kid, teen, family) the entry is 0.
+    const rounds = clampTableRounds(body.rounds ?? 1);
+    const coins = !body.family && (await this.coinsAllowed(hostId)) && !!this.deps.balanceOf;
+    const entryFee = coins ? body.entryFee ?? tableMinEntry(rounds) : 0;
+    if (coins && !tableEntryOk(entryFee, rounds, true)) return { ok: false, error: 'LOW_ENTRY' };
+    if (entryFee > 0 && (await this.deps.balanceOf!(hostId)) < entryFee) return { ok: false, error: 'NO_COINS' };
     this.leaveCurrent(hostId);
     const rng = this.deps.rng ?? Math.random;
     let code = makeTableCode(rng);
     for (let i = 0; i < 20 && this.tables.has(code); i++) code = makeTableCode(rng);
     if (this.tables.has(code)) return { ok: false, error: 'BUSY' };
     if (body.format === '2v2' && !this.deps.startTeam) return { ok: false, error: 'INVALID' };
-    const t: Table = { code, name: body.name, icon: body.icon, format: body.format, family: !!body.family, sides: new Map([[hostId, 0]]), requireReady: body.requireReady, locked: false, hostId, track: await this.trackOf(hostId), seated: [hostId], ready: new Set(), expiresAt: this.now() + (await this.deps.idleMs()) };
+    const host = (await this.deps.profileOf(hostId)) ?? { nickname: '؟', avatarKey: 'avatar-01' };
+    const t: Table = { code, name: body.name, icon: body.icon, format: body.format, family: !!body.family, rounds, priceRounds: body.format === '2v2' ? 0 : Math.min(TABLE_PRICE_ROUNDS_MAX, Math.max(0, Math.floor(body.priceRounds ?? TABLE_PRICE_ROUNDS_MAX))), entryFee, isPrivate: !!body.isPrivate || !!body.family, hostNickname: host.nickname, hostAvatarKey: host.avatarKey, requests: new Map(), denied: new Map(), sides: new Map([[hostId, 0]]), requireReady: body.requireReady, locked: false, hostId, track: await this.trackOf(hostId), seated: [hostId], ready: new Set(), expiresAt: this.now() + (await this.deps.idleMs()) };
     this.tables.set(code, t);
     this.byUser.set(hostId, code);
     return { ok: true, table: await this.view(t, hostId) };
@@ -156,15 +192,137 @@ export class TableService {
     if (!(await this.mayEnter(t, userId))) return { ok: false, error: 'NOT_FOUND' };
     if (this.deps.inMatch(userId)) return { ok: false, error: 'IN_MATCH' };
     if (t.locked) return { ok: false, error: 'LOCKED' };
+    const seated = await this.sit(t, userId);
+    return seated.ok ? { ok: true, table: await this.view(t, userId) } : seated;
+  }
+
+  /** May this player's coins move (not a kid or teen)? A failing lookup reads as no. */
+  private async coinsAllowed(userId: string): Promise<boolean> {
+    try {
+      return (await this.deps.coinsAllowed?.(userId)) ?? true;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Can this player pay the table's entry? A table with a fee needs a player whose coins may move and who has them. */
+  private async canPay(t: Table, userId: string): Promise<boolean> {
+    if (t.entryFee <= 0) return true;
+    if (!this.deps.balanceOf || !(await this.coinsAllowed(userId))) return false;
+    return (await this.deps.balanceOf(userId).catch(() => 0)) >= t.entryFee;
+  }
+
+  /** Puts a player in the emptiest seat (the caller checked access and locks); leaves their old table first. */
+  private async sit(t: Table, userId: string): Promise<TableResult> {
+    if (this.deps.inMatch(userId)) return { ok: false, error: 'IN_MATCH' };
     if (t.seated.length >= seatsOfFormat(t.format)) return { ok: false, error: 'FULL' };
+    if (!(await this.canPay(t, userId))) return { ok: false, error: 'NO_COINS' };
+    if (t.seated.length >= seatsOfFormat(t.format)) return { ok: false, error: 'FULL' }; // raced while the balance was read
     this.leaveCurrent(userId);
     t.seated.push(userId);
+    t.requests.delete(userId);
     // The emptier team; on a tie the second team (so a 1v1 guest faces the host, and the third player joins the host).
     const n0 = [...t.sides.values()].filter((s) => s === 0).length;
     const n1 = t.sides.size - n0;
     t.sides.set(userId, n1 < n0 ? 1 : n0 < n1 ? 0 : t.seated.length % 2 === 1 ? 0 : 1);
     this.byUser.set(userId, t.code);
-    return { ok: true, table: await this.view(t, userId) };
+    return { ok: true };
+  }
+
+  /** Why a player may not even ask to sit at / join this table, or null. */
+  private async refusal(t: Table, userId: string): Promise<TableError | null> {
+    if (t.seated.includes(userId)) return 'ALREADY_IN';
+    if (!t.family) {
+      if (await this.deps.socialBlocked?.(userId)) return 'NEEDS_GUARDIAN';
+      if (await this.deps.duelsOff?.(userId)) return 'FEATURE_OFF';
+    }
+    if (!(await this.mayEnter(t, userId))) return 'NOT_FOUND';
+    if (this.deps.inMatch(userId)) return 'IN_MATCH';
+    if (t.locked) return 'LOCKED';
+    if (t.seated.length >= seatsOfFormat(t.format)) return 'FULL';
+    return null;
+  }
+
+  private row(t: Table, yourRequest: PublicTable['yourRequest']): PublicTable {
+    return { code: t.code, name: t.name, icon: t.icon, format: t.format, rounds: t.rounds, priceRounds: t.priceRounds, entryFee: t.entryFee, seats: seatsOfFormat(t.format), taken: t.seated.length, hostNickname: t.hostNickname, hostAvatarKey: t.hostAvatarKey, yourRequest, status: this.statusOf(t) };
+  }
+
+  private statusOf(t: Table): PublicTable['status'] {
+    if (t.seated.some((u) => this.deps.inMatch(u))) return 'playing';
+    if (t.seated.length >= seatsOfFormat(t.format)) return 'full';
+    return t.locked ? 'locked' : 'open';
+  }
+
+  /**
+   * The open-tables list: every public table the player could see (open ones first, then full, playing and locked ones), then the ones
+   * that closed lately. Tables that cannot take a request are listed with their status and are view-only, so the list is rarely bare.
+   */
+  async listPublic(userId: string): Promise<PublicTable[]> {
+    this.sweep();
+    const rows: PublicTable[] = [];
+    if (!(await this.deps.socialBlocked?.(userId)) && !(await this.deps.duelsOff?.(userId))) {
+      for (const t of this.tables.values()) {
+        if (t.isPrivate || t.family || t.seated.includes(userId) || !(await this.mayEnter(t, userId))) continue;
+        rows.push(this.row(t, t.requests.has(userId) ? 'pending' : t.denied.has(userId) ? 'denied' : 'none'));
+      }
+    }
+    const rank = { open: 0, full: 1, locked: 2, playing: 3, closed: 4 } as const;
+    rows.sort((x, y) => rank[x.status] - rank[y.status]);
+    const closed = this.recent.filter((r) => this.now() - r.closedAt < RECENT_MS).map(({ closedAt: _at, ...r }): PublicTable => ({ ...r, status: 'closed', yourRequest: 'none' }));
+    return [...rows, ...closed].slice(0, TABLE_PUBLIC_LIST_MAX);
+  }
+
+  /** Drops lapsed requests and old «turned down» marks, and closes tables past their time. */
+  private sweep(): void {
+    const t = this.now();
+    for (const table of [...this.tables.values()]) {
+      if (table.expiresAt <= t) {
+        this.close(table);
+        continue;
+      }
+      for (const [u, at] of table.requests) if (t - at > TABLE_REQUEST_TTL_MS) table.requests.delete(u);
+      for (const [u, at] of table.denied) if (t - at > DENIED_MS) table.denied.delete(u);
+    }
+    while (this.recent.length > 0 && t - this.recent[this.recent.length - 1]!.closedAt >= RECENT_MS) this.recent.pop();
+  }
+
+  /** Asks the host of a public table to let the player sit down; the host is nudged live and answers with `answer`. */
+  async request(userId: string, code: string): Promise<TableResult> {
+    this.sweep();
+    const t = this.live(code);
+    if (!t || t.isPrivate || t.family) return { ok: false, error: 'NOT_FOUND' };
+    const refused = await this.refusal(t, userId);
+    if (refused) return { ok: false, error: refused };
+    if (!(await this.canPay(t, userId))) return { ok: false, error: 'NO_COINS' };
+    if (t.requests.has(userId)) return { ok: true };
+    if (t.requests.size >= TABLE_REQUESTS_MAX) return { ok: false, error: 'TOO_MANY' };
+    t.denied.delete(userId);
+    t.requests.set(userId, this.now());
+    const me = (await this.deps.profileOf(userId)) ?? { nickname: '؟', avatarKey: 'avatar-01' };
+    this.deps.notify?.(t.hostId, { kind: 'table_request', from: me.nickname, code: t.code });
+    return { ok: true };
+  }
+
+  /** The host lets a requester in (they are seated at once) or turns them down; either way the requester is nudged. */
+  async answer(hostId: string, userId: string, accept: boolean): Promise<TableResult> {
+    this.sweep();
+    const t = this.tableOf(hostId);
+    if (!t || t.hostId !== hostId) return { ok: false, error: 'NOT_HOST' };
+    if (!t.requests.has(userId)) return { ok: false, error: 'NOT_REQUESTED' };
+    t.requests.delete(userId);
+    if (!accept) {
+      t.denied.set(userId, this.now());
+      this.deps.notify?.(userId, { kind: 'table_answer', accepted: false, code: t.code });
+      return { ok: true };
+    }
+    const refused = await this.refusal(t, userId);
+    const seated = refused ? ({ ok: false, error: refused } as const) : await this.sit(t, userId);
+    if (!seated.ok) {
+      this.deps.notify?.(userId, { kind: 'table_answer', accepted: false, code: t.code });
+      return seated;
+    }
+    this.deps.notify?.(userId, { kind: 'table_answer', accepted: true, code: t.code });
+    return { ok: true };
   }
 
   leave(userId: string): TableResult {
@@ -230,6 +388,9 @@ export class TableService {
     const guests = t.seated.filter((u) => u !== hostId);
     if (t.requireReady && guests.some((g) => !t.ready.has(g))) return { ok: false, error: 'NOT_READY' };
     if (t.seated.some((u) => this.deps.inMatch(u))) return { ok: false, error: 'IN_MATCH' };
+    // Everybody pays the entry at the start: whoever cannot keeps the match from starting (the host sees why).
+    for (const u of t.seated) if (!(await this.canPay(t, u))) return { ok: false, error: 'NO_COINS' };
+    const opts = { boards: t.rounds, fee: t.entryFee, priceRounds: t.priceRounds };
     if (t.format === '2v2') {
       const side = (n: 0 | 1) => t.seated.filter((u) => t.sides.get(u) === n);
       const [a, b] = [side(0), side(1)];
@@ -237,10 +398,10 @@ export class TableService {
       // The match draws its puzzles from the first player's track pool: at a family table the youngest sits first.
       const [sa, sb] = t.family ? [await this.youngestFirst(a), await this.youngestFirst(b)] : [a, b];
       const sides: [string[], string[]] = t.family && (await this.rankOf(sb[0]!)) < (await this.rankOf(sa[0]!)) ? [sb, sa] : [sa, sb];
-      if (!(await this.deps.startTeam?.([[sides[0][0]!, sides[0][1]!], [sides[1][0]!, sides[1][1]!]]))) return { ok: false, error: 'START_FAILED' };
+      if (!(await this.deps.startTeam?.([[sides[0][0]!, sides[0][1]!], [sides[1][0]!, sides[1][1]!]], opts))) return { ok: false, error: 'START_FAILED' };
     } else {
       const [first, second] = t.family ? await this.youngestFirst([hostId, guests[0]!]) : [hostId, guests[0]!];
-      if (!(await this.deps.startMatch(first!, second!))) return { ok: false, error: 'START_FAILED' };
+      if (!(await this.deps.startMatch(first!, second!, opts))) return { ok: false, error: 'START_FAILED' };
     }
     t.ready.clear();
     t.expiresAt = this.now() + (await this.deps.idleMs());
@@ -262,12 +423,22 @@ export class TableService {
     return code ? this.live(code) : null;
   }
 
+  private async requestRows(t: Table): Promise<TableView['requests']> {
+    const rows: TableView['requests'] = [];
+    for (const [id, at] of [...t.requests.entries()].sort((x, y) => x[1] - y[1])) {
+      if (this.now() - at > TABLE_REQUEST_TTL_MS) continue;
+      const p = (await this.deps.profileOf(id)) ?? { nickname: '؟', avatarKey: 'avatar-01' };
+      rows.push({ id, nickname: p.nickname, avatarKey: p.avatarKey });
+    }
+    return rows;
+  }
+
   private async view(t: Table, forUser: string): Promise<TableView> {
     const players = [];
     for (const id of t.seated) {
       const p = (await this.deps.profileOf(id)) ?? { nickname: '؟', avatarKey: 'avatar-01' };
       players.push({ id, nickname: p.nickname, avatarKey: p.avatarKey, ready: t.ready.has(id), isHost: id === t.hostId, isYou: id === forUser, side: t.sides.get(id) ?? 0 });
     }
-    return { code: t.code, name: t.name, icon: t.icon, format: t.format, family: t.family, requireReady: t.requireReady, locked: t.locked, hostId: t.hostId, youAreHost: t.hostId === forUser, youAreIn: t.seated.includes(forUser), expiresAt: t.expiresAt, inMatch: t.seated.some((u) => this.deps.inMatch(u)), players, seats: seatsOfFormat(t.format) };
+    return { code: t.code, name: t.name, icon: t.icon, format: t.format, family: t.family, requireReady: t.requireReady, locked: t.locked, hostId: t.hostId, youAreHost: t.hostId === forUser, youAreIn: t.seated.includes(forUser), expiresAt: t.expiresAt, inMatch: t.seated.some((u) => this.deps.inMatch(u)), players, seats: seatsOfFormat(t.format), rounds: t.rounds, priceRounds: t.priceRounds, entryFee: t.entryFee, isPrivate: t.isPrivate, requests: forUser === t.hostId ? await this.requestRows(t) : [] };
   }
 }

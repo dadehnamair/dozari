@@ -1,5 +1,5 @@
-import { tableViewSchema } from '@dozari/shared';
-import type { CreateTableBody, TableView } from '@dozari/shared';
+import { publicTablesSchema, tableViewSchema } from '@dozari/shared';
+import type { CreateTableBody, PublicTable, TableView } from '@dozari/shared';
 import { session } from '../auth';
 import { callJson } from '../net/http';
 
@@ -20,3 +20,9 @@ export const extendTable = (): Promise<void> => authed('/tables/extend', 'POST',
 export const kickFromTable = (userId: string): Promise<void> => authed('/tables/kick', 'POST', { userId }, nothing);
 /** Invites one friend to the caller's table; `online` tells whether the card reached them live or only a Bale nudge went out. */
 export const inviteToTable = (userId: string): Promise<{ online: boolean }> => authed('/tables/invite', 'POST', { userId }, (v) => ({ online: (v as { online?: boolean }).online === true }));
+/** The open (public) tables, with full, closed and playing ones listed too (view only). */
+export const fetchPublicTables = (): Promise<PublicTable[]> => authed('/tables/public', 'GET', undefined, (v) => publicTablesSchema.parse(v).tables);
+/** Asks the host of a public table to let you sit down. */
+export const requestSeat = (code: string): Promise<void> => authed(`/tables/${code}/request`, 'POST', {}, nothing);
+/** Host: let a requester in or turn them down. */
+export const answerRequest = (userId: string, accept: boolean): Promise<void> => authed('/tables/answer', 'POST', { userId, accept }, nothing);
