@@ -11,7 +11,7 @@ const codeParam = z.object({ code: z.string().min(3).max(12) });
 const targetBody = z.object({ userId: z.string().uuid() });
 
 /** Player side of private tables. Polling `GET /tables/:code` keeps the screen current; the match itself starts through the socket (`match:found`). */
-export function registerTableRoutes(app: FastifyInstance, auth: AuthService, tables: TableService, share?: (userId: string, code: string, label: string) => Promise<{ ok: true } | { ok: false; error: string }>, invite?: (host: string, friendId: string, table: { code: string; icon: string; name: string }) => Promise<{ ok: true; online: boolean } | { ok: false; error: string }>, spectate?: (playerId: string) => { view: MatchView; players: MatchFound['players']; names: Record<string, string>; inPriceRound: boolean } | null) {
+export function registerTableRoutes(app: FastifyInstance, auth: AuthService, tables: TableService, share?: (userId: string, code: string, label: string) => Promise<{ ok: true } | { ok: false; error: string }>, invite?: (host: string, friendId: string, table: { code: string; icon: string; name: string }) => Promise<{ ok: true; online: boolean } | { ok: false; error: string }>, spectate?: (playerId: string) => { view: MatchView; players: MatchFound['players']; names: Record<string, string>; inPriceRound: boolean; recent: TableWatch['recent'] } | null) {
   const fail = (reply: FastifyReply, error: TableError) => reply.code(STATUS[error]).send({ error });
 
   app.post('/tables', async (req, reply) => {

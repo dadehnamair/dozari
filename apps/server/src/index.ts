@@ -725,6 +725,7 @@ if (isMainModule(import.meta.url)) {
           coinsAllowed: ageTracks ? (id) => ageTracks.allows(id, 'coinWager') : undefined,
           balanceOf: tableStakes ? (id) => tableStakes.balance(id) : undefined,
           isBot: (id) => botDriver?.isBot(id) ?? false,
+          scoresOf: (id) => live.matches?.scoresOf(id) ?? null,
           notify: (id, n) => notices.push(id, n),
           inMatch: (id) => live.matches?.inMatch(id) ?? false,
           trackOf: ageTracks ? (id) => ageTracks.effective(id) : undefined,
@@ -887,6 +888,11 @@ if (isMainModule(import.meta.url)) {
               return party?.get(id)?.badge ? { ...p, birthday: true } : p;
             };
           })(),
+          // A 2v2 earns the duel XP too (progression.md: team reuses the duel base) — people and bots alike.
+          onTeamEnded: ({ players, result }) => {
+            if (result.reason === 'abandon') return;
+            for (const p of players) void player?.recordGame(p.userId, { mode: 'duel', outcome: result.winner === null ? 'draw' : result.winner === p.side ? 'win' : 'loss' });
+          },
           onEnded: ({ players, result }) => {
             if (tournamentService) void tournamentService.onMatchEnded(players, result.winner);
             if (result.reason !== 'abandon') {

@@ -70,6 +70,8 @@ export const publicTableSchema = z.object({
   yourRequest: z.enum(['none', 'pending', 'denied']),
   /** People watching the match of a playing table right now. */
   watchers: z.number().int().default(0),
+  /** Score of a playing table's match (side 0 : side 1); null otherwise. */
+  scores: z.tuple([z.number().int(), z.number().int()]).nullable().default(null),
   /** `open` takes requests; every other status is view only: full, a match in play, locked, or closed a short while ago. */
   status: z.enum(['open', 'full', 'playing', 'locked', 'closed']),
 });
@@ -87,6 +89,8 @@ export const tableWatchSchema = z.object({
   names: z.record(z.string(), z.string()),
   /** The board is over and the price-guess questions are being asked. */
   inPriceRound: z.boolean(),
+  /** The last few selections of this board with their result, oldest first (everybody at the table saw them, so the stands may too). */
+  recent: z.array(z.object({ side: z.union([z.literal(0), z.literal(1)]), names: z.array(z.string()), outcome: z.enum(['correct', 'one_away', 'wrong']) })).default([]),
   watchers: z.number().int(),
 });
 export type TableWatch = z.infer<typeof tableWatchSchema>;

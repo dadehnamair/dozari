@@ -42,3 +42,18 @@ export const BOT_NEAR_MISS_PERCENT = 35;
  * so a level-3 player never meets a level-20 bot.
  */
 export const BOT_MATCH_LEVEL_GAP = 2;
+
+/**
+ * A self-running bot community (docs/logic/bots.md §Community, D216). A bot's own skill drifts a step after each finished game, up with a win, down with a loss,
+ * inside these bounds; at every `BOT_AVATAR_CHANGE_EVERY_LEVELS`-th level there is a `BOT_AVATAR_CHANGE_PERCENT` % chance it picks a new face.
+ */
+export const BOT_SKILL_DRIFT_STEP = 1;
+export const BOT_SKILL_DRIFT_MIN = 20;
+export const BOT_SKILL_DRIFT_MAX = 90;
+export const BOT_AVATAR_CHANGE_EVERY_LEVELS = 5;
+export const BOT_AVATAR_CHANGE_PERCENT = 40;
+/**
+ * How busy the bot lobby is by Tehran hour (percent of the admin's table counts; index = hour 0-23): a quiet night, a busy evening. Never below one table.
+ */
+export const BOT_ACTIVITY_BY_HOUR: readonly number[] = [45, 30, 20, 15, 15, 20, 35, 55, 70, 80, 85, 90, 90, 85, 85, 90, 95, 100, 100, 100, 100, 95, 80, 60];
+

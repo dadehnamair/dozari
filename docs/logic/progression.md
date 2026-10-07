@@ -13,7 +13,7 @@ is unchanged; this is a different axis (visible growth, not opponent selection).
 
 - XP awarded on every **finished** match (abandons don't count, same rule as
   `profile-and-identity.md`'s "finished game"):
-  - `XP_SOLO_BASE` = 5, `XP_DUEL_BASE` = 10 (proposed; team/private can reuse the duel base).
+  - `XP_SOLO_BASE` = 5, `XP_DUEL_BASE` = 10 (proposed; team/private can reuse the duel base). A finished 2v2 pays every player the duel XP (`onTeamEnded`, D216), a win adds the bonus for the winning side; an abandoned match pays nothing.
   - `XP_WIN_BONUS` = 15 (competitive modes only).
   - `XP_PER_PRICE_GUESS_POINT` = 2 — rewards the bonus round too (solo: staircase points; duel:
     rounds won), so a strong price-guess showing still grows the level even on a puzzle loss.

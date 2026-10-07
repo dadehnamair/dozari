@@ -218,3 +218,45 @@ describe('bot opponent by level', () => {
     }
   });
 });
+
+describe('bot community: bots grow from their games', () => {
+  const base = { nickname: 'ربات', avatarKey: 'avatar-01', gender: null, cityId: null, skill: 50, thinkMinMs: 2000, thinkMaxMs: 6000, tauntPercent: 0, coins: 100 };
+  const mkDriver = (store: ReturnType<typeof createMemoryBotPlayerStore>, seed = 1) => new BotDriver({ store, matches: () => undefined, queue: () => undefined, settings: async () => ({ enabled: true, fallbackSec: 25, jitterSec: 0, cityReplyPercent: 0 }), rng: mulberry32(seed) });
+  const found = (you: 0 | 1) => ({ matchId: 'm', you, players: [] });
+  const ended = (winner: 0 | 1 | null, reason = 'solved') => ({ matchId: 'm', result: { winner, reason }, scores: [0, 0], groups: [] });
+
+  it("a win nudges the bot's skill up, a loss down, an abandon changes nothing, and it is kept in the store", async () => {
+    const store = createMemoryBotPlayerStore();
+    const id = await store.create({ ...base, stats: { xp: 0, games: 0, wins: 0, losses: 0, draws: 0 } });
+    const driver = mkDriver(store);
+    await driver.refresh();
+    driver.onEmit(id, 'match:found', found(1));
+    driver.onEmit(id, 'match:ended', ended(1));
+    expect(store.bots.get(id)!.skill).toBe(51);
+    driver.onEmit(id, 'match:found', found(0));
+    driver.onEmit(id, 'match:ended', ended(1));
+    expect(store.bots.get(id)!.skill).toBe(50);
+    driver.onEmit(id, 'match:found', found(0));
+    driver.onEmit(id, 'match:ended', ended(1, 'abandon'));
+    expect(store.bots.get(id)!.skill).toBe(50);
+    await driver.refresh();
+    expect(driver.rosterRows().find((b) => b.userId === id)?.skill).toBe(50);
+  });
+
+  it('a bot that crosses a milestone level may take a new face; the first look only sets the baseline', async () => {
+    const store = createMemoryBotPlayerStore();
+    const id = await store.create({ ...base, stats: { xp: 0, games: 0, wins: 0, losses: 0, draws: 0 } });
+    let changed = 0;
+    for (let seed = 1; seed <= 30; seed++) {
+      store.bots.get(id)!.avatarKey = 'avatar-01';
+      store.bots.get(id)!.level = 4;
+      const driver = mkDriver(store, seed);
+      await driver.refresh(); // baseline: level 4
+      store.bots.get(id)!.level = 5; // grew past a milestone
+      await driver.refresh();
+      if (store.bots.get(id)!.avatarKey !== 'avatar-01') changed++;
+    }
+    expect(changed).toBeGreaterThan(5);
+    expect(changed).toBeLessThan(25);
+  });
+});

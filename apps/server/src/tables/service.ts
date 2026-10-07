@@ -29,6 +29,8 @@ export interface TableDeps {
   coinsAllowed?(userId: string): Promise<boolean>;
   /** The player's coin balance, to check an entry fee. Absent = nobody can pay a fee, so only free tables exist. */
   balanceOf?(userId: string): Promise<number>;
+  /** Both sides' scores of the match a player sits in, for the list row of a playing table. */
+  scoresOf?(userId: string): [number, number] | null;
   /** Is this account a bot? A bot seat never pays an entry fee (the house funds its share). */
   isBot?(userId: string): boolean;
   /** A live nudge to a player (a join request, the host's answer). */
@@ -266,7 +268,7 @@ export class TableService {
   }
 
   private row(t: Table, yourRequest: PublicTable['yourRequest']): PublicTable {
-    return { code: t.code, name: t.name, icon: t.icon, format: t.format, rounds: t.rounds, priceRounds: t.priceRounds, entryFee: t.entryFee, seats: seatsOfFormat(t.format), taken: t.seated.length, hostNickname: t.hostNickname, hostAvatarKey: t.hostAvatarKey, yourRequest, watchers: this.watcherCount(t.code), status: this.statusOf(t) };
+    return { code: t.code, name: t.name, icon: t.icon, format: t.format, rounds: t.rounds, priceRounds: t.priceRounds, entryFee: t.entryFee, seats: seatsOfFormat(t.format), taken: t.seated.length, hostNickname: t.hostNickname, hostAvatarKey: t.hostAvatarKey, yourRequest, watchers: this.watcherCount(t.code), scores: this.statusOf(t) === 'playing' ? (t.seated.map((u) => this.deps.scoresOf?.(u) ?? null).find((x) => x) ?? null) : null, status: this.statusOf(t) };
   }
 
   private statusOf(t: Table): PublicTable['status'] {

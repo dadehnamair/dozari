@@ -56,6 +56,8 @@ export interface MatchDeps {
     settle(matchId: string, sides: readonly [readonly string[], readonly string[]], fee: number, result: { winner: 0 | 1 | null; reason: string }): Promise<void>;
   };
   onEnded?: (info: { players: readonly [string, string]; result: NonNullable<MatchState['result']> }) => void;
+  /** A 2v2 ended: every player of both sides with the side they played (the duel hook only sees two players). */
+  onTeamEnded?: (info: { players: readonly { userId: string; side: 0 | 1 }[]; result: NonNullable<MatchState['result']> }) => void;
 }
 
 interface Active {
@@ -84,6 +86,8 @@ interface Active {
   table?: { fee: number; sides: [string[], string[]] };
   /** Who sits where, as sent with `match:found` (a returning player gets it again on resume). */
   players?: MatchFound['players'];
+  /** The last few submitted selections of the board in play, for the stands (every player sees every guess and its result, so it is public). */
+  recent?: { side: 0 | 1; itemIds: readonly string[]; outcome: 'correct' | 'one_away' | 'wrong' }[];
   /** Latest proposal per side (2v2); only that side's own players ever see it. */
   proposals: [{ by: string; itemIds: readonly string[] } | null, { by: string; itemIds: readonly string[] } | null];
 }
@@ -97,6 +101,9 @@ const RULE_TO_ERROR: Record<RuleError, ErrorCode> = {
   INVALID_SELECTION: 'INVALID_SELECTION',
   DUPLICATE_SELECTION: 'DUPLICATE_SELECTION',
 };
+
+/** How many latest guesses the stands see. */
+const RECENT_GUESSES = 6;
 
 const toSolo = (p: ServedPuzzle) => ({ groups: p.groups.map((g) => ({ level: g.level, productIds: g.productIds })) });
 
@@ -317,13 +324,19 @@ export class MatchService {
   }
 
   /** What a spectator may see of the match a player sits in: the board from seat 0's side with nothing private (no proposal, no price round), who plays, card names. */
-  spectate(playerId: string): { view: MatchView; players: MatchFound['players']; names: Record<string, string>; inPriceRound: boolean } | null {
+  spectate(playerId: string): { view: MatchView; players: MatchFound['players']; names: Record<string, string>; inPriceRound: boolean; recent: { side: 0 | 1; names: string[]; outcome: 'correct' | 'one_away' | 'wrong' }[] } | null {
     const entry = this.entryOf(playerId);
     const first = entry?.state.players[0]?.userId;
     if (!entry || !first) return null;
     const current = entry.puzzles[entry.state.round] ?? entry.puzzles[0]!;
     const names = Object.fromEntries(Object.entries(current.items).map(([id, it]) => [id, it.nameFa]));
-    return { view: { ...this.view(entry, first), youId: undefined, proposal: null, priceRound: null }, players: entry.players ?? [], names, inPriceRound: !!entry.pg || !!entry.pgPending };
+    return { view: { ...this.view(entry, first), youId: undefined, proposal: null, priceRound: null }, players: entry.players ?? [], names, inPriceRound: !!entry.pg || !!entry.pgPending, recent: (entry.recent ?? []).map((g) => ({ side: g.side, names: g.itemIds.map((id) => names[id] ?? ''), outcome: g.outcome })) };
+  }
+
+  /** Both sides' scores of the match a player sits in (the lobby shows them on a playing table), or null. */
+  scoresOf(playerId: string): [number, number] | null {
+    const s = this.entryOf(playerId)?.state.scores;
+    return s ? [s[0], s[1]] : null;
   }
 
   private entryOf(userId: string): Active | undefined {
@@ -338,6 +351,8 @@ export class MatchService {
     for (const e of r.events) {
       if (e.t === 'proposal') entry.proposals[e.side] = e.itemIds.length > 0 ? { by: e.by, itemIds: e.itemIds } : null;
       if (e.t === 'turn') entry.proposals = [null, null];
+      if (e.t === 'guess') entry.recent = [...(entry.recent ?? []), { side: e.side, itemIds: e.itemIds, outcome: e.outcome }].slice(-RECENT_GUESSES);
+      if (e.t === 'board') entry.recent = [];
     }
     this.broadcast(entry, r.events);
     return { ok: true };
@@ -590,6 +605,13 @@ export class MatchService {
         this.deps.onEnded?.({ players: [entry.state.players[0]!.userId, entry.state.players[1]!.userId], result });
       } catch {
         /* a notification hook must never break the match flow */
+      }
+    }
+    if (result && !duel) {
+      try {
+        this.deps.onTeamEnded?.({ players: entry.state.players.map((p) => ({ userId: p.userId, side: p.side })), result });
+      } catch {
+        /* same: a hook must never break the match flow */
       }
     }
     if (result && entry.stakes && this.deps.stakes) {

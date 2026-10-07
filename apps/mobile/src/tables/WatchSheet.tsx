@@ -22,11 +22,12 @@ export function WatchSheet({ code, onClose }: { code: string; onClose: () => voi
   useHardwareBack(onClose);
   const [data, setData] = useState<TableWatch | null>(null);
   const [gone, setGone] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     let alive = true;
     const load = () => void fetchWatch(code).then((d) => alive && setData(d), () => alive && setGone(true));
     load();
-    const id = setInterval(load, POLL_MS);
+    const id = setInterval(() => (setNow(Date.now()), load()), POLL_MS);
     return () => {
       alive = false;
       clearInterval(id);
@@ -54,7 +55,16 @@ export function WatchSheet({ code, onClose }: { code: string; onClose: () => voi
               {finished ? w.over : data.inPriceRound ? w.price : w.turn(nameOf(view.turn))}
               {view.rounds && view.rounds > 1 ? ` · ${w.round((view.round ?? 0) + 1, view.rounds)}` : ''} · {w.watchers(data.watchers)}
             </Text>
+            {!finished && !data.inPriceRound ? <Text style={styles.clock}>{w.clock(Math.max(0, Math.ceil((view.turnEndsAt - now) / 1000)))}</Text> : null}
             <Board solved={boardSolved(view)} cards={view.cards} names={data.names} selected={[]} onToggle={noop} disabled muted={false} />
+            <Text style={styles.recentTitle}>{w.recentTitle}</Text>
+            {data.recent.length === 0 ? <Text style={styles.hint}>{w.noGuessYet}</Text> : null}
+            {[...data.recent].reverse().map((g, i) => (
+              <View key={`${i}-${g.names.join('')}`} style={[styles.guess, { borderColor: g.side === 0 ? colors.candy.sky : colors.candy.pink }]}>
+                <Text style={styles.guessText} numberOfLines={2}>{g.names.join('، ')}</Text>
+                <Text style={[styles.outcome, g.outcome === 'correct' ? styles.ok : g.outcome === 'one_away' ? styles.near : styles.bad]}>{w.outcome[g.outcome]}</Text>
+              </View>
+            ))}
             <Text style={styles.hint}>{w.readOnly}</Text>
           </ScrollView>
         ) : null}
@@ -73,5 +83,13 @@ const styles = StyleSheet.create({
   list: { alignSelf: 'stretch', flexGrow: 0 },
   content: { gap: 8 },
   note: { fontFamily: fonts.bold, fontSize: 13, color: INK, textAlign: 'center' },
+  clock: { fontFamily: fonts.display, fontSize: 18, color: INK, textAlign: 'center' },
+  recentTitle: { fontFamily: fonts.bold, fontSize: 14, color: INK, textAlign: 'center', marginTop: 4 },
+  guess: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 2.5, backgroundColor: '#fff' },
+  guessText: { flex: 1, fontFamily: fonts.bold, fontSize: 12, color: INK },
+  outcome: { fontFamily: fonts.display, fontSize: 13 },
+  ok: { color: '#2E8B57' },
+  near: { color: '#C77700' },
+  bad: { color: '#B3261E' },
   hint: { fontFamily: fonts.bold, fontSize: 11.5, color: INK, opacity: 0.6, textAlign: 'center' },
 });

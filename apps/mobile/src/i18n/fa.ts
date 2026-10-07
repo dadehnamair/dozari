@@ -664,6 +664,7 @@ export const fa = {
       sent: 'درخواستت برای میزبان رفت.',
       watch: 'تماشا',
       watchers: (n: number) => `${toPersianDigits(String(n))} تماشاچی`,
+      score: (a: number, b: number) => `${toPersianDigits(String(a))} : ${toPersianDigits(String(b))}`,
     },
     watch: {
       title: 'تماشای بازی',
@@ -676,6 +677,10 @@ export const fa = {
       round: (a: number, b: number) => `دور ${toPersianDigits(String(a))} از ${toPersianDigits(String(b))}`,
       watchers: (n: number) => `${toPersianDigits(String(n))} تماشاچی`,
       readOnly: 'فقط تماشا؛ نمی‌شود چیزی زد.',
+      recentTitle: 'آخرین حدس‌ها',
+      noGuessYet: 'هنوز حدسی زده نشده.',
+      outcome: { correct: 'درست!', one_away: 'یکی مانده', wrong: 'غلط' } as Record<string, string>,
+      clock: (sec: number) => `${toPersianDigits(String(sec))} ثانیه`,
     },
     form: {
       basics: 'اسم و نشان',

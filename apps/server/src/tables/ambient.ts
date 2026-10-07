@@ -1,4 +1,4 @@
-import { AMBIENT_TABLE_FEE_MAX, TABLE_ICONS, TABLE_PRICE_ROUNDS_MAX, TABLE_ROUNDS_MAX, tableMinEntry } from '@dozari/shared';
+import { AMBIENT_TABLE_FEE_MAX, TABLE_ICONS, TABLE_PRICE_ROUNDS_MAX, TABLE_ROUNDS_MAX, scaledByActivity, tableMinEntry } from '@dozari/shared';
 import type { Rng, TableFormat } from '@dozari/shared';
 import type { TableService } from './service.js';
 
@@ -14,7 +14,7 @@ export interface AmbientSettings {
 export interface AmbientDeps {
   tables: TableService;
   /** The active bot accounts (name and face are what the lobby shows). */
-  roster: () => { userId: string; nickname: string; avatarKey: string }[];
+  roster: () => { userId: string; nickname: string; avatarKey: string; level?: number }[];
   inMatch: (userId: string) => boolean;
   settings: () => Promise<AmbientSettings>;
   rng: Rng;
@@ -57,6 +57,15 @@ export class AmbientLobby {
     return out;
   }
 
+  /** `n` idle bots of about one level: a random one and the ones nearest its level, so bots-only games are fair fights (and growth is gradual). */
+  private takeBotsNear(n: number) {
+    const idle = this.deps.roster().filter((b) => !this.deps.inMatch(b.userId) && !this.deps.tables.isSeated(b.userId));
+    if (idle.length < n) return [];
+    const host = idle.splice(Math.floor(this.deps.rng() * idle.length), 1)[0]!;
+    const near = idle.map((b) => ({ b, d: Math.abs((b.level ?? 1) - (host.level ?? 1)) + this.deps.rng() * 0.5 })).sort((x, y) => x.d - y.d);
+    return [host, ...near.slice(0, n - 1).map((x) => x.b)];
+  }
+
   /** A fee people ask at a table of `rounds`: mostly the minimum or a little above, in steps of 10, never over the cap. */
   private feeFor(rounds: number): number {
     const min = tableMinEntry(rounds);
@@ -92,7 +101,7 @@ export class AmbientLobby {
       await tables.fillAndStart(due.code, bots.map((b) => b.userId));
     }
     // Open tables: at most two new ones per tick, so they do not all appear (or vanish) at once.
-    for (let made = 0; made < 2 && tables.ambientOpenCount() < s.open; made++) {
+    for (let made = 0; made < 2 && tables.ambientOpenCount() < scaledByActivity(s.open, now); made++) {
       const format = this.pickFormat();
       const wanted = format === '2v2' ? this.between(1, 3) : 1;
       const bots = this.takeBots(wanted);
@@ -111,10 +120,10 @@ export class AmbientLobby {
       if (bot) tables.botWatch(code, bot.userId, this.between(15, 60) * 1000);
     }
     // Bots-only tables that really play: one new match per tick at most, so they do not all end together.
-    if (tables.ambientPlayingCount() < s.playing) {
+    if (tables.ambientPlayingCount() < scaledByActivity(s.playing, now)) {
       const format = this.pickFormat();
       const seats = format === '2v2' ? 4 : 2;
-      const bots = this.takeBots(seats);
+      const bots = this.takeBotsNear(seats);
       if (bots.length === seats) {
         const [host, ...rest] = bots;
         const rounds = this.between(1, TABLE_ROUNDS_MAX);

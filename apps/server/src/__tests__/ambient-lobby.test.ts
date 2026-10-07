@@ -3,10 +3,11 @@ import { AMBIENT_TABLE_FEE_MAX, mulberry32, tableMinEntry } from '@dozari/shared
 import { AmbientLobby } from '../tables/ambient.js';
 import { TableService } from '../tables/service.js';
 
-const BOTS = Array.from({ length: 40 }, (_, i) => ({ userId: `bot-${i}`, nickname: `ربات${i}`, avatarKey: 'avatar-01' }));
+const BOTS = Array.from({ length: 40 }, (_, i) => ({ userId: `bot-${i}`, nickname: `ربات${i}`, avatarKey: 'avatar-01', level: 1 + i }));
+const LEVELS: Record<string, number> = Object.fromEntries(BOTS.map((b) => [b.userId, b.level]));
 
 function boot(settings = { enabled: true, open: 4, playing: 2 }) {
-  const clock = { ms: 1_000_000 };
+  const clock = { ms: Date.UTC(2026, 9, 7, 14, 30) }; // 18:00 in Tehran: a busy hour
   const inMatch = new Set<string>();
   const started: string[][] = [];
   const svc = new TableService({
@@ -105,6 +106,26 @@ describe('ambient lobby', () => {
     t.clock.ms += 10_000;
     await t.lobby.tick();
     expect(t.started.flat()).not.toContain('human');
+  });
+});
+
+describe('ambient rhythm and levels', () => {
+  it('keeps fewer tables open in the small hours', async () => {
+    const day = boot({ enabled: true, open: 10, playing: 0 });
+    for (let i = 0; i < 8; i++) await day.lobby.tick();
+    const night = boot({ enabled: true, open: 10, playing: 0 });
+    night.clock.ms = Date.UTC(2026, 9, 7, 0, 30); // 04:00 in Tehran
+    for (let i = 0; i < 8; i++) await night.lobby.tick();
+    expect((await night.open()).length).toBeLessThan((await day.open()).length);
+    expect((await night.open()).length).toBeGreaterThanOrEqual(1);
+  });
+  it('bots-only games pair bots of about one level', async () => {
+    const t = boot({ enabled: true, open: 0, playing: 6 });
+    for (let i = 0; i < 12; i++) await t.lobby.tick();
+    const pairs = t.started.filter((m) => m.every((id) => id.startsWith('bot')));
+    expect(pairs.length).toBeGreaterThan(0);
+    const level = (id: string) => LEVELS[id] ?? 1;
+    for (const m of pairs) expect(Math.max(...m.map(level)) - Math.min(...m.map(level))).toBeLessThanOrEqual(3);
   });
 });
 

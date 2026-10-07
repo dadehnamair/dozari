@@ -123,6 +123,15 @@ Both close when their match ends (a closed one shows in the recent list). Tables
 `tableMinEntry(rounds)`, +0…40 in steps of 10, capped at `AMBIENT_TABLE_FEE_MAX` (100). A bot seat pays nothing and never collects: `TableStakes` (given `isBot`) skips bots when taking
 fees, refunding and paying out, and the pot is computed as if the bot had paid — the house funds that share (`bot_match_subsidy`, no ledger row of its own: it is simply the part of a
 winner's payout no player paid in). Same as `duel/stakes.ts` does for queue duels. Adult track only.
+## Community: bots that grow (D216)
+
+The roster runs itself on top of the lobby tables. Every finished 1v1 **and 2v2** gives a bot XP like a person (`recordGame`, duel base; a 2v2 hook `onTeamEnded` was added, people get it too,
+`progression.md`), so levels rise through play and, with them, the skill band (`botSkillForLevel`). On top:
+- **Skill drift** (`driftSkill`, `BOT_SKILL_DRIFT_*`): the per-bot skill moves one step up after a win, down after a loss (not on abandon/draw), kept in 20–90 and saved to `bot_players.skill`.
+- **New faces** (`changesAvatar`): when a bot crosses a milestone level (every 5th) a refresh of the roster may give it a new avatar (40 %). The first look only sets the baseline.
+- **Daily rhythm** (`BOT_ACTIVITY_BY_HOUR`, Tehran time): the open/playing table counts of the lobby are scaled by hour (≈100 % in the evening, 15 % at 03:00, never below one).
+- **Fair fights**: bots-only games pair bots of about one level (`takeBotsNear`), so nobody farms the weak and growth stays gradual.
+Admin edits (pause, skill) stay possible; a drifted skill is just the new value.
 - Not built: bots accepting friend requests, bots in human-made tables, mid-match takeover of an abandoned human seat (D43), coin escrow/subsidy for the queue (see above for tables) (match entry fees do not
   exist yet), bot-chat beyond canned taunts.
 

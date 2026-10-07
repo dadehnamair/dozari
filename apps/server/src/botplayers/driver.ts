@@ -1,5 +1,5 @@
-import { averageLevel, botSkillForLevel, botThinkDelay, chooseBotMove, chooseBotPriceGuess, pickBotByLevel, scaledThinkRange } from '@dozari/shared';
-import type { ChatMessage, MatchView, Rng } from '@dozari/shared';
+import { AVATAR_KEYS, averageLevel, botSkillForLevel, changesAvatar, driftSkill, botThinkDelay, chooseBotMove, chooseBotPriceGuess, pickBotByLevel, scaledThinkRange } from '@dozari/shared';
+import type { ChatMessage, MatchEnded, MatchFound, MatchView, Rng } from '@dozari/shared';
 import { createHash } from 'node:crypto';
 import type { ChatService } from '../chat/service.js';
 import type { DuelQueue } from '../realtime/queue.js';
@@ -45,6 +45,9 @@ export class BotDriver {
   private roster = new Map<string, BotRow>();
   private readonly planned = new Set<string>();
   private readonly opponentOf = new Map<string, string>();
+  /** The side each bot sits on in its live match, and the level it was last seen at (for growth). */
+  private readonly sideOf = new Map<string, 0 | 1>();
+  private readonly levels = new Map<string, number>();
   private ticks = 0;
   private enabled = true;
   private readonly now: () => number;
@@ -56,7 +59,16 @@ export class BotDriver {
   }
 
   async refresh(): Promise<void> {
-    this.roster = new Map((await this.deps.store.active()).map((b) => [b.userId, b]));
+    const next = new Map((await this.deps.store.active()).map((b) => [b.userId, b]));
+    // Bots grow up by playing: a bot that crossed a milestone level since the last look may take a new face (the first look only sets the baseline).
+    for (const b of next.values()) {
+      const before = this.levels.get(b.userId);
+      this.levels.set(b.userId, b.level ?? 1);
+      if (before === undefined || !changesAvatar(before, b.level ?? 1, this.deps.rng)) continue;
+      const face = AVATAR_KEYS.filter((k) => k !== b.avatarKey)[Math.floor(this.deps.rng() * (AVATAR_KEYS.length - 1))];
+      if (face && (await this.deps.store.update(b.userId, { avatarKey: face }).catch(() => 'not_found')) === 'ok') next.set(b.userId, { ...b, avatarKey: face });
+    }
+    this.roster = next;
   }
 
   /** Ids of the active bot accounts (for the opponent-search show). */
@@ -87,17 +99,31 @@ export class BotDriver {
     const bot = this.roster.get(userId);
     if (!bot) return;
     if (event === 'match:found') {
+      this.sideOf.set(userId, (payload as MatchFound).you);
       const opp = this.deps.matches()?.opponentOf(userId);
       if (opp) this.opponentOf.set(userId, opp.opponentId);
       if (this.deps.rng() * 100 < bot.tauntPercent / 2) this.schedule(this.between(3000, 8000), () => void this.taunt(bot, 'greet'));
     } else if (event === 'match:state') {
       this.planTurn(bot, payload as MatchView);
     } else if (event === 'match:ended') {
+      this.learn(bot, payload as MatchEnded);
       if (this.deps.rng() * 100 < bot.tauntPercent / 2) this.schedule(this.between(2000, 5000), () => void this.taunt(bot, 'gg'));
     } else if (event === 'chat:message') {
       const m = payload as ChatMessage;
       if (m.room === 'match' && m.userId !== userId && m.kind === 'taunt' && this.deps.rng() * 100 < bot.tauntPercent) this.schedule(this.between(2000, 6000), () => void this.taunt(bot, 'reply'));
     }
+  }
+
+  /** A finished game moves the bot's own skill a step (up for a win, down for a loss) inside its bounds; the change is kept, so the roster stays shaped by results. */
+  private learn(bot: BotRow, ended: MatchEnded): void {
+    const side = this.sideOf.get(bot.userId);
+    this.sideOf.delete(bot.userId);
+    if (side === undefined || ended.result.reason === 'abandon') return;
+    const outcome = ended.result.winner === null ? 'draw' : ended.result.winner === side ? 'win' : 'loss';
+    const skill = driftSkill(bot.skill, outcome);
+    if (skill === bot.skill) return;
+    bot.skill = skill;
+    void this.deps.store.update(bot.userId, { skill }).catch(() => undefined);
   }
 
   private planTurn(bot: BotRow, v: MatchView): void {

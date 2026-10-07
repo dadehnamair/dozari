@@ -58,6 +58,31 @@ describe('2v2 MatchService', () => {
     expect(JSON.stringify(seen)).not.toContain('عنوان'); // unsolved group titles stay hidden
   });
 
+  it('the stands see the latest guesses with their names and result, and the lobby gets the score', async () => {
+    const { svc, view } = harness();
+    await svc.startTeam([['a1', 'a2'], ['b1', 'b2']]);
+    expect(svc.spectate('a1')!.recent).toEqual([]);
+    const cap = view('a1').captain![view('a1').turn]!;
+    expect(svc.submit(cap, ids(0))).toEqual({ ok: true }); // a real group
+    const seen = svc.spectate('b1')!;
+    expect(seen.recent).toHaveLength(1);
+    expect(seen.recent[0]).toMatchObject({ outcome: 'correct', names: ['کالا 0-0', 'کالا 0-1', 'کالا 0-2', 'کالا 0-3'] });
+    const scores = svc.scoresOf('b2')!;
+    expect(scores[0] + scores[1]).toBeGreaterThan(0);
+    expect(svc.scoresOf('nobody')).toBeNull();
+  });
+
+  it('tells the team hook who played on which side when a 2v2 ends', async () => {
+    const seen: { players: { userId: string; side: number }[]; winner: number | null }[] = [];
+    const svc = new MatchService({ puzzles: source, profile, emit: () => undefined, now: () => 1_000_000, newSeed: () => 5, schedule: () => () => undefined, onTeamEnded: ({ players, result }) => seen.push({ players: [...players], winner: result.winner }) });
+    await svc.startTeam([['a1', 'a2'], ['b1', 'b2']]);
+    svc.leave('a1');
+    svc.leave('a2');
+    expect(seen).toHaveLength(1);
+    expect(seen[0]!.players.map((p) => `${p.userId}:${p.side}`).sort()).toEqual(['a1:0', 'a2:0', 'b1:1', 'b2:1']);
+    expect(seen[0]!.winner).toBe(1);
+  });
+
   it('rejects a duel proposal, a stranger, and a double start', async () => {
     const { svc } = harness();
     await svc.start('x', 'y');

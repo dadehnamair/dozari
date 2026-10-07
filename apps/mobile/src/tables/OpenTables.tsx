@@ -81,7 +81,7 @@ export function OpenTables({ onSeated, onNote, onWatch, errText }: { onSeated: (
               r.yourRequest === 'pending' ? <Text style={styles.waiting}>{o.pending}</Text>
               : <Pressable onPress={() => void ask(r.code)} style={styles.ask} accessibilityRole="button"><Text style={styles.askText}>{r.yourRequest === 'denied' ? `${o.denied} · ${o.ask}` : o.ask}</Text></Pressable>
             ) : r.status === 'playing' ? (
-              <Pressable onPress={() => onWatch(r.code)} style={styles.watch} accessibilityRole="button"><Text style={styles.askText}>{o.watch}{r.watchers > 0 ? ` · ${o.watchers(r.watchers)}` : ''}</Text></Pressable>
+              <Pressable onPress={() => onWatch(r.code)} style={styles.watch} accessibilityRole="button"><Text style={styles.askText}>{o.watch}{r.scores ? ` · ${o.score(r.scores[0], r.scores[1])}` : ''}{r.watchers > 0 ? ` · ${o.watchers(r.watchers)}` : ''}</Text></Pressable>
             ) : <Text style={[styles.viewOnly, dark ? dk.text : null]}>{o.viewOnly}</Text>}
           </View>
         );

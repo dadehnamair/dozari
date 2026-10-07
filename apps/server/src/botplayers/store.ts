@@ -32,7 +32,7 @@ export interface NewBot {
   stats: { xp: number; games: number; wins: number; losses: number; draws: number };
 }
 
-export type BotPatch = Partial<Pick<BotRow, 'skill' | 'thinkMinMs' | 'thinkMaxMs' | 'tauntPercent' | 'isActive' | 'cityId'>>;
+export type BotPatch = Partial<Pick<BotRow, 'skill' | 'thinkMinMs' | 'thinkMaxMs' | 'tauntPercent' | 'isActive' | 'cityId' | 'avatarKey'>>;
 
 /** I/O boundary of bot players: the roster and their creation (an ordinary account row flagged `is_bot`, plus its behaviour). */
 export interface BotPlayerStore {
@@ -73,9 +73,9 @@ export function createDbBotPlayerStore(db: Db): BotPlayerStore {
     async update(userId, patch) {
       const [r] = await db.select({ id: botPlayers.userId }).from(botPlayers).where(eq(botPlayers.userId, userId));
       if (!r) return 'not_found';
-      const { cityId, ...rest } = patch;
+      const { cityId, avatarKey, ...rest } = patch;
       if (Object.keys(rest).length > 0) await db.update(botPlayers).set(rest).where(eq(botPlayers.userId, userId));
-      if (cityId !== undefined) await db.update(users).set({ cityId }).where(eq(users.id, userId));
+      if (cityId !== undefined || avatarKey !== undefined) await db.update(users).set({ ...(cityId !== undefined ? { cityId } : {}), ...(avatarKey !== undefined ? { avatarKey } : {}) }).where(eq(users.id, userId));
       return 'ok';
     },
     async nicknames() {
