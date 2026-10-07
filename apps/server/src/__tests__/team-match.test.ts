@@ -40,6 +40,24 @@ describe('2v2 MatchService', () => {
     expect(svc.submit(cap!, ids(0))).toEqual({ ok: true });
   });
 
+  it('a spectator sees the board and the players but no proposal, no solution and no private ids', async () => {
+    const { svc } = harness();
+    await svc.startTeam([['a1', 'a2'], ['b1', 'b2']]);
+    const mate = svc.spectate('a1')!;
+    expect(svc.spectate('nobody')).toBeNull();
+    const seat0Cap = mate.view.captain![0] === 'a1' ? 'a2' : 'a1';
+    svc.propose(seat0Cap, ['g0p0', 'g0p1']);
+    const seen = svc.spectate('b2')!;
+    expect(matchViewSchema.safeParse(seen.view).success).toBe(true);
+    expect(seen.view.proposal).toBeNull();
+    expect(seen.view.youId).toBeUndefined();
+    expect(seen.view.priceRound ?? null).toBeNull();
+    expect(seen.players).toHaveLength(4);
+    expect(seen.names['g0p0']).toBe('کالا 0-0');
+    expect(seen.view.cards).toHaveLength(16);
+    expect(JSON.stringify(seen)).not.toContain('عنوان'); // unsolved group titles stay hidden
+  });
+
   it('rejects a duel proposal, a stranger, and a double start', async () => {
     const { svc } = harness();
     await svc.start('x', 'y');

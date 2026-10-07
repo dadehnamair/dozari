@@ -316,6 +316,16 @@ export class MatchService {
     return { ok: true };
   }
 
+  /** What a spectator may see of the match a player sits in: the board from seat 0's side with nothing private (no proposal, no price round), who plays, card names. */
+  spectate(playerId: string): { view: MatchView; players: MatchFound['players']; names: Record<string, string>; inPriceRound: boolean } | null {
+    const entry = this.entryOf(playerId);
+    const first = entry?.state.players[0]?.userId;
+    if (!entry || !first) return null;
+    const current = entry.puzzles[entry.state.round] ?? entry.puzzles[0]!;
+    const names = Object.fromEntries(Object.entries(current.items).map(([id, it]) => [id, it.nameFa]));
+    return { view: { ...this.view(entry, first), youId: undefined, proposal: null, priceRound: null }, players: entry.players ?? [], names, inPriceRound: !!entry.pg || !!entry.pgPending };
+  }
+
   private entryOf(userId: string): Active | undefined {
     const id = this.byUser.get(userId);
     return id ? this.matches.get(id) : undefined;

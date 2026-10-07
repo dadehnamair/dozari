@@ -427,7 +427,7 @@ export function buildServer(deps: ServerDeps = {}) {
     if (online) deps.notices?.push(friendId, { kind: 'table_invite', from: r.message.nickname, code: t.code });
     if (!online) void deps.notify?.notify(friendId, 'table_invite', BALE_TEXT.tableInvite(r.message.nickname)).catch(() => undefined);
     return { ok: true, online };
-  } : undefined, deps.ambientLobby ? () => deps.ambientLobby!.playingRows() : undefined);
+  } : undefined, (playerId) => deps.live?.matches?.spectate(playerId) ?? null);
   if (deps.solo) registerSoloRoutes(app, deps.solo, deps.auth, deps.hints, deps.limiter, deps.canPreview);
   if (deps.priceOnly) registerPriceOnlyRoutes(app, deps.priceOnly, deps.auth);
   if (deps.auth && deps.shop) registerShopRoutes(app, deps.auth, deps.shop);

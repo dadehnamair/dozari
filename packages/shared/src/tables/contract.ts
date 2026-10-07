@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { TABLE_ENTRY_MAX, TABLE_PRICE_ROUNDS_MAX, TABLE_ROUNDS_MAX, TABLE_ROUNDS_MIN } from '../config/tables.js';
+import { matchPlayerProfileSchema, matchViewSchema } from '../socket/events.js';
 import { TABLE_FORMATS, TABLE_ICONS, TABLE_NAME_MAX } from './code.js';
 
 export const TABLE_ERRORS = ['NOT_FOUND', 'FULL', 'LOCKED', 'EXPIRED', 'NOT_HOST', 'NOT_IN', 'NOT_READY', 'NEED_PLAYERS', 'BUSY', 'IN_MATCH', 'START_FAILED', 'INVALID', 'NOT_TEAM', 'NEEDS_GUARDIAN', 'FEATURE_OFF', 'NO_COINS', 'LOW_ENTRY', 'TOO_MANY', 'NOT_REQUESTED', 'ALREADY_IN'] as const;
@@ -67,9 +68,25 @@ export const publicTableSchema = z.object({
   hostAvatarKey: z.string(),
   /** The caller's own request at this table: none, waiting for the host, or turned down. */
   yourRequest: z.enum(['none', 'pending', 'denied']),
+  /** People watching the match of a playing table right now. */
+  watchers: z.number().int().default(0),
   /** `open` takes requests; every other status is view only: full, a match in play, locked, or closed a short while ago. */
   status: z.enum(['open', 'full', 'playing', 'locked', 'closed']),
 });
 export type PublicTable = z.infer<typeof publicTableSchema>;
 export const publicTablesSchema = z.object({ tables: z.array(publicTableSchema) });
 
+/** A playing table seen from the stands (read only): the board as seat 0 sees it minus anything private, who plays, card names, and how many watch. */
+export const tableWatchSchema = z.object({
+  name: z.string(),
+  icon: z.string(),
+  format: z.enum(TABLE_FORMATS),
+  view: matchViewSchema,
+  players: z.array(matchPlayerProfileSchema),
+  /** Product id → name, for the solved rows (their cards have left the board). */
+  names: z.record(z.string(), z.string()),
+  /** The board is over and the price-guess questions are being asked. */
+  inPriceRound: z.boolean(),
+  watchers: z.number().int(),
+});
+export type TableWatch = z.infer<typeof tableWatchSchema>;

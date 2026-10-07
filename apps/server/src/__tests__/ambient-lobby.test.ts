@@ -32,15 +32,22 @@ describe('ambient lobby', () => {
     expect(open).toHaveLength(4);
     expect(open.every((x) => x.taken >= 1 && x.taken < x.seats && x.entryFee === 0)).toBe(true);
     expect(new Set(open.map((x) => x.hostNickname)).size).toBe(4);
-    const playing = t.lobby.playingRows();
+    // Bots-only tables really play (one new match per tick) and can be watched.
+    const playing = (await t.svc.listPublic('human')).filter((x) => x.status === 'playing');
     expect(playing).toHaveLength(2);
-    expect(playing.every((p) => p.status === 'playing' && p.taken === p.seats)).toBe(true);
+    expect(playing.every((p) => p.taken === p.seats)).toBe(true);
+    const w = await t.svc.watch('human', playing[0]!.code);
+    const first = w.ok ? w.watchers : 0;
+    expect(first).toBeGreaterThanOrEqual(1); // bots may sit in the stands too
+    expect((await t.svc.watch('human2', playing[0]!.code)).ok && (await t.svc.listPublic('human')).find((x) => x.code === playing[0]!.code)?.watchers).toBe(first + 1);
+    expect((await t.svc.watch('human', (await t.open())[0]!.code)).ok).toBe(false); // an open table has no match to watch
   });
 
   it('a person who asks for a seat is let in after a pause, the bots fill the rest and the match starts', async () => {
     const t = boot();
     await t.lobby.tick();
     await t.lobby.tick();
+    const mine = () => t.started.filter((m) => m.includes('human'));
     const table = (await t.open()).find((x) => x.format === '2v2') ?? (await t.open())[0]!;
     expect((await t.svc.request('human', table.code)).ok).toBe(true);
     await t.lobby.tick();
@@ -48,18 +55,28 @@ describe('ambient lobby', () => {
     t.clock.ms += 7000;
     await t.lobby.tick();
     expect((await t.svc.mine('human'))?.youAreIn).toBe(true);
-    expect(t.started).toHaveLength(0); // the fill pause is not over yet
+    expect(mine()).toHaveLength(0); // the fill pause is not over yet
     t.clock.ms += 10_000;
     await t.lobby.tick();
-    expect(t.started).toHaveLength(1);
-    expect(t.started[0]).toContain('human');
-    expect(new Set(t.started[0]).size).toBe(t.started[0]!.length);
+    expect(mine()).toHaveLength(1);
+    expect(new Set(mine()[0]).size).toBe(mine()[0]!.length);
     expect((await t.svc.mine('human'))?.inMatch).toBe(true);
     // Match over: the lobby table closes, shows as closed for a while, and the lobby is topped up again.
-    for (const u of t.started[0]!) t.inMatch.delete(u);
+    for (const u of mine()[0]!) t.inMatch.delete(u);
     await t.lobby.tick();
     expect(await t.svc.mine('human')).toBeNull();
     expect(await t.open()).toHaveLength(4);
+  });
+
+  it('bots now and then watch running tables, a few at a time, and leave again', async () => {
+    const t = boot();
+    for (let i = 0; i < 12; i++) await t.lobby.tick();
+    const playing = (await t.svc.listPublic('human')).filter((x) => x.status === 'playing');
+    expect(playing.length).toBeGreaterThan(0);
+    expect(playing.some((x) => x.watchers > 0)).toBe(true);
+    expect(playing.every((x) => x.watchers <= 3)).toBe(true);
+    t.clock.ms += 90_000;
+    expect(t.svc.watcherIds(playing[0]!.code)).toHaveLength(0);
   });
 
   it('closes expired bot tables nobody asked for and opens new ones; shows nothing when switched off', async () => {
@@ -71,9 +88,10 @@ describe('ambient lobby', () => {
     const after = (await t.open()).map((x) => x.code);
     expect(after.some((c) => before.includes(c))).toBe(false);
     expect((await t.svc.listPublic('human')).some((x) => x.status === 'closed')).toBe(true);
+    t.clock.ms += 6 * 60_000;
     t.settings.enabled = false;
     await t.lobby.tick();
-    expect(t.lobby.playingRows()).toHaveLength(0);
+    expect(await t.open()).toHaveLength(0); // the old ones expired and nothing new opens
   });
 
   it('a person who leaves before the pause ends cancels the start', async () => {
@@ -84,6 +102,6 @@ describe('ambient lobby', () => {
     t.svc.leave('human');
     t.clock.ms += 10_000;
     await t.lobby.tick();
-    expect(t.started).toHaveLength(0);
+    expect(t.started.flat()).not.toContain('human');
   });
 });

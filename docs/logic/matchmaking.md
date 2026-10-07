@@ -76,6 +76,13 @@ board difficulty and 2v2 are not built either. 2v2 tables (D142): `POST /tables 
 With age tracks on, a table belongs to its host's track: other tracks cannot see or join it (`logic/age-tracks.md` phase 4).
 The app has no live duel board yet, so a started table match is only playable once the duel client exists.
 
+### Watching a table (D214)
+
+A public table whose match is running can be watched, read only: `GET /tables/:code/watch` (same visibility as the list; private, family, not-playing and other-track tables answer
+404) → `TableWatch` = `{name, icon, format, view, players, names, inPriceRound, watchers}`. `view` is `MatchService.spectate`: the board from seat 0's side with `youId`,
+`proposal` and `priceRound` removed — unsolved group titles and answers are never in it (rule 4). The app polls it every 2 s; each call counts the caller as a watcher for 12 s
+(`PublicTable.watchers`, shown on the «تماشا» button). A finished or closed table cannot be watched (no match log is persisted yet, so there is no replay).
+
 ## Reconnects & abandonment
 
 - Server keeps the match authoritative; a disconnect does not pause the clock.

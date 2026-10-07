@@ -21,7 +21,7 @@ const POLL_MS = 3000;
  * full, locked, playing and recently closed ones are listed with their status and are view only, so the list is rarely bare.
  * When the host lets the player in, the table they now sit at opens.
  */
-export function OpenTables({ onSeated, onNote, errText }: { onSeated: (table: TableView) => void; onNote: (text: string | null) => void; errText: (e: unknown) => string }) {
+export function OpenTables({ onSeated, onNote, onWatch, errText }: { onSeated: (table: TableView) => void; onNote: (text: string | null) => void; /** Opens the stands of a playing table. */ onWatch: (code: string) => void; errText: (e: unknown) => string }) {
   const dark = useDark();
   const [rows, setRows] = useState<PublicTable[] | null>(null);
   const seen = useRef<Set<string>>(new Set());
@@ -80,6 +80,8 @@ export function OpenTables({ onSeated, onNote, errText }: { onSeated: (table: Ta
             {live ? (
               r.yourRequest === 'pending' ? <Text style={styles.waiting}>{o.pending}</Text>
               : <Pressable onPress={() => void ask(r.code)} style={styles.ask} accessibilityRole="button"><Text style={styles.askText}>{r.yourRequest === 'denied' ? `${o.denied} · ${o.ask}` : o.ask}</Text></Pressable>
+            ) : r.status === 'playing' ? (
+              <Pressable onPress={() => onWatch(r.code)} style={styles.watch} accessibilityRole="button"><Text style={styles.askText}>{o.watch}{r.watchers > 0 ? ` · ${o.watchers(r.watchers)}` : ''}</Text></Pressable>
             ) : <Text style={[styles.viewOnly, dark ? dk.text : null]}>{o.viewOnly}</Text>}
           </View>
         );
@@ -110,6 +112,7 @@ const styles = StyleSheet.create({
   chipText: { fontFamily: fonts.bold, fontSize: 11, color: INK },
   facts: { fontFamily: fonts.bold, fontSize: 12, color: INK, textAlign: TEXT_RIGHT },
   ask: { alignSelf: 'stretch', height: 38, borderRadius: 12, borderWidth: 2.5, borderColor: INK, backgroundColor: colors.candy.lime, alignItems: 'center', justifyContent: 'center' },
+  watch: { alignSelf: 'stretch', height: 38, borderRadius: 12, borderWidth: 2.5, borderColor: INK, backgroundColor: colors.candy.yellow, alignItems: 'center', justifyContent: 'center' },
   askText: { fontFamily: fonts.display, fontSize: 15, color: INK },
   waiting: { fontFamily: fonts.bold, fontSize: 12.5, color: '#7E46D6', textAlign: 'center' },
   viewOnly: { fontFamily: fonts.bold, fontSize: 11.5, color: INK, opacity: 0.55, textAlign: 'center' },

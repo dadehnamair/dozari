@@ -1,7 +1,7 @@
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { createTableBodySchema } from '@dozari/shared';
-import type { PublicTable, TableError } from '@dozari/shared';
+import type { MatchFound, MatchView, TableError, TableWatch } from '@dozari/shared';
 import type { AuthService } from '../auth/service.js';
 import { currentUser } from '../auth/routes.js';
 import type { TableService } from './service.js';
@@ -11,7 +11,7 @@ const codeParam = z.object({ code: z.string().min(3).max(12) });
 const targetBody = z.object({ userId: z.string().uuid() });
 
 /** Player side of private tables. Polling `GET /tables/:code` keeps the screen current; the match itself starts through the socket (`match:found`). */
-export function registerTableRoutes(app: FastifyInstance, auth: AuthService, tables: TableService, share?: (userId: string, code: string, label: string) => Promise<{ ok: true } | { ok: false; error: string }>, invite?: (host: string, friendId: string, table: { code: string; icon: string; name: string }) => Promise<{ ok: true; online: boolean } | { ok: false; error: string }>, extraRows?: () => PublicTable[]) {
+export function registerTableRoutes(app: FastifyInstance, auth: AuthService, tables: TableService, share?: (userId: string, code: string, label: string) => Promise<{ ok: true } | { ok: false; error: string }>, invite?: (host: string, friendId: string, table: { code: string; icon: string; name: string }) => Promise<{ ok: true; online: boolean } | { ok: false; error: string }>, spectate?: (playerId: string) => { view: MatchView; players: MatchFound['players']; names: Record<string, string>; inPriceRound: boolean } | null) {
   const fail = (reply: FastifyReply, error: TableError) => reply.code(STATUS[error]).send({ error });
 
   app.post('/tables', async (req, reply) => {
@@ -33,12 +33,21 @@ export function registerTableRoutes(app: FastifyInstance, auth: AuthService, tab
   app.get('/tables/public', async (req, reply) => {
     const user = await currentUser(auth, req);
     if (!user) return reply.code(401).send({ error: 'unauthorized' });
-    const real = await tables.listPublic(user.id);
-    // The bot-made «playing» rows go after the real open ones and before the closed ones.
-    const shown = extraRows && (await tables.seesLobbyShow(user.id)) ? extraRows() : [];
-    const firstClosed = real.findIndex((r) => r.status === 'closed');
-    const at = firstClosed < 0 ? real.length : firstClosed;
-    return { tables: [...real.slice(0, at), ...shown, ...real.slice(at)] };
+    return { tables: await tables.listPublic(user.id) };
+  });
+
+  // A look at a playing public table from the stands (read only); polling this also counts the caller as a watcher.
+  app.get('/tables/:code/watch', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    const p = codeParam.safeParse(req.params);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    if (!p.success) return fail(reply, 'INVALID');
+    const out = await tables.watch(user.id, p.data.code);
+    if (!out.ok) return fail(reply, out.error);
+    const seen = spectate?.(out.playerId);
+    if (!seen) return fail(reply, 'NOT_FOUND');
+    const body: TableWatch = { ...out.table, ...seen, watchers: out.watchers };
+    return body;
   });
 
   app.get('/tables/:code', async (req, reply) => {

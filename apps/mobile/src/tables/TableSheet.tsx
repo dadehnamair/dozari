@@ -19,6 +19,7 @@ import { colors, fonts } from '../theme/colors';
 import { fetchFriends } from '../social/api';
 import { OnlineDot } from '../components/OnlineDot';
 import { OpenTables } from './OpenTables';
+import { WatchSheet } from './WatchSheet';
 import { answerRequest, createTable, inviteToTable, extendTable, fetchMyTable, fetchTable, joinTable, kickFromTable, leaveTable, setTableLocked, setTableReady, setTableSide, startTable } from './api';
 import { useHardwareBack } from '../nav/useHardwareBack';
 import { TableChat } from './TableChat';
@@ -52,6 +53,8 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
   const fail = (e: unknown) => (intercept(e) ? setNote(null) : setNote(errText(e)));
   const [table, setTable] = useState<TableView | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  /** The playing table whose stands are open (read only). */
+  const [watching, setWatching] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [icon, setIcon] = useState<string>(DEFAULT_TABLE_ICON);
   /** Before sitting at a table: the two-choice menu, then the form of the chosen one. */
@@ -207,7 +210,7 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
                   </Pressable>
                 </View>
                 <Text style={[styles.sectionTitle, dark ? dk.gold : null]}>{fa.tables.openList.title}</Text>
-                <OpenTables onSeated={(t) => (setNote(null), setTable(t))} onNote={setNote} errText={errText} />
+                <OpenTables onSeated={(t) => (setNote(null), setTable(t))} onNote={setNote} onWatch={setWatching} errText={errText} />
                 {note ? <Text style={styles.warn}>{note}</Text> : null}
               </>
             ) : mode === 'make' ? (
@@ -270,6 +273,7 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
           )}
         </ScrollView>
       </Pressable>
+      {watching ? <WatchSheet code={watching} onClose={() => setWatching(null)} /> : null}
       {dialog}
       {gate}
     </Pressable>

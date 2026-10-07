@@ -4,6 +4,8 @@ import type { AgeTrack, CreateTableBody, LiveNotice, PublicTable, TableError, Ta
 /** A closed public table stays in the open-tables list this long, labelled as closed (view only). */
 const RECENT_MS = 30 * 60_000;
 const RECENT_MAX = 20;
+/** A spectator counts as watching this long after their last look. */
+const WATCH_TTL_MS = 12_000;
 /** A turned-down request is remembered this long so the asker sees the answer. */
 const DENIED_MS = 60_000;
 
@@ -80,6 +82,8 @@ export class TableService {
   private readonly byUser = new Map<string, string>();
   /** Public tables that closed lately, shown view-only so the list is never bare. */
   private readonly recent: (PublicTable & { closedAt: number })[] = [];
+  /** Who looked at each playing table lately (user id → last poll); a watcher counts for `WATCH_TTL_MS`. */
+  private readonly watching = new Map<string, Map<string, number>>();
 
   constructor(private readonly deps: TableDeps) {}
 
@@ -101,7 +105,16 @@ export class TableService {
     return (this.deps.now ?? Date.now)();
   }
 
+  private watcherCount(code: string): number {
+    const w = this.watching.get(code);
+    if (!w) return 0;
+    for (const [u, at] of w) if (this.now() - at > WATCH_TTL_MS) w.delete(u);
+    if (w.size === 0) this.watching.delete(code);
+    return w.size;
+  }
+
   private close(t: Table): void {
+    this.watching.delete(t.code);
     if (this.tables.delete(t.code) && !t.isPrivate && !t.family) {
       this.recent.unshift({ ...this.row(t, 'none'), closedAt: this.now() });
       this.recent.length = Math.min(this.recent.length, RECENT_MAX);
@@ -251,7 +264,7 @@ export class TableService {
   }
 
   private row(t: Table, yourRequest: PublicTable['yourRequest']): PublicTable {
-    return { code: t.code, name: t.name, icon: t.icon, format: t.format, rounds: t.rounds, priceRounds: t.priceRounds, entryFee: t.entryFee, seats: seatsOfFormat(t.format), taken: t.seated.length, hostNickname: t.hostNickname, hostAvatarKey: t.hostAvatarKey, yourRequest, status: this.statusOf(t) };
+    return { code: t.code, name: t.name, icon: t.icon, format: t.format, rounds: t.rounds, priceRounds: t.priceRounds, entryFee: t.entryFee, seats: seatsOfFormat(t.format), taken: t.seated.length, hostNickname: t.hostNickname, hostAvatarKey: t.hostAvatarKey, yourRequest, watchers: this.watcherCount(t.code), status: this.statusOf(t) };
   }
 
   private statusOf(t: Table): PublicTable['status'] {
@@ -415,9 +428,38 @@ export class TableService {
     return { ok: true };
   }
 
-  /** Does this player see the bot-made lobby rows? Adults who may play tables (the bots' tables belong to the adult track). */
-  async seesLobbyShow(userId: string): Promise<boolean> {
-    return (await this.trackOf(userId)) === 'adult' && !(await this.deps.socialBlocked?.(userId)) && !(await this.deps.duelsOff?.(userId));
+  /**
+   * A look at a public table whose match is running: who may watch (the same people who see it in the list), and a seated player whose match to show.
+   * Counts the caller as a watcher for a few seconds. Anything else (private, family, not playing, another track) reads as no such table.
+   */
+  async watch(userId: string, code: string): Promise<TableResult<{ table: { name: string; icon: string; format: TableFormat }; playerId: string; watchers: number }>> {
+    const t = this.live(code);
+    if (!t || t.isPrivate || t.family) return { ok: false, error: 'NOT_FOUND' };
+    if (!t.seated.includes(userId) && (!(await this.mayEnter(t, userId)) || (await this.deps.socialBlocked?.(userId)) || (await this.deps.duelsOff?.(userId)))) return { ok: false, error: 'NOT_FOUND' };
+    const playerId = t.seated.find((u) => this.deps.inMatch(u));
+    if (!playerId) return { ok: false, error: 'NOT_FOUND' };
+    const w = this.watching.get(t.code) ?? new Map<string, number>();
+    w.set(userId, this.now());
+    this.watching.set(t.code, w);
+    return { ok: true, table: { name: t.name, icon: t.icon, format: t.format }, playerId, watchers: this.watcherCount(t.code) };
+  }
+
+  /** Codes of the public tables whose match is running (the stands bots may sit in). */
+  playingCodes(): string[] {
+    return [...this.tables.values()].filter((t) => !t.isPrivate && !t.family && this.live(t.code) && t.seated.some((u) => this.deps.inMatch(u))).map((t) => t.code);
+  }
+
+  /** Who is in the stands of a table right now. */
+  watcherIds(code: string): string[] {
+    this.watcherCount(code);
+    return [...(this.watching.get(code)?.keys() ?? [])];
+  }
+
+  /** A bot takes a seat in the stands for `forMs` (it is counted like any watcher). */
+  botWatch(code: string, botId: string, forMs: number): void {
+    const w = this.watching.get(code) ?? new Map<string, number>();
+    w.set(botId, this.now() + forMs - WATCH_TTL_MS);
+    this.watching.set(code, w);
   }
 
   /** Is this player seated at any table (a bot busy at a lobby table is not offered for another one)? */
@@ -429,12 +471,12 @@ export class TableService {
    * A bot-made public lobby table: `hostId` and `extraBots` are bot accounts already seated (the other seats stay free for people).
    * Free and friendly: a bot has no wallet to pay an entry fee from.
    */
-  async createAmbient(hostId: string, o: { name: string; icon: string; format: TableFormat; rounds: number; priceRounds: number; extraBots: string[]; ttlMs: number }): Promise<string | null> {
+  async createAmbient(hostId: string, o: { name: string; icon: string; format: TableFormat; rounds: number; priceRounds: number; extraBots: string[]; ttlMs: number; /** Seat bots at every seat (a bots-only table to start at once). */ full?: boolean }): Promise<string | null> {
     const rng = this.deps.rng ?? Math.random;
     let code = makeTableCode(rng);
     for (let i = 0; i < 20 && this.tables.has(code); i++) code = makeTableCode(rng);
     if (this.tables.has(code) || (o.format === '2v2' && !this.deps.startTeam)) return null;
-    const seated = [hostId, ...o.extraBots].slice(0, seatsOfFormat(o.format) - 1);
+    const seated = [hostId, ...o.extraBots].slice(0, seatsOfFormat(o.format) - (o.full ? 0 : 1));
     const sides = new Map<string, 0 | 1>();
     seated.forEach((u, i) => sides.set(u, (i % 2) as 0 | 1));
     const host = (await this.deps.profileOf(hostId)) ?? { nickname: '؟', avatarKey: 'avatar-01' };
@@ -491,6 +533,11 @@ export class TableService {
       if (a.started && !t.seated.some((u) => this.deps.inMatch(u))) this.close(t);
       else if (!a.started && t.expiresAt <= this.now() && !t.seated.some((u) => !a.bots.has(u))) this.close(t);
     }
+  }
+
+  /** How many lobby tables are bots only and playing among themselves (the stands of the lobby). */
+  ambientPlayingCount(): number {
+    return [...this.tables.values()].filter((t) => t.ambient?.started && !t.seated.some((u) => !t.ambient!.bots.has(u))).length;
   }
 
   /** How many lobby tables are still waiting for a person (to keep the lobby topped up). */
