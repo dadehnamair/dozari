@@ -21,6 +21,7 @@ import { avatarOf } from '../social/avatarOf';
 import { colors, fonts } from '../theme/colors';
 import { fetchTournament, fetchTournaments, joinTournament, leaveTournament } from './api';
 import { SponsorCard, SponsorInvite, SponsorTag } from './Sponsor';
+import { Winners } from './Winners';
 import { blockedText, placeLabel, roundLabel, startsInText } from './text';
 import { pageTop } from '../theme/safeArea';
 import { TEXT_RIGHT } from '../theme/direction';
@@ -163,6 +164,7 @@ function TournamentPage({ id, onBack }: { id: string; onBack: () => void }) {
                 </ScrollView>
               ) : null}
 
+              {/* Sponsor + details + prizes + rules together, then the results, then who took part. */}
               {t.sponsor ? <SponsorCard sponsor={t.sponsor} /> : null}
 
               <View style={styles.panel}>
@@ -175,12 +177,11 @@ function TournamentPage({ id, onBack }: { id: string; onBack: () => void }) {
                 ) : null}
                 <Text style={styles.label}>{fa.tournament.rulesTitle}</Text>
                 {[fa.tournament.rules.elimination, fa.tournament.rules.fee(t.entryCoins, t.entryGems), fa.tournament.rules.byes, fa.tournament.rules.cancel, fa.tournament.rules.online].map((r) => <Text key={r} style={styles.small}>• {r}</Text>)}
-                {t.results.length > 0 ? (
-                  <>
-                    <Text style={styles.label}>{fa.tournament.results}</Text>
-                    {t.results.map((r) => <Text key={r.id} style={styles.text}>{placeLabel(r.place)}: {r.nickname}{r.coins > 0 ? ` (${n(r.coins)})` : ''}</Text>)}
-                  </>
-                ) : null}
+              </View>
+
+              {t.results.length > 0 ? <Winners t={t} /> : null}
+
+              <View style={styles.panel}>
                 <Text style={styles.label}>{fa.tournament.players} ({n(t.players.length)})</Text>
                 <View style={styles.people}>
                   {t.players.map((p) => (

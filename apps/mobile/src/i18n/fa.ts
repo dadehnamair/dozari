@@ -796,7 +796,8 @@ export const fa = {
     roundNames: { final: 'فینال', semi: 'نیمه‌نهایی', quarter: 'یک‌چهارم نهایی' } as Record<string, string>,
     bye: 'بای',
     waiting: 'منتظر',
-    results: 'نتیجه',
+    results: 'نتیجه‌ی نهایی',
+    reward: { coins: (c: number) => `${toPersianDigits(String(c))} سکه`, gems: (g: number) => `${toPersianDigits(String(g))} الماس`, spins: (s: number) => `${toPersianDigits(String(s))} چرخش گردونه` },
     rulesTitle: 'قانون‌ها',
     rules: {
       elimination: 'جدول حذفی است: هر دور یک دوئل؛ بازنده حذف می‌شود و تساوی دوباره بازی می‌شود.',
