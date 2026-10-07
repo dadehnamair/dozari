@@ -409,7 +409,7 @@ const bannerAlt = (name: string): string => [...BANNERS, ...AGE_BANNERS].find((b
 /** The sliding banner strip: plain scroll-snap (works without scripts); the script only adds auto-play, arrows and dots. */
 const carousel = (): string =>
   `<div class="car" role="region" aria-roledescription="carousel" aria-label="بنرهای معرفی بازی"><div class="track" tabindex="0">${BANNERS.map(([n, alt], k) => `<figure aria-label="${faNum(k + 1)} از ${faNum(BANNERS.length)}">${banner(n, alt, { eager: k === 0 })}</figure>`).join('')}</div>
-<div class="nav" dir="ltr"><button class="arr" type="button" data-go="-1" aria-label="قبلی">‹</button><span class="dots">${BANNERS.map((_, k) => `<button class="dot" type="button" data-i="${k}" aria-label="بنر ${faNum(k + 1)}"${k === 0 ? ' aria-current="true"' : ''}></button>`).join('')}</span><button class="arr" type="button" data-go="1" aria-label="بعدی">›</button></div></div>`;
+<div class="nav"><button class="arr" type="button" data-go="-1" aria-label="قبلی">›</button><span class="dots">${BANNERS.map((_, k) => `<button class="dot" type="button" data-i="${k}" aria-label="بنر ${faNum(k + 1)}"${k === 0 ? ' aria-current="true"' : ''}></button>`).join('')}</span><button class="arr" type="button" data-go="1" aria-label="بعدی">‹</button></div></div>`;
 
 const TICKER = ['قیمت اسمی، بدون تعدیل تورم', '۱۶ کالا، ۴ گروه', 'چالش روزانه', 'رقابت زنده با رفقا', 'سفر به ۳۱ استان', 'گردونه‌ی جایزه‌ی هر روز', 'بازی رایگان'];
 const ticker = (): string => {
@@ -487,7 +487,7 @@ if(car){var tr=car.querySelector('.track'),dots=car.querySelectorAll('.dot'),n=d
 var rtl=function(){return getComputedStyle(tr).direction==='rtl'};
 var go=function(i){cur=(i+n)%n;tr.scrollTo({left:(rtl()?-1:1)*cur*tr.clientWidth,behavior:R?'auto':'smooth'})};
 tr.addEventListener('scroll',function(){var i=Math.round(Math.abs(tr.scrollLeft)/tr.clientWidth);if(i!==cur&&i<n){cur=i}dots.forEach(function(b,k){b.setAttribute('aria-current',k===cur)})},{passive:true});
-car.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;if(b.dataset.go)go(cur+(rtl()?-1:1)*Number(b.dataset.go));else if(b.dataset.i)go(Number(b.dataset.i))});
+car.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;if(b.dataset.go)go(cur+Number(b.dataset.go));else if(b.dataset.i)go(Number(b.dataset.i))});
 ['mouseenter','focusin','touchstart'].forEach(function(ev){car.addEventListener(ev,function(){hold=true},{passive:true})});
 ['mouseleave','focusout'].forEach(function(ev){car.addEventListener(ev,function(){hold=false})});
 if(!R)setInterval(function(){if(!hold&&!d.hidden)go(cur+1)},4500);}
