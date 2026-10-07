@@ -24,3 +24,20 @@ export const AI_PUZZLE_CATALOG_MAX = 300;
 /** Blog length choices → rough Persian word target given to the model. */
 export const AI_BLOG_LENGTHS = { short: 300, medium: 600, long: 1000 } as const;
 export type AiBlogLength = keyof typeof AI_BLOG_LENGTHS;
+
+/** Scheduled AI runs (docs/logic/ai-studio.md §Schedules). Iran has no daylight saving since 2022, so a fixed offset is right. */
+export const AI_SCHEDULE_KINDS = ['products', 'kid_lessons', 'puzzle_groups', 'blog'] as const satisfies readonly AiKind[];
+export type AiScheduleKind = (typeof AI_SCHEDULE_KINDS)[number];
+
+export const AI_SCHEDULE_LIMITS = {
+  /** Cron expressions are read in Tehran time. */
+  tzOffsetMinutes: 210,
+  /** Most schedules the panel keeps. */
+  maxSchedules: 20,
+  /** A schedule may not fire more often than this (every run is a billed provider call). */
+  minIntervalMinutes: 15,
+  /** How often the server looks for due schedules. */
+  tickSeconds: 60,
+  /** Longest message kept as the result of the last run. */
+  maxMessageLength: 300,
+} as const;

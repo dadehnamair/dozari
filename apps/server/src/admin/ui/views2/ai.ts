@@ -36,7 +36,7 @@ function aiFields(kind) {
   if (kind === 'puzzle_titles') return [['titleFa', 'عنوان', 'text']];
   return [['titleFa', 'عنوان', 'text'], ['summaryFa', 'خلاصه', 'area'], ['bodyMd', 'متن (مارک‌داون)', 'area'], ['metaTitle', 'عنوان سئو', 'text'], ['metaDescription', 'توضیح سئو', 'area']];
 }
-VIEWS.ai = function (root) {
+function aiManual(root) {
   var info = null, result = null;
   var out = h('div');
   var kind = load('ai.kind') || 'products';
@@ -208,5 +208,186 @@ VIEWS.ai = function (root) {
     info.providers.forEach(function (p) { provider.appendChild(h('option', { value: p.id, text: p.label })); });
     loadModels();
   });
+}
+
+var AI_SCHED_KINDS = [['puzzle_groups', 'پازل کامل (گروه + محصول)'], ['products', 'محصول'], ['kid_lessons', 'کلمه‌آموزی کودک'], ['blog', 'مقاله‌ی بلاگ']];
+var AI_SCHED_ERR = {
+  invalid_cron: 'عبارت زمان‌بندی درست نیست.',
+  too_frequent: 'این برنامه بیش از حد پشت‌سرهم اجرا می‌شود؛ هر اجرا یک درخواست پولی به سرویس است.',
+  never_runs: 'این زمان‌بندی هیچ‌وقت اجرا نمی‌شود (مثلاً ۳۰ بهمن).',
+  topic_required: 'برای مقاله باید موضوع بنویسی.',
+  count_too_high: 'تعداد بیشتر از سقفِ این نوع است.',
+  unknown_provider: 'این سرویس روی سرور تنظیم نشده.',
+  too_many: 'تعداد برنامه‌ها به سقف رسیده؛ یکی را پاک کن.',
+  not_found: 'این برنامه دیگر وجود ندارد.',
+  busy: 'یک اجرای دیگر در حال انجام است؛ کمی بعد دوباره بزن.',
+  invalid_request: 'فیلدها را بررسی کن.'
+};
+var AI_DAYS = [[6, 'ش'], [0, 'ی'], [1, 'د'], [2, 'س'], [3, 'چ'], [4, 'پ'], [5, 'ج']];
+var AI_EVERY = [1, 2, 3, 4, 6, 8, 12];
+function aiPad(n) { return (n < 10 ? '0' : '') + n; }
+/* A plain-Persian reading of the cron expressions the builder makes; anything else is shown as typed. */
+function aiCronText(cron) {
+  var m = /^(\d{1,2}) (\d{1,2}) \* \* (\*|[0-6](?:,[0-6])*)$/.exec(cron);
+  if (m) {
+    var at = fa(aiPad(+m[2]) + ':' + aiPad(+m[1]));
+    if (m[3] === '*') return 'هر روز ساعت ' + at;
+    return 'ساعت ' + at + ' · ' + m[3].split(',').map(function (d) { return AI_DAYS.filter(function (x) { return String(x[0]) === d; })[0][1]; }).join('، ');
+  }
+  m = /^(\d{1,2}) \*\/(\d{1,2}) \* \* \*$/.exec(cron);
+  if (m) return 'هر ' + fa(m[2]) + ' ساعت (دقیقه‌ی ' + fa(m[1]) + ')';
+  return cron;
+}
+function aiWhen(ms) {
+  if (!ms) return '—';
+  try { return new Date(ms).toLocaleString('fa-IR', { timeZone: 'Asia/Tehran', dateStyle: 'medium', timeStyle: 'short' }); } catch (e) { return new Date(ms).toISOString(); }
+}
+/* Schedule picker: «every day at HH:MM (on chosen weekdays)», «every N hours» or a raw cron expression. */
+function aiCronBuilder() {
+  var mode = select([['daily', 'هر روز (یا روزهای انتخابی) در ساعت مشخص'], ['hours', 'هر چند ساعت یک‌بار'], ['raw', 'پیشرفته (عبارت cron)']], 'daily');
+  var time = h('input', { type: 'time', value: '09:00' });
+  var every = select(AI_EVERY.map(function (n) { return [String(n), 'هر ' + fa(n) + ' ساعت']; }), '6');
+  var minute = h('input', { type: 'number', min: 0, max: 59, value: 0, style: 'width:90px' });
+  var raw = h('input', { type: 'text', placeholder: '0 9 * * *', style: 'direction:ltr' });
+  var boxes = AI_DAYS.map(function (d) { var c = h('input', { type: 'checkbox' }); c.checked = true; return c; });
+  var daysRow = h('div', { style: 'display:flex;gap:10px;flex-wrap:wrap' }, AI_DAYS.map(function (d, i) { return h('label', { style: 'display:flex;gap:4px;align-items:center' }, [boxes[i], h('span', { text: d[1] })]); }));
+  var box = h('div', { class: 'form-grid' });
+  function draw() {
+    clear(box);
+    if (mode.value === 'daily') { box.appendChild(field('ساعت (به وقت تهران)', time)); box.appendChild(field('روزهای هفته', daysRow)); }
+    else if (mode.value === 'hours') { box.appendChild(field('تکرار', every)); box.appendChild(field('در دقیقه‌ی', minute)); }
+    else box.appendChild(field('عبارت cron (دقیقه ساعت روزِ‌ماه ماه روزِ‌هفته)', raw, 'مثلاً «30 8 * * 6,1» یعنی شنبه و دوشنبه ۰۸:۳۰ به وقت تهران'));
+  }
+  mode.addEventListener('change', draw);
+  draw();
+  return {
+    node: h('div', {}, [field('زمان‌بندی', mode), box]),
+    value: function () {
+      if (mode.value === 'raw') return raw.value.trim();
+      if (mode.value === 'hours') return (+minute.value || 0) + ' */' + every.value + ' * * *';
+      var t = (time.value || '09:00').split(':');
+      var on = AI_DAYS.filter(function (d, i) { return boxes[i].checked; }).map(function (d) { return d[0]; }).sort();
+      return (+t[1]) + ' ' + (+t[0]) + ' * * ' + (on.length === 0 || on.length === 7 ? '*' : on.join(','));
+    },
+    set: function (cron) {
+      var m = /^(\d{1,2}) (\d{1,2}) \* \* (\*|[0-6](?:,[0-6])*)$/.exec(cron);
+      if (m) { mode.value = 'daily'; time.value = aiPad(+m[2]) + ':' + aiPad(+m[1]); boxes.forEach(function (b, i) { b.checked = m[3] === '*' || m[3].split(',').indexOf(String(AI_DAYS[i][0])) >= 0; }); draw(); return; }
+      m = /^(\d{1,2}) \*\/(\d{1,2}) \* \* \*$/.exec(cron);
+      if (m && AI_EVERY.indexOf(+m[2]) >= 0) { mode.value = 'hours'; every.value = m[2]; minute.value = m[1]; draw(); return; }
+      mode.value = 'raw'; raw.value = cron; draw();
+    }
+  };
+}
+function aiSchedules(root) {
+  var info = null, limits = null, list = h('div'), formBox = h('div');
+  function kindLabel(k) { return (AI_SCHED_KINDS.filter(function (x) { return x[0] === k; })[0] || [k, k])[1]; }
+  function lastText(r) {
+    if (!r.lastRunAt) return 'هنوز اجرا نشده';
+    var when = ago(r.lastRunAt);
+    if (r.lastStatus === 'ok') return when + ' · ' + fa(r.lastSaved) + ' مورد ذخیره شد' + (r.lastMessage ? ' (' + r.lastMessage + ')' : '');
+    if (r.lastStatus === 'empty') return when + ' · چیزی برای ساخت نبود';
+    return when + ' · ناموفق: ' + (AI_ERR[r.lastMessage] || r.lastMessage);
+  }
+  function save(id, body, done) {
+    api(id ? '/admin/ai/schedules/' + id : '/admin/ai/schedules', { method: id ? 'PUT' : 'POST', body: body }).then(function (r) {
+      if (!r.ok) return toast(AI_SCHED_ERR[r.body && r.body.error] || 'ذخیره نشد', true);
+      toast('ذخیره شد'); if (done) done(); refresh();
+    });
+  }
+  function edit(row) {
+    clear(formBox);
+    var name = h('input', { type: 'text', maxlength: 80, value: row ? row.name : '', placeholder: 'مثلاً «پازل‌های شبانه»' });
+    var kind = select(AI_SCHED_KINDS, row ? row.kind : 'puzzle_groups');
+    var when = aiCronBuilder(); if (row) when.set(row.cron);
+    var provider = select((info.providers || []).map(function (p) { return [p.id, p.label]; }), row ? row.provider : undefined);
+    var model = h('input', { type: 'text', value: row ? row.model : '', placeholder: 'خالی = مدل پیش‌فرض سرویس', style: 'direction:ltr' });
+    var hint = h('textarea', { rows: 2, maxlength: 300, text: row ? row.hint : '', placeholder: 'توضیح اضافه (اختیاری)' });
+    var enabled = h('input', { type: 'checkbox' }); enabled.checked = row ? row.enabled : true;
+    var count = h('input', { type: 'number', min: 1, max: 20, value: row ? row.count : 1, style: 'width:100px' });
+    var cats = ((S.meta && S.meta.categories) || []);
+    var category = select([['', 'هر دسته']].concat(cats.map(function (c) { return [c, c]; })), row && row.category ? row.category : '');
+    var ageTrack = select([['adult', 'بزرگسال'], ['teen', 'نوجوان'], ['kid', 'کودک']], row ? row.ageTrack : 'adult');
+    var style = select([['witty', 'بامزه و شوخ'], ['plain', 'ساده و روشن']], row ? row.style : 'witty');
+    var fromYear = h('input', { type: 'number', min: 1300, max: 1450, value: row && row.fromYear ? row.fromYear : '', style: 'width:100px' });
+    var toYear = h('input', { type: 'number', min: 1300, max: 1450, value: row && row.toYear ? row.toYear : '', style: 'width:100px' });
+    var topic = h('input', { type: 'text', maxlength: 300, value: row ? row.topic : '', placeholder: 'مثلاً قیمت نان در دهه‌ی ۶۰' });
+    var length = select([['short', 'کوتاه'], ['medium', 'متوسط'], ['long', 'بلند']], row ? row.length : 'medium');
+    var tone = select([['friendly', 'صمیمی'], ['nostalgic', 'نوستالژیک'], ['informative', 'اطلاعاتی']], row ? row.tone : 'friendly');
+    var opts = h('div', { class: 'form-grid' });
+    function drawOpts() {
+      clear(opts);
+      var k = kind.value, items = [['تعداد در هر اجرا (سقف ' + fa(limits.maxCount[k]) + ')', count]];
+      if (k === 'products') items.push(['دسته', category], ['رده‌ی سنی', ageTrack], ['از سال (شمسی)', fromYear], ['تا سال (شمسی)', toYear]);
+      if (k === 'puzzle_groups') items.push(['رده‌ی سنی', ageTrack], ['سبک عنوان', style]);
+      if (k === 'blog') items.push(['موضوع', topic], ['طول', length], ['لحن', tone]);
+      items.forEach(function (p) { opts.appendChild(field(p[0], p[1])); });
+      count.max = limits.maxCount[k];
+    }
+    kind.addEventListener('change', drawOpts); drawOpts();
+    var go = h('button', { class: 'btn primary', text: row ? 'ذخیره‌ی تغییرات' : 'ساخت برنامه', onclick: function () {
+      var body = { name: name.value.trim(), kind: kind.value, enabled: enabled.checked, cron: when.value(), provider: provider.value, model: model.value.trim(), hint: hint.value.trim(), count: +count.value || 1, ageTrack: ageTrack.value, style: style.value, category: category.value || null, fromYear: fromYear.value ? +fromYear.value : null, toYear: toYear.value ? +toYear.value : null, topic: topic.value.trim(), length: length.value, tone: tone.value };
+      if (!body.name) return toast('برای برنامه اسم بگذار', true);
+      save(row && row.id, body, function () { clear(formBox); });
+    } });
+    var cancel = h('button', { class: 'btn ghost', text: 'انصراف', onclick: function () { clear(formBox); } });
+    formBox.appendChild(card(row ? 'ویرایش برنامه' : 'برنامه‌ی تازه', 'سرور در زمان‌های تعیین‌شده خودش از هوش مصنوعی پیش‌نویس می‌گیرد و ذخیره می‌کند؛ همه‌چیز پیش‌نویس می‌ماند و منتشر نمی‌شود.', [
+      h('div', { class: 'form-grid' }, [field('نام برنامه', name), field('چه چیزی ساخته شود', kind)]),
+      when.node, opts,
+      h('div', { class: 'form-grid', style: 'margin-top:10px' }, [field('سرویس', provider), field('مدل', model)]),
+      field('توضیح اضافه', hint),
+      h('label', { style: 'display:flex;gap:6px;align-items:center;margin:10px 0' }, [enabled, h('span', { text: 'روشن باشد' })]),
+      h('div', { style: 'display:flex;gap:8px' }, [go, cancel])
+    ]));
+  }
+  function draw(rows) {
+    clear(list);
+    if (!rows.length) return list.appendChild(empty('هنوز برنامه‌ای نیست', 'با «برنامه‌ی تازه» مشخص کن سرور هر چند وقت چه چیزی بسازد.'));
+    rows.forEach(function (r) {
+      var run = h('button', { class: 'btn sm', text: 'اجرا همین الان', onclick: function () {
+        run.disabled = true; run.textContent = 'در حال اجرا… (تا یک دقیقه)';
+        api('/admin/ai/schedules/' + r.id + '/run', { method: 'POST' }).then(function (x) {
+          if (!x.ok) { run.disabled = false; run.textContent = 'اجرا همین الان'; return toast(AI_SCHED_ERR[x.body && x.body.error] || 'اجرا نشد', true); }
+          toast(x.body.schedule.lastStatus === 'ok' ? fa(x.body.schedule.lastSaved) + ' مورد ذخیره شد' : lastText(x.body.schedule), x.body.schedule.lastStatus === 'error'); refresh();
+        });
+      } });
+      var toggle = h('button', { class: 'btn sm', text: r.enabled ? 'خاموش کن' : 'روشن کن', onclick: function () { var b = {}; Object.keys(r).forEach(function (k) { b[k] = r[k]; }); b.enabled = !r.enabled; save(r.id, b); } });
+      var del = h('button', { class: 'btn sm bad', text: 'حذف', onclick: function () {
+        ask('برنامه‌ی «' + r.name + '» پاک شود؟ چیزهایی که تا حالا ساخته شده می‌ماند.', function () {
+          api('/admin/ai/schedules/' + r.id, { method: 'DELETE' }).then(function (x) { if (!x.ok) return toast(AI_SCHED_ERR[x.body && x.body.error] || 'پاک نشد', true); toast('پاک شد'); refresh(); });
+        }, { danger: true, yes: 'حذف' });
+      } });
+      list.appendChild(h('section', { class: 'card', style: r.enabled ? '' : 'opacity:.7' }, [
+        h('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap' }, [h('b', { text: r.name }), h('span', { class: 'badge', text: kindLabel(r.kind) }), r.enabled ? null : h('span', { class: 'badge', text: 'خاموش' })]),
+        h('div', { class: 'h', text: aiCronText(r.cron) + ' · ' + fa(r.count) + ' مورد در هر اجرا · ' + r.provider + (r.model ? ' / ' + r.model : '') }),
+        h('div', { class: 'h', text: 'اجرای بعدی: ' + (r.enabled ? aiWhen(r.nextRunAt) : '—') }),
+        h('div', { class: 'h', text: 'آخرین اجرا: ' + lastText(r), style: r.lastStatus === 'error' ? 'color:var(--bad,#c0392b)' : '' }),
+        h('div', { style: 'display:flex;gap:8px;margin-top:8px;flex-wrap:wrap' }, [run, h('button', { class: 'btn sm', text: 'ویرایش', onclick: function () { edit(r); } }), toggle, del])
+      ]));
+    });
+  }
+  function refresh() {
+    api('/admin/ai/schedules').then(function (r) {
+      if (!r.ok) return root.appendChild(empty('برنامه‌ی زمانی روی این سرور فعال نیست (دیتابیس لازم است)'));
+      limits = r.body.limits; draw(r.body.schedules);
+    });
+  }
+  root.appendChild(card('برنامه‌ی زمانی', 'سرور خودش در زمان‌های مشخص‌شده (به وقت تهران) از هوش مصنوعی پیش‌نویس می‌سازد، مثل وقتی که خودت «تولید» و «ذخیره» را می‌زنی. فاصله‌ی دو اجرا نباید خیلی کم باشد (هر اجرا یک درخواست پولی است) و سقف تولید در ساعت برای دستی و خودکار مشترک است.', [
+    h('button', { class: 'btn primary', text: 'برنامه‌ی تازه', onclick: function () { if (info && limits) edit(null); } })
+  ]));
+  root.appendChild(formBox); root.appendChild(list);
+  api('/admin/ai').then(function (r) {
+    if (!r.ok) return fail(r);
+    info = r.body;
+    if (!info.providers.length) { root.insertBefore(banner('warn', AI_ERR.ai_not_configured), formBox); return; }
+    refresh();
+  });
+}
+VIEWS.ai = function (root) {
+  var mode = load('ai.mode') === 'schedule' ? 'schedule' : 'manual';
+  var body = h('div');
+  function show() { clear(body); (mode === 'schedule' ? aiSchedules : aiManual)(body); }
+  root.appendChild(seg([['manual', 'تولید دستی'], ['schedule', 'برنامه‌ی زمانی']], mode, function (v) { mode = v; store('ai.mode', v); show(); }));
+  root.appendChild(body);
+  show();
 };
 `;

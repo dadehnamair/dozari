@@ -1123,6 +1123,38 @@ export const shortLinks = mysqlTable('short_links', {
   lastClickAt: datetime('last_click_at', { mode: 'date', fsp: 3 }),
 });
 
+/**
+ * Scheduled runs of the admin AI studio (docs/logic/ai-studio.md §Schedules): at each cron time the server asks the model for drafts of `kind` and saves them as drafts.
+ * Flat columns, no JSON (D63): the options of every kind live side by side and a kind reads the ones it needs.
+ */
+export const aiSchedules = mysqlTable('ai_schedules', {
+  id: id(),
+  name: varchar('name', { length: 80 }).notNull(),
+  kind: varchar('kind', { length: 20 }).notNull(),
+  enabled: boolean('enabled').notNull().default(true),
+  /** 5-field cron, read in Tehran time. */
+  cron: varchar('cron', { length: 60 }).notNull(),
+  provider: varchar('provider', { length: 20 }).notNull(),
+  model: varchar('model', { length: 80 }).notNull().default(''),
+  hint: varchar('hint', { length: 300 }).notNull().default(''),
+  count: int('count').notNull().default(1),
+  ageTrack: varchar('age_track', { length: 8 }).notNull().default('adult'),
+  style: varchar('style', { length: 8 }).notNull().default('witty'),
+  category: varchar('category', { length: 40 }),
+  fromYear: int('from_year'),
+  toYear: int('to_year'),
+  topic: varchar('topic', { length: 300 }).notNull().default(''),
+  length: varchar('length', { length: 8 }).notNull().default('medium'),
+  tone: varchar('tone', { length: 16 }).notNull().default('friendly'),
+  nextRunAt: datetime('next_run_at', { mode: 'date', fsp: 3 }),
+  lastRunAt: datetime('last_run_at', { mode: 'date', fsp: 3 }),
+  /** 'ok' | 'empty' (nothing to do) | 'error' */
+  lastStatus: varchar('last_status', { length: 8 }),
+  lastMessage: varchar('last_message', { length: 300 }).notNull().default(''),
+  lastSaved: int('last_saved').notNull().default(0),
+  createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+});
+
 /** A player reported another player (profile), optionally over one chat message; the admin reviews them (docs/logic/ugc.md §Reports). */
 export const userReports = mysqlTable(
   'user_reports',

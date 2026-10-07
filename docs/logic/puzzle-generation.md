@@ -178,3 +178,8 @@ Admin «ساخت خودکار» (`POST /admin/puzzles/generate {count, tierId?}`
 without one it goes through all tiers in turn, so the pool covers every level. Each draft is tagged with its tier. Draft titles are
 `draftTitle(rule)` = a varied opening line + the plain rule (several templates per kind), still drafts for a human to polish; the explanation is the plain rule.
 With pool auto-approve on, the title stays the plain rule (no un-reviewed AI wording goes live).
+
+## AI-made puzzles on a schedule (D211)
+
+The AI studio (`docs/logic/ai-studio.md` §Schedules) can also fill the pool: a cron schedule of kind `puzzle_groups` makes whole puzzles with LLM-written titles and saves them as `draft` for the editor. It is independent of the rule-based top-up above; set `puzzles.autofill_enabled` = 0 to rely on the AI schedules only.
+

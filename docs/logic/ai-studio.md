@@ -41,6 +41,19 @@ Answers are cleaned before parsing: `<think>…</think>` blocks removed, array-o
 - Permission: `content` (editor and owner); audited as `ai.generate` / `ai.save` (kind, provider/model, counts — never the key or the text).
 - The result of a failed call maps to `ai_*` errors with a Persian explanation in the UI (not configured, rate limited, timeout, unreachable, provider HTTP error, unusable output).
 
+## Schedules (D211)
+
+Second tab of the page, «برنامه‌ی زمانی». A schedule runs a kind by itself on a cron: at each firing the server does what the editor does by hand (generate, then save) and keeps the outcome of the last run. Code: `ai/schedules.ts` (store, `AiScheduler`, loop), cron maths `packages/shared/src/schedule/cron.ts`, table `ai_schedules` (flat columns, no JSON), routes below, UI `views2/ai.ts`, limits `AI_SCHEDULE_LIMITS` in `config/ai.ts`.
+
+- **Kinds:** `puzzle_groups`, `products`, `kid_lessons`, `blog` (`puzzle_titles` needs one chosen puzzle, so it stays manual). Options are those of a manual run (count, age track, style, category/years, topic/length/tone, hint, provider, model).
+- **When:** standard 5-field cron (`minute hour day-of-month month day-of-week`; `*`, lists, ranges, `/step`; 0 or 7 = Sunday; both day fields set = either), read in **Tehran time** (fixed UTC+3:30). The panel builds it from «every day (or chosen weekdays) at HH:MM», «every N hours» or a typed expression. A schedule that fires more often than `minIntervalMinutes` (15), never fires, or has a count above the kind's cap is refused.
+- **Loop:** every `tickSeconds` (60; first look 30 s after boot; `AI_SCHEDULER=off` disables) the enabled schedules whose `next_run_at` has passed run one after another. The next firing is stored *before* the run, so a slow or crashing run cannot fire twice, and a server that was down for days runs a missed schedule once.
+- **Result:** `last_run_at`, `last_status` (`ok` | `empty` | `error`), `last_saved`, `last_message` (an `ai_*` code on error). «Nothing to make» (e.g. every kid item has a lesson) is `empty`, not an error. A failure never stops the schedule.
+- **Safety:** same as manual runs: everything lands as draft / inactive / unapproved; the shared `maxCallsPerHour` cap applies (a run past it records `ai_rate_limited`); a schedule only uses a provider whose key exists; audited as `ai.schedule.create|update|delete|run`.
+- **Routes** (`content` permission): `GET/POST /admin/ai/schedules`, `PUT/DELETE /admin/ai/schedules/:id`, `POST /admin/ai/schedules/:id/run` («اجرا همین الان», leaves the next firing alone).
+
+Relation to the rule-based pool top-up (`puzzles/pool.ts`, D141): independent. Turn `puzzles.autofill_enabled` off to make the AI schedules the only source of new puzzles.
+
 ## Not built / ideas
 
-Whole puzzles from scratch (needs the catalog's prices and `validatePuzzle`; today only titles), image generation, streaming, per-admin quotas, a saved prompt history.
+`validatePuzzle` on AI-made puzzles (the editor's review is the check today), run history beyond the last run, image generation, streaming, per-admin quotas, a saved prompt history.
