@@ -61,6 +61,7 @@ export const RULE_KIND_VALUES = [
   'cheaper_than_ref',
   'era_icon',
   'category_price_rank',
+  'theme_tag',
   'curated',
 ] as const;
 

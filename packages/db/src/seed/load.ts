@@ -90,6 +90,11 @@ export async function loadSeed(db: Db, seed: readonly SeedProduct[] = readSeedPr
       if (isNew && p.era_tags.length > 0) {
         await tx.insert(productEraTags).values(p.era_tags.map((tag) => ({ productId: row.id, tag })));
       }
+      // Theme tags (`theme:kitchen`…) are additive: a catalog loaded before they existed picks them up, nothing else of its tags is touched.
+      const themeTags = p.era_tags.filter((tag) => tag.startsWith('theme:'));
+      if (!isNew && themeTags.length > 0) {
+        await tx.insert(productEraTags).ignore().values(themeTags.map((tag) => ({ productId: row.id, tag })));
+      }
 
       for (const pt of p.prices) {
         const month = pt.month ?? null;

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { mulberry32 } from '../../game/rng.js';
 import { draftTitle, explainRule, generatePuzzle } from '../generate.js';
 import { profileForLevel } from '../difficulty.js';
+import { THEMES, themeTagOf } from '../themes.js';
 import { validatePuzzle } from '../validate.js';
 import { product } from './fixtures.js';
 import type { CatalogProduct } from '../types.js';
@@ -96,7 +97,7 @@ describe('generatePuzzle by player level', () => {
         expect(Math.max(...perKind.values())).toBeLessThanOrEqual(2);
       }
       expect(made).toBeGreaterThanOrEqual(10);
-      expect(kinds.size).toBeGreaterThanOrEqual(4);
+      expect(kinds.size).toBeGreaterThanOrEqual(3); // this catalog has no theme tags, so theme groups cannot appear here
     }
   });
 
@@ -154,5 +155,49 @@ describe('draftTitle', () => {
       }
     }
     expect(titles.size).toBeGreaterThanOrEqual(8);
+  });
+});
+
+describe('theme groups', () => {
+  /** The synthetic catalog, with 6 of the 17 themes hand-tagged on disjoint product slices. */
+  function themed(seed: number): CatalogProduct[] {
+    return catalog(150, seed).map((p, i) => {
+      const slot = Math.floor(i / 7);
+      const theme = slot < 6 ? THEMES[slot]!.key : null;
+      return theme ? { ...p, eraTags: [...p.eraTags, themeTagOf(theme)] } : p;
+    });
+  }
+
+  it('builds theme groups that stay valid and unique, and uses several different themes', () => {
+    const seen = new Set<string>();
+    let made = 0;
+    for (let seed = 1; seed <= 16; seed++) {
+      const c = themed(seed);
+      const out = generatePuzzle(c, mulberry32(seed * 13), { playerLevel: 2 });
+      if (!out) continue;
+      made++;
+      const used = new Set(out.groups.flatMap((g) => g.productIds));
+      expect(validatePuzzle({ groups: out.groups }, c.filter((p) => used.has(p.id))).ok).toBe(true);
+      for (const g of out.groups) if (g.rule.kind === 'theme_tag') seen.add(g.rule.theme);
+    }
+    expect(made).toBeGreaterThanOrEqual(12);
+    expect(seen.size).toBeGreaterThanOrEqual(3);
+  });
+
+  it('does not build a theme from a tag only 3 products carry, and never mistakes a theme tag for an era', () => {
+    const c = catalog(150, 1).map((p, i) => (i < 3 ? { ...p, eraTags: [themeTagOf('kitchen')] } : p));
+    for (let seed = 1; seed <= 10; seed++) {
+      const out = generatePuzzle(c, mulberry32(seed), { playerLevel: 2 });
+      for (const g of out?.groups ?? []) {
+        expect(g.rule.kind === 'theme_tag').toBe(false);
+        if (g.rule.kind === 'era_icon') expect(g.rule.eraTag.startsWith('theme:')).toBe(false);
+      }
+    }
+  });
+
+  it('writes the theme title and the plain explanation in Persian', () => {
+    const rule = { kind: 'theme_tag' as const, theme: 'storeroom' };
+    expect(explainRule(rule)).toBe('همه‌شان گوشه‌ی انباری خاک می‌خوردند');
+    expect(THEMES.find((t) => t.key === 'storeroom')!.titlesFa).toContain(draftTitle(rule, mulberry32(1)));
   });
 });

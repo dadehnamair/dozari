@@ -63,6 +63,8 @@ export function ruleToColumns(input: Rule): RuleColumns {
       return { ...EMPTY, ruleKind: rule.kind, ruleEraTag: rule.eraTag };
     case 'category_price_rank':
       return { ...EMPTY, ruleKind: rule.kind, ruleYear: rule.year, ruleCategory: rule.category as RuleColumns['ruleCategory'], ruleRank: rule.rank };
+    case 'theme_tag':
+      return { ...EMPTY, ruleKind: rule.kind, ruleEraTag: rule.theme };
     case 'curated':
       return { ...EMPTY, ruleKind: rule.kind, ruleNote: rule.note };
   }
@@ -87,6 +89,8 @@ export function columnsToRule(row: RuleColumns): Rule {
         return { kind: row.ruleKind, eraTag: row.ruleEraTag };
       case 'category_price_rank':
         return { kind: row.ruleKind, year: row.ruleYear, category: row.ruleCategory, rank: row.ruleRank };
+      case 'theme_tag':
+        return { kind: row.ruleKind, theme: row.ruleEraTag };
       case 'curated':
         return { kind: row.ruleKind, note: row.ruleNote };
     }

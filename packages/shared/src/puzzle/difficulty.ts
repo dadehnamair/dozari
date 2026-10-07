@@ -12,7 +12,8 @@ export type GenKind =
   | 'multiplier_between'
   | 'cheaper_than_ref'
   | 'era_icon'
-  | 'category_price_rank';
+  | 'category_price_rank'
+  | 'theme_tag';
 
 export const GEN_KINDS = [
   'price_band_at_year',
@@ -22,6 +23,7 @@ export const GEN_KINDS = [
   'cheaper_than_ref',
   'era_icon',
   'category_price_rank',
+  'theme_tag',
 ] as const satisfies readonly GenKind[];
 
 export type KindWeights = Partial<Record<GenKind, number>>;
@@ -46,10 +48,10 @@ const PROFILES: readonly GenerationProfile[] = [
     scale: 1.15,
     minNearMisses: 2,
     weights: {
-      0: { era_icon: 5, price_band_at_year: 3, category_price_rank: 1 },
-      1: { price_band_at_year: 4, era_icon: 2, cheaper_than_ref: 2, category_price_rank: 3 },
-      2: { price_band_at_year: 4, cheaper_than_ref: 3, category_price_rank: 3, same_price_at_year: 2 },
-      3: { price_band_at_year: 4, same_price_at_year: 3, cheaper_than_ref: 2 },
+      0: { era_icon: 5, price_band_at_year: 3, category_price_rank: 1, theme_tag: 6 },
+      1: { price_band_at_year: 4, era_icon: 2, cheaper_than_ref: 2, category_price_rank: 3, theme_tag: 5 },
+      2: { price_band_at_year: 4, cheaper_than_ref: 3, category_price_rank: 3, same_price_at_year: 2, theme_tag: 3 },
+      3: { price_band_at_year: 4, same_price_at_year: 3, cheaper_than_ref: 2, theme_tag: 1 },
     },
   },
   {
@@ -57,10 +59,10 @@ const PROFILES: readonly GenerationProfile[] = [
     scale: 1.08,
     minNearMisses: 2,
     weights: {
-      0: { era_icon: 4, price_band_at_year: 3, category_price_rank: 2 },
-      1: { price_band_at_year: 3, same_price_at_year: 2, cheaper_than_ref: 2, category_price_rank: 3, era_icon: 1 },
-      2: { price_band_at_year: 3, same_price_at_year: 3, cheaper_than_ref: 2, category_price_rank: 2, first_crossed: 2 },
-      3: { multiplier_between: 3, same_price_at_year: 3, first_crossed: 3, price_band_at_year: 2 },
+      0: { era_icon: 4, price_band_at_year: 3, category_price_rank: 2, theme_tag: 5 },
+      1: { price_band_at_year: 3, same_price_at_year: 2, cheaper_than_ref: 2, category_price_rank: 3, era_icon: 1, theme_tag: 4 },
+      2: { price_band_at_year: 3, same_price_at_year: 3, cheaper_than_ref: 2, category_price_rank: 2, first_crossed: 2, theme_tag: 3 },
+      3: { multiplier_between: 3, same_price_at_year: 3, first_crossed: 3, price_band_at_year: 2, theme_tag: 1 },
     },
   },
   {
@@ -68,10 +70,10 @@ const PROFILES: readonly GenerationProfile[] = [
     scale: 1,
     minNearMisses: 2,
     weights: {
-      0: { era_icon: 3, price_band_at_year: 3, category_price_rank: 2, cheaper_than_ref: 1 },
-      1: { price_band_at_year: 3, same_price_at_year: 3, cheaper_than_ref: 2, category_price_rank: 2, first_crossed: 2 },
-      2: { same_price_at_year: 3, first_crossed: 3, cheaper_than_ref: 2, category_price_rank: 2, multiplier_between: 2, price_band_at_year: 2 },
-      3: { multiplier_between: 4, first_crossed: 3, same_price_at_year: 3, price_band_at_year: 2 },
+      0: { era_icon: 3, price_band_at_year: 3, category_price_rank: 2, cheaper_than_ref: 1, theme_tag: 4 },
+      1: { price_band_at_year: 3, same_price_at_year: 3, cheaper_than_ref: 2, category_price_rank: 2, first_crossed: 2, theme_tag: 4 },
+      2: { same_price_at_year: 3, first_crossed: 3, cheaper_than_ref: 2, category_price_rank: 2, multiplier_between: 2, price_band_at_year: 2, theme_tag: 3 },
+      3: { multiplier_between: 4, first_crossed: 3, same_price_at_year: 3, price_band_at_year: 2, theme_tag: 2 },
     },
   },
   {
@@ -79,10 +81,10 @@ const PROFILES: readonly GenerationProfile[] = [
     scale: 0.8,
     minNearMisses: 3,
     weights: {
-      0: { era_icon: 2, price_band_at_year: 3, category_price_rank: 2, cheaper_than_ref: 2 },
-      1: { same_price_at_year: 3, first_crossed: 3, cheaper_than_ref: 2, category_price_rank: 2, price_band_at_year: 2, multiplier_between: 1 },
-      2: { first_crossed: 3, multiplier_between: 3, same_price_at_year: 3, cheaper_than_ref: 2, category_price_rank: 1 },
-      3: { multiplier_between: 4, first_crossed: 4, same_price_at_year: 3 },
+      0: { era_icon: 2, price_band_at_year: 3, category_price_rank: 2, cheaper_than_ref: 2, theme_tag: 3 },
+      1: { same_price_at_year: 3, first_crossed: 3, cheaper_than_ref: 2, category_price_rank: 2, price_band_at_year: 2, multiplier_between: 1, theme_tag: 3 },
+      2: { first_crossed: 3, multiplier_between: 3, same_price_at_year: 3, cheaper_than_ref: 2, category_price_rank: 1, theme_tag: 3 },
+      3: { multiplier_between: 4, first_crossed: 4, same_price_at_year: 3, theme_tag: 2 },
     },
   },
   {
@@ -90,10 +92,10 @@ const PROFILES: readonly GenerationProfile[] = [
     scale: 0.65,
     minNearMisses: 3,
     weights: {
-      0: { price_band_at_year: 3, era_icon: 1, category_price_rank: 2, cheaper_than_ref: 2, same_price_at_year: 1 },
-      1: { same_price_at_year: 3, first_crossed: 3, multiplier_between: 2, cheaper_than_ref: 2, category_price_rank: 1 },
-      2: { first_crossed: 4, multiplier_between: 3, same_price_at_year: 3, cheaper_than_ref: 1 },
-      3: { multiplier_between: 4, first_crossed: 4, same_price_at_year: 3 },
+      0: { price_band_at_year: 3, era_icon: 1, category_price_rank: 2, cheaper_than_ref: 2, same_price_at_year: 1, theme_tag: 3 },
+      1: { same_price_at_year: 3, first_crossed: 3, multiplier_between: 2, cheaper_than_ref: 2, category_price_rank: 1, theme_tag: 3 },
+      2: { first_crossed: 4, multiplier_between: 3, same_price_at_year: 3, cheaper_than_ref: 1, theme_tag: 3 },
+      3: { multiplier_between: 4, first_crossed: 4, same_price_at_year: 3, theme_tag: 3 },
     },
   },
 ];

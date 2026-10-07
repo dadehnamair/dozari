@@ -10,6 +10,7 @@ import { MIN_NEAR_MISSES, validatePuzzle } from './validate.js';
 import type { Level, PuzzleGroupInput, ValidationResult } from './validate.js';
 import { profileForLevel } from './difficulty.js';
 import type { GenKind, GenerationProfile } from './difficulty.js';
+import { THEMES, isThemeTag, themeDef, themeTagOf } from './themes.js';
 
 export interface GeneratedPuzzle {
   groups: PuzzleGroupInput[];
@@ -89,9 +90,15 @@ function multiplierRule(catalog: Catalog, years: readonly number[], scale: numbe
 /** An easy anchor: a decade tag shared by enough products. */
 function eraRule(catalog: Catalog, rng: Rng): Rule | null {
   const tags = new Map<string, number>();
-  for (const p of catalog) for (const t of p.eraTags) tags.set(t, (tags.get(t) ?? 0) + 1);
+  for (const p of catalog) for (const t of p.eraTags) if (!isThemeTag(t)) tags.set(t, (tags.get(t) ?? 0) + 1);
   const usable = [...tags.entries()].filter(([, n]) => n >= 4).map(([t]) => t);
   return usable.length === 0 ? null : { kind: 'era_icon', eraTag: pick(usable, rng) };
+}
+
+/** A hand-tagged association («تو آشپزخونه لازمه»): any theme carried by at least 4 products. */
+function themeRule(catalog: Catalog, rng: Rng): Rule | null {
+  const usable = THEMES.filter((t) => catalog.filter((p) => p.eraTags.includes(themeTagOf(t.key))).length >= 4);
+  return usable.length === 0 ? null : { kind: 'theme_tag', theme: pick(usable, rng).key };
 }
 
 /** "All cost about X that year": X from a random product's price, tolerance shrinking with level and player skill. */
@@ -171,6 +178,8 @@ function instantiate(kind: GenKind, level: Level, catalog: Catalog, years: reado
       return eraRule(catalog, rng);
     case 'category_price_rank':
       return categoryRankRule(catalog, years, scale, rng);
+    case 'theme_tag':
+      return themeRule(catalog, rng);
   }
 }
 
@@ -222,7 +231,7 @@ export function generatePuzzle(catalog: Catalog, rng: Rng, opts: GenerateOptions
     const usedKinds = new Map<string, number>();
     for (const level of [3, 2, 1, 0] as const) {
       let made: PuzzleGroupInput | null = null;
-      for (const kind of kindOrder(profile, level, usedKinds, rng).slice(0, 3)) {
+      for (const kind of kindOrder(profile, level, usedKinds, rng).slice(0, 4)) {
         const rule = instantiate(kind, level, catalog, years, profile.scale, rng);
         if (!rule) continue;
         const cands = catalog.filter((p) => !used.has(p.id) && evaluateRule(rule, p, ctx) === 'yes');
@@ -269,13 +278,15 @@ export function explainRule(rule: Rule, names?: ReadonlyMap<string, string>): st
       return `سال ${fa(rule.year)} همه ارزان‌تر از ${names?.get(rule.refProductId) ?? 'یک کالای مرجع'} بودند`;
     case 'category_price_rank':
       return `سال ${fa(rule.year)} جزو ${fa(rule.rank)} ارزان‌ترینِ دسته‌ی ${CATEGORY_FA[rule.category] ?? rule.category} بودند`;
+    case 'theme_tag':
+      return themeDef(rule.theme)?.explanationFa ?? 'یک موضوع مشترک داشتند';
     default:
       return 'یک دسته‌ی دستی';
   }
 }
 
 /** Opening lines for draft titles, several per kind so a batch of puzzles does not read like one template. The admin edits the one they like. */
-const TITLE_TEMPLATES: Record<Exclude<Rule['kind'], 'curated'>, readonly string[]> = {
+const TITLE_TEMPLATES: Record<Exclude<Rule['kind'], 'curated' | 'theme_tag'>, readonly string[]> = {
   price_band_at_year: [
     'کیفتان کوک بود؛ ',
     'پولِ توجیبی همین‌قدر می‌خرید: ',
@@ -320,6 +331,11 @@ const TITLE_TEMPLATES: Record<Exclude<Rule['kind'], 'curated'>, readonly string[
  */
 export function draftTitle(rule: Rule, rng: Rng, names?: ReadonlyMap<string, string>): string {
   if (rule.kind === 'curated') return explainRule(rule, names);
+  // A theme's own titles already read as titles; the plain rule follows in the explanation.
+  if (rule.kind === 'theme_tag') {
+    const titles = themeDef(rule.theme)?.titlesFa ?? [];
+    return titles.length > 0 ? (titles[Math.floor(rng() * titles.length)] as string) : explainRule(rule, names);
+  }
   const list = TITLE_TEMPLATES[rule.kind];
   return `${list[Math.floor(rng() * list.length)] as string}${explainRule(rule, names)}`;
 }

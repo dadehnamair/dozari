@@ -26,6 +26,7 @@ All price comparisons use `priceAt(product, year)` (nominal rials). Bands are in
 | `cheaper_than_ref` | `year, refProductId` | "in 1380 each was cheaper than a Peykan tire" | 2–3 |
 | `era_icon` | `eraTag` | "stars of the 60s" (non-price, easy anchor) | 0 |
 | `category_price_rank` | `year, category, rank` | "the cheapest snacks of 1370" | 1–2 |
+| `theme_tag` | `theme` | hand-tagged association: «تو آشپزخونه لازمه», «مامانم قایمش می‌کرد» (no price) | 0–2 |
 | `curated` | `note` | hand-made group; validator skips rule check, relies on human approval | any |
 
 Precise semantics (implemented in `packages/shared/src/puzzle/rules/evaluate.ts`; every evaluator
@@ -183,3 +184,13 @@ With pool auto-approve on, the title stays the plain rule (no un-reviewed AI wor
 
 The AI studio (`docs/logic/ai-studio.md` §Schedules) can also fill the pool: a cron schedule of kind `puzzle_groups` makes whole puzzles with LLM-written titles and saves them as `draft` for the editor. It is independent of the rule-based top-up above; set `puzzles.autofill_enabled` = 0 to rely on the AI schedules only.
 
+
+### Theme groups (`theme_tag`)
+
+Non-price associations. A product carries the free tag `theme:<key>` (same `product_era_tags` table, no schema change; the era anchor ignores `theme:` tags);
+the rule `{ kind: 'theme_tag', theme }` holds when the tag is present. Themes live in `packages/shared/src/puzzle/themes.ts` (key, plain explanation, several draft titles):
+آشپزخانه · انباری · تعمیرکار · «مامانم قایم می‌کرد» · کیف مدرسه · جیب بچه‌ها · حمام · سفر · مهمان · کنار خیابان · افطار · صبحانه · بعدازظهر بچه‌ها · کادو · خیابان و جاده · زمستان · خواندنی.
+A theme is used only when ≥ 4 products carry it; uniqueness still holds (no outside item may carry the tag), so overlapping tags are fine across themes but
+each theme should stay small (≈ 5–16 products). Seeded in `seed/products/sample-bazaar.json` (`era_tags`); the seed loader adds theme tags to already-existing products
+too (additive only). More themes = add a `ThemeDef` and tag products (admin or seed). Themes with few products (تعمیرکار) need tool-type products
+(آچار، پیچ‌گوشتی، انبردست…) added to the catalog to be rich.
