@@ -64,6 +64,8 @@ interface Table {
   seated: string[];
   ready: Set<string>;
   expiresAt: number;
+  /** A lobby table opened by a bot to show the game is busy (docs/logic/bots.md §Lobby tables). `fillAt` = when its bots start once a person sat down. */
+  ambient?: { bots: Set<string>; fillAt: number | null; started: boolean };
 }
 
 export type TableResult<T = object> = ({ ok: true } & T) | { ok: false; error: TableError };
@@ -132,6 +134,7 @@ export class TableService {
     t.sides.delete(userId);
     t.ready.delete(userId);
     this.byUser.delete(userId);
+    if (t.ambient && !t.ambient.started && !t.seated.some((u) => !t.ambient!.bots.has(u))) t.ambient.fillAt = null;
   }
 
   async create(hostId: string, body: Omit<CreateTableBody, 'family' | 'rounds' | 'entryFee' | 'isPrivate' | 'priceRounds'> & { family?: boolean; rounds?: number; entryFee?: number; isPrivate?: boolean; priceRounds?: number }): Promise<TableResult<{ table: TableView }>> {
@@ -226,6 +229,10 @@ export class TableService {
     const n1 = t.sides.size - n0;
     t.sides.set(userId, n1 < n0 ? 1 : n0 < n1 ? 0 : t.seated.length % 2 === 1 ? 0 : 1);
     this.byUser.set(userId, t.code);
+    if (t.ambient) {
+      t.expiresAt = Math.max(t.expiresAt, this.now() + 60_000);
+      if (t.ambient.fillAt === null) t.ambient.fillAt = this.now() + 3000 + Math.round((this.deps.rng ?? Math.random)() * 5000);
+    }
     return { ok: true };
   }
 
@@ -406,6 +413,89 @@ export class TableService {
     t.ready.clear();
     t.expiresAt = this.now() + (await this.deps.idleMs());
     return { ok: true };
+  }
+
+  /** Does this player see the bot-made lobby rows? Adults who may play tables (the bots' tables belong to the adult track). */
+  async seesLobbyShow(userId: string): Promise<boolean> {
+    return (await this.trackOf(userId)) === 'adult' && !(await this.deps.socialBlocked?.(userId)) && !(await this.deps.duelsOff?.(userId));
+  }
+
+  /** Is this player seated at any table (a bot busy at a lobby table is not offered for another one)? */
+  isSeated(userId: string): boolean {
+    return this.byUser.has(userId);
+  }
+
+  /**
+   * A bot-made public lobby table: `hostId` and `extraBots` are bot accounts already seated (the other seats stay free for people).
+   * Free and friendly: a bot has no wallet to pay an entry fee from.
+   */
+  async createAmbient(hostId: string, o: { name: string; icon: string; format: TableFormat; rounds: number; priceRounds: number; extraBots: string[]; ttlMs: number }): Promise<string | null> {
+    const rng = this.deps.rng ?? Math.random;
+    let code = makeTableCode(rng);
+    for (let i = 0; i < 20 && this.tables.has(code); i++) code = makeTableCode(rng);
+    if (this.tables.has(code) || (o.format === '2v2' && !this.deps.startTeam)) return null;
+    const seated = [hostId, ...o.extraBots].slice(0, seatsOfFormat(o.format) - 1);
+    const sides = new Map<string, 0 | 1>();
+    seated.forEach((u, i) => sides.set(u, (i % 2) as 0 | 1));
+    const host = (await this.deps.profileOf(hostId)) ?? { nickname: '؟', avatarKey: 'avatar-01' };
+    const t: Table = { code, name: o.name, icon: o.icon, format: o.format, family: false, rounds: clampTableRounds(o.rounds), priceRounds: o.format === '2v2' ? 0 : Math.min(TABLE_PRICE_ROUNDS_MAX, Math.max(0, Math.floor(o.priceRounds))), entryFee: 0, isPrivate: false, hostNickname: host.nickname, hostAvatarKey: host.avatarKey, requests: new Map(), denied: new Map(), sides, requireReady: false, locked: false, hostId, track: 'adult', seated, ready: new Set(), expiresAt: this.now() + o.ttlMs, ambient: { bots: new Set(seated), fillAt: null, started: false } };
+    this.tables.set(code, t);
+    for (const u of seated) this.byUser.set(u, code);
+    return code;
+  }
+
+  /** People waiting for the answer of a bot host (the lobby answers them after a human-like pause). */
+  ambientRequests(): { code: string; hostId: string; userId: string; at: number }[] {
+    const out: { code: string; hostId: string; userId: string; at: number }[] = [];
+    for (const t of this.tables.values()) {
+      if (!t.ambient || t.ambient.started || !this.live(t.code)) continue;
+      for (const [userId, at] of t.requests) out.push({ code: t.code, hostId: t.hostId, userId, at });
+    }
+    return out;
+  }
+
+  /** Lobby tables where a person sat down and the bots' human-like wait is over: `need` = how many bot seats are still missing. */
+  ambientDue(): { code: string; need: number }[] {
+    const out: { code: string; need: number }[] = [];
+    for (const t of this.tables.values()) {
+      const a = t.ambient;
+      if (!a || a.started || a.fillAt === null || a.fillAt > this.now() || !this.live(t.code)) continue;
+      out.push({ code: t.code, need: seatsOfFormat(t.format) - t.seated.length });
+    }
+    return out;
+  }
+
+  /** Seats `botIds` into the free seats of a lobby table (teams stay 2+2) and starts it; a table that cannot start goes back to waiting. */
+  async fillAndStart(code: string, botIds: string[]): Promise<boolean> {
+    const t = this.live(code);
+    if (!t?.ambient) return false;
+    for (const b of botIds) {
+      if (t.seated.length >= seatsOfFormat(t.format)) break;
+      const n0 = [...t.sides.values()].filter((x) => x === 0).length;
+      t.sides.set(b, n0 <= t.sides.size - n0 ? 0 : 1);
+      t.seated.push(b);
+      t.ambient.bots.add(b);
+      this.byUser.set(b, t.code);
+    }
+    const ok = (await this.start(t.hostId)).ok;
+    if (ok) t.ambient.started = true;
+    else t.ambient.fillAt = this.now() + 5000;
+    return ok;
+  }
+
+  /** Housekeeping for lobby tables: close the ones whose match is over, and bot-only ones past their time. */
+  sweepAmbient(): void {
+    for (const t of [...this.tables.values()]) {
+      const a = t.ambient;
+      if (!a) continue;
+      if (a.started && !t.seated.some((u) => this.deps.inMatch(u))) this.close(t);
+      else if (!a.started && t.expiresAt <= this.now() && !t.seated.some((u) => !a.bots.has(u))) this.close(t);
+    }
+  }
+
+  /** How many lobby tables are still waiting for a person (to keep the lobby topped up). */
+  ambientOpenCount(): number {
+    return [...this.tables.values()].filter((t) => t.ambient && !t.ambient.started && !t.seated.some((u) => !t.ambient!.bots.has(u))).length;
   }
 
   private async rankOf(userId: string): Promise<number> {

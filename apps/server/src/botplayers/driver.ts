@@ -64,6 +64,11 @@ export class BotDriver {
     return [...this.roster.keys()];
   }
 
+  /** The active bot accounts with name and face (the lobby tables show them like players). */
+  rosterRows(): BotRow[] {
+    return this.enabled ? [...this.roster.values()] : [];
+  }
+
   /** True when a waiting human can be given a bot: bots are on and at least one account exists. */
   ready(): boolean {
     return this.enabled && this.roster.size > 0;

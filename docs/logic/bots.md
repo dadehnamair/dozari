@@ -110,7 +110,16 @@ bot accounts: the admin can pause, tune or add more, and the top-up never touche
 - **Chat.** In a duel a bot greets, answers a human's taunt (its `taunt_percent`) and says «خداقوت» at the end, always with canned taunts. In a city room a bot from the same
   city answers a human's message with a canned line after 5–25 s, with probability `bots.city_reply_percent` (15 %).
 - **Tournaments.** A tournament with «جای خالی با ربات پر شود» takes idle bots for empty seats when it starts (no fee); bots are never paid prize coins.
-- Not built: bots accepting friend requests, bots in 2v2/private tables, mid-match takeover of an abandoned human seat (D43), coin escrow/subsidy (match entry fees do not
+## Lobby tables (D213)
+
+`apps/server/src/tables/ambient.ts` (`AmbientLobby`, ticked every 5 s next to the bot driver; off with `bots.enabled` or `feature.tables`): keeps `tables.ambient_open` bot-hosted
+public tables in the «سفره‌خانه» list — 40 % 2v2 with 1–3 bots already seated, else a 1v1 with the bot host — each with a random Persian name, icon, rounds and price rounds
+and a 1–5 min life (at most two new ones per tick), and `tables.ambient_playing` display-only «playing» rows made of bots (codes match nothing, view only). They live in memory
+only. A person's seat request is answered by the bot host after 2–6 s (`TableService.answer`), which sets `fillAt` 3–8 s ahead; then idle bots take the empty seats (teams 2+2)
+and `TableService.start` runs the normal friendly match (`startMatch`/`startTeam`). The table stays while the match runs and closes when it ends (it then shows as «closed» in the
+recent list). A person who leaves before `fillAt` cancels it; too few idle bots just delays the start. Bot tables are **free** (entry fee 0): a bot has no wallet, so stakes
+need the `bot_match_subsidy` decision first. Adult track only.
+- Not built: bots accepting friend requests, bots in human-made tables, mid-match takeover of an abandoned human seat (D43), coin escrow/subsidy (match entry fees do not
   exist yet), bot-chat beyond canned taunts.
 
 ## Skill by level

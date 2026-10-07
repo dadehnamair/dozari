@@ -48,6 +48,7 @@ import { TournamentService } from './tournament/service.js';
 import { createDbTournamentStore } from './tournament/store.js';
 import { createDbSponsorStore } from './sponsor/store.js';
 import { BotDriver } from './botplayers/driver.js';
+import { AmbientLobby } from './tables/ambient.js';
 import { BotPlayerService } from './botplayers/service.js';
 import { createDbBotPlayerStore } from './botplayers/store.js';
 import { registerFindRoutes } from './find/routes.js';
@@ -216,6 +217,7 @@ export interface ServerDeps {
   live?: { matches?: MatchService; queue?: DuelQueue; teamQueue?: DuelQueue };
   /** Bot players: reacts to the events pushed to bot accounts (needs the gateway). */
   botDriver?: BotDriver;
+  ambientLobby?: AmbientLobby;
   /** Live-socket tracker shared by the gateway and the friends list. */
   presence?: Presence;
   /** Blog, cast and FAQ for the landing site: `/public/*` and the admin pages. */
@@ -425,7 +427,7 @@ export function buildServer(deps: ServerDeps = {}) {
     if (online) deps.notices?.push(friendId, { kind: 'table_invite', from: r.message.nickname, code: t.code });
     if (!online) void deps.notify?.notify(friendId, 'table_invite', BALE_TEXT.tableInvite(r.message.nickname)).catch(() => undefined);
     return { ok: true, online };
-  } : undefined);
+  } : undefined, deps.ambientLobby ? () => deps.ambientLobby!.playingRows() : undefined);
   if (deps.solo) registerSoloRoutes(app, deps.solo, deps.auth, deps.hints, deps.limiter, deps.canPreview);
   if (deps.priceOnly) registerPriceOnlyRoutes(app, deps.priceOnly, deps.auth);
   if (deps.auth && deps.shop) registerShopRoutes(app, deps.auth, deps.shop);
@@ -739,6 +741,16 @@ if (isMainModule(import.meta.url)) {
         })
       : undefined;
   tableRef.svc = tableService;
+  const ambientLobby =
+    tableService && botDriver && settings
+      ? new AmbientLobby({
+          tables: tableService,
+          roster: () => botDriver.rosterRows(),
+          inMatch: (id) => live.matches?.inMatch(id) ?? false,
+          settings: async () => ({ enabled: (await settings.num('bots.enabled')) === 1 && (await settings.num('feature.tables')) === 1, open: await settings.num('tables.ambient_open'), playing: await settings.num('tables.ambient_playing') }),
+          rng: () => randomInt(0, 2 ** 30) / 2 ** 30,
+        })
+      : undefined;
   const transfers = db && settings && socialStore && inviteStore ? new TransferService(createDbTransferStore(db), socialStore, () => transferRulesFromSettings(settings), async (id) => (player ? (await player.levelOf(id)).level.level : 1), (id) => inviteStore.isActivated(id)) : undefined;
   const find =
     db && settings && socialStore
@@ -903,6 +915,7 @@ if (isMainModule(import.meta.url)) {
     daily,
     live,
     botDriver,
+    ambientLobby,
     presence,
     notices,
     notify,
@@ -998,6 +1011,11 @@ if (isMainModule(import.meta.url)) {
     const botTimer = setInterval(() => void botDriver.tick().catch((err) => app.log.error({ err }, 'bot tick failed')), 5000);
     botTimer.unref();
     app.addHook('onClose', async () => clearInterval(botTimer));
+  }
+  if (ambientLobby) {
+    const lobbyTimer = setInterval(() => void ambientLobby.tick().catch((err) => app.log.error({ err }, 'lobby tick failed')), 5000);
+    lobbyTimer.unref();
+    app.addHook('onClose', async () => clearInterval(lobbyTimer));
   }
   if (tournamentService) {
     const timer = setInterval(() => void tournamentService.tick().catch((err) => app.log.error({ err }, 'tournament tick failed')), TOURNAMENT_TICK_SECONDS * 1000);
