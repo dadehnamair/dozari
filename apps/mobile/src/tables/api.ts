@@ -1,5 +1,5 @@
 import { publicTablesSchema, tableViewSchema, tableWatchSchema } from '@dozari/shared';
-import type { CreateTableBody, PublicTable, TableView, TableWatch } from '@dozari/shared';
+import type { CreateTableBody, PublicTable, TableReaction, TableView, TableWatch } from '@dozari/shared';
 import { session } from '../auth';
 import { callJson } from '../net/http';
 
@@ -10,6 +10,8 @@ export const createTable = (body: CreateTableBody): Promise<TableView> => authed
 export const fetchTable = (code: string): Promise<TableView> => authed(`/tables/${code}`, 'GET', undefined, (v) => tableViewSchema.parse(v));
 /** A look at a playing public table from the stands (read only); each call also counts the caller as a watcher for a few seconds. */
 export const fetchWatch = (code: string): Promise<TableWatch> => authed(`/tables/${code}/watch`, 'GET', undefined, (v) => tableWatchSchema.parse(v));
+/** A canned cheer from the stands (one every couple of seconds). */
+export const reactAtTable = (code: string, kind: TableReaction): Promise<void> => authed(`/tables/${code}/react`, 'POST', { kind }, nothing);
 export const fetchMyTable = (): Promise<TableView | null> => authed('/tables/mine', 'GET', undefined, (v) => ((v as { table: unknown }).table ? tableViewSchema.parse((v as { table: unknown }).table) : null));
 export const joinTable = (code: string): Promise<TableView> => authed(`/tables/${code}/join`, 'POST', {}, (v) => tableViewSchema.parse(v));
 export const leaveTable = (): Promise<void> => authed('/tables/leave', 'POST', {}, nothing);

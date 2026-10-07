@@ -674,5 +674,9 @@ Owner: «شرط‌بندی» at the lobby's bot tables. A bot seat never pays or
 
 ## D216 — A self-running bot community; richer stands (2026-10-07, proposed)
 
-Owner: bots that play and earn XP should level up and change, a community that runs itself; and more work on watching. Bots already got XP from 1v1; now a finished **2v2 pays everyone duel XP** (matches `progression.md`'s "team reuses the duel base"; this also changes what people earn in 2v2). Skill drifts ±1 per result (20–90), bots may take a new face at milestone levels, and the lobby's table counts follow a Tehran-hour rhythm; bots-only games pair similar levels (details in `logic/bots.md` §Community). Watching: the stands list the last 6 guesses with names and result and a turn clock, and a playing table's list row shows the score. Not done: reactions/chat from watchers, a socket stream instead of 2 s polling.
+Owner: bots that play and earn XP should level up and change, a community that runs itself; and more work on watching. Bots already got XP from 1v1; now a finished **2v2 pays everyone duel XP** (matches `progression.md`'s "team reuses the duel base"; this also changes what people earn in 2v2). Skill drifts ±1 per result (20–90), bots may take a new face at milestone levels, and the lobby's table counts follow a Tehran-hour rhythm; bots-only games pair similar levels (details in `logic/bots.md` §Community). Watching: the stands list the last 6 guesses with names and result and a turn clock, and a playing table's list row shows the score. Not done: a socket stream instead of 2 s polling (D217 added cheers).
+
+## D217 — Cheers from the stands; no replay of closed tables (2026-10-07, proposed)
+
+Owner: closed tables need no replay or watching. Watchers may send one of five canned cheers (👏 🔥 😮 😂 😢) every 2 s; they show to everyone in the stands for 20 s with the sender's nickname, and bots in the stands cheer too. Canned only, so no chat unlock is needed (rule 7). Cheers live in memory and are never shown to the players of the match. Polling stays; a socket stream is only worth it if the lobby grows.
 

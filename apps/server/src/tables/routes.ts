@@ -1,6 +1,6 @@
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { createTableBodySchema } from '@dozari/shared';
+import { createTableBodySchema, tableReactBodySchema } from '@dozari/shared';
 import type { MatchFound, MatchView, TableError, TableWatch } from '@dozari/shared';
 import type { AuthService } from '../auth/service.js';
 import { currentUser } from '../auth/routes.js';
@@ -46,8 +46,19 @@ export function registerTableRoutes(app: FastifyInstance, auth: AuthService, tab
     if (!out.ok) return fail(reply, out.error);
     const seen = spectate?.(out.playerId);
     if (!seen) return fail(reply, 'NOT_FOUND');
-    const body: TableWatch = { ...out.table, ...seen, watchers: out.watchers };
+    const body: TableWatch = { ...out.table, ...seen, watchers: out.watchers, reactions: tables.reactionsOf(out.code) };
     return body;
+  });
+
+  // A watcher cheers from the stands (a canned reaction every couple of seconds).
+  app.post('/tables/:code/react', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    const p = codeParam.safeParse(req.params);
+    const b = tableReactBodySchema.safeParse(req.body);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    if (!p.success || !b.success) return fail(reply, 'INVALID');
+    const out = await tables.react(user.id, p.data.code, b.data.kind);
+    return out.ok ? { ok: true } : fail(reply, out.error);
   });
 
   app.get('/tables/:code', async (req, reply) => {

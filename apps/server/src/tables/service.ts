@@ -1,4 +1,5 @@
-import { TABLE_PRICE_ROUNDS_MAX, TABLE_PUBLIC_LIST_MAX, TABLE_REQUESTS_MAX, TABLE_REQUEST_TTL_MS, canMeet, clampTableRounds, makeTableCode, tableEntryOk, tableMinEntry, trackRank, normalizeTableCode, seatsOfFormat } from '@dozari/shared';
+import { TABLE_PRICE_ROUNDS_MAX, TABLE_REACTIONS_SHOWN, TABLE_REACTION_GAP_MS, TABLE_REACTION_TTL_MS, TABLE_PUBLIC_LIST_MAX, TABLE_REQUESTS_MAX, TABLE_REQUEST_TTL_MS, canMeet, clampTableRounds, makeTableCode, tableEntryOk, tableMinEntry, trackRank, normalizeTableCode, seatsOfFormat } from '@dozari/shared';
+import type { TableReaction } from '@dozari/shared';
 import type { AgeTrack, CreateTableBody, LiveNotice, PublicTable, TableError, TableFormat, TableView } from '@dozari/shared';
 
 /** A closed public table stays in the open-tables list this long, labelled as closed (view only). */
@@ -88,6 +89,8 @@ export class TableService {
   private readonly recent: (PublicTable & { closedAt: number })[] = [];
   /** Who looked at each playing table lately (user id → last poll); a watcher counts for `WATCH_TTL_MS`. */
   private readonly watching = new Map<string, Map<string, number>>();
+  /** Cheers sent from the stands lately, per table. */
+  private readonly cheers = new Map<string, { kind: TableReaction; nickname: string; userId: string; at: number }[]>();
 
   constructor(private readonly deps: TableDeps) {}
 
@@ -119,6 +122,7 @@ export class TableService {
 
   private close(t: Table): void {
     this.watching.delete(t.code);
+    this.cheers.delete(t.code);
     if (this.tables.delete(t.code) && !t.isPrivate && !t.family) {
       this.recent.unshift({ ...this.row(t, 'none'), closedAt: this.now() });
       this.recent.length = Math.min(this.recent.length, RECENT_MAX);
@@ -436,7 +440,7 @@ export class TableService {
    * A look at a public table whose match is running: who may watch (the same people who see it in the list), and a seated player whose match to show.
    * Counts the caller as a watcher for a few seconds. Anything else (private, family, not playing, another track) reads as no such table.
    */
-  async watch(userId: string, code: string): Promise<TableResult<{ table: { name: string; icon: string; format: TableFormat }; playerId: string; watchers: number }>> {
+  async watch(userId: string, code: string): Promise<TableResult<{ code: string; table: { name: string; icon: string; format: TableFormat }; playerId: string; watchers: number }>> {
     const t = this.live(code);
     if (!t || t.isPrivate || t.family) return { ok: false, error: 'NOT_FOUND' };
     if (!t.seated.includes(userId) && (!(await this.mayEnter(t, userId)) || (await this.deps.socialBlocked?.(userId)) || (await this.deps.duelsOff?.(userId)))) return { ok: false, error: 'NOT_FOUND' };
@@ -445,7 +449,33 @@ export class TableService {
     const w = this.watching.get(t.code) ?? new Map<string, number>();
     w.set(userId, this.now());
     this.watching.set(t.code, w);
-    return { ok: true, table: { name: t.name, icon: t.icon, format: t.format }, playerId, watchers: this.watcherCount(t.code) };
+    return { ok: true, code: t.code, table: { name: t.name, icon: t.icon, format: t.format }, playerId, watchers: this.watcherCount(t.code) };
+  }
+
+  /** The cheers still in the stands of a table, oldest first. */
+  reactionsOf(code: string): { kind: TableReaction; nickname: string }[] {
+    const live = (this.cheers.get(code) ?? []).filter((c) => this.now() - c.at < TABLE_REACTION_TTL_MS);
+    if (live.length > 0) this.cheers.set(code, live);
+    else this.cheers.delete(code);
+    return live.slice(-TABLE_REACTIONS_SHOWN).map(({ kind, nickname }) => ({ kind, nickname }));
+  }
+
+  /** A watcher cheers (one every `TABLE_REACTION_GAP_MS`); only someone who may watch the table can. */
+  async react(userId: string, code: string, kind: TableReaction): Promise<TableResult> {
+    const w = await this.watch(userId, code);
+    if (!w.ok) return w;
+    const mine = (this.cheers.get(w.code) ?? []).filter((c) => c.userId === userId).at(-1);
+    if (mine && this.now() - mine.at < TABLE_REACTION_GAP_MS) return { ok: false, error: 'TOO_MANY' };
+    const nickname = (await this.deps.profileOf(userId))?.nickname ?? '؟';
+    this.cheers.set(w.code, [...(this.cheers.get(w.code) ?? []), { kind, nickname, userId, at: this.now() }]);
+    return { ok: true };
+  }
+
+  /** A bot cheers from the stands (it must be sitting there; no rate limit of its own, the lobby paces it). */
+  async botReact(code: string, botId: string, kind: TableReaction): Promise<void> {
+    if (!this.watcherIds(code).includes(botId)) return;
+    const nickname = (await this.deps.profileOf(botId))?.nickname ?? '؟';
+    this.cheers.set(code, [...(this.cheers.get(code) ?? []), { kind, nickname, userId: botId, at: this.now() }]);
   }
 
   /** Codes of the public tables whose match is running (the stands bots may sit in). */

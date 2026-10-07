@@ -19,4 +19,8 @@ export const TABLE_REQUESTS_MAX = 6;
 export const TABLE_PUBLIC_LIST_MAX = 30;
 /** Bot-hosted lobby tables ask an entry of this many coins per round at least (the table minimum) and never more than this. */
 export const AMBIENT_TABLE_FEE_MAX = 100;
+/** A cheer stays in the stands this long, at most this many show, and one watcher may send one every so often. */
+export const TABLE_REACTION_TTL_MS = 20_000;
+export const TABLE_REACTIONS_SHOWN = 8;
+export const TABLE_REACTION_GAP_MS = 2_000;
 

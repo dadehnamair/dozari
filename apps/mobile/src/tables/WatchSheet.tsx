@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { TABLE_REACTIONS } from '@dozari/shared';
 import type { TableWatch } from '@dozari/shared';
 import { Board } from '../components/Board';
 import { CandyButton } from '../components/CandyButton';
@@ -10,7 +11,7 @@ import { boardSolved } from '../duel/model';
 import { fa } from '../i18n/fa';
 import { useHardwareBack } from '../nav/useHardwareBack';
 import { colors, fonts } from '../theme/colors';
-import { fetchWatch } from './api';
+import { fetchWatch, reactAtTable } from './api';
 
 const INK = '#3A2418';
 const POLL_MS = 2000;
@@ -22,6 +23,7 @@ export function WatchSheet({ code, onClose }: { code: string; onClose: () => voi
   useHardwareBack(onClose);
   const [data, setData] = useState<TableWatch | null>(null);
   const [gone, setGone] = useState(false);
+  const [wait, setWait] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     let alive = true;
@@ -57,6 +59,19 @@ export function WatchSheet({ code, onClose }: { code: string; onClose: () => voi
             </Text>
             {!finished && !data.inPriceRound ? <Text style={styles.clock}>{w.clock(Math.max(0, Math.ceil((view.turnEndsAt - now) / 1000)))}</Text> : null}
             <Board solved={boardSolved(view)} cards={view.cards} names={data.names} selected={[]} onToggle={noop} disabled muted={false} />
+            {data.reactions.length > 0 ? (
+              <View style={styles.cheerFeed}>
+                {data.reactions.map((r, i) => <Text key={`${i}-${r.nickname}-${r.kind}`} style={styles.cheerLine} numberOfLines={1}>{w.cheerFrom(r.nickname, w.cheers[r.kind] ?? '')}</Text>)}
+              </View>
+            ) : null}
+            <View style={styles.cheerRow}>
+              {TABLE_REACTIONS.map((k) => (
+                <Pressable key={k} accessibilityRole="button" accessibilityLabel={w.cheerTitle} style={styles.cheerBtn} onPress={() => void reactAtTable(code, k).then(() => setWait(false), () => setWait(true))}>
+                  <Text style={styles.cheerIcon}>{w.cheers[k]}</Text>
+                </Pressable>
+              ))}
+            </View>
+            {wait ? <Text style={styles.hint}>{w.cheerWait}</Text> : null}
             <Text style={styles.recentTitle}>{w.recentTitle}</Text>
             {data.recent.length === 0 ? <Text style={styles.hint}>{w.noGuessYet}</Text> : null}
             {[...data.recent].reverse().map((g, i) => (
@@ -83,6 +98,11 @@ const styles = StyleSheet.create({
   list: { alignSelf: 'stretch', flexGrow: 0 },
   content: { gap: 8 },
   note: { fontFamily: fonts.bold, fontSize: 13, color: INK, textAlign: 'center' },
+  cheerFeed: { gap: 2, alignItems: 'center' },
+  cheerLine: { fontFamily: fonts.bold, fontSize: 12, color: INK, opacity: 0.85 },
+  cheerRow: { flexDirection: 'row', justifyContent: 'center', gap: 8 },
+  cheerBtn: { width: 46, height: 40, borderRadius: 12, borderWidth: 2.5, borderColor: INK, backgroundColor: colors.candy.yellow, alignItems: 'center', justifyContent: 'center' },
+  cheerIcon: { fontSize: 20 },
   clock: { fontFamily: fonts.display, fontSize: 18, color: INK, textAlign: 'center' },
   recentTitle: { fontFamily: fonts.bold, fontSize: 14, color: INK, textAlign: 'center', marginTop: 4 },
   guess: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, borderWidth: 2.5, backgroundColor: '#fff' },

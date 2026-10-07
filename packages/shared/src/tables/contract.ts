@@ -78,6 +78,13 @@ export const publicTableSchema = z.object({
 export type PublicTable = z.infer<typeof publicTableSchema>;
 export const publicTablesSchema = z.object({ tables: z.array(publicTableSchema) });
 
+/** Cheers a watcher can send from the stands (canned, so no free text is needed). */
+export const TABLE_REACTIONS = ['clap', 'fire', 'wow', 'laugh', 'sad'] as const;
+export type TableReaction = (typeof TABLE_REACTIONS)[number];
+export const tableReactBodySchema = z.object({ kind: z.enum(TABLE_REACTIONS) });
+/** A cheer shown in the stands for a short while. */
+export const tableReactionSchema = z.object({ kind: z.enum(TABLE_REACTIONS), nickname: z.string() });
+
 /** A playing table seen from the stands (read only): the board as seat 0 sees it minus anything private, who plays, card names, and how many watch. */
 export const tableWatchSchema = z.object({
   name: z.string(),
@@ -89,6 +96,8 @@ export const tableWatchSchema = z.object({
   names: z.record(z.string(), z.string()),
   /** The board is over and the price-guess questions are being asked. */
   inPriceRound: z.boolean(),
+  /** Cheers of the last seconds, oldest first. */
+  reactions: z.array(tableReactionSchema).default([]),
   /** The last few selections of this board with their result, oldest first (everybody at the table saw them, so the stands may too). */
   recent: z.array(z.object({ side: z.union([z.literal(0), z.literal(1)]), names: z.array(z.string()), outcome: z.enum(['correct', 'one_away', 'wrong']) })).default([]),
   watchers: z.number().int(),

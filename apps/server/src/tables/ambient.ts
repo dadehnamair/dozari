@@ -1,4 +1,4 @@
-import { AMBIENT_TABLE_FEE_MAX, TABLE_ICONS, TABLE_PRICE_ROUNDS_MAX, TABLE_ROUNDS_MAX, scaledByActivity, tableMinEntry } from '@dozari/shared';
+import { AMBIENT_TABLE_FEE_MAX, TABLE_ICONS, TABLE_REACTIONS, TABLE_PRICE_ROUNDS_MAX, TABLE_ROUNDS_MAX, scaledByActivity, tableMinEntry } from '@dozari/shared';
 import type { Rng, TableFormat } from '@dozari/shared';
 import type { TableService } from './service.js';
 
@@ -115,6 +115,8 @@ export class AmbientLobby {
     const roster = new Set(this.deps.roster().map((b) => b.userId));
     for (const code of tables.playingCodes()) {
       const botWatchers = tables.watcherIds(code).filter((id) => roster.has(id)).length;
+      // A bot in the stands now and then cheers (a quarter of the ticks, one cheer each).
+      for (const id of tables.watcherIds(code).filter((w) => roster.has(w))) if (this.deps.rng() < 0.2) await tables.botReact(code, id, this.pick(TABLE_REACTIONS));
       if (botWatchers >= 3 || this.deps.rng() >= 0.25) continue;
       const bot = this.takeBots(1)[0];
       if (bot) tables.botWatch(code, bot.userId, this.between(15, 60) * 1000);
