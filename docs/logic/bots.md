@@ -133,3 +133,7 @@ A bot's strength follows its **level** (from its `user_stats.xp` via the default
 - Determinism: all randomness comes from the driver's injected RNG. Bots still play only through `MatchService.submit` / `submitPrice`; the level changes how often the
   server-side driver uses the answer (`solutionFor` / `priceAnswerFor`), never what a client can see.
 - Level uses the default curve (an admin level table with custom `starts` is not read by the driver).
+
+## Who a bot is paired with (level match)
+
+A waiting human is given an idle bot within `BOT_MATCH_LEVEL_GAP` (2) levels of their own, picked at random among those; when none is that near, among the nearest ones. A 2v2 fill matches the average level of the waiting humans. If the level lookup fails the driver falls back to a random idle bot (a player is never left waiting). The auto-generated roster covers levels 1–30 so a near bot exists for everyone. Code: `pickBotByLevel` (`packages/shared/src/bots/pick.ts`), `BotDriver.botNear`.

@@ -604,8 +604,9 @@ if (isMainModule(import.meta.url)) {
           teamQueue: () => live.teamQueue,
           chat: () => chat,
           settings: async () => ({ enabled: (await settings.num('bots.enabled')) === 1, fallbackSec: await settings.num('bots.fallback_seconds'), jitterSec: await settings.num('bots.fallback_jitter_seconds'), cityReplyPercent: await settings.num('bots.city_reply_percent'), autofillMin: await settings.num('bots.autofill_min') }),
-          topUp: botService ? async (missing) => void (await botService.generate({ count: missing, levelMin: 3, levelMax: 25, skillMin: 30, skillMax: 75, winPercentMin: 40, winPercentMax: 65, thinkMinMs: 4000, thinkMaxMs: 20_000, tauntPercent: 25, cityIds: playerStore ? (await playerStore.cities()).map((c) => c.id) : [] })) : undefined,
+          topUp: botService ? async (missing) => void (await botService.generate({ count: missing, levelMin: 1, levelMax: 30, skillMin: 30, skillMax: 75, winPercentMin: 40, winPercentMax: 65, thinkMinMs: 4000, thinkMaxMs: 20_000, tauntPercent: 25, cityIds: playerStore ? (await playerStore.cities()).map((c) => c.id) : [] })) : undefined,
           taunts: chatStore ? async () => (await chatStore.taunts()).filter((c) => c.ageTrack === 'adult').map((c) => ({ nameFa: c.nameFa, ids: c.taunts.map((t) => t.id) })) : undefined,
+          levelOf: player ? async (id) => (await player.levelOf(id)).level.level : undefined,
           rng: () => randomInt(0, 2 ** 30) / 2 ** 30,
         })
       : undefined;

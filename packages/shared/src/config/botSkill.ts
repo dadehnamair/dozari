@@ -36,3 +36,9 @@ export const BOT_PRICE_ERROR_NUDGE_PER_POINT = 0.2;
 
 /** Default chance (percent) of a one-away pick among a bot's misses when no level profile is given. */
 export const BOT_NEAR_MISS_PERCENT = 35;
+
+/**
+ * Who a waiting human is given as a bot opponent: a bot within this many levels of the human (the closest ones when none is that near),
+ * so a level-3 player never meets a level-20 bot.
+ */
+export const BOT_MATCH_LEVEL_GAP = 2;
