@@ -27,6 +27,8 @@ import type { CoinPackageService } from '../economy/coin-packages.js';
 import type { KeepsakeStore } from '../keepsakes/store.js';
 import type { ShopStore } from '../economy/shop-store.js';
 import type { WheelService } from '../wheel/service.js';
+import type { ImageStore } from '@dozari/db';
+import { registerAdminUploadRoutes } from './uploads.js';
 import { registerLandingAdminRoutes } from '../landing/routes.js';
 import type { LandingService } from '../landing/service.js';
 import { registerShortLinkAdminRoutes } from '../shortlinks/routes.js';
@@ -49,6 +51,8 @@ import type { AiStudio } from '../ai/studio.js';
 import type { InviteStore } from '../invite/store.js';
 
 export interface AdminModules {
+  /** Where the panel's image uploads go (S3 or the local images dir); without it the upload button answers 404. */
+  images?: ImageStore;
   settings?: SettingsService;
   products?: ProductAdmin;
   stats?: StatsAdmin;
@@ -1038,6 +1042,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     });
   }
 
+  if (m.images) registerAdminUploadRoutes(g, m.images, (a, t, d) => void audit(a, t, d));
   if (m.landing) registerLandingAdminRoutes(g, m.landing, (a, t, d) => void audit(a, t, d));
   if (m.feedback) registerFeedbackAdminRoutes(g, m.feedback, (a, t, d) => void audit(a, t, d));
   if (m.clientErrors) registerClientErrorAdminRoutes(g, m.clientErrors, (a, t, d) => void audit(a, t, d));

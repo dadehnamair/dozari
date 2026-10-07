@@ -59,13 +59,42 @@ function api(path, opts) {
     .then(function (res) { return res.json().catch(function () { return {}; }).then(function (body) { if (res.status === 401 && S.token && path !== '/admin/login') { sstore('tok', null); S.token = ''; showLogin('نشست تمام شد؛ دوباره وارد شو.'); } return { status: res.status, ok: res.ok, body: body }; }); })
     .catch(function () { return { status: 0, ok: false, body: {} }; });
 }
+/* Raw-body upload (no multipart): the server answers { url }, the address to keep in the field. */
+function uploadImage(file, folder) {
+  return fetch('/admin/uploads?folder=' + encodeURIComponent(folder || 'misc'), { method: 'POST', headers: { 'x-admin-token': S.token, 'content-type': file.type }, body: file })
+    .then(function (res) { return res.json().catch(function () { return {}; }).then(function (body) { return { status: res.status, ok: res.ok, body: body }; }); })
+    .catch(function () { return { status: 0, ok: false, body: {} }; });
+}
+/* Wraps a text input holding an image URL with a «انتخاب فایل» button and a preview; the input stays the source of truth. */
+function imageField(input, folder) {
+  input.style.direction = 'ltr';
+  var preview = h('img', { alt: '', style: 'display:none;max-width:160px;max-height:90px;border-radius:8px;margin-top:6px' });
+  var picker = h('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp', style: 'display:none' });
+  var btn = h('button', { type: 'button', class: 'btn', text: 'آپلود تصویر' });
+  function show() { var v = input.value.trim(); if (/^(https?:\/\/|\/)/i.test(v)) { preview.src = v; preview.style.display = 'block'; } else preview.style.display = 'none'; }
+  btn.addEventListener('click', function () { picker.click(); });
+  picker.addEventListener('change', function () {
+    var f = picker.files && picker.files[0]; picker.value = '';
+    if (!f) return;
+    if (f.size > 5 * 1024 * 1024) return toast('حجم تصویر بیشتر از ۵ مگابایت است', true);
+    btn.disabled = true; btn.textContent = 'در حال آپلود…';
+    uploadImage(f, folder).then(function (r) {
+      btn.disabled = false; btn.textContent = 'آپلود تصویر';
+      if (!r.ok) return toast(r.status === 404 ? 'ذخیره‌ی تصویر روی این سرور تنظیم نشده' : r.status === 415 ? 'فقط PNG، JPG یا WebP' : r.status === 413 ? 'حجم تصویر بیشتر از ۵ مگابایت است' : 'آپلود نشد', true);
+      input.value = r.body.url; show(); toast('آپلود شد');
+    });
+  });
+  input.addEventListener('input', show);
+  show();
+  return h('div', null, [h('div', { style: 'display:flex;gap:8px;align-items:center' }, [input, btn, picker]), preview]);
+}
 function toast(msg, err) {
   var area = $('toasts');
   var t = h('div', { class: 'toast' + (err ? ' err' : ''), text: msg });
   area.appendChild(t);
   setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, err ? 5000 : 2600);
 }
-var ERR = { invalid_code: 'کد نامعتبر است: ۴ تا ۱۲ حرف/عدد، فقط از «۲۳۴۵۶۷۸۹ و ABCDEFGHJKMNPQRSTUVWXYZ» (بدون ۰ ۱ O I L)', invalid_request: 'ورودی نادرست است؛ کد، نام کمپین و تعداد استفاده را بررسی کن', unauthorized: 'توکن اشتباه است', forbidden: 'نقش تو اجازه‌ی این کار را ندارد', rate_limited: 'تلاش‌های زیاد؛ کمی بعد دوباره امتحان کن', invalid_credentials: 'نام کاربری یا رمز درست نیست', account_locked: 'حساب برای چند دقیقه قفل شد', duplicate: 'این نام کاربری قبلاً هست', invalid_username: 'نام کاربری: ۳ تا ۳۰ حرف انگلیسی کوچک، عدد، نقطه یا خط تیره', weak_password: 'رمز ضعیف است (حداقل ۱۰ نویسه، بدون نام کاربری، متنوع)', last_owner: 'آخرین مالک را نمی‌شود برداشت یا غیرفعال کرد', not_found: 'پیدا نشد', invalid_request: 'ورودی نامعتبر است', product_not_found: 'محصول پیدا نشد', slug_taken: 'این شناسه (slug) قبلاً استفاده شده', price_exists: 'همین قیمت قبلاً ثبت شده', approved_price_exists: 'برای این سال قبلاً یک قیمت تأییدشده هست', conflict: 'برای این محصول و سال قبلاً قیمت تأییدشده هست', needs_product: 'یک محصول انتخاب کن یا محصول جدید بساز', duplicate_slug: 'این شناسه قبلاً استفاده شده', already_decided: 'قبلاً تصمیم گرفته شده', insufficient: 'موجودی کافی نیست', source_not_found: 'منبع پیدا نشد', user_not_found: 'کاربر پیدا نشد', invalid_value: 'مقدار خارج از محدوده است', invalid_key: 'تنظیم ناشناخته است' };
+var ERR = { invalid_code: 'کد نامعتبر است: ۴ تا ۱۲ حرف/عدد، فقط از «۲۳۴۵۶۷۸۹ و ABCDEFGHJKMNPQRSTUVWXYZ» (بدون ۰ ۱ O I L)', invalid_request: 'ورودی نادرست است؛ کد، نام کمپین و تعداد استفاده را بررسی کن', unauthorized: 'توکن اشتباه است', invalid_folder: 'پوشه‌ی آپلود نامعتبر است', unsupported_image: 'فایل تصویر معتبر نیست (PNG، JPG یا WebP)', forbidden: 'نقش تو اجازه‌ی این کار را ندارد', rate_limited: 'تلاش‌های زیاد؛ کمی بعد دوباره امتحان کن', invalid_credentials: 'نام کاربری یا رمز درست نیست', account_locked: 'حساب برای چند دقیقه قفل شد', duplicate: 'این نام کاربری قبلاً هست', invalid_username: 'نام کاربری: ۳ تا ۳۰ حرف انگلیسی کوچک، عدد، نقطه یا خط تیره', weak_password: 'رمز ضعیف است (حداقل ۱۰ نویسه، بدون نام کاربری، متنوع)', last_owner: 'آخرین مالک را نمی‌شود برداشت یا غیرفعال کرد', not_found: 'پیدا نشد', invalid_request: 'ورودی نامعتبر است', product_not_found: 'محصول پیدا نشد', slug_taken: 'این شناسه (slug) قبلاً استفاده شده', price_exists: 'همین قیمت قبلاً ثبت شده', approved_price_exists: 'برای این سال قبلاً یک قیمت تأییدشده هست', conflict: 'برای این محصول و سال قبلاً قیمت تأییدشده هست', needs_product: 'یک محصول انتخاب کن یا محصول جدید بساز', duplicate_slug: 'این شناسه قبلاً استفاده شده', already_decided: 'قبلاً تصمیم گرفته شده', insufficient: 'موجودی کافی نیست', source_not_found: 'منبع پیدا نشد', user_not_found: 'کاربر پیدا نشد', invalid_value: 'مقدار خارج از محدوده است', invalid_key: 'تنظیم ناشناخته است' };
 function fail(r) { toast(ERR[r.body && r.body.error] || ('خطا (' + r.status + ')'), true); }
 
 var OVERLAYS = [];

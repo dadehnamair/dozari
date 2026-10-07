@@ -5,3 +5,5 @@ export type { Db } from './client.js';
 export { and, asc, count, desc, eq, gt, gte, inArray, isNotNull, isNull, like, lt, lte, ne, notExists, notInArray, or, sql } from 'drizzle-orm';
 export { ruleToColumns, columnsToRule } from './puzzle-rule.js';
 export type { RuleColumns } from './puzzle-rule.js';
+export { imageStoreFromEnv } from './seed/images.js';
+export type { ImageStore } from './seed/images.js';

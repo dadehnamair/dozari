@@ -13,7 +13,7 @@ function postFields(p) {
     author: h('input', { type: 'text', value: p.authorName || '', maxlength: 80 }),
     status: select([['draft', 'پیش‌نویس (منتشر نشده)'], ['published', 'منتشر شده']], p.status || 'draft')
   };
-  f.nodes = [['عنوان', f.title], ['نشانی (slug)', f.slug, 'تغییر نشانی یک مقاله‌ی منتشرشده خودکار ۳۰۱ می‌شود.'], ['خلاصه', f.summary, 'یکی دو جمله؛ در فهرست و نتیجه‌ی جستجو دیده می‌شود.'], ['متن (مارک‌داون)', f.body, 'با ## بخش بسازید؛ زیر هر ## جمله‌ی اول پاسخ مستقیم باشد.'], ['عنوان گوگل', f.metaTitle], ['توضیح گوگل', f.metaDesc, 'حداکثر ۱۶۰ نویسه.'], ['تصویر شاخص', f.cover], ['نویسنده', f.author], ['وضعیت', f.status]];
+  f.nodes = [['عنوان', f.title], ['نشانی (slug)', f.slug, 'تغییر نشانی یک مقاله‌ی منتشرشده خودکار ۳۰۱ می‌شود.'], ['خلاصه', f.summary, 'یکی دو جمله؛ در فهرست و نتیجه‌ی جستجو دیده می‌شود.'], ['متن (مارک‌داون)', f.body, 'با ## بخش بسازید؛ زیر هر ## جمله‌ی اول پاسخ مستقیم باشد.'], ['عنوان گوگل', f.metaTitle], ['توضیح گوگل', f.metaDesc, 'حداکثر ۱۶۰ نویسه.'], ['تصویر شاخص', imageField(f.cover, 'landing')], ['نویسنده', f.author], ['وضعیت', f.status]];
   f.value = function () { return { titleFa: f.title.value.trim(), slug: f.slug.value.trim() || undefined, summaryFa: f.summary.value.trim(), bodyMd: f.body.value, metaTitle: f.metaTitle.value.trim() || null, metaDescription: f.metaDesc.value.trim() || null, coverUrl: f.cover.value.trim() || null, authorName: f.author.value.trim(), status: f.status.value }; };
   return f;
 }
