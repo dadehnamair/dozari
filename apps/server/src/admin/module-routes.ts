@@ -748,9 +748,10 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       return reply.code(201).send({ id: out.id });
     });
     g.post('/admin/puzzles/generate', async (req, reply) => {
-      const b = z.object({ count: z.number().int().min(1).max(20) }).safeParse(req.body);
+      const b = z.object({ count: z.number().int().min(1).max(20), tierId: z.string().uuid().optional() }).safeParse(req.body);
       if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
-      const out = await puzzles.generate(b.data.count, () => randomInt(0, 2 ** 30) / 2 ** 30);
+      if (b.data.tierId && !(await puzzles.tiers()).some((t) => t.id === b.data.tierId)) return reply.code(404).send({ error: 'unknown_tier' });
+      const out = await puzzles.generate(b.data.count, () => randomInt(0, 2 ** 30) / 2 ** 30, { tierId: b.data.tierId });
       void audit('puzzle.generate', 'puzzles', `${out.created}/${out.requested}`);
       return out;
     });

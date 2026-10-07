@@ -152,9 +152,29 @@ ones are approved at once with the plain-Persian rule as title. `puzzles.autofil
 `price_band_at_year` (band ±8 / 15 / 25 / 40 % by level) and `era_icon` (an easy anchor), each instantiated from real prices; the finished puzzle
 must pass `validatePuzzle` (one solution) with ≥ 2 near misses. Seeded RNG → same seed, same puzzle. Measured on synthetic catalogs: 150+ products
 succeed every time, 90 products ≈ 70 %, 60 ≈ 30 %, so a real catalog of about 150 products with ≥ 3 approved price years each is the target.
-Not built yet: `first_crossed`, `same_price_at_year`, `cheaper_than_ref`, `category_price_rank` instantiation; the title templates.
+All seven machine-checked kinds are now instantiated (see §Generator by player level); the draft titles are varied templates (`draftTitle`).
 
 Admin page «ساخت پازل»: «ساخت خودکار» (`POST /admin/puzzles/generate {count}`) saves up to 20 puzzles as `draft`, `source: generated`; the
 placeholder title of each group is the rule in plain Persian (`explainRule`). The admin writes real titles (`PUT /admin/puzzles/:id/titles`) and
 approves (`PATCH`); a draft is never served. Generated puzzles never go live without that human step (spec: "Never auto-publish an AI title").
 
+
+## Generator by player level (owner request 2026-10-07)
+
+`generatePuzzle(catalog, rng, { playerLevel })` takes the level of the players the puzzle is for (`profileForLevel`, `packages/shared/src/puzzle/difficulty.ts`).
+Five stages mirror the default tiers (levels 1–3, 4–8, 9–15, 16–25, 26+); a stage sets:
+
+- **`scale`** — multiplies band width, same-price tolerance and the year windows (newcomers looser, veterans tighter; 1.15 → 0.65).
+  Newcomers are not given *much* wider bands: wide bands collide and the one-solution check rejects them (measured: 1.5 failed 11 of 12).
+- **`minNearMisses`** — red herrings required: 2 for stages 0–2, 3 for stages 3–4.
+- **`weights`** — the chance of each rule kind per group level (yellow…purple). Newcomers get era / band / "cheaper than X" / "cheapest of the category";
+  `first_crossed` and `multiplier_between` only appear from stage 1/2 up and dominate the purple group for veterans.
+
+Variety: not only "the price was X in year Y". The generator also builds `same_price_at_year` (round targets from real prices), `first_crossed`
+(a round threshold such as 1000 تومن between two recorded prices), `cheaper_than_ref` (a low-priced reference product), and `category_price_rank`
+(the 4–5 cheapest of a category that year). A kind is used at most twice per puzzle, and a group falls back to the next kind when the chosen one cannot be filled.
+
+Admin «ساخت خودکار» (`POST /admin/puzzles/generate {count, tierId?}`): with a tier it makes every puzzle for that tier's level range (`representativeLevel`),
+without one it goes through all tiers in turn, so the pool covers every level. Each draft is tagged with its tier. Draft titles are
+`draftTitle(rule)` = a varied opening line + the plain rule (several templates per kind), still drafts for a human to polish; the explanation is the plain rule.
+With pool auto-approve on, the title stays the plain rule (no un-reviewed AI wording goes live).

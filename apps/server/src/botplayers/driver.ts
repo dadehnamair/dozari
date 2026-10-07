@@ -1,4 +1,4 @@
-import { botSkillForLevel, botThinkDelay, chooseBotMove, chooseBotPriceGuess, scaledThinkRange } from '@dozari/shared';
+import { averageLevel, botSkillForLevel, botThinkDelay, chooseBotMove, chooseBotPriceGuess, pickBotByLevel, scaledThinkRange } from '@dozari/shared';
 import type { ChatMessage, MatchView, Rng } from '@dozari/shared';
 import { createHash } from 'node:crypto';
 import type { ChatService } from '../chat/service.js';
@@ -26,6 +26,8 @@ export interface BotDriverDeps {
   taunts?: () => Promise<{ nameFa: string; ids: string[] }[]>;
   /** Makes `missing` more bot accounts (the admin's generator with default tuning). */
   topUp?: (missing: number) => Promise<void>;
+  /** A player's level, to give a waiting human a bot of about their own level; absent = a random bot. */
+  levelOf?: (userId: string) => Promise<number>;
   rng: Rng;
   now?: () => number;
   schedule?: (ms: number, fn: () => void) => void;
@@ -178,6 +180,21 @@ export class BotDriver {
     return out;
   }
 
+  /** The idle bot whose level is nearest the humans' (their average): a level-3 player is never paired with a level-20 bot. A random one when levels are unknown. */
+  private async botNear(idle: BotRow[], humanIds: string[]): Promise<BotRow | null> {
+    if (idle.length === 0) return null;
+    if (this.deps.levelOf) {
+      try {
+        const level = averageLevel(await Promise.all(humanIds.map((id) => this.deps.levelOf!(id))));
+        const pick = pickBotByLevel(idle.map((b) => ({ id: b.userId, level: b.level })), level, this.deps.rng);
+        return idle.find((b) => b.userId === pick?.id) ?? null;
+      } catch {
+        // fall through to a random bot: a lookup failure must not leave the player waiting
+      }
+    }
+    return idle[Math.floor(this.deps.rng() * idle.length)] ?? null;
+  }
+
   /** Every few seconds: a human who waited long enough in the queue gets a bot opponent (the "opponent found" moment is the human-like delay). */
   async tick(): Promise<void> {
     const refreshNow = this.ticks++ % 6 === 0;
@@ -195,7 +212,7 @@ export class BotDriver {
     for (const { userId, since, track, tier } of queue.waiting()) {
       if (now - since < (s.fallbackSec + jitterOf(userId, s.jitterSec)) * 1000) continue;
       const idle = [...this.roster.values()].filter((b) => !matches.inMatch(b.userId) && !queue.has(b.userId));
-      const bot = idle[Math.floor(this.deps.rng() * idle.length)];
+      const bot = await this.botNear(idle, [userId]);
       if (!bot) return;
       queue.leave(userId);
       if (!(await matches.start(userId, bot.userId, { tier }))) queue.join(userId, since, track, tier); // could not start: back in line, original place in time
@@ -214,7 +231,11 @@ export class BotDriver {
     const humans = waiting.slice(0, 4);
     const idle = [...this.roster.values()].filter((b) => !matches.inMatch(b.userId) && !queue.has(b.userId));
     const bots: string[] = [];
-    while (humans.length + bots.length < 4 && idle.length > 0) bots.push(idle.splice(Math.floor(this.deps.rng() * idle.length), 1)[0]!.userId);
+    while (humans.length + bots.length < 4 && idle.length > 0) {
+      const pick = (await this.botNear(idle, humans.map((h) => h.userId))) ?? idle[0]!;
+      idle.splice(idle.indexOf(pick), 1);
+      bots.push(pick.userId);
+    }
     if (humans.length + bots.length < 4) return;
     const seats = [...humans.map((h) => h.userId), ...bots];
     for (const h of humans) queue.leave(h.userId);
