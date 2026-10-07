@@ -21,6 +21,8 @@ export const scheduleInputSchema = z.object({
   count: z.number().int().min(1).max(20).default(1),
   ageTrack: z.enum(AGE_TRACKS).default('adult'),
   style: z.enum(['witty', 'plain']).default('witty'),
+  /** Puzzle tier the scheduled puzzles are made for (puzzle_groups); null = mixed. */
+  tierId: z.string().min(1).max(36).nullable().default(null),
   category: z.enum(PRODUCT_CATEGORIES).nullable().default(null),
   fromYear: z.number().int().min(1300).max(1450).nullable().default(null),
   toYear: z.number().int().min(1300).max(1450).nullable().default(null),
@@ -77,6 +79,7 @@ const toRow = (r: typeof aiSchedules.$inferSelect): ScheduleRow => ({
   count: r.count,
   ageTrack: r.ageTrack as ScheduleInput['ageTrack'],
   style: r.style as ScheduleInput['style'],
+  tierId: r.tierId,
   category: r.category as ScheduleInput['category'],
   fromYear: r.fromYear,
   toYear: r.toYear,
@@ -91,7 +94,7 @@ const toRow = (r: typeof aiSchedules.$inferSelect): ScheduleRow => ({
   createdAt: r.createdAt.getTime(),
 });
 
-const inputColumns = (i: ScheduleInput) => ({ name: i.name, kind: i.kind, enabled: i.enabled, cron: i.cron, provider: i.provider, model: i.model, hint: i.hint, count: i.count, ageTrack: i.ageTrack, style: i.style, category: i.category, fromYear: i.fromYear, toYear: i.toYear, topic: i.topic, length: i.length, tone: i.tone });
+const inputColumns = (i: ScheduleInput) => ({ name: i.name, kind: i.kind, enabled: i.enabled, cron: i.cron, provider: i.provider, model: i.model, hint: i.hint, count: i.count, ageTrack: i.ageTrack, style: i.style, tierId: i.tierId, category: i.category, fromYear: i.fromYear, toYear: i.toYear, topic: i.topic, length: i.length, tone: i.tone });
 const asDate = (ms: number | null) => (ms === null ? null : new Date(ms));
 
 export function createDbAiScheduleStore(db: Db): AiScheduleStore {
@@ -186,7 +189,7 @@ export function requestFor(s: ScheduleInput): GenerateRequest {
     case 'kid_lessons':
       return generateRequestSchema.parse({ ...base, kind: 'kid_lessons', count: s.count });
     case 'puzzle_groups':
-      return generateRequestSchema.parse({ ...base, kind: 'puzzle_groups', count: s.count, ageTrack: s.ageTrack, style: s.style });
+      return generateRequestSchema.parse({ ...base, kind: 'puzzle_groups', count: s.count, ageTrack: s.ageTrack, style: s.style, ...(s.tierId ? { tierId: s.tierId } : {}) });
     case 'blog':
       return generateRequestSchema.parse({ ...base, kind: 'blog', topic: s.topic, count: s.count, length: s.length, tone: s.tone, keywords: [] });
   }
@@ -289,7 +292,7 @@ export class AiScheduler {
     let result: RunResult;
     try {
       const gen = await this.studio.generate(requestFor(row));
-      const save = saveSchema.safeParse({ kind: row.kind, drafts: gen.drafts });
+      const save = saveSchema.safeParse({ kind: row.kind, drafts: gen.drafts, ...(row.kind === 'puzzle_groups' && row.tierId ? { tierId: row.tierId } : {}) });
       if (gen.drafts.length === 0) result = { at, status: 'empty', message: 'no_drafts', saved: 0 };
       else if (!save.success) result = { at, status: 'error', message: 'ai_bad_output', saved: 0 };
       else {

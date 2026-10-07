@@ -36,6 +36,16 @@ function aiFields(kind) {
   if (kind === 'puzzle_titles') return [['titleFa', 'عنوان', 'text']];
   return [['titleFa', 'عنوان', 'text'], ['summaryFa', 'خلاصه', 'area'], ['bodyMd', 'متن (مارک‌داون)', 'area'], ['metaTitle', 'عنوان سئو', 'text'], ['metaDescription', 'توضیح سئو', 'area']];
 }
+/** Fills a <select> with the puzzle tiers (level ranges) once they arrive, keeping current selected. */
+function aiLoadTiers(sel, current) {
+  api('/admin/puzzles/tiers').then(function (r) {
+    if (!r.ok) return;
+    (r.body.tiers || []).forEach(function (t) {
+      sel.appendChild(h('option', { value: t.id, text: t.nameFa + ' (لول ' + fa(t.minLevel) + (t.maxLevel === null ? ' به بالا' : ' تا ' + fa(t.maxLevel)) + ')' }));
+    });
+    sel.value = current || '';
+  });
+}
 function aiManual(root) {
   var info = null, result = null;
   var out = h('div');
@@ -62,7 +72,9 @@ function aiManual(root) {
       ctl.count = num(1, 1, 3);
       ctl.ageTrack = select([['adult', 'بزرگسال'], ['teen', 'نوجوان'], ['kid', 'کودک']], 'adult');
       ctl.style = select([['witty', 'بامزه و شوخ'], ['plain', 'ساده و روشن']], 'witty');
-      [['تعداد پازل', ctl.count], ['رده‌ی سنی', ctl.ageTrack], ['سبک عنوان', ctl.style]].forEach(function (p) { opts.appendChild(field(p[0], p[1])); });
+      ctl.tier = select([['', 'بدون سطح (ترکیبی)']], '');
+      aiLoadTiers(ctl.tier, '');
+      [['تعداد پازل', ctl.count], ['برای بازیکن‌های سطح', ctl.tier], ['رده‌ی سنی', ctl.ageTrack], ['سبک عنوان', ctl.style]].forEach(function (p) { opts.appendChild(field(p[0], p[1])); });
       opts.appendChild(h('div', { class: 'h', text: 'هوش مصنوعی خودش ۴ گروه و ۴ محصولِ هر گروه را از کاتالوگ انتخاب می‌کند (فقط محصول‌های فعال). پازل‌ها پیش‌نویس ذخیره می‌شوند و بعد از بازبینی در «ساخت پازل» تأییدشان کن.' }));
     } else if (kind === 'puzzle_titles') {
       ctl.puzzle = select([['', 'در حال بارگیری…']], ''); ctl.style = select([['witty', 'بامزه و شوخ'], ['plain', 'ساده و روشن']], 'witty');
@@ -85,7 +97,7 @@ function aiManual(root) {
     var body = { kind: kind, provider: provider.value, hint: hint.value.trim() || undefined, model: model.value.trim() || undefined };
     if (kind === 'products') { body.count = +ctl.count.value; if (ctl.category.value) body.category = ctl.category.value; body.ageTrack = ctl.ageTrack.value; if (ctl.fromYear.value) body.fromYear = +ctl.fromYear.value; if (ctl.toYear.value) body.toYear = +ctl.toYear.value; }
     else if (kind === 'kid_lessons') body.count = +ctl.count.value;
-    else if (kind === 'puzzle_groups') { body.count = +ctl.count.value; body.ageTrack = ctl.ageTrack.value; body.style = ctl.style.value; }
+    else if (kind === 'puzzle_groups') { body.count = +ctl.count.value; body.ageTrack = ctl.ageTrack.value; body.style = ctl.style.value; if (ctl.tier.value) body.tierId = ctl.tier.value; }
     else if (kind === 'puzzle_titles') { body.puzzleId = ctl.puzzle.value; body.style = ctl.style.value; }
     else { body.topic = ctl.topic.value.trim(); body.count = +ctl.count.value; body.length = ctl.length.value; body.tone = ctl.tone.value; body.keywords = ctl.keywords.value.split(/[,،]/).map(function (x) { return x.trim(); }).filter(Boolean); }
     return body;
@@ -161,6 +173,7 @@ function aiManual(root) {
       if (!picked.length) return toast('چیزی انتخاب نشده', true);
       var body = { kind: result.kind, drafts: picked };
       if (result.kind === 'puzzle_titles') body.puzzleId = result.puzzleId;
+      if (result.kind === 'puzzle_groups' && result.tierId) body.tierId = result.tierId;
       api('/admin/ai/save', { method: 'POST', body: body }).then(function (r) {
         if (!r.ok) return toast(AI_ERR[r.body && r.body.error] || 'ذخیره نشد؛ مقدارها را بررسی کن', true);
         var okN = r.body.results.filter(function (x) { return x.ok; }).length;
@@ -308,6 +321,7 @@ function aiSchedules(root) {
     var category = select([['', 'هر دسته']].concat(cats.map(function (c) { return [c, c]; })), row && row.category ? row.category : '');
     var ageTrack = select([['adult', 'بزرگسال'], ['teen', 'نوجوان'], ['kid', 'کودک']], row ? row.ageTrack : 'adult');
     var style = select([['witty', 'بامزه و شوخ'], ['plain', 'ساده و روشن']], row ? row.style : 'witty');
+    var tier = select([['', 'بدون سطح (ترکیبی)']], ''); aiLoadTiers(tier, row && row.tierId ? row.tierId : '');
     var fromYear = h('input', { type: 'number', min: 1300, max: 1450, value: row && row.fromYear ? row.fromYear : '', style: 'width:100px' });
     var toYear = h('input', { type: 'number', min: 1300, max: 1450, value: row && row.toYear ? row.toYear : '', style: 'width:100px' });
     var topic = h('input', { type: 'text', maxlength: 300, value: row ? row.topic : '', placeholder: 'مثلاً قیمت نان در دهه‌ی ۶۰' });
@@ -318,14 +332,14 @@ function aiSchedules(root) {
       clear(opts);
       var k = kind.value, items = [['تعداد در هر اجرا (سقف ' + fa(limits.maxCount[k]) + ')', count]];
       if (k === 'products') items.push(['دسته', category], ['رده‌ی سنی', ageTrack], ['از سال (شمسی)', fromYear], ['تا سال (شمسی)', toYear]);
-      if (k === 'puzzle_groups') items.push(['رده‌ی سنی', ageTrack], ['سبک عنوان', style]);
+      if (k === 'puzzle_groups') items.push(['برای بازیکن‌های سطح', tier], ['رده‌ی سنی', ageTrack], ['سبک عنوان', style]);
       if (k === 'blog') items.push(['موضوع', topic], ['طول', length], ['لحن', tone]);
       items.forEach(function (p) { opts.appendChild(field(p[0], p[1])); });
       count.max = limits.maxCount[k];
     }
     kind.addEventListener('change', drawOpts); drawOpts();
     var go = h('button', { class: 'btn primary', text: row ? 'ذخیره‌ی تغییرات' : 'ساخت برنامه', onclick: function () {
-      var body = { name: name.value.trim(), kind: kind.value, enabled: enabled.checked, cron: when.value(), provider: provider.value, model: model.value.trim(), hint: hint.value.trim(), count: +count.value || 1, ageTrack: ageTrack.value, style: style.value, category: category.value || null, fromYear: fromYear.value ? +fromYear.value : null, toYear: toYear.value ? +toYear.value : null, topic: topic.value.trim(), length: length.value, tone: tone.value };
+      var body = { name: name.value.trim(), kind: kind.value, enabled: enabled.checked, cron: when.value(), provider: provider.value, model: model.value.trim(), hint: hint.value.trim(), count: +count.value || 1, ageTrack: ageTrack.value, style: style.value, tierId: tier.value || null, category: category.value || null, fromYear: fromYear.value ? +fromYear.value : null, toYear: toYear.value ? +toYear.value : null, topic: topic.value.trim(), length: length.value, tone: tone.value };
       if (!body.name) return toast('برای برنامه اسم بگذار', true);
       save(row && row.id, body, function () { clear(formBox); });
     } });

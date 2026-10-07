@@ -100,6 +100,11 @@ export class AiStudio {
         const j = Math.floor(Math.random() * (i + 1));
         [usable[i], usable[j]] = [usable[j]!, usable[i]!];
       }
+      if (req.tierId) {
+        const tier = (await this.deps.puzzles.tiers()).find((t) => t.id === req.tierId);
+        if (!tier) throw new AiError('ai_not_found');
+        ctx.tier = { nameFa: tier.nameFa, minLevel: tier.minLevel, maxLevel: tier.maxLevel };
+      }
       ctx.pool = usable.slice(0, AI_PUZZLE_CATALOG_MAX).map((p) => ({ productId: p.id, nameFa: p.nameFa, category: details[p.id]?.category }));
       if (ctx.pool.length < 16) throw new AiError('ai_not_found');
       // Puzzles that already exist are sent too, so the model does not rebuild them; repeats are also dropped on parse.
@@ -118,7 +123,7 @@ export class AiStudio {
     const text = await chat(provider, { ...prompt, model, maxTokens: AI_LIMITS.maxTokens[req.kind] }, this.deps.fetch);
     const parsed = parseDrafts(req.kind, text, ctx, req.kind === 'products' || req.kind === 'puzzle_groups' ? req.ageTrack : 'adult');
     if (!parsed) throw new AiError('ai_bad_output', undefined, `جواب مدل JSON قابل‌خواندن نبود: «${text.replace(/\s+/g, ' ').slice(0, 160)}»`);
-    return { kind: req.kind, provider: provider.id, model, drafts: parsed.drafts, dropped: parsed.dropped, context: ctx };
+    return { kind: req.kind, provider: provider.id, model, drafts: parsed.drafts, dropped: parsed.dropped, context: ctx, ...(req.kind === 'puzzle_groups' && req.tierId ? { tierId: req.tierId } : {}) };
   }
 
   /** Saves reviewed drafts through the normal services: products inactive, lessons as draft, blog posts as draft, puzzle titles on the puzzle. */
@@ -178,7 +183,7 @@ export class AiStudio {
         if (!d.puzzles) throw new AiError('ai_not_found');
         const out: SaveOutcome[] = [];
         for (const [i, p] of req.drafts.entries()) {
-          const res = await d.puzzles.create(p.groups.map((g) => ({ level: g.level, titleFa: g.titleFa, explanationFa: g.explanationFa, productIds: g.items.map((x) => x.productId) })), null, p.ageTrack, 'draft');
+          const res = await d.puzzles.create(p.groups.map((g) => ({ level: g.level, titleFa: g.titleFa, explanationFa: g.explanationFa, productIds: g.items.map((x) => x.productId) })), req.tierId ?? null, p.ageTrack, 'draft');
           out.push({ label: `پازل ${i + 1}`, ok: res.ok, ...(res.ok ? {} : { error: res.error }) });
         }
         return out;

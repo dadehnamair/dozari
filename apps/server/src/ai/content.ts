@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AI_BLOG_LENGTHS, AI_LIMITS, AGE_TRACKS, GROUP_COUNT, GROUP_SIZE, PRODUCT_CATEGORIES } from '@dozari/shared';
+import { AI_BLOG_LENGTHS, AI_LIMITS, AGE_TRACKS, GROUP_COUNT, GROUP_SIZE, PRODUCT_CATEGORIES, THEMES, profileForLevel, representativeLevel } from '@dozari/shared';
 import type { AiKind } from '@dozari/shared';
 
 /**
@@ -28,6 +28,8 @@ export const generateSchemas = {
     count: z.number().int().min(1).max(AI_LIMITS.maxCount.puzzle_groups),
     ageTrack: z.enum(AGE_TRACKS).default('adult'),
     style: z.enum(['witty', 'plain']).default('witty'),
+    /** Puzzle tier (= player-level range) the puzzles are made for; null/omitted = a mixed, mid-level puzzle. */
+    tierId: z.string().min(1).max(36).nullable().optional(),
   }),
   blog: z.object({
     ...base,
@@ -87,7 +89,7 @@ export const saveSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('products'), drafts: z.array(productDraft).min(1).max(AI_LIMITS.maxCount.products) }),
   z.object({ kind: z.literal('kid_lessons'), drafts: z.array(lessonDraft).min(1).max(AI_LIMITS.maxCount.kid_lessons) }),
   z.object({ kind: z.literal('puzzle_titles'), puzzleId: z.string().min(1).max(36), drafts: z.array(titleDraft).min(1).max(4) }),
-  z.object({ kind: z.literal('puzzle_groups'), drafts: z.array(puzzleDraft).min(1).max(AI_LIMITS.maxCount.puzzle_groups) }),
+  z.object({ kind: z.literal('puzzle_groups'), drafts: z.array(puzzleDraft).min(1).max(AI_LIMITS.maxCount.puzzle_groups), tierId: z.string().min(1).max(36).nullable().optional() }),
   z.object({ kind: z.literal('blog'), drafts: z.array(blogDraft).min(1).max(AI_LIMITS.maxCount.blog) }),
 ]);
 export type SaveRequest = z.infer<typeof saveSchema>;
@@ -149,7 +151,39 @@ export interface PromptContext {
   existingPuzzles?: { titles: string[]; groups: string[][] }[];
   /** Catalog products the model may use in whole puzzles (puzzle_groups); the model refers to them by position. */
   pool?: { productId: string; nameFa: string; category?: string }[];
+  /** The tier the puzzles are for (puzzle_groups): its name and player-level range. */
+  tier?: { nameFa: string; minLevel: number; maxLevel: number | null };
 }
+
+/** What each skill stage should feel like, in words the model can follow (the stages are those of `profileForLevel`). */
+const STAGE_GUIDE = [
+  'BEGINNERS: the best-known everyday things; links anyone can see at once; at most one gentle red herring; the hardest group is still guessable by a newcomer.',
+  'EASY: popular items and clear links; one or two friendly red herrings; the last group needs a little thought.',
+  'INTERMEDIATE: a mix of well-known and less-known items; clear but not obvious links; two red herrings; the last group needs real nostalgia knowledge.',
+  'HARD: less obvious items and links that need memory or lateral thinking; three red herrings where an item fits two groups at first glance.',
+  'EXPERT: old or niche items, subtle links, several convincing red herrings; the last group is a real brain-teaser, but still fair and checkable.',
+] as const;
+
+/** Prompt lines for a tier: its name, level range and the matching difficulty guide. */
+export function tierGuide(tier: NonNullable<PromptContext['tier']>): string {
+  const stage = profileForLevel(representativeLevel(tier.minLevel, tier.maxLevel)).stage;
+  const range = tier.maxLevel === null ? `level ${tier.minLevel} and up` : `levels ${tier.minLevel}–${tier.maxLevel}`;
+  return `\nTarget players: tier «${tier.nameFa}» (${range}). Difficulty for them: ${STAGE_GUIDE[stage]}`;
+}
+
+/** Kinds of link the model should draw on, so puzzles are not all "same price bracket". The theme lines come from the shared theme list. */
+const LINK_IDEAS = [
+  'a place or room in the house (kitchen essentials, what a storeroom always holds, a bathroom shelf, the school bag, a traveller\'s bag)',
+  'a profession\'s toolbox (what a repairman, a mechanic, a tailor, a baker keeps at hand)',
+  'a childhood memory (what mom hid from the kids, what lived in a boy\'s pocket, the treats saved for guests, afternoon games)',
+  'an occasion (Nowruz, Ramadan iftar, weddings, birthday gifts, a long road trip, winter evenings under the korsi)',
+  'a shared era, brand family, or "everyone had one at home"',
+  'what disappeared (no longer made or used), or what changed the most',
+  'a shared use or feel (things you wind, plug in, unwrap, trade, borrow, collect)',
+  'a price clue (same price bracket in a given year, got dearer by a similar factor, was cheaper than X) — at most ONE group of a puzzle',
+];
+
+const THEME_IDEAS = THEMES.map((t) => t.titlesFa[0]).join('، ');
 
 /** Persian-insensitive key for comparing product names and slugs: Arabic ya/kaf, ZWNJ, spaces and punctuation are ignored. */
 export const nameKey = (s: string): string => s.replace(/[يى]/g, 'ی').replace(/ك/g, 'ک').replace(/[\u200c\u200f\s\-_.،,()«»]/g, '').toLowerCase();
@@ -189,8 +223,12 @@ JSON shape: {"titles":[{"level":0,"titleFa":"…"}]} with one entry per level ab
     case 'puzzle_groups': {
       const pool = ctx.pool ?? [];
       return {
-        system: `${COMMON}\nTask: build complete Connections-style puzzles from the numbered product list. Each puzzle has exactly ${GROUP_COUNT} groups; a group is ${GROUP_SIZE} products that share ONE clear, checkable idea (same category, same era, same brand family, same use, same price class…). Use ONLY the numbers given; never invent products.`,
-        user: `Make ${req.count} puzzle(s). Levels: ${LEVELS}; every puzzle uses levels 0,1,2,3 once each. Style of titles: ${req.style === 'witty' ? 'witty, playful, 2–6 words' : 'plain and clear, 2–5 words'}. For each group also write explanationFa: one plain sentence that states the real rule. A product number may appear only ONCE per puzzle (16 different numbers per puzzle); try to add 1–2 red herrings (a product that looks like it fits another group).${extra}
+        system: `${COMMON}\nTask: build complete, CREATIVE Connections-style puzzles from the numbered product list. Each puzzle has exactly ${GROUP_COUNT} groups; a group is ${GROUP_SIZE} products that share ONE clear idea a player can check with everyday knowledge. Use ONLY the numbers given; never invent products.
+VARIETY IS THE POINT. The four groups of a puzzle must be four DIFFERENT kinds of link, and the puzzles of one request must differ from each other. Draw on ideas like:
+${LINK_IDEAS.map((l) => `- ${l}`).join('\n')}
+Example connections (titles, to inspire — do not copy blindly): ${THEME_IDEAS}.
+Do NOT make every group "their price was X toman in year Y"; never put a price range in a title; price-based links are only a seasoning (one group at most). A product may fit several ideas — that is what makes good red herrings, as long as the puzzle still has exactly one valid solution.`,
+        user: `Make ${req.count} puzzle(s). Levels: ${LEVELS}; every puzzle uses levels 0,1,2,3 once each. Style of titles: ${req.style === 'witty' ? 'witty, playful, 2–6 words' : 'plain and clear, 2–5 words'}.${ctx.tier ? tierGuide(ctx.tier) : ''} Order the levels by difficulty for those players (0 easiest link, 3 hardest). For each group also write explanationFa: one plain sentence that states the real rule. A product number may appear only ONCE per puzzle (16 different numbers per puzzle); try to add 1–2 red herrings (a product that looks like it fits another group).${extra}
 ${ctx.existingPuzzles?.length ? `\nEXISTING PUZZLES (${ctx.existingPuzzles.length}); do NOT repeat any of these groups, their themes or their titles:\n${ctx.existingPuzzles.map((p) => p.titles.join(' | ')).join('\n')}\nEND OF EXISTING PUZZLES.\n` : ''}
 Products (number: name):
 ${pool.map((p, i) => `${i + 1}: ${p.nameFa}${p.category ? ` (${p.category})` : ''}`).join('\n')}

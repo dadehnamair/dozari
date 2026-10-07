@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "92cb8d72-79d5-43a2-8769-5d7a4d549e0b",
+  "id": "2b2be9ea-2e22-4f2e-b3d4-d58eba7dae10",
   "prevId": "e374436f-347c-4af2-859f-6a011a39c3a8",
   "tables": {
     "account_delete_codes": {
@@ -466,6 +466,13 @@
           "notNull": true,
           "autoincrement": false,
           "default": "'witty'"
+        },
+        "tier_id": {
+          "name": "tier_id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
         },
         "category": {
           "name": "category",

@@ -1141,6 +1141,8 @@ export const aiSchedules = mysqlTable('ai_schedules', {
   count: int('count').notNull().default(1),
   ageTrack: varchar('age_track', { length: 8 }).notNull().default('adult'),
   style: varchar('style', { length: 8 }).notNull().default('witty'),
+  /** Puzzle tier the scheduled puzzles are for (puzzle_groups); null = mixed. */
+  tierId: char('tier_id', { length: 36 }),
   category: varchar('category', { length: 40 }),
   fromYear: int('from_year'),
   toYear: int('to_year'),

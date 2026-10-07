@@ -215,6 +215,44 @@ describe('AI studio', () => {
   });
 });
 
+describe('puzzle prompt: player level and variety', () => {
+  const pool = Array.from({ length: 20 }, (_, i) => ({ productId: `id${i}`, nameFa: `ن${i}` }));
+  const req = { kind: 'puzzle_groups', provider: 'x', count: 1, ageTrack: 'adult', style: 'witty' } as never;
+
+  it('asks for different kinds of link and limits price groups, naming the life contexts', () => {
+    const { system } = buildPrompt(req, { pool });
+    expect(system).toContain('four DIFFERENT kinds of link');
+    expect(system).toContain('at most ONE group');
+    for (const idea of ['آشپزخونه', 'انباری', 'تعمیرکار', 'مامانم همشو قایم می‌کرد']) expect(system).toContain(idea);
+  });
+
+  it('tells the model which players the puzzle is for, by tier level range', () => {
+    const novice = buildPrompt(req, { pool, tier: { nameFa: 'خیلی آسان', minLevel: 1, maxLevel: 3 } }).user;
+    const expert = buildPrompt(req, { pool, tier: { nameFa: 'خیلی سخت', minLevel: 26, maxLevel: null } }).user;
+    expect(novice).toContain('«خیلی آسان» (levels 1–3)');
+    expect(novice).toContain('BEGINNERS');
+    expect(expert).toContain('level 26 and up');
+    expect(expert).toContain('EXPERT');
+    expect(buildPrompt(req, { pool }).user).not.toContain('Target players');
+  });
+
+  it('saves the puzzles with the chosen tier', async () => {
+    const created: unknown[][] = [];
+    const puzzles = { create: async (...a: unknown[]) => (created.push(a), { ok: true as const, id: 'z' }) } as unknown as PuzzleAdmin;
+    const studio = new AiStudio({ env: {}, puzzles });
+    const mk = (l: number) => ({ level: l, titleFa: `گروه ${l}`, explanationFa: 'همه یک چیزند', items: [0, 1, 2, 3].map((k) => ({ productId: `p${l * 4 + k}` })) });
+    await studio.save({ kind: 'puzzle_groups', tierId: 'tier-1', drafts: [{ ageTrack: 'adult', groups: [0, 1, 2, 3].map(mk) }] } as never);
+    expect(created[0]![1]).toBe('tier-1');
+  });
+
+  it('refuses an unknown tier before calling the model', async () => {
+    const products = { details: async () => Object.fromEntries(pool.map((p) => [p.productId, { isActive: true, ageTrack: 'adult', category: 'food' }])) } as unknown as ProductAdmin;
+    const puzzles = { list: async () => [], tiers: async () => [] } as unknown as PuzzleAdmin;
+    const studio = new AiStudio({ env: { AI_DEEPSEEK_API_KEY: 'k' }, products, puzzles, catalog: async () => pool as never, fetch: (async () => { throw new Error('model must not be called'); }) as FetchLike });
+    await expect(studio.generate({ ...(req as object), provider: 'deepseek', tierId: 'nope' } as never)).rejects.toMatchObject({ code: 'ai_not_found' });
+  });
+});
+
 describe('no repeats of what the catalog already has', () => {
   const draftOf = (names: string[][]) => ({
     ageTrack: 'adult' as const,
