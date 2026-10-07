@@ -1113,6 +1113,25 @@ export const landingFaq = mysqlTable('landing_faq', {
   isActive: boolean('is_active').notNull().default(true),
 });
 
+export const LANDING_COMMENT_TARGETS = ['post', 'cast'] as const;
+export const LANDING_COMMENT_STATUS = ['pending', 'approved', 'hidden'] as const;
+
+/** Visitor comments under a blog post or a cast member of the landing site; held `pending` until an admin approves them. */
+export const landingComments = mysqlTable(
+  'landing_comments',
+  {
+    id: id(),
+    targetType: mysqlEnum('target_type', LANDING_COMMENT_TARGETS).notNull(),
+    /** Post slug or cast id. */
+    targetKey: varchar('target_key', { length: 120 }).notNull(),
+    authorName: varchar('author_name', { length: 60 }).notNull(),
+    body: varchar('body', { length: 1000 }).notNull(),
+    status: mysqlEnum('status', LANDING_COMMENT_STATUS).notNull().default('pending'),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (t) => ({ byTarget: index('landing_comments_target_idx').on(t.targetType, t.targetKey, t.status, t.createdAt), byStatus: index('landing_comments_status_idx').on(t.status, t.createdAt) }),
+);
+
 /** Self-hosted short links for outgoing addresses (the `2oi.ir` domain, D172); the redirect counts every click. */
 export const shortLinks = mysqlTable('short_links', {
   code: varchar('code', { length: 24 }).primaryKey(),

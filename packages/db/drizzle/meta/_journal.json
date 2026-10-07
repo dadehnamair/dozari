@@ -526,6 +526,13 @@
       "when": 1791357739961,
       "tag": "0074_curvy_wasp",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "5",
+      "when": 1791365796228,
+      "tag": "0075_yellow_gambit",
+      "breakpoints": true
     }
   ]
 }

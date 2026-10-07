@@ -1,11 +1,12 @@
-import type { CastMember, DemoPuzzle, FaqPair, LandingData, Post, PostList, PostSummary } from './api.js';
+import type { CastMember, DemoPuzzle, FaqPair, LandingData, Post, PostList, PostSummary, PublicComment } from './api.js';
+import { EXTRA_CSS, commentsSection, faDate, faNum } from './blocks.js';
+import type { Flash } from './blocks.js';
 import { escapeHtml, plainText, renderMarkdown } from './markdown.js';
 import { qrSvg } from './qr.js';
 import { absolute, description, faqNode, head, ids } from './seo.js';
 import type { Crumb, Site } from './seo.js';
 
-/** Human-readable Persian date of an epoch-ms instant (Solar Hijri, Tehran). */
-export const faDate = (ms: number): string => new Intl.DateTimeFormat('fa-IR-u-ca-persian', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Tehran' }).format(ms);
+export { faDate };
 
 /**
  * Markup and styles follow the landing designs in `docs/design/landing` (ink borders, offset shadows, coloured bands, Lalezar headings).
@@ -240,32 +241,31 @@ main{overflow-x:clip}
 
 /* ---- characters and icons (assets rendered from the design's own components) ---- */
 
-const WHO = ['dozari', 'dozariF', 'mashti', 'khale', 'pahlevan', 'baqal', 'mirza', 'goli', 'ajan'] as const;
-type Who = (typeof WHO)[number];
+export const WHO = ['dozari', 'dozariF', 'mashti', 'khale', 'pahlevan', 'baqal', 'mirza', 'goli', 'ajan'] as const;
+export type Who = (typeof WHO)[number];
 
 /** Display names of the designed cast, used when the game's cast list is empty and to pair a cast member with its drawing. */
 const CAST_NAMES: Record<Who, string> = { dozari: 'دوزاری', dozariF: 'دوزاری‌خانم', mashti: 'مشتی', khale: 'خاله', pahlevan: 'پهلوون', baqal: 'بقال', mirza: 'میرزا', goli: 'گلی', ajan: 'آژان' };
 const norm = (s: string): string => s.replace(/[‌\s]/g, '').replace(/ا(?=ن$)/, 'ا').replace('پهلوان', 'پهلوون');
 /** A cast row's `image` is either the key of a designed character (`khale`) or a picture URL; the name is the fallback pairing. */
-const whoOf = (c: { name: string; image: string | null }, index: number): Who => WHO.find((w) => w === c.image) ?? WHO.find((w) => norm(CAST_NAMES[w]) === norm(c.name)) ?? (WHO[index % WHO.length] as Who);
-const photoOf = (image: string | null): string | null => (image && /^(https?:)?\/\/|^\//.test(image) ? image : null);
+export const whoOf = (c: { name: string; image: string | null }, index: number): Who => WHO.find((w) => w === c.image) ?? WHO.find((w) => norm(CAST_NAMES[w]) === norm(c.name)) ?? (WHO[index % WHO.length] as Who);
+export const photoOf = (image: string | null): string | null => (image && /^(https?:)?\/\/|^\//.test(image) ? image : null);
 
 /** `name` is a file in `assets/characters` (`dozari-cheer-anim`, `khale-face`, ...). */
-const img = (name: string, w: number, h: number, opts: { alt?: string; cls?: string; eager?: boolean } = {}): string =>
+export const img = (name: string, w: number, h: number, opts: { alt?: string; cls?: string; eager?: boolean } = {}): string =>
   `<img${opts.cls ? ` class="${opts.cls}"` : ''} src="/characters/${name}.svg" alt="${escapeHtml(opts.alt ?? '')}" width="${w}" height="${h}"${opts.eager ? '' : ' loading="lazy"'} decoding="async">`;
-const face = (name: string, size: number): string => `<span class="face" style="width:${size}px;height:${size}px">${img(`${name}-face`, size, size)}</span>`;
+export const face = (name: string, size: number): string => `<span class="face" style="width:${size}px;height:${size}px">${img(`${name}-face`, size, size)}</span>`;
 const item = (name: string): string => `<img src="/items/${name}.svg" alt="" width="48" height="48" loading="lazy">`;
 
 /** Post art, picked from the slug so a post always keeps the same picture. */
 const POST_ART: [Who, string, string][] = [['mirza', 'thinking', '#FFC93C'], ['khale', 'pointing', '#7ED957'], ['goli', 'cheer', '#FF4D8D'], ['pahlevan', 'win', '#3FC1F0'], ['baqal', 'coin', '#A66BF0'], ['dozari', 'wave', '#FF7A3D']];
-const artOf = (slug: string): [Who, string, string] => {
+export const artOf = (slug: string): [Who, string, string] => {
   let h = 0;
   for (const ch of slug) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   return POST_ART[h % POST_ART.length] as [Who, string, string];
 };
 
-const faNum = (n: number): string => String(n).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)] as string);
-const li = (items: string[]): string => items.map((i) => `<li>${i}</li>`).join('');
+export const li = (items: string[]): string => items.map((i) => `<li>${i}</li>`).join('');
 
 /* ---- layout ---- */
 
@@ -313,7 +313,7 @@ function badgesHtml(site: Site): string {
   return items.length > 0 ? `<div class="badges">${items.join('')}</div>` : '';
 }
 
-function layout(site: Site, headHtml: string, crumbs: Crumb[] | null, body: string, opts: { active?: NavKey; wide?: boolean } = {}): string {
+export function layout(site: Site, headHtml: string, crumbs: Crumb[] | null, body: string, opts: { active?: NavKey; wide?: boolean } = {}): string {
   const crumbHtml =
     crumbs && crumbs.length > 1
       ? `<nav aria-label="مسیر صفحه"><ol class="crumbs">${li(crumbs.map((c) => (c.path !== undefined ? `<a href="${escapeHtml(c.path)}">${escapeHtml(c.name)}</a>` : `<span aria-current="page">${escapeHtml(c.name)}</span>`)))}</ol></nav>`
@@ -326,7 +326,7 @@ function layout(site: Site, headHtml: string, crumbs: Crumb[] | null, body: stri
 <html lang="fa" dir="rtl">
 <head>
 ${headHtml}
-<style>${CSS}</style>
+<style>${CSS}${EXTRA_CSS}</style>
 <script>document.documentElement.classList.add("js")</script>
 </head>
 <body>
@@ -341,7 +341,8 @@ ${content}
 <div class="fgrid">
 <div><div class="brandname">${escapeHtml(site.name)}</div><p>${escapeHtml(site.tagline)}</p></div>
 <div><h2 style="color:var(--sky)">صفحه‌ها</h2><ul><li><a href="/">خانه</a></li><li><a href="/ages">رده‌های سنی</a></li><li><a href="/about">درباره ما</a></li><li><a href="/blog">وبلاگ</a></li><li><a href="/cast">آدم‌های بازار</a></li><li><a href="/download">دانلود</a></li><li><a href="/contact">تماس و سوالات</a></li></ul></div>
-<div><h2 style="color:var(--lime)">قوانین</h2><ul><li><a href="/terms">قوانین و شرایط</a></li><li><a href="/privacy">حریم خصوصی</a></li></ul></div>
+<div><h2 style="color:var(--lime)">بیشتر بدانید</h2><ul><li><a href="/how-to-play">راهنمای بازی</a></li><li><a href="/modes">حالت‌های بازی</a></li><li><a href="/glossary">واژه‌نامه</a></li><li><a href="/stats">آمار بازی</a></li><li><a href="/status">وضعیت سرورها</a></li><li><a href="/press">رسانه و لوگو</a></li></ul></div>
+<div><h2 style="color:var(--violet)">قوانین</h2><ul><li><a href="/terms">قوانین و شرایط</a></li><li><a href="/privacy">حریم خصوصی</a></li><li><a href="/sitemap">نقشه‌ی سایت</a></li><li><a href="/feed.xml">خبرخوان (RSS)</a></li></ul></div>
 <div><h2 style="color:var(--orange)">ما را دنبال کنید</h2><div class="social">${social.map((s) => `<a href="${escapeHtml(s.u)}" rel="noopener me" style="background:${s.c[0]};color:${s.c[1]}">${icon(socialIcon(s.u))}${escapeHtml(s.label)}</a>`).join('')}${site.contactEmail ? `<a href="mailto:${escapeHtml(site.contactEmail)}" style="background:#FFF6E8;color:#2B1240">${icon('mail')}ایمیل</a>` : ''}</div></div>
 </div>
 ${badgesHtml(site)}
@@ -370,11 +371,11 @@ const postCard = (p: PostSummary): string => {
   return `<li><a class="pcard" href="/blog/${encodeURIComponent(p.slug)}"><div class="pthumb" style="background:${bg}">${p.coverUrl ? `<img class="cover" src="${escapeHtml(p.coverUrl)}" alt="${escapeHtml(p.title)}" loading="lazy">` : img(`${who}-${pose}`, 120, 138)}</div><div class="pbody"><span class="cat">مقاله</span><h3>${escapeHtml(p.title)}</h3>${p.summary ? `<p>${escapeHtml(p.summary)}</p>` : ''}<span class="date">${escapeHtml(faDate(p.publishedAt))}${p.author ? ` · ${escapeHtml(p.author)}` : ''}</span></div></a></li>`;
 };
 
-const promo = (cls: string, h: string, p: string, link: string): string => `<section class="in" style="padding-bottom:80px"><div class="promo ${cls}"><div><h2>${h}</h2><p>${p}</p></div>${link}</div></section>`;
+export const promo = (cls: string, h: string, p: string, link: string): string => `<section class="in" style="padding-bottom:80px"><div class="promo ${cls}"><div><h2>${h}</h2><p>${p}</p></div>${link}</div></section>`;
 
 /* ---- home ---- */
 
-const HOW_TO = [
+export const HOW_TO = [
   ['کالاها را ببین', 'شانزده کالا روی صفحه است؛ هر کدام یک قیمت واقعی در یکی از سال‌های گذشته ایران دارد.', 'khale-pointing'],
   ['چهارتا چهارتا گروه کن', 'کالاهایی را که یک قاعده‌ی مشترک دارند کنار هم بگذار؛ مثلاً قیمتشان در یک سال یا یک بازه است.', 'mirza-thinking'],
   ['حدس بزن و ادامه بده', 'هر گروه درست یک دسته‌ی رنگی می‌شود؛ اشتباه‌ها محدودند.', 'goli-cheer'],
@@ -389,7 +390,7 @@ const FEATURES = [
 ] as const;
 
 /** The promo banners of `docs/design/banner` (resized to webp in `assets/banners`); the alt text is what the banner itself says. */
-const BANNERS = [
+export const BANNERS = [
   ['banner1', 'دوزاری: بالاخره دوزاریت می‌افته! پازل، رقابت با رفقا، سفر به ۳۱ استان'],
   ['age-adult', 'دوزاری بزرگسال ۱۸+؛ صرافی بزرگ‌ترها: بازی کامل با دوئل زنده و حدس قیمت با شرط سکه'],
   ['banner2', '۱۶ کلمه، ۴ دسته! کلمه‌های هم‌خانواده را کنار هم بچین'],
@@ -505,7 +506,7 @@ demo.querySelector('[data-act=reset]').addEventListener('click',function(){grid.
 })();`;
 
 /** The people of the game for the home strip and the about page: the game's own cast list, else the designed one. */
-const castOf = (cast: CastMember[]): { name: string; role: string; who: Who; id: string; image: string | null }[] =>
+export const castOf = (cast: CastMember[]): { name: string; role: string; who: Who; id: string; image: string | null }[] =>
   (cast.length ? cast : WHO.slice(0, 8).map((w) => ({ id: w, name: CAST_NAMES[w], role: '', bio: '', image: null }))).map((c, n) => ({ id: c.id, name: c.name, role: c.role, who: whoOf(c, n), image: photoOf(c.image) }));
 
 const FLOATERS: [string, string, string, string][] = [['coin', '38%', '52%', '0s'], ['gift', '44%', '4%', '1.2s'], ['crown', '3%', '66%', '2.1s'], ['coinStack', '47%', '82%', '.6s'], ['hat', '90%', '8%', '1.7s'], ['map', '92%', '70%', '2.8s']];
@@ -563,7 +564,7 @@ ${faq.length ? `<section class="in col" style="gap:28px;padding-bottom:80px"><h2
   return layout(site, head(site, { title, description: desc, path: '/', nodes }), null, body, { active: 'home', wide: true });
 }
 
-const webPage = (site: Site, path: string, type: string, title: string, desc: string): Record<string, unknown> => ({ '@type': type, '@id': `${absolute(site, path)}#webpage`, url: absolute(site, path), name: title, description: desc, inLanguage: 'fa-IR', isPartOf: { '@id': ids(site).site } });
+export const webPage = (site: Site, path: string, type: string, title: string, desc: string): Record<string, unknown> => ({ '@type': type, '@id': `${absolute(site, path)}#webpage`, url: absolute(site, path), name: title, description: desc, inLanguage: 'fa-IR', isPartOf: { '@id': ids(site).site } });
 
 /* ---- about ---- */
 
@@ -684,7 +685,7 @@ ${featured ? `<section class="in" style="padding-top:16px;padding-bottom:32px"><
   return layout(site, head(site, { title, description: desc, path, nodes, crumbs: [{ name: 'صفحه‌ی اول', path: '/' }, { name: 'بلاگ' }] }), null, body, { active: 'blog', wide: true });
 }
 
-export function postPage(site: Site, post: Post, more: PostSummary[]): string {
+export function postPage(site: Site, post: Post, more: PostSummary[], comments: PublicComment[] = [], flash: Flash = null): string {
   const path = `/blog/${encodeURIComponent(post.slug)}`;
   const { html, headings } = renderMarkdown(post.bodyMd);
   const title = post.metaTitle || `${post.title} | ${site.name}`;
@@ -705,6 +706,7 @@ export function postPage(site: Site, post: Post, more: PostSummary[]): string {
     isPartOf: { '@id': i.site },
   };
   if (post.coverUrl) node.image = post.coverUrl;
+  if (comments.length) node.comment = comments.slice(0, 20).map((c) => ({ '@type': 'Comment', author: { '@type': 'Person', name: c.author }, dateCreated: new Date(c.createdAt).toISOString(), text: c.body }));
   const [who, pose, bg] = artOf(post.slug);
   const toc = headings.filter((h) => h.level === 2);
   const body = `<article class="art-post">
@@ -716,6 +718,7 @@ export function postPage(site: Site, post: Post, more: PostSummary[]): string {
 ${toc.length > 2 ? `<nav class="toc" aria-label="فهرست مطالب"><strong>در این مقاله</strong><ul>${li(toc.map((h) => `<a href="#${escapeHtml(h.id)}">${escapeHtml(h.text)}</a>`))}</ul></nav>` : ''}
 <div class="body">${html}</div>
 <div class="cta2"><div><b>${escapeHtml(site.name)} منتظرته!</b><span>رایگان دانلود کن و قیمت‌ها را کنار هم بگذار</span></div><a class="btn" href="/download">دانلود</a></div>
+${commentsSection('post', post.slug, comments, flash, 'نظرت درباره‌ی این مقاله')}
 </article>
 ${more.length ? `<section class="in col" style="gap:24px;padding-bottom:80px"><h2 style="font-size:40px">مطالب مرتبط</h2><ul class="related">${more.map((p) => { const [w, , c] = artOf(p.slug); return `<li><a class="rel" href="/blog/${encodeURIComponent(p.slug)}"><span class="sq" style="background:${c}">${p.coverUrl ? `<img src="${escapeHtml(p.coverUrl)}" alt="" loading="lazy">` : img(`${w}-face`, 80, 80)}</span><div><small>مقاله</small><span>${escapeHtml(p.title)}</span></div></a></li>`; }).join('')}</ul></section>` : ''}`;
   return layout(site, head(site, { title, description: desc, path, type: 'article', image: post.coverUrl, nodes: [node], crumbs, publishedTime: post.publishedAt, modifiedTime: post.updatedAt }), null, body, { active: 'blog', wide: true });
@@ -723,13 +726,13 @@ ${more.length ? `<section class="in col" style="gap:24px;padding-bottom:80px"><h
 
 /* ---- cast ---- */
 
-export function castPage(site: Site, cast: CastMember[]): string {
+export function castPage(site: Site, cast: CastMember[], counts: Record<string, number> = {}): string {
   const title = `بازیگران ${site.name}: شخصیت‌های بازی`;
   const desc = description(`با شخصیت‌ها و آدم‌های ${site.name} آشنا شو: کی راهنمای بازی است و هر کس چه نقشی دارد.`);
   const crumbs: Crumb[] = [{ name: 'صفحه‌ی اول', path: '/' }, { name: 'بازیگران' }];
   const nodes: Record<string, unknown>[] = [{ '@type': 'AboutPage', '@id': `${site.url}/cast#webpage`, url: absolute(site, '/cast'), name: title, description: desc, inLanguage: 'fa-IR', isPartOf: { '@id': ids(site).site } }];
   const people = cast.map((c, n) => ({ ...c, who: whoOf(c, n), image: photoOf(c.image) }));
-  const body = `<h1>بازیگران ${escapeHtml(site.name)}</h1><p>${escapeHtml(desc)}</p>${people.length ? `<div class="castlist">${people.map((c) => `<section class="cc" id="${escapeHtml(c.id)}">${c.image ? `<img class="photo" src="${escapeHtml(c.image)}" alt="${escapeHtml(c.name)}" width="110" height="110" loading="lazy">` : img(`${c.who}-idle`, 110, 126, { alt: c.name })}<div><h2>${escapeHtml(c.name)}</h2>${c.role ? `<p class="meta">${escapeHtml(c.role)}</p>` : ''}<p>${escapeHtml(c.bio)}</p></div></section>`).join('')}</div>` : '<p>به‌زودی معرفی می‌شوند.</p>'}`;
+  const body = `<h1>بازیگران ${escapeHtml(site.name)}</h1><p>${escapeHtml(desc)}</p>${people.length ? `<div class="castlist">${people.map((c) => `<section class="cc" id="${escapeHtml(c.id)}">${c.image ? `<img class="photo" src="${escapeHtml(c.image)}" alt="${escapeHtml(c.name)}" width="110" height="110" loading="lazy">` : img(`${c.who}-idle`, 110, 126, { alt: c.name })}<div><h2><a href="/cast/${encodeURIComponent(c.id)}" style="color:inherit;text-decoration:none">${escapeHtml(c.name)}</a></h2>${c.role ? `<p class="meta">${escapeHtml(c.role)}</p>` : ''}<p>${escapeHtml(c.bio)}</p><a class="more" href="/cast/${encodeURIComponent(c.id)}#comments">پروفایل و نظرها (${faNum(counts[c.id] ?? 0)})</a></div></section>`).join('')}</div>` : '<p>به‌زودی معرفی می‌شوند.</p>'}`;
   return layout(site, head(site, { title, description: desc, path: '/cast', nodes, crumbs }), crumbs, body);
 }
 

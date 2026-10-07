@@ -790,7 +790,7 @@ if (isMainModule(import.meta.url)) {
   }
   const levelOf = async (id: string) => (player ? (await player.levelOf(id)).level.level : 1);
   const shopStore = db ? createDbShopStore(db) : undefined;
-  const landingService = db ? new LandingService(createDbLandingStore(db)) : undefined;
+  const landingService = db ? new LandingService(createDbLandingStore(db), Date.now, words ? async (t) => { const r = await words.check(t); return r.ok ? { ok: true, text: r.text } : { ok: false }; } : undefined) : undefined;
   const shortLinkService = db && settings ? new ShortLinkService(createDbShortLinkStore(db), () => settings.text('domain.short')) : undefined;
   if (social && shopStore) {
     const wardrobe = new ShopService(shopStore, levelOf);
