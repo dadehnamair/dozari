@@ -1,4 +1,4 @@
-import { TABLE_ICONS, TABLE_PRICE_ROUNDS_MAX, TABLE_ROUNDS_MAX } from '@dozari/shared';
+import { AMBIENT_TABLE_FEE_MAX, TABLE_ICONS, TABLE_PRICE_ROUNDS_MAX, TABLE_ROUNDS_MAX, tableMinEntry } from '@dozari/shared';
 import type { Rng, TableFormat } from '@dozari/shared';
 import type { TableService } from './service.js';
 
@@ -57,6 +57,12 @@ export class AmbientLobby {
     return out;
   }
 
+  /** A fee people ask at a table of `rounds`: mostly the minimum or a little above, in steps of 10, never over the cap. */
+  private feeFor(rounds: number): number {
+    const min = tableMinEntry(rounds);
+    return Math.min(AMBIENT_TABLE_FEE_MAX, min + 10 * this.between(0, 4));
+  }
+
   /** Roughly four tables in ten are 2v2. */
   private pickFormat(): TableFormat {
     return this.deps.rng() < 0.4 ? '2v2' : '1v1';
@@ -92,7 +98,8 @@ export class AmbientLobby {
       const bots = this.takeBots(wanted);
       if (bots.length < wanted) break;
       const [host, ...rest] = bots;
-      const code = await tables.createAmbient(host!.userId, { name: this.pick(AMBIENT_TABLE_NAMES), icon: this.pick(TABLE_ICONS), format, rounds: this.between(1, TABLE_ROUNDS_MAX), priceRounds: this.between(0, TABLE_PRICE_ROUNDS_MAX), extraBots: rest.map((b) => b.userId), ttlMs: this.between(60, 300) * 1000 });
+      const rounds = this.between(1, TABLE_ROUNDS_MAX);
+      const code = await tables.createAmbient(host!.userId, { name: this.pick(AMBIENT_TABLE_NAMES), icon: this.pick(TABLE_ICONS), format, rounds, priceRounds: this.between(0, TABLE_PRICE_ROUNDS_MAX), entryFee: this.feeFor(rounds), extraBots: rest.map((b) => b.userId), ttlMs: this.between(60, 300) * 1000 });
       if (!code) break;
     }
     // Now and then a bot drops by the stands of a running table (real ones too) for a while, so the watcher count moves like a lobby's would.
@@ -110,7 +117,8 @@ export class AmbientLobby {
       const bots = this.takeBots(seats);
       if (bots.length === seats) {
         const [host, ...rest] = bots;
-        const code = await tables.createAmbient(host!.userId, { name: this.pick(AMBIENT_TABLE_NAMES), icon: this.pick(TABLE_ICONS), format, rounds: this.between(1, TABLE_ROUNDS_MAX), priceRounds: this.between(0, TABLE_PRICE_ROUNDS_MAX), extraBots: rest.map((b) => b.userId), ttlMs: 60_000, full: true });
+        const rounds = this.between(1, TABLE_ROUNDS_MAX);
+        const code = await tables.createAmbient(host!.userId, { name: this.pick(AMBIENT_TABLE_NAMES), icon: this.pick(TABLE_ICONS), format, rounds, priceRounds: this.between(0, TABLE_PRICE_ROUNDS_MAX), entryFee: this.feeFor(rounds), extraBots: rest.map((b) => b.userId), ttlMs: 60_000, full: true });
         if (code && !(await tables.fillAndStart(code, []))) tables.sweepAmbient();
       }
     }

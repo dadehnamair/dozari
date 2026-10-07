@@ -119,9 +119,11 @@ bot accounts: the admin can pause, tune or add more, and the top-up never touche
   `TableService.start` runs the normal friendly match (`startMatch`/`startTeam`). A person who leaves before `fillAt` cancels it; too few idle bots just delays the start.
 - **Playing** (`tables.ambient_playing`, 3): bots-only tables whose match really runs (bots play through the normal driver path), one new per tick at most, for people to **watch**.
 Now and then (25 % per tick per running public table, at most 3 at once) a bot sits in the stands of any running table, real ones included, for 15–60 s, so the watcher count moves.
-Both close when their match ends (a closed one shows in the recent list). Tables live in memory; the only rows written are those of a real friendly match (bot stats). Bot tables
-are **free** (entry fee 0): a bot has no wallet, so stakes need the `bot_match_subsidy` decision first. Adult track only.
-- Not built: bots accepting friend requests, bots in human-made tables, mid-match takeover of an abandoned human seat (D43), coin escrow/subsidy (match entry fees do not
+Both close when their match ends (a closed one shows in the recent list). Tables live in memory; the only rows written are those of a real match (bot stats, and the coins of a person at a paid table). Bot tables ask an **entry fee** (D215): at least
+`tableMinEntry(rounds)`, +0…40 in steps of 10, capped at `AMBIENT_TABLE_FEE_MAX` (100). A bot seat pays nothing and never collects: `TableStakes` (given `isBot`) skips bots when taking
+fees, refunding and paying out, and the pot is computed as if the bot had paid — the house funds that share (`bot_match_subsidy`, no ledger row of its own: it is simply the part of a
+winner's payout no player paid in). Same as `duel/stakes.ts` does for queue duels. Adult track only.
+- Not built: bots accepting friend requests, bots in human-made tables, mid-match takeover of an abandoned human seat (D43), coin escrow/subsidy for the queue (see above for tables) (match entry fees do not
   exist yet), bot-chat beyond canned taunts.
 
 ## Skill by level

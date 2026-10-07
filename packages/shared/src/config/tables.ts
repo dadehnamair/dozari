@@ -17,3 +17,6 @@ export const TABLE_PRICE_ROUNDS_MAX = 4;
 export const TABLE_REQUESTS_MAX = 6;
 /** The open-tables list shows at most this many tables. */
 export const TABLE_PUBLIC_LIST_MAX = 30;
+/** Bot-hosted lobby tables ask an entry of this many coins per round at least (the table minimum) and never more than this. */
+export const AMBIENT_TABLE_FEE_MAX = 100;
+

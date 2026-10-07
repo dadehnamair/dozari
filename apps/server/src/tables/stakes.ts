@@ -2,14 +2,17 @@ import { TABLE_HOUSE_CUT_PERCENT, settleTable } from '@dozari/shared';
 import type { StakeStore } from '../duel/stakes-store.js';
 
 /**
- * Coins of a private table's match: every seated player pays the table's entry fee when the match starts, the winning side splits the
- * pot after the house cut, a draw returns every fee. Every movement is one idempotent ledger row (reasons `match_entry`,
+ * Coins of a table's match: every seated human pays the table's entry fee when the match starts, the winning side splits the
+ * pot after the house cut, a draw returns every fee. A bot seat pays nothing and collects nothing: the pot counts its seat as if it had paid (the house funds it), so payouts are
+ * the same as against a person. Every movement is one idempotent ledger row (reasons `match_entry`,
  * `match_payout`, `match_refund`, the same ones live duels use).
  */
 export class TableStakes {
   constructor(
     private readonly store: StakeStore,
     private readonly cutPercent: () => Promise<number> | number = () => TABLE_HOUSE_CUT_PERCENT,
+    /** A bot seat puts no coins in and never collects: its share of the pot is the house's («bot_match_subsidy», docs/logic/bots.md). */
+    private readonly isBot: (userId: string) => boolean = () => false,
   ) {}
 
   balance(userId: string): Promise<number> {
@@ -20,6 +23,7 @@ export class TableStakes {
   async open(matchId: string, players: readonly string[], fee: number): Promise<boolean> {
     const taken: string[] = [];
     for (const u of players) {
+      if (this.isBot(u)) continue;
       if (await this.store.apply(u, -fee, 'match_entry', matchId, `match_entry:${matchId}:${u}`)) taken.push(u);
       else {
         await this.cancel(matchId, taken, fee);
@@ -31,7 +35,7 @@ export class TableStakes {
 
   /** The match never started: every fee comes back in full. */
   async cancel(matchId: string, players: readonly string[], fee: number): Promise<void> {
-    for (const u of players) await this.store.apply(u, fee, 'match_refund', matchId, `match_refund:${matchId}:${u}:cancelled`);
+    for (const u of players.filter((p) => !this.isBot(p))) await this.store.apply(u, fee, 'match_refund', matchId, `match_refund:${matchId}:${u}:cancelled`);
   }
 
   /** Pays a finished match: the winning side splits the pot, a draw refunds. Safe to call twice. */
@@ -42,7 +46,7 @@ export class TableStakes {
     for (const side of [0, 1] as const) {
       const coins = award.perPlayer[side];
       if (coins <= 0) continue;
-      for (const u of sides[side]) await this.store.apply(u, coins, reason, matchId, `${reason}:${matchId}:${u}`);
+      for (const u of sides[side]) if (!this.isBot(u)) await this.store.apply(u, coins, reason, matchId, `${reason}:${matchId}:${u}`);
     }
   }
 }

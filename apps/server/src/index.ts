@@ -715,7 +715,7 @@ if (isMainModule(import.meta.url)) {
         })
       : undefined;
   /** Entry fees of private tables (the coin side of rounds + entry). */
-  const tableStakes = db ? new TableStakes(createDbStakeStore(db)) : undefined;
+  const tableStakes = db ? new TableStakes(createDbStakeStore(db), undefined, (id) => botDriver?.isBot(id) ?? false) : undefined;
   const tableService =
     settings && socialStore
       ? new TableService({
@@ -724,6 +724,7 @@ if (isMainModule(import.meta.url)) {
           startTeam: async (sides, opts) => (live.matches ? live.matches.startTeam(sides, opts) : false),
           coinsAllowed: ageTracks ? (id) => ageTracks.allows(id, 'coinWager') : undefined,
           balanceOf: tableStakes ? (id) => tableStakes.balance(id) : undefined,
+          isBot: (id) => botDriver?.isBot(id) ?? false,
           notify: (id, n) => notices.push(id, n),
           inMatch: (id) => live.matches?.inMatch(id) ?? false,
           trackOf: ageTracks ? (id) => ageTracks.effective(id) : undefined,

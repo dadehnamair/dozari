@@ -29,6 +29,8 @@ export interface TableDeps {
   coinsAllowed?(userId: string): Promise<boolean>;
   /** The player's coin balance, to check an entry fee. Absent = nobody can pay a fee, so only free tables exist. */
   balanceOf?(userId: string): Promise<number>;
+  /** Is this account a bot? A bot seat never pays an entry fee (the house funds its share). */
+  isBot?(userId: string): boolean;
   /** A live nudge to a player (a join request, the host's answer). */
   notify?(userId: string, notice: LiveNotice): void;
   idleMs(): Promise<number>;
@@ -223,7 +225,7 @@ export class TableService {
 
   /** Can this player pay the table's entry? A table with a fee needs a player whose coins may move and who has them. */
   private async canPay(t: Table, userId: string): Promise<boolean> {
-    if (t.entryFee <= 0) return true;
+    if (t.entryFee <= 0 || this.deps.isBot?.(userId)) return true;
     if (!this.deps.balanceOf || !(await this.coinsAllowed(userId))) return false;
     return (await this.deps.balanceOf(userId).catch(() => 0)) >= t.entryFee;
   }
@@ -469,9 +471,9 @@ export class TableService {
 
   /**
    * A bot-made public lobby table: `hostId` and `extraBots` are bot accounts already seated (the other seats stay free for people).
-   * Free and friendly: a bot has no wallet to pay an entry fee from.
+   * A bot never pays: the table's fee is asked of people only, and the house funds the bots' share of the pot.
    */
-  async createAmbient(hostId: string, o: { name: string; icon: string; format: TableFormat; rounds: number; priceRounds: number; extraBots: string[]; ttlMs: number; /** Seat bots at every seat (a bots-only table to start at once). */ full?: boolean }): Promise<string | null> {
+  async createAmbient(hostId: string, o: { name: string; icon: string; format: TableFormat; rounds: number; priceRounds: number; extraBots: string[]; ttlMs: number; /** Coins each person puts in (bots pay nothing; the house funds their share). */ entryFee?: number; /** Seat bots at every seat (a bots-only table to start at once). */ full?: boolean }): Promise<string | null> {
     const rng = this.deps.rng ?? Math.random;
     let code = makeTableCode(rng);
     for (let i = 0; i < 20 && this.tables.has(code); i++) code = makeTableCode(rng);
@@ -480,7 +482,7 @@ export class TableService {
     const sides = new Map<string, 0 | 1>();
     seated.forEach((u, i) => sides.set(u, (i % 2) as 0 | 1));
     const host = (await this.deps.profileOf(hostId)) ?? { nickname: '؟', avatarKey: 'avatar-01' };
-    const t: Table = { code, name: o.name, icon: o.icon, format: o.format, family: false, rounds: clampTableRounds(o.rounds), priceRounds: o.format === '2v2' ? 0 : Math.min(TABLE_PRICE_ROUNDS_MAX, Math.max(0, Math.floor(o.priceRounds))), entryFee: 0, isPrivate: false, hostNickname: host.nickname, hostAvatarKey: host.avatarKey, requests: new Map(), denied: new Map(), sides, requireReady: false, locked: false, hostId, track: 'adult', seated, ready: new Set(), expiresAt: this.now() + o.ttlMs, ambient: { bots: new Set(seated), fillAt: null, started: false } };
+    const t: Table = { code, name: o.name, icon: o.icon, format: o.format, family: false, rounds: clampTableRounds(o.rounds), priceRounds: o.format === '2v2' ? 0 : Math.min(TABLE_PRICE_ROUNDS_MAX, Math.max(0, Math.floor(o.priceRounds))), entryFee: o.entryFee ?? 0, isPrivate: false, hostNickname: host.nickname, hostAvatarKey: host.avatarKey, requests: new Map(), denied: new Map(), sides, requireReady: false, locked: false, hostId, track: 'adult', seated, ready: new Set(), expiresAt: this.now() + o.ttlMs, ambient: { bots: new Set(seated), fillAt: null, started: false } };
     this.tables.set(code, t);
     for (const u of seated) this.byUser.set(u, code);
     return code;

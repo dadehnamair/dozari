@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { mulberry32 } from '@dozari/shared';
+import { AMBIENT_TABLE_FEE_MAX, mulberry32, tableMinEntry } from '@dozari/shared';
 import { AmbientLobby } from '../tables/ambient.js';
 import { TableService } from '../tables/service.js';
 
@@ -14,6 +14,8 @@ function boot(settings = { enabled: true, open: 4, playing: 2 }) {
     startMatch: async (a, b) => (started.push([a, b]), inMatch.add(a), inMatch.add(b), true),
     startTeam: async (sides) => (started.push(sides.flat()), sides.flat().forEach((u) => inMatch.add(u)), true),
     inMatch: (id) => inMatch.has(id),
+    balanceOf: async (id) => (id.startsWith('bot') ? 0 : 1000),
+    isBot: (id) => id.startsWith('bot'),
     idleMs: async () => 15 * 60_000,
     now: () => clock.ms,
     rng: mulberry32(3),
@@ -30,7 +32,7 @@ describe('ambient lobby', () => {
     await t.lobby.tick();
     const open = await t.open();
     expect(open).toHaveLength(4);
-    expect(open.every((x) => x.taken >= 1 && x.taken < x.seats && x.entryFee === 0)).toBe(true);
+    expect(open.every((x) => x.taken >= 1 && x.taken < x.seats && x.entryFee >= tableMinEntry(x.rounds))).toBe(true);
     expect(new Set(open.map((x) => x.hostNickname)).size).toBe(4);
     // Bots-only tables really play (one new match per tick) and can be watched.
     const playing = (await t.svc.listPublic('human')).filter((x) => x.status === 'playing');
@@ -103,5 +105,18 @@ describe('ambient lobby', () => {
     t.clock.ms += 10_000;
     await t.lobby.tick();
     expect(t.started.flat()).not.toContain('human');
+  });
+});
+
+describe('ambient table fees', () => {
+  it('ask a legal entry for their rounds, capped', async () => {
+    const t = boot({ enabled: true, open: 8, playing: 2 });
+    for (let i = 0; i < 6; i++) await t.lobby.tick();
+    const rows = await t.svc.listPublic('human');
+    expect(rows.length).toBeGreaterThan(0);
+    for (const r of rows) {
+      expect(r.entryFee).toBeGreaterThanOrEqual(tableMinEntry(r.rounds));
+      expect(r.entryFee).toBeLessThanOrEqual(AMBIENT_TABLE_FEE_MAX);
+    }
   });
 });

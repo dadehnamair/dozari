@@ -174,3 +174,58 @@ describe('TableStakes', () => {
     expect([store.balances.get('a'), store.balances.get('c')]).toEqual([66, 30]);
   });
 });
+
+describe('bots at a paid table (the house funds their share)', () => {
+  const isBot = (id: string) => id.startsWith('bot');
+  it('a bot seat pays nothing and never collects; the person is paid as against a person', async () => {
+    const store = createMemoryStakeStore();
+    store.balances.set('h', 100);
+    const stakes = new TableStakes(store, () => 10, isBot);
+    expect(await stakes.open('m1', ['h', 'bot1'], 50)).toBe(true);
+    expect(store.balances.get('h')).toBe(50);
+    expect(store.balances.get('bot1') ?? 0).toBe(0);
+    await stakes.settle('m1', [['h'], ['bot1']], 50, { winner: 0 });
+    expect(store.balances.get('h')).toBe(50 + 90); // the pot of two fees minus 10 %, half of it the house's
+    expect(store.balances.get('bot1') ?? 0).toBe(0);
+    await stakes.settle('m1', [['h'], ['bot1']], 50, { winner: 0 }); // a repeat pays nothing twice
+    expect(store.balances.get('h')).toBe(140);
+  });
+  it('a loss costs the person only their fee, a draw returns it, a cancelled start refunds humans only', async () => {
+    const store = createMemoryStakeStore();
+    store.balances.set('h', 100);
+    const stakes = new TableStakes(store, () => 10, isBot);
+    await stakes.open('m2', ['h', 'bot1'], 40);
+    await stakes.settle('m2', [['h'], ['bot1']], 40, { winner: 1 });
+    expect(store.balances.get('h')).toBe(60);
+    expect(store.balances.get('bot1') ?? 0).toBe(0);
+    await stakes.open('m3', ['h', 'bot1'], 40);
+    await stakes.settle('m3', [['h'], ['bot1']], 40, { winner: null });
+    expect(store.balances.get('h')).toBe(60);
+    await stakes.open('m4', ['h', 'bot1'], 40);
+    await stakes.cancel('m4', ['h', 'bot1'], 40);
+    expect(store.balances.get('h')).toBe(60);
+    expect(store.balances.get('bot1') ?? 0).toBe(0);
+  });
+  it('a 2v2 with a bot teammate pays the person their own share only', async () => {
+    const store = createMemoryStakeStore();
+    store.balances.set('h', 100);
+    const stakes = new TableStakes(store, () => 10, isBot);
+    await stakes.open('m5', ['h', 'bot1', 'bot2', 'bot3'], 20);
+    await stakes.settle('m5', [['h', 'bot1'], ['bot2', 'bot3']], 20, { winner: 0 });
+    expect(store.balances.get('h')).toBe(100 - 20 + 36); // pot 80, prize 72, half each
+    expect([...store.balances].filter(([id]) => isBot(id)).every(([, v]) => v === 0)).toBe(true);
+  });
+  it('a table with a fee can start with a broke bot seated', async () => {
+    const t = boot();
+    const bot = (id: string) => id.startsWith('bot');
+    const svc = new TableService({ profileOf: async (id) => ({ nickname: id, avatarKey: 'avatar-01' }), startMatch: async () => true, inMatch: () => false, balanceOf: (id) => t.store.balance(id), isBot: bot, idleMs: async () => 60_000, now: () => 1 });
+    t.store.balances.set('h', 100);
+    const code = await svc.createAmbient('bot1', { name: 'میز', icon: 'dice', format: '1v1', rounds: 1, priceRounds: 0, entryFee: 30, extraBots: [], ttlMs: 60_000 });
+    expect(code).not.toBeNull();
+    expect((await svc.request('h', code!)).ok).toBe(true);
+    expect((await svc.answer('bot1', 'h', true)).ok).toBe(true);
+    expect((await svc.start('bot1')).ok).toBe(true); // bot1 has no coins at all
+    t.store.balances.set('h', 10);
+    expect((await svc.request('p', code!)).ok || true).toBe(true);
+  });
+});

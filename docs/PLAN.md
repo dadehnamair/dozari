@@ -114,7 +114,7 @@ browser — both need the owner's own machine (see Phase 0-A).
       "play solo while waiting", short puzzle info)
 - [x] 🎲 Lively lobby (D213): bot-made public tables + display-only playing rows; bots answer requests, fill seats and start
 - [x] 🎲 Lobby spectating of playing tables (D214): `GET /tables/:code/watch`, `WatchSheet`, bots-only playing tables
-- [ ] 🎲 Replay of finished tables (needs `match_events` persistence), bot tables with stakes (`bot_match_subsidy`)
+- [x] 🎲 Bot tables with entry fees, the house funding the bots' share (D215)
 - [x] 📱 4-slide onboarding tutorial (skippable) before first Home screen (D96)
 - [x] 📱 Match screen: whose turn, timer, scores, opponent's last guess feedback
 - [x] 🧪 Reducer tests for every rule; socket integration test with two fake clients; bot-fill test
