@@ -6,7 +6,7 @@ import { THEME_CHROME, themeOf } from './appTheme';
 import type { ThemeId } from './appTheme';
 
 const KEY = 'dozari.theme.v1';
-let current: ThemeId = 'play';
+let current: ThemeId = 'adult';
 let loaded = false;
 const listeners = new Set<(t: ThemeId) => void>();
 

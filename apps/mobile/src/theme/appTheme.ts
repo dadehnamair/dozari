@@ -2,11 +2,11 @@ import type { AgeTrack } from '@dozari/shared';
 
 /**
  * The app's two looks (owner, 2026-10-06; docs/logic/age-tracks.md): `play` is the candy look kid and teen players share,
- * `adult` is «صرافی و گاوصندوق» (docs/design/adult/). The look follows the player's track.
+ * `adult` is «صرافی و گاوصندوق» (docs/design/adult/). The look follows the player's track; adult is the default until a kid/teen track is known (most players are adults).
  */
 export type ThemeId = 'play' | 'adult';
 
-export const themeOf = (track: AgeTrack | null | undefined): ThemeId => (track === 'adult' ? 'adult' : 'play');
+export const themeOf = (track: AgeTrack | null | undefined): ThemeId => (track === 'kid' || track === 'teen' ? 'play' : 'adult');
 
 /** Adult palette (docs/design/CLAUDE.md, locked): near-black panels, gold frames, brass buttons, cream-gold text. */
 export const adultColors = {

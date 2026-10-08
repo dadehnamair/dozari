@@ -11,7 +11,7 @@ can hold the adult account and add the child; the admin panel can filter and man
    Name, logo, fonts, voice and the home layout stay the one «دوزاری» brand. The look follows the track and switches with it everywhere: in-app theme,
    Android launcher icon (four aliases: default, female, adult, adultFemale), PWA manifest, icons and address-bar colour. «دوزاری کوچولو» still
    appears only as the label of the kid track inside the app. The adult track stays the full price-nostalgia game and never shows kid content.
-   Wording: «بازی برای هر سن». Code: `apps/mobile/src/theme/{appTheme,themeStore,look}.ts`, `src/appIcon`, `plugins/withGenderIcon.js`.
+   Until a kid/teen track is known (first launch, signed out, no saved choice) the app opens in the **adult look** (theme, icon, PWA manifest, Android default alias `MainActivityAdult`), since most players are adults; a kid/teen switches the look on login/track choice. Wording: «بازی برای هر سن». Code: `apps/mobile/src/theme/{appTheme,themeStore,look}.ts`, `src/appIcon`, `plugins/withGenderIcon.js`.
 2. **The track is chosen, never computed from a birth date.** We store a coarse track chosen by the user (kid / teen / adult); no ID, no school. The optional
    birth date of D160 (minimum age 10) stays as it is and is **independent**: it never picks or changes a track and no rule reads it. A kid profile
    created through a guardian has no birth date field (under the D160 minimum), so the birthday week simply does not apply to it. In code the word is
