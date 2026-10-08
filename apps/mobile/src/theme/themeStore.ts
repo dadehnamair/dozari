@@ -6,7 +6,7 @@ import { THEME_CHROME, themeOf } from './appTheme';
 import { THEME_KEY, bootTheme, setBootTheme } from './bootTheme';
 import type { ThemeId } from './appTheme';
 
-let current: ThemeId = 'play';
+let current: ThemeId = 'adult';
 let loaded = false;
 const listeners = new Set<(t: ThemeId) => void>();
 

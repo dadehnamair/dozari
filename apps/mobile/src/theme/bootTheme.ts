@@ -3,7 +3,7 @@ import type { ThemeId } from './appTheme';
 /** Device key of the remembered look (written by themeStore). */
 export const THEME_KEY = 'dozari.theme.v1';
 
-let booted: ThemeId = 'play';
+let booted: ThemeId = 'adult';
 
 /**
  * The look the palette (theme/colors.ts) was built with. It must be set before any screen module is imported (index.ts awaits

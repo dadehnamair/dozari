@@ -4,12 +4,12 @@ import type { AgeTrack, Gender } from '@dozari/shared';
 
 /**
  * Launcher icon variants (D165 + age themes): the original hero, the female hero, and the same two on the adult gold-and-black coin.
- * Kid and teen keep the original candy icons.
+ * Kid and teen keep the original candy icons; adult is the default until a kid/teen track is known.
  */
 export type IconVariant = 'default' | 'female' | 'adult' | 'adultFemale';
 
 export const iconFor = (gender: Gender | null | undefined, track?: AgeTrack | null): IconVariant =>
-  track === 'adult' ? (gender === 'female' ? 'adultFemale' : 'adult') : gender === 'female' ? 'female' : 'default';
+  track === 'kid' || track === 'teen' ? (gender === 'female' ? 'female' : 'default') : gender === 'female' ? 'adultFemale' : 'adult';
 
 interface AppIconModule {
   setIcon(variant: IconVariant): void;
