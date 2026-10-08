@@ -2,8 +2,8 @@ import { readFile } from 'node:fs/promises';
 import Fastify from 'fastify';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import type { ContentApi, LandingData, Post, PostSummary } from './api.js';
-import { llmsFull, llmsTxt, ogCard, robots, sitemap } from './discovery.js';
-import { aboutPage, blogIndexPage, castPage, contactPage, downloadPage, homePage, notFoundPage, postPage, privacyPage, termsPage, unavailablePage } from './pages.js';
+import { llmsFull, llmsTxt, ogCard, robots, sitemap, sitemapXsl } from './discovery.js';
+import { aboutPage, blogIndexPage, castPage, contactPage, downloadPage, homePage, notFoundPage, postPage, privacyPage, sitemapPage, termsPage, unavailablePage } from './pages.js';
 import type { Site } from './seo.js';
 
 export interface LandingOptions {
@@ -134,10 +134,15 @@ export function buildLanding(opts: LandingOptions): FastifyInstance {
   app.get('/terms', async (_req, reply) => send(reply, 200, termsPage(siteOf(await api.landing(), opts.siteUrl))));
   app.get('/privacy', async (_req, reply) => send(reply, 200, privacyPage(siteOf(await api.landing(), opts.siteUrl))));
 
+  app.get('/sitemap', async (_req, reply) => {
+    const [data, posts] = await Promise.all([api.landing(), allPosts(api)]);
+    return send(reply, 200, sitemapPage(siteOf(data, opts.siteUrl), posts, data.cast, data.faq));
+  });
   app.get('/sitemap.xml', async (_req, reply) => {
     const [data, posts] = await Promise.all([api.landing(), allPosts(api)]);
     return text(reply, 'application/xml', sitemap(siteOf(data, opts.siteUrl), posts));
   });
+  app.get('/sitemap.xsl', async (_req, reply) => text(reply, 'text/xsl', sitemapXsl(siteOf(await api.landing(), opts.siteUrl))));
   app.get('/og.svg', async (_req, reply) => text(reply, 'image/svg+xml', ogCard(siteOf(await api.landing(), opts.siteUrl))));
   app.get('/robots.txt', async (_req, reply) => text(reply, 'text/plain', robots(siteOf(await api.landing(), opts.siteUrl))));
   app.get('/llms.txt', async (_req, reply) => {

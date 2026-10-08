@@ -136,6 +136,16 @@ details.faq p{margin:0;padding:0 22px 20px;font-weight:500;font-size:16px}
 .related{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;padding:0;list-style:none;margin:0}
 .rel{text-decoration:none;color:var(--ink);background:#fff;border:4px solid var(--ink);border-radius:28px;padding:20px;display:flex;gap:14px;align-items:center}.rel:hover{color:var(--ink)}
 .rel .sq{width:80px;height:80px;border-radius:20px;border:3px solid var(--ink);overflow:hidden;flex:none}.rel .sq img{width:100%;height:100%;object-fit:cover}.rel small{display:block;font-weight:800;font-size:12px;color:var(--pink)}.rel span{font-family:var(--display);font-size:22px;line-height:1.3;display:block}
+/* sitemap page */
+.smap{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;margin-top:24px}
+.smap section{background:#fff;border:4px solid var(--ink);border-radius:28px;box-shadow:0 6px 0 var(--ink);padding:20px 22px;display:flex;flex-direction:column;gap:6px}
+.smap section.wide{grid-column:1/-1}
+.smap h2{margin:0;font-size:30px;display:flex;align-items:center;gap:10px}.smap h2 i{width:14px;height:14px;border-radius:50%;border:3px solid var(--ink);background:var(--c);flex:none}
+.smap ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.smap li a{display:flex;flex-direction:column;padding:6px 10px;border-radius:14px;text-decoration:none;color:var(--ink);font-weight:800;line-height:1.7}
+.smap li a:hover{background:var(--cream)}.smap li a small{font-weight:500;font-size:13px;opacity:.75}
+.smap .cols{columns:2 240px;column-gap:16px}.smap .cols li{break-inside:avoid}
+.smap .ltr{direction:ltr;text-align:end}
 /* plain pages (cast, privacy, 404) */
 main.page{max-width:820px;margin:0 auto;padding:32px 24px 56px}
 main.page h1{font-size:clamp(38px,5vw,56px);margin-bottom:12px}main.page h2{font-size:32px;margin:1.4em 0 .3em}main.page ul{padding-inline-start:1.2em}
@@ -322,7 +332,7 @@ ${content}
 <div class="fgrid">
 <div><div class="brandname">${escapeHtml(site.name)}</div><p>${escapeHtml(site.tagline)}</p></div>
 <div><h2 style="color:var(--sky)">صفحه‌ها</h2><ul><li><a href="/">خانه</a></li><li><a href="/about">درباره ما</a></li><li><a href="/blog">وبلاگ</a></li><li><a href="/cast">آدم‌های بازار</a></li><li><a href="/download">دانلود</a></li><li><a href="/contact">تماس و سوالات</a></li></ul></div>
-<div><h2 style="color:var(--lime)">قوانین</h2><ul><li><a href="/terms">قوانین و شرایط</a></li><li><a href="/privacy">حریم خصوصی</a></li></ul></div>
+<div><h2 style="color:var(--lime)">قوانین</h2><ul><li><a href="/terms">قوانین و شرایط</a></li><li><a href="/privacy">حریم خصوصی</a></li><li><a href="/sitemap">نقشه‌ی سایت</a></li></ul></div>
 <div><h2 style="color:var(--orange)">ما را دنبال کنید</h2><div class="social">${social.map((s) => `<a href="${escapeHtml(s.u)}" rel="noopener me" style="background:${s.c[0]};color:${s.c[1]}">${icon(socialIcon(s.u))}${escapeHtml(s.label)}</a>`).join('')}${site.contactEmail ? `<a href="mailto:${escapeHtml(site.contactEmail)}" style="background:#FFF6E8;color:#2B1240">${icon('mail')}ایمیل</a>` : ''}</div></div>
 </div>
 ${badgesHtml(site)}
@@ -745,6 +755,40 @@ export function termsPage(site: Site): string {
 <h2>تماس</h2>
 <p>${contact}</p>`;
   return layout(site, head(site, { title, description: desc, path: '/terms', nodes, crumbs }), crumbs, body);
+}
+
+/* ---- sitemap ---- */
+
+/** The human sitemap: every page, article, character, store link, channel and machine-readable file, grouped. Behind `/sitemap` and linked from every footer. */
+export function sitemapPage(site: Site, posts: PostSummary[], cast: CastMember[], faq: FaqPair[]): string {
+  const title = `نقشه‌ی سایت ${site.name}`;
+  const desc = description(`فهرست همه‌ی صفحه‌ها، مقاله‌ها، شخصیت‌ها و راه‌های دانلود و ارتباط با ${site.name} در یک نگاه.`);
+  const crumbs: Crumb[] = [{ name: 'صفحه‌ی اول', path: '/' }, { name: 'نقشه‌ی سایت' }];
+  const nodes: Record<string, unknown>[] = [{ '@type': 'WebPage', '@id': `${site.url}/sitemap#webpage`, url: absolute(site, '/sitemap'), name: title, description: desc, inLanguage: 'fa-IR', isPartOf: { '@id': ids(site).site } }];
+  type L = [href: string, label: string, note?: string, ext?: boolean];
+  const link = ([href, label, note, ext]: L): string => `<li><a href="${escapeHtml(href)}"${ext ? ' rel="noopener"' : ''}>${escapeHtml(label)}${note ? `<small>${escapeHtml(note)}</small>` : ''}</a></li>`;
+  const group = (color: string, h: string, links: L[], cls = ''): string => (links.length ? `<section${cls ? ` class="${cls}"` : ''}><h2 style="--c:${color}"><i></i>${escapeHtml(h)}</h2><ul${cls === 'wide' ? ' class="cols"' : ''}>${links.map(link).join('')}</ul></section>` : '');
+  const play: L[] = [];
+  if (site.appUrl) play.push([site.appUrl, 'نسخه‌ی وب', 'بازی آنلاین در مرورگر', true]);
+  if (site.androidApp) play.push([site.androidApp, 'اندروید', 'دریافت فایل نصب', true]);
+  if (site.iosApp) play.push([site.iosApp, 'iOS', 'دریافت برنامه', true]);
+  if (site.baleBot) play.push([site.baleBot, 'بازی در بله', 'بازی از طریق ربات', true]);
+  if (site.telegramApp) play.push([site.telegramApp, 'بازی در تلگرام', 'بازی بدون نصب', true]);
+  const social: L[] = site.sameAs.map((u): L => [u, socialLabel(u), hostOf(u), true]);
+  if (site.contactEmail) social.push([`mailto:${site.contactEmail}`, 'ایمیل', site.contactEmail]);
+  const files: L[] = [['/sitemap.xml', 'sitemap.xml', 'برای موتورهای جست‌وجو'], ['/robots.txt', 'robots.txt', 'اجازه‌ی خزنده‌ها'], ['/llms.txt', 'llms.txt', 'خلاصه‌ی سایت برای هوش مصنوعی'], ['/llms-full.txt', 'llms-full.txt', 'متن کامل برای هوش مصنوعی']];
+  const body = `<h1>${escapeHtml(title)}</h1><p>${escapeHtml(desc)}</p>
+<div class="smap">
+${group('#FFC93C', 'صفحه‌های اصلی', [['/', 'خانه', 'معرفی بازی و امتحان رایگان'], ['/about', 'درباره ما', 'قصه‌ی اسم و ایده‌ی بازی'], ['/download', 'دانلود', 'نصب رایگان'], ['/contact', 'تماس و سوالات', 'پرسش‌های متداول و راه تماس'], ['/blog', 'وبلاگ', 'همه‌ی مقاله‌ها'], ['/cast', 'آدم‌های بازار', 'شخصیت‌های بازی']])}
+${group('#7ED957', 'قوانین', [['/terms', 'قوانین و شرایط'], ['/privacy', 'حریم خصوصی']])}
+${group('#3FC1F0', 'بازی کن', play)}
+${group('#FF4D8D', 'ما را دنبال کنید', social)}
+${group('#A66BF0', 'مقاله‌ها', posts.map((p): L => [`/blog/${encodeURIComponent(p.slug)}`, p.title, faDate(p.publishedAt)]), 'wide')}
+${group('#FF7A3D', 'شخصیت‌ها', cast.map((c): L => [`/cast#${c.id}`, c.name, c.role || undefined]), 'wide')}
+${group('#3FC1F0', 'پرسش‌های متداول', faq.map((f): L => ['/contact', f.question]), 'wide')}
+${group('#FFC93C', 'فایل‌های ماشینی', files)}
+</div>`;
+  return layout(site, head(site, { title, description: desc, path: '/sitemap', nodes, crumbs }), crumbs, body);
 }
 
 export function notFoundPage(site: Site): string {

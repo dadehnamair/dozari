@@ -350,3 +350,27 @@ describe('terms page', () => {
     expect((await app.inject({ method: 'GET', url: '/' })).body).toContain('<a href="/terms">قوانین و شرایط</a>');
   });
 });
+
+describe('human sitemap page', () => {
+  it('is an indexable page with one h1 that links the pages, posts and machine files', async () => {
+    const app = buildLanding({ api: fakeApi(), siteUrl: 'https://mrdozari.ir' });
+    const res = await app.inject({ method: 'GET', url: '/sitemap' });
+    expect(res.statusCode).toBe(200);
+    expect(res.body.match(/<h1>/g)).toHaveLength(1);
+    expect(res.body).toContain('<link rel="canonical" href="https://mrdozari.ir/sitemap">');
+    for (const p of ['/about', '/download', '/contact', '/blog', '/cast', '/terms', '/privacy', '/sitemap.xml', '/llms.txt', `/blog/${encodeURIComponent(POST.slug)}`]) expect(res.body).toContain(`href="${p}"`);
+    expect((await app.inject({ method: 'GET', url: '/sitemap.xml' })).body).toContain('<loc>https://mrdozari.ir/sitemap</loc>');
+    expect((await app.inject({ method: 'GET', url: '/' })).body).toContain('<a href="/sitemap">نقشه‌ی سایت</a>');
+  });
+});
+
+describe('styled sitemap.xml', () => {
+  it('links its stylesheet and serves it as XSL', async () => {
+    const app = buildLanding({ api: fakeApi(), siteUrl: 'https://mrdozari.ir' });
+    expect((await app.inject({ method: 'GET', url: '/sitemap.xml' })).body).toContain('<?xml-stylesheet type="text/xsl" href="/sitemap.xsl"?>');
+    const xsl = await app.inject({ method: 'GET', url: '/sitemap.xsl' });
+    expect(xsl.statusCode).toBe(200);
+    expect(xsl.headers['content-type']).toContain('text/xsl');
+    expect(xsl.body).toContain('xsl:stylesheet');
+  });
+});
