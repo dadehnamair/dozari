@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import { Platform, View } from 'react-native';
 import type { DimensionValue } from 'react-native';
 import Svg, {
@@ -81,13 +81,19 @@ export function Scene({
   // far worse on phones, where the clouds, lanterns and palm then barely move): a moving scene is drawn without it.
   const wobble = wobbleProp && !animated;
   const u = useId().replace(/[^a-zA-Z0-9]/g, '');
+  // Android paints a percent-sized Svg inside an absolute layer as nothing (see GradientFill): draw at the measured pixel size.
+  const [size, setSize] = useState<{ w: number; h: number } | null>(null);
   return (
     <View
       style={{ width, height, overflow: 'hidden' }}
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
+      onLayout={(e) => {
+        const { width: w, height: h } = e.nativeEvent.layout;
+        setSize((prev) => (prev && prev.w === w && prev.h === h ? prev : { w, h }));
+      }}
     >
-      <Svg width="100%" height="100%" viewBox="0 0 390 844" preserveAspectRatio="xMidYMid slice">
+      <Svg width={size?.w ?? '100%'} height={size?.h ?? '100%'} viewBox="0 0 390 844" preserveAspectRatio="xMidYMid slice">
         <Defs>
           {wobble ? (
             <Filter id={`${u}p`} x="-5%" y="-5%" width="110%" height="110%">
