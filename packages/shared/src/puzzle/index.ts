@@ -6,3 +6,5 @@ export * from './rules/index.js';
 export * from './validate.js';
 export * from './generate.js';
 export * from './tiers.js';
+export * from './difficulty.js';
+export * from './themes.js';

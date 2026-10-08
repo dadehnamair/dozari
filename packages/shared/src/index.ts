@@ -1,6 +1,7 @@
 export * from './format/index.js';
 export * from './schemas/index.js';
 export * from './puzzle/index.js';
+export * from './schedule/index.js';
 export * from './config/index.js';
 export * from './game/index.js';
 export * from './solo/index.js';
@@ -33,3 +34,4 @@ export * from './daily/index.js';
 export * from './tables/index.js';
 export * from './feedback/index.js';
 export * from './keepsake/index.js';
+export * from './clienterror/contract.js';

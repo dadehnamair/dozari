@@ -13,7 +13,7 @@ function postFields(p) {
     author: h('input', { type: 'text', value: p.authorName || '', maxlength: 80 }),
     status: select([['draft', 'پیش‌نویس (منتشر نشده)'], ['published', 'منتشر شده']], p.status || 'draft')
   };
-  f.nodes = [['عنوان', f.title], ['نشانی (slug)', f.slug, 'تغییر نشانی یک مقاله‌ی منتشرشده خودکار ۳۰۱ می‌شود.'], ['خلاصه', f.summary, 'یکی دو جمله؛ در فهرست و نتیجه‌ی جستجو دیده می‌شود.'], ['متن (مارک‌داون)', f.body, 'با ## بخش بسازید؛ زیر هر ## جمله‌ی اول پاسخ مستقیم باشد.'], ['عنوان گوگل', f.metaTitle], ['توضیح گوگل', f.metaDesc, 'حداکثر ۱۶۰ نویسه.'], ['تصویر شاخص', f.cover], ['نویسنده', f.author], ['وضعیت', f.status]];
+  f.nodes = [['عنوان', f.title], ['نشانی (slug)', f.slug, 'تغییر نشانی یک مقاله‌ی منتشرشده خودکار ۳۰۱ می‌شود.'], ['خلاصه', f.summary, 'یکی دو جمله؛ در فهرست و نتیجه‌ی جستجو دیده می‌شود.'], ['متن (مارک‌داون)', f.body, 'با ## بخش بسازید؛ زیر هر ## جمله‌ی اول پاسخ مستقیم باشد.'], ['عنوان گوگل', f.metaTitle], ['توضیح گوگل', f.metaDesc, 'حداکثر ۱۶۰ نویسه.'], ['تصویر شاخص', imageField(f.cover, 'landing')], ['نویسنده', f.author], ['وضعیت', f.status]];
   f.value = function () { return { titleFa: f.title.value.trim(), slug: f.slug.value.trim() || undefined, summaryFa: f.summary.value.trim(), bodyMd: f.body.value, metaTitle: f.metaTitle.value.trim() || null, metaDescription: f.metaDesc.value.trim() || null, coverUrl: f.cover.value.trim() || null, authorName: f.author.value.trim(), status: f.status.value }; };
   return f;
 }
@@ -83,6 +83,32 @@ function simpleList(root, o) {
 VIEWS.landingcast = function (root) {
   simpleList(root, { path: '/admin/landing/cast', key: 'cast', title: 'nameFa', none: 'هنوز کسی اضافه نشده', heading: 'بازیگران', sub: 'ترتیب نمایش با «بالاتر» عوض می‌شود. «تصویر» نام شخصیت (dozari، dozariF …) یا آدرس تصویر است.', addTitle: 'بازیگر تازه', addSub: 'نام، نقش و یک معرفی کوتاه.',
     edit: [{ k: 'nameFa', label: 'نام' }, { k: 'roleFa', label: 'نقش' }, { k: 'bioFa', label: 'معرفی', tag: 'textarea' }, { k: 'imageKey', label: 'تصویر' }] });
+};
+VIEWS.landingcomments = function (root) {
+  var list = h('div');
+  var which = select([['pending', 'در انتظار تأیید'], ['approved', 'تأییدشده'], ['hidden', 'پنهان']], 'pending');
+  function set(c, status) { api('/admin/landing/comments/' + c.id, { method: 'PATCH', body: { status: status } }).then(function (x) { if (!x.ok) return fail(x); toast('انجام شد'); draw(); }); }
+  function draw() {
+    api('/admin/landing/comments?status=' + which.value).then(function (r) {
+      clear(list);
+      if (r.status === 404) return list.appendChild(empty('سایت معرفی روی این سرور فعال نیست'));
+      if (!r.ok) return fail(r);
+      if (r.body.comments.length === 0) list.appendChild(empty('نظری در این دسته نیست'));
+      r.body.comments.forEach(function (c) {
+        list.appendChild(h('div', { class: 'card', style: 'padding:12px' }, [
+          h('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap' }, [h('b', { text: c.authorName }), badge(c.targetType === 'post' ? 'مقاله' : 'شخصیت', 'b-ok'), h('span', { class: 'h', text: c.targetKey, style: 'direction:ltr' })]),
+          h('p', { text: c.body, style: 'white-space:pre-wrap' }),
+          h('div', { class: 'toolbar' }, [
+            c.status !== 'approved' ? h('button', { class: 'btn primary', text: 'تأیید', onclick: function () { set(c, 'approved'); } }) : null,
+            c.status !== 'hidden' ? h('button', { class: 'btn', text: 'پنهان کن', onclick: function () { set(c, 'hidden'); } }) : null
+          ].filter(Boolean))
+        ]));
+      });
+    });
+  }
+  which.onchange = draw;
+  root.appendChild(card('نظرها', 'نظر تازه همیشه «در انتظار تأیید» است؛ لینک و کلمه‌های ممنوع پیش از ثبت رد می‌شوند.', [which, list]));
+  draw();
 };
 VIEWS.landingfaq = function (root) {
   simpleList(root, { path: '/admin/landing/faq', key: 'faq', title: 'questionFa', none: 'هنوز پرسشی نیست', heading: 'پرسش‌های متداول', sub: 'جواب را با یک جمله‌ی مستقیم شروع کنید؛ هر دو، گوگل و دستیارهای هوش مصنوعی، همین را نقل می‌کنند.', addTitle: 'پرسش تازه', addSub: 'پرسش و پاسخ کوتاه.',

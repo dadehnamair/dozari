@@ -1,3 +1,4 @@
+import { FACE_TEXT } from '../theme/skin';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { ChatHistory, ChatMessage, TauntCategory } from '@dozari/shared';
@@ -175,7 +176,7 @@ export function ChatSheet({ onClose, onJoinTable, initialTab = 'city' }: { onClo
         </View>
       )}
       </>}
-      {reporting ? <ReportDialog target={{ kind: 'message', messageId: reporting }} onClose={() => (setReporting(null), setNote(fa.chat.reported))} /> : null}
+      {reporting ? <ReportDialog target={{ kind: 'message', messageId: reporting }} onClose={(sent) => (setReporting(null), sent ? setNote(fa.chat.reported) : undefined)} /> : null}
     </PageShell>
   );
 }
@@ -202,22 +203,22 @@ const styles = StyleSheet.create({
   nameRow: { flexDirection: ROW, alignItems: 'center', gap: 3, paddingHorizontal: 6 },
   name: { fontFamily: fonts.bold, fontSize: 10, color: '#7E46D6' },
   nameMine: { color: '#B8651B' },
-  bubble: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 16, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: '#fff', ...lift(3) },
+  bubble: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 16, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.card, ...lift(3) },
   bubbleMine: { backgroundColor: colors.candy.yellow },
-  bubbleTaunt: { backgroundColor: '#E8D5FF' },
+  bubbleTaunt: { backgroundColor: colors.tint },
   text: { fontFamily: fonts.bold, fontSize: 13, lineHeight: 21, color: colors.ink, textAlign: TEXT_RIGHT },
   tableRow: { flexDirection: ROW, alignItems: 'center', gap: 6 },
   tableIcon: { width: 26, height: 26 },
   tableCard: { gap: 4, padding: 8, borderRadius: 14, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: '#FFF3C4', ...lift(3) },
   join: { fontFamily: fonts.display, fontSize: 14, color: '#7E46D6', textAlign: TEXT_RIGHT },
-  report: { fontFamily: fonts.bold, fontSize: 10, color: colors.ink, opacity: 0.45, paddingHorizontal: 6 },
+  report: { fontFamily: fonts.bold, fontSize: 12, color: colors.ink, opacity: 0.7, textDecorationLine: 'underline', paddingHorizontal: 6 },
   footer: { gap: 6, paddingBottom: 14, paddingTop: 4 },
   quick: { flexDirection: ROW, gap: 6, paddingVertical: 2 },
-  chip: { height: 38, paddingHorizontal: 12, borderRadius: 99, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: '#E8D5FF', justifyContent: 'center', ...lift(3) },
+  chip: { height: 38, paddingHorizontal: 12, borderRadius: 99, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.tint, justifyContent: 'center', ...lift(3) },
   chipText: { fontFamily: fonts.bold, fontSize: 12, color: colors.ink },
   inputRow: { flexDirection: ROW, gap: 6, alignItems: 'center' },
-  input: { flex: 1, minWidth: 0, height: 52, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#fff', paddingHorizontal: 14, fontFamily: fonts.bold, fontSize: 14, color: colors.ink, textAlign: TEXT_RIGHT },
+  input: { flex: 1, minWidth: 0, height: 52, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.card, paddingHorizontal: 14, fontFamily: fonts.bold, fontSize: 14, color: colors.ink, textAlign: TEXT_RIGHT },
   send: { width: 52, height: 52, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...lift(4) },
   pressed: { transform: [{ translateY: 3 }] },
-  sendMark: { fontSize: 22, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
+  sendMark: { fontSize: 22, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1, ...FACE_TEXT },
 });

@@ -4,6 +4,7 @@ import type { FoundPlayer, MyFind } from '@dozari/shared';
 import { Avatar } from '../components/Avatar';
 import { CandyButton } from '../components/CandyButton';
 import { fa } from '../i18n/fa';
+import { SheetClose } from '../components/SheetClose';
 import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
 import { fetchMyFind, findContacts, saveFindable, searchPlayer } from './api';
@@ -54,6 +55,7 @@ export function FindSheet({ onClose }: { onClose: () => void }) {
   return (
     <Pressable style={styles.overlay} onPress={onClose} accessibilityLabel={fa.find.close}>
       <Pressable style={styles.sheet} onPress={() => undefined}>
+        <SheetClose onPress={onClose} label={fa.find.close} />
         <Text style={styles.title}>{fa.find.title}</Text>
         {me ? (
           <>
@@ -101,7 +103,6 @@ export function FindSheet({ onClose }: { onClose: () => void }) {
           </Pressable>
         ) : null}
         {note ? <Text style={[styles.hint, styles.bad]}>{note}</Text> : null}
-        <CandyButton label={fa.find.close} sfx="back" color={colors.candy.sky} onPress={onClose} />
       </Pressable>
     </Pressable>
   );
@@ -116,7 +117,7 @@ const styles = StyleSheet.create({
   bad: { color: '#B3261E', opacity: 1 },
   code: { fontFamily: fonts.display, fontSize: 30, letterSpacing: 3, color: INK, writingDirection: 'ltr' },
   row: { flexDirection: 'row', gap: 8, alignItems: 'center', alignSelf: 'stretch', justifyContent: 'space-between' },
-  input: { flex: 1, fontFamily: fonts.bold, fontSize: 16, color: INK, borderWidth: 2, borderColor: INK, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: '#fff', textAlign: TEXT_LEFT, writingDirection: 'ltr' },
+  input: { flex: 1, fontFamily: fonts.bold, fontSize: 16, color: INK, borderWidth: 2, borderColor: INK, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: colors.card, textAlign: TEXT_LEFT, writingDirection: 'ltr' },
   pill: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 99, borderWidth: 2, borderColor: INK, backgroundColor: colors.cream },
   on: { backgroundColor: '#FFC93C' },
   pillText: { fontFamily: fonts.bold, fontSize: 14, color: INK },

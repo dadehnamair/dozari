@@ -6,6 +6,7 @@ import { Character } from '../components/Character';
 import { AnimatedLogo } from '../components/AnimatedLogo';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
+import { SCENE_TEXT } from '../theme/skin';
 
 function FlippingCoin({
   top,
@@ -136,6 +137,7 @@ const styles = StyleSheet.create({
     textShadowColor: '#FFF6E8',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 0,
+    ...SCENE_TEXT,
   },
   mascot: { width: 220, height: 240 },
   footer: { position: 'absolute', bottom: 48, left: 34, right: 34, alignItems: 'center', gap: 10 },
@@ -165,5 +167,6 @@ const styles = StyleSheet.create({
     textShadowColor: '#FFF6E8',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 0,
+    ...SCENE_TEXT,
   },
 });

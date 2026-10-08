@@ -1,4 +1,4 @@
-import { CHAT_HISTORY_LIMIT, CHAT_TAUNT_RATE, CHAT_TEXT_RATE, containsContactInfo, normalizeTableCode, trackRules } from '@dozari/shared';
+import { CHAT_HISTORY_LIMIT, CHAT_INVITE_RATE, CHAT_TAUNT_RATE, CHAT_TEXT_RATE, containsContactInfo, normalizeTableCode, trackRules } from '@dozari/shared';
 import type { AgeTrack, ChatError, ChatMode, ChatHistory, ChatMessage, TauntCategory } from '@dozari/shared';
 
 /** Rooms a player reads and writes from the chat sheet (the duel room is socket-only). */
@@ -64,6 +64,8 @@ export class ChatService {
   managed?: ManagedChat;
   private readonly text = new RateLimiter(CHAT_TEXT_RATE.count, CHAT_TEXT_RATE.windowMs);
   private readonly taunt = new RateLimiter(CHAT_TAUNT_RATE.count, CHAT_TAUNT_RATE.windowMs);
+  /** Table invites have their own bucket: inviting several friends in a row must not trip the one-taunt-per-3s limit. */
+  private readonly invite = new RateLimiter(CHAT_INVITE_RATE.count, CHAT_INVITE_RATE.windowMs);
 
   constructor(
     private readonly store: ChatStore,
@@ -228,7 +230,7 @@ export class ChatService {
     if (!(await this.deps.rules()).enabled) return { ok: false, error: 'OFF' };
     const mute = await this.deps.mute(userId);
     if (mute) return { ok: false, error: 'MUTED', mutedUntil: mute.until };
-    if (!(kind === 'text' ? this.text : this.taunt).take(userId)) return { ok: false, error: 'RATE_LIMITED' };
+    if (!(kind === 'text' ? this.text : kind === 'table' ? this.invite : this.taunt).take(userId)) return { ok: false, error: 'RATE_LIMITED' };
     return null;
   }
 

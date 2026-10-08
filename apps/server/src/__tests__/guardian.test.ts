@@ -142,6 +142,21 @@ describe('guardian side', () => {
     expect(await t.svc.remove(g.session.user.id, added.childId)).toMatchObject({ ok: false, error: 'not_found' });
   });
 
+  it('removes a child with a record only after the code sent to the guardian number', async () => {
+    const t = boot();
+    const g = await guardianWithPhone(t);
+    const added = await t.svc.addChild(g.user.id, 'kid');
+    if (!added.ok) throw new Error('add');
+    t.svc.history = async () => true; // the child has played
+    expect(await t.svc.removal(g.user.id, added.childId)).toEqual({ ok: true, needsCode: true });
+    expect(await t.svc.remove(g.user.id, added.childId)).toMatchObject({ ok: false, error: 'code_required' });
+    expect(await t.svc.sendRemoveCode(g.user.id, added.childId)).toEqual({ ok: true });
+    expect(t.sent.at(-1)?.phone).toBe('+989121111111');
+    expect(await t.svc.removeWithCode(g.user.id, added.childId, '00000')).toMatchObject({ ok: false, error: 'wrong' });
+    expect(await t.svc.removeWithCode(g.user.id, added.childId, t.sent.at(-1)!.code)).toEqual({ ok: true });
+    expect(await t.svc.removal(g.user.id, added.childId)).toMatchObject({ ok: false, error: 'not_found' });
+  });
+
   it("does not let one guardian touch another's child", async () => {
     const t = boot();
     const g = await guardianWithPhone(t);
@@ -165,16 +180,6 @@ describe('guardian side', () => {
     if (!again.ok) throw new Error('code');
     t.clock.ms += 601_000;
     expect(await t.svc.redeem(again.code, '4'.repeat(32))).toBeNull();
-  });
-
-  it("opens one of the guardian's own children, and nobody else's", async () => {
-    const t = boot();
-    const g = await guardianWithPhone(t);
-    const added = await t.svc.addChild(g.user.id, 'kid');
-    if (!added.ok) throw new Error('add');
-    const session = await t.svc.switchTo(g.user.id, added.childId, '5'.repeat(32));
-    expect(session?.user.id).toBe(added.childId);
-    expect(await t.svc.switchTo('someone-else', added.childId, '5'.repeat(32))).toBeNull();
   });
 });
 

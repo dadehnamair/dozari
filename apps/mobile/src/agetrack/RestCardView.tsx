@@ -7,7 +7,7 @@ import { colors, fonts } from '../theme/colors';
 import { restCardFor, snoozeUntil } from './restCard';
 
 const INK = '#3A2418';
-const CHECK_MS = 30_000;
+const CHECK_MS = 10_000;
 
 /** The soft «rest» card of a child's guardian settings: quiet hours or a long day of play (the larger of this session and the minutes today the server counted). One tap on «باشه» hides it for ten minutes; nothing is locked. */
 export function RestCardView({ limits }: { limits: ChildLimits | null }) {

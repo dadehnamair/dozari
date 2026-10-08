@@ -30,6 +30,8 @@ export function estimateDifficulty(rule: Rule, level: number): number {
   switch (rule.kind) {
     case 'era_icon':
       return 0.1;
+    case 'theme_tag':
+      return 0.3;
     case 'price_band_at_year': {
       const ratio = rule.max / Math.max(1, rule.min);
       return clamp(1 - Math.log(Math.max(1, ratio)) / Math.log(4));

@@ -12,7 +12,7 @@ import { colors, fonts } from '../theme/colors';
 import { fetchLookup, searchProducts } from './api';
 import { dateLabel, priceLabel, rangeLine, yearsWithData } from './model';
 import { safeTop } from '../theme/safeArea';
-import { TEXT_RIGHT } from '../theme/direction';
+import { RTL_INPUT, TEXT_RIGHT } from '../theme/direction';
 
 const INK = '#3A2418';
 
@@ -110,7 +110,7 @@ export function LookupScreen({ onBack }: { onBack: () => void }) {
         ) : (
           <>
             <GuideBubble who="mirza" text={fa.lookup.hint} />
-            <TextInput value={q} onChangeText={setQ} placeholder={fa.lookup.placeholder} placeholderTextColor="#8a6a55" style={styles.input} autoFocus />
+            <TextInput value={q} onChangeText={setQ} placeholder={fa.lookup.placeholder} placeholderTextColor="#8a6a55" {...RTL_INPUT.props} style={[styles.input, RTL_INPUT.style]} autoFocus />
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips} keyboardShouldPersistTaps="handled">
               {PRODUCT_CATEGORIES.map((c) => (
                 <Pressable key={c} onPress={() => setCategory(category === c ? null : c)} accessibilityRole="button" accessibilityState={{ selected: category === c }} style={[styles.year, category === c && styles.yearOn]}>

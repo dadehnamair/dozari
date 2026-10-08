@@ -63,9 +63,9 @@ export class MessageCenter {
   }
 
   /** Puts one message in these players' in-app inbox only (system messages such as «امروز تولد X است»); no channel or admin audience involved. */
-  async tellUsers(userIds: readonly string[], title: string, body: string): Promise<void> {
+  async tellUsers(userIds: readonly string[], title: string, body: string, linkUserId: string | null = null): Promise<void> {
     if (userIds.length === 0) return;
-    const id = await this.store.create({ title, body, audience: 'user', targetUserId: null });
+    const id = await this.store.create({ title, body, audience: 'user', targetUserId: null, linkUserId });
     await this.store.deliverInbox(id, [...userIds]);
     await this.store.setChannel(id, 'in_app', userIds.length);
     try {

@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import type { TextInputProps } from 'react-native';
 
 /**
  * `textAlign` for a phone. The layout is right-to-left there (`I18nManager`), and in an RTL layout Android reads `left` and
@@ -8,3 +9,9 @@ import { Platform } from 'react-native';
  */
 export const TEXT_RIGHT = Platform.OS === 'web' ? ('right' as const) : ('left' as const);
 export const TEXT_LEFT = Platform.OS === 'web' ? ('left' as const) : ('right' as const);
+
+/**
+ * Props that make a Persian text field right-to-left on every platform: the caret, the placeholder and the «…» of a long text sit on the
+ * right edge. (On the web the page is left-to-right, so `textAlign` alone leaves the ellipsis and the caret on the wrong side.)
+ */
+export const RTL_INPUT = { props: { dir: 'rtl' } as unknown as TextInputProps, style: { writingDirection: 'rtl' as const, textAlign: TEXT_RIGHT } };

@@ -1,3 +1,4 @@
+import { FACE_TEXT } from '../theme/skin';
 import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { solarMonthOf } from '@dozari/shared';
 import { Character } from '../components/Character';
@@ -113,7 +114,7 @@ const styles = StyleSheet.create({
   tierChipOn: { backgroundColor: colors.candy.yellow },
   tierText: { fontFamily: fonts.bold, fontSize: 14, color: colors.ink },
   tierSub: { fontFamily: fonts.body, fontSize: 11, color: colors.ink },
-  root: { flex: 1, backgroundColor: '#3C1A66' },
+  root: { flex: 1, backgroundColor: colors.deep },
   shade: { backgroundColor: 'rgba(43,18,64,0.5)' },
   scrollTight: { paddingTop: 8 + nativeTopInset(), paddingBottom: 10 },
   columnTight: { gap: 8 },
@@ -127,7 +128,7 @@ const styles = StyleSheet.create({
   cardOff: { opacity: 0.7 },
   pressed: { transform: [{ translateY: 3 }] },
   band: { height: 40, flexDirection: ROW, alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, borderBottomWidth: 3, borderColor: colors.ink, overflow: 'hidden' },
-  bandTitle: { fontFamily: fonts.display, fontSize: 22, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
+  bandTitle: { fontFamily: fonts.display, fontSize: 22, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1, ...FACE_TEXT },
   tag: { paddingHorizontal: 10, paddingVertical: 1, borderRadius: 99, backgroundColor: colors.ink },
   tagText: { fontFamily: fonts.display, fontSize: 15, color: colors.candy.yellow },
   stage: { height: 112, flexDirection: ROW, alignItems: 'flex-end', justifyContent: 'center', paddingTop: 6 },

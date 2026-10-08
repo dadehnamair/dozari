@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Animated, Pressable, Text, View, useWindowDimensions } from 'react-native';
+import { Animated, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { GradientFill } from '../components/GradientFill';
+import { useTheme } from '../theme/themeStore';
 import { SceneBackground } from '../components/SceneBackground';
 import { Character } from '../components/Character';
 import { ProfileSheet } from '../social/ProfileSheet';
@@ -49,11 +51,11 @@ import { colors } from '../theme/colors';
 import { Icon } from '../components/Icon';
 import { HeroCoinToss } from './HeroCoinToss';
 import { HubTile } from './HubTile';
-import { DailyRewardOverlay } from './DailyRewardOverlay';
 import { fmt, styles } from './homeStyles';
 import { useHeroMotion } from './useHeroMotion';
 import { useHomeData } from './useHomeData';
 import { StatPill } from './StatPill';
+import { StatInfoSheet } from './StatInfoSheet';
 
 interface Tile {
   key: string;
@@ -72,13 +74,13 @@ interface Tile {
  * keeps its sheet; a tile only shows when its feature flag is on.
  */
 export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume, onTutorial, onLookup, onGallery, features = OPEN_CONFIG.features, settings = OPEN_CONFIG.raw, myTrack, onPreview }: { onSolo: () => void; onPreview?: (track: 'kid' | 'teen') => void; onPriceOnly?: () => void; onDaily?: () => void; onDuel?: () => void; onDuelResume?: () => void; onTutorial?: () => void; onLookup: () => void; onGallery?: () => void; features?: ClientConfig['features']; settings?: ClientConfig['raw']; /** Track rules and the guardian's limits; absent = no restriction. */ myTrack?: { rules: TrackRulesDto | null; limits: ChildLimits | null } }) {
+  const adult = useTheme() === 'adult';
   const month = useMemo(() => solarMonthOf(Date.now()), []);
   /** Short phones (≤700px tall) get tighter columns and a smaller hero so nothing runs into the bottom buttons. */
   const compact = useWindowDimensions().height <= 700;
   const daily = useDailyReward();
   const { spins, loadSpins, liveMatch, gender, setGender, level, province, slogan, dailyPuzzle, loadMe, profileTasks, loadTasks, gems, worn, loadWorn } = useHomeData(features);
   const hero = useHeroMotion();
-  const [dailyOpen, setDailyOpen] = useState(false);
   const [wheelOpen, setWheelOpen] = useState(false);
   const [baleOpen, setBaleOpen] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
@@ -90,6 +92,8 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
   const [tableCode, setTableCode] = useState<string | undefined>(undefined);
   const [inboxOpen, setInboxOpen] = useState(false);
   const [ledgerOpen, setLedgerOpen] = useState(false);
+  /** The explainer page of the 💎 or 🔥 counter. */
+  const [infoOpen, setInfoOpen] = useState<'gems' | 'streak' | null>(null);
   const [tip, setTip] = useState<number | null>(null);
   const tips = availableTips(fa.home.guide.tips, new Set(['duel', 'daily', 'shop', 'chat', 'inbox'].filter((k) => !features[k as 'duel' | 'daily' | 'shop' | 'chat' | 'inbox'])));
   // A tip fades after a while so the guide never covers the menu for good.
@@ -100,7 +104,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
   }, [tip]);
   const [profileOpen, setProfileOpen] = useState(false);
   /** Opens the profile straight on the friends list (from a friend-request notice). */
-  const [profileStart, setProfileStart] = useState<'friends' | null>(null);
+  const [profileStart, setProfileStart] = useState<'friends' | 'edit' | null>(null);
   /** A friend request is waiting: who sent the latest one (when pushed live) and how many wait in all. */
   const [friendNotice, setFriendNotice] = useState<{ from?: string; count: number } | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -108,6 +112,13 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
   const [hubOpen, setHubOpen] = useState(false);
   const [schoolOpen, setSchoolOpen] = useState(false);
   const [missionsOpen, setMissionsOpen] = useState(false);
+  /** A mission opened a page over the missions sheet (which closed to make room): closing that page brings the sheet back. */
+  const [backToMissions, setBackToMissions] = useState(false);
+  const returnToMissions = () => {
+    if (!backToMissions) return;
+    setBackToMissions(false);
+    setMissionsOpen(true);
+  };
   const [inviteOpen, setInviteOpen] = useState(false);
   const [nudgeToast, setNudgeToast] = useState<string | null>(null);
   const nudge = profileNudge(profileTasks, (k) => (k === 'bale' ? features.bale : k === 'phone' ? features.friends : true));
@@ -115,7 +126,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
     if (!nudge) return;
     if (nudge.action === 'claim') {
       void claimProfileTask(nudge.task.key).then((r) => (setNudgeToast(fa.home.profileNudge.got(fmt(r.coins))), loadTasks()), () => loadTasks());
-    } else if (nudge.action === 'profile') setProfileOpen(true);
+    } else if (nudge.action === 'profile') { setProfileStart('edit'); setProfileOpen(true); }
     else if (nudge.action === 'settings') setSettingsOpen(true);
     else setBaleOpen(true);
   };
@@ -132,6 +143,10 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
     fetchFriends().then((f) => f.incoming.length > 0 && setFriendNotice({ count: f.incoming.length }), () => undefined);
     return connectNotices((n) => {
       if (n.kind === 'inbox') return inboxReload();
+      // Table news arrives as a short line from the guide (the table sheet itself polls for the details).
+      if (n.kind === 'table_invite') return setNudgeToast(fa.home.tableInvite(n.from ?? ''));
+      if (n.kind === 'table_request') return setNudgeToast(fa.home.tableRequest(n.from ?? ''));
+      if (n.kind === 'table_answer') return setNudgeToast(n.accepted ? fa.tables.openList.accepted : fa.tables.openList.declined);
       setFriendNotice((cur) => ({ from: n.from, count: (cur?.count ?? 0) + 1 }));
     });
   }, [features.friends, inboxReload]);
@@ -146,8 +161,6 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
   const h = fa.home.hub;
   const unread = inbox.inbox?.unread ?? 0;
   const right: Tile[] = [
-    { key: 'missions', icon: 'target' as const, label: h.missions, color: colors.candy.lime, badge: missionsReady > 0 ? toPersianDigits(String(missionsReady)) : undefined, badgeColor: colors.candy.pink, onPress: () => setMissionsOpen(true) },
-    ...(daily.status ? [{ key: 'daily', icon: 'calendar' as const, label: h.daily, color: colors.candy.yellow, badge: daily.status.canClaim ? '!' : undefined, glow: daily.status.canClaim, onPress: () => setDailyOpen(true) }] : []),
     ...(features.tables && myTrack?.limits?.duelsEnabled !== false ? [{ key: 'tables', icon: 'users' as const, label: h.tables, color: colors.candy.sky, onPress: () => setTableOpen(true) }] : []),
     ...(features.tournament && myTrack?.rules?.tournaments !== false ? [{ key: 'tour', icon: 'trophy' as const, label: h.tournaments, color: colors.candy.orange, onPress: () => setTournamentOpen(true) }] : []),
     ...(features.friends ? [{ key: 'board', icon: 'crown' as const, label: h.leaderboard, color: colors.candy.pink, onPress: () => setBoardOpen(true) }] : []),
@@ -155,14 +168,12 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
     ...(onGallery ? [{ key: 'kit', icon: 'star' as const, label: h.gallery, color: colors.candy.lime, onPress: onGallery }] : []),
   ];
   const left: Tile[] = [
-    ...(features.friends ? [{ key: 'settings', icon: 'settings' as const, label: h.settings, color: colors.candy.grape, onPress: () => setSettingsOpen(true) }] : []),
     ...(features.inbox ? [{ key: 'inbox', icon: 'mail' as const, label: h.messages, color: colors.candy.pink, badge: unread > 0 ? toPersianDigits(String(unread)) : undefined, badgeColor: colors.candy.lime, onPress: () => (inbox.reload(), setInboxOpen(true)) }] : []),
     // A kid/teen has no public chat room: the entry is simply not drawn (their friends' chat lives with the friends).
     ...(features.chat && myTrack?.rules?.freeTextChat !== 'guardian_switch' ? [{ key: 'chat', icon: 'chat' as const, label: h.chat, color: colors.candy.sky, onPress: () => setChatOpen(true) }] : []),
     ...(features.shop ? [{ key: 'shop', icon: 'gift' as const, label: h.shop, color: colors.candy.lime, onPress: () => setShopOpen(true) }] : []),
     ...(features.shop ? [{ key: 'wardrobe', icon: 'shirt' as const, label: h.wardrobe, color: colors.candy.pink, onPress: () => setWardrobeOpen(true) }] : []),
     ...(features.shop ? [{ key: 'treasury', icon: 'puzzle' as const, label: h.treasury, color: colors.candy.yellow, onPress: () => setTreasuryOpen(true) }] : []),
-    ...(features.bale ? [{ key: 'bale', icon: 'bolt' as const, label: h.bale, color: colors.candy.orange, onPress: () => setBaleOpen(true) }] : []),
   ];
 
   const dailyOpenForPlay = features.daily && onDaily && dailyPuzzle && (dailyPuzzle.state === 'available' || dailyPuzzle.state === 'playing');
@@ -183,27 +194,28 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
 
   return (
     <SceneBackground scene="bazaar">
-      <View style={styles.root} onTouchStart={() => setTip(null)}>
+      {adult ? <View pointerEvents="none" style={StyleSheet.absoluteFill}><GradientFill from="rgba(14,10,8,0.55)" to="rgba(14,10,8,0.7)" mid={{ at: 0.5, color: 'rgba(14,10,8,0.1)' }} /></View> : null}
+      <View style={styles.root} pointerEvents="box-none" onTouchStart={() => setTip(null)}>
         <View style={styles.pills}>
           {daily.status ? <StatPill color={colors.candy.yellow} icon="coin" value={fmt(daily.status.balance)} label={`${daily.status.balance} ${h.coins}`} onPress={() => setLedgerOpen(true)} /> : null}
-          {gems > 0 ? <StatPill color={colors.candy.sky} glyph="💎" value={fmt(gems)} label={`${gems} ${h.gems}`} /> : null}
-          {dailyPuzzle && dailyPuzzle.state !== 'unavailable' && dailyPuzzle.streak > 0 ? <StatPill color={colors.candy.pink} glyph="🔥" value={`${toPersianDigits(String(dailyPuzzle.streak))} ${h.streak}`} label={`${dailyPuzzle.streak} ${h.streak}`} /> : null}
-          <Pressable onPress={() => setHubOpen(true)} accessibilityRole="button" accessibilityLabel={fa.hub.open} style={styles.mapBtn}>
+          {gems > 0 ? <StatPill color={colors.candy.sky} glyph="💎" value={fmt(gems)} label={`${gems} ${h.gems}`} onPress={() => setInfoOpen('gems')} /> : null}
+          {dailyPuzzle && dailyPuzzle.state !== 'unavailable' && dailyPuzzle.streak > 0 ? <StatPill color={colors.candy.pink} glyph="🔥" value={`${toPersianDigits(String(dailyPuzzle.streak))} ${h.streak}`} label={`${dailyPuzzle.streak} ${h.streak}`} onPress={() => setInfoOpen('streak')} /> : null}
+          <Pressable onPress={() => setHubOpen(true)} accessibilityRole="button" accessibilityLabel={fa.hub.open} style={[styles.mapBtn, adult ? styles.mapBtnAdult : null]}>
             <View style={styles.mapIcon}><Item icon="map" /></View>
           </Pressable>
           {/* The lucky wheel is always one tap away; the number is the spins waiting (wins, level and tournament prizes, the shop, the daily free spin). */}
-          <Pressable onPress={() => setWheelOpen(true)} accessibilityRole="button" accessibilityLabel={h.wheel} style={styles.mapBtn}>
-            <Icon name="wheel" size={22} color="#fff" strokeWidth={2.2} />
-            {spins > 0 ? <View style={styles.spinBadge}><Text style={styles.spinBadgeText}>{toPersianDigits(String(spins))}</Text></View> : null}
+          <Pressable onPress={() => setWheelOpen(true)} accessibilityRole="button" accessibilityLabel={h.wheel} style={[styles.mapBtn, adult ? styles.mapBtnAdult : null]}>
+            <Icon name="wheel" size={22} color={adult ? '#FFE9A8' : '#fff'} strokeWidth={2.2} />
+            {spins > 0 || daily.status?.canClaim ? <View style={styles.spinBadge}><Text style={styles.spinBadgeText}>{spins > 0 ? toPersianDigits(String(spins)) : '!'}</Text></View> : null}
           </Pressable>
           {/* A spacer keeps the level pill at the far (left) end of the row, whether or not the streak pill is showing. */}
           <View style={styles.pillsGap} />
-          {level !== null ? <StatPill color={colors.candy.grape} icon="rosette" value={toPersianDigits(String(level))} label={`${h.level} ${level}`} onPress={() => setProfileOpen(true)} /> : null}
+          {level !== null ? <StatPill color={colors.candy.grape} icon="rosette" value={toPersianDigits(String(level))} label={`${h.level} ${level} · ${h.settings}`} badge={missionsReady > 0 ? toPersianDigits(String(missionsReady)) : undefined} onPress={() => setSettingsOpen(true)} /> : null}
         </View>
 
-        <View style={styles.middle}>
+        <View style={styles.middle} pointerEvents="box-none">
           <View style={[styles.column, compact ? styles.columnCompact : null]}>{right.map(({ key, ...t }) => <HubTile key={key} {...t} />)}</View>
-          <View style={styles.center}>
+          <View style={styles.center} pointerEvents="box-none">
             <AnimatedLogo width={200} />
             <Pressable onPress={dailyOpenForPlay ? onDaily : undefined} disabled={!dailyOpenForPlay} accessibilityRole={dailyOpenForPlay ? 'button' : 'text'}>
               <Text style={styles.bubble} numberOfLines={2}>{bubble}</Text>
@@ -215,11 +227,13 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
               </Pressable>
             ) : null}
             {slogan ? <Text style={styles.slogan} numberOfLines={2}>{slogan}</Text> : null}
-            <View style={styles.spacer} />
+            <View style={styles.spacer} pointerEvents="none" />
             {tip !== null && tips[tip] ? (
               <GuideBubble who={heroFor(gender)} text={tips[tip].text} />
             ) : nudgeToast ? (
               <GuideBubble who={heroFor(gender)} text={nudgeToast} />
+            ) : missionsReady > 0 ? (
+              <GuideBubble who={heroFor(gender)} text={fa.home.missionNudge(missionsReady)} onPress={() => setSettingsOpen(true)} />
             ) : nudge ? (
               <GuideBubble who={heroFor(gender)} text={fa.home.profileNudge[nudge.action === 'claim' ? 'claim' : nudge.key](fmt(nudge.task.coins))} onPress={onNudge} />
             ) : null}
@@ -237,17 +251,16 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
         </View>
 
         <View style={styles.buttons}>
-          {/* Up to three modes side by side, label only (the lock on a locked duel is kept: it explains why it is greyed). */}
-          <SlabButton label={h.play} sfx="confirm" color={colors.candy.lime} height={68} fontSize={priceOnlyOn ? 22 : 28} onPress={onSolo} />
-          {second ? <SlabButton label={second.label} color={second.color} badge={second.badge} icon={duelLocked ? 'lock' : undefined} height={68} fontSize={priceOnlyOn ? 22 : 28} onPress={second.onPress} /> : null}
-          {priceOnlyOn ? <SlabButton label={fa.priceOnly.play} sfx="confirm" color={colors.candy.yellow} height={68} fontSize={22} onPress={onPriceOnly!} /> : null}
+          {/* Three modes side by side: icon above the label so each name fits on a narrow phone. */}
+          <SlabButton label={h.play} sfx="confirm" color={colors.candy.lime} height={68} fontSize={priceOnlyOn ? 20 : 28} onPress={onSolo} />
+          {second ? <SlabButton label={second.label} color={second.color} badge={second.badge} icon={duelLocked ? 'lock' : undefined} height={68} fontSize={priceOnlyOn ? 20 : 28} onPress={second.onPress} /> : null}
+          {priceOnlyOn ? <SlabButton label={fa.priceOnly.play} sfx="confirm" color={adult ? colors.candy.sky : colors.candy.yellow} icon="coin" height={68} fontSize={20} onPress={onPriceOnly!} /> : null}
         </View>
       </View>
 
-      {dailyOpen ? <DailyRewardOverlay daily={daily} onClose={() => setDailyOpen(false)} /> : null}
       {review.open && review.url ? <ReviewSheet message={review.message} url={review.url} onReview={review.onReview} onLater={review.onLater} onNever={review.onNever} /> : null}
       {friendNotice && !profileOpen ? <FriendRequestSheet from={friendNotice.from} count={friendNotice.count} onSee={() => (setFriendNotice(null), setProfileStart('friends'), setProfileOpen(true))} onLater={() => setFriendNotice(null)} /> : null}
-      {profileOpen ? <ProfileSheet start={profileStart} onClose={() => (setProfileOpen(false), setProfileStart(null), loadMe(), loadTasks())} onGender={(g) => (setGender(g), setLookGender(g))} /> : null}
+      {profileOpen ? <ProfileSheet start={profileStart} onClose={() => (setProfileOpen(false), setProfileStart(null), loadMe(), loadTasks(), returnToMissions())} onGender={(g) => (setGender(g), setLookGender(g))} /> : null}
       {hubOpen ? (
         <CityHub
           onClose={() => setHubOpen(false)}
@@ -265,8 +278,9 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
       ) : null}
       {schoolOpen ? <SchoolSheet onClose={() => setSchoolOpen(false)} /> : null}
       {boardOpen ? <LeaderboardPage onClose={() => setBoardOpen(false)} /> : null}
-      {settingsOpen ? <SettingsPage onClose={() => (setSettingsOpen(false), loadTasks())} onProfile={() => (setSettingsOpen(false), setProfileOpen(true))} onTutorial={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} onAccountGone={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} ageTracksOn={settings['feature.age_tracks'] === 1} onPreview={onPreview ? (t) => (setSettingsOpen(false), onPreview(t)) : undefined} /> : null}
+      {settingsOpen ? <SettingsPage onMissions={() => (setSettingsOpen(false), setMissionsOpen(true))} missionsReady={missionsReady} onClose={() => (setSettingsOpen(false), loadTasks(), returnToMissions())} onProfile={() => (setSettingsOpen(false), setProfileOpen(true))} onTutorial={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} onAccountGone={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} ageTracksOn={settings['feature.age_tracks'] === 1} baleOn={features.bale} onPreview={onPreview ? (t) => (setSettingsOpen(false), onPreview(t)) : undefined} /> : null}
       {ledgerOpen ? <LedgerSheet onClose={() => setLedgerOpen(false)} /> : null}
+      {infoOpen ? <StatInfoSheet kind={infoOpen} value={infoOpen === 'gems' ? gems : dailyPuzzle?.streak ?? 0} onClose={() => setInfoOpen(null)} /> : null}
       {inboxOpen ? <InboxSheet inbox={inbox.inbox} failed={inbox.failed} onRead={inbox.markRead} onReadAll={inbox.markAll} onClose={() => setInboxOpen(false)} /> : null}
       {tableOpen ? <TableSheet initialCode={tableCode} onMatch={onDuelResume ? () => (setTableOpen(false), onDuelResume()) : undefined} onClose={() => (setTableOpen(false), setTableCode(undefined))} onShare={() => shareTable()} /> : null}
       {tournamentOpen ? <TournamentSheet onClose={() => setTournamentOpen(false)} invite={sponsorInvite} /> : null}
@@ -274,7 +288,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
       {shopOpen ? <ShopSheet realMoney={Number(settings['feature.coin_packages']) === 1 && myTrack?.rules?.purchases !== false} onClose={() => { setShopOpen(false); daily.reload(); }} /> : null}
       {treasuryOpen ? <TreasuryPage onClose={() => (setTreasuryOpen(false), daily.reload())} /> : null}
       {wardrobeOpen ? <FittingRoom who={heroFor(gender)} realMoney={Number(settings['feature.coin_packages']) === 1 && myTrack?.rules?.purchases !== false} onClose={() => (setWardrobeOpen(false), loadWorn(), daily.reload())} /> : null}
-      {wheelOpen ? <WheelPage onClose={() => (setWheelOpen(false), loadSpins(), daily.reload())} /> : null}
+      {wheelOpen ? <WheelPage daily={daily} onClose={() => (setWheelOpen(false), loadSpins(), daily.reload())} /> : null}
       {missionsOpen ? (
         <MissionsSheet
           avail={missionAvail}
@@ -282,16 +296,19 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
           onClose={() => (setMissionsOpen(false), loadTasks())}
           onChanged={loadTasks}
           onGo={(go) => {
-            if (go === 'play') return (setMissionsOpen(false), onSolo());
-            if (go === 'profile') return setProfileOpen(true);
+            // The missions sheet paints over the pages opened from it: close it first so the page can be used.
+            setMissionsOpen(false);
+            setBackToMissions(go !== 'play');
+            if (go === 'play') return onSolo();
+            if (go === 'profile') return (setProfileStart('edit'), setProfileOpen(true));
             if (go === 'settings') return setSettingsOpen(true);
             if (go === 'bale') return setBaleOpen(true);
             return setInviteOpen(true);
           }}
         />
       ) : null}
-      {inviteOpen ? <InviteSheet onClose={() => (setInviteOpen(false), loadTasks())} /> : null}
-      {baleOpen ? <BaleSheet onClose={() => (setBaleOpen(false), loadTasks())} /> : null}
+      {inviteOpen ? <InviteSheet onClose={() => (setInviteOpen(false), loadTasks(), returnToMissions())} /> : null}
+      {baleOpen ? <BaleSheet onClose={() => (setBaleOpen(false), loadTasks(), returnToMissions())} /> : null}
     </SceneBackground>
   );
 }

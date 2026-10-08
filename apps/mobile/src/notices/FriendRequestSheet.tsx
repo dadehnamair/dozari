@@ -27,13 +27,13 @@ export function FriendRequestSheet({ from, count, onSee, onLater }: { from?: str
 
 const styles = StyleSheet.create({
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 55, backgroundColor: 'rgba(26,8,44,0.45)', justifyContent: 'flex-end', alignItems: 'center' },
-  sheet: { width: '100%', maxWidth: 520, gap: 10, paddingHorizontal: 18, paddingTop: 10, paddingBottom: 22, borderTopLeftRadius: 26, borderTopRightRadius: 26, borderWidth: 4, borderBottomWidth: 0, borderColor: colors.ink, backgroundColor: '#FFF6E8' },
+  sheet: { width: '100%', maxWidth: 520, gap: 10, paddingHorizontal: 18, paddingTop: 10, paddingBottom: 22, borderTopLeftRadius: 26, borderTopRightRadius: 26, borderWidth: 4, borderBottomWidth: 0, borderColor: colors.ink, backgroundColor: colors.cream },
   grip: { alignSelf: 'center', width: 44, height: 5, borderRadius: 3, backgroundColor: 'rgba(43,18,64,0.25)' },
   title: { fontFamily: fonts.display, fontSize: 22, color: colors.ink, textAlign: 'center' },
   body: { fontFamily: fonts.bold, fontSize: 14, lineHeight: 22, color: colors.ink, textAlign: 'center' },
   buttons: { flexDirection: ROW, gap: 10, marginTop: 4 },
   btn: { flex: 1, height: 46, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   ok: { backgroundColor: colors.candy.lime },
-  later: { backgroundColor: '#fff' },
+  later: { backgroundColor: colors.card },
   btnText: { fontFamily: fonts.display, fontSize: 16, color: colors.ink },
 });

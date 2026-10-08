@@ -7,6 +7,7 @@ import {
   double,
   index,
   int,
+  mediumtext,
   mysqlEnum,
   mysqlTable,
   primaryKey,
@@ -60,6 +61,7 @@ export const RULE_KIND_VALUES = [
   'cheaper_than_ref',
   'era_icon',
   'category_price_rank',
+  'theme_tag',
   'curated',
 ] as const;
 
@@ -637,6 +639,8 @@ export const adminMessages = mysqlTable(
     body: text('body').notNull(),
     audience: mysqlEnum('audience', MESSAGE_AUDIENCES).notNull(),
     targetUserId: char('target_user_id', { length: 36 }),
+    /** A player this message is about (a friend's birthday): tapping the message in the inbox opens their profile. */
+    linkUserId: char('link_user_id', { length: 36 }),
     sentAt: datetime('sent_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
     retractedAt: datetime('retracted_at', { mode: 'date', fsp: 3 }),
   },
@@ -1109,6 +1113,25 @@ export const landingFaq = mysqlTable('landing_faq', {
   isActive: boolean('is_active').notNull().default(true),
 });
 
+export const LANDING_COMMENT_TARGETS = ['post', 'cast'] as const;
+export const LANDING_COMMENT_STATUS = ['pending', 'approved', 'hidden'] as const;
+
+/** Visitor comments under a blog post or a cast member of the landing site; held `pending` until an admin approves them. */
+export const landingComments = mysqlTable(
+  'landing_comments',
+  {
+    id: id(),
+    targetType: mysqlEnum('target_type', LANDING_COMMENT_TARGETS).notNull(),
+    /** Post slug or cast id. */
+    targetKey: varchar('target_key', { length: 120 }).notNull(),
+    authorName: varchar('author_name', { length: 60 }).notNull(),
+    body: varchar('body', { length: 1000 }).notNull(),
+    status: mysqlEnum('status', LANDING_COMMENT_STATUS).notNull().default('pending'),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (t) => ({ byTarget: index('landing_comments_target_idx').on(t.targetType, t.targetKey, t.status, t.createdAt), byStatus: index('landing_comments_status_idx').on(t.status, t.createdAt) }),
+);
+
 /** Self-hosted short links for outgoing addresses (the `2oi.ir` domain, D172); the redirect counts every click. */
 export const shortLinks = mysqlTable('short_links', {
   code: varchar('code', { length: 24 }).primaryKey(),
@@ -1118,6 +1141,40 @@ export const shortLinks = mysqlTable('short_links', {
   isActive: boolean('is_active').notNull().default(true),
   createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
   lastClickAt: datetime('last_click_at', { mode: 'date', fsp: 3 }),
+});
+
+/**
+ * Scheduled runs of the admin AI studio (docs/logic/ai-studio.md §Schedules): at each cron time the server asks the model for drafts of `kind` and saves them as drafts.
+ * Flat columns, no JSON (D63): the options of every kind live side by side and a kind reads the ones it needs.
+ */
+export const aiSchedules = mysqlTable('ai_schedules', {
+  id: id(),
+  name: varchar('name', { length: 80 }).notNull(),
+  kind: varchar('kind', { length: 20 }).notNull(),
+  enabled: boolean('enabled').notNull().default(true),
+  /** 5-field cron, read in Tehran time. */
+  cron: varchar('cron', { length: 60 }).notNull(),
+  provider: varchar('provider', { length: 20 }).notNull(),
+  model: varchar('model', { length: 80 }).notNull().default(''),
+  hint: varchar('hint', { length: 300 }).notNull().default(''),
+  count: int('count').notNull().default(1),
+  ageTrack: varchar('age_track', { length: 8 }).notNull().default('adult'),
+  style: varchar('style', { length: 8 }).notNull().default('witty'),
+  /** Puzzle tier the scheduled puzzles are for (puzzle_groups); null = mixed. */
+  tierId: char('tier_id', { length: 36 }),
+  category: varchar('category', { length: 40 }),
+  fromYear: int('from_year'),
+  toYear: int('to_year'),
+  topic: varchar('topic', { length: 300 }).notNull().default(''),
+  length: varchar('length', { length: 8 }).notNull().default('medium'),
+  tone: varchar('tone', { length: 16 }).notNull().default('friendly'),
+  nextRunAt: datetime('next_run_at', { mode: 'date', fsp: 3 }),
+  lastRunAt: datetime('last_run_at', { mode: 'date', fsp: 3 }),
+  /** 'ok' | 'empty' (nothing to do) | 'error' */
+  lastStatus: varchar('last_status', { length: 8 }),
+  lastMessage: varchar('last_message', { length: 300 }).notNull().default(''),
+  lastSaved: int('last_saved').notNull().default(0),
+  createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
 });
 
 /** A player reported another player (profile), optionally over one chat message; the admin reviews them (docs/logic/ugc.md §Reports). */
@@ -1133,6 +1190,26 @@ export const userReports = mysqlTable(
     resolvedAt: datetime('resolved_at', { mode: 'date', fsp: 3 }),
   },
   (table) => ({ byTarget: index('user_reports_target_idx').on(table.targetId, table.createdAt), byReporter: index('user_reports_reporter_idx').on(table.reporterId, table.createdAt) }),
+);
+
+/** An error the player's app reported (crash, failed screen or a manual report) with a screenshot, for the admin panel (docs/logic/client-errors.md). */
+export const clientErrors = mysqlTable(
+  'client_errors',
+  {
+    id: id(),
+    userId: char('user_id', { length: 36 }).references(() => users.id, { onDelete: 'set null' }),
+    kind: mysqlEnum('kind', ['crash', 'screen', 'manual']).notNull(),
+    screen: varchar('screen', { length: 64 }).notNull().default(''),
+    message: varchar('message', { length: 500 }).notNull().default(''),
+    detail: text('detail'),
+    context: varchar('context', { length: 1500 }).notNull().default(''),
+    note: varchar('note', { length: 500 }).notNull().default(''),
+    /** `data:image/...;base64,` string; null when the screenshot could not be taken. */
+    screenshot: mediumtext('screenshot'),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    resolvedAt: datetime('resolved_at', { mode: 'date', fsp: 3 }),
+  },
+  (table) => ({ byTime: index('client_errors_time_idx').on(table.createdAt), byUser: index('client_errors_user_idx').on(table.userId, table.createdAt) }),
 );
 
 /** A player's suggestion: a new item, a price for an item, or «this price is wrong» (docs/logic/ugc.md). */

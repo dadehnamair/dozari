@@ -112,6 +112,11 @@ browser — both need the owner's own machine (see Phase 0-A).
       path as real players; `is_bot` never leaves the server
 - [x] 📱 Lobby: quick match 1v1, create/join private table, waiting screen (est. wait, cancel,
       "play solo while waiting", short puzzle info)
+- [x] 🎲 Lively lobby (D213): bot-made public tables + display-only playing rows; bots answer requests, fill seats and start
+- [x] 🎲 Lobby spectating of playing tables (D214): `GET /tables/:code/watch`, `WatchSheet`, bots-only playing tables
+- [x] 🎲 Self-running bot community: 2v2 XP, skill drift, new faces, daily rhythm, level-matched bot games; richer stands (D216)
+- [x] 🎲 Cheers from the stands (D217); replay of closed tables dropped by the owner
+- [x] 🎲 Bot tables with entry fees, the house funding the bots' share (D215)
 - [x] 📱 4-slide onboarding tutorial (skippable) before first Home screen (D96)
 - [x] 📱 Match screen: whose turn, timer, scores, opponent's last guess feedback
 - [x] 🧪 Reducer tests for every rule; socket integration test with two fake clients; bot-fill test
