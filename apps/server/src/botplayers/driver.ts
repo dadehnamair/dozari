@@ -1,5 +1,5 @@
-import { botThinkDelay, chooseBotMove, chooseBotPriceGuess } from '@dozari/shared';
-import type { ChatMessage, MatchView, Rng } from '@dozari/shared';
+import { AVATAR_KEYS, averageLevel, botSkillForLevel, changesAvatar, driftSkill, botThinkDelay, chooseBotMove, chooseBotPriceGuess, pickBotByLevel, scaledThinkRange } from '@dozari/shared';
+import type { ChatMessage, MatchEnded, MatchFound, MatchView, Rng } from '@dozari/shared';
 import { createHash } from 'node:crypto';
 import type { ChatService } from '../chat/service.js';
 import type { DuelQueue } from '../realtime/queue.js';
@@ -26,6 +26,8 @@ export interface BotDriverDeps {
   taunts?: () => Promise<{ nameFa: string; ids: string[] }[]>;
   /** Makes `missing` more bot accounts (the admin's generator with default tuning). */
   topUp?: (missing: number) => Promise<void>;
+  /** A player's level, to give a waiting human a bot of about their own level; absent = a random bot. */
+  levelOf?: (userId: string) => Promise<number>;
   rng: Rng;
   now?: () => number;
   schedule?: (ms: number, fn: () => void) => void;
@@ -43,6 +45,9 @@ export class BotDriver {
   private roster = new Map<string, BotRow>();
   private readonly planned = new Set<string>();
   private readonly opponentOf = new Map<string, string>();
+  /** The side each bot sits on in its live match, and the level it was last seen at (for growth). */
+  private readonly sideOf = new Map<string, 0 | 1>();
+  private readonly levels = new Map<string, number>();
   private ticks = 0;
   private enabled = true;
   private readonly now: () => number;
@@ -54,12 +59,26 @@ export class BotDriver {
   }
 
   async refresh(): Promise<void> {
-    this.roster = new Map((await this.deps.store.active()).map((b) => [b.userId, b]));
+    const next = new Map((await this.deps.store.active()).map((b) => [b.userId, b]));
+    // Bots grow up by playing: a bot that crossed a milestone level since the last look may take a new face (the first look only sets the baseline).
+    for (const b of next.values()) {
+      const before = this.levels.get(b.userId);
+      this.levels.set(b.userId, b.level ?? 1);
+      if (before === undefined || !changesAvatar(before, b.level ?? 1, this.deps.rng)) continue;
+      const face = AVATAR_KEYS.filter((k) => k !== b.avatarKey)[Math.floor(this.deps.rng() * (AVATAR_KEYS.length - 1))];
+      if (face && (await this.deps.store.update(b.userId, { avatarKey: face }).catch(() => 'not_found')) === 'ok') next.set(b.userId, { ...b, avatarKey: face });
+    }
+    this.roster = next;
   }
 
   /** Ids of the active bot accounts (for the opponent-search show). */
   rosterIds(): string[] {
     return [...this.roster.keys()];
+  }
+
+  /** The active bot accounts with name and face (the lobby tables show them like players). */
+  rosterRows(): BotRow[] {
+    return this.enabled ? [...this.roster.values()] : [];
   }
 
   /** True when a waiting human can be given a bot: bots are on and at least one account exists. */
@@ -80,17 +99,31 @@ export class BotDriver {
     const bot = this.roster.get(userId);
     if (!bot) return;
     if (event === 'match:found') {
+      this.sideOf.set(userId, (payload as MatchFound).you);
       const opp = this.deps.matches()?.opponentOf(userId);
       if (opp) this.opponentOf.set(userId, opp.opponentId);
       if (this.deps.rng() * 100 < bot.tauntPercent / 2) this.schedule(this.between(3000, 8000), () => void this.taunt(bot, 'greet'));
     } else if (event === 'match:state') {
       this.planTurn(bot, payload as MatchView);
     } else if (event === 'match:ended') {
+      this.learn(bot, payload as MatchEnded);
       if (this.deps.rng() * 100 < bot.tauntPercent / 2) this.schedule(this.between(2000, 5000), () => void this.taunt(bot, 'gg'));
     } else if (event === 'chat:message') {
       const m = payload as ChatMessage;
       if (m.room === 'match' && m.userId !== userId && m.kind === 'taunt' && this.deps.rng() * 100 < bot.tauntPercent) this.schedule(this.between(2000, 6000), () => void this.taunt(bot, 'reply'));
     }
+  }
+
+  /** A finished game moves the bot's own skill a step (up for a win, down for a loss) inside its bounds; the change is kept, so the roster stays shaped by results. */
+  private learn(bot: BotRow, ended: MatchEnded): void {
+    const side = this.sideOf.get(bot.userId);
+    this.sideOf.delete(bot.userId);
+    if (side === undefined || ended.result.reason === 'abandon') return;
+    const outcome = ended.result.winner === null ? 'draw' : ended.result.winner === side ? 'win' : 'loss';
+    const skill = driftSkill(bot.skill, outcome);
+    if (skill === bot.skill) return;
+    bot.skill = skill;
+    void this.deps.store.update(bot.userId, { skill }).catch(() => undefined);
   }
 
   private planTurn(bot: BotRow, v: MatchView): void {
@@ -101,32 +134,36 @@ export class BotDriver {
     if (this.planned.has(key)) return;
     this.planned.add(key);
     if (this.planned.size > 5000) this.planned.clear();
-    const delay = botThinkDelay(bot.thinkMinMs, bot.thinkMaxMs, v.turnEndsAt - this.now(), this.deps.rng);
+    const think = scaledThinkRange(bot.thinkMinMs, bot.thinkMaxMs, botSkillForLevel(bot.level ?? 1, bot.skill));
+    const delay = botThinkDelay(think.minMs, think.maxMs, v.turnEndsAt - this.now(), this.deps.rng);
     this.schedule(delay, () => this.move(bot));
   }
 
-  /** The duel's price-guess round: after a human-like pause the bot guesses near the real price (more precisely the higher its skill). */
+  /** The duel's price-guess round: after a human-like pause the bot guesses near the real price (closer the higher its level). */
   private planPriceGuess(bot: BotRow, v: MatchView): void {
     const r = v.priceRound;
     if (!r || !r.current || r.youSubmitted) return;
     const key = `${bot.userId}:${v.matchId}:price:${r.roundIndex}`;
     if (this.planned.has(key)) return;
     this.planned.add(key);
-    const delay = botThinkDelay(bot.thinkMinMs, bot.thinkMaxMs, r.endsAt - this.now(), this.deps.rng);
+    const profile = botSkillForLevel(bot.level ?? 1, bot.skill);
+    const think = scaledThinkRange(bot.thinkMinMs, bot.thinkMaxMs, profile);
+    const delay = botThinkDelay(think.minMs, think.maxMs, r.endsAt - this.now(), this.deps.rng);
     this.schedule(delay, () => {
       const matches = this.deps.matches();
       const actual = matches?.priceAnswerFor(bot.userId);
-      if (matches && actual !== null && actual !== undefined) matches.submitPrice(bot.userId, chooseBotPriceGuess({ actualRials: actual, skill: bot.skill, rng: this.deps.rng }));
+      if (matches && actual !== null && actual !== undefined) matches.submitPrice(bot.userId, chooseBotPriceGuess({ actualRials: actual, skill: bot.skill, maxErrorPercent: profile.priceMaxErrorPercent, rng: this.deps.rng }));
     });
   }
 
   private move(bot: BotRow): void {
     const matches = this.deps.matches();
     if (!matches) return;
+    const profile = botSkillForLevel(bot.level ?? 1, bot.skill);
     for (let attempt = 0; attempt < 8; attempt++) {
       const sol = matches.solutionFor(bot.userId);
       if (!sol) return;
-      const itemIds = chooseBotMove({ groups: sol.groups, remaining: sol.remaining, skill: bot.skill, rng: this.deps.rng });
+      const itemIds = chooseBotMove({ groups: sol.groups, remaining: sol.remaining, skill: bot.skill, accuracyPercent: profile.accuracyPercent, nearMissPercent: profile.nearMissPercent, rng: this.deps.rng });
       const out = matches.submit(bot.userId, itemIds);
       if (out.ok || out.error !== 'DUPLICATE_SELECTION') return; // a duplicate set is simply re-chosen
     }
@@ -174,6 +211,21 @@ export class BotDriver {
     return out;
   }
 
+  /** The idle bot whose level is nearest the humans' (their average): a level-3 player is never paired with a level-20 bot. A random one when levels are unknown. */
+  private async botNear(idle: BotRow[], humanIds: string[]): Promise<BotRow | null> {
+    if (idle.length === 0) return null;
+    if (this.deps.levelOf) {
+      try {
+        const level = averageLevel(await Promise.all(humanIds.map((id) => this.deps.levelOf!(id))));
+        const pick = pickBotByLevel(idle.map((b) => ({ id: b.userId, level: b.level })), level, this.deps.rng);
+        return idle.find((b) => b.userId === pick?.id) ?? null;
+      } catch {
+        // fall through to a random bot: a lookup failure must not leave the player waiting
+      }
+    }
+    return idle[Math.floor(this.deps.rng() * idle.length)] ?? null;
+  }
+
   /** Every few seconds: a human who waited long enough in the queue gets a bot opponent (the "opponent found" moment is the human-like delay). */
   async tick(): Promise<void> {
     const refreshNow = this.ticks++ % 6 === 0;
@@ -191,7 +243,7 @@ export class BotDriver {
     for (const { userId, since, track, tier } of queue.waiting()) {
       if (now - since < (s.fallbackSec + jitterOf(userId, s.jitterSec)) * 1000) continue;
       const idle = [...this.roster.values()].filter((b) => !matches.inMatch(b.userId) && !queue.has(b.userId));
-      const bot = idle[Math.floor(this.deps.rng() * idle.length)];
+      const bot = await this.botNear(idle, [userId]);
       if (!bot) return;
       queue.leave(userId);
       if (!(await matches.start(userId, bot.userId, { tier }))) queue.join(userId, since, track, tier); // could not start: back in line, original place in time
@@ -210,7 +262,11 @@ export class BotDriver {
     const humans = waiting.slice(0, 4);
     const idle = [...this.roster.values()].filter((b) => !matches.inMatch(b.userId) && !queue.has(b.userId));
     const bots: string[] = [];
-    while (humans.length + bots.length < 4 && idle.length > 0) bots.push(idle.splice(Math.floor(this.deps.rng() * idle.length), 1)[0]!.userId);
+    while (humans.length + bots.length < 4 && idle.length > 0) {
+      const pick = (await this.botNear(idle, humans.map((h) => h.userId))) ?? idle[0]!;
+      idle.splice(idle.indexOf(pick), 1);
+      bots.push(pick.userId);
+    }
     if (humans.length + bots.length < 4) return;
     const seats = [...humans.map((h) => h.userId), ...bots];
     for (const h of humans) queue.leave(h.userId);

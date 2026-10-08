@@ -281,10 +281,10 @@ describe('privacy policy page', () => {
 
 
 describe('design pages: about, download, contact', () => {
-  it('are indexable pages with one h1, the five-link nav, canonical and a sitemap entry', async () => {
+  it('are indexable pages with one h1, the nav, canonical and a sitemap entry', async () => {
     const app = buildLanding({ api: fakeApi(), siteUrl: 'https://mrdozari.ir' });
     const map = (await app.inject({ method: 'GET', url: '/sitemap.xml' })).body;
-    for (const path of ['/about', '/download', '/contact']) {
+    for (const path of ['/about', '/ages', '/download', '/contact']) {
       const res = await app.inject({ method: 'GET', url: path });
       expect(res.statusCode).toBe(200);
       expect(res.body.match(/<h1[ >]/g)).toHaveLength(1);
@@ -292,6 +292,24 @@ describe('design pages: about, download, contact', () => {
       expect(res.body).toContain(`<a href="${path}" aria-current="page">`);
       expect(map).toContain(`<loc>https://mrdozari.ir${path}</loc>`);
     }
+  });
+
+  it('ages puts the adult game first, links every banner it uses and carries FAQPage markup', async () => {
+    const app = buildLanding({ api: fakeApi(), siteUrl: 'https://mrdozari.ir' });
+    const html = (await app.inject({ method: 'GET', url: '/ages' })).body;
+    expect(html.indexOf('id="adult"')).toBeGreaterThan(-1);
+    expect(html.indexOf('id="adult"')).toBeLessThan(html.indexOf('id="kids"'));
+    for (const b of ['age-adult', 'age-kid', 'age-teen']) expect(html).toContain(`/banners/${b}.webp`);
+    for (const b of ['age-adult', 'age-kid', 'age-teen']) expect((await app.inject({ method: 'GET', url: `/banners/${b}.webp` })).statusCode).toBe(200);
+    expect(html).toContain('FAQPage');
+    expect((await app.inject({ method: 'GET', url: '/llms.txt' })).body).toContain('/ages');
+  });
+
+  it('the home page shows the adult band before the kid and teen strip', async () => {
+    const html = (await buildLanding({ api: fakeApi(), siteUrl: 'https://mrdozari.ir' }).inject({ method: 'GET', url: '/' })).body;
+    expect(html).toContain('class="band ad" id="adult"');
+    expect(html.indexOf('id="adult"')).toBeLessThan(html.indexOf('/banners/age-kid.webp'));
+    expect(html).toContain('href="/ages#adult"');
   });
 
   it('contact lists the FAQ with FAQPage markup', async () => {
@@ -348,19 +366,6 @@ describe('terms page', () => {
     expect(res.body).toContain('<link rel="canonical" href="https://mrdozari.ir/terms">');
     expect((await app.inject({ method: 'GET', url: '/sitemap.xml' })).body).toContain('<loc>https://mrdozari.ir/terms</loc>');
     expect((await app.inject({ method: 'GET', url: '/' })).body).toContain('<a href="/terms">قوانین و شرایط</a>');
-  });
-});
-
-describe('human sitemap page', () => {
-  it('is an indexable page with one h1 that links the pages, posts and machine files', async () => {
-    const app = buildLanding({ api: fakeApi(), siteUrl: 'https://mrdozari.ir' });
-    const res = await app.inject({ method: 'GET', url: '/sitemap' });
-    expect(res.statusCode).toBe(200);
-    expect(res.body.match(/<h1>/g)).toHaveLength(1);
-    expect(res.body).toContain('<link rel="canonical" href="https://mrdozari.ir/sitemap">');
-    for (const p of ['/about', '/download', '/contact', '/blog', '/cast', '/terms', '/privacy', '/sitemap.xml', '/llms.txt', `/blog/${encodeURIComponent(POST.slug)}`]) expect(res.body).toContain(`href="${p}"`);
-    expect((await app.inject({ method: 'GET', url: '/sitemap.xml' })).body).toContain('<loc>https://mrdozari.ir/sitemap</loc>');
-    expect((await app.inject({ method: 'GET', url: '/' })).body).toContain('<a href="/sitemap">نقشه‌ی سایت</a>');
   });
 });
 

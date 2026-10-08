@@ -1,5 +1,6 @@
-import type { LandingData, PostSummary } from './api.js';
+import type { CastMember, LandingData, PostSummary } from './api.js';
 import { plainText } from './markdown.js';
+import { STATIC_PAGES } from './more.js';
 import { absolute } from './seo.js';
 import type { Site } from './seo.js';
 
@@ -7,10 +8,14 @@ const xml = (s: string): string => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;',
 const iso = (ms: number): string => new Date(ms).toISOString();
 
 /** `sitemap.xml`: every indexable page with its real last-modified time and `hreflang` alternates; noindex pages never appear. */
-export function sitemap(site: Site, posts: PostSummary[]): string {
-  if (site.indexable === false) posts = [];
+export function sitemap(site: Site, posts: PostSummary[], cast: CastMember[] = []): string {
+  if (site.indexable === false) {
+    posts = [];
+    cast = [];
+  }
   const latest = posts.reduce((m, p) => Math.max(m, p.updatedAt), 0);
-  const urls: { path: string; lastmod?: number }[] = [{ path: '/', lastmod: latest || undefined }, { path: '/blog', lastmod: latest || undefined }, { path: '/about' }, { path: '/download' }, { path: '/contact' }, { path: '/cast' }, { path: '/terms' }, { path: '/privacy' }, { path: '/sitemap' }, ...posts.map((p) => ({ path: `/blog/${encodeURIComponent(p.slug)}`, lastmod: p.updatedAt }))];
+  const fresh = new Set(['/', '/blog']);
+  const urls: { path: string; lastmod?: number }[] = [...STATIC_PAGES.map((p) => ({ path: p.path, lastmod: fresh.has(p.path) ? latest || undefined : undefined })), { path: '/sitemap' }, ...cast.map((c) => ({ path: `/cast/${encodeURIComponent(c.id)}` })), ...posts.map((p) => ({ path: `/blog/${encodeURIComponent(p.slug)}`, lastmod: p.updatedAt }))];
   const entries = urls
     .map((u) => {
       const loc = xml(absolute(site, u.path));
@@ -72,7 +77,7 @@ export function robots(site: Site): string {
 
 /** `llms.txt`: a compact, link-rich map of the site for answer engines (https://llmstxt.org). */
 export function llmsTxt(site: Site, data: LandingData, posts: PostSummary[]): string {
-  const lines = [`# ${site.name}`, '', `> ${data.site.heroText || site.tagline}`, '', '## صفحه‌های اصلی', `- [صفحه‌ی اول](${absolute(site, '/')}): معرفی بازی و پرسش‌های متداول`, `- [درباره‌ی ما](${absolute(site, '/about')}): قصه‌ی اسم و ایده‌ی بازی`, `- [دانلود](${absolute(site, '/download')}): نصب رایگان`, `- [تماس و پرسش‌ها](${absolute(site, '/contact')}): پرسش‌های متداول و راه تماس`, `- [بلاگ](${absolute(site, '/blog')}): مقاله‌ها`, `- [بازیگران](${absolute(site, '/cast')}): شخصیت‌های بازی`, `- [نقشه‌ی سایت](${absolute(site, '/sitemap')}): فهرست همه‌ی صفحه‌ها`];
+  const lines = [`# ${site.name}`, '', `> ${data.site.heroText || site.tagline}`, '', '## صفحه‌های اصلی', `- [صفحه‌ی اول](${absolute(site, '/')}): معرفی بازی و پرسش‌های متداول`, `- [درباره‌ی ما](${absolute(site, '/about')}): قصه‌ی اسم و ایده‌ی بازی`, `- [دانلود](${absolute(site, '/download')}): نصب رایگان`, `- [تماس و پرسش‌ها](${absolute(site, '/contact')}): پرسش‌های متداول و راه تماس`, `- [بلاگ](${absolute(site, '/blog')}): مقاله‌ها`, `- [بازیگران](${absolute(site, '/cast')}): شخصیت‌های بازی`, `- [رده‌های سنی](${absolute(site, '/ages')}): بازی کامل بزرگسال، فضای کودک و نوجوان و راهنمای والدین`, `- [راهنمای بازی](${absolute(site, '/how-to-play')}): قدم‌به‌قدم یاد بگیر`, `- [حالت‌های بازی](${absolute(site, '/modes')}): تکی، روزانه، زنده، دو در دو، تورنومنت`, `- [واژه‌نامه](${absolute(site, '/glossary')}): قیمت اسمی، ریال، تومان و بقیه`, `- [آمار](${absolute(site, '/stats')}): شمار واقعی کالا و قیمت و پازل`, `- [وضعیت سرورها](${absolute(site, '/status')}): وضعیت زنده`, `- [نقشه‌ی سایت](${absolute(site, '/sitemap')}): همه‌ی صفحه‌ها`];
   if (posts.length) lines.push('', '## مقاله‌ها', ...posts.map((p) => `- [${p.title}](${absolute(site, `/blog/${encodeURIComponent(p.slug)}`)})${p.summary ? `: ${p.summary.replace(/\s+/g, ' ')}` : ''}`));
   if (site.appUrl) lines.push('', '## بازی', `- [بازی کن](${site.appUrl})`);
   return `${lines.join('\n')}\n`;

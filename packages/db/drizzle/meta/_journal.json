@@ -491,6 +491,48 @@
       "when": 1791236961704,
       "tag": "0069_great_xavin",
       "breakpoints": true
+    },
+    {
+      "idx": 70,
+      "version": "5",
+      "when": 1791280413250,
+      "tag": "0070_equal_wallow",
+      "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "5",
+      "when": 1791319496908,
+      "tag": "0071_premium_betty_brant",
+      "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "5",
+      "when": 1791352666651,
+      "tag": "0072_busy_sage",
+      "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "5",
+      "when": 1791356642122,
+      "tag": "0073_material_frank_castle",
+      "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "5",
+      "when": 1791357739961,
+      "tag": "0074_curvy_wasp",
+      "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "5",
+      "when": 1791365796228,
+      "tag": "0075_yellow_gambit",
+      "breakpoints": true
     }
   ]
 }

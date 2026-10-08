@@ -3,6 +3,8 @@ import { DEFAULT_MATCH_RULES, TEAM_MATCH_BOARDS, applyCommand, settleWager, appl
 import type { AgeTrack, CatalogProduct, Command, RevealedRound, WagerSeat, ErrorCode, PriceGuessState, Stake, MatchEnded, MatchRules, MatchEvent, MatchEventPayload, MatchFound, MatchState, MatchView, Rng, RuleError } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
 import type { PuzzleSource, ServedPuzzle } from '../solo/types.js';
+import { pickUnseen } from '../solo/history.js';
+import type { PuzzleHistory } from '../solo/history.js';
 
 export interface PlayerProfile {
   nickname: string;
@@ -15,6 +17,8 @@ export interface PlayerProfile {
 
 export interface MatchDeps {
   puzzles: PuzzleSource;
+  /** Puzzles each player has already had: a duel, table or 2v2 never serves one of them again (until the pool runs dry). */
+  history?: PuzzleHistory;
   /** A player's age track (D198); queues pair one track, so the first player's track picks the puzzle pool. Absent = adult. */
   trackOf?: (userId: string) => Promise<AgeTrack>;
   /** May this player put coins on a match (`trackRules(track).coinWager`)? A kid or teen never does: such a match is friendly. Absent = everybody may. */
@@ -45,7 +49,15 @@ export interface MatchDeps {
     creditWager?(matchId: string, round: number, userId: string, coins: number): Promise<void>;
     settle(matchId: string, players: readonly [string, string], stakes: readonly [Stake, Stake], result: { winner: 0 | 1 | null; reason: 'solved' | 'locked_out' | 'forfeit' | 'abandon' }, tier?: string): Promise<void>;
   };
+  /** Coin entry of private-table matches (every seated player pays the table's fee; the winning side splits the pot). Absent = tables stay friendly. */
+  tableStakes?: {
+    open(matchId: string, players: readonly string[], fee: number): Promise<boolean>;
+    cancel(matchId: string, players: readonly string[], fee: number): Promise<void>;
+    settle(matchId: string, sides: readonly [readonly string[], readonly string[]], fee: number, result: { winner: 0 | 1 | null; reason: string }): Promise<void>;
+  };
   onEnded?: (info: { players: readonly [string, string]; result: NonNullable<MatchState['result']> }) => void;
+  /** A 2v2 ended: every player of both sides with the side they played (the duel hook only sees two players). */
+  onTeamEnded?: (info: { players: readonly { userId: string; side: 0 | 1 }[]; result: NonNullable<MatchState['result']> }) => void;
 }
 
 interface Active {
@@ -60,6 +72,8 @@ interface Active {
   tier?: string;
   /** Frozen at the start: this match ends with the price-guess round (1v1 only). */
   priceRound?: boolean;
+  /** How many price questions it asks (a table's choice); absent = all of them. */
+  priceRoundCount?: number;
   /** The board is over and the price rounds are being drawn (the clients must not see a finished match yet). */
   pgPending?: boolean;
   /** The running price-guess phase; `busy` while a round's wagers are being settled or taken (no guesses then). */
@@ -68,6 +82,12 @@ interface Active {
   wager?: { amount: number; cutPercent: number; isBot: (userId: string) => boolean };
   /** Wagers put down for the round in play and not settled yet. */
   pgRound?: { index: number; seats: [WagerSeat, WagerSeat] };
+  /** A private table's entry fee and who sat on which side when it started (settled when the match ends). */
+  table?: { fee: number; sides: [string[], string[]] };
+  /** Who sits where, as sent with `match:found` (a returning player gets it again on resume). */
+  players?: MatchFound['players'];
+  /** The last few submitted selections of the board in play, for the stands (every player sees every guess and its result, so it is public). */
+  recent?: { side: 0 | 1; itemIds: readonly string[]; outcome: 'correct' | 'one_away' | 'wrong' }[];
   /** Latest proposal per side (2v2); only that side's own players ever see it. */
   proposals: [{ by: string; itemIds: readonly string[] } | null, { by: string; itemIds: readonly string[] } | null];
 }
@@ -81,6 +101,9 @@ const RULE_TO_ERROR: Record<RuleError, ErrorCode> = {
   INVALID_SELECTION: 'INVALID_SELECTION',
   DUPLICATE_SELECTION: 'DUPLICATE_SELECTION',
 };
+
+/** How many latest guesses the stands see. */
+const RECENT_GUESSES = 6;
 
 const toSolo = (p: ServedPuzzle) => ({ groups: p.groups.map((g) => ({ level: g.level, productIds: g.productIds })) });
 
@@ -138,12 +161,17 @@ export class MatchService {
   }
 
   /** Starts a match for a paired couple; false when it could not be created (no puzzle, unknown or busy player). */
-  async start(a: string, b: string, opts: { friendly?: boolean; tier?: string } = {}): Promise<boolean> {
+  async start(a: string, b: string, opts: { friendly?: boolean; tier?: string; /** Table match: boards to play (1 = one puzzle then the price round) and the entry fee each player pays. */ boards?: number; fee?: number; /** Price-guess questions after the boards: 0 = none, absent = the `match.price_round` setting. */ priceRounds?: number } = {}): Promise<boolean> {
     if (a === b || this.inMatch(a) || this.inMatch(b)) return false;
     const [pa, pb] = await Promise.all([this.deps.profile(a), this.deps.profile(b)]);
     if (!pa || !pb) return false;
     // The stronger of the two sets the puzzle tier (docs/logic/progression.md).
-    const puzzle = await this.deps.puzzles.pickRandom({ level: Math.max(pa.level, pb.level), tracks: await this.tracksOf(a) });
+    const tracks = await this.tracksOf(a);
+    const level = Math.max(pa.level, pb.level);
+    const boardCount = Math.max(1, opts.boards ?? 1);
+    // Several boards: the same different-puzzle rules as 2v2; one board keeps the classic path.
+    const picked = boardCount > 1 ? await this.pickBoards(boardCount, level, tracks, [a, b]) : [];
+    const puzzle = boardCount > 1 ? picked[0] : await pickUnseen(this.deps.history, [a, b], [], (exclude) => this.deps.puzzles.pickRandom({ level, tracks, exclude }));
     if (!puzzle) return false;
     if (this.inMatch(a) || this.inMatch(b)) return false; // raced with another start while loading
     const rng: Rng = mulberry32(this.newSeed());
@@ -161,12 +189,22 @@ export class MatchService {
         return false;
       }
     }
-    const entry: Active = { id, puzzles: [puzzle], state: startMatch(puzzle, [a, b], rng, this.now(), undefined, await this.matchRules()), cancel: null, stakes, tier: stakes ? opts.tier : undefined, priceRound: await this.wantsPriceRound(), proposals: [null, null] };
+    const fee = opts.fee ?? 0;
+    if (fee > 0 && this.deps.tableStakes && !(await this.deps.tableStakes.open(id, [a, b], fee))) return false;
+    if (this.inMatch(a) || this.inMatch(b)) {
+      // Raced with another start while the table fees were taken: give them back.
+      if (fee > 0) await this.deps.tableStakes?.cancel(id, [a, b], fee);
+      return false;
+    }
+    const boards = boardCount > 1 ? picked : [puzzle];
+    const state = boards.length > 1 ? startTeamMatch(boards.map(toSolo), [[a], [b]], rng, this.now(), undefined, await this.matchRules()) : startMatch(puzzle, [a, b], rng, this.now(), undefined, await this.matchRules());
+    const entry: Active = { id, puzzles: boards, state, cancel: null, stakes, tier: stakes ? opts.tier : undefined, priceRound: opts.priceRounds === undefined ? await this.wantsPriceRound() : opts.priceRounds > 0, priceRoundCount: opts.priceRounds, proposals: [null, null], table: fee > 0 && this.deps.tableStakes ? { fee, sides: [[a], [b]] } : undefined };
     if (entry.priceRound && stakes) entry.wager = (await this.deps.stakes?.wagerRules?.().catch(() => null)) ?? undefined;
     this.matches.set(id, entry);
     this.byUser.set(a, id);
     this.byUser.set(b, id);
     const profiles: MatchFound['players'] = [{ userId: a, side: 0, ...pa }, { userId: b, side: 1, ...pb }];
+    entry.players = profiles;
     for (const [userId, you] of [[a, 0], [b, 1]] as const) {
       const found: MatchFound = { matchId: id, you, youId: userId, players: profiles };
       this.deps.emit(userId, ServerEvent.matchFound, found);
@@ -177,20 +215,27 @@ export class MatchService {
   }
 
   /** Starts a 2v2 for four players (`sides[s]` = side s); no coin stakes yet. False when it could not be created. */
-  async startTeam(sides: readonly [readonly [string, string], readonly [string, string]]): Promise<boolean> {
+  async startTeam(sides: readonly [readonly [string, string], readonly [string, string]], opts: { /** Boards to play; absent = the `match.team_boards` setting. */ boards?: number; /** Entry fee each of the four pays (private tables). */ fee?: number; /** Ignored: a 2v2 has no price-guess questions. */ priceRounds?: number } = {}): Promise<boolean> {
     const all = [...sides[0], ...sides[1]];
     if (new Set(all).size !== 4 || all.some((u) => this.inMatch(u))) return false;
     const profiles = await Promise.all(all.map((u) => this.deps.profile(u)));
     if (profiles.some((p) => !p)) return false;
     // The strongest player sets the puzzle tier, so nobody gets dumbed down (docs/logic/progression.md).
-    const boards = await this.pickBoards(await this.boardCount(), Math.max(...profiles.map((p) => p!.level)), await this.tracksOf(sides[0][0]));
+    const boards = await this.pickBoards(opts.boards ?? (await this.boardCount()), Math.max(...profiles.map((p) => p!.level)), await this.tracksOf(sides[0][0]), all);
     if (boards.length === 0) return false;
     if (all.some((u) => this.inMatch(u))) return false; // raced with another start while loading
     const id = uuidv7();
-    const entry: Active = { id, puzzles: boards, state: startTeamMatch(boards.map(toSolo), sides, mulberry32(this.newSeed()), this.now(), undefined, await this.matchRules()), cancel: null, proposals: [null, null] };
+    const fee = opts.fee ?? 0;
+    if (fee > 0 && this.deps.tableStakes && !(await this.deps.tableStakes.open(id, all, fee))) return false;
+    if (all.some((u) => this.inMatch(u))) {
+      if (fee > 0) await this.deps.tableStakes?.cancel(id, all, fee);
+      return false;
+    }
+    const entry: Active = { id, puzzles: boards, table: fee > 0 && this.deps.tableStakes ? { fee, sides: [[...sides[0]], [...sides[1]]] } : undefined, state: startTeamMatch(boards.map(toSolo), sides, mulberry32(this.newSeed()), this.now(), undefined, await this.matchRules()), cancel: null, proposals: [null, null] };
     this.matches.set(id, entry);
     for (const u of all) this.byUser.set(u, id);
     const players: MatchFound['players'] = all.map((u, i) => ({ userId: u, side: i < 2 ? 0 : 1, ...(profiles[i] as PlayerProfile) }));
+    entry.players = players;
     for (const [i, u] of all.entries()) this.deps.emit(u, ServerEvent.matchFound, { matchId: id, you: i < 2 ? 0 : 1, youId: u, players } satisfies MatchFound);
     this.pushState(entry);
     this.armTimer(entry);
@@ -228,10 +273,11 @@ export class MatchService {
     return trackRules(await this.deps.trackOf(userId).catch(() => 'adult' as const)).puzzleTracks;
   }
 
-  private async pickBoards(n: number, level?: number, tracks?: readonly AgeTrack[]): Promise<ServedPuzzle[]> {
+  private async pickBoards(n: number, level: number | undefined, tracks: readonly AgeTrack[] | undefined, players: readonly string[]): Promise<ServedPuzzle[]> {
     const out: ServedPuzzle[] = [];
     for (let i = 0; i < n * 3 && out.length < n; i++) {
-      const p = await this.deps.puzzles.pickRandom({ level, tracks });
+      // Never the same board twice in one match, and none any of the four has played before.
+      const p = await pickUnseen(this.deps.history, players, out.map((o) => o.id), (exclude) => this.deps.puzzles.pickRandom({ level, tracks, exclude }));
       if (!p) break;
       if (!out.some((o) => o.id === p.id)) out.push(p);
     }
@@ -270,8 +316,27 @@ export class MatchService {
   resume(userId: string, matchId?: string): { ok: true } | { ok: false; error: ErrorCode } {
     const entry = this.entryOf(userId);
     if (!entry || (matchId && entry.id !== matchId)) return { ok: false, error: matchId ? 'UNKNOWN_MATCH' : 'NOT_IN_MATCH' };
+    // A player who joins the match late (a table started it before their screen opened) learns who plays whom.
+    const you = entry.state.players.find((p) => p.userId === userId)?.side;
+    if (entry.players && you !== undefined) this.deps.emit(userId, ServerEvent.matchFound, { matchId: entry.id, you, youId: userId, players: entry.players } satisfies MatchFound);
     this.deps.emit(userId, ServerEvent.matchState, this.view(entry, userId));
     return { ok: true };
+  }
+
+  /** What a spectator may see of the match a player sits in: the board from seat 0's side with nothing private (no proposal, no price round), who plays, card names. */
+  spectate(playerId: string): { view: MatchView; players: MatchFound['players']; names: Record<string, string>; inPriceRound: boolean; recent: { side: 0 | 1; names: string[]; outcome: 'correct' | 'one_away' | 'wrong' }[] } | null {
+    const entry = this.entryOf(playerId);
+    const first = entry?.state.players[0]?.userId;
+    if (!entry || !first) return null;
+    const current = entry.puzzles[entry.state.round] ?? entry.puzzles[0]!;
+    const names = Object.fromEntries(Object.entries(current.items).map(([id, it]) => [id, it.nameFa]));
+    return { view: { ...this.view(entry, first), youId: undefined, proposal: null, priceRound: null }, players: entry.players ?? [], names, inPriceRound: !!entry.pg || !!entry.pgPending, recent: (entry.recent ?? []).map((g) => ({ side: g.side, names: g.itemIds.map((id) => names[id] ?? ''), outcome: g.outcome })) };
+  }
+
+  /** Both sides' scores of the match a player sits in (the lobby shows them on a playing table), or null. */
+  scoresOf(playerId: string): [number, number] | null {
+    const s = this.entryOf(playerId)?.state.scores;
+    return s ? [s[0], s[1]] : null;
   }
 
   private entryOf(userId: string): Active | undefined {
@@ -286,6 +351,8 @@ export class MatchService {
     for (const e of r.events) {
       if (e.t === 'proposal') entry.proposals[e.side] = e.itemIds.length > 0 ? { by: e.by, itemIds: e.itemIds } : null;
       if (e.t === 'turn') entry.proposals = [null, null];
+      if (e.t === 'guess') entry.recent = [...(entry.recent ?? []), { side: e.side, itemIds: e.itemIds, outcome: e.outcome }].slice(-RECENT_GUESSES);
+      if (e.t === 'board') entry.recent = [];
     }
     this.broadcast(entry, r.events);
     return { ok: true };
@@ -381,7 +448,8 @@ export class MatchService {
       const ids = puzzle.groups.flatMap((g) => g.productIds);
       const prices = await this.deps.puzzles.pricesFor(ids);
       const catalog: CatalogProduct[] = ids.map((id) => ({ id, category: '', eraTags: [], prices: prices[id] ?? [] }));
-      const rounds = selectRounds(puzzle.groups.map((g) => ({ level: g.level, productIds: g.productIds, ruleYear: g.ruleYear })), catalog, mulberry32(this.newSeed()));
+      const all = selectRounds(puzzle.groups.map((g) => ({ level: g.level, productIds: g.productIds, ruleYear: g.ruleYear })), catalog, mulberry32(this.newSeed()));
+      const rounds = entry.priceRoundCount === undefined ? all : all.slice(0, entry.priceRoundCount);
       if (!this.matches.has(entry.id)) return;
       if (rounds.length === 0) {
         entry.pgPending = false;
@@ -539,9 +607,20 @@ export class MatchService {
         /* a notification hook must never break the match flow */
       }
     }
+    if (result && !duel) {
+      try {
+        this.deps.onTeamEnded?.({ players: entry.state.players.map((p) => ({ userId: p.userId, side: p.side })), result });
+      } catch {
+        /* same: a hook must never break the match flow */
+      }
+    }
     if (result && entry.stakes && this.deps.stakes) {
       const players: [string, string] = [entry.state.players[0]!.userId, entry.state.players[1]!.userId];
       void this.deps.stakes.settle(entry.id, players, entry.stakes, { winner: result.winner, reason: result.reason }, entry.tier).catch((e) => console.error('[duel] settle failed', entry.id, e));
+    }
+    if (result && entry.table && this.deps.tableStakes) {
+      const t = entry.table;
+      void this.deps.tableStakes.settle(entry.id, t.sides, t.fee, { winner: result.winner, reason: result.reason }).catch((e) => console.error('[table] settle failed', entry.id, e));
     }
     for (const p of entry.state.players) this.byUser.delete(p.userId);
     this.matches.delete(entry.id);

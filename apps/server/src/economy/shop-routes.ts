@@ -33,6 +33,18 @@ export function registerShopRoutes(app: FastifyInstance, auth: AuthService, shop
     return { ok: true, worn: await shop.worn(user.id) };
   });
 
+  // A small gift for a friend in their birthday week: `{ itemId, friendId }`.
+  app.post('/shop/gift', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    const b = z.object({ itemId: z.string().uuid(), friendId: z.string().uuid() }).safeParse(req.body);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+    const out = await shop.gift(user.id, b.data.friendId, b.data.itemId);
+    if (out.ok) return { ok: true, balance: out.balance };
+    const code = out.error === 'insufficient' ? 402 : out.error === 'unknown_item' ? 404 : out.error === 'level' || out.error === 'not_friends' || out.error === 'not_birthday' ? 403 : out.error === 'self' || out.error === 'not_giftable' ? 400 : 409;
+    return reply.code(code).send({ error: out.error, ...('minLevel' in out && out.minLevel ? { minLevel: out.minLevel } : {}) });
+  });
+
   app.post('/shop/:id/buy', async (req, reply) => {
     const user = await currentUser(auth, req);
     const p = idParam.safeParse(req.params);

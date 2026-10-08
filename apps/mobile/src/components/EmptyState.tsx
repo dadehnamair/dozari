@@ -1,4 +1,6 @@
-import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { sendErrorReport } from '../errors/report';
 import { fa } from '../i18n/fa';
 import { EMPTY_STATES } from '../kit/data';
 import type { EmptyKind, EmptySpec } from '../kit/data';
@@ -35,6 +37,35 @@ export interface ErrorCardProps {
   backLabel?: string;
 }
 
+/**
+ * «Send this problem to us»: a real error card reports itself once (message, trail and a screenshot go to the admin panel), and any card of a failure that is not
+ * just «no internet» lets the player send it by hand. Shows what happened to the report.
+ */
+function ReportLine({ message, detail, auto }: { message: string; detail?: string; auto: boolean }) {
+  const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'failed'>('idle');
+  const busy = useRef(false);
+  const send = () => {
+    if (busy.current) return;
+    busy.current = true;
+    setState('sending');
+    void sendErrorReport({ kind: 'screen', message, detail }).then((ok) => (setState(ok ? 'sent' : 'failed'), (busy.current = false)));
+  };
+  useEffect(() => {
+    if (!auto) return;
+    // A beat for the card to paint, so the screenshot shows it.
+    const id = setTimeout(send, 500);
+    return () => clearTimeout(id);
+  }, []);
+  const t = fa.errorReport;
+  if (state === 'sent') return <Text style={styles.reported}>{t.sent}</Text>;
+  if (state === 'sending') return <Text style={styles.reported}>{t.sending}</Text>;
+  return (
+    <Pressable onPress={send} accessibilityRole="button" hitSlop={8}>
+      <Text style={styles.reportLink}>{state === 'failed' ? t.failed : t.send}</Text>
+    </Pressable>
+  );
+}
+
 /** The friendly failure card (docs/design/Dozari - 10): used wherever a screen could not reach the server or has nothing to show. */
 export function ErrorCard({ kind, sub, detail, onRetry, retryLabel, onBack, backLabel }: ErrorCardProps) {
   const spec = EMPTY_STATES.find((e) => e.kind === kind) as EmptySpec;
@@ -47,6 +78,7 @@ export function ErrorCard({ kind, sub, detail, onRetry, retryLabel, onBack, back
       <Text style={styles.title}>{text.title}</Text>
       <Text style={styles.sub}>{sub ?? text.sub}</Text>
       {detail ? <Text style={styles.detail}>{detail}</Text> : null}
+      {kind !== 'noInternet' ? <ReportLine message={`${kind}: ${sub ?? text.sub}`} detail={detail} auto={kind === 'error'} /> : null}
       {onRetry ? <CandyButton label={retryLabel ?? text.action} color={candyTone[spec.tone].base} onPress={onRetry} /> : null}
       {onBack ? <CandyButton label={backLabel ?? fa.duel.back} sfx="back" color={candyTone.sky.base} onPress={onBack} /> : null}
     </View>
@@ -54,6 +86,8 @@ export function ErrorCard({ kind, sub, detail, onRetry, retryLabel, onBack, back
 }
 
 const styles = StyleSheet.create({
+  reported: { fontFamily: fonts.bold, fontSize: 12, color: '#7E46D6', textAlign: 'center' },
+  reportLink: { fontFamily: fonts.bold, fontSize: 12.5, color: '#7E46D6', textDecorationLine: 'underline', textAlign: 'center' },
   detail: { fontFamily: fonts.body, fontSize: 11, color: colors.ink, opacity: 0.5, textAlign: 'center', writingDirection: 'ltr' },
   card: { width: 236, padding: 20, borderRadius: 28, backgroundColor: colors.cream, borderWidth: 4, borderColor: colors.ink, borderBottomWidth: 8, alignItems: 'center', gap: 8 },
   mascot: { width: 130, height: 142 },

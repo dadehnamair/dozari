@@ -7,7 +7,7 @@ connects to the game and receives every notification the game wants to send. D72
 
 1. In the app (Home → «اتصال به بله») the player asks `POST /bale/link-code` and gets a 6-character one-time code (valid 10 minutes,
    alphabet without look-alikes). One live code per player.
-2. They send the code (or `/start CODE`) to the bot. The bot's long-poll loop calls `NotifyService.handleUpdate`, which consumes the code and stores
+2. They send the code (or `/start CODE`) to the bot. The bot's long-poll loop calls `NotifyService.handleUpdate`, which consumes the code and stores The typed code is cleaned first (Persian/Arabic digits, zero-width marks, spaces, case), and the app sheet offers a deep link `https://ble.ir/<bot>?start=CODE` so nothing has to be typed.
    `bale_links(user_id, chat_id)`. A chat links to one player and a player to one chat; a new link replaces the old one.
 3. `/status` and `/stop` work in the chat; `DELETE /bale/link` unlinks from the app.
 

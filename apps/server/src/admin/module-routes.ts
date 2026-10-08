@@ -27,10 +27,14 @@ import type { CoinPackageService } from '../economy/coin-packages.js';
 import type { KeepsakeStore } from '../keepsakes/store.js';
 import type { ShopStore } from '../economy/shop-store.js';
 import type { WheelService } from '../wheel/service.js';
+import type { ImageStore } from '@dozari/db';
+import { registerAdminUploadRoutes } from './uploads.js';
 import { registerLandingAdminRoutes } from '../landing/routes.js';
 import type { LandingService } from '../landing/service.js';
 import { registerShortLinkAdminRoutes } from '../shortlinks/routes.js';
 import { registerFeedbackAdminRoutes } from '../feedback/routes.js';
+import { registerClientErrorAdminRoutes } from '../clienterrors/routes.js';
+import type { ClientErrorStore } from '../clienterrors/store.js';
 import type { FeedbackService } from '../feedback/service.js';
 import type { ShortLinkService } from '../shortlinks/service.js';
 import type { BadgeService } from '../badges/service.js';
@@ -42,9 +46,14 @@ import type { DailyService } from '../daily/service.js';
 import { THEME_KINDS } from '../daily/store.js';
 import type { BotPlayerService } from '../botplayers/service.js';
 import { registerInviteAdminRoutes } from '../invite/routes.js';
+import { registerAiAdminRoutes } from '../ai/routes.js';
+import type { AiStudio } from '../ai/studio.js';
+import type { AiScheduler } from '../ai/schedules.js';
 import type { InviteStore } from '../invite/store.js';
 
 export interface AdminModules {
+  /** Where the panel's image uploads go (S3 or the local images dir); without it the upload button answers 404. */
+  images?: ImageStore;
   settings?: SettingsService;
   products?: ProductAdmin;
   stats?: StatsAdmin;
@@ -61,6 +70,11 @@ export interface AdminModules {
   landing?: LandingService;
   /** User reports and the suggestion queue. */
   feedback?: FeedbackService;
+  clientErrors?: ClientErrorStore;
+  /** AI content studio: generates product, kid-lesson, puzzle-title and blog drafts through a chat provider. */
+  ai?: AiStudio;
+  /** Cron schedules for the AI studio (needs `ai`). */
+  aiSchedules?: AiScheduler;
   /** Self-hosted short links (the short domain). */
   shortLinks?: { service: ShortLinkService; base: () => Promise<string> };
   /** Lucky-wheel prize table (kind, amount, odds, visibility). */
@@ -163,8 +177,10 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     settingGroups: SETTING_GROUPS,
     icons: ITEMS,
     iconGroups: ITEM_GROUPS,
-    modules: { puzzles: !!m.puzzles, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, keepsakes: !!m.keepsakes, wheel: !!m.wheel, shortLinks: !!m.shortLinks, feedback: !!m.feedback, landing: !!m.landing, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, lessons: !!m.lessons, ageTracks: !!m.ageTracks, economy: !!m.economy, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages },
+    modules: { puzzles: !!m.puzzles, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, keepsakes: !!m.keepsakes, wheel: !!m.wheel, shortLinks: !!m.shortLinks, feedback: !!m.feedback, clientErrors: !!m.clientErrors, landing: !!m.landing, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, lessons: !!m.lessons, ai: !!m.ai, ageTracks: !!m.ageTracks, economy: !!m.economy, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages },
   }));
+
+  if (m.ai) registerAiAdminRoutes(g, m.ai, audit, m.aiSchedules);
 
   if (m.stats) {
     const stats = m.stats;
@@ -411,7 +427,29 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     const cities = m.cities;
     /** A `PROVINCES` key, or null for no regional identity. */
     const provinceKey = z.string().refine((k) => provinceOf(k) !== null).nullable();
-    g.get('/admin/cities', async () => ({ cities: await cities.cities({ includeHidden: true }), provinces: PROVINCES.map((p) => ({ key: p.key, nameFa: p.nameFa, abroad: p.abroad })) }));
+    g.get('/admin/cities', async () => {
+      const [list, stats] = await Promise.all([cities.cities({ includeHidden: true }), cities.cityStats()]);
+      const none = { players: 0, active7d: 0, bots: 0, xp: 0 };
+      return { cities: list.map((c) => ({ ...c, stats: stats.get(c.id) ?? none })), provinces: PROVINCES.map((p) => ({ key: p.key, nameFa: p.nameFa, abroad: p.abroad, giftFa: p.giftFa })) };
+    });
+    g.get('/admin/cities/:id/players', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const q = z.object({ q: z.string().max(60).default(''), offset: z.coerce.number().int().min(0).max(100_000).default(0) }).safeParse(req.query);
+      if (!p.success || !q.success) return reply.code(400).send({ error: 'invalid_request' });
+      if (!(await cities.city(p.data.id))) return reply.code(404).send({ error: 'city_not_found' });
+      return { players: await cities.cityPlayers(p.data.id, { q: q.data.q, limit: 50, offset: q.data.offset }) };
+    });
+    /** Moves a player to another city, or out of any city (`cityId: null`). */
+    g.put('/admin/cities/:id/players/:userId', async (req, reply) => {
+      const p = z.object({ id: z.string().uuid(), userId: z.string().uuid() }).safeParse(req.params);
+      const b = z.object({ cityId: z.string().uuid().nullable() }).safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      if (b.data.cityId && !(await cities.city(b.data.cityId))) return reply.code(404).send({ error: 'city_not_found' });
+      if ((await cities.privateRow(p.data.userId)).cityId !== p.data.id) return reply.code(404).send({ error: 'user_not_found' });
+      await cities.setCity(p.data.userId, b.data.cityId);
+      void audit('city.player_move', p.data.userId, b.data.cityId ?? 'none');
+      return { ok: true };
+    });
     g.post('/admin/cities', async (req, reply) => {
       const b = z.object({ slug: z.string().trim().toLowerCase().regex(/^[a-z0-9-]{2,40}$/), nameFa: z.string().trim().min(2).max(60), province: provinceKey.optional() }).safeParse(req.body);
       if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
@@ -422,7 +460,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     });
     g.patch('/admin/cities/:id', async (req, reply) => {
       const p = idParam.safeParse(req.params);
-      const b = z.object({ nameFa: z.string().trim().min(2).max(60).optional(), isActive: z.boolean().optional(), sortOrder: z.number().int().min(0).max(10000).optional(), province: provinceKey.optional() }).safeParse(req.body);
+      const b = z.object({ nameFa: z.string().trim().min(2).max(60).optional(), isActive: z.boolean().optional(), sortOrder: z.number().int().min(0).max(10000).optional(), province: provinceKey.optional(), souvenirFa: z.string().trim().max(60).transform((v) => v || null).nullable().optional(), sloganFa: z.string().trim().max(120).optional() }).safeParse(req.body);
       if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
       if ((await cities.updateCity(p.data.id, b.data)) === 'not_found') return reply.code(404).send({ error: 'city_not_found' });
       void audit('city.update', p.data.id, JSON.stringify(b.data));
@@ -579,14 +617,14 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       sponsorId: z.string().uuid().nullable().optional(),
       prizes: z.array(z.object({ place: z.number().int().min(1).max(3), coins: z.number().int().min(0).max(1_000_000), gems: z.number().int().min(0).max(500).default(0), spins: z.number().int().min(0).max(20).default(0) })).max(3),
     };
-    const fail = (reply: FastifyReply, error: string) => reply.code(error === 'NOT_FOUND' ? 404 : error === 'BAD_STATE' ? 409 : 400).send({ error });
+    const fail = (reply: FastifyReply, error: string, reason?: string) => reply.code(error === 'NOT_FOUND' ? 404 : error === 'BAD_STATE' ? 409 : 400).send({ error, ...(reason ? { reason } : {}) });
     g.get('/admin/tournaments', async () => ({ tournaments: await tournaments.adminList() }));
     g.post('/admin/tournaments', async (req, reply) => {
       const b = z.object({ ...fields, publish: z.boolean().default(false) }).safeParse(req.body);
       if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
       const { publish, ...input } = b.data;
       const out = await tournaments.create(input, publish);
-      if (!out.ok) return fail(reply, out.error);
+      if (!out.ok) return fail(reply, out.error, out.reason);
       void audit('tournament.create', out.id, `${input.titleFa} size=${input.size} fee=${input.entryCoins}`);
       return reply.code(201).send({ id: out.id });
     });
@@ -595,7 +633,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       const b = z.object(fields).partial().safeParse(req.body);
       if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
       const out = await tournaments.update(p.data.id, b.data);
-      if (!out.ok) return fail(reply, out.error);
+      if (!out.ok) return fail(reply, out.error, out.reason);
       void audit('tournament.update', p.data.id, JSON.stringify(b.data).slice(0, 200));
       return { ok: true };
     });
@@ -604,7 +642,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
         const p = idParam.safeParse(req.params);
         if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
         const out = await run(p.data.id);
-        if (!out.ok) return fail(reply, out.error);
+        if (!out.ok) return fail(reply, out.error, out.reason);
         void audit(`tournament.${action}`, p.data.id);
         return { ok: true, ...('refunded' in out ? { refunded: out.refunded } : {}) };
       });
@@ -717,9 +755,10 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       return reply.code(201).send({ id: out.id });
     });
     g.post('/admin/puzzles/generate', async (req, reply) => {
-      const b = z.object({ count: z.number().int().min(1).max(20) }).safeParse(req.body);
+      const b = z.object({ count: z.number().int().min(1).max(20), tierId: z.string().uuid().optional() }).safeParse(req.body);
       if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
-      const out = await puzzles.generate(b.data.count, () => randomInt(0, 2 ** 30) / 2 ** 30);
+      if (b.data.tierId && !(await puzzles.tiers()).some((t) => t.id === b.data.tierId)) return reply.code(404).send({ error: 'unknown_tier' });
+      const out = await puzzles.generate(b.data.count, () => randomInt(0, 2 ** 30) / 2 ** 30, { tierId: b.data.tierId });
       void audit('puzzle.generate', 'puzzles', `${out.created}/${out.requested}`);
       return out;
     });
@@ -1006,8 +1045,10 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     });
   }
 
+  if (m.images) registerAdminUploadRoutes(g, m.images, (a, t, d) => void audit(a, t, d));
   if (m.landing) registerLandingAdminRoutes(g, m.landing, (a, t, d) => void audit(a, t, d));
   if (m.feedback) registerFeedbackAdminRoutes(g, m.feedback, (a, t, d) => void audit(a, t, d));
+  if (m.clientErrors) registerClientErrorAdminRoutes(g, m.clientErrors, (a, t, d) => void audit(a, t, d));
   if (m.shortLinks) registerShortLinkAdminRoutes(g, m.shortLinks.service, m.shortLinks.base, (a, t, d) => void audit(a, t, d));
 
   if (m.wheel) {

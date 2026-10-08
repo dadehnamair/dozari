@@ -206,7 +206,7 @@ export function FittingRoom({ who, realMoney = false, onClose }: { who: Characte
 const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0, height: h }, shadowOpacity: 1, shadowRadius: 0, elevation: h });
 
 const styles = StyleSheet.create({
-  root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20, backgroundColor: '#3C1A66' },
+  root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20, backgroundColor: colors.deep },
   veil: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   column: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingHorizontal: 10, paddingTop: pageTop(), paddingBottom: 8, gap: 8 },
   head: { flexDirection: ROW, alignItems: 'center', gap: 6 },
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
   chip: { flexDirection: ROW, alignItems: 'center', gap: 6, height: 30, paddingHorizontal: 10, borderRadius: 99, borderWidth: 2.5, borderColor: colors.ink },
   chipText: { fontFamily: fonts.bold, fontSize: 12, color: colors.ink },
   chipX: { fontFamily: fonts.display, fontSize: 14, color: colors.ink, opacity: 0.6 },
-  small: { height: 30, paddingHorizontal: 10, borderRadius: 10, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  small: { height: 30, paddingHorizontal: 10, borderRadius: 10, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
   smallText: { fontFamily: fonts.display, fontSize: 13, color: colors.ink },
   navScroll: { flexGrow: 0, minHeight: 42 },
   nav: { flexDirection: ROW, gap: 8, alignItems: 'center', paddingBottom: 4 },

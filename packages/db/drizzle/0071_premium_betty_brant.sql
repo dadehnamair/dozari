@@ -1,0 +1,1 @@
+ALTER TABLE `admin_messages` ADD `link_user_id` char(36);

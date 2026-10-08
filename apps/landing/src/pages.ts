@@ -1,11 +1,12 @@
-import type { CastMember, DemoPuzzle, FaqPair, LandingData, Post, PostList, PostSummary } from './api.js';
+import type { CastMember, DemoPuzzle, FaqPair, LandingData, Post, PostList, PostSummary, PublicComment } from './api.js';
+import { EXTRA_CSS, commentsSection, faDate, faNum } from './blocks.js';
+import type { Flash } from './blocks.js';
 import { escapeHtml, plainText, renderMarkdown } from './markdown.js';
 import { qrSvg } from './qr.js';
 import { absolute, description, faqNode, head, ids } from './seo.js';
 import type { Crumb, Site } from './seo.js';
 
-/** Human-readable Persian date of an epoch-ms instant (Solar Hijri, Tehran). */
-export const faDate = (ms: number): string => new Intl.DateTimeFormat('fa-IR-u-ca-persian', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Tehran' }).format(ms);
+export { faDate };
 
 /**
  * Markup and styles follow the landing designs in `docs/design/landing` (ink borders, offset shadows, coloured bands, Lalezar headings).
@@ -136,16 +137,6 @@ details.faq p{margin:0;padding:0 22px 20px;font-weight:500;font-size:16px}
 .related{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;padding:0;list-style:none;margin:0}
 .rel{text-decoration:none;color:var(--ink);background:#fff;border:4px solid var(--ink);border-radius:28px;padding:20px;display:flex;gap:14px;align-items:center}.rel:hover{color:var(--ink)}
 .rel .sq{width:80px;height:80px;border-radius:20px;border:3px solid var(--ink);overflow:hidden;flex:none}.rel .sq img{width:100%;height:100%;object-fit:cover}.rel small{display:block;font-weight:800;font-size:12px;color:var(--pink)}.rel span{font-family:var(--display);font-size:22px;line-height:1.3;display:block}
-/* sitemap page */
-.smap{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;margin-top:24px}
-.smap section{background:#fff;border:4px solid var(--ink);border-radius:28px;box-shadow:0 6px 0 var(--ink);padding:20px 22px;display:flex;flex-direction:column;gap:6px}
-.smap section.wide{grid-column:1/-1}
-.smap h2{margin:0;font-size:30px;display:flex;align-items:center;gap:10px}.smap h2 i{width:14px;height:14px;border-radius:50%;border:3px solid var(--ink);background:var(--c);flex:none}
-.smap ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
-.smap li a{display:flex;flex-direction:column;padding:6px 10px;border-radius:14px;text-decoration:none;color:var(--ink);font-weight:800;line-height:1.7}
-.smap li a:hover{background:var(--cream)}.smap li a small{font-weight:500;font-size:13px;opacity:.75}
-.smap .cols{columns:2 240px;column-gap:16px}.smap .cols li{break-inside:avoid}
-.smap .ltr{direction:ltr;text-align:end}
 /* plain pages (cast, privacy, 404) */
 main.page{max-width:820px;margin:0 auto;padding:32px 24px 56px}
 main.page h1{font-size:clamp(38px,5vw,56px);margin-bottom:12px}main.page h2{font-size:32px;margin:1.4em 0 .3em}main.page ul{padding-inline-start:1.2em}
@@ -224,6 +215,25 @@ main{overflow-x:clip}
 .castbox img{animation:bob 4.5s ease-in-out infinite;animation-delay:var(--d,0s)}
 /* final cta with banner */
 .fin{display:block;width:100%;max-width:1100px;border:4px solid var(--ink);border-radius:40px;box-shadow:0 8px 0 var(--ink);overflow:hidden;transition:transform .35s}.fin:hover{transform:scale(1.015) rotate(-.6deg)}.fin img{width:100%;height:auto}
+/* age tracks: the adult band (gold on near-black, docs/design/adult), the kid/teen cards and the comparison table */
+.band.ad{background:#0E0A08;color:#FFE9A8;border-block:4px solid #E8B64A;position:relative;overflow:hidden}
+.band.ad::before{content:"";position:absolute;inset:0;background:repeating-conic-gradient(from 0deg at 15% 120%,rgba(232,182,74,.07) 0 6deg,transparent 6deg 12deg);pointer-events:none}
+.adg{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:44px;align-items:center;position:relative}
+.adk{font:26px/1.2 var(--display);color:#E8B64A}.adrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.adbadge{display:inline-block;padding:2px 16px;border-radius:12px;border:3px solid #000;background:linear-gradient(180deg,#FFF1B8,#E8B64A 45%,#B8822A);box-shadow:inset 0 2px 0 rgba(255,255,255,.7),0 4px 0 #000;font:800 26px/1.4 Vazirmatn,sans-serif;color:#2A1606;direction:ltr}
+.band.ad h2,.band.ad h1{color:#FFE9A8;text-shadow:0 3px 0 #000;font-size:clamp(34px,5vw,60px);line-height:1.3}.band.ad h2 em,.band.ad h1 em{font-style:normal;background:linear-gradient(180deg,#FFF1B8,#E8B64A 55%,#9A6A1C);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:none;-webkit-text-stroke:0}
+.band.ad p{color:#FFE9A8;font-weight:600;margin:0}
+.adlist{list-style:none;margin:0;padding:0;display:grid;gap:10px}.adlist li{display:flex;gap:10px;align-items:flex-start;font-weight:700;color:#FFE9A8}.adlist li::before{content:"";flex:none;width:12px;height:12px;margin-top:11px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#FFF1B8,#E8B64A 60%,#8A5A16);box-shadow:0 0 0 2px #000}
+.brass{display:inline-block;align-self:flex-start;padding:8px 36px 4px;border-radius:20px;border:4px solid #000;background:linear-gradient(180deg,#FFF1B8 0%,#E8B64A 38%,#B8822A 72%,#8A5A16 100%);box-shadow:inset 0 3px 0 rgba(255,255,255,.75),inset 0 -5px 0 rgba(0,0,0,.25),0 7px 0 #000;font:32px/1.5 var(--display);color:#2A1606;text-decoration:none;text-shadow:0 1px 0 rgba(255,255,255,.55);transition:transform .15s}.brass:hover{color:#2A1606;transform:translateY(-3px)}
+.adart{border:3px solid #E8B64A;border-radius:30px;box-shadow:0 0 0 4px #000,0 14px 40px rgba(232,182,74,.18);overflow:hidden;background:#000}.adart img{width:100%;height:auto}
+.metals{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;position:relative}
+.metals li{--m:#E8B64A;background:#17100C;border:2px solid #8A5A16;border-top:6px solid var(--m);border-radius:20px;padding:20px 22px;box-shadow:0 6px 0 #000}
+.metals h3{font-size:26px;color:var(--m);margin-bottom:6px;line-height:1.5}.metals p{font-size:16px;line-height:1.9}.metals .gold{--m:#E8B64A}.metals .copper{--m:#D2793E}.metals .silver{--m:#C9D2DC}.metals .bronze{--m:#B07A3C}
+.ages3{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:28px}
+.agec{display:flex;flex-direction:column;border:4px solid var(--ink);border-radius:28px;background:#fff;box-shadow:0 8px 0 var(--ink);overflow:hidden}.agec img{width:100%;height:auto;border-bottom:4px solid var(--ink)}.agec .b{padding:18px 22px 22px;display:flex;flex-direction:column;gap:8px}.agec h3{font-size:30px}.agec p{margin:0;font-size:16px}.agec ul{margin:0;padding-inline-start:1.2em;font-size:15px;font-weight:600}
+.cmp{width:100%;border-collapse:separate;border-spacing:0;border:3px solid var(--ink);border-radius:18px;overflow:hidden;background:#fff;font-size:15px}.cmp th,.cmp td{padding:10px 14px;text-align:start;border-bottom:2px solid rgba(43,18,64,.15);vertical-align:top}.cmp thead th{background:var(--ink);color:var(--cream);font-family:var(--display);font-weight:400;font-size:20px}.cmp tbody th{background:#FFF1B8;font-weight:800;white-space:nowrap}.cmp td.ad{background:#17100C;color:#FFE9A8;font-weight:700}.cmp thead th.ad{background:#B8822A;color:#2A1606}
+.cmpbox{overflow-x:auto;-webkit-overflow-scrolling:touch;padding:0 2px 8px}
+.agelink{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-weight:800}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.js .rv{opacity:1;transform:none}.mq{overflow-x:auto}}
 @media(max-width:700px){header.top{border-bottom-width:3px}.bar{padding:8px 14px;gap:6px 10px}.brand{font-size:26px;gap:8px}.brand .face{width:38px!important;height:38px!important}.bar>.btn{font-size:16px;padding:6px 14px 3px;border-width:2px;box-shadow:0 3px 0 var(--ink)}nav.main{order:3;flex:0 0 100%;flex-wrap:nowrap;overflow-x:auto;gap:2px;scrollbar-width:none;margin:0 -14px;padding:0 14px 2px}nav.main::-webkit-scrollbar{display:none}nav.main a{font-size:13px;padding:2px 12px;border-width:2px;white-space:nowrap;line-height:1.7}}
 @media(max-width:560px){.fl{display:none}.band>.in{padding-top:40px;padding-bottom:40px}.sec{padding-top:48px;padding-bottom:48px}.promo{padding:26px}.sticky{position:static}.cc{flex-direction:column}}
@@ -231,37 +241,36 @@ main{overflow-x:clip}
 
 /* ---- characters and icons (assets rendered from the design's own components) ---- */
 
-const WHO = ['dozari', 'dozariF', 'mashti', 'khale', 'pahlevan', 'baqal', 'mirza', 'goli', 'ajan'] as const;
-type Who = (typeof WHO)[number];
+export const WHO = ['dozari', 'dozariF', 'mashti', 'khale', 'pahlevan', 'baqal', 'mirza', 'goli', 'ajan'] as const;
+export type Who = (typeof WHO)[number];
 
 /** Display names of the designed cast, used when the game's cast list is empty and to pair a cast member with its drawing. */
 const CAST_NAMES: Record<Who, string> = { dozari: 'دوزاری', dozariF: 'دوزاری‌خانم', mashti: 'مشتی', khale: 'خاله', pahlevan: 'پهلوون', baqal: 'بقال', mirza: 'میرزا', goli: 'گلی', ajan: 'آژان' };
 const norm = (s: string): string => s.replace(/[‌\s]/g, '').replace(/ا(?=ن$)/, 'ا').replace('پهلوان', 'پهلوون');
 /** A cast row's `image` is either the key of a designed character (`khale`) or a picture URL; the name is the fallback pairing. */
-const whoOf = (c: { name: string; image: string | null }, index: number): Who => WHO.find((w) => w === c.image) ?? WHO.find((w) => norm(CAST_NAMES[w]) === norm(c.name)) ?? (WHO[index % WHO.length] as Who);
-const photoOf = (image: string | null): string | null => (image && /^(https?:)?\/\/|^\//.test(image) ? image : null);
+export const whoOf = (c: { name: string; image: string | null }, index: number): Who => WHO.find((w) => w === c.image) ?? WHO.find((w) => norm(CAST_NAMES[w]) === norm(c.name)) ?? (WHO[index % WHO.length] as Who);
+export const photoOf = (image: string | null): string | null => (image && /^(https?:)?\/\/|^\//.test(image) ? image : null);
 
 /** `name` is a file in `assets/characters` (`dozari-cheer-anim`, `khale-face`, ...). */
-const img = (name: string, w: number, h: number, opts: { alt?: string; cls?: string; eager?: boolean } = {}): string =>
+export const img = (name: string, w: number, h: number, opts: { alt?: string; cls?: string; eager?: boolean } = {}): string =>
   `<img${opts.cls ? ` class="${opts.cls}"` : ''} src="/characters/${name}.svg" alt="${escapeHtml(opts.alt ?? '')}" width="${w}" height="${h}"${opts.eager ? '' : ' loading="lazy"'} decoding="async">`;
-const face = (name: string, size: number): string => `<span class="face" style="width:${size}px;height:${size}px">${img(`${name}-face`, size, size)}</span>`;
+export const face = (name: string, size: number): string => `<span class="face" style="width:${size}px;height:${size}px">${img(`${name}-face`, size, size)}</span>`;
 const item = (name: string): string => `<img src="/items/${name}.svg" alt="" width="48" height="48" loading="lazy">`;
 
 /** Post art, picked from the slug so a post always keeps the same picture. */
 const POST_ART: [Who, string, string][] = [['mirza', 'thinking', '#FFC93C'], ['khale', 'pointing', '#7ED957'], ['goli', 'cheer', '#FF4D8D'], ['pahlevan', 'win', '#3FC1F0'], ['baqal', 'coin', '#A66BF0'], ['dozari', 'wave', '#FF7A3D']];
-const artOf = (slug: string): [Who, string, string] => {
+export const artOf = (slug: string): [Who, string, string] => {
   let h = 0;
   for (const ch of slug) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   return POST_ART[h % POST_ART.length] as [Who, string, string];
 };
 
-const faNum = (n: number): string => String(n).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)] as string);
-const li = (items: string[]): string => items.map((i) => `<li>${i}</li>`).join('');
+export const li = (items: string[]): string => items.map((i) => `<li>${i}</li>`).join('');
 
 /* ---- layout ---- */
 
-export type NavKey = 'home' | 'about' | 'blog' | 'download' | 'contact';
-const NAV: [NavKey, string, string][] = [['home', '/', 'خانه'], ['about', '/about', 'درباره ما'], ['blog', '/blog', 'وبلاگ'], ['download', '/download', 'دانلود'], ['contact', '/contact', 'تماس و سوالات']];
+export type NavKey = 'home' | 'ages' | 'about' | 'blog' | 'download' | 'contact';
+const NAV: [NavKey, string, string][] = [['home', '/', 'خانه'], ['ages', '/ages', 'رده‌های سنی'], ['about', '/about', 'درباره ما'], ['blog', '/blog', 'وبلاگ'], ['download', '/download', 'دانلود'], ['contact', '/contact', 'تماس و سوالات']];
 
 const SOCIAL_LABEL: [RegExp, string][] = [[/instagram\.com/, 'اینستاگرام'], [/t\.me|telegram/, 'تلگرام'], [/aparat\.com/, 'آپارات'], [/bale\.ai|ble\.ir/, 'بله'], [/eitaa/, 'ایتا'], [/rubika/, 'روبیکا']];
 const hostOf = (u: string): string => u.replace(/^https?:\/\/(www\.)?/, '').replace(/\/+$/, '');
@@ -304,7 +313,7 @@ function badgesHtml(site: Site): string {
   return items.length > 0 ? `<div class="badges">${items.join('')}</div>` : '';
 }
 
-function layout(site: Site, headHtml: string, crumbs: Crumb[] | null, body: string, opts: { active?: NavKey; wide?: boolean } = {}): string {
+export function layout(site: Site, headHtml: string, crumbs: Crumb[] | null, body: string, opts: { active?: NavKey; wide?: boolean } = {}): string {
   const crumbHtml =
     crumbs && crumbs.length > 1
       ? `<nav aria-label="مسیر صفحه"><ol class="crumbs">${li(crumbs.map((c) => (c.path !== undefined ? `<a href="${escapeHtml(c.path)}">${escapeHtml(c.name)}</a>` : `<span aria-current="page">${escapeHtml(c.name)}</span>`)))}</ol></nav>`
@@ -317,7 +326,7 @@ function layout(site: Site, headHtml: string, crumbs: Crumb[] | null, body: stri
 <html lang="fa" dir="rtl">
 <head>
 ${headHtml}
-<style>${CSS}</style>
+<style>${CSS}${EXTRA_CSS}</style>
 <script>document.documentElement.classList.add("js")</script>
 </head>
 <body>
@@ -331,8 +340,9 @@ ${content}
 <footer class="bottom"><div class="in">
 <div class="fgrid">
 <div><div class="brandname">${escapeHtml(site.name)}</div><p>${escapeHtml(site.tagline)}</p></div>
-<div><h2 style="color:var(--sky)">صفحه‌ها</h2><ul><li><a href="/">خانه</a></li><li><a href="/about">درباره ما</a></li><li><a href="/blog">وبلاگ</a></li><li><a href="/cast">آدم‌های بازار</a></li><li><a href="/download">دانلود</a></li><li><a href="/contact">تماس و سوالات</a></li></ul></div>
-<div><h2 style="color:var(--lime)">قوانین</h2><ul><li><a href="/terms">قوانین و شرایط</a></li><li><a href="/privacy">حریم خصوصی</a></li><li><a href="/sitemap">نقشه‌ی سایت</a></li></ul></div>
+<div><h2 style="color:var(--sky)">صفحه‌ها</h2><ul><li><a href="/">خانه</a></li><li><a href="/ages">رده‌های سنی</a></li><li><a href="/about">درباره ما</a></li><li><a href="/blog">وبلاگ</a></li><li><a href="/cast">آدم‌های بازار</a></li><li><a href="/download">دانلود</a></li><li><a href="/contact">تماس و سوالات</a></li></ul></div>
+<div><h2 style="color:var(--lime)">بیشتر بدانید</h2><ul><li><a href="/how-to-play">راهنمای بازی</a></li><li><a href="/modes">حالت‌های بازی</a></li><li><a href="/glossary">واژه‌نامه</a></li><li><a href="/stats">آمار بازی</a></li><li><a href="/status">وضعیت سرورها</a></li><li><a href="/press">رسانه و لوگو</a></li></ul></div>
+<div><h2 style="color:var(--violet)">قوانین</h2><ul><li><a href="/terms">قوانین و شرایط</a></li><li><a href="/privacy">حریم خصوصی</a></li><li><a href="/sitemap">نقشه‌ی سایت</a></li><li><a href="/feed.xml">خبرخوان (RSS)</a></li></ul></div>
 <div><h2 style="color:var(--orange)">ما را دنبال کنید</h2><div class="social">${social.map((s) => `<a href="${escapeHtml(s.u)}" rel="noopener me" style="background:${s.c[0]};color:${s.c[1]}">${icon(socialIcon(s.u))}${escapeHtml(s.label)}</a>`).join('')}${site.contactEmail ? `<a href="mailto:${escapeHtml(site.contactEmail)}" style="background:#FFF6E8;color:#2B1240">${icon('mail')}ایمیل</a>` : ''}</div></div>
 </div>
 ${badgesHtml(site)}
@@ -361,11 +371,11 @@ const postCard = (p: PostSummary): string => {
   return `<li><a class="pcard" href="/blog/${encodeURIComponent(p.slug)}"><div class="pthumb" style="background:${bg}">${p.coverUrl ? `<img class="cover" src="${escapeHtml(p.coverUrl)}" alt="${escapeHtml(p.title)}" loading="lazy">` : img(`${who}-${pose}`, 120, 138)}</div><div class="pbody"><span class="cat">مقاله</span><h3>${escapeHtml(p.title)}</h3>${p.summary ? `<p>${escapeHtml(p.summary)}</p>` : ''}<span class="date">${escapeHtml(faDate(p.publishedAt))}${p.author ? ` · ${escapeHtml(p.author)}` : ''}</span></div></a></li>`;
 };
 
-const promo = (cls: string, h: string, p: string, link: string): string => `<section class="in" style="padding-bottom:80px"><div class="promo ${cls}"><div><h2>${h}</h2><p>${p}</p></div>${link}</div></section>`;
+export const promo = (cls: string, h: string, p: string, link: string): string => `<section class="in" style="padding-bottom:80px"><div class="promo ${cls}"><div><h2>${h}</h2><p>${p}</p></div>${link}</div></section>`;
 
 /* ---- home ---- */
 
-const HOW_TO = [
+export const HOW_TO = [
   ['کالاها را ببین', 'شانزده کالا روی صفحه است؛ هر کدام یک قیمت واقعی در یکی از سال‌های گذشته ایران دارد.', 'khale-pointing'],
   ['چهارتا چهارتا گروه کن', 'کالاهایی را که یک قاعده‌ی مشترک دارند کنار هم بگذار؛ مثلاً قیمتشان در یک سال یا یک بازه است.', 'mirza-thinking'],
   ['حدس بزن و ادامه بده', 'هر گروه درست یک دسته‌ی رنگی می‌شود؛ اشتباه‌ها محدودند.', 'goli-cheer'],
@@ -380,8 +390,9 @@ const FEATURES = [
 ] as const;
 
 /** The promo banners of `docs/design/banner` (resized to webp in `assets/banners`); the alt text is what the banner itself says. */
-const BANNERS = [
+export const BANNERS = [
   ['banner1', 'دوزاری: بالاخره دوزاریت می‌افته! پازل، رقابت با رفقا، سفر به ۳۱ استان'],
+  ['age-adult', 'دوزاری بزرگسال ۱۸+؛ صرافی بزرگ‌ترها: بازی کامل با دوئل زنده و حدس قیمت با شرط سکه'],
   ['banner2', '۱۶ کلمه، ۴ دسته! کلمه‌های هم‌خانواده را کنار هم بچین'],
   ['banner4', 'قیمت قدیما یادته؟ از نون سنگک تا پیکان جوانان'],
   ['banner3', 'با رفقات رقابت کن؛ رو در رو، زنده، همین الان'],
@@ -392,12 +403,14 @@ const BANNERS = [
 ] as const;
 const banner = (name: string, alt: string, opts: { eager?: boolean; cls?: string } = {}): string =>
   `<img${opts.cls ? ` class="${opts.cls}"` : ''} src="/banners/${name}.webp" alt="${escapeHtml(alt)}" width="1600" height="900"${opts.eager ? ' fetchpriority="high"' : ' loading="lazy"'} decoding="async">`;
-const bannerAlt = (name: string): string => BANNERS.find((b) => b[0] === name)?.[1] ?? '';
+/** Banners that are not in the carousel (the kid and teen age cards). */
+const AGE_BANNERS = [['age-kid', 'دوزاری کوچولو؛ فضای آموزشی کودک تا ۱۱ سال با حرف، کلمه و معنی'], ['age-teen', 'نوجوان ۱۲ تا ۱۷ سال؛ همون بازی با پازل راحت‌تر، رقابت و دوئل با رفقا']] as const;
+const bannerAlt = (name: string): string => [...BANNERS, ...AGE_BANNERS].find((b) => b[0] === name)?.[1] ?? '';
 
 /** The sliding banner strip: plain scroll-snap (works without scripts); the script only adds auto-play, arrows and dots. */
 const carousel = (): string =>
   `<div class="car" role="region" aria-roledescription="carousel" aria-label="بنرهای معرفی بازی"><div class="track" tabindex="0">${BANNERS.map(([n, alt], k) => `<figure aria-label="${faNum(k + 1)} از ${faNum(BANNERS.length)}">${banner(n, alt, { eager: k === 0 })}</figure>`).join('')}</div>
-<div class="nav" dir="ltr"><button class="arr" type="button" data-go="-1" aria-label="قبلی">‹</button><span class="dots">${BANNERS.map((_, k) => `<button class="dot" type="button" data-i="${k}" aria-label="بنر ${faNum(k + 1)}"${k === 0 ? ' aria-current="true"' : ''}></button>`).join('')}</span><button class="arr" type="button" data-go="1" aria-label="بعدی">›</button></div></div>`;
+<div class="nav"><button class="arr" type="button" data-go="-1" aria-label="قبلی">›</button><span class="dots">${BANNERS.map((_, k) => `<button class="dot" type="button" data-i="${k}" aria-label="بنر ${faNum(k + 1)}"${k === 0 ? ' aria-current="true"' : ''}></button>`).join('')}</span><button class="arr" type="button" data-go="1" aria-label="بعدی">‹</button></div></div>`;
 
 const TICKER = ['قیمت اسمی، بدون تعدیل تورم', '۱۶ کالا، ۴ گروه', 'چالش روزانه', 'رقابت زنده با رفقا', 'سفر به ۳۱ استان', 'گردونه‌ی جایزه‌ی هر روز', 'بازی رایگان'];
 const ticker = (): string => {
@@ -410,6 +423,40 @@ const showRow = (cls: string, a: { h: string; p: string; chips: string[]; art: s
   `<section class="band ${cls}"><div class="in show" style="padding-top:80px;padding-bottom:80px"><div class="tx rv ${a.flip ? 'r' : 'l'}"><h2>${escapeHtml(a.h)}</h2><p>${escapeHtml(a.p)}</p><div class="chips">${a.chips.map((c) => `<span class="pill sm">${escapeHtml(c)}</span>`).join('')}</div></div><div style="order:${a.flip ? -1 : 0}">${a.art}</div></div></section>`;
 
 const frame = (name: string, t = '-2deg', d = '0s'): string => `<div class="frame rv z" style="--t:${t};--d:${d}">${banner(name, bannerAlt(name))}</div>`;
+
+/* ---- age tracks (docs/logic/age-tracks.md): the adult game first, the kid and teen spaces beside it ---- */
+
+/** What the adult track really has (`age-tracks.md` §What each band gets): [metal, title, text]. Metals follow the adult UI kit: gold play, copper competition, silver price guess, bronze the rest. */
+const ADULT_FEATURES = [
+  ['gold', 'پازل کامل قیمت', 'شانزده کالا، چهار گروه پنهان؛ همه‌ی پازل‌های بزرگسال، از چالش روزانه تا جدول‌های سخت، با قیمت اسمی و بدون تعدیل تورم.'],
+  ['silver', 'حدس قیمت با شرط سکه', 'بعد از پازل، قیمت کالا را حدس بزن؛ فقط در حالت بزرگسال می‌توانی روی حدست سکه شرط ببندی.'],
+  ['copper', 'دوئل زنده و میز خصوصی', 'رو در رو، دو در دو یا میز خصوصی با رفقا؛ حریف‌یابی فقط بین بزرگسال‌هاست.'],
+  ['copper', 'تورنومنت و جدول رتبه‌ها', 'تورنومنت‌ها و جدول رتبه‌ی بزرگسال‌ها از بقیه‌ی رده‌ها جداست؛ رقابت بین هم‌سن‌وسال‌ها.'],
+  ['bronze', 'گفت‌وگوی آزاد', 'با کد دعوت، گفت‌وگوی آزاد باز می‌شود؛ تا آن موقع تیکه‌های آماده‌ی بازی را داری.'],
+  ['bronze', 'کالا و قیمت پیشنهادی', 'کالا یا قیمتی که یادت هست را برای بازی پیشنهاد بده؛ این بخش مخصوص بزرگسال‌هاست.'],
+] as const;
+
+const metalCards = (): string => `<ul class="metals">${ADULT_FEATURES.map(([m, t, d], k) => `<li class="${m} rv" style="--d:${(k % 3) * 0.1}s"><h3>${escapeHtml(t)}</h3><p>${escapeHtml(d)}</p></li>`).join('')}</ul>`;
+
+/** Home: the adult band, big and dark, right under the banner strip. */
+const adultBand = (name: string): string =>
+  `<section class="band ad" id="adult"><div class="in adg" style="padding-top:72px;padding-bottom:72px">
+<div class="col rv l" style="gap:18px"><div class="adrow"><span class="adbadge">18+</span><span class="adk">صرافی بزرگ‌ترها</span></div>
+<h2>${escapeHtml(name)} بزرگسال؛ <em>بازی کامل</em></h2>
+<p style="font-size:19px">همان بازی قیمت و خاطره‌ی قدیمی، بدون محدودیت‌های فضای بچه‌ها: پازل کامل، دوئل زنده، حدس قیمت با شرط سکه و رقابت فقط با بزرگسال‌ها.</p>
+<ul class="adlist"><li>پازل‌های کامل با قیمت اسمی و بدون تعدیل تورم</li><li>دوئل زنده، دو در دو و میز خصوصی با رفقا</li><li>حدس قیمت با شرط سکه، تورنومنت و جدول رتبه‌ی بزرگسال‌ها</li><li>هیچ محتوای کودک در حساب بزرگسال دیده نمی‌شود</li></ul>
+<a class="brass" href="/ages#adult">معرفی کامل بزرگسال</a></div>
+<div class="adart rv z">${banner('age-adult', bannerAlt('age-adult'))}</div></div></section>`;
+
+const kidTeenCards = (name: string): string => {
+  const card = (n: string, t: string, ageLabel: string, lines: string[]): string =>
+    `<article class="agec rv z">${banner(n, bannerAlt(n))}<div class="b"><h3>${escapeHtml(t)} <small style="font:700 15px Vazirmatn">${escapeHtml(ageLabel)}</small></h3><ul>${lines.map((l) => `<li>${escapeHtml(l)}</li>`).join('')}</ul></div></article>`;
+  return `<div class="ages3">${card('age-kid', `${name} کوچولو`, 'تا ۱۱ سال', ['پازل ساده‌ی تصویری از چیزهایی که بچه‌ها می‌شناسند', 'بعد از پازل، درس کلمه: حرف، کلمه، تصویر و یک قصه‌ی کوتاه', 'گفت‌وگوی امن با تیکه‌های آماده، بدون شرط‌بندی و بدون خرید'])}${card('age-teen', 'نوجوان', '۱۲ تا ۱۷ سال', ['همان بازی اصلی، با پازل‌های آسان‌تر در ابتدا', 'حدس قیمت بدون شرط سکه', 'دوستی و میز خانوادگی با تأیید بزرگ‌تر'])}</div>`;
+};
+
+/** Home: a short «every age» strip under the adult band; the details live on `/ages`. */
+const agesStrip = (name: string): string =>
+  `<section class="in sec col" style="gap:30px"><div class="col" style="align-items:center;text-align:center;gap:6px"><h2 class="big rv">بازی برای هر سن</h2><p class="rv" style="margin:0;font-weight:600;font-size:17px;opacity:.8">یک ${escapeHtml(name)}، سه رده؛ هر کس فضای خودش را دارد</p></div>${kidTeenCards(name)}<p class="agelink" style="justify-content:center;margin:0"><a href="/ages">مقایسه‌ی کامل رده‌ها و راهنمای والدین ←</a></p></section>`;
 
 /** The try-it puzzle: the grouping mechanic with plain words (a red herring included: «نی» is also an instrument). Behaviour in `HOME_JS`. */
 const DEMO_GROUPS = [
@@ -441,7 +488,7 @@ if(car){var tr=car.querySelector('.track'),dots=car.querySelectorAll('.dot'),n=d
 var rtl=function(){return getComputedStyle(tr).direction==='rtl'};
 var go=function(i){cur=(i+n)%n;tr.scrollTo({left:(rtl()?-1:1)*cur*tr.clientWidth,behavior:R?'auto':'smooth'})};
 tr.addEventListener('scroll',function(){var i=Math.round(Math.abs(tr.scrollLeft)/tr.clientWidth);if(i!==cur&&i<n){cur=i}dots.forEach(function(b,k){b.setAttribute('aria-current',k===cur)})},{passive:true});
-car.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;if(b.dataset.go)go(cur+(rtl()?-1:1)*Number(b.dataset.go));else if(b.dataset.i)go(Number(b.dataset.i))});
+car.addEventListener('click',function(e){var b=e.target.closest('button');if(!b)return;if(b.dataset.go)go(cur+Number(b.dataset.go));else if(b.dataset.i)go(Number(b.dataset.i))});
 ['mouseenter','focusin','touchstart'].forEach(function(ev){car.addEventListener(ev,function(){hold=true},{passive:true})});
 ['mouseleave','focusout'].forEach(function(ev){car.addEventListener(ev,function(){hold=false})});
 if(!R)setInterval(function(){if(!hold&&!d.hidden)go(cur+1)},4500);}
@@ -459,7 +506,7 @@ demo.querySelector('[data-act=reset]').addEventListener('click',function(){grid.
 })();`;
 
 /** The people of the game for the home strip and the about page: the game's own cast list, else the designed one. */
-const castOf = (cast: CastMember[]): { name: string; role: string; who: Who; id: string; image: string | null }[] =>
+export const castOf = (cast: CastMember[]): { name: string; role: string; who: Who; id: string; image: string | null }[] =>
   (cast.length ? cast : WHO.slice(0, 8).map((w) => ({ id: w, name: CAST_NAMES[w], role: '', bio: '', image: null }))).map((c, n) => ({ id: c.id, name: c.name, role: c.role, who: whoOf(c, n), image: photoOf(c.image) }));
 
 const FLOATERS: [string, string, string, string][] = [['coin', '38%', '52%', '0s'], ['gift', '44%', '4%', '1.2s'], ['crown', '3%', '66%', '2.1s'], ['coinStack', '47%', '82%', '.6s'], ['hat', '90%', '8%', '1.7s'], ['map', '92%', '70%', '2.8s']];
@@ -487,11 +534,14 @@ ${FLOATERS.map(([n, x, y, dl]) => `<img class="fl" src="/items/${n}.svg" alt="" 
 <div class="col" style="gap:22px;position:relative"><span class="pill">بازی قیمت‌های قدیمی ایران · رایگان</span>
 <h1>${escapeHtml(s.heroTitle || s.name)}</h1>
 <p class="lead">${escapeHtml(s.heroText)}</p>
-<div class="badges">${storeBadges(site)}</div></div>
+<div class="badges">${storeBadges(site)}</div>
+<a class="agelink" href="/ages#adult"><span class="adbadge" style="font-size:18px;padding:0 10px;box-shadow:0 3px 0 #000">18+</span> نسخه‌ی بزرگسال با دوئل زنده و حدس قیمت با شرط سکه ←</a></div>
 <div class="stage"><span class="disc"></span>${img('dozari-cheer-anim', 320, 368, { eager: true, alt: `${s.name}، شخصیت اصلی بازی` })}</div>
 </div></section>
 ${ticker()}
 <section class="in sec col" style="gap:36px;padding-bottom:56px"><h2 class="big rv">بازار دوزاری را ببین</h2><div class="rv z">${carousel()}</div></section>
+${adultBand(s.name)}
+${agesStrip(s.name)}
 <section class="in col" style="gap:36px;padding-bottom:80px"><h2 class="big rv">چرا ${escapeHtml(s.name)}؟</h2>
 <ul class="cards4">${FEATURES.map(([ic, bg, t, d], k) => `<li class="tile rv" style="--d:${k * 0.1}s"><div class="ic" style="background:${bg}">${item(ic)}</div><h3>${escapeHtml(t)}</h3><p>${escapeHtml(d)}</p></li>`).join('')}</ul></section>
 ${showRow('p', { h: '۱۶ کلمه، ۴ دسته!', p: 'شانزده کالا روی صفحه است و فقط چهار قاعده‌ی پنهان. کالاهای هم‌دسته را کنار هم بچین تا هر گروه رنگ خودش را بگیرد.', chips: ['پازل روزانه', 'چهار گروه رنگی', 'اشتباه محدود'], art: frame('banner2', '-2deg') })}
@@ -514,7 +564,7 @@ ${faq.length ? `<section class="in col" style="gap:28px;padding-bottom:80px"><h2
   return layout(site, head(site, { title, description: desc, path: '/', nodes }), null, body, { active: 'home', wide: true });
 }
 
-const webPage = (site: Site, path: string, type: string, title: string, desc: string): Record<string, unknown> => ({ '@type': type, '@id': `${absolute(site, path)}#webpage`, url: absolute(site, path), name: title, description: desc, inLanguage: 'fa-IR', isPartOf: { '@id': ids(site).site } });
+export const webPage = (site: Site, path: string, type: string, title: string, desc: string): Record<string, unknown> => ({ '@type': type, '@id': `${absolute(site, path)}#webpage`, url: absolute(site, path), name: title, description: desc, inLanguage: 'fa-IR', isPartOf: { '@id': ids(site).site } });
 
 /* ---- about ---- */
 
@@ -635,7 +685,7 @@ ${featured ? `<section class="in" style="padding-top:16px;padding-bottom:32px"><
   return layout(site, head(site, { title, description: desc, path, nodes, crumbs: [{ name: 'صفحه‌ی اول', path: '/' }, { name: 'بلاگ' }] }), null, body, { active: 'blog', wide: true });
 }
 
-export function postPage(site: Site, post: Post, more: PostSummary[]): string {
+export function postPage(site: Site, post: Post, more: PostSummary[], comments: PublicComment[] = [], flash: Flash = null): string {
   const path = `/blog/${encodeURIComponent(post.slug)}`;
   const { html, headings } = renderMarkdown(post.bodyMd);
   const title = post.metaTitle || `${post.title} | ${site.name}`;
@@ -656,6 +706,7 @@ export function postPage(site: Site, post: Post, more: PostSummary[]): string {
     isPartOf: { '@id': i.site },
   };
   if (post.coverUrl) node.image = post.coverUrl;
+  if (comments.length) node.comment = comments.slice(0, 20).map((c) => ({ '@type': 'Comment', author: { '@type': 'Person', name: c.author }, dateCreated: new Date(c.createdAt).toISOString(), text: c.body }));
   const [who, pose, bg] = artOf(post.slug);
   const toc = headings.filter((h) => h.level === 2);
   const body = `<article class="art-post">
@@ -667,6 +718,7 @@ export function postPage(site: Site, post: Post, more: PostSummary[]): string {
 ${toc.length > 2 ? `<nav class="toc" aria-label="فهرست مطالب"><strong>در این مقاله</strong><ul>${li(toc.map((h) => `<a href="#${escapeHtml(h.id)}">${escapeHtml(h.text)}</a>`))}</ul></nav>` : ''}
 <div class="body">${html}</div>
 <div class="cta2"><div><b>${escapeHtml(site.name)} منتظرته!</b><span>رایگان دانلود کن و قیمت‌ها را کنار هم بگذار</span></div><a class="btn" href="/download">دانلود</a></div>
+${commentsSection('post', post.slug, comments, flash, 'نظرت درباره‌ی این مقاله')}
 </article>
 ${more.length ? `<section class="in col" style="gap:24px;padding-bottom:80px"><h2 style="font-size:40px">مطالب مرتبط</h2><ul class="related">${more.map((p) => { const [w, , c] = artOf(p.slug); return `<li><a class="rel" href="/blog/${encodeURIComponent(p.slug)}"><span class="sq" style="background:${c}">${p.coverUrl ? `<img src="${escapeHtml(p.coverUrl)}" alt="" loading="lazy">` : img(`${w}-face`, 80, 80)}</span><div><small>مقاله</small><span>${escapeHtml(p.title)}</span></div></a></li>`; }).join('')}</ul></section>` : ''}`;
   return layout(site, head(site, { title, description: desc, path, type: 'article', image: post.coverUrl, nodes: [node], crumbs, publishedTime: post.publishedAt, modifiedTime: post.updatedAt }), null, body, { active: 'blog', wide: true });
@@ -674,14 +726,66 @@ ${more.length ? `<section class="in col" style="gap:24px;padding-bottom:80px"><h
 
 /* ---- cast ---- */
 
-export function castPage(site: Site, cast: CastMember[]): string {
+export function castPage(site: Site, cast: CastMember[], counts: Record<string, number> = {}): string {
   const title = `بازیگران ${site.name}: شخصیت‌های بازی`;
   const desc = description(`با شخصیت‌ها و آدم‌های ${site.name} آشنا شو: کی راهنمای بازی است و هر کس چه نقشی دارد.`);
   const crumbs: Crumb[] = [{ name: 'صفحه‌ی اول', path: '/' }, { name: 'بازیگران' }];
   const nodes: Record<string, unknown>[] = [{ '@type': 'AboutPage', '@id': `${site.url}/cast#webpage`, url: absolute(site, '/cast'), name: title, description: desc, inLanguage: 'fa-IR', isPartOf: { '@id': ids(site).site } }];
   const people = cast.map((c, n) => ({ ...c, who: whoOf(c, n), image: photoOf(c.image) }));
-  const body = `<h1>بازیگران ${escapeHtml(site.name)}</h1><p>${escapeHtml(desc)}</p>${people.length ? `<div class="castlist">${people.map((c) => `<section class="cc" id="${escapeHtml(c.id)}">${c.image ? `<img class="photo" src="${escapeHtml(c.image)}" alt="${escapeHtml(c.name)}" width="110" height="110" loading="lazy">` : img(`${c.who}-idle`, 110, 126, { alt: c.name })}<div><h2>${escapeHtml(c.name)}</h2>${c.role ? `<p class="meta">${escapeHtml(c.role)}</p>` : ''}<p>${escapeHtml(c.bio)}</p></div></section>`).join('')}</div>` : '<p>به‌زودی معرفی می‌شوند.</p>'}`;
+  const body = `<h1>بازیگران ${escapeHtml(site.name)}</h1><p>${escapeHtml(desc)}</p>${people.length ? `<div class="castlist">${people.map((c) => `<section class="cc" id="${escapeHtml(c.id)}">${c.image ? `<img class="photo" src="${escapeHtml(c.image)}" alt="${escapeHtml(c.name)}" width="110" height="110" loading="lazy">` : img(`${c.who}-idle`, 110, 126, { alt: c.name })}<div><h2><a href="/cast/${encodeURIComponent(c.id)}" style="color:inherit;text-decoration:none">${escapeHtml(c.name)}</a></h2>${c.role ? `<p class="meta">${escapeHtml(c.role)}</p>` : ''}<p>${escapeHtml(c.bio)}</p><a class="more" href="/cast/${encodeURIComponent(c.id)}#comments">پروفایل و نظرها (${faNum(counts[c.id] ?? 0)})</a></div></section>`).join('')}</div>` : '<p>به‌زودی معرفی می‌شوند.</p>'}`;
   return layout(site, head(site, { title, description: desc, path: '/cast', nodes, crumbs }), crumbs, body);
+}
+
+/* ---- ages ---- */
+
+const AGE_FAQ: FaqPair[] = [
+  { question: 'دوزاری بزرگسال چه فرقی با نسخه‌ی بچه‌ها دارد؟', answer: 'بزرگسال همه‌ی بازی است: پازل‌های کامل، حدس قیمت با شرط سکه، دوئل و تورنومنت فقط با بزرگسال‌ها و پیشنهاد کالا و قیمت. فضای کودک و نوجوان ساده‌تر و امن‌تر است و بدون شرط‌بندی و خرید.' },
+  { question: 'رده‌ی سنی را خودم انتخاب می‌کنم؟', answer: 'بله؛ بعد از ورود می‌پرسیم «چه کسی بازی می‌کنه؟» و یکی از کودک، نوجوان یا بزرگسال را انتخاب می‌کنی. تاریخ تولد هیچ نقشی در انتخاب ندارد. رفتن به رده‌ی بالاتر برای کودک و نوجوان فقط با تأیید بزرگ‌تر ممکن است.' },
+  { question: 'بچه‌ام با غریبه‌ها بازی می‌کند؟', answer: 'نه. حریف‌یابی هر رده فقط بین همان رده است و دوست و میز کودک و نوجوان با تأیید والد باز می‌شود. گفت‌وگو هم با تیکه‌های آماده‌ی امن است.' },
+  { question: 'والدین می‌توانند فضای بچه‌ها را ببینند؟', answer: 'بله. حساب والد می‌تواند «پیش‌نمایش» فضای کودک و نوجوان را بدون ثبت پیشرفت و سکه باز کند و فرزندانش را از یک حساب مدیریت کند.' },
+];
+
+/** The comparison table: one row per thing a parent or a player asks about (`age-tracks.md` §What each band gets). */
+const CMP_ROWS: [string, string, string, string][] = [
+  ['پازل', 'ساده و تصویری، با درس کلمه', 'پازل‌های آسان‌تر در شروع', 'همه‌ی پازل‌ها'],
+  ['حدس قیمت', 'ندارد', 'بدون شرط سکه', 'با شرط سکه'],
+  ['حریف‌یابی', 'فقط کودک‌ها', 'فقط نوجوان‌ها', 'فقط بزرگسال‌ها'],
+  ['گفت‌وگو', 'تیکه‌های آماده‌ی امن', 'تیکه‌های آماده؛ متن آزاد پس از اتصال به والد', 'متن آزاد با کد دعوت'],
+  ['دوست و میز', 'با تأیید والد', 'با تأیید والد', 'آزاد بین بزرگسال‌ها'],
+  ['تورنومنت و جدول', 'جدول خودشان', 'جدول خودشان', 'جدول و تورنومنت بزرگسال'],
+  ['پیشنهاد کالا و قیمت', 'ندارد', 'ندارد', 'دارد'],
+];
+
+export function agesPage(site: Site): string {
+  const n = escapeHtml(site.name);
+  const title = `رده‌های سنی ${site.name}: کودک، نوجوان و بزرگسال`;
+  const desc = description(`${site.name} برای هر سن یک فضا دارد؛ بزرگسال‌ها بازی کامل با دوئل زنده و حدس قیمت با شرط سکه را دارند و بچه‌ها فضایی ساده و امن.`);
+  const crumbs: Crumb[] = [{ name: 'صفحه‌ی اول', path: '/' }, { name: 'رده‌های سنی' }];
+  const nodes: Record<string, unknown>[] = [{ '@type': 'WebPage', '@id': `${site.url}/ages#webpage`, url: absolute(site, '/ages'), name: title, description: desc, inLanguage: 'fa-IR', isPartOf: { '@id': ids(site).site }, primaryImageOfPage: { '@type': 'ImageObject', url: absolute(site, '/banners/age-adult.webp'), width: 1600, height: 900 } }];
+  const faqN = faqNode(AGE_FAQ);
+  if (faqN) nodes.push(faqN);
+  const steps: [string, string][] = [['برنامه را باز کن', 'بازی رایگان است و با نسخه‌ی وب، اندروید یا ربات بله شروع می‌شود.'], ['«بزرگسال» را انتخاب کن', 'در صفحه‌ی «چه کسی بازی می‌کنه؟» کارت بزرگسال اولین کارت است؛ همان بازی کامل شروع می‌شود.'], ['بازی کن و رقابت کن', 'پازل روزانه را حل کن، با رفقا دوئل بزن و روی حدس قیمتت سکه شرط ببند.']];
+  const head1 = head(site, { title, description: desc, path: '/ages', nodes, crumbs });
+  const body = `
+<section class="band ad" id="adult"><div class="in adg" style="padding-top:64px;padding-bottom:64px">
+<div class="col rv l" style="gap:18px"><div class="adrow"><span class="adbadge">18+</span><span class="adk">صرافی بزرگ‌ترها</span></div>
+<h1>رده‌های سنی ${n}؛ <em>بزرگسال‌ها بازی کامل را دارند</em></h1>
+<p style="font-size:19px">${n} یک بازی قیمت و خاطره‌ی قدیمی است و برای هر سن یک فضا دارد. در رده‌ی بزرگسال همه‌چیز باز است: پازل کامل، دوئل زنده، حدس قیمت با شرط سکه و رقابت با هم‌سن‌وسال‌ها. بچه‌ها فضای ساده و امن خودشان را دارند.</p>
+<a class="brass" href="/download">همین حالا بازی کن</a></div>
+<div class="adart rv z">${banner('age-adult', bannerAlt('age-adult'), { eager: true })}</div></div></section>
+<section class="band ad" style="border-top:0"><div class="in col" style="gap:30px;padding-top:24px;padding-bottom:72px;position:relative"><h2 class="rv">در رده‌ی بزرگسال چه خبر است؟</h2>${metalCards()}
+<p class="rv" style="font-size:17px">حریف‌یابی، دوست و تورنومنت بزرگسال‌ها از رده‌های کودک و نوجوان جداست و هیچ محتوای کودک در حساب بزرگسال دیده نمی‌شود. اگر فرزندی داری می‌توانی با او پشت یک میز خانوادگی بنشینی.</p></div></section>
+<section class="in sec col" style="gap:28px"><h2 class="big rv">از کجا شروع کنم؟</h2>
+<ol class="steps">${steps.map(([t, d], k) => `<li class="rv" style="--d:${k * 0.12}s"><span class="num">${faNum(k + 1)}</span><h3>${escapeHtml(t)}</h3><p>${escapeHtml(d)}</p></li>`).join('')}</ol>
+<p style="text-align:center;margin:0"><a href="/download">دانلود و نصب رایگان</a></p></section>
+<section class="band yb"><div class="in col" style="gap:30px;padding-top:72px;padding-bottom:72px" id="kids"><h2 class="big rv">و برای بچه‌ها و نوجوان‌ها</h2><p class="rv" style="margin:0;font-weight:600;font-size:18px;text-align:center">فضای کودک و نوجوان همان برند و همان بازی است، با قانون‌های محتاط‌تر؛ رده‌ی ${n} کوچولو فقط داخل برنامه برای کودک‌ها نام دارد.</p>${kidTeenCards(site.name)}</div></section>
+<section class="in sec col" style="gap:24px"><h2 class="big rv">مقایسه‌ی سه رده</h2>
+<div class="cmpbox rv"><table class="cmp"><thead><tr><th scope="col"></th><th scope="col">کودک · تا ۱۱ سال</th><th scope="col">نوجوان · ۱۲ تا ۱۷</th><th scope="col" class="ad">بزرگسال · ۱۸+</th></tr></thead><tbody>${CMP_ROWS.map(([a, k, t, d]) => `<tr><th scope="row">${escapeHtml(a)}</th><td>${escapeHtml(k)}</td><td>${escapeHtml(t)}</td><td class="ad">${escapeHtml(d)}</td></tr>`).join('')}</tbody></table></div></section>
+<section class="band s"><div class="in col" style="gap:20px;padding-top:64px;padding-bottom:64px" id="parents"><h2 class="big rv">راهنمای والدین</h2>
+<ul class="rv" style="margin:0;font-weight:700;font-size:18px"><li>رده را خودت انتخاب می‌کنی؛ یک شماره‌ی تلفن می‌تواند چند فرزند را در یک حساب نگه دارد.</li><li>بچه‌ها بلافاصله و تکی بازی می‌کنند؛ دوست، میز و گفت‌وگو با تأیید والد باز می‌شود.</li><li>رفتن به رده‌ی بالاتر برای کودک و نوجوان فقط با تأیید والد ممکن است.</li><li>شرط‌بندی با سکه و خرید واقعی در فضای کودک و نوجوان وجود ندارد.</li><li>«پیش‌نمایش» فضای کودک و نوجوان را بدون ثبت پیشرفت و سکه ببین.</li></ul></div></section>
+<section class="in col" style="gap:24px;padding-top:72px;padding-bottom:72px"><h2 class="big rv">پرسش‌های رده‌ی سنی</h2>${faqList(AGE_FAQ)}</section>
+<section class="in col" style="gap:24px;padding-bottom:80px;align-items:center"><h2 class="big rv">دوزاری‌ات را بینداز</h2><a class="btn big yellow pulse" href="/download">دانلود ${n}</a></section>`;
+  return layout(site, head1, crumbs, body, { active: 'ages', wide: true });
 }
 
 /** The privacy policy (needed for the store listings). Facts only: what the app really stores, from `users` and the chat/ledger tables. */
@@ -755,40 +859,6 @@ export function termsPage(site: Site): string {
 <h2>تماس</h2>
 <p>${contact}</p>`;
   return layout(site, head(site, { title, description: desc, path: '/terms', nodes, crumbs }), crumbs, body);
-}
-
-/* ---- sitemap ---- */
-
-/** The human sitemap: every page, article, character, store link, channel and machine-readable file, grouped. Behind `/sitemap` and linked from every footer. */
-export function sitemapPage(site: Site, posts: PostSummary[], cast: CastMember[], faq: FaqPair[]): string {
-  const title = `نقشه‌ی سایت ${site.name}`;
-  const desc = description(`فهرست همه‌ی صفحه‌ها، مقاله‌ها، شخصیت‌ها و راه‌های دانلود و ارتباط با ${site.name} در یک نگاه.`);
-  const crumbs: Crumb[] = [{ name: 'صفحه‌ی اول', path: '/' }, { name: 'نقشه‌ی سایت' }];
-  const nodes: Record<string, unknown>[] = [{ '@type': 'WebPage', '@id': `${site.url}/sitemap#webpage`, url: absolute(site, '/sitemap'), name: title, description: desc, inLanguage: 'fa-IR', isPartOf: { '@id': ids(site).site } }];
-  type L = [href: string, label: string, note?: string, ext?: boolean];
-  const link = ([href, label, note, ext]: L): string => `<li><a href="${escapeHtml(href)}"${ext ? ' rel="noopener"' : ''}>${escapeHtml(label)}${note ? `<small>${escapeHtml(note)}</small>` : ''}</a></li>`;
-  const group = (color: string, h: string, links: L[], cls = ''): string => (links.length ? `<section${cls ? ` class="${cls}"` : ''}><h2 style="--c:${color}"><i></i>${escapeHtml(h)}</h2><ul${cls === 'wide' ? ' class="cols"' : ''}>${links.map(link).join('')}</ul></section>` : '');
-  const play: L[] = [];
-  if (site.appUrl) play.push([site.appUrl, 'نسخه‌ی وب', 'بازی آنلاین در مرورگر', true]);
-  if (site.androidApp) play.push([site.androidApp, 'اندروید', 'دریافت فایل نصب', true]);
-  if (site.iosApp) play.push([site.iosApp, 'iOS', 'دریافت برنامه', true]);
-  if (site.baleBot) play.push([site.baleBot, 'بازی در بله', 'بازی از طریق ربات', true]);
-  if (site.telegramApp) play.push([site.telegramApp, 'بازی در تلگرام', 'بازی بدون نصب', true]);
-  const social: L[] = site.sameAs.map((u): L => [u, socialLabel(u), hostOf(u), true]);
-  if (site.contactEmail) social.push([`mailto:${site.contactEmail}`, 'ایمیل', site.contactEmail]);
-  const files: L[] = [['/sitemap.xml', 'sitemap.xml', 'برای موتورهای جست‌وجو'], ['/robots.txt', 'robots.txt', 'اجازه‌ی خزنده‌ها'], ['/llms.txt', 'llms.txt', 'خلاصه‌ی سایت برای هوش مصنوعی'], ['/llms-full.txt', 'llms-full.txt', 'متن کامل برای هوش مصنوعی']];
-  const body = `<h1>${escapeHtml(title)}</h1><p>${escapeHtml(desc)}</p>
-<div class="smap">
-${group('#FFC93C', 'صفحه‌های اصلی', [['/', 'خانه', 'معرفی بازی و امتحان رایگان'], ['/about', 'درباره ما', 'قصه‌ی اسم و ایده‌ی بازی'], ['/download', 'دانلود', 'نصب رایگان'], ['/contact', 'تماس و سوالات', 'پرسش‌های متداول و راه تماس'], ['/blog', 'وبلاگ', 'همه‌ی مقاله‌ها'], ['/cast', 'آدم‌های بازار', 'شخصیت‌های بازی']])}
-${group('#7ED957', 'قوانین', [['/terms', 'قوانین و شرایط'], ['/privacy', 'حریم خصوصی']])}
-${group('#3FC1F0', 'بازی کن', play)}
-${group('#FF4D8D', 'ما را دنبال کنید', social)}
-${group('#A66BF0', 'مقاله‌ها', posts.map((p): L => [`/blog/${encodeURIComponent(p.slug)}`, p.title, faDate(p.publishedAt)]), 'wide')}
-${group('#FF7A3D', 'شخصیت‌ها', cast.map((c): L => [`/cast#${c.id}`, c.name, c.role || undefined]), 'wide')}
-${group('#3FC1F0', 'پرسش‌های متداول', faq.map((f): L => ['/contact', f.question]), 'wide')}
-${group('#FFC93C', 'فایل‌های ماشینی', files)}
-</div>`;
-  return layout(site, head(site, { title, description: desc, path: '/sitemap', nodes, crumbs }), crumbs, body);
 }
 
 export function notFoundPage(site: Site): string {

@@ -87,6 +87,20 @@ describe('hand-built puzzles in the admin panel', () => {
     expect(after.puzzles.find((p: { id: string }) => p.id === id).groups[0].titleFa).toBe('عنوان بامزه 0');
   }, 30_000);
 
+  it('makes drafts for the chosen tier, or spreads them over the tiers, and rejects an unknown tier', async () => {
+    const { app, h } = boot(richCatalog());
+    const tiers = (await app.inject({ method: 'GET', url: '/admin/puzzles/tiers', headers: h })).json().tiers as { id: string }[];
+    const spread = (await app.inject({ method: 'POST', url: '/admin/puzzles/generate', headers: h, payload: { count: 2 } })).json();
+    expect(spread.created).toBe(2);
+    const one = (await app.inject({ method: 'POST', url: '/admin/puzzles/generate', headers: h, payload: { count: 2, tierId: tiers[4]!.id } })).json();
+    expect(one.created).toBe(2);
+    const list = (await app.inject({ method: 'GET', url: '/admin/puzzles', headers: h })).json().puzzles as { id: string; tierId: string | null }[];
+    for (const id of one.ids as string[]) expect(list.find((p) => p.id === id)!.tierId).toBe(tiers[4]!.id);
+    expect(new Set((spread.ids as string[]).map((id) => list.find((p) => p.id === id)!.tierId)).size).toBe(2);
+    const bad = await app.inject({ method: 'POST', url: '/admin/puzzles/generate', headers: h, payload: { count: 1, tierId: '00000000-0000-7000-8000-00000000ffff' } });
+    expect(bad.statusCode).toBe(404);
+  }, 60_000);
+
   it('says how many it could make when the catalog is too small', async () => {
     const { app, h } = boot();
     const out = (await app.inject({ method: 'POST', url: '/admin/puzzles/generate', headers: h, payload: { count: 2 } })).json();

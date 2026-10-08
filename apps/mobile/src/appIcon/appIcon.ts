@@ -1,21 +1,25 @@
 import { Platform } from 'react-native';
 import { requireOptionalNativeModule } from 'expo';
-import type { Gender } from '@dozari/shared';
+import type { AgeTrack, Gender } from '@dozari/shared';
 
-/** Launcher icon variants (D165): the original hero, or the female hero for players who chose «female». */
-export type IconVariant = 'default' | 'female';
+/**
+ * Launcher icon variants (D165 + age themes): the original hero, the female hero, and the same two on the adult gold-and-black coin.
+ * Kid and teen keep the original candy icons.
+ */
+export type IconVariant = 'default' | 'female' | 'adult' | 'adultFemale';
 
-export const iconFor = (gender: Gender | null | undefined): IconVariant => (gender === 'female' ? 'female' : 'default');
+export const iconFor = (gender: Gender | null | undefined, track?: AgeTrack | null): IconVariant =>
+  track === 'adult' ? (gender === 'female' ? 'adultFemale' : 'adult') : gender === 'female' ? 'female' : 'default';
 
 interface AppIconModule {
   setIcon(variant: IconVariant): void;
 }
 
 /** Switches the home-screen icon (Android; elsewhere, or in a build without the native module, it does nothing). Never throws. */
-export function applyAppIcon(gender: Gender | null | undefined): void {
+export function applyAppIcon(gender: Gender | null | undefined, track?: AgeTrack | null): void {
   if (Platform.OS !== 'android') return;
   try {
-    requireOptionalNativeModule<AppIconModule>('DozariAppIcon')?.setIcon(iconFor(gender));
+    requireOptionalNativeModule<AppIconModule>('DozariAppIcon')?.setIcon(iconFor(gender, track));
   } catch {
     /* the icon is a nicety */
   }

@@ -84,6 +84,7 @@ export function ProfileEditor({ me, onChange, onPickCity }: { me: MyProfile; onC
           <View style={styles.cityText}>
             <Text style={styles.pillText}>{me.city?.nameFa ?? fa.profile.pickCity}</Text>
             {province ? <Text style={styles.hint}>{province.hello} · {province.landmark}</Text> : null}
+            {me.city?.sloganFa ? <Text style={styles.hint}>{me.city.sloganFa}</Text> : null}
           </View>
         </Pressable>
         <Text style={styles.hint}>{fa.profile.cityHint}</Text>
@@ -123,7 +124,7 @@ const styles = StyleSheet.create({
   stat: { flex: 1, alignItems: 'center', paddingVertical: 6, borderRadius: 12, borderWidth: 2, borderColor: INK },
   statNum: { fontFamily: fonts.display, fontSize: 18, color: INK },
   statLabel: { fontFamily: fonts.bold, fontSize: 12, color: INK },
-  input: { flex: 1, fontFamily: fonts.bold, fontSize: 15, color: INK, borderWidth: 2, borderColor: INK, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 8, backgroundColor: '#fff' },
+  input: { flex: 1, fontFamily: fonts.bold, fontSize: 15, color: INK, borderWidth: 2, borderColor: INK, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 8, backgroundColor: colors.card },
   ltr: { textAlign: TEXT_LEFT, writingDirection: 'ltr' },
   disabled: { opacity: 0.5 },
   pill: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 99, borderWidth: 2, borderColor: INK, backgroundColor: colors.cream },

@@ -103,3 +103,9 @@ Reading:
 
 Piece count and drop chances; stake tier sizes; cap on non-skill daily coins; whether duplicates may later be swapped between friends; art for keepsakes (supplied by the owner's designer);
 gateway / store policy / legal review before any gem sale.
+
+## Keepsake art, showcase and milestones (2026-10)
+
+- **Designer's series.** `docs/design/yadegar/` is the art: eight cards (`yadegar-1…8`, four common with 4 pieces and a round frame, four rare with 6 pieces and a scalloped, gem-set frame). The scenes are rendered from the design to `apps/mobile/assets/keepsake/*.webp`; the piece shapes, frames and medal are drawn in `apps/mobile/src/keepsake/YadegarArt.tsx` from `yadegarData.ts`. `seed/keepsakes/yadegar.json` seeds the eight (set «یادگار · سری اول», `art_key`) and **retires** (switches off) the 18 earlier product-based starters.
+- **Where the showcase is.** «ویترین من» is the first block of the treasury page (six places, tap a medal to take it off) and a strip on the own profile; others see it on the player sheet. A completed keepsake is pinned with «سنجاق به ویترین».
+- **Milestones.** Completing `KEEPSAKE_MILESTONES` keepsakes (2, 4, 6, 8) pays a one-time bonus of gems and wheel spins (gem ledger key `keepsake_milestone:<count>:<user>`, spins ref `keepsake-milestone-<count>`); the buy reply carries `milestones`, the gallery lists them with `reached`.

@@ -36,8 +36,15 @@ export const ServerEvent = {
   error: 'error',
 } as const;
 
-export const LIVE_NOTICE_KINDS = ['friend_request', 'inbox'] as const;
-export const liveNoticeSchema = z.object({ kind: z.enum(LIVE_NOTICE_KINDS), /** Nickname of the player who sent the friend request. */ from: z.string().optional() });
+export const LIVE_NOTICE_KINDS = ['friend_request', 'inbox', 'table_invite', 'table_request', 'table_answer'] as const;
+export const liveNoticeSchema = z.object({
+  kind: z.enum(LIVE_NOTICE_KINDS),
+  /** Nickname of the player who sent the friend request, invited to a table, or asked to sit at one. */
+  from: z.string().optional(),
+  /** Table notices: the table's code (invite) and, for an answer, whether the host let the player in. */
+  code: z.string().optional(),
+  accepted: z.boolean().optional(),
+});
 export type LiveNotice = z.infer<typeof liveNoticeSchema>;
 
 export type ClientEventName = (typeof ClientEvent)[keyof typeof ClientEvent];
