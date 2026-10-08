@@ -71,7 +71,7 @@ export function CityHub({ onClose, onEnter, features, dailyReady }: { onClose: (
           <Svg width={width} height={svgH} viewBox={`${-sideK} 0 ${width / k} ${svgH / k}`} style={{ position: 'absolute', top: 0, left: -(width - mapW) / 2 }}>
             {adult ? (
               <Defs>
-                <RadialGradient id="hbG">
+                <RadialGradient id="hbG" cx="50%" cy="50%" r="50%">
                   <Stop offset="0" stopColor="#FFD98A" stopOpacity={0.5} />
                   <Stop offset="1" stopColor="#FFD98A" stopOpacity={0} />
                 </RadialGradient>

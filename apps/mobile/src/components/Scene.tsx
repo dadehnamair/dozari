@@ -165,7 +165,7 @@ export function Scene({
             <Stop offset="0.75" stopColor="#B8822A" />
             <Stop offset="1" stopColor="#6A4210" />
           </RadialGradient>
-          <RadialGradient id={`${u}sfG`}>
+          <RadialGradient id={`${u}sfG`} cx="50%" cy="50%" r="50%">
             <Stop offset="0" stopColor="#FFD98A" stopOpacity={0.55} />
             <Stop offset="1" stopColor="#FFD98A" stopOpacity={0} />
           </RadialGradient>
