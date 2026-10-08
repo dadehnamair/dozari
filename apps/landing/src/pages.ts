@@ -1,11 +1,25 @@
-import type { CastMember, DemoPuzzle, FaqPair, LandingData, Post, PostList, PostSummary } from './api.js';
+import type {
+  CastMember,
+  DemoPuzzle,
+  FaqPair,
+  LandingData,
+  Post,
+  PostList,
+  PostSummary,
+} from './api.js';
 import { escapeHtml, plainText, renderMarkdown } from './markdown.js';
 import { qrSvg } from './qr.js';
 import { absolute, description, faqNode, head, ids } from './seo.js';
 import type { Crumb, Site } from './seo.js';
 
 /** Human-readable Persian date of an epoch-ms instant (Solar Hijri, Tehran). */
-export const faDate = (ms: number): string => new Intl.DateTimeFormat('fa-IR-u-ca-persian', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Tehran' }).format(ms);
+export const faDate = (ms: number): string =>
+  new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'Asia/Tehran',
+  }).format(ms);
 
 /**
  * Markup and styles follow the landing designs in `docs/design/landing` (ink borders, offset shadows, coloured bands, Lalezar headings).
@@ -221,54 +235,123 @@ main{overflow-x:clip}
 
 /* ---- characters and icons (assets rendered from the design's own components) ---- */
 
-const WHO = ['dozari', 'dozariF', 'mashti', 'khale', 'pahlevan', 'baqal', 'mirza', 'goli', 'ajan'] as const;
+const WHO = [
+  'dozari',
+  'dozariF',
+  'mashti',
+  'khale',
+  'pahlevan',
+  'baqal',
+  'mirza',
+  'goli',
+  'ajan',
+] as const;
 type Who = (typeof WHO)[number];
 
 /** Display names of the designed cast, used when the game's cast list is empty and to pair a cast member with its drawing. */
-const CAST_NAMES: Record<Who, string> = { dozari: 'دوزاری', dozariF: 'دوزاری‌خانم', mashti: 'مشتی', khale: 'خاله', pahlevan: 'پهلوون', baqal: 'بقال', mirza: 'میرزا', goli: 'گلی', ajan: 'آژان' };
-const norm = (s: string): string => s.replace(/[‌\s]/g, '').replace(/ا(?=ن$)/, 'ا').replace('پهلوان', 'پهلوون');
+const CAST_NAMES: Record<Who, string> = {
+  dozari: 'دوزاری',
+  dozariF: 'دوزاری‌خانم',
+  mashti: 'مشتی',
+  khale: 'خاله',
+  pahlevan: 'پهلوون',
+  baqal: 'بقال',
+  mirza: 'میرزا',
+  goli: 'گلی',
+  ajan: 'آژان',
+};
+const norm = (s: string): string =>
+  s
+    .replace(/[‌\s]/g, '')
+    .replace(/ا(?=ن$)/, 'ا')
+    .replace('پهلوان', 'پهلوون');
 /** A cast row's `image` is either the key of a designed character (`khale`) or a picture URL; the name is the fallback pairing. */
-const whoOf = (c: { name: string; image: string | null }, index: number): Who => WHO.find((w) => w === c.image) ?? WHO.find((w) => norm(CAST_NAMES[w]) === norm(c.name)) ?? (WHO[index % WHO.length] as Who);
-const photoOf = (image: string | null): string | null => (image && /^(https?:)?\/\/|^\//.test(image) ? image : null);
+const whoOf = (c: { name: string; image: string | null }, index: number): Who =>
+  WHO.find((w) => w === c.image) ??
+  WHO.find((w) => norm(CAST_NAMES[w]) === norm(c.name)) ??
+  (WHO[index % WHO.length] as Who);
+const photoOf = (image: string | null): string | null =>
+  image && /^(https?:)?\/\/|^\//.test(image) ? image : null;
 
 /** `name` is a file in `assets/characters` (`dozari-cheer-anim`, `khale-face`, ...). */
-const img = (name: string, w: number, h: number, opts: { alt?: string; cls?: string; eager?: boolean } = {}): string =>
+const img = (
+  name: string,
+  w: number,
+  h: number,
+  opts: { alt?: string; cls?: string; eager?: boolean } = {},
+): string =>
   `<img${opts.cls ? ` class="${opts.cls}"` : ''} src="/characters/${name}.svg" alt="${escapeHtml(opts.alt ?? '')}" width="${w}" height="${h}"${opts.eager ? '' : ' loading="lazy"'} decoding="async">`;
-const face = (name: string, size: number): string => `<span class="face" style="width:${size}px;height:${size}px">${img(`${name}-face`, size, size)}</span>`;
-const item = (name: string): string => `<img src="/items/${name}.svg" alt="" width="48" height="48" loading="lazy">`;
+const face = (name: string, size: number): string =>
+  `<span class="face" style="width:${size}px;height:${size}px">${img(`${name}-face`, size, size)}</span>`;
+const item = (name: string): string =>
+  `<img src="/items/${name}.svg" alt="" width="48" height="48" loading="lazy">`;
 
 /** Post art, picked from the slug so a post always keeps the same picture. */
-const POST_ART: [Who, string, string][] = [['mirza', 'thinking', '#FFC93C'], ['khale', 'pointing', '#7ED957'], ['goli', 'cheer', '#FF4D8D'], ['pahlevan', 'win', '#3FC1F0'], ['baqal', 'coin', '#A66BF0'], ['dozari', 'wave', '#FF7A3D']];
+const POST_ART: [Who, string, string][] = [
+  ['mirza', 'thinking', '#FFC93C'],
+  ['khale', 'pointing', '#7ED957'],
+  ['goli', 'cheer', '#FF4D8D'],
+  ['pahlevan', 'win', '#3FC1F0'],
+  ['baqal', 'coin', '#A66BF0'],
+  ['dozari', 'wave', '#FF7A3D'],
+];
 const artOf = (slug: string): [Who, string, string] => {
   let h = 0;
   for (const ch of slug) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   return POST_ART[h % POST_ART.length] as [Who, string, string];
 };
 
-const faNum = (n: number): string => String(n).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)] as string);
+const faNum = (n: number): string =>
+  String(n).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)] as string);
 const li = (items: string[]): string => items.map((i) => `<li>${i}</li>`).join('');
 
 /* ---- layout ---- */
 
 export type NavKey = 'home' | 'about' | 'blog' | 'download' | 'contact';
-const NAV: [NavKey, string, string][] = [['home', '/', 'خانه'], ['about', '/about', 'درباره ما'], ['blog', '/blog', 'وبلاگ'], ['download', '/download', 'دانلود'], ['contact', '/contact', 'تماس و سوالات']];
+const NAV: [NavKey, string, string][] = [
+  ['home', '/', 'خانه'],
+  ['about', '/about', 'درباره ما'],
+  ['blog', '/blog', 'وبلاگ'],
+  ['download', '/download', 'دانلود'],
+  ['contact', '/contact', 'تماس و سوالات'],
+];
 
-const SOCIAL_LABEL: [RegExp, string][] = [[/instagram\.com/, 'اینستاگرام'], [/t\.me|telegram/, 'تلگرام'], [/aparat\.com/, 'آپارات'], [/bale\.ai|ble\.ir/, 'بله'], [/eitaa/, 'ایتا'], [/rubika/, 'روبیکا']];
+const SOCIAL_LABEL: [RegExp, string][] = [
+  [/instagram\.com/, 'اینستاگرام'],
+  [/t\.me|telegram/, 'تلگرام'],
+  [/aparat\.com/, 'آپارات'],
+  [/bale\.ai|ble\.ir/, 'بله'],
+  [/eitaa/, 'ایتا'],
+  [/rubika/, 'روبیکا'],
+];
 const hostOf = (u: string): string => u.replace(/^https?:\/\/(www\.)?/, '').replace(/\/+$/, '');
-const socialLabel = (u: string): string => SOCIAL_LABEL.find(([re]) => re.test(u))?.[1] ?? hostOf(u);
+const socialLabel = (u: string): string =>
+  SOCIAL_LABEL.find(([re]) => re.test(u))?.[1] ?? hostOf(u);
 /** Inline 24×24 glyphs (currentColor): no external requests. */
 const ICON_PATH: Record<string, string> = {
   web: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm6.9 9h-3.1a15.6 15.6 0 0 0-1.4-6A8 8 0 0 1 18.9 11ZM12 4c.9 1 1.9 3.1 2.2 7H9.8C10.1 7.100 11.100 5 12 4ZM4.600 13h3.100c.1 2.200.6 4.300 1.400 6A8 8 0 0 1 4.600 13Zm3.100-2H4.600a8 8 0 0 1 4.500-6c-.8 1.700-1.300 3.800-1.400 6Zm4.300 9c-.9-1-1.900-3.100-2.200-7h4.400c-.3 3.900-1.300 6-2.200 7Zm2.900-1c.8-1.700 1.300-3.800 1.400-6h3.100a8 8 0 0 1-4.500 6Z',
-  android: 'M6 18a1 1 0 0 0 1 1h1v3a1.500 1.500 0 0 0 3 0v-3h2v3a1.500 1.500 0 0 0 3 0v-3h1a1 1 0 0 0 1-1V8H6v10ZM3.500 8A1.500 1.500 0 0 0 2 9.500v6a1.500 1.500 0 0 0 3 0v-6A1.500 1.500 0 0 0 3.500 8Zm17 0A1.500 1.500 0 0 0 19 9.500v6a1.500 1.500 0 0 0 3 0v-6A1.500 1.500 0 0 0 20.500 8ZM15.500 2.700l1.200-1.800a.5.500 0 0 0-.8-.6L14.600 2.200a6 6 0 0 0-5.200 0L8.100.3a.5.500 0 0 0-.8.600L8.500 2.700A5.900 5.900 0 0 0 6 7h12a5.900 5.900 0 0 0-2.500-4.300ZM9.500 5.500a.75.75 0 1 1 0-1.500.75.75 0 0 1 0 1.500Zm5 0a.75.75 0 1 1 0-1.500.75.75 0 0 1 0 1.500Z',
-  apple: 'M16.400 12.700c0-2.400 2-3.500 2.100-3.600a4.500 4.500 0 0 0-3.600-1.900c-1.500-.2-3 .9-3.700.9-.8 0-2-.9-3.300-.9a4.900 4.900 0 0 0-4.100 2.500c-1.800 3.100-.5 7.600 1.300 10.100.8 1.200 1.800 2.600 3.100 2.500 1.300-.1 1.700-.8 3.200-.8s1.900.8 3.200.8c1.400 0 2.200-1.200 3-2.500a10 10 0 0 0 1.400-2.900c0 0-2.600-1-2.600-4.200ZM14 5.200A4.300 4.300 0 0 0 15 2a4.400 4.400 0 0 0-2.900 1.500 4.100 4.100 0 0 0-1 3.100A3.600 3.600 0 0 0 14 5.200Z',
-  instagram: 'M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5Zm0 2a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H7Zm5 3.500a4.500 4.500 0 1 1 0 9 4.500 4.500 0 0 1 0-9Zm0 2a2.500 2.500 0 1 0 0 5 2.500 2.500 0 0 0 0-5Zm5.200-3.200a1.100 1.100 0 1 1 0 2.200 1.100 1.100 0 0 1 0-2.200Z',
-  telegram: 'M21.900 4.200 18.600 19.800c-.2 1.100-.9 1.400-1.800.9l-5-3.700-2.400 2.300c-.3.300-.5.500-1 .5l.4-5.100 9.300-8.400c.4-.4-.1-.6-.6-.2L6 13.300 1.100 11.800c-1.100-.3-1.100-1 .2-1.500L20.400 3c.9-.3 1.700.2 1.500 1.200Z',
+  android:
+    'M6 18a1 1 0 0 0 1 1h1v3a1.500 1.500 0 0 0 3 0v-3h2v3a1.500 1.500 0 0 0 3 0v-3h1a1 1 0 0 0 1-1V8H6v10ZM3.500 8A1.500 1.500 0 0 0 2 9.500v6a1.500 1.500 0 0 0 3 0v-6A1.500 1.500 0 0 0 3.500 8Zm17 0A1.500 1.500 0 0 0 19 9.500v6a1.500 1.500 0 0 0 3 0v-6A1.500 1.500 0 0 0 20.500 8ZM15.500 2.700l1.200-1.800a.5.500 0 0 0-.8-.6L14.600 2.200a6 6 0 0 0-5.200 0L8.100.3a.5.500 0 0 0-.8.600L8.500 2.700A5.900 5.900 0 0 0 6 7h12a5.900 5.900 0 0 0-2.500-4.300ZM9.500 5.500a.75.75 0 1 1 0-1.500.75.75 0 0 1 0 1.500Zm5 0a.75.75 0 1 1 0-1.500.75.75 0 0 1 0 1.500Z',
+  apple:
+    'M16.400 12.700c0-2.400 2-3.500 2.100-3.600a4.500 4.500 0 0 0-3.600-1.900c-1.500-.2-3 .9-3.700.9-.8 0-2-.9-3.300-.9a4.900 4.900 0 0 0-4.100 2.500c-1.800 3.100-.5 7.600 1.300 10.100.8 1.200 1.800 2.600 3.100 2.500 1.300-.1 1.700-.8 3.200-.8s1.900.8 3.200.8c1.400 0 2.200-1.200 3-2.500a10 10 0 0 0 1.400-2.900c0 0-2.600-1-2.600-4.200ZM14 5.200A4.300 4.300 0 0 0 15 2a4.400 4.400 0 0 0-2.900 1.500 4.100 4.100 0 0 0-1 3.100A3.600 3.600 0 0 0 14 5.200Z',
+  instagram:
+    'M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5Zm0 2a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3V7a3 3 0 0 0-3-3H7Zm5 3.500a4.500 4.500 0 1 1 0 9 4.500 4.500 0 0 1 0-9Zm0 2a2.500 2.500 0 1 0 0 5 2.500 2.500 0 0 0 0-5Zm5.200-3.200a1.100 1.100 0 1 1 0 2.200 1.100 1.100 0 0 1 0-2.200Z',
+  telegram:
+    'M21.900 4.200 18.600 19.800c-.2 1.100-.9 1.400-1.800.9l-5-3.700-2.400 2.300c-.3.300-.5.500-1 .5l.4-5.100 9.300-8.400c.4-.4-.1-.6-.6-.2L6 13.300 1.100 11.800c-1.100-.3-1.100-1 .2-1.500L20.400 3c.9-.3 1.700.2 1.500 1.200Z',
   mail: 'M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm0 2v.5l8 5 8-5V6H4Zm16 3L12 14 4 9v9h16V9Z',
   link: 'M10.600 13.400a1 1 0 0 1 0-1.400l3-3a3 3 0 1 1 4.200 4.200l-1.800 1.800-1.400-1.400 1.800-1.800a1 1 0 0 0-1.400-1.400l-3 3a1 1 0 0 1-1.400 0ZM13.400 10.600a1 1 0 0 1 0 1.400l-3 3a3 3 0 1 1-4.200-4.200L8 9l1.400 1.400-1.800 1.800a1 1 0 0 0 1.400 1.400l3-3a1 1 0 0 1 1.400 0Z',
 };
-const icon = (k: string): string => `<svg class="ic" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="${ICON_PATH[k] ?? ICON_PATH.link}"/></svg>`;
-const socialIcon = (u: string): string => (/instagram\.com/.test(u) ? 'instagram' : /t\.me|telegram/.test(u) ? 'telegram' : 'link');
-const SOCIAL_BG = [['#FF4D8D', '#FFF6E8'], ['#3FC1F0', '#2B1240'], ['#FFC93C', '#2B1240'], ['#7ED957', '#2B1240'], ['#FF7A3D', '#2B1240']] as const;
+const icon = (k: string): string =>
+  `<svg class="ic" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="${ICON_PATH[k] ?? ICON_PATH.link}"/></svg>`;
+const socialIcon = (u: string): string =>
+  /instagram\.com/.test(u) ? 'instagram' : /t\.me|telegram/.test(u) ? 'telegram' : 'link';
+const SOCIAL_BG = [
+  ['#FF4D8D', '#FFF6E8'],
+  ['#3FC1F0', '#2B1240'],
+  ['#FFC93C', '#2B1240'],
+  ['#7ED957', '#2B1240'],
+  ['#FF7A3D', '#2B1240'],
+] as const;
 
 /** Every page: scroll progress bar, sticky-header shadow and the scroll-reveal of `.rv` blocks. */
 const BASE_JS = `(function(){var d=document,h=d.documentElement,p=d.querySelector('.prog'),t=d.querySelector('header.top'),els=[].slice.call(d.querySelectorAll('.rv'));
@@ -289,20 +372,44 @@ function badgesHtml(site: Site): string {
     const m = BADGES[b.id];
     if (!m) return [];
     const img = `<img src="/badges/${m.file}.${m.ext}" alt="${escapeHtml(m.alt)}" loading="lazy">`;
-    return [b.url ? `<a href="${escapeHtml(b.url)}" target="_blank" rel="noopener nofollow" title="${escapeHtml(m.alt)}">${img}</a>` : `<span>${img}</span>`];
+    return [
+      b.url
+        ? `<a href="${escapeHtml(b.url)}" target="_blank" rel="noopener nofollow" title="${escapeHtml(m.alt)}">${img}</a>`
+        : `<span>${img}</span>`,
+    ];
   });
   return items.length > 0 ? `<div class="badges">${items.join('')}</div>` : '';
 }
 
-function layout(site: Site, headHtml: string, crumbs: Crumb[] | null, body: string, opts: { active?: NavKey; wide?: boolean } = {}): string {
+function layout(
+  site: Site,
+  headHtml: string,
+  crumbs: Crumb[] | null,
+  body: string,
+  opts: { active?: NavKey; wide?: boolean } = {},
+): string {
   const crumbHtml =
     crumbs && crumbs.length > 1
       ? `<nav aria-label="مسیر صفحه"><ol class="crumbs">${li(crumbs.map((c) => (c.path !== undefined ? `<a href="${escapeHtml(c.path)}">${escapeHtml(c.name)}</a>` : `<span aria-current="page">${escapeHtml(c.name)}</span>`)))}</ol></nav>`
       : '';
-  const nav = NAV.map(([k, href, label]) => `<a href="${href}"${k === opts.active ? ' aria-current="page"' : ''}>${label}</a>`).join('');
-  const year = new Intl.DateTimeFormat('fa-IR-u-ca-persian', { year: 'numeric', timeZone: 'Asia/Tehran' }).format(Date.now());
-  const content = opts.wide ? `<main>${body}</main>` : `<main class="page">\n${crumbHtml}\n${body}\n</main>`;
-  const social = [...site.sameAs.map((u, n) => ({ u, label: socialLabel(u), c: SOCIAL_BG[n % SOCIAL_BG.length] as readonly [string, string] }))];
+  const nav = NAV.map(
+    ([k, href, label]) =>
+      `<a href="${href}"${k === opts.active ? ' aria-current="page"' : ''}>${label}</a>`,
+  ).join('');
+  const year = new Intl.DateTimeFormat('fa-IR-u-ca-persian', {
+    year: 'numeric',
+    timeZone: 'Asia/Tehran',
+  }).format(Date.now());
+  const content = opts.wide
+    ? `<main>${body}</main>`
+    : `<main class="page">\n${crumbHtml}\n${body}\n</main>`;
+  const social = [
+    ...site.sameAs.map((u, n) => ({
+      u,
+      label: socialLabel(u),
+      c: SOCIAL_BG[n % SOCIAL_BG.length] as readonly [string, string],
+    })),
+  ];
   return `<!doctype html>
 <html lang="fa" dir="rtl">
 <head>
@@ -335,15 +442,24 @@ ${badgesHtml(site)}
 
 /* ---- shared blocks ---- */
 
-const faqList = (faq: FaqPair[], open = -1): string => `<div class="faqs">${faq.map((f, n) => `<details class="faq"${n === open ? ' open' : ''}><summary><h3>${escapeHtml(f.question)}</h3></summary><p>${escapeHtml(f.answer)}</p></details>`).join('')}</div>`;
+const faqList = (faq: FaqPair[], open = -1): string =>
+  `<div class="faqs">${faq.map((f, n) => `<details class="faq"${n === open ? ' open' : ''}><summary><h3>${escapeHtml(f.question)}</h3></summary><p>${escapeHtml(f.answer)}</p></details>`).join('')}</div>`;
 
 /** Real download links only: the web app and the Android file, when the admin has set them. */
 function storeBadges(site: Site): string {
   const b = (ic: string, small: string, name: string, href: string | null): string => {
     const inner = `${icon(ic)}<span class="tx"><small>${small}</small><b>${name}</b></span>`;
-    return href ? `<a class="badge" href="${escapeHtml(href)}">${inner}</a>` : `<span class="badge off" aria-disabled="true">${inner}</span>`;
+    return href
+      ? `<a class="badge" href="${escapeHtml(href)}">${inner}</a>`
+      : `<span class="badge off" aria-disabled="true">${inner}</span>`;
   };
-  return [b('web', 'بازی آنلاین', 'نسخهٔ وب', site.appUrl), b('android', 'دریافت فایل', 'اندروید', site.androidApp), b('apple', site.iosApp ? 'دریافت برنامه' : 'به‌زودی', 'iOS', site.iosApp), ...(site.baleBot ? [b('chat', 'بازی از طریق ربات', 'بله', site.baleBot)] : []), ...(site.telegramApp ? [b('chat', 'بازی بدون نصب', 'تلگرام', site.telegramApp)] : [])].join('');
+  return [
+    b('web', 'بازی آنلاین', 'نسخهٔ وب', site.appUrl),
+    b('android', 'دریافت فایل', 'اندروید', site.androidApp),
+    b('apple', site.iosApp ? 'دریافت برنامه' : 'به‌زودی', 'iOS', site.iosApp),
+    ...(site.baleBot ? [b('chat', 'بازی از طریق ربات', 'بله', site.baleBot)] : []),
+    ...(site.telegramApp ? [b('chat', 'بازی بدون نصب', 'تلگرام', site.telegramApp)] : []),
+  ].join('');
 }
 
 const postCard = (p: PostSummary): string => {
@@ -351,22 +467,55 @@ const postCard = (p: PostSummary): string => {
   return `<li><a class="pcard" href="/blog/${encodeURIComponent(p.slug)}"><div class="pthumb" style="background:${bg}">${p.coverUrl ? `<img class="cover" src="${escapeHtml(p.coverUrl)}" alt="${escapeHtml(p.title)}" loading="lazy">` : img(`${who}-${pose}`, 120, 138)}</div><div class="pbody"><span class="cat">مقاله</span><h3>${escapeHtml(p.title)}</h3>${p.summary ? `<p>${escapeHtml(p.summary)}</p>` : ''}<span class="date">${escapeHtml(faDate(p.publishedAt))}${p.author ? ` · ${escapeHtml(p.author)}` : ''}</span></div></a></li>`;
 };
 
-const promo = (cls: string, h: string, p: string, link: string): string => `<section class="in" style="padding-bottom:80px"><div class="promo ${cls}"><div><h2>${h}</h2><p>${p}</p></div>${link}</div></section>`;
+const promo = (cls: string, h: string, p: string, link: string): string =>
+  `<section class="in" style="padding-bottom:80px"><div class="promo ${cls}"><div><h2>${h}</h2><p>${p}</p></div>${link}</div></section>`;
 
 /* ---- home ---- */
 
 const HOW_TO = [
-  ['کالاها را ببین', 'شانزده کالا روی صفحه است؛ هر کدام یک قیمت واقعی در یکی از سال‌های گذشته ایران دارد.', 'khale-pointing'],
-  ['چهارتا چهارتا گروه کن', 'کالاهایی را که یک قاعده‌ی مشترک دارند کنار هم بگذار؛ مثلاً قیمتشان در یک سال یا یک بازه است.', 'mirza-thinking'],
+  [
+    'کالاها را ببین',
+    'شانزده کالا روی صفحه است؛ هر کدام یک قیمت واقعی در یکی از سال‌های گذشته ایران دارد.',
+    'khale-pointing',
+  ],
+  [
+    'چهارتا چهارتا گروه کن',
+    'کالاهایی را که یک قاعده‌ی مشترک دارند کنار هم بگذار؛ مثلاً قیمتشان در یک سال یا یک بازه است.',
+    'mirza-thinking',
+  ],
   ['حدس بزن و ادامه بده', 'هر گروه درست یک دسته‌ی رنگی می‌شود؛ اشتباه‌ها محدودند.', 'goli-cheer'],
-  ['با دوستانت رقابت کن', 'همین بازی را تکی یا زنده دونفره، دو در دو و در تورنومنت بازی کن.', 'pahlevan-win'],
+  [
+    'با دوستانت رقابت کن',
+    'همین بازی را تکی یا زنده دونفره، دو در دو و در تورنومنت بازی کن.',
+    'pahlevan-win',
+  ],
 ] as const;
 
 const FEATURES = [
-  ['coin', '#FFC93C', 'قیمت‌های واقعی', 'قیمت اسمی کالاها در سال‌های گذشته ایران، همان‌طور که روی برچسب بود؛ بدون تعدیل تورم.'],
-  ['gift', '#7ED957', 'چالش روزانه', 'هر روز یک جدول تازه: شانزده کالا، چهار گروه و قاعده‌ای که باید پیدایش کنی.'],
-  ['crown', '#3FC1F0', 'رقابت زنده', 'تکی، زنده دونفره، دو در دو و تورنومنت؛ حریفت را با سرعت و دقت شکست بده.'],
-  ['hat', '#A66BF0', 'ظاهر مخصوص خودت', 'آواتار، کلاه و لباس‌هایی که با سکه‌های بازی به دست می‌آوری.'],
+  [
+    'coin',
+    '#FFC93C',
+    'قیمت‌های واقعی',
+    'قیمت اسمی کالاها در سال‌های گذشته ایران، همان‌طور که روی برچسب بود؛ بدون تعدیل تورم.',
+  ],
+  [
+    'gift',
+    '#7ED957',
+    'چالش روزانه',
+    'هر روز یک جدول تازه: شانزده کالا، چهار گروه و قاعده‌ای که باید پیدایش کنی.',
+  ],
+  [
+    'crown',
+    '#3FC1F0',
+    'رقابت زنده',
+    'تکی، زنده دونفره، دو در دو و تورنومنت؛ حریفت را با سرعت و دقت شکست بده.',
+  ],
+  [
+    'hat',
+    '#A66BF0',
+    'ظاهر مخصوص خودت',
+    'آواتار، کلاه و لباس‌هایی که با سکه‌های بازی به دست می‌آوری.',
+  ],
 ] as const;
 
 /** The promo banners of `docs/design/banner` (resized to webp in `assets/banners`); the alt text is what the banner itself says. */
@@ -387,19 +536,31 @@ const bannerAlt = (name: string): string => BANNERS.find((b) => b[0] === name)?.
 /** The sliding banner strip: plain scroll-snap (works without scripts); the script only adds auto-play, arrows and dots. */
 const carousel = (): string =>
   `<div class="car" role="region" aria-roledescription="carousel" aria-label="بنرهای معرفی بازی"><div class="track" tabindex="0">${BANNERS.map(([n, alt], k) => `<figure aria-label="${faNum(k + 1)} از ${faNum(BANNERS.length)}">${banner(n, alt, { eager: k === 0 })}</figure>`).join('')}</div>
-<div class="nav" dir="ltr"><button class="arr" type="button" data-go="-1" aria-label="قبلی">‹</button><span class="dots">${BANNERS.map((_, k) => `<button class="dot" type="button" data-i="${k}" aria-label="بنر ${faNum(k + 1)}"${k === 0 ? ' aria-current="true"' : ''}></button>`).join('')}</span><button class="arr" type="button" data-go="1" aria-label="بعدی">›</button></div></div>`;
+<div class="nav" dir="ltr"><button class="arr" type="button" data-go="-1" aria-label="قبلی">›</button><span class="dots">${BANNERS.map((_, k) => `<button class="dot" type="button" data-i="${k}" aria-label="بنر ${faNum(k + 1)}"${k === 0 ? ' aria-current="true"' : ''}></button>`).join('')}</span><button class="arr" type="button" data-go="1" aria-label="بعدی">‹</button></div></div>`;
 
-const TICKER = ['قیمت اسمی، بدون تعدیل تورم', '۱۶ کالا، ۴ گروه', 'چالش روزانه', 'رقابت زنده با رفقا', 'سفر به ۳۱ استان', 'گردونه‌ی جایزه‌ی هر روز', 'بازی رایگان'];
+const TICKER = [
+  'قیمت اسمی، بدون تعدیل تورم',
+  '۱۶ کالا، ۴ گروه',
+  'چالش روزانه',
+  'رقابت زنده با رفقا',
+  'سفر به ۳۱ استان',
+  'گردونه‌ی جایزه‌ی هر روز',
+  'بازی رایگان',
+];
 const ticker = (): string => {
   const row = TICKER.map((t) => `<span>${escapeHtml(t)}</span>`).join('');
   return `<div class="mq" aria-hidden="true"><div class="tr">${row}${row}</div></div>`;
 };
 
 /** One alternating feature row: a banner in a tilted frame next to the text. `flip` puts the picture on the other side. */
-const showRow = (cls: string, a: { h: string; p: string; chips: string[]; art: string; flip?: boolean }): string =>
+const showRow = (
+  cls: string,
+  a: { h: string; p: string; chips: string[]; art: string; flip?: boolean },
+): string =>
   `<section class="band ${cls}"><div class="in show" style="padding-top:80px;padding-bottom:80px"><div class="tx rv ${a.flip ? 'r' : 'l'}"><h2>${escapeHtml(a.h)}</h2><p>${escapeHtml(a.p)}</p><div class="chips">${a.chips.map((c) => `<span class="pill sm">${escapeHtml(c)}</span>`).join('')}</div></div><div style="order:${a.flip ? -1 : 0}">${a.art}</div></div></section>`;
 
-const frame = (name: string, t = '-2deg', d = '0s'): string => `<div class="frame rv z" style="--t:${t};--d:${d}">${banner(name, bannerAlt(name))}</div>`;
+const frame = (name: string, t = '-2deg', d = '0s'): string =>
+  `<div class="frame rv z" style="--t:${t};--d:${d}">${banner(name, bannerAlt(name))}</div>`;
 
 /** The try-it puzzle: the grouping mechanic with plain words (a red herring included: «نی» is also an instrument). Behaviour in `HOME_JS`. */
 const DEMO_GROUPS = [
@@ -411,9 +572,14 @@ const DEMO_GROUPS = [
 const DEMO_ORDER = [4, 12, 1, 9, 7, 0, 14, 5, 10, 3, 13, 8, 2, 15, 6, 11];
 type DemoTile = { x: string; g: number; svg?: string; image?: string | null };
 const demo = (live: DemoPuzzle | null): string => {
-  const ok = live !== null && live.groups.length === 4 && live.groups.every((g) => g.items.length === 4);
+  const ok =
+    live !== null && live.groups.length === 4 && live.groups.every((g) => g.items.length === 4);
   const titles = ok ? live.groups.map((g) => g.title) : DEMO_GROUPS.map(([t]) => t);
-  const words: DemoTile[] = ok ? live.groups.flatMap((g, n) => g.items.map((i) => ({ x: i.name, g: n, svg: i.svg, image: i.image }))) : DEMO_GROUPS.flatMap(([, w], g) => w.map((x) => ({ x, g })));
+  const words: DemoTile[] = ok
+    ? live.groups.flatMap((g, n) =>
+        g.items.map((i) => ({ x: i.name, g: n, svg: i.svg, image: i.image })),
+      )
+    : DEMO_GROUPS.flatMap(([, w], g) => w.map((x) => ({ x, g })));
   const tiles = DEMO_ORDER.map((i) => words[i] as DemoTile);
   return `<div class="demo${ok ? ' icons' : ''}" id="demo" data-groups='${escapeHtml(JSON.stringify(titles))}'>
 <div class="dgrid">${tiles.map((t) => `<button class="t" type="button" data-g="${t.g}" aria-pressed="false">${t.image && /^https?:\/\//.test(t.image) ? `<img src="${escapeHtml(t.image)}" alt="" loading="lazy" decoding="async">` : (t.svg ?? '')}<span>${escapeHtml(t.x)}</span></button>`).join('')}</div>
@@ -449,28 +615,76 @@ demo.querySelector('[data-act=reset]').addEventListener('click',function(){grid.
 })();`;
 
 /** The people of the game for the home strip and the about page: the game's own cast list, else the designed one. */
-const castOf = (cast: CastMember[]): { name: string; role: string; who: Who; id: string; image: string | null }[] =>
-  (cast.length ? cast : WHO.slice(0, 8).map((w) => ({ id: w, name: CAST_NAMES[w], role: '', bio: '', image: null }))).map((c, n) => ({ id: c.id, name: c.name, role: c.role, who: whoOf(c, n), image: photoOf(c.image) }));
+const castOf = (
+  cast: CastMember[],
+): { name: string; role: string; who: Who; id: string; image: string | null }[] =>
+  (cast.length
+    ? cast
+    : WHO.slice(0, 8).map((w) => ({ id: w, name: CAST_NAMES[w], role: '', bio: '', image: null }))
+  ).map((c, n) => ({
+    id: c.id,
+    name: c.name,
+    role: c.role,
+    who: whoOf(c, n),
+    image: photoOf(c.image),
+  }));
 
-const FLOATERS: [string, string, string, string][] = [['coin', '38%', '52%', '0s'], ['gift', '44%', '4%', '1.2s'], ['crown', '3%', '66%', '2.1s'], ['coinStack', '47%', '82%', '.6s'], ['hat', '90%', '8%', '1.7s'], ['map', '92%', '70%', '2.8s']];
+const FLOATERS: [string, string, string, string][] = [
+  ['coin', '38%', '52%', '0s'],
+  ['gift', '44%', '4%', '1.2s'],
+  ['crown', '3%', '66%', '2.1s'],
+  ['coinStack', '47%', '82%', '.6s'],
+  ['hat', '90%', '8%', '1.7s'],
+  ['map', '92%', '70%', '2.8s'],
+];
 
-export function homePage(site: Site, data: LandingData, latest: PostSummary[], demoPuzzle: DemoPuzzle | null = null): string {
+export function homePage(
+  site: Site,
+  data: LandingData,
+  latest: PostSummary[],
+  demoPuzzle: DemoPuzzle | null = null,
+): string {
   const { site: s, cast, faq } = data;
   const i = ids(site);
   const title = s.seo?.title || `${s.name} — ${s.tagline}`;
   const desc = description(s.seo?.description || s.heroText || s.tagline);
   const nodes: Record<string, unknown>[] = [
-    { '@type': 'WebPage', '@id': `${site.url}/#webpage`, url: `${site.url}/`, name: title, description: desc, inLanguage: 'fa-IR', isPartOf: { '@id': i.site }, about: { '@id': i.org }, primaryImageOfPage: { '@type': 'ImageObject', url: absolute(site, '/banners/banner1.webp'), width: 1600, height: 900 } },
+    {
+      '@type': 'WebPage',
+      '@id': `${site.url}/#webpage`,
+      url: `${site.url}/`,
+      name: title,
+      description: desc,
+      inLanguage: 'fa-IR',
+      isPartOf: { '@id': i.site },
+      about: { '@id': i.org },
+      primaryImageOfPage: {
+        '@type': 'ImageObject',
+        url: absolute(site, '/banners/banner1.webp'),
+        width: 1600,
+        height: 900,
+      },
+    },
     {
       '@type': 'HowTo',
       name: `${s.name} چطور بازی می‌شود؟`,
-      step: HOW_TO.map(([name, text], n) => ({ '@type': 'HowToStep', position: n + 1, name, text })),
+      step: HOW_TO.map(([name, text], n) => ({
+        '@type': 'HowToStep',
+        position: n + 1,
+        name,
+        text,
+      })),
     },
   ];
   const faqN = faqNode(faq);
   if (faqN) nodes.push(faqN);
   const people = castOf(cast).slice(0, 8);
-  const stats: [number, string, string][] = [[16, 'کالا روی هر جدول', '#FF4D8D'], [4, 'گروه پنهان', '#7E46D6'], [31, 'استان برای سفر', '#2FA84F'], [4, 'حالت بازی', '#E8612A']];
+  const stats: [number, string, string][] = [
+    [16, 'کالا روی هر جدول', '#FF4D8D'],
+    [4, 'گروه پنهان', '#7E46D6'],
+    [31, 'استان برای سفر', '#2FA84F'],
+    [4, 'حالت بازی', '#E8612A'],
+  ];
   const body = `
 <section class="band y hero"><div class="in grid2">
 ${FLOATERS.map(([n, x, y, dl]) => `<img class="fl" src="/items/${n}.svg" alt="" width="56" height="56" style="inset-inline-start:${x};top:${y};--d:${dl}" aria-hidden="true">`).join('')}
@@ -501,21 +715,55 @@ ${latest.length ? `<section class="in col" style="gap:28px;padding-bottom:80px">
 ${faq.length ? `<section class="in col" style="gap:28px;padding-bottom:80px"><h2 class="big rv">پرسش‌های متداول</h2>${faqList(faq)}</section>` : ''}
 <section class="in col" style="gap:28px;padding-bottom:80px;align-items:center"><h2 class="big rv">همین حالا رایگان دانلود کن</h2><a class="fin rv z" href="/download" aria-label="دانلود ${escapeHtml(s.name)}">${banner('banner8', bannerAlt('banner8'))}</a><a class="btn big yellow pulse" href="/download">دانلود ${escapeHtml(s.name)}</a></section>
 <script>${HOME_JS}</script>`;
-  return layout(site, head(site, { title, description: desc, path: '/', nodes }), null, body, { active: 'home', wide: true });
+  return layout(site, head(site, { title, description: desc, path: '/', nodes }), null, body, {
+    active: 'home',
+    wide: true,
+  });
 }
 
-const webPage = (site: Site, path: string, type: string, title: string, desc: string): Record<string, unknown> => ({ '@type': type, '@id': `${absolute(site, path)}#webpage`, url: absolute(site, path), name: title, description: desc, inLanguage: 'fa-IR', isPartOf: { '@id': ids(site).site } });
+const webPage = (
+  site: Site,
+  path: string,
+  type: string,
+  title: string,
+  desc: string,
+): Record<string, unknown> => ({
+  '@type': type,
+  '@id': `${absolute(site, path)}#webpage`,
+  url: absolute(site, path),
+  name: title,
+  description: desc,
+  inLanguage: 'fa-IR',
+  isPartOf: { '@id': ids(site).site },
+});
 
 /* ---- about ---- */
 
 export function aboutPage(site: Site, cast: CastMember[] = []): string {
   const title = `درباره‌ی ${site.name}: قصه‌ی اسم و ایده‌ی بازی`;
-  const desc = description(`${site.name} یک بازی فارسی درباره‌ی قیمت‌های قدیمی ایران است؛ ببین اسمش از کجا آمده و چه چیزهایی برایمان مهم است.`);
+  const desc = description(
+    `${site.name} یک بازی فارسی درباره‌ی قیمت‌های قدیمی ایران است؛ ببین اسمش از کجا آمده و چه چیزهایی برایمان مهم است.`,
+  );
   const n = escapeHtml(site.name);
   const values = [
-    ['۰۱', '#FF4D8D', 'قیمت واقعی', 'قیمت‌ها اسمی‌اند، همان عددی که آن سال روی برچسب بود؛ هیچ‌کدام با تورم تعدیل نشده.'],
-    ['۰۲', '#3FC1F0', 'بازی منصفانه', 'داوری و امتیاز و سکه همه سمت سرور است؛ تقلب جا ندارد و آگهی یا ردیاب شخص ثالث در برنامه نیست.'],
-    ['۰۳', '#A66BF0', 'برای همه‌ی نسل‌ها', 'پدربزرگ‌ها قیمت‌ها را یادشان است و بچه‌ها می‌خواهند بدانند؛ بازی دورهمی را راه می‌اندازد.'],
+    [
+      '۰۱',
+      '#FF4D8D',
+      'قیمت واقعی',
+      'قیمت‌ها اسمی‌اند، همان عددی که آن سال روی برچسب بود؛ هیچ‌کدام با تورم تعدیل نشده.',
+    ],
+    [
+      '۰۲',
+      '#3FC1F0',
+      'بازی منصفانه',
+      'داوری و امتیاز و سکه همه سمت سرور است؛ تقلب جا ندارد و آگهی یا ردیاب شخص ثالث در برنامه نیست.',
+    ],
+    [
+      '۰۳',
+      '#A66BF0',
+      'برای همه‌ی نسل‌ها',
+      'پدربزرگ‌ها قیمت‌ها را یادشان است و بچه‌ها می‌خواهند بدانند؛ بازی دورهمی را راه می‌اندازد.',
+    ],
   ] as const;
   const team = castOf(cast).slice(0, 4);
   const body = `
@@ -532,27 +780,90 @@ export function aboutPage(site: Site, cast: CastMember[] = []): string {
 <section class="in sec col" style="gap:32px"><h2 class="big" style="font-size:clamp(32px,4vw,48px)">آدم‌های ${n}</h2>
 <div class="team">${team.map((m, k) => `<div class="member"><span class="face" style="width:120px;height:120px;background:${['#FFC93C', '#FF4D8D', '#3FC1F0', '#7ED957'][k % 4]}">${m.image ? `<img src="${escapeHtml(m.image)}" alt="${escapeHtml(m.name)}" width="120" height="120" loading="lazy">` : img(`${m.who}-face`, 120, 120, { alt: m.name })}</span><b>${escapeHtml(m.name)}</b>${m.role ? `<span>${escapeHtml(m.role)}</span>` : ''}</div>`).join('')}</div></section>
 ${promo('lime', 'می‌خوای با ما کار کنی؟', 'همکاری، تبلیغات یا پیشنهاد کالا؟ خوشحال می‌شیم بشنویم.', '<a class="btn big dark" href="/contact">تماس با ما</a>')}`;
-  return layout(site, head(site, { title, description: desc, path: '/about', nodes: [webPage(site, '/about', 'AboutPage', title, desc)], crumbs: [{ name: 'صفحه‌ی اول', path: '/' }, { name: 'درباره‌ی ما' }] }), null, body, { active: 'about', wide: true });
+  return layout(
+    site,
+    head(site, {
+      title,
+      description: desc,
+      path: '/about',
+      nodes: [webPage(site, '/about', 'AboutPage', title, desc)],
+      crumbs: [{ name: 'صفحه‌ی اول', path: '/' }, { name: 'درباره‌ی ما' }],
+    }),
+    null,
+    body,
+    { active: 'about', wide: true },
+  );
 }
 
 /* ---- download ---- */
 
 export function downloadPage(site: Site): string {
   const title = `دانلود ${site.name}: رایگان برای اندروید، مرورگر و بله`;
-  const desc = description(`${site.name} را رایگان روی گوشی اندروید نصب کن، همین حالا در مرورگر بازی کن یا از طریق ربات بله شروع کن.`);
+  const desc = description(
+    `${site.name} را رایگان روی گوشی اندروید نصب کن، همین حالا در مرورگر بازی کن یا از طریق ربات بله شروع کن.`,
+  );
   type Store = { fa: string; os: string; ab: string; bg: string; cta: string; href: string | null };
   const stores: Store[] = [
-    { fa: 'نسخهٔ وب', os: 'مرورگر', ab: icon('web'), bg: '#FF7A3D', cta: 'بازی آنلاین', href: site.appUrl },
-    { fa: 'دانلود مستقیم', os: 'فایل APK اندروید', ab: icon('android'), bg: '#FFC93C', cta: 'دریافت فایل', href: site.androidApp },
-    { fa: 'بله', os: 'بازی از طریق ربات', ab: 'ب', bg: '#3FC1F0', cta: 'شروع در بله', href: site.baleBot ?? null },
-    ...(site.telegramApp ? [{ fa: 'تلگرام', os: 'بازی در مینی‌اپ، بدون نصب', ab: 'T', bg: '#3FC1F0', cta: 'بازی در تلگرام', href: site.telegramApp }] : []),
+    {
+      fa: 'نسخهٔ وب',
+      os: 'مرورگر',
+      ab: icon('web'),
+      bg: '#FF7A3D',
+      cta: 'بازی آنلاین',
+      href: site.appUrl,
+    },
+    {
+      fa: 'دانلود مستقیم',
+      os: 'فایل APK اندروید',
+      ab: icon('android'),
+      bg: '#FFC93C',
+      cta: 'دریافت فایل',
+      href: site.androidApp,
+    },
+    {
+      fa: 'بله',
+      os: 'بازی از طریق ربات',
+      ab: 'ب',
+      bg: '#3FC1F0',
+      cta: 'شروع در بله',
+      href: site.baleBot ?? null,
+    },
+    ...(site.telegramApp
+      ? [
+          {
+            fa: 'تلگرام',
+            os: 'بازی در مینی‌اپ، بدون نصب',
+            ab: 'T',
+            bg: '#3FC1F0',
+            cta: 'بازی در تلگرام',
+            href: site.telegramApp,
+          },
+        ]
+      : []),
     { fa: 'گوگل‌پلی', os: 'اندروید', ab: 'G', bg: '#7ED957', cta: 'به‌زودی', href: null },
     { fa: 'کافه‌بازار', os: 'اندروید', ab: 'ب', bg: '#7ED957', cta: 'به‌زودی', href: null },
     { fa: 'مایکت', os: 'اندروید', ab: 'م', bg: '#3FC1F0', cta: 'به‌زودی', href: null },
-    { fa: 'iOS', os: 'آیفون و آیپد', ab: icon('apple'), bg: '#A66BF0', cta: site.iosApp ? 'دریافت برنامه' : 'به‌زودی', href: site.iosApp },
+    {
+      fa: 'iOS',
+      os: 'آیفون و آیپد',
+      ab: icon('apple'),
+      bg: '#A66BF0',
+      cta: site.iosApp ? 'دریافت برنامه' : 'به‌زودی',
+      href: site.iosApp,
+    },
   ];
-  const reqs = [['اتصال اینترنت', 'برای بازی زنده و ذخیره‌ی پیشرفت'], ['حساب', 'مهمان؛ شماره‌ی تلفن اختیاری است'], ['مرورگر', 'نسخه‌ی تازه‌ی کروم، فایرفاکس، سافاری یا ادج'], ['هزینه', 'رایگان']] as const;
-  const inGame = ['تکی، زنده دونفره، دو در دو و میز خصوصی', 'جدول تازه هر روز', 'آواتار، کلاه و لباس با سکه‌ی بازی', 'نمودار قیمت پایان هر بازی برای دیدن مسیر قیمت‌ها'];
+  const reqs = [
+    ['اتصال اینترنت', 'برای بازی زنده و ذخیره‌ی پیشرفت'],
+    ['حساب', 'مهمان؛ شماره‌ی تلفن اختیاری است'],
+    ['مرورگر', 'نسخه‌ی تازه‌ی کروم، فایرفاکس، سافاری یا ادج'],
+    ['هزینه', 'رایگان'],
+  ] as const;
+  const inGame = [
+    'تکی، زنده دونفره، دو در دو و میز خصوصی',
+    'جدول تازه هر روز',
+    'آواتار، کلاه و لباس با سکه‌ی بازی',
+    'نمودار قیمت پایان هر بازی برای دیدن مسیر قیمت‌ها',
+  ];
   const body = `
 <section class="band g"><div class="in grid2">
 <div class="col" style="gap:16px"><h1 style="font-size:clamp(48px,6vw,80px)">${escapeHtml(site.name)} رو دانلود کن</h1>
@@ -572,7 +883,19 @@ export function downloadPage(site: Site): string {
 <div class="reqs"><h2 class="l">چیزهایی که لازم است</h2>${reqs.map(([k, v]) => `<div class="req"><span>${k}</span><span>${v}</span></div>`).join('')}</div>
 <div class="reqs"><h2 class="l">توی بازی چی هست؟</h2><div class="note">${inGame.map((t) => `<span>• ${t}</span>`).join('')}</div></div>
 </div></section>`;
-  return layout(site, head(site, { title, description: desc, path: '/download', nodes: [webPage(site, '/download', 'WebPage', title, desc)], crumbs: [{ name: 'صفحه‌ی اول', path: '/' }, { name: 'دانلود' }] }), null, body, { active: 'download', wide: true });
+  return layout(
+    site,
+    head(site, {
+      title,
+      description: desc,
+      path: '/download',
+      nodes: [webPage(site, '/download', 'WebPage', title, desc)],
+      crumbs: [{ name: 'صفحه‌ی اول', path: '/' }, { name: 'دانلود' }],
+    }),
+    null,
+    body,
+    { active: 'download', wide: true },
+  );
 }
 
 /* ---- contact ---- */
@@ -594,13 +917,33 @@ export function contactPage(site: Site, faq: FaqPair[]): string {
 <textarea name="body" rows="4" placeholder="پیامت رو بنویس…" required></textarea>
 <button type="submit">ارسال پیام</button><p class="hint">با زدن دکمه، برنامه‌ی ایمیل تو با پیام آماده باز می‌شود.</p></form><script>${MAIL_JS}</script>`
     : '<p class="hint" style="font-weight:800">فعلاً از بخش پیام‌های برنامه یا کانال‌های رسمی بازی برایمان بنویس.</p>';
-  const info = [mail ? `<a href="mailto:${escapeHtml(mail)}"><span>ایمیل</span><span class="v">${escapeHtml(mail)}</span></a>` : '', ...site.sameAs.map((u) => `<a href="${escapeHtml(u)}" rel="noopener me"><span>${escapeHtml(socialLabel(u))}</span><span class="v">${escapeHtml(hostOf(u))}</span></a>`)].join('');
+  const info = [
+    mail
+      ? `<a href="mailto:${escapeHtml(mail)}"><span>ایمیل</span><span class="v">${escapeHtml(mail)}</span></a>`
+      : '',
+    ...site.sameAs.map(
+      (u) =>
+        `<a href="${escapeHtml(u)}" rel="noopener me"><span>${escapeHtml(socialLabel(u))}</span><span class="v">${escapeHtml(hostOf(u))}</span></a>`,
+    ),
+  ].join('');
   const body = `
 <section class="in csplit">
 <div class="col" style="gap:20px"><h1 style="font-size:clamp(44px,5vw,64px)">سوالات متداول</h1>${faq.length ? faqList(faq, 0) : '<p>به‌زودی پرسش‌های رایج این‌جا جمع می‌شوند.</p>'}</div>
 <div class="sticky"><div class="cform"><div class="hd">${face('khale-wave', 72)}<h2>برامون پیام بفرست</h2></div>${form}</div>${info ? `<div class="info">${info}</div>` : ''}</div>
 </section>`;
-  return layout(site, head(site, { title, description: desc, path: '/contact', nodes, crumbs: [{ name: 'صفحه‌ی اول', path: '/' }, { name: 'تماس و پرسش‌ها' }] }), null, body, { active: 'contact', wide: true });
+  return layout(
+    site,
+    head(site, {
+      title,
+      description: desc,
+      path: '/contact',
+      nodes,
+      crumbs: [{ name: 'صفحه‌ی اول', path: '/' }, { name: 'تماس و پرسش‌ها' }],
+    }),
+    null,
+    body,
+    { active: 'contact', wide: true },
+  );
 }
 
 /* ---- blog ---- */
@@ -608,21 +951,63 @@ export function contactPage(site: Site, faq: FaqPair[]): string {
 export function blogIndexPage(site: Site, list: PostList): string {
   const pages = Math.max(1, Math.ceil(list.total / list.pageSize));
   const path = list.page > 1 ? `/blog?page=${list.page}` : '/blog';
-  const title = list.page > 1 ? `بلاگ ${site.name} — صفحه‌ی ${list.page}` : `بلاگ ${site.name}: مقاله‌هایی درباره‌ی قیمت‌های قدیمی`;
-  const desc = description(`مقاله‌های بلاگ ${site.name} درباره‌ی قیمت کالاها در سال‌های گذشته ایران، نوستالژی و ترفندهای بازی.`);
+  const title =
+    list.page > 1
+      ? `بلاگ ${site.name} — صفحه‌ی ${list.page}`
+      : `بلاگ ${site.name}: مقاله‌هایی درباره‌ی قیمت‌های قدیمی`;
+  const desc = description(
+    `مقاله‌های بلاگ ${site.name} درباره‌ی قیمت کالاها در سال‌های گذشته ایران، نوستالژی و ترفندهای بازی.`,
+  );
   const nodes: Record<string, unknown>[] = [
-    { '@type': 'CollectionPage', '@id': `${absolute(site, path)}#webpage`, url: absolute(site, path), name: title, description: desc, inLanguage: 'fa-IR', isPartOf: { '@id': ids(site).site } },
-    { '@type': 'ItemList', itemListElement: list.posts.map((p, n) => ({ '@type': 'ListItem', position: n + 1, url: absolute(site, `/blog/${encodeURIComponent(p.slug)}`), name: p.title })) },
+    {
+      '@type': 'CollectionPage',
+      '@id': `${absolute(site, path)}#webpage`,
+      url: absolute(site, path),
+      name: title,
+      description: desc,
+      inLanguage: 'fa-IR',
+      isPartOf: { '@id': ids(site).site },
+    },
+    {
+      '@type': 'ItemList',
+      itemListElement: list.posts.map((p, n) => ({
+        '@type': 'ListItem',
+        position: n + 1,
+        url: absolute(site, `/blog/${encodeURIComponent(p.slug)}`),
+        name: p.title,
+      })),
+    },
   ];
   const featured = list.page === 1 ? list.posts[0] : undefined;
   const rest = featured ? list.posts.slice(1) : list.posts;
   const pageHref = (n: number): string => (n === 1 ? '/blog' : `/blog?page=${n}`);
-  const pager = pages > 1 ? `<nav class="pager" aria-label="صفحه‌بندی">${Array.from({ length: pages }, (_, k) => k + 1).map((n) => (n === list.page ? `<span class="cur" aria-current="page">${faNum(n)}</span>` : `<a href="${pageHref(n)}">${faNum(n)}</a>`)).join('')}</nav>` : '';
+  const pager =
+    pages > 1
+      ? `<nav class="pager" aria-label="صفحه‌بندی">${Array.from({ length: pages }, (_, k) => k + 1)
+          .map((n) =>
+            n === list.page
+              ? `<span class="cur" aria-current="page">${faNum(n)}</span>`
+              : `<a href="${pageHref(n)}">${faNum(n)}</a>`,
+          )
+          .join('')}</nav>`
+      : '';
   const body = `
 <section class="in col" style="padding-top:56px;padding-bottom:24px"><h1 style="font-size:clamp(48px,6vw,72px)">وبلاگ ${escapeHtml(site.name)}</h1><p style="margin:0;font-weight:600;font-size:18px;opacity:.8">${escapeHtml(desc)}</p></section>
 ${featured ? `<section class="in" style="padding-top:16px;padding-bottom:32px"><a class="feat" href="/blog/${encodeURIComponent(featured.slug)}"><div class="art">${featured.coverUrl ? `<img class="cover" src="${escapeHtml(featured.coverUrl)}" alt="${escapeHtml(featured.title)}">` : img('dozari-wave', 220, 253, { eager: true })}</div><div class="tx"><span class="pill sm">مطلب ویژه</span><h2>${escapeHtml(featured.title)}</h2>${featured.summary ? `<p>${escapeHtml(featured.summary)}</p>` : ''}<span class="date">${escapeHtml(faDate(featured.publishedAt))}</span></div></a></section>` : ''}
 <section class="in col" style="gap:32px;padding-top:16px;padding-bottom:80px">${list.posts.length ? (rest.length ? `<ul class="pgrid">${rest.map(postCard).join('')}</ul>` : '') : '<p>هنوز مطلبی منتشر نشده؛ به‌زودی برمی‌گردیم.</p>'}${pager}</section>`;
-  return layout(site, head(site, { title, description: desc, path, nodes, crumbs: [{ name: 'صفحه‌ی اول', path: '/' }, { name: 'بلاگ' }] }), null, body, { active: 'blog', wide: true });
+  return layout(
+    site,
+    head(site, {
+      title,
+      description: desc,
+      path,
+      nodes,
+      crumbs: [{ name: 'صفحه‌ی اول', path: '/' }, { name: 'بلاگ' }],
+    }),
+    null,
+    body,
+    { active: 'blog', wide: true },
+  );
 }
 
 export function postPage(site: Site, post: Post, more: PostSummary[]): string {
@@ -630,7 +1015,11 @@ export function postPage(site: Site, post: Post, more: PostSummary[]): string {
   const { html, headings } = renderMarkdown(post.bodyMd);
   const title = post.metaTitle || `${post.title} | ${site.name}`;
   const desc = description(post.metaDescription || post.summary || plainText(post.bodyMd));
-  const crumbs: Crumb[] = [{ name: 'خانه', path: '/' }, { name: 'وبلاگ', path: '/blog' }, { name: post.title }];
+  const crumbs: Crumb[] = [
+    { name: 'خانه', path: '/' },
+    { name: 'وبلاگ', path: '/blog' },
+    { name: post.title },
+  ];
   const i = ids(site);
   const node: Record<string, unknown> = {
     '@type': 'BlogPosting',
@@ -658,30 +1047,86 @@ ${toc.length > 2 ? `<nav class="toc" aria-label="فهرست مطالب"><strong>
 <div class="body">${html}</div>
 <div class="cta2"><div><b>${escapeHtml(site.name)} منتظرته!</b><span>رایگان دانلود کن و قیمت‌ها را کنار هم بگذار</span></div><a class="btn" href="/download">دانلود</a></div>
 </article>
-${more.length ? `<section class="in col" style="gap:24px;padding-bottom:80px"><h2 style="font-size:40px">مطالب مرتبط</h2><ul class="related">${more.map((p) => { const [w, , c] = artOf(p.slug); return `<li><a class="rel" href="/blog/${encodeURIComponent(p.slug)}"><span class="sq" style="background:${c}">${p.coverUrl ? `<img src="${escapeHtml(p.coverUrl)}" alt="" loading="lazy">` : img(`${w}-face`, 80, 80)}</span><div><small>مقاله</small><span>${escapeHtml(p.title)}</span></div></a></li>`; }).join('')}</ul></section>` : ''}`;
-  return layout(site, head(site, { title, description: desc, path, type: 'article', image: post.coverUrl, nodes: [node], crumbs, publishedTime: post.publishedAt, modifiedTime: post.updatedAt }), null, body, { active: 'blog', wide: true });
+${
+  more.length
+    ? `<section class="in col" style="gap:24px;padding-bottom:80px"><h2 style="font-size:40px">مطالب مرتبط</h2><ul class="related">${more
+        .map((p) => {
+          const [w, , c] = artOf(p.slug);
+          return `<li><a class="rel" href="/blog/${encodeURIComponent(p.slug)}"><span class="sq" style="background:${c}">${p.coverUrl ? `<img src="${escapeHtml(p.coverUrl)}" alt="" loading="lazy">` : img(`${w}-face`, 80, 80)}</span><div><small>مقاله</small><span>${escapeHtml(p.title)}</span></div></a></li>`;
+        })
+        .join('')}</ul></section>`
+    : ''
+}`;
+  return layout(
+    site,
+    head(site, {
+      title,
+      description: desc,
+      path,
+      type: 'article',
+      image: post.coverUrl,
+      nodes: [node],
+      crumbs,
+      publishedTime: post.publishedAt,
+      modifiedTime: post.updatedAt,
+    }),
+    null,
+    body,
+    { active: 'blog', wide: true },
+  );
 }
 
 /* ---- cast ---- */
 
 export function castPage(site: Site, cast: CastMember[]): string {
   const title = `بازیگران ${site.name}: شخصیت‌های بازی`;
-  const desc = description(`با شخصیت‌ها و آدم‌های ${site.name} آشنا شو: کی راهنمای بازی است و هر کس چه نقشی دارد.`);
+  const desc = description(
+    `با شخصیت‌ها و آدم‌های ${site.name} آشنا شو: کی راهنمای بازی است و هر کس چه نقشی دارد.`,
+  );
   const crumbs: Crumb[] = [{ name: 'صفحه‌ی اول', path: '/' }, { name: 'بازیگران' }];
-  const nodes: Record<string, unknown>[] = [{ '@type': 'AboutPage', '@id': `${site.url}/cast#webpage`, url: absolute(site, '/cast'), name: title, description: desc, inLanguage: 'fa-IR', isPartOf: { '@id': ids(site).site } }];
+  const nodes: Record<string, unknown>[] = [
+    {
+      '@type': 'AboutPage',
+      '@id': `${site.url}/cast#webpage`,
+      url: absolute(site, '/cast'),
+      name: title,
+      description: desc,
+      inLanguage: 'fa-IR',
+      isPartOf: { '@id': ids(site).site },
+    },
+  ];
   const people = cast.map((c, n) => ({ ...c, who: whoOf(c, n), image: photoOf(c.image) }));
   const body = `<h1>بازیگران ${escapeHtml(site.name)}</h1><p>${escapeHtml(desc)}</p>${people.length ? `<div class="castlist">${people.map((c) => `<section class="cc" id="${escapeHtml(c.id)}">${c.image ? `<img class="photo" src="${escapeHtml(c.image)}" alt="${escapeHtml(c.name)}" width="110" height="110" loading="lazy">` : img(`${c.who}-idle`, 110, 126, { alt: c.name })}<div><h2>${escapeHtml(c.name)}</h2>${c.role ? `<p class="meta">${escapeHtml(c.role)}</p>` : ''}<p>${escapeHtml(c.bio)}</p></div></section>`).join('')}</div>` : '<p>به‌زودی معرفی می‌شوند.</p>'}`;
-  return layout(site, head(site, { title, description: desc, path: '/cast', nodes, crumbs }), crumbs, body);
+  return layout(
+    site,
+    head(site, { title, description: desc, path: '/cast', nodes, crumbs }),
+    crumbs,
+    body,
+  );
 }
 
 /** The privacy policy (needed for the store listings). Facts only: what the app really stores, from `users` and the chat/ledger tables. */
 export function privacyPage(site: Site): string {
   const title = `سیاست حریم خصوصی ${site.name}`;
-  const desc = description(`${site.name} چه اطلاعاتی از بازیکن‌ها نگه می‌دارد، برای چه کاری و چطور می‌شود آن را پاک کرد.`);
+  const desc = description(
+    `${site.name} چه اطلاعاتی از بازیکن‌ها نگه می‌دارد، برای چه کاری و چطور می‌شود آن را پاک کرد.`,
+  );
   const crumbs: Crumb[] = [{ name: 'صفحه‌ی اول', path: '/' }, { name: 'حریم خصوصی' }];
   const n = escapeHtml(site.name);
-  const contact = site.contactEmail ? `از راه ایمیل <a href="mailto:${escapeHtml(site.contactEmail)}">${escapeHtml(site.contactEmail)}</a> با ما در تماس باش.` : 'از راه بخش پیام‌های برنامه یا کانال رسمی بازی با ما در تماس باش.';
-  const nodes: Record<string, unknown>[] = [{ '@type': 'WebPage', '@id': `${site.url}/privacy#webpage`, url: absolute(site, '/privacy'), name: title, description: desc, inLanguage: 'fa-IR', isPartOf: { '@id': ids(site).site } }];
+  const contact = site.contactEmail
+    ? `از راه ایمیل <a href="mailto:${escapeHtml(site.contactEmail)}">${escapeHtml(site.contactEmail)}</a> با ما در تماس باش.`
+    : 'از راه بخش پیام‌های برنامه یا کانال رسمی بازی با ما در تماس باش.';
+  const nodes: Record<string, unknown>[] = [
+    {
+      '@type': 'WebPage',
+      '@id': `${site.url}/privacy#webpage`,
+      url: absolute(site, '/privacy'),
+      name: title,
+      description: desc,
+      inLanguage: 'fa-IR',
+      isPartOf: { '@id': ids(site).site },
+    },
+  ];
   const body = `<h1>${escapeHtml(title)}</h1>
 <p>${n} یک بازی آنلاین فارسی است. این صفحه ساده می‌گوید چه چیزی نگه می‌داریم و چرا. ما اطلاعات تو را نمی‌فروشیم و در برنامه آگهی یا ردیاب شخص ثالث نمی‌گذاریم.</p>
 <h2>چه اطلاعاتی نگه می‌داریم؟</h2>
@@ -702,17 +1147,36 @@ export function privacyPage(site: Site): string {
 <h2>تماس</h2>
 <p>${contact}</p>
 <p class="meta">این متن ممکن است با تغییر بازی به‌روز شود؛ تاریخ آخرین بازبینی نسخه‌ی سایت، همین صفحه است.</p>`;
-  return layout(site, head(site, { title, description: desc, path: '/privacy', nodes, crumbs }), crumbs, body);
+  return layout(
+    site,
+    head(site, { title, description: desc, path: '/privacy', nodes, crumbs }),
+    crumbs,
+    body,
+  );
 }
 
 /** The terms of use (store listings ask for it next to the privacy policy). Plain rules that match how the game really works. */
 export function termsPage(site: Site): string {
   const title = `قوانین و شرایط استفاده از ${site.name}`;
-  const desc = description(`قاعده‌های بازی ${site.name}: رفتار در بازی و گفت‌وگو، سکه‌ها و جایزه‌ها، حساب کاربری و پیشنهاد کالا.`);
+  const desc = description(
+    `قاعده‌های بازی ${site.name}: رفتار در بازی و گفت‌وگو، سکه‌ها و جایزه‌ها، حساب کاربری و پیشنهاد کالا.`,
+  );
   const crumbs: Crumb[] = [{ name: 'صفحه‌ی اول', path: '/' }, { name: 'قوانین' }];
   const n = escapeHtml(site.name);
-  const contact = site.contactEmail ? `از راه ایمیل <a href="mailto:${escapeHtml(site.contactEmail)}">${escapeHtml(site.contactEmail)}</a> با ما در تماس باش.` : 'از راه بخش پیام‌های برنامه یا کانال رسمی بازی با ما در تماس باش.';
-  const nodes: Record<string, unknown>[] = [{ '@type': 'WebPage', '@id': `${site.url}/terms#webpage`, url: absolute(site, '/terms'), name: title, description: desc, inLanguage: 'fa-IR', isPartOf: { '@id': ids(site).site } }];
+  const contact = site.contactEmail
+    ? `از راه ایمیل <a href="mailto:${escapeHtml(site.contactEmail)}">${escapeHtml(site.contactEmail)}</a> با ما در تماس باش.`
+    : 'از راه بخش پیام‌های برنامه یا کانال رسمی بازی با ما در تماس باش.';
+  const nodes: Record<string, unknown>[] = [
+    {
+      '@type': 'WebPage',
+      '@id': `${site.url}/terms#webpage`,
+      url: absolute(site, '/terms'),
+      name: title,
+      description: desc,
+      inLanguage: 'fa-IR',
+      isPartOf: { '@id': ids(site).site },
+    },
+  ];
   const body = `<h1>${escapeHtml(title)}</h1>
 <p>با نصب و استفاده از ${n} این قاعده‌ها را می‌پذیری. کوتاه و ساده نوشته‌ایم تا همه بخوانند. حریم خصوصی را در <a href="/privacy">صفحه‌ی جدا</a> توضیح داده‌ایم.</p>
 <h2>بازی و حساب کاربری</h2>
@@ -744,17 +1208,42 @@ export function termsPage(site: Site): string {
 <p>ممکن است با رشد بازی این متن تغییر کند. ادامه‌ی استفاده یعنی پذیرفتن نسخه‌ی تازه.</p>
 <h2>تماس</h2>
 <p>${contact}</p>`;
-  return layout(site, head(site, { title, description: desc, path: '/terms', nodes, crumbs }), crumbs, body);
+  return layout(
+    site,
+    head(site, { title, description: desc, path: '/terms', nodes, crumbs }),
+    crumbs,
+    body,
+  );
 }
 
 export function notFoundPage(site: Site): string {
   const body = `<h1>این صفحه پیدا نشد</h1><p>نشانی را اشتباه نوشته‌ای یا صفحه جابه‌جا شده. از این‌جا ادامه بده:</p><p><a href="/">صفحه‌ی اول ${escapeHtml(site.name)}</a> · <a href="/blog">مقاله‌های بلاگ</a> · <a href="/cast">بازیگران</a></p>`;
-  return layout(site, head(site, { title: `صفحه پیدا نشد | ${site.name}`, description: 'این صفحه وجود ندارد.', path: '/404', noindex: true }), null, body);
+  return layout(
+    site,
+    head(site, {
+      title: `صفحه پیدا نشد | ${site.name}`,
+      description: 'این صفحه وجود ندارد.',
+      path: '/404',
+      noindex: true,
+    }),
+    null,
+    body,
+  );
 }
 
 export function unavailablePage(site: Site): string {
   const body = `<h1>${escapeHtml(site.name)} برمی‌گردد</h1><p>نگران نباش؛ سایت برای چند دقیقه در دسترس نیست و به‌زودی برمی‌گردیم.</p>`;
-  return layout(site, head(site, { title: `به‌زودی برمی‌گردیم | ${site.name}`, description: 'سایت موقتاً در دسترس نیست.', path: '/', noindex: true }), null, body);
+  return layout(
+    site,
+    head(site, {
+      title: `به‌زودی برمی‌گردیم | ${site.name}`,
+      description: 'سایت موقتاً در دسترس نیست.',
+      path: '/',
+      noindex: true,
+    }),
+    null,
+    body,
+  );
 }
 
 export type { FaqPair };
