@@ -458,6 +458,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   const canSend = playing && mine && captain && canSubmit(selected) && !sending && !state.finale && !frozenMe;
   /** The power-ups work on the player's own turn, for the captain, while no answer is pending. */
   const canPower = playing && mine && captain && !sending && !state.finale && !frozenMe && !view.powerUsed;
+  const canFreeze = playing && !mine && !state.finale && !frozenRival && !view.lockedOut[them] && !view.powerUsed;
   const submit = () => {
     if (!canSend) return;
     // No live connection object at all: never a silent tap. Say so and ask the server where things stand once the line is back.
@@ -472,7 +473,8 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
     });
   };
   const power = (kind: 'magnifier' | 'freeze') => {
-    if (!canPower || !conn.current) return;
+    // The magnifier works on the player's own turn, the freeze on the rival's: each button has its own condition.
+    if (!(kind === 'magnifier' ? canPower : canFreeze) || !conn.current) return;
     void conn.current.power(kind).then((ack) => {
       if (!ack.ok) dispatch({ t: 'notice', error: ack.error });
     });
@@ -545,7 +547,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
           <View style={styles.tools}>
             <PowerButton kind="magnifier" count={view.powers?.magnifier ?? 0} enabled={canPower} onPress={() => power('magnifier')} />
             <Lives mistakes={view.mistakes[me]} max={numbers.maxMistakes} last={lastLife} />
-            <PowerButton kind="freeze" count={view.powers?.freeze ?? 0} enabled={playing && !mine && !state.finale && !frozenRival && !view.lockedOut[them] && !view.powerUsed} onPress={() => power('freeze')} />
+            <PowerButton kind="freeze" count={view.powers?.freeze ?? 0} enabled={canFreeze} onPress={() => power('freeze')} />
           </View>
 
           {/* The same notice again right above the buttons: the one at the top of the board is out of sight when the player is down here. */}
