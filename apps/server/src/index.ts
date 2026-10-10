@@ -498,7 +498,7 @@ if (isMainModule(import.meta.url)) {
   const notify = baleStore ? new NotifyService(baleStore, baleClient) : undefined;
   // irnoti wins when both are configured; Kavenegar stays as the fallback adapter.
   const smsClient = process.env.IRNOTI_API_KEY
-    ? createIrnotiClient(process.env.IRNOTI_API_KEY, { message: process.env.IRNOTI_MESSAGE })
+    ? createIrnotiClient(process.env.IRNOTI_API_KEY, { message: process.env.IRNOTI_MESSAGE, lineId: process.env.IRNOTI_LINE_ID })
     : process.env.KAVENEGAR_API_KEY && process.env.KAVENEGAR_TEMPLATE
       ? createKavenegarClient(process.env.KAVENEGAR_API_KEY, process.env.KAVENEGAR_TEMPLATE)
       : null;

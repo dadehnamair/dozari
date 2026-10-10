@@ -4,9 +4,10 @@ import type { Session } from '@dozari/shared';
 import type { AuthService } from '../auth/service.js';
 import { RateLimiter } from '../security/rate-limit.js';
 import type { SmsClient } from './sms.js';
+import { smsErrorCode } from './sms-errors.js';
 import type { PhoneStore } from './store.js';
 
-export type LoginCodeResult = { ok: true } | { ok: false; error: 'invalid_phone' | 'sms_unavailable' | 'too_soon' | 'rate_limited' | 'send_failed'; retryAfterSec?: number };
+export type LoginCodeResult = { ok: true } | { ok: false; error: 'invalid_phone' | 'sms_unavailable' | 'too_soon' | 'rate_limited' | 'send_failed' | (string & {}); retryAfterSec?: number };
 export type LoginVerifyResult = { ok: true; session: Session; created: boolean } | { ok: false; error: 'invalid_phone' | 'no_code' | 'expired' | 'wrong' | 'too_many' | 'banned' | 'taken' };
 
 interface Otp {
@@ -55,9 +56,9 @@ export class PhoneLoginService {
     this.codes.set(phone, { codeHash: hash(phone, code), attempts: 0, sentAt: this.now(), expiresAt: this.now() + CODE_TTL_MS });
     try {
       await this.sms.sendCode(phone, code);
-    } catch {
+    } catch (e) {
       this.codes.delete(phone);
-      return { ok: false, error: 'send_failed' };
+      return { ok: false, error: smsErrorCode(e) };
     }
     return { ok: true };
   }

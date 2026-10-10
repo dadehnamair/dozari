@@ -247,23 +247,33 @@ describe('Kavenegar adapter', () => {
 });
 
 describe('irnoti adapter', () => {
-  it('posts {to, message} with a Bearer key, using the national number and the code in the text', async () => {
+  it('posts {lineId, to: [number], text} with a Bearer key, using the national number and the code in the text', async () => {
     const calls: { url: string; init: RequestInit }[] = [];
     const f = (async (url: string, init: RequestInit) => (calls.push({ url, init }), { ok: true, status: 200, json: async () => ({}) })) as unknown as typeof fetch;
-    await createIrnotiClient('irnt_KEY', { fetchImpl: f }).sendCode('+989123456789', '12345');
+    await createIrnotiClient('irnt_KEY', { lineId: '2', fetchImpl: f }).sendCode('+989123456789', '12345');
     expect(calls[0]!.url).toBe('https://irnoti.com/api/v1/sms/send');
     expect((calls[0]!.init.headers as Record<string, string>).Authorization).toBe('Bearer irnt_KEY');
-    expect(JSON.parse(String(calls[0]!.init.body))).toEqual({ to: '09123456789', message: 'کد ورود دوزاری: 12345' });
+    expect(JSON.parse(String(calls[0]!.init.body))).toEqual({ lineId: '2', to: ['09123456789'], text: 'کد ورود شما به دوزاری : 12345' });
   });
 
   it('uses a custom message containing {code} and fails on HTTP errors or an error body', async () => {
     const bodies: string[] = [];
     const ok = createIrnotiClient('k', { message: 'code={code}!', fetchImpl: (async (_u: string, init: RequestInit) => (bodies.push(String(init.body)), { ok: true, status: 200, json: async () => ({}) })) as unknown as typeof fetch });
     await ok.sendCode('+989121111111', '777');
-    expect(JSON.parse(bodies[0]!).message).toBe('code=777!');
+    expect(JSON.parse(bodies[0]!)).toEqual({ to: ['09121111111'], text: 'code=777!' });
     const http = createIrnotiClient('k', { fetchImpl: (async () => ({ ok: false, status: 401, json: async () => ({}) })) as unknown as typeof fetch });
     await expect(http.sendCode('+989121111111', '1')).rejects.toThrow();
     const body = createIrnotiClient('k', { fetchImpl: (async () => ({ ok: true, status: 200, json: async () => ({ success: false }) })) as unknown as typeof fetch });
     await expect(body.sendCode('+989121111111', '1')).rejects.toThrow();
+  });
+});
+
+describe('SMS provider error codes', () => {
+  it('maps a known provider code in the body to a stable sms_<reason> error code', async () => {
+    const client = (body: unknown) => createIrnotiClient('k', { fetchImpl: (async () => ({ ok: true, status: 200, json: async () => body })) as unknown as typeof fetch });
+    await expect(client({ status: 2 }).sendCode('+989121111111', '1')).rejects.toMatchObject({ code: 'sms_no_credit', providerCode: 2 });
+    await expect(client({ Value: '-109' }).sendCode('+989121111111', '1')).rejects.toMatchObject({ code: 'sms_ip_not_allowed' });
+    await expect(client({ code: 18 }).sendCode('+989121111111', '1')).rejects.toMatchObject({ code: 'sms_invalid_receiver' });
+    await expect(client({ Value: '123456789' }).sendCode('+989121111111', '1')).resolves.toBeUndefined();
   });
 });
