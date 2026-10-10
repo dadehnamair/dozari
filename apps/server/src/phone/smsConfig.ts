@@ -76,6 +76,8 @@ export interface SmsConfigPatch {
  */
 export class SmsGateway implements SmsClient {
   configured = false;
+  /** True when the active provider takes free text (irnoti), i.e. broadcasts can be sent. */
+  textReady = false;
 
   constructor(
     private readonly store: SettingsStore,
@@ -103,7 +105,16 @@ export class SmsGateway implements SmsClient {
   }
 
   async refresh(): Promise<void> {
-    this.configured = this.resolveFrom(await this.store.all()) !== null;
+    const r = this.resolveFrom(await this.store.all());
+    this.configured = r !== null;
+    this.textReady = r?.kind === 'irnoti';
+  }
+
+  /** Sends a free-text SMS (message center broadcast). Needs irnoti. */
+  async sendText(phone: string, text: string): Promise<void> {
+    const r = this.resolveFrom(await this.store.all());
+    if (r?.kind !== 'irnoti') throw new Error('free-text sms needs irnoti');
+    await createIrnotiClient(r.key, { lineId: this.env.irnotiLineId, fetchImpl: this.fetchImpl }).sendText!(phone, text);
   }
 
   async sendCode(phone: string, code: string, purpose: SmsPurpose = 'verify'): Promise<void> {

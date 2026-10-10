@@ -42,6 +42,8 @@ export interface InboxItem {
 export interface MessageStore {
   /** Non-banned players of an audience. */
   audienceUsers(audience: Audience, userId: string | null): Promise<string[]>;
+  /** Verified phone numbers of these adult, non-banned players (SMS channel). */
+  phonesOf(userIds: readonly string[]): Promise<string[]>;
   create(msg: NewMessage): Promise<string>;
   setChannel(messageId: string, channel: Channel, recipients: number): Promise<void>;
   deliverInbox(messageId: string, userIds: readonly string[]): Promise<void>;
@@ -73,6 +75,14 @@ export function createDbMessageStore(db: Db): MessageStore {
         return rows.map((r) => r.id);
       }
       return (await db.select({ id: users.id }).from(users).where(and(eq(users.isBanned, false), eq(users.ageTrack, 'adult')))).map((r) => r.id);
+    },
+    async phonesOf(userIds) {
+      const out: string[] = [];
+      for (let i = 0; i < userIds.length; i += 500) {
+        const rows = await db.select({ phone: users.phone }).from(users).where(and(inArray(users.id, userIds.slice(i, i + 500)), eq(users.isBanned, false), eq(users.ageTrack, 'adult'), sql`${users.phone} is not null`));
+        for (const r of rows) if (r.phone) out.push(r.phone);
+      }
+      return out;
     },
     async create(msg) {
       const id = uuidv7();
@@ -148,7 +158,7 @@ export function createDbMessageStore(db: Db): MessageStore {
   };
 }
 
-export function createMemoryMessageStore(seed: { users: string[]; baleLinked?: string[] }): MessageStore {
+export function createMemoryMessageStore(seed: { users: string[]; baleLinked?: string[]; phones?: Record<string, string> }): MessageStore {
   const messages: SentMessage[] = [];
   const inboxRows: { id: string; userId: string; messageId: string; createdAt: number; readAt: number | null }[] = [];
   const live = (messageId: string) => !messages.find((m) => m.id === messageId)?.retracted;
@@ -156,6 +166,9 @@ export function createMemoryMessageStore(seed: { users: string[]; baleLinked?: s
     async audienceUsers(audience, userId) {
       if (audience === 'user') return userId && seed.users.includes(userId) ? [userId] : [];
       return audience === 'bale_linked' ? [...(seed.baleLinked ?? [])] : [...seed.users];
+    },
+    async phonesOf(userIds) {
+      return userIds.map((id) => seed.phones?.[id]).filter((p): p is string => !!p);
     },
     async create(msg) {
       const id = uuidv7();

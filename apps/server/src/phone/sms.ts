@@ -6,6 +6,8 @@ export interface SmsClient {
   sendCode(phone: string, code: string, purpose?: SmsPurpose): Promise<void>;
   /** False when the client exists but no provider is set up right now (the admin can change that live). Absent = ready. */
   readonly configured?: boolean;
+  /** Free-text send (broadcasts). Only providers that take arbitrary text have it (irnoti); Kavenegar sends approved templates only. */
+  sendText?(phone: string, text: string): Promise<void>;
 }
 
 export const SMS_PURPOSES = ['login', 'verify', 'delete'] as const;
@@ -49,20 +51,22 @@ export function createIrnotiClient(apiKey: string, opts: { message?: string; lin
   const template = opts.message?.includes('{code}') ? opts.message : DEFAULT_SMS_MESSAGE;
   const lineId = opts.lineId || DEFAULT_IRNOTI_LINE_ID;
   const url = `${opts.baseUrl ?? 'https://api.irnoti.com'}/v1/sms/send`;
-  return {
-    async sendCode(phone, code) {
+  const sendText = async (phone: string, text: string) => {
       const to = phone.replace(/^\+98/, '0');
       const res = await doFetch(url, {
         method: 'POST',
         headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lineId, to, text: template.replace('{code}', code) }),
+        body: JSON.stringify({ lineId, to, text }),
         signal: AbortSignal.timeout(10_000),
       });
       const json = (await res.json().catch(() => ({}))) as { success?: boolean; ok?: boolean; status?: string };
       const known = smsErrorFromBody(json);
       if (known) throw known;
       if (!res.ok || json.success === false || json.ok === false || json.status === 'error') throw new Error(`sms provider refused (http ${res.status}): ${JSON.stringify(json).slice(0, 300)}`);
-    },
+  };
+  return {
+    sendText,
+    sendCode: (phone, code) => sendText(phone, template.replace('{code}', code)),
   };
 }
 
@@ -75,6 +79,7 @@ export function withSmsLogging(inner: SmsClient, log: (msg: string, err: unknown
     get configured() {
       return inner.configured;
     },
+    sendText: (phone, text) => (inner.sendText ? inner.sendText(phone, text) : Promise.reject(new Error('text sms unsupported'))),
     async sendCode(phone, code, purpose) {
       try {
         await inner.sendCode(phone, code, purpose);

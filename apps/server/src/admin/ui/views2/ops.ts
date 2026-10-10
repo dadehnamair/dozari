@@ -160,7 +160,8 @@ VIEWS.messages = function (root) {
     h('div', { class: 'toolbar' }, [h('button', { class: 'btn primary', text: 'ارسال', onclick: function () {
       var chans = Object.keys(checks).filter(function (k) { return checks[k].checked && !checks[k].disabled; });
       if (!title.value.trim() || !text.value.trim() || !chans.length) return toast('عنوان، متن و دست‌کم یک کانال لازم است', true);
-      if (!confirm('پیام برای «' + AUD_FA[aud.value] + '» فرستاده شود؟')) return;
+      if (chans.indexOf('sms') >= 0 && text.value.trim().length > 300) return toast('متن پیامک حداکثر ۳۰۰ نویسه است', true);
+      if (!confirm('پیام برای «' + AUD_FA[aud.value] + '» فرستاده شود؟' + (chans.indexOf('sms') >= 0 ? '\nپیامک هزینه دارد و فقط متن (بدون عنوان) به شماره‌ی تأییدشده‌ی بزرگسال‌ها می‌رود.' : ''))) return;
       api('/admin/messages', { method: 'POST', body: { title: title.value.trim(), body: text.value.trim(), audience: aud.value, targetUserId: aud.value === 'user' ? target.value.trim() : null, channels: chans } }).then(function (x) {
         if (x.status === 409) return toast('مخاطبی پیدا نشد', true);
         if (!x.ok) return fail(x);

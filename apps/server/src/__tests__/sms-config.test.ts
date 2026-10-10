@@ -53,3 +53,20 @@ describe('SmsGateway', () => {
     expect(renderSmsText('a {code} b {code}', '1')).toBe('a 1 b 1');
   });
 });
+
+describe('SMS channel of the message center', () => {
+  it('sends the body to verified numbers only and counts successes', async () => {
+    const { MessageCenter } = await import('../messages/service.js');
+    const { createMemoryMessageStore } = await import('../messages/store.js');
+    const sent: string[] = [];
+    const sender = { textReady: true, sendText: async (p: string, t: string) => { if (p === '0900') throw new Error('x'); sent.push(`${p}:${t}`); } };
+    const store = createMemoryMessageStore({ users: ['a', 'b', 'c', 'd'], phones: { a: '09121', b: '0900', c: '09122' } });
+    const center = new MessageCenter(store, null, sender);
+    expect(center.channels().find((c) => c.channel === 'sms')!.available).toBe(true);
+    const out = await center.send({ title: 'T', body: 'سلام', audience: 'all', targetUserId: null }, ['sms']);
+    expect(out).toMatchObject({ ok: true, recipients: { sms: 2 } });
+    expect(sent.sort()).toEqual(['09121:سلام', '09122:سلام']);
+    expect(await center.send({ title: 'T', body: 'x'.repeat(301), audience: 'all', targetUserId: null }, ['sms'])).toEqual({ ok: false, error: 'SMS_TOO_LONG' });
+    expect(new MessageCenter(store, null, { ...sender, textReady: false }).channels().find((c) => c.channel === 'sms')!.available).toBe(false);
+  });
+});

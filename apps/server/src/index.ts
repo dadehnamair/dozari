@@ -572,7 +572,7 @@ if (isMainModule(import.meta.url)) {
         (ids) => birthday?.info(ids) ?? Promise.resolve(new Map()),
       )
     : undefined;
-  const messages = db ? new MessageCenter(createDbMessageStore(db), notify ?? null) : undefined;
+  const messages = db ? new MessageCenter(createDbMessageStore(db), notify ?? null, smsGateway ?? null) : undefined;
   if (messages) {
     // Online recipients get a nudge so the inbox badge moves without a reload; offline ones see it on the next load.
     messages.onDelivered = (ids) => {

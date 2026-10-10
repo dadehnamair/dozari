@@ -13,7 +13,7 @@ Owner request (2026-10-01): one place in the admin panel to send and manage mess
 |---|---|---|
 | `in_app` | works | rows in `inbox_messages`; the app shows them behind the mail icon on Home (`GET /inbox`, `POST /inbox/:id/read`, `POST /inbox/read-all`) |
 | `bale` | works when the bot is configured | goes through the Bale outbox (`bale-bot.md`), only to players who linked Bale |
-| `sms` | not available | no phone number is collected yet (profile-and-identity.md: optional phone link) and no SMS provider is wired (Kavenegar / SMS.ir / Ghasedak, D18) |
+| `sms` | works with irnoti | free text to adult players' verified numbers (body only, ≤ 300 chars, 8 in parallel, failures not counted). Needs a free-text provider: irnoti; Kavenegar sends approved templates only, so the channel is off there |
 | `email` | not available | no e-mail is collected and no mail service is wired |
 | `push` | not available | FCM is forbidden (CLAUDE.md rule 8); an alternative provider has to be chosen first |
 
@@ -35,4 +35,4 @@ Panel section «پیامک» (comms): pick the provider (`auto` = env behaviour,
 (`SmsGateway`, an `SmsClient` that reads the config on every send); routes `GET|PUT /admin/sms`, `PUT /admin/sms/texts/:purpose`, `POST /admin/sms/test`
 (changes need the `system` permission). Keys live in `app_settings` under `sms.*`, deliberately outside `SETTING_DEFS` so they never reach `/config` or the
 settings tab, and the API only returns a mask. Kavenegar sends the template approved in its own panel, so the texts apply to irnoti only.
-Broadcast SMS (the `sms` channel above) is still unavailable.
+Broadcast SMS goes through `SmsGateway.sendText` (irnoti only).
