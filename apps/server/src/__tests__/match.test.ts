@@ -64,8 +64,8 @@ describe('MatchService', () => {
     expect(JSON.stringify(sent)).not.toContain('is_bot');
   });
 
-  it('power-ups: the magnifier\'s two cards reach only the user, the rival just sees that it was used, and a freeze skips the rival\'s turn', async () => {
-    const { svc, sent, last } = harness();
+  it('power-ups: the magnifier\'s two cards reach only the user, the rival just sees that it was used, and a freeze stops the player to move from selecting for a few seconds', async () => {
+    const { svc, sent, last, advance } = harness();
     await svc.start('A', 'B');
     const va = matchViewSchema.parse(last('A', 'match:state'));
     const first = va.turn === 0 ? 'A' : 'B';
@@ -80,12 +80,15 @@ describe('MatchService', () => {
     expect(theirs.itemIds).toBeUndefined();
     expect(matchViewSchema.parse(last(first, 'match:state')).powers).toEqual({ magnifier: 1, freeze: 1 });
 
-    expect(svc.power(first, 'freeze')).toEqual({ ok: true });
-    expect(matchViewSchema.parse(last(second, 'match:state')).frozen![second === 'A' ? 0 : 1]).toBe(true);
-    // a wrong guess would pass the turn: the frozen rival loses it instead
+    // the rival freezes the player to move: no selecting or submitting until the freeze ends
+    expect(svc.power(first, 'freeze')).toEqual({ ok: false, error: 'NOT_YOUR_TURN' });
+    expect(svc.power(second, 'freeze')).toEqual({ ok: true });
     const wrong = [ids(0)[0]!, ids(0)[1]!, ids(1)[0]!, ids(1)[1]!];
+    expect(svc.submit(first, wrong)).toEqual({ ok: false, error: 'FROZEN' });
+    const until = matchViewSchema.parse(last(first, 'match:state')).frozenUntil![first === 'A' ? 0 : 1];
+    expect(until).toBeGreaterThan(0);
+    advance(10_000);
     expect(svc.submit(first, wrong)).toEqual({ ok: true });
-    expect(matchViewSchema.parse(last(first, 'match:state')).turn).toBe(va.turn);
   });
 
   it('refuses a second match for a busy player or a lone pair', async () => {

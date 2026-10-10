@@ -118,6 +118,6 @@ describe('power-ups', () => {
   it('the rival\'s magnifier and the freeze only leave a note', () => {
     expect(duelReducer(initialDuel, { t: 'power', mine: false, kind: 'magnifier' })).toMatchObject({ peek: null, powerNote: 'magRival' });
     expect(duelReducer(initialDuel, { t: 'power', mine: true, kind: 'freeze' }).powerNote).toBe('iceMine');
-    expect(duelReducer(initialDuel, { t: 'frozenSkip', mine: false }).powerNote).toBe('skipRival');
+    expect(duelReducer(initialDuel, { t: 'power', mine: false, kind: 'freeze' }).powerNote).toBe('iceRival');
   });
 });

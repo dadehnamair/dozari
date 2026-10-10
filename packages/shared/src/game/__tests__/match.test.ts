@@ -1,6 +1,6 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { BOARD_SIZE, FIRST_BLOOD_BONUS, GROUP_POINTS, MATCH_MAX_MISTAKES, TURN_SECONDS } from '../../config/index.js';
+import { BOARD_SIZE, FIRST_BLOOD_BONUS, FREEZE_SECONDS, GROUP_POINTS, MATCH_MAX_MISTAKES, TURN_SECONDS } from '../../config/index.js';
 import { DEFAULT_MATCH_RULES, applyCommand, finalScores, matchClientView, resolveWinner, startMatch, turnDeadline } from '../match.js';
 import type { Command, MatchEvent, MatchSide, MatchState } from '../match.js';
 import { mulberry32 } from '../rng.js';
@@ -373,24 +373,26 @@ describe('power-ups', () => {
     expect(err(start(0), { t: 'power', by: 'nobody', kind: 'freeze' })).toBe('UNKNOWN_PLAYER');
   });
 
-  it('freeze: after a mistake the rival loses its next turn, once', () => {
-    const f = power(start(0), 0, 'freeze');
-    expect(f.state.frozen).toEqual([false, true]);
-    expect(f.state.powers[0].freeze).toBe(0);
-    expect(err(f.state, { t: 'power', by: 'u0', kind: 'freeze' })).toBe('NO_POWER');
-    const miss = submit(f.state, 0, wrongSets[0]!);
-    expect(miss.events).toContainEqual({ t: 'frozen_skip', side: 1 });
-    expect(miss.state.turn).toBe(0);
-    expect(miss.state.frozen).toEqual([false, false]);
-    const miss2 = submit(miss.state, 0, wrongSets[1]!);
-    expect(miss2.state.turn).toBe(1);
+  it('freeze: used while the rival plays, it cannot select or submit until the freeze ends; its clock keeps running', () => {
+    const s = start(0); // side 0 plays
+    expect(err(s, { t: 'power', by: 'u1', kind: 'freeze' })).toBe(null); // side 1 freezes the player to move
+    const f = power(s, 1, 'freeze', 2000);
+    expect(f.state.frozenUntil).toEqual([2000 + FREEZE_SECONDS * 1000, 0]);
+    expect(f.state.powers[1].freeze).toBe(0);
+    expect(f.state.turnStartedAt).toBe(1000);
+    expect(f.events[0]).toMatchObject({ t: 'power', kind: 'freeze', side: 1, until: 2000 + FREEZE_SECONDS * 1000 });
+    const during = { t: 'submit', by: 'u0', itemIds: ids(0) } as const;
+    expect(applyCommand(f.state, during, { now: 5000 })).toEqual({ error: 'FROZEN' });
+    expect(applyCommand(f.state, { t: 'power', by: 'u1', kind: 'freeze' }, { now: 5000 })).toEqual({ error: 'NO_POWER' });
+    const after = applyCommand(f.state, during, { now: 2000 + FREEZE_SECONDS * 1000 });
+    expect('error' in after).toBe(false);
   });
 
-  it('freeze: a timeout also skips the frozen rival, and a locked-out rival cannot be frozen', () => {
-    const f = power(start(0), 0, 'freeze');
+  it('freeze: not on your own turn, not twice at once, and the freeze ends when the turn passes', () => {
+    expect(err(start(0), { t: 'power', by: 'u0', kind: 'freeze' })).toBe('NOT_YOUR_TURN');
+    const f = power(start(0), 1, 'freeze');
     const t = ok(f.state, { t: 'timeout', turnId: f.state.turnId });
-    expect(t.state.turn).toBe(0);
-    const out: MatchState = { ...start(0), lockedOut: [false, true] };
-    expect(err(out, { t: 'power', by: 'u0', kind: 'freeze' })).toBe('NO_POWER');
+    expect(t.state.turn).toBe(1);
+    expect(t.state.frozenUntil).toEqual([0, 0]);
   });
 });

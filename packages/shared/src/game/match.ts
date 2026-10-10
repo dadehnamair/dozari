@@ -3,6 +3,7 @@ import {
   GROUP_COUNT,
   GROUP_POINTS,
   GROUP_SIZE,
+  FREEZE_SECONDS,
   MATCH_FREEZES,
   MATCH_MAGNIFIERS,
   MATCH_MAX_MISTAKES,
@@ -62,6 +63,7 @@ export interface MatchRules {
   /** Power-ups each side may use per match (the shared defaults when absent). */
   magnifiers?: number;
   freezes?: number;
+  freezeSeconds?: number;
 }
 
 export const DEFAULT_MATCH_RULES: MatchRules = {
@@ -108,8 +110,8 @@ export interface MatchState {
   /** Power-ups each side has left (magnifier, freeze), and how many magnifiers each side already used (picks the next group to peek at). */
   powers: readonly [PowerCounts, PowerCounts];
   magnified: readonly [number, number];
-  /** A side whose next turn is skipped (the rival froze it); cleared when the skip happens or the board ends. */
-  frozen: readonly [boolean, boolean];
+  /** Until when (ms) each side cannot select or submit because the rival froze it; 0 = not frozen. Cleared when a turn starts. */
+  frozenUntil: readonly [number, number];
   turn: MatchSide;
   /** Bumps on every turn (re)start; a timeout for an older id is stale. */
   turnId: number;
@@ -136,7 +138,9 @@ export type RuleError =
   | 'NOT_TEAM_MATCH'
   | 'INVALID_SELECTION'
   | 'DUPLICATE_SELECTION'
-  | 'NO_POWER';
+  | 'NO_POWER'
+  /** The side is frozen: it cannot select or submit until the freeze ends. */
+  | 'FROZEN';
 
 export type SubmitFeedback = 'correct' | 'one_away' | 'wrong';
 
@@ -150,9 +154,7 @@ export type MatchEvent =
   | { t: 'locked_out'; side: MatchSide }
   | { t: 'timeout'; side: MatchSide }
   /** A power-up was used. `itemIds` (the magnifier's two cards) is for the user's own side only: the service strips it for the rival. */
-  | { t: 'power'; side: MatchSide; kind: PowerKind; itemIds?: readonly string[] }
-  /** `side`'s turn was skipped because it was frozen; the rival plays again. */
-  | { t: 'frozen_skip'; side: MatchSide }
+  | { t: 'power'; side: MatchSide; kind: PowerKind; itemIds?: readonly string[]; /** Freeze: when the rival may act again (ms). */ until?: number }
   | { t: 'turn'; side: MatchSide; turnId: number; captain: string }
   /** Visible to the proposer's teammate only (the service must not broadcast it to the other side). */
   | { t: 'proposal'; side: MatchSide; by: string; itemIds: readonly string[] }
@@ -217,7 +219,7 @@ export function startTeamMatch(
     tried: [],
     powers: [0, 1].map(() => ({ magnifier: rules.magnifiers ?? MATCH_MAGNIFIERS, freeze: rules.freezes ?? MATCH_FREEZES })) as unknown as readonly [PowerCounts, PowerCounts],
     magnified: [0, 0],
-    frozen: [false, false],
+    frozenUntil: [0, 0],
     turn,
     turnId: 1,
     turnStartedAt: now,
@@ -298,7 +300,6 @@ function endBoard(state: MatchState, reason: 'solved' | 'locked_out', now: numbe
     mistakes: [0, 0],
     lockedOut: [false, false],
     timeouts: [0, 0],
-    frozen: [false, false],
   };
   events.push({ t: 'board', round: next.round, rounds: next.rounds });
   return startTurn(next, starter, now, events);
@@ -315,21 +316,11 @@ function startTurn(state: MatchState, side: MatchSide, now: number, events: Matc
   if (rotate && present.length > 1) captain = present[(present.indexOf(captain) + 1) % present.length]!;
   else if (!present.includes(captain)) captain = present[0] ?? captain;
   events.push({ t: 'turn', side, turnId, captain });
-  return { ...state, turn: side, turnId, turnStartedAt: now, captain: set(state.captain, side, captain) };
+  return { ...state, turn: side, turnId, turnStartedAt: now, frozenUntil: [0, 0], captain: set(state.captain, side, captain) };
 }
 
 /** Who plays next after `side` just moved: the opponent, unless the opponent is locked out. */
 const nextTurn = (state: MatchState, side: MatchSide): MatchSide => (state.lockedOut[otherSide(side)] ? side : otherSide(side));
-
-/** `side` just moved without keeping the turn: the rival plays next, unless it is locked out or was frozen (then `side` plays again, once). */
-function passTurn(state: MatchState, side: MatchSide, now: number, events: MatchEvent[]): MatchState {
-  const rival = otherSide(side);
-  if (state.frozen[rival] && !state.lockedOut[rival]) {
-    events.push({ t: 'frozen_skip', side: rival });
-    return startTurn({ ...state, frozen: set(state.frozen, rival, false) }, side, now, events, false);
-  }
-  return startTurn(state, nextTurn(state, side), now, events);
-}
 
 function forfeit(state: MatchState, side: MatchSide, reason: 'forfeit' | 'abandon', events: MatchEvent[]): MatchState {
   return finish(state, reason, otherSide(side), events);
@@ -364,7 +355,7 @@ export function applyCommand(state: MatchState, cmd: Command, ctx: Ctx): ApplyRe
       const count = state.timeouts[side] + 1;
       let next: MatchState = { ...state, timeouts: set(state.timeouts, side, count) };
       if (count >= state.rules.maxTimeouts) return { state: forfeit(next, side, 'forfeit', events), events };
-      next = passTurn(next, side, ctx.now, events);
+      next = startTurn(next, nextTurn(next, side), ctx.now, events);
       return { state: next, events };
     }
 
@@ -373,6 +364,7 @@ export function applyCommand(state: MatchState, cmd: Command, ctx: Ctx): ApplyRe
       const side = sideOf(state, cmd.by);
       if (side === null || state.gone.includes(cmd.by)) return { error: 'UNKNOWN_PLAYER' };
       if (side !== state.turn) return { error: 'NOT_YOUR_TURN' };
+      if (state.frozenUntil[side] > ctx.now) return { error: 'FROZEN' };
       const onBoard = new Set(state.remaining);
       if (cmd.itemIds.length > GROUP_SIZE || new Set(cmd.itemIds).size !== cmd.itemIds.length || cmd.itemIds.some((id) => !onBoard.has(id))) {
         return { error: 'INVALID_SELECTION' };
@@ -386,6 +378,7 @@ export function applyCommand(state: MatchState, cmd: Command, ctx: Ctx): ApplyRe
       if (side === null || state.gone.includes(cmd.by)) return { error: 'UNKNOWN_PLAYER' };
       if (side !== state.turn) return { error: 'NOT_YOUR_TURN' };
       if (state.captain[side] !== cmd.by) return { error: 'NOT_CAPTAIN' };
+      if (state.frozenUntil[side] > ctx.now) return { error: 'FROZEN' };
       const ids = cmd.itemIds;
       const onBoard = new Set(state.remaining);
       if (ids.length !== GROUP_SIZE || new Set(ids).size !== GROUP_SIZE || ids.some((id) => !onBoard.has(id))) {
@@ -430,32 +423,33 @@ export function applyCommand(state: MatchState, cmd: Command, ctx: Ctx): ApplyRe
           return { state: endBoard(next, 'locked_out', ctx.now, events), events };
         }
       }
-      return { state: passTurn(next, side, ctx.now, events), events };
+      return { state: startTurn(next, nextTurn(next, side), ctx.now, events), events };
     }
 
     case 'power': {
       const side = sideOf(state, cmd.by);
       if (side === null || state.gone.includes(cmd.by)) return { error: 'UNKNOWN_PLAYER' };
+      const left = state.powers[side];
+      if (cmd.kind === 'freeze') {
+        // Used while the RIVAL plays: it cannot select or submit for a few seconds, its clock keeps running.
+        const rival = otherSide(side);
+        if (state.turn !== rival) return { error: 'NOT_YOUR_TURN' };
+        if (left.freeze <= 0 || state.lockedOut[rival] || state.frozenUntil[rival] > ctx.now) return { error: 'NO_POWER' };
+        const until = ctx.now + (state.rules.freezeSeconds ?? FREEZE_SECONDS) * 1000;
+        events.push({ t: 'power', side, kind: 'freeze', until });
+        return { state: { ...state, powers: set(state.powers, side, { ...left, freeze: left.freeze - 1 }), frozenUntil: set(state.frozenUntil, rival, until) }, events };
+      }
+      // Magnifier, on the user's own turn: two cards of one unsolved group; the next use looks at the next group, so two uses never repeat.
       if (side !== state.turn) return { error: 'NOT_YOUR_TURN' };
       if (state.captain[side] !== cmd.by) return { error: 'NOT_CAPTAIN' };
-      const left = state.powers[side];
-      if (left[cmd.kind] <= 0) return { error: 'NO_POWER' };
-      const spent = set(state.powers, side, { ...left, [cmd.kind]: left[cmd.kind] - 1 });
-      if (cmd.kind === 'freeze') {
-        const rival = otherSide(side);
-        // Freezing a rival who is locked out (or already frozen) would waste it.
-        if (state.lockedOut[rival] || state.frozen[rival]) return { error: 'NO_POWER' };
-        events.push({ t: 'power', side, kind: 'freeze' });
-        return { state: { ...state, powers: spent, frozen: set(state.frozen, rival, true) }, events };
-      }
-      // Magnifier: two cards of one unsolved group; the next use looks at the next group, so two uses never repeat.
+      if (left.magnifier <= 0) return { error: 'NO_POWER' };
       const done = new Set(state.solved.map((g) => g.level));
       const open = state.puzzle.groups.filter((g) => !done.has(g.level));
       const group = open[state.magnified[side] % open.length];
       if (!group) return { error: 'NO_POWER' };
       const itemIds = group.productIds.filter((id) => state.remaining.includes(id)).slice(0, 2);
       events.push({ t: 'power', side, kind: 'magnifier', itemIds });
-      return { state: { ...state, powers: spent, magnified: set(state.magnified, side, state.magnified[side] + 1) }, events };
+      return { state: { ...state, powers: set(state.powers, side, { ...left, magnifier: left.magnifier - 1 }), magnified: set(state.magnified, side, state.magnified[side] + 1) }, events };
     }
   }
 }
@@ -494,9 +488,9 @@ export interface MatchClientView {
   /** Board in play (0-based) and the number of boards of the match. */
   round: number;
   rounds: number;
-  /** The viewer's own power-ups left, and which side is frozen (its next turn is skipped). */
+  /** The viewer's own power-ups left, and until when (ms) each side is frozen (0 = not). */
   powers: PowerCounts;
-  frozen: readonly [boolean, boolean];
+  frozenUntil: readonly [number, number];
   turn: MatchSide;
   /** Who submits for each side right now. */
   captain: readonly [string, string];
@@ -524,7 +518,7 @@ export function matchClientView(state: MatchState, viewerId: string): MatchClien
     round: state.round,
     rounds: state.rounds,
     powers: state.powers[you],
-    frozen: state.frozen,
+    frozenUntil: state.frozenUntil,
     turn: state.turn,
     captain: state.captain,
     turnId: state.turnId,

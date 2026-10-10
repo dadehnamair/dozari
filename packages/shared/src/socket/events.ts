@@ -67,6 +67,7 @@ export const ERROR_CODES = [
   'NOT_TEAM_MATCH',
   'INVALID_SELECTION',
   'NO_POWER',
+  'FROZEN',
   'DUPLICATE_SELECTION',
   'MATCH_FINISHED',
   'INSUFFICIENT_COINS',
@@ -169,9 +170,9 @@ export const matchViewSchema = z.object({
   scores: z.tuple([z.number().int(), z.number().int()]),
   mistakes: z.tuple([z.number().int(), z.number().int()]),
   lockedOut: z.tuple([z.boolean(), z.boolean()]),
-  /** The viewer's own power-ups left, and the side whose next turn is skipped. Optional for older snapshots. */
+  /** The viewer's own power-ups left, and until when (epoch ms) each side is frozen. Optional for older snapshots. */
   powers: z.object({ magnifier: z.number().int().nonnegative(), freeze: z.number().int().nonnegative() }).optional(),
-  frozen: z.tuple([z.boolean(), z.boolean()]).optional(),
+  frozenUntil: z.tuple([z.number().int().nonnegative(), z.number().int().nonnegative()]).optional(),
   turn: side,
   /** Who submits for each side right now (2v2 rotates it every turn). Optional for older snapshots. */
   captain: z.tuple([z.string(), z.string()]).optional(),
@@ -197,8 +198,7 @@ export const matchEventSchema = z.discriminatedUnion('t', [
   z.object({ t: z.literal('locked_out'), side }),
   z.object({ t: z.literal('timeout'), side }),
   /** A power-up was used; `itemIds` (the magnifier's two cards) only reaches the user's own side. */
-  z.object({ t: z.literal('power'), side, kind: z.enum(['magnifier', 'freeze']), itemIds: z.array(z.string()).optional() }),
-  z.object({ t: z.literal('frozen_skip'), side }),
+  z.object({ t: z.literal('power'), side, kind: z.enum(['magnifier', 'freeze']), itemIds: z.array(z.string()).optional(), until: z.number().int().optional() }),
   z.object({ t: z.literal('turn'), side, turnId: z.number().int().positive(), captain: z.string().optional() }),
   z.object({ t: z.literal('captain'), side, userId: z.string() }),
   z.object({ t: z.literal('finished'), result: matchResultSchema }),

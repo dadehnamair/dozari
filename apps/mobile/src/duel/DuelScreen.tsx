@@ -449,12 +449,15 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   const turnText = view.lockedOut[me] ? fa.duel.lockedOut : mine ? (!captain ? (mateWaiting ? a.waitCaptain(captainName) : a.mateCaptain) : proposalReady ? a.mateReady(nameOf(view.proposal?.by)) : team ? a.captain : fa.duel.yourTurn) : fa.duel.theirTurn;
   const boards = view.rounds ?? 1;
   const noticeText = state.notice ? fa.duel.errors[state.notice] ?? fa.duel.errors.generic ?? null : null;
-  const powerText = state.powerNote ? fa.duel.power.notes[state.powerNote] ?? null : null;
+  const frozenMs = (view.frozenUntil?.[me] ?? 0) - now;
+  const frozenMe = frozenMs > 0 && playing;
+  const frozenRival = (view.frozenUntil?.[them] ?? 0) > now;
+  const powerText = frozenMe ? fa.duel.power.frozenLeft(Math.ceil(frozenMs / 1000)) : state.powerNote ? fa.duel.power.notes[state.powerNote] ?? null : null;
   const toast = leaveArmed ? a.leaveSure : noticeText ? noticeText : powerText ? powerText : state.boardNote ? a.nextBoard(state.boardNote.board, state.boardNote.of) : state.flash && state.flash !== 'one_away' ? fa.duel.feedback[state.flash] : null;
   /** The submit button lights up only when this player can really submit now: their side's turn, they are the captain, four cards are picked, no answer pending. */
-  const canSend = playing && mine && captain && canSubmit(selected) && !sending && !state.finale;
+  const canSend = playing && mine && captain && canSubmit(selected) && !sending && !state.finale && !frozenMe;
   /** The power-ups work on the player's own turn, for the captain, while no answer is pending. */
-  const canPower = playing && mine && captain && !sending && !state.finale;
+  const canPower = playing && mine && captain && !sending && !state.finale && !frozenMe;
   const submit = () => {
     if (!canSend) return;
     // No live connection object at all: never a silent tap. Say so and ask the server where things stand once the line is back.
@@ -518,8 +521,8 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
 
           <View style={styles.hudWrap}>
             <MatchHud
-              me={{ name: myName, who: 'dozari', score: view.scores[me], groups: lines[0]!.groups, active: playing && view.turn === me, frozen: !!view.frozen?.[me], level: myLevel, mate: team ? mateWho : undefined }}
-              rival={{ name: rivalName, who: rivalWho, score: view.scores[them], groups: lines[1]!.groups, active: playing && view.turn === them, frozen: !!view.frozen?.[them], level: rivalLevel, mate: team ? rivalMateWho : undefined }}
+              me={{ name: myName, who: 'dozari', score: view.scores[me], groups: lines[0]!.groups, active: playing && view.turn === me, frozen: frozenMe, level: myLevel, mate: team ? mateWho : undefined }}
+              rival={{ name: rivalName, who: rivalWho, score: view.scores[them], groups: lines[1]!.groups, active: playing && view.turn === them, frozen: frozenRival, level: rivalLevel, mate: team ? rivalMateWho : undefined }}
               onChat={taunts.length > 0 ? () => setChatOpen((v) => !v) : undefined}
               chatOpen={chatOpen}
               chatCooling={cool > 0}
@@ -534,14 +537,14 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
           <View style={styles.toastSlot}>{toast ? <View style={styles.toast}><Text style={styles.toastText} numberOfLines={2}>{toast}</Text></View> : null}</View>
 
           <View style={styles.boardPanel}>
-            <Board solved={state.finale ? (finaleLast ? [...state.finale.solved, state.finale.last] : state.finale.solved) : boardSolved(view)} cards={state.finale ? (finaleLast ? [] : state.finale.cards) : arrange(view.cards, order)} names={state.names} selected={state.finale ? finaleSel : selected} onToggle={(id) => setSelected((s) => toggleSelection(s, id))} disabled={!playing || !mine || !!state.finale} muted={playing && !mine && !state.finale} hinted={state.peek?.ids ?? []} />
+            <Board solved={state.finale ? (finaleLast ? [...state.finale.solved, state.finale.last] : state.finale.solved) : boardSolved(view)} cards={state.finale ? (finaleLast ? [] : state.finale.cards) : arrange(view.cards, order)} names={state.names} selected={state.finale ? finaleSel : selected} onToggle={(id) => setSelected((s) => toggleSelection(s, id))} disabled={!playing || !mine || !!state.finale || frozenMe} muted={playing && !mine && !state.finale} hinted={state.peek?.ids ?? []} />
             {state.flash === 'one_away' ? <View style={styles.nearMiss} pointerEvents="none"><NearMissPill /></View> : null}
           </View>
 
           <View style={styles.tools}>
             <PowerButton kind="magnifier" count={view.powers?.magnifier ?? 0} enabled={canPower} onPress={() => power('magnifier')} />
             <Lives mistakes={view.mistakes[me]} max={numbers.maxMistakes} last={lastLife} />
-            <PowerButton kind="freeze" count={view.powers?.freeze ?? 0} enabled={canPower && !view.frozen?.[them] && !view.lockedOut[them]} onPress={() => power('freeze')} />
+            <PowerButton kind="freeze" count={view.powers?.freeze ?? 0} enabled={playing && !mine && !state.finale && !frozenRival && !view.lockedOut[them]} onPress={() => power('freeze')} />
           </View>
 
           {/* The same notice again right above the buttons: the one at the top of the board is out of sight when the player is down here. */}

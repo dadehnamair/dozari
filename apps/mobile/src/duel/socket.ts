@@ -78,7 +78,6 @@ export async function connectDuel(dispatch: (a: DuelAction) => void): Promise<Du
     if (e.data.t === 'guess' && e.data.outcome !== undefined) dispatch({ t: 'guess', outcome: e.data.outcome, mine: e.data.side === you });
     else if (e.data.t === 'timeout') dispatch({ t: 'timeout', mine: e.data.side === you });
     else if (e.data.t === 'power') dispatch({ t: 'power', mine: e.data.side === you, kind: e.data.kind, itemIds: e.data.itemIds });
-    else if (e.data.t === 'frozen_skip') dispatch({ t: 'frozenSkip', mine: e.data.side === you });
     else if (e.data.t === 'group_revealed') dispatch({ t: 'revealed', level: e.data.level });
     else if (e.data.t === 'board_done') dispatch({ t: 'boardDone', round: e.data.round, groups: e.data.groups });
     else if (e.data.t === 'board') dispatch({ t: 'board', board: e.data.round + 1, of: e.data.rounds });

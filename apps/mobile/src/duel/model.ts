@@ -23,7 +23,7 @@ export interface DuelState {
   /** The two cards the magnifier showed this player (selected on the board once); `n` makes each use a new event. */
   peek: { ids: string[]; n: number } | null;
   /** A power-up toast: whose, and which. */
-  powerNote: 'magMine' | 'magRival' | 'iceMine' | 'iceRival' | 'skipMine' | 'skipRival' | null;
+  powerNote: 'magMine' | 'magRival' | 'iceMine' | 'iceRival' | null;
   /** A passing problem during play (a refused submit, a late ack): a toast, never a dead end. Holds the error code. */
   notice: string | null;
   /** The last snapshot of the board that just ended (its cards were still on the table). */
@@ -80,7 +80,6 @@ export type DuelAction =
   | { t: 'ended'; ended: MatchEnded }
   | { t: 'clearFlash' }
   | { t: 'power'; mine: boolean; kind: 'magnifier' | 'freeze'; itemIds?: readonly string[] }
-  | { t: 'frozenSkip'; mine: boolean }
   | { t: 'clearPowerNote' }
   | { t: 'board'; board: number; of: number }
   | { t: 'clearBoard' }
@@ -137,8 +136,6 @@ export function duelReducer(s: DuelState, a: DuelAction): DuelState {
       const peek = a.mine && a.kind === 'magnifier' && a.itemIds && a.itemIds.length > 0 ? { ids: [...a.itemIds], n: (s.peek?.n ?? 0) + 1 } : s.peek;
       return { ...s, powerNote: note, peek };
     }
-    case 'frozenSkip':
-      return { ...s, powerNote: a.mine ? 'skipMine' : 'skipRival' };
     case 'clearPowerNote':
       return { ...s, powerNote: null };
     case 'guess':
