@@ -26,6 +26,9 @@ services:
       retries: 20
     # No published ports: only the server reaches it, over the compose network.
 
+  # TEMPORARILY OFF: `migrate` and `seed` carry profile `setup`, so a plain `up` skips them. Turn them back on with
+  #   docker compose -f docker-compose.prod.yml --env-file .env.prod --profile setup up -d --build
+  # (or COMPOSE_PROFILES=setup in .env.prod). Remember to run them once after any schema change (docs/deploy.md).
   # Applies the database migrations (safe to repeat) and exits; the server starts after it succeeds.
   s-dozari-migrate:
     container_name: c-dozari-migrate
@@ -39,6 +42,7 @@ services:
     working_dir: /app/packages/db
     command: ['pnpm', 'exec', 'tsx', 'src/migrate.ts']
     restart: 'no'
+    profiles: ['setup']
     depends_on:
       s-dozari-mysql:
         condition: service_healthy
@@ -65,6 +69,7 @@ services:
         'case "$$SEED_ON_START" in 1) pnpm exec tsx src/seed/run.ts ;; 0) echo "SEED_ON_START=0, skipping seed" ;; *) pnpm exec tsx src/seed/run.ts --if-empty ;; esac',
       ]
     restart: 'no'
+    profiles: ['setup']
     depends_on:
       s-dozari-mysql:
         condition: service_healthy
@@ -90,8 +95,10 @@ services:
         condition: service_healthy
       s-dozari-migrate:
         condition: service_completed_successfully
+        required: false # off unless the `setup` profile is enabled
       s-dozari-seed:
         condition: service_completed_successfully
+        required: false
     environment:
       NODE_ENV: production
       NODE_OPTIONS: --max-old-space-size=384
