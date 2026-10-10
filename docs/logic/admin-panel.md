@@ -13,7 +13,7 @@ sidebar and tabs.
 |---|---|
 | نمای کلی | dashboard: «کارهای منتظر تو» (pending prices/bot/reports, failed bot run, catalog gaps), live server stats, maintenance warning, recent changes, shortcuts |
 | بازیکنان و نظارت | users · player reports · chat reports · word filter · badges · bot players · invite codes |
-| محتوا و قیمت‌ها | catalog · price review · bot inbox · bot sources · player suggestions (UGC) |
+| محتوا و قیمت‌ها | catalog · price review · bot inbox · bot sources · **AI studio** · player suggestions (UGC) |
 | بازی و پازل | puzzles · daily puzzle · level road · cities · canned taunts |
 | اقتصاد | daily reward · **economy health** · shop · wheel · tournaments · sponsors |
 | ارتباط با بازیکن | message center · Bale bot |
@@ -85,3 +85,12 @@ Built behind `feature.age_tracks` (full spec and status: `age-tracks.md`). In th
 - **Message center:** audiences `all` and `bale_linked` reach **adults only**; `kid` and `teen` are separate, deliberate audiences (migration 0065).
 - **Content:** «کلمه‌آموزی کودک» (lesson editor and approval), the kid/teen puzzle builder and per-track taunt libraries («کل‌کل‌های آماده») and the stricter word list («فیلتر کلمات»).
 - **Audit log:** every band choice of a player (`age_track.choose`), guardian link / add child / child band move / settings change / removal (`guardian.*`) and the admin actions above are recorded.
+
+## Image uploads
+
+Wherever the panel asks for an image (sponsor banner/logo, landing post cover) the field has an «آپلود تصویر» button next to the URL box; the box stays editable, so an external https link still works.
+
+- `POST /admin/uploads?folder=sponsors|landing|products|misc`, raw image as the body (`content-type: image/png|jpeg|webp`, max 5 MB). Answers `201 {url}`. Needs the `content` permission; audited as `upload.image`.
+- The type is checked from the file's first bytes (not the header); SVG/GIF are refused (`415`). The folder is a closed list; the object key is generated (`uploads/<folder>/<uuid>.<ext>`), never taken from the request.
+- Storage is the same `ImageStore` as the seed images: S3-compatible when `S3_ENDPOINT` is set, else `LOCAL_IMAGES_DIR` (served at `/images/*`). Neither set → the route is not registered (button shows «تنظیم نشده»).
+- Fields that require https (sponsors) need `S3_PUBLIC_BASE_URL` / `LOCAL_IMAGES_PUBLIC_URL` to be https, so in plain-http local dev paste an https link instead.

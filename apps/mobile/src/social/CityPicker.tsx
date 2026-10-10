@@ -55,7 +55,7 @@ export function CityPicker({ current, onPicked, onClose }: { current: City | nul
                         <View style={[styles.card, on ? styles.cardOn : null, pressed || on ? styles.cardDown : null]}>
                           {p ? <ProvinceBadge province={p} size={64} sunLeft={i % 2 === 1} /> : <View style={styles.blank}><Text style={styles.blankMark}>؟</Text></View>}
                           <Text style={styles.name} numberOfLines={1}>{c.nameFa}</Text>
-                          {p ? <Text style={styles.gift} numberOfLines={1}>{t.souvenir(p.giftFa)}</Text> : null}
+                          {p ? <Text style={styles.gift} numberOfLines={1}>{t.souvenir(c.souvenirFa ?? p.giftFa)}</Text> : null}
                         </View>
                       )}
                     </Pressable>
@@ -83,8 +83,8 @@ const styles = StyleSheet.create({
   groupText: { fontFamily: fonts.display, fontSize: 17, color: colors.ink },
   grid: { flexDirection: ROW, flexWrap: 'wrap', gap: 8 },
   cell: { width: '31.5%' },
-  card: { alignItems: 'center', gap: 2, paddingVertical: 8, paddingHorizontal: 4, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#FFF6E8', shadowColor: colors.ink, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 1, shadowRadius: 0, elevation: 5 },
-  cardOn: { backgroundColor: '#FFE48A' },
+  card: { alignItems: 'center', gap: 2, paddingVertical: 8, paddingHorizontal: 4, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.cream, shadowColor: colors.ink, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 1, shadowRadius: 0, elevation: 5 },
+  cardOn: { backgroundColor: colors.hi },
   cardDown: { transform: [{ translateY: 3 }], shadowOffset: { width: 0, height: 2 } },
   blank: { width: 64, height: 64, borderRadius: 32, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center' },
   blankMark: { fontFamily: fonts.display, fontSize: 28, color: colors.ink },

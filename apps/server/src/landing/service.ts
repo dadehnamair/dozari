@@ -1,5 +1,5 @@
 import { itemSvg } from '@dozari/shared';
-import type { LandingStore, NewCast, NewFaq, NewPost, PostRow } from './store.js';
+import type { CommentStatus, CommentTarget, LandingStore, NewCast, NewFaq, NewPost, PostRow, SiteStats } from './store.js';
 
 /** A URL slug from a Persian or Latin title: letters and digits kept, spaces and `_` → `-`, everything else dropped, lower-cased. */
 export function slugify(title: string): string {
@@ -12,6 +12,18 @@ export function slugify(title: string): string {
     .replace(/^-|-$/g, '')
     .slice(0, 100);
 }
+
+export interface PublicComment {
+  id: string;
+  author: string;
+  body: string;
+  createdAt: number;
+}
+export type CommentResult = { ok: true; status: 'pending' } | { ok: false; error: 'invalid_name' | 'invalid_body' | 'links_not_allowed' | 'blocked_word' | 'not_found' };
+/** The text gate shared with player chat (`TextFilterService.check`); optional so tests can run without it. */
+export type CommentFilter = (text: string) => Promise<{ ok: true; text: string } | { ok: false }>;
+
+const LINK_RE = /https?:\/\/|www\.|\b[a-z0-9-]+\.(?:com|ir|net|org|io|me|info)\b|@\w{3,}/i;
 
 export const isSlug = (s: string): boolean => s.length >= 2 && s.length <= 120 && /^[\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)*$/u.test(s) && s === s.toLowerCase();
 
@@ -42,6 +54,7 @@ export class LandingService {
   constructor(
     private readonly store: LandingStore,
     private readonly now: () => number = Date.now,
+    private readonly filter?: CommentFilter,
   ) {}
 
   async savePost(input: PostInput, id?: string): Promise<PostResult> {
@@ -79,6 +92,59 @@ export class LandingService {
     if (p && p.status === 'published') return { post: { ...summaryOf(p), bodyMd: p.bodyMd, metaTitle: p.metaTitle, metaDescription: p.metaDescription } };
     const moved = await this.store.redirectFor(slug);
     return moved ? { redirectTo: moved } : null;
+  }
+
+  /** The stats page: real aggregate numbers only. */
+  stats(): Promise<SiteStats> {
+    return this.store.stats();
+  }
+
+  /** Is `key` a published post slug or an active cast id? Comments are only accepted for things that exist. */
+  private async targetExists(type: CommentTarget, key: string): Promise<boolean> {
+    if (type === 'post') {
+      const p = await this.store.postBySlug(key);
+      return !!p && p.status === 'published';
+    }
+    return (await this.store.cast({ includeHidden: false })).some((c) => c.id === key);
+  }
+
+  /** Approved comments of one post or cast member, newest first. */
+  async publicComments(type: CommentTarget, key: string): Promise<PublicComment[]> {
+    const rows = await this.store.comments({ targetType: type, targetKey: key, status: 'approved', limit: 100 });
+    return rows.map((c) => ({ id: c.id, author: c.authorName, body: c.body, createdAt: c.createdAt }));
+  }
+
+  /** How many approved comments each post slug / cast id has. */
+  approvedCommentCounts(type: CommentTarget): Promise<Record<string, number>> {
+    return this.store.commentCounts(type, 'approved');
+  }
+
+  /** A visitor's comment: checked, then held `pending` until an admin approves it (no links, no blocked words). */
+  async submitComment(input: { targetType: CommentTarget; targetKey: string; authorName: string; body: string }): Promise<CommentResult> {
+    const name = input.authorName.replace(/\s+/g, ' ').trim();
+    const body = input.body.replace(/[ \t]+/g, ' ').replace(/\n{3,}/g, '\n\n').trim();
+    if (name.length < 2 || name.length > 60) return { ok: false, error: 'invalid_name' };
+    if (body.length < 3 || body.length > 1000) return { ok: false, error: 'invalid_body' };
+    if (LINK_RE.test(name) || LINK_RE.test(body)) return { ok: false, error: 'links_not_allowed' };
+    if (!(await this.targetExists(input.targetType, input.targetKey))) return { ok: false, error: 'not_found' };
+    let cleanBody = body;
+    let cleanName = name;
+    if (this.filter) {
+      const [b, n] = await Promise.all([this.filter(body), this.filter(name)]);
+      if (!b.ok || !n.ok) return { ok: false, error: 'blocked_word' };
+      cleanBody = b.text;
+      cleanName = n.text;
+    }
+    await this.store.addComment({ targetType: input.targetType, targetKey: input.targetKey, authorName: cleanName, body: cleanBody, status: 'pending' }, this.now());
+    return { ok: true, status: 'pending' };
+  }
+
+  adminComments(status?: CommentStatus) {
+    return this.store.comments({ status, limit: 200 });
+  }
+
+  setCommentStatus(id: string, status: CommentStatus) {
+    return this.store.setCommentStatus(id, status);
   }
 
   cast = {

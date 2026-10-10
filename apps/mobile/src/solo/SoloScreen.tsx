@@ -274,14 +274,17 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false, ageTrac
                 <View style={styles.askCard}>
                   <Text style={styles.askTitle}>{fa.solo.price.readyTitle}</Text>
                   <Text style={styles.askSub}>{fa.solo.price.readySub}</Text>
-                  <View style={styles.actions}>
-                    <SlabButton label={fa.solo.price.skip} color={colors.candy.sky} height={50} fontSize={18} onPress={() => setPriceDone(true)} />
-                    <SlabButton label={fa.solo.price.go} sfx="confirm" color={colors.candy.lime} height={50} fontSize={20} grow={1.4} onPress={() => setPriceReady(true)} />
-                  </View>
                 </View>
               </View>
             )}
           </ScrollView>
+          {/* The choices stay pinned under the scrolling middle, whichever step the end of the game is on. */}
+          {!offline && !lessonMode && !priceDone && !priceReady ? (
+            <View style={styles.actions}>
+              <SlabButton label={fa.solo.price.skip} color={colors.candy.sky} height={58} fontSize={20} onPress={() => setPriceDone(true)} />
+              <SlabButton label={fa.solo.price.go} sfx="confirm" color={colors.candy.lime} height={58} fontSize={22} grow={1.4} onPress={() => setPriceReady(true)} />
+            </View>
+          ) : null}
           {priceDone || offline ? (
             <View style={styles.actions}>
               <SlabButton label={fa.solo.back} sfx="back" color={colors.candy.sky} height={58} fontSize={20} onPress={onBack} />
@@ -347,12 +350,12 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false, ageTrac
 }
 
 const styles = StyleSheet.create({
-  previewBanner: { alignSelf: 'center', fontFamily: fonts.bold, fontSize: 13, color: '#2B1240', backgroundColor: '#FFE48A', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 5, overflow: 'hidden', textAlign: 'center' },
+  previewBanner: { alignSelf: 'center', fontFamily: fonts.bold, fontSize: 13, color: colors.ink, backgroundColor: colors.hi, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 5, overflow: 'hidden', textAlign: 'center' },
   review: { gap: 10, width: '100%' },
-  askCard: { padding: 12, gap: 6, borderRadius: 20, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#FBF1DE' },
+  askCard: { padding: 12, gap: 6, borderRadius: 20, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.paper },
   askTitle: { fontFamily: fonts.display, fontSize: 18, color: colors.ink, textAlign: 'center' },
   askSub: { fontFamily: fonts.bold, fontSize: 12.5, lineHeight: 20, color: '#5A3A7A', textAlign: 'center' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24, backgroundColor: '#4E2585' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24, backgroundColor: colors.deeper },
   screen: { flexGrow: 1, paddingHorizontal: 12, paddingTop: 14 + nativeTopInset(), paddingBottom: 24, alignItems: 'center' },
   column: { width: '100%', maxWidth: 520, gap: 12 },
   hintBtn: { width: 42, height: 42, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.candy.orange, alignItems: 'center', justifyContent: 'center', marginBottom: 4, shadowColor: colors.ink, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4 },
@@ -368,7 +371,7 @@ const styles = StyleSheet.create({
   talkerSmall: { width: 72, height: 80 },
   bubbleTitle: { fontFamily: fonts.display, fontSize: 18, lineHeight: 28, color: colors.ink, textAlign: TEXT_RIGHT },
   /** The result frame keeps its size; whatever is taller than it (chart, tabs, share) scrolls inside it instead of spilling. */
-  stage: { flex: 1, minHeight: 0, borderRadius: 22, borderWidth: 3, borderColor: colors.ink, backgroundColor: 'rgba(26,8,44,0.55)', overflow: 'hidden' },
+  stage: { flex: 1, minHeight: 0, borderRadius: 22, borderWidth: 3, borderColor: 'rgba(255,255,255,0.35)', backgroundColor: 'rgba(26,8,44,0.55)', overflow: 'hidden' },
   stageContent: { flexGrow: 1, paddingHorizontal: 12, paddingTop: 4, paddingBottom: 14, alignItems: 'center', justifyContent: 'center' },
   endActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginTop: 8 },
   detail: { fontFamily: 'Vazirmatn_400Regular', fontSize: 12, color: colors.cream, opacity: 0.7, textAlign: 'center', writingDirection: 'ltr' },

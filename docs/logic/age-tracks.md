@@ -5,10 +5,13 @@ can hold the adult account and add the child; the admin panel can filter and man
 
 ## Principles
 
-1. **One brand, one app, three tracks (owner, 2026-10-05).** Only the *logic* changes per track. Name, logo, icon, palette, fonts, voice, home
-   shell, store listing and splash stay the one «دوزاری» brand (`brand.md`, `brand-visual.md`); there is no second app, theme or icon. «دوزاری
-   کوچولو» appears **only as the label of the kid track inside the app** (the title of the kid home and of its mode card), nowhere else. The
-   adult track stays the full price-nostalgia game and never shows kid content. Wording: «بازی برای هر سن».
+1. **One brand, one app, three tracks, two looks (owner, 2026-10-06; amends the 2026-10-05 «one theme» rule, D206).** Rules and content differ per
+   track; so does the *look*, in two sets: **kid + teen share the current candy look and icon** (unchanged), **adult gets «صرافی و گاوصندوق»**
+   (near-black + gold, brass buttons, `sarafi` vault scene, gold-coin app icon; designs in `docs/design/adult/`, rules in `docs/design/CLAUDE.md`).
+   Name, logo, fonts, voice and the home layout stay the one «دوزاری» brand. The look follows the track and switches with it everywhere: in-app theme,
+   Android launcher icon (four aliases: default, female, adult, adultFemale), PWA manifest, icons and address-bar colour. «دوزاری کوچولو» still
+   appears only as the label of the kid track inside the app. The adult track stays the full price-nostalgia game and never shows kid content.
+   Until a kid/teen track is known (first launch, signed out, no saved choice) the app opens in the **adult look** (theme, icon, PWA manifest, Android default alias `MainActivityAdult`), since most players are adults; a kid/teen switches the look on login/track choice. Wording: «بازی برای هر سن». Code: `apps/mobile/src/theme/{appTheme,themeStore,look}.ts`, `src/appIcon`, `plugins/withGenderIcon.js`.
 2. **The track is chosen, never computed from a birth date.** We store a coarse track chosen by the user (kid / teen / adult); no ID, no school. The optional
    birth date of D160 (minimum age 10) stays as it is and is **independent**: it never picks or changes a track and no rule reads it. A kid profile
    created through a guardian has no birth date field (under the D160 minimum), so the birthday week simply does not apply to it. In code the word is
@@ -34,7 +37,7 @@ The edges are config. A user's band is **chosen**, not computed, so the edges on
 
 ## First-run flow
 
-After the login step of D147 (and before the tutorial) one new screen: «چه کسی بازی می‌کنه؟» with three big cards (کودک / نوجوان / بزرگسال).
+After the login step of D147 (and before the tutorial) the age band is chosen on the login screen itself with three small icon chips (بزرگسال default / نوجوان / کودک); once signed in it is saved (`AgeTrackScreen preset`, which then only shows the guardian step for a kid/teen). The old three-big-cards screen remains as the fallback when no preset exists.
 It is shown once, stored on the account, and reachable later from settings.
 
 - **Adult:** continues as today. No kid content anywhere.
@@ -172,7 +175,7 @@ bots, message center audience, coin ledger, matches):
 ## Adult experience (guardrails)
 
 - The chooser's adult card is first and wears the main brand voice; kid art, stars and the word lesson never appear in an adult account.
-- Store listing, splash, icon and home shell are the one «دوزاری» brand; «دوزاری کوچولو» is only a track label inside the app (principle 1).
+- Store listing and splash are the one «دوزاری» brand; the in-app look and launcher/PWA icon follow the track (kid/teen candy, adult gold; principle 1); «دوزاری کوچولو» is only a track label inside the app.
 - **Preview mode** («پیش‌نمایش کودک») lets a guardian open the kid space read-only (no progress, no coins) to judge it.
 
 ## As built (phase 1, behind a switch)
@@ -190,7 +193,7 @@ Setting `feature.age_tracks` (admin → settings → app, **default off**): off 
   - app: `LessonPanel` (word, letters one by one, count, story) replaces the price round and chart for a player whose track rules have `wordLesson`; `useTrackRules` reads the rules once per run.
 - Phase 2 (guardian link, same switch; the `/guardian`, `/me/guardian` and `/lessons` paths answer 503 `feature_off` while it is off):
   - db: migration 0060, `guardian_links(child_id PK, guardian_id, created_at)` (one guardian per child; **removing a link deletes the row**, the child profile stays) and `guardian_link_codes(code, child_id, guardian_id, expires_at)` (6 digits, 10 minutes, one use, one live code per child).
-  - server: `apps/server/src/guardian/` — child side `GET /me/guardian`, `POST /guardian/request {phone}` (SMS code to the guardian's number, via `PhoneLoginService`) and `POST /guardian/confirm {phone, code}` (`PhoneLoginService.prove` checks the code without touching an account; the guardian account is the number's holder, or a new adult account with that number verified); guardian side `GET/POST /guardian/children`, `POST /guardian/children/:id/link-code`, `PUT /guardian/children/:id/track` (the guardian's say that lets a child move up or down), `DELETE /guardian/children/:id`; and `POST /auth/child-link {code, deviceId}` signs a child's device in (10 tries per 10 minutes per address). A guardian must be an adult with a verified number and holds at most `GUARDIAN_MAX_CHILDREN` (6) children; a number held by a kid or teen account cannot be a guardian.
+  - server: `apps/server/src/guardian/` — child side `GET /me/guardian`, `POST /guardian/request {phone}` (SMS code to the guardian's number, via `PhoneLoginService`) and `POST /guardian/confirm {phone, code}` (`PhoneLoginService.prove` checks the code without touching an account; the guardian account is the number's holder, or a new adult account with that number verified); guardian side `GET/POST /guardian/children`, `POST /guardian/children/:id/link-code`, `POST /guardian/children/:id/switch {deviceId}` (right after a phone sign-in: the app lists the number's children and the player picks which account to play as; returns that child's session), `PUT /guardian/children/:id/track` (the guardian's say that lets a child move up or down), `DELETE /guardian/children/:id`; and `POST /auth/child-link {code, deviceId}` signs a child's device in (10 tries per 10 minutes per address). A guardian must be an adult with a verified number and holds at most `GUARDIAN_MAX_CHILDREN` (6) children; a number held by a kid or teen account cannot be a guardian.
   - app: the guardian step right after a kid or teen picks a track (`GuardianStep`: number, code; «بعداً» always skips, it never gates play); settings rows «فرزندان من» (`ChildrenSheet`: list, add kid/teen, sign-in code, move track, remove) and «ورود با کد والدین» (`ChildCodeSheet`, also on the first-run login screen); shown only when the switch is on.
   - Still open: enforcing «social features need a guardian» (phase 4 with the social rules), guardian settings (phase 5).
 - Starter content (draft, for the owner to review): `packages/db/seed/products/kid-starter.json` (48 kid items with icon and lesson text) and `seed/puzzles/kid-starter.json` (3 kid puzzles). The product seed accepts `age_track` and `lesson` (kid items need no price); lessons are inserted as **drafts** and never overwritten by a re-seed; kid puzzles are seeded as **drafts** (`status`), so nothing reaches players until an editor approves the lessons («کلمه‌آموزی کودک») and the puzzles («ساخت پازل»). Load it on an existing database with `pnpm --filter @dozari/db seed` (not `--if-empty`, which skips a non-empty catalogue).

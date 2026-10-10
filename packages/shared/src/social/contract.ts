@@ -22,7 +22,15 @@ export const playerStatsSchema = z.object({
 export type PlayerStats = z.infer<typeof playerStatsSchema>;
 
 /** `province` keys `PROVINCES` (D101); null = no regional identity («شهر دیگر»). */
-export const citySchema = z.object({ id: z.string().uuid(), nameFa: z.string(), province: z.string().nullable() });
+export const citySchema = z.object({
+  id: z.string().uuid(),
+  nameFa: z.string(),
+  province: z.string().nullable(),
+  /** The city's own souvenir; null = use the province's. */
+  souvenirFa: z.string().nullable().default(null),
+  /** The city's slogan for the Home screen; null = none. */
+  sloganFa: z.string().nullable().default(null),
+});
 export type City = z.infer<typeof citySchema>;
 
 /** `GET /cities`: cities a player may pick. */

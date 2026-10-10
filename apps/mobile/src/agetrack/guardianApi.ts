@@ -20,6 +20,11 @@ export const addChild = (track: 'kid' | 'teen'): Promise<void> => authed(ok, '/g
 export const childLinkCode = (childId: string): Promise<{ code: string; expiresInSec: number }> => authed((r) => linkCodeResponseSchema.parse(r), `/guardian/children/${childId}/link-code`, 'POST');
 export const setChildTrack = (childId: string, track: 'kid' | 'teen'): Promise<void> => authed(ok, `/guardian/children/${childId}/track`, 'PUT', { track });
 export const removeChild = (childId: string): Promise<void> => authed(ok, `/guardian/children/${childId}`, 'DELETE');
+/** Removing a child with games or friends needs a code: does this child need one? */
+export const fetchRemoval = (childId: string): Promise<{ needsCode: boolean }> => authed((r) => ({ needsCode: (r as { needsCode?: boolean }).needsCode === true }), `/guardian/children/${childId}/removal`, 'GET');
+/** Sends the removal code by SMS to the guardian's own number. */
+export const sendRemoveCode = (childId: string): Promise<void> => authed(ok, `/guardian/children/${childId}/remove-code`, 'POST');
+export const removeChildWithCode = (childId: string, code: string): Promise<void> => authed(ok, `/guardian/children/${childId}/remove`, 'POST', { code });
 
 /** The child's device, signed out: the code the guardian shows signs this device in as the child (the whole app starts over). */
 export async function signInWithChildCode(code: string, opts: { announce?: boolean } = {}): Promise<void> {

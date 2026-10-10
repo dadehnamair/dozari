@@ -112,6 +112,11 @@ browser — both need the owner's own machine (see Phase 0-A).
       path as real players; `is_bot` never leaves the server
 - [x] 📱 Lobby: quick match 1v1, create/join private table, waiting screen (est. wait, cancel,
       "play solo while waiting", short puzzle info)
+- [x] 🎲 Lively lobby (D213): bot-made public tables + display-only playing rows; bots answer requests, fill seats and start
+- [x] 🎲 Lobby spectating of playing tables (D214): `GET /tables/:code/watch`, `WatchSheet`, bots-only playing tables
+- [x] 🎲 Self-running bot community: 2v2 XP, skill drift, new faces, daily rhythm, level-matched bot games; richer stands (D216)
+- [x] 🎲 Cheers from the stands (D217); replay of closed tables dropped by the owner
+- [x] 🎲 Bot tables with entry fees, the house funding the bots' share (D215)
 - [x] 📱 4-slide onboarding tutorial (skippable) before first Home screen (D96)
 - [x] 📱 Match screen: whose turn, timer, scores, opponent's last guess feedback
 - [x] 🧪 Reducer tests for every rule; socket integration test with two fake clients; bot-fill test
@@ -184,7 +189,7 @@ human opponent is found.
 - [ ] Load test: 500 concurrent matches on one instance
 - [ ] Store listing for Cafe Bazaar & Myket; privacy policy (Persian)
 - [x] Backups + restore drill — `deploy/backup.sh`, `deploy/restore-check.sh`; not yet run on the real server
-- [x] Admin-managed S3 backups (D205): targets, hourly/daily/weekly schedule, per-target retention, run list, manual run, download, delete (`apps/server/src/backup/`, `docs/logic/backups.md`); needs `mysqldump` in the server image (done) and a real bucket test by the owner
+- [x] Admin-managed S3 backups (D218): targets, hourly/daily/weekly schedule, per-target retention, run list, manual run, download, delete (`apps/server/src/backup/`, `docs/logic/backups.md`); needs `mysqldump` in the server image (done) and a real bucket test by the owner
 
 ## Later
 
@@ -252,6 +257,7 @@ Start after the first Android build.
 - [ ] 3. Kid content and word lesson: kid pool, `item_lessons`, `splitWordLetters`, lesson cards, review queue — **pipeline built behind the switch** (track-pool serving, `item_lessons`, `splitWordLetters`, lesson cards, admin editor + approval, kid puzzle builder); **starter content seeded as drafts** (48 items with lessons, 3 puzzles; an editor approves them); **teen starter content seeded as drafts** (7 puzzles over 74 teen-tagged real products); still open: the rest of the 30–50 kid puzzles, more teen puzzles, easy adult groups for teens
 - [x] 4. Social for kids and teens: track-bound friends, friend duels and tables, managed chat (D198 update) — **built behind the switch (slices 1–7)**: track-bound friends (profile, request, accept, list, search, invite link, leaderboards), track-bound private tables / friend duels, and the managed-chat core (no public rooms, text only to same-track friends with a linked guardian), a taunt library per track, a stricter word list for kid/teen, and the guardian gate on friends/tables (app opens the guardian step); auto-accept between kids needs no extra code (the notice to the guardian is the phase 5 digest); a role-gated kid/teen report queue in the admin, and the guardian step on invite links; nothing left open in this item
 - [x] 5. Guardian panel and digest, family table — **built behind the switch** (migrations 0063–0064): guardian settings (chat mode, friend approval, duels, quiet hours, reminder) enforced on the server, the digest, the family table, the app panel and the soft rest card; later added: block a friend, per-day play time, guardian preview, kill switches per band, guardians tab (see `age-tracks.md`)
+- [x] 6. Age-based look (D206): theme + launcher/PWA icon follow the track (kid/teen candy, adult gold); first pass (scene, buttons, icons); remaining screens to port to `useTheme()`
 
 ## Economy v2 (D204, proposed) — see `docs/logic/economy-v2.md`
 

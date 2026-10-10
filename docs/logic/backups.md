@@ -1,4 +1,4 @@
-# Database backups to S3 (D205)
+# Database backups to S3 (D218)
 
 Admin section **سیستم ← بک‌آپ دیتابیس** (`#/system/backups`, owner only). Scope: the MySQL database only — no uploads, no images, no app files.
 

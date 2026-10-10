@@ -9,11 +9,19 @@ import expo.modules.kotlin.modules.ModuleDefinition
 
 /**
  * Switches the launcher icon between the activity-aliases that plugins/withGenderIcon.js adds to the manifest:
- * `MainActivityDefault` (the original hero) and `MainActivityFemale`. Exactly one alias is enabled at a time; the target
- * is enabled first so the app never has no launcher entry. A no-op when the wanted icon is already the active one.
+ * `MainActivityDefault` (the original hero), `MainActivityFemale`, `MainActivityAdult` and `MainActivityAdultFemale`.
+ * Exactly one alias is enabled at a time; the target is enabled first so the app never has no launcher entry.
+ * A no-op when the wanted icon is already the active one.
  */
 class AppIconModule : Module() {
-  private fun alias(context: Context, name: String) = ComponentName(context.packageName, "ir.dozari.app.$name")
+  private val aliases = mapOf(
+    "default" to "MainActivityDefault",
+    "female" to "MainActivityFemale",
+    "adult" to "MainActivityAdult",
+    "adultFemale" to "MainActivityAdultFemale",
+  )
+
+  private fun component(context: Context, name: String) = ComponentName(context.packageName, "ir.dozari.app.$name")
 
   private fun isEnabled(context: Context, component: ComponentName, enabledInManifest: Boolean): Boolean =
     when (context.packageManager.getComponentEnabledSetting(component)) {
@@ -35,17 +43,13 @@ class AppIconModule : Module() {
 
     Function("setIcon") { variant: String ->
       val context = appContext.reactContext ?: throw Exceptions.ReactContextLost()
-      val default = alias(context, "MainActivityDefault")
-      val female = alias(context, "MainActivityFemale")
-      val wantFemale = variant == "female"
-      if (isEnabled(context, female, false) == wantFemale && isEnabled(context, default, true) != wantFemale) return@Function
-      if (wantFemale) {
-        set(context, female, true)
-        set(context, default, false)
-      } else {
-        set(context, default, true)
-        set(context, female, false)
-      }
+      val wanted = aliases[variant] ?: aliases.getValue("adult")
+      val target = component(context, wanted)
+      // Only the adult alias is enabled in the manifest.
+      val alreadyOnly = aliases.values.all { name -> isEnabled(context, component(context, name), name == "MainActivityAdult") == (name == wanted) }
+      if (alreadyOnly) return@Function
+      set(context, target, true)
+      aliases.values.filter { it != wanted }.forEach { set(context, component(context, it), false) }
     }
   }
 }

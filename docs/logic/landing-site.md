@@ -6,9 +6,11 @@ A separate app in this repo (`apps/landing`, its own container `landing`, no dat
 
 Blog posts (Markdown, draft/published, own Google title/description, cover, author), cast, FAQ, and the `landing.*` settings (name, tagline, hero title and text, contact e-mail). Stored in `landing_posts`, `landing_slug_redirects`, `landing_cast`, `landing_faq` (migration 0050) and served read-only by the game server at `GET /public/landing`, `/public/posts?page&pageSize`, `/public/posts/:slug` (open even in maintenance mode; drafts and hidden rows never leave). A renamed post's old slug answers `{redirectTo}` and the landing app turns it into a **301**.
 
+Starter content lives in `packages/db/seed/landing/{posts,cast,faq}.json` and is loaded by `pnpm --filter @dozari/db seed` (also on every production `seed` run, even with `--if-empty`) or alone with `seed --landing-only`. It is insert-only: posts match by slug, cast by name, FAQ by question, and rows that already exist (e.g. edited in the admin panel) are never overwritten.
+
 ## Pages and technical SEO/GEO
 
-Server-rendered HTML (all content is in the markup, no scripts needed): `/`, `/about`, `/download`, `/contact` (FAQ + e-mail, no form), `/blog` (`?page=N`, own canonical per page), `/blog/:slug`, `/cast`, `/terms`, `/privacy`; `/sitemap.xml` (every indexable URL with real `lastmod` and `hreflang` alternates), `/robots.txt` (named AI crawlers allowed), `/llms.txt` and `/llms-full.txt`; a missing page is a real **404** (noindex), an unreachable game server a **503**.
+Server-rendered HTML (all content is in the markup, no scripts needed): `/`, `/about`, `/download`, `/contact` (FAQ + e-mail, no form), `/blog` (`?page=N`, own canonical per page), `/blog/:slug`, `/cast`, `/cast/:id`, `/how-to-play`, `/modes`, `/glossary`, `/stats`, `/status`, `/press`, `/sitemap` (HTML map of everything), `/terms`, `/privacy`; also `/feed.xml` (RSS), `/status.json` and `/.well-known/security.txt` (only with a contact e-mail); `/sitemap.xml` (every indexable URL with real `lastmod` and `hreflang` alternates), `/robots.txt` (named AI crawlers allowed), `/llms.txt` and `/llms-full.txt`; a missing page is a real **404** (noindex), an unreachable game server a **503**.
 
 Rules built into `src/seo.ts` / `pages.ts`, the only places markup is made: exactly one `h1`; `<title>`, description, canonical, `og:*`, `twitter:*`, `robots`, `hreflang fa-IR / x-default`; one JSON-LD `@graph` per page with a single `Organization` and `WebSite` (only real facts — no invented ratings or addresses), page nodes (`WebPage`, `CollectionPage` + `ItemList`, `AboutPage`, `BlogPosting` with real dates, `HowTo`, `FAQPage`) and a `BreadcrumbList` on inner pages; every page is linked from the header, footer or a list; headings carry anchor ids (citable sections); post body is escaped Markdown (raw HTML never passes, unsafe links dropped). Tests: `apps/landing/src/__tests__`.
 
@@ -39,3 +41,17 @@ The eight promo banners of `docs/design/banner` are resized to 1600px webp in `a
 ## Try-it puzzle (home page)
 
 `GET /public/landing-demo` (game server) returns one approved, adult, non-daily puzzle whose 16 products all have an `icon_key`: four groups (`level`, `title`) of four items (`name`, `svg` from shared `itemSvg`, `image` = the product's primary absolute photo URL or null; the page shows the photo when there is one, else the icon). The pick is stable per day. The landing home page draws the tiles with those icons; it falls back to the built-in word puzzle when the endpoint answers 404 or fails. The solution is in the page by nature of a client-side demo, hence daily puzzles are excluded.
+
+## Age tracks on the landing (adult first)
+
+`docs/design/adult/Dozari Adult - Banner.dc.html` and `docs/design/kids/Dozari Kids - Banners.dc.html` are rendered (1600x900 webp) into `assets/banners/age-{adult,kid,teen}.webp`. The kid banner's «زیر نظر کارشناسان» box is hidden in the render: no unverifiable claim goes on the public site.
+- Home: the adult banner is the 2nd carousel slide; right under the carousel a dark gold «صرافی بزرگ‌ترها» band (`#adult`, adult look of `design/CLAUDE.md`) and a «بازی برای هر سن» strip with the kid and teen cards; the hero links to `/ages#adult`.
+- `/ages` (nav «رده‌های سنی», sitemap, llms.txt, footer): adult hero and six metal feature cards first (`#adult`), how to start, kid and teen cards (`#kids`), comparison table, parents' guide (`#parents`), FAQ with `FAQPage`. Copy comes from `docs/logic/age-tracks.md` §What each band gets; change both together.
+
+## More pages, status, stats and comments (D212)
+
+`src/more.ts` builds the pages added in v2 (`STATIC_PAGES` there is the one list behind both `/sitemap` and `sitemap.xml`); `src/blocks.ts` holds the shared comment block and the extra CSS.
+
+- **Status** (`/status`, `/status.json`): the landing probes `GET /public/status` of the game server on every request (no cache, 5 s timeout) and reports landing / game server / database / maintenance mode with the round-trip time. A silent game server is `down` (503 on the JSON), maintenance mode is `warn`. No history is kept (no database).
+- **Stats** (`/stats`, from `GET /public/stats`): active products, approved prices and their solar-year range, approved puzzles, provinces, active players, published posts, approved comments. Aggregate counts only; nothing identifies a player.
+- **Comments** on `/blog/:slug` and `/cast/:id`: a plain HTML form posts to the landing's `/comments`, which forwards to `POST /public/comments` of the game server (visitor address in `x-visitor`) and answers **303** back to the page with `?c=<result>#comments`. A hidden `website` field is a honeypot. The game server rejects links, blocked words (the player-chat word list) and bad lengths, accepts only published posts and visible cast, limits accepted comments (3 per visitor per 10 minutes, 20 attempts) and stores them as `pending` in `landing_comments`; they show on the site only after an admin approves them (admin panel → «سایت معرفی» → نظرات; `GET/PATCH /admin/landing/comments`). Approved comments are also emitted as `Comment` JSON-LD.

@@ -13,7 +13,7 @@ is unchanged; this is a different axis (visible growth, not opponent selection).
 
 - XP awarded on every **finished** match (abandons don't count, same rule as
   `profile-and-identity.md`'s "finished game"):
-  - `XP_SOLO_BASE` = 5, `XP_DUEL_BASE` = 10 (proposed; team/private can reuse the duel base).
+  - `XP_SOLO_BASE` = 5, `XP_DUEL_BASE` = 10 (proposed; team/private can reuse the duel base). A finished 2v2 pays every player the duel XP (`onTeamEnded`, D216), a win adds the bonus for the winning side; an abandoned match pays nothing.
   - `XP_WIN_BONUS` = 15 (competitive modes only).
   - `XP_PER_PRICE_GUESS_POINT` = 2 — rewards the bonus round too (solo: staircase points; duel:
     rounds won), so a strong price-guess showing still grows the level even on a puzzle loss.
@@ -53,6 +53,8 @@ learns about it only through `GET /me/levels` (`rewards[].spins`), so the step s
 transaction (claim row, spin rows, ledger).
 
 ## Puzzle difficulty scales with skill tier (D34)
+
+**Variety (solo):** the server remembers the last 30 puzzles it served each signed-in player (in memory, per process) and skips them on the next pick (`SoloService.pickFresh`, `PuzzleSource.pickRandom({ exclude })`). When a player has had the whole pool, the memory restarts. Guests have no memory and may see repeats. A small approved pool still repeats quickly: the fix for that is more approved puzzles (admin → puzzles).
 
 Reuses the **skill-rank tag** that already exists in `profile-and-identity.md` (تازه‌کار /
 مبتدی / حرفه‌ای, derived automatically from win rate — cosmetic, no ELO). That tier now also

@@ -11,11 +11,11 @@ import Svg, {
   Stop,
   Text as SvgText,
 } from 'react-native-svg';
-import { fonts } from '../theme/colors';
+import { fonts, colors } from '../theme/colors';
 import { mascotLook } from '../theme/mascot';
 import type { MascotCrop, MascotPose } from '../theme/mascot';
 
-const INK = '#2B1240';
+const INK = colors.ink;
 const HALO = '#FFF6E8';
 
 interface Props {

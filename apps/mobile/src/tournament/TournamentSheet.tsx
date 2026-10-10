@@ -21,6 +21,7 @@ import { avatarOf } from '../social/avatarOf';
 import { colors, fonts } from '../theme/colors';
 import { fetchTournament, fetchTournaments, joinTournament, leaveTournament } from './api';
 import { SponsorCard, SponsorInvite, SponsorTag } from './Sponsor';
+import { Winners } from './Winners';
 import { blockedText, placeLabel, roundLabel, startsInText } from './text';
 import { pageTop } from '../theme/safeArea';
 import { TEXT_RIGHT } from '../theme/direction';
@@ -29,7 +30,7 @@ const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const n = (v: number) => toPersianDigits(String(v));
 const when = (ms: number) => new Intl.DateTimeFormat('fa-IR', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(ms));
 const TINTS = ['#FFE48A', '#3FC1F0', '#FF8FB6', '#B8F08F', '#C9A3FF', '#FFAA7A'];
-const STATUS_TONE: Record<string, string> = { open: '#7ED957', running: '#FFC93C', finished: '#C9A3FF', draft: '#C9A3FF', cancelled: '#FF8FB6' };
+const STATUS_TONE: Record<string, string> = { full: '#FFAA7A', open: '#7ED957', running: '#FFC93C', finished: '#C9A3FF', draft: '#C9A3FF', cancelled: '#FF8FB6' };
 
 /** «تورنومنت‌ها»: the list (orange page) and a tournament's own page (screen-tournament of `11 More Screens`). */
 /** `invite`: the admin's «become a sponsor» card (hidden when there is no contact link). */
@@ -60,7 +61,10 @@ export function TournamentSheet({ onClose, invite = null }: { onClose: () => voi
                   <Text style={styles.cardSub}>{fa.tournament.starts}: {when(t.startsAt)}{t.entered ? ` · ${fa.tournament.mine}` : ''}</Text>
                   {t.sponsor ? <SponsorTag sponsor={t.sponsor} /> : null}
                 </View>
-                <View style={[styles.chip, { backgroundColor: STATUS_TONE[t.status] ?? '#C9A3FF' }]}><Text style={styles.chipText}>{fa.tournament.status[t.status]}</Text></View>
+                {(() => {
+                  const label = t.status === 'open' && t.joined >= t.size && !t.entered ? 'full' : t.status;
+                  return <View style={[styles.chip, { backgroundColor: STATUS_TONE[label] ?? '#C9A3FF' }]}><Text style={styles.chipText}>{fa.tournament.status[label]}</Text></View>;
+                })()}
               </View>
             )}
           </Pressable>
@@ -160,6 +164,7 @@ function TournamentPage({ id, onBack }: { id: string; onBack: () => void }) {
                 </ScrollView>
               ) : null}
 
+              {/* Sponsor + details + prizes + rules together, then the results, then who took part. */}
               {t.sponsor ? <SponsorCard sponsor={t.sponsor} /> : null}
 
               <View style={styles.panel}>
@@ -172,12 +177,11 @@ function TournamentPage({ id, onBack }: { id: string; onBack: () => void }) {
                 ) : null}
                 <Text style={styles.label}>{fa.tournament.rulesTitle}</Text>
                 {[fa.tournament.rules.elimination, fa.tournament.rules.fee(t.entryCoins, t.entryGems), fa.tournament.rules.byes, fa.tournament.rules.cancel, fa.tournament.rules.online].map((r) => <Text key={r} style={styles.small}>• {r}</Text>)}
-                {t.results.length > 0 ? (
-                  <>
-                    <Text style={styles.label}>{fa.tournament.results}</Text>
-                    {t.results.map((r) => <Text key={r.id} style={styles.text}>{placeLabel(r.place)}: {r.nickname}{r.coins > 0 ? ` (${n(r.coins)})` : ''}</Text>)}
-                  </>
-                ) : null}
+              </View>
+
+              {t.results.length > 0 ? <Winners t={t} /> : null}
+
+              <View style={styles.panel}>
                 <Text style={styles.label}>{fa.tournament.players} ({n(t.players.length)})</Text>
                 <View style={styles.people}>
                   {t.players.map((p) => (
@@ -214,7 +218,7 @@ const styles = StyleSheet.create({
   list: { gap: 8, paddingBottom: 24 },
   note: { fontFamily: fonts.bold, fontSize: 14, color: colors.ink, textAlign: 'center', marginTop: 12 },
   pressed: { transform: [{ translateY: 3 }] },
-  card: { flexDirection: ROW, alignItems: 'center', gap: 10, padding: 8, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#fff', ...lift(4) },
+  card: { flexDirection: ROW, alignItems: 'center', gap: 10, padding: 8, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.card, ...lift(4) },
   tile: { width: 50, height: 50, borderRadius: 14, borderWidth: 2.5, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   tileIcon: { width: 38, height: 38 },
   cardBody: { flex: 1, minWidth: 0, gap: 1 },
@@ -231,12 +235,12 @@ const styles = StyleSheet.create({
   top: { flexDirection: ROW, alignItems: 'center', justifyContent: 'space-between' },
   back: { width: 42, height: 42, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...lift(4) },
   status: { flexDirection: ROW, alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 4, borderRadius: 99, borderWidth: 2.5, borderColor: colors.ink },
-  dot: { width: 9, height: 9, borderRadius: 5, backgroundColor: '#fff' },
+  dot: { width: 9, height: 9, borderRadius: 5, backgroundColor: colors.card },
   statusText: { fontFamily: fonts.display, fontSize: 15, color: colors.ink },
   ribbonRow: { alignItems: 'center', gap: 8, marginTop: 6 },
   ribbon: { height: 58, paddingHorizontal: 30, borderRadius: 14, borderWidth: 4, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', maxWidth: '100%', ...lift(6) },
   ribbonText: { fontFamily: fonts.display, fontSize: 30, color: colors.ink },
-  countdown: { paddingHorizontal: 14, paddingVertical: 3, borderRadius: 99, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: '#FFF6E8' },
+  countdown: { paddingHorizontal: 14, paddingVertical: 3, borderRadius: 99, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.cream },
   countdownText: { fontFamily: fonts.bold, fontSize: 13, color: colors.ink },
   mono: { fontFamily: fonts.bold, writingDirection: 'ltr' },
   stats: { flexDirection: ROW, gap: 8, marginTop: 6 },
@@ -247,14 +251,14 @@ const styles = StyleSheet.create({
   col: { width: 138, gap: 6 },
   colTitle: { position: 'absolute', top: -18, left: 0, right: 0, textAlign: 'center', fontFamily: fonts.display, fontSize: 13, color: colors.candy.yellow },
   colBody: { justifyContent: 'space-around', gap: 8, flexGrow: 1 },
-  match: { borderRadius: 12, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: '#FBF1DE', overflow: 'hidden', ...lift(3) },
+  match: { borderRadius: 12, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.paper, overflow: 'hidden', ...lift(3) },
   matchLive: { borderColor: '#7ED957' },
   player: { height: 28, flexDirection: ROW, alignItems: 'center', gap: 4, paddingHorizontal: 6, borderBottomWidth: 1, borderColor: 'rgba(43,18,64,0.15)' },
   playerWon: { backgroundColor: '#E4F7D0' },
   playerName: { flex: 1, fontFamily: fonts.bold, fontSize: 11, color: colors.ink, textAlign: TEXT_RIGHT },
   dim: { opacity: 0.5 },
   check: { fontFamily: fonts.display, fontSize: 13, color: '#3FA36B' },
-  panel: { gap: 6, padding: 12, borderRadius: 20, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#FBF1DE', ...lift(5) },
+  panel: { gap: 6, padding: 12, borderRadius: 20, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.paper, ...lift(5) },
   label: { fontFamily: fonts.display, fontSize: 16, color: '#7E46D6', textAlign: TEXT_RIGHT, marginTop: 4 },
   text: { fontFamily: fonts.bold, fontSize: 13, lineHeight: 21, color: colors.ink, textAlign: TEXT_RIGHT },
   small: { fontFamily: fonts.bold, fontSize: 11.5, lineHeight: 19, color: colors.ink, opacity: 0.85, textAlign: TEXT_RIGHT },

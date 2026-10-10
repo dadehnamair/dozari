@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "dfba1ba4-b270-4789-b0bc-1c9061ba3e8d",
+  "id": "3df705df-bb60-4f27-8e81-22b74e897965",
   "prevId": "578bac52-06c1-40b1-80f2-21e576533fb4",
   "tables": {
     "account_delete_codes": {
@@ -407,269 +407,6 @@
           "name": "app_settings_key",
           "columns": [
             "key"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "checkConstraint": {}
-    },
-    "backup_runs": {
-      "name": "backup_runs",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "char(36)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "target_id": {
-          "name": "target_id",
-          "type": "char(36)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "trigger": {
-          "name": "trigger",
-          "type": "enum('schedule','manual')",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "status": {
-          "name": "status",
-          "type": "enum('running','ok','failed')",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'running'"
-        },
-        "object_key": {
-          "name": "object_key",
-          "type": "varchar(400)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "size_bytes": {
-          "name": "size_bytes",
-          "type": "bigint unsigned",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "error": {
-          "name": "error",
-          "type": "varchar(500)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "started_at": {
-          "name": "started_at",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP(3)"
-        },
-        "finished_at": {
-          "name": "finished_at",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "deleted_reason": {
-          "name": "deleted_reason",
-          "type": "enum('retention','manual')",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "backup_runs_target_started_idx": {
-          "name": "backup_runs_target_started_idx",
-          "columns": [
-            "target_id",
-            "started_at"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {
-        "backup_runs_target_id_backup_targets_id_fk": {
-          "name": "backup_runs_target_id_backup_targets_id_fk",
-          "tableFrom": "backup_runs",
-          "tableTo": "backup_targets",
-          "columnsFrom": [
-            "target_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "backup_runs_id": {
-          "name": "backup_runs_id",
-          "columns": [
-            "id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "checkConstraint": {}
-    },
-    "backup_targets": {
-      "name": "backup_targets",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "char(36)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "name": {
-          "name": "name",
-          "type": "varchar(80)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "endpoint": {
-          "name": "endpoint",
-          "type": "varchar(300)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "region": {
-          "name": "region",
-          "type": "varchar(60)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "''"
-        },
-        "bucket": {
-          "name": "bucket",
-          "type": "varchar(120)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "prefix": {
-          "name": "prefix",
-          "type": "varchar(200)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "''"
-        },
-        "access_key": {
-          "name": "access_key",
-          "type": "varchar(200)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "secret_key_enc": {
-          "name": "secret_key_enc",
-          "type": "varchar(600)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "is_active": {
-          "name": "is_active",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": true
-        },
-        "schedule_kind": {
-          "name": "schedule_kind",
-          "type": "enum('hourly','daily','weekly')",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'daily'"
-        },
-        "schedule_every_hours": {
-          "name": "schedule_every_hours",
-          "type": "smallint unsigned",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 24
-        },
-        "schedule_time": {
-          "name": "schedule_time",
-          "type": "varchar(5)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "'03:00'"
-        },
-        "schedule_weekday": {
-          "name": "schedule_weekday",
-          "type": "tinyint unsigned",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "keep_days": {
-          "name": "keep_days",
-          "type": "smallint unsigned",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "keep_count": {
-          "name": "keep_count",
-          "type": "smallint unsigned",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "last_scheduled_at": {
-          "name": "last_scheduled_at",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP(3)"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {
-        "backup_targets_id": {
-          "name": "backup_targets_id",
-          "columns": [
-            "id"
           ]
         }
       },
@@ -1621,6 +1358,20 @@
         "province": {
           "name": "province",
           "type": "varchar(24)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "souvenir_fa": {
+          "name": "souvenir_fa",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "slogan_fa": {
+          "name": "slogan_fa",
+          "type": "varchar(120)",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false

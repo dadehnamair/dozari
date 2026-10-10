@@ -39,9 +39,9 @@ services:
     environment:
       DATABASE_URL: mysql://dozari:${MYSQL_PASSWORD}@s-dozari-mysql:3306/dozari
 
-  # Loads the catalogue (products, prices, sample puzzles) after the migrations. SEED_ON_START in .env.prod:
-  #   empty (default) = only when the database has no products yet, so a fresh install fills itself and real data is never touched;
-  #   1 = run the full idempotent seed on every `up`;  0 = never. Check the result with `logs s-dozari-seed`.
+  # Seeds after the migrations; it never changes an existing product (the database owns the catalogue). SEED_ON_START in .env.prod:
+  #   empty (default) = fresh install gets products; a live catalogue only gets landing content, keepsakes and curated puzzles;
+  #   1 = run the full seed on every `up` (still never touches existing products);  0 = never. Check the result with `logs s-dozari-seed`.
   s-dozari-seed:
     container_name: c-dozari-seed
     build:
@@ -93,6 +93,17 @@ services:
       LOCAL_IMAGES_PUBLIC_URL: https://${API_DOMAIN:?set API_DOMAIN}/images
       SENTRY_DSN: ${SENTRY_DSN:-}
       BALE_BOT_TOKEN: ${BALE_BOT_TOKEN:-}
+      AI_OPENAI_API_KEY: ${AI_OPENAI_API_KEY:-}
+      AI_DEEPSEEK_API_KEY: ${AI_DEEPSEEK_API_KEY:-}
+      AI_GAPGPT_API_KEY: ${AI_GAPGPT_API_KEY:-}
+      AI_AVALAI_API_KEY: ${AI_AVALAI_API_KEY:-}
+      AI_PARSPACK_API_KEY: ${AI_PARSPACK_API_KEY:-}
+      AI_ANTHROPIC_API_KEY: ${AI_ANTHROPIC_API_KEY:-}
+      AI_GEMINI_API_KEY: ${AI_GEMINI_API_KEY:-}
+      AI_CUSTOM_BASE_URL: ${AI_CUSTOM_BASE_URL:-}
+      AI_CUSTOM_API_KEY: ${AI_CUSTOM_API_KEY:-}
+      AI_CUSTOM_NAME: ${AI_CUSTOM_NAME:-}
+      AI_CUSTOM_MODEL: ${AI_CUSTOM_MODEL:-}
       BALE_BOT_USERNAME: ${BALE_BOT_USERNAME:-}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       IRNOTI_API_KEY: ${IRNOTI_API_KEY:-}

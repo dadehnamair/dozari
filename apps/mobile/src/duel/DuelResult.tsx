@@ -17,7 +17,7 @@ const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const a = fa.duel.arena;
 
 type Outcome = 'won' | 'lost' | 'draw';
-type Line = { name: string; who: CharacterId; groups: number; points: number; me: boolean; /** Tap the row to open this player's profile (an opponent in a 1v1). */ playerId?: string };
+type Line = { name: string; who: CharacterId; groups: number; points: number; me: boolean; /** Tap the row to open this player's profile (an opponent in a 1v1). */ playerId?: string; /** Opponents who can be reported from this row (one in 1v1, two in 2v2). */ reportable?: { id: string; name: string }[] };
 
 const LOOK: Record<Outcome, { title: string; sub: string; pose: 'win' | 'sad' | 'thinking'; ban: [string, string]; again: string; againColor: string }> = {
   won: { title: fa.duel.won, sub: a.winSub, pose: 'win', ban: ['#FFE48A', colors.candy.yellow], again: a.againWin, againColor: colors.candy.pink },
@@ -26,7 +26,7 @@ const LOOK: Record<Outcome, { title: string; sub: string; pose: 'win' | 'sad' | 
 };
 
 /** screen-results of `13 Match Screens`: the hero's pose, a banner, why it ended, the scoreboard, home / play again. */
-export function DuelResult({ outcome, reason, lines, priceRound, onHome, onAgain, onInvite, onPlayer }: { outcome: Outcome; reason: string; lines: Line[]; /** The finished price-guess round, when the duel had one. */ priceRound?: PriceRoundView; onHome: () => void; onAgain?: () => void; /** Opens the invite sheet: the best moment to ask a friend to play is right after a game. */ onInvite?: () => void; /** Opens a player's profile sheet. */ onPlayer?: (id: string) => void }) {
+export function DuelResult({ outcome, reason, lines, priceRound, onHome, onAgain, againLabel, onInvite, onPlayer, onReport }: { outcome: Outcome; reason: string; lines: Line[]; /** The finished price-guess round, when the duel had one. */ priceRound?: PriceRoundView; onHome: () => void; onAgain?: () => void; /** Replaces the outcome's «play again» wording (a private table goes back to its lobby). */ againLabel?: string; /** Opens the invite sheet: the best moment to ask a friend to play is right after a game. */ onInvite?: () => void; /** Opens a player's profile sheet. */ onPlayer?: (id: string) => void; /** Opens the report dialog for the opponent (1v1). */ onReport?: (id: string) => void }) {
   const look = LOOK[outcome];
   const sorted = [...lines].sort((x, y) => y.points - x.points);
   return (
@@ -58,6 +58,9 @@ export function DuelResult({ outcome, reason, lines, priceRound, onHome, onAgain
                 <Text style={styles.name} numberOfLines={1}>{l.name}</Text>
                 {i === 0 && l.points > 0 && sorted[1]?.points !== l.points ? <View style={styles.crown}><Item icon="crown" /></View> : null}
               </View>
+              {onReport ? l.reportable?.map((r) => (
+                <Pressable key={r.id} onPress={() => onReport(r.id)} accessibilityRole="button" hitSlop={8}><Text style={styles.report}>{l.reportable && l.reportable.length > 1 ? `${fa.feedback.report.short} ${r.name}` : fa.feedback.report.short}</Text></Pressable>
+              )) : null}
               <Text style={[styles.num, styles.cell]}>{toPersianDigits(String(l.groups))}</Text>
               <Text style={[styles.num, styles.cell, styles.pts]}>{toPersianDigits(String(l.points))}</Text>
             </Pressable>
@@ -87,7 +90,7 @@ export function DuelResult({ outcome, reason, lines, priceRound, onHome, onAgain
         <View style={styles.actions}>
           <SlabButton label={a.home} color={colors.candy.sky} height={58} fontSize={20} onPress={onHome} />
           {onInvite ? <SlabButton label={a.invite} color={colors.candy.lime} height={58} fontSize={18} onPress={onInvite} /> : null}
-          {onAgain ? <SlabButton label={look.again} color={look.againColor} height={58} fontSize={24} grow={1.6} onPress={onAgain} /> : null}
+          {onAgain ? <SlabButton label={againLabel ?? look.again}color={look.againColor} height={58} fontSize={24} grow={1.6} onPress={onAgain} /> : null}
         </View>
       </View>
     </View>
@@ -95,18 +98,19 @@ export function DuelResult({ outcome, reason, lines, priceRound, onHome, onAgain
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#3C1A66' },
+  root: { flex: 1, backgroundColor: colors.deep },
   shade: { backgroundColor: 'rgba(43,18,64,0.55)' },
   column: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', paddingHorizontal: 12, paddingTop: 28 + nativeTopInset(), paddingBottom: 28, alignItems: 'stretch', gap: 8 },
-  scroll: { flexShrink: 1, flexGrow: 0 },
+  scroll: { flexShrink: 1, flexGrow: 0, minHeight: 0 },
   scrollIn: { gap: 8, paddingBottom: 6 },
   hero: { width: 140, height: 162, alignSelf: 'center' },
   banner: { alignSelf: 'center', paddingHorizontal: 30, paddingVertical: 6, borderRadius: 18, borderWidth: 4, borderColor: colors.ink, overflow: 'hidden', shadowColor: colors.ink, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 1, shadowRadius: 0, elevation: 6 },
   bannerText: { fontFamily: fonts.display, fontSize: 32, lineHeight: 44, color: colors.ink },
   sub: { fontFamily: fonts.bold, fontSize: 13, color: colors.cream, textAlign: 'center' },
-  board: { marginTop: 10, borderRadius: 20, backgroundColor: '#FBF1DE', borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', shadowColor: colors.ink, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 1, shadowRadius: 0, elevation: 5 },
+  board: { marginTop: 10, borderRadius: 20, backgroundColor: colors.paper, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', shadowColor: colors.ink, shadowOffset: { width: 0, height: 5 }, shadowOpacity: 1, shadowRadius: 0, elevation: 5 },
   head: { height: 30, flexDirection: ROW, alignItems: 'center', paddingHorizontal: 12, gap: 8, backgroundColor: colors.ink },
   headText: { fontFamily: fonts.bold, fontSize: 11, color: 'rgba(255,246,232,0.75)', textAlign: TEXT_RIGHT },
+  report: { fontFamily: fonts.bold, fontSize: 12, color: '#8E7B6B', textDecorationLine: 'underline' },
   grow: { flex: 1, minWidth: 0 },
   cell: { width: 50, textAlign: 'center' },
   line: { height: 46, flexDirection: ROW, alignItems: 'center', gap: 8, paddingHorizontal: 10, borderTopWidth: 1.5, borderStyle: 'dashed', borderColor: 'rgba(43,18,64,0.2)' },

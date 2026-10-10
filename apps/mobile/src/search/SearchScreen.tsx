@@ -30,7 +30,7 @@ function Title({ small = false, text }: { small?: boolean; text: string }) {
   return (
     <View accessible accessibilityRole="header" accessibilityLabel={text} style={{ paddingVertical: 6, paddingHorizontal: 8 }}>
       {OUTLINE.map(([dx, dy], i) => (
-        <Text key={i} importantForAccessibility="no" style={[base, { position: 'absolute', left: 8 + dx, right: 8 - dx, top: 6 + dy, color: '#2B1240' }]}>{text}</Text>
+        <Text key={i} importantForAccessibility="no" style={[base, { position: 'absolute', left: 8 + dx, right: 8 - dx, top: 6 + dy, color: colors.ink }]}>{text}</Text>
       ))}
       <Text style={[base, { color: '#FF8FD0' }]}>{text}</Text>
     </View>
