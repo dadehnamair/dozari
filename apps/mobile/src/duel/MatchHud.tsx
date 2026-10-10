@@ -7,7 +7,7 @@ import { GradientFill } from '../components/GradientFill';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import type { CharacterId } from '../theme/character';
-import { EDGE_LEFT, EDGE_RIGHT } from '../theme/direction';
+import { EDGE_LEFT, EDGE_RIGHT, TEXT_LEFT } from '../theme/direction';
 import { tugPercent } from './arena';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
@@ -51,7 +51,7 @@ function Card({ side, tone, onChat, chatOpen = false, chatCooling = false }: { s
   return (
     <View style={[styles.card, mine ? styles.cardMe : styles.cardRival, side.active ? styles.cardActive : null]}>
       <GradientFill from={mine ? '#3A86C8' : '#D04A82'} to={mine ? '#1F5A96' : '#94245A'} />
-      <View style={styles.cardRow}>
+      <View style={[styles.cardRow, mine ? null : styles.cardRowRival]}>
         <View style={[styles.face, { backgroundColor: base }]}>
           <View style={[styles.faceIn, mine ? null : styles.flip]}>
             <Character who={side.who} pose="idle" crop="face" month={side.who === 'dozari' ? solarMonthOf(Date.now()) : undefined} />
@@ -62,9 +62,9 @@ function Card({ side, tone, onChat, chatOpen = false, chatCooling = false }: { s
             <View style={[styles.mateIn, mine ? null : styles.flip]}><Character who={side.mate} pose="idle" crop="face" /></View>
           </View>
         ) : null}
-        <View style={styles.info}>
-          <View style={styles.nameRow}>
-            <Text style={styles.name} numberOfLines={1}>{side.name}</Text>
+        <View style={[styles.info, mine ? null : styles.infoRival]}>
+          <View style={[styles.nameRow, mine ? null : styles.nameRowRival]}>
+            <Text style={[styles.name, mine ? null : styles.nameRival]} numberOfLines={1}>{side.name}</Text>
             {side.level ? <View style={styles.lv}><Text style={styles.lvText}>{toPersianDigits(String(side.level))}</Text></View> : null}
           </View>
           <View style={[styles.pips, { flexDirection: mine ? ROW : ROW_OUT }]}>
@@ -96,12 +96,17 @@ const styles = StyleSheet.create({
   cardRival: {},
   cardActive: { borderColor: colors.candy.yellow },
   cardRow: { flexDirection: ROW, alignItems: 'center', gap: 7 },
+  /** The rival's card is the player's mirrored: portrait on the left edge, name and pips running from it. */
+  cardRowRival: { flexDirection: ROW_OUT },
   face: { width: 46, height: 46, borderRadius: 14, borderWidth: 2.5, borderColor: colors.cream, overflow: 'hidden' },
   faceIn: { position: 'absolute', top: -3, left: -3, right: -3, bottom: -3 },
   flip: { transform: [{ scaleX: -1 }] },
   mate: { position: 'absolute', top: 30, width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: colors.cream, overflow: 'hidden' },
   mateIn: { position: 'absolute', top: -2, left: -2, right: -2, bottom: -2 },
   info: { flex: 1, minWidth: 0, gap: 4, alignItems: Platform.OS === 'web' ? 'flex-end' : 'flex-start' },
+  infoRival: { alignItems: Platform.OS === 'web' ? 'flex-start' : 'flex-end' },
+  nameRowRival: { flexDirection: ROW_OUT },
+  nameRival: { textAlign: TEXT_LEFT },
   nameRow: { flexDirection: ROW, alignItems: 'center', gap: 4, maxWidth: '100%' },
   name: { flexShrink: 1, fontFamily: fonts.display, fontSize: 15, lineHeight: 22, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 0 },
   lv: { height: 16, paddingHorizontal: 4, borderRadius: 5, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },

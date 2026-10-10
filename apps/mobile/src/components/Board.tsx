@@ -31,13 +31,17 @@ export function Board({ solved, cards, names, selected, onToggle, disabled, hint
   const w = cellWidth(width, GAP, GROUP_SIZE);
   return (
     <View style={styles.board} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
-      {solved.map((g) => (
-        <View key={g.level} style={[styles.row, { backgroundColor: colors.group[g.level], borderBottomColor: groupShelf[g.level] }]} accessibilityLabel={g.titleFa}>
-          <Text style={styles.rowTitle}>{g.titleFa}</Text>
-          <Text style={styles.rowItems}>{g.productIds.map((id) => names[id] ?? id).join('، ')}</Text>
-          <Text style={styles.rowWhy}>{g.revealed ? `${fa.solo.revealed} · ` : ''}{g.explanationFa}</Text>
-        </View>
-      ))}
+      {solved.map((g) => {
+        // A found group takes exactly the height of a row of cards, so the board never grows when rows turn into groups.
+        const why = `${g.revealed ? `${fa.solo.revealed} · ` : ''}${g.explanationFa === g.titleFa ? '' : g.explanationFa}`.trim();
+        return (
+          <View key={g.level} style={[styles.row, w > 0 && { height: cardMetrics(w).height }, { backgroundColor: colors.group[g.level], borderBottomColor: groupShelf[g.level] }]} accessibilityLabel={g.titleFa}>
+            <Text style={styles.rowTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{g.titleFa}</Text>
+            <Text style={styles.rowItems} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{g.productIds.map((id) => names[id] ?? id).join('، ')}</Text>
+            {why ? <Text style={styles.rowWhy} numberOfLines={2}>{why}</Text> : null}
+          </View>
+        );
+      })}
       <View style={styles.grid}>
         {cards.map((c) => {
           const on = selected.includes(c.id);
@@ -73,10 +77,10 @@ const styles = StyleSheet.create({
   cellNudge: { backgroundColor: '#FFF3C4', borderColor: 'rgba(255,201,60,0.8)', borderWidth: 3 },
   cellHint: { borderColor: '#FFC93C', borderWidth: 4 },
   board: { gap: GAP, width: '100%', maxWidth: 520, alignSelf: 'center' },
-  row: { borderRadius: 16, borderWidth: 3, borderColor: colors.ink, borderBottomWidth: 6, paddingVertical: 10, paddingHorizontal: 12, alignItems: 'center', gap: 2 },
-  rowTitle: { fontFamily: 'Vazirmatn_700Bold', fontSize: 16, color: colors.ink },
-  rowItems: { fontFamily: 'Vazirmatn_400Regular', fontSize: 14, color: colors.ink, textAlign: 'center' },
-  rowWhy: { fontFamily: 'Vazirmatn_400Regular', fontSize: 12, color: colors.ink, opacity: 0.75, textAlign: 'center' },
+  row: { borderRadius: 16, borderWidth: 3, borderColor: colors.ink, borderBottomWidth: 6, paddingVertical: 4, paddingHorizontal: 12, alignItems: 'center', justifyContent: 'center', gap: 1, overflow: 'hidden' },
+  rowTitle: { fontFamily: 'Vazirmatn_700Bold', fontSize: 15, lineHeight: 21, color: colors.ink, maxWidth: '100%' },
+  rowItems: { fontFamily: 'Vazirmatn_400Regular', fontSize: 13, lineHeight: 18, color: colors.ink, textAlign: 'center', maxWidth: '100%' },
+  rowWhy: { fontFamily: 'Vazirmatn_400Regular', fontSize: 11, lineHeight: 15, color: colors.ink, opacity: 0.75, textAlign: 'center', maxWidth: '100%' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: GAP },
   cell: {
     borderRadius: 14,

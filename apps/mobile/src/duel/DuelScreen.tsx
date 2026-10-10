@@ -533,8 +533,9 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
 
           <View style={styles.turnRow}>
             <View style={[styles.turn, mine ? styles.turnMine : null]}><Text style={[styles.turnText, mine ? styles.turnTextMine : null]}>{turnText}</Text></View>
+            {/* Toasts cover the turn pill for a moment instead of reserving a row of their own (no empty gap above the board). */}
+            {toast ? <View style={styles.toastOver} pointerEvents="none"><View style={styles.toast}><Text style={styles.toastText} numberOfLines={2}>{toast}</Text></View></View> : null}
           </View>
-          <View style={styles.toastSlot}>{toast ? <View style={styles.toast}><Text style={styles.toastText} numberOfLines={2}>{toast}</Text></View> : null}</View>
 
           <View style={styles.boardPanel}>
             <Board solved={state.finale ? (finaleLast ? [...state.finale.solved, state.finale.last] : state.finale.solved) : boardSolved(view)} cards={state.finale ? (finaleLast ? [] : state.finale.cards) : arrange(view.cards, order)} names={state.names} selected={state.finale ? finaleSel : selected} onToggle={(id) => setSelected((s) => toggleSelection(s, id))} disabled={!playing || !mine || !!state.finale || frozenMe} muted={playing && !mine && !state.finale} hinted={state.peek?.ids ?? []} />
@@ -614,7 +615,8 @@ const styles = StyleSheet.create({
   clockText: { fontFamily: fonts.display, fontSize: 26, lineHeight: 36, color: colors.ink },
   mode: { height: 40, paddingHorizontal: 12, borderRadius: 13, backgroundColor: 'rgba(26,8,44,0.8)', borderWidth: 2, borderColor: colors.candy.yellow, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
   modeText: { fontFamily: fonts.display, fontSize: 17, color: colors.candy.yellow },
-  turnRow: { alignItems: 'center' },
+  turnRow: { alignItems: 'center', justifyContent: 'center' },
+  toastOver: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', zIndex: 5 },
   turn: { paddingHorizontal: 18, paddingVertical: 4, borderRadius: 99, backgroundColor: colors.candy.pink, borderWidth: 3, borderColor: colors.ink },
   turnMine: { backgroundColor: colors.candy.lime, borderColor: colors.ink },
   turnText: { fontFamily: fonts.display, fontSize: 16, lineHeight: 26, color: '#fff' },
