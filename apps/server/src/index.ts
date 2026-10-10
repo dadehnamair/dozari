@@ -61,7 +61,9 @@ import { createDbFindStore } from './find/store.js';
 import { PhoneLoginService } from './phone/login.js';
 import { registerPhoneLoginRoutes, registerPhoneRoutes } from './phone/routes.js';
 import { PhoneService, phoneRulesFromSettings } from './phone/service.js';
-import { createIrnotiClient, createKavenegarClient, withSmsLogging } from './phone/sms.js';
+import { withSmsLogging } from './phone/sms.js';
+import type { SmsClient } from './phone/sms.js';
+import { SmsGateway } from './phone/smsConfig.js';
 import { createDbPhoneStore } from './phone/store.js';
 import { PuzzleHistory } from './solo/history.js';
 import { registerInviteRoutes } from './invite/routes.js';
@@ -520,13 +522,12 @@ if (isMainModule(import.meta.url)) {
   const baleClient = baleToken ? createBaleClient(baleToken, { base: process.env.BALE_API_BASE }) : null;
   const baleStore: NotifyStore | undefined = db ? createDbNotifyStore(db) : undefined;
   const notify = baleStore ? new NotifyService(baleStore, baleClient) : undefined;
-  // irnoti wins when both are configured; Kavenegar stays as the fallback adapter.
-  const rawSmsClient = process.env.IRNOTI_API_KEY
-    ? createIrnotiClient(process.env.IRNOTI_API_KEY, { message: process.env.IRNOTI_MESSAGE, lineId: process.env.IRNOTI_LINE_ID })
-    : process.env.KAVENEGAR_API_KEY && process.env.KAVENEGAR_TEMPLATE
-      ? createKavenegarClient(process.env.KAVENEGAR_API_KEY, process.env.KAVENEGAR_TEMPLATE)
-      : null;
-  const smsClient = rawSmsClient ? withSmsLogging(rawSmsClient) : null;
+  // The SMS provider and message texts are edited in the admin panel (stored in app_settings); env vars are the fallback.
+  const smsGateway = settings && db
+    ? new SmsGateway(createDbSettingsStore(db), { irnotiKey: process.env.IRNOTI_API_KEY, irnotiMessage: process.env.IRNOTI_MESSAGE, irnotiLineId: process.env.IRNOTI_LINE_ID, kavenegarKey: process.env.KAVENEGAR_API_KEY, kavenegarTemplate: process.env.KAVENEGAR_TEMPLATE })
+    : undefined;
+  await smsGateway?.refresh();
+  const smsClient: SmsClient | null = smsGateway ? withSmsLogging(smsGateway) : null;
   const phone = db && settings ? new PhoneService(createDbPhoneStore(db), () => phoneRulesFromSettings(settings), smsClient, Date.now, undefined, async (id) => {
         const [row, lv] = await Promise.all([socialStore?.publicRow(id), player?.levelOf(id)]);
         return { nickname: row?.nickname ?? '', avatarKey: row?.avatarKey ?? 'avatar-01', level: lv?.level.level ?? 1, coins: row?.coins ?? 0 };
@@ -879,7 +880,7 @@ if (isMainModule(import.meta.url)) {
     auth,
     settings,
     adminModules: db
-      ? { backups: backupService, images: adminImageStore(), products: productAdmin!, feedback, clientErrors, stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, keepsakes: keepsakeStore, wheel, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, ageTracks: db ? createDbAgeTrackAdmin(db) : undefined, economy: db ? createDbEconomyAdmin(db) : undefined, daily, ai: aiStudio, aiSchedules: aiScheduler, puzzles: createDbPuzzleAdmin(db), levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      ? { backups: backupService, images: adminImageStore(), products: productAdmin!, feedback, clientErrors, stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, keepsakes: keepsakeStore, wheel, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, ageTracks: db ? createDbAgeTrackAdmin(db) : undefined, economy: db ? createDbEconomyAdmin(db) : undefined, daily, ai: aiStudio, aiSchedules: aiScheduler, puzzles: createDbPuzzleAdmin(db), levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, sms: smsGateway, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
     match: db
