@@ -9,7 +9,7 @@ import { NotifyService } from '../notify/service.js';
 import { createMemoryNotifyStore } from '../notify/store.js';
 import { PhoneService } from '../phone/service.js';
 import type { SmsClient } from '../phone/sms.js';
-import { createIrnotiClient, createKavenegarClient } from '../phone/sms.js';
+import { createIrnotiClient, createKavenegarClient, withSmsLogging } from '../phone/sms.js';
 import { createMemoryPhoneStore } from '../phone/store.js';
 
 function memoryUsers(): UserRepository {
@@ -265,5 +265,18 @@ describe('irnoti adapter', () => {
     await expect(http.sendCode('+989121111111', '1')).rejects.toThrow();
     const body = createIrnotiClient('k', { fetchImpl: (async () => ({ ok: true, status: 200, json: async () => ({ success: false }) })) as unknown as typeof fetch });
     await expect(body.sendCode('+989121111111', '1')).rejects.toThrow();
+  });
+});
+
+describe('withSmsLogging', () => {
+  it('logs the provider reason with a masked number, never the code, and rethrows', async () => {
+    const f = (async () => new Response(JSON.stringify({ return: { status: 418, message: 'no credit' } }), { status: 200 })) as unknown as typeof fetch;
+    const logs: string[] = [];
+    const sms = withSmsLogging(createKavenegarClient('k', 't', { fetchImpl: f }), (m, e) => logs.push(`${m} ${String(e)}`));
+    await expect(sms.sendCode('+989123456789', '12345')).rejects.toThrow('no credit');
+    expect(logs).toHaveLength(1);
+    expect(logs[0]).toContain('no credit');
+    expect(logs[0]).not.toContain('12345');
+    expect(logs[0]).not.toContain('9123456');
   });
 });

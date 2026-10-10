@@ -6,7 +6,7 @@ passwords and open ports). The production stack is `docker-compose.prod.yml`:
 | Service | What it is | Reachable from outside |
 |---|---|---|
 | `s-dozari-mysql` | MySQL 8.4, data in a volume | no (compose network only) |
-| `s-dozari-migrate` | applies the DB migrations, then exits | no |
+| `s-dozari-migrate` | applies the DB migrations, then exits. **Off by default** (profile `setup`, see below) | no |
 | `s-dozari-server` | the game server (REST, Socket.io, admin panel, product images) | `127.0.0.1:3000` |
 | `s-dozari-web` | the web app (PWA) as static files over plain HTTP | `127.0.0.1:8081` (`WEB_PORT`) |
 | `s-dozari-phpmyadmin` | phpMyAdmin on the same MySQL (§phpMyAdmin) | `127.0.0.1:8082` (`PMA_PORT`) |
@@ -51,7 +51,7 @@ git clone <repo> dozari && cd dozari
 cp deploy/.env.example .env.prod
 nano .env.prod          # every line: domains, MYSQL_*, JWT_SECRET, ADMIN_TOKEN (openssl rand -hex 24)
 docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
-docker compose -f docker-compose.prod.yml --env-file .env.prod ps     # s-dozari-migrate: exited (0), others: running
+docker compose -f docker-compose.prod.yml --env-file .env.prod ps     # others: running (migrate/seed only exist with --profile setup)
 curl http://127.0.0.1:3000/health   # once the proxy forwards: https://api.mrbots.ir/health
 ```
 
@@ -62,6 +62,13 @@ The server **refuses to start in production** with a short or default `JWT_SECRE
 docker compose -f docker-compose.prod.yml --env-file .env.prod run --rm -w /app/apps/server s-dozari-server \
   pnpm exec tsx src/admin/accounts/cli.ts <username> owner "<display name>"
 ```
+
+### Migrate and seed are temporarily off
+
+`s-dozari-migrate` and `s-dozari-seed` carry the compose profile `setup`, so a plain `up -d --build` does not start them (the server's `depends_on` on them is `required: false`).
+Schema changes are therefore **not** applied automatically. To turn them back on, either add `--profile setup` to the command above, or put `COMPOSE_PROFILES=setup` in `.env.prod`.
+To run them once without enabling permanently: `docker compose -f docker-compose.prod.yml --env-file .env.prod --profile setup up s-dozari-migrate s-dozari-seed`.
+After changing `packages/db/src/schema.ts` run migrate before starting the new server build.
 
 ## Reverse proxy
 
