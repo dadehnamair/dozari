@@ -125,7 +125,6 @@ function AppInner() {
   const [launch] = useState(takeLaunchTarget);
   // Another account was loaded on this device (phone proof): remount every screen so nothing shows the old account.
   const [epoch, setEpoch] = useState(0);
-  const [presetTrack, setPresetTrack] = useState<AgeTrack | undefined>(undefined);
   useEffect(() => onAccountSwitched(() => (setScreen('home'), setEpoch((e) => e + 1))), []);
   const launchOn = launch === 'solo' || (launch === 'daily' && config.features.daily) || (launch === 'duel' && config.features.duel);
 

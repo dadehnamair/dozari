@@ -68,4 +68,5 @@ A local Windows build (Android Studio, JDK 21, hoisted pnpm) produces a working 
      -Pandroid.injected.signing.key.password="<key pass>"
    ```
 3. Check: `apksigner verify --print-certs app\build\outputs\apk\release\app-release.apk` must not show the Android Debug certificate.
-4. Every store update needs a higher `android.versionCode` in `apps/mobile/app.json` (and a new `version` for users); build one APK per market.
+4. Permissions: the manifest keeps only `INTERNET`, `READ_CONTACTS` (find friends) and `VIBRATE`; `app.json` `android.blockedPermissions` strips the storage, `WRITE_CONTACTS` and `SYSTEM_ALERT_WINDOW` ones that libraries add (stores flag them). Check `android/app/src/main/AndroidManifest.xml` after prebuild.
+5. Every store update needs a higher `android.versionCode` in `apps/mobile/app.json` (and a new `version` for users); build one APK per market.
