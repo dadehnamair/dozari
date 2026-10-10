@@ -617,6 +617,7 @@ export const fa = {
       againLose: 'انتقام بگیر!',
       againDraw: 'دوباره!',
     },
+    submitting: 'در حال ثبت…',
     errors: {
       MAINTENANCE: 'بازی در حال تعمیر است.',
       FEATURE_OFF: 'دوئل زنده فعلاً خاموش است.',

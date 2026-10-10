@@ -415,8 +415,10 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   const canSend = playing && mine && captain && canSubmit(selected) && !sending && !state.finale;
   const submit = () => {
     if (!canSend) return;
+    // No live connection object at all: never a silent tap. Say so and ask the server where things stand once the line is back.
+    if (!conn.current) return dispatch({ t: 'notice', error: 'NETWORK' });
     setSending(true);
-    void conn.current?.submit(selected).then((ack) => {
+    void conn.current.submit(selected).then((ack) => {
       setSending(false);
       if (ack.ok) return setSelected([]);
       // A refused submit never ends the game for the player: it is a toast, and a lost answer asks the server where things stand.
@@ -485,10 +487,12 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
             </View>
           ) : null}
 
+          {/* The same notice again right above the buttons: the one at the top of the board is out of sight when the player is down here. */}
+          {noticeText ? <View style={styles.toastSlot}><View style={styles.toast}><Text style={styles.toastText} numberOfLines={2}>{noticeText}</Text></View></View> : null}
           <View style={styles.actions}>
             <SlabButton label={fa.solo.shuffle} color={colors.candy.sky} height={58} fontSize={20} onPress={() => setOrder(shuffled(view.cards.map((c) => c.id)))} disabled={!playing || !!state.finale} />
             <SlabButton label={fa.solo.deselect} color={colors.candy.orange} height={58} fontSize={20} onPress={() => setSelected([])} disabled={selected.length === 0 || !!state.finale} />
-            <SlabButton label={fa.solo.submit} sfx="confirm" color={colors.candy.lime} height={58} fontSize={24} grow={1.4} onPress={submit} disabled={!canSend} />
+            <SlabButton label={sending ? fa.duel.submitting : fa.solo.submit} sfx="confirm" color={colors.candy.lime} height={58} fontSize={24} grow={1.4} onPress={submit} disabled={!canSend} />
           </View>
         </View>
       </ScrollView>
