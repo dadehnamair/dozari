@@ -6,6 +6,9 @@
 services:
   s-dozari-mysql:
     container_name: c-dozari-mysql
+    mem_limit: 768m
+    memswap_limit: 768m
+    cpus: 1.0
     image: mysql:8.4
     restart: unless-stopped
     environment:
@@ -13,7 +16,7 @@ services:
       MYSQL_DATABASE: dozari
       MYSQL_USER: dozari
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD}
-    command: ['--character-set-server=utf8mb4', '--collation-server=utf8mb4_unicode_ci']
+    command: ['--character-set-server=utf8mb4', '--collation-server=utf8mb4_unicode_ci', '--innodb-buffer-pool-size=256M', '--max-connections=100', '--performance-schema=OFF']
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
@@ -26,6 +29,9 @@ services:
   # Applies the database migrations (safe to repeat) and exits; the server starts after it succeeds.
   s-dozari-migrate:
     container_name: c-dozari-migrate
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 0.5
     build:
       context: .
       dockerfile: deploy/Dockerfile.server
@@ -44,6 +50,9 @@ services:
   #   1 = run the full seed on every `up` (still never touches existing products);  0 = never. Check the result with `logs s-dozari-seed`.
   s-dozari-seed:
     container_name: c-dozari-seed
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 0.5
     build:
       context: .
       dockerfile: deploy/Dockerfile.server
@@ -67,6 +76,9 @@ services:
 
   s-dozari-server:
     container_name: c-dozari-server
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 1.0
     # Same build as `s-dozari-migrate` (cached): a service with only `image:` would make compose try to pull it.
     build:
       context: .
@@ -82,6 +94,7 @@ services:
         condition: service_completed_successfully
     environment:
       NODE_ENV: production
+      NODE_OPTIONS: --max-old-space-size=384
       PORT: 3000
       DATABASE_URL: mysql://dozari:${MYSQL_PASSWORD}@s-dozari-mysql:3306/dozari
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET (32+ random chars)}
@@ -120,6 +133,9 @@ services:
   # anyone who reaches this page can try passwords against the database.
   s-dozari-phpmyadmin:
     container_name: c-dozari-phpmyadmin
+    mem_limit: 192m
+    memswap_limit: 192m
+    cpus: 0.25
     image: phpmyadmin:5
     restart: unless-stopped
     depends_on:
@@ -130,12 +146,15 @@ services:
       PMA_PORT: 3306
       PMA_ARBITRARY: 0
       UPLOAD_LIMIT: 256M
-      MEMORY_LIMIT: 512M
+      MEMORY_LIMIT: 128M
     ports:
       - '${PMA_PORT:-8082}:80'
 
   s-dozari-web:
     container_name: c-dozari-web
+    mem_limit: 64m
+    memswap_limit: 64m
+    cpus: 0.25
     build:
       context: .
       dockerfile: deploy/Dockerfile.web
@@ -153,6 +172,9 @@ services:
   # it reads the game server over the compose network. Loopback only; the host's reverse proxy forwards LANDING_DOMAIN here.
   s-dozari-landing:
     container_name: c-dozari-landing
+    mem_limit: 256m
+    memswap_limit: 256m
+    cpus: 0.5
     build:
       context: .
       dockerfile: deploy/Dockerfile.landing
@@ -161,6 +183,7 @@ services:
       - s-dozari-server
     environment:
       PORT: 3100
+      NODE_OPTIONS: --max-old-space-size=192
       API_URL: http://s-dozari-server:3000
       SITE_URL: https://${LANDING_DOMAIN:-mrdozari.ir}
     ports:
@@ -171,6 +194,9 @@ services:
   # MINIAPP_DOMAIN here. The messenger's bot father needs this domain as the mini-app address.
   s-dozari-miniapp:
     container_name: c-dozari-miniapp
+    mem_limit: 64m
+    memswap_limit: 64m
+    cpus: 0.25
     build:
       context: .
       dockerfile: deploy/Dockerfile.miniapp
