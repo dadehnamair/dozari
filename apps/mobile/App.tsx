@@ -125,6 +125,7 @@ function AppInner() {
   const [launch] = useState(takeLaunchTarget);
   // Another account was loaded on this device (phone proof): remount every screen so nothing shows the old account.
   const [epoch, setEpoch] = useState(0);
+  const [presetTrack, setPresetTrack] = useState<AgeTrack | undefined>(undefined);
   useEffect(() => onAccountSwitched(() => (setScreen('home'), setEpoch((e) => e + 1))), []);
   const launchOn = launch === 'solo' || (launch === 'daily' && config.features.daily) || (launch === 'duel' && config.features.duel);
 
@@ -216,6 +217,7 @@ function AppInner() {
           }
         />
       ) : null}
+
       {screen === 'ageTrack' ? <AgeTrackScreen initial={pickedTrack ?? undefined} onDone={() => void tutorialSeen().then((seen) => setScreen(seen ? 'home' : 'tutorial'))} /> : null}
       {screen === 'solo' ? <SoloScreen key={previewTrack ?? 'own'} previewTrack={previewTrack ?? undefined} onBack={() => (setPreviewTrack(null), setScreen('home'))} hintsEnabled={config.features.shop} ageTracksOn={config.raw['feature.age_tracks'] === 1} /> : null}
       {screen === 'priceonly' ? <PriceOnlyScreen onBack={() => setScreen('home')} /> : null}

@@ -1373,6 +1373,10 @@ export const fa = {
     resendIn: (s: number) => `ارسال دوباره تا ${toPersianDigits(String(s))} ثانیه دیگر`,
     changeNumber: 'عوض کردن شماره',
     sending: 'کمی صبر کن…',
+    pickTitle: 'با کدوم حساب وارد شیم؟',
+    pickMe: 'حساب خودم',
+    pickFailed: 'وارد نشد؛ دوباره امتحان کن.',
+    trackLabel: 'رده سنی',
   },
   ageTrack: {
     whoPlays: 'کی بازی می‌کنه؟',

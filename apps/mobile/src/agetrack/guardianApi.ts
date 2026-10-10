@@ -26,6 +26,13 @@ export const fetchRemoval = (childId: string): Promise<{ needsCode: boolean }> =
 export const sendRemoveCode = (childId: string): Promise<void> => authed(ok, `/guardian/children/${childId}/remove-code`, 'POST');
 export const removeChildWithCode = (childId: string, code: string): Promise<void> => authed(ok, `/guardian/children/${childId}/remove`, 'POST', { code });
 
+/** Right after a phone sign-in: play as one of this number's children instead of the number's own account. */
+export async function switchToChild(childId: string): Promise<void> {
+  const deviceId = await session.deviceId();
+  const out = await authed((r) => sessionSchema.parse(r), `/guardian/children/${childId}/switch`, 'POST', { deviceId });
+  await session.adopt(out.token);
+}
+
 /** The child's device, signed out: the code the guardian shows signs this device in as the child (the whole app starts over). */
 export async function signInWithChildCode(code: string, opts: { announce?: boolean } = {}): Promise<void> {
   const deviceId = await session.deviceId();

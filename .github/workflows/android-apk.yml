@@ -40,7 +40,10 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - uses: android-actions/setup-android@v3
+      # The ubuntu runner already ships the Android SDK (ANDROID_HOME); android-actions/setup-android@v3 fails on it
+      # ("Failed to find package 'tools'"), so only accept the licenses Gradle needs to fetch platforms/build-tools.
+      - name: Accept Android SDK licenses
+        run: yes | "$(ls -d "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager | tail -1)" --licenses > /dev/null || true
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

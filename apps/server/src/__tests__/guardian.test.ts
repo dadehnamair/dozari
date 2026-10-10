@@ -181,6 +181,16 @@ describe('guardian side', () => {
     t.clock.ms += 601_000;
     expect(await t.svc.redeem(again.code, '4'.repeat(32))).toBeNull();
   });
+
+  it("opens one of the guardian's own children, and nobody else's", async () => {
+    const t = boot();
+    const g = await guardianWithPhone(t);
+    const added = await t.svc.addChild(g.user.id, 'kid');
+    if (!added.ok) throw new Error('add');
+    const session = await t.svc.switchTo(g.user.id, added.childId, '5'.repeat(32));
+    expect(session?.user.id).toBe(added.childId);
+    expect(await t.svc.switchTo('someone-else', added.childId, '5'.repeat(32))).toBeNull();
+  });
 });
 
 describe('guardian routes', () => {

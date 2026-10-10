@@ -79,13 +79,22 @@ export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { sig
       (e) => (setBusy(false), setCode(''), setNote(errText(e))),
     );
   };
+  const playAs = (childId: string | null) => {
+    if (busy) return;
+    if (!childId) return onDone({ signedIn: true, created: false, track });
+    setBusy(true);
+    setNote(null);
+    switchToChild(childId).then(
+      () => onDone({ signedIn: true, created: false, track }),
+      () => (setBusy(false), setNote(l.pickFailed)),
+    );
+  };
   const onCode = (raw: string) => {
     const d = onlyDigits(raw, OTP_LENGTH);
     setCode(d);
     if (d.length === OTP_LENGTH) enter(d);
   };
 
-  const l = fa.login;
   return (
     <View style={styles.root}>
       <View style={StyleSheet.absoluteFill}><Scene scene="bazaar" mood="dusk" /></View>
@@ -136,6 +145,7 @@ export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { sig
           </>
         )}
         {note ? <Text style={styles.error}>{note}</Text> : null}
+        {step === 'pick' ? null : <>
         <SlabButton label={busy ? l.sending : step === 'phone' ? l.sendCode : l.enter} sfx="confirm" color={colors.candy.lime} height={tight ? 50 : 56} fontSize={22} grow={0} disabled={busy || (step === 'phone' ? !phone : code.length !== OTP_LENGTH)} onPress={step === 'phone' ? send : () => enter(code)} />
         <View style={styles.orRow}><View style={[styles.orLine, adult ? ad.orLine : null]} /><Text style={[styles.orText, adult ? ad.sub : null]}>{l.or}</Text><View style={[styles.orLine, adult ? ad.orLine : null]} /></View>
         <Pressable accessibilityRole="button" onPress={() => onDone({ signedIn: false, created: false, track })} style={({ pressed }) => [styles.guest, adult ? ad.guest : null, pressed ? styles.guestPressed : null]}>
@@ -147,9 +157,10 @@ export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { sig
             <Text style={[styles.parentText, adult ? ad.link : null]}>{fa.guardian.childLoginRow}</Text>
           </Pressable>
         ) : null}
+        </>}
       </View>
       </View>
-      {childCodeOpen ? <ChildCodeSheet onClose={() => setChildCodeOpen(false)} onDone={() => onDone({ signedIn: true, created: true })} /> : null}
+      {childCodeOpen ? <ChildCodeSheet onClose={() => setChildCodeOpen(false)} onDone={() => onDone({ signedIn: true, created: true, track })} /> : null}
     </View>
   );
 }
@@ -203,6 +214,11 @@ const styles = StyleSheet.create({
   resendRow: { flexDirection: ROW, justifyContent: 'space-between', alignItems: 'center' },
   link: { fontFamily: fonts.bold, fontSize: 12.5, color: '#E8743B', textDecorationLine: 'underline' },
   error: { fontFamily: fonts.bold, fontSize: 12.5, color: '#B3261E', textAlign: 'center' },
+  tracks: { flexDirection: 'row', direction: 'ltr', justifyContent: 'center', gap: 8 },
+  trackChip: { flex: 1, height: 40, flexDirection: 'row', direction: 'rtl', gap: 5, alignItems: 'center', justifyContent: 'center', borderRadius: 12, borderWidth: 2.5, borderColor: 'rgba(43,18,64,0.25)', backgroundColor: 'rgba(255,255,255,0.55)' },
+  trackOn: { borderColor: INK, backgroundColor: '#FFE48A' },
+  trackEmoji: { fontSize: 18 },
+  trackText: { fontFamily: fonts.bold, fontSize: 12, color: INK },
   orRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   orLine: { flex: 1, height: 2, backgroundColor: 'rgba(43,18,64,0.15)' },
   orText: { fontFamily: fonts.bold, fontSize: 11, color: 'rgba(43,18,64,0.55)' },
