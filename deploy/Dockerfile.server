@@ -1,6 +1,6 @@
 # Game server (Fastify + Socket.io). The workspace packages are TypeScript sources, so it runs through tsx.
 FROM node:22-alpine
-RUN corepack enable && apk add --no-cache mariadb-client
+RUN corepack enable && apk add --no-cache mariadb-client mariadb-connector-c
 WORKDIR /app
 ENV NODE_ENV=production CI=1
 
