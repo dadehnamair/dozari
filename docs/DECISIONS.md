@@ -279,7 +279,7 @@ Four skippable slides before the first Home (seen flag kept on the device); in t
 
 ## D97 — irnoti as the primary SMS provider; self-hosted admin font (2026-10-02)
 
-Phone-verification SMS now goes through irnoti (`POST https://irnoti.com/api/v1/sms/send`, Bearer key, JSON `{to, message}`) when `IRNOTI_API_KEY` is set; the message text is `IRNOTI_MESSAGE` (must contain `{code}`) with a default. Kavenegar stays as a fallback adapter when only its keys are set. The irnoti response body is undocumented to us: any 2xx counts as sent unless the body says `success:false`/`ok:false`/`status:'error'` — verify with a real key. The admin panel now serves Vazirmatn (Regular/Bold) from `apps/server/assets/fonts` at `/admin/fonts/*` (CSP `font-src 'self'`), so it no longer depends on a locally installed font.
+Phone-verification SMS now goes through irnoti (`POST https://api.irnoti.com/v1/sms/send`, Bearer key, JSON `{lineId, to: number, text}`; corrected 2026-10-10 to the shape the owner confirmed live — the first guess used the wrong host/path and `to`/`message`, so every send failed; `lineId` from `IRNOTI_LINE_ID`, default `2`) when `IRNOTI_API_KEY` is set; the message text is `IRNOTI_MESSAGE` (must contain `{code}`) with a default. Kavenegar stays as a fallback adapter when only its keys are set. The irnoti response body is undocumented to us: any 2xx counts as sent unless the body says `success:false`/`ok:false`/`status:'error'` — verify with a real key. The admin panel now serves Vazirmatn (Regular/Bold) from `apps/server/assets/fonts` at `/admin/fonts/*` (CSP `font-src 'self'`), so it no longer depends on a locally installed font.
 
 ## D98 — Installable web app (PWA) (2026-10-02)
 

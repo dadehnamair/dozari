@@ -9,7 +9,7 @@ import { NotifyService } from '../notify/service.js';
 import { createMemoryNotifyStore } from '../notify/store.js';
 import { PhoneService } from '../phone/service.js';
 import type { SmsClient } from '../phone/sms.js';
-import { createIrnotiClient, createKavenegarClient } from '../phone/sms.js';
+import { createIrnotiClient, createKavenegarClient, withSmsLogging } from '../phone/sms.js';
 import { createMemoryPhoneStore } from '../phone/store.js';
 
 function memoryUsers(): UserRepository {
@@ -247,23 +247,36 @@ describe('Kavenegar adapter', () => {
 });
 
 describe('irnoti adapter', () => {
-  it('posts {to, message} with a Bearer key, using the national number and the code in the text', async () => {
+  it('posts {lineId, to: number, text} with a Bearer key, using the national number and the code in the text', async () => {
     const calls: { url: string; init: RequestInit }[] = [];
     const f = (async (url: string, init: RequestInit) => (calls.push({ url, init }), { ok: true, status: 200, json: async () => ({}) })) as unknown as typeof fetch;
     await createIrnotiClient('irnt_KEY', { fetchImpl: f }).sendCode('+989123456789', '12345');
-    expect(calls[0]!.url).toBe('https://irnoti.com/api/v1/sms/send');
+    expect(calls[0]!.url).toBe('https://api.irnoti.com/v1/sms/send');
     expect((calls[0]!.init.headers as Record<string, string>).Authorization).toBe('Bearer irnt_KEY');
-    expect(JSON.parse(String(calls[0]!.init.body))).toEqual({ to: '09123456789', message: 'کد ورود دوزاری: 12345' });
+    expect(JSON.parse(String(calls[0]!.init.body))).toEqual({ lineId: '2', to: '09123456789', text: 'کد ورود شما به دوزاری : 12345' });
   });
 
   it('uses a custom message containing {code} and fails on HTTP errors or an error body', async () => {
     const bodies: string[] = [];
     const ok = createIrnotiClient('k', { message: 'code={code}!', fetchImpl: (async (_u: string, init: RequestInit) => (bodies.push(String(init.body)), { ok: true, status: 200, json: async () => ({}) })) as unknown as typeof fetch });
     await ok.sendCode('+989121111111', '777');
-    expect(JSON.parse(bodies[0]!).message).toBe('code=777!');
+    expect(JSON.parse(bodies[0]!).text).toBe('code=777!');
     const http = createIrnotiClient('k', { fetchImpl: (async () => ({ ok: false, status: 401, json: async () => ({}) })) as unknown as typeof fetch });
     await expect(http.sendCode('+989121111111', '1')).rejects.toThrow();
     const body = createIrnotiClient('k', { fetchImpl: (async () => ({ ok: true, status: 200, json: async () => ({ success: false }) })) as unknown as typeof fetch });
     await expect(body.sendCode('+989121111111', '1')).rejects.toThrow();
+  });
+});
+
+describe('withSmsLogging', () => {
+  it('logs the provider reason with a masked number, never the code, and rethrows', async () => {
+    const f = (async () => new Response(JSON.stringify({ return: { status: 418, message: 'no credit' } }), { status: 200 })) as unknown as typeof fetch;
+    const logs: string[] = [];
+    const sms = withSmsLogging(createKavenegarClient('k', 't', { fetchImpl: f }), (m, e) => logs.push(`${m} ${String(e)}`));
+    await expect(sms.sendCode('+989123456789', '12345')).rejects.toThrow('no credit');
+    expect(logs).toHaveLength(1);
+    expect(logs[0]).toContain('no credit');
+    expect(logs[0]).not.toContain('12345');
+    expect(logs[0]).not.toContain('9123456');
   });
 });

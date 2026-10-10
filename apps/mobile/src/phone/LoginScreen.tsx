@@ -20,7 +20,7 @@ import { TEXT_LEFT, TEXT_RIGHT } from '../theme/direction';
 
 const INK = colors.ink;
 const l = fa.login;
-const PICK_EMOJI: Partial<Record<AgeTrack, string>> = { adult: '🧑', teen: '🧑‍🎓', kid: '🧸' };
+const TRACK_EMOJI: Record<AgeTrack, string> = { adult: '🧑', teen: '🧑‍🎓', kid: '🧸' };
 const errText = (e: unknown): string => fa.phoneLogin.errors[e instanceof ApiError ? e.code : 'generic'] ?? fa.phoneLogin.errors.generic ?? '';
 
 /**
@@ -146,7 +146,7 @@ export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { sig
             </Pressable>
             {accounts.map((c) => (
               <Pressable key={c.id} accessibilityRole="button" disabled={busy} onPress={() => playAs(c.id)} style={({ pressed }) => [styles.guest, adult ? ad.guest : null, pressed ? styles.guestPressed : null]}>
-                <Text style={[styles.guestText, adult ? ad.guestText : null]}>{`${PICK_EMOJI[c.track] ?? ''} ${c.nickname}`}</Text>
+                <Text style={[styles.guestText, adult ? ad.guestText : null]}>{`${TRACK_EMOJI[c.track] ?? ''} ${c.nickname}`}</Text>
               </Pressable>
             ))}
           </>
@@ -238,6 +238,11 @@ const styles = StyleSheet.create({
   resendRow: { flexDirection: ROW, justifyContent: 'space-between', alignItems: 'center' },
   link: { fontFamily: fonts.bold, fontSize: 12.5, color: '#E8743B', textDecorationLine: 'underline' },
   error: { fontFamily: fonts.bold, fontSize: 12.5, color: '#B3261E', textAlign: 'center' },
+  tracks: { flexDirection: 'row', direction: 'ltr', justifyContent: 'center', gap: 8 },
+  trackChip: { flex: 1, height: 40, flexDirection: 'row', direction: 'rtl', gap: 5, alignItems: 'center', justifyContent: 'center', borderRadius: 12, borderWidth: 2.5, borderColor: 'rgba(43,18,64,0.25)', backgroundColor: 'rgba(255,255,255,0.55)' },
+  trackOn: { borderColor: INK, backgroundColor: '#FFE48A' },
+  trackEmoji: { fontSize: 18 },
+  trackText: { fontFamily: fonts.bold, fontSize: 12, color: INK },
   orRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   orLine: { flex: 1, height: 2, backgroundColor: 'rgba(43,18,64,0.15)' },
   orText: { fontFamily: fonts.bold, fontSize: 11, color: 'rgba(43,18,64,0.55)' },

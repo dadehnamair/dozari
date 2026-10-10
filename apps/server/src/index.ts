@@ -61,7 +61,7 @@ import { createDbFindStore } from './find/store.js';
 import { PhoneLoginService } from './phone/login.js';
 import { registerPhoneLoginRoutes, registerPhoneRoutes } from './phone/routes.js';
 import { PhoneService, phoneRulesFromSettings } from './phone/service.js';
-import { createIrnotiClient, createKavenegarClient } from './phone/sms.js';
+import { createIrnotiClient, createKavenegarClient, withSmsLogging } from './phone/sms.js';
 import { createDbPhoneStore } from './phone/store.js';
 import { PuzzleHistory } from './solo/history.js';
 import { registerInviteRoutes } from './invite/routes.js';
@@ -521,11 +521,12 @@ if (isMainModule(import.meta.url)) {
   const baleStore: NotifyStore | undefined = db ? createDbNotifyStore(db) : undefined;
   const notify = baleStore ? new NotifyService(baleStore, baleClient) : undefined;
   // irnoti wins when both are configured; Kavenegar stays as the fallback adapter.
-  const smsClient = process.env.IRNOTI_API_KEY
-    ? createIrnotiClient(process.env.IRNOTI_API_KEY, { message: process.env.IRNOTI_MESSAGE })
+  const rawSmsClient = process.env.IRNOTI_API_KEY
+    ? createIrnotiClient(process.env.IRNOTI_API_KEY, { message: process.env.IRNOTI_MESSAGE, lineId: process.env.IRNOTI_LINE_ID })
     : process.env.KAVENEGAR_API_KEY && process.env.KAVENEGAR_TEMPLATE
       ? createKavenegarClient(process.env.KAVENEGAR_API_KEY, process.env.KAVENEGAR_TEMPLATE)
       : null;
+  const smsClient = rawSmsClient ? withSmsLogging(rawSmsClient) : null;
   const phone = db && settings ? new PhoneService(createDbPhoneStore(db), () => phoneRulesFromSettings(settings), smsClient, Date.now, undefined, async (id) => {
         const [row, lv] = await Promise.all([socialStore?.publicRow(id), player?.levelOf(id)]);
         return { nickname: row?.nickname ?? '', avatarKey: row?.avatarKey ?? 'avatar-01', level: lv?.level.level ?? 1, coins: row?.coins ?? 0 };
