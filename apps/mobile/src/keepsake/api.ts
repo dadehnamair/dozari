@@ -7,6 +7,8 @@ export const fetchGallery = (): Promise<KeepsakeGallery> =>
   session.authed(async (token) => keepsakeGallerySchema.parse(await callJson('/keepsakes', 'GET', undefined, token)));
 
 export interface PieceResult {
+  /** Collection milestones this purchase paid. */
+  milestones?: { count: number; gems: number; spins: number }[];
   piece: number;
   completed: boolean;
   gems: number;

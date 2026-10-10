@@ -1,3 +1,4 @@
+import { BOT_NEAR_MISS_PERCENT } from '../config/botSkill.js';
 import type { Rng } from '../game/rng.js';
 
 export interface BotMoveInput {
@@ -7,6 +8,10 @@ export interface BotMoveInput {
   remaining: readonly string[];
   /** 0 = clueless, 100 = nearly always right. */
   skill: number;
+  /** Overrides the skill-derived chance (percent) of a real group (see `botSkillForLevel`). */
+  accuracyPercent?: number;
+  /** Chance (percent) of a one-away pick when the real group was missed; default `BOT_NEAR_MISS_PERCENT`. */
+  nearMissPercent?: number;
   rng: Rng;
 }
 
@@ -27,8 +32,10 @@ export function chooseBotMove(input: BotMoveInput): string[] {
   const skill = Math.max(0, Math.min(100, input.skill));
   const usable = groups.filter((g) => g.length === 4);
   const roll = rng() * 100;
-  if (usable.length > 0 && roll < Math.min(90, skill)) return [...(usable[Math.floor(rng() * usable.length)] as readonly string[])];
-  if (usable.length > 0 && roll < Math.min(90, skill) + 35) {
+  const accuracy = Math.min(90, input.accuracyPercent ?? skill);
+  const nearMiss = input.nearMissPercent ?? BOT_NEAR_MISS_PERCENT;
+  if (usable.length > 0 && roll < accuracy) return [...(usable[Math.floor(rng() * usable.length)] as readonly string[])];
+  if (usable.length > 0 && roll < accuracy + (100 - accuracy) * (nearMiss / 100)) {
     // One away: three of a group plus one card from elsewhere.
     const group = usable[Math.floor(rng() * usable.length)] as readonly string[];
     const outsiders = remaining.filter((c) => !group.includes(c));
@@ -48,6 +55,8 @@ export interface BotPriceGuessInput {
   actualRials: bigint;
   /** 0 = wild guesses, 100 = close. */
   skill: number;
+  /** Overrides the skill-derived largest error (percent of the real price). */
+  maxErrorPercent?: number;
   rng: Rng;
 }
 
@@ -57,7 +66,7 @@ export interface BotPriceGuessInput {
  */
 export function chooseBotPriceGuess(input: BotPriceGuessInput): bigint {
   const skill = Math.max(0, Math.min(100, input.skill));
-  const maxError = 0.05 + 0.6 * (1 - skill / 100);
+  const maxError = input.maxErrorPercent !== undefined ? Math.max(0, input.maxErrorPercent) / 100 : 0.05 + 0.6 * (1 - skill / 100);
   const error = (input.rng() * 2 - 1) * maxError;
   const guess = BigInt(Math.round(Number(input.actualRials) * (1 + error)));
   return guess > 0n ? guess : 1n;

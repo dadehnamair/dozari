@@ -9,4 +9,8 @@ export * from './transfers.js';
 export * from './chat.js';
 export * from './tournament.js';
 export * from './ageTracks.js';
+export * from './backup.js';
 export * from './ai.js';
+export * from './tables.js';
+export * from './gifts.js';
+export * from './botSkill.js';

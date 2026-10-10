@@ -59,6 +59,63 @@ VIEWS.bale = function (root) {
   } })])]));
   draw();
 };
+VIEWS.sms = function (root) {
+  var body = h('div');
+  var PROV = [['auto', 'خودکار (طبق متغیرهای محیطی)'], ['irnoti', 'irnoti'], ['kavenegar', 'کاوه‌نگار'], ['off', 'خاموش']];
+  var PROV_FA = { irnoti: 'irnoti', kavenegar: 'کاوه‌نگار' };
+  function draw() {
+    api('/admin/sms').then(function (r) {
+      clear(body);
+      if (r.status === 404) return body.appendChild(empty('بخش پیامک روی این سرور فعال نیست'));
+      if (!r.ok) return fail(r);
+      var d = r.body;
+      body.appendChild(h('div', { class: 'grid' }, [statCard('وضعیت', d.active ? 'روشن' : 'خاموش', d.active ? 'درگاه فعال: ' + PROV_FA[d.active] : 'درگاهی با کلید کامل تنظیم نشده؛ ورود با شماره و کد حذف حساب پیامکی کار نمی‌کند', d.active ? '#7ed957' : '#ff4d8d')]));
+      var prov = select(PROV, d.provider);
+      var ik = h('input', { type: 'password', dir: 'ltr', autocomplete: 'off', placeholder: d.irnoti.keyMask ? d.irnoti.keyMask + (d.irnoti.fromEnv ? ' (از env)' : '') + ' — برای عوض‌کردن کلید تازه را بنویس' : 'کلید API' });
+      var kk = h('input', { type: 'password', dir: 'ltr', autocomplete: 'off', placeholder: d.kavenegar.keyMask ? d.kavenegar.keyMask + (d.kavenegar.fromEnv ? ' (از env)' : '') + ' — برای عوض‌کردن کلید تازه را بنویس' : 'کلید API' });
+      var kt = h('input', { type: 'text', dir: 'ltr', value: d.kavenegar.template, placeholder: 'نام قالب تأییدشده' });
+      body.appendChild(card('درگاه پیامک', 'کلیدها اینجا ذخیره می‌شوند و دوباره نمایش داده نمی‌شوند. «خودکار» یعنی همان رفتار قبلی: اگر کلید irnoti باشد آن، وگرنه کاوه‌نگار. خالی‌گذاشتن کلید = بدون تغییر.', [
+        h('div', { class: 'form-grid' }, [field('درگاه', prov), field('کلید irnoti', ik), field('کلید کاوه‌نگار', kk), field('نام قالب کاوه‌نگار', kt)]),
+        h('div', { class: 'toolbar' }, [h('button', { class: 'btn primary', text: 'ذخیره', onclick: function () {
+          var patch = { provider: prov.value, kavenegarTemplate: kt.value.trim() };
+          if (ik.value.trim()) patch.irnotiKey = ik.value.trim();
+          if (kk.value.trim()) patch.kavenegarKey = kk.value.trim();
+          api('/admin/sms', { method: 'PUT', body: patch }).then(function (x) { if (!x.ok) return fail(x); toast('ذخیره شد'); draw(); });
+        } }),
+        h('button', { class: 'btn bad sm', text: 'پاک‌کردن کلیدهای ذخیره‌شده', onclick: function () { if (confirm('کلیدهای ذخیره‌شده در پنل پاک شوند؟ (کلید env اگر باشد دوباره استفاده می‌شود)')) api('/admin/sms', { method: 'PUT', body: { irnotiKey: '', kavenegarKey: '' } }).then(function (x) { if (!x.ok) return fail(x); toast('پاک شد'); draw(); }); } })])
+      ]));
+      var texts = d.texts.map(function (t) {
+        var ta = h('textarea', { maxlength: 300, rows: 3, value: t.text }); ta.value = t.text;
+        var prev = h('div', { class: 'sub', style: 'color:var(--muted);font-size:12px;white-space:pre-wrap' });
+        function showPrev() { prev.textContent = 'پیش‌نمایش: ' + ta.value.split('{code}').join('12345'); }
+        ta.addEventListener('input', showPrev); showPrev();
+        return h('div', { style: 'padding:8px 0;border-bottom:1px solid var(--line,#ddd)' }, [
+          h('div', { class: 'kv' }, [h('b', { text: t.label }), t.custom ? badge('سفارشی', 'b-info') : badge('پیش‌فرض', 'b-mute')]), ta, prev,
+          h('div', { class: 'toolbar' }, [h('button', { class: 'btn sm primary', text: 'ذخیره', onclick: function () {
+            api('/admin/sms/texts/' + t.purpose, { method: 'PUT', body: { text: ta.value.trim() } }).then(function (x) { if (x.status === 400 && x.body && x.body.error === 'text_needs_code') return toast('متن باید {code} داشته باشد (جای کد)', true); if (!x.ok) return fail(x); toast('ذخیره شد'); draw(); });
+          } }), t.custom ? h('button', { class: 'btn sm', text: 'برگرد به پیش‌فرض', onclick: function () { api('/admin/sms/texts/' + t.purpose, { method: 'PUT', body: { text: '' } }).then(function (x) { if (!x.ok) return fail(x); draw(); }); } }) : null])
+        ]);
+      });
+      body.appendChild(card('متن پیامک‌ها', 'به‌جای کد، {code} بنویس. فقط برای irnoti اعمال می‌شود؛ کاوه‌نگار متنی را می‌فرستد که در قالب خودش تأیید شده.', texts));
+      var phone = h('input', { type: 'text', dir: 'ltr', placeholder: '09123456789' }), purp = select(d.texts.map(function (t) { return [t.purpose, t.label]; }), 'login');
+      body.appendChild(card('ارسال آزمایشی', 'یک پیامک واقعی (با کد ۱۲۳۴۵) برای شماره‌ی خودت می‌رود و هزینه دارد؛ حداکثر ۵ بار در دقیقه. کد ذخیره نمی‌شود و جایی کار نمی‌کند.', [
+        h('div', { class: 'form-grid' }, [field('شماره', phone), field('کدام متن', purp)]),
+        h('div', { class: 'toolbar' }, [h('button', { class: 'btn', text: 'بفرست', onclick: function () {
+          api('/admin/sms/test', { method: 'POST', body: { phone: phone.value.trim(), purpose: purp.value } }).then(function (x) {
+            if (x.status === 400) return toast('شماره معتبر نیست', true);
+            if (x.status === 409) return toast('درگاه روشن نیست', true);
+            if (x.status === 429) return toast('چند لحظه صبر کن', true);
+            if (x.status === 502) return alert('درگاه خطا داد: ' + ((x.body && x.body.detail) || ''));
+            if (!x.ok) return fail(x);
+            toast('فرستاده شد' + (x.body.text ? ': ' + x.body.text : ''));
+          });
+        } })])
+      ]));
+    });
+  }
+  root.appendChild(body);
+  draw();
+};
 var CH_FA = { in_app: 'صندوق داخل اپ', bale: 'بله', sms: 'پیامک', email: 'ایمیل', push: 'اعلان پوش' };
 var AUD_FA = { all: 'همه‌ی بزرگسال‌ها', bale_linked: 'بزرگسال‌های وصل‌شده به بله', user: 'یک بازیکن', kid: 'کودک‌ها', teen: 'نوجوان‌ها' };
 VIEWS.messages = function (root) {
@@ -103,7 +160,8 @@ VIEWS.messages = function (root) {
     h('div', { class: 'toolbar' }, [h('button', { class: 'btn primary', text: 'ارسال', onclick: function () {
       var chans = Object.keys(checks).filter(function (k) { return checks[k].checked && !checks[k].disabled; });
       if (!title.value.trim() || !text.value.trim() || !chans.length) return toast('عنوان، متن و دست‌کم یک کانال لازم است', true);
-      if (!confirm('پیام برای «' + AUD_FA[aud.value] + '» فرستاده شود؟')) return;
+      if (chans.indexOf('sms') >= 0 && text.value.trim().length > 300) return toast('متن پیامک حداکثر ۳۰۰ نویسه است', true);
+      if (!confirm('پیام برای «' + AUD_FA[aud.value] + '» فرستاده شود؟' + (chans.indexOf('sms') >= 0 ? '\nپیامک هزینه دارد و فقط متن (بدون عنوان) به شماره‌ی تأییدشده‌ی بزرگسال‌ها می‌رود.' : ''))) return;
       api('/admin/messages', { method: 'POST', body: { title: title.value.trim(), body: text.value.trim(), audience: aud.value, targetUserId: aud.value === 'user' ? target.value.trim() : null, channels: chans } }).then(function (x) {
         if (x.status === 409) return toast('مخاطبی پیدا نشد', true);
         if (!x.ok) return fail(x);

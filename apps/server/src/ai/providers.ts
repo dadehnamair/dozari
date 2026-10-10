@@ -8,6 +8,8 @@ export interface ProviderPreset {
   defaultModel: string;
   /** Name of the environment variable that holds the API key. Keys are never stored in the database or sent to the browser. */
   keyEnv: string;
+  /** Wire format: OpenAI `/chat/completions` (default) or Anthropic's native `/messages`. */
+  dialect?: 'openai' | 'anthropic';
 }
 
 export const PRESETS: readonly ProviderPreset[] = [
@@ -15,6 +17,10 @@ export const PRESETS: readonly ProviderPreset[] = [
   { id: 'deepseek', label: 'DeepSeek', baseUrl: 'https://api.deepseek.com/v1', defaultModel: 'deepseek-chat', keyEnv: 'AI_DEEPSEEK_API_KEY' },
   { id: 'gapgpt', label: 'GapGPT (ایرانی)', baseUrl: 'https://api.gapgpt.app/v1', defaultModel: 'gpt-4o-mini', keyEnv: 'AI_GAPGPT_API_KEY' },
   { id: 'avalai', label: 'AvalAI (ایرانی)', baseUrl: 'https://api.avalai.ir/v1', defaultModel: 'gpt-4o-mini', keyEnv: 'AI_AVALAI_API_KEY' },
+  { id: 'parspack', label: 'ParsPack AI Studio (ایرانی)', baseUrl: 'https://ai.parspack.com/v1', defaultModel: 'Grok 4', keyEnv: 'AI_PARSPACK_API_KEY' },
+  { id: 'anthropic', label: 'Claude (Anthropic)', baseUrl: 'https://api.anthropic.com/v1', defaultModel: 'claude-sonnet-5-5', keyEnv: 'AI_ANTHROPIC_API_KEY', dialect: 'anthropic' },
+  // Gemini's OpenAI-compatibility endpoint; server-side, optional, admin tool only.
+  { id: 'gemini', label: 'Gemini (Google)', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', defaultModel: 'gemini-2.5-flash', keyEnv: 'AI_GEMINI_API_KEY' },
 ];
 
 export type Env = Record<string, string | undefined>;
@@ -42,7 +48,7 @@ export function resolveProviders(env: Env): ResolvedProvider[] {
 export type AiErrorCode = 'ai_not_configured' | 'ai_unknown_provider' | 'ai_rate_limited' | 'ai_timeout' | 'ai_unreachable' | 'ai_http_error' | 'ai_bad_output' | 'ai_invalid_model' | 'ai_not_found';
 
 export class AiError extends Error {
-  constructor(readonly code: AiErrorCode, readonly status?: number) {
+  constructor(readonly code: AiErrorCode, readonly status?: number, readonly detail?: string) {
     super(code);
   }
 }
@@ -55,21 +61,74 @@ export interface ChatRequest {
   temperature?: number;
 }
 
-export type FetchLike = (url: string, init: { method: string; headers: Record<string, string>; body: string; signal: AbortSignal }) => Promise<{ ok: boolean; status: number; json(): Promise<unknown> }>;
+export type FetchLike = (url: string, init: { method: string; headers: Record<string, string>; body?: string; signal: AbortSignal }) => Promise<{ ok: boolean; status: number; json(): Promise<unknown> }>;
 
-/** A model name as gateways spell them: letters, digits and `. _ - : /`. Anything else is refused so it cannot smuggle path or header text. */
-export const isModelName = (s: string): boolean => /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,79}$/.test(s);
+/** A model name as gateways spell them: letters, digits, inner spaces (ParsPack has «Grok 4») and `. _ - : /`. Anything else is refused so it cannot smuggle path or header text. */
+export const isModelName = (s: string): boolean => /^[A-Za-z0-9][A-Za-z0-9._:/ -]{0,79}$/.test(s);
+
+/** The provider's own error message (`{error:{message}}`, or an array of those), cut short and with the key scrubbed. */
+async function errorDetail(res: { json(): Promise<unknown> }, apiKey: string): Promise<string | undefined> {
+  try {
+    const body = (await res.json()) as unknown;
+    const first = Array.isArray(body) ? body[0] : body;
+    const err = (first as { error?: unknown } | null)?.error;
+    const msg = typeof err === 'string' ? err : (err as { message?: unknown } | undefined)?.message;
+    if (typeof msg !== 'string') return undefined;
+    return msg.split(apiKey).join('***').replace(/\s+/g, ' ').slice(0, 300);
+  } catch {
+    return undefined;
+  }
+}
+
+/** Text of a model answer: a string, or an array of text parts (some gateways), without `<think>…</think>` reasoning blocks. Empty string when there is none. */
+export function cleanAnswer(content: unknown): string {
+  const raw = typeof content === 'string' ? content : Array.isArray(content) ? content.map((p) => (typeof p === 'string' ? p : (p as { text?: unknown } | null)?.text)).filter((t): t is string => typeof t === 'string').join('') : '';
+  return raw.replace(/<think>[\s\S]*?<\/think>/gi, '').replace(/^[\s\S]*?<\/think>/i, '').trim();
+}
+
+const NOT_CHAT = /embed|tts|whisper|speech|audio|image|dall|moderation|rerank|transcri|vision-preview|imagen|veo|sora/i;
+
+/** The chat models a provider offers (`GET {base}/models`), for the panel's picker. Empty list when the provider has no listing or it fails. */
+export async function listModels(provider: ResolvedProvider, doFetch: FetchLike = fetch as unknown as FetchLike): Promise<string[]> {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 15_000);
+  try {
+    const res = await doFetch(`${provider.baseUrl}/models${provider.dialect === 'anthropic' ? '?limit=100' : ''}`, {
+      method: 'GET',
+      headers: provider.dialect === 'anthropic' ? { 'x-api-key': provider.apiKey, 'anthropic-version': '2023-06-01' } : { authorization: `Bearer ${provider.apiKey}` },
+      signal: ctl.signal,
+    });
+    if (!res.ok) return [];
+    const body = (await res.json()) as { data?: unknown } | unknown[];
+    const rows = Array.isArray(body) ? body : Array.isArray((body as { data?: unknown }).data) ? ((body as { data: unknown[] }).data) : [];
+    const ids = rows.map((r) => (typeof r === 'string' ? r : (r as { id?: unknown } | null)?.id)).filter((x): x is string => typeof x === 'string').map((x) => x.replace(/^models\//, ''));
+    return [...new Set(ids)].filter((x) => isModelName(x) && !NOT_CHAT.test(x)).sort((a, b) => a.localeCompare(b));
+  } catch {
+    return [];
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 /** One chat completion. Returns the assistant text. The API key only travels in the `Authorization` header and is never part of an error. */
 export async function chat(provider: ResolvedProvider, req: ChatRequest, doFetch: FetchLike = fetch as unknown as FetchLike): Promise<string> {
   if (!isModelName(req.model)) throw new AiError('ai_invalid_model');
+  const anthropic = provider.dialect === 'anthropic';
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), AI_LIMITS.timeoutSeconds * 1000);
   try {
-    const res = await doFetch(`${provider.baseUrl}/chat/completions`, {
+    const res = await doFetch(`${provider.baseUrl}${anthropic ? '/messages' : '/chat/completions'}`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${provider.apiKey}` },
-      body: JSON.stringify({
+      headers: anthropic
+        ? { 'content-type': 'application/json', 'x-api-key': provider.apiKey, 'anthropic-version': '2023-06-01' }
+        : { 'content-type': 'application/json', authorization: `Bearer ${provider.apiKey}` },
+      body: JSON.stringify(anthropic ? {
+        model: req.model,
+        temperature: Math.min(req.temperature ?? 0.8, 1),
+        max_tokens: req.maxTokens,
+        system: req.system,
+        messages: [{ role: 'user', content: req.user }],
+      } : {
         model: req.model,
         temperature: req.temperature ?? 0.8,
         max_tokens: req.maxTokens,
@@ -80,10 +139,13 @@ export async function chat(provider: ResolvedProvider, req: ChatRequest, doFetch
       }),
       signal: ctl.signal,
     });
-    if (!res.ok) throw new AiError('ai_http_error', res.status);
-    const data = (await res.json()) as { choices?: { message?: { content?: unknown } }[] };
-    const text = data.choices?.[0]?.message?.content;
-    if (typeof text !== 'string' || text.trim() === '') throw new AiError('ai_bad_output');
+    if (!res.ok) throw new AiError('ai_http_error', res.status, await errorDetail(res, provider.apiKey));
+    const data = (await res.json()) as { choices?: { message?: { content?: unknown }; finish_reason?: string }[]; content?: { type?: string; text?: unknown }[]; stop_reason?: string };
+    const text = cleanAnswer(anthropic ? data.content?.filter((b) => b.type === 'text').map((b) => b.text) : data.choices?.[0]?.message?.content);
+    if (text === '') {
+      const why = anthropic ? data.stop_reason : data.choices?.[0]?.finish_reason;
+      throw new AiError('ai_bad_output', undefined, why === 'length' || why === 'max_tokens' ? 'خروجی مدل به سقف طول رسید و خالی ماند (مدل «استدلالی» است؛ مدل دیگری انتخاب کن)' : `پاسخ خالی از مدل${why ? ` (${why})` : ''}`);
+    }
     return text;
   } catch (err) {
     if (err instanceof AiError) throw err;

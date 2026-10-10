@@ -12,6 +12,8 @@ describe('login input', () => {
     expect(want).not.toBeNull();
     expect(phoneFromInput('912 345 6789')).toBe(want);
     expect(phoneFromInput('۹۱۲۳۴۵۶۷۸۹')).toBe(want);
+    expect(phoneFromInput('+989123456789')).toBe(want);
+    expect(phoneFromInput('00989123456789')).toBe(want);
     expect(phoneFromInput('12345')).toBeNull();
     expect(phoneFromInput('')).toBeNull();
   });

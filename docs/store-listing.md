@@ -39,7 +39,7 @@ Package `ir.dozari.app`. Category: Games → Puzzle / Word & Trivia. Age: everyo
 
 مامان‌بزرگت بلده، تو چی؟
 
-## Persian — what's new (v1.0.0)
+## Persian — what's new (v1.1.1)
 
 نسخه‌ی اول دوزاری. دوزاریت بیفته!
 
@@ -66,7 +66,8 @@ The app is in Persian (right-to-left).
 
 ## Notes for the listing form
 
-- Privacy policy URL: use the landing site's privacy page (`apps/landing`).
+- Privacy policy URL: https://mrdozari.ir/privacy
+- Terms URL: https://mrdozari.ir/terms
 - Screenshots: already made; Myket wants portrait, at least 3.
 - Icon: `apps/mobile/assets/icon.png` (1024) → export 512.
 - Contact: support email / Telegram handle of the owner.

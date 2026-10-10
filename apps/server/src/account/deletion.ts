@@ -2,6 +2,7 @@ import { createHash, randomInt } from 'node:crypto';
 import { accountDeleteCodes, eq } from '@dozari/db';
 import type { Db } from '@dozari/db';
 import type { PhoneStore } from '../phone/store.js';
+import { smsReady } from '../phone/sms.js';
 import type { SmsClient } from '../phone/sms.js';
 import { smsErrorCode } from '../phone/sms-errors.js';
 
@@ -92,8 +93,8 @@ export class AccountDeletion {
     const { phone } = await this.phone.state(userId);
     let channel: DeleteChannel | null = null;
     try {
-      if (phone && this.sms) {
-        await this.sms.sendCode(phone, code);
+      if (phone && smsReady(this.sms)) {
+        await this.sms.sendCode(phone, code, 'delete');
         channel = 'sms';
       } else if (this.bale && (await this.bale(userId, text))) {
         channel = 'bale';

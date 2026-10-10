@@ -356,3 +356,11 @@ The profile lists the last 5 finished games («بازی‌های اخیر»): mo
 Source: `xp_events` (one row per finished game, now with `mode` and `outcome`; rows from before have neither and show as solo, no
 outcome). `GET /me/games` returns the last 10, newest first, the caller's own only.
 
+
+## Home and pages (2026-10 owner feedback)
+
+- **Home is quieter:** the «کارگاه» (settings), «عیدی» and «ماموریت‌ها» tiles are gone. The **level badge** opens the workshop (settings, with the missions row at its top; a pink count on the badge and a guide bubble tell that a mission reward is ready); the daily reward lives in the **second tab of the wheel page**; the 💎 and 🔥 counters open an explainer page.
+- **Top spacing:** `nativeTopInset()` reads the real status-bar/notch height on Android and iOS and `env(safe-area-inset-top)` on the web; pages use a small fixed gap (`PAGE_TOP_EXTRA`) on top of it.
+- **Dialogs** carry their close button at the top (`SheetClose`), not at the bottom.
+- **Lists show the past:** the tournament list also shows finished, cancelled and full ones with a status chip (view only); the open-tables list shows full, playing, locked and recently closed tables.
+- **«فرزندان من»:** children as cards → tap opens the manage panel (sign-in code, move, preview, remove as icon tiles, icon choices for the settings); every sensitive action asks for a confirm; removing a child with games or friends needs the SMS code sent to the guardian's number (`GET /guardian/children/:id/removal`, `POST …/remove-code`, `POST …/remove {code}`).

@@ -1,4 +1,4 @@
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import { Platform, View } from 'react-native';
 import type { DimensionValue } from 'react-native';
 import Svg, {
@@ -19,7 +19,8 @@ import Svg, {
 } from 'react-native-svg';
 import { usePrefs } from '../prefs/store';
 import { fonts } from '../theme/colors';
-import { Drift, Glow, Musician, Sway } from './sceneMotion';
+import { useTheme } from '../theme/themeStore';
+import { Breathe, Drift, Glow, Musician, Sway, Turn } from './sceneMotion';
 
 export const SCENES = ['bazaar', 'alley', 'hojre', 'caravan', 'win', 'sarafi'] as const;
 export type SceneName = (typeof SCENES)[number];
@@ -37,6 +38,13 @@ const rays = () => {
   return d;
 };
 const RAYS = rays();
+/** The vault-room floor diamonds (a 48 px cross-hatch), as one path: Android paints no SVG that contains a <Pattern>. */
+const FLOOR_TILES = (() => {
+  let d = '';
+  for (let x = -208; x < 390; x += 48) d += `M${x} 640 L${x + 204} 844 `;
+  for (let x = 0; x < 600; x += 48) d += `M${x} 640 L${x - 204} 844 `;
+  return d;
+})();
 const CLOUD = 'M-40 6 C-52 4 -50 -14 -36 -12 C-34 -26 -14 -28 -8 -16 C-2 -28 22 -26 22 -12 C38 -16 46 2 32 8 C30 18 12 18 6 10 C0 18 -18 18 -22 10 C-30 16 -42 14 -40 6Z';
 const FLAG_COLORS = ['#FF4D8D', '#3FC1F0', '#7ED957', '#A66BF0', '#FFF6E8'];
 const FLAGS = Array.from({ length: 11 }, (_, i) => {
@@ -63,26 +71,36 @@ interface Props {
 
 /** Painted backgrounds (docs/design/Dozari - 02 Backgrounds.dc.html, Scene.dc.html), 390 x 844 canvas, cropped to fill. */
 export function Scene({
-  scene,
-  mood = 'day',
+  scene: sceneProp,
+  mood: moodProp = 'day',
   width = '100%',
   height = '100%',
   wobble: wobbleProp = Platform.OS === 'web',
   animated: animatedProp,
 }: Props) {
+  /** The adult look paints every scene but the celebration as the vault room (docs/design/adult/). */
+  const adult = useTheme() === 'adult';
+  const scene = adult && sceneProp !== 'win' ? 'sarafi' : sceneProp;
+  const mood = adult ? 'day' : moodProp;
   const reduce = usePrefs().reduceMotion;
   const animated = animatedProp ?? !reduce;
   // The pencil-wobble filter over the whole scene is recomputed on every animation frame (60 → 25 fps even on a desktop,
   // far worse on phones, where the clouds, lanterns and palm then barely move): a moving scene is drawn without it.
   const wobble = wobbleProp && !animated;
   const u = useId().replace(/[^a-zA-Z0-9]/g, '');
+  // Android paints a percent-sized Svg inside an absolute layer as nothing (see GradientFill): draw at the measured pixel size.
+  const [size, setSize] = useState<{ w: number; h: number } | null>(null);
   return (
     <View
       style={{ width, height, overflow: 'hidden' }}
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
+      onLayout={(e) => {
+        const { width: w, height: h } = e.nativeEvent.layout;
+        setSize((prev) => (prev && prev.w === w && prev.h === h ? prev : { w, h }));
+      }}
     >
-      <Svg width="100%" height="100%" viewBox="0 0 390 844" preserveAspectRatio="xMidYMid slice">
+      <Svg width={size?.w ?? '100%'} height={size?.h ?? '100%'} viewBox="0 0 390 844" preserveAspectRatio="xMidYMid slice">
         <Defs>
           {wobble ? (
             <Filter id={`${u}p`} x="-5%" y="-5%" width="110%" height="110%">
@@ -131,6 +149,8 @@ export function Scene({
             <Stop offset="0" stopColor="#FFE48A" stopOpacity={0.9} />
             <Stop offset="1" stopColor="#FFE48A" stopOpacity={0} />
           </RadialGradient>
+          {adult ? null : (
+            <>
           <Pattern id={`${u}aR`} width={24} height={10} patternUnits="userSpaceOnUse">
             <Rect width={12} height={10} fill="#E84A3C" />
             <Rect x={12} width={12} height={10} fill="#FFF3E0" />
@@ -149,6 +169,8 @@ export function Scene({
               opacity={0.7}
             />
           </Pattern>
+            </>
+          )}
           <LinearGradient id={`${u}sfW`} x1="0" y1="0" x2="0" y2="1">
             <Stop offset="0" stopColor="#2E1D14" />
             <Stop offset="0.6" stopColor="#1E130D" />
@@ -160,14 +182,10 @@ export function Scene({
             <Stop offset="0.75" stopColor="#B8822A" />
             <Stop offset="1" stopColor="#6A4210" />
           </RadialGradient>
-          <RadialGradient id={`${u}sfG`}>
+          <RadialGradient id={`${u}sfG`} cx="50%" cy="50%" r="50%">
             <Stop offset="0" stopColor="#FFD98A" stopOpacity={0.55} />
             <Stop offset="1" stopColor="#FFD98A" stopOpacity={0} />
           </RadialGradient>
-          <Pattern id={`${u}sfP`} width={48} height={48} patternUnits="userSpaceOnUse">
-            <Rect width={48} height={48} fill="#24170F" />
-            <Path d="M0 0 L48 48 M48 0 L0 48" stroke="#3A2618" strokeWidth={2} />
-          </Pattern>
         </Defs>
         <G
           filter={wobble ? `url(#${u}p)` : undefined}
@@ -589,16 +607,17 @@ function paint(scene: SceneName, u: string, animated: boolean) {
 <Circle cx={195} cy={420} r={106} fill={`url(#${u}sfV)`} strokeWidth={3} />
 <Circle cx={195} cy={420} r={86} fill="none" stroke="#6A4210" strokeWidth={3} />
 <G fill="#FFE48A" strokeWidth={1.6}><Circle cx={195} cy={324} r={5} /><Circle cx={195} cy={516} r={5} /><Circle cx={99} cy={420} r={5} /><Circle cx={291} cy={420} r={5} /><Circle cx={127} cy={352} r={5} /><Circle cx={263} cy={352} r={5} /><Circle cx={127} cy={488} r={5} /><Circle cx={263} cy={488} r={5} /></G>
-<G>
+<Turn x={195} y={420} deg={14} dur={9} animated={animated}>
 <Path d="M195 362 V478 M137 420 H253 M154 379 L236 461 M236 379 L154 461" stroke="#3A2416" strokeWidth={9} fill="none" />
 <Path d="M195 362 V478 M137 420 H253 M154 379 L236 461 M236 379 L154 461" stroke="#B8822A" strokeWidth={4} fill="none" />
 <G fill="#E8B64A" strokeWidth={2}><Circle cx={195} cy={362} r={7} /><Circle cx={195} cy={478} r={7} /><Circle cx={137} cy={420} r={7} /><Circle cx={253} cy={420} r={7} /><Circle cx={154} cy={379} r={6} /><Circle cx={236} cy={461} r={6} /><Circle cx={236} cy={379} r={6} /><Circle cx={154} cy={461} r={6} /></G>
-<Circle cx={195} cy={420} r={22} fill="#E8B64A" strokeWidth={3} /><Circle cx={195} cy={420} r={10} fill="#3A2416" /></G>
+<Circle cx={195} cy={420} r={22} fill="#E8B64A" strokeWidth={3} /><Circle cx={195} cy={420} r={10} fill="#3A2416" /></Turn>
 <Path d="M140 360 q14 -24 40 -32" stroke="#FFF6E8" strokeWidth={3} opacity={.6} fill="none" />
 <Path d="M98 0 v130 M292 0 v130" fill="none" strokeWidth={1.8} />
-<G transform="translate(98 130)"><Circle cy={26} r={40} fill={`url(#${u}sfG)`} stroke="none" /><Path d="M-14 0 h28 l-4 -8 h-20Z" fill="#B8822A" /><Path d="M-12 0 C-18 16 -16 40 -8 48 H8 C16 40 18 16 12 0Z" fill="#E8B64A" /><Ellipse cy={24} rx={6} ry={10} fill="#FFF1B8" stroke="none" /></G>
-<G transform="translate(292 130)"><Circle cy={26} r={40} fill={`url(#${u}sfG)`} stroke="none" /><Path d="M-14 0 h28 l-4 -8 h-20Z" fill="#B8822A" /><Path d="M-12 0 C-18 16 -16 40 -8 48 H8 C16 40 18 16 12 0Z" fill="#E8B64A" /><Ellipse cy={24} rx={6} ry={10} fill="#FFF1B8" stroke="none" /></G>
-<Path d="M0 640 h390 v204 h-390Z" fill={`url(#${u}sfP)`} />
+<G transform="translate(98 130)"><Breathe cy={26} r={40} dur={3.2} fill={`url(#${u}sfG)`} animated={animated} /><Path d="M-14 0 h28 l-4 -8 h-20Z" fill="#B8822A" /><Path d="M-12 0 C-18 16 -16 40 -8 48 H8 C16 40 18 16 12 0Z" fill="#E8B64A" /><Ellipse cy={24} rx={6} ry={10} fill="#FFF1B8" stroke="none" /></G>
+<G transform="translate(292 130)"><Breathe cy={26} r={40} dur={3.8} fill={`url(#${u}sfG)`} animated={animated} /><Path d="M-14 0 h28 l-4 -8 h-20Z" fill="#B8822A" /><Path d="M-12 0 C-18 16 -16 40 -8 48 H8 C16 40 18 16 12 0Z" fill="#E8B64A" /><Ellipse cy={24} rx={6} ry={10} fill="#FFF1B8" stroke="none" /></G>
+<Path d="M0 640 h390 v204 h-390Z" fill="#24170F" />
+<Path d={FLOOR_TILES} fill="none" stroke="#3A2618" strokeWidth={2} />
 <Path d="M0 640 h390 v8 h-390Z" fill="#000" opacity={.35} stroke="none" />
 <Path d="M0 690 h390 v86 h-390Z" fill="#3A2416" />
 <Path d="M0 690 h390 v12 h-390Z" fill="#8A5A16" />

@@ -8,6 +8,7 @@ import { buildServer } from '../index.js';
 import { AuthService } from '../auth/service.js';
 import type { UserRecord, UserRepository } from '../auth/service.js';
 import { createTokenSigner } from '../auth/tokens.js';
+import { PuzzleHistory } from '../solo/history.js';
 import { MatchService } from '../realtime/match-service.js';
 import type { PlayerProfile } from '../realtime/match-service.js';
 import type { PuzzleSource, ServedPuzzle } from '../solo/types.js';
@@ -124,7 +125,8 @@ describe('MatchService', () => {
     await svc.start('A', 'B');
     const before = sent.length;
     expect(svc.resume('A')).toEqual({ ok: true });
-    expect(sent.length).toBe(before + 1);
+    // who plays whom (a late joiner never saw `match:found`), then the snapshot
+    expect(sent.slice(before).map((e) => e.event)).toEqual(['match:found', 'match:state']);
     expect(svc.resume('A', '0190a000-0000-7000-8000-000000000001')).toEqual({ ok: false, error: 'UNKNOWN_MATCH' });
     expect(svc.resume('Z')).toEqual({ ok: false, error: 'NOT_IN_MATCH' });
   });
@@ -195,5 +197,27 @@ describe('live duel over sockets', () => {
     expect(await mover.emitWithAck('match:leave', {})).toEqual({ ok: true });
     expect(matchEndedSchema.parse(await ended).result.reason).toBe('abandon');
     expect(await mover.emitWithAck('match:leave', {})).toEqual({ ok: false, error: 'NOT_IN_MATCH' });
+  });
+});
+
+describe('no repeated puzzles', () => {
+  it('a rematch of the same players is served a different puzzle while others exist', async () => {
+    const mk = (n: number) => ({ ...puzzle, id: `pz-${n}` });
+    const all = [mk(1), mk(2), mk(3)];
+    const history = new PuzzleHistory();
+    const svc = new MatchService({
+      puzzles: { pickRandom: async (o) => all.find((p) => !(o?.exclude ?? []).includes(p.id)) ?? null, pricesFor: async () => ({}) },
+      history,
+      profile: async () => ({ nickname: 'n', avatarKey: 'a', level: 1, coins: 0 }),
+      emit: () => undefined,
+      schedule: () => () => undefined,
+    });
+    const seen: string[] = [];
+    for (let i = 0; i < 3; i++) {
+      expect(await svc.start('A', 'B', { friendly: true })).toBe(true);
+      seen.push(history.seen(['A']).at(-1)!);
+      svc.leave('A');
+    }
+    expect(new Set(seen).size).toBe(3);
   });
 });

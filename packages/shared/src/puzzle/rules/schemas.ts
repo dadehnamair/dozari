@@ -52,6 +52,12 @@ export const categoryPriceRankSchema = z.object({
   rank: z.number().int().positive(),
 });
 
+export const themeTagSchema = z.object({
+  kind: z.literal('theme_tag'),
+  /** Theme key (see `themes.ts`); a product matches when it carries the tag `theme:<key>`. */
+  theme: z.string().min(1).max(40),
+});
+
 export const curatedSchema = z.object({
   kind: z.literal('curated'),
   note: z.string(),
@@ -66,6 +72,7 @@ export const ruleSchema = z
     cheaperThanRefSchema,
     eraIconSchema,
     categoryPriceRankSchema,
+    themeTagSchema,
     curatedSchema,
   ])
   .superRefine((r, ctx) => {
@@ -92,5 +99,6 @@ export const RULE_KINDS = [
   'cheaper_than_ref',
   'era_icon',
   'category_price_rank',
+  'theme_tag',
   'curated',
 ] as const satisfies readonly RuleKind[];

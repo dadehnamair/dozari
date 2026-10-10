@@ -21,6 +21,17 @@ export interface DuelConnection {
   close(): void;
 }
 
+/** A phone that dropped off the network leaves the socket half-open: try to bring it back for a moment before an answer is sent into the void. */
+const reconnected = (socket: Socket, waitMs: number): Promise<boolean> =>
+  new Promise((resolve) => {
+    if (socket.connected) return resolve(true);
+    const done = (ok: boolean) => (clearTimeout(timer), socket.off('connect', onUp), resolve(ok));
+    const onUp = () => done(true);
+    const timer = setTimeout(() => done(socket.connected), waitMs);
+    socket.once('connect', onUp);
+    socket.connect();
+  });
+
 const ask = (socket: Socket, event: string, payload?: unknown): Promise<Ack> =>
   new Promise((resolve) => {
     socket.timeout(8000).emit(event, payload ?? {}, (err: unknown, raw: unknown) => {
@@ -64,6 +75,8 @@ export async function connectDuel(dispatch: (a: DuelAction) => void): Promise<Du
     if (!e.success) return;
     if (e.data.t === 'guess' && e.data.outcome !== undefined) dispatch({ t: 'guess', outcome: e.data.outcome, mine: e.data.side === you });
     else if (e.data.t === 'timeout') dispatch({ t: 'timeout', mine: e.data.side === you });
+    else if (e.data.t === 'group_revealed') dispatch({ t: 'revealed', level: e.data.level });
+    else if (e.data.t === 'board_done') dispatch({ t: 'boardDone', round: e.data.round, groups: e.data.groups });
     else if (e.data.t === 'board') dispatch({ t: 'board', board: e.data.round + 1, of: e.data.rounds });
   });
   socket.on(ServerEvent.matchEnded, (p: unknown) => {
@@ -86,7 +99,11 @@ export async function connectDuel(dispatch: (a: DuelAction) => void): Promise<Du
     joinQueue: (mode = 'duel', tier) => ask(socket, ClientEvent.queueJoin, tier && tier !== 'bronze' && mode === 'duel' ? { mode, tier } : { mode }),
     leaveQueue: () => ask(socket, ClientEvent.queueLeave),
     resume: () => ask(socket, ClientEvent.matchResume, {}),
-    submit: (itemIds) => ask(socket, ClientEvent.matchSubmit, { itemIds }),
+    submit: async (itemIds) => {
+      // Not connected right now: wait briefly for the socket, and say so plainly if it does not come back (the screen toasts it next to the button).
+      if (!(await reconnected(socket, 4000))) return { ok: false, error: 'INTERNAL' };
+      return ask(socket, ClientEvent.matchSubmit, { itemIds });
+    },
     propose: (itemIds) => ask(socket, ClientEvent.matchPropose, { itemIds }),
     leave: () => ask(socket, ClientEvent.matchLeave),
     priceGuess: (guessRials) => ask(socket, ClientEvent.priceSubmit, { guessRials: guessRials.toString() }),

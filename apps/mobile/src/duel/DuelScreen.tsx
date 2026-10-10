@@ -1,6 +1,6 @@
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { toPersianDigits } from '@dozari/shared';
+import { isLastLife, toPersianDigits } from '@dozari/shared';
 import type { TauntCategory } from '@dozari/shared';
 import { fetchTaunts } from '../chat/api';
 import { Board } from '../components/Board';
@@ -11,7 +11,11 @@ import { Icon } from '../components/Icon';
 import { Item } from '../components/Item';
 import { Rain } from '../components/Rain';
 import { SlabButton } from '../components/SlabButton';
+import { ComboRing } from '../game/ComboRing';
 import { Lives } from '../game/Lives';
+import { NearMissPill } from '../game/NearMissPill';
+import { useCombo } from '../game/useCombo';
+import { useHeartbeat } from '../game/useHeartbeat';
 import { MatchBackground } from '../game/MatchBackground';
 import { fa } from '../i18n/fa';
 import { usePrefs } from '../prefs/store';
@@ -25,9 +29,10 @@ import { DuelPriceRound } from './DuelPriceRound';
 import { DuelResult } from './DuelResult';
 import { InviteSheet } from '../invite/InviteSheet';
 import { PlayerSheet } from '../social/PlayerSheet';
+import { ReportDialog } from '../feedback/ReportDialog';
 import { MatchHud } from './MatchHud';
 import { ModeSelect } from './ModeSelect';
-import { boardSolved, duelReducer, initialDuel, isCaptain, isMyTurn, myOutcome, sideName, sidePlayers, turnSecondsLeft } from './model';
+import { boardSolved, duelReducer, endedFromView, initialDuel, isCaptain, isMyTurn, myOutcome, sideName, sidePlayers, turnSecondsLeft } from './model';
 import { connectDuel } from './socket';
 import type { DuelConnection } from './socket';
 import { SearchScreen } from '../search/SearchScreen';
@@ -55,6 +60,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   const [round, setRound] = useState(0);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [profileId, setProfileId] = useState<string | null>(null);
+  const [reportId, setReportId] = useState<string | null>(null);
   const [state, dispatch] = useReducer(duelReducer, initialDuel);
   const [selected, setSelected] = useState<string[]>([]);
   const [order, setOrder] = useState<string[]>([]);
@@ -64,12 +70,22 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   const [tauntOpen, setTauntOpen] = useState(false);
   const [leaveArmed, setLeaveArmed] = useState(false);
   const [friendOpen, setFriendOpen] = useState(false);
+  const [tableOpen, setTableOpen] = useState(false);
   const [mode, setMode] = useState<'duel' | 'team'>('duel');
   const [tier, setTier] = useState<TierId>('bronze');
   const conn = useRef<DuelConnection | null>(null);
   const [wheelOpen, setWheelOpen] = useState(false);
   const [spinsWaiting, setSpinsWaiting] = useState(0);
   const numbers = arenaNumbers(settings);
+  const combo = useCombo();
+  /** A submit is on its way to the server: no second tap until the answer is back (a double tap used to answer «already tried»). */
+  const [sending, setSending] = useState(false);
+  /** The last row playing itself out (see `state.finale`): which of its four cards are lit, and whether its row is open. */
+  const [finaleSel, setFinaleSel] = useState<string[]>([]);
+  const [finaleLast, setFinaleLast] = useState(false);
+  const foundAt = useRef(0);
+  const lastResync = useRef(0);
+  const finishedAt = useRef(0);
 
   useEffect(() => {
     if (stage === 'pick') return;
@@ -109,6 +125,11 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
     if (!state.flash) return;
     if (state.flash === 'correct' || state.flash === 'one_away' || state.flash === 'wrong') playSfx(state.flash === 'one_away' ? 'oneAway' : state.flash);
     if (state.flash === 'wrong' || state.flash === 'timeout') buzz(60);
+    if (state.flash === 'one_away') buzz(40);
+    if (state.flash === 'correct') buzz(25);
+    // The combo of solo play: groups found back to back; any slip or a timeout breaks it.
+    if (state.flash === 'correct' && combo.record('correct') >= 2) playSfx('combo');
+    else if (state.flash !== 'correct') combo.record(state.flash === 'one_away' ? 'one_away' : 'wrong');
     const id = setTimeout(() => dispatch({ t: 'clearFlash' }), FLASH_MS);
     return () => clearTimeout(id);
   }, [state.flash]);
@@ -149,35 +170,101 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
     return () => clearTimeout(id);
   }, [leaveArmed]);
 
-  // When the board is won by finding groups, the last cards light up one by one and the rows stay visible for a moment before the result.
-  const [finaleFor, setFinaleFor] = useState<string | null>(null);
-  const finalePending = state.phase === 'ended' && state.ended?.result.reason === 'solved' && !!state.view && !prefs.reduceMotion && finaleFor !== (foundId ?? '');
+  // The last row plays itself out before the board moves on or the result shows: the last four cards light up one by one, then their row opens.
+  const finale = state.finale;
   useEffect(() => {
-    if (!finalePending || !state.view) return undefined;
+    if (!finale) return undefined;
+    setFinaleSel([]);
+    setFinaleLast(false);
+    if (prefs.reduceMotion) {
+      dispatch({ t: 'clearFinale' });
+      return undefined;
+    }
     let alive = true;
-    const rest = state.view.cards.map((c) => c.id);
+    const pause = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
     const run = async () => {
-      const pause = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
       await pause(450);
-      for (const id of rest) {
+      for (const c of finale.cards) {
         if (!alive) return;
-        setSelected((cur) => [...cur, id]);
+        setFinaleSel((cur) => [...cur, c.id]);
         playSfx('select');
+        buzz(15);
         await pause(280);
       }
-      await pause(rest.length ? 1400 : 1800);
-      if (alive) setFinaleFor(foundId ?? '');
+      await pause(420);
+      if (!alive) return;
+      playSfx('correct');
+      buzz(40);
+      setFinaleLast(true);
+      await pause(1400);
+      if (alive) dispatch({ t: 'clearFinale' });
     };
     void run();
+    // Whatever happens, the script lets go of the screen after a few seconds.
+    const guard = setTimeout(() => dispatch({ t: 'clearFinale' }), 8000);
     return () => {
       alive = false;
+      clearTimeout(guard);
     };
-    // The script runs once per finished match.
-  }, [finalePending, foundId]);
+  }, [finale?.key, prefs.reduceMotion]);
+
+  // A refused submit or a late answer is a toast for a moment, never a dead end.
+  useEffect(() => {
+    if (!state.notice) return undefined;
+    const id = setTimeout(() => dispatch({ t: 'clearNotice' }), 3500);
+    return () => clearTimeout(id);
+  }, [state.notice]);
+  // The last chance: the heartbeat of solo play (sound, a double buzz, the beating dot).
+  const lv = state.view;
+  const lastLife = !!lv && lv.status === 'playing' && !state.finale && !lv.priceRound && !lv.lockedOut[lv.you] && isLastLife(lv.mistakes[lv.you], numbers.maxMistakes, true);
+  useHeartbeat(lastLife);
+  useEffect(() => setSending(false), [state.view?.turnId, state.view?.round]);
+
+  // Nobody gets stuck: every wait below has a way out. A snapshot that never came, a turn that ran out without the server moving
+  // on, a finished board whose «ended» was lost: ask the server again, and when it no longer has the match, close it from what we know.
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const resync = () => {
+    lastResync.current = Date.now();
+    void conn.current?.resume().then((ack) => {
+      if (ack.ok || ack.error !== 'NOT_IN_MATCH') return;
+      const cur = stateRef.current;
+      if (cur.phase === 'ended') return;
+      const ended = cur.view ? endedFromView(cur.view) : null;
+      dispatch(ended ? { t: 'ended', ended } : { t: 'error', error: 'NOT_IN_MATCH' });
+    });
+  };
+  useEffect(() => {
+    if (foundId || stage === 'resume') foundAt.current = Date.now();
+  }, [foundId, stage, round]);
+  useEffect(() => {
+    if (stage === 'pick' || !conn.current || state.phase === 'ended') return;
+    const t = Date.now();
+    const v = state.view;
+    const quiet = t - lastResync.current > 6000;
+    if (!v) {
+      // The match is on but its first snapshot has not shown up.
+      if (!(state.found || stage === 'resume') || !foundAt.current) return;
+      if (t - foundAt.current > 20000) dispatch({ t: 'error', error: 'NETWORK' });
+      else if (t - foundAt.current > 6000 && quiet) resync();
+      return;
+    }
+    if (v.status === 'finished') {
+      if (!finishedAt.current) finishedAt.current = t;
+      else if (t - finishedAt.current > 5000) {
+        const e = endedFromView(v);
+        if (e) dispatch({ t: 'ended', ended: e });
+      }
+      return;
+    }
+    finishedAt.current = 0;
+    const deadline = v.priceRound ? v.priceRound.endsAt : v.turnEndsAt;
+    if (deadline > 0 && t > deadline + 6000 && quiet) resync();
+  }, [now]);
 
   useEffect(() => {
-    if (state.phase === 'ended' && state.ended && state.view && !finalePending) playSfx(myOutcome(state.ended, state.view.you) === 'won' ? 'win' : 'lose');
-  }, [state.phase, state.ended, state.view, finalePending]);
+    if (state.phase === 'ended' && state.ended && state.view && !state.finale) playSfx(myOutcome(state.ended, state.view.you) === 'won' ? 'win' : 'lose');
+  }, [state.phase, state.ended, state.view, state.finale]);
 
   const again = () => {
     dispatch({ t: 'reset' });
@@ -185,6 +272,16 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
     setOrder([]);
     setIntroUntil(0);
     setStage('queue');
+    setRound((r) => r + 1);
+  };
+
+  /** The private table started its next match: clear the old board and resume into the new one. */
+  const rematch = () => {
+    setTableOpen(false);
+    dispatch({ t: 'reset' });
+    setSelected([]);
+    setOrder([]);
+    setIntroUntil(0);
     setRound((r) => r + 1);
   };
 
@@ -206,7 +303,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   /** Try the same thing again: a fresh socket and queue join. */
   const retry = () => (dispatch({ t: 'reset' }), setRound((r) => r + 1));
 
-  if ((errorText || (noPuzzles && !state.found)) && state.phase !== 'playing') {
+  if ((errorText || (noPuzzles && !state.found)) && (state.phase !== 'playing' || !state.view)) {
     return (
       <MatchBackground>
         <View style={styles.center}>
@@ -249,10 +346,11 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   const rivalWho = characterFor(sidePlayers(state.found, them)[0]?.avatarKey || rivalName);
   const lines = [
     { name: myName, who: 'dozari' as const, groups: groupsBy(view, me), me: true },
-    { name: rivalName, who: rivalWho, groups: groupsBy(view, them), me: false, playerId: sidePlayers(state.found, them).length === 1 ? sidePlayers(state.found, them)[0]?.userId : undefined },
+    { name: rivalName, who: rivalWho, groups: groupsBy(view, them), me: false, playerId: sidePlayers(state.found, them).length === 1 ? sidePlayers(state.found, them)[0]?.userId : undefined,
+      reportable: sidePlayers(state.found, them).flatMap((p) => (p.userId ? [{ id: p.userId, name: p.nickname }] : [])) },
   ];
 
-  if (state.phase === 'ended' && state.ended && !finalePending) {
+  if (state.phase === 'ended' && state.ended && !state.finale) {
     const outcome = myOutcome(state.ended, me);
     const scores = state.ended.scores;
     return (
@@ -263,23 +361,27 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
           lines={lines.map((l) => ({ ...l, points: scores[l.me ? me : them] }))}
           priceRound={state.ended.priceRound}
           onHome={onBack}
-          onAgain={stage === 'queue' ? again : undefined}
+          onAgain={stage === 'queue' ? again : () => setTableOpen(true)}
+          againLabel={stage === 'resume' ? fa.tables.rematch : undefined}
           onInvite={() => setInviteOpen(true)}
           onPlayer={(id) => setProfileId(id)}
+          onReport={(id) => setReportId(id)}
         />
         {!prefs.reduceMotion ? (outcome === 'won' ? <Confetti distance={500} /> : <Rain distance={800} />) : null}
         {outcome === 'won' && spinsWaiting > 0 ? (
           <View style={styles.wheelCta}><SlabButton label={fa.wheel.open} color={colors.candy.yellow} badge={toPersianDigits(String(spinsWaiting))} onPress={() => setWheelOpen(true)} /></View>
         ) : null}
         {inviteOpen ? <InviteSheet onClose={() => setInviteOpen(false)} /> : null}
+        {tableOpen ? <TableSheet onClose={() => setTableOpen(false)} onMatch={rematch} /> : null}
         {profileId ? <PlayerSheet playerId={profileId} onClose={() => setProfileId(null)} /> : null}
+        {reportId ? <ReportDialog target={{ kind: 'user', userId: reportId }} onClose={() => setReportId(null)} /> : null}
         {wheelOpen ? <WheelPage onClose={() => (setWheelOpen(false), void fetchWheel().then((w) => setSpinsWaiting(w.pending), () => undefined))} /> : null}
       </View>
     );
   }
 
   // The board is over but the match is not: the price-guess round replaces the board until the server ends the match.
-  if (view.priceRound) {
+  if (view.priceRound && !state.finale) {
     return (
       <MatchBackground>
         <ScrollView contentContainerStyle={styles.screen}>
@@ -300,14 +402,28 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   const captain = isCaptain(view);
   const playing = view.status === 'playing';
   const secs = turnSecondsLeft(view, now);
-  const turnText = view.lockedOut[me] ? fa.duel.lockedOut : mine ? (!captain ? a.mateCaptain : team ? a.captain : fa.duel.yourTurn) : fa.duel.theirTurn;
+  const nameOf = (id: string | undefined) => state.found?.players.find((p) => p.userId === id)?.nickname ?? '';
+  const captainName = nameOf(view.captain?.[me]);
+  /** 2v2: the teammate's four picks are waiting for the captain's «ثبت». */
+  const proposalReady = team && mine && captain && (view.proposal?.itemIds.length ?? 0) === 4;
+  const mateWaiting = team && mine && !captain && selected.length === 4;
+  const turnText = view.lockedOut[me] ? fa.duel.lockedOut : mine ? (!captain ? (mateWaiting ? a.waitCaptain(captainName) : a.mateCaptain) : proposalReady ? a.mateReady(nameOf(view.proposal?.by)) : team ? a.captain : fa.duel.yourTurn) : fa.duel.theirTurn;
   const boards = view.rounds ?? 1;
-  const toast = leaveArmed ? a.leaveSure : state.boardNote ? a.nextBoard(state.boardNote.board, state.boardNote.of) : state.flash ? fa.duel.feedback[state.flash] : state.taunt ? `${state.taunt.from}: ${state.taunt.text}` : null;
+  const noticeText = state.notice ? fa.duel.errors[state.notice] ?? fa.duel.errors.generic ?? null : null;
+  const toast = leaveArmed ? a.leaveSure : noticeText ? noticeText : state.boardNote ? a.nextBoard(state.boardNote.board, state.boardNote.of) : state.flash && state.flash !== 'one_away' ? fa.duel.feedback[state.flash] : state.taunt ? `${state.taunt.from}: ${state.taunt.text}` : null;
+  /** The submit button lights up only when this player can really submit now: their side's turn, they are the captain, four cards are picked, no answer pending. */
+  const canSend = playing && mine && captain && canSubmit(selected) && !sending && !state.finale;
   const submit = () => {
-    if (!canSubmit(selected) || !mine || !captain) return;
-    void conn.current?.submit(selected).then((ack) => {
-      if (ack.ok) setSelected([]);
-      else dispatch({ t: 'error', error: ack.error });
+    if (!canSend) return;
+    // No live connection object at all: never a silent tap. Say so and ask the server where things stand once the line is back.
+    if (!conn.current) return dispatch({ t: 'notice', error: 'NETWORK' });
+    setSending(true);
+    void conn.current.submit(selected).then((ack) => {
+      setSending(false);
+      if (ack.ok) return setSelected([]);
+      // A refused submit never ends the game for the player: it is a toast, and a lost answer asks the server where things stand.
+      dispatch({ t: 'notice', error: ack.error });
+      if (ack.error === 'INTERNAL' || ack.error === 'NOT_IN_MATCH') resync();
     });
   };
   const leave = () => {
@@ -335,6 +451,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
               <View style={styles.clockIcon}><Item icon="hourglass" /></View>
               <Text style={styles.clockText}>{toPersianDigits(clockText(secs))}</Text>
             </View>
+            <ComboRing streak={combo.streak} left={combo.left} showLabel={false} />
             <View style={styles.mode}><Text style={styles.modeText}>{team ? (boards > 1 ? `${a.twoVsTwo} · ${a.boardOf((view.round ?? 0) + 1, boards)}` : a.twoVsTwo) : a.oneVsOne}</Text></View>
           </View>
 
@@ -348,7 +465,10 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
           </View>
           <View style={styles.toastSlot}>{toast ? <View style={styles.toast}><Text style={styles.toastText} numberOfLines={2}>{toast}</Text></View> : null}</View>
 
-          <Board solved={boardSolved(view)} cards={arrange(view.cards, order)} names={state.names} selected={selected} onToggle={(id) => setSelected((s) => toggleSelection(s, id))} disabled={!playing || !mine} muted={playing && !mine} />
+          <View>
+            <Board solved={state.finale ? (finaleLast ? [...state.finale.solved, state.finale.last] : state.finale.solved) : boardSolved(view)} cards={state.finale ? (finaleLast ? [] : state.finale.cards) : arrange(view.cards, order)} names={state.names} selected={state.finale ? finaleSel : selected} onToggle={(id) => setSelected((s) => toggleSelection(s, id))} disabled={!playing || !mine || !!state.finale} muted={playing && !mine && !state.finale} />
+            {state.flash === 'one_away' ? <View style={styles.nearMiss} pointerEvents="none"><NearMissPill /></View> : null}
+          </View>
 
           <View style={styles.tools}>
             {taunts.length > 0 ? (
@@ -356,7 +476,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
                 {({ pressed }) => <View style={[styles.round, pressed ? styles.pressed : null]}><Icon name="chat" size={24} color={colors.ink} strokeWidth={2.6} /></View>}
               </Pressable>
             ) : <View style={styles.roundGap} />}
-            <Lives mistakes={view.mistakes[me]} max={numbers.maxMistakes} />
+            <Lives mistakes={view.mistakes[me]} max={numbers.maxMistakes} last={lastLife} />
             <View style={styles.roundGap} />
           </View>
           {tauntOpen ? (
@@ -367,10 +487,12 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
             </View>
           ) : null}
 
+          {/* The same notice again right above the buttons: the one at the top of the board is out of sight when the player is down here. */}
+          {noticeText ? <View style={styles.toastSlot}><View style={styles.toast}><Text style={styles.toastText} numberOfLines={2}>{noticeText}</Text></View></View> : null}
           <View style={styles.actions}>
-            <SlabButton label={fa.solo.shuffle} color={colors.candy.sky} height={58} fontSize={20} onPress={() => setOrder(shuffled(view.cards.map((c) => c.id)))} />
-            <SlabButton label={fa.solo.deselect} color={colors.candy.orange} height={58} fontSize={20} onPress={() => setSelected([])} disabled={selected.length === 0} />
-            <SlabButton label={fa.solo.submit} sfx="confirm" color={colors.candy.lime} height={58} fontSize={24} grow={1.4} onPress={submit} disabled={!canSubmit(selected) || !mine} />
+            <SlabButton label={fa.solo.shuffle} color={colors.candy.sky} height={58} fontSize={20} onPress={() => setOrder(shuffled(view.cards.map((c) => c.id)))} disabled={!playing || !!state.finale} />
+            <SlabButton label={fa.solo.deselect} color={colors.candy.orange} height={58} fontSize={20} onPress={() => setSelected([])} disabled={selected.length === 0 || !!state.finale} />
+            <SlabButton label={sending ? fa.duel.submitting : fa.solo.submit} sfx="confirm" color={colors.candy.lime} height={58} fontSize={24} grow={1.4} onPress={submit} disabled={!canSend} />
           </View>
         </View>
       </ScrollView>
@@ -406,8 +528,9 @@ const styles = StyleSheet.create({
   round: { width: 52, height: 52, borderRadius: 26, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center', ...lift },
   roundGap: { width: 52 },
   tauntBox: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
-  tauntChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, borderWidth: 2, borderColor: colors.ink, backgroundColor: '#E8D5FF' },
+  tauntChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.tint },
   tauntText: { fontFamily: fonts.bold, fontSize: 13, color: colors.ink },
   actions: { flexDirection: ROW, gap: 9 },
+  nearMiss: { position: 'absolute', top: '38%', left: 0, right: 0, alignItems: 'center' },
   msg: { fontFamily: fonts.bold, fontSize: 18, color: colors.cream, textAlign: 'center' },
 });

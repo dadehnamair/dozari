@@ -6,7 +6,7 @@ passwords and open ports). The production stack is `docker-compose.prod.yml`:
 | Service | What it is | Reachable from outside |
 |---|---|---|
 | `s-dozari-mysql` | MySQL 8.4, data in a volume | no (compose network only) |
-| `s-dozari-migrate` | applies the DB migrations, then exits | no |
+| `s-dozari-migrate` | applies the DB migrations, then exits. **Off by default** (profile `setup`, see below) | no |
 | `s-dozari-server` | the game server (REST, Socket.io, admin panel, product images) | `127.0.0.1:3000` |
 | `s-dozari-web` | the web app (PWA) as static files over plain HTTP | `127.0.0.1:8081` (`WEB_PORT`) |
 | `s-dozari-phpmyadmin` | phpMyAdmin on the same MySQL (§phpMyAdmin) | `127.0.0.1:8082` (`PMA_PORT`) |
@@ -51,7 +51,7 @@ git clone <repo> dozari && cd dozari
 cp deploy/.env.example .env.prod
 nano .env.prod          # every line: domains, MYSQL_*, JWT_SECRET, ADMIN_TOKEN (openssl rand -hex 24)
 docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
-docker compose -f docker-compose.prod.yml --env-file .env.prod ps     # s-dozari-migrate: exited (0), others: running
+docker compose -f docker-compose.prod.yml --env-file .env.prod ps     # others: running (migrate/seed only exist with --profile setup)
 curl http://127.0.0.1:3000/health   # once the proxy forwards: https://api.mrbots.ir/health
 ```
 
@@ -62,6 +62,20 @@ The server **refuses to start in production** with a short or default `JWT_SECRE
 docker compose -f docker-compose.prod.yml --env-file .env.prod run --rm -w /app/apps/server s-dozari-server \
   pnpm exec tsx src/admin/accounts/cli.ts <username> owner "<display name>"
 ```
+
+### Migrate and seed are temporarily off
+
+`s-dozari-migrate` and `s-dozari-seed` carry the compose profile `setup`, so a plain `up -d --build` does not start them (the server's `depends_on` on them is `required: false`).
+Schema changes are therefore **not** applied automatically. To turn them back on, either add `--profile setup` to the command above, or put `COMPOSE_PROFILES=setup` in `.env.prod`.
+To run them once without enabling permanently use the helper (it runs the step, then does the normal `up -d --build`):
+
+```bash
+scripts/deploy.sh                # deploy only
+scripts/deploy.sh setup          # migrations, then deploy
+scripts/deploy.sh seed           # seed, then deploy
+scripts/deploy.sh setup seed     # both, then deploy
+```
+After changing `packages/db/src/schema.ts` run migrate before starting the new server build.
 
 ## Reverse proxy
 
@@ -83,7 +97,7 @@ the root `docker-compose.yml` has Adminer on `:8080`.
 ## Catalogue (products, prices, images)
 
 The game needs product data. **No shell on the host?** Nothing to do: the `s-dozari-seed` service runs on every `up -d --build` and loads the catalogue when the database has no
-products yet (`SEED_ON_START=empty`, the default; check with `logs s-dozari-seed`). `SEED_ON_START=1` re-runs the full idempotent seed on every `up`, `0` turns it off.
+products yet (`SEED_ON_START=empty`, the default; check with `logs s-dozari-seed`). `SEED_ON_START=1` re-runs the full seed on every `up`, `0` turns it off. **The seed never changes a product that is in the database**: the catalogue belongs to the database (edited in the admin panel); product files are loaded only into an empty catalogue (fresh install) or with `seed --products`, and then insert-only. On a live catalogue the seed only adds landing content (blog, cast, FAQ), keepsakes and curated puzzles, which point at products by slug (`packages/db/seed/catalog-index.json` lists the ids/slugs they may use; a puzzle whose products are missing is skipped).
 Caveat: after `--remove-sample` with no real products loaded, the next `up` seeds the samples again; set `0` first. With a shell, load it once (and again after changing the seed files):
 
 ```bash
@@ -112,6 +126,7 @@ $dc run --rm --user root -w /app/packages/db s-dozari-server pnpm exec tsx src/s
 ```bash
 git pull
 docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+docker image prune -f && docker builder prune -f --filter until=72h   # drop old images and build cache so the disk does not fill up
 ```
 
 Migrations run by themselves before the server restarts. Players see «نسخهٔ تازه» in the app and

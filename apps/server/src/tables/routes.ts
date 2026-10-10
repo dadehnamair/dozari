@@ -1,17 +1,17 @@
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { createTableBodySchema } from '@dozari/shared';
-import type { TableError } from '@dozari/shared';
+import { createTableBodySchema, tableReactBodySchema } from '@dozari/shared';
+import type { MatchFound, MatchView, TableError, TableWatch } from '@dozari/shared';
 import type { AuthService } from '../auth/service.js';
 import { currentUser } from '../auth/routes.js';
 import type { TableService } from './service.js';
 
-const STATUS: Record<TableError, number> = { NOT_FOUND: 404, FULL: 409, LOCKED: 403, EXPIRED: 410, NOT_HOST: 403, NOT_IN: 409, NOT_READY: 409, NEED_PLAYERS: 409, BUSY: 503, IN_MATCH: 409, START_FAILED: 409, INVALID: 400, NOT_TEAM: 409, NEEDS_GUARDIAN: 403, FEATURE_OFF: 403 };
+const STATUS: Record<TableError, number> = { NOT_FOUND: 404, FULL: 409, LOCKED: 403, EXPIRED: 410, NOT_HOST: 403, NOT_IN: 409, NOT_READY: 409, NEED_PLAYERS: 409, BUSY: 503, IN_MATCH: 409, START_FAILED: 409, INVALID: 400, NOT_TEAM: 409, NEEDS_GUARDIAN: 403, FEATURE_OFF: 403, NO_COINS: 402, LOW_ENTRY: 400, TOO_MANY: 429, NOT_REQUESTED: 404, ALREADY_IN: 409 };
 const codeParam = z.object({ code: z.string().min(3).max(12) });
 const targetBody = z.object({ userId: z.string().uuid() });
 
 /** Player side of private tables. Polling `GET /tables/:code` keeps the screen current; the match itself starts through the socket (`match:found`). */
-export function registerTableRoutes(app: FastifyInstance, auth: AuthService, tables: TableService, share?: (userId: string, code: string, label: string) => Promise<{ ok: true } | { ok: false; error: string }>, invite?: (host: string, friendId: string, table: { code: string; icon: string; name: string }) => Promise<{ ok: true; online: boolean } | { ok: false; error: string }>) {
+export function registerTableRoutes(app: FastifyInstance, auth: AuthService, tables: TableService, share?: (userId: string, code: string, label: string) => Promise<{ ok: true } | { ok: false; error: string }>, invite?: (host: string, friendId: string, table: { code: string; icon: string; name: string }) => Promise<{ ok: true; online: boolean } | { ok: false; error: string }>, spectate?: (playerId: string) => { view: MatchView; players: MatchFound['players']; names: Record<string, string>; inPriceRound: boolean; recent: TableWatch['recent'] } | null) {
   const fail = (reply: FastifyReply, error: TableError) => reply.code(STATUS[error]).send({ error });
 
   app.post('/tables', async (req, reply) => {
@@ -29,6 +29,38 @@ export function registerTableRoutes(app: FastifyInstance, auth: AuthService, tab
     return { table: await tables.mine(user.id) };
   });
 
+  // The open tables (public ones, with the closed and full ones listed view-only), so the list is never bare.
+  app.get('/tables/public', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    return { tables: await tables.listPublic(user.id) };
+  });
+
+  // A look at a playing public table from the stands (read only); polling this also counts the caller as a watcher.
+  app.get('/tables/:code/watch', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    const p = codeParam.safeParse(req.params);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    if (!p.success) return fail(reply, 'INVALID');
+    const out = await tables.watch(user.id, p.data.code);
+    if (!out.ok) return fail(reply, out.error);
+    const seen = spectate?.(out.playerId);
+    if (!seen) return fail(reply, 'NOT_FOUND');
+    const body: TableWatch = { ...out.table, ...seen, watchers: out.watchers, reactions: tables.reactionsOf(out.code) };
+    return body;
+  });
+
+  // A watcher cheers from the stands (a canned reaction every couple of seconds).
+  app.post('/tables/:code/react', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    const p = codeParam.safeParse(req.params);
+    const b = tableReactBodySchema.safeParse(req.body);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    if (!p.success || !b.success) return fail(reply, 'INVALID');
+    const out = await tables.react(user.id, p.data.code, b.data.kind);
+    return out.ok ? { ok: true } : fail(reply, out.error);
+  });
+
   app.get('/tables/:code', async (req, reply) => {
     const user = await currentUser(auth, req);
     const p = codeParam.safeParse(req.params);
@@ -44,6 +76,26 @@ export function registerTableRoutes(app: FastifyInstance, auth: AuthService, tab
     if (!p.success) return fail(reply, 'INVALID');
     const out = await tables.join(user.id, p.data.code);
     return out.ok ? out.table : fail(reply, out.error);
+  });
+
+  // Ask the host of a public table to let you sit down.
+  app.post('/tables/:code/request', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    const p = codeParam.safeParse(req.params);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    if (!p.success) return fail(reply, 'INVALID');
+    const out = await tables.request(user.id, p.data.code);
+    return out.ok ? { ok: true } : fail(reply, out.error);
+  });
+
+  // The host answers a request: let the player in or turn them down.
+  app.post('/tables/answer', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    const b = z.object({ userId: z.string().uuid(), accept: z.boolean() }).safeParse(req.body);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    if (!b.success) return fail(reply, 'INVALID');
+    const out = await tables.answer(user.id, b.data.userId, b.data.accept);
+    return out.ok ? { ok: true } : fail(reply, out.error);
   });
 
   // The host posts the table into the city chat as a join card.

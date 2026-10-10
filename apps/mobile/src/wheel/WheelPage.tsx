@@ -1,3 +1,4 @@
+import { FACE_TEXT } from '../theme/skin';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, G, Path } from 'react-native-svg';
@@ -14,6 +15,9 @@ import { fetchWheel, spinWheel } from './api';
 import { spinAngle } from './geometry';
 import { pageTop } from '../theme/safeArea';
 import { useHardwareBack } from '../nav/useHardwareBack';
+import { DailyRewardCard } from '../components/DailyRewardCard';
+import { Toast } from '../components/Toast';
+import type { DailyRewardState } from '../daily/useDailyReward';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const SIZE = 290;
@@ -53,8 +57,9 @@ const rays = (() => {
 const PRIZE_ICON = { coins: 'coin', gems: 'gem', hint_token: 'magnifier', wheel_spin: 'dice', cosmetic: 'gift' } as const;
 const iconOf = (p: { kind: keyof typeof PRIZE_ICON; iconKey?: string | null }): string => (p.kind === 'cosmetic' && p.iconKey ? p.iconKey : PRIZE_ICON[p.kind]);
 
-export function WheelPage({ onClose }: { onClose: () => void }) {
+export function WheelPage({ onClose, daily, startOn = 'wheel' }: { onClose: () => void; /** The daily reward («عیدی») lives in the second tab of this page. */ daily?: DailyRewardState; startOn?: 'wheel' | 'daily' }) {
   useHardwareBack(onClose);
+  const [tab, setTab] = useState<'wheel' | 'daily'>(daily?.status ? startOn : 'wheel');
   const [status, setStatus] = useState<WheelStatus | null>(null);
   const [failed, setFailed] = useState(false);
   const [spinning, setSpinning] = useState(false);
@@ -139,6 +144,26 @@ export function WheelPage({ onClose }: { onClose: () => void }) {
           </View>
         </View>
 
+        {daily?.status ? (
+          <View style={styles.tabs}>
+            {(['wheel', 'daily'] as const).map((k) => (
+              <Pressable key={k} onPress={() => setTab(k)} accessibilityRole="tab" accessibilityState={{ selected: tab === k }} style={[styles.tab, tab === k ? styles.tabOn : null]}>
+                <Text style={[styles.tabText, tab === k ? styles.tabTextOn : null]}>{k === 'wheel' ? t.tabWheel : t.tabDaily}</Text>
+                {k === 'daily' && daily.status?.canClaim ? <View style={styles.tabDot} /> : null}
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
+
+        {tab === 'daily' && daily?.status ? (
+          <View style={styles.dailyBox}>
+            <DailyRewardCard steps={daily.status.steps} day={daily.status.day} canClaim={daily.status.canClaim && !daily.claiming} onClaim={daily.claim} waitText={daily.countdown ? `${daily.countdown} ${fa.daily.wait}` : undefined} />
+            {daily.won !== null ? <Toast text={`${n(daily.won)} ${fa.daily.won}`} tone={colors.candy.yellow} /> : null}
+          </View>
+        ) : null}
+
+        {tab === 'wheel' || !daily?.status ? (
+        <>
         <View style={styles.wheelWrap}>
           <View style={styles.rim} />
           <Animated.View style={[styles.wheel, { transform: [{ rotate }] }]}>
@@ -182,6 +207,8 @@ export function WheelPage({ onClose }: { onClose: () => void }) {
             <Text style={styles.spinText}>{t.spin}</Text>
           </Pressable>
         </View>
+        </>
+        ) : null}
       </View>
 
       {prize !== null ? (
@@ -215,7 +242,7 @@ const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0
 
 const styles = StyleSheet.create({
   root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20, backgroundColor: '#40166A', overflow: 'hidden' },
-  rays: { position: 'absolute', left: '50%', top: pageTop() + 46 + 70 + SIZE / 2 - RAYS_SIZE / 2, width: RAYS_SIZE, height: RAYS_SIZE, marginLeft: -RAYS_SIZE / 2 },
+  rays: { position: 'absolute', left: '50%', top: pageTop() + 46 + 48 + 50 + SIZE / 2 - RAYS_SIZE / 2, width: RAYS_SIZE, height: RAYS_SIZE, marginLeft: -RAYS_SIZE / 2 },
   glow: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   shade: { backgroundColor: 'rgba(43,18,64,0.62)' },
   tip: { alignSelf: 'stretch' },
@@ -226,7 +253,14 @@ const styles = StyleSheet.create({
   plate: { flex: 1, height: 46, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...lift(4) },
   plateText: { fontFamily: fonts.display, fontSize: 22, color: colors.ink },
   note: { fontFamily: fonts.bold, fontSize: 13, color: colors.cream, textAlign: 'center', marginTop: 80 },
-  wheelWrap: { width: SIZE, height: SIZE, marginTop: 70 },
+  wheelWrap: { width: SIZE, height: SIZE, marginTop: 50 },
+  tabs: { alignSelf: 'stretch', flexDirection: ROW, gap: 8, marginTop: 10 },
+  tab: { flex: 1, height: 38, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, backgroundColor: 'rgba(255,255,255,0.14)', alignItems: 'center', justifyContent: 'center', flexDirection: ROW, gap: 6 },
+  tabOn: { backgroundColor: colors.candy.yellow },
+  tabText: { fontFamily: fonts.bold, fontSize: 14, color: colors.cream },
+  tabTextOn: { color: colors.ink },
+  tabDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.candy.pink, borderWidth: 2, borderColor: colors.ink },
+  dailyBox: { alignSelf: 'stretch', marginTop: 24, alignItems: 'stretch', gap: 12 },
   rim: { position: 'absolute', top: -12, left: -12, right: -12, bottom: -12, borderRadius: 999, backgroundColor: colors.ink },
   wheel: { width: SIZE, height: SIZE },
   slice: { position: 'absolute', left: 0, top: 0, width: SIZE, height: SIZE, alignItems: 'center' },
@@ -241,7 +275,7 @@ const styles = StyleSheet.create({
   noteLight: { fontFamily: fonts.bold, fontSize: 12.5, color: colors.cream, textAlign: 'center' },
   spin: { width: '100%', height: 64, borderRadius: 20, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...lift(6) },
   spinOff: { opacity: 0.8 },
-  spinText: { fontFamily: fonts.display, fontSize: 28, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
+  spinText: { fontFamily: fonts.display, fontSize: 28, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1, ...FACE_TEXT },
   prize: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9, backgroundColor: 'rgba(26,8,44,0.86)', alignItems: 'center', justifyContent: 'center', gap: 12 },
   prizeIcon: { width: 130, height: 130 },
   prizePlate: { paddingHorizontal: 26, paddingVertical: 8, borderRadius: 16, borderWidth: 4, borderColor: colors.ink, overflow: 'hidden', ...lift(6) },

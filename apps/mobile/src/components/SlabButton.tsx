@@ -29,7 +29,7 @@ export function SlabButton({ label, color, badge, onPress, height = 68, fontSize
             <View style={styles.topLight} />
             <View style={[styles.content, stacked ? styles.contentStacked : null]}>
               {icon ? <Icon name={icon} size={stacked ? 34 : Math.round(fontSize * 1.05)} color={tone.text} strokeWidth={2.8} /> : null}
-              <Text style={[styles.label, { fontSize, color: tone.text, textShadowColor: theme === 'adult' ? 'transparent' : colors.ink }, disabled ? styles.labelOff : null]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{label}</Text>
+              <Text style={[styles.label, { fontSize, lineHeight: Math.round(fontSize * 1.45), color: tone.text, ...(theme === 'adult' ? { textShadowColor: 'transparent', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 0 } : { textShadowColor: colors.ink }) }, disabled ? styles.labelOff : null]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>{label}</Text>
             </View>
           </View>
           {badge ? (
