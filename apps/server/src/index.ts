@@ -114,6 +114,11 @@ import { createQueueDiagnosis } from './realtime/diagnose.js';
 import { CoinPackageService } from './economy/coin-packages.js';
 import { createDbPuzzleAdmin } from './puzzles/admin.js';
 import { startPuzzlePoolScheduler } from './puzzles/pool.js';
+import { createSecretBox } from './backup/crypto.js';
+import { createMysqldumpDumper, parseDatabaseUrl } from './backup/dump.js';
+import { BackupService, startBackupScheduler } from './backup/service.js';
+import { createS3Storage } from './backup/storage.js';
+import { createDbBackupStore } from './backup/store.js';
 import { registerCoinPackageRoutes } from './economy/coin-packages-routes.js';
 import { createDbCoinPackageStore } from './economy/coin-packages-store.js';
 import { ShopRealMoney } from './economy/shop-real.js';
@@ -809,13 +814,25 @@ if (isMainModule(import.meta.url)) {
   dailyRef = daily;
   const botRepo = db ? createDbBotRepository(db) : undefined;
   const bot = botRepo ? new BotService(botRepo) : undefined;
+  // Database backups to S3 targets: needs a database and a sealing key for the stored secrets (BACKUP_SECRET_KEY, else ADMIN_TOKEN).
+  const backupSealKey = process.env.BACKUP_SECRET_KEY || adminToken;
+  const backupService =
+    db && backupSealKey && process.env.DATABASE_URL
+      ? new BackupService({
+          store: createDbBackupStore(db),
+          box: createSecretBox(backupSealKey),
+          storage: createS3Storage,
+          dumper: createMysqldumpDumper(parseDatabaseUrl(process.env.DATABASE_URL), { bin: process.env.MYSQLDUMP_BIN, extraArgs: process.env.BACKUP_DUMP_ARGS?.split(/\s+/).filter(Boolean) }),
+          log: (msg, err) => console[err ? 'error' : 'log'](msg, err ?? ''),
+        })
+      : undefined;
   const reportError = createErrorReporter({ dsn: process.env.SENTRY_DSN, environment: process.env.NODE_ENV, release: process.env.APP_RELEASE });
   const app = buildServer({
     reportError,
     auth,
     settings,
     adminModules: db
-      ? { products: productAdmin!, feedback, stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, keepsakes: keepsakeStore, wheel, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, ageTracks: db ? createDbAgeTrackAdmin(db) : undefined, economy: db ? createDbEconomyAdmin(db) : undefined, daily, puzzles: createDbPuzzleAdmin(db), levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      ? { backups: backupService, products: productAdmin!, feedback, stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, keepsakes: keepsakeStore, wheel, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, ageTracks: db ? createDbAgeTrackAdmin(db) : undefined, economy: db ? createDbEconomyAdmin(db) : undefined, daily, puzzles: createDbPuzzleAdmin(db), levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
     match: db
@@ -969,6 +986,13 @@ if (isMainModule(import.meta.url)) {
   if (db && settings && process.env.PUZZLE_SCHEDULER !== 'off') {
     const pool = startPuzzlePoolScheduler({ admin: createDbPuzzleAdmin(db), settings, rng: () => randomInt(0, 2 ** 30) / 2 ** 30, log: (msg, err) => (err ? app.log.error({ err }, msg) : app.log.info(msg)) });
     app.addHook('onClose', async () => pool.stop());
+  }
+  if (backupService && process.env.BACKUP_SCHEDULER !== 'off') {
+    const backups = startBackupScheduler({ service: backupService, log: (msg, err) => (err ? app.log.error({ err }, msg) : app.log.info(msg)) });
+    app.addHook('onClose', async () => {
+      backups.stop();
+      await backupService.idle();
+    });
   }
   if (notify && baleClient) {
     const runner = startNotifyRunner({ service: notify, client: baleClient, settings, log: (msg, err) => (err ? app.log.error({ err }, msg) : app.log.info(msg)) });

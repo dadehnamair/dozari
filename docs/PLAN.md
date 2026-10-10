@@ -184,6 +184,7 @@ human opponent is found.
 - [ ] Load test: 500 concurrent matches on one instance
 - [ ] Store listing for Cafe Bazaar & Myket; privacy policy (Persian)
 - [x] Backups + restore drill — `deploy/backup.sh`, `deploy/restore-check.sh`; not yet run on the real server
+- [x] Admin-managed S3 backups (D205): targets, hourly/daily/weekly schedule, per-target retention, run list, manual run, download, delete (`apps/server/src/backup/`, `docs/logic/backups.md`); needs `mysqldump` in the server image (done) and a real bucket test by the owner
 
 ## Later
 

@@ -1647,3 +1647,44 @@ export const dailyPuzzlePlays = mysqlTable(
   },
   (t) => ({ pk: primaryKey({ columns: [t.userId, t.dateKey] }) }),
 );
+
+/** An S3-compatible place database backups are sent to, with its schedule and retention rule (docs/logic/backups.md). The secret key is stored encrypted. */
+export const backupTargets = mysqlTable('backup_targets', {
+  id: id(),
+  name: varchar('name', { length: 80 }).notNull(),
+  endpoint: varchar('endpoint', { length: 300 }).notNull(),
+  region: varchar('region', { length: 60 }).notNull().default(''),
+  bucket: varchar('bucket', { length: 120 }).notNull(),
+  prefix: varchar('prefix', { length: 200 }).notNull().default(''),
+  accessKey: varchar('access_key', { length: 200 }).notNull(),
+  secretKeyEnc: varchar('secret_key_enc', { length: 600 }).notNull(),
+  isActive: boolean('is_active').notNull().default(true),
+  scheduleKind: mysqlEnum('schedule_kind', ['hourly', 'daily', 'weekly']).notNull().default('daily'),
+  scheduleEveryHours: smallint('schedule_every_hours', { unsigned: true }).notNull().default(24),
+  scheduleTime: varchar('schedule_time', { length: 5 }).notNull().default('03:00'),
+  scheduleWeekday: tinyint('schedule_weekday', { unsigned: true }).notNull().default(0),
+  keepDays: smallint('keep_days', { unsigned: true }),
+  keepCount: smallint('keep_count', { unsigned: true }),
+  /** When the scheduler last started this target; the next slot is computed from it (or from `createdAt`). */
+  lastScheduledAt: datetime('last_scheduled_at', { mode: 'date', fsp: 3 }),
+  createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+});
+
+/** One backup attempt of a target. `objectKey` is the file in the bucket; `deletedAt` is set once retention or an admin removed it. */
+export const backupRuns = mysqlTable(
+  'backup_runs',
+  {
+    id: id(),
+    targetId: char('target_id', { length: 36 }).notNull().references(() => backupTargets.id, { onDelete: 'cascade' }),
+    trigger: mysqlEnum('trigger', ['schedule', 'manual']).notNull(),
+    status: mysqlEnum('status', ['running', 'ok', 'failed']).notNull().default('running'),
+    objectKey: varchar('object_key', { length: 400 }).notNull(),
+    sizeBytes: bigint('size_bytes', { mode: 'number', unsigned: true }),
+    error: varchar('error', { length: 500 }),
+    startedAt: datetime('started_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    finishedAt: datetime('finished_at', { mode: 'date', fsp: 3 }),
+    deletedAt: datetime('deleted_at', { mode: 'date', fsp: 3 }),
+    deletedReason: mysqlEnum('deleted_reason', ['retention', 'manual']),
+  },
+  (t) => [index('backup_runs_target_started_idx').on(t.targetId, t.startedAt)],
+);

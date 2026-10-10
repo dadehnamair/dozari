@@ -18,7 +18,7 @@ sidebar and tabs.
 | اقتصاد | daily reward · **economy health** · shop · wheel · tournaments · sponsors |
 | ارتباط با بازیکن | message center · Bale bot |
 | سایت معرفی و لینک‌ها | blog · cast · FAQ · short links |
-| سیستم | settings (searchable) · admin accounts (owner) · socket service · audit log (searchable, filter by admin) |
+| سیستم | settings (searchable) · admin accounts (owner) · socket service · **database backups** (owner only, `docs/logic/backups.md`) · audit log (searchable, filter by admin) |
 
 **Quick jump** — `Ctrl/⌘+K` (or `/`): jump to any page, toggle the theme, sign out, or search players by name/id and open the record straight away.
 Users open in a side drawer with tabs (overview + avatar picker · account & contact · game & items · coins/gems · moderation · notes). «حساب و تماس» shows handle, phone (+ verified),

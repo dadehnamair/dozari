@@ -27,6 +27,7 @@ export const can = (role: Role, permission: Permission): boolean => ROLE_PERMISS
 export function permissionFor(method: string, path: string): Permission {
   const m = method.toUpperCase();
   if (path === '/admin/admins' || path.startsWith('/admin/admins/')) return 'system';
+  if (path === '/admin/backups' || path.startsWith('/admin/backups/')) return 'system'; // where the data lives and links to it: owner only, reads too
   if (path === '/admin/me') return 'read';
   if (m === 'GET' || m === 'HEAD') return 'read';
   if (/^\/admin\/users\/[^/]+\/coins$/.test(path)) return 'economy';
