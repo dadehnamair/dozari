@@ -79,9 +79,12 @@ describe('MatchService', () => {
     expect(theirs).toMatchObject({ t: 'power', kind: 'magnifier' });
     expect(theirs.itemIds).toBeUndefined();
     expect(matchViewSchema.parse(last(first, 'match:state')).powers).toEqual({ magnifier: 1, freeze: 1 });
+    // one power-up per player per match, whatever is left in the bag
+    expect(matchViewSchema.parse(last(first, 'match:state')).powerUsed).toBe(true);
+    expect(svc.power(first, 'magnifier')).toEqual({ ok: false, error: 'POWER_USED' });
 
     // the rival freezes the player to move: no selecting or submitting until the freeze ends
-    expect(svc.power(first, 'freeze')).toEqual({ ok: false, error: 'NOT_YOUR_TURN' });
+    expect(svc.power(first, 'freeze')).toEqual({ ok: false, error: 'POWER_USED' });
     expect(svc.power(second, 'freeze')).toEqual({ ok: true });
     const wrong = [ids(0)[0]!, ids(0)[1]!, ids(1)[0]!, ids(1)[1]!];
     expect(svc.submit(first, wrong)).toEqual({ ok: false, error: 'FROZEN' });

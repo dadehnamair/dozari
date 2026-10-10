@@ -68,6 +68,7 @@ export const ERROR_CODES = [
   'INVALID_SELECTION',
   'NO_POWER',
   'FROZEN',
+  'POWER_USED',
   'DUPLICATE_SELECTION',
   'MATCH_FINISHED',
   'INSUFFICIENT_COINS',
@@ -172,6 +173,8 @@ export const matchViewSchema = z.object({
   lockedOut: z.tuple([z.boolean(), z.boolean()]),
   /** The viewer's own power-ups left, and until when (epoch ms) each side is frozen. Optional for older snapshots. */
   powers: z.object({ magnifier: z.number().int().nonnegative(), freeze: z.number().int().nonnegative() }).optional(),
+  /** The viewer already used their one power-up of the match (each player gets one, any kind). */
+  powerUsed: z.boolean().optional(),
   frozenUntil: z.tuple([z.number().int().nonnegative(), z.number().int().nonnegative()]).optional(),
   turn: side,
   /** Who submits for each side right now (2v2 rotates it every turn). Optional for older snapshots. */

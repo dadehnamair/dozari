@@ -7,6 +7,7 @@ import {
   MATCH_FREEZES,
   MATCH_MAGNIFIERS,
   MATCH_MAX_MISTAKES,
+  POWERS_PER_PLAYER,
   MAX_CONSECUTIVE_TIMEOUTS,
   PRICE_GUESS_LOSER_BONUS_PER_ROUND,
   TURN_SECONDS,
@@ -110,6 +111,8 @@ export interface MatchState {
   /** Power-ups each side has left (magnifier, freeze), and how many magnifiers each side already used (picks the next group to peek at). */
   powers: readonly [PowerCounts, PowerCounts];
   magnified: readonly [number, number];
+  /** Players who already used a power-up: each player may use only one in a whole match, whatever the kind or how many they have. */
+  powerUsers: readonly string[];
   /** Until when (ms) each side cannot select or submit because the rival froze it; 0 = not frozen. Cleared when a turn starts. */
   frozenUntil: readonly [number, number];
   turn: MatchSide;
@@ -139,6 +142,8 @@ export type RuleError =
   | 'INVALID_SELECTION'
   | 'DUPLICATE_SELECTION'
   | 'NO_POWER'
+  /** This player already used their one power-up of the match. */
+  | 'POWER_USED'
   /** The side is frozen: it cannot select or submit until the freeze ends. */
   | 'FROZEN';
 
@@ -219,6 +224,7 @@ export function startTeamMatch(
     tried: [],
     powers: [0, 1].map(() => ({ magnifier: rules.magnifiers ?? MATCH_MAGNIFIERS, freeze: rules.freezes ?? MATCH_FREEZES })) as unknown as readonly [PowerCounts, PowerCounts],
     magnified: [0, 0],
+    powerUsers: [],
     frozenUntil: [0, 0],
     turn,
     turnId: 1,
@@ -429,6 +435,7 @@ export function applyCommand(state: MatchState, cmd: Command, ctx: Ctx): ApplyRe
     case 'power': {
       const side = sideOf(state, cmd.by);
       if (side === null || state.gone.includes(cmd.by)) return { error: 'UNKNOWN_PLAYER' };
+      if (state.powerUsers.filter((id) => id === cmd.by).length >= POWERS_PER_PLAYER) return { error: 'POWER_USED' };
       const left = state.powers[side];
       if (cmd.kind === 'freeze') {
         // Used while the RIVAL plays: it cannot select or submit for a few seconds, its clock keeps running.
@@ -437,7 +444,7 @@ export function applyCommand(state: MatchState, cmd: Command, ctx: Ctx): ApplyRe
         if (left.freeze <= 0 || state.lockedOut[rival] || state.frozenUntil[rival] > ctx.now) return { error: 'NO_POWER' };
         const until = ctx.now + (state.rules.freezeSeconds ?? FREEZE_SECONDS) * 1000;
         events.push({ t: 'power', side, kind: 'freeze', until });
-        return { state: { ...state, powers: set(state.powers, side, { ...left, freeze: left.freeze - 1 }), frozenUntil: set(state.frozenUntil, rival, until) }, events };
+        return { state: { ...state, powers: set(state.powers, side, { ...left, freeze: left.freeze - 1 }), frozenUntil: set(state.frozenUntil, rival, until), powerUsers: [...state.powerUsers, cmd.by] }, events };
       }
       // Magnifier, on the user's own turn: two cards of one unsolved group; the next use looks at the next group, so two uses never repeat.
       if (side !== state.turn) return { error: 'NOT_YOUR_TURN' };
@@ -449,7 +456,7 @@ export function applyCommand(state: MatchState, cmd: Command, ctx: Ctx): ApplyRe
       if (!group) return { error: 'NO_POWER' };
       const itemIds = group.productIds.filter((id) => state.remaining.includes(id)).slice(0, 2);
       events.push({ t: 'power', side, kind: 'magnifier', itemIds });
-      return { state: { ...state, powers: set(state.powers, side, { ...left, magnifier: left.magnifier - 1 }), magnified: set(state.magnified, side, state.magnified[side] + 1) }, events };
+      return { state: { ...state, powers: set(state.powers, side, { ...left, magnifier: left.magnifier - 1 }), magnified: set(state.magnified, side, state.magnified[side] + 1), powerUsers: [...state.powerUsers, cmd.by] }, events };
     }
   }
 }
@@ -490,6 +497,8 @@ export interface MatchClientView {
   rounds: number;
   /** The viewer's own power-ups left, and until when (ms) each side is frozen (0 = not). */
   powers: PowerCounts;
+  /** The viewer already used their one power-up of this match. */
+  powerUsed: boolean;
   frozenUntil: readonly [number, number];
   turn: MatchSide;
   /** Who submits for each side right now. */
@@ -518,6 +527,7 @@ export function matchClientView(state: MatchState, viewerId: string): MatchClien
     round: state.round,
     rounds: state.rounds,
     powers: state.powers[you],
+    powerUsed: state.powerUsers.filter((id) => id === viewerId).length >= POWERS_PER_PLAYER,
     frozenUntil: state.frozenUntil,
     turn: state.turn,
     captain: state.captain,

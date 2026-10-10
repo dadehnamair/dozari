@@ -102,6 +102,7 @@ const RULE_TO_ERROR: Record<RuleError, ErrorCode> = {
   DUPLICATE_SELECTION: 'DUPLICATE_SELECTION',
   NO_POWER: 'NO_POWER',
   FROZEN: 'FROZEN',
+  POWER_USED: 'POWER_USED',
 };
 
 /** How many latest guesses the stands see. */
@@ -400,6 +401,7 @@ export class MatchService {
       mistakes: [v.mistakes[0], v.mistakes[1]],
       lockedOut: [v.lockedOut[0], v.lockedOut[1]],
       powers: { ...v.powers },
+      powerUsed: v.powerUsed,
       frozenUntil: [v.frozenUntil[0], v.frozenUntil[1]],
       turn: v.turn,
       captain: [v.captain[0], v.captain[1]],

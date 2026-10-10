@@ -357,15 +357,14 @@ describe('power-ups', () => {
     expect(matchClientView(r.state, 'u0')!.powers).toEqual({ magnifier: 1, freeze: 1 });
   });
 
-  it('a second magnifier looks at a different group, a third is refused', () => {
+  it('the next magnifier use of a side looks at a different group', () => {
     const a = power(start(0), 0, 'magnifier');
-    const b = power(a.state, 0, 'magnifier');
+    const b = power({ ...start(0), magnified: [1, 0] }, 0, 'magnifier');
     const levelOf = (r: { events: MatchEvent[] }) => {
       const e = r.events.find((x) => x.t === 'power');
       return puzzle.groups.find((g) => e && e.t === 'power' && g.productIds.includes(e.itemIds![0]!))!.level;
     };
     expect(levelOf(a)).not.toBe(levelOf(b));
-    expect(err(b.state, { t: 'power', by: 'u0', kind: 'magnifier' })).toBe('NO_POWER');
   });
 
   it('only the captain of the side to play may use a power-up', () => {
@@ -383,7 +382,7 @@ describe('power-ups', () => {
     expect(f.events[0]).toMatchObject({ t: 'power', kind: 'freeze', side: 1, until: 2000 + FREEZE_SECONDS * 1000 });
     const during = { t: 'submit', by: 'u0', itemIds: ids(0) } as const;
     expect(applyCommand(f.state, during, { now: 5000 })).toEqual({ error: 'FROZEN' });
-    expect(applyCommand(f.state, { t: 'power', by: 'u1', kind: 'freeze' }, { now: 5000 })).toEqual({ error: 'NO_POWER' });
+    expect(applyCommand(f.state, { t: 'power', by: 'u1', kind: 'freeze' }, { now: 5000 })).toEqual({ error: 'POWER_USED' });
     const after = applyCommand(f.state, during, { now: 2000 + FREEZE_SECONDS * 1000 });
     expect('error' in after).toBe(false);
   });
@@ -394,5 +393,16 @@ describe('power-ups', () => {
     const t = ok(f.state, { t: 'timeout', turnId: f.state.turnId });
     expect(t.state.turn).toBe(1);
     expect(t.state.frozenUntil).toEqual([0, 0]);
+  });
+
+  it('each player may use only one power-up in a whole match, whatever the kind', () => {
+    const a = power(start(0), 0, 'magnifier');
+    expect(err(a.state, { t: 'power', by: 'u0', kind: 'magnifier' })).toBe('POWER_USED');
+    expect(a.state.powers[0].magnifier).toBe(1); // still held, but not usable
+    expect(matchClientView(a.state, 'u0')!.powerUsed).toBe(true);
+    expect(matchClientView(a.state, 'u1')!.powerUsed).toBe(false);
+    // the rival is a different player: its one is still open; after it freezes, nobody uses a second one
+    const f = power(a.state, 1, 'freeze', 3000);
+    expect(err(f.state, { t: 'power', by: 'u1', kind: 'magnifier' })).toBe('POWER_USED');
   });
 });
