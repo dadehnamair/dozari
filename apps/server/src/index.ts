@@ -169,6 +169,9 @@ import { createDbShopStore } from './economy/shop-store.js';
 import { HintService } from './solo/hints.js';
 import { PlayLimiter, createDbPlayCountStore } from './limits/play-limits.js';
 import { DuelStakes } from './duel/stakes.js';
+import { registerAdsRoutes } from './ads/routes.js';
+import { AdsService } from './ads/service.js';
+import { createDbAdsStore } from './ads/store.js';
 import { registerWheelRoutes } from './wheel/routes.js';
 import { WheelService } from './wheel/service.js';
 import { createDbWheelStore } from './wheel/store.js';
@@ -200,6 +203,8 @@ export interface ServerDeps {
   dailyReward?: DailyRewardService;
   /** Lucky wheel: a spin earned by winning a duel. */
   wheel?: WheelService;
+  /** Rewarded video ads (`/ads`, and the admin placement table). */
+  ads?: AdsService;
   /** Socket.io service (queue, matches); needs `auth`. Its live stats feed the admin panel. */
   realtime?: boolean;
   /** Bale messenger integration: link codes for players, the bot's name for the app. */
@@ -388,6 +393,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth) registerAuthRoutes(app, deps.auth, deps.deletion, deps.miniApp);
   if (deps.auth && deps.dailyReward) registerDailyRewardRoutes(app, deps.auth, deps.dailyReward);
   if (deps.auth && deps.wheel) registerWheelRoutes(app, deps.auth, deps.wheel);
+  if (deps.auth && deps.ads) registerAdsRoutes(app, deps.auth, deps.ads);
   if (deps.auth && deps.social) registerSocialRoutes(app, deps.auth, deps.social);
   if (deps.auth && deps.invite) registerInviteRoutes(app, deps.auth, deps.invite);
   if (deps.auth && deps.transfers) registerTransferRoutes(app, deps.auth, deps.transfers);
@@ -658,6 +664,7 @@ if (isMainModule(import.meta.url)) {
           };
         }, () => randomInt(0, 2 ** 32) / 2 ** 32)
       : undefined;
+  const ads = db && settings ? new AdsService(createDbAdsStore(db), async () => (await settings.num('ads.enabled')) === 1) : undefined;
   const birthday =
     db && settings && socialStore
       ? new BirthdayService({
@@ -880,7 +887,7 @@ if (isMainModule(import.meta.url)) {
     auth,
     settings,
     adminModules: db
-      ? { backups: backupService, images: adminImageStore(), products: productAdmin!, feedback, clientErrors, stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, keepsakes: keepsakeStore, wheel, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, ageTracks: db ? createDbAgeTrackAdmin(db) : undefined, economy: db ? createDbEconomyAdmin(db) : undefined, daily, ai: aiStudio, aiSchedules: aiScheduler, puzzles: createDbPuzzleAdmin(db), levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, sms: smsGateway, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      ? { backups: backupService, images: adminImageStore(), products: productAdmin!, feedback, clientErrors, stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, keepsakes: keepsakeStore, wheel, ads, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, ageTracks: db ? createDbAgeTrackAdmin(db) : undefined, economy: db ? createDbEconomyAdmin(db) : undefined, daily, ai: aiStudio, aiSchedules: aiScheduler, puzzles: createDbPuzzleAdmin(db), levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, sms: smsGateway, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
     match: db
@@ -952,6 +959,7 @@ if (isMainModule(import.meta.url)) {
     transfers,
     keepsakes,
     wheel,
+    ads,
     dailyReward: db && settings ? new DailyRewardService(createDbDailyRewardStore(db), Date.now, () => dailyRules(settings)) : undefined,
     catalog: db ? createDbCatalogRepository(db) : undefined,
     solo,

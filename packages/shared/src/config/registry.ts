@@ -192,6 +192,7 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'levelreward.every', group: 'economy', label: 'جایزه‌ی سکه‌ی جاده‌ی لول: هر چند لول یک بار', hint: '۰ = خاموش', kind: 'int', min: 0, max: 50, default: LEVEL_REWARD_EVERY, unit: 'لول' },
   { key: 'levelreward.base_coins', group: 'economy', label: 'جایزه‌ی جاده‌ی لول: سکه‌ی پایه', hint: 'جایزه = پایه × (لول ÷ فاصله)؛ مثلاً ۲۵ → لول ۵: ۲۵، لول ۱۰: ۵۰', kind: 'int', min: 0, max: 10000, default: LEVEL_REWARD_BASE_COINS, unit: 'سکه' },
   { key: 'wheel.enabled', group: 'economy', label: 'گردونه‌ی شانس بعد از برد روشن باشد', hint: 'کل گردونه را روشن یا خاموش می‌کند؛ جایزه‌ها در بخش «گردونه»ی پنل', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'ads.enabled', group: 'economy', label: 'تبلیغ ویدیویی پاداشی روشن باشد (کلید کلی)', hint: 'خاموش = هیچ جایی تبلیغ نمی‌آید؛ هر جایگاه را جدا در بخش «تبلیغ» روشن کنید. فقط بزرگسال', kind: 'bool', min: 0, max: 1, default: 0 },
   { key: 'wheel.daily_spins', group: 'economy', label: 'چرخش رایگان گردونه برای هر بازیکن در روز', hint: '۰ = خاموش (پیش‌فرض: چرخش رایگان نداریم). با اولین نگاه به گردونه‌ی آن روز داده می‌شود', kind: 'int', min: 0, max: 10, default: 0, unit: 'چرخش' },
   { key: 'birthday.min_age', group: 'economy', label: 'کمترین سن برای ثبت تاریخ تولد', hint: 'تاریخی که بازیکن را کوچک‌تر از این سن نشان بدهد ذخیره نمی‌شود', kind: 'int', min: 5, max: 30, default: 10, unit: 'سال' },
   { key: 'birthday.week_before_days', group: 'economy', label: 'هفته‌ی تولد از چند روز قبل از تولد شروع شود', kind: 'int', min: 0, max: 10, default: 3, unit: 'روز' },

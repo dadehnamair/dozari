@@ -1298,6 +1298,24 @@ export const fa = {
       rate_app: 'در فروشگاه به دوزاری نظر بده',
     } as Record<string, string>,
   },
+  /** Rewarded video ads: «ببین و جایزه بگیر» (adult only; the server decides where and how much). */
+  ads: {
+    watch: (amount: number, kind: string) => `ببین و ${toPersianDigits(String(amount))} ${kind} بگیر`,
+    left: (n: number) => `${toPersianDigits(String(n))} بار دیگر امروز`,
+    playing: 'در حال نمایش…',
+    cooldown: (sec: number) => `${toPersianDigits(String(sec))} ثانیه‌ی دیگر دوباره`,
+    paid: (amount: number, kind: string) => `${toPersianDigits(String(amount))} ${kind} گرفتی!`,
+    kinds: { coins: 'سکه', gems: 'الماس', hint_token: 'راهنما', wheel_spin: 'چرخش گردونه' } as Record<string, string>,
+    failed: {
+      not_ready: 'تبلیغی آماده نیست؛ کمی بعد دوباره امتحان کن.',
+      no_provider: 'تبلیغی آماده نیست؛ کمی بعد دوباره امتحان کن.',
+      disabled: 'فعلاً تبلیغی در دسترس نیست.',
+      capped: 'سهمیه‌ی امروزت تمام شد؛ فردا دوباره بیا.',
+      cooldown: 'کمی صبر کن و دوباره امتحان کن.',
+      network: 'اتصال برقرار نشد؛ دوباره امتحان کن.',
+      failed: 'تبلیغ کامل نشد و جایزه‌ای داده نشد.',
+    } as Record<string, string>,
+  },
   /** The explainer pages behind the 💎 and 🔥 counters of Home. */
   statInfo: {
     close: 'برگشت',
@@ -1370,6 +1388,7 @@ export const fa = {
       match_consolation: 'جایزه‌ی دلداری',
       broke_rescue: 'کمک‌هزینه',
       wheel_spin: 'گردونه‌ی شانس',
+      ad_reward: 'تماشای تبلیغ',
       level_reward: 'جایزه‌ی مرحله',
       profile_task: 'ماموریت',
     } as Record<string, string>,

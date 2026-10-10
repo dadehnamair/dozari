@@ -4,6 +4,7 @@ import { swr } from '../net/cache';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Shop, ShopItem } from '@dozari/shared';
 import { toPersianDigits } from '@dozari/shared';
+import { RewardedAdButton } from '../ads/RewardedAdButton';
 import { GradientFill } from '../components/GradientFill';
 import { Icon } from '../components/Icon';
 import { GuideBubble } from '../components/GuideBubble';
@@ -145,6 +146,7 @@ export function ShopSheet({ onClose, onBalance, realMoney = false }: { onClose: 
           })}
         </View>
         {note ? <Text style={styles.note}>{note}</Text> : null}
+        {tab === 'coins' ? <RewardedAdButton placement="coin_shop" onRewarded={(p) => (p.rewardKind === 'coins' ? onBalance?.(p.balance) : undefined)} /> : null}
         <View style={styles.bubbleGap}>
           {whyLocked ? <Pressable onPress={() => setWhyLocked(null)} accessibilityRole="button"><GuideBubble who="baqal" text={whyLocked} /></Pressable> : <GuideBubble who="baqal" text={fa.shop.baqalHello} />}
         </View>
