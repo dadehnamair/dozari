@@ -57,7 +57,7 @@ CORS_ORIGIN=*                  # needed for Expo web (browser). Use a precise or
 ```
 
 Optional (all off/unset by default, features degrade gracefully): `BALE_BOT_TOKEN`,
-`BALE_BOT_USERNAME`, `BALE_API_BASE`, `IRNOTI_API_KEY`, `IRNOTI_MESSAGE` (SMS; preferred), `KAVENEGAR_API_KEY`,
+`BALE_BOT_USERNAME`, `BALE_API_BASE`, `IRNOTI_API_KEY`, `IRNOTI_LINE_ID`, `IRNOTI_MESSAGE` (SMS; preferred), `KAVENEGAR_API_KEY`,
 `KAVENEGAR_TEMPLATE` (SMS fallback), `S3_*`.
 
 ## 4. Run
