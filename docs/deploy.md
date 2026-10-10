@@ -67,7 +67,14 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod run --rm -w /app/
 
 `s-dozari-migrate` and `s-dozari-seed` carry the compose profile `setup`, so a plain `up -d --build` does not start them (the server's `depends_on` on them is `required: false`).
 Schema changes are therefore **not** applied automatically. To turn them back on, either add `--profile setup` to the command above, or put `COMPOSE_PROFILES=setup` in `.env.prod`.
-To run them once without enabling permanently: `docker compose -f docker-compose.prod.yml --env-file .env.prod --profile setup up s-dozari-migrate s-dozari-seed`.
+To run them once without enabling permanently use the helper (it runs the step, then does the normal `up -d --build`):
+
+```bash
+scripts/deploy.sh                # deploy only
+scripts/deploy.sh setup          # migrations, then deploy
+scripts/deploy.sh seed           # seed, then deploy
+scripts/deploy.sh setup seed     # both, then deploy
+```
 After changing `packages/db/src/schema.ts` run migrate before starting the new server build.
 
 ## Reverse proxy
