@@ -88,9 +88,9 @@ Four views from `docs/design/Dozari - 13 Match Screens.dc.html`:
    canned-taunt category, bubbles popping in one after another. Sending a taunt closes the drawer, floats the text as a speech
    bubble under the sender's card for ~3 s (the rival's taunt does the same under theirs) and dims the badge for 3 s (the
    server's own rate limit still applies). Then whose turn it is, a toast line (guess feedback, refusals, round notes), the
-   board inside a dark panel, «فرصت‌ها», and shuffle / clear / submit (the label reads «در حال ثبت…» while a submit is on its
-   way; a refusal is repeated right above the buttons). Shuffle only reorders the player's own view. The design's magnifier and
-   freeze power-ups are not part of the game rules and are left out; its sticker tab needs a sticker category in the canned
+   board inside a dark panel, a row of «ذره‌بین» (left) · «فرصت‌ها» · «یخ» (right) with count badges (power-ups, game-rules.md §Power-ups: they
+   light up on the player's own turn, a frozen card gets an icy tint and a snowflake), and shuffle / clear / submit (the label reads «در حال ثبت…» while a submit is on its
+   way; a refusal is repeated right above the buttons). Shuffle only reorders the player's own view. Its sticker tab needs a sticker category in the canned
    taunts (admin content) and shows only as far as the server sends categories.
 4. **screen-results**: the hero's win / sad / thinking pose, the banner, why it ended (worded from the
    player's side), a scoreboard (groups and points per player, crown for the leader), home and play again.

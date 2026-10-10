@@ -337,3 +337,60 @@ describe('match rules', () => {
   });
 });
 
+
+describe('power-ups', () => {
+  const power = (state: MatchState, side: MatchSide, kind: 'magnifier' | 'freeze', now = 2000) => ok(state, { t: 'power', by: U[side], kind }, now);
+
+  it('the magnifier shows two cards of one unsolved group, to the user only via the event, and costs no turn, mistake or time', () => {
+    const s = start(0);
+    const r = power(s, 0, 'magnifier');
+    const ev = r.events.find((e) => e.t === 'power');
+    expect(ev).toMatchObject({ t: 'power', side: 0, kind: 'magnifier' });
+    const shown = [...((ev as { itemIds?: readonly string[] }).itemIds ?? [])];
+    expect(shown).toHaveLength(2);
+    const group = puzzle.groups.find((g) => g.productIds.includes(shown[0]!))!;
+    expect(group.productIds).toEqual(expect.arrayContaining(shown));
+    expect([r.state.turn, r.state.turnId, r.state.mistakes, r.state.turnStartedAt]).toEqual([0, 1, [0, 0], 1000]);
+    expect(r.state.powers[0].magnifier).toBe(1);
+    // the client view carries counts, never the shown cards
+    expect(JSON.stringify(matchClientView(r.state, 'u0'))).not.toContain('itemIds');
+    expect(matchClientView(r.state, 'u0')!.powers).toEqual({ magnifier: 1, freeze: 1 });
+  });
+
+  it('a second magnifier looks at a different group, a third is refused', () => {
+    const a = power(start(0), 0, 'magnifier');
+    const b = power(a.state, 0, 'magnifier');
+    const levelOf = (r: { events: MatchEvent[] }) => {
+      const e = r.events.find((x) => x.t === 'power');
+      return puzzle.groups.find((g) => e && e.t === 'power' && g.productIds.includes(e.itemIds![0]!))!.level;
+    };
+    expect(levelOf(a)).not.toBe(levelOf(b));
+    expect(err(b.state, { t: 'power', by: 'u0', kind: 'magnifier' })).toBe('NO_POWER');
+  });
+
+  it('only the captain of the side to play may use a power-up', () => {
+    expect(err(start(0), { t: 'power', by: 'u1', kind: 'magnifier' })).toBe('NOT_YOUR_TURN');
+    expect(err(start(0), { t: 'power', by: 'nobody', kind: 'freeze' })).toBe('UNKNOWN_PLAYER');
+  });
+
+  it('freeze: after a mistake the rival loses its next turn, once', () => {
+    const f = power(start(0), 0, 'freeze');
+    expect(f.state.frozen).toEqual([false, true]);
+    expect(f.state.powers[0].freeze).toBe(0);
+    expect(err(f.state, { t: 'power', by: 'u0', kind: 'freeze' })).toBe('NO_POWER');
+    const miss = submit(f.state, 0, wrongSets[0]!);
+    expect(miss.events).toContainEqual({ t: 'frozen_skip', side: 1 });
+    expect(miss.state.turn).toBe(0);
+    expect(miss.state.frozen).toEqual([false, false]);
+    const miss2 = submit(miss.state, 0, wrongSets[1]!);
+    expect(miss2.state.turn).toBe(1);
+  });
+
+  it('freeze: a timeout also skips the frozen rival, and a locked-out rival cannot be frozen', () => {
+    const f = power(start(0), 0, 'freeze');
+    const t = ok(f.state, { t: 'timeout', turnId: f.state.turnId });
+    expect(t.state.turn).toBe(0);
+    const out: MatchState = { ...start(0), lockedOut: [false, true] };
+    expect(err(out, { t: 'power', by: 'u0', kind: 'freeze' })).toBe('NO_POWER');
+  });
+});

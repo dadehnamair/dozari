@@ -1,6 +1,6 @@
 import { randomInt } from 'node:crypto';
 import { DEFAULT_MATCH_RULES, TEAM_MATCH_BOARDS, applyCommand, settleWager, applyPriceGuessCommand, finalScores, matchClientView, mulberry32, resolveWinner, selectRounds, ServerEvent, startMatch, startPriceGuess, startTeamMatch, toPriceRoundView, trackRules, turnDeadline } from '@dozari/shared';
-import type { AgeTrack, CatalogProduct, Command, RevealedRound, WagerSeat, ErrorCode, PriceGuessState, Stake, MatchEnded, MatchRules, MatchEvent, MatchEventPayload, MatchFound, MatchState, MatchView, Rng, RuleError } from '@dozari/shared';
+import type { AgeTrack, CatalogProduct, Command, RevealedRound, WagerSeat, ErrorCode, PriceGuessState, Stake, MatchEnded, MatchRules, MatchEvent, MatchEventPayload, MatchFound, MatchState, MatchView, PowerKind, Rng, RuleError } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
 import type { PuzzleSource, ServedPuzzle } from '../solo/types.js';
 import { pickUnseen } from '../solo/history.js';
@@ -100,6 +100,7 @@ const RULE_TO_ERROR: Record<RuleError, ErrorCode> = {
   NOT_TEAM_MATCH: 'NOT_TEAM_MATCH',
   INVALID_SELECTION: 'INVALID_SELECTION',
   DUPLICATE_SELECTION: 'DUPLICATE_SELECTION',
+  NO_POWER: 'NO_POWER',
 };
 
 /** How many latest guesses the stands see. */
@@ -297,6 +298,14 @@ export class MatchService {
     return this.apply(entry, { t: 'submit', by: userId, itemIds });
   }
 
+  /** A power-up on the player's turn (docs/logic/game-rules.md §Power-ups); the magnifier's two cards reach the user's own side only. */
+  power(userId: string, kind: PowerKind): { ok: true } | { ok: false; error: ErrorCode } {
+    const entry = this.entryOf(userId);
+    if (!entry) return { ok: false, error: 'NOT_IN_MATCH' };
+    if (entry.pg || entry.pgPending) return { ok: false, error: 'NOT_YOUR_TURN' };
+    return this.apply(entry, { t: 'power', by: userId, kind });
+  }
+
   leave(userId: string): { ok: true } | { ok: false; error: ErrorCode } {
     const entry = this.entryOf(userId);
     if (!entry) return { ok: false, error: 'NOT_IN_MATCH' };
@@ -389,6 +398,8 @@ export class MatchService {
       scores: [v.scores[0], v.scores[1]],
       mistakes: [v.mistakes[0], v.mistakes[1]],
       lockedOut: [v.lockedOut[0], v.lockedOut[1]],
+      powers: { ...v.powers },
+      frozen: [v.frozen[0], v.frozen[1]],
       turn: v.turn,
       captain: [v.captain[0], v.captain[1]],
       proposal: entry.proposals[v.you] ? { by: entry.proposals[v.you]!.by, itemIds: [...entry.proposals[v.you]!.itemIds] } : null,
@@ -418,7 +429,9 @@ export class MatchService {
       for (const e of events) {
         if (e.t === 'proposal') continue;
         if (e.t === 'finished' && entry.pgPending) continue; // the match is not over for the clients yet
-        this.deps.emit(p.userId, ServerEvent.matchEvent, e.t === 'board_done' ? this.boardDone(entry, e.round) : e);
+        // The magnifier's cards are private to the side that used it.
+        const out = e.t === 'board_done' ? this.boardDone(entry, e.round) : e.t === 'power' && e.itemIds && e.side !== p.side ? { t: 'power' as const, side: e.side, kind: e.kind } : e;
+        this.deps.emit(p.userId, ServerEvent.matchEvent, out);
       }
     }
     if (entry.state.status === 'finished') {

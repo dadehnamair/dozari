@@ -3,7 +3,7 @@ import { Server } from 'socket.io';
 import type { Socket } from 'socket.io';
 import type { QueueProblem } from '@dozari/shared';
 import type { AgeTrack } from '@dozari/shared';
-import { ClientEvent, ServerEvent, chatTauntSchema, matchProposeSchema, matchResumeSchema, matchSubmitSchema, priceSubmitSchema, queueJoinSchema } from '@dozari/shared';
+import { ClientEvent, ServerEvent, chatTauntSchema, matchPowerSchema, matchProposeSchema, matchResumeSchema, matchSubmitSchema, priceSubmitSchema, queueJoinSchema } from '@dozari/shared';
 import type { Ack, LiveNotice } from '@dozari/shared';
 import type { UserRecord } from '../auth/service.js';
 import { ChatService } from '../chat/service.js';
@@ -229,6 +229,12 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
       const body = matchProposeSchema.safeParse(payload);
       if (!body.success) return ack?.({ ok: false, error: 'INVALID_PAYLOAD' });
       ack?.(matches ? matches.propose(userId, body.data.itemIds) : { ok: false, error: 'NOT_IN_MATCH' });
+    });
+
+    socket.on(ClientEvent.matchPower, (payload: unknown, ack?: (a: Ack) => void) => {
+      const body = matchPowerSchema.safeParse(payload);
+      if (!body.success) return ack?.({ ok: false, error: 'INVALID_PAYLOAD' });
+      ack?.(matches ? matches.power(userId, body.data.kind) : { ok: false, error: 'NOT_IN_MATCH' });
     });
 
     socket.on(ClientEvent.matchResume, (payload: unknown, ack?: (a: Ack) => void) => {

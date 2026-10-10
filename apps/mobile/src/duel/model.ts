@@ -20,6 +20,10 @@ export interface DuelState {
   boardNote: { board: number; of: number } | null;
   /** A fatal problem (no connection, the queue refused): replaces the screen with an error card. */
   error: string | null;
+  /** The two cards the magnifier showed this player (selected on the board once); `n` makes each use a new event. */
+  peek: { ids: string[]; n: number } | null;
+  /** A power-up toast: whose, and which. */
+  powerNote: 'magMine' | 'magRival' | 'iceMine' | 'iceRival' | 'skipMine' | 'skipRival' | null;
   /** A passing problem during play (a refused submit, a late ack): a toast, never a dead end. Holds the error code. */
   notice: string | null;
   /** The last snapshot of the board that just ended (its cards were still on the table). */
@@ -64,7 +68,7 @@ export function endedFromView(view: MatchView): MatchEnded | null {
   return { matchId: view.matchId, result: view.result, scores: [view.scores[0], view.scores[1]], groups: groups as MatchEnded['groups'] };
 }
 
-export const initialDuel: DuelState = { phase: 'idle', waitedSec: 0, problem: null, found: null, view: null, ended: null, names: {}, taunt: null, flash: null, boardNote: null, error: null, notice: null, prevBoard: null, revealedLevel: null, finale: null };
+export const initialDuel: DuelState = { phase: 'idle', waitedSec: 0, problem: null, found: null, view: null, ended: null, names: {}, taunt: null, flash: null, boardNote: null, error: null, notice: null, peek: null, powerNote: null, prevBoard: null, revealedLevel: null, finale: null };
 
 export type DuelAction =
   | { t: 'queued' }
@@ -75,6 +79,9 @@ export type DuelAction =
   | { t: 'timeout'; mine: boolean }
   | { t: 'ended'; ended: MatchEnded }
   | { t: 'clearFlash' }
+  | { t: 'power'; mine: boolean; kind: 'magnifier' | 'freeze'; itemIds?: readonly string[] }
+  | { t: 'frozenSkip'; mine: boolean }
+  | { t: 'clearPowerNote' }
   | { t: 'board'; board: number; of: number }
   | { t: 'clearBoard' }
   | { t: 'taunt'; from: string; text: string }
@@ -125,9 +132,18 @@ export function duelReducer(s: DuelState, a: DuelAction): DuelState {
       return { ...s, notice: a.error };
     case 'clearNotice':
       return { ...s, notice: null };
+    case 'power': {
+      const note = a.kind === 'magnifier' ? (a.mine ? 'magMine' : 'magRival') : a.mine ? 'iceMine' : 'iceRival';
+      const peek = a.mine && a.kind === 'magnifier' && a.itemIds && a.itemIds.length > 0 ? { ids: [...a.itemIds], n: (s.peek?.n ?? 0) + 1 } : s.peek;
+      return { ...s, powerNote: note, peek };
+    }
+    case 'frozenSkip':
+      return { ...s, powerNote: a.mine ? 'skipMine' : 'skipRival' };
+    case 'clearPowerNote':
+      return { ...s, powerNote: null };
     case 'guess':
       // Only the player's own guess flashes; the opponent's shows through the board changing.
-      return a.mine ? { ...s, flash: a.outcome } : s;
+      return a.mine ? { ...s, flash: a.outcome, peek: null } : { ...s, peek: null };
     case 'timeout':
       return a.mine ? { ...s, flash: 'timeout' } : s;
     case 'ended':

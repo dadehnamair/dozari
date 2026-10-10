@@ -104,3 +104,20 @@ describe('finale and notices', () => {
     expect(s.error).toBeNull();
   });
 });
+
+describe('power-ups', () => {
+  it('the magnifier hands the player two cards once, and the next guess clears them', () => {
+    const a = duelReducer(initialDuel, { t: 'power', mine: true, kind: 'magnifier', itemIds: ['x', 'y'] });
+    expect(a.peek).toEqual({ ids: ['x', 'y'], n: 1 });
+    expect(a.powerNote).toBe('magMine');
+    const b = duelReducer(a, { t: 'power', mine: true, kind: 'magnifier', itemIds: ['p', 'q'] });
+    expect(b.peek?.n).toBe(2);
+    expect(duelReducer(b, { t: 'guess', outcome: 'wrong', mine: true }).peek).toBeNull();
+  });
+
+  it('the rival\'s magnifier and the freeze only leave a note', () => {
+    expect(duelReducer(initialDuel, { t: 'power', mine: false, kind: 'magnifier' })).toMatchObject({ peek: null, powerNote: 'magRival' });
+    expect(duelReducer(initialDuel, { t: 'power', mine: true, kind: 'freeze' }).powerNote).toBe('iceMine');
+    expect(duelReducer(initialDuel, { t: 'frozenSkip', mine: false }).powerNote).toBe('skipRival');
+  });
+});

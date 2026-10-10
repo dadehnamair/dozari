@@ -108,6 +108,18 @@ The bot driver fills missing seats after the usual fallback wait (humans on oppo
 
 **Three boards (D143).** A 2v2 is longer: *TEAM_MATCH_BOARDS* = 3 different 16-card boards played one after another (admin setting `match.team_boards`, 1–5; a 1v1 stays one board). Scores add up across boards; the mistake limit (*MATCH_MAX_MISTAKES*), lock-outs, the consecutive-timeout count and the repeated-set list reset on every board, while tie-breaks count mistakes of all boards and first blood is only for the first board. A board ends when three groups are found or both sides are locked out; its last group is revealed, `board_done` (with the board's full solution) and `board` events go out, and the other side than the one that opened the board opens the next (captain rotates). The match ends after the last board (`solved`/`locked_out`) or at once on forfeit/abandon. The state keeps the next boards server-side (`upcoming`, already shuffled); `MatchView` only has `round`/`rounds` and the board in play. The result screen shows the last board's solution.
 
+### Power-ups (D220, proposed)
+Each side (team) has *MATCH_MAGNIFIERS* = 2 magnifiers and *MATCH_FREEZES* = 1 freeze per match (`config/game.ts`, free, not bought). Only the
+**captain of the side whose turn it is** can use one (`match:power {kind}`); neither costs a turn, a mistake or clock time.
+- **Magnifier (ذره‌بین)**: the server picks an unsolved group and shows *two* of its cards to the user's own side only (a `power` event with
+  `itemIds` goes to that side; the rival gets the event without them). The next use looks at the next unsolved group, so two uses never
+  repeat. The app selects the two cards for the player.
+- **Freeze (یخ)**: the rival's **next turn is skipped** once. After the user's next wrong guess or timeout the turn stays with the user
+  (a fresh clock, `frozen_skip` event) instead of passing; a correct guess keeps the turn anyway. Not allowed against a locked-out or
+  already frozen rival; the mark clears when a board ends.
+- A refused use answers `NO_POWER` (none left, useless freeze); out of turn `NOT_YOUR_TURN`, not the captain `NOT_CAPTAIN`.
+- Visibility: counts (own) and `frozen` per side are in the snapshot; the magnifier's cards never are.
+
 ### Visibility (redaction)
 - Everyone sees: board items, solved groups, scores, mistakes, whose turn, timer, each side's
   submitted selection result (the 4 items and correct/one-away/wrong).

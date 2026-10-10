@@ -2,6 +2,7 @@ import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { solarMonthOf, toPersianDigits } from '@dozari/shared';
 import { Character } from '../components/Character';
 import { Icon } from '../components/Icon';
+import { Item } from '../components/Item';
 import { GradientFill } from '../components/GradientFill';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
@@ -13,7 +14,7 @@ const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 /** Pips run from the outer edge inwards on both sides. */
 const ROW_OUT = Platform.OS === 'web' ? ('row' as const) : ('row-reverse' as const);
 
-type Side = { name: string; who: CharacterId; score: number; groups: number; active: boolean; level?: number; /** 2v2: the teammate's portrait on the card's corner. */ mate?: CharacterId };
+type Side = { name: string; who: CharacterId; score: number; groups: number; active: boolean; level?: number; /** 2v2: the teammate's portrait on the card's corner. */ mate?: CharacterId; /** Its next turn will be skipped (the rival used the freeze): an icy tint and a snowflake. */ frozen?: boolean };
 
 /**
  * Score row of screen-match (`13 Match Screens v2`): a blue card for the player and a pink card for the rival (square portrait, name,
@@ -71,6 +72,8 @@ function Card({ side, tone, onChat, chatOpen = false, chatCooling = false }: { s
           </View>
         </View>
       </View>
+      {side.frozen ? <View style={styles.ice} pointerEvents="none" /> : null}
+      {side.frozen ? <View style={[styles.flake, { [mine ? EDGE_RIGHT : EDGE_LEFT]: -8 }]} pointerEvents="none"><Item icon="freeze" /></View> : null}
       {mine && onChat ? <ChatBadge onPress={onChat} open={chatOpen} cooling={chatCooling} /> : null}
     </View>
   );
@@ -105,6 +108,8 @@ const styles = StyleSheet.create({
   lvText: { fontFamily: fonts.display, fontSize: 11, lineHeight: 16, color: colors.candy.yellow },
   pips: { gap: 3 },
   pip: { width: 11, height: 11, borderRadius: 3, borderWidth: 2, borderColor: colors.ink },
+  ice: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 15, backgroundColor: 'rgba(190,235,255,0.38)' },
+  flake: { position: 'absolute', top: -10, width: 26, height: 26, zIndex: 4 },
   mid: { alignItems: 'center' },
   score: { fontFamily: fonts.display, fontSize: 28, lineHeight: 36, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 3 }, textShadowRadius: 0, writingDirection: 'rtl' },
   colon: { fontSize: 16, color: 'rgba(255,246,232,0.6)' },

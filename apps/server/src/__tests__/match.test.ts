@@ -64,6 +64,30 @@ describe('MatchService', () => {
     expect(JSON.stringify(sent)).not.toContain('is_bot');
   });
 
+  it('power-ups: the magnifier\'s two cards reach only the user, the rival just sees that it was used, and a freeze skips the rival\'s turn', async () => {
+    const { svc, sent, last } = harness();
+    await svc.start('A', 'B');
+    const va = matchViewSchema.parse(last('A', 'match:state'));
+    const first = va.turn === 0 ? 'A' : 'B';
+    const second = first === 'A' ? 'B' : 'A';
+    expect(svc.power(second, 'magnifier')).toEqual({ ok: false, error: 'NOT_YOUR_TURN' });
+    sent.length = 0;
+    expect(svc.power(first, 'magnifier')).toEqual({ ok: true });
+    const mine = sent.find((m) => m.to === first && m.event === 'match:event')!.payload as { t: string; itemIds?: string[] };
+    const theirs = sent.find((m) => m.to === second && m.event === 'match:event')!.payload as { t: string; itemIds?: string[] };
+    expect(mine.itemIds).toHaveLength(2);
+    expect(theirs).toMatchObject({ t: 'power', kind: 'magnifier' });
+    expect(theirs.itemIds).toBeUndefined();
+    expect(matchViewSchema.parse(last(first, 'match:state')).powers).toEqual({ magnifier: 1, freeze: 1 });
+
+    expect(svc.power(first, 'freeze')).toEqual({ ok: true });
+    expect(matchViewSchema.parse(last(second, 'match:state')).frozen![second === 'A' ? 0 : 1]).toBe(true);
+    // a wrong guess would pass the turn: the frozen rival loses it instead
+    const wrong = [ids(0)[0]!, ids(0)[1]!, ids(1)[0]!, ids(1)[1]!];
+    expect(svc.submit(first, wrong)).toEqual({ ok: true });
+    expect(matchViewSchema.parse(last(first, 'match:state')).turn).toBe(va.turn);
+  });
+
   it('refuses a second match for a busy player or a lone pair', async () => {
     const { svc } = harness();
     expect(await svc.start('A', 'A')).toBe(false);

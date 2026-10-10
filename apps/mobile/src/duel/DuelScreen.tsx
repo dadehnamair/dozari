@@ -125,6 +125,15 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
     return () => clearTimeout(id);
   }, [state.taunt]);
   useEffect(() => {
+    if (!state.powerNote) return;
+    const id = setTimeout(() => dispatch({ t: 'clearPowerNote' }), 2400);
+    return () => clearTimeout(id);
+  }, [state.powerNote]);
+  // The magnifier shows two cards: they are picked for the player, who adds the other two.
+  useEffect(() => {
+    if (state.peek) setSelected(state.peek.ids);
+  }, [state.peek?.n]);
+  useEffect(() => {
     if (cool <= 0) return;
     const id = setTimeout(() => setCool((c) => c - 1), 1000);
     return () => clearTimeout(id);
@@ -440,9 +449,12 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   const turnText = view.lockedOut[me] ? fa.duel.lockedOut : mine ? (!captain ? (mateWaiting ? a.waitCaptain(captainName) : a.mateCaptain) : proposalReady ? a.mateReady(nameOf(view.proposal?.by)) : team ? a.captain : fa.duel.yourTurn) : fa.duel.theirTurn;
   const boards = view.rounds ?? 1;
   const noticeText = state.notice ? fa.duel.errors[state.notice] ?? fa.duel.errors.generic ?? null : null;
-  const toast = leaveArmed ? a.leaveSure : noticeText ? noticeText : state.boardNote ? a.nextBoard(state.boardNote.board, state.boardNote.of) : state.flash && state.flash !== 'one_away' ? fa.duel.feedback[state.flash] : null;
+  const powerText = state.powerNote ? fa.duel.power.notes[state.powerNote] ?? null : null;
+  const toast = leaveArmed ? a.leaveSure : noticeText ? noticeText : powerText ? powerText : state.boardNote ? a.nextBoard(state.boardNote.board, state.boardNote.of) : state.flash && state.flash !== 'one_away' ? fa.duel.feedback[state.flash] : null;
   /** The submit button lights up only when this player can really submit now: their side's turn, they are the captain, four cards are picked, no answer pending. */
   const canSend = playing && mine && captain && canSubmit(selected) && !sending && !state.finale;
+  /** The power-ups work on the player's own turn, for the captain, while no answer is pending. */
+  const canPower = playing && mine && captain && !sending && !state.finale;
   const submit = () => {
     if (!canSend) return;
     // No live connection object at all: never a silent tap. Say so and ask the server where things stand once the line is back.
@@ -454,6 +466,12 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
       // A refused submit never ends the game for the player: it is a toast, and a lost answer asks the server where things stand.
       dispatch({ t: 'notice', error: ack.error });
       if (ack.error === 'INTERNAL' || ack.error === 'NOT_IN_MATCH') resync();
+    });
+  };
+  const power = (kind: 'magnifier' | 'freeze') => {
+    if (!canPower || !conn.current) return;
+    void conn.current.power(kind).then((ack) => {
+      if (!ack.ok) dispatch({ t: 'notice', error: ack.error });
     });
   };
   const sendTaunt = (tauntId: string, text: string) => {
@@ -500,8 +518,8 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
 
           <View style={styles.hudWrap}>
             <MatchHud
-              me={{ name: myName, who: 'dozari', score: view.scores[me], groups: lines[0]!.groups, active: playing && view.turn === me, level: myLevel, mate: team ? mateWho : undefined }}
-              rival={{ name: rivalName, who: rivalWho, score: view.scores[them], groups: lines[1]!.groups, active: playing && view.turn === them, level: rivalLevel, mate: team ? rivalMateWho : undefined }}
+              me={{ name: myName, who: 'dozari', score: view.scores[me], groups: lines[0]!.groups, active: playing && view.turn === me, frozen: !!view.frozen?.[me], level: myLevel, mate: team ? mateWho : undefined }}
+              rival={{ name: rivalName, who: rivalWho, score: view.scores[them], groups: lines[1]!.groups, active: playing && view.turn === them, frozen: !!view.frozen?.[them], level: rivalLevel, mate: team ? rivalMateWho : undefined }}
               onChat={taunts.length > 0 ? () => setChatOpen((v) => !v) : undefined}
               chatOpen={chatOpen}
               chatCooling={cool > 0}
@@ -516,12 +534,14 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
           <View style={styles.toastSlot}>{toast ? <View style={styles.toast}><Text style={styles.toastText} numberOfLines={2}>{toast}</Text></View> : null}</View>
 
           <View style={styles.boardPanel}>
-            <Board solved={state.finale ? (finaleLast ? [...state.finale.solved, state.finale.last] : state.finale.solved) : boardSolved(view)} cards={state.finale ? (finaleLast ? [] : state.finale.cards) : arrange(view.cards, order)} names={state.names} selected={state.finale ? finaleSel : selected} onToggle={(id) => setSelected((s) => toggleSelection(s, id))} disabled={!playing || !mine || !!state.finale} muted={playing && !mine && !state.finale} />
+            <Board solved={state.finale ? (finaleLast ? [...state.finale.solved, state.finale.last] : state.finale.solved) : boardSolved(view)} cards={state.finale ? (finaleLast ? [] : state.finale.cards) : arrange(view.cards, order)} names={state.names} selected={state.finale ? finaleSel : selected} onToggle={(id) => setSelected((s) => toggleSelection(s, id))} disabled={!playing || !mine || !!state.finale} muted={playing && !mine && !state.finale} hinted={state.peek?.ids ?? []} />
             {state.flash === 'one_away' ? <View style={styles.nearMiss} pointerEvents="none"><NearMissPill /></View> : null}
           </View>
 
           <View style={styles.tools}>
+            <PowerButton kind="magnifier" count={view.powers?.magnifier ?? 0} enabled={canPower} onPress={() => power('magnifier')} />
             <Lives mistakes={view.mistakes[me]} max={numbers.maxMistakes} last={lastLife} />
+            <PowerButton kind="freeze" count={view.powers?.freeze ?? 0} enabled={canPower && !view.frozen?.[them] && !view.lockedOut[them]} onPress={() => power('freeze')} />
           </View>
 
           {/* The same notice again right above the buttons: the one at the top of the board is out of sight when the player is down here. */}
@@ -535,6 +555,18 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
       </ScrollView>
       <ChatDrawer open={chatOpen} onClose={() => setChatOpen(false)} categories={taunts} tab={chatTab} onTab={setChatTab} onSend={sendTaunt} />
     </ArenaBackground>
+  );
+}
+
+/** A round power-up button of screen-match (`13 Match Screens v2`): the magnifier on the left, the freeze on the right, a pink count badge on each. */
+function PowerButton({ kind, count, enabled, onPress }: { kind: 'magnifier' | 'freeze'; count: number; enabled: boolean; onPress: () => void }) {
+  const on = enabled && count > 0;
+  const label = fa.duel.power[kind];
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={`${label} · ${fa.duel.power[kind === 'magnifier' ? 'hintMagnifier' : 'hintFreeze']}`} accessibilityState={{ disabled: !on }} onPress={on ? () => (playSfx('press'), onPress()) : undefined} style={({ pressed }) => [styles.power, kind === 'freeze' ? styles.powerIce : null, on ? null : styles.powerOff, pressed && on ? styles.pressed : null]}>
+      <View style={styles.powerIcon}><Item icon={kind} /></View>
+      <View style={[styles.powerBadge, kind === 'freeze' ? { [EDGE_RIGHT]: -6 } : { [EDGE_LEFT]: -6 }]}><Text style={styles.powerBadgeText}>{toPersianDigits(String(count))}</Text></View>
+    </Pressable>
   );
 }
 
@@ -564,6 +596,12 @@ const styles = StyleSheet.create({
   bar: { flexDirection: ROW, alignItems: 'center', gap: 8 },
   square: { width: 42, height: 42, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', marginBottom: 4, ...lift },
   pressed: { transform: [{ translateY: 3 }] },
+  power: { width: 52, height: 52, borderRadius: 26, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#F6E2C2', alignItems: 'center', justifyContent: 'center', ...lift },
+  powerIce: { backgroundColor: '#BFEFFF' },
+  powerOff: { opacity: 0.45 },
+  powerIcon: { width: 32, height: 32 },
+  powerBadge: { position: 'absolute', top: -6, minWidth: 22, height: 22, paddingHorizontal: 5, borderRadius: 11, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.candy.pink, alignItems: 'center', justifyContent: 'center' },
+  powerBadgeText: { fontFamily: fonts.display, fontSize: 13, lineHeight: 19, color: '#fff' },
   clockWrap: { flex: 1, alignItems: 'center' },
   hudWrap: { zIndex: 8 },
   bubble: { position: 'absolute', top: '100%', marginTop: 20, zIndex: 8 },

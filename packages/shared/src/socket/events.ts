@@ -17,6 +17,8 @@ export const ClientEvent = {
   matchSubmit: 'match:submit',
   matchPropose: 'match:propose',
   matchResume: 'match:resume',
+  /** Use a power-up (magnifier, freeze) on the player's own turn. */
+  matchPower: 'match:power',
   matchLeave: 'match:leave',
   /** A hidden guess in the duel's price-guess round. */
   priceSubmit: 'price:submit',
@@ -64,6 +66,7 @@ export const ERROR_CODES = [
   'NOT_CAPTAIN',
   'NOT_TEAM_MATCH',
   'INVALID_SELECTION',
+  'NO_POWER',
   'DUPLICATE_SELECTION',
   'MATCH_FINISHED',
   'INSUFFICIENT_COINS',
@@ -95,6 +98,7 @@ export const queueJoinSchema = z.object({ mode: z.enum(['duel', 'team']), /** St
 export const matchProposeSchema = z.object({ itemIds: z.array(z.string().min(1).max(64)).max(4) });
 export const matchSubmitSchema = z.object({ itemIds: z.array(z.string().min(1).max(64)).length(4) });
 /** Without a match id the server resumes whatever match the player is in (e.g. one a private table started). */
+export const matchPowerSchema = z.object({ kind: z.enum(['magnifier', 'freeze']) });
 export const matchResumeSchema = z.object({ matchId: z.string().uuid().optional() });
 
 /** The guess in rials as a decimal string (a toman price times ten); the server checks it is positive and sane. */
@@ -104,6 +108,7 @@ export type PriceSubmit = z.infer<typeof priceSubmitSchema>;
 export type QueueJoin = z.infer<typeof queueJoinSchema>;
 export type MatchPropose = z.infer<typeof matchProposeSchema>;
 export type MatchSubmit = z.infer<typeof matchSubmitSchema>;
+export type MatchPower = z.infer<typeof matchPowerSchema>;
 export type MatchResume = z.infer<typeof matchResumeSchema>;
 
 // ---- server -> client payloads -------------------------------------------------------------------------------
@@ -164,6 +169,9 @@ export const matchViewSchema = z.object({
   scores: z.tuple([z.number().int(), z.number().int()]),
   mistakes: z.tuple([z.number().int(), z.number().int()]),
   lockedOut: z.tuple([z.boolean(), z.boolean()]),
+  /** The viewer's own power-ups left, and the side whose next turn is skipped. Optional for older snapshots. */
+  powers: z.object({ magnifier: z.number().int().nonnegative(), freeze: z.number().int().nonnegative() }).optional(),
+  frozen: z.tuple([z.boolean(), z.boolean()]).optional(),
   turn: side,
   /** Who submits for each side right now (2v2 rotates it every turn). Optional for older snapshots. */
   captain: z.tuple([z.string(), z.string()]).optional(),
@@ -188,6 +196,9 @@ export const matchEventSchema = z.discriminatedUnion('t', [
   z.object({ t: z.literal('board'), round: z.number().int().nonnegative(), rounds: z.number().int().positive() }),
   z.object({ t: z.literal('locked_out'), side }),
   z.object({ t: z.literal('timeout'), side }),
+  /** A power-up was used; `itemIds` (the magnifier's two cards) only reaches the user's own side. */
+  z.object({ t: z.literal('power'), side, kind: z.enum(['magnifier', 'freeze']), itemIds: z.array(z.string()).optional() }),
+  z.object({ t: z.literal('frozen_skip'), side }),
   z.object({ t: z.literal('turn'), side, turnId: z.number().int().positive(), captain: z.string().optional() }),
   z.object({ t: z.literal('captain'), side, userId: z.string() }),
   z.object({ t: z.literal('finished'), result: matchResultSchema }),
