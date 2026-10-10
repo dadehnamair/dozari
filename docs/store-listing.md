@@ -39,7 +39,7 @@ Package `ir.dozari.app`. Category: Games → Puzzle / Word & Trivia. Age: everyo
 
 مامان‌بزرگت بلده، تو چی؟
 
-## Persian — what's new (v1.0.0)
+## Persian — what's new (v1.1.1)
 
 نسخه‌ی اول دوزاری. دوزاریت بیفته!
 
