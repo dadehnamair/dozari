@@ -3,6 +3,7 @@ import { normalizeIranPhone } from '@dozari/shared';
 import type { Session } from '@dozari/shared';
 import type { AuthService } from '../auth/service.js';
 import { RateLimiter } from '../security/rate-limit.js';
+import { smsReady } from './sms.js';
 import type { SmsClient } from './sms.js';
 import { smsErrorCode } from './sms-errors.js';
 import type { PhoneStore } from './store.js';
@@ -42,20 +43,20 @@ export class PhoneLoginService {
   ) {}
 
   get available(): boolean {
-    return this.sms !== null;
+    return smsReady(this.sms);
   }
 
   async sendCode(rawPhone: string): Promise<LoginCodeResult> {
     const phone = normalizeIranPhone(rawPhone);
     if (!phone) return { ok: false, error: 'invalid_phone' };
-    if (!this.sms) return { ok: false, error: 'sms_unavailable' };
+    if (!smsReady(this.sms)) return { ok: false, error: 'sms_unavailable' };
     const old = this.codes.get(phone);
     if (old && this.now() - old.sentAt < RESEND_MS) return { ok: false, error: 'too_soon', retryAfterSec: Math.ceil((RESEND_MS - (this.now() - old.sentAt)) / 1000) };
     if (!this.perPhone.take(phone)) return { ok: false, error: 'rate_limited' };
     const code = this.newCode();
     this.codes.set(phone, { codeHash: hash(phone, code), attempts: 0, sentAt: this.now(), expiresAt: this.now() + CODE_TTL_MS });
     try {
-      await this.sms.sendCode(phone, code);
+      await this.sms.sendCode(phone, code, 'login');
     } catch (e) {
       this.codes.delete(phone);
       return { ok: false, error: smsErrorCode(e) };

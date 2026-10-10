@@ -3,7 +3,7 @@ import type { PuzzleAdmin } from '../puzzles/admin.js';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { can } from './accounts/permissions.js';
 import { z } from 'zod';
-import { accentColorSchema, checkLevelTable, KEEPSAKE_RARITIES, KEEPSAKE_REWARD_GEMS, httpsUrlSchema, isDateKey, ITEMS, ITEM_GROUPS, LEVEL_TABLE_MAX, levelRowSchema, PRODUCT_CATEGORIES, PROVINCES, provinceOf, SETTING_GROUPS, SHOP_EFFECTS, SPONSOR_LIMITS, COSMETIC_SLOTS, WHEEL_PRIZE_KINDS } from '@dozari/shared';
+import { accentColorSchema, checkLevelTable, KEEPSAKE_RARITIES, KEEPSAKE_REWARD_GEMS, httpsUrlSchema, isDateKey, ITEMS, ITEM_GROUPS, LEVEL_TABLE_MAX, levelRowSchema, normalizeIranPhone, PRODUCT_CATEGORIES, PROVINCES, provinceOf, SETTING_GROUPS, SHOP_EFFECTS, SPONSOR_LIMITS, COSMETIC_SLOTS, WHEEL_PRIZE_KINDS } from '@dozari/shared';
 import type { LevelRow } from '@dozari/shared';
 import type { LevelTable } from '../progress/table.js';
 import type { SettingsService } from '../settings/service.js';
@@ -18,6 +18,9 @@ import type { ProductAdmin } from './products.js';
 import type { StatsAdmin } from './stats.js';
 import { isHttpUrl } from '../security/url-guard.js';
 import type { MessageCenter } from '../messages/service.js';
+import { SMS_PROVIDERS, renderSmsText } from '../phone/smsConfig.js';
+import type { SmsGateway } from '../phone/smsConfig.js';
+import { SMS_PURPOSES } from '../phone/sms.js';
 import type { NotifyService } from '../notify/service.js';
 import type { NotifyStore } from '../notify/store.js';
 import type { TextFilterService } from '../textfilter/service.js';
@@ -109,6 +112,8 @@ export interface AdminModules {
   /** Bot players: generate many natural accounts, tune or pause them. */
   botPlayers?: { service: BotPlayerService; cities: () => Promise<string[]> };
   messages?: MessageCenter;
+  /** SMS provider, message texts and a test send. */
+  sms?: SmsGateway;
   bale?: { service: NotifyService; store: NotifyStore; botUsername: string | null };
   bot?: { repo: BotRepository; service: BotService };
 }
@@ -181,7 +186,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     settingGroups: SETTING_GROUPS,
     icons: ITEMS,
     iconGroups: ITEM_GROUPS,
-    modules: { puzzles: !!m.puzzles, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, keepsakes: !!m.keepsakes, wheel: !!m.wheel, shortLinks: !!m.shortLinks, backups: !!m.backups, feedback: !!m.feedback, clientErrors: !!m.clientErrors, landing: !!m.landing, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, lessons: !!m.lessons, ai: !!m.ai, ageTracks: !!m.ageTracks, economy: !!m.economy, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages },
+    modules: { puzzles: !!m.puzzles, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, keepsakes: !!m.keepsakes, wheel: !!m.wheel, shortLinks: !!m.shortLinks, backups: !!m.backups, feedback: !!m.feedback, clientErrors: !!m.clientErrors, landing: !!m.landing, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, lessons: !!m.lessons, ai: !!m.ai, ageTracks: !!m.ageTracks, economy: !!m.economy, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages, sms: !!m.sms },
   }));
 
   if (m.ai) registerAiAdminRoutes(g, m.ai, audit, m.aiSchedules);
@@ -370,6 +375,50 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       if (!(await center.retract(p.data.id))) return reply.code(404).send({ error: 'message_not_found' });
       void audit('message.retract', p.data.id);
       return { ok: true };
+    });
+  }
+
+  if (m.sms) {
+    const sms = m.sms;
+    const purpose = z.enum(SMS_PURPOSES);
+    const secret = z.string().trim().max(200).regex(/^[\x21-\x7e]*$/); // printable ASCII, no spaces
+    const configBody = z.object({ provider: z.enum(SMS_PROVIDERS).optional(), irnotiKey: secret.optional(), kavenegarKey: secret.optional(), kavenegarTemplate: z.string().trim().max(100).regex(/^[\w.-]*$/).optional() });
+    const testSends: number[] = []; // a real SMS costs money: 5 test sends a minute for the whole panel
+    g.get('/admin/sms', async () => sms.adminState());
+    g.put('/admin/sms', async (req, reply) => {
+      const b = configBody.safeParse(req.body);
+      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      await sms.update(b.data);
+      void audit('sms.config', b.data.provider ?? '-', ['irnotiKey', 'kavenegarKey', 'kavenegarTemplate'].filter((k) => k in b.data).join(','));
+      return sms.adminState();
+    });
+    g.put('/admin/sms/texts/:purpose', async (req, reply) => {
+      const p = purpose.safeParse((req.params as { purpose?: string }).purpose);
+      const b = z.object({ text: z.string().max(300) }).safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      if (!(await sms.setText(p.data, b.data.text.trim()))) return reply.code(400).send({ error: 'text_needs_code' });
+      void audit('sms.text', p.data, b.data.text.slice(0, 100));
+      return sms.adminState();
+    });
+    g.post('/admin/sms/test', async (req, reply) => {
+      const b = z.object({ phone: z.string().min(10).max(20), purpose }).safeParse(req.body);
+      const phone = b.success ? normalizeIranPhone(b.data.phone) : null;
+      if (!b.success || !phone) return reply.code(400).send({ error: 'invalid_phone' });
+      const state = await sms.adminState();
+      if (!state.active) return reply.code(409).send({ error: 'sms_unavailable' });
+      const now = Date.now();
+      while (testSends.length && now - testSends[0]! > 60_000) testSends.shift();
+      if (testSends.length >= 5) return reply.code(429).send({ error: 'rate_limited' });
+      testSends.push(now);
+      const code = '12345';
+      try {
+        await sms.sendCode(phone, code, b.data.purpose);
+      } catch (e) {
+        void audit('sms.test_failed', b.data.purpose, phone.slice(0, 6));
+        return reply.code(502).send({ error: 'send_failed', detail: e instanceof Error ? e.message : String(e) });
+      }
+      void audit('sms.test', b.data.purpose, `${state.active} ${phone.slice(0, 6)}`);
+      return { ok: true, provider: state.active, text: state.active === 'irnoti' ? renderSmsText(await sms.textFor(b.data.purpose), code) : null };
     });
   }
 
