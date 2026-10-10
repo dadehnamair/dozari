@@ -50,7 +50,8 @@ function Card({ side, tone, onChat, chatOpen = false, chatCooling = false }: { s
   const base = mine ? colors.candy.sky : colors.candy.pink;
   return (
     <View style={[styles.card, mine ? styles.cardMe : styles.cardRival, side.active ? styles.cardActive : null]}>
-      <GradientFill from={mine ? '#3A86C8' : '#D04A82'} to={mine ? '#1F5A96' : '#94245A'} />
+      {/* Clipped to the card's inner corner radius, so the square gradient never pokes out past the rounded frame. */}
+      <View style={styles.fillClip} pointerEvents="none"><GradientFill from={mine ? '#3A86C8' : '#D04A82'} to={mine ? '#1F5A96' : '#94245A'} /></View>
       <View style={[styles.cardRow, mine ? null : styles.cardRowRival]}>
         <View style={[styles.face, { backgroundColor: base }]}>
           <View style={[styles.faceIn, mine ? null : styles.flip]}>
@@ -113,6 +114,7 @@ const styles = StyleSheet.create({
   lvText: { fontFamily: fonts.display, fontSize: 11, lineHeight: 16, color: colors.candy.yellow },
   pips: { gap: 3 },
   pip: { width: 11, height: 11, borderRadius: 3, borderWidth: 2, borderColor: colors.ink },
+  fillClip: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 15, overflow: 'hidden' },
   ice: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, borderRadius: 15, backgroundColor: 'rgba(190,235,255,0.38)' },
   flake: { position: 'absolute', top: -10, width: 26, height: 26, zIndex: 4 },
   mid: { alignItems: 'center' },
