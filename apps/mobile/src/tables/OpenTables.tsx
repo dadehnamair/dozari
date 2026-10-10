@@ -8,6 +8,8 @@ import { avatarOf } from '../social/avatarOf';
 import { colors, fonts } from '../theme/colors';
 import { TEXT_RIGHT } from '../theme/direction';
 import { DARK, useDark } from '../theme/skin';
+import { fetchDailyReward } from '../daily/api';
+import { ApiError } from '../net/http';
 import { fetchMyTable, fetchPublicTables, requestSeat } from './api';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
@@ -21,10 +23,14 @@ const POLL_MS = 3000;
  * full, locked, playing and recently closed ones are listed with their status and are view only, so the list is rarely bare.
  * When the host lets the player in, the table they now sit at opens.
  */
-export function OpenTables({ onSeated, onNote, onWatch, errText }: { onSeated: (table: TableView) => void; onNote: (text: string | null) => void; /** Opens the stands of a playing table. */ onWatch: (code: string) => void; errText: (e: unknown) => string }) {
+export function OpenTables({ onSeated, onNote, onWatch, onNeedCoins, errText }: { onSeated: (table: TableView) => void; onNote: (text: string | null) => void; /** Opens the stands of a playing table. */ onWatch: (code: string) => void; /** The player cannot pay a table's entry: opens the page on how to earn coins. */ onNeedCoins: (balance: number) => void; errText: (e: unknown) => string }) {
   const dark = useDark();
   const [rows, setRows] = useState<PublicTable[] | null>(null);
   const seen = useRef<Set<string>>(new Set());
+  /** The player's coins (null until known): a table whose entry is above it shows «کمبود سکه» instead of a request button that the server would refuse. */
+  const [balance, setBalance] = useState<number | null>(null);
+  const loadBalance = useCallback(() => void fetchDailyReward().then((s) => setBalance(s.balance), () => undefined), []);
+  useEffect(loadBalance, [loadBalance]);
   const load = useCallback(() => {
     fetchPublicTables().then(
       (list) => {
@@ -52,7 +58,11 @@ export function OpenTables({ onSeated, onNote, onWatch, errText }: { onSeated: (
   const ask = (code: string) =>
     requestSeat(code).then(
       () => (onNote(o.sent), setRows((cur) => cur?.map((r) => (r.code === code ? { ...r, yourRequest: 'pending' as const } : r)) ?? cur)),
-      (e) => (onNote(errText(e)), load()),
+      (e) => {
+        if (e instanceof ApiError && e.code === 'NO_COINS') return (loadBalance(), onNeedCoins(balance ?? 0));
+        onNote(errText(e));
+        load();
+      },
     );
 
   return (
@@ -79,6 +89,7 @@ export function OpenTables({ onSeated, onNote, onWatch, errText }: { onSeated: (
             </Text>
             {live ? (
               r.yourRequest === 'pending' ? <Text style={styles.waiting}>{o.pending}</Text>
+              : balance !== null && r.entryFee > balance ? <Pressable onPress={() => onNeedCoins(balance)} style={styles.short} accessibilityRole="button"><Text style={styles.shortText}>{o.noCoins}</Text></Pressable>
               : <Pressable onPress={() => void ask(r.code)} style={styles.ask} accessibilityRole="button"><Text style={styles.askText}>{r.yourRequest === 'denied' ? `${o.denied} · ${o.ask}` : o.ask}</Text></Pressable>
             ) : r.status === 'playing' ? (
               <Pressable onPress={() => onWatch(r.code)} style={styles.watch} accessibilityRole="button"><Text style={styles.askText}>{o.watch}{r.scores ? ` · ${o.score(r.scores[0], r.scores[1])}` : ''}{r.watchers > 0 ? ` · ${o.watchers(r.watchers)}` : ''}</Text></Pressable>
@@ -112,6 +123,8 @@ const styles = StyleSheet.create({
   chipText: { fontFamily: fonts.bold, fontSize: 11, color: INK },
   facts: { fontFamily: fonts.bold, fontSize: 12, color: INK, textAlign: TEXT_RIGHT },
   ask: { alignSelf: 'stretch', height: 38, borderRadius: 12, borderWidth: 2.5, borderColor: INK, backgroundColor: colors.candy.lime, alignItems: 'center', justifyContent: 'center' },
+  short: { alignSelf: 'stretch', height: 38, borderRadius: 12, borderWidth: 2.5, borderColor: INK, backgroundColor: '#D9D9DE', alignItems: 'center', justifyContent: 'center' },
+  shortText: { fontFamily: fonts.display, fontSize: 14, color: '#5B4A70' },
   watch: { alignSelf: 'stretch', height: 38, borderRadius: 12, borderWidth: 2.5, borderColor: INK, backgroundColor: colors.candy.yellow, alignItems: 'center', justifyContent: 'center' },
   askText: { fontFamily: fonts.display, fontSize: 15, color: INK },
   waiting: { fontFamily: fonts.bold, fontSize: 12.5, color: '#7E46D6', textAlign: 'center' },

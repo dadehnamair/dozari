@@ -9,18 +9,18 @@ import { TEXT_RIGHT } from '../theme/direction';
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 
 /** What a counter in the Home top bar means: an intro on top, then how it is earned and what it is for (💎 الماس, 🔥 زنجیره). */
-export function StatInfoSheet({ kind, value, onClose }: { kind: 'gems' | 'streak'; value: number; onClose: () => void }) {
+export function StatInfoSheet({ kind, value, onClose }: { kind: 'gems' | 'streak' | 'coins'; value: number; onClose: () => void }) {
   const t = fa.statInfo[kind];
   return (
-    <PageShell title={t.title} color={kind === 'gems' ? colors.candy.sky : colors.candy.pink} backLabel={fa.statInfo.close} onBack={onClose}>
+    <PageShell title={t.title} color={kind === 'gems' ? colors.candy.sky : kind === 'coins' ? colors.candy.yellow : colors.candy.pink} backLabel={fa.statInfo.close} onBack={onClose}>
       <ScrollView contentContainerStyle={styles.list}>
         <View style={styles.hero}>
-          <Text style={styles.glyph}>{kind === 'gems' ? '💎' : '🔥'}</Text>
+          <Text style={styles.glyph}>{kind === 'gems' ? '💎' : kind === 'coins' ? '🪙' : '🔥'}</Text>
           <Text style={styles.value}>{toPersianDigits(String(value))}</Text>
           <Text style={styles.unit}>{t.unit}</Text>
         </View>
         <Text style={styles.intro}>{t.intro}</Text>
-        <GuideBubble who={kind === 'gems' ? 'baqal' : 'goli'} text={t.guide} />
+        <GuideBubble who={kind === 'gems' ? 'baqal' : kind === 'coins' ? 'dozari' : 'goli'} text={t.guide} />
         {t.sections.map((s) => (
           <View key={s.title} style={styles.card}>
             <Text style={styles.cardTitle}>{s.title}</Text>
