@@ -38,6 +38,13 @@ const rays = () => {
   return d;
 };
 const RAYS = rays();
+/** The vault-room floor diamonds (a 48 px cross-hatch), as one path: Android paints no SVG that contains a <Pattern>. */
+const FLOOR_TILES = (() => {
+  let d = '';
+  for (let x = -208; x < 390; x += 48) d += `M${x} 640 L${x + 204} 844 `;
+  for (let x = 0; x < 600; x += 48) d += `M${x} 640 L${x - 204} 844 `;
+  return d;
+})();
 const CLOUD = 'M-40 6 C-52 4 -50 -14 -36 -12 C-34 -26 -14 -28 -8 -16 C-2 -28 22 -26 22 -12 C38 -16 46 2 32 8 C30 18 12 18 6 10 C0 18 -18 18 -22 10 C-30 16 -42 14 -40 6Z';
 const FLAG_COLORS = ['#FF4D8D', '#3FC1F0', '#7ED957', '#A66BF0', '#FFF6E8'];
 const FLAGS = Array.from({ length: 11 }, (_, i) => {
@@ -142,6 +149,8 @@ export function Scene({
             <Stop offset="0" stopColor="#FFE48A" stopOpacity={0.9} />
             <Stop offset="1" stopColor="#FFE48A" stopOpacity={0} />
           </RadialGradient>
+          {adult ? null : (
+            <>
           <Pattern id={`${u}aR`} width={24} height={10} patternUnits="userSpaceOnUse">
             <Rect width={12} height={10} fill="#E84A3C" />
             <Rect x={12} width={12} height={10} fill="#FFF3E0" />
@@ -160,6 +169,8 @@ export function Scene({
               opacity={0.7}
             />
           </Pattern>
+            </>
+          )}
           <LinearGradient id={`${u}sfW`} x1="0" y1="0" x2="0" y2="1">
             <Stop offset="0" stopColor="#2E1D14" />
             <Stop offset="0.6" stopColor="#1E130D" />
@@ -175,10 +186,6 @@ export function Scene({
             <Stop offset="0" stopColor="#FFD98A" stopOpacity={0.55} />
             <Stop offset="1" stopColor="#FFD98A" stopOpacity={0} />
           </RadialGradient>
-          <Pattern id={`${u}sfP`} width={48} height={48} patternUnits="userSpaceOnUse">
-            <Rect width={48} height={48} fill="#24170F" />
-            <Path d="M0 0 L48 48 M48 0 L0 48" stroke="#3A2618" strokeWidth={2} />
-          </Pattern>
         </Defs>
         <G
           filter={wobble ? `url(#${u}p)` : undefined}
@@ -609,7 +616,8 @@ function paint(scene: SceneName, u: string, animated: boolean) {
 <Path d="M98 0 v130 M292 0 v130" fill="none" strokeWidth={1.8} />
 <G transform="translate(98 130)"><Breathe cy={26} r={40} dur={3.2} fill={`url(#${u}sfG)`} animated={animated} /><Path d="M-14 0 h28 l-4 -8 h-20Z" fill="#B8822A" /><Path d="M-12 0 C-18 16 -16 40 -8 48 H8 C16 40 18 16 12 0Z" fill="#E8B64A" /><Ellipse cy={24} rx={6} ry={10} fill="#FFF1B8" stroke="none" /></G>
 <G transform="translate(292 130)"><Breathe cy={26} r={40} dur={3.8} fill={`url(#${u}sfG)`} animated={animated} /><Path d="M-14 0 h28 l-4 -8 h-20Z" fill="#B8822A" /><Path d="M-12 0 C-18 16 -16 40 -8 48 H8 C16 40 18 16 12 0Z" fill="#E8B64A" /><Ellipse cy={24} rx={6} ry={10} fill="#FFF1B8" stroke="none" /></G>
-<Path d="M0 640 h390 v204 h-390Z" fill={`url(#${u}sfP)`} />
+<Path d="M0 640 h390 v204 h-390Z" fill="#24170F" />
+<Path d={FLOOR_TILES} fill="none" stroke="#3A2618" strokeWidth={2} />
 <Path d="M0 640 h390 v8 h-390Z" fill="#000" opacity={.35} stroke="none" />
 <Path d="M0 690 h390 v86 h-390Z" fill="#3A2416" />
 <Path d="M0 690 h390 v12 h-390Z" fill="#8A5A16" />
