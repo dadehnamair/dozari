@@ -683,3 +683,8 @@ Owner: bots that play and earn XP should level up and change, a community that r
 
 Owner: closed tables need no replay or watching. Watchers may send one of five canned cheers (👏 🔥 😮 😂 😢) every 2 s; they show to everyone in the stands for 20 s with the sender's nickname, and bots in the stands cheer too. Canned only, so no chat unlock is needed (rule 7). Cheers live in memory and are never shown to the players of the match. Polling stays; a socket stream is only worth it if the lobby grows.
 
+## D207 — SMS provider errors shown as text, not codes (2026-10-10, proposed)
+
+A refused SMS send now returns `sms_<reason>` (e.g. `sms_no_credit`, `sms_invalid_receiver`, `sms_blacklisted`) instead of a bare `send_failed`, mapped from the provider's numeric error list in `apps/server/src/phone/sms-errors.ts`; unknown codes still give `send_failed`. The client shows the provider's wording from `fa.ts` (`smsErrors`), never the number. Applies to phone verify, phone login, account deletion and guardian proof. The response-body field that carries the code is not documented to us for irnoti: `smsErrorFromBody` looks at `status`/`code`/`Value`/`result`/`error`; check with a real key. Open: operational reasons (credit, IP, credentials) are shown to players too, as asked; hide them behind the generic text if the owner prefers.
+
+D207 addendum (2026-10-10): the irnoti body is `{lineId, to: ["0912…"], text}`; `lineId` comes from `IRNOTI_LINE_ID` (omitted when unset), default text «کد ورود شما به دوزاری : {code}».

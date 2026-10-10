@@ -56,7 +56,7 @@ export function registerAuthRoutes(app: FastifyInstance, auth: AuthService, dele
     const out = await deletion.sendCode(user.id);
     if (out.ok) return { ok: true, channel: out.channel };
     if (out.error === 'too_soon') return reply.header('retry-after', String(out.retryAfterSec ?? 60)).code(429).send({ error: out.error, retryAfterSec: out.retryAfterSec });
-    return reply.code(out.error === 'send_failed' ? 502 : 409).send({ error: out.error });
+    return reply.code(out.error === 'send_failed' || out.error.startsWith('sms_') ? 502 : 409).send({ error: out.error });
   });
 
   // Step 2: delete my account — personal data goes, the account becomes an empty banned shell, the next launch starts a fresh guest.

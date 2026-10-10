@@ -280,3 +280,13 @@ describe('withSmsLogging', () => {
     expect(logs[0]).not.toContain('9123456');
   });
 });
+
+describe('SMS provider error codes', () => {
+  it('maps a known provider code in the body to a stable sms_<reason> error code', async () => {
+    const client = (body: unknown) => createIrnotiClient('k', { fetchImpl: (async () => ({ ok: true, status: 200, json: async () => body })) as unknown as typeof fetch });
+    await expect(client({ status: 2 }).sendCode('+989121111111', '1')).rejects.toMatchObject({ code: 'sms_no_credit', providerCode: 2 });
+    await expect(client({ Value: '-109' }).sendCode('+989121111111', '1')).rejects.toMatchObject({ code: 'sms_ip_not_allowed' });
+    await expect(client({ code: 18 }).sendCode('+989121111111', '1')).rejects.toMatchObject({ code: 'sms_invalid_receiver' });
+    await expect(client({ Value: '123456789' }).sendCode('+989121111111', '1')).resolves.toBeUndefined();
+  });
+});

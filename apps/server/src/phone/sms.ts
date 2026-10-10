@@ -1,3 +1,5 @@
+import { smsErrorFromBody } from './sms-errors.js';
+
 /** Sends the one-time code by SMS. The provider is chosen by the owner (open question); an adapter is one small function. */
 export interface SmsClient {
   sendCode(phone: string, code: string): Promise<void>;
@@ -46,6 +48,8 @@ export function createIrnotiClient(apiKey: string, opts: { message?: string; lin
         signal: AbortSignal.timeout(10_000),
       });
       const json = (await res.json().catch(() => ({}))) as { success?: boolean; ok?: boolean; status?: string };
+      const known = smsErrorFromBody(json);
+      if (known) throw known;
       if (!res.ok || json.success === false || json.ok === false || json.status === 'error') throw new Error(`sms provider refused (http ${res.status}): ${JSON.stringify(json).slice(0, 300)}`);
     },
   };

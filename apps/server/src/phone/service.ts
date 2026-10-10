@@ -5,6 +5,7 @@ import type { SettingsService } from '../settings/service.js';
 import { RateLimiter } from '../security/rate-limit.js';
 import type { PhoneStore } from './store.js';
 import type { SmsClient } from './sms.js';
+import { smsErrorCode } from './sms-errors.js';
 
 export interface PhoneRules {
   smsTtlMs: number;
@@ -30,7 +31,7 @@ export interface PhoneStatus {
 export type SetPhoneResult = { ok: true; status: PhoneStatus } | { ok: false; error: 'invalid_phone' | 'taken' | 'rate_limited' };
 export type ContactResult = 'verified' | 'mismatch' | 'taken' | 'no_pending' | 'already' | 'conflict';
 export type ResolveResult = { ok: true; switchTo: string | null } | { ok: false; error: 'no_conflict' };
-export type SmsSendResult = { ok: true } | { ok: false; error: 'no_pending' | 'sms_unavailable' | 'too_soon' | 'send_failed'; retryAfterSec?: number };
+export type SmsSendResult = { ok: true } | { ok: false; error: 'no_pending' | 'sms_unavailable' | 'too_soon' | 'send_failed' | (string & {}); retryAfterSec?: number };
 export type SmsVerifyResult = { ok: true } | { ok: false; error: 'no_code' | 'expired' | 'wrong' | 'too_many' | 'taken' };
 
 const MAX_OTP_ATTEMPTS = 5;
@@ -141,9 +142,9 @@ export class PhoneService {
     await this.store.putOtp(userId, { phone: s.pending, codeHash: hash(code, userId), attempts: 0, sentAt: this.now(), expiresAt: this.now() + rules.smsTtlMs });
     try {
       await this.sms.sendCode(s.pending, code);
-    } catch {
+    } catch (e) {
       await this.store.dropOtp(userId);
-      return { ok: false, error: 'send_failed' };
+      return { ok: false, error: smsErrorCode(e) };
     }
     return { ok: true };
   }

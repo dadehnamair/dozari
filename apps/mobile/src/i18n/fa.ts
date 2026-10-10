@@ -1,4 +1,28 @@
 import { toPersianDigits } from '@dozari/shared';
+/** SMS provider refusals, keyed by the server's `sms_<reason>` error code (provider wording, never the numeric code). */
+const smsErrors = {
+  sms_api_key_required: 'برای استفاده از وب‌سرویس باید به‌جای رمز عبور از ApiKey استفاده شود.',
+  sms_ip_not_allowed: 'برای استفاده از وب‌سرویس باید IP مجاز تنظیم شود.',
+  sms_ip_blocked: 'IP به دلیل تلاش ناموفق برای استفاده از وب‌سرویس مسدود شده است.',
+  sms_bad_credentials: 'نام کاربری یا رمز عبور سرویس پیامک اشتباه است.',
+  sms_no_credit: 'اعتبار سرویس پیامک کافی نیست.',
+  sms_daily_limit: 'محدودیت ارسال روزانه‌ی پیامک پر شده است.',
+  sms_volume_limit: 'محدودیت حجم ارسال پیامک پر شده است.',
+  sms_bad_sender: 'شماره‌ی فرستنده‌ی پیامک معتبر نیست.',
+  sms_updating: 'سامانه‌ی پیامک در حال به‌روزرسانی است؛ کمی بعد دوباره امتحان کن.',
+  sms_filtered_word: 'متن پیامک شامل کلمه‌ی فیلترشده است.',
+  sms_public_line: 'ارسال از خطوط عمومی از طریق وب‌سرویس ممکن نیست.',
+  sms_user_inactive: 'کاربر سرویس پیامک فعال نیست.',
+  sms_not_sent: 'پیامک ارسال نشد.',
+  sms_incomplete_docs: 'مدارک کاربر سرویس پیامک کامل نیست.',
+  sms_has_link: 'متن پیامک شامل لینک است.',
+  sms_multi_receiver: 'ارسال به بیش از یک شماره بدون درج «لغو۱۱» ممکن نیست.',
+  sms_no_receiver: 'شماره‌ی گیرنده پیدا نشد.',
+  sms_empty_text: 'متن پیامک خالی است.',
+  sms_invalid_receiver: 'شماره‌ی گیرنده نامعتبر است.',
+  sms_blacklisted: 'این شماره در فهرست سیاه مخابرات است.',
+} as Record<string, string>;
+
 /**
  * All in-game UI strings live here (CLAUDE.md §Language) — never inline in components.
  * Group titles / taunts / product stories are DB content, not i18n, and don't belong here.
@@ -481,6 +505,7 @@ export const fa = {
       sentBale: 'کد در بله برایت فرستاده شد.',
       confirm: 'حذف همیشگی',
       errors: {
+        ...smsErrors,
         no_channel: 'برای حذف حساب باید شماره‌ی موبایلت را تأیید کرده باشی (یا بله را وصل کرده باشی) تا کد برایت برود.',
         too_soon: 'کمی صبر کن و دوباره امتحان کن.',
         send_failed: 'نتوانستیم کد را بفرستیم؛ کمی بعد دوباره امتحان کن.',
@@ -1401,6 +1426,7 @@ export const fa = {
     later: 'بعداً',
     done: 'وصل شد! حالا یک بزرگ‌تر کنارت است.',
     errors: {
+      ...smsErrors,
       invalid_phone: 'شماره درست نیست.',
       too_soon: 'کمی صبر کن و دوباره بخواه.',
       rate_limited: 'تعداد درخواست‌ها زیاد شد؛ بعداً امتحان کن.',
@@ -1532,6 +1558,7 @@ export const fa = {
     sent: 'کد فرستاده شد.',
     close: 'بستن',
     errors: {
+      ...smsErrors,
       invalid_phone: 'شماره‌ی موبایل درست نیست (مثل ۰۹۱۲۳۴۵۶۷۸۹).',
       sms_unavailable: 'پیامک فعلاً در دسترس نیست.',
       too_soon: 'کمی صبر کن، بعد دوباره کد بگیر.',
@@ -1578,6 +1605,7 @@ export const fa = {
     verify: 'تأیید',
     privacy: 'شماره‌ات فقط برای تأیید حساب است و به بازیکن‌های دیگر نشان داده نمی‌شود.',
     errors: {
+      ...smsErrors,
       no_conflict: 'این انتخاب دیگر معتبر نیست؛ دوباره شماره را تأیید کن.',
       invalid_phone: 'شماره‌ی موبایل درست نیست (مثل ۰۹۱۲۳۴۵۶۷۸۹).',
       taken: 'این شماره روی حساب دیگری تأیید شده است.',

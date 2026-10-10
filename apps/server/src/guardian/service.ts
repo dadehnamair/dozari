@@ -305,7 +305,7 @@ export function registerGuardianRoutes(app: FastifyInstance, auth: AuthService, 
   const codeLimit = new RateLimiter(5, 60 * 60_000, now);
   type Reply = { code(n: number): { send(b: unknown): unknown } };
   const fail = (reply: Reply, out: { ok: false; error: GuardianError; retryAfterSec?: number }) =>
-    reply.code(STATUS[out.error] ?? 400).send({ error: out.error, ...(out.retryAfterSec ? { retryAfterSec: out.retryAfterSec } : {}) });
+    reply.code(STATUS[out.error] ?? (out.error.startsWith('sms_') ? 502 : 400)).send({ error: out.error, ...(out.retryAfterSec ? { retryAfterSec: out.retryAfterSec } : {}) });
 
   // Child side: a kid or teen asks a guardian to link by proving the guardian's phone number.
   app.get('/me/guardian', async (req, reply) => {
