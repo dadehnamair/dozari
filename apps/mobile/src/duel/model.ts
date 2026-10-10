@@ -83,7 +83,8 @@ export type DuelAction =
   | { t: 'clearPowerNote' }
   | { t: 'board'; board: number; of: number }
   | { t: 'clearBoard' }
-  | { t: 'taunt'; from: string; text: string }
+  /** `userId` = the sender: the server echoes a player's own taunt back to them, which must not show up as the rival's. */
+  | { t: 'taunt'; from: string; text: string; userId?: string }
   | { t: 'clearTaunt' }
   | { t: 'error'; error: string }
   /** A refused submit or a late answer during play: a toast, not an error screen. */
@@ -146,6 +147,7 @@ export function duelReducer(s: DuelState, a: DuelAction): DuelState {
     case 'ended':
       return { ...s, phase: 'ended', ended: a.ended, error: null, notice: null };
     case 'taunt':
+      if (a.userId && a.userId === (s.view?.youId ?? s.found?.youId)) return s;
       return { ...s, taunt: { from: a.from, text: a.text } };
     case 'clearTaunt':
       return { ...s, taunt: null };

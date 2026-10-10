@@ -121,3 +121,12 @@ describe('power-ups', () => {
     expect(duelReducer(initialDuel, { t: 'power', mine: false, kind: 'freeze' }).powerNote).toBe('iceRival');
   });
 });
+
+describe('taunts', () => {
+  it('ignores the echo of the player\'s own taunt (the server sends it back to the sender too)', () => {
+    const me = '0f8fad5b-d9cb-469f-a165-708677289501';
+    const s = { ...initialDuel, found: { youId: me } as never };
+    expect(duelReducer(s, { t: 'taunt', from: 'من', text: 'سلام', userId: me }).taunt).toBeNull();
+    expect(duelReducer(s, { t: 'taunt', from: 'حریف', text: 'سلام', userId: 'someone-else' }).taunt).toEqual({ from: 'حریف', text: 'سلام' });
+  });
+});

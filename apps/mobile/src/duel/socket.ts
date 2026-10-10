@@ -88,7 +88,7 @@ export async function connectDuel(dispatch: (a: DuelAction) => void): Promise<Du
   });
   socket.on(ServerEvent.chatMessage, (p: unknown) => {
     const m = chatMessageSchema.safeParse(p);
-    if (m.success && m.data.room === 'match') dispatch({ t: 'taunt', from: m.data.nickname, text: m.data.text });
+    if (m.success && m.data.room === 'match') dispatch({ t: 'taunt', from: m.data.nickname, text: m.data.text, userId: m.data.userId });
   });
   socket.on('connect_error', () => dispatch({ t: 'error', error: 'NETWORK' }));
 
