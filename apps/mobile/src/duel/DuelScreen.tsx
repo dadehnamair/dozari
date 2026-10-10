@@ -1,5 +1,5 @@
 import { useEffect, useReducer, useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { isLastLife, toPersianDigits } from '@dozari/shared';
 import type { TauntCategory } from '@dozari/shared';
 import { fetchTaunts } from '../chat/api';
@@ -27,10 +27,14 @@ import { arenaNumbers, arenaTiers, arrange, characterFor, clockText, endReason, 
 import type { TierId } from './arena';
 import { DuelPriceRound } from './DuelPriceRound';
 import { DuelResult } from './DuelResult';
+import { EDGE_LEFT, EDGE_RIGHT } from '../theme/direction';
 import { InviteSheet } from '../invite/InviteSheet';
 import { PlayerSheet } from '../social/PlayerSheet';
 import { ReportDialog } from '../feedback/ReportDialog';
 import { MatchHud } from './MatchHud';
+import { ChatDrawer } from './ChatDrawer';
+import { SpeechBubble } from './SpeechBubble';
+import { ArenaBackground } from './ArenaBackground';
 import { ModeSelect } from './ModeSelect';
 import { boardSolved, duelReducer, endedFromView, initialDuel, isCaptain, isMyTurn, myOutcome, sideName, sidePlayers, turnSecondsLeft } from './model';
 import { connectDuel } from './socket';
@@ -45,6 +49,9 @@ const FLASH_MS = 1500;
 /** The versus card stays up this long once a rival is found (the turn clock is 45s by default). */
 const INTRO_MS = 3000;
 const LEAVE_ARM_MS = 3000;
+/** How long a taunt floats under its sender's card, and the pause before the next one. */
+const BUBBLE_MS = 3200;
+const TAUNT_COOLDOWN_S = 3;
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const a = fa.duel.arena;
 
@@ -67,7 +74,12 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   const [now, setNow] = useState(Date.now());
   const [introUntil, setIntroUntil] = useState(0);
   const [taunts, setTaunts] = useState<TauntCategory[]>([]);
-  const [tauntOpen, setTauntOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatTab, setChatTab] = useState(0);
+  /** Seconds before another taunt may be sent (the badge dims meanwhile). */
+  const [cool, setCool] = useState(0);
+  /** The taunt the player just sent, floating under their card for a few seconds. */
+  const [myBubble, setMyBubble] = useState<string | null>(null);
   const [leaveArmed, setLeaveArmed] = useState(false);
   const [friendOpen, setFriendOpen] = useState(false);
   const [tableOpen, setTableOpen] = useState(false);
@@ -112,6 +124,16 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
     const id = setTimeout(() => dispatch({ t: 'clearTaunt' }), 4000);
     return () => clearTimeout(id);
   }, [state.taunt]);
+  useEffect(() => {
+    if (cool <= 0) return;
+    const id = setTimeout(() => setCool((c) => c - 1), 1000);
+    return () => clearTimeout(id);
+  }, [cool]);
+  useEffect(() => {
+    if (!myBubble) return;
+    const id = setTimeout(() => setMyBubble(null), BUBBLE_MS);
+    return () => clearTimeout(id);
+  }, [myBubble]);
   useEffect(() => {
     if (!state.boardNote) return;
     const id = setTimeout(() => dispatch({ t: 'clearBoard' }), 3500);
@@ -398,6 +420,14 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
     );
   }
 
+  const mineSide = sidePlayers(state.found, me);
+  const rivalSide = sidePlayers(state.found, them);
+  const myProfile = mineSide.find((p) => p.userId !== undefined && p.userId === state.found?.youId) ?? mineSide[0];
+  const myLevel = myProfile?.level;
+  const rivalLevel = rivalSide[0]?.level;
+  const mateProfile = mineSide.find((p) => p !== myProfile);
+  const mateWho = mateProfile ? characterFor(mateProfile.avatarKey || mateProfile.nickname) : undefined;
+  const rivalMateWho = rivalSide[1] ? characterFor(rivalSide[1].avatarKey || rivalSide[1].nickname) : undefined;
   const mine = isMyTurn(view);
   const captain = isCaptain(view);
   const playing = view.status === 'playing';
@@ -410,7 +440,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   const turnText = view.lockedOut[me] ? fa.duel.lockedOut : mine ? (!captain ? (mateWaiting ? a.waitCaptain(captainName) : a.mateCaptain) : proposalReady ? a.mateReady(nameOf(view.proposal?.by)) : team ? a.captain : fa.duel.yourTurn) : fa.duel.theirTurn;
   const boards = view.rounds ?? 1;
   const noticeText = state.notice ? fa.duel.errors[state.notice] ?? fa.duel.errors.generic ?? null : null;
-  const toast = leaveArmed ? a.leaveSure : noticeText ? noticeText : state.boardNote ? a.nextBoard(state.boardNote.board, state.boardNote.of) : state.flash && state.flash !== 'one_away' ? fa.duel.feedback[state.flash] : state.taunt ? `${state.taunt.from}: ${state.taunt.text}` : null;
+  const toast = leaveArmed ? a.leaveSure : noticeText ? noticeText : state.boardNote ? a.nextBoard(state.boardNote.board, state.boardNote.of) : state.flash && state.flash !== 'one_away' ? fa.duel.feedback[state.flash] : null;
   /** The submit button lights up only when this player can really submit now: their side's turn, they are the captain, four cards are picked, no answer pending. */
   const canSend = playing && mine && captain && canSubmit(selected) && !sending && !state.finale;
   const submit = () => {
@@ -426,6 +456,17 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
       if (ack.error === 'INTERNAL' || ack.error === 'NOT_IN_MATCH') resync();
     });
   };
+  const sendTaunt = (tauntId: string, text: string) => {
+    if (cool > 0 || !conn.current) return;
+    setChatOpen(false);
+    setCool(TAUNT_COOLDOWN_S);
+    setMyBubble(text);
+    void conn.current.taunt(tauntId).then((ack) => {
+      if (ack.ok) return;
+      setMyBubble(null);
+      dispatch({ t: 'notice', error: ack.error });
+    });
+  };
   const leave = () => {
     if (!leaveArmed) return setLeaveArmed(true);
     setLeaveArmed(false);
@@ -433,7 +474,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   };
 
   return (
-    <MatchBackground>
+    <ArenaBackground>
       {playing ? <LeaveGuard onLeave={leave} /> : null}
       <ScrollView contentContainerStyle={styles.screen}>
         <View style={styles.column}>
@@ -446,46 +487,42 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
                 </View>
               )}
             </Pressable>
-            <View style={styles.clock} accessibilityLabel={`${turnText} ${fa.duel.seconds(secs)}`}>
-              <GradientFill from={secs <= 10 ? '#FF8FB6' : '#FFE48A'} to={secs <= 10 ? colors.candy.pink : colors.candy.yellow} />
-              <View style={styles.clockIcon}><Item icon="hourglass" /></View>
-              <Text style={styles.clockText}>{toPersianDigits(clockText(secs))}</Text>
+            <View style={styles.clockWrap}>
+              <Pulse on={secs <= 10 && playing && !prefs.reduceMotion}><View style={styles.clock} accessibilityLabel={`${turnText} ${fa.duel.seconds(secs)}`}>
+                <GradientFill from={secs <= 10 ? '#FF8FB6' : '#FFE48A'} to={secs <= 10 ? colors.candy.pink : colors.candy.yellow} />
+                <View style={styles.clockIcon}><Item icon="hourglass" /></View>
+                <Text style={styles.clockText}>{toPersianDigits(clockText(secs))}</Text>
+              </View></Pulse>
             </View>
             <ComboRing streak={combo.streak} left={combo.left} showLabel={false} />
             <View style={styles.mode}><Text style={styles.modeText}>{team ? (boards > 1 ? `${a.twoVsTwo} · ${a.boardOf((view.round ?? 0) + 1, boards)}` : a.twoVsTwo) : a.oneVsOne}</Text></View>
           </View>
 
-          <MatchHud
-            me={{ name: myName, who: 'dozari', score: view.scores[me], groups: lines[0]!.groups, active: playing && view.turn === me }}
-            rival={{ name: rivalName, who: rivalWho, score: view.scores[them], groups: lines[1]!.groups, active: playing && view.turn === them }}
-          />
+          <View style={styles.hudWrap}>
+            <MatchHud
+              me={{ name: myName, who: 'dozari', score: view.scores[me], groups: lines[0]!.groups, active: playing && view.turn === me, level: myLevel, mate: team ? mateWho : undefined }}
+              rival={{ name: rivalName, who: rivalWho, score: view.scores[them], groups: lines[1]!.groups, active: playing && view.turn === them, level: rivalLevel, mate: team ? rivalMateWho : undefined }}
+              onChat={taunts.length > 0 ? () => setChatOpen((v) => !v) : undefined}
+              chatOpen={chatOpen}
+              chatCooling={cool > 0}
+            />
+            {myBubble ? <View style={[styles.bubble, { [EDGE_RIGHT]: 4 }]}><SpeechBubble text={myBubble} mine /></View> : null}
+            {state.taunt ? <View style={[styles.bubble, { [EDGE_LEFT]: 4 }]}><SpeechBubble text={state.taunt.text} mine={false} /></View> : null}
+          </View>
 
           <View style={styles.turnRow}>
             <View style={[styles.turn, mine ? styles.turnMine : null]}><Text style={[styles.turnText, mine ? styles.turnTextMine : null]}>{turnText}</Text></View>
           </View>
           <View style={styles.toastSlot}>{toast ? <View style={styles.toast}><Text style={styles.toastText} numberOfLines={2}>{toast}</Text></View> : null}</View>
 
-          <View>
+          <View style={styles.boardPanel}>
             <Board solved={state.finale ? (finaleLast ? [...state.finale.solved, state.finale.last] : state.finale.solved) : boardSolved(view)} cards={state.finale ? (finaleLast ? [] : state.finale.cards) : arrange(view.cards, order)} names={state.names} selected={state.finale ? finaleSel : selected} onToggle={(id) => setSelected((s) => toggleSelection(s, id))} disabled={!playing || !mine || !!state.finale} muted={playing && !mine && !state.finale} />
             {state.flash === 'one_away' ? <View style={styles.nearMiss} pointerEvents="none"><NearMissPill /></View> : null}
           </View>
 
           <View style={styles.tools}>
-            {taunts.length > 0 ? (
-              <Pressable accessibilityRole="button" accessibilityLabel={fa.duel.taunts} onPress={() => setTauntOpen((v) => !v)}>
-                {({ pressed }) => <View style={[styles.round, pressed ? styles.pressed : null]}><Icon name="chat" size={24} color={colors.ink} strokeWidth={2.6} /></View>}
-              </Pressable>
-            ) : <View style={styles.roundGap} />}
             <Lives mistakes={view.mistakes[me]} max={numbers.maxMistakes} last={lastLife} />
-            <View style={styles.roundGap} />
           </View>
-          {tauntOpen ? (
-            <View style={styles.tauntBox}>
-              {(taunts[0]?.taunts ?? []).map((t) => (
-                <Pressable key={t.id} onPress={() => (void conn.current?.taunt(t.id), setTauntOpen(false))} style={styles.tauntChip} accessibilityRole="button"><Text style={styles.tauntText}>{t.text}</Text></Pressable>
-              ))}
-            </View>
-          ) : null}
 
           {/* The same notice again right above the buttons: the one at the top of the board is out of sight when the player is down here. */}
           {noticeText ? <View style={styles.toastSlot}><View style={styles.toast}><Text style={styles.toastText} numberOfLines={2}>{noticeText}</Text></View></View> : null}
@@ -496,8 +533,24 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
           </View>
         </View>
       </ScrollView>
-    </MatchBackground>
+      <ChatDrawer open={chatOpen} onClose={() => setChatOpen(false)} categories={taunts} tab={chatTab} onTab={setChatTab} onSend={sendTaunt} />
+    </ArenaBackground>
   );
+}
+
+/** Beats gently (1 → 1.1 → 1) while `on`: the turn clock in its last seconds. */
+function Pulse({ on, children }: { on: boolean; children: React.ReactNode }) {
+  const v = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    if (!on) return v.setValue(1);
+    const loop = Animated.loop(Animated.sequence([
+      Animated.timing(v, { toValue: 1.1, duration: 500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      Animated.timing(v, { toValue: 1, duration: 500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+    ]));
+    loop.start();
+    return () => loop.stop();
+  }, [on, v]);
+  return <Animated.View style={{ transform: [{ scale: v }] }}>{children}</Animated.View>;
 }
 
 const lift = { shadowColor: colors.ink, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4 };
@@ -511,10 +564,14 @@ const styles = StyleSheet.create({
   bar: { flexDirection: ROW, alignItems: 'center', gap: 8 },
   square: { width: 42, height: 42, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', marginBottom: 4, ...lift },
   pressed: { transform: [{ translateY: 3 }] },
-  clock: { flex: 1, height: 46, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 4, ...lift },
+  clockWrap: { flex: 1, alignItems: 'center' },
+  hudWrap: { zIndex: 8 },
+  bubble: { position: 'absolute', top: '100%', marginTop: 20, zIndex: 8 },
+  boardPanel: { padding: 8, borderRadius: 22, borderWidth: 3, borderColor: colors.ink, backgroundColor: 'rgba(26,8,44,0.88)', shadowColor: '#140822', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.8, shadowRadius: 0, elevation: 6 },
+  clock: { minWidth: 120, paddingRight: 14, height: 40, borderRadius: 99, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 4, ...lift },
   clockIcon: { width: 28, height: 28 },
   clockText: { fontFamily: fonts.display, fontSize: 26, lineHeight: 36, color: colors.ink },
-  mode: { height: 42, paddingHorizontal: 12, borderRadius: 14, backgroundColor: colors.ink, borderWidth: 2, borderColor: colors.candy.yellow, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
+  mode: { height: 40, paddingHorizontal: 12, borderRadius: 13, backgroundColor: 'rgba(26,8,44,0.8)', borderWidth: 2, borderColor: colors.candy.yellow, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
   modeText: { fontFamily: fonts.display, fontSize: 17, color: colors.candy.yellow },
   turnRow: { alignItems: 'center' },
   turn: { paddingHorizontal: 18, paddingVertical: 4, borderRadius: 99, backgroundColor: colors.candy.pink, borderWidth: 3, borderColor: colors.ink },
@@ -525,11 +582,6 @@ const styles = StyleSheet.create({
   toast: { paddingHorizontal: 16, paddingVertical: 5, borderRadius: 99, backgroundColor: colors.ink, borderWidth: 2, borderColor: colors.candy.yellow, maxWidth: '100%' },
   toastText: { fontFamily: fonts.display, fontSize: 16, color: colors.candy.yellow, textAlign: 'center' },
   tools: { flexDirection: ROW, alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
-  round: { width: 52, height: 52, borderRadius: 26, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center', ...lift },
-  roundGap: { width: 52 },
-  tauntBox: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' },
-  tauntChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.tint },
-  tauntText: { fontFamily: fonts.bold, fontSize: 13, color: colors.ink },
   actions: { flexDirection: ROW, gap: 9 },
   nearMiss: { position: 'absolute', top: '38%', left: 0, right: 0, alignItems: 'center' },
   msg: { fontFamily: fonts.bold, fontSize: 18, color: colors.cream, textAlign: 'center' },

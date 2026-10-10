@@ -575,6 +575,7 @@ export const fa = {
       team: 'تیمی',
       oneVsOne: '۱ در ۱',
       twoVsTwo: '۲ در ۲',
+      ofFour: 'از ۴ دسته',
       entry: (n: number) => `ورودی ${toPersianDigits(String(n))}`,
       tierNames: { bronze: 'برنزی', silver: 'نقره‌ای', gold: 'طلایی' } as Record<string, string>,
       tierChip: (name: string, fee: number) => `${name} · ${toPersianDigits(String(fee))}`,
@@ -618,6 +619,7 @@ export const fa = {
       againDraw: 'دوباره!',
     },
     submitting: 'در حال ثبت…',
+    chat: { badge: 'کل‌کل', close: 'بستن', note: 'زیر اسمت برای حریف نشون داده می‌شه' },
     errors: {
       MAINTENANCE: 'بازی در حال تعمیر است.',
       FEATURE_OFF: 'دوئل زنده فعلاً خاموش است.',
