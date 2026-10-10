@@ -1,7 +1,7 @@
 /** Admin panel view: database backups to S3-compatible storage (browser JS, concatenated into one script by ../views2.ts). */
 export const ADMIN_VIEWS2_BACKUPS_JS = String.raw`VIEWS.backups = function (root) {
   var WEEKDAYS = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه'];
-  var BERR = { invalid_request: 'ورودی نامعتبر است؛ آدرس سرور (با http یا https)، نام باکت و زمان‌بندی را بررسی کن', too_many: 'به سقف تعداد مقصدها رسیده‌ای', busy: 'یک بک‌آپ همین الان در حال اجراست', not_found: 'پیدا نشد', secret_unreadable: 'کلید مخفی ذخیره‌شده خوانده نمی‌شود؛ کلید را دوباره وارد کن', secret_required: 'کلید مخفی را وارد کن', failed: 'ارتباط با فضای ذخیره‌سازی ناموفق بود' };
+  var BERR = { invalid_request: 'ورودی نامعتبر است؛ آدرس سرور (با http یا https)، نام باکت و زمان‌بندی را بررسی کن', too_many: 'به سقف تعداد مقصدها رسیده‌ای', protected: 'این بک‌آپ جزو آخرین‌های قفل‌شده است و حذف نمی‌شود', busy: 'یک بک‌آپ همین الان در حال اجراست', not_found: 'پیدا نشد', secret_unreadable: 'کلید مخفی ذخیره‌شده خوانده نمی‌شود؛ کلید را دوباره وارد کن', secret_required: 'کلید مخفی را وارد کن', failed: 'ارتباط با فضای ذخیره‌سازی ناموفق بود' };
   var list = h('div');
   var openRuns = {}, timer = null;
   function when(ms) { return ms ? new Date(ms).toLocaleString('fa-IR') : '—'; }
@@ -27,7 +27,7 @@ export const ADMIN_VIEWS2_BACKUPS_JS = String.raw`VIEWS.backups = function (root
     var endpoint = h('input', { type: 'text', value: t ? t.endpoint : '', dir: 'ltr', placeholder: 'https://s3.example.com' });
     var region = h('input', { type: 'text', value: t ? t.region : '', dir: 'ltr', maxlength: 60, placeholder: 'خالی = پیش‌فرض' });
     var bucket = h('input', { type: 'text', value: t ? t.bucket : '', dir: 'ltr', maxlength: 120 });
-    var prefix = h('input', { type: 'text', value: t ? t.prefix : '', dir: 'ltr', maxlength: 200, placeholder: 'مثلاً dozari/db (اختیاری)' });
+    var prefix = h('input', { type: 'text', value: t ? t.prefix : '', dir: 'ltr', maxlength: 200, placeholder: 'backups/dozari/db' });
     var access = h('input', { type: 'text', value: t ? t.accessKey : '', dir: 'ltr', maxlength: 200, autocomplete: 'off' });
     var secret = h('input', { type: 'password', dir: 'ltr', maxlength: 300, autocomplete: 'new-password', placeholder: t ? 'خالی = بدون تغییر' : '' });
     var active = h('input', { type: 'checkbox' }); active.checked = t ? t.isActive : true;
@@ -55,7 +55,7 @@ export const ADMIN_VIEWS2_BACKUPS_JS = String.raw`VIEWS.backups = function (root
       });
     } });
     formModal(t ? 'ویرایش مقصد' : 'مقصد تازه', [
-      ['نام', name], ['آدرس سرور S3', endpoint, 'با http یا https و بدون نام باکت'], ['ریجن', region], ['نام باکت', bucket], ['پوشه (پیشوند) داخل باکت', prefix],
+      ['نام', name], ['آدرس سرور S3', endpoint, 'با http یا https و بدون نام باکت'], ['ریجن', region], ['نام باکت', bucket], ['مسیر بک‌آپ داخل باکت', prefix, 'پوشه‌ی مقصد؛ مثلاً backups/dozari/db. فایل‌ها با نام dozari-تاریخ-ساعت.sql.gz همان‌جا ذخیره می‌شوند. خالی = ریشه‌ی باکت'],
       ['Access Key', access], ['Secret Key', secret, t ? 'ذخیره‌شده است و نمایش داده نمی‌شود' : 'رمزنگاری‌شده ذخیره می‌شود'],
       h('label', { class: 'f' }, [active, ' فعال (بک‌آپ خودکار بگیرد)']),
       ['نوع زمان‌بندی', kind], everyF, timeF, dayF,
@@ -76,6 +76,7 @@ export const ADMIN_VIEWS2_BACKUPS_JS = String.raw`VIEWS.backups = function (root
         h('thead', {}, [h('tr', {}, ['زمان', 'نوع', 'وضعیت', 'حجم', 'مدت', 'فایل در باکت', ''].map(function (x) { return h('th', { text: x }); }))]),
         h('tbody', {}, r.body.runs.map(function (run) {
           var live = run.status === 'ok' && !run.deletedAt;
+          var locked = live && run.protected;
           var dur = run.finishedAt ? fa(Math.max(1, Math.round((run.finishedAt - run.startedAt) / 1000))) + ' ثانیه' : '—';
           return h('tr', {}, [
             h('td', { text: when(run.startedAt) }), h('td', { text: run.trigger === 'schedule' ? 'خودکار' : 'دستی' }),
@@ -83,7 +84,7 @@ export const ADMIN_VIEWS2_BACKUPS_JS = String.raw`VIEWS.backups = function (root
             h('td', { text: size(run.sizeBytes) }), h('td', { text: dur }), h('td', { class: 'ltr', text: run.objectKey }),
             h('td', {}, live ? [
               h('button', { class: 'btn sm', text: 'دانلود', onclick: function () { api('/admin/backups/runs/' + run.id + '/download', { method: 'POST' }).then(function (x) { if (!x.ok) return fail(x); window.open(x.body.url, '_blank', 'noopener'); toast('لینک دانلود ' + fa(Math.round(x.body.expiresInSeconds / 60)) + ' دقیقه اعتبار دارد'); }); } }),
-              h('button', { class: 'btn sm bad', text: 'حذف', onclick: function () { if (!confirm('این فایل بک‌آپ از باکت پاک شود؟ برگشت ندارد.')) return; api('/admin/backups/runs/' + run.id, { method: 'DELETE' }).then(function (x) { if (!x.ok) return fail(x); toast('پاک شد'); draw(); }); } })
+              locked ? badge('قفل (غیرقابل حذف)', 'b-info') : h('button', { class: 'btn sm bad', text: 'حذف', onclick: function () { if (!confirm('این فایل بک‌آپ از باکت پاک شود؟ برگشت ندارد.')) return; api('/admin/backups/runs/' + run.id, { method: 'DELETE' }).then(function (x) { if (!x.ok) return fail(x); toast('پاک شد'); draw(); }); } })
             ] : [])
           ]);
         }))
@@ -94,9 +95,9 @@ export const ADMIN_VIEWS2_BACKUPS_JS = String.raw`VIEWS.backups = function (root
     var runsBox = h('div');
     var last = t.lastRun;
     var info = h('div', { class: 'h', style: 'display:flex;flex-direction:column;gap:3px;margin:6px 0' }, [
-      h('span', { class: 'ltr', text: t.endpoint + ' · ' + t.bucket + (t.prefix ? '/' + t.prefix : '') }),
+      h('span', { class: 'ltr', text: t.endpoint + ' · مسیر: ' + t.bucket + '/' + (t.prefix ? t.prefix.replace(/^\/+|\/+$/g, '') + '/' : '') }),
       h('span', { text: 'زمان‌بندی: ' + scheduleText(t.schedule) + (t.isActive && t.nextRunAt ? ' · بک‌آپ بعدی: ' + when(t.nextRunAt) : '') }),
-      h('span', { text: retentionText(t.retention) }),
+      h('span', { text: retentionText(t.retention) + ' · ' + fa(t.protectLast) + ' بک‌آپ سالمِ آخر قفل است و از پنل پاک نمی‌شود' }),
       h('span', { text: 'در باکت: ' + fa(t.liveCount) + ' فایل · ' + size(t.liveBytes) }),
       last ? h('span', { text: 'آخرین تلاش: ' + ago(last.startedAt) + ' — ' + (last.status === 'ok' ? 'سالم (' + size(last.sizeBytes) + ')' : last.status === 'running' ? 'در حال اجرا' : 'ناموفق: ' + (last.error || '')) }) : h('span', { text: 'هنوز بک‌آپی گرفته نشده' })
     ]);

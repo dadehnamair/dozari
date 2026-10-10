@@ -10,3 +10,5 @@ export const BACKUP_TICK_SECONDS = 60;
 export const BACKUP_DOWNLOAD_LINK_SECONDS = 600;
 /** Most runs listed per target in the admin. */
 export const BACKUP_RUNS_LIST_LIMIT = 200;
+/** Newest successful backups per target that nothing in the panel can delete (env `BACKUP_PROTECT_LAST` overrides; it is not editable from the panel). */
+export const BACKUP_PROTECT_LAST_DEFAULT = 10;

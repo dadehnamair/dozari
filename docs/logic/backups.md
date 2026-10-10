@@ -23,9 +23,13 @@ The in-process scheduler ticks every `BACKUP_TICK_SECONDS` (60). A target is due
 
 Per target, two optional rules, both evaluated after every successful run: delete backups older than `keepDays`; keep only the newest `keepCount`. Either can be empty (= off). **The newest successful backup is never deleted**, whatever the rules say. Failed runs never count. Deleting removes the object from the bucket first, then marks the row deleted; a bucket error leaves the row alone for the next pass.
 
+## Lock on the newest backups
+
+The newest `BACKUP_PROTECT_LAST` (default 10, env only — **not editable from the panel or the DB**) successful backups of each target cannot be deleted by retention, by hand, or by removing the target (the panel hides the delete button; the API answers 409 `protected`). So a hacked admin account cannot wipe the latest backups, and a retention rule below that number is overridden. This does **not** stop someone who owns the server (they hold the S3 keys). For that, use the bucket itself: enable **Object Lock / versioning** (compliance mode, N days) on the bucket, or give the panel a key with *no delete permission* (write-only + list) and do expiry with a bucket lifecycle rule; a refused delete is logged and the row is left alone. The tests assume a deletable bucket; with write-only keys retention simply does nothing.
+
 ## Dump
 
-`mysqldump --single-transaction --quick --routines --no-tablespaces --default-character-set=utf8mb4`, piped through gzip straight into the upload (no temp file). Password via `MYSQL_PWD`, never argv. A dump without ``CREATE TABLE `users` `` fails the run (same guard as `deploy/backup.sh`); a failed run removes any partial object. Object key: `<prefix>/dozari-YYYYMMDD-HHmmss.sql.gz` (UTC). The server image needs the client binary (`mariadb-client` in `deploy/Dockerfile.server`); env: `MYSQLDUMP_BIN` (default `mysqldump`), `BACKUP_DUMP_ARGS` (extra flags), `BACKUP_SCHEDULER=off` to disable the clock (e.g. a second replica).
+`mysqldump --single-transaction --quick --routines --no-tablespaces --default-character-set=utf8mb4`, piped through gzip straight into the upload (no temp file). Password via `MYSQL_PWD`, never argv. A dump without ``CREATE TABLE `users` `` fails the run (same guard as `deploy/backup.sh`); a failed run removes any partial object. Object key: `<path>/dozari-YYYYMMDD-HHmmss.sql.gz` (UTC); the **path** (folder inside the bucket, `prefix` column, e.g. `backups/dozari/db`, leading/trailing slashes ignored, empty = bucket root) is set per target in the form. The server image needs the client binary (`mariadb-client` in `deploy/Dockerfile.server`); env: `MYSQLDUMP_BIN` (default `mysqldump`), `BACKUP_DUMP_ARGS` (extra flags), `BACKUP_SCHEDULER=off` to disable the clock (e.g. a second replica).
 
 ## Admin API (all `system` permission, also GET; audited)
 

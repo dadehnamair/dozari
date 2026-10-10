@@ -57,14 +57,15 @@ export interface RetentionRun {
 }
 
 /**
- * Ids of successful backups the retention rule says to delete. The newest successful backup is never listed,
- * so a short age limit or a dead schedule cannot leave a target with nothing.
+ * Ids of successful backups the retention rule says to delete. The newest `protectLast` successful backups are never listed
+ * (at least 1), so a short age limit, a dead schedule or a hacked admin cannot leave a target with nothing.
  */
-export function expiredBackups(runs: readonly RetentionRun[], r: BackupRetention, now: Date): string[] {
+export function expiredBackups(runs: readonly RetentionRun[], r: BackupRetention, now: Date, protectLast = 1): string[] {
+  const keep = Math.max(1, Math.floor(protectLast));
   const good = runs.filter((x) => x.ok).sort((a, b) => b.at - a.at);
   const out: string[] = [];
   good.forEach((run, i) => {
-    if (i === 0) return;
+    if (i < keep) return;
     const tooOld = r.maxAgeDays !== null && now.getTime() - run.at > r.maxAgeDays * DAY_MS;
     const tooMany = r.maxCount !== null && i >= r.maxCount;
     if (tooOld || tooMany) out.push(run.id);
@@ -83,3 +84,9 @@ export function backupObjectKey(prefix: string, at: Date): string {
 
 /** Weekday names for the admin, in the same 0 = Saturday order as `BackupSchedule.weekday`. */
 export const WEEKDAYS_FA = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنجشنبه', 'جمعه'] as const;
+
+/** Ids of the newest `protectLast` successful backups (input need not be sorted): these can be deleted neither by retention nor by hand. */
+export function protectedBackups(runs: readonly RetentionRun[], protectLast: number): Set<string> {
+  const keep = Math.max(1, Math.floor(protectLast));
+  return new Set(runs.filter((x) => x.ok).sort((a, b) => b.at - a.at).slice(0, keep).map((x) => x.id));
+}

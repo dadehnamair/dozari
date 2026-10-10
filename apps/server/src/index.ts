@@ -867,6 +867,7 @@ if (isMainModule(import.meta.url)) {
           storage: createS3Storage,
           dumper: createMysqldumpDumper(parseDatabaseUrl(process.env.DATABASE_URL), { bin: process.env.MYSQLDUMP_BIN, extraArgs: process.env.BACKUP_DUMP_ARGS?.split(/\s+/).filter(Boolean) }),
           log: (msg, err) => console[err ? 'error' : 'log'](msg, err ?? ''),
+          protectLast: process.env.BACKUP_PROTECT_LAST ? Number(process.env.BACKUP_PROTECT_LAST) || undefined : undefined,
         })
       : undefined;
   const aiStudio = db ? new AiStudio({ env: process.env, lessons: createDbLessonStore(db), puzzles: createDbPuzzleAdmin(db), products: productAdmin, landing: landingService, catalog: async () => (await createDbAdminRepository(db).listCatalog()).map((p) => ({ id: p.id, slug: p.slug, nameFa: p.nameFa })) }) : undefined;

@@ -1,5 +1,5 @@
 import { PassThrough } from 'node:stream';
-import { BACKUP_DOWNLOAD_LINK_SECONDS, BACKUP_RUNS_LIST_LIMIT, BACKUP_TICK_SECONDS, backupObjectKey, expiredBackups, isBackupDue, nextRunAt } from '@dozari/shared';
+import { BACKUP_DOWNLOAD_LINK_SECONDS, BACKUP_PROTECT_LAST_DEFAULT, protectedBackups, BACKUP_RUNS_LIST_LIMIT, BACKUP_TICK_SECONDS, backupObjectKey, expiredBackups, isBackupDue, nextRunAt } from '@dozari/shared';
 import type { BackupRetention, BackupSchedule } from '@dozari/shared';
 import type { SecretBox } from './crypto.js';
 import type { Dumper } from './dump.js';
@@ -24,6 +24,8 @@ export interface TargetView {
   lastRun: RunRow | null;
   liveCount: number;
   liveBytes: number;
+  /** How many of the newest good backups are locked against deletion. */
+  protectLast: number;
 }
 
 export interface TargetFields {
@@ -52,6 +54,8 @@ export interface BackupDeps {
   dumper: Dumper;
   now?: () => Date;
   log?: (msg: string, err?: unknown) => void;
+  /** Newest good backups per target that cannot be deleted by retention, by hand or by removing the target. Set from the environment, never from the panel. */
+  protectLast?: number;
 }
 
 /** Database backups to S3-compatible targets: manual and scheduled runs, retention, listing (docs/logic/backups.md). */
@@ -59,10 +63,12 @@ export class BackupService {
   private readonly running = new Map<string, Promise<void>>();
   private readonly now: () => Date;
   private readonly log: (msg: string, err?: unknown) => void;
+  private readonly protectLast: number;
 
   constructor(private readonly d: BackupDeps) {
     this.now = d.now ?? (() => new Date());
     this.log = d.log ?? (() => undefined);
+    this.protectLast = Math.max(1, Math.floor(d.protectLast ?? BACKUP_PROTECT_LAST_DEFAULT));
   }
 
   /** Call once at boot: a run left `running` by a dead process is closed as failed. */
@@ -100,6 +106,7 @@ export class BackupService {
       lastRun: recent[0] ?? null,
       liveCount: live.length,
       liveBytes: live.reduce((a, r) => a + (r.sizeBytes ?? 0), 0),
+      protectLast: this.protectLast,
     };
   }
 
@@ -132,10 +139,12 @@ export class BackupService {
       const p = this.params(t);
       if (p) {
         const storage = this.d.storage(p);
-        for (const r of await this.d.store.listRuns(id, 1000, true)) await storage.remove(r.objectKey).catch((e) => this.log(`backup: could not remove ${r.objectKey}`, e));
+        const live = await this.d.store.listRuns(id, 1000, true);
+        const locked = protectedBackups(live.map((r) => ({ id: r.id, at: r.startedAt, ok: true })), this.protectLast);
+        for (const r of live.filter((x) => !locked.has(x.id))) await storage.remove(r.objectKey).catch((e) => this.log(`backup: could not remove ${r.objectKey}`, e));
       }
     }
-    await this.d.store.deleteTarget(id);
+    await this.d.store.deleteTarget(id); // the history row goes, the protected files stay in the bucket
     return 'ok';
   }
 
@@ -202,7 +211,7 @@ export class BackupService {
     const t = await this.d.store.getTarget(targetId);
     if (!t) return 0;
     const runs = await this.d.store.listRuns(targetId, 1000, true);
-    const victims = expiredBackups(runs.map((r) => ({ id: r.id, at: r.startedAt, ok: true })), t.retention, this.now());
+    const victims = expiredBackups(runs.map((r) => ({ id: r.id, at: r.startedAt, ok: true })), t.retention, this.now(), this.protectLast);
     if (victims.length === 0) return 0;
     const p = this.params(t);
     if (!p) return 0;
@@ -222,18 +231,23 @@ export class BackupService {
     return removed;
   }
 
-  async runs(targetId: string): Promise<RunRow[] | null> {
+  /** The run history; `protected` marks the newest good backups that cannot be deleted. */
+  async runs(targetId: string): Promise<(RunRow & { protected: boolean })[] | null> {
     if (!(await this.d.store.getTarget(targetId))) return null;
-    return this.d.store.listRuns(targetId, BACKUP_RUNS_LIST_LIMIT);
+    const [all, live] = await Promise.all([this.d.store.listRuns(targetId, BACKUP_RUNS_LIST_LIMIT), this.d.store.listRuns(targetId, 1000, true)]);
+    const locked = protectedBackups(live.map((r) => ({ id: r.id, at: r.startedAt, ok: true })), this.protectLast);
+    return all.map((r) => ({ ...r, protected: locked.has(r.id) }));
   }
 
   /** Removes one backup file by hand and keeps its row in the history as deleted. */
-  async deleteRun(runId: string): Promise<'ok' | 'not_found' | 'busy' | 'secret_unreadable' | 'failed'> {
+  async deleteRun(runId: string): Promise<'ok' | 'not_found' | 'busy' | 'protected' | 'secret_unreadable' | 'failed'> {
     const run = await this.d.store.getRun(runId);
     if (!run) return 'not_found';
     if (run.status === 'running') return 'busy';
     if (run.deletedAt !== null) return 'ok';
     if (run.status === 'ok') {
+      const live = await this.d.store.listRuns(run.targetId, 1000, true);
+      if (protectedBackups(live.map((r) => ({ id: r.id, at: r.startedAt, ok: true })), this.protectLast).has(runId)) return 'protected';
       const t = await this.d.store.getTarget(run.targetId);
       const p = t ? this.params(t) : null;
       if (!p) return 'secret_unreadable';

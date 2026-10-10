@@ -51,7 +51,7 @@ function memoryStore(): BackupStore & { targets: TargetRow[]; runs: RunRow[] } {
   };
 }
 
-function setup(opts: { dumpFails?: boolean } = {}) {
+function setup(opts: { dumpFails?: boolean; protectLast?: number } = {}) {
   const store = memoryStore();
   const files = new Map<string, Buffer>();
   let clock = new Date('2026-01-10T00:00:00Z');
@@ -71,6 +71,7 @@ function setup(opts: { dumpFails?: boolean } = {}) {
     storage: () => storage,
     dumper: () => ({ stream: Readable.from([Buffer.from('hello dump')]), done: opts.dumpFails ? Promise.reject(new Error('mysqldump exited with code 2')) : Promise.resolve() }),
     now: () => clock,
+    protectLast: opts.protectLast ?? 1,
   });
   const fields = { name: 'a', endpoint: 'https://s3.test', region: '', bucket: 'bkt', prefix: 'db', accessKey: 'AK', isActive: true, schedule: { kind: 'daily' as const, time: '03:00' }, retention: { maxAgeDays: 3, maxCount: null } };
   return { store, files, svc, fields, setClock: (d: Date) => (clock = d) };
@@ -153,25 +154,54 @@ describe('BackupService', () => {
   });
 
   it('manual delete and download link', async () => {
-    const { svc, store, files, fields } = setup();
-    const id = await svc.create(fields, 's');
-    await svc.start(id, 'manual');
-    await svc.idle();
-    const runId = store.runs[0]!.id;
-    expect(await svc.downloadUrl(runId)).toMatchObject({ ok: true, url: expect.stringContaining('https://s3.test/') });
-    expect(await svc.deleteRun(runId)).toBe('ok');
-    expect(files.size).toBe(0);
-    expect(await svc.downloadUrl(runId)).toEqual({ ok: false, error: 'not_found' });
+    const { svc, store, files, setClock, fields } = setup();
+    const id = await svc.create({ ...fields, retention: { maxAgeDays: null, maxCount: null } }, 's');
+    for (const d of [0, 1]) {
+      setClock(new Date(Date.parse('2026-01-01T00:00:00Z') + d * DAY));
+      await svc.start(id, 'manual');
+      await svc.idle();
+    }
+    const [newest, oldest] = [store.runs[1]!.id, store.runs[0]!.id];
+    expect(await svc.downloadUrl(oldest)).toMatchObject({ ok: true, url: expect.stringContaining('https://s3.test/') });
+    expect(await svc.deleteRun(newest)).toBe('protected'); // the newest good backup is always locked
+    expect(await svc.deleteRun(oldest)).toBe('ok');
+    expect(files.size).toBe(1);
+    expect(await svc.downloadUrl(oldest)).toEqual({ ok: false, error: 'not_found' });
   });
 
-  it('removing a target can delete its files too', async () => {
-    const { svc, files, fields, store } = setup();
-    const id = await svc.create(fields, 's');
-    await svc.start(id, 'manual');
-    await svc.idle();
+  it('removing a target can delete its unlocked files too', async () => {
+    const { svc, files, setClock, fields, store } = setup();
+    const id = await svc.create({ ...fields, retention: { maxAgeDays: null, maxCount: null } }, 's');
+    for (const d of [0, 1]) {
+      setClock(new Date(Date.parse('2026-01-01T00:00:00Z') + d * DAY));
+      await svc.start(id, 'manual');
+      await svc.idle();
+    }
     expect(await svc.remove(id, true)).toBe('ok');
-    expect(files.size).toBe(0);
+    expect(files.size).toBe(1); // the newest stays in the bucket
     expect(store.targets).toHaveLength(0);
+  });
+});
+
+describe('protected newest backups', () => {
+  it('retention, manual delete and target removal all leave the newest N', async () => {
+    const { svc, store, files, setClock, fields } = setup({ protectLast: 2 });
+    const id = await svc.create({ ...fields, retention: { maxAgeDays: 1, maxCount: 1 } }, 's');
+    for (const d of [0, 1, 2, 3]) {
+      setClock(new Date(Date.parse('2026-01-01T00:00:00Z') + d * DAY));
+      await svc.start(id, 'manual');
+      await svc.idle();
+    }
+    // Each run already applied the rules: with 4 runs and 2 locked, the 2 oldest were removed along the way.
+    expect(files.size).toBe(2);
+    setClock(new Date('2026-02-01T00:00:00Z'));
+    expect(await svc.applyRetention(id)).toBe(0); // nothing more can go, however old
+    const runs = (await svc.runs(id))!;
+    expect(runs.filter((r) => r.protected && !r.deletedAt)).toHaveLength(2);
+    const newest = store.runs.filter((r) => !r.deletedAt).map((r) => r.id);
+    for (const rid of newest) expect(await svc.deleteRun(rid)).toBe('protected');
+    expect(await svc.remove(id, true)).toBe('ok');
+    expect(files.size).toBe(2); // the locked files stay in the bucket
   });
 });
 

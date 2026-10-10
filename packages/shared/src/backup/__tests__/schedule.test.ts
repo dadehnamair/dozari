@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { backupObjectKey, backupScheduleSchema, expiredBackups, isBackupDue, nextRunAt } from '../schedule.js';
+import { protectedBackups, backupObjectKey, backupScheduleSchema, expiredBackups, isBackupDue, nextRunAt } from '../schedule.js';
 
 // Iran time is UTC+3:30: 03:00 there is 23:30 UTC the day before.
 describe('nextRunAt', () => {
@@ -43,6 +43,11 @@ describe('expiredBackups', () => {
   });
   it('never deletes the newest good backup and ignores failed runs', () => {
     expect(expiredBackups([run('a', 100), run('f', 0, false)], { maxAgeDays: 1, maxCount: 1 }, now)).toEqual([]);
+  });
+  it('protects the newest N whatever the rules say', () => {
+    const runs = [run('a', 100), run('b', 200), run('c', 300), run('d', 400)];
+    expect(expiredBackups(runs, { maxAgeDays: 1, maxCount: 1 }, now, 3)).toEqual(['d']);
+    expect([...protectedBackups(runs, 2)].sort()).toEqual(['a', 'b']);
   });
   it('does nothing with both rules off', () => {
     expect(expiredBackups([run('a', 999), run('b', 1)], { maxAgeDays: null, maxCount: null }, now)).toEqual([]);
