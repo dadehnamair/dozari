@@ -38,7 +38,7 @@ export function registerPhoneRoutes(app: FastifyInstance, auth: AuthService, pho
     const out = await phone.sendSms(user.id);
     if (out.ok) return { ok: true };
     if (out.error === 'too_soon') return reply.header('retry-after', String(out.retryAfterSec ?? 60)).code(429).send({ error: out.error, retryAfterSec: out.retryAfterSec });
-    return reply.code(out.error === 'sms_unavailable' ? 503 : out.error === 'send_failed' ? 502 : 409).send({ error: out.error });
+    return reply.code(out.error === 'sms_unavailable' ? 503 : out.error === 'send_failed' || out.error.startsWith('sms_') ? 502 : 409).send({ error: out.error });
   });
 
   // The player's answer when the proven number already belongs to another account.
@@ -77,7 +77,7 @@ export function registerPhoneLoginRoutes(app: FastifyInstance, login: PhoneLogin
     const out = await login.sendCode(body.data.phone);
     if (out.ok) return { ok: true };
     if (out.error === 'too_soon') return reply.header('retry-after', String(out.retryAfterSec ?? 60)).code(429).send({ error: out.error, retryAfterSec: out.retryAfterSec });
-    return reply.code(out.error === 'sms_unavailable' ? 503 : out.error === 'send_failed' ? 502 : out.error === 'rate_limited' ? 429 : 400).send({ error: out.error });
+    return reply.code(out.error === 'sms_unavailable' ? 503 : out.error === 'send_failed' || out.error.startsWith('sms_') ? 502 : out.error === 'rate_limited' ? 429 : 400).send({ error: out.error });
   });
 
   app.post('/auth/phone/verify', async (req, reply) => {

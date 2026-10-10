@@ -3,6 +3,7 @@ import { accountDeleteCodes, eq } from '@dozari/db';
 import type { Db } from '@dozari/db';
 import type { PhoneStore } from '../phone/store.js';
 import type { SmsClient } from '../phone/sms.js';
+import { smsErrorCode } from '../phone/sms-errors.js';
 
 export interface DeleteCodeRow {
   codeHash: string;
@@ -60,7 +61,7 @@ export function createMemoryDeleteCodeStore(): DeleteCodeStore {
 }
 
 export type DeleteChannel = 'sms' | 'bale';
-export type SendDeleteCode = { ok: true; channel: DeleteChannel } | { ok: false; error: 'no_channel' | 'too_soon' | 'send_failed'; retryAfterSec?: number };
+export type SendDeleteCode = { ok: true; channel: DeleteChannel } | { ok: false; error: 'no_channel' | 'too_soon' | 'send_failed' | (string & {}); retryAfterSec?: number };
 export type ConfirmDelete = { ok: true } | { ok: false; error: 'no_code' | 'expired' | 'wrong' | 'too_many' };
 
 const TTL_MS = 10 * 60_000;
@@ -97,8 +98,8 @@ export class AccountDeletion {
       } else if (this.bale && (await this.bale(userId, text))) {
         channel = 'bale';
       }
-    } catch {
-      return { ok: false, error: 'send_failed' };
+    } catch (e) {
+      return { ok: false, error: smsErrorCode(e) };
     }
     if (!channel) return { ok: false, error: 'no_channel' };
     await this.store.put(userId, { codeHash: hash(code, userId), attempts: 0, sentAt: this.now(), expiresAt: this.now() + TTL_MS });
