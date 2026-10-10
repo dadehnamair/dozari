@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Keyboard, Platform, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { toPersianDigits } from '@dozari/shared';
-import type { AgeTrack } from '@dozari/shared';
+import type { AgeTrack, ChildRow } from '@dozari/shared';
+import { fetchChildren, switchToChild } from '../agetrack/guardianApi';
 import { ChildCodeSheet } from '../agetrack/ChildCodeSheet';
 import { Character } from '../components/Character';
 import { Icon } from '../components/Icon';
@@ -18,6 +19,8 @@ import { loginWithCode, requestLoginCode } from './loginApi';
 import { TEXT_LEFT, TEXT_RIGHT } from '../theme/direction';
 
 const INK = colors.ink;
+const l = fa.login;
+const TRACK_EMOJI: Record<AgeTrack, string> = { adult: '🧑', teen: '🧑‍🎓', kid: '🧸' };
 const errText = (e: unknown): string => fa.phoneLogin.errors[e instanceof ApiError ? e.code : 'generic'] ?? fa.phoneLogin.errors.generic ?? '';
 
 /**
@@ -31,7 +34,9 @@ export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { sig
   /** «Who is playing?» sits in the card (age tracks on); the choice is saved right after sign-in. */
   const [age, setAge] = useState<AgeTrack>('adult');
   const track = ageTracksOn ? age : undefined;
-  const [step, setStep] = useState<'phone' | 'otp'>('phone');
+  const [step, setStep] = useState<'phone' | 'otp' | 'pick'>('phone');
+  /** Children behind the number that just signed in: the player picks which account to play as. */
+  const [accounts, setAccounts] = useState<ChildRow[]>([]);
   const [typed, setTyped] = useState('');
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
@@ -75,7 +80,14 @@ export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { sig
     setBusy(true);
     setNote(null);
     loginWithCode(phone, digits, { announce: false }).then(
-      (r) => onDone({ signedIn: true, created: r.created, track }),
+      async (r) => {
+        // A number can hold a guardian with children: ask which account to open.
+        const kids = ageTracksOn && !r.created ? await fetchChildren().then((c) => c.children, () => []) : [];
+        if (kids.length === 0) return onDone({ signedIn: true, created: r.created, track });
+        setAccounts(kids);
+        setStep('pick');
+        setBusy(false);
+      },
       (e) => (setBusy(false), setCode(''), setNote(errText(e))),
     );
   };
@@ -125,6 +137,18 @@ export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { sig
                 </View>
               </View>
             ) : null}
+          </>
+        ) : step === 'pick' ? (
+          <>
+            <Text style={[styles.title, adult ? ad.title : null]}>{l.pickTitle}</Text>
+            <Pressable accessibilityRole="button" disabled={busy} onPress={() => playAs(null)} style={({ pressed }) => [styles.guest, adult ? ad.guest : null, pressed ? styles.guestPressed : null]}>
+              <Text style={[styles.guestText, adult ? ad.guestText : null]}>{l.pickMe}</Text>
+            </Pressable>
+            {accounts.map((c) => (
+              <Pressable key={c.id} accessibilityRole="button" disabled={busy} onPress={() => playAs(c.id)} style={({ pressed }) => [styles.guest, adult ? ad.guest : null, pressed ? styles.guestPressed : null]}>
+                <Text style={[styles.guestText, adult ? ad.guestText : null]}>{`${TRACK_EMOJI[c.track] ?? ''} ${c.nickname}`}</Text>
+              </Pressable>
+            ))}
           </>
         ) : (
           <>

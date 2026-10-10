@@ -126,6 +126,7 @@ $dc run --rm --user root -w /app/packages/db s-dozari-server pnpm exec tsx src/s
 ```bash
 git pull
 docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+docker image prune -f && docker builder prune -f --filter until=72h   # drop old images and build cache so the disk does not fill up
 ```
 
 Migrations run by themselves before the server restarts. Players see «نسخهٔ تازه» in the app and

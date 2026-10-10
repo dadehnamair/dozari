@@ -56,7 +56,7 @@ export function AgeTrackScreen({ onDone, initial }: { onDone: (track: AgeTrack) 
       <View style={[styles.cardWrap, tight ? styles.cardWrapTight : null]} pointerEvents="box-none">
       <View style={[styles.card, tight ? styles.cardTight : null]}>
         {picked ? <GuardianStep onDone={() => onDone(picked)} /> : null}
-        {picked || (preset && !failed) ? null : rows.map((r) => (
+        {picked || (initial && !failed) ? null : rows.map((r) => (
           <View key={r.track} style={styles.row}>
             <SlabButton label={busy ? l.saving : r.label} color={r.color} height={tight ? 50 : 58} fontSize={24} grow={0} disabled={busy} sfx="confirm" onPress={() => pick(r.track)} />
             <Text style={styles.hint}>{r.hint}</Text>
