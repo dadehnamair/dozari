@@ -1,5 +1,5 @@
 import type { SettingsStore } from '../settings/service.js';
-import { DEFAULT_SMS_MESSAGE, SMS_PURPOSES, createIrnotiClient, createKavenegarClient } from './sms.js';
+import { DEFAULT_SMS_MESSAGE, SMS_PURPOSES, createFallbackSmsClient, createIrnotiClient, createIrnotiPatternClient, createKavenegarClient } from './sms.js';
 import type { SmsClient, SmsPurpose } from './sms.js';
 
 export const SMS_PROVIDERS = ['auto', 'irnoti', 'kavenegar', 'off'] as const;
@@ -34,6 +34,8 @@ export interface SmsEnv {
   irnotiKey?: string;
   irnotiMessage?: string;
   irnotiLineId?: string;
+  /** irnoti pattern used as the backup when the plain send fails (default `gdhsgcnt`). */
+  irnotiPatternCode?: string;
   kavenegarKey?: string;
   kavenegarTemplate?: string;
 }
@@ -123,7 +125,11 @@ export class SmsGateway implements SmsClient {
     if (!r) throw new Error('sms provider not configured');
     const client =
       r.kind === 'irnoti'
-        ? createIrnotiClient(r.key, { message: this.textFrom(raw, purpose).text, lineId: this.env.irnotiLineId, fetchImpl: this.fetchImpl })
+        ? createFallbackSmsClient(
+            createIrnotiClient(r.key, { message: this.textFrom(raw, purpose).text, lineId: this.env.irnotiLineId, fetchImpl: this.fetchImpl }),
+            createIrnotiPatternClient(r.key, { patternCode: this.env.irnotiPatternCode, fetchImpl: this.fetchImpl }),
+            (err) => console.warn('[sms] irnoti plain send failed, retrying via pattern:', err instanceof Error ? err.message : err),
+          )
         : createKavenegarClient(r.key, r.template, { fetchImpl: this.fetchImpl });
     await client.sendCode(phone, code, purpose);
   }

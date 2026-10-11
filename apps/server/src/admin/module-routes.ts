@@ -3,7 +3,7 @@ import type { PuzzleAdmin } from '../puzzles/admin.js';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { can } from './accounts/permissions.js';
 import { z } from 'zod';
-import { accentColorSchema, checkLevelTable, KEEPSAKE_RARITIES, KEEPSAKE_REWARD_GEMS, httpsUrlSchema, isDateKey, ITEMS, ITEM_GROUPS, LEVEL_TABLE_MAX, levelRowSchema, normalizeIranPhone, PRODUCT_CATEGORIES, PROVINCES, provinceOf, SETTING_GROUPS, SHOP_EFFECTS, SPONSOR_LIMITS, COSMETIC_SLOTS, WHEEL_PRIZE_KINDS } from '@dozari/shared';
+import { accentColorSchema, checkLevelTable, KEEPSAKE_RARITIES, KEEPSAKE_REWARD_GEMS, httpsUrlSchema, isDateKey, ITEMS, ITEM_GROUPS, LEVEL_TABLE_MAX, levelRowSchema, normalizeIranPhone, PRODUCT_CATEGORIES, PROVINCES, provinceOf, SETTING_GROUPS, SHOP_EFFECTS, SPONSOR_LIMITS, COSMETIC_SLOTS, WHEEL_PRIZE_KINDS, AD_LIMITS, AD_PLACEMENTS, AD_PLACEMENT_LABEL_FA, AD_REWARD_KINDS } from '@dozari/shared';
 import type { LevelRow } from '@dozari/shared';
 import type { LevelTable } from '../progress/table.js';
 import type { SettingsService } from '../settings/service.js';
@@ -30,6 +30,7 @@ import type { CoinPackageService } from '../economy/coin-packages.js';
 import type { KeepsakeStore } from '../keepsakes/store.js';
 import type { ShopStore } from '../economy/shop-store.js';
 import type { WheelService } from '../wheel/service.js';
+import type { AdsService } from '../ads/service.js';
 import type { ImageStore } from '@dozari/db';
 import { registerAdminUploadRoutes } from './uploads.js';
 import { registerLandingAdminRoutes } from '../landing/routes.js';
@@ -86,6 +87,8 @@ export interface AdminModules {
   shortLinks?: { service: ShortLinkService; base: () => Promise<string> };
   /** Lucky-wheel prize table (kind, amount, odds, visibility). */
   wheel?: WheelService;
+  /** Rewarded-ad placements (on/off, reward, caps). */
+  ads?: AdsService;
   /** Coin packages sold for real money (catalog only; buying is gated by a feature flag). */
   coinPackages?: CoinPackageService;
   /** Invite codes: list, special campaign codes, limits. */
@@ -186,7 +189,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     settingGroups: SETTING_GROUPS,
     icons: ITEMS,
     iconGroups: ITEM_GROUPS,
-    modules: { puzzles: !!m.puzzles, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, keepsakes: !!m.keepsakes, wheel: !!m.wheel, shortLinks: !!m.shortLinks, backups: !!m.backups, feedback: !!m.feedback, clientErrors: !!m.clientErrors, landing: !!m.landing, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, lessons: !!m.lessons, ai: !!m.ai, ageTracks: !!m.ageTracks, economy: !!m.economy, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages, sms: !!m.sms },
+    modules: { puzzles: !!m.puzzles, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, keepsakes: !!m.keepsakes, wheel: !!m.wheel, ads: !!m.ads, shortLinks: !!m.shortLinks, backups: !!m.backups, feedback: !!m.feedback, clientErrors: !!m.clientErrors, landing: !!m.landing, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, lessons: !!m.lessons, ai: !!m.ai, ageTracks: !!m.ageTracks, economy: !!m.economy, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages, sms: !!m.sms },
   }));
 
   if (m.ai) registerAiAdminRoutes(g, m.ai, audit, m.aiSchedules);
@@ -1129,6 +1132,29 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
       if ((await wheel.prizes.update(p.data.id, b.data)) === 'not_found') return reply.code(404).send({ error: 'prize_not_found' });
       void audit('wheel.update', p.data.id, JSON.stringify(b.data));
+      return { ok: true };
+    });
+  }
+
+  if (m.ads) {
+    const ads = m.ads;
+    const fields = z
+      .object({
+        enabled: z.boolean(),
+        rewardKind: z.enum(AD_REWARD_KINDS),
+        rewardAmount: z.number().int().min(0).max(AD_LIMITS.rewardAmountMax),
+        dailyCap: z.number().int().min(0).max(AD_LIMITS.dailyCapMax),
+        cooldownSeconds: z.number().int().min(0).max(AD_LIMITS.cooldownMax),
+        minWatchSeconds: z.number().int().min(0).max(AD_LIMITS.minWatchMax),
+      })
+      .partial();
+    g.get('/admin/ads/placements', async () => ({ placements: (await ads.placements.list()).map((p) => ({ ...p, labelFa: AD_PLACEMENT_LABEL_FA[p.placement] })) }));
+    g.patch('/admin/ads/placements/:placement', async (req, reply) => {
+      const p = z.object({ placement: z.enum(AD_PLACEMENTS) }).safeParse(req.params);
+      const b = fields.safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      if ((await ads.placements.update(p.data.placement, b.data)) === 'not_found') return reply.code(404).send({ error: 'placement_not_found' });
+      void audit('ads.update', p.data.placement, JSON.stringify(b.data));
       return { ok: true };
     });
   }

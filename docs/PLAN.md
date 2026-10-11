@@ -194,7 +194,7 @@ human opponent is found.
 ## Later
 
 - UGC phase 2: full puzzle builder + community puzzle browsing
-- Monetization (once decided): Bazaar/Myket IAP for coins, rewarded ads
+- Monetization (once decided): Bazaar/Myket IAP for coins, rewarded ads (server side, admin panel and app flow done, D221; network SDK glue pending)
 - Redis + horizontal scaling; seasonal leaderboards; lightweight rating for matchmaking
 - Daily shared puzzle as an additional mode
 

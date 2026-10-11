@@ -15,3 +15,14 @@ export const TEXT_LEFT = Platform.OS === 'web' ? ('left' as const) : ('right' as
  * right edge. (On the web the page is left-to-right, so `textAlign` alone leaves the ellipsis and the caret on the wrong side.)
  */
 export const RTL_INPUT = { props: { dir: 'rtl' } as unknown as TextInputProps, style: { writingDirection: 'rtl' as const, textAlign: TEXT_RIGHT } };
+
+/**
+ * Absolute-position keys for a screen edge, for the same reason: in the phone's RTL layout `right:` is read as the left edge,
+ * so `[EDGE_RIGHT]: 0` pins a box to the right edge of the screen on every platform.
+ */
+export const EDGE_RIGHT = Platform.OS === 'web' ? ('right' as const) : ('left' as const);
+export const EDGE_LEFT = Platform.OS === 'web' ? ('left' as const) : ('right' as const);
+
+/** Rounds the two corners on the screen's left edge (the right corners of an RTL phone layout read the other way round). */
+export const roundLeftEdge = (r: number) =>
+  Platform.OS === 'web' ? { borderTopLeftRadius: r, borderBottomLeftRadius: r } : { borderTopRightRadius: r, borderBottomRightRadius: r };

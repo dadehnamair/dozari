@@ -70,6 +70,50 @@ export function createIrnotiClient(apiKey: string, opts: { message?: string; lin
   };
 }
 
+/** Default irnoti pattern (template) code for the OTP; override with `IRNOTI_PATTERN_CODE`. The pattern has one param, `code`. */
+export const DEFAULT_IRNOTI_PATTERN_CODE = 'gdhsgcnt';
+
+/**
+ * irnoti pattern adapter: `POST https://api.irnoti.com/v1/sms/pattern` with a Bearer key and JSON `{code: <pattern>, to, params: {code}}`.
+ * A successful reply carries a `batchId` (`{batchId, count, totalPrice, replayed}`); a 2xx without one counts as refused.
+ * Used as the backup when the plain `/sms/send` fails.
+ */
+export function createIrnotiPatternClient(apiKey: string, opts: { patternCode?: string; baseUrl?: string; fetchImpl?: typeof fetch } = {}): SmsClient {
+  const doFetch = opts.fetchImpl ?? fetch;
+  const patternCode = opts.patternCode || DEFAULT_IRNOTI_PATTERN_CODE;
+  const url = `${opts.baseUrl ?? 'https://api.irnoti.com'}/v1/sms/pattern`;
+  return {
+    async sendCode(phone, code) {
+      const to = phone.replace(/^\+98/, '0');
+      const res = await doFetch(url, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: patternCode, to, params: { code } }),
+        signal: AbortSignal.timeout(10_000),
+      });
+      const json = (await res.json().catch(() => ({}))) as { batchId?: string | number; count?: number };
+      if (!res.ok || json.batchId == null || json.count === 0) throw new Error(`sms pattern refused (http ${res.status}): ${JSON.stringify(json).slice(0, 300)}`);
+    },
+  };
+}
+
+/** Tries `primary`; if it throws, sends through `fallback`. When both fail the primary's error is the one surfaced. */
+export function createFallbackSmsClient(primary: SmsClient, fallback: SmsClient, onFallback?: (err: unknown) => void): SmsClient {
+  return {
+    ...(primary.sendText ? { sendText: primary.sendText.bind(primary) } : {}),
+    async sendCode(phone, code, purpose) {
+      try {
+        await primary.sendCode(phone, code, purpose);
+      } catch (err) {
+        onFallback?.(err);
+        await fallback.sendCode(phone, code, purpose).catch(() => {
+          throw err;
+        });
+      }
+    },
+  };
+}
+
 /**
  * Wraps a client so a failed send leaves a server log line with the provider's reason (credit, key, template, blocked IP...), which the
  * callers otherwise swallow into a bare `send_failed`. The phone number is masked and the code never logged.

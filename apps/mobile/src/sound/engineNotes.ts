@@ -1,4 +1,4 @@
-export type Sfx = 'tap' | 'press' | 'back' | 'select' | 'deselect' | 'confirm' | 'correct' | 'oneAway' | 'wrong' | 'win' | 'lose' | 'coin' | 'combo' | 'heartbeat';
+export type Sfx = 'tap' | 'press' | 'back' | 'select' | 'deselect' | 'confirm' | 'correct' | 'oneAway' | 'wrong' | 'win' | 'lose' | 'coin' | 'gem' | 'combo' | 'heartbeat';
 
 /** [frequency Hz, start s, duration s] per note. Pure data so it can be tested. */
 export const SFX_NOTES: Record<Sfx, readonly (readonly [number, number, number])[]> = {
@@ -13,12 +13,14 @@ export const SFX_NOTES: Record<Sfx, readonly (readonly [number, number, number])
   deselect: [[500, 0, 0.05]],
   /** The main action (submit / go): a firm rising pair. */
   confirm: [[440, 0, 0.06], [660, 0.06, 0.1]],
-  correct: [[523, 0, 0.09], [784, 0.09, 0.14]],
+  correct: [[523, 0, 0.09], [659, 0.08, 0.09], [784, 0.16, 0.18]],
   oneAway: [[440, 0, 0.1], [440, 0.14, 0.1]],
-  wrong: [[220, 0, 0.12], [165, 0.1, 0.18]],
+  wrong: [[233, 0, 0.1], [196, 0.09, 0.1], [147, 0.18, 0.22]],
   win: [[523, 0, 0.12], [659, 0.12, 0.12], [784, 0.24, 0.12], [1047, 0.36, 0.3]],
   lose: [[392, 0, 0.16], [330, 0.16, 0.16], [262, 0.32, 0.3]],
   coin: [[988, 0, 0.07], [1319, 0.07, 0.18]],
+  /** A gem found behind a card: a sparkling rising run. */
+  gem: [[1047, 0, 0.07], [1319, 0.07, 0.07], [1568, 0.14, 0.07], [2093, 0.21, 0.3]],
   /** Rising pair on top of `correct` when a combo grows. */
   combo: [[784, 0, 0.07], [988, 0.07, 0.07], [1319, 0.14, 0.18]],
   /** Two soft low thumps: lub-dub. */
