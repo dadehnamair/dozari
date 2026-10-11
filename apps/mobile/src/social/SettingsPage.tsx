@@ -139,6 +139,7 @@ export function SettingsPage({ onClose, onProfile, onMissions, missionsReady = 0
               <View style={[styles.groupHead, { backgroundColor: g.tint }]}><Text style={styles.groupTitle}>{g.title}</Text></View>
               {g.rows.map((r) => (
                 <Pressable key={r.key} onPress={r.onPress} accessibilityRole={r.toggle === undefined ? 'button' : 'switch'} accessibilityState={r.toggle === undefined ? undefined : { checked: r.toggle }} style={[styles.row, dark ? dk.row : null, compact ? styles.rowTight : null, r.bold ? styles.rowBold : null, r.bold && dark ? dk.rowBold : null]}>
+                  {r.bold ? <GradientFill from={dark ? 'rgba(232,182,74,0.3)' : 'rgba(255,201,60,0.5)'} to={dark ? 'rgba(232,182,74,0.04)' : 'rgba(255,201,60,0.06)'} /> : null}
                   <View style={[styles.tile, { backgroundColor: r.tint }]}><View style={styles.tileIcon}><Item icon={r.icon} /></View></View>
                   <Text style={[styles.rowText, r.bold ? styles.rowTextBold : null, dark ? dk.text : null, r.tone ? { color: dark ? '#F08A80' : r.tone } : null]}>{r.label}</Text>
                   {r.toggle !== undefined ? (
@@ -193,7 +194,7 @@ const dk = StyleSheet.create({
   root: { backgroundColor: DARK.field },
   group: { backgroundColor: DARK.panel, borderColor: DARK.frame },
   row: { borderColor: DARK.line },
-  rowBold: { backgroundColor: 'rgba(232,182,74,0.14)' },
+  rowBold: { borderBottomColor: '#E8B64A' },
   text: { color: DARK.text, opacity: 1 },
   track: { borderColor: DARK.frame },
   step: { backgroundColor: DARK.raised, borderColor: DARK.frame },
@@ -221,7 +222,7 @@ const styles = StyleSheet.create({
   row: { minHeight: 46, flexDirection: ROW, alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 4, borderTopWidth: 1.5, borderStyle: 'dashed', borderColor: 'rgba(43,18,64,0.2)' },
   tile: { width: 32, height: 32, borderRadius: 10, borderWidth: 2, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   tileIcon: { width: 22, height: 22 },
-  rowBold: { minHeight: 54, borderTopWidth: 0, borderRadius: 14, backgroundColor: 'rgba(255,201,60,0.28)' },
+  rowBold: { minHeight: 54, borderTopWidth: 0, borderBottomWidth: 2.5, borderStyle: 'solid', borderBottomColor: '#FFC93C' },
   rowTextBold: { fontFamily: fonts.display, fontSize: 17, lineHeight: 24 },
   rowText: { flex: 1, fontFamily: fonts.bold, fontSize: 13.5, lineHeight: 21, color: colors.ink, textAlign: TEXT_RIGHT },
   track: { width: 52, height: 30, borderRadius: 99, borderWidth: 2.5, borderColor: colors.ink, justifyContent: 'center', paddingHorizontal: 2 },
