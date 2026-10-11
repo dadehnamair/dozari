@@ -1507,6 +1507,10 @@ export const tournaments = mysqlTable(
     allowConcurrent: boolean('allow_concurrent').notNull().default(false),
     /** Who sponsors this tournament (shown with a banner on its page); null = nobody. */
     sponsorId: char('sponsor_id', { length: 36 }),
+    /** Minutes between rounds: round n opens at `starts_at + (n-1) × gap`. 0 = the old back-to-back rounds, started by the server at once. */
+    roundGapMinutes: int('round_gap_minutes').notNull().default(0),
+    /** Minutes the players have to show up once a match opens; the one who did wins by forfeit when the other did not. */
+    graceMinutes: int('grace_minutes').notNull().default(15),
     /** Registration closes and the first round starts at this time. */
     startsAt: datetime('starts_at', { mode: 'date', fsp: 3 }).notNull(),
     startedAt: datetime('started_at', { mode: 'date', fsp: 3 }),
@@ -1557,6 +1561,11 @@ export const tournamentMatches = mysqlTable(
     playerB: char('player_b', { length: 36 }),
     winnerId: char('winner_id', { length: 36 }),
     status: mysqlEnum('status', TOURNAMENT_MATCH_STATUS).notNull().default('waiting'),
+    /** Scheduled tournaments: when the match opened for check-in (the round's time, or later if the feeders ran late); null = no schedule. */
+    opensAt: datetime('opens_at', { mode: 'date', fsp: 3 }),
+    /** Which of the two players have checked in for the match. */
+    aIn: boolean('a_in').notNull().default(false),
+    bIn: boolean('b_in').notNull().default(false),
   },
   (table) => ({ slotUnique: uniqueIndex('tournament_matches_slot_idx').on(table.tournamentId, table.round, table.slot) }),
 );

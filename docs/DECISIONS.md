@@ -725,4 +725,15 @@ Codes typed in the settings sheet reached the server in Persian digits and never
 - **Phone login.** A proven number (login) pays the one-time `phone` mission straight away (`PhoneLoginService.afterVerify` → `ProfileTaskService.claim`, idempotent). Settings hides «ورود با شماره» once the `phone` mission is done (the account is no longer a bare guest).
 - **Adult profile.** The profile page uses one metal in the adult look (dark tiles with a gold frame, a brass level bar, bronze badge tags) instead of the candy rainbow; kid/teen keep the candy look.
 - **Android.** Contacts: expo-contacts asks for READ and WRITE together and `WRITE_CONTACTS` is blocked in the manifest, so the request could never be granted; `readContacts` now asks `READ_CONTACTS` alone. Vibration uses React Native's `Vibration` (the web `navigator.vibrate` does not exist in the app).
-- **Home.** With no tip or nudge, the hero shows a teaser line that opens the tips on tap.
+- **Home.** The idle teaser line was removed again (it rendered as an empty frame with only the hero's face).
+
+## D225 — Scheduled tournament rounds with a check-in window (2026-10-11, proposed)
+
+Owner (2026-10-11): a tournament must last hours or days, not two minutes. The server fixes a time for each round, tells every player when theirs is, gives a short grace after it opens, and a player who never shows loses to the one who did. Round 2 is the next day, round 3 the day after, and so on. Home shows a pinned «your turn» strip (countdown, then «نوبتِ توئه»).
+
+- **Schedule.** `tournaments.round_gap_minutes` (0 = the old back-to-back tournament, default for existing rows; the admin form proposes 24 h) and `grace_minutes` (default 15). Round *n* opens at `starts_at + (n-1) × gap`; a match whose feeders finish late opens at `max(round time, when it became ready)`. A back-dated tournament opens round 1 when it starts, never in the past.
+- **Check-in.** `POST /tournaments/:id/checkin` once the match is open; when both are in the server starts the duel at once (a busy player is retried every tick). Until then nothing is forced on anyone.
+- **Deadline** (`opens_at + grace`): only one checked in → they win; neither → the higher level goes on (tie: the first slot). Both in but the duel could not start → no forfeit, it keeps retrying. A draw is replayed as before; the duel's own timeout rules still apply once it runs.
+- **Proposed numbers** (the owner may change them): 24 h between rounds, 15 min grace, «nobody came» decided by level. Gap must be 0 or 1 h … 14 days; grace 1 … 120 min.
+- **Where it shows.** `GET /me/tournament-turn` (next match: round, opens-at, deadline, state `upcoming|open|checked_in|playing`, rival); Home strip `tournament/TurnBanner.tsx` (polls every 5 s near/at the turn, 60 s otherwise; takes the player to the duel once the server started it); the tournament page lists each round's time and the rules; Bale text at the start, when a match opens, when a round is won and when a match is lost by absence.
+

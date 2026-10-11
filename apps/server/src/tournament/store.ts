@@ -24,6 +24,9 @@ export interface TournamentRow {
   allowConcurrent: boolean;
   /** The sponsor shown on the tournament, or null. */
   sponsorId: string | null;
+  /** Minutes between rounds (0 = back-to-back, no schedule) and the check-in grace of each match. */
+  roundGapMinutes: number;
+  graceMinutes: number;
   startsAt: number;
   startedAt: number | null;
   finishedAt: number | null;
@@ -39,6 +42,11 @@ export interface MatchRow {
   b: string | null;
   winner: string | null;
   status: MatchStatus;
+  /** Scheduled tournaments: when the match opened for check-in (null = no schedule). */
+  opensAt: number | null;
+  /** Who of `a` / `b` has checked in. */
+  aIn: boolean;
+  bIn: boolean;
 }
 
 /** What one final place pays: coins, gems and lucky-wheel spins. */
@@ -77,7 +85,7 @@ export interface TournamentStore {
   cancel(id: string): Promise<number>;
   setMatches(id: string, rows: readonly Omit<MatchRow, 'id' | 'tournamentId'>[]): Promise<void>;
   matches(id: string): Promise<MatchRow[]>;
-  updateMatch(matchId: string, patch: Partial<Pick<MatchRow, 'a' | 'b' | 'winner' | 'status'>>): Promise<void>;
+  updateMatch(matchId: string, patch: Partial<Pick<MatchRow, 'a' | 'b' | 'winner' | 'status' | 'opensAt' | 'aIn' | 'bIn'>>): Promise<void>;
   /** Players of the `playing` match between `a` and `b`, if any. */
   findPlaying(a: string, b: string): Promise<(MatchRow & { tournament: TournamentRow }) | null>;
   payout(id: string, awards: readonly { userId: string; coins: number; gems: number; spins: number }[]): Promise<void>;
@@ -99,17 +107,19 @@ const toRow = (r: typeof tournaments.$inferSelect): TournamentRow => ({
   botFill: r.botFill,
   allowConcurrent: r.allowConcurrent,
   sponsorId: r.sponsorId,
+  roundGapMinutes: r.roundGapMinutes,
+  graceMinutes: r.graceMinutes,
   startsAt: r.startsAt.getTime(),
   startedAt: r.startedAt ? r.startedAt.getTime() : null,
   finishedAt: r.finishedAt ? r.finishedAt.getTime() : null,
 });
-const toMatch = (r: typeof tournamentMatches.$inferSelect): MatchRow => ({ id: r.id, tournamentId: r.tournamentId, round: r.round, slot: r.slot, a: r.playerA, b: r.playerB, winner: r.winnerId, status: r.status });
+const toMatch = (r: typeof tournamentMatches.$inferSelect): MatchRow => ({ id: r.id, tournamentId: r.tournamentId, round: r.round, slot: r.slot, a: r.playerA, b: r.playerB, winner: r.winnerId, status: r.status, opensAt: r.opensAt ? r.opensAt.getTime() : null, aIn: r.aIn, bIn: r.bIn });
 
 export function createDbTournamentStore(db: Db): TournamentStore {
   return {
     async create(t, prizes) {
       const id = uuidv7();
-      await db.insert(tournaments).values({ id, titleFa: t.titleFa, descriptionFa: t.descriptionFa, iconKey: t.iconKey, status: t.status, size: t.size, minPlayers: t.minPlayers, entryCoins: t.entryCoins, entryGems: t.entryGems, minLevel: t.minLevel, botFill: t.botFill, allowConcurrent: t.allowConcurrent, sponsorId: t.sponsorId, startsAt: new Date(t.startsAt) });
+      await db.insert(tournaments).values({ id, titleFa: t.titleFa, descriptionFa: t.descriptionFa, iconKey: t.iconKey, status: t.status, size: t.size, minPlayers: t.minPlayers, entryCoins: t.entryCoins, entryGems: t.entryGems, minLevel: t.minLevel, botFill: t.botFill, allowConcurrent: t.allowConcurrent, sponsorId: t.sponsorId, roundGapMinutes: t.roundGapMinutes, graceMinutes: t.graceMinutes, startsAt: new Date(t.startsAt) });
       if (prizes.length > 0) await db.insert(tournamentPrizes).values(prizes.map((p) => ({ tournamentId: id, place: p.place, coins: p.coins, gems: p.gems, spins: p.spins })));
       const [r] = await db.select().from(tournaments).where(eq(tournaments.id, id));
       return toRow(r!);
@@ -198,14 +208,14 @@ export function createDbTournamentStore(db: Db): TournamentStore {
     async setMatches(id, rows) {
       await db.transaction(async (tx) => {
         await tx.delete(tournamentMatches).where(eq(tournamentMatches.tournamentId, id));
-        if (rows.length > 0) await tx.insert(tournamentMatches).values(rows.map((r) => ({ id: uuidv7(), tournamentId: id, round: r.round, slot: r.slot, playerA: r.a, playerB: r.b, winnerId: r.winner, status: r.status })));
+        if (rows.length > 0) await tx.insert(tournamentMatches).values(rows.map((r) => ({ id: uuidv7(), tournamentId: id, round: r.round, slot: r.slot, playerA: r.a, playerB: r.b, winnerId: r.winner, status: r.status, opensAt: r.opensAt === null ? null : new Date(r.opensAt), aIn: r.aIn, bIn: r.bIn })));
       });
     },
     async matches(id) {
       return (await db.select().from(tournamentMatches).where(eq(tournamentMatches.tournamentId, id)).orderBy(asc(tournamentMatches.round), asc(tournamentMatches.slot))).map(toMatch);
     },
     async updateMatch(matchId, patch) {
-      await db.update(tournamentMatches).set({ ...(patch.a !== undefined ? { playerA: patch.a } : {}), ...(patch.b !== undefined ? { playerB: patch.b } : {}), ...(patch.winner !== undefined ? { winnerId: patch.winner } : {}), ...(patch.status !== undefined ? { status: patch.status } : {}) }).where(eq(tournamentMatches.id, matchId));
+      await db.update(tournamentMatches).set({ ...(patch.a !== undefined ? { playerA: patch.a } : {}), ...(patch.b !== undefined ? { playerB: patch.b } : {}), ...(patch.winner !== undefined ? { winnerId: patch.winner } : {}), ...(patch.status !== undefined ? { status: patch.status } : {}), ...(patch.opensAt !== undefined ? { opensAt: patch.opensAt === null ? null : new Date(patch.opensAt) } : {}), ...(patch.aIn !== undefined ? { aIn: patch.aIn } : {}), ...(patch.bIn !== undefined ? { bIn: patch.bIn } : {}) }).where(eq(tournamentMatches.id, matchId));
     },
     async findPlaying(a, b) {
       const rows = await db.select({ m: tournamentMatches, t: tournaments }).from(tournamentMatches).innerJoin(tournaments, eq(tournaments.id, tournamentMatches.tournamentId)).where(and(eq(tournamentMatches.status, 'playing'), eq(tournaments.status, 'running')));

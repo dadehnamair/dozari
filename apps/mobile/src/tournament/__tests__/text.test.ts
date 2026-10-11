@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { blockedText, currentRound, placeLabel, roundLabel, startsInText } from '../text';
+import { blockedText, currentRound, placeLabel, roundLabel, startsInText, turnPollMs } from '../text';
 
 describe('tournament texts', () => {
   it('names rounds from the end', () => {
@@ -27,10 +27,17 @@ describe('tournament texts', () => {
     expect(startsInText(5 * 3_600_000 + 12 * 60_000 + 9_000, 0)).toBe('۰۵:۱۲:۰۹');
   });
   it('opens the bracket on the first round that still has a match to play', () => {
-    const m = (round: number, status: 'waiting' | 'ready' | 'playing' | 'done' | 'bye') => ({ round, slot: 0, a: null, b: null, winnerId: null, status });
+    const m = (round: number, status: 'waiting' | 'ready' | 'playing' | 'done' | 'bye') => ({ round, slot: 0, a: null, b: null, winnerId: null, status, opensAt: null });
     expect(currentRound([m(1, 'done'), m(1, 'bye'), m(2, 'playing'), m(3, 'waiting')], 3)).toBe(2);
     expect(currentRound([m(1, 'waiting')], 5)).toBe(1);
     expect(currentRound([m(1, 'done'), m(2, 'done')], 2)).toBe(2);
     expect(currentRound([], 4)).toBe(4);
+  });
+  it('asks for the turn often only when a match is near or open', () => {
+    expect(turnPollMs(null, 0)).toBe(60_000);
+    expect(turnPollMs({ state: 'upcoming', opensAt: 10 * 60_000 }, 0)).toBe(60_000);
+    expect(turnPollMs({ state: 'upcoming', opensAt: 4 * 60_000 }, 0)).toBe(5_000);
+    expect(turnPollMs({ state: 'open', opensAt: 0 }, 1)).toBe(5_000);
+    expect(turnPollMs({ state: 'checked_in', opensAt: 0 }, 1)).toBe(5_000);
   });
 });

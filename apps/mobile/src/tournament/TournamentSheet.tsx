@@ -22,7 +22,7 @@ import { colors, fonts } from '../theme/colors';
 import { fetchTournament, fetchTournaments, joinTournament, leaveTournament } from './api';
 import { SponsorCard, SponsorInvite, SponsorTag } from './Sponsor';
 import { Winners } from './Winners';
-import { blockedText, currentRound, placeLabel, roundLabel, startsInText } from './text';
+import { blockedText, currentRound, placeLabel, roundLabel, startsInText, turnWhen } from './text';
 import { pageTop } from '../theme/safeArea';
 import { TEXT_RIGHT } from '../theme/direction';
 
@@ -154,7 +154,7 @@ function TournamentPage({ id, onBack }: { id: string; onBack: () => void }) {
                   </>
                 ) : null}
                 <Text style={styles.label}>{fa.tournament.rulesTitle}</Text>
-                {[fa.tournament.rules.elimination, fa.tournament.rules.fee(t.entryCoins, t.entryGems), fa.tournament.rules.byes, fa.tournament.rules.cancel, fa.tournament.rules.online].map((r) => <Text key={r} style={styles.small}>• {r}</Text>)}
+                {[fa.tournament.rules.elimination, fa.tournament.rules.fee(t.entryCoins, t.entryGems), fa.tournament.rules.byes, fa.tournament.rules.cancel, ...(t.roundGapMinutes > 0 ? [fa.tournament.rules.scheduled(Math.round(t.roundGapMinutes / 60), t.graceMinutes), fa.tournament.rules.forfeit] : [fa.tournament.rules.online])].map((r) => <Text key={r} style={styles.small}>• {r}</Text>)}
               </View>
 
               {t.results.length > 0 ? <Winners t={t} /> : null}
@@ -206,6 +206,7 @@ function Bracket({ t }: { t: TournamentDetail }) {
           </Pressable>
         ))}
       </ScrollView>
+      {t.roundTimes[round - 1] !== undefined ? <Text style={styles.small}>{fa.tournament.roundAt(roundLabel(round, t.size), turnWhen(t.roundTimes[round - 1]!))}</Text> : null}
       {anyone ? (
         <View style={styles.grid}>
           {matches.map((m) => (
