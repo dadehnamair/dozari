@@ -75,7 +75,8 @@ export async function connectDuel(dispatch: (a: DuelAction) => void): Promise<Du
   socket.on(ServerEvent.matchEvent, (p: unknown) => {
     const e = matchEventSchema.safeParse(p);
     if (!e.success) return;
-    if (e.data.t === 'guess' && e.data.outcome !== undefined) dispatch({ t: 'guess', outcome: e.data.outcome, mine: e.data.side === you });
+    if (e.data.t === 'guess' && e.data.outcome !== undefined) dispatch({ t: 'guess', outcome: e.data.outcome, mine: e.data.side === you, itemIds: e.data.itemIds });
+    else if (e.data.t === 'gem') dispatch({ t: 'gem', userId: e.data.userId, amount: e.data.amount });
     else if (e.data.t === 'timeout') dispatch({ t: 'timeout', mine: e.data.side === you });
     else if (e.data.t === 'power') dispatch({ t: 'power', mine: e.data.side === you, kind: e.data.kind, itemIds: e.data.itemIds });
     else if (e.data.t === 'group_revealed') dispatch({ t: 'revealed', level: e.data.level });

@@ -26,6 +26,9 @@ import { TEXT_RIGHT } from '../theme/direction';
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const POLL_MS = 4000;
 
+/** How long Khale's greeting stays on screen. */
+const KHALE_SHOW_MS = 6000;
+
 /**
  * screen-chat of `17 Chat Shop Unlocks` (D103): grape header with two tabs — «همشهری‌ها» (the room of the player's
  * city) and «همه» (everyone) — message bubbles (mine on the start side in yellow), a strip of canned taunts, and the
@@ -33,6 +36,12 @@ const POLL_MS = 4000;
  */
 export function ChatSheet({ onClose, onJoinTable, initialTab = 'city' }: { onClose: () => void; onJoinTable?: (code: string) => void; initialTab?: ChatTab }) {
   const [tab, setTab] = useState<ChatTab>(initialTab);
+  /** Khale's greeting stays a few seconds, then leaves so the room gets the whole screen. */
+  const [khaleOn, setKhaleOn] = useState(true);
+  useEffect(() => {
+    const id = setTimeout(() => setKhaleOn(false), KHALE_SHOW_MS);
+    return () => clearTimeout(id);
+  }, []);
   /** The «دوستان» tab (private chats) is a separate view; `tab` keeps the last public room. */
   const [friendsView, setFriendsView] = useState(false);
   const [info, setInfo] = useState<Record<ChatTab, ChatHistory | null>>({ city: null, global: null });
@@ -102,7 +111,7 @@ export function ChatSheet({ onClose, onJoinTable, initialTab = 'city' }: { onClo
       </View>
       {friendsView ? <FriendsChat meId={meId} onJoinTable={onJoinTable} /> : <>
       {sub ? <Text style={styles.sub}>{sub}</Text> : null}
-      <GuideBubble who="khale" text={t.khaleHello} />
+      {khaleOn ? <GuideBubble who="khale" text={t.khaleHello} /> : null}
 
       <ScrollView ref={scroller} style={styles.list} contentContainerStyle={styles.content}>
         {cityBlocked ? (
@@ -186,7 +195,7 @@ const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0
 const styles = StyleSheet.create({
   cityBtn: { alignSelf: 'center', paddingHorizontal: 18, height: 38, borderRadius: 19, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.candy.yellow, alignItems: 'center', justifyContent: 'center' },
   cityBtnText: { fontFamily: fonts.bold, fontSize: 14, color: colors.ink },
-  tabs: { marginTop: -26, marginBottom: 34, flexDirection: ROW, gap: 4, padding: 4, borderRadius: 16, backgroundColor: 'rgba(43,18,64,0.45)' },
+  tabs: { marginTop: 0, marginBottom: 22, flexDirection: ROW, gap: 4, padding: 4, borderRadius: 16, backgroundColor: 'rgba(43,18,64,0.45)' },
   tab: { flex: 1, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   tabOn: { backgroundColor: colors.candy.yellow, borderWidth: 2.5, borderColor: colors.ink },
   tabText: { fontFamily: fonts.display, fontSize: 15, color: '#E3CCFF' },

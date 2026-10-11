@@ -1,0 +1,1 @@
+ALTER TABLE `gem_ledger` MODIFY COLUMN `reason` enum('admin_adjust','birthday_gift','wheel_prize','shop_purchase','tournament_entry','tournament_refund','tournament_prize','mission_reward','keepsake_reward','ad_reward','gem_card') NOT NULL;

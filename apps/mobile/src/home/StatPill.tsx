@@ -39,7 +39,8 @@ const styles = StyleSheet.create({
   ballAdult: { borderColor: '#000' },
   valueAdult: { color: '#FFE9A8' },
   ballIcon: { width: 18, height: 18 },
-  glyph: { fontFamily: fonts.display, fontSize: 15, lineHeight: 22 },
+  /** Emoji glyphs (💎 🔥) take the system emoji font: the display font's line metrics sat them high in the ball. */
+  glyph: { fontSize: 15, lineHeight: 18, height: 18, textAlign: 'center', textAlignVertical: 'center', includeFontPadding: false },
   badge: { position: 'absolute', top: -6, left: -4, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, backgroundColor: colors.candy.pink, borderWidth: 2, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   badgeText: { fontFamily: fonts.display, fontSize: 12, lineHeight: 16, color: '#fff' },
   value: { flexShrink: 1, fontFamily: fonts.display, fontSize: 17, color: '#fff', paddingHorizontal: 6 },

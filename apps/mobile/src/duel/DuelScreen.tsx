@@ -3,7 +3,8 @@ import { Animated, Easing, Platform, Pressable, ScrollView, StyleSheet, Text, Vi
 import { isLastLife, toPersianDigits } from '@dozari/shared';
 import type { TauntCategory } from '@dozari/shared';
 import { fetchTaunts } from '../chat/api';
-import { Board } from '../components/Board';
+import { Board, WRONG_SHAKE_MS } from '../components/Board';
+import { GemBurst } from '../components/GemBurst';
 import { ErrorCard } from '../components/EmptyState';
 import { Confetti } from '../components/Confetti';
 import { GradientFill } from '../components/GradientFill';
@@ -162,8 +163,14 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
     if (state.flash === 'correct' && combo.record('correct') >= 2) playSfx('combo');
     else if (state.flash !== 'correct') combo.record(state.flash === 'one_away' ? 'one_away' : 'wrong');
     const id = setTimeout(() => dispatch({ t: 'clearFlash' }), FLASH_MS);
+    // A miss shakes the four cards red (the board does that), then they are put back.
+    // (not cancelled with the flash: it must outlive FLASH_MS if the shake is longer)
+    if (state.flash === 'wrong' || state.flash === 'one_away') setTimeout(() => setSelected([]), prefs.reduceMotion ? 0 : WRONG_SHAKE_MS);
     return () => clearTimeout(id);
   }, [state.flash]);
+  useEffect(() => {
+    if (state.gem) playSfx('gem');
+  }, [state.gem]);
   useEffect(() => {
     if (state.view) setSelected((s) => pruneSelection(s, state.view!.cards));
   }, [state.view]);
@@ -399,6 +406,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
           onReport={(id) => setReportId(id)}
         />
         {!prefs.reduceMotion ? (outcome === 'won' ? <Confetti distance={500} /> : <Rain distance={800} />) : null}
+        {state.gem ? <GemBurst key={state.gem.n} amount={state.gem.amount} onDone={() => dispatch({ t: 'clearGem' })} /> : null}
         {outcome === 'won' && spinsWaiting > 0 ? (
           <View style={styles.wheelCta}><SlabButton label={fa.wheel.open} color={colors.candy.yellow} badge={toPersianDigits(String(spinsWaiting))} onPress={() => setWheelOpen(true)} /></View>
         ) : null}
@@ -540,7 +548,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
           </View>
 
           <View style={styles.boardPanel}>
-            <Board solved={state.finale ? (finaleLast ? [...state.finale.solved, state.finale.last] : state.finale.solved) : boardSolved(view)} cards={state.finale ? (finaleLast ? [] : state.finale.cards) : arrange(view.cards, order)} names={state.names} selected={state.finale ? finaleSel : selected} onToggle={(id) => setSelected((s) => toggleSelection(s, id))} disabled={!playing || !mine || !!state.finale || frozenMe} muted={playing && !mine && !state.finale} hinted={state.peek?.ids ?? []} />
+            <Board solved={state.finale ? (finaleLast ? [...state.finale.solved, state.finale.last] : state.finale.solved) : boardSolved(view)} cards={state.finale ? (finaleLast ? [] : state.finale.cards) : arrange(view.cards, order)} names={state.names} selected={state.finale ? finaleSel : selected} onToggle={(id) => setSelected((s) => toggleSelection(s, id))} disabled={!playing || !mine || !!state.finale || frozenMe} muted={playing && !mine && !state.finale} hinted={state.peek?.ids ?? []} verdict={state.verdict} />
             {state.flash === 'one_away' ? <View style={styles.nearMiss} pointerEvents="none"><NearMissPill /></View> : null}
           </View>
 
@@ -560,6 +568,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
         </View>
       </ScrollView>
       <ChatDrawer open={chatOpen} onClose={() => setChatOpen(false)} categories={taunts} tab={chatTab} onTab={setChatTab} onSend={sendTaunt} />
+      {state.gem ? <GemBurst key={state.gem.n} amount={state.gem.amount} onDone={() => dispatch({ t: 'clearGem' })} /> : null}
     </ArenaBackground>
   );
 }

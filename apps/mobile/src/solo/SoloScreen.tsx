@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { NUDGE_IDLE_SECONDS, isLastLife, localGuess, localShuffle, localView, mulberry32, solarMonthOf, startLocalSolo, trackRules as rulesOfTrack } from '@dozari/shared';
 import type { HintPayload, LocalSoloSession, SoloView } from '@dozari/shared';
-import { Board } from '../components/Board';
+import { Board, CORRECT_GLOW_MS, WRONG_SHAKE_MS } from '../components/Board';
+import type { BoardVerdict } from '../components/Board';
+import { GemBurst } from '../components/GemBurst';
 import { ChartPanel } from '../components/ChartPanel';
 import { Confetti } from '../components/Confetti';
 import { usePrefs } from '../prefs/store';
@@ -61,6 +63,10 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false, ageTrac
   /** After the puzzle: look at the board and answers first, then choose to play the price round or skip to the chart. */
   const [priceReady, setPriceReady] = useState(false);
   const [hintOpen, setHintOpen] = useState(false);
+  /** The last guess' verdict (the cards shake red / glow green) and a gem found behind a card (the burst). */
+  const [verdict, setVerdict] = useState<BoardVerdict | null>(null);
+  const [gemFound, setGemFound] = useState<{ amount: number; n: number } | null>(null);
+  const dropGem = useCallback(() => setGemFound(null), []);
   const [given, setGiven] = useState<HintPayload[]>([]);
   /** Cards the free level-1 nudge lit up, and whether the server said this player is past that stage (then we stop asking). */
   const [nudged, setNudged] = useState<string[]>([]);
@@ -195,6 +201,10 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false, ageTrac
       flash(fb);
       if (fb === 'correct' || fb === 'oneAway' || fb === 'wrong') playSfx(fb);
       if (fb === 'wrong') buzz(60);
+      // The four cards answer the guess: a miss shakes them red and then puts them back, a hit lets them glow green before they become a row.
+      const missed = fb === 'wrong' || fb === 'oneAway';
+      if (missed || fb === 'correct') setVerdict({ kind: missed ? 'wrong' : 'correct', ids: [...selected], n: Date.now() });
+      if (fb === 'correct' && !prefs.reduceMotion) await new Promise<void>((r) => setTimeout(r, CORRECT_GLOW_MS));
       if (combo.record(result.outcome) >= 2) playSfx('combo');
       const finale = result.outcome === 'correct' && view.solved.length === 2 && result.view.solved.length === 4 && !prefs.reduceMotion;
       if (result.view.status === 'won' && !finale) playSfx('win');
@@ -204,7 +214,12 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false, ageTrac
         playSfx('win');
       }
       adopt(result.view);
-      if (result.outcome === 'correct' || result.view.status !== 'playing') setSelected([]);
+      if (result.gem) {
+        playSfx('gem');
+        setGemFound({ amount: result.gem, n: Date.now() });
+      }
+      if (missed && result.view.status === 'playing' && !prefs.reduceMotion) await new Promise<void>((r) => setTimeout(r, WRONG_SHAKE_MS));
+      if (result.outcome === 'correct' || result.view.status !== 'playing' || missed) setSelected([]);
       if (result.view.status !== 'playing' && !local.current) void recordGameFinished();
     } catch (err) {
       fail(err);
@@ -293,6 +308,7 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false, ageTrac
           ) : null}
         </View>
         {!prefs.reduceMotion ? (won ? <Confetti distance={500} /> : <Rain distance={800} />) : null}
+        {gemFound ? <GemBurst key={gemFound.n} amount={gemFound.amount} onDone={dropGem} /> : null}
       </MatchBackground>
     );
   }
@@ -326,7 +342,7 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false, ageTrac
         ) : null}
 
         <View>
-          <Board solved={view.solved} cards={view.cards} names={names} selected={selected} onToggle={(id) => setSelected((s) => toggleSelection(s, id))} disabled={!playing || busy} hinted={hintedCardIds(given)} nudged={nudged} />
+          <Board solved={view.solved} cards={view.cards} names={names} selected={selected} onToggle={(id) => setSelected((s) => toggleSelection(s, id))} disabled={!playing || busy} hinted={hintedCardIds(given)} nudged={nudged} verdict={verdict} />
           {feedback === 'oneAway' ? <View style={styles.nearMiss} pointerEvents="none"><NearMissPill /></View> : null}
         </View>
         {hintedCardIds(given).length > 0 && playing ? <Text style={styles.hintLine}>{fa.hints.framed}</Text> : null}
@@ -345,6 +361,7 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false, ageTrac
     </ScrollView>
     {hintOpen && playing ? <HintSheet sessionId={view.sessionId} onGiven={setGiven} onClose={() => setHintOpen(false)} /> : null}
     {dialog}
+    {gemFound ? <GemBurst key={gemFound.n} amount={gemFound.amount} onDone={dropGem} /> : null}
     </MatchBackground>
   );
 }

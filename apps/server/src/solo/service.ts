@@ -1,5 +1,5 @@
 import { randomInt } from 'node:crypto';
-import { PRICE_GUESS_MIN_POINTS, pickHint, PRICE_GUESS_STAIRCASE, SOLO_MAX_MISTAKES, mulberry32, selectRounds, shuffleBoard, staircasePoints, startSolo, submitGuess } from '@dozari/shared';
+import { PRICE_GUESS_MIN_POINTS, pickHint, PRICE_GUESS_STAIRCASE, SOLO_MAX_MISTAKES, mulberry32, rollGemCard, groupHoldsGem, selectRounds, shuffleBoard, staircasePoints, startSolo, submitGuess } from '@dozari/shared';
 import { OFFLINE_PACK_DAILY_LIMIT, trackRules } from '@dozari/shared';
 import type { AgeTrack, CatalogProduct, GroupLevel, SoloOfflinePack, HintKind, HintPayload, PriceGuessRound, Rng, SoloChart, SoloPriceResult, SoloPriceRounds, SoloState, SubmitOutcome } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
@@ -25,6 +25,10 @@ interface Session {
   hints: HintPayload[];
   /** Marks a special game (the daily puzzle) so its end can be told apart. */
   tag?: string;
+  /** The card a gem hides behind (signed-in games only, chance = admin setting `gemcard.percent`); never sent to the client. */
+  gemCard?: string | null;
+  gemAmount?: number;
+  gemClaimed?: boolean;
 }
 
 export interface SoloRules {
@@ -38,6 +42,8 @@ const DEFAULT_RULES: SoloRules = { maxMistakes: SOLO_MAX_MISTAKES, tiers: PRICE_
 export interface GuessResult {
   outcome: SubmitOutcome;
   solvedLevel?: GroupLevel;
+  /** Gems found behind a card of the group just solved. */
+  gem?: number;
   view: SoloView;
 }
 
@@ -50,6 +56,10 @@ export interface SoloServiceOptions {
   rules?: () => Promise<SoloRules>;
   /** Called once when a signed-in player's game ends. */
   onFinished?: (userId: string, outcome: 'win' | 'loss', tag?: string) => void;
+  /** The gem-card tunables (admin settings), read when a signed-in game starts; absent = no gem cards. */
+  gemCard?: () => Promise<{ percent: number; amount: number }>;
+  /** Pays the gems found behind a card; idempotent per `key` (one gem card per game). */
+  onGem?: (userId: string, amount: number, key: string) => void;
   /** A signed-in player's level, so easier puzzles come first (docs/logic/progression.md §Puzzle tiers). */
   levelOf?: (userId: string) => Promise<number>;
   /** The player's age track (D198): which puzzle pools they are served from. Absent = adult. */
@@ -67,6 +77,8 @@ export class SoloService {
   private readonly loadRules: () => Promise<SoloRules>;
   private readonly onFinished?: (userId: string, outcome: 'win' | 'loss', tag?: string) => void;
   private readonly levelOf?: (userId: string) => Promise<number>;
+  private readonly loadGemCard?: () => Promise<{ percent: number; amount: number }>;
+  private readonly onGem?: (userId: string, amount: number, key: string) => void;
   private readonly trackOf?: (userId: string) => Promise<AgeTrack>;
 
   constructor(
@@ -79,6 +91,8 @@ export class SoloService {
     this.loadRules = opts.rules ?? (async () => DEFAULT_RULES);
     this.onFinished = opts.onFinished;
     this.levelOf = opts.levelOf;
+    this.loadGemCard = opts.gemCard;
+    this.onGem = opts.onGem;
     this.trackOf = opts.trackOf;
   }
 
@@ -91,6 +105,13 @@ export class SoloService {
     const state = startSolo(puzzle, rng);
     const sessionId = uuidv7();
     const session: Session = { puzzle, state, rng, touchedAt: this.now(), priceResults: [], rules: await this.loadRules(), userId, hints: [], tag: opts.tag };
+    if (userId && !opts.previewTrack && this.loadGemCard) {
+      const gem = await this.loadGemCard().catch(() => null);
+      if (gem) {
+        session.gemCard = rollGemCard(Object.keys(puzzle.items), gem.percent, rng);
+        session.gemAmount = gem.amount;
+      }
+    }
     this.sessions.set(sessionId, session);
     return this.toView(sessionId, session);
   }
@@ -167,7 +188,20 @@ export class SoloService {
         /* stats must not break the game */
       }
     }
-    return { outcome: r.outcome, solvedLevel: r.solvedLevel, view: this.toView(sessionId, s) };
+    let gem: number | undefined;
+    if (r.outcome === 'correct' && !s.gemClaimed && s.userId && s.gemAmount && r.solvedLevel !== undefined) {
+      const group = s.puzzle.groups.find((g) => g.level === r.solvedLevel);
+      if (group && groupHoldsGem(s.gemCard, group.productIds)) {
+        s.gemClaimed = true;
+        gem = s.gemAmount;
+        try {
+          this.onGem?.(s.userId, gem, `gem_card:${sessionId}:${s.userId}`);
+        } catch {
+          /* a gem must not break the game */
+        }
+      }
+    }
+    return { outcome: r.outcome, solvedLevel: r.solvedLevel, ...(gem ? { gem } : {}), view: this.toView(sessionId, s) };
   }
 
   /** Price history of all four groups; only once the game is over, else null (it would reveal the groups). */
