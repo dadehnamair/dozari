@@ -46,6 +46,22 @@ describe('private tables', () => {
     expect(t.started).toEqual([['host', 'guest']]);
     expect((await t.svc.mine('guest'))?.inMatch).toBe(true);
   });
+  it('a new table or a new join drops every older seat of the player', async () => {
+    const t = boot();
+    const first = await t.svc.create('host', body);
+    const other = await t.svc.create('other', body);
+    if (!first.ok || !other.ok) throw new Error('create');
+    await t.svc.join('guest', first.table.code);
+    // Joining a second table moves the guest; the first one is left empty of them.
+    await t.svc.join('guest', other.table.code);
+    expect((await t.svc.mine('guest'))?.code).toBe(other.table.code);
+    expect((await t.svc.get('host', first.table.code))?.players.map((p) => p.id)).toEqual(['host']);
+    // The host of a table who makes a new one closes the old one.
+    const again = await t.svc.create('host', body);
+    if (!again.ok) throw new Error('create');
+    expect(await t.svc.get('host', first.table.code)).toBeNull();
+    expect((await t.svc.mine('host'))?.code).toBe(again.table.code);
+  });
   it('refuses a third player, a locked table, and a guest starting', async () => {
     const t = boot();
     const made = await t.svc.create('host', body);

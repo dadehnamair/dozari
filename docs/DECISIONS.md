@@ -718,3 +718,11 @@ When the plain irnoti send (`/v1/sms/send`) fails, `SmsGateway` re-sends the OTP
 ## D223 — One-time codes accept any digit script; mini-app phone proof through the bot (2026-10-11, proposed)
 
 Codes typed in the settings sheet reached the server in Persian digits and never matched the SMS (Latin digits): the server now normalizes digits before hashing (login, phone, account deletion) and the sheets keep Latin digits in state. Inside a mini-app the phone is proven the Telegram way: `requestContact` → the bot receives the player's own contact → verified with no typing and no SMS (`docs/logic/miniapp.md`).
+
+## D224 — Avatar change, phone-login mission, adult profile palette, Android contacts/vibration (2026-10-11, proposed)
+
+- **Avatar change.** `PUT /me/avatar {avatarKey}`: one of the 9 cast characters (`char-<id>`: dozari, dozariF, mashti, khale, pahlevan, baqal, mirza, goli, ajan) or, for old accounts, any of the 24 gallery faces, open after `profile.avatar_unlock_games` (3) finished games and open for good after; `MyProfile.avatarLockedUntilGames` tells the app. The picker lives in the profile editor («شخصیتت»). The paid layer and `canCustomise` (D65) stay for later: every character is free for now. Random signup avatars stay the 24 faces.
+- **Phone login.** A proven number (login) pays the one-time `phone` mission straight away (`PhoneLoginService.afterVerify` → `ProfileTaskService.claim`, idempotent). Settings hides «ورود با شماره» once the `phone` mission is done (the account is no longer a bare guest).
+- **Adult profile.** The profile page uses one metal in the adult look (dark tiles with a gold frame, a brass level bar, bronze badge tags) instead of the candy rainbow; kid/teen keep the candy look.
+- **Android.** Contacts: expo-contacts asks for READ and WRITE together and `WRITE_CONTACTS` is blocked in the manifest, so the request could never be granted; `readContacts` now asks `READ_CONTACTS` alone. Vibration uses React Native's `Vibration` (the web `navigator.vibrate` does not exist in the app).
+- **Home.** With no tip or nudge, the hero shows a teaser line that opens the tips on tap.

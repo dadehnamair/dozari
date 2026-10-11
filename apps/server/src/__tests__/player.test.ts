@@ -41,7 +41,7 @@ function boot(unlockGames = 0) {
   const seed: { id: string; nickname: string; avatarKey: string; createdAt: number; coins: number }[] = [];
   const clock = { t: Date.now() };
   const store = createMemoryPlayerStore(undefined, () => clock.t);
-  const player = new PlayerService(store, async () => ({ ...DEFAULT_RULES, nicknameUnlockGames: unlockGames }), new TextFilterService(wordStore(['بد'])));
+  const player = new PlayerService(store, async () => ({ ...DEFAULT_RULES, nicknameUnlockGames: unlockGames, avatarUnlockGames: unlockGames }), new TextFilterService(wordStore(['بد'])));
   const social = new SocialService(createMemorySocialStore(seed), () => clock.t, undefined, player);
   const auth = new AuthService(memoryUsers((u) => seed.push({ id: u.id, nickname: u.nickname, avatarKey: u.avatarKey, createdAt: 1_700_000_000_000, coins: 0 })), createTokenSigner('a-test-secret-that-is-long-enough'), mulberry32(3));
   const puzzle: ServedPuzzle = {
@@ -120,6 +120,28 @@ describe('city and e-mail', () => {
     expect(JSON.stringify((await app.inject({ method: 'GET', url: `/players/${a.id}`, headers: b.h })).json())).not.toContain('example.com');
     await app.inject({ method: 'PUT', url: '/me/email', headers: a.h, payload: { email: '' } });
     expect(myProfileSchema.parse((await app.inject({ method: 'GET', url: '/me/profile', headers: a.h })).json()).email).toBeNull();
+  });
+});
+
+describe('avatar pick', () => {
+  const put = (app: ReturnType<typeof boot>['app'], h: Record<string, string>, avatarKey: string) => app.inject({ method: 'PUT', url: '/me/avatar', headers: h, payload: { avatarKey } });
+
+  it('takes a gallery face or a cast character, nothing else', async () => {
+    const { app, login, store } = boot();
+    const a = await login(1);
+    expect((await put(app, a.h, 'char-baqal')).json()).toEqual({ avatarKey: 'char-baqal' });
+    expect(store.avatars.get(a.id)).toBe('char-baqal');
+    expect((await put(app, a.h, 'avatar-07')).json()).toEqual({ avatarKey: 'avatar-07' });
+    expect((await put(app, a.h, 'char-nobody')).statusCode).toBe(400);
+  });
+
+  it('stays locked until the games are played', async () => {
+    const { app, login, store } = boot(2);
+    const a = await login(1);
+    const out = await put(app, a.h, 'char-baqal');
+    expect(out.statusCode).toBe(403);
+    expect(out.json()).toEqual({ error: 'locked', unlockGames: 2 });
+    expect(store.avatars.has(a.id)).toBe(false);
   });
 });
 

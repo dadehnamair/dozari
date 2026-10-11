@@ -34,6 +34,9 @@ export class PhoneLoginService {
   /** SMS costs money and can be used to harass: 5 codes per hour per number. */
   private readonly perPhone = new RateLimiter(5, 60 * 60_000);
 
+  /** Runs after a number was proven and the session is ready (the phone mission pays here). A failure never breaks the login. */
+  afterVerify?: (userId: string) => Promise<void>;
+
   constructor(
     private readonly store: PhoneStore,
     private readonly auth: AuthService,
@@ -97,12 +100,23 @@ export class PhoneLoginService {
     const holder = await this.store.holderOf(phone);
     if (holder) {
       const session = await this.auth.sessionFor(holder, deviceId);
-      return session ? { ok: true, session, created: false } : { ok: false, error: 'banned' };
+      if (!session) return { ok: false, error: 'banned' };
+      await this.done(holder);
+      return { ok: true, session, created: false };
     }
     // Nobody holds it: this device's account (made on first sight) takes the number.
     const guest = await this.auth.guestLogin(deviceId);
     if (!guest.ok) return { ok: false, error: 'banned' };
     if (!(await this.store.markVerified(guest.session.user.id, phone, this.now()))) return { ok: false, error: 'taken' };
+    await this.done(guest.session.user.id);
     return { ok: true, session: guest.session, created: true };
+  }
+
+  private async done(userId: string): Promise<void> {
+    try {
+      await this.afterVerify?.(userId);
+    } catch {
+      /* the reward can be taken by hand from the missions */
+    }
   }
 }

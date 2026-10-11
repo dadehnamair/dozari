@@ -54,6 +54,12 @@ A local Windows build (Android Studio, JDK 21, hoisted pnpm) produces a working 
 
 ## Store release (Myket / Bazaar) on your own computer
 
+**Windows shortcut:** keep the repository in a short folder (`C:\d`), put the four `android.injected.signing.*` lines
+(`store.file` with `/` slashes, `store.password`, `key.alias`, `key.password`) in `%USERPROFILE%\.gradle\gradle.properties`, then run
+`powershell -ExecutionPolicy Bypass -File scripts\build-android.ps1 -Store myket`. It does the hoisted install, prebuild and Gradle build below.
+Do not pass signing as `-Pandroid.injected...` on the PowerShell command line: PowerShell splits the argument at the first dot.
+(Not run on Windows by the author of the script; fix it here if a step misbehaves.)
+
 1. One-time: make the upload key and **back it up outside the repo (a lost key means no more updates)**:
    `keytool -genkeypair -v -keystore dozari-release.keystore -alias dozari -keyalg RSA -keysize 2048 -validity 10000`
 2. Build (PowerShell; `EXPO_PUBLIC_STORE` = `myket` or `bazaar`):

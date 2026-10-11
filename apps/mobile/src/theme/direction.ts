@@ -17,12 +17,12 @@ export const TEXT_LEFT = Platform.OS === 'web' ? ('left' as const) : ('right' as
 export const RTL_INPUT = { props: { dir: 'rtl' } as unknown as TextInputProps, style: { writingDirection: 'rtl' as const, textAlign: TEXT_RIGHT } };
 
 /**
- * Absolute-position keys for a screen edge, for the same reason: in the phone's RTL layout `right:` is read as the left edge,
- * so `[EDGE_RIGHT]: 0` pins a box to the right edge of the screen on every platform.
+ * Absolute-position keys for a screen edge. `App.tsx` and the native config call `I18nManager.swapLeftAndRightInRTL(false)`, so
+ * `left`/`right` (offsets, margins, radii) are physical on every platform, RTL layout or not: `[EDGE_RIGHT]: 0` is the right edge
+ * of the screen. (Only flex rows and `start`/`end` follow RTL, and `textAlign` is handled by `TEXT_RIGHT`/`TEXT_LEFT` above.)
  */
-export const EDGE_RIGHT = Platform.OS === 'web' ? ('right' as const) : ('left' as const);
-export const EDGE_LEFT = Platform.OS === 'web' ? ('left' as const) : ('right' as const);
+export const EDGE_RIGHT = 'right' as const;
+export const EDGE_LEFT = 'left' as const;
 
-/** Rounds the two corners on the screen's left edge (the right corners of an RTL phone layout read the other way round). */
-export const roundLeftEdge = (r: number) =>
-  Platform.OS === 'web' ? { borderTopLeftRadius: r, borderBottomLeftRadius: r } : { borderTopRightRadius: r, borderBottomRightRadius: r };
+/** Rounds the two corners on the screen's left edge. */
+export const roundLeftEdge = (r: number) => ({ borderTopLeftRadius: r, borderBottomLeftRadius: r });

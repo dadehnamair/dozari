@@ -460,7 +460,7 @@ export function buildServer(deps: ServerDeps = {}) {
   let gateway: Gateway | undefined;
   if (deps.auth && deps.realtime) {
     const auth = deps.auth;
-    gateway = attachGateway(app.server, { authenticate: (t) => auth.authenticate(t), corsOrigin, match: deps.match, canAfford: deps.duelStakes ? async (u, tier) => (deps.ageTracks && !(await deps.ageTracks.allows(u, 'coinWager'))) || deps.duelStakes!.canQueue(u, tier) : undefined, tierGate: deps.duelStakes && deps.levelOf ? async (u, tier) => { if (deps.ageTracks && !(await deps.ageTracks.allows(u, 'coinWager'))) return 'UNKNOWN_TIER'; const t = (await deps.duelStakes!.tiers()).find((x) => x.id === tier); if (!t) return 'UNKNOWN_TIER'; return (await deps.levelOf!(u)) >= t.minLevel ? null : 'LEVEL_TOO_LOW'; } : undefined, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, levelGate: deps.duelLevelGate, limit: deps.limiter ? { canPlay: async (u) => (await deps.limiter!.check(u, 'duel')).ok, onStarted: (u) => deps.limiter!.record(u, 'duel') } : undefined, chat: deps.chat, presence: deps.presence, notices: deps.notices, onEmit: deps.botDriver ? (u, e, p) => deps.botDriver!.onEmit(u, e, p) : undefined, trackOf: deps.ageTracks ? (u) => deps.ageTracks!.effective(u).catch(() => 'adult' as const) : undefined, trackGate: deps.ageTracks ? (u) => deps.ageTracks!.featureOff(u, 'duel_queue') : undefined, diagnose: deps.match ? createQueueDiagnosis({ hasPuzzle: async (tracks) => (await deps.match!.puzzles.pickRandom({ tracks })) !== null, botsReady: () => deps.botDriver?.ready() ?? false, graceSec: 45 }) : undefined });
+    gateway = attachGateway(app.server, { onLeft: deps.tables ? (u) => void deps.tables!.leave(u) : undefined, authenticate: (t) => auth.authenticate(t), corsOrigin, match: deps.match, canAfford: deps.duelStakes ? async (u, tier) => (deps.ageTracks && !(await deps.ageTracks.allows(u, 'coinWager'))) || deps.duelStakes!.canQueue(u, tier) : undefined, tierGate: deps.duelStakes && deps.levelOf ? async (u, tier) => { if (deps.ageTracks && !(await deps.ageTracks.allows(u, 'coinWager'))) return 'UNKNOWN_TIER'; const t = (await deps.duelStakes!.tiers()).find((x) => x.id === tier); if (!t) return 'UNKNOWN_TIER'; return (await deps.levelOf!(u)) >= t.minLevel ? null : 'LEVEL_TOO_LOW'; } : undefined, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, levelGate: deps.duelLevelGate, limit: deps.limiter ? { canPlay: async (u) => (await deps.limiter!.check(u, 'duel')).ok, onStarted: (u) => deps.limiter!.record(u, 'duel') } : undefined, chat: deps.chat, presence: deps.presence, notices: deps.notices, onEmit: deps.botDriver ? (u, e, p) => deps.botDriver!.onEmit(u, e, p) : undefined, trackOf: deps.ageTracks ? (u) => deps.ageTracks!.effective(u).catch(() => 'adult' as const) : undefined, trackGate: deps.ageTracks ? (u) => deps.ageTracks!.featureOff(u, 'duel_queue') : undefined, diagnose: deps.match ? createQueueDiagnosis({ hasPuzzle: async (tracks) => (await deps.match!.puzzles.pickRandom({ tracks })) !== null, botsReady: () => deps.botDriver?.ready() ?? false, graceSec: 45 }) : undefined });
     if (deps.live) {
       deps.live.matches = gateway.matches;
       deps.live.queue = gateway.queue;
@@ -891,6 +891,15 @@ if (isMainModule(import.meta.url)) {
   const aiStudio = db ? new AiStudio({ env: process.env, lessons: createDbLessonStore(db), puzzles: createDbPuzzleAdmin(db), products: productAdmin, landing: landingService, catalog: async () => (await createDbAdminRepository(db).listCatalog()).map((p) => ({ id: p.id, slug: p.slug, nameFa: p.nameFa })) }) : undefined;
   const aiScheduler = db && aiStudio ? new AiScheduler(createDbAiScheduleStore(db), aiStudio, { audit: (action, target, detail) => void playerAudit?.record(action, target, detail), log: (msg, err) => app.log.error({ err }, msg) }) : undefined;
   const reportError = createErrorReporter({ dsn: process.env.SENTRY_DSN, environment: process.env.NODE_ENV, release: process.env.APP_RELEASE });
+  const profileTaskService = db && settings ? new ProfileTaskService({
+      ...createDbProfileTaskStore(db),
+      coins: async () => {
+        const entries = await Promise.all(MISSION_KEYS.map(async (k) => [k, (await settings.num(`profiletask.coins_${k}`)) ?? 0] as const));
+        return Object.fromEntries(entries) as Record<MissionKey, number>;
+      },
+    }) : undefined;
+  // Proving a number by login is the «phone» mission: pay it now (idempotent; a second login or an unpaid mission is simply skipped).
+  if (phoneLogin && profileTaskService) phoneLogin.afterVerify = async (userId) => void (await profileTaskService.claim(userId, 'phone'));
   const app = buildServer({
     reportError,
     auth,
@@ -1033,16 +1042,7 @@ if (isMainModule(import.meta.url)) {
     guardian,
     feedback,
     clientErrors,
-    profileTasks:
-      db && settings
-        ? new ProfileTaskService({
-            ...createDbProfileTaskStore(db),
-            coins: async () => {
-              const entries = await Promise.all(MISSION_KEYS.map(async (k) => [k, (await settings.num(`profiletask.coins_${k}`)) ?? 0] as const));
-              return Object.fromEntries(entries) as Record<MissionKey, number>;
-            },
-          })
-        : undefined,
+    profileTasks: profileTaskService,
     coinPackages: coinPackageService,
     shopReal,
     shortLinks: shortLinkService,

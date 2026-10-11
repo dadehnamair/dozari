@@ -119,6 +119,8 @@ export const myProfileSchema = z.object({
   nicknameRules: z.object({ minLen: z.number().int(), maxLen: z.number().int(), allowDigits: z.boolean(), allowLatin: z.boolean(), allowPersian: z.boolean() }),
   /** Why the nickname cannot be changed right now (not enough games), or null when it can. */
   nicknameLockedUntilGames: z.number().int().nonnegative().nullable(),
+  /** Finished games still needed before the avatar can be changed (null = open). Defaults to open for older servers. */
+  avatarLockedUntilGames: z.number().int().nonnegative().nullable().default(null),
 });
 export type MyProfile = z.infer<typeof myProfileSchema>;
 

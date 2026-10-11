@@ -79,6 +79,8 @@ export const fa = {
     },
     guide: {
       name: 'راهنما',
+      /** Shown above the hero while nothing else is (a tip, a nudge): a line that invites a tap, which opens the tips. */
+      teasers: ['هی! یه چیزی بگم؟ بزن رو من 👋', 'می‌دونستی یه رازی تو بازار هست؟ بزن بگم!', 'دوزاریت افتاد؟ بزن یه نکته بگم!', 'بیا یه ترفند بهت یاد بدم؛ فقط یه تپ!'] as readonly string[],
       tips: [
         { key: 'play', text: 'با «بازی تکی» مرحله‌به‌مرحله پیش برو و دست‌گرم کن.' },
         { key: 'duel', text: 'در «دوئل» با یک حریف واقعی رو در رو می‌شوی؛ برنده سکه می‌برد.' },
@@ -277,6 +279,10 @@ export const fa = {
     nickname: 'اسم',
     save: 'ذخیره',
     saved: 'ذخیره شد',
+    avatar: 'شخصیتت',
+    avatarHint: 'یکی از شخصیت‌های دوزاری را بزن تا شخصیتت عوض شود.',
+    characters: { dozari: 'دوزاری', dozariF: 'دوزاری‌خانم', mashti: 'مشتی', khale: 'خاله', pahlevan: 'پهلوان', baqal: 'بقال', mirza: 'میرزا', goli: 'گلی', ajan: 'آجان' } as Record<string, string>,
+    avatarLocked: (games: number) => `بعد از ${toPersianDigits(String(games))} بازی می‌توانی شخصیتت را عوض کنی.`,
     nicknameLocked: (games: number) => `بعد از ${toPersianDigits(String(games))} بازی می‌توانی اسمت را عوض کنی.`,
     nicknameRule: {
       length: (min: number, max: number) => `بین ${toPersianDigits(String(min))} تا ${toPersianDigits(String(max))} حرف`,

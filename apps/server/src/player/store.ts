@@ -69,6 +69,7 @@ export interface PlayerStore {
   setCity(userId: string, cityId: string | null): Promise<void>;
   setEmail(userId: string, email: string | null): Promise<void>;
   setNickname(userId: string, nickname: string): Promise<void>;
+  setAvatar(userId: string, avatarKey: string): Promise<void>;
   /** The top `limit` players by XP inside a filter (`cityId`, or an explicit id list); ties break by id for a stable order. With `since` only the XP earned from that time counts (players with none are left out). */
   ranking(filter: RankFilter, limit: number, since?: number): Promise<{ userId: string; xp: number }[]>;
   /** 1-based place of a player inside the filter (players with more XP + 1). */
@@ -133,6 +134,9 @@ export function createDbPlayerStore(db: Db): PlayerStore {
     },
     async setNickname(userId, nickname) {
       await db.update(users).set({ nickname }).where(eq(users.id, userId));
+    },
+    async setAvatar(userId, avatarKey) {
+      await db.update(users).set({ avatarKey }).where(eq(users.id, userId));
     },
     async ranking(filter, limit, since) {
       const where = and(...rankWhere(filter));
@@ -248,11 +252,12 @@ export function createDbPlayerStore(db: Db): PlayerStore {
 }
 
 /** Memory store for tests; `seedCities` mirrors the default list when omitted. */
-export function createMemoryPlayerStore(seedCities: readonly { slug: string; nameFa: string; province?: string | null; sloganFa?: string }[] = DEFAULT_CITIES, now: () => number = Date.now): PlayerStore & { nicknames: Map<string, string> } {
+export function createMemoryPlayerStore(seedCities: readonly { slug: string; nameFa: string; province?: string | null; sloganFa?: string }[] = DEFAULT_CITIES, now: () => number = Date.now): PlayerStore & { nicknames: Map<string, string>; avatars: Map<string, string> } {
   const stats = new Map<string, StatsRow>();
   const events: { userId: string; xp: number; at: number; mode: 'solo' | 'duel' | null; outcome: 'win' | 'loss' | 'draw' | null }[] = [];
   const priv = new Map<string, PrivateRow>();
   const nicknames = new Map<string, string>();
+  const avatars = new Map<string, string>();
   const xpOf = (userId: string, since?: number) => (since === undefined ? (stats.get(userId)?.xp ?? 0) : events.filter((e) => e.userId === userId && e.at >= since).reduce((a, e) => a + e.xp, 0));
   const inFilter = (f: RankFilter, since?: number) =>
     [...stats.keys()]
@@ -262,6 +267,7 @@ export function createMemoryPlayerStore(seedCities: readonly { slug: string; nam
   const rows: CityRow[] = seedCities.map((c, i) => ({ id: `00000000-0000-7000-8000-${String(i + 1).padStart(12, '0')}`, slug: c.slug, nameFa: c.nameFa, province: c.province ?? null, souvenirFa: null, sloganFa: c.sloganFa ?? null, sortOrder: i, isActive: true }));
   return {
     nicknames,
+    avatars,
     async stats(id) {
       return { ...(stats.get(id) ?? EMPTY_STATS) };
     },
@@ -302,6 +308,9 @@ export function createMemoryPlayerStore(seedCities: readonly { slug: string; nam
     },
     async setNickname(id, nickname) {
       nicknames.set(id, nickname);
+    },
+    async setAvatar(id, avatarKey) {
+      avatars.set(id, avatarKey);
     },
     async cities(opts) {
       return rows.filter((r) => opts?.includeHidden || r.isActive).map((r) => ({ ...r }));

@@ -96,6 +96,12 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
     onGender(g);
     saveGender(g).catch(() => setFailed(true));
   };
+  // Hooks stay above the sub-page early returns below: a hook after them throws "Rendered fewer hooks" when a sub page opens.
+  /** What the player owns: hint tokens, streak shields, gems (the shop is off or unreachable = the row is simply not drawn). */
+  const [goods, setGoods] = useState<{ tokens: number; shields: number; gems: number } | null>(null);
+  useEffect(() => {
+    fetchShop().then((sh) => setGoods({ tokens: sh.tokens, shields: sh.shields, gems: sh.gems }), () => undefined);
+  }, []);
   const options: [Gender | null, string][] = [['female', fa.profile.female], ['male', fa.profile.male], [null, fa.profile.none]];
   const back = () => (setSub(null), load());
 
@@ -108,11 +114,6 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
   if (sub === 'levels') return <LevelRoadPage onClose={() => setSub(null)} />;
 
   const lv = me?.level;
-  /** What the player owns: hint tokens, streak shields, gems (the shop is off or unreachable = the row is simply not drawn). */
-  const [goods, setGoods] = useState<{ tokens: number; shields: number; gems: number } | null>(null);
-  useEffect(() => {
-    fetchShop().then((sh) => setGoods({ tokens: sh.tokens, shields: sh.shields, gems: sh.gems }), () => undefined);
-  }, []);
   const pct = lv ? (lv.xpForNext === 0 ? 100 : Math.round((lv.xpInLevel / lv.xpForNext) * 100)) : 0;
   const province = provinceOf(me?.city?.province);
   const incoming = friends?.incoming.length ?? 0;
@@ -157,7 +158,7 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
           <View style={styles.heroLine} />
         </View>
         <View style={styles.avatarWrap}>
-          {me ? <View style={{ width: charW, height: charH }}><Character skin={avatarOf(me.avatarKey).skin} pose={avatarOf(me.avatarKey).pose} worn={worn} /></View> : <View style={{ width: charW, height: charH }} />}
+          {me ? <View style={{ width: charW, height: charH }}><Character who={avatarOf(me.avatarKey).who} skin={avatarOf(me.avatarKey).skin} pose={avatarOf(me.avatarKey).pose} worn={worn} /></View> : <View style={{ width: charW, height: charH }} />}
           {lv ? (
             <View style={styles.hex} accessibilityLabel={`${fa.profile.level} ${lv.level}`}>
               <Svg width={46} height={52} viewBox="0 0 46 52">
@@ -193,14 +194,14 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
                 <Text style={[styles.levelText, dark ? dk.text : null]}>{fa.profile.level} {n(lv.level)}</Text>
                 <Text style={[styles.levelXp, dark ? dk.sub : null]}>{lv.xpForNext === 0 ? `${n(lv.xp)} ${fa.profile.xp}` : `${n(lv.xpInLevel)} / ${n(lv.xpForNext)}`}</Text>
               </View>
-              <View style={[styles.track, dark ? dk.track : null]}><View style={[styles.fill, { width: `${pct}%` }]} /></View>
+              <View style={[styles.track, dark ? dk.track : null]}><View style={[styles.fill, dark ? dk.fill : null, { width: `${pct}%` }]}>{dark ? <GradientFill from="#FFF1B8" to="#B8822A" /> : null}</View></View>
             </View>
 
             <View style={styles.stats}>
               {stats.map(([label, v, c]) => (
-                <View key={label} style={[styles.stat, { backgroundColor: c, height: compact ? 52 : 60 }]}>
-                  <Text style={styles.statValue}>{n(v)}</Text>
-                  <Text style={styles.statLabel}>{label}</Text>
+                <View key={label} style={[styles.stat, { backgroundColor: c, height: compact ? 52 : 60 }, dark ? dk.stat : null]}>
+                  <Text style={[styles.statValue, dark ? dk.text : null]}>{n(v)}</Text>
+                  <Text style={[styles.statLabel, dark ? dk.sub : null]}>{label}</Text>
                 </View>
               ))}
             </View>
@@ -208,9 +209,9 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
             {goods ? (
               <View style={styles.stats}>
                 {([[fa.profile.goodsHints, goods.tokens, '#FFE48A'], [fa.profile.goodsShields, goods.shields, '#B8F08F'], [fa.profile.goodsGems, goods.gems, '#9BDDFF']] as const).map(([label, v, c]) => (
-                  <View key={label} style={[styles.stat, { backgroundColor: c, height: compact ? 52 : 60 }]} accessibilityLabel={`${label} ${v}`}>
-                    <Text style={styles.statValue}>{n(v)}</Text>
-                    <Text style={styles.statLabel}>{label}</Text>
+                  <View key={label} style={[styles.stat, { backgroundColor: c, height: compact ? 52 : 60 }, dark ? dk.stat : null]} accessibilityLabel={`${label} ${v}`}>
+                    <Text style={[styles.statValue, dark ? dk.text : null]}>{n(v)}</Text>
+                    <Text style={[styles.statLabel, dark ? dk.sub : null]}>{label}</Text>
                   </View>
                 ))}
               </View>
@@ -223,9 +224,9 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
               {shownBadges.length > 0 ? (
                 <>
                   {shownBadges.map((b, i) => (
-                    <View key={b.id} style={[styles.tag, { backgroundColor: TAGS[i % TAGS.length] }]}><Text style={styles.tagText} numberOfLines={1}>{b.titleFa}</Text></View>
+                    <View key={b.id} style={[styles.tag, { backgroundColor: TAGS[i % TAGS.length] }, dark ? dk.tag : null]}><Text style={[styles.tagText, dark ? dk.tagText : null]} numberOfLines={1}>{b.titleFa}</Text></View>
                   ))}
-                  {moreBadges > 0 ? <View style={[styles.tag, { backgroundColor: colors.ink }]}><Text style={styles.tagText}>{`+${n(moreBadges)}`}</Text></View> : null}
+                  {moreBadges > 0 ? <View style={[styles.tag, { backgroundColor: colors.ink }, dark ? dk.tag : null]}><Text style={[styles.tagText, dark ? dk.tagText : null]}>{`+${n(moreBadges)}`}</Text></View> : null}
                 </>
               ) : (
                 <Text style={[styles.hint, dark ? dk.sub : null]}>{fa.profile.noBadges}</Text>
@@ -298,6 +299,11 @@ const dk = StyleSheet.create({
   track: { backgroundColor: DARK.field, borderColor: DARK.frame },
   editor: { backgroundColor: DARK.panel, borderColor: DARK.frame },
   pill: { backgroundColor: DARK.raised, borderColor: DARK.frame },
+  // One metal instead of the candy rainbow: dark tiles with a gold frame, a brass level bar, bronze badge tags.
+  stat: { backgroundColor: DARK.raised, borderColor: DARK.frame, shadowColor: '#000' },
+  fill: { backgroundColor: '#E8B64A' },
+  tag: { backgroundColor: '#5A3A12', borderColor: DARK.frame, shadowColor: '#000' },
+  tagText: { color: DARK.text, textShadowColor: 'transparent' },
 });
 
 const styles = StyleSheet.create({
