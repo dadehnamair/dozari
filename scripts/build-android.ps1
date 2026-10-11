@@ -47,7 +47,14 @@ Run 'pnpm install (hoisted)' { pnpm install --node-linker=hoisted }
 $env:EXPO_PUBLIC_API_URL = $ApiUrl
 $env:EXPO_PUBLIC_STORE = $Store
 Set-Location (Join-Path $root 'apps\mobile')
-Remove-Item -Recurse -Force android -ErrorAction SilentlyContinue
+# A Gradle daemon left over from the previous build keeps files in android\app\build open (EBUSY on delete), so stop it first.
+if (Test-Path 'android\gradlew.bat') { & 'android\gradlew.bat' --stop 2>&1 | Out-Null }
+foreach ($try in 1..5) {
+  Remove-Item -Recurse -Force android -ErrorAction SilentlyContinue
+  if (-not (Test-Path android)) { break }
+  Start-Sleep -Seconds 2
+}
+if (Test-Path android) { throw "Cannot delete apps\mobile\android (a file is locked). Close Android Studio / Explorer windows on it, run 'taskkill /F /IM java.exe', and try again." }
 Run 'expo prebuild' { pnpm exec expo prebuild --platform android }
 Set-Location android
 Run 'gradlew assembleRelease' { .\gradlew assembleRelease }
