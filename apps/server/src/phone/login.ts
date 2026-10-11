@@ -1,5 +1,5 @@
 import { createHash, randomInt } from 'node:crypto';
-import { normalizeIranPhone } from '@dozari/shared';
+import { normalizeIranPhone, toLatinDigits } from '@dozari/shared';
 import type { Session } from '@dozari/shared';
 import type { AuthService } from '../auth/service.js';
 import { RateLimiter } from '../security/rate-limit.js';
@@ -71,7 +71,7 @@ export class PhoneLoginService {
       return { ok: false, error: 'expired' };
     }
     if (o.attempts >= MAX_ATTEMPTS) return { ok: false, error: 'too_many' };
-    if (hash(phone, code.trim()) !== o.codeHash) {
+    if (hash(phone, toLatinDigits(code).trim()) !== o.codeHash) {
       o.attempts += 1;
       return { ok: false, error: 'wrong' };
     }

@@ -683,3 +683,7 @@ Owner: bots that play and earn XP should level up and change, a community that r
 
 Owner: closed tables need no replay or watching. Watchers may send one of five canned cheers (👏 🔥 😮 😂 😢) every 2 s; they show to everyone in the stands for 20 s with the sender's nickname, and bots in the stands cheer too. Canned only, so no chat unlock is needed (rule 7). Cheers live in memory and are never shown to the players of the match. Polling stays; a socket stream is only worth it if the lobby grows.
 
+
+## D219 — One-time codes accept any digit script; mini-app phone proof through the bot (2026-10-11, proposed)
+
+Codes typed in the settings sheet reached the server in Persian digits and never matched the SMS (Latin digits): the server now normalizes digits before hashing (login, phone, account deletion) and the sheets keep Latin digits in state. Inside a mini-app the phone is proven the Telegram way: `requestContact` → the bot receives the player's own contact → verified with no typing and no SMS (`docs/logic/miniapp.md`).

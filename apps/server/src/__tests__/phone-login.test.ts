@@ -41,6 +41,13 @@ function boot(withSms = true) {
 const dev = (n: number) => String(n).repeat(32).slice(0, 32);
 
 describe('PhoneLoginService', () => {
+  it('accepts a code typed with Persian or Arabic-Indic digits', async () => {
+    const { login } = boot();
+    await login.sendCode('09120048556');
+    const out = await login.verify('09120048556', '۱۲۳۴۵', 'a'.repeat(32));
+    expect(out.ok).toBe(true);
+  });
+
   it('a number nobody holds becomes a new verified account', async () => {
     const { login, sent, store } = boot();
     expect(await login.sendCode('09123456789')).toEqual({ ok: true });
