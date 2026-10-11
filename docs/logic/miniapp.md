@@ -39,9 +39,19 @@ appears only where something is truly that messenger's (Bale payments, the Bale 
 | `isMiniAppSupported` | an old Bale app gets a Persian «update the app» notice instead of a blank page |
 
 **Leaving a duel.** In a live match the back button (and the phone's) does what the pause button does: the first press only asks («دوباره بزن تا از بازی بیرون بری»,
-a loss is counted), the second leaves. Not wired: `requestContact` for phone proof (the verified path stays the bot's `contact.user_id == from.id` check), theme (the game keeps its own look).
+a loss is counted), the second leaves. Not wired: theme (the game keeps its own look).
 
 Inside a mini-app the phone-only gate (D171, «بازی را نصب کن» card) is skipped: `usePhoneGate` treats it like the «ادامه با مرورگر» choice.
+
+## Phone proof inside the mini-app (`requestContact`)
+
+Telegram-style, from inside the bot: on the phone step (`PhoneStep`) a mini-app player sees «تأیید با بله». It calls `WebApp.requestContact(cb)` (`miniapp/host.ts`);
+the host asks the player to share their own contact with the bot, and the bot receives an ordinary `contact` message. `NotifyService.handleContact` maps the sender's
+Bale id to the mini-app account (`miniAppUserOf`, same as payments) and `PhoneService.verifyByOwnContact` verifies the number: only when `contact.user_id == from.id`,
+nothing has to be typed first, no SMS is spent, and a number held by another account becomes the usual keep/load choice. The app only re-reads `/me/phone` (polling while
+it waits). Without a mini-app account for that Bale id the old paths stay (linked chat + typed number, or bot signup). Outside a mini-app, or on a host without
+`requestContact`, the button is hidden. **Not verified against Bale's real client** (written from the Telegram API; Bale's docs were unreachable): check that
+`Bale.WebApp.requestContact` exists and that its callback/contact message match.
 
 ## Payments inside the mini-app (Bale `openInvoice`)
 

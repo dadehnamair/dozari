@@ -714,3 +714,7 @@ Owner asked for: (1) a gem hidden behind one card in some games (table, duel, da
 ## D-irnoti-pattern — pattern SMS as backup for the irnoti plain send (2026-10-11)
 
 When the plain irnoti send (`/v1/sms/send`) fails, `SmsGateway` re-sends the OTP through irnoti's pattern API (`POST https://api.irnoti.com/v1/sms/pattern`, JSON `{code: <pattern>, to, params: {code}}`; success reply has `batchId`). Pattern code = `IRNOTI_PATTERN_CODE`, default `gdhsgcnt`. If both fail, the plain send's error (with its `sms_<reason>` mapping) is what the caller sees.
+
+## D223 — One-time codes accept any digit script; mini-app phone proof through the bot (2026-10-11, proposed)
+
+Codes typed in the settings sheet reached the server in Persian digits and never matched the SMS (Latin digits): the server now normalizes digits before hashing (login, phone, account deletion) and the sheets keep Latin digits in state. Inside a mini-app the phone is proven the Telegram way: `requestContact` → the bot receives the player's own contact → verified with no typing and no SMS (`docs/logic/miniapp.md`).

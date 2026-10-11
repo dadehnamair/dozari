@@ -1,6 +1,7 @@
 import { createHash, randomInt } from 'node:crypto';
 import { accountDeleteCodes, eq } from '@dozari/db';
 import type { Db } from '@dozari/db';
+import { toLatinDigits } from '@dozari/shared';
 import type { PhoneStore } from '../phone/store.js';
 import { smsReady } from '../phone/sms.js';
 import type { SmsClient } from '../phone/sms.js';
@@ -113,7 +114,7 @@ export class AccountDeletion {
     if (!row) return { ok: false, error: 'no_code' };
     if (this.now() > row.expiresAt) return { ok: false, error: 'expired' };
     if (row.attempts >= MAX_ATTEMPTS) return { ok: false, error: 'too_many' };
-    if (hash(code.trim(), userId) !== row.codeHash) {
+    if (hash(toLatinDigits(code).trim(), userId) !== row.codeHash) {
       await this.store.bump(userId);
       return { ok: false, error: 'wrong' };
     }

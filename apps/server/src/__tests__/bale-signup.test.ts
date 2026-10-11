@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { BaleClient } from '../notify/client.js';
 import { NotifyService } from '../notify/service.js';
 import { createMemoryNotifyStore } from '../notify/store.js';
+import { PhoneService } from '../phone/service.js';
+import { createMemoryPhoneStore } from '../phone/store.js';
 
 function boot() {
   const store = createMemoryNotifyStore();
@@ -54,5 +56,29 @@ describe('Bale bot signup', () => {
     t.sent.length = 0;
     await t.notify.handleUpdate(t.text(5, '/start'));
     expect(t.sent[0]?.opts?.contactButton).toBeUndefined();
+  });
+});
+
+describe('mini-app contact proof (requestContact)', () => {
+  const setup = () => {
+    const t = boot();
+    const phones = createMemoryPhoneStore();
+    t.notify.phone = new PhoneService(phones, async () => ({ smsTtlMs: 60_000, smsResendMs: 60_000 }), null);
+    t.notify.miniAppUserOf = async (id) => (id === '5' ? 'mini-user' : null);
+    return { ...t, phones };
+  };
+
+  it('the mini-app player’s own contact verifies their number with nothing typed first and creates no second account', async () => {
+    const t = setup();
+    await t.notify.handleUpdate(t.contact(5, 5, '+98 912 345 6789'));
+    expect(await t.phones.holderOf('+989123456789')).toBe('mini-user');
+    expect(t.accounts.size).toBe(0);
+    expect(t.sent.at(-1)?.text).toContain('تأیید شد');
+  });
+
+  it('a forwarded contact of someone else proves nothing', async () => {
+    const t = setup();
+    await t.notify.handleUpdate(t.contact(5, 99, '09123456789'));
+    expect(await t.phones.holderOf('+989123456789')).toBeNull();
   });
 });

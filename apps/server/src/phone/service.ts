@@ -1,5 +1,5 @@
 import { createHash, randomInt } from 'node:crypto';
-import { maskPhone, normalizeIranPhone } from '@dozari/shared';
+import { maskPhone, normalizeIranPhone, toLatinDigits } from '@dozari/shared';
 import type { AccountSummary, PhoneChoice, PhoneConflict } from '@dozari/shared';
 import type { SettingsService } from '../settings/service.js';
 import { RateLimiter } from '../security/rate-limit.js';
@@ -132,6 +132,21 @@ export class PhoneService {
     return this.prove(userId, s.pending);
   }
 
+  /**
+   * Mini-app proof (Telegram-style `requestContact`): the player shared THEIR OWN contact with the bot, so Bale vouches for the number
+   * and nothing has to be typed first. Same own-contact rule as `verifyByContact`; a number held by another account becomes the usual choice.
+   */
+  async verifyByOwnContact(userId: string, contactPhone: string, contactOwnerId: string | undefined, senderId: string | undefined): Promise<ContactResult> {
+    if (contactOwnerId === undefined || senderId === undefined || String(contactOwnerId) !== String(senderId)) return 'mismatch';
+    const phone = normalizeIranPhone(contactPhone);
+    if (!phone) return 'mismatch';
+    const s = await this.store.state(userId);
+    if (s.phone === phone) return 'already';
+    await this.store.setPending(userId, phone);
+    await this.store.dropOtp(userId);
+    return this.prove(userId, phone);
+  }
+
   async sendSms(userId: string): Promise<SmsSendResult> {
     if (!smsReady(this.sms)) return { ok: false, error: 'sms_unavailable' };
     const s = await this.store.state(userId);
@@ -157,7 +172,7 @@ export class PhoneService {
     if (o.attempts >= MAX_OTP_ATTEMPTS) return { ok: false, error: 'too_many' };
     const s = await this.store.state(userId);
     if (s.pending !== o.phone) return { ok: false, error: 'no_code' }; // the number was changed after the code was sent
-    if (hash(code.trim(), userId) !== o.codeHash) {
+    if (hash(toLatinDigits(code).trim(), userId) !== o.codeHash) {
       await this.store.bumpOtp(userId);
       return { ok: false, error: 'wrong' };
     }
