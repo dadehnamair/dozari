@@ -138,7 +138,7 @@ import { registerShopPayRoutes, registerShopRoutes } from './economy/shop-routes
 import { LevelRoadService, registerRoadRoutes } from './progress/road.js';
 import { createDbRewardStore } from './progress/rewards-store.js';
 import { ProfileTaskService, registerProfileTaskRoutes } from './profile/tasks.js';
-import { createDbGemWallet, registerGemRoutes } from './economy/gems.js';
+import { createDbGemWallet, createGemCardPayer, registerGemRoutes } from './economy/gems.js';
 import type { GemWalletReader } from './economy/gems.js';
 import { createDbProfileTaskStore } from './profile/tasks-store.js';
 import { BirthdayService, registerBirthdayRoutes } from './profile/birthday.js';
@@ -495,6 +495,12 @@ async function hintRules(settings: SettingsService): Promise<HintRules> {
   return { prices: { group_title: t!, one_card: o!, pair: p! }, minLevel: minLevel!, maxPerGame: maxPerGame!, repeatPercent: repeatPercent! };
 }
 
+/** The gem-card chance and prize (admin settings `gemcard.*`). */
+async function gemCardRules(settings: SettingsService): Promise<{ percent: number; amount: number }> {
+  const [percent, amount] = await Promise.all([settings.num('gemcard.percent'), settings.num('gemcard.amount')]);
+  return { percent, amount };
+}
+
 /** Live tunables for solo games and the price-guess staircase (admin settings). */
 async function soloRules(settings: SettingsService) {
   const pct = await settings.list('score.staircase_error_pct');
@@ -837,6 +843,7 @@ if (isMainModule(import.meta.url)) {
     // Mini-app players pay without linking the bot: the paying Bale user maps to their mini-app account (same device id as the login).
     if (baleToken) notify.miniAppUserOf = async (baleUserId) => (await auth?.userByDevice(miniAppDeviceId(baleToken, baleUserId)))?.id ?? null;
   }
+  const gemPayer = db ? createGemCardPayer(db, (msg, err) => console.error(msg, err)) : () => undefined;
   let dailyRef: DailyService | undefined;
   /** Puzzles each player has had in duels, tables and 2v2: nobody gets the same one again while others remain (solo keeps its own recent list). */
   const puzzleHistory = new PuzzleHistory();
@@ -844,6 +851,8 @@ if (isMainModule(import.meta.url)) {
     db && settings
       ? new SoloService(createDbPuzzleSource(db), {
           rules: () => soloRules(settings),
+          gemCard: () => gemCardRules(settings),
+          onGem: gemPayer,
           levelOf,
           trackOf: ageTracks ? (id) => ageTracks.effective(id) : undefined,
           onFinished: (id, outcome, tag) => {
@@ -897,6 +906,10 @@ if (isMainModule(import.meta.url)) {
           trackOf: ageTracks ? (id) => ageTracks.effective(id) : undefined,
           wagerAllowed: ageTracks ? (id) => ageTracks.allows(id, 'coinWager') : undefined,
           teamBoards: settings ? () => settings.num('match.team_boards') : undefined,
+          gemCard: settings ? () => gemCardRules(settings) : undefined,
+          onGem: (id, amount, key) => {
+            if (!botDriver?.isBot(id)) gemPayer(id, amount, key);
+          },
           priceRound: settings ? async () => (await settings.num('match.price_round')) === 1 : undefined,
           rules: settings
             ? async () => {

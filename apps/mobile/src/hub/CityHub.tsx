@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Svg, { Circle, Defs, G, Path, RadialGradient, Stop } from 'react-native-svg';
+import { Attention } from '../components/Attention';
 import { Character } from '../components/Character';
 import { GradientFill } from '../components/GradientFill';
 import { Icon } from '../components/Icon';
@@ -128,10 +129,12 @@ export function CityHub({ onClose, onEnter, features, dailyReady }: { onClose: (
             return (
               <Pressable key={b.key} onPress={() => setSel(b)} accessibilityRole="button" accessibilityLabel={`${info?.name} · ${info?.mode}`} style={[styles.tag, { left: b.x * k - 70, top: (b.by + 8) * k, opacity: canEnter(b, features) ? 1 : 0.8 }]}>
                 <View style={[styles.mode, adult ? ad.mode : { backgroundColor: b.chip }]}><Text style={[styles.modeText, adult ? ad.modeText : null]}>{info?.mode}</Text></View>
-                <View style={[styles.plate, adult ? ad.plate : null, sel?.key === b.key ? (adult ? ad.plateOn : styles.plateOn) : null]}>
-                  <Text style={[styles.plateText, adult ? (sel?.key === b.key ? ad.plateTextOn : ad.plateText) : null]}>{info?.name}</Text>
-                  {badge ? <View style={styles.badge}><Text style={styles.badgeText}>{badge}</Text></View> : null}
-                </View>
+                <Attention on={b.key === 'tower' && dailyReady} radius={12}>
+                  <View style={[styles.plate, adult ? ad.plate : null, sel?.key === b.key ? (adult ? ad.plateOn : styles.plateOn) : null]}>
+                    <Text style={[styles.plateText, adult ? (sel?.key === b.key ? ad.plateTextOn : ad.plateText) : null]}>{info?.name}</Text>
+                    {badge ? <View style={styles.badge}><Text style={styles.badgeText}>{badge}</Text></View> : null}
+                  </View>
+                </Attention>
               </Pressable>
             );
           })}

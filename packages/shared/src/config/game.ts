@@ -73,3 +73,10 @@ export const NICKNAME_UNLOCK_GAMES = 10;
 /** Paid (coin) avatars / nicknames: minimum player level; an activated profile is also required (D65). */
 export const AVATAR_CHANGE_MIN_LEVEL = 3;
 export const NICKNAME_CHANGE_MIN_LEVEL = 5;
+
+/**
+ * Gem card: a game may hide one gem behind a random card; whoever solves the group holding that card earns it
+ * (a signed-in human only). Chance per game in percent (admin setting `gemcard.percent`, kept low) and gems per find.
+ */
+export const GEM_CARD_PERCENT = 5;
+export const GEM_CARD_AMOUNT = 1;

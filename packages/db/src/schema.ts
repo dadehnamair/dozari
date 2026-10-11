@@ -514,7 +514,7 @@ export const userBalances = mysqlTable('user_balances', {
 });
 
 /** Why gems moved (docs/logic/economy.md §Gems, D164). */
-export const GEM_REASONS = ['admin_adjust', 'birthday_gift', 'wheel_prize', 'shop_purchase', 'tournament_entry', 'tournament_refund', 'tournament_prize', 'mission_reward', 'keepsake_reward', 'ad_reward'] as const;
+export const GEM_REASONS = ['admin_adjust', 'birthday_gift', 'wheel_prize', 'shop_purchase', 'tournament_entry', 'tournament_refund', 'tournament_prize', 'mission_reward', 'keepsake_reward', 'ad_reward', 'gem_card'] as const;
 
 /** Cached gem balance per player; changed only together with a `gem_ledger` row. */
 export const userGems = mysqlTable('user_gems', {

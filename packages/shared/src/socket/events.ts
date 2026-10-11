@@ -193,6 +193,8 @@ export const matchViewSchema = z.object({
 /** Animation hints; both sides see every submitted selection and its result. */
 export const matchEventSchema = z.discriminatedUnion('t', [
   z.object({ t: z.literal('guess'), side, itemIds: z.array(z.string()).length(4), outcome: z.enum(['correct', 'one_away', 'wrong']) }),
+  /** A gem was hidden behind a card of the group that `userId` just solved: it is theirs. */
+  z.object({ t: z.literal('gem'), userId: z.string(), amount: z.number().int().positive() }),
   z.object({ t: z.literal('group_solved'), side, level, points: z.number().int().positive(), firstBlood: z.boolean() }),
   z.object({ t: z.literal('group_revealed'), level }),
   /** A board is over (multi-board match): its full solution may be shown, then the next board starts. */

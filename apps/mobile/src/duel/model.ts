@@ -1,3 +1,4 @@
+import type { BoardVerdict } from '../components/Board';
 import type { MatchEnded, MatchFound, MatchView, QueueProblem, SoloCard, SoloSolvedGroup } from '@dozari/shared';
 
 /** What the duel screen shows. The server sends full snapshots; this only keeps names (solved rows list ids) and the end screen. */
@@ -30,6 +31,10 @@ export interface DuelState {
   prevBoard: MatchView | null;
   /** Level of the group the game revealed by itself when the board ended. */
   revealedLevel: number | null;
+  /** The verdict of the latest four-card guess (either side's): those cards shake red / glow green on the board. `n` makes each guess a new event. */
+  verdict: BoardVerdict | null;
+  /** A gem this player found behind a card (the burst); `n` makes each find a new event. */
+  gem: { amount: number; n: number } | null;
   /** The last row playing itself out: the last four cards light up one by one before the board moves on or the result shows. */
   finale: Finale | null;
 }
@@ -68,14 +73,16 @@ export function endedFromView(view: MatchView): MatchEnded | null {
   return { matchId: view.matchId, result: view.result, scores: [view.scores[0], view.scores[1]], groups: groups as MatchEnded['groups'] };
 }
 
-export const initialDuel: DuelState = { phase: 'idle', waitedSec: 0, problem: null, found: null, view: null, ended: null, names: {}, taunt: null, flash: null, boardNote: null, error: null, notice: null, peek: null, powerNote: null, prevBoard: null, revealedLevel: null, finale: null };
+export const initialDuel: DuelState = { phase: 'idle', waitedSec: 0, problem: null, found: null, view: null, ended: null, names: {}, taunt: null, flash: null, verdict: null, gem: null, boardNote: null, error: null, notice: null, peek: null, powerNote: null, prevBoard: null, revealedLevel: null, finale: null };
 
 export type DuelAction =
   | { t: 'queued' }
   | { t: 'status'; waitedSec: number; problem?: QueueProblem }
   | { t: 'found'; found: MatchFound }
   | { t: 'state'; view: MatchView }
-  | { t: 'guess'; outcome: 'correct' | 'one_away' | 'wrong'; mine: boolean }
+  | { t: 'guess'; outcome: 'correct' | 'one_away' | 'wrong'; mine: boolean; itemIds?: readonly string[] }
+  | { t: 'gem'; userId: string; amount: number }
+  | { t: 'clearGem' }
   | { t: 'timeout'; mine: boolean }
   | { t: 'ended'; ended: MatchEnded }
   | { t: 'clearFlash' }
@@ -141,7 +148,11 @@ export function duelReducer(s: DuelState, a: DuelAction): DuelState {
       return { ...s, powerNote: null };
     case 'guess':
       // Only the player's own guess flashes; the opponent's shows through the board changing.
-      return a.mine ? { ...s, flash: a.outcome, peek: null } : { ...s, peek: null };
+      return { ...s, ...(a.mine ? { flash: a.outcome } : {}), peek: null, verdict: a.itemIds ? { kind: a.outcome === 'correct' ? 'correct' : 'wrong', ids: a.itemIds, n: (s.verdict?.n ?? 0) + 1 } : s.verdict };
+    case 'gem':
+      return a.userId === (s.view?.youId ?? s.found?.youId) ? { ...s, gem: { amount: a.amount, n: (s.gem?.n ?? 0) + 1 } } : s;
+    case 'clearGem':
+      return { ...s, gem: null };
     case 'timeout':
       return a.mine ? { ...s, flash: 'timeout' } : s;
     case 'ended':

@@ -151,6 +151,8 @@ export type SubmitFeedback = 'correct' | 'one_away' | 'wrong';
 
 export type MatchEvent =
   | { t: 'guess'; side: MatchSide; itemIds: readonly string[]; outcome: SubmitFeedback }
+  /** Service-made: the group `userId` just solved held the board's gem card. */
+  | { t: 'gem'; userId: string; amount: number }
   | { t: 'group_solved'; side: MatchSide; level: GroupLevel; points: number; firstBlood: boolean }
   | { t: 'group_revealed'; level: GroupLevel }
   /** A board of a multi-board match is over (its solution may now be shown); the next one follows. */

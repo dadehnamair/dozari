@@ -1,5 +1,5 @@
 import { randomInt } from 'node:crypto';
-import { DEFAULT_MATCH_RULES, TEAM_MATCH_BOARDS, applyCommand, settleWager, applyPriceGuessCommand, finalScores, matchClientView, mulberry32, resolveWinner, selectRounds, ServerEvent, startMatch, startPriceGuess, startTeamMatch, toPriceRoundView, trackRules, turnDeadline } from '@dozari/shared';
+import { DEFAULT_MATCH_RULES, rollGemCard, groupHoldsGem, TEAM_MATCH_BOARDS, applyCommand, settleWager, applyPriceGuessCommand, finalScores, matchClientView, mulberry32, resolveWinner, selectRounds, ServerEvent, startMatch, startPriceGuess, startTeamMatch, toPriceRoundView, trackRules, turnDeadline } from '@dozari/shared';
 import type { AgeTrack, CatalogProduct, Command, RevealedRound, WagerSeat, ErrorCode, PriceGuessState, Stake, MatchEnded, MatchRules, MatchEvent, MatchEventPayload, MatchFound, MatchState, MatchView, PowerKind, Rng, RuleError } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
 import type { PuzzleSource, ServedPuzzle } from '../solo/types.js';
@@ -31,6 +31,10 @@ export interface MatchDeps {
   teamBoards?: () => Promise<number>;
   /** The match numbers (admin settings turn / mistakes / scoring), read when a match starts; absent or failing = the shared defaults. */
   rules?: () => Promise<MatchRules>;
+  /** The gem-card tunables (admin settings), read when a match starts; absent = no gem cards. */
+  gemCard?: () => Promise<{ percent: number; amount: number }>;
+  /** Pays the gems found behind a card (the caller skips bots); idempotent per `key`. */
+  onGem?: (userId: string, amount: number, key: string) => void;
   /** Whether a 1v1 ends with the price-guess round (admin setting `match.price_round`), read when a match starts; absent = no. */
   priceRound?: () => Promise<boolean>;
   now?: () => number;
@@ -70,6 +74,8 @@ interface Active {
   stakes?: [Stake, Stake];
   /** Stake table the match was queued at (settles with its fee). */
   tier?: string;
+  /** The card each board hides a gem behind (`null` = none), index = board; drawn when the match starts, never sent to a client. */
+  gems?: { cards: (string | null)[]; amount: number; claimed: boolean[] };
   /** Frozen at the start: this match ends with the price-guess round (1v1 only). */
   priceRound?: boolean;
   /** How many price questions it asks (a table's choice); absent = all of them. */
@@ -203,6 +209,7 @@ export class MatchService {
     const state = boards.length > 1 ? startTeamMatch(boards.map(toSolo), [[a], [b]], rng, this.now(), undefined, await this.matchRules()) : startMatch(puzzle, [a, b], rng, this.now(), undefined, await this.matchRules());
     const entry: Active = { id, puzzles: boards, state, cancel: null, stakes, tier: stakes ? opts.tier : undefined, priceRound: opts.priceRounds === undefined ? await this.wantsPriceRound() : opts.priceRounds > 0, priceRoundCount: opts.priceRounds, proposals: [null, null], table: fee > 0 && this.deps.tableStakes ? { fee, sides: [[a], [b]] } : undefined };
     if (entry.priceRound && stakes) entry.wager = (await this.deps.stakes?.wagerRules?.().catch(() => null)) ?? undefined;
+    entry.gems = await this.rollGems(boards);
     this.matches.set(id, entry);
     this.byUser.set(a, id);
     this.byUser.set(b, id);
@@ -235,6 +242,7 @@ export class MatchService {
       return false;
     }
     const entry: Active = { id, puzzles: boards, table: fee > 0 && this.deps.tableStakes ? { fee, sides: [[...sides[0]], [...sides[1]]] } : undefined, state: startTeamMatch(boards.map(toSolo), sides, mulberry32(this.newSeed()), this.now(), undefined, await this.matchRules()), cancel: null, proposals: [null, null] };
+    entry.gems = await this.rollGems(boards);
     this.matches.set(id, entry);
     for (const u of all) this.byUser.set(u, id);
     const players: MatchFound['players'] = all.map((u, i) => ({ userId: u, side: i < 2 ? 0 : 1, ...(profiles[i] as PlayerProfile) }));
@@ -243,6 +251,15 @@ export class MatchService {
     this.pushState(entry);
     this.armTimer(entry);
     return true;
+  }
+
+  /** Draws, per board, the card a gem hides behind (admin setting `gemcard.percent`); undefined when gem cards are off. */
+  private async rollGems(boards: readonly ServedPuzzle[]): Promise<Active['gems']> {
+    const rules = await this.deps.gemCard?.().catch(() => null);
+    if (!rules || rules.percent <= 0) return undefined;
+    const rng = mulberry32(this.newSeed());
+    const cards = boards.map((b) => rollGemCard(Object.keys(b.items), rules.percent, rng));
+    return cards.some(Boolean) ? { cards, amount: rules.amount, claimed: cards.map(() => false) } : undefined;
   }
 
   private async wantsPriceRound(): Promise<boolean> {
@@ -356,16 +373,28 @@ export class MatchService {
   }
 
   private apply(entry: Active, cmd: Command): { ok: true } | { ok: false; error: ErrorCode } {
+    const round = entry.state.round;
     const r = applyCommand(entry.state, cmd, { now: this.now() });
     if ('error' in r) return { ok: false, error: RULE_TO_ERROR[r.error] };
     entry.state = r.state;
+    const events: MatchEvent[] = [...r.events];
     for (const e of r.events) {
+      // A correct guess whose group holds this board's gem card pays the solver (once per board).
+      if (e.t === 'guess' && e.outcome === 'correct' && cmd.t === 'submit' && entry.gems && !entry.gems.claimed[round] && groupHoldsGem(entry.gems.cards[round], e.itemIds)) {
+        entry.gems.claimed[round] = true;
+        events.push({ t: 'gem', userId: cmd.by, amount: entry.gems.amount });
+        try {
+          this.deps.onGem?.(cmd.by, entry.gems.amount, `gem_card:${entry.id}-${round}:${cmd.by}`);
+        } catch {
+          /* a gem must not break the match */
+        }
+      }
       if (e.t === 'proposal') entry.proposals[e.side] = e.itemIds.length > 0 ? { by: e.by, itemIds: e.itemIds } : null;
       if (e.t === 'turn') entry.proposals = [null, null];
       if (e.t === 'guess') entry.recent = [...(entry.recent ?? []), { side: e.side, itemIds: e.itemIds, outcome: e.outcome }].slice(-RECENT_GUESSES);
       if (e.t === 'board') entry.recent = [];
     }
-    this.broadcast(entry, r.events);
+    this.broadcast(entry, events);
     return { ok: true };
   }
 
