@@ -15,7 +15,7 @@ const t = fa.tables.lobby;
  * Who plays whom at a table: two team cards face to face with a VS coin between them. The caller's team is blue and first,
  * the rival team pink; empty seats say who is awaited, and in a 2v2 an empty seat of the other team is a button to sit there.
  */
-export function TableLobby({ table, dark = false, onSit, onKick }: { table: TableView; /** The adult look: dark team cards in a gold frame with light text. */ dark?: boolean; onSit: (side: 0 | 1) => void; onKick: (userId: string) => void }) {
+export function TableLobby({ table, dark = false, onSit, onKick, onPlayer }: { table: TableView; /** The adult look: dark team cards in a gold frame with light text. */ dark?: boolean; onSit: (side: 0 | 1) => void; onKick: (userId: string) => void; /** Tapping a player's face or name opens their profile. */ onPlayer?: (userId: string) => void }) {
   const me = table.players.find((p) => p.isYou);
   const mySide = me?.side ?? 0;
   const perTeam = table.seats / 2;
@@ -53,11 +53,13 @@ export function TableLobby({ table, dark = false, onSit, onKick }: { table: Tabl
                 }
                 return (
                   <View key={p.id} style={[styles.seat, p.isYou ? styles.seatYou : null]}>
-                    <View>
-                      <Avatar avatar={avatarOf(p.avatarKey)} size={46} />
-                      {p.isHost ? <View style={styles.crown}><Item icon="crown" /></View> : null}
-                    </View>
-                    <Text style={[styles.name, { color: ink }]} numberOfLines={1}>{p.isYou ? `${p.nickname} (${t.you})` : p.nickname}</Text>
+                    <Pressable onPress={onPlayer && !p.isYou ? () => onPlayer(p.id) : undefined} disabled={!onPlayer || p.isYou} accessibilityRole="button" accessibilityLabel={p.nickname} style={styles.who}>
+                      <View>
+                        <Avatar avatar={avatarOf(p.avatarKey)} size={46} />
+                        {p.isHost ? <View style={styles.crown}><Item icon="crown" /></View> : null}
+                      </View>
+                      <Text style={[styles.name, { color: ink }]} numberOfLines={1}>{p.isYou ? `${p.nickname} (${t.you})` : p.nickname}</Text>
+                    </Pressable>
                     <Text style={[styles.state, { color: ink }, p.ready || p.isHost ? [styles.stateOk, dark ? { color: '#8EE6A0' } : null] : null]}>{p.isHost ? fa.tables.host : p.ready ? `✓ ${fa.tables.ready}` : t.notYet}</Text>
                     {table.youAreHost && !p.isHost && !table.inMatch ? (
                       <Pressable onPress={() => onKick(p.id)} style={styles.kick} accessibilityRole="button"><Text style={styles.kickText}>{fa.tables.kick}</Text></Pressable>
@@ -82,6 +84,7 @@ const styles = StyleSheet.create({
   head: { paddingVertical: 4, alignItems: 'center', borderBottomWidth: 3, borderColor: INK },
   headText: { fontFamily: fonts.display, fontSize: 15, color: '#fff', textShadowColor: INK, textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 1 },
   seat: { alignItems: 'center', gap: 2, paddingHorizontal: 6, paddingVertical: 4 },
+  who: { alignItems: 'center', gap: 2, maxWidth: '100%' },
   seatYou: { backgroundColor: 'rgba(255,201,60,0.3)' },
   empty: { opacity: 0.9 },
   ghost: { width: 46, height: 46, borderRadius: 23, borderWidth: 2.5, borderStyle: 'dashed', borderColor: INK, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.7)' },

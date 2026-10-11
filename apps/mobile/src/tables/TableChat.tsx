@@ -14,7 +14,7 @@ const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const POLL_MS = 3000;
 
 /** Text chat of a private table: everyone seated reads and writes (same server rules as the other rooms). */
-export function TableChat({ code, meId }: { code: string; meId: string | null }) {
+export function TableChat({ code, meId, onPlayer }: { code: string; meId: string | null; /** Tapping a sender's name opens their profile. */ onPlayer?: (userId: string) => void }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [canType, setCanType] = useState(true);
   const [text, setText] = useState('');
@@ -48,7 +48,7 @@ export function TableChat({ code, meId }: { code: string; meId: string | null })
           return (
             <View key={m.id} style={[styles.msg, mine ? styles.mine : null]}>
               <View style={[styles.bubble, mine ? styles.bubbleMine : null]}>
-                {mine ? null : <Text style={styles.who}>{m.nickname}</Text>}
+                {mine ? null : <Pressable onPress={onPlayer ? () => onPlayer(m.userId) : undefined} disabled={!onPlayer} accessibilityRole="button" accessibilityLabel={m.nickname}><Text style={styles.who}>{m.nickname}</Text></Pressable>}
                 <Text style={styles.text}>{m.text}</Text>
               </View>
               {mine ? null : (
