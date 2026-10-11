@@ -167,6 +167,11 @@ export function ShopSheet({ onClose, onBalance, realMoney = false }: { onClose: 
                 return (
                   <View key={it.id} style={styles.cell}>
                     <View style={[styles.card, tight ? styles.cardTight : null]}>
+                      {it.descriptionFa.trim() ? (
+                        <Pressable onPress={() => setWhyLocked(it.descriptionFa)} accessibilityRole="button" accessibilityLabel={`${fa.shop.about} ${it.titleFa}`} hitSlop={8} style={styles.info}>
+                          <Text style={styles.infoText}>؟</Text>
+                        </Pressable>
+                      ) : null}
                       <View style={[styles.art, tight ? styles.artTight : null]}>
                         <View style={[styles.artIcon, tight ? styles.artIconTight : null]}><Item icon={it.iconKey ?? 'magnifier'} /></View>
                         {locked ? <View style={styles.lock}><View style={styles.lockIcon}><Item icon="lock" /></View></View> : null}
@@ -215,6 +220,9 @@ export function ShopSheet({ onClose, onBalance, realMoney = false }: { onClose: 
 const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0, height: h }, shadowOpacity: 1, shadowRadius: 0, elevation: h });
 
 const styles = StyleSheet.create({
+  /** The small «؟» on a card: tells what the item is (its description shows in Baqal's bubble). */
+  info: { position: 'absolute', top: 6, left: 6, zIndex: 2, width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.candy.sky, alignItems: 'center', justifyContent: 'center' },
+  infoText: { fontFamily: fonts.display, fontSize: 13, lineHeight: 18, color: colors.ink },
   root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20, backgroundColor: colors.deep },
   veil: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   column: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingHorizontal: 10, paddingTop: pageTop() },
