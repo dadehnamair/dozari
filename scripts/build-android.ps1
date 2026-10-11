@@ -66,9 +66,10 @@ function Remove-AndroidDir {
         Where-Object { $_.CommandLine -match $pattern } |
         ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
     } elseif ($step -eq 2) {
-      Write-Host '==> still locked; releasing the folder from node/adb/clangd and waiting for the antivirus scan' -ForegroundColor Yellow
-      Get-Process node, adb, clangd, ninja -ErrorAction SilentlyContinue | Where-Object { $_.Id -ne $PID } |
-        ForEach-Object { Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue }
+      Write-Host '==> still locked; stopping node/adb/clangd/ninja processes of this repository and waiting for the antivirus scan' -ForegroundColor Yellow
+      Get-CimInstance Win32_Process -Filter "Name = 'node.exe' OR Name = 'adb.exe' OR Name = 'clangd.exe' OR Name = 'ninja.exe'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.ProcessId -ne $PID -and $_.CommandLine -match [regex]::Escape($root) } |
+        ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
       Start-Sleep -Seconds 5
     }
   }
