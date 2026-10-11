@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Platform, Pressable, Share, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Linking, Platform, Pressable, Share, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { FoundPlayer, MyFind } from '@dozari/shared';
 import { Avatar } from '../components/Avatar';
 import { CandyButton } from '../components/CandyButton';
@@ -42,7 +42,10 @@ export function FindSheet({ onClose }: { onClose: () => void }) {
   };
   const scanContacts = async () => {
     const read = await readContacts().catch(() => ({ ok: false as const, reason: 'denied' as const }));
-    if (!read.ok) return setNote(read.reason === 'unsupported' ? fa.find.contactsUnsupported : fa.find.contactsDenied);
+    if (!read.ok) {
+      if (read.reason === 'blocked') void Linking.openSettings().catch(() => undefined);
+      return setNote(read.reason === 'unsupported' ? fa.find.contactsUnsupported : read.reason === 'blocked' ? fa.find.contactsBlocked : read.reason === 'error' ? `${fa.find.contactsError} (${read.detail ?? ''})` : fa.find.contactsDenied);
+    }
     if (read.phones.length === 0) return (setFromContacts([]), setNote(null));
     findContacts(read.phones).then(
       (players) => (setFromContacts(players), setNote(null)),

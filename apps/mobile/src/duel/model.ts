@@ -147,8 +147,8 @@ export function duelReducer(s: DuelState, a: DuelAction): DuelState {
     case 'clearPowerNote':
       return { ...s, powerNote: null };
     case 'guess':
-      // Only the player's own guess flashes; the opponent's shows through the board changing.
-      return { ...s, ...(a.mine ? { flash: a.outcome } : {}), peek: null, verdict: a.itemIds ? { kind: a.outcome === 'correct' ? 'correct' : 'wrong', ids: a.itemIds, n: (s.verdict?.n ?? 0) + 1 } : s.verdict };
+      // Only the player's own guess flashes and shakes its cards; the opponent's wrong picks stay hidden (a solved group shows through the board changing).
+      return { ...s, ...(a.mine ? { flash: a.outcome } : {}), peek: null, verdict: a.mine && a.itemIds ? { kind: a.outcome === 'correct' ? 'correct' : 'wrong', ids: a.itemIds, n: (s.verdict?.n ?? 0) + 1 } : s.verdict };
     case 'gem':
       return a.userId === (s.view?.youId ?? s.found?.youId) ? { ...s, gem: { amount: a.amount, n: (s.gem?.n ?? 0) + 1 } } : s;
     case 'clearGem':

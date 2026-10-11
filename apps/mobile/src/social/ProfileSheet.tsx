@@ -45,7 +45,7 @@ const n = (v: number) => toPersianDigits(String(v));
  * rank, the level bar, four stat tiles, earned badges, then shortcuts (friends, find, gifts, invite, badges). The
  * pencil opens the editor (nickname, gender, city, e-mail); settings live on their own page.
  */
-export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () => void; onGender: (g: Gender | null) => void; /** Opens straight on a sub page (e.g. the friends list from a friend-request notice); `edit` opens the editor (gender, city, ...) for a mission. */ start?: 'friends' | 'edit' | null }) {
+export function ProfileSheet({ onClose, onGender, onAvatar, start = null }: { onClose: () => void; onGender: (g: Gender | null) => void; /** The player picked another character: the home hero follows at once. */ onAvatar?: (key: string) => void; /** Opens straight on a sub page (e.g. the friends list from a friend-request notice); `edit` opens the editor (gender, city, ...) for a mission. */ start?: 'friends' | 'edit' | null }) {
   useHardwareBack(onClose);
   const dark = useDark();
   const [me, setMe] = useState<MyProfile | null>(null);
@@ -255,7 +255,7 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
                   </Pressable>
                 ))}
               </View>
-              <ProfileEditor me={me} onChange={(patch) => setMe((m) => (m ? { ...m, ...patch } : m))} onPickCity={() => (setEditing(false), setSub('city'))} />
+              <ProfileEditor me={me} onChange={(patch) => (setMe((m) => (m ? { ...m, ...patch } : m)), patch.avatarKey ? onAvatar?.(patch.avatarKey) : undefined)} onPickCity={() => (setEditing(false), setSub('city'))} />
               <CandyButton label={fa.profile.close} sfx="back" color={colors.candy.sky} onPress={() => setEditing(false)} />
             </ScrollView>
           </Pressable>

@@ -39,6 +39,20 @@ describe('duel model', () => {
     expect(s.flash).toBeNull();
     expect(duelReducer(s, { t: 'guess', outcome: 'one_away', mine: true }).flash).toBe('one_away');
   });
+  it('never reveals which cards the rival picked on a wrong guess', () => {
+    const ids = ['a', 'b', 'c', 'd'];
+    for (const outcome of ['wrong', 'one_away', 'correct'] as const) {
+      const s = duelReducer(initialDuel, { t: 'guess', outcome, mine: false, itemIds: ids });
+      expect(s.verdict).toBeNull();
+      expect(s.flash).toBeNull();
+    }
+  });
+  it('shakes my own wrong picks and keeps an earlier verdict when the rival guesses', () => {
+    const ids = ['a', 'b', 'c', 'd'];
+    const mine = duelReducer(initialDuel, { t: 'guess', outcome: 'wrong', mine: true, itemIds: ids });
+    expect(mine.verdict).toMatchObject({ kind: 'wrong', ids });
+    expect(duelReducer(mine, { t: 'guess', outcome: 'wrong', mine: false, itemIds: ['e', 'f', 'g', 'h'] }).verdict).toEqual(mine.verdict);
+  });
   it('maps solved rows, turn and clock', () => {
     expect(boardSolved(view())[0]).toMatchObject({ revealed: true });
     expect(isMyTurn(view())).toBe(true);
