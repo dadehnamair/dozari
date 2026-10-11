@@ -1,10 +1,12 @@
 import { createHash, randomInt } from 'node:crypto';
-import { maskPhone, normalizeIranPhone } from '@dozari/shared';
+import { maskPhone, normalizeIranPhone, toLatinDigits } from '@dozari/shared';
 import type { AccountSummary, PhoneChoice, PhoneConflict } from '@dozari/shared';
 import type { SettingsService } from '../settings/service.js';
 import { RateLimiter } from '../security/rate-limit.js';
 import type { PhoneStore } from './store.js';
+import { smsReady } from './sms.js';
 import type { SmsClient } from './sms.js';
+import { smsErrorCode } from './sms-errors.js';
 
 export interface PhoneRules {
   smsTtlMs: number;
@@ -30,7 +32,7 @@ export interface PhoneStatus {
 export type SetPhoneResult = { ok: true; status: PhoneStatus } | { ok: false; error: 'invalid_phone' | 'taken' | 'rate_limited' };
 export type ContactResult = 'verified' | 'mismatch' | 'taken' | 'no_pending' | 'already' | 'conflict';
 export type ResolveResult = { ok: true; switchTo: string | null } | { ok: false; error: 'no_conflict' };
-export type SmsSendResult = { ok: true } | { ok: false; error: 'no_pending' | 'sms_unavailable' | 'too_soon' | 'send_failed'; retryAfterSec?: number };
+export type SmsSendResult = { ok: true } | { ok: false; error: 'no_pending' | 'sms_unavailable' | 'too_soon' | 'send_failed' | (string & {}); retryAfterSec?: number };
 export type SmsVerifyResult = { ok: true } | { ok: false; error: 'no_code' | 'expired' | 'wrong' | 'too_many' | 'taken' };
 
 const MAX_OTP_ATTEMPTS = 5;
@@ -54,7 +56,7 @@ export class PhoneService {
 
   async status(userId: string): Promise<PhoneStatus> {
     const s = await this.store.state(userId);
-    return { phone: s.phone ? maskPhone(s.phone) : null, pending: s.pending ? maskPhone(s.pending) : null, verified: s.phone !== null, smsAvailable: this.sms !== null, conflict: await this.openConflict(userId) };
+    return { phone: s.phone ? maskPhone(s.phone) : null, pending: s.pending ? maskPhone(s.pending) : null, verified: s.phone !== null, smsAvailable: smsReady(this.sms), conflict: await this.openConflict(userId) };
   }
 
   /** The waiting choice, or null; a stale one (expired, or the old account lost the number meanwhile) is dropped. */
@@ -130,8 +132,23 @@ export class PhoneService {
     return this.prove(userId, s.pending);
   }
 
+  /**
+   * Mini-app proof (Telegram-style `requestContact`): the player shared THEIR OWN contact with the bot, so Bale vouches for the number
+   * and nothing has to be typed first. Same own-contact rule as `verifyByContact`; a number held by another account becomes the usual choice.
+   */
+  async verifyByOwnContact(userId: string, contactPhone: string, contactOwnerId: string | undefined, senderId: string | undefined): Promise<ContactResult> {
+    if (contactOwnerId === undefined || senderId === undefined || String(contactOwnerId) !== String(senderId)) return 'mismatch';
+    const phone = normalizeIranPhone(contactPhone);
+    if (!phone) return 'mismatch';
+    const s = await this.store.state(userId);
+    if (s.phone === phone) return 'already';
+    await this.store.setPending(userId, phone);
+    await this.store.dropOtp(userId);
+    return this.prove(userId, phone);
+  }
+
   async sendSms(userId: string): Promise<SmsSendResult> {
-    if (!this.sms) return { ok: false, error: 'sms_unavailable' };
+    if (!smsReady(this.sms)) return { ok: false, error: 'sms_unavailable' };
     const s = await this.store.state(userId);
     if (!s.pending) return { ok: false, error: 'no_pending' };
     const rules = await this.rules();
@@ -140,10 +157,10 @@ export class PhoneService {
     const code = this.newCode();
     await this.store.putOtp(userId, { phone: s.pending, codeHash: hash(code, userId), attempts: 0, sentAt: this.now(), expiresAt: this.now() + rules.smsTtlMs });
     try {
-      await this.sms.sendCode(s.pending, code);
-    } catch {
+      await this.sms.sendCode(s.pending, code, 'verify');
+    } catch (e) {
       await this.store.dropOtp(userId);
-      return { ok: false, error: 'send_failed' };
+      return { ok: false, error: smsErrorCode(e) };
     }
     return { ok: true };
   }
@@ -155,7 +172,7 @@ export class PhoneService {
     if (o.attempts >= MAX_OTP_ATTEMPTS) return { ok: false, error: 'too_many' };
     const s = await this.store.state(userId);
     if (s.pending !== o.phone) return { ok: false, error: 'no_code' }; // the number was changed after the code was sent
-    if (hash(code.trim(), userId) !== o.codeHash) {
+    if (hash(toLatinDigits(code).trim(), userId) !== o.codeHash) {
       await this.store.bumpOtp(userId);
       return { ok: false, error: 'wrong' };
     }

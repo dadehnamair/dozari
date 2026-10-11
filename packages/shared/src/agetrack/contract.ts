@@ -17,6 +17,7 @@ const trackRulesSchema = z.object({
   tournaments: z.boolean(),
   transfers: z.boolean(),
   inviteShare: z.boolean(),
+  rewardedAds: z.boolean(),
   publicProfile: z.enum(['basic', 'stats', 'full']),
   publicCity: z.boolean(),
   dailyPuzzle: z.boolean(),

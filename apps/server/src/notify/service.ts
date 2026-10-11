@@ -216,16 +216,22 @@ export class NotifyService {
     await say(BALE_TEXT.signedUp(!created), true);
   }
 
-  /** The sender shared a contact: it verifies the phone number only for the linked player and only when it is their own contact. */
+  /** The sender shared a contact: it verifies the phone number only for the linked player (or the mini-app player behind this Bale id) and only when it is their own contact. */
   private async handleContact(update: BaleUpdate): Promise<void> {
     const msg = update.message!;
     const chatId = String(msg.chat.id);
     const say = (t: string, removeKeyboard = false) => this.client!.sendMessage(chatId, t, removeKeyboard ? { removeKeyboard: true } : undefined).catch(() => undefined);
-    const userId = await this.store.userOfChat(chatId);
+    const linked = await this.store.userOfChat(chatId);
+    // A mini-app player has no linked chat: their Bale id maps to their account, and sharing the contact is the whole proof (`requestContact`).
+    const fromId = msg.from?.id === undefined ? undefined : String(msg.from.id);
+    const miniUser = fromId === undefined ? null : ((await this.miniAppUserOf?.(fromId)) ?? null);
+    const ownContact = miniUser !== null && (linked === null || linked === miniUser);
+    const userId = ownContact ? miniUser : linked;
     if (!userId) return void (await this.handleSignupContact(update, say));
     if (!this.phone) return;
     if (this.badCodes.blocked(chatId)) return;
-    const out = await this.phone.verifyByContact(userId, msg.contact!.phone_number, msg.contact!.user_id === undefined ? undefined : String(msg.contact!.user_id), msg.from?.id === undefined ? undefined : String(msg.from.id));
+    const verify = ownContact ? this.phone.verifyByOwnContact.bind(this.phone) : this.phone.verifyByContact.bind(this.phone);
+    const out = await verify(userId, msg.contact!.phone_number, msg.contact!.user_id === undefined ? undefined : String(msg.contact!.user_id), fromId);
     if (out === 'verified' || out === 'already') return void (await say(BALE_TEXT.phoneVerified, true));
     if (out === 'no_pending') return void (await say(BALE_TEXT.noPhonePending, true));
     if (out === 'conflict') return void (await say(BALE_TEXT.phoneConflict, true));

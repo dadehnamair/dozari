@@ -79,6 +79,36 @@ VIEWS.wheel = function (root) {
   api('/admin/shop').then(function (r) { if (!r.ok) return; r.body.items.filter(function (i) { return i.effect === 'cosmetic'; }).forEach(function (i) { itemSel.appendChild(h('option', { value: i.id, text: i.titleFa })); }); });
   draw();
 };
+VIEWS.ads = function (root) {
+  var KINDS = [['coins', 'سکه'], ['gems', 'الماس'], ['hint_token', 'توکن راهنما'], ['wheel_spin', 'چرخش گردونه']];
+  var KIND = { coins: 'سکه', gems: 'الماس', hint_token: 'توکن راهنما', wheel_spin: 'چرخش گردونه' };
+  var list = h('div');
+  function num(v, min) { return h('input', { type: 'number', value: v, min: min === undefined ? 0 : min, style: 'width:90px' }); }
+  function row(p) {
+    var kind = select(KINDS, p.rewardKind), amt = num(p.rewardAmount), cap = num(p.dailyCap), cool = num(p.cooldownSeconds), watch = num(p.minWatchSeconds);
+    function save(patch) { api('/admin/ads/placements/' + p.placement, { method: 'PATCH', body: patch }).then(function (x) { if (!x.ok) return fail(x); toast('ذخیره شد'); draw(); }); }
+    return h('div', { class: 'card', style: 'padding:12px' }, [
+      h('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap' }, [
+        h('b', { text: p.labelFa }), p.enabled ? badge('روشن', 'b-ok') : badge('خاموش', 'b-warn'), h('span', { class: 'h', text: 'جایزه: ' + faNum(p.rewardAmount) + ' ' + (KIND[p.rewardKind] || p.rewardKind) + ' · روزی تا ' + faNum(p.dailyCap) + ' بار' })
+      ]),
+      h('div', { class: 'toolbar', style: 'margin-top:8px' }, [
+        field('نوع جایزه', kind), field('مقدار', amt), field('سقف در روز', cap), field('فاصله‌ی دو تبلیغ (ثانیه)', cool), field('کمترین زمان تماشا (ثانیه)', watch),
+        h('button', { class: 'btn primary', text: 'ذخیره', onclick: function () { save({ rewardKind: kind.value, rewardAmount: +amt.value, dailyCap: +cap.value, cooldownSeconds: +cool.value, minWatchSeconds: +watch.value }); } }),
+        h('button', { class: 'btn', text: p.enabled ? 'خاموش کن' : 'روشن کن', onclick: function () { save({ enabled: !p.enabled }); } })
+      ])
+    ]);
+  }
+  function draw() {
+    api('/admin/ads/placements').then(function (r) {
+      clear(list);
+      if (r.status === 404) return list.appendChild(empty('تبلیغ روی این سرور فعال نیست'));
+      if (!r.ok) return fail(r);
+      r.body.placements.forEach(function (p) { list.appendChild(row(p)); });
+    });
+  }
+  root.appendChild(card('جایگاه‌های تبلیغ ویدیویی', 'هر ردیف یک جا از برنامه است که می‌تواند «تماشای تبلیغ ← جایزه» نشان بدهد. همه در ابتدا خاموش‌اند. کلید کلی «تبلیغ ویدیویی پاداشی» در «تنظیمات ← اقتصاد» هم باید روشن باشد. فقط بزرگسال تبلیغ می‌بیند و نمایش تبلیغ به سرویس تبلیغ‌دهنده‌ی داخل برنامه هم نیاز دارد.', [list]));
+  draw();
+};
 VIEWS.shortlinks = function (root) {
   var list = h('div'), baseUrl = '';
   var ERR = { invalid_url: 'آدرس مقصد درست نیست (باید با http یا https شروع شود).', invalid_code: 'کد فقط حرف کوچک انگلیسی، عدد، خط تیره و زیرخط باشد (۲ تا ۲۴ نویسه).', reserved: 'این کد برای سیستم رزرو است.', taken: 'این کد قبلاً استفاده شده.', self_link: 'مقصد نباید خود دامنه‌ی کوتاه باشد.' };

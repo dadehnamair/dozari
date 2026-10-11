@@ -80,11 +80,18 @@ Four views from `docs/design/Dozari - 13 Match Screens.dc.html`:
    the real queue wait, «لغو جستجو») while searching; then **screen-versus**: blue half (player) and
    pink half (rival) split by a gold seam with the VS coin, both name plates (level badge + nickname),
    and a 3-second countdown leads to the board. A resumed match skips both.
-3. **screen-match**: top bar (leave button — two taps, since leaving loses; the turn clock plate turns
-   pink in the last 10 s; «۱ در ۱»), score panel (faces, names, four group pips per side, points,
-   blue/pink tug bar), whose turn it is, a toast line (guess feedback, the rival's taunt), the board,
-   the taunt button beside «فرصت‌ها», and shuffle / clear / submit. Shuffle only reorders the player's
-   own view. The design's magnifier and freeze power-ups are not part of the game rules and are left out.
+3. **screen-match** (`13 Match Screens v2`, D219): the courtyard at dusk under a violet vignette. Top bar: leave button
+   (two taps, since leaving loses), the turn-clock pill (pink and pulsing in the last 10 s) and «۱ در ۱». Score row: a blue card
+   for the player and a pink one for the rival (square portrait, name, level chip, four group pips; in 2v2 the teammate's small
+   portrait on the portrait's corner), the score and «از ۴ دسته» between them, and the tug bar under with a gold seam. The
+   player's card carries the **کل‌کل** badge: it opens a drawer sliding in from the right edge over a dim scrim, one tab per
+   canned-taunt category, bubbles popping in one after another. Sending a taunt closes the drawer, floats the text as a speech
+   bubble under the sender's card for ~3 s (the rival's taunt does the same under theirs) and dims the badge for 3 s (the
+   server's own rate limit still applies). Then whose turn it is, a toast line (guess feedback, refusals, round notes), the
+   board inside a dark panel, a row of «ذره‌بین» (left) · «فرصت‌ها» · «یخ» (right) with count badges (power-ups, game-rules.md §Power-ups: they
+   light up on the player's own turn, a frozen card gets an icy tint and a snowflake), and shuffle / clear / submit (the label reads «در حال ثبت…» while a submit is on its
+   way; a refusal is repeated right above the buttons). Shuffle only reorders the player's own view. Its sticker tab needs a sticker category in the canned
+   taunts (admin content) and shows only as far as the server sends categories.
 4. **screen-results**: the hero's win / sad / thinking pose, the banner, why it ended (worded from the
    player's side), a scoreboard (groups and points per player, crown for the leader), home and play again.
 

@@ -6,8 +6,10 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { fa } from '../i18n/fa';
 import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
+import { contactHost, requestContact } from '../miniapp/host';
 import { fetchPhone, requestSms, resolvePhone, savePhone, verifySmsCode } from './api';
 import { phoneErrorText } from './errors';
+import { onlyDigits } from './loginInput';
 import { TEXT_LEFT } from '../theme/direction';
 
 const INK = '#3A2418';
@@ -22,6 +24,7 @@ export function PhoneStep({ onChange }: { onChange?: (s: PhoneStatus) => void })
   const [note, setNote] = useState<{ text: string; bad: boolean } | null>(null);
   const [asking, setAsking] = useState<PhoneChoice | null>(null);
   const [busy, setBusy] = useState(false);
+  const [shared, setShared] = useState(false);
 
   const adopt = (s: PhoneStatus) => (setStatus(s), onChange?.(s));
   useEffect(() => {
@@ -29,7 +32,7 @@ export function PhoneStep({ onChange }: { onChange?: (s: PhoneStatus) => void })
   }, []);
 
   // The proof may happen in the Bale bot, outside the app: while a number waits, look again every few seconds.
-  const waiting = status !== null && !status.verified && status.pending !== null;
+  const waiting = status !== null && !status.verified && (status.pending !== null || shared);
   useEffect(() => {
     if (!waiting) return;
     const timer = setInterval(() => void fetchPhone().then(adopt, () => undefined), 5000);
@@ -42,6 +45,17 @@ export function PhoneStep({ onChange }: { onChange?: (s: PhoneStatus) => void })
       (s) => (setAsking(null), setBusy(false), s ? (adopt(s), setNote({ text: fa.phone.conflict.kept, bad: false })) : undefined),
       (e) => (setAsking(null), setBusy(false), setNote({ text: phoneErrorText(codeOf(e)), bad: true }), void fetchPhone().then(adopt, () => undefined)),
     );
+  };
+
+  // Inside a mini-app the host asks the player to share their own contact with the bot; the bot verifies it (no typing, no SMS).
+  const miniSdk = contactHost();
+  const shareContact = () => {
+    if (!miniSdk) return;
+    void requestContact(miniSdk).then((ok) => {
+      setShared(ok);
+      setNote(ok ? null : { text: fa.phone.shareDeclined, bad: true });
+      if (ok) void fetchPhone().then(adopt, () => undefined);
+    });
   };
 
   const save = () =>
@@ -103,12 +117,18 @@ export function PhoneStep({ onChange }: { onChange?: (s: PhoneStatus) => void })
               <Pressable onPress={() => void sms()} style={styles.pill} accessibilityRole="button"><Text style={styles.pillText}>{fa.phone.sendSms}</Text></Pressable>
               {smsSent ? (
                 <>
-                  <TextInput value={toPersianDigits(code)} onChangeText={setCode} keyboardType="number-pad" maxLength={8} style={styles.input} accessibilityLabel={fa.phone.smsCode} />
+                  <TextInput value={toPersianDigits(code)} onChangeText={(v) => setCode(onlyDigits(v, 8))} keyboardType="number-pad" maxLength={8} style={styles.input} accessibilityLabel={fa.phone.smsCode} />
                   <Pressable onPress={() => void verify()} style={[styles.pill, styles.on]} accessibilityRole="button"><Text style={styles.pillText}>{fa.phone.verify}</Text></Pressable>
                 </>
               ) : null}
             </View>
           ) : null}
+        </>
+      ) : null}
+      {!status.verified && miniSdk ? (
+        <>
+          <Text style={styles.hint}>{fa.phone.viaMiniApp}</Text>
+          <Pressable onPress={shareContact} style={[styles.pill, styles.on]} accessibilityRole="button"><Text style={styles.pillText}>{fa.phone.shareInBale}</Text></Pressable>
         </>
       ) : null}
       {!status.verified ? (

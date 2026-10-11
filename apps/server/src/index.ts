@@ -61,7 +61,9 @@ import { createDbFindStore } from './find/store.js';
 import { PhoneLoginService } from './phone/login.js';
 import { registerPhoneLoginRoutes, registerPhoneRoutes } from './phone/routes.js';
 import { PhoneService, phoneRulesFromSettings } from './phone/service.js';
-import { createIrnotiClient, createKavenegarClient, withSmsLogging } from './phone/sms.js';
+import { withSmsLogging } from './phone/sms.js';
+import type { SmsClient } from './phone/sms.js';
+import { SmsGateway } from './phone/smsConfig.js';
 import { createDbPhoneStore } from './phone/store.js';
 import { PuzzleHistory } from './solo/history.js';
 import { registerInviteRoutes } from './invite/routes.js';
@@ -136,7 +138,7 @@ import { registerShopPayRoutes, registerShopRoutes } from './economy/shop-routes
 import { LevelRoadService, registerRoadRoutes } from './progress/road.js';
 import { createDbRewardStore } from './progress/rewards-store.js';
 import { ProfileTaskService, registerProfileTaskRoutes } from './profile/tasks.js';
-import { createDbGemWallet, registerGemRoutes } from './economy/gems.js';
+import { createDbGemWallet, createGemCardPayer, registerGemRoutes } from './economy/gems.js';
 import type { GemWalletReader } from './economy/gems.js';
 import { createDbProfileTaskStore } from './profile/tasks-store.js';
 import { BirthdayService, registerBirthdayRoutes } from './profile/birthday.js';
@@ -167,6 +169,9 @@ import { createDbShopStore } from './economy/shop-store.js';
 import { HintService } from './solo/hints.js';
 import { PlayLimiter, createDbPlayCountStore } from './limits/play-limits.js';
 import { DuelStakes } from './duel/stakes.js';
+import { registerAdsRoutes } from './ads/routes.js';
+import { AdsService } from './ads/service.js';
+import { createDbAdsStore } from './ads/store.js';
 import { registerWheelRoutes } from './wheel/routes.js';
 import { WheelService } from './wheel/service.js';
 import { createDbWheelStore } from './wheel/store.js';
@@ -198,6 +203,8 @@ export interface ServerDeps {
   dailyReward?: DailyRewardService;
   /** Lucky wheel: a spin earned by winning a duel. */
   wheel?: WheelService;
+  /** Rewarded video ads (`/ads`, and the admin placement table). */
+  ads?: AdsService;
   /** Socket.io service (queue, matches); needs `auth`. Its live stats feed the admin panel. */
   realtime?: boolean;
   /** Bale messenger integration: link codes for players, the bot's name for the app. */
@@ -386,6 +393,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth) registerAuthRoutes(app, deps.auth, deps.deletion, deps.miniApp);
   if (deps.auth && deps.dailyReward) registerDailyRewardRoutes(app, deps.auth, deps.dailyReward);
   if (deps.auth && deps.wheel) registerWheelRoutes(app, deps.auth, deps.wheel);
+  if (deps.auth && deps.ads) registerAdsRoutes(app, deps.auth, deps.ads);
   if (deps.auth && deps.social) registerSocialRoutes(app, deps.auth, deps.social);
   if (deps.auth && deps.invite) registerInviteRoutes(app, deps.auth, deps.invite);
   if (deps.auth && deps.transfers) registerTransferRoutes(app, deps.auth, deps.transfers);
@@ -487,6 +495,12 @@ async function hintRules(settings: SettingsService): Promise<HintRules> {
   return { prices: { group_title: t!, one_card: o!, pair: p! }, minLevel: minLevel!, maxPerGame: maxPerGame!, repeatPercent: repeatPercent! };
 }
 
+/** The gem-card chance and prize (admin settings `gemcard.*`). */
+async function gemCardRules(settings: SettingsService): Promise<{ percent: number; amount: number }> {
+  const [percent, amount] = await Promise.all([settings.num('gemcard.percent'), settings.num('gemcard.amount')]);
+  return { percent, amount };
+}
+
 /** Live tunables for solo games and the price-guess staircase (admin settings). */
 async function soloRules(settings: SettingsService) {
   const pct = await settings.list('score.staircase_error_pct');
@@ -520,13 +534,12 @@ if (isMainModule(import.meta.url)) {
   const baleClient = baleToken ? createBaleClient(baleToken, { base: process.env.BALE_API_BASE }) : null;
   const baleStore: NotifyStore | undefined = db ? createDbNotifyStore(db) : undefined;
   const notify = baleStore ? new NotifyService(baleStore, baleClient) : undefined;
-  // irnoti wins when both are configured; Kavenegar stays as the fallback adapter.
-  const rawSmsClient = process.env.IRNOTI_API_KEY
-    ? createIrnotiClient(process.env.IRNOTI_API_KEY, { message: process.env.IRNOTI_MESSAGE, lineId: process.env.IRNOTI_LINE_ID })
-    : process.env.KAVENEGAR_API_KEY && process.env.KAVENEGAR_TEMPLATE
-      ? createKavenegarClient(process.env.KAVENEGAR_API_KEY, process.env.KAVENEGAR_TEMPLATE)
-      : null;
-  const smsClient = rawSmsClient ? withSmsLogging(rawSmsClient) : null;
+  // The SMS provider and message texts are edited in the admin panel (stored in app_settings); env vars are the fallback.
+  const smsGateway = settings && db
+    ? new SmsGateway(createDbSettingsStore(db), { irnotiKey: process.env.IRNOTI_API_KEY, irnotiMessage: process.env.IRNOTI_MESSAGE, irnotiLineId: process.env.IRNOTI_LINE_ID, irnotiPatternCode: process.env.IRNOTI_PATTERN_CODE, kavenegarKey: process.env.KAVENEGAR_API_KEY, kavenegarTemplate: process.env.KAVENEGAR_TEMPLATE })
+    : undefined;
+  await smsGateway?.refresh();
+  const smsClient: SmsClient | null = smsGateway ? withSmsLogging(smsGateway) : null;
   const phone = db && settings ? new PhoneService(createDbPhoneStore(db), () => phoneRulesFromSettings(settings), smsClient, Date.now, undefined, async (id) => {
         const [row, lv] = await Promise.all([socialStore?.publicRow(id), player?.levelOf(id)]);
         return { nickname: row?.nickname ?? '', avatarKey: row?.avatarKey ?? 'avatar-01', level: lv?.level.level ?? 1, coins: row?.coins ?? 0 };
@@ -571,7 +584,7 @@ if (isMainModule(import.meta.url)) {
         (ids) => birthday?.info(ids) ?? Promise.resolve(new Map()),
       )
     : undefined;
-  const messages = db ? new MessageCenter(createDbMessageStore(db), notify ?? null) : undefined;
+  const messages = db ? new MessageCenter(createDbMessageStore(db), notify ?? null, smsGateway ?? null) : undefined;
   if (messages) {
     // Online recipients get a nudge so the inbox badge moves without a reload; offline ones see it on the next load.
     messages.onDelivered = (ids) => {
@@ -657,6 +670,7 @@ if (isMainModule(import.meta.url)) {
           };
         }, () => randomInt(0, 2 ** 32) / 2 ** 32)
       : undefined;
+  const ads = db && settings ? new AdsService(createDbAdsStore(db), async () => (await settings.num('ads.enabled')) === 1) : undefined;
   const birthday =
     db && settings && socialStore
       ? new BirthdayService({
@@ -829,6 +843,7 @@ if (isMainModule(import.meta.url)) {
     // Mini-app players pay without linking the bot: the paying Bale user maps to their mini-app account (same device id as the login).
     if (baleToken) notify.miniAppUserOf = async (baleUserId) => (await auth?.userByDevice(miniAppDeviceId(baleToken, baleUserId)))?.id ?? null;
   }
+  const gemPayer = db ? createGemCardPayer(db, (msg, err) => console.error(msg, err)) : () => undefined;
   let dailyRef: DailyService | undefined;
   /** Puzzles each player has had in duels, tables and 2v2: nobody gets the same one again while others remain (solo keeps its own recent list). */
   const puzzleHistory = new PuzzleHistory();
@@ -836,6 +851,8 @@ if (isMainModule(import.meta.url)) {
     db && settings
       ? new SoloService(createDbPuzzleSource(db), {
           rules: () => soloRules(settings),
+          gemCard: () => gemCardRules(settings),
+          onGem: gemPayer,
           levelOf,
           trackOf: ageTracks ? (id) => ageTracks.effective(id) : undefined,
           onFinished: (id, outcome, tag) => {
@@ -879,7 +896,7 @@ if (isMainModule(import.meta.url)) {
     auth,
     settings,
     adminModules: db
-      ? { backups: backupService, images: adminImageStore(), products: productAdmin!, feedback, clientErrors, stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, keepsakes: keepsakeStore, wheel, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, ageTracks: db ? createDbAgeTrackAdmin(db) : undefined, economy: db ? createDbEconomyAdmin(db) : undefined, daily, ai: aiStudio, aiSchedules: aiScheduler, puzzles: createDbPuzzleAdmin(db), levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      ? { backups: backupService, images: adminImageStore(), products: productAdmin!, feedback, clientErrors, stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, keepsakes: keepsakeStore, wheel, ads, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, ageTracks: db ? createDbAgeTrackAdmin(db) : undefined, economy: db ? createDbEconomyAdmin(db) : undefined, daily, ai: aiStudio, aiSchedules: aiScheduler, puzzles: createDbPuzzleAdmin(db), levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, sms: smsGateway, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
     match: db
@@ -889,6 +906,10 @@ if (isMainModule(import.meta.url)) {
           trackOf: ageTracks ? (id) => ageTracks.effective(id) : undefined,
           wagerAllowed: ageTracks ? (id) => ageTracks.allows(id, 'coinWager') : undefined,
           teamBoards: settings ? () => settings.num('match.team_boards') : undefined,
+          gemCard: settings ? () => gemCardRules(settings) : undefined,
+          onGem: (id, amount, key) => {
+            if (!botDriver?.isBot(id)) gemPayer(id, amount, key);
+          },
           priceRound: settings ? async () => (await settings.num('match.price_round')) === 1 : undefined,
           rules: settings
             ? async () => {
@@ -951,6 +972,7 @@ if (isMainModule(import.meta.url)) {
     transfers,
     keepsakes,
     wheel,
+    ads,
     dailyReward: db && settings ? new DailyRewardService(createDbDailyRewardStore(db), Date.now, () => dailyRules(settings)) : undefined,
     catalog: db ? createDbCatalogRepository(db) : undefined,
     solo,

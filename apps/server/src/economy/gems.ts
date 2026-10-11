@@ -59,3 +59,12 @@ export function registerGemRoutes(app: FastifyInstance, auth: AuthService, gems:
     return gems.wallet(user.id);
   });
 }
+
+/** Pays the gems found behind a card (`gem_card`); the key makes a repeat a no-op. Failures are logged, never thrown into the game. */
+export function createGemCardPayer(db: Db, log: (msg: string, err?: unknown) => void = () => undefined) {
+  return (userId: string, amount: number, key: string): void => {
+    void db
+      .transaction((tx) => applyGemEntry(tx, { userId, delta: amount, reason: 'gem_card', refType: 'gem_card', refId: key.split(':')[1] ?? key, idempotencyKey: key }))
+      .catch((err) => log('gem card payout failed', err));
+  };
+}

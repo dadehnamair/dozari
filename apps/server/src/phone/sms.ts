@@ -1,6 +1,21 @@
+import { smsErrorFromBody } from './sms-errors.js';
+
 /** Sends the one-time code by SMS. The provider is chosen by the owner (open question); an adapter is one small function. */
 export interface SmsClient {
-  sendCode(phone: string, code: string): Promise<void>;
+  /** `purpose` picks the message text where the provider takes free text (login / verify / delete); default `verify`. */
+  sendCode(phone: string, code: string, purpose?: SmsPurpose): Promise<void>;
+  /** False when the client exists but no provider is set up right now (the admin can change that live). Absent = ready. */
+  readonly configured?: boolean;
+  /** Free-text send (broadcasts). Only providers that take arbitrary text have it (irnoti); Kavenegar sends approved templates only. */
+  sendText?(phone: string, text: string): Promise<void>;
+}
+
+export const SMS_PURPOSES = ['login', 'verify', 'delete'] as const;
+export type SmsPurpose = (typeof SMS_PURPOSES)[number];
+
+/** True when `sms` can send right now. */
+export function smsReady(sms: SmsClient | null): sms is SmsClient {
+  return sms !== null && sms.configured !== false;
 }
 
 /**
@@ -36,17 +51,65 @@ export function createIrnotiClient(apiKey: string, opts: { message?: string; lin
   const template = opts.message?.includes('{code}') ? opts.message : DEFAULT_SMS_MESSAGE;
   const lineId = opts.lineId || DEFAULT_IRNOTI_LINE_ID;
   const url = `${opts.baseUrl ?? 'https://api.irnoti.com'}/v1/sms/send`;
+  const sendText = async (phone: string, text: string) => {
+      const to = phone.replace(/^\+98/, '0');
+      const res = await doFetch(url, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lineId, to, text }),
+        signal: AbortSignal.timeout(10_000),
+      });
+      const json = (await res.json().catch(() => ({}))) as { success?: boolean; ok?: boolean; status?: string };
+      const known = smsErrorFromBody(json);
+      if (known) throw known;
+      if (!res.ok || json.success === false || json.ok === false || json.status === 'error') throw new Error(`sms provider refused (http ${res.status}): ${JSON.stringify(json).slice(0, 300)}`);
+  };
+  return {
+    sendText,
+    sendCode: (phone, code) => sendText(phone, template.replace('{code}', code)),
+  };
+}
+
+/** Default irnoti pattern (template) code for the OTP; override with `IRNOTI_PATTERN_CODE`. The pattern has one param, `code`. */
+export const DEFAULT_IRNOTI_PATTERN_CODE = 'gdhsgcnt';
+
+/**
+ * irnoti pattern adapter: `POST https://api.irnoti.com/v1/sms/pattern` with a Bearer key and JSON `{code: <pattern>, to, params: {code}}`.
+ * A successful reply carries a `batchId` (`{batchId, count, totalPrice, replayed}`); a 2xx without one counts as refused.
+ * Used as the backup when the plain `/sms/send` fails.
+ */
+export function createIrnotiPatternClient(apiKey: string, opts: { patternCode?: string; baseUrl?: string; fetchImpl?: typeof fetch } = {}): SmsClient {
+  const doFetch = opts.fetchImpl ?? fetch;
+  const patternCode = opts.patternCode || DEFAULT_IRNOTI_PATTERN_CODE;
+  const url = `${opts.baseUrl ?? 'https://api.irnoti.com'}/v1/sms/pattern`;
   return {
     async sendCode(phone, code) {
       const to = phone.replace(/^\+98/, '0');
       const res = await doFetch(url, {
         method: 'POST',
         headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lineId, to, text: template.replace('{code}', code) }),
+        body: JSON.stringify({ code: patternCode, to, params: { code } }),
         signal: AbortSignal.timeout(10_000),
       });
-      const json = (await res.json().catch(() => ({}))) as { success?: boolean; ok?: boolean; status?: string };
-      if (!res.ok || json.success === false || json.ok === false || json.status === 'error') throw new Error(`sms provider refused (http ${res.status}): ${JSON.stringify(json).slice(0, 300)}`);
+      const json = (await res.json().catch(() => ({}))) as { batchId?: string | number; count?: number };
+      if (!res.ok || json.batchId == null || json.count === 0) throw new Error(`sms pattern refused (http ${res.status}): ${JSON.stringify(json).slice(0, 300)}`);
+    },
+  };
+}
+
+/** Tries `primary`; if it throws, sends through `fallback`. When both fail the primary's error is the one surfaced. */
+export function createFallbackSmsClient(primary: SmsClient, fallback: SmsClient, onFallback?: (err: unknown) => void): SmsClient {
+  return {
+    ...(primary.sendText ? { sendText: primary.sendText.bind(primary) } : {}),
+    async sendCode(phone, code, purpose) {
+      try {
+        await primary.sendCode(phone, code, purpose);
+      } catch (err) {
+        onFallback?.(err);
+        await fallback.sendCode(phone, code, purpose).catch(() => {
+          throw err;
+        });
+      }
     },
   };
 }
@@ -57,9 +120,13 @@ export function createIrnotiClient(apiKey: string, opts: { message?: string; lin
  */
 export function withSmsLogging(inner: SmsClient, log: (msg: string, err: unknown) => void = (m, e) => console.error(m, e)): SmsClient {
   return {
-    async sendCode(phone, code) {
+    get configured() {
+      return inner.configured;
+    },
+    sendText: (phone, text) => (inner.sendText ? inner.sendText(phone, text) : Promise.reject(new Error('text sms unsupported'))),
+    async sendCode(phone, code, purpose) {
       try {
-        await inner.sendCode(phone, code);
+        await inner.sendCode(phone, code, purpose);
       } catch (err) {
         log(`[sms] send failed to ${phone.slice(0, -4).replace(/\d/g, '*')}${phone.slice(-4)}`, err instanceof Error ? err.message : err);
         throw err;

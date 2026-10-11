@@ -1,8 +1,11 @@
 import { createHash, randomInt } from 'node:crypto';
 import { accountDeleteCodes, eq } from '@dozari/db';
 import type { Db } from '@dozari/db';
+import { toLatinDigits } from '@dozari/shared';
 import type { PhoneStore } from '../phone/store.js';
+import { smsReady } from '../phone/sms.js';
 import type { SmsClient } from '../phone/sms.js';
+import { smsErrorCode } from '../phone/sms-errors.js';
 
 export interface DeleteCodeRow {
   codeHash: string;
@@ -60,7 +63,7 @@ export function createMemoryDeleteCodeStore(): DeleteCodeStore {
 }
 
 export type DeleteChannel = 'sms' | 'bale';
-export type SendDeleteCode = { ok: true; channel: DeleteChannel } | { ok: false; error: 'no_channel' | 'too_soon' | 'send_failed'; retryAfterSec?: number };
+export type SendDeleteCode = { ok: true; channel: DeleteChannel } | { ok: false; error: 'no_channel' | 'too_soon' | 'send_failed' | (string & {}); retryAfterSec?: number };
 export type ConfirmDelete = { ok: true } | { ok: false; error: 'no_code' | 'expired' | 'wrong' | 'too_many' };
 
 const TTL_MS = 10 * 60_000;
@@ -91,14 +94,14 @@ export class AccountDeletion {
     const { phone } = await this.phone.state(userId);
     let channel: DeleteChannel | null = null;
     try {
-      if (phone && this.sms) {
-        await this.sms.sendCode(phone, code);
+      if (phone && smsReady(this.sms)) {
+        await this.sms.sendCode(phone, code, 'delete');
         channel = 'sms';
       } else if (this.bale && (await this.bale(userId, text))) {
         channel = 'bale';
       }
-    } catch {
-      return { ok: false, error: 'send_failed' };
+    } catch (e) {
+      return { ok: false, error: smsErrorCode(e) };
     }
     if (!channel) return { ok: false, error: 'no_channel' };
     await this.store.put(userId, { codeHash: hash(code, userId), attempts: 0, sentAt: this.now(), expiresAt: this.now() + TTL_MS });
@@ -111,7 +114,7 @@ export class AccountDeletion {
     if (!row) return { ok: false, error: 'no_code' };
     if (this.now() > row.expiresAt) return { ok: false, error: 'expired' };
     if (row.attempts >= MAX_ATTEMPTS) return { ok: false, error: 'too_many' };
-    if (hash(code.trim(), userId) !== row.codeHash) {
+    if (hash(toLatinDigits(code).trim(), userId) !== row.codeHash) {
       await this.store.bump(userId);
       return { ok: false, error: 'wrong' };
     }

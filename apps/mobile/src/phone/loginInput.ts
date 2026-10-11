@@ -2,6 +2,8 @@ import { normalizeIranPhone } from '@dozari/shared';
 
 export const OTP_LENGTH = 5;
 export const RESEND_SECONDS = 60;
+/** Most digits the number field keeps: «0098» + 10 digits (a pasted +98 / 0098 number must not be cut short). */
+export const PHONE_MAX_DIGITS = 14;
 
 const FA_DIGITS = '۰۱۲۳۴۵۶۷۸۹';
 const AR_DIGITS = '٠١٢٣٤٥٦٧٨٩';
@@ -19,10 +21,9 @@ export function onlyDigits(raw: string, max: number): string {
   return out;
 }
 
-/** The number as typed after the fixed «+98»: with or without the leading 0, with spaces. Null until it is a valid Iranian mobile. */
+/** The number as typed after the fixed «+98»: with or without the leading 0 / +98 / 0098, with spaces. Null until it is a valid Iranian mobile. */
 export function phoneFromInput(typed: string): string | null {
-  const digits = onlyDigits(typed, 11);
-  return normalizeIranPhone(digits.startsWith('0') ? digits : `0${digits}`);
+  return normalizeIranPhone(onlyDigits(typed, PHONE_MAX_DIGITS));
 }
 
 /** Seconds left before another code may be asked for (never negative). */

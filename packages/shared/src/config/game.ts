@@ -49,6 +49,13 @@ export const OFFLINE_PACK_SIZE = 5;
 /** Puzzles one account may download per rolling 24 h, so the offline pack cannot be used to collect every solution. */
 export const OFFLINE_PACK_DAILY_LIMIT = 15;
 export const MATCH_MAX_MISTAKES = 4;
+/** Power-ups a side may use in one live match (docs/logic/game-rules.md §Power-ups): magnifier shows two cards of an unsolved group, freeze stops the rival from selecting for a few seconds. */
+export const MATCH_MAGNIFIERS = 2;
+export const MATCH_FREEZES = 1;
+/** How long a frozen side cannot select or submit (the turn clock keeps running). */
+export const FREEZE_SECONDS = 10;
+/** However many power-ups a side holds, each player may use only one in a whole match (any kind, 1v1 or 2v2). */
+export const POWERS_PER_PLAYER = 1;
 /** Boards (16-card packs) played in a 2v2 match; a 1v1 is always one board. Scores add up, mistakes reset per board. */
 export const TEAM_MATCH_BOARDS = 3;
 /** Two timeouts in a row make a side forfeit. */
@@ -66,3 +73,10 @@ export const NICKNAME_UNLOCK_GAMES = 10;
 /** Paid (coin) avatars / nicknames: minimum player level; an activated profile is also required (D65). */
 export const AVATAR_CHANGE_MIN_LEVEL = 3;
 export const NICKNAME_CHANGE_MIN_LEVEL = 5;
+
+/**
+ * Gem card: a game may hide one gem behind a random card; whoever solves the group holding that card earns it
+ * (a signed-in human only). Chance per game in percent (admin setting `gemcard.percent`, kept low) and gems per find.
+ */
+export const GEM_CARD_PERCENT = 5;
+export const GEM_CARD_AMOUNT = 1;

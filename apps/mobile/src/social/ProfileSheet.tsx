@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { swr } from '../net/cache';
-import { fetchWorn } from '../shop/api';
+import { fetchShop, fetchWorn } from '../shop/api';
 import { fetchBirthday } from './birthdayApi';
 import { PartyBanner } from './BirthdayBadge';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
@@ -108,6 +108,11 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
   if (sub === 'levels') return <LevelRoadPage onClose={() => setSub(null)} />;
 
   const lv = me?.level;
+  /** What the player owns: hint tokens, streak shields, gems (the shop is off or unreachable = the row is simply not drawn). */
+  const [goods, setGoods] = useState<{ tokens: number; shields: number; gems: number } | null>(null);
+  useEffect(() => {
+    fetchShop().then((sh) => setGoods({ tokens: sh.tokens, shields: sh.shields, gems: sh.gems }), () => undefined);
+  }, []);
   const pct = lv ? (lv.xpForNext === 0 ? 100 : Math.round((lv.xpInLevel / lv.xpForNext) * 100)) : 0;
   const province = provinceOf(me?.city?.province);
   const incoming = friends?.incoming.length ?? 0;
@@ -199,6 +204,17 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
                 </View>
               ))}
             </View>
+
+            {goods ? (
+              <View style={styles.stats}>
+                {([[fa.profile.goodsHints, goods.tokens, '#FFE48A'], [fa.profile.goodsShields, goods.shields, '#B8F08F'], [fa.profile.goodsGems, goods.gems, '#9BDDFF']] as const).map(([label, v, c]) => (
+                  <View key={label} style={[styles.stat, { backgroundColor: c, height: compact ? 52 : 60 }]} accessibilityLabel={`${label} ${v}`}>
+                    <Text style={styles.statValue}>{n(v)}</Text>
+                    <Text style={styles.statLabel}>{label}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : null}
 
             {/* Your own window: the keepsakes you pinned in the treasury, as other players see them. */}
             <ShowcaseStrip playerId={me.id} />

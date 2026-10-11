@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { toPersianDigits } from '@dozari/shared';
 import { SlabButton } from '../components/SlabButton';
+import { onlyDigits } from '../phone/loginInput';
 import { fa } from '../i18n/fa';
 import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
@@ -40,7 +41,7 @@ export function GuardianStep({ onDone }: { onDone: () => void }) {
       <Text style={styles.title}>{l.stepTitle}</Text>
       <Text style={styles.sub}>{l.stepSub}</Text>
       <TextInput value={toPersianDigits(phone)} onChangeText={setPhone} keyboardType="phone-pad" maxLength={20} placeholder={fa.phone.placeholder} style={styles.input} accessibilityLabel={l.phone} editable={!sent} />
-      {sent ? <TextInput value={toPersianDigits(code)} onChangeText={setCode} keyboardType="number-pad" maxLength={8} placeholder={l.code} style={styles.input} accessibilityLabel={l.code} /> : null}
+      {sent ? <TextInput value={toPersianDigits(code)} onChangeText={(v) => setCode(onlyDigits(v, 8))} keyboardType="number-pad" maxLength={8} placeholder={l.code} style={styles.input} accessibilityLabel={l.code} /> : null}
       {note ? <Text style={[styles.sub, note.bad ? styles.bad : null]}>{note.text}</Text> : null}
       {sent ? <SlabButton label={l.confirm} sfx="confirm" color={colors.candy.lime} height={50} fontSize={22} grow={0} disabled={busy || code.trim().length === 0} onPress={confirm} /> : <SlabButton label={l.sendCode} sfx="confirm" color={colors.candy.lime} height={50} fontSize={22} grow={0} disabled={busy || phone.trim().length === 0} onPress={send} />}
       <SlabButton label={l.later} sfx="back" color={colors.candy.sky} height={46} fontSize={18} grow={0} onPress={onDone} />

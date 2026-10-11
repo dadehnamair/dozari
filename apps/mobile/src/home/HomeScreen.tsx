@@ -1,3 +1,5 @@
+import { FadingSlogan } from './FadingSlogan';
+import { Attention } from '../components/Attention';
 import { useEffect, useMemo, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { GradientFill } from '../components/GradientFill';
@@ -201,7 +203,9 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
           {gems > 0 ? <StatPill color={colors.candy.sky} glyph="💎" value={fmt(gems)} label={`${gems} ${h.gems}`} onPress={() => setInfoOpen('gems')} /> : null}
           {dailyPuzzle && dailyPuzzle.state !== 'unavailable' && dailyPuzzle.streak > 0 ? <StatPill color={colors.candy.pink} glyph="🔥" value={`${toPersianDigits(String(dailyPuzzle.streak))} ${h.streak}`} label={`${dailyPuzzle.streak} ${h.streak}`} onPress={() => setInfoOpen('streak')} /> : null}
           <Pressable onPress={() => setHubOpen(true)} accessibilityRole="button" accessibilityLabel={fa.hub.open} style={[styles.mapBtn, adult ? styles.mapBtnAdult : null]}>
-            <View style={styles.mapIcon}><Item icon="map" /></View>
+            <Attention on={!!dailyOpenForPlay} radius={19}>
+              <View style={styles.mapIcon}><Item icon="map" /></View>
+            </Attention>
           </Pressable>
           {/* The lucky wheel is always one tap away; the number is the spins waiting (wins, level and tournament prizes, the shop, the daily free spin). */}
           <Pressable onPress={() => setWheelOpen(true)} accessibilityRole="button" accessibilityLabel={h.wheel} style={[styles.mapBtn, adult ? styles.mapBtnAdult : null]}>
@@ -218,7 +222,9 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
           <View style={styles.center} pointerEvents="box-none">
             <AnimatedLogo width={200} />
             <Pressable onPress={dailyOpenForPlay ? onDaily : undefined} disabled={!dailyOpenForPlay} accessibilityRole={dailyOpenForPlay ? 'button' : 'text'}>
-              <Text style={styles.bubble} numberOfLines={2}>{bubble}</Text>
+              <Attention on={!!dailyOpenForPlay} scale={1.05} radius={22}>
+                <Text style={styles.bubble} numberOfLines={2}>{dailyOpenForPlay ? `🧩 ${bubble}` : bubble}</Text>
+              </Attention>
             </Pressable>
             {province ? (
               <Pressable onPress={() => setProfileOpen(true)} accessibilityRole="button" accessibilityLabel={province.hello} style={styles.greet}>
@@ -226,7 +232,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
                 <Text style={styles.hello} numberOfLines={1}>{province.hello}</Text>
               </Pressable>
             ) : null}
-            {slogan ? <Text style={styles.slogan} numberOfLines={2}>{slogan}</Text> : null}
+            {slogan ? <FadingSlogan text={slogan} style={styles.slogan} /> : null}
             <View style={styles.spacer} pointerEvents="none" />
             {tip !== null && tips[tip] ? (
               <GuideBubble who={heroFor(gender)} text={tips[tip].text} />
