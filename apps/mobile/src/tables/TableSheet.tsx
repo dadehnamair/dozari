@@ -96,7 +96,9 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
 
   // Reopen the table the player already sits at; poll while one is open.
   useEffect(() => {
-    void fetchMyTable().then((t) => (t ? setTable(t) : initialCode ? enter(initialCode) : undefined), () => undefined);
+    // A table the player was sent to (a card, an invite) wins over the one they still sit at: joining it makes the server drop the old seat.
+    const wanted = initialCode ? normalizeTableCode(initialCode) : null;
+    void fetchMyTable().then((t) => (t && (!wanted || t.code === wanted) ? setTable(t) : initialCode ? enter(initialCode) : t ? setTable(t) : undefined), () => (initialCode ? enter(initialCode) : undefined));
   }, []);
   /** Failed polls in a row: one lost request must not throw the player out of the table; only «not found» does. */
   const misses = useRef(0);

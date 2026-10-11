@@ -22,6 +22,7 @@ import { fa } from '../i18n/fa';
 import { usePrefs } from '../prefs/store';
 import { buzz, playSfx } from '../sound/engine';
 import { canSubmit, pruneSelection, toggleSelection } from '../solo/selection';
+import { leaveTable } from '../tables/api';
 import { TableSheet } from '../tables/TableSheet';
 import { nativeTopInset } from '../theme/safeArea';
 import { colors, fonts } from '../theme/colors';
@@ -399,7 +400,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
           reason={endReason(outcome, state.ended.result.reason)}
           lines={lines.map((l) => ({ ...l, points: scores[l.me ? me : them] }))}
           priceRound={state.ended.priceRound}
-          onHome={onBack}
+          onHome={stage === 'resume' ? () => (void leaveTable().then(() => undefined, () => undefined), onBack()) : onBack}
           onAgain={stage === 'queue' ? again : () => setTableOpen(true)}
           againLabel={stage === 'resume' ? fa.tables.rematch : undefined}
           onInvite={() => setInviteOpen(true)}
