@@ -33,3 +33,9 @@ export function startsInText(target: number, now: number): string {
   }
   return parts.join(fa.tournament.unitsJoin);
 }
+
+/** The round the bracket opens on: the first one with a match still to play, else the final. */
+export function currentRound(bracket: TournamentDetail['bracket'], rounds: number): number {
+  const open = bracket.filter((m) => m.status !== 'done' && m.status !== 'bye').map((m) => m.round);
+  return open.length > 0 ? Math.min(...open) : Math.max(1, rounds);
+}

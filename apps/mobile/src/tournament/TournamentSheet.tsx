@@ -22,7 +22,7 @@ import { colors, fonts } from '../theme/colors';
 import { fetchTournament, fetchTournaments, joinTournament, leaveTournament } from './api';
 import { SponsorCard, SponsorInvite, SponsorTag } from './Sponsor';
 import { Winners } from './Winners';
-import { blockedText, placeLabel, roundLabel, startsInText } from './text';
+import { blockedText, currentRound, placeLabel, roundLabel, startsInText } from './text';
 import { pageTop } from '../theme/safeArea';
 import { TEXT_RIGHT } from '../theme/direction';
 
@@ -140,29 +140,7 @@ function TournamentPage({ id, onBack }: { id: string; onBack: () => void }) {
                 ))}
               </View>
 
-              {t.bracket.length > 0 ? (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.bracket}>
-                  {Array.from({ length: t.rounds }, (_, i) => i + 1).map((round) => (
-                    <View key={round} style={styles.col}>
-                      <Text style={styles.colTitle}>{roundLabel(round, t.size)}</Text>
-                      <View style={styles.colBody}>
-                        {t.bracket.filter((m) => m.round === round).map((m) => (
-                          <View key={`${m.round}-${m.slot}`} style={[styles.match, m.status === 'playing' ? styles.matchLive : null]}>
-                            {([m.a, m.b] as const).map((p, k) => (
-                              <View key={k} style={[styles.player, p && m.winnerId === p.id ? styles.playerWon : null]}>
-                                <Text style={[styles.playerName, !p || (m.winnerId && m.winnerId !== p.id) ? styles.dim : null]} numberOfLines={1}>
-                                  {p?.nickname ?? (m.status === 'bye' ? fa.tournament.bye : fa.tournament.waiting)}
-                                </Text>
-                                {p && m.winnerId === p.id ? <Text style={styles.check}>✓</Text> : null}
-                              </View>
-                            ))}
-                          </View>
-                        ))}
-                      </View>
-                    </View>
-                  ))}
-                </ScrollView>
-              ) : null}
+              {t.bracket.length > 0 ? <Bracket t={t} /> : null}
 
               {/* Sponsor + details + prizes + rules together, then the results, then who took part. */}
               {t.sponsor ? <SponsorCard sponsor={t.sponsor} /> : null}
@@ -212,6 +190,46 @@ function TournamentPage({ id, onBack }: { id: string; onBack: () => void }) {
   );
 }
 
+/** The bracket, one round at a time: round chips on top, the round's matches in a two-column grid (no sideways scrolling). */
+function Bracket({ t }: { t: TournamentDetail }) {
+  const [picked, setPicked] = useState<number | null>(null);
+  const round = picked ?? currentRound(t.bracket, t.rounds);
+  const matches = t.bracket.filter((m) => m.round === round).sort((x, y) => x.slot - y.slot);
+  const anyone = matches.some((m) => m.a || m.b);
+  return (
+    <View style={styles.panel}>
+      <Text style={styles.label}>{fa.tournament.bracketTitle}</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+        {Array.from({ length: t.rounds }, (_, i) => i + 1).map((r) => (
+          <Pressable key={r} onPress={() => setPicked(r)} accessibilityRole="button" accessibilityState={{ selected: r === round }} style={[styles.roundChip, r === round ? styles.roundChipOn : null]}>
+            <Text style={[styles.roundChipText, r === round ? styles.roundChipTextOn : null]}>{roundLabel(r, t.size)}</Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+      {anyone ? (
+        <View style={styles.grid}>
+          {matches.map((m) => (
+            <View key={`${m.round}-${m.slot}`} style={styles.cell}>
+              <View style={[styles.match, m.status === 'playing' ? styles.matchLive : null]}>
+                {([m.a, m.b] as const).map((p, k) => (
+                  <View key={k} style={[styles.player, k === 1 ? styles.playerLast : null, p && m.winnerId === p.id ? styles.playerWon : null]}>
+                    <Text style={[styles.playerName, !p || (m.winnerId && m.winnerId !== p.id) ? styles.dim : null]} numberOfLines={1}>
+                      {p?.nickname ?? (m.status === 'bye' ? fa.tournament.bye : fa.tournament.waiting)}
+                    </Text>
+                    {p && m.winnerId === p.id ? <Text style={styles.check}>✓</Text> : null}
+                  </View>
+                ))}
+              </View>
+            </View>
+          ))}
+        </View>
+      ) : (
+        <Text style={styles.small}>{round === 1 ? fa.tournament.drawLater : fa.tournament.roundLater}</Text>
+      )}
+    </View>
+  );
+}
+
 const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0, height: h }, shadowOpacity: 1, shadowRadius: 0, elevation: h });
 
 const styles = StyleSheet.create({
@@ -247,15 +265,19 @@ const styles = StyleSheet.create({
   stat: { flex: 1, height: 62, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center', ...lift(4) },
   statValue: { fontFamily: fonts.display, fontSize: 20, color: colors.ink },
   statLabel: { fontFamily: fonts.bold, fontSize: 11, color: colors.ink },
-  bracket: { flexDirection: ROW, gap: 12, paddingTop: 22, paddingBottom: 4 },
-  col: { width: 138, gap: 6 },
-  colTitle: { position: 'absolute', top: -18, left: 0, right: 0, textAlign: 'center', fontFamily: fonts.display, fontSize: 13, color: colors.candy.yellow },
-  colBody: { justifyContent: 'space-around', gap: 8, flexGrow: 1 },
+  chips: { flexDirection: ROW, gap: 6, paddingVertical: 4 },
+  roundChip: { paddingHorizontal: 12, height: 32, borderRadius: 99, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.cream, justifyContent: 'center' },
+  roundChipOn: { backgroundColor: '#7E46D6' },
+  roundChipText: { fontFamily: fonts.bold, fontSize: 12.5, color: colors.ink },
+  roundChipTextOn: { color: '#fff' },
+  grid: { flexDirection: ROW, flexWrap: 'wrap', marginHorizontal: -4 },
+  cell: { width: '50%', padding: 4 },
   match: { borderRadius: 12, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.paper, overflow: 'hidden', ...lift(3) },
   matchLive: { borderColor: '#7ED957' },
-  player: { height: 28, flexDirection: ROW, alignItems: 'center', gap: 4, paddingHorizontal: 6, borderBottomWidth: 1, borderColor: 'rgba(43,18,64,0.15)' },
+  playerLast: { borderBottomWidth: 0 },
+  player: { height: 30, flexDirection: ROW, alignItems: 'center', gap: 4, paddingHorizontal: 6, borderBottomWidth: 1, borderColor: 'rgba(43,18,64,0.15)' },
   playerWon: { backgroundColor: '#E4F7D0' },
-  playerName: { flex: 1, fontFamily: fonts.bold, fontSize: 11, color: colors.ink, textAlign: TEXT_RIGHT },
+  playerName: { flex: 1, fontFamily: fonts.bold, fontSize: 12, color: colors.ink, textAlign: TEXT_RIGHT },
   dim: { opacity: 0.5 },
   check: { fontFamily: fonts.display, fontSize: 13, color: '#3FA36B' },
   panel: { gap: 6, padding: 12, borderRadius: 20, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.paper, ...lift(5) },
