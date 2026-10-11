@@ -96,6 +96,12 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
     onGender(g);
     saveGender(g).catch(() => setFailed(true));
   };
+  // Hooks stay above the sub-page early returns below: a hook after them throws "Rendered fewer hooks" when a sub page opens.
+  /** What the player owns: hint tokens, streak shields, gems (the shop is off or unreachable = the row is simply not drawn). */
+  const [goods, setGoods] = useState<{ tokens: number; shields: number; gems: number } | null>(null);
+  useEffect(() => {
+    fetchShop().then((sh) => setGoods({ tokens: sh.tokens, shields: sh.shields, gems: sh.gems }), () => undefined);
+  }, []);
   const options: [Gender | null, string][] = [['female', fa.profile.female], ['male', fa.profile.male], [null, fa.profile.none]];
   const back = () => (setSub(null), load());
 
@@ -108,11 +114,6 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
   if (sub === 'levels') return <LevelRoadPage onClose={() => setSub(null)} />;
 
   const lv = me?.level;
-  /** What the player owns: hint tokens, streak shields, gems (the shop is off or unreachable = the row is simply not drawn). */
-  const [goods, setGoods] = useState<{ tokens: number; shields: number; gems: number } | null>(null);
-  useEffect(() => {
-    fetchShop().then((sh) => setGoods({ tokens: sh.tokens, shields: sh.shields, gems: sh.gems }), () => undefined);
-  }, []);
   const pct = lv ? (lv.xpForNext === 0 ? 100 : Math.round((lv.xpInLevel / lv.xpForNext) * 100)) : 0;
   const province = provinceOf(me?.city?.province);
   const incoming = friends?.incoming.length ?? 0;
