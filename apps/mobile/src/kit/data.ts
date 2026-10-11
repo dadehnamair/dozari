@@ -1,7 +1,7 @@
 import { CHARACTER_IDS } from '@dozari/shared';
 import { candyTone } from '../theme/colors';
 import type { IconName } from '../theme/icons';
-import type { CharacterPose } from '../theme/character';
+import type { CharacterId, CharacterPose } from '../theme/character';
 
 /** Asset catalogue from docs/design/Dozari Visual Assets.dc.html (sections G-J). Labels live in i18n/fa.ts. */
 
@@ -17,7 +17,7 @@ export interface AvatarSpec {
   skin: number;
   pose: CharacterPose;
   /** A named cast member (`char-<id>` keys); `skin` is then ignored. */
-  who?: string;
+  who?: CharacterId;
   light: string;
   base: string;
 }
