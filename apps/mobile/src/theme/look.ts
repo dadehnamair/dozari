@@ -19,6 +19,9 @@ export function setLookGender(g: Gender | null | undefined): void {
   apply();
 }
 
+/** The last known gender of the player (set when Home loads the profile), for screens that draw the hero. */
+export const getLookGender = (): Gender | null | undefined => gender;
+
 /** `null` (feature off or lookup failed) falls back to the candy look. */
 export function setLookTrack(t: AgeTrack | null | undefined): void {
   track = t;
