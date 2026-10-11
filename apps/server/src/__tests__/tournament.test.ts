@@ -409,4 +409,30 @@ describe('scheduled rounds', () => {
     expect(await t.service.create(t.input({ roundGapMinutes: 30 }), false)).toMatchObject({ ok: false, reason: 'bad_round_gap' });
     expect(await t.service.create(t.input({ graceMinutes: 0 }), false)).toMatchObject({ ok: false, reason: 'bad_grace' });
   });
+
+  it('reminds both players 30 minutes before a match opens, and the joined players before the tournament starts, once each', async () => {
+    const t = await scheduled({}, false);
+    const reminders = () => t.told.filter(([, text]) => text.includes('دقیقه‌ی دیگر'));
+    await t.service.tick();
+    expect(reminders()).toHaveLength(0); // an hour away
+    t.clock.ms += 31 * MIN; // 29 minutes before the start
+    await t.service.tick();
+    await t.service.tick();
+    expect(reminders().map(([id]) => id).sort()).toEqual(t.users.map((u) => u.id).sort()); // once each
+    t.clock.ms += 30 * MIN;
+    await t.service.tick(); // started: round 1 is open, no more reminders
+    expect(reminders()).toHaveLength(4);
+    t.clock.ms += 16 * MIN;
+    await t.service.tick(); // nobody came: p1 and p2 meet in round 2, tomorrow
+    const before = reminders().length;
+    const start = (await t.service.detail(t.u1.id, t.id))!.roundTimes[0]!;
+    t.clock.ms = start + DAY - 40 * MIN;
+    await t.service.tick();
+    expect(reminders()).toHaveLength(before);
+    t.clock.ms = start + DAY - 29 * MIN;
+    await t.service.tick();
+    await t.service.tick();
+    expect(reminders().slice(before).map(([id]) => id).sort()).toEqual([t.u1.id, t.u2.id].sort());
+  });
 });
+

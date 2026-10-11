@@ -1,4 +1,4 @@
-import { TOURNAMENT_MAX_ENTRY_COINS, TOURNAMENT_MAX_ENTRY_GEMS, TOURNAMENT_MAX_GRACE_MINUTES, TOURNAMENT_MAX_PRIZE_GEMS, TOURNAMENT_MAX_PRIZE_COINS, TOURNAMENT_MAX_ROUND_GAP_MINUTES, TOURNAMENT_MIN_GRACE_MINUTES, TOURNAMENT_SIZES, buildBracket, finalPlaces, forfeitOutcome, matchDeadline, nextSlot, roundCount, roundOpensAt, turnState } from '@dozari/shared';
+import { TOURNAMENT_MAX_ENTRY_COINS, TOURNAMENT_MAX_ENTRY_GEMS, TOURNAMENT_MAX_GRACE_MINUTES, TOURNAMENT_MAX_PRIZE_GEMS, TOURNAMENT_MAX_PRIZE_COINS, TOURNAMENT_MAX_ROUND_GAP_MINUTES, TOURNAMENT_MIN_GRACE_MINUTES, TOURNAMENT_REMIND_MINUTES, TOURNAMENT_SIZES, buildBracket, finalPlaces, forfeitOutcome, matchDeadline, nextSlot, roundCount, roundOpensAt, turnState } from '@dozari/shared';
 import type { Sponsor, TournamentDetail, TournamentError, TournamentListItem, TournamentTurn } from '@dozari/shared';
 import type { MatchRow, NewTournament, PrizeRow, TournamentRow, TournamentStore } from './store.js';
 
@@ -212,7 +212,10 @@ export class TournamentService {
   /** Called every few seconds: starts due tournaments, resolves byes, starts ready matches, recovers matches lost in a restart. */
   async tick(): Promise<void> {
     const now = this.now();
-    for (const t of await this.store.list(['open'], 100)) if (t.startsAt <= now) await this.begin(t);
+    for (const t of await this.store.list(['open'], 100)) {
+      if (t.startsAt <= now) await this.begin(t);
+      else await this.remindStart(t, now);
+    }
     for (const t of await this.store.list(['running'], 100)) {
       await this.resolve(t);
       for (const m of await this.store.matches(t.id)) {
@@ -235,15 +238,29 @@ export class TournamentService {
     return new Intl.DateTimeFormat('fa-IR', { timeZone: 'Asia/Tehran', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(ms));
   }
 
-  /** Matches already announced as open (a restart may announce one again; harmless). */
+  /** Matches already announced as open and tournaments / matches already reminded (a restart may repeat one; harmless). */
   private readonly announced = new Set<string>();
+  private readonly reminded = new Set<string>();
+
+  /** «Starts in 30 minutes» for everybody who joined a tournament that is about to begin. */
+  private async remindStart(t: TournamentRow, now: number): Promise<void> {
+    if (t.startsAt - now > TOURNAMENT_REMIND_MINUTES * 60_000 || this.reminded.has(t.id)) return;
+    this.reminded.add(t.id);
+    for (const e of await this.store.entries(t.id)) this.deps.notify?.(e.userId, `تورنومنت «${t.titleFa}» تا ${TOURNAMENT_REMIND_MINUTES} دقیقه‌ی دیگر شروع می‌شود (${this.when(t.startsAt)}).`);
+  }
 
   /** A scheduled match: waits for its time, then for both players to check in; the deadline gives it to whoever showed up. */
   private async runScheduled(t: TournamentRow, m: MatchRow): Promise<void> {
     const now = this.now();
     const opensAt = m.opensAt ?? roundOpensAt(t.startsAt, t.roundGapMinutes, m.round);
     if (m.opensAt === null) await this.store.updateMatch(m.id, { opensAt });
-    if (now < opensAt) return;
+    if (now < opensAt) {
+      if (opensAt - now <= TOURNAMENT_REMIND_MINUTES * 60_000 && !this.reminded.has(m.id)) {
+        this.reminded.add(m.id);
+        for (const id of [m.a, m.b]) if (id) this.deps.notify?.(id, `نوبتِ بازی تورنومنت «${t.titleFa}» تا ${TOURNAMENT_REMIND_MINUTES} دقیقه‌ی دیگر می‌رسد (${this.when(opensAt)})؛ آماده باش!`);
+      }
+      return;
+    }
     const deadline = matchDeadline(opensAt, t.graceMinutes);
     if (!this.announced.has(m.id)) {
       this.announced.add(m.id);

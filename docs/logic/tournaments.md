@@ -30,7 +30,7 @@ paid (`tournament_prize`, once per player) and the tournament finishes. A player
 
 `round_gap_minutes > 0` makes a tournament last days: round *n* opens at `starts_at + (n-1) × gap` (0 = the old behaviour: every ready match is started by the server at once). When a match opens its
 two players have `grace_minutes` (default 15) to check in (`POST /tournaments/:id/checkin`, from Home's pinned strip); both in → the duel starts. At the deadline: one checked in → that player wins by
-forfeit; nobody → the higher level goes on; both in but not startable (busy) → keeps retrying. Winners are told the next round's time (Bale text). `GET /me/tournament-turn` feeds the strip (an open tournament the
+forfeit; nobody → the higher level goes on; both in but not startable (busy) → keeps retrying. Winners are told the next round's time (Bale text); `TOURNAMENT_REMIND_MINUTES` (30) before the tournament starts and before each match opens, everybody concerned gets one reminder (Bale text; remembered in memory, so a restart may repeat one). `GET /me/tournament-turn` feeds the strip (an open tournament the
 player joined counts as «round 1 at the start time»). Admin builder: «فاصله‌ی دورها (ساعت)» and «مهلت حضور (دقیقه)». Pure helpers: `packages/shared/src/tournament/schedule.ts`.
 
 ## Player pages
@@ -39,7 +39,7 @@ player joined counts as «round 1 at the start time»). Admin builder: «فاص�
 when blocked, players, bracket by round (فینال / نیمه‌نهایی / یک‌چهارم نهایی …), results. Switch: `feature.tournament`.
 
 Not built: bots filling empty seats (waits for the admin bot users, D85), scheduled recurring tournaments, notifications at each round beyond Bale text,
-a live bracket push over sockets (the page refreshes every 10 s), a reminder shortly before a match opens.
+a live bracket push over sockets (the page refreshes every 10 s).
 
 ## One tournament at a time (D92)
 
