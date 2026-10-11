@@ -348,6 +348,7 @@ describe('scheduled rounds', () => {
     const t = await scheduled();
     expect(t.started).toEqual([]);
     expect(await t.service.turnFor(t.u1.id)).toMatchObject({ round: 1, state: 'open', opponent: `بازیکن ${t.u4.id.slice(-2)}` });
+    expect((await t.service.detail(t.u1.id, t.id))!.bracket[0]!.a).toMatchObject({ id: t.u1.id, avatarKey: 'avatar-01' }); // the bracket carries the faces
     expect((await t.checkin(t.u1)).json()).toMatchObject({ ok: true, state: 'checked_in' });
     expect(await t.service.turnFor(t.u1.id)).toMatchObject({ state: 'checked_in' });
     await t.service.tick();

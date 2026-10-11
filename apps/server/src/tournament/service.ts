@@ -175,7 +175,7 @@ export class TournamentService {
     for (const m of matches) {
       const a = await who(m.a);
       const b = await who(m.b);
-      bracket.push({ round: m.round, slot: m.slot, a: a ? { id: a.id, nickname: a.nickname } : null, b: b ? { id: b.id, nickname: b.nickname } : null, winnerId: m.winner, status: m.status, opensAt: m.opensAt });
+      bracket.push({ round: m.round, slot: m.slot, a: a ? { id: a.id, nickname: a.nickname, avatarKey: a.avatarKey } : null, b: b ? { id: b.id, nickname: b.nickname, avatarKey: b.avatarKey } : null, winnerId: m.winner, status: m.status, opensAt: m.opensAt });
     }
     const entered = entries.some((e) => e.userId === userId);
     const busy = !entered && !t.allowConcurrent && t.status === 'open' && (await this.store.busyElsewhere(userId, id));
