@@ -124,6 +124,12 @@ export function ShopSheet({ onClose, onBalance, realMoney = false }: { onClose: 
               <View style={styles.pillIcon}><Item icon="coin" /></View>
             </View>
           ) : null}
+          {shop ? (
+            <View style={styles.pill} accessibilityLabel={`${fa.hints.tokens} ${shop.tokens}`}>
+              <Text style={styles.pillText}>{n(shop.tokens)}</Text>
+              <Icon name="hint" size={18} color="#FFE48A" strokeWidth={2.6} />
+            </View>
+          ) : null}
           {shop && shop.gems > 0 ? (
             <View style={styles.pill} accessibilityLabel={`${fa.home.hub.gems} ${shop.gems}`}>
               <Text style={styles.pillText}>{n(shop.gems)}</Text>
