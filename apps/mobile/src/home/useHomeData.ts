@@ -22,6 +22,7 @@ export function useHomeData(features: ClientConfig['features']) {
     if (features.duel) void fetchMatchActive().then(setLiveMatch, () => undefined);
   }, [features.duel]);
   const [gender, setGender] = useState<Gender | null>(null);
+  const [avatarKey, setAvatarKey] = useState<string | null>(null);
   const [level, setLevel] = useState<number | null>(null);
   /** The player's province (D101): its badge and local greeting sit under the wordmark. */
   const [province, setProvince] = useState<Province | null>(null);
@@ -32,7 +33,7 @@ export function useHomeData(features: ClientConfig['features']) {
     void fetchAgeTrack().then((m) => setLookTrack(m.enabled ? m.track : null), () => undefined);
   }, []);
   const loadMe = useCallback(() => {
-    fetchMyProfile().then((p) => (setGender(p.gender), setLookGender(p.gender), setLevel(p.level.level), setProvince(provinceOf(p.city?.province)), setSlogan(p.city?.sloganFa ?? null)), () => undefined);
+    fetchMyProfile().then((p) => (setGender(p.gender), setAvatarKey(p.avatarKey), setLookGender(p.gender), setLevel(p.level.level), setProvince(provinceOf(p.city?.province)), setSlogan(p.city?.sloganFa ?? null)), () => undefined);
   }, []);
   useEffect(loadMe, [loadMe]);
   /** What the hero wears (set in the fitting room). */
@@ -48,5 +49,5 @@ export function useHomeData(features: ClientConfig['features']) {
   useEffect(() => {
     if (features.daily) fetchDailyStatus().then(setDailyPuzzle, () => undefined);
   }, [features.daily]);
-  return { spins, loadSpins, liveMatch, gender, setGender, level, province, slogan, dailyPuzzle, loadMe, profileTasks, loadTasks, gems, worn, loadWorn };
+  return { spins, loadSpins, liveMatch, gender, setGender, avatarKey, setAvatarKey, level, province, slogan, dailyPuzzle, loadMe, profileTasks, loadTasks, gems, worn, loadWorn };
 }

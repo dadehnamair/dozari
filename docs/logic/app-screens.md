@@ -15,10 +15,10 @@ Backend: `profile-and-identity.md` §Phone login (`POST /auth/phone/code|verify`
 
 ## Onboarding (first app open, before any account setup)
 
-1. **4-step tutorial** (screen-tutorial of `docs/design/Dozari - 19 Social Daily Onboarding`, D99),
+1. **Short tutorial (7 steps, two with a worked example)** (screen-tutorial of `docs/design/Dozari - 19 Social Daily Onboarding`, D99),
    skippable with «رد کن». «آجان», the bazaar guard, talks from the bottom corner over a sample
    board of 16 items: (1) the goal — four groups of four; (2) one group lights up and the rest dim;
-   (3) the group is picked and a «ثبت کن» slab shows, with a word on the limited chances; (4) the
+   (3) the group is picked and a «ثبت کن» slab shows; (4) the
    group is solved, plus the nominal-prices and coins line. Step dots at the top; one CTA per step.
 2. After the tutorial, a **random nickname + avatar** is assigned silently (no signup screen) —
    see `profile-and-identity.md`. The user lands straight on Home.

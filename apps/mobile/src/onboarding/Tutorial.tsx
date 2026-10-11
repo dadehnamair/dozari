@@ -65,7 +65,7 @@ export function Tutorial({ onDone }: { onDone: () => void }) {
             </View>
           </View>
 
-          <View style={styles.grid}>
+          {step.demo ? <Demo kind={step.demo} /> : <View style={styles.grid}>
             {TILE_ICONS.map((icon, k) => {
               const lit = i >= 1 && FOOD.includes(k);
               const solved = i === 3 && lit;
@@ -80,7 +80,7 @@ export function Tutorial({ onDone }: { onDone: () => void }) {
                 </View>
               );
             })}
-          </View>
+          </View>}
           <View style={styles.submitSlot}>
             {i === 2 ? <Pressable onPress={() => setI(3)} style={styles.submit} accessibilityRole="button"><Text style={styles.submitText}>{t.submit}</Text></Pressable> : null}
           </View>
@@ -94,6 +94,36 @@ export function Tutorial({ onDone }: { onDone: () => void }) {
           </View>
         </View>
       </ScrollView>
+    </View>
+  );
+}
+
+/** A tiny worked example for a step: the lives with a wrong / right sample card, or a card hiding a gem. */
+function Demo({ kind }: { kind: 'lives' | 'gem' }) {
+  const d = t.demo;
+  if (kind === 'gem') {
+    return (
+      <View style={styles.demo}>
+        <View style={[styles.sample, styles.sampleGem]}>
+          <Text style={styles.gem}>💎</Text>
+          <View style={styles.tileIcon}><Item icon="gem" /></View>
+          <Text style={styles.tileText}>{t.words[7]}</Text>
+        </View>
+        <Text style={styles.demoNote}>{d.gem}</Text>
+      </View>
+    );
+  }
+  return (
+    <View style={styles.demo}>
+      <View style={styles.livesRow}>
+        <Text style={styles.demoNote}>{d.lives}</Text>
+        {[0, 1, 2, 3].map((k) => <View key={k} style={[styles.life, k === 3 ? styles.lifeUsed : null]} />)}
+      </View>
+      <View style={styles.sampleRow}>
+        <View style={[styles.sample, styles.sampleWrong]}><View style={styles.tileIcon}><Item icon="top" /></View><Text style={styles.tileText}>{t.words[6]}</Text><Text style={styles.sampleTag}>{d.wrong}</Text></View>
+        <View style={[styles.sample, styles.sampleRight]}><View style={styles.tileIcon}><Item icon="bread" /></View><Text style={styles.tileText}>{t.words[13]}</Text><Text style={styles.sampleTag}>{d.right}</Text></View>
+      </View>
+      <Text style={styles.demoNote}>{d.oneAway}</Text>
     </View>
   );
 }
@@ -121,6 +151,18 @@ const styles = StyleSheet.create({
   tileSolved: { backgroundColor: colors.hi },
   tileIcon: { width: 32, height: 32 },
   tileText: { fontFamily: fonts.bold, fontSize: 11.5, color: colors.ink },
+  demo: { alignItems: 'center', gap: 12, paddingVertical: 10 },
+  demoNote: { fontFamily: fonts.bold, fontSize: 13, color: colors.cream },
+  livesRow: { flexDirection: ROW, alignItems: 'center', gap: 8 },
+  life: { width: 20, height: 20, borderRadius: 10, borderWidth: 3, borderColor: colors.ink, backgroundColor: 'rgba(255,255,255,0.3)' },
+  lifeUsed: { backgroundColor: colors.candy.pink },
+  sampleRow: { flexDirection: ROW, gap: 14 },
+  sample: { width: 92, height: 84, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center', gap: 1 },
+  sampleWrong: { backgroundColor: '#F6A5AF' },
+  sampleRight: { backgroundColor: '#9BE3A8' },
+  sampleGem: { backgroundColor: colors.cream, shadowColor: colors.candy.sky, shadowOffset: { width: 0, height: 0 }, shadowRadius: 12, shadowOpacity: 0.9 },
+  sampleTag: { fontFamily: fonts.display, fontSize: 11, color: colors.ink },
+  gem: { position: 'absolute', top: -10, right: -8, fontSize: 22 },
   submitSlot: { height: 72, alignItems: 'center', justifyContent: 'center' },
   submit: { height: 52, paddingHorizontal: 34, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.candy.lime, justifyContent: 'center', ...lift(5) },
   submitText: { fontFamily: fonts.display, fontSize: 22, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1, ...FACE_TEXT },

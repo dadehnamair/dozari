@@ -21,7 +21,7 @@ import { MissionsSheet } from '../missions/MissionsSheet';
 import { missionRows } from '../missions/model';
 import type { MissionAvailability } from '../missions/model';
 import { InviteSheet } from '../invite/InviteSheet';
-import { heroFor } from '../social/heroFor';
+import { heroOf } from '../social/heroFor';
 import { setLookGender } from '../theme/look';
 import { ReviewSheet } from '../review/ReviewSheet';
 import { useReviewPrompt } from '../review/useReviewPrompt';
@@ -81,7 +81,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
   /** Short phones (≤700px tall) get tighter columns and a smaller hero so nothing runs into the bottom buttons. */
   const compact = useWindowDimensions().height <= 700;
   const daily = useDailyReward();
-  const { spins, loadSpins, liveMatch, gender, setGender, level, province, slogan, dailyPuzzle, loadMe, profileTasks, loadTasks, gems, worn, loadWorn } = useHomeData(features);
+  const { spins, loadSpins, liveMatch, gender, setGender, avatarKey, setAvatarKey, level, province, slogan, dailyPuzzle, loadMe, profileTasks, loadTasks, gems, worn, loadWorn } = useHomeData(features);
   const hero = useHeroMotion();
   const [wheelOpen, setWheelOpen] = useState(false);
   const [baleOpen, setBaleOpen] = useState(false);
@@ -237,21 +237,21 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
             {slogan ? <FadingSlogan text={slogan} style={styles.slogan} /> : null}
             <View style={styles.spacer} pointerEvents="none" />
             {tip !== null && tips[tip] ? (
-              <GuideBubble who={heroFor(gender)} text={tips[tip].text} />
+              <GuideBubble face={false} who={heroOf(gender, avatarKey)} text={tips[tip].text} />
             ) : nudgeToast ? (
-              <GuideBubble who={heroFor(gender)} text={nudgeToast} />
+              <GuideBubble face={false} who={heroOf(gender, avatarKey)} text={nudgeToast} />
             ) : missionsReady > 0 ? (
-              <GuideBubble who={heroFor(gender)} text={fa.home.missionNudge(missionsReady)} onPress={() => setSettingsOpen(true)} />
+              <GuideBubble face={false} who={heroOf(gender, avatarKey)} text={fa.home.missionNudge(missionsReady)} onPress={() => setSettingsOpen(true)} />
             ) : nudge ? (
-              <GuideBubble who={heroFor(gender)} text={fa.home.profileNudge[nudge.action === 'claim' ? 'claim' : nudge.key](fmt(nudge.task.coins))} onPress={onNudge} />
+              <GuideBubble face={false} who={heroOf(gender, avatarKey)} text={fa.home.profileNudge[nudge.action === 'claim' ? 'claim' : nudge.key](fmt(nudge.task.coins))} onPress={onNudge} />
             ) : teaser ? (
-              <GuideBubble who={heroFor(gender)} text={teaser} onPress={() => (setTip((cur) => nextTip(cur, tips.length)), hero.hop())} />
+              <GuideBubble face={false} who={heroOf(gender, avatarKey)} text={teaser} onPress={() => (setTip((cur) => nextTip(cur, tips.length)), hero.hop())} />
             ) : null}
             {/* A touch on the character itself must not count as «a tap elsewhere» that closes the tip. */}
             <View onTouchStart={(e) => e.stopPropagation()}>
             <Pressable onPress={() => (setTip((cur) => nextTip(cur, tips.length)), hero.hop())} accessibilityRole="button" accessibilityLabel={fa.home.guide.name}>
               <Animated.View style={[styles.hero, compact ? styles.heroCompact : null, { transform: hero.transform }]}>
-                <Character who={heroFor(gender)} pose="wave" month={month} worn={worn} />
+                <Character who={heroOf(gender, avatarKey)} pose="wave" month={month} worn={worn} />
                 <HeroCoinToss width={compact ? 130 : 180} height={compact ? 142 : 197} tossKey={hero.tossKey} enabled={!hero.reduceMotion} />
               </Animated.View>
             </Pressable>
@@ -270,7 +270,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
 
       {review.open && review.url ? <ReviewSheet message={review.message} url={review.url} onReview={review.onReview} onLater={review.onLater} onNever={review.onNever} /> : null}
       {friendNotice && !profileOpen ? <FriendRequestSheet from={friendNotice.from} count={friendNotice.count} onSee={() => (setFriendNotice(null), setProfileStart('friends'), setProfileOpen(true))} onLater={() => setFriendNotice(null)} /> : null}
-      {profileOpen ? <ProfileSheet start={profileStart} onClose={() => (setProfileOpen(false), setProfileStart(null), loadMe(), loadTasks(), returnToMissions())} onGender={(g) => (setGender(g), setLookGender(g))} /> : null}
+      {profileOpen ? <ProfileSheet start={profileStart} onClose={() => (setProfileOpen(false), setProfileStart(null), loadMe(), loadTasks(), returnToMissions())} onGender={(g) => (setGender(g), setLookGender(g))} onAvatar={setAvatarKey} /> : null}
       {hubOpen ? (
         <CityHub
           onClose={() => setHubOpen(false)}
@@ -297,7 +297,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
       {chatOpen ? <ChatSheet onClose={() => setChatOpen(false)} onJoinTable={(code) => (setChatOpen(false), setTableCode(code), setTableOpen(true))} /> : null}
       {shopOpen ? <ShopSheet realMoney={Number(settings['feature.coin_packages']) === 1 && myTrack?.rules?.purchases !== false} onClose={() => { setShopOpen(false); daily.reload(); }} /> : null}
       {treasuryOpen ? <TreasuryPage onClose={() => (setTreasuryOpen(false), daily.reload())} /> : null}
-      {wardrobeOpen ? <FittingRoom who={heroFor(gender)} realMoney={Number(settings['feature.coin_packages']) === 1 && myTrack?.rules?.purchases !== false} onClose={() => (setWardrobeOpen(false), loadWorn(), daily.reload())} /> : null}
+      {wardrobeOpen ? <FittingRoom who={heroOf(gender, avatarKey)} realMoney={Number(settings['feature.coin_packages']) === 1 && myTrack?.rules?.purchases !== false} onClose={() => (setWardrobeOpen(false), loadWorn(), daily.reload())} /> : null}
       {wheelOpen ? <WheelPage daily={daily} onClose={() => (setWheelOpen(false), loadSpins(), daily.reload())} /> : null}
       {missionsOpen ? (
         <MissionsSheet
