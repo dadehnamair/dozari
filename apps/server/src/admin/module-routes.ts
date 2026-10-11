@@ -670,6 +670,8 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       startsAt: z.number().int(),
       botFill: z.boolean().optional(),
       allowConcurrent: z.boolean().optional(),
+      roundGapMinutes: z.number().int().min(0).max(20_160).optional(),
+      graceMinutes: z.number().int().min(1).max(120).optional(),
       sponsorId: z.string().uuid().nullable().optional(),
       prizes: z.array(z.object({ place: z.number().int().min(1).max(3), coins: z.number().int().min(0).max(1_000_000), gems: z.number().int().min(0).max(500).default(0), spins: z.number().int().min(0).max(20).default(0) })).max(3),
     };

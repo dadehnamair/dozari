@@ -20,6 +20,7 @@ const FEATURE_OF: [prefix: string, setting: string][] = [
   ['/shop', 'feature.shop'],
   ['/chat', 'feature.chat'],
   ['/tournaments', 'feature.tournament'],
+  ['/me/tournament-turn', 'feature.tournament'],
   ['/daily-puzzle', 'feature.daily'],
   ['/price-only', 'feature.priceonly'],
   ['/transfers', 'feature.friends'],

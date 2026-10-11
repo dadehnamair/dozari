@@ -93,6 +93,7 @@ const PATH_RULES: readonly (readonly [prefix: string, rule: BooleanTrackRule])[]
   ['/shop-pay', 'purchases'],
   ['/ugc', 'ugc'],
   ['/tournaments', 'tournaments'],
+  ['/me/tournament-turn', 'tournaments'],
   ['/ads', 'rewardedAds'],
   ['/daily-puzzle', 'dailyPuzzle'],
   ['/price-only', 'priceOnly'],

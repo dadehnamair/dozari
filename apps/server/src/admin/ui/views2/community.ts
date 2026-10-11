@@ -185,6 +185,7 @@ VIEWS.tournaments = function (root) {
     var desc = h('textarea', { placeholder: 'توضیحات برای صفحه‌ی اختصاصی تورنومنت (قانون‌ها، جایزه‌ها، داستان)…', maxlength: 4000, style: 'min-height:90px' }); desc.value = t ? (t.descriptionFa || '') : '';
     var size = select([['4', '۴ نفر'], ['8', '۸ نفر'], ['16', '۱۶ نفر'], ['32', '۳۲ نفر']], t ? String(t.size) : '16');
     var minPlayers = num(t ? t.minPlayers : 4, 2), fee = num(t ? t.entryCoins : 20), gemFee = num(t ? t.entryGems || 0 : 0), level = num(t ? t.minLevel : 1, 1);
+    var gapHours = num(t ? Math.round((t.roundGapMinutes || 0) / 60) : 24), grace = num(t ? t.graceMinutes || 15 : 15, 1);
     var p1 = num(prize(1, 'coins') || (t ? 0 : 100)), p2 = num(prize(2, 'coins') || (t ? 0 : 40)), p3 = num(prize(3, 'coins') || (t ? 0 : 10));
     var s1 = num(prize(1, 'spins')), s2 = num(prize(2, 'spins')), s3 = num(prize(3, 'spins')), g1 = num(prize(1, 'gems')), g2 = num(prize(2, 'gems')), g3 = num(prize(3, 'gems'));
     var startsAt = h('input', { type: 'datetime-local', value: t ? localInput(t.startsAt) : '' });
@@ -202,6 +203,7 @@ VIEWS.tournaments = function (root) {
     formModal(t ? 'ویرایش تورنومنت' : 'تورنومنت تازه', [
       ['نام', title], ['توضیحات', desc],
       h('div', { class: 'toolbar' }, [field('ظرفیت', size), field('حداقل نفرات برای برگزاری', minPlayers), field('ورودی (سکه، ۰ = رایگان)', fee), field('ورودی الماس (۰ = بدون الماس)', gemFee), field('کمترین لول (۱ = همه)', level), field('شروع و بسته‌شدن ثبت‌نام', startsAt), field('اسپانسر', sponsor)]),
+      h('div', { class: 'toolbar' }, [field('فاصله‌ی دورها (ساعت؛ ۰ = دورها پشت‌سرهم و بی‌زمان‌بندی)', gapHours), field('مهلت حضور بعد از رسیدن نوبت (دقیقه)', grace)]),
       h('div', { class: 'toolbar' }, [field('جایزه‌ی مقام اول', p1), field('مقام دوم', p2), field('مقام سوم (به هر نفر)', p3)]),
       h('div', { class: 'toolbar' }, [field('الماس مقام اول', g1), field('مقام دوم', g2), field('مقام سوم (به هر نفر)', g3)]),
       h('div', { class: 'toolbar' }, [field('چرخش گردونه‌ی مقام اول', s1), field('مقام دوم', s2), field('مقام سوم (به هر نفر)', s3)]),
@@ -209,7 +211,7 @@ VIEWS.tournaments = function (root) {
     ], function () {
       if (!startsAt.value) { toast('زمان شروع را بگذار', true); return false; }
       var prizes = [{ place: 1, coins: +p1.value, gems: +g1.value, spins: +s1.value }, { place: 2, coins: +p2.value, gems: +g2.value, spins: +s2.value }, { place: 3, coins: +p3.value, gems: +g3.value, spins: +s3.value }].filter(function (p) { return p.coins > 0 || p.gems > 0 || p.spins > 0; });
-      var body = { titleFa: title.value.trim(), descriptionFa: desc.value.trim(), iconKey: 'trophy', size: +size.value, minPlayers: +minPlayers.value, entryCoins: +fee.value, entryGems: +gemFee.value, minLevel: +level.value, startsAt: new Date(startsAt.value).getTime(), botFill: botFill.checked, allowConcurrent: concurrent.checked, sponsorId: sponsor.value || null, prizes: prizes };
+      var body = { titleFa: title.value.trim(), descriptionFa: desc.value.trim(), iconKey: 'trophy', size: +size.value, minPlayers: +minPlayers.value, entryCoins: +fee.value, entryGems: +gemFee.value, minLevel: +level.value, startsAt: new Date(startsAt.value).getTime(), botFill: botFill.checked, allowConcurrent: concurrent.checked, roundGapMinutes: Math.round(+gapHours.value * 60), graceMinutes: +grace.value, sponsorId: sponsor.value || null, prizes: prizes };
       if (!t) body.publish = publish.checked;
       return api(t ? '/admin/tournaments/' + t.id : '/admin/tournaments', { method: t ? 'PATCH' : 'POST', body: body }).then(function (x) {
         if (x.status === 409) { toast('کسی ثبت‌نام کرده؛ ظرفیت، ورودی، لول و حداقل نفرات دیگر قابل تغییر نیست', true); return false; }
@@ -218,7 +220,7 @@ VIEWS.tournaments = function (root) {
       });
     });
   }
-  root.appendChild(card('تورنومنت‌ها', 'جدول حذفی تک‌حذفی؛ هر دور با یک دوئل. بازیکنی که نرسد یا ببازد حذف می‌شود، تساوی دوباره بازی می‌شود.', [list]));
+  root.appendChild(card('تورنومنت‌ها', 'جدول حذفی تک‌حذفی؛ هر دور با یک دوئل در ساعت مشخص (با فاصله‌ی دورها). بازیکنی که تا پایان مهلت نیاید می‌بازد، تساوی دوباره بازی می‌شود.', [list]));
   root.appendChild(h('section', { class: 'card add-card' }, [h('div', { class: 'add-head' }, [h('div', {}, [h('h2', { text: 'تورنومنت تازه' }), h('div', { class: 'sub', text: 'مقام سوم به هر دو بازنده‌ی نیمه‌نهایی داده می‌شود. اگر تعداد ثبت‌نام‌ها کمتر از ظرفیت باشد، جدول با «بای» پر می‌شود (به شرط رسیدن به حداقل نفرات).' })]), h('button', { class: 'btn primary', text: '＋ تورنومنت تازه', onclick: function () { openForm(); } })])]));
   draw();
   loadSponsors();
