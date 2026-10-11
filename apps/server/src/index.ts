@@ -536,7 +536,7 @@ if (isMainModule(import.meta.url)) {
   const notify = baleStore ? new NotifyService(baleStore, baleClient) : undefined;
   // The SMS provider and message texts are edited in the admin panel (stored in app_settings); env vars are the fallback.
   const smsGateway = settings && db
-    ? new SmsGateway(createDbSettingsStore(db), { irnotiKey: process.env.IRNOTI_API_KEY, irnotiMessage: process.env.IRNOTI_MESSAGE, irnotiLineId: process.env.IRNOTI_LINE_ID, kavenegarKey: process.env.KAVENEGAR_API_KEY, kavenegarTemplate: process.env.KAVENEGAR_TEMPLATE })
+    ? new SmsGateway(createDbSettingsStore(db), { irnotiKey: process.env.IRNOTI_API_KEY, irnotiMessage: process.env.IRNOTI_MESSAGE, irnotiLineId: process.env.IRNOTI_LINE_ID, irnotiPatternCode: process.env.IRNOTI_PATTERN_CODE, kavenegarKey: process.env.KAVENEGAR_API_KEY, kavenegarTemplate: process.env.KAVENEGAR_TEMPLATE })
     : undefined;
   await smsGateway?.refresh();
   const smsClient: SmsClient | null = smsGateway ? withSmsLogging(smsGateway) : null;

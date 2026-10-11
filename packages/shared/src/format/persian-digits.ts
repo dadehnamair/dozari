@@ -16,6 +16,11 @@ export function toPersianDigits(input: string | number): string {
   return String(input).replace(/[0-9]/g, (digit) => WESTERN_TO_PERSIAN_DIGITS[digit] ?? digit);
 }
 
+/** Persian and Arabic-Indic digits turned into ASCII ones (a typed or pasted one-time code may arrive in any of the three). */
+export function toLatinDigits(input: string): string {
+  return input.replace(/[۰-۹]/g, (d) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
+}
+
 /**
  * Formats a number the way the app displays numbers everywhere: Persian digits, Persian thousands
  * separators, no grouping ambiguity. Thin wrapper over `toLocaleString('fa-IR')` so every call site

@@ -5,6 +5,8 @@ export interface MiniAppSdk {
   initData: string;
   openInvoice?(link: string, callback?: (result: { status: string }) => void): void;
   BackButton?: { show(): void; hide(): void; onClick(callback: () => void): void; offClick(callback: () => void): void };
+  /** Telegram-style: the host asks the player to share their own contact with the bot; `shared` says whether they agreed. */
+  requestContact?(callback?: (shared: boolean) => void): void;
   enableClosingConfirmation?(): void;
   disableClosingConfirmation?(): void;
 }
@@ -36,5 +38,25 @@ export function baleInvoiceHost(): MiniAppSdk | null {
 export function openInvoice(sdk: MiniAppSdk, link: string): Promise<InvoiceStatus> {
   return new Promise((resolve) => {
     sdk.openInvoice?.(link, (r) => resolve(['paid', 'failed', 'pending'].includes(r?.status) ? (r.status as InvoiceStatus) : 'cancelled'));
+  });
+}
+
+/** The host's «share my phone number with the bot» call, or null when this is not a mini-app (or an old client without it). */
+export function contactHost(): MiniAppSdk | null {
+  const host = miniAppHost();
+  return host && typeof host.sdk.requestContact === 'function' ? host.sdk : null;
+}
+
+/** Asks the host to share the player's contact with the bot; true when they agreed (the bot then verifies the number, the app only re-reads the status). */
+export function requestContact(sdk: MiniAppSdk): Promise<boolean> {
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (v: boolean) => !done && ((done = true), resolve(v));
+    try {
+      sdk.requestContact?.((shared) => finish(shared === true));
+    } catch {
+      finish(false);
+    }
+    setTimeout(() => finish(false), 120_000);
   });
 }

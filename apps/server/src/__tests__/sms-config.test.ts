@@ -69,4 +69,23 @@ describe('SMS channel of the message center', () => {
     expect(await center.send({ title: 'T', body: 'x'.repeat(301), audience: 'all', targetUserId: null }, ['sms'])).toEqual({ ok: false, error: 'SMS_TOO_LONG' });
     expect(new MessageCenter(store, null, { ...sender, textReady: false }).channels().find((c) => c.channel === 'sms')!.available).toBe(false);
   });
+
+  it('retries through the irnoti pattern (gdhsgcnt) when the plain send fails, and surfaces the plain error if both fail', async () => {
+    const calls: { url: string; body: string }[] = [];
+    const f = (async (url: string, init?: { body?: string }) => {
+      calls.push({ url: String(url), body: init?.body ?? '' });
+      return String(url).endsWith('/sms/send')
+        ? new Response('{}', { status: 500 })
+        : new Response(JSON.stringify({ batchId: '919', count: 1, totalPrice: '980', replayed: false }), { status: 200 });
+    }) as unknown as typeof fetch;
+    const gw = new SmsGateway(createMemorySettingsStore(), {}, f);
+    await gw.update({ provider: 'irnoti', irnotiKey: 'k' });
+    await gw.sendCode('+989123456789', '4821', 'login');
+    expect(calls.map((c) => c.url)).toEqual(['https://api.irnoti.com/v1/sms/send', 'https://api.irnoti.com/v1/sms/pattern']);
+    expect(JSON.parse(calls[1]!.body)).toEqual({ code: 'gdhsgcnt', to: '09123456789', params: { code: '4821' } });
+
+    const down = new SmsGateway(createMemorySettingsStore(), {}, (async () => new Response('{}', { status: 500 })) as unknown as typeof fetch);
+    await down.update({ provider: 'irnoti', irnotiKey: 'k' });
+    await expect(down.sendCode('+989123456789', '1')).rejects.toThrow(/sms provider refused/);
+  });
 });
