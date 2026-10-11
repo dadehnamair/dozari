@@ -252,7 +252,7 @@ export function createDbPlayerStore(db: Db): PlayerStore {
 }
 
 /** Memory store for tests; `seedCities` mirrors the default list when omitted. */
-export function createMemoryPlayerStore(seedCities: readonly { slug: string; nameFa: string; province?: string | null; sloganFa?: string }[] = DEFAULT_CITIES, now: () => number = Date.now): PlayerStore & { nicknames: Map<string, string> } {
+export function createMemoryPlayerStore(seedCities: readonly { slug: string; nameFa: string; province?: string | null; sloganFa?: string }[] = DEFAULT_CITIES, now: () => number = Date.now): PlayerStore & { nicknames: Map<string, string>; avatars: Map<string, string> } {
   const stats = new Map<string, StatsRow>();
   const events: { userId: string; xp: number; at: number; mode: 'solo' | 'duel' | null; outcome: 'win' | 'loss' | 'draw' | null }[] = [];
   const priv = new Map<string, PrivateRow>();
@@ -267,6 +267,7 @@ export function createMemoryPlayerStore(seedCities: readonly { slug: string; nam
   const rows: CityRow[] = seedCities.map((c, i) => ({ id: `00000000-0000-7000-8000-${String(i + 1).padStart(12, '0')}`, slug: c.slug, nameFa: c.nameFa, province: c.province ?? null, souvenirFa: null, sloganFa: c.sloganFa ?? null, sortOrder: i, isActive: true }));
   return {
     nicknames,
+    avatars,
     async stats(id) {
       return { ...(stats.get(id) ?? EMPTY_STATS) };
     },

@@ -1,3 +1,4 @@
+import { CHARACTER_IDS } from '@dozari/shared';
 import { candyTone } from '../theme/colors';
 import type { IconName } from '../theme/icons';
 import type { CharacterPose } from '../theme/character';
@@ -15,6 +16,8 @@ export interface AvatarSpec {
   key: string;
   skin: number;
   pose: CharacterPose;
+  /** A named cast member (`char-<id>` keys); `skin` is then ignored. */
+  who?: string;
   light: string;
   base: string;
 }
@@ -29,6 +32,12 @@ export const AVATARS: readonly AvatarSpec[] = Array.from({ length: 24 }, (_, i) 
     light: tone.light,
     base: tone.base,
   };
+});
+
+/** The cast as profile characters (`char-<id>`), in the order the picker shows them. */
+export const CHARACTER_AVATARS: readonly AvatarSpec[] = CHARACTER_IDS.map((id, i) => {
+  const tone = toneAt(i * 5 + 2);
+  return { key: `char-${id}`, skin: 0, who: id, pose: 'wave' as CharacterPose, light: tone.light, base: tone.base };
 });
 
 export interface TierSpec {

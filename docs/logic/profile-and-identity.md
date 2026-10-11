@@ -25,7 +25,7 @@ Owner (2026-09-27): "پروفایل خیلی مهمه" — treat this as a first
 always gets the same account, concurrent first requests included. The token is an HS256 JWT (`sub` = user id, 30 days,
 `JWT_SECRET`); `GET /me` with `Authorization: Bearer <token>` returns the profile. The nickname and avatar come from the
 preset lists in `packages/shared/src/identity` (avatars = the 24 design-kit faces). A banned user gets 403 at login and
-401 everywhere else. The unlock thresholds are `AVATAR_UNLOCK_GAMES` / `NICKNAME_UNLOCK_GAMES` in `config/game.ts`; the paid-change gate (`canCustomise`) exists in shared; `PUT /me/avatar` (D224) picks any gallery face after `AVATAR_UNLOCK_GAMES` games; paid faces/nickname purchase do not exist yet.
+401 everywhere else. The unlock thresholds are `AVATAR_UNLOCK_GAMES` / `NICKNAME_UNLOCK_GAMES` in `config/game.ts`; the paid-change gate (`canCustomise`) exists in shared; `PUT /me/avatar` (D224) picks one of the 9 cast characters (or a gallery face) after `AVATAR_UNLOCK_GAMES` games; paid faces/nickname purchase do not exist yet.
 
 ## Tags (badges shown next to the avatar)
 

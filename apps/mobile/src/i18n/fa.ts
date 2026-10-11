@@ -280,7 +280,8 @@ export const fa = {
     save: 'ذخیره',
     saved: 'ذخیره شد',
     avatar: 'شخصیتت',
-    avatarHint: 'یکی از چهره‌ها را بزن تا شخصیتت عوض شود.',
+    avatarHint: 'یکی از شخصیت‌های دوزاری را بزن تا شخصیتت عوض شود.',
+    characters: { dozari: 'دوزاری', dozariF: 'دوزاری‌خانم', mashti: 'مشتی', khale: 'خاله', pahlevan: 'پهلوان', baqal: 'بقال', mirza: 'میرزا', goli: 'گلی', ajan: 'آجان' } as Record<string, string>,
     avatarLocked: (games: number) => `بعد از ${toPersianDigits(String(games))} بازی می‌توانی شخصیتت را عوض کنی.`,
     nicknameLocked: (games: number) => `بعد از ${toPersianDigits(String(games))} بازی می‌توانی اسمت را عوض کنی.`,
     nicknameRule: {

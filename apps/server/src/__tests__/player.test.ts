@@ -123,6 +123,19 @@ describe('city and e-mail', () => {
   });
 });
 
+describe('avatar pick', () => {
+  const put = (app: ReturnType<typeof boot>['app'], h: Record<string, string>, avatarKey: string) => app.inject({ method: 'PUT', url: '/me/avatar', headers: h, payload: { avatarKey } });
+
+  it('takes a gallery face or a cast character, nothing else', async () => {
+    const { app, login, store } = boot();
+    const a = await login(1);
+    expect((await put(app, a.h, 'char-baqal')).json()).toEqual({ avatarKey: 'char-baqal' });
+    expect(store.avatars.get(a.id)).toBe('char-baqal');
+    expect((await put(app, a.h, 'avatar-07')).json()).toEqual({ avatarKey: 'avatar-07' });
+    expect((await put(app, a.h, 'char-nobody')).statusCode).toBe(400);
+  });
+});
+
 describe('nickname rules', () => {
   const put = (app: ReturnType<typeof boot>['app'], h: Record<string, string>, nickname: string) => app.inject({ method: 'PUT', url: '/me/nickname', headers: h, payload: { nickname } });
 

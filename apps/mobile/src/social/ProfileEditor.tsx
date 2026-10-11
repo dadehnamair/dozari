@@ -7,7 +7,7 @@ import { fa } from '../i18n/fa';
 import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
 import { Avatar } from '../components/Avatar';
-import { AVATARS } from '../kit/data';
+import { CHARACTER_AVATARS } from '../kit/data';
 import { saveAvatar, saveEmail, saveNickname } from './api';
 import { nicknameHint } from './nicknameHint';
 import { BirthdayEditor } from './BirthdayEditor';
@@ -74,9 +74,10 @@ export function ProfileEditor({ me, onChange, onPickCity }: { me: MyProfile; onC
       <View style={styles.card}>
         <Text style={styles.label}>{fa.profile.avatar}</Text>
         <View style={styles.faces}>
-          {AVATARS.map((a) => (
-            <Pressable key={a.key} onPress={() => void pickAvatar(a.key)} disabled={me.avatarLockedUntilGames !== null} accessibilityRole="button" accessibilityState={{ selected: me.avatarKey === a.key }} style={[styles.face, me.avatarKey === a.key ? styles.faceOn : null, me.avatarLockedUntilGames !== null ? styles.disabled : null]}>
-              <Avatar avatar={a} size={46} />
+          {CHARACTER_AVATARS.map((a) => (
+            <Pressable key={a.key} onPress={() => void pickAvatar(a.key)} disabled={me.avatarLockedUntilGames !== null} accessibilityRole="button" accessibilityLabel={fa.profile.characters[a.who ?? ''] ?? ''} accessibilityState={{ selected: me.avatarKey === a.key }} style={[styles.face, me.avatarKey === a.key ? styles.faceOn : null, me.avatarLockedUntilGames !== null ? styles.disabled : null]}>
+              <Avatar avatar={a} size={52} />
+              <Text style={styles.faceName} numberOfLines={1}>{fa.profile.characters[a.who ?? ''] ?? ''}</Text>
             </Pressable>
           ))}
         </View>
@@ -152,6 +153,7 @@ const styles = StyleSheet.create({
   city: { flexDirection: ROW, alignItems: 'center', gap: 8, padding: 6, paddingHorizontal: 10, borderRadius: 16, borderWidth: 2, borderColor: INK, backgroundColor: colors.cream },
   cityText: { flex: 1, gap: 1 },
   faces: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6 },
-  face: { padding: 2, borderRadius: 99, borderWidth: 3, borderColor: 'transparent' },
+  faceName: { fontFamily: fonts.bold, fontSize: 11, color: INK, textAlign: 'center', marginTop: 2 },
+  face: { width: 64, alignItems: 'center', padding: 2, borderRadius: 99, borderWidth: 3, borderColor: 'transparent' },
   faceOn: { borderColor: '#FFC93C', backgroundColor: 'rgba(255,201,60,0.25)' },
 });

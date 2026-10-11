@@ -158,7 +158,7 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
           <View style={styles.heroLine} />
         </View>
         <View style={styles.avatarWrap}>
-          {me ? <View style={{ width: charW, height: charH }}><Character skin={avatarOf(me.avatarKey).skin} pose={avatarOf(me.avatarKey).pose} worn={worn} /></View> : <View style={{ width: charW, height: charH }} />}
+          {me ? <View style={{ width: charW, height: charH }}><Character who={avatarOf(me.avatarKey).who} skin={avatarOf(me.avatarKey).skin} pose={avatarOf(me.avatarKey).pose} worn={worn} /></View> : <View style={{ width: charW, height: charH }} />}
           {lv ? (
             <View style={styles.hex} accessibilityLabel={`${fa.profile.level} ${lv.level}`}>
               <Svg width={46} height={52} viewBox="0 0 46 52">

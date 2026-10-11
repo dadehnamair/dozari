@@ -1,4 +1,4 @@
-import { AVATAR_KEYS, checkNickname, levelInfo, startsOf, xpForGame } from '@dozari/shared';
+import { AVATAR_KEYS, CHARACTER_AVATAR_KEYS, checkNickname, levelInfo, startsOf, xpForGame } from '@dozari/shared';
 import type { City, GameResultForXp, LevelInfo, LevelRow, NicknameProblem, NicknameRules, PlayerStats, XpRules } from '@dozari/shared';
 import type { SettingsService } from '../settings/service.js';
 import type { TextFilterService } from '../textfilter/service.js';
@@ -121,9 +121,9 @@ export class PlayerService {
     return { ok: true };
   }
 
-  /** Picks one of the gallery avatars (never an upload); open after `avatarUnlockGames` finished games, and stays open (D65 layer 1: every face is free for now). */
+  /** Picks a gallery face or one of the cast (never an upload); open after `avatarUnlockGames` finished games, and stays open (D65 layer 1: every face is free for now). */
   async setAvatar(userId: string, avatarKey: string): Promise<AvatarResult> {
-    if (!AVATAR_KEYS.includes(avatarKey)) return { ok: false, error: 'unknown_avatar' };
+    if (!AVATAR_KEYS.includes(avatarKey) && !CHARACTER_AVATAR_KEYS.includes(avatarKey)) return { ok: false, error: 'unknown_avatar' };
     const rules = await this.rules();
     const { stats } = await this.levelOf(userId);
     if (stats.games < rules.avatarUnlockGames) return { ok: false, error: 'locked', unlockGames: rules.avatarUnlockGames };
