@@ -8,11 +8,11 @@ import { TEXT_RIGHT } from '../theme/direction';
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 
 /** A character of the bazaar (baqal, ajan, mirza …) speaking in a bubble. Used for menu tips on Home and for «why is this locked». */
-export function GuideBubble({ text, who = 'dozari', face = true, onPress }: { text: string; who?: CharacterId; /** False drops the face picture (Home: the hero itself stands right below). */ face?: boolean; onPress?: () => void }) {
+export function GuideBubble({ text, who = 'dozari', onPress }: { text: string; who?: CharacterId; onPress?: () => void }) {
   const adult = useTheme() === 'adult';
   const body = (
     <View style={[styles.root, adult ? styles.rootAdult : null]} accessibilityRole={onPress ? undefined : 'text'} accessibilityLabel={onPress ? undefined : text}>
-      {face ? <View style={styles.mascot}><Character who={who} pose="idle" crop="face" /></View> : null}
+      <View style={styles.mascot}><Character who={who} pose="idle" crop="face" /></View>
       <View style={styles.bubble}><Text style={[styles.text, adult ? styles.textAdult : null]}>{text}</Text></View>
     </View>
   );

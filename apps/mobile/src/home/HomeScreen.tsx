@@ -97,8 +97,6 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
   /** The explainer page of the 💎 or 🔥 counter. */
   const [infoOpen, setInfoOpen] = useState<'gems' | 'streak' | null>(null);
   const [tip, setTip] = useState<number | null>(null);
-  /** The idle line above the hero (picked once per visit). */
-  const [teaser] = useState(() => fa.home.guide.teasers[Math.floor(Math.random() * fa.home.guide.teasers.length)]);
   const tips = availableTips(fa.home.guide.tips, new Set(['duel', 'daily', 'shop', 'chat', 'inbox'].filter((k) => !features[k as 'duel' | 'daily' | 'shop' | 'chat' | 'inbox'])));
   // A tip fades after a while so the guide never covers the menu for good.
   useEffect(() => {
@@ -237,15 +235,13 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
             {slogan ? <FadingSlogan text={slogan} style={styles.slogan} /> : null}
             <View style={styles.spacer} pointerEvents="none" />
             {tip !== null && tips[tip] ? (
-              <GuideBubble face={false} who={heroOf(gender, avatarKey)} text={tips[tip].text} />
+              <GuideBubble who={heroOf(gender, avatarKey)} text={tips[tip].text} />
             ) : nudgeToast ? (
-              <GuideBubble face={false} who={heroOf(gender, avatarKey)} text={nudgeToast} />
+              <GuideBubble who={heroOf(gender, avatarKey)} text={nudgeToast} />
             ) : missionsReady > 0 ? (
-              <GuideBubble face={false} who={heroOf(gender, avatarKey)} text={fa.home.missionNudge(missionsReady)} onPress={() => setSettingsOpen(true)} />
+              <GuideBubble who={heroOf(gender, avatarKey)} text={fa.home.missionNudge(missionsReady)} onPress={() => setSettingsOpen(true)} />
             ) : nudge ? (
-              <GuideBubble face={false} who={heroOf(gender, avatarKey)} text={fa.home.profileNudge[nudge.action === 'claim' ? 'claim' : nudge.key](fmt(nudge.task.coins))} onPress={onNudge} />
-            ) : teaser ? (
-              <GuideBubble face={false} who={heroOf(gender, avatarKey)} text={teaser} onPress={() => (setTip((cur) => nextTip(cur, tips.length)), hero.hop())} />
+              <GuideBubble who={heroOf(gender, avatarKey)} text={fa.home.profileNudge[nudge.action === 'claim' ? 'claim' : nudge.key](fmt(nudge.task.coins))} onPress={onNudge} />
             ) : null}
             {/* A touch on the character itself must not count as «a tap elsewhere» that closes the tip. */}
             <View onTouchStart={(e) => e.stopPropagation()}>

@@ -79,8 +79,6 @@ export const fa = {
     },
     guide: {
       name: 'راهنما',
-      /** Shown above the hero while nothing else is (a tip, a nudge): a line that invites a tap, which opens the tips. */
-      teasers: ['هی! یه چیزی بگم؟ بزن رو من 👋', 'می‌دونستی یه رازی تو بازار هست؟ بزن بگم!', 'دوزاریت افتاد؟ بزن یه نکته بگم!', 'بیا یه ترفند بهت یاد بدم؛ فقط یه تپ!'] as readonly string[],
       tips: [
         { key: 'play', text: 'با «بازی تکی» مرحله‌به‌مرحله پیش برو و دست‌گرم کن.' },
         { key: 'duel', text: 'در «دوئل» با یک حریف واقعی رو در رو می‌شوی؛ برنده سکه می‌برد.' },
