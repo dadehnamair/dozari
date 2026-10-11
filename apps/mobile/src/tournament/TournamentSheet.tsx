@@ -21,6 +21,7 @@ import { avatarOf } from '../social/avatarOf';
 import { colors, fonts } from '../theme/colors';
 import { fetchTournament, fetchTournaments, joinTournament, leaveTournament } from './api';
 import { SponsorCard, SponsorInvite, SponsorTag } from './Sponsor';
+import { LivePulse, LoserFade, StampIn, WinnerHop } from './MatchFx';
 import { Winners } from './Winners';
 import { blockedText, currentRound, placeLabel, roundLabel, startsInText, turnWhen } from './text';
 import { pageTop } from '../theme/safeArea';
@@ -233,24 +234,30 @@ type BracketMatch = TournamentDetail['bracket'][number];
 function MatchCard({ m }: { m: BracketMatch }) {
   const decided = m.winnerId !== null;
   return (
-    <View style={[styles.match, m.status === 'playing' ? styles.matchLive : null]}>
-      {([m.a, m.b] as const).map((p, k) => {
-        const won = !!p && m.winnerId === p.id;
-        const lost = !!p && decided && !won;
-        return (
-          <View key={k} style={[styles.player, k === 0 ? styles.playerFirst : null, won ? styles.playerWon : null, lost ? styles.playerLost : null]}>
-            <View style={[styles.face, won ? styles.faceWon : null, !p ? styles.faceEmpty : null]}>
-              {p ? <View style={lost ? styles.faceLost : null}><Avatar avatar={avatarOf(p.avatarKey)} size={30} /></View> : <Text style={styles.faceQ}>؟</Text>}
+    <View style={styles.matchOuter}>
+      <View style={[styles.match, m.status === 'playing' ? styles.matchLive : null]}>
+        {([m.a, m.b] as const).map((p, k) => {
+          const won = !!p && m.winnerId === p.id;
+          const lost = !!p && decided && !won;
+          const row = (
+            <View style={[styles.player, k === 0 ? styles.playerFirst : null, won ? styles.playerWon : null, lost ? styles.playerLost : null]}>
+              <WinnerHop on={won}>
+                <View style={[styles.face, won ? styles.faceWon : null, !p ? styles.faceEmpty : null]}>
+                  {p ? <View style={lost ? styles.faceLost : null}><Avatar avatar={avatarOf(p.avatarKey)} size={30} /></View> : <Text style={styles.faceQ}>؟</Text>}
+                </View>
+              </WinnerHop>
+              <Text style={[styles.playerName, won ? styles.nameWon : null, lost ? styles.nameLost : null, !p ? styles.dim : null]} numberOfLines={1}>
+                {p?.nickname ?? (m.status === 'bye' ? fa.tournament.bye : fa.tournament.waiting)}
+              </Text>
+              {won ? <StampIn><View style={styles.badgeWon}><Text style={styles.badgeText}>✓</Text></View></StampIn> : null}
+              {lost ? <View style={styles.badgeLost}><Text style={styles.badgeText}>✕</Text></View> : null}
             </View>
-            <Text style={[styles.playerName, won ? styles.nameWon : null, lost ? styles.nameLost : null, !p ? styles.dim : null]} numberOfLines={1}>
-              {p?.nickname ?? (m.status === 'bye' ? fa.tournament.bye : fa.tournament.waiting)}
-            </Text>
-            {won ? <View style={styles.badgeWon}><Text style={styles.badgeText}>✓</Text></View> : null}
-            {lost ? <View style={styles.badgeLost}><Text style={styles.badgeText}>✕</Text></View> : null}
-          </View>
-        );
-      })}
-      <View style={styles.vs} pointerEvents="none"><Text style={styles.vsText}>VS</Text></View>
+          );
+          return lost ? <LoserFade key={k}>{row}</LoserFade> : <View key={k}>{row}</View>;
+        })}
+        <View style={styles.vs} pointerEvents="none"><Text style={styles.vsText}>VS</Text></View>
+      </View>
+      {m.status === 'playing' ? <LivePulse /> : null}
     </View>
   );
 }
@@ -297,7 +304,8 @@ const styles = StyleSheet.create({
   roundChipTextOn: { color: '#fff' },
   grid: { flexDirection: ROW, flexWrap: 'wrap', marginHorizontal: -4 },
   cell: { width: '50%', padding: 4 },
-  match: { borderRadius: 12, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.paper, overflow: 'hidden', ...lift(3) },
+  matchOuter: { borderRadius: 12, backgroundColor: colors.paper, ...lift(3) },
+  match: { borderRadius: 12, borderWidth: 2.5, borderColor: colors.ink, overflow: 'hidden' },
   matchLive: { borderColor: '#7ED957' },
   player: { height: 46, flexDirection: ROW, alignItems: 'center', gap: 6, paddingHorizontal: 6 },
   playerFirst: { borderBottomWidth: 1.5, borderColor: 'rgba(43,18,64,0.15)' },
