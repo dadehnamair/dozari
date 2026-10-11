@@ -279,7 +279,7 @@ Four skippable slides before the first Home (seen flag kept on the device); in t
 
 ## D97 — irnoti as the primary SMS provider; self-hosted admin font (2026-10-02)
 
-Phone-verification SMS now goes through irnoti (`POST https://irnoti.com/api/v1/sms/send`, Bearer key, JSON `{to, message}`) when `IRNOTI_API_KEY` is set; the message text is `IRNOTI_MESSAGE` (must contain `{code}`) with a default. Kavenegar stays as a fallback adapter when only its keys are set. The irnoti response body is undocumented to us: any 2xx counts as sent unless the body says `success:false`/`ok:false`/`status:'error'` — verify with a real key. The admin panel now serves Vazirmatn (Regular/Bold) from `apps/server/assets/fonts` at `/admin/fonts/*` (CSP `font-src 'self'`), so it no longer depends on a locally installed font.
+Phone-verification SMS now goes through irnoti (`POST https://api.irnoti.com/v1/sms/send`, Bearer key, JSON `{lineId, to: number, text}`; corrected 2026-10-10 to the shape the owner confirmed live — the first guess used the wrong host/path and `to`/`message`, so every send failed; `lineId` from `IRNOTI_LINE_ID`, default `2`) when `IRNOTI_API_KEY` is set; the message text is `IRNOTI_MESSAGE` (must contain `{code}`) with a default. Kavenegar stays as a fallback adapter when only its keys are set. The irnoti response body is undocumented to us: any 2xx counts as sent unless the body says `success:false`/`ok:false`/`status:'error'` — verify with a real key. The admin panel now serves Vazirmatn (Regular/Bold) from `apps/server/assets/fonts` at `/admin/fonts/*` (CSP `font-src 'self'`), so it no longer depends on a locally installed font.
 
 ## D98 — Installable web app (PWA) (2026-10-02)
 
@@ -683,7 +683,38 @@ Owner: bots that play and earn XP should level up and change, a community that r
 
 Owner: closed tables need no replay or watching. Watchers may send one of five canned cheers (👏 🔥 😮 😂 😢) every 2 s; they show to everyone in the stands for 20 s with the sender's nickname, and bots in the stands cheer too. Canned only, so no chat unlock is needed (rule 7). Cheers live in memory and are never shown to the players of the match. Polling stays; a socket stream is only worth it if the lobby grows.
 
+## D207 — SMS provider errors shown as text, not codes (2026-10-10, proposed)
 
-## D219 — One-time codes accept any digit script; mini-app phone proof through the bot (2026-10-11, proposed)
+A refused SMS send now returns `sms_<reason>` (e.g. `sms_no_credit`, `sms_invalid_receiver`, `sms_blacklisted`) instead of a bare `send_failed`, mapped from the provider's numeric error list in `apps/server/src/phone/sms-errors.ts`; unknown codes still give `send_failed`. The client shows the provider's wording from `fa.ts` (`smsErrors`), never the number. Applies to phone verify, phone login, account deletion and guardian proof. The response-body field that carries the code is not documented to us for irnoti: `smsErrorFromBody` looks at `status`/`code`/`Value`/`result`/`error`; check with a real key. Open: operational reasons (credit, IP, credentials) are shown to players too, as asked; hide them behind the generic text if the owner prefers.
+
+D207 addendum (2026-10-10): the irnoti body is `{lineId, to: ["0912…"], text}`; `lineId` comes from `IRNOTI_LINE_ID` (omitted when unset), default text «کد ورود شما به دوزاری : {code}».
+
+## D218 — SMS provider, OTP texts and a test send in the admin panel (2026-10-10, proposed)
+
+Owner asked for a place in the panel to define the SMS provider and message texts, and to test them. Provider choice and API keys are stored in `app_settings` (`sms.*`, not in `SETTING_DEFS`, so never exposed to clients; masked in the API); env vars stay as the fallback and `auto` keeps the old behaviour (irnoti wins). Texts are per purpose (login, profile verify, account delete) and need `{code}`. Proposed: keys in the DB are acceptable because only the `system` role can set them; move to a secrets store if the DB is ever shared more widely. See `docs/logic/message-center.md`.
+
+## D219 — Live duel match screen follows `13 Match Screens v2` (2026-10-10, proposed)
+
+Owner supplied the v2 design of the competition screens and asked for it in the app with every detail. Mode select, versus and results are unchanged from v1; the match screen changes: two gradient player cards (portrait, name, level chip, pips, teammate corner portrait in 2v2) around the score, a taunt drawer with floating speech bubbles, the dusk courtyard background, a pill turn clock and a dark board panel (`apps/mobile/src/duel`: `MatchHud`, `ChatDrawer`, `SpeechBubble`, `ArenaBackground`). The magnifier / freeze power-ups of the design came next (D220). The drawer's second «شکلک» tab needs sticker content: proposed default = admins add a canned-taunt category for it; the app already shows one tab per category (up to three), so no app change is needed once it exists. Cooldown between taunts is 3 s on the client (the server's rate limit is unchanged).
+
+## D220 — Duel power-ups: magnifier and freeze (2026-10-10, proposed)
+
+Owner asked for the design's power-ups and clarified the freeze: the rival *cannot select anything for a few seconds*. The mock-up races two boards; the real duel is turn-based on one shared board (D8), so: **magnifier** = two cards of one unsolved group shown privately to the user's own side (2 per match per side, own turn, captain); **freeze** = used while the rival plays, the rival cannot select or submit for 10 s while their clock keeps running (1 per match per side). Free, per match, constants in `config/game.ts` (`MATCH_MAGNIFIERS`, `MATCH_FREEZES`, `FREEZE_SECONDS`; `MatchRules` can override per match), no admin setting and no coin cost yet. Server authoritative: `power` command in the shared reducer (`FROZEN` / `NO_POWER` errors), `match:power` socket event, private `power` event for the magnifier's cards (stripped for the rival), `powers`/`frozenUntil` in the snapshot. If it feels too strong: shorten `FREEZE_SECONDS`, or sell extra uses for coins (needs `coin_ledger` entries and a spec in `economy.md`). Bots do not use them; 2v2 shares the allowance per team.
+
+D220 addendum (owner, 2026-10-10): whatever the bag holds, a player may use **one power-up per match in total** (any kind; 1v1 and 2v2 alike) — `POWERS_PER_PLAYER = 1`, error `POWER_USED`, `powerUsed` in the snapshot. The per-side counts (2 magnifiers, 1 freeze) only matter to teammates in 2v2.
+
+## D221 — Rewarded video ads, controlled from the database (2026-10-10, proposed)
+
+Owner asked for a "watch a video, get something" service that can be switched per place (coin-short moments, coin purchase, anything coin-equivalent). Built as data: table `ad_placements` (per placement: on/off, reward kind and amount, daily cap, cooldown, minimum watch seconds) + `ad_views` (one row per view, reward snapshot), global switch `ads.enabled`, adult-only (`rewardedAds` track rule). Rewards are coins, gems, hint tokens or wheel spins, always paid by the server through the ledgers. Placements wired today: `coins_short`, `coin_shop`, `wheel_extra`. Everything ships **off**. No ad-network SDK is bundled (a native `AdProvider` must register itself; D18 candidates Tapsell/Adivery), and completion is client-reported until a network's server callback is wired. Spec: `docs/logic/ads.md`.
+
+## D222 — Gem card, verdict animations, daily-puzzle attention (2026-10-11, proposed)
+
+Owner asked for: (1) a gem hidden behind one card in some games (table, duel, daily puzzle), awarded with a nice effect when the group is solved, chance set from the admin panel but low at first; (2) a wrong four-card guess shakes the cards red with a sound and puts them back, a right one turns them green with its own sound; (3) the city slogan on Home must not stay forever; (4) an effect on the daily-puzzle entry so players notice it; (5) a fuller first-run tutorial. Decisions: the gem card is drawn per game (and per board) with `gemcard.percent` default **5** and `gemcard.amount` default **1**; it is server-only and paid once through the gem ledger (reason `gem_card`, see `logic/economy.md`). Solo, daily, duel, 2v2 and tables all roll it; bots, guests and offline games never earn one. A «one away» guess is treated as a miss for the shake. The slogan (and Khale's greeting in the café) fade after 6 s. The daily entry (Home bubble, map button, hub tower plate) breathes with a golden halo while today's puzzle is unplayed. The tutorial gains steps on lives/feedback, hints and power-ups, the gem card, daily puzzle and streak, tournaments, coins/gems/wheel, café and friends, levels and keepsakes.
+
+## D-irnoti-pattern — pattern SMS as backup for the irnoti plain send (2026-10-11)
+
+When the plain irnoti send (`/v1/sms/send`) fails, `SmsGateway` re-sends the OTP through irnoti's pattern API (`POST https://api.irnoti.com/v1/sms/pattern`, JSON `{code: <pattern>, to, params: {code}}`; success reply has `batchId`). Pattern code = `IRNOTI_PATTERN_CODE`, default `gdhsgcnt`. If both fail, the plain send's error (with its `sms_<reason>` mapping) is what the caller sees.
+
+## D223 — One-time codes accept any digit script; mini-app phone proof through the bot (2026-10-11, proposed)
 
 Codes typed in the settings sheet reached the server in Persian digits and never matched the SMS (Latin digits): the server now normalizes digits before hashing (login, phone, account deletion) and the sheets keep Latin digits in state. Inside a mini-app the phone is proven the Telegram way: `requestContact` → the bot receives the player's own contact → verified with no typing and no SMS (`docs/logic/miniapp.md`).

@@ -1,3 +1,4 @@
+import type { BoardVerdict } from '../components/Board';
 import type { MatchEnded, MatchFound, MatchView, QueueProblem, SoloCard, SoloSolvedGroup } from '@dozari/shared';
 
 /** What the duel screen shows. The server sends full snapshots; this only keeps names (solved rows list ids) and the end screen. */
@@ -20,12 +21,20 @@ export interface DuelState {
   boardNote: { board: number; of: number } | null;
   /** A fatal problem (no connection, the queue refused): replaces the screen with an error card. */
   error: string | null;
+  /** The two cards the magnifier showed this player (selected on the board once); `n` makes each use a new event. */
+  peek: { ids: string[]; n: number } | null;
+  /** A power-up toast: whose, and which. */
+  powerNote: 'magMine' | 'magRival' | 'iceMine' | 'iceRival' | null;
   /** A passing problem during play (a refused submit, a late ack): a toast, never a dead end. Holds the error code. */
   notice: string | null;
   /** The last snapshot of the board that just ended (its cards were still on the table). */
   prevBoard: MatchView | null;
   /** Level of the group the game revealed by itself when the board ended. */
   revealedLevel: number | null;
+  /** The verdict of the latest four-card guess (either side's): those cards shake red / glow green on the board. `n` makes each guess a new event. */
+  verdict: BoardVerdict | null;
+  /** A gem this player found behind a card (the burst); `n` makes each find a new event. */
+  gem: { amount: number; n: number } | null;
   /** The last row playing itself out: the last four cards light up one by one before the board moves on or the result shows. */
   finale: Finale | null;
 }
@@ -64,20 +73,25 @@ export function endedFromView(view: MatchView): MatchEnded | null {
   return { matchId: view.matchId, result: view.result, scores: [view.scores[0], view.scores[1]], groups: groups as MatchEnded['groups'] };
 }
 
-export const initialDuel: DuelState = { phase: 'idle', waitedSec: 0, problem: null, found: null, view: null, ended: null, names: {}, taunt: null, flash: null, boardNote: null, error: null, notice: null, prevBoard: null, revealedLevel: null, finale: null };
+export const initialDuel: DuelState = { phase: 'idle', waitedSec: 0, problem: null, found: null, view: null, ended: null, names: {}, taunt: null, flash: null, verdict: null, gem: null, boardNote: null, error: null, notice: null, peek: null, powerNote: null, prevBoard: null, revealedLevel: null, finale: null };
 
 export type DuelAction =
   | { t: 'queued' }
   | { t: 'status'; waitedSec: number; problem?: QueueProblem }
   | { t: 'found'; found: MatchFound }
   | { t: 'state'; view: MatchView }
-  | { t: 'guess'; outcome: 'correct' | 'one_away' | 'wrong'; mine: boolean }
+  | { t: 'guess'; outcome: 'correct' | 'one_away' | 'wrong'; mine: boolean; itemIds?: readonly string[] }
+  | { t: 'gem'; userId: string; amount: number }
+  | { t: 'clearGem' }
   | { t: 'timeout'; mine: boolean }
   | { t: 'ended'; ended: MatchEnded }
   | { t: 'clearFlash' }
+  | { t: 'power'; mine: boolean; kind: 'magnifier' | 'freeze'; itemIds?: readonly string[] }
+  | { t: 'clearPowerNote' }
   | { t: 'board'; board: number; of: number }
   | { t: 'clearBoard' }
-  | { t: 'taunt'; from: string; text: string }
+  /** `userId` = the sender: the server echoes a player's own taunt back to them, which must not show up as the rival's. */
+  | { t: 'taunt'; from: string; text: string; userId?: string }
   | { t: 'clearTaunt' }
   | { t: 'error'; error: string }
   /** A refused submit or a late answer during play: a toast, not an error screen. */
@@ -125,14 +139,26 @@ export function duelReducer(s: DuelState, a: DuelAction): DuelState {
       return { ...s, notice: a.error };
     case 'clearNotice':
       return { ...s, notice: null };
+    case 'power': {
+      const note = a.kind === 'magnifier' ? (a.mine ? 'magMine' : 'magRival') : a.mine ? 'iceMine' : 'iceRival';
+      const peek = a.mine && a.kind === 'magnifier' && a.itemIds && a.itemIds.length > 0 ? { ids: [...a.itemIds], n: (s.peek?.n ?? 0) + 1 } : s.peek;
+      return { ...s, powerNote: note, peek };
+    }
+    case 'clearPowerNote':
+      return { ...s, powerNote: null };
     case 'guess':
       // Only the player's own guess flashes; the opponent's shows through the board changing.
-      return a.mine ? { ...s, flash: a.outcome } : s;
+      return { ...s, ...(a.mine ? { flash: a.outcome } : {}), peek: null, verdict: a.itemIds ? { kind: a.outcome === 'correct' ? 'correct' : 'wrong', ids: a.itemIds, n: (s.verdict?.n ?? 0) + 1 } : s.verdict };
+    case 'gem':
+      return a.userId === (s.view?.youId ?? s.found?.youId) ? { ...s, gem: { amount: a.amount, n: (s.gem?.n ?? 0) + 1 } } : s;
+    case 'clearGem':
+      return { ...s, gem: null };
     case 'timeout':
       return a.mine ? { ...s, flash: 'timeout' } : s;
     case 'ended':
       return { ...s, phase: 'ended', ended: a.ended, error: null, notice: null };
     case 'taunt':
+      if (a.userId && a.userId === (s.view?.youId ?? s.found?.youId)) return s;
       return { ...s, taunt: { from: a.from, text: a.text } };
     case 'clearTaunt':
       return { ...s, taunt: null };

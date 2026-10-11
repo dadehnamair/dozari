@@ -8,7 +8,16 @@ export interface ChannelInfo {
   reason: string | null;
 }
 
-export type SendResult = { ok: true; id: string; recipients: Partial<Record<Channel, number>> } | { ok: false; error: 'CHANNEL_UNAVAILABLE' | 'NO_CHANNEL' | 'NO_RECIPIENTS' };
+export type SendResult = { ok: true; id: string; recipients: Partial<Record<Channel, number>> } | { ok: false; error: 'CHANNEL_UNAVAILABLE' | 'NO_CHANNEL' | 'NO_RECIPIENTS' | 'SMS_TOO_LONG' };
+
+/** Free-text SMS sender (the admin-configured provider); only some providers take free text. */
+export interface SmsTextSender {
+  readonly textReady: boolean;
+  sendText(phone: string, text: string): Promise<void>;
+}
+
+/** A broadcast SMS body is capped: players pay for nothing, we do. */
+export const SMS_BROADCAST_MAX = 300;
 
 /**
  * The admin message center: one message, several channels. In-app inbox and Bale work; SMS, e-mail and push need
@@ -19,13 +28,14 @@ export class MessageCenter {
   constructor(
     private readonly store: MessageStore,
     private readonly bale: NotifyService | null,
+    private readonly sms: SmsTextSender | null = null,
   ) {}
 
   channels(): ChannelInfo[] {
     return [
       { channel: 'in_app', available: true, reason: null },
       { channel: 'bale', available: this.bale?.configured === true, reason: this.bale?.configured ? null : 'ربات بله تنظیم نشده (BALE_BOT_TOKEN)' },
-      { channel: 'sms', available: false, reason: 'شماره‌ی بازیکن‌ها هنوز گرفته نمی‌شود و درگاه پیامک وصل نیست' },
+      { channel: 'sms', available: this.sms?.textReady === true, reason: this.sms?.textReady ? null : 'درگاه پیامک با متن آزاد (irnoti) در بخش «پیامک» تنظیم نشده' },
       { channel: 'email', available: false, reason: 'ایمیل بازیکن‌ها هنوز گرفته نمی‌شود و سرویس ایمیل وصل نیست' },
       { channel: 'push', available: false, reason: 'اعلان پوش هنوز راه‌اندازی نشده (بدون سرویس‌های گوگل، باید جایگزین انتخاب شود)' },
     ];
@@ -39,6 +49,7 @@ export class MessageCenter {
     if (wanted.length === 0) return { ok: false, error: 'NO_CHANNEL' };
     const info = this.channels();
     if (wanted.some((c) => !info.find((i) => i.channel === c)?.available)) return { ok: false, error: 'CHANNEL_UNAVAILABLE' };
+    if (wanted.includes('sms') && msg.body.length > SMS_BROADCAST_MAX) return { ok: false, error: 'SMS_TOO_LONG' };
     const audience = await this.store.audienceUsers(msg.audience as Audience, msg.targetUserId);
     if (audience.length === 0) return { ok: false, error: 'NO_RECIPIENTS' };
 
@@ -57,6 +68,16 @@ export class MessageCenter {
       let n = 0;
       for (const userId of audience) if (await this.bale.notify(userId, 'admin', `${msg.title}\n\n${msg.body}`)) n += 1;
       recipients.bale = n;
+    }
+    if (wanted.includes('sms') && this.sms) {
+      // Only the message text goes out (no title), to adult players with a verified number; failures are skipped and not counted.
+      const phones = await this.store.phonesOf(audience);
+      let n = 0;
+      for (let i = 0; i < phones.length; i += 8) {
+        const results = await Promise.allSettled(phones.slice(i, i + 8).map((p) => this.sms!.sendText(p, msg.body)));
+        n += results.filter((r) => r.status === 'fulfilled').length;
+      }
+      recipients.sms = n;
     }
     for (const [channel, n] of Object.entries(recipients) as [Channel, number][]) await this.store.setChannel(id, channel, n);
     return { ok: true, id, recipients };

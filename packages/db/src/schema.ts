@@ -484,6 +484,7 @@ export const LEDGER_REASONS = [
   'birthday_gift',
   'keepsake_piece',
   'keepsake_upgrade',
+  'ad_reward',
 ] as const;
 
 /** Append-only. Coins move only through the server's ledger function; a repeated idempotency key is a no-op. */
@@ -513,7 +514,7 @@ export const userBalances = mysqlTable('user_balances', {
 });
 
 /** Why gems moved (docs/logic/economy.md §Gems, D164). */
-export const GEM_REASONS = ['admin_adjust', 'birthday_gift', 'wheel_prize', 'shop_purchase', 'tournament_entry', 'tournament_refund', 'tournament_prize', 'mission_reward', 'keepsake_reward'] as const;
+export const GEM_REASONS = ['admin_adjust', 'birthday_gift', 'wheel_prize', 'shop_purchase', 'tournament_entry', 'tournament_refund', 'tournament_prize', 'mission_reward', 'keepsake_reward', 'ad_reward', 'gem_card'] as const;
 
 /** Cached gem balance per player; changed only together with a `gem_ledger` row. */
 export const userGems = mysqlTable('user_gems', {
@@ -1660,6 +1661,39 @@ export const wheelSpins = mysqlTable(
     spunAt: datetime('spun_at', { mode: 'date', fsp: 3 }),
   },
   (t) => ({ onePerMatch: uniqueIndex('wheel_spins_user_match').on(t.userId, t.matchId), onePerRef: uniqueIndex('wheel_spins_user_ref').on(t.userId, t.source, t.ref), pending: index('wheel_spins_pending').on(t.userId, t.spunAt) }),
+);
+
+/** Rewarded-ad placements (docs/logic/ads.md, D221): one row per placement key from `AD_PLACEMENTS`, edited in the admin panel. A missing row reads as the shared default (off). */
+export const adPlacements = mysqlTable('ad_placements', {
+  placement: varchar('placement', { length: 40 }).primaryKey(),
+  enabled: boolean('enabled').notNull().default(false),
+  rewardKind: mysqlEnum('reward_kind', ['coins', 'gems', 'hint_token', 'wheel_spin']).notNull().default('coins'),
+  rewardAmount: int('reward_amount').notNull().default(0),
+  dailyCap: int('daily_cap').notNull().default(0),
+  cooldownSeconds: int('cooldown_seconds').notNull().default(60),
+  minWatchSeconds: int('min_watch_seconds').notNull().default(10),
+  updatedAt: datetime('updated_at', { mode: 'date', fsp: 3 }).notNull().default(now()).$onUpdate(() => new Date()),
+});
+
+/** One rewarded-ad view: `started` when the app asks to show one, `rewarded` once the server accepted the claim (reward and watch time are snapshotted at start). */
+export const adViews = mysqlTable(
+  'ad_views',
+  {
+    id: id(),
+    userId: fk('user_id').references(() => users.id, { onDelete: 'cascade' }),
+    placement: varchar('placement', { length: 40 }).notNull(),
+    /** Tehran date key of the start, for the daily cap. */
+    day: varchar('day', { length: 10 }).notNull(),
+    status: mysqlEnum('status', ['started', 'rewarded']).notNull().default('started'),
+    rewardKind: mysqlEnum('reward_kind', ['coins', 'gems', 'hint_token', 'wheel_spin']).notNull(),
+    rewardAmount: int('reward_amount').notNull(),
+    minWatchSeconds: int('min_watch_seconds').notNull(),
+    /** The ad network's proof of completion, when it sends one. */
+    proof: varchar('proof', { length: 400 }),
+    startedAt: datetime('started_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    rewardedAt: datetime('rewarded_at', { mode: 'date', fsp: 3 }),
+  },
+  (t) => ({ byUserDay: index('ad_views_user_day_idx').on(t.userId, t.placement, t.day), byUserStart: index('ad_views_user_start_idx').on(t.userId, t.placement, t.startedAt) }),
 );
 
 /** The admin's level table (docs/logic/progression.md §Level table): XP at which each level starts and the coin reward for reaching it. Empty = the formulas of the settings. */

@@ -178,12 +178,13 @@ A second currency beside coins. It has its own append-only `gem_ledger` and cach
 below zero is refused (CLAUDE.md rule 6 applies to gems too; never `UPDATE user_gems` by hand).
 
 - **Reasons** (`GEM_REASONS`): `admin_adjust`, `birthday_gift`, `wheel_prize`, `shop_purchase`, `tournament_entry`, `tournament_refund`,
-  `tournament_prize`, `mission_reward`. Only `admin_adjust` is wired in stage 1; the others are reserved for the stages below.
+  `tournament_prize`, `mission_reward`, `keepsake_reward`, `ad_reward`, `gem_card`. Only `admin_adjust` is wired in stage 1; the others are reserved for the stages below.
 - **Read:** `GET /me/gems` → balance + the newest 30 movements. Home shows a «الماس» pill once the balance is above 0.
 - **Admin:** the player sheet has «تغییر الماس» (`POST /admin/users/:id/gems`, ±10 000 per call, audited as `user.gems`).
 - **Shop (stage 2)**: each `shop_items` row has `currency` (`coins`|`gems`) plus `price_coins` / `price_gems`; only the matching price counts. A gem purchase debits through `applyGemEntry` (`shop_purchase`) in the same transaction as the grant; `GET /shop` and the buy reply carry `gems`, and a short balance shows as `blocked: GEMS`. The admin «فروشگاه» page picks the currency per item. Migration 0043.
 - **Tournaments (stage 3)**: `tournaments.entry_gems` is charged on top of `entry_coins` (either may be 0), in the same transaction as the seat (`tournament_entry`); leaving or cancelling refunds both (`tournament_refund`, key per joinedAt). `entries.paid_gems` keeps what was paid. A short gem balance blocks with `GEMS` (HTTP 402). Admin builder has «ورودی الماس». Prizes in gems are not built yet. Migration 0044.
 - **Real money (D170)**: a shop item may also have `price_rials`; bought via a Bale invoice or a store receipt under `/shop-pay` (switch `feature.coin_packages`), granted without moving coins or gems. See DECISIONS D170.
+- **Gem card (D222)**: with chance `gemcard.percent` (default 5 %, admin → gameplay) a game hides `gemcard.amount` gem(s) (default 1) behind one random card. Whoever solves the group holding that card earns it, once per board, paid through `applyGemEntry` as `gem_card` (key `gem_card:<game>:<user>`). Solo and the daily puzzle (signed-in players only, `SoloService`) and duels, 2v2 and tables (`MatchService`, humans only) all use it. The card is drawn by the seeded RNG when the game starts and never leaves the server; the client learns only the result (`gem` in the solo guess result, a `gem` match event). Offline solo and guests never get one.
 - **Gems are not sold**: they come from gifts and prizes (birthday, wheel, tournaments, missions, admin).
 - **Next stages:** shop items priced in coins or gems; tournament entry fee in gems; wheel prize kind `gems`; birthday gift (100 coins + 5 gems + 2 spins).
 

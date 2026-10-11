@@ -1,6 +1,6 @@
 import { randomInt } from 'node:crypto';
-import { DEFAULT_MATCH_RULES, TEAM_MATCH_BOARDS, applyCommand, settleWager, applyPriceGuessCommand, finalScores, matchClientView, mulberry32, resolveWinner, selectRounds, ServerEvent, startMatch, startPriceGuess, startTeamMatch, toPriceRoundView, trackRules, turnDeadline } from '@dozari/shared';
-import type { AgeTrack, CatalogProduct, Command, RevealedRound, WagerSeat, ErrorCode, PriceGuessState, Stake, MatchEnded, MatchRules, MatchEvent, MatchEventPayload, MatchFound, MatchState, MatchView, Rng, RuleError } from '@dozari/shared';
+import { DEFAULT_MATCH_RULES, rollGemCard, groupHoldsGem, TEAM_MATCH_BOARDS, applyCommand, settleWager, applyPriceGuessCommand, finalScores, matchClientView, mulberry32, resolveWinner, selectRounds, ServerEvent, startMatch, startPriceGuess, startTeamMatch, toPriceRoundView, trackRules, turnDeadline } from '@dozari/shared';
+import type { AgeTrack, CatalogProduct, Command, RevealedRound, WagerSeat, ErrorCode, PriceGuessState, Stake, MatchEnded, MatchRules, MatchEvent, MatchEventPayload, MatchFound, MatchState, MatchView, PowerKind, Rng, RuleError } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
 import type { PuzzleSource, ServedPuzzle } from '../solo/types.js';
 import { pickUnseen } from '../solo/history.js';
@@ -31,6 +31,10 @@ export interface MatchDeps {
   teamBoards?: () => Promise<number>;
   /** The match numbers (admin settings turn / mistakes / scoring), read when a match starts; absent or failing = the shared defaults. */
   rules?: () => Promise<MatchRules>;
+  /** The gem-card tunables (admin settings), read when a match starts; absent = no gem cards. */
+  gemCard?: () => Promise<{ percent: number; amount: number }>;
+  /** Pays the gems found behind a card (the caller skips bots); idempotent per `key`. */
+  onGem?: (userId: string, amount: number, key: string) => void;
   /** Whether a 1v1 ends with the price-guess round (admin setting `match.price_round`), read when a match starts; absent = no. */
   priceRound?: () => Promise<boolean>;
   now?: () => number;
@@ -70,6 +74,8 @@ interface Active {
   stakes?: [Stake, Stake];
   /** Stake table the match was queued at (settles with its fee). */
   tier?: string;
+  /** The card each board hides a gem behind (`null` = none), index = board; drawn when the match starts, never sent to a client. */
+  gems?: { cards: (string | null)[]; amount: number; claimed: boolean[] };
   /** Frozen at the start: this match ends with the price-guess round (1v1 only). */
   priceRound?: boolean;
   /** How many price questions it asks (a table's choice); absent = all of them. */
@@ -100,6 +106,9 @@ const RULE_TO_ERROR: Record<RuleError, ErrorCode> = {
   NOT_TEAM_MATCH: 'NOT_TEAM_MATCH',
   INVALID_SELECTION: 'INVALID_SELECTION',
   DUPLICATE_SELECTION: 'DUPLICATE_SELECTION',
+  NO_POWER: 'NO_POWER',
+  FROZEN: 'FROZEN',
+  POWER_USED: 'POWER_USED',
 };
 
 /** How many latest guesses the stands see. */
@@ -200,6 +209,7 @@ export class MatchService {
     const state = boards.length > 1 ? startTeamMatch(boards.map(toSolo), [[a], [b]], rng, this.now(), undefined, await this.matchRules()) : startMatch(puzzle, [a, b], rng, this.now(), undefined, await this.matchRules());
     const entry: Active = { id, puzzles: boards, state, cancel: null, stakes, tier: stakes ? opts.tier : undefined, priceRound: opts.priceRounds === undefined ? await this.wantsPriceRound() : opts.priceRounds > 0, priceRoundCount: opts.priceRounds, proposals: [null, null], table: fee > 0 && this.deps.tableStakes ? { fee, sides: [[a], [b]] } : undefined };
     if (entry.priceRound && stakes) entry.wager = (await this.deps.stakes?.wagerRules?.().catch(() => null)) ?? undefined;
+    entry.gems = await this.rollGems(boards);
     this.matches.set(id, entry);
     this.byUser.set(a, id);
     this.byUser.set(b, id);
@@ -232,6 +242,7 @@ export class MatchService {
       return false;
     }
     const entry: Active = { id, puzzles: boards, table: fee > 0 && this.deps.tableStakes ? { fee, sides: [[...sides[0]], [...sides[1]]] } : undefined, state: startTeamMatch(boards.map(toSolo), sides, mulberry32(this.newSeed()), this.now(), undefined, await this.matchRules()), cancel: null, proposals: [null, null] };
+    entry.gems = await this.rollGems(boards);
     this.matches.set(id, entry);
     for (const u of all) this.byUser.set(u, id);
     const players: MatchFound['players'] = all.map((u, i) => ({ userId: u, side: i < 2 ? 0 : 1, ...(profiles[i] as PlayerProfile) }));
@@ -240,6 +251,15 @@ export class MatchService {
     this.pushState(entry);
     this.armTimer(entry);
     return true;
+  }
+
+  /** Draws, per board, the card a gem hides behind (admin setting `gemcard.percent`); undefined when gem cards are off. */
+  private async rollGems(boards: readonly ServedPuzzle[]): Promise<Active['gems']> {
+    const rules = await this.deps.gemCard?.().catch(() => null);
+    if (!rules || rules.percent <= 0) return undefined;
+    const rng = mulberry32(this.newSeed());
+    const cards = boards.map((b) => rollGemCard(Object.keys(b.items), rules.percent, rng));
+    return cards.some(Boolean) ? { cards, amount: rules.amount, claimed: cards.map(() => false) } : undefined;
   }
 
   private async wantsPriceRound(): Promise<boolean> {
@@ -297,6 +317,14 @@ export class MatchService {
     return this.apply(entry, { t: 'submit', by: userId, itemIds });
   }
 
+  /** A power-up on the player's turn (docs/logic/game-rules.md §Power-ups); the magnifier's two cards reach the user's own side only. */
+  power(userId: string, kind: PowerKind): { ok: true } | { ok: false; error: ErrorCode } {
+    const entry = this.entryOf(userId);
+    if (!entry) return { ok: false, error: 'NOT_IN_MATCH' };
+    if (entry.pg || entry.pgPending) return { ok: false, error: 'NOT_YOUR_TURN' };
+    return this.apply(entry, { t: 'power', by: userId, kind });
+  }
+
   leave(userId: string): { ok: true } | { ok: false; error: ErrorCode } {
     const entry = this.entryOf(userId);
     if (!entry) return { ok: false, error: 'NOT_IN_MATCH' };
@@ -345,16 +373,28 @@ export class MatchService {
   }
 
   private apply(entry: Active, cmd: Command): { ok: true } | { ok: false; error: ErrorCode } {
+    const round = entry.state.round;
     const r = applyCommand(entry.state, cmd, { now: this.now() });
     if ('error' in r) return { ok: false, error: RULE_TO_ERROR[r.error] };
     entry.state = r.state;
+    const events: MatchEvent[] = [...r.events];
     for (const e of r.events) {
+      // A correct guess whose group holds this board's gem card pays the solver (once per board).
+      if (e.t === 'guess' && e.outcome === 'correct' && cmd.t === 'submit' && entry.gems && !entry.gems.claimed[round] && groupHoldsGem(entry.gems.cards[round], e.itemIds)) {
+        entry.gems.claimed[round] = true;
+        events.push({ t: 'gem', userId: cmd.by, amount: entry.gems.amount });
+        try {
+          this.deps.onGem?.(cmd.by, entry.gems.amount, `gem_card:${entry.id}-${round}:${cmd.by}`);
+        } catch {
+          /* a gem must not break the match */
+        }
+      }
       if (e.t === 'proposal') entry.proposals[e.side] = e.itemIds.length > 0 ? { by: e.by, itemIds: e.itemIds } : null;
       if (e.t === 'turn') entry.proposals = [null, null];
       if (e.t === 'guess') entry.recent = [...(entry.recent ?? []), { side: e.side, itemIds: e.itemIds, outcome: e.outcome }].slice(-RECENT_GUESSES);
       if (e.t === 'board') entry.recent = [];
     }
-    this.broadcast(entry, r.events);
+    this.broadcast(entry, events);
     return { ok: true };
   }
 
@@ -389,6 +429,9 @@ export class MatchService {
       scores: [v.scores[0], v.scores[1]],
       mistakes: [v.mistakes[0], v.mistakes[1]],
       lockedOut: [v.lockedOut[0], v.lockedOut[1]],
+      powers: { ...v.powers },
+      powerUsed: v.powerUsed,
+      frozenUntil: [v.frozenUntil[0], v.frozenUntil[1]],
       turn: v.turn,
       captain: [v.captain[0], v.captain[1]],
       proposal: entry.proposals[v.you] ? { by: entry.proposals[v.you]!.by, itemIds: [...entry.proposals[v.you]!.itemIds] } : null,
@@ -418,7 +461,9 @@ export class MatchService {
       for (const e of events) {
         if (e.t === 'proposal') continue;
         if (e.t === 'finished' && entry.pgPending) continue; // the match is not over for the clients yet
-        this.deps.emit(p.userId, ServerEvent.matchEvent, e.t === 'board_done' ? this.boardDone(entry, e.round) : e);
+        // The magnifier's cards are private to the side that used it.
+        const out = e.t === 'board_done' ? this.boardDone(entry, e.round) : e.t === 'power' && e.itemIds && e.side !== p.side ? { t: 'power' as const, side: e.side, kind: e.kind } : e;
+        this.deps.emit(p.userId, ServerEvent.matchEvent, out);
       }
     }
     if (entry.state.status === 'finished') {

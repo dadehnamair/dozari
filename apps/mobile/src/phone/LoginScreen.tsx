@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Keyboard, Platform, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { toPersianDigits } from '@dozari/shared';
-import type { AgeTrack } from '@dozari/shared';
+import type { AgeTrack, ChildRow } from '@dozari/shared';
+import { fetchChildren, switchToChild } from '../agetrack/guardianApi';
 import { ChildCodeSheet } from '../agetrack/ChildCodeSheet';
 import { Character } from '../components/Character';
 import { Icon } from '../components/Icon';
@@ -13,11 +14,13 @@ import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
 import { safeTop } from '../theme/safeArea';
 import { useTheme } from '../theme/themeStore';
-import { OTP_LENGTH, onlyDigits, phoneFromInput, resendLeft } from './loginInput';
+import { OTP_LENGTH, PHONE_MAX_DIGITS, onlyDigits, phoneFromInput, resendLeft } from './loginInput';
 import { loginWithCode, requestLoginCode } from './loginApi';
 import { TEXT_LEFT, TEXT_RIGHT } from '../theme/direction';
 
 const INK = colors.ink;
+const l = fa.login;
+const TRACK_EMOJI: Record<AgeTrack, string> = { adult: '🧑', teen: '🧑‍🎓', kid: '🧸' };
 const errText = (e: unknown): string => fa.phoneLogin.errors[e instanceof ApiError ? e.code : 'generic'] ?? fa.phoneLogin.errors.generic ?? '';
 
 /**
@@ -31,7 +34,9 @@ export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { sig
   /** «Who is playing?» sits in the card (age tracks on); the choice is saved right after sign-in. */
   const [age, setAge] = useState<AgeTrack>('adult');
   const track = ageTracksOn ? age : undefined;
-  const [step, setStep] = useState<'phone' | 'otp'>('phone');
+  const [step, setStep] = useState<'phone' | 'otp' | 'pick'>('phone');
+  /** Children behind the number that just signed in: the player picks which account to play as. */
+  const [accounts, setAccounts] = useState<ChildRow[]>([]);
   const [typed, setTyped] = useState('');
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
@@ -62,7 +67,9 @@ export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { sig
   const left = resendLeft(sentAt, now);
 
   const send = () => {
-    if (!phone || busy) return;
+    if (busy) return;
+    // A greyed-out button that does nothing looked like a dead button: say what is wrong with the number instead.
+    if (!phone) return setNote(fa.phoneLogin.errors.invalid_phone ?? '');
     setBusy(true);
     setNote(null);
     requestLoginCode(phone).then(
@@ -75,7 +82,14 @@ export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { sig
     setBusy(true);
     setNote(null);
     loginWithCode(phone, digits, { announce: false }).then(
-      (r) => onDone({ signedIn: true, created: r.created, track }),
+      async (r) => {
+        // A number can hold a guardian with children: ask which account to open.
+        const kids = ageTracksOn && !r.created ? await fetchChildren().then((c) => c.children, () => []) : [];
+        if (kids.length === 0) return onDone({ signedIn: true, created: r.created, track });
+        setAccounts(kids);
+        setStep('pick');
+        setBusy(false);
+      },
       (e) => (setBusy(false), setCode(''), setNote(errText(e))),
     );
   };
@@ -111,7 +125,7 @@ export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { sig
             <Text style={[styles.sub, adult ? ad.sub : null]}>{l.phoneHint}</Text>
             <View style={styles.phoneRow}>
               <View style={[styles.prefix, adult ? ad.field : null]}><Text style={[styles.prefixText, adult ? ad.fieldText : null]}>+98</Text></View>
-              <TextInput value={toPersianDigits(typed)} onChangeText={(v) => setTyped(onlyDigits(v, 11))} onSubmitEditing={send} keyboardType="phone-pad" maxLength={13} placeholder={toPersianDigits('912 345 6789')} placeholderTextColor={adult ? 'rgba(255,233,168,0.4)' : '#B8A9CC'} style={[styles.phoneInput, adult ? ad.field : null, adult ? ad.fieldText : null]} accessibilityLabel={fa.phoneLogin.phone} />
+              <TextInput value={toPersianDigits(typed)} onChangeText={(v) => setTyped(onlyDigits(v, PHONE_MAX_DIGITS))} onSubmitEditing={send} keyboardType="phone-pad" maxLength={PHONE_MAX_DIGITS} placeholder={toPersianDigits('912 345 6789')} placeholderTextColor={adult ? 'rgba(255,233,168,0.4)' : '#B8A9CC'} style={[styles.phoneInput, adult ? ad.field : null, adult ? ad.fieldText : null]} accessibilityLabel={fa.phoneLogin.phone} />
             </View>
             {ageTracksOn ? (
               <View style={styles.ageBlock}>
@@ -125,6 +139,18 @@ export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { sig
                 </View>
               </View>
             ) : null}
+          </>
+        ) : step === 'pick' ? (
+          <>
+            <Text style={[styles.title, adult ? ad.title : null]}>{l.pickTitle}</Text>
+            <Pressable accessibilityRole="button" disabled={busy} onPress={() => playAs(null)} style={({ pressed }) => [styles.guest, adult ? ad.guest : null, pressed ? styles.guestPressed : null]}>
+              <Text style={[styles.guestText, adult ? ad.guestText : null]}>{l.pickMe}</Text>
+            </Pressable>
+            {accounts.map((c) => (
+              <Pressable key={c.id} accessibilityRole="button" disabled={busy} onPress={() => playAs(c.id)} style={({ pressed }) => [styles.guest, adult ? ad.guest : null, pressed ? styles.guestPressed : null]}>
+                <Text style={[styles.guestText, adult ? ad.guestText : null]}>{`${TRACK_EMOJI[c.track] ?? ''} ${c.nickname}`}</Text>
+              </Pressable>
+            ))}
           </>
         ) : (
           <>
@@ -146,7 +172,7 @@ export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { sig
         )}
         {note ? <Text style={styles.error}>{note}</Text> : null}
         {step === 'pick' ? null : <>
-        <SlabButton label={busy ? l.sending : step === 'phone' ? l.sendCode : l.enter} sfx="confirm" color={colors.candy.lime} height={tight ? 50 : 56} fontSize={22} grow={0} disabled={busy || (step === 'phone' ? !phone : code.length !== OTP_LENGTH)} onPress={step === 'phone' ? send : () => enter(code)} />
+        <SlabButton label={busy ? l.sending : step === 'phone' ? l.sendCode : l.enter} sfx="confirm" color={colors.candy.lime} height={tight ? 50 : 56} fontSize={22} grow={0} disabled={busy || (step === 'otp' && code.length !== OTP_LENGTH)} onPress={step === 'phone' ? send : () => enter(code)} />
         <View style={styles.orRow}><View style={[styles.orLine, adult ? ad.orLine : null]} /><Text style={[styles.orText, adult ? ad.sub : null]}>{l.or}</Text><View style={[styles.orLine, adult ? ad.orLine : null]} /></View>
         <Pressable accessibilityRole="button" onPress={() => onDone({ signedIn: false, created: false, track })} style={({ pressed }) => [styles.guest, adult ? ad.guest : null, pressed ? styles.guestPressed : null]}>
           <Text style={[styles.guestText, adult ? ad.guestText : null]}>{l.guest}</Text>

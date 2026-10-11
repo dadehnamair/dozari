@@ -4,6 +4,7 @@ import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View } from 'r
 import Svg, { Circle, G, Path } from 'react-native-svg';
 import type { WheelPrize, WheelStatus } from '@dozari/shared';
 import { toPersianDigits } from '@dozari/shared';
+import { RewardedAdButton } from '../ads/RewardedAdButton';
 import { GradientFill } from '../components/GradientFill';
 import { Icon } from '../components/Icon';
 import { GuideBubble } from '../components/GuideBubble';
@@ -202,6 +203,7 @@ export function WheelPage({ onClose, daily, startOn = 'wheel' }: { onClose: () =
         <View style={styles.bottom}>
           <Pressable onPress={() => setTipAt((x) => (x + 1) % t.tips.length)} accessibilityRole="button" style={styles.tip}><GuideBubble who="baqal" text={t.tips[tipAt] ?? ''} /></Pressable>
           <Text style={styles.noteLight}>{note}</Text>
+          {status.enabled && status.pending < 1 && !spinning ? <RewardedAdButton placement="wheel_extra" onRewarded={() => void fetchWheel().then(setStatus, () => undefined)} /> : null}
           <Pressable onPress={() => void go()} disabled={!can} accessibilityRole="button" accessibilityLabel={t.spin} style={({ pressed }) => [styles.spin, !can ? styles.spinOff : null, pressed ? styles.pressed : null]}>
             <GradientFill from={can ? '#FF8FB6' : '#C9BBD9'} to={can ? '#D63A72' : '#9C8DB5'} />
             <Text style={styles.spinText}>{t.spin}</Text>

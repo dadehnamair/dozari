@@ -108,6 +108,20 @@ The bot driver fills missing seats after the usual fallback wait (humans on oppo
 
 **Three boards (D143).** A 2v2 is longer: *TEAM_MATCH_BOARDS* = 3 different 16-card boards played one after another (admin setting `match.team_boards`, 1–5; a 1v1 stays one board). Scores add up across boards; the mistake limit (*MATCH_MAX_MISTAKES*), lock-outs, the consecutive-timeout count and the repeated-set list reset on every board, while tie-breaks count mistakes of all boards and first blood is only for the first board. A board ends when three groups are found or both sides are locked out; its last group is revealed, `board_done` (with the board's full solution) and `board` events go out, and the other side than the one that opened the board opens the next (captain rotates). The match ends after the last board (`solved`/`locked_out`) or at once on forfeit/abandon. The state keeps the next boards server-side (`upcoming`, already shuffled); `MatchView` only has `round`/`rounds` and the board in play. The result screen shows the last board's solution.
 
+### Power-ups (D220, proposed)
+Each side (team) holds *MATCH_MAGNIFIERS* = 2 magnifiers and *MATCH_FREEZES* = 1 freeze per match (`config/game.ts`, free, not bought), **but each player may
+use only one power-up in a whole match** (*POWERS_PER_PLAYER* = 1, any kind, 1v1 or 2v2, however many the side holds): a second use answers `POWER_USED`
+and the snapshot's `powerUsed` is true for that player (the buttons go grey). Neither costs a
+turn, a mistake or a clock change (`match:power {kind}`).
+- **Magnifier (ذره‌بین)**, on the user's own turn and only for its captain: the server picks an unsolved group and shows *two* of its cards to the
+  user's own side only (a `power` event with `itemIds` goes to that side; the rival gets the event without them). The next use looks at the next
+  unsolved group, so two uses never repeat. The app selects the two cards for the player.
+- **Freeze (یخ)**, used **while the rival plays** (any present member of the freezing side): for *FREEZE_SECONDS* = 10 s the rival cannot select
+  or submit (`submit`/`propose` answer `FROZEN`), while its turn clock keeps running. `frozenUntil` (epoch ms per side) is in the snapshot and in
+  the `power` event; a new turn clears it. Not against a locked-out or already frozen rival.
+- Refused: none left or a useless freeze → `NO_POWER`; magnifier out of turn → `NOT_YOUR_TURN`, not the captain → `NOT_CAPTAIN`.
+- Visibility: own counts and `frozenUntil` are public in the snapshot; the magnifier's cards never are.
+
 ### Visibility (redaction)
 - Everyone sees: board items, solved groups, scores, mistakes, whose turn, timer, each side's
   submitted selection result (the 4 items and correct/one-away/wrong).

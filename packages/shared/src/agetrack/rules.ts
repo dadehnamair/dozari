@@ -33,6 +33,8 @@ export interface TrackRules {
   transfers: boolean;
   /** Own invite code that can be shared outward: kid and teen may redeem a code but not hand one out. */
   inviteShare: boolean;
+  /** Rewarded video ads (docs/logic/ads.md): adult only; a child never sees an ad. */
+  rewardedAds: boolean;
   /** What other players see on the public profile (D67): `basic` = nickname, avatar, level; `stats` adds the game record; `full` is today's. */
   publicProfile: 'basic' | 'stats' | 'full';
   /** Puzzle pools the track is served from, in preference order. */
@@ -42,9 +44,9 @@ export interface TrackRules {
 }
 
 const RULES: Record<AgeTrack, TrackRules> = {
-  kid: { priceGuess: false, coinWager: false, wordLesson: true, freeTextChat: 'guardian_switch', socialSameTrackOnly: true, socialNeedsGuardian: true, purchases: false, ugc: false, tournaments: false, publicCity: false, transfers: false, inviteShare: false, publicProfile: 'basic', dailyPuzzle: false, priceOnly: false, lookup: false, puzzleTracks: ['kid'], tauntTrack: 'kid' },
-  teen: { priceGuess: true, coinWager: false, wordLesson: false, freeTextChat: 'guardian_switch', socialSameTrackOnly: true, socialNeedsGuardian: true, purchases: false, ugc: false, tournaments: false, publicCity: false, transfers: false, inviteShare: false, publicProfile: 'stats', dailyPuzzle: false, priceOnly: true, lookup: true, puzzleTracks: ['teen'], tauntTrack: 'teen' },
-  adult: { priceGuess: true, coinWager: true, wordLesson: false, freeTextChat: 'invite_code', socialSameTrackOnly: false, socialNeedsGuardian: false, purchases: true, ugc: true, tournaments: true, publicCity: true, transfers: true, inviteShare: true, publicProfile: 'full', dailyPuzzle: true, priceOnly: true, lookup: true, puzzleTracks: ['adult'], tauntTrack: 'adult' },
+  kid: { priceGuess: false, coinWager: false, wordLesson: true, freeTextChat: 'guardian_switch', socialSameTrackOnly: true, socialNeedsGuardian: true, purchases: false, ugc: false, tournaments: false, publicCity: false, transfers: false, inviteShare: false, rewardedAds: false, publicProfile: 'basic', dailyPuzzle: false, priceOnly: false, lookup: false, puzzleTracks: ['kid'], tauntTrack: 'kid' },
+  teen: { priceGuess: true, coinWager: false, wordLesson: false, freeTextChat: 'guardian_switch', socialSameTrackOnly: true, socialNeedsGuardian: true, purchases: false, ugc: false, tournaments: false, publicCity: false, transfers: false, inviteShare: false, rewardedAds: false, publicProfile: 'stats', dailyPuzzle: false, priceOnly: true, lookup: true, puzzleTracks: ['teen'], tauntTrack: 'teen' },
+  adult: { priceGuess: true, coinWager: true, wordLesson: false, freeTextChat: 'invite_code', socialSameTrackOnly: false, socialNeedsGuardian: false, purchases: true, ugc: true, tournaments: true, publicCity: true, transfers: true, inviteShare: true, rewardedAds: true, publicProfile: 'full', dailyPuzzle: true, priceOnly: true, lookup: true, puzzleTracks: ['adult'], tauntTrack: 'adult' },
 };
 
 export function trackRules(track: AgeTrack): TrackRules {
@@ -91,6 +93,7 @@ const PATH_RULES: readonly (readonly [prefix: string, rule: BooleanTrackRule])[]
   ['/shop-pay', 'purchases'],
   ['/ugc', 'ugc'],
   ['/tournaments', 'tournaments'],
+  ['/ads', 'rewardedAds'],
   ['/daily-puzzle', 'dailyPuzzle'],
   ['/price-only', 'priceOnly'],
   ['/lookup', 'lookup'],
