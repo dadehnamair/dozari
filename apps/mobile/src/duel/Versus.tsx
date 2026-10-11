@@ -8,6 +8,7 @@ import { SlabButton } from '../components/SlabButton';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { FACE_TEXT } from '../theme/skin';
+import type { CharacterId } from '../theme/character';
 import { characterFor } from './arena';
 import { steppedSec } from '../search/scan';
 
@@ -18,7 +19,7 @@ const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
  * screen-versus of `13 Match Screens`: blue half for the player, pink half for the rival, a gold VS coin on the seam.
  * While searching the rival is a «؟» and the bottom slab cancels; once found it counts down to the board.
  */
-export function Versus({ me, rival, mate, rivals, waitedSec, countdown, onCancel }: { me: { nickname: string; level?: number }; rival: MatchPlayerProfile | null; /** 2v2: the teammate and both rivals (all four seats are shown). */ mate?: MatchPlayerProfile | null; rivals?: readonly MatchPlayerProfile[]; waitedSec: number; countdown: number | null; onCancel: () => void }) {
+export function Versus({ me, rival, mate, rivals, waitedSec, countdown, onCancel }: { me: { nickname: string; level?: number; /** The character the player picked (default: the hero). */ who?: CharacterId }; rival: MatchPlayerProfile | null; /** 2v2: the teammate and both rivals (all four seats are shown). */ mate?: MatchPlayerProfile | null; rivals?: readonly MatchPlayerProfile[]; waitedSec: number; countdown: number | null; onCancel: () => void }) {
   const team = mate !== undefined;
   return (
     <View style={styles.root}>
@@ -48,7 +49,7 @@ export function Versus({ me, rival, mate, rivals, waitedSec, countdown, onCancel
       <View style={styles.top}>
         <View style={styles.chip}><Text style={styles.chipText}>{rival ? a.found : fa.duel.searching}</Text></View>
         <View style={styles.pairRow}>
-          <Fighter who="dozari" pose="coin" name={me.nickname || a.you} level={me.level} side="me" small={team} />
+          <Fighter who={me.who ?? 'dozari'} pose="coin" name={me.nickname || a.you} level={me.level} side="me" small={team} />
           {team && mate ? <Fighter who={characterFor(mate.avatarKey || mate.nickname)} pose="wave" name={mate.nickname} level={mate.level} side="me" small party={mate.birthday} /> : null}
         </View>
         {me.nickname ? <Text style={styles.nameHint}>{a.nameHint(me.nickname, NICKNAME_CHANGE_MIN_LEVEL, me.level ?? 1)}</Text> : null}
@@ -94,7 +95,7 @@ export function Versus({ me, rival, mate, rivals, waitedSec, countdown, onCancel
   );
 }
 
-function Fighter({ who, pose, name, level, side, small = false, party = false }: { who: 'dozari' | ReturnType<typeof characterFor>; pose: 'coin' | 'angry' | 'wave'; name: string; level?: number; side: 'me' | 'rival'; small?: boolean; party?: boolean }) {
+function Fighter({ who, pose, name, level, side, small = false, party = false }: { who: CharacterId; pose: 'coin' | 'angry' | 'wave'; name: string; level?: number; side: 'me' | 'rival'; small?: boolean; party?: boolean }) {
   return (
     <View style={styles.fighter}>
       <View style={[styles.body, small ? styles.bodySmall : null, side === 'rival' ? styles.flip : null]}>

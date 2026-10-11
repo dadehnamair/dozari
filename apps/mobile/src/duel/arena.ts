@@ -1,6 +1,7 @@
 import { ENTRY_FEE_BASE, HOUSE_CUT_PERCENT, MATCH_MAX_MISTAKES, winnerPayout } from '@dozari/shared';
 import type { MatchView } from '@dozari/shared';
 import { fa } from '../i18n/fa';
+import { CHARACTER_AVATARS } from '../kit/data';
 import type { CharacterId } from '../theme/character';
 
 const int = (v: unknown, fallback: number): number => (typeof v === 'number' && Number.isInteger(v) && v >= 0 ? v : fallback);
@@ -37,12 +38,20 @@ export function arenaTiers(raw: Record<string, unknown>): ArenaTier[] {
 /** Market characters an opponent can appear as (the hero «dozari» is always the player). */
 const RIVALS: readonly CharacterId[] = ['pahlevan', 'baqal', 'mashti', 'khale', 'mirza', 'goli'];
 
-/** Stable character for an opponent, picked from their avatar key (or nickname). */
+/** The cast member a player picked as their avatar (`char-<id>` keys), if any. */
+const pickedCharacter = (key: string): CharacterId | undefined => CHARACTER_AVATARS.find((a) => a.key === key)?.who;
+
+/** Character of an opponent or teammate: the cast member they picked, else a stable one hashed from their avatar key (or nickname). */
 export function characterFor(key: string): CharacterId {
+  const picked = pickedCharacter(key);
+  if (picked) return picked;
   let h = 0;
   for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
   return RIVALS[h % RIVALS.length]!;
 }
+
+/** The player's own character on the duel screens: the cast member they picked, else the hero «dozari». */
+export const myCharacter = (avatarKey: string | undefined): CharacterId => (avatarKey ? pickedCharacter(avatarKey) : undefined) ?? 'dozari';
 
 /** Groups one side found itself (revealed groups count for nobody). */
 export const groupsBy = (view: MatchView, side: 0 | 1): number => view.solved.filter((g) => g.by === side).length;

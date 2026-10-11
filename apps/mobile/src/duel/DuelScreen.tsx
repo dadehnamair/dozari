@@ -26,7 +26,7 @@ import { leaveTable } from '../tables/api';
 import { TableSheet } from '../tables/TableSheet';
 import { nativeTopInset } from '../theme/safeArea';
 import { colors, fonts } from '../theme/colors';
-import { arenaNumbers, arenaTiers, arrange, characterFor, clockText, endReason, groupsBy, shuffled } from './arena';
+import { arenaNumbers, arenaTiers, arrange, characterFor, clockText, endReason, groupsBy, myCharacter, shuffled } from './arena';
 import type { TierId } from './arena';
 import { DuelPriceRound } from './DuelPriceRound';
 import { DuelResult } from './DuelResult';
@@ -368,7 +368,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
     const myProfile = mineSide.find((p) => p.userId !== undefined && p.userId === state.found?.youId) ?? mineSide[0];
     return (
       <Versus
-        me={{ nickname: myProfile?.nickname ?? '', level: myProfile?.level }}
+        me={{ nickname: myProfile?.nickname ?? '', level: myProfile?.level, who: myCharacter(myProfile?.avatarKey) }}
         rival={players ? sidePlayers(state.found, (1 - you) as 0 | 1)[0] ?? null : null}
         mate={team ? sidePlayers(state.found, you).find((p) => p !== myProfile) ?? null : undefined}
         rivals={team ? sidePlayers(state.found, (1 - you) as 0 | 1) : undefined}
@@ -384,8 +384,10 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   const myName = sideName(state.found, me, a.teamOf) || a.you;
   const rivalName = sideName(state.found, them, a.teamOf) || a.rival;
   const rivalWho = characterFor(sidePlayers(state.found, them)[0]?.avatarKey || rivalName);
+  const mineProfiles = sidePlayers(state.found, me);
+  const myWho = myCharacter((mineProfiles.find((p) => p.userId !== undefined && p.userId === state.found?.youId) ?? mineProfiles[0])?.avatarKey);
   const lines = [
-    { name: myName, who: 'dozari' as const, groups: groupsBy(view, me), me: true },
+    { name: myName, who: myWho, groups: groupsBy(view, me), me: true },
     { name: rivalName, who: rivalWho, groups: groupsBy(view, them), me: false, playerId: sidePlayers(state.found, them).length === 1 ? sidePlayers(state.found, them)[0]?.userId : undefined,
       reportable: sidePlayers(state.found, them).flatMap((p) => (p.userId ? [{ id: p.userId, name: p.nickname }] : [])) },
   ];
@@ -535,7 +537,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
 
           <View style={styles.hudWrap}>
             <MatchHud
-              me={{ name: myName, who: 'dozari', score: view.scores[me], groups: lines[0]!.groups, active: playing && view.turn === me, frozen: frozenMe, level: myLevel, mate: team ? mateWho : undefined }}
+              me={{ name: myName, who: myWho, score: view.scores[me], groups: lines[0]!.groups, active: playing && view.turn === me, frozen: frozenMe, level: myLevel, mate: team ? mateWho : undefined }}
               rival={{ name: rivalName, who: rivalWho, score: view.scores[them], groups: lines[1]!.groups, active: playing && view.turn === them, frozen: frozenRival, level: rivalLevel, mate: team ? rivalMateWho : undefined }}
               onChat={taunts.length > 0 ? () => setChatOpen((v) => !v) : undefined}
               chatOpen={chatOpen}
