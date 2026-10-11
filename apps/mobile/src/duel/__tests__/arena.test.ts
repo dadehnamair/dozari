@@ -34,6 +34,8 @@ describe('arena helpers', () => {
     expect(characterFor('char-baqal')).toBe('baqal');
     expect(myCharacter('avatar-03')).toBe('dozari');
     expect(myCharacter(undefined)).toBe('dozari');
+    expect(myCharacter('avatar-03', 'female')).toBe('dozariF');
+    expect(myCharacter('char-ajan', 'female')).toBe('ajan');
   });
 
   it('counts groups per side and moves the tug bar 12.5% per group', () => {

@@ -1,7 +1,9 @@
 import { ENTRY_FEE_BASE, HOUSE_CUT_PERCENT, MATCH_MAX_MISTAKES, winnerPayout } from '@dozari/shared';
 import type { MatchView } from '@dozari/shared';
 import { fa } from '../i18n/fa';
+import type { Gender } from '@dozari/shared';
 import { CHARACTER_AVATARS } from '../kit/data';
+import { heroFor } from '../social/heroFor';
 import type { CharacterId } from '../theme/character';
 
 const int = (v: unknown, fallback: number): number => (typeof v === 'number' && Number.isInteger(v) && v >= 0 ? v : fallback);
@@ -50,8 +52,8 @@ export function characterFor(key: string): CharacterId {
   return RIVALS[h % RIVALS.length]!;
 }
 
-/** The player's own character on the duel screens: the cast member they picked, else the hero «dozari». */
-export const myCharacter = (avatarKey: string | undefined): CharacterId => (avatarKey ? pickedCharacter(avatarKey) : undefined) ?? 'dozari';
+/** The player's own character on the duel screens: the cast member they picked, else the hero for their gender. */
+export const myCharacter = (avatarKey: string | undefined, gender?: Gender | null): CharacterId => (avatarKey ? pickedCharacter(avatarKey) : undefined) ?? heroFor(gender);
 
 /** Groups one side found itself (revealed groups count for nobody). */
 export const groupsBy = (view: MatchView, side: 0 | 1): number => view.solved.filter((g) => g.by === side).length;

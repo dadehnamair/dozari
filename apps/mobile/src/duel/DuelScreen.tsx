@@ -26,6 +26,7 @@ import { leaveTable } from '../tables/api';
 import { TableSheet } from '../tables/TableSheet';
 import { nativeTopInset } from '../theme/safeArea';
 import { colors, fonts } from '../theme/colors';
+import { getLookGender } from '../theme/look';
 import { arenaNumbers, arenaTiers, arrange, characterFor, clockText, endReason, groupsBy, myCharacter, shuffled } from './arena';
 import type { TierId } from './arena';
 import { DuelPriceRound } from './DuelPriceRound';
@@ -368,7 +369,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
     const myProfile = mineSide.find((p) => p.userId !== undefined && p.userId === state.found?.youId) ?? mineSide[0];
     return (
       <Versus
-        me={{ nickname: myProfile?.nickname ?? '', level: myProfile?.level, who: myCharacter(myProfile?.avatarKey) }}
+        me={{ nickname: myProfile?.nickname ?? '', level: myProfile?.level, who: myCharacter(myProfile?.avatarKey, getLookGender()) }}
         rival={players ? sidePlayers(state.found, (1 - you) as 0 | 1)[0] ?? null : null}
         mate={team ? sidePlayers(state.found, you).find((p) => p !== myProfile) ?? null : undefined}
         rivals={team ? sidePlayers(state.found, (1 - you) as 0 | 1) : undefined}
@@ -385,7 +386,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   const rivalName = sideName(state.found, them, a.teamOf) || a.rival;
   const rivalWho = characterFor(sidePlayers(state.found, them)[0]?.avatarKey || rivalName);
   const mineProfiles = sidePlayers(state.found, me);
-  const myWho = myCharacter((mineProfiles.find((p) => p.userId !== undefined && p.userId === state.found?.youId) ?? mineProfiles[0])?.avatarKey);
+  const myWho = myCharacter((mineProfiles.find((p) => p.userId !== undefined && p.userId === state.found?.youId) ?? mineProfiles[0])?.avatarKey, getLookGender());
   const lines = [
     { name: myName, who: myWho, groups: groupsBy(view, me), me: true },
     { name: rivalName, who: rivalWho, groups: groupsBy(view, them), me: false, playerId: sidePlayers(state.found, them).length === 1 ? sidePlayers(state.found, them)[0]?.userId : undefined,
