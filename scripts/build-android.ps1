@@ -47,14 +47,36 @@ Run 'pnpm install (hoisted)' { pnpm install --node-linker=hoisted }
 $env:EXPO_PUBLIC_API_URL = $ApiUrl
 $env:EXPO_PUBLIC_STORE = $Store
 Set-Location (Join-Path $root 'apps\mobile')
-# A Gradle daemon left over from the previous build keeps files in android\app\build open (EBUSY on delete), so stop it first.
-if (Test-Path 'android\gradlew.bat') { & 'android\gradlew.bat' --stop 2>&1 | Out-Null }
-foreach ($try in 1..5) {
-  Remove-Item -Recurse -Force android -ErrorAction SilentlyContinue
-  if (-not (Test-Path android)) { break }
-  Start-Sleep -Seconds 2
+# A daemon left over from the previous build keeps files in android\app\build open (EBUSY on delete). Escalate:
+# polite `gradlew --stop`, then kill the Gradle/Kotlin java daemons (only java processes whose command line names gradle
+# or this repository, so Android Studio is left alone), retrying the delete after each step.
+function Remove-AndroidDir {
+  if (-not (Test-Path android)) { return }
+  if (Test-Path 'android\gradlew.bat') { & 'android\gradlew.bat' --stop 2>&1 | Out-Null }
+  foreach ($step in 1..3) {
+    foreach ($try in 1..3) {
+      Remove-Item -Recurse -Force android -ErrorAction SilentlyContinue
+      if (-not (Test-Path android)) { return }
+      Start-Sleep -Seconds 2
+    }
+    if ($step -eq 1) {
+      Write-Host '==> android/ is locked; stopping leftover Gradle/Kotlin daemons' -ForegroundColor Yellow
+      $pattern = '(?i)gradle|kotlin|' + [regex]::Escape($root)
+      Get-CimInstance Win32_Process -Filter "Name = 'java.exe'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -match $pattern } |
+        ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+    } elseif ($step -eq 2) {
+      Write-Host '==> still locked; releasing the folder from node/adb/clangd and waiting for the antivirus scan' -ForegroundColor Yellow
+      Get-Process node, adb, clangd, ninja -ErrorAction SilentlyContinue | Where-Object { $_.Id -ne $PID } |
+        ForEach-Object { Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue }
+      Start-Sleep -Seconds 5
+    }
+  }
+  if (Test-Path android) {
+    throw "Cannot delete apps\mobile\android: a file is still locked. Close Android Studio and any Explorer window on that folder (or exclude F:\ from Windows Defender), then run the script again."
+  }
 }
-if (Test-Path android) { throw "Cannot delete apps\mobile\android (a file is locked). Close Android Studio / Explorer windows on it, run 'taskkill /F /IM java.exe', and try again." }
+Remove-AndroidDir
 Run 'expo prebuild' { pnpm exec expo prebuild --platform android }
 Set-Location android
 Run 'gradlew assembleRelease' { .\gradlew assembleRelease }
