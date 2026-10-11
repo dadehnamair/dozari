@@ -163,7 +163,12 @@ function TournamentPage({ id, onBack }: { id: string; onBack: () => void }) {
                 <Text style={styles.label}>{fa.tournament.players} ({n(t.players.length)})</Text>
                 <View style={styles.people}>
                   {t.players.map((p) => (
-                    <View key={p.id} style={styles.person}><Avatar avatar={avatarOf(p.avatarKey)} size={28} /><Text style={styles.small}>{p.nickname}</Text></View>
+                    <View key={p.id} style={styles.personCell}>
+                      <View style={styles.person}>
+                        <Avatar avatar={avatarOf(p.avatarKey)} size={40} />
+                        <Text style={styles.personName} numberOfLines={1}>{p.nickname}</Text>
+                      </View>
+                    </View>
                   ))}
                 </View>
               </View>
@@ -211,22 +216,41 @@ function Bracket({ t }: { t: TournamentDetail }) {
         <View style={styles.grid}>
           {matches.map((m) => (
             <View key={`${m.round}-${m.slot}`} style={styles.cell}>
-              <View style={[styles.match, m.status === 'playing' ? styles.matchLive : null]}>
-                {([m.a, m.b] as const).map((p, k) => (
-                  <View key={k} style={[styles.player, k === 1 ? styles.playerLast : null, p && m.winnerId === p.id ? styles.playerWon : null]}>
-                    <Text style={[styles.playerName, !p || (m.winnerId && m.winnerId !== p.id) ? styles.dim : null]} numberOfLines={1}>
-                      {p?.nickname ?? (m.status === 'bye' ? fa.tournament.bye : fa.tournament.waiting)}
-                    </Text>
-                    {p && m.winnerId === p.id ? <Text style={styles.check}>✓</Text> : null}
-                  </View>
-                ))}
-              </View>
+              <MatchCard m={m} />
             </View>
           ))}
         </View>
       ) : (
         <Text style={styles.small}>{round === 1 ? fa.tournament.drawLater : fa.tournament.roundLater}</Text>
       )}
+    </View>
+  );
+}
+
+type BracketMatch = TournamentDetail['bracket'][number];
+
+/** One match: both faces, the winner lit up in green with a ✓, the loser greyed out and struck through with a ✕. */
+function MatchCard({ m }: { m: BracketMatch }) {
+  const decided = m.winnerId !== null;
+  return (
+    <View style={[styles.match, m.status === 'playing' ? styles.matchLive : null]}>
+      {([m.a, m.b] as const).map((p, k) => {
+        const won = !!p && m.winnerId === p.id;
+        const lost = !!p && decided && !won;
+        return (
+          <View key={k} style={[styles.player, k === 0 ? styles.playerFirst : null, won ? styles.playerWon : null, lost ? styles.playerLost : null]}>
+            <View style={[styles.face, won ? styles.faceWon : null, !p ? styles.faceEmpty : null]}>
+              {p ? <View style={lost ? styles.faceLost : null}><Avatar avatar={avatarOf(p.avatarKey)} size={30} /></View> : <Text style={styles.faceQ}>؟</Text>}
+            </View>
+            <Text style={[styles.playerName, won ? styles.nameWon : null, lost ? styles.nameLost : null, !p ? styles.dim : null]} numberOfLines={1}>
+              {p?.nickname ?? (m.status === 'bye' ? fa.tournament.bye : fa.tournament.waiting)}
+            </Text>
+            {won ? <View style={styles.badgeWon}><Text style={styles.badgeText}>✓</Text></View> : null}
+            {lost ? <View style={styles.badgeLost}><Text style={styles.badgeText}>✕</Text></View> : null}
+          </View>
+        );
+      })}
+      <View style={styles.vs} pointerEvents="none"><Text style={styles.vsText}>VS</Text></View>
     </View>
   );
 }
@@ -275,18 +299,32 @@ const styles = StyleSheet.create({
   cell: { width: '50%', padding: 4 },
   match: { borderRadius: 12, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.paper, overflow: 'hidden', ...lift(3) },
   matchLive: { borderColor: '#7ED957' },
-  playerLast: { borderBottomWidth: 0 },
-  player: { height: 30, flexDirection: ROW, alignItems: 'center', gap: 4, paddingHorizontal: 6, borderBottomWidth: 1, borderColor: 'rgba(43,18,64,0.15)' },
-  playerWon: { backgroundColor: '#E4F7D0' },
+  player: { height: 46, flexDirection: ROW, alignItems: 'center', gap: 6, paddingHorizontal: 6 },
+  playerFirst: { borderBottomWidth: 1.5, borderColor: 'rgba(43,18,64,0.15)' },
+  playerWon: { backgroundColor: '#D4F5B8' },
+  playerLost: { backgroundColor: 'rgba(43,18,64,0.07)' },
+  face: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
+  faceWon: { shadowColor: '#3FA36B', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 8, elevation: 6 },
+  faceLost: { opacity: 0.4 },
+  faceEmpty: { borderRadius: 17, borderWidth: 2, borderStyle: 'dashed', borderColor: 'rgba(43,18,64,0.3)' },
+  faceQ: { fontFamily: fonts.display, fontSize: 16, color: 'rgba(43,18,64,0.4)' },
   playerName: { flex: 1, fontFamily: fonts.bold, fontSize: 12, color: colors.ink, textAlign: TEXT_RIGHT },
+  nameWon: { fontFamily: fonts.display, fontSize: 13 },
+  nameLost: { opacity: 0.5, textDecorationLine: 'line-through' },
   dim: { opacity: 0.5 },
-  check: { fontFamily: fonts.display, fontSize: 13, color: '#3FA36B' },
+  badgeWon: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: colors.ink, backgroundColor: '#3FA36B', alignItems: 'center', justifyContent: 'center' },
+  badgeLost: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: 'rgba(43,18,64,0.5)', backgroundColor: '#E5384F', opacity: 0.8, alignItems: 'center', justifyContent: 'center' },
+  badgeText: { fontFamily: fonts.display, fontSize: 11, lineHeight: 14, color: '#fff' },
+  vs: { position: 'absolute', left: '50%', marginLeft: -11, top: 46 - 9, width: 22, height: 18, borderRadius: 9, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.candy.yellow, alignItems: 'center', justifyContent: 'center' },
+  vsText: { fontFamily: fonts.display, fontSize: 9, lineHeight: 12, color: colors.ink },
   panel: { gap: 6, padding: 12, borderRadius: 20, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.paper, ...lift(5) },
   label: { fontFamily: fonts.display, fontSize: 16, color: '#7E46D6', textAlign: TEXT_RIGHT, marginTop: 4 },
   text: { fontFamily: fonts.bold, fontSize: 13, lineHeight: 21, color: colors.ink, textAlign: TEXT_RIGHT },
   small: { fontFamily: fonts.bold, fontSize: 11.5, lineHeight: 19, color: colors.ink, opacity: 0.85, textAlign: TEXT_RIGHT },
-  people: { flexDirection: ROW, flexWrap: 'wrap', gap: 8 },
-  person: { flexDirection: ROW, alignItems: 'center', gap: 4 },
+  people: { flexDirection: ROW, flexWrap: 'wrap', marginHorizontal: -4 },
+  personCell: { width: '33.3333%', padding: 4 },
+  person: { alignItems: 'center', gap: 4, paddingVertical: 8, paddingHorizontal: 4, borderRadius: 14, borderWidth: 2, borderColor: 'rgba(43,18,64,0.18)', backgroundColor: 'rgba(255,255,255,0.35)' },
+  personName: { fontFamily: fonts.bold, fontSize: 11.5, color: colors.ink, textAlign: 'center', maxWidth: '100%' },
   warnLight: { fontFamily: fonts.bold, fontSize: 12, color: '#FFE48A', textAlign: 'center' },
   cta: { position: 'absolute', left: 16, right: 16, bottom: 22, gap: 6 },
 });

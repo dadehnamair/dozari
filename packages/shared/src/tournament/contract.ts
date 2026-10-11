@@ -28,8 +28,8 @@ export const tournamentListSchema = z.object({ tournaments: z.array(tournamentLi
 export const bracketMatchSchema = z.object({
   round: z.number().int().positive(),
   slot: z.number().int().nonnegative(),
-  a: z.object({ id: z.string().uuid(), nickname: z.string() }).nullable(),
-  b: z.object({ id: z.string().uuid(), nickname: z.string() }).nullable(),
+  a: z.object({ id: z.string().uuid(), nickname: z.string(), avatarKey: z.string().default('avatar-01') }).nullable(),
+  b: z.object({ id: z.string().uuid(), nickname: z.string(), avatarKey: z.string().default('avatar-01') }).nullable(),
   winnerId: z.string().uuid().nullable(),
   status: z.enum(['waiting', 'ready', 'playing', 'done', 'bye']),
   /** Scheduled tournaments: when this match opens for check-in (epoch ms), else null. */
