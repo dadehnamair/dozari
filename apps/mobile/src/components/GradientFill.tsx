@@ -3,6 +3,15 @@ import { StyleSheet, View } from 'react-native';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 
 /**
+ * Splits `rgba(r,g,b,a)` into an opaque colour plus an opacity: Android's react-native-svg ignores the alpha inside
+ * `stopColor`, which turned translucent overlays into solid black. Other colour strings pass through untouched.
+ */
+function splitAlpha(color: string): { color: string; opacity: number } {
+  const m = /^rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([\d.]+)\s*\)$/i.exec(color.trim());
+  return m ? { color: `rgb(${m[1]},${m[2]},${m[3]})`, opacity: Number(m[4]) } : { color, opacity: 1 };
+}
+
+/**
  * Absolute vertical gradient behind a view's content (no native gradient dependency).
  *
  * The SVG is drawn at the view's measured pixel size: a 1x1 viewBox stretched with percentage sizes came out shifted on
@@ -37,9 +46,10 @@ export function GradientFill({
                 { at: 0, color: from },
                 ...(mid ? [mid] : []),
                 { at: 1, color: to },
-              ].map((s) => (
-                <Stop key={s.at} offset={s.at} stopColor={s.color} />
-              ))}
+              ].map((s) => {
+                const c = splitAlpha(s.color);
+                return <Stop key={s.at} offset={s.at} stopColor={c.color} stopOpacity={c.opacity} />;
+              })}
             </LinearGradient>
           </Defs>
           <Rect x={0} y={0} width={size.w} height={size.h} fill={`url(#${gid})`} />
