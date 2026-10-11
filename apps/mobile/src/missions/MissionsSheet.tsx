@@ -78,7 +78,7 @@ export function MissionsSheet({ avail, links, onGo, onClose, onChanged }: { avai
 const styles = StyleSheet.create({
   list: { gap: 8, paddingBottom: 24 },
   note: { fontFamily: fonts.bold, fontSize: 14, color: colors.ink, textAlign: 'center', marginTop: 12 },
-  card: { flexDirection: ROW, alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#fff' },
+  card: { flexDirection: ROW, alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.card },
   cardDone: { opacity: 0.55 },
   body: { flex: 1, minWidth: 0, gap: 1 },
   title: { fontFamily: fonts.display, fontSize: 15, color: colors.ink, textAlign: TEXT_RIGHT },

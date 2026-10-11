@@ -28,7 +28,7 @@ export async function topUpPuzzlePool(admin: PuzzleAdmin, cfg: PoolConfig, rng: 
   const counts = await admin.counts();
   const have = cfg.autoApprove ? counts.approved : counts.draft;
   if (!cfg.enabled || have >= cfg.target) return { have, created: 0, approved: 0 };
-  const made = await admin.generate(Math.min(cfg.target - have, POOL_MAX_PER_RUN), rng);
+  const made = await admin.generate(Math.min(cfg.target - have, POOL_MAX_PER_RUN), rng, { plainTitles: cfg.autoApprove });
   let approved = 0;
   if (cfg.autoApprove) for (const id of made.ids) if ((await admin.setStatus(id, 'approved')) === 'ok') approved += 1;
   return { have, created: made.created, approved };

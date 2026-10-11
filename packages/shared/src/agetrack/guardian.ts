@@ -12,6 +12,8 @@ export const childTrackSchema = z.enum(['kid', 'teen']);
 
 export const guardianRequestSchema = z.object({ phone: z.string().min(5).max(20) });
 export const guardianConfirmSchema = z.object({ phone: z.string().min(5).max(20), code: z.string().min(3).max(10) });
+/** The code that confirms removing a child who has a record. */
+export const guardianConfirmCodeSchema = z.object({ code: z.string().min(3).max(10) });
 export const childCreateSchema = z.object({ track: childTrackSchema });
 export const childTrackPutSchema = z.object({ track: childTrackSchema });
 export const childLinkRequestSchema = z.object({ code: z.string().regex(/^\d{6}$/), deviceId: z.string().min(8).max(64) });

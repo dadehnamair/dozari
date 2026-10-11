@@ -4,6 +4,7 @@ export const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? (DEV ? 'http://localh
 
 import { clientHeaders } from './clientHeaders';
 import { reportServer } from './health';
+import { crumb } from '../errors/breadcrumbs';
 
 export class ApiError extends Error {
   constructor(
@@ -24,6 +25,7 @@ export async function callJson(path: string, method: 'GET' | 'POST' | 'DELETE' |
     res = await fetch(`${BASE_URL}${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
   } catch (err) {
     reportServer(false);
+    crumb('api', `${method} ${path} failed (network)`);
     throw err;
   }
   // A proxy answering 502/503/504 means the server behind it is not there; anything else means it answered.
@@ -31,6 +33,7 @@ export async function callJson(path: string, method: 'GET' | 'POST' | 'DELETE' |
   const json: unknown = await res.json().catch(() => ({}));
   if (!res.ok) {
     const code = typeof json === 'object' && json !== null && 'error' in json ? String((json as { error: unknown }).error) : 'error';
+    crumb('api', `${method} ${path} -> ${res.status} ${code}`);
     throw new ApiError(res.status, code);
   }
   return json;

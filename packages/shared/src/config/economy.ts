@@ -105,5 +105,15 @@ export const KEEPSAKE_RARITY_WEIGHT: Readonly<Record<KeepsakeRarity, number>> = 
 export const KEEPSAKE_PRICE_PERCENT: Readonly<Record<KeepsakeRarity, number>> = { common: 100, rare: 150, epic: 250, legendary: 400 };
 /** Most keepsakes pinned on the profile showcase. */
 export const SHOWCASE_MAX = 6;
+/**
+ * Collection milestones: reaching this many completed keepsakes pays a bonus once (gems, and wheel spins), on top of each keepsake's own gems and its set's.
+ * They turn a long collection into steps; the app shows the next one on the treasury page.
+ */
+export const KEEPSAKE_MILESTONES: readonly { count: number; gems: number; spins: number }[] = [
+  { count: 2, gems: 5, spins: 0 },
+  { count: 4, gems: 10, spins: 1 },
+  { count: 6, gems: 15, spins: 2 },
+  { count: 8, gems: 30, spins: 3 },
+];
 /** Gems a completed keepsake pays by default (each keepsake may override it). */
 export const KEEPSAKE_REWARD_GEMS = 3;

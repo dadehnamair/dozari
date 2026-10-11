@@ -2,11 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { THEME_CHROME, themeOf, toneIn } from '../appTheme';
 
 describe('themeOf', () => {
-  it('only the adult track gets the adult look', () => {
+  it('adult is the default look; only kid and teen get the candy one', () => {
     expect(themeOf('adult')).toBe('adult');
     expect(themeOf('kid')).toBe('play');
     expect(themeOf('teen')).toBe('play');
-    expect(themeOf(null)).toBe('play');
+    expect(themeOf(null)).toBe('adult');
+    expect(themeOf(undefined)).toBe('adult');
   });
 });
 

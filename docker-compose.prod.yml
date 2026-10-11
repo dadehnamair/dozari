@@ -6,6 +6,9 @@
 services:
   s-dozari-mysql:
     container_name: c-dozari-mysql
+    mem_limit: 768m
+    memswap_limit: 768m
+    cpus: 1.0
     image: mysql:8.4
     restart: unless-stopped
     environment:
@@ -13,7 +16,7 @@ services:
       MYSQL_DATABASE: dozari
       MYSQL_USER: dozari
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:?set MYSQL_PASSWORD}
-    command: ['--character-set-server=utf8mb4', '--collation-server=utf8mb4_unicode_ci']
+    command: ['--character-set-server=utf8mb4', '--collation-server=utf8mb4_unicode_ci', '--innodb-buffer-pool-size=256M', '--max-connections=100', '--performance-schema=OFF']
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
@@ -23,9 +26,15 @@ services:
       retries: 20
     # No published ports: only the server reaches it, over the compose network.
 
+  # TEMPORARILY OFF: `migrate` and `seed` carry profile `setup`, so a plain `up` skips them. Turn them back on with
+  #   docker compose -f docker-compose.prod.yml --env-file .env.prod --profile setup up -d --build
+  # (or COMPOSE_PROFILES=setup in .env.prod). Remember to run them once after any schema change (docs/deploy.md).
   # Applies the database migrations (safe to repeat) and exits; the server starts after it succeeds.
   s-dozari-migrate:
     container_name: c-dozari-migrate
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 0.5
     build:
       context: .
       dockerfile: deploy/Dockerfile.server
@@ -33,17 +42,21 @@ services:
     working_dir: /app/packages/db
     command: ['pnpm', 'exec', 'tsx', 'src/migrate.ts']
     restart: 'no'
+    profiles: ['setup']
     depends_on:
       s-dozari-mysql:
         condition: service_healthy
     environment:
       DATABASE_URL: mysql://dozari:${MYSQL_PASSWORD}@s-dozari-mysql:3306/dozari
 
-  # Loads the catalogue (products, prices, sample puzzles) after the migrations. SEED_ON_START in .env.prod:
-  #   empty (default) = only when the database has no products yet, so a fresh install fills itself and real data is never touched;
-  #   1 = run the full idempotent seed on every `up`;  0 = never. Check the result with `logs s-dozari-seed`.
+  # Seeds after the migrations; it never changes an existing product (the database owns the catalogue). SEED_ON_START in .env.prod:
+  #   empty (default) = fresh install gets products; a live catalogue only gets landing content, keepsakes and curated puzzles;
+  #   1 = run the full seed on every `up` (still never touches existing products);  0 = never. Check the result with `logs s-dozari-seed`.
   s-dozari-seed:
     container_name: c-dozari-seed
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 0.5
     build:
       context: .
       dockerfile: deploy/Dockerfile.server
@@ -56,6 +69,7 @@ services:
         'case "$$SEED_ON_START" in 1) pnpm exec tsx src/seed/run.ts ;; 0) echo "SEED_ON_START=0, skipping seed" ;; *) pnpm exec tsx src/seed/run.ts --if-empty ;; esac',
       ]
     restart: 'no'
+    profiles: ['setup']
     depends_on:
       s-dozari-mysql:
         condition: service_healthy
@@ -67,6 +81,9 @@ services:
 
   s-dozari-server:
     container_name: c-dozari-server
+    mem_limit: 512m
+    memswap_limit: 512m
+    cpus: 1.0
     # Same build as `s-dozari-migrate` (cached): a service with only `image:` would make compose try to pull it.
     build:
       context: .
@@ -78,14 +95,18 @@ services:
         condition: service_healthy
       s-dozari-migrate:
         condition: service_completed_successfully
+        required: false # off unless the `setup` profile is enabled
       s-dozari-seed:
         condition: service_completed_successfully
+        required: false
     environment:
       NODE_ENV: production
+      NODE_OPTIONS: --max-old-space-size=384
       PORT: 3000
       DATABASE_URL: mysql://dozari:${MYSQL_PASSWORD}@s-dozari-mysql:3306/dozari
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET (32+ random chars)}
       ADMIN_TOKEN: ${ADMIN_TOKEN:?set ADMIN_TOKEN (long random value)}
+      BACKUP_SECRET_KEY: ${BACKUP_SECRET_KEY:-}
       CORS_ORIGIN: https://${APP_DOMAIN:?set APP_DOMAIN},https://${MINIAPP_DOMAIN:-${BALE_APP_DOMAIN:-mini-app.mrbots.ir}},null
       TRUST_PROXY: '1'
       LOCAL_IMAGES_DIR: /data/images
@@ -96,6 +117,9 @@ services:
       AI_DEEPSEEK_API_KEY: ${AI_DEEPSEEK_API_KEY:-}
       AI_GAPGPT_API_KEY: ${AI_GAPGPT_API_KEY:-}
       AI_AVALAI_API_KEY: ${AI_AVALAI_API_KEY:-}
+      AI_PARSPACK_API_KEY: ${AI_PARSPACK_API_KEY:-}
+      AI_ANTHROPIC_API_KEY: ${AI_ANTHROPIC_API_KEY:-}
+      AI_GEMINI_API_KEY: ${AI_GEMINI_API_KEY:-}
       AI_CUSTOM_BASE_URL: ${AI_CUSTOM_BASE_URL:-}
       AI_CUSTOM_API_KEY: ${AI_CUSTOM_API_KEY:-}
       AI_CUSTOM_NAME: ${AI_CUSTOM_NAME:-}
@@ -118,6 +142,9 @@ services:
   # anyone who reaches this page can try passwords against the database.
   s-dozari-phpmyadmin:
     container_name: c-dozari-phpmyadmin
+    mem_limit: 192m
+    memswap_limit: 192m
+    cpus: 0.25
     image: phpmyadmin:5
     restart: unless-stopped
     depends_on:
@@ -128,12 +155,15 @@ services:
       PMA_PORT: 3306
       PMA_ARBITRARY: 0
       UPLOAD_LIMIT: 256M
-      MEMORY_LIMIT: 512M
+      MEMORY_LIMIT: 128M
     ports:
       - '${PMA_PORT:-8082}:80'
 
   s-dozari-web:
     container_name: c-dozari-web
+    mem_limit: 64m
+    memswap_limit: 64m
+    cpus: 0.25
     build:
       context: .
       dockerfile: deploy/Dockerfile.web
@@ -151,6 +181,9 @@ services:
   # it reads the game server over the compose network. Loopback only; the host's reverse proxy forwards LANDING_DOMAIN here.
   s-dozari-landing:
     container_name: c-dozari-landing
+    mem_limit: 256m
+    memswap_limit: 256m
+    cpus: 0.5
     build:
       context: .
       dockerfile: deploy/Dockerfile.landing
@@ -159,6 +192,7 @@ services:
       - s-dozari-server
     environment:
       PORT: 3100
+      NODE_OPTIONS: --max-old-space-size=192
       API_URL: http://s-dozari-server:3000
       SITE_URL: https://${LANDING_DOMAIN:-mrdozari.ir}
     ports:
@@ -169,6 +203,9 @@ services:
   # MINIAPP_DOMAIN here. The messenger's bot father needs this domain as the mini-app address.
   s-dozari-miniapp:
     container_name: c-dozari-miniapp
+    mem_limit: 64m
+    memswap_limit: 64m
+    cpus: 0.25
     build:
       context: .
       dockerfile: deploy/Dockerfile.miniapp

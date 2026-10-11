@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
   list: { gap: 8, paddingBottom: 24 },
   balance: { fontFamily: fonts.display, fontSize: 18, color: colors.ink, textAlign: 'center', marginVertical: 6 },
   note: { fontFamily: fonts.bold, fontSize: 14, color: colors.ink, textAlign: 'center', marginTop: 12 },
-  card: { flexDirection: ROW, alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#fff' },
+  card: { flexDirection: ROW, alignItems: 'center', gap: 10, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.card },
   body: { flex: 1, minWidth: 0, gap: 1 },
   title: { fontFamily: fonts.display, fontSize: 15, color: colors.ink, textAlign: TEXT_RIGHT },
   time: { fontFamily: fonts.bold, fontSize: 11, color: '#7A6A4A', textAlign: TEXT_RIGHT },

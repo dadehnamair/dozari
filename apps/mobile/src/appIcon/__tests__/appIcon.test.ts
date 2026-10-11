@@ -6,11 +6,11 @@ vi.mock('expo', () => ({ requireOptionalNativeModule: () => null }));
 import { applyAppIcon, iconFor } from '../appIcon';
 
 describe('iconFor', () => {
-  it('uses the female icon only for female players', () => {
-    expect(iconFor('female')).toBe('female');
-    expect(iconFor('male')).toBe('default');
-    expect(iconFor(null)).toBe('default');
-    expect(iconFor(undefined)).toBe('default');
+  it('defaults to the adult icons while the track is unknown', () => {
+    expect(iconFor('female')).toBe('adultFemale');
+    expect(iconFor('male')).toBe('adult');
+    expect(iconFor(null)).toBe('adult');
+    expect(iconFor(undefined)).toBe('adult');
   });
 
   it('kid and teen keep the candy icons, adult gets the gold ones', () => {

@@ -1,3 +1,4 @@
+import { FACE_TEXT } from '../theme/skin';
 import { StyleSheet, Text, View } from 'react-native';
 import { fa } from '../i18n/fa';
 import type { TagSpec } from '../kit/data';
@@ -20,5 +21,5 @@ export function TagPill({ tag }: { tag: TagSpec }) {
 const styles = StyleSheet.create({
   pill: { height: 42, paddingStart: 6, paddingEnd: 16, borderRadius: 99, borderWidth: 3, borderColor: colors.ink, borderBottomWidth: 6, flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start' },
   medal: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
-  label: { fontFamily: fonts.display, fontSize: 18, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 0 },
+  label: { fontFamily: fonts.display, fontSize: 18, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 0, ...FACE_TEXT },
 });

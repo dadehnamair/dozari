@@ -1,9 +1,10 @@
 import { useMemo } from 'react';
+import { colors } from '../theme/colors';
 import Svg, { Path, Rect } from 'react-native-svg';
 import qrcode from 'qrcode-generator';
 
 /** A QR code drawn as one SVG path (white quiet zone included). Error correction M; the type number is picked from the text length. */
-export function QrCode({ value, size = 220, dark = '#2B1240' }: { value: string; size?: number; dark?: string }) {
+export function QrCode({ value, size = 220, dark = colors.ink }: { value: string; size?: number; dark?: string }) {
   const { count, path } = useMemo(() => {
     const qr = qrcode(0, 'M');
     qr.addData(value);

@@ -65,3 +65,32 @@ describe('offline pack', () => {
     expect((await app.inject({ method: 'GET', url: '/solo/offline-pack' })).statusCode).toBe(401);
   });
 });
+
+describe('solo puzzle variety', () => {
+  const make = (id: string): ServedPuzzle => ({ ...puzzle, id });
+  /** A source over a fixed pool that honours `exclude` like the database one. */
+  const served: string[] = [];
+  const pool = (ids: string[]): PuzzleSource => ({
+    pickRandom: async (o) => {
+      const left = ids.filter((id) => !(o?.exclude ?? []).includes(id));
+      if (left.length) served.push(left[0]!);
+      return left.length ? make(left[0]!) : null;
+    },
+    pricesFor: async () => ({}),
+  });
+
+  it('does not serve the same puzzle twice in a row while others exist', async () => {
+    const solo = new SoloService(pool(['a', 'b', 'c']));
+    served.length = 0;
+    for (let i = 0; i < 3; i++) await solo.start('p1');
+    expect(served).toEqual(['a', 'b', 'c']);
+  });
+
+  it('starts again from the top once every puzzle was played, and a single puzzle still plays', async () => {
+    const solo = new SoloService(pool(['a', 'b']));
+    for (let i = 0; i < 5; i++) expect(await solo.start('p1')).not.toBeNull();
+    const one = new SoloService(pool(['only']));
+    expect(await one.start('p1')).not.toBeNull();
+    expect(await one.start('p1')).not.toBeNull();
+  });
+});

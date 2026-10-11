@@ -20,6 +20,7 @@ export const BALE_TEXT = {
   statusLinked: 'به حسابت وصل هستی ✅',
   dailyReady: 'جایزه‌ی روزانه‌ات آماده است 🎁 بیا بگیرش!',
   birthdayWeek: (nickname: string, days: number) => `تولد ${nickname} ${days} روز دیگر است 🎂`,
+  birthdayGift: (nickname: string, item: string) => `${nickname || 'یکی از دوستانت'} برای تولدت «${item}» هدیه فرستاد 🎁`,
   birthdayDay: (nickname: string) => `امروز تولد ${nickname} است 🎉 تبریک بگو!`,
   friendRequest: (nickname: string) => `${nickname} برایت درخواست دوستی فرستاد 🤝 در بازی جوابش را بده.`,
   tableInvite: (nickname: string) => `${nickname} تو را به یک میز دعوت کرد 🎲 بیا بازی کنیم!`,
@@ -30,4 +31,4 @@ export const BALE_TEXT = {
 } as const;
 
 /** Titles of the friend-birthday inbox messages. */
-export const BIRTHDAY_TITLE = { week: 'تولد دوستت نزدیک است', day: 'امروز تولد یکی از دوستانت است' } as const;
+export const BIRTHDAY_TITLE = { week: 'تولد دوستت نزدیک است', day: 'امروز تولد یکی از دوستانت است', gift: 'یک هدیه‌ی تولد برایت رسید' } as const;

@@ -1,6 +1,6 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { BOARD_SIZE, FIRST_BLOOD_BONUS, GROUP_POINTS, MATCH_MAX_MISTAKES, TURN_SECONDS } from '../../config/index.js';
+import { BOARD_SIZE, FIRST_BLOOD_BONUS, FREEZE_SECONDS, GROUP_POINTS, MATCH_MAX_MISTAKES, TURN_SECONDS } from '../../config/index.js';
 import { DEFAULT_MATCH_RULES, applyCommand, finalScores, matchClientView, resolveWinner, startMatch, turnDeadline } from '../match.js';
 import type { Command, MatchEvent, MatchSide, MatchState } from '../match.js';
 import { mulberry32 } from '../rng.js';
@@ -337,3 +337,72 @@ describe('match rules', () => {
   });
 });
 
+
+describe('power-ups', () => {
+  const power = (state: MatchState, side: MatchSide, kind: 'magnifier' | 'freeze', now = 2000) => ok(state, { t: 'power', by: U[side], kind }, now);
+
+  it('the magnifier shows two cards of one unsolved group, to the user only via the event, and costs no turn, mistake or time', () => {
+    const s = start(0);
+    const r = power(s, 0, 'magnifier');
+    const ev = r.events.find((e) => e.t === 'power');
+    expect(ev).toMatchObject({ t: 'power', side: 0, kind: 'magnifier' });
+    const shown = [...((ev as { itemIds?: readonly string[] }).itemIds ?? [])];
+    expect(shown).toHaveLength(2);
+    const group = puzzle.groups.find((g) => g.productIds.includes(shown[0]!))!;
+    expect(group.productIds).toEqual(expect.arrayContaining(shown));
+    expect([r.state.turn, r.state.turnId, r.state.mistakes, r.state.turnStartedAt]).toEqual([0, 1, [0, 0], 1000]);
+    expect(r.state.powers[0].magnifier).toBe(1);
+    // the client view carries counts, never the shown cards
+    expect(JSON.stringify(matchClientView(r.state, 'u0'))).not.toContain('itemIds');
+    expect(matchClientView(r.state, 'u0')!.powers).toEqual({ magnifier: 1, freeze: 1 });
+  });
+
+  it('the next magnifier use of a side looks at a different group', () => {
+    const a = power(start(0), 0, 'magnifier');
+    const b = power({ ...start(0), magnified: [1, 0] }, 0, 'magnifier');
+    const levelOf = (r: { events: MatchEvent[] }) => {
+      const e = r.events.find((x) => x.t === 'power');
+      return puzzle.groups.find((g) => e && e.t === 'power' && g.productIds.includes(e.itemIds![0]!))!.level;
+    };
+    expect(levelOf(a)).not.toBe(levelOf(b));
+  });
+
+  it('only the captain of the side to play may use a power-up', () => {
+    expect(err(start(0), { t: 'power', by: 'u1', kind: 'magnifier' })).toBe('NOT_YOUR_TURN');
+    expect(err(start(0), { t: 'power', by: 'nobody', kind: 'freeze' })).toBe('UNKNOWN_PLAYER');
+  });
+
+  it('freeze: used while the rival plays, it cannot select or submit until the freeze ends; its clock keeps running', () => {
+    const s = start(0); // side 0 plays
+    expect(err(s, { t: 'power', by: 'u1', kind: 'freeze' })).toBe(null); // side 1 freezes the player to move
+    const f = power(s, 1, 'freeze', 2000);
+    expect(f.state.frozenUntil).toEqual([2000 + FREEZE_SECONDS * 1000, 0]);
+    expect(f.state.powers[1].freeze).toBe(0);
+    expect(f.state.turnStartedAt).toBe(1000);
+    expect(f.events[0]).toMatchObject({ t: 'power', kind: 'freeze', side: 1, until: 2000 + FREEZE_SECONDS * 1000 });
+    const during = { t: 'submit', by: 'u0', itemIds: ids(0) } as const;
+    expect(applyCommand(f.state, during, { now: 5000 })).toEqual({ error: 'FROZEN' });
+    expect(applyCommand(f.state, { t: 'power', by: 'u1', kind: 'freeze' }, { now: 5000 })).toEqual({ error: 'POWER_USED' });
+    const after = applyCommand(f.state, during, { now: 2000 + FREEZE_SECONDS * 1000 });
+    expect('error' in after).toBe(false);
+  });
+
+  it('freeze: not on your own turn, not twice at once, and the freeze ends when the turn passes', () => {
+    expect(err(start(0), { t: 'power', by: 'u0', kind: 'freeze' })).toBe('NOT_YOUR_TURN');
+    const f = power(start(0), 1, 'freeze');
+    const t = ok(f.state, { t: 'timeout', turnId: f.state.turnId });
+    expect(t.state.turn).toBe(1);
+    expect(t.state.frozenUntil).toEqual([0, 0]);
+  });
+
+  it('each player may use only one power-up in a whole match, whatever the kind', () => {
+    const a = power(start(0), 0, 'magnifier');
+    expect(err(a.state, { t: 'power', by: 'u0', kind: 'magnifier' })).toBe('POWER_USED');
+    expect(a.state.powers[0].magnifier).toBe(1); // still held, but not usable
+    expect(matchClientView(a.state, 'u0')!.powerUsed).toBe(true);
+    expect(matchClientView(a.state, 'u1')!.powerUsed).toBe(false);
+    // the rival is a different player: its one is still open; after it freezes, nobody uses a second one
+    const f = power(a.state, 1, 'freeze', 3000);
+    expect(err(f.state, { t: 'power', by: 'u1', kind: 'magnifier' })).toBe('POWER_USED');
+  });
+});

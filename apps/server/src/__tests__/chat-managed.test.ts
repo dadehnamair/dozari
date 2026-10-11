@@ -77,3 +77,10 @@ describe('managed chat for kid and teen (age-tracks phase 4)', () => {
     expect(await chat.sendDm(A1, 'a2', { kind: 'text', text: 'سلام' })).toMatchObject({ ok: false, error: 'NEEDS_ACTIVATION' });
   });
 });
+
+describe('table invites', () => {
+  it('a host can invite several friends one after another (they are not rate limited like taunts)', async () => {
+    const { chat } = setup({ tracks: { a1: 'adult', f1: 'adult', f2: 'adult', f3: 'adult' } });
+    for (const f of ['f1', 'f2', 'f3']) expect((await chat.sendDm('a1', f, { kind: 'table', code: 'ABCD2', label: 'samovar|میز من' })).ok).toBe(true);
+  });
+});

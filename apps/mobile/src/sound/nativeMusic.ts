@@ -1,3 +1,4 @@
+import { AppState } from 'react-native';
 import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import type { AudioPlayer } from 'expo-audio';
 import backgroundSong from '../../assets/music/background.mp3';
@@ -22,6 +23,34 @@ let player: AudioPlayer | null = null;
 let playing: Mood | null = null;
 let wanted: Mood | null = null;
 let modeSet = false;
+/** False while the app is in the background or its tab is hidden: the music is paused then and comes back with the app. */
+let foreground = AppState.currentState !== 'background' && AppState.currentState !== 'inactive';
+
+AppState.addEventListener('change', (state) => {
+  foreground = state === 'active';
+  try {
+    if (!player) return;
+    if (foreground) {
+      if (wanted === playing) player.play();
+    } else {
+      player.pause();
+    }
+  } catch {
+    /* music is a nicety */
+  }
+});
+/** The player's volume setting (0..1), applied on top of each song's own level. */
+let userVolume = 1;
+
+/** Sets the player's music volume; takes effect on the song that is playing right now. */
+export function setNativeMusicVolume(v: number): void {
+  userVolume = Math.min(1, Math.max(0, v));
+  try {
+    if (player && playing) player.volume = SONGS[playing].volume * userVolume;
+  } catch {
+    /* music is a nicety */
+  }
+}
 
 function stop() {
   try {
@@ -49,7 +78,7 @@ export function setNativeMusic(mood: Mood | null): void {
       }
       try {
         player = createAudioPlayer(SONGS[mood].source);
-        player.volume = SONGS[mood].volume;
+        player.volume = SONGS[mood].volume * userVolume;
       } catch {
         player = null;
       }
@@ -61,7 +90,7 @@ export function setNativeMusic(mood: Mood | null): void {
         }
         if (wanted !== mood) return;
         player = createAudioPlayer({ uri });
-        player.volume = 0.8;
+        player.volume = 0.8 * userVolume;
       }
       if (wanted !== mood) return;
       player.loop = true;
@@ -79,7 +108,7 @@ function startWhenAllowed(p: AudioPlayer): void {
   const doc = (globalThis as { document?: { addEventListener(t: string, f: () => void, o?: unknown): void; removeEventListener(t: string, f: () => void): void } }).document;
   const go = () => {
     try {
-      if (player === p) p.play();
+      if (player === p && foreground) p.play();
     } catch {
       /* blocked: retried below */
     }

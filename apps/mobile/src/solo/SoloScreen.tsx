@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { NUDGE_IDLE_SECONDS, isLastLife, localGuess, localShuffle, localView, mulberry32, solarMonthOf, startLocalSolo, trackRules as rulesOfTrack } from '@dozari/shared';
 import type { HintPayload, LocalSoloSession, SoloView } from '@dozari/shared';
-import { Board } from '../components/Board';
+import { Board, CORRECT_GLOW_MS, WRONG_SHAKE_MS } from '../components/Board';
+import type { BoardVerdict } from '../components/Board';
+import { GemBurst } from '../components/GemBurst';
 import { ChartPanel } from '../components/ChartPanel';
 import { Confetti } from '../components/Confetti';
 import { usePrefs } from '../prefs/store';
@@ -61,6 +63,10 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false, ageTrac
   /** After the puzzle: look at the board and answers first, then choose to play the price round or skip to the chart. */
   const [priceReady, setPriceReady] = useState(false);
   const [hintOpen, setHintOpen] = useState(false);
+  /** The last guess' verdict (the cards shake red / glow green) and a gem found behind a card (the burst). */
+  const [verdict, setVerdict] = useState<BoardVerdict | null>(null);
+  const [gemFound, setGemFound] = useState<{ amount: number; n: number } | null>(null);
+  const dropGem = useCallback(() => setGemFound(null), []);
   const [given, setGiven] = useState<HintPayload[]>([]);
   /** Cards the free level-1 nudge lit up, and whether the server said this player is past that stage (then we stop asking). */
   const [nudged, setNudged] = useState<string[]>([]);
@@ -195,6 +201,10 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false, ageTrac
       flash(fb);
       if (fb === 'correct' || fb === 'oneAway' || fb === 'wrong') playSfx(fb);
       if (fb === 'wrong') buzz(60);
+      // The four cards answer the guess: a miss shakes them red and then puts them back, a hit lets them glow green before they become a row.
+      const missed = fb === 'wrong' || fb === 'oneAway';
+      if (missed || fb === 'correct') setVerdict({ kind: missed ? 'wrong' : 'correct', ids: [...selected], n: Date.now() });
+      if (fb === 'correct' && !prefs.reduceMotion) await new Promise<void>((r) => setTimeout(r, CORRECT_GLOW_MS));
       if (combo.record(result.outcome) >= 2) playSfx('combo');
       const finale = result.outcome === 'correct' && view.solved.length === 2 && result.view.solved.length === 4 && !prefs.reduceMotion;
       if (result.view.status === 'won' && !finale) playSfx('win');
@@ -204,7 +214,12 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false, ageTrac
         playSfx('win');
       }
       adopt(result.view);
-      if (result.outcome === 'correct' || result.view.status !== 'playing') setSelected([]);
+      if (result.gem) {
+        playSfx('gem');
+        setGemFound({ amount: result.gem, n: Date.now() });
+      }
+      if (missed && result.view.status === 'playing' && !prefs.reduceMotion) await new Promise<void>((r) => setTimeout(r, WRONG_SHAKE_MS));
+      if (result.outcome === 'correct' || result.view.status !== 'playing' || missed) setSelected([]);
       if (result.view.status !== 'playing' && !local.current) void recordGameFinished();
     } catch (err) {
       fail(err);
@@ -274,14 +289,17 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false, ageTrac
                 <View style={styles.askCard}>
                   <Text style={styles.askTitle}>{fa.solo.price.readyTitle}</Text>
                   <Text style={styles.askSub}>{fa.solo.price.readySub}</Text>
-                  <View style={styles.actions}>
-                    <SlabButton label={fa.solo.price.skip} color={colors.candy.sky} height={50} fontSize={18} onPress={() => setPriceDone(true)} />
-                    <SlabButton label={fa.solo.price.go} sfx="confirm" color={colors.candy.lime} height={50} fontSize={20} grow={1.4} onPress={() => setPriceReady(true)} />
-                  </View>
                 </View>
               </View>
             )}
           </ScrollView>
+          {/* The choices stay pinned under the scrolling middle, whichever step the end of the game is on. */}
+          {!offline && !lessonMode && !priceDone && !priceReady ? (
+            <View style={styles.actions}>
+              <SlabButton label={fa.solo.price.skip} color={colors.candy.sky} height={58} fontSize={20} onPress={() => setPriceDone(true)} />
+              <SlabButton label={fa.solo.price.go} sfx="confirm" color={colors.candy.lime} height={58} fontSize={22} grow={1.4} onPress={() => setPriceReady(true)} />
+            </View>
+          ) : null}
           {priceDone || offline ? (
             <View style={styles.actions}>
               <SlabButton label={fa.solo.back} sfx="back" color={colors.candy.sky} height={58} fontSize={20} onPress={onBack} />
@@ -290,6 +308,7 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false, ageTrac
           ) : null}
         </View>
         {!prefs.reduceMotion ? (won ? <Confetti distance={500} /> : <Rain distance={800} />) : null}
+        {gemFound ? <GemBurst key={gemFound.n} amount={gemFound.amount} onDone={dropGem} /> : null}
       </MatchBackground>
     );
   }
@@ -323,7 +342,7 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false, ageTrac
         ) : null}
 
         <View>
-          <Board solved={view.solved} cards={view.cards} names={names} selected={selected} onToggle={(id) => setSelected((s) => toggleSelection(s, id))} disabled={!playing || busy} hinted={hintedCardIds(given)} nudged={nudged} />
+          <Board solved={view.solved} cards={view.cards} names={names} selected={selected} onToggle={(id) => setSelected((s) => toggleSelection(s, id))} disabled={!playing || busy} hinted={hintedCardIds(given)} nudged={nudged} verdict={verdict} />
           {feedback === 'oneAway' ? <View style={styles.nearMiss} pointerEvents="none"><NearMissPill /></View> : null}
         </View>
         {hintedCardIds(given).length > 0 && playing ? <Text style={styles.hintLine}>{fa.hints.framed}</Text> : null}
@@ -342,17 +361,18 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false, ageTrac
     </ScrollView>
     {hintOpen && playing ? <HintSheet sessionId={view.sessionId} onGiven={setGiven} onClose={() => setHintOpen(false)} /> : null}
     {dialog}
+    {gemFound ? <GemBurst key={gemFound.n} amount={gemFound.amount} onDone={dropGem} /> : null}
     </MatchBackground>
   );
 }
 
 const styles = StyleSheet.create({
-  previewBanner: { alignSelf: 'center', fontFamily: fonts.bold, fontSize: 13, color: '#2B1240', backgroundColor: '#FFE48A', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 5, overflow: 'hidden', textAlign: 'center' },
+  previewBanner: { alignSelf: 'center', fontFamily: fonts.bold, fontSize: 13, color: colors.ink, backgroundColor: colors.hi, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 5, overflow: 'hidden', textAlign: 'center' },
   review: { gap: 10, width: '100%' },
-  askCard: { padding: 12, gap: 6, borderRadius: 20, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#FBF1DE' },
+  askCard: { padding: 12, gap: 6, borderRadius: 20, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.paper },
   askTitle: { fontFamily: fonts.display, fontSize: 18, color: colors.ink, textAlign: 'center' },
   askSub: { fontFamily: fonts.bold, fontSize: 12.5, lineHeight: 20, color: '#5A3A7A', textAlign: 'center' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24, backgroundColor: '#4E2585' },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24, backgroundColor: colors.deeper },
   screen: { flexGrow: 1, paddingHorizontal: 12, paddingTop: 14 + nativeTopInset(), paddingBottom: 24, alignItems: 'center' },
   column: { width: '100%', maxWidth: 520, gap: 12 },
   hintBtn: { width: 42, height: 42, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.candy.orange, alignItems: 'center', justifyContent: 'center', marginBottom: 4, shadowColor: colors.ink, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4 },
@@ -368,7 +388,7 @@ const styles = StyleSheet.create({
   talkerSmall: { width: 72, height: 80 },
   bubbleTitle: { fontFamily: fonts.display, fontSize: 18, lineHeight: 28, color: colors.ink, textAlign: TEXT_RIGHT },
   /** The result frame keeps its size; whatever is taller than it (chart, tabs, share) scrolls inside it instead of spilling. */
-  stage: { flex: 1, minHeight: 0, borderRadius: 22, borderWidth: 3, borderColor: colors.ink, backgroundColor: 'rgba(26,8,44,0.55)', overflow: 'hidden' },
+  stage: { flex: 1, minHeight: 0, borderRadius: 22, borderWidth: 3, borderColor: 'rgba(255,255,255,0.35)', backgroundColor: 'rgba(26,8,44,0.55)', overflow: 'hidden' },
   stageContent: { flexGrow: 1, paddingHorizontal: 12, paddingTop: 4, paddingBottom: 14, alignItems: 'center', justifyContent: 'center' },
   endActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginTop: 8 },
   detail: { fontFamily: 'Vazirmatn_400Regular', fontSize: 12, color: colors.cream, opacity: 0.7, textAlign: 'center', writingDirection: 'ltr' },

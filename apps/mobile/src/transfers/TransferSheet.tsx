@@ -4,6 +4,7 @@ import type { TransferInfo } from '@dozari/shared';
 import { toPersianDigits } from '@dozari/shared';
 import { CandyButton } from '../components/CandyButton';
 import { fa } from '../i18n/fa';
+import { SheetClose } from '../components/SheetClose';
 import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
 import { fetchTransferInfo, offerLoan, sendGift } from './api';
@@ -38,6 +39,7 @@ export function TransferSheet({ friendId, kind, onClose }: { friendId: string; k
   return (
     <Pressable style={styles.overlay} onPress={onClose} accessibilityLabel={fa.transfers.close}>
       <Pressable style={styles.sheet} onPress={() => undefined}>
+        <SheetClose onPress={onClose} label={fa.transfers.close} />
         <Text style={styles.title}>{kind === 'gift' ? fa.transfers.gift : fa.transfers.loan}</Text>
         {info && !read ? (
           <>
@@ -63,7 +65,6 @@ export function TransferSheet({ friendId, kind, onClose }: { friendId: string; k
           </>
         ) : null}
         {note ? <Text style={[styles.hint, note.bad && styles.bad]}>{note.text}</Text> : null}
-        <CandyButton label={fa.transfers.close} sfx="back" color={colors.candy.sky} onPress={onClose} />
       </Pressable>
     </Pressable>
   );

@@ -97,8 +97,32 @@ describe('keepsake gallery and shop', () => {
     await app.inject({ method: 'POST', url: `/keepsakes/${g.items[0]!.id}/piece`, headers: a.h });
     expect(store.gems.get(a.id)).toBe(1);
     await app.inject({ method: 'POST', url: `/keepsakes/${g.items[1]!.id}/piece`, headers: a.h });
-    expect(store.gems.get(a.id)).toBe(12);
+    // 1 + 1 for the keepsakes, 10 for the set, 5 for the «two completed» milestone
+    expect(store.gems.get(a.id)).toBe(17);
     expect(keepsakeGallerySchema.parse((await app.inject({ method: 'GET', url: '/keepsakes', headers: a.h })).json()).sets[0]).toMatchObject({ total: 2, completed: 2, rewardGems: 10 });
+  });
+});
+
+describe('collection milestones', () => {
+  it('pays each milestone once when enough keepsakes are complete, tells the buyer, and gives its spins', async () => {
+    const store = createMemoryKeepsakeStore(Array.from({ length: 4 }, () => def({ rewardGems: 0, pieces: 1 })));
+    const spins: { id: string; ref: string; n: number }[] = [];
+    let n = 0;
+    const service = new KeepsakeService(store, async () => 0, () => `ref-${++n}`, async (id, ref, count) => void spins.push({ id, ref, n: count }));
+    store.give('u', 1000);
+    const g0 = await service.gallery('u');
+    expect(g0.milestones.map((m) => [m.count, m.reached])).toEqual([[2, false], [4, false], [6, false], [8, false]]);
+    const first = await service.buyPiece('u', g0.items[0]!.id);
+    expect(first.ok && first.milestones).toEqual([]);
+    const second = await service.buyPiece('u', g0.items[1]!.id);
+    expect(second.ok && second.milestones).toEqual([{ count: 2, gems: 5, spins: 0 }]);
+    expect(store.gems.get('u')).toBe(5);
+    await service.buyPiece('u', g0.items[2]!.id);
+    const fourth = await service.buyPiece('u', g0.items[3]!.id);
+    expect(fourth.ok && fourth.milestones).toEqual([{ count: 4, gems: 10, spins: 1 }]);
+    expect(spins).toEqual([{ id: 'u', ref: 'keepsake-milestone-4', n: 1 }]);
+    expect(store.gems.get('u')).toBe(15);
+    expect((await service.gallery('u')).milestones.filter((m) => m.reached).map((m) => m.count)).toEqual([2, 4]);
   });
 });
 

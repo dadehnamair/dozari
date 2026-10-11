@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, justifyContent: 'center' },
   mascot: { width: 90, height: 100 },
   daily: { width: 320 },
-  item: { width: 76, alignItems: 'center', gap: 2, backgroundColor: '#FBF1DE', borderRadius: 16, paddingTop: 8, paddingBottom: 6, paddingHorizontal: 4 },
+  item: { width: 76, alignItems: 'center', gap: 2, backgroundColor: colors.paper, borderRadius: 16, paddingTop: 8, paddingBottom: 6, paddingHorizontal: 4 },
   itemLabel: { fontFamily: fonts.display, fontSize: 12, color: '#3A2418' },
   scene: {
     width: 120,
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
   char: {
     width: 110,
     height: 130,
-    backgroundColor: '#FBF1DE',
+    backgroundColor: colors.paper,
     borderRadius: 18,
     padding: 6,
     alignItems: 'center',

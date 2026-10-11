@@ -32,7 +32,7 @@ export function WardrobeStage({ who, worn, toast, height }: { who: CharacterId; 
       <Animated.View pointerEvents="none" style={[styles.rays, { transform: [{ rotate: turn.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] }) }] }]}>
         <Svg width={1000} height={1000} viewBox="-500 -500 1000 1000"><Path d={RAYS} fill="rgba(255,255,255,0.22)" /></Svg>
       </Animated.View>
-      <View pointerEvents="none" style={styles.shadow}><Svg width={200} height={34}><Ellipse cx={100} cy={17} rx={100} ry={17} fill="#2B1240" opacity={0.22} /></Svg></View>
+      <View pointerEvents="none" style={styles.shadow}><Svg width={200} height={34}><Ellipse cx={100} cy={17} rx={100} ry={17} fill={colors.ink} opacity={0.22} /></Svg></View>
       <View style={[styles.model, { height: height - 14 }]}><Character who={who} pose="wave" worn={worn} /></View>
       {toast ? <View style={styles.toast}><Text style={styles.toastText}>{toast}</Text></View> : null}
     </View>

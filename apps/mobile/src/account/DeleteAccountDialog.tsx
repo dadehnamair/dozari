@@ -46,5 +46,5 @@ export function DeleteAccountDialog({ onDeleted, onCancel }: { onDeleted: () => 
 }
 
 const styles = StyleSheet.create({
-  input: { alignSelf: 'center', width: 180, fontFamily: fonts.display, fontSize: 24, letterSpacing: 6, color: colors.ink, borderWidth: 3, borderColor: colors.ink, borderRadius: 14, paddingVertical: 6, backgroundColor: '#fff', textAlign: 'center', writingDirection: 'ltr' },
+  input: { alignSelf: 'center', width: 180, fontFamily: fonts.display, fontSize: 24, letterSpacing: 6, color: colors.ink, borderWidth: 3, borderColor: colors.ink, borderRadius: 14, paddingVertical: 6, backgroundColor: colors.card, textAlign: 'center', writingDirection: 'ltr' },
 });

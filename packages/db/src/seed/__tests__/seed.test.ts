@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { knownProductSlugs } from '../catalog-index.js';
 import { readSeedProducts, readSeedPuzzles } from '../load.js';
 
 describe('catalog seed files', () => {
@@ -40,67 +41,23 @@ describe('sample seed (to be removed before launch)', () => {
   });
 
   it('has curated puzzles whose 16 products all exist', () => {
-    const puzzles = readSeedPuzzles(seed);
+    const puzzles = readSeedPuzzles(knownProductSlugs());
     expect(puzzles.length).toBeGreaterThanOrEqual(10);
     for (const p of puzzles) expect(p.groups.flatMap((g) => g.products)).toHaveLength(16);
   });
 });
 
 describe('teen starter puzzles (age tracks)', () => {
-  const seed = readSeedProducts();
-  const puzzles = readSeedPuzzles(seed).filter((p) => p.age_track === 'teen');
-  const bySlug = new Map(seed.map((p) => [p.slug, p]));
+  // Product data (age track, prices) lives in the database; the age-track check runs when the puzzles are loaded.
+  const puzzles = readSeedPuzzles(knownProductSlugs()).filter((p) => p.age_track === 'teen');
 
   it('has a few teen puzzles, all drafts for an editor to approve', () => {
     expect(puzzles.length).toBeGreaterThanOrEqual(5);
     for (const p of puzzles) expect(p.status, p.id).toBe('draft');
   });
 
-  it('uses only teen or younger items, each with enough approved prices for the price-guess round', () => {
-    for (const p of puzzles) {
-      for (const slug of p.groups.flatMap((g) => g.products)) {
-        const item = bySlug.get(slug)!;
-        expect(item.age_track, `${p.id} ${slug}`).not.toBe('adult');
-        expect(item.prices.filter((x) => x.status === 'approved').length, `${p.id} ${slug}`).toBeGreaterThanOrEqual(3);
-      }
-    }
-  });
-
   it('never repeats the same group of four in two puzzles', () => {
     const keys = puzzles.flatMap((p) => p.groups.map((g) => [...g.products].sort().join(',')));
     expect(new Set(keys).size).toBe(keys.length);
-  });
-});
-
-describe('the generator on the sample catalog', () => {
-  it('makes valid, distinct puzzles from the sample products (so the seed script can top the pool up)', async () => {
-    const { generatePuzzle, mulberry32, seedPriceToRials } = await import('@dozari/shared');
-    const catalog = readSeedProducts()
-      .filter((p) => p.slug.startsWith('sample-'))
-      .map((p) => ({ id: p.slug, category: p.category, eraTags: p.era_tags, prices: p.prices.map((x) => ({ year: x.year, month: x.month ?? null, priceRials: seedPriceToRials(x) })) }));
-    const rng = mulberry32(7);
-    const keys = new Set<string>();
-    for (let i = 0; i < 80; i++) {
-      const g = generatePuzzle(catalog, rng);
-      if (g) keys.add(g.groups.flatMap((x) => x.productIds).sort().join(','));
-    }
-    expect(keys.size).toBeGreaterThanOrEqual(8);
-  });
-});
-
-describe('kid starter seed (D198)', () => {
-  const seed = readSeedProducts();
-  const kid = seed.filter((p) => p.age_track === 'kid');
-  it('has a draft lesson for every kid item and an icon', () => {
-    expect(kid.length).toBeGreaterThanOrEqual(48);
-    for (const p of kid) {
-      expect(p.lesson?.word_fa, p.slug).toBeTruthy();
-      expect(p.icon_key, p.slug).toBeTruthy();
-    }
-  });
-  it('seeds kid puzzles as drafts that only use kid items', () => {
-    const kidPuzzles = readSeedPuzzles(seed).filter((p) => p.age_track === 'kid');
-    expect(kidPuzzles.length).toBeGreaterThanOrEqual(3);
-    for (const p of kidPuzzles) expect(p.status).toBe('draft');
   });
 });

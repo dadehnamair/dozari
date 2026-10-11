@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { RateLimiter } from '../security/rate-limit.js';
 import type { SettingsService } from '../settings/service.js';
 import type { LandingService } from './service.js';
 
@@ -39,6 +40,48 @@ export function registerLandingPublicRoutes(app: FastifyInstance, landing: Landi
   app.get('/public/landing-demo', async (_req, reply) => {
     const demo = await landing.publicDemo();
     return demo ?? reply.code(404).send({ error: 'not_found' });
+  });
+
+  // Aggregate-only numbers for the stats page; nothing here identifies a player.
+  app.get('/public/stats', async () => ({ ...(await landing.stats()), at: Date.now() }));
+
+  // Liveness for the status page: the process answers, the database answers, and whether the admin put the game in maintenance mode.
+  const startedAt = Date.now();
+  app.get('/public/status', async () => {
+    const t0 = Date.now();
+    let db: 'ok' | 'down' = 'ok';
+    try {
+      await landing.stats();
+    } catch {
+      db = 'down';
+    }
+    return { api: 'ok', db, dbMs: Date.now() - t0, maintenance: (await settings.num('app.maintenance_on')) === 1, uptimeSec: Math.floor((Date.now() - startedAt) / 1000), at: Date.now() };
+  });
+
+  const commentQuery = z.object({ type: z.enum(['post', 'cast']), key: z.string().min(1).max(120) });
+  app.get('/public/comments', async (req, reply) => {
+    const q = commentQuery.safeParse(req.query);
+    if (!q.success) return reply.code(400).send({ error: 'invalid_request' });
+    return { comments: await landing.publicComments(q.data.type, q.data.key) };
+  });
+  app.get('/public/comment-counts', async (req, reply) => {
+    const q = z.object({ type: z.enum(['post', 'cast']) }).safeParse(req.query);
+    if (!q.success) return reply.code(400).send({ error: 'invalid_request' });
+    return { counts: await landing.approvedCommentCounts(q.data.type) };
+  });
+  // The landing app forwards the visitor's address in `x-visitor`, so the limit is per visitor, not per landing container.
+  // Accepted comments are limited tightly; every attempt (even a rejected one) is limited loosely so the filter cannot be probed endlessly.
+  const accepted = new RateLimiter(3, 10 * 60_000);
+  const attempts = new RateLimiter(20, 10 * 60_000);
+  app.post('/public/comments', async (req, reply) => {
+    const b = commentQuery.extend({ name: z.string().max(100), body: z.string().max(2000) }).safeParse(req.body);
+    if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+    const who = String(req.headers['x-visitor'] ?? req.ip).slice(0, 80);
+    if (accepted.blocked(who) || !attempts.take(who)) return reply.code(429).header('retry-after', String(accepted.retryAfterSec(who))).send({ error: 'rate_limited' });
+    const out = await landing.submitComment({ targetType: b.data.type, targetKey: b.data.key, authorName: b.data.name, body: b.data.body });
+    if (!out.ok) return reply.code(out.error === 'not_found' ? 404 : 400).send({ error: out.error });
+    accepted.take(who);
+    return reply.code(202).send({ status: out.status });
   });
 
   app.get('/public/posts', async (req) => {
@@ -130,6 +173,19 @@ export function registerLandingAdminRoutes(g: FastifyInstance, landing: LandingS
     if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
     if ((await landing.faq.update(p.data.id, b.data)) === 'not_found') return reply.code(404).send({ error: 'not_found' });
     audit('landing.faq.update', p.data.id, JSON.stringify(b.data));
+    return { ok: true };
+  });
+
+  g.get('/admin/landing/comments', async (req) => {
+    const st = z.enum(['pending', 'approved', 'hidden']).optional().safeParse((req.query as { status?: string }).status);
+    return { comments: await landing.adminComments(st.success ? st.data : undefined) };
+  });
+  g.patch('/admin/landing/comments/:id', async (req, reply) => {
+    const p = idParam.safeParse(req.params);
+    const b = z.object({ status: z.enum(['pending', 'approved', 'hidden']) }).safeParse(req.body);
+    if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+    if ((await landing.setCommentStatus(p.data.id, b.data.status)) === 'not_found') return reply.code(404).send({ error: 'not_found' });
+    audit('landing.comment.set', p.data.id, b.data.status);
     return { ok: true };
   });
 }

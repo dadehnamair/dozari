@@ -42,7 +42,8 @@ export interface BirthdayDeps {
   /** Gives wheel spins (idempotent per `ref`). */
   giveSpins(userId: string, ref: string, count: number): Promise<number>;
   /** Puts a message in these players' inbox. */
-  tell(userIds: readonly string[], title: string, body: string): Promise<void>;
+  /** One inbox message to these players; `aboutUserId` is the player it is about (a tap opens their profile). */
+  tell(userIds: readonly string[], title: string, body: string, aboutUserId?: string): Promise<void>;
   texts: { weekTitle: string; weekBody(nickname: string, days: number): string; dayTitle: string; dayBody(nickname: string): string };
   now?: () => number;
 }
@@ -135,7 +136,7 @@ export class BirthdayService {
         const friends = await this.deps.friendsOf(p.id);
         if (friends.length === 0) continue;
         const t = this.deps.texts;
-        await this.deps.tell(friends, stage === 'week' ? t.weekTitle : t.dayTitle, stage === 'week' ? t.weekBody(p.nickname, offset) : t.dayBody(p.nickname));
+        await this.deps.tell(friends, stage === 'week' ? t.weekTitle : t.dayTitle, stage === 'week' ? t.weekBody(p.nickname, offset) : t.dayBody(p.nickname), p.id);
         told += 1;
       }
     }

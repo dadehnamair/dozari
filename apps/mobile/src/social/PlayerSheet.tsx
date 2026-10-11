@@ -25,6 +25,7 @@ import { TransferSheet } from '../transfers/TransferSheet';
 import { useHardwareBack } from '../nav/useHardwareBack';
 import { BirthdayBadge, PartyBanner } from './BirthdayBadge';
 import { ShowcaseStrip } from '../keepsake/ShowcaseStrip';
+import { GiftSheet } from '../shop/GiftSheet';
 
 const INK = '#3A2418';
 
@@ -37,6 +38,7 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
   const [asking, setAsking] = useState(false);
   const [send, setSend] = useState<'gift' | 'loan' | null>(null);
   const [reporting, setReporting] = useState(false);
+  const [giftOpen, setGiftOpen] = useState(false);
   const { ask, dialog } = useConfirm();
   const { gate, intercept } = useGuardianGate();
   /** Gifts and loans are not drawn for a kid or teen (the server refuses them too). While the rules load, nothing is hidden. */
@@ -142,6 +144,7 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
               <>
                 <View style={styles.friendTag}><Icon name="check" size={14} color="#fff" strokeWidth={4} /><Text style={styles.friendTagText}>{fa.player.friends}</Text></View>
                 <View style={styles.actions}>
+                  {p.birthday ? <HubTile onLight icon="gift" label={fa.birthdayGift.open} color={colors.candy.yellow} onPress={() => setGiftOpen(true)} /> : null}
                   {canSendCoins ? <HubTile onLight icon="gift" label={fa.transfers.gift} color={colors.candy.lime} onPress={() => setSend('gift')} /> : null}
                   {canSendCoins ? <HubTile onLight icon="wallet" label={fa.transfers.loan} color={colors.candy.orange} onPress={() => setSend('loan')} /> : null}
                   <HubTile onLight icon="trash" label={fa.player.unfriend} color={colors.candy.pink} onPress={() => ask({ title: fa.confirm.unfriend.title, message: fa.confirm.unfriend.message, confirmLabel: fa.confirm.unfriend.yes, onConfirm: act(removeFriend) })} />
@@ -153,6 +156,7 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
       </Pressable>
       {dialog}
       {gate}
+      {giftOpen && p ? <GiftSheet friendId={playerId} friendName={p.nickname} onClose={() => setGiftOpen(false)} /> : null}
       {reporting ? <ReportDialog target={{ kind: 'user', userId: playerId }} onClose={() => setReporting(false)} /> : null}
     </Pressable>
   );
@@ -165,7 +169,7 @@ const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const styles = StyleSheet.create({
   reportLink: { fontFamily: fonts.bold, fontSize: 12, color: '#8E7B6B', textDecorationLine: 'underline', textAlign: 'center' },
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 40, backgroundColor: 'rgba(20,8,32,0.6)', alignItems: 'center', justifyContent: 'center', padding: 20 },
-  card: { width: '100%', maxWidth: 340, borderRadius: 30, borderWidth: 4, borderColor: INK, backgroundColor: '#FBF1DE', overflow: 'hidden', ...lift(8) },
+  card: { width: '100%', maxWidth: 340, borderRadius: 30, borderWidth: 4, borderColor: INK, backgroundColor: colors.paper, overflow: 'hidden', ...lift(8) },
   header: { height: 104, overflow: 'hidden' },
   headerLine: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 4, backgroundColor: INK },
   closeBtn: { position: 'absolute', top: 10, left: 10, width: 34, height: 34, borderRadius: 12, borderWidth: 3, borderColor: INK, backgroundColor: '#A66BF0', alignItems: 'center', justifyContent: 'center', ...lift(3) },
@@ -185,7 +189,7 @@ const styles = StyleSheet.create({
   statValue: { fontFamily: fonts.display, fontSize: 21, lineHeight: 25, color: INK },
   statLabel: { fontFamily: fonts.bold, fontSize: 10.5, color: INK, opacity: 0.8 },
   chips: { flexDirection: ROW, flexWrap: 'wrap', justifyContent: 'center', gap: 6 },
-  chip: { flexDirection: ROW, alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99, borderWidth: 2.5, borderColor: INK, backgroundColor: '#FFF6E8' },
+  chip: { flexDirection: ROW, alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99, borderWidth: 2.5, borderColor: INK, backgroundColor: colors.cream },
   chipIcon: { width: 22, height: 22 },
   chipText: { fontFamily: fonts.display, fontSize: 13, color: INK },
   medal: { height: 26, maxWidth: 120, paddingHorizontal: 10, borderRadius: 99, borderWidth: 2.5, borderColor: INK, justifyContent: 'center', ...lift(2) },

@@ -1,5 +1,6 @@
 import { and, asc, botPlayers, eq, inArray, userBalances, userStats, users } from '@dozari/db';
 import type { Db } from '@dozari/db';
+import { LEVEL_MAX, XP_CURVE_BASE, levelInfo } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
 import { applyLedgerEntry } from '../economy/ledger.js';
 
@@ -14,6 +15,8 @@ export interface BotRow {
   thinkMaxMs: number;
   tauntPercent: number;
   isActive: boolean;
+  /** Level from the bot's XP (default curve); drives its skill band (docs/logic/bots.md §Skill by level). Absent = level 1. */
+  level?: number;
 }
 
 export interface NewBot {
@@ -29,7 +32,7 @@ export interface NewBot {
   stats: { xp: number; games: number; wins: number; losses: number; draws: number };
 }
 
-export type BotPatch = Partial<Pick<BotRow, 'skill' | 'thinkMinMs' | 'thinkMaxMs' | 'tauntPercent' | 'isActive' | 'cityId'>>;
+export type BotPatch = Partial<Pick<BotRow, 'skill' | 'thinkMinMs' | 'thinkMaxMs' | 'tauntPercent' | 'isActive' | 'cityId' | 'avatarKey'>>;
 
 /** I/O boundary of bot players: the roster and their creation (an ordinary account row flagged `is_bot`, plus its behaviour). */
 export interface BotPlayerStore {
@@ -50,7 +53,7 @@ export function createDbBotPlayerStore(db: Db): BotPlayerStore {
       .leftJoin(userStats, eq(userStats.userId, users.id))
       .leftJoin(userBalances, eq(userBalances.userId, users.id));
     const out = await (onlyActive ? q.where(and(eq(botPlayers.isActive, true), eq(users.isBanned, false))) : q).orderBy(asc(users.nickname));
-    return out.map(({ b, u, s, bal }) => ({ userId: b.userId, nickname: u.nickname, avatarKey: u.avatarKey, gender: u.gender, cityId: u.cityId, skill: b.skill, thinkMinMs: b.thinkMinMs, thinkMaxMs: b.thinkMaxMs, tauntPercent: b.tauntPercent, isActive: b.isActive, xp: s?.xp ?? 0, games: s?.games ?? 0, wins: s?.wins ?? 0, coins: bal ?? 0 }));
+    return out.map(({ b, u, s, bal }) => ({ userId: b.userId, nickname: u.nickname, avatarKey: u.avatarKey, gender: u.gender, cityId: u.cityId, skill: b.skill, thinkMinMs: b.thinkMinMs, thinkMaxMs: b.thinkMaxMs, tauntPercent: b.tauntPercent, isActive: b.isActive, level: levelInfo(s?.xp ?? 0, { curveBase: XP_CURVE_BASE, levelMax: LEVEL_MAX }).level, xp: s?.xp ?? 0, games: s?.games ?? 0, wins: s?.wins ?? 0, coins: bal ?? 0 }));
   };
   return {
     list: () => rows(false),
@@ -70,9 +73,9 @@ export function createDbBotPlayerStore(db: Db): BotPlayerStore {
     async update(userId, patch) {
       const [r] = await db.select({ id: botPlayers.userId }).from(botPlayers).where(eq(botPlayers.userId, userId));
       if (!r) return 'not_found';
-      const { cityId, ...rest } = patch;
+      const { cityId, avatarKey, ...rest } = patch;
       if (Object.keys(rest).length > 0) await db.update(botPlayers).set(rest).where(eq(botPlayers.userId, userId));
-      if (cityId !== undefined) await db.update(users).set({ cityId }).where(eq(users.id, userId));
+      if (cityId !== undefined || avatarKey !== undefined) await db.update(users).set({ ...(cityId !== undefined ? { cityId } : {}), ...(avatarKey !== undefined ? { avatarKey } : {}) }).where(eq(users.id, userId));
       return 'ok';
     },
     async nicknames() {
@@ -95,7 +98,7 @@ export function createMemoryBotPlayerStore(): BotPlayerStore & { bots: Map<strin
     },
     async create(bot) {
       const id = `00000000-0000-7000-c000-${String(++seq).padStart(12, '0')}`;
-      bots.set(id, { userId: id, nickname: bot.nickname, avatarKey: bot.avatarKey, gender: bot.gender, cityId: bot.cityId, skill: bot.skill, thinkMinMs: bot.thinkMinMs, thinkMaxMs: bot.thinkMaxMs, tauntPercent: bot.tauntPercent, isActive: true, xp: bot.stats.xp, games: bot.stats.games, wins: bot.stats.wins, coins: bot.coins });
+      bots.set(id, { userId: id, nickname: bot.nickname, avatarKey: bot.avatarKey, gender: bot.gender, cityId: bot.cityId, skill: bot.skill, thinkMinMs: bot.thinkMinMs, thinkMaxMs: bot.thinkMaxMs, tauntPercent: bot.tauntPercent, isActive: true, level: levelInfo(bot.stats.xp, { curveBase: XP_CURVE_BASE, levelMax: LEVEL_MAX }).level, xp: bot.stats.xp, games: bot.stats.games, wins: bot.stats.wins, coins: bot.coins });
       return id;
     },
     async update(userId, patch) {

@@ -1,4 +1,4 @@
-import { and, asc, dailyPuzzles, desc, eq, landingCast, landingFaq, landingPosts, landingSlugRedirects, productImages, products, puzzleGroupItems, puzzleGroups, puzzles, sql } from '@dozari/db';
+import { and, asc, cities, dailyPuzzles, desc, eq, landingCast, landingComments, landingFaq, landingPosts, landingSlugRedirects, pricePoints, productImages, products, puzzleGroupItems, puzzleGroups, puzzles, sql, users } from '@dozari/db';
 import type { Db } from '@dozari/db';
 import { uuidv7 } from 'uuidv7';
 
@@ -39,6 +39,32 @@ export interface FaqRow {
 }
 export type NewFaq = Omit<FaqRow, 'id' | 'sortOrder'>;
 
+
+export type CommentTarget = 'post' | 'cast';
+export type CommentStatus = 'pending' | 'approved' | 'hidden';
+export interface CommentRow {
+  id: string;
+  targetType: CommentTarget;
+  targetKey: string;
+  authorName: string;
+  body: string;
+  status: CommentStatus;
+  createdAt: number;
+}
+export type NewComment = Pick<CommentRow, 'targetType' | 'targetKey' | 'authorName' | 'body' | 'status'>;
+
+/** Real, aggregate-only numbers for the public stats page. */
+export interface SiteStats {
+  players: number;
+  products: number;
+  prices: number;
+  puzzles: number;
+  provinces: number;
+  /** Solar Hijri year range covered by approved prices; null while there are none. */
+  years: { from: number; to: number } | null;
+  posts: number;
+}
+
 /** One approved puzzle for the landing's try-it demo: four groups of four products that all have an icon. */
 export interface DemoGroupRow {
   level: number;
@@ -62,6 +88,11 @@ export interface LandingStore {
   faq(opts: { includeHidden: boolean }): Promise<FaqRow[]>;
   addFaq(f: NewFaq): Promise<FaqRow>;
   updateFaq(id: string, patch: Partial<NewFaq & { sortOrder: number }>): Promise<'ok' | 'not_found'>;
+  addComment(c: NewComment, now: number): Promise<CommentRow>;
+  comments(opts: { targetType?: CommentTarget; targetKey?: string; status?: CommentStatus; limit: number }): Promise<CommentRow[]>;
+  commentCounts(targetType: CommentTarget, status: CommentStatus): Promise<Record<string, number>>;
+  setCommentStatus(id: string, status: CommentStatus): Promise<'ok' | 'not_found'>;
+  stats(): Promise<SiteStats>;
   /** An approved adult puzzle whose 16 products all have icons and that is not a daily puzzle (no spoilers); `pick` chooses among the candidates. */
   demoPuzzle(pick: (n: number) => number): Promise<DemoGroupRow[] | null>;
 }
@@ -145,6 +176,37 @@ export function createDbLandingStore(db: Db): LandingStore {
       if (Object.keys(patch).length > 0) await db.update(landingFaq).set(patch).where(eq(landingFaq.id, id));
       return 'ok';
     },
+    async addComment(c, now) {
+      const row = { ...c, id: uuidv7(), createdAt: now };
+      await db.insert(landingComments).values({ ...row, createdAt: new Date(now) });
+      return row;
+    },
+    async comments({ targetType, targetKey, status, limit }) {
+      const conds = [targetType ? eq(landingComments.targetType, targetType) : undefined, targetKey ? eq(landingComments.targetKey, targetKey) : undefined, status ? eq(landingComments.status, status) : undefined].filter((x) => x !== undefined);
+      const rows = await db.select().from(landingComments).where(conds.length ? and(...conds) : undefined).orderBy(desc(landingComments.createdAt)).limit(limit);
+      return rows.map((r) => ({ ...r, createdAt: r.createdAt.getTime() }));
+    },
+    async commentCounts(targetType, status) {
+      const rows = await db.select({ k: landingComments.targetKey, n: sql<number>`COUNT(*)` }).from(landingComments).where(and(eq(landingComments.targetType, targetType), eq(landingComments.status, status))).groupBy(landingComments.targetKey);
+      return Object.fromEntries(rows.map((r) => [r.k, Number(r.n)]));
+    },
+    async setCommentStatus(id, status) {
+      const [res] = await db.update(landingComments).set({ status }).where(eq(landingComments.id, id));
+      return res.affectedRows < 1 ? 'not_found' : 'ok';
+    },
+    async stats() {
+      const one = async (q: Promise<{ n: number }[]>) => Number((await q)[0]?.n ?? 0);
+      const [players, prods, prices, pz, provinces, posts, [range]] = await Promise.all([
+        one(db.select({ n: sql<number>`COUNT(*)` }).from(users).where(eq(users.isBanned, false))),
+        one(db.select({ n: sql<number>`COUNT(*)` }).from(products).where(eq(products.isActive, true))),
+        one(db.select({ n: sql<number>`COUNT(*)` }).from(pricePoints).where(eq(pricePoints.status, 'approved'))),
+        one(db.select({ n: sql<number>`COUNT(*)` }).from(puzzles).where(eq(puzzles.status, 'approved'))),
+        one(db.select({ n: sql<number>`COUNT(*)` }).from(cities)),
+        one(db.select({ n: sql<number>`COUNT(*)` }).from(landingPosts).where(eq(landingPosts.status, 'published'))),
+        db.select({ lo: sql<number | null>`MIN(${pricePoints.year})`, hi: sql<number | null>`MAX(${pricePoints.year})` }).from(pricePoints).where(eq(pricePoints.status, 'approved')),
+      ]);
+      return { players, products: prods, prices, puzzles: pz, provinces, years: range?.lo != null && range.hi != null ? { from: Number(range.lo), to: Number(range.hi) } : null, posts };
+    },
     async demoPuzzle(pick) {
       const candidates = await db
         .select({ id: puzzles.id })
@@ -191,6 +253,7 @@ export function createMemoryLandingStore(): LandingStore {
   const redirects = new Map<string, string>();
   const cast: CastRow[] = [];
   const faq: FaqRow[] = [];
+  const comments: CommentRow[] = [];
   const nid = (n: number, p: string) => `00000000-0000-7000-${p}-${String(n).padStart(12, '0')}`;
   return {
     async posts({ publishedOnly, limit, offset }) {
@@ -255,6 +318,28 @@ export function createMemoryLandingStore(): LandingStore {
       if (!f) return 'not_found';
       Object.assign(f, patch);
       return 'ok';
+    },
+    async addComment(c, now) {
+      const row = { ...c, id: nid(comments.length + 1, 'd000'), createdAt: now };
+      comments.push(row);
+      return { ...row };
+    },
+    async comments({ targetType, targetKey, status, limit }) {
+      return comments.filter((c) => (!targetType || c.targetType === targetType) && (!targetKey || c.targetKey === targetKey) && (!status || c.status === status)).sort((a, b) => b.createdAt - a.createdAt).slice(0, limit).map((c) => ({ ...c }));
+    },
+    async commentCounts(targetType, status) {
+      const out: Record<string, number> = {};
+      for (const c of comments) if (c.targetType === targetType && c.status === status) out[c.targetKey] = (out[c.targetKey] ?? 0) + 1;
+      return out;
+    },
+    async setCommentStatus(id, status) {
+      const c = comments.find((x) => x.id === id);
+      if (!c) return 'not_found';
+      c.status = status;
+      return 'ok';
+    },
+    async stats() {
+      return { players: 0, products: 0, prices: 0, puzzles: 0, provinces: 0, years: null, posts: posts.filter((p) => p.status === 'published').length };
     },
     async demoPuzzle() {
       return null;

@@ -2,6 +2,7 @@ import { sessionSchema } from '@dozari/shared';
 import { session } from '../auth';
 import { announceAccountSwitched } from '../auth/switched';
 import { callJson } from '../net/http';
+import { markLoginSeen } from '../onboarding/state';
 
 /** «ورود با شماره»: ask for an SMS code for a number (no account needed yet). */
 export const requestLoginCode = async (phone: string): Promise<void> => {
@@ -14,6 +15,8 @@ export async function loginWithCode(phone: string, code: string, opts: { announc
   const raw = await callJson('/auth/phone/verify', 'POST', { phone, code, deviceId });
   const out = sessionSchema.parse(raw);
   await session.adopt(out.token);
+  // Signing in from settings counts too: without this the first-run sign-in screen came back on the next launch.
+  await markLoginSeen();
   // From settings the whole app starts over on the new account; the first-run screen just moves on.
   if (opts.announce !== false) announceAccountSwitched();
   return { created: (raw as { created?: unknown }).created === true };

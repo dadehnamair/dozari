@@ -1,4 +1,5 @@
 import { Path } from 'react-native-svg';
+import { colors } from '../theme/colors';
 import { GLOSS, MAKEUP } from '../theme/makeup-data';
 
 /** Makeup layers of the face (docs/design/Character.dc.html): each goes at its own depth inside `FaceArt`. */
@@ -18,7 +19,7 @@ export function MakeupBase({ k, eyesOpen }: { k: string; eyesOpen: boolean }) {
 /** Over the eyes: the winged liner. */
 export function MakeupLiner({ k, eyesOpen }: { k: string; eyesOpen: boolean }) {
   const m = MAKEUP[k];
-  return m?.liner && eyesOpen ? <Path d={m.liner} fill="#2B1240" stroke="#2B1240" strokeWidth={2.4} /> : null;
+  return m?.liner && eyesOpen ? <Path d={m.liner} fill={colors.ink} stroke={colors.ink} strokeWidth={2.4} /> : null;
 }
 
 /** Under the mouth shape: the lipstick strokes the mouth outline in its colour. */

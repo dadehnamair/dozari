@@ -4,6 +4,7 @@ import { swr } from '../net/cache';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Shop, ShopItem } from '@dozari/shared';
 import { toPersianDigits } from '@dozari/shared';
+import { RewardedAdButton } from '../ads/RewardedAdButton';
 import { GradientFill } from '../components/GradientFill';
 import { Icon } from '../components/Icon';
 import { GuideBubble } from '../components/GuideBubble';
@@ -123,6 +124,12 @@ export function ShopSheet({ onClose, onBalance, realMoney = false }: { onClose: 
               <View style={styles.pillIcon}><Item icon="coin" /></View>
             </View>
           ) : null}
+          {shop ? (
+            <View style={styles.pill} accessibilityLabel={`${fa.hints.tokens} ${shop.tokens}`}>
+              <Text style={styles.pillText}>{n(shop.tokens)}</Text>
+              <Icon name="hint" size={18} color="#FFE48A" strokeWidth={2.6} />
+            </View>
+          ) : null}
           {shop && shop.gems > 0 ? (
             <View style={styles.pill} accessibilityLabel={`${fa.home.hub.gems} ${shop.gems}`}>
               <Text style={styles.pillText}>{n(shop.gems)}</Text>
@@ -145,6 +152,7 @@ export function ShopSheet({ onClose, onBalance, realMoney = false }: { onClose: 
           })}
         </View>
         {note ? <Text style={styles.note}>{note}</Text> : null}
+        {tab === 'coins' ? <RewardedAdButton placement="coin_shop" onRewarded={(p) => (p.rewardKind === 'coins' ? onBalance?.(p.balance) : undefined)} /> : null}
         <View style={styles.bubbleGap}>
           {whyLocked ? <Pressable onPress={() => setWhyLocked(null)} accessibilityRole="button"><GuideBubble who="baqal" text={whyLocked} /></Pressable> : <GuideBubble who="baqal" text={fa.shop.baqalHello} />}
         </View>
@@ -159,6 +167,11 @@ export function ShopSheet({ onClose, onBalance, realMoney = false }: { onClose: 
                 return (
                   <View key={it.id} style={styles.cell}>
                     <View style={[styles.card, tight ? styles.cardTight : null]}>
+                      {it.descriptionFa.trim() ? (
+                        <Pressable onPress={() => setWhyLocked(it.descriptionFa)} accessibilityRole="button" accessibilityLabel={`${fa.shop.about} ${it.titleFa}`} hitSlop={8} style={styles.info}>
+                          <Text style={styles.infoText}>؟</Text>
+                        </Pressable>
+                      ) : null}
                       <View style={[styles.art, tight ? styles.artTight : null]}>
                         <View style={[styles.artIcon, tight ? styles.artIconTight : null]}><Item icon={it.iconKey ?? 'magnifier'} /></View>
                         {locked ? <View style={styles.lock}><View style={styles.lockIcon}><Item icon="lock" /></View></View> : null}
@@ -207,7 +220,10 @@ export function ShopSheet({ onClose, onBalance, realMoney = false }: { onClose: 
 const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0, height: h }, shadowOpacity: 1, shadowRadius: 0, elevation: h });
 
 const styles = StyleSheet.create({
-  root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20, backgroundColor: '#3C1A66' },
+  /** The small «؟» on a card: tells what the item is (its description shows in Baqal's bubble). */
+  info: { position: 'absolute', top: 6, left: 6, zIndex: 2, width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.candy.sky, alignItems: 'center', justifyContent: 'center' },
+  infoText: { fontFamily: fonts.display, fontSize: 13, lineHeight: 18, color: colors.ink },
+  root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20, backgroundColor: colors.deep },
   veil: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   column: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingHorizontal: 10, paddingTop: pageTop() },
   head: { flexDirection: ROW, alignItems: 'center', gap: 6, marginBottom: 12 },
@@ -220,7 +236,7 @@ const styles = StyleSheet.create({
   pillIcon: { width: 28, height: 28 },
   tabs: { flexDirection: ROW, gap: 4 },
   tabCell: { flex: 1, minWidth: 0 },
-  tab: { height: 58, borderRadius: 14, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: '#FFF6E8', alignItems: 'center', justifyContent: 'center', padding: 2, ...lift(4) },
+  tab: { height: 58, borderRadius: 14, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center', padding: 2, ...lift(4) },
   tabOn: { backgroundColor: colors.candy.yellow, transform: [{ translateY: 3 }], shadowOffset: { width: 0, height: 1 } },
   tabSoon: { opacity: 0.6 },
   tabIcon: { width: 28, height: 28 },

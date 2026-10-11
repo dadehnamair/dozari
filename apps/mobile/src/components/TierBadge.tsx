@@ -2,7 +2,7 @@ import Svg, { Defs, LinearGradient, Polygon, RadialGradient, Stop, Text as SvgTe
 import { fa } from '../i18n/fa';
 import { toPersianDigits } from '@dozari/shared';
 import type { TierSpec } from '../kit/data';
-import { fonts } from '../theme/colors';
+import { fonts, colors } from '../theme/colors';
 
 const SHIELD = '50,0 100,15 100,62 50,100 0,62 0,15';
 const GLOSS = '50,1 99,15.5 99,46 1,46 1,15.5';
@@ -25,13 +25,13 @@ export function TierBadge({ tier, size = 112 }: { tier: TierSpec; size?: number 
         </LinearGradient>
       </Defs>
       <Polygon points={SHIELD} fill="#000" opacity={0.3} transform="translate(0 6)" />
-      <Polygon points={SHIELD} fill="#2B1240" stroke="#2B1240" strokeWidth={8} strokeLinejoin="round" />
+      <Polygon points={SHIELD} fill={colors.ink} stroke={colors.ink} strokeWidth={8} strokeLinejoin="round" />
       <Polygon points={SHIELD} fill={`url(#${id})`} />
       <Polygon points={GLOSS} fill={`url(#${id}g)`} />
       <SvgText x={50} y={66} textAnchor="middle" fontFamily={fonts.display} fontSize={54} fill={tier.dark} transform="translate(0 3)">
         {toPersianDigits(String(tier.tier))}
       </SvgText>
-      <SvgText x={50} y={66} textAnchor="middle" fontFamily={fonts.display} fontSize={54} fill="#fff" stroke="#2B1240" strokeWidth={1} strokeLinejoin="round">
+      <SvgText x={50} y={66} textAnchor="middle" fontFamily={fonts.display} fontSize={54} fill="#fff" stroke={colors.ink} strokeWidth={1} strokeLinejoin="round">
         {toPersianDigits(String(tier.tier))}
       </SvgText>
     </Svg>

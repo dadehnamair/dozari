@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput } from 'react-native';
 import { CandyButton } from '../components/CandyButton';
 import { fa } from '../i18n/fa';
+import { SheetClose } from '../components/SheetClose';
 import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
 import { loginWithCode, requestLoginCode } from './loginApi';
@@ -36,6 +37,7 @@ export function PhoneLoginSheet({ onClose }: { onClose: () => void }) {
   return (
     <Pressable style={styles.overlay} onPress={onClose} accessibilityLabel={t.close}>
       <Pressable style={styles.sheet} onPress={() => undefined}>
+        <SheetClose onPress={onClose} label={t.close} />
         <Text style={styles.title}>{t.title}</Text>
         <Text style={styles.text}>{t.intro}</Text>
         <TextInput value={toPersianDigits(phone)} onChangeText={setPhone} keyboardType="phone-pad" maxLength={20} placeholder={fa.phone.placeholder} style={styles.input} accessibilityLabel={t.phone} editable={!sent} />
@@ -43,7 +45,6 @@ export function PhoneLoginSheet({ onClose }: { onClose: () => void }) {
         {note ? <Text style={[styles.text, note.bad && styles.bad]}>{note.text}</Text> : null}
         {sent ? <CandyButton label={t.login} color={colors.candy.lime} disabled={busy || code.trim().length === 0} onPress={login} /> : null}
         <CandyButton label={t.send} color={sent ? colors.candy.sky : colors.candy.lime} disabled={busy || phone.trim().length === 0} onPress={send} />
-        <CandyButton label={t.close} sfx="back" color={colors.candy.sky} onPress={onClose} />
       </Pressable>
     </Pressable>
   );
@@ -55,5 +56,5 @@ const styles = StyleSheet.create({
   title: { fontFamily: fonts.display, fontSize: 22, color: INK },
   text: { fontFamily: fonts.bold, fontSize: 13.5, color: INK, textAlign: 'center' },
   bad: { color: '#B3261E' },
-  input: { alignSelf: 'stretch', fontFamily: fonts.bold, fontSize: 16, color: INK, textAlign: 'center', backgroundColor: '#fff', borderWidth: 2.5, borderColor: INK, borderRadius: 12, paddingVertical: 8, paddingHorizontal: 10 },
+  input: { alignSelf: 'stretch', fontFamily: fonts.bold, fontSize: 16, color: INK, textAlign: 'center', backgroundColor: colors.card, borderWidth: 2.5, borderColor: INK, borderRadius: 12, paddingVertical: 8, paddingHorizontal: 10 },
 });

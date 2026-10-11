@@ -1,3 +1,4 @@
+import { FACE_TEXT } from '../theme/skin';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { ChatHistory, ChatMessage, TauntCategory } from '@dozari/shared';
@@ -25,6 +26,9 @@ import { TEXT_RIGHT } from '../theme/direction';
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const POLL_MS = 4000;
 
+/** How long Khale's greeting stays on screen. */
+const KHALE_SHOW_MS = 6000;
+
 /**
  * screen-chat of `17 Chat Shop Unlocks` (D103): grape header with two tabs — «همشهری‌ها» (the room of the player's
  * city) and «همه» (everyone) — message bubbles (mine on the start side in yellow), a strip of canned taunts, and the
@@ -32,6 +36,12 @@ const POLL_MS = 4000;
  */
 export function ChatSheet({ onClose, onJoinTable, initialTab = 'city' }: { onClose: () => void; onJoinTable?: (code: string) => void; initialTab?: ChatTab }) {
   const [tab, setTab] = useState<ChatTab>(initialTab);
+  /** Khale's greeting stays a few seconds, then leaves so the room gets the whole screen. */
+  const [khaleOn, setKhaleOn] = useState(true);
+  useEffect(() => {
+    const id = setTimeout(() => setKhaleOn(false), KHALE_SHOW_MS);
+    return () => clearTimeout(id);
+  }, []);
   /** The «دوستان» tab (private chats) is a separate view; `tab` keeps the last public room. */
   const [friendsView, setFriendsView] = useState(false);
   const [info, setInfo] = useState<Record<ChatTab, ChatHistory | null>>({ city: null, global: null });
@@ -101,7 +111,7 @@ export function ChatSheet({ onClose, onJoinTable, initialTab = 'city' }: { onClo
       </View>
       {friendsView ? <FriendsChat meId={meId} onJoinTable={onJoinTable} /> : <>
       {sub ? <Text style={styles.sub}>{sub}</Text> : null}
-      <GuideBubble who="khale" text={t.khaleHello} />
+      {khaleOn ? <GuideBubble who="khale" text={t.khaleHello} /> : null}
 
       <ScrollView ref={scroller} style={styles.list} contentContainerStyle={styles.content}>
         {cityBlocked ? (
@@ -175,7 +185,7 @@ export function ChatSheet({ onClose, onJoinTable, initialTab = 'city' }: { onClo
         </View>
       )}
       </>}
-      {reporting ? <ReportDialog target={{ kind: 'message', messageId: reporting }} onClose={() => (setReporting(null), setNote(fa.chat.reported))} /> : null}
+      {reporting ? <ReportDialog target={{ kind: 'message', messageId: reporting }} onClose={(sent) => (setReporting(null), sent ? setNote(fa.chat.reported) : undefined)} /> : null}
     </PageShell>
   );
 }
@@ -185,7 +195,7 @@ const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0
 const styles = StyleSheet.create({
   cityBtn: { alignSelf: 'center', paddingHorizontal: 18, height: 38, borderRadius: 19, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.candy.yellow, alignItems: 'center', justifyContent: 'center' },
   cityBtnText: { fontFamily: fonts.bold, fontSize: 14, color: colors.ink },
-  tabs: { marginTop: -26, marginBottom: 34, flexDirection: ROW, gap: 4, padding: 4, borderRadius: 16, backgroundColor: 'rgba(43,18,64,0.45)' },
+  tabs: { marginTop: 0, marginBottom: 22, flexDirection: ROW, gap: 4, padding: 4, borderRadius: 16, backgroundColor: 'rgba(43,18,64,0.45)' },
   tab: { flex: 1, height: 36, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   tabOn: { backgroundColor: colors.candy.yellow, borderWidth: 2.5, borderColor: colors.ink },
   tabText: { fontFamily: fonts.display, fontSize: 15, color: '#E3CCFF' },
@@ -202,22 +212,22 @@ const styles = StyleSheet.create({
   nameRow: { flexDirection: ROW, alignItems: 'center', gap: 3, paddingHorizontal: 6 },
   name: { fontFamily: fonts.bold, fontSize: 10, color: '#7E46D6' },
   nameMine: { color: '#B8651B' },
-  bubble: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 16, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: '#fff', ...lift(3) },
+  bubble: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 16, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.card, ...lift(3) },
   bubbleMine: { backgroundColor: colors.candy.yellow },
-  bubbleTaunt: { backgroundColor: '#E8D5FF' },
+  bubbleTaunt: { backgroundColor: colors.tint },
   text: { fontFamily: fonts.bold, fontSize: 13, lineHeight: 21, color: colors.ink, textAlign: TEXT_RIGHT },
   tableRow: { flexDirection: ROW, alignItems: 'center', gap: 6 },
   tableIcon: { width: 26, height: 26 },
   tableCard: { gap: 4, padding: 8, borderRadius: 14, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: '#FFF3C4', ...lift(3) },
   join: { fontFamily: fonts.display, fontSize: 14, color: '#7E46D6', textAlign: TEXT_RIGHT },
-  report: { fontFamily: fonts.bold, fontSize: 10, color: colors.ink, opacity: 0.45, paddingHorizontal: 6 },
+  report: { fontFamily: fonts.bold, fontSize: 12, color: colors.ink, opacity: 0.7, textDecorationLine: 'underline', paddingHorizontal: 6 },
   footer: { gap: 6, paddingBottom: 14, paddingTop: 4 },
   quick: { flexDirection: ROW, gap: 6, paddingVertical: 2 },
-  chip: { height: 38, paddingHorizontal: 12, borderRadius: 99, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: '#E8D5FF', justifyContent: 'center', ...lift(3) },
+  chip: { height: 38, paddingHorizontal: 12, borderRadius: 99, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.tint, justifyContent: 'center', ...lift(3) },
   chipText: { fontFamily: fonts.bold, fontSize: 12, color: colors.ink },
   inputRow: { flexDirection: ROW, gap: 6, alignItems: 'center' },
-  input: { flex: 1, minWidth: 0, height: 52, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#fff', paddingHorizontal: 14, fontFamily: fonts.bold, fontSize: 14, color: colors.ink, textAlign: TEXT_RIGHT },
+  input: { flex: 1, minWidth: 0, height: 52, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.card, paddingHorizontal: 14, fontFamily: fonts.bold, fontSize: 14, color: colors.ink, textAlign: TEXT_RIGHT },
   send: { width: 52, height: 52, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...lift(4) },
   pressed: { transform: [{ translateY: 3 }] },
-  sendMark: { fontSize: 22, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
+  sendMark: { fontSize: 22, color: '#fff', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1, ...FACE_TEXT },
 });

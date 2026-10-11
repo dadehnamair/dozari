@@ -1,4 +1,5 @@
 import { StyleSheet, View } from 'react-native';
+import { colors } from '../theme/colors';
 import Svg, { Defs, LinearGradient, Pattern, RadialGradient, Rect, Stop } from 'react-native-svg';
 
 /** "bg-search": rotated checkerboard in two violets with a pink glow in the middle and dark top/bottom. */
@@ -23,10 +24,10 @@ export function DiamondBackground({ children }: { children?: React.ReactNode }) 
             <Stop offset="1" stopColor="rgb(198,120,255)" stopOpacity={0} />
           </RadialGradient>
           <LinearGradient id="dv" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor="#2B1240" stopOpacity={0.4} />
-            <Stop offset="0.3" stopColor="#2B1240" stopOpacity={0} />
-            <Stop offset="0.7" stopColor="#2B1240" stopOpacity={0} />
-            <Stop offset="1" stopColor="#2B1240" stopOpacity={0.7} />
+            <Stop offset="0" stopColor={colors.ink} stopOpacity={0.4} />
+            <Stop offset="0.3" stopColor={colors.ink} stopOpacity={0} />
+            <Stop offset="0.7" stopColor={colors.ink} stopOpacity={0} />
+            <Stop offset="1" stopColor={colors.ink} stopOpacity={0.7} />
           </LinearGradient>
         </Defs>
         <Rect x={0} y={0} width="100%" height="100%" fill="url(#dq)" />

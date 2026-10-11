@@ -1,5 +1,5 @@
 // Rebuilds packages/shared/src/items/{data,groups}.ts from the design files, so the icon pack never drifts:
-//   node packages/shared/scripts/gen-items.mjs        (run after the designer updates docs/design/Item.dc.html or 12/14)
+//   node packages/shared/scripts/gen-items.mjs        (run after the designer updates docs/design/Item.dc.html, 12 or docs/design/products/*)
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -14,6 +14,20 @@ const end = item.indexOf('class Component', start);
 if (start < 0 || end < 0) throw new Error('Item.dc.html layout changed');
 let body = item.slice(start, end);
 body = body.replace(/^\/\*.*\*\/\n/, '').replace('const I={', 'export const ITEMS: Record<string, Icon> = {').replace(/\};\s*$/, '};\n');
+
+// Products v2 (docs/design/products/ProductIcon.dc.html): `const N={slug: icon}` are new hand-drawn product icons, keyed by product slug.
+// They reuse the O/E/R helpers and colour consts of Item.dc.html and add their own builders (CAR, BX, MB, BT, PERF), kept as source text.
+const pi = readFileSync(join(root, 'docs/design/products/ProductIcon.dc.html'), 'utf8');
+const nStart = pi.indexOf('const N={');
+const nEnd = pi.indexOf('\n};', nStart);
+if (nStart < 0 || nEnd < 0) throw new Error('ProductIcon.dc.html layout changed');
+// Name clashes with Item.dc.html: CAR/CB have another signature there, and ProductIcon's orange is brighter (#FF7A3D vs #E8743B).
+const clash = (t) => t.replace(/\bCAR=/g, 'PCAR=').replace(/\bCAR\(/g, 'PCAR(').replace(/\bCB\b/g, 'PCB').replace(/\bOR\b/g, 'POR');
+const nBody = clash(pi.slice(nStart + 'const N={'.length, nEnd).replace(/^\n/, ''));
+const builders = clash(pi.slice(pi.indexOf('const CB={'), nStart)).replace(/^const PCAR=\(c,t,post=\[\]\)/m, 'const PCAR=(c,t,post=[])');
+const productConsts = "const POR='#FF7A3D',SV='#D9DEE3',GL='#EAF8FF';\n";
+const newKeys = [...nBody.matchAll(/^'([^']+)':/gm)].map((m) => m[1]);
+body = body.replace(/\};\n$/, `${nBody.replace(/,?\s*$/, ',')}\n};\n`);
 const consts = item.slice(item.indexOf('const O='), start).replace(/\(x,y,r\)/, '(x: number,y: number,r: number)').replace(/\(x,y,rx,ry\)/, '(x: number,y: number,rx: number,ry: number)').replace(/\(x,y,w,h,r\)/, '(x: number,y: number,w: number,h: number,r: number)');
 const typed = (t) =>
   t
@@ -22,9 +36,15 @@ const typed = (t) =>
   .replace('const CAR=(c,t,pre=[],post=[])=>({p:', 'const CAR=(c: string,t: keyof typeof CB,pre: Part[]=[],post: Part[]=[]): Icon=>({p: <Part[]>')
   .replace('const BOWL=(c,top,extra)=>({p:', 'const BOWL=(c: string,top: string,extra: Part[]): Icon=>({p:')
   .replace('const TIX=(c,ex)=>({p:', 'const TIX=(c: string,ex: Part[]): Icon=>({p:')
+  .replace('const PCB={', "const PCB: Record<'sedan' | 'hatch' | 'van', [string, string]>={")
+  .replace('const PCAR=(c,t,post=[])=>({p:', 'const PCAR=(c: string,t: keyof typeof PCB,post: Part[]=[]): Icon=>({p: <Part[]>')
+  .replace('const BX=(c,top,side,t,tc,ex=[])=>({p:', 'const BX=(c: string,top: string,side: string,t: string,tc: string,ex: Part[]=[]): Icon=>({p: <Part[]>')
+  .replace('const MB=(c,cap,t,tc)=>({p:', 'const MB=(c: string,cap: string,t: string,tc: string): Icon=>({p:')
+  .replace('const BT=(c,cap,lab,t,tc)=>({p:', 'const BT=(c: string,cap: string,lab: string,t: string,tc: string): Icon=>({p:')
+  .replace("let PERF='';", "let PERF = '';")
   .replace(/^const S=(\{.*\});$/m, 'export const SAMPLE_ICONS: Record<string, string> = $1;');
 // An entry is a literal `{p:[...]}` or a call of a builder of the design file (`CAR(...)`, `BOWL(...)`, `TIX(...)`).
-const keys = [...body.matchAll(/^([A-Za-z0-9_]+):(?:\{p:|[A-Z]+\()/gm)].map((m) => m[1]);
+const keys = [...body.matchAll(/^'?([A-Za-z0-9_-]+)'?:(?:\{p:|[A-Z]+\()/gm)].map((m) => m[1]);
 writeFileSync(
   join(out, 'data.ts'),
   `/**
@@ -36,7 +56,7 @@ export type Part = [string, string, (string | number)?, string?];
 export type ItemText = [number, number, number, string, string];
 type Icon = { p: Part[]; t?: ItemText[] };
 
-${typed(consts + body)}`,
+${typed(consts + productConsts + builders + body)}`,
 );
 
 /** Categories and Persian names come from design 12 (items) and 14 (products). */
@@ -44,7 +64,7 @@ const groups = [];
 const d12 = design('Dozari - 12 Item Icons.dc.html');
 const cats = new Function(`${d12.slice(d12.indexOf('const CATS='), d12.indexOf('class Component'))}; return CATS;`)();
 for (const [t, c, list] of cats) groups.push({ id: `item-${groups.length}`, titleFa: t, color: c, icons: list.map(([k, fa]) => ({ key: k, fa })) });
-const d14 = design('Dozari - 14 Product Icons.dc.html');
+const d14 = design('products/Dozari Products v1.dc.html');
 const g14 = new Function(`${d14.slice(d14.indexOf('const G=['), d14.indexOf('class Component'))}; return G;`)();
 for (const [t, c, s] of g14) groups.push({ id: `product-${groups.length}`, titleFa: t, color: c, icons: s.split(',').map((x) => { const [k, fa] = x.split(':'); return { key: k, fa }; }) });
 // Design 14 also draws the sample catalogue's products (SAMPLES: product slug -> Persian name); Item.dc.html's `S` maps each slug to its icon key.
@@ -53,13 +73,17 @@ const samples = new Function(`${d14.slice(d14.indexOf('const SAMPLES='), d14.ind
 for (const [t, c, list] of samples) {
   groups.push({ id: `sample-${groups.length}`, titleFa: t, color: c, icons: list.split(',').map((x) => { const [slug, fa] = x.split(':'); return { key: slugIcon[slug.replace(/^sample-/, '')], fa }; }).filter((i) => i.key) });
 }
+// Products v2: the icons drawn in ProductIcon.dc.html, named by products.json (slug -> name_fa), one category per kind of product.
+const table = JSON.parse(readFileSync(join(root, 'docs/design/products/products.json'), 'utf8')).find((x) => x.type === 'table').data;
+const nameFa = Object.fromEntries(table.map((r) => [r.slug, r.name_fa]));
+groups.push({ id: 'product-v2', titleFa: 'محصولات ۲', color: '#B8F08F', icons: newKeys.map((k) => ({ key: k, fa: nameFa[k] ?? k })) });
 const seen = new Set();
 const clean = groups.map((g) => ({ ...g, icons: g.icons.filter((i) => keys.includes(i.key) && !seen.has(i.key) && seen.add(i.key)) }));
 const rest = keys.filter((k) => !seen.has(k));
 if (rest.length) clean.push({ id: 'other', titleFa: 'سایر', color: '#D9C7A5', icons: rest.map((k) => ({ key: k, fa: k })) });
 writeFileSync(
   join(out, 'groups.ts'),
-  `/** Icon pack categories with Persian names (designs 12 and 14). GENERATED by scripts/gen-items.mjs, do not edit. */
+  `/** Icon pack categories with Persian names (design 12, products v1/v2). GENERATED by scripts/gen-items.mjs, do not edit. */
 export interface ItemGroup {
   id: string;
   titleFa: string;

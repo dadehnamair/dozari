@@ -3,7 +3,7 @@
     "name": "دوزاری",
     "slug": "dozari",
     "scheme": "dozari",
-    "version": "1.0.0",
+    "version": "1.1.1",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "ios": {
@@ -17,6 +17,12 @@
         "monochromeImage": "./assets/adaptive-monochrome.png"
       },
       "versionCode": 1,
+      "blockedPermissions": [
+        "android.permission.WRITE_CONTACTS",
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ],
       "splash": {
         "image": "./assets/adaptive-icon.png",
         "resizeMode": "contain",

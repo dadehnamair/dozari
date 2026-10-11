@@ -13,7 +13,7 @@ const codeOf = (e: unknown): string => (e instanceof ApiError ? e.code : 'generi
 const OPTIONS = REPORT_CATEGORIES.map((c) => [c, t.categories[c] ?? c] as const);
 
 /** Report a player (from their profile) or a chat message: a reason from the list plus an optional description. */
-export function ReportDialog({ target, onClose }: { target: { kind: 'user'; userId: string } | { kind: 'message'; messageId: string }; onClose: () => void }) {
+export function ReportDialog({ target, onClose }: { target: { kind: 'user'; userId: string } | { kind: 'message'; messageId: string }; /** `sent` is true only when the report actually went through. */ onClose: (sent: boolean) => void }) {
   const [category, setCategory] = useState<ReportCategory | null>(null);
   const [details, setDetails] = useState('');
   const [busy, setBusy] = useState(false);
@@ -32,11 +32,11 @@ export function ReportDialog({ target, onClose }: { target: { kind: 'user'; user
   };
 
   return (
-    <FormDialog title={t.title} onClose={onClose}>
+    <FormDialog title={t.title} onClose={() => onClose(done)}>
       {done ? (
         <>
           <Text style={s.ok}>{t.done}</Text>
-          <Pressable onPress={onClose} accessibilityRole="button" style={[s.btn, s.go]}><Text style={s.btnText}>{fa.feedback.close}</Text></Pressable>
+          <Pressable onPress={() => onClose(true)} accessibilityRole="button" style={[s.btn, s.go]}><Text style={s.btnText}>{fa.feedback.close}</Text></Pressable>
         </>
       ) : (
         <>
@@ -47,7 +47,7 @@ export function ReportDialog({ target, onClose }: { target: { kind: 'user'; user
           {error ? <Text style={s.error}>{error}</Text> : null}
           <View style={s.buttons}>
             <Pressable onPress={send} disabled={!category || busy} accessibilityRole="button" style={[s.btn, s.go, !category || busy ? s.off : null]}><Text style={s.btnText}>{t.send}</Text></Pressable>
-            <Pressable onPress={onClose} accessibilityRole="button" style={[s.btn, s.cancel]}><Text style={s.btnText}>{fa.feedback.cancel}</Text></Pressable>
+            <Pressable onPress={() => onClose(false)} accessibilityRole="button" style={[s.btn, s.cancel]}><Text style={s.btnText}>{fa.feedback.cancel}</Text></Pressable>
           </View>
         </>
       )}

@@ -63,3 +63,70 @@ describe('duel taunts', () => {
     expect(s.taunt).toBeNull();
   });
 });
+
+describe('finale and notices', () => {
+  const card = (id: string) => ({ id, nameFa: id, unitFa: null, iconKey: null });
+  const row = (level: 0 | 1 | 2 | 3, ids: string[], by: 0 | 1 | null) => ({ level, titleFa: `t${level}`, explanationFa: `e${level}`, productIds: ids, by });
+  const g = (level: number, ids: string[]) => ({ level, titleFa: `t${level}`, explanationFa: `e${level}`, productIds: ids });
+  const before = view({ cards: ['c1', 'c2', 'c3', 'c4', 'd1', 'd2', 'd3', 'd4'].map(card), solved: [row(0, ['a1', 'a2', 'a3', 'a4'], 0), row(1, ['b1', 'b2', 'b3', 'b4'], 1)] });
+  const after = view({ cards: [], status: 'finished', solved: [row(0, ['a1', 'a2', 'a3', 'a4'], 0), row(1, ['b1', 'b2', 'b3', 'b4'], 1), row(2, ['c1', 'c2', 'c3', 'c4'], 0), row(3, ['d1', 'd2', 'd3', 'd4'], null)] });
+
+  it('builds the finale of the last row once the game reveals it', () => {
+    let s = duelReducer(initialDuel, { t: 'state', view: before });
+    s = duelReducer(s, { t: 'state', view: after });
+    expect(s.prevBoard?.cards).toHaveLength(8);
+    s = duelReducer(s, { t: 'revealed', level: 3 });
+    expect(s.finale?.cards.map((c) => c.id)).toEqual(['d1', 'd2', 'd3', 'd4']);
+    expect(s.finale?.solved.map((r) => r.level)).toEqual([0, 1, 2]);
+    expect(s.finale?.last.level).toBe(3);
+    expect(duelReducer(s, { t: 'clearFinale' }).finale).toBeNull();
+  });
+
+  it('waits for board_done when the next board has already replaced the old one', () => {
+    let s = duelReducer(initialDuel, { t: 'state', view: before });
+    s = duelReducer(s, { t: 'state', view: view({ round: 1, rounds: 2, cards: ['x1', 'x2'].map(card), solved: [] }) });
+    s = duelReducer(s, { t: 'revealed', level: 3 });
+    expect(s.finale).toBeNull();
+    s = duelReducer(s, { t: 'boardDone', round: 0, groups: [g(0, ['a1', 'a2', 'a3', 'a4']), g(1, ['b1', 'b2', 'b3', 'b4']), g(2, ['c1', 'c2', 'c3', 'c4']), g(3, ['d1', 'd2', 'd3', 'd4'])] });
+    expect(s.finale?.cards).toHaveLength(4);
+  });
+
+  it('a refused submit is a notice, never a dead end; a result clears any stale error', () => {
+    let s = duelReducer(initialDuel, { t: 'state', view: view() });
+    s = duelReducer(s, { t: 'notice', error: 'DUPLICATE_SELECTION' });
+    expect(s.notice).toBe('DUPLICATE_SELECTION');
+    expect(s.error).toBeNull();
+    s = duelReducer(s, { t: 'error', error: 'NETWORK' });
+    s = duelReducer(s, { t: 'state', view: view() });
+    expect(s.error).toBeNull();
+    s = duelReducer(s, { t: 'error', error: 'INTERNAL' });
+    s = duelReducer(s, { t: 'ended', ended: { matchId: ID, result: { winner: 0, reason: 'solved' }, scores: [1, 0], groups: [] } as unknown as MatchEnded });
+    expect(s.error).toBeNull();
+  });
+});
+
+describe('power-ups', () => {
+  it('the magnifier hands the player two cards once, and the next guess clears them', () => {
+    const a = duelReducer(initialDuel, { t: 'power', mine: true, kind: 'magnifier', itemIds: ['x', 'y'] });
+    expect(a.peek).toEqual({ ids: ['x', 'y'], n: 1 });
+    expect(a.powerNote).toBe('magMine');
+    const b = duelReducer(a, { t: 'power', mine: true, kind: 'magnifier', itemIds: ['p', 'q'] });
+    expect(b.peek?.n).toBe(2);
+    expect(duelReducer(b, { t: 'guess', outcome: 'wrong', mine: true }).peek).toBeNull();
+  });
+
+  it('the rival\'s magnifier and the freeze only leave a note', () => {
+    expect(duelReducer(initialDuel, { t: 'power', mine: false, kind: 'magnifier' })).toMatchObject({ peek: null, powerNote: 'magRival' });
+    expect(duelReducer(initialDuel, { t: 'power', mine: true, kind: 'freeze' }).powerNote).toBe('iceMine');
+    expect(duelReducer(initialDuel, { t: 'power', mine: false, kind: 'freeze' }).powerNote).toBe('iceRival');
+  });
+});
+
+describe('taunts', () => {
+  it('ignores the echo of the player\'s own taunt (the server sends it back to the sender too)', () => {
+    const me = '0f8fad5b-d9cb-469f-a165-708677289501';
+    const s = { ...initialDuel, found: { youId: me } as never };
+    expect(duelReducer(s, { t: 'taunt', from: 'من', text: 'سلام', userId: me }).taunt).toBeNull();
+    expect(duelReducer(s, { t: 'taunt', from: 'حریف', text: 'سلام', userId: 'someone-else' }).taunt).toEqual({ from: 'حریف', text: 'سلام' });
+  });
+});

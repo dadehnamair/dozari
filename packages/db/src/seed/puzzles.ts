@@ -1,5 +1,5 @@
 import { and, eq, inArray, like } from 'drizzle-orm';
-import { explainRule, generatePuzzle, mulberry32 } from '@dozari/shared';
+import { checkSeedPuzzles, explainRule, generatePuzzle, mulberry32 } from '@dozari/shared';
 import type { Catalog, SeedPuzzle } from '@dozari/shared';
 import type { Db } from '../client.js';
 import { ruleToColumns } from '../puzzle-rule.js';
@@ -9,17 +9,26 @@ import { pricePoints, productEraTags, products, puzzleGroupItems, puzzleGroups, 
 export const SEED_NOTE_PREFIX = 'seed:';
 export const SAMPLE_SLUG_PREFIX = 'sample-';
 
-/** Curated puzzles of `seed/puzzles/*.json` as approved puzzles; one that is already there (same id) is left alone. Returns how many were made. */
-export async function loadSeedPuzzles(db: Db, seed: readonly SeedPuzzle[]): Promise<number> {
+/**
+ * Curated puzzles of `seed/puzzles/*.json`; one that is already there (same id) is left alone. Products are looked up by slug in the database
+ * (it owns the catalogue); a puzzle whose products are not all there is skipped, and an item of the wrong age track is an error.
+ */
+export async function loadSeedPuzzles(db: Db, seed: readonly SeedPuzzle[]): Promise<{ made: number; skipped: number }> {
   let made = 0;
+  let skipped = 0;
   for (const sp of seed) {
     const note = `${SEED_NOTE_PREFIX}${sp.id}`;
     const [exists] = await db.select({ id: puzzleGroups.id }).from(puzzleGroups).where(eq(puzzleGroups.ruleNote, note)).limit(1);
     if (exists) continue;
     const slugs = sp.groups.flatMap((g) => g.products);
-    const rows = await db.select({ id: products.id, slug: products.slug }).from(products).where(inArray(products.slug, slugs));
+    const rows = await db.select({ id: products.id, slug: products.slug, ageTrack: products.ageTrack }).from(products).where(inArray(products.slug, slugs));
     const idOf = new Map(rows.map((r) => [r.slug, r.id]));
-    if (slugs.some((s) => !idOf.has(s))) throw new Error(`puzzle ${sp.id}: a product is not in the database (run the product seed first)`);
+    if (slugs.some((s) => !idOf.has(s))) {
+      skipped += 1;
+      continue;
+    }
+    const trackProblems = checkSeedPuzzles([sp], new Set(idOf.keys()), new Map(rows.map((r) => [r.slug, r.ageTrack] as const)));
+    if (trackProblems.length > 0) throw new Error(`Invalid puzzle seed:\n${trackProblems.join('\n')}`);
     await db.transaction(async (tx) => {
       const [puzzle] = await tx.insert(puzzles).values({ status: sp.status, source: 'curated', ageTrack: sp.age_track }).$returningId();
       if (!puzzle) throw new Error('puzzle insert failed');
@@ -34,7 +43,7 @@ export async function loadSeedPuzzles(db: Db, seed: readonly SeedPuzzle[]): Prom
     });
     made += 1;
   }
-  return made;
+  return { made, skipped };
 }
 
 /**

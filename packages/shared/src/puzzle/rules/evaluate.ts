@@ -1,4 +1,5 @@
 import { priceAt } from '../price.js';
+import { themeTagOf } from '../themes.js';
 import type { CatalogProduct, RuleContext, Tri } from '../types.js';
 import type { Rule } from './schemas.js';
 
@@ -62,6 +63,10 @@ function eraIcon(rule: Of<'era_icon'>, product: CatalogProduct): Tri {
   return yn(product.eraTags.includes(rule.eraTag));
 }
 
+function themeTag(rule: Of<'theme_tag'>, product: CatalogProduct): Tri {
+  return yn(product.eraTags.includes(themeTagOf(rule.theme)));
+}
+
 /** Rank among catalog peers that have a price that year; ties share the better rank. */
 function categoryPriceRank(rule: Of<'category_price_rank'>, product: CatalogProduct, ctx: RuleContext): Tri {
   if (product.category !== rule.category) return 'no';
@@ -93,6 +98,8 @@ export function evaluateRule(rule: Rule, product: CatalogProduct, ctx: RuleConte
       return eraIcon(rule, product);
     case 'category_price_rank':
       return categoryPriceRank(rule, product, ctx);
+    case 'theme_tag':
+      return themeTag(rule, product);
     case 'curated':
       return 'unknown';
   }

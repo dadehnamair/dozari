@@ -97,11 +97,11 @@ const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0
 const styles = StyleSheet.create({
   add: { height: 40, paddingHorizontal: 12, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.candy.lime, justifyContent: 'center', ...lift(4) },
   addText: { fontFamily: fonts.display, fontSize: 15, color: colors.ink },
-  search: { height: 44, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#fff', paddingHorizontal: 12, fontFamily: fonts.bold, fontSize: 13, color: colors.ink, textAlign: TEXT_RIGHT, marginTop: -16, marginBottom: 26 },
+  search: { height: 44, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.card, paddingHorizontal: 12, fontFamily: fonts.bold, fontSize: 13, color: colors.ink, textAlign: TEXT_RIGHT, marginTop: -16, marginBottom: 26 },
   list: { gap: 8, paddingTop: 6, paddingBottom: 24 },
   section: { fontFamily: fonts.display, fontSize: 16, color: colors.ink, textAlign: TEXT_RIGHT },
   note: { fontFamily: fonts.bold, fontSize: 13, color: colors.ink, textAlign: 'center', marginTop: 8 },
-  card: { flexDirection: ROW, alignItems: 'center', gap: 8, paddingVertical: 7, paddingHorizontal: 8, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#fff', ...lift(4) },
+  card: { flexDirection: ROW, alignItems: 'center', gap: 8, paddingVertical: 7, paddingHorizontal: 8, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.card, ...lift(4) },
   request: { backgroundColor: '#FFF6D8' },
   cake: { position: 'absolute', top: -6, left: -6 },
   face: { width: 46, height: 46, borderRadius: 23, borderWidth: 2.5, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },

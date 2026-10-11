@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import type { AgeTrack } from '@dozari/shared';
 import { SlabButton } from '../components/SlabButton';
@@ -11,13 +11,13 @@ import { saveAgeTrack } from './api';
 import { GuardianStep } from './GuardianStep';
 import { forgetTrackRules } from './useTrackRules';
 
-const INK = '#2B1240';
+const INK = colors.ink;
 
 /**
  * First-run «who is playing?» screen (docs/logic/age-tracks.md): three big cards on the same bazaar-at-dusk look as the sign-in screen.
  * Shown once per account, only when the server's age-track switch is on. The adult card comes first and wears the main colour.
  */
-export function AgeTrackScreen({ onDone, preset }: { onDone: (track: AgeTrack) => void; /** Already chosen with the icons on the sign-in screen: saved straight away, only the guardian step (kid/teen) is shown. */ preset?: AgeTrack }) {
+export function AgeTrackScreen({ onDone, initial }: { onDone: (track: AgeTrack) => void; /** The track already picked on the sign-in card: saved at once, only the guardian step (kid, teen) is shown. */ initial?: AgeTrack }) {
   const l = fa.ageTrack;
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
@@ -33,9 +33,13 @@ export function AgeTrackScreen({ onDone, preset }: { onDone: (track: AgeTrack) =
       () => (setBusy(false), setFailed(true)),
     );
   };
+  const auto = useRef(false);
   useEffect(() => {
-    if (preset) pick(preset);
-  }, []);
+    if (initial && !auto.current) {
+      auto.current = true;
+      pick(initial);
+    }
+  }, [initial]);
   const rows: { track: AgeTrack; label: string; hint: string; color: string }[] = [
     { track: 'adult', label: l.adult, hint: l.adultHint, color: colors.candy.lime },
     { track: 'teen', label: l.teen, hint: l.teenHint, color: colors.candy.sky },
@@ -52,7 +56,7 @@ export function AgeTrackScreen({ onDone, preset }: { onDone: (track: AgeTrack) =
       <View style={[styles.cardWrap, tight ? styles.cardWrapTight : null]} pointerEvents="box-none">
       <View style={[styles.card, tight ? styles.cardTight : null]}>
         {picked ? <GuardianStep onDone={() => onDone(picked)} /> : null}
-        {picked || (preset && !failed) ? null : rows.map((r) => (
+        {picked || (initial && !failed) ? null : rows.map((r) => (
           <View key={r.track} style={styles.row}>
             <SlabButton label={busy ? l.saving : r.label} color={r.color} height={tight ? 50 : 58} fontSize={24} grow={0} disabled={busy} sfx="confirm" onPress={() => pick(r.track)} />
             <Text style={styles.hint}>{r.hint}</Text>
@@ -74,7 +78,7 @@ const styles = StyleSheet.create({
   // Centring wrapper: `alignSelf` does nothing on an absolute box (the card stuck to the left on wide screens).
   cardWrap: { position: 'absolute', left: 14, right: 14, bottom: 26, alignItems: 'center' },
   cardWrapTight: { bottom: 12 },
-  card: { width: '100%', maxWidth: 420, padding: 14, paddingTop: 16, gap: 12, borderRadius: 26, borderWidth: 4, borderColor: INK, backgroundColor: '#FBF1DE' },
+  card: { width: '100%', maxWidth: 420, padding: 14, paddingTop: 16, gap: 12, borderRadius: 26, borderWidth: 4, borderColor: INK, backgroundColor: colors.paper },
   cardTight: { gap: 8, padding: 12 },
   row: { gap: 4 },
   hint: { fontFamily: fonts.body, fontSize: 13, color: '#5B4A70', textAlign: 'center' },

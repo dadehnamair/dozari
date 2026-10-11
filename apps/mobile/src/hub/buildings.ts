@@ -20,12 +20,25 @@ export interface Shape {
   awn?: string;
 }
 
-export function buildingParts(b: Shape): Part[] {
+/** Night-bazaar colours of the adult look (docs/design/adult/Dozari Adult - Login Home): each daytime fill maps to a dark or brass one. */
+const ADULT_PAL: Record<string, string> = {
+  '#E9A85C': '#6E4626', '#F4CB8E': '#7E5634', '#EDB46A': '#744C2A', '#F0BE78': '#7A5232', '#C98A4E': '#B8822A', '#3E93B8': '#E8B64A',
+  '#E84A3C': '#9A2E1C', '#3FA36B': '#2F6E4A', '#6A3018': '#0E0805', '#E0803E': '#FFD98A', '#5A2A14': '#FFC960', '#FFF6E8': '#FFE9A8',
+  '#FFF3E0': '#E8B64A', '#3A2418': '#000', '#fff': '#FFF1B8',
+};
+
+export function buildingParts(b: Shape, adult = false): Part[] {
   const { x, by, w, h } = b;
   const L = x - w / 2;
   const top = by - h;
   const P: Part[] = [];
-  const add = (d: string, f: string, s?: string, wd?: number, o?: number) => P.push({ d, f, stroke: s || '#4A2E1E', width: wd ?? 2.4, opacity: o ?? 1 });
+  const add = (d: string, f: string, s?: string, wd?: number, o?: number) => {
+    if (!adult) return void P.push({ d, f, stroke: s || '#4A2E1E', width: wd ?? 2.4, opacity: o ?? 1 });
+    const stroke = s === 'none' ? 'none' : s && s !== '#4A2E1E' && ADULT_PAL[s] ? ADULT_PAL[s]! : '#0A0604';
+    // The adult shadow is deeper, the roof gloss fainter and the lit doorway brighter than by day.
+    const opacity = d.startsWith('M') && f === '#3A2418' ? 0.4 : s === '#fff' ? 0.35 : f === '#E0803E' ? 0.75 : (o ?? 1);
+    P.push({ d, f: ADULT_PAL[f] ?? f, stroke, width: wd ?? 2.4, opacity });
+  };
  add(`M${L-10} ${by} Q${x} ${by+16} ${L+w+10} ${by}Z`,'#3A2418','none',0,.18);
  if(b.type==='tower'){add(`M${L-6} ${top} L${x} ${top-40} L${L+w+6} ${top}Z`,b.roof);add(`M${x} ${top-40} v-10`,'none');}
  if(b.type==='dome'){const r = w * 0.34;add(`M${x-r} ${top} C${x-r} ${top-r*1.5} ${x+r} ${top-r*1.5} ${x+r} ${top}Z`,b.roof);add(`M${x} ${top-r*1.12} v-12`,'none');add(`M${x-r*.6} ${top-r*.5} Q${x-r*.4} ${top-r*.95} ${x-r*.05} ${top-r*1.05}`,'none','#fff',2.2,.6);}

@@ -11,6 +11,7 @@ import { agoText } from './ago';
 import { filterInbox } from './filter';
 import type { InboxFilter } from './filter';
 import { TEXT_RIGHT } from '../theme/direction';
+import { PlayerSheet } from '../social/PlayerSheet';
 
 const FILTERS: InboxFilter[] = ['all', 'unread', 'read'];
 
@@ -22,6 +23,8 @@ const TINTS = ['#FFE48A', '#3FC1F0', '#FF8FB6', '#B8F08F', '#C9A3FF', '#FFAA7A']
 export function InboxSheet({ inbox, failed, onRead, onReadAll, onClose }: { inbox: Inbox | null; failed: boolean; onRead: (id: string) => void; onReadAll: () => void; onClose: () => void }) {
   const [now] = useState(() => Date.now());
   const [filter, setFilter] = useState<InboxFilter>('all');
+  /** A message about a player (a friend's birthday) opens that player's profile, where the gift is. */
+  const [playerId, setPlayerId] = useState<string | null>(null);
   const shown = inbox ? filterInbox(inbox.items, filter) : [];
   return (
     <PageShell
@@ -43,7 +46,7 @@ export function InboxSheet({ inbox, failed, onRead, onReadAll, onClose }: { inbo
         {failed ? <Text style={styles.note}>{fa.inbox.error}</Text> : null}
         {inbox && shown.length === 0 ? <EmptyNote skin={4} pose="sleeping" text={filter === 'unread' ? fa.inbox.emptyUnread : filter === 'read' ? fa.inbox.emptyRead : fa.inbox.empty} /> : null}
         {shown.map((m, i) => (
-          <Pressable key={m.id} onPress={() => onRead(m.id)} accessibilityRole="button">
+          <Pressable key={m.id} onPress={() => (onRead(m.id), m.playerId ? setPlayerId(m.playerId) : undefined)} accessibilityRole="button">
             {({ pressed }) => (
               <View style={[styles.card, !m.read ? styles.unread : null, pressed ? styles.pressed : null]}>
                 <View style={[styles.tile, { backgroundColor: TINTS[i % TINTS.length] }]}>
@@ -52,6 +55,7 @@ export function InboxSheet({ inbox, failed, onRead, onReadAll, onClose }: { inbo
                 <View style={styles.body}>
                   <Text style={styles.title}>{m.title}</Text>
                   <Text style={styles.text}>{m.body}</Text>
+                  {m.playerId ? <Text style={styles.link}>{fa.birthdayGift.openProfile}</Text> : null}
                 </View>
                 <View style={styles.meta}>
                   <Text style={styles.time}>{agoText(m.createdAt, now)}</Text>
@@ -62,6 +66,7 @@ export function InboxSheet({ inbox, failed, onRead, onReadAll, onClose }: { inbo
           </Pressable>
         ))}
       </ScrollView>
+      {playerId ? <PlayerSheet playerId={playerId} onClose={() => setPlayerId(null)} /> : null}
     </PageShell>
   );
 }
@@ -69,11 +74,11 @@ export function InboxSheet({ inbox, failed, onRead, onReadAll, onClose }: { inbo
 const styles = StyleSheet.create({
   list: { gap: 8, paddingBottom: 24 },
   filters: { flexDirection: ROW, gap: 6, marginBottom: 2 },
-  chip: { paddingHorizontal: 12, height: 32, borderRadius: 16, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  chip: { paddingHorizontal: 12, height: 32, borderRadius: 16, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
   chipOn: { backgroundColor: colors.candy.yellow },
   chipText: { fontFamily: fonts.bold, fontSize: 12, color: colors.ink },
   note: { fontFamily: fonts.bold, fontSize: 14, color: colors.ink, textAlign: 'center', marginTop: 12 },
-  card: { flexDirection: ROW, alignItems: 'center', gap: 10, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#fff', shadowColor: colors.ink, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4 },
+  card: { flexDirection: ROW, alignItems: 'center', gap: 10, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.card, shadowColor: colors.ink, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4 },
   unread: { backgroundColor: '#FFF6D8' },
   pressed: { transform: [{ translateY: 2 }] },
   tile: { width: 46, height: 46, borderRadius: 14, borderWidth: 2.5, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
@@ -81,6 +86,7 @@ const styles = StyleSheet.create({
   body: { flex: 1, minWidth: 0, gap: 1 },
   title: { fontFamily: fonts.display, fontSize: 15, lineHeight: 20, color: colors.ink, textAlign: TEXT_RIGHT },
   text: { fontFamily: fonts.bold, fontSize: 11, lineHeight: 17, color: '#5A3A7A', textAlign: TEXT_RIGHT },
+  link: { fontFamily: fonts.bold, fontSize: 10.5, color: '#7E46D6', textAlign: TEXT_RIGHT, marginTop: 2 },
   meta: { alignItems: 'center', gap: 6 },
   time: { fontFamily: fonts.bold, fontSize: 10, color: '#7E46D6' },
   dot: { width: 12, height: 12, borderRadius: 6, backgroundColor: colors.candy.pink, borderWidth: 2, borderColor: colors.ink },

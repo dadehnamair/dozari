@@ -24,6 +24,7 @@ button{font-family:inherit}
 @keyframes dz-glow{0%,100%{box-shadow:0 0 0 3px #FFC93C,0 0 18px 4px rgba(255,201,60,.55),0 6px 0 #2B1240}50%{box-shadow:0 0 0 3px #FFC93C,0 0 30px 10px rgba(255,201,60,.8),0 6px 0 #2B1240}}
 @keyframes dz-slideR{0%{transform:translateX(120%)}100%{transform:translateX(0)}}
 @keyframes dz-slideL{0%{transform:translateX(-120%)}100%{transform:translateX(0)}}
+@keyframes dz-bub{0%{transform:translateX(var(--bx,0)) scale(.3);opacity:0}100%{transform:none;opacity:1}}
 @keyframes dz-tick{0%{transform:scale(1.6);opacity:0}30%{transform:scale(1);opacity:1}100%{transform:scale(1);opacity:1}}
 </style>
 </helmet>
@@ -31,7 +32,7 @@ button{font-family:inherit}
 <div dir="rtl" style="min-height:100vh;background:linear-gradient(180deg,#2B1240 0%,#40166A 35%,#5E1F7E 70%,#8E2A6E 100%);padding:56px 56px 80px;display:flex;flex-direction:column;gap:36px;max-width:1900px;margin:0 auto">
 <header style="display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap">
   <div style="display:flex;flex-direction:column;gap:4px">
-    <div style="font:14px 'JetBrains Mono',monospace;color:#FFC93C;direction:ltr;text-align:right">Dozari · 13 Match Screens</div>
+    <div style="font:14px 'JetBrains Mono',monospace;color:#FFC93C;direction:ltr;text-align:right">Dozari · 13 Match Screens v2</div>
     <h1 style="margin:0;font:56px/1 Lalezar;color:#FFF6E8;text-shadow:0 4px 0 #2B1240">میدان رقابت: دوئل و تیمی</h1>
     <p style="margin:6px 0 0;font:500 15px/1.8 Vazirmatn;color:rgba(255,246,232,.8);max-width:760px;text-wrap:pretty">حالت رو انتخاب کن، حریف پیدا می‌شه و مسابقه شروع می‌شه. هر طرف زودتر ۴ دسته رو پیدا کنه برنده‌ست. ذره‌بین دو کلمه رو لو می‌ده و یخ، حریف رو ۱۰ ثانیه متوقف می‌کنه.</p>
   </div>
@@ -159,75 +160,89 @@ button{font-family:inherit}
 
 <!-- MATCH -->
 <div data-screen-label="Match" style="display:flex;flex-direction:column;gap:12px;align-items:center">
-<div style="width:340px;height:736px;border-radius:52px;border:11px solid #140A22;box-shadow:0 30px 60px rgba(0,0,0,.5),0 0 0 2px rgba(255,255,255,.12);position:relative;overflow:hidden;background:#4E2585">
-  <div style="position:absolute;inset:0"><dc-import name="Scene" scene="hojre" hint-size="100%,100%" style="width:100%;height:100%"></dc-import></div>
-  <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(43,18,64,.35),rgba(43,18,64,.1) 40%,rgba(43,18,64,.45))"></div>
+<div style="width:340px;height:736px;border-radius:52px;border:11px solid #140A22;box-shadow:0 30px 60px rgba(0,0,0,.5),0 0 0 2px rgba(255,255,255,.12);position:relative;overflow:hidden;background:#2B1240">
+  <div style="position:absolute;inset:0"><dc-import name="Scene" scene="hojre" mood="dusk" hint-size="100%,100%" style="width:100%;height:100%"></dc-import></div>
+  <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 55%,rgba(43,18,64,.15),rgba(26,8,44,.75) 85%),linear-gradient(180deg,rgba(26,8,44,.7),rgba(26,8,44,.2) 30%,rgba(26,8,44,.6))"></div>
 
   <div style="position:absolute;top:36px;left:12px;right:12px;display:flex;align-items:center;gap:8px">
-    <button onClick="{{ restart }}" style="width:42px;height:42px;border-radius:14px;border:3px solid #2B1240;background:linear-gradient(180deg,#C9A3FF,#A66BF0);box-shadow:inset 0 3px 0 rgba(255,255,255,.5),0 4px 0 #2B1240;display:grid;place-items:center;cursor:pointer"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M6 6h4v12H6zM14 6h4v12h-4z" fill="#fff" stroke="#2B1240" stroke-width="1.5"></path></svg></button>
-    <div style="flex:1;height:46px;border-radius:14px;background:{{ timerBg }};border:3px solid #2B1240;box-shadow:inset 0 3px 0 rgba(255,255,255,.6),0 4px 0 #2B1240;display:flex;align-items:center;justify-content:center;gap:6px">
-      <div style="width:28px;height:28px"><dc-import name="Item" icon="hourglass" hint-size="28px,28px" style="width:28px;height:28px"></dc-import></div>
-      <span style="font:26px/1 Lalezar;color:#2B1240;direction:ltr">{{ clock }}</span>
+    <button onClick="{{ restart }}" style="width:40px;height:40px;flex:none;border-radius:13px;border:3px solid #2B1240;background:linear-gradient(180deg,#C9A3FF,#A66BF0);box-shadow:inset 0 3px 0 rgba(255,255,255,.5),0 4px 0 #2B1240;display:grid;place-items:center;cursor:pointer"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6h4v12H6zM14 6h4v12h-4z" fill="#fff" stroke="#2B1240" stroke-width="1.5"></path></svg></button>
+    <div style="flex:1;display:flex;justify-content:center">
+      <div style="height:40px;padding:0 14px 0 6px;border-radius:99px;background:{{ timerBg }};border:3px solid #2B1240;box-shadow:inset 0 3px 0 rgba(255,255,255,.6),0 4px 0 #2B1240;display:flex;align-items:center;gap:6px;animation:{{ timerAnim }}">
+        <div style="width:28px;height:28px"><dc-import name="Item" icon="hourglass" hint-size="28px,28px" style="width:28px;height:28px"></dc-import></div>
+        <span style="font:24px/1 Lalezar;color:#2B1240;direction:ltr">{{ clock }}</span>
+      </div>
     </div>
-    <div style="height:42px;padding:0 12px;border-radius:14px;background:#2B1240;border:2px solid #FFC93C;display:flex;align-items:center;font:17px Lalezar;color:#FFC93C">{{ modeLabel }}</div>
+    <div style="height:40px;flex:none;padding:0 12px;border-radius:13px;background:rgba(26,8,44,.8);border:2px solid #FFC93C;display:flex;align-items:center;font:16px Lalezar;color:#FFC93C">{{ modeLabel }}</div>
   </div>
 
-  <div style="position:absolute;top:92px;left:10px;right:10px;padding:8px 10px 10px;border-radius:20px;background:rgba(26,8,44,.78);border:3px solid #2B1240;box-shadow:0 4px 0 #2B1240;display:flex;flex-direction:column;gap:8px">
-    <div style="display:flex;align-items:center;gap:6px">
-      <div style="display:flex;align-items:center">
-        <sc-for list="{{ myTeam }}" as="p" hint-placeholder-count="1">
-          <div style="width:40px;height:40px;margin-left:-8px;border-radius:50%;background:#3FC1F0;border:3px solid #FFF6E8;box-shadow:0 0 0 2px #2B1240;overflow:hidden;position:relative"><div style="position:absolute;inset:-2px"><dc-import name="Character" who="{{ p.who }}" pose="{{ p.hudPose }}" crop="face" hint-size="44px,44px" style="width:100%;height:100%"></dc-import></div></div>
-        </sc-for>
+  <div style="position:absolute;top:88px;left:10px;right:10px;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:6px">
+    
+    <div style="position:relative;min-width:0;display:flex;align-items:center;gap:7px;padding:5px;border-radius:18px;direction:rtl;background:linear-gradient(180deg,#3A86C8,#1F5A96);border:3px solid #2B1240;box-shadow:inset 0 2px 0 rgba(255,255,255,.3),0 4px 0 #2B1240">
+      <div style="position:relative;width:46px;height:46px;flex:none;border-radius:14px;background:radial-gradient(circle at 50% 30%,#BFEAFB,#3FC1F0);border:2.5px solid #FFF6E8;box-shadow:0 0 0 2px #2B1240;overflow:hidden;filter:none">
+        <div style="position:absolute;inset:-3px;"><dc-import name="Character" who="{{ myLead.who }}" pose="{{ myFace }}" crop="face" hint-size="52px,52px" style="width:100%;height:100%"></dc-import></div>
       </div>
-      <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
-        <span style="font:15px/1 Lalezar;color:#8FDCFA">{{ myName }}</span>
-        <div style="display:flex;gap:3px"><sc-for list="{{ myPips }}" as="x" hint-placeholder-count="4"><div style="width:14px;height:14px;border-radius:4px;border:2px solid #2B1240;background:{{ x.bg }}"></div></sc-for></div>
+      <sc-if value="{{ two }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;top:30px;right:30px;width:24px;height:24px;border-radius:50%;background:#8FDCFA;border:2px solid #FFF6E8;box-shadow:0 0 0 1.5px #2B1240;overflow:hidden"><div style="position:absolute;inset:-2px;"><dc-import name="Character" who="{{ myMate.who }}" pose="idle" crop="face" hint-size="28px,28px" style="width:100%;height:100%"></dc-import></div></div></sc-if>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;align-items:flex-start">
+        <div style="display:flex;align-items:center;gap:4px;max-width:100%">
+          <span style="font:15px/1 Lalezar;color:#fff;text-shadow:0 2px 0 #2B1240;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ myName }}</span>
+          <span style="flex:none;height:16px;padding:0 4px;border-radius:5px;background:#2B1240;font:11px/16px Lalezar;color:#FFC93C">{{ myLead.lv }}</span>
+        </div>
+        <div style="display:flex;gap:3px"><sc-for list="{{ myPips }}" as="x" hint-placeholder-count="4"><div style="width:11px;height:11px;border-radius:3px;border:2px solid #2B1240;background:{{ x.bg }};transition:background .3s"></div></sc-for></div>
       </div>
-      <div style="font:30px/1 Lalezar;color:#fff;text-shadow:0 2px 0 #2B1240;display:flex;align-items:center;gap:6px"><span style="color:#8FDCFA">{{ myScore }}</span><span style="font-size:16px;opacity:.6">:</span><span style="color:#FF8FB6">{{ oppScore }}</span></div>
-      <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0;align-items:flex-end">
-        <span style="font:15px/1 Lalezar;color:#FF8FB6">{{ oppName }}</span>
-        <div style="display:flex;gap:3px;direction:ltr"><sc-for list="{{ oppPips }}" as="x" hint-placeholder-count="4"><div style="width:14px;height:14px;border-radius:4px;border:2px solid #2B1240;background:{{ x.bg }}"></div></sc-for></div>
-      </div>
-      <div style="display:flex;align-items:center;position:relative;direction:ltr">
-        <sc-for list="{{ oppTeam }}" as="p" hint-placeholder-count="1">
-          <div style="width:40px;height:40px;margin-right:-8px;border-radius:50%;background:#FF4D8D;border:3px solid #FFF6E8;box-shadow:0 0 0 2px #2B1240;overflow:hidden;position:relative;filter:{{ iceFilter }}"><div style="position:absolute;inset:-2px;transform:scaleX(-1)"><dc-import name="Character" who="{{ p.who }}" pose="{{ p.hudPose }}" crop="face" hint-size="44px,44px" style="width:100%;height:100%"></dc-import></div></div>
-        </sc-for>
-        <sc-if value="{{ frozen }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;top:-10px;left:-8px;width:28px;height:28px;animation:dz-pop .3s ease-out"><dc-import name="Item" icon="freeze" hint-size="28px,28px" style="width:28px;height:28px"></dc-import></div></sc-if>
-      </div>
+      <button onClick="{{ toggleChat }}" aria-label="کل‌کل" style="position:absolute;bottom:-11px;right:-7px;width:30px;height:30px;padding:0;border-radius:50%;border:2.5px solid #2B1240;background:{{ chatBtnBg }};box-shadow:0 3px 0 #2B1240;display:grid;place-items:center;cursor:pointer;opacity:{{ chatBtnOp }};z-index:3;transition:background .2s" style-active="transform:translateY(2px);box-shadow:0 1px 0 #2B1240"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M4 5h16v11H10l-5 4v-4H4z" fill="#FFF6E8" stroke="#2B1240" stroke-width="2.2" stroke-linejoin="round"></path><circle cx="9" cy="10.5" r="1.3" fill="#2B1240"></circle><circle cx="12.5" cy="10.5" r="1.3" fill="#2B1240"></circle><circle cx="16" cy="10.5" r="1.3" fill="#2B1240"></circle></svg></button>
     </div>
-    <div style="position:relative;height:14px;border-radius:99px;border:2.5px solid #2B1240;overflow:hidden;background:#FF4D8D">
-      <div style="position:absolute;top:0;bottom:0;right:0;width:{{ tug }};background:linear-gradient(180deg,#8FDCFA,#3FC1F0);transition:width .5s"></div>
-      <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.45),transparent 55%)"></div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:0">
+      <div style="font:28px/1 Lalezar;color:#fff;text-shadow:0 3px 0 #2B1240;display:flex;align-items:center;gap:4px"><span style="color:#8FDCFA">{{ myScore }}</span><span style="font-size:16px;color:rgba(255,246,232,.6)">:</span><span style="color:#FF8FB6">{{ oppScore }}</span></div>
+      <span style="font:700 10px Vazirmatn;color:rgba(255,246,232,.75)">از ۴ دسته</span>
+    </div>
+    
+    <div style="position:relative;min-width:0;display:flex;align-items:center;gap:7px;padding:5px;border-radius:18px;direction:ltr;background:linear-gradient(180deg,#D04A82,#94245A);border:3px solid #2B1240;box-shadow:inset 0 2px 0 rgba(255,255,255,.3),0 4px 0 #2B1240">
+      <div style="position:relative;width:46px;height:46px;flex:none;border-radius:14px;background:radial-gradient(circle at 50% 30%,#FFC2D8,#FF4D8D);border:2.5px solid #FFF6E8;box-shadow:0 0 0 2px #2B1240;overflow:hidden;filter:{{ iceFilter }}">
+        <div style="position:absolute;inset:-3px;transform:scaleX(-1)"><dc-import name="Character" who="{{ oppLead.who }}" pose="{{ oppFace }}" crop="face" hint-size="52px,52px" style="width:100%;height:100%"></dc-import></div>
+      </div>
+      <sc-if value="{{ two }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;top:30px;left:30px;width:24px;height:24px;border-radius:50%;background:#FF8FB6;border:2px solid #FFF6E8;box-shadow:0 0 0 1.5px #2B1240;overflow:hidden"><div style="position:absolute;inset:-2px;transform:scaleX(-1)"><dc-import name="Character" who="{{ oppMate.who }}" pose="idle" crop="face" hint-size="28px,28px" style="width:100%;height:100%"></dc-import></div></div></sc-if>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;align-items:flex-start">
+        <div style="display:flex;align-items:center;gap:4px;max-width:100%">
+          <span style="font:15px/1 Lalezar;color:#fff;text-shadow:0 2px 0 #2B1240;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ oppName }}</span>
+          <span style="flex:none;height:16px;padding:0 4px;border-radius:5px;background:#2B1240;font:11px/16px Lalezar;color:#FFC93C">{{ oppLead.lv }}</span>
+        </div>
+        <div style="display:flex;gap:3px"><sc-for list="{{ oppPips }}" as="x" hint-placeholder-count="4"><div style="width:11px;height:11px;border-radius:3px;border:2px solid #2B1240;background:{{ x.bg }};transition:background .3s"></div></sc-for></div>
+      </div>
+      <sc-if value="{{ frozen }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;top:-10px;left:-8px;width:26px;height:26px;animation:dz-pop .3s ease-out"><dc-import name="Item" icon="freeze" hint-size="26px,26px" style="width:26px;height:26px"></dc-import></div></sc-if>
     </div>
   </div>
+  <div style="position:absolute;top:154px;left:16px;right:16px;height:9px;border-radius:99px;border:2px solid #2B1240;overflow:hidden;background:#FF4D8D">
+    <div style="position:absolute;top:0;bottom:0;right:0;width:{{ tug }};background:linear-gradient(180deg,#8FDCFA,#3FC1F0);transition:width .5s"></div>
+    <div style="position:absolute;top:0;bottom:0;right:{{ tug }};width:3px;margin-right:-1.5px;background:#FFC93C;transition:right .5s"></div>
+  </div>
 
-  <div style="position:absolute;top:208px;left:10px;right:10px;display:flex;flex-direction:column;gap:6px;animation:{{ shakeAnim }}">
+  <div style="position:absolute;top:176px;left:8px;right:8px;padding:8px;border-radius:22px;background:linear-gradient(180deg,rgba(43,18,64,.9),rgba(26,8,44,.92));border:3px solid #2B1240;box-shadow:inset 0 0 0 2px rgba(255,201,60,.28),0 6px 0 rgba(20,8,34,.8);display:flex;flex-direction:column;gap:6px;animation:{{ shakeAnim }}">
     <sc-for list="{{ rows }}" as="r" hint-placeholder-count="0">
-      <div style="height:62px;border-radius:14px;background:{{ r.c }};border:3px solid #2B1240;box-shadow:inset 0 3px 0 rgba(255,255,255,.55),0 4px 0 {{ r.d }};display:flex;align-items:center;gap:8px;padding:0 8px;animation:dz-pop .4s ease-out">
-        <div style="width:42px;height:42px;flex:none"><dc-import name="Item" icon="{{ r.ic }}" hint-size="42px,42px" style="width:42px;height:42px"></dc-import></div>
+      <div style="height:64px;border-radius:14px;background:{{ r.c }};border:3px solid #2B1240;box-shadow:inset 0 3px 0 rgba(255,255,255,.55),0 4px 0 {{ r.d }};display:flex;align-items:center;gap:8px;padding:0 8px;animation:dz-pop .4s ease-out">
+        <div style="width:40px;height:40px;flex:none"><dc-import name="Item" icon="{{ r.ic }}" hint-size="40px,40px" style="width:40px;height:40px"></dc-import></div>
         <div style="flex:1;min-width:0;display:flex;flex-direction:column">
-          <div style="font:19px/1.15 Lalezar;color:#2B1240">{{ r.name }}</div>
-          <div style="font:700 12px Vazirmatn;color:#2B1240;opacity:.85">{{ r.words }}</div>
+          <div style="font:18px/1.15 Lalezar;color:#2B1240">{{ r.name }}</div>
+          <div style="font:700 11.5px Vazirmatn;color:#2B1240;opacity:.85">{{ r.words }}</div>
         </div>
         <div style="width:30px;height:30px;flex:none;border-radius:50%;background:#FFF6E8;border:2.5px solid #2B1240;overflow:hidden;position:relative"><div style="position:absolute;inset:-2px"><dc-import name="Character" who="{{ r.by }}" pose="cheer" crop="face" hint-size="34px,34px" style="width:100%;height:100%"></dc-import></div></div>
       </div>
     </sc-for>
     <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px">
       <sc-for list="{{ tiles }}" as="t" hint-placeholder-count="16">
-        <button onClick="{{ t.onClick }}" style="height:70px;border-radius:14px;border:3px solid #2B1240;background:{{ t.bg }};color:{{ t.fg }};box-shadow:inset 0 3px 0 rgba(255,255,255,.5),0 5px 0 {{ t.sh }};transform:{{ t.tr }};cursor:pointer;transition:transform .12s,background .12s;padding:4px 2px 2px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px">
-          <div style="width:34px;height:34px"><dc-import name="Item" icon="{{ t.ic }}" hint-size="34px,34px" style="width:34px;height:34px"></dc-import></div>
-          <span style="font:800 12.5px/1.2 Vazirmatn">{{ t.w }}</span>
+        <button onClick="{{ t.onClick }}" style="height:68px;border-radius:14px;border:2.5px solid #2B1240;background:{{ t.bg }};color:{{ t.fg }};box-shadow:inset 0 3px 0 rgba(255,255,255,.55),0 5px 0 {{ t.sh }};transform:{{ t.tr }};cursor:pointer;transition:transform .12s,background .12s;padding:4px 2px 2px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px">
+          <div style="width:32px;height:32px"><dc-import name="Item" icon="{{ t.ic }}" hint-size="32px,32px" style="width:32px;height:32px"></dc-import></div>
+          <span style="font:800 12px/1.2 Vazirmatn">{{ t.w }}</span>
         </button>
       </sc-for>
     </div>
   </div>
 
-  <div style="position:absolute;bottom:106px;left:14px;right:14px;display:flex;align-items:center;justify-content:space-between">
+  <div style="position:absolute;bottom:104px;left:14px;right:14px;display:flex;align-items:center;justify-content:space-between">
     <button onClick="{{ useMag }}" style="position:relative;width:52px;height:52px;border-radius:50%;border:3px solid #2B1240;background:radial-gradient(circle at 40% 30%,#FFF6E8,#F6E2C2);box-shadow:0 4px 0 #2B1240;display:grid;place-items:center;cursor:pointer;opacity:{{ magOp }}" style-active="transform:translateY(3px);box-shadow:0 1px 0 #2B1240">
       <div style="width:34px;height:34px"><dc-import name="Item" icon="magnifier" hint-size="34px,34px" style="width:34px;height:34px"></dc-import></div>
       <span style="position:absolute;top:-6px;left:-6px;min-width:22px;height:22px;padding:0 5px;border-radius:99px;background:#FF4D8D;border:2.5px solid #2B1240;font:13px/17px Lalezar;color:#fff">{{ magN }}</span>
     </button>
-    <div style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:99px;background:rgba(26,8,44,.65)">
+    <div style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:99px;background:rgba(26,8,44,.75);border:2px solid rgba(255,246,232,.15)">
       <span style="font:800 12px Vazirmatn;color:#FFF6E8">فرصت</span>
       <sc-for list="{{ lives }}" as="l" hint-placeholder-count="4"><div style="width:20px;height:20px;opacity:{{ l.op }};filter:{{ l.f }};transition:opacity .3s"><dc-import name="Item" icon="heart" hint-size="20px,20px" style="width:20px;height:20px"></dc-import></div></sc-for>
     </div>
@@ -244,11 +259,61 @@ button{font-family:inherit}
   </div>
 
   <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
-    <div style="position:absolute;top:196px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:6px;padding:7px 16px;border-radius:99px;background:#2B1240;border:2px solid #FFC93C;font:17px Lalezar;color:#FFC93C;white-space:nowrap;box-shadow:0 8px 20px rgba(0,0,0,.4);z-index:5;animation:dz-pop .3s ease-out">{{ toast }}</div>
+    <div style="position:absolute;bottom:170px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:6px;padding:7px 16px;border-radius:99px;background:#2B1240;border:2px solid #FFC93C;font:17px Lalezar;color:#FFC93C;white-space:nowrap;box-shadow:0 8px 20px rgba(0,0,0,.4);z-index:5;animation:dz-pop .3s ease-out">{{ toast }}</div>
   </sc-if>
 
+  <sc-if value="{{ myB.on }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;top:158px;right:14px;max-width:190px;z-index:8;animation:dz-bub .45s cubic-bezier(.2,1.4,.4,1) both;transform-origin:85% 0">
+      <div style="position:relative;animation:dz-float 2.4s ease-in-out infinite">
+        <div style="position:absolute;top:-9px;right:22px;width:16px;height:16px;background:#FFF6E8;border-top:3px solid #2B1240;border-right:3px solid #2B1240;transform:rotate(-45deg);border-radius:3px 0 0 0"></div>
+        <div style="position:relative;display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:16px;background:#FFF6E8;border:3px solid #2B1240;box-shadow:0 6px 0 rgba(26,8,44,.55),0 10px 22px rgba(0,0,0,.35)">
+          <sc-if value="{{ myB.ic }}" hint-placeholder-val="{{ false }}"><div style="width:40px;height:40px;animation:dz-pulse 1s ease-in-out 2"><dc-import name="Item" icon="{{ myB.ic }}" hint-size="40px,40px" style="width:40px;height:40px"></dc-import></div></sc-if>
+          <span style="font:800 13.5px/1.5 Vazirmatn;color:#2B1240;text-wrap:pretty">{{ myB.t }}</span>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ oppB.on }}" hint-placeholder-val="{{ false }}">
+    <div style="position:absolute;top:158px;left:14px;max-width:190px;z-index:8;animation:dz-bub .45s cubic-bezier(.2,1.4,.4,1) both;transform-origin:15% 0">
+      <div style="position:relative;animation:dz-float 2.4s ease-in-out infinite">
+        <div style="position:absolute;top:-9px;left:22px;width:16px;height:16px;background:#2B1240;border-top:3px solid #FF8FB6;border-left:3px solid #FF8FB6;transform:rotate(45deg);border-radius:3px 0 0 0"></div>
+        <div style="position:relative;display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:16px;background:#2B1240;border:3px solid #FF8FB6;box-shadow:0 6px 0 rgba(26,8,44,.55),0 10px 22px rgba(0,0,0,.35)">
+          <sc-if value="{{ oppB.ic }}" hint-placeholder-val="{{ false }}"><div style="width:40px;height:40px;animation:dz-pulse 1s ease-in-out 2"><dc-import name="Item" icon="{{ oppB.ic }}" hint-size="40px,40px" style="width:40px;height:40px"></dc-import></div></sc-if>
+          <span style="font:800 13.5px/1.5 Vazirmatn;color:#FFF6E8;text-wrap:pretty">{{ oppB.t }}</span>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <div onClick="{{ closeChat }}" style="position:absolute;inset:0;z-index:20;background:rgba(20,8,34,.45);opacity:{{ scrimOp }};pointer-events:{{ scrimPE }};transition:opacity .3s"></div>
+  <div style="position:absolute;top:150px;bottom:100px;right:0;width:224px;z-index:21;transform:{{ drawerTr }};transition:transform .42s cubic-bezier(.2,1.15,.35,1);display:flex;flex-direction:column;border-radius:24px 0 0 24px;background:#FFF6E8;border:3px solid #2B1240;border-right:none;box-shadow:-8px 10px 30px rgba(0,0,0,.45),inset 0 3px 0 #fff;overflow:hidden">
+    <div style="display:flex;align-items:center;gap:6px;padding:10px 10px 8px 10px;background:linear-gradient(180deg,#FFE48A,#FFC93C);border-bottom:3px solid #2B1240">
+      <div style="flex:1;display:flex;gap:4px;padding:3px;border-radius:12px;background:rgba(43,18,64,.15)">
+        <button onClick="{{ tabT }}" style="flex:1;height:30px;border-radius:9px;border:{{ tabTs.bd }};background:{{ tabTs.bg }};font:15px Lalezar;color:#2B1240;cursor:pointer">کل‌کل</button>
+        <button onClick="{{ tabS }}" style="flex:1;height:30px;border-radius:9px;border:{{ tabSs.bd }};background:{{ tabSs.bg }};font:15px Lalezar;color:#2B1240;cursor:pointer">شکلک</button>
+      </div>
+      <button onClick="{{ closeChat }}" aria-label="بستن" style="width:30px;height:30px;flex:none;border-radius:50%;border:2.5px solid #2B1240;background:#FFF6E8;display:grid;place-items:center;cursor:pointer;padding:0"><svg viewBox="0 0 24 24" width="13" height="13"><path d="M6 6l12 12M18 6L6 18" stroke="#2B1240" stroke-width="3.4" stroke-linecap="round"></path></svg></button>
+    </div>
+    <sc-if value="{{ isTabT }}" hint-placeholder-val="{{ true }}">
+      <div style="flex:1;min-height:0;overflow:auto;padding:10px;display:flex;flex-direction:column;gap:7px">
+        <sc-for list="{{ taunts }}" as="m" hint-placeholder-count="8">
+          <button onClick="{{ m.send }}" style="text-align:right;padding:9px 12px;border-radius:14px 14px 4px 14px;border:2.5px solid #2B1240;background:{{ m.bg }};box-shadow:0 3px 0 #2B1240;font:800 13px/1.45 Vazirmatn;color:#2B1240;cursor:pointer;transform:{{ m.tr }};opacity:{{ m.op }};transition:transform .4s cubic-bezier(.2,1.3,.4,1) {{ m.dl }},opacity .25s {{ m.dl }}" style-active="transform:translateY(2px);box-shadow:0 1px 0 #2B1240">{{ m.t }}</button>
+        </sc-for>
+      </div>
+    </sc-if>
+    <sc-if value="{{ isTabS }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:1;min-height:0;overflow:auto;padding:10px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;align-content:start">
+        <sc-for list="{{ stickers }}" as="m" hint-placeholder-count="9">
+          <button onClick="{{ m.send }}" aria-label="{{ m.t }}" style="aspect-ratio:1;border-radius:16px;border:2.5px solid #2B1240;background:{{ m.bg }};box-shadow:0 3px 0 #2B1240;display:grid;place-items:center;cursor:pointer;padding:0;transform:{{ m.tr }};opacity:{{ m.op }};transition:transform .4s cubic-bezier(.2,1.3,.4,1) {{ m.dl }},opacity .25s {{ m.dl }}" style-active="transform:translateY(2px);box-shadow:0 1px 0 #2B1240"><div style="width:40px;height:40px"><dc-import name="Item" icon="{{ m.ic }}" hint-size="40px,40px" style="width:40px;height:40px"></dc-import></div></button>
+        </sc-for>
+      </div>
+    </sc-if>
+    <div style="padding:7px 10px;border-top:2px dashed rgba(43,18,64,.2);font:700 10.5px Vazirmatn;color:rgba(43,18,64,.6);text-align:center">زیر اسمت برای حریف نشون داده می‌شه</div>
+  </div>
+
   <sc-if value="{{ over }}" hint-placeholder-val="{{ false }}">
-    <div style="position:absolute;inset:0;background:rgba(26,8,44,.8);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:10;overflow:hidden">
+    <div style="position:absolute;inset:0;background:rgba(26,8,44,.8);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;z-index:30;overflow:hidden">
       <div style="position:absolute;left:50%;top:40%;width:1700px;height:1700px;margin:-850px 0 0 -850px;border-radius:50%;background:repeating-conic-gradient({{ res.ray }} 0 9deg,transparent 9deg 18deg);animation:dz-spin 18s linear infinite"></div>
       <div style="position:relative;display:flex;align-items:flex-end;animation:dz-pop .5s ease-out">
         <sc-for list="{{ myTeam }}" as="p" hint-placeholder-count="1"><div style="width:{{ ovW }};height:{{ ovH }}"><dc-import name="Character" who="{{ p.who }}" pose="{{ res.pose }}" anim="true" hint-size="150px,174px" style="width:100%;height:100%"></dc-import></div></sc-for>
@@ -259,7 +324,7 @@ button{font-family:inherit}
     </div>
   </sc-if>
 </div>
-<div style="font:12px 'JetBrains Mono',monospace;color:rgba(255,246,232,.7)">screen-match · live vs {{ modeTag }}</div>
+<div style="font:12px 'JetBrains Mono',monospace;color:rgba(255,246,232,.7)">screen-match · tap the chat badge on your card</div>
 </div>
 
 <!-- RESULTS -->
@@ -310,7 +375,7 @@ button{font-family:inherit}
 </section>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script>
+<script type="text/x-dc" data-dc-script="" data-props="{&quot;oppChat&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;bubbleSecs&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:3,&quot;min&quot;:1.5,&quot;max&quot;:6,&quot;step&quot;:0.5,&quot;unit&quot;:&quot;s&quot;,&quot;tsType&quot;:&quot;number&quot;},&quot;demoChatOpen&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
 const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
 const shuf=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
 const GROUPS=[
@@ -320,17 +385,25 @@ const GROUPS=[
  {name:'صندوق گنج',ic:'chest',c:'#FF8FB6',d:'#D63A72',words:[['سکه','coin'],['الماس','gem'],['شمش','goldBar'],['تاج','crown']]}];
 const ALL=GROUPS.flatMap((g,gi)=>g.words.map(([w,ic])=>({w,ic,gi})));
 const P={me:{who:'dozari',n:'تو',lv:'۱۲',cup:'۱٬۲۴۰'},mate:{who:'goli',n:'نگار',lv:'۱۴',cup:'۱٬۳۱۰'},o1:{who:'pahlevan',n:'آرش',lv:'۱۳',cup:'۱٬۲۷۵'},o2:{who:'baqal',n:'کیان',lv:'۱۱',cup:'۱٬۱۹۰'}};
+const TAUNTS=['دوزاریت افتاد یا نه؟','یالا، منتظرتم!','این که آسون بود!','عجب حرکتی زدی!','خوش‌شانسی آوردی','حالا ببین چی کار می‌کنم','بازی تازه شروع شده!','دمت گرم، خوب بازی کردی'];
+const STK=[['fireworks','ترکوندی!'],['teaGlass','یه چای بزن'],['freeze','یخ کردی؟'],['crown','سلطان منم'],['heart','ایول'],['star','عالی'],['trophy','جام مال منه'],['gift','تقدیم به تو'],['magnifier','دارم می‌گردم']];
+const OPP_T=['دوزاریت دیر می‌افته!','بیا جلو اگه می‌تونی','این یکی مال من بود','هنوز گرم نکردم','عجله نکن، وقت داری'];
+const SBG=['#FFE48A','#BFEAFB','#FFD0E0','#D8F5C2','#E6D6FF','#FFD8C2'];
 const fresh=()=>({tiles:shuf(ALL),sel:[],solved:[],mistakes:0,opp:0,time:120,frz:0,mag:2,ice:1,over:null,toast:'',shake:false});
 class Component extends DCLogic {
-  state={mode:'1v1',cd:3,coins:2213,last:null,...fresh()};
-  componentDidMount(){this._iv=setInterval(()=>this.tick(),1000);}
-  componentWillUnmount(){clearInterval(this._iv);clearTimeout(this._t);}
+  state={chat:false,tab:'t',myB:null,oppB:null,cool:0,mode:'1v1',cd:3,coins:2213,last:null,...fresh()};
+  componentDidMount(){this._iv=setInterval(()=>this.tick(),1000);if(this.props.demoChatOpen)this.setState({chat:true});this._d=setTimeout(()=>this.say('opp',{t:'دوزاریت افتاد یا نه؟'}),2200);}
+  say(side,m){const k=side==='me'?'myB':'oppB';clearTimeout(this['_b'+side]);this.setState({[k]:null});setTimeout(()=>this.setState({[k]:m}),40);const secs=this.props.bubbleSecs??3;this['_b'+side]=setTimeout(()=>this.setState({[k]:null}),secs*1000+40);}
+  send(m){if(this.state.cool)return;this.setState({chat:false,cool:3});this.say('me',m);if((this.props.oppChat??true)&&Math.random()<.5)setTimeout(()=>this.say('opp',{t:OPP_T[Math.floor(Math.random()*OPP_T.length)]}),1800);}
+  componentWillUnmount(){clearInterval(this._iv);clearTimeout(this._t);clearTimeout(this._d);clearTimeout(this._bme);clearTimeout(this._bopp);}
   flash(t){this.setState({toast:t});clearTimeout(this._t);this._t=setTimeout(()=>this.setState({toast:''}),1400);}
   finish(r){this.setState({over:r,last:r});}
   tick(){const s=this.state;const cd=s.cd>1?s.cd-1:3;
+    if(s.cool)this.setState({cool:s.cool-1});
     if(s.over){this.setState({cd});return;}
     const two=s.mode==='2v2';let opp=s.opp,solved=s.solved,sel=s.sel;
-    if(!s.frz&&opp<4&&Math.random()<(two?1/11:1/15)){opp++;this.flash(two?'تیم حریف یه دسته زد!':'حریف یه دسته زد!');}
+    if(!s.frz&&opp<4&&Math.random()<(two?1/11:1/15)){opp++;this.flash(two?'تیم حریف یه دسته زد!':'حریف یه دسته زد!');if((this.props.oppChat??true)&&Math.random()<.6)setTimeout(()=>this.say('opp',{t:'این یکی مال من بود'}),700);}
+    else if((this.props.oppChat??true)&&!s.oppB&&Math.random()<1/14)this.say('opp',Math.random()<.35?{ic:'fireworks',t:''}:{t:OPP_T[Math.floor(Math.random()*OPP_T.length)]});
     if(two&&solved.length<4&&Math.random()<1/13){const left=GROUPS.map((g,i)=>i).filter(i=>!solved.some(x=>x.gi===i));const gi=left[Math.floor(Math.random()*left.length)];
       solved=[...solved,{gi,by:'goli'}];sel=sel.filter(w=>ALL.find(a=>a.w===w).gi!==gi);this.flash('نگار یه دسته پیدا کرد!');}
     const time=s.time-1;this.setState({cd,opp,solved,sel,time,frz:Math.max(0,s.frz-1)});
@@ -345,14 +418,14 @@ class Component extends DCLogic {
       if(m>=4)setTimeout(()=>this.finish('lose'),700);}}
   useMag(){const s=this.state;if(!s.mag||s.over)return;const left=GROUPS.map((g,i)=>i).filter(i=>!s.solved.some(x=>x.gi===i));if(!left.length)return;
     const g=GROUPS[left[0]];this.setState({mag:s.mag-1,sel:g.words.slice(0,2).map(x=>x[0])});this.flash('دوتاش رو پیدا کردم!');}
-  useIce(){const s=this.state;if(!s.ice||s.over)return;this.setState({ice:s.ice-1,frz:10});this.flash('حریف یخ زد! ۱۰ ثانیه');}
-  restart(){this.setState({...fresh(),cd:3});}
+  useIce(){const s=this.state;if(!s.ice||s.over)return;this.setState({ice:s.ice-1,frz:10});this.flash('حریف یخ زد! ۱۰ ثانیه');if(this.props.oppChat??true)setTimeout(()=>this.say('opp',{ic:'freeze',t:'یخم کردی؟!'}),900);}
+  restart(){this.setState({...fresh(),cd:3,chat:false,myB:null,oppB:null});}
   setMode(m){this.setState({mode:m,...fresh(),cd:3});}
   renderVals(){
     const s=this.state,two=s.mode==='2v2';
     const solvedG=s.solved.map(x=>x.gi);
     const tiles=s.tiles.filter(t=>!solvedG.includes(t.gi)).map(t=>{const on=s.sel.includes(t.w);return {w:t.w,ic:t.ic,onClick:()=>this.toggle(t.w),
-      bg:on?'#6B35B8':'#FFF6E8',fg:on?'#fff':'#2B1240',sh:on?'#3E1A78':'#D9B98C',tr:on?'translateY(2px) scale(.94)':'none'};});
+      bg:on?'linear-gradient(180deg,#9A66E8,#6B35B8)':'linear-gradient(180deg,#FFFBF2,#F3E1C2)',fg:on?'#fff':'#2B1240',sh:on?'#3E1A78':'#B8936A',tr:on?'translateY(2px) scale(.94)':'none'};});
     const mine=s.solved.length,opp=s.opp;
     const vs=(p,pose)=>({...p,vsPose:pose,hudPose:'idle'});
     const myTeam=two?[vs(P.me,'coin'),vs(P.mate,'cheer')]:[vs(P.me,'coin')];
@@ -374,7 +447,20 @@ class Component extends DCLogic {
     const mm=Math.floor(Math.max(0,s.time)/60),ss=Math.max(0,s.time)%60;
     const seg=on=>({bg:on?'linear-gradient(180deg,#FFE48A,#FFC93C)':'transparent',fg:on?'#2B1240':'#FFF6E8',bd:on?'3px solid #2B1240':'3px solid transparent'});
     const card=on=>({anim:on?'dz-glow 1.6s ease-in-out infinite':'none',tr:on?'scale(1)':'scale(.96)'});
+    const tab=o=>({bg:o?'#FFF6E8':'transparent',bd:o?'2px solid #2B1240':'2px solid transparent'});
+    const enter=(i)=>({tr:s.chat?'none':'translateX(-70px)',op:s.chat?1:0,dl:(s.chat?.08+i*.04:0).toFixed(2)+'s'});
+    const bub=b=>({on:!!b,t:b?b.t:'',ic:b&&b.ic?b.ic:''});
     return {
+      two,chat:s.chat,toggleChat:()=>this.setState(x=>({chat:!x.chat})),closeChat:()=>this.setState({chat:false}),
+      drawerTr:s.chat?'translateX(0)':'translateX(105%)',scrimOp:s.chat?1:0,scrimPE:s.chat?'auto':'none',
+      chatBtnBg:s.chat?'linear-gradient(180deg,#FFE48A,#FFC93C)':'linear-gradient(180deg,#FFF6E8,#F3E3C6)',chatBtnOp:s.cool?.55:1,
+      tabT:()=>this.setState({tab:'t'}),tabS:()=>this.setState({tab:'s'}),tabTs:tab(s.tab==='t'),tabSs:tab(s.tab==='s'),isTabT:s.tab==='t',isTabS:s.tab==='s',
+      taunts:TAUNTS.map((t,i)=>({t,bg:'#fff',...enter(i),send:()=>this.send({t})})),
+      stickers:STK.map(([ic,t],i)=>({ic,t,bg:SBG[i%SBG.length],...enter(i),send:()=>this.send({ic,t})})),
+      myB:bub(s.myB),oppB:bub(s.oppB),
+      myLead:myTeam[0],oppLead:oppTeam[0],myMate:myTeam[1]||myTeam[0],oppMate:oppTeam[1]||oppTeam[0],
+      myFace:s.myB?'cheer':'idle',oppFace:s.frz>0?'shocked':s.oppB?'pointing':'idle',
+      timerAnim:s.time<=20&&!s.over?'dz-pulse 1s ease-in-out infinite':'none',
       mode:s.mode,is1:!two,is2:two,seg1:seg(!two),seg2:seg(two),card1:card(!two),card2:card(two),
       pick1:()=>this.setMode('1v1'),pick2:()=>this.setMode('2v2'),restart:()=>this.restart(),
       modeLabel:two?'۲ در ۲':'۱ در ۱',modeTag:two?'2v2':'1v1',coins:fa(s.coins).replace(/(\S)(\S{3})$/,'$1٬$2'),
@@ -398,5 +484,6 @@ class Component extends DCLogic {
   }
 }
 </script>
-</body>
-</html>
+
+
+</body></html>

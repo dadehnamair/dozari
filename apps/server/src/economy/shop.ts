@@ -1,6 +1,8 @@
-import { DAILY_SHOP_SLOTS, STREAK_SHIELD_MAX_HELD, dailyDateKey, pickDailyShop, tehranDayStart } from '@dozari/shared';
+import { SHOP_GIFT_EFFECTS, SHOP_GIFT_MAX_COINS, DAILY_SHOP_SLOTS, STREAK_SHIELD_MAX_HELD, dailyDateKey, pickDailyShop, tehranDayStart } from '@dozari/shared';
 import type { Shop, ShopItem } from '@dozari/shared';
-import type { PurchaseOutcome, ShopItemRow, ShopStore } from './shop-store.js';
+import type { GiftOutcome, PurchaseOutcome, ShopItemRow, ShopStore } from './shop-store.js';
+
+export type GiftResult = GiftOutcome | { ok: false; error: 'level' | 'unknown_item' | 'not_giftable' | 'not_friends' | 'not_birthday' | 'self'; minLevel?: number };
 
 export type BuyResult = PurchaseOutcome | { ok: false; error: 'level' | 'unknown_item' | 'not_today'; minLevel?: number };
 
@@ -20,6 +22,10 @@ export class ShopService {
     private readonly now: () => number = Date.now,
     /** Rotating items on offer per day (setting `shop.daily_slots`). */
     private readonly dailySlots: () => Promise<number> = async () => DAILY_SHOP_SLOTS,
+    /** May `giver` give `to` a gift now (friends, and `to` is in their birthday week)? `key` is the once-per-birthday key. */
+    private readonly giftGuard?: (giver: string, to: string) => Promise<{ ok: true; key: string } | { ok: false; error: 'not_friends' | 'not_birthday' }>,
+    /** Called after a gift was bought (to tell the friend). */
+    private readonly onGifted?: (giver: string, to: string, item: { titleFa: string; iconKey: string | null }) => void,
   ) {}
 
   /** Ids of the rotating items on offer today, or null when nothing rotates (every item is always on offer). */
@@ -59,5 +65,29 @@ export class ShopService {
       if (today && !today.has(item.id)) return { ok: false, error: 'not_today' };
     }
     return this.store.purchase(userId, itemId, tehranDayStart(this.now()));
+  }
+
+  /**
+   * A small gift for a friend whose birthday week it is: a coin-priced hint pack or wheel spin (never an owned item), paid by the giver,
+   * once per friend per birthday. The friend is told in their inbox.
+   */
+  async gift(giverId: string, toId: string, itemId: string): Promise<GiftResult> {
+    if (giverId === toId) return { ok: false, error: 'self' };
+    const item = await this.store.item(itemId);
+    if (!item || !item.isActive) return { ok: false, error: 'unknown_item' };
+    if (!(SHOP_GIFT_EFFECTS as readonly string[]).includes(item.effect) || item.currency !== 'coins' || item.priceCoins <= 0 || item.priceCoins > SHOP_GIFT_MAX_COINS || item.rotating === true) return { ok: false, error: 'not_giftable' };
+    const level = await this.levelOf(giverId);
+    if (level < item.minLevel) return { ok: false, error: 'level', minLevel: item.minLevel };
+    const guard = this.giftGuard ? await this.giftGuard(giverId, toId) : ({ ok: false, error: 'not_friends' } as const);
+    if (!guard.ok) return guard;
+    const out = await this.store.gift(giverId, toId, itemId, `${guard.key}:${itemId}`);
+    if (out.ok) {
+      try {
+        this.onGifted?.(giverId, toId, { titleFa: item.titleFa, iconKey: item.iconKey });
+      } catch {
+        /* telling the friend never undoes the gift */
+      }
+    }
+    return out;
   }
 }

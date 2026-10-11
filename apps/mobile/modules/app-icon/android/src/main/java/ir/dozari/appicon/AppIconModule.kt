@@ -43,10 +43,10 @@ class AppIconModule : Module() {
 
     Function("setIcon") { variant: String ->
       val context = appContext.reactContext ?: throw Exceptions.ReactContextLost()
-      val wanted = aliases[variant] ?: aliases.getValue("default")
+      val wanted = aliases[variant] ?: aliases.getValue("adult")
       val target = component(context, wanted)
-      // Only the default alias is enabled in the manifest.
-      val alreadyOnly = aliases.values.all { name -> isEnabled(context, component(context, name), name == "MainActivityDefault") == (name == wanted) }
+      // Only the adult alias is enabled in the manifest.
+      val alreadyOnly = aliases.values.all { name -> isEnabled(context, component(context, name), name == "MainActivityAdult") == (name == wanted) }
       if (alreadyOnly) return@Function
       set(context, target, true)
       aliases.values.filter { it != wanted }.forEach { set(context, component(context, it), false) }

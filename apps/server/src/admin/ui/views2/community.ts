@@ -234,14 +234,19 @@ VIEWS.sponsors = function (root) {
       r.body.sponsors.forEach(function (sp) {
         var toggle = h('button', { class: 'btn sm', text: sp.isActive ? 'غیرفعال کن' : 'فعال کن', onclick: function () { api('/admin/sponsors/' + sp.id, { method: 'PATCH', body: { isActive: !sp.isActive } }).then(function (x) { if (!x.ok) return fail(x); toast('انجام شد'); draw(); }); } });
         var edit = h('button', { class: 'btn sm', text: 'ویرایش', onclick: function () {
-          var name = prompt('نام اسپانسر', sp.nameFa); if (name === null) return;
-          var tagline = prompt('شعار کوتاه', sp.taglineFa); if (tagline === null) return;
-          var desc = prompt('معرفی', sp.descriptionFa); if (desc === null) return;
-          var banner = prompt('لینک https بنر (خالی = بدون بنر)', sp.bannerUrl || ''); if (banner === null) return;
-          var logo = prompt('لینک https لوگو (خالی = بدون لوگو)', sp.logoUrl || ''); if (logo === null) return;
-          var link = prompt('لینک https سایت اسپانسر (خالی = بدون لینک)', sp.linkUrl || ''); if (link === null) return;
-          var accent = prompt('رنگ کارت مثل #FFAA7A (خالی = پیش‌فرض)', sp.accent || ''); if (accent === null) return;
-          api('/admin/sponsors/' + sp.id, { method: 'PATCH', body: { nameFa: name, taglineFa: tagline, descriptionFa: desc, bannerUrl: banner.trim() || null, logoUrl: logo.trim() || null, linkUrl: link.trim() || null, accent: accent.trim() || null } }).then(function (x) { if (!x.ok) return fail(x); toast('ذخیره شد'); draw(); });
+          var f = {
+            name: h('input', { type: 'text', value: sp.nameFa, maxlength: 60 }),
+            tagline: h('input', { type: 'text', value: sp.taglineFa, maxlength: 120 }),
+            desc: h('textarea', { rows: 3, maxlength: 1000, text: sp.descriptionFa }),
+            banner: h('input', { type: 'text', value: sp.bannerUrl || '', maxlength: 300, placeholder: 'خالی = بدون بنر' }),
+            logo: h('input', { type: 'text', value: sp.logoUrl || '', maxlength: 300, placeholder: 'خالی = بدون لوگو' }),
+            link: h('input', { type: 'text', value: sp.linkUrl || '', maxlength: 300, placeholder: 'خالی = بدون لینک', style: 'direction:ltr' }),
+            accent: h('input', { type: 'text', value: sp.accent || '', maxlength: 7, placeholder: '#FFAA7A (خالی = پیش‌فرض)', style: 'width:100px' })
+          };
+          var rows = [['نام', f.name], ['شعار', f.tagline], ['معرفی', f.desc], ['بنر', imageField(f.banner, 'sponsors')], ['لوگو', imageField(f.logo, 'sponsors')], ['لینک سایت', f.link], ['رنگ کارت', f.accent]];
+          modal('ویرایش اسپانسر', h('div', { class: 'form-grid' }, rows.map(function (n) { return field(n[0], n[1]); })), [{ label: 'انصراف' }, { label: 'ذخیره', cls: 'primary', keepOpen: true, run: function (close) {
+            api('/admin/sponsors/' + sp.id, { method: 'PATCH', body: { nameFa: f.name.value.trim(), taglineFa: f.tagline.value.trim(), descriptionFa: f.desc.value.trim(), bannerUrl: f.banner.value.trim() || null, logoUrl: f.logo.value.trim() || null, linkUrl: f.link.value.trim() || null, accent: f.accent.value.trim() || null } }).then(function (x) { if (!x.ok) return fail(x); toast('ذخیره شد'); close(); draw(); });
+          } }]);
         } });
         list.appendChild(h('div', { class: 'card', style: 'padding:12px' }, [
           h('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap' }, [
@@ -256,13 +261,13 @@ VIEWS.sponsors = function (root) {
   var name = h('input', { type: 'text', placeholder: 'نام اسپانسر', maxlength: 60 });
   var tagline = h('input', { type: 'text', placeholder: 'شعار کوتاه (زیر نام نشان داده می‌شود)', maxlength: 120 });
   var desc = h('textarea', { placeholder: 'معرفی اسپانسر برای صفحه‌ی تورنومنت…', maxlength: 1000, style: 'min-height:80px' });
-  var banner = h('input', { type: 'text', placeholder: 'https://… لینک بنر (پیشنهاد: ۱۰۰۰×۴۰۰)', maxlength: 300 });
-  var logo = h('input', { type: 'text', placeholder: 'https://… لینک لوگوی مربع', maxlength: 300 });
+  var banner = h('input', { type: 'text', placeholder: 'آپلود کن یا لینک https بگذار (پیشنهاد: ۱۰۰۰×۴۰۰)', maxlength: 300 });
+  var logo = h('input', { type: 'text', placeholder: 'آپلود کن یا لینک https بگذار (مربع)', maxlength: 300 });
   var link = h('input', { type: 'text', placeholder: 'https://… سایت یا صفحه‌ی اسپانسر', maxlength: 300 });
   var accent = h('input', { type: 'text', placeholder: '#FFAA7A', maxlength: 7, style: 'width:100px' });
-  root.appendChild(card('اسپانسرها', 'اسپانسر را یک بار تعریف کن و در ساخت تورنومنت انتخابش کن. اسپانسر غیرفعال‌شده دیگر نشان داده نمی‌شود. تصویرها باید روی سرور خودمان (لینک https) باشند.', [list]));
+  root.appendChild(card('اسپانسرها', 'اسپانسر را یک بار تعریف کن و در ساخت تورنومنت انتخابش کن. اسپانسر غیرفعال‌شده دیگر نشان داده نمی‌شود. تصویر را با «آپلود تصویر» بفرست یا لینک https خودمان را بگذار.', [list]));
   root.appendChild(addCard('اسپانسر تازه', 'بنر بالای صفحه‌ی تورنومنت و لوگو کنار نام او در فهرست نشان داده می‌شود.', 'اسپانسر تازه', [
-    ['نام', name], ['شعار', tagline], ['معرفی', desc], ['لینک بنر', banner], ['لینک لوگو', logo], ['لینک سایت', link], ['رنگ کارت', accent]
+    ['نام', name], ['شعار', tagline], ['معرفی', desc], ['بنر', imageField(banner, 'sponsors')], ['لوگو', imageField(logo, 'sponsors')], ['لینک سایت', link], ['رنگ کارت', accent]
   ], function () {
     return api('/admin/sponsors', { method: 'POST', body: { nameFa: name.value.trim(), taglineFa: tagline.value.trim(), descriptionFa: desc.value.trim(), bannerUrl: banner.value.trim() || null, logoUrl: logo.value.trim() || null, linkUrl: link.value.trim() || null, accent: accent.value.trim() || null } }).then(function (x) {
       if (!x.ok) { fail(x); return false; }

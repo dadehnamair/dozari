@@ -3,10 +3,10 @@ import { Platform } from 'react-native';
 import type { AgeTrack } from '@dozari/shared';
 import { deviceStore } from '../auth/storage';
 import { THEME_CHROME, themeOf } from './appTheme';
+import { THEME_KEY, bootTheme, setBootTheme } from './bootTheme';
 import type { ThemeId } from './appTheme';
 
-const KEY = 'dozari.theme.v1';
-let current: ThemeId = 'play';
+let current: ThemeId = 'adult';
 let loaded = false;
 const listeners = new Set<(t: ThemeId) => void>();
 
@@ -22,11 +22,16 @@ function paintWebChrome(theme: ThemeId): void {
   set('meta[name="theme-color"]', 'content', c.themeColor);
 }
 
-async function load(): Promise<void> {
+/** Reads the remembered look and makes it the palette's look. index.ts awaits this before it imports the app. */
+export async function loadBootTheme(): Promise<void> {
   if (loaded) return;
   loaded = true;
-  const saved = await deviceStore.get(KEY);
-  if (saved === 'adult' || saved === 'play') apply(saved, false);
+  const saved = await deviceStore.get(THEME_KEY);
+  if (saved === 'adult' || saved === 'play') {
+    setBootTheme(saved);
+    current = saved;
+    paintWebChrome(saved);
+  }
 }
 
 function apply(theme: ThemeId, persist: boolean): void {
@@ -35,7 +40,13 @@ function apply(theme: ThemeId, persist: boolean): void {
   current = theme;
   paintWebChrome(theme);
   if (changed) listeners.forEach((l) => l(theme));
-  if (persist) void deviceStore.set(KEY, theme);
+  if (persist) void deviceStore.set(THEME_KEY, theme).then(() => restartIfStale(theme));
+}
+
+/** The palette is fixed at start: when the look changed the web page reloads once to rebuild with it; phones pick it up on the next start. */
+function restartIfStale(theme: ThemeId): void {
+  if (theme === bootTheme() || Platform.OS !== 'web') return;
+  (globalThis as { location?: { reload(): void } }).location?.reload();
 }
 
 export const getTheme = (): ThemeId => current;
@@ -51,7 +62,7 @@ export function useTheme(): ThemeId {
   const [t, setT] = useState(current);
   useEffect(() => {
     listeners.add(setT);
-    void load().then(() => setT(current));
+    void loadBootTheme().then(() => setT(current));
     return () => void listeners.delete(setT);
   }, []);
   return t;

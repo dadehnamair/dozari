@@ -33,3 +33,6 @@ export function subscribeBack(listener: () => void): () => void {
   listeners.add(listener);
   return () => void listeners.delete(listener);
 }
+
+/** How many handlers are registered (open pages and sheets that a back press would close). */
+export const backDepth = (): number => stack.length;

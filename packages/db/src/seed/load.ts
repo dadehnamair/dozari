@@ -13,8 +13,11 @@ const jsonFiles = (dir: string): string[] => (existsSync(dir) ? readdirSync(dir)
 export const SEED_DIR = join(fileURLToPath(new URL('../../seed/products', import.meta.url)));
 export const PUZZLE_SEED_DIR = join(fileURLToPath(new URL('../../seed/puzzles', import.meta.url)));
 
-/** Read + validate `seed/puzzles/*.json` against the catalog seed (every slug must exist). */
-export function readSeedPuzzles(products: readonly SeedProduct[] = readSeedProducts(), dir: string = PUZZLE_SEED_DIR): SeedPuzzle[] {
+/**
+ * Read + validate `seed/puzzles/*.json`: every slug must be in `known` (the catalogue index + dev seed products, see `knownProductSlugs`).
+ * Which age track a product belongs to is only known to the database, so that check runs when the puzzles are loaded.
+ */
+export function readSeedPuzzles(known: ReadonlySet<string>, dir: string = PUZZLE_SEED_DIR): SeedPuzzle[] {
   const all: SeedPuzzle[] = [];
   const problems: string[] = [];
   for (const file of jsonFiles(dir)) {
@@ -22,7 +25,8 @@ export function readSeedPuzzles(products: readonly SeedProduct[] = readSeedProdu
     if (!parsed.success) problems.push(...parsed.error.issues.map((i) => `${file}: ${i.path.join('.')}: ${i.message}`));
     else all.push(...parsed.data);
   }
-  problems.push(...checkSeedPuzzles(all, new Set(products.map((p) => p.slug)), new Map(products.map((p) => [p.slug, p.age_track] as const))));
+  // Offline every known slug counts as the most permissive track; the real age track of a product is enforced against the database on load.
+  problems.push(...checkSeedPuzzles(all, known, new Map([...known].map((slug) => [slug, 'kid'] as const))));
   if (problems.length > 0) throw new Error(`Invalid puzzle seed:\n${problems.join('\n')}`);
   return all;
 }
@@ -46,7 +50,10 @@ export function readSeedProducts(dir: string = SEED_DIR): SeedProduct[] {
   return all;
 }
 
-/** Idempotent by `slug` and `(slug, year, month)`; re-running updates rows in place. */
+/**
+ * Insert-only and idempotent by `slug` and `(slug, year, month)`: a product that already exists is left exactly as it is
+ * (name, texts, tags, status and prices may have been edited in the admin panel), only missing products and price points are added.
+ */
 export async function loadSeed(db: Db, seed: readonly SeedProduct[] = readSeedProducts()) {
   await db.transaction(async (tx) => {
     for (const p of seed) {
@@ -61,16 +68,12 @@ export async function loadSeed(db: Db, seed: readonly SeedProduct[] = readSeedPr
         status: p.status,
         ageTrack: p.age_track,
       };
-      // MySQL has no RETURNING: upsert, then look the id up by its unique slug.
-      await tx
-        .insert(products)
-        .values(values)
-        .onDuplicateKeyUpdate({ set: { ...values, updatedAt: new Date() } });
-      const [row] = await tx
-        .select({ id: products.id })
-        .from(products)
-        .where(eq(products.slug, p.slug));
-      if (!row) throw new Error(`upsert failed for ${p.slug}`);
+      const [found] = await tx.select({ id: products.id }).from(products).where(eq(products.slug, p.slug));
+      const isNew = !found;
+      // MySQL has no RETURNING: insert, then look the id up by its unique slug.
+      if (isNew) await tx.insert(products).values(values);
+      const [row] = isNew ? await tx.select({ id: products.id }).from(products).where(eq(products.slug, p.slug)) : [found];
+      if (!row) throw new Error(`insert failed for ${p.slug}`);
 
       // A kid word lesson is seeded once, as a draft; an edit or approval made in the admin is never overwritten.
       if (p.lesson) {
@@ -80,18 +83,17 @@ export async function loadSeed(db: Db, seed: readonly SeedProduct[] = readSeedPr
           .values({ productId: row.id, wordFa: p.lesson.word_fa, storyFa: p.lesson.story_fa, syllablesFa: p.lesson.syllables_fa ?? null, status: 'draft' });
       }
 
-      // Tag tables are fully owned by the seed: replace them so removed tags disappear.
-      await tx.delete(productAudiences).where(eq(productAudiences.productId, row.id));
-      if (p.audience.length > 0) {
-        await tx
-          .insert(productAudiences)
-          .values(p.audience.map((audience) => ({ productId: row.id, audience })));
+      // Tags belong to the seed only for a product it just created; an existing one keeps what the admin set.
+      if (isNew && p.audience.length > 0) {
+        await tx.insert(productAudiences).values(p.audience.map((audience) => ({ productId: row.id, audience })));
       }
-      await tx.delete(productEraTags).where(eq(productEraTags.productId, row.id));
-      if (p.era_tags.length > 0) {
-        await tx
-          .insert(productEraTags)
-          .values(p.era_tags.map((tag) => ({ productId: row.id, tag })));
+      if (isNew && p.era_tags.length > 0) {
+        await tx.insert(productEraTags).values(p.era_tags.map((tag) => ({ productId: row.id, tag })));
+      }
+      // Theme tags (`theme:kitchen`…) are additive: a catalog loaded before they existed picks them up, nothing else of its tags is touched.
+      const themeTags = p.era_tags.filter((tag) => tag.startsWith('theme:'));
+      if (!isNew && themeTags.length > 0) {
+        await tx.insert(productEraTags).ignore().values(themeTags.map((tag) => ({ productId: row.id, tag })));
       }
 
       for (const pt of p.prices) {
@@ -119,8 +121,7 @@ export async function loadSeed(db: Db, seed: readonly SeedProduct[] = readSeedPr
               eq(pricePoints.status, pt.status),
             ),
           );
-        if (existing) await tx.update(pricePoints).set(point).where(eq(pricePoints.id, existing.id));
-        else await tx.insert(pricePoints).values(point);
+        if (!existing) await tx.insert(pricePoints).values(point);
       }
     }
   });

@@ -8,8 +8,14 @@ describe('prefs', () => {
     expect(parsePrefs('{nope')).toEqual(DEFAULT_PREFS);
   });
   it('keeps valid booleans and ignores the rest', () => {
-    expect(parsePrefs('{"sound":false,"vibration":"x","reduceMotion":true}')).toEqual({ sound: false, music: true, vibration: true, reduceMotion: true });
-    expect(parsePrefs(serializePrefs({ sound: false, music: false, vibration: false, reduceMotion: true }))).toEqual({ sound: false, music: false, vibration: false, reduceMotion: true });
+    expect(parsePrefs('{"sound":false,"vibration":"x","reduceMotion":true}')).toEqual({ ...DEFAULT_PREFS, sound: false, reduceMotion: true });
+    expect(parsePrefs(serializePrefs({ sound: false, music: false, musicVolume: 1, vibration: false, reduceMotion: true }))).toEqual({ sound: false, music: false, musicVolume: 1, vibration: false, reduceMotion: true });
+  });
+  it('music volume defaults below full and rejects out-of-range values', () => {
+    expect(DEFAULT_PREFS.musicVolume).toBeLessThan(1);
+    expect(parsePrefs('{"musicVolume":0.7}').musicVolume).toBe(0.7);
+    expect(parsePrefs('{"musicVolume":3}').musicVolume).toBe(DEFAULT_PREFS.musicVolume);
+    expect(parsePrefs('{"musicVolume":"loud"}').musicVolume).toBe(DEFAULT_PREFS.musicVolume);
   });
   it('every sound effect has sane notes', () => {
     for (const notes of Object.values(SFX_NOTES)) {

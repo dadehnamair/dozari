@@ -10,7 +10,7 @@ export type BaleLinkCode = z.infer<typeof baleLinkCodeSchema>;
 /** `GET /inbox`: the player's in-app messages (newest first) and how many are unread. */
 export const inboxSchema = z.object({
   unread: z.number().int().nonnegative(),
-  items: z.array(z.object({ id: z.string(), title: z.string(), body: z.string(), createdAt: z.number().int(), read: z.boolean() })),
+  items: z.array(z.object({ id: z.string(), title: z.string(), body: z.string(), createdAt: z.number().int(), read: z.boolean(), /** The player the message is about (a friend's birthday): a tap opens their profile. */ playerId: z.string().nullable().optional() })),
 });
 export type Inbox = z.infer<typeof inboxSchema>;
 

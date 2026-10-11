@@ -10,6 +10,8 @@ prizes for place 1, 2 and 3 (place 3 is paid to **both** semi-final losers). Sav
 (`entry × size`) against the prizes and warns when prizes exceed it: **the house funds prizes; entry fees are a sink**, so a prize larger than the pool creates
 coins — the admin's call, never automatic. A tournament can change freely while a draft; once published, structural fields (size, minimum players,
 entry, level) are locked as soon as one player joined (title, description, prizes may still change). Admin can start now or cancel (refunds everyone).
+A start time in the past is allowed (back-dated tournaments): once open, the next tick starts it immediately (or cancels it when `min_players` is not met, unless `bot_fill` is on).
+Invalid builder input returns `{ error: 'INVALID', reason }` and the admin panel shows a Persian message per `reason` (`bad_size`, `bad_title`, …).
 
 ## Entry
 

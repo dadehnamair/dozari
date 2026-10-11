@@ -10,7 +10,7 @@ const VERSION = 'dev';
 const PRECACHE = [];
 
 const CACHE = 'dozari-' + VERSION;
-const SHELL = ['/', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png'];
+const SHELL = ['/', '/manifest-adult.webmanifest', '/icon-adult-192.png', '/icon-adult-512.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(

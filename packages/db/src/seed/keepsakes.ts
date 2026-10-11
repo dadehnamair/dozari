@@ -3,15 +3,15 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { checkSeedKeepsakes, seedKeepsakeFileSchema } from '@dozari/shared';
 import type { SeedKeepsakeFile } from '@dozari/shared';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { uuidv7 } from 'uuidv7';
 import type { Db } from '../client.js';
 import { keepsakeDefs, keepsakeSets, products } from '../schema.js';
-import { readSeedProducts } from './load.js';
+import { knownProductSlugs } from './catalog-index.js';
 
 export const KEEPSAKE_SEED_DIR = join(fileURLToPath(new URL('../../seed/keepsakes', import.meta.url)));
 
-/** Read + validate `seed/keepsakes/*.json` against the product seed; throws with every problem listed. */
+/** Read + validate `seed/keepsakes/*.json` against the catalogue index; throws with every problem listed. */
 export function readSeedKeepsakes(dir: string = KEEPSAKE_SEED_DIR): SeedKeepsakeFile[] {
   const files: SeedKeepsakeFile[] = [];
   const problems: string[] = [];
@@ -21,7 +21,7 @@ export function readSeedKeepsakes(dir: string = KEEPSAKE_SEED_DIR): SeedKeepsake
     if (!parsed.success) problems.push(...parsed.error.issues.map((i) => `${name}: ${i.path.join('.')}: ${i.message}`));
     else files.push(parsed.data);
   }
-  problems.push(...checkSeedKeepsakes(files, new Set(readSeedProducts().map((p) => p.slug))));
+  problems.push(...checkSeedKeepsakes(files, knownProductSlugs()));
   if (problems.length > 0) throw new Error(`Invalid keepsake seed:\n${problems.join('\n')}`);
   return files;
 }
@@ -64,10 +64,14 @@ export async function loadSeedKeepsakes(db: Db, files: readonly SeedKeepsakeFile
         pieces: k.pieces,
         setId: k.set ? (setIds.get(k.set) ?? null) : null,
         rewardGems: k.reward_gems,
+        artKey: k.art_key ?? null,
         sortOrder: order,
       });
       addedKeepsakes += 1;
     }
   }
+  // Starters this seed replaces are switched off (a player's pieces stay in the tables; they just stop being offered).
+  const retire = files.flatMap((f) => f.retire_titles ?? []);
+  if (retire.length > 0) await db.update(keepsakeDefs).set({ isActive: false }).where(inArray(keepsakeDefs.titleFa, retire));
   return { sets: addedSets, keepsakes: addedKeepsakes };
 }

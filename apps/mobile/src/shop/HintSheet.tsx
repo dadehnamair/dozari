@@ -2,8 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { HintKind, HintPayload, SoloHints } from '@dozari/shared';
 import { toPersianDigits } from '@dozari/shared';
-import { CandyButton } from '../components/CandyButton';
 import { fa } from '../i18n/fa';
+import { SheetClose } from '../components/SheetClose';
 import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
 import { fetchHints, takeHint } from './api';
@@ -50,6 +50,7 @@ export function HintSheet({ sessionId, onGiven, onClose }: { sessionId: string; 
   return (
     <Pressable style={styles.overlay} onPress={onClose} accessibilityLabel={fa.hints.close}>
       <Pressable style={styles.sheet} onPress={() => undefined}>
+        <SheetClose onPress={onClose} label={fa.hints.close} />
         <Text style={styles.title}>{fa.hints.title}</Text>
         <Text style={styles.hint}>{fa.hints.sub}</Text>
         {info ? (
@@ -68,7 +69,6 @@ export function HintSheet({ sessionId, onGiven, onClose }: { sessionId: string; 
           </>
         ) : null}
         {note ? <Text style={styles.warn}>{note}</Text> : null}
-        <CandyButton label={fa.hints.close} sfx="back" color={colors.candy.sky} onPress={onClose} />
       </Pressable>
     </Pressable>
   );

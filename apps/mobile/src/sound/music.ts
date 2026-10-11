@@ -3,7 +3,7 @@ import { getPrefs, usePrefs } from '../prefs/store';
 import { context } from './engine';
 import type { AudioCtx } from './engine';
 import { MUSIC, stepSeconds } from './musicPattern';
-import { setNativeMusic } from './nativeMusic';
+import { setNativeMusic, setNativeMusicVolume } from './nativeMusic';
 import type { DrumHit, Mood } from './musicPattern';
 
 /**
@@ -154,8 +154,10 @@ export function setMusicMood(next: Mood | null): void {
 
 /** Plays the given mood while mounted and while the player keeps music on. */
 export function useMusic(next: Mood | null): void {
-  const { music, sound } = usePrefs();
+  const { music, sound, musicVolume } = usePrefs();
   const on = music && sound ? next : null;
+  // Declared before the mood effect, so a song that starts in the same commit already starts at the chosen level.
+  useEffect(() => setNativeMusicVolume(musicVolume), [musicVolume]);
   useEffect(() => {
     setMusicMood(on);
     return () => setMusicMood(null);

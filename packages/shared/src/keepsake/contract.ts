@@ -36,8 +36,13 @@ export const keepsakeSetViewSchema = z.object({
   rewardGems: z.number().int().nonnegative(),
 });
 
+/** A collection milestone: how many completed keepsakes it asks, what it pays, and whether the player is there. */
+export const keepsakeMilestoneSchema = z.object({ count: z.number().int().positive(), gems: z.number().int().nonnegative(), spins: z.number().int().nonnegative(), reached: z.boolean() });
+export type KeepsakeMilestone = z.infer<typeof keepsakeMilestoneSchema>;
+
 export const keepsakeGallerySchema = z.object({
   items: z.array(keepsakeViewSchema),
+  milestones: z.array(keepsakeMilestoneSchema).default([]),
   sets: z.array(keepsakeSetViewSchema),
   completed: z.number().int().nonnegative(),
   total: z.number().int().nonnegative(),

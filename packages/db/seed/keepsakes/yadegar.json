@@ -1,0 +1,127 @@
+{
+  "retire_titles": [
+    "پفک نمکی مینو",
+    "بیسکویت مادر",
+    "آدامس شیک",
+    "کیک تی‌تاپ",
+    "بستنی کیم",
+    "چیپس چیتوز",
+    "شکلات تخته‌ای مینو",
+    "یخچال ارج",
+    "بخاری علاءالدین",
+    "چرخ خیاطی مارشال",
+    "تلویزیون سیاه‌وسفید پارس",
+    "نوار کاست TDK",
+    "رادیو ضبط دوکاسته‌ی سونی",
+    "ویدیوی VHS ناسیونال",
+    "دوزاری باجه‌ی تلفن",
+    "کارت تلفن همگانی",
+    "اینترنت دیال‌آپ",
+    "سیم‌کارت همراه اول"
+  ],
+  "sets": [
+    {
+      "key": "yadegar-series-1",
+      "title_fa": "یادگار · سری اول",
+      "reward_gems": 25
+    }
+  ],
+  "keepsakes": [
+    {
+      "key": "yadegar-1",
+      "product_slug": null,
+      "set": "yadegar-series-1",
+      "title_fa": "تلفن عمومی",
+      "story_fa": "یه دوزاری می‌نداختی و صدای بوق آزاد می‌اومد. بعدش یکی پشت سرت توی صف نفس‌نفس می‌زد که زود باش، نوبت منه.",
+      "era_year": null,
+      "rarity": "common",
+      "pieces": 4,
+      "reward_gems": 3,
+      "art_key": "yadegar-1"
+    },
+    {
+      "key": "yadegar-2",
+      "product_slug": null,
+      "set": "yadegar-series-1",
+      "title_fa": "چای عصر جمعه",
+      "story_fa": "سماور قل‌قل می‌کرد و استکان‌ها کمرباریک بودن؛ عصر جمعه بوی چای و قند و گفتگوهای بی‌عجله می‌داد.",
+      "era_year": null,
+      "rarity": "common",
+      "pieces": 4,
+      "reward_gems": 3,
+      "art_key": "yadegar-2"
+    },
+    {
+      "key": "yadegar-3",
+      "product_slug": null,
+      "set": "yadegar-series-1",
+      "title_fa": "شب یلدا",
+      "story_fa": "کرسی، انار دون‌شده و فال حافظ تا نیمه‌شب. هندوانه‌ی نگه‌داشته‌شده برای همین یک شب.",
+      "era_year": null,
+      "rarity": "rare",
+      "pieces": 6,
+      "reward_gems": 6,
+      "art_key": "yadegar-3"
+    },
+    {
+      "key": "yadegar-4",
+      "product_slug": null,
+      "set": "yadegar-series-1",
+      "title_fa": "بادبادک پشت‌بوم",
+      "story_fa": "باد که می‌اومد، همه می‌رفتیم پشت‌بوم. نخ دست‌ساز بود و دم بادبادک از پارچه‌ی کهنه.",
+      "era_year": null,
+      "rarity": "common",
+      "pieces": 4,
+      "reward_gems": 3,
+      "art_key": "yadegar-4"
+    },
+    {
+      "key": "yadegar-5",
+      "product_slug": null,
+      "set": "yadegar-series-1",
+      "title_fa": "تیله‌بازی",
+      "story_fa": "یه تیلهٔ آبی داشتم که با هیچی عوضش نمی‌کردم. کوچه خاکی بود و دست‌ها همیشه گلی.",
+      "era_year": null,
+      "rarity": "common",
+      "pieces": 4,
+      "reward_gems": 3,
+      "art_key": "yadegar-5"
+    },
+    {
+      "key": "yadegar-6",
+      "product_slug": null,
+      "set": "yadegar-series-1",
+      "title_fa": "بستنی سنتی",
+      "story_fa": "بستنی زعفرونی لای دو تا نون، ظهر تابستون. تا آخرین قطره‌اش را قبل از آب‌شدن می‌خوردیم.",
+      "era_year": null,
+      "rarity": "rare",
+      "pieces": 6,
+      "reward_gems": 6,
+      "art_key": "yadegar-6"
+    },
+    {
+      "key": "yadegar-7",
+      "product_slug": null,
+      "set": "yadegar-series-1",
+      "title_fa": "سفر با پیکان",
+      "story_fa": "بار روی باربند، جادهٔ چالوس، صندلی عقب جای ما. هر پیچ یک ترانه‌ی تازه از ضبط ماشین.",
+      "era_year": null,
+      "rarity": "rare",
+      "pieces": 6,
+      "reward_gems": 6,
+      "art_key": "yadegar-7"
+    },
+    {
+      "key": "yadegar-8",
+      "product_slug": null,
+      "set": "yadegar-series-1",
+      "title_fa": "نوار کاست",
+      "story_fa": "نوار رو با مداد برمی‌گردوندیم که پاره نشه. هر آهنگ را با انگشت روی دکمه‌ی ضبط گرفتیم.",
+      "era_year": null,
+      "rarity": "rare",
+      "pieces": 6,
+      "reward_gems": 6,
+      "art_key": "yadegar-8"
+    }
+  ]
+}

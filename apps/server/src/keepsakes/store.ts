@@ -59,6 +59,8 @@ export interface KeepsakeStore {
   buy(userId: string, keepsakeId: string, price: number, ref: string): Promise<GrantOutcome>;
   /** Takes a completed keepsake one level up; the price is `upgradeCost(level)`. */
   upgrade(userId: string, keepsakeId: string): Promise<UpgradeOutcome>;
+  /** Pays a collection milestone once (gems, idempotent by `count`): true when this call paid it, false when it was paid before. */
+  milestone(userId: string, count: number, gems: number): Promise<boolean>;
   /** Replaces the showcase with these completed keepsakes, in order (1..SHOWCASE_MAX). */
   setShowcase(userId: string, ids: readonly string[]): Promise<void>;
   addDef(d: NewDef): Promise<DefRow>;
@@ -203,6 +205,10 @@ export function createDbKeepsakeStore(db: Db): KeepsakeStore {
       });
     },
 
+    async milestone(userId, count, gems) {
+      if (gems <= 0) return true;
+      return db.transaction(async (tx) => (await applyGemEntry(tx, { userId, delta: gems, reason: 'keepsake_reward', refType: 'keepsake_milestone', refId: String(count), idempotencyKey: `keepsake_milestone:${count}:${userId}` })).applied);
+    },
     async setShowcase(userId, ids) {
       await db.transaction(async (tx) => {
         await tx.update(userKeepsakes).set({ showcaseSlot: null }).where(eq(userKeepsakes.userId, userId));

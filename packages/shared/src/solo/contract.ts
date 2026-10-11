@@ -37,6 +37,8 @@ export const soloViewSchema = z.object({
 export const soloGuessResultSchema = z.object({
   outcome: z.enum(['correct', 'one_away', 'wrong', 'duplicate', 'invalid']),
   solvedLevel: level.optional(),
+  /** Gems the player just found behind a card of the solved group (gem card); absent = none. */
+  gem: z.number().int().positive().optional(),
   view: soloViewSchema,
 });
 

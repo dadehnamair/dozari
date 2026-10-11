@@ -1,0 +1,3 @@
+ALTER TABLE `group_title_templates` MODIFY COLUMN `rule_kind` enum('price_band_at_year','same_price_at_year','first_crossed','multiplier_between','cheaper_than_ref','era_icon','category_price_rank','theme_tag','curated') NOT NULL;--> statement-breakpoint
+ALTER TABLE `puzzle_groups` MODIFY COLUMN `rule_kind` enum('price_band_at_year','same_price_at_year','first_crossed','multiplier_between','cheaper_than_ref','era_icon','category_price_rank','theme_tag','curated') NOT NULL;--> statement-breakpoint
+ALTER TABLE `ai_schedules` ADD `tier_id` char(36);

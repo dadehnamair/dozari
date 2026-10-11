@@ -36,6 +36,8 @@ export interface ShopItemRow {
 export type NewShopItem = Omit<ShopItemRow, 'id' | 'sortOrder'>;
 
 export type PurchaseOutcome = { ok: true; balance: number; gems: number; tokens: number } | { ok: false; error: 'insufficient' | 'daily_limit' | 'unavailable' | 'owned' | 'max_held' };
+/** A gift bought for a friend: `duplicate` = this exact gift (same key) was already sent. */
+export type GiftOutcome = { ok: true; balance: number } | { ok: false; error: 'insufficient' | 'unavailable' | 'duplicate' };
 export type PaidOutcome = { ok: true; duplicate: boolean } | { ok: false; error: 'unavailable' | 'owned' };
 export type SpendOutcome = { ok: true; paidWith: 'coins' | 'token'; balance: number; tokens: number } | { ok: false; error: 'insufficient' };
 
@@ -50,6 +52,8 @@ export interface ShopStore {
   boughtSince(userId: string, itemId: string, sinceMs: number): Promise<number>;
   /** Buys one item: checks balance and the daily limit, debits coins (`shop_purchase`) and grants the effect, all or nothing. */
   purchase(userId: string, itemId: string, sinceMs: number): Promise<PurchaseOutcome>;
+  /** Buys a consumable for a friend: debits the giver's coins and grants the effect to `toId`, all or nothing. `key` makes a repeat a no-op (`duplicate`). */
+  gift(giverId: string, toId: string, itemId: string, key: string): Promise<GiftOutcome>;
   /** Grants the item of a verified real-money purchase (no coins or gems move); a replayed `(store, orderId)` grants nothing twice. */
   grantPaid(userId: string, itemId: string, store: 'bazaar' | 'myket' | 'bale', orderId: string): Promise<PaidOutcome>;
   /** Cosmetics the player owns: item id → worn. */
@@ -223,6 +227,24 @@ export function createDbShopStore(db: Db): ShopStore {
         throw e;
       });
     },
+    async gift(giverId, toId, itemId, key) {
+      await seed();
+      return db.transaction(async (tx): Promise<GiftOutcome> => {
+        const [item] = await tx.select().from(shopItems).where(eq(shopItems.id, itemId));
+        if (!item || !item.isActive || item.currency !== 'coins') return { ok: false, error: 'unavailable' };
+        const giftId = uuidv7();
+        const ledger = await applyLedgerEntry(tx, { userId: giverId, delta: -item.priceCoins, reason: 'shop_purchase', refType: 'shop_gift', refId: item.id, idempotencyKey: `shop_gift:${key}` });
+        if (!ledger.applied) return { ok: false, error: ledger.reason === 'duplicate' ? 'duplicate' : 'insufficient' };
+        await tx.insert(shopPurchases).values({ id: giftId, userId: giverId, itemId, priceCoins: item.priceCoins, priceGems: 0 });
+        if (item.effect === 'wheel_spin') {
+          for (let i = 0; i < item.amount; i++) await tx.insert(wheelSpins).values({ id: uuidv7(), userId: toId, source: 'shop', ref: `${giftId}#${i}` });
+        } else {
+          await tx.insert(userInventory).values({ userId: toId, effect: 'hint_token', qty: item.amount }).onDuplicateKeyUpdate({ set: { qty: sql`${userInventory.qty} + ${item.amount}` } });
+        }
+        const [coinRow] = await tx.select({ balance: userBalances.balance }).from(userBalances).where(eq(userBalances.userId, giverId));
+        return { ok: true, balance: coinRow?.balance ?? 0 };
+      });
+    },
     async grantPaid(userId, itemId, store, orderId) {
       return db.transaction(async (tx): Promise<PaidOutcome> => {
         const [item] = await tx.select().from(shopItems).where(eq(shopItems.id, itemId));
@@ -355,6 +377,18 @@ export function createMemoryShopStore(seed: readonly NewShopItem[] = DEFAULT_SHO
       else tokens.set(userId, (tokens.get(userId) ?? 0) + item.amount);
       bought.push({ userId, itemId, at: now.ms });
       return { ok: true, balance: balances.get(userId) ?? 0, gems: gemBal.get(userId) ?? 0, tokens: tokens.get(userId) ?? 0 };
+    },
+    async gift(giverId, toId, itemId, key) {
+      const item = rows.find((r) => r.id === itemId);
+      if (!item || !item.isActive || item.currency !== 'coins') return { ok: false, error: 'unavailable' };
+      if (keys.has(`shop_gift:${key}`)) return { ok: false, error: 'duplicate' };
+      const bal = balances.get(giverId) ?? 0;
+      if (bal < item.priceCoins) return { ok: false, error: 'insufficient' };
+      keys.add(`shop_gift:${key}`);
+      balances.set(giverId, bal - item.priceCoins);
+      ledger.push({ userId: giverId, delta: -item.priceCoins, reason: 'shop_purchase' });
+      tokens.set(toId, (tokens.get(toId) ?? 0) + item.amount);
+      return { ok: true, balance: balances.get(giverId) ?? 0 };
     },
     async grantPaid(userId, itemId, store, orderId) {
       const item = rows.find((r) => r.id === itemId);

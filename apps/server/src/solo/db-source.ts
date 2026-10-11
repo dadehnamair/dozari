@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, pricePoints, products, puzzleGroupItems, puzzleGroups, puzzleTiers, puzzles, sql } from '@dozari/db';
+import { and, asc, eq, inArray, notInArray, pricePoints, products, puzzleGroupItems, puzzleGroups, puzzleTiers, puzzles, sql } from '@dozari/db';
 import type { Db } from '@dozari/db';
 import { DEFAULT_AGE_TRACK, GROUP_COUNT, GROUP_SIZE, tiersForLevel } from '@dozari/shared';
 import type { GroupLevel } from '@dozari/shared';
@@ -25,7 +25,8 @@ export function createDbPuzzleSource(db: Db): PuzzleSource {
       // A few random candidates, not one: an approved puzzle with missing groups or items is skipped instead of
       // turning the whole request into "no puzzle" while playable ones exist.
       // Only puzzles of the player's track pool; callers that name no track get the adult pool, so kid content never leaks by accident.
-      const inTrack = inArray(puzzles.ageTrack, [...(opts?.tracks ?? [DEFAULT_AGE_TRACK])]);
+      const tracks = inArray(puzzles.ageTrack, [...(opts?.tracks ?? [DEFAULT_AGE_TRACK])]);
+      const inTrack = opts?.exclude && opts.exclude.length > 0 ? and(tracks, notInArray(puzzles.id, [...opts.exclude]))! : tracks;
       const attempt = async (where: ReturnType<typeof eq>) => {
         const candidates = await db.select({ id: puzzles.id }).from(puzzles).where(where).orderBy(sql`RAND()`).limit(PICK_ATTEMPTS);
         for (const c of candidates) {

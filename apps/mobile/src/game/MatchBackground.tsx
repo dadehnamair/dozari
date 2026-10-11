@@ -1,4 +1,5 @@
 import { StyleSheet, View } from 'react-native';
+import { colors } from '../theme/colors';
 import Svg, { Defs, Pattern, RadialGradient, Rect, Stop } from 'react-native-svg';
 
 /** Background of screen-match (`docs/design/Dozari - 01 Screens`): deep violet, faint 46px checker, a glow at the top. */
@@ -24,4 +25,4 @@ export function MatchBackground({ children }: { children?: React.ReactNode }) {
   );
 }
 
-const styles = StyleSheet.create({ root: { flex: 1, backgroundColor: '#4E2585' } });
+const styles = StyleSheet.create({ root: { flex: 1, backgroundColor: colors.deeper } });

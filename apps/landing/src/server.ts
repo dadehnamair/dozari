@@ -1,9 +1,11 @@
 import { readFile } from 'node:fs/promises';
 import Fastify from 'fastify';
 import type { FastifyInstance, FastifyReply } from 'fastify';
-import type { ContentApi, LandingData, Post, PostSummary } from './api.js';
-import { llmsFull, llmsTxt, ogCard, robots, sitemap } from './discovery.js';
-import { aboutPage, blogIndexPage, castPage, contactPage, downloadPage, homePage, notFoundPage, postPage, privacyPage, termsPage, unavailablePage } from './pages.js';
+import type { CommentTarget, ContentApi, LandingData, Post, PostSummary } from './api.js';
+import { flashOf } from './blocks.js';
+import { llmsFull, llmsTxt, ogCard, robots, sitemap, sitemapXsl } from './discovery.js';
+import { buildStatus, castMemberPage, glossaryPage, howToPage, modesPage, pressPage, rssFeed, securityTxt, sitemapPage, statsPage, statusPage } from './more.js';
+import { aboutPage, agesPage, blogIndexPage, castPage, contactPage, downloadPage, homePage, notFoundPage, postPage, privacyPage, termsPage, unavailablePage } from './pages.js';
 import type { Site } from './seo.js';
 
 export interface LandingOptions {
@@ -38,6 +40,8 @@ async function allPosts(api: ContentApi): Promise<PostSummary[]> {
 export function buildLanding(opts: LandingOptions): FastifyInstance {
   const app = Fastify({ logger: false, trustProxy: true });
   const { api } = opts;
+  // Comment forms are plain `application/x-www-form-urlencoded` posts (no scripts needed); parsed here without a dependency.
+  app.addContentTypeParser('application/x-www-form-urlencoded', { parseAs: 'string', bodyLimit: 16_384 }, (_req, body, done) => done(null, Object.fromEntries(new URLSearchParams(body as string))));
 
   const send = (reply: FastifyReply, status: number, html: string, cache = 'public, max-age=300, stale-while-revalidate=3600') => reply.code(status).header('content-type', HTML).header('cache-control', cache).send(html);
   const text = (reply: FastifyReply, type: string, body: string) => reply.header('content-type', `${type}; charset=utf-8`).header('cache-control', 'public, max-age=3600').send(body);
@@ -75,7 +79,7 @@ export function buildLanding(opts: LandingOptions): FastifyInstance {
   // Promo banners (docs/design/banner, resized to webp) and the social card; favicons and the web-app icons.
   app.get('/banners/:file', async (req, reply) => {
     const file = (req.params as { file: string }).file;
-    return file === 'og.jpg' ? asset('banners', 'jpg', 'image/jpeg', /^og$/)(req, reply) : asset('banners', 'webp', 'image/webp', /^banner[1-8]$/)(req, reply);
+    return file === 'og.jpg' ? asset('banners', 'jpg', 'image/jpeg', /^og$/)(req, reply) : asset('banners', 'webp', 'image/webp', /^(banner[1-8]|age-(adult|kid|teen))$/)(req, reply);
   });
   app.get('/icons/:file', async (req, reply) => {
     const file = (req.params as { file: string }).file;
@@ -112,23 +116,90 @@ export function buildLanding(opts: LandingOptions): FastifyInstance {
     if (!found) return send(reply, 404, notFoundPage(site), 'public, max-age=60');
     if ('redirectTo' in found) return reply.code(301).header('cache-control', 'public, max-age=86400').redirect(`/blog/${encodeURIComponent(found.redirectTo)}`, 301);
     const post: Post = found.post;
-    const more = (await api.posts(1, 4)).posts.filter((p) => p.slug !== post.slug).slice(0, 3);
-    return send(reply, 200, postPage(site, post, more));
+    const flash = flashOf((req.query as { c?: string }).c);
+    const [list, comments] = await Promise.all([api.posts(1, 4), api.comments('post', post.slug)]);
+    const more = list.posts.filter((p) => p.slug !== post.slug).slice(0, 3);
+    return send(reply, 200, postPage(site, post, more, comments, flash), flash ? 'no-store' : undefined);
   });
 
   app.get('/cast', async (_req, reply) => {
+    const [data, counts] = await Promise.all([api.landing(), api.commentCounts('cast')]);
+    return send(reply, 200, castPage(siteOf(data, opts.siteUrl), data.cast, counts));
+  });
+
+  app.get('/cast/:id', async (req, reply) => {
+    const id = (req.params as { id: string }).id;
     const data = await api.landing();
-    return send(reply, 200, castPage(siteOf(data, opts.siteUrl), data.cast));
+    const site = siteOf(data, opts.siteUrl);
+    const member = data.cast.find((c) => c.id === id);
+    if (!member) return send(reply, 404, notFoundPage(site), 'public, max-age=60');
+    const flash = flashOf((req.query as { c?: string }).c);
+    return send(reply, 200, castMemberPage(site, member, data.cast, await api.comments('cast', id), flash), flash ? 'no-store' : undefined);
+  });
+
+  // A visitor's comment: a plain form post, forwarded to the game server (which holds it for approval), then back to the page with a notice.
+  app.post('/comments', async (req, reply) => {
+    const b = (req.body ?? {}) as Record<string, unknown>;
+    const type = b.type === 'post' || b.type === 'cast' ? (b.type as CommentTarget) : null;
+    const key = typeof b.key === 'string' && b.key.length > 0 && b.key.length <= 120 ? b.key : null;
+    if (!type || !key) return reply.code(400).send('bad request');
+    const back = (code: string) => reply.header('cache-control', 'no-store').redirect(`${type === 'post' ? '/blog' : '/cast'}/${encodeURIComponent(key)}?c=${code}#comments`, 303);
+    // The hidden field is the honeypot: a bot fills it, a person never sees it. Answer as if it worked.
+    if (typeof b.website === 'string' && b.website !== '') return back('ok');
+    const out = await api.submitComment({ type, key, name: String(b.name ?? ''), body: String(b.body ?? '') }, req.ip);
+    if (!out.ok && out.error === 'not_found') {
+      const data = await api.landing();
+      return send(reply, 404, notFoundPage(siteOf(data, opts.siteUrl)), 'no-store');
+    }
+    return back(out.ok ? 'ok' : flashOf(out.error) ?? 'failed');
   });
 
   app.get('/about', async (_req, reply) => {
     const data = await api.landing();
     return send(reply, 200, aboutPage(siteOf(data, opts.siteUrl), data.cast));
   });
+  app.get('/ages', async (_req, reply) => send(reply, 200, agesPage(siteOf(await api.landing(), opts.siteUrl))));
   app.get('/download', async (_req, reply) => send(reply, 200, downloadPage(siteOf(await api.landing(), opts.siteUrl))));
   app.get('/contact', async (_req, reply) => {
     const data = await api.landing();
     return send(reply, 200, contactPage(siteOf(data, opts.siteUrl), data.faq));
+  });
+
+  app.get('/how-to-play', async (_req, reply) => send(reply, 200, howToPage(siteOf(await api.landing(), opts.siteUrl))));
+  app.get('/modes', async (_req, reply) => send(reply, 200, modesPage(siteOf(await api.landing(), opts.siteUrl))));
+  app.get('/glossary', async (_req, reply) => send(reply, 200, glossaryPage(siteOf(await api.landing(), opts.siteUrl))));
+  app.get('/press', async (_req, reply) => {
+    const data = await api.landing();
+    return send(reply, 200, pressPage(siteOf(data, opts.siteUrl), data));
+  });
+  app.get('/stats', async (_req, reply) => {
+    const [data, stats, counts] = await Promise.all([api.landing(), api.stats(), api.commentCounts('post')]);
+    const castCounts = await api.commentCounts('cast');
+    const total = [...Object.values(counts), ...Object.values(castCounts)].reduce((a, b) => a + b, 0);
+    return send(reply, 200, statsPage(siteOf(data, opts.siteUrl), stats, total));
+  });
+  // The status page probes the game server live on every request (never cached), so it can only say what is true right now.
+  app.get('/status', async (_req, reply) => {
+    const [data, probe] = await Promise.all([api.landing().catch(() => null), api.probe()]);
+    const site = data ? siteOf(data, opts.siteUrl) : ({ name: 'دوزاری', tagline: '', url: opts.siteUrl ?? 'http://localhost:3100', contactEmail: null, sameAs: [], appUrl: null, androidApp: null, iosApp: null } satisfies Site);
+    return send(reply, 200, statusPage(site, buildStatus(probe, Date.now()), probe.status?.uptimeSec ?? null), 'no-store');
+  });
+  app.get('/status.json', async (_req, reply) => {
+    const probe = await api.probe();
+    const report = buildStatus(probe, Date.now());
+    return reply.code(report.overall === 'down' ? 503 : 200).header('cache-control', 'no-store').header('access-control-allow-origin', '*').send(report);
+  });
+  app.get('/sitemap', async (_req, reply) => {
+    const [data, posts] = await Promise.all([api.landing(), allPosts(api)]);
+    return send(reply, 200, sitemapPage(siteOf(data, opts.siteUrl), posts, data.cast));
+  });
+  app.get('/feed.xml', async (_req, reply) => {
+    const [data, posts] = await Promise.all([api.landing(), allPosts(api)]);
+    return text(reply, 'application/rss+xml', rssFeed(siteOf(data, opts.siteUrl), posts));
+  });
+  app.get('/.well-known/security.txt', async (_req, reply) => {
+    const body = securityTxt(siteOf(await api.landing(), opts.siteUrl), Date.now());
+    return body ? text(reply, 'text/plain', body) : reply.code(404).send('not found');
   });
 
   app.get('/terms', async (_req, reply) => send(reply, 200, termsPage(siteOf(await api.landing(), opts.siteUrl))));
@@ -136,8 +207,9 @@ export function buildLanding(opts: LandingOptions): FastifyInstance {
 
   app.get('/sitemap.xml', async (_req, reply) => {
     const [data, posts] = await Promise.all([api.landing(), allPosts(api)]);
-    return text(reply, 'application/xml', sitemap(siteOf(data, opts.siteUrl), posts));
+    return text(reply, 'application/xml', sitemap(siteOf(data, opts.siteUrl), posts, data.cast));
   });
+  app.get('/sitemap.xsl', async (_req, reply) => text(reply, 'text/xsl', sitemapXsl(siteOf(await api.landing(), opts.siteUrl))));
   app.get('/og.svg', async (_req, reply) => text(reply, 'image/svg+xml', ogCard(siteOf(await api.landing(), opts.siteUrl))));
   app.get('/robots.txt', async (_req, reply) => text(reply, 'text/plain', robots(siteOf(await api.landing(), opts.siteUrl))));
   app.get('/llms.txt', async (_req, reply) => {

@@ -7,6 +7,7 @@ import {
   double,
   index,
   int,
+  mediumtext,
   mysqlEnum,
   mysqlTable,
   primaryKey,
@@ -60,6 +61,7 @@ export const RULE_KIND_VALUES = [
   'cheaper_than_ref',
   'era_icon',
   'category_price_rank',
+  'theme_tag',
   'curated',
 ] as const;
 
@@ -482,6 +484,7 @@ export const LEDGER_REASONS = [
   'birthday_gift',
   'keepsake_piece',
   'keepsake_upgrade',
+  'ad_reward',
 ] as const;
 
 /** Append-only. Coins move only through the server's ledger function; a repeated idempotency key is a no-op. */
@@ -511,7 +514,7 @@ export const userBalances = mysqlTable('user_balances', {
 });
 
 /** Why gems moved (docs/logic/economy.md §Gems, D164). */
-export const GEM_REASONS = ['admin_adjust', 'birthday_gift', 'wheel_prize', 'shop_purchase', 'tournament_entry', 'tournament_refund', 'tournament_prize', 'mission_reward', 'keepsake_reward'] as const;
+export const GEM_REASONS = ['admin_adjust', 'birthday_gift', 'wheel_prize', 'shop_purchase', 'tournament_entry', 'tournament_refund', 'tournament_prize', 'mission_reward', 'keepsake_reward', 'ad_reward', 'gem_card'] as const;
 
 /** Cached gem balance per player; changed only together with a `gem_ledger` row. */
 export const userGems = mysqlTable('user_gems', {
@@ -637,6 +640,8 @@ export const adminMessages = mysqlTable(
     body: text('body').notNull(),
     audience: mysqlEnum('audience', MESSAGE_AUDIENCES).notNull(),
     targetUserId: char('target_user_id', { length: 36 }),
+    /** A player this message is about (a friend's birthday): tapping the message in the inbox opens their profile. */
+    linkUserId: char('link_user_id', { length: 36 }),
     sentAt: datetime('sent_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
     retractedAt: datetime('retracted_at', { mode: 'date', fsp: 3 }),
   },
@@ -1109,6 +1114,25 @@ export const landingFaq = mysqlTable('landing_faq', {
   isActive: boolean('is_active').notNull().default(true),
 });
 
+export const LANDING_COMMENT_TARGETS = ['post', 'cast'] as const;
+export const LANDING_COMMENT_STATUS = ['pending', 'approved', 'hidden'] as const;
+
+/** Visitor comments under a blog post or a cast member of the landing site; held `pending` until an admin approves them. */
+export const landingComments = mysqlTable(
+  'landing_comments',
+  {
+    id: id(),
+    targetType: mysqlEnum('target_type', LANDING_COMMENT_TARGETS).notNull(),
+    /** Post slug or cast id. */
+    targetKey: varchar('target_key', { length: 120 }).notNull(),
+    authorName: varchar('author_name', { length: 60 }).notNull(),
+    body: varchar('body', { length: 1000 }).notNull(),
+    status: mysqlEnum('status', LANDING_COMMENT_STATUS).notNull().default('pending'),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (t) => ({ byTarget: index('landing_comments_target_idx').on(t.targetType, t.targetKey, t.status, t.createdAt), byStatus: index('landing_comments_status_idx').on(t.status, t.createdAt) }),
+);
+
 /** Self-hosted short links for outgoing addresses (the `2oi.ir` domain, D172); the redirect counts every click. */
 export const shortLinks = mysqlTable('short_links', {
   code: varchar('code', { length: 24 }).primaryKey(),
@@ -1118,6 +1142,40 @@ export const shortLinks = mysqlTable('short_links', {
   isActive: boolean('is_active').notNull().default(true),
   createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
   lastClickAt: datetime('last_click_at', { mode: 'date', fsp: 3 }),
+});
+
+/**
+ * Scheduled runs of the admin AI studio (docs/logic/ai-studio.md §Schedules): at each cron time the server asks the model for drafts of `kind` and saves them as drafts.
+ * Flat columns, no JSON (D63): the options of every kind live side by side and a kind reads the ones it needs.
+ */
+export const aiSchedules = mysqlTable('ai_schedules', {
+  id: id(),
+  name: varchar('name', { length: 80 }).notNull(),
+  kind: varchar('kind', { length: 20 }).notNull(),
+  enabled: boolean('enabled').notNull().default(true),
+  /** 5-field cron, read in Tehran time. */
+  cron: varchar('cron', { length: 60 }).notNull(),
+  provider: varchar('provider', { length: 20 }).notNull(),
+  model: varchar('model', { length: 80 }).notNull().default(''),
+  hint: varchar('hint', { length: 300 }).notNull().default(''),
+  count: int('count').notNull().default(1),
+  ageTrack: varchar('age_track', { length: 8 }).notNull().default('adult'),
+  style: varchar('style', { length: 8 }).notNull().default('witty'),
+  /** Puzzle tier the scheduled puzzles are for (puzzle_groups); null = mixed. */
+  tierId: char('tier_id', { length: 36 }),
+  category: varchar('category', { length: 40 }),
+  fromYear: int('from_year'),
+  toYear: int('to_year'),
+  topic: varchar('topic', { length: 300 }).notNull().default(''),
+  length: varchar('length', { length: 8 }).notNull().default('medium'),
+  tone: varchar('tone', { length: 16 }).notNull().default('friendly'),
+  nextRunAt: datetime('next_run_at', { mode: 'date', fsp: 3 }),
+  lastRunAt: datetime('last_run_at', { mode: 'date', fsp: 3 }),
+  /** 'ok' | 'empty' (nothing to do) | 'error' */
+  lastStatus: varchar('last_status', { length: 8 }),
+  lastMessage: varchar('last_message', { length: 300 }).notNull().default(''),
+  lastSaved: int('last_saved').notNull().default(0),
+  createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
 });
 
 /** A player reported another player (profile), optionally over one chat message; the admin reviews them (docs/logic/ugc.md §Reports). */
@@ -1133,6 +1191,26 @@ export const userReports = mysqlTable(
     resolvedAt: datetime('resolved_at', { mode: 'date', fsp: 3 }),
   },
   (table) => ({ byTarget: index('user_reports_target_idx').on(table.targetId, table.createdAt), byReporter: index('user_reports_reporter_idx').on(table.reporterId, table.createdAt) }),
+);
+
+/** An error the player's app reported (crash, failed screen or a manual report) with a screenshot, for the admin panel (docs/logic/client-errors.md). */
+export const clientErrors = mysqlTable(
+  'client_errors',
+  {
+    id: id(),
+    userId: char('user_id', { length: 36 }).references(() => users.id, { onDelete: 'set null' }),
+    kind: mysqlEnum('kind', ['crash', 'screen', 'manual']).notNull(),
+    screen: varchar('screen', { length: 64 }).notNull().default(''),
+    message: varchar('message', { length: 500 }).notNull().default(''),
+    detail: text('detail'),
+    context: varchar('context', { length: 1500 }).notNull().default(''),
+    note: varchar('note', { length: 500 }).notNull().default(''),
+    /** `data:image/...;base64,` string; null when the screenshot could not be taken. */
+    screenshot: mediumtext('screenshot'),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    resolvedAt: datetime('resolved_at', { mode: 'date', fsp: 3 }),
+  },
+  (table) => ({ byTime: index('client_errors_time_idx').on(table.createdAt), byUser: index('client_errors_user_idx').on(table.userId, table.createdAt) }),
 );
 
 /** A player's suggestion: a new item, a price for an item, or «this price is wrong» (docs/logic/ugc.md). */
@@ -1585,6 +1663,39 @@ export const wheelSpins = mysqlTable(
   (t) => ({ onePerMatch: uniqueIndex('wheel_spins_user_match').on(t.userId, t.matchId), onePerRef: uniqueIndex('wheel_spins_user_ref').on(t.userId, t.source, t.ref), pending: index('wheel_spins_pending').on(t.userId, t.spunAt) }),
 );
 
+/** Rewarded-ad placements (docs/logic/ads.md, D221): one row per placement key from `AD_PLACEMENTS`, edited in the admin panel. A missing row reads as the shared default (off). */
+export const adPlacements = mysqlTable('ad_placements', {
+  placement: varchar('placement', { length: 40 }).primaryKey(),
+  enabled: boolean('enabled').notNull().default(false),
+  rewardKind: mysqlEnum('reward_kind', ['coins', 'gems', 'hint_token', 'wheel_spin']).notNull().default('coins'),
+  rewardAmount: int('reward_amount').notNull().default(0),
+  dailyCap: int('daily_cap').notNull().default(0),
+  cooldownSeconds: int('cooldown_seconds').notNull().default(60),
+  minWatchSeconds: int('min_watch_seconds').notNull().default(10),
+  updatedAt: datetime('updated_at', { mode: 'date', fsp: 3 }).notNull().default(now()).$onUpdate(() => new Date()),
+});
+
+/** One rewarded-ad view: `started` when the app asks to show one, `rewarded` once the server accepted the claim (reward and watch time are snapshotted at start). */
+export const adViews = mysqlTable(
+  'ad_views',
+  {
+    id: id(),
+    userId: fk('user_id').references(() => users.id, { onDelete: 'cascade' }),
+    placement: varchar('placement', { length: 40 }).notNull(),
+    /** Tehran date key of the start, for the daily cap. */
+    day: varchar('day', { length: 10 }).notNull(),
+    status: mysqlEnum('status', ['started', 'rewarded']).notNull().default('started'),
+    rewardKind: mysqlEnum('reward_kind', ['coins', 'gems', 'hint_token', 'wheel_spin']).notNull(),
+    rewardAmount: int('reward_amount').notNull(),
+    minWatchSeconds: int('min_watch_seconds').notNull(),
+    /** The ad network's proof of completion, when it sends one. */
+    proof: varchar('proof', { length: 400 }),
+    startedAt: datetime('started_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    rewardedAt: datetime('rewarded_at', { mode: 'date', fsp: 3 }),
+  },
+  (t) => ({ byUserDay: index('ad_views_user_day_idx').on(t.userId, t.placement, t.day), byUserStart: index('ad_views_user_start_idx').on(t.userId, t.placement, t.startedAt) }),
+);
+
 /** The admin's level table (docs/logic/progression.md §Level table): XP at which each level starts and the coin reward for reaching it. Empty = the formulas of the settings. */
 export const levelRoad = mysqlTable('level_road', {
   level: int('level').primaryKey(),
@@ -1650,4 +1761,45 @@ export const dailyPuzzlePlays = mysqlTable(
     finishedAt: datetime('finished_at', { mode: 'date', fsp: 3 }),
   },
   (t) => ({ pk: primaryKey({ columns: [t.userId, t.dateKey] }) }),
+);
+
+/** An S3-compatible place database backups are sent to, with its schedule and retention rule (docs/logic/backups.md). The secret key is stored encrypted. */
+export const backupTargets = mysqlTable('backup_targets', {
+  id: id(),
+  name: varchar('name', { length: 80 }).notNull(),
+  endpoint: varchar('endpoint', { length: 300 }).notNull(),
+  region: varchar('region', { length: 60 }).notNull().default(''),
+  bucket: varchar('bucket', { length: 120 }).notNull(),
+  prefix: varchar('prefix', { length: 200 }).notNull().default(''),
+  accessKey: varchar('access_key', { length: 200 }).notNull(),
+  secretKeyEnc: varchar('secret_key_enc', { length: 600 }).notNull(),
+  isActive: boolean('is_active').notNull().default(true),
+  scheduleKind: mysqlEnum('schedule_kind', ['hourly', 'daily', 'weekly']).notNull().default('daily'),
+  scheduleEveryHours: smallint('schedule_every_hours', { unsigned: true }).notNull().default(24),
+  scheduleTime: varchar('schedule_time', { length: 5 }).notNull().default('03:00'),
+  scheduleWeekday: tinyint('schedule_weekday', { unsigned: true }).notNull().default(0),
+  keepDays: smallint('keep_days', { unsigned: true }),
+  keepCount: smallint('keep_count', { unsigned: true }),
+  /** When the scheduler last started this target; the next slot is computed from it (or from `createdAt`). */
+  lastScheduledAt: datetime('last_scheduled_at', { mode: 'date', fsp: 3 }),
+  createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+});
+
+/** One backup attempt of a target. `objectKey` is the file in the bucket; `deletedAt` is set once retention or an admin removed it. */
+export const backupRuns = mysqlTable(
+  'backup_runs',
+  {
+    id: id(),
+    targetId: char('target_id', { length: 36 }).notNull().references(() => backupTargets.id, { onDelete: 'cascade' }),
+    trigger: mysqlEnum('trigger', ['schedule', 'manual']).notNull(),
+    status: mysqlEnum('status', ['running', 'ok', 'failed']).notNull().default('running'),
+    objectKey: varchar('object_key', { length: 400 }).notNull(),
+    sizeBytes: bigint('size_bytes', { mode: 'number', unsigned: true }),
+    error: varchar('error', { length: 500 }),
+    startedAt: datetime('started_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    finishedAt: datetime('finished_at', { mode: 'date', fsp: 3 }),
+    deletedAt: datetime('deleted_at', { mode: 'date', fsp: 3 }),
+    deletedReason: mysqlEnum('deleted_reason', ['retention', 'manual']),
+  },
+  (t) => [index('backup_runs_target_started_idx').on(t.targetId, t.startedAt)],
 );

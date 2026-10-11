@@ -37,7 +37,7 @@ export const ShareCard = forwardRef<View, { group: SoloChart['groups'][number]; 
 });
 
 const styles = StyleSheet.create({
-  card: { width: CARD_W, height: CARD_H, backgroundColor: '#2B1240', padding: 14, gap: 8, alignItems: 'center', overflow: 'hidden' },
+  card: { width: CARD_W, height: CARD_H, backgroundColor: colors.ink, padding: 14, gap: 8, alignItems: 'center', overflow: 'hidden' },
   band: { position: 'absolute', top: 0, left: 0, right: 0, height: 8 },
   logo: { marginTop: 6 },
   title: { fontFamily: fonts.display, fontSize: 20, lineHeight: 30, color: colors.candy.yellow, textAlign: 'center' },

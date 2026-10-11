@@ -8,6 +8,7 @@ import { buildServer } from '../index.js';
 import { AuthService } from '../auth/service.js';
 import type { UserRecord, UserRepository } from '../auth/service.js';
 import { createTokenSigner } from '../auth/tokens.js';
+import { PuzzleHistory } from '../solo/history.js';
 import { MatchService } from '../realtime/match-service.js';
 import type { PlayerProfile } from '../realtime/match-service.js';
 import type { PuzzleSource, ServedPuzzle } from '../solo/types.js';
@@ -61,6 +62,36 @@ describe('MatchService', () => {
     expect(va.cards).toHaveLength(16);
     expect(JSON.stringify(sent)).not.toContain('عنوان');
     expect(JSON.stringify(sent)).not.toContain('is_bot');
+  });
+
+  it('power-ups: the magnifier\'s two cards reach only the user, the rival just sees that it was used, and a freeze stops the player to move from selecting for a few seconds', async () => {
+    const { svc, sent, last, advance } = harness();
+    await svc.start('A', 'B');
+    const va = matchViewSchema.parse(last('A', 'match:state'));
+    const first = va.turn === 0 ? 'A' : 'B';
+    const second = first === 'A' ? 'B' : 'A';
+    expect(svc.power(second, 'magnifier')).toEqual({ ok: false, error: 'NOT_YOUR_TURN' });
+    sent.length = 0;
+    expect(svc.power(first, 'magnifier')).toEqual({ ok: true });
+    const mine = sent.find((m) => m.to === first && m.event === 'match:event')!.payload as { t: string; itemIds?: string[] };
+    const theirs = sent.find((m) => m.to === second && m.event === 'match:event')!.payload as { t: string; itemIds?: string[] };
+    expect(mine.itemIds).toHaveLength(2);
+    expect(theirs).toMatchObject({ t: 'power', kind: 'magnifier' });
+    expect(theirs.itemIds).toBeUndefined();
+    expect(matchViewSchema.parse(last(first, 'match:state')).powers).toEqual({ magnifier: 1, freeze: 1 });
+    // one power-up per player per match, whatever is left in the bag
+    expect(matchViewSchema.parse(last(first, 'match:state')).powerUsed).toBe(true);
+    expect(svc.power(first, 'magnifier')).toEqual({ ok: false, error: 'POWER_USED' });
+
+    // the rival freezes the player to move: no selecting or submitting until the freeze ends
+    expect(svc.power(first, 'freeze')).toEqual({ ok: false, error: 'POWER_USED' });
+    expect(svc.power(second, 'freeze')).toEqual({ ok: true });
+    const wrong = [ids(0)[0]!, ids(0)[1]!, ids(1)[0]!, ids(1)[1]!];
+    expect(svc.submit(first, wrong)).toEqual({ ok: false, error: 'FROZEN' });
+    const until = matchViewSchema.parse(last(first, 'match:state')).frozenUntil![first === 'A' ? 0 : 1];
+    expect(until).toBeGreaterThan(0);
+    advance(10_000);
+    expect(svc.submit(first, wrong)).toEqual({ ok: true });
   });
 
   it('refuses a second match for a busy player or a lone pair', async () => {
@@ -124,7 +155,8 @@ describe('MatchService', () => {
     await svc.start('A', 'B');
     const before = sent.length;
     expect(svc.resume('A')).toEqual({ ok: true });
-    expect(sent.length).toBe(before + 1);
+    // who plays whom (a late joiner never saw `match:found`), then the snapshot
+    expect(sent.slice(before).map((e) => e.event)).toEqual(['match:found', 'match:state']);
     expect(svc.resume('A', '0190a000-0000-7000-8000-000000000001')).toEqual({ ok: false, error: 'UNKNOWN_MATCH' });
     expect(svc.resume('Z')).toEqual({ ok: false, error: 'NOT_IN_MATCH' });
   });
@@ -195,5 +227,27 @@ describe('live duel over sockets', () => {
     expect(await mover.emitWithAck('match:leave', {})).toEqual({ ok: true });
     expect(matchEndedSchema.parse(await ended).result.reason).toBe('abandon');
     expect(await mover.emitWithAck('match:leave', {})).toEqual({ ok: false, error: 'NOT_IN_MATCH' });
+  });
+});
+
+describe('no repeated puzzles', () => {
+  it('a rematch of the same players is served a different puzzle while others exist', async () => {
+    const mk = (n: number) => ({ ...puzzle, id: `pz-${n}` });
+    const all = [mk(1), mk(2), mk(3)];
+    const history = new PuzzleHistory();
+    const svc = new MatchService({
+      puzzles: { pickRandom: async (o) => all.find((p) => !(o?.exclude ?? []).includes(p.id)) ?? null, pricesFor: async () => ({}) },
+      history,
+      profile: async () => ({ nickname: 'n', avatarKey: 'a', level: 1, coins: 0 }),
+      emit: () => undefined,
+      schedule: () => () => undefined,
+    });
+    const seen: string[] = [];
+    for (let i = 0; i < 3; i++) {
+      expect(await svc.start('A', 'B', { friendly: true })).toBe(true);
+      seen.push(history.seen(['A']).at(-1)!);
+      svc.leave('A');
+    }
+    expect(new Set(seen).size).toBe(3);
   });
 });

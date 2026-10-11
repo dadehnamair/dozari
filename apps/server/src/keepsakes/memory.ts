@@ -119,6 +119,15 @@ export function createMemoryKeepsakeStore(seedDefs: readonly NewDef[] = [], seed
       row.level += 1;
       return { ok: true, level: row.level, balance: coins.get(userId) ?? 0 };
     },
+    async milestone(userId, count, gemsPaid) {
+      const key = `keepsake_milestone:${count}:${userId}`;
+      if (gemsPaid <= 0) return true;
+      if (keys.has(key)) return false;
+      keys.add(key);
+      gems.set(userId, (gems.get(userId) ?? 0) + gemsPaid);
+      ledger.push({ userId, delta: gemsPaid, reason: 'keepsake_reward', key });
+      return true;
+    },
     async setShowcase(userId, ids) {
       for (const [key, v] of done) if (key.startsWith(`${userId}|`)) v.slot = null;
       ids.forEach((id, i) => {

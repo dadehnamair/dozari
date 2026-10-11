@@ -145,7 +145,8 @@ describe('tournament entry', () => {
   it('validates the builder input', async () => {
     const t = boot();
     for (const bad of [t.input({ size: 6 }), t.input({ minPlayers: 1 }), t.input({ minPlayers: 9 }), t.input({ entryCoins: -1 }), t.input({ prizes: [{ place: 4, coins: 5 }] }), t.input({ prizes: [{ place: 1, coins: 5 }, { place: 1, coins: 6 }] }), t.input({ titleFa: ' ' })]) expect((await t.service.create(bad, false)).ok).toBe(false);
-    expect((await t.service.create(t.input({ startsAt: t.clock.ms - 1 }), true)).ok).toBe(false); // cannot publish in the past
+    expect(await t.service.create(t.input({ titleFa: ' ' }), false)).toMatchObject({ ok: false, error: 'INVALID', reason: 'bad_title' });
+    expect((await t.service.create(t.input({ startsAt: t.clock.ms - 1 }), true)).ok).toBe(true); // back-dated is allowed
   });
 });
 

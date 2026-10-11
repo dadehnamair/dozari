@@ -110,5 +110,52 @@ bot accounts: the admin can pause, tune or add more, and the top-up never touche
 - **Chat.** In a duel a bot greets, answers a human's taunt (its `taunt_percent`) and says «خداقوت» at the end, always with canned taunts. In a city room a bot from the same
   city answers a human's message with a canned line after 5–25 s, with probability `bots.city_reply_percent` (15 %).
 - **Tournaments.** A tournament with «جای خالی با ربات پر شود» takes idle bots for empty seats when it starts (no fee); bots are never paid prize coins.
-- Not built: bots accepting friend requests, bots in 2v2/private tables, mid-match takeover of an abandoned human seat (D43), coin escrow/subsidy (match entry fees do not
+## Lobby tables (D213)
+
+`apps/server/src/tables/ambient.ts` (`AmbientLobby`, ticked every 5 s next to the bot driver; off with `bots.enabled` or `feature.tables`) keeps two kinds of bot tables in the
+«سفره‌خانه» list, each with a random Persian name, icon, rounds and price rounds:
+- **Open** (`tables.ambient_open`, 5): bot-hosted public tables, 40 % 2v2 with 1–3 bots already seated, else a 1v1 with the bot host; a 1–5 min life, at most two new ones per tick.
+  A person's seat request is answered by the bot host after 2–6 s (`TableService.answer`), which sets `fillAt` 3–8 s ahead; then idle bots take the empty seats (teams 2+2) and
+  `TableService.start` runs the normal friendly match (`startMatch`/`startTeam`). A person who leaves before `fillAt` cancels it; too few idle bots just delays the start.
+- **Playing** (`tables.ambient_playing`, 3): bots-only tables whose match really runs (bots play through the normal driver path), one new per tick at most, for people to **watch**.
+Now and then (25 % per tick per running public table, at most 3 at once) a bot sits in the stands of any running table, real ones included, for 15–60 s, so the watcher count moves.
+Both close when their match ends (a closed one shows in the recent list). Tables live in memory; the only rows written are those of a real match (bot stats, and the coins of a person at a paid table). Bot tables ask an **entry fee** (D215): at least
+`tableMinEntry(rounds)`, +0…40 in steps of 10, capped at `AMBIENT_TABLE_FEE_MAX` (100). A bot seat pays nothing and never collects: `TableStakes` (given `isBot`) skips bots when taking
+fees, refunding and paying out, and the pot is computed as if the bot had paid — the house funds that share (`bot_match_subsidy`, no ledger row of its own: it is simply the part of a
+winner's payout no player paid in). Same as `duel/stakes.ts` does for queue duels. Adult track only.
+## Community: bots that grow (D216)
+
+The roster runs itself on top of the lobby tables. Every finished 1v1 **and 2v2** gives a bot XP like a person (`recordGame`, duel base; a 2v2 hook `onTeamEnded` was added, people get it too,
+`progression.md`), so levels rise through play and, with them, the skill band (`botSkillForLevel`). On top:
+- **Skill drift** (`driftSkill`, `BOT_SKILL_DRIFT_*`): the per-bot skill moves one step up after a win, down after a loss (not on abandon/draw), kept in 20–90 and saved to `bot_players.skill`.
+- **New faces** (`changesAvatar`): when a bot crosses a milestone level (every 5th) a refresh of the roster may give it a new avatar (40 %). The first look only sets the baseline.
+- **Daily rhythm** (`BOT_ACTIVITY_BY_HOUR`, Tehran time): the open/playing table counts of the lobby are scaled by hour (≈100 % in the evening, 15 % at 03:00, never below one).
+- **Fair fights**: bots-only games pair bots of about one level (`takeBotsNear`), so nobody farms the weak and growth stays gradual.
+Admin edits (pause, skill) stay possible; a drifted skill is just the new value.
+- Not built: bots accepting friend requests, bots in human-made tables, mid-match takeover of an abandoned human seat (D43), coin escrow/subsidy for the queue (see above for tables) (match entry fees do not
   exist yet), bot-chat beyond canned taunts.
+
+## Skill by level
+
+A bot's strength follows its **level** (from its `user_stats.xp` via the default XP curve), in the same five bands as the puzzle tiers
+(`DEFAULT_PUZZLE_TIERS`: 1-3, 4-8, 9-15, 16-25, 26+). Pure function `botSkillForLevel(level, skill)` in `packages/shared/src/bots/skill.ts`; every number is in
+`packages/shared/src/config/botSkill.ts` (`BOT_SKILL_BANDS` etc.). Level is not a new field: the admin generator already gives each bot XP that fits a level
+(`plausibleStats`), and persona levels are chosen in the asked range, so pick the range near the humans' levels (autofill uses 3-25) to keep opponents comparable.
+
+| level | real-group chance | one-away share of misses | think time × | price error ≤ |
+|---|---|---|---|---|
+| 1-3 | 25 % | 30 % | 1.8 | 70 % |
+| 4-8 | 40 % | 35 % | 1.5 | 55 % |
+| 9-15 | 55 % | 35 % | 1.2 | 40 % |
+| 16-25 | 70 % | 30 % | 1.0 | 28 % |
+| 26+ | 84 % | 25 % | 0.8 | 15 % |
+
+- The per-bot admin `skill` (0-100, neutral 50) nudges accuracy by 0.25 points per point off neutral (clamped 8-90 %) and the price error by -0.2 % per point (floor 5 %).
+- Think time: the bot's own range is multiplied by the band factor (still capped so it never misses its turn). Low levels are slower, make more wrong picks and wild price guesses.
+- Determinism: all randomness comes from the driver's injected RNG. Bots still play only through `MatchService.submit` / `submitPrice`; the level changes how often the
+  server-side driver uses the answer (`solutionFor` / `priceAnswerFor`), never what a client can see.
+- Level uses the default curve (an admin level table with custom `starts` is not read by the driver).
+
+## Who a bot is paired with (level match)
+
+A waiting human is given an idle bot within `BOT_MATCH_LEVEL_GAP` (2) levels of their own, picked at random among those; when none is that near, among the nearest ones. A 2v2 fill matches the average level of the waiting humans. If the level lookup fails the driver falls back to a random idle bot (a player is never left waiting). The auto-generated roster covers levels 1–30 so a near bot exists for everyone. Code: `pickBotByLevel` (`packages/shared/src/bots/pick.ts`), `BotDriver.botNear`.

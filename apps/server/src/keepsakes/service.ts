@@ -1,4 +1,4 @@
-import { SHOWCASE_MAX, cleanShowcase, completionPercent, piecePrice, rollDrop, upgradeCost } from '@dozari/shared';
+import { KEEPSAKE_MILESTONES, SHOWCASE_MAX, cleanShowcase, completionPercent, piecePrice, rollDrop, upgradeCost } from '@dozari/shared';
 import type { Drop, KeepsakeDef, KeepsakeGallery, KeepsakeProgress, KeepsakeView, ShowcaseView } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
 import type { DefRow, GrantOutcome, KeepsakeStore, Owned, UpgradeOutcome } from './store.js';
@@ -25,7 +25,13 @@ const toView = (d: DefRow, o: Owned | undefined): KeepsakeView => {
   };
 };
 
-export type BuyPieceResult = GrantOutcome | { ok: false; error: 'off' };
+/** Milestones this very call paid (each is paid once ever). */
+export interface MilestonePaid {
+  count: number;
+  gems: number;
+  spins: number;
+}
+export type BuyPieceResult = (Extract<GrantOutcome, { ok: true }> & { milestones: MilestonePaid[] }) | Exclude<GrantOutcome, { ok: true }> | { ok: false; error: 'off' };
 
 /** The keepsake collection («گنجینه»): what a player sees and the rules of buying, upgrading and pinning (docs/logic/economy-v2.md). */
 export class KeepsakeService {
@@ -34,7 +40,27 @@ export class KeepsakeService {
     /** Chance (0..1) a human win drops a piece; the admin setting `keepsake.drop_percent` in production. */
     private readonly dropChance: () => Promise<number> = async () => 0.15,
     private readonly newRef: () => string = uuidv7,
+    /** Gives wheel spins (idempotent by `ref`), for the milestones that pay them. */
+    private readonly giveSpins?: (userId: string, ref: string, n: number) => Promise<unknown>,
   ) {}
+
+  /** Pays every collection milestone the player has reached and not been paid for; returns the ones paid now. Never throws (a failed bonus must not undo a purchase). */
+  private async awardMilestones(userId: string): Promise<MilestonePaid[]> {
+    const paid: MilestonePaid[] = [];
+    try {
+      const progress = await this.store.progress(userId);
+      const completed = [...progress.values()].filter((o) => o.completed).length;
+      for (const m of KEEPSAKE_MILESTONES) {
+        if (completed < m.count) continue;
+        if (!(await this.store.milestone(userId, m.count, m.gems))) continue;
+        if (m.spins > 0) await this.giveSpins?.(userId, `keepsake-milestone-${m.count}`, m.spins);
+        paid.push({ count: m.count, gems: m.gems, spins: m.spins });
+      }
+    } catch (e) {
+      console.error('[keepsake] milestone failed', userId, e);
+    }
+    return paid;
+  }
 
   async gallery(userId: string): Promise<KeepsakeGallery> {
     const [defs, sets, progress, doneSets, balance] = await Promise.all([this.store.defs(), this.store.sets(), this.store.progress(userId), this.store.completedSets(userId), this.store.balance(userId)]);
@@ -44,14 +70,17 @@ export class KeepsakeService {
       const members = items.filter((i) => i.setId === s.id);
       return { id: s.id, titleFa: s.titleFa, total: members.length, completed: members.filter((m) => m.complete).length, rewardGems: s.rewardGems, done: doneSets.has(s.id) };
     });
-    return { items, sets: setViews.map(({ done: _done, ...rest }) => rest), completed, total: items.length, percent: completionPercent(completed, items.length), balance };
+    const milestones = KEEPSAKE_MILESTONES.map((m) => ({ ...m, reached: completed >= m.count }));
+    return { items, milestones, sets: setViews.map(({ done: _done, ...rest }) => rest), completed, total: items.length, percent: completionPercent(completed, items.length), balance };
   }
 
   /** Buys one missing piece of a keepsake with coins; the piece is picked by the server. */
   async buyPiece(userId: string, keepsakeId: string): Promise<BuyPieceResult> {
     const def = (await this.store.defs()).find((d) => d.id === keepsakeId);
     if (!def) return { ok: false, error: 'unknown' };
-    return this.store.buy(userId, keepsakeId, piecePrice(def.rarity), this.newRef());
+    const out = await this.store.buy(userId, keepsakeId, piecePrice(def.rarity), this.newRef());
+    if (!out.ok) return out;
+    return { ...out, milestones: out.completed ? await this.awardMilestones(userId) : [] };
   }
 
   async upgrade(userId: string, keepsakeId: string): Promise<UpgradeOutcome> {
@@ -97,6 +126,7 @@ export class KeepsakeService {
       const drop = rollDrop(rules, prog, `${matchId}:${userId}`, await this.dropChance());
       if (!drop) return null;
       const out = await this.store.grant(userId, drop.keepsakeId, drop.piece, 'drop', `drop:${matchId}`);
+      if (out.ok && out.completed) await this.awardMilestones(userId);
       return out.ok ? drop : null;
     } catch (e) {
       console.error('[keepsake] drop failed', matchId, e);
