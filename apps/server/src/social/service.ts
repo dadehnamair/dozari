@@ -155,6 +155,7 @@ export class SocialService {
       email: null,
       nicknameRules: { minLen: 2, maxLen: 20, allowDigits: false, allowLatin: false, allowPersian: true },
       nicknameLockedUntilGames: null,
+      avatarLockedUntilGames: null,
     };
     return { id: me, nickname: row.nickname, avatarKey: row.avatarKey, gender: await this.store.getGender(me), ...rec };
   }

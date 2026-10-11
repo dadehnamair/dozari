@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { Platform, Vibration } from 'react-native';
 import { getPrefs } from '../prefs/store';
 import { SFX_NOTES } from './engineNotes';
 import { playNativeSfx } from './nativeSfx';
@@ -77,6 +77,10 @@ export function playSfx(name: Sfx): void {
 export function buzz(ms = 30): void {
   if (!getPrefs().vibration) return;
   try {
+    if (Platform.OS !== 'web') {
+      Vibration.vibrate(ms);
+      return;
+    }
     (globalThis.navigator as { vibrate?: (n: number) => boolean } | undefined)?.vibrate?.(ms);
   } catch {
     /* unsupported */

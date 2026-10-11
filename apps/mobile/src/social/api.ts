@@ -16,6 +16,7 @@ export const acceptFriend = (id: string): Promise<void> => authed(`/friends/${id
 export const removeFriend = (id: string): Promise<void> => authed(`/friends/${id}`, 'DELETE', () => undefined);
 export const fetchCities = (): Promise<City[]> => authed('/cities', 'GET', (v) => citiesSchema.parse(v).cities);
 export const saveCity = (cityId: string | null): Promise<void> => authed('/me/city', 'PUT', () => undefined, { cityId });
+export const saveAvatar = (avatarKey: string): Promise<string> => authed('/me/avatar', 'PUT', (v) => String((v as { avatarKey: unknown }).avatarKey), { avatarKey });
 export const saveEmail = (email: string | null): Promise<void> => authed('/me/email', 'PUT', () => undefined, { email });
 export const saveNickname = (nickname: string): Promise<string> => authed('/me/nickname', 'PUT', (v) => String((v as { nickname: unknown }).nickname), { nickname });
 export const fetchMyFind = (): Promise<MyFind> => authed('/me/find', 'GET', (v) => myFindSchema.parse(v));

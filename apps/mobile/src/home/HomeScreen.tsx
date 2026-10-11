@@ -97,6 +97,8 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
   /** The explainer page of the 💎 or 🔥 counter. */
   const [infoOpen, setInfoOpen] = useState<'gems' | 'streak' | null>(null);
   const [tip, setTip] = useState<number | null>(null);
+  /** The idle line above the hero (picked once per visit). */
+  const [teaser] = useState(() => fa.home.guide.teasers[Math.floor(Math.random() * fa.home.guide.teasers.length)]);
   const tips = availableTips(fa.home.guide.tips, new Set(['duel', 'daily', 'shop', 'chat', 'inbox'].filter((k) => !features[k as 'duel' | 'daily' | 'shop' | 'chat' | 'inbox'])));
   // A tip fades after a while so the guide never covers the menu for good.
   useEffect(() => {
@@ -242,6 +244,8 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
               <GuideBubble who={heroFor(gender)} text={fa.home.missionNudge(missionsReady)} onPress={() => setSettingsOpen(true)} />
             ) : nudge ? (
               <GuideBubble who={heroFor(gender)} text={fa.home.profileNudge[nudge.action === 'claim' ? 'claim' : nudge.key](fmt(nudge.task.coins))} onPress={onNudge} />
+            ) : teaser ? (
+              <GuideBubble who={heroFor(gender)} text={teaser} onPress={() => (setTip((cur) => nextTip(cur, tips.length)), hero.hop())} />
             ) : null}
             {/* A touch on the character itself must not count as «a tap elsewhere» that closes the tip. */}
             <View onTouchStart={(e) => e.stopPropagation()}>
@@ -284,7 +288,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
       ) : null}
       {schoolOpen ? <SchoolSheet onClose={() => setSchoolOpen(false)} /> : null}
       {boardOpen ? <LeaderboardPage onClose={() => setBoardOpen(false)} /> : null}
-      {settingsOpen ? <SettingsPage onMissions={() => (setSettingsOpen(false), setMissionsOpen(true))} missionsReady={missionsReady} onClose={() => (setSettingsOpen(false), loadTasks(), returnToMissions())} onProfile={() => (setSettingsOpen(false), setProfileOpen(true))} onTutorial={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} onAccountGone={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} ageTracksOn={settings['feature.age_tracks'] === 1} baleOn={features.bale} onPreview={onPreview ? (t) => (setSettingsOpen(false), onPreview(t)) : undefined} /> : null}
+      {settingsOpen ? <SettingsPage onMissions={() => (setSettingsOpen(false), setMissionsOpen(true))} missionsReady={missionsReady} onClose={() => (setSettingsOpen(false), loadTasks(), returnToMissions())} onProfile={() => (setSettingsOpen(false), setProfileOpen(true))} onTutorial={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} onAccountGone={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} ageTracksOn={settings['feature.age_tracks'] === 1} baleOn={features.bale} phoneVerified={profileTasks.some((x) => x.key === 'phone' && x.done)} onPreview={onPreview ? (t) => (setSettingsOpen(false), onPreview(t)) : undefined} /> : null}
       {ledgerOpen ? <LedgerSheet onClose={() => setLedgerOpen(false)} /> : null}
       {infoOpen ? <StatInfoSheet kind={infoOpen} value={infoOpen === 'gems' ? gems : dailyPuzzle?.streak ?? 0} onClose={() => setInfoOpen(null)} /> : null}
       {inboxOpen ? <InboxSheet inbox={inbox.inbox} failed={inbox.failed} onRead={inbox.markRead} onReadAll={inbox.markAll} onClose={() => setInboxOpen(false)} /> : null}

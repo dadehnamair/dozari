@@ -7,6 +7,10 @@ import { AVATAR_CHANGE_MIN_LEVEL, NICKNAME_CHANGE_MIN_LEVEL } from '../config/ga
  */
 export const AVATAR_KEYS: readonly string[] = Array.from({ length: 24 }, (_, i) => `avatar-${String(i + 1).padStart(2, '0')}`);
 
+/** The cast, as profile characters a player may pick (`char-<id>`; ids are the `Character` ids of the app). Never handed out at random. */
+export const CHARACTER_IDS = ['dozari', 'dozariF', 'mashti', 'khale', 'pahlevan', 'baqal', 'mirza', 'goli', 'ajan'] as const;
+export const CHARACTER_AVATAR_KEYS: readonly string[] = CHARACTER_IDS.map((id) => `char-${id}`);
+
 export const NICKNAMES: readonly string[] = [
   'دوزاری‌باز', 'سکه‌طلا', 'شاهی‌خان', 'پول‌سیاه', 'ریال‌آقا', 'تومن‌بانو', 'هزارتومنی', 'قِران‌دار',
   'بستنی‌چی', 'پفک‌نمکی', 'آدامس‌بادی', 'نوستالژی', 'کاست‌باز', 'ویدیوکلوپی', 'تلفن‌سکه‌ای', 'ماشین‌پیکان',

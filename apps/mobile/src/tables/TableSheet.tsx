@@ -43,7 +43,11 @@ const dk = StyleSheet.create({
   chip: { backgroundColor: DARK.raised, borderColor: DARK.frame, color: DARK.text },
 });
 const f = fa.tables.form;
-const errText = (e: unknown) => fa.tables.errors[e instanceof ApiError ? e.code : 'network'] ?? fa.tables.errors.generic ?? '';
+/** A code with no Persian line of its own still shows in brackets, so a report from a phone says what the server answered. */
+const errText = (e: unknown) => {
+  const code = e instanceof ApiError ? e.code : 'network';
+  return fa.tables.errors[code] ?? `${fa.tables.errors.generic ?? ''} (${code})`;
+};
 
 /** «میز اختصاصی»: create a table or enter one by its code, then wait for the guest and start a duel. `initialCode` opens a shared table. */
 export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose: () => void; initialCode?: string; /** The table's match started: open the duel board. */ onMatch?: () => void; onShare?: (table: TableView) => Promise<void> }) {
@@ -92,7 +96,9 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
 
   // Reopen the table the player already sits at; poll while one is open.
   useEffect(() => {
-    void fetchMyTable().then((t) => (t ? setTable(t) : initialCode ? enter(initialCode) : undefined), () => undefined);
+    // A table the player was sent to (a card, an invite) wins over the one they still sit at: joining it makes the server drop the old seat.
+    const wanted = initialCode ? normalizeTableCode(initialCode) : null;
+    void fetchMyTable().then((t) => (t && (!wanted || t.code === wanted) ? setTable(t) : initialCode ? enter(initialCode) : t ? setTable(t) : undefined), () => (initialCode ? enter(initialCode) : undefined));
   }, []);
   /** Failed polls in a row: one lost request must not throw the player out of the table; only «not found» does. */
   const misses = useRef(0);

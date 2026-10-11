@@ -30,6 +30,8 @@ export interface GatewayOptions {
   now?: () => number;
   /** How long a player with no open socket keeps their seat in a live match before they are counted as having left (default 25 s). */
   disconnectGraceMs?: number;
+  /** A player left a running match on purpose (or stayed away past the grace): their private-table seat goes with it. */
+  onLeft?: (userId: string) => void;
   /** Called when two players are paired; return false to put them back in line. Ignored when `match` is given. */
   onPair?: (a: string, b: string) => Promise<boolean> | boolean;
   /** Live matches: everything but `emit` (the gateway supplies it). When set, pairs are handed to a `MatchService`. */
@@ -244,7 +246,9 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
     });
 
     socket.on(ClientEvent.matchLeave, (_payload: unknown, ack?: (a: Ack) => void) => {
-      ack?.(matches ? matches.leave(userId) : { ok: false, error: 'NOT_IN_MATCH' });
+      const out = matches ? matches.leave(userId) : ({ ok: false, error: 'NOT_IN_MATCH' } as const);
+      if (out.ok) opts.onLeft?.(userId);
+      ack?.(out);
     });
 
     socket.on('disconnect', async () => {
@@ -257,7 +261,7 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
         // A player who is gone for good must not hold a match (and their partner or rival) hostage: after a grace period they leave it.
         const timer = setTimeout(() => {
           void io.in(room(userId)).fetchSockets().then((again) => {
-            if (again.length === 0 && matches?.inMatch(userId)) matches.leave(userId);
+            if (again.length === 0 && matches?.inMatch(userId) && matches.leave(userId).ok) opts.onLeft?.(userId);
           }).catch(() => undefined);
         }, opts.disconnectGraceMs ?? 25_000);
         timer.unref();

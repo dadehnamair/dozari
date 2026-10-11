@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { PermissionsAndroid, Platform } from 'react-native';
 import { pickMobiles } from './contactNumbers';
 
 export type ContactsRead = { ok: true; phones: string[] } | { ok: false; reason: 'denied' | 'unsupported' };
@@ -18,8 +18,15 @@ export async function readContacts(): Promise<ContactsRead> {
     }
   }
   const Contacts = await import('expo-contacts');
-  const perm = await Contacts.requestPermissionsAsync();
-  if (!perm.granted) return { ok: false, reason: 'denied' };
+  if (Platform.OS === 'android') {
+    // expo-contacts asks for READ and WRITE together; WRITE_CONTACTS is blocked in the manifest (store review), so its
+    // request could never be granted. Ask for READ only — it is all `getContactsAsync` needs.
+    const res = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.READ_CONTACTS);
+    if (res !== PermissionsAndroid.RESULTS.GRANTED) return { ok: false, reason: 'denied' };
+  } else {
+    const perm = await Contacts.requestPermissionsAsync();
+    if (!perm.granted) return { ok: false, reason: 'denied' };
+  }
   const { data } = await Contacts.getContactsAsync({ fields: [Contacts.Fields.PhoneNumbers] });
   return { ok: true, phones: pickMobiles(data.flatMap((c) => (c.phoneNumbers ?? []).map((p) => p.number ?? ''))) };
 }

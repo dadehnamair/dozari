@@ -22,7 +22,9 @@ import { fa } from '../i18n/fa';
 import { usePrefs } from '../prefs/store';
 import { buzz, playSfx } from '../sound/engine';
 import { canSubmit, pruneSelection, toggleSelection } from '../solo/selection';
+import { leaveTable } from '../tables/api';
 import { TableSheet } from '../tables/TableSheet';
+import { nativeTopInset } from '../theme/safeArea';
 import { colors, fonts } from '../theme/colors';
 import { arenaNumbers, arenaTiers, arrange, characterFor, clockText, endReason, groupsBy, shuffled } from './arena';
 import type { TierId } from './arena';
@@ -398,7 +400,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
           reason={endReason(outcome, state.ended.result.reason)}
           lines={lines.map((l) => ({ ...l, points: scores[l.me ? me : them] }))}
           priceRound={state.ended.priceRound}
-          onHome={onBack}
+          onHome={stage === 'resume' ? () => (void leaveTable().then(() => undefined, () => undefined), onBack()) : onBack}
           onAgain={stage === 'queue' ? again : () => setTableOpen(true)}
           againLabel={stage === 'resume' ? fa.tables.rematch : undefined}
           onInvite={() => setInviteOpen(true)}
@@ -410,11 +412,13 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
         {outcome === 'won' && spinsWaiting > 0 ? (
           <View style={styles.wheelCta}><SlabButton label={fa.wheel.open} color={colors.candy.yellow} badge={toPersianDigits(String(spinsWaiting))} onPress={() => setWheelOpen(true)} /></View>
         ) : null}
-        {inviteOpen ? <InviteSheet onClose={() => setInviteOpen(false)} /> : null}
-        {tableOpen ? <TableSheet onClose={() => setTableOpen(false)} onMatch={rematch} /> : null}
-        {profileId ? <PlayerSheet playerId={profileId} onClose={() => setProfileId(null)} /> : null}
-        {reportId ? <ReportDialog target={{ kind: 'user', userId: reportId }} onClose={() => setReportId(null)} /> : null}
-        {wheelOpen ? <WheelPage onClose={() => (setWheelOpen(false), void fetchWheel().then((w) => setSpinsWaiting(w.pending), () => undefined))} /> : null}
+        <View style={styles.sheets} pointerEvents="box-none">
+          {inviteOpen ? <InviteSheet onClose={() => setInviteOpen(false)} /> : null}
+          {tableOpen ? <TableSheet onClose={() => setTableOpen(false)} onMatch={rematch} /> : null}
+          {profileId ? <PlayerSheet playerId={profileId} onClose={() => setProfileId(null)} /> : null}
+          {reportId ? <ReportDialog target={{ kind: 'user', userId: reportId }} onClose={() => setReportId(null)} /> : null}
+          {wheelOpen ? <WheelPage onClose={() => (setWheelOpen(false), void fetchWheel().then((w) => setSpinsWaiting(w.pending), () => undefined))} /> : null}
+        </View>
       </View>
     );
   }
@@ -604,9 +608,11 @@ const lift = { shadowColor: colors.ink, shadowOffset: { width: 0, height: 4 }, s
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  wheelCta: { position: 'absolute', top: 54, right: 16, width: 150 },
+  wheelCta: { position: 'absolute', top: 54 + nativeTopInset(), right: 16, width: 150 },
+  /** Sheets over the result page. Android draws a view with elevation above later siblings, so the result's banner and buttons (elevation) showed over the sheet and its confirm dialog; one elevated layer keeps every sheet on top. */
+  sheets: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 40, elevation: 40 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24 },
-  screen: { flexGrow: 1, paddingHorizontal: 10, paddingTop: 14, paddingBottom: 24, alignItems: 'center' },
+  screen: { flexGrow: 1, paddingHorizontal: 10, paddingTop: 14 + nativeTopInset(), paddingBottom: 24, alignItems: 'center' },
   column: { width: '100%', maxWidth: 520, gap: 10 },
   bar: { flexDirection: ROW, alignItems: 'center', gap: 8 },
   square: { width: 42, height: 42, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', marginBottom: 4, ...lift },
