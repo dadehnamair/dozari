@@ -75,6 +75,16 @@ export function registerSocialRoutes(app: FastifyInstance, auth: AuthService, so
     return reply.code(out.error === 'locked' || out.error === 'needs_invite' ? 403 : 400).send({ error: out.error, unlockGames: out.unlockGames });
   });
 
+  app.put('/me/avatar', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    const body = z.object({ avatarKey: z.string().max(40) }).safeParse(req.body);
+    if (!body.success || !social.player) return reply.code(400).send({ error: 'invalid_request' });
+    const out = await social.player.setAvatar(user.id, body.data.avatarKey);
+    if (out.ok) return { avatarKey: out.avatarKey };
+    return reply.code(out.error === 'locked' ? 403 : 400).send({ error: out.error, unlockGames: out.unlockGames });
+  });
+
   app.get('/players/:id', async (req, reply) => {
     const user = await currentUser(auth, req);
     const p = idParam.safeParse(req.params);

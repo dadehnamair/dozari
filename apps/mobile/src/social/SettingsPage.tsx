@@ -38,6 +38,8 @@ interface Row {
   toggle?: boolean;
   value?: string;
   tone?: string;
+  /** The row that matters most on the page: heavier text and a taller, framed face. */
+  bold?: boolean;
   onPress: () => void;
 }
 
@@ -46,7 +48,7 @@ interface Row {
  * cards of rows — switches that work on this device (sound, vibration, less motion), shortcuts (profile, city,
  * install) and the account (replay the tutorial, sign out, delete with a second tap).
  */
-export function SettingsPage({ onClose, onProfile, onMissions, missionsReady = 0, onTutorial, onAccountGone, ageTracksOn = false, baleOn = false, onPreview }: { onClose: () => void; /** A guardian opens a read-only preview of the kid or teen space. */ onPreview?: (track: 'kid' | 'teen') => void; onProfile: () => void; /** Opens the missions (they live in the workshop) and how many rewards wait. */ onMissions?: () => void; missionsReady?: number; onTutorial?: () => void; onAccountGone?: () => void; /** The server's age-track switch: shows the guardian rows. */ ageTracksOn?: boolean; /** The Bale bot is set up: shows the «connect to Bale» row. */ baleOn?: boolean }) {
+export function SettingsPage({ onClose, onProfile, onMissions, missionsReady = 0, onTutorial, onAccountGone, ageTracksOn = false, baleOn = false, phoneVerified = false, onPreview }: { onClose: () => void; /** A guardian opens a read-only preview of the kid or teen space. */ onPreview?: (track: 'kid' | 'teen') => void; onProfile: () => void; /** Opens the missions (they live in the workshop) and how many rewards wait. */ onMissions?: () => void; missionsReady?: number; onTutorial?: () => void; onAccountGone?: () => void; /** The server's age-track switch: shows the guardian rows. */ ageTracksOn?: boolean; /** The Bale bot is set up: shows the «connect to Bale» row. */ baleOn?: boolean; /** The player already proved a phone number: the account is no longer a bare guest, so «sign in with a number» is hidden. */ phoneVerified?: boolean }) {
   useHardwareBack(onClose);
   const dark = useDark();
   const prefs = usePrefs();
@@ -90,7 +92,7 @@ export function SettingsPage({ onClose, onProfile, onMissions, missionsReady = 0
       rows: [
         // The missions live here (the workshop); a ready reward is announced on Home, on the level badge and on this row.
         ...(onMissions ? [{ key: 'missions', icon: 'target', tint: '#7ED957', label: missionsReady > 0 ? t.missionsReady(missionsReady) : t.missions, tone: missionsReady > 0 ? '#2E7D32' : undefined, onPress: onMissions }] : []),
-        { key: 'profile', icon: 'medal', tint: '#FFC93C', label: t.profile, onPress: onProfile },
+        { key: 'profile', icon: 'medal', tint: '#FFC93C', label: t.profile, bold: true, onPress: onProfile },
         { key: 'city', icon: 'map', tint: '#7ED957', label: t.city, onPress: openCity },
         ...(pwa.installMode !== 'none' ? [{ key: 'install', icon: 'phone', tint: '#FF7A3D', label: t.install, onPress: () => void pwa.promptInstall().then((r) => r === 'ios' && setIosHelp(true)) }] : []),
         ...(onTutorial ? [{ key: 'tutorial', icon: 'scroll', tint: '#3FC1F0', label: t.tutorial, onPress: onTutorial }] : []),
@@ -102,7 +104,7 @@ export function SettingsPage({ onClose, onProfile, onMissions, missionsReady = 0
       rows: [
         { key: 'about', icon: 'lantern', tint: '#C9A3FF', label: t.about, onPress: () => setAboutOpen((v) => !v) },
         ...(baleOn ? [{ key: 'bale', icon: 'bolt', tint: '#FF7A3D', label: fa.bale.row, onPress: () => setBaleOpen(true) }] : []),
-        { key: 'phoneLogin', icon: 'phone', tint: '#7ED957', label: fa.phoneLogin.row, onPress: () => setLoginOpen(true) },
+        ...(phoneVerified ? [] : [{ key: 'phoneLogin', icon: 'phone', tint: '#7ED957', label: fa.phoneLogin.row, onPress: () => setLoginOpen(true) }]),
         ...(ageTracksOn ? [{ key: 'children', icon: 'medal', tint: '#FFAA7A', label: fa.guardian.childrenRow, onPress: () => setChildrenOpen(true) }, { key: 'childLogin', icon: 'key', tint: '#C9A3FF', label: fa.guardian.childLoginRow, onPress: () => setChildCodeOpen(true) }] : []),
         { key: 'out', icon: 'key', tint: '#FFAA7A', label: t.signOut, onPress: () => setAskOut(true) },
         { key: 'del', icon: 'lock', tint: '#FF4D8D', label: t.delete, tone: '#B3261E', onPress: () => setAskDelete(true) },
@@ -136,9 +138,9 @@ export function SettingsPage({ onClose, onProfile, onMissions, missionsReady = 0
             <View key={g.title} style={[styles.group, dark ? dk.group : null]}>
               <View style={[styles.groupHead, { backgroundColor: g.tint }]}><Text style={styles.groupTitle}>{g.title}</Text></View>
               {g.rows.map((r) => (
-                <Pressable key={r.key} onPress={r.onPress} accessibilityRole={r.toggle === undefined ? 'button' : 'switch'} accessibilityState={r.toggle === undefined ? undefined : { checked: r.toggle }} style={[styles.row, dark ? dk.row : null, compact ? styles.rowTight : null]}>
+                <Pressable key={r.key} onPress={r.onPress} accessibilityRole={r.toggle === undefined ? 'button' : 'switch'} accessibilityState={r.toggle === undefined ? undefined : { checked: r.toggle }} style={[styles.row, dark ? dk.row : null, compact ? styles.rowTight : null, r.bold ? styles.rowBold : null, r.bold && dark ? dk.rowBold : null]}>
                   <View style={[styles.tile, { backgroundColor: r.tint }]}><View style={styles.tileIcon}><Item icon={r.icon} /></View></View>
-                  <Text style={[styles.rowText, dark ? dk.text : null, r.tone ? { color: dark ? '#F08A80' : r.tone } : null]}>{r.label}</Text>
+                  <Text style={[styles.rowText, r.bold ? styles.rowTextBold : null, dark ? dk.text : null, r.tone ? { color: dark ? '#F08A80' : r.tone } : null]}>{r.label}</Text>
                   {r.toggle !== undefined ? (
                     <View style={[styles.track, dark ? dk.track : null, { backgroundColor: r.toggle ? (dark ? '#E8B64A' : '#7ED957') : (dark ? '#0E0A08' : '#D9C7A6') }]}>
                       <View style={[styles.knob, r.toggle ? styles.knobOn : null]} />
@@ -191,6 +193,7 @@ const dk = StyleSheet.create({
   root: { backgroundColor: DARK.field },
   group: { backgroundColor: DARK.panel, borderColor: DARK.frame },
   row: { borderColor: DARK.line },
+  rowBold: { backgroundColor: 'rgba(232,182,74,0.14)' },
   text: { color: DARK.text, opacity: 1 },
   track: { borderColor: DARK.frame },
   step: { backgroundColor: DARK.raised, borderColor: DARK.frame },
@@ -218,6 +221,8 @@ const styles = StyleSheet.create({
   row: { minHeight: 46, flexDirection: ROW, alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 4, borderTopWidth: 1.5, borderStyle: 'dashed', borderColor: 'rgba(43,18,64,0.2)' },
   tile: { width: 32, height: 32, borderRadius: 10, borderWidth: 2, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   tileIcon: { width: 22, height: 22 },
+  rowBold: { minHeight: 54, borderTopWidth: 0, borderRadius: 14, backgroundColor: 'rgba(255,201,60,0.28)' },
+  rowTextBold: { fontFamily: fonts.display, fontSize: 17, lineHeight: 24 },
   rowText: { flex: 1, fontFamily: fonts.bold, fontSize: 13.5, lineHeight: 21, color: colors.ink, textAlign: TEXT_RIGHT },
   track: { width: 52, height: 30, borderRadius: 99, borderWidth: 2.5, borderColor: colors.ink, justifyContent: 'center', paddingHorizontal: 2 },
   knob: { width: 21, height: 21, borderRadius: 11, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.cream, alignSelf: 'flex-start' },

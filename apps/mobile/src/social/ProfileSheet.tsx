@@ -194,14 +194,14 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
                 <Text style={[styles.levelText, dark ? dk.text : null]}>{fa.profile.level} {n(lv.level)}</Text>
                 <Text style={[styles.levelXp, dark ? dk.sub : null]}>{lv.xpForNext === 0 ? `${n(lv.xp)} ${fa.profile.xp}` : `${n(lv.xpInLevel)} / ${n(lv.xpForNext)}`}</Text>
               </View>
-              <View style={[styles.track, dark ? dk.track : null]}><View style={[styles.fill, { width: `${pct}%` }]} /></View>
+              <View style={[styles.track, dark ? dk.track : null]}><View style={[styles.fill, dark ? dk.fill : null, { width: `${pct}%` }]}>{dark ? <GradientFill from="#FFF1B8" to="#B8822A" /> : null}</View></View>
             </View>
 
             <View style={styles.stats}>
               {stats.map(([label, v, c]) => (
-                <View key={label} style={[styles.stat, { backgroundColor: c, height: compact ? 52 : 60 }]}>
-                  <Text style={styles.statValue}>{n(v)}</Text>
-                  <Text style={styles.statLabel}>{label}</Text>
+                <View key={label} style={[styles.stat, { backgroundColor: c, height: compact ? 52 : 60 }, dark ? dk.stat : null]}>
+                  <Text style={[styles.statValue, dark ? dk.text : null]}>{n(v)}</Text>
+                  <Text style={[styles.statLabel, dark ? dk.sub : null]}>{label}</Text>
                 </View>
               ))}
             </View>
@@ -209,9 +209,9 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
             {goods ? (
               <View style={styles.stats}>
                 {([[fa.profile.goodsHints, goods.tokens, '#FFE48A'], [fa.profile.goodsShields, goods.shields, '#B8F08F'], [fa.profile.goodsGems, goods.gems, '#9BDDFF']] as const).map(([label, v, c]) => (
-                  <View key={label} style={[styles.stat, { backgroundColor: c, height: compact ? 52 : 60 }]} accessibilityLabel={`${label} ${v}`}>
-                    <Text style={styles.statValue}>{n(v)}</Text>
-                    <Text style={styles.statLabel}>{label}</Text>
+                  <View key={label} style={[styles.stat, { backgroundColor: c, height: compact ? 52 : 60 }, dark ? dk.stat : null]} accessibilityLabel={`${label} ${v}`}>
+                    <Text style={[styles.statValue, dark ? dk.text : null]}>{n(v)}</Text>
+                    <Text style={[styles.statLabel, dark ? dk.sub : null]}>{label}</Text>
                   </View>
                 ))}
               </View>
@@ -224,9 +224,9 @@ export function ProfileSheet({ onClose, onGender, start = null }: { onClose: () 
               {shownBadges.length > 0 ? (
                 <>
                   {shownBadges.map((b, i) => (
-                    <View key={b.id} style={[styles.tag, { backgroundColor: TAGS[i % TAGS.length] }]}><Text style={styles.tagText} numberOfLines={1}>{b.titleFa}</Text></View>
+                    <View key={b.id} style={[styles.tag, { backgroundColor: TAGS[i % TAGS.length] }, dark ? dk.tag : null]}><Text style={[styles.tagText, dark ? dk.tagText : null]} numberOfLines={1}>{b.titleFa}</Text></View>
                   ))}
-                  {moreBadges > 0 ? <View style={[styles.tag, { backgroundColor: colors.ink }]}><Text style={styles.tagText}>{`+${n(moreBadges)}`}</Text></View> : null}
+                  {moreBadges > 0 ? <View style={[styles.tag, { backgroundColor: colors.ink }, dark ? dk.tag : null]}><Text style={[styles.tagText, dark ? dk.tagText : null]}>{`+${n(moreBadges)}`}</Text></View> : null}
                 </>
               ) : (
                 <Text style={[styles.hint, dark ? dk.sub : null]}>{fa.profile.noBadges}</Text>
@@ -299,6 +299,11 @@ const dk = StyleSheet.create({
   track: { backgroundColor: DARK.field, borderColor: DARK.frame },
   editor: { backgroundColor: DARK.panel, borderColor: DARK.frame },
   pill: { backgroundColor: DARK.raised, borderColor: DARK.frame },
+  // One metal instead of the candy rainbow: dark tiles with a gold frame, a brass level bar, bronze badge tags.
+  stat: { backgroundColor: DARK.raised, borderColor: DARK.frame, shadowColor: '#000' },
+  fill: { backgroundColor: '#E8B64A' },
+  tag: { backgroundColor: '#5A3A12', borderColor: DARK.frame, shadowColor: '#000' },
+  tagText: { color: DARK.text, textShadowColor: 'transparent' },
 });
 
 const styles = StyleSheet.create({

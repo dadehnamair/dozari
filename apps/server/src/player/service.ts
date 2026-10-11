@@ -1,4 +1,4 @@
-import { checkNickname, levelInfo, startsOf, xpForGame } from '@dozari/shared';
+import { AVATAR_KEYS, checkNickname, levelInfo, startsOf, xpForGame } from '@dozari/shared';
 import type { City, GameResultForXp, LevelInfo, LevelRow, NicknameProblem, NicknameRules, PlayerStats, XpRules } from '@dozari/shared';
 import type { SettingsService } from '../settings/service.js';
 import type { TextFilterService } from '../textfilter/service.js';
@@ -9,6 +9,8 @@ export interface PlayerRules {
   nickname: NicknameRules;
   /** Finished games needed before a player may rename themselves. */
   nicknameUnlockGames: number;
+  /** Finished games needed before a player may pick another avatar (D65). */
+  avatarUnlockGames: number;
   /** Renaming needs a redeemed invite code (an "activated" account). */
   renameNeedsInvite: boolean;
 }
@@ -17,24 +19,27 @@ export const DEFAULT_RULES: PlayerRules = {
   xp: { soloBase: 5, duelBase: 10, winBonus: 15, curveBase: 50, levelMax: 50 },
   nickname: { minLen: 2, maxLen: 20, allowDigits: false, allowLatin: false, allowPersian: true },
   nicknameUnlockGames: 10,
+  avatarUnlockGames: 3,
   renameNeedsInvite: false,
 };
 
 /** `table` returns the admin's level table (null = use the curve); it replaces the curve and the level cap when set. */
 export async function rulesFromSettings(settings: SettingsService, table?: () => Promise<LevelRow[] | null>): Promise<PlayerRules> {
   const rows = (await table?.()) ?? null;
-  const [soloBase, duelBase, winBonus, curveBase, levelMax, minLen, maxLen, digits, latin, persian, unlock, needsInvite] = await Promise.all(
-    ['xp.solo_base', 'xp.duel_base', 'xp.win_bonus', 'xp.curve_base', 'xp.level_max', 'nickname.min_len', 'nickname.max_len', 'nickname.allow_digits', 'nickname.allow_latin', 'nickname.allow_persian', 'profile.nickname_unlock_games', 'invite.required_for_rename'].map((k) => settings.num(k)),
+  const [soloBase, duelBase, winBonus, curveBase, levelMax, minLen, maxLen, digits, latin, persian, unlock, needsInvite, avatarUnlock] = await Promise.all(
+    ['xp.solo_base', 'xp.duel_base', 'xp.win_bonus', 'xp.curve_base', 'xp.level_max', 'nickname.min_len', 'nickname.max_len', 'nickname.allow_digits', 'nickname.allow_latin', 'nickname.allow_persian', 'profile.nickname_unlock_games', 'invite.required_for_rename', 'profile.avatar_unlock_games'].map((k) => settings.num(k)),
   );
   return {
     xp: { soloBase: soloBase!, duelBase: duelBase!, winBonus: winBonus!, curveBase: curveBase!, levelMax: rows ? rows.length : levelMax!, ...(rows ? { starts: startsOf(rows) } : {}) },
     nickname: { minLen: minLen!, maxLen: Math.max(maxLen!, minLen!), allowDigits: digits === 1, allowLatin: latin === 1, allowPersian: persian === 1 },
     nicknameUnlockGames: unlock!,
+    avatarUnlockGames: avatarUnlock ?? 3,
     renameNeedsInvite: needsInvite === 1,
   };
 }
 
 export type RenameResult = { ok: true; nickname: string } | { ok: false; error: 'locked' | 'needs_invite' | 'filtered' | NicknameProblem; unlockGames?: number };
+export type AvatarResult = { ok: true; avatarKey: string } | { ok: false; error: 'locked' | 'unknown_avatar'; unlockGames?: number };
 export type SimpleResult<E extends string> = { ok: true } | { ok: false; error: E };
 
 const EMAIL = /^[^\s@]{1,64}@[^\s@.]+(\.[^\s@.]+)+$/;
@@ -77,7 +82,7 @@ export class PlayerService {
   async mine(userId: string) {
     const [lv, priv, rules] = await Promise.all([this.levelOf(userId), this.store.privateRow(userId), this.rules()]);
     const games = lv.stats.games;
-    return { ...lv, city: await this.cityOf(userId), email: priv.email, nicknameRules: rules.nickname, nicknameLockedUntilGames: games >= rules.nicknameUnlockGames ? null : rules.nicknameUnlockGames };
+    return { ...lv, city: await this.cityOf(userId), email: priv.email, nicknameRules: rules.nickname, nicknameLockedUntilGames: games >= rules.nicknameUnlockGames ? null : rules.nicknameUnlockGames, avatarLockedUntilGames: games >= rules.avatarUnlockGames ? null : rules.avatarUnlockGames };
   }
 
   ranking(filter: RankFilter, limit: number, since?: number) {
@@ -114,6 +119,16 @@ export class PlayerService {
     if (email !== null && (email.length > 120 || !EMAIL.test(email))) return { ok: false, error: 'invalid_email' };
     await this.store.setEmail(userId, email);
     return { ok: true };
+  }
+
+  /** Picks one of the gallery avatars (never an upload); open after `avatarUnlockGames` finished games, and stays open (D65 layer 1: every face is free for now). */
+  async setAvatar(userId: string, avatarKey: string): Promise<AvatarResult> {
+    if (!AVATAR_KEYS.includes(avatarKey)) return { ok: false, error: 'unknown_avatar' };
+    const rules = await this.rules();
+    const { stats } = await this.levelOf(userId);
+    if (stats.games < rules.avatarUnlockGames) return { ok: false, error: 'locked', unlockGames: rules.avatarUnlockGames };
+    await this.store.setAvatar(userId, avatarKey);
+    return { ok: true, avatarKey };
   }
 
   async setNickname(userId: string, raw: string): Promise<RenameResult> {

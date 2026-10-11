@@ -891,6 +891,15 @@ if (isMainModule(import.meta.url)) {
   const aiStudio = db ? new AiStudio({ env: process.env, lessons: createDbLessonStore(db), puzzles: createDbPuzzleAdmin(db), products: productAdmin, landing: landingService, catalog: async () => (await createDbAdminRepository(db).listCatalog()).map((p) => ({ id: p.id, slug: p.slug, nameFa: p.nameFa })) }) : undefined;
   const aiScheduler = db && aiStudio ? new AiScheduler(createDbAiScheduleStore(db), aiStudio, { audit: (action, target, detail) => void playerAudit?.record(action, target, detail), log: (msg, err) => app.log.error({ err }, msg) }) : undefined;
   const reportError = createErrorReporter({ dsn: process.env.SENTRY_DSN, environment: process.env.NODE_ENV, release: process.env.APP_RELEASE });
+  const profileTaskService = db && settings ? new ProfileTaskService({
+      ...createDbProfileTaskStore(db),
+      coins: async () => {
+        const entries = await Promise.all(MISSION_KEYS.map(async (k) => [k, (await settings.num(`profiletask.coins_${k}`)) ?? 0] as const));
+        return Object.fromEntries(entries) as Record<MissionKey, number>;
+      },
+    }) : undefined;
+  // Proving a number by login is the «phone» mission: pay it now (idempotent; a second login or an unpaid mission is simply skipped).
+  if (phoneLogin && profileTaskService) phoneLogin.afterVerify = async (userId) => void (await profileTaskService.claim(userId, 'phone'));
   const app = buildServer({
     reportError,
     auth,
@@ -1033,16 +1042,7 @@ if (isMainModule(import.meta.url)) {
     guardian,
     feedback,
     clientErrors,
-    profileTasks:
-      db && settings
-        ? new ProfileTaskService({
-            ...createDbProfileTaskStore(db),
-            coins: async () => {
-              const entries = await Promise.all(MISSION_KEYS.map(async (k) => [k, (await settings.num(`profiletask.coins_${k}`)) ?? 0] as const));
-              return Object.fromEntries(entries) as Record<MissionKey, number>;
-            },
-          })
-        : undefined,
+    profileTasks: profileTaskService,
     coinPackages: coinPackageService,
     shopReal,
     shortLinks: shortLinkService,

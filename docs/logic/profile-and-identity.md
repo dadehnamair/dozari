@@ -25,7 +25,7 @@ Owner (2026-09-27): "پروفایل خیلی مهمه" — treat this as a first
 always gets the same account, concurrent first requests included. The token is an HS256 JWT (`sub` = user id, 30 days,
 `JWT_SECRET`); `GET /me` with `Authorization: Bearer <token>` returns the profile. The nickname and avatar come from the
 preset lists in `packages/shared/src/identity` (avatars = the 24 design-kit faces). A banned user gets 403 at login and
-401 everywhere else. The unlock thresholds are `AVATAR_UNLOCK_GAMES` / `NICKNAME_UNLOCK_GAMES` in `config/game.ts`; the paid-change gate (`canCustomise`) exists in shared; the change/buy endpoints do not yet.
+401 everywhere else. The unlock thresholds are `AVATAR_UNLOCK_GAMES` / `NICKNAME_UNLOCK_GAMES` in `config/game.ts`; the paid-change gate (`canCustomise`) exists in shared; `PUT /me/avatar` (D224) picks any gallery face after `AVATAR_UNLOCK_GAMES` games; paid faces/nickname purchase do not exist yet.
 
 ## Tags (badges shown next to the avatar)
 
@@ -70,7 +70,7 @@ Built beside the link flow (`apps/server/src/phone/login.ts`, `POST /auth/phone/
 Logged out, the player asks for an SMS code for a number and proves it: a number that an account holds logs in to **that** account (device
 claimed, `AuthService.sessionFor`); a number nobody holds is attached, verified, to this device's guest account (a new one on a fresh install).
 Codes are 5 digits, 5 min, 5 tries, 60 s resend, 5 codes/hour per number, 20 calls/10 min per IP; kept in memory. `sms_unavailable` (503) when no
-SMS provider key is set. The answer never tells before the proof whether a number has an account.
+SMS provider key is set. The answer never tells before the proof whether a number has an account. A proven number pays the `phone` mission at once, and the settings row is hidden once that mission is done (D224).
 
 ## Invite/referral block
 

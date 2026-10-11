@@ -6,7 +6,9 @@ import { ProvinceBadge } from '../components/ProvinceBadge';
 import { fa } from '../i18n/fa';
 import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
-import { saveEmail, saveNickname } from './api';
+import { Avatar } from '../components/Avatar';
+import { AVATARS } from '../kit/data';
+import { saveAvatar, saveEmail, saveNickname } from './api';
 import { nicknameHint } from './nicknameHint';
 import { BirthdayEditor } from './BirthdayEditor';
 import { TEXT_LEFT } from '../theme/direction';
@@ -29,6 +31,11 @@ export function ProfileEditor({ me, onChange, onPickCity }: { me: MyProfile; onC
     saveNickname(nick).then(
       (saved) => (onChange({ nickname: saved }), say(fa.profile.saved)),
       (e) => say(problemText(e), true),
+    );
+  const pickAvatar = (key: string) =>
+    saveAvatar(key).then(
+      (saved) => (onChange({ avatarKey: saved }), say(fa.profile.saved)),
+      (e) => say(e instanceof ApiError && e.code === 'locked' ? fa.profile.avatarLocked(me.avatarLockedUntilGames ?? 0) : fa.profile.error, true),
     );
   const storeEmail = () =>
     saveEmail(email.trim() === '' ? null : email).then(
@@ -62,6 +69,18 @@ export function ProfileEditor({ me, onChange, onPickCity }: { me: MyProfile; onC
             </View>
           ))}
         </View>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.label}>{fa.profile.avatar}</Text>
+        <View style={styles.faces}>
+          {AVATARS.map((a) => (
+            <Pressable key={a.key} onPress={() => void pickAvatar(a.key)} disabled={me.avatarLockedUntilGames !== null} accessibilityRole="button" accessibilityState={{ selected: me.avatarKey === a.key }} style={[styles.face, me.avatarKey === a.key ? styles.faceOn : null, me.avatarLockedUntilGames !== null ? styles.disabled : null]}>
+              <Avatar avatar={a} size={46} />
+            </Pressable>
+          ))}
+        </View>
+        <Text style={styles.hint}>{me.avatarLockedUntilGames !== null ? fa.profile.avatarLocked(me.avatarLockedUntilGames) : fa.profile.avatarHint}</Text>
       </View>
 
       <View style={styles.card}>
@@ -132,4 +151,7 @@ const styles = StyleSheet.create({
   pillText: { fontFamily: fonts.bold, fontSize: 14, color: INK },
   city: { flexDirection: ROW, alignItems: 'center', gap: 8, padding: 6, paddingHorizontal: 10, borderRadius: 16, borderWidth: 2, borderColor: INK, backgroundColor: colors.cream },
   cityText: { flex: 1, gap: 1 },
+  faces: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6 },
+  face: { padding: 2, borderRadius: 99, borderWidth: 3, borderColor: 'transparent' },
+  faceOn: { borderColor: '#FFC93C', backgroundColor: 'rgba(255,201,60,0.25)' },
 });
