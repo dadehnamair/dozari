@@ -293,6 +293,8 @@ export const puzzleTiers = mysqlTable('puzzle_tiers', {
 
 export const puzzles = mysqlTable('puzzles', {
   id: id(),
+  /** Topic (موضوع) the puzzle is filed under for themed rounds; null = general, never drawn for a topic (docs/logic/themed-rounds.md). */
+  topicId: char('topic_id', { length: 36 }),
   status: mysqlEnum('status', ['draft', 'approved', 'retired']).notNull().default('draft'),
   source: mysqlEnum('source', ['generated', 'curated', 'ugc']).notNull(),
   authorId: char('author_id', { length: 36 }),
@@ -306,6 +308,25 @@ export const puzzles = mysqlTable('puzzles', {
   avgSolveRate: double('avg_solve_rate'),
   createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
 });
+
+/** Admin-managed puzzle topics («خوراکی», «ابزار»...) that players pick in themed rounds. */
+export const puzzleTopics = mysqlTable('puzzle_topics', {
+  id: id(),
+  slug: varchar('slug', { length: 50 }).notNull().unique(),
+  nameFa: varchar('name_fa', { length: 60 }).notNull(),
+  sortOrder: int('sort_order').notNull().default(0),
+  isActive: boolean('is_active').notNull().default(true),
+});
+
+/** Free-text tags on a puzzle, for admin filters and search. One row per tag. */
+export const puzzleTags = mysqlTable(
+  'puzzle_tags',
+  {
+    puzzleId: fk('puzzle_id').references(() => puzzles.id, { onDelete: 'cascade' }),
+    tag: varchar('tag', { length: 50 }).notNull(),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.puzzleId, table.tag] }) }),
+);
 
 export const puzzleGroups = mysqlTable(
   'puzzle_groups',

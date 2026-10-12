@@ -269,3 +269,12 @@ Start after the first Android build.
 - [ ] 5. City pot + weekly city ranking, season pass (needs the owner's reward decisions)
 - [ ] 6. Gem sales through the owner's gateway (store policy + legal review first; D170's per-item rials is replaced by gem packs)
 - [ ] 7. Re-run the simulator with real ledger data and lower `duel.free_payout_percent` 50 → 25 once the shop and keepsakes are live
+
+## Duel/table overhaul (D226, proposed) — see `docs/logic/themed-rounds.md`
+
+- [ ] 1. Puzzle topics + tags + themed-round picker — shared picker, tables and migration done; still open: server pick step, admin topic editor, mobile topic chooser
+- [ ] 2. Separate boards, face-down cards off-turn, «found N of 4» only
+- [ ] 3. Leave penalty, daily ban, monthly badge, reconnect grace
+- [ ] 4. Timeout shown differently but scored as wrong; win only by solved cards
+- [ ] 5. Four-option price questions and general questions per topic
+- [ ] 6. Shop: shuffle opponent's cards, reveal a group

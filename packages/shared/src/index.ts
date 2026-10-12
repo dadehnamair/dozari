@@ -37,3 +37,4 @@ export * from './keepsake/index.js';
 export * from './backup/index.js';
 export * from './clienterror/contract.js';
 export * from './ads/index.js';
+export * from './topics/index.js';
