@@ -561,6 +561,13 @@
       "when": 1791751620478,
       "tag": "0079_previous_spencer_smythe",
       "breakpoints": true
+    },
+    {
+      "idx": 80,
+      "version": "5",
+      "when": 1791820600854,
+      "tag": "0080_demonic_silver_samurai",
+      "breakpoints": true
     }
   ]
 }
