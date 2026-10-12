@@ -118,15 +118,17 @@ interface Active {
 
 interface Draft {
   id: string;
-  a: string;
-  b: string;
+  /** Players of each side (one for a duel, two for a 2v2); the draft belongs to all of them. */
+  sides: readonly [readonly string[], readonly string[]];
+  /** Display name of every player, for «X is choosing». */
+  players: ReadonlyMap<string, string>;
   rng: Rng;
   names: Map<string, string>;
   state: DraftState;
   endsAt: number;
   cancel: (() => void) | null;
   /** The options `start` was called with, replayed (with the picked topics) when the draft is over. */
-  opts: NonNullable<Parameters<MatchService['start']>[2]>;
+  opts: NonNullable<Parameters<MatchService['start']>[2]> & NonNullable<Parameters<MatchService['startTeam']>[1]>;
 }
 
 const RULE_TO_ERROR: Record<RuleError, ErrorCode> = {
@@ -216,7 +218,7 @@ export class MatchService {
     // Three or more rounds with enough topics: the sides first name the topic of each round (the draft), then the match starts from `topicIds`.
     if (!opts.topicIds && boardCount >= THEMED_MATCH_MIN_ROUNDS && (await this.topicDraftOn())) {
       const topics = await this.topicsFor(tracks);
-      if (topics.length >= boardCount) return this.beginDraft(a, b, topics, boardCount, { ...opts, boards: boardCount });
+      if (topics.length >= boardCount) return this.beginDraft([[a], [b]], new Map([[a, pa.nickname], [b, pb.nickname]]), topics, boardCount, { ...opts, boards: boardCount });
     }
     // Several boards: the same different-puzzle rules as 2v2; one board keeps the classic path.
     const picked = boardCount > 1 ? await this.pickBoards(boardCount, level, tracks, [a, b], opts.topicIds) : [];
@@ -267,13 +269,20 @@ export class MatchService {
   }
 
   /** Starts a 2v2 for four players (`sides[s]` = side s); no coin stakes yet. False when it could not be created. */
-  async startTeam(sides: readonly [readonly [string, string], readonly [string, string]], opts: { /** Boards to play; absent = the `match.team_boards` setting. */ boards?: number; /** Entry fee each of the four pays (private tables). */ fee?: number; /** Ignored: a 2v2 has no price-guess questions. */ priceRounds?: number } = {}): Promise<boolean> {
+  async startTeam(sides: readonly [readonly [string, string], readonly [string, string]], opts: { /** The draft's result: one topic id per board (set by the service itself). */ topicIds?: readonly string[]; /** Names of those topics, for the screen. */ topicNames?: readonly string[]; /** Boards to play; absent = the `match.team_boards` setting. */ boards?: number; /** Entry fee each of the four pays (private tables). */ fee?: number; /** Ignored: a 2v2 has no price-guess questions. */ priceRounds?: number } = {}): Promise<boolean> {
     const all = [...sides[0], ...sides[1]];
     if (new Set(all).size !== 4 || all.some((u) => this.inMatch(u))) return false;
     const profiles = await Promise.all(all.map((u) => this.deps.profile(u)));
     if (profiles.some((p) => !p)) return false;
+    const boardCount = opts.topicIds?.length ?? opts.boards ?? (await this.boardCount());
+    const tracks = await this.tracksOf(sides[0][0]);
+    // Three or more boards with enough topics: the four take turns naming the topic of each board (docs/logic/themed-rounds.md), then this runs again with `topicIds`.
+    if (!opts.topicIds && boardCount >= THEMED_MATCH_MIN_ROUNDS && (await this.topicDraftOn())) {
+      const topics = await this.topicsFor(tracks);
+      if (topics.length >= boardCount) return this.beginDraft(sides, new Map(all.map((u, i) => [u, profiles[i]!.nickname])), topics, boardCount, { ...opts, boards: boardCount });
+    }
     // The strongest player sets the puzzle tier, so nobody gets dumbed down (docs/logic/progression.md).
-    const boards = await this.pickBoards(opts.boards ?? (await this.boardCount()), Math.max(...profiles.map((p) => p!.level)), await this.tracksOf(sides[0][0]), all);
+    const boards = await this.pickBoards(boardCount, Math.max(...profiles.map((p) => p!.level)), tracks, all, opts.topicIds);
     if (boards.length === 0) return false;
     if (all.some((u) => this.inMatch(u))) return false; // raced with another start while loading
     const id = uuidv7();
@@ -283,7 +292,7 @@ export class MatchService {
       if (fee > 0) await this.deps.tableStakes?.cancel(id, all, fee);
       return false;
     }
-    const entry: Active = { id, puzzles: boards, table: fee > 0 && this.deps.tableStakes ? { fee, sides: [[...sides[0]], [...sides[1]]] } : undefined, state: startTeamMatch(boards.map(toSolo), sides, mulberry32(this.newSeed()), this.now(), undefined, await this.matchRules(), await this.itemsFor(all)), cancel: null, proposals: [null, null] };
+    const entry: Active = { id, puzzles: boards, table: fee > 0 && this.deps.tableStakes ? { fee, sides: [[...sides[0]], [...sides[1]]] } : undefined, state: startTeamMatch(boards.map(toSolo), sides, mulberry32(this.newSeed()), this.now(), undefined, await this.matchRules(), await this.itemsFor(all)), cancel: null, proposals: [null, null], topicNames: opts.topicNames ? [...opts.topicNames] : undefined };
     entry.gems = await this.rollGems(boards);
     this.matches.set(id, entry);
     for (const u of all) this.byUser.set(u, id);
@@ -376,8 +385,9 @@ export class MatchService {
   }
 
   private draftView(d: Draft, userId: string, cancelled = false): DraftView {
-    const you: 0 | 1 = userId === d.a ? 0 : 1;
+    const you = this.draftSideOf(d, userId);
     const turn = draftTurn(d.state);
+    const chooserId = !cancelled && turn && turn.chooser !== 'system' ? this.draftChooser(d, turn.round, turn.chooser) : null;
     const name = (id: string) => d.names.get(id) ?? '';
     return {
       draftId: d.id,
@@ -386,7 +396,9 @@ export class MatchService {
       rounds: d.state.rounds,
       round: turn?.round ?? d.state.rounds - 1,
       chooser: cancelled ? null : (turn?.chooser ?? null),
-      yourTurn: !cancelled && turn?.chooser === you,
+      chooserId,
+      chooserName: chooserId ? d.players.get(chooserId) : undefined,
+      yourTurn: chooserId === userId,
       endsAt: d.endsAt,
       open: draftOpen(d.state).map((id) => ({ id, nameFa: name(id) })),
       picked: d.state.picks.map((p, round) => ({ round, topicId: p.topic, nameFa: name(p.topic), by: p.by })),
@@ -394,16 +406,25 @@ export class MatchService {
   }
 
   private pushDraft(d: Draft, cancelled = false) {
-    for (const u of [d.a, d.b]) this.deps.emit(u, ServerEvent.draftState, this.draftView(d, u, cancelled));
+    for (const u of [...d.sides[0], ...d.sides[1]]) this.deps.emit(u, ServerEvent.draftState, this.draftView(d, u, cancelled));
   }
 
-  private beginDraft(a: string, b: string, topics: { id: string; nameFa: string }[], rounds: number, opts: Parameters<MatchService['start']>[2]): boolean {
+  private draftSideOf(d: Draft, userId: string): 0 | 1 {
+    return d.sides[0].includes(userId) ? 0 : 1;
+  }
+
+  /** Who of a side's players names `round`: the sides alternate, and inside a team the members take their turns in order (A1, B1, A2, B2, …). */
+  private draftChooser(d: Draft, round: number, side: 0 | 1): string {
+    const team = d.sides[side];
+    return team[Math.floor(round / 2) % team.length]!;
+  }
+
+  private beginDraft(sides: readonly [readonly string[], readonly string[]], players: ReadonlyMap<string, string>, topics: { id: string; nameFa: string }[], rounds: number, opts: NonNullable<Parameters<MatchService['start']>[2]> | Parameters<MatchService['startTeam']>[1]): boolean {
     const rng = mulberry32(this.newSeed());
     const id = uuidv7();
-    const d: Draft = { id, a, b, rng, names: new Map(topics.map((t) => [t.id, t.nameFa])), state: startDraft(topics.map((t) => t.id), rounds, rng() < 0.5 ? 0 : 1, rng), endsAt: 0, cancel: null, opts: opts ?? {} };
+    const d: Draft = { id, sides, players, rng, names: new Map(topics.map((t) => [t.id, t.nameFa])), state: startDraft(topics.map((t) => t.id), rounds, rng() < 0.5 ? 0 : 1, rng), endsAt: 0, cancel: null, opts: (opts ?? {}) as Draft['opts'] };
     this.drafts.set(id, d);
-    this.draftOf.set(a, id);
-    this.draftOf.set(b, id);
+    for (const u of [...sides[0], ...sides[1]]) this.draftOf.set(u, id);
     this.armDraft(d);
     return true;
   }
@@ -418,7 +439,7 @@ export class MatchService {
       return;
     }
     const turn = draftTurn(d.state);
-    const chooser = turn?.chooser === 0 ? d.a : d.b;
+    const chooser = turn && turn.chooser !== 'system' ? this.draftChooser(d, turn.round, turn.chooser) : '';
     const bot = this.deps.isBot?.(chooser) === true;
     const ms = bot ? 1200 + Math.floor(d.rng() * 1800) : TOPIC_PICK_SECONDS * 1000;
     d.endsAt = this.now() + ms;
@@ -434,7 +455,10 @@ export class MatchService {
   pickTopic(userId: string, topic: string): { ok: true } | { ok: false; error: ErrorCode } {
     const d = this.drafts.get(this.draftOf.get(userId) ?? '');
     if (!d) return { ok: false, error: 'NO_DRAFT' };
-    const r = applyDraftPick(d.state, userId === d.a ? 0 : 1, topic, d.rng);
+    const turn = draftTurn(d.state);
+    // In a 2v2 only the teammate whose turn it is may name the topic, not the partner.
+    if (turn && turn.chooser !== 'system' && this.draftChooser(d, turn.round, turn.chooser) !== userId) return { ok: false, error: 'NOT_YOUR_PICK' };
+    const r = applyDraftPick(d.state, this.draftSideOf(d, userId), topic, d.rng);
     if ('error' in r) return { ok: false, error: r.error === 'NOT_YOUR_PICK' ? 'NOT_YOUR_PICK' : r.error === 'UNKNOWN_TOPIC' ? 'UNKNOWN_TOPIC' : 'NO_DRAFT' };
     d.state = r;
     this.armDraft(d);
@@ -445,15 +469,18 @@ export class MatchService {
     d.cancel?.();
     d.cancel = null;
     this.drafts.delete(d.id);
-    this.draftOf.delete(d.a);
-    this.draftOf.delete(d.b);
+    for (const u of [...d.sides[0], ...d.sides[1]]) this.draftOf.delete(u);
   }
 
   /** Everyone named a topic (or the clock did): the match starts from the picked topics. */
   private async finishDraft(d: Draft) {
     this.releaseDraft(d);
     const picks = d.state.picks.map((p) => p.topic);
-    const started = await this.start(d.a, d.b, { ...d.opts, topicIds: picks, topicNames: picks.map((id) => d.names.get(id) ?? '') }).catch(() => false);
+    const named = { topicIds: picks, topicNames: picks.map((id) => d.names.get(id) ?? '') };
+    const started = await (d.sides[0].length === 2
+      ? this.startTeam([[d.sides[0][0]!, d.sides[0][1]!], [d.sides[1][0]!, d.sides[1][1]!]], { ...d.opts, ...named })
+      : this.start(d.sides[0][0]!, d.sides[1][0]!, { ...d.opts, ...named })
+    ).catch(() => false);
     if (!started) this.pushDraft(d, true);
   }
 
