@@ -30,6 +30,10 @@ export interface GatewayOptions {
   now?: () => number;
   /** How long a player with no open socket keeps their seat in a live match before they are counted as having left (default 25 s). */
   disconnectGraceMs?: number;
+  /** Reads the reconnect grace in ms when a player drops (admin setting `leave.grace_seconds`); wins over `disconnectGraceMs`. */
+  graceMs?: () => Promise<number>;
+  /** True when the leave penalty closed duels and tables for this player today; the queue refuses them with LEAVE_BANNED. */
+  banned?: (userId: string) => Promise<boolean>;
   /** A player left a running match on purpose (or stayed away past the grace): their private-table seat goes with it. */
   onLeft?: (userId: string) => void;
   /** Called when two players are paired; return false to put them back in line. Ignored when `match` is given. */
@@ -166,6 +170,7 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
       if (opts.trackGate && (await opts.trackGate(userId).catch(() => false))) return ack?.({ ok: false, error: 'FEATURE_OFF' });
       // New players sit out the live duel until they know the game (docs/logic/matchmaking.md §Level gate).
       if (opts.levelGate && !(await opts.levelGate(userId))) return ack?.({ ok: false, error: 'LEVEL_TOO_LOW' });
+      if (opts.banned && (await opts.banned(userId).catch(() => false))) return ack?.({ ok: false, error: 'LEAVE_BANNED' });
       if (opts.limit && !(await opts.limit.canPlay(userId))) return ack?.({ ok: false, error: 'DAILY_CAP' });
       const tier: QueueTier = team ? 'bronze' : (joined.data.tier ?? 'bronze');
       if (tier !== 'bronze') {
@@ -259,11 +264,12 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
       if (left.length === 0) {
         leaveQueue(userId);
         // A player who is gone for good must not hold a match (and their partner or rival) hostage: after a grace period they leave it.
+        const grace = await (opts.graceMs?.() ?? Promise.resolve(opts.disconnectGraceMs ?? 90_000)).catch(() => opts.disconnectGraceMs ?? 90_000);
         const timer = setTimeout(() => {
           void io.in(room(userId)).fetchSockets().then((again) => {
-            if (again.length === 0 && matches?.inMatch(userId) && matches.leave(userId).ok) opts.onLeft?.(userId);
+            if (again.length === 0 && matches?.inMatch(userId) && matches.leave(userId, 'absent').ok) opts.onLeft?.(userId);
           }).catch(() => undefined);
-        }, opts.disconnectGraceMs ?? 25_000);
+        }, grace);
         timer.unref();
       }
     });

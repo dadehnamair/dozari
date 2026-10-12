@@ -1,3 +1,4 @@
+import { LEAVE_BADGE_COUNT, LEAVE_BADGE_WINDOW_DAYS, LEAVE_DAY_BAN_COUNT, LEAVE_RECONNECT_GRACE_SECONDS } from './leave.js';
 import { LEVEL_REWARD_BASE_COINS, LEVEL_REWARD_EVERY } from './progression.js';
 import {
   AVATAR_CHANGE_MIN_LEVEL,
@@ -265,6 +266,10 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'chat.text_needs_activation', group: 'app', label: 'پیام آزاد فقط برای حساب فعال‌شده با کد معرف', hint: 'کل‌کل‌های آماده همیشه آزاد است', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'match.price_round', group: 'gameplay', label: 'دور حدس قیمت بعد از دوئل یک‌به‌یک', hint: 'خاموش (۰): دوئل مثل قبل با پازل تمام می‌شود. روشن (۱): بعد از پازل ۴ دور حدس قیمتِ کور و هم‌زمان؛ فقط وقتی پازل مساوی شده برنده را تعیین می‌کند و بازنده‌ی قفل‌شده امتیاز تسلی می‌گیرد. بازی‌هایی که از قبل شروع شده‌اند تغییر نمی‌کنند.', kind: 'bool', min: 0, max: 1, default: 0 },
   { key: 'match.separate_boards', group: 'gameplay', label: 'تخته‌ی جدا برای هر طرف در دوئل و میز', hint: 'روشن (۱): هر طرف روی تخته‌ی خودش بازی می‌کند و جواب‌های درست حریف را نمی‌بیند، فقط می‌بیند چند گروه از ۴ را پیدا کرده؛ هر که زودتر هر ۴ گروه را پیدا کند تخته را می‌برد. خاموش (۰): تخته‌ی مشترک مثل قبل. بازی‌های شروع‌شده تغییر نمی‌کنند.', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'leave.grace_seconds', group: 'gameplay', label: 'مهلت برگشت بعد از قطع شدن در بازی', hint: 'اگر وسط دوئل یا میز اتصال قطع شود این‌قدر وقت دارد برگردد؛ بعدش ترک حساب می‌شود', kind: 'int', min: 10, max: 600, default: LEAVE_RECONNECT_GRACE_SECONDS, unit: 'ثانیه' },
+  { key: 'leave.day_ban_count', group: 'gameplay', label: 'تعداد ترک در روز تا محرومیت از دوئل و میز', hint: '۰ یعنی محرومیت خاموش؛ محرومیت تا پایان همان روز (به وقت تهران) است', kind: 'int', min: 0, max: 20, default: LEAVE_DAY_BAN_COUNT },
+  { key: 'leave.badge_count', group: 'gameplay', label: 'تعداد ترک برای نشان «ترک‌کننده»', hint: '۰ یعنی نشان خاموش؛ تا وقتی تعداد ترک‌های بازه این عدد یا بیشتر است روی پروفایل می‌ماند', kind: 'int', min: 0, max: 100, default: LEAVE_BADGE_COUNT },
+  { key: 'leave.badge_days', group: 'gameplay', label: 'بازه‌ی شمارش ترک برای نشان', hint: 'ترک‌های قدیمی‌تر از این بازه نشان را برنمی‌گردانند', kind: 'int', min: 1, max: 365, default: LEAVE_BADGE_WINDOW_DAYS, unit: 'روز' },
   { key: 'match.team_boards', group: 'gameplay', label: 'تعداد بسته‌ی ۱۶تایی در بازی تیمی ۲ در ۲', hint: 'امتیازها جمع می‌شود؛ ۱ یعنی مثل دوئل', kind: 'int', min: 1, max: 5, default: TEAM_MATCH_BOARDS },
   { key: 'puzzles.autofill_enabled', group: 'gameplay', label: 'پر کردن خودکار استخر پازل روشن باشد', hint: 'کار زمان‌بندی‌شده پازل تازه از کالاهای کاتالوگ می‌سازد', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'puzzles.autofill_target', group: 'gameplay', label: 'تعداد پازل آماده در استخر', hint: 'پیش‌نویس‌های منتظر تأیید (یا پازل‌های تأییدشده، اگر تأیید خودکار روشن است) تا این عدد پر می‌شود', kind: 'int', min: 1, max: 200, default: 30 },

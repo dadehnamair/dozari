@@ -75,6 +75,8 @@ export const ERROR_CODES = [
   'MAINTENANCE',
   'FEATURE_OFF',
   'DAILY_CAP',
+  /** The leave penalty closed duels and tables for this player until the end of the Tehran day. */
+  'LEAVE_BANNED',
   'LEVEL_TOO_LOW',
   'UNKNOWN_TIER',
   'NO_CITY',

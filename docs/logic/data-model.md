@@ -63,6 +63,9 @@ topic_id null (themed-rounds.md), difficulty_score double null, times_played int
 ### `puzzle_topics` / `puzzle_tags`
 `puzzle_topics(id, slug unique, name_fa, sort_order, is_active)`; `puzzle_tags(puzzle_id FK, tag)` PK both — see `logic/themed-rounds.md`.
 
+### `match_leaves`
+`id, user_id, match_id null, kind (manual|absent), left_at` — index (user_id, left_at); see `logic/leave-penalty.md`.
+
 ### `puzzle_groups`
 `id, puzzle_id FK, level tinyint (0=yellow,1=green,2=blue,3=purple), title_fa null, explanation_fa null,
 rule_kind enum, rule_* columns` — exactly 4 per puzzle, unique `(puzzle_id, level)`.

@@ -309,6 +309,19 @@ export const puzzles = mysqlTable('puzzles', {
   createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
 });
 
+/** A player left a running duel/table (on purpose, or stayed away past the reconnect grace). Drives the day ban and the monthly badge. */
+export const matchLeaves = mysqlTable(
+  'match_leaves',
+  {
+    id: id(),
+    userId: fk('user_id'),
+    matchId: char('match_id', { length: 36 }),
+    kind: mysqlEnum('kind', ['manual', 'absent']).notNull(),
+    leftAt: datetime('left_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ byUser: index('match_leaves_user_idx').on(table.userId, table.leftAt) }),
+);
+
 /** Admin-managed puzzle topics («خوراکی», «ابزار»...) that players pick in themed rounds. */
 export const puzzleTopics = mysqlTable('puzzle_topics', {
   id: id(),

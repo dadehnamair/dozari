@@ -95,6 +95,8 @@ export const playerProfileSchema = z.object({
   online: z.boolean().default(false),
   /** Inside their birthday week: a party badge for everybody; never the date. */
   birthday: z.boolean().default(false),
+  /** The «ترک‌کننده» badge (too many leaves lately): on until this time (epoch ms); null = no badge. */
+  leaverUntil: z.number().int().nullable().default(null),
   /** Whole years, only when the player ticked «سنم نمایش داده شود». */
   age: z.number().int().nonnegative().nullable().default(null),
   /** Cosmetics they wear (hat, hair, glasses, clothes), drawn on their character. */

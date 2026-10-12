@@ -23,7 +23,7 @@ const source: PuzzleSource = { pickRandom: async () => puzzle, pricesFor: async 
 const profile = async (userId: string): Promise<PlayerProfile> => ({ nickname: `n-${userId}`, avatarKey: 'a', level: 1, coins: 0 });
 
 /** Fake clock: timers fire only when the test says so. */
-function harness(rules?: () => Promise<MatchRules>) {
+function harness(rules?: () => Promise<MatchRules>, onLeave?: NonNullable<ConstructorParameters<typeof MatchService>[0]['onLeave']>) {
   let t = 1_000_000;
   const timers: { at: number; fn: () => void; live: boolean }[] = [];
   const sent: { to: string; event: string; payload: unknown }[] = [];
@@ -31,6 +31,7 @@ function harness(rules?: () => Promise<MatchRules>) {
     puzzles: source,
     profile,
     rules,
+    onLeave,
     emit: (to, event, payload) => sent.push({ to, event, payload }),
     now: () => t,
     newSeed: () => 5,
@@ -50,6 +51,18 @@ function harness(rules?: () => Promise<MatchRules>) {
   const last = (to: string, event: string) => sent.filter((s) => s.to === to && s.event === event).at(-1)?.payload;
   return { svc, sent, advance, last };
 }
+
+describe('MatchService, leave log', () => {
+  it('logs a leave of a running board with its kind, and never a leave after the match ended', async () => {
+    const seen: { userId: string; kind: string }[] = [];
+    const { svc } = harness(undefined, (i) => seen.push({ userId: i.userId, kind: i.kind }));
+    await svc.start('A', 'B');
+    expect(svc.leave('A', 'absent')).toEqual({ ok: true });
+    expect(seen).toEqual([{ userId: 'A', kind: 'absent' }]);
+    expect(svc.leave('B')).toEqual({ ok: false, error: 'NOT_IN_MATCH' }); // the match ended by A's forfeit; B is free
+    expect(seen).toHaveLength(1);
+  });
+});
 
 describe('MatchService, separate boards', () => {
   it('tells the rival only how many groups were found, never the cards, the guess or its result', async () => {
