@@ -331,6 +331,27 @@ export const puzzleTopics = mysqlTable('puzzle_topics', {
   isActive: boolean('is_active').notNull().default(true),
 });
 
+/** General four-choice questions, always filed under a topic (docs/logic/trivia.md). The four choices are columns, no JSON (D63). */
+export const triviaQuestions = mysqlTable(
+  'trivia_questions',
+  {
+    id: id(),
+    topicId: fk('topic_id'),
+    textFa: varchar('text_fa', { length: 300 }).notNull(),
+    optionA: varchar('option_a', { length: 80 }).notNull(),
+    optionB: varchar('option_b', { length: 80 }).notNull(),
+    optionC: varchar('option_c', { length: 80 }).notNull(),
+    optionD: varchar('option_d', { length: 80 }).notNull(),
+    /** 0-3: which of the four columns is right. */
+    correctIndex: tinyint('correct_index').notNull(),
+    explanationFa: varchar('explanation_fa', { length: 300 }).notNull().default(''),
+    ageTrack: mysqlEnum('age_track', AGE_TRACKS).notNull().default('adult'),
+    status: mysqlEnum('status', ['draft', 'approved', 'retired']).notNull().default('approved'),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ byTopic: index('trivia_topic_idx').on(table.topicId, table.status) }),
+);
+
 /** Free-text tags on a puzzle, for admin filters and search. One row per tag. */
 export const puzzleTags = mysqlTable(
   'puzzle_tags',

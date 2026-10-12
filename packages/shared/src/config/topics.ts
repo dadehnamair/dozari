@@ -16,3 +16,9 @@ export const DUEL_ROUNDS_DEFAULT = 3;
 export const TABLE_MIN_ROUNDS_DEFAULT = 3;
 /** Tags per puzzle (free-text, for filters and search). */
 export const PUZZLE_TAGS_MAX = 8;
+
+/** General four-choice questions (docs/logic/trivia.md): questions per game, the shortest question and the longest answer. */
+export const TRIVIA_QUESTIONS_PER_GAME = 8;
+export const TRIVIA_TEXT_MAX = 300;
+export const TRIVIA_OPTION_MAX = 80;
+export const TRIVIA_OPTION_COUNT = 4;

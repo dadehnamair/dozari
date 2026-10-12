@@ -277,5 +277,5 @@ Start after the first Android build.
 - [x] 3. Leave penalty, daily ban, monthly badge, reconnect grace — `docs/logic/leave-penalty.md` (migration 0081, `leave.*` settings)
 - [x] 4. Timeout shown differently but scored as wrong; win only by solved cards — separate-boards mode
 - [x] 5a. Four-option price questions (solo, duel, price-only) — `buildPriceOptions`
-- [ ] 5b. General four-option questions per topic (admin, standalone mode, duel round)
+- [x] 5b. General four-option questions per topic — admin tab, `/trivia/*`, mobile screen (`docs/logic/trivia.md`, migration 0083); a trivia round inside duels/tables is still open
 - [x] 6. Shop: shuffle opponent's cards, reveal a group — `docs/logic/shop-match-items.md` (migration 0082)

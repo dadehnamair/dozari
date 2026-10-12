@@ -66,6 +66,9 @@ topic_id null (themed-rounds.md), difficulty_score double null, times_played int
 ### `match_leaves`
 `id, user_id, match_id null, kind (manual|absent), left_at` — index (user_id, left_at); see `logic/leave-penalty.md`.
 
+### `trivia_questions`
+`id, topic_id, text_fa, option_a..d, correct_index 0-3, explanation_fa, age_track, status, created_at` — see `logic/trivia.md`.
+
 ### `puzzle_groups`
 `id, puzzle_id FK, level tinyint (0=yellow,1=green,2=blue,3=purple), title_fa null, explanation_fa null,
 rule_kind enum, rule_* columns` — exactly 4 per puzzle, unique `(puzzle_id, level)`.
