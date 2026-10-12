@@ -32,7 +32,11 @@ export function CityHub({ onClose, onEnter, features, dailyReady }: { onClose: (
   useHardwareBack(onClose);
   /** Adult look: the town at night (docs/design/adult/Dozari Adult - Login Home, «Adult Hub»). */
   const adult = useTheme() === 'adult';
-  const { width, height } = useWindowDimensions();
+  const win = useWindowDimensions();
+  /** The hub's real box: smaller than the window when a bar or inset covers part of it, so the last building is not cut off. */
+  const [box, setBox] = useState<{ width: number; height: number } | null>(null);
+  const width = box?.width ?? win.width;
+  const height = box?.height ?? win.height;
   const [sel, setSel] = useState<HubBuilding | null>(null);
   const slide = useRef(new Animated.Value(0)).current; // 0 = drawer hidden below the screen, 1 = raised
   const reduce = usePrefs().reduceMotion;
@@ -57,7 +61,7 @@ export function CityHub({ onClose, onEnter, features, dailyReady }: { onClose: (
   const t = fa.hub;
 
   return (
-    <View style={styles.root}>
+    <View style={styles.root} onLayout={(e) => { const { width: bw, height: bh } = e.nativeEvent.layout; setBox((o) => (o && o.width === bw && o.height === bh ? o : { width: bw, height: bh })); }}>
       {adult ? (
         <View style={StyleSheet.absoluteFill}><GradientFill from="#0A0712" to="#2A1A10" mid={{ at: 0.35, color: '#1E140E' }} /></View>
       ) : (
