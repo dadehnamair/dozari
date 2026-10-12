@@ -242,7 +242,7 @@ tr.click { cursor:pointer; }
 .pz-groups { display:grid; gap:8px; }
 .pz-group { border-inline-start:6px solid var(--lv); background:var(--card2); border-radius:10px; padding:8px 10px; display:grid; gap:6px; }
 .pz-group input { font-weight:700; padding:5px 10px; }
-.pz-items { display:flex; flex-wrap:wrap; gap:5px; } .pz-item { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:1px 9px; font-size:13px; }
+.pz-items { display:flex; flex-wrap:wrap; gap:5px; } .pz-item { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:1px 9px; font-size:13px; color:inherit; font-family:inherit; cursor:pointer; } button.pz-item:hover { border-color:var(--accent, currentColor); }
 .bd { display:grid; grid-template-columns:minmax(0,1fr) 320px; gap:16px; align-items:start; }
 .bd-groups { display:grid; gap:12px; }
 .bd-group { background:var(--card); border:2px solid var(--line); border-top:6px solid var(--lv); border-radius:var(--r); padding:12px; display:grid; gap:8px; cursor:pointer; }

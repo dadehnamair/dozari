@@ -280,7 +280,6 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'puzzles.autofill_enabled', group: 'gameplay', label: 'پر کردن خودکار استخر پازل روشن باشد', hint: 'کار زمان‌بندی‌شده پازل تازه از کالاهای کاتالوگ می‌سازد', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'puzzles.autofill_target', group: 'gameplay', label: 'تعداد پازل آماده در استخر', hint: 'پیش‌نویس‌های منتظر تأیید (یا پازل‌های تأییدشده، اگر تأیید خودکار روشن است) تا این عدد پر می‌شود', kind: 'int', min: 1, max: 200, default: 30 },
   { key: 'puzzles.autofill_check_minutes', group: 'gameplay', label: 'هر چند دقیقه استخر پازل بررسی شود', kind: 'int', min: 5, max: 1440, default: 60, unit: 'دقیقه' },
-  { key: 'puzzles.autofill_auto_approve', group: 'gameplay', label: 'پازل‌های ساخته‌شده بدون بازبینی انسان منتشر شوند', hint: 'خاموش (پیشنهادی): فقط پیش‌نویس می‌شود و ادمین عنوان می‌نویسد؛ روشن: با عنوانِ ساده‌ی قانون منتشر می‌شود', kind: 'bool', min: 0, max: 1, default: 0 },
   { key: 'bots.enabled', group: 'bot', label: 'بازیکن‌های ربات (بازی‌کننده‌ی طبیعی) فعال باشند', hint: 'اگر خاموش باشد کسی با ربات جفت نمی‌شود', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'bots.fallback_seconds', group: 'bot', label: 'بعد از چند ثانیه انتظار در صف، حریف ربات پیدا شود', kind: 'int', min: 3, max: 300, default: 8, unit: 'ثانیه' },
   { key: 'bots.fallback_jitter_seconds', group: 'bot', label: 'تأخیر تصادفی اضافه برای طبیعی‌شدن', kind: 'int', min: 0, max: 120, default: 4, unit: 'ثانیه' },

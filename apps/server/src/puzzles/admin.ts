@@ -24,7 +24,7 @@ export interface PuzzleAdminRow {
   /** Topic (موضوع) it is filed under for themed rounds, and its free-text tags. */
   topicId: string | null;
   tags: string[];
-  groups: { level: number; titleFa: string | null; items: string[] }[];
+  groups: { level: number; titleFa: string | null; items: string[]; /** Product ids, parallel to `items`. */ productIds: string[] }[];
 }
 
 export interface TopicRow {
@@ -73,6 +73,8 @@ export interface Readiness {
   productsPerPuzzle: number;
 }
 
+export type SwapResult = { ok: true; status: PuzzleAdminRow['status'] } | { ok: false; error: 'not_found' | 'not_in_puzzle' | 'same_product' | 'unknown_product' | 'duplicate_product' | 'item_track' };
+
 export type CreateResult = { ok: true; id: string } | { ok: false; error: 'shape' | 'duplicate_product' | 'unknown_product' | 'item_track' };
 
 /** Shape rules of a hand-built puzzle: 4 groups with levels 0–3 once each, 4 products each, 16 distinct products overall. */
@@ -84,12 +86,14 @@ export function checkShape(groups: readonly NewGroup[]): 'ok' | 'shape' | 'dupli
   return new Set(all).size === all.length ? 'ok' : 'duplicate_product';
 }
 
-/** I/O boundary of the admin's puzzle builder: hand-made (`curated`) puzzles go live as `approved` at once, the admin being the human check. */
+/** I/O boundary of the admin's puzzle builder: hand-made (`curated`) puzzles go live as `approved` at once, the admin being the human check. Machine-made ones (generator, AI) are only ever `draft` until a human approves. */
 export interface PuzzleAdmin {
   list(limit: number): Promise<PuzzleAdminRow[]>;
   readiness(): Promise<Readiness>;
   /** `ageTrack` (default adult): a kid or teen puzzle may only hold items of its own track or younger (`item_track` otherwise). */
   create(groups: NewGroup[], tierId?: string | null, ageTrack?: AgeTrack, status?: 'approved' | 'draft'): Promise<CreateResult>;
+  /** Replaces one product of a puzzle by another (same group, same slot); the puzzle keeps its status (the admin editing it is the human check). */
+  swapProduct(puzzleId: string, fromProductId: string, toProductId: string): Promise<SwapResult>;
   /** The difficulty tiers, easiest first; a fresh install gets `DEFAULT_PUZZLE_TIERS`. */
   tiers(): Promise<PuzzleTier[]>;
   saveTier(tier: TierInput): Promise<SaveTierResult>;
@@ -158,7 +162,7 @@ export function createDbPuzzleAdmin(db: Db): PuzzleAdmin {
       const ids = rows.map((r) => r.id);
       const groups = await db.select().from(puzzleGroups).where(inArray(puzzleGroups.puzzleId, ids));
       const items = await db
-        .select({ groupId: puzzleGroupItems.groupId, name: products.nameFa })
+        .select({ groupId: puzzleGroupItems.groupId, productId: puzzleGroupItems.productId, name: products.nameFa })
         .from(puzzleGroupItems)
         .innerJoin(products, eq(products.id, puzzleGroupItems.productId))
         .where(inArray(puzzleGroupItems.puzzleId, ids));
@@ -175,7 +179,7 @@ export function createDbPuzzleAdmin(db: Db): PuzzleAdmin {
         groups: groups
           .filter((g) => g.puzzleId === r.id)
           .sort((a, b) => a.level - b.level)
-          .map((g) => ({ level: g.level, titleFa: g.titleFa, items: items.filter((i) => i.groupId === g.id).map((i) => i.name) })),
+          .map((g) => ({ level: g.level, titleFa: g.titleFa, items: items.filter((i) => i.groupId === g.id).map((i) => i.name), productIds: items.filter((i) => i.groupId === g.id).map((i) => i.productId) })),
       }));
     },
     async readiness() {
@@ -207,6 +211,20 @@ export function createDbPuzzleAdmin(db: Db): PuzzleAdmin {
         }
         return { ok: true as const, id: puzzle.id };
       });
+    },
+    async swapProduct(puzzleId, fromProductId, toProductId) {
+      if (fromProductId === toProductId) return { ok: false, error: 'same_product' };
+      const [puzzle] = await db.select({ id: puzzles.id, status: puzzles.status, ageTrack: puzzles.ageTrack }).from(puzzles).where(eq(puzzles.id, puzzleId));
+      if (!puzzle) return { ok: false, error: 'not_found' };
+      const inPuzzle = await db.select({ productId: puzzleGroupItems.productId }).from(puzzleGroupItems).where(eq(puzzleGroupItems.puzzleId, puzzleId));
+      if (!inPuzzle.some((i) => i.productId === fromProductId)) return { ok: false, error: 'not_in_puzzle' };
+      if (inPuzzle.some((i) => i.productId === toProductId)) return { ok: false, error: 'duplicate_product' };
+      const [next] = await db.select({ ageTrack: products.ageTrack }).from(products).where(eq(products.id, toProductId));
+      if (!next) return { ok: false, error: 'unknown_product' };
+      if (trackRank(next.ageTrack) > trackRank(puzzle.ageTrack)) return { ok: false, error: 'item_track' };
+      // The year hint belonged to the old product, so it goes with it.
+      await db.update(puzzleGroupItems).set({ productId: toProductId, displayYear: null }).where(and(eq(puzzleGroupItems.puzzleId, puzzleId), eq(puzzleGroupItems.productId, fromProductId)));
+      return { ok: true, status: puzzle.status };
     },
     async generate(count, rng, opts = {}) {
       const rows = await db
@@ -391,8 +409,22 @@ export function createMemoryPuzzleAdmin(known: Set<string>, catalog: Catalog = [
       if (shape !== 'ok') return { ok: false, error: shape };
       if (groups.some((g) => g.productIds.some((id) => !known.has(id)))) return { ok: false, error: 'unknown_product' };
       const id = `00000000-0000-7000-9000-${String(rows.length + 1).padStart(12, "0")}`;
-      rows.unshift({ id, status, source: 'curated', createdAt: 0, tierId: tierId ?? null, ageTrack, topicId: null, tags: [], groups: groups.map((g) => ({ level: g.level, titleFa: g.titleFa, items: g.productIds })) });
+      rows.unshift({ id, status, source: 'curated', createdAt: 0, tierId: tierId ?? null, ageTrack, topicId: null, tags: [], groups: groups.map((g) => ({ level: g.level, titleFa: g.titleFa, items: g.productIds, productIds: g.productIds })) });
       return { ok: true, id };
+    },
+    async swapProduct(puzzleId, fromProductId, toProductId) {
+      const r = rows.find((x) => x.id === puzzleId);
+      if (!r) return { ok: false, error: 'not_found' };
+      if (fromProductId === toProductId) return { ok: false, error: 'same_product' };
+      const all = r.groups.flatMap((g) => g.productIds);
+      if (!all.includes(fromProductId)) return { ok: false, error: 'not_in_puzzle' };
+      if (all.includes(toProductId)) return { ok: false, error: 'duplicate_product' };
+      if (!known.has(toProductId)) return { ok: false, error: 'unknown_product' };
+      for (const g of r.groups) {
+        g.productIds = g.productIds.map((id) => (id === fromProductId ? toProductId : id));
+        g.items = g.items.map((id) => (id === fromProductId ? toProductId : id));
+      }
+      return { ok: true, status: r.status };
     },
     async generate(count, rng, opts = {}) {
       const made = makePuzzles(catalog, count, rng, await this.tiers(), opts.tierId);
@@ -400,7 +432,7 @@ export function createMemoryPuzzleAdmin(known: Set<string>, catalog: Catalog = [
       for (const { puzzle: g, tierId } of made) {
         const id = `00000000-0000-7000-9000-${String(rows.length + 1).padStart(12, '0')}`;
         ids.push(id);
-        rows.unshift({ id, status: 'draft', source: 'generated', createdAt: 0, tierId, ageTrack: 'adult', topicId: null, tags: [], groups: g.groups.map((x) => ({ level: x.level, titleFa: opts.plainTitles ? explainRule(x.rule) : draftTitle(x.rule, rng), items: [...x.productIds] })) });
+        rows.unshift({ id, status: 'draft', source: 'generated', createdAt: 0, tierId, ageTrack: 'adult', topicId: null, tags: [], groups: g.groups.map((x) => ({ level: x.level, titleFa: opts.plainTitles ? explainRule(x.rule) : draftTitle(x.rule, rng), items: [...x.productIds], productIds: [...x.productIds] })) });
       }
       return { requested: count, created: made.length, catalogSize: catalog.length, ids };
     },

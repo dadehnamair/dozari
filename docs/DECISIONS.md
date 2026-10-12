@@ -359,7 +359,7 @@ Built the team flow of `logic/game-rules.md` §2v2: captain rotates every turn (
 
 ## D141 — Scheduled puzzle-pool top-up (2026-10-02, proposed)
 
-A timer keeps the puzzle pool at a target (default 30) using the D131 generator. Proposed default: it only fills the **draft** backlog so the admin still writes real titles and approves (the spec's "never auto-publish an un-reviewed title"); a setting `puzzles.autofill_auto_approve` lets the owner switch to publishing straight away with the rule text as title when the solo pool runs dry. Details: `logic/puzzle-generation.md` §Scheduled pool top-up.
+A timer keeps the puzzle pool at a target (default 30) using the D131 generator. Proposed default: it only fills the **draft** backlog so the admin still writes real titles and approves (the spec's "never auto-publish an un-reviewed title"); (the auto-approve switch was removed by D227). Details: `logic/puzzle-generation.md` §Scheduled pool top-up.
 
 ## D142 — 2v2 private tables (2026-10-02, proposed)
 
@@ -741,3 +741,7 @@ Owner (2026-10-11): a tournament must last hours or days, not two minutes. The s
 ## D226 — Topics, tags and themed rounds; duel/table overhaul (2026-10-12, proposed)
 
 Owner (2026-10-12) asked for: leave penalties with a monthly badge and reconnect grace, timeout shown differently but scored as wrong, hidden opponent solutions (count only), face-down cards off-turn, four-option price and general questions, puzzle topics/tags with themed rounds (≥3 rounds, alternate topic picks, last round of an odd count chosen by the system), and two shop items (shuffle opponent cards, reveal a group). Chosen: separate boards per side, turn-based; general questions as their own round beside the price round; milder penalty numbers (grace 90 s, 4 leaves in a day = day ban, 8 in 30 days = badge). Delivered in six slices; spec `docs/logic/themed-rounds.md`.
+
+## D227 — Machine-made puzzles never go live unapproved; admin filters and quick swap (2026-10-12, proposed)
+
+Owner (2026-10-12): in the admin panel (1) AI/auto-made puzzles are never published without approval, (2) puzzle lists filter by age track, group, tag and level, (3) a product in a puzzle can be swapped quickly. Hand-built and admin-edited puzzles still go live directly. Proposed: the pool top-up always makes drafts and the `puzzles.autofill_auto_approve` setting is removed (AI studio already saves drafts); «group» = topic, «level» = tier; a swap keeps the puzzle's status. Details: `logic/puzzle-generation.md` §Admin puzzle list.
