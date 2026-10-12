@@ -19,5 +19,11 @@ Proposed defaults; numbers live in `packages/shared/src/config/topics.ts`.
 - Each pick is one of the open topics or `random`. A topic closes once used and never returns in that match (`openTopics`, `resolveTopicPick`). Server draws with the injected RNG.
 - Existing tables keep working: the topic step is skipped until slice 1's server/mobile part lands (`TABLE_ROUNDS_MIN/MAX` in `config/tables.ts` still 1–3 until then; raise to the new minimum together with the server step).
 
+## Slice 2 — separate boards (built)
+- Rules flag `separateBoards` (admin setting `match.separate_boards`, default on; games already running keep their mode). Off = the old shared board.
+- Each side has its own copy of the 16 cards in its own order and its own found groups / tried sets / mistakes (`MatchState.sep`). Turns still alternate; a correct guess keeps the turn. A side that finds three groups gets the fourth (the cards left) and takes the board: first to all four wins it (`boardsWon`). Both locked out → more groups, then fewer mistakes, else nobody. The match goes to the side with more boards won (tie → points, mistakes, earlier last correct guess).
+- The rival never sees a card, a guess, its result or a solved group: the snapshot has `found: [n, n]` (of 4) and the event `found {side,count}`; the service drops `guess` / `group_solved` towards the other side. Snapshot `scores` = boards won in this mode.
+- Mobile: while it is not your turn the cards flip onto their backs (flip back on your turn); a line shows «حریفت N از ۴ دسته رو پیدا کرده» (hot colour at 3). Spectators see side 0's board.
+
 ## Open for later slices
 Penalty numbers (grace 90 s, 4 leaves/day = ban, 8 in 30 days = badge) are in slice 3's section when it lands.

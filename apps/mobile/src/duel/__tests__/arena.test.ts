@@ -41,6 +41,8 @@ describe('arena helpers', () => {
   it('counts groups per side and moves the tug bar 12.5% per group', () => {
     const v = view([0, 1, 0, null]);
     expect([groupsBy(v, 0), groupsBy(v, 1)]).toEqual([2, 1]);
+    // Separate boards: the rival's solutions never arrive, only the count.
+    expect([groupsBy({ ...v, solved: [], found: [0, 3] }, 0), groupsBy({ ...v, solved: [], found: [0, 3] }, 1)]).toEqual([0, 3]);
     expect(tugPercent(2, 1)).toBe(62.5);
     expect(tugPercent(0, 0)).toBe(50);
     expect(tugPercent(4, 0)).toBe(100);

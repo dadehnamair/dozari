@@ -543,11 +543,13 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
               onChat={taunts.length > 0 ? () => setChatOpen((v) => !v) : undefined}
               chatOpen={chatOpen}
               chatCooling={cool > 0}
+              ofLabel={view.found ? a.boardsWon : undefined}
             />
             {myBubble ? <View style={[styles.bubble, { [EDGE_RIGHT]: 4 }]}><SpeechBubble text={myBubble} mine /></View> : null}
             {state.taunt ? <View style={[styles.bubble, { [EDGE_LEFT]: 4 }]}><SpeechBubble text={state.taunt.text} mine={false} /></View> : null}
           </View>
 
+          {view.found && playing ? <Text style={[styles.rivalFound, view.found[them] >= 3 ? styles.rivalFoundHot : null]}>{view.found[them] > 0 ? a.rivalFound(view.found[them]) : a.rivalFoundNone}</Text> : null}
           <View style={styles.turnRow}>
             <View style={[styles.turn, mine ? styles.turnMine : null]}><Text style={[styles.turnText, mine ? styles.turnTextMine : null]}>{turnText}</Text></View>
             {/* Toasts cover the turn pill for a moment instead of reserving a row of their own (no empty gap above the board). */}
@@ -555,7 +557,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
           </View>
 
           <View style={styles.boardPanel}>
-            <Board solved={state.finale ? (finaleLast ? [...state.finale.solved, state.finale.last] : state.finale.solved) : boardSolved(view)} cards={state.finale ? (finaleLast ? [] : state.finale.cards) : arrange(view.cards, order)} names={state.names} selected={state.finale ? finaleSel : selected} onToggle={(id) => setSelected((s) => toggleSelection(s, id))} disabled={!playing || !mine || !!state.finale || frozenMe} muted={playing && !mine && !state.finale} hinted={state.peek?.ids ?? []} verdict={state.verdict} />
+            <Board solved={state.finale ? (finaleLast ? [...state.finale.solved, state.finale.last] : state.finale.solved) : boardSolved(view)} cards={state.finale ? (finaleLast ? [] : state.finale.cards) : arrange(view.cards, order)} names={state.names} selected={state.finale ? finaleSel : selected} onToggle={(id) => setSelected((s) => toggleSelection(s, id))} disabled={!playing || !mine || !!state.finale || frozenMe} muted={playing && !mine && !state.finale && !view.found} faceDown={!!view.found && playing && !mine && !state.finale} hinted={state.peek?.ids ?? []} verdict={state.verdict} />
             {state.flash === 'one_away' ? <View style={styles.nearMiss} pointerEvents="none"><NearMissPill /></View> : null}
           </View>
 
@@ -635,6 +637,8 @@ const styles = StyleSheet.create({
   clockText: { fontFamily: fonts.display, fontSize: 26, lineHeight: 36, color: colors.ink },
   mode: { height: 40, paddingHorizontal: 12, borderRadius: 13, backgroundColor: 'rgba(26,8,44,0.8)', borderWidth: 2, borderColor: colors.candy.yellow, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
   modeText: { fontFamily: fonts.display, fontSize: 17, color: colors.candy.yellow },
+  rivalFound: { textAlign: 'center', fontFamily: fonts.bold, fontSize: 13, lineHeight: 20, color: 'rgba(255,246,232,0.85)', marginBottom: 4 },
+  rivalFoundHot: { color: colors.candy.yellow, fontFamily: fonts.display },
   turnRow: { alignItems: 'center', justifyContent: 'center' },
   toastOver: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', zIndex: 5 },
   turn: { paddingHorizontal: 18, paddingVertical: 4, borderRadius: 99, backgroundColor: colors.candy.pink, borderWidth: 3, borderColor: colors.ink },
