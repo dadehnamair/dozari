@@ -922,6 +922,16 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       void audit('puzzle.titles', p.data.id);
       return { ok: true };
     });
+    // Quick swap of one product of a puzzle for another; a live puzzle goes back to draft and needs approval again.
+    g.put('/admin/puzzles/:id/swap', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object({ fromProductId: z.string().uuid(), toProductId: z.string().uuid() }).safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await puzzles.swapProduct(p.data.id, b.data.fromProductId, b.data.toProductId);
+      if (!out.ok) return reply.code(out.error === 'not_found' || out.error === 'unknown_product' ? 404 : 400).send({ error: out.error });
+      void audit('puzzle.swap', p.data.id, `${b.data.fromProductId}>${b.data.toProductId}`);
+      return { ok: true, status: out.status };
+    });
     g.patch('/admin/puzzles/:id', async (req, reply) => {
       const p = idParam.safeParse(req.params);
       const b = z.object({ status: z.enum(['approved', 'retired']) }).safeParse(req.body);

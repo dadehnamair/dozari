@@ -24,8 +24,10 @@ function richCatalog(): CatalogProduct[] {
   });
 }
 
+const fresh = '00000000-0000-7000-8000-000000000099';
+
 function boot(catalog: CatalogProduct[] = []) {
-  const puzzles = createMemoryPuzzleAdmin(new Set([...ids, ...catalog.map((p) => p.id)]), catalog);
+  const puzzles = createMemoryPuzzleAdmin(new Set([...ids, fresh, ...catalog.map((p) => p.id)]), catalog);
   const audit = createMemoryAuditLog();
   const app = buildServer({
     admin: { repo: { listCatalog: async () => [], setPriceStatus: async () => 'ok' }, token: TOKEN },
@@ -45,14 +47,46 @@ describe('hand-built puzzles in the admin panel', () => {
     expect(checkShape(sameLevel)).toBe('shape');
   });
 
+  it('saves a hand-built puzzle as a draft: it is not playable until approved, and a swap sends a live one back to draft', async () => {
+    const { app, h } = boot();
+    const id = (await app.inject({ method: 'POST', url: '/admin/puzzles', headers: h, payload: { groups: groupsOf(ids) } })).json().id as string;
+    const get = async () => (await app.inject({ method: 'GET', url: '/admin/puzzles', headers: h })).json();
+    expect((await get()).puzzles[0]).toMatchObject({ id, status: 'draft' });
+    expect((await get()).readiness.approvedPuzzles).toBe(0);
+    await app.inject({ method: 'PATCH', url: `/admin/puzzles/${id}`, headers: h, payload: { status: 'approved' } });
+    expect((await get()).readiness.approvedPuzzles).toBe(1);
+    const swap = (from: string, to: string) => app.inject({ method: 'PUT', url: `/admin/puzzles/${id}/swap`, headers: h, payload: { fromProductId: from, toProductId: to } });
+    // A product already in the puzzle, one that is not in it, and an unknown one are refused.
+    expect((await swap(ids[0]!, ids[1]!)).json()).toEqual({ error: 'duplicate_product' });
+    expect((await swap('00000000-0000-7000-8000-0000000000aa', ids[0]!)).json()).toEqual({ error: 'not_in_puzzle' });
+    expect((await swap(ids[0]!, ids[0]!)).json()).toEqual({ error: 'same_product' });
+    expect((await swap(ids[0]!, '00000000-0000-7000-8000-0000000000bb')).statusCode).toBe(404);
+    expect((await get()).puzzles[0].status).toBe('approved');
+    // Swap in a new product: the live puzzle waits for approval again.
+    const out = await swap(ids[0]!, fresh);
+    expect(out.json()).toEqual({ ok: true, status: 'draft' });
+    expect((await get()).puzzles[0]).toMatchObject({ status: 'draft' });
+  });
+
+  it('swaps a product in place and sends a live puzzle back to draft', async () => {
+    const puzzles = createMemoryPuzzleAdmin(new Set([...ids, fresh]));
+    const made = await puzzles.create(groupsOf(ids), null, 'adult', 'approved');
+    if (!made.ok) throw new Error('create failed');
+    expect(await puzzles.swapProduct(made.id, ids[5]!, fresh)).toEqual({ ok: true, status: 'draft' });
+    const row = (await puzzles.list(10))[0]!;
+    expect(row.groups[1]!.productIds).toEqual([ids[4], fresh, ids[6], ids[7]]);
+  });
+
   it('creates a playable puzzle, lists it with readiness, retires and re-approves it', async () => {
     const { app, h } = boot();
     const made = await app.inject({ method: 'POST', url: '/admin/puzzles', headers: h, payload: { groups: groupsOf(ids) } });
     expect(made.statusCode).toBe(201);
     const id = made.json().id as string;
     const list = (await app.inject({ method: 'GET', url: '/admin/puzzles', headers: h })).json();
-    expect(list.readiness).toMatchObject({ products: 16, approvedPuzzles: 1, productsPerPuzzle: 16 });
-    expect(list.puzzles[0]).toMatchObject({ id, status: 'approved', source: 'curated' });
+    expect(list.readiness).toMatchObject({ products: 17, approvedPuzzles: 0, productsPerPuzzle: 16 });
+    expect(list.puzzles[0]).toMatchObject({ id, status: 'draft', source: 'curated' });
+    await app.inject({ method: 'PATCH', url: `/admin/puzzles/${id}`, headers: h, payload: { status: 'approved' } });
+    expect((await app.inject({ method: 'GET', url: '/admin/puzzles', headers: h })).json().readiness.approvedPuzzles).toBe(1);
     expect((await app.inject({ method: 'PATCH', url: `/admin/puzzles/${id}`, headers: h, payload: { status: 'retired' } })).statusCode).toBe(200);
     expect((await app.inject({ method: 'GET', url: '/admin/puzzles', headers: h })).json().readiness.approvedPuzzles).toBe(0);
   });
@@ -167,6 +201,7 @@ describe('puzzle topics and tags in the admin panel', () => {
 
     const made = await app.inject({ method: 'POST', url: '/admin/puzzles', headers: h, payload: { groups: groupsOf(ids) } });
     const puzzleId = (made.json() as { id: string }).id;
+    await app.inject({ method: 'PATCH', url: `/admin/puzzles/${puzzleId}`, headers: h, payload: { status: 'approved' } });
     // Tags are chosen from the defined list only.
     const typed = await app.inject({ method: 'PUT', url: `/admin/puzzles/${puzzleId}/topic`, headers: h, payload: { topicId, tags: ['nostalgia'] } });
     expect(typed.statusCode).toBe(400);

@@ -136,7 +136,7 @@ human-approval requirement above. Track candidate titles + which was chosen in
 Until the generator exists, the fastest way to get playable puzzles is the admin page «ساخت پازل» (`/admin/puzzles`, permission `content`):
 the admin picks **16 distinct catalog products**, splits them into **4 groups of 4** (levels 0–3 once each: yellow, green, blue, purple) and writes
 each group's witty title and plain explanation. The puzzle is saved `source: curated`, groups `rule_kind: curated` (no rule is machine-checked,
-the admin is the human check) and goes live as `approved` at once; it can be retired and re-activated. The page also shows the catalog's
+the admin is the human check) and is saved as `draft`: **no puzzle goes live without an explicit approval** (`PATCH /admin/puzzles/:id {status:'approved'}`, D227); an active puzzle can be retired and re-activated. The page also shows the catalog's
 readiness: products in the catalog, products with ≥ `MIN_PRICE_POINTS_PER_PRODUCT` approved prices, approved puzzles. Prices are not needed to
 *play* a puzzle, but the price-guess round and the result chart need approved prices for its products.
 
@@ -144,8 +144,7 @@ readiness: products in the catalog, products with ≥ `MIN_PRICE_POINTS_PER_PROD
 
 `puzzles/pool.ts`: every `puzzles.autofill_check_minutes` (default 60, first look 45 s after boot; `PUZZLE_SCHEDULER=off` disables it) the server counts
 the pool and, when it is below `puzzles.autofill_target` (default 30), generates the gap (at most 20 per run) with the injected RNG. Pool = the **drafts
-waiting for a human** by default (`puzzles.autofill_auto_approve` = 0: titles are never auto-published); with auto-approve on, pool = live puzzles and the new
-ones are approved at once with the plain-Persian rule as title. `puzzles.autofill_enabled` pauses it. All four are admin settings (group «گیم‌پلی»).
+waiting for a human**, always (the former `puzzles.autofill_auto_approve` switch was removed in D227). `puzzles.autofill_enabled` pauses it. The remaining three are admin settings (group «گیم‌پلی»).
 
 ## Generator + admin panel (D131)
 
@@ -178,7 +177,14 @@ Variety: not only "the price was X in year Y". The generator also builds `same_p
 Admin «ساخت خودکار» (`POST /admin/puzzles/generate {count, tierId?}`): with a tier it makes every puzzle for that tier's level range (`representativeLevel`),
 without one it goes through all tiers in turn, so the pool covers every level. Each draft is tagged with its tier. Draft titles are
 `draftTitle(rule)` = a varied opening line + the plain rule (several templates per kind), still drafts for a human to polish; the explanation is the plain rule.
-With pool auto-approve on, the title stays the plain rule (no un-reviewed AI wording goes live).
+
+## Admin puzzle list: filters and quick product swap (D227)
+
+The puzzle tabs filter by age track, group (= topic, `topicId`), tag and level (= tier), all client-side over `GET /admin/puzzles`.
+Clicking a product on a puzzle card opens a search of replacements → `PUT /admin/puzzles/:id/swap {fromProductId, toProductId}`: same group and slot;
+refused (400) when the new product is already in the puzzle (`duplicate_product`), is the same (`same_product`), is not in the puzzle (`not_in_puzzle`) or is
+above the puzzle's age track (`item_track`); 404 for an unknown product. The item's year hint is cleared. A swap on an `approved` puzzle sends it back to `draft` (re-approval needed);
+curated groups are not machine-checked, so the editor is the check for the new product.
 
 ## AI-made puzzles on a schedule (D211)
 

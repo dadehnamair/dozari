@@ -23,29 +23,21 @@ const boot = (catalog = richCatalog()) => createMemoryPuzzleAdmin(new Set(catalo
 describe('topUpPuzzlePool', () => {
   it('fills the draft backlog up to the target and then stops', async () => {
     const admin = boot();
-    const first = await topUpPuzzlePool(admin, { enabled: true, target: 3, autoApprove: false }, mulberry32(1));
-    expect(first).toMatchObject({ have: 0, created: 3, approved: 0 });
+    const first = await topUpPuzzlePool(admin, { enabled: true, target: 3 }, mulberry32(1));
+    expect(first).toMatchObject({ have: 0, created: 3 });
     expect(await admin.counts()).toEqual({ draft: 3, approved: 0 });
-    expect(await topUpPuzzlePool(admin, { enabled: true, target: 3, autoApprove: false }, mulberry32(2))).toEqual({ have: 3, created: 0, approved: 0 });
-    expect((await topUpPuzzlePool(admin, { enabled: true, target: 5, autoApprove: false }, mulberry32(3))).created).toBe(2);
+    expect(await topUpPuzzlePool(admin, { enabled: true, target: 3 }, mulberry32(2))).toEqual({ have: 3, created: 0 });
+    expect((await topUpPuzzlePool(admin, { enabled: true, target: 5 }, mulberry32(3))).created).toBe(2);
   });
 
   it('does nothing when off, and nothing when the catalog is too small', async () => {
-    expect(await topUpPuzzlePool(boot(), { enabled: false, target: 3, autoApprove: false }, mulberry32(1))).toMatchObject({ created: 0 });
-    expect(await topUpPuzzlePool(boot([]), { enabled: true, target: 3, autoApprove: false }, mulberry32(1))).toMatchObject({ created: 0 });
-  });
-
-  it('publishes straight away only when auto-approve is on, and counts live puzzles then', async () => {
-    const admin = boot();
-    const out = await topUpPuzzlePool(admin, { enabled: true, target: 2, autoApprove: true }, mulberry32(1));
-    expect(out).toMatchObject({ created: 2, approved: 2 });
-    expect(await admin.counts()).toEqual({ draft: 0, approved: 2 });
-    expect((await topUpPuzzlePool(admin, { enabled: true, target: 2, autoApprove: true }, mulberry32(2))).created).toBe(0);
+    expect(await topUpPuzzlePool(boot(), { enabled: false, target: 3 }, mulberry32(1))).toMatchObject({ created: 0 });
+    expect(await topUpPuzzlePool(boot([]), { enabled: true, target: 3 }, mulberry32(1))).toMatchObject({ created: 0 });
   });
 
   it('the scheduler reads the settings, runs once after boot and re-arms with the setting', async () => {
     const admin = boot();
-    const values: Record<string, number> = { 'puzzles.autofill_enabled': 1, 'puzzles.autofill_target': 2, 'puzzles.autofill_check_minutes': 15, 'puzzles.autofill_auto_approve': 0 };
+    const values: Record<string, number> = { 'puzzles.autofill_enabled': 1, 'puzzles.autofill_target': 2, 'puzzles.autofill_check_minutes': 15 };
     const settings = { num: async (k: string) => values[k] } as unknown as SettingsService;
     const timers: { ms: number; fn: () => void }[] = [];
     const logs: string[] = [];
