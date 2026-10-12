@@ -19,6 +19,8 @@ date: 2026-10-06T10:15:56Z
 | kids/ Banners, adult/ Banner | apps/mobile/src/i18n/fa.ts (ageGroup, guardian) |
 | adult/ Login Home (home + hub) | apps/mobile/src/home/HomeScreen.tsx, apps/mobile/src/hub/layout.ts, buildings.ts |
 | adult/ UI Kit | apps/mobile/src/theme/icons.ts |
+| 13 Match Screens v2 (card faces, backs, 3D flip, motifs) | apps/mobile/src/components/Board.tsx, CardBack.tsx |
+| 14 Product Icons | apps/mobile/src/components/Item.tsx |
 
 ## Sync history
 - 2026-10-06T09:38:35Z — read i18n fa.ts; added age banners
