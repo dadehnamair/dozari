@@ -1,4 +1,4 @@
-export type Sfx = 'tap' | 'press' | 'back' | 'select' | 'deselect' | 'confirm' | 'correct' | 'oneAway' | 'wrong' | 'win' | 'lose' | 'coin' | 'gem' | 'combo' | 'heartbeat';
+export type Sfx = 'tap' | 'press' | 'back' | 'select' | 'deselect' | 'confirm' | 'correct' | 'oneAway' | 'wrong' | 'win' | 'lose' | 'coin' | 'gem' | 'combo' | 'heartbeat' | 'tick' | 'tickLast';
 
 /** [frequency Hz, start s, duration s] per note. Pure data so it can be tested. */
 export const SFX_NOTES: Record<Sfx, readonly (readonly [number, number, number])[]> = {
@@ -25,4 +25,7 @@ export const SFX_NOTES: Record<Sfx, readonly (readonly [number, number, number])
   combo: [[784, 0, 0.07], [988, 0.07, 0.07], [1319, 0.14, 0.18]],
   /** Two soft low thumps: lub-dub. */
   heartbeat: [[130, 0, 0.12], [110, 0.2, 0.16]],
+  /** The turn clock's last seconds: a sharp double click, then a higher, longer one on the very last. */
+  tick: [[1250, 0, 0.04], [950, 0.06, 0.05]],
+  tickLast: [[1500, 0, 0.05], [1500, 0.09, 0.05], [1100, 0.18, 0.12]],
 };

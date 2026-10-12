@@ -490,7 +490,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   const frozenMe = frozenMs > 0 && playing;
   const frozenRival = (view.frozenUntil?.[them] ?? 0) > now;
   const powerText = frozenMe ? fa.duel.power.frozenLeft(Math.ceil(frozenMs / 1000)) : state.powerNote ? fa.duel.power.notes[state.powerNote] ?? null : null;
-  const toast = leaveArmed ? a.leaveSure : noticeText ? noticeText : powerText ? powerText : state.boardNote ? a.nextBoard(state.boardNote.board, state.boardNote.of) : state.flash && state.flash !== 'one_away' ? fa.duel.feedback[state.flash] : null;
+  const toast = leaveArmed ? a.leaveSure : powerText ? powerText : state.boardNote ? a.nextBoard(state.boardNote.board, state.boardNote.of) : state.flash && state.flash !== 'one_away' ? fa.duel.feedback[state.flash] : null;
   /** The submit button lights up only when this player can really submit now: their side's turn, they are the captain, four cards are picked, no answer pending. */
   const canSend = playing && mine && captain && canSubmit(selected) && !sending && !state.finale && !frozenMe;
   /** The power-ups work on the player's own turn, for the captain, while no answer is pending. */
@@ -540,6 +540,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   return (
     <ArenaBackground>
       {playing ? <LeaveGuard onLeave={leave} /> : null}
+      <TickSound secs={secs} on={playing && mine && !state.finale} />
       <ScrollView contentContainerStyle={styles.screen}>
         <View style={styles.column}>
           <View style={styles.bar}>
@@ -552,7 +553,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
               )}
             </Pressable>
             <View style={styles.clockWrap}>
-              <Pulse on={secs <= 10 && playing && !prefs.reduceMotion}><View style={styles.clock} accessibilityLabel={`${turnText} ${fa.duel.seconds(secs)}`}>
+              <Pulse on={secs <= 10 && playing && !prefs.reduceMotion} fast={secs <= 3}><View style={styles.clock} accessibilityLabel={`${turnText} ${fa.duel.seconds(secs)}`}>
                 <GradientFill from={secs <= 10 ? '#FF8FB6' : '#FFE48A'} to={secs <= 10 ? colors.candy.pink : colors.candy.yellow} />
                 <View style={styles.clockIcon}><Item icon="hourglass" /></View>
                 <Text style={styles.clockText}>{toPersianDigits(clockText(secs))}</Text>
@@ -577,7 +578,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
 
           {view.found && playing ? <Text style={[styles.rivalFound, view.found[them] >= 3 ? styles.rivalFoundHot : null]}>{view.found[them] > 0 ? a.rivalFound(view.found[them]) : a.rivalFoundNone}</Text> : null}
           <View style={styles.turnRow}>
-            <View style={[styles.turn, mine ? styles.turnMine : null]}><Text style={[styles.turnText, mine ? styles.turnTextMine : null]}>{turnText}</Text></View>
+            <View style={[styles.turn, mine ? (team && !captain ? styles.turnMate : styles.turnMine) : null]}><Text style={[styles.turnText, mine ? styles.turnTextMine : null]}>{turnText}</Text></View>
             {/* Toasts cover the turn pill for a moment instead of reserving a row of their own (no empty gap above the board). */}
             {toast ? <View style={styles.toastOver} pointerEvents="none"><View style={styles.toast}><Text style={styles.toastText} numberOfLines={2}>{toast}</Text></View></View> : null}
           </View>
@@ -600,7 +601,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
             </View>
           ) : null}
 
-          {/* The same notice again right above the buttons: the one at the top of the board is out of sight when the player is down here. */}
+          {/* A refused action is said once, right above the buttons where the player's thumb is (not also over the turn pill). */}
           {noticeText ? <View style={styles.toastSlot}><View style={styles.toast}><Text style={styles.toastText} numberOfLines={2}>{noticeText}</Text></View></View> : null}
           <View style={styles.actions}>
             <SlabButton label={fa.solo.shuffle} color={colors.candy.sky} height={58} fontSize={20} onPress={() => setOrder(shuffled(view.cards.map((c) => c.id)))} disabled={!playing || !!state.finale} />
@@ -637,18 +638,28 @@ function PowerButton({ kind, count, enabled, onPress }: { kind: 'magnifier' | 'f
   );
 }
 
+/** The last three seconds of the player's own turn: a tick each second (higher on the last one) and a short buzz, for a little stress. */
+function TickSound({ secs, on }: { secs: number; on: boolean }) {
+  useEffect(() => {
+    if (!on || secs < 1 || secs > 3) return;
+    playSfx(secs === 1 ? 'tickLast' : 'tick');
+    buzz(secs === 1 ? 60 : 25);
+  }, [secs, on]);
+  return null;
+}
+
 /** Beats gently (1 → 1.1 → 1) while `on`: the turn clock in its last seconds. */
-function Pulse({ on, children }: { on: boolean; children: React.ReactNode }) {
+function Pulse({ on, fast = false, children }: { on: boolean; /** The last three seconds: a quicker, bigger beat. */ fast?: boolean; children: React.ReactNode }) {
   const v = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     if (!on) return v.setValue(1);
     const loop = Animated.loop(Animated.sequence([
-      Animated.timing(v, { toValue: 1.1, duration: 500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
-      Animated.timing(v, { toValue: 1, duration: 500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      Animated.timing(v, { toValue: fast ? 1.22 : 1.1, duration: fast ? 220 : 500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      Animated.timing(v, { toValue: 1, duration: fast ? 220 : 500, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
     ]));
     loop.start();
     return () => loop.stop();
-  }, [on, v]);
+  }, [on, fast, v]);
   return <Animated.View style={{ transform: [{ scale: v }] }}>{children}</Animated.View>;
 }
 
@@ -690,6 +701,8 @@ const styles = StyleSheet.create({
   toastOver: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', zIndex: 5 },
   turn: { paddingHorizontal: 18, paddingVertical: 4, borderRadius: 99, backgroundColor: colors.candy.pink, borderWidth: 3, borderColor: colors.ink },
   turnMine: { backgroundColor: colors.candy.lime, borderColor: colors.ink },
+  /** 2v2, the player's side is up but a teammate leads: blue, so it differs from both the player's own turn (green) and the rivals' (pink). */
+  turnMate: { backgroundColor: colors.candy.sky, borderColor: colors.ink },
   turnText: { fontFamily: fonts.display, fontSize: 16, lineHeight: 26, color: '#fff' },
   turnTextMine: { color: colors.ink },
   toastSlot: { minHeight: 34, alignItems: 'center', justifyContent: 'center' },
