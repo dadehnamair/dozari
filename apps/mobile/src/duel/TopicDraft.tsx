@@ -60,7 +60,7 @@ export function TopicDraft({ draft, now, onPick, onLeave }: { draft: DraftView; 
             {note ? <Text style={styles.error}>{note}</Text> : null}
           </View>
         ) : (
-          <Text style={styles.wait}>{draft.chooser === 'system' ? t.systemPicking : t.rivalPicking(draft.round + 1)} · {toPersianDigits(String(secs))}</Text>
+          <Text style={styles.wait}>{draft.chooser === 'system' ? t.systemPicking : draft.chooserName ? t.playerPicking(draft.chooserName, draft.round + 1) : t.rivalPicking(draft.round + 1)} · {toPersianDigits(String(secs))}</Text>
         )}
         <SlabButton label={fa.duel.leave} sfx="back" color={colors.candy.sky} height={50} fontSize={18} onPress={onLeave} />
       </ScrollView>

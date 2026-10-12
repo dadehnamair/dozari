@@ -173,6 +173,37 @@ describe('MatchService, topic draft', () => {
     expect(sent.some((x) => x.event === 'draft:state')).toBe(false);
     expect(svc.activeCount).toBe(1);
   });
+
+  it('in a 2v2 the four take turns naming a topic (A1, B1, A2, B2…), only the one whose turn it is may pick, then the team match starts', async () => {
+    const { svc, sent, draft } = draftHarness();
+    const all = ['a1', 'b1', 'a2', 'b2'];
+    expect(await svc.startTeam([['a1', 'a2'], ['b1', 'b2']], { boards: 4 })).toBe(true);
+    for (const u of all) expect(svc.inMatch(u)).toBe(true);
+    const order: string[] = [];
+    for (let round = 0; round < 4; round++) {
+      const v = draft('a1');
+      expect(v.status).toBe('picking');
+      const chooser = all.find((u) => draft(u).yourTurn)!;
+      expect(draft(chooser).chooserId).toBe(chooser);
+      expect(all.filter((u) => draft(u).yourTurn)).toHaveLength(1);
+      expect(draft(all.find((u) => u !== chooser)!).chooserName).toBeTruthy();
+      const partner = chooser.startsWith('a') ? (chooser === 'a1' ? 'a2' : 'a1') : chooser === 'b1' ? 'b2' : 'b1';
+      expect(svc.pickTopic(partner, topicList[round]!.id)).toEqual({ ok: false, error: 'NOT_YOUR_PICK' });
+      expect(svc.pickTopic(chooser, topicList[round]!.id)).toEqual({ ok: true });
+      order.push(chooser);
+      if (round < 3) await Promise.resolve();
+    }
+    await new Promise((r) => setTimeout(r, 5));
+    // sides alternate and inside a side the two members take their turns: x1, y1, x2, y2
+    expect(order[0]![0]).not.toBe(order[1]![0]);
+    expect(order[0]![0]).toBe(order[2]![0]);
+    expect(order[0]).not.toBe(order[2]);
+    expect(order[1]).not.toBe(order[3]);
+    expect(svc.activeCount).toBe(1);
+    const view = matchViewSchema.parse(sent.filter((x) => x.to === 'a2' && x.event === 'match:state').at(-1)?.payload);
+    expect(view.team).toBe(true);
+    expect(view.topics).toEqual(topicList.map((t) => t.nameFa));
+  });
 });
 
 describe('MatchService, bought items', () => {
