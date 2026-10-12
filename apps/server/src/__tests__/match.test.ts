@@ -52,6 +52,24 @@ function harness(rules?: () => Promise<MatchRules>, onLeave?: NonNullable<Constr
   return { svc, sent, advance, last };
 }
 
+describe('MatchService, timeouts with separate boards', () => {
+  it('tells only the side that ran out of time, costs it a mistake and does not give the rival a win', async () => {
+    const { svc, sent, last, advance } = harness(async () => ({ ...DEFAULT_MATCH_RULES, separateBoards: true }));
+    await svc.start('A', 'B');
+    const first = matchViewSchema.parse(last('A', 'match:state'));
+    const slow = first.turn === 0 ? 'A' : 'B';
+    const other = slow === 'A' ? 'B' : 'A';
+    sent.length = 0;
+    advance(TURN_SECONDS * 1000 + 1);
+    const events = (to: string) => sent.filter((x) => x.to === to && x.event === 'match:event').map((x) => (x.payload as { t: string }).t);
+    expect(events(slow)).toContain('timeout');
+    expect(events(other)).not.toContain('timeout');
+    const v = matchViewSchema.parse(last(other, 'match:state'));
+    expect(v.mistakes[first.turn]).toBe(1);
+    expect(v.status).toBe('playing');
+  });
+});
+
 describe('MatchService, leave log', () => {
   it('logs a leave of a running board with its kind, and never a leave after the match ended', async () => {
     const seen: { userId: string; kind: string }[] = [];

@@ -450,6 +450,18 @@ export function applyCommand(state: MatchState, cmd: Command, ctx: Ctx): ApplyRe
       events.push({ t: 'timeout', side });
       const count = state.timeouts[side] + 1;
       let next: MatchState = { ...state, timeouts: set(state.timeouts, side, count) };
+      if (state.sep) {
+        // Separate boards: running out of time costs the same as a wrong guess (a mistake, maybe the lock-out) but is told only to the
+        // side that timed out, and it can never hand the rival a win: a board is won only by finding its groups.
+        const mistakes = next.mistakes[side] + 1;
+        next = { ...next, mistakes: set(next.mistakes, side, mistakes) };
+        if (mistakes >= state.rules.maxMistakes) {
+          next = { ...next, lockedOut: set(next.lockedOut, side, true) };
+          events.push({ t: 'locked_out', side });
+          if (next.lockedOut[otherSide(side)]) return { state: endBoard(next, 'locked_out', ctx.now, events), events };
+        }
+        return { state: startTurn(next, nextTurn(next, side), ctx.now, events), events };
+      }
       if (count >= state.rules.maxTimeouts) return { state: forfeit(next, side, 'forfeit', events), events };
       next = startTurn(next, nextTurn(next, side), ctx.now, events);
       return { state: next, events };

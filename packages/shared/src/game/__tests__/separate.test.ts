@@ -94,3 +94,32 @@ describe('separate boards', () => {
     expect('error' in applyCommand(s, { t: 'submit', by: 'u1', itemIds: wrong(0) }, { now: 3000 })).toBe(false);
   });
 });
+
+describe('separate boards, timeouts', () => {
+  const timeout = (s: MatchState) => ok(s, { t: 'timeout', turnId: s.turnId });
+
+  it('two idle sides lock each other out; nobody forfeits and nobody wins the board', () => {
+    let s = start([A], 0);
+    for (let i = 0; i < 40 && s.status === 'playing'; i++) s = timeout(s).state;
+    expect(s.result).toEqual({ winner: null, reason: 'locked_out' });
+    expect(s.boardsWon).toEqual([0, 0]);
+  });
+
+  it('timeouts alone can lock a side out, and the other side then has to win by finding its groups', () => {
+    let s = start([A], 0);
+    for (let i = 0; i < 4 && !s.lockedOut[0]; i++) {
+      s = timeout(s).state; // side 0 times out
+      if (!s.lockedOut[0]) s = submit(s, 1, wrong(i)).state; // side 1 makes a wrong guess instead (turn passes back)
+    }
+    expect(s.lockedOut[0]).toBe(true);
+    expect(s.status).toBe('playing'); // side 1 is still in: nobody has won yet
+    expect(s.boardsWon).toEqual([0, 0]);
+  });
+
+  it('the timed-out side gets a timeout event, with the mistake in the count', () => {
+    const r = timeout(start([A], 0));
+    expect(r.events).toContainEqual({ t: 'timeout', side: 0 } satisfies MatchEvent);
+    expect(r.state.mistakes).toEqual([1, 0]);
+    expect(r.state.turn).toBe(1);
+  });
+});
