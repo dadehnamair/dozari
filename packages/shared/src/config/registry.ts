@@ -1,4 +1,4 @@
-import { DUEL_ROUNDS_DEFAULT, TABLE_MIN_ROUNDS_DEFAULT } from './topics.js';
+import { DUEL_ROUNDS_DEFAULT, TABLE_MIN_ROUNDS_DEFAULT, TRIVIA_QUESTIONS_PER_GAME } from './topics.js';
 import { LEAVE_BADGE_COUNT, LEAVE_BADGE_WINDOW_DAYS, LEAVE_DAY_BAN_COUNT, LEAVE_RECONNECT_GRACE_SECONDS } from './leave.js';
 import { LEVEL_REWARD_BASE_COINS, LEVEL_REWARD_EVERY } from './progression.js';
 import {
@@ -74,6 +74,8 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'app.min_build', group: 'app', label: 'کمترین نسخه‌ی مجاز اپ (شماره‌ی بیلد)', hint: 'نسخه‌های قدیمی‌تر باید به‌روزرسانی کنند؛ ۰ یعنی همه مجازند', kind: 'int', min: 0, max: 99999, default: 0 },
   { key: 'app.update_url', group: 'app', label: 'لینک به‌روزرسانی', hint: 'صفحه‌ی اپ در بازار / مایکت / بله', kind: 'text', min: 0, max: 300, default: '' },
   { key: 'feature.priceonly', group: 'app', label: 'حالت فقط حدس قیمت روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'feature.trivia', group: 'app', label: 'حالت پرسش‌های عمومی (چهارگزینه‌ای) روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'trivia.questions', group: 'scoring', label: 'تعداد پرسش در هر بازی «پرسش‌های عمومی»', kind: 'int', min: 3, max: 20, default: TRIVIA_QUESTIONS_PER_GAME },
   { key: 'priceonly.rounds', group: 'scoring', label: 'تعداد دور در بازی «فقط حدس قیمت»', kind: 'int', min: 1, max: PRICE_ONLY_MAX_ROUNDS, default: PRICE_ONLY_ROUNDS },
   { key: 'feature.lookup', group: 'app', label: 'استعلام قیمت روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'feature.duel', group: 'app', label: 'بازی دونفره‌ی زنده روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },

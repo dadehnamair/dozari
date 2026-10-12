@@ -3,7 +3,7 @@ import type { PuzzleAdmin } from '../puzzles/admin.js';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { can } from './accounts/permissions.js';
 import { z } from 'zod';
-import { accentColorSchema, checkLevelTable, KEEPSAKE_RARITIES, KEEPSAKE_REWARD_GEMS, httpsUrlSchema, isDateKey, ITEMS, ITEM_GROUPS, LEVEL_TABLE_MAX, levelRowSchema, normalizeIranPhone, PRODUCT_CATEGORIES, PROVINCES, provinceOf, SETTING_GROUPS, SHOP_EFFECTS, SPONSOR_LIMITS, COSMETIC_SLOTS, WHEEL_PRIZE_KINDS, AD_LIMITS, AD_PLACEMENTS, AD_PLACEMENT_LABEL_FA, AD_REWARD_KINDS } from '@dozari/shared';
+import { accentColorSchema, triviaInputSchema, checkLevelTable, KEEPSAKE_RARITIES, KEEPSAKE_REWARD_GEMS, httpsUrlSchema, isDateKey, ITEMS, ITEM_GROUPS, LEVEL_TABLE_MAX, levelRowSchema, normalizeIranPhone, PRODUCT_CATEGORIES, PROVINCES, provinceOf, SETTING_GROUPS, SHOP_EFFECTS, SPONSOR_LIMITS, COSMETIC_SLOTS, WHEEL_PRIZE_KINDS, AD_LIMITS, AD_PLACEMENTS, AD_PLACEMENT_LABEL_FA, AD_REWARD_KINDS } from '@dozari/shared';
 import type { LevelRow } from '@dozari/shared';
 import type { LevelTable } from '../progress/table.js';
 import type { SettingsService } from '../settings/service.js';
@@ -46,6 +46,7 @@ import type { BadgeStore } from '../badges/store.js';
 import type { ChatStore } from '../chat/store.js';
 import type { TournamentService } from '../tournament/service.js';
 import type { SponsorStore } from '../sponsor/store.js';
+import type { TriviaStore } from '../trivia/store.js';
 import type { DailyService } from '../daily/service.js';
 import { THEME_KINDS } from '../daily/store.js';
 import type { BotPlayerService } from '../botplayers/service.js';
@@ -101,6 +102,8 @@ export interface AdminModules {
   tournaments?: TournamentService;
   /** Sponsors shown on tournaments. */
   sponsors?: SponsorStore;
+  /** General four-choice questions, each under a topic. */
+  trivia?: TriviaStore;
   /** Kid word lessons: the editor list, save text, approve (D198). */
   lessons?: LessonStore;
   /** Numbers per age track for the admin overview tab (D198). */
@@ -767,6 +770,41 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
         return { ok: true };
       });
     }
+  }
+
+  if (m.trivia) {
+    const trivia = m.trivia;
+    const statusSchema = z.enum(['draft', 'approved', 'retired']);
+    g.get('/admin/trivia', async (req) => {
+      const q = z.object({ topicId: z.string().uuid().optional(), status: statusSchema.optional() }).safeParse(req.query);
+      return { questions: await trivia.list({ topicId: q.success ? q.data.topicId : undefined, status: q.success ? q.data.status : undefined, limit: 300 }) };
+    });
+    g.post('/admin/trivia', async (req, reply) => {
+      const b = triviaInputSchema.safeParse(req.body);
+      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await trivia.create(b.data);
+      if (!out.ok) return reply.code(400).send({ error: out.error });
+      void audit('trivia.create', out.id, b.data.textFa.slice(0, 80));
+      return reply.code(201).send({ id: out.id });
+    });
+    g.put('/admin/trivia/:id', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = triviaInputSchema.safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await trivia.update(p.data.id, b.data);
+      if (out === 'not_found') return reply.code(404).send({ error: out });
+      if (out === 'unknown_topic') return reply.code(400).send({ error: out });
+      void audit('trivia.update', p.data.id);
+      return { ok: true };
+    });
+    g.patch('/admin/trivia/:id', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object({ status: statusSchema }).safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      if ((await trivia.setStatus(p.data.id, b.data.status)) === 'not_found') return reply.code(404).send({ error: 'NOT_FOUND' });
+      void audit('trivia.status', p.data.id, b.data.status);
+      return { ok: true };
+    });
   }
 
   if (m.sponsors) {
