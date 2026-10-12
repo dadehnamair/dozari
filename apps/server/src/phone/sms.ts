@@ -66,7 +66,7 @@ export function createIrnotiClient(apiKey: string, opts: { message?: string; lin
   };
   return {
     sendText,
-    sendCode: (phone, code) => sendText(phone, template.replace('{code}', code)),
+    sendCode: (phone, code) => sendText(phone, template.split('{code}').join(code)),
   };
 }
 
