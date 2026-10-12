@@ -278,4 +278,4 @@ Start after the first Android build.
 - [x] 4. Timeout shown differently but scored as wrong; win only by solved cards — separate-boards mode
 - [x] 5a. Four-option price questions (solo, duel, price-only) — `buildPriceOptions`
 - [ ] 5b. General four-option questions per topic (admin, standalone mode, duel round)
-- [ ] 6. Shop: shuffle opponent's cards, reveal a group
+- [x] 6. Shop: shuffle opponent's cards, reveal a group — `docs/logic/shop-match-items.md` (migration 0082)

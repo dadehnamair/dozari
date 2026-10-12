@@ -128,6 +128,13 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
     const id = setTimeout(() => dispatch({ t: 'clearTaunt' }), 4000);
     return () => clearTimeout(id);
   }, [state.taunt]);
+  // The rival shuffled this player's cards: the server's new order replaces any local arrangement, and a half-made selection is dropped.
+  useEffect(() => {
+    if (state.powerNote !== 'shuffleRival') return;
+    setOrder([]);
+    setSelected([]);
+  }, [state.powerNote]);
+
   useEffect(() => {
     if (!state.powerNote) return;
     const id = setTimeout(() => dispatch({ t: 'clearPowerNote' }), 2400);
@@ -487,9 +494,13 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
       if (ack.error === 'INTERNAL' || ack.error === 'NOT_IN_MATCH') resync();
     });
   };
-  const power = (kind: 'magnifier' | 'freeze') => {
+  /** Bought items: the shuffle works any time on the rival's board, the reveal on the player's own turn. */
+  const canShuffle = playing && !state.finale && !!view.found && !view.lockedOut[them] && (view.items?.shuffle ?? 0) > 0;
+  const canReveal = playing && mine && captain && !sending && !state.finale && !frozenMe && (view.items?.reveal ?? 0) > 0;
+  const power = (kind: 'magnifier' | 'freeze' | 'shuffle' | 'reveal') => {
     // The magnifier works on the player's own turn, the freeze on the rival's: each button has its own condition.
-    if (!(kind === 'magnifier' ? canPower : canFreeze) || !conn.current) return;
+    const allowed = kind === 'magnifier' ? canPower : kind === 'freeze' ? canFreeze : kind === 'shuffle' ? canShuffle : canReveal;
+    if (!allowed || !conn.current) return;
     void conn.current.power(kind).then((ack) => {
       if (!ack.ok) dispatch({ t: 'notice', error: ack.error });
     });
@@ -567,6 +578,13 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
             <PowerButton kind="freeze" count={view.powers?.freeze ?? 0} enabled={canFreeze} onPress={() => power('freeze')} />
           </View>
 
+          {(view.items?.shuffle ?? 0) > 0 || (view.items?.reveal ?? 0) > 0 ? (
+            <View style={styles.items}>
+              {(view.items?.reveal ?? 0) > 0 ? <ItemButton icon="magnifier" label={fa.duel.power.reveal} hint={fa.duel.power.hintReveal} count={view.items?.reveal ?? 0} enabled={canReveal} onPress={() => power('reveal')} /> : null}
+              {(view.items?.shuffle ?? 0) > 0 ? <ItemButton icon="dice" label={fa.duel.power.shuffle} hint={fa.duel.power.hintShuffle} count={view.items?.shuffle ?? 0} enabled={canShuffle} onPress={() => power('shuffle')} /> : null}
+            </View>
+          ) : null}
+
           {/* The same notice again right above the buttons: the one at the top of the board is out of sight when the player is down here. */}
           {noticeText ? <View style={styles.toastSlot}><View style={styles.toast}><Text style={styles.toastText} numberOfLines={2}>{noticeText}</Text></View></View> : null}
           <View style={styles.actions}>
@@ -579,6 +597,16 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
       <ChatDrawer open={chatOpen} onClose={() => setChatOpen(false)} categories={taunts} tab={chatTab} onTab={setChatTab} onSend={sendTaunt} />
       {state.gem ? <GemBurst key={state.gem.n} amount={state.gem.amount} onDone={() => dispatch({ t: 'clearGem' })} /> : null}
     </ArenaBackground>
+  );
+}
+
+/** A bought item (shuffle the rival's cards, reveal a group): a labelled pill with how many are left. */
+function ItemButton({ icon, label, hint, count, enabled, onPress }: { icon: string; label: string; hint: string; count: number; enabled: boolean; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={`${label} · ${hint}`} accessibilityState={{ disabled: !enabled }} onPress={enabled ? () => (playSfx('press'), onPress()) : undefined} style={({ pressed }) => [styles.item, enabled ? null : styles.powerOff, pressed && enabled ? styles.pressed : null]}>
+      <View style={styles.itemIcon}><Item icon={icon} /></View>
+      <Text style={styles.itemText}>{label} · {toPersianDigits(String(count))}</Text>
+    </Pressable>
   );
 }
 
@@ -622,6 +650,10 @@ const styles = StyleSheet.create({
   bar: { flexDirection: ROW, alignItems: 'center', gap: 8 },
   square: { width: 42, height: 42, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', marginBottom: 4, ...lift },
   pressed: { transform: [{ translateY: 3 }] },
+  items: { flexDirection: ROW, justifyContent: 'center', gap: 10, marginTop: 6 },
+  item: { flexDirection: ROW, alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 38, borderRadius: 19, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#F6E2C2', ...lift },
+  itemIcon: { width: 22, height: 22 },
+  itemText: { fontFamily: fonts.display, fontSize: 14, lineHeight: 20, color: colors.ink },
   power: { width: 52, height: 52, borderRadius: 26, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#F6E2C2', alignItems: 'center', justifyContent: 'center', ...lift },
   powerIce: { backgroundColor: '#BFEFFF' },
   powerOff: { opacity: 0.45 },

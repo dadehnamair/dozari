@@ -24,7 +24,7 @@ export interface DuelState {
   /** The two cards the magnifier showed this player (selected on the board once); `n` makes each use a new event. */
   peek: { ids: string[]; n: number } | null;
   /** A power-up toast: whose, and which. */
-  powerNote: 'magMine' | 'magRival' | 'iceMine' | 'iceRival' | null;
+  powerNote: 'magMine' | 'magRival' | 'iceMine' | 'iceRival' | 'shuffleMine' | 'shuffleRival' | 'revealMine' | 'revealRival' | null;
   /** A passing problem during play (a refused submit, a late ack): a toast, never a dead end. Holds the error code. */
   notice: string | null;
   /** The last snapshot of the board that just ended (its cards were still on the table). */
@@ -86,7 +86,7 @@ export type DuelAction =
   | { t: 'timeout'; mine: boolean }
   | { t: 'ended'; ended: MatchEnded }
   | { t: 'clearFlash' }
-  | { t: 'power'; mine: boolean; kind: 'magnifier' | 'freeze'; itemIds?: readonly string[] }
+  | { t: 'power'; mine: boolean; kind: 'magnifier' | 'freeze' | 'shuffle' | 'reveal'; itemIds?: readonly string[] }
   | { t: 'clearPowerNote' }
   | { t: 'board'; board: number; of: number }
   | { t: 'clearBoard' }
@@ -140,8 +140,8 @@ export function duelReducer(s: DuelState, a: DuelAction): DuelState {
     case 'clearNotice':
       return { ...s, notice: null };
     case 'power': {
-      const note = a.kind === 'magnifier' ? (a.mine ? 'magMine' : 'magRival') : a.mine ? 'iceMine' : 'iceRival';
-      const peek = a.mine && a.kind === 'magnifier' && a.itemIds && a.itemIds.length > 0 ? { ids: [...a.itemIds], n: (s.peek?.n ?? 0) + 1 } : s.peek;
+      const note = a.kind === 'magnifier' ? (a.mine ? 'magMine' : 'magRival') : a.kind === 'freeze' ? (a.mine ? 'iceMine' : 'iceRival') : a.kind === 'shuffle' ? (a.mine ? 'shuffleMine' : 'shuffleRival') : a.mine ? 'revealMine' : 'revealRival';
+      const peek = a.mine && (a.kind === 'magnifier' || a.kind === 'reveal') && a.itemIds && a.itemIds.length > 0 ? { ids: [...a.itemIds], n: (s.peek?.n ?? 0) + 1 } : s.peek;
       return { ...s, powerNote: note, peek };
     }
     case 'clearPowerNote':

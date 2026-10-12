@@ -8,6 +8,7 @@ import {
   MATCH_MAGNIFIERS,
   MATCH_MAX_MISTAKES,
   POWERS_PER_PLAYER,
+  SHOP_ITEM_USES_PER_MATCH,
   MAX_CONSECUTIVE_TIMEOUTS,
   PRICE_GUESS_LOSER_BONUS_PER_ROUND,
   TURN_SECONDS,
@@ -24,7 +25,11 @@ import type { GroupLevel, SoloPuzzle } from './solo.js';
  */
 
 export type MatchSide = 0 | 1;
-export type PowerKind = 'magnifier' | 'freeze';
+export type PowerKind = 'magnifier' | 'freeze' | 'shuffle' | 'reveal';
+/** The two kinds bought in the shop (stock comes from the player's inventory when the match starts). */
+export type ItemKind = 'shuffle' | 'reveal';
+export const ITEM_KINDS: readonly ItemKind[] = ['shuffle', 'reveal'];
+export type ItemCounts = Record<ItemKind, number>;
 export interface PowerCounts {
   magnifier: number;
   freeze: number;
@@ -123,6 +128,9 @@ export interface MatchState {
   /** Power-ups each side has left (magnifier, freeze), and how many magnifiers each side already used (picks the next group to peek at). */
   powers: readonly [PowerCounts, PowerCounts];
   magnified: readonly [number, number];
+  /** Bought items each player holds for this match (a snapshot of the inventory at the start, counted down on use), and who used which (`userId:kind`). */
+  itemCounts: Readonly<Record<string, ItemCounts>>;
+  itemUsed: readonly string[];
   /** Players who already used a power-up: each player may use only one in a whole match, whatever the kind or how many they have. */
   powerUsers: readonly string[];
   /** Until when (ms) each side cannot select or submit because the rival froze it; 0 = not frozen. Cleared when a turn starts. */
@@ -142,7 +150,7 @@ export type Command =
   | { t: 'timeout'; turnId: number }
   | { t: 'leave'; by: string }
   /** The captain of the side to play uses a power-up (no turn, mistake or clock change). */
-  | { t: 'power'; by: string; kind: PowerKind }
+  | { t: 'power'; by: string; kind: PowerKind; /** `shuffle`: the new order of the rival's remaining cards (the reducer holds no rng). */ order?: readonly string[] }
   | { t: 'forfeit'; side: MatchSide };
 
 export type RuleError =
@@ -210,6 +218,7 @@ export function startTeamMatch(
   now: number,
   startingSide?: MatchSide,
   rules: MatchRules = DEFAULT_MATCH_RULES,
+  items: Readonly<Record<string, ItemCounts>> = {},
 ): MatchState {
   const size = sides[0].length;
   if ((size !== 1 && size !== 2) || sides[1].length !== size) throw new Error('a match is 1v1 or 2v2');
@@ -249,6 +258,8 @@ export function startTeamMatch(
     tried: [],
     powers: [0, 1].map(() => ({ magnifier: rules.magnifiers ?? MATCH_MAGNIFIERS, freeze: rules.freezes ?? MATCH_FREEZES })) as unknown as readonly [PowerCounts, PowerCounts],
     magnified: [0, 0],
+    itemCounts: items,
+    itemUsed: [],
     powerUsers: [],
     frozenUntil: [0, 0],
     turn,
@@ -422,6 +433,36 @@ function submitSeparate(state: MatchState, side: MatchSide, ids: readonly string
   return startTurn(next, nextTurn(next, side), now, events);
 }
 
+/**
+ * A bought item (docs/logic/shop-match-items.md). It does not touch the turn, the clock or the free power-up of the match.
+ * `shuffle` re-orders the rival's remaining cards (separate-boards mode only; `order` is the new order, supplied by the service);
+ * `reveal` shows the user's own side the four cards of one group they have not found yet (on their own turn, captain only).
+ */
+function applyItem(state: MatchState, side: MatchSide, by: string, kind: ItemKind, order: readonly string[] | undefined, events: MatchEvent[]): ApplyResult {
+  const have = state.itemCounts[by]?.[kind] ?? 0;
+  if (have <= 0) return { error: 'NO_POWER' };
+  const key = `${by}:${kind}`;
+  if (state.itemUsed.filter((k) => k === key).length >= SHOP_ITEM_USES_PER_MATCH) return { error: 'POWER_USED' };
+  const spent = { itemCounts: { ...state.itemCounts, [by]: { ...(state.itemCounts[by] as ItemCounts), [kind]: have - 1 } }, itemUsed: [...state.itemUsed, key] };
+
+  if (kind === 'shuffle') {
+    const target = otherSide(side);
+    if (!state.sep || state.lockedOut[target]) return { error: 'NO_POWER' };
+    const current = state.sep.remaining[target];
+    if (!order || order.length !== current.length || new Set(order).size !== order.length || order.some((id) => !current.includes(id))) return { error: 'INVALID_SELECTION' };
+    events.push({ t: 'power', side, kind });
+    return { state: { ...state, ...spent, sep: { ...state.sep, remaining: set(state.sep.remaining, target, order) } }, events };
+  }
+
+  if (side !== state.turn) return { error: 'NOT_YOUR_TURN' };
+  if (state.captain[side] !== by) return { error: 'NOT_CAPTAIN' };
+  const done = new Set(solvedOf(state, side).map((g) => g.level));
+  const group = [...state.puzzle.groups].sort((a, b) => a.level - b.level).find((g) => !done.has(g.level));
+  if (!group) return { error: 'NO_POWER' };
+  events.push({ t: 'power', side, kind, itemIds: group.productIds });
+  return { state: { ...state, ...spent }, events };
+}
+
 export function applyCommand(state: MatchState, cmd: Command, ctx: Ctx): ApplyResult {
   if (state.status === 'finished') return { error: 'MATCH_FINISHED' };
   const events: MatchEvent[] = [];
@@ -538,6 +579,7 @@ export function applyCommand(state: MatchState, cmd: Command, ctx: Ctx): ApplyRe
     case 'power': {
       const side = sideOf(state, cmd.by);
       if (side === null || state.gone.includes(cmd.by)) return { error: 'UNKNOWN_PLAYER' };
+      if (cmd.kind === 'shuffle' || cmd.kind === 'reveal') return applyItem(state, side, cmd.by, cmd.kind, cmd.order, events);
       if (state.powerUsers.filter((id) => id === cmd.by).length >= POWERS_PER_PLAYER) return { error: 'POWER_USED' };
       const left = state.powers[side];
       if (cmd.kind === 'freeze') {
@@ -603,6 +645,8 @@ export interface MatchClientView {
   /** Board in play (0-based) and the number of boards of the match. */
   round: number;
   rounds: number;
+  /** Bought items the viewer still holds in this match. */
+  items: ItemCounts;
   /** The viewer's own power-ups left, and until when (ms) each side is frozen (0 = not). */
   powers: PowerCounts;
   /** The viewer already used their one power-up of this match. */
@@ -635,6 +679,7 @@ export function matchClientView(state: MatchState, viewerId: string): MatchClien
     lockedOut: state.lockedOut,
     round: state.round,
     rounds: state.rounds,
+    items: { shuffle: state.itemCounts[viewerId]?.shuffle ?? 0, reveal: state.itemCounts[viewerId]?.reveal ?? 0 },
     powers: state.powers[you],
     powerUsed: state.powerUsers.filter((id) => id === viewerId).length >= POWERS_PER_PLAYER,
     frozenUntil: state.frozenUntil,

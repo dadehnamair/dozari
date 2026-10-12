@@ -921,6 +921,9 @@ if (isMainModule(import.meta.url)) {
           trackOf: ageTracks ? (id) => ageTracks.effective(id) : undefined,
           wagerAllowed: ageTracks ? (id) => ageTracks.allows(id, 'coinWager') : undefined,
           teamBoards: settings ? () => settings.num('match.team_boards') : undefined,
+          itemsOf: shopStore ? async (ids) => Object.fromEntries(await Promise.all(ids.map(async (id) => [id, botDriver?.isBot(id) ? { shuffle: 0, reveal: 0 } : await shopStore.matchItems(id)] as const))) : undefined,
+          consumeItem: shopStore ? (id, effect) => shopStore.consumeMatchItem(id, effect) : undefined,
+          refundItem: shopStore ? (id, effect) => shopStore.refundMatchItem(id, effect) : undefined,
           onLeave: leaves ? (i) => { if (!botDriver?.isBot(i.userId)) void leaves.record(i.userId, i.matchId, i.kind).catch(() => undefined); } : undefined,
           gemCard: settings ? () => gemCardRules(settings) : undefined,
           onGem: (id, amount, key) => {

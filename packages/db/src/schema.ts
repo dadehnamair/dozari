@@ -899,9 +899,9 @@ export const userStats = mysqlTable('user_stats', {
 });
 
 /** What a shop item gives. `cosmetic` is a hat / clothing item the player keeps and wears (no stock). */
-export const SHOP_EFFECTS = ['hint_token', 'wheel_spin', 'cosmetic', 'streak_shield'] as const;
+export const SHOP_EFFECTS = ['hint_token', 'wheel_spin', 'cosmetic', 'streak_shield', 'shuffle_rival', 'reveal_group'] as const;
 /** Stockable effects of `user_inventory` (a cosmetic is owned in `user_cosmetics`, not counted). */
-export const INVENTORY_EFFECTS = ['hint_token', 'wheel_spin', 'streak_shield'] as const;
+export const INVENTORY_EFFECTS = ['hint_token', 'wheel_spin', 'streak_shield', 'shuffle_rival', 'reveal_group'] as const;
 
 /** Things a player can buy with coins (docs/logic/shop.md). Prices, level gates and daily limits are edited in the admin panel. */
 export const shopItems = mysqlTable(

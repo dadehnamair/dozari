@@ -1,6 +1,6 @@
 import { randomInt } from 'node:crypto';
-import { DEFAULT_MATCH_RULES, rollGemCard, groupHoldsGem, TEAM_MATCH_BOARDS, applyCommand, settleWager, applyPriceGuessCommand, finalScores, matchClientView, mulberry32, resolveWinner, selectRounds, ServerEvent, startMatch, startPriceGuess, startTeamMatch, toPriceRoundView, trackRules, turnDeadline } from '@dozari/shared';
-import type { AgeTrack, CatalogProduct, Command, RevealedRound, WagerSeat, ErrorCode, PriceGuessState, Stake, MatchEnded, MatchRules, MatchEvent, MatchEventPayload, MatchFound, MatchState, MatchView, PowerKind, Rng, RuleError } from '@dozari/shared';
+import { DEFAULT_MATCH_RULES, rollGemCard, groupHoldsGem, TEAM_MATCH_BOARDS, applyCommand, settleWager, applyPriceGuessCommand, finalScores, matchClientView, mulberry32, resolveWinner, selectRounds, ServerEvent, startPriceGuess, startTeamMatch, otherSide, sideOf, shuffled, toPriceRoundView, trackRules, turnDeadline } from '@dozari/shared';
+import type { AgeTrack, CatalogProduct, ItemCounts, ItemKind, Command, RevealedRound, WagerSeat, ErrorCode, PriceGuessState, Stake, MatchEnded, MatchRules, MatchEvent, MatchEventPayload, MatchFound, MatchState, MatchView, PowerKind, Rng, RuleError } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
 import type { PuzzleSource, ServedPuzzle } from '../solo/types.js';
 import { pickUnseen } from '../solo/history.js';
@@ -25,6 +25,12 @@ export interface MatchDeps {
   wagerAllowed?: (userId: string) => Promise<boolean>;
   /** Public facts about a player for the opponent's card; null = unknown user (match is not created). */
   profile(userId: string): Promise<PlayerProfile | null>;
+  /** Bought match items each player holds when a match starts (shuffle / reveal); absent = nobody has any. */
+  itemsOf?: (userIds: readonly string[]) => Promise<Record<string, ItemCounts>>;
+  /** Takes one unit of a bought item from the inventory; false = none held. Absent = items cannot be used. */
+  consumeItem?: (userId: string, effect: 'shuffle_rival' | 'reveal_group') => Promise<boolean>;
+  /** Gives back a unit that was taken but not used. */
+  refundItem?: (userId: string, effect: 'shuffle_rival' | 'reveal_group') => Promise<void>;
   /** Pushes a server event to every open socket of a user. */
   emit(userId: string, event: string, payload: unknown): void;
   /** Boards of a 2v2 match (admin setting `match.team_boards`); absent = the shared default. */
@@ -208,7 +214,9 @@ export class MatchService {
       return false;
     }
     const boards = boardCount > 1 ? picked : [puzzle];
-    const state = boards.length > 1 ? startTeamMatch(boards.map(toSolo), [[a], [b]], rng, this.now(), undefined, await this.matchRules()) : startMatch(puzzle, [a, b], rng, this.now(), undefined, await this.matchRules());
+    const rules = await this.matchRules();
+    const items = await this.itemsFor([a, b]);
+    const state = startTeamMatch(boards.map(toSolo), [[a], [b]], rng, this.now(), undefined, rules, items);
     const entry: Active = { id, puzzles: boards, state, cancel: null, stakes, tier: stakes ? opts.tier : undefined, priceRound: opts.priceRounds === undefined ? await this.wantsPriceRound() : opts.priceRounds > 0, priceRoundCount: opts.priceRounds, proposals: [null, null], table: fee > 0 && this.deps.tableStakes ? { fee, sides: [[a], [b]] } : undefined };
     if (entry.priceRound && stakes) entry.wager = (await this.deps.stakes?.wagerRules?.().catch(() => null)) ?? undefined;
     entry.gems = await this.rollGems(boards);
@@ -243,7 +251,7 @@ export class MatchService {
       if (fee > 0) await this.deps.tableStakes?.cancel(id, all, fee);
       return false;
     }
-    const entry: Active = { id, puzzles: boards, table: fee > 0 && this.deps.tableStakes ? { fee, sides: [[...sides[0]], [...sides[1]]] } : undefined, state: startTeamMatch(boards.map(toSolo), sides, mulberry32(this.newSeed()), this.now(), undefined, await this.matchRules()), cancel: null, proposals: [null, null] };
+    const entry: Active = { id, puzzles: boards, table: fee > 0 && this.deps.tableStakes ? { fee, sides: [[...sides[0]], [...sides[1]]] } : undefined, state: startTeamMatch(boards.map(toSolo), sides, mulberry32(this.newSeed()), this.now(), undefined, await this.matchRules(), await this.itemsFor(all)), cancel: null, proposals: [null, null] };
     entry.gems = await this.rollGems(boards);
     this.matches.set(id, entry);
     for (const u of all) this.byUser.set(u, id);
@@ -317,6 +325,45 @@ export class MatchService {
     const entry = this.entryOf(userId);
     if (!entry) return { ok: false, error: 'NOT_IN_MATCH' };
     return this.apply(entry, { t: 'submit', by: userId, itemIds });
+  }
+
+  /** Bought items each player brings into the match (a snapshot of the inventory); a failing lookup means none. */
+  private async itemsFor(userIds: readonly string[]): Promise<Record<string, ItemCounts>> {
+    try {
+      return (await this.deps.itemsOf?.(userIds)) ?? {};
+    } catch {
+      return {};
+    }
+  }
+
+  /**
+   * Uses a bought item (shuffle the rival's cards / reveal a group). The command is checked first without side effects, the item is
+   * taken from the inventory only if it would work, and a unit taken for a command that then fails (a lost race) is given back.
+   */
+  async useItem(userId: string, kind: ItemKind): Promise<{ ok: true } | { ok: false; error: ErrorCode }> {
+    const entry = this.entryOf(userId);
+    if (!entry) return { ok: false, error: 'NOT_IN_MATCH' };
+    if (entry.pg || entry.pgPending) return { ok: false, error: 'NOT_YOUR_TURN' };
+    const side = sideOf(entry.state, userId);
+    let order: string[] | undefined;
+    if (kind === 'shuffle' && side !== null && entry.state.sep) {
+      const rival = entry.state.sep.remaining[otherSide(side)];
+      const rng = mulberry32(this.newSeed());
+      order = shuffled(rival, rng);
+      for (let i = 0; i < 4 && order.length > 1 && order.every((id, n) => id === rival[n]); i++) order = shuffled(rival, rng);
+    }
+    const cmd: Command = { t: 'power', by: userId, kind, order };
+    const dry = applyCommand(entry.state, cmd, { now: this.now() });
+    if ('error' in dry) return { ok: false, error: RULE_TO_ERROR[dry.error] };
+    const effect = kind === 'shuffle' ? 'shuffle_rival' : 'reveal_group';
+    if (!(await this.deps.consumeItem?.(userId, effect))) return { ok: false, error: 'NO_POWER' };
+    const out = this.apply(entry, cmd);
+    if (!out.ok) {
+      await this.deps.refundItem?.(userId, effect).catch(() => undefined);
+      return out;
+    }
+    if (kind === 'shuffle' && side !== null) entry.proposals[otherSide(side)] = null;
+    return out;
   }
 
   /** A power-up on the player's turn (docs/logic/game-rules.md §Power-ups); the magnifier's two cards reach the user's own side only. */
@@ -443,6 +490,7 @@ export class MatchService {
       mistakes: [v.mistakes[0], v.mistakes[1]],
       lockedOut: [v.lockedOut[0], v.lockedOut[1]],
       powers: { ...v.powers },
+      items: { ...v.items },
       powerUsed: v.powerUsed,
       frozenUntil: [v.frozenUntil[0], v.frozenUntil[1]],
       turn: v.turn,

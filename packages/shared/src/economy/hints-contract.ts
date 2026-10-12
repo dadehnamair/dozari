@@ -39,7 +39,7 @@ export type SoloNudgeResult = z.infer<typeof soloNudgeResultSchema>;
 
 /** `GET /shop`: items a player can buy with coins (docs/logic/shop.md). */
 /** `hint_token` adds hint tokens; `wheel_spin` adds lucky-wheel spins (one row per spin in `wheel_spins`); `streak_shield` protects the daily-reward streak across one missed day. */
-export const SHOP_EFFECTS = ['hint_token', 'wheel_spin', 'cosmetic', 'streak_shield'] as const;
+export const SHOP_EFFECTS = ['hint_token', 'wheel_spin', 'cosmetic', 'streak_shield', 'shuffle_rival', 'reveal_group'] as const;
 import { COSMETIC_SLOTS } from './slots.js';
 export { COSMETIC_SLOTS };
 export type { CosmeticSlot } from './slots.js';
