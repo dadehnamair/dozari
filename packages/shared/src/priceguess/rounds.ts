@@ -2,6 +2,7 @@ import { priceAt } from '../puzzle/price.js';
 import type { CatalogProduct } from '../puzzle/types.js';
 import type { Rng } from '../game/rng.js';
 import type { GroupLevel } from '../game/solo.js';
+import { buildPriceOptions } from './options.js';
 
 export interface PriceGuessGroup {
   level: GroupLevel;
@@ -16,6 +17,8 @@ export interface PriceGuessRound {
   year: number;
   /** The real nominal price. Never sent to clients before the round is revealed. */
   actualRials: bigint;
+  /** The four choices the question offers (the real price and three decoys), ascending. Absent on rounds made before choices existed. */
+  options?: readonly bigint[];
 }
 
 /** Latest year in which the product has an approved price, or null. */
@@ -47,7 +50,8 @@ export function selectRounds(
       usable.push({ level: group.level, productId: id, year, actualRials: actual });
     }
     if (usable.length === 0) continue;
-    rounds.push(usable[Math.floor(rng() * usable.length)] as PriceGuessRound);
+    const chosen = usable[Math.floor(rng() * usable.length)] as PriceGuessRound;
+    rounds.push({ ...chosen, options: buildPriceOptions(chosen.actualRials, rng) });
   }
   return rounds;
 }
