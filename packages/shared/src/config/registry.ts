@@ -1,3 +1,4 @@
+import { DUEL_ROUNDS_DEFAULT, TABLE_MIN_ROUNDS_DEFAULT } from './topics.js';
 import { LEAVE_BADGE_COUNT, LEAVE_BADGE_WINDOW_DAYS, LEAVE_DAY_BAN_COUNT, LEAVE_RECONNECT_GRACE_SECONDS } from './leave.js';
 import { LEVEL_REWARD_BASE_COINS, LEVEL_REWARD_EVERY } from './progression.js';
 import {
@@ -270,6 +271,9 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'leave.day_ban_count', group: 'gameplay', label: 'تعداد ترک در روز تا محرومیت از دوئل و میز', hint: '۰ یعنی محرومیت خاموش؛ محرومیت تا پایان همان روز (به وقت تهران) است', kind: 'int', min: 0, max: 20, default: LEAVE_DAY_BAN_COUNT },
   { key: 'leave.badge_count', group: 'gameplay', label: 'تعداد ترک برای نشان «ترک‌کننده»', hint: '۰ یعنی نشان خاموش؛ تا وقتی تعداد ترک‌های بازه این عدد یا بیشتر است روی پروفایل می‌ماند', kind: 'int', min: 0, max: 100, default: LEAVE_BADGE_COUNT },
   { key: 'leave.badge_days', group: 'gameplay', label: 'بازه‌ی شمارش ترک برای نشان', hint: 'ترک‌های قدیمی‌تر از این بازه نشان را برنمی‌گردانند', kind: 'int', min: 1, max: 365, default: LEAVE_BADGE_WINDOW_DAYS, unit: 'روز' },
+  { key: 'match.duel_rounds', group: 'gameplay', label: 'تعداد دور دوئل یک‌به‌یک', hint: 'هر دور یک بسته‌ی ۱۶تایی است؛ از ۳ به بالا هر دور یک طرف موضوعش را انتخاب می‌کند (اگر موضوع کافی باشد). ۱ یعنی مثل قبل. بازی‌های شروع‌شده تغییر نمی‌کنند.', kind: 'int', min: 1, max: 7, default: DUEL_ROUNDS_DEFAULT },
+  { key: 'table.min_rounds', group: 'gameplay', label: 'کمترین تعداد دور یک میز', hint: 'میزبان نمی‌تواند میز را با دور کمتر از این بسازد', kind: 'int', min: 1, max: 5, default: TABLE_MIN_ROUNDS_DEFAULT },
+  { key: 'match.topic_draft', group: 'gameplay', label: 'انتخاب موضوع دور به دور در دوئل و میز', hint: 'روشن (۱): وقتی دور ۳ یا بیشتر است و موضوع کافی (هر کدام دست‌کم چند پازل تأییدشده) هست، قبل از بازی طرف‌ها نوبتی موضوع دورها را انتخاب می‌کنند. خاموش (۰): پازل‌ها تصادفی.', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'match.team_boards', group: 'gameplay', label: 'تعداد بسته‌ی ۱۶تایی در بازی تیمی ۲ در ۲', hint: 'امتیازها جمع می‌شود؛ ۱ یعنی مثل دوئل', kind: 'int', min: 1, max: 5, default: TEAM_MATCH_BOARDS },
   { key: 'puzzles.autofill_enabled', group: 'gameplay', label: 'پر کردن خودکار استخر پازل روشن باشد', hint: 'کار زمان‌بندی‌شده پازل تازه از کالاهای کاتالوگ می‌سازد', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'puzzles.autofill_target', group: 'gameplay', label: 'تعداد پازل آماده در استخر', hint: 'پیش‌نویس‌های منتظر تأیید (یا پازل‌های تأییدشده، اگر تأیید خودکار روشن است) تا این عدد پر می‌شود', kind: 'int', min: 1, max: 200, default: 30 },

@@ -757,6 +757,7 @@ if (isMainModule(import.meta.url)) {
           socialBlocked: ageTracks ? (id) => ageTracks.socialBlocked(id) : undefined,
           duelsOff: ageTracks ? (id) => ageTracks.duelsOff(id) : undefined,
           banned: leaves ? (id) => leaves.isBanned(id) : undefined,
+          minRounds: settings ? () => settings.num('table.min_rounds') : undefined,
           // A family is a guardian and their children (the guardian link is the whole proof; nobody else can open a family table).
           hasFamily: guardianStore ? async (id) => (await guardianStore.guardianOf(id)) !== null || (await guardianStore.childrenOf(id)).length > 0 : undefined,
           sameFamily: guardianStore
@@ -906,6 +907,7 @@ if (isMainModule(import.meta.url)) {
     }) : undefined;
   // Proving a number by login is the «phone» mission: pay it now (idempotent; a second login or an unpaid mission is simply skipped).
   if (phoneLogin && profileTaskService) phoneLogin.afterVerify = async (userId) => void (await profileTaskService.claim(userId, 'phone'));
+  const matchPuzzleSource = db ? createDbPuzzleSource(db) : undefined;
   const app = buildServer({
     reportError,
     auth,
@@ -916,11 +918,15 @@ if (isMainModule(import.meta.url)) {
     realtime: Boolean(auth),
     match: db
       ? {
-          puzzles: createDbPuzzleSource(db),
+          puzzles: matchPuzzleSource!,
           history: puzzleHistory,
           trackOf: ageTracks ? (id) => ageTracks.effective(id) : undefined,
           wagerAllowed: ageTracks ? (id) => ageTracks.allows(id, 'coinWager') : undefined,
           teamBoards: settings ? () => settings.num('match.team_boards') : undefined,
+          duelRounds: settings ? () => settings.num('match.duel_rounds') : undefined,
+          topicDraft: settings ? async () => (await settings.num('match.topic_draft')) === 1 : undefined,
+          topics: async (tracks) => (await matchPuzzleSource?.topics?.(tracks)) ?? [],
+          isBot: (id) => botDriver?.isBot(id) ?? false,
           itemsOf: shopStore ? async (ids) => Object.fromEntries(await Promise.all(ids.map(async (id) => [id, botDriver?.isBot(id) ? { shuffle: 0, reveal: 0 } : await shopStore.matchItems(id)] as const))) : undefined,
           consumeItem: shopStore ? (id, effect) => shopStore.consumeMatchItem(id, effect) : undefined,
           refundItem: shopStore ? (id, effect) => shopStore.refundMatchItem(id, effect) : undefined,

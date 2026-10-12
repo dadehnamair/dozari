@@ -1,4 +1,4 @@
-import { TABLE_PRICE_ROUNDS_MAX, TABLE_REACTIONS_SHOWN, TABLE_REACTION_GAP_MS, TABLE_REACTION_TTL_MS, TABLE_PUBLIC_LIST_MAX, TABLE_REQUESTS_MAX, TABLE_REQUEST_TTL_MS, canMeet, clampTableRounds, makeTableCode, tableEntryOk, tableMinEntry, trackRank, normalizeTableCode, seatsOfFormat } from '@dozari/shared';
+import { TABLE_PRICE_ROUNDS_MAX, TABLE_ROUNDS_MAX, TABLE_REACTIONS_SHOWN, TABLE_REACTION_GAP_MS, TABLE_REACTION_TTL_MS, TABLE_PUBLIC_LIST_MAX, TABLE_REQUESTS_MAX, TABLE_REQUEST_TTL_MS, canMeet, clampTableRounds, makeTableCode, tableEntryOk, tableMinEntry, trackRank, normalizeTableCode, seatsOfFormat } from '@dozari/shared';
 import type { TableReaction } from '@dozari/shared';
 import type { AgeTrack, CreateTableBody, LiveNotice, PublicTable, TableError, TableFormat, TableView } from '@dozari/shared';
 
@@ -26,6 +26,8 @@ export interface TableDeps {
   sameFamily?(a: string, b: string): Promise<boolean>;
   /** The guardian switched friend duels and tables off for this child: the app hides them, the server refuses. */
   duelsOff?(userId: string): Promise<boolean>;
+  /** The smallest number of rounds a table may have (admin setting `table.min_rounds`); absent = 1. */
+  minRounds?(): Promise<number>;
   /** The leave penalty closed duels and tables for this player until the end of the Tehran day. */
   banned?(userId: string): Promise<boolean>;
   /** May coins move for this player (not a kid or teen)? Absent = yes. */
@@ -171,7 +173,7 @@ export class TableService {
     if (await this.deps.banned?.(hostId)) return { ok: false, error: 'LEAVE_BANNED' };
     if (this.deps.inMatch(hostId)) return { ok: false, error: 'IN_MATCH' };
     // Rounds and entry: the more rounds, the higher the minimum entry. Where coins do not move (kid, teen, family) the entry is 0.
-    const rounds = clampTableRounds(body.rounds ?? 1);
+    const rounds = Math.max(clampTableRounds(body.rounds ?? 1), Math.min((await this.deps.minRounds?.()) ?? 1, TABLE_ROUNDS_MAX));
     const coins = !body.family && (await this.coinsAllowed(hostId)) && !!this.deps.balanceOf;
     const entryFee = coins ? body.entryFee ?? tableMinEntry(rounds) : 0;
     if (coins && !tableEntryOk(entryFee, rounds, true)) return { ok: false, error: 'LOW_ENTRY' };

@@ -3,7 +3,7 @@ import { Server } from 'socket.io';
 import type { Socket } from 'socket.io';
 import type { QueueProblem } from '@dozari/shared';
 import type { AgeTrack } from '@dozari/shared';
-import { ClientEvent, ServerEvent, chatTauntSchema, matchPowerSchema, matchProposeSchema, matchResumeSchema, matchSubmitSchema, priceSubmitSchema, queueJoinSchema } from '@dozari/shared';
+import { ClientEvent, ServerEvent, chatTauntSchema, draftPickSchema, matchPowerSchema, matchProposeSchema, matchResumeSchema, matchSubmitSchema, priceSubmitSchema, queueJoinSchema } from '@dozari/shared';
 import type { Ack, LiveNotice } from '@dozari/shared';
 import type { UserRecord } from '../auth/service.js';
 import { ChatService } from '../chat/service.js';
@@ -218,6 +218,13 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
 
     // A returning player gets the live board straight away.
     matches?.resume(userId);
+
+    // The sides name the topic of each round before a themed match starts.
+    socket.on(ClientEvent.draftPick, (payload: unknown, ack?: (a: Ack) => void) => {
+      const body = draftPickSchema.safeParse(payload);
+      if (!body.success) return ack?.({ ok: false, error: 'INVALID_PAYLOAD' });
+      ack?.(matches ? matches.pickTopic(userId, body.data.topic) : { ok: false, error: 'NO_DRAFT' });
+    });
 
     socket.on(ClientEvent.matchSubmit, (payload: unknown, ack?: (a: Ack) => void) => {
       const body = matchSubmitSchema.safeParse(payload);

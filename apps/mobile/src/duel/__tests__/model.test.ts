@@ -144,3 +144,31 @@ describe('taunts', () => {
     expect(duelReducer(s, { t: 'taunt', from: 'حریف', text: 'سلام', userId: 'someone-else' }).taunt).toEqual({ from: 'حریف', text: 'سلام' });
   });
 });
+
+describe('topic draft', () => {
+  const draft = {
+    draftId: '0f8fad5b-d9cb-469f-a165-708677289501',
+    status: 'picking' as const,
+    you: 0 as const,
+    rounds: 3,
+    round: 0,
+    chooser: 0 as const,
+    yourTurn: true,
+    endsAt: 1,
+    open: [{ id: 't', nameFa: 'خوراکی' }],
+    picked: [],
+  };
+  const found = { matchId: '0f8fad5b-d9cb-469f-a165-708677289502', you: 0 as const, players: [] as never[] };
+
+  it('shows the draft until the match is found, then drops it', () => {
+    const s = duelReducer(initialDuel, { t: 'draft', draft });
+    expect(s.draft?.rounds).toBe(3);
+    expect(duelReducer(s, { t: 'found', found }).draft).toBeNull();
+  });
+
+  it('a cancelled draft becomes a passing problem, not a stuck screen', () => {
+    const s = duelReducer(duelReducer(initialDuel, { t: 'draft', draft }), { t: 'draft', draft: { ...draft, status: 'cancelled' } });
+    expect(s.draft).toBeNull();
+    expect(s.error).toBe('DRAFT_CANCELLED');
+  });
+});

@@ -1,5 +1,5 @@
 import type { BoardVerdict } from '../components/Board';
-import type { MatchEnded, MatchFound, MatchView, QueueProblem, SoloCard, SoloSolvedGroup } from '@dozari/shared';
+import type { DraftView, MatchEnded, MatchFound, MatchView, QueueProblem, SoloCard, SoloSolvedGroup } from '@dozari/shared';
 
 /** What the duel screen shows. The server sends full snapshots; this only keeps names (solved rows list ids) and the end screen. */
 export type DuelPhase = 'idle' | 'queued' | 'playing' | 'ended';
@@ -10,6 +10,8 @@ export interface DuelState {
   /** Why the queue is going nowhere, as the server reports it while the player waits. */
   problem: QueueProblem | null;
   found: MatchFound | null;
+  /** The pre-match topic draft in progress (themed duel/table), until the match starts. */
+  draft: DraftView | null;
   view: MatchView | null;
   ended: MatchEnded | null;
   names: Record<string, string>;
@@ -73,12 +75,13 @@ export function endedFromView(view: MatchView): MatchEnded | null {
   return { matchId: view.matchId, result: view.result, scores: [view.scores[0], view.scores[1]], groups: groups as MatchEnded['groups'] };
 }
 
-export const initialDuel: DuelState = { phase: 'idle', waitedSec: 0, problem: null, found: null, view: null, ended: null, names: {}, taunt: null, flash: null, verdict: null, gem: null, boardNote: null, error: null, notice: null, peek: null, powerNote: null, prevBoard: null, revealedLevel: null, finale: null };
+export const initialDuel: DuelState = { phase: 'idle', waitedSec: 0, problem: null, found: null, draft: null, view: null, ended: null, names: {}, taunt: null, flash: null, verdict: null, gem: null, boardNote: null, error: null, notice: null, peek: null, powerNote: null, prevBoard: null, revealedLevel: null, finale: null };
 
 export type DuelAction =
   | { t: 'queued' }
   | { t: 'status'; waitedSec: number; problem?: QueueProblem }
   | { t: 'found'; found: MatchFound }
+  | { t: 'draft'; draft: DraftView }
   | { t: 'state'; view: MatchView }
   | { t: 'guess'; outcome: 'correct' | 'one_away' | 'wrong'; mine: boolean; itemIds?: readonly string[] }
   | { t: 'gem'; userId: string; amount: number }
@@ -108,10 +111,13 @@ export function duelReducer(s: DuelState, a: DuelAction): DuelState {
       return { ...initialDuel, phase: 'queued' };
     case 'status':
       return s.phase === 'queued' ? { ...s, waitedSec: a.waitedSec, problem: a.problem ?? null } : s;
+    case 'draft':
+      // A cancelled draft (somebody left) is a passing problem; anything else replaces the screen with the draft.
+      return a.draft.status === 'cancelled' ? { ...s, draft: null, error: 'DRAFT_CANCELLED' } : { ...s, draft: a.draft };
     case 'found':
       // The same match announced again (a reconnect or a resume): keep what the screen is showing.
       if (s.found?.matchId === a.found.matchId && s.phase !== 'idle' && s.phase !== 'queued') return { ...s, found: a.found, error: null };
-      return { ...s, phase: 'playing', found: a.found, ended: null, error: null, notice: null, prevBoard: null, revealedLevel: null, finale: null };
+      return { ...s, phase: 'playing', draft: null, found: a.found, ended: null, error: null, notice: null, prevBoard: null, revealedLevel: null, finale: null };
     case 'state': {
       const names = { ...s.names, ...Object.fromEntries(a.view.cards.map((c) => [c.id, c.nameFa])) };
       const prev = s.view;
