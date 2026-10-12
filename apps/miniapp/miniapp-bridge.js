@@ -79,7 +79,9 @@
     for (var i = 0; i < holders.length; i++) {
       var s = document.createElement('script');
       s.src = holders[i].getAttribute('data-src');
-      s.defer = true;
+      // Scripts added from JS are async by default (`defer` is ignored): a split bundle's common chunk could then run before the
+      // chunk that defines Metro's `__d` ("Can't find variable: __d"). `async = false` runs them in the order they were added.
+      s.async = false;
       document.body.appendChild(s);
     }
   }

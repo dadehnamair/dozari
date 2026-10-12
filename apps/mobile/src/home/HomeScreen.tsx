@@ -41,6 +41,7 @@ import { ChatSheet } from '../chat/ChatSheet';
 import { shareTable } from '../tables/api';
 import { TableSheet } from '../tables/TableSheet';
 import { TournamentSheet } from '../tournament/TournamentSheet';
+import { TurnBanner, useTournamentTurn } from '../tournament/TurnBanner';
 import { SlabButton } from '../components/SlabButton';
 import { AnimatedLogo } from '../components/AnimatedLogo';
 import { useDailyReward } from '../daily/useDailyReward';
@@ -90,6 +91,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
   const [treasuryOpen, setTreasuryOpen] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [tournamentOpen, setTournamentOpen] = useState(false);
+  const turn = useTournamentTurn(features.tournament && myTrack?.rules?.tournaments !== false, onDuelResume);
   const [tableOpen, setTableOpen] = useState(false);
   const [tableCode, setTableCode] = useState<string | undefined>(undefined);
   const [inboxOpen, setInboxOpen] = useState(false);
@@ -216,6 +218,8 @@ export function HomeScreen({ onSolo, onPriceOnly, onDaily, onDuel, onDuelResume,
           <View style={styles.pillsGap} />
           {level !== null ? <StatPill color={colors.candy.grape} icon="rosette" value={toPersianDigits(String(level))} label={`${h.level} ${level} · ${h.settings}`} badge={missionsReady > 0 ? toPersianDigits(String(missionsReady)) : undefined} onPress={() => setSettingsOpen(true)} /> : null}
         </View>
+
+        {turn.turn ? <TurnBanner turn={turn.turn} now={turn.now} enter={turn.enter} failed={turn.failed} /> : null}
 
         <View style={styles.middle} pointerEvents="box-none">
           <View style={[styles.column, compact ? styles.columnCompact : null]}>{right.map(({ key, ...t }) => <HubTile key={key} {...t} />)}</View>

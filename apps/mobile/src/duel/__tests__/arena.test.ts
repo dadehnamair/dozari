@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { MatchView } from '@dozari/shared';
 import { fa } from '../../i18n/fa';
-import { arenaNumbers, arrange, characterFor, clockText, endReason, groupsBy, shuffled, tugPercent } from '../arena';
+import { arenaNumbers, arrange, characterFor, myCharacter, clockText, endReason, groupsBy, shuffled, tugPercent } from '../arena';
 
 const view = (by: Array<0 | 1 | null>): MatchView => ({
   matchId: '0f8fad5b-d9cb-469f-a165-708677289501',
@@ -28,6 +28,14 @@ describe('arena helpers', () => {
   it('gives an opponent a stable market character, never the hero', () => {
     expect(characterFor('avatar-7')).toBe(characterFor('avatar-7'));
     for (const k of ['a', 'b', 'c', 'zz', '']) expect(['dozari', 'dozariF']).not.toContain(characterFor(k));
+  });
+  it('shows the cast member a player picked, and the hero by default', () => {
+    expect(myCharacter('char-ajan')).toBe('ajan');
+    expect(characterFor('char-baqal')).toBe('baqal');
+    expect(myCharacter('avatar-03')).toBe('dozari');
+    expect(myCharacter(undefined)).toBe('dozari');
+    expect(myCharacter('avatar-03', 'female')).toBe('dozariF');
+    expect(myCharacter('char-ajan', 'female')).toBe('ajan');
   });
 
   it('counts groups per side and moves the tug bar 12.5% per group', () => {

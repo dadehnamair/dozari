@@ -33,3 +33,19 @@ export function startsInText(target: number, now: number): string {
   }
   return parts.join(fa.tournament.unitsJoin);
 }
+
+/** The round the bracket opens on: the first one with a match still to play, else the final. */
+export function currentRound(bracket: TournamentDetail['bracket'], rounds: number): number {
+  const open = bracket.filter((m) => m.status !== 'done' && m.status !== 'bye').map((m) => m.round);
+  return open.length > 0 ? Math.min(...open) : Math.max(1, rounds);
+}
+
+/** «۲۰ مهر، ۲۰:۰۰» for a round or deadline time. */
+export const turnWhen = (ms: number): string => new Intl.DateTimeFormat('fa-IR', { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(ms));
+
+/** How often Home asks for the turn: fast once a match is about to open or is open, slow while it is far away. */
+export function turnPollMs(turn: { state: string; opensAt: number | null } | null, now: number): number {
+  if (!turn) return 60_000;
+  if (turn.state === 'open' || turn.state === 'checked_in' || turn.state === 'playing') return 5_000;
+  return turn.opensAt !== null && turn.opensAt - now < 5 * 60_000 ? 5_000 : 60_000;
+}

@@ -18,11 +18,13 @@ import { EmptyNote } from '../components/EmptyState';
 import { fa } from '../i18n/fa';
 import { ApiError } from '../net/http';
 import { avatarOf } from '../social/avatarOf';
+import { usePlayerSheet } from '../social/usePlayerSheet';
 import { colors, fonts } from '../theme/colors';
 import { fetchTournament, fetchTournaments, joinTournament, leaveTournament } from './api';
 import { SponsorCard, SponsorInvite, SponsorTag } from './Sponsor';
+import { LivePulse, LoserFade, StampIn, WinnerHop } from './MatchFx';
 import { Winners } from './Winners';
-import { blockedText, placeLabel, roundLabel, startsInText } from './text';
+import { blockedText, currentRound, placeLabel, roundLabel, startsInText, turnWhen } from './text';
 import { pageTop } from '../theme/safeArea';
 import { TEXT_RIGHT } from '../theme/direction';
 
@@ -77,6 +79,7 @@ export function TournamentSheet({ onClose, invite = null }: { onClose: () => voi
 
 function TournamentPage({ id, onBack }: { id: string; onBack: () => void }) {
   const { ask, dialog } = useConfirm();
+  const players = usePlayerSheet();
   const [t, setT] = useState<TournamentDetail | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -140,29 +143,7 @@ function TournamentPage({ id, onBack }: { id: string; onBack: () => void }) {
                 ))}
               </View>
 
-              {t.bracket.length > 0 ? (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.bracket}>
-                  {Array.from({ length: t.rounds }, (_, i) => i + 1).map((round) => (
-                    <View key={round} style={styles.col}>
-                      <Text style={styles.colTitle}>{roundLabel(round, t.size)}</Text>
-                      <View style={styles.colBody}>
-                        {t.bracket.filter((m) => m.round === round).map((m) => (
-                          <View key={`${m.round}-${m.slot}`} style={[styles.match, m.status === 'playing' ? styles.matchLive : null]}>
-                            {([m.a, m.b] as const).map((p, k) => (
-                              <View key={k} style={[styles.player, p && m.winnerId === p.id ? styles.playerWon : null]}>
-                                <Text style={[styles.playerName, !p || (m.winnerId && m.winnerId !== p.id) ? styles.dim : null]} numberOfLines={1}>
-                                  {p?.nickname ?? (m.status === 'bye' ? fa.tournament.bye : fa.tournament.waiting)}
-                                </Text>
-                                {p && m.winnerId === p.id ? <Text style={styles.check}>✓</Text> : null}
-                              </View>
-                            ))}
-                          </View>
-                        ))}
-                      </View>
-                    </View>
-                  ))}
-                </ScrollView>
-              ) : null}
+              {t.bracket.length > 0 ? <Bracket t={t} onPlayer={players.open} /> : null}
 
               {/* Sponsor + details + prizes + rules together, then the results, then who took part. */}
               {t.sponsor ? <SponsorCard sponsor={t.sponsor} /> : null}
@@ -176,16 +157,21 @@ function TournamentPage({ id, onBack }: { id: string; onBack: () => void }) {
                   </>
                 ) : null}
                 <Text style={styles.label}>{fa.tournament.rulesTitle}</Text>
-                {[fa.tournament.rules.elimination, fa.tournament.rules.fee(t.entryCoins, t.entryGems), fa.tournament.rules.byes, fa.tournament.rules.cancel, fa.tournament.rules.online].map((r) => <Text key={r} style={styles.small}>• {r}</Text>)}
+                {[fa.tournament.rules.elimination, fa.tournament.rules.fee(t.entryCoins, t.entryGems), fa.tournament.rules.byes, fa.tournament.rules.cancel, ...(t.roundGapMinutes > 0 ? [fa.tournament.rules.scheduled(Math.round(t.roundGapMinutes / 60), t.graceMinutes), fa.tournament.rules.forfeit] : [fa.tournament.rules.online])].map((r) => <Text key={r} style={styles.small}>• {r}</Text>)}
               </View>
 
-              {t.results.length > 0 ? <Winners t={t} /> : null}
+              {t.results.length > 0 ? <Winners t={t} onPlayer={players.open} /> : null}
 
               <View style={styles.panel}>
                 <Text style={styles.label}>{fa.tournament.players} ({n(t.players.length)})</Text>
                 <View style={styles.people}>
                   {t.players.map((p) => (
-                    <View key={p.id} style={styles.person}><Avatar avatar={avatarOf(p.avatarKey)} size={28} /><Text style={styles.small}>{p.nickname}</Text></View>
+                    <View key={p.id} style={styles.personCell}>
+                      <Pressable onPress={() => players.open(p.id)} accessibilityRole="button" accessibilityLabel={p.nickname} style={styles.person}>
+                        <Avatar avatar={avatarOf(p.avatarKey)} size={40} />
+                        <Text style={styles.personName} numberOfLines={1}>{p.nickname}</Text>
+                      </Pressable>
+                    </View>
                   ))}
                 </View>
               </View>
@@ -208,6 +194,75 @@ function TournamentPage({ id, onBack }: { id: string; onBack: () => void }) {
         </View>
       ) : null}
       {dialog}
+      {players.sheet}
+    </View>
+  );
+}
+
+/** The bracket, one round at a time: round chips on top, the round's matches in a two-column grid (no sideways scrolling). */
+function Bracket({ t, onPlayer }: { t: TournamentDetail; onPlayer: (playerId: string) => void }) {
+  const [picked, setPicked] = useState<number | null>(null);
+  const round = picked ?? currentRound(t.bracket, t.rounds);
+  const matches = t.bracket.filter((m) => m.round === round).sort((x, y) => x.slot - y.slot);
+  const anyone = matches.some((m) => m.a || m.b);
+  return (
+    <View style={styles.panel}>
+      <Text style={styles.label}>{fa.tournament.bracketTitle}</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+        {Array.from({ length: t.rounds }, (_, i) => i + 1).map((r) => (
+          <Pressable key={r} onPress={() => setPicked(r)} accessibilityRole="button" accessibilityState={{ selected: r === round }} style={[styles.roundChip, r === round ? styles.roundChipOn : null]}>
+            <Text style={[styles.roundChipText, r === round ? styles.roundChipTextOn : null]}>{roundLabel(r, t.size)}</Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+      {t.roundTimes[round - 1] !== undefined ? <Text style={styles.small}>{fa.tournament.roundAt(roundLabel(round, t.size), turnWhen(t.roundTimes[round - 1]!))}</Text> : null}
+      {anyone ? (
+        <View style={styles.grid}>
+          {matches.map((m) => (
+            <View key={`${m.round}-${m.slot}`} style={styles.cell}>
+              <MatchCard m={m} onPlayer={onPlayer} />
+            </View>
+          ))}
+        </View>
+      ) : (
+        <Text style={styles.small}>{round === 1 ? fa.tournament.drawLater : fa.tournament.roundLater}</Text>
+      )}
+    </View>
+  );
+}
+
+type BracketMatch = TournamentDetail['bracket'][number];
+
+/** One match: both faces, the winner lit up in green with a ✓, the loser greyed out and struck through with a ✕. */
+function MatchCard({ m, onPlayer }: { m: BracketMatch; onPlayer: (playerId: string) => void }) {
+  const decided = m.winnerId !== null;
+  return (
+    <View style={styles.matchOuter}>
+      <View style={[styles.match, m.status === 'playing' ? styles.matchLive : null]}>
+        {([m.a, m.b] as const).map((p, k) => {
+          const won = !!p && m.winnerId === p.id;
+          const lost = !!p && decided && !won;
+          const row = (
+            <View style={[styles.player, k === 0 ? styles.playerFirst : null, won ? styles.playerWon : null, lost ? styles.playerLost : null]}>
+              <Pressable onPress={p ? () => onPlayer(p.id) : undefined} disabled={!p} accessibilityRole={p ? 'button' : undefined} accessibilityLabel={p?.nickname} style={styles.playerTap}>
+              <WinnerHop on={won}>
+                <View style={[styles.face, won ? styles.faceWon : null, !p ? styles.faceEmpty : null]}>
+                  {p ? <View style={lost ? styles.faceLost : null}><Avatar avatar={avatarOf(p.avatarKey)} size={30} /></View> : <Text style={styles.faceQ}>؟</Text>}
+                </View>
+              </WinnerHop>
+              <Text style={[styles.playerName, won ? styles.nameWon : null, lost ? styles.nameLost : null, !p ? styles.dim : null]} numberOfLines={1}>
+                {p?.nickname ?? (m.status === 'bye' ? fa.tournament.bye : fa.tournament.waiting)}
+              </Text>
+              </Pressable>
+              {won ? <StampIn><View style={styles.badgeWon}><Text style={styles.badgeText}>✓</Text></View></StampIn> : null}
+              {lost ? <View style={styles.badgeLost}><Text style={styles.badgeText}>✕</Text></View> : null}
+            </View>
+          );
+          return lost ? <LoserFade key={k}>{row}</LoserFade> : <View key={k}>{row}</View>;
+        })}
+        <View style={styles.vs} pointerEvents="none"><Text style={styles.vsText}>VS</Text></View>
+      </View>
+      {m.status === 'playing' ? <LivePulse /> : null}
     </View>
   );
 }
@@ -247,23 +302,43 @@ const styles = StyleSheet.create({
   stat: { flex: 1, height: 62, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center', ...lift(4) },
   statValue: { fontFamily: fonts.display, fontSize: 20, color: colors.ink },
   statLabel: { fontFamily: fonts.bold, fontSize: 11, color: colors.ink },
-  bracket: { flexDirection: ROW, gap: 12, paddingTop: 22, paddingBottom: 4 },
-  col: { width: 138, gap: 6 },
-  colTitle: { position: 'absolute', top: -18, left: 0, right: 0, textAlign: 'center', fontFamily: fonts.display, fontSize: 13, color: colors.candy.yellow },
-  colBody: { justifyContent: 'space-around', gap: 8, flexGrow: 1 },
-  match: { borderRadius: 12, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.paper, overflow: 'hidden', ...lift(3) },
+  chips: { flexDirection: ROW, gap: 6, paddingVertical: 4 },
+  roundChip: { paddingHorizontal: 12, height: 32, borderRadius: 99, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.cream, justifyContent: 'center' },
+  roundChipOn: { backgroundColor: '#7E46D6' },
+  roundChipText: { fontFamily: fonts.bold, fontSize: 12.5, color: colors.ink },
+  roundChipTextOn: { color: '#fff' },
+  grid: { flexDirection: ROW, flexWrap: 'wrap', marginHorizontal: -4 },
+  cell: { width: '50%', padding: 4 },
+  matchOuter: { borderRadius: 12, backgroundColor: colors.paper, ...lift(3) },
+  match: { borderRadius: 12, borderWidth: 2.5, borderColor: colors.ink, overflow: 'hidden' },
   matchLive: { borderColor: '#7ED957' },
-  player: { height: 28, flexDirection: ROW, alignItems: 'center', gap: 4, paddingHorizontal: 6, borderBottomWidth: 1, borderColor: 'rgba(43,18,64,0.15)' },
-  playerWon: { backgroundColor: '#E4F7D0' },
-  playerName: { flex: 1, fontFamily: fonts.bold, fontSize: 11, color: colors.ink, textAlign: TEXT_RIGHT },
+  player: { height: 46, flexDirection: ROW, alignItems: 'center', gap: 6, paddingHorizontal: 6 },
+  playerTap: { flex: 1, minWidth: 0, flexDirection: ROW, alignItems: 'center', gap: 6 },
+  playerFirst: { borderBottomWidth: 1.5, borderColor: 'rgba(43,18,64,0.15)' },
+  playerWon: { backgroundColor: '#D4F5B8' },
+  playerLost: { backgroundColor: 'rgba(43,18,64,0.07)' },
+  face: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
+  faceWon: { shadowColor: '#3FA36B', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.9, shadowRadius: 8, elevation: 6 },
+  faceLost: { opacity: 0.4 },
+  faceEmpty: { borderRadius: 17, borderWidth: 2, borderStyle: 'dashed', borderColor: 'rgba(43,18,64,0.3)' },
+  faceQ: { fontFamily: fonts.display, fontSize: 16, color: 'rgba(43,18,64,0.4)' },
+  playerName: { flex: 1, fontFamily: fonts.bold, fontSize: 12, color: colors.ink, textAlign: TEXT_RIGHT },
+  nameWon: { fontFamily: fonts.display, fontSize: 13 },
+  nameLost: { opacity: 0.5, textDecorationLine: 'line-through' },
   dim: { opacity: 0.5 },
-  check: { fontFamily: fonts.display, fontSize: 13, color: '#3FA36B' },
+  badgeWon: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: colors.ink, backgroundColor: '#3FA36B', alignItems: 'center', justifyContent: 'center' },
+  badgeLost: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: 'rgba(43,18,64,0.5)', backgroundColor: '#E5384F', opacity: 0.8, alignItems: 'center', justifyContent: 'center' },
+  badgeText: { fontFamily: fonts.display, fontSize: 11, lineHeight: 14, color: '#fff' },
+  vs: { position: 'absolute', left: '50%', marginLeft: -11, top: 46 - 9, width: 22, height: 18, borderRadius: 9, borderWidth: 2, borderColor: colors.ink, backgroundColor: colors.candy.yellow, alignItems: 'center', justifyContent: 'center' },
+  vsText: { fontFamily: fonts.display, fontSize: 9, lineHeight: 12, color: colors.ink },
   panel: { gap: 6, padding: 12, borderRadius: 20, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.paper, ...lift(5) },
   label: { fontFamily: fonts.display, fontSize: 16, color: '#7E46D6', textAlign: TEXT_RIGHT, marginTop: 4 },
   text: { fontFamily: fonts.bold, fontSize: 13, lineHeight: 21, color: colors.ink, textAlign: TEXT_RIGHT },
   small: { fontFamily: fonts.bold, fontSize: 11.5, lineHeight: 19, color: colors.ink, opacity: 0.85, textAlign: TEXT_RIGHT },
-  people: { flexDirection: ROW, flexWrap: 'wrap', gap: 8 },
-  person: { flexDirection: ROW, alignItems: 'center', gap: 4 },
+  people: { flexDirection: ROW, flexWrap: 'wrap', marginHorizontal: -4 },
+  personCell: { width: '33.3333%', padding: 4 },
+  person: { alignItems: 'center', gap: 4, paddingVertical: 8, paddingHorizontal: 4, borderRadius: 14, borderWidth: 2, borderColor: 'rgba(43,18,64,0.18)', backgroundColor: 'rgba(255,255,255,0.35)' },
+  personName: { fontFamily: fonts.bold, fontSize: 11.5, color: colors.ink, textAlign: 'center', maxWidth: '100%' },
   warnLight: { fontFamily: fonts.bold, fontSize: 12, color: '#FFE48A', textAlign: 'center' },
   cta: { position: 'absolute', left: 16, right: 16, bottom: 22, gap: 6 },
 });

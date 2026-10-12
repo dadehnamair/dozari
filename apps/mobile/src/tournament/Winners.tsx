@@ -1,4 +1,4 @@
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { TournamentDetail } from '@dozari/shared';
 import { Avatar } from '../components/Avatar';
 import { fa } from '../i18n/fa';
@@ -11,7 +11,7 @@ const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const MEDAL: Record<number, { emoji: string; tint: string }> = { 1: { emoji: '🥇', tint: '#FFE48A' }, 2: { emoji: '🥈', tint: '#D9E2EC' }, 3: { emoji: '🥉', tint: '#FFC9A0' } };
 
 /** The tournament's winners: the champion on a bigger card, then the runners-up; each shows avatar, medal and what they won. */
-export function Winners({ t }: { t: TournamentDetail }) {
+export function Winners({ t, onPlayer }: { t: TournamentDetail; /** Tapping a winner's face or name opens their profile. */ onPlayer?: (playerId: string) => void }) {
   return (
     <View style={styles.wrap}>
       <Text style={styles.title}>{'🏆 '}{fa.tournament.results}</Text>
@@ -24,10 +24,14 @@ export function Winners({ t }: { t: TournamentDetail }) {
         return (
           <View key={`${r.place}-${r.id}`} style={[styles.card, champ ? styles.champ : null, { backgroundColor: medal.tint }]}>
             <Text style={champ ? styles.medalBig : styles.medal}>{medal.emoji}</Text>
-            <Avatar avatar={avatarOf(player?.avatarKey ?? '')} size={champ ? 60 : 44} />
+            <Pressable onPress={onPlayer ? () => onPlayer(r.id) : undefined} disabled={!onPlayer} accessibilityRole="button" accessibilityLabel={r.nickname}>
+              <Avatar avatar={avatarOf(player?.avatarKey ?? '')} size={champ ? 60 : 44} />
+            </Pressable>
             <View style={styles.body}>
-              <Text style={styles.place}>{placeLabel(r.place)}</Text>
-              <Text style={champ ? styles.nameBig : styles.name} numberOfLines={1}>{r.nickname}</Text>
+              <Pressable onPress={onPlayer ? () => onPlayer(r.id) : undefined} disabled={!onPlayer} accessibilityRole="button" accessibilityLabel={r.nickname}>
+                <Text style={styles.place}>{placeLabel(r.place)}</Text>
+                <Text style={champ ? styles.nameBig : styles.name} numberOfLines={1}>{r.nickname}</Text>
+              </Pressable>
               {rewards.length > 0 ? (
                 <View style={styles.chips}>{rewards.map((x) => <View key={x} style={styles.chip}><Text style={styles.chipText}>{x}</Text></View>)}</View>
               ) : null}

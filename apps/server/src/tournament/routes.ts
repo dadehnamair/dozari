@@ -6,7 +6,7 @@ import { currentUser } from '../auth/routes.js';
 import type { TournamentService } from './service.js';
 
 const idParam = z.object({ id: z.string().uuid() });
-const STATUS: Record<TournamentError | 'INVALID', number> = { NOT_FOUND: 404, CLOSED: 409, FULL: 409, ALREADY_IN: 409, NOT_IN: 409, LEVEL: 403, COINS: 402, GEMS: 402, NOT_ACTIVATED: 403, BUSY: 409, BAD_STATE: 409, TOO_FEW: 409, INVALID: 400 };
+const STATUS: Record<TournamentError | 'INVALID', number> = { NOT_FOUND: 404, CLOSED: 409, FULL: 409, ALREADY_IN: 409, NOT_IN: 409, LEVEL: 403, COINS: 402, GEMS: 402, NOT_ACTIVATED: 403, BUSY: 409, BAD_STATE: 409, TOO_FEW: 409, NOT_YET: 409, INVALID: 400 };
 
 /** Player side: the list, a tournament's own page, join and leave. */
 export function registerTournamentRoutes(app: FastifyInstance, auth: AuthService, tournaments: TournamentService) {
@@ -22,6 +22,22 @@ export function registerTournamentRoutes(app: FastifyInstance, auth: AuthService
     if (!user) return reply.code(401).send({ error: 'unauthorized' });
     if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
     return (await tournaments.detail(user.id, p.data.id)) ?? reply.code(404).send({ error: 'NOT_FOUND' });
+  });
+
+  /** Home keeps the caller's next tournament match pinned: when it opens, the deadline and its state. */
+  app.get('/me/tournament-turn', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    return { turn: await tournaments.turnFor(user.id) };
+  });
+
+  app.post('/tournaments/:id/checkin', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    const p = idParam.safeParse(req.params);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
+    const out = await tournaments.checkIn(user.id, p.data.id);
+    return out.ok ? { ok: true, state: out.state } : reply.code(STATUS[out.error]).send({ error: out.error });
   });
 
   for (const action of ['join', 'leave'] as const) {

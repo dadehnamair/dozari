@@ -324,3 +324,116 @@ describe('bot fill', () => {
     expect(t.store.coins.get('bot-2') ?? 0).toBe(0);
   });
 });
+
+describe('scheduled rounds', () => {
+  const DAY = 24 * 60 * MIN;
+  async function scheduled(over: Parameters<ReturnType<typeof boot>['input']>[0] = {}, passStart = true) {
+    const t = boot();
+    const users = [await t.login(1), await t.login(2), await t.login(3), await t.login(4)];
+    [9, 7, 6, 5].forEach((lv, i) => t.levels.set(users[i]!.id, lv));
+    for (const u of users) t.store.coins.set(u.id, 100);
+    const created = await t.service.create(t.input({ roundGapMinutes: 1440, graceMinutes: 15, ...over }), true);
+    if (!created.ok) throw new Error('x');
+    for (const u of users) await t.join(u, created.id);
+    if (passStart) {
+      t.clock.ms += 61 * MIN;
+      await t.service.tick();
+    }
+    const [u1, u2, u3, u4] = users as [(typeof users)[0], (typeof users)[0], (typeof users)[0], (typeof users)[0]];
+    const checkin = (u: (typeof users)[0]) => t.app.inject({ method: 'POST', url: `/tournaments/${created.id}/checkin`, headers: u.h });
+    return { ...t, users, id: created.id, u1, u2, u3, u4, checkin };
+  }
+
+  it('does not start a match until both players check in, then starts it at once', async () => {
+    const t = await scheduled();
+    expect(t.started).toEqual([]);
+    expect(await t.service.turnFor(t.u1.id)).toMatchObject({ round: 1, state: 'open', opponent: `بازیکن ${t.u4.id.slice(-2)}` });
+    expect((await t.service.detail(t.u1.id, t.id))!.bracket[0]!.a).toMatchObject({ id: t.u1.id, avatarKey: 'avatar-01' }); // the bracket carries the faces
+    expect((await t.checkin(t.u1)).json()).toMatchObject({ ok: true, state: 'checked_in' });
+    expect(await t.service.turnFor(t.u1.id)).toMatchObject({ state: 'checked_in' });
+    await t.service.tick();
+    expect(t.started).toEqual([]);
+    expect((await t.checkin(t.u4)).json()).toMatchObject({ ok: true, state: 'playing' });
+    expect(t.started).toEqual([[t.u1.id, t.u4.id]]);
+    expect(await t.service.turnFor(t.u1.id)).toMatchObject({ state: 'playing' });
+  });
+
+  it('gives the match to whoever showed up when the grace runs out, and to the better seed when nobody did', async () => {
+    const t = await scheduled();
+    await t.checkin(t.u3); // p2 v p3: only p3 shows up
+    t.clock.ms += 14 * MIN;
+    await t.service.tick();
+    expect((await t.service.detail(t.u1.id, t.id))!.bracket.filter((m) => m.status === 'done')).toHaveLength(0); // still inside the grace
+    t.clock.ms += 2 * MIN;
+    await t.service.tick();
+    const d = (await t.service.detail(t.u1.id, t.id))!;
+    const r1 = d.bracket.filter((m) => m.round === 1);
+    expect(r1.map((m) => m.winnerId).sort()).toEqual([t.u1.id, t.u3.id].sort()); // p3 showed up; nobody came for p1 v p4: the higher level p1 goes on
+    expect(t.told.some(([id, text]) => id === t.u2.id && text.includes('نرسیدی'))).toBe(true);
+    expect(t.started).toEqual([]);
+  });
+
+  it('waits a whole gap for the next round, and refuses a check-in that is too early or too late', async () => {
+    const t = await scheduled();
+    const detail0 = (await t.service.detail(t.u1.id, t.id))!;
+    expect(detail0.roundTimes).toHaveLength(2);
+    const start = detail0.roundTimes[0]!;
+    expect(detail0.roundTimes[1]).toBe(start + DAY);
+    t.clock.ms += 16 * MIN;
+    expect((await t.checkin(t.u1)).statusCode).toBe(409); // too late for round 1
+    await t.service.tick(); // nobody came: p1 and p2 (the better seeds) go on
+    const turn = await t.service.turnFor(t.u1.id);
+    expect(turn).toMatchObject({ round: 2, state: 'upcoming', opensAt: start + DAY, opponent: `بازیکن ${t.u2.id.slice(-2)}` });
+    expect((await t.checkin(t.u1)).json()).toMatchObject({ error: 'NOT_YET' });
+    t.clock.ms = start + DAY + MIN;
+    await t.service.tick();
+    expect(await t.service.turnFor(t.u1.id)).toMatchObject({ round: 2, state: 'open' });
+    await t.checkin(t.u1);
+    await t.checkin(t.u2);
+    expect(t.started).toEqual([[t.u1.id, t.u2.id]]);
+    await t.finishMatches(() => 0);
+    expect((await t.service.detail(t.u1.id, t.id))!.status).toBe('finished');
+    expect(await t.service.turnFor(t.u1.id)).toBeNull();
+  });
+
+  it('a back-dated tournament opens its first window when it starts, not in the past', async () => {
+    const t = await scheduled({ startsAt: Date.UTC(2026, 9, 2, 12) - 5 * DAY }, false);
+    await t.service.tick();
+    await t.service.tick();
+    expect((await t.service.detail(t.u1.id, t.id))!.bracket.filter((m) => m.status === 'done')).toHaveLength(0);
+    expect(await t.service.turnFor(t.u1.id)).toMatchObject({ round: 1, state: 'open' });
+  });
+
+  it('shows a joined, not yet started tournament as the upcoming turn, and rejects a bad gap or grace', async () => {
+    const t = await scheduled({}, false);
+    expect(await t.service.turnFor(t.u1.id)).toMatchObject({ round: 1, state: 'upcoming', opponent: null });
+    expect(await t.service.create(t.input({ roundGapMinutes: 30 }), false)).toMatchObject({ ok: false, reason: 'bad_round_gap' });
+    expect(await t.service.create(t.input({ graceMinutes: 0 }), false)).toMatchObject({ ok: false, reason: 'bad_grace' });
+  });
+
+  it('reminds both players 30 minutes before a match opens, and the joined players before the tournament starts, once each', async () => {
+    const t = await scheduled({}, false);
+    const reminders = () => t.told.filter(([, text]) => text.includes('دقیقه‌ی دیگر'));
+    await t.service.tick();
+    expect(reminders()).toHaveLength(0); // an hour away
+    t.clock.ms += 31 * MIN; // 29 minutes before the start
+    await t.service.tick();
+    await t.service.tick();
+    expect(reminders().map(([id]) => id).sort()).toEqual(t.users.map((u) => u.id).sort()); // once each
+    t.clock.ms += 30 * MIN;
+    await t.service.tick(); // started: round 1 is open, no more reminders
+    expect(reminders()).toHaveLength(4);
+    t.clock.ms += 16 * MIN;
+    await t.service.tick(); // nobody came: p1 and p2 meet in round 2, tomorrow
+    const before = reminders().length;
+    const start = (await t.service.detail(t.u1.id, t.id))!.roundTimes[0]!;
+    t.clock.ms = start + DAY - 40 * MIN;
+    await t.service.tick();
+    expect(reminders()).toHaveLength(before);
+    t.clock.ms = start + DAY - 29 * MIN;
+    await t.service.tick();
+    await t.service.tick();
+    expect(reminders().slice(before).map(([id]) => id).sort()).toEqual([t.u1.id, t.u2.id].sort());
+  });
+});
+

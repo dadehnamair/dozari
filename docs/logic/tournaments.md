@@ -26,6 +26,13 @@ slots, starts every ready match through the live duel service, and returns a `pl
 A player in another live duel is retried on the next tick. A duel result advances the winner (`onMatchEnded`); a draw is replayed. After the final the prizes are
 paid (`tournament_prize`, once per player) and the tournament finishes. A player who never shows loses by the duel's own timeout rules (consecutive timeouts).
 
+## Scheduled rounds (D225)
+
+`round_gap_minutes > 0` makes a tournament last days: round *n* opens at `starts_at + (n-1) × gap` (0 = the old behaviour: every ready match is started by the server at once). When a match opens its
+two players have `grace_minutes` (default 15) to check in (`POST /tournaments/:id/checkin`, from Home's pinned strip); both in → the duel starts. At the deadline: one checked in → that player wins by
+forfeit; nobody → the higher level goes on; both in but not startable (busy) → keeps retrying. Winners are told the next round's time (Bale text); `TOURNAMENT_REMIND_MINUTES` (30) before the tournament starts and before each match opens, everybody concerned gets one reminder (Bale text; remembered in memory, so a restart may repeat one). `GET /me/tournament-turn` feeds the strip (an open tournament the
+player joined counts as «round 1 at the start time»). Admin builder: «فاصله‌ی دورها (ساعت)» and «مهلت حضور (دقیقه)». Pure helpers: `packages/shared/src/tournament/schedule.ts`.
+
 ## Player pages
 
 «تورنومنت‌ها» on Home: list (status, seats, entry, level, start) and the tournament's own page: story, prizes, rules text, the join/leave button with the reason

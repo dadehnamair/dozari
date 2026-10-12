@@ -15,6 +15,7 @@ import { ApiError } from '../net/http';
 import { useGuardianGate } from '../agetrack/GuardianGate';
 import { fetchChildren, fetchMyGuardian } from '../agetrack/guardianApi';
 import { avatarOf } from '../social/avatarOf';
+import { usePlayerSheet } from '../social/usePlayerSheet';
 import { colors, fonts } from '../theme/colors';
 import { fetchFriends } from '../social/api';
 import { OnlineDot } from '../components/OnlineDot';
@@ -144,6 +145,7 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
       .then(() => (setNote(null), refresh()), (e) => (fail(e), refresh()))
       .finally(() => (clearTimeout(release), setBusy(false)));
   };
+  const players = usePlayerSheet();
   const enter = (c: string) => {
     const norm = normalizeTableCode(c);
     if (!norm) return setNote(fa.tables.errors.NOT_FOUND ?? '');
@@ -178,18 +180,20 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
                   <Text style={styles.label}>{fa.tables.requestsTitle}</Text>
                   {table.requests.map((r) => (
                     <View key={r.id} style={styles.row}>
-                      <Avatar avatar={avatarOf(r.avatarKey)} size={32} />
-                      <Text style={styles.name} numberOfLines={1}>{r.nickname}</Text>
+                      <Pressable onPress={() => players.open(r.id)} accessibilityRole="button" accessibilityLabel={r.nickname} style={styles.who}>
+                        <Avatar avatar={avatarOf(r.avatarKey)} size={32} />
+                        <Text style={styles.name} numberOfLines={1}>{r.nickname}</Text>
+                      </Pressable>
                       <Pressable onPress={() => void run(() => answerRequest(r.id, true))} style={[styles.pill, { backgroundColor: colors.candy.lime }]} accessibilityRole="button"><Text style={styles.pillText}>{fa.tables.accept}</Text></Pressable>
                       <Pressable onPress={() => void run(() => answerRequest(r.id, false))} style={styles.pill} accessibilityRole="button"><Text style={styles.pillText}>{fa.tables.decline}</Text></Pressable>
                     </View>
                   ))}
                 </View>
               ) : null}
-              <TableLobby dark={dark} table={table} onSit={(side) => void run(() => setTableSide(side))} onKick={(id) => void run(() => kickFromTable(id))} />
+              <TableLobby dark={dark} table={table} onPlayer={players.open} onSit={(side) => void run(() => setTableSide(side))} onKick={(id) => void run(() => kickFromTable(id))} />
               {note ? <Text style={styles.warn}>{note}</Text> : null}
               {table.youAreHost && !table.inMatch && table.players.length < table.seats ? <InviteFriends onNote={setNote} /> : null}
-              <TableChat code={table.code} meId={table.players.find((p) => p.isYou)?.id ?? null} />
+              <TableChat code={table.code} meId={table.players.find((p) => p.isYou)?.id ?? null} onPlayer={players.open} />
               {table.entryFee === 0 ? <Text style={[styles.hint, dark ? dk.text : null]}>{fa.tables.friendly}</Text> : null}
               {table.youAreHost ? (
                 <>
@@ -287,6 +291,7 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
       {coinsHelp !== null ? <StatInfoSheet kind="coins" value={coinsHelp} onClose={() => setCoinsHelp(null)} /> : null}
       {dialog}
       {gate}
+      {players.sheet}
     </Pressable>
   );
 }
@@ -417,6 +422,7 @@ const styles = StyleSheet.create({
   iconOn: { borderColor: INK, backgroundColor: colors.candy.yellow },
   chips: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8 },
   chip: { minWidth: 84, alignItems: 'center', borderWidth: 2.5, borderColor: INK, borderRadius: 99, paddingHorizontal: 16, paddingVertical: 6 },
+  who: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 8 },
   pill: { borderWidth: 2, borderColor: INK, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: colors.candy.yellow },
   pillText: { fontFamily: fonts.bold, fontSize: 13, color: INK },
 });
