@@ -47,6 +47,7 @@ import { RestCardView } from './src/agetrack/RestCardView';
 import { safeInsetTop } from './src/theme/safeArea';
 import { PwaLayer } from './src/pwa/PwaLayer';
 import { PriceOnlyScreen } from './src/priceonly/PriceOnlyScreen';
+import { TriviaScreen } from './src/trivia/TriviaScreen';
 import { refillPack } from './src/offline/pack';
 import { ServerDownBanner } from './src/net/ServerDownBanner';
 import { takeLaunchTarget } from './src/pwa/usePwa';
@@ -109,7 +110,7 @@ function AppInner() {
   const [previewTrack, setPreviewTrack] = useState<'kid' | 'teen' | null>(null);
   /** The track picked on the sign-in card (age tracks on); saved by the next screen. */
   const [pickedTrack, setPickedTrack] = useState<AgeTrack | null>(null);
-  const [screen, setScreen] = useState<'splash' | 'login' | 'ageTrack' | 'home' | 'solo' | 'daily' | 'duel' | 'tutorial' | 'duelResume' | 'gallery' | 'search' | 'brand' | 'lookup' | 'priceonly'>(
+  const [screen, setScreen] = useState<'splash' | 'login' | 'ageTrack' | 'home' | 'solo' | 'daily' | 'duel' | 'tutorial' | 'duelResume' | 'gallery' | 'search' | 'brand' | 'lookup' | 'priceonly' | 'trivia'>(
     'splash',
   );
   // The screen name rides along with an error report.
@@ -118,7 +119,7 @@ function AppInner() {
   // A kid or teen track hides what needs adult content or price knowledge (docs/logic/age-tracks.md); the rules come from the server.
   const trackRules = useTrackRules(ageTracksOn, screen);
   const homeFeatures: ClientConfig['features'] = trackRules
-    ? { ...config.features, daily: config.features.daily && trackRules.dailyPuzzle, priceonly: config.features.priceonly && trackRules.priceOnly, lookup: config.features.lookup && trackRules.lookup }
+    ? { ...config.features, daily: config.features.daily && trackRules.dailyPuzzle, priceonly: config.features.priceonly && trackRules.priceOnly, trivia: config.features.trivia && trackRules.priceOnly, lookup: config.features.lookup && trackRules.lookup }
     : config.features;
 
   /** A home-screen shortcut (`?go=`, D102) opens its screen straight after the splash, when that mode is on. */
@@ -154,7 +155,7 @@ function AppInner() {
   useHardwareBack(
     screen === 'brand' || screen === 'search'
       ? () => setScreen('gallery')
-      : screen === 'solo' || screen === 'priceonly' || screen === 'daily' || screen === 'duel' || screen === 'duelResume' || screen === 'lookup' || screen === 'gallery'
+      : screen === 'solo' || screen === 'priceonly' || screen === 'trivia' || screen === 'daily' || screen === 'duel' || screen === 'duelResume' || screen === 'lookup' || screen === 'gallery'
         ? () => setScreen('home')
         : null,
   );
@@ -220,6 +221,7 @@ function AppInner() {
       {screen === 'ageTrack' ? <AgeTrackScreen initial={pickedTrack ?? undefined} onDone={() => void tutorialSeen().then((seen) => setScreen(seen ? 'home' : 'tutorial'))} /> : null}
       {screen === 'solo' ? <SoloScreen key={previewTrack ?? 'own'} previewTrack={previewTrack ?? undefined} onBack={() => (setPreviewTrack(null), setScreen('home'))} hintsEnabled={config.features.shop} ageTracksOn={config.raw['feature.age_tracks'] === 1} /> : null}
       {screen === 'priceonly' ? <PriceOnlyScreen onBack={() => setScreen('home')} /> : null}
+      {screen === 'trivia' ? <TriviaScreen onBack={() => setScreen('home')} /> : null}
       {screen === 'daily' ? <SoloScreen daily onBack={() => setScreen('home')} hintsEnabled={config.features.shop} /> : null}
       {screen === 'tutorial' ? <Tutorial onDone={() => void markTutorialSeen().then(() => setScreen('home'))} /> : null}
       {screen === 'duel' ? <DuelScreen onBack={() => setScreen('home')} settings={config.raw} /> : null}
@@ -238,6 +240,7 @@ function AppInner() {
         <HomeScreen
           onSolo={() => setScreen('solo')}
           onPriceOnly={() => setScreen('priceonly')}
+          onTrivia={() => setScreen('trivia')}
           onDaily={() => setScreen('daily')}
           onTutorial={() => setScreen('tutorial')}
           onDuel={() => setScreen('duel')}

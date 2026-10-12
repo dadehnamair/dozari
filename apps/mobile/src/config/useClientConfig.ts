@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { callJson } from '../net/http';
 import { installAnalytics } from './analytics';
 import { setChartRules } from './chartRules';
+import { setTableRules } from './tableRules';
 import { OPEN_CONFIG, parseClientConfig } from './gate';
 import type { ClientConfig } from './gate';
 
@@ -17,6 +18,7 @@ export function useClientConfig(): ClientConfig {
         (body) => {
           const settings = (body as { settings?: Record<string, unknown> }).settings ?? {};
           setChartRules(settings);
+          setTableRules(settings);
           installAnalytics(settings);
           if (live) setCfg(parseClientConfig(settings, (body as { phoneLogin?: unknown }).phoneLogin === true));
         },

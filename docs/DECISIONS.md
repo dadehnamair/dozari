@@ -737,3 +737,7 @@ Owner (2026-10-11): a tournament must last hours or days, not two minutes. The s
 - **Proposed numbers** (the owner may change them): 24 h between rounds, 15 min grace, «nobody came» decided by level. Gap must be 0 or 1 h … 14 days; grace 1 … 120 min.
 - **Where it shows.** `GET /me/tournament-turn` (next match: round, opens-at, deadline, state `upcoming|open|checked_in|playing`, rival); Home strip `tournament/TurnBanner.tsx` (polls every 5 s near/at the turn, 60 s otherwise; takes the player to the duel once the server started it); the tournament page lists each round's time and the rules; Bale text at the start, 30 minutes before the start and before each match opens (`TOURNAMENT_REMIND_MINUTES`), when a match opens, when a round is won and when a match is lost by absence.
 
+
+## D226 — Topics, tags and themed rounds; duel/table overhaul (2026-10-12, proposed)
+
+Owner (2026-10-12) asked for: leave penalties with a monthly badge and reconnect grace, timeout shown differently but scored as wrong, hidden opponent solutions (count only), face-down cards off-turn, four-option price and general questions, puzzle topics/tags with themed rounds (≥3 rounds, alternate topic picks, last round of an odd count chosen by the system), and two shop items (shuffle opponent cards, reveal a group). Chosen: separate boards per side, turn-based; general questions as their own round beside the price round; milder penalty numbers (grace 90 s, 4 leaves in a day = day ban, 8 in 30 days = badge). Delivered in six slices; spec `docs/logic/themed-rounds.md`.

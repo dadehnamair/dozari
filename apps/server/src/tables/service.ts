@@ -1,4 +1,4 @@
-import { TABLE_PRICE_ROUNDS_MAX, TABLE_REACTIONS_SHOWN, TABLE_REACTION_GAP_MS, TABLE_REACTION_TTL_MS, TABLE_PUBLIC_LIST_MAX, TABLE_REQUESTS_MAX, TABLE_REQUEST_TTL_MS, canMeet, clampTableRounds, makeTableCode, tableEntryOk, tableMinEntry, trackRank, normalizeTableCode, seatsOfFormat } from '@dozari/shared';
+import { TABLE_PRICE_ROUNDS_MAX, TABLE_ROUNDS_MAX, TABLE_REACTIONS_SHOWN, TABLE_REACTION_GAP_MS, TABLE_REACTION_TTL_MS, TABLE_PUBLIC_LIST_MAX, TABLE_REQUESTS_MAX, TABLE_REQUEST_TTL_MS, canMeet, clampTableRounds, makeTableCode, tableEntryOk, tableMinEntry, trackRank, normalizeTableCode, seatsOfFormat } from '@dozari/shared';
 import type { TableReaction } from '@dozari/shared';
 import type { AgeTrack, CreateTableBody, LiveNotice, PublicTable, TableError, TableFormat, TableView } from '@dozari/shared';
 
@@ -26,6 +26,10 @@ export interface TableDeps {
   sameFamily?(a: string, b: string): Promise<boolean>;
   /** The guardian switched friend duels and tables off for this child: the app hides them, the server refuses. */
   duelsOff?(userId: string): Promise<boolean>;
+  /** The smallest number of rounds a table may have (admin setting `table.min_rounds`); absent = 1. */
+  minRounds?(): Promise<number>;
+  /** The leave penalty closed duels and tables for this player until the end of the Tehran day. */
+  banned?(userId: string): Promise<boolean>;
   /** May coins move for this player (not a kid or teen)? Absent = yes. */
   coinsAllowed?(userId: string): Promise<boolean>;
   /** The player's coin balance, to check an entry fee. Absent = nobody can pay a fee, so only free tables exist. */
@@ -166,9 +170,10 @@ export class TableService {
       if (await this.deps.socialBlocked?.(hostId)) return { ok: false, error: 'NEEDS_GUARDIAN' };
       if (await this.deps.duelsOff?.(hostId)) return { ok: false, error: 'FEATURE_OFF' };
     }
+    if (await this.deps.banned?.(hostId)) return { ok: false, error: 'LEAVE_BANNED' };
     if (this.deps.inMatch(hostId)) return { ok: false, error: 'IN_MATCH' };
     // Rounds and entry: the more rounds, the higher the minimum entry. Where coins do not move (kid, teen, family) the entry is 0.
-    const rounds = clampTableRounds(body.rounds ?? 1);
+    const rounds = Math.max(clampTableRounds(body.rounds ?? 1), Math.min((await this.deps.minRounds?.()) ?? 1, TABLE_ROUNDS_MAX));
     const coins = !body.family && (await this.coinsAllowed(hostId)) && !!this.deps.balanceOf;
     const entryFee = coins ? body.entryFee ?? tableMinEntry(rounds) : 0;
     if (coins && !tableEntryOk(entryFee, rounds, true)) return { ok: false, error: 'LOW_ENTRY' };
@@ -208,6 +213,7 @@ export class TableService {
     const t = this.live(code);
     if (!t) return { ok: false, error: normalizeTableCode(code) && this.tables.has(normalizeTableCode(code)!) ? 'EXPIRED' : 'NOT_FOUND' };
     if (t.seated.includes(userId)) return { ok: true, table: await this.view(t, userId) };
+    if (await this.deps.banned?.(userId)) return { ok: false, error: 'LEAVE_BANNED' };
     if (!t.family) {
       if (await this.deps.socialBlocked?.(userId)) return { ok: false, error: 'NEEDS_GUARDIAN' };
       if (await this.deps.duelsOff?.(userId)) return { ok: false, error: 'FEATURE_OFF' };
@@ -260,6 +266,7 @@ export class TableService {
   /** Why a player may not even ask to sit at / join this table, or null. */
   private async refusal(t: Table, userId: string): Promise<TableError | null> {
     if (t.seated.includes(userId)) return 'ALREADY_IN';
+    if (await this.deps.banned?.(userId)) return 'LEAVE_BANNED';
     if (!t.family) {
       if (await this.deps.socialBlocked?.(userId)) return 'NEEDS_GUARDIAN';
       if (await this.deps.duelsOff?.(userId)) return 'FEATURE_OFF';

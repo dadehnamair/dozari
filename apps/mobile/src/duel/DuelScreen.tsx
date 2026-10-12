@@ -36,6 +36,7 @@ import { InviteSheet } from '../invite/InviteSheet';
 import { PlayerSheet } from '../social/PlayerSheet';
 import { ReportDialog } from '../feedback/ReportDialog';
 import { MatchHud } from './MatchHud';
+import { TopicDraft } from './TopicDraft';
 import { ChatDrawer } from './ChatDrawer';
 import { SpeechBubble } from './SpeechBubble';
 import { ArenaBackground } from './ArenaBackground';
@@ -128,6 +129,13 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
     const id = setTimeout(() => dispatch({ t: 'clearTaunt' }), 4000);
     return () => clearTimeout(id);
   }, [state.taunt]);
+  // The rival shuffled this player's cards: the server's new order replaces any local arrangement, and a half-made selection is dropped.
+  useEffect(() => {
+    if (state.powerNote !== 'shuffleRival') return;
+    setOrder([]);
+    setSelected([]);
+  }, [state.powerNote]);
+
   useEffect(() => {
     if (!state.powerNote) return;
     const id = setTimeout(() => dispatch({ t: 'clearPowerNote' }), 2400);
@@ -361,6 +369,20 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   }
 
   const countdown = Math.ceil((introUntil - now) / 1000);
+  // A themed match: the sides name the topic of each round first.
+  if (state.draft && !view) {
+    return (
+      <TopicDraft
+        draft={state.draft}
+        now={now}
+        onPick={async (topic) => {
+          const ack = await (conn.current?.pickTopic(topic) ?? Promise.resolve({ ok: false as const, error: 'INTERNAL' as const }));
+          return ack.ok ? null : fa.duel.errors[ack.error] ?? fa.duel.errors.generic ?? null;
+        }}
+        onLeave={() => (void conn.current?.leave(), setStage('pick'), dispatch({ t: 'reset' }))}
+      />
+    );
+  }
   // Searching: the diamond search screen; once a rival is found: the versus screen counting down (D104).
   if (!state.found && stage !== 'resume') return <SearchScreen team={mode === 'team'} waitedSec={state.waitedSec} note={state.problem ? fa.duel.problems[state.problem] : undefined} onCancel={() => (void conn.current?.leaveQueue(), setStage('pick'), dispatch({ t: 'reset' }))} />;
   if (state.phase === 'idle' || state.phase === 'queued' || !view || countdown > 0) {
@@ -487,9 +509,13 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
       if (ack.error === 'INTERNAL' || ack.error === 'NOT_IN_MATCH') resync();
     });
   };
-  const power = (kind: 'magnifier' | 'freeze') => {
+  /** Bought items: the shuffle works any time on the rival's board, the reveal on the player's own turn. */
+  const canShuffle = playing && !state.finale && !!view.found && !view.lockedOut[them] && (view.items?.shuffle ?? 0) > 0;
+  const canReveal = playing && mine && captain && !sending && !state.finale && !frozenMe && (view.items?.reveal ?? 0) > 0;
+  const power = (kind: 'magnifier' | 'freeze' | 'shuffle' | 'reveal') => {
     // The magnifier works on the player's own turn, the freeze on the rival's: each button has its own condition.
-    if (!(kind === 'magnifier' ? canPower : canFreeze) || !conn.current) return;
+    const allowed = kind === 'magnifier' ? canPower : kind === 'freeze' ? canFreeze : kind === 'shuffle' ? canShuffle : canReveal;
+    if (!allowed || !conn.current) return;
     void conn.current.power(kind).then((ack) => {
       if (!ack.ok) dispatch({ t: 'notice', error: ack.error });
     });
@@ -533,7 +559,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
               </View></Pulse>
             </View>
             <ComboRing streak={combo.streak} left={combo.left} showLabel={false} />
-            <View style={styles.mode}><Text style={styles.modeText}>{team ? (boards > 1 ? `${a.twoVsTwo} · ${a.boardOf((view.round ?? 0) + 1, boards)}` : a.twoVsTwo) : a.oneVsOne}</Text></View>
+            <View style={styles.mode}><Text style={styles.modeText}>{(team ? (boards > 1 ? `${a.twoVsTwo} · ${a.boardOf((view.round ?? 0) + 1, boards)}` : a.twoVsTwo) : boards > 1 ? `${a.oneVsOne} · ${a.boardOf((view.round ?? 0) + 1, boards)}` : a.oneVsOne) + (view.topics?.[view.round ?? 0] ? ` · ${view.topics[view.round ?? 0]}` : '')}</Text></View>
           </View>
 
           <View style={styles.hudWrap}>
@@ -543,11 +569,13 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
               onChat={taunts.length > 0 ? () => setChatOpen((v) => !v) : undefined}
               chatOpen={chatOpen}
               chatCooling={cool > 0}
+              ofLabel={view.found ? a.boardsWon : undefined}
             />
             {myBubble ? <View style={[styles.bubble, { [EDGE_RIGHT]: 4 }]}><SpeechBubble text={myBubble} mine /></View> : null}
             {state.taunt ? <View style={[styles.bubble, { [EDGE_LEFT]: 4 }]}><SpeechBubble text={state.taunt.text} mine={false} /></View> : null}
           </View>
 
+          {view.found && playing ? <Text style={[styles.rivalFound, view.found[them] >= 3 ? styles.rivalFoundHot : null]}>{view.found[them] > 0 ? a.rivalFound(view.found[them]) : a.rivalFoundNone}</Text> : null}
           <View style={styles.turnRow}>
             <View style={[styles.turn, mine ? styles.turnMine : null]}><Text style={[styles.turnText, mine ? styles.turnTextMine : null]}>{turnText}</Text></View>
             {/* Toasts cover the turn pill for a moment instead of reserving a row of their own (no empty gap above the board). */}
@@ -555,7 +583,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
           </View>
 
           <View style={styles.boardPanel}>
-            <Board solved={state.finale ? (finaleLast ? [...state.finale.solved, state.finale.last] : state.finale.solved) : boardSolved(view)} cards={state.finale ? (finaleLast ? [] : state.finale.cards) : arrange(view.cards, order)} names={state.names} selected={state.finale ? finaleSel : selected} onToggle={(id) => setSelected((s) => toggleSelection(s, id))} disabled={!playing || !mine || !!state.finale || frozenMe} muted={playing && !mine && !state.finale} hinted={state.peek?.ids ?? []} verdict={state.verdict} />
+            <Board solved={state.finale ? (finaleLast ? [...state.finale.solved, state.finale.last] : state.finale.solved) : boardSolved(view)} cards={state.finale ? (finaleLast ? [] : state.finale.cards) : arrange(view.cards, order)} names={state.names} selected={state.finale ? finaleSel : selected} onToggle={(id) => setSelected((s) => toggleSelection(s, id))} disabled={!playing || !mine || !!state.finale || frozenMe} muted={playing && !mine && !state.finale && !view.found} faceDown={!!view.found && playing && !mine && !state.finale} hinted={state.peek?.ids ?? []} verdict={state.verdict} />
             {state.flash === 'one_away' ? <View style={styles.nearMiss} pointerEvents="none"><NearMissPill /></View> : null}
           </View>
 
@@ -564,6 +592,13 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
             <Lives mistakes={view.mistakes[me]} max={numbers.maxMistakes} last={lastLife} />
             <PowerButton kind="freeze" count={view.powers?.freeze ?? 0} enabled={canFreeze} onPress={() => power('freeze')} />
           </View>
+
+          {(view.items?.shuffle ?? 0) > 0 || (view.items?.reveal ?? 0) > 0 ? (
+            <View style={styles.items}>
+              {(view.items?.reveal ?? 0) > 0 ? <ItemButton icon="magnifier" label={fa.duel.power.reveal} hint={fa.duel.power.hintReveal} count={view.items?.reveal ?? 0} enabled={canReveal} onPress={() => power('reveal')} /> : null}
+              {(view.items?.shuffle ?? 0) > 0 ? <ItemButton icon="dice" label={fa.duel.power.shuffle} hint={fa.duel.power.hintShuffle} count={view.items?.shuffle ?? 0} enabled={canShuffle} onPress={() => power('shuffle')} /> : null}
+            </View>
+          ) : null}
 
           {/* The same notice again right above the buttons: the one at the top of the board is out of sight when the player is down here. */}
           {noticeText ? <View style={styles.toastSlot}><View style={styles.toast}><Text style={styles.toastText} numberOfLines={2}>{noticeText}</Text></View></View> : null}
@@ -577,6 +612,16 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
       <ChatDrawer open={chatOpen} onClose={() => setChatOpen(false)} categories={taunts} tab={chatTab} onTab={setChatTab} onSend={sendTaunt} />
       {state.gem ? <GemBurst key={state.gem.n} amount={state.gem.amount} onDone={() => dispatch({ t: 'clearGem' })} /> : null}
     </ArenaBackground>
+  );
+}
+
+/** A bought item (shuffle the rival's cards, reveal a group): a labelled pill with how many are left. */
+function ItemButton({ icon, label, hint, count, enabled, onPress }: { icon: string; label: string; hint: string; count: number; enabled: boolean; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={`${label} · ${hint}`} accessibilityState={{ disabled: !enabled }} onPress={enabled ? () => (playSfx('press'), onPress()) : undefined} style={({ pressed }) => [styles.item, enabled ? null : styles.powerOff, pressed && enabled ? styles.pressed : null]}>
+      <View style={styles.itemIcon}><Item icon={icon} /></View>
+      <Text style={styles.itemText}>{label} · {toPersianDigits(String(count))}</Text>
+    </Pressable>
   );
 }
 
@@ -620,6 +665,10 @@ const styles = StyleSheet.create({
   bar: { flexDirection: ROW, alignItems: 'center', gap: 8 },
   square: { width: 42, height: 42, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', marginBottom: 4, ...lift },
   pressed: { transform: [{ translateY: 3 }] },
+  items: { flexDirection: ROW, justifyContent: 'center', gap: 10, marginTop: 6 },
+  item: { flexDirection: ROW, alignItems: 'center', gap: 6, paddingHorizontal: 12, height: 38, borderRadius: 19, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#F6E2C2', ...lift },
+  itemIcon: { width: 22, height: 22 },
+  itemText: { fontFamily: fonts.display, fontSize: 14, lineHeight: 20, color: colors.ink },
   power: { width: 52, height: 52, borderRadius: 26, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#F6E2C2', alignItems: 'center', justifyContent: 'center', ...lift },
   powerIce: { backgroundColor: '#BFEFFF' },
   powerOff: { opacity: 0.45 },
@@ -635,6 +684,8 @@ const styles = StyleSheet.create({
   clockText: { fontFamily: fonts.display, fontSize: 26, lineHeight: 36, color: colors.ink },
   mode: { height: 40, paddingHorizontal: 12, borderRadius: 13, backgroundColor: 'rgba(26,8,44,0.8)', borderWidth: 2, borderColor: colors.candy.yellow, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
   modeText: { fontFamily: fonts.display, fontSize: 17, color: colors.candy.yellow },
+  rivalFound: { textAlign: 'center', fontFamily: fonts.bold, fontSize: 13, lineHeight: 20, color: 'rgba(255,246,232,0.85)', marginBottom: 4 },
+  rivalFoundHot: { color: colors.candy.yellow, fontFamily: fonts.display },
   turnRow: { alignItems: 'center', justifyContent: 'center' },
   toastOver: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center', zIndex: 5 },
   turn: { paddingHorizontal: 18, paddingVertical: 4, borderRadius: 99, backgroundColor: colors.candy.pink, borderWidth: 3, borderColor: colors.ink },

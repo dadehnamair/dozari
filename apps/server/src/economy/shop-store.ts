@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, ne, shopItems, shopPurchases, shopRealPurchases, sql, userBalances, userCosmetics, userGems, userInventory, wheelSpins } from '@dozari/db';
+import { and, asc, eq, gt, gte, inArray, ne, shopItems, shopPurchases, shopRealPurchases, sql, userBalances, userCosmetics, userGems, userInventory, wheelSpins } from '@dozari/db';
 import type { Db } from '@dozari/db';
 import { STREAK_SHIELD_MAX_HELD, STREAK_SHIELD_PRICE } from '@dozari/shared';
 import type { CosmeticSlot } from '@dozari/shared';
@@ -6,7 +6,7 @@ import { uuidv7 } from 'uuidv7';
 import { applyGemEntry } from './gems.js';
 import { applyLedgerEntry } from './ledger.js';
 
-export type ShopEffect = 'hint_token' | 'wheel_spin' | 'cosmetic' | 'streak_shield';
+export type ShopEffect = 'hint_token' | 'wheel_spin' | 'cosmetic' | 'streak_shield' | 'shuffle_rival' | 'reveal_group';
 
 export interface ShopItemRow {
   id: string;
@@ -60,6 +60,12 @@ export interface ShopStore {
   owned(userId: string): Promise<Map<string, boolean>>;
   /** Wears or takes off an owned cosmetic (wearing one takes off the other worn item of its slot). */
   setEquipped(userId: string, itemId: string, equipped: boolean): Promise<'ok' | 'not_owned'>;
+  /** Match items held (`shuffle_rival`, `reveal_group`): quantities by effect. */
+  matchItems(userId: string): Promise<{ shuffle: number; reveal: number }>;
+  /** Uses up one match item; false when none is held (atomic, so two uses can never spend one). */
+  consumeMatchItem(userId: string, effect: 'shuffle_rival' | 'reveal_group'): Promise<boolean>;
+  /** Gives back a match item that was consumed but not used (a race lost after paying). */
+  refundMatchItem(userId: string, effect: 'shuffle_rival' | 'reveal_group'): Promise<void>;
   /** Pays for one hint: a hint token if the player has one, else `price` coins (`hint_purchase`). `key` makes a retry a no-op. */
   spendOnHint(userId: string, price: number, key: string): Promise<SpendOutcome>;
 }
@@ -128,6 +134,9 @@ export const DEFAULT_SHOP_ITEMS: readonly NewShopItem[] = [
   { titleFa: 'اکلیل', descriptionFa: 'اکلیل روی گونه‌ها.', effect: 'cosmetic', amount: 1, priceCoins: 0, currency: 'gems', priceGems: 45, minLevel: 8, perDayLimit: 0, slot: 'makeup', priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'glitter', isActive: true },
   { titleFa: 'گریم ببری', descriptionFa: 'خط‌های نارنجی ببری.', effect: 'cosmetic', amount: 1, priceCoins: 0, currency: 'gems', priceGems: 50, minLevel: 9, perDayLimit: 0, slot: 'makeup', priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'tiger', isActive: true },
   { titleFa: 'میکاپ کامل', descriptionFa: 'رژگونه، سایه، خط چشم و رژلب یک‌جا.', effect: 'cosmetic', amount: 1, priceCoins: 0, currency: 'gems', priceGems: 90, minLevel: 10, perDayLimit: 0, slot: 'makeup', priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'glam', isActive: true },
+  // Match items (D226): used inside a duel or table. The shuffle is deliberately the dearest thing in the shop.
+  { titleFa: 'بُر زدنِ کارتِ حریف', descriptionFa: 'تو بازی، کارت‌های روی تخته‌ی حریف رو بر می‌زنی تا جاشون عوض بشه؛ هر بازی یک بار.', effect: 'shuffle_rival', amount: 1, priceCoins: 150, currency: 'coins', priceGems: 0, minLevel: 5, perDayLimit: 3, slot: null, priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'dice', isActive: true },
+  { titleFa: 'دیدنِ یک گروه', descriptionFa: 'تو بازی، چهار کارتِ یک گروه رو که هنوز پیدا نکردی می‌بینی؛ هر بازی یک بار.', effect: 'reveal_group', amount: 1, priceCoins: 60, currency: 'coins', priceGems: 0, minLevel: 3, perDayLimit: 0, slot: null, priceRials: 0, skuBazaar: null, skuMyket: null, iconKey: 'magnifier', isActive: true },
 ];
 
 export function createDbShopStore(db: Db): ShopStore {
@@ -285,6 +294,19 @@ export function createDbShopStore(db: Db): ShopStore {
         return 'ok';
       });
     },
+    async matchItems(userId) {
+      const rows = await db.select({ effect: userInventory.effect, qty: userInventory.qty }).from(userInventory).where(and(eq(userInventory.userId, userId), inArray(userInventory.effect, ['shuffle_rival', 'reveal_group'])));
+      const qty = (e: string) => rows.find((r) => r.effect === e)?.qty ?? 0;
+      return { shuffle: qty('shuffle_rival'), reveal: qty('reveal_group') };
+    },
+    async consumeMatchItem(userId, effect) {
+      // One conditional UPDATE: it only fires while a unit is held, so two uses never spend the same unit.
+      const [res] = await db.update(userInventory).set({ qty: sql`${userInventory.qty} - 1` }).where(and(eq(userInventory.userId, userId), eq(userInventory.effect, effect), gt(userInventory.qty, 0)));
+      return res.affectedRows > 0;
+    },
+    async refundMatchItem(userId, effect) {
+      await db.insert(userInventory).values({ userId, effect, qty: 1 }).onDuplicateKeyUpdate({ set: { qty: sql`${userInventory.qty} + 1` } });
+    },
     async spendOnHint(userId, price, key) {
       return db.transaction(async (tx): Promise<SpendOutcome> => {
         await tx.insert(userBalances).values({ userId, balance: 0 }).onDuplicateKeyUpdate({ set: { userId: sql`${userBalances.userId}` } });
@@ -314,6 +336,7 @@ export function createMemoryShopStore(seed: readonly NewShopItem[] = DEFAULT_SHO
   const balances = new Map<string, number>();
   const tokens = new Map<string, number>();
   const shieldBal = new Map<string, number>();
+  const matchBal = new Map<string, number>(); // `${userId}|${effect}`
   const gemBal = new Map<string, number>();
   const wardrobe = new Map<string, Map<string, boolean>>();
   const paidOrders = new Set<string>();
@@ -374,6 +397,7 @@ export function createMemoryShopStore(seed: readonly NewShopItem[] = DEFAULT_SHO
       }
       if (item.effect === 'cosmetic') wardrobe.set(userId, (wardrobe.get(userId) ?? new Map()).set(item.id, false));
       else if (item.effect === 'streak_shield') shieldBal.set(userId, (shieldBal.get(userId) ?? 0) + item.amount);
+      else if (item.effect === 'shuffle_rival' || item.effect === 'reveal_group') matchBal.set(`${userId}|${item.effect}`, (matchBal.get(`${userId}|${item.effect}`) ?? 0) + item.amount);
       else tokens.set(userId, (tokens.get(userId) ?? 0) + item.amount);
       bought.push({ userId, itemId, at: now.ms });
       return { ok: true, balance: balances.get(userId) ?? 0, gems: gemBal.get(userId) ?? 0, tokens: tokens.get(userId) ?? 0 };
@@ -411,6 +435,19 @@ export function createMemoryShopStore(seed: readonly NewShopItem[] = DEFAULT_SHO
       if (equipped) for (const [other] of mine) if (rows.find((r) => r.id === other)?.slot === slot) mine.set(other, false);
       mine.set(itemId, equipped);
       return 'ok';
+    },
+    async matchItems(userId) {
+      return { shuffle: matchBal.get(`${userId}|shuffle_rival`) ?? 0, reveal: matchBal.get(`${userId}|reveal_group`) ?? 0 };
+    },
+    async consumeMatchItem(userId, effect) {
+      const k = `${userId}|${effect}`;
+      if ((matchBal.get(k) ?? 0) <= 0) return false;
+      matchBal.set(k, (matchBal.get(k) ?? 0) - 1);
+      return true;
+    },
+    async refundMatchItem(userId, effect) {
+      const k = `${userId}|${effect}`;
+      matchBal.set(k, (matchBal.get(k) ?? 0) + 1);
     },
     async spendOnHint(userId, price, key) {
       const t = tokens.get(userId) ?? 0;

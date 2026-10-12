@@ -17,6 +17,8 @@ export const ClientEvent = {
   matchSubmit: 'match:submit',
   matchPropose: 'match:propose',
   matchResume: 'match:resume',
+  /** Names the topic of the round in the pre-match draft (a topic id, or `random`). */
+  draftPick: 'draft:pick',
   /** Use a power-up (magnifier, freeze) on the player's own turn. */
   matchPower: 'match:power',
   matchLeave: 'match:leave',
@@ -30,6 +32,7 @@ export const ServerEvent = {
   queueStatus: 'queue:status',
   matchFound: 'match:found',
   matchState: 'match:state',
+  draftState: 'draft:state',
   matchEvent: 'match:event',
   matchEnded: 'match:ended',
   chatMessage: 'chat:message',
@@ -75,6 +78,11 @@ export const ERROR_CODES = [
   'MAINTENANCE',
   'FEATURE_OFF',
   'DAILY_CAP',
+  /** The leave penalty closed duels and tables for this player until the end of the Tehran day. */
+  'LEAVE_BANNED',
+  'NOT_YOUR_PICK',
+  'UNKNOWN_TOPIC',
+  'NO_DRAFT',
   'LEVEL_TOO_LOW',
   'UNKNOWN_TIER',
   'NO_CITY',
@@ -100,7 +108,8 @@ export const queueJoinSchema = z.object({ mode: z.enum(['duel', 'team']), /** St
 export const matchProposeSchema = z.object({ itemIds: z.array(z.string().min(1).max(64)).max(4) });
 export const matchSubmitSchema = z.object({ itemIds: z.array(z.string().min(1).max(64)).length(4) });
 /** Without a match id the server resumes whatever match the player is in (e.g. one a private table started). */
-export const matchPowerSchema = z.object({ kind: z.enum(['magnifier', 'freeze']) });
+export const matchPowerSchema = z.object({ kind: z.enum(['magnifier', 'freeze', 'shuffle', 'reveal']) });
+export const draftPickSchema = z.object({ topic: z.string().min(1).max(64) });
 export const matchResumeSchema = z.object({ matchId: z.string().uuid().optional() });
 
 /** The guess in rials as a decimal string (a toman price times ten); the server checks it is positive and sane. */
@@ -111,6 +120,7 @@ export type QueueJoin = z.infer<typeof queueJoinSchema>;
 export type MatchPropose = z.infer<typeof matchProposeSchema>;
 export type MatchSubmit = z.infer<typeof matchSubmitSchema>;
 export type MatchPower = z.infer<typeof matchPowerSchema>;
+export type DraftPick = z.infer<typeof draftPickSchema>;
 export type MatchResume = z.infer<typeof matchResumeSchema>;
 
 // ---- server -> client payloads -------------------------------------------------------------------------------
@@ -155,6 +165,23 @@ export const matchResultSchema = z.object({
   reason: z.enum(['solved', 'locked_out', 'forfeit', 'abandon']),
 });
 
+/** The pre-match topic draft as one side sees it (docs/logic/themed-rounds.md). */
+export const draftViewSchema = z.object({
+  draftId: z.string().uuid(),
+  status: z.enum(['picking', 'done', 'cancelled']),
+  you: side,
+  rounds: z.number().int().positive(),
+  /** Round being named now (0-based) and who names it; null when nobody (done / cancelled). */
+  round: z.number().int().nonnegative(),
+  chooser: z.union([side, z.literal('system')]).nullable(),
+  yourTurn: z.boolean(),
+  /** Epoch ms when the chooser's time runs out and the server draws for them. */
+  endsAt: z.number().int(),
+  open: z.array(z.object({ id: z.string(), nameFa: z.string() })),
+  picked: z.array(z.object({ round: z.number().int().nonnegative(), topicId: z.string(), nameFa: z.string(), by: z.union([side, z.literal('system'), z.literal('timeout')]) })),
+});
+export type DraftView = z.infer<typeof draftViewSchema>;
+
 /** Full redacted snapshot, sent on every change. Unsolved groups cannot be represented here (rule 4). */
 export const matchViewSchema = z.object({
   matchId: z.string().uuid(),
@@ -166,13 +193,20 @@ export const matchViewSchema = z.object({
   /** Board in play (0-based) of `rounds` boards: a 2v2 plays several 16-card packs, scores adding up. */
   round: z.number().int().nonnegative().optional(),
   rounds: z.number().int().positive().optional(),
+  /** Themed match: the topic name of each round, in round order (the current one is `topics[round]`). */
+  topics: z.array(z.string()).optional(),
   cards: z.array(soloCardSchema),
   solved: z.array(matchSolvedGroupSchema),
+  /** Separate-boards mode: groups found (of 4) by each side, and boards won. A rival's solutions are never sent, only this count. */
+  found: z.tuple([z.number().int().min(0).max(4), z.number().int().min(0).max(4)]).optional(),
+  boardsWon: z.tuple([z.number().int().nonnegative(), z.number().int().nonnegative()]).optional(),
   scores: z.tuple([z.number().int(), z.number().int()]),
   mistakes: z.tuple([z.number().int(), z.number().int()]),
   lockedOut: z.tuple([z.boolean(), z.boolean()]),
   /** The viewer's own power-ups left, and until when (epoch ms) each side is frozen. Optional for older snapshots. */
   powers: z.object({ magnifier: z.number().int().nonnegative(), freeze: z.number().int().nonnegative() }).optional(),
+  /** Bought items the viewer still holds in this match (shuffle the rival's cards, reveal a group). */
+  items: z.object({ shuffle: z.number().int().nonnegative(), reveal: z.number().int().nonnegative() }).optional(),
   /** The viewer already used their one power-up of the match (each player gets one, any kind). */
   powerUsed: z.boolean().optional(),
   frozenUntil: z.tuple([z.number().int().nonnegative(), z.number().int().nonnegative()]).optional(),
@@ -197,13 +231,15 @@ export const matchEventSchema = z.discriminatedUnion('t', [
   z.object({ t: z.literal('gem'), userId: z.string(), amount: z.number().int().positive() }),
   z.object({ t: z.literal('group_solved'), side, level, points: z.number().int().positive(), firstBlood: z.boolean() }),
   z.object({ t: z.literal('group_revealed'), level }),
+  /** Separate-boards mode: this side has `count` of 4 groups (all a rival is told about progress). */
+  z.object({ t: z.literal('found'), side, count: z.number().int().min(1).max(4) }),
   /** A board is over (multi-board match): its full solution may be shown, then the next board starts. */
   z.object({ t: z.literal('board_done'), round: z.number().int().nonnegative(), groups: z.array(z.object({ level, titleFa: z.string(), explanationFa: z.string(), productIds: z.array(z.string()) })).length(4).optional() }),
   z.object({ t: z.literal('board'), round: z.number().int().nonnegative(), rounds: z.number().int().positive() }),
   z.object({ t: z.literal('locked_out'), side }),
   z.object({ t: z.literal('timeout'), side }),
   /** A power-up was used; `itemIds` (the magnifier's two cards) only reaches the user's own side. */
-  z.object({ t: z.literal('power'), side, kind: z.enum(['magnifier', 'freeze']), itemIds: z.array(z.string()).optional(), until: z.number().int().optional() }),
+  z.object({ t: z.literal('power'), side, kind: z.enum(['magnifier', 'freeze', 'shuffle', 'reveal']), itemIds: z.array(z.string()).optional(), until: z.number().int().optional() }),
   z.object({ t: z.literal('turn'), side, turnId: z.number().int().positive(), captain: z.string().optional() }),
   z.object({ t: z.literal('captain'), side, userId: z.string() }),
   z.object({ t: z.literal('finished'), result: matchResultSchema }),

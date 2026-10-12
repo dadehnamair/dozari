@@ -1,3 +1,5 @@
+import { DUEL_ROUNDS_DEFAULT, TABLE_MIN_ROUNDS_DEFAULT, TRIVIA_QUESTIONS_PER_GAME } from './topics.js';
+import { LEAVE_BADGE_COUNT, LEAVE_BADGE_WINDOW_DAYS, LEAVE_DAY_BAN_COUNT, LEAVE_RECONNECT_GRACE_SECONDS } from './leave.js';
 import { LEVEL_REWARD_BASE_COINS, LEVEL_REWARD_EVERY } from './progression.js';
 import {
   AVATAR_CHANGE_MIN_LEVEL,
@@ -72,6 +74,8 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'app.min_build', group: 'app', label: 'کمترین نسخه‌ی مجاز اپ (شماره‌ی بیلد)', hint: 'نسخه‌های قدیمی‌تر باید به‌روزرسانی کنند؛ ۰ یعنی همه مجازند', kind: 'int', min: 0, max: 99999, default: 0 },
   { key: 'app.update_url', group: 'app', label: 'لینک به‌روزرسانی', hint: 'صفحه‌ی اپ در بازار / مایکت / بله', kind: 'text', min: 0, max: 300, default: '' },
   { key: 'feature.priceonly', group: 'app', label: 'حالت فقط حدس قیمت روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'feature.trivia', group: 'app', label: 'حالت پرسش‌های عمومی (چهارگزینه‌ای) روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'trivia.questions', group: 'scoring', label: 'تعداد پرسش در هر بازی «پرسش‌های عمومی»', kind: 'int', min: 3, max: 20, default: TRIVIA_QUESTIONS_PER_GAME },
   { key: 'priceonly.rounds', group: 'scoring', label: 'تعداد دور در بازی «فقط حدس قیمت»', kind: 'int', min: 1, max: PRICE_ONLY_MAX_ROUNDS, default: PRICE_ONLY_ROUNDS },
   { key: 'feature.lookup', group: 'app', label: 'استعلام قیمت روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'feature.duel', group: 'app', label: 'بازی دونفره‌ی زنده روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
@@ -264,6 +268,14 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'chat.global_enabled', group: 'app', label: 'چت کلی (همهٔ بازیکن‌ها، کنار چت شهر)', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'chat.text_needs_activation', group: 'app', label: 'پیام آزاد فقط برای حساب فعال‌شده با کد معرف', hint: 'کل‌کل‌های آماده همیشه آزاد است', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'match.price_round', group: 'gameplay', label: 'دور حدس قیمت بعد از دوئل یک‌به‌یک', hint: 'خاموش (۰): دوئل مثل قبل با پازل تمام می‌شود. روشن (۱): بعد از پازل ۴ دور حدس قیمتِ کور و هم‌زمان؛ فقط وقتی پازل مساوی شده برنده را تعیین می‌کند و بازنده‌ی قفل‌شده امتیاز تسلی می‌گیرد. بازی‌هایی که از قبل شروع شده‌اند تغییر نمی‌کنند.', kind: 'bool', min: 0, max: 1, default: 0 },
+  { key: 'match.separate_boards', group: 'gameplay', label: 'تخته‌ی جدا برای هر طرف در دوئل و میز', hint: 'روشن (۱): هر طرف روی تخته‌ی خودش بازی می‌کند و جواب‌های درست حریف را نمی‌بیند، فقط می‌بیند چند گروه از ۴ را پیدا کرده؛ هر که زودتر هر ۴ گروه را پیدا کند تخته را می‌برد. خاموش (۰): تخته‌ی مشترک مثل قبل. بازی‌های شروع‌شده تغییر نمی‌کنند.', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'leave.grace_seconds', group: 'gameplay', label: 'مهلت برگشت بعد از قطع شدن در بازی', hint: 'اگر وسط دوئل یا میز اتصال قطع شود این‌قدر وقت دارد برگردد؛ بعدش ترک حساب می‌شود', kind: 'int', min: 10, max: 600, default: LEAVE_RECONNECT_GRACE_SECONDS, unit: 'ثانیه' },
+  { key: 'leave.day_ban_count', group: 'gameplay', label: 'تعداد ترک در روز تا محرومیت از دوئل و میز', hint: '۰ یعنی محرومیت خاموش؛ محرومیت تا پایان همان روز (به وقت تهران) است', kind: 'int', min: 0, max: 20, default: LEAVE_DAY_BAN_COUNT },
+  { key: 'leave.badge_count', group: 'gameplay', label: 'تعداد ترک برای نشان «ترک‌کننده»', hint: '۰ یعنی نشان خاموش؛ تا وقتی تعداد ترک‌های بازه این عدد یا بیشتر است روی پروفایل می‌ماند', kind: 'int', min: 0, max: 100, default: LEAVE_BADGE_COUNT },
+  { key: 'leave.badge_days', group: 'gameplay', label: 'بازه‌ی شمارش ترک برای نشان', hint: 'ترک‌های قدیمی‌تر از این بازه نشان را برنمی‌گردانند', kind: 'int', min: 1, max: 365, default: LEAVE_BADGE_WINDOW_DAYS, unit: 'روز' },
+  { key: 'match.duel_rounds', group: 'gameplay', label: 'تعداد دور دوئل یک‌به‌یک', hint: 'هر دور یک بسته‌ی ۱۶تایی است؛ از ۳ به بالا هر دور یک طرف موضوعش را انتخاب می‌کند (اگر موضوع کافی باشد). ۱ یعنی مثل قبل. بازی‌های شروع‌شده تغییر نمی‌کنند.', kind: 'int', min: 1, max: 7, default: DUEL_ROUNDS_DEFAULT },
+  { key: 'table.min_rounds', group: 'gameplay', label: 'کمترین تعداد دور یک میز', hint: 'میزبان نمی‌تواند میز را با دور کمتر از این بسازد', kind: 'int', min: 1, max: 5, default: TABLE_MIN_ROUNDS_DEFAULT },
+  { key: 'match.topic_draft', group: 'gameplay', label: 'انتخاب موضوع دور به دور در دوئل و میز', hint: 'روشن (۱): وقتی دور ۳ یا بیشتر است و موضوع کافی (هر کدام دست‌کم چند پازل تأییدشده) هست، قبل از بازی طرف‌ها نوبتی موضوع دورها را انتخاب می‌کنند. خاموش (۰): پازل‌ها تصادفی.', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'match.team_boards', group: 'gameplay', label: 'تعداد بسته‌ی ۱۶تایی در بازی تیمی ۲ در ۲', hint: 'امتیازها جمع می‌شود؛ ۱ یعنی مثل دوئل', kind: 'int', min: 1, max: 5, default: TEAM_MATCH_BOARDS },
   { key: 'puzzles.autofill_enabled', group: 'gameplay', label: 'پر کردن خودکار استخر پازل روشن باشد', hint: 'کار زمان‌بندی‌شده پازل تازه از کالاهای کاتالوگ می‌سازد', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'puzzles.autofill_target', group: 'gameplay', label: 'تعداد پازل آماده در استخر', hint: 'پیش‌نویس‌های منتظر تأیید (یا پازل‌های تأییدشده، اگر تأیید خودکار روشن است) تا این عدد پر می‌شود', kind: 'int', min: 1, max: 200, default: 30 },

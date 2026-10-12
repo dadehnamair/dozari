@@ -39,10 +39,12 @@ interface BoardProps {
   muted?: boolean;
   /** The last guess' verdict; the cards it names shake red (wrong) or glow green (correct). */
   verdict?: BoardVerdict | null;
+  /** Not the player's turn in a separate-boards duel: the cards flip onto their backs (so the player cannot study the board) and flip back on their turn. */
+  faceDown?: boolean;
 }
 
 /** Solved rows stack on top (in the order found), the remaining cards fill a 4-wide grid below. */
-export function Board({ solved, cards, names, selected, onToggle, disabled, hinted = [], nudged = [], muted = false, verdict = null }: BoardProps) {
+export function Board({ solved, cards, names, selected, onToggle, disabled, hinted = [], nudged = [], muted = false, verdict = null, faceDown = false }: BoardProps) {
   const [width, setWidth] = useState(0);
   const w = cellWidth(width, GAP, GROUP_SIZE);
   const adult = useTheme() === 'adult';
@@ -63,7 +65,7 @@ export function Board({ solved, cards, names, selected, onToggle, disabled, hint
         );
       })}
       <View style={styles.grid}>
-        {cards.map((c) => {
+        {cards.map((c, index) => {
           const on = selected.includes(c.id);
           const m = cardMetrics(w);
           const idx = verdict ? verdict.ids.indexOf(c.id) : -1;
@@ -77,7 +79,9 @@ export function Board({ solved, cards, names, selected, onToggle, disabled, hint
               disabled={disabled}
               verdict={idx >= 0 ? verdict : null}
               order={Math.max(0, idx)}
-              style={[styles.cell, w > 0 && { width: w, height: m.height }, on && (adult ? styles.cellOnAdult : styles.cellOn), hinted.includes(c.id) && styles.cellHint, nudged.includes(c.id) && !on && styles.cellNudge, muted && (on ? styles.cellMutedOn : styles.cellMuted)]}
+              index={index}
+              faceDown={faceDown}
+              style={[styles.cell, w > 0 && { width: w, height: m.height }, on && (adult ? styles.cellOnAdult : styles.cellOn), hinted.includes(c.id) && styles.cellHint, nudged.includes(c.id) && !on && styles.cellNudge, muted && (on ? styles.cellMutedOn : styles.cellMuted), faceDown && styles.cellBack]}
               onPress={() => (playSfx(on ? 'deselect' : 'select'), onToggle(c.id))}
             />
           );
@@ -90,7 +94,7 @@ export function Board({ solved, cards, names, selected, onToggle, disabled, hint
 type Metrics = ReturnType<typeof cardMetrics>;
 
 /** One card of the grid. Owns the verdict animation so each card can shake / glow on its own clock. */
-function CardCell({ card: c, m, on, adult, disabled, verdict, order, style, onPress }: { card: SoloCard; m: Metrics; on: boolean; adult: boolean; disabled: boolean; verdict: BoardVerdict | null; order: number; style: React.ComponentProps<typeof Pressable>['style']; onPress: () => void }) {
+function CardCell({ card: c, m, on, adult, disabled, verdict, order, index, faceDown, style, onPress }: { index: number; faceDown: boolean; adult: boolean; card: SoloCard; m: Metrics; on: boolean; disabled: boolean; verdict: BoardVerdict | null; order: number; style: React.ComponentProps<typeof Pressable>['style']; onPress: () => void }) {
   const { reduceMotion } = usePrefs();
   const shake = useRef(new Animated.Value(0)).current;
   const glow = useRef(new Animated.Value(0)).current;
@@ -104,6 +108,26 @@ function CardCell({ card: c, m, on, adult, disabled, verdict, order, style, onPr
     return () => run.stop();
   }, [on, reduceMotion, press]);
   const n = verdict?.n;
+  /** Flip: the card narrows to nothing, swaps face and back, and widens again. */
+  const turn = useRef(new Animated.Value(1)).current;
+  const [showBack, setShowBack] = useState(faceDown);
+  useEffect(() => {
+    if (showBack === faceDown) return;
+    if (reduceMotion) {
+      setShowBack(faceDown);
+      return;
+    }
+    const run = Animated.sequence([
+      Animated.delay((index % GROUP_SIZE) * 40 + Math.floor(index / GROUP_SIZE) * 25),
+      Animated.timing(turn, { toValue: 0, duration: 150, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+    ]);
+    run.start(({ finished }) => {
+      if (!finished) return;
+      setShowBack(faceDown);
+      Animated.timing(turn, { toValue: 1, duration: 170, easing: Easing.out(Easing.quad), useNativeDriver: true }).start();
+    });
+    return () => run.stop();
+  }, [faceDown]);
   useEffect(() => {
     if (!verdict || reduceMotion) return;
     const delay = order * 45;
@@ -124,15 +148,16 @@ function CardCell({ card: c, m, on, adult, disabled, verdict, order, style, onPr
     return () => run.stop();
   }, [n]);
   return (
-    <Animated.View style={[on && (adult ? styles.glowAdult : styles.glow), { transform: [{ translateX: shake }, { scale: pop }, { translateY: press.interpolate({ inputRange: [0, 1], outputRange: [0, 2] }) }, { scale: press.interpolate({ inputRange: [0, 1], outputRange: [1, 0.96] }) }] }]}>
-      <Pressable disabled={disabled} accessibilityRole="button" accessibilityState={{ selected: on }} onPress={onPress} style={style}>
+    <Animated.View style={[!showBack && on && (adult ? styles.glowAdult : styles.glow), { transform: [{ translateX: shake }, { scale: pop }, { translateY: press.interpolate({ inputRange: [0, 1], outputRange: [0, 2] }) }, { scale: press.interpolate({ inputRange: [0, 1], outputRange: [1, 0.96] }) }, { scaleX: turn }] }]}>
+      <Pressable disabled={disabled || showBack} accessibilityRole="button" accessibilityLabel={showBack ? fa.duel.arena.cardBack : undefined} accessibilityState={{ selected: on }} onPress={onPress} style={style}>
+        {showBack ? <View style={styles.backMark}><View style={styles.backCoin} /></View> : null}
         {/* Glossy face: a soft top highlight, a bright rim line and a shade toward the shelf (no gradient dependency). */}
-        <View pointerEvents="none" style={[styles.shade, adult ? (on ? styles.shadeOnAdult : styles.shadeIdleAdult) : on ? styles.shadeOn : styles.shadeIdle]} />
-        <View pointerEvents="none" style={[styles.gloss, adult ? (on ? styles.glossOnAdult : styles.glossIdleAdult) : on ? styles.glossOn : styles.glossIdle]} />
-        <View pointerEvents="none" style={[styles.rim, adult ? (on ? styles.rimOnAdult : styles.rimIdleAdult) : on ? styles.rimOn : styles.rimIdle]} />
+        {showBack ? null : <View pointerEvents="none" style={[styles.shade, adult ? (on ? styles.shadeOnAdult : styles.shadeIdleAdult) : on ? styles.shadeOn : styles.shadeIdle]} />}
+        {showBack ? null : <View pointerEvents="none" style={[styles.gloss, adult ? (on ? styles.glossOnAdult : styles.glossIdleAdult) : on ? styles.glossOn : styles.glossIdle]} />}
+        {showBack ? null : <View pointerEvents="none" style={[styles.rim, adult ? (on ? styles.rimOnAdult : styles.rimIdleAdult) : on ? styles.rimOn : styles.rimIdle]} />}
         {/* Adult: an engraved inner line, like the plate of a vault box (bright gold when chosen). */}
-        {adult ? <View pointerEvents="none" style={[styles.plate, on ? styles.plateOn : styles.plateIdle]} /> : null}
-        {c.iconKey ? (
+        {adult && !showBack ? <View pointerEvents="none" style={[styles.plate, on ? styles.plateOn : styles.plateIdle]} /> : null}
+        {!showBack && c.iconKey ? (
           adult ? (
             // Adult: the drawing sits in a dark medallion with a brass frame (docs/design/adult UI Kit, «قاب بزرگسال»).
             <View style={[styles.frameRing, { width: m.icon + 3, height: m.icon + 3 }]}>
@@ -149,8 +174,8 @@ function CardCell({ card: c, m, on, adult, disabled, verdict, order, style, onPr
             </View>
           )
         ) : null}
-        <Text style={[styles.name, { fontSize: m.nameSize }, on && styles.nameOn]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={NAME_FLOOR / m.nameSize}>{c.nameFa}</Text>
-        {c.unitFa ? <Text style={[styles.unit, { fontSize: m.unitSize }, on && styles.nameOn]} numberOfLines={1}>{c.unitFa}</Text> : null}
+        {showBack ? null : <Text style={[styles.name, { fontSize: m.nameSize }, on && styles.nameOn]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={NAME_FLOOR / m.nameSize}>{c.nameFa}</Text>}
+        {!showBack && c.unitFa ? <Text style={[styles.unit, { fontSize: m.unitSize }, on && styles.nameOn]} numberOfLines={1}>{c.unitFa}</Text> : null}
         {verdict ? <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: verdict.kind === 'wrong' ? '#E5384F' : '#34C759', opacity: glow.interpolate({ inputRange: [0, 1], outputRange: [0, 0.82] }) }]} /> : null}
       </Pressable>
     </Animated.View>
@@ -183,6 +208,10 @@ function SolvedRow({ fresh, style, label, children }: { fresh: boolean; style: R
 const styles = StyleSheet.create({
   /** A selection shown while it is the other side's turn keeps its purple face and white text (the grey look would put white on grey). */
   cellMutedOn: { opacity: 0.85 },
+  /** The back of a card: the dark slab with a gold coin. */
+  cellBack: { backgroundColor: colors.ink, borderBottomColor: '#000', borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  backMark: { alignItems: 'center', justifyContent: 'center' },
+  backCoin: { width: 26, height: 26, borderRadius: 13, borderWidth: 3, borderColor: colors.candy.yellow, backgroundColor: 'rgba(255,214,90,0.25)' },
   cellMuted: { backgroundColor: '#D9D9DE', borderBottomColor: '#B5B5BC', opacity: 0.7 },
   cellNudge: { backgroundColor: '#FFF3C4', borderColor: 'rgba(255,201,60,0.8)', borderWidth: 3 },
   cellHint: { borderColor: '#FFC93C', borderWidth: 4 },

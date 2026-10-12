@@ -3,7 +3,7 @@ import { TABLE_ENTRY_MAX, TABLE_PRICE_ROUNDS_MAX, TABLE_ROUNDS_MAX, TABLE_ROUNDS
 import { matchPlayerProfileSchema, matchViewSchema } from '../socket/events.js';
 import { TABLE_FORMATS, TABLE_ICONS, TABLE_NAME_MAX } from './code.js';
 
-export const TABLE_ERRORS = ['NOT_FOUND', 'FULL', 'LOCKED', 'EXPIRED', 'NOT_HOST', 'NOT_IN', 'NOT_READY', 'NEED_PLAYERS', 'BUSY', 'IN_MATCH', 'START_FAILED', 'INVALID', 'NOT_TEAM', 'NEEDS_GUARDIAN', 'FEATURE_OFF', 'NO_COINS', 'LOW_ENTRY', 'TOO_MANY', 'NOT_REQUESTED', 'ALREADY_IN'] as const;
+export const TABLE_ERRORS = ['NOT_FOUND', 'FULL', 'LOCKED', 'EXPIRED', 'NOT_HOST', 'NOT_IN', 'NOT_READY', 'NEED_PLAYERS', 'BUSY', 'IN_MATCH', 'START_FAILED', 'INVALID', 'NOT_TEAM', 'NEEDS_GUARDIAN', 'FEATURE_OFF', 'NO_COINS', 'LOW_ENTRY', 'TOO_MANY', 'NOT_REQUESTED', 'ALREADY_IN', 'LEAVE_BANNED'] as const;
 export type TableError = (typeof TABLE_ERRORS)[number];
 
 export const createTableBodySchema = z.object({

@@ -3,6 +3,7 @@ import { Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 import { groupTypedNumber, parseTomanInput } from '@dozari/shared';
 import type { PriceRoundView } from '@dozari/shared';
 import { Item } from '../components/Item';
+import { PriceChoices } from '../components/PriceChoices';
 import { SlabButton } from '../components/SlabButton';
 import { fa } from '../i18n/fa';
 import { priceText, questionText } from '../solo/priceRound';
@@ -36,8 +37,8 @@ export function DuelPriceRound({ round, now, onGuess }: { round: PriceRoundView;
   }, [round.roundIndex]);
   const secs = Math.max(0, Math.ceil((round.endsAt - now) / 1000));
   const current = round.current;
-  const send = async () => {
-    const rials = parseTomanInput(text);
+  const send = async (picked?: bigint) => {
+    const rials = picked ?? parseTomanInput(text);
     if (rials === null) return setNote(fa.solo.price.invalid);
     setBusy(true);
     setNote(await onGuess(rials));
@@ -56,6 +57,12 @@ export function DuelPriceRound({ round, now, onGuess }: { round: PriceRoundView;
           {round.youSubmitted || round.youIn === false ? (
             <Text style={styles.wait}>{round.youSubmitted ? p.lockedIn : p.waitRound}</Text>
           ) : (
+            current.options && current.options.length > 0 ? (
+              <>
+                <PriceChoices options={current.options} onPick={(rials) => void send(rials)} disabled={busy} />
+                {round.opponentSubmitted ? <Text style={styles.hint}>{p.opponentLocked}</Text> : null}
+              </>
+            ) : (
             <>
               <View style={styles.inputRow}>
                 <TextInput
@@ -73,6 +80,7 @@ export function DuelPriceRound({ round, now, onGuess }: { round: PriceRoundView;
               {round.opponentSubmitted ? <Text style={styles.hint}>{p.opponentLocked}</Text> : null}
               <SlabButton label={fa.solo.price.submit} sfx="confirm" color={colors.candy.lime} height={54} fontSize={22} onPress={() => void send()} disabled={busy} />
             </>
+            )
           )}
           {note ? <Text style={styles.error}>{note}</Text> : null}
         </View>

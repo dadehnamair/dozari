@@ -299,6 +299,7 @@ export class SoloService {
         unitFa: s.puzzle.items[r.productId]?.unitFa ?? null,
         iconKey: s.puzzle.items[r.productId]?.iconKey ?? null,
         year: r.year,
+        ...(r.options ? { options: r.options.map((o) => o.toString()) } : {}),
       })),
       results: s.priceResults,
     };

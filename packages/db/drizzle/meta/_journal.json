@@ -561,6 +561,34 @@
       "when": 1791751620478,
       "tag": "0079_previous_spencer_smythe",
       "breakpoints": true
+    },
+    {
+      "idx": 80,
+      "version": "5",
+      "when": 1791820600854,
+      "tag": "0080_demonic_silver_samurai",
+      "breakpoints": true
+    },
+    {
+      "idx": 81,
+      "version": "5",
+      "when": 1791821873541,
+      "tag": "0081_whole_rage",
+      "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "5",
+      "when": 1791822820358,
+      "tag": "0082_robust_typhoid_mary",
+      "breakpoints": true
+    },
+    {
+      "idx": 83,
+      "version": "5",
+      "when": 1791823957557,
+      "tag": "0083_spooky_captain_britain",
+      "breakpoints": true
     }
   ]
 }

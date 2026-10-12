@@ -22,6 +22,8 @@ export class SocialService {
     private readonly isOnline: (userId: string) => boolean = () => false,
     /** Birthday-week flag and the age of those who show it (never the date); without it nobody has a party badge. */
     private readonly birthdayInfo: (ids: string[]) => Promise<Map<string, { badge: boolean; age: number | null }>> = async () => new Map(),
+    /** Until when the «ترک‌کننده» badge shows on a profile (epoch ms), or null; without it nobody has it. */
+    private readonly leaverUntil: (id: string) => Promise<number | null> = async () => null,
   ) {}
 
   private async relation(me: string, other: string): Promise<FriendRelation> {
@@ -56,12 +58,12 @@ export class SocialService {
     const lv = (await this.player?.levelOf(id)) ?? { level: { level: 1 }, stats: { games: 0, wins: 0, losses: 0, draws: 0 } };
     const city = (await this.cityVisible?.(id)) === false ? null : ((await this.player?.cityOf(id)) ?? null);
     const party = (await this.birthdayInfo([id])).get(id);
-    const full: PlayerProfile = { id, nickname: row.nickname, avatarKey: row.avatarKey, level: lv.level.level, coins: row.coins, stats: lv.stats, cityName: city?.nameFa ?? null, cityProvince: city?.province ?? null, badges: (await this.badges?.publicOf(id)) ?? { badge: null, medals: [], skill: 'novice' as const }, memberSince: row.createdAt, relation: me === id ? 'none' : await this.relation(me, id), isMe: me === id, online: this.isOnline(id), birthday: party?.badge ?? false, age: party?.age ?? null, worn: ((await this.wornOf?.(id)) ?? []).map(({ slot, iconKey }) => ({ slot, iconKey })), limited: false };
+    const full: PlayerProfile = { id, nickname: row.nickname, avatarKey: row.avatarKey, level: lv.level.level, coins: row.coins, stats: lv.stats, cityName: city?.nameFa ?? null, cityProvince: city?.province ?? null, badges: (await this.badges?.publicOf(id)) ?? { badge: null, medals: [], skill: 'novice' as const }, memberSince: row.createdAt, relation: me === id ? 'none' : await this.relation(me, id), isMe: me === id, online: this.isOnline(id), birthday: party?.badge ?? false, leaverUntil: await this.leaverUntil(id).catch(() => null), age: party?.age ?? null, worn: ((await this.wornOf?.(id)) ?? []).map(({ slot, iconKey }) => ({ slot, iconKey })), limited: false };
     // Kid and teen show less: a kid only name, avatar and level; a teen adds the record but no coins.
     const depth = (await this.profileDepth?.(id)) ?? 'full';
     if (me === id || depth === 'full') return full;
     const noStats = { games: 0, wins: 0, losses: 0, draws: 0 };
-    return { ...full, coins: 0, ...(depth === 'basic' ? { stats: noStats, badges: { badge: null, medals: [], skill: 'novice' as const }, birthday: false, age: null } : {}), limited: true };
+    return { ...full, coins: 0, ...(depth === 'basic' ? { stats: noStats, badges: { badge: null, medals: [], skill: 'novice' as const }, birthday: false, leaverUntil: null, age: null } : {}), limited: true };
   }
 
   async request(me: string, target: string): Promise<RequestResult> {

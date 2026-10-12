@@ -56,6 +56,8 @@ export const MATCH_FREEZES = 1;
 export const FREEZE_SECONDS = 10;
 /** However many power-ups a side holds, each player may use only one in a whole match (any kind, 1v1 or 2v2). */
 export const POWERS_PER_PLAYER = 1;
+/** Bought match items (docs/logic/shop-match-items.md): each player may use each kind at most this many times per match, whatever they own. */
+export const SHOP_ITEM_USES_PER_MATCH = 1;
 /** Boards (16-card packs) played in a 2v2 match; a 1v1 is always one board. Scores add up, mistakes reset per board. */
 export const TEAM_MATCH_BOARDS = 3;
 /** Two timeouts in a row make a side forfeit. */

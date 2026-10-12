@@ -269,3 +269,13 @@ Start after the first Android build.
 - [ ] 5. City pot + weekly city ranking, season pass (needs the owner's reward decisions)
 - [ ] 6. Gem sales through the owner's gateway (store policy + legal review first; D170's per-item rials is replaced by gem packs)
 - [ ] 7. Re-run the simulator with real ledger data and lower `duel.free_payout_percent` 50 → 25 once the shop and keepsakes are live
+
+## Duel/table overhaul (D226, proposed) — see `docs/logic/themed-rounds.md`
+
+- [x] 1. Puzzle topics + tags + themed-round picker — built: shared picker + draft, tables (migration 0080), admin topics/tags, server draft in `MatchService.start`, mobile `TopicDraft`; content (tagging puzzles with topics) is the owner's next step
+- [x] 2. Separate boards, face-down cards off-turn, «found N of 4» only — built behind `match.separate_boards` (default on)
+- [x] 3. Leave penalty, daily ban, monthly badge, reconnect grace — `docs/logic/leave-penalty.md` (migration 0081, `leave.*` settings)
+- [x] 4. Timeout shown differently but scored as wrong; win only by solved cards — separate-boards mode
+- [x] 5a. Four-option price questions (solo, duel, price-only) — `buildPriceOptions`
+- [x] 5b. General four-option questions per topic — admin tab, `/trivia/*`, mobile screen (`docs/logic/trivia.md`, migration 0083); a trivia round inside duels/tables is still open
+- [x] 6. Shop: shuffle opponent's cards, reveal a group — `docs/logic/shop-match-items.md` (migration 0082)

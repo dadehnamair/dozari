@@ -293,6 +293,8 @@ export const puzzleTiers = mysqlTable('puzzle_tiers', {
 
 export const puzzles = mysqlTable('puzzles', {
   id: id(),
+  /** Topic (موضوع) the puzzle is filed under for themed rounds; null = general, never drawn for a topic (docs/logic/themed-rounds.md). */
+  topicId: char('topic_id', { length: 36 }),
   status: mysqlEnum('status', ['draft', 'approved', 'retired']).notNull().default('draft'),
   source: mysqlEnum('source', ['generated', 'curated', 'ugc']).notNull(),
   authorId: char('author_id', { length: 36 }),
@@ -306,6 +308,59 @@ export const puzzles = mysqlTable('puzzles', {
   avgSolveRate: double('avg_solve_rate'),
   createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
 });
+
+/** A player left a running duel/table (on purpose, or stayed away past the reconnect grace). Drives the day ban and the monthly badge. */
+export const matchLeaves = mysqlTable(
+  'match_leaves',
+  {
+    id: id(),
+    userId: fk('user_id'),
+    matchId: char('match_id', { length: 36 }),
+    kind: mysqlEnum('kind', ['manual', 'absent']).notNull(),
+    leftAt: datetime('left_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ byUser: index('match_leaves_user_idx').on(table.userId, table.leftAt) }),
+);
+
+/** Admin-managed puzzle topics («خوراکی», «ابزار»...) that players pick in themed rounds. */
+export const puzzleTopics = mysqlTable('puzzle_topics', {
+  id: id(),
+  slug: varchar('slug', { length: 50 }).notNull().unique(),
+  nameFa: varchar('name_fa', { length: 60 }).notNull(),
+  sortOrder: int('sort_order').notNull().default(0),
+  isActive: boolean('is_active').notNull().default(true),
+});
+
+/** General four-choice questions, always filed under a topic (docs/logic/trivia.md). The four choices are columns, no JSON (D63). */
+export const triviaQuestions = mysqlTable(
+  'trivia_questions',
+  {
+    id: id(),
+    topicId: fk('topic_id'),
+    textFa: varchar('text_fa', { length: 300 }).notNull(),
+    optionA: varchar('option_a', { length: 80 }).notNull(),
+    optionB: varchar('option_b', { length: 80 }).notNull(),
+    optionC: varchar('option_c', { length: 80 }).notNull(),
+    optionD: varchar('option_d', { length: 80 }).notNull(),
+    /** 0-3: which of the four columns is right. */
+    correctIndex: tinyint('correct_index').notNull(),
+    explanationFa: varchar('explanation_fa', { length: 300 }).notNull().default(''),
+    ageTrack: mysqlEnum('age_track', AGE_TRACKS).notNull().default('adult'),
+    status: mysqlEnum('status', ['draft', 'approved', 'retired']).notNull().default('approved'),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ byTopic: index('trivia_topic_idx').on(table.topicId, table.status) }),
+);
+
+/** Free-text tags on a puzzle, for admin filters and search. One row per tag. */
+export const puzzleTags = mysqlTable(
+  'puzzle_tags',
+  {
+    puzzleId: fk('puzzle_id').references(() => puzzles.id, { onDelete: 'cascade' }),
+    tag: varchar('tag', { length: 50 }).notNull(),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.puzzleId, table.tag] }) }),
+);
 
 export const puzzleGroups = mysqlTable(
   'puzzle_groups',
@@ -865,9 +920,9 @@ export const userStats = mysqlTable('user_stats', {
 });
 
 /** What a shop item gives. `cosmetic` is a hat / clothing item the player keeps and wears (no stock). */
-export const SHOP_EFFECTS = ['hint_token', 'wheel_spin', 'cosmetic', 'streak_shield'] as const;
+export const SHOP_EFFECTS = ['hint_token', 'wheel_spin', 'cosmetic', 'streak_shield', 'shuffle_rival', 'reveal_group'] as const;
 /** Stockable effects of `user_inventory` (a cosmetic is owned in `user_cosmetics`, not counted). */
-export const INVENTORY_EFFECTS = ['hint_token', 'wheel_spin', 'streak_shield'] as const;
+export const INVENTORY_EFFECTS = ['hint_token', 'wheel_spin', 'streak_shield', 'shuffle_rival', 'reveal_group'] as const;
 
 /** Things a player can buy with coins (docs/logic/shop.md). Prices, level gates and daily limits are edited in the admin panel. */
 export const shopItems = mysqlTable(
