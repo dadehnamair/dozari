@@ -92,6 +92,14 @@ function CardCell({ card: c, m, on, disabled, verdict, order, style, onPress }: 
   const shake = useRef(new Animated.Value(0)).current;
   const glow = useRef(new Animated.Value(0)).current;
   const pop = useRef(new Animated.Value(1)).current;
+  /** 0 = resting on its shelf, 1 = pressed in and glowing: springs so a tap feels physical. */
+  const press = useRef(new Animated.Value(on ? 1 : 0)).current;
+  useEffect(() => {
+    if (reduceMotion) return press.setValue(on ? 1 : 0);
+    const run = Animated.spring(press, { toValue: on ? 1 : 0, friction: on ? 5 : 7, tension: on ? 260 : 180, useNativeDriver: true });
+    run.start();
+    return () => run.stop();
+  }, [on, reduceMotion, press]);
   const n = verdict?.n;
   useEffect(() => {
     if (!verdict || reduceMotion) return;
@@ -113,8 +121,12 @@ function CardCell({ card: c, m, on, disabled, verdict, order, style, onPress }: 
     return () => run.stop();
   }, [n]);
   return (
-    <Animated.View style={{ transform: [{ translateX: shake }, { scale: pop }] }}>
+    <Animated.View style={[on && styles.glow, { transform: [{ translateX: shake }, { scale: pop }, { translateY: press.interpolate({ inputRange: [0, 1], outputRange: [0, 2] }) }, { scale: press.interpolate({ inputRange: [0, 1], outputRange: [1, 0.96] }) }] }]}>
       <Pressable disabled={disabled} accessibilityRole="button" accessibilityState={{ selected: on }} onPress={onPress} style={style}>
+        {/* Glossy face: a soft top highlight, a bright rim line and a shade toward the shelf (no gradient dependency). */}
+        <View pointerEvents="none" style={[styles.shade, on ? styles.shadeOn : styles.shadeIdle]} />
+        <View pointerEvents="none" style={[styles.gloss, on ? styles.glossOn : styles.glossIdle]} />
+        <View pointerEvents="none" style={[styles.rim, on ? styles.rimOn : styles.rimIdle]} />
         {c.iconKey ? (
           <View style={{ width: m.icon, height: m.icon }}>
             <Item icon={c.iconKey} />
@@ -163,9 +175,20 @@ const styles = StyleSheet.create({
   rowItems: { fontFamily: 'Vazirmatn_400Regular', fontSize: 13, lineHeight: 18, color: colors.ink, textAlign: 'center', maxWidth: '100%' },
   rowWhy: { fontFamily: 'Vazirmatn_400Regular', fontSize: 11, lineHeight: 15, color: colors.ink, opacity: 0.75, textAlign: 'center', maxWidth: '100%' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: GAP },
+  /** Purple halo around a chosen card. */
+  glow: { borderRadius: 18, shadowColor: '#A66BF0', shadowOpacity: 0.75, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } },
+  shade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '32%' },
+  shadeIdle: { backgroundColor: 'rgba(184,147,106,0.16)' },
+  shadeOn: { backgroundColor: 'rgba(20,6,50,0.22)' },
+  gloss: { position: 'absolute', top: 4, left: 6, right: 6, height: '36%', borderRadius: 12 },
+  glossIdle: { backgroundColor: 'rgba(255,255,255,0.55)' },
+  glossOn: { backgroundColor: 'rgba(255,255,255,0.2)' },
+  rim: { position: 'absolute', top: 0, left: 8, right: 8, height: 3, borderRadius: 2 },
+  rimIdle: { backgroundColor: 'rgba(255,255,255,0.9)' },
+  rimOn: { backgroundColor: 'rgba(255,255,255,0.55)' },
   cell: {
-    borderRadius: 14,
-    borderWidth: 3,
+    borderRadius: 18,
+    borderWidth: 2,
     borderColor: colors.ink,
     borderBottomWidth: 7,
     borderBottomColor: tile.idle.shelf,
@@ -175,7 +198,7 @@ const styles = StyleSheet.create({
     padding: 4,
     overflow: 'hidden',
   },
-  cellOn: { backgroundColor: tile.selected.face, borderColor: '#E8D5FF', borderBottomColor: tile.selected.shelf, transform: [{ translateY: 2 }, { scale: 0.96 }] },
+  cellOn: { backgroundColor: tile.selected.face, borderColor: tile.selected.shelf, borderBottomColor: tile.selected.shelf, borderBottomWidth: 5 },
   name: { fontFamily: 'Vazirmatn_700Bold', fontSize: 14, color: tile.idle.text, textAlign: 'center' },
   unit: { fontFamily: 'Vazirmatn_400Regular', fontSize: 11, color: colors.ink, opacity: 0.7, textAlign: 'center' },
   nameOn: { color: tile.selected.text },
