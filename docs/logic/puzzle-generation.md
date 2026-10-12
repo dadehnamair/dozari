@@ -136,7 +136,7 @@ human-approval requirement above. Track candidate titles + which was chosen in
 Until the generator exists, the fastest way to get playable puzzles is the admin page «ساخت پازل» (`/admin/puzzles`, permission `content`):
 the admin picks **16 distinct catalog products**, splits them into **4 groups of 4** (levels 0–3 once each: yellow, green, blue, purple) and writes
 each group's witty title and plain explanation. The puzzle is saved `source: curated`, groups `rule_kind: curated` (no rule is machine-checked,
-the admin is the human check) and is saved as `draft`: **no puzzle goes live without an explicit approval** (`PATCH /admin/puzzles/:id {status:'approved'}`, D227); an active puzzle can be retired and re-activated. The page also shows the catalog's
+the admin is the human check) and goes live as `approved` at once (the admin is the human check); it can be retired and re-activated. **Machine-made puzzles (generator, AI) never go live without an explicit approval** (D227). The page also shows the catalog's
 readiness: products in the catalog, products with ≥ `MIN_PRICE_POINTS_PER_PRODUCT` approved prices, approved puzzles. Prices are not needed to
 *play* a puzzle, but the price-guess round and the result chart need approved prices for its products.
 
@@ -183,7 +183,7 @@ without one it goes through all tiers in turn, so the pool covers every level. E
 The puzzle tabs filter by age track, group (= topic, `topicId`), tag and level (= tier), all client-side over `GET /admin/puzzles`.
 Clicking a product on a puzzle card opens a search of replacements → `PUT /admin/puzzles/:id/swap {fromProductId, toProductId}`: same group and slot;
 refused (400) when the new product is already in the puzzle (`duplicate_product`), is the same (`same_product`), is not in the puzzle (`not_in_puzzle`) or is
-above the puzzle's age track (`item_track`); 404 for an unknown product. The item's year hint is cleared. A swap on an `approved` puzzle sends it back to `draft` (re-approval needed);
+above the puzzle's age track (`item_track`); 404 for an unknown product. The item's year hint is cleared. The puzzle keeps its status (the admin editing it is the human check);
 curated groups are not machine-checked, so the editor is the check for the new product.
 
 ## AI-made puzzles on a schedule (D211)

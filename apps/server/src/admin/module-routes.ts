@@ -922,7 +922,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       void audit('puzzle.titles', p.data.id);
       return { ok: true };
     });
-    // Quick swap of one product of a puzzle for another; a live puzzle goes back to draft and needs approval again.
+    // Quick swap of one product of a puzzle for another.
     g.put('/admin/puzzles/:id/swap', async (req, reply) => {
       const p = idParam.safeParse(req.params);
       const b = z.object({ fromProductId: z.string().uuid(), toProductId: z.string().uuid() }).safeParse(req.body);

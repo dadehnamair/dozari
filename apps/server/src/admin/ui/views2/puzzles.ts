@@ -75,7 +75,7 @@ export const ADMIN_VIEWS2_PUZZLES_JS = String.raw`VIEWS.puzzles = function (root
     }
     function status(st, msg) { api('/admin/puzzles/' + p.id, { method: 'PATCH', body: { status: st } }).then(function (r) { if (!r.ok) return fail(r); toast(msg); reload(); }); }
     var swapBox = h('div');
-    // Quick swap: click a product of the puzzle, search another one, click it; a live puzzle goes back to draft.
+    // Quick swap: click a product of the puzzle, search another one, click it; the puzzle keeps its status.
     function openSwap(fromId, fromName) {
       clear(swapBox);
       var inPuzzle = {}; p.groups.forEach(function (g) { g.productIds.forEach(function (id) { inPuzzle[id] = true; }); });
@@ -88,10 +88,9 @@ export const ADMIN_VIEWS2_PUZZLES_JS = String.raw`VIEWS.puzzles = function (root
           if (n >= 40 || inPuzzle[c.id] || TRACK_RANK[c.ageTrack || 'adult'] > TRACK_RANK[p.ageTrack || 'adult'] || (t && (c.nameFa + ' ' + c.slug).indexOf(t) < 0)) return;
           n++;
           list.appendChild(h('button', { type: 'button', class: 'pick', onclick: function () {
-            if (p.status === 'approved' && !confirm('این پازل فعال است؛ بعد از جابه‌جایی به پیش‌نویس برمی‌گردد و باید دوباره تأیید شود. ادامه؟')) return;
             api('/admin/puzzles/' + p.id + '/swap', { method: 'PUT', body: { fromProductId: fromId, toProductId: c.id } }).then(function (r) {
               if (!r.ok) return r.body && r.body.error === 'item_track' ? toast('این محصول برای رده‌ی سنی پازل مناسب نیست', true) : r.body && r.body.error === 'duplicate_product' ? toast('این محصول همین حالا در پازل هست', true) : fail(r);
-              toast(r.body.status === 'draft' && p.status === 'approved' ? 'جابه‌جا شد؛ پازل به پیش‌نویس‌ها برگشت و منتظر تأیید است' : 'جابه‌جا شد'); reload();
+              toast('محصول جابه‌جا شد'); reload();
             });
           } }, [c.iconKey ? iconTile(c.iconKey) : null, h('span', { class: 'pn' }, [h('b', { text: c.nameFa }), h('small', { text: (CAT_FA[c.category] || '') + ' · ' + yearsOf(c) })])]));
         });
@@ -231,7 +230,7 @@ export const ADMIN_VIEWS2_PUZZLES_JS = String.raw`VIEWS.puzzles = function (root
     }
     var tierSel = select(tierOpts(), B.tier); tierSel.onchange = function () { B.tier = tierSel.value; };
     var trackSel = select([['adult', 'پازل بزرگسال'], ['teen', 'پازل نوجوان'], ['kid', 'پازل کودک']], B.track); trackSel.onchange = function () { B.track = trackSel.value; drawBuilder(); };
-    var submit = h('button', { class: 'btn primary', text: 'ذخیره به‌عنوان پیش‌نویس', onclick: submitPuzzle });
+    var submit = h('button', { class: 'btn primary', text: 'ساخت پازل', onclick: submitPuzzle });
     function refreshSubmit() { submit.disabled = !(filled() === 16 && B.titles.every(function (x) { return x.trim().length >= 2; })); }
     var bar = h('div', { class: 'bd-bar' }, [
       h('div', { class: 'progress' }, [h('i', { style: 'width:' + (n / 16 * 100) + '%' })]),
@@ -251,9 +250,9 @@ export const ADMIN_VIEWS2_PUZZLES_JS = String.raw`VIEWS.puzzles = function (root
     var groups = LEVELS.map(function (lv, i) { var t = B.titles[i].trim(); return { level: i, titleFa: t, explanationFa: B.expls[i].trim().length >= 2 ? B.expls[i].trim() : t, productIds: B.slots[i].slice() }; });
     api('/admin/puzzles', { method: 'POST', body: { groups: groups, tierId: B.tier || null, ageTrack: B.track } }).then(function (r) {
       if (!r.ok) return r.body && r.body.error === 'duplicate_product' ? toast('یک کالا نباید دو بار در پازل بیاید', true) : fail(r);
-      toast('پیش‌نویس ساخته شد؛ بعد از بازبینی در «پیش‌نویس‌ها» تأییدش کن');
+      toast('پازل ساخته شد و قابل بازی است');
       B.slots = [[], [], [], []]; B.titles = ['', '', '', '']; B.expls = ['', '', '', '']; B.active = 0;
-      P.tab = 'draft'; reload();
+      P.tab = 'approved'; reload();
     });
   }
   function drawTopics(box) {

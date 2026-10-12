@@ -86,13 +86,13 @@ export function checkShape(groups: readonly NewGroup[]): 'ok' | 'shape' | 'dupli
   return new Set(all).size === all.length ? 'ok' : 'duplicate_product';
 }
 
-/** I/O boundary of the admin's puzzle builder: no puzzle goes live without an explicit approval: hand-made (`curated`) ones are saved as `draft` too, and `setStatus('approved')` is the only door to the pool. */
+/** I/O boundary of the admin's puzzle builder: hand-made (`curated`) puzzles go live as `approved` at once, the admin being the human check. Machine-made ones (generator, AI) are only ever `draft` until a human approves. */
 export interface PuzzleAdmin {
   list(limit: number): Promise<PuzzleAdminRow[]>;
   readiness(): Promise<Readiness>;
   /** `ageTrack` (default adult): a kid or teen puzzle may only hold items of its own track or younger (`item_track` otherwise). */
   create(groups: NewGroup[], tierId?: string | null, ageTrack?: AgeTrack, status?: 'approved' | 'draft'): Promise<CreateResult>;
-  /** Replaces one product of a puzzle by another (same group, same slot); a live puzzle goes back to `draft` for re-approval. */
+  /** Replaces one product of a puzzle by another (same group, same slot); the puzzle keeps its status (the admin editing it is the human check). */
   swapProduct(puzzleId: string, fromProductId: string, toProductId: string): Promise<SwapResult>;
   /** The difficulty tiers, easiest first; a fresh install gets `DEFAULT_PUZZLE_TIERS`. */
   tiers(): Promise<PuzzleTier[]>;
@@ -191,7 +191,7 @@ export function createDbPuzzleAdmin(db: Db): PuzzleAdmin {
       const [a] = await db.select({ n: count() }).from(puzzles).where(eq(puzzles.status, 'approved'));
       return { products: Number(p?.n ?? 0), withPrices: Number(w?.n ?? 0), approvedPuzzles: Number(a?.n ?? 0), productsPerPuzzle: GROUP_COUNT * GROUP_SIZE };
     },
-    async create(groups, tierId, ageTrack = 'adult', status = 'draft') {
+    async create(groups, tierId, ageTrack = 'adult', status = 'approved') {
       const shape = checkShape(groups);
       if (shape !== 'ok') return { ok: false, error: shape };
       const ids = groups.flatMap((g) => g.productIds);
@@ -222,13 +222,9 @@ export function createDbPuzzleAdmin(db: Db): PuzzleAdmin {
       const [next] = await db.select({ ageTrack: products.ageTrack }).from(products).where(eq(products.id, toProductId));
       if (!next) return { ok: false, error: 'unknown_product' };
       if (trackRank(next.ageTrack) > trackRank(puzzle.ageTrack)) return { ok: false, error: 'item_track' };
-      const status = puzzle.status === 'approved' ? 'draft' : puzzle.status;
-      await db.transaction(async (tx) => {
-        // The year hint belonged to the old product, so it goes with it.
-        await tx.update(puzzleGroupItems).set({ productId: toProductId, displayYear: null }).where(and(eq(puzzleGroupItems.puzzleId, puzzleId), eq(puzzleGroupItems.productId, fromProductId)));
-        if (status !== puzzle.status) await tx.update(puzzles).set({ status }).where(eq(puzzles.id, puzzleId));
-      });
-      return { ok: true, status };
+      // The year hint belonged to the old product, so it goes with it.
+      await db.update(puzzleGroupItems).set({ productId: toProductId, displayYear: null }).where(and(eq(puzzleGroupItems.puzzleId, puzzleId), eq(puzzleGroupItems.productId, fromProductId)));
+      return { ok: true, status: puzzle.status };
     },
     async generate(count, rng, opts = {}) {
       const rows = await db
@@ -408,7 +404,7 @@ export function createMemoryPuzzleAdmin(known: Set<string>, catalog: Catalog = [
     async readiness() {
       return { products: known.size, withPrices: 0, approvedPuzzles: rows.filter((r) => r.status === 'approved').length, productsPerPuzzle: GROUP_COUNT * GROUP_SIZE };
     },
-    async create(groups, tierId, ageTrack = 'adult', status = 'draft') {
+    async create(groups, tierId, ageTrack = 'adult', status = 'approved') {
       const shape = checkShape(groups);
       if (shape !== 'ok') return { ok: false, error: shape };
       if (groups.some((g) => g.productIds.some((id) => !known.has(id)))) return { ok: false, error: 'unknown_product' };
@@ -428,7 +424,6 @@ export function createMemoryPuzzleAdmin(known: Set<string>, catalog: Catalog = [
         g.productIds = g.productIds.map((id) => (id === fromProductId ? toProductId : id));
         g.items = g.items.map((id) => (id === fromProductId ? toProductId : id));
       }
-      if (r.status === 'approved') r.status = 'draft';
       return { ok: true, status: r.status };
     },
     async generate(count, rng, opts = {}) {
