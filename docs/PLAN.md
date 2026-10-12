@@ -274,7 +274,7 @@ Start after the first Android build.
 
 - [ ] 1. Puzzle topics + tags + themed-round picker — shared picker, tables and migration done; still open: server pick step, admin topic editor, mobile topic chooser
 - [x] 2. Separate boards, face-down cards off-turn, «found N of 4» only — built behind `match.separate_boards` (default on)
-- [ ] 3. Leave penalty, daily ban, monthly badge, reconnect grace
+- [x] 3. Leave penalty, daily ban, monthly badge, reconnect grace — `docs/logic/leave-penalty.md` (migration 0081, `leave.*` settings)
 - [ ] 4. Timeout shown differently but scored as wrong; win only by solved cards
 - [ ] 5. Four-option price questions and general questions per topic
 - [ ] 6. Shop: shuffle opponent's cards, reveal a group

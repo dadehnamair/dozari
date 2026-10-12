@@ -618,7 +618,7 @@ export const fa = {
       rival: 'حریف',
       unknown: '؟',
       leave: 'ترک بازی',
-      leaveSure: 'دوباره بزن تا از بازی بیرون بری (باخت حساب می‌شه)',
+      leaveSure: 'دوباره بزن تا از بازی بیرون بری (باخت و یه ترک ثبت می‌شه)',
       winSub: 'دوزاریت زودتر از حریف افتاد',
       loseSub: 'حریف این دست زرنگ‌تر بود',
       youLeft: 'از بازی بیرون اومدی',
@@ -652,6 +652,7 @@ export const fa = {
       FEATURE_OFF: 'دوئل زنده فعلاً خاموش است.',
       NO_PRICE_ROUND: 'دور حدس قیمت تمام شده است.',
       DAILY_CAP: 'به سقف بازی امروزت رسیدی؛ فردا دوباره بیا.',
+      LEAVE_BANNED: 'امروز چند بار بازی رو نیمه‌کاره ول کردی؛ تا فردا دوئل و میز برات بسته‌ست.',
       LEVEL_TOO_LOW: 'هنوز لولت به این میز نرسیده؛ با بازی تکی لول بگیر و برگرد.',
       UNKNOWN_TIER: 'این میز الان در دسترس نیست.',
       INSUFFICIENT_COINS: 'سکه‌ی کافی برای ورودی نداری؛ بازی رایگان امروزت هم تمام شده.',
@@ -830,6 +831,7 @@ export const fa = {
     },
     errors: {
       NEEDS_GUARDIAN: 'برای میز و دوست‌ها اول یک بزرگ‌تر را به حسابت وصل کن.',
+      LEAVE_BANNED: 'امروز چند بار بازی را نیمه‌کاره رها کردی؛ تا فردا میز و دوئل برایت بسته است.',
       FEATURE_OFF: 'این بخش الان برایت باز نیست.',
       INVALID: 'نشد؛ دوباره امتحان کن.',
       NOT_FOUND: 'میزی با این کد پیدا نشد.',
@@ -1733,6 +1735,11 @@ export const fa = {
     notConfigured: 'ربات بله هنوز راه‌اندازی نشده.',
     error: 'نتوانستیم به سرور وصل شویم.',
     close: 'بستن',
+  },
+  /** Leave penalty (docs/logic/leave-penalty.md): the profile badge and when it comes off. */
+  leave: {
+    badge: 'ترک‌کننده',
+    until: (day: string) => `تا ${day} برداشته می‌شود`,
   },
   /** Solar Hijri months: the name and the mood the mascot wears in that month (D66). */
   months: [

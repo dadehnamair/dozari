@@ -59,6 +59,8 @@ export interface MatchDeps {
     cancel(matchId: string, players: readonly string[], fee: number): Promise<void>;
     settle(matchId: string, sides: readonly [readonly string[], readonly string[]], fee: number, result: { winner: 0 | 1 | null; reason: string }): Promise<void>;
   };
+  /** A player left a running board on purpose (`manual`) or stayed away past the reconnect grace (`absent`): logged for the leave penalty. */
+  onLeave?: (info: { userId: string; matchId: string; kind: 'manual' | 'absent' }) => void;
   onEnded?: (info: { players: readonly [string, string]; result: NonNullable<MatchState['result']> }) => void;
   /** A 2v2 ended: every player of both sides with the side they played (the duel hook only sees two players). */
   onTeamEnded?: (info: { players: readonly { userId: string; side: 0 | 1 }[]; result: NonNullable<MatchState['result']> }) => void;
@@ -325,7 +327,7 @@ export class MatchService {
     return this.apply(entry, { t: 'power', by: userId, kind });
   }
 
-  leave(userId: string): { ok: true } | { ok: false; error: ErrorCode } {
+  leave(userId: string, kind: 'manual' | 'absent' = 'manual'): { ok: true } | { ok: false; error: ErrorCode } {
     const entry = this.entryOf(userId);
     if (!entry) return { ok: false, error: 'NOT_IN_MATCH' };
     if (entry.pg || entry.pgPending) {
@@ -334,7 +336,16 @@ export class MatchService {
       this.finish(entry);
       return { ok: true };
     }
+    const wasPlaying = entry.state.status === 'playing';
     const out = this.apply(entry, { t: 'leave', by: userId });
+    // Leaving a running board is logged for the leave penalty (day ban, monthly badge); a finished match costs nothing.
+    if (out.ok && wasPlaying) {
+      try {
+        this.deps.onLeave?.({ userId, matchId: entry.id, kind });
+      } catch {
+        /* the penalty log must not break leaving */
+      }
+    }
     // A teammate who leaves a running 2v2 is free to queue again; the match carries on without them.
     if (out.ok && entry.state.status === 'playing') this.byUser.delete(userId);
     return out;

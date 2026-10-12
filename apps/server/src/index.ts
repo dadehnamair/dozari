@@ -168,6 +168,7 @@ import { ShopService } from './economy/shop.js';
 import { createDbShopStore } from './economy/shop-store.js';
 import { HintService } from './solo/hints.js';
 import { PlayLimiter, createDbPlayCountStore } from './limits/play-limits.js';
+import { LeaveService, createDbLeaveStore, leaveRulesFromSettings } from './leaves/service.js';
 import { DuelStakes } from './duel/stakes.js';
 import { registerAdsRoutes } from './ads/routes.js';
 import { AdsService } from './ads/service.js';
@@ -272,6 +273,8 @@ export interface ServerDeps {
   duelStakes?: DuelStakes;
   /** Admin-set daily game caps (solo, live duel). */
   limiter?: PlayLimiter;
+  /** The leave penalty (day ban, monthly badge); absent = no penalty. */
+  leaves?: LeaveService;
   /** Coin shop (`/shop`); needs `auth`. */
   shop?: ShopService;
   /** Level road (`/me/levels`, D109); needs `auth`. */
@@ -460,7 +463,7 @@ export function buildServer(deps: ServerDeps = {}) {
   let gateway: Gateway | undefined;
   if (deps.auth && deps.realtime) {
     const auth = deps.auth;
-    gateway = attachGateway(app.server, { onLeft: deps.tables ? (u) => void deps.tables!.leave(u) : undefined, authenticate: (t) => auth.authenticate(t), corsOrigin, match: deps.match, canAfford: deps.duelStakes ? async (u, tier) => (deps.ageTracks && !(await deps.ageTracks.allows(u, 'coinWager'))) || deps.duelStakes!.canQueue(u, tier) : undefined, tierGate: deps.duelStakes && deps.levelOf ? async (u, tier) => { if (deps.ageTracks && !(await deps.ageTracks.allows(u, 'coinWager'))) return 'UNKNOWN_TIER'; const t = (await deps.duelStakes!.tiers()).find((x) => x.id === tier); if (!t) return 'UNKNOWN_TIER'; return (await deps.levelOf!(u)) >= t.minLevel ? null : 'LEVEL_TOO_LOW'; } : undefined, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, levelGate: deps.duelLevelGate, limit: deps.limiter ? { canPlay: async (u) => (await deps.limiter!.check(u, 'duel')).ok, onStarted: (u) => deps.limiter!.record(u, 'duel') } : undefined, chat: deps.chat, presence: deps.presence, notices: deps.notices, onEmit: deps.botDriver ? (u, e, p) => deps.botDriver!.onEmit(u, e, p) : undefined, trackOf: deps.ageTracks ? (u) => deps.ageTracks!.effective(u).catch(() => 'adult' as const) : undefined, trackGate: deps.ageTracks ? (u) => deps.ageTracks!.featureOff(u, 'duel_queue') : undefined, diagnose: deps.match ? createQueueDiagnosis({ hasPuzzle: async (tracks) => (await deps.match!.puzzles.pickRandom({ tracks })) !== null, botsReady: () => deps.botDriver?.ready() ?? false, graceSec: 45 }) : undefined });
+    gateway = attachGateway(app.server, { banned: deps.leaves ? (u) => deps.leaves!.isBanned(u) : undefined, graceMs: deps.settings ? async () => (await deps.settings!.num('leave.grace_seconds')) * 1000 : undefined, onLeft: deps.tables ? (u) => void deps.tables!.leave(u) : undefined, authenticate: (t) => auth.authenticate(t), corsOrigin, match: deps.match, canAfford: deps.duelStakes ? async (u, tier) => (deps.ageTracks && !(await deps.ageTracks.allows(u, 'coinWager'))) || deps.duelStakes!.canQueue(u, tier) : undefined, tierGate: deps.duelStakes && deps.levelOf ? async (u, tier) => { if (deps.ageTracks && !(await deps.ageTracks.allows(u, 'coinWager'))) return 'UNKNOWN_TIER'; const t = (await deps.duelStakes!.tiers()).find((x) => x.id === tier); if (!t) return 'UNKNOWN_TIER'; return (await deps.levelOf!(u)) >= t.minLevel ? null : 'LEVEL_TOO_LOW'; } : undefined, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, levelGate: deps.duelLevelGate, limit: deps.limiter ? { canPlay: async (u) => (await deps.limiter!.check(u, 'duel')).ok, onStarted: (u) => deps.limiter!.record(u, 'duel') } : undefined, chat: deps.chat, presence: deps.presence, notices: deps.notices, onEmit: deps.botDriver ? (u, e, p) => deps.botDriver!.onEmit(u, e, p) : undefined, trackOf: deps.ageTracks ? (u) => deps.ageTracks!.effective(u).catch(() => 'adult' as const) : undefined, trackGate: deps.ageTracks ? (u) => deps.ageTracks!.featureOff(u, 'duel_queue') : undefined, diagnose: deps.match ? createQueueDiagnosis({ hasPuzzle: async (tracks) => (await deps.match!.puzzles.pickRandom({ tracks })) !== null, botsReady: () => deps.botDriver?.ready() ?? false, graceSec: 45 }) : undefined });
     if (deps.live) {
       deps.live.matches = gateway.matches;
       deps.live.queue = gateway.queue;
@@ -570,6 +573,7 @@ if (isMainModule(import.meta.url)) {
           (id, text) => void notify?.notify(id, 'admin', text).catch(() => undefined),
         )
       : undefined;
+  const leaves = db && settings ? new LeaveService(createDbLeaveStore(db), () => leaveRulesFromSettings(settings)) : undefined;
   const social = db && socialStore
     ? new SocialService(
         socialStore,
@@ -582,6 +586,7 @@ if (isMainModule(import.meta.url)) {
         badges,
         (id) => presence.isOnline(id),
         (ids) => birthday?.info(ids) ?? Promise.resolve(new Map()),
+        async (id) => (await leaves?.status(id))?.badgeUntil ?? null,
       )
     : undefined;
   const messages = db ? new MessageCenter(createDbMessageStore(db), notify ?? null, smsGateway ?? null) : undefined;
@@ -751,6 +756,7 @@ if (isMainModule(import.meta.url)) {
           trackOf: ageTracks ? (id) => ageTracks.effective(id) : undefined,
           socialBlocked: ageTracks ? (id) => ageTracks.socialBlocked(id) : undefined,
           duelsOff: ageTracks ? (id) => ageTracks.duelsOff(id) : undefined,
+          banned: leaves ? (id) => leaves.isBanned(id) : undefined,
           // A family is a guardian and their children (the guardian link is the whole proof; nobody else can open a family table).
           hasFamily: guardianStore ? async (id) => (await guardianStore.guardianOf(id)) !== null || (await guardianStore.childrenOf(id)).length > 0 : undefined,
           sameFamily: guardianStore
@@ -915,6 +921,7 @@ if (isMainModule(import.meta.url)) {
           trackOf: ageTracks ? (id) => ageTracks.effective(id) : undefined,
           wagerAllowed: ageTracks ? (id) => ageTracks.allows(id, 'coinWager') : undefined,
           teamBoards: settings ? () => settings.num('match.team_boards') : undefined,
+          onLeave: leaves ? (i) => { if (!botDriver?.isBot(i.userId)) void leaves.record(i.userId, i.matchId, i.kind).catch(() => undefined); } : undefined,
           gemCard: settings ? () => gemCardRules(settings) : undefined,
           onGem: (id, amount, key) => {
             if (!botDriver?.isBot(id)) gemPayer(id, amount, key);
@@ -990,6 +997,7 @@ if (isMainModule(import.meta.url)) {
     duelLevelGate: settings && player ? async (id) => (await player.levelOf(id)).level.level >= (await settings.num('duel.min_level')) : undefined,
     tables: tableService,
     duelStakes,
+    leaves,
     limiter: db && settings ? new PlayLimiter(createDbPlayCountStore(db), async (mode) => settings.num(mode === 'solo' ? 'limit.solo_per_day' : 'limit.duel_per_day')) : undefined,
     hints: solo && shopStore && settings ? new HintService(solo, shopStore, () => hintRules(settings), levelOf) : undefined,
     shop: shopStore
