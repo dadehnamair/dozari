@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
+import type { StyleProp, ViewStyle } from 'react-native';
 import { GROUP_SIZE } from '@dozari/shared';
 import type { SoloCard, SoloSolvedGroup } from '@dozari/shared';
 import { colors, groupShelf, tile } from '../theme/colors';
@@ -8,6 +9,9 @@ import { NAME_FLOOR, cardMetrics, cellWidth } from './boardLayout';
 import { playSfx } from '../sound/engine';
 import { Item } from './Item';
 import { usePrefs } from '../prefs/store';
+import { useTheme } from '../theme/themeStore';
+import { BACK_TONES, CardBack, backSeed } from './CardBack';
+import { GradientFill } from './GradientFill';
 
 const GAP = 8;
 
@@ -78,7 +82,8 @@ export function Board({ solved, cards, names, selected, onToggle, disabled, hint
               order={Math.max(0, idx)}
               index={index}
               faceDown={faceDown}
-              style={[styles.cell, w > 0 && { width: w, height: m.height }, on && styles.cellOn, hinted.includes(c.id) && styles.cellHint, nudged.includes(c.id) && !on && styles.cellNudge, muted && (on ? styles.cellMutedOn : styles.cellMuted), faceDown && styles.cellBack]}
+              size={w > 0 ? { width: w, height: m.height } : null}
+              style={[styles.cell, on && styles.cellOn, hinted.includes(c.id) && styles.cellHint, nudged.includes(c.id) && !on && styles.cellNudge, muted && (on ? styles.cellMutedOn : styles.cellMuted)]}
               onPress={() => (playSfx(on ? 'deselect' : 'select'), onToggle(c.id))}
             />
           );
@@ -90,31 +95,35 @@ export function Board({ solved, cards, names, selected, onToggle, disabled, hint
 
 type Metrics = ReturnType<typeof cardMetrics>;
 
-/** One card of the grid. Owns the verdict animation so each card can shake / glow on its own clock. */
-function CardCell({ card: c, m, on, disabled, verdict, order, index, faceDown, style, onPress }: { index: number; faceDown: boolean; card: SoloCard; m: Metrics; on: boolean; disabled: boolean; verdict: BoardVerdict | null; order: number; style: React.ComponentProps<typeof Pressable>['style']; onPress: () => void }) {
+/** How long a card takes to turn over, and the bouncy ease of the design (`cubic-bezier(.4,1.45,.5,1)`: a small overshoot). */
+const FLIP_MS = 620;
+const FLIP_EASE = Easing.bezier(0.4, 1.45, 0.5, 1);
+
+/** One card of the grid. Owns the verdict animation so each card can shake / glow on its own clock, and the 3D turn between face and back. */
+function CardCell({ card: c, m, on, disabled, verdict, order, index, faceDown, size, style, onPress }: { index: number; faceDown: boolean; card: SoloCard; m: Metrics; on: boolean; disabled: boolean; verdict: BoardVerdict | null; order: number; size: { width: number; height: number } | null; style: StyleProp<ViewStyle>; onPress: () => void }) {
   const { reduceMotion } = usePrefs();
+  const adult = useTheme() === 'adult';
   const shake = useRef(new Animated.Value(0)).current;
   const glow = useRef(new Animated.Value(0)).current;
   const pop = useRef(new Animated.Value(1)).current;
   const n = verdict?.n;
-  /** Flip: the card narrows to nothing, swaps face and back, and widens again. */
-  const turn = useRef(new Animated.Value(1)).current;
-  const [showBack, setShowBack] = useState(faceDown);
+  /** 0 = face up, 1 = back up. Each card turns a beat after its neighbour (row + column), as in the design. */
+  const flip = useRef(new Animated.Value(faceDown ? 1 : 0)).current;
+  /** The back (and its looping motif) only exists while it is showing or turning. */
+  const [backOn, setBackOn] = useState(faceDown);
+  const seed = backSeed(c.id);
   useEffect(() => {
-    if (showBack === faceDown) return;
+    if (faceDown) setBackOn(true);
     if (reduceMotion) {
-      setShowBack(faceDown);
+      flip.setValue(faceDown ? 1 : 0);
+      if (!faceDown) setBackOn(false);
       return;
     }
     const run = Animated.sequence([
-      Animated.delay((index % GROUP_SIZE) * 40 + Math.floor(index / GROUP_SIZE) * 25),
-      Animated.timing(turn, { toValue: 0, duration: 150, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+      Animated.delay((Math.floor(index / GROUP_SIZE) + (index % GROUP_SIZE)) * 60),
+      Animated.timing(flip, { toValue: faceDown ? 1 : 0, duration: FLIP_MS, easing: FLIP_EASE, useNativeDriver: true }),
     ]);
-    run.start(({ finished }) => {
-      if (!finished) return;
-      setShowBack(faceDown);
-      Animated.timing(turn, { toValue: 1, duration: 170, easing: Easing.out(Easing.quad), useNativeDriver: true }).start();
-    });
+    run.start(({ finished }) => finished && !faceDown && setBackOn(false));
     return () => run.stop();
   }, [faceDown]);
   useEffect(() => {
@@ -136,18 +145,36 @@ function CardCell({ card: c, m, on, disabled, verdict, order, index, faceDown, s
     run.start();
     return () => run.stop();
   }, [n]);
+  const frontDeg = flip.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] });
+  const backDeg = flip.interpolate({ inputRange: [0, 1], outputRange: ['180deg', '360deg'] });
+  const tone = BACK_TONES[seed % BACK_TONES.length]!;
+  const idleFrom = adult ? '#FFF3C4' : '#FFFBF2';
+  const onFrom = adult ? '#4A3220' : '#9A66E8';
   return (
-    <Animated.View style={{ transform: [{ translateX: shake }, { scale: pop }, { scaleX: turn }] }}>
-      <Pressable disabled={disabled || showBack} accessibilityRole="button" accessibilityLabel={showBack ? fa.duel.arena.cardBack : undefined} accessibilityState={{ selected: on }} onPress={onPress} style={style}>
-        {showBack ? <View style={styles.backMark}><View style={styles.backCoin} /></View> : null}
-        {!showBack && c.iconKey ? (
-          <View style={{ width: m.icon, height: m.icon }}>
-            <Item icon={c.iconKey} />
+    <Animated.View style={[size, { transform: [{ translateX: shake }, { scale: pop }] }]}>
+      <Pressable disabled={disabled || faceDown} accessibilityRole="button" accessibilityLabel={faceDown ? fa.duel.arena.cardBack : undefined} accessibilityState={{ selected: on }} onPress={onPress} style={StyleSheet.absoluteFill}>
+        <Animated.View style={[styles.turn, { transform: [{ perspective: 520 }, { rotateY: frontDeg }] }]}>
+          <View style={[style, styles.face]}>
+            <GradientFill from={on ? onFrom : idleFrom} to={on ? tile.selected.face : tile.idle.face} />
+            <View style={styles.topLight} />
+            {c.iconKey ? (
+              <View style={{ width: m.icon, height: m.icon }}>
+                <Item icon={c.iconKey} />
+              </View>
+            ) : null}
+            <Text style={[styles.name, { fontSize: m.nameSize }, on && styles.nameOn]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={NAME_FLOOR / m.nameSize}>{c.nameFa}</Text>
+            {c.unitFa ? <Text style={[styles.unit, { fontSize: m.unitSize }, on && styles.nameOn]} numberOfLines={1}>{c.unitFa}</Text> : null}
+            {verdict ? <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: verdict.kind === 'wrong' ? '#E5384F' : '#34C759', opacity: glow.interpolate({ inputRange: [0, 1], outputRange: [0, 0.82] }) }]} /> : null}
           </View>
+        </Animated.View>
+        {backOn ? (
+          <Animated.View pointerEvents="none" style={[styles.turn, { transform: [{ perspective: 520 }, { rotateY: backDeg }] }]}>
+            <View style={[styles.cell, styles.face, styles.cellBack, { backgroundColor: tone }]}>
+              <GradientFill from="rgba(255,255,255,0.38)" to="rgba(255,255,255,0)" />
+              <CardBack seed={seed} size={Math.min(46, Math.round((size?.width ?? 60) * 0.55))} run={faceDown} />
+            </View>
+          </Animated.View>
         ) : null}
-        {showBack ? null : <Text style={[styles.name, { fontSize: m.nameSize }, on && styles.nameOn]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={NAME_FLOOR / m.nameSize}>{c.nameFa}</Text>}
-        {!showBack && c.unitFa ? <Text style={[styles.unit, { fontSize: m.unitSize }, on && styles.nameOn]} numberOfLines={1}>{c.unitFa}</Text> : null}
-        {verdict ? <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: verdict.kind === 'wrong' ? '#E5384F' : '#34C759', opacity: glow.interpolate({ inputRange: [0, 1], outputRange: [0, 0.82] }) }]} /> : null}
       </Pressable>
     </Animated.View>
   );
@@ -179,10 +206,12 @@ function SolvedRow({ fresh, style, label, children }: { fresh: boolean; style: R
 const styles = StyleSheet.create({
   /** A selection shown while it is the other side's turn keeps its purple face and white text (the grey look would put white on grey). */
   cellMutedOn: { opacity: 0.85 },
-  /** The back of a card: the dark slab with a gold coin. */
-  cellBack: { backgroundColor: colors.ink, borderBottomColor: '#000', borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
-  backMark: { alignItems: 'center', justifyContent: 'center' },
-  backCoin: { width: 26, height: 26, borderRadius: 13, borderWidth: 3, borderColor: colors.candy.yellow, backgroundColor: 'rgba(255,214,90,0.25)' },
+  /** The back of a card: a candy colour on an ink shelf; the tone is set per card. */
+  cellBack: { borderColor: colors.ink, borderBottomColor: colors.ink, borderWidth: 2.5, borderBottomWidth: 6 },
+  /** The two faces of a card sit on top of each other and turn about the vertical axis; the hidden one is not drawn. */
+  turn: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backfaceVisibility: 'hidden' },
+  face: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+  topLight: { position: 'absolute', top: 0, left: 0, right: 0, height: 3, backgroundColor: 'rgba(255,255,255,0.55)' },
   cellMuted: { backgroundColor: '#D9D9DE', borderBottomColor: '#B5B5BC', opacity: 0.7 },
   cellNudge: { backgroundColor: '#FFF3C4', borderColor: 'rgba(255,201,60,0.8)', borderWidth: 3 },
   cellHint: { borderColor: '#FFC93C', borderWidth: 4 },
