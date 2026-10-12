@@ -679,6 +679,8 @@ export const fa = {
       sub: 'هر دور یکی از شما موضوعش رو انتخاب می‌کنه؛ موضوعِ انتخاب‌شده دیگه تکرار نمی‌شه. دور آخرِ تعداد فرد رو خودِ بازی تصادفی می‌ذاره.',
       round: (n: number) => `دور ${toPersianDigits(String(n))}`,
       yourPick: (n: number) => `موضوع دور ${toPersianDigits(String(n))} رو تو انتخاب کن`,
+      /** 2v2: a named player of either side is choosing. */
+      playerPicking: (name: string, n: number) => `${name} داره موضوع دور ${toPersianDigits(String(n))} رو انتخاب می‌کنه…`,
       rivalPicking: (n: number) => `حریف داره موضوع دور ${toPersianDigits(String(n))} رو انتخاب می‌کنه…`,
       systemPicking: 'بازی داره موضوع دور آخر رو تصادفی انتخاب می‌کنه…',
       random: '🎲 تصادفی',

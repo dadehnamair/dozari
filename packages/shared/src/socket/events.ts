@@ -175,6 +175,9 @@ export const draftViewSchema = z.object({
   round: z.number().int().nonnegative(),
   chooser: z.union([side, z.literal('system')]).nullable(),
   yourTurn: z.boolean(),
+  /** In a 2v2 one named teammate of the chooser's side picks each round (A1, B1, A2, B2…): who, for the waiting screens. */
+  chooserId: z.string().nullable().optional(),
+  chooserName: z.string().optional(),
   /** Epoch ms when the chooser's time runs out and the server draws for them. */
   endsAt: z.number().int(),
   open: z.array(z.object({ id: z.string(), nameFa: z.string() })),
