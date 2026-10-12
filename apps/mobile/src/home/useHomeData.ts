@@ -3,6 +3,7 @@ import { provinceOf } from '@dozari/shared';
 import type { DailyStatus, Gender, Province, ProfileTask } from '@dozari/shared';
 import { fetchAgeTrack } from '../agetrack/api';
 import { setLookGender, setLookTrack } from '../theme/look';
+import { onProfileChanged } from '../social/profileEvents';
 import { fetchDailyStatus } from '../daily/puzzleApi';
 import { fetchMatchActive } from '../duel/api';
 import { fetchWorn } from '../shop/api';
@@ -36,6 +37,8 @@ export function useHomeData(features: ClientConfig['features']) {
     fetchMyProfile().then((p) => (setGender(p.gender), setAvatarKey(p.avatarKey), setLookGender(p.gender), setLevel(p.level.level), setProvince(provinceOf(p.city?.province)), setSlogan(p.city?.sloganFa ?? null)), () => undefined);
   }, []);
   useEffect(loadMe, [loadMe]);
+  // Another screen (the player's own card) edited the profile: the hero and header follow.
+  useEffect(() => onProfileChanged(loadMe), [loadMe]);
   /** What the hero wears (set in the fitting room). */
   const [worn, setWorn] = useState<{ slot: string; iconKey: string | null }[]>([]);
   const loadWorn = useCallback(() => void fetchWorn().then((r) => setWorn(r.worn), () => undefined), []);

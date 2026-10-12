@@ -18,6 +18,7 @@ import { EmptyNote } from '../components/EmptyState';
 import { fa } from '../i18n/fa';
 import { ApiError } from '../net/http';
 import { avatarOf } from '../social/avatarOf';
+import { usePlayerSheet } from '../social/usePlayerSheet';
 import { colors, fonts } from '../theme/colors';
 import { fetchTournament, fetchTournaments, joinTournament, leaveTournament } from './api';
 import { SponsorCard, SponsorInvite, SponsorTag } from './Sponsor';
@@ -78,6 +79,7 @@ export function TournamentSheet({ onClose, invite = null }: { onClose: () => voi
 
 function TournamentPage({ id, onBack }: { id: string; onBack: () => void }) {
   const { ask, dialog } = useConfirm();
+  const players = usePlayerSheet();
   const [t, setT] = useState<TournamentDetail | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -141,7 +143,7 @@ function TournamentPage({ id, onBack }: { id: string; onBack: () => void }) {
                 ))}
               </View>
 
-              {t.bracket.length > 0 ? <Bracket t={t} /> : null}
+              {t.bracket.length > 0 ? <Bracket t={t} onPlayer={players.open} /> : null}
 
               {/* Sponsor + details + prizes + rules together, then the results, then who took part. */}
               {t.sponsor ? <SponsorCard sponsor={t.sponsor} /> : null}
@@ -158,17 +160,17 @@ function TournamentPage({ id, onBack }: { id: string; onBack: () => void }) {
                 {[fa.tournament.rules.elimination, fa.tournament.rules.fee(t.entryCoins, t.entryGems), fa.tournament.rules.byes, fa.tournament.rules.cancel, ...(t.roundGapMinutes > 0 ? [fa.tournament.rules.scheduled(Math.round(t.roundGapMinutes / 60), t.graceMinutes), fa.tournament.rules.forfeit] : [fa.tournament.rules.online])].map((r) => <Text key={r} style={styles.small}>• {r}</Text>)}
               </View>
 
-              {t.results.length > 0 ? <Winners t={t} /> : null}
+              {t.results.length > 0 ? <Winners t={t} onPlayer={players.open} /> : null}
 
               <View style={styles.panel}>
                 <Text style={styles.label}>{fa.tournament.players} ({n(t.players.length)})</Text>
                 <View style={styles.people}>
                   {t.players.map((p) => (
                     <View key={p.id} style={styles.personCell}>
-                      <View style={styles.person}>
+                      <Pressable onPress={() => players.open(p.id)} accessibilityRole="button" accessibilityLabel={p.nickname} style={styles.person}>
                         <Avatar avatar={avatarOf(p.avatarKey)} size={40} />
                         <Text style={styles.personName} numberOfLines={1}>{p.nickname}</Text>
-                      </View>
+                      </Pressable>
                     </View>
                   ))}
                 </View>
@@ -192,12 +194,13 @@ function TournamentPage({ id, onBack }: { id: string; onBack: () => void }) {
         </View>
       ) : null}
       {dialog}
+      {players.sheet}
     </View>
   );
 }
 
 /** The bracket, one round at a time: round chips on top, the round's matches in a two-column grid (no sideways scrolling). */
-function Bracket({ t }: { t: TournamentDetail }) {
+function Bracket({ t, onPlayer }: { t: TournamentDetail; onPlayer: (playerId: string) => void }) {
   const [picked, setPicked] = useState<number | null>(null);
   const round = picked ?? currentRound(t.bracket, t.rounds);
   const matches = t.bracket.filter((m) => m.round === round).sort((x, y) => x.slot - y.slot);
@@ -217,7 +220,7 @@ function Bracket({ t }: { t: TournamentDetail }) {
         <View style={styles.grid}>
           {matches.map((m) => (
             <View key={`${m.round}-${m.slot}`} style={styles.cell}>
-              <MatchCard m={m} />
+              <MatchCard m={m} onPlayer={onPlayer} />
             </View>
           ))}
         </View>
@@ -231,7 +234,7 @@ function Bracket({ t }: { t: TournamentDetail }) {
 type BracketMatch = TournamentDetail['bracket'][number];
 
 /** One match: both faces, the winner lit up in green with a ✓, the loser greyed out and struck through with a ✕. */
-function MatchCard({ m }: { m: BracketMatch }) {
+function MatchCard({ m, onPlayer }: { m: BracketMatch; onPlayer: (playerId: string) => void }) {
   const decided = m.winnerId !== null;
   return (
     <View style={styles.matchOuter}>
@@ -241,6 +244,7 @@ function MatchCard({ m }: { m: BracketMatch }) {
           const lost = !!p && decided && !won;
           const row = (
             <View style={[styles.player, k === 0 ? styles.playerFirst : null, won ? styles.playerWon : null, lost ? styles.playerLost : null]}>
+              <Pressable onPress={p ? () => onPlayer(p.id) : undefined} disabled={!p} accessibilityRole={p ? 'button' : undefined} accessibilityLabel={p?.nickname} style={styles.playerTap}>
               <WinnerHop on={won}>
                 <View style={[styles.face, won ? styles.faceWon : null, !p ? styles.faceEmpty : null]}>
                   {p ? <View style={lost ? styles.faceLost : null}><Avatar avatar={avatarOf(p.avatarKey)} size={30} /></View> : <Text style={styles.faceQ}>؟</Text>}
@@ -249,6 +253,7 @@ function MatchCard({ m }: { m: BracketMatch }) {
               <Text style={[styles.playerName, won ? styles.nameWon : null, lost ? styles.nameLost : null, !p ? styles.dim : null]} numberOfLines={1}>
                 {p?.nickname ?? (m.status === 'bye' ? fa.tournament.bye : fa.tournament.waiting)}
               </Text>
+              </Pressable>
               {won ? <StampIn><View style={styles.badgeWon}><Text style={styles.badgeText}>✓</Text></View></StampIn> : null}
               {lost ? <View style={styles.badgeLost}><Text style={styles.badgeText}>✕</Text></View> : null}
             </View>
@@ -308,6 +313,7 @@ const styles = StyleSheet.create({
   match: { borderRadius: 12, borderWidth: 2.5, borderColor: colors.ink, overflow: 'hidden' },
   matchLive: { borderColor: '#7ED957' },
   player: { height: 46, flexDirection: ROW, alignItems: 'center', gap: 6, paddingHorizontal: 6 },
+  playerTap: { flex: 1, minWidth: 0, flexDirection: ROW, alignItems: 'center', gap: 6 },
   playerFirst: { borderBottomWidth: 1.5, borderColor: 'rgba(43,18,64,0.15)' },
   playerWon: { backgroundColor: '#D4F5B8' },
   playerLost: { backgroundColor: 'rgba(43,18,64,0.07)' },

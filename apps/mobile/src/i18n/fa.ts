@@ -302,6 +302,7 @@ export const fa = {
     } as Record<string, string>,
   },
   player: {
+    editMine: 'ویرایش پروفایل',
     askGuardian: 'دوست شدن را بزرگ‌ترت باید تأیید کند؛ ازش بخواه.',
     age: (n: number) => `${toPersianDigits(String(n))} ساله`,
     level: 'سطح',
