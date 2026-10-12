@@ -3,22 +3,12 @@ import { Animated, Easing, StyleSheet, View } from 'react-native';
 import Svg, { Circle, G, Line, Path, Polygon, Text as SvgText } from 'react-native-svg';
 import { usePrefs } from '../prefs/store';
 import { colors } from '../theme/colors';
+import { BACK_MOTIFS, BACK_TONES as PAL } from './cardBackSeed';
 
 /** The back of a card (screen-match of `13 Match Screens v2`): a candy colour with a dashed inner frame and one small animated motif. */
-const PAL = ['#FF4D8D', '#3FC1F0', '#FFC93C', '#A66BF0', '#7ED957', '#FF7A3D'] as const;
 const INK = colors.ink;
 const CREAM = '#FFF6E8';
 const STROKE = { stroke: INK, strokeWidth: 2.6, strokeLinejoin: 'round', strokeLinecap: 'round' } as const;
-
-/** Stable small number out of a card id, so a card keeps its colour and motif while the grid changes. */
-export function backSeed(id: string): number {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
-  return h;
-}
-
-export const BACK_TONES = PAL;
-export const BACK_MOTIFS = 9;
 
 function star(n: number, ro: number, ri: number): string {
   const pts: string[] = [];

@@ -10,7 +10,8 @@ import { playSfx } from '../sound/engine';
 import { Item } from './Item';
 import { usePrefs } from '../prefs/store';
 import { useTheme } from '../theme/themeStore';
-import { BACK_TONES, CardBack, backSeed } from './CardBack';
+import { CardBack } from './CardBack';
+import { BACK_TONES, backSeed } from './cardBackSeed';
 import { GradientFill } from './GradientFill';
 
 const GAP = 8;

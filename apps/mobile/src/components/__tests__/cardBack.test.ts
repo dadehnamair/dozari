@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BACK_MOTIFS, BACK_TONES, backSeed } from '../CardBack';
+import { BACK_MOTIFS, BACK_TONES, backSeed } from '../cardBackSeed';
 
 describe('card back seed', () => {
   it('is stable for an id and spreads ids over the colours and motifs', () => {
