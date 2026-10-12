@@ -133,9 +133,21 @@ function CardCell({ card: c, m, on, adult, disabled, verdict, order, style, onPr
         {/* Adult: an engraved inner line, like the plate of a vault box (bright gold when chosen). */}
         {adult ? <View pointerEvents="none" style={[styles.plate, on ? styles.plateOn : styles.plateIdle]} /> : null}
         {c.iconKey ? (
-          <View style={{ width: m.icon, height: m.icon }}>
-            <Item icon={c.iconKey} />
-          </View>
+          adult ? (
+            // Adult: the drawing sits in a dark medallion with a brass frame (docs/design/adult UI Kit, «قاب بزرگسال»).
+            <View style={[styles.frameRing, { width: m.icon + 3, height: m.icon + 3 }]}>
+              <View style={[styles.frame, on && styles.frameOn]}>
+                <View pointerEvents="none" style={styles.frameLight} />
+                <View style={{ width: Math.round(m.icon * 0.78), height: Math.round(m.icon * 0.78) }}>
+                  <Item icon={c.iconKey} />
+                </View>
+              </View>
+            </View>
+          ) : (
+            <View style={{ width: m.icon, height: m.icon }}>
+              <Item icon={c.iconKey} />
+            </View>
+          )
         ) : null}
         <Text style={[styles.name, { fontSize: m.nameSize }, on && styles.nameOn]} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={NAME_FLOOR / m.nameSize}>{c.nameFa}</Text>
         {c.unitFa ? <Text style={[styles.unit, { fontSize: m.unitSize }, on && styles.nameOn]} numberOfLines={1}>{c.unitFa}</Text> : null}
@@ -194,6 +206,11 @@ const styles = StyleSheet.create({
   plate: { position: 'absolute', top: 4, left: 4, right: 4, bottom: 4, borderRadius: 13, borderWidth: 1 },
   plateIdle: { borderColor: 'rgba(138,90,22,0.45)' },
   plateOn: { borderColor: 'rgba(255,215,106,0.55)' },
+  frameRing: { borderRadius: 13, borderWidth: 1.5, borderColor: '#000' },
+  frame: { flex: 1, borderRadius: 11, borderWidth: 1.5, borderColor: '#B8822A', backgroundColor: '#1E140C', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  frameOn: { borderColor: '#FFD76A', backgroundColor: '#2A1B10' },
+  /** Warm light from the top of the medallion (stands in for the design's radial gradient). */
+  frameLight: { position: 'absolute', top: 0, left: 2, right: 2, height: '58%', borderBottomLeftRadius: 40, borderBottomRightRadius: 40, backgroundColor: 'rgba(120,80,40,0.45)' },
   shade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '32%' },
   shadeIdle: { backgroundColor: 'rgba(184,147,106,0.16)' },
   shadeOn: { backgroundColor: 'rgba(20,6,50,0.22)' },
