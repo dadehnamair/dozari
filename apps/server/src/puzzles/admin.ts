@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, inArray, pricePoints, productEraTags, products, puzzleGroupItems, puzzleGroups, puzzleTags, puzzleTiers, puzzleTopics, puzzles, sql } from '@dozari/db';
+import { and, asc, count, desc, eq, inArray, pricePoints, productEraTags, products, puzzleGroupItems, puzzleGroups, puzzleTagDefs, puzzleTags, puzzleTiers, puzzleTopics, puzzles, sql } from '@dozari/db';
 import { ruleToColumns } from '@dozari/db';
 import type { Db } from '@dozari/db';
 import { uuidv7 } from 'uuidv7';
@@ -39,10 +39,25 @@ export interface TopicRow {
 export type TopicInput = { id?: string; slug: string; nameFa: string; sortOrder: number; isActive: boolean };
 export type SaveTopicResult = { ok: true; id: string } | { ok: false; error: 'slug' | 'name' | 'duplicate' | 'not_found' };
 
-/** Tags are short lowercase-ish words; blanks and repeats go, the count is capped. */
-export function cleanTags(tags: readonly string[]): string[] {
-  return [...new Set(tags.map((t) => t.trim().replace(/\s+/g, ' ')).filter((t) => t.length >= 1 && t.length <= 50))].slice(0, PUZZLE_TAGS_MAX);
+/** A defined tag (the vocabulary puzzles may be tagged from) with how many puzzles carry it. */
+export interface TagRow {
+  id: string;
+  slug: string;
+  nameFa: string;
+  sortOrder: number;
+  isActive: boolean;
+  puzzles: number;
 }
+export type TagInput = { id?: string; slug: string; nameFa: string; sortOrder: number; isActive: boolean };
+export type SaveTagResult = { ok: true; id: string } | { ok: false; error: 'slug' | 'name' | 'duplicate' | 'not_found' };
+
+/** Tags are the slugs of defined tags; blanks and repeats go, the count is capped. */
+export function cleanTags(tags: readonly string[]): string[] {
+  return [...new Set(tags.map((t) => t.trim().toLowerCase()).filter((t) => t.length >= 1 && t.length <= 50))].slice(0, PUZZLE_TAGS_MAX);
+}
+
+/** Slug rule shared by topics and tags. */
+export const validSlug = (slug: string): boolean => /^[a-z0-9][a-z0-9-]{0,48}$/.test(slug);
 
 export type TierInput = { id?: string; nameFa: string; sortOrder: number; minLevel: number; maxLevel: number | null };
 export type SaveTierResult = { ok: true; id: string } | { ok: false; error: 'name' | 'level_range' | 'not_found' };
@@ -87,7 +102,10 @@ export interface PuzzleAdmin {
   topics(): Promise<TopicRow[]>;
   saveTopic(topic: TopicInput): Promise<SaveTopicResult>;
   /** Files a puzzle under a topic (null = general) and replaces its tags. */
-  setTopic(puzzleId: string, topicId: string | null, tags: readonly string[]): Promise<'ok' | 'not_found' | 'unknown_topic'>;
+  setTopic(puzzleId: string, topicId: string | null, tags: readonly string[]): Promise<'ok' | 'not_found' | 'unknown_topic' | 'unknown_tag'>;
+  /** The tag vocabulary (admin order) with how many puzzles carry each; puzzles can only be tagged from it. */
+  tags(): Promise<TagRow[]>;
+  saveTag(tag: TagInput): Promise<SaveTagResult>;
   /**
    * Makes up to `count` validated puzzles from the approved catalog and saves them as `draft` (a human polishes the titles, then approves).
    * Each puzzle is made for the player levels of a tier (`opts.tierId`, or every tier in turn) and tagged with it.
@@ -272,7 +290,7 @@ export function createDbPuzzleAdmin(db: Db): PuzzleAdmin {
     async saveTopic(t) {
       const slug = t.slug.trim().toLowerCase();
       const nameFa = t.nameFa.trim();
-      if (!/^[a-z0-9][a-z0-9-]{0,48}$/.test(slug)) return { ok: false, error: 'slug' };
+      if (!validSlug(slug)) return { ok: false, error: 'slug' };
       if (nameFa.length < 2 || nameFa.length > 60) return { ok: false, error: 'name' };
       const [clash] = await db.select({ id: puzzleTopics.id }).from(puzzleTopics).where(eq(puzzleTopics.slug, slug));
       if (clash && clash.id !== t.id) return { ok: false, error: 'duplicate' };
@@ -293,13 +311,46 @@ export function createDbPuzzleAdmin(db: Db): PuzzleAdmin {
         const [t] = await db.select({ id: puzzleTopics.id }).from(puzzleTopics).where(eq(puzzleTopics.id, topicId));
         if (!t) return 'unknown_topic';
       }
+      const clean = cleanTags(tags);
+      if (clean.length > 0) {
+        // Only defined tags: a switched-off one stays on a puzzle that already has it but cannot be added.
+        const defs = await db.select({ slug: puzzleTagDefs.slug, isActive: puzzleTagDefs.isActive }).from(puzzleTagDefs).where(inArray(puzzleTagDefs.slug, clean));
+        const had = new Set((await db.select({ tag: puzzleTags.tag }).from(puzzleTags).where(eq(puzzleTags.puzzleId, puzzleId))).map((x) => x.tag));
+        const ok = new Set(defs.filter((d) => d.isActive || had.has(d.slug)).map((d) => d.slug));
+        if (clean.some((t) => !ok.has(t))) return 'unknown_tag';
+      }
       await db.transaction(async (tx) => {
         await tx.update(puzzles).set({ topicId }).where(eq(puzzles.id, puzzleId));
         await tx.delete(puzzleTags).where(eq(puzzleTags.puzzleId, puzzleId));
-        const clean = cleanTags(tags);
         if (clean.length > 0) await tx.insert(puzzleTags).values(clean.map((tag) => ({ puzzleId, tag })));
       });
       return 'ok';
+    },
+    async tags() {
+      const rows = await db.select().from(puzzleTagDefs).orderBy(asc(puzzleTagDefs.sortOrder), asc(puzzleTagDefs.nameFa));
+      const used = await db.select({ tag: puzzleTags.tag, n: count() }).from(puzzleTags).groupBy(puzzleTags.tag);
+      return rows.map((r) => ({ id: r.id, slug: r.slug, nameFa: r.nameFa, sortOrder: r.sortOrder, isActive: r.isActive, puzzles: Number(used.find((u) => u.tag === r.slug)?.n ?? 0) }));
+    },
+    async saveTag(t) {
+      const slug = t.slug.trim().toLowerCase();
+      const nameFa = t.nameFa.trim();
+      if (!validSlug(slug)) return { ok: false, error: 'slug' };
+      if (nameFa.length < 2 || nameFa.length > 60) return { ok: false, error: 'name' };
+      const [clash] = await db.select({ id: puzzleTagDefs.id }).from(puzzleTagDefs).where(eq(puzzleTagDefs.slug, slug));
+      if (clash && clash.id !== t.id) return { ok: false, error: 'duplicate' };
+      if (t.id) {
+        const [r] = await db.select({ id: puzzleTagDefs.id, slug: puzzleTagDefs.slug }).from(puzzleTagDefs).where(eq(puzzleTagDefs.id, t.id));
+        if (!r) return { ok: false, error: 'not_found' };
+        await db.transaction(async (tx) => {
+          await tx.update(puzzleTagDefs).set({ slug, nameFa, sortOrder: t.sortOrder, isActive: t.isActive }).where(eq(puzzleTagDefs.id, t.id!));
+          // Puzzles carry the slug: renaming it moves them along.
+          if (r.slug !== slug) await tx.update(puzzleTags).set({ tag: slug }).where(eq(puzzleTags.tag, r.slug));
+        });
+        return { ok: true, id: t.id };
+      }
+      const id = uuidv7();
+      await db.insert(puzzleTagDefs).values({ id, slug, nameFa, sortOrder: t.sortOrder, isActive: t.isActive });
+      return { ok: true, id };
     },
     async counts() {
       const rows = await db.select({ status: puzzles.status, n: count() }).from(puzzles).groupBy(puzzles.status);
@@ -325,6 +376,7 @@ export function createDbPuzzleAdmin(db: Db): PuzzleAdmin {
 export function createMemoryPuzzleAdmin(known: Set<string>, catalog: Catalog = []): PuzzleAdmin & { rows: PuzzleAdminRow[] } {
   const rows: PuzzleAdminRow[] = [];
   const topicRows: TopicRow[] = [];
+  const tagRows: TagRow[] = [];
   let tiers: PuzzleTier[] = [];
   return {
     rows,
@@ -388,7 +440,7 @@ export function createMemoryPuzzleAdmin(known: Set<string>, catalog: Catalog = [
     async saveTopic(t) {
       const slug = t.slug.trim().toLowerCase();
       const nameFa = t.nameFa.trim();
-      if (!/^[a-z0-9][a-z0-9-]{0,48}$/.test(slug)) return { ok: false, error: 'slug' };
+      if (!validSlug(slug)) return { ok: false, error: 'slug' };
       if (nameFa.length < 2 || nameFa.length > 60) return { ok: false, error: 'name' };
       if (topicRows.some((x) => x.slug === slug && x.id !== t.id)) return { ok: false, error: 'duplicate' };
       if (t.id) {
@@ -405,9 +457,31 @@ export function createMemoryPuzzleAdmin(known: Set<string>, catalog: Catalog = [
       const r = rows.find((x) => x.id === puzzleId);
       if (!r) return 'not_found';
       if (topicId && !topicRows.some((t) => t.id === topicId)) return 'unknown_topic';
+      const clean = cleanTags(tags);
+      if (clean.some((t) => !tagRows.some((d) => d.slug === t && (d.isActive || r.tags.includes(t))))) return 'unknown_tag';
       r.topicId = topicId;
-      r.tags = cleanTags(tags);
+      r.tags = clean;
       return 'ok';
+    },
+    async tags() {
+      return tagRows.map((t) => ({ ...t, puzzles: rows.filter((r) => r.tags.includes(t.slug)).length }));
+    },
+    async saveTag(t) {
+      const slug = t.slug.trim().toLowerCase();
+      const nameFa = t.nameFa.trim();
+      if (!validSlug(slug)) return { ok: false, error: 'slug' };
+      if (nameFa.length < 2 || nameFa.length > 60) return { ok: false, error: 'name' };
+      if (tagRows.some((x) => x.slug === slug && x.id !== t.id)) return { ok: false, error: 'duplicate' };
+      if (t.id) {
+        const x = tagRows.find((r) => r.id === t.id);
+        if (!x) return { ok: false, error: 'not_found' };
+        for (const r of rows) r.tags = r.tags.map((g) => (g === x.slug ? slug : g));
+        Object.assign(x, { slug, nameFa, sortOrder: t.sortOrder, isActive: t.isActive });
+        return { ok: true, id: x.id };
+      }
+      const id = `00000000-0000-7000-e000-${String(tagRows.length + 1).padStart(12, '0')}`;
+      tagRows.push({ id, slug, nameFa, sortOrder: t.sortOrder, isActive: t.isActive, puzzles: 0 });
+      return { ok: true, id };
     },
     async counts() {
       return { draft: rows.filter((r) => r.status === 'draft').length, approved: rows.filter((r) => r.status === 'approved').length };

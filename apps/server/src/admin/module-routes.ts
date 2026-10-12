@@ -895,6 +895,15 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       void audit('puzzle.topic', out.id, b.data.nameFa);
       return reply.code(b.data.id ? 200 : 201).send({ id: out.id });
     });
+    g.get('/admin/puzzle-tags', async () => ({ tags: await puzzles.tags() }));
+    g.post('/admin/puzzle-tags', async (req, reply) => {
+      const b = z.object({ id: z.string().uuid().optional(), slug: z.string().trim().min(1).max(50), nameFa: z.string().trim().min(2).max(60), sortOrder: z.number().int().min(0).max(1000).default(0), isActive: z.boolean().default(true) }).safeParse(req.body);
+      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await puzzles.saveTag(b.data);
+      if (!out.ok) return reply.code(out.error === 'not_found' ? 404 : 400).send({ error: out.error });
+      void audit('puzzle.tag', out.id, b.data.nameFa);
+      return reply.code(b.data.id ? 200 : 201).send({ id: out.id });
+    });
     g.put('/admin/puzzles/:id/topic', async (req, reply) => {
       const p = idParam.safeParse(req.params);
       const b = z.object({ topicId: z.string().uuid().nullable(), tags: z.array(z.string().max(50)).max(20).default([]) }).safeParse(req.body);

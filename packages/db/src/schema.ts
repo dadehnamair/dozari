@@ -352,7 +352,16 @@ export const triviaQuestions = mysqlTable(
   (table) => ({ byTopic: index('trivia_topic_idx').on(table.topicId, table.status) }),
 );
 
-/** Free-text tags on a puzzle, for admin filters and search. One row per tag. */
+/** The tag vocabulary: admin-defined, puzzles can only carry tags from this list (docs/logic/themed-rounds.md). */
+export const puzzleTagDefs = mysqlTable('puzzle_tag_defs', {
+  id: id(),
+  slug: varchar('slug', { length: 50 }).notNull().unique(),
+  nameFa: varchar('name_fa', { length: 60 }).notNull(),
+  sortOrder: int('sort_order').notNull().default(0),
+  isActive: boolean('is_active').notNull().default(true),
+});
+
+/** Tags on a puzzle, for admin filters and the AI studio. One row per tag; `tag` is the `slug` of a `puzzle_tag_defs` row. */
 export const puzzleTags = mysqlTable(
   'puzzle_tags',
   {
