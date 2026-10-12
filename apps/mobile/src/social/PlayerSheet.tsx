@@ -26,6 +26,9 @@ import { useHardwareBack } from '../nav/useHardwareBack';
 import { BirthdayBadge, PartyBanner } from './BirthdayBadge';
 import { ShowcaseStrip } from '../keepsake/ShowcaseStrip';
 import { GiftSheet } from '../shop/GiftSheet';
+import { setLookGender } from '../theme/look';
+import { emitProfileChanged } from './profileEvents';
+import { ProfileSheet } from './ProfileSheet';
 
 const INK = '#3A2418';
 
@@ -38,6 +41,8 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
   const [asking, setAsking] = useState(false);
   const [send, setSend] = useState<'gift' | 'loan' | null>(null);
   const [reporting, setReporting] = useState(false);
+  /** The player opened their own card and chose «edit»: the full profile editor opens on top. */
+  const [editing, setEditing] = useState(false);
   const [giftOpen, setGiftOpen] = useState(false);
   const { ask, dialog } = useConfirm();
   const { gate, intercept } = useGuardianGate();
@@ -127,6 +132,8 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
               </View>
             ) : null}
 
+            {p.isMe ? <CandyButton label={fa.player.editMine} color={colors.candy.yellow} onPress={() => setEditing(true)} /> : null}
+
             {p.isMe ? null : (
               <Pressable onPress={() => setReporting(true)} accessibilityRole="button" hitSlop={8}><Text style={styles.reportLink}>{fa.feedback.report.open}</Text></Pressable>
             )}
@@ -157,6 +164,7 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
       {dialog}
       {gate}
       {giftOpen && p ? <GiftSheet friendId={playerId} friendName={p.nickname} onClose={() => setGiftOpen(false)} /> : null}
+      {editing ? <ProfileSheet start="edit" onGender={setLookGender} onClose={() => (setEditing(false), load(), emitProfileChanged())} /> : null}
       {reporting ? <ReportDialog target={{ kind: 'user', userId: playerId }} onClose={() => setReporting(false)} /> : null}
     </Pressable>
   );

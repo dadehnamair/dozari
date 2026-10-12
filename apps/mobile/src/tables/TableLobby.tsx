@@ -15,7 +15,7 @@ const t = fa.tables.lobby;
  * Who plays whom at a table: two team cards face to face with a VS coin between them. The caller's team is blue and first,
  * the rival team pink; empty seats say who is awaited, and in a 2v2 an empty seat of the other team is a button to sit there.
  */
-export function TableLobby({ table, dark = false, onSit, onKick, onPlayer }: { table: TableView; /** The adult look: dark team cards in a gold frame with light text. */ dark?: boolean; onSit: (side: 0 | 1) => void; onKick: (userId: string) => void; /** Tapping a player's face or name opens their profile. */ onPlayer?: (userId: string) => void }) {
+export function TableLobby({ table, dark = false, onSit, onKick, onPlayer }: { table: TableView; /** The adult look: dark team cards in a gold frame with light text. */ dark?: boolean; onSit: (side: 0 | 1) => void; onKick: (userId: string) => void; /** Tapping a player's face or name opens their profile (yours too, with an edit button). */ onPlayer?: (userId: string) => void }) {
   const me = table.players.find((p) => p.isYou);
   const mySide = me?.side ?? 0;
   const perTeam = table.seats / 2;
@@ -53,7 +53,7 @@ export function TableLobby({ table, dark = false, onSit, onKick, onPlayer }: { t
                 }
                 return (
                   <View key={p.id} style={[styles.seat, p.isYou ? styles.seatYou : null]}>
-                    <Pressable onPress={onPlayer && !p.isYou ? () => onPlayer(p.id) : undefined} disabled={!onPlayer || p.isYou} accessibilityRole="button" accessibilityLabel={p.nickname} style={styles.who}>
+                    <Pressable onPress={onPlayer ? () => onPlayer(p.id) : undefined} disabled={!onPlayer} accessibilityRole="button" accessibilityLabel={p.nickname} style={styles.who}>
                       <View>
                         <Avatar avatar={avatarOf(p.avatarKey)} size={46} />
                         {p.isHost ? <View style={styles.crown}><Item icon="crown" /></View> : null}
