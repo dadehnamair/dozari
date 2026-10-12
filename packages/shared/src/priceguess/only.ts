@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { priceAt } from '../puzzle/price.js';
 import type { CatalogProduct } from '../puzzle/types.js';
 import type { Rng } from '../game/rng.js';
+import { buildPriceOptions } from './options.js';
 
 /**
  * Price-only mode (docs/logic/price-guess-round.md §Price-only mode): a short game made only of price questions, no puzzle.
@@ -12,6 +13,8 @@ export interface PriceOnlyRound {
   year: number;
   /** The real nominal price. Never sent to clients before that round is answered. */
   actualRials: bigint;
+  /** The four choices (the real price and three decoys), ascending. */
+  options?: readonly bigint[];
 }
 
 /** Years in which the product has a usable price, oldest first. */
@@ -29,7 +32,8 @@ export function selectPriceOnlyRounds(catalog: readonly CatalogProduct[], count:
     const product = left.splice(Math.floor(rng() * left.length), 1)[0]!;
     const years = pricedYears(product);
     const year = years[Math.floor(rng() * years.length)]!;
-    rounds.push({ productId: product.id, year, actualRials: priceAt(product, year)! });
+    const actualRials = priceAt(product, year)!;
+    rounds.push({ productId: product.id, year, actualRials, options: buildPriceOptions(actualRials, rng) });
   }
   return rounds;
 }
@@ -44,6 +48,8 @@ export const priceOnlyRoundSchema = z.object({
   iconKey: z.string().nullable().default(null),
   /** Solar Hijri year the price is asked for. */
   year: z.number().int(),
+  /** The four choices in rials (decimal strings, ascending); absent = a free numeric guess. */
+  options: z.array(rialsString).optional(),
 });
 
 export const priceOnlyResultSchema = z.object({

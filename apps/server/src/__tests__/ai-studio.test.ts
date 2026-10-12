@@ -7,6 +7,7 @@ import type { FetchLike } from '../ai/providers.js';
 import type { ProductAdmin } from '../admin/products.js';
 import type { LessonStore } from '../lessons/service.js';
 import type { PuzzleAdmin } from '../puzzles/admin.js';
+import type { TriviaStore } from '../trivia/store.js';
 import { createMemoryAuditLog } from '../admin/audit.js';
 
 const TOKEN = 'secret-admin-token';
@@ -280,5 +281,109 @@ describe('no repeats of what the catalog already has', () => {
     expect(repeatsExisting(mine, [{ groups: [four('b'), four('z')] }])).toBe(true); // same group
     expect(repeatsExisting(mine, [{ groups: [[...four('a').slice(0, 2), ...four('b').slice(0, 2)], [...four('c').slice(0, 2), ...four('d').slice(0, 2)], ['q1', 'q2', 'q3', 'q4'], four('a').slice(2)] }])).toBe(false); // 8 shared
     expect(repeatsExisting(mine, [{ groups: [[...four('a').slice(0, 3), 'u1'], [...four('b').slice(0, 3), 'u2'], [...four('c').slice(0, 3), 'u3'], [...four('d').slice(0, 3), 'u4']] }])).toBe(true); // 12 shared
+  });
+});
+
+describe('AI studio: puzzles by topic and tag, and trivia questions', () => {
+  const TOPIC = '0190a000-0000-7000-8000-0000000000aa';
+  const pool = Array.from({ length: 20 }, (_, i) => ({ id: `id${i}`, slug: `s${i}`, nameFa: `ن${i}` }));
+  const topics = [{ id: TOPIC, slug: 'food', nameFa: 'خوراکی', sortOrder: 1, isActive: true, puzzles: 0 }, { id: 'off', slug: 'off', nameFa: 'خاموش', sortOrder: 2, isActive: false, puzzles: 0 }];
+  const tags = [{ id: 't1', slug: 'nostalgia', nameFa: 'نوستالژی', sortOrder: 1, isActive: true, puzzles: 0 }, { id: 't2', slug: 'old', nameFa: 'قدیمی', sortOrder: 2, isActive: false, puzzles: 0 }];
+  const never: FetchLike = async () => { throw new Error('model must not be called'); };
+
+  function puzzleStudio(content: string, extra: { filed?: unknown[][] } = {}) {
+    const seen: { prompt?: string } = {};
+    const products = { details: async () => Object.fromEntries(pool.map((p) => [p.id, { isActive: true, ageTrack: 'adult', category: 'food' }])) } as unknown as ProductAdmin;
+    const puzzles = {
+      list: async () => [],
+      tiers: async () => [],
+      topics: async () => topics,
+      tags: async () => tags,
+      create: async () => ({ ok: true as const, id: 'z1' }),
+      setTopic: async (...a: unknown[]) => (extra.filed?.push(a), 'ok' as const),
+    } as unknown as PuzzleAdmin;
+    const fetchImpl: FetchLike = async (_u, init) => {
+      seen.prompt = (JSON.parse(init.body ?? '{}') as { messages: { content: string }[] }).messages[1]?.content;
+      return answer(content)(_u, init);
+    };
+    return { seen, studio: new AiStudio({ env: { AI_DEEPSEEK_API_KEY: 'k' }, products, puzzles, catalog: async () => pool as never, fetch: fetchImpl }) };
+  }
+  const group = (level: number) => ({ level, titleFa: `گروه ${level}`, explanationFa: 'همه یک چیزند', items: [0, 1, 2, 3].map((k) => level * 4 + k + 1) });
+  const puzzleAnswer = JSON.stringify({ puzzles: [{ groups: [0, 1, 2, 3].map(group) }] });
+
+  it('pins the prompt to the topic and the chosen tags, and passes both back for saving', async () => {
+    const { studio, seen } = puzzleStudio(puzzleAnswer);
+    const out = await studio.generate({ kind: 'puzzle_groups', provider: 'deepseek', count: 1, ageTrack: 'adult', style: 'witty', topicId: TOPIC, tags: ['nostalgia'] } as never);
+    expect(seen.prompt).toContain('TOPIC: «خوراکی»');
+    expect(seen.prompt).toContain('نوستالژی');
+    expect(out).toMatchObject({ topicId: TOPIC, tags: ['nostalgia'] });
+  });
+
+  it('refuses an unknown or switched-off topic and a tag that is not defined, before calling the model', async () => {
+    const { studio } = puzzleStudio('{}');
+    const studioNever = new AiStudio({ env: { AI_DEEPSEEK_API_KEY: 'k' }, products: { details: async () => Object.fromEntries(pool.map((p) => [p.id, { isActive: true, ageTrack: 'adult', category: 'food' }])) } as unknown as ProductAdmin, puzzles: { list: async () => [], tiers: async () => [], topics: async () => topics, tags: async () => tags } as unknown as PuzzleAdmin, catalog: async () => pool as never, fetch: never });
+    void studio;
+    const base = { kind: 'puzzle_groups', provider: 'deepseek', count: 1, ageTrack: 'adult', style: 'witty' };
+    await expect(studioNever.generate({ ...base, topicId: 'off' } as never)).rejects.toMatchObject({ code: 'ai_not_found' });
+    await expect(studioNever.generate({ ...base, topicId: TOPIC, tags: ['typed-freely'] } as never)).rejects.toMatchObject({ code: 'ai_not_found' });
+    await expect(studioNever.generate({ ...base, topicId: TOPIC, tags: ['old'] } as never)).rejects.toMatchObject({ code: 'ai_not_found' }); // switched off
+  });
+
+  it('files the saved puzzle under the topic with its tags', async () => {
+    const filed: unknown[][] = [];
+    const { studio } = puzzleStudio('{}', { filed });
+    const mk = (l: number) => ({ level: l, titleFa: `گروه ${l}`, explanationFa: 'همه یک چیزند', items: [0, 1, 2, 3].map((k) => ({ productId: `p${l * 4 + k}` })) });
+    const out = await studio.save({ kind: 'puzzle_groups', topicId: TOPIC, tags: ['nostalgia'], drafts: [{ ageTrack: 'adult', groups: [0, 1, 2, 3].map(mk) }] } as never);
+    expect(out).toEqual([{ label: 'پازل 1', ok: true }]);
+    expect(filed).toEqual([['z1', TOPIC, ['nostalgia']]]);
+  });
+
+  describe('trivia', () => {
+    const q = (text: string, correct = 0) => ({ textFa: text, options: ['الف', 'ب', 'پ', 'ت'], correctIndex: correct, explanationFa: 'چون این‌طور است.' });
+
+    it('validates questions, drops repeats and bad ones, and re-draws where the right answer sits without losing it', () => {
+      const answerText = JSON.stringify({ questions: [q('پایتخت ایران کجاست؟', 1), q('پایتخت ایران کجاست؟'), q('کم'), { ...q('گزینه‌های تکراری دارد؟'), options: ['الف', 'الف', 'پ', 'ت'] }, q('پرتقال چه رنگی است؟', 3), q('قبلاً پرسیده شده؟')] });
+      const parsed = parseDrafts('trivia', answerText, { existingQuestions: ['قبلاً پرسیده شده؟'] }, 'teen', () => 0.99);
+      expect(parsed?.dropped).toBe(4);
+      const drafts = parsed!.drafts as { textFa: string; options: string[]; correctIndex: number; ageTrack: string }[];
+      expect(drafts.map((d) => d.textFa)).toEqual(['پایتخت ایران کجاست؟', 'پرتقال چه رنگی است؟']);
+      expect(drafts.every((d) => d.ageTrack === 'teen')).toBe(true);
+      // the shuffle keeps the right choice attached to its text
+      expect(drafts[0]!.options[drafts[0]!.correctIndex]).toBe('ب');
+      expect(drafts[1]!.options[drafts[1]!.correctIndex]).toBe('ت');
+      expect(new Set(drafts[0]!.options).size).toBe(4);
+    });
+
+    it('asks about the topic, sends its existing questions, and saves the drafts under it', async () => {
+      const created: unknown[][] = [];
+      const store = {
+        list: async () => [{ textFa: 'سؤال قبلی؟' }],
+        create: async (...a: unknown[]) => (created.push(a), { ok: true as const, id: 'q1' }),
+      } as unknown as TriviaStore;
+      const seen: { prompt?: string } = {};
+      const fetchImpl: FetchLike = async (u, init) => {
+        seen.prompt = (JSON.parse(init.body ?? '{}') as { messages: { content: string }[] }).messages[1]?.content;
+        return answer(JSON.stringify({ questions: [q('سؤال تازه چیست؟')] }))(u, init);
+      };
+      const puzzles = { topics: async () => topics, tags: async () => tags } as unknown as PuzzleAdmin;
+      const studio = new AiStudio({ env: { AI_DEEPSEEK_API_KEY: 'k' }, puzzles, trivia: store, fetch: fetchImpl });
+      const out = await studio.generate({ kind: 'trivia', provider: 'deepseek', topicId: TOPIC, count: 3, ageTrack: 'adult', difficulty: 'easy' } as never);
+      expect(seen.prompt).toContain('Topic: «خوراکی»');
+      expect(seen.prompt).toContain('سؤال قبلی؟');
+      expect(seen.prompt).toContain('EASY');
+      expect(out.drafts).toHaveLength(1);
+      const saved = await studio.save({ kind: 'trivia', topicId: TOPIC, drafts: out.drafts as never });
+      expect(saved).toEqual([{ label: 'سؤال تازه چیست؟', ok: true }]);
+      expect(created[0]![1]).toBe('draft');
+      expect(created[0]![0]).toMatchObject({ topicId: TOPIC, textFa: 'سؤال تازه چیست؟' });
+      await expect(studio.generate({ kind: 'trivia', provider: 'deepseek', topicId: 'off', count: 1, ageTrack: 'adult', difficulty: 'easy' } as never)).rejects.toMatchObject({ code: 'ai_not_found' });
+    });
+
+    it('is a kind the generate schema knows, and is listed by describe() only when this server can save it', () => {
+      expect(generateRequestSchema.safeParse({ kind: 'trivia', provider: 'x', topicId: TOPIC, count: 5 }).success).toBe(true);
+      expect(generateRequestSchema.safeParse({ kind: 'trivia', provider: 'x', count: 5 }).success).toBe(false); // a topic is required
+      expect(generateRequestSchema.safeParse({ kind: 'trivia', provider: 'x', topicId: TOPIC, count: 99 }).success).toBe(false);
+      expect(new AiStudio({ env: {} }).describe().kinds).toMatchObject({ trivia: false });
+    });
   });
 });

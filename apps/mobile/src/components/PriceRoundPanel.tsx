@@ -8,6 +8,7 @@ import { priceText, questionText, totalPoints } from '../solo/priceRound';
 import { colors } from '../theme/colors';
 import { PriceFeedbackLink } from '../feedback/SuggestDialog';
 import { CandyButton } from './CandyButton';
+import { PriceChoices } from './PriceChoices';
 
 /** Bonus round after the puzzle: one hidden price per group, scored on the 5-tier staircase. */
 export function PriceRoundPanel({ sessionId, onDone }: { sessionId: string; onDone: () => void }) {
@@ -42,9 +43,9 @@ export function PriceRoundPanel({ sessionId, onDone }: { sessionId: string; onDo
   const round = data.rounds[index];
   const finished = results.length >= total && !reviewing;
 
-  const submit = async () => {
+  const submit = async (picked?: bigint) => {
     if (!round || busy) return;
-    const rials = parseTomanInput(text);
+    const rials = picked ?? parseTomanInput(text);
     if (rials === null) {
       setInvalid(true);
       return;
@@ -94,6 +95,8 @@ export function PriceRoundPanel({ sessionId, onDone }: { sessionId: string; onDo
           {round ? <PriceFeedbackLink product={{ id: round.productId, nameFa: round.nameFa, year: round.year }} /> : null}
           <CandyButton label={results.length >= total ? p.finish : p.next} color={colors.candy.lime} onPress={() => setReviewing(false)} />
         </>
+      ) : round.options && round.options.length > 0 ? (
+        <PriceChoices options={round.options} onPick={(rials) => void submit(rials)} disabled={busy} />
       ) : (
         <>
           <View style={styles.inputRow}>

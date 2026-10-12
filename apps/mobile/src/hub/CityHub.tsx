@@ -19,6 +19,8 @@ import { TEXT_RIGHT } from '../theme/direction';
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const MAP_W = 318;
 const MAP_H = 714;
+/** The empty strip above the first building is cut off so the whole town (down to «مکتب‌خانه») stays on screen, clear of the nav bar. */
+const MAP_TRIM = 64;
 const INK = '#4A2E1E';
 const ROAD = 'M159 3000 V714 C159 640 60 630 70 560 C80 500 244 486 244 420 C244 360 88 372 88 300 C88 250 210 262 222 230';
 
@@ -32,7 +34,11 @@ export function CityHub({ onClose, onEnter, features, dailyReady }: { onClose: (
   useHardwareBack(onClose);
   /** Adult look: the town at night (docs/design/adult/Dozari Adult - Login Home, «Adult Hub»). */
   const adult = useTheme() === 'adult';
-  const { width, height } = useWindowDimensions();
+  const win = useWindowDimensions();
+  /** The hub's real box: smaller than the window when a bar or inset covers part of it, so the last building is not cut off. */
+  const [box, setBox] = useState<{ width: number; height: number } | null>(null);
+  const width = box?.width ?? win.width;
+  const height = box?.height ?? win.height;
   const [sel, setSel] = useState<HubBuilding | null>(null);
   const slide = useRef(new Animated.Value(0)).current; // 0 = drawer hidden below the screen, 1 = raised
   const reduce = usePrefs().reduceMotion;
@@ -49,26 +55,26 @@ export function CityHub({ onClose, onEnter, features, dailyReady }: { onClose: (
   }, [reduce, slide]);
   const animated = !reduce; // the cloud drifts and the palms sway unless «حرکت کمتر» is on
   // The whole town fits the screen (nothing scrolls): scale by whichever of width / height is tighter.
-  const k = Math.min(Math.min(width, 520) / MAP_W, height / MAP_H);
+  const k = Math.min(Math.min(width, 520) / MAP_W, height / (MAP_H - MAP_TRIM));
   const mapW = MAP_W * k;
   // The painted background reaches the screen's edges: the SVG is as wide / tall as the screen and its viewBox shows the map in the middle.
-  const svgH = Math.max(height, MAP_H * k);
+  const svgH = Math.max(height + MAP_TRIM * k, MAP_H * k);
   const sideK = (width - mapW) / 2 / k;
   const t = fa.hub;
 
   return (
-    <View style={styles.root}>
+    <View style={styles.root} onLayout={(e) => { const { width: bw, height: bh } = e.nativeEvent.layout; setBox((o) => (o && o.width === bw && o.height === bh ? o : { width: bw, height: bh })); }}>
       {adult ? (
         <View style={StyleSheet.absoluteFill}><GradientFill from="#0A0712" to="#2A1A10" mid={{ at: 0.35, color: '#1E140E' }} /></View>
       ) : (
-        <View style={[styles.sky, { height: 190 * k }]}>
+        <View style={[styles.sky, { height: (190 - MAP_TRIM) * k }]}>
           <View style={[styles.skyBand, { backgroundColor: '#5ECBC6', flex: 1 }]} />
           <View style={[styles.skyBand, { backgroundColor: '#8FDCCF', flex: 1 }]} />
           <View style={[styles.skyBand, { backgroundColor: '#B9EAD8', flex: 1 }]} />
         </View>
       )}
       <View style={styles.mapBox}>
-        <View style={{ width: mapW, height: MAP_H * k }}>
+        <View style={{ width: mapW, height: MAP_H * k, marginTop: -MAP_TRIM * k }}>
           <Svg width={width} height={svgH} viewBox={`${-sideK} 0 ${width / k} ${svgH / k}`} style={{ position: 'absolute', top: 0, left: -(width - mapW) / 2 }}>
             {adult ? (
               <Defs>
@@ -81,9 +87,9 @@ export function CityHub({ onClose, onEnter, features, dailyReady }: { onClose: (
             <G stroke={adult ? '#0A0604' : INK} strokeWidth={2.4} strokeLinejoin="round" strokeLinecap="round">
               {adult ? (
                 <>
-                  <Circle cx={60} cy={130} r={20} fill="#FFE9A8" stroke="none" />
-                  <Circle cx={70} cy={124} r={18} fill="#0E0A10" stroke="none" />
-                  {[[140, 120, 1.6], [200, 140, 1.2], [290, 118, 1.6], [110, 170, 1.1], [260, 176, 1.3], [30, 190, 1.2]].map(([cx, cy, r]) => <Circle key={`${cx}-${cy}`} cx={cx} cy={cy} r={r} fill="#E8B64A" stroke="none" />)}
+                  <Circle cx={60} cy={130 + MAP_TRIM} r={20} fill="#FFE9A8" stroke="none" />
+                  <Circle cx={70} cy={124 + MAP_TRIM} r={18} fill="#0E0A10" stroke="none" />
+                  {[[140, 120, 1.6], [200, 140, 1.2], [290, 118, 1.6], [110, 170, 1.1], [260, 176, 1.3], [30, 190, 1.2]].map(([cx, cy, r]) => <Circle key={`${cx}-${cy}`} cx={cx} cy={(cy ?? 0) + MAP_TRIM} r={r} fill="#E8B64A" stroke="none" />)}
                 </>
               ) : null}
               {adult ? null : (

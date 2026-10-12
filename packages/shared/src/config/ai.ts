@@ -1,10 +1,10 @@
 /** Limits of the admin «AI studio» (docs/logic/ai-studio.md). Content only; no player-facing number lives here. */
-export const AI_KINDS = ['products', 'kid_lessons', 'puzzle_titles', 'puzzle_groups', 'blog'] as const;
+export const AI_KINDS = ['products', 'kid_lessons', 'puzzle_titles', 'puzzle_groups', 'blog', 'trivia'] as const;
 export type AiKind = (typeof AI_KINDS)[number];
 
 export const AI_LIMITS = {
   /** Most drafts one request may ask for, per kind. */
-  maxCount: { products: 20, kid_lessons: 20, puzzle_titles: 1, puzzle_groups: 3, blog: 3 } as Record<AiKind, number>,
+  maxCount: { products: 20, kid_lessons: 20, puzzle_titles: 1, puzzle_groups: 3, blog: 3, trivia: 20 } as Record<AiKind, number>,
   /** Generations (provider calls) per hour for the whole server; the provider bills us for each. */
   maxCallsPerHour: 30,
   /** Seconds before a provider call is given up. */
@@ -14,8 +14,10 @@ export const AI_LIMITS = {
   /** Existing catalog product names sent to the model as «do not repeat» (products), and existing puzzles it must not repeat (puzzle_groups). */
   maxExistingNames: 3000,
   maxExistingPuzzles: 150,
+  /** Question texts of the chosen topic sent to the model as «do not repeat» (trivia). */
+  maxExistingQuestions: 150,
   /** Output token ceiling per kind. */
-  maxTokens: { products: 8000, kid_lessons: 5000, puzzle_titles: 3000, puzzle_groups: 8000, blog: 10000 } as Record<AiKind, number>,
+  maxTokens: { products: 8000, kid_lessons: 5000, puzzle_titles: 3000, puzzle_groups: 8000, blog: 10000, trivia: 6000 } as Record<AiKind, number>,
 } as const;
 
 /** Products offered to the model when it builds whole puzzles (names only; the rest of the catalog is left out to bound the prompt). */

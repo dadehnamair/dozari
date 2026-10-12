@@ -117,6 +117,7 @@ export class PriceOnlyService {
         unitFa: s.items[r.productId]?.unitFa ?? null,
         iconKey: s.items[r.productId]?.iconKey ?? null,
         year: r.year,
+        ...(r.options ? { options: r.options.map((o) => o.toString()) } : {}),
       })),
       // Only answered rounds carry their real price.
       results: [...s.results].sort((a, b) => a.index - b.index),

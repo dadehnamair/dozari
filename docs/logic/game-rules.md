@@ -58,6 +58,8 @@ membership and texts never leave the server.
 
 ## Competitive: shared board, alternating turns (Decision D8 — **accepted**, confirmed 2026-09-27)
 
+> **Update D226 (2026-10-12):** with setting `match.separate_boards` on (the default) each side plays its own board and the rival only sees «found N of 4»; first to find all four groups wins the board. See `themed-rounds.md` §Slice 2. The rules below describe the shared-board mode (setting off).
+
 One board, both sides play it in turns.
 
 ### Turn

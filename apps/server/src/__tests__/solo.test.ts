@@ -184,7 +184,9 @@ describe('solo price-guess round', () => {
     expect(body.rounds.every((r) => r.year === 1380 && ids(r.level).includes(r.productId))).toBe(true);
     expect(body.results).toEqual([]);
     expect(res.body).not.toContain('actualRials');
-    expect(res.body).not.toContain('5000');
+    // The real price is one of four choices and nothing else in the payload.
+    expect(res.body.replace(/"options":\[[^\]]*\]/g, '"options":[]')).not.toContain('5000');
+    expect((body.rounds as unknown as { options: string[] }[]).every((r) => r.options.length === 4 && r.options.includes('5000'))).toBe(true);
   });
 
   it('scores a guess, reveals the price, and keeps the first answer', async () => {

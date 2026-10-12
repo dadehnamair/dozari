@@ -97,6 +97,7 @@ const PATH_RULES: readonly (readonly [prefix: string, rule: BooleanTrackRule])[]
   ['/ads', 'rewardedAds'],
   ['/daily-puzzle', 'dailyPuzzle'],
   ['/price-only', 'priceOnly'],
+  ['/trivia', 'priceOnly'],
   ['/lookup', 'lookup'],
 ];
 

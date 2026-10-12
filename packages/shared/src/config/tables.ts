@@ -2,7 +2,7 @@
 
 /** A table plays this many 16-card boards («دور»), 1 to 3. The same count applies to 1v1 and 2v2. */
 export const TABLE_ROUNDS_MIN = 1;
-export const TABLE_ROUNDS_MAX = 3;
+export const TABLE_ROUNDS_MAX = 5;
 /** Smallest entry fee (coins per player) is this much per round: more rounds, higher minimum. */
 export const TABLE_ENTRY_PER_ROUND = 10;
 /** The host may ask for more than the minimum, up to this. */

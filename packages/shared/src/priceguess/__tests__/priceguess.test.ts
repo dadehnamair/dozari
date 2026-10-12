@@ -79,7 +79,10 @@ describe('selectRounds', () => {
     const g = [{ level: 1 as const, productIds: ['x', 'y'], ruleYear: 1375 }];
     const c = [product('x', { 1380: 9 }), product('y', { 1375: 77 })];
     const rounds = selectRounds(g, c, mulberry32(1));
-    expect(rounds).toEqual([{ level: 1, productId: 'y', year: 1375, actualRials: 77n }]);
+    expect(rounds).toHaveLength(1);
+    expect(rounds[0]).toMatchObject({ level: 1, productId: 'y', year: 1375, actualRials: 77n });
+    expect(rounds[0]!.options).toHaveLength(4);
+    expect(rounds[0]!.options).toContain(77n);
   });
 
   it('is reproducible from the seed and skips groups with no usable item', () => {

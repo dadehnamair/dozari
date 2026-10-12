@@ -35,8 +35,14 @@ export function createKavenegarClient(apiKey: string, template: string, opts: { 
   };
 }
 
-/** Default text; `{code}` is replaced. Override with `IRNOTI_MESSAGE` (e.g. to match a provider-approved wording). */
-export const DEFAULT_SMS_MESSAGE = 'کد ورود شما به دوزاری : {code}';
+/** Web origin of the PWA; the WebOTP API only reads an SMS whose last line is `@<this domain> #<code>`. */
+export const SMS_WEBOTP_DOMAIN = 'mrdozari.ir';
+
+/**
+ * Default text; `{code}` is replaced. Override with `IRNOTI_MESSAGE` (e.g. to match a provider-approved wording).
+ * The first line is what iOS/Android keyboards suggest from; the last line is the WebOTP format (Chrome on Android fills the PWA field).
+ */
+export const DEFAULT_SMS_MESSAGE = `کد ورود شما به دوزاری : {code}\n\n@${SMS_WEBOTP_DOMAIN} #{code}`;
 
 /** Default sender line of the owner's irnoti account (override with `IRNOTI_LINE_ID`). */
 export const DEFAULT_IRNOTI_LINE_ID = '2';

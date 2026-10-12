@@ -72,7 +72,10 @@ describe('duel price-guess round', () => {
     expect(during.priceRound?.current).not.toBeNull();
     expect(last('A', 'match:ended')).toBeUndefined();
     expect(sent.some((s) => s.event === 'match:event' && JSON.stringify(s.payload).includes('"finished"'))).toBe(false);
-    expect(JSON.stringify(sent)).not.toContain(SECRET.toString());
+    // The real price is only ever one of the four choices; it is never sent on its own (no actualRials before the reveal).
+    expect(JSON.stringify(sent).replace(/"options":\[[^\]]*\]/g, '"options":[]')).not.toContain(SECRET.toString());
+    expect(during.priceRound?.current?.options).toHaveLength(4);
+    expect(during.priceRound?.current?.options).toContain(SECRET.toString());
 
     for (let round = 0; round < 4; round++) {
       expect(svc.submitPrice(first, 8_000_000n)).toEqual({ ok: true });

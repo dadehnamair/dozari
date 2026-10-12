@@ -3,3 +3,4 @@ export * from './scoring.js';
 export * from './competitive.js';
 export * from './wire.js';
 export * from './only.js';
+export * from './options.js';

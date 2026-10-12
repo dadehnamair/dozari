@@ -56,7 +56,7 @@ export function characterFor(key: string): CharacterId {
 export const myCharacter = (avatarKey: string | undefined, gender?: Gender | null): CharacterId => (avatarKey ? pickedCharacter(avatarKey) : undefined) ?? heroFor(gender);
 
 /** Groups one side found itself (revealed groups count for nobody). */
-export const groupsBy = (view: MatchView, side: 0 | 1): number => view.solved.filter((g) => g.by === side).length;
+export const groupsBy = (view: MatchView, side: 0 | 1): number => (view.found ? view.found[side] : view.solved.filter((g) => g.by === side).length);
 
 /** Width of the player's (blue) half of the tug bar, in percent: 50 at a tie, 12.5 per group of lead. */
 export const tugPercent = (mine: number, theirs: number): number => Math.min(100, Math.max(0, 50 + (mine - theirs) * 12.5));

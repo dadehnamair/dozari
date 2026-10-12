@@ -1,6 +1,6 @@
 import { io } from 'socket.io-client';
 import type { Socket } from 'socket.io-client';
-import { ClientEvent, ServerEvent, ackSchema, chatMessageSchema, matchEndedSchema, matchEventSchema, matchFoundSchema, matchViewSchema, queueStatusSchema } from '@dozari/shared';
+import { ClientEvent, ServerEvent, ackSchema, chatMessageSchema, draftViewSchema, matchEndedSchema, matchEventSchema, matchFoundSchema, matchViewSchema, queueStatusSchema } from '@dozari/shared';
 import type { Ack } from '@dozari/shared';
 import { session } from '../auth';
 import { BASE_URL, callJson } from '../net/http';
@@ -13,7 +13,9 @@ export interface DuelConnection {
   resume(): Promise<Ack>;
   submit(itemIds: string[]): Promise<Ack>;
   /** A power-up on the player's own turn; the magnifier's cards arrive as a `power` event for this player only. */
-  power(kind: 'magnifier' | 'freeze'): Promise<Ack>;
+  power(kind: 'magnifier' | 'freeze' | 'shuffle' | 'reveal'): Promise<Ack>;
+  /** Names the topic of the round in the pre-match draft (a topic id, or `random`). */
+  pickTopic(topic: string): Promise<Ack>;
   /** 2v2: show the captain the cards the player has picked (replaces the previous proposal). */
   propose(itemIds: string[]): Promise<Ack>;
   leave(): Promise<Ack>;
@@ -65,6 +67,10 @@ export async function connectDuel(dispatch: (a: DuelAction) => void): Promise<Du
       dispatch({ t: 'found', found: f.data });
     }
   });
+  socket.on(ServerEvent.draftState, (p: unknown) => {
+    const d = draftViewSchema.safeParse(p);
+    if (d.success) dispatch({ t: 'draft', draft: d.data });
+  });
   socket.on(ServerEvent.matchState, (p: unknown) => {
     const v = matchViewSchema.safeParse(p);
     if (v.success) {
@@ -109,6 +115,7 @@ export async function connectDuel(dispatch: (a: DuelAction) => void): Promise<Du
       return ask(socket, ClientEvent.matchSubmit, { itemIds });
     },
     power: (kind) => ask(socket, ClientEvent.matchPower, { kind }),
+    pickTopic: (topic) => ask(socket, ClientEvent.draftPick, { topic }),
     propose: (itemIds) => ask(socket, ClientEvent.matchPropose, { itemIds }),
     leave: () => ask(socket, ClientEvent.matchLeave),
     priceGuess: (guessRials) => ask(socket, ClientEvent.priceSubmit, { guessRials: guessRials.toString() }),

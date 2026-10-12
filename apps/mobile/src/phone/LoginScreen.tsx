@@ -14,6 +14,7 @@ import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
 import { safeTop } from '../theme/safeArea';
 import { useTheme } from '../theme/themeStore';
+import { listenForSmsCode } from './webOtp';
 import { OTP_LENGTH, PHONE_MAX_DIGITS, onlyDigits, phoneFromInput, resendLeft } from './loginInput';
 import { loginWithCode, requestLoginCode } from './loginApi';
 import { TEXT_LEFT, TEXT_RIGHT } from '../theme/direction';
@@ -65,6 +66,11 @@ export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { sig
     return () => clearInterval(id);
   }, [step]);
   const left = resendLeft(sentAt, now);
+  // PWA on Android Chrome: the browser reads the SMS (last line `@domain #code`) and fills the field.
+  useEffect(() => {
+    if (step !== 'otp' || Platform.OS !== 'web') return;
+    return listenForSmsCode((c) => onCodeRef.current(c));
+  }, [step]);
 
   const send = () => {
     if (busy) return;
@@ -108,6 +114,8 @@ export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { sig
     setCode(d);
     if (d.length === OTP_LENGTH) enter(d);
   };
+  const onCodeRef = useRef(onCode);
+  onCodeRef.current = onCode;
 
   return (
     <View style={styles.root}>
@@ -162,7 +170,7 @@ export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { sig
                   <Text style={[styles.boxText, adult ? ad.fieldText : null]}>{code[i] ? toPersianDigits(code[i]!) : ''}</Text>
                 </View>
               ))}
-              <TextInput ref={codeInput} value={toPersianDigits(code)} onChangeText={onCode} keyboardType="number-pad" maxLength={OTP_LENGTH + 2} autoFocus style={styles.hiddenInput} caretHidden />
+              <TextInput ref={codeInput} value={toPersianDigits(code)} onChangeText={onCode} keyboardType="number-pad" textContentType="oneTimeCode" autoComplete="sms-otp" maxLength={OTP_LENGTH + 2} autoFocus style={styles.hiddenInput} caretHidden />
             </Pressable>
             <View style={styles.resendRow}>
               <Pressable onPress={() => (setStep('phone'), setNote(null))} accessibilityRole="button"><Text style={[styles.link, adult ? ad.link : null]}>{l.changeNumber}</Text></Pressable>

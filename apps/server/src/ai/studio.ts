@@ -2,6 +2,7 @@ import { AI_LIMITS, AI_PUZZLE_CATALOG_MAX, trackRank } from '@dozari/shared';
 import type { AiKind } from '@dozari/shared';
 import type { LessonStore } from '../lessons/service.js';
 import type { PuzzleAdmin } from '../puzzles/admin.js';
+import type { TriviaStore } from '../trivia/store.js';
 import type { ProductAdmin } from '../admin/products.js';
 import type { LandingService } from '../landing/service.js';
 import { slugify } from '../landing/service.js';
@@ -14,6 +15,8 @@ export interface AiDeps {
   env: Env;
   lessons?: LessonStore;
   puzzles?: PuzzleAdmin;
+  /** General four-choice questions: the studio writes drafts into it and reads a topic's questions to avoid repeats. */
+  trivia?: TriviaStore;
   products?: ProductAdmin;
   landing?: LandingService;
   /** The catalog as it is now, to keep suggestions from repeating existing products. */
@@ -54,7 +57,7 @@ export class AiStudio {
   describe() {
     return {
       providers: this.providers.map((p) => ({ id: p.id, label: p.label, defaultModel: p.defaultModel })),
-      kinds: { products: !!this.deps.products, kid_lessons: !!this.deps.lessons, puzzle_titles: !!this.deps.puzzles, puzzle_groups: !!(this.deps.puzzles && this.deps.catalog && this.deps.products), blog: !!this.deps.landing },
+      kinds: { products: !!this.deps.products, kid_lessons: !!this.deps.lessons, puzzle_titles: !!this.deps.puzzles, puzzle_groups: !!(this.deps.puzzles && this.deps.catalog && this.deps.products), blog: !!this.deps.landing, trivia: !!(this.deps.trivia && this.deps.puzzles) },
       maxCallsPerHour: AI_LIMITS.maxCallsPerHour,
     };
   }
@@ -78,6 +81,28 @@ export class AiStudio {
     while (this.calls.length > 0 && now - (this.calls[0] as number) > 3_600_000) this.calls.shift();
     if (this.calls.length >= AI_LIMITS.maxCallsPerHour) throw new AiError('ai_rate_limited');
     this.calls.push(now);
+  }
+
+  /** The topic (and the defined, active tags) a request names; an unknown one is an error, never silently dropped. */
+  private async theme(topicId: string | undefined, tags: readonly string[] | undefined): Promise<Pick<PromptContext, 'topic' | 'tags'>> {
+    if (!this.deps.puzzles) throw new AiError('ai_not_found');
+    const out: Pick<PromptContext, 'topic' | 'tags'> = {};
+    if (topicId) {
+      const topic = (await this.deps.puzzles.topics()).find((t) => t.id === topicId && t.isActive);
+      if (!topic) throw new AiError('ai_not_found');
+      out.topic = { nameFa: topic.nameFa };
+    }
+    if (tags && tags.length > 0) {
+      const defs = await this.deps.puzzles.tags();
+      const names: string[] = [];
+      for (const slug of tags) {
+        const def = defs.find((d) => d.slug === slug && d.isActive);
+        if (!def) throw new AiError('ai_not_found');
+        names.push(def.nameFa);
+      }
+      out.tags = names;
+    }
+    return out;
   }
 
   async generate(req: GenerateRequest): Promise<GenerateResult> {
@@ -105,12 +130,18 @@ export class AiStudio {
         if (!tier) throw new AiError('ai_not_found');
         ctx.tier = { nameFa: tier.nameFa, minLevel: tier.minLevel, maxLevel: tier.maxLevel };
       }
+      Object.assign(ctx, await this.theme(req.topicId, req.tags));
       ctx.pool = usable.slice(0, AI_PUZZLE_CATALOG_MAX).map((p) => ({ productId: p.id, nameFa: p.nameFa, category: details[p.id]?.category }));
       if (ctx.pool.length < 16) throw new AiError('ai_not_found');
       // Puzzles that already exist are sent too, so the model does not rebuild them; repeats are also dropped on parse.
       const names = new Map(all.map((p) => [p.id, p.nameFa]));
       const have = await this.deps.puzzles.list(AI_LIMITS.maxExistingPuzzles);
       ctx.existingPuzzles = have.map((p) => ({ titles: p.groups.map((g) => g.titleFa).filter((t): t is string => !!t), groups: p.groups.map((g) => g.items.map((i) => names.get(i) ?? i)) }));
+    }
+    if (req.kind === 'trivia') {
+      if (!this.deps.trivia) throw new AiError('ai_not_found');
+      Object.assign(ctx, await this.theme(req.topicId, undefined));
+      ctx.existingQuestions = (await this.deps.trivia.list({ topicId: req.topicId, limit: AI_LIMITS.maxExistingQuestions })).map((q) => q.textFa);
     }
     if (req.kind === 'puzzle_titles') {
       const row = (await this.deps.puzzles?.list(500))?.find((p) => p.id === req.puzzleId);
@@ -121,9 +152,9 @@ export class AiStudio {
     const prompt = buildPrompt(req, ctx);
     const model = req.model?.trim() || provider.defaultModel;
     const text = await chat(provider, { ...prompt, model, maxTokens: AI_LIMITS.maxTokens[req.kind] }, this.deps.fetch);
-    const parsed = parseDrafts(req.kind, text, ctx, req.kind === 'products' || req.kind === 'puzzle_groups' ? req.ageTrack : 'adult');
+    const parsed = parseDrafts(req.kind, text, ctx, req.kind === 'products' || req.kind === 'puzzle_groups' || req.kind === 'trivia' ? req.ageTrack : 'adult');
     if (!parsed) throw new AiError('ai_bad_output', undefined, `جواب مدل JSON قابل‌خواندن نبود: «${text.replace(/\s+/g, ' ').slice(0, 160)}»`);
-    return { kind: req.kind, provider: provider.id, model, drafts: parsed.drafts, dropped: parsed.dropped, context: ctx, ...(req.kind === 'puzzle_groups' && req.tierId ? { tierId: req.tierId } : {}) };
+    return { kind: req.kind, provider: provider.id, model, drafts: parsed.drafts, dropped: parsed.dropped, context: ctx, ...(req.kind === 'puzzle_groups' && req.tierId ? { tierId: req.tierId } : {}), ...(req.kind === 'puzzle_groups' || req.kind === 'trivia' ? { topicId: req.topicId } : {}), ...(req.kind === 'puzzle_groups' ? { tags: req.tags } : {}) };
   }
 
   /** Saves reviewed drafts through the normal services: products inactive, lessons as draft, blog posts as draft, puzzle titles on the puzzle. */
@@ -184,7 +215,18 @@ export class AiStudio {
         const out: SaveOutcome[] = [];
         for (const [i, p] of req.drafts.entries()) {
           const res = await d.puzzles.create(p.groups.map((g) => ({ level: g.level, titleFa: g.titleFa, explanationFa: g.explanationFa, productIds: g.items.map((x) => x.productId) })), req.tierId ?? null, p.ageTrack, 'draft');
-          out.push({ label: `پازل ${i + 1}`, ok: res.ok, ...(res.ok ? {} : { error: res.error }) });
+          // Filed under the topic and tagged right away; a failure here leaves the draft untagged but saved.
+          const filed = res.ok && (req.topicId || req.tags?.length) ? await d.puzzles.setTopic(res.id, req.topicId ?? null, req.tags ?? []) : 'ok';
+          out.push({ label: `پازل ${i + 1}`, ok: res.ok && filed === 'ok', ...(res.ok ? (filed === 'ok' ? {} : { error: filed }) : { error: res.error }) });
+        }
+        return out;
+      }
+      case 'trivia': {
+        if (!d.trivia) throw new AiError('ai_not_found');
+        const out: SaveOutcome[] = [];
+        for (const q of req.drafts) {
+          const res = await d.trivia.create({ ...q, topicId: req.topicId }, 'draft');
+          out.push({ label: q.textFa.slice(0, 40), ok: res.ok, ...(res.ok ? {} : { error: res.error }) });
         }
         return out;
       }

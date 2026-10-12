@@ -3,7 +3,7 @@ import type { PuzzleAdmin } from '../puzzles/admin.js';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { can } from './accounts/permissions.js';
 import { z } from 'zod';
-import { accentColorSchema, checkLevelTable, KEEPSAKE_RARITIES, KEEPSAKE_REWARD_GEMS, httpsUrlSchema, isDateKey, ITEMS, ITEM_GROUPS, LEVEL_TABLE_MAX, levelRowSchema, normalizeIranPhone, PRODUCT_CATEGORIES, PROVINCES, provinceOf, SETTING_GROUPS, SHOP_EFFECTS, SPONSOR_LIMITS, COSMETIC_SLOTS, WHEEL_PRIZE_KINDS, AD_LIMITS, AD_PLACEMENTS, AD_PLACEMENT_LABEL_FA, AD_REWARD_KINDS } from '@dozari/shared';
+import { accentColorSchema, triviaInputSchema, checkLevelTable, KEEPSAKE_RARITIES, KEEPSAKE_REWARD_GEMS, httpsUrlSchema, isDateKey, ITEMS, ITEM_GROUPS, LEVEL_TABLE_MAX, levelRowSchema, normalizeIranPhone, PRODUCT_CATEGORIES, PROVINCES, provinceOf, SETTING_GROUPS, SHOP_EFFECTS, SPONSOR_LIMITS, COSMETIC_SLOTS, WHEEL_PRIZE_KINDS, AD_LIMITS, AD_PLACEMENTS, AD_PLACEMENT_LABEL_FA, AD_REWARD_KINDS } from '@dozari/shared';
 import type { LevelRow } from '@dozari/shared';
 import type { LevelTable } from '../progress/table.js';
 import type { SettingsService } from '../settings/service.js';
@@ -46,6 +46,7 @@ import type { BadgeStore } from '../badges/store.js';
 import type { ChatStore } from '../chat/store.js';
 import type { TournamentService } from '../tournament/service.js';
 import type { SponsorStore } from '../sponsor/store.js';
+import type { TriviaStore } from '../trivia/store.js';
 import type { DailyService } from '../daily/service.js';
 import { THEME_KINDS } from '../daily/store.js';
 import type { BotPlayerService } from '../botplayers/service.js';
@@ -101,6 +102,8 @@ export interface AdminModules {
   tournaments?: TournamentService;
   /** Sponsors shown on tournaments. */
   sponsors?: SponsorStore;
+  /** General four-choice questions, each under a topic. */
+  trivia?: TriviaStore;
   /** Kid word lessons: the editor list, save text, approve (D198). */
   lessons?: LessonStore;
   /** Numbers per age track for the admin overview tab (D198). */
@@ -769,6 +772,41 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     }
   }
 
+  if (m.trivia) {
+    const trivia = m.trivia;
+    const statusSchema = z.enum(['draft', 'approved', 'retired']);
+    g.get('/admin/trivia', async (req) => {
+      const q = z.object({ topicId: z.string().uuid().optional(), status: statusSchema.optional() }).safeParse(req.query);
+      return { questions: await trivia.list({ topicId: q.success ? q.data.topicId : undefined, status: q.success ? q.data.status : undefined, limit: 300 }) };
+    });
+    g.post('/admin/trivia', async (req, reply) => {
+      const b = triviaInputSchema.safeParse(req.body);
+      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await trivia.create(b.data);
+      if (!out.ok) return reply.code(400).send({ error: out.error });
+      void audit('trivia.create', out.id, b.data.textFa.slice(0, 80));
+      return reply.code(201).send({ id: out.id });
+    });
+    g.put('/admin/trivia/:id', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = triviaInputSchema.safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await trivia.update(p.data.id, b.data);
+      if (out === 'not_found') return reply.code(404).send({ error: out });
+      if (out === 'unknown_topic') return reply.code(400).send({ error: out });
+      void audit('trivia.update', p.data.id);
+      return { ok: true };
+    });
+    g.patch('/admin/trivia/:id', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object({ status: statusSchema }).safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      if ((await trivia.setStatus(p.data.id, b.data.status)) === 'not_found') return reply.code(404).send({ error: 'NOT_FOUND' });
+      void audit('trivia.status', p.data.id, b.data.status);
+      return { ok: true };
+    });
+  }
+
   if (m.sponsors) {
     const sponsors = m.sponsors;
     const body = z.object({
@@ -848,6 +886,33 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       void audit('puzzle.tier', p.data.id, b.data.tierId ?? '-');
       return { ok: true };
     });
+    g.get('/admin/puzzle-topics', async () => ({ topics: await puzzles.topics() }));
+    g.post('/admin/puzzle-topics', async (req, reply) => {
+      const b = z.object({ id: z.string().uuid().optional(), slug: z.string().trim().min(1).max(50), nameFa: z.string().trim().min(2).max(60), sortOrder: z.number().int().min(0).max(1000).default(0), isActive: z.boolean().default(true) }).safeParse(req.body);
+      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await puzzles.saveTopic(b.data);
+      if (!out.ok) return reply.code(out.error === 'not_found' ? 404 : 400).send({ error: out.error });
+      void audit('puzzle.topic', out.id, b.data.nameFa);
+      return reply.code(b.data.id ? 200 : 201).send({ id: out.id });
+    });
+    g.get('/admin/puzzle-tags', async () => ({ tags: await puzzles.tags() }));
+    g.post('/admin/puzzle-tags', async (req, reply) => {
+      const b = z.object({ id: z.string().uuid().optional(), slug: z.string().trim().min(1).max(50), nameFa: z.string().trim().min(2).max(60), sortOrder: z.number().int().min(0).max(1000).default(0), isActive: z.boolean().default(true) }).safeParse(req.body);
+      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await puzzles.saveTag(b.data);
+      if (!out.ok) return reply.code(out.error === 'not_found' ? 404 : 400).send({ error: out.error });
+      void audit('puzzle.tag', out.id, b.data.nameFa);
+      return reply.code(b.data.id ? 200 : 201).send({ id: out.id });
+    });
+    g.put('/admin/puzzles/:id/topic', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object({ topicId: z.string().uuid().nullable(), tags: z.array(z.string().max(50)).max(20).default([]) }).safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await puzzles.setTopic(p.data.id, b.data.topicId, b.data.tags);
+      if (out !== 'ok') return reply.code(out === 'not_found' ? 404 : 400).send({ error: out });
+      void audit('puzzle.topic.set', p.data.id, b.data.topicId ?? '-');
+      return { ok: true };
+    });
     g.put('/admin/puzzles/:id/titles', async (req, reply) => {
       const p = idParam.safeParse(req.params);
       const b = z.object({ titles: z.array(z.object({ level: z.number().int().min(0).max(3), titleFa: z.string().trim().min(2).max(100) })).min(1).max(4) }).safeParse(req.body);
@@ -856,6 +921,16 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       if (out === 'not_found') return reply.code(404).send({ error: out });
       void audit('puzzle.titles', p.data.id);
       return { ok: true };
+    });
+    // Quick swap of one product of a puzzle for another.
+    g.put('/admin/puzzles/:id/swap', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object({ fromProductId: z.string().uuid(), toProductId: z.string().uuid() }).safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await puzzles.swapProduct(p.data.id, b.data.fromProductId, b.data.toProductId);
+      if (!out.ok) return reply.code(out.error === 'not_found' || out.error === 'unknown_product' ? 404 : 400).send({ error: out.error });
+      void audit('puzzle.swap', p.data.id, `${b.data.fromProductId}>${b.data.toProductId}`);
+      return { ok: true, status: out.status };
     });
     g.patch('/admin/puzzles/:id', async (req, reply) => {
       const p = idParam.safeParse(req.params);

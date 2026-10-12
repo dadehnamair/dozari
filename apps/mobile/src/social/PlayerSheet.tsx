@@ -23,6 +23,7 @@ import { useGuardianGate } from '../agetrack/GuardianGate';
 import { useTrackRules } from '../agetrack/useTrackRules';
 import { TransferSheet } from '../transfers/TransferSheet';
 import { useHardwareBack } from '../nav/useHardwareBack';
+import { LeaverBadge } from './LeaverBadge';
 import { BirthdayBadge, PartyBanner } from './BirthdayBadge';
 import { ShowcaseStrip } from '../keepsake/ShowcaseStrip';
 import { GiftSheet } from '../shop/GiftSheet';
@@ -94,6 +95,7 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
               <Text style={styles.name} numberOfLines={1}>{p.nickname}</Text>
               {p.birthday ? <BirthdayBadge /> : null}
             </View>
+            {p.leaverUntil ? <LeaverBadge untilMs={p.leaverUntil} /> : null}
             {p.birthday ? <PartyBanner own={p.isMe} name={p.nickname} /> : null}
             {p.age !== null ? <Text style={styles.sub}>{fa.player.age(p.age)}</Text> : null}
             <View style={styles.subRow}>

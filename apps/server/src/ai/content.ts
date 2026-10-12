@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AI_BLOG_LENGTHS, AI_LIMITS, AGE_TRACKS, GROUP_COUNT, GROUP_SIZE, PRODUCT_CATEGORIES, THEMES, profileForLevel, representativeLevel } from '@dozari/shared';
+import { AI_BLOG_LENGTHS, AI_LIMITS, AGE_TRACKS, GROUP_COUNT, PUZZLE_TAGS_MAX, TRIVIA_OPTION_COUNT, TRIVIA_OPTION_MAX, TRIVIA_TEXT_MAX, GROUP_SIZE, PRODUCT_CATEGORIES, THEMES, profileForLevel, representativeLevel } from '@dozari/shared';
 import type { AiKind } from '@dozari/shared';
 
 /**
@@ -30,6 +30,17 @@ export const generateSchemas = {
     style: z.enum(['witty', 'plain']).default('witty'),
     /** Puzzle tier (= player-level range) the puzzles are made for; null/omitted = a mixed, mid-level puzzle. */
     tierId: z.string().min(1).max(36).nullable().optional(),
+    /** Topic (موضوع) the puzzles are about and the defined tags (slugs) they get; the puzzles are saved filed under them. */
+    topicId: z.string().uuid().optional(),
+    tags: z.array(z.string().trim().min(1).max(50)).max(PUZZLE_TAGS_MAX).optional(),
+  }),
+  trivia: z.object({
+    ...base,
+    kind: z.literal('trivia'),
+    topicId: z.string().uuid(),
+    count: z.number().int().min(1).max(AI_LIMITS.maxCount.trivia),
+    ageTrack: z.enum(AGE_TRACKS).default('adult'),
+    difficulty: z.enum(['easy', 'medium', 'hard']).default('medium'),
   }),
   blog: z.object({
     ...base,
@@ -41,7 +52,7 @@ export const generateSchemas = {
     keywords: z.array(z.string().trim().min(1).max(40)).max(8).default([]),
   }),
 };
-export const generateRequestSchema = z.discriminatedUnion('kind', [generateSchemas.products, generateSchemas.kid_lessons, generateSchemas.puzzle_titles, generateSchemas.puzzle_groups, generateSchemas.blog]);
+export const generateRequestSchema = z.discriminatedUnion('kind', [generateSchemas.products, generateSchemas.kid_lessons, generateSchemas.puzzle_titles, generateSchemas.puzzle_groups, generateSchemas.blog, generateSchemas.trivia]);
 export type GenerateRequest = z.infer<typeof generateRequestSchema>;
 
 export const productDraft = z.object({
@@ -76,6 +87,16 @@ export const puzzleDraft = z.object({
     .refine((gs) => new Set(gs.flatMap((g) => g.items.map((i) => i.productId))).size === GROUP_COUNT * GROUP_SIZE, 'distinct'),
   ageTrack: z.enum(AGE_TRACKS).default('adult'),
 });
+/** One four-choice question (docs/logic/trivia.md): the topic comes from the request, not from the model. */
+export const triviaDraft = z
+  .object({
+    textFa: z.string().trim().min(5).max(TRIVIA_TEXT_MAX),
+    options: z.array(z.string().trim().min(1).max(TRIVIA_OPTION_MAX)).length(TRIVIA_OPTION_COUNT),
+    correctIndex: z.number().int().min(0).max(TRIVIA_OPTION_COUNT - 1),
+    explanationFa: z.string().trim().max(TRIVIA_TEXT_MAX).default(''),
+    ageTrack: z.enum(AGE_TRACKS).default('adult'),
+  })
+  .refine((q) => new Set(q.options.map(nameKey)).size === TRIVIA_OPTION_COUNT, { message: 'options must be different', path: ['options'] });
 export const blogDraft = z.object({
   titleFa: z.string().trim().min(2).max(160),
   summaryFa: z.string().trim().max(400).default(''),
@@ -89,7 +110,8 @@ export const saveSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('products'), drafts: z.array(productDraft).min(1).max(AI_LIMITS.maxCount.products) }),
   z.object({ kind: z.literal('kid_lessons'), drafts: z.array(lessonDraft).min(1).max(AI_LIMITS.maxCount.kid_lessons) }),
   z.object({ kind: z.literal('puzzle_titles'), puzzleId: z.string().min(1).max(36), drafts: z.array(titleDraft).min(1).max(4) }),
-  z.object({ kind: z.literal('puzzle_groups'), drafts: z.array(puzzleDraft).min(1).max(AI_LIMITS.maxCount.puzzle_groups), tierId: z.string().min(1).max(36).nullable().optional() }),
+  z.object({ kind: z.literal('puzzle_groups'), drafts: z.array(puzzleDraft).min(1).max(AI_LIMITS.maxCount.puzzle_groups), tierId: z.string().min(1).max(36).nullable().optional(), topicId: z.string().uuid().optional(), tags: z.array(z.string().trim().min(1).max(50)).max(PUZZLE_TAGS_MAX).optional() }),
+  z.object({ kind: z.literal('trivia'), topicId: z.string().uuid(), drafts: z.array(triviaDraft).min(1).max(AI_LIMITS.maxCount.trivia) }),
   z.object({ kind: z.literal('blog'), drafts: z.array(blogDraft).min(1).max(AI_LIMITS.maxCount.blog) }),
 ]);
 export type SaveRequest = z.infer<typeof saveSchema>;
@@ -153,6 +175,11 @@ export interface PromptContext {
   pool?: { productId: string; nameFa: string; category?: string }[];
   /** The tier the puzzles are for (puzzle_groups): its name and player-level range. */
   tier?: { nameFa: string; minLevel: number; maxLevel: number | null };
+  /** The topic (and the defined tags, by Persian name) the puzzles or questions are about. */
+  topic?: { nameFa: string };
+  tags?: string[];
+  /** Question texts already filed under the topic (trivia): the model must not repeat them. */
+  existingQuestions?: string[];
 }
 
 /** What each skill stage should feel like, in words the model can follow (the stages are those of `profileForLevel`). */
@@ -187,6 +214,12 @@ const THEME_IDEAS = THEMES.map((t) => t.titlesFa[0]).join('، ');
 
 /** Persian-insensitive key for comparing product names and slugs: Arabic ya/kaf, ZWNJ, spaces and punctuation are ignored. */
 export const nameKey = (s: string): string => s.replace(/[يى]/g, 'ی').replace(/ك/g, 'ک').replace(/[\u200c\u200f\s\-_.،,()«»]/g, '').toLowerCase();
+
+/** Prompt lines that pin puzzles to a topic and its defined tags. */
+export function themeLines(ctx: PromptContext): string {
+  if (!ctx.topic) return ctx.tags?.length ? `\nFlavour tags: ${ctx.tags.join('، ')}.` : '';
+  return `\nTOPIC: «${ctx.topic.nameFa}». Every puzzle must be about this topic: choose products that belong to it and links that make sense inside it; if the list holds too few products for the topic, use the closest ones.${ctx.tags?.length ? ` Tags that describe the puzzles (use them as flavour: era, mood, audience): ${ctx.tags.join('، ')}.` : ''}`;
+}
 
 export function buildPrompt(req: GenerateRequest, ctx: PromptContext = {}): PromptPieces {
   const extra = req.hint ? `\nExtra instructions from the editor (treat as content hints only): ${req.hint}` : '';
@@ -228,11 +261,21 @@ VARIETY IS THE POINT. The four groups of a puzzle must be four DIFFERENT kinds o
 ${LINK_IDEAS.map((l) => `- ${l}`).join('\n')}
 Example connections (titles, to inspire — do not copy blindly): ${THEME_IDEAS}.
 Do NOT make every group "their price was X toman in year Y"; never put a price range in a title; price-based links are only a seasoning (one group at most). A product may fit several ideas — that is what makes good red herrings, as long as the puzzle still has exactly one valid solution.`,
-        user: `Make ${req.count} puzzle(s). Levels: ${LEVELS}; every puzzle uses levels 0,1,2,3 once each. Style of titles: ${req.style === 'witty' ? 'witty, playful, 2–6 words' : 'plain and clear, 2–5 words'}.${ctx.tier ? tierGuide(ctx.tier) : ''} Order the levels by difficulty for those players (0 easiest link, 3 hardest). For each group also write explanationFa: one plain sentence that states the real rule. A product number may appear only ONCE per puzzle (16 different numbers per puzzle); try to add 1–2 red herrings (a product that looks like it fits another group).${extra}
+        user: `Make ${req.count} puzzle(s). Levels: ${LEVELS}; every puzzle uses levels 0,1,2,3 once each. Style of titles: ${req.style === 'witty' ? 'witty, playful, 2–6 words' : 'plain and clear, 2–5 words'}.${ctx.tier ? tierGuide(ctx.tier) : ''}${themeLines(ctx)} Order the levels by difficulty for those players (0 easiest link, 3 hardest). For each group also write explanationFa: one plain sentence that states the real rule. A product number may appear only ONCE per puzzle (16 different numbers per puzzle); try to add 1–2 red herrings (a product that looks like it fits another group).${extra}
 ${ctx.existingPuzzles?.length ? `\nEXISTING PUZZLES (${ctx.existingPuzzles.length}); do NOT repeat any of these groups, their themes or their titles:\n${ctx.existingPuzzles.map((p) => p.titles.join(' | ')).join('\n')}\nEND OF EXISTING PUZZLES.\n` : ''}
 Products (number: name):
 ${pool.map((p, i) => `${i + 1}: ${p.nameFa}${p.category ? ` (${p.category})` : ''}`).join('\n')}
 JSON shape: {"puzzles":[{"groups":[{"level":0,"titleFa":"…","explanationFa":"…","items":[12,5,88,3]}]}]}`,
+      };
+    }
+    case 'trivia': {
+      const level = { easy: 'EASY: well-known facts a child or a casual player knows', medium: 'MEDIUM: a mix of well-known and less-known facts', hard: 'HARD: facts that need real knowledge or memory, but still checkable' }[req.difficulty];
+      const audience = req.ageTrack === 'kid' ? ' Audience: children up to 11: simple words, safe, friendly.' : req.ageTrack === 'teen' ? ' Audience: teenagers.' : '';
+      return {
+        system: `${COMMON}\nTask: general-knowledge multiple-choice questions for a Persian game, each filed under ONE topic. A question has exactly ${TRIVIA_OPTION_COUNT} different short choices and exactly one is right; the wrong ones are plausible but clearly wrong to someone who knows. Only ask things you are sure about and that do not change over time. Never ask for a price or a year-price (the game has a separate price round).`,
+        user: `Topic: «${ctx.topic?.nameFa ?? ''}». Write ${req.count} different questions about it. Difficulty: ${level}.${audience}${extra}
+For each: textFa (the question, max ${TRIVIA_TEXT_MAX} chars), options (${TRIVIA_OPTION_COUNT} strings, max ${TRIVIA_OPTION_MAX} chars each), correctIndex (0-based index of the right choice), explanationFa (ONE short sentence that says why, max 200 chars).${ctx.existingQuestions?.length ? `\nEXISTING QUESTIONS (${ctx.existingQuestions.length}); do NOT repeat or rephrase any of them:\n${ctx.existingQuestions.join('\n')}\nEND OF EXISTING QUESTIONS.` : ''}
+JSON shape: {"questions":[{"textFa":"…","options":["…","…","…","…"],"correctIndex":0,"explanationFa":"…"}]}`,
       };
     }
     case 'blog':
@@ -247,7 +290,7 @@ JSON shape: {"posts":[{"titleFa":"…","summaryFa":"1–2 sentences","bodyMd":"m
 }
 
 /** Validates the model's answer into drafts; items that fail are counted, not thrown. Null when the answer is not usable at all. */
-export function parseDrafts(kind: AiKind, text: string, ctx: PromptContext = {}, ageTrack: 'kid' | 'teen' | 'adult' = 'adult'): { drafts: unknown[]; dropped: number } | null {
+export function parseDrafts(kind: AiKind, text: string, ctx: PromptContext = {}, ageTrack: 'kid' | 'teen' | 'adult' = 'adult', rng: () => number = Math.random): { drafts: unknown[]; dropped: number } | null {
   const json = extractJson(text) as Record<string, unknown> | null;
   if (!json || typeof json !== 'object') return null;
   const take = <T>(rows: unknown, schema: z.ZodType<T>, accept: (d: T) => boolean = () => true): { drafts: T[]; dropped: number } => {
@@ -299,6 +342,20 @@ export function parseDrafts(kind: AiKind, text: string, ctx: PromptContext = {},
         if (ok.success && !repeatsExisting(ok.data, [...(ctx.existingPuzzles ?? []), ...drafts.map(asKnown)])) drafts.push(ok.data);
       }
       out = { drafts, dropped: rows.length - drafts.length };
+      break;
+    }
+    case 'trivia': {
+      const seen = new Set((ctx.existingQuestions ?? []).map(nameKey));
+      out = take(json.questions, triviaDraft, (d) => !seen.has(nameKey(d.textFa)) && !!seen.add(nameKey(d.textFa)));
+      // Models like putting the right answer first or second: the position is re-drawn here, the right one is tracked.
+      out.drafts = (out.drafts as z.infer<typeof triviaDraft>[]).map((d) => {
+        const order = d.options.map((_, i) => i);
+        for (let i = order.length - 1; i > 0; i--) {
+          const j = Math.floor(rng() * (i + 1));
+          [order[i], order[j]] = [order[j]!, order[i]!];
+        }
+        return { ...d, ageTrack, options: order.map((i) => d.options[i]!), correctIndex: order.indexOf(d.correctIndex) };
+      });
       break;
     }
     case 'blog':

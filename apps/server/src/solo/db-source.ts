@@ -1,6 +1,6 @@
-import { and, asc, eq, inArray, notInArray, pricePoints, products, puzzleGroupItems, puzzleGroups, puzzleTiers, puzzles, sql } from '@dozari/db';
+import { and, asc, eq, inArray, notInArray, pricePoints, products, puzzleGroupItems, puzzleGroups, puzzleTiers, puzzleTopics, puzzles, sql } from '@dozari/db';
 import type { Db } from '@dozari/db';
-import { DEFAULT_AGE_TRACK, GROUP_COUNT, GROUP_SIZE, tiersForLevel } from '@dozari/shared';
+import { DEFAULT_AGE_TRACK, GROUP_COUNT, GROUP_SIZE, TOPIC_MIN_PUZZLES, tiersForLevel } from '@dozari/shared';
 import type { GroupLevel } from '@dozari/shared';
 import type { PricePointRow, PuzzleSource, ServedPuzzle } from './types.js';
 
@@ -26,7 +26,8 @@ export function createDbPuzzleSource(db: Db): PuzzleSource {
       // turning the whole request into "no puzzle" while playable ones exist.
       // Only puzzles of the player's track pool; callers that name no track get the adult pool, so kid content never leaks by accident.
       const tracks = inArray(puzzles.ageTrack, [...(opts?.tracks ?? [DEFAULT_AGE_TRACK])]);
-      const inTrack = opts?.exclude && opts.exclude.length > 0 ? and(tracks, notInArray(puzzles.id, [...opts.exclude]))! : tracks;
+      const base = opts?.exclude && opts.exclude.length > 0 ? and(tracks, notInArray(puzzles.id, [...opts.exclude]))! : tracks;
+      const inTrack = opts?.topicId ? and(base, eq(puzzles.topicId, opts.topicId))! : base;
       const attempt = async (where: ReturnType<typeof eq>) => {
         const candidates = await db.select({ id: puzzles.id }).from(puzzles).where(where).orderBy(sql`RAND()`).limit(PICK_ATTEMPTS);
         for (const c of candidates) {
@@ -45,6 +46,16 @@ export function createDbPuzzleSource(db: Db): PuzzleSource {
         }
       }
       return attempt(and(eq(puzzles.status, 'approved'), inTrack)!);
+    },
+    async topics(tracks) {
+      const rows = await db
+        .select({ id: puzzleTopics.id, nameFa: puzzleTopics.nameFa, n: sql<number>`COUNT(${puzzles.id})` })
+        .from(puzzleTopics)
+        .innerJoin(puzzles, and(eq(puzzles.topicId, puzzleTopics.id), eq(puzzles.status, 'approved'), inArray(puzzles.ageTrack, [...(tracks ?? [DEFAULT_AGE_TRACK])])))
+        .where(eq(puzzleTopics.isActive, true))
+        .groupBy(puzzleTopics.id, puzzleTopics.nameFa, puzzleTopics.sortOrder)
+        .orderBy(asc(puzzleTopics.sortOrder), asc(puzzleTopics.nameFa));
+      return rows.filter((r) => Number(r.n) >= TOPIC_MIN_PUZZLES).map((r) => ({ id: r.id, nameFa: r.nameFa }));
     },
     async byId(id) {
       const [puzzle] = await db.select({ id: puzzles.id }).from(puzzles).where(and(eq(puzzles.id, id), eq(puzzles.status, 'approved'))).limit(1);

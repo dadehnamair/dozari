@@ -24,8 +24,10 @@ function richCatalog(): CatalogProduct[] {
   });
 }
 
+const fresh = '00000000-0000-7000-8000-000000000099';
+
 function boot(catalog: CatalogProduct[] = []) {
-  const puzzles = createMemoryPuzzleAdmin(new Set([...ids, ...catalog.map((p) => p.id)]), catalog);
+  const puzzles = createMemoryPuzzleAdmin(new Set([...ids, fresh, ...catalog.map((p) => p.id)]), catalog);
   const audit = createMemoryAuditLog();
   const app = buildServer({
     admin: { repo: { listCatalog: async () => [], setPriceStatus: async () => 'ok' }, token: TOKEN },
@@ -45,13 +47,36 @@ describe('hand-built puzzles in the admin panel', () => {
     expect(checkShape(sameLevel)).toBe('shape');
   });
 
+  it('swaps a product of a live puzzle in place and keeps it live', async () => {
+    const { app, h } = boot();
+    const id = (await app.inject({ method: 'POST', url: '/admin/puzzles', headers: h, payload: { groups: groupsOf(ids) } })).json().id as string;
+    const get = async () => (await app.inject({ method: 'GET', url: '/admin/puzzles', headers: h })).json();
+    expect((await get()).puzzles[0]).toMatchObject({ id, status: 'approved' });
+    const swap = (from: string, to: string) => app.inject({ method: 'PUT', url: `/admin/puzzles/${id}/swap`, headers: h, payload: { fromProductId: from, toProductId: to } });
+    expect((await swap(ids[0]!, ids[1]!)).json()).toEqual({ error: 'duplicate_product' });
+    expect((await swap('00000000-0000-7000-8000-0000000000aa', ids[0]!)).json()).toEqual({ error: 'not_in_puzzle' });
+    expect((await swap(ids[0]!, ids[0]!)).json()).toEqual({ error: 'same_product' });
+    expect((await swap(ids[0]!, '00000000-0000-7000-8000-0000000000bb')).statusCode).toBe(404);
+    expect((await swap(ids[0]!, fresh)).json()).toEqual({ ok: true, status: 'approved' });
+    expect((await get()).puzzles[0]).toMatchObject({ status: 'approved' });
+  });
+
+  it('swaps a product in place', async () => {
+    const puzzles = createMemoryPuzzleAdmin(new Set([...ids, fresh]));
+    const made = await puzzles.create(groupsOf(ids), null, 'adult', 'approved');
+    if (!made.ok) throw new Error('create failed');
+    expect(await puzzles.swapProduct(made.id, ids[5]!, fresh)).toEqual({ ok: true, status: 'approved' });
+    const row = (await puzzles.list(10))[0]!;
+    expect(row.groups[1]!.productIds).toEqual([ids[4], fresh, ids[6], ids[7]]);
+  });
+
   it('creates a playable puzzle, lists it with readiness, retires and re-approves it', async () => {
     const { app, h } = boot();
     const made = await app.inject({ method: 'POST', url: '/admin/puzzles', headers: h, payload: { groups: groupsOf(ids) } });
     expect(made.statusCode).toBe(201);
     const id = made.json().id as string;
     const list = (await app.inject({ method: 'GET', url: '/admin/puzzles', headers: h })).json();
-    expect(list.readiness).toMatchObject({ products: 16, approvedPuzzles: 1, productsPerPuzzle: 16 });
+    expect(list.readiness).toMatchObject({ products: 17, approvedPuzzles: 1, productsPerPuzzle: 16 });
     expect(list.puzzles[0]).toMatchObject({ id, status: 'approved', source: 'curated' });
     expect((await app.inject({ method: 'PATCH', url: `/admin/puzzles/${id}`, headers: h, payload: { status: 'retired' } })).statusCode).toBe(200);
     expect((await app.inject({ method: 'GET', url: '/admin/puzzles', headers: h })).json().readiness.approvedPuzzles).toBe(0);
@@ -152,5 +177,49 @@ describe('puzzle tiers in the admin panel', () => {
     const tiers = (await app.inject({ method: 'GET', url: '/admin/puzzles/tiers', headers: h })).json().tiers as { id: string }[];
     await app.inject({ method: 'POST', url: '/admin/puzzles', headers: h, payload: { groups: groupsOf(ids), tierId: tiers[0]!.id } });
     expect((await app.inject({ method: 'GET', url: '/admin/puzzles', headers: h })).json().puzzles[0].tierId).toBe(tiers[0]!.id);
+  });
+});
+
+describe('puzzle topics and tags in the admin panel', () => {
+  it('creates a topic, files a puzzle under it with tags, and counts only approved puzzles', async () => {
+    const { app, h } = boot();
+    const bad = await app.inject({ method: 'POST', url: '/admin/puzzle-topics', headers: h, payload: { slug: 'خوراکی', nameFa: 'خوراکی' } });
+    expect(bad.statusCode).toBe(400);
+    const t = await app.inject({ method: 'POST', url: '/admin/puzzle-topics', headers: h, payload: { slug: 'food', nameFa: 'خوراکی', sortOrder: 1 } });
+    expect(t.statusCode).toBe(201);
+    const topicId = (t.json() as { id: string }).id;
+    expect((await app.inject({ method: 'POST', url: '/admin/puzzle-topics', headers: h, payload: { slug: 'food', nameFa: 'نوشیدنی' } })).statusCode).toBe(400); // duplicate slug
+
+    const made = await app.inject({ method: 'POST', url: '/admin/puzzles', headers: h, payload: { groups: groupsOf(ids) } });
+    const puzzleId = (made.json() as { id: string }).id;
+    // Tags are chosen from the defined list only.
+    const typed = await app.inject({ method: 'PUT', url: `/admin/puzzles/${puzzleId}/topic`, headers: h, payload: { topicId, tags: ['nostalgia'] } });
+    expect(typed.statusCode).toBe(400);
+    expect((typed.json() as { error: string }).error).toBe('unknown_tag');
+    expect((await app.inject({ method: 'POST', url: '/admin/puzzle-tags', headers: h, payload: { slug: 'نوستالژی', nameFa: 'نوستالژی' } })).statusCode).toBe(400); // slug must be latin
+    const tag1 = await app.inject({ method: 'POST', url: '/admin/puzzle-tags', headers: h, payload: { slug: 'nostalgia', nameFa: 'نوستالژی', sortOrder: 1 } });
+    expect(tag1.statusCode).toBe(201);
+    const tag2 = await app.inject({ method: 'POST', url: '/admin/puzzle-tags', headers: h, payload: { slug: 'eighties', nameFa: 'دهه شصت', sortOrder: 2 } });
+    expect((await app.inject({ method: 'POST', url: '/admin/puzzle-tags', headers: h, payload: { slug: 'nostalgia', nameFa: 'دیگر' } })).statusCode).toBe(400); // duplicate
+    const set = await app.inject({ method: 'PUT', url: `/admin/puzzles/${puzzleId}/topic`, headers: h, payload: { topicId, tags: ['  Nostalgia ', 'nostalgia', '', 'eighties'] } });
+    expect(set.statusCode).toBe(200);
+    const list = (await app.inject({ method: 'GET', url: '/admin/puzzles', headers: h })).json() as { puzzles: { id: string; topicId: string | null; tags: string[] }[] };
+    expect(list.puzzles.find((p) => p.id === puzzleId)).toMatchObject({ topicId, tags: ['nostalgia', 'eighties'] });
+    const topics = (await app.inject({ method: 'GET', url: '/admin/puzzle-topics', headers: h })).json() as { topics: { id: string; puzzles: number }[] };
+    expect(topics.topics.find((x) => x.id === topicId)?.puzzles).toBe(1);
+
+    expect((await app.inject({ method: 'PUT', url: `/admin/puzzles/${puzzleId}/topic`, headers: h, payload: { topicId: '00000000-0000-7000-d000-999999999999', tags: [] } })).statusCode).toBe(400);
+    // A switched-off tag cannot be added any more but stays on the puzzles that have it; a rename moves the puzzles along.
+    const e = (tag2.json() as { id: string }).id;
+    expect((await app.inject({ method: 'POST', url: '/admin/puzzle-tags', headers: h, payload: { id: e, slug: 'eighties', nameFa: 'دهه شصت', sortOrder: 2, isActive: false } })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'PUT', url: `/admin/puzzles/${puzzleId}/topic`, headers: h, payload: { topicId, tags: ['nostalgia', 'eighties'] } })).statusCode).toBe(200);
+    const other = (await app.inject({ method: 'POST', url: '/admin/puzzles', headers: h, payload: { groups: groupsOf(ids.slice().reverse()) } })).json() as { id: string };
+    expect((await app.inject({ method: 'PUT', url: `/admin/puzzles/${other.id}/topic`, headers: h, payload: { topicId, tags: ['eighties'] } })).statusCode).toBe(400);
+    expect((await app.inject({ method: 'POST', url: '/admin/puzzle-tags', headers: h, payload: { id: e, slug: 'sixties-kids', nameFa: 'دهه شصت', sortOrder: 2, isActive: true } })).statusCode).toBe(200);
+    const after = (await app.inject({ method: 'GET', url: '/admin/puzzles', headers: h })).json() as { puzzles: { id: string; tags: string[] }[] };
+    expect(after.puzzles.find((p) => p.id === puzzleId)?.tags).toContain('sixties-kids');
+    const tags = (await app.inject({ method: 'GET', url: '/admin/puzzle-tags', headers: h })).json() as { tags: { slug: string; puzzles: number }[] };
+    expect(tags.tags.find((x) => x.slug === 'sixties-kids')?.puzzles).toBe(1);
+    expect((await app.inject({ method: 'PUT', url: `/admin/puzzles/${puzzleId}/topic`, headers: h, payload: { topicId: null, tags: [] } })).statusCode).toBe(200);
   });
 });
