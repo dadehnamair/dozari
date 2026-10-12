@@ -253,7 +253,7 @@ describe('irnoti adapter', () => {
     await createIrnotiClient('irnt_KEY', { fetchImpl: f }).sendCode('+989123456789', '12345');
     expect(calls[0]!.url).toBe('https://api.irnoti.com/v1/sms/send');
     expect((calls[0]!.init.headers as Record<string, string>).Authorization).toBe('Bearer irnt_KEY');
-    expect(JSON.parse(String(calls[0]!.init.body))).toEqual({ lineId: '2', to: '09123456789', text: 'کد ورود شما به دوزاری : 12345' });
+    expect(JSON.parse(String(calls[0]!.init.body))).toEqual({ lineId: '2', to: '09123456789', text: 'کد ورود شما به دوزاری : 12345\n\n@mrdozari.ir #12345' });
   });
 
   it('uses a custom message containing {code} and fails on HTTP errors or an error body', async () => {

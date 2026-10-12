@@ -69,6 +69,10 @@ label, icon, and unlock rule per tag — content-managed like `canned_taunts`, n
 Built beside the link flow (`apps/server/src/phone/login.ts`, `POST /auth/phone/code`, `POST /auth/phone/verify`; app: settings → «ورود با شماره»).
 Logged out, the player asks for an SMS code for a number and proves it: a number that an account holds logs in to **that** account (device
 claimed, `AuthService.sessionFor`); a number nobody holds is attached, verified, to this device's guest account (a new one on a fresh install).
+Auto-fill of the code field: iOS/Android keyboards suggest it (`textContentType="oneTimeCode"`, `autoComplete="sms-otp"`), and the PWA
+uses WebOTP (`apps/mobile/src/phone/webOtp.ts`), which needs the login SMS to end with `@mrdozari.ir #<code>` (`SMS_WEBOTP_DOMAIN`,
+default text in `phone/sms.ts`; a custom text set in the admin must keep that last line). Placeholders are plain `{code}`, no `#` before it
+except in that last line.
 Codes are 5 digits, 5 min, 5 tries, 60 s resend, 5 codes/hour per number, 20 calls/10 min per IP; kept in memory. `sms_unavailable` (503) when no
 SMS provider key is set. The answer never tells before the proof whether a number has an account. A proven number pays the `phone` mission at once, and the settings row is hidden once that mission is done (D224).
 
