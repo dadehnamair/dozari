@@ -261,6 +261,9 @@ describe('irnoti adapter', () => {
     const ok = createIrnotiClient('k', { message: 'code={code}!', fetchImpl: (async (_u: string, init: RequestInit) => (bodies.push(String(init.body)), { ok: true, status: 200, json: async () => ({}) })) as unknown as typeof fetch });
     await ok.sendCode('+989121111111', '777');
     expect(JSON.parse(bodies[0]!).text).toBe('code=777!');
+    const twice = createIrnotiClient('k', { message: 'کد: {code}\ncode:{code}', fetchImpl: (async (_u: string, init: RequestInit) => (bodies.push(String(init.body)), { ok: true, status: 200, json: async () => ({}) })) as unknown as typeof fetch });
+    await twice.sendCode('+989121111111', '777');
+    expect(JSON.parse(bodies[1]!).text).toBe('کد: 777\ncode:777');
     const http = createIrnotiClient('k', { fetchImpl: (async () => ({ ok: false, status: 401, json: async () => ({}) })) as unknown as typeof fetch });
     await expect(http.sendCode('+989121111111', '1')).rejects.toThrow();
     const body = createIrnotiClient('k', { fetchImpl: (async () => ({ ok: true, status: 200, json: async () => ({ success: false }) })) as unknown as typeof fetch });
