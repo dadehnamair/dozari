@@ -154,3 +154,27 @@ describe('puzzle tiers in the admin panel', () => {
     expect((await app.inject({ method: 'GET', url: '/admin/puzzles', headers: h })).json().puzzles[0].tierId).toBe(tiers[0]!.id);
   });
 });
+
+describe('puzzle topics and tags in the admin panel', () => {
+  it('creates a topic, files a puzzle under it with tags, and counts only approved puzzles', async () => {
+    const { app, h } = boot();
+    const bad = await app.inject({ method: 'POST', url: '/admin/puzzle-topics', headers: h, payload: { slug: 'خوراکی', nameFa: 'خوراکی' } });
+    expect(bad.statusCode).toBe(400);
+    const t = await app.inject({ method: 'POST', url: '/admin/puzzle-topics', headers: h, payload: { slug: 'food', nameFa: 'خوراکی', sortOrder: 1 } });
+    expect(t.statusCode).toBe(201);
+    const topicId = (t.json() as { id: string }).id;
+    expect((await app.inject({ method: 'POST', url: '/admin/puzzle-topics', headers: h, payload: { slug: 'food', nameFa: 'نوشیدنی' } })).statusCode).toBe(400); // duplicate slug
+
+    const made = await app.inject({ method: 'POST', url: '/admin/puzzles', headers: h, payload: { groups: groupsOf(ids) } });
+    const puzzleId = (made.json() as { id: string }).id;
+    const set = await app.inject({ method: 'PUT', url: `/admin/puzzles/${puzzleId}/topic`, headers: h, payload: { topicId, tags: ['  نوستالژی ', 'نوستالژی', '', 'دهه شصت'] } });
+    expect(set.statusCode).toBe(200);
+    const list = (await app.inject({ method: 'GET', url: '/admin/puzzles', headers: h })).json() as { puzzles: { id: string; topicId: string | null; tags: string[] }[] };
+    expect(list.puzzles.find((p) => p.id === puzzleId)).toMatchObject({ topicId, tags: ['نوستالژی', 'دهه شصت'] });
+    const topics = (await app.inject({ method: 'GET', url: '/admin/puzzle-topics', headers: h })).json() as { topics: { id: string; puzzles: number }[] };
+    expect(topics.topics.find((x) => x.id === topicId)?.puzzles).toBe(1);
+
+    expect((await app.inject({ method: 'PUT', url: `/admin/puzzles/${puzzleId}/topic`, headers: h, payload: { topicId: '00000000-0000-7000-d000-999999999999', tags: [] } })).statusCode).toBe(400);
+    expect((await app.inject({ method: 'PUT', url: `/admin/puzzles/${puzzleId}/topic`, headers: h, payload: { topicId: null, tags: [] } })).statusCode).toBe(200);
+  });
+});

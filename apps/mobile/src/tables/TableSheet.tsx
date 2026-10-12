@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { TableView } from '@dozari/shared';
-import { DEFAULT_TABLE_ICON, TABLE_ENTRY_MAX, TABLE_PRICE_ROUNDS_MAX, TABLE_HOUSE_CUT_PERCENT, TABLE_ROUNDS_MAX, TABLE_ROUNDS_MIN, TABLE_ICONS, normalizeTableCode, tableMinEntry, toPersianDigits } from '@dozari/shared';
+import { DEFAULT_TABLE_ICON, TABLE_ENTRY_MAX, TABLE_PRICE_ROUNDS_MAX, TABLE_HOUSE_CUT_PERCENT, TABLE_ROUNDS_MAX, TABLE_ICONS, normalizeTableCode, tableMinEntry, toPersianDigits } from '@dozari/shared';
 import { Avatar } from '../components/Avatar';
 import { CandyButton } from '../components/CandyButton';
 import { playSfx } from '../sound/engine';
@@ -10,6 +10,7 @@ import { Item } from '../components/Item';
 import { GuideBubble } from '../components/GuideBubble';
 import { useConfirm } from '../components/useConfirm';
 import { fa } from '../i18n/fa';
+import { tableMinRounds } from '../config/tableRules';
 import { SheetClose } from '../components/SheetClose';
 import { ApiError } from '../net/http';
 import { useGuardianGate } from '../agetrack/GuardianGate';
@@ -69,15 +70,16 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
   /** Before sitting at a table: the two-choice menu, then the form of the chosen one. */
   const [mode, setMode] = useState<'menu' | 'make' | 'join'>(initialCode ? 'join' : 'menu');
   /** Boards played, the entry each player pays (never below the minimum for the rounds) and whether the table hides from the open list. */
-  const [rounds, setRounds] = useState<number>(TABLE_ROUNDS_MIN);
-  const [entry, setEntry] = useState<number>(tableMinEntry(TABLE_ROUNDS_MIN));
+  const minRounds = tableMinRounds();
+  const [rounds, setRounds] = useState<number>(minRounds);
+  const [entry, setEntry] = useState<number>(tableMinEntry(minRounds));
   const [isPrivate, setIsPrivate] = useState(false);
   /** Price-guess questions after the boards: on/off and how many (a 1v1 table only). */
   const [pricing, setPricing] = useState(true);
   const [priceCount, setPriceCount] = useState<number>(TABLE_PRICE_ROUNDS_MAX);
   const minEntry = tableMinEntry(rounds);
   const pickRounds = (n: number) => {
-    const next = Math.min(TABLE_ROUNDS_MAX, Math.max(TABLE_ROUNDS_MIN, n));
+    const next = Math.min(TABLE_ROUNDS_MAX, Math.max(minRounds, n));
     setRounds(next);
     setEntry((e) => Math.max(e, tableMinEntry(next)));
   };
@@ -251,7 +253,7 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
                 </Card>
                 <Card dark={dark} title={f.rules}>
                   <Text style={[styles.label, dark ? dk.text : null]}>{fa.tables.roundsTitle}</Text>
-                  <Stepper label={fa.tables.rounds(rounds)} onMinus={() => pickRounds(rounds - 1)} onPlus={() => pickRounds(rounds + 1)} minusOff={rounds <= TABLE_ROUNDS_MIN} plusOff={rounds >= TABLE_ROUNDS_MAX} />
+                  <Stepper label={fa.tables.rounds(rounds)} onMinus={() => pickRounds(rounds - 1)} onPlus={() => pickRounds(rounds + 1)} minusOff={rounds <= minRounds} plusOff={rounds >= TABLE_ROUNDS_MAX} />
                   <Text style={[styles.hint, dark ? dk.sub : null]}>{f.roundsHint}</Text>
                   {format === '2v2' ? <Text style={[styles.hint, dark ? dk.sub : null]}>{fa.tables.priceTeamNote}</Text> : (
                     <>

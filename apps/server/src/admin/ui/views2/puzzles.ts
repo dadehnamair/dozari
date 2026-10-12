@@ -1,7 +1,7 @@
 /** Admin panel views: Puzzles, user reports, suggestions (UGC) (browser JS, concatenated into one script by ../views2.ts). */
 export const ADMIN_VIEWS2_PUZZLES_JS = String.raw`VIEWS.puzzles = function (root) {
   var LEVELS = [['آسان', '#f5c542', 'زرد'], ['متوسط', '#6cc24a', 'سبز'], ['سخت', '#3fa5e0', 'آبی'], ['خیلی سخت', '#9b59d0', 'بنفش']];
-  var P = { prods: [], byId: {}, rows: [], tab: 'draft', ready: null, tiers: [], track: '' };
+  var P = { prods: [], byId: {}, rows: [], tab: 'draft', ready: null, tiers: [], track: '', topics: [] };
   var B = { slots: [[], [], [], []], titles: ['', '', '', ''], expls: ['', '', '', ''], active: 0, q: '', cat: 'all', tier: '', track: 'adult' };
   var TRACK_RANK = { kid: 0, teen: 1, adult: 2 };
   var head = h('div'), body = h('div');
@@ -55,7 +55,7 @@ export const ADMIN_VIEWS2_PUZZLES_JS = String.raw`VIEWS.puzzles = function (root
     var r = P.ready, rows = P.rows;
     var cnt = { draft: 0, approved: 0, retired: 0 };
     rows.forEach(function (x) { cnt[x.status]++; });
-    var tabs = [['draft', 'پیش‌نویس‌ها', cnt.draft], ['approved', 'فعال (قابل بازی)', cnt.approved], ['retired', 'بازنشسته', cnt.retired], ['new', '＋ ساخت پازل جدید', 0], ['tiers', 'سطح‌بندی', 0]];
+    var tabs = [['draft', 'پیش‌نویس‌ها', cnt.draft], ['approved', 'فعال (قابل بازی)', cnt.approved], ['retired', 'بازنشسته', cnt.retired], ['new', '＋ ساخت پازل جدید', 0], ['tiers', 'سطح‌بندی', 0], ['topics', 'موضوع‌ها', 0]];
     head.appendChild(h('div', { class: 'tabs' }, tabs.map(function (t) {
       return h('button', { class: 'tab', 'aria-selected': String(P.tab === t[0]), onclick: function () { setTab(t[0]); } }, [t[1], t[2] ? h('span', { class: 'count', text: fa(t[2]) }) : null]);
     })));
@@ -89,12 +89,21 @@ export const ADMIN_VIEWS2_PUZZLES_JS = String.raw`VIEWS.puzzles = function (root
       h('button', { class: 'btn', text: 'ذخیره‌ی عنوان‌ها', onclick: function () { save(); } }),
       h('button', { class: 'btn bad', text: 'بازنشسته کن', onclick: function () { status('retired', 'پازل بازنشسته شد'); } })
     ] : [h('button', { class: 'btn ok', text: 'دوباره فعال کن', onclick: function () { status('approved', 'پازل دوباره فعال شد'); } })];
+    var topicPick = select([['', '— بدون موضوع —']].concat(P.topics.map(function (t) { return [t.id, t.nameFa]; })), p.topicId || '');
+    var tagInput = h('input', { value: (p.tags || []).join('، '), placeholder: 'برچسب‌ها با ویرگول جدا شوند', style: 'min-width:180px' });
+    function saveTopic() {
+      var tags = tagInput.value.split(/[,،]/).map(function (x) { return x.trim(); }).filter(Boolean);
+      api('/admin/puzzles/' + p.id + '/topic', { method: 'PUT', body: { topicId: topicPick.value || null, tags: tags } }).then(function (r) { r.ok ? toast('موضوع و برچسب‌ها ذخیره شد') : fail(r); });
+    }
+    topicPick.onchange = saveTopic;
+    tagInput.onchange = saveTopic;
     var tierPick = select(tierOpts(), p.tierId || '');
     tierPick.onchange = function () {
       api('/admin/puzzles/' + p.id + '/tier', { method: 'PUT', body: { tierId: tierPick.value || null } }).then(function (r) { r.ok ? toast('سطح پازل ذخیره شد') : fail(r); });
     };
     return h('div', { class: 'card pz' }, [
       h('div', { class: 'pz-head' }, [badge(p.source === 'generated' ? 'ساخته‌ی خودکار' : 'دستی', 'b-info'), p.ageTrack && p.ageTrack !== 'adult' ? badge(p.ageTrack === 'kid' ? 'کودک' : 'نوجوان', 'b-warn') : null, h('span', { class: 'sub', text: ago(p.createdAt) }), h('span', { style: 'flex:1' }), h('span', { class: 'sub', text: 'سطح:' }), tierPick]),
+      h('div', { class: 'pz-head' }, [h('span', { class: 'sub', text: 'موضوع:' }), topicPick, h('span', { class: 'sub', text: 'برچسب:' }), tagInput]),
       h('div', { class: 'pz-groups' }, groups),
       h('div', { class: 'actions' }, actions)
     ]);
@@ -197,12 +206,29 @@ export const ADMIN_VIEWS2_PUZZLES_JS = String.raw`VIEWS.puzzles = function (root
       P.tab = 'approved'; reload();
     });
   }
-  function draw() { drawHead(); clear(body); if (P.tab === 'new') drawBuilder(); else if (P.tab === 'tiers') { var tb = h('div'); drawTiers(tb); body.appendChild(tb); } else body.appendChild(drawList()); }
+  function drawTopics(box) {
+    var rows = P.topics.map(function (t) {
+      var name = h('input', { value: t.nameFa }), slug = h('input', { value: t.slug, style: 'width:120px', dir: 'ltr' }), order = h('input', { type: 'number', value: String(t.sortOrder), style: 'width:70px' }), active = h('input', { type: 'checkbox' });
+      active.checked = t.isActive;
+      return h('div', { class: 'toolbar' }, [name, slug, order, h('label', { class: 'sub' }, [active, ' فعال']), badge(fa(t.puzzles) + ' پازل فعال', t.puzzles >= 3 ? 'b-ok' : 'b-warn'),
+        h('button', { class: 'btn sm', text: 'ذخیره', onclick: function () {
+          api('/admin/puzzle-topics', { method: 'POST', body: { id: t.id, slug: slug.value, nameFa: name.value, sortOrder: Number(order.value) || 0, isActive: active.checked } }).then(function (r) { r.ok ? (toast('ذخیره شد'), reload()) : fail(r); });
+        } })]);
+    });
+    var nn = h('input', { placeholder: 'نام موضوع، مثلا خوراکی' }), ns = h('input', { placeholder: 'نام لاتین، مثلا food', style: 'width:120px', dir: 'ltr' });
+    var add = h('div', { class: 'toolbar' }, [nn, ns, h('button', { class: 'btn primary sm', text: '＋ موضوع جدید', onclick: function () {
+      var order = P.topics.length ? Math.max.apply(null, P.topics.map(function (t) { return t.sortOrder; })) + 1 : 1;
+      api('/admin/puzzle-topics', { method: 'POST', body: { slug: ns.value, nameFa: nn.value, sortOrder: order, isActive: true } }).then(function (r) { r.ok ? (toast('موضوع ساخته شد'), reload()) : fail(r); });
+    } })]);
+    box.appendChild(card('موضوع‌های پازل', 'هر پازل را روی کارتش در یک موضوع بگذار. در دوئل و میزِ دور ۳ به بالا، طرف‌ها موضوع هر دور را از بین موضوع‌هایی انتخاب می‌کنند که دست‌کم ۳ پازل فعال دارند.', rows.concat([add])));
+  }
+  function draw() { drawHead(); clear(body); if (P.tab === 'topics') { var tp = h('div'); drawTopics(tp); body.appendChild(tp); } else if (P.tab === 'new') drawBuilder(); else if (P.tab === 'tiers') { var tb = h('div'); drawTiers(tb); body.appendChild(tb); } else body.appendChild(drawList()); }
   function reload() {
     api('/admin/puzzles').then(function (r) {
       if (r.status === 404) { clear(root); return root.appendChild(empty('بخش پازل روی این سرور فعال نیست')); }
       if (!r.ok) return fail(r);
-      P.tiers = r.body.tiers || []; P.ready = r.body.readiness; P.rows = r.body.puzzles; draw();
+      P.tiers = r.body.tiers || []; P.ready = r.body.readiness; P.rows = r.body.puzzles;
+      api('/admin/puzzle-topics').then(function (t) { P.topics = t.ok ? t.body.topics : []; draw(); });
     });
   }
   root.appendChild(head); root.appendChild(body);

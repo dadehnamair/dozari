@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { io as connect } from 'socket.io-client';
 import type { Socket } from 'socket.io-client';
 import type { AddressInfo } from 'node:net';
-import { DEFAULT_MATCH_RULES, TURN_SECONDS, matchEndedSchema, matchFoundSchema, matchViewSchema, mulberry32 } from '@dozari/shared';
+import { DEFAULT_MATCH_RULES, TURN_SECONDS, draftViewSchema, matchEndedSchema, matchFoundSchema, matchViewSchema, mulberry32 } from '@dozari/shared';
 import type { MatchRules, MatchView } from '@dozari/shared';
 import { buildServer } from '../index.js';
 import { AuthService } from '../auth/service.js';
@@ -69,6 +69,109 @@ describe('MatchService, timeouts with separate boards', () => {
     const v = matchViewSchema.parse(last(other, 'match:state'));
     expect(v.mistakes[first.turn]).toBe(1);
     expect(v.status).toBe('playing');
+  });
+});
+
+describe('MatchService, topic draft', () => {
+  /** A source with a puzzle per topic, so each round has its own board. */
+  const topicList = [{ id: 't-food', nameFa: 'خوراکی' }, { id: 't-tools', nameFa: 'ابزار' }, { id: 't-kitchen', nameFa: 'آشپزخانه' }, { id: 't-toys', nameFa: 'اسباب‌بازی' }];
+  const asked: (string | undefined)[] = [];
+  const topicSource: PuzzleSource = {
+    pickRandom: async (o) => {
+      asked.push(o?.topicId);
+      return { ...puzzle, id: `pz-${o?.topicId ?? 'any'}-${(o?.exclude ?? []).length}` };
+    },
+    pricesFor: async () => ({}),
+  };
+  function draftHarness(bots: string[] = []) {
+    let t = 1_000_000;
+    const timers: { at: number; fn: () => void; live: boolean }[] = [];
+    const sent: { to: string; event: string; payload: unknown }[] = [];
+    const svc = new MatchService({
+      puzzles: topicSource,
+      profile,
+      topics: async () => topicList,
+      topicDraft: async () => true,
+      isBot: (id) => bots.includes(id),
+      emit: (to, event, payload) => sent.push({ to, event, payload }),
+      now: () => t,
+      newSeed: () => 5,
+      schedule: (ms, fn) => {
+        const timer = { at: t + ms, fn, live: true };
+        timers.push(timer);
+        return () => (timer.live = false);
+      },
+    });
+    const advance = async (ms: number) => {
+      t += ms;
+      for (const timer of timers.filter((x) => x.live && x.at <= t)) {
+        timer.live = false;
+        timer.fn();
+      }
+      await new Promise((r) => setTimeout(r, 0));
+    };
+    const draft = (to: string) => draftViewSchema.parse(sent.filter((x) => x.to === to && x.event === 'draft:state').at(-1)?.payload);
+    return { svc, sent, advance, draft };
+  }
+
+  it('lets the sides name a topic each, closes used topics, draws the last odd round and then starts the match', async () => {
+    asked.length = 0;
+    const { svc, sent, draft } = draftHarness();
+    expect(await svc.start('A', 'B', { boards: 3 })).toBe(true);
+    expect(svc.inMatch('A') && svc.inMatch('B')).toBe(true); // drafting players cannot queue again
+    const first = draft('A');
+    expect(first.status).toBe('picking');
+    expect(first.rounds).toBe(3);
+    const picker = first.yourTurn ? 'A' : 'B';
+    const other = picker === 'A' ? 'B' : 'A';
+    expect(svc.pickTopic(other, 't-food')).toEqual({ ok: false, error: 'NOT_YOUR_PICK' });
+    expect(svc.pickTopic(picker, 'nope')).toEqual({ ok: false, error: 'UNKNOWN_TOPIC' });
+    expect(svc.pickTopic(picker, 't-tools')).toEqual({ ok: true });
+    expect(draft(other).yourTurn).toBe(true);
+    expect(draft(other).open.map((o) => o.id)).not.toContain('t-tools');
+    expect(svc.pickTopic(other, 'random')).toEqual({ ok: true });
+    await new Promise((r) => setTimeout(r, 5));
+    // round 3 was the system's: the draft is over and the match began on three boards
+    expect(svc.activeCount).toBe(1);
+    const view = matchViewSchema.parse(sent.filter((x) => x.to === 'A' && x.event === 'match:state').at(-1)?.payload);
+    expect(view.rounds).toBe(3);
+    expect(view.topics).toHaveLength(3);
+    expect(view.topics![0]).toBe('ابزار');
+    expect(new Set(view.topics).size).toBe(3);
+    expect(asked.filter(Boolean)).toContain('t-tools');
+  });
+
+  it('draws for a chooser who does not answer in time, and for a bot chooser right away', async () => {
+    const slow = draftHarness();
+    await slow.svc.start('A', 'B', { boards: 3 });
+    await slow.advance(21_000);
+    expect(slow.draft('A').picked).toHaveLength(1);
+    expect(slow.draft('A').picked[0]!.by).toBe('timeout');
+    await slow.advance(21_000);
+    expect(slow.svc.activeCount).toBe(1);
+
+    const bot = draftHarness(['B']);
+    await bot.svc.start('A', 'B', { boards: 3 });
+    for (let i = 0; i < 4 && bot.svc.activeCount === 0; i++) {
+      const v = bot.draft('A');
+      if (v.yourTurn) expect(bot.svc.pickTopic('A', 'random')).toEqual({ ok: true });
+      await bot.advance(5_000);
+    }
+    expect(bot.svc.activeCount).toBe(1);
+  });
+
+  it('leaving during the draft cancels it for both without a match, and one or two rounds skip the draft', async () => {
+    const { svc, sent, draft } = draftHarness();
+    await svc.start('A', 'B', { boards: 3 });
+    expect(svc.leave('A')).toEqual({ ok: true });
+    expect(draft('B').status).toBe('cancelled');
+    expect(svc.activeCount).toBe(0);
+    expect(svc.inMatch('A') || svc.inMatch('B')).toBe(false);
+
+    sent.length = 0;
+    await svc.start('A', 'B', { boards: 2 });
+    expect(sent.some((x) => x.event === 'draft:state')).toBe(false);
+    expect(svc.activeCount).toBe(1);
   });
 });
 

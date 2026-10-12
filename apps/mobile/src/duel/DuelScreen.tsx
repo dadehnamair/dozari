@@ -36,6 +36,7 @@ import { InviteSheet } from '../invite/InviteSheet';
 import { PlayerSheet } from '../social/PlayerSheet';
 import { ReportDialog } from '../feedback/ReportDialog';
 import { MatchHud } from './MatchHud';
+import { TopicDraft } from './TopicDraft';
 import { ChatDrawer } from './ChatDrawer';
 import { SpeechBubble } from './SpeechBubble';
 import { ArenaBackground } from './ArenaBackground';
@@ -368,6 +369,20 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   }
 
   const countdown = Math.ceil((introUntil - now) / 1000);
+  // A themed match: the sides name the topic of each round first.
+  if (state.draft && !view) {
+    return (
+      <TopicDraft
+        draft={state.draft}
+        now={now}
+        onPick={async (topic) => {
+          const ack = await (conn.current?.pickTopic(topic) ?? Promise.resolve({ ok: false as const, error: 'INTERNAL' as const }));
+          return ack.ok ? null : fa.duel.errors[ack.error] ?? fa.duel.errors.generic ?? null;
+        }}
+        onLeave={() => (void conn.current?.leave(), setStage('pick'), dispatch({ t: 'reset' }))}
+      />
+    );
+  }
   // Searching: the diamond search screen; once a rival is found: the versus screen counting down (D104).
   if (!state.found && stage !== 'resume') return <SearchScreen team={mode === 'team'} waitedSec={state.waitedSec} note={state.problem ? fa.duel.problems[state.problem] : undefined} onCancel={() => (void conn.current?.leaveQueue(), setStage('pick'), dispatch({ t: 'reset' }))} />;
   if (state.phase === 'idle' || state.phase === 'queued' || !view || countdown > 0) {
@@ -544,7 +559,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
               </View></Pulse>
             </View>
             <ComboRing streak={combo.streak} left={combo.left} showLabel={false} />
-            <View style={styles.mode}><Text style={styles.modeText}>{team ? (boards > 1 ? `${a.twoVsTwo} · ${a.boardOf((view.round ?? 0) + 1, boards)}` : a.twoVsTwo) : a.oneVsOne}</Text></View>
+            <View style={styles.mode}><Text style={styles.modeText}>{(team ? (boards > 1 ? `${a.twoVsTwo} · ${a.boardOf((view.round ?? 0) + 1, boards)}` : a.twoVsTwo) : boards > 1 ? `${a.oneVsOne} · ${a.boardOf((view.round ?? 0) + 1, boards)}` : a.oneVsOne) + (view.topics?.[view.round ?? 0] ? ` · ${view.topics[view.round ?? 0]}` : '')}</Text></View>
           </View>
 
           <View style={styles.hudWrap}>

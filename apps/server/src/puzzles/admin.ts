@@ -1,7 +1,8 @@
-import { and, asc, count, desc, eq, inArray, pricePoints, productEraTags, products, puzzleGroupItems, puzzleGroups, puzzleTiers, puzzles, sql } from '@dozari/db';
+import { and, asc, count, desc, eq, inArray, pricePoints, productEraTags, products, puzzleGroupItems, puzzleGroups, puzzleTags, puzzleTiers, puzzleTopics, puzzles, sql } from '@dozari/db';
 import { ruleToColumns } from '@dozari/db';
 import type { Db } from '@dozari/db';
-import { DEFAULT_PUZZLE_TIERS, GROUP_COUNT, GROUP_SIZE, MIN_PRICE_POINTS_PER_PRODUCT, draftTitle, explainRule, generatePuzzle, representativeLevel, tierProblem, trackRank } from '@dozari/shared';
+import { uuidv7 } from 'uuidv7';
+import { DEFAULT_PUZZLE_TIERS, PUZZLE_TAGS_MAX, GROUP_COUNT, GROUP_SIZE, MIN_PRICE_POINTS_PER_PRODUCT, draftTitle, explainRule, generatePuzzle, representativeLevel, tierProblem, trackRank } from '@dozari/shared';
 import type { AgeTrack, Catalog, GeneratedPuzzle, PuzzleTier, Rng } from '@dozari/shared';
 
 export interface NewGroup {
@@ -20,7 +21,27 @@ export interface PuzzleAdminRow {
   tierId: string | null;
   /** Which age track's pool the puzzle belongs to (D198). */
   ageTrack: AgeTrack;
+  /** Topic (موضوع) it is filed under for themed rounds, and its free-text tags. */
+  topicId: string | null;
+  tags: string[];
   groups: { level: number; titleFa: string | null; items: string[] }[];
+}
+
+export interface TopicRow {
+  id: string;
+  slug: string;
+  nameFa: string;
+  sortOrder: number;
+  isActive: boolean;
+  /** Approved puzzles filed under it (a topic is offered in a match only with enough of them). */
+  puzzles: number;
+}
+export type TopicInput = { id?: string; slug: string; nameFa: string; sortOrder: number; isActive: boolean };
+export type SaveTopicResult = { ok: true; id: string } | { ok: false; error: 'slug' | 'name' | 'duplicate' | 'not_found' };
+
+/** Tags are short lowercase-ish words; blanks and repeats go, the count is capped. */
+export function cleanTags(tags: readonly string[]): string[] {
+  return [...new Set(tags.map((t) => t.trim().replace(/\s+/g, ' ')).filter((t) => t.length >= 1 && t.length <= 50))].slice(0, PUZZLE_TAGS_MAX);
 }
 
 export type TierInput = { id?: string; nameFa: string; sortOrder: number; minLevel: number; maxLevel: number | null };
@@ -62,6 +83,11 @@ export interface PuzzleAdmin {
   /** Puts a puzzle in a tier (null = unrated). */
   setTier(puzzleId: string, tierId: string | null): Promise<'ok' | 'not_found' | 'unknown_tier'>;
   setStatus(id: string, status: 'approved' | 'retired'): Promise<'ok' | 'not_found'>;
+  /** The topics (admin order) with how many approved puzzles each holds. */
+  topics(): Promise<TopicRow[]>;
+  saveTopic(topic: TopicInput): Promise<SaveTopicResult>;
+  /** Files a puzzle under a topic (null = general) and replaces its tags. */
+  setTopic(puzzleId: string, topicId: string | null, tags: readonly string[]): Promise<'ok' | 'not_found' | 'unknown_topic'>;
   /**
    * Makes up to `count` validated puzzles from the approved catalog and saves them as `draft` (a human polishes the titles, then approves).
    * Each puzzle is made for the player levels of a tier (`opts.tierId`, or every tier in turn) and tagged with it.
@@ -118,6 +144,7 @@ export function createDbPuzzleAdmin(db: Db): PuzzleAdmin {
         .from(puzzleGroupItems)
         .innerJoin(products, eq(products.id, puzzleGroupItems.productId))
         .where(inArray(puzzleGroupItems.puzzleId, ids));
+      const tagRows = await db.select().from(puzzleTags).where(inArray(puzzleTags.puzzleId, ids));
       return rows.map((r) => ({
         id: r.id,
         status: r.status,
@@ -125,6 +152,8 @@ export function createDbPuzzleAdmin(db: Db): PuzzleAdmin {
         createdAt: r.createdAt.getTime(),
         tierId: r.tierId,
         ageTrack: r.ageTrack,
+        topicId: r.topicId,
+        tags: tagRows.filter((t) => t.puzzleId === r.id).map((t) => t.tag),
         groups: groups
           .filter((g) => g.puzzleId === r.id)
           .sort((a, b) => a.level - b.level)
@@ -235,6 +264,43 @@ export function createDbPuzzleAdmin(db: Db): PuzzleAdmin {
       await db.update(puzzles).set({ tierId }).where(eq(puzzles.id, puzzleId));
       return 'ok';
     },
+    async topics() {
+      const rows = await db.select().from(puzzleTopics).orderBy(asc(puzzleTopics.sortOrder), asc(puzzleTopics.nameFa));
+      const counts = await db.select({ topicId: puzzles.topicId, n: count() }).from(puzzles).where(eq(puzzles.status, 'approved')).groupBy(puzzles.topicId);
+      return rows.map((r) => ({ id: r.id, slug: r.slug, nameFa: r.nameFa, sortOrder: r.sortOrder, isActive: r.isActive, puzzles: Number(counts.find((c) => c.topicId === r.id)?.n ?? 0) }));
+    },
+    async saveTopic(t) {
+      const slug = t.slug.trim().toLowerCase();
+      const nameFa = t.nameFa.trim();
+      if (!/^[a-z0-9][a-z0-9-]{0,48}$/.test(slug)) return { ok: false, error: 'slug' };
+      if (nameFa.length < 2 || nameFa.length > 60) return { ok: false, error: 'name' };
+      const [clash] = await db.select({ id: puzzleTopics.id }).from(puzzleTopics).where(eq(puzzleTopics.slug, slug));
+      if (clash && clash.id !== t.id) return { ok: false, error: 'duplicate' };
+      if (t.id) {
+        const [r] = await db.select({ id: puzzleTopics.id }).from(puzzleTopics).where(eq(puzzleTopics.id, t.id));
+        if (!r) return { ok: false, error: 'not_found' };
+        await db.update(puzzleTopics).set({ slug, nameFa, sortOrder: t.sortOrder, isActive: t.isActive }).where(eq(puzzleTopics.id, t.id));
+        return { ok: true, id: t.id };
+      }
+      const id = uuidv7();
+      await db.insert(puzzleTopics).values({ id, slug, nameFa, sortOrder: t.sortOrder, isActive: t.isActive });
+      return { ok: true, id };
+    },
+    async setTopic(puzzleId, topicId, tags) {
+      const [r] = await db.select({ id: puzzles.id }).from(puzzles).where(eq(puzzles.id, puzzleId));
+      if (!r) return 'not_found';
+      if (topicId) {
+        const [t] = await db.select({ id: puzzleTopics.id }).from(puzzleTopics).where(eq(puzzleTopics.id, topicId));
+        if (!t) return 'unknown_topic';
+      }
+      await db.transaction(async (tx) => {
+        await tx.update(puzzles).set({ topicId }).where(eq(puzzles.id, puzzleId));
+        await tx.delete(puzzleTags).where(eq(puzzleTags.puzzleId, puzzleId));
+        const clean = cleanTags(tags);
+        if (clean.length > 0) await tx.insert(puzzleTags).values(clean.map((tag) => ({ puzzleId, tag })));
+      });
+      return 'ok';
+    },
     async counts() {
       const rows = await db.select({ status: puzzles.status, n: count() }).from(puzzles).groupBy(puzzles.status);
       const n = (s: string) => Number(rows.find((r) => r.status === s)?.n ?? 0);
@@ -258,6 +324,7 @@ export function createDbPuzzleAdmin(db: Db): PuzzleAdmin {
 /** In-memory twin for tests: `known` is the set of existing product ids. */
 export function createMemoryPuzzleAdmin(known: Set<string>, catalog: Catalog = []): PuzzleAdmin & { rows: PuzzleAdminRow[] } {
   const rows: PuzzleAdminRow[] = [];
+  const topicRows: TopicRow[] = [];
   let tiers: PuzzleTier[] = [];
   return {
     rows,
@@ -272,7 +339,7 @@ export function createMemoryPuzzleAdmin(known: Set<string>, catalog: Catalog = [
       if (shape !== 'ok') return { ok: false, error: shape };
       if (groups.some((g) => g.productIds.some((id) => !known.has(id)))) return { ok: false, error: 'unknown_product' };
       const id = `00000000-0000-7000-9000-${String(rows.length + 1).padStart(12, "0")}`;
-      rows.unshift({ id, status, source: 'curated', createdAt: 0, tierId: tierId ?? null, ageTrack, groups: groups.map((g) => ({ level: g.level, titleFa: g.titleFa, items: g.productIds })) });
+      rows.unshift({ id, status, source: 'curated', createdAt: 0, tierId: tierId ?? null, ageTrack, topicId: null, tags: [], groups: groups.map((g) => ({ level: g.level, titleFa: g.titleFa, items: g.productIds })) });
       return { ok: true, id };
     },
     async generate(count, rng, opts = {}) {
@@ -281,7 +348,7 @@ export function createMemoryPuzzleAdmin(known: Set<string>, catalog: Catalog = [
       for (const { puzzle: g, tierId } of made) {
         const id = `00000000-0000-7000-9000-${String(rows.length + 1).padStart(12, '0')}`;
         ids.push(id);
-        rows.unshift({ id, status: 'draft', source: 'generated', createdAt: 0, tierId, ageTrack: 'adult', groups: g.groups.map((x) => ({ level: x.level, titleFa: opts.plainTitles ? explainRule(x.rule) : draftTitle(x.rule, rng), items: [...x.productIds] })) });
+        rows.unshift({ id, status: 'draft', source: 'generated', createdAt: 0, tierId, ageTrack: 'adult', topicId: null, tags: [], groups: g.groups.map((x) => ({ level: x.level, titleFa: opts.plainTitles ? explainRule(x.rule) : draftTitle(x.rule, rng), items: [...x.productIds] })) });
       }
       return { requested: count, created: made.length, catalogSize: catalog.length, ids };
     },
@@ -313,6 +380,33 @@ export function createMemoryPuzzleAdmin(known: Set<string>, catalog: Catalog = [
       if (!r) return 'not_found';
       if (tierId && !tiers.some((x) => x.id === tierId)) return 'unknown_tier';
       r.tierId = tierId;
+      return 'ok';
+    },
+    async topics() {
+      return topicRows.map((t) => ({ ...t, puzzles: rows.filter((r) => r.status === 'approved' && r.topicId === t.id).length }));
+    },
+    async saveTopic(t) {
+      const slug = t.slug.trim().toLowerCase();
+      const nameFa = t.nameFa.trim();
+      if (!/^[a-z0-9][a-z0-9-]{0,48}$/.test(slug)) return { ok: false, error: 'slug' };
+      if (nameFa.length < 2 || nameFa.length > 60) return { ok: false, error: 'name' };
+      if (topicRows.some((x) => x.slug === slug && x.id !== t.id)) return { ok: false, error: 'duplicate' };
+      if (t.id) {
+        const x = topicRows.find((r) => r.id === t.id);
+        if (!x) return { ok: false, error: 'not_found' };
+        Object.assign(x, { slug, nameFa, sortOrder: t.sortOrder, isActive: t.isActive });
+        return { ok: true, id: x.id };
+      }
+      const id = `00000000-0000-7000-d000-${String(topicRows.length + 1).padStart(12, '0')}`;
+      topicRows.push({ id, slug, nameFa, sortOrder: t.sortOrder, isActive: t.isActive, puzzles: 0 });
+      return { ok: true, id };
+    },
+    async setTopic(puzzleId, topicId, tags) {
+      const r = rows.find((x) => x.id === puzzleId);
+      if (!r) return 'not_found';
+      if (topicId && !topicRows.some((t) => t.id === topicId)) return 'unknown_topic';
+      r.topicId = topicId;
+      r.tags = cleanTags(tags);
       return 'ok';
     },
     async counts() {

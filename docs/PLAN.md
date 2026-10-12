@@ -272,7 +272,7 @@ Start after the first Android build.
 
 ## Duel/table overhaul (D226, proposed) — see `docs/logic/themed-rounds.md`
 
-- [ ] 1. Puzzle topics + tags + themed-round picker — shared picker, tables and migration done; still open: server pick step, admin topic editor, mobile topic chooser
+- [x] 1. Puzzle topics + tags + themed-round picker — built: shared picker + draft, tables (migration 0080), admin topics/tags, server draft in `MatchService.start`, mobile `TopicDraft`; content (tagging puzzles with topics) is the owner's next step
 - [x] 2. Separate boards, face-down cards off-turn, «found N of 4» only — built behind `match.separate_boards` (default on)
 - [x] 3. Leave penalty, daily ban, monthly badge, reconnect grace — `docs/logic/leave-penalty.md` (migration 0081, `leave.*` settings)
 - [x] 4. Timeout shown differently but scored as wrong; win only by solved cards — separate-boards mode

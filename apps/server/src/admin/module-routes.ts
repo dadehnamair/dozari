@@ -848,6 +848,24 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       void audit('puzzle.tier', p.data.id, b.data.tierId ?? '-');
       return { ok: true };
     });
+    g.get('/admin/puzzle-topics', async () => ({ topics: await puzzles.topics() }));
+    g.post('/admin/puzzle-topics', async (req, reply) => {
+      const b = z.object({ id: z.string().uuid().optional(), slug: z.string().trim().min(1).max(50), nameFa: z.string().trim().min(2).max(60), sortOrder: z.number().int().min(0).max(1000).default(0), isActive: z.boolean().default(true) }).safeParse(req.body);
+      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await puzzles.saveTopic(b.data);
+      if (!out.ok) return reply.code(out.error === 'not_found' ? 404 : 400).send({ error: out.error });
+      void audit('puzzle.topic', out.id, b.data.nameFa);
+      return reply.code(b.data.id ? 200 : 201).send({ id: out.id });
+    });
+    g.put('/admin/puzzles/:id/topic', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object({ topicId: z.string().uuid().nullable(), tags: z.array(z.string().max(50)).max(20).default([]) }).safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await puzzles.setTopic(p.data.id, b.data.topicId, b.data.tags);
+      if (out !== 'ok') return reply.code(out === 'not_found' ? 404 : 400).send({ error: out });
+      void audit('puzzle.topic.set', p.data.id, b.data.topicId ?? '-');
+      return { ok: true };
+    });
     g.put('/admin/puzzles/:id/titles', async (req, reply) => {
       const p = idParam.safeParse(req.params);
       const b = z.object({ titles: z.array(z.object({ level: z.number().int().min(0).max(3), titleFa: z.string().trim().min(2).max(100) })).min(1).max(4) }).safeParse(req.body);
