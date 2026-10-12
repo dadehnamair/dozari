@@ -27,6 +27,10 @@ Proposed defaults; numbers live in `packages/shared/src/config/topics.ts`.
 - Admin: puzzle tab «موضوع‌ها» (create / rename / order / switch off topics, with the count of approved puzzles) and, on each puzzle card, a topic select and tags (`PUT /admin/puzzles/:id/topic`).
 - Not built: a topic filter in solo, search by tag in the admin.
 
+## Defined tags (built)
+- Tags are a **vocabulary the admin defines**, not free text: table `puzzle_tag_defs` (slug latin kebab-case, Persian name, order, on/off; migration 0084). `puzzle_tags.tag` stores the slug. `PUT /admin/puzzles/:id/topic` rejects a tag that is not defined (`unknown_tag`); a switched-off tag cannot be added any more but stays on puzzles that already carry it. Renaming a slug moves its puzzles along.
+- Admin: tab «موضوع‌ها» has «برچسب‌های پازل» (create / rename / order / switch off, with the puzzle count) and each puzzle card shows a chip per tag to toggle. API: `GET/POST /admin/puzzle-tags`.
+
 ## Slice 2 — separate boards (built)
 - Rules flag `separateBoards` (admin setting `match.separate_boards`, default on; games already running keep their mode). Off = the old shared board.
 - Each side has its own copy of the 16 cards in its own order and its own found groups / tried sets / mistakes (`MatchState.sep`). Turns still alternate; a correct guess keeps the turn. A side that finds three groups gets the fourth (the cards left) and takes the board: first to all four wins it (`boardsWon`). Both locked out → more groups, then fewer mistakes, else nobody. The match goes to the side with more boards won (tie → points, mistakes, earlier last correct guess).
