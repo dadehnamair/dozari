@@ -922,8 +922,8 @@ if (isMainModule(import.meta.url)) {
           priceRound: settings ? async () => (await settings.num('match.price_round')) === 1 : undefined,
           rules: settings
             ? async () => {
-                const [turnSeconds, maxMistakes, maxTimeouts, groupPoints, firstBloodBonus] = await Promise.all([settings.num('game.turn_seconds'), settings.num('game.match_max_mistakes'), settings.num('game.max_consecutive_timeouts'), settings.list('score.group_points'), settings.num('score.first_blood_bonus')]);
-                return { turnSeconds, maxMistakes, maxTimeouts, groupPoints, firstBloodBonus };
+                const [turnSeconds, maxMistakes, maxTimeouts, groupPoints, firstBloodBonus, separate] = await Promise.all([settings.num('game.turn_seconds'), settings.num('game.match_max_mistakes'), settings.num('game.max_consecutive_timeouts'), settings.list('score.group_points'), settings.num('score.first_blood_bonus'), settings.num('match.separate_boards')]);
+                return { turnSeconds, maxMistakes, maxTimeouts, groupPoints, firstBloodBonus, separateBoards: separate === 1 };
               }
             : undefined,
           stakes: duelStakes,

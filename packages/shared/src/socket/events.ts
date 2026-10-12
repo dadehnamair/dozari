@@ -168,6 +168,9 @@ export const matchViewSchema = z.object({
   rounds: z.number().int().positive().optional(),
   cards: z.array(soloCardSchema),
   solved: z.array(matchSolvedGroupSchema),
+  /** Separate-boards mode: groups found (of 4) by each side, and boards won. A rival's solutions are never sent, only this count. */
+  found: z.tuple([z.number().int().min(0).max(4), z.number().int().min(0).max(4)]).optional(),
+  boardsWon: z.tuple([z.number().int().nonnegative(), z.number().int().nonnegative()]).optional(),
   scores: z.tuple([z.number().int(), z.number().int()]),
   mistakes: z.tuple([z.number().int(), z.number().int()]),
   lockedOut: z.tuple([z.boolean(), z.boolean()]),
@@ -197,6 +200,8 @@ export const matchEventSchema = z.discriminatedUnion('t', [
   z.object({ t: z.literal('gem'), userId: z.string(), amount: z.number().int().positive() }),
   z.object({ t: z.literal('group_solved'), side, level, points: z.number().int().positive(), firstBlood: z.boolean() }),
   z.object({ t: z.literal('group_revealed'), level }),
+  /** Separate-boards mode: this side has `count` of 4 groups (all a rival is told about progress). */
+  z.object({ t: z.literal('found'), side, count: z.number().int().min(1).max(4) }),
   /** A board is over (multi-board match): its full solution may be shown, then the next board starts. */
   z.object({ t: z.literal('board_done'), round: z.number().int().nonnegative(), groups: z.array(z.object({ level, titleFa: z.string(), explanationFa: z.string(), productIds: z.array(z.string()) })).length(4).optional() }),
   z.object({ t: z.literal('board'), round: z.number().int().nonnegative(), rounds: z.number().int().positive() }),

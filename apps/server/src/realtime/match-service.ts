@@ -363,7 +363,8 @@ export class MatchService {
 
   /** Both sides' scores of the match a player sits in (the lobby shows them on a playing table), or null. */
   scoresOf(playerId: string): [number, number] | null {
-    const s = this.entryOf(playerId)?.state.scores;
+    const st = this.entryOf(playerId)?.state;
+    const s = st ? (st.sep ? st.boardsWon : st.scores) : undefined;
     return s ? [s[0], s[1]] : null;
   }
 
@@ -426,6 +427,7 @@ export class MatchService {
       rounds: v.rounds,
       cards: v.cards.map((id) => ({ id, nameFa: info[id]?.nameFa ?? id, unitFa: info[id]?.unitFa ?? null, iconKey: info[id]?.iconKey ?? null })),
       solved: v.solved.map((g) => ({ level: g.level, titleFa: text.get(g.level)?.titleFa ?? '', explanationFa: text.get(g.level)?.explanationFa ?? '', productIds: [...g.productIds], by: g.by })),
+      ...(v.found ? { found: [v.found[0], v.found[1]] as [number, number], boardsWon: [v.boardsWon![0], v.boardsWon![1]] as [number, number] } : {}),
       scores: [v.scores[0], v.scores[1]],
       mistakes: [v.mistakes[0], v.mistakes[1]],
       lockedOut: [v.lockedOut[0], v.lockedOut[1]],
@@ -460,6 +462,10 @@ export class MatchService {
     for (const p of entry.state.players) {
       for (const e of events) {
         if (e.t === 'proposal') continue;
+        // Separate boards: the rival learns only «found N of 4», never which cards, which guess or how it went.
+        if (entry.state.sep && 'side' in e && e.side !== p.side) {
+          if (e.t === 'guess' || e.t === 'group_solved') continue;
+        }
         if (e.t === 'finished' && entry.pgPending) continue; // the match is not over for the clients yet
         // The magnifier's cards are private to the side that used it.
         const out = e.t === 'board_done' ? this.boardDone(entry, e.round) : e.t === 'power' && e.itemIds && e.side !== p.side ? { t: 'power' as const, side: e.side, kind: e.kind } : e;

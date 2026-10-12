@@ -585,6 +585,11 @@ export const fa = {
       oneVsOne: '۱ در ۱',
       twoVsTwo: '۲ در ۲',
       ofFour: 'از ۴ دسته',
+      /** Separate-boards duel: caption under the score (boards won) and the rival's progress, the only thing a player learns about it. */
+      boardsWon: 'دورهای برده',
+      cardBack: 'کارت برگشته؛ تا نوبتت نشده دیده نمی‌شود',
+      rivalFound: (n: number) => (n >= 3 ? 'حریفت ۳ از ۴ دسته رو پیدا کرده — یه قدم تا بردِ این دور!' : `حریفت ${toPersianDigits(String(n))} از ۴ دسته رو پیدا کرده`),
+      rivalFoundNone: 'حریفت هنوز دسته‌ای پیدا نکرده',
       entry: (n: number) => `ورودی ${toPersianDigits(String(n))}`,
       tierNames: { bronze: 'برنزی', silver: 'نقره‌ای', gold: 'طلایی' } as Record<string, string>,
       tierChip: (name: string, fee: number) => `${name} · ${toPersianDigits(String(fee))}`,

@@ -20,7 +20,7 @@ type Side = { name: string; who: CharacterId; score: number; groups: number; act
  * Score row of screen-match (`13 Match Screens v2`): a blue card for the player and a pink card for the rival (square portrait, name,
  * level chip, four group pips), the score between them, and the tug bar under. The player's card carries the «کل‌کل» badge.
  */
-export function MatchHud({ me, rival, onChat, chatOpen = false, chatCooling = false }: { me: Side; rival: Side; /** Opens the taunt drawer; no badge when absent. */ onChat?: () => void; chatOpen?: boolean; /** A taunt was just sent: the badge dims until the pause is over. */ chatCooling?: boolean }) {
+export function MatchHud({ me, rival, onChat, chatOpen = false, chatCooling = false, ofLabel }: { me: Side; rival: Side; /** Small caption under the score (boards won in separate-boards mode); default «از ۴ دسته». */ ofLabel?: string; /** Opens the taunt drawer; no badge when absent. */ onChat?: () => void; chatOpen?: boolean; /** A taunt was just sent: the badge dims until the pause is over. */ chatCooling?: boolean }) {
   return (
     <View>
       <View style={styles.row}>
@@ -31,7 +31,7 @@ export function MatchHud({ me, rival, onChat, chatOpen = false, chatCooling = fa
             <Text style={styles.colon}> : </Text>
             <Text style={{ color: '#FF8FB6' }}>{toPersianDigits(String(rival.score))}</Text>
           </Text>
-          <Text style={styles.of}>{fa.duel.arena.ofFour}</Text>
+          <Text style={styles.of}>{ofLabel ?? fa.duel.arena.ofFour}</Text>
         </View>
         <Card side={rival} tone="rival" />
       </View>

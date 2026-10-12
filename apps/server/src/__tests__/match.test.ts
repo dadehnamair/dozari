@@ -2,8 +2,8 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { io as connect } from 'socket.io-client';
 import type { Socket } from 'socket.io-client';
 import type { AddressInfo } from 'node:net';
-import { TURN_SECONDS, matchEndedSchema, matchFoundSchema, matchViewSchema, mulberry32 } from '@dozari/shared';
-import type { MatchView } from '@dozari/shared';
+import { DEFAULT_MATCH_RULES, TURN_SECONDS, matchEndedSchema, matchFoundSchema, matchViewSchema, mulberry32 } from '@dozari/shared';
+import type { MatchRules, MatchView } from '@dozari/shared';
 import { buildServer } from '../index.js';
 import { AuthService } from '../auth/service.js';
 import type { UserRecord, UserRepository } from '../auth/service.js';
@@ -23,13 +23,14 @@ const source: PuzzleSource = { pickRandom: async () => puzzle, pricesFor: async 
 const profile = async (userId: string): Promise<PlayerProfile> => ({ nickname: `n-${userId}`, avatarKey: 'a', level: 1, coins: 0 });
 
 /** Fake clock: timers fire only when the test says so. */
-function harness() {
+function harness(rules?: () => Promise<MatchRules>) {
   let t = 1_000_000;
   const timers: { at: number; fn: () => void; live: boolean }[] = [];
   const sent: { to: string; event: string; payload: unknown }[] = [];
   const svc = new MatchService({
     puzzles: source,
     profile,
+    rules,
     emit: (to, event, payload) => sent.push({ to, event, payload }),
     now: () => t,
     newSeed: () => 5,
@@ -49,6 +50,30 @@ function harness() {
   const last = (to: string, event: string) => sent.filter((s) => s.to === to && s.event === event).at(-1)?.payload;
   return { svc, sent, advance, last };
 }
+
+describe('MatchService, separate boards', () => {
+  it('tells the rival only how many groups were found, never the cards, the guess or its result', async () => {
+    const { svc, sent, last } = harness(async () => ({ ...DEFAULT_MATCH_RULES, separateBoards: true }));
+    await svc.start('A', 'B');
+    const va = matchViewSchema.parse(last('A', 'match:state'));
+    const mover = va.turn === 0 ? 'A' : 'B';
+    const other = mover === 'A' ? 'B' : 'A';
+    sent.length = 0;
+    expect(await svc.submit(mover, ids(0))).toEqual({ ok: true });
+    const mine = matchViewSchema.parse(last(mover, 'match:state'));
+    const theirs = matchViewSchema.parse(last(other, 'match:state'));
+    expect(mine.solved).toHaveLength(1);
+    expect(theirs.solved).toHaveLength(0);
+    expect(theirs.cards).toHaveLength(16);
+    expect(mine.found?.[mine.you]).toBe(1);
+    expect(theirs.found?.[mine.you]).toBe(1);
+    const toRival = sent.filter((x) => x.to === other && x.event === 'match:event').map((x) => x.payload as { t: string });
+    expect(toRival.map((e) => e.t)).toContain('found');
+    expect(toRival.map((e) => e.t)).not.toContain('guess');
+    expect(toRival.map((e) => e.t)).not.toContain('group_solved');
+    expect(JSON.stringify(toRival)).not.toContain('g0p');
+  });
+});
 
 describe('MatchService', () => {
   it('starts a match, tells both players and never exposes unsolved groups', async () => {
