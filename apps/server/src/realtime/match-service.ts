@@ -475,7 +475,7 @@ export class MatchService {
         if (e.t === 'proposal') continue;
         // Separate boards: the rival learns only «found N of 4», never which cards, which guess or how it went.
         if (entry.state.sep && 'side' in e && e.side !== p.side) {
-          if (e.t === 'guess' || e.t === 'group_solved') continue;
+          if (e.t === 'guess' || e.t === 'group_solved' || e.t === 'timeout') continue;
         }
         if (e.t === 'finished' && entry.pgPending) continue; // the match is not over for the clients yet
         // The magnifier's cards are private to the side that used it.
