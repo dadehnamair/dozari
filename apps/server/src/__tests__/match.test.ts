@@ -23,7 +23,7 @@ const source: PuzzleSource = { pickRandom: async () => puzzle, pricesFor: async 
 const profile = async (userId: string): Promise<PlayerProfile> => ({ nickname: `n-${userId}`, avatarKey: 'a', level: 1, coins: 0 });
 
 /** Fake clock: timers fire only when the test says so. */
-function harness(rules?: () => Promise<MatchRules>, onLeave?: NonNullable<ConstructorParameters<typeof MatchService>[0]['onLeave']>) {
+function harness(rules?: () => Promise<MatchRules>, onLeave?: NonNullable<ConstructorParameters<typeof MatchService>[0]['onLeave']>, items?: { stock: Record<string, { shuffle: number; reveal: number }>; consumed: string[] }) {
   let t = 1_000_000;
   const timers: { at: number; fn: () => void; live: boolean }[] = [];
   const sent: { to: string; event: string; payload: unknown }[] = [];
@@ -32,6 +32,8 @@ function harness(rules?: () => Promise<MatchRules>, onLeave?: NonNullable<Constr
     profile,
     rules,
     onLeave,
+    itemsOf: items ? async (ids) => Object.fromEntries(ids.map((id) => [id, items.stock[id] ?? { shuffle: 0, reveal: 0 }])) : undefined,
+    consumeItem: items ? async (id, effect) => (items.consumed.push(`${id}:${effect}`), true) : undefined,
     emit: (to, event, payload) => sent.push({ to, event, payload }),
     now: () => t,
     newSeed: () => 5,
@@ -67,6 +69,53 @@ describe('MatchService, timeouts with separate boards', () => {
     const v = matchViewSchema.parse(last(other, 'match:state'));
     expect(v.mistakes[first.turn]).toBe(1);
     expect(v.status).toBe('playing');
+  });
+});
+
+describe('MatchService, bought items', () => {
+  const sepRules = async () => ({ ...DEFAULT_MATCH_RULES, separateBoards: true });
+
+  it('shuffle re-orders only the rival\'s cards, tells the rival it happened and takes one item from the inventory', async () => {
+    const items = { stock: { A: { shuffle: 1, reveal: 0 }, B: { shuffle: 0, reveal: 0 } }, consumed: [] as string[] };
+    const { svc, sent, last } = harness(sepRules, undefined, items);
+    await svc.start('A', 'B');
+    const before = matchViewSchema.parse(last('B', 'match:state'));
+    expect(matchViewSchema.parse(last('A', 'match:state')).items).toEqual({ shuffle: 1, reveal: 0 });
+    sent.length = 0;
+    expect(await svc.useItem('A', 'shuffle')).toEqual({ ok: true });
+    expect(items.consumed).toEqual(['A:shuffle_rival']);
+    const after = matchViewSchema.parse(last('B', 'match:state'));
+    expect(after.cards.map((c) => c.id).sort()).toEqual(before.cards.map((c) => c.id).sort());
+    expect(after.cards.map((c) => c.id)).not.toEqual(before.cards.map((c) => c.id));
+    expect(matchViewSchema.parse(last('A', 'match:state')).items).toEqual({ shuffle: 0, reveal: 0 });
+    const toB = sent.filter((x) => x.to === 'B' && x.event === 'match:event').map((x) => x.payload as { t: string; kind?: string });
+    expect(toB).toContainEqual({ t: 'power', side: 0, kind: 'shuffle' });
+    // a second use is refused and takes nothing
+    expect(await svc.useItem('A', 'shuffle')).toEqual({ ok: false, error: 'NO_POWER' });
+    expect(items.consumed).toHaveLength(1);
+  });
+
+  it('reveal shows the four cards of an open group to the user alone', async () => {
+    const items = { stock: { A: { shuffle: 0, reveal: 1 }, B: { shuffle: 0, reveal: 1 } }, consumed: [] as string[] };
+    const { svc, sent, last } = harness(sepRules, undefined, items);
+    await svc.start('A', 'B');
+    const mover = matchViewSchema.parse(last('A', 'match:state')).turn === 0 ? 'A' : 'B';
+    const other = mover === 'A' ? 'B' : 'A';
+    sent.length = 0;
+    expect(await svc.useItem(other, 'reveal')).toEqual({ ok: false, error: 'NOT_YOUR_TURN' });
+    expect(items.consumed).toEqual([]); // refused before anything was taken
+    expect(await svc.useItem(mover, 'reveal')).toEqual({ ok: true });
+    const own = sent.filter((x) => x.to === mover && x.event === 'match:event').map((x) => x.payload as { t: string; itemIds?: string[] });
+    expect(own.find((e) => e.t === 'power')?.itemIds).toHaveLength(4);
+    const theirs = sent.filter((x) => x.to === other && x.event === 'match:event').map((x) => x.payload as { t: string; itemIds?: string[] });
+    expect(theirs.find((e) => e.t === 'power')?.itemIds).toBeUndefined();
+  });
+
+  it('without stock nothing is taken', async () => {
+    const items = { stock: {}, consumed: [] as string[] };
+    const { svc } = harness(sepRules, undefined, items);
+    await svc.start('A', 'B');
+    expect(await svc.useItem('A', 'shuffle')).toEqual({ ok: false, error: 'NO_POWER' });
   });
 });
 

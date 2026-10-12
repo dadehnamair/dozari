@@ -102,7 +102,7 @@ export const queueJoinSchema = z.object({ mode: z.enum(['duel', 'team']), /** St
 export const matchProposeSchema = z.object({ itemIds: z.array(z.string().min(1).max(64)).max(4) });
 export const matchSubmitSchema = z.object({ itemIds: z.array(z.string().min(1).max(64)).length(4) });
 /** Without a match id the server resumes whatever match the player is in (e.g. one a private table started). */
-export const matchPowerSchema = z.object({ kind: z.enum(['magnifier', 'freeze']) });
+export const matchPowerSchema = z.object({ kind: z.enum(['magnifier', 'freeze', 'shuffle', 'reveal']) });
 export const matchResumeSchema = z.object({ matchId: z.string().uuid().optional() });
 
 /** The guess in rials as a decimal string (a toman price times ten); the server checks it is positive and sane. */
@@ -178,6 +178,8 @@ export const matchViewSchema = z.object({
   lockedOut: z.tuple([z.boolean(), z.boolean()]),
   /** The viewer's own power-ups left, and until when (epoch ms) each side is frozen. Optional for older snapshots. */
   powers: z.object({ magnifier: z.number().int().nonnegative(), freeze: z.number().int().nonnegative() }).optional(),
+  /** Bought items the viewer still holds in this match (shuffle the rival's cards, reveal a group). */
+  items: z.object({ shuffle: z.number().int().nonnegative(), reveal: z.number().int().nonnegative() }).optional(),
   /** The viewer already used their one power-up of the match (each player gets one, any kind). */
   powerUsed: z.boolean().optional(),
   frozenUntil: z.tuple([z.number().int().nonnegative(), z.number().int().nonnegative()]).optional(),
@@ -210,7 +212,7 @@ export const matchEventSchema = z.discriminatedUnion('t', [
   z.object({ t: z.literal('locked_out'), side }),
   z.object({ t: z.literal('timeout'), side }),
   /** A power-up was used; `itemIds` (the magnifier's two cards) only reaches the user's own side. */
-  z.object({ t: z.literal('power'), side, kind: z.enum(['magnifier', 'freeze']), itemIds: z.array(z.string()).optional(), until: z.number().int().optional() }),
+  z.object({ t: z.literal('power'), side, kind: z.enum(['magnifier', 'freeze', 'shuffle', 'reveal']), itemIds: z.array(z.string()).optional(), until: z.number().int().optional() }),
   z.object({ t: z.literal('turn'), side, turnId: z.number().int().positive(), captain: z.string().optional() }),
   z.object({ t: z.literal('captain'), side, userId: z.string() }),
   z.object({ t: z.literal('finished'), result: matchResultSchema }),

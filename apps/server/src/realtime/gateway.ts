@@ -241,7 +241,11 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
     socket.on(ClientEvent.matchPower, (payload: unknown, ack?: (a: Ack) => void) => {
       const body = matchPowerSchema.safeParse(payload);
       if (!body.success) return ack?.({ ok: false, error: 'INVALID_PAYLOAD' });
-      ack?.(matches ? matches.power(userId, body.data.kind) : { ok: false, error: 'NOT_IN_MATCH' });
+      if (!matches) return ack?.({ ok: false, error: 'NOT_IN_MATCH' });
+      const kind = body.data.kind;
+      // The two bought items go through the inventory (async); the free power-ups stay synchronous.
+      if (kind === 'shuffle' || kind === 'reveal') return void matches.useItem(userId, kind).then((out) => ack?.(out)).catch(() => ack?.({ ok: false, error: 'INTERNAL' }));
+      ack?.(matches.power(userId, kind));
     });
 
     socket.on(ClientEvent.matchResume, (payload: unknown, ack?: (a: Ack) => void) => {

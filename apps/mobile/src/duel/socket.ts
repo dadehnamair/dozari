@@ -13,7 +13,7 @@ export interface DuelConnection {
   resume(): Promise<Ack>;
   submit(itemIds: string[]): Promise<Ack>;
   /** A power-up on the player's own turn; the magnifier's cards arrive as a `power` event for this player only. */
-  power(kind: 'magnifier' | 'freeze'): Promise<Ack>;
+  power(kind: 'magnifier' | 'freeze' | 'shuffle' | 'reveal'): Promise<Ack>;
   /** 2v2: show the captain the cards the player has picked (replaces the previous proposal). */
   propose(itemIds: string[]): Promise<Ack>;
   leave(): Promise<Ack>;

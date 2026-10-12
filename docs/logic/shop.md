@@ -59,6 +59,10 @@ flag a few higher-priced items to switch the rotation on. The app shows «فقط
 
 A friend whose birthday week it is (`birthday.info(...).badge`) can be given a **small gift** from the shop: a coin-priced consumable (`hint_token` or `wheel_spin`, price ≤ `SHOP_GIFT_MAX_COINS` = 100, never rotating or owned items). `POST /shop/gift {itemId, friendId}`: the giver pays (ledger `shop_purchase`, ref `shop_gift`), the friend gets the effect, once per item per friend per birthday year (idempotency key), and the friend gets an inbox message that opens the giver's profile. The friend-birthday inbox messages (`announce`) carry `link_user_id` (`admin_messages`, migration 0071): tapping one opens that player's profile, where **«هدیه‌ی تولد»** opens the gift sheet.
 
+## Match items (D226, built)
+
+Effects `shuffle_rival` and `reveal_group` are used inside a duel or table, once per kind per match: see `shop-match-items.md`.
+
 ## API
 
 `GET /shop`, `POST /shop/:id/buy` · `GET /solo/:id/hints`, `POST /solo/:id/hint {kind}` · admin `GET|POST /admin/shop`, `PATCH /admin/shop/:id`
