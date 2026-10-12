@@ -19,7 +19,7 @@ function aiErrorText(b, fallback) {
   else if (b && b.providerMessage) t += ' — ' + b.providerMessage;
   return t;
 }
-var AI_KINDS = [['products', 'محصول'], ['kid_lessons', 'کلمه‌آموزی کودک'], ['puzzle_titles', 'عنوان گروه‌های پازل'], ['puzzle_groups', 'پازل کامل (گروه + محصول)'], ['blog', 'مقاله‌ی بلاگ']];
+var AI_KINDS = [['products', 'محصول'], ['kid_lessons', 'کلمه‌آموزی کودک'], ['puzzle_titles', 'عنوان گروه‌های پازل'], ['puzzle_groups', 'پازل کامل (گروه + محصول)'], ['blog', 'مقاله‌ی بلاگ'], ['trivia', 'سؤال عمومی چهارگزینه‌ای']];
 /* Editable fields of one draft, per kind: [key, label, 'text' | 'area' | 'select', options]. */
 function aiPricesText(list) { return (list || []).map(function (p) { return p.year + ': ' + p.priceToman; }).join('\n'); }
 function aiParsePrices(text) {
@@ -31,6 +31,7 @@ function aiParsePrices(text) {
   return out;
 }
 function aiFields(kind) {
+  if (kind === 'trivia') return [['textFa', 'سؤال', 'area'], ['o0', 'گزینه‌ی ۱', 'text'], ['o1', 'گزینه‌ی ۲', 'text'], ['o2', 'گزینه‌ی ۳', 'text'], ['o3', 'گزینه‌ی ۴', 'text'], ['correct', 'گزینه‌ی درست', 'select', [['0', 'گزینه‌ی ۱'], ['1', 'گزینه‌ی ۲'], ['2', 'گزینه‌ی ۳'], ['3', 'گزینه‌ی ۴']]], ['explanationFa', 'توضیح پس از جواب', 'area']];
   if (kind === 'products') return [['nameFa', 'نام', 'text'], ['slug', 'شناسه‌ی لاتین', 'text'], ['unitFa', 'واحد', 'text'], ['category', 'دسته', 'select', (S.meta && S.meta.categories) || []], ['storyFa', 'جمله‌ی نوستالژیک', 'area'], ['prices', 'قیمت‌ها (هر خط «سال: قیمت به تومان»)', 'area']];
   if (kind === 'kid_lessons') return [['wordFa', 'کلمه', 'text'], ['syllablesFa', 'هجاها', 'text'], ['storyFa', 'داستان کوتاه', 'area']];
   if (kind === 'puzzle_titles') return [['titleFa', 'عنوان', 'text']];
@@ -44,6 +45,32 @@ function aiLoadTiers(sel, current) {
       sel.appendChild(h('option', { value: t.id, text: t.nameFa + ' (لول ' + fa(t.minLevel) + (t.maxLevel === null ? ' به بالا' : ' تا ' + fa(t.maxLevel)) + ')' }));
     });
     sel.value = current || '';
+  });
+}
+/** Fills a <select> with the puzzle topics (admin order); "blank" is the label of the empty choice, or null for none. */
+function aiLoadTopics(sel, blank) {
+  api('/admin/puzzle-topics').then(function (r) {
+    if (!r.ok) return;
+    clear(sel);
+    if (blank) sel.appendChild(h('option', { value: '', text: blank }));
+    (r.body.topics || []).filter(function (t) { return t.isActive; }).forEach(function (t) { sel.appendChild(h('option', { value: t.id, text: t.nameFa })); });
+  });
+}
+/** Toggle chips of the defined tags (no free typing); "picked" is the live list of chosen slugs. */
+function aiTagChips(box, picked) {
+  api('/admin/puzzle-tags').then(function (r) {
+    clear(box);
+    var defs = r.ok ? (r.body.tags || []).filter(function (t) { return t.isActive; }) : [];
+    if (!defs.length) return box.appendChild(h('span', { class: 'h', text: 'برچسبی تعریف نشده؛ در «ساخت پازل ‹ موضوع‌ها» بساز' }));
+    defs.forEach(function (t) {
+      var b = h('button', { type: 'button', class: 'btn sm', 'aria-pressed': 'false', text: t.nameFa, onclick: function () {
+        var i = picked.indexOf(t.slug);
+        if (i >= 0) picked.splice(i, 1); else picked.push(t.slug);
+        var on = picked.indexOf(t.slug) >= 0;
+        b.className = 'btn sm' + (on ? ' primary' : ''); b.setAttribute('aria-pressed', String(on));
+      } });
+      box.appendChild(b);
+    });
   });
 }
 function aiManual(root) {
@@ -74,8 +101,17 @@ function aiManual(root) {
       ctl.style = select([['witty', 'بامزه و شوخ'], ['plain', 'ساده و روشن']], 'witty');
       ctl.tier = select([['', 'بدون سطح (ترکیبی)']], '');
       aiLoadTiers(ctl.tier, '');
-      [['تعداد پازل', ctl.count], ['برای بازیکن‌های سطح', ctl.tier], ['رده‌ی سنی', ctl.ageTrack], ['سبک عنوان', ctl.style]].forEach(function (p) { opts.appendChild(field(p[0], p[1])); });
+      ctl.topic = select([['', 'بدون موضوع (هر چیزی)']], ''); aiLoadTopics(ctl.topic, 'بدون موضوع (هر چیزی)');
+      ctl.tagsPicked = []; ctl.tags = h('div', { class: 'toolbar' }); aiTagChips(ctl.tags, ctl.tagsPicked);
+      [['تعداد پازل', ctl.count], ['موضوع', ctl.topic], ['برچسب‌ها (از فهرست تعریف‌شده)', ctl.tags], ['برای بازیکن‌های سطح', ctl.tier], ['رده‌ی سنی', ctl.ageTrack], ['سبک عنوان', ctl.style]].forEach(function (p) { opts.appendChild(field(p[0], p[1])); });
       opts.appendChild(h('div', { class: 'h', text: 'هوش مصنوعی خودش ۴ گروه و ۴ محصولِ هر گروه را از کاتالوگ انتخاب می‌کند (فقط محصول‌های فعال). پازل‌ها پیش‌نویس ذخیره می‌شوند و بعد از بازبینی در «ساخت پازل» تأییدشان کن.' }));
+    } else if (kind === 'trivia') {
+      ctl.count = num(10, 1, 20);
+      ctl.topic = select([['', 'در حال بارگیری…']], ''); aiLoadTopics(ctl.topic, null);
+      ctl.ageTrack = select([['adult', 'بزرگسال'], ['teen', 'نوجوان'], ['kid', 'کودک']], 'adult');
+      ctl.difficulty = select([['easy', 'آسان'], ['medium', 'متوسط'], ['hard', 'سخت']], 'medium');
+      [['موضوع', ctl.topic], ['تعداد سؤال', ctl.count], ['رده‌ی سنی', ctl.ageTrack], ['سختی', ctl.difficulty]].forEach(function (p) { opts.appendChild(field(p[0], p[1])); });
+      opts.appendChild(h('div', { class: 'h', text: 'سؤال‌ها همیشه زیر یک موضوع می‌روند. جای گزینه‌ی درست را سرور خودش جابه‌جا می‌کند و سؤال‌های قبلیِ آن موضوع برای جلوگیری از تکرار به مدل داده می‌شود. همه پیش‌نویس ذخیره می‌شوند.' }));
     } else if (kind === 'puzzle_titles') {
       ctl.puzzle = select([['', 'در حال بارگیری…']], ''); ctl.style = select([['witty', 'بامزه و شوخ'], ['plain', 'ساده و روشن']], 'witty');
       api('/admin/puzzles').then(function (r) {
@@ -97,7 +133,8 @@ function aiManual(root) {
     var body = { kind: kind, provider: provider.value, hint: hint.value.trim() || undefined, model: model.value.trim() || undefined };
     if (kind === 'products') { body.count = +ctl.count.value; if (ctl.category.value) body.category = ctl.category.value; body.ageTrack = ctl.ageTrack.value; if (ctl.fromYear.value) body.fromYear = +ctl.fromYear.value; if (ctl.toYear.value) body.toYear = +ctl.toYear.value; }
     else if (kind === 'kid_lessons') body.count = +ctl.count.value;
-    else if (kind === 'puzzle_groups') { body.count = +ctl.count.value; body.ageTrack = ctl.ageTrack.value; body.style = ctl.style.value; if (ctl.tier.value) body.tierId = ctl.tier.value; }
+    else if (kind === 'puzzle_groups') { body.count = +ctl.count.value; body.ageTrack = ctl.ageTrack.value; body.style = ctl.style.value; if (ctl.tier.value) body.tierId = ctl.tier.value; if (ctl.topic.value) body.topicId = ctl.topic.value; if (ctl.tagsPicked.length) body.tags = ctl.tagsPicked.slice(); }
+    else if (kind === 'trivia') { body.count = +ctl.count.value; body.topicId = ctl.topic.value; body.ageTrack = ctl.ageTrack.value; body.difficulty = ctl.difficulty.value; }
     else if (kind === 'puzzle_titles') { body.puzzleId = ctl.puzzle.value; body.style = ctl.style.value; }
     else { body.topic = ctl.topic.value.trim(); body.count = +ctl.count.value; body.length = ctl.length.value; body.tone = ctl.tone.value; body.keywords = ctl.keywords.value.split(/[,،]/).map(function (x) { return x.trim(); }).filter(Boolean); }
     return body;
@@ -142,7 +179,7 @@ function aiManual(root) {
       var use = h('input', { type: 'checkbox' }); use.checked = true;
       var inputs = {};
       var fields = aiFields(result.kind).map(function (f) {
-        var key = f[0], cur = key === 'prices' ? aiPricesText(d.prices) : d[key];
+        var key = f[0], cur = key === 'prices' ? aiPricesText(d.prices) : result.kind === 'trivia' && /^o\d$/.test(key) ? d.options[+key[1]] : key === 'correct' ? String(d.correctIndex) : d[key];
         var el = f[2] === 'select' ? select(f[3], cur) : h(f[2] === 'area' ? 'textarea' : 'input', f[2] === 'area' ? { rows: key === 'bodyMd' ? 12 : key === 'prices' ? 4 : 2, text: cur || '' } : { type: 'text', value: cur || '' });
         if (key === 'slug' || key === 'prices') el.style.direction = 'ltr';
         inputs[key] = el;
@@ -157,6 +194,7 @@ function aiManual(root) {
       Object.keys(row.draft).forEach(function (k) { d[k] = row.draft[k]; });
       Object.keys(row.inputs).forEach(function (k) { var v = row.inputs[k].value.trim(); if (k === 'prices') { d.prices = aiParsePrices(v); return; } d[k] = (k === 'unitFa' || k === 'syllablesFa' || k === 'metaTitle' || k === 'metaDescription') && v === '' ? null : v; });
       if (result.kind === 'kid_lessons') delete d.nameFa;
+      if (result.kind === 'trivia') return { textFa: row.inputs.textFa.value.trim(), options: [0, 1, 2, 3].map(function (i) { return row.inputs['o' + i].value.trim(); }), correctIndex: +row.inputs.correct.value, explanationFa: row.inputs.explanationFa.value.trim(), ageTrack: row.draft.ageTrack };
       return d;
     }
     var save = h('button', { class: 'btn ok', text: 'ذخیره‌ی موارد انتخاب‌شده', onclick: function () {
@@ -174,6 +212,8 @@ function aiManual(root) {
       var body = { kind: result.kind, drafts: picked };
       if (result.kind === 'puzzle_titles') body.puzzleId = result.puzzleId;
       if (result.kind === 'puzzle_groups' && result.tierId) body.tierId = result.tierId;
+      if (result.kind === 'puzzle_groups') { if (result.topicId) body.topicId = result.topicId; if (result.tags && result.tags.length) body.tags = result.tags; }
+      if (result.kind === 'trivia') body.topicId = result.topicId;
       api('/admin/ai/save', { method: 'POST', body: body }).then(function (r) {
         if (!r.ok) return toast(AI_ERR[r.body && r.body.error] || 'ذخیره نشد؛ مقدارها را بررسی کن', true);
         var okN = r.body.results.filter(function (x) { return x.ok; }).length;
@@ -183,7 +223,7 @@ function aiManual(root) {
       });
     } });
     var sent = result.context && (result.kind === 'products' ? (result.context.existing || []).length : result.kind === 'puzzle_groups' ? (result.context.existingPuzzles || []).length : 0);
-    var note = { products: 'محصول‌ها غیرفعال ذخیره می‌شوند؛ در «کاتالوگ محصولات» بازبینی و فعالشان کن.', kid_lessons: 'درس‌ها پیش‌نویس می‌شوند؛ در «کلمه‌آموزی کودک» تأییدشان کن.', puzzle_titles: 'عنوان‌ها همان لحظه روی پازل می‌نشینند.', puzzle_groups: 'پازل‌ها پیش‌نویس ذخیره می‌شوند؛ در «ساخت پازل» بخوان و تأییدشان کن.', blog: 'مقاله‌ها پیش‌نویس می‌شوند؛ در «بلاگ» منتشرشان کن.' }[result.kind];
+    var note = { products: 'محصول‌ها غیرفعال ذخیره می‌شوند؛ در «کاتالوگ محصولات» بازبینی و فعالشان کن.', kid_lessons: 'درس‌ها پیش‌نویس می‌شوند؛ در «کلمه‌آموزی کودک» تأییدشان کن.', puzzle_titles: 'عنوان‌ها همان لحظه روی پازل می‌نشینند.', puzzle_groups: 'پازل‌ها پیش‌نویس ذخیره می‌شوند (زیر موضوع و برچسب انتخابی)؛ در «ساخت پازل» بخوان و تأییدشان کن.', trivia: 'سؤال‌ها پیش‌نویس ذخیره می‌شوند؛ در «پرسش‌های عمومی» بخوان و تأییدشان کن.', blog: 'مقاله‌ها پیش‌نویس می‌شوند؛ در «بلاگ» منتشرشان کن.' }[result.kind];
     out.appendChild(h('div', { class: 'banner info' }, [h('span', { text: fa(result.drafts.length) + ' پیشنهاد از ' + result.provider + ' / ' + result.model + (result.dropped ? ' · ' + fa(result.dropped) + ' مورد نامعتبر کنار گذاشته شد' : '') + '. ' + note + ' محتوای هوش مصنوعی را قبل از انتشار خودت بخوان.' + (sent ? ' برای جلوگیری از تکراری‌شدن، فهرست ' + fa(sent) + (result.kind === 'products' ? ' محصول' : ' پازل') + ' موجود همراه درخواست به هوش مصنوعی داده شد.' : '') })]));
     rows.forEach(function (r) { out.appendChild(r.node); });
     out.appendChild(save);
