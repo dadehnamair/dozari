@@ -1,5 +1,7 @@
 # Price-guess bonus round
 
+> **Update D226 (2026-10-12): four choices instead of typing.** Every price question (puzzle bonus round in solo and duel, price-only mode) now offers four prices — the real one and three decoys (`buildPriceOptions`, `packages/shared/src/priceguess/options.ts`): decoys are the real price times a factor (some lower, some higher), rounded as roundly as the real price, whole tomans, distinct, shown ascending. The server draws them with the injected rng when it draws the round and sends them as `options` (decimal rials) next to the question; the real price is still never sent before the reveal. The client answers with the chosen price; scoring is unchanged (staircase in solo and price-only, closest wins in a duel, so both picking the right one is a draw). A free numeric guess is still accepted by the server (older clients; it is the harder way, so nothing is gained by it), and the mobile screens fall back to the input when a round has no `options`.
+
 Owner-approved addition (2026-09-27): a second stage that runs after every finished Connections
 puzzle, in every mode (solo, duel, team, private). This is the "حدس دقیق قیمت" mode the market
 research referenced, folded into the main game as a bonus round rather than a standalone mode.

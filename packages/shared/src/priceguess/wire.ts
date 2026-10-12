@@ -8,6 +8,8 @@ export const priceRoundCurrentSchema = z.object({
   nameFa: z.string(),
   unitFa: z.string().nullable(),
   iconKey: z.string().nullable(),
+  /** The four choices in rials (decimal strings, ascending); the player picks one. Absent = a free numeric guess (older rounds). */
+  options: z.array(z.string()).optional(),
 });
 
 export const priceRoundRevealedSchema = z.object({
@@ -53,7 +55,7 @@ export function toPriceRoundView(state: PriceGuessState, viewer: Side, itemOf: (
   return {
     roundIndex: Math.min(state.index, state.rounds.length - 1),
     totalRounds: state.rounds.length,
-    current: state.status === 'playing' && round ? { productId: round.productId, year: round.year, ...itemOf(round.productId) } : null,
+    current: state.status === 'playing' && round ? { productId: round.productId, year: round.year, ...itemOf(round.productId), ...(round.options ? { options: round.options.map((o) => o.toString()) } : {}) } : null,
     youSubmitted: state.submitted[viewer],
     opponentSubmitted: state.submitted[other],
     endsAt,

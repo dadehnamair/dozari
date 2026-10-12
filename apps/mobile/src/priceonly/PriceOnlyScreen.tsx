@@ -4,6 +4,7 @@ import { formatPersianNumber, groupTypedNumber, parseTomanInput, solarMonthOf } 
 import type { PriceOnlyView } from '@dozari/shared';
 import { Character } from '../components/Character';
 import { CandyButton } from '../components/CandyButton';
+import { PriceChoices } from '../components/PriceChoices';
 import { ErrorCard } from '../components/EmptyState';
 import { Item } from '../components/Item';
 import { SlabButton } from '../components/SlabButton';
@@ -72,9 +73,9 @@ export function PriceOnlyScreen({ onBack }: { onBack: () => void }) {
   const result = reviewing ? view.results[answered - 1] : undefined;
   const sum = view.results.reduce((s, r) => s + r.points, 0);
 
-  const submit = async () => {
+  const submit = async (picked?: bigint) => {
     if (!round || busy) return;
-    const rials = parseTomanInput(text);
+    const rials = picked ?? parseTomanInput(text);
     if (rials === null) return setInvalid(true);
     setInvalid(false);
     setBusy(true);
@@ -135,6 +136,8 @@ export function PriceOnlyScreen({ onBack }: { onBack: () => void }) {
                   <PriceFeedbackLink product={{ id: round.productId, nameFa: round.nameFa, year: round.year }} />
                   <CandyButton label={view.done ? p.seeResult : fa.solo.price.next} sfx="confirm" color={colors.candy.lime} onPress={() => setReviewing(false)} />
                 </>
+              ) : round.options && round.options.length > 0 ? (
+                <PriceChoices options={round.options} onPick={(rials) => void submit(rials)} disabled={busy} />
               ) : (
                 <>
                   <View style={styles.inputRow}>

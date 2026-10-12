@@ -276,5 +276,6 @@ Start after the first Android build.
 - [x] 2. Separate boards, face-down cards off-turn, «found N of 4» only — built behind `match.separate_boards` (default on)
 - [x] 3. Leave penalty, daily ban, monthly badge, reconnect grace — `docs/logic/leave-penalty.md` (migration 0081, `leave.*` settings)
 - [x] 4. Timeout shown differently but scored as wrong; win only by solved cards — separate-boards mode
-- [ ] 5. Four-option price questions and general questions per topic
+- [x] 5a. Four-option price questions (solo, duel, price-only) — `buildPriceOptions`
+- [ ] 5b. General four-option questions per topic (admin, standalone mode, duel round)
 - [ ] 6. Shop: shuffle opponent's cards, reveal a group

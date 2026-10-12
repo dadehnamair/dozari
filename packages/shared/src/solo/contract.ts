@@ -85,6 +85,8 @@ export const soloPriceRoundSchema = z.object({
   iconKey: z.string().nullable().default(null),
   /** Solar Hijri year the price is asked for. */
   year: z.number().int(),
+  /** The four choices in rials (decimal strings, ascending); absent = a free numeric guess. */
+  options: z.array(rialsString).optional(),
 });
 
 export const soloPriceResultSchema = z.object({
