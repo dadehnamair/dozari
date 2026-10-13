@@ -263,7 +263,7 @@ function aiManual(root) {
   });
 }
 
-var AI_SCHED_KINDS = [['puzzle_groups', 'پازل کامل (گروه + محصول)'], ['products', 'محصول'], ['kid_lessons', 'کلمه‌آموزی کودک'], ['blog', 'مقاله‌ی بلاگ']];
+var AI_SCHED_KINDS = [['products', 'محصول'], ['kid_lessons', 'کلمه‌آموزی کودک'], ['blog', 'مقاله‌ی بلاگ']];
 var AI_SCHED_ERR = {
   invalid_cron: 'عبارت زمان‌بندی درست نیست.',
   too_frequent: 'این برنامه بیش از حد پشت‌سرهم اجرا می‌شود؛ هر اجرا یک درخواست پولی به سرویس است.',
@@ -350,7 +350,7 @@ function aiSchedules(root) {
   function edit(row) {
     clear(formBox);
     var name = h('input', { type: 'text', maxlength: 80, value: row ? row.name : '', placeholder: 'مثلاً «پازل‌های شبانه»' });
-    var kind = select(AI_SCHED_KINDS, row ? row.kind : 'puzzle_groups');
+    var kind = select(AI_SCHED_KINDS, row && row.kind !== 'puzzle_groups' ? row.kind : 'products');
     var when = aiCronBuilder(); if (row) when.set(row.cron);
     var provider = select((info.providers || []).map(function (p) { return [p.id, p.label]; }), row ? row.provider : undefined);
     var model = h('input', { type: 'text', value: row ? row.model : '', placeholder: 'خالی = مدل پیش‌فرض سرویس', style: 'direction:ltr' });
@@ -372,7 +372,6 @@ function aiSchedules(root) {
       clear(opts);
       var k = kind.value, items = [['تعداد در هر اجرا (سقف ' + fa(limits.maxCount[k]) + ')', count]];
       if (k === 'products') items.push(['دسته', category], ['رده‌ی سنی', ageTrack], ['از سال (شمسی)', fromYear], ['تا سال (شمسی)', toYear]);
-      if (k === 'puzzle_groups') items.push(['برای بازیکن‌های سطح', tier], ['رده‌ی سنی', ageTrack], ['سبک عنوان', style]);
       if (k === 'blog') items.push(['موضوع', topic], ['طول', length], ['لحن', tone]);
       items.forEach(function (p) { opts.appendChild(field(p[0], p[1])); });
       count.max = limits.maxCount[k];

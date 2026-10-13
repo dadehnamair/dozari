@@ -46,14 +46,14 @@ Answers are cleaned before parsing: `<think>…</think>` blocks removed, array-o
 
 Second tab of the page, «برنامه‌ی زمانی». A schedule runs a kind by itself on a cron: at each firing the server does what the editor does by hand (generate, then save) and keeps the outcome of the last run. Code: `ai/schedules.ts` (store, `AiScheduler`, loop), cron maths `packages/shared/src/schedule/cron.ts`, table `ai_schedules` (flat columns, no JSON), routes below, UI `views2/ai.ts`, limits `AI_SCHEDULE_LIMITS` in `config/ai.ts`.
 
-- **Kinds:** `puzzle_groups`, `products`, `kid_lessons`, `blog` (`puzzle_titles` needs one chosen puzzle, so it stays manual). Options are those of a manual run (count, age track, style, category/years, topic/length/tone, hint, provider, model).
+- **Kinds:** `products`, `kid_lessons`, `blog`. Puzzles are never scheduled (owner, 2026-10-13, D228): `puzzle_groups` and `puzzle_titles` stay manual; an old `puzzle_groups` schedule row never runs (`puzzles_manual_only`). Options are those of a manual run (count, age track, style, category/years, topic/length/tone, hint, provider, model).
 - **When:** standard 5-field cron (`minute hour day-of-month month day-of-week`; `*`, lists, ranges, `/step`; 0 or 7 = Sunday; both day fields set = either), read in **Tehran time** (fixed UTC+3:30). The panel builds it from «every day (or chosen weekdays) at HH:MM», «every N hours» or a typed expression. A schedule that fires more often than `minIntervalMinutes` (15), never fires, or has a count above the kind's cap is refused.
 - **Loop:** every `tickSeconds` (60; first look 30 s after boot; `AI_SCHEDULER=off` disables) the enabled schedules whose `next_run_at` has passed run one after another. The next firing is stored *before* the run, so a slow or crashing run cannot fire twice, and a server that was down for days runs a missed schedule once.
 - **Result:** `last_run_at`, `last_status` (`ok` | `empty` | `error`), `last_saved`, `last_message` (an `ai_*` code on error). «Nothing to make» (e.g. every kid item has a lesson) is `empty`, not an error. A failure never stops the schedule.
 - **Safety:** same as manual runs: everything lands as draft / inactive / unapproved; the shared `maxCallsPerHour` cap applies (a run past it records `ai_rate_limited`); a schedule only uses a provider whose key exists; audited as `ai.schedule.create|update|delete|run`.
 - **Routes** (`content` permission): `GET/POST /admin/ai/schedules`, `PUT/DELETE /admin/ai/schedules/:id`, `POST /admin/ai/schedules/:id/run` («اجرا همین الان», leaves the next firing alone).
 
-Relation to the rule-based pool top-up (`puzzles/pool.ts`, D141): independent. Turn `puzzles.autofill_enabled` off to make the AI schedules the only source of new puzzles.
+The rule-based pool top-up (D141) is removed (D228): nothing makes puzzles on its own.
 
 ## Puzzles by topic and tag (owner request 2026-10-12)
 - `puzzle_groups` may name a **topic** (an active `puzzle_topics` row) and **tags** picked from the defined vocabulary (`puzzle_tag_defs`, active only; typed free text is refused — `ai_not_found` before the model is called). The prompt gets a `TOPIC: «…»` line (every puzzle must be about it) and the tag names as flavour. On save the draft puzzle is filed under the topic with its tags (`PuzzleAdmin.setTopic`), so it is ready to be approved into that topic's pool.
@@ -73,3 +73,11 @@ Relation to the rule-based pool top-up (`puzzles/pool.ts`, D141): independent. T
   a profession's toolbox (repairman, mechanic, tailor), childhood memories (what mom hid, what lived in a boy's pocket, treats for guests), occasions (Nowruz, iftar, weddings, road trips, winter),
   era/brand families, what disappeared, shared use, and — **at most one group per puzzle** — a price clue. Titles must not contain a price range. The shared theme list (`puzzle/themes.ts`)
   supplies example titles («توی آشپزخونه لازمه», «تو انباری نباشه نمیشه», «یه تعمیرکار اساس دستشه», «مامانم همشو قایم می‌کرد»…).
+
+## Puzzle review assistant (D228)
+
+`POST /admin/ai/puzzle-review` (`content` permission, audited `ai.review`), UI: the puzzle list's «دستیار بازبینی» modal. Body `{ provider, model?, puzzleIds (1–10), extra (≤1000 chars), dryRun }`. Code: `ai/puzzle-review.ts` (prompt, lenient answer parsing), `AiStudio.reviewPuzzles`.
+- **One provider call per puzzle** (each takes a slot of `maxCallsPerHour`; a run stops at the cap). The model sees the four groups (title + numbered products with category), the age track, tier and topic, a numbered list of up to `AI_REVIEW.candidates` (120) replacement products (active, not in the puzzle, age track ≤ the puzzle's) and the editor's `extra` text as «EDITOR'S EXTRA INSTRUCTIONS» (it never overrides the safety rules).
+- **Answer:** `{verdict: ok|edit, reason, titles[{level,titleFa}], swaps[{item 1–16, candidate N, reason}]}`. Parsing keeps only real edits (known item/candidate numbers, a candidate not already in the puzzle or used twice, ≤ 4 swaps, one per slot, titles for real levels that differ); an «edit» with nothing usable is «ok»; an unreadable answer is `ai_bad_output` for that puzzle only.
+- **Applying** (unless `dryRun`): titles via `setTitles`, swaps via `swapProduct`, then the puzzle goes to **draft** (so even a live puzzle leaves the pool until a human approves it again). Untouched puzzles keep their status. The response lists per puzzle `ok | edited | would_edit | error` with the reason, new titles and swaps.
+- The assistant never approves or publishes anything.

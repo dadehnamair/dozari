@@ -119,7 +119,6 @@ import { CoinPackageService } from './economy/coin-packages.js';
 import { createDbPuzzleAdmin } from './puzzles/admin.js';
 import { AiStudio } from './ai/studio.js';
 import { AiScheduler, createDbAiScheduleStore, startAiScheduler } from './ai/schedules.js';
-import { startPuzzlePoolScheduler } from './puzzles/pool.js';
 import { createSecretBox } from './backup/crypto.js';
 import { createMysqldumpDumper, parseDatabaseUrl } from './backup/dump.js';
 import { BackupService, startBackupScheduler } from './backup/service.js';
@@ -1113,10 +1112,6 @@ if (isMainModule(import.meta.url)) {
   if (bot && settings && process.env.BOT_SCHEDULER !== 'off') {
     const scheduler = startBotScheduler({ bot, settings, log: (msg, err) => (err ? app.log.error({ err }, msg) : app.log.info(msg)) });
     app.addHook('onClose', async () => scheduler.stop());
-  }
-  if (db && settings && process.env.PUZZLE_SCHEDULER !== 'off') {
-    const pool = startPuzzlePoolScheduler({ admin: createDbPuzzleAdmin(db), settings, rng: () => randomInt(0, 2 ** 30) / 2 ** 30, log: (msg, err) => (err ? app.log.error({ err }, msg) : app.log.info(msg)) });
-    app.addHook('onClose', async () => pool.stop());
   }
   if (backupService && process.env.BACKUP_SCHEDULER !== 'off') {
     const backups = startBackupScheduler({ service: backupService, log: (msg, err) => (err ? app.log.error({ err }, msg) : app.log.info(msg)) });

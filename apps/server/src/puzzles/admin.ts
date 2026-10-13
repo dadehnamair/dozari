@@ -101,7 +101,7 @@ export interface PuzzleAdmin {
   deleteTier(id: string): Promise<'ok' | 'not_found'>;
   /** Puts a puzzle in a tier (null = unrated). */
   setTier(puzzleId: string, tierId: string | null): Promise<'ok' | 'not_found' | 'unknown_tier'>;
-  setStatus(id: string, status: 'approved' | 'retired'): Promise<'ok' | 'not_found'>;
+  setStatus(id: string, status: 'approved' | 'retired' | 'draft'): Promise<'ok' | 'not_found'>;
   /** The topics (admin order) with how many approved puzzles each holds. */
   topics(): Promise<TopicRow[]>;
   saveTopic(topic: TopicInput): Promise<SaveTopicResult>;
