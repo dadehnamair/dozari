@@ -128,6 +128,7 @@ export class BotDriver {
 
   private planTurn(bot: BotRow, v: MatchView): void {
     if (v.priceRound) return this.planPriceGuess(bot, v);
+    if (v.triviaRound) return this.planTrivia(bot, v);
     if (v.status !== 'playing' || v.turn !== v.you) return;
     if (v.captain && v.captain[v.you] !== bot.userId) return; // a bot teammate who is not the captain waits
     const key = `${bot.userId}:${v.matchId}:${v.turnId}`;
@@ -137,6 +138,26 @@ export class BotDriver {
     const think = scaledThinkRange(bot.thinkMinMs, bot.thinkMaxMs, botSkillForLevel(bot.level ?? 1, bot.skill));
     const delay = botThinkDelay(think.minMs, think.maxMs, v.turnEndsAt - this.now(), this.deps.rng);
     this.schedule(delay, () => this.move(bot));
+  }
+
+  /** The duel's general-question round: after a pause the bot picks the right choice as often as its level's accuracy, else a wrong one. */
+  private planTrivia(bot: BotRow, v: MatchView): void {
+    const r = v.triviaRound;
+    if (!r || !r.current || r.youAnswered) return;
+    const key = `${bot.userId}:${v.matchId}:trivia:${r.roundIndex}`;
+    if (this.planned.has(key)) return;
+    this.planned.add(key);
+    const profile = botSkillForLevel(bot.level ?? 1, bot.skill);
+    const think = scaledThinkRange(bot.thinkMinMs, bot.thinkMaxMs, profile);
+    const delay = botThinkDelay(think.minMs, think.maxMs, r.endsAt - this.now(), this.deps.rng);
+    this.schedule(delay, () => {
+      const matches = this.deps.matches();
+      const right = matches?.triviaAnswerFor(bot.userId);
+      if (!matches || right === null || right === undefined) return;
+      const hit = this.deps.rng() * 100 < profile.accuracyPercent;
+      const wrong = [0, 1, 2, 3].filter((i) => i !== right);
+      matches.submitTrivia(bot.userId, hit ? right : wrong[Math.floor(this.deps.rng() * wrong.length)]!);
+    });
   }
 
   /** The duel's price-guess round: after a human-like pause the bot guesses near the real price (closer the higher its level). */

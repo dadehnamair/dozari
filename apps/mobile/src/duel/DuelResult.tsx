@@ -1,6 +1,6 @@
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PRICE_GUESS_ROUND_POINTS, solarMonthOf, toPersianDigits } from '@dozari/shared';
-import type { PriceRoundView } from '@dozari/shared';
+import type { PriceRoundView, TriviaRoundView } from '@dozari/shared';
 import { Character } from '../components/Character';
 import { GradientFill } from '../components/GradientFill';
 import { Item } from '../components/Item';
@@ -26,7 +26,7 @@ const LOOK: Record<Outcome, { title: string; sub: string; pose: 'win' | 'sad' | 
 };
 
 /** screen-results of `13 Match Screens`: the hero's pose, a banner, why it ended, the scoreboard, home / play again. */
-export function DuelResult({ outcome, reason, lines, priceRound, onHome, onAgain, againLabel, onInvite, onPlayer, onReport }: { outcome: Outcome; reason: string; lines: Line[]; /** The finished price-guess round, when the duel had one. */ priceRound?: PriceRoundView; onHome: () => void; onAgain?: () => void; /** Replaces the outcome's «play again» wording (a private table goes back to its lobby). */ againLabel?: string; /** Opens the invite sheet: the best moment to ask a friend to play is right after a game. */ onInvite?: () => void; /** Opens a player's profile sheet. */ onPlayer?: (id: string) => void; /** Opens the report dialog for the opponent (1v1). */ onReport?: (id: string) => void }) {
+export function DuelResult({ outcome, reason, lines, priceRound, triviaRound, onHome, onAgain, againLabel, onInvite, onPlayer, onReport }: { outcome: Outcome; reason: string; lines: Line[]; /** The finished price-guess round, when the duel had one. */ priceRound?: PriceRoundView; /** The finished general-question round, when the duel had one. */ triviaRound?: TriviaRoundView; onHome: () => void; onAgain?: () => void; /** Replaces the outcome's «play again» wording (a private table goes back to its lobby). */ againLabel?: string; /** Opens the invite sheet: the best moment to ask a friend to play is right after a game. */ onInvite?: () => void; /** Opens a player's profile sheet. */ onPlayer?: (id: string) => void; /** Opens the report dialog for the opponent (1v1). */ onReport?: (id: string) => void }) {
   const look = LOOK[outcome];
   const sorted = [...lines].sort((x, y) => y.points - x.points);
   return (
@@ -80,6 +80,17 @@ export function DuelResult({ outcome, reason, lines, priceRound, onHome, onAgain
               {fa.duel.price.earned(
                 toPersianDigits(String(priceRound.revealed.filter((r) => r.winner === 'you').length * PRICE_GUESS_ROUND_POINTS)),
                 toPersianDigits(String(priceRound.revealed.filter((r) => r.winner === 'opponent').length * PRICE_GUESS_ROUND_POINTS)),
+              )}
+            </Text>
+          </View>
+        ) : null}
+        {triviaRound && triviaRound.revealed.length > 0 ? (
+          <View style={styles.priceBox}>
+            <Text style={styles.priceTitle}>{fa.duel.triviaRound.resultTitle}</Text>
+            <Text style={styles.priceSum}>
+              {fa.duel.triviaRound.earned(
+                toPersianDigits(String(triviaRound.revealed.filter((r) => r.yourPick === r.correctIndex).length)),
+                toPersianDigits(String(triviaRound.revealed.filter((r) => r.opponentPick === r.correctIndex).length)),
               )}
             </Text>
           </View>

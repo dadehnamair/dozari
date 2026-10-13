@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { DEVICE_ID_PATTERN } from '../identity/index.js';
 import { soloCardSchema } from '../solo/contract.js';
 import { priceRoundViewSchema } from '../priceguess/wire.js';
+import { triviaRoundViewSchema } from '../trivia/round.js';
 
 /**
  * Socket.io contract between client and server (docs/logic/matchmaking.md §Socket events). Events are named
@@ -24,6 +25,7 @@ export const ClientEvent = {
   matchLeave: 'match:leave',
   /** A hidden guess in the duel's price-guess round. */
   priceSubmit: 'price:submit',
+  triviaSubmit: 'trivia:submit',
   chatJoin: 'chat:join',
   chatTaunt: 'chat:taunt',
 } as const;
@@ -89,6 +91,7 @@ export const ERROR_CODES = [
   'MUTED',
   'UNKNOWN_TAUNT',
   'NO_PRICE_ROUND',
+  'NO_TRIVIA_ROUND',
   'INTERNAL',
 ] as const;
 export const errorCodeSchema = z.enum(ERROR_CODES);
@@ -225,6 +228,8 @@ export const matchViewSchema = z.object({
   result: matchResultSchema.nullable(),
   /** Set while the duel's price-guess round runs (the board is over, the match is not): render the round instead of the board. */
   priceRound: priceRoundViewSchema.nullable().optional(),
+  /** Set while the duel's general-question round runs (after the boards and the price round): render it instead of the board. */
+  triviaRound: triviaRoundViewSchema.nullable().optional(),
 });
 
 /** Animation hints; both sides see every submitted selection and its result. */
@@ -257,6 +262,8 @@ export const matchEndedSchema = z.object({
   groups: z.array(z.object({ level, titleFa: z.string(), explanationFa: z.string(), productIds: z.array(z.string()) })).length(4),
   /** The viewer's own view of the finished price-guess round (every guess and real price are public now), when the match had one. */
   priceRound: priceRoundViewSchema.optional(),
+  /** The viewer's own view of the finished general-question round (every choice and the right ones are public now), when the match had one. */
+  triviaRound: triviaRoundViewSchema.optional(),
 });
 
 export const errorEventSchema = z.object({ error: errorCodeSchema });

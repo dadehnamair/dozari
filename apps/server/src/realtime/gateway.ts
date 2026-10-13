@@ -3,7 +3,7 @@ import { Server } from 'socket.io';
 import type { Socket } from 'socket.io';
 import type { QueueProblem } from '@dozari/shared';
 import type { AgeTrack } from '@dozari/shared';
-import { ClientEvent, ServerEvent, chatTauntSchema, draftPickSchema, matchPowerSchema, matchProposeSchema, matchResumeSchema, matchSubmitSchema, priceSubmitSchema, queueJoinSchema } from '@dozari/shared';
+import { ClientEvent, ServerEvent, chatTauntSchema, draftPickSchema, matchPowerSchema, matchProposeSchema, matchResumeSchema, matchSubmitSchema, priceSubmitSchema, queueJoinSchema, triviaSubmitSchema } from '@dozari/shared';
 import type { Ack, LiveNotice } from '@dozari/shared';
 import type { UserRecord } from '../auth/service.js';
 import { ChatService } from '../chat/service.js';
@@ -237,6 +237,13 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
       const body = priceSubmitSchema.safeParse(payload);
       if (!body.success) return ack?.({ ok: false, error: 'INVALID_PAYLOAD' });
       ack?.(matches ? matches.submitPrice(userId, BigInt(body.data.guessRials)) : { ok: false, error: 'NOT_IN_MATCH' });
+    });
+
+    // A hidden answer in the duel's general-question round.
+    socket.on(ClientEvent.triviaSubmit, (payload: unknown, ack?: (a: Ack) => void) => {
+      const body = triviaSubmitSchema.safeParse(payload);
+      if (!body.success) return ack?.({ ok: false, error: 'INVALID_PAYLOAD' });
+      ack?.(matches ? matches.submitTrivia(userId, body.data.index) : { ok: false, error: 'NOT_IN_MATCH' });
     });
 
     socket.on(ClientEvent.matchPropose, (payload: unknown, ack?: (a: Ack) => void) => {
