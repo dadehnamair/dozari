@@ -934,7 +934,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     });
     g.patch('/admin/puzzles/:id', async (req, reply) => {
       const p = idParam.safeParse(req.params);
-      const b = z.object({ status: z.enum(['approved', 'retired']) }).safeParse(req.body);
+      const b = z.object({ status: z.enum(['approved', 'retired', 'draft']) }).safeParse(req.body);
       if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
       const out = await puzzles.setStatus(p.data.id, b.data.status);
       if (out === 'not_found') return reply.code(404).send({ error: out });

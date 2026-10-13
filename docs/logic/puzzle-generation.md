@@ -145,6 +145,7 @@ readiness: products in the catalog, products with ≥ `MIN_PRICE_POINTS_PER_PROD
 `puzzles/pool.ts`: every `puzzles.autofill_check_minutes` (default 60, first look 45 s after boot; `PUZZLE_SCHEDULER=off` disables it) the server counts
 the pool and, when it is below `puzzles.autofill_target` (default 30), generates the gap (at most 20 per run) with the injected RNG. Pool = the **drafts
 waiting for a human**, always (the former `puzzles.autofill_auto_approve` switch was removed in D227). `puzzles.autofill_enabled` pauses it. The remaining three are admin settings (group «گیم‌پلی»).
+**To stop automatic making** (owner, 2026-10-13: the code stays, the owner switches it off by hand): set `puzzles.autofill_enabled` = 0 in the admin settings, or `PUZZLE_SCHEDULER=off` in the server env; and disable/delete any `puzzle_groups` schedule in the AI studio's «برنامه‌ی زمانی» tab (or `AI_SCHEDULER=off` to stop all AI schedules).
 
 ## Generator + admin panel (D131)
 
@@ -178,17 +179,17 @@ Admin «ساخت خودکار» (`POST /admin/puzzles/generate {count, tierId?}`
 without one it goes through all tiers in turn, so the pool covers every level. Each draft is tagged with its tier. Draft titles are
 `draftTitle(rule)` = a varied opening line + the plain rule (several templates per kind), still drafts for a human to polish; the explanation is the plain rule.
 
-## Admin puzzle list: filters and quick product swap (D227)
+## Admin puzzle list: filters, one Save, swap pop-up (D227, D228)
 
 The puzzle tabs filter by age track, group (= topic, `topicId`), tag and level (= tier), all client-side over `GET /admin/puzzles`.
-Clicking a product on a puzzle card opens a search of replacements → `PUT /admin/puzzles/:id/swap {fromProductId, toProductId}`: same group and slot;
+Each card edits everything locally (titles, level, group, tags, product swaps) and a single «ذخیره‌ی تغییرات» sends it (unsaved cards are marked). Clicking a product opens a **pop-up** search of replacements (the choice lands on the card, highlighted; Save sends it) → `PUT /admin/puzzles/:id/swap {fromProductId, toProductId}`: same group and slot;
 refused (400) when the new product is already in the puzzle (`duplicate_product`), is the same (`same_product`), is not in the puzzle (`not_in_puzzle`) or is
 above the puzzle's age track (`item_track`); 404 for an unknown product. The item's year hint is cleared. The puzzle keeps its status (the admin editing it is the human check);
 curated groups are not machine-checked, so the editor is the check for the new product.
 
 ## AI-made puzzles on a schedule (D211)
 
-The AI studio (`docs/logic/ai-studio.md` §Schedules) can also fill the pool: a cron schedule of kind `puzzle_groups` makes whole puzzles with LLM-written titles and saves them as `draft` for the editor. It is independent of the rule-based top-up above; set `puzzles.autofill_enabled` = 0 to rely on the AI schedules only.
+The AI studio (`docs/logic/ai-studio.md` §Schedules) can also fill the pool with a cron schedule of kind `puzzle_groups`; drafts only. Switch it off by disabling or deleting the schedule.
 
 
 ### Theme groups (`theme_tag`)
@@ -200,3 +201,7 @@ A theme is used only when ≥ 4 products carry it; uniqueness still holds (no ou
 each theme should stay small (≈ 5–16 products). Seeded in `seed/products/sample-bazaar.json` (`era_tags`); the seed loader adds theme tags to already-existing products
 too (additive only). More themes = add a `ThemeDef` and tag products (admin or seed). Themes with few products (تعمیرکار) need tool-type products
 (آچار، پیچ‌گوشتی، انبردست…) added to the catalog to be rich.
+
+## Puzzle review assistant (D228)
+
+Button «🤖 دستیار بازبینی» next to the filters of the puzzle list: it takes the puzzles of the **current filter** (first 10 per run, `AI_REVIEW.maxPuzzles`), and for each asks the AI whether it needs editing. If so it rewrites weak titles and/or swaps products (replacements from a random slice of the active catalog, age-track checked) and sends that puzzle back to **draft**; good puzzles are untouched. The editor may type extra instructions that are added to the prompt of that run only (≤ 1000 chars), and may tick «فقط گزارش» (dry run: reports, changes nothing). Details and API: `logic/ai-studio.md` §Puzzle review assistant.

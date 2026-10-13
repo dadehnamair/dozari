@@ -23,6 +23,17 @@ export const AI_LIMITS = {
 /** Products offered to the model when it builds whole puzzles (names only; the rest of the catalog is left out to bound the prompt). */
 export const AI_PUZZLE_CATALOG_MAX = 300;
 
+/** The puzzle review assistant (docs/logic/ai-studio.md §Puzzle review assistant): one provider call per puzzle, so the batch is small. */
+export const AI_REVIEW = {
+  /** Puzzles one run may look at. */
+  maxPuzzles: 10,
+  /** Longest extra instruction the editor may type into a run. */
+  maxExtraLength: 1000,
+  /** Replacement products offered to the model for one puzzle (a random slice of the active catalog). */
+  candidates: 120,
+  maxTokens: 3000,
+} as const;
+
 /** Blog length choices → rough Persian word target given to the model. */
 export const AI_BLOG_LENGTHS = { short: 300, medium: 600, long: 1000 } as const;
 export type AiBlogLength = keyof typeof AI_BLOG_LENGTHS;

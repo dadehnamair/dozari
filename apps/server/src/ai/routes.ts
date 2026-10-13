@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { AI_LIMITS, AI_SCHEDULE_LIMITS } from '@dozari/shared';
 import { generateRequestSchema, saveSchema } from './content.js';
 import { AiError } from './providers.js';
+import { reviewRequestSchema } from './puzzle-review.js';
 import type { AiStudio } from './studio.js';
 import { scheduleInputSchema } from './schedules.js';
 import type { AiScheduler, ScheduleProblem } from './schedules.js';
@@ -35,6 +36,18 @@ export function registerAiAdminRoutes(g: FastifyInstance, studio: AiStudio, audi
     return run(reply, async () => {
       const out = await studio.generate(body.data);
       void audit('ai.generate', body.data.kind, `${out.provider}/${out.model} ×${out.drafts.length}`);
+      return out;
+    });
+  });
+
+  // The puzzle review assistant: looks at the chosen puzzles, edits what needs it and sends those back to draft (unless dryRun).
+  g.post('/admin/ai/puzzle-review', async (req, reply) => {
+    const body = reviewRequestSchema.safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'invalid_request' });
+    return run(reply, async () => {
+      const out = await studio.reviewPuzzles(body.data);
+      const edited = out.outcomes.filter((o) => o.result === 'edited').length;
+      void audit('ai.review', 'puzzles', `${out.provider}/${out.model} ${out.dryRun ? 'dry ' : ''}${out.outcomes.length} looked, ${edited} edited`);
       return out;
     });
   });
