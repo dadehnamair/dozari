@@ -691,6 +691,22 @@ export const friendships = mysqlTable(
   (table) => ({ pk: primaryKey({ columns: [table.userLow, table.userHigh] }), byHigh: index('friendships_high_idx').on(table.userHigh) }),
 );
 
+/**
+ * A private note on a player found through the address book: the name `ownerId` has for them in their own phone and the number that
+ * matched. Only the owner ever sees it (friends list, player card); the other player never does.
+ */
+export const friendContacts = mysqlTable(
+  'friend_contacts',
+  {
+    ownerId: char('owner_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    friendId: char('friend_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    contactName: varchar('contact_name', { length: 80 }).notNull(),
+    phone: varchar('phone', { length: 20 }).notNull(),
+    updatedAt: datetime('updated_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.ownerId, table.friendId] }) }),
+);
+
 /** `all` and `bale_linked` reach adults only; `kid` and `teen` are the deliberate, child-safe audiences (docs/logic/age-tracks.md §Admin panel). */
 export const MESSAGE_AUDIENCES = ['all', 'bale_linked', 'user', 'kid', 'teen'] as const;
 export const MESSAGE_CHANNELS = ['in_app', 'bale', 'sms', 'email', 'push'] as const;

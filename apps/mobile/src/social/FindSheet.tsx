@@ -7,7 +7,7 @@ import { fa } from '../i18n/fa';
 import { SheetClose } from '../components/SheetClose';
 import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
-import { fetchMyFind, findContacts, saveFindable, searchPlayer } from './api';
+import { fetchMyFind, findContacts, requestFriend, saveFindable, searchPlayer } from './api';
 import { readContacts } from './readContacts';
 import { avatarOf } from './avatarOf';
 import { PlayerSheet } from './PlayerSheet';
@@ -46,12 +46,22 @@ export function FindSheet({ onClose }: { onClose: () => void }) {
       if (read.reason === 'blocked') void Linking.openSettings().catch(() => undefined);
       return setNote(read.reason === 'unsupported' ? fa.find.contactsUnsupported : read.reason === 'blocked' ? fa.find.contactsBlocked : read.reason === 'error' ? `${fa.find.contactsError} (${read.detail ?? ''})` : fa.find.contactsDenied);
     }
-    if (read.phones.length === 0) return (setFromContacts([]), setNote(null));
-    findContacts(read.phones).then(
+    if (read.contacts.length === 0) return (setFromContacts([]), setNote(null));
+    findContacts(read.contacts).then(
       (players) => (setFromContacts(players), setNote(null)),
       (e) => setNote(e instanceof ApiError && e.status === 429 ? fa.find.rateLimited : fa.find.error),
     );
   };
+  const addFriend = (p: FoundPlayer) =>
+    requestFriend(p.id).then(
+      () => {
+        const sent = (x: FoundPlayer): FoundPlayer => (x.id === p.id ? { ...x, relation: 'sent' } : x);
+        setFromContacts((list) => list && list.map(sent));
+        setFound((x) => (x ? sent(x) : x));
+        setNote(null);
+      },
+      () => setNote(fa.find.error),
+    );
   const toggle = () => me && saveFindable(!me.findableByPhone).then(setMe, () => setNote(fa.find.error));
 
   if (open) return <PlayerSheet playerId={open} onClose={() => setOpen(null)} />;
@@ -92,26 +102,43 @@ export function FindSheet({ onClose }: { onClose: () => void }) {
         )}
         {fromContacts && fromContacts.length === 0 ? <Text style={styles.hint}>{fa.find.contactsNone}</Text> : null}
         {fromContacts && fromContacts.length > 0 ? <Text style={styles.hint}>{fa.find.contactsFound(fromContacts.length)}</Text> : null}
-        {(fromContacts ?? []).slice(0, 8).map((p) => (
-          <Pressable key={p.id} onPress={() => setOpen(p.id)} style={styles.person} accessibilityRole="button">
-            <Avatar avatar={avatarOf(p.avatarKey)} size={40} />
-            <Text style={styles.personName}>{p.nickname}</Text>
-          </Pressable>
-        ))}
+        {(fromContacts ?? []).slice(0, 8).map((p) => <PlayerCard key={p.id} p={p} onOpen={() => setOpen(p.id)} onAdd={() => void addFriend(p)} />)}
         {found === null ? <Text style={styles.hint}>{fa.find.notFound}</Text> : null}
-        {found ? (
-          <Pressable onPress={() => setOpen(found.id)} style={styles.person} accessibilityRole="button">
-            <Avatar avatar={avatarOf(found.avatarKey)} size={40} />
-            <Text style={styles.personName}>{found.nickname}</Text>
-          </Pressable>
-        ) : null}
+        {found ? <PlayerCard p={found} onOpen={() => setOpen(found.id)} onAdd={() => void addFriend(found)} /> : null}
         {note ? <Text style={[styles.hint, styles.bad]}>{note}</Text> : null}
       </Pressable>
     </Pressable>
   );
 }
 
+/** A found player: avatar, nickname, the name and number saved in the player's own address book, and the friend action for their relation. */
+function PlayerCard({ p, onOpen, onAdd }: { p: FoundPlayer; onOpen: () => void; onAdd: () => void }) {
+  return (
+    <View style={styles.card}>
+      <Pressable onPress={onOpen} style={styles.cardMain} accessibilityRole="button" accessibilityLabel={p.nickname}>
+        <Avatar avatar={avatarOf(p.avatarKey)} size={48} />
+        <View style={styles.cardText}>
+          <Text style={styles.personName} numberOfLines={1}>{p.nickname}</Text>
+          {p.contactName ? <Text style={styles.cardSub} numberOfLines={1}>{fa.find.savedAs} {p.contactName}</Text> : null}
+          {p.phone ? <Text style={[styles.cardSub, styles.ltr]}>{p.phone}</Text> : null}
+        </View>
+      </Pressable>
+      {p.relation === 'none' ? (
+        <Pressable onPress={onAdd} style={[styles.pill, styles.on]} accessibilityRole="button"><Text style={styles.pillText}>{fa.find.addFriend}</Text></Pressable>
+      ) : (
+        <Text style={styles.cardState}>{p.relation === 'friends' ? fa.find.friendsAlready : p.relation === 'sent' ? fa.find.requestSent : fa.find.requestAnswer}</Text>
+      )}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  card: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'stretch', backgroundColor: colors.card, borderWidth: 2, borderColor: INK, borderRadius: 16, padding: 8 },
+  cardMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 0 },
+  cardText: { flex: 1, minWidth: 0 },
+  cardSub: { fontFamily: fonts.bold, fontSize: 12, color: INK, opacity: 0.75 },
+  cardState: { fontFamily: fonts.bold, fontSize: 12, color: INK },
+  ltr: { writingDirection: 'ltr', textAlign: TEXT_LEFT },
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,8,32,0.55)', alignItems: 'center', justifyContent: 'center', padding: 24 },
   sheet: { width: '100%', maxWidth: 380, backgroundColor: colors.cream, borderWidth: 3, borderColor: INK, borderRadius: 24, padding: 16, gap: 8, alignItems: 'center' },
   title: { fontFamily: fonts.display, fontSize: 24, color: INK },
