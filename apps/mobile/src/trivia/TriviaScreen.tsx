@@ -4,6 +4,7 @@ import { formatPersianNumber, solarMonthOf } from '@dozari/shared';
 import type { TriviaTopics, TriviaView } from '@dozari/shared';
 import { Character } from '../components/Character';
 import { ErrorCard } from '../components/EmptyState';
+import { VERDICT_TONES, choiceVerdict } from '../components/choiceVerdict';
 import { SlabButton } from '../components/SlabButton';
 import { GameTopBar } from '../game/GameTopBar';
 import { MatchBackground } from '../game/MatchBackground';
@@ -141,16 +142,17 @@ export function TriviaScreen({ onBack }: { onBack: () => void }) {
               <Text style={styles.sub}>{t.question(formatPersianNumber(index + 1), formatPersianNumber(total))}{round.topicNameFa ? ` · ${round.topicNameFa}` : ''}</Text>
               <Text style={styles.question}>{round.textFa}</Text>
               {round.options.map((o, i) => {
-                const verdict = shown ? (i === shown.correct ? styles.right : i === shown.picked ? styles.wrong : styles.dim) : null;
+                const v = shown ? choiceVerdict(i, shown.picked, shown.correct) : null;
+                const tone = v && v !== 'dim' ? { backgroundColor: VERDICT_TONES[v].to, borderBottomColor: VERDICT_TONES[v].shelf } : null;
                 return (
-                  <Pressable key={i} accessibilityRole="button" accessibilityState={{ disabled: !!shown }} disabled={busy || !!shown} onPress={() => void pick(i)} style={({ pressed }) => [styles.option, verdict, pressed && !shown ? styles.pressed : null]}>
+                  <Pressable key={i} accessibilityRole="button" accessibilityState={{ disabled: !!shown }} disabled={busy || !!shown} onPress={() => void pick(i)} style={({ pressed }) => [styles.option, tone, v === 'dim' ? styles.dim : null, pressed && !shown ? styles.pressed : null]}>
                     <Text style={styles.optionText}>{o}</Text>
                   </Pressable>
                 );
               })}
               {shown ? (
                 <>
-                  <Text style={shown.picked === shown.correct ? styles.good : styles.bad}>{shown.picked === shown.correct ? t.right : t.wrong}</Text>
+                  {shown.picked === shown.correct ? <Text style={styles.good}>{t.point}</Text> : null}
                   {shown.explanationFa ? <Text style={styles.sub}>{shown.explanationFa}</Text> : null}
                   <SlabButton label={view.done ? t.seeResult : t.next} sfx="confirm" color={colors.candy.lime} height={54} fontSize={20} onPress={() => setShown(null)} />
                 </>
@@ -183,10 +185,7 @@ const styles = StyleSheet.create({
   question: { fontFamily: fonts.display, fontSize: 22, lineHeight: 34, color: colors.ink, textAlign: 'center' },
   option: { paddingVertical: 12, paddingHorizontal: 14, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.card },
   optionText: { fontFamily: fonts.display, fontSize: 18, color: colors.ink, textAlign: 'center' },
-  right: { backgroundColor: '#B8E986' },
-  wrong: { backgroundColor: '#FF9AA5' },
   dim: { opacity: 0.5 },
   good: { fontFamily: fonts.display, fontSize: 18, color: '#2E7D32', textAlign: 'center' },
-  bad: { fontFamily: fonts.display, fontSize: 18, color: '#B3261E', textAlign: 'center' },
   actions: { flexDirection: ROW, gap: 10 },
 });

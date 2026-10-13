@@ -130,8 +130,12 @@ export function PriceOnlyScreen({ onBack }: { onBack: () => void }) {
               <Text style={styles.msg}>{questionText(fa.solo.price.question, round.year)}</Text>
               {result ? (
                 <>
-                  <Text style={styles.row}>{p.yourGuess}: {priceText(result.guessRials)}</Text>
-                  <Text style={styles.total}>{p.actual}: {priceText(result.actualRials)}</Text>
+                  {round.options && round.options.length > 0 ? <PriceChoices options={round.options} onPick={() => undefined} reveal={{ picked: result.guessRials, actual: result.actualRials }} /> : (
+                    <>
+                      <Text style={styles.row}>{p.yourGuess}: {priceText(result.guessRials)}</Text>
+                      <Text style={styles.total}>{p.actual}: {priceText(result.actualRials)}</Text>
+                    </>
+                  )}
                   <Text style={styles.gain}>+{formatPersianNumber(result.points)} {p.points}</Text>
                   <PriceFeedbackLink product={{ id: round.productId, nameFa: round.nameFa, year: round.year }} />
                   <CandyButton label={view.done ? p.seeResult : fa.solo.price.next} sfx="confirm" color={colors.candy.lime} onPress={() => setReviewing(false)} />

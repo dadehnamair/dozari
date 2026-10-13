@@ -159,6 +159,8 @@ export const fa = {
     summary: 'نتیجه',
     right: 'آفرین، درست بود!',
     wrong: 'این یکی غلط بود.',
+    /** The point of a right answer, shown on the answered card itself. */
+    point: '+۱ امتیاز',
     next: 'پرسش بعدی',
     seeResult: 'دیدن نتیجه',
     again: 'یک دور دیگر',
@@ -605,8 +607,7 @@ export const fa = {
       opponentLocked: 'حریف جوابش را زد!',
       yourPick: 'جواب تو',
       opponentPick: 'جواب حریف',
-      right: 'درست',
-      noAnswer: 'جواب نداد',
+      point: '+۱ امتیاز',
       resultTitle: 'دور سؤال عمومی',
       /** Right answers of each side (one point each). */
       earned: (you: string, them: string) => `جواب درست: تو ${you} · حریف ${them}`,
