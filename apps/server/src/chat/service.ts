@@ -60,6 +60,8 @@ export class ChatService {
   onCityMessage?: (cityId: string, message: ChatMessage) => void;
   /** Called to push a message to one player (the opponent in a duel). */
   toUser?: (userId: string, message: ChatMessage) => void;
+  /** Set at start-up: a private message just reached `friendId`'s side (live notice, Bale and push for those not looking at the chat). Not called for table cards. */
+  onDirect?: (friendId: string, message: ChatMessage) => void;
   /** Kid and teen tracks get managed chat: no public rooms, free text only to a same-track friend and only with a linked guardian. */
   managed?: ManagedChat;
   private readonly text = new RateLimiter(CHAT_TEXT_RATE.count, CHAT_TEXT_RATE.windowMs);
@@ -183,6 +185,7 @@ export class ChatService {
     const message = await this.view(row, new Map());
     this.toUser?.(friendId, message);
     this.toUser?.(userId, message);
+    if (input.kind !== 'table') this.onDirect?.(friendId, message);
     return { ok: true, message };
   }
 

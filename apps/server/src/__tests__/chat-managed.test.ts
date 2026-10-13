@@ -45,6 +45,15 @@ describe('managed chat for kid and teen (age-tracks phase 4)', () => {
     expect(typeof h === 'object' && h.canType).toBe(true);
   });
 
+  it('tells the start-up hook about a private message to the friend, but not about a table card', async () => {
+    const { chat } = setup();
+    const seen: { to: string; from: string }[] = [];
+    chat.onDirect = (to, m) => void seen.push({ to, from: m.nickname });
+    await chat.sendDm(K1, K2, { kind: 'text', text: 'سلام دوست' });
+    await chat.sendDm(K1, K2, { kind: 'table', code: 'ABCD2', label: 'x|y' });
+    expect(seen).toEqual([{ to: K2, from: K1 }]);
+  });
+
   it('asks for a guardian when none is linked, and shows no composer', async () => {
     const { chat } = setup({ guardians: [] });
     expect(await chat.sendDm(K1, K2, { kind: 'text', text: 'سلام' })).toMatchObject({ ok: false, error: 'NEEDS_GUARDIAN' });

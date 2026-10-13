@@ -645,6 +645,19 @@ if (isMainModule(import.meta.url)) {
           filter: words,
         })
       : undefined;
+  // A private message must be noticed wherever the friend is: a live notice if they are online, Bale (at most once per sender per 10 minutes) if not.
+  if (chat) {
+    const baleSeen = new Map<string, number>();
+    chat.onDirect = (friendId, message) => {
+      const nickname = message.nickname;
+      if (presence.isOnline(friendId)) return void notices.push(friendId, { kind: 'dm', from: nickname });
+      const key = `${message.userId}>${friendId}`;
+      const last = baleSeen.get(key) ?? 0;
+      if (Date.now() - last < 10 * 60_000) return;
+      baleSeen.set(key, Date.now());
+      void notify?.notify(friendId, 'chat_message', BALE_TEXT.chatMessage(nickname)).catch(() => undefined);
+    };
+  }
   const live: { matches?: MatchService; queue?: DuelQueue; teamQueue?: DuelQueue } = {};
   const botStore = db ? createDbBotPlayerStore(db) : undefined;
   const botService =

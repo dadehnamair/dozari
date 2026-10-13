@@ -7,6 +7,8 @@ export function noticeNotification(n: LiveNotice): { title: string; body: string
   switch (n.kind) {
     case 'friend_request':
       return { title: fa.home.title, body: w.friendRequest(n.from ?? ''), tag: 'friend_request' };
+    case 'dm':
+      return { title: fa.home.title, body: w.dm(n.from ?? ''), tag: `dm:${n.from ?? ''}` };
     case 'table_invite':
       return { title: fa.home.title, body: w.tableInvite(n.from ?? ''), tag: `table_invite:${n.code ?? ''}` };
     case 'table_request':

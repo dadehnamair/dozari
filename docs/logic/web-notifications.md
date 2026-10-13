@@ -16,3 +16,7 @@ No push service and no permanent service. `modules/background-notify` (local Exp
 - Not covered: table invites (too short-lived), match results (Bale), a logout hook that calls `stopBackgroundNotify` (not wired yet).
 - **Not compiled or run yet:** the Kotlin module was written without an Android SDK; build `assembleRelease` and test on a real phone (also a Xiaomi/Huawei one, where aggressive battery managers may delay or kill the job) before relying on it.
 - Optional later layer: FCM through UnifiedPush's embedded distributor for instant delivery where Google is reachable (needs an owner exception to rule 8).
+
+## Private messages (D232)
+
+A friend's private message used to reach nobody unless that DM was open (the DM view polls every 3 s). Now `ChatService.onDirect` (not called for table cards) pushes a live notice `dm {from}` to the friend if online (Home toast + browser notification while hidden) and queues a Bale `chat_message` if offline (once per sender per 10 min, switchable per player). A friend's profile has a «پیام» button that opens `DmSheet` directly, no chat tab needed. Not yet: unread counter/badge on Home, and tap-to-open of the toast.

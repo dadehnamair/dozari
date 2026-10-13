@@ -154,6 +154,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onDaily, onDuel, onD
       showWebNotice(n);
       if (n.kind === 'inbox') return inboxReload();
       // Table news arrives as a short line from the guide (the table sheet itself polls for the details).
+      if (n.kind === 'dm') return setNudgeToast(fa.home.dm(n.from ?? ''));
       if (n.kind === 'table_invite') return setNudgeToast(fa.home.tableInvite(n.from ?? ''));
       if (n.kind === 'table_request') return setNudgeToast(fa.home.tableRequest(n.from ?? ''));
       if (n.kind === 'table_answer') return setNudgeToast(n.accepted ? fa.tables.openList.accepted : fa.tables.openList.declined);
