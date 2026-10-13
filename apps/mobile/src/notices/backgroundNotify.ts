@@ -1,9 +1,11 @@
 import { NativeModules, PermissionsAndroid, Platform } from 'react-native';
 import { session } from '../auth';
-import { BASE_URL } from '../net/http';
+import { BASE_URL, callJson } from '../net/http';
 
 interface Native {
   schedule: (baseUrl: string, token: string) => void;
+  /** Firebase token of this install; null when the build has no Firebase identifiers or the phone cannot reach Google. */
+  fcmToken?: () => Promise<string | null>;
   cancel: () => void;
 }
 
@@ -26,7 +28,11 @@ export async function startBackgroundNotify(): Promise<void> {
   try {
     if (Number(Platform.Version) >= 33) await PermissionsAndroid.request('android.permission.POST_NOTIFICATIONS' as never);
     const token = await session.token();
-    if (token) mod.schedule(BASE_URL, token);
+    if (!token) return;
+    mod.schedule(BASE_URL, token);
+    // Instant push where Google is reachable; the scheduled check above stays as the fallback (both show under the same tag).
+    const fcm = await mod.fcmToken?.().catch(() => null);
+    if (fcm) await callJson('/push/fcm', 'POST', { token: fcm }, token);
   } catch {
     /* silent */
   }

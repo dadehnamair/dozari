@@ -685,6 +685,18 @@ export const webPushSubscriptions = mysqlTable(
   (table) => ({ uniqEndpoint: uniqueIndex('web_push_endpoint_uq').on(table.endpoint), byUser: index('web_push_user_idx').on(table.userId) }),
 );
 
+/** Firebase Cloud Messaging device tokens of the Android app (D232): one row per install the player is signed in on. */
+export const fcmTokens = mysqlTable(
+  'fcm_tokens',
+  {
+    id: char('id', { length: 36 }).primaryKey(),
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    token: varchar('token', { length: 400 }).notNull(),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ uniqToken: uniqueIndex('fcm_token_uq').on(table.token), byUser: index('fcm_user_idx').on(table.userId) }),
+);
+
 export const baleLinkCodes = mysqlTable('bale_link_codes', {
   code: varchar('code', { length: 12 }).primaryKey(),
   userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),

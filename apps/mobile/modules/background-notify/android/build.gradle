@@ -17,4 +17,8 @@ android {
 dependencies {
   // AndroidX WorkManager: a build-time library, not Google Play Services; it needs no Google account or network service.
   implementation "androidx.work:work-runtime-ktx:2.9.1"
+  // Firebase Cloud Messaging for instant delivery where Google is reachable. Started by hand from manifest meta-data
+  // (FcmInit), so no google-services.json or Gradle plugin; without the meta-data it is never touched.
+  implementation platform("com.google.firebase:firebase-bom:33.1.2")
+  implementation "com.google.firebase:firebase-messaging"
 }

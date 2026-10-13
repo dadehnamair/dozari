@@ -1,15 +1,6 @@
 package ir.dozari.bgnotify
 
-import android.Manifest
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
 import android.content.Context
-import android.content.pm.PackageManager
-import android.os.Build
-import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
-import androidx.core.content.ContextCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import org.json.JSONObject
@@ -21,7 +12,6 @@ class PendingWorker(private val context: Context, params: WorkerParameters) : Co
   companion object {
     const val WORK = "dozari-pending-notices"
     const val PREFS = "dozari_bg_notify"
-    private const val CHANNEL = "dozari_news"
     private const val SEEN_LIMIT = 200
   }
 
@@ -47,7 +37,8 @@ class PendingWorker(private val context: Context, params: WorkerParameters) : Co
           val item = items.getJSONObject(i)
           val id = item.getString("id")
           if (seen.contains(id)) continue
-          show(id, item.getString("title"), item.getString("body"))
+          // Same tag as the FCM push for this kind of event, so a notice that arrived both ways shows once.
+          Notifier.show(context, if (id.startsWith("fr:")) "friend_request" else "inbox", item.getString("title"), item.getString("body"))
           seen.add(id)
         }
         prefs.edit()
@@ -62,22 +53,5 @@ class PendingWorker(private val context: Context, params: WorkerParameters) : Co
       // No network, a bad answer: the next period simply tries again.
       Result.success()
     }
-  }
-
-  private fun show(id: String, title: String, text: String) {
-    if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
-    val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-    if (Build.VERSION.SDK_INT >= 26) manager.createNotificationChannel(NotificationChannel(CHANNEL, "اخبار دوزاری", NotificationManager.IMPORTANCE_DEFAULT))
-    val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)
-    val tap = launch?.let { PendingIntent.getActivity(context, 0, it, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT) }
-    val notification = NotificationCompat.Builder(context, CHANNEL)
-      .setSmallIcon(context.applicationInfo.icon)
-      .setContentTitle(title)
-      .setContentText(text)
-      .setStyle(NotificationCompat.BigTextStyle().bigText(text))
-      .setContentIntent(tap)
-      .setAutoCancel(true)
-      .build()
-    NotificationManagerCompat.from(context).notify(id.hashCode(), notification)
   }
 }

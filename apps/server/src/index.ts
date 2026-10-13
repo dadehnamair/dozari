@@ -97,6 +97,7 @@ import { NotifyService } from './notify/service.js';
 import { createBaleSignup } from './notify/signup.js';
 import { startNotifyRunner } from './notify/runner.js';
 import { registerBaleRoutes } from './notify/routes.js';
+import { FcmService, createDbFcmTokenStore, createFcmSender, loadServiceAccount, registerFcmRoutes } from './notify/fcm.js';
 import { WebPushService, createDbPushSubStore, createVapidSender, registerWebPushRoutes } from './notify/webpush.js';
 import { MessageCenter } from './messages/service.js';
 import { createDbMessageStore } from './messages/store.js';
@@ -223,6 +224,7 @@ export interface ServerDeps {
   /** Bale messenger integration: link codes for players, the bot's name for the app. */
   bale?: { service: NotifyService; botUsername: string | null };
   webPush?: WebPushService;
+  fcm?: FcmService;
   /** Mobile numbers (`/me/phone`); also required before Bale linking when the setting says so. */
   phone?: PhoneService;
   /** «ورود با شماره»: logged-out sign-in by SMS code (`/auth/phone/*`). */
@@ -419,6 +421,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.transfers) registerTransferRoutes(app, deps.auth, deps.transfers);
   if (deps.auth && deps.keepsakes) registerKeepsakeRoutes(app, deps.auth, deps.keepsakes);
   if (deps.auth && deps.webPush) registerWebPushRoutes(app, deps.auth, deps.webPush);
+  if (deps.auth && deps.fcm) registerFcmRoutes(app, deps.auth, deps.fcm);
   if (deps.auth && deps.messages) registerInboxRoutes(app, deps.auth, deps.messages);
   if (deps.auth && deps.messages && deps.social) {
     const center = deps.messages;
@@ -566,7 +569,15 @@ if (isMainModule(import.meta.url)) {
   // Browser push (Web Push, VAPID): iPhone home-screen apps through Apple's service, Chrome through Google's. Off without the three VAPID_* variables.
   const vapid = process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY ? { publicKey: process.env.VAPID_PUBLIC_KEY, privateKey: process.env.VAPID_PRIVATE_KEY, subject: process.env.VAPID_SUBJECT ?? 'mailto:admin@dozari.ir' } : null;
   const webPush = db && vapid ? new WebPushService(createDbPushSubStore(db), createVapidSender(vapid), vapid.publicKey) : undefined;
-  if (webPush) notices.also = (id, n) => void webPush.notice(id, n).catch(() => undefined);
+  // Android app push (FCM HTTP v1, no SDK): `FCM_SERVICE_ACCOUNT_JSON` is the service-account key, as JSON text or a file path. Off without it.
+  const fcmAccount = loadServiceAccount(process.env.FCM_SERVICE_ACCOUNT_JSON);
+  const fcm = db && fcmAccount ? new FcmService(createDbFcmTokenStore(db), createFcmSender(fcmAccount)) : undefined;
+  if (webPush || fcm) {
+    notices.also = (id, n) => {
+      void webPush?.notice(id, n).catch(() => undefined);
+      void fcm?.notice(id, n).catch(() => undefined);
+    };
+  }
   // The SMS provider and message texts are edited in the admin panel (stored in app_settings); env vars are the fallback.
   const smsGateway = settings && db
     ? new SmsGateway(createDbSettingsStore(db), { irnotiKey: process.env.IRNOTI_API_KEY, irnotiMessage: process.env.IRNOTI_MESSAGE, irnotiLineId: process.env.IRNOTI_LINE_ID, irnotiPatternCode: process.env.IRNOTI_PATTERN_CODE, kavenegarKey: process.env.KAVENEGAR_API_KEY, kavenegarTemplate: process.env.KAVENEGAR_TEMPLATE })
@@ -1055,6 +1066,7 @@ if (isMainModule(import.meta.url)) {
     presence,
     notices,
     webPush,
+    fcm,
     notify,
     messages,
     social,

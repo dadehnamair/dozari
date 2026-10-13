@@ -29,3 +29,13 @@ An iPhone suspends a home-screen web app in the background, so its socket and lo
 - Which events: friend request, private message, table invite, inbox message — everything that reaches `LiveNotices.push`, plus `also` for offline players (private messages, inbox, capped at 500 per broadcast). Table requests/answers stay in-app.
 - Client: `syncWebPush` (after the permission is granted and on every Home open) subscribes and registers; `sw.js` `push` handler shows the notification (silent when the app is in front, because iOS demands one per push). Same `tag` as the local notice, so one event never shows twice.
 - Not verified: no real iPhone/Chrome test; needs HTTPS and the VAPID keys on the server. If a push is not shown on iPhone, check iOS ≥ 16.4, the app opened from the Home Screen icon, notification permission, and the server log for a 4xx from `web.push.apple.com`.
+
+## Android app: FCM (D232)
+
+Instant delivery for the native app where Google is reachable; the WorkManager check above stays as the fallback. The owner accepted FCM **for push only** (2026-10-13): no Firebase Auth, Analytics or other Firebase products.
+
+- Server (`notify/fcm.ts`): FCM HTTP v1 without any SDK (OAuth token from the service-account key with `node:crypto`, cached; data-only high-priority messages `{title, body, tag}`), table `fcm_tokens`, `POST /push/fcm` and `/push/fcm/remove`. Env `FCM_SERVICE_ACCOUNT_JSON` (JSON text or file path); off without it. Same events as Web Push (`LiveNotices.also`). A token FCM calls 404 is deleted.
+- App: `modules/background-notify` starts Firebase by hand from manifest meta-data (`plugins/withFcm.js`; build env `FCM_PROJECT_ID`, `FCM_APP_ID`, `FCM_API_KEY`, `FCM_SENDER_ID` — no google-services.json). `DozariMessagingService` shows the notification unless the app is in front; `onNewToken` re-uploads. JS (`startBackgroundNotify`) fetches the token on each Home open and posts it.
+- No duplicates: FCM and the polling check show under the same notification tag (`friend_request`, `inbox`, `dm:<name>`…).
+- A phone without Play Services (or with Google blocked) gets no token and keeps only the polling check.
+- **Not compiled or run:** written without an Android SDK. Needs a real build (`assembleRelease`), a Firebase project with an Android app `ir.dozari.app`, and a test on a phone.

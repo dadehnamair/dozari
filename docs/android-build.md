@@ -41,6 +41,10 @@ The launcher icon follows the player's gender (D166): `plugins/withGenderIcon.js
 
 Quick check on a connected phone instead: `pnpm --filter @dozari/mobile android` (dev build, needs the dev server).
 
+## Push notifications (FCM, optional)
+
+Set these in the build environment (GitHub secrets or `apps/mobile/.env`) to include instant push: `FCM_PROJECT_ID`, `FCM_APP_ID`, `FCM_API_KEY`, `FCM_SENDER_ID` (Firebase console → Project settings → Your apps → Android `ir.dozari.app`). Without them the APK builds the same and relies on the background check. The server needs `FCM_SERVICE_ACCOUNT_JSON`. Details: `docs/logic/web-notifications.md`.
+
 ## Before a store release
 
 Version: bump `version` in `app.json` (and `android.versionCode`). Icons, adaptive icon and notification icon are in `apps/mobile/assets`.

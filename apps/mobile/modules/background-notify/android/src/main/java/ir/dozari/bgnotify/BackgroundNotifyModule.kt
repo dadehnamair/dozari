@@ -7,7 +7,11 @@ import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import expo.modules.kotlin.exception.Exceptions
+import com.google.firebase.messaging.FirebaseMessaging
+import expo.modules.kotlin.Promise
 import expo.modules.kotlin.modules.Module
+import com.google.firebase.messaging.FirebaseMessaging
+import expo.modules.kotlin.Promise
 import expo.modules.kotlin.modules.ModuleDefinition
 import java.util.concurrent.TimeUnit
 
@@ -32,6 +36,19 @@ class BackgroundNotifyModule : Module() {
         .build()
       // KEEP: re-opening the app must not restart the timer (it would never fire for someone who opens the app often).
       WorkManager.getInstance(context).enqueueUniquePeriodicWork(PendingWorker.WORK, ExistingPeriodicWorkPolicy.KEEP, request)
+    }
+
+    // The FCM token of this install, or null when the build has no Firebase identifiers or the phone cannot reach Google.
+    AsyncFunction("fcmToken") { promise: Promise ->
+      val context = appContext.reactContext ?: throw Exceptions.ReactContextLost()
+      if (!FcmInit.ensure(context)) return@AsyncFunction promise.resolve(null)
+      try {
+        FirebaseMessaging.getInstance().token
+          .addOnSuccessListener { token -> promise.resolve(token) }
+          .addOnFailureListener { promise.resolve(null) }
+      } catch (e: Exception) {
+        promise.resolve(null)
+      }
     }
 
     Function("cancel") {
