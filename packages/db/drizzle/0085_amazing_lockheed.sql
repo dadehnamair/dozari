@@ -1,0 +1,1 @@
+ALTER TABLE `chat_messages` MODIFY COLUMN `room_key` varchar(80) NOT NULL;
