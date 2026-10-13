@@ -46,6 +46,7 @@ import { connectDuel } from './socket';
 import type { DuelConnection } from './socket';
 import { SearchScreen } from '../search/SearchScreen';
 import { Versus } from './Versus';
+import { EndSplash } from './EndSplash';
 import { LeaveGuard } from './LeaveGuard';
 import { fetchWheel } from '../wheel/api';
 import { WheelPage } from '../wheel/WheelPage';
@@ -100,6 +101,8 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   /** The last row playing itself out (see `state.finale`): which of its four cards are lit, and whether its row is open. */
   const [finaleSel, setFinaleSel] = useState<string[]>([]);
   const [finaleLast, setFinaleLast] = useState(false);
+  /** The end-of-match splash was shown (or skipped) for this match. */
+  const [splashDone, setSplashDone] = useState(false);
   const foundAt = useRef(0);
   const lastResync = useRef(0);
   const finishedAt = useRef(0);
@@ -218,6 +221,10 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
     const id = setTimeout(() => setLeaveArmed(false), LEAVE_ARM_MS);
     return () => clearTimeout(id);
   }, [leaveArmed]);
+
+  useEffect(() => {
+    if (state.phase !== 'ended') setSplashDone(false);
+  }, [state.phase]);
 
   // The last row plays itself out before the board moves on or the result shows: the last four cards light up one by one, then their row opens.
   const finale = state.finale;
@@ -432,6 +439,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
           onPlayer={(id) => setProfileId(id)}
           onReport={(id) => setReportId(id)}
         />
+        {!prefs.reduceMotion && !splashDone ? <EndSplash outcome={outcome} me={{ who: lines[0]!.who, name: lines[0]!.name }} rival={{ who: lines[1]!.who, name: lines[1]!.name }} onDone={() => setSplashDone(true)} /> : null}
         {!prefs.reduceMotion ? (outcome === 'won' ? <Confetti distance={500} /> : <Rain distance={800} />) : null}
         {state.gem ? <GemBurst key={state.gem.n} amount={state.gem.amount} onDone={() => dispatch({ t: 'clearGem' })} /> : null}
         {outcome === 'won' && spinsWaiting > 0 ? (
