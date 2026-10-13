@@ -13,11 +13,12 @@ export const fmt = (n: number) => toPersianDigits(n.toLocaleString('en-US').repl
 
 export const styles = StyleSheet.create({
   root: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingTop: 14 + nativeTopInset(), paddingBottom: 22, paddingHorizontal: 12 },
-  pills: { flexDirection: RTL_ROW, gap: 8, minHeight: 40, alignItems: 'center', flexWrap: 'wrap' },
+  /** One row that never wraps or overflows: counters shrink (StatPill) before the level pill is pushed off-screen. */
+  pills: { flexDirection: RTL_ROW, gap: 5, minHeight: 36, alignItems: 'center', flexWrap: 'nowrap' },
   pillsGap: { flex: 1, minWidth: 0 },
-  mapBtn: { width: 38, height: 38, borderRadius: 19, borderWidth: 2, borderColor: 'rgba(255,255,255,0.35)', backgroundColor: 'rgba(43,18,64,0.65)', alignItems: 'center', justifyContent: 'center' },
+  mapBtn: { width: 34, height: 34, borderRadius: 17, flexShrink: 0, borderWidth: 2, borderColor: 'rgba(255,255,255,0.35)', backgroundColor: 'rgba(43,18,64,0.65)', alignItems: 'center', justifyContent: 'center' },
   mapBtnAdult: { borderColor: '#B8822A', backgroundColor: '#3A2412' },
-  mapIcon: { width: 26, height: 26 },
+  mapIcon: { width: 24, height: 24 },
   spinBadge: { position: 'absolute', top: -6, right: -6, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, backgroundColor: colors.candy.lime, borderWidth: 2, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   spinBadgeText: { fontFamily: fonts.bold, fontSize: 10, color: colors.ink },
   middle: { flex: 1, flexDirection: RTL_ROW, justifyContent: 'space-between', paddingTop: 12 },

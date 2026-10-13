@@ -29,12 +29,13 @@ export function StatPill({ color, glyph, icon, glyphColor = '#fff', value, label
       {badge ? <View style={styles.badge}><Text style={styles.badgeText}>{badge}</Text></View> : null}
     </View>
   );
-  return onPress ? <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label}>{body}</Pressable> : body;
+  return onPress ? <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={styles.wrap}>{body}</Pressable> : body;
 }
 
 const styles = StyleSheet.create({
-  pill: { flex: 1, height: 40, borderRadius: 99, backgroundColor: 'rgba(43,18,64,0.6)', borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)', flexDirection: Platform.OS === 'web' ? 'row-reverse' : 'row', alignItems: 'center', gap: 6, paddingHorizontal: 5 },
-  ball: { width: 30, height: 30, borderRadius: 15, borderWidth: 2.5, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  wrap: { flexShrink: 1, minWidth: 0 },
+  pill: { flex: 1, height: 36, minWidth: 0, borderRadius: 99, backgroundColor: 'rgba(43,18,64,0.6)', borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)', flexDirection: Platform.OS === 'web' ? 'row-reverse' : 'row', alignItems: 'center', gap: 3, paddingHorizontal: 4 },
+  ball: { width: 26, height: 26, borderRadius: 13, flexShrink: 0, borderWidth: 2.5, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   pillAdult: { backgroundColor: 'rgba(14,10,8,0.85)', borderColor: '#8A5A16' },
   ballAdult: { borderColor: '#000' },
   valueAdult: { color: '#FFE9A8' },
@@ -43,5 +44,5 @@ const styles = StyleSheet.create({
   glyph: { fontSize: 15, lineHeight: 18, height: 18, textAlign: 'center', textAlignVertical: 'center', includeFontPadding: false },
   badge: { position: 'absolute', top: -6, left: -4, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, backgroundColor: colors.candy.pink, borderWidth: 2, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   badgeText: { fontFamily: fonts.display, fontSize: 12, lineHeight: 16, color: '#fff' },
-  value: { flexShrink: 1, fontFamily: fonts.display, fontSize: 17, color: '#fff', paddingHorizontal: 6 },
+  value: { flexShrink: 1, fontFamily: fonts.display, fontSize: 15, color: '#fff', paddingHorizontal: 3 },
 });
