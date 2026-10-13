@@ -1,7 +1,7 @@
 /** Admin panel views: Puzzles, user reports, suggestions (UGC) (browser JS, concatenated into one script by ../views2.ts). */
 export const ADMIN_VIEWS2_PUZZLES_JS = String.raw`VIEWS.puzzles = function (root) {
   var LEVELS = [['آسان', '#f5c542', 'زرد'], ['متوسط', '#6cc24a', 'سبز'], ['سخت', '#3fa5e0', 'آبی'], ['خیلی سخت', '#9b59d0', 'بنفش']];
-  var P = { prods: [], byId: {}, rows: [], tab: 'draft', ready: null, tiers: [], track: '', topicF: '', tagF: '', tierF: '', topics: [], tags: [] };
+  var P = { prods: [], byId: {}, rows: [], tab: 'draft', ready: null, tiers: [], track: '', topicF: '', tagF: '', tierF: '', topics: [], tags: [], genTags: [] };
   var B = { slots: [[], [], [], []], titles: ['', '', '', ''], expls: ['', '', '', ''], active: 0, q: '', cat: 'all', tier: '', track: 'adult' };
   var TRACK_RANK = { kid: 0, teen: 1, adult: 2 };
   var head = h('div'), body = h('div');
@@ -256,12 +256,30 @@ export const ADMIN_VIEWS2_PUZZLES_JS = String.raw`VIEWS.puzzles = function (root
     if (P.tab === 'draft') {
       var n = h('input', { type: 'number', min: '1', max: '20', value: '5', style: 'width:84px' });
       var genTier = select([['', 'همه‌ی سطح‌ها، به نوبت']].concat(P.tiers.map(function (t) { return [t.id, tierLabel(t)]; })), '');
+      var genTopic = select([['', '— بدون گروه —']].concat(P.topics.filter(function (t) { return t.isActive; }).map(function (t) { return [t.id, t.nameFa]; })), '');
+      var genChips = h('div', { class: 'chips' });
+      var drawGenChips = function () {
+        clear(genChips);
+        P.tags.filter(function (t) { return t.isActive; }).forEach(function (t) {
+          var on = P.genTags.indexOf(t.slug) >= 0;
+          genChips.appendChild(h('button', { type: 'button', class: 'btn sm' + (on ? ' primary' : ''), 'aria-pressed': String(on), text: t.nameFa, onclick: function () {
+            P.genTags = on ? P.genTags.filter(function (x) { return x !== t.slug; }) : P.genTags.concat([t.slug]); drawGenChips();
+          } }));
+        });
+      };
+      drawGenChips();
       box.appendChild(h('div', { class: 'card inline' }, [
-        h('div', { style: 'flex:1;min-width:220px' }, [h('b', { text: 'ساخت خودکار' }), h('div', { class: 'sub', text: 'با زدن این دکمه برای سطح انتخابی پازل پیش‌نویس می‌سازد؛ تا تأیید تو منتشر نمی‌شوند. (ساخت زمان‌بندی‌شده را از «تنظیمات» خاموش کن.)' })]),
+        h('div', { style: 'flex:1;min-width:220px' }, [h('b', { text: 'ساخت خودکار' }), h('div', { class: 'sub', text: 'با زدن این دکمه برای سطح، گروه و برچسب‌های انتخابی پازل پیش‌نویس می‌سازد؛ تا تأیید تو منتشر نمی‌شوند. (ساخت زمان‌بندی‌شده را از «تنظیمات» خاموش کن.)' })]),
         genTier,
+        genTopic,
+        genChips,
         n,
         h('button', { class: 'btn primary', text: 'بساز', onclick: function () {
-          api('/admin/puzzles/generate', { method: 'POST', body: genTier.value ? { count: Number(n.value) || 1, tierId: genTier.value } : { count: Number(n.value) || 1 } }).then(function (r) {
+          var body = { count: Number(n.value) || 1 };
+          if (genTier.value) body.tierId = genTier.value;
+          if (genTopic.value) body.topicId = genTopic.value;
+          if (P.genTags.length) body.tags = P.genTags;
+          api('/admin/puzzles/generate', { method: 'POST', body: body }).then(function (r) {
             if (!r.ok) return fail(r);
             toast(r.body.created ? fa(r.body.created) + ' پیش‌نویس ساخته شد' : 'پازلی ساخته نشد؛ کاتالوگ (' + fa(r.body.catalogSize) + ' کالای دارای قیمت) کم است', !r.body.created);
             reload();

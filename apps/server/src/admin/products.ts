@@ -1,7 +1,7 @@
-import { asc, eq, pricePoints, products } from '@dozari/db';
+import { asc, eq, pricePoints, productCategories, products } from '@dozari/db';
 import type { Db } from '@dozari/db';
 import { uuidv7 } from 'uuidv7';
-import { PRODUCT_CATEGORIES, isItemIconKey } from '@dozari/shared';
+import { isItemIconKey } from '@dozari/shared';
 import type { AgeTrack } from '@dozari/shared';
 
 export interface ProductPatch {
@@ -53,8 +53,10 @@ function isDuplicateKey(err: unknown): boolean {
   return Boolean(e && (e.code === 'ER_DUP_ENTRY' || e.errno === 1062 || isDuplicateKey(e.cause)));
 }
 
-export function validCategory(c: string): boolean {
-  return (PRODUCT_CATEGORIES as readonly string[]).includes(c);
+/** A product may be filed under a category the admin has defined and not switched off (its current one stays valid for edits of other fields). */
+async function validCategory(db: Db, c: string): Promise<boolean> {
+  const [r] = await db.select({ isActive: productCategories.isActive }).from(productCategories).where(eq(productCategories.slug, c));
+  return r ? r.isActive : false;
 }
 
 export function createDbProductAdmin(db: Db): ProductAdmin {
@@ -67,16 +69,16 @@ export function createDbProductAdmin(db: Db): ProductAdmin {
     },
     async update(id, patch) {
       if (patch.iconKey && !isItemIconKey(patch.iconKey)) return 'invalid';
-      if (patch.category && !validCategory(patch.category)) return 'invalid';
       const set = Object.fromEntries(Object.entries(patch).filter(([, v]) => v !== undefined));
       if (Object.keys(set).length === 0) return 'invalid';
-      const [row] = await db.select({ id: products.id }).from(products).where(eq(products.id, id));
+      const [row] = await db.select({ id: products.id, category: products.category }).from(products).where(eq(products.id, id));
       if (!row) return 'not_found';
+      if (patch.category && patch.category !== row.category && !(await validCategory(db, patch.category))) return 'invalid';
       await db.update(products).set(set).where(eq(products.id, id));
       return 'ok';
     },
     async create(input) {
-      if (!slugOk.test(input.slug) || !validCategory(input.category)) return 'invalid';
+      if (!slugOk.test(input.slug) || !(await validCategory(db, input.category))) return 'invalid';
       if (input.iconKey && !isItemIconKey(input.iconKey)) return 'invalid';
       const id = uuidv7();
       try {
@@ -84,7 +86,7 @@ export function createDbProductAdmin(db: Db): ProductAdmin {
           id,
           slug: input.slug,
           nameFa: input.nameFa,
-          category: input.category as (typeof products.$inferInsert)['category'],
+          category: input.category,
           unitFa: input.unitFa ?? null,
           iconKey: input.iconKey ?? null,
           ageTrack: input.ageTrack ?? 'adult',

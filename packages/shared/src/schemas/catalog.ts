@@ -3,7 +3,7 @@ import { AGE_TRACKS } from '../config/ageTracks.js';
 import type { AgeTrack } from '../config/ageTracks.js';
 import { ITEM_ICON_KEYS } from '../items/index.js';
 
-/** Mirrors the `product_category` enum in packages/db (docs/logic/data-model.md §Catalog). */
+/** The built-in categories seeded into `product_categories` (docs/logic/data-model.md §Catalog); the admin may add more, so a product's category is a plain slug string. */
 export const PRODUCT_CATEGORIES = [
   'car',
   'food',
@@ -85,7 +85,7 @@ export const seedProductSchema = z
     slug: z.string().regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'slug must be lowercase ascii kebab-case'),
     name_fa: z.string().min(1),
     brand: z.string().optional(),
-    category: z.enum(PRODUCT_CATEGORIES),
+    category: z.string().min(1).max(40),
     unit_fa: z.string().optional(),
     /** Key of the hand-drawn icon pack shown on the card (`ITEM_ICON_KEYS`); checked in `checkSeedProducts`. */
     icon_key: z.string().optional(),

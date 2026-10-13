@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "880ad1c6-82b7-42ce-809a-75f335e92b14",
+  "id": "7c81d8f1-3b1e-475b-8cb6-1ec4af8bd559",
   "prevId": "e3f1e039-55a4-48de-b15f-4097b540a937",
   "tables": {
     "account_delete_codes": {
@@ -3037,87 +3037,6 @@
       "uniqueConstraints": {},
       "checkConstraint": {}
     },
-    "friend_contacts": {
-      "name": "friend_contacts",
-      "columns": {
-        "owner_id": {
-          "name": "owner_id",
-          "type": "char(36)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "friend_id": {
-          "name": "friend_id",
-          "type": "char(36)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "contact_name": {
-          "name": "contact_name",
-          "type": "varchar(80)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "phone": {
-          "name": "phone",
-          "type": "varchar(20)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP(3)"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "friend_contacts_owner_id_users_id_fk": {
-          "name": "friend_contacts_owner_id_users_id_fk",
-          "tableFrom": "friend_contacts",
-          "tableTo": "users",
-          "columnsFrom": [
-            "owner_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "friend_contacts_friend_id_users_id_fk": {
-          "name": "friend_contacts_friend_id_users_id_fk",
-          "tableFrom": "friend_contacts",
-          "tableTo": "users",
-          "columnsFrom": [
-            "friend_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "friend_contacts_owner_id_friend_id_pk": {
-          "name": "friend_contacts_owner_id_friend_id_pk",
-          "columns": [
-            "owner_id",
-            "friend_id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "checkConstraint": {}
-    },
     "friendships": {
       "name": "friendships",
       "columns": {
@@ -5294,7 +5213,7 @@
         },
         "category_guess": {
           "name": "category_guess",
-          "type": "enum('car','food','snack','drink','digital','electronics','housing','transport','education','entertainment','clothing','hygiene','service','other')",
+          "type": "varchar(40)",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -5613,6 +5532,67 @@
       "uniqueConstraints": {},
       "checkConstraint": {}
     },
+    "product_categories": {
+      "name": "product_categories",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "slug": {
+          "name": "slug",
+          "type": "varchar(40)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name_fa": {
+          "name": "name_fa",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "sort_order": {
+          "name": "sort_order",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "product_categories_id": {
+          "name": "product_categories_id",
+          "columns": [
+            "id"
+          ]
+        }
+      },
+      "uniqueConstraints": {
+        "product_categories_slug_unique": {
+          "name": "product_categories_slug_unique",
+          "columns": [
+            "slug"
+          ]
+        }
+      },
+      "checkConstraint": {}
+    },
     "product_era_tags": {
       "name": "product_era_tags",
       "columns": {
@@ -5790,7 +5770,7 @@
         },
         "category": {
           "name": "category",
-          "type": "enum('car','food','snack','drink','digital','electronics','housing','transport','education','entertainment','clothing','hygiene','service','other')",
+          "type": "varchar(40)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
@@ -6178,7 +6158,7 @@
         },
         "rule_category": {
           "name": "rule_category",
-          "type": "enum('car','food','snack','drink','digital','electronics','housing','transport','education','entertainment','clothing','hygiene','service','other')",
+          "type": "varchar(40)",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
