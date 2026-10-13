@@ -1,5 +1,6 @@
 import { randomInt } from 'node:crypto';
-import { normalizeIranPhone } from '@dozari/shared';
+import { MUTABLE_NOTIFY_KINDS, normalizeIranPhone } from '@dozari/shared';
+import type { MutableNotifyKind } from '@dozari/shared';
 import { RateLimiter } from '../security/rate-limit.js';
 import type { BaleClient, BaleUpdate } from './client.js';
 import type { BaleInvoice, BalePaid, PreCheckout } from '../economy/coin-packages.js';
@@ -97,8 +98,19 @@ export class NotifyService {
   async notify(userId: string, kind: NotifyKind, text: string): Promise<boolean> {
     const chatId = await this.store.chatOf(userId);
     if (!chatId) return false;
+    if ((MUTABLE_NOTIFY_KINDS as readonly string[]).includes(kind) && (await this.store.mutedKinds(userId)).includes(kind)) return false;
     await this.store.enqueue({ chatId, userId, kind, text });
     return true;
+  }
+
+  /** The kinds the player switched off. */
+  prefs(userId: string): Promise<string[]> {
+    return this.store.mutedKinds(userId);
+  }
+
+  /** Replaces the player's switched-off kinds (only mutable kinds are kept). */
+  async setPrefs(userId: string, muted: MutableNotifyKind[]): Promise<void> {
+    await this.store.setMutedKinds(userId, [...new Set(muted)]);
   }
 
   /** Queues a message for a chat that is not a player (the admin's own chat). */

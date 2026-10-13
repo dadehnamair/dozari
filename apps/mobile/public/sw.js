@@ -69,3 +69,14 @@ self.addEventListener('fetch', (event) => {
       .catch(() => caches.match(key).then((hit) => hit || Response.error())),
   );
 });
+
+// Browser notifications (docs/logic/web-notifications.md): a tap brings the open window forward, or opens the app.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      const open = list.find((c) => 'focus' in c);
+      return open ? open.focus() : self.clients.openWindow('/');
+    }),
+  );
+});

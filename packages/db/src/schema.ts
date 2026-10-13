@@ -665,6 +665,8 @@ export const baleLinks = mysqlTable(
     chatId: varchar('chat_id', { length: 40 }).notNull(),
     linkedAt: datetime('linked_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
     dailyNotifiedFor: datetime('daily_notified_for', { mode: 'date', fsp: 3 }),
+    /** Comma-separated notification kinds the player switched off (no JSON columns, D63). */
+    mutedKinds: varchar('muted_kinds', { length: 200 }).notNull().default(''),
   },
   (table) => ({ uniqChat: uniqueIndex('bale_links_chat_uq').on(table.chatId) }),
 );

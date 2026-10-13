@@ -1841,6 +1841,21 @@ export const fa = {
     notConfigured: 'ربات بله هنوز راه‌اندازی نشده.',
     error: 'نتوانستیم به سرور وصل شویم.',
     close: 'بستن',
+    prefsTitle: 'خبرهایی که از بله می‌گیری',
+    prefs: { match_result: 'نتیجهٔ بازی', daily_ready: 'آماده شدن جایزهٔ روزانه', friend_request: 'درخواست دوستی', table_invite: 'دعوت به میز' } as Record<string, string>,
+  },
+  /** Browser notifications of the installed web app (docs/logic/web-notifications.md). */
+  webNotify: {
+    title: 'اعلان در مرورگر',
+    enable: 'روشن کردن اعلان',
+    enabled: 'اعلان روشن است ✅ وقتی برنامه در پس‌زمینه است خبر می‌گیری.',
+    denied: 'اعلان در تنظیمات مرورگر بسته شده است.',
+    friendRequest: (from: string) => `${from || 'یک نفر'} برایت درخواست دوستی فرستاد 🤝`,
+    tableInvite: (from: string) => `${from || 'یک نفر'} تو را به یک میز دعوت کرد 🎲`,
+    tableRequest: (from: string) => `${from || 'یک نفر'} می‌خواهد پشت میزت بنشیند`,
+    tableAccepted: 'به میز راهت دادند 🎲',
+    tableDeclined: 'درخواست میزت پذیرفته نشد.',
+    inbox: 'یک پیام تازه در صندوقت داری',
   },
   /** Leave penalty (docs/logic/leave-penalty.md): the profile badge and when it comes off. */
   leave: {

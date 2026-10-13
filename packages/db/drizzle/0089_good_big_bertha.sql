@@ -1,0 +1,1 @@
+ALTER TABLE `bale_links` ADD `muted_kinds` varchar(200) DEFAULT '' NOT NULL;

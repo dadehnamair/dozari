@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
-import type { BaleLinkCode, BaleLinkStatus } from '@dozari/shared';
+import { MUTABLE_NOTIFY_KINDS } from '@dozari/shared';
+import type { BaleLinkCode, BaleLinkStatus, MutableNotifyKind } from '@dozari/shared';
 import { CandyButton } from '../components/CandyButton';
 import { GuideBubble } from '../components/GuideBubble';
 import { useConfirm } from '../components/useConfirm';
@@ -10,7 +11,9 @@ import { colors, fonts } from '../theme/colors';
 import { ApiError } from '../net/http';
 import { phoneErrorText } from '../phone/errors';
 import { PhoneStep } from '../phone/PhoneStep';
-import { fetchBaleLink, requestBaleCode, unlinkBale } from './api';
+import { fetchBaleLink, fetchBalePrefs, requestBaleCode, saveBalePrefs, unlinkBale } from './api';
+import { enableWebNotify, webNotifyState } from '../notices/webNotify';
+import type { WebNotifyState } from '../notices/webNotify';
 import { useTheme } from '../theme/themeStore';
 import { useHardwareBack } from '../nav/useHardwareBack';
 
@@ -27,9 +30,19 @@ export function BaleSheet({ onClose }: { onClose: () => void }) {
   const [why, setWhy] = useState<string | null>(null);
   const [phoneNote, setPhoneNote] = useState<string | null>(null);
 
+  const [muted, setMuted] = useState<MutableNotifyKind[]>([]);
+  const [web, setWeb] = useState<WebNotifyState>(webNotifyState);
+
   useEffect(() => {
     fetchBaleLink().then(setStatus, () => setFailed(true));
+    fetchBalePrefs().then((p) => setMuted(p.muted), () => undefined);
   }, []);
+
+  const toggle = (k: MutableNotifyKind) => {
+    const next = muted.includes(k) ? muted.filter((m) => m !== k) : [...muted, k];
+    setMuted(next);
+    saveBalePrefs({ muted: next }).then((p) => setMuted(p.muted), () => (setMuted(muted), setFailed(true)));
+  };
 
   const getCode = () =>
     requestBaleCode().then(
@@ -60,6 +73,12 @@ export function BaleSheet({ onClose }: { onClose: () => void }) {
         {status?.linked ? (
           <>
             <Text style={[styles.text, adult ? styles.textAdult : null]}>{fa.bale.linked}</Text>
+            <Text style={[styles.small, adult ? styles.textAdult : null]}>{fa.bale.prefsTitle}</Text>
+            {MUTABLE_NOTIFY_KINDS.map((k) => (
+              <Pressable key={k} style={styles.pref} onPress={() => toggle(k)} accessibilityRole="switch" accessibilityState={{ checked: !muted.includes(k) }}>
+                <Text style={[styles.text, adult ? styles.textAdult : null]}>{muted.includes(k) ? '☐' : '☑'} {fa.bale.prefs[k]}</Text>
+              </Pressable>
+            ))}
             <CandyButton label={fa.bale.unlink} color={colors.candy.pink} onPress={() => ask({ title: fa.confirm.unlinkBale.title, message: fa.confirm.unlinkBale.message, confirmLabel: fa.confirm.unlinkBale.yes, onConfirm: unlink })} />
           </>
         ) : null}
@@ -80,6 +99,15 @@ export function BaleSheet({ onClose }: { onClose: () => void }) {
             <CandyButton label={fa.bale.getCode} color={colors.candy.lime} onPress={() => void getCode()} />
           )
         ) : null}
+        {web !== 'unsupported' ? (
+          web === 'granted' ? (
+            <Text style={[styles.small, adult ? styles.textAdult : null]}>{fa.webNotify.enabled}</Text>
+          ) : web === 'denied' ? (
+            <Text style={[styles.small, adult ? styles.textAdult : null]}>{fa.webNotify.denied}</Text>
+          ) : (
+            <CandyButton label={fa.webNotify.enable} color={colors.candy.sky} onPress={() => void enableWebNotify().then(setWeb)} />
+          )
+        ) : null}
       </Pressable>
       {dialog}
     </Pressable>
@@ -94,6 +122,7 @@ const styles = StyleSheet.create({
   title: { fontFamily: fonts.display, fontSize: 24, color: INK },
   text: { fontFamily: fonts.bold, fontSize: 14, color: INK, textAlign: 'center' },
   small: { fontFamily: fonts.bold, fontSize: 12, color: INK, opacity: 0.7 },
+  pref: { paddingVertical: 4, alignSelf: 'stretch' },
   codeBox: { alignItems: 'center', gap: 6 },
   code: { fontFamily: fonts.display, fontSize: 36, letterSpacing: 4, color: INK, backgroundColor: '#FFC93C', borderWidth: 3, borderColor: INK, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 4, overflow: 'hidden' },
 });
