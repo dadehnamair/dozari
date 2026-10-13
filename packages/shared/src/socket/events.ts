@@ -37,11 +37,21 @@ export const ServerEvent = {
   draftState: 'draft:state',
   matchEvent: 'match:event',
   matchEnded: 'match:ended',
+  /** Another player of the match dropped (the seat is held for the grace) or came back. */
+  matchPresence: 'match:presence',
   chatMessage: 'chat:message',
   /** A small «something new for you» push (friend request, inbox message); the client then reloads that list. */
   notice: 'notice:new',
   error: 'error',
 } as const;
+
+export const matchPresenceSchema = z.object({
+  userId: z.string(),
+  state: z.enum(['dropped', 'back']),
+  /** Absolute epoch ms when the held seat is given up (only with `dropped`). */
+  graceEndsAt: z.number().int().optional(),
+});
+export type MatchPresence = z.infer<typeof matchPresenceSchema>;
 
 export const LIVE_NOTICE_KINDS = ['friend_request', 'inbox', 'table_invite', 'table_request', 'table_answer'] as const;
 export const liveNoticeSchema = z.object({

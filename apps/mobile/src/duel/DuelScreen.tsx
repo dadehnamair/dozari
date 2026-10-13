@@ -29,6 +29,7 @@ import { colors, fonts } from '../theme/colors';
 import { getLookGender } from '../theme/look';
 import { arenaNumbers, arenaTiers, arrange, characterFor, clockText, endReason, groupsBy, myCharacter, shuffled } from './arena';
 import type { TierId } from './arena';
+import { fetchLeaveWarning } from './api';
 import { DuelPriceRound } from './DuelPriceRound';
 import { DuelTriviaRound } from './DuelTriviaRound';
 import { DuelResult } from './DuelResult';
@@ -88,6 +89,8 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   /** The taunt the player just sent, floating under their card for a few seconds. */
   const [myBubble, setMyBubble] = useState<string | null>(null);
   const [leaveArmed, setLeaveArmed] = useState(false);
+  /** Leaves still allowed today before duels and tables close, read when the player arms «leave» (null = unknown or no such rule). */
+  const [leaveLeft, setLeaveLeft] = useState<number | null>(null);
   const [friendOpen, setFriendOpen] = useState(false);
   const [tableOpen, setTableOpen] = useState(false);
   const [mode, setMode] = useState<'duel' | 'team'>('duel');
@@ -219,6 +222,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   }, [wonMatch]);
   useEffect(() => {
     if (!leaveArmed) return;
+    void fetchLeaveWarning().then((w) => setLeaveLeft(w?.left ?? null));
     const id = setTimeout(() => setLeaveArmed(false), LEAVE_ARM_MS);
     return () => clearTimeout(id);
   }, [leaveArmed]);
@@ -513,12 +517,14 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   const mateWaiting = team && mine && !captain && selected.length === 4;
   const turnText = view.lockedOut[me] ? fa.duel.lockedOut : mine ? (!captain ? (mateWaiting ? a.waitCaptain(captainName) : a.mateCaptain) : proposalReady ? a.mateReady(nameOf(view.proposal?.by)) : team ? a.captain : fa.duel.yourTurn) : fa.duel.theirTurn;
   const boards = view.rounds ?? 1;
+  /** A player of the match who dropped and whose seat is still held. */
+  const awayId = playing ? Object.keys(state.away).find((id) => (state.away[id] ?? 0) > now) : undefined;
   const noticeText = state.notice ? fa.duel.errors[state.notice] ?? fa.duel.errors.generic ?? null : null;
   const frozenMs = (view.frozenUntil?.[me] ?? 0) - now;
   const frozenMe = frozenMs > 0 && playing;
   const frozenRival = (view.frozenUntil?.[them] ?? 0) > now;
   const powerText = frozenMe ? fa.duel.power.frozenLeft(Math.ceil(frozenMs / 1000)) : state.powerNote ? fa.duel.power.notes[state.powerNote] ?? null : null;
-  const toast = leaveArmed ? a.leaveSure : powerText ? powerText : state.boardNote ? a.nextBoard(state.boardNote.board, state.boardNote.of) : state.flash && state.flash !== 'one_away' ? fa.duel.feedback[state.flash] : null;
+  const toast = leaveArmed ? (leaveLeft === null ? a.leaveSure : a.leaveSureLeft(leaveLeft)) : powerText ? powerText : state.boardNote ? a.nextBoard(state.boardNote.board, state.boardNote.of) : state.flash && state.flash !== 'one_away' ? fa.duel.feedback[state.flash] : null;
   /** The submit button lights up only when this player can really submit now: their side's turn, they are the captain, four cards are picked, no answer pending. */
   const canSend = playing && mine && captain && canSubmit(selected) && !sending && !state.finale && !frozenMe;
   /** The power-ups work on the player's own turn, for the captain, while no answer is pending. */
@@ -604,6 +610,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
             {state.taunt ? <View style={[styles.bubble, { [EDGE_LEFT]: 4 }]}><SpeechBubble text={state.taunt.text} mine={false} /></View> : null}
           </View>
 
+          {awayId ? <Text style={styles.away}>{a.away(nameOf(awayId) || a.rival, Math.max(0, Math.ceil(((state.away[awayId] ?? 0) - now) / 1000)))}</Text> : null}
           {view.found && playing ? <Text style={[styles.rivalFound, view.found[them] >= 3 ? styles.rivalFoundHot : null]}>{view.found[them] > 0 ? a.rivalFound(view.found[them]) : a.rivalFoundNone}</Text> : null}
           <View style={styles.turnRow}>
             <View style={[styles.turn, mine ? (team && !captain ? styles.turnMate : styles.turnMine) : null]}><Text style={[styles.turnText, mine ? styles.turnTextMine : null]}>{turnText}</Text></View>
@@ -723,6 +730,7 @@ const styles = StyleSheet.create({
   clockText: { fontFamily: fonts.display, fontSize: 26, lineHeight: 36, color: colors.ink },
   mode: { height: 40, paddingHorizontal: 12, borderRadius: 13, backgroundColor: 'rgba(26,8,44,0.8)', borderWidth: 2, borderColor: colors.candy.yellow, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
   modeText: { fontFamily: fonts.display, fontSize: 17, color: colors.candy.yellow },
+  away: { textAlign: 'center', fontFamily: fonts.display, fontSize: 14, lineHeight: 22, color: colors.candy.orange },
   rivalFound: { textAlign: 'center', fontFamily: fonts.bold, fontSize: 13, lineHeight: 20, color: 'rgba(255,246,232,0.85)', marginBottom: 4 },
   rivalFoundHot: { color: colors.candy.yellow, fontFamily: fonts.display },
   turnRow: { alignItems: 'center', justifyContent: 'center' },

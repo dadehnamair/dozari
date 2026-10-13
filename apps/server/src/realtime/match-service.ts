@@ -213,6 +213,12 @@ export class MatchService {
     return { groups: entry.state.puzzle.groups.filter((g) => !done.has(g.level)).map((g) => [...g.productIds]), remaining: [...entry.state.remaining], tried: entry.state.tried };
   }
 
+  /** The other players of the match `userId` sits in (rival, and teammates in a 2v2); empty when none. */
+  othersOf(userId: string): string[] {
+    const entry = this.entryOf(userId);
+    return entry ? entry.state.players.filter((p) => p.userId !== userId && !entry.state.gone.includes(p.userId)).map((p) => p.userId) : [];
+  }
+
   inMatch(userId: string): boolean {
     return this.byUser.has(userId) || this.draftOf.has(userId);
   }

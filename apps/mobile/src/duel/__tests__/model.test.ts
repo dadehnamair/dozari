@@ -172,3 +172,15 @@ describe('topic draft', () => {
     expect(s.error).toBe('DRAFT_CANCELLED');
   });
 });
+
+describe('dropped players', () => {
+  it('holds a dropped player until they are back or the match ends', () => {
+    let s = duelReducer(initialDuel, { t: 'presence', userId: 'u1', state: 'dropped', graceEndsAt: 9000 });
+    expect(s.away).toEqual({ u1: 9000 });
+    s = duelReducer(s, { t: 'presence', userId: 'u2', state: 'dropped', graceEndsAt: 9500 });
+    s = duelReducer(s, { t: 'presence', userId: 'u1', state: 'back' });
+    expect(s.away).toEqual({ u2: 9500 });
+    const ended = { matchId: '00000000-0000-7000-8000-000000000001', result: { winner: 0, reason: 'forfeit' }, scores: [0, 0], groups: [] } as unknown as MatchEnded;
+    expect(duelReducer(s, { t: 'ended', ended }).away).toEqual({});
+  });
+});
