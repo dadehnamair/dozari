@@ -7,6 +7,7 @@ import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
 import { claimBirthdayGift, fetchBirthday, saveBirthday } from './birthdayApi';
 import { birthYearOptions, daysInMonth } from './birthdayInput';
+import { noteToast } from '../toast/toastStore';
 
 const INK = '#3A2418';
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
@@ -22,7 +23,7 @@ export function BirthdayEditor({ onGift }: { onGift?: () => void }) {
   const [open, setOpen] = useState<'year' | 'month' | 'day' | null>(null);
   const [showAge, setShowAge] = useState(false);
   const [notify, setNotify] = useState(true);
-  const [note, setNote] = useState<{ text: string; bad: boolean } | null>(null);
+  const setNote = noteToast;
 
   const apply = (v: MyBirthday) => {
     setB(v);
@@ -36,7 +37,7 @@ export function BirthdayEditor({ onGift }: { onGift?: () => void }) {
   useEffect(() => {
     fetchBirthday().then(apply, () => setNote({ text: t.error, bad: true }));
   }, [t.error]);
-  if (!b) return note ? <Text style={[styles.hint, styles.bad]}>{note.text}</Text> : null;
+  if (!b) return null;
 
   const save = (birth: { year: number; month: number; day: number } | null) =>
     saveBirthday({ birth, showAge, notifyFriends: notify }).then(
@@ -113,7 +114,6 @@ export function BirthdayEditor({ onGift }: { onGift?: () => void }) {
         ) : null}
       </View>
       <Text style={styles.hint}>{t.hint(b.minAge)}</Text>
-      {note ? <Text style={[styles.hint, note.bad && styles.bad]}>{note.text}</Text> : null}
     </View>
   );
 }

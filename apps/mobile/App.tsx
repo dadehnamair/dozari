@@ -50,6 +50,7 @@ import { PriceOnlyScreen } from './src/priceonly/PriceOnlyScreen';
 import { TriviaScreen } from './src/trivia/TriviaScreen';
 import { refillPack } from './src/offline/pack';
 import { ServerDownBanner } from './src/net/ServerDownBanner';
+import { ToastHost } from './src/toast/ToastHost';
 import { takeLaunchTarget } from './src/pwa/usePwa';
 import { ErrorBoundary } from './src/errors/ErrorBoundary';
 import { installGlobalErrorReporting } from './src/errors/globalHandlers';
@@ -254,6 +255,7 @@ function AppInner() {
         />
       ) : null}
       <ServerDownBanner />
+      <ToastHost />
       <PwaLayer home={screen === 'home'} />
       {inviteGate}
       {myTrack.limits ? <RestCardView limits={myTrack.limits} /> : null}
