@@ -29,10 +29,12 @@ export function StatPill({ color, glyph, icon, glyphColor = '#fff', value, label
       {badge ? <View style={styles.badge}><Text style={styles.badgeText}>{badge}</Text></View> : null}
     </View>
   );
-  return onPress ? <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label}>{body}</Pressable> : body;
+  // The wrapper must be shrinkable too, or the pill's own flex/minWidth never reaches the row and the last pill overflows narrow screens.
+  return onPress ? <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={styles.press}>{body}</Pressable> : body;
 }
 
 const styles = StyleSheet.create({
+  press: { flexShrink: 1, minWidth: 0 },
   pill: { flex: 1, minWidth: 0, height: 40, borderRadius: 99, backgroundColor: 'rgba(43,18,64,0.6)', borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)', flexDirection: Platform.OS === 'web' ? 'row-reverse' : 'row', alignItems: 'center', gap: 6, paddingHorizontal: 5 },
   ball: { width: 30, height: 30, borderRadius: 15, borderWidth: 2.5, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   pillAdult: { backgroundColor: 'rgba(14,10,8,0.85)', borderColor: '#8A5A16' },

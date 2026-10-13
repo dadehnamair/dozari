@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Linking, Platform, Pressable, Share, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Linking, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { toLatinDigits } from '@dozari/shared';
 import type { FoundPlayer, MyFind } from '@dozari/shared';
 import { Avatar } from '../components/Avatar';
@@ -41,6 +41,7 @@ export function FindSheet({ onClose }: { onClose: () => void }) {
   const share = () => {
     if (me) void Share.share({ message: fa.find.shareMessage(me.shareUrl) }).catch(() => undefined);
   };
+  const { height: winHeight } = useWindowDimensions();
   const scanContacts = async () => {
     const read = await readContacts().catch(() => ({ ok: false as const, reason: 'denied' as const }));
     if (!read.ok) {
@@ -103,7 +104,11 @@ export function FindSheet({ onClose }: { onClose: () => void }) {
         )}
         {fromContacts && fromContacts.length === 0 ? <Text style={styles.hint}>{fa.find.contactsNone}</Text> : null}
         {fromContacts && fromContacts.length > 0 ? <Text style={styles.hint}>{fa.find.contactsFound(fromContacts.length)}</Text> : null}
-        {(fromContacts ?? []).slice(0, 8).map((p) => <PlayerCard key={p.id} p={p} onOpen={() => setOpen(p.id)} onAdd={() => void addFriend(p)} />)}
+        {fromContacts && fromContacts.length > 0 ? (
+          <ScrollView style={[styles.list, { maxHeight: Math.min(320, Math.round(winHeight * 0.32)) }]} contentContainerStyle={styles.listContent} nestedScrollEnabled showsVerticalScrollIndicator>
+            {fromContacts.map((p) => <PlayerCard key={p.id} p={p} onOpen={() => setOpen(p.id)} onAdd={() => void addFriend(p)} />)}
+          </ScrollView>
+        ) : null}
         {found === null ? <Text style={styles.hint}>{fa.find.notFound}</Text> : null}
         {found ? <PlayerCard p={found} onOpen={() => setOpen(found.id)} onAdd={() => void addFriend(found)} /> : null}
         {note ? <Text style={[styles.hint, styles.bad]}>{note}</Text> : null}
@@ -134,6 +139,8 @@ function PlayerCard({ p, onOpen, onAdd }: { p: FoundPlayer; onOpen: () => void; 
 }
 
 const styles = StyleSheet.create({
+  list: { alignSelf: 'stretch', flexGrow: 0, borderWidth: 2, borderColor: INK, borderRadius: 16, backgroundColor: 'rgba(58,36,24,0.06)' },
+  listContent: { gap: 8, padding: 8 },
   card: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'stretch', backgroundColor: colors.card, borderWidth: 2, borderColor: INK, borderRadius: 16, padding: 8 },
   cardMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, minWidth: 0 },
   cardText: { flex: 1, minWidth: 0 },
