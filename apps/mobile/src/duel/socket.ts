@@ -1,6 +1,6 @@
 import { io } from 'socket.io-client';
 import type { Socket } from 'socket.io-client';
-import { ClientEvent, ServerEvent, ackSchema, chatMessageSchema, draftViewSchema, matchEndedSchema, matchEventSchema, matchFoundSchema, matchViewSchema, queueStatusSchema } from '@dozari/shared';
+import { ClientEvent, ServerEvent, ackSchema, chatMessageSchema, draftViewSchema, matchEndedSchema, matchEventSchema, matchFoundSchema, matchPresenceSchema, matchViewSchema, queueStatusSchema } from '@dozari/shared';
 import type { Ack } from '@dozari/shared';
 import { session } from '../auth';
 import { BASE_URL, callJson } from '../net/http';
@@ -21,6 +21,8 @@ export interface DuelConnection {
   leave(): Promise<Ack>;
   /** A hidden guess in the price-guess round (rials). */
   priceGuess(guessRials: bigint): Promise<Ack>;
+  /** A hidden answer (choice index 0-3) in the general-question round. */
+  triviaAnswer(index: number): Promise<Ack>;
   taunt(tauntId: string): Promise<Ack>;
   close(): void;
 }
@@ -89,6 +91,10 @@ export async function connectDuel(dispatch: (a: DuelAction) => void): Promise<Du
     else if (e.data.t === 'board_done') dispatch({ t: 'boardDone', round: e.data.round, groups: e.data.groups });
     else if (e.data.t === 'board') dispatch({ t: 'board', board: e.data.round + 1, of: e.data.rounds });
   });
+  socket.on(ServerEvent.matchPresence, (p: unknown) => {
+    const e = matchPresenceSchema.safeParse(p);
+    if (e.success) dispatch({ t: 'presence', userId: e.data.userId, state: e.data.state, graceEndsAt: e.data.graceEndsAt });
+  });
   socket.on(ServerEvent.matchEnded, (p: unknown) => {
     const e = matchEndedSchema.safeParse(p);
     if (e.success) dispatch({ t: 'ended', ended: e.data });
@@ -119,6 +125,7 @@ export async function connectDuel(dispatch: (a: DuelAction) => void): Promise<Du
     propose: (itemIds) => ask(socket, ClientEvent.matchPropose, { itemIds }),
     leave: () => ask(socket, ClientEvent.matchLeave),
     priceGuess: (guessRials) => ask(socket, ClientEvent.priceSubmit, { guessRials: guessRials.toString() }),
+    triviaAnswer: (index) => ask(socket, ClientEvent.triviaSubmit, { index }),
     taunt: (tauntId) => ask(socket, ClientEvent.chatTaunt, { tauntId }),
     close: () => {
       socket.removeAllListeners();

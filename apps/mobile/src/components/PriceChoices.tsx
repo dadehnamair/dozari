@@ -5,6 +5,7 @@ import { colors, fonts } from '../theme/colors';
 import { useTheme } from '../theme/themeStore';
 import { playSfx } from '../sound/engine';
 import { GradientFill } from './GradientFill';
+import { VERDICT_TONES, choiceVerdict } from './choiceVerdict';
 
 /** Slim candy faces for the four choices: a pale tint on top, the tone below, and a thin shelf. */
 const TONES = [
@@ -16,12 +17,13 @@ const TONES = [
 const ADULT = { from: '#FFE9A8', to: '#E8B64A', shelf: '#8A5A16' };
 
 /** The four choices of a price question (rials as decimal strings, ascending), as a 2×2 grid: one tap answers. */
-export function PriceChoices({ options, onPick, disabled }: { options: readonly string[]; onPick: (rials: bigint) => void; disabled?: boolean }) {
+export function PriceChoices({ options, onPick, disabled, reveal }: { options: readonly string[]; onPick: (rials: bigint) => void; disabled?: boolean; /** The question is answered: colour the choices in place (picked green or red, the real price purple, the rest faded). */ reveal?: { picked: string | null; actual: string } }) {
   const adult = useTheme() === 'adult';
   return (
     <View style={styles.grid} accessibilityLabel={fa.solo.price.question}>
       {options.map((o, i) => {
-        const tone = adult ? ADULT : TONES[i % TONES.length]!;
+        const verdict = reveal ? choiceVerdict(BigInt(o), reveal.picked === null ? null : BigInt(reveal.picked), BigInt(reveal.actual)) : null;
+        const tone = verdict && verdict !== 'dim' ? VERDICT_TONES[verdict] : adult ? ADULT : TONES[i % TONES.length]!;
         const label = priceText(o); // already ends in the unit («… هزار تومن»)
         return (
           <Pressable
@@ -29,9 +31,9 @@ export function PriceChoices({ options, onPick, disabled }: { options: readonly 
             accessibilityRole="button"
             accessibilityLabel={label}
             accessibilityState={{ disabled: !!disabled }}
-            disabled={disabled}
+            disabled={disabled || !!reveal}
             onPress={() => (playSfx('confirm'), onPick(BigInt(o)))}
-            style={styles.cellWrap}
+            style={[styles.cellWrap, verdict === 'dim' ? styles.dim : null]}
           >
             {({ pressed }) => (
               <View style={[styles.shelf, { backgroundColor: tone.shelf }]}>
@@ -52,6 +54,7 @@ export function PriceChoices({ options, onPick, disabled }: { options: readonly 
 const styles = StyleSheet.create({
   grid: { alignSelf: 'stretch', flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   cellWrap: { width: '48%', flexGrow: 1 },
+  dim: { opacity: 0.45 },
   shelf: { borderRadius: 18, paddingBottom: 4 },
   face: { minHeight: 92, borderRadius: 18, borderWidth: 2, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 10, paddingVertical: 8 },
   light: { position: 'absolute', top: 0, left: 0, right: 0, height: 3, backgroundColor: 'rgba(255,255,255,0.6)' },

@@ -30,3 +30,12 @@ describe('guardian settings', () => {
     expect(inQuietHours({ quietFrom: null, quietTo: null }, 100)).toBe(false);
   });
 });
+
+describe('guardian code schemas read Persian digits', () => {
+  it('turns Persian and Arabic digits into Latin ones', async () => {
+    const { childLinkRequestSchema, guardianConfirmCodeSchema } = await import('../guardian.js');
+    expect(childLinkRequestSchema.parse({ code: '۱۲۳۴۵۶', deviceId: 'device-123' }).code).toBe('123456');
+    expect(guardianConfirmCodeSchema.parse({ code: '٤٥٦٧٨' }).code).toBe('45678');
+    expect(childLinkRequestSchema.safeParse({ code: '۱۲۳', deviceId: 'device-123' }).success).toBe(false);
+  });
+});

@@ -13,5 +13,13 @@ Owner (2026-10-12): beside the price questions, a place to define ordinary four-
 - Age tracks: same rule as the price-only mode (`priceOnly`; kids do not get it); the pool is the player's `puzzleTracks`.
 - Mobile: a home button «پرسش» (second row), `TriviaScreen`: topic grid + «ترکیبی», then question cards with the verdict (green / red) and the explanation after each tap.
 
+## In a match (duel and private table, 1v1)
+- Admin setting `match.trivia_rounds` (0–10, default 0 = off), read when a match starts. After the boards, and after the price round when there is one, both sides answer the same N approved questions, blind and at the same time (`packages/shared/src/trivia/round.ts`, pure state machine; `MatchService` runs it like the price round).
+- Questions: the match's own topics first (themed matches), then the whole bank in the players' track pool; choices are shuffled per match (`shuffleTrivia`). Fewer questions than asked is fine; none at all = the match ends as before.
+- A question closes when both have answered or `turnSeconds` pass (no answer = wrong). Each right answer is one point, added to the price-round wins before `resolveWinner` / `finalScores`, so the same rules apply (a locked-out side still cannot win off them).
+- Wire: `match:state.triviaRound` (never carries the right choice or the rival's pick before the reveal), `trivia:submit {index}`, error `NO_TRIVIA_ROUND`, `match:ended.triviaRound` (everything public). Bots answer right with their level's accuracy.
+- Mobile: `duel/DuelTriviaRound.tsx` replaces the board like the price round; the result page shows the right answers of each side.
+- No coin wager on trivia rounds. A table's own choice of the count and 2v2 are not built (the setting applies to every 1v1).
+
 ## Not built
-A trivia round inside a duel or table (after the boards, beside the price round), rewards, a bulk import and AI drafts for questions.
+Rewards, a bulk import, a per-table trivia count, trivia in 2v2.

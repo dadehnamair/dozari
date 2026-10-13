@@ -124,6 +124,45 @@ VIEWS.catalog = function (root) {
   root.appendChild(list);
   api('/admin/catalog').then(function (r) { if (!r.ok) return fail(r); CAT.products = r.body.products; draw(); });
 };
+
+/* ---------- product categories (دسته‌بندی محصولات) ---------- */
+VIEWS.categories = function (root) {
+  var box = h('div');
+  root.appendChild(card('دسته‌بندی محصولات', 'هر محصول زیر یک دسته می‌رود. اسم فارسی، ترتیب و روشن/خاموش بودن را می‌شود عوض کرد؛ شناسه‌ی لاتین بعد از ساخت ثابت می‌ماند. دسته‌ی خاموش دیگر برای محصول تازه انتخاب نمی‌شود و ربات هوش مصنوعی هم از آن استفاده نمی‌کند. «متفرقه» همیشه می‌ماند.', [box]));
+  var ERR = { slug: 'شناسه فقط حروف کوچک انگلیسی، عدد و _ باشد و با حرف شروع شود', name: 'اسم فارسی بین ۲ تا ۶۰ نویسه باشد', duplicate: 'این شناسه قبلاً ساخته شده', not_found: 'پیدا نشد', in_use: 'محصول یا قانون پازلی هنوز در این دسته است؛ اول آن‌ها را به دسته‌ی دیگری ببر', protected: 'این دسته حذف نمی‌شود' };
+  function say(r) { toast(ERR[r.body && r.body.error] || 'خطا', true); }
+  function refreshMeta() { return api('/admin/meta').then(function (m) { if (m.ok) { S.meta = m.body; applyCategoryNames(); } }); }
+  function load() {
+    api('/admin/product-categories').then(function (r) {
+      if (!r.ok) return fail(r);
+      clear(box);
+      var rows = r.body.categories.map(function (c) {
+        var name = h('input', { type: 'text', value: c.nameFa, maxlength: 60 }), order = h('input', { type: 'number', value: String(c.sortOrder), style: 'width:80px', min: 0, max: 1000 }), on = h('input', { type: 'checkbox' });
+        on.checked = c.isActive; if (c.slug === 'other') on.disabled = true;
+        return h('div', { class: 'cat-row' }, [
+          h('span', { class: 'ltr cat-slug', text: c.slug }), name, order,
+          h('label', { class: 'sub' }, [on, ' فعال']),
+          badge(fa(c.products) + ' محصول', c.products ? 'b-info' : 'b-mute'),
+          h('button', { class: 'btn sm', text: 'ذخیره', onclick: function () {
+            api('/admin/product-categories', { method: 'POST', body: { id: c.id, slug: c.slug, nameFa: name.value, sortOrder: Number(order.value) || 0, isActive: on.checked } }).then(function (x) { if (!x.ok) return say(x); toast('ذخیره شد'); refreshMeta().then(load); });
+          } }),
+          c.slug === 'other' ? h('span', { style: 'width:62px' }) : h('button', { class: 'btn bad sm', text: 'حذف', onclick: function () {
+            modal('حذف دسته‌ی «' + c.nameFa + '»؟', h('div', { text: 'فقط وقتی هیچ محصولی در این دسته نیست حذف می‌شود.' }), [{ label: 'انصراف' }, { label: 'حذف', cls: 'bad', keepOpen: true, run: function (close) {
+              api('/admin/product-categories/' + c.id, { method: 'DELETE' }).then(function (x) { if (!x.ok) return say(x); close(); toast('حذف شد'); refreshMeta().then(load); });
+            } }]);
+          } })
+        ]);
+      });
+      rows.forEach(function (x) { box.appendChild(x); });
+      var nn = h('input', { type: 'text', placeholder: 'اسم فارسی، مثلاً لوازم‌التحریر', maxlength: 60 }), ns = h('input', { type: 'text', dir: 'ltr', placeholder: 'شناسه‌ی لاتین، مثلاً stationery', maxlength: 40, style: 'max-width:220px' });
+      box.appendChild(h('div', { class: 'cat-row cat-new' }, [nn, ns, h('button', { class: 'btn primary', text: '＋ دسته‌ی جدید', onclick: function () {
+        var order = r.body.categories.length ? Math.max.apply(null, r.body.categories.map(function (c) { return c.sortOrder; })) + 1 : 1;
+        api('/admin/product-categories', { method: 'POST', body: { slug: ns.value, nameFa: nn.value, sortOrder: order, isActive: true } }).then(function (x) { if (!x.ok) return say(x); toast('دسته ساخته شد'); refreshMeta().then(load); });
+      } })]));
+    });
+  }
+  load();
+};
 function productForm(p) {
   var f = {
     nameFa: h('input', { type: 'text', value: p.nameFa || '' }), unitFa: h('input', { type: 'text', value: p.unitFa || '', placeholder: 'مثلاً: یک عدد، هر لیتر' }),

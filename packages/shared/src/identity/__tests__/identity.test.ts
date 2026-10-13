@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { mulberry32 } from '../../game/rng.js';
-import { AVATAR_KEYS, DEVICE_ID_PATTERN, NICKNAMES, canCustomise, randomGuestIdentity } from '../index.js';
-import { AVATAR_CHANGE_MIN_LEVEL, NICKNAME_CHANGE_MIN_LEVEL } from '../../config/game.js';
+import { AVATAR_KEYS, CHARACTER_AVATAR_KEYS, DEVICE_ID_PATTERN, NICKNAMES, avatarBlock, canCustomise, defaultAvatarPrice, randomGuestIdentity } from '../index.js';
+import { AVATAR_CHANGE_MIN_LEVEL, AVATAR_FREE_COUNT, NICKNAME_CHANGE_MIN_LEVEL } from '../../config/game.js';
 
 describe('guest identity', () => {
   it('has 24 distinct avatars and distinct nicknames that fit a varchar(100)', () => {
@@ -40,5 +40,30 @@ describe('canCustomise (D65)', () => {
     expect(NICKNAME_CHANGE_MIN_LEVEL).toBeGreaterThan(AVATAR_CHANGE_MIN_LEVEL);
     expect(canCustomise('nickname', p)).toMatchObject({ ok: false, reason: 'NEEDS_LEVEL' });
     expect(canCustomise('nickname', { ...p, level: NICKNAME_CHANGE_MIN_LEVEL })).toEqual({ ok: true });
+  });
+});
+
+describe('character prices and gates (D230)', () => {
+  it('makes exactly the first AVATAR_FREE_COUNT avatars free by default', () => {
+    const free = CHARACTER_AVATAR_KEYS.filter((_, i) => defaultAvatarPrice(i) === 0);
+    expect(free).toHaveLength(AVATAR_FREE_COUNT);
+    expect(free.slice(0, 2)).toEqual(['char-dozari', 'char-dozariF']);
+    expect(AVATAR_FREE_COUNT).toBeGreaterThanOrEqual(3);
+    expect(AVATAR_FREE_COUNT).toBeLessThanOrEqual(4);
+    expect(defaultAvatarPrice(AVATAR_FREE_COUNT)).toBeGreaterThan(0);
+  });
+
+  const ok = { games: 5, level: 9, inviteRedeemed: true, balance: 1000, unlockGames: 3, minLevel: 3 };
+  it('needs the games count for anything, then invite, level and coins for a paid one', () => {
+    expect(avatarBlock(0, true, { ...ok, games: 0 })).toBe('NEEDS_GAMES');
+    expect(avatarBlock(0, false, ok)).toBeNull();
+    expect(avatarBlock(500, false, { ...ok, inviteRedeemed: false })).toBe('NEEDS_INVITE');
+    expect(avatarBlock(500, false, { ...ok, level: 1 })).toBe('NEEDS_LEVEL');
+    expect(avatarBlock(500, false, { ...ok, balance: 499 })).toBe('NEEDS_COINS');
+    expect(avatarBlock(500, false, ok)).toBeNull();
+  });
+
+  it('lets a bought avatar be worn again without coins, invite or level', () => {
+    expect(avatarBlock(500, true, { ...ok, balance: 0, level: 1, inviteRedeemed: false })).toBeNull();
   });
 });

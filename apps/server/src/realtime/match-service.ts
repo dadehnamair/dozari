@@ -1,6 +1,6 @@
 import { randomInt } from 'node:crypto';
-import { DEFAULT_MATCH_RULES, THEMED_MATCH_MIN_ROUNDS, TOPIC_PICK_SECONDS, applyDraftPick, draftOpen, draftTurn, expireDraftPick, startDraft, rollGemCard, groupHoldsGem, TEAM_MATCH_BOARDS, applyCommand, settleWager, applyPriceGuessCommand, finalScores, matchClientView, mulberry32, resolveWinner, selectRounds, ServerEvent, startPriceGuess, startTeamMatch, otherSide, sideOf, shuffled, toPriceRoundView, trackRules, turnDeadline } from '@dozari/shared';
-import type { AgeTrack, CatalogProduct, DraftState, DraftView, ItemCounts, ItemKind, Command, RevealedRound, WagerSeat, ErrorCode, PriceGuessState, Stake, MatchEnded, MatchRules, MatchEvent, MatchEventPayload, MatchFound, MatchState, MatchView, PowerKind, Rng, RuleError } from '@dozari/shared';
+import { DEFAULT_MATCH_RULES, THEMED_MATCH_MIN_ROUNDS, TOPIC_PICK_SECONDS, applyDraftPick, draftOpen, draftTurn, expireDraftPick, startDraft, rollGemCard, groupHoldsGem, TEAM_MATCH_BOARDS, applyCommand, settleWager, applyPriceGuessCommand, finalScores, matchClientView, mulberry32, resolveWinner, selectRounds, ServerEvent, startPriceGuess, startTriviaRound, applyTriviaCommand, triviaPoints, toTriviaRoundView, startTeamMatch, otherSide, sideOf, shuffled, toPriceRoundView, trackRules, turnDeadline } from '@dozari/shared';
+import type { AgeTrack, TriviaRoundQuestion, TriviaRoundState, CatalogProduct, DraftState, DraftView, ItemCounts, ItemKind, Command, RevealedRound, WagerSeat, ErrorCode, PriceGuessState, Stake, MatchEnded, MatchRules, MatchEvent, MatchEventPayload, MatchFound, MatchState, MatchView, PowerKind, Rng, RuleError } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
 import type { PuzzleSource, ServedPuzzle } from '../solo/types.js';
 import { pickUnseen } from '../solo/history.js';
@@ -51,6 +51,10 @@ export interface MatchDeps {
   onGem?: (userId: string, amount: number, key: string) => void;
   /** Whether a 1v1 ends with the price-guess round (admin setting `match.price_round`), read when a match starts; absent = no. */
   priceRound?: () => Promise<boolean>;
+  /** General-question rounds after the boards of a 1v1 (admin setting `match.trivia_rounds`), read when a match starts; absent or 0 = none. */
+  triviaRounds?: () => Promise<number>;
+  /** Draws `count` approved questions (choices already shuffled) for a match, preferring the match's topics; fewer or none when the bank is thin. */
+  triviaQuestions?: (opts: { topicIds?: readonly string[]; tracks: readonly AgeTrack[]; count: number; rng: Rng }) => Promise<TriviaRoundQuestion[]>;
   now?: () => number;
   newSeed?: () => number;
   /** Schedules `fn` after `ms`; returns the canceller. Injected so tests can drive the clock. */
@@ -100,6 +104,14 @@ interface Active {
   pgPending?: boolean;
   /** The running price-guess phase; `busy` while a round's wagers are being settled or taken (no guesses then). */
   pg?: { state: PriceGuessState; endsAt: number; cancel: (() => void) | null; busy?: boolean };
+  /** Frozen at the start: how many general questions end this match (0 = none; 1v1 only), and what to draw them from. */
+  triviaCount?: number;
+  triviaTopics?: readonly string[];
+  tracks?: readonly AgeTrack[];
+  /** Round wins of the price-guess round, held while the general-question round runs. */
+  won?: [number, number];
+  /** The running general-question round. */
+  tq?: { state: TriviaRoundState; endsAt: number; cancel: (() => void) | null };
   /** Per-round coin wager (stake matches only), frozen at the start. */
   wager?: { amount: number; cutPercent: number; isBot: (userId: string) => boolean };
   /** Wagers put down for the round in play and not settled yet. */
@@ -201,6 +213,12 @@ export class MatchService {
     return { groups: entry.state.puzzle.groups.filter((g) => !done.has(g.level)).map((g) => [...g.productIds]), remaining: [...entry.state.remaining], tried: entry.state.tried };
   }
 
+  /** The other players of the match `userId` sits in (rival, and teammates in a 2v2); empty when none. */
+  othersOf(userId: string): string[] {
+    const entry = this.entryOf(userId);
+    return entry ? entry.state.players.filter((p) => p.userId !== userId && !entry.state.gone.includes(p.userId)).map((p) => p.userId) : [];
+  }
+
   inMatch(userId: string): boolean {
     return this.byUser.has(userId) || this.draftOf.has(userId);
   }
@@ -251,7 +269,7 @@ export class MatchService {
     const rules = await this.matchRules();
     const items = await this.itemsFor([a, b]);
     const state = startTeamMatch(boards.map(toSolo), [[a], [b]], rng, this.now(), undefined, rules, items);
-    const entry: Active = { id, puzzles: boards, state, cancel: null, stakes, tier: stakes ? opts.tier : undefined, priceRound: opts.priceRounds === undefined ? await this.wantsPriceRound() : opts.priceRounds > 0, priceRoundCount: opts.priceRounds, proposals: [null, null], table: fee > 0 && this.deps.tableStakes ? { fee, sides: [[a], [b]] } : undefined, topicNames: opts.topicNames ? [...opts.topicNames] : undefined };
+    const entry: Active = { id, puzzles: boards, state, cancel: null, stakes, tier: stakes ? opts.tier : undefined, priceRound: opts.priceRounds === undefined ? await this.wantsPriceRound() : opts.priceRounds > 0, priceRoundCount: opts.priceRounds, proposals: [null, null], table: fee > 0 && this.deps.tableStakes ? { fee, sides: [[a], [b]] } : undefined, topicNames: opts.topicNames ? [...opts.topicNames] : undefined, triviaCount: await this.triviaCount(), triviaTopics: opts.topicIds, tracks };
     if (entry.priceRound && stakes) entry.wager = (await this.deps.stakes?.wagerRules?.().catch(() => null)) ?? undefined;
     entry.gems = await this.rollGems(boards);
     this.matches.set(id, entry);
@@ -519,7 +537,7 @@ export class MatchService {
   async useItem(userId: string, kind: ItemKind): Promise<{ ok: true } | { ok: false; error: ErrorCode }> {
     const entry = this.entryOf(userId);
     if (!entry) return { ok: false, error: 'NOT_IN_MATCH' };
-    if (entry.pg || entry.pgPending) return { ok: false, error: 'NOT_YOUR_TURN' };
+    if (this.inExtras(entry)) return { ok: false, error: 'NOT_YOUR_TURN' };
     const side = sideOf(entry.state, userId);
     let order: string[] | undefined;
     if (kind === 'shuffle' && side !== null && entry.state.sep) {
@@ -546,7 +564,7 @@ export class MatchService {
   power(userId: string, kind: PowerKind): { ok: true } | { ok: false; error: ErrorCode } {
     const entry = this.entryOf(userId);
     if (!entry) return { ok: false, error: 'NOT_IN_MATCH' };
-    if (entry.pg || entry.pgPending) return { ok: false, error: 'NOT_YOUR_TURN' };
+    if (this.inExtras(entry)) return { ok: false, error: 'NOT_YOUR_TURN' };
     return this.apply(entry, { t: 'power', by: userId, kind });
   }
 
@@ -558,9 +576,10 @@ export class MatchService {
     }
     const entry = this.entryOf(userId);
     if (!entry) return { ok: false, error: 'NOT_IN_MATCH' };
-    if (entry.pg || entry.pgPending) {
-      // The board is over: leaving the price round just ends the match with the puzzle's result.
+    if (this.inExtras(entry)) {
+      // The board is over: leaving the price or question round just ends the match with the puzzle's result.
       entry.pg?.cancel?.();
+      entry.tq?.cancel?.();
       this.finish(entry);
       return { ok: true };
     }
@@ -602,7 +621,7 @@ export class MatchService {
     if (!entry || !first) return null;
     const current = entry.puzzles[entry.state.round] ?? entry.puzzles[0]!;
     const names = Object.fromEntries(Object.entries(current.items).map(([id, it]) => [id, it.nameFa]));
-    return { view: { ...this.view(entry, first), youId: undefined, proposal: null, priceRound: null }, players: entry.players ?? [], names, inPriceRound: !!entry.pg || !!entry.pgPending, recent: (entry.recent ?? []).map((g) => ({ side: g.side, names: g.itemIds.map((id) => names[id] ?? ''), outcome: g.outcome })) };
+    return { view: { ...this.view(entry, first), youId: undefined, proposal: null, priceRound: null, triviaRound: null }, players: entry.players ?? [], names, inPriceRound: this.inExtras(entry), recent: (entry.recent ?? []).map((g) => ({ side: g.side, names: g.itemIds.map((id) => names[id] ?? ''), outcome: g.outcome })) };
   }
 
   /** Both sides' scores of the match a player sits in (the lobby shows them on a playing table), or null. */
@@ -660,7 +679,7 @@ export class MatchService {
     if (!v) throw new Error('not a participant');
     const current = entry.puzzles[entry.state.round] ?? entry.puzzles[0]!;
     const info = current.items;
-    const inPrice = !!entry.pg || !!entry.pgPending;
+    const inPrice = this.inExtras(entry);
     const text = new Map(current.groups.map((g) => [g.level, g]));
     return {
       matchId: entry.id,
@@ -688,6 +707,7 @@ export class MatchService {
       status: inPrice ? 'playing' : v.status,
       result: inPrice ? null : v.result,
       priceRound: entry.pg ? this.priceViewFor(entry, v.you) : null,
+      triviaRound: entry.tq ? toTriviaRoundView(entry.tq.state, v.you === 0 ? 'a' : 'b', entry.tq.endsAt) : null,
     };
   }
 
@@ -719,7 +739,7 @@ export class MatchService {
       }
     }
     if (entry.state.status === 'finished') {
-      if (entry.pgPending) void this.startPriceRound(entry);
+      if (entry.pgPending) void (entry.priceRound ? this.startPriceRound(entry) : this.startTrivia(entry));
       else this.finish(entry);
     } else {
       this.armTimer(entry);
@@ -729,7 +749,7 @@ export class MatchService {
   /** The duel ends with the price-guess round: a 1v1 whose puzzle was finished by play (not a forfeit), both players still in. */
   private wantsPriceNow(entry: Active): boolean {
     const r = entry.state.result;
-    return !!entry.priceRound && entry.state.players.length === 2 && !!r && (r.reason === 'solved' || r.reason === 'locked_out') && entry.state.gone.length === 0;
+    return (!!entry.priceRound || (entry.triviaCount ?? 0) > 0) && entry.state.players.length === 2 && !!r && (r.reason === 'solved' || r.reason === 'locked_out') && entry.state.gone.length === 0;
   }
 
   private priceViewFor(entry: Active, side: 0 | 1) {
@@ -748,17 +768,13 @@ export class MatchService {
       const all = selectRounds(puzzle.groups.map((g) => ({ level: g.level, productIds: g.productIds, ruleYear: g.ruleYear })), catalog, mulberry32(this.newSeed()));
       const rounds = entry.priceRoundCount === undefined ? all : all.slice(0, entry.priceRoundCount);
       if (!this.matches.has(entry.id)) return;
-      if (rounds.length === 0) {
-        entry.pgPending = false;
-        return this.finish(entry);
-      }
+      if (rounds.length === 0) return void this.startTrivia(entry);
       entry.pg = { state: startPriceGuess(rounds), endsAt: 0, cancel: null, busy: true };
       entry.pgPending = false;
       await this.openRound(entry);
     } catch (e) {
       console.error('[match] price round failed to start', entry.id, e);
-      entry.pgPending = false;
-      if (this.matches.has(entry.id)) this.finish(entry);
+      if (this.matches.has(entry.id)) void this.startTrivia(entry);
     }
   }
 
@@ -865,9 +881,117 @@ export class MatchService {
     pg.cancel = null;
     const won: [number, number] = [0, 0];
     for (const r of pg.state.revealed) if (r.winner !== 'draw') won[r.winner === 'a' ? 0 : 1] += 1;
-    const base = entry.state.result!;
+    entry.won = won;
+    if ((entry.triviaCount ?? 0) > 0) {
+      // The question round comes next; the price round stays on screen (pending) while the questions are drawn.
+      entry.pgPending = true;
+      return void this.startTrivia(entry);
+    }
     this.pushState(entry);
+    this.finishExtras(entry);
+  }
+
+  /** The extras are over: the winner and the final tallies come from the shared rules over the price rounds and the right answers together. */
+  private finishExtras(entry: Active): void {
+    const won: [number, number] = entry.won ? [entry.won[0], entry.won[1]] : [0, 0];
+    if (entry.tq) {
+      const t = triviaPoints(entry.tq.state);
+      won[0] += t[0];
+      won[1] += t[1];
+    }
+    const base = entry.state.result!;
     this.finish(entry, { result: { winner: resolveWinner(entry.state, won), reason: base.reason }, scores: finalScores(entry.state, won) });
+  }
+
+  private inExtras(entry: Active): boolean {
+    return !!entry.pg || !!entry.pgPending || !!entry.tq;
+  }
+
+  private async triviaCount(): Promise<number> {
+    try {
+      return Math.max(0, Math.min(10, Math.floor((await this.deps.triviaRounds?.()) ?? 0)));
+    } catch {
+      return 0;
+    }
+  }
+
+  /** Draws the general questions; with none to ask the match simply ends with what it has. */
+  private async startTrivia(entry: Active): Promise<void> {
+    try {
+      const count = entry.triviaCount ?? 0;
+      const questions = count > 0 && this.deps.triviaQuestions ? await this.deps.triviaQuestions({ topicIds: entry.triviaTopics, tracks: entry.tracks ?? ['adult'], count, rng: mulberry32(this.newSeed()) }) : [];
+      if (!this.matches.has(entry.id)) return;
+      entry.pgPending = false;
+      if (questions.length === 0) {
+        this.pushState(entry);
+        return this.entryHasPrice(entry) ? this.finishExtras(entry) : this.finish(entry);
+      }
+      entry.tq = { state: startTriviaRound(questions), endsAt: 0, cancel: null };
+      this.armTrivia(entry);
+      this.pushState(entry);
+    } catch (e) {
+      console.error('[match] trivia round failed to start', entry.id, e);
+      entry.pgPending = false;
+      if (this.matches.has(entry.id)) {
+        if (this.entryHasPrice(entry)) this.finishExtras(entry);
+        else this.finish(entry);
+      }
+    }
+  }
+
+  private entryHasPrice(entry: Active): boolean {
+    return !!entry.pg;
+  }
+
+  private armTrivia(entry: Active): void {
+    const tq = entry.tq;
+    if (!tq) return;
+    tq.cancel?.();
+    tq.endsAt = this.now() + entry.state.rules.turnSeconds * 1000;
+    const index = tq.state.index;
+    tq.cancel = this.schedule(entry.state.rules.turnSeconds * 1000, () => {
+      if (!this.matches.has(entry.id) || entry.tq?.state.index !== index) return;
+      this.applyTrivia(entry, { type: 'timeout' });
+    });
+  }
+
+  /** A hidden answer in the question round. Idempotent: a second answer to the same question is ignored. */
+  submitTrivia(userId: string, index: number): { ok: true } | { ok: false; error: ErrorCode } {
+    const entry = this.entryOf(userId);
+    if (!entry) return { ok: false, error: 'NOT_IN_MATCH' };
+    if (!entry.tq || entry.tq.state.status !== 'playing') return { ok: false, error: 'NO_TRIVIA_ROUND' };
+    const side = entry.state.players.find((p) => p.userId === userId)?.side;
+    if (side === undefined) return { ok: false, error: 'NOT_IN_MATCH' };
+    this.applyTrivia(entry, { type: 'answer', side: side === 0 ? 'a' : 'b', index });
+    return { ok: true };
+  }
+
+  private applyTrivia(entry: Active, cmd: Parameters<typeof applyTriviaCommand>[1]): void {
+    const tq = entry.tq;
+    if (!tq) return;
+    const before = tq.state;
+    const next = applyTriviaCommand(before, cmd);
+    if (next === before) return;
+    tq.state = next;
+    if (next.index === before.index && next.status === 'playing') return this.pushState(entry); // an answer locked in, nothing revealed yet
+    tq.cancel?.();
+    tq.cancel = null;
+    if (next.status === 'finished') {
+      this.pushState(entry);
+      return this.finishExtras(entry);
+    }
+    this.armTrivia(entry);
+    this.pushState(entry);
+  }
+
+  /** INTERNAL, for the bot driver only: the right choice of the question a bot has not answered yet. Never sent to any client. */
+  triviaAnswerFor(userId: string): number | null {
+    const entry = this.entryOf(userId);
+    const tq = entry?.tq;
+    if (!entry || !tq || tq.state.status !== 'playing') return null;
+    const side = entry.state.players.find((p) => p.userId === userId)?.side;
+    if (side === undefined || tq.state.answered[side === 0 ? 'a' : 'b']) return null;
+    return tq.state.questions[tq.state.index]?.correctIndex ?? null;
   }
 
   /** INTERNAL, for the bot driver only: the real price of the round a bot has not guessed yet. Never sent to any client. */
@@ -883,6 +1007,7 @@ export class MatchService {
   private finish(entry: Active, final?: { result: NonNullable<MatchState['result']>; scores: [number, number] }) {
     entry.cancel?.();
     entry.cancel = null;
+    entry.tq?.cancel?.();
     this.refundWager(entry);
     const result = final?.result ?? entry.state.result;
     if (result) {
@@ -894,7 +1019,7 @@ export class MatchService {
           .sort((a, b) => a.level - b.level)
           .map((g) => ({ level: g.level, titleFa: g.titleFa, explanationFa: g.explanationFa, productIds: [...g.productIds] })) as MatchEnded['groups'],
       };
-      for (const p of entry.state.players) this.deps.emit(p.userId, ServerEvent.matchEnded, { ...ended, priceRound: entry.pg ? this.priceViewFor(entry, p.side) : undefined });
+      for (const p of entry.state.players) this.deps.emit(p.userId, ServerEvent.matchEnded, { ...ended, priceRound: entry.pg ? this.priceViewFor(entry, p.side) : undefined, triviaRound: entry.tq ? toTriviaRoundView(entry.tq.state, p.side === 0 ? 'a' : 'b', entry.tq.endsAt) : undefined });
     }
     const duel = entry.state.players.length === 2;
     if (result && duel) {

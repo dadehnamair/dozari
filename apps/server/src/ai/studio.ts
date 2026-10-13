@@ -1,4 +1,4 @@
-import { AI_LIMITS, AI_PUZZLE_CATALOG_MAX, trackRank } from '@dozari/shared';
+import { AI_LIMITS, AI_PUZZLE_CATALOG_MAX, AI_PUZZLE_THEMED_CATALOG_MAX, AI_REVIEW, trackRank } from '@dozari/shared';
 import type { AiKind } from '@dozari/shared';
 import type { LessonStore } from '../lessons/service.js';
 import type { PuzzleAdmin } from '../puzzles/admin.js';
@@ -10,6 +10,8 @@ import { AiError, chat, listModels, resolveProviders } from './providers.js';
 import type { Env, FetchLike, ResolvedProvider } from './providers.js';
 import { buildPrompt, nameKey, parseDrafts } from './content.js';
 import type { GenerateRequest, PromptContext, SaveRequest } from './content.js';
+import { buildReviewPrompt, parseReview } from './puzzle-review.js';
+import type { Candidate, ReviewOutcome, ReviewRequest, ReviewView } from './puzzle-review.js';
 
 export interface AiDeps {
   env: Env;
@@ -21,6 +23,8 @@ export interface AiDeps {
   landing?: LandingService;
   /** The catalog as it is now, to keep suggestions from repeating existing products. */
   catalog?: () => Promise<{ id: string; slug: string; nameFa: string }[]>;
+  /** The product categories the admin has defined (active ones); the prompt offers them to the model. */
+  categories?: { activeSlugs(): Promise<string[]> };
   fetch?: FetchLike;
   now?: () => number;
 }
@@ -57,6 +61,7 @@ export class AiStudio {
   describe() {
     return {
       providers: this.providers.map((p) => ({ id: p.id, label: p.label, defaultModel: p.defaultModel })),
+      puzzleReview: !!(this.deps.puzzles && this.deps.catalog && this.deps.products),
       kinds: { products: !!this.deps.products, kid_lessons: !!this.deps.lessons, puzzle_titles: !!this.deps.puzzles, puzzle_groups: !!(this.deps.puzzles && this.deps.catalog && this.deps.products), blog: !!this.deps.landing, trivia: !!(this.deps.trivia && this.deps.puzzles) },
       maxCallsPerHour: AI_LIMITS.maxCallsPerHour,
     };
@@ -116,6 +121,7 @@ export class AiStudio {
       if (ctx.kidItems.length === 0) throw new AiError('ai_not_found');
     }
     if (req.kind === 'products' && this.deps.catalog) ctx.existing = await this.deps.catalog();
+    if (req.kind === 'products' && this.deps.categories) ctx.categories = await this.deps.categories.activeSlugs();
     if (req.kind === 'puzzle_groups') {
       if (!this.deps.puzzles || !this.deps.catalog || !this.deps.products) throw new AiError('ai_not_found');
       const [all, details] = await Promise.all([this.deps.catalog(), this.deps.products.details()]);
@@ -131,7 +137,7 @@ export class AiStudio {
         ctx.tier = { nameFa: tier.nameFa, minLevel: tier.minLevel, maxLevel: tier.maxLevel };
       }
       Object.assign(ctx, await this.theme(req.topicId, req.tags));
-      ctx.pool = usable.slice(0, AI_PUZZLE_CATALOG_MAX).map((p) => ({ productId: p.id, nameFa: p.nameFa, category: details[p.id]?.category }));
+      ctx.pool = usable.slice(0, ctx.topic || ctx.tags?.length ? AI_PUZZLE_THEMED_CATALOG_MAX : AI_PUZZLE_CATALOG_MAX).map((p) => ({ productId: p.id, nameFa: p.nameFa, category: details[p.id]?.category }));
       if (ctx.pool.length < 16) throw new AiError('ai_not_found');
       // Puzzles that already exist are sent too, so the model does not rebuild them; repeats are also dropped on parse.
       const names = new Map(all.map((p) => [p.id, p.nameFa]));
@@ -153,8 +159,77 @@ export class AiStudio {
     const model = req.model?.trim() || provider.defaultModel;
     const text = await chat(provider, { ...prompt, model, maxTokens: AI_LIMITS.maxTokens[req.kind] }, this.deps.fetch);
     const parsed = parseDrafts(req.kind, text, ctx, req.kind === 'products' || req.kind === 'puzzle_groups' || req.kind === 'trivia' ? req.ageTrack : 'adult');
+    // A themed run where the model found too few fitting products answers with no puzzles: say so instead of «unreadable».
+    if (!parsed && req.kind === 'puzzle_groups' && (ctx.topic || ctx.tags?.length) && /"puzzles"\s*:\s*\[\s*\]/.test(text)) {
+      throw new AiError('ai_not_found', undefined, `در کاتالوگ محصول کافیِ مرتبط با «${ctx.topic?.nameFa ?? ctx.tags?.join('، ')}» پیدا نشد؛ اول محصول‌های این موضوع را (از «محصول» در همین صفحه یا دستی) به کاتالوگ اضافه کن.`);
+    }
     if (!parsed) throw new AiError('ai_bad_output', undefined, `جواب مدل JSON قابل‌خواندن نبود: «${text.replace(/\s+/g, ' ').slice(0, 160)}»`);
     return { kind: req.kind, provider: provider.id, model, drafts: parsed.drafts, dropped: parsed.dropped, context: ctx, ...(req.kind === 'puzzle_groups' && req.tierId ? { tierId: req.tierId } : {}), ...(req.kind === 'puzzle_groups' || req.kind === 'trivia' ? { topicId: req.topicId } : {}), ...(req.kind === 'puzzle_groups' ? { tags: req.tags } : {}) };
+  }
+
+  /**
+   * The puzzle review assistant: for each chosen puzzle asks the model whether it needs editing and, unless `dryRun`, applies the edits
+   * (new titles, product swaps) and moves an edited puzzle back to `draft`, so a human approves it again. One provider call per puzzle.
+   */
+  async reviewPuzzles(req: ReviewRequest): Promise<{ provider: string; model: string; dryRun: boolean; outcomes: ReviewOutcome[] }> {
+    if (this.providers.length === 0) throw new AiError('ai_not_configured');
+    const provider = this.providers.find((p) => p.id === req.provider);
+    if (!provider) throw new AiError('ai_unknown_provider');
+    const { puzzles, catalog, products } = this.deps;
+    if (!puzzles || !catalog || !products) throw new AiError('ai_not_found');
+    const model = req.model?.trim() || provider.defaultModel;
+    const [all, details, tiers, topics, rows] = await Promise.all([catalog(), products.details(), puzzles.tiers(), puzzles.topics(), puzzles.list(1000)]);
+    const names = new Map(all.map((p) => [p.id, p.nameFa]));
+    const outcomes: ReviewOutcome[] = [];
+    for (const puzzleId of req.puzzleIds) {
+      const row = rows.find((r) => r.id === puzzleId);
+      if (!row) {
+        outcomes.push({ puzzleId, result: 'error', error: 'ai_not_found' });
+        continue;
+      }
+      const view: ReviewView = {
+        ageTrack: row.ageTrack,
+        ...(row.tierId && tiers.find((t) => t.id === row.tierId) ? { tier: tiers.find((t) => t.id === row.tierId)! } : {}),
+        ...(row.topicId && topics.find((t) => t.id === row.topicId) ? { topic: topics.find((t) => t.id === row.topicId)!.nameFa } : {}),
+        groups: row.groups.map((g) => ({ level: g.level, titleFa: g.titleFa, items: g.productIds.map((productId) => ({ productId, nameFa: names.get(productId) ?? productId, category: details[productId]?.category })) })),
+      };
+      const inPuzzle = new Set(row.groups.flatMap((g) => g.productIds));
+      const usable = all.filter((p) => !inPuzzle.has(p.id) && details[p.id]?.isActive && trackRank(details[p.id]!.ageTrack) <= trackRank(row.ageTrack));
+      for (let i = usable.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [usable[i], usable[j]] = [usable[j]!, usable[i]!];
+      }
+      const candidates: Candidate[] = usable.slice(0, AI_REVIEW.candidates).map((p) => ({ productId: p.id, nameFa: p.nameFa, category: details[p.id]?.category }));
+      try {
+        this.takeSlot();
+        const text = await chat(provider, { ...buildReviewPrompt(view, candidates, req.extra), model, maxTokens: AI_REVIEW.maxTokens }, this.deps.fetch);
+        const verdict = parseReview(text, view, candidates);
+        if (!verdict) throw new AiError('ai_bad_output');
+        if (verdict.verdict === 'ok') {
+          outcomes.push({ puzzleId, result: 'ok', reason: verdict.reason });
+          continue;
+        }
+        const report = { puzzleId, reason: verdict.reason, titles: verdict.titles, swaps: verdict.swaps.map((s) => ({ fromName: s.fromName, toName: s.toName, reason: s.reason })), wasStatus: row.status };
+        if (req.dryRun) {
+          outcomes.push({ ...report, result: 'would_edit' });
+          continue;
+        }
+        const done = { titles: verdict.titles, swaps: [] as typeof report.swaps };
+        if (verdict.titles.length > 0) await puzzles.setTitles(puzzleId, verdict.titles);
+        for (const s of verdict.swaps) if ((await puzzles.swapProduct(puzzleId, s.fromProductId, s.toProductId)).ok) done.swaps.push({ fromName: s.fromName, toName: s.toName, reason: s.reason });
+        if (done.titles.length === 0 && done.swaps.length === 0) {
+          outcomes.push({ puzzleId, result: 'ok', reason: verdict.reason });
+          continue;
+        }
+        await puzzles.setStatus(puzzleId, 'draft');
+        outcomes.push({ ...report, ...done, result: 'edited' });
+      } catch (err) {
+        const code = err instanceof AiError ? err.code : 'unexpected';
+        outcomes.push({ puzzleId, result: 'error', error: code });
+        if (code === 'ai_rate_limited') break;
+      }
+    }
+    return { provider: provider.id, model, dryRun: req.dryRun, outcomes };
   }
 
   /** Saves reviewed drafts through the normal services: products inactive, lessons as draft, blog posts as draft, puzzle titles on the puzzle. */
@@ -165,6 +240,7 @@ export class AiStudio {
         if (!d.products) throw new AiError('ai_not_found');
         const out: SaveOutcome[] = [];
         const known = new Set((await d.catalog?.() ?? []).flatMap((e) => [nameKey(e.nameFa), nameKey(e.slug)]));
+        const allowed = d.categories ? new Set(await d.categories.activeSlugs()) : null;
         for (const p of req.drafts) {
           if (known.has(nameKey(p.nameFa)) || known.has(nameKey(p.slug))) {
             out.push({ label: p.nameFa, ok: false, error: 'duplicate' });
@@ -174,7 +250,7 @@ export class AiStudio {
           known.add(nameKey(p.slug));
           let made: Awaited<ReturnType<ProductAdmin['create']>> = 'duplicate';
           for (const slug of [p.slug, `${p.slug}-2`, `${p.slug}-3`]) {
-            made = await d.products.create({ slug, nameFa: p.nameFa, category: p.category, unitFa: p.unitFa, ageTrack: p.ageTrack });
+            made = await d.products.create({ slug, nameFa: p.nameFa, category: !allowed || allowed.has(p.category) ? p.category : 'other', unitFa: p.unitFa, ageTrack: p.ageTrack });
             if (made !== 'duplicate') break;
           }
           if (typeof made === 'string') {

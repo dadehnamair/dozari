@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Linking, Platform, Pressable, Share, StyleSheet, Text, TextInput, View } from 'react-native';
+import { toLatinDigits } from '@dozari/shared';
 import type { FoundPlayer, MyFind } from '@dozari/shared';
 import { Avatar } from '../components/Avatar';
 import { CandyButton } from '../components/CandyButton';
@@ -33,7 +34,7 @@ export function FindSheet({ onClose }: { onClose: () => void }) {
   }, []);
 
   const search = () =>
-    searchPlayer(q).then(
+    searchPlayer(toLatinDigits(q).trim()).then(
       (p) => (setFound(p), setNote(null)),
       (e) => setNote(e instanceof ApiError && e.status === 429 ? fa.find.rateLimited : fa.find.error),
     );

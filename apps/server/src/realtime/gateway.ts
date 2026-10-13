@@ -3,7 +3,7 @@ import { Server } from 'socket.io';
 import type { Socket } from 'socket.io';
 import type { QueueProblem } from '@dozari/shared';
 import type { AgeTrack } from '@dozari/shared';
-import { ClientEvent, ServerEvent, chatTauntSchema, draftPickSchema, matchPowerSchema, matchProposeSchema, matchResumeSchema, matchSubmitSchema, priceSubmitSchema, queueJoinSchema } from '@dozari/shared';
+import { ClientEvent, ServerEvent, chatTauntSchema, draftPickSchema, matchPowerSchema, matchProposeSchema, matchResumeSchema, matchSubmitSchema, priceSubmitSchema, queueJoinSchema, triviaSubmitSchema } from '@dozari/shared';
 import type { Ack, LiveNotice } from '@dozari/shared';
 import type { UserRecord } from '../auth/service.js';
 import { ChatService } from '../chat/service.js';
@@ -74,6 +74,8 @@ const room = (userId: string) => `user:${userId}`;
 /** Socket.io entry point: JWT handshake, one room per user, the duel queue. Contract: shared/socket/events.ts. */
 export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
   const now = opts.now ?? Date.now;
+  /** Players whose last connection dropped while in a match and who have not been back since (the others were told). */
+  const dropped = new Set<string>();
   const queue = new DuelQueue();
   const teamQueue = new DuelQueue();
   /** Track of everyone now in a line, so a pair that fails to start goes back to the right track. */
@@ -216,8 +218,9 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
       ack?.({ ok: false, error: out.error === 'MUTED' ? 'MUTED' : out.error === 'RATE_LIMITED' ? 'RATE_LIMITED' : out.error === 'UNKNOWN_TAUNT' ? 'UNKNOWN_TAUNT' : 'INTERNAL' });
     });
 
-    // A returning player gets the live board straight away.
+    // A returning player gets the live board straight away, and the others hear they are back.
     matches?.resume(userId);
+    if (dropped.delete(userId)) for (const other of matches?.othersOf(userId) ?? []) io.to(room(other)).emit(ServerEvent.matchPresence, { userId, state: 'back' });
 
     // The sides name the topic of each round before a themed match starts.
     socket.on(ClientEvent.draftPick, (payload: unknown, ack?: (a: Ack) => void) => {
@@ -237,6 +240,13 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
       const body = priceSubmitSchema.safeParse(payload);
       if (!body.success) return ack?.({ ok: false, error: 'INVALID_PAYLOAD' });
       ack?.(matches ? matches.submitPrice(userId, BigInt(body.data.guessRials)) : { ok: false, error: 'NOT_IN_MATCH' });
+    });
+
+    // A hidden answer in the duel's general-question round.
+    socket.on(ClientEvent.triviaSubmit, (payload: unknown, ack?: (a: Ack) => void) => {
+      const body = triviaSubmitSchema.safeParse(payload);
+      if (!body.success) return ack?.({ ok: false, error: 'INVALID_PAYLOAD' });
+      ack?.(matches ? matches.submitTrivia(userId, body.data.index) : { ok: false, error: 'NOT_IN_MATCH' });
     });
 
     socket.on(ClientEvent.matchPropose, (payload: unknown, ack?: (a: Ack) => void) => {
@@ -276,8 +286,14 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
         leaveQueue(userId);
         // A player who is gone for good must not hold a match (and their partner or rival) hostage: after a grace period they leave it.
         const grace = await (opts.graceMs?.() ?? Promise.resolve(opts.disconnectGraceMs ?? 90_000)).catch(() => opts.disconnectGraceMs ?? 90_000);
+        // The others hear at once that a seat is being held, and until when.
+        if (matches?.inMatch(userId)) {
+          dropped.add(userId);
+          for (const other of matches.othersOf(userId)) io.to(room(other)).emit(ServerEvent.matchPresence, { userId, state: 'dropped', graceEndsAt: now() + grace });
+        }
         const timer = setTimeout(() => {
           void io.in(room(userId)).fetchSockets().then((again) => {
+            if (again.length === 0) dropped.delete(userId);
             if (again.length === 0 && matches?.inMatch(userId) && matches.leave(userId, 'absent').ok) opts.onLeft?.(userId);
           }).catch(() => undefined);
         }, grace);

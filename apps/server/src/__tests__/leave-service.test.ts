@@ -30,4 +30,28 @@ describe('LeaveService', () => {
     expect(s.badgeUntil).not.toBeNull();
     expect((await svc.status('other')).badgeUntil).toBeNull();
   });
+
+  it('warns how many leaves remain today before the ban', async () => {
+    const { svc } = make();
+    expect(await svc.warning('u')).toEqual({ today: 0, left: 4, bannedUntil: null });
+    await svc.record('u', 'm1', 'manual');
+    await svc.record('u', 'm2', 'manual');
+    expect(await svc.warning('u')).toMatchObject({ today: 2, left: 2, bannedUntil: null });
+    await svc.record('u', 'm3', 'manual');
+    await svc.record('u', 'm4', 'manual');
+    const w = await svc.warning('u');
+    expect(w.left).toBe(0);
+    expect(w.bannedUntil).not.toBeNull();
+  });
+
+  it('the admin log lists the newest leaves first with the rules', async () => {
+    const { svc, store, set } = make();
+    await store.add('a', 'm1', 'manual', noon - 1000);
+    set(noon);
+    await svc.record('b', 'm2', 'absent');
+    const log = await svc.log(10);
+    expect(log.rows.map((r) => r.userId)).toEqual(['b', 'a']);
+    expect(log.rows[0]!.kind).toBe('absent');
+    expect(log.rules.dayBanCount).toBeGreaterThan(0);
+  });
 });

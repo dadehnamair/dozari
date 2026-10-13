@@ -16,7 +16,7 @@ Owner (2026-09-27): "پروفایل خیلی مهمه" — treat this as a first
   2. **Everything else costs coins** (the rest of the avatars and nicknames), and buying/changing to them needs an
      **activated profile** (an invite code redeemed, `users.chat_unlocked_at`) **and** a minimum level:
      `AVATAR_CHANGE_MIN_LEVEL` = 3, `NICKNAME_CHANGE_MIN_LEVEL` = 5 (proposed numbers). Pure check: `canCustomise`.
-  Prices and the free/paid split of the lists are not decided yet.
+  As built for the 9 cast characters (D230): the first 4 are free, the other 5 start at 500 coins; the admin edits every price (0 = free) in «اقتصاد ← شخصیت‌ها». The 24 gallery faces and nicknames are still unpriced.
 - Once unlocked, the picker stays open forever (re-picking doesn't re-lock it).
 - Levels come from `progression.md`; the server must enforce the gate on the change endpoint (not built yet).
 
@@ -25,7 +25,7 @@ Owner (2026-09-27): "پروفایل خیلی مهمه" — treat this as a first
 always gets the same account, concurrent first requests included. The token is an HS256 JWT (`sub` = user id, 30 days,
 `JWT_SECRET`); `GET /me` with `Authorization: Bearer <token>` returns the profile. The nickname and avatar come from the
 preset lists in `packages/shared/src/identity` (avatars = the 24 design-kit faces). A banned user gets 403 at login and
-401 everywhere else. The unlock thresholds are `AVATAR_UNLOCK_GAMES` / `NICKNAME_UNLOCK_GAMES` in `config/game.ts`; the paid-change gate (`canCustomise`) exists in shared; `PUT /me/avatar` (D224) picks one of the 9 cast characters (or a gallery face) after `AVATAR_UNLOCK_GAMES` games; paid faces/nickname purchase do not exist yet.
+401 everywhere else. The unlock thresholds are `AVATAR_UNLOCK_GAMES` / `NICKNAME_UNLOCK_GAMES` in `config/game.ts`; the paid-change gate (`canCustomise`) exists in shared; `PUT /me/avatar` (D224) picks one of the 9 cast characters (or a gallery face) after `AVATAR_UNLOCK_GAMES` games; priced cast characters are bought with `POST /me/avatars/:key/buy` and listed by `GET /me/avatars` (D230, gates in shared `avatarBlock`); nickname purchase does not exist yet.
 
 ## Tags (badges shown next to the avatar)
 

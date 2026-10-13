@@ -3,7 +3,7 @@ import { maskPhone, normalizeIranPhone } from '../normalize.js';
 
 describe('normalizeIranPhone', () => {
   it('accepts the usual spellings and always returns +989…', () => {
-    for (const raw of ['09123456789', '9123456789', '+989123456789', '00989123456789', '989123456789', '۰۹۱۲۳۴۵۶۷۸۹', '٠٩١٢٣٤٥٦٧٨٩', ' 0912-345 67 89 ', '(0912) 3456789'])
+    for (const raw of ['09123456789', '9123456789', '+989123456789', '00989123456789', '989123456789', '۰۹۱۲۳۴۵۶۷۸۹', '٠٩١٢٣٤٥٦٧٨٩', ' 0912-345 67 89 ', '(0912) 3456789', '\u200f۰۹۱۲\u200c۳۴۵ ۶۷۸۹\u200e', '۰۹۱۲.۳۴۵.۶۷۸۹'])
       expect(normalizeIranPhone(raw)).toBe('+989123456789');
   });
   it('refuses landlines, foreign and malformed numbers', () => {

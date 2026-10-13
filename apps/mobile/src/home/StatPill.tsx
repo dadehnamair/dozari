@@ -25,7 +25,7 @@ export function StatPill({ color, glyph, icon, glyphColor = '#fff', value, label
         </Svg>
         {icon ? <View style={styles.ballIcon}><Item icon={icon} /></View> : <Text style={[styles.glyph, { color: glyphColor }]}>{glyph}</Text>}
       </View>
-      <Text style={[styles.value, adult ? styles.valueAdult : null]} numberOfLines={1}>{value}</Text>
+      <Text style={[styles.value, adult ? styles.valueAdult : null]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>{value}</Text>
       {badge ? <View style={styles.badge}><Text style={styles.badgeText}>{badge}</Text></View> : null}
     </View>
   );
@@ -33,7 +33,7 @@ export function StatPill({ color, glyph, icon, glyphColor = '#fff', value, label
 }
 
 const styles = StyleSheet.create({
-  pill: { flex: 1, height: 40, borderRadius: 99, backgroundColor: 'rgba(43,18,64,0.6)', borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)', flexDirection: Platform.OS === 'web' ? 'row-reverse' : 'row', alignItems: 'center', gap: 6, paddingHorizontal: 5 },
+  pill: { flex: 1, minWidth: 0, height: 40, borderRadius: 99, backgroundColor: 'rgba(43,18,64,0.6)', borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)', flexDirection: Platform.OS === 'web' ? 'row-reverse' : 'row', alignItems: 'center', gap: 6, paddingHorizontal: 5 },
   ball: { width: 30, height: 30, borderRadius: 15, borderWidth: 2.5, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
   pillAdult: { backgroundColor: 'rgba(14,10,8,0.85)', borderColor: '#8A5A16' },
   ballAdult: { borderColor: '#000' },

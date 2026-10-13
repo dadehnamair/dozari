@@ -3,7 +3,7 @@ import Fastify from 'fastify';
 import fastifyCors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
 import { resolve } from 'node:path';
-import { duelTiers, rialsToTomanString } from '@dozari/shared';
+import { AVATAR_CHANGE_MIN_LEVEL, AVATAR_UNLOCK_GAMES, duelTiers, rialsToTomanString, pickTriviaQuestions, shuffleTrivia } from '@dozari/shared';
 import { CHAT_RETENTION_DAYS, trackRules, MISSION_KEYS, TOURNAMENT_TICK_SECONDS, dailyDateKey, trackFeatureForPath, trackRuleForPath, WHEEL_SLICES_DEFAULT, scaleSlices } from '@dozari/shared';
 import type { AgeTrack, HintRules, MissionKey } from '@dozari/shared';
 import { createDb, imageStoreFromEnv } from '@dozari/db';
@@ -84,6 +84,7 @@ import { createDbAdminStore } from './admin/accounts/store.js';
 import { createDbAuditLog } from './admin/audit.js';
 import { createDbEconomyAdmin } from './admin/economy.js';
 import { createDbProductAdmin } from './admin/products.js';
+import { createDbCategoryAdmin } from './admin/categories.js';
 import { createDbStatsAdmin } from './admin/stats.js';
 import { createDbUsersAdmin } from './admin/users.js';
 import { createDbBotRepository } from './bot/repository.js';
@@ -142,6 +143,9 @@ import { createDbGemWallet, createGemCardPayer, registerGemRoutes } from './econ
 import type { GemWalletReader } from './economy/gems.js';
 import { createDbProfileTaskStore } from './profile/tasks-store.js';
 import { BirthdayService, registerBirthdayRoutes } from './profile/birthday.js';
+import { AvatarService, registerAvatarRoutes } from './profile/avatars.js';
+import { createDbAvatarStore } from './profile/avatars-store.js';
+import type { AvatarStore } from './profile/avatars-store.js';
 import { createErrorReporter } from './errors/report.js';
 import { buildFeedbackService } from './feedback/build.js';
 import { applyLedgerEntry } from './economy/ledger.js';
@@ -169,6 +173,7 @@ import { createDbShopStore } from './economy/shop-store.js';
 import { HintService } from './solo/hints.js';
 import { PlayLimiter, createDbPlayCountStore } from './limits/play-limits.js';
 import { LeaveService, createDbLeaveStore, leaveRulesFromSettings } from './leaves/service.js';
+import { registerLeaveRoutes } from './leaves/routes.js';
 import { DuelStakes } from './duel/stakes.js';
 import { registerAdsRoutes } from './ads/routes.js';
 import { AdsService } from './ads/service.js';
@@ -197,6 +202,8 @@ export interface ServerDeps {
   /** Called with every unexpected server error (and crash); wired to the self-hosted collector by `SENTRY_DSN`. */
   reportError?: (err: unknown, where?: string) => void;
   catalog?: CatalogRepository;
+  /** Active product categories for the lookup screen's filter chips. */
+  categories?: () => Promise<{ slug: string; nameFa: string }[]>;
   /** Interim catalog review page + API at `/admin`; registered only when a token is provided. */
   admin?: { repo: AdminRepository; token?: string; accounts?: AdminAccounts };
   /** Guest accounts and sessions (`/auth/guest`, `/me`). */
@@ -285,6 +292,8 @@ export interface ServerDeps {
   /** Level road (`/me/levels`, D109); needs `auth`. */
   levelRoad?: LevelRoadService;
   profileTasks?: ProfileTaskService;
+  /** The avatar («شخصیت») shelf: free and priced avatars (`/me/avatars`, D219); needs `auth`. */
+  avatars?: AvatarService;
   /** Birth date, birthday week, yearly gift and friend messages (D160). */
   birthday?: BirthdayService;
   /** Chosen age track: kid / teen / adult (D198); queues only pair one track. */
@@ -428,7 +437,7 @@ export function buildServer(deps: ServerDeps = {}) {
   }
   if (deps.catalog) {
     registerCatalogRoutes(app, deps.catalog);
-    registerLookupRoutes(app, deps.catalog);
+    registerLookupRoutes(app, deps.catalog, deps.categories);
   }
   // Is the player in a live match right now? (the app shows a "back to your game" banner, D42)
   if (deps.auth && deps.live) {
@@ -451,10 +460,12 @@ export function buildServer(deps: ServerDeps = {}) {
   } : undefined, (playerId) => deps.live?.matches?.spectate(playerId) ?? null);
   if (deps.solo) registerSoloRoutes(app, deps.solo, deps.auth, deps.hints, deps.limiter, deps.canPreview);
   if (deps.priceOnly) registerPriceOnlyRoutes(app, deps.priceOnly, deps.auth);
+  if (deps.auth && deps.leaves) registerLeaveRoutes(app, deps.leaves, deps.auth);
   if (deps.trivia) registerTriviaRoutes(app, deps.trivia.service, deps.auth, deps.trivia.tracksOf);
   if (deps.auth && deps.shop) registerShopRoutes(app, deps.auth, deps.shop);
   if (deps.auth && deps.levelRoad) registerRoadRoutes(app, deps.auth, deps.levelRoad);
   if (deps.auth && deps.profileTasks) registerProfileTaskRoutes(app, deps.auth, deps.profileTasks);
+  if (deps.auth && deps.avatars) registerAvatarRoutes(app, deps.auth, deps.avatars);
   if (deps.auth && deps.birthday) registerBirthdayRoutes(app, deps.auth, deps.birthday);
   if (deps.auth && deps.ageTracks) registerAgeTrackRoutes(app, deps.auth, deps.ageTracks, deps.playTime);
   if (deps.auth && deps.lessons) registerLessonRoutes(app, deps.auth, deps.lessons, deps.lessonSeen);
@@ -837,12 +848,17 @@ if (isMainModule(import.meta.url)) {
   }
   const levelOf = async (id: string) => (player ? (await player.levelOf(id)).level.level : 1);
   const shopStore = db ? createDbShopStore(db) : undefined;
+  const avatarStore: AvatarStore | undefined = db ? createDbAvatarStore(db) : undefined;
+  const avatars = avatarStore && settings
+    ? new AvatarService(avatarStore, levelOf, async () => ({ unlockGames: (await settings.num('profile.avatar_unlock_games')) ?? AVATAR_UNLOCK_GAMES, minLevel: (await settings.num('profile.avatar_change_min_level')) ?? AVATAR_CHANGE_MIN_LEVEL }))
+    : undefined;
   const landingService = db ? new LandingService(createDbLandingStore(db), Date.now, words ? async (t) => { const r = await words.check(t); return r.ok ? { ok: true, text: r.text } : { ok: false }; } : undefined) : undefined;
   const shortLinkService = db && settings ? new ShortLinkService(createDbShortLinkStore(db), () => settings.text('domain.short')) : undefined;
   if (social && shopStore) {
     const wardrobe = new ShopService(shopStore, levelOf);
     social.wornOf = (id) => wardrobe.worn(id);
   }
+  if (player && avatars) player.canWearAvatar = (id, key) => avatars.canWear(id, key);
   const shopReal = shopStore ? new ShopRealMoney(shopStore, levelOf) : undefined;
   const coinPackageService = db ? new CoinPackageService(createDbCoinPackageStore(db), levelOf) : undefined;
   if (notify && coinPackageService) {
@@ -903,7 +919,7 @@ if (isMainModule(import.meta.url)) {
           protectLast: process.env.BACKUP_PROTECT_LAST ? Number(process.env.BACKUP_PROTECT_LAST) || undefined : undefined,
         })
       : undefined;
-  const aiStudio = db ? new AiStudio({ env: process.env, lessons: createDbLessonStore(db), puzzles: createDbPuzzleAdmin(db), trivia: triviaStore, products: productAdmin, landing: landingService, catalog: async () => (await createDbAdminRepository(db).listCatalog()).map((p) => ({ id: p.id, slug: p.slug, nameFa: p.nameFa })) }) : undefined;
+  const aiStudio = db ? new AiStudio({ env: process.env, lessons: createDbLessonStore(db), puzzles: createDbPuzzleAdmin(db), categories: createDbCategoryAdmin(db), trivia: triviaStore, products: productAdmin, landing: landingService, catalog: async () => (await createDbAdminRepository(db).listCatalog()).map((p) => ({ id: p.id, slug: p.slug, nameFa: p.nameFa })) }) : undefined;
   const aiScheduler = db && aiStudio ? new AiScheduler(createDbAiScheduleStore(db), aiStudio, { audit: (action, target, detail) => void playerAudit?.record(action, target, detail), log: (msg, err) => app.log.error({ err }, msg) }) : undefined;
   const reportError = createErrorReporter({ dsn: process.env.SENTRY_DSN, environment: process.env.NODE_ENV, release: process.env.APP_RELEASE });
   const profileTaskService = db && settings ? new ProfileTaskService({
@@ -921,7 +937,7 @@ if (isMainModule(import.meta.url)) {
     auth,
     settings,
     adminModules: db
-      ? { backups: backupService, images: adminImageStore(), products: productAdmin!, feedback, clientErrors, stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, keepsakes: keepsakeStore, wheel, ads, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, ageTracks: db ? createDbAgeTrackAdmin(db) : undefined, economy: db ? createDbEconomyAdmin(db) : undefined, daily, ai: aiStudio, aiSchedules: aiScheduler, puzzles: createDbPuzzleAdmin(db), trivia: triviaStore, levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, sms: smsGateway, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      ? { backups: backupService, images: adminImageStore(), products: productAdmin!, feedback, clientErrors, stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, avatars: avatarStore, keepsakes: keepsakeStore, wheel, ads, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, ageTracks: db ? createDbAgeTrackAdmin(db) : undefined, economy: db ? createDbEconomyAdmin(db) : undefined, daily, ai: aiStudio, aiSchedules: aiScheduler, puzzles: createDbPuzzleAdmin(db), categories: createDbCategoryAdmin(db), trivia: triviaStore, leaves, levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, sms: smsGateway, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
     match: db
@@ -944,6 +960,16 @@ if (isMainModule(import.meta.url)) {
             if (!botDriver?.isBot(id)) gemPayer(id, amount, key);
           },
           priceRound: settings ? async () => (await settings.num('match.price_round')) === 1 : undefined,
+          triviaRounds: settings ? () => settings.num('match.trivia_rounds') : undefined,
+          triviaQuestions: triviaStore
+            ? async ({ topicIds, tracks, count, rng }) => {
+                // The match's own topics first, then the whole bank, so a thin topic never leaves the round short.
+                const own = topicIds?.length ? (await Promise.all([...new Set(topicIds)].map((topicId) => triviaStore.approved({ topicId, tracks, limit: 60 })))).flat() : [];
+                const picked = pickTriviaQuestions(own, count, rng);
+                if (picked.length < count) picked.push(...pickTriviaQuestions(await triviaStore.approved({ tracks, limit: Math.max(60, count * 6) }), count - picked.length, rng, new Set(picked.map((q) => q.id))));
+                return picked.map((q) => ({ id: q.id, textFa: q.textFa, explanationFa: q.explanationFa, ...shuffleTrivia(q, rng) }));
+              }
+            : undefined,
           rules: settings
             ? async () => {
                 const [turnSeconds, maxMistakes, maxTimeouts, groupPoints, firstBloodBonus, separate] = await Promise.all([settings.num('game.turn_seconds'), settings.num('game.match_max_mistakes'), settings.num('game.max_consecutive_timeouts'), settings.list('score.group_points'), settings.num('score.first_blood_bonus'), settings.num('match.separate_boards')]);
@@ -1008,6 +1034,7 @@ if (isMainModule(import.meta.url)) {
     ads,
     dailyReward: db && settings ? new DailyRewardService(createDbDailyRewardStore(db), Date.now, () => dailyRules(settings)) : undefined,
     catalog: db ? createDbCatalogRepository(db) : undefined,
+    categories: db ? async () => (await createDbCategoryAdmin(db).list()).filter((c) => c.isActive).map((c) => ({ slug: c.slug, nameFa: c.nameFa })) : undefined,
     solo,
     priceOnly,
     trivia: trivia ? { service: trivia, tracksOf: ageTracks ? async (id) => (id ? trackRules(await ageTracks.effective(id)).puzzleTracks : ['adult']) : undefined } : undefined,
@@ -1068,6 +1095,7 @@ if (isMainModule(import.meta.url)) {
     guardian,
     feedback,
     clientErrors,
+    avatars,
     profileTasks: profileTaskService,
     coinPackages: coinPackageService,
     shopReal,

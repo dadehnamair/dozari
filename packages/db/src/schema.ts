@@ -79,7 +79,7 @@ export const products = mysqlTable('products', {
   slug: varchar('slug', { length: 100 }).notNull().unique(),
   nameFa: varchar('name_fa', { length: 200 }).notNull(),
   brand: varchar('brand', { length: 200 }),
-  category: mysqlEnum('category', PRODUCT_CATEGORY_VALUES).notNull(),
+  category: varchar('category', { length: 40 }).notNull(),
   unitFa: varchar('unit_fa', { length: 100 }),
   /** Key of the hand-drawn icon pack (`ITEM_ICON_KEYS` in shared); null = no icon yet. */
   iconKey: varchar('icon_key', { length: 40 }),
@@ -352,6 +352,18 @@ export const triviaQuestions = mysqlTable(
   (table) => ({ byTopic: index('trivia_topic_idx').on(table.topicId, table.status) }),
 );
 
+/**
+ * Product categories (دسته‌بندی محصولات): admin-defined; `products.category` holds the `slug`. The built-in 14 are seeded by the migration
+ * that created this table. The slug never changes after creation (so no cascade); the Persian name, order and active flag are editable.
+ */
+export const productCategories = mysqlTable('product_categories', {
+  id: id(),
+  slug: varchar('slug', { length: 40 }).notNull().unique(),
+  nameFa: varchar('name_fa', { length: 60 }).notNull(),
+  sortOrder: int('sort_order').notNull().default(0),
+  isActive: boolean('is_active').notNull().default(true),
+});
+
 /** The tag vocabulary: admin-defined, puzzles can only carry tags from this list (docs/logic/themed-rounds.md). */
 export const puzzleTagDefs = mysqlTable('puzzle_tag_defs', {
   id: id(),
@@ -396,7 +408,7 @@ export const puzzleGroups = mysqlTable(
     ruleRank: smallint('rule_rank'),
     ruleRefProductId: char('rule_ref_product_id', { length: 36 }).references(() => products.id),
     ruleEraTag: varchar('rule_era_tag', { length: 50 }),
-    ruleCategory: mysqlEnum('rule_category', PRODUCT_CATEGORY_VALUES),
+    ruleCategory: varchar('rule_category', { length: 40 }),
     ruleNote: varchar('rule_note', { length: 300 }),
   },
   (table) => ({
@@ -859,7 +871,7 @@ export const priceCandidates = mysqlTable(
     sourceId: char('source_id', { length: 36 }),
     productNameFa: varchar('product_name_fa', { length: 200 }).notNull(),
     unitFa: varchar('unit_fa', { length: 100 }),
-    categoryGuess: mysqlEnum('category_guess', PRODUCT_CATEGORY_VALUES),
+    categoryGuess: varchar('category_guess', { length: 40 }),
     /** Matched catalog product, if the name is already known. */
     productId: char('product_id', { length: 36 }),
     year: smallint('year').notNull(),
@@ -991,6 +1003,25 @@ export const userCosmetics = mysqlTable(
     acquiredAt: datetime('acquired_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
   },
   (table) => ({ pk: primaryKey({ columns: [table.userId, table.itemId] }) }),
+);
+
+/** The avatar («شخصیت») shelf: one row per avatar key with its coin price (0 = free for everyone). The admin edits prices; rows are created on first read (D219). */
+export const avatarCatalog = mysqlTable('avatar_catalog', {
+  avatarKey: varchar('avatar_key', { length: 30 }).primaryKey(),
+  priceCoins: int('price_coins').notNull().default(0),
+  sortOrder: int('sort_order').notNull().default(0),
+  isActive: boolean('is_active').notNull().default(true),
+});
+
+/** Paid avatars a player bought (free ones need no row). Buying pays through the ledger (reason `shop_purchase`, ref `avatar`). */
+export const userAvatars = mysqlTable(
+  'user_avatars',
+  {
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    avatarKey: varchar('avatar_key', { length: 30 }).notNull(),
+    acquiredAt: datetime('acquired_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.userId, table.avatarKey] }) }),
 );
 
 /** Keepsake rarity; a copy of `KEEPSAKE_RARITIES` in shared (drizzle-kit cannot load the shared ESM config), a server test keeps them equal. */
@@ -1506,7 +1537,7 @@ export const chatMessages = mysqlTable(
   {
     id: id(),
     room: mysqlEnum('room', ['city', 'match', 'global', 'dm', 'table']).notNull(),
-    roomKey: varchar('room_key', { length: 64 }).notNull(),
+    roomKey: varchar('room_key', { length: 80 }).notNull(),
     userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
     kind: mysqlEnum('kind', ['text', 'taunt', 'table']).notNull(),
     text: varchar('text', { length: 500 }).notNull(),

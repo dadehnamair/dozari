@@ -15,7 +15,7 @@ when they are built.
 | slug | text unique | ascii, stable, used by seeds (`peykan-javanan`) |
 | name_fa | text | display name |
 | brand | text null | manufacturer / brand |
-| category | enum `product_category` | `car, food, snack, drink, digital, electronics, housing, transport, education, entertainment, clothing, hygiene, service, other` |
+| category | `VARCHAR(40)` = `product_categories.slug` | admin-defined (D229); built-in seed: `car, food, snack, drink, digital, electronics, housing, transport, education, entertainment, clothing, hygiene, service, other`. Slug never changes after creation; `other` is the undeletable fallback. `puzzle_groups.rule_category` and `price_candidates.category_guess` hold the same slugs. |
 | unit_fa | text null | «یک کیلو»، «یک بسته»، «یک عدد»، «متر مربع» — price is for this unit |
 | story_fa | text null | memory / fun fact shown after match |
 | status | enum | `in_production, discontinued, changed` |

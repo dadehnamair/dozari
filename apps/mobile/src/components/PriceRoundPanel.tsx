@@ -89,9 +89,13 @@ export function PriceRoundPanel({ sessionId, onDone }: { sessionId: string; onDo
       <Text style={styles.msg}>{questionText(p.question, round.year)}</Text>
       {result ? (
         <>
-          <Text style={styles.row}>{p.yourGuess}: {priceText(result.guessRials)}</Text>
-          <Text style={styles.total}>{p.actual}: {priceText(result.actualRials)}</Text>
-          <Text style={styles.row}>{p.points}: {formatPersianNumber(result.points)}</Text>
+          {round.options && round.options.length > 0 ? <PriceChoices options={round.options} onPick={() => undefined} reveal={{ picked: result.guessRials, actual: result.actualRials }} /> : (
+            <>
+              <Text style={styles.row}>{p.yourGuess}: {priceText(result.guessRials)}</Text>
+              <Text style={styles.total}>{p.actual}: {priceText(result.actualRials)}</Text>
+            </>
+          )}
+          <Text style={styles.gain}>+{formatPersianNumber(result.points)} {p.points}</Text>
           {round ? <PriceFeedbackLink product={{ id: round.productId, nameFa: round.nameFa, year: round.year }} /> : null}
           <CandyButton label={results.length >= total ? p.finish : p.next} color={colors.candy.lime} onPress={() => setReviewing(false)} />
         </>
@@ -127,6 +131,7 @@ const styles = StyleSheet.create({
   name: { fontFamily: 'Vazirmatn_700Bold', fontSize: 20, textAlign: 'center' },
   msg: { fontFamily: 'Vazirmatn_400Regular', fontSize: 15, color: colors.cream, textAlign: 'center' },
   total: { fontFamily: 'Vazirmatn_700Bold', fontSize: 16, color: colors.candy.yellow },
+  gain: { fontFamily: 'Vazirmatn_700Bold', fontSize: 20, color: colors.candy.lime },
   row: { fontFamily: 'Vazirmatn_400Regular', fontSize: 13, color: colors.cream, textAlign: 'center' },
   error: { fontFamily: 'Vazirmatn_400Regular', fontSize: 13, color: colors.candy.pink },
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },

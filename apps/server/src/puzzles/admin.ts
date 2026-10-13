@@ -101,7 +101,7 @@ export interface PuzzleAdmin {
   deleteTier(id: string): Promise<'ok' | 'not_found'>;
   /** Puts a puzzle in a tier (null = unrated). */
   setTier(puzzleId: string, tierId: string | null): Promise<'ok' | 'not_found' | 'unknown_tier'>;
-  setStatus(id: string, status: 'approved' | 'retired'): Promise<'ok' | 'not_found'>;
+  setStatus(id: string, status: 'approved' | 'retired' | 'draft'): Promise<'ok' | 'not_found'>;
   /** The topics (admin order) with how many approved puzzles each holds. */
   topics(): Promise<TopicRow[]>;
   saveTopic(topic: TopicInput): Promise<SaveTopicResult>;
@@ -126,6 +126,9 @@ export interface GenerateOpts {
   tierId?: string;
   /** Title = the plain rule (for auto-approve, where no human polishes the title) instead of a varied draft title. */
   plainTitles?: boolean;
+  /** File every made puzzle under this topic (گروه) and tag it; the caller has checked both exist. */
+  topicId?: string | null;
+  tags?: readonly string[];
 }
 
 export interface MadePuzzle {
@@ -245,9 +248,11 @@ export function createDbPuzzleAdmin(db: Db): PuzzleAdmin {
       const ids: string[] = [];
       for (const { puzzle: g, tierId } of made) {
         await db.transaction(async (tx) => {
-          const [puzzle] = await tx.insert(puzzles).values({ status: 'draft', source: 'generated', tierId }).$returningId();
+          const [puzzle] = await tx.insert(puzzles).values({ status: 'draft', source: 'generated', tierId, topicId: opts.topicId ?? null }).$returningId();
           if (!puzzle) throw new Error('puzzle insert failed');
           ids.push(puzzle.id);
+          const wanted = cleanTags(opts.tags ?? []);
+          if (wanted.length > 0) await tx.insert(puzzleTags).values(wanted.map((tag) => ({ puzzleId: puzzle.id, tag })));
           for (const grp of g.groups) {
             const text = explainRule(grp.rule, names);
             const title = opts.plainTitles ? text : draftTitle(grp.rule, rng, names);
@@ -432,7 +437,7 @@ export function createMemoryPuzzleAdmin(known: Set<string>, catalog: Catalog = [
       for (const { puzzle: g, tierId } of made) {
         const id = `00000000-0000-7000-9000-${String(rows.length + 1).padStart(12, '0')}`;
         ids.push(id);
-        rows.unshift({ id, status: 'draft', source: 'generated', createdAt: 0, tierId, ageTrack: 'adult', topicId: null, tags: [], groups: g.groups.map((x) => ({ level: x.level, titleFa: opts.plainTitles ? explainRule(x.rule) : draftTitle(x.rule, rng), items: [...x.productIds], productIds: [...x.productIds] })) });
+        rows.unshift({ id, status: 'draft', source: 'generated', createdAt: 0, tierId, ageTrack: 'adult', topicId: opts.topicId ?? null, tags: cleanTags(opts.tags ?? []), groups: g.groups.map((x) => ({ level: x.level, titleFa: opts.plainTitles ? explainRule(x.rule) : draftTitle(x.rule, rng), items: [...x.productIds], productIds: [...x.productIds] })) });
       }
       return { requested: count, created: made.length, catalogSize: catalog.length, ids };
     },

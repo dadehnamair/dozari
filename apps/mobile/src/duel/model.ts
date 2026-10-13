@@ -39,6 +39,8 @@ export interface DuelState {
   gem: { amount: number; n: number } | null;
   /** The last row playing itself out: the last four cards light up one by one before the board moves on or the result shows. */
   finale: Finale | null;
+  /** Players of the match who dropped and whose seat is held: user id → epoch ms when it is given up. */
+  away: Readonly<Record<string, number>>;
 }
 
 /** The end of a board as the player sees it: three rows found, four cards left that the game now selects by itself. */
@@ -75,7 +77,7 @@ export function endedFromView(view: MatchView): MatchEnded | null {
   return { matchId: view.matchId, result: view.result, scores: [view.scores[0], view.scores[1]], groups: groups as MatchEnded['groups'] };
 }
 
-export const initialDuel: DuelState = { phase: 'idle', waitedSec: 0, problem: null, found: null, draft: null, view: null, ended: null, names: {}, taunt: null, flash: null, verdict: null, gem: null, boardNote: null, error: null, notice: null, peek: null, powerNote: null, prevBoard: null, revealedLevel: null, finale: null };
+export const initialDuel: DuelState = { phase: 'idle', waitedSec: 0, problem: null, found: null, draft: null, view: null, ended: null, names: {}, taunt: null, flash: null, verdict: null, gem: null, boardNote: null, error: null, notice: null, peek: null, powerNote: null, prevBoard: null, revealedLevel: null, finale: null, away: {} };
 
 export type DuelAction =
   | { t: 'queued' }
@@ -103,6 +105,8 @@ export type DuelAction =
   | { t: 'revealed'; level: number }
   | { t: 'boardDone'; round: number; groups?: readonly GroupText[] }
   | { t: 'clearFinale' }
+  /** Another player of the match dropped (`graceEndsAt` = when the held seat ends) or came back. */
+  | { t: 'presence'; userId: string; state: 'dropped' | 'back'; graceEndsAt?: number }
   | { t: 'reset' };
 
 export function duelReducer(s: DuelState, a: DuelAction): DuelState {
@@ -141,6 +145,12 @@ export function duelReducer(s: DuelState, a: DuelAction): DuelState {
     }
     case 'clearFinale':
       return { ...s, finale: null };
+    case 'presence': {
+      const away = { ...s.away };
+      if (a.state === 'dropped' && a.graceEndsAt) away[a.userId] = a.graceEndsAt;
+      else delete away[a.userId];
+      return { ...s, away };
+    }
     case 'notice':
       return { ...s, notice: a.error };
     case 'clearNotice':
@@ -162,7 +172,7 @@ export function duelReducer(s: DuelState, a: DuelAction): DuelState {
     case 'timeout':
       return a.mine ? { ...s, flash: 'timeout' } : s;
     case 'ended':
-      return { ...s, phase: 'ended', ended: a.ended, error: null, notice: null };
+      return { ...s, phase: 'ended', ended: a.ended, error: null, notice: null, away: {} };
     case 'taunt':
       if (a.userId && a.userId === (s.view?.youId ?? s.found?.youId)) return s;
       return { ...s, taunt: { from: a.from, text: a.text } };

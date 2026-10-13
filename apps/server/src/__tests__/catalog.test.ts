@@ -81,7 +81,7 @@ describe('price lookup routes', () => {
     expect(body.results[0]!.range).toMatchObject({ count: 1, first: { year: 1357 }, max: { priceRials: '300000' } });
     expect((await app.inject({ method: 'GET', url: `/lookup/search?q=${encodeURIComponent('نان')}` })).json().results).toEqual([]);
     expect((await app.inject({ method: 'GET', url: '/lookup/search' })).statusCode).toBe(400);
-    expect((await app.inject({ method: 'GET', url: '/lookup/search?category=nope' })).statusCode).toBe(400);
+    expect((await app.inject({ method: 'GET', url: '/lookup/search?category=No%20Pe!' })).statusCode).toBe(400);
   });
 
   it('browses by category alone and narrows a text search by category', async () => {

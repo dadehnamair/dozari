@@ -10,6 +10,7 @@ import { Item } from '../components/Item';
 import { GuideBubble } from '../components/GuideBubble';
 import { useConfirm } from '../components/useConfirm';
 import { fa } from '../i18n/fa';
+import { showToast } from '../toast/toastStore';
 import { tableMinRounds } from '../config/tableRules';
 import { SheetClose } from '../components/SheetClose';
 import { ApiError } from '../net/http';
@@ -46,6 +47,10 @@ const dk = StyleSheet.create({
 });
 const f = fa.tables.form;
 /** A code with no Persian line of its own still shows in brackets, so a report from a phone says what the server answered. */
+const GOOD_NOTES: readonly string[] = [fa.tables.shared, fa.tables.inviteOnline, fa.tables.inviteOffline, fa.tables.openList.accepted];
+/** Every line the sheet has for the player pops up as a toast at the bottom (null = nothing to say). */
+const setNote = (text: string | null) => showToast(text, text && GOOD_NOTES.includes(text) ? 'success' : 'error');
+
 const errText = (e: unknown) => {
   const code = e instanceof ApiError ? e.code : 'network';
   return fa.tables.errors[code] ?? `${fa.tables.errors.generic ?? ''} (${code})`;
@@ -60,7 +65,6 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
   /** A kid/teen with no guardian opens the guardian step instead of seeing an error line. */
   const fail = (e: unknown) => (intercept(e) ? setNote(null) : e instanceof ApiError && e.code === 'NO_COINS' ? (setNote(errText(e)), void fetchDailyReward().then((d) => setCoinsHelp(d.balance), () => setCoinsHelp(0))) : setNote(errText(e)));
   const [table, setTable] = useState<TableView | null>(null);
-  const [note, setNote] = useState<string | null>(null);
   /** The playing table whose stands are open (read only). */
   const [watching, setWatching] = useState<string | null>(null);
   /** The player's balance while the «how to earn coins» page is open over the sheet (null = closed). */
@@ -193,7 +197,6 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
                 </View>
               ) : null}
               <TableLobby dark={dark} table={table} onPlayer={players.open} onSit={(side) => void run(() => setTableSide(side))} onKick={(id) => void run(() => kickFromTable(id))} />
-              {note ? <Text style={styles.warn}>{note}</Text> : null}
               {table.youAreHost && !table.inMatch && table.players.length < table.seats ? <InviteFriends onNote={setNote} /> : null}
               <TableChat code={table.code} meId={table.players.find((p) => p.isYou)?.id ?? null} onPlayer={players.open} />
               {table.entryFee === 0 ? <Text style={[styles.hint, dark ? dk.text : null]}>{fa.tables.friendly}</Text> : null}
@@ -227,7 +230,6 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
                 </View>
                 <Text style={[styles.sectionTitle, dark ? dk.gold : null]}>{fa.tables.openList.title}</Text>
                 <OpenTables onSeated={(t) => (setNote(null), setTable(t))} onNote={setNote} onWatch={setWatching} onNeedCoins={setCoinsHelp} errText={errText} />
-                {note ? <Text style={styles.warn}>{note}</Text> : null}
               </>
             ) : mode === 'make' ? (
               <>
@@ -271,7 +273,6 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
                   <Toggle dark={dark} on={requireReady} label={f.readyLabel} hint={f.readyHint} onPress={() => setRequireReady(!requireReady)} />
                   {hasFamily ? <Toggle dark={dark} on={family} label={f.familyLabel} hint={fa.tables.family} onPress={() => setFamily(!family)} /> : null}
                 </Card>
-                {note ? <Text style={styles.warn}>{note}</Text> : null}
                 <CandyButton label={fa.tables.create} color={colors.candy.lime} disabled={name.trim().length === 0} onPress={() => createTable({ name: name.trim(), icon: icon as (typeof TABLE_ICONS)[number], requireReady, format, family: hasFamily && family, rounds, entryFee: Math.max(entry, minEntry), isPrivate, priceRounds: format === '2v2' || !pricing ? 0 : priceCount }).then((t) => (setNote(null), setTable(t)), fail)} />
                 {name.trim().length === 0 ? <Text style={[styles.hint, dark ? dk.sub : null, { textAlign: 'center' }]}>{f.needName}</Text> : null}
                 <View style={styles.chips}><Chip label={fa.tables.back} color={colors.candy.sky} onPress={() => (setNote(null), setMode('menu'))} /></View>
@@ -282,7 +283,6 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
                   <TextInput value={code} onChangeText={setCode} autoCapitalize="characters" autoCorrect={false} maxLength={10} placeholder={fa.tables.codePlaceholder} style={[styles.input, styles.grow, dark ? dk.input : null]} />
                   <Pressable onPress={() => enter(code)} style={styles.pill} accessibilityRole="button"><Text style={styles.pillText}>{fa.tables.join}</Text></Pressable>
                 </View>
-                {note ? <Text style={styles.warn}>{note}</Text> : null}
                 <View style={styles.chips}><Chip label={fa.tables.back} color={colors.candy.sky} onPress={() => (setNote(null), setMode('menu'))} /></View>
               </>
             )
@@ -354,7 +354,9 @@ function InviteFriends({ onNote }: { onNote: (text: string | null) => void }) {
     <View style={styles.invites}>
       <Text style={[styles.label, dark ? dk.text : null]}>{fa.tables.inviteTitle}</Text>
       {friends && friends.length === 0 ? <Text style={[styles.hint, dark ? dk.text : null]}>{fa.tables.inviteNoFriends}</Text> : null}
-      {friends?.map((f) => (
+      {friends && friends.length > 0 ? (
+      <ScrollView style={styles.friendsBox} contentContainerStyle={styles.friendsContent} nestedScrollEnabled showsVerticalScrollIndicator>
+      {friends.map((f) => (
         <View key={f.id} style={styles.row}>
           <View>
             <Avatar avatar={avatarOf(f.avatarKey)} size={32} />
@@ -366,6 +368,8 @@ function InviteFriends({ onNote }: { onNote: (text: string | null) => void }) {
           </Pressable>
         </View>
       ))}
+      </ScrollView>
+      ) : null}
     </View>
   );
 }
@@ -390,6 +394,8 @@ const styles = StyleSheet.create({
   switchOff: { backgroundColor: '#E8DCC4' },
   switchText: { fontFamily: fonts.display, fontSize: 14, lineHeight: 20, color: INK },
   invites: { gap: 6 },
+  friendsBox: { maxHeight: 220, borderRadius: 14, borderWidth: 2, borderColor: INK, backgroundColor: '#fff' },
+  friendsContent: { gap: 8, padding: 8 },
   requests: { gap: 6, padding: 8, borderRadius: 14, borderWidth: 2.5, borderColor: INK, backgroundColor: '#FFF3C4' },
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
   infoChip: { fontFamily: fonts.bold, fontSize: 12, color: INK, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 99, borderWidth: 2, borderColor: INK, backgroundColor: '#fff', overflow: 'hidden' },

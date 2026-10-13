@@ -228,5 +228,7 @@ function select(options, value) { var s = h('select'); options.forEach(function 
 
 var CAT_FA = { car: 'خودرو', food: 'خوراکی', snack: 'تنقلات', drink: 'نوشیدنی', digital: 'دیجیتال', electronics: 'لوازم برقی', housing: 'مسکن', transport: 'حمل‌ونقل', education: 'آموزش', entertainment: 'سرگرمی', clothing: 'پوشاک', hygiene: 'بهداشتی', service: 'خدمات', other: 'سایر' };
 var SRC_FA = { archive_newspaper: 'آرشیو روزنامه', official_list: 'لیست رسمی', receipt_photo: 'عکس فاکتور', website: 'وب‌سایت', user_memory: 'خاطره‌ی کاربر', other: 'سایر' };
+/** The admin-defined Persian names win over the built-in ones; called whenever /admin/meta is (re)loaded. */
+function applyCategoryNames() { var n = (S.meta && S.meta.categoryNames) || {}; Object.keys(n).forEach(function (k) { CAT_FA[k] = n[k]; }); }
 function catOptions() { return ((S.meta && S.meta.categories) || []).map(function (c) { return [c, CAT_FA[c] || c]; }); }
 `;

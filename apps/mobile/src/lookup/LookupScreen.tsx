@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { PRODUCT_CATEGORIES } from '@dozari/shared';
 import type { LookupDetail, LookupHit } from '@dozari/shared';
 import { PriceFeedbackLink } from '../feedback/SuggestDialog';
 import { CandyButton } from '../components/CandyButton';
@@ -10,6 +9,7 @@ import { GuideBubble } from '../components/GuideBubble';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { fetchLookup, searchProducts } from './api';
+import { useProductCategories } from './categories';
 import { dateLabel, priceLabel, rangeLine, yearsWithData } from './model';
 import { safeTop } from '../theme/safeArea';
 import { RTL_INPUT, TEXT_RIGHT } from '../theme/direction';
@@ -18,6 +18,7 @@ const INK = '#3A2418';
 
 /** «استعلام قیمت» (D70): search a product, pick a year, read the approved price. No data means no answer, never an estimate. */
 export function LookupScreen({ onBack }: { onBack: () => void }) {
+  const categories = useProductCategories();
   const [q, setQ] = useState('');
   const [category, setCategory] = useState<string | null>(null);
   const [hits, setHits] = useState<LookupHit[] | null>(null);
@@ -112,9 +113,9 @@ export function LookupScreen({ onBack }: { onBack: () => void }) {
             <GuideBubble who="mirza" text={fa.lookup.hint} />
             <TextInput value={q} onChangeText={setQ} placeholder={fa.lookup.placeholder} placeholderTextColor="#8a6a55" {...RTL_INPUT.props} style={[styles.input, RTL_INPUT.style]} autoFocus />
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips} keyboardShouldPersistTaps="handled">
-              {PRODUCT_CATEGORIES.map((c) => (
+              {categories.map(([c, label]) => (
                 <Pressable key={c} onPress={() => setCategory(category === c ? null : c)} accessibilityRole="button" accessibilityState={{ selected: category === c }} style={[styles.year, category === c && styles.yearOn]}>
-                  <Text style={styles.yearText}>{fa.lookup.categories[c]}</Text>
+                  <Text style={styles.yearText}>{label}</Text>
                 </Pressable>
               ))}
             </ScrollView>

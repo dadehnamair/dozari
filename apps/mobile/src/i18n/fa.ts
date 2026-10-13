@@ -159,6 +159,8 @@ export const fa = {
     summary: 'نتیجه',
     right: 'آفرین، درست بود!',
     wrong: 'این یکی غلط بود.',
+    /** The point of a right answer, shown on the answered card itself. */
+    point: '+۱ امتیاز',
     next: 'پرسش بعدی',
     seeResult: 'دیدن نتیجه',
     again: 'یک دور دیگر',
@@ -595,6 +597,21 @@ export const fa = {
       /** Points the price-guess rounds added to each side's final score. */
       earned: (you: string, them: string) => `امتیاز حدس قیمت: تو ${you} · حریف ${them}`,
     },
+    /** The general-question round after the boards (docs/logic/trivia.md §In a match). */
+    triviaRound: {
+      title: 'دور سؤال عمومی',
+      intro: 'پازل تمام شد. حالا هر دو به چند سؤال چهارگزینه‌ای جواب بدهید؛ جواب‌ها تا وقتی هر دو نزده‌اید پنهان می‌ماند و هر جواب درست یک امتیاز است.',
+      round: (n: number, of: number) => `سؤال ${toPersianDigits(String(n))} از ${toPersianDigits(String(of))}`,
+      secondsLeft: (s: number) => `${toPersianDigits(String(s))} ثانیه`,
+      lockedIn: 'جوابت ثبت شد. منتظر حریف…',
+      opponentLocked: 'حریف جوابش را زد!',
+      yourPick: 'جواب تو',
+      opponentPick: 'جواب حریف',
+      point: '+۱ امتیاز',
+      resultTitle: 'دور سؤال عمومی',
+      /** Right answers of each side (one point each). */
+      earned: (you: string, them: string) => `جواب درست: تو ${you} · حریف ${them}`,
+    },
     /** Screens of `docs/design/Dozari - 13 Match Screens` (D99). */
     arena: {
       title: 'میدان رقابت',
@@ -637,6 +654,10 @@ export const fa = {
       unknown: '؟',
       leave: 'ترک بازی',
       leaveSure: 'دوباره بزن تا از بازی بیرون بری (باخت و یه ترک ثبت می‌شه)',
+      /** The same warning with the day's count: `left` leaves remain before duels and tables close until tomorrow. */
+      leaveSureLeft: (left: number) => (left <= 1 ? 'دوباره بزن تا بیرون بری؛ این آخرین ترک امروزته و بعدش دوئل و میز تا فردا بسته می‌شه' : `دوباره بزن تا بیرون بری؛ ${toPersianDigits(String(left))} ترک دیگه تا بسته شدن دوئل و میز امروز مونده`),
+      /** A player of the match dropped: their seat is held for a while. */
+      away: (name: string, secs: number) => `${name} قطع شد؛ ${toPersianDigits(String(secs))} ثانیه منتظرش می‌مونیم`,
       winSub: 'دوزاریت زودتر از حریف افتاد',
       loseSub: 'حریف این دست زرنگ‌تر بود',
       youLeft: 'از بازی بیرون اومدی',
@@ -696,6 +717,7 @@ export const fa = {
       MAINTENANCE: 'بازی در حال تعمیر است.',
       FEATURE_OFF: 'دوئل زنده فعلاً خاموش است.',
       NO_PRICE_ROUND: 'دور حدس قیمت تمام شده است.',
+      NO_TRIVIA_ROUND: 'دور سؤال عمومی تمام شده است.',
       DAILY_CAP: 'به سقف بازی امروزت رسیدی؛ فردا دوباره بیا.',
       LEAVE_BANNED: 'امروز چند بار بازی رو نیمه‌کاره ول کردی؛ تا فردا دوئل و میز برات بسته‌ست.',
       DRAFT_CANCELLED: 'یکی از بازیکن‌ها قبل از شروع رفت؛ بازی شروع نشد.',
@@ -1484,6 +1506,28 @@ export const fa = {
     } as Record<string, string>,
   },
   /** A small shop gift for a friend whose birthday is near. */
+  avatarShelf: {
+    free: 'رایگان',
+    price: (n: number) => `${toPersianDigits(String(n))} سکه`,
+    confirm: (name: string, n: number) => `${name} را با ${toPersianDigits(String(n))} سکه بخرم؟ برای همیشه مال تو می‌شود.`,
+    buy: 'بخر',
+    bought: 'شخصیت تازه‌ات را خریدی! 🎉',
+    hint: 'چند شخصیت رایگان است؛ بقیه را با سکه می‌خری و برای همیشه مال خودت می‌شود.',
+    blocked: {
+      NEEDS_GAMES: (n: number) => `بعد از ${toPersianDigits(String(n))} بازی می‌توانی شخصیتت را عوض کنی.`,
+      NEEDS_INVITE: 'برای خرید شخصیت، اول کد دعوت دوستت را وارد کن.',
+      NEEDS_LEVEL: (n: number) => `از لول ${toPersianDigits(String(n))} می‌توانی شخصیت بخری.`,
+      NEEDS_COINS: 'سکه‌ی کافی نداری.',
+    },
+    errors: {
+      NEEDS_GAMES: 'هنوز بازی کافی نکرده‌ای.',
+      NEEDS_INVITE: 'اول کد دعوت را وارد کن.',
+      NEEDS_LEVEL: 'لولت برای خرید کافی نیست.',
+      NEEDS_COINS: 'سکه‌ی کافی نداری.',
+      already_owned: 'این شخصیت را داری.',
+      generic: 'نشد؛ دوباره امتحان کن.',
+    } as Record<string, string>,
+  },
   birthdayGift: {
     open: 'هدیه‌ی تولد',
     title: (name: string) => `هدیه برای ${name}`,

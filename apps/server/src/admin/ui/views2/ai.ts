@@ -73,6 +73,10 @@ function aiTagChips(box, picked) {
     });
   });
 }
+/** A titled block of the generate form: a small heading with a one-line explanation, then its fields. */
+function aiSection(title, sub, children) {
+  return h('div', { class: 'ai-sec' }, [h('div', { class: 'ai-sec-h' }, [h('b', { text: title }), h('span', { class: 'h', text: sub })]), h('div', { class: 'form-grid' }, children)]);
+}
 function aiManual(root) {
   var info = null, result = null;
   var out = h('div');
@@ -103,8 +107,10 @@ function aiManual(root) {
       aiLoadTiers(ctl.tier, '');
       ctl.topic = select([['', 'بدون موضوع (هر چیزی)']], ''); aiLoadTopics(ctl.topic, 'بدون موضوع (هر چیزی)');
       ctl.tagsPicked = []; ctl.tags = h('div', { class: 'toolbar' }); aiTagChips(ctl.tags, ctl.tagsPicked);
-      [['تعداد پازل', ctl.count], ['موضوع', ctl.topic], ['برچسب‌ها (از فهرست تعریف‌شده)', ctl.tags], ['برای بازیکن‌های سطح', ctl.tier], ['رده‌ی سنی', ctl.ageTrack], ['سبک عنوان', ctl.style]].forEach(function (p) { opts.appendChild(field(p[0], p[1])); });
-      opts.appendChild(h('div', { class: 'h', text: 'هوش مصنوعی خودش ۴ گروه و ۴ محصولِ هر گروه را از کاتالوگ انتخاب می‌کند (فقط محصول‌های فعال). پازل‌ها پیش‌نویس ذخیره می‌شوند و بعد از بازبینی در «ساخت پازل» تأییدشان کن.' }));
+      var wide = function (label, input) { var f = field(label, input); f.style.gridColumn = '1 / -1'; return f; };
+      opts.appendChild(aiSection('۱. درباره‌ی چه چیزی باشد؟', 'هر چهار گروه و همه‌ی محصول‌ها باید به این موضوع و برچسب‌ها بخورند؛ اگر کاتالوگ محصول مرتبط کم داشته باشد، مدل کمتر می‌سازد و خبر می‌دهد.', [field('موضوع', ctl.topic), wide('برچسب‌ها (از فهرست تعریف‌شده)', ctl.tags)]));
+      opts.appendChild(aiSection('۲. برای چه کسی؟', 'سختی گروه‌ها با سطح بازیکن و رده‌ی سنی تنظیم می‌شود.', [field('بازیکن‌های سطح', ctl.tier), field('رده‌ی سنی', ctl.ageTrack)]));
+      opts.appendChild(aiSection('۳. چند پازل و با چه لحنی؟', 'پازل‌ها پیش‌نویس ذخیره می‌شوند و بعد از بازبینی در «ساخت پازل» تأییدشان کن.', [field('تعداد پازل', ctl.count), field('سبک عنوان', ctl.style)]));
     } else if (kind === 'trivia') {
       ctl.count = num(10, 1, 20);
       ctl.topic = select([['', 'در حال بارگیری…']], ''); aiLoadTopics(ctl.topic, null);

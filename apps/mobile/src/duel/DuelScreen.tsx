@@ -29,7 +29,9 @@ import { colors, fonts } from '../theme/colors';
 import { getLookGender } from '../theme/look';
 import { arenaNumbers, arenaTiers, arrange, characterFor, clockText, endReason, groupsBy, myCharacter, shuffled } from './arena';
 import type { TierId } from './arena';
+import { fetchLeaveWarning } from './api';
 import { DuelPriceRound } from './DuelPriceRound';
+import { DuelTriviaRound } from './DuelTriviaRound';
 import { DuelResult } from './DuelResult';
 import { EDGE_LEFT, EDGE_RIGHT } from '../theme/direction';
 import { InviteSheet } from '../invite/InviteSheet';
@@ -46,6 +48,7 @@ import { connectDuel } from './socket';
 import type { DuelConnection } from './socket';
 import { SearchScreen } from '../search/SearchScreen';
 import { Versus } from './Versus';
+import { EndSplash } from './EndSplash';
 import { LeaveGuard } from './LeaveGuard';
 import { fetchWheel } from '../wheel/api';
 import { WheelPage } from '../wheel/WheelPage';
@@ -86,6 +89,8 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   /** The taunt the player just sent, floating under their card for a few seconds. */
   const [myBubble, setMyBubble] = useState<string | null>(null);
   const [leaveArmed, setLeaveArmed] = useState(false);
+  /** Leaves still allowed today before duels and tables close, read when the player arms «leave» (null = unknown or no such rule). */
+  const [leaveLeft, setLeaveLeft] = useState<number | null>(null);
   const [friendOpen, setFriendOpen] = useState(false);
   const [tableOpen, setTableOpen] = useState(false);
   const [mode, setMode] = useState<'duel' | 'team'>('duel');
@@ -100,6 +105,8 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   /** The last row playing itself out (see `state.finale`): which of its four cards are lit, and whether its row is open. */
   const [finaleSel, setFinaleSel] = useState<string[]>([]);
   const [finaleLast, setFinaleLast] = useState(false);
+  /** The end-of-match splash was shown (or skipped) for this match. */
+  const [splashDone, setSplashDone] = useState(false);
   const foundAt = useRef(0);
   const lastResync = useRef(0);
   const finishedAt = useRef(0);
@@ -215,9 +222,14 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   }, [wonMatch]);
   useEffect(() => {
     if (!leaveArmed) return;
+    void fetchLeaveWarning().then((w) => setLeaveLeft(w?.left ?? null));
     const id = setTimeout(() => setLeaveArmed(false), LEAVE_ARM_MS);
     return () => clearTimeout(id);
   }, [leaveArmed]);
+
+  useEffect(() => {
+    if (state.phase !== 'ended') setSplashDone(false);
+  }, [state.phase]);
 
   // The last row plays itself out before the board moves on or the result shows: the last four cards light up one by one, then their row opens.
   const finale = state.finale;
@@ -265,7 +277,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   }, [state.notice]);
   // The last chance: the heartbeat of solo play (sound, a double buzz, the beating dot).
   const lv = state.view;
-  const lastLife = !!lv && lv.status === 'playing' && !state.finale && !lv.priceRound && !lv.lockedOut[lv.you] && isLastLife(lv.mistakes[lv.you], numbers.maxMistakes, true);
+  const lastLife = !!lv && lv.status === 'playing' && !state.finale && !lv.priceRound && !lv.triviaRound && !lv.lockedOut[lv.you] && isLastLife(lv.mistakes[lv.you], numbers.maxMistakes, true);
   useHeartbeat(lastLife);
   useEffect(() => setSending(false), [state.view?.turnId, state.view?.round]);
 
@@ -307,7 +319,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
       return;
     }
     finishedAt.current = 0;
-    const deadline = v.priceRound ? v.priceRound.endsAt : v.turnEndsAt;
+    const deadline = v.triviaRound ? v.triviaRound.endsAt : v.priceRound ? v.priceRound.endsAt : v.turnEndsAt;
     if (deadline > 0 && t > deadline + 6000 && quiet) resync();
   }, [now]);
 
@@ -425,6 +437,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
           reason={endReason(outcome, state.ended.result.reason)}
           lines={lines.map((l) => ({ ...l, points: scores[l.me ? me : them] }))}
           priceRound={state.ended.priceRound}
+          triviaRound={state.ended.triviaRound}
           onHome={stage === 'resume' ? () => (void leaveTable().then(() => undefined, () => undefined), onBack()) : onBack}
           onAgain={stage === 'queue' ? again : () => setTableOpen(true)}
           againLabel={stage === 'resume' ? fa.tables.rematch : undefined}
@@ -432,6 +445,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
           onPlayer={(id) => setProfileId(id)}
           onReport={(id) => setReportId(id)}
         />
+        {!prefs.reduceMotion && !splashDone ? <EndSplash outcome={outcome} me={{ who: lines[0]!.who, name: lines[0]!.name }} rival={{ who: lines[1]!.who, name: lines[1]!.name }} onDone={() => setSplashDone(true)} /> : null}
         {!prefs.reduceMotion ? (outcome === 'won' ? <Confetti distance={500} /> : <Rain distance={800} />) : null}
         {state.gem ? <GemBurst key={state.gem.n} amount={state.gem.amount} onDone={() => dispatch({ t: 'clearGem' })} /> : null}
         {outcome === 'won' && spinsWaiting > 0 ? (
@@ -466,6 +480,24 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
     );
   }
 
+  // After it (and the price round) come the general questions, in the same way.
+  if (view.triviaRound && !state.finale) {
+    return (
+      <MatchBackground>
+        <ScrollView contentContainerStyle={styles.screen}>
+          <DuelTriviaRound
+            round={view.triviaRound}
+            now={now}
+            onAnswer={async (index) => {
+              const ack = await conn.current?.triviaAnswer(index);
+              return !ack || ack.ok ? null : (fa.duel.errors[ack.error] ?? fa.duel.errors.generic ?? '');
+            }}
+          />
+        </ScrollView>
+      </MatchBackground>
+    );
+  }
+
   const mineSide = sidePlayers(state.found, me);
   const rivalSide = sidePlayers(state.found, them);
   const myProfile = mineSide.find((p) => p.userId !== undefined && p.userId === state.found?.youId) ?? mineSide[0];
@@ -485,12 +517,14 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   const mateWaiting = team && mine && !captain && selected.length === 4;
   const turnText = view.lockedOut[me] ? fa.duel.lockedOut : mine ? (!captain ? (mateWaiting ? a.waitCaptain(captainName) : a.mateCaptain) : proposalReady ? a.mateReady(nameOf(view.proposal?.by)) : team ? a.captain : fa.duel.yourTurn) : fa.duel.theirTurn;
   const boards = view.rounds ?? 1;
+  /** A player of the match who dropped and whose seat is still held. */
+  const awayId = playing ? Object.keys(state.away).find((id) => (state.away[id] ?? 0) > now) : undefined;
   const noticeText = state.notice ? fa.duel.errors[state.notice] ?? fa.duel.errors.generic ?? null : null;
   const frozenMs = (view.frozenUntil?.[me] ?? 0) - now;
   const frozenMe = frozenMs > 0 && playing;
   const frozenRival = (view.frozenUntil?.[them] ?? 0) > now;
   const powerText = frozenMe ? fa.duel.power.frozenLeft(Math.ceil(frozenMs / 1000)) : state.powerNote ? fa.duel.power.notes[state.powerNote] ?? null : null;
-  const toast = leaveArmed ? a.leaveSure : powerText ? powerText : state.boardNote ? a.nextBoard(state.boardNote.board, state.boardNote.of) : state.flash && state.flash !== 'one_away' ? fa.duel.feedback[state.flash] : null;
+  const toast = leaveArmed ? (leaveLeft === null ? a.leaveSure : a.leaveSureLeft(leaveLeft)) : powerText ? powerText : state.boardNote ? a.nextBoard(state.boardNote.board, state.boardNote.of) : state.flash && state.flash !== 'one_away' ? fa.duel.feedback[state.flash] : null;
   /** The submit button lights up only when this player can really submit now: their side's turn, they are the captain, four cards are picked, no answer pending. */
   const canSend = playing && mine && captain && canSubmit(selected) && !sending && !state.finale && !frozenMe;
   /** The power-ups work on the player's own turn, for the captain, while no answer is pending. */
@@ -576,6 +610,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
             {state.taunt ? <View style={[styles.bubble, { [EDGE_LEFT]: 4 }]}><SpeechBubble text={state.taunt.text} mine={false} /></View> : null}
           </View>
 
+          {awayId ? <Text style={styles.away}>{a.away(nameOf(awayId) || a.rival, Math.max(0, Math.ceil(((state.away[awayId] ?? 0) - now) / 1000)))}</Text> : null}
           {view.found && playing ? <Text style={[styles.rivalFound, view.found[them] >= 3 ? styles.rivalFoundHot : null]}>{view.found[them] > 0 ? a.rivalFound(view.found[them]) : a.rivalFoundNone}</Text> : null}
           <View style={styles.turnRow}>
             <View style={[styles.turn, mine ? (team && !captain ? styles.turnMate : styles.turnMine) : null]}><Text style={[styles.turnText, mine ? styles.turnTextMine : null]}>{turnText}</Text></View>
@@ -695,6 +730,7 @@ const styles = StyleSheet.create({
   clockText: { fontFamily: fonts.display, fontSize: 26, lineHeight: 36, color: colors.ink },
   mode: { height: 40, paddingHorizontal: 12, borderRadius: 13, backgroundColor: 'rgba(26,8,44,0.8)', borderWidth: 2, borderColor: colors.candy.yellow, alignItems: 'center', justifyContent: 'center', marginBottom: 4 },
   modeText: { fontFamily: fonts.display, fontSize: 17, color: colors.candy.yellow },
+  away: { textAlign: 'center', fontFamily: fonts.display, fontSize: 14, lineHeight: 22, color: colors.candy.orange },
   rivalFound: { textAlign: 'center', fontFamily: fonts.bold, fontSize: 13, lineHeight: 20, color: 'rgba(255,246,232,0.85)', marginBottom: 4 },
   rivalFoundHot: { color: colors.candy.yellow, fontFamily: fonts.display },
   turnRow: { alignItems: 'center', justifyContent: 'center' },

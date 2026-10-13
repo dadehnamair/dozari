@@ -11,6 +11,7 @@ import { fetchPhone, requestSms, resolvePhone, savePhone, verifySmsCode } from '
 import { phoneErrorText } from './errors';
 import { onlyDigits } from './loginInput';
 import { TEXT_LEFT } from '../theme/direction';
+import { noteToast } from '../toast/toastStore';
 
 const INK = '#3A2418';
 const codeOf = (e: unknown): string => (e instanceof ApiError ? e.code : 'generic');
@@ -21,7 +22,7 @@ export function PhoneStep({ onChange }: { onChange?: (s: PhoneStatus) => void })
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
   const [smsSent, setSmsSent] = useState(false);
-  const [note, setNote] = useState<{ text: string; bad: boolean } | null>(null);
+  const setNote = noteToast;
   const [asking, setAsking] = useState<PhoneChoice | null>(null);
   const [busy, setBusy] = useState(false);
   const [shared, setShared] = useState(false);
@@ -88,7 +89,6 @@ export function PhoneStep({ onChange }: { onChange?: (s: PhoneStatus) => void })
         </View>
         <Pressable onPress={() => setAsking('keep_current')} style={[styles.pill, styles.on]} accessibilityRole="button"><Text style={styles.pillText}>{c.keepCurrent}</Text></Pressable>
         <Pressable onPress={() => setAsking('load_previous')} style={styles.pill} accessibilityRole="button"><Text style={styles.pillText}>{c.loadPrevious}</Text></Pressable>
-        {note ? <Text style={[styles.hint, note.bad && styles.bad]}>{note.text}</Text> : null}
         {asking ? (
           <ConfirmDialog
             danger
@@ -138,7 +138,6 @@ export function PhoneStep({ onChange }: { onChange?: (s: PhoneStatus) => void })
         </View>
       ) : null}
       <Text style={styles.hint}>{fa.phone.privacy}</Text>
-      {note ? <Text style={[styles.hint, note.bad && styles.bad]}>{note.text}</Text> : null}
     </View>
   );
 }
