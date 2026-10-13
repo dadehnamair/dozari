@@ -19,8 +19,7 @@ export async function readContacts(): Promise<ContactsRead> {
     }
   }
   try {
-    // expo-contacts 57 moved the promise API (`getContactsAsync` …) to `/legacy`; the root export now throws at runtime.
-    const Contacts = await import('expo-contacts/legacy');
+    const Contacts = await import('expo-contacts');
     if (Platform.OS === 'android') {
       // expo-contacts asks for READ and WRITE together; WRITE_CONTACTS is blocked in the manifest (store review), so its
       // request could never be granted. Ask for READ only — it is all reading the address book needs.
