@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Lalezar&amp;family=Vazirmatn:wght@600;800&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>body{margin:0;background:#FFF6E8;color:#2B1240}a{color:#A66BF0}a:hover{color:#FF4D8D}*{box-sizing:border-box}</style>
+</helmet>
+<div dir="rtl" style="max-width:1400px;margin:0 auto;padding:48px 32px 80px;display:flex;flex-direction:column;gap:32px">
+  <header style="display:flex;flex-direction:column;gap:6px">
+    <div style="font:13px 'JetBrains Mono',monospace;color:#A66BF0;direction:ltr;text-align:right">Dozari · Products v3 · ProductIcon.dc.html</div>
+    <h1 style="margin:0;font:48px/1.1 Lalezar">آیکون محصولات · پک ۳</h1>
+    <div style="font:600 15px Vazirmatn;opacity:.7">{{ summary }}</div>
+  </header>
+  <sc-for list="{{ groups }}" as="g" hint-placeholder-count="2">
+    <section style="display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:center;gap:10px"><div style="padding:2px 14px;border-radius:99px;background:{{ g.c }};border:2.5px solid #2B1240;font:20px Lalezar">{{ g.t }}</div><span style="font:12px 'JetBrains Mono',monospace;opacity:.6">{{ g.n }}</span></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px">
+        <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="12">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 6px 10px;border-radius:18px;background:#fff;border:2.5px solid #2B1240;box-shadow:0 4px 0 #2B1240;text-align:center">
+            <div style="width:72px;height:72px"><dc-import name="ProductIcon" slug="{{ it.slug }}" hint-size="72px,72px" style="width:72px;height:72px"></dc-import></div>
+            <span style="font:800 12px/1.4 Vazirmatn;text-wrap:pretty">{{ it.name }}</span>
+            <span style="font:9px 'JetBrains Mono',monospace;opacity:.55;direction:ltr;word-break:break-all">{{ it.slug }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const NEW=`beryani-esfahani|بریانی اصفهانی
+boluze-gardane-baftani|بلوز یقه اسکی بافتنی
+chelo-kabab-barg|چلوکباب برگ
+colored-pencils|مداد رنگی
+domestic-bus-ticket-to-isfahan|بلیت اتوبوس تهران-اصفهان
+face-powder-compact|پنکک پودری
+ferdoosi-express-train-ticket|بلیت قطار تهران-مشهد
+fountain-pen|خودنویس
+geometry-set|جعبه پرگار
+ghahveh-torki|قهوه‌ی ترک
+glue-stick|چسب ماتیکی
+glycerin-rosewater|گلیسیرین و گلاب دست‌ساز
+green-beans|لوبیا سبز
+hena-powder|پودر حنا
+highlighter|ماژیک هایلایت
+jujeh-kabab|جوجه‌کباب
+kefsh-cherm|کفش چرم
+minibus-fare-start|کرایه مینی‌بوس
+nail-polish|لاک ناخن
+nivea-cream-tin|کرم نیوآ آبی
+omelet-gojeh|املت گوجه
+pencil-sharpener|تراش رومیزی
+public-telephone-token|ژتون تلفن عمومی
+qormeh-sabzi|چلو قورمه‌سبزی
+sabzi-khordan|سبزی خوردن
+sandwich-sosis-bandari|ساندویچ بندری
+sharbat-bidmeshk|شربت بیدمشک
+soccer-goal|دروازه فوتبال
+soccer-jersey|پیراهن فوتبال
+soccer-shoes|کفش فوتبال
+soccer-ticket|بلیط بازی فوتبال
+surme-kohl|سرمه
+tiz-k-mosvash|تیز ک مسواش
+vaseline-tin|وازلین
+watercolor-set|آبرنگ مدرسه
+watermelon-charentais|خربزه`;
+const OLD=`cucumber-salad|خیار
+eggplant|بادمجان
+grapes-green|انگور
+lemon-persian|لیمو ترش
+lipstick|رژ لب
+mosvaak-dovomi|مسواک دوامی
+notebook-100-sheet|دفتر صد برگ
+pomegranate|انار
+shampo-kherman|شامپو خرمان
+soccer-ball|توپ فوتبال
+vintage-radio|رادیو قدیمی`;
+const P=s=>s.split('\n').map(l=>{const[slug,name]=l.split('|');return{slug,name};});
+class Component extends DCLogic{
+  renderVals(){
+    const a=P(NEW),b=P(OLD);
+    return{summary:`${a.length} آیکون تازه کشیده شد · ${b.length} مورد از آیکون‌های موجود وصل شد`,groups:[
+      {t:'آیکون‌های جدید',c:'#B8F08F',n:a.length+' items',items:a},
+      {t:'از قبل موجود (alias)',c:'#FFE48A',n:b.length+' items',items:b}]};
+  }
+}
+</script>
+</body>
+</html>
