@@ -23,6 +23,7 @@ var TREE = [
   ] },
   { id: 'catalog', title: 'محتوا و قیمت‌ها', icon: 'catalog', tabs: [
     ['catalog', 'کاتالوگ محصولات', 'محصول‌ها، آیکن‌ها و تاریخچه‌ی قیمت', 'محصول کالا آیکن'],
+    ['categories', 'دسته‌بندی محصولات', 'تعریف، ویرایش و مرتب‌کردن دسته‌های محصول (خوراکی، خودرو، …)', 'دسته بندی دسته‌بندی محصول کتگوری'],
     ['prices', 'بازبینی قیمت‌ها', 'قیمت‌هایی که دستی ثبت شده و منتظر تأییدند', 'قیمت تایید'],
     ['inbox', 'صندوق ربات', 'پیشنهاد قیمت‌هایی که ربات پیدا کرده', 'ربات پیشنهاد صندوق'],
     ['sources', 'منبع‌های ربات', 'جایی که ربات قیمت‌ها را از آن می‌خواند', 'منبع ربات'],
@@ -254,7 +255,7 @@ function enter(token) {
     S.me = m.body;
     api('/admin/meta').then(function (r) {
       if (!r.ok) return showLogin('پنل روی این سرور فعال نیست.');
-      S.meta = r.body; sstore('tok', token);
+      S.meta = r.body; applyCategoryNames(); sstore('tok', token);
       $('who-name').textContent = S.me.name; $('who-role').textContent = ROLE_FA[S.me.role] || S.me.role;
       $('avatar').textContent = initials(S.me.name);
       $('login').hidden = true; $('app').hidden = false;

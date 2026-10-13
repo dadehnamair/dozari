@@ -61,7 +61,7 @@ describe('AI studio', () => {
       { slug: 'sib', nameFa: 'سیب', unitFa: 'عدد', category: 'food', storyFa: 'سیب سرخ' },
       { slug: 'sib', nameFa: 'سیب دوباره', unitFa: null, category: 'food' },
       { slug: 'bad slug', nameFa: 'x', category: 'food' },
-      { slug: 'toop', nameFa: 'توپ', category: 'nope' },
+      { slug: 'toop', nameFa: 'توپ', category: 'No Pe!' },
     ] }) + '\n```';
     const { app, seen } = setup(json);
     const res = await app.inject({ method: 'POST', url: '/admin/ai/generate', headers: h, payload: { kind: 'products', provider: 'deepseek', count: 4, ageTrack: 'kid', hint: 'میوه' } });

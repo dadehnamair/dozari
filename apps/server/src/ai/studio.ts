@@ -23,6 +23,8 @@ export interface AiDeps {
   landing?: LandingService;
   /** The catalog as it is now, to keep suggestions from repeating existing products. */
   catalog?: () => Promise<{ id: string; slug: string; nameFa: string }[]>;
+  /** The product categories the admin has defined (active ones); the prompt offers them to the model. */
+  categories?: { activeSlugs(): Promise<string[]> };
   fetch?: FetchLike;
   now?: () => number;
 }
@@ -119,6 +121,7 @@ export class AiStudio {
       if (ctx.kidItems.length === 0) throw new AiError('ai_not_found');
     }
     if (req.kind === 'products' && this.deps.catalog) ctx.existing = await this.deps.catalog();
+    if (req.kind === 'products' && this.deps.categories) ctx.categories = await this.deps.categories.activeSlugs();
     if (req.kind === 'puzzle_groups') {
       if (!this.deps.puzzles || !this.deps.catalog || !this.deps.products) throw new AiError('ai_not_found');
       const [all, details] = await Promise.all([this.deps.catalog(), this.deps.products.details()]);
@@ -237,6 +240,7 @@ export class AiStudio {
         if (!d.products) throw new AiError('ai_not_found');
         const out: SaveOutcome[] = [];
         const known = new Set((await d.catalog?.() ?? []).flatMap((e) => [nameKey(e.nameFa), nameKey(e.slug)]));
+        const allowed = d.categories ? new Set(await d.categories.activeSlugs()) : null;
         for (const p of req.drafts) {
           if (known.has(nameKey(p.nameFa)) || known.has(nameKey(p.slug))) {
             out.push({ label: p.nameFa, ok: false, error: 'duplicate' });
@@ -246,7 +250,7 @@ export class AiStudio {
           known.add(nameKey(p.slug));
           let made: Awaited<ReturnType<ProductAdmin['create']>> = 'duplicate';
           for (const slug of [p.slug, `${p.slug}-2`, `${p.slug}-3`]) {
-            made = await d.products.create({ slug, nameFa: p.nameFa, category: p.category, unitFa: p.unitFa, ageTrack: p.ageTrack });
+            made = await d.products.create({ slug, nameFa: p.nameFa, category: !allowed || allowed.has(p.category) ? p.category : 'other', unitFa: p.unitFa, ageTrack: p.ageTrack });
             if (made !== 'duplicate') break;
           }
           if (typeof made === 'string') {

@@ -1,4 +1,5 @@
-import { PRODUCT_CATEGORIES, groupTypedNumber } from '@dozari/shared';
+import { groupTypedNumber } from '@dozari/shared';
+import { useProductCategories } from '../lookup/categories';
 import { useState } from 'react';
 import { Pressable, Text, TextInput, View } from 'react-native';
 import { Icon } from '../components/Icon';
@@ -11,13 +12,13 @@ import { buildSubmission } from './suggestInput';
 
 const t = fa.feedback;
 const codeOf = (e: unknown): string => (e instanceof ApiError ? e.code : 'generic');
-const CATEGORIES = PRODUCT_CATEGORIES.map((c) => [c, fa.lookup.categories[c] ?? c] as const);
 
 /**
  * One form for the three suggestions: a new item, a price for an item, or «this price is wrong».
  * With `product` (opened from a price on screen) the player chooses between «wrong» and «my price»; without, it is a new item.
  */
 export function SuggestDialog({ product, onClose }: { product?: { id: string; nameFa: string; year?: number }; onClose: () => void }) {
+  const CATEGORIES = useProductCategories();
   const [mode, setMode] = useState<'price_report' | 'price_point'>('price_report');
   const kind = product ? mode : 'item';
   const [name, setName] = useState('');

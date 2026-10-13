@@ -1,5 +1,6 @@
 import { randomInt } from 'node:crypto';
 import { cleanTags } from '../puzzles/admin.js';
+import type { CategoryAdmin } from './categories.js';
 import type { PuzzleAdmin } from '../puzzles/admin.js';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { can } from './accounts/permissions.js';
@@ -119,6 +120,8 @@ export interface AdminModules {
   levelRoad?: { table: LevelTable; defaults: () => Promise<LevelRow[]> };
   /** Hand-built puzzles: readiness of the catalog, list, create (4 groups × 4 products), retire. */
   puzzles?: PuzzleAdmin;
+  /** Product categories (دسته‌بندی محصولات): defined, renamed, ordered and switched on/off by the admin. */
+  categories?: CategoryAdmin;
   /** Bot players: generate many natural accounts, tune or pause them. */
   botPlayers?: { service: BotPlayerService; cities: () => Promise<string[]> };
   messages?: MessageCenter;
@@ -139,7 +142,7 @@ const productPatch = z
     nameFa: z.string().trim().min(1).max(200),
     unitFa: z.string().trim().max(100).nullable(),
     brand: z.string().trim().max(200).nullable(),
-    category: z.enum(PRODUCT_CATEGORIES),
+    category: z.string().regex(/^[a-z][a-z0-9_]{0,38}$/),
     storyFa: z.string().max(4000).nullable(),
     iconKey: z.string().max(40).nullable(),
     isActive: z.boolean(),
@@ -152,7 +155,7 @@ const productPatch = z
 const newProduct = z.object({
   slug: z.string().regex(/^[a-z0-9][a-z0-9-]{1,98}$/),
   nameFa: z.string().trim().min(1).max(200),
-  category: z.enum(PRODUCT_CATEGORIES),
+  category: z.string().regex(/^[a-z][a-z0-9_]{0,38}$/),
   unitFa: z.string().trim().max(100).nullable().optional(),
   iconKey: z.string().max(40).nullable().optional(),
   ageTrack: z.enum(['kid', 'teen', 'adult']).optional(),
@@ -190,13 +193,14 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
   const audit = (action: string, target: string, detail?: string) => m.audit?.record(action, target, detail);
 
   g.get('/admin/meta', async () => ({
-    categories: PRODUCT_CATEGORIES,
+    categories: m.categories ? await m.categories.activeSlugs() : PRODUCT_CATEGORIES,
+    categoryNames: m.categories ? Object.fromEntries((await m.categories.list()).map((c) => [c.slug, c.nameFa])) : {},
     sourceTypes: SOURCE_TYPES,
     adapters: BOT_ADAPTER_KEYS,
     settingGroups: SETTING_GROUPS,
     icons: ITEMS,
     iconGroups: ITEM_GROUPS,
-    modules: { puzzles: !!m.puzzles, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, keepsakes: !!m.keepsakes, wheel: !!m.wheel, ads: !!m.ads, shortLinks: !!m.shortLinks, backups: !!m.backups, feedback: !!m.feedback, clientErrors: !!m.clientErrors, landing: !!m.landing, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, lessons: !!m.lessons, ai: !!m.ai, ageTracks: !!m.ageTracks, economy: !!m.economy, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages, sms: !!m.sms },
+    modules: { puzzles: !!m.puzzles, categories: !!m.categories, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, keepsakes: !!m.keepsakes, wheel: !!m.wheel, ads: !!m.ads, shortLinks: !!m.shortLinks, backups: !!m.backups, feedback: !!m.feedback, clientErrors: !!m.clientErrors, landing: !!m.landing, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, lessons: !!m.lessons, ai: !!m.ai, ageTracks: !!m.ageTracks, economy: !!m.economy, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages, sms: !!m.sms },
   }));
 
   if (m.ai) registerAiAdminRoutes(g, m.ai, audit, m.aiSchedules);
@@ -231,12 +235,16 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     });
   }
 
+  /** A category slug a product may take: the admin-defined active ones, or the built-in list when no category module is mounted. */
+  const categoryAllowed = async (slug: string | undefined) => !slug || ((m.categories ? await m.categories.activeSlugs() : (PRODUCT_CATEGORIES as readonly string[])).includes(slug));
   if (m.products) {
     const products = m.products;
     g.patch('/admin/products/:id', async (req, reply) => {
       const params = idParam.safeParse(req.params);
       const body = productPatch.safeParse(req.body);
       if (!params.success || !body.success) return reply.code(400).send({ error: 'invalid_request' });
+      // A product keeps its current category even when it was switched off later; only a change is checked (by the product admin, in the DB).
+      if (!m.categories && !(await categoryAllowed(body.data.category))) return reply.code(400).send({ error: 'invalid_request' });
       const out = await products.update(params.data.id, body.data);
       if (out === 'not_found') return reply.code(404).send({ error: 'product_not_found' });
       if (out === 'invalid') return reply.code(400).send({ error: 'invalid_request' });
@@ -245,7 +253,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     });
     g.post('/admin/products', async (req, reply) => {
       const body = newProduct.safeParse(req.body);
-      if (!body.success) return reply.code(400).send({ error: 'invalid_request' });
+      if (!body.success || !(await categoryAllowed(body.data.category))) return reply.code(400).send({ error: 'invalid_request' });
       const out = await products.create(body.data);
       if (out === 'duplicate') return reply.code(409).send({ error: 'slug_taken' });
       if (out === 'invalid') return reply.code(400).send({ error: 'invalid_request' });
@@ -849,6 +857,27 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     });
   }
 
+  if (m.categories) {
+    const categories = m.categories;
+    g.get('/admin/product-categories', async () => ({ categories: await categories.list() }));
+    g.post('/admin/product-categories', async (req, reply) => {
+      const b = z.object({ id: z.string().uuid().optional(), slug: z.string().trim().min(1).max(40), nameFa: z.string().trim().min(2).max(60), sortOrder: z.number().int().min(0).max(1000).default(0), isActive: z.boolean().default(true) }).safeParse(req.body);
+      if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await categories.save(b.data);
+      if (!out.ok) return reply.code(out.error === 'not_found' ? 404 : 400).send({ error: out.error });
+      void audit('product.category', out.id, b.data.nameFa);
+      return reply.code(b.data.id ? 200 : 201).send({ id: out.id });
+    });
+    g.delete('/admin/product-categories/:id', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await categories.remove(p.data.id);
+      if (out === 'not_found') return reply.code(404).send({ error: out });
+      if (out !== 'ok') return reply.code(409).send({ error: out });
+      void audit('product.category.delete', p.data.id);
+      return { ok: true };
+    });
+  }
   if (m.puzzles) {
     const puzzles = m.puzzles;
     const groupBody = z.object({ level: z.number().int().min(0).max(3), titleFa: z.string().trim().min(2).max(100), explanationFa: z.string().trim().max(300).optional(), productIds: z.array(z.string().uuid()).length(4) });
@@ -1326,7 +1355,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     g.post('/admin/bot/candidates/:id/approve', async (req, reply) => {
       const p = idParam.safeParse(req.params);
       const b = approveBody.safeParse(req.body ?? {});
-      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      if (!p.success || !b.success || !(await categoryAllowed(b.data.create?.category))) return reply.code(400).send({ error: 'invalid_request' });
       const out = await repo.approve(p.data.id, b.data);
       if (out === 'not_found') return reply.code(404).send({ error: out });
       if (out !== 'ok') return reply.code(out === 'needs_product' ? 400 : 409).send({ error: out });
