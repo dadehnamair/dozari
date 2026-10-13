@@ -1,3 +1,4 @@
+import { registerPendingRoutes } from './notify/pending.js';
 import { randomInt, randomUUID } from 'node:crypto';
 import Fastify from 'fastify';
 import fastifyCors from '@fastify/cors';
@@ -416,6 +417,11 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.transfers) registerTransferRoutes(app, deps.auth, deps.transfers);
   if (deps.auth && deps.keepsakes) registerKeepsakeRoutes(app, deps.auth, deps.keepsakes);
   if (deps.auth && deps.messages) registerInboxRoutes(app, deps.auth, deps.messages);
+  if (deps.auth && deps.messages && deps.social) {
+    const center = deps.messages;
+    const social = deps.social;
+    registerPendingRoutes(app, deps.auth, { inbox: (id) => center.inbox(id), incomingRequests: async (id) => (await social.friends(id)).incoming.map((p) => ({ id: p.id, nickname: p.nickname })) });
+  }
   if (deps.auth && deps.phone) registerPhoneRoutes(app, deps.auth, deps.phone);
   if (deps.phoneLogin) registerPhoneLoginRoutes(app, deps.phoneLogin);
   if (deps.auth && deps.match && deps.presence) registerCandidateRoutes(app, deps.auth, { online: () => deps.presence!.onlineIds(), bots: () => deps.botDriver?.rosterIds() ?? [], profile: deps.match.profile });

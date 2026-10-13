@@ -27,3 +27,10 @@ export const ledgerPageSchema = z.object({
   next: z.string().nullable(),
 });
 export type LedgerPage = z.infer<typeof ledgerPageSchema>;
+
+/** `GET /me/pending-notices?after=<ms>`: what is new for the player since the device last looked (the Android background check polls this; no push service involved). `id` is stable, so a device never shows the same item twice. */
+export const pendingNoticesSchema = z.object({
+  now: z.number().int(),
+  items: z.array(z.object({ id: z.string().max(80), kind: z.enum(['inbox', 'friend_request']), title: z.string().max(200), body: z.string().max(500), at: z.number().int() })).max(20),
+});
+export type PendingNotices = z.infer<typeof pendingNoticesSchema>;

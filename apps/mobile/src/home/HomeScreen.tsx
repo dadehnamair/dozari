@@ -15,6 +15,7 @@ import { Item } from '../components/Item';
 import { fetchFriends } from '../social/api';
 import { connectNotices } from '../notices/connectNotices';
 import { showWebNotice } from '../notices/webNotify';
+import { startBackgroundNotify } from '../notices/backgroundNotify';
 import { FriendRequestSheet } from '../notices/FriendRequestSheet';
 import { claimProfileTask } from '../social/profileTasksApi';
 import { profileNudge } from './profileNudge';
@@ -141,6 +142,9 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onDaily, onDuel, onD
     return () => clearTimeout(timer);
   }, [nudgeToast]);
   const inbox = useInbox();
+  useEffect(() => {
+    void startBackgroundNotify();
+  }, []);
   const inboxReload = inbox.reload;
   useEffect(() => {
     if (!features.friends) return undefined;
