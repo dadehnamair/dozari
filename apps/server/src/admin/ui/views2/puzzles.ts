@@ -257,7 +257,7 @@ export const ADMIN_VIEWS2_PUZZLES_JS = String.raw`VIEWS.puzzles = function (root
       var n = h('input', { type: 'number', min: '1', max: '20', value: '5', style: 'width:84px' });
       var genTier = select([['', 'همه‌ی سطح‌ها، به نوبت']].concat(P.tiers.map(function (t) { return [t.id, tierLabel(t)]; })), '');
       box.appendChild(h('div', { class: 'card inline' }, [
-        h('div', { style: 'flex:1;min-width:220px' }, [h('b', { text: 'ساخت خودکار' }), h('div', { class: 'sub', text: 'فقط وقتی دکمه را بزنی پازل می‌سازد (هیچ ساخت زمان‌بندی‌شده‌ای نیست). پازل‌ها پیش‌نویس‌اند و تا تأیید تو منتشر نمی‌شوند.' })]),
+        h('div', { style: 'flex:1;min-width:220px' }, [h('b', { text: 'ساخت خودکار' }), h('div', { class: 'sub', text: 'با زدن این دکمه برای سطح انتخابی پازل پیش‌نویس می‌سازد؛ تا تأیید تو منتشر نمی‌شوند. (ساخت زمان‌بندی‌شده را از «تنظیمات» خاموش کن.)' })]),
         genTier,
         n,
         h('button', { class: 'btn primary', text: 'بساز', onclick: function () {

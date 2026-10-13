@@ -42,7 +42,7 @@ describe('AI schedules: validation', () => {
     expect(await scheduler.create(input({ cron: '0 0 30 2 *' }))).toEqual({ ok: false, error: 'never_runs' });
     expect(await scheduler.create(input({ provider: 'nope' }))).toEqual({ ok: false, error: 'unknown_provider' });
     expect(await scheduler.create(input({ kind: 'blog', topic: '' }))).toEqual({ ok: false, error: 'topic_required' });
-    expect(await scheduler.create(input({ kind: 'blog', topic: 'قیمت نان', count: 5 }))).toEqual({ ok: false, error: 'count_too_high' });
+    expect(await scheduler.create(input({ kind: 'puzzle_groups', count: 9 }))).toEqual({ ok: false, error: 'count_too_high' });
     const ok = await scheduler.create(input());
     expect(ok.ok && ok.row.nextRunAt).toBe(Date.UTC(2026, 9, 8, 5, 30)); // 09:00 Tehran tomorrow
   });
@@ -54,7 +54,7 @@ describe('AI schedules: validation', () => {
   });
 
   it('builds the same request a manual run sends', () => {
-    expect(requestFor(input({ kind: 'kid_lessons', count: 2, model: 'm1', hint: 'ورزش' }))).toEqual({ kind: 'kid_lessons', provider: 'deepseek', model: 'm1', hint: 'ورزش', count: 2 });
+    expect(requestFor(input({ kind: 'puzzle_groups', count: 2, ageTrack: 'kid', style: 'plain', model: 'm1', hint: 'ورزش' }))).toEqual({ kind: 'puzzle_groups', provider: 'deepseek', model: 'm1', hint: 'ورزش', count: 2, ageTrack: 'kid', style: 'plain' });
     expect(requestFor(input({ kind: 'blog', topic: 'قیمت نان' }))).toMatchObject({ kind: 'blog', topic: 'قیمت نان', keywords: [] });
   });
 });

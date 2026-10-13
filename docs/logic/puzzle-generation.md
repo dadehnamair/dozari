@@ -140,9 +140,12 @@ the admin is the human check) and goes live as `approved` at once (the admin is 
 readiness: products in the catalog, products with ≥ `MIN_PRICE_POINTS_PER_PRODUCT` approved prices, approved puzzles. Prices are not needed to
 *play* a puzzle, but the price-guess round and the result chart need approved prices for its products.
 
-## No automatic puzzle making (D228)
+## Scheduled pool top-up (D141)
 
-Puzzles are made only when an admin presses a button («ساخت خودکار» on the draft tab, the AI studio, or the hand builder). The former scheduled pool top-up (D141, `puzzles/pool.ts`, settings `puzzles.autofill_*`, env `PUZZLE_SCHEDULER`) is removed, and `puzzle_groups` is no longer an AI schedule kind (an old schedule row of that kind is kept but its run is a no-op with `puzzles_manual_only`).
+`puzzles/pool.ts`: every `puzzles.autofill_check_minutes` (default 60, first look 45 s after boot; `PUZZLE_SCHEDULER=off` disables it) the server counts
+the pool and, when it is below `puzzles.autofill_target` (default 30), generates the gap (at most 20 per run) with the injected RNG. Pool = the **drafts
+waiting for a human**, always (the former `puzzles.autofill_auto_approve` switch was removed in D227). `puzzles.autofill_enabled` pauses it. The remaining three are admin settings (group «گیم‌پلی»).
+**To stop automatic making** (owner, 2026-10-13: the code stays, the owner switches it off by hand): set `puzzles.autofill_enabled` = 0 in the admin settings, or `PUZZLE_SCHEDULER=off` in the server env; and disable/delete any `puzzle_groups` schedule in the AI studio's «برنامه‌ی زمانی» tab (or `AI_SCHEDULER=off` to stop all AI schedules).
 
 ## Generator + admin panel (D131)
 
@@ -184,9 +187,9 @@ refused (400) when the new product is already in the puzzle (`duplicate_product`
 above the puzzle's age track (`item_track`); 404 for an unknown product. The item's year hint is cleared. The puzzle keeps its status (the admin editing it is the human check);
 curated groups are not machine-checked, so the editor is the check for the new product.
 
-## AI-made puzzles (D211, changed by D228)
+## AI-made puzzles on a schedule (D211)
 
-The AI studio (`docs/logic/ai-studio.md`) makes whole puzzles only on a manual run; a schedule can no longer do it. Drafts only.
+The AI studio (`docs/logic/ai-studio.md` §Schedules) can also fill the pool with a cron schedule of kind `puzzle_groups`; drafts only. Switch it off by disabling or deleting the schedule.
 
 
 ### Theme groups (`theme_tag`)
