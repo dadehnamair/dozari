@@ -47,6 +47,7 @@ import type { ChatStore } from '../chat/store.js';
 import type { TournamentService } from '../tournament/service.js';
 import type { SponsorStore } from '../sponsor/store.js';
 import type { TriviaStore } from '../trivia/store.js';
+import type { LeaveService } from '../leaves/service.js';
 import type { DailyService } from '../daily/service.js';
 import { THEME_KINDS } from '../daily/store.js';
 import type { BotPlayerService } from '../botplayers/service.js';
@@ -104,6 +105,8 @@ export interface AdminModules {
   sponsors?: SponsorStore;
   /** General four-choice questions, each under a topic. */
   trivia?: TriviaStore;
+  /** The leave log (who left a running duel or table, and how). */
+  leaves?: LeaveService;
   /** Kid word lessons: the editor list, save text, approve (D198). */
   lessons?: LessonStore;
   /** Numbers per age track for the admin overview tab (D198). */
@@ -770,6 +773,14 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
         return { ok: true };
       });
     }
+  }
+
+  if (m.leaves) {
+    const leaves = m.leaves;
+    g.get('/admin/leaves', async (req) => {
+      const q = z.object({ limit: z.coerce.number().int().min(1).max(500).optional() }).safeParse(req.query);
+      return leaves.log(q.success ? q.data.limit : undefined);
+    });
   }
 
   if (m.trivia) {

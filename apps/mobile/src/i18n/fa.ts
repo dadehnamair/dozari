@@ -654,6 +654,10 @@ export const fa = {
       unknown: '؟',
       leave: 'ترک بازی',
       leaveSure: 'دوباره بزن تا از بازی بیرون بری (باخت و یه ترک ثبت می‌شه)',
+      /** The same warning with the day's count: `left` leaves remain before duels and tables close until tomorrow. */
+      leaveSureLeft: (left: number) => (left <= 1 ? 'دوباره بزن تا بیرون بری؛ این آخرین ترک امروزته و بعدش دوئل و میز تا فردا بسته می‌شه' : `دوباره بزن تا بیرون بری؛ ${toPersianDigits(String(left))} ترک دیگه تا بسته شدن دوئل و میز امروز مونده`),
+      /** A player of the match dropped: their seat is held for a while. */
+      away: (name: string, secs: number) => `${name} قطع شد؛ ${toPersianDigits(String(secs))} ثانیه منتظرش می‌مونیم`,
       winSub: 'دوزاریت زودتر از حریف افتاد',
       loseSub: 'حریف این دست زرنگ‌تر بود',
       youLeft: 'از بازی بیرون اومدی',

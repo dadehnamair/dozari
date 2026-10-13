@@ -1,6 +1,6 @@
 import { io } from 'socket.io-client';
 import type { Socket } from 'socket.io-client';
-import { ClientEvent, ServerEvent, ackSchema, chatMessageSchema, draftViewSchema, matchEndedSchema, matchEventSchema, matchFoundSchema, matchViewSchema, queueStatusSchema } from '@dozari/shared';
+import { ClientEvent, ServerEvent, ackSchema, chatMessageSchema, draftViewSchema, matchEndedSchema, matchEventSchema, matchFoundSchema, matchPresenceSchema, matchViewSchema, queueStatusSchema } from '@dozari/shared';
 import type { Ack } from '@dozari/shared';
 import { session } from '../auth';
 import { BASE_URL, callJson } from '../net/http';
@@ -90,6 +90,10 @@ export async function connectDuel(dispatch: (a: DuelAction) => void): Promise<Du
     else if (e.data.t === 'group_revealed') dispatch({ t: 'revealed', level: e.data.level });
     else if (e.data.t === 'board_done') dispatch({ t: 'boardDone', round: e.data.round, groups: e.data.groups });
     else if (e.data.t === 'board') dispatch({ t: 'board', board: e.data.round + 1, of: e.data.rounds });
+  });
+  socket.on(ServerEvent.matchPresence, (p: unknown) => {
+    const e = matchPresenceSchema.safeParse(p);
+    if (e.success) dispatch({ t: 'presence', userId: e.data.userId, state: e.data.state, graceEndsAt: e.data.graceEndsAt });
   });
   socket.on(ServerEvent.matchEnded, (p: unknown) => {
     const e = matchEndedSchema.safeParse(p);

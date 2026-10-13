@@ -100,4 +100,12 @@ describe('duel general-question round', () => {
     expect(matchEndedSchema.parse(last('A', 'match:ended')).triviaRound).toBeUndefined();
     expect(svc.activeCount).toBe(0);
   });
+
+  it('othersOf names the rest of the match (the gateway tells them when a player drops)', async () => {
+    const { svc } = harness({ rounds: 0 });
+    expect(svc.othersOf('A')).toEqual([]);
+    await svc.start('A', 'B');
+    expect(svc.othersOf('A')).toEqual(['B']);
+    expect(svc.othersOf('B')).toEqual(['A']);
+  });
 });

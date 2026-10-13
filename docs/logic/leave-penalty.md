@@ -20,7 +20,9 @@ Pure logic: `leaveStatus` in `packages/shared/src/leave/policy.ts`. The badge is
 ## Where it bites
 - Queue join (`LEAVE_BANNED` socket error) and table create / join / request (`LEAVE_BANNED` table error). Solo and the daily puzzle stay open.
 - Public profile (`PlayerProfile.leaverUntil`): a chip «ترک‌کننده»; a tap shows «تا ۲۸ مهر برداشته می‌شود».
-- Leaving asks a second tap and now says a leave will be recorded.
+- Leaving asks a second tap and says a leave will be recorded. It also says how many leaves remain today before the ban (`GET /me/leave-status` → `{today, left, bannedUntil}`, `LeaveService.warning`; read when the player arms «leave»; the last one says so).
+- A dropped player: the gateway tells the other players of the match at once (`match:presence {userId, state:'dropped', graceEndsAt}`), and again when they are back (`state:'back'`); the screen shows «X قطع شد؛ N ثانیه منتظرش می‌مونیم» with the countdown. If the grace ends the leave is logged as `absent`.
+- Admin tab «ترک بازی» (`GET /admin/leaves`, `LeaveService.log`): the newest 300 leaves with who, how (`manual` / `absent`) and when, a chip for repeat leavers, and the rules in force.
 
 ## Not built
-A pre-leave counter («یک ترک دیگه تا محرومیت»), a push to the opponent when someone drops, and an admin view of the leave log.
+A device push notification (outside the app) to the opponent when someone drops; the in-match notice above needs the app open.
