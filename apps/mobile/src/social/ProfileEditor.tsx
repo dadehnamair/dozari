@@ -12,6 +12,7 @@ import { saveAvatar, saveEmail, saveNickname } from './api';
 import { nicknameHint } from './nicknameHint';
 import { BirthdayEditor } from './BirthdayEditor';
 import { TEXT_LEFT } from '../theme/direction';
+import { noteToast } from '../toast/toastStore';
 
 const INK = '#3A2418';
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
@@ -22,7 +23,7 @@ const problemText = (e: unknown): string => (e instanceof ApiError ? fa.profile.
 export function ProfileEditor({ me, onChange, onPickCity }: { me: MyProfile; onChange: (patch: Partial<MyProfile>) => void; onPickCity: () => void }) {
   const [nick, setNick] = useState(me.nickname);
   const [email, setEmail] = useState(me.email ?? '');
-  const [note, setNote] = useState<{ text: string; bad: boolean } | null>(null);
+  const setNote = noteToast;
 
   useEffect(() => setNick(me.nickname), [me.nickname]);
   const say = (text: string, bad = false) => setNote({ text, bad });
@@ -123,7 +124,6 @@ export function ProfileEditor({ me, onChange, onPickCity }: { me: MyProfile; onC
       <View style={styles.card}>
         <BirthdayEditor />
       </View>
-      {note ? <Text style={[styles.note, note.bad && styles.bad]}>{note.text}</Text> : null}
     </View>
   );
 }
