@@ -17,6 +17,8 @@ import { FindSheet } from './FindSheet';
 import { PlayerSheet } from './PlayerSheet';
 import { TEXT_RIGHT } from '../theme/direction';
 import { BirthdayBadge } from './BirthdayBadge';
+import { FriendsLedger } from './FriendsLedger';
+import { useDark } from '../theme/skin';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const TINTS = ['#3FC1F0', '#FF4D8D', '#FF8FB6', '#FFC93C', '#B8F08F', '#FFAA7A', '#C9A3FF'];
@@ -24,8 +26,10 @@ const TINTS = ['#3FC1F0', '#FF4D8D', '#FF8FB6', '#FFC93C', '#B8F08F', '#FFAA7A',
 /**
  * screen-friends of `19 Social Daily Onboarding`: search, «+ افزودن» (find players), incoming requests to accept or
  * decline, and one card per friend with a gift button. Tapping a friend opens their profile.
+ * Adult look: `FriendsLedger` (docs/design/adult/Dozari Adult - Friends).
  */
 export function FriendsPage({ onClose }: { onClose: () => void }) {
+  const dark = useDark();
   const [data, setData] = useState<Friends | null>(null);
   const [failed, setFailed] = useState(false);
   const [q, setQ] = useState('');
@@ -42,6 +46,12 @@ export function FriendsPage({ onClose }: { onClose: () => void }) {
   if (open) return <PlayerSheet playerId={open} onClose={() => (setOpen(null), load())} />;
   if (gift) return <TransferSheet friendId={gift} kind="gift" onClose={() => setGift(null)} />;
 
+  if (dark) {
+    return (
+      <FriendsLedger data={data} failed={failed} onBack={onClose} onAdd={() => setFind(true)} onOpen={setOpen} onGift={setGift}
+        onAccept={(id) => acceptFriend(id).then(load, () => setFailed(true))} onDecline={(id) => removeFriend(id).then(load, () => setFailed(true))} />
+    );
+  }
   const needle = q.trim();
   const shown = (data?.friends ?? []).filter((p) => !needle || p.nickname.includes(needle) || (p.contactName ?? '').includes(needle) || (p.phone ?? '').includes(needle));
   return (

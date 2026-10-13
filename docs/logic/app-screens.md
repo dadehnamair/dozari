@@ -113,6 +113,8 @@ by nickname, incoming requests with accept / decline, then one card per friend (
 tap for their profile — and a gift button that opens the coin gift). The mock-up's online status and
 per-friend duel button need presence and direct challenges, which do not exist yet; they are left out.
 
+**Adult look** (`social/FriendsLedger.tsx`, design `docs/design/adult/Dozari Adult - Friends`): vault-room scene instead of the sky band; a header with the back square, «دوستان», «N نفر · M نفر آنلاین» and a brass «افزودن»; the search field; tabs همه / آنلاین / درخواست‌ها (pending count in a red badge); friends as ledger rows grouped آنلاین / آفلاین (gold-ringed avatar, presence dot, nickname, the saved address-book name, an eye button that reveals the saved number, gift square). Requests are a ledger with a close square and a brass «قبول». The design's level badge, «playing now» state and duel button are left out: the friends list carries no level, in-game status or direct challenge yet. The play look keeps the sky-band page.
+
 ## City hub (D112)
 
 screen-hub of `11 More Screens`, opened from the round map button in Home's top row (next to it, the round **wheel** button, D154, with the number of spins waiting; it is always there): «شهر دوزاری», a
