@@ -20,3 +20,12 @@ No push service and no permanent service. `modules/background-notify` (local Exp
 ## Private messages (D232)
 
 A friend's private message used to reach nobody unless that DM was open (the DM view polls every 3 s). Now `ChatService.onDirect` (not called for table cards) pushes a live notice `dm {from}` to the friend if online (Home toast + browser notification while hidden) and queues a Bale `chat_message` if offline (once per sender per 10 min, switchable per player). A friend's profile has a «پیام» button that opens `DmSheet` directly, no chat tab needed. Not yet: unread counter/badge on Home, and tap-to-open of the toast.
+
+## Web Push for closed/suspended web apps (D232) — iPhone included
+
+An iPhone suspends a home-screen web app in the background, so its socket and local notifications stop; only a server push wakes it. **Web Push (VAPID)** does this: on iPhone it goes through Apple's service (iOS/iPadOS 16.4+, the app must be added to the Home Screen and opened from that icon), on Chrome through Google's. Rule 8 is about app dependencies; this was accepted by the owner for push (2026-10-13).
+
+- Server: `notify/webpush.ts` (`WebPushService`, table `web_push_subscriptions`, `GET /push/config`, `POST /push/subscribe|unsubscribe`). Needs `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (`npx web-push generate-vapid-keys`); without them the feature is off. Dead subscriptions (404/410) are deleted.
+- Which events: friend request, private message, table invite, inbox message — everything that reaches `LiveNotices.push`, plus `also` for offline players (private messages, inbox, capped at 500 per broadcast). Table requests/answers stay in-app.
+- Client: `syncWebPush` (after the permission is granted and on every Home open) subscribes and registers; `sw.js` `push` handler shows the notification (silent when the app is in front, because iOS demands one per push). Same `tag` as the local notice, so one event never shows twice.
+- Not verified: no real iPhone/Chrome test; needs HTTPS and the VAPID keys on the server. If a push is not shown on iPhone, check iOS ≥ 16.4, the app opened from the Home Screen icon, notification permission, and the server log for a 4xx from `web.push.apple.com`.

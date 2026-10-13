@@ -97,6 +97,7 @@ import { NotifyService } from './notify/service.js';
 import { createBaleSignup } from './notify/signup.js';
 import { startNotifyRunner } from './notify/runner.js';
 import { registerBaleRoutes } from './notify/routes.js';
+import { WebPushService, createDbPushSubStore, createVapidSender, registerWebPushRoutes } from './notify/webpush.js';
 import { MessageCenter } from './messages/service.js';
 import { createDbMessageStore } from './messages/store.js';
 import { registerInboxRoutes } from './messages/routes.js';
@@ -221,6 +222,7 @@ export interface ServerDeps {
   realtime?: boolean;
   /** Bale messenger integration: link codes for players, the bot's name for the app. */
   bale?: { service: NotifyService; botUsername: string | null };
+  webPush?: WebPushService;
   /** Mobile numbers (`/me/phone`); also required before Bale linking when the setting says so. */
   phone?: PhoneService;
   /** «ورود با شماره»: logged-out sign-in by SMS code (`/auth/phone/*`). */
@@ -416,6 +418,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.invite) registerInviteRoutes(app, deps.auth, deps.invite);
   if (deps.auth && deps.transfers) registerTransferRoutes(app, deps.auth, deps.transfers);
   if (deps.auth && deps.keepsakes) registerKeepsakeRoutes(app, deps.auth, deps.keepsakes);
+  if (deps.auth && deps.webPush) registerWebPushRoutes(app, deps.auth, deps.webPush);
   if (deps.auth && deps.messages) registerInboxRoutes(app, deps.auth, deps.messages);
   if (deps.auth && deps.messages && deps.social) {
     const center = deps.messages;
@@ -460,7 +463,7 @@ export function buildServer(deps: ServerDeps = {}) {
     if (!r.ok) return { ok: false, error: r.error };
     const online = deps.presence?.isOnline(friendId) ?? false;
     // A live nudge on top of the chat card, so the friend sees «X invited you» wherever they are in the app.
-    if (online) deps.notices?.push(friendId, { kind: 'table_invite', from: r.message.nickname, code: t.code });
+    deps.notices?.push(friendId, { kind: 'table_invite', from: r.message.nickname, code: t.code });
     if (!online) void deps.notify?.notify(friendId, 'table_invite', BALE_TEXT.tableInvite(r.message.nickname)).catch(() => undefined);
     return { ok: true, online };
   } : undefined, (playerId) => deps.live?.matches?.spectate(playerId) ?? null);
@@ -560,6 +563,10 @@ if (isMainModule(import.meta.url)) {
   const baleClient = baleToken ? createBaleClient(baleToken, { base: process.env.BALE_API_BASE }) : null;
   const baleStore: NotifyStore | undefined = db ? createDbNotifyStore(db) : undefined;
   const notify = baleStore ? new NotifyService(baleStore, baleClient) : undefined;
+  // Browser push (Web Push, VAPID): iPhone home-screen apps through Apple's service, Chrome through Google's. Off without the three VAPID_* variables.
+  const vapid = process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY ? { publicKey: process.env.VAPID_PUBLIC_KEY, privateKey: process.env.VAPID_PRIVATE_KEY, subject: process.env.VAPID_SUBJECT ?? 'mailto:admin@dozari.ir' } : null;
+  const webPush = db && vapid ? new WebPushService(createDbPushSubStore(db), createVapidSender(vapid), vapid.publicKey) : undefined;
+  if (webPush) notices.also = (id, n) => void webPush.notice(id, n).catch(() => undefined);
   // The SMS provider and message texts are edited in the admin panel (stored in app_settings); env vars are the fallback.
   const smsGateway = settings && db
     ? new SmsGateway(createDbSettingsStore(db), { irnotiKey: process.env.IRNOTI_API_KEY, irnotiMessage: process.env.IRNOTI_MESSAGE, irnotiLineId: process.env.IRNOTI_LINE_ID, irnotiPatternCode: process.env.IRNOTI_PATTERN_CODE, kavenegarKey: process.env.KAVENEGAR_API_KEY, kavenegarTemplate: process.env.KAVENEGAR_TEMPLATE })
@@ -617,7 +624,9 @@ if (isMainModule(import.meta.url)) {
     // Online recipients get a nudge so the inbox badge moves without a reload; offline ones see it on the next load.
     messages.onDelivered = (ids) => {
       const online = new Set(presence.onlineIds());
+      // Online players get the live nudge; the others a browser push (capped, so a broadcast to everybody does not become thousands of lookups).
       for (const id of ids) if (online.has(id)) notices.push(id, { kind: 'inbox' });
+      for (const id of ids.filter((i) => !online.has(i)).slice(0, 500)) notices.also?.(id, { kind: 'inbox' });
     };
   }
   const invite = inviteStore && settings && player ? new InviteService(inviteStore, () => inviteRulesFromSettings(settings), async (id) => (await player.levelOf(id)).level.level, async (id) => (await player.levelOf(id)).stats.games, () => randomInt(0, 2 ** 30) / 2 ** 30) : undefined;
@@ -651,6 +660,7 @@ if (isMainModule(import.meta.url)) {
     chat.onDirect = (friendId, message) => {
       const nickname = message.nickname;
       if (presence.isOnline(friendId)) return void notices.push(friendId, { kind: 'dm', from: nickname });
+      notices.also?.(friendId, { kind: 'dm', from: nickname });
       const key = `${message.userId}>${friendId}`;
       const last = baleSeen.get(key) ?? 0;
       if (Date.now() - last < 10 * 60_000) return;
@@ -1044,6 +1054,7 @@ if (isMainModule(import.meta.url)) {
     ambientLobby,
     presence,
     notices,
+    webPush,
     notify,
     messages,
     social,

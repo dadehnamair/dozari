@@ -671,6 +671,20 @@ export const baleLinks = mysqlTable(
   (table) => ({ uniqChat: uniqueIndex('bale_links_chat_uq').on(table.chatId) }),
 );
 
+/** Browser Web Push subscriptions (D232): one row per browser/device the player allowed notifications on. iPhone push (installed web app) goes through Apple's service, Chrome's through Google's; the endpoint says which. */
+export const webPushSubscriptions = mysqlTable(
+  'web_push_subscriptions',
+  {
+    id: char('id', { length: 36 }).primaryKey(),
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    endpoint: varchar('endpoint', { length: 700 }).notNull(),
+    p256dh: varchar('p256dh', { length: 200 }).notNull(),
+    auth: varchar('auth', { length: 100 }).notNull(),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ uniqEndpoint: uniqueIndex('web_push_endpoint_uq').on(table.endpoint), byUser: index('web_push_user_idx').on(table.userId) }),
+);
+
 export const baleLinkCodes = mysqlTable('bale_link_codes', {
   code: varchar('code', { length: 12 }).primaryKey(),
   userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),

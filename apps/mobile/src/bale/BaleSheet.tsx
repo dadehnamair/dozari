@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { MUTABLE_NOTIFY_KINDS } from '@dozari/shared';
 import type { BaleLinkCode, BaleLinkStatus, MutableNotifyKind } from '@dozari/shared';
 import { CandyButton } from '../components/CandyButton';
@@ -99,6 +99,7 @@ export function BaleSheet({ onClose }: { onClose: () => void }) {
             <CandyButton label={fa.bale.getCode} color={colors.candy.lime} onPress={() => void getCode()} />
           )
         ) : null}
+        {web === 'unsupported' && Platform.OS === 'web' ? <Text style={[styles.small, adult ? styles.textAdult : null]}>{fa.webNotify.iphoneHint}</Text> : null}
         {web !== 'unsupported' ? (
           web === 'granted' ? (
             <Text style={[styles.small, adult ? styles.textAdult : null]}>{fa.webNotify.enabled}</Text>

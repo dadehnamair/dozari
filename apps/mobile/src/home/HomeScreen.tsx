@@ -14,7 +14,7 @@ import { SchoolSheet } from '../feedback/SchoolSheet';
 import { Item } from '../components/Item';
 import { fetchFriends } from '../social/api';
 import { connectNotices } from '../notices/connectNotices';
-import { showWebNotice } from '../notices/webNotify';
+import { showWebNotice, syncWebPush } from '../notices/webNotify';
 import { startBackgroundNotify } from '../notices/backgroundNotify';
 import { FriendRequestSheet } from '../notices/FriendRequestSheet';
 import { claimProfileTask } from '../social/profileTasksApi';
@@ -144,6 +144,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onDaily, onDuel, onD
   const inbox = useInbox();
   useEffect(() => {
     void startBackgroundNotify();
+    void syncWebPush();
   }, []);
   const inboxReload = inbox.reload;
   useEffect(() => {
