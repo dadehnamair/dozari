@@ -43,11 +43,13 @@ VIEWS.trivia = function (root) {
         h('div', { class: 'pz-items', style: 'margin-top:6px' }, q.options.map(function (o, i) { return h('span', { class: 'pz-item', text: (i === q.correctIndex ? '✓ ' : '') + o, style: i === q.correctIndex ? 'font-weight:700' : '' }); })),
         h('div', { class: 'toolbar', style: 'margin-top:8px' }, [
           h('button', { class: 'btn sm', text: 'ویرایش', onclick: function () { openForm(q); } }),
-          h('button', { class: 'btn sm ' + (next === 'retired' ? 'bad' : 'ok'), text: next === 'retired' ? 'بازنشسته کن' : 'فعال کن', onclick: function () { api('/admin/trivia/' + q.id, { method: 'PATCH', body: { status: next } }).then(function (r) { r.ok ? (toast('انجام شد'), reload()) : fail(r); }); } })
+          q.status === 'draft' ? h('button', { class: 'btn sm ok', text: 'تأیید', onclick: function () { setStatus(q, 'approved'); } }) : null,
+          h('button', { class: 'btn sm ' + (next === 'retired' ? 'bad' : 'ok'), text: next === 'retired' ? 'بازنشسته کن' : 'فعال کن', onclick: function () { setStatus(q, next); } })
         ])
       ]));
     });
   }
+  function setStatus(q, status) { api('/admin/trivia/' + q.id, { method: 'PATCH', body: { status: status } }).then(function (r) { r.ok ? (toast('انجام شد'), reload()) : fail(r); }); }
   function reload() {
     api('/admin/puzzle-topics').then(function (t) {
       T.topics = t.ok ? t.body.topics : [];
