@@ -610,6 +610,13 @@
       "when": 1791895084228,
       "tag": "0086_bent_kingpin",
       "breakpoints": true
+    },
+    {
+      "idx": 87,
+      "version": "5",
+      "when": 1791898742385,
+      "tag": "0087_lucky_paibok",
+      "breakpoints": true
     }
   ]
 }

@@ -1506,6 +1506,28 @@ export const fa = {
     } as Record<string, string>,
   },
   /** A small shop gift for a friend whose birthday is near. */
+  avatarShelf: {
+    free: 'رایگان',
+    price: (n: number) => `${toPersianDigits(String(n))} سکه`,
+    confirm: (name: string, n: number) => `${name} را با ${toPersianDigits(String(n))} سکه بخرم؟ برای همیشه مال تو می‌شود.`,
+    buy: 'بخر',
+    bought: 'شخصیت تازه‌ات را خریدی! 🎉',
+    hint: 'چند شخصیت رایگان است؛ بقیه را با سکه می‌خری و برای همیشه مال خودت می‌شود.',
+    blocked: {
+      NEEDS_GAMES: (n: number) => `بعد از ${toPersianDigits(String(n))} بازی می‌توانی شخصیتت را عوض کنی.`,
+      NEEDS_INVITE: 'برای خرید شخصیت، اول کد دعوت دوستت را وارد کن.',
+      NEEDS_LEVEL: (n: number) => `از لول ${toPersianDigits(String(n))} می‌توانی شخصیت بخری.`,
+      NEEDS_COINS: 'سکه‌ی کافی نداری.',
+    },
+    errors: {
+      NEEDS_GAMES: 'هنوز بازی کافی نکرده‌ای.',
+      NEEDS_INVITE: 'اول کد دعوت را وارد کن.',
+      NEEDS_LEVEL: 'لولت برای خرید کافی نیست.',
+      NEEDS_COINS: 'سکه‌ی کافی نداری.',
+      already_owned: 'این شخصیت را داری.',
+      generic: 'نشد؛ دوباره امتحان کن.',
+    } as Record<string, string>,
+  },
   birthdayGift: {
     open: 'هدیه‌ی تولد',
     title: (name: string) => `هدیه برای ${name}`,
