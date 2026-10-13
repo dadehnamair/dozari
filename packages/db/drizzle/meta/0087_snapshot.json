@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "a208f24a-6bbc-48c8-a90c-4606fd01ff1a",
+  "id": "91817c9e-2ebb-4265-b4e3-19c3ef25192c",
   "prevId": "7c81d8f1-3b1e-475b-8cb6-1ec4af8bd559",
   "tables": {
     "account_delete_codes": {
@@ -820,6 +820,54 @@
           "name": "app_settings_key",
           "columns": [
             "key"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "avatar_catalog": {
+      "name": "avatar_catalog",
+      "columns": {
+        "avatar_key": {
+          "name": "avatar_key",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "price_coins": {
+          "name": "price_coins",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "sort_order": {
+          "name": "sort_order",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {
+        "avatar_catalog_avatar_key": {
+          "name": "avatar_catalog_avatar_key",
+          "columns": [
+            "avatar_key"
           ]
         }
       },
@@ -3031,87 +3079,6 @@
           "name": "daily_reward_steps_day",
           "columns": [
             "day"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "checkConstraint": {}
-    },
-    "friend_contacts": {
-      "name": "friend_contacts",
-      "columns": {
-        "owner_id": {
-          "name": "owner_id",
-          "type": "char(36)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "friend_id": {
-          "name": "friend_id",
-          "type": "char(36)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "contact_name": {
-          "name": "contact_name",
-          "type": "varchar(80)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "phone": {
-          "name": "phone",
-          "type": "varchar(20)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP(3)"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "friend_contacts_owner_id_users_id_fk": {
-          "name": "friend_contacts_owner_id_users_id_fk",
-          "tableFrom": "friend_contacts",
-          "tableTo": "users",
-          "columnsFrom": [
-            "owner_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "friend_contacts_friend_id_users_id_fk": {
-          "name": "friend_contacts_friend_id_users_id_fk",
-          "tableFrom": "friend_contacts",
-          "tableTo": "users",
-          "columnsFrom": [
-            "friend_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "friend_contacts_owner_id_friend_id_pk": {
-          "name": "friend_contacts_owner_id_friend_id_pk",
-          "columns": [
-            "owner_id",
-            "friend_id"
           ]
         }
       },
@@ -8181,6 +8148,60 @@
           "columns": [
             "submission_id",
             "user_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraint": {}
+    },
+    "user_avatars": {
+      "name": "user_avatars",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "char(36)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "avatar_key": {
+          "name": "avatar_key",
+          "type": "varchar(30)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "acquired_at": {
+          "name": "acquired_at",
+          "type": "datetime(3)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP(3)"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "user_avatars_user_id_users_id_fk": {
+          "name": "user_avatars_user_id_users_id_fk",
+          "tableFrom": "user_avatars",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "user_avatars_user_id_avatar_key_pk": {
+          "name": "user_avatars_user_id_avatar_key_pk",
+          "columns": [
+            "user_id",
+            "avatar_key"
           ]
         }
       },

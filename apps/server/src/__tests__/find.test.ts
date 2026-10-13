@@ -124,6 +124,21 @@ describe('contact names', () => {
   });
 });
 
+describe('contact names keep', () => {
+  it('does not wipe a saved name when a later lookup has none', async () => {
+    const { app, login, store } = boot();
+    const a = await login(1);
+    const b = await login(2);
+    store.phones.set('+989121111111', b.id);
+    await app.inject({ method: 'POST', url: '/friends/find-contacts', headers: a.h, payload: { contacts: [{ phone: '09121111111', name: 'علی' }] } });
+    await app.inject({ method: 'POST', url: '/friends/find-contacts', headers: a.h, payload: { phones: ['09121111111'] } });
+    await app.inject({ method: 'POST', url: `/friends/${b.id}/request`, headers: a.h });
+    await app.inject({ method: 'POST', url: `/friends/${a.id}/accept`, headers: b.h });
+    const mine = (await app.inject({ method: 'GET', url: '/friends', headers: a.h })).json();
+    expect(mine.friends[0]).toMatchObject({ contactName: 'علی', phone: '09121111111' });
+  });
+});
+
 describe('invite link', () => {
   it('makes a brand-new account a friend at once; an older account sends a normal request', async () => {
     const { app, login, clock, me, seed } = boot();

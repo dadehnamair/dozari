@@ -31,6 +31,7 @@ import type { PlayerStore } from '../player/store.js';
 import type { CoinPackageService } from '../economy/coin-packages.js';
 import type { KeepsakeStore } from '../keepsakes/store.js';
 import type { ShopStore } from '../economy/shop-store.js';
+import type { AvatarStore } from '../profile/avatars-store.js';
 import type { WheelService } from '../wheel/service.js';
 import type { AdsService } from '../ads/service.js';
 import type { ImageStore } from '@dozari/db';
@@ -76,6 +77,8 @@ export interface AdminModules {
   cities?: PlayerStore;
   /** Coin shop items (price, level gate, daily limit, visibility). */
   shop?: ShopStore;
+  /** Avatar («شخصیت») shelf: which are free and the coin price of the rest (D219). */
+  avatars?: AvatarStore;
   /** Keepsakes («یادگار») and their sets: `/admin/keepsakes`, `/admin/keepsake-sets`. */
   keepsakes?: KeepsakeStore;
   /** Blog, cast and FAQ of the landing site. */
@@ -200,7 +203,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     settingGroups: SETTING_GROUPS,
     icons: ITEMS,
     iconGroups: ITEM_GROUPS,
-    modules: { puzzles: !!m.puzzles, categories: !!m.categories, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, keepsakes: !!m.keepsakes, wheel: !!m.wheel, ads: !!m.ads, shortLinks: !!m.shortLinks, backups: !!m.backups, feedback: !!m.feedback, clientErrors: !!m.clientErrors, landing: !!m.landing, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, lessons: !!m.lessons, ai: !!m.ai, ageTracks: !!m.ageTracks, economy: !!m.economy, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages, sms: !!m.sms },
+    modules: { avatars: !!m.avatars, puzzles: !!m.puzzles, categories: !!m.categories, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, keepsakes: !!m.keepsakes, wheel: !!m.wheel, ads: !!m.ads, shortLinks: !!m.shortLinks, backups: !!m.backups, feedback: !!m.feedback, clientErrors: !!m.clientErrors, landing: !!m.landing, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, lessons: !!m.lessons, ai: !!m.ai, ageTracks: !!m.ageTracks, economy: !!m.economy, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages, sms: !!m.sms },
   }));
 
   if (m.ai) registerAiAdminRoutes(g, m.ai, audit, m.aiSchedules);
@@ -1172,6 +1175,19 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
       if ((await shop.updateItem(p.data.id, b.data)) === 'not_found') return reply.code(404).send({ error: 'item_not_found' });
       void audit('shop.update', p.data.id, JSON.stringify(b.data));
+      return { ok: true };
+    });
+  }
+
+  if (m.avatars) {
+    const avatars = m.avatars;
+    g.get('/admin/avatars', async () => ({ items: await avatars.catalog({ includeHidden: true }) }));
+    g.patch('/admin/avatars/:key', async (req, reply) => {
+      const p = z.object({ key: z.string().regex(/^char-[A-Za-z]{2,20}$/) }).safeParse(req.params);
+      const b = z.object({ priceCoins: z.number().int().min(0).max(1_000_000), isActive: z.boolean() }).partial().safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      if ((await avatars.updateAvatar(p.data.key, b.data)) === 'not_found') return reply.code(404).send({ error: 'avatar_not_found' });
+      void audit('avatar.update', p.data.key, JSON.stringify(b.data));
       return { ok: true };
     });
   }

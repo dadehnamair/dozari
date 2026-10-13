@@ -82,3 +82,6 @@ export const NICKNAME_CHANGE_MIN_LEVEL = 5;
  */
 export const GEM_CARD_PERCENT = 5;
 export const GEM_CARD_AMOUNT = 1;
+/** Cast characters («شخصیت») a player may wear: how many of the 9 are free (the first ones, so both heroes) and the opening price of the rest; the admin sets every price afterwards (D219). */
+export const AVATAR_FREE_COUNT = 4;
+export const AVATAR_DEFAULT_PRICE_COINS = 500;

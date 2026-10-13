@@ -1021,6 +1021,25 @@ export const userCosmetics = mysqlTable(
   (table) => ({ pk: primaryKey({ columns: [table.userId, table.itemId] }) }),
 );
 
+/** The avatar («شخصیت») shelf: one row per avatar key with its coin price (0 = free for everyone). The admin edits prices; rows are created on first read (D219). */
+export const avatarCatalog = mysqlTable('avatar_catalog', {
+  avatarKey: varchar('avatar_key', { length: 30 }).primaryKey(),
+  priceCoins: int('price_coins').notNull().default(0),
+  sortOrder: int('sort_order').notNull().default(0),
+  isActive: boolean('is_active').notNull().default(true),
+});
+
+/** Paid avatars a player bought (free ones need no row). Buying pays through the ledger (reason `shop_purchase`, ref `avatar`). */
+export const userAvatars = mysqlTable(
+  'user_avatars',
+  {
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    avatarKey: varchar('avatar_key', { length: 30 }).notNull(),
+    acquiredAt: datetime('acquired_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.userId, table.avatarKey] }) }),
+);
+
 /** Keepsake rarity; a copy of `KEEPSAKE_RARITIES` in shared (drizzle-kit cannot load the shared ESM config), a server test keeps them equal. */
 export const KEEPSAKE_RARITY_VALUES = ['common', 'rare', 'epic', 'legendary'] as const;
 

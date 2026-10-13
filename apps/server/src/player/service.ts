@@ -39,7 +39,7 @@ export async function rulesFromSettings(settings: SettingsService, table?: () =>
 }
 
 export type RenameResult = { ok: true; nickname: string } | { ok: false; error: 'locked' | 'needs_invite' | 'filtered' | NicknameProblem; unlockGames?: number };
-export type AvatarResult = { ok: true; avatarKey: string } | { ok: false; error: 'locked' | 'unknown_avatar'; unlockGames?: number };
+export type AvatarResult = { ok: true; avatarKey: string } | { ok: false; error: 'locked' | 'unknown_avatar' | 'not_owned'; unlockGames?: number };
 export type SimpleResult<E extends string> = { ok: true } | { ok: false; error: E };
 
 const EMAIL = /^[^\s@]{1,64}@[^\s@.]+(\.[^\s@.]+)+$/;
@@ -56,6 +56,9 @@ export class PlayerService {
     /** Has this player redeemed an invite code? Without it the invite rule is not enforced. */
     private readonly isActivated?: (userId: string) => Promise<boolean>,
   ) {}
+
+  /** Set after construction: may this player wear a priced cast character (bought or free)? Unset = every face is free (D230). */
+  canWearAvatar?: (userId: string, avatarKey: string) => Promise<boolean>;
 
   /** Records one finished game; never throws into the game flow. */
   async recordGame(userId: string, game: GameResultForXp): Promise<void> {
@@ -121,12 +124,13 @@ export class PlayerService {
     return { ok: true };
   }
 
-  /** Picks a gallery face or one of the cast (never an upload); open after `avatarUnlockGames` finished games, and stays open (D65 layer 1: every face is free for now). */
+  /** Picks a gallery face or one of the cast (never an upload); open after `avatarUnlockGames` finished games, and stays open (D65 layer 1); a priced cast character also needs to be bought first (D230). */
   async setAvatar(userId: string, avatarKey: string): Promise<AvatarResult> {
     if (!AVATAR_KEYS.includes(avatarKey) && !CHARACTER_AVATAR_KEYS.includes(avatarKey)) return { ok: false, error: 'unknown_avatar' };
     const rules = await this.rules();
     const { stats } = await this.levelOf(userId);
     if (stats.games < rules.avatarUnlockGames) return { ok: false, error: 'locked', unlockGames: rules.avatarUnlockGames };
+    if (this.canWearAvatar && !(await this.canWearAvatar(userId, avatarKey))) return { ok: false, error: 'not_owned' };
     await this.store.setAvatar(userId, avatarKey);
     return { ok: true, avatarKey };
   }

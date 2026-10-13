@@ -1,4 +1,4 @@
-import { and, eq, friendContacts, inArray, users } from '@dozari/db';
+import { and, eq, friendContacts, inArray, sql, users } from '@dozari/db';
 import type { Db } from '@dozari/db';
 
 /** I/O boundary of finding players: public IDs, phone lookup, the phone-findability switch. */
@@ -41,12 +41,12 @@ export function createDbFindStore(db: Db): FindStore {
       return rows.flatMap((r) => (r.phone ? [{ id: r.id, phone: r.phone }] : []));
     },
     async saveContacts(owner, notes) {
-      for (const n of notes) {
-        await db
-          .insert(friendContacts)
-          .values({ ownerId: owner, friendId: n.friendId, contactName: n.name, phone: n.phone })
-          .onDuplicateKeyUpdate({ set: { contactName: n.name, phone: n.phone, updatedAt: new Date() } });
-      }
+      if (notes.length === 0) return;
+      // An empty name (contact without one, or the name-less `phones` form) never wipes a name saved earlier.
+      await db
+        .insert(friendContacts)
+        .values(notes.map((n) => ({ ownerId: owner, friendId: n.friendId, contactName: n.name, phone: n.phone })))
+        .onDuplicateKeyUpdate({ set: { contactName: sql`if(values(${friendContacts.contactName}) = '', ${friendContacts.contactName}, values(${friendContacts.contactName}))`, phone: sql`values(${friendContacts.phone})`, updatedAt: new Date() } });
     },
     async contactsOf(owner, ids) {
       if (ids.length === 0) return new Map();
@@ -92,7 +92,7 @@ export function createMemoryFindStore(): FindStore & { phones: Map<string, strin
       });
     },
     async saveContacts(owner, notes) {
-      for (const n of notes) notesMap.set(`${owner}:${n.friendId}`, { name: n.name, phone: n.phone });
+      for (const n of notes) notesMap.set(`${owner}:${n.friendId}`, { name: n.name || notesMap.get(`${owner}:${n.friendId}`)?.name || '', phone: n.phone });
     },
     async contactsOf(owner, ids) {
       return new Map(ids.flatMap((id) => (notesMap.has(`${owner}:${id}`) ? [[id, notesMap.get(`${owner}:${id}`)!] as const] : [])));
