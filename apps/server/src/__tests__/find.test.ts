@@ -40,6 +40,7 @@ function boot(over: Partial<FindSettings> = {}, fetchImpl?: typeof fetch) {
   const store = createMemoryFindStore();
   const settings: FindSettings = { inviteBase: 'dozari://i/', shortenerUrl: '', autoFriendHours: 24, autoFriendPerDay: 2, ...over };
   const find = new FindService(store, socialStore, async () => settings, createShortener({ fetchImpl, resolve: async () => ['93.184.216.34'] }), mulberry32(11), () => clock.ms);
+  social.contactNotes = (m, ids) => find.contactNotes(m, ids);
   const auth = new AuthService(memoryUsers((u) => seed.push({ id: u.id, nickname: u.nickname, avatarKey: u.avatarKey, createdAt: clock.ms, coins: 0 })), createTokenSigner('a-test-secret-that-is-long-enough'), mulberry32(3));
   const app = buildServer({ auth, social, find });
   const login = async (n: number) => {
@@ -102,6 +103,39 @@ describe('contacts', () => {
     const res = await app.inject({ method: 'POST', url: '/friends/find-contacts', headers: a.h, payload: { phones: ['0912 111 1111', '+989121111111', '09122222222', '09123333333', 'not a number', '021123'] } });
     expect(contactsResultSchema.parse(res.json()).players.map((p) => p.id)).toEqual([b.id]);
     expect((await app.inject({ method: 'POST', url: '/friends/find-contacts', headers: a.h, payload: { phones: new Array(501).fill('09121111111') } })).statusCode).toBe(400);
+  });
+});
+
+describe('contact names', () => {
+  it('remembers the address-book name privately and shows it on the friends list', async () => {
+    const { app, login, store } = boot();
+    const a = await login(1);
+    const b = await login(2);
+    store.phones.set('+989121111111', b.id);
+    const res = await app.inject({ method: 'POST', url: '/friends/find-contacts', headers: a.h, payload: { contacts: [{ phone: '0912 111 1111', name: ' علی همکار ' }] } });
+    const players = contactsResultSchema.parse(res.json()).players;
+    expect(players.map((p) => [p.contactName, p.phone])).toEqual([['علی همکار', '09121111111']]);
+    await app.inject({ method: 'POST', url: `/friends/${b.id}/request`, headers: a.h });
+    await app.inject({ method: 'POST', url: `/friends/${a.id}/accept`, headers: b.h });
+    const mine = (await app.inject({ method: 'GET', url: '/friends', headers: a.h })).json();
+    expect(mine.friends[0]).toMatchObject({ contactName: 'علی همکار', phone: '09121111111' });
+    const theirs = (await app.inject({ method: 'GET', url: '/friends', headers: b.h })).json();
+    expect(theirs.friends[0]).toMatchObject({ contactName: null, phone: null });
+  });
+});
+
+describe('contact names keep', () => {
+  it('does not wipe a saved name when a later lookup has none', async () => {
+    const { app, login, store } = boot();
+    const a = await login(1);
+    const b = await login(2);
+    store.phones.set('+989121111111', b.id);
+    await app.inject({ method: 'POST', url: '/friends/find-contacts', headers: a.h, payload: { contacts: [{ phone: '09121111111', name: 'علی' }] } });
+    await app.inject({ method: 'POST', url: '/friends/find-contacts', headers: a.h, payload: { phones: ['09121111111'] } });
+    await app.inject({ method: 'POST', url: `/friends/${b.id}/request`, headers: a.h });
+    await app.inject({ method: 'POST', url: `/friends/${a.id}/accept`, headers: b.h });
+    const mine = (await app.inject({ method: 'GET', url: '/friends', headers: a.h })).json();
+    expect(mine.friends[0]).toMatchObject({ contactName: 'علی', phone: '09121111111' });
   });
 });
 

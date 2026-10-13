@@ -818,6 +818,7 @@ if (isMainModule(import.meta.url)) {
         )
       : undefined;
   if (chat && ageTracks) chat.managed = { trackOf: (id) => ageTracks.effective(id), hasGuardian: async (id) => (guardianStore ? (await guardianStore.guardianOf(id)) !== null : false), chatMode: async (id) => ((await ageTracks.featureOff(id, 'chat')) ? 'off' : guardianSettings ? (await guardianSettings.get(id)).chatMode : 'friends_text') };
+  if (social && find) social.contactNotes = (me, ids) => find.contactNotes(me, ids);
   if (social && ageTracks) {
     social.sameTrack = meetable;
     social.blocked = (id) => ageTracks.socialBlocked(id);
