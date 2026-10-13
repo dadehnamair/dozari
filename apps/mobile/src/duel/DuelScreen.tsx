@@ -30,6 +30,7 @@ import { getLookGender } from '../theme/look';
 import { arenaNumbers, arenaTiers, arrange, characterFor, clockText, endReason, groupsBy, myCharacter, shuffled } from './arena';
 import type { TierId } from './arena';
 import { DuelPriceRound } from './DuelPriceRound';
+import { DuelTriviaRound } from './DuelTriviaRound';
 import { DuelResult } from './DuelResult';
 import { EDGE_LEFT, EDGE_RIGHT } from '../theme/direction';
 import { InviteSheet } from '../invite/InviteSheet';
@@ -272,7 +273,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   }, [state.notice]);
   // The last chance: the heartbeat of solo play (sound, a double buzz, the beating dot).
   const lv = state.view;
-  const lastLife = !!lv && lv.status === 'playing' && !state.finale && !lv.priceRound && !lv.lockedOut[lv.you] && isLastLife(lv.mistakes[lv.you], numbers.maxMistakes, true);
+  const lastLife = !!lv && lv.status === 'playing' && !state.finale && !lv.priceRound && !lv.triviaRound && !lv.lockedOut[lv.you] && isLastLife(lv.mistakes[lv.you], numbers.maxMistakes, true);
   useHeartbeat(lastLife);
   useEffect(() => setSending(false), [state.view?.turnId, state.view?.round]);
 
@@ -314,7 +315,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
       return;
     }
     finishedAt.current = 0;
-    const deadline = v.priceRound ? v.priceRound.endsAt : v.turnEndsAt;
+    const deadline = v.triviaRound ? v.triviaRound.endsAt : v.priceRound ? v.priceRound.endsAt : v.turnEndsAt;
     if (deadline > 0 && t > deadline + 6000 && quiet) resync();
   }, [now]);
 
@@ -432,6 +433,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
           reason={endReason(outcome, state.ended.result.reason)}
           lines={lines.map((l) => ({ ...l, points: scores[l.me ? me : them] }))}
           priceRound={state.ended.priceRound}
+          triviaRound={state.ended.triviaRound}
           onHome={stage === 'resume' ? () => (void leaveTable().then(() => undefined, () => undefined), onBack()) : onBack}
           onAgain={stage === 'queue' ? again : () => setTableOpen(true)}
           againLabel={stage === 'resume' ? fa.tables.rematch : undefined}
@@ -466,6 +468,24 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
             now={now}
             onGuess={async (rials) => {
               const ack = await conn.current?.priceGuess(rials);
+              return !ack || ack.ok ? null : (fa.duel.errors[ack.error] ?? fa.duel.errors.generic ?? '');
+            }}
+          />
+        </ScrollView>
+      </MatchBackground>
+    );
+  }
+
+  // After it (and the price round) come the general questions, in the same way.
+  if (view.triviaRound && !state.finale) {
+    return (
+      <MatchBackground>
+        <ScrollView contentContainerStyle={styles.screen}>
+          <DuelTriviaRound
+            round={view.triviaRound}
+            now={now}
+            onAnswer={async (index) => {
+              const ack = await conn.current?.triviaAnswer(index);
               return !ack || ack.ok ? null : (fa.duel.errors[ack.error] ?? fa.duel.errors.generic ?? '');
             }}
           />

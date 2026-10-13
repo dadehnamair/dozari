@@ -595,6 +595,22 @@ export const fa = {
       /** Points the price-guess rounds added to each side's final score. */
       earned: (you: string, them: string) => `امتیاز حدس قیمت: تو ${you} · حریف ${them}`,
     },
+    /** The general-question round after the boards (docs/logic/trivia.md §In a match). */
+    triviaRound: {
+      title: 'دور سؤال عمومی',
+      intro: 'پازل تمام شد. حالا هر دو به چند سؤال چهارگزینه‌ای جواب بدهید؛ جواب‌ها تا وقتی هر دو نزده‌اید پنهان می‌ماند و هر جواب درست یک امتیاز است.',
+      round: (n: number, of: number) => `سؤال ${toPersianDigits(String(n))} از ${toPersianDigits(String(of))}`,
+      secondsLeft: (s: number) => `${toPersianDigits(String(s))} ثانیه`,
+      lockedIn: 'جوابت ثبت شد. منتظر حریف…',
+      opponentLocked: 'حریف جوابش را زد!',
+      yourPick: 'جواب تو',
+      opponentPick: 'جواب حریف',
+      right: 'درست',
+      noAnswer: 'جواب نداد',
+      resultTitle: 'دور سؤال عمومی',
+      /** Right answers of each side (one point each). */
+      earned: (you: string, them: string) => `جواب درست: تو ${you} · حریف ${them}`,
+    },
     /** Screens of `docs/design/Dozari - 13 Match Screens` (D99). */
     arena: {
       title: 'میدان رقابت',
@@ -696,6 +712,7 @@ export const fa = {
       MAINTENANCE: 'بازی در حال تعمیر است.',
       FEATURE_OFF: 'دوئل زنده فعلاً خاموش است.',
       NO_PRICE_ROUND: 'دور حدس قیمت تمام شده است.',
+      NO_TRIVIA_ROUND: 'دور سؤال عمومی تمام شده است.',
       DAILY_CAP: 'به سقف بازی امروزت رسیدی؛ فردا دوباره بیا.',
       LEAVE_BANNED: 'امروز چند بار بازی رو نیمه‌کاره ول کردی؛ تا فردا دوئل و میز برات بسته‌ست.',
       DRAFT_CANCELLED: 'یکی از بازیکن‌ها قبل از شروع رفت؛ بازی شروع نشد.',

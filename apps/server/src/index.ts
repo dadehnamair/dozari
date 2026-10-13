@@ -3,7 +3,7 @@ import Fastify from 'fastify';
 import fastifyCors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
 import { resolve } from 'node:path';
-import { duelTiers, rialsToTomanString } from '@dozari/shared';
+import { duelTiers, rialsToTomanString, pickTriviaQuestions, shuffleTrivia } from '@dozari/shared';
 import { CHAT_RETENTION_DAYS, trackRules, MISSION_KEYS, TOURNAMENT_TICK_SECONDS, dailyDateKey, trackFeatureForPath, trackRuleForPath, WHEEL_SLICES_DEFAULT, scaleSlices } from '@dozari/shared';
 import type { AgeTrack, HintRules, MissionKey } from '@dozari/shared';
 import { createDb, imageStoreFromEnv } from '@dozari/db';
@@ -944,6 +944,16 @@ if (isMainModule(import.meta.url)) {
             if (!botDriver?.isBot(id)) gemPayer(id, amount, key);
           },
           priceRound: settings ? async () => (await settings.num('match.price_round')) === 1 : undefined,
+          triviaRounds: settings ? () => settings.num('match.trivia_rounds') : undefined,
+          triviaQuestions: triviaStore
+            ? async ({ topicIds, tracks, count, rng }) => {
+                // The match's own topics first, then the whole bank, so a thin topic never leaves the round short.
+                const own = topicIds?.length ? (await Promise.all([...new Set(topicIds)].map((topicId) => triviaStore.approved({ topicId, tracks, limit: 60 })))).flat() : [];
+                const picked = pickTriviaQuestions(own, count, rng);
+                if (picked.length < count) picked.push(...pickTriviaQuestions(await triviaStore.approved({ tracks, limit: Math.max(60, count * 6) }), count - picked.length, rng, new Set(picked.map((q) => q.id))));
+                return picked.map((q) => ({ id: q.id, textFa: q.textFa, explanationFa: q.explanationFa, ...shuffleTrivia(q, rng) }));
+              }
+            : undefined,
           rules: settings
             ? async () => {
                 const [turnSeconds, maxMistakes, maxTimeouts, groupPoints, firstBloodBonus, separate] = await Promise.all([settings.num('game.turn_seconds'), settings.num('game.match_max_mistakes'), settings.num('game.max_consecutive_timeouts'), settings.list('score.group_points'), settings.num('score.first_blood_bonus'), settings.num('match.separate_boards')]);

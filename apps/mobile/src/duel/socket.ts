@@ -21,6 +21,8 @@ export interface DuelConnection {
   leave(): Promise<Ack>;
   /** A hidden guess in the price-guess round (rials). */
   priceGuess(guessRials: bigint): Promise<Ack>;
+  /** A hidden answer (choice index 0-3) in the general-question round. */
+  triviaAnswer(index: number): Promise<Ack>;
   taunt(tauntId: string): Promise<Ack>;
   close(): void;
 }
@@ -119,6 +121,7 @@ export async function connectDuel(dispatch: (a: DuelAction) => void): Promise<Du
     propose: (itemIds) => ask(socket, ClientEvent.matchPropose, { itemIds }),
     leave: () => ask(socket, ClientEvent.matchLeave),
     priceGuess: (guessRials) => ask(socket, ClientEvent.priceSubmit, { guessRials: guessRials.toString() }),
+    triviaAnswer: (index) => ask(socket, ClientEvent.triviaSubmit, { index }),
     taunt: (tauntId) => ask(socket, ClientEvent.chatTaunt, { tauntId }),
     close: () => {
       socket.removeAllListeners();
