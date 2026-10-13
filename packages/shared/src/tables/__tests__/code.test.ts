@@ -8,6 +8,7 @@ describe('table codes', () => {
   });
   it('normalises what people type', () => {
     expect(normalizeTableCode(' ab-c d2 ')).toBe('ABCD2');
+    expect(normalizeTableCode('AB۳٤5')).toBe('AB345');
     expect(normalizeTableCode('ABCD0')).toBeNull();
     expect(normalizeTableCode('ABC')).toBeNull();
   });

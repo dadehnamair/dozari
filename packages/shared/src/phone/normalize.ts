@@ -17,7 +17,7 @@ const ascii = (raw: string): string =>
  * to verify the number, and it is stored in this one shape so two spellings can never be two accounts.
  */
 export function normalizeIranPhone(raw: string): string | null {
-  const digits = ascii(raw).replace(/[\s\-()]/g, '').replace(/^\+/, '');
+  const digits = ascii(raw).replace(/[\s\-().\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g, '').replace(/^\+/, '');
   const m = /^(?:0098|98|0)?(9\d{9})$/.exec(digits);
   return m ? `+98${m[1]}` : null;
 }

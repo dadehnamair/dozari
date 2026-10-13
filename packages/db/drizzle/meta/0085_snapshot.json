@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "0e3c2899-5590-4959-b345-7e13fd31d44a",
+  "id": "e3f1e039-55a4-48de-b15f-4097b540a937",
   "prevId": "83c03b54-a90e-4970-9011-9a378bd8aa9b",
   "tables": {
     "account_delete_codes": {
@@ -1764,7 +1764,7 @@
         },
         "room_key": {
           "name": "room_key",
-          "type": "varchar(64)",
+          "type": "varchar(80)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
@@ -3031,87 +3031,6 @@
           "name": "daily_reward_steps_day",
           "columns": [
             "day"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "checkConstraint": {}
-    },
-    "friend_contacts": {
-      "name": "friend_contacts",
-      "columns": {
-        "owner_id": {
-          "name": "owner_id",
-          "type": "char(36)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "friend_id": {
-          "name": "friend_id",
-          "type": "char(36)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "contact_name": {
-          "name": "contact_name",
-          "type": "varchar(80)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "phone": {
-          "name": "phone",
-          "type": "varchar(20)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "datetime(3)",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP(3)"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "friend_contacts_owner_id_users_id_fk": {
-          "name": "friend_contacts_owner_id_users_id_fk",
-          "tableFrom": "friend_contacts",
-          "tableTo": "users",
-          "columnsFrom": [
-            "owner_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "friend_contacts_friend_id_users_id_fk": {
-          "name": "friend_contacts_friend_id_users_id_fk",
-          "tableFrom": "friend_contacts",
-          "tableTo": "users",
-          "columnsFrom": [
-            "friend_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "friend_contacts_owner_id_friend_id_pk": {
-          "name": "friend_contacts_owner_id_friend_id_pk",
-          "columns": [
-            "owner_id",
-            "friend_id"
           ]
         }
       },

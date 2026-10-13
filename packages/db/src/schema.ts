@@ -1522,7 +1522,7 @@ export const chatMessages = mysqlTable(
   {
     id: id(),
     room: mysqlEnum('room', ['city', 'match', 'global', 'dm', 'table']).notNull(),
-    roomKey: varchar('room_key', { length: 64 }).notNull(),
+    roomKey: varchar('room_key', { length: 80 }).notNull(),
     userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
     kind: mysqlEnum('kind', ['text', 'taunt', 'table']).notNull(),
     text: varchar('text', { length: 500 }).notNull(),
