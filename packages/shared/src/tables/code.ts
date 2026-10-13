@@ -1,3 +1,5 @@
+import { toLatinDigits } from '../format/persian-digits.js';
+
 /** No 0/O/1/I/L so a code read aloud or from a screenshot is not mixed up. */
 export const TABLE_CODE_ALPHABET = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
 export const TABLE_CODE_LENGTH = 5;
@@ -24,6 +26,6 @@ export function makeTableCode(rng: () => number): string {
 
 /** Upper-cases and strips spaces/dashes; null when the result cannot be a code. */
 export function normalizeTableCode(raw: string): string | null {
-  const c = raw.trim().toUpperCase().replace(/[\s-]/g, '');
+  const c = toLatinDigits(raw).trim().toUpperCase().replace(/[\s-]/g, '');
   return c.length === TABLE_CODE_LENGTH && [...c].every((ch) => TABLE_CODE_ALPHABET.includes(ch)) ? c : null;
 }

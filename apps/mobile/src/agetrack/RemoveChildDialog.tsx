@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { toPersianDigits } from '@dozari/shared';
 import type { ChildRow } from '@dozari/shared';
 import { fa } from '../i18n/fa';
 import { ApiError } from '../net/http';
+import { onlyDigits } from '../phone/loginInput';
 import { colors, fonts } from '../theme/colors';
 import { fetchRemoval, removeChild, removeChildWithCode, sendRemoveCode } from './guardianApi';
 
@@ -56,7 +58,7 @@ export function RemoveChildDialog({ child, onClose, onRemoved }: { child: ChildR
         {step === 'code' ? (
           <>
             <Text style={styles.message}>{r.codeHint}</Text>
-            <TextInput value={code} onChangeText={setCode} keyboardType="number-pad" maxLength={8} placeholder={r.codePlaceholder} style={styles.input} accessibilityLabel={r.codeTitle} />
+            <TextInput value={toPersianDigits(code)} onChangeText={(v) => setCode(onlyDigits(v, 8))} keyboardType="number-pad" maxLength={8} placeholder={r.codePlaceholder} style={styles.input} accessibilityLabel={r.codeTitle} />
             {note ? <Text style={note === r.sent ? styles.ok : styles.bad}>{note}</Text> : null}
             <View style={styles.buttons}>
               <Pressable disabled={busy || code.trim().length < 3} onPress={finish} style={[styles.btn, styles.danger, busy || code.trim().length < 3 ? styles.off : null]} accessibilityRole="button"><Text style={[styles.btnText, styles.dangerText]}>{r.confirm}</Text></Pressable>
