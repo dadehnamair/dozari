@@ -354,7 +354,9 @@ function InviteFriends({ onNote }: { onNote: (text: string | null) => void }) {
     <View style={styles.invites}>
       <Text style={[styles.label, dark ? dk.text : null]}>{fa.tables.inviteTitle}</Text>
       {friends && friends.length === 0 ? <Text style={[styles.hint, dark ? dk.text : null]}>{fa.tables.inviteNoFriends}</Text> : null}
-      {friends?.map((f) => (
+      {friends && friends.length > 0 ? (
+      <ScrollView style={styles.friendsBox} contentContainerStyle={styles.friendsContent} nestedScrollEnabled showsVerticalScrollIndicator>
+      {friends.map((f) => (
         <View key={f.id} style={styles.row}>
           <View>
             <Avatar avatar={avatarOf(f.avatarKey)} size={32} />
@@ -366,6 +368,8 @@ function InviteFriends({ onNote }: { onNote: (text: string | null) => void }) {
           </Pressable>
         </View>
       ))}
+      </ScrollView>
+      ) : null}
     </View>
   );
 }
@@ -390,6 +394,8 @@ const styles = StyleSheet.create({
   switchOff: { backgroundColor: '#E8DCC4' },
   switchText: { fontFamily: fonts.display, fontSize: 14, lineHeight: 20, color: INK },
   invites: { gap: 6 },
+  friendsBox: { maxHeight: 220, borderRadius: 14, borderWidth: 2, borderColor: INK, backgroundColor: '#fff' },
+  friendsContent: { gap: 8, padding: 8 },
   requests: { gap: 6, padding: 8, borderRadius: 14, borderWidth: 2.5, borderColor: INK, backgroundColor: '#FFF3C4' },
   chipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
   infoChip: { fontFamily: fonts.bold, fontSize: 12, color: INK, paddingHorizontal: 10, paddingVertical: 3, borderRadius: 99, borderWidth: 2, borderColor: INK, backgroundColor: '#fff', overflow: 'hidden' },
