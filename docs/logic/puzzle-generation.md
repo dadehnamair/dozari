@@ -144,7 +144,7 @@ readiness: products in the catalog, products with ≥ `MIN_PRICE_POINTS_PER_PROD
 
 `puzzles/pool.ts`: every `puzzles.autofill_check_minutes` (default 60, first look 45 s after boot; `PUZZLE_SCHEDULER=off` disables it) the server counts
 the pool and, when it is below `puzzles.autofill_target` (default 30), generates the gap (at most 20 per run) with the injected RNG. Pool = the **drafts
-waiting for a human**, always (the former `puzzles.autofill_auto_approve` switch was removed in D227). `puzzles.autofill_enabled` pauses it. The remaining three are admin settings (group «گیم‌پلی»).
+waiting for a human**, always (the former `puzzles.autofill_auto_approve` switch was removed in D227). `puzzles.autofill_enabled` switches it on (**default off since 2026-10-13**: puzzles used to appear that nobody asked for). The manual «ساخت خودکار» button and `POST /admin/puzzles/generate` accept `tierId`, `topicId` and `tags`; every made puzzle is filed under that topic and tagged. The remaining three are admin settings (group «گیم‌پلی»).
 **To stop automatic making** (owner, 2026-10-13: the code stays, the owner switches it off by hand): set `puzzles.autofill_enabled` = 0 in the admin settings, or `PUZZLE_SCHEDULER=off` in the server env; and disable/delete any `puzzle_groups` schedule in the AI studio's «برنامه‌ی زمانی» tab (or `AI_SCHEDULER=off` to stop all AI schedules).
 
 ## Generator + admin panel (D131)

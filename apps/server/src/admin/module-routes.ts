@@ -1,4 +1,5 @@
 import { randomInt } from 'node:crypto';
+import { cleanTags } from '../puzzles/admin.js';
 import type { PuzzleAdmin } from '../puzzles/admin.js';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { can } from './accounts/permissions.js';
@@ -862,10 +863,16 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       return reply.code(201).send({ id: out.id });
     });
     g.post('/admin/puzzles/generate', async (req, reply) => {
-      const b = z.object({ count: z.number().int().min(1).max(20), tierId: z.string().uuid().optional() }).safeParse(req.body);
+      const b = z.object({ count: z.number().int().min(1).max(20), tierId: z.string().uuid().optional(), topicId: z.string().uuid().optional(), tags: z.array(z.string().max(50)).max(20).optional() }).safeParse(req.body);
       if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
       if (b.data.tierId && !(await puzzles.tiers()).some((t) => t.id === b.data.tierId)) return reply.code(404).send({ error: 'unknown_tier' });
-      const out = await puzzles.generate(b.data.count, () => randomInt(0, 2 ** 30) / 2 ** 30, { tierId: b.data.tierId });
+      if (b.data.topicId && !(await puzzles.topics()).some((t) => t.id === b.data.topicId)) return reply.code(404).send({ error: 'unknown_topic' });
+      const tags = cleanTags(b.data.tags ?? []);
+      if (tags.length > 0) {
+        const defs = new Set((await puzzles.tags()).filter((t) => t.isActive).map((t) => t.slug));
+        if (tags.some((t) => !defs.has(t))) return reply.code(404).send({ error: 'unknown_tag' });
+      }
+      const out = await puzzles.generate(b.data.count, () => randomInt(0, 2 ** 30) / 2 ** 30, { tierId: b.data.tierId, topicId: b.data.topicId, tags });
       void audit('puzzle.generate', 'puzzles', `${out.created}/${out.requested}`);
       return out;
     });
