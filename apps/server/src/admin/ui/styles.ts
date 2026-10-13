@@ -127,6 +127,8 @@ input:focus, select:focus, textarea:focus { border-color:var(--brand); box-shado
 input::placeholder, textarea::placeholder { color:var(--muted); opacity:.8; }
 label.f { display:flex; flex-direction:column; gap:5px; font-size:12.5px; color:var(--muted); font-weight:600; }
 .form-grid { display:grid; gap:14px; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); }
+.ai-sec { border:1px solid var(--line); border-radius:12px; padding:14px 16px; background:var(--surface2); margin-top:12px; }
+.ai-sec-h { display:flex; flex-direction:column; gap:2px; margin-bottom:12px; } .ai-sec-h b { font-size:14px; }
 .toolbar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px; }
 .toolbar input[type=search], .toolbar input[type=text] { max-width:300px; }
 .toolbar select { width:auto; min-width:140px; }

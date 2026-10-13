@@ -217,8 +217,13 @@ export const nameKey = (s: string): string => s.replace(/[يى]/g, 'ی').replace
 
 /** Prompt lines that pin puzzles to a topic and its defined tags. */
 export function themeLines(ctx: PromptContext): string {
-  if (!ctx.topic) return ctx.tags?.length ? `\nFlavour tags: ${ctx.tags.join('، ')}.` : '';
-  return `\nTOPIC: «${ctx.topic.nameFa}». Every puzzle must be about this topic: choose products that belong to it and links that make sense inside it; if the list holds too few products for the topic, use the closest ones.${ctx.tags?.length ? ` Tags that describe the puzzles (use them as flavour: era, mood, audience): ${ctx.tags.join('، ')}.` : ''}`;
+  const tags = ctx.tags?.length ? ctx.tags.join('، ') : '';
+  if (!ctx.topic && !tags) return '';
+  const lines = [];
+  if (ctx.topic) lines.push(`TOPIC (mandatory): «${ctx.topic.nameFa}». EVERY group of EVERY puzzle must be about this topic, and every product used must really belong to it. Never fill a slot with a product that does not belong; do not drift to a loosely related topic.`);
+  if (tags) lines.push(`TAGS (mandatory): ${tags}. The puzzles must fit these tags (era, mood, audience, subject).`);
+  lines.push('If the list below holds too few fitting products for a full puzzle, return fewer puzzles; if it holds none, return {"puzzles":[]}. A short honest answer is better than an off-topic one.');
+  return `\n${lines.join('\n')}`;
 }
 
 export function buildPrompt(req: GenerateRequest, ctx: PromptContext = {}): PromptPieces {

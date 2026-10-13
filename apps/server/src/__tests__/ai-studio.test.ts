@@ -314,7 +314,7 @@ describe('AI studio: puzzles by topic and tag, and trivia questions', () => {
   it('pins the prompt to the topic and the chosen tags, and passes both back for saving', async () => {
     const { studio, seen } = puzzleStudio(puzzleAnswer);
     const out = await studio.generate({ kind: 'puzzle_groups', provider: 'deepseek', count: 1, ageTrack: 'adult', style: 'witty', topicId: TOPIC, tags: ['nostalgia'] } as never);
-    expect(seen.prompt).toContain('TOPIC: «خوراکی»');
+    expect(seen.prompt).toContain('TOPIC (mandatory): «خوراکی»');
     expect(seen.prompt).toContain('نوستالژی');
     expect(out).toMatchObject({ topicId: TOPIC, tags: ['nostalgia'] });
   });

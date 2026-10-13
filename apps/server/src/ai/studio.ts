@@ -1,4 +1,4 @@
-import { AI_LIMITS, AI_PUZZLE_CATALOG_MAX, AI_REVIEW, trackRank } from '@dozari/shared';
+import { AI_LIMITS, AI_PUZZLE_CATALOG_MAX, AI_PUZZLE_THEMED_CATALOG_MAX, AI_REVIEW, trackRank } from '@dozari/shared';
 import type { AiKind } from '@dozari/shared';
 import type { LessonStore } from '../lessons/service.js';
 import type { PuzzleAdmin } from '../puzzles/admin.js';
@@ -134,7 +134,7 @@ export class AiStudio {
         ctx.tier = { nameFa: tier.nameFa, minLevel: tier.minLevel, maxLevel: tier.maxLevel };
       }
       Object.assign(ctx, await this.theme(req.topicId, req.tags));
-      ctx.pool = usable.slice(0, AI_PUZZLE_CATALOG_MAX).map((p) => ({ productId: p.id, nameFa: p.nameFa, category: details[p.id]?.category }));
+      ctx.pool = usable.slice(0, ctx.topic || ctx.tags?.length ? AI_PUZZLE_THEMED_CATALOG_MAX : AI_PUZZLE_CATALOG_MAX).map((p) => ({ productId: p.id, nameFa: p.nameFa, category: details[p.id]?.category }));
       if (ctx.pool.length < 16) throw new AiError('ai_not_found');
       // Puzzles that already exist are sent too, so the model does not rebuild them; repeats are also dropped on parse.
       const names = new Map(all.map((p) => [p.id, p.nameFa]));
@@ -156,6 +156,10 @@ export class AiStudio {
     const model = req.model?.trim() || provider.defaultModel;
     const text = await chat(provider, { ...prompt, model, maxTokens: AI_LIMITS.maxTokens[req.kind] }, this.deps.fetch);
     const parsed = parseDrafts(req.kind, text, ctx, req.kind === 'products' || req.kind === 'puzzle_groups' || req.kind === 'trivia' ? req.ageTrack : 'adult');
+    // A themed run where the model found too few fitting products answers with no puzzles: say so instead of «unreadable».
+    if (!parsed && req.kind === 'puzzle_groups' && (ctx.topic || ctx.tags?.length) && /"puzzles"\s*:\s*\[\s*\]/.test(text)) {
+      throw new AiError('ai_not_found', undefined, `در کاتالوگ محصول کافیِ مرتبط با «${ctx.topic?.nameFa ?? ctx.tags?.join('، ')}» پیدا نشد؛ اول محصول‌های این موضوع را (از «محصول» در همین صفحه یا دستی) به کاتالوگ اضافه کن.`);
+    }
     if (!parsed) throw new AiError('ai_bad_output', undefined, `جواب مدل JSON قابل‌خواندن نبود: «${text.replace(/\s+/g, ' ').slice(0, 160)}»`);
     return { kind: req.kind, provider: provider.id, model, drafts: parsed.drafts, dropped: parsed.dropped, context: ctx, ...(req.kind === 'puzzle_groups' && req.tierId ? { tierId: req.tierId } : {}), ...(req.kind === 'puzzle_groups' || req.kind === 'trivia' ? { topicId: req.topicId } : {}), ...(req.kind === 'puzzle_groups' ? { tags: req.tags } : {}) };
   }
