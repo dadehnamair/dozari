@@ -3,7 +3,6 @@ package ir.dozari.bgnotify
 import android.content.Context
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
-import ir.irnoti.sdk.Irnoti
 import java.net.HttpURLConnection
 import java.net.URL
 import org.json.JSONObject
@@ -16,8 +15,8 @@ class DozariMessagingService : FirebaseMessagingService() {
   override fun onMessageReceived(message: RemoteMessage) {
     if (Notifier.inForeground(this)) return
     val d = message.data
-    if (Irnoti.isIrnotiMessage(d)) {
-      if (IrnotiInit.ensure(this)) Irnoti.handleMessage(this, d)
+    if (IrnotiBridge.isIrnotiMessage(d)) {
+      if (IrnotiBridge.ensure(this)) IrnotiBridge.handleMessage(this, d)
       return
     }
     val body = d["body"] ?: return
@@ -26,8 +25,8 @@ class DozariMessagingService : FirebaseMessagingService() {
 
   override fun onNewToken(token: String) {
     // With IRNoti the SDK owns registration; the direct upload below is the fallback for builds without an IRNoti app key.
-    if (IrnotiInit.ensure(this)) {
-      Irnoti.onNewToken(token)
+    if (IrnotiBridge.ensure(this)) {
+      IrnotiBridge.onNewToken(token)
       return
     }
     val prefs = getSharedPreferences(PendingWorker.PREFS, Context.MODE_PRIVATE)

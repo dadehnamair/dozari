@@ -6,8 +6,15 @@ plugins {
 group = 'ir.dozari.bgnotify'
 version = '0.1.0'
 
+// The IRNoti SDK (JitPack) is off by default: its 1.0.0 build fails on JitPack (no gradlew in the repository). Turn it on with
+// -Pdozari.irnoti=true (or in gradle.properties) once IRNoti publishes a working version; the no-op bridge is used otherwise.
+def useIrnoti = (findProperty('dozari.irnoti') ?: 'false').toString() == 'true'
+
 android {
   namespace "ir.dozari.bgnotify"
+  sourceSets {
+    main.java.srcDirs += useIrnoti ? 'src/irnoti/java' : 'src/noIrnoti/java'
+  }
   defaultConfig {
     versionCode 1
     versionName '0.1.0'
@@ -22,6 +29,8 @@ dependencies {
   implementation platform("com.google.firebase:firebase-bom:33.1.2")
   implementation "com.google.firebase:firebase-messaging"
   // IRNoti push SDK (JitPack; the repository is spelled "andriod-sdk"): registers this install with the IRNoti push service and shows
-  // its notifications. Started from manifest meta-data (IrnotiInit); without them it is never touched.
-  implementation "com.github.irnoti:andriod-sdk:1.0.0"
+  // its notifications. Started from manifest meta-data (IrnotiBridge); without them it is never touched.
+  if (useIrnoti) {
+    implementation "com.github.irnoti:andriod-sdk:1.0.0"
+  }
 }

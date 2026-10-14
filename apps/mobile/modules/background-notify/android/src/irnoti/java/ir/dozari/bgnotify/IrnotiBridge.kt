@@ -5,8 +5,11 @@ import android.content.pm.PackageManager
 import ir.irnoti.sdk.Irnoti
 import ir.irnoti.sdk.IrnotiConfig
 
-/** Starts the IRNoti SDK from the manifest meta-data that plugins/withIrnoti.js writes; false when the build has no IRNoti app key. */
-object IrnotiInit {
+/**
+ * Real IRNoti bridge, compiled when `dozari.irnoti=true` (see build.gradle). Starts the SDK from the manifest meta-data that
+ * plugins/withIrnoti.js writes; [ensure] is false when the build has no IRNoti app key.
+ */
+object IrnotiBridge {
   @Volatile private var started = false
 
   /** Safe to call from any entry point (JS module, FCM service started cold by a push); Firebase is started first because the SDK reads its token. */
@@ -28,4 +31,10 @@ object IrnotiInit {
     started = true
     return true
   }
+
+  fun isIrnotiMessage(data: Map<String, String>): Boolean = Irnoti.isIrnotiMessage(data)
+  fun handleMessage(context: Context, data: Map<String, String>) = Irnoti.handleMessage(context, data)
+  fun onNewToken(token: String) = Irnoti.onNewToken(token)
+  fun identify(externalId: String) = Irnoti.identify(externalId)
+  fun logout() = Irnoti.logout()
 }

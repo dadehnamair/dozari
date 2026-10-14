@@ -11,7 +11,6 @@ import expo.modules.kotlin.Promise
 import expo.modules.kotlin.exception.Exceptions
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
-import ir.irnoti.sdk.Irnoti
 import java.util.concurrent.TimeUnit
 
 /**
@@ -53,14 +52,14 @@ class BackgroundNotifyModule : Module() {
     // Links this install to the signed-in player in the IRNoti push service; false when the build has no IRNoti app key (the JS side then falls back to the direct FCM route).
     Function("irnotiIdentify") { externalId: String ->
       val context = appContext.reactContext ?: throw Exceptions.ReactContextLost()
-      if (!IrnotiInit.ensure(context)) return@Function false
-      Irnoti.identify(externalId)
+      if (!IrnotiBridge.ensure(context)) return@Function false
+      IrnotiBridge.identify(externalId)
       true
     }
 
     Function("cancel") {
       val context = appContext.reactContext ?: throw Exceptions.ReactContextLost()
-      if (IrnotiInit.ensure(context)) Irnoti.logout()
+      if (IrnotiBridge.ensure(context)) IrnotiBridge.logout()
       WorkManager.getInstance(context).cancelUniqueWork(PendingWorker.WORK)
       context.getSharedPreferences(PendingWorker.PREFS, Context.MODE_PRIVATE).edit().clear().apply()
     }
