@@ -24,6 +24,7 @@ import { colors, fonts } from '../theme/colors';
 import { getLookGender } from '../theme/look';
 import { nativeTopInset } from '../theme/safeArea';
 import { fetchTriviaTopics } from './api';
+import { TopicPickAdult } from './TopicPickAdult';
 import { initialTduel, tduelOutcome, tduelReducer } from './duelModel';
 import { connectTriviaDuel } from './duelSocket';
 import type { TriviaDuelConnection } from './duelSocket';
@@ -187,7 +188,7 @@ export function TriviaDuelScreen({ onBack, fee, workshop, onWorkshop }: { onBack
               <Pressable accessibilityRole="button" accessibilityLabel={fa.solo.back} hitSlop={8} onPress={() => setConfirmLeave(true)} style={styles.exit}>
                 <Text style={styles.exitText}>✕</Text>
               </Pressable>
-              {m.found?.topicNameFa ? <Text style={styles.topicLine}>{fa.triviaDuel.topic(m.found.topicNameFa)}</Text> : <View />}
+              {m.found?.topicNameFa && bootTheme() !== 'adult' ? <Text style={styles.topicLine}>{fa.triviaDuel.topic(m.found.topicNameFa)}</Text> : <View />}
             </View>
             {m.error ? <Text style={styles.error}>{t.connectionLost}</Text> : null}
             {bootTheme() === 'adult' ? (
@@ -195,6 +196,7 @@ export function TriviaDuelScreen({ onBack, fee, workshop, onWorkshop }: { onBack
                 round={m.state.round}
                 now={now}
                 me={{ name: m.found?.players[m.found.you]?.nickname || fa.duel.triviaRound.adult.you, who: myCharacter(m.found?.players[m.found.you]?.avatarKey, getLookGender()) }}
+                topic={m.found?.topicNameFa}
                 rival={{ name: rivalNick || fa.duel.triviaRound.adult.rival, who: characterFor(m.found?.players[(1 - m.found.you) as 0 | 1]?.avatarKey || rivalNick) }}
                 onAnswer={onAnswer}
               />
@@ -249,6 +251,7 @@ export function TriviaDuelScreen({ onBack, fee, workshop, onWorkshop }: { onBack
       </MatchBackground>
     );
   }
+  if (bootTheme() === 'adult') return <TopicPickAdult topics={topics.topics} fee={fee} busy={busy} note={note} onBack={onBack} onStart={(id) => void start(id)} />;
   return (
     <MatchBackground>
       <ScrollView contentContainerStyle={styles.screen}>

@@ -41,7 +41,7 @@ function Avatar({ who, border }: { who: CharacterId; border: string }) {
  * Adult look of the duel's general-question round («صرافی و گاوصندوق», copper = duel): header with progress pips, score strip with the
  * clock ring, the question, then either the four answer rows (asking) or the shrunk rows plus the «شرح» card (a finished question).
  */
-export function DuelTriviaRoundAdult({ round, now, onAnswer, me, rival }: { round: TriviaRoundView; now: number; /** Resolves to an error text, or null when the server took the answer. */ onAnswer: (index: number) => Promise<string | null>; me: Side; rival: Side }) {
+export function DuelTriviaRoundAdult({ round, now, onAnswer, me, rival, topic }: { round: TriviaRoundView; now: number; /** Topic name shown as a chip on the question card (the standalone question duel); absent = no chip. */ topic?: string | null; /** Resolves to an error text, or null when the server took the answer. */ onAnswer: (index: number) => Promise<string | null>; me: Side; rival: Side }) {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [mine, setMine] = useState<number | null>(null);
@@ -148,6 +148,7 @@ export function DuelTriviaRoundAdult({ round, now, onAnswer, me, rival }: { roun
       </View>
 
       <View style={[styles.card, hold ? styles.cardTight : null]}>
+        {topic && !hold ? <View style={styles.chip}><Text style={styles.chipText}>{topic}</Text></View> : null}
         <Text style={[styles.question, hold ? styles.questionSmall : null]}>{text}</Text>
       </View>
 
@@ -227,7 +228,9 @@ const styles = StyleSheet.create({
   ring: { width: 56, height: 56, alignItems: 'center', justifyContent: 'center' },
   ringSvg: { position: 'absolute', transform: [{ rotate: '-90deg' }] },
   ringText: { fontFamily: fonts.display, fontSize: 20 },
-  card: { ...PANEL, borderRadius: 20, padding: 14 },
+  card: { ...PANEL, borderRadius: 20, padding: 14, gap: 8 },
+  chip: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 2, borderRadius: 99, backgroundColor: '#0E0A08', borderWidth: 1.5, borderColor: '#8A5A16' },
+  chipText: { fontFamily: fonts.bold, fontSize: 11, color: '#E8B64A' },
   cardTight: { padding: 10 },
   question: { fontFamily: fonts.bold, fontSize: 18, lineHeight: 28, color: '#FFE9A8', textAlign: 'right' },
   questionSmall: { fontSize: 15.5, lineHeight: 24 },
