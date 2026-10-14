@@ -169,6 +169,8 @@ Another player's profile is a **player card**: the caravan header with a close b
 
 ## Profile and settings (D107)
 
+**Adult look of profile + workshop** (design `adult/Dozari Adult - Workshop`; code `social/AdultProfileCard.tsx`): the workshop opens with a summary card (face avatar + level pill, name, tribe chip, XP bar, games/wins/losses/draws, gold «پروفایل من» button) and loses its profile row; the profile page is a gold title plate, one hero card (name + edit pill, tribe · level, stats), goods strip, showcase, badges and a «میان‌بر» panel of the shortcut tiles.
+
 **screen-profile**: caravan scene header with back and a pencil (opens the editor: gender, nickname,
 city, e-mail), the big avatar with the level hexagon, nickname, skill rank and city (with its province
 badge), the level bar, four stat tiles (games / wins / losses / draws), the earned badges as colour
