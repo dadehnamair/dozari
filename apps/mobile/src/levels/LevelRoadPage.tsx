@@ -60,13 +60,19 @@ export function LevelRoadPage({ onClose }: { onClose: () => void }) {
       () => setFailed(true),
     ).finally(() => setClaiming(false));
   };
-  // Bring the current level into view once the road is drawn (the list runs from the top level down).
+  // Open the road on the player's own level, centred in the visible list. The scroll waits for the real viewport and
+  // content heights (a timer plus a guessed height missed on slow phones) and happens once, so a background refresh
+  // never yanks the road away from where the player scrolled to.
+  const [viewH, setViewH] = useState(0);
+  const [contentH, setContentH] = useState(0);
+  const centred = useRef(false);
   useEffect(() => {
-    if (!road) return;
+    if (!road || centred.current || viewH === 0 || contentH === 0) return;
     const here = roadLayout(road.levelMax, width).points.find((p) => p.level === road.level);
-    const t = setTimeout(() => scroller.current?.scrollTo({ y: Math.max(0, (here?.y ?? 0) - (win.height - 200) * 0.55), animated: false }), 60);
-    return () => clearTimeout(t);
-  }, [road]);
+    if (!here) return;
+    centred.current = true;
+    scroller.current?.scrollTo({ y: Math.min(Math.max(0, contentH - viewH), Math.max(0, here.y - viewH / 2)), animated: false });
+  }, [road, viewH, contentH, width]);
 
   return (
     <View style={styles.root}>
@@ -102,7 +108,7 @@ export function LevelRoadPage({ onClose }: { onClose: () => void }) {
           </View>
         ) : null}
         {failed ? <Text style={styles.note}>{fa.levels.error}</Text> : null}
-        <ScrollView ref={scroller} contentContainerStyle={styles.road} showsVerticalScrollIndicator={false}>
+        <ScrollView ref={scroller} contentContainerStyle={styles.road} showsVerticalScrollIndicator={false} onLayout={(e) => setViewH(e.nativeEvent.layout.height)} onContentSizeChange={(_, h) => setContentH(h)}>
           {road ? <RoadCanvas road={road} nodes={nodes} width={width} onLocked={(unlock) => setLocked({ unlock })} onClaim={claim} /> : null}
         </ScrollView>
       </View>

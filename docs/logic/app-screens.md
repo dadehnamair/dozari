@@ -136,7 +136,7 @@ card shows the coins. Spec of the rules: `docs/logic/economy.md` §Lucky wheel.
 ## Level road and locked popup (D109)
 
 screen-levels of `17 Chat Shop Unlocks`, opened from the profile («جادهٔ لول‌ها»): a purple night, the
-yellow title plate and a cream road with one node per level (top level first, scrolled to the player's
+yellow title plate and a cream road with one node per level (top level first, centred (by measured viewport, once) on the player's
 level on open): done = gold with a tick, current = yellow with the hero waving beside it, ahead = grey
 with a padlock. Cards beside a level show what it opens, from the real gates (`GET /me/levels`: hint,
 personal invite code, gifts and loans, avatar change, nickname change, plus each active shop item with a
