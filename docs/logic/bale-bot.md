@@ -26,6 +26,10 @@ Notifications built so far (switchable in admin settings, group «اعلان‌�
 | `broadcast` | admin sends a message to everybody linked | — |
 | `test` / `admin` | admin sends a test to one chat id | — |
 
+Per-player opt-out (D232): `bale_links.muted_kinds` holds the kinds a player switched off (`match_result`, `daily_ready`, `friend_request`,
+`table_invite`; list in `MUTABLE_NOTIFY_KINDS`; `chat_message` = a friend's private message, sent to Bale only when the friend is offline, at most once per sender per 10 minutes). `NotifyService.notify` returns false for a muted kind; `security`/`admin`/`broadcast`/`test` are never
+muted. `GET/PUT /bale/prefs` (PUT needs a link, else 409 `not_linked`); the switches are in the Bale sheet. A new link starts with nothing muted.
+
 New notifications (friend request, tournament start, …) just call `NotifyService.notify(userId, kind, text)`.
 
 ## Config

@@ -65,6 +65,7 @@ export const fa = {
     /** The guide character on Home: tap it to hear what each menu does (key = feature switch / menu). */
     /** Tapped the duel button below the duel level. */
     duelLocked: (n: number) => `دوئل از لول ${toPersianDigits(String(n))} باز می‌شود؛ با بازی تکی لول بگیر و برگرد.`,
+    dm: (from: string) => `${from || 'یک نفر'} برایت پیام فرستاد 💬`,
     tableInvite: (from: string) => (from ? `${from} تو را به یک میز دعوت کرد؛ از «سفره‌خانه» وارد شو.` : 'یک دعوت به میز داری؛ از «سفره‌خانه» وارد شو.'),
     tableRequest: (from: string) => (from ? `${from} می‌خواهد سر میزت بنشیند؛ از «سفره‌خانه» جوابش را بده.` : 'کسی می‌خواهد سر میزت بنشیند؛ از «سفره‌خانه» جوابش را بده.'),
     /** Missions live in the workshop (the level badge): this is how Home says a reward is waiting. */
@@ -1040,6 +1041,9 @@ export const fa = {
     friendsEmpty: 'هنوز دوستی نداری؛ از «دوستان» یکی را اضافه کن.',
     dmEmpty: 'هنوز پیامی نیست؛ سلام کن!',
     dmBack: 'فهرست دوستان',
+    dmTitle: (name: string) => `پیام به ${name}`,
+    dmClose: 'بستن',
+    dmOpen: 'پیام',
     tableTitle: 'چت میز',
     tableEmpty: 'سر میز سلام کن!',
     online: 'آنلاین',
@@ -1841,6 +1845,23 @@ export const fa = {
     notConfigured: 'ربات بله هنوز راه‌اندازی نشده.',
     error: 'نتوانستیم به سرور وصل شویم.',
     close: 'بستن',
+    prefsTitle: 'خبرهایی که از بله می‌گیری',
+    prefs: { match_result: 'نتیجهٔ بازی', daily_ready: 'آماده شدن جایزهٔ روزانه', friend_request: 'درخواست دوستی', table_invite: 'دعوت به میز', chat_message: 'پیام دوستان' } as Record<string, string>,
+  },
+  /** Browser notifications of the installed web app (docs/logic/web-notifications.md). */
+  webNotify: {
+    title: 'اعلان در مرورگر',
+    enable: 'روشن کردن اعلان',
+    enabled: 'اعلان روشن است ✅ وقتی برنامه در پس‌زمینه است خبر می‌گیری.',
+    iphoneHint: 'روی آیفون: اول در سافاری «افزودن به صفحهٔ آغازین» را بزن، بعد برنامه را از همان آیکن باز کن و اینجا اعلان را روشن کن (iOS ۱۶٫۴ یا جدیدتر).',
+    denied: 'اعلان در تنظیمات مرورگر بسته شده است.',
+    friendRequest: (from: string) => `${from || 'یک نفر'} برایت درخواست دوستی فرستاد 🤝`,
+    tableInvite: (from: string) => `${from || 'یک نفر'} تو را به یک میز دعوت کرد 🎲`,
+    dm: (from: string) => `${from || 'یک نفر'} برایت پیام فرستاد 💬`,
+    tableRequest: (from: string) => `${from || 'یک نفر'} می‌خواهد پشت میزت بنشیند`,
+    tableAccepted: 'به میز راهت دادند 🎲',
+    tableDeclined: 'درخواست میزت پذیرفته نشد.',
+    inbox: 'یک پیام تازه در صندوقت داری',
   },
   /** Leave penalty (docs/logic/leave-penalty.md): the profile badge and when it comes off. */
   leave: {

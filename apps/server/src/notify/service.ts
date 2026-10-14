@@ -1,5 +1,6 @@
 import { randomInt } from 'node:crypto';
-import { normalizeIranPhone } from '@dozari/shared';
+import { MUTABLE_NOTIFY_KINDS, normalizeIranPhone } from '@dozari/shared';
+import type { MutableNotifyKind } from '@dozari/shared';
 import { RateLimiter } from '../security/rate-limit.js';
 import type { BaleClient, BaleUpdate } from './client.js';
 import type { BaleInvoice, BalePaid, PreCheckout } from '../economy/coin-packages.js';
@@ -19,7 +20,7 @@ export function cleanCode(raw: string | undefined): string | undefined {
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
 /** Kinds of notification; admin settings can switch the automatic ones off. */
-export type NotifyKind = 'match_result' | 'daily_ready' | 'friend_request' | 'table_invite' | 'broadcast' | 'admin' | 'security' | 'test';
+export type NotifyKind = 'match_result' | 'daily_ready' | 'friend_request' | 'table_invite' | 'chat_message' | 'broadcast' | 'admin' | 'security' | 'test';
 
 export class NotifyService {
   /** Wrong link codes per chat: 8 in 10 minutes, then the bot stays quiet (a 6-character code must not be guessable). */
@@ -97,8 +98,19 @@ export class NotifyService {
   async notify(userId: string, kind: NotifyKind, text: string): Promise<boolean> {
     const chatId = await this.store.chatOf(userId);
     if (!chatId) return false;
+    if ((MUTABLE_NOTIFY_KINDS as readonly string[]).includes(kind) && (await this.store.mutedKinds(userId)).includes(kind)) return false;
     await this.store.enqueue({ chatId, userId, kind, text });
     return true;
+  }
+
+  /** The kinds the player switched off. */
+  prefs(userId: string): Promise<string[]> {
+    return this.store.mutedKinds(userId);
+  }
+
+  /** Replaces the player's switched-off kinds (only mutable kinds are kept). */
+  async setPrefs(userId: string, muted: MutableNotifyKind[]): Promise<void> {
+    await this.store.setMutedKinds(userId, [...new Set(muted)]);
   }
 
   /** Queues a message for a chat that is not a player (the admin's own chat). */

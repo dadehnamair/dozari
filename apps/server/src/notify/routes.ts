@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { AuthService } from '../auth/service.js';
 import { currentUser } from '../auth/routes.js';
+import { balePrefsSchema } from '@dozari/shared';
 import type { PhoneService } from '../phone/service.js';
 import type { NotifyService } from './service.js';
 
@@ -19,6 +20,22 @@ export function registerBaleRoutes(app: FastifyInstance, auth: AuthService, noti
     // The number comes first: it is what the bot verifies when the player shares their contact.
     if (phone && (await phone.required()) && !(await phone.service.hasAny(user.id))) return reply.code(409).send({ error: 'phone_required' });
     return { ...(await notify.linkCode(user.id)), botUsername };
+  });
+
+  app.get('/bale/prefs', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    return { muted: (await notify.prefs(user.id)).filter((k) => balePrefsSchema.shape.muted.element.safeParse(k).success) };
+  });
+
+  app.put('/bale/prefs', async (req, reply) => {
+    const user = await currentUser(auth, req);
+    if (!user) return reply.code(401).send({ error: 'unauthorized' });
+    const body = balePrefsSchema.safeParse(req.body);
+    if (!body.success) return reply.code(400).send({ error: 'bad_request' });
+    if (!(await notify.linked(user.id))) return reply.code(409).send({ error: 'not_linked' });
+    await notify.setPrefs(user.id, body.data.muted);
+    return body.data;
   });
 
   app.delete('/bale/link', async (req, reply) => {

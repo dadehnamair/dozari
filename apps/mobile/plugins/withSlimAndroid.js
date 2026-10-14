@@ -18,6 +18,8 @@ const PROPS = {
 const KEEP = `
 # Local Expo module that switches the launcher icon (modules/app-icon): found by name at start-up.
 -keep class ir.dozari.appicon.** { *; }
+# Local Expo module for the background "anything new?" check (modules/background-notify) and its WorkManager worker (created by class name).
+-keep class ir.dozari.bgnotify.** { *; }
 `;
 
 module.exports = (config) =>

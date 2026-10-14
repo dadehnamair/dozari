@@ -35,6 +35,19 @@ describe('NotifyService', () => {
     return { store, bale, svc, tick: (ms: number) => (t += ms) };
   }
 
+  it('skips kinds the player switched off but never security or admin messages', async () => {
+    const { svc, store } = setup();
+    const { code } = await svc.linkCode('u1');
+    await svc.handleUpdate(msg(555, code));
+    await svc.setPrefs('u1', ['match_result', 'friend_request']);
+    expect(await svc.prefs('u1')).toEqual(['match_result', 'friend_request']);
+    expect(await svc.notify('u1', 'match_result', 'x')).toBe(false);
+    expect(await svc.notify('u1', 'friend_request', 'x')).toBe(false);
+    expect(await svc.notify('u1', 'security', 'y')).toBe(true);
+    expect(await svc.notify('u1', 'daily_ready', 'z')).toBe(true);
+    expect(store.outbox.map((o) => o.kind)).toEqual(['security', 'daily_ready']);
+  });
+
   it('links a chat with the one-time code and replies in Persian', async () => {
     const { svc, bale, store } = setup();
     const { code } = await svc.linkCode('u1');

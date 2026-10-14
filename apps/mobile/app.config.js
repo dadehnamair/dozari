@@ -1,6 +1,7 @@
 const { withMainApplication } = require('expo/config-plugins');
 const withGenderIcon = require('./plugins/withGenderIcon');
 const withSlimAndroid = require('./plugins/withSlimAndroid');
+const withFcm = require('./plugins/withFcm');
 
 /**
  * The game is Persian/RTL on every phone, whatever the device language. `I18nManager.forceRTL` from JS only takes effect
@@ -23,8 +24,8 @@ const withForcedRtl = (config) =>
 // build's EXPO_PUBLIC_API_URL is http:// (LAN/test builds). Production builds use https:// and keep it off.
 module.exports = ({ config }) => {
   const cleartext = (process.env.EXPO_PUBLIC_API_URL ?? '').startsWith('http://');
-  return withSlimAndroid(withGenderIcon(withForcedRtl({
+  return withFcm(withSlimAndroid(withGenderIcon(withForcedRtl({
     ...config,
     plugins: [...(config.plugins ?? []), ['expo-build-properties', { android: { usesCleartextTraffic: cleartext } }]],
-  })));
+  }))));
 };

@@ -14,6 +14,8 @@ import { SchoolSheet } from '../feedback/SchoolSheet';
 import { Item } from '../components/Item';
 import { fetchFriends } from '../social/api';
 import { connectNotices } from '../notices/connectNotices';
+import { showWebNotice, syncWebPush } from '../notices/webNotify';
+import { startBackgroundNotify } from '../notices/backgroundNotify';
 import { FriendRequestSheet } from '../notices/FriendRequestSheet';
 import { claimProfileTask } from '../social/profileTasksApi';
 import { profileNudge } from './profileNudge';
@@ -140,14 +142,20 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onDaily, onDuel, onD
     return () => clearTimeout(timer);
   }, [nudgeToast]);
   const inbox = useInbox();
+  useEffect(() => {
+    void startBackgroundNotify();
+    void syncWebPush();
+  }, []);
   const inboxReload = inbox.reload;
   useEffect(() => {
     if (!features.friends) return undefined;
     // Requests already waiting when the app opens, then pushes while it is open (a quiet socket, D168).
     fetchFriends().then((f) => f.incoming.length > 0 && setFriendNotice({ count: f.incoming.length }), () => undefined);
     return connectNotices((n) => {
+      showWebNotice(n);
       if (n.kind === 'inbox') return inboxReload();
       // Table news arrives as a short line from the guide (the table sheet itself polls for the details).
+      if (n.kind === 'dm') return setNudgeToast(fa.home.dm(n.from ?? ''));
       if (n.kind === 'table_invite') return setNudgeToast(fa.home.tableInvite(n.from ?? ''));
       if (n.kind === 'table_request') return setNudgeToast(fa.home.tableRequest(n.from ?? ''));
       if (n.kind === 'table_answer') return setNudgeToast(n.accepted ? fa.tables.openList.accepted : fa.tables.openList.declined);
