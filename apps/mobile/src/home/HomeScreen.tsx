@@ -65,7 +65,6 @@ import { AdultTopBar } from './AdultTopBar';
 import { StatInfoSheet } from './StatInfoSheet';
 import { CoinDeltaFx } from './CoinDeltaFx';
 import type { WorkshopInfo } from '@dozari/shared';
-import { WorkshopHomeCard } from '../workshop/WorkshopCards';
 import { fetchWorkshop } from '../workshop/api';
 import { useCoinDelta } from './useCoinDelta';
 
@@ -324,7 +323,6 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onTriviaDuel, onWork
             {triviaDuelOn ? <SlabButton label={fa.triviaDuel.play} sfx="confirm" color={colors.candy.pink} height={54} fontSize={20} onPress={onTriviaDuel!} /> : null}
           </View>
         ) : null}
-        {workshop && onWorkshop ? <WorkshopHomeCard info={workshop} onOpen={() => onWorkshop()} /> : null}
       </View>
 
       {review.open && review.url ? <ReviewSheet message={review.message} url={review.url} onReview={review.onReview} onLater={review.onLater} onNever={review.onNever} /> : null}
