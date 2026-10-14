@@ -50,17 +50,17 @@ export function SchoolSheet({ onClose, workshop, initialSection = 'price' }: { o
           ) : section === 'price' || !workshop ? (
             <>
               <GuideBubble who="mirza" text={t.school.hint} />
-              <CandyButton label={t.school.suggest} color={colors.candy.lime} onPress={() => setSuggesting(true)} />
-              <CandyButton label={t.school.vote} color={colors.candy.sky} onPress={() => setVoting(true)} />
-              <CandyButton label={fa.hub.close} sfx="back" color={colors.candy.orange} onPress={onClose} />
+              <CandyButton flat label={t.school.suggest} color={colors.candy.lime} onPress={() => setSuggesting(true)} />
+              <CandyButton flat label={t.school.vote} color={colors.candy.sky} onPress={() => setVoting(true)} />
+              <CandyButton flat label={fa.hub.close} sfx="back" color={colors.candy.orange} onPress={onClose} />
             </>
           ) : (
             <>
               <GuideBubble who="mirza" text={t.school.questionHint} />
               {workshop.info ? <Text style={styles.sub}>{fa.workshop.reward(formatPersianNumber(workshop.info.rewardCoins))}</Text> : null}
-              <CandyButton label={t.school.makeQuestion} color={colors.candy.lime} onPress={() => workshop.onOpen('make')} />
-              <CandyButton label={waiting > 0 ? t.school.reviewWaiting(formatPersianNumber(waiting)) : t.school.reviewQuestions} color={colors.candy.sky} onPress={() => workshop.onOpen('review')} />
-              <CandyButton label={fa.hub.close} sfx="back" color={colors.candy.orange} onPress={onClose} />
+              <CandyButton flat label={t.school.makeQuestion} color={colors.candy.lime} onPress={() => workshop.onOpen('make')} />
+              <CandyButton flat label={waiting > 0 ? t.school.reviewWaiting(formatPersianNumber(waiting)) : t.school.reviewQuestions} color={colors.candy.sky} onPress={() => workshop.onOpen('review')} />
+              <CandyButton flat label={fa.hub.close} sfx="back" color={colors.candy.orange} onPress={onClose} />
             </>
           )}
         </View>
@@ -117,7 +117,7 @@ function VoteCard({ onBack }: { onBack: () => void }) {
 
 const styles = StyleSheet.create({
   root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 25 },
-  column: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', paddingHorizontal: 14, paddingTop: pageTop() + 8, gap: 12 },
+  column: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', paddingHorizontal: 14, paddingTop: pageTop() + 8, gap: 6 },
   title: { fontFamily: fonts.display, fontSize: 28, color: '#fff', textAlign: 'center', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
   sub: { fontFamily: fonts.bold, fontSize: 15, color: colors.cream, textAlign: 'center' },
   tabs: { flexDirection: 'row', gap: 8 },
