@@ -13,6 +13,8 @@ export interface TriviaRoundQuestion {
   options: readonly string[];
   correctIndex: number;
   explanationFa: string;
+  /** Nickname of the player who designed it (workshop). */
+  authorFa?: string | null;
 }
 export interface TriviaRevealed {
   index: number;
@@ -77,7 +79,7 @@ export const triviaRoundViewSchema = z.object({
   opponentAnswered: z.boolean(),
   /** Absolute epoch ms when the question is revealed whether or not everybody answered. */
   endsAt: z.number().int(),
-  revealed: z.array(z.object({ index: z.number().int().nonnegative(), textFa: z.string(), options: z.array(z.string()).length(4), correctIndex: z.number().int().min(0).max(3), explanationFa: z.string(), yourPick: z.number().int().min(0).max(3).nullable(), opponentPick: z.number().int().min(0).max(3).nullable() })),
+  revealed: z.array(z.object({ index: z.number().int().nonnegative(), textFa: z.string(), options: z.array(z.string()).length(4), correctIndex: z.number().int().min(0).max(3), explanationFa: z.string(), authorFa: z.string().nullable().default(null), yourPick: z.number().int().min(0).max(3).nullable(), opponentPick: z.number().int().min(0).max(3).nullable() })),
 });
 export type TriviaRoundView = z.infer<typeof triviaRoundViewSchema>;
 
@@ -97,7 +99,7 @@ export function toTriviaRoundView(s: TriviaRoundState, viewer: TriviaSide, endsA
     endsAt,
     revealed: s.revealed.map((r) => {
       const rq = s.questions[r.index]!;
-      return { index: r.index, textFa: rq.textFa, options: [...rq.options], correctIndex: r.correctIndex, explanationFa: rq.explanationFa, yourPick: r.picks[viewer], opponentPick: r.picks[other] };
+      return { index: r.index, textFa: rq.textFa, options: [...rq.options], correctIndex: r.correctIndex, explanationFa: rq.explanationFa, authorFa: rq.authorFa ?? null, yourPick: r.picks[viewer], opponentPick: r.picks[other] };
     }),
   };
 }

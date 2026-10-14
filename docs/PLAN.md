@@ -279,4 +279,5 @@ Start after the first Android build.
 - [x] 5a. Four-option price questions (solo, duel, price-only) — `buildPriceOptions`
 - [x] 5b. General four-option questions per topic — admin tab, `/trivia/*`, mobile screen (`docs/logic/trivia.md`, migration 0083); a trivia round inside duels/tables is still open
 - [x] 5c. Question duel («دوئل پرسشی») — live 1v1 search by topic or random, bot fallback, coins (solo + duel), rematch, leave penalty, both-picks reveal and effects (`docs/logic/trivia.md` §Question duel / §Coins / §Rematch, D234–D235); a pass-rate bonus and friend invites are open; no-repeat memory (D236)
+- [x] 5d. Question workshop («کارگاه سؤال») — players design questions, blind community review, admin decides, author coins + reviewer points + loud Home card (`docs/logic/question-workshop.md`, D237); a reviewer-accuracy tier, an author cooldown and edit-and-resubmit are open
 - [x] 6. Shop: shuffle opponent's cards, reveal a group — `docs/logic/shop-match-items.md` (migration 0082)

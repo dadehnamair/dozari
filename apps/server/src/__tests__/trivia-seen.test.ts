@@ -12,7 +12,7 @@ const TOOLS = '00000000-0000-7000-d000-000000000002';
 async function bank(foodCount: number, toolsCount = 0) {
   const store = createMemoryTriviaStore({ [FOOD]: 'خوراکی', [TOOLS]: 'ابزار' });
   const add = async (topicId: string, n: number) => {
-    for (let i = 0; i < n; i++) await store.create({ topicId, textFa: `پرسش ${topicId.slice(-1)}-${i}؟`, options: [`الف${i}`, `ب${i}`, `ج${i}`, `د${i}`], correctIndex: 1, explanationFa: '', ageTrack: 'adult' }, 'approved');
+    for (let i = 0; i < n; i++) await store.create({ topicId, textFa: `پرسش ${topicId.slice(-1)}-${i}؟`, options: [`الف${i}`, `ب${i}`, `ج${i}`, `د${i}`], correctIndex: 1, explanationFa: '', ageTrack: 'adult', difficulty: 2 }, 'approved');
   };
   await add(FOOD, foodCount);
   await add(TOOLS, toolsCount);

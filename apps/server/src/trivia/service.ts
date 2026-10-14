@@ -10,7 +10,7 @@ import type { TriviaSeenStore } from './seen.js';
 interface Session {
   userId?: string;
   topicNameFa: string | null;
-  questions: { id: string; textFa: string; options: string[]; correctIndex: number; explanationFa: string; topicNameFa: string }[];
+  questions: { id: string; textFa: string; options: string[]; correctIndex: number; explanationFa: string; topicNameFa: string; authorFa: string | null }[];
   results: TriviaResult[];
   touchedAt: number;
   /** Coins the game cost this player, and what came back (once, at the end). */
@@ -77,7 +77,7 @@ export class TriviaService {
       refund: 0,
       userId: opts.userId,
       topicNameFa: opts.topicId ? (names.get(opts.topicId) ?? (await this.store.topicName(opts.topicId))) : null,
-      questions: picked.map((q) => ({ id: q.id, textFa: q.textFa, explanationFa: q.explanationFa, topicNameFa: names.get(q.topicId) ?? '', ...shuffleTrivia(q, rng) })),
+      questions: picked.map((q) => ({ id: q.id, textFa: q.textFa, explanationFa: q.explanationFa, topicNameFa: names.get(q.topicId) ?? '', authorFa: q.authorFa ?? null, ...shuffleTrivia(q, rng) })),
       results: [],
       touchedAt: this.now(),
     };
@@ -98,7 +98,7 @@ export class TriviaService {
     if (!q) return 'unknown_question';
     let result = s.results.find((r) => r.index === index);
     if (!result) {
-      result = { index, pickedIndex, correctIndex: q.correctIndex, correct: pickedIndex === q.correctIndex, explanationFa: q.explanationFa || null };
+      result = { index, pickedIndex, correctIndex: q.correctIndex, correct: pickedIndex === q.correctIndex, explanationFa: q.explanationFa || null, authorFa: q.authorFa };
       s.results.push(result);
       // Shown and answered: this player will not be served it again until the rest of the topic has been seen.
       if (s.userId) void this.opts.seen?.mark(s.userId, [q.id], this.now()).catch(() => undefined);

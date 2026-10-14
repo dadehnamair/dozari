@@ -8,7 +8,7 @@ const FOOD = '00000000-0000-7000-d000-000000000001';
 
 async function setup(fees = { solo: 3, duel: 12 }) {
   const store = createMemoryTriviaStore({ [FOOD]: 'خوراکی' });
-  for (let i = 0; i < 4; i++) await store.create({ topicId: FOOD, textFa: `پرسش شماره ${i}؟`, options: [`الف${i}`, `ب${i}`, `ج${i}`, `د${i}`], correctIndex: 1, explanationFa: '', ageTrack: 'adult' }, 'approved');
+  for (let i = 0; i < 4; i++) await store.create({ topicId: FOOD, textFa: `پرسش شماره ${i}؟`, options: [`الف${i}`, `ب${i}`, `ج${i}`, `د${i}`], correctIndex: 1, explanationFa: '', ageTrack: 'adult', difficulty: 2 }, 'approved');
   const coins = createMemoryStakeStore();
   for (const u of ['p', 'q', 'probe']) coins.balances.set(u, 20);
   const stakes = new TriviaStakes(coins, { soloFee: async () => fees.solo, duelFee: async () => fees.duel, houseCutPercent: async () => 10, isBot: (id) => id === 'bot' });

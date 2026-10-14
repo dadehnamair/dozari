@@ -39,6 +39,41 @@ export const TRIVIA_DUEL_INTRO_MS = 3000;
  */
 export const TRIVIA_POOL_FETCH = 400;
 export const TRIVIA_SEEN_KEEP = 500;
+/**
+ * Question difficulty (docs/logic/trivia.md §Difficulty): 1 easy, 2 medium, 3 hard — set by the admin (or suggested by the author), and
+ * measured from play (`plays`, `right`). With the admin switch `trivia.level_matching` on, a draw prefers the difficulty that fits the
+ * players' level: easy below `TRIVIA_LEVEL_MEDIUM_FROM`, medium below `TRIVIA_LEVEL_HARD_FROM`, hard from there.
+ */
+export const TRIVIA_DIFFICULTY_DEFAULT = 2;
+export const TRIVIA_LEVEL_MEDIUM_FROM = 6;
+export const TRIVIA_LEVEL_HARD_FROM = 15;
+/** A question's measured difficulty counts once it was answered this often; a right-rate at or above EASY is easy, below HARD is hard (percent). */
+export const TRIVIA_MEASURE_MIN_PLAYS = 30;
+export const TRIVIA_MEASURE_EASY_PERCENT = 75;
+export const TRIVIA_MEASURE_HARD_PERCENT = 45;
+
+/**
+ * The question workshop (docs/logic/question-workshop.md): players design questions, the admin approves, authors and reviewers are rewarded.
+ */
+export const WORKSHOP_SUBMIT_DAILY = 5;
+export const WORKSHOP_AUTHOR_COINS = 40;
+export const WORKSHOP_AUTHOR_FIRST_BONUS = 40;
+export const WORKSHOP_AUTHOR_MILESTONE_EVERY = 5;
+export const WORKSHOP_AUTHOR_MILESTONE_BONUS = 50;
+/** A topic with fewer approved questions than this pays the thin-topic bonus for a new one. */
+export const WORKSHOP_THIN_BELOW = 40;
+export const WORKSHOP_THIN_BONUS = 15;
+/** Campaign multiplier on the whole author reward, in percent over normal (100 = double); 0 = no campaign. */
+export const WORKSHOP_BOOST_PERCENT = 0;
+export const WORKSHOP_REVIEW_DAILY = 20;
+export const WORKSHOP_REVIEW_AGREE_BONUS = 3;
+export const WORKSHOP_MILESTONE_POINTS = 30;
+export const WORKSHOP_MILESTONE_COINS = 10;
+export const WORKSHOP_APPROVE_SCORE = 6;
+export const WORKSHOP_REJECT_SCORE = 5;
+export const WORKSHOP_MIN_REVIEWERS = 3;
+/** Reviewer titles by total points (the Persian names live in fa.ts); the key is the minimum points. */
+export const WORKSHOP_TITLE_POINTS = [0, 30, 120, 400, 1000] as const;
 export const TRIVIA_SOLO_FEE = 3;
 export const TRIVIA_SOLO_REFUND_PERCENT = 75;
 export const TRIVIA_DUEL_FEE = 12;

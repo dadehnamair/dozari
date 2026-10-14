@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { TRIVIA_OPTION_COUNT, TRIVIA_OPTION_MAX, TRIVIA_TEXT_MAX } from '../config/topics.js';
+import { TRIVIA_DIFFICULTY_DEFAULT, TRIVIA_OPTION_COUNT, TRIVIA_OPTION_MAX, TRIVIA_TEXT_MAX } from '../config/topics.js';
 
 /** A general (non-price) question with four choices, always filed under a topic (docs/logic/trivia.md). */
 export const triviaInputSchema = z
@@ -10,6 +10,8 @@ export const triviaInputSchema = z
     correctIndex: z.number().int().min(0).max(TRIVIA_OPTION_COUNT - 1),
     explanationFa: z.string().trim().max(TRIVIA_TEXT_MAX).default(''),
     ageTrack: z.enum(['kid', 'teen', 'adult']).default('adult'),
+    /** 1 easy · 2 medium · 3 hard (docs/logic/trivia.md §Difficulty). */
+    difficulty: z.number().int().min(1).max(3).default(TRIVIA_DIFFICULTY_DEFAULT),
   })
   .refine((q) => new Set(q.options.map((o) => o.replace(/\s+/g, ' ').toLowerCase())).size === TRIVIA_OPTION_COUNT, { message: 'options must be different', path: ['options'] });
 export type TriviaInput = z.infer<typeof triviaInputSchema>;
@@ -28,6 +30,8 @@ export const triviaResultSchema = z.object({
   correctIndex: z.number().int().min(0).max(TRIVIA_OPTION_COUNT - 1),
   correct: z.boolean(),
   explanationFa: z.string().nullable(),
+  /** The designer's nickname when a player wrote the question. */
+  authorFa: z.string().nullable().default(null),
 });
 
 export const triviaViewSchema = z.object({

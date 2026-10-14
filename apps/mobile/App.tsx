@@ -31,7 +31,7 @@ import { LookupScreen } from './src/lookup/LookupScreen';
 import { SearchScreen } from './src/search/SearchScreen';
 import { Tutorial } from './src/onboarding/Tutorial';
 import { loginSeen, markLoginSeen, markTutorialSeen, tutorialSeen } from './src/onboarding/state';
-import { TRIVIA_DUEL_FEE, TRIVIA_SOLO_FEE, TRIVIA_SOLO_REFUND_PERCENT } from '@dozari/shared';
+import { TRIVIA_DUEL_FEE, TRIVIA_SOLO_FEE, TRIVIA_SOLO_REFUND_PERCENT, WORKSHOP_AUTHOR_COINS } from '@dozari/shared';
 import type { AgeTrack } from '@dozari/shared';
 import { LoginScreen } from './src/phone/LoginScreen';
 import { bootTheme } from './src/theme/bootTheme';
@@ -50,6 +50,7 @@ import { PwaLayer } from './src/pwa/PwaLayer';
 import { PriceOnlyScreen } from './src/priceonly/PriceOnlyScreen';
 import { TriviaScreen } from './src/trivia/TriviaScreen';
 import { TriviaDuelScreen } from './src/trivia/TriviaDuelScreen';
+import { WorkshopScreen } from './src/workshop/WorkshopScreen';
 import { refillPack } from './src/offline/pack';
 import { ServerDownBanner } from './src/net/ServerDownBanner';
 import { ToastHost } from './src/toast/ToastHost';
@@ -116,7 +117,7 @@ function AppInner() {
   const [previewTrack, setPreviewTrack] = useState<'kid' | 'teen' | null>(null);
   /** The track picked on the sign-in card (age tracks on); saved by the next screen. */
   const [pickedTrack, setPickedTrack] = useState<AgeTrack | null>(null);
-  const [screen, setScreen] = useState<'splash' | 'login' | 'ageTrack' | 'home' | 'solo' | 'daily' | 'duel' | 'tutorial' | 'duelResume' | 'gallery' | 'search' | 'brand' | 'lookup' | 'priceonly' | 'trivia' | 'triviaduel'>(
+  const [screen, setScreen] = useState<'splash' | 'login' | 'ageTrack' | 'home' | 'solo' | 'daily' | 'duel' | 'tutorial' | 'duelResume' | 'gallery' | 'search' | 'brand' | 'lookup' | 'priceonly' | 'trivia' | 'triviaduel' | 'workshop'>(
     'splash',
   );
   // The screen name rides along with an error report.
@@ -125,8 +126,12 @@ function AppInner() {
   // A kid or teen track hides what needs adult content or price knowledge (docs/logic/age-tracks.md); the rules come from the server.
   const trackRules = useTrackRules(ageTracksOn, screen);
   const homeFeatures: ClientConfig['features'] = trackRules
-    ? { ...config.features, daily: config.features.daily && trackRules.dailyPuzzle, priceonly: config.features.priceonly && trackRules.priceOnly, trivia: config.features.trivia && trackRules.priceOnly, triviaduel: config.features.triviaduel && trackRules.priceOnly, lookup: config.features.lookup && trackRules.lookup }
+    ? { ...config.features, daily: config.features.daily && trackRules.dailyPuzzle, priceonly: config.features.priceonly && trackRules.priceOnly, trivia: config.features.trivia && trackRules.priceOnly, triviaduel: config.features.triviaduel && trackRules.priceOnly, workshop: config.features.workshop && trackRules.priceOnly, lookup: config.features.lookup && trackRules.lookup }
     : config.features;
+
+  // The question workshop call-to-action after a question game: the reward on offer (a running campaign included) and whether the card is allowed for this player.
+  const workshopBoost = settingNum(config.raw, 'trivia.author_boost_percent', 0);
+  const workshopPromo = homeFeatures.workshop ? { reward: Math.floor((settingNum(config.raw, 'trivia.author_coins', WORKSHOP_AUTHOR_COINS) * (100 + workshopBoost)) / 100), boost: workshopBoost } : undefined;
 
   /** A home-screen shortcut (`?go=`, D102) opens its screen straight after the splash, when that mode is on. */
   const [launch] = useState(takeLaunchTarget);
@@ -161,7 +166,7 @@ function AppInner() {
   useHardwareBack(
     screen === 'brand' || screen === 'search'
       ? () => setScreen('gallery')
-      : screen === 'solo' || screen === 'priceonly' || screen === 'trivia' || screen === 'triviaduel' || screen === 'daily' || screen === 'duel' || screen === 'duelResume' || screen === 'lookup' || screen === 'gallery'
+      : screen === 'solo' || screen === 'priceonly' || screen === 'trivia' || screen === 'triviaduel' || screen === 'workshop' || screen === 'daily' || screen === 'duel' || screen === 'duelResume' || screen === 'lookup' || screen === 'gallery'
         ? () => setScreen('home')
         : null,
   );
@@ -227,8 +232,9 @@ function AppInner() {
       {screen === 'ageTrack' ? <AgeTrackScreen initial={pickedTrack ?? undefined} onDone={() => void tutorialSeen().then((seen) => setScreen(seen ? 'home' : 'tutorial'))} /> : null}
       {screen === 'solo' ? <SoloScreen key={previewTrack ?? 'own'} previewTrack={previewTrack ?? undefined} onBack={() => (setPreviewTrack(null), setScreen('home'))} hintsEnabled={config.features.shop} ageTracksOn={config.raw['feature.age_tracks'] === 1} /> : null}
       {screen === 'priceonly' ? <PriceOnlyScreen onBack={() => setScreen('home')} /> : null}
-      {screen === 'trivia' ? <TriviaScreen onBack={() => setScreen('home')} fee={settingNum(config.raw, 'trivia.solo_fee', TRIVIA_SOLO_FEE)} refundPercent={settingNum(config.raw, 'trivia.solo_refund_percent', TRIVIA_SOLO_REFUND_PERCENT)} /> : null}
-      {screen === 'triviaduel' ? <TriviaDuelScreen onBack={() => setScreen('home')} fee={settingNum(config.raw, 'trivia.duel_fee', TRIVIA_DUEL_FEE)} /> : null}
+      {screen === 'trivia' ? <TriviaScreen onBack={() => setScreen('home')} fee={settingNum(config.raw, 'trivia.solo_fee', TRIVIA_SOLO_FEE)} refundPercent={settingNum(config.raw, 'trivia.solo_refund_percent', TRIVIA_SOLO_REFUND_PERCENT)} workshop={workshopPromo} onWorkshop={() => setScreen('workshop')} /> : null}
+      {screen === 'workshop' ? <WorkshopScreen onBack={() => setScreen('home')} /> : null}
+      {screen === 'triviaduel' ? <TriviaDuelScreen onBack={() => setScreen('home')} fee={settingNum(config.raw, 'trivia.duel_fee', TRIVIA_DUEL_FEE)} workshop={workshopPromo} onWorkshop={() => setScreen('workshop')} /> : null}
       {screen === 'daily' ? <SoloScreen daily onBack={() => setScreen('home')} hintsEnabled={config.features.shop} /> : null}
       {screen === 'tutorial' ? <Tutorial onDone={() => void markTutorialSeen().then(() => setScreen('home'))} /> : null}
       {screen === 'duel' ? <DuelScreen onBack={() => setScreen('home')} settings={config.raw} /> : null}
@@ -249,6 +255,7 @@ function AppInner() {
           onPriceOnly={() => setScreen('priceonly')}
           onTrivia={() => setScreen('trivia')}
           onTriviaDuel={() => setScreen('triviaduel')}
+          onWorkshop={() => setScreen('workshop')}
           onDaily={() => setScreen('daily')}
           onTutorial={() => setScreen('tutorial')}
           onDuel={() => setScreen('duel')}

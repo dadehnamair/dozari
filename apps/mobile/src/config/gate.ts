@@ -3,7 +3,7 @@ export interface ClientConfig {
   maintenance: { on: boolean; message: string };
   minBuild: number;
   updateUrl: string;
-  features: { lookup: boolean; duel: boolean; friends: boolean; inbox: boolean; bale: boolean; shop: boolean; chat: boolean; tournament: boolean; daily: boolean; tables: boolean; priceonly: boolean; trivia: boolean; triviaduel: boolean };
+  features: { lookup: boolean; duel: boolean; friends: boolean; inbox: boolean; bale: boolean; shop: boolean; chat: boolean; tournament: boolean; daily: boolean; tables: boolean; priceonly: boolean; trivia: boolean; triviaduel: boolean; workshop: boolean };
   /** All public settings as sent, for features that read their own keys (e.g. the review prompt). */
   raw: Record<string, unknown>;
   /** The server can send sign-in codes (an SMS provider is set), so the first-run login screen is worth showing. */
@@ -15,7 +15,7 @@ export const OPEN_CONFIG: ClientConfig = {
   maintenance: { on: false, message: '' },
   minBuild: 0,
   updateUrl: '',
-  features: { lookup: true, duel: true, friends: true, inbox: true, bale: true, shop: true, chat: true, tournament: true, daily: true, tables: true, priceonly: true, trivia: true, triviaduel: true },
+  features: { lookup: true, duel: true, friends: true, inbox: true, bale: true, shop: true, chat: true, tournament: true, daily: true, tables: true, priceonly: true, trivia: true, triviaduel: true, workshop: true },
   raw: {},
   phoneLogin: false,
 };
@@ -42,6 +42,7 @@ export function parseClientConfig(settings: Record<string, unknown>, phoneLogin 
       priceonly: flag(settings['feature.priceonly'], true),
       trivia: flag(settings['feature.trivia'], true),
       triviaduel: flag(settings['feature.trivia_duel'], true),
+      workshop: flag(settings['feature.trivia_workshop'], true),
       tables: flag(settings['feature.tables'], true),
     },
     raw: settings,

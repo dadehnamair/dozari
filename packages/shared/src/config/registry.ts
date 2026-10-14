@@ -1,4 +1,4 @@
-import { DUEL_ROUNDS_DEFAULT, TABLE_MIN_ROUNDS_DEFAULT, TRIVIA_DUEL_FEE, TRIVIA_DUEL_QUESTIONS, TRIVIA_DUEL_SECONDS, TRIVIA_SOLO_FEE, TRIVIA_SOLO_REFUND_PERCENT, TRIVIA_QUESTIONS_PER_GAME } from './topics.js';
+import { DUEL_ROUNDS_DEFAULT, TABLE_MIN_ROUNDS_DEFAULT, TRIVIA_DUEL_FEE, TRIVIA_DUEL_QUESTIONS, TRIVIA_LEVEL_HARD_FROM, TRIVIA_LEVEL_MEDIUM_FROM, WORKSHOP_APPROVE_SCORE, WORKSHOP_AUTHOR_COINS, WORKSHOP_AUTHOR_FIRST_BONUS, WORKSHOP_AUTHOR_MILESTONE_BONUS, WORKSHOP_AUTHOR_MILESTONE_EVERY, WORKSHOP_BOOST_PERCENT, WORKSHOP_MILESTONE_COINS, WORKSHOP_MILESTONE_POINTS, WORKSHOP_MIN_REVIEWERS, WORKSHOP_REJECT_SCORE, WORKSHOP_REVIEW_AGREE_BONUS, WORKSHOP_REVIEW_DAILY, WORKSHOP_SUBMIT_DAILY, WORKSHOP_THIN_BELOW, WORKSHOP_THIN_BONUS, TRIVIA_DUEL_SECONDS, TRIVIA_SOLO_FEE, TRIVIA_SOLO_REFUND_PERCENT, TRIVIA_QUESTIONS_PER_GAME } from './topics.js';
 import { LEAVE_BADGE_COUNT, LEAVE_BADGE_WINDOW_DAYS, LEAVE_DAY_BAN_COUNT, LEAVE_RECONNECT_GRACE_SECONDS } from './leave.js';
 import { LEVEL_REWARD_BASE_COINS, LEVEL_REWARD_EVERY } from './progression.js';
 import {
@@ -82,6 +82,25 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'trivia.solo_fee', group: 'economy', label: 'هزینه‌ی شروع «پرسش» تکی (سکه)', hint: 'صفر: رایگان. اگر درصد درست بازیکن به حد «بازگشت هزینه» برسد، همین مبلغ پس داده می‌شود.', kind: 'int', min: 0, max: 100, default: TRIVIA_SOLO_FEE },
   { key: 'trivia.solo_refund_percent', group: 'economy', label: 'حداقل درصد جواب درست برای پس گرفتن هزینه‌ی «پرسش» تکی', kind: 'int', min: 0, max: 100, default: TRIVIA_SOLO_REFUND_PERCENT },
   { key: 'trivia.duel_fee', group: 'economy', label: 'ورودی هر نفر در «دوئل پرسشی» (سکه)', hint: 'صفر: رایگان. برنده کل جایزه منهای کارمزد دوئل را می‌برد؛ مساوی: ورودی منهای کارمزد برمی‌گردد؛ ربات: خانه ورودی‌اش را می‌دهد.', kind: 'int', min: 0, max: 500, default: TRIVIA_DUEL_FEE },
+  { key: 'trivia.level_matching', group: 'scoring', label: 'سؤال‌ها بر اساس لول بازیکن بیایند (سختی سؤال)', hint: 'خاموش: سؤال‌ها تصادفی‌اند. روشن: وقتی سؤال کافی هست، سؤال آسان برای لول‌های پایین و سخت برای لول‌های بالا می‌آید؛ «ندیده بودن» همچنان مهم‌تر از سختی است. بهتر است وقتی بانک بزرگ شد روشن شود.', kind: 'bool', min: 0, max: 1, default: 0 },
+  { key: 'trivia.level_medium_from', group: 'scoring', label: 'از چه لولی سؤال متوسط بیاید', kind: 'int', min: 2, max: 100, default: TRIVIA_LEVEL_MEDIUM_FROM },
+  { key: 'trivia.level_hard_from', group: 'scoring', label: 'از چه لولی سؤال سخت بیاید', kind: 'int', min: 3, max: 200, default: TRIVIA_LEVEL_HARD_FROM },
+  { key: 'feature.trivia_workshop', group: 'app', label: 'کارگاه سؤال (طراحی و بازبینی سؤال توسط بازیکن‌ها) روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'trivia.submit_daily', group: 'review', label: 'سؤال پیشنهادی در روز برای هر بازیکن (کارگاه)', kind: 'int', min: 1, max: 100, default: WORKSHOP_SUBMIT_DAILY },
+  { key: 'trivia.author_coins', group: 'review', label: 'سکه‌ی طراح برای هر سؤال تأییدشده', hint: '۰ = بدون پاداش', kind: 'int', min: 0, max: 10_000, default: WORKSHOP_AUTHOR_COINS, unit: 'سکه' },
+  { key: 'trivia.author_first_bonus', group: 'review', label: 'جایزه‌ی اولین سؤال تأییدشده‌ی هر طراح', kind: 'int', min: 0, max: 10_000, default: WORKSHOP_AUTHOR_FIRST_BONUS, unit: 'سکه' },
+  { key: 'trivia.author_milestone_every', group: 'review', label: 'هر چند سؤال تأییدشده جایزه‌ی پله‌ای بدهیم (۰ = خاموش)', kind: 'int', min: 0, max: 100, default: WORKSHOP_AUTHOR_MILESTONE_EVERY },
+  { key: 'trivia.author_milestone_bonus', group: 'review', label: 'جایزه‌ی پله‌ای طراح', kind: 'int', min: 0, max: 10_000, default: WORKSHOP_AUTHOR_MILESTONE_BONUS, unit: 'سکه' },
+  { key: 'trivia.thin_below', group: 'review', label: 'موضوعی با کمتر از این تعداد سؤال «کم‌سؤال» حساب می‌شود', kind: 'int', min: 0, max: 5000, default: WORKSHOP_THIN_BELOW },
+  { key: 'trivia.thin_bonus', group: 'review', label: 'جایزه‌ی اضافه برای سؤال تأییدشده در موضوع کم‌سؤال', kind: 'int', min: 0, max: 10_000, default: WORKSHOP_THIN_BONUS, unit: 'سکه' },
+  { key: 'trivia.author_boost_percent', group: 'review', label: 'کمپین پاداش طراح (درصد اضافه روی کل پاداش)', hint: '۰ = بدون کمپین؛ ۱۰۰ = پاداش دو برابر. کارت خانه و کارگاه «پاداش ویژه» نشان می‌دهند.', kind: 'int', min: 0, max: 1000, default: WORKSHOP_BOOST_PERCENT, unit: '٪' },
+  { key: 'trivia.review_daily', group: 'review', label: 'بازبینی امتیازدار در روز برای هر بازیکن', kind: 'int', min: 1, max: 500, default: WORKSHOP_REVIEW_DAILY },
+  { key: 'trivia.review_agree_bonus', group: 'review', label: 'امتیاز اضافه‌ی بازبینی‌ای که با تصمیم نهایی هم‌نظر بود', kind: 'int', min: 0, max: 100, default: WORKSHOP_REVIEW_AGREE_BONUS },
+  { key: 'trivia.review_milestone_points', group: 'review', label: 'هر چند امتیاز بازبینی یک جایزه‌ی سکه بدهد (۰ = خاموش)', kind: 'int', min: 0, max: 10_000, default: WORKSHOP_MILESTONE_POINTS },
+  { key: 'trivia.review_milestone_coins', group: 'review', label: 'سکه‌ی جایزه‌ی هر پله‌ی امتیاز بازبینی', kind: 'int', min: 0, max: 10_000, default: WORKSHOP_MILESTONE_COINS, unit: 'سکه' },
+  { key: 'trivia.review_approve_score', group: 'review', label: 'امتیاز بازبینی برای رفتن سؤال به صف مدیر', kind: 'int', min: 1, max: 100, default: WORKSHOP_APPROVE_SCORE },
+  { key: 'trivia.review_reject_score', group: 'review', label: 'امتیاز منفی بازبینی برای ردشدن خودکار', kind: 'int', min: 1, max: 100, default: WORKSHOP_REJECT_SCORE },
+  { key: 'trivia.review_min_reviewers', group: 'review', label: 'کمترین تعداد بازبین قبل از رفتن به صف مدیر', kind: 'int', min: 1, max: 50, default: WORKSHOP_MIN_REVIEWERS },
   { key: 'priceonly.rounds', group: 'scoring', label: 'تعداد دور در بازی «فقط حدس قیمت»', kind: 'int', min: 1, max: PRICE_ONLY_MAX_ROUNDS, default: PRICE_ONLY_ROUNDS },
   { key: 'feature.lookup', group: 'app', label: 'استعلام قیمت روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'feature.duel', group: 'app', label: 'بازی دونفره‌ی زنده روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },

@@ -64,6 +64,9 @@ import { StatPill } from './StatPill';
 import { AdultTopBar } from './AdultTopBar';
 import { StatInfoSheet } from './StatInfoSheet';
 import { CoinDeltaFx } from './CoinDeltaFx';
+import type { WorkshopInfo } from '@dozari/shared';
+import { WorkshopHomeCard } from '../workshop/WorkshopCards';
+import { fetchWorkshop } from '../workshop/api';
 import { useCoinDelta } from './useCoinDelta';
 
 interface Tile {
@@ -82,7 +85,7 @@ interface Tile {
  * speech bubble, corner tiles down both sides, the floating hero, and two big buttons at the bottom. Every feature
  * keeps its sheet; a tile only shows when its feature flag is on.
  */
-export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onTriviaDuel, onDaily, onDuel, onDuelResume, onTutorial, onLookup, onGallery, features = OPEN_CONFIG.features, settings = OPEN_CONFIG.raw, myTrack, onPreview }: { onSolo: () => void; onPreview?: (track: 'kid' | 'teen') => void; onPriceOnly?: () => void; onTrivia?: () => void; onTriviaDuel?: () => void; onDaily?: () => void; onDuel?: () => void; onDuelResume?: () => void; onTutorial?: () => void; onLookup: () => void; onGallery?: () => void; features?: ClientConfig['features']; settings?: ClientConfig['raw']; /** Track rules and the guardian's limits; absent = no restriction. */ myTrack?: { rules: TrackRulesDto | null; limits: ChildLimits | null } }) {
+export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onTriviaDuel, onWorkshop, onDaily, onDuel, onDuelResume, onTutorial, onLookup, onGallery, features = OPEN_CONFIG.features, settings = OPEN_CONFIG.raw, myTrack, onPreview }: { onSolo: () => void; onPreview?: (track: 'kid' | 'teen') => void; onPriceOnly?: () => void; onTrivia?: () => void; onTriviaDuel?: () => void; onWorkshop?: () => void; onDaily?: () => void; onDuel?: () => void; onDuelResume?: () => void; onTutorial?: () => void; onLookup: () => void; onGallery?: () => void; features?: ClientConfig['features']; settings?: ClientConfig['raw']; /** Track rules and the guardian's limits; absent = no restriction. */ myTrack?: { rules: TrackRulesDto | null; limits: ChildLimits | null } }) {
   const adult = useTheme() === 'adult';
   const month = useMemo(() => solarMonthOf(Date.now()), []);
   /** Short phones (≤700px tall) get tighter columns and a smaller hero so nothing runs into the bottom buttons. */
@@ -212,6 +215,13 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onTriviaDuel, onDail
   const priceOnlyOn = features.priceonly && !!onPriceOnly;
   const triviaOn = features.trivia && !!onTrivia;
   const triviaDuelOn = features.triviaduel && !!onTriviaDuel;
+  // The question workshop card shows the live reward and how many questions wait for this player's review; absent when the server refuses (age track, switch).
+  const workshopOn = features.workshop && !!onWorkshop;
+  const [workshop, setWorkshop] = useState<WorkshopInfo | null>(null);
+  useEffect(() => {
+    if (!workshopOn) return;
+    void fetchWorkshop().then((w) => setWorkshop(w.on ? w : null), () => setWorkshop(null));
+  }, [workshopOn]);
 
   return (
     <SceneBackground scene="bazaar">
@@ -313,6 +323,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onTriviaDuel, onDail
             {triviaDuelOn ? <SlabButton label={fa.triviaDuel.play} sfx="confirm" color={colors.candy.pink} height={54} fontSize={20} onPress={onTriviaDuel!} /> : null}
           </View>
         ) : null}
+        {workshop && onWorkshop ? <WorkshopHomeCard info={workshop} onOpen={onWorkshop} /> : null}
       </View>
 
       {review.open && review.url ? <ReviewSheet message={review.message} url={review.url} onReview={review.onReview} onLater={review.onLater} onNever={review.onNever} /> : null}

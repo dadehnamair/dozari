@@ -5,6 +5,7 @@ import type { TduelEnded, TriviaTopics } from '@dozari/shared';
 import { ErrorCard } from '../components/EmptyState';
 import { SlabButton } from '../components/SlabButton';
 import { Confetti } from '../components/Confetti';
+import { WorkshopPromo } from '../workshop/WorkshopCards';
 import { Rain } from '../components/Rain';
 import { DuelTriviaRound } from '../duel/DuelTriviaRound';
 import { Versus } from '../duel/Versus';
@@ -55,7 +56,7 @@ function CoinsBadge({ coins }: { coins: number }) {
  * four-choice questions blind and at the same time (docs/logic/trivia.md §Question duel). The server owns the clock, the scoring and the coins.
  * Leaving a running game forfeits it (the fee goes to the rival and the leave is logged), so it asks first.
  */
-export function TriviaDuelScreen({ onBack, fee }: { onBack: () => void; /** Entry fee of a game (setting `trivia.duel_fee`), to show before searching. */ fee: number }) {
+export function TriviaDuelScreen({ onBack, fee, workshop, onWorkshop }: { onBack: () => void; /** The workshop call-to-action on the result card: the reward on offer; absent = not shown. */ workshop?: { reward: number; boost: number }; onWorkshop?: () => void; /** Entry fee of a game (setting `trivia.duel_fee`), to show before searching. */ fee: number }) {
   const [topics, setTopics] = useState<Topics>({ kind: 'loading' });
   const [m, dispatch] = useReducer(tduelReducer, initialTduel);
   const [busy, setBusy] = useState(false);
@@ -215,6 +216,7 @@ export function TriviaDuelScreen({ onBack, fee }: { onBack: () => void; /** Entr
             onRematch={() => void askRematch()}
             onBack={onBack}
             onAgain={backToPicker}
+            promo={workshop && onWorkshop ? <WorkshopPromo reward={workshop.reward} boost={workshop.boost} onOpen={onWorkshop} /> : null}
           />
         </ScrollView>
         {tduelOutcome(m.ended, m.found?.you ?? m.state?.you ?? 0) === 'won' ? <Confetti distance={500} /> : tduelOutcome(m.ended, m.found?.you ?? m.state?.you ?? 0) === 'lost' ? <Rain distance={800} /> : null}
@@ -283,7 +285,7 @@ function LeaveDialog({ onStay, onLeave }: { onStay: () => void; onLeave: () => v
 }
 
 /** The finished game: outcome, score, the coins it moved, a review of every question with both picks, and the rematch. */
-function ResultView({ ended, you, rivalName, topicNameFa, fee, rematch, busy, note, onRematch, onBack, onAgain }: { ended: TduelEnded; you: 0 | 1; rivalName: string; topicNameFa: string | null; fee: number; rematch: 'none' | 'asked' | 'sent' | 'expired'; busy: boolean; note: string | null; onRematch: () => void; onBack: () => void; onAgain: () => void }) {
+function ResultView({ ended, you, rivalName, topicNameFa, fee, rematch, busy, note, onRematch, onBack, onAgain, promo }: { promo: React.ReactNode; ended: TduelEnded; you: 0 | 1; rivalName: string; topicNameFa: string | null; fee: number; rematch: 'none' | 'asked' | 'sent' | 'expired'; busy: boolean; note: string | null; onRematch: () => void; onBack: () => void; onAgain: () => void }) {
   const outcome = tduelOutcome(ended, you);
   const headline = ended.reason === 'forfeit' ? (outcome === 'won' ? t.forfeitWon : t.forfeitLost) : outcome === 'won' ? t.won : outcome === 'draw' ? t.draw : t.lost;
   return (
@@ -321,6 +323,7 @@ function ResultView({ ended, you, rivalName, topicNameFa, fee, rematch, busy, no
         <Text style={styles.sub}>{ended.reason === 'forfeit' ? t.rematchLeft : t.rematchExpired}</Text>
       )}
       {note ? <Text style={styles.error}>{note}</Text> : null}
+      {promo}
       <View style={styles.actions}>
         <SlabButton label={t.back} sfx="back" color={colors.candy.sky} height={58} fontSize={20} onPress={onBack} />
         <SlabButton label={t.again} sfx="confirm" color={colors.candy.lime} height={58} fontSize={22} grow={1.4} onPress={onAgain} />

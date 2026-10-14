@@ -199,6 +199,9 @@ import { TriviaService } from './trivia/service.js';
 import { registerTriviaRoutes } from './trivia/routes.js';
 import { createDbTriviaStore } from './trivia/store.js';
 import { TriviaStakes } from './trivia/stakes.js';
+import { WorkshopService } from './workshop/service.js';
+import { createDbWorkshopStore } from './workshop/store.js';
+import { registerWorkshopRoutes } from './workshop/routes.js';
 import { createDbTriviaSeenStore, drawTrivia } from './trivia/seen.js';
 import { PriceOnlyService } from './priceonly/service.js';
 import { createDbPriceOnlySource } from './priceonly/db-source.js';
@@ -324,6 +327,8 @@ export interface ServerDeps {
   guardian?: GuardianService;
   /** Reports of players and the suggestion / vote / approve loop (D177). */
   feedback?: FeedbackService;
+  /** The question workshop: players design and review general questions (docs/logic/question-workshop.md). */
+  workshop?: { service: WorkshopService; allowed?: (userId: string) => Promise<boolean> };
   /** Errors the app reports with a screenshot (`POST /client-errors`, docs/logic/client-errors.md). */
   clientErrors?: ClientErrorStore;
   gems?: Pick<GemWalletReader, 'wallet'>;
@@ -493,6 +498,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.lessons) registerLessonRoutes(app, deps.auth, deps.lessons, deps.lessonSeen);
   if (deps.auth && deps.guardian) registerGuardianRoutes(app, deps.auth, deps.guardian);
   if (deps.auth && deps.feedback) registerFeedbackRoutes(app, deps.auth, deps.feedback);
+  if (deps.auth && deps.workshop) registerWorkshopRoutes(app, deps.auth, deps.workshop.service, deps.workshop.allowed);
   if (deps.clientErrors) registerClientErrorRoutes(app, deps.clientErrors, deps.auth);
   if (deps.auth && deps.gems) registerGemRoutes(app, deps.auth, deps.gems);
   if (deps.landing && deps.settings) registerLandingPublicRoutes(app, deps.landing, deps.settings);
@@ -995,6 +1001,27 @@ if (isMainModule(import.meta.url)) {
           protectLast: process.env.BACKUP_PROTECT_LAST ? Number(process.env.BACKUP_PROTECT_LAST) || undefined : undefined,
         })
       : undefined;
+  // The question workshop (docs/logic/question-workshop.md): players design and review questions, the admin decides, authors and reviewers are rewarded.
+  const workshopRules = settings
+    ? async () => {
+        const n = (k: string) => settings.num(k);
+        const [on, submitDaily, reviewDaily, reviewMinGames, approveScore, rejectScore, minReviewers, agreeBonus, milestonePoints, milestoneCoins, thinBelow, coins, firstBonus, milestoneEvery, milestoneBonus, thinBonus, boostPercent] = await Promise.all(
+          ['feature.trivia_workshop', 'trivia.submit_daily', 'trivia.review_daily', 'ugc.voter_min_games', 'trivia.review_approve_score', 'trivia.review_reject_score', 'trivia.review_min_reviewers', 'trivia.review_agree_bonus', 'trivia.review_milestone_points', 'trivia.review_milestone_coins', 'trivia.thin_below', 'trivia.author_coins', 'trivia.author_first_bonus', 'trivia.author_milestone_every', 'trivia.author_milestone_bonus', 'trivia.thin_bonus', 'trivia.author_boost_percent'].map(n),
+        );
+        return { on: on === 1, submitDaily: submitDaily!, reviewDaily: reviewDaily!, reviewMinGames: reviewMinGames!, approveScore: approveScore!, rejectScore: rejectScore!, minReviewers: minReviewers!, agreeBonus: agreeBonus!, milestonePoints: milestonePoints!, milestoneCoins: milestoneCoins!, thinBelow: thinBelow!, author: { coins: coins!, firstBonus: firstBonus!, milestoneEvery: milestoneEvery!, milestoneBonus: milestoneBonus!, thinBonus: thinBonus!, boostPercent: boostPercent! } };
+      }
+    : undefined;
+  const workshop =
+    db && triviaStore && workshopRules
+      ? new WorkshopService({
+          store: createDbWorkshopStore(db),
+          trivia: triviaStore,
+          rules: workshopRules,
+          games: async (id) => (player ? (await player.levelOf(id)).stats.games : 0),
+          reward: (userId, key, coins) => db.transaction(async (tx) => void (await applyLedgerEntry(tx, { userId, delta: coins, reason: 'ugc_reward', refType: 'trivia_workshop', refId: key.slice(0, 64), idempotencyKey: key }))),
+          notify: messages ? async (userId, title, body) => void (await messages.send({ title, body, audience: 'user', targetUserId: userId }, ['in_app'])) : undefined,
+        })
+      : undefined;
   const aiStudio = db ? new AiStudio({ env: process.env, lessons: createDbLessonStore(db), puzzles: createDbPuzzleAdmin(db), categories: createDbCategoryAdmin(db), trivia: triviaStore, products: productAdmin, landing: landingService, catalog: async () => (await createDbAdminRepository(db).listCatalog()).map((p) => ({ id: p.id, slug: p.slug, nameFa: p.nameFa })) }) : undefined;
   const aiScheduler = db && aiStudio ? new AiScheduler(createDbAiScheduleStore(db), aiStudio, { audit: (action, target, detail) => void playerAudit?.record(action, target, detail), log: (msg, err) => app.log.error({ err }, msg) }) : undefined;
   const reportError = createErrorReporter({ dsn: process.env.SENTRY_DSN, environment: process.env.NODE_ENV, release: process.env.APP_RELEASE });
@@ -1024,7 +1051,7 @@ if (isMainModule(import.meta.url)) {
     auth,
     settings,
     adminModules: db
-      ? { backups: backupService, images: adminImageStore(), products: productAdmin!, feedback, clientErrors, stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, avatars: avatarStore, keepsakes: keepsakeStore, wheel, ads, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, ageTracks: db ? createDbAgeTrackAdmin(db) : undefined, economy: db ? createDbEconomyAdmin(db) : undefined, daily, ai: aiStudio, aiSchedules: aiScheduler, puzzles: createDbPuzzleAdmin(db), categories: createDbCategoryAdmin(db), trivia: triviaStore, leaves, levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, sms: smsGateway, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      ? { backups: backupService, images: adminImageStore(), products: productAdmin!, feedback, clientErrors, stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, avatars: avatarStore, keepsakes: keepsakeStore, wheel, ads, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, ageTracks: db ? createDbAgeTrackAdmin(db) : undefined, economy: db ? createDbEconomyAdmin(db) : undefined, daily, ai: aiStudio, aiSchedules: aiScheduler, puzzles: createDbPuzzleAdmin(db), categories: createDbCategoryAdmin(db), trivia: triviaStore, workshop, leaves, levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, sms: smsGateway, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
     triviaDuel:
@@ -1032,7 +1059,7 @@ if (isMainModule(import.meta.url)) {
         ? {
             profile: duelProfile,
             poolOf: ageTracks ? async (id) => trackRules(await ageTracks.effective(id)).puzzleTracks : undefined,
-            questions: async ({ topicId, tracks, count, rng, userIds }) => (await drawTrivia(triviaStore, triviaSeen, { topicId, tracks, count, rng, userIds })).map((q) => ({ id: q.id, textFa: q.textFa, explanationFa: q.explanationFa, ...shuffleTrivia(q, rng) })),
+            questions: async ({ topicId, tracks, count, rng, userIds }) => (await drawTrivia(triviaStore, triviaSeen, { topicId, tracks, count, rng, userIds })).map((q) => ({ id: q.id, textFa: q.textFa, explanationFa: q.explanationFa, authorFa: q.authorFa ?? null, ...shuffleTrivia(q, rng) })),
             markSeen: triviaSeen ? (userIds, questionId) => userIds.forEach((u) => void triviaSeen.mark(u, [questionId], Date.now()).catch(() => undefined)) : undefined,
             topicName: (id) => triviaStore.topicName(id),
             settings: async () => ({ questions: await settings.num('trivia.duel_questions'), seconds: await settings.num('trivia.duel_seconds') }),
@@ -1084,7 +1111,7 @@ if (isMainModule(import.meta.url)) {
                 const picked = await drawTrivia(triviaStore, triviaSeen, { topicIds, tracks, count, rng, userIds: humans });
                 // The round is short and nearly always played out: its questions count as seen when it opens.
                 if (triviaSeen) for (const u of humans) void triviaSeen.mark(u, picked.map((q) => q.id), Date.now()).catch(() => undefined);
-                return picked.map((q) => ({ id: q.id, textFa: q.textFa, explanationFa: q.explanationFa, ...shuffleTrivia(q, rng) }));
+                return picked.map((q) => ({ id: q.id, textFa: q.textFa, explanationFa: q.explanationFa, authorFa: q.authorFa ?? null, ...shuffleTrivia(q, rng) }));
               }
             : undefined,
           rules: settings
@@ -1206,6 +1233,7 @@ if (isMainModule(import.meta.url)) {
     lessonSeen,
     guardian,
     feedback,
+    workshop: workshop ? { service: workshop, allowed: ageTracks ? async (id) => trackRules(await ageTracks.effective(id)).priceOnly : undefined } : undefined,
     clientErrors,
     avatars,
     profileTasks: profileTaskService,

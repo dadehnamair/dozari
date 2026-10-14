@@ -194,6 +194,7 @@ export function DuelTriviaRound({ round, now, onAnswer, title, intro }: { round:
           {kind ? <Text style={[styles.kind, { backgroundColor: KIND_TONE[kind] }]}>{KIND_TEXT[kind]}</Text> : null}
           {kind === 'you' || kind === 'both' ? <PointPop key={hold.index} /> : null}
           {hold.explanationFa ? <Text style={styles.hint}>{hold.explanationFa}</Text> : null}
+          {hold.authorFa ? <Text style={styles.author}>{fa.workshop.byAuthor(hold.authorFa)}</Text> : null}
         </Animated.View>
       ) : current ? (
         <View style={styles.card}>
@@ -234,6 +235,7 @@ const styles = StyleSheet.create({
   kind: { fontFamily: fonts.display, fontSize: 17, color: colors.ink, textAlign: 'center', paddingVertical: 6, borderRadius: 14, borderWidth: 2.5, borderColor: colors.ink, overflow: 'hidden' },
   pop: { position: 'absolute', alignSelf: 'center', top: '40%', fontFamily: fonts.display, fontSize: 30, color: '#2E7D32', textShadowColor: '#fff', textShadowRadius: 6 },
   hint: { fontFamily: fonts.bold, fontSize: 12, color: '#7E46D6', textAlign: 'center' },
+  author: { fontFamily: fonts.bold, fontSize: 12, color: '#7E46D6', textAlign: 'center' },
   wait: { fontFamily: fonts.bold, fontSize: 15, color: '#7E46D6', textAlign: 'center' },
   rivalLocked: { fontFamily: fonts.bold, fontSize: 13, color: '#1F78A8', textAlign: 'center' },
   error: { fontFamily: fonts.bold, fontSize: 13, color: '#B3261E', textAlign: 'center' },
