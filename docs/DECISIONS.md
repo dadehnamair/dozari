@@ -789,3 +789,7 @@ Owner (2026-10-14): a reward system for designing questions (after approval) and
 ## D238 — Question difficulty is recorded and measured; level matching is an admin switch (2026-10-14, proposed)
 
 Owner (2026-10-14): record the difficulty of questions now and, once the bank is big, serve them by player level whenever the admin wants. Proposed: three levels (آسان/متوسط/سخت) set by the admin (or suggested by the workshop author) plus play counters (`plays`, `right_count`, humans only) that yield a *measured* difficulty after 30 answers, shown in the admin panel with a one-click adopt; `trivia.level_matching` (default off) makes a draw prefer the difficulty that fits the average level of the human players, ranked after "unseen" (D236) so it never brings repeats back. Details: `docs/logic/trivia.md` §Difficulty (migration 0094).
+
+## D239 — One «قیمت/سوال» entry under the coin plate, with a price section and a question section (2026-10-14, proposed)
+
+Owner (2026-10-14): a new Login Home design puts a gold «قیمت/سوال» tab under the coin count; the sheet it opens must have two sections, price and question. Proposed: the tab opens `SchoolSheet` (price: suggest/vote, D104; question: make/review, D237) with a segmented switch; the question section and the review-waiting badge appear only when the workshop switch is on (adult track). The hub «مکتب‌خانه» opens the same sheet. See `docs/logic/question-workshop.md` §Entry.

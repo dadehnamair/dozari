@@ -118,6 +118,7 @@ per-friend duel button need presence and direct challenges, which do not exist y
 
 ## City hub (D112)
 
+Adult Home also hangs a gold «قیمت/سوال» tab under the coin plate (pulse + glint, red badge = questions waiting for review): it opens the price/question sheet (`question-workshop.md` §Entry).
 screen-hub of `11 More Screens`, opened from the round map button in Home's top row (next to it, the round **wheel** button, D154, with the number of spins waiting; it is always there): «شهر دوزاری», a
 hand-drawn bazaar town where every building is a game mode — برج ساعت (daily puzzle, «جدید» when
 today's is open), کاروانسرا (tournaments, «زنده»), حجرهٔ بازار (solo), زورخانه (duel), قهوه‌خانه (team)

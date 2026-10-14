@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { toPersianDigits, rialsToTomanString } from '@dozari/shared';
-import type { FeedCard } from '@dozari/shared';
+import { formatPersianNumber, toPersianDigits, rialsToTomanString } from '@dozari/shared';
+import type { FeedCard, WorkshopInfo } from '@dozari/shared';
 import { CandyButton } from '../components/CandyButton';
 import { GuideBubble } from '../components/GuideBubble';
 import { SceneBackground } from '../components/SceneBackground';
@@ -14,23 +14,52 @@ import { SuggestDialog } from './SuggestDialog';
 
 const t = fa.feedback;
 
-/** «مکتب‌خانه» of the hub: suggest an item, or vote on other players' suggestions one card at a time. */
-export function SchoolSheet({ onClose }: { onClose: () => void }) {
+/** What the question side of the sheet needs; absent when the workshop is off for this player (price section only). */
+export interface SchoolWorkshop {
+  info: WorkshopInfo | null;
+  onOpen: (tab: 'make' | 'review') => void;
+}
+
+/**
+ * «قیمت/سوال» (the gold tab under the wallet): two sections. Price = suggest an item or vote on others' suggestions (D104);
+ * Question = design a question or review others' (the question workshop, D237).
+ */
+export function SchoolSheet({ onClose, workshop, initialSection = 'price' }: { onClose: () => void; workshop?: SchoolWorkshop; initialSection?: 'price' | 'question' }) {
   useHardwareBack(onClose);
+  const [section, setSection] = useState<'price' | 'question'>(workshop ? initialSection : 'price');
   const [suggesting, setSuggesting] = useState(false);
   const [voting, setVoting] = useState(false);
+  const waiting = workshop?.info?.waiting ?? 0;
   return (
     <View style={styles.root}>
       <SceneBackground scene="bazaar">
         <View style={styles.column}>
           <Text style={styles.title}>{t.school.title}</Text>
+          {workshop && !voting ? (
+            <View style={styles.tabs}>
+              {(['price', 'question'] as const).map((k) => (
+                <Pressable key={k} accessibilityRole="tab" accessibilityState={{ selected: section === k }} onPress={() => setSection(k)} style={[styles.tab, section === k ? styles.tabOn : null]}>
+                  <Text style={styles.tabText}>{k === 'price' ? t.school.tabPrice : t.school.tabQuestion}</Text>
+                  {k === 'question' && waiting > 0 ? <Text style={styles.tabBadge}>{formatPersianNumber(waiting)}</Text> : null}
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
           {voting ? (
             <VoteCard onBack={() => setVoting(false)} />
-          ) : (
+          ) : section === 'price' || !workshop ? (
             <>
               <GuideBubble who="mirza" text={t.school.hint} />
               <CandyButton label={t.school.suggest} color={colors.candy.lime} onPress={() => setSuggesting(true)} />
               <CandyButton label={t.school.vote} color={colors.candy.sky} onPress={() => setVoting(true)} />
+              <CandyButton label={fa.hub.close} sfx="back" color={colors.candy.orange} onPress={onClose} />
+            </>
+          ) : (
+            <>
+              <GuideBubble who="mirza" text={t.school.questionHint} />
+              {workshop.info ? <Text style={styles.sub}>{fa.workshop.reward(formatPersianNumber(workshop.info.rewardCoins))}</Text> : null}
+              <CandyButton label={t.school.makeQuestion} color={colors.candy.lime} onPress={() => workshop.onOpen('make')} />
+              <CandyButton label={waiting > 0 ? t.school.reviewWaiting(formatPersianNumber(waiting)) : t.school.reviewQuestions} color={colors.candy.sky} onPress={() => workshop.onOpen('review')} />
               <CandyButton label={fa.hub.close} sfx="back" color={colors.candy.orange} onPress={onClose} />
             </>
           )}
@@ -91,6 +120,11 @@ const styles = StyleSheet.create({
   column: { flex: 1, width: '100%', maxWidth: 480, alignSelf: 'center', paddingHorizontal: 14, paddingTop: pageTop() + 8, gap: 12 },
   title: { fontFamily: fonts.display, fontSize: 28, color: '#fff', textAlign: 'center', textShadowColor: colors.ink, textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 1 },
   sub: { fontFamily: fonts.bold, fontSize: 15, color: colors.cream, textAlign: 'center' },
+  tabs: { flexDirection: 'row', gap: 8 },
+  tab: { flex: 1, flexDirection: 'row', gap: 6, justifyContent: 'center', alignItems: 'center', paddingVertical: 9, borderRadius: 16, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.paper },
+  tabOn: { backgroundColor: colors.candy.yellow },
+  tabText: { fontFamily: fonts.display, fontSize: 17, color: colors.ink },
+  tabBadge: { fontFamily: fonts.display, fontSize: 12, color: '#fff', backgroundColor: '#E53935', borderRadius: 99, paddingHorizontal: 6, overflow: 'hidden' },
   card: { padding: 16, gap: 6, borderRadius: 22, borderWidth: 4, borderColor: colors.ink, backgroundColor: colors.cream },
   kind: { alignSelf: 'center', fontFamily: fonts.bold, fontSize: 12, color: '#fff', backgroundColor: '#3F72D0', paddingHorizontal: 10, borderRadius: 99, overflow: 'hidden' },
   name: { fontFamily: fonts.display, fontSize: 24, color: colors.ink, textAlign: 'center' },

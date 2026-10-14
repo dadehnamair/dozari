@@ -1,5 +1,6 @@
+import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Easing, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { Character } from '../components/Character';
 import { Icon } from '../components/Icon';
@@ -27,12 +28,14 @@ interface Props {
   onMap: () => void;
   onWheel: () => void;
   onProfile: () => void;
+  /** The «قیمت/سوال» tab hanging under the wallet (docs/design/adult Login Home): suggest prices, design and review questions. Absent = no tab. */
+  contribute?: { label: string; badge?: string | null; onPress: () => void };
 }
 
 /** The adult home's top bar (docs/design/adult/Dozari Adult - Login Home.dc.html): a wallet plate and a map · wheel · level · avatar plate. */
-export function AdultTopBar({ coins, gems, streak, level, xpFrac, who, spinBadge, labels, onCoins, onGems, onStreak, onMap, onWheel, onProfile }: Props) {
+export function AdultTopBar({ coins, gems, streak, level, xpFrac, who, spinBadge, labels, onCoins, onGems, onStreak, onMap, onWheel, onProfile, contribute }: Props) {
   return (
-    <View style={s.row}>
+    <View style={[s.row, contribute ? s.rowTab : null]}>
       <Plate style={s.wallet}>
         <Pressable onPress={onCoins} accessibilityRole="button" accessibilityLabel={labels.coins} style={s.coinRow}>
           <View style={s.coin}><Item icon="coin" /></View>
@@ -75,7 +78,32 @@ export function AdultTopBar({ coins, gems, streak, level, xpFrac, who, spinBadge
           <View style={s.crown}><Svg width={10} height={10} viewBox="0 0 24 24"><Path d={ICON_PATHS.crown} fill="none" stroke="#2A1606" strokeWidth={3} strokeLinejoin="round" /></Svg></View>
         </Pressable>
       </Plate>
+      {contribute ? <ContributeTab {...contribute} /> : null}
     </View>
+  );
+}
+
+/** A small gold tab hanging from the wallet plate; it pulses and a glint sweeps across it so it is noticed without shouting. */
+function ContributeTab({ label, badge, onPress }: { label: string; badge?: string | null; onPress: () => void }) {
+  const pulse = useRef(new Animated.Value(0)).current;
+  const shine = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    const a = Animated.loop(Animated.sequence([Animated.timing(pulse, { toValue: 1, duration: 900, easing: Easing.inOut(Easing.quad), useNativeDriver: true }), Animated.timing(pulse, { toValue: 0, duration: 900, easing: Easing.inOut(Easing.quad), useNativeDriver: true })]));
+    const b = Animated.loop(Animated.sequence([Animated.delay(1500), Animated.timing(shine, { toValue: 1, duration: 1100, easing: Easing.inOut(Easing.quad), useNativeDriver: true }), Animated.timing(shine, { toValue: 0, duration: 0, useNativeDriver: true })]));
+    a.start();
+    b.start();
+    return () => (a.stop(), b.stop());
+  }, [pulse, shine]);
+  return (
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={s.tabWrap}>
+      <Animated.View pointerEvents="none" style={[s.tabGlow, { opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.15, 0.7] }) }]} />
+      <View style={s.tab}>
+        <Animated.View pointerEvents="none" style={[s.tabShine, { transform: [{ translateX: shine.interpolate({ inputRange: [0, 1], outputRange: [90, -90] }) }, { skewX: '-20deg' }] }]} />
+        <View style={s.tabPlus}><Svg width={8} height={8} viewBox="0 0 12 12"><Path d="M6 2v8M2 6h8" stroke="#2A1606" strokeWidth={2.4} strokeLinecap="round" /></Svg></View>
+        <Text style={s.tabText} numberOfLines={1}>{label}</Text>
+        {badge ? <View style={s.tabBadge}><Text style={s.tabBadgeText}>{badge}</Text></View> : null}
+      </View>
+    </Pressable>
   );
 }
 
@@ -85,6 +113,15 @@ function Plate({ children, style }: { children: ReactNode; style?: object }) {
 
 const s = StyleSheet.create({
   row: { flexDirection: RTL_ROW, gap: 10, paddingHorizontal: 0, paddingBottom: 4 },
+  rowTab: { position: 'relative', paddingBottom: 26 },
+  tabWrap: { position: 'absolute', top: 52, right: 16, height: 26, zIndex: 2 },
+  tabGlow: { position: 'absolute', left: -4, right: -4, top: 2, bottom: -4, borderRadius: 14, backgroundColor: '#FFD98A' },
+  tab: { height: '100%', flexDirection: RTL_ROW, alignItems: 'center', gap: 4, paddingHorizontal: 9, borderBottomLeftRadius: 11, borderBottomRightRadius: 11, overflow: 'hidden', backgroundColor: '#150E07', borderWidth: 1.5, borderTopWidth: 0, borderColor: '#B8822A' },
+  tabShine: { position: 'absolute', top: 0, bottom: 0, width: 26, backgroundColor: 'rgba(255,233,168,0.35)' },
+  tabPlus: { width: 14, height: 14, borderRadius: 7, borderWidth: 1, borderColor: '#000', backgroundColor: GOLD[1], alignItems: 'center', justifyContent: 'center' },
+  tabText: { fontFamily: fonts.display, fontSize: 12, lineHeight: 15, color: '#FFE9A8' },
+  tabBadge: { minWidth: 15, height: 15, borderRadius: 8, paddingHorizontal: 3, backgroundColor: '#C4302B', borderWidth: 1.5, borderColor: '#000', alignItems: 'center', justifyContent: 'center' },
+  tabBadgeText: { fontFamily: fonts.display, fontSize: 9, lineHeight: 11, color: '#fff' },
   plate: { flex: 1, minWidth: 0, height: 56, borderRadius: 14, borderWidth: 1.5, borderColor: '#B8822A', backgroundColor: 'rgba(20,13,8,0.9)', overflow: 'hidden', borderBottomWidth: 3 },
   wallet: { paddingVertical: 5, paddingLeft: 9, paddingRight: 6, justifyContent: 'center', gap: 2 },
   coinRow: { flexDirection: RTL_ROW, alignItems: 'center', gap: 5 },

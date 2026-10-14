@@ -117,6 +117,7 @@ function AppInner() {
   const [previewTrack, setPreviewTrack] = useState<'kid' | 'teen' | null>(null);
   /** The track picked on the sign-in card (age tracks on); saved by the next screen. */
   const [pickedTrack, setPickedTrack] = useState<AgeTrack | null>(null);
+  const [workshopTab, setWorkshopTab] = useState<'make' | 'review'>('make');
   const [screen, setScreen] = useState<'splash' | 'login' | 'ageTrack' | 'home' | 'solo' | 'daily' | 'duel' | 'tutorial' | 'duelResume' | 'gallery' | 'search' | 'brand' | 'lookup' | 'priceonly' | 'trivia' | 'triviaduel' | 'workshop'>(
     'splash',
   );
@@ -233,7 +234,7 @@ function AppInner() {
       {screen === 'solo' ? <SoloScreen key={previewTrack ?? 'own'} previewTrack={previewTrack ?? undefined} onBack={() => (setPreviewTrack(null), setScreen('home'))} hintsEnabled={config.features.shop} ageTracksOn={config.raw['feature.age_tracks'] === 1} /> : null}
       {screen === 'priceonly' ? <PriceOnlyScreen onBack={() => setScreen('home')} /> : null}
       {screen === 'trivia' ? <TriviaScreen onBack={() => setScreen('home')} fee={settingNum(config.raw, 'trivia.solo_fee', TRIVIA_SOLO_FEE)} refundPercent={settingNum(config.raw, 'trivia.solo_refund_percent', TRIVIA_SOLO_REFUND_PERCENT)} workshop={workshopPromo} onWorkshop={() => setScreen('workshop')} /> : null}
-      {screen === 'workshop' ? <WorkshopScreen onBack={() => setScreen('home')} /> : null}
+      {screen === 'workshop' ? <WorkshopScreen key={workshopTab} initialTab={workshopTab} onBack={() => setScreen('home')} /> : null}
       {screen === 'triviaduel' ? <TriviaDuelScreen onBack={() => setScreen('home')} fee={settingNum(config.raw, 'trivia.duel_fee', TRIVIA_DUEL_FEE)} workshop={workshopPromo} onWorkshop={() => setScreen('workshop')} /> : null}
       {screen === 'daily' ? <SoloScreen daily onBack={() => setScreen('home')} hintsEnabled={config.features.shop} /> : null}
       {screen === 'tutorial' ? <Tutorial onDone={() => void markTutorialSeen().then(() => setScreen('home'))} /> : null}
@@ -255,7 +256,7 @@ function AppInner() {
           onPriceOnly={() => setScreen('priceonly')}
           onTrivia={() => setScreen('trivia')}
           onTriviaDuel={() => setScreen('triviaduel')}
-          onWorkshop={() => setScreen('workshop')}
+          onWorkshop={(tab) => (setWorkshopTab(tab ?? 'make'), setScreen('workshop'))}
           onDaily={() => setScreen('daily')}
           onTutorial={() => setScreen('tutorial')}
           onDuel={() => setScreen('duel')}

@@ -85,7 +85,7 @@ interface Tile {
  * speech bubble, corner tiles down both sides, the floating hero, and two big buttons at the bottom. Every feature
  * keeps its sheet; a tile only shows when its feature flag is on.
  */
-export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onTriviaDuel, onWorkshop, onDaily, onDuel, onDuelResume, onTutorial, onLookup, onGallery, features = OPEN_CONFIG.features, settings = OPEN_CONFIG.raw, myTrack, onPreview }: { onSolo: () => void; onPreview?: (track: 'kid' | 'teen') => void; onPriceOnly?: () => void; onTrivia?: () => void; onTriviaDuel?: () => void; onWorkshop?: () => void; onDaily?: () => void; onDuel?: () => void; onDuelResume?: () => void; onTutorial?: () => void; onLookup: () => void; onGallery?: () => void; features?: ClientConfig['features']; settings?: ClientConfig['raw']; /** Track rules and the guardian's limits; absent = no restriction. */ myTrack?: { rules: TrackRulesDto | null; limits: ChildLimits | null } }) {
+export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onTriviaDuel, onWorkshop, onDaily, onDuel, onDuelResume, onTutorial, onLookup, onGallery, features = OPEN_CONFIG.features, settings = OPEN_CONFIG.raw, myTrack, onPreview }: { onSolo: () => void; onPreview?: (track: 'kid' | 'teen') => void; onPriceOnly?: () => void; onTrivia?: () => void; onTriviaDuel?: () => void; onWorkshop?: (tab?: 'make' | 'review') => void; onDaily?: () => void; onDuel?: () => void; onDuelResume?: () => void; onTutorial?: () => void; onLookup: () => void; onGallery?: () => void; features?: ClientConfig['features']; settings?: ClientConfig['raw']; /** Track rules and the guardian's limits; absent = no restriction. */ myTrack?: { rules: TrackRulesDto | null; limits: ChildLimits | null } }) {
   const adult = useTheme() === 'adult';
   const month = useMemo(() => solarMonthOf(Date.now()), []);
   /** Short phones (≤700px tall) get tighter columns and a smaller hero so nothing runs into the bottom buttons. */
@@ -243,6 +243,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onTriviaDuel, onWork
             onMap={() => setHubOpen(true)}
             onWheel={() => setWheelOpen(true)}
             onProfile={() => setSettingsOpen(true)}
+            contribute={{ label: fa.feedback.school.tabLabel, badge: workshop && workshop.waiting > 0 ? toPersianDigits(String(workshop.waiting)) : null, onPress: () => setSchoolOpen(true) }}
           />
         ) : (
         <View style={styles.pills}>
@@ -323,7 +324,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onTriviaDuel, onWork
             {triviaDuelOn ? <SlabButton label={fa.triviaDuel.play} sfx="confirm" color={colors.candy.pink} height={54} fontSize={20} onPress={onTriviaDuel!} /> : null}
           </View>
         ) : null}
-        {workshop && onWorkshop ? <WorkshopHomeCard info={workshop} onOpen={onWorkshop} /> : null}
+        {workshop && onWorkshop ? <WorkshopHomeCard info={workshop} onOpen={() => onWorkshop()} /> : null}
       </View>
 
       {review.open && review.url ? <ReviewSheet message={review.message} url={review.url} onReview={review.onReview} onLater={review.onLater} onNever={review.onNever} /> : null}
@@ -344,7 +345,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onTriviaDuel, onWork
           }}
         />
       ) : null}
-      {schoolOpen ? <SchoolSheet onClose={() => setSchoolOpen(false)} /> : null}
+      {schoolOpen ? <SchoolSheet onClose={() => setSchoolOpen(false)} workshop={workshopOn && onWorkshop ? { info: workshop, onOpen: (tab) => (setSchoolOpen(false), onWorkshop(tab)) } : undefined} /> : null}
       {boardOpen ? <LeaderboardPage onClose={() => setBoardOpen(false)} /> : null}
       {roadOpen ? <LevelRoadPage onClose={() => setRoadOpen(false)} onSettings={() => (setRoadOpen(false), setSettingsOpen(true))} settingsBadge={missionsReady > 0 ? toPersianDigits(String(missionsReady)) : undefined} /> : null}
       {settingsOpen ? <SettingsPage onMissions={() => (setSettingsOpen(false), setMissionsOpen(true))} missionsReady={missionsReady} onClose={() => (setSettingsOpen(false), loadTasks(), returnToMissions())} onProfile={() => (setSettingsOpen(false), setProfileOpen(true))} onTutorial={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} onAccountGone={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} ageTracksOn={settings['feature.age_tracks'] === 1} baleOn={features.bale} phoneVerified={profileTasks.some((x) => x.key === 'phone' && x.done)} onPreview={onPreview ? (t) => (setSettingsOpen(false), onPreview(t)) : undefined} /> : null}

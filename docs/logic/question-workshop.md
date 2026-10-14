@@ -39,6 +39,13 @@ Coins through the ledger, reason `ugc_reward`, key `trivia_author:<submissionId>
 6. **Leaderboards** on the Workshop page: top authors (approved count) and top reviewers (points), this week and all time; your own rank and title.
 7. **Boost campaigns**: the admin raises `trivia.author_boost_percent` for a weekend and the card, the post-game call-to-action and the form header all say so.
 
+## Entry: the «قیمت/سوال» tab (D239)
+Owner design (`docs/design/adult/Dozari Adult - Login Home.dc.html`): a small gold tab hangs under the coin plate on the adult Home, pulsing with a light glint sweeping across it, and a red badge with the number of questions waiting for the player's review. It opens one sheet (`SchoolSheet`) with **two sections**:
+- **قیمت** — suggest an item/price and vote on others' suggestions (the existing product UGC, `ugc.md`).
+- **سؤال** — «ساختن سؤال» and «بازبینی سؤال‌ها» (with the waiting count) open the workshop screen on the matching tab; the reward line shows the live author coins.
+The question section (and the badge) exist only while `feature.trivia_workshop` is on and the track is adult; otherwise the sheet is price-only. The Home card and the post-game call-to-action stay. The hub building «مکتب‌خانه» opens the same sheet.
+(The file `Dozari Adult - Workshop` in the design set is the **settings page** named «کارگاه» in the hub, unrelated to this feature.)
+
 ## Abuse guards
 Daily submit limit; duplicate check; reviewers cannot review their own; one review each; reviews counted per day; the admin is the only publisher; settlement bonus needs a matching blind answer; an author whose last 5 decided questions were all rejected is limited to 1 submission a day for 3 days (`trivia.cooldown`, later). Reviews are anonymous to the author; the author is never shown to reviewers.
 
