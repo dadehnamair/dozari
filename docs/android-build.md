@@ -80,3 +80,5 @@ Do not pass signing as `-Pandroid.injected...` on the PowerShell command line: P
 3. Check: `apksigner verify --print-certs app\build\outputs\apk\release\app-release.apk` must not show the Android Debug certificate.
 4. Permissions: the manifest keeps only `INTERNET`, `READ_CONTACTS` (find friends) and `VIBRATE`; `app.json` `android.blockedPermissions` strips the storage, `WRITE_CONTACTS` and `SYSTEM_ALERT_WINDOW` ones that libraries add (stores flag them). Check `android/app/src/main/AndroidManifest.xml` after prebuild.
 5. Every store update needs a higher `android.versionCode` in `apps/mobile/app.json` (and a new `version` for users); build one APK per market.
+
+The `Android APK` workflow reads `FCM_PROJECT_ID`, `FCM_APP_ID`, `FCM_API_KEY`, `FCM_SENDER_ID`, `IRNOTI_PUSH_APP_KEY` (and optional `IRNOTI_API_BASE`) from GitHub repository secrets (Settings → Secrets and variables → Actions). Empty secrets are ignored. If a build fails, open Actions → Android APK → the failed run → the red step ("Generate the native Android project" or "Build the APK") and read the last lines.

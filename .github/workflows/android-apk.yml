@@ -50,6 +50,14 @@ jobs:
 
       - name: Generate the native Android project
         working-directory: apps/mobile
+        # Public identifiers only (no service-account JSON, no API keys). Without them the APK builds without instant push.
+        env:
+          FCM_PROJECT_ID: ${{ secrets.FCM_PROJECT_ID }}
+          FCM_APP_ID: ${{ secrets.FCM_APP_ID }}
+          FCM_API_KEY: ${{ secrets.FCM_API_KEY }}
+          FCM_SENDER_ID: ${{ secrets.FCM_SENDER_ID }}
+          IRNOTI_PUSH_APP_KEY: ${{ secrets.IRNOTI_PUSH_APP_KEY }}
+          IRNOTI_API_BASE: ${{ secrets.IRNOTI_API_BASE }}
         run: pnpm exec expo prebuild --platform android --no-install
 
       - name: Signing key
