@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { toPersianDigits } from '@dozari/shared';
 import type { TriviaRoundView } from '@dozari/shared';
@@ -7,12 +7,15 @@ import { Character } from '../components/Character';
 import { fa } from '../i18n/fa';
 import { playSfx } from '../sound/engine';
 import { fonts } from '../theme/colors';
+import { BrassSquare, Plate } from './adultKit';
 import type { CharacterId } from '../theme/character';
 
 const t = fa.duel.triviaRound;
 const a = t.adult;
 const LETTERS = ['الف', 'ب', 'ج', 'د'] as const;
 const RING = 138.2;
+const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
+const ROW_REV = Platform.OS === 'web' ? ('row' as const) : ('row-reverse' as const);
 /** How long a finished question's «شرح» card stays before the next question takes over (the player can skip it). */
 const HOLD_MS = 8000;
 
@@ -41,7 +44,7 @@ function Avatar({ who, border }: { who: CharacterId; border: string }) {
  * Adult look of the duel's general-question round («صرافی و گاوصندوق», copper = duel): header with progress pips, score strip with the
  * clock ring, the question, then either the four answer rows (asking) or the shrunk rows plus the «شرح» card (a finished question).
  */
-export function DuelTriviaRoundAdult({ round, now, onAnswer, me, rival, topic }: { round: TriviaRoundView; now: number; /** Topic name shown as a chip on the question card (the standalone question duel); absent = no chip. */ topic?: string | null; /** Resolves to an error text, or null when the server took the answer. */ onAnswer: (index: number) => Promise<string | null>; me: Side; rival: Side }) {
+export function DuelTriviaRoundAdult({ round, now, onAnswer, me, rival, topic, title, onExit }: { round: TriviaRoundView; now: number; /** Heading (default: the board duel's «دور سؤال عمومی»). */ title?: string; /** Shows the brass ✕ in the header; it should ask before leaving. */ onExit?: () => void; /** Topic name shown as a chip on the question card (the standalone question duel); absent = no chip. */ topic?: string | null; /** Resolves to an error text, or null when the server took the answer. */ onAnswer: (index: number) => Promise<string | null>; me: Side; rival: Side }) {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [mine, setMine] = useState<number | null>(null);
@@ -73,7 +76,10 @@ export function DuelTriviaRoundAdult({ round, now, onAnswer, me, rival, topic }:
     if (hold && holdLeft <= 0) setHold(null);
   }, [hold, holdLeft]);
 
-  const secs = Math.max(0, Math.ceil((round.endsAt - now) / 1000));
+  const liveSecs = Math.max(0, Math.ceil((round.endsAt - now) / 1000));
+  const frozen = useRef({ secs: liveSecs, total: 1 });
+  if (!hold) frozen.current = { secs: liveSecs, total: total.current };
+  const secs = hold ? frozen.current.secs : liveSecs;
   const current = round.current;
   const answered = round.youAnswered || mine !== null;
   const rows = round.revealed;
@@ -96,7 +102,7 @@ export function DuelTriviaRoundAdult({ round, now, onAnswer, me, rival, topic }:
   const options = hold ? hold.options : current?.options ?? [];
   const banner = hold ? bannerOf(hold) : null;
   const ringColor = hold ? '#5A4A3A' : secs <= 5 ? '#FF6B55' : '#E8B64A';
-  const frac = hold ? 0 : Math.min(1, secs / total.current);
+  const frac = Math.min(1, secs / (hold ? frozen.current.total : total.current));
   const rivalState = hold
     ? hold.opponentPick === null
       ? { t: a.rivalNone, c: '#FF9A8A' }
@@ -110,18 +116,23 @@ export function DuelTriviaRoundAdult({ round, now, onAnswer, me, rival, topic }:
   return (
     <View style={styles.column}>
       <View style={styles.head}>
-        <Text style={styles.title}>{t.title}</Text>
-        <Text style={styles.count}>{t.round(Math.min(round.totalRounds, shownIndex + 1), round.totalRounds)}</Text>
-      </View>
-      <View style={styles.pips}>
-        {Array.from({ length: round.totalRounds }, (_, i) => {
-          const r = rows[i];
-          const c = r ? (r.yourPick === r.correctIndex ? '#7ED957' : '#E0533F') : i === shownIndex ? '#E8B64A' : '#2A1E16';
-          return <View key={i} style={[styles.pip, { backgroundColor: c }]} />;
-        })}
+        <View style={styles.headMain}>
+          <View style={styles.titleRow}>
+            <Text style={styles.title}>{title ?? t.title}</Text>
+            <Text style={styles.count}>{t.round(Math.min(round.totalRounds, shownIndex + 1), round.totalRounds)}</Text>
+          </View>
+          <View style={styles.pips}>
+            {Array.from({ length: round.totalRounds }, (_, i) => {
+              const r = rows[i];
+              const c = r ? (r.yourPick === r.correctIndex ? '#7ED957' : '#E0533F') : i === shownIndex ? '#E8B64A' : '#2A1E16';
+              return <View key={i} style={[styles.pip, { backgroundColor: c }]} />;
+            })}
+          </View>
+        </View>
+        {onExit ? <BrassSquare glyph="close" label={fa.solo.back} onPress={onExit} /> : null}
       </View>
 
-      <View style={styles.score}>
+      <Plate radius={18} border="#E0895A" height={80} style={styles.score}>
         <View style={styles.side}>
           <Avatar who={me.who} border="#E8B64A" />
           <View style={styles.sideText}>
@@ -145,12 +156,12 @@ export function DuelTriviaRoundAdult({ round, now, onAnswer, me, rival, topic }:
             <Text style={[styles.rivalState, { color: rivalState.c }]}>{rivalState.t}</Text>
           </View>
         </View>
-      </View>
+      </Plate>
 
-      <View style={[styles.card, hold ? styles.cardTight : null]}>
+      <Plate radius={20} border="#E8B64A" ledge={5} style={[styles.card, hold ? styles.cardTight : null]}>
         {topic && !hold ? <View style={styles.chip}><Text style={styles.chipText}>{topic}</Text></View> : null}
         <Text style={[styles.question, hold ? styles.questionSmall : null]}>{text}</Text>
-      </View>
+      </Plate>
 
       {hold ? null : <Text style={styles.hint}>{answered ? a.waitRival : a.pickOne}</Text>}
 
@@ -164,24 +175,21 @@ export function DuelTriviaRoundAdult({ round, now, onAnswer, me, rival, topic }:
           const faded = hold ? !right && !wrong : answered && !isMine;
           const lit = !hold && isMine;
           const bd = right ? '#9FE870' : wrong ? '#E0533F' : lit ? '#FFD2B0' : hold ? '#3A2A1C' : '#8A5A16';
-          const bg = right ? '#2F5A1A' : wrong ? '#4A1610' : lit ? '#3F2010' : hold ? '#17100C' : '#2A1E16';
+          const from = right ? '#3E7A22' : wrong ? '#6A1E16' : lit ? '#5A2E18' : hold ? '#17100C' : '#3A2A1C';
+          const to = right ? '#22480F' : wrong ? '#3A0E0A' : lit ? '#2A140A' : hold ? '#17100C' : '#1E1610';
           const fg = right ? '#F1FFE6' : wrong ? '#FFD9D2' : hold ? 'rgba(255,233,168,0.4)' : '#FFE9A8';
           const tagBg = right ? '#9FE870' : wrong ? '#C4302B' : lit ? '#E0895A' : hold ? '#2A1E16' : '#E8B64A';
+          const glow = right ? '#7ED957' : lit ? '#E0895A' : undefined;
           return (
-            <Pressable
-              key={i}
-              accessibilityRole="button"
-              accessibilityLabel={o}
-              disabled={busy || answered || hold !== null}
-              onPress={() => void send(i)}
-              style={[styles.row, hold ? styles.rowTight : null, { borderColor: bd, backgroundColor: bg, opacity: faded && !hold ? 0.55 : hold && faded ? 0.75 : 1 }]}
-            >
-              <View style={[styles.tag, { backgroundColor: tagBg }]}>
-                <Text style={[styles.tagText, { color: right ? '#0E2A06' : wrong ? '#fff' : '#2A1606' }]}>{right ? '✓' : wrong ? '✕' : LETTERS[i]}</Text>
-              </View>
-              <Text style={[styles.rowText, { color: fg }]}>{o}</Text>
-              {theirs ? <Text style={[styles.pill, styles.pillRival]}>{a.rival}</Text> : null}
-              {isMine ? <Text style={[styles.pill, styles.pillMine]}>{a.you}</Text> : null}
+            <Pressable key={i} accessibilityRole="button" accessibilityLabel={o} disabled={busy || answered || hold !== null} onPress={() => void send(i)} style={{ opacity: faded && !hold ? 0.55 : hold && faded ? 0.75 : 1 }}>
+              <Plate radius={14} border={bd} from={from} to={to} ledge={hold && faded ? 0 : lit || right ? 0 : 3} glow={glow} height={hold ? 34 : 60} style={styles.row}>
+                <View style={[styles.tag, { backgroundColor: tagBg }]}>
+                  <Text style={[styles.tagText, { color: right ? '#0E2A06' : wrong ? '#fff' : '#2A1606' }]}>{right ? '✓' : wrong ? '✕' : LETTERS[i]}</Text>
+                </View>
+                <Text style={[styles.rowText, { color: fg }]}>{o}</Text>
+                {theirs ? <Text style={[styles.pill, styles.pillRival]}>{a.rival}</Text> : null}
+                {isMine ? <Text style={[styles.pill, styles.pillMine]}>{a.you}</Text> : null}
+              </Plate>
             </Pressable>
           );
         })}
@@ -189,46 +197,48 @@ export function DuelTriviaRoundAdult({ round, now, onAnswer, me, rival, topic }:
       {note ? <Text style={styles.error}>{note}</Text> : null}
 
       {hold && banner ? (
-        <View style={styles.explain}>
+        <Plate radius={20} border="#E8B64A" ledge={5} style={styles.explain}>
           <View style={[styles.banner, { backgroundColor: banner.bg, borderColor: banner.bd }]}>
             <Text style={[styles.bannerTitle, { color: banner.fg }]}>{banner.title}</Text>
             <Text style={[styles.bannerPill, { color: banner.fg, borderColor: banner.bd }]}>{banner.pill}</Text>
           </View>
           <Text style={styles.why}>{a.why(hold.options[hold.correctIndex] ?? '')}</Text>
           {hold.explanationFa ? <Text style={styles.exText}>{hold.explanationFa}</Text> : null}
-          <Pressable accessibilityRole="button" onPress={() => setHold(null)} style={({ pressed }) => [styles.next, pressed ? styles.nextPressed : null]}>
-            <View style={[styles.nextFill, { width: `${Math.min(100, ((HOLD_MS - Math.max(0, holdLeft)) / HOLD_MS) * 100)}%` }]} />
-            <Text style={styles.nextText}>{a.next} · {toPersianDigits(String(Math.max(0, Math.ceil(holdLeft / 1000))))}</Text>
+          <Pressable accessibilityRole="button" onPress={() => setHold(null)} style={({ pressed }) => (pressed ? styles.nextPressed : null)}>
+            <Plate radius={15} border="#000" frame={3} from="#FFD2B0" to="#7A3414" style={styles.next}>
+              <View style={[styles.nextFill, { width: `${Math.min(100, ((HOLD_MS - Math.max(0, holdLeft)) / HOLD_MS) * 100)}%` }]} />
+              <Text style={styles.nextText}>{a.next} · {toPersianDigits(String(Math.max(0, Math.ceil(holdLeft / 1000))))}</Text>
+            </Plate>
           </Pressable>
-        </View>
+        </Plate>
       ) : null}
     </View>
   );
 }
 
-const PANEL = { backgroundColor: '#201610', borderWidth: 2, borderColor: '#E8B64A' } as const;
-
 const styles = StyleSheet.create({
   column: { width: '100%', maxWidth: 520, alignSelf: 'center', gap: 10, paddingTop: 8, alignItems: 'stretch' },
-  head: { flexDirection: 'row', alignItems: 'baseline', gap: 8 },
-  title: { fontFamily: fonts.display, fontSize: 24, color: '#FFE9A8' },
+  head: { flexDirection: ROW, alignItems: 'center', gap: 10 },
+  headMain: { flex: 1, gap: 6, minWidth: 0 },
+  titleRow: { flexDirection: ROW, alignItems: 'baseline', gap: 8 },
+  title: { fontFamily: fonts.display, fontSize: 24, lineHeight: 34, color: '#FFE9A8' },
   count: { fontFamily: fonts.bold, fontSize: 12, color: 'rgba(255,233,168,0.65)' },
-  pips: { flexDirection: 'row', gap: 3 },
+  pips: { flexDirection: ROW, gap: 3 },
   pip: { flex: 1, height: 6, borderRadius: 3, borderWidth: 1, borderColor: '#000' },
-  score: { height: 80, borderRadius: 18, borderWidth: 2, borderColor: '#E0895A', backgroundColor: '#201610', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, gap: 4 },
-  side: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 7, minWidth: 0 },
-  sideRival: { flexDirection: 'row-reverse' },
+  score: { flexDirection: ROW, alignItems: 'center', paddingHorizontal: 8, gap: 4 },
+  side: { flex: 1, flexDirection: ROW, alignItems: 'center', gap: 7, minWidth: 0 },
+  sideRival: { flexDirection: ROW_REV },
   sideText: { flexShrink: 1, gap: 1 },
   sideTextRival: { alignItems: 'flex-end' },
   sideName: { fontFamily: fonts.bold, fontSize: 11, color: 'rgba(255,233,168,0.7)' },
-  num: { fontFamily: fonts.display, fontSize: 30, lineHeight: 34, color: '#FFE9A8' },
+  num: { fontFamily: fonts.display, fontSize: 30, lineHeight: 40, color: '#FFE9A8' },
   streak: { fontFamily: fonts.bold, fontSize: 10.5, color: '#FF9A5A' },
   rivalState: { fontFamily: fonts.bold, fontSize: 10.5 },
   avatar: { width: 48, height: 48, borderRadius: 24, borderWidth: 2, backgroundColor: '#17100C', overflow: 'hidden' },
   ring: { width: 56, height: 56, alignItems: 'center', justifyContent: 'center' },
   ringSvg: { position: 'absolute', transform: [{ rotate: '-90deg' }] },
-  ringText: { fontFamily: fonts.display, fontSize: 20 },
-  card: { ...PANEL, borderRadius: 20, padding: 14, gap: 8 },
+  ringText: { fontFamily: fonts.display, fontSize: 20, lineHeight: 30 },
+  card: { padding: 14, gap: 8 },
   chip: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 2, borderRadius: 99, backgroundColor: '#0E0A08', borderWidth: 1.5, borderColor: '#8A5A16' },
   chipText: { fontFamily: fonts.bold, fontSize: 11, color: '#E8B64A' },
   cardTight: { padding: 10 },
@@ -237,23 +247,22 @@ const styles = StyleSheet.create({
   hint: { fontFamily: fonts.bold, fontSize: 12.5, color: 'rgba(255,233,168,0.6)', textAlign: 'center' },
   rows: { gap: 9 },
   rowsTight: { gap: 5 },
-  row: { height: 60, borderRadius: 14, borderWidth: 2, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 8 },
-  rowTight: { height: 34 },
+  row: { flexDirection: ROW, alignItems: 'center', gap: 10, paddingHorizontal: 8 },
   tag: { width: 30, height: 30, borderRadius: 9, borderWidth: 2, borderColor: '#000', alignItems: 'center', justifyContent: 'center' },
-  tagText: { fontFamily: fonts.display, fontSize: 15 },
+  tagText: { fontFamily: fonts.display, fontSize: 15, lineHeight: 24 },
   rowText: { flex: 1, fontFamily: fonts.bold, fontSize: 16, textAlign: 'right' },
   pill: { height: 22, paddingHorizontal: 8, borderRadius: 99, borderWidth: 1.5, borderColor: '#000', fontFamily: fonts.display, fontSize: 12, lineHeight: 19, overflow: 'hidden' },
   pillRival: { backgroundColor: '#E0895A', color: '#2A1206' },
   pillMine: { backgroundColor: '#E8B64A', color: '#2A1606' },
   error: { fontFamily: fonts.bold, fontSize: 13, color: '#FF9A8A', textAlign: 'center' },
-  explain: { ...PANEL, borderRadius: 20, padding: 12, gap: 8 },
-  banner: { flexDirection: 'row', alignItems: 'center', gap: 8, borderRadius: 12, borderWidth: 2, paddingVertical: 5, paddingHorizontal: 8 },
-  bannerTitle: { flex: 1, fontFamily: fonts.display, fontSize: 19 },
+  explain: { padding: 12, gap: 8 },
+  banner: { flexDirection: ROW, alignItems: 'center', gap: 8, borderRadius: 12, borderWidth: 2, paddingVertical: 5, paddingHorizontal: 8 },
+  bannerTitle: { flex: 1, fontFamily: fonts.display, fontSize: 19, lineHeight: 28 },
   bannerPill: { fontFamily: fonts.display, fontSize: 13, paddingHorizontal: 9, borderRadius: 99, borderWidth: 1.5, backgroundColor: '#0E0A08', overflow: 'hidden' },
-  why: { fontFamily: fonts.display, fontSize: 17, color: '#E8B64A', textAlign: 'right' },
+  why: { fontFamily: fonts.display, fontSize: 17, lineHeight: 26, color: '#E8B64A', textAlign: 'right' },
   exText: { fontFamily: fonts.bold, fontSize: 14.5, lineHeight: 25, color: '#FFE9A8', textAlign: 'right' },
-  next: { height: 48, borderRadius: 15, borderWidth: 3, borderColor: '#000', backgroundColor: '#E0895A', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  next: { height: 42, alignItems: 'center', justifyContent: 'center' },
   nextPressed: { transform: [{ translateY: 3 }] },
   nextFill: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.18)' },
-  nextText: { fontFamily: fonts.display, fontSize: 20, color: '#2A1206' },
+  nextText: { fontFamily: fonts.display, fontSize: 20, lineHeight: 30, color: '#2A1206' },
 });

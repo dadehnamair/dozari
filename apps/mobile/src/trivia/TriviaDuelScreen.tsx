@@ -12,6 +12,7 @@ import { DuelTriviaRoundAdult } from '../duel/DuelTriviaRoundAdult';
 import { Versus } from '../duel/Versus';
 import { characterFor, myCharacter } from '../duel/arena';
 import { bootTheme } from '../theme/bootTheme';
+import { AdultBackdrop } from '../duel/adultKit';
 import { GameTopBar } from '../game/GameTopBar';
 import { MatchBackground } from '../game/MatchBackground';
 import { fa } from '../i18n/fa';
@@ -180,6 +181,26 @@ export function TriviaDuelScreen({ onBack, fee, workshop, onWorkshop }: { onBack
       const ack = await conn.current?.answer(index);
       return !ack || ack.ok ? null : (fa.duel.errors[ack.error] ?? fa.duel.errors.generic ?? '');
     };
+    if (bootTheme() === 'adult') {
+      return (
+        <AdultBackdrop>
+          <ScrollView contentContainerStyle={styles.screen}>
+            {m.error ? <Text style={styles.error}>{t.connectionLost}</Text> : null}
+            <DuelTriviaRoundAdult
+              round={m.state.round}
+              now={now}
+              title={t.title}
+              topic={m.found?.topicNameFa}
+              onExit={() => setConfirmLeave(true)}
+              me={{ name: m.found?.players[m.found.you]?.nickname || fa.duel.triviaRound.adult.you, who: myCharacter(m.found?.players[m.found.you]?.avatarKey, getLookGender()) }}
+              rival={{ name: rivalNick || fa.duel.triviaRound.adult.rival, who: characterFor(m.found?.players[(1 - m.found.you) as 0 | 1]?.avatarKey || rivalNick) }}
+              onAnswer={onAnswer}
+            />
+          </ScrollView>
+          {confirmLeave ? <LeaveDialog onStay={() => setConfirmLeave(false)} onLeave={leaveGame} /> : null}
+        </AdultBackdrop>
+      );
+    }
     return (
       <MatchBackground>
         <ScrollView contentContainerStyle={styles.screen}>
@@ -188,21 +209,10 @@ export function TriviaDuelScreen({ onBack, fee, workshop, onWorkshop }: { onBack
               <Pressable accessibilityRole="button" accessibilityLabel={fa.solo.back} hitSlop={8} onPress={() => setConfirmLeave(true)} style={styles.exit}>
                 <Text style={styles.exitText}>✕</Text>
               </Pressable>
-              {m.found?.topicNameFa && bootTheme() !== 'adult' ? <Text style={styles.topicLine}>{fa.triviaDuel.topic(m.found.topicNameFa)}</Text> : <View />}
+              {m.found?.topicNameFa ? <Text style={styles.topicLine}>{fa.triviaDuel.topic(m.found.topicNameFa)}</Text> : <View />}
             </View>
             {m.error ? <Text style={styles.error}>{t.connectionLost}</Text> : null}
-            {bootTheme() === 'adult' ? (
-              <DuelTriviaRoundAdult
-                round={m.state.round}
-                now={now}
-                me={{ name: m.found?.players[m.found.you]?.nickname || fa.duel.triviaRound.adult.you, who: myCharacter(m.found?.players[m.found.you]?.avatarKey, getLookGender()) }}
-                topic={m.found?.topicNameFa}
-                rival={{ name: rivalNick || fa.duel.triviaRound.adult.rival, who: characterFor(m.found?.players[(1 - m.found.you) as 0 | 1]?.avatarKey || rivalNick) }}
-                onAnswer={onAnswer}
-              />
-            ) : (
-              <DuelTriviaRound round={m.state.round} now={now} title={t.title} intro={null} onAnswer={onAnswer} />
-            )}
+            <DuelTriviaRound round={m.state.round} now={now} title={t.title} intro={null} onAnswer={onAnswer} />
           </View>
         </ScrollView>
         {confirmLeave ? <LeaveDialog onStay={() => setConfirmLeave(false)} onLeave={leaveGame} /> : null}

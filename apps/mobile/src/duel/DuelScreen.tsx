@@ -34,6 +34,7 @@ import { fetchLeaveWarning } from './api';
 import { DuelPriceRound } from './DuelPriceRound';
 import { DuelTriviaRound } from './DuelTriviaRound';
 import { DuelTriviaRoundAdult } from './DuelTriviaRoundAdult';
+import { AdultBackdrop } from './adultKit';
 import { DuelResult } from './DuelResult';
 import { EDGE_LEFT, EDGE_RIGHT } from '../theme/direction';
 import { InviteSheet } from '../invite/InviteSheet';
@@ -484,8 +485,9 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
 
   // After it (and the price round) come the general questions, in the same way.
   if (view.triviaRound && !state.finale) {
+    const Backdrop = bootTheme() === 'adult' ? AdultBackdrop : MatchBackground;
     return (
-      <MatchBackground>
+      <Backdrop>
         <ScrollView contentContainerStyle={styles.screen}>
           {bootTheme() === 'adult' ? (
             <DuelTriviaRoundAdult
@@ -509,7 +511,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
             />
           )}
         </ScrollView>
-      </MatchBackground>
+      </Backdrop>
     );
   }
 
