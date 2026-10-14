@@ -1,4 +1,4 @@
-import { DUEL_ROUNDS_DEFAULT, TABLE_MIN_ROUNDS_DEFAULT, TRIVIA_DUEL_QUESTIONS, TRIVIA_DUEL_SECONDS, TRIVIA_QUESTIONS_PER_GAME } from './topics.js';
+import { DUEL_ROUNDS_DEFAULT, TABLE_MIN_ROUNDS_DEFAULT, TRIVIA_DUEL_FEE, TRIVIA_DUEL_QUESTIONS, TRIVIA_DUEL_SECONDS, TRIVIA_SOLO_FEE, TRIVIA_SOLO_REFUND_PERCENT, TRIVIA_QUESTIONS_PER_GAME } from './topics.js';
 import { LEAVE_BADGE_COUNT, LEAVE_BADGE_WINDOW_DAYS, LEAVE_DAY_BAN_COUNT, LEAVE_RECONNECT_GRACE_SECONDS } from './leave.js';
 import { LEVEL_REWARD_BASE_COINS, LEVEL_REWARD_EVERY } from './progression.js';
 import {
@@ -79,6 +79,9 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'feature.trivia_duel', group: 'app', label: 'دوئل پرسشی (حریف‌یابی زنده با سؤال چهارگزینه‌ای) روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'trivia.duel_questions', group: 'scoring', label: 'تعداد پرسش در هر «دوئل پرسشی»', kind: 'int', min: 3, max: 15, default: TRIVIA_DUEL_QUESTIONS },
   { key: 'trivia.duel_seconds', group: 'scoring', label: 'ثانیه‌ی پاسخ به هر پرسش در «دوئل پرسشی»', kind: 'int', min: 5, max: 60, default: TRIVIA_DUEL_SECONDS },
+  { key: 'trivia.solo_fee', group: 'economy', label: 'هزینه‌ی شروع «پرسش» تکی (سکه)', hint: 'صفر: رایگان. اگر درصد درست بازیکن به حد «بازگشت هزینه» برسد، همین مبلغ پس داده می‌شود.', kind: 'int', min: 0, max: 100, default: TRIVIA_SOLO_FEE },
+  { key: 'trivia.solo_refund_percent', group: 'economy', label: 'حداقل درصد جواب درست برای پس گرفتن هزینه‌ی «پرسش» تکی', kind: 'int', min: 0, max: 100, default: TRIVIA_SOLO_REFUND_PERCENT },
+  { key: 'trivia.duel_fee', group: 'economy', label: 'ورودی هر نفر در «دوئل پرسشی» (سکه)', hint: 'صفر: رایگان. برنده کل جایزه منهای کارمزد دوئل را می‌برد؛ مساوی: ورودی منهای کارمزد برمی‌گردد؛ ربات: خانه ورودی‌اش را می‌دهد.', kind: 'int', min: 0, max: 500, default: TRIVIA_DUEL_FEE },
   { key: 'priceonly.rounds', group: 'scoring', label: 'تعداد دور در بازی «فقط حدس قیمت»', kind: 'int', min: 1, max: PRICE_ONLY_MAX_ROUNDS, default: PRICE_ONLY_ROUNDS },
   { key: 'feature.lookup', group: 'app', label: 'استعلام قیمت روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'feature.duel', group: 'app', label: 'بازی دونفره‌ی زنده روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },

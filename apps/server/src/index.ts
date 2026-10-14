@@ -198,6 +198,7 @@ import { registerPriceOnlyRoutes } from './priceonly/routes.js';
 import { TriviaService } from './trivia/service.js';
 import { registerTriviaRoutes } from './trivia/routes.js';
 import { createDbTriviaStore } from './trivia/store.js';
+import { TriviaStakes } from './trivia/stakes.js';
 import { PriceOnlyService } from './priceonly/service.js';
 import { createDbPriceOnlySource } from './priceonly/db-source.js';
 import { SoloService } from './solo/service.js';
@@ -954,7 +955,25 @@ if (isMainModule(import.meta.url)) {
         })
       : undefined;
   const triviaStore = db ? createDbTriviaStore(db) : undefined;
-  const trivia = triviaStore ? new TriviaService(triviaStore, { perGame: settings ? () => settings.num('trivia.questions') : undefined }) : undefined;
+  // Coins of the question modes (docs/logic/trivia.md §Coins): a fee to start, the pot to the duel winner, the fee back for a good solo score.
+  const triviaStakes =
+    db && settings
+      ? new TriviaStakes(createDbStakeStore(db), {
+          soloFee: () => settings.num('trivia.solo_fee'),
+          duelFee: () => settings.num('trivia.duel_fee'),
+          houseCutPercent: () => settings.num('duel.house_cut_percent'),
+          isBot: (id) => botDriver?.isBot(id) ?? false,
+        })
+      : undefined;
+  const trivia = triviaStore
+    ? new TriviaService(triviaStore, {
+        perGame: settings ? () => settings.num('trivia.questions') : undefined,
+        stakes: triviaStakes,
+        refundPercent: settings ? () => settings.num('trivia.solo_refund_percent') : undefined,
+        // XP like any finished game: a score that earns the fee back counts as a win.
+        onFinished: (userId, _score, _total, passed) => void player?.recordGame(userId, { mode: 'solo', outcome: passed ? 'win' : 'loss' }),
+      })
+    : undefined;
   const dailyStore = db ? createDbDailyStore(db) : undefined;
   const daily = dailyStore && solo && settings ? new DailyService(dailyStore, solo, { num: (k) => settings.num(k) }) : undefined;
   dailyRef = daily;
@@ -1016,7 +1035,18 @@ if (isMainModule(import.meta.url)) {
             },
             topicName: (id) => triviaStore.topicName(id),
             settings: async () => ({ questions: await settings.num('trivia.duel_questions'), seconds: await settings.num('trivia.duel_seconds') }),
+            stakes: triviaStakes,
+            isBot: (id) => botDriver?.isBot(id) ?? false,
+            onLeave: leaves ? (i) => void leaves.record(i.userId, i.matchId, 'manual').catch(() => undefined) : undefined,
+            // XP like a board duel (a leave counts as a loss for the leaver); bots earn nothing.
+            onEnded: ({ players, winner }) => {
+              players.forEach((id, side) => {
+                if (botDriver?.isBot(id)) return;
+                void player?.recordGame(id, { mode: 'duel', outcome: winner === null ? 'draw' : winner === side ? 'win' : 'loss' });
+              });
+            },
             gate: async (id) => {
+              if (leaves && (await leaves.isBanned(id).catch(() => false))) return 'LEAVE_BANNED';
               if ((await settings.num('app.maintenance_on')) === 1) return 'MAINTENANCE';
               if ((await settings.num('feature.trivia_duel')) !== 1) return 'FEATURE_OFF';
               // Same rule as the other price/question modes: tracks whose rules switch them off (kids) do not get it.

@@ -27,3 +27,14 @@ export const TRIVIA_DUEL_QUESTIONS = 8;
 export const TRIVIA_DUEL_SECONDS = 15;
 /** The versus card shows this long after the rival is found, before the first question opens (and its clock starts). */
 export const TRIVIA_DUEL_INTRO_MS = 3000;
+/**
+ * Coins of the question modes (docs/logic/trivia.md §Coins). A solo game costs `TRIVIA_SOLO_FEE`, given back when at least
+ * `TRIVIA_SOLO_REFUND_PERCENT` of the answers are right (so a good player pays nothing). A question duel costs `TRIVIA_DUEL_FEE` each,
+ * the winner takes the pot minus the usual house cut (`duel.house_cut_percent`). Both are below the board duel's 20 on purpose: a question
+ * game is quicker and needs less skill, and the house cut makes it a small sink either way. 0 = free.
+ */
+export const TRIVIA_SOLO_FEE = 3;
+export const TRIVIA_SOLO_REFUND_PERCENT = 75;
+export const TRIVIA_DUEL_FEE = 12;
+/** After a question duel ends both sides may ask for a rematch for this long. */
+export const TRIVIA_DUEL_REMATCH_SECONDS = 30;

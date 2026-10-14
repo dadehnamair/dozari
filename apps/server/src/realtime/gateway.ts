@@ -262,6 +262,10 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
       if (!body.success) return ack?.({ ok: false, error: 'INVALID_PAYLOAD' });
       ack?.(triviaDuel ? triviaDuel.answer(userId, body.data.index) : { ok: false, error: 'NOT_IN_MATCH' });
     });
+    socket.on(ClientEvent.tduelRematch, async (_payload: unknown, ack?: (a: Ack) => void) => {
+      if (!triviaDuel) return ack?.({ ok: false, error: 'FEATURE_OFF' });
+      ack?.(await triviaDuel.rematch(userId).catch(() => ({ ok: false, error: 'INTERNAL' }) as const));
+    });
     socket.on(ClientEvent.tduelResume, (_payload: unknown, ack?: (a: Ack) => void) => {
       ack?.(triviaDuel?.resume(userId) ? { ok: true } : { ok: false, error: 'NOT_IN_MATCH' });
     });

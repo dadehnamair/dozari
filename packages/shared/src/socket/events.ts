@@ -31,6 +31,8 @@ export const ClientEvent = {
   tduelLeave: 'tduel:leave',
   tduelAnswer: 'tduel:answer',
   tduelResume: 'tduel:resume',
+  /** Asks the same rival for another game (answered when both asked, or at once by a bot). */
+  tduelRematch: 'tduel:rematch',
   chatJoin: 'chat:join',
   chatTaunt: 'chat:taunt',
 } as const;
@@ -48,6 +50,10 @@ export const ServerEvent = {
   tduelFound: 'tduel:found',
   tduelState: 'tduel:state',
   tduelEnded: 'tduel:ended',
+  /** The rival asked for a rematch (`asked`), or the chance is gone (`expired`). */
+  tduelOffer: 'tduel:offer',
+  /** A search or rematch could not become a game for this player (e.g. they cannot pay the entry fee any more). */
+  tduelRefused: 'tduel:refused',
   chatMessage: 'chat:message',
   /** A small «something new for you» push (friend request, inbox message); the client then reloads that list. */
   notice: 'notice:new',
@@ -186,6 +192,8 @@ export const tduelFoundSchema = z.object({
   you: side,
   youId: z.string().optional(),
   topicNameFa: z.string().nullable(),
+  /** Entry fee this player put down (0 = free or covered by the house). */
+  fee: z.number().int().nonnegative().default(0),
   players: z.array(matchPlayerProfileSchema).length(2),
 });
 /** One side's view of a question duel; the right choice and the rival's pick stay hidden until a question is revealed. */
@@ -196,8 +204,15 @@ export const tduelEndedSchema = z.object({
   winner: side.nullable(),
   reason: z.enum(['played', 'forfeit']),
   scores: z.tuple([z.number().int().nonnegative(), z.number().int().nonnegative()]),
+  /** Net coin change of the receiver over the whole game (payout minus the fee); 0 when the game is free. */
+  coins: z.number().int().default(0),
+  /** True while the receiver may still ask for a rematch (a played game against a rival who has not left). */
+  canRematch: z.boolean().default(false),
   round: triviaRoundViewSchema,
 });
+export const tduelRematchSchema = z.object({ state: z.enum(['asked', 'expired']) });
+export const tduelRefusedSchema = z.object({ error: errorCodeSchema });
+export type TduelRematch = z.infer<typeof tduelRematchSchema>;
 export type TduelFound = z.infer<typeof tduelFoundSchema>;
 export type TduelState = z.infer<typeof tduelStateSchema>;
 export type TduelEnded = z.infer<typeof tduelEndedSchema>;

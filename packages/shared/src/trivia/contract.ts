@@ -39,6 +39,9 @@ export const triviaViewSchema = z.object({
   results: z.array(triviaResultSchema),
   done: z.boolean(),
   score: z.number().int().nonnegative(),
+  /** Coins the game cost (0 = free or an anonymous game) and, once done, how many came back. */
+  fee: z.number().int().nonnegative().default(0),
+  refund: z.number().int().nonnegative().default(0),
 });
 export type TriviaRound = z.infer<typeof triviaRoundSchema>;
 export type TriviaResult = z.infer<typeof triviaResultSchema>;

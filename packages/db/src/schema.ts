@@ -561,6 +561,9 @@ export const LEDGER_REASONS = [
   'keepsake_piece',
   'keepsake_upgrade',
   'ad_reward',
+  'trivia_entry',
+  'trivia_payout',
+  'trivia_refund',
 ] as const;
 
 /** Append-only. Coins move only through the server's ledger function; a repeated idempotency key is a no-op. */

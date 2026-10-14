@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { TduelEnded, TduelState, TriviaRoundQuestion } from '@dozari/shared';
+import { createMemoryStakeStore } from '../duel/stakes-store.js';
 import { TriviaDuelService } from '../realtime/trivia-duel.js';
+import { TriviaStakes } from '../trivia/stakes.js';
 import type { TriviaDuelDeps } from '../realtime/trivia-duel.js';
 
 const T1 = '11111111-1111-4111-8111-111111111111';
@@ -133,5 +135,168 @@ describe('question duel', () => {
     await svc.join('a');
     expect(svc.leave('a')).toEqual({ ok: true });
     expect(svc.isWaiting('a')).toBe(false);
+  });
+});
+
+function withCoins(over: Partial<TriviaDuelDeps> = {}) {
+  const coins = createMemoryStakeStore();
+  for (const u of ['a', 'b', 'poor']) coins.balances.set(u, u === 'poor' ? 5 : 30);
+  const stakes = new TriviaStakes(coins, { soloFee: async () => 3, duelFee: async () => 12, houseCutPercent: async () => 10, isBot: (id) => id === 'bot' });
+  const leaves: string[] = [];
+  const ended: { winner: unknown; reason: string }[] = [];
+  const env = setup({ stakes, isBot: (id) => id === 'bot', onLeave: (i) => void leaves.push(i.userId), onEnded: (r) => void ended.push(r), ...over });
+  return { ...env, coins, leaves, ended };
+}
+const bal = (c: ReturnType<typeof createMemoryStakeStore>, ...u: string[]) => u.map((x) => c.balances.get(x));
+
+describe('question duel with coins', () => {
+  it('takes the fee at the start, shows it, and pays the winner the pot minus the cut', async () => {
+    const { svc, last, coins, ended } = withCoins();
+    await svc.join('a');
+    await svc.join('b');
+    await flush();
+    expect(bal(coins, 'a', 'b')).toEqual([18, 18]);
+    expect(last<{ fee: number }>('a', 'tduel:found')?.fee).toBe(12);
+    for (const right of [0, 1, 2]) {
+      svc.answer('a', right);
+      svc.answer('b', (right + 1) % 4);
+    }
+    await flush();
+    expect(bal(coins, 'a', 'b')).toEqual([39, 18]);
+    expect(last<TduelEnded>('a', 'tduel:ended')).toMatchObject({ coins: 9, canRematch: true });
+    expect(last<TduelEnded>('b', 'tduel:ended')?.coins).toBe(-12);
+    expect(ended).toEqual([expect.objectContaining({ winner: 0, reason: 'played' })]);
+  });
+
+  it('refuses a join without the fee', async () => {
+    const { svc } = withCoins();
+    expect(await svc.join('poor')).toEqual({ ok: false, error: 'INSUFFICIENT_COINS' });
+    expect(svc.isWaiting('poor')).toBe(false);
+  });
+
+  it('a player who can no longer pay when the pairing happens is refused, and the other keeps waiting', async () => {
+    const coins = createMemoryStakeStore();
+    coins.balances.set('a', 30);
+    coins.balances.set('poor', 5);
+    const real = new TriviaStakes(coins, { soloFee: async () => 3, duelFee: async () => 12, houseCutPercent: async () => 10, isBot: () => false });
+    // The balance check at the join passes (they had the coins then); the fee is taken a moment later.
+    const stakes = Object.assign(Object.create(real), { canAffordDuel: async () => true }) as TriviaStakes;
+    const { svc, last } = setup({ stakes });
+    await svc.join('a');
+    await svc.join('poor');
+    await flush();
+    expect(last('poor', 'tduel:refused')).toEqual({ error: 'INSUFFICIENT_COINS' });
+    expect(svc.isWaiting('poor')).toBe(false);
+    expect(svc.isWaiting('a')).toBe(true);
+    expect(coins.balances.get('a')).toBe(30); // nothing was kept
+  });
+
+  it('a leaver forfeits the fee, is logged for the leave penalty, and the rival is paid', async () => {
+    const { svc, last, coins, leaves } = withCoins();
+    await svc.join('a');
+    await svc.join('b');
+    await flush();
+    expect(svc.leave('a')).toEqual({ ok: true });
+    await flush();
+    expect(leaves).toEqual(['a']);
+    expect(last<TduelEnded>('b', 'tduel:ended')).toMatchObject({ winner: 1, reason: 'forfeit', coins: 9, canRematch: false });
+    expect(last<TduelEnded>('a', 'tduel:ended')?.coins).toBe(-12);
+    expect(bal(coins, 'a', 'b')).toEqual([18, 39]);
+  });
+
+  it('a bot opponent: the human pays only their own fee, and a leave of the human is logged but a bot never is', async () => {
+    const { svc, coins, leaves } = withCoins();
+    await svc.join('a');
+    expect(await svc.startWithBot('a', 'bot')).toBe(true);
+    expect(bal(coins, 'a')).toEqual([18]);
+    svc.leave('bot');
+    await flush();
+    expect(leaves).toEqual([]);
+    expect(bal(coins, 'a')).toEqual([39]); // the bot left: the human wins the pot
+  });
+
+  it('a human who cannot pay when a bot is given leaves the line with a refusal', async () => {
+    const { svc, last, coins } = withCoins();
+    await svc.join('a');
+    coins.balances.set('a', 3);
+    expect(await svc.startWithBot('a', 'bot')).toBe(false);
+    expect(last('a', 'tduel:refused')).toEqual({ error: 'INSUFFICIENT_COINS' });
+    expect(svc.isWaiting('a')).toBe(false);
+  });
+});
+
+describe('question duel rematch', () => {
+  const play = (svc: TriviaDuelService) => {
+    for (const right of [0, 1, 2]) {
+      svc.answer('a', right);
+      svc.answer('b', right);
+    }
+  };
+
+  it('needs both sides: the first ask only tells the rival, the second starts the same game again and charges again', async () => {
+    const { svc, last, coins, events } = withCoins();
+    await svc.join('a', T1);
+    await svc.join('b');
+    await flush();
+    play(svc);
+    await flush();
+    expect(last<TduelEnded>('a', 'tduel:ended')?.canRematch).toBe(true);
+    expect(await svc.rematch('a')).toEqual({ ok: true });
+    expect(last('b', 'tduel:offer')).toEqual({ state: 'asked' });
+    expect(svc.inMatch('a')).toBe(false);
+    const before = events.filter((e) => e.event === 'tduel:found').length;
+    expect(await svc.rematch('b')).toEqual({ ok: true });
+    await flush();
+    expect(svc.inMatch('a') && svc.inMatch('b')).toBe(true);
+    expect(events.filter((e) => e.event === 'tduel:found').length).toBe(before + 2);
+    expect(last<{ topicNameFa: string }>('a', 'tduel:found')?.topicNameFa).toBe('تاریخ');
+    expect(bal(coins, 'a', 'b')).toEqual([16, 16]); // 30 − 12, +10 back from the drawn game, − 12 for the rematch
+  });
+
+  it('a bot rival accepts at once', async () => {
+    const { svc } = withCoins();
+    await svc.join('a');
+    await svc.startWithBot('a', 'bot');
+    for (const right of [0, 1, 2]) {
+      svc.answer('a', right);
+      svc.answer('bot', right);
+    }
+    await flush();
+    expect(await svc.rematch('a')).toEqual({ ok: true });
+    await flush();
+    expect(svc.inMatch('a') && svc.inMatch('bot')).toBe(true);
+  });
+
+  it('is gone after a forfeit, after the window, and once the player starts something else', async () => {
+    const { svc, last, timers } = withCoins();
+    await svc.join('a');
+    await svc.join('b');
+    await flush();
+    svc.leave('a');
+    await flush();
+    expect(await svc.rematch('b')).toEqual({ ok: false, error: 'UNKNOWN_MATCH' });
+
+    await svc.join('a');
+    await svc.join('b');
+    await flush();
+    play(svc);
+    await flush();
+    timers.filter((t) => t.live).at(-1)!.fn(); // the rematch window closes
+    expect(last('a', 'tduel:offer')).toEqual({ state: 'expired' });
+    expect(await svc.rematch('a')).toEqual({ ok: false, error: 'UNKNOWN_MATCH' });
+  });
+
+  it('asking while unable to pay is refused, and joining the search cancels the old offer for the rival', async () => {
+    const { svc, last, coins } = withCoins();
+    await svc.join('a');
+    await svc.join('b');
+    await flush();
+    play(svc);
+    await flush();
+    await svc.rematch('a');
+    await svc.join('b', 'none-topic-free'); // b searches instead
+    expect(last('a', 'tduel:offer')).toEqual({ state: 'expired' });
+    coins.balances.set('a', 0);
+    expect(await svc.rematch('a')).toEqual({ ok: false, error: 'UNKNOWN_MATCH' });
   });
 });

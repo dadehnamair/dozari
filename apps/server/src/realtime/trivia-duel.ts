@@ -1,6 +1,6 @@
 import { randomInt } from 'node:crypto';
-import { ServerEvent, TRIVIA_DUEL_INTRO_MS, applyTriviaCommand, mulberry32, startTriviaRound, toTriviaRoundView, triviaPoints, triviaWinner } from '@dozari/shared';
-import type { AgeTrack, ErrorCode, Rng, TduelEnded, TduelFound, TduelState, TriviaRoundQuestion, TriviaRoundState } from '@dozari/shared';
+import { ServerEvent, TRIVIA_DUEL_INTRO_MS, TRIVIA_DUEL_REMATCH_SECONDS, applyTriviaCommand, mulberry32, startTriviaRound, toTriviaRoundView, triviaPoints, triviaWinner } from '@dozari/shared';
+import type { AgeTrack, DuelReason, ErrorCode, Rng, Stake, TduelEnded, TduelFound, TduelState, TriviaRoundQuestion, TriviaRoundState } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
 import type { PlayerProfile } from './match-service.js';
 
@@ -17,8 +17,21 @@ export interface TriviaDuelDeps {
   gate?: (userId: string) => Promise<ErrorCode | null>;
   /** True when the player is already in a board duel or its queue. */
   busy?: (userId: string) => boolean;
+  /** Coins (docs/logic/trivia.md §Coins): the entry fee each side puts down, the payout, the refund of a game that could not start. Absent = free. */
+  stakes?: {
+    canAffordDuel(userId: string): Promise<boolean>;
+    openDuel(matchId: string, players: readonly [string, string]): Promise<{ ok: true; stakes: [Stake, Stake]; fee: number } | { ok: false; broke: string }>;
+    cancelDuel(matchId: string, players: readonly [string, string], stakes: readonly [Stake, Stake], fee: number): Promise<void>;
+    settleDuel(matchId: string, players: readonly [string, string], stakes: readonly [Stake, Stake], fee: number, result: { winner: 0 | 1 | null; reason: DuelReason }): Promise<[number, number]>;
+  };
+  /** Bot accounts take a rematch at once and never pay a leave penalty. */
+  isBot?: (userId: string) => boolean;
+  /** A human left a running game on purpose (feeds the leave penalty, like a board duel); must not throw. */
+  onLeave?: (i: { userId: string; matchId: string }) => void;
   /** A game ended with a winner or a draw (bots included); must not throw. */
-  onEnded?: (r: { players: [string, string]; winner: 0 | 1 | null; reason: 'played' | 'forfeit' }) => void;
+  onEnded?: (r: { matchId: string; players: [string, string]; winner: 0 | 1 | null; reason: 'played' | 'forfeit' }) => void;
+  /** How long a rematch can be asked for after a played game; absent = the shared default. */
+  rematchSeconds?: number;
   /** How long the versus card shows before the first question opens; absent = the shared default, 0 = open at once. */
   introMs?: number;
   now?: () => number;
@@ -43,8 +56,22 @@ interface Active {
   ready: boolean;
   cancel: (() => void) | null;
   topicNameFa: string | null;
+  topicId?: string;
+  /** How each seat entered (paid / house / free) and the fee, once coins are on. */
+  stakes?: [Stake, Stake];
+  fee: number;
   found: [TduelFound, TduelFound];
 }
+
+/** A finished game whose sides may still ask for another one. */
+interface Recent {
+  players: [string, string];
+  topicId?: string;
+  asked: Set<string>;
+  cancel: () => void;
+}
+
+type StartResult = 'ok' | 'fail' | { broke: string };
 
 const defaultSchedule = (ms: number, fn: () => void): (() => void) => {
   const t = setTimeout(fn, ms);
@@ -61,6 +88,8 @@ export class TriviaDuelService {
   private readonly waiting = new Map<string, Waiting>();
   private readonly matches = new Map<string, Active>();
   private readonly byUser = new Map<string, string>();
+  /** Per player: the game they just finished and may rematch. */
+  private readonly recent = new Map<string, Recent>();
   private readonly now: () => number;
   private readonly newSeed: () => number;
   private readonly schedule: (ms: number, fn: () => void) => () => void;
@@ -110,12 +139,14 @@ export class TriviaDuelService {
     if (refused) return { ok: false, error: refused };
     if (this.byUser.has(userId) || this.deps.busy?.(userId)) return { ok: false, error: 'ALREADY_IN_MATCH' };
     if (this.waiting.has(userId)) return { ok: false, error: 'ALREADY_QUEUED' };
+    if (this.deps.stakes && !(await this.deps.stakes.canAffordDuel(userId))) return { ok: false, error: 'INSUFFICIENT_COINS' };
     const { tracks, key } = await this.poolKey(userId);
     // A topic with nothing to ask must be told at once, not left to search forever.
     const sample = await this.deps.questions({ topicId, tracks, count: 1, rng: mulberry32(this.newSeed()) }).catch(() => []);
     if (sample.length === 0) return { ok: false, error: 'NO_QUESTIONS' };
     // Re-check after the awaits: another join of the same player may have landed.
     if (this.byUser.has(userId) || this.waiting.has(userId)) return { ok: false, error: 'ALREADY_QUEUED' };
+    this.dropRecent(userId);
     this.waiting.set(userId, { since: this.now(), topicId: topicId ?? null, poolKey: key });
     void this.tryPair(userId);
     return { ok: true };
@@ -131,7 +162,15 @@ export class TriviaDuelService {
     if (this.waiting.delete(userId)) return { ok: true };
     const e = this.entryOf(userId);
     if (!e) return { ok: false, error: 'NOT_IN_MATCH' };
-    this.finish(e, 'forfeit', e.players[0] === userId ? 1 : 0);
+    // Like a board duel: the leaver forfeits the fee and the leave is logged for the penalty (day ban, badge). A bot never leaves.
+    if (!this.deps.isBot?.(userId)) {
+      try {
+        this.deps.onLeave?.({ userId, matchId: e.id });
+      } catch {
+        /* the penalty log must not break leaving */
+      }
+    }
+    void this.finish(e, 'forfeit', e.players[0] === userId ? 1 : 0);
     return { ok: true };
   }
 
@@ -147,10 +186,12 @@ export class TriviaDuelService {
       this.waiting.delete(otherId);
       // The longer waiter sits on side 0.
       const [a, b] = o.since <= me.since ? ([otherId, userId] as const) : ([userId, otherId] as const);
-      const ok = await this.start(a, b, topicId ?? undefined);
-      if (!ok) {
-        if (!this.byUser.has(userId) && !this.waiting.has(userId)) this.waiting.set(userId, me);
-        if (!this.byUser.has(otherId) && !this.waiting.has(otherId)) this.waiting.set(otherId, o);
+      const out = await this.start(a, b, topicId ?? undefined);
+      if (out !== 'ok') {
+        const broke = typeof out === 'object' ? out.broke : null;
+        if (broke) this.refuse(broke, 'INSUFFICIENT_COINS');
+        if (broke !== userId && !this.byUser.has(userId) && !this.waiting.has(userId)) this.waiting.set(userId, me);
+        if (broke !== otherId && !this.byUser.has(otherId) && !this.waiting.has(otherId)) this.waiting.set(otherId, o);
       }
       return;
     }
@@ -161,22 +202,40 @@ export class TriviaDuelService {
     const me = this.waiting.get(userId);
     if (!me || this.byUser.has(botId)) return false;
     this.waiting.delete(userId);
-    const ok = await this.start(userId, botId, me.topicId ?? undefined);
-    if (!ok && !this.byUser.has(userId) && !this.waiting.has(userId)) this.waiting.set(userId, me);
-    return ok;
+    const out = await this.start(userId, botId, me.topicId ?? undefined);
+    if (typeof out === 'object') this.refuse(out.broke, 'INSUFFICIENT_COINS'); // the human cannot pay: they leave the line
+    else if (out === 'fail' && !this.byUser.has(userId) && !this.waiting.has(userId)) this.waiting.set(userId, me);
+    return out === 'ok';
   }
 
-  private async start(a: string, b: string, topicId?: string): Promise<boolean> {
+  /** A search or rematch ended without a game for this player; the app shows why. */
+  private refuse(userId: string, error: ErrorCode): void {
+    this.deps.emit(userId, ServerEvent.tduelRefused, { error });
+  }
+
+  private async start(a: string, b: string, topicId?: string): Promise<StartResult> {
     try {
-      if (a === b || this.byUser.has(a) || this.byUser.has(b)) return false;
+      if (a === b || this.byUser.has(a) || this.byUser.has(b)) return 'fail';
       const [pa, pb, pool, settings] = await Promise.all([this.deps.profile(a), this.deps.profile(b), this.poolKey(a), this.deps.settings()]);
-      if (!pa || !pb) return false;
+      if (!pa || !pb) return 'fail';
       const rng = mulberry32(this.newSeed());
       const questions = await this.deps.questions({ topicId, tracks: pool.tracks, count: Math.max(1, settings.questions), rng });
-      if (questions.length === 0) return false;
+      if (questions.length === 0) return 'fail';
       const topicNameFa = topicId ? ((await this.deps.topicName(topicId).catch(() => null)) ?? null) : null;
-      if (this.byUser.has(a) || this.byUser.has(b)) return false; // raced with another start while loading
+      if (this.byUser.has(a) || this.byUser.has(b)) return 'fail'; // raced with another start while loading
       const id = uuidv7();
+      let stakes: [Stake, Stake] | undefined;
+      let fee = 0;
+      if (this.deps.stakes) {
+        const taken = await this.deps.stakes.openDuel(id, [a, b]);
+        if (!taken.ok) return { broke: taken.broke };
+        stakes = taken.stakes;
+        fee = taken.fee;
+        if (this.byUser.has(a) || this.byUser.has(b)) {
+          await this.deps.stakes.cancelDuel(id, [a, b], stakes, fee);
+          return 'fail';
+        }
+      }
       const players: TduelFound['players'] = [{ userId: a, side: 0, ...pa }, { userId: b, side: 1, ...pb }];
       const entry: Active = {
         id,
@@ -187,9 +246,12 @@ export class TriviaDuelService {
         ready: false,
         cancel: null,
         topicNameFa,
+        topicId,
+        stakes,
+        fee,
         found: [
-          { matchId: id, you: 0, youId: a, topicNameFa, players },
-          { matchId: id, you: 1, youId: b, topicNameFa, players },
+          { matchId: id, you: 0, youId: a, topicNameFa, fee: stakes?.[0] === 'paid' ? fee : 0, players },
+          { matchId: id, you: 1, youId: b, topicNameFa, fee: stakes?.[1] === 'paid' ? fee : 0, players },
         ],
       };
       this.matches.set(id, entry);
@@ -203,10 +265,10 @@ export class TriviaDuelService {
       } else {
         this.open(entry);
       }
-      return true;
+      return 'ok';
     } catch (e) {
       console.error('[tduel] could not start', e);
-      return false;
+      return 'fail';
     }
   }
 
@@ -254,13 +316,13 @@ export class TriviaDuelService {
     if (next.status === 'finished') {
       entry.cancel?.();
       entry.cancel = null;
-      return this.finish(entry, 'played');
+      return void this.finish(entry, 'played');
     }
     this.arm(entry);
     this.push(entry);
   }
 
-  private finish(entry: Active, reason: 'played' | 'forfeit', forced?: 0 | 1): void {
+  private async finish(entry: Active, reason: 'played' | 'forfeit', forced?: 0 | 1): Promise<void> {
     if (!this.matches.has(entry.id)) return;
     entry.cancel?.();
     entry.cancel = null;
@@ -268,15 +330,84 @@ export class TriviaDuelService {
     for (const u of entry.players) this.byUser.delete(u);
     const scores = triviaPoints(entry.state);
     const winner = forced ?? triviaWinner(scores);
+    let coins: [number, number] = [0, 0];
+    if (entry.stakes && this.deps.stakes) {
+      try {
+        coins = await this.deps.stakes.settleDuel(entry.id, entry.players, entry.stakes, entry.fee, { winner, reason: reason === 'played' ? 'solved' : 'forfeit' });
+      } catch (e) {
+        console.error('[tduel] settle failed', entry.id, e);
+      }
+    }
+    // A played game may be rematched by either side for a while; a forfeit ends it for good.
+    const canRematch = reason === 'played';
+    if (canRematch) this.openRematch(entry);
     for (const side of [0, 1] as const) {
-      const ended: TduelEnded = { matchId: entry.id, winner, reason, scores, round: toTriviaRoundView(entry.state, side === 0 ? 'a' : 'b', entry.endsAt) };
+      const ended: TduelEnded = { matchId: entry.id, winner, reason, scores, coins: coins[side], canRematch, round: toTriviaRoundView(entry.state, side === 0 ? 'a' : 'b', entry.endsAt) };
       this.deps.emit(entry.players[side], ServerEvent.tduelEnded, ended);
     }
     try {
-      this.deps.onEnded?.({ players: [entry.players[0], entry.players[1]], winner, reason });
+      this.deps.onEnded?.({ matchId: entry.id, players: [entry.players[0], entry.players[1]], winner, reason });
     } catch {
       /* a notification hook must never break the game flow */
     }
+  }
+
+  private openRematch(entry: Active): void {
+    const seconds = this.deps.rematchSeconds ?? TRIVIA_DUEL_REMATCH_SECONDS;
+    const r: Recent = { players: [entry.players[0], entry.players[1]], topicId: entry.topicId, asked: new Set(), cancel: () => undefined };
+    r.cancel = this.schedule(seconds * 1000, () => {
+      for (const u of r.players) {
+        if (this.recent.get(u) !== r) continue;
+        this.recent.delete(u);
+        if (!this.deps.isBot?.(u)) this.deps.emit(u, ServerEvent.tduelOffer, { state: 'expired' });
+      }
+    });
+    for (const u of r.players) this.recent.set(u, r);
+  }
+
+  /** The player starts something else (or leaves): their open rematch chance goes, and the rival is told. */
+  private dropRecent(userId: string): void {
+    const r = this.recent.get(userId);
+    if (!r) return;
+    r.cancel();
+    for (const u of r.players) {
+      this.recent.delete(u);
+      if (u !== userId && !this.deps.isBot?.(u)) this.deps.emit(u, ServerEvent.tduelOffer, { state: 'expired' });
+    }
+  }
+
+  /**
+   * Asks the finished game's rival for another one (same topic, fee paid again). A bot, or a rival who already asked, starts it at once;
+   * otherwise the rival hears `tduel:offer {asked}` and the ask waits for their answer until the rematch window closes.
+   */
+  async rematch(userId: string): Promise<{ ok: true } | { ok: false; error: ErrorCode }> {
+    const r = this.recent.get(userId);
+    if (!r) return { ok: false, error: 'UNKNOWN_MATCH' };
+    if (this.byUser.has(userId) || this.waiting.has(userId) || this.deps.busy?.(userId)) return { ok: false, error: 'ALREADY_IN_MATCH' };
+    if (this.deps.stakes && !(await this.deps.stakes.canAffordDuel(userId))) return { ok: false, error: 'INSUFFICIENT_COINS' };
+    if (this.recent.get(userId) !== r) return { ok: false, error: 'UNKNOWN_MATCH' };
+    const rival = r.players[0] === userId ? r.players[1] : r.players[0];
+    if (!this.deps.isBot?.(rival) && !r.asked.has(rival)) {
+      r.asked.add(userId);
+      this.deps.emit(rival, ServerEvent.tduelOffer, { state: 'asked' });
+      return { ok: true };
+    }
+    // Both want it: the chance is used up, the game starts (the longer-waiting side order is kept).
+    r.cancel();
+    for (const u of r.players) this.recent.delete(u);
+    if (this.deps.busy?.(rival)) {
+      this.deps.emit(userId, ServerEvent.tduelOffer, { state: 'expired' });
+      return { ok: false, error: 'ALREADY_IN_MATCH' };
+    }
+    const out = await this.start(r.players[0], r.players[1], r.topicId);
+    if (out === 'ok') return { ok: true };
+    if (typeof out === 'object') {
+      this.refuse(out.broke, 'INSUFFICIENT_COINS');
+      if (out.broke !== userId) this.deps.emit(userId, ServerEvent.tduelOffer, { state: 'expired' });
+      return out.broke === userId ? { ok: false, error: 'INSUFFICIENT_COINS' } : { ok: true };
+    }
+    this.deps.emit(rival, ServerEvent.tduelOffer, { state: 'expired' });
+    return { ok: false, error: 'INTERNAL' };
   }
 
   /** A returning player gets the game's snapshot again (and its found card). False when not in a game. */

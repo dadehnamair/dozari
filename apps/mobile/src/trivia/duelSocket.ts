@@ -1,6 +1,6 @@
 import { io } from 'socket.io-client';
 import type { Socket } from 'socket.io-client';
-import { ClientEvent, ServerEvent, ackSchema, queueStatusSchema, tduelEndedSchema, tduelFoundSchema, tduelStateSchema } from '@dozari/shared';
+import { ClientEvent, ServerEvent, ackSchema, queueStatusSchema, tduelEndedSchema, tduelFoundSchema, tduelRefusedSchema, tduelRematchSchema, tduelStateSchema } from '@dozari/shared';
 import type { Ack } from '@dozari/shared';
 import { session } from '../auth';
 import { BASE_URL, callJson } from '../net/http';
@@ -12,6 +12,8 @@ export interface TriviaDuelConnection {
   /** Leaves the search, or gives up the running game. */
   leave(): Promise<Ack>;
   answer(index: number): Promise<Ack>;
+  /** Asks the same rival for another game (the server starts it when both asked, or at once against a bot). */
+  rematch(): Promise<Ack>;
   close(): void;
 }
 
@@ -48,6 +50,14 @@ export async function connectTriviaDuel(dispatch: (a: TduelAction) => void): Pro
     const e = tduelEndedSchema.safeParse(p);
     if (e.success) dispatch({ t: 'ended', ended: e.data });
   });
+  socket.on(ServerEvent.tduelOffer, (p: unknown) => {
+    const o = tduelRematchSchema.safeParse(p);
+    if (o.success) dispatch({ t: 'offer', state: o.data.state });
+  });
+  socket.on(ServerEvent.tduelRefused, (p: unknown) => {
+    const r = tduelRefusedSchema.safeParse(p);
+    if (r.success) dispatch({ t: 'refused', error: r.data.error });
+  });
   socket.on('connect_error', () => dispatch({ t: 'error', error: 'NETWORK' }));
 
   await new Promise<void>((resolve) => {
@@ -60,6 +70,7 @@ export async function connectTriviaDuel(dispatch: (a: TduelAction) => void): Pro
     join: (topicId) => ask(socket, ClientEvent.tduelJoin, topicId ? { topicId } : {}),
     leave: () => ask(socket, ClientEvent.tduelLeave),
     answer: (index) => ask(socket, ClientEvent.tduelAnswer, { index }),
+    rematch: () => ask(socket, ClientEvent.tduelRematch),
     close: () => {
       socket.removeAllListeners();
       socket.disconnect();

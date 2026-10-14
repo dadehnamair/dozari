@@ -31,6 +31,7 @@ import { LookupScreen } from './src/lookup/LookupScreen';
 import { SearchScreen } from './src/search/SearchScreen';
 import { Tutorial } from './src/onboarding/Tutorial';
 import { loginSeen, markLoginSeen, markTutorialSeen, tutorialSeen } from './src/onboarding/state';
+import { TRIVIA_DUEL_FEE, TRIVIA_SOLO_FEE, TRIVIA_SOLO_REFUND_PERCENT } from '@dozari/shared';
 import type { AgeTrack } from '@dozari/shared';
 import { LoginScreen } from './src/phone/LoginScreen';
 import { bootTheme } from './src/theme/bootTheme';
@@ -87,6 +88,9 @@ const SPLASH_MS = 1800;
 const NAV_BAR_INSET = Platform.OS === 'android' ? Math.round(initialWindowMetrics?.insets.bottom ?? 0) : 0;
 
 /** The whole app inside the safety net: a screen that throws shows a card and reports itself instead of leaving a blank page. */
+/** A numeric admin setting from the public config, with the shared default when it is missing. */
+const settingNum = (raw: Record<string, unknown>, key: string, fallback: number): number => (typeof raw[key] === 'number' ? (raw[key] as number) : fallback);
+
 export default function App() {
   return (
     <ErrorBoundary>
@@ -223,8 +227,8 @@ function AppInner() {
       {screen === 'ageTrack' ? <AgeTrackScreen initial={pickedTrack ?? undefined} onDone={() => void tutorialSeen().then((seen) => setScreen(seen ? 'home' : 'tutorial'))} /> : null}
       {screen === 'solo' ? <SoloScreen key={previewTrack ?? 'own'} previewTrack={previewTrack ?? undefined} onBack={() => (setPreviewTrack(null), setScreen('home'))} hintsEnabled={config.features.shop} ageTracksOn={config.raw['feature.age_tracks'] === 1} /> : null}
       {screen === 'priceonly' ? <PriceOnlyScreen onBack={() => setScreen('home')} /> : null}
-      {screen === 'trivia' ? <TriviaScreen onBack={() => setScreen('home')} /> : null}
-      {screen === 'triviaduel' ? <TriviaDuelScreen onBack={() => setScreen('home')} /> : null}
+      {screen === 'trivia' ? <TriviaScreen onBack={() => setScreen('home')} fee={settingNum(config.raw, 'trivia.solo_fee', TRIVIA_SOLO_FEE)} refundPercent={settingNum(config.raw, 'trivia.solo_refund_percent', TRIVIA_SOLO_REFUND_PERCENT)} /> : null}
+      {screen === 'triviaduel' ? <TriviaDuelScreen onBack={() => setScreen('home')} fee={settingNum(config.raw, 'trivia.duel_fee', TRIVIA_DUEL_FEE)} /> : null}
       {screen === 'daily' ? <SoloScreen daily onBack={() => setScreen('home')} hintsEnabled={config.features.shop} /> : null}
       {screen === 'tutorial' ? <Tutorial onDone={() => void markTutorialSeen().then(() => setScreen('home'))} /> : null}
       {screen === 'duel' ? <DuelScreen onBack={() => setScreen('home')} settings={config.raw} /> : null}
