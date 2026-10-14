@@ -14,10 +14,8 @@ export const fmt = (n: number) => toPersianDigits(n.toLocaleString('en-US').repl
 export const styles = StyleSheet.create({
   root: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingTop: 14 + nativeTopInset(), paddingBottom: 22, paddingHorizontal: 12 },
   pills: { flexDirection: RTL_ROW, gap: 6, minHeight: 40, alignItems: 'center', flexWrap: 'nowrap' },
-  pillsAdult: { gap: 3, minHeight: 30 },
   pillsGap: { flex: 1, minWidth: 0 },
   mapBtn: { flexShrink: 0, width: 36, height: 36, borderRadius: 18, borderWidth: 2, borderColor: 'rgba(255,255,255,0.35)', backgroundColor: 'rgba(43,18,64,0.65)', alignItems: 'center', justifyContent: 'center' },
-  mapBtnAdult: { width: 30, height: 30, borderRadius: 9, borderColor: '#B8822A', backgroundColor: '#3A2412' },
   mapIcon: { width: 26, height: 26 },
   spinBadge: { position: 'absolute', top: -6, right: -6, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, backgroundColor: colors.candy.lime, borderWidth: 2, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   spinBadgeText: { fontFamily: fonts.bold, fontSize: 10, color: colors.ink },
