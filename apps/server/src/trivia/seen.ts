@@ -52,13 +52,13 @@ export function createMemoryTriviaSeenStore(): TriviaSeenStore & { rows: Map<str
  * then the ones fewer saw, then the oldest seen (`pickFreshTrivia`). `userIds` are humans only; without a seen store it is a plain random draw.
  * With several `topicIds` (a themed board duel) their questions come first and the rest of the bank fills a short round.
  */
-export async function drawTrivia(store: TriviaStore, seen: TriviaSeenStore | undefined, o: { topicId?: string; topicIds?: readonly string[]; tracks: readonly AgeTrack[]; count: number; rng: Rng; userIds: readonly string[] }): Promise<TriviaQuestion[]> {
+export async function drawTrivia(store: TriviaStore, seen: TriviaSeenStore | undefined, o: { topicId?: string; topicIds?: readonly string[]; tracks: readonly AgeTrack[]; count: number; rng: Rng; userIds: readonly string[]; /** Difficulty (1–3) that fits the players' level, when level matching is on (docs/logic/trivia.md §Difficulty). */ target?: number }): Promise<TriviaQuestion[]> {
   const histories = seen ? await Promise.all([...new Set(o.userIds)].map((u) => seen.seen(u).catch(() => new Map<string, number>()))) : [];
   const topics = o.topicIds?.length ? [...new Set(o.topicIds)] : o.topicId ? [o.topicId] : [];
   const own = topics.length ? (await Promise.all(topics.map((topicId) => store.approved({ topicId, tracks: o.tracks, limit: TRIVIA_POOL_FETCH })))).flat() : [];
-  const picked = topics.length ? pickFreshTrivia(own, o.count, o.rng, histories) : [];
+  const picked = topics.length ? pickFreshTrivia(own, o.count, o.rng, histories, undefined, o.target) : [];
   if (picked.length >= o.count || (topics.length > 0 && o.topicId)) return picked; // a chosen topic is never padded from other topics
   const bank = await store.approved({ tracks: o.tracks, limit: TRIVIA_POOL_FETCH });
   const have = new Set(picked.map((q) => q.id));
-  return [...picked, ...pickFreshTrivia(bank.filter((q) => !have.has(q.id)), o.count - picked.length, o.rng, histories)];
+  return [...picked, ...pickFreshTrivia(bank.filter((q) => !have.has(q.id)), o.count - picked.length, o.rng, histories, undefined, o.target)];
 }

@@ -5,7 +5,7 @@ import type { PuzzleAdmin } from '../puzzles/admin.js';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { can } from './accounts/permissions.js';
 import { z } from 'zod';
-import { accentColorSchema, triviaInputSchema, checkLevelTable, KEEPSAKE_RARITIES, KEEPSAKE_REWARD_GEMS, httpsUrlSchema, isDateKey, ITEMS, ITEM_GROUPS, LEVEL_TABLE_MAX, levelRowSchema, normalizeIranPhone, PRODUCT_CATEGORIES, PROVINCES, provinceOf, SETTING_GROUPS, SHOP_EFFECTS, SPONSOR_LIMITS, COSMETIC_SLOTS, WHEEL_PRIZE_KINDS, AD_LIMITS, AD_PLACEMENTS, AD_PLACEMENT_LABEL_FA, AD_REWARD_KINDS } from '@dozari/shared';
+import { accentColorSchema, measuredDifficulty, triviaInputSchema, checkLevelTable, KEEPSAKE_RARITIES, KEEPSAKE_REWARD_GEMS, httpsUrlSchema, isDateKey, ITEMS, ITEM_GROUPS, LEVEL_TABLE_MAX, levelRowSchema, normalizeIranPhone, PRODUCT_CATEGORIES, PROVINCES, provinceOf, SETTING_GROUPS, SHOP_EFFECTS, SPONSOR_LIMITS, COSMETIC_SLOTS, WHEEL_PRIZE_KINDS, AD_LIMITS, AD_PLACEMENTS, AD_PLACEMENT_LABEL_FA, AD_REWARD_KINDS } from '@dozari/shared';
 import type { LevelRow } from '@dozari/shared';
 import type { LevelTable } from '../progress/table.js';
 import type { SettingsService } from '../settings/service.js';
@@ -804,7 +804,9 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     const statusSchema = z.enum(['draft', 'approved', 'retired']);
     g.get('/admin/trivia', async (req) => {
       const q = z.object({ topicId: z.string().uuid().optional(), status: statusSchema.optional() }).safeParse(req.query);
-      return { questions: await trivia.list({ topicId: q.success ? q.data.topicId : undefined, status: q.success ? q.data.status : undefined, limit: 300 }) };
+      const rows = await trivia.list({ topicId: q.success ? q.data.topicId : undefined, status: q.success ? q.data.status : undefined, limit: 300 });
+      // `measured` is the difficulty the play data suggests (null while there are too few answers), next to the one the admin set.
+      return { questions: rows.map((r) => ({ ...r, measured: measuredDifficulty(r.plays, r.rightCount) })) };
     });
     g.post('/admin/trivia', async (req, reply) => {
       const b = triviaInputSchema.safeParse(req.body);
@@ -826,10 +828,16 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     });
     g.patch('/admin/trivia/:id', async (req, reply) => {
       const p = idParam.safeParse(req.params);
-      const b = z.object({ status: statusSchema }).safeParse(req.body);
+      const b = z.object({ status: statusSchema.optional(), difficulty: z.number().int().min(1).max(3).optional() }).refine((v) => v.status !== undefined || v.difficulty !== undefined).safeParse(req.body);
       if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
-      if ((await trivia.setStatus(p.data.id, b.data.status)) === 'not_found') return reply.code(404).send({ error: 'NOT_FOUND' });
-      void audit('trivia.status', p.data.id, b.data.status);
+      if (b.data.status !== undefined) {
+        if ((await trivia.setStatus(p.data.id, b.data.status)) === 'not_found') return reply.code(404).send({ error: 'NOT_FOUND' });
+        void audit('trivia.status', p.data.id, b.data.status);
+      }
+      if (b.data.difficulty !== undefined) {
+        if ((await trivia.setDifficulty(p.data.id, b.data.difficulty)) === 'not_found') return reply.code(404).send({ error: 'NOT_FOUND' });
+        void audit('trivia.difficulty', p.data.id, String(b.data.difficulty));
+      }
       return { ok: true };
     });
   }

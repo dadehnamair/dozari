@@ -20,6 +20,10 @@ export interface TriviaStore {
   create(input: TriviaInput, status?: TriviaStatus, authorId?: string): Promise<{ ok: true; id: string } | { ok: false; error: 'unknown_topic' }>;
   update(id: string, input: TriviaInput): Promise<'ok' | 'not_found' | 'unknown_topic'>;
   setStatus(id: string, status: TriviaStatus): Promise<'ok' | 'not_found'>;
+  /** Sets only the difficulty (1–3), e.g. to adopt the measured one. */
+  setDifficulty(id: string, difficulty: number): Promise<'ok' | 'not_found'>;
+  /** Counts answers a question got in games (humans only): `plays` answers of which `right` were right. */
+  recordAnswers(id: string, plays: number, right: number): Promise<void>;
   list(opts: { topicId?: string; status?: TriviaStatus; limit: number }): Promise<TriviaRow[]>;
   /** Approved questions of these tracks, optionally of one topic (the pool a game draws from). */
   approved(opts: { topicId?: string; tracks: readonly AgeTrack[]; limit: number }): Promise<TriviaQuestion[]>;
@@ -70,6 +74,16 @@ export function createDbTriviaStore(db: Db): TriviaStore {
       if (!r) return 'not_found';
       await db.update(triviaQuestions).set({ status }).where(eq(triviaQuestions.id, id));
       return 'ok';
+    },
+    async setDifficulty(id, difficulty) {
+      const [r] = await db.select({ id: triviaQuestions.id }).from(triviaQuestions).where(eq(triviaQuestions.id, id));
+      if (!r) return 'not_found';
+      await db.update(triviaQuestions).set({ difficulty }).where(eq(triviaQuestions.id, id));
+      return 'ok';
+    },
+    async recordAnswers(id, plays, right) {
+      if (plays <= 0) return;
+      await db.update(triviaQuestions).set({ plays: sql`${triviaQuestions.plays} + ${plays}`, rightCount: sql`${triviaQuestions.rightCount} + ${right}` }).where(eq(triviaQuestions.id, id));
     },
     async list(opts) {
       const where = and(opts.topicId ? eq(triviaQuestions.topicId, opts.topicId) : undefined, opts.status ? eq(triviaQuestions.status, opts.status) : undefined);
@@ -131,6 +145,19 @@ export function createMemoryTriviaStore(topics: Record<string, string> = {}): Tr
       if (!r) return 'not_found';
       r.status = status;
       return 'ok';
+    },
+    async setDifficulty(id, difficulty) {
+      const r = rows.find((x) => x.id === id);
+      if (!r) return 'not_found';
+      r.difficulty = difficulty;
+      return 'ok';
+    },
+    async recordAnswers(id, plays, right) {
+      const r = rows.find((x) => x.id === id);
+      if (r) {
+        r.plays += plays;
+        r.rightCount += right;
+      }
     },
     async list(opts) {
       return rows.filter((r) => (!opts.topicId || r.topicId === opts.topicId) && (!opts.status || r.status === opts.status)).slice(0, opts.limit);

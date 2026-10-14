@@ -30,6 +30,10 @@ export interface TriviaOptions {
   stakes?: Pick<TriviaStakes, 'soloFee' | 'chargeSolo' | 'refundSolo'>;
   /** What each player has seen, so a game prefers questions they have not (docs/logic/trivia.md §No repeats). Absent = a plain random draw. */
   seen?: TriviaSeenStore;
+  /** The difficulty (1–3) that fits the player's level when level matching is on; absent = no preference. */
+  targetFor?: (userIds: readonly string[]) => Promise<number | undefined>;
+  /** Records an answer for the question's measured difficulty (humans only). */
+  recordAnswer?: (questionId: string, right: boolean) => void;
   /** Percent of right answers that earns the fee back (setting `trivia.solo_refund_percent`). */
   refundPercent?: () => Promise<number>;
 }
@@ -64,7 +68,7 @@ export class TriviaService {
     this.sweep();
     const want = Math.max(1, (await this.opts.perGame?.().catch(() => undefined)) ?? TRIVIA_QUESTIONS_PER_GAME);
     const rng = mulberry32(this.newSeed());
-    const picked = await drawTrivia(this.store, this.opts.seen, { topicId: opts.topicId, tracks: opts.tracks, count: want, rng, userIds: opts.userId ? [opts.userId] : [] });
+    const picked = await drawTrivia(this.store, this.opts.seen, { topicId: opts.topicId, tracks: opts.tracks, count: want, rng, userIds: opts.userId ? [opts.userId] : [], target: await this.opts.targetFor?.(opts.userId ? [opts.userId] : []).catch(() => undefined) });
     if (picked.length === 0) return null;
     const names = new Map<string, string>();
     for (const q of picked) if (!names.has(q.topicId)) names.set(q.topicId, (await this.store.topicName(q.topicId)) ?? '');
@@ -102,6 +106,8 @@ export class TriviaService {
       s.results.push(result);
       // Shown and answered: this player will not be served it again until the rest of the topic has been seen.
       if (s.userId) void this.opts.seen?.mark(s.userId, [q.id], this.now()).catch(() => undefined);
+      // Anonymous answers count too: they are real humans answering (only bots are left out).
+      this.opts.recordAnswer?.(q.id, pickedIndex === q.correctIndex);
       if (s.results.length === s.questions.length && s.userId) {
         const score = s.results.filter((r) => r.correct).length;
         const percent = await (this.opts.refundPercent?.() ?? Promise.resolve(TRIVIA_SOLO_REFUND_PERCENT)).catch(() => TRIVIA_SOLO_REFUND_PERCENT);

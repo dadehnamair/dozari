@@ -4,7 +4,7 @@ import Fastify from 'fastify';
 import fastifyCors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
 import { resolve } from 'node:path';
-import { AVATAR_CHANGE_MIN_LEVEL, AVATAR_UNLOCK_GAMES, duelTiers, rialsToTomanString, shuffleTrivia } from '@dozari/shared';
+import { AVATAR_CHANGE_MIN_LEVEL, AVATAR_UNLOCK_GAMES, duelTiers, rialsToTomanString, shuffleTrivia, triviaGroupLevel, triviaTargetDifficulty } from '@dozari/shared';
 import { CHAT_RETENTION_DAYS, trackRules, MISSION_KEYS, TOURNAMENT_TICK_SECONDS, dailyDateKey, trackFeatureForPath, trackRuleForPath, WHEEL_SLICES_DEFAULT, scaleSlices } from '@dozari/shared';
 import type { AgeTrack, HintRules, MissionKey } from '@dozari/shared';
 import { createDb, imageStoreFromEnv } from '@dozari/db';
@@ -973,11 +973,25 @@ if (isMainModule(import.meta.url)) {
         })
       : undefined;
   const triviaSeen = db ? createDbTriviaSeenStore(db) : undefined;
+  // Level matching (docs/logic/trivia.md §Difficulty): when the admin switch is on, a draw prefers the difficulty that fits the players' level.
+  const triviaTarget =
+    settings && player
+      ? async (userIds: readonly string[]): Promise<number | undefined> => {
+          if ((await settings.num('trivia.level_matching')) !== 1) return undefined;
+          const humans = userIds.filter((u) => !botDriver?.isBot(u));
+          if (humans.length === 0) return undefined;
+          const levels = await Promise.all(humans.map(async (u) => (await player.levelOf(u)).level.level));
+          return triviaTargetDifficulty(triviaGroupLevel(levels), { mediumFrom: await settings.num('trivia.level_medium_from'), hardFrom: await settings.num('trivia.level_hard_from') });
+        }
+      : undefined;
+  const recordAnswers = triviaStore ? (questionId: string, answers: number, right: number) => void triviaStore.recordAnswers(questionId, answers, right).catch(() => undefined) : undefined;
   const trivia = triviaStore
     ? new TriviaService(triviaStore, {
         perGame: settings ? () => settings.num('trivia.questions') : undefined,
         stakes: triviaStakes,
         seen: triviaSeen,
+        targetFor: triviaTarget,
+        recordAnswer: recordAnswers ? (id, right) => recordAnswers(id, 1, right ? 1 : 0) : undefined,
         refundPercent: settings ? () => settings.num('trivia.solo_refund_percent') : undefined,
         // XP like any finished game: a score that earns the fee back counts as a win.
         onFinished: (userId, _score, _total, passed) => void player?.recordGame(userId, { mode: 'solo', outcome: passed ? 'win' : 'loss' }),
@@ -1059,7 +1073,8 @@ if (isMainModule(import.meta.url)) {
         ? {
             profile: duelProfile,
             poolOf: ageTracks ? async (id) => trackRules(await ageTracks.effective(id)).puzzleTracks : undefined,
-            questions: async ({ topicId, tracks, count, rng, userIds }) => (await drawTrivia(triviaStore, triviaSeen, { topicId, tracks, count, rng, userIds })).map((q) => ({ id: q.id, textFa: q.textFa, explanationFa: q.explanationFa, authorFa: q.authorFa ?? null, ...shuffleTrivia(q, rng) })),
+            questions: async ({ topicId, tracks, count, rng, userIds }) => (await drawTrivia(triviaStore, triviaSeen, { topicId, tracks, count, rng, userIds, target: await triviaTarget?.(userIds).catch(() => undefined) })).map((q) => ({ id: q.id, textFa: q.textFa, explanationFa: q.explanationFa, authorFa: q.authorFa ?? null, ...shuffleTrivia(q, rng) })),
+            onRevealed: recordAnswers ? (r) => recordAnswers(r.questionId, r.answers, r.right) : undefined,
             markSeen: triviaSeen ? (userIds, questionId) => userIds.forEach((u) => void triviaSeen.mark(u, [questionId], Date.now()).catch(() => undefined)) : undefined,
             topicName: (id) => triviaStore.topicName(id),
             settings: async () => ({ questions: await settings.num('trivia.duel_questions'), seconds: await settings.num('trivia.duel_seconds') }),
@@ -1103,12 +1118,13 @@ if (isMainModule(import.meta.url)) {
             if (!botDriver?.isBot(id)) gemPayer(id, amount, key);
           },
           priceRound: settings ? async () => (await settings.num('match.price_round')) === 1 : undefined,
+          onTriviaRevealed: recordAnswers ? (r) => recordAnswers(r.questionId, r.answers, r.right) : undefined,
           triviaRounds: settings ? () => settings.num('match.trivia_rounds') : undefined,
           triviaQuestions: triviaStore
             ? async ({ topicIds, tracks, count, rng, userIds }) => {
                 // The match's own topics first, then the whole bank; what the human players have not seen comes first (docs/logic/trivia.md §No repeats).
                 const humans = userIds.filter((u) => !botDriver?.isBot(u));
-                const picked = await drawTrivia(triviaStore, triviaSeen, { topicIds, tracks, count, rng, userIds: humans });
+                const picked = await drawTrivia(triviaStore, triviaSeen, { topicIds, tracks, count, rng, userIds: humans, target: await triviaTarget?.(humans).catch(() => undefined) });
                 // The round is short and nearly always played out: its questions count as seen when it opens.
                 if (triviaSeen) for (const u of humans) void triviaSeen.mark(u, picked.map((q) => q.id), Date.now()).catch(() => undefined);
                 return picked.map((q) => ({ id: q.id, textFa: q.textFa, explanationFa: q.explanationFa, authorFa: q.authorFa ?? null, ...shuffleTrivia(q, rng) }));

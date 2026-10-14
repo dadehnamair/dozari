@@ -51,5 +51,11 @@ Without memory every game is an independent random draw of 8 from the topic, so 
 - Rule of thumb for content: no repeats for the next G games while the topic has at least (G+1)×8 approved questions (100 → about 12 games). Near-duplicate wording of one fact is not detected here.
 
 
+## Difficulty («سختی سؤال») and level matching — D238
+Owner (2026-10-14): record each question's difficulty now; later, when the bank is big, serve questions by the player's level, switchable from the panel.
+- **Recorded**: `trivia_questions.difficulty` 1 easy · 2 medium · 3 hard (default 2; the admin form has a «سختی» field, a workshop author suggests one and the admin can change it when approving). **Measured** from play: `plays` (answers by humans, bots excluded) and `right_count` are bumped when a question is revealed in solo, the question duel and the board duel's question round. `measuredDifficulty` (shared) turns them into 1/2/3 once a question has `TRIVIA_MEASURE_MIN_PLAYS` = 30 answers (≥ 75 % right = easy, < 45 % = hard).
+- **Admin «پرسش‌های عمومی»**: a difficulty badge per question, a filter, the counts per level, and — next to the set value — «۴۰ بار جواب داده شد، ۹۰٪ درست ← اندازه‌گیری: آسان» with a one-click «قبول آسان» (`PATCH /admin/trivia/:id {difficulty}`). The list reports `measured` per question.
+- **Level matching** — admin setting `trivia.level_matching` (default **off**: draws stay random). When on, a draw's *target* = the player's level → easy below `trivia.level_medium_from` (6), medium below `trivia.level_hard_from` (15), hard from there; a duel uses the two players' average level, bots count for nothing. Ranking in `pickFreshTrivia`: **unseen first (D236), then closest to the target, then oldest seen** — so level matching never brings repeats back and a thin level is simply filled from the nearest one. Turn it on once each level has a few dozen questions per topic (the panel shows the counts).
+
 ## Not built
 Rewards beyond the coins above (and a pass-rate based bonus), a bulk import, a per-table trivia count, trivia in 2v2, inviting a specific friend to a question duel.

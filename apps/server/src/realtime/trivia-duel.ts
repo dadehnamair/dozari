@@ -14,6 +14,8 @@ export interface TriviaDuelDeps {
   questions(o: { topicId?: string; tracks: readonly AgeTrack[]; count: number; rng: Rng; userIds: readonly string[] }): Promise<TriviaRoundQuestion[]>;
   /** A question was revealed to these human players: they have now seen it. Must not throw. */
   markSeen?: (userIds: readonly string[], questionId: string) => void;
+  /** A question was revealed: how many humans answered it and how many were right (the measured difficulty and the author's play counter). Must not throw. */
+  onRevealed?: (r: { questionId: string; answers: number; right: number }) => void;
   topicName(topicId: string): Promise<string | null>;
   settings(): Promise<{ questions: number; seconds: number }>;
   /** A non-null answer refuses the join (maintenance, feature switched off, the player's age track). */
@@ -321,6 +323,10 @@ export class TriviaDuelService {
       if (shown) {
         try {
           this.deps.markSeen?.(entry.players.filter((u) => !this.deps.isBot?.(u)), shown);
+          const done = next.revealed[next.revealed.length - 1]!;
+          const humans = ([0, 1] as const).filter((s) => !this.deps.isBot?.(entry.players[s]));
+          const picks = humans.map((s) => (s === 0 ? done.picks.a : done.picks.b)).filter((p): p is number => p !== null);
+          this.deps.onRevealed?.({ questionId: shown, answers: picks.length, right: picks.filter((p) => p === done.correctIndex).length });
         } catch {
           /* the memory must never break a game */
         }

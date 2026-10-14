@@ -33,6 +33,8 @@ export interface MatchDeps {
   topicDraft?: () => Promise<boolean>;
   /** Is this account a bot? A bot chooser names its topic by itself after a short pause. */
   isBot?: (userId: string) => boolean;
+  /** A question of the duel's question round was revealed: how many humans answered it and how many were right. Must not throw. */
+  onTriviaRevealed?: (r: { questionId: string; answers: number; right: number }) => void;
   /** Bought match items each player holds when a match starts (shuffle / reveal); absent = nobody has any. */
   itemsOf?: (userIds: readonly string[]) => Promise<Record<string, ItemCounts>>;
   /** Takes one unit of a bought item from the inventory; false = none held. Absent = items cannot be used. */
@@ -973,6 +975,19 @@ export class MatchService {
     const next = applyTriviaCommand(before, cmd);
     if (next === before) return;
     tq.state = next;
+    if (next.revealed.length > before.revealed.length) {
+      const done = next.revealed[next.revealed.length - 1]!;
+      const q = next.questions[done.index];
+      const picks = entry.state.players
+        .filter((p) => !this.deps.isBot?.(p.userId))
+        .map((p) => (p.side === 0 ? done.picks.a : done.picks.b))
+        .filter((x): x is number => x !== null);
+      try {
+        if (q) this.deps.onTriviaRevealed?.({ questionId: q.id, answers: picks.length, right: picks.filter((x) => x === done.correctIndex).length });
+      } catch {
+        /* counting must never break a match */
+      }
+    }
     if (next.index === before.index && next.status === 'playing') return this.pushState(entry); // an answer locked in, nothing revealed yet
     tq.cancel?.();
     tq.cancel = null;
