@@ -4,7 +4,7 @@ import Fastify from 'fastify';
 import fastifyCors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
 import { resolve } from 'node:path';
-import { AVATAR_CHANGE_MIN_LEVEL, AVATAR_UNLOCK_GAMES, duelTiers, rialsToTomanString, pickTriviaQuestions, shuffleTrivia } from '@dozari/shared';
+import { AVATAR_CHANGE_MIN_LEVEL, AVATAR_UNLOCK_GAMES, duelTiers, rialsToTomanString, shuffleTrivia } from '@dozari/shared';
 import { CHAT_RETENTION_DAYS, trackRules, MISSION_KEYS, TOURNAMENT_TICK_SECONDS, dailyDateKey, trackFeatureForPath, trackRuleForPath, WHEEL_SLICES_DEFAULT, scaleSlices } from '@dozari/shared';
 import type { AgeTrack, HintRules, MissionKey } from '@dozari/shared';
 import { createDb, imageStoreFromEnv } from '@dozari/db';
