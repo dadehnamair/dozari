@@ -26,6 +26,11 @@ export const ClientEvent = {
   /** A hidden guess in the duel's price-guess round. */
   priceSubmit: 'price:submit',
   triviaSubmit: 'trivia:submit',
+  /** The question duel (docs/logic/trivia.md §Question duel): join the search (topic or random), leave it, answer, resume. */
+  tduelJoin: 'tduel:join',
+  tduelLeave: 'tduel:leave',
+  tduelAnswer: 'tduel:answer',
+  tduelResume: 'tduel:resume',
   chatJoin: 'chat:join',
   chatTaunt: 'chat:taunt',
 } as const;
@@ -39,6 +44,10 @@ export const ServerEvent = {
   matchEnded: 'match:ended',
   /** Another player of the match dropped (the seat is held for the grace) or came back. */
   matchPresence: 'match:presence',
+  /** Question duel: a rival was found, the game's snapshot (own view of the round), and its end. */
+  tduelFound: 'tduel:found',
+  tduelState: 'tduel:state',
+  tduelEnded: 'tduel:ended',
   chatMessage: 'chat:message',
   /** A small «something new for you» push (friend request, inbox message); the client then reloads that list. */
   notice: 'notice:new',
@@ -102,6 +111,8 @@ export const ERROR_CODES = [
   'UNKNOWN_TAUNT',
   'NO_PRICE_ROUND',
   'NO_TRIVIA_ROUND',
+  /** Question duel: no approved question to ask in the chosen topic. */
+  'NO_QUESTIONS',
   'INTERNAL',
 ] as const;
 export const errorCodeSchema = z.enum(ERROR_CODES);
@@ -128,6 +139,11 @@ export const matchResumeSchema = z.object({ matchId: z.string().uuid().optional(
 /** The guess in rials as a decimal string (a toman price times ten); the server checks it is positive and sane. */
 export const priceSubmitSchema = z.object({ guessRials: z.string().regex(/^[1-9]\d{0,15}$/) });
 export type PriceSubmit = z.infer<typeof priceSubmitSchema>;
+
+/** Question duel: a topic id, or nothing for a random mix. */
+export const tduelJoinSchema = z.object({ topicId: z.string().uuid().optional() });
+export const tduelAnswerSchema = z.object({ index: z.number().int().min(0).max(3) });
+export type TduelJoin = z.infer<typeof tduelJoinSchema>;
 
 export type QueueJoin = z.infer<typeof queueJoinSchema>;
 export type MatchPropose = z.infer<typeof matchProposeSchema>;
@@ -163,6 +179,28 @@ export const matchFoundSchema = z.object({
   /** 2 players (1v1) or 4 (2v2, listed side 0 first). */
   players: z.array(matchPlayerProfileSchema).min(2).max(4),
 });
+
+/** A question duel found its rival: the same profiles as a board duel, plus the topic (null = random mix). */
+export const tduelFoundSchema = z.object({
+  matchId: z.string().uuid(),
+  you: side,
+  youId: z.string().optional(),
+  topicNameFa: z.string().nullable(),
+  players: z.array(matchPlayerProfileSchema).length(2),
+});
+/** One side's view of a question duel; the right choice and the rival's pick stay hidden until a question is revealed. */
+export const tduelStateSchema = z.object({ matchId: z.string().uuid(), you: side, status: z.enum(['playing', 'finished']), round: triviaRoundViewSchema });
+export const tduelEndedSchema = z.object({
+  matchId: z.string().uuid(),
+  /** null = draw. */
+  winner: side.nullable(),
+  reason: z.enum(['played', 'forfeit']),
+  scores: z.tuple([z.number().int().nonnegative(), z.number().int().nonnegative()]),
+  round: triviaRoundViewSchema,
+});
+export type TduelFound = z.infer<typeof tduelFoundSchema>;
+export type TduelState = z.infer<typeof tduelStateSchema>;
+export type TduelEnded = z.infer<typeof tduelEndedSchema>;
 
 export const matchSolvedGroupSchema = z.object({
   level,

@@ -21,5 +21,14 @@ Owner (2026-10-12): beside the price questions, a place to define ordinary four-
 - Mobile: `duel/DuelTriviaRound.tsx` replaces the board like the price round; the result page shows the right answers of each side.
 - No coin wager on trivia rounds. A table's own choice of the count and 2v2 are not built (the setting applies to every 1v1).
 
+## Question duel («دوئل پرسشی») — D229
+Owner (2026-10-14): beside «پرسش» (solo), a live 1v1 that works like the board duel's search: find a rival, start, answer the same questions. The only choice is a topic or random.
+- Home: a second button «دوئل پرسشی» next to «پرسش» (`feature.trivia_duel`, same age-track rule as the other question/price modes: kids do not get it). `TriviaDuelScreen`: topic grid + «🎲 تصادفی» → the same diamond search screen as the board duel → versus card (3 s, `TRIVIA_DUEL_INTRO_MS`) → `DuelTriviaRound` → result card with a review of every question.
+- Own service, not a board match: `apps/server/src/realtime/trivia-duel.ts` (`TriviaDuelService`, in memory) runs the shared `trivia/round.ts` state machine; the board-duel `MatchService` and its queue are untouched. Lines are per topic: a topic player meets the same topic or a random one (that topic is played); two randoms get a mix; two different topics never meet. Pairing also needs the same question pools (age track). Questions come from the approved bank in the pool, choices shuffled per game (`trivia.duel_questions` = 8, `trivia.duel_seconds` = 15 per question; a question closes when both answered or on the clock).
+- Bot fallback like the board duel: a waiting human gets an undisclosed bot after `bots.fallback_seconds` (+ jitter); the bot answers right with its level's accuracy (`BotDriver.planDuelAnswer`). Bots and humans in a question duel are invisible to the board-duel queue and vice versa (`ALREADY_IN_MATCH` / `ALREADY_QUEUED`); a private table starting a match for someone mid question duel is not guarded.
+- Wire (`socket/events.ts`): `tduel:join {topicId?}`, `tduel:leave`, `tduel:answer {index}`, `tduel:resume`; server `tduel:found`, `tduel:state` (own `TriviaRoundView`: never the right choice nor the rival's pick before the reveal), `tduel:ended {winner, reason: played|forfeit, scores, round}`; the search clock reuses `queue:status`. Errors: `NO_QUESTIONS` (join on an empty topic), `FEATURE_OFF`, `MAINTENANCE`, `ALREADY_IN_MATCH`, `ALREADY_QUEUED`, `NO_TRIVIA_ROUND`. A socket (re)connect re-sends the running game.
+- Winner = more right answers (`triviaWinner`), equal = draw. Leaving a running game (or the screen) forfeits it to the rival; a dropped connection does not stop the clock (unanswered = wrong).
+- No coins, XP, daily cap, level gate or leave penalty yet (same as solo trivia).
+
 ## Not built
-Rewards, a bulk import, a per-table trivia count, trivia in 2v2.
+Rewards (in solo and in the question duel), a bulk import, a per-table trivia count, trivia in 2v2, a rematch button in the question duel (the result card goes back to the topic picker), inviting a specific friend to a question duel.

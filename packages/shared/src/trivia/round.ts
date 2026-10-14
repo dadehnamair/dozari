@@ -62,6 +62,11 @@ export function triviaPoints(s: TriviaRoundState): [number, number] {
   return p;
 }
 
+/** The side with more right answers wins; equal points are a draw (null). */
+export function triviaWinner(points: readonly [number, number]): 0 | 1 | null {
+  return points[0] === points[1] ? null : points[0] > points[1] ? 0 : 1;
+}
+
 export const triviaRoundViewSchema = z.object({
   roundIndex: z.number().int().nonnegative(),
   totalRounds: z.number().int().positive(),

@@ -22,3 +22,8 @@ export const TRIVIA_QUESTIONS_PER_GAME = 8;
 export const TRIVIA_TEXT_MAX = 300;
 export const TRIVIA_OPTION_MAX = 80;
 export const TRIVIA_OPTION_COUNT = 4;
+/** The live question duel (docs/logic/trivia.md §Question duel): questions per game and seconds to answer each. */
+export const TRIVIA_DUEL_QUESTIONS = 8;
+export const TRIVIA_DUEL_SECONDS = 15;
+/** The versus card shows this long after the rival is found, before the first question opens (and its clock starts). */
+export const TRIVIA_DUEL_INTRO_MS = 3000;

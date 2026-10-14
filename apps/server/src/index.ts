@@ -17,6 +17,8 @@ import { createClientRecorder, parseClientInfo } from './clients/info.js';
 import type { ClientInfoStore } from './clients/info.js';
 import { createDbClientInfoStore } from './clients/store.js';
 import { attachGateway } from './realtime/gateway.js';
+import type { TriviaDuelDeps } from './realtime/trivia-duel.js';
+import type { TriviaDuelService } from './realtime/trivia-duel.js';
 import { Presence } from './realtime/presence.js';
 import { createLiveNotices } from './realtime/notices.js';
 import type { LiveNotices } from './realtime/notices.js';
@@ -231,7 +233,7 @@ export interface ServerDeps {
   /** The daily puzzle; needs `auth`. */
   daily?: DailyService;
   /** Filled with the live-match service once the socket gateway exists, so tournaments can start duels. */
-  live?: { matches?: MatchService; queue?: DuelQueue; teamQueue?: DuelQueue };
+  live?: { matches?: MatchService; queue?: DuelQueue; teamQueue?: DuelQueue; triviaDuel?: TriviaDuelService };
   /** Bot players: reacts to the events pushed to bot accounts (needs the gateway). */
   botDriver?: BotDriver;
   ambientLobby?: AmbientLobby;
@@ -270,6 +272,8 @@ export interface ServerDeps {
   /** Price-only games (`/price-only/*`). */
   priceOnly?: PriceOnlyService;
   /** General four-choice questions (docs/logic/trivia.md), and the tracks a player may draw questions from. */
+  /** The question duel (docs/logic/trivia.md §Question duel): live search for a rival, then the same questions for both. */
+  triviaDuel?: Omit<TriviaDuelDeps, 'emit'>;
   trivia?: { service: TriviaService; tracksOf?: (userId: string | undefined) => Promise<readonly AgeTrack[]> };
   /** Paid hints of solo games; needs `solo` and `auth`. */
   hints?: HintService;
@@ -471,11 +475,12 @@ export function buildServer(deps: ServerDeps = {}) {
   let gateway: Gateway | undefined;
   if (deps.auth && deps.realtime) {
     const auth = deps.auth;
-    gateway = attachGateway(app.server, { banned: deps.leaves ? (u) => deps.leaves!.isBanned(u) : undefined, graceMs: deps.settings ? async () => (await deps.settings!.num('leave.grace_seconds')) * 1000 : undefined, onLeft: deps.tables ? (u) => void deps.tables!.leave(u) : undefined, authenticate: (t) => auth.authenticate(t), corsOrigin, match: deps.match, canAfford: deps.duelStakes ? async (u, tier) => (deps.ageTracks && !(await deps.ageTracks.allows(u, 'coinWager'))) || deps.duelStakes!.canQueue(u, tier) : undefined, tierGate: deps.duelStakes && deps.levelOf ? async (u, tier) => { if (deps.ageTracks && !(await deps.ageTracks.allows(u, 'coinWager'))) return 'UNKNOWN_TIER'; const t = (await deps.duelStakes!.tiers()).find((x) => x.id === tier); if (!t) return 'UNKNOWN_TIER'; return (await deps.levelOf!(u)) >= t.minLevel ? null : 'LEVEL_TOO_LOW'; } : undefined, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, levelGate: deps.duelLevelGate, limit: deps.limiter ? { canPlay: async (u) => (await deps.limiter!.check(u, 'duel')).ok, onStarted: (u) => deps.limiter!.record(u, 'duel') } : undefined, chat: deps.chat, presence: deps.presence, notices: deps.notices, onEmit: deps.botDriver ? (u, e, p) => deps.botDriver!.onEmit(u, e, p) : undefined, trackOf: deps.ageTracks ? (u) => deps.ageTracks!.effective(u).catch(() => 'adult' as const) : undefined, trackGate: deps.ageTracks ? (u) => deps.ageTracks!.featureOff(u, 'duel_queue') : undefined, diagnose: deps.match ? createQueueDiagnosis({ hasPuzzle: async (tracks) => (await deps.match!.puzzles.pickRandom({ tracks })) !== null, botsReady: () => deps.botDriver?.ready() ?? false, graceSec: 45 }) : undefined });
+    gateway = attachGateway(app.server, { banned: deps.leaves ? (u) => deps.leaves!.isBanned(u) : undefined, graceMs: deps.settings ? async () => (await deps.settings!.num('leave.grace_seconds')) * 1000 : undefined, onLeft: deps.tables ? (u) => void deps.tables!.leave(u) : undefined, authenticate: (t) => auth.authenticate(t), corsOrigin, match: deps.match, triviaDuel: deps.triviaDuel, canAfford: deps.duelStakes ? async (u, tier) => (deps.ageTracks && !(await deps.ageTracks.allows(u, 'coinWager'))) || deps.duelStakes!.canQueue(u, tier) : undefined, tierGate: deps.duelStakes && deps.levelOf ? async (u, tier) => { if (deps.ageTracks && !(await deps.ageTracks.allows(u, 'coinWager'))) return 'UNKNOWN_TIER'; const t = (await deps.duelStakes!.tiers()).find((x) => x.id === tier); if (!t) return 'UNKNOWN_TIER'; return (await deps.levelOf!(u)) >= t.minLevel ? null : 'LEVEL_TOO_LOW'; } : undefined, gate: deps.settings ? () => gateForDuel(deps.settings!) : undefined, levelGate: deps.duelLevelGate, limit: deps.limiter ? { canPlay: async (u) => (await deps.limiter!.check(u, 'duel')).ok, onStarted: (u) => deps.limiter!.record(u, 'duel') } : undefined, chat: deps.chat, presence: deps.presence, notices: deps.notices, onEmit: deps.botDriver ? (u, e, p) => deps.botDriver!.onEmit(u, e, p) : undefined, trackOf: deps.ageTracks ? (u) => deps.ageTracks!.effective(u).catch(() => 'adult' as const) : undefined, trackGate: deps.ageTracks ? (u) => deps.ageTracks!.featureOff(u, 'duel_queue') : undefined, diagnose: deps.match ? createQueueDiagnosis({ hasPuzzle: async (tracks) => (await deps.match!.puzzles.pickRandom({ tracks })) !== null, botsReady: () => deps.botDriver?.ready() ?? false, graceSec: 45 }) : undefined });
     if (deps.live) {
       deps.live.matches = gateway.matches;
       deps.live.queue = gateway.queue;
       deps.live.teamQueue = gateway.teamQueue;
+      deps.live.triviaDuel = gateway.triviaDuel;
     }
     app.addHook('onClose', async () => {
       await gateway?.close();
@@ -630,7 +635,7 @@ if (isMainModule(import.meta.url)) {
           filter: words,
         })
       : undefined;
-  const live: { matches?: MatchService; queue?: DuelQueue; teamQueue?: DuelQueue } = {};
+  const live: { matches?: MatchService; queue?: DuelQueue; teamQueue?: DuelQueue; triviaDuel?: TriviaDuelService } = {};
   const botStore = db ? createDbBotPlayerStore(db) : undefined;
   const botService =
     botStore && player && settings
@@ -643,6 +648,7 @@ if (isMainModule(import.meta.url)) {
           matches: () => live.matches,
           queue: () => live.queue,
           teamQueue: () => live.teamQueue,
+          triviaDuel: () => live.triviaDuel,
           chat: () => chat,
           settings: async () => ({ enabled: (await settings.num('bots.enabled')) === 1, fallbackSec: await settings.num('bots.fallback_seconds'), jitterSec: await settings.num('bots.fallback_jitter_seconds'), cityReplyPercent: await settings.num('bots.city_reply_percent'), autofillMin: await settings.num('bots.autofill_min') }),
           topUp: botService ? async (missing) => void (await botService.generate({ count: missing, levelMin: 1, levelMax: 30, skillMin: 30, skillMax: 75, winPercentMin: 40, winPercentMax: 65, thinkMinMs: 4000, thinkMaxMs: 20_000, tauntPercent: 25, cityIds: playerStore ? (await playerStore.cities()).map((c) => c.id) : [] })) : undefined,
@@ -918,6 +924,17 @@ if (isMainModule(import.meta.url)) {
   // Proving a number by login is the «phone» mission: pay it now (idempotent; a second login or an unpaid mission is simply skipped).
   if (phoneLogin && profileTaskService) phoneLogin.afterVerify = async (userId) => void (await profileTaskService.claim(userId, 'phone'));
   const matchPuzzleSource = db ? createDbPuzzleSource(db) : undefined;
+  const duelProfile = db
+    ? (() => {
+        const base = createDbProfileLookup(db, player ? async (id) => (await player.levelOf(id)).level.level : undefined);
+        return async (id: string) => {
+          const p = await base(id);
+          if (!p) return p;
+          const party = await birthday?.info([id]);
+          return party?.get(id)?.badge ? { ...p, birthday: true } : p;
+        };
+      })()
+    : undefined;
   const app = buildServer({
     reportError,
     auth,
@@ -926,6 +943,26 @@ if (isMainModule(import.meta.url)) {
       ? { backups: backupService, images: adminImageStore(), products: productAdmin!, feedback, clientErrors, stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, keepsakes: keepsakeStore, wheel, ads, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, ageTracks: db ? createDbAgeTrackAdmin(db) : undefined, economy: db ? createDbEconomyAdmin(db) : undefined, daily, ai: aiStudio, aiSchedules: aiScheduler, puzzles: createDbPuzzleAdmin(db), trivia: triviaStore, leaves, levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, sms: smsGateway, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
+    triviaDuel:
+      duelProfile && triviaStore && settings
+        ? {
+            profile: duelProfile,
+            poolOf: ageTracks ? async (id) => trackRules(await ageTracks.effective(id)).puzzleTracks : undefined,
+            questions: async ({ topicId, tracks, count, rng }) => {
+              const pool = await triviaStore.approved({ topicId, tracks, limit: Math.max(60, count * 6) });
+              return pickTriviaQuestions(pool, count, rng).map((q) => ({ id: q.id, textFa: q.textFa, explanationFa: q.explanationFa, ...shuffleTrivia(q, rng) }));
+            },
+            topicName: (id) => triviaStore.topicName(id),
+            settings: async () => ({ questions: await settings.num('trivia.duel_questions'), seconds: await settings.num('trivia.duel_seconds') }),
+            gate: async (id) => {
+              if ((await settings.num('app.maintenance_on')) === 1) return 'MAINTENANCE';
+              if ((await settings.num('feature.trivia_duel')) !== 1) return 'FEATURE_OFF';
+              // Same rule as the other price/question modes: tracks whose rules switch them off (kids) do not get it.
+              if (ageTracks && !trackRules(await ageTracks.effective(id)).priceOnly) return 'FEATURE_OFF';
+              return null;
+            },
+          }
+        : undefined,
     match: db
       ? {
           puzzles: matchPuzzleSource!,
@@ -964,15 +1001,7 @@ if (isMainModule(import.meta.url)) {
             : undefined,
           stakes: duelStakes,
           tableStakes,
-          profile: (() => {
-            const base = createDbProfileLookup(db, player ? async (id) => (await player.levelOf(id)).level.level : undefined);
-            return async (id: string) => {
-              const p = await base(id);
-              if (!p) return p;
-              const party = await birthday?.info([id]);
-              return party?.get(id)?.badge ? { ...p, birthday: true } : p;
-            };
-          })(),
+          profile: duelProfile!,
           // A 2v2 earns the duel XP too (progression.md: team reuses the duel base) — people and bots alike.
           onTeamEnded: ({ players, result }) => {
             if (result.reason === 'abandon') return;

@@ -31,7 +31,7 @@ function Choices({ options, picked, correct, onPick, disabled }: { options: read
 }
 
 /** The duel's general-question round: a hidden four-choice answer against the clock; a finished question is coloured in place for a moment (right green, wrong red, the right one purple) with its point. */
-export function DuelTriviaRound({ round, now, onAnswer }: { round: TriviaRoundView; now: number; /** Resolves to an error text, or null when the server took the answer. */ onAnswer: (index: number) => Promise<string | null> }) {
+export function DuelTriviaRound({ round, now, onAnswer, title, intro }: { round: TriviaRoundView; now: number; /** Heading and first-question hint; the defaults speak of a round after the boards, the question duel passes its own (intro null = none). */ title?: string; intro?: string | null; /** Resolves to an error text, or null when the server took the answer. */ onAnswer: (index: number) => Promise<string | null> }) {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [mine, setMine] = useState<number | null>(null);
@@ -69,7 +69,7 @@ export function DuelTriviaRound({ round, now, onAnswer }: { round: TriviaRoundVi
   const answered = round.youAnswered || mine !== null;
   return (
     <View style={styles.column}>
-      <Text style={styles.title}>{t.title}</Text>
+      <Text style={styles.title}>{title ?? t.title}</Text>
       <Text style={styles.sub}>{t.round(Math.min(round.totalRounds, (hold ? hold.index : round.roundIndex) + 1), round.totalRounds)}{current && !hold ? ` · ${t.secondsLeft(secs)}` : ''}</Text>
       {hold ? (
         <View style={styles.card}>
@@ -86,7 +86,7 @@ export function DuelTriviaRound({ round, now, onAnswer }: { round: TriviaRoundVi
           {note ? <Text style={styles.error}>{note}</Text> : null}
         </View>
       ) : null}
-      {round.revealed.length === 0 && !hold ? <Text style={styles.intro}>{t.intro}</Text> : null}
+      {round.revealed.length === 0 && !hold && (intro === undefined || intro !== null) ? <Text style={styles.intro}>{intro === undefined ? t.intro : intro}</Text> : null}
     </View>
   );
 }

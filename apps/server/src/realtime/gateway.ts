@@ -3,7 +3,7 @@ import { Server } from 'socket.io';
 import type { Socket } from 'socket.io';
 import type { QueueProblem } from '@dozari/shared';
 import type { AgeTrack } from '@dozari/shared';
-import { ClientEvent, ServerEvent, chatTauntSchema, draftPickSchema, matchPowerSchema, matchProposeSchema, matchResumeSchema, matchSubmitSchema, priceSubmitSchema, queueJoinSchema, triviaSubmitSchema } from '@dozari/shared';
+import { ClientEvent, ServerEvent, chatTauntSchema, draftPickSchema, matchPowerSchema, matchProposeSchema, matchResumeSchema, matchSubmitSchema, priceSubmitSchema, queueJoinSchema, tduelAnswerSchema, tduelJoinSchema, triviaSubmitSchema } from '@dozari/shared';
 import type { Ack, LiveNotice } from '@dozari/shared';
 import type { UserRecord } from '../auth/service.js';
 import { ChatService } from '../chat/service.js';
@@ -11,6 +11,8 @@ import { RateLimiter } from '../security/rate-limit.js';
 import { MatchService } from './match-service.js';
 import type { MatchDeps } from './match-service.js';
 import { DuelQueue, type QueueTier } from './queue.js';
+import { TriviaDuelService } from './trivia-duel.js';
+import type { TriviaDuelDeps } from './trivia-duel.js';
 import { SocketStats } from './stats.js';
 
 export interface GatewayOptions {
@@ -40,6 +42,8 @@ export interface GatewayOptions {
   onPair?: (a: string, b: string) => Promise<boolean> | boolean;
   /** Live matches: everything but `emit` (the gateway supplies it). When set, pairs are handed to a `MatchService`. */
   match?: Omit<MatchDeps, 'emit'>;
+  /** The question duel (docs/logic/trivia.md §Question duel): everything but `emit` (the gateway supplies it and the board-duel busy check). */
+  triviaDuel?: Omit<TriviaDuelDeps, 'emit'>;
   /** Chat: city rooms and taunts in a duel. */
   chat?: ChatService;
   /** Sees every event pushed to any user (used to let bot accounts react); must not throw. */
@@ -63,6 +67,7 @@ export interface Gateway {
   /** 2v2 fill queue: four strangers make a match (docs/logic/matchmaking.md). */
   teamQueue: DuelQueue;
   matches?: MatchService;
+  triviaDuel?: TriviaDuelService;
   close(): Promise<void>;
 }
 
@@ -83,6 +88,7 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
   const lineTiers = new Map<string, QueueTier>();
   const rejoin = (line: DuelQueue, id: string) => line.join(id, now(), lineTracks.get(id) ?? 'adult', lineTiers.get(id) ?? 'bronze');
   let matches: MatchService | undefined;
+  let triviaDuel: TriviaDuelService | undefined;
   const stats = new SocketStats({ queueLength: () => queue.length + teamQueue.length, activeMatches: () => matches?.activeCount ?? 0, longestWaitMs: (t) => Math.max(queue.longestWaitMs(t), teamQueue.longestWaitMs(t)) }, now);
   const io = new Server(http, {
     // Every client message is a tiny JSON object.
@@ -106,6 +112,19 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
         opts.onEmit?.(userId, event, payload);
       },
     });
+
+  if (opts.triviaDuel) {
+    const base = opts.triviaDuel;
+    triviaDuel = new TriviaDuelService({
+      now,
+      ...base,
+      busy: (u) => base.busy?.(u) === true || matches?.inMatch(u) === true || queue.has(u) || teamQueue.has(u),
+      emit: (userId, event, payload) => {
+        io.to(room(userId)).emit(event, payload);
+        opts.onEmit?.(userId, event, payload);
+      },
+    });
+  }
 
   io.use(async (socket, next) => {
     const token: unknown = socket.handshake.auth?.token;
@@ -181,7 +200,8 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
         if (refused) return ack?.({ ok: false, error: refused });
       }
       if (!team && opts.canAfford && !(await opts.canAfford(userId, tier))) return ack?.({ ok: false, error: 'INSUFFICIENT_COINS' });
-      if (matches?.inMatch(userId)) return ack?.({ ok: false, error: 'ALREADY_IN_MATCH' });
+      if (matches?.inMatch(userId) || triviaDuel?.inMatch(userId)) return ack?.({ ok: false, error: 'ALREADY_IN_MATCH' });
+      if (triviaDuel?.isWaiting(userId)) return ack?.({ ok: false, error: 'ALREADY_QUEUED' });
       if (queue.has(userId) || teamQueue.has(userId)) return ack?.({ ok: false, error: 'ALREADY_QUEUED' });
       const line = team ? teamQueue : queue;
       const track = (await opts.trackOf?.(userId)) ?? 'adult';
@@ -220,7 +240,28 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
 
     // A returning player gets the live board straight away, and the others hear they are back.
     matches?.resume(userId);
+    triviaDuel?.resume(userId);
     if (dropped.delete(userId)) for (const other of matches?.othersOf(userId) ?? []) io.to(room(other)).emit(ServerEvent.matchPresence, { userId, state: 'back' });
+
+    // Question duel: the search (a topic or random), leaving, answering, and picking the game up again.
+    socket.on(ClientEvent.tduelJoin, async (payload: unknown, ack?: (a: Ack) => void) => {
+      const body = tduelJoinSchema.safeParse(payload ?? {});
+      if (!body.success || !triviaDuel) return ack?.({ ok: false, error: triviaDuel ? 'INVALID_PAYLOAD' : 'FEATURE_OFF' });
+      const out = await triviaDuel.join(userId, body.data.topicId).catch(() => ({ ok: false, error: 'INTERNAL' }) as const);
+      ack?.(out);
+      if (out.ok) socket.emit(ServerEvent.queueStatus, { waitedSec: 0, position: 1 });
+    });
+    socket.on(ClientEvent.tduelLeave, (_payload: unknown, ack?: (a: Ack) => void) => {
+      ack?.(triviaDuel ? triviaDuel.leave(userId) : { ok: false, error: 'NOT_IN_MATCH' });
+    });
+    socket.on(ClientEvent.tduelAnswer, (payload: unknown, ack?: (a: Ack) => void) => {
+      const body = tduelAnswerSchema.safeParse(payload);
+      if (!body.success) return ack?.({ ok: false, error: 'INVALID_PAYLOAD' });
+      ack?.(triviaDuel ? triviaDuel.answer(userId, body.data.index) : { ok: false, error: 'NOT_IN_MATCH' });
+    });
+    socket.on(ClientEvent.tduelResume, (_payload: unknown, ack?: (a: Ack) => void) => {
+      ack?.(triviaDuel?.resume(userId) ? { ok: true } : { ok: false, error: 'NOT_IN_MATCH' });
+    });
 
     // The sides name the topic of each round before a themed match starts.
     socket.on(ClientEvent.draftPick, (payload: unknown, ack?: (a: Ack) => void) => {
@@ -284,6 +325,7 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
       const left = await io.in(room(userId)).fetchSockets();
       if (left.length === 0) {
         leaveQueue(userId);
+        triviaDuel?.leaveQueue(userId);
         // A player who is gone for good must not hold a match (and their partner or rival) hostage: after a grace period they leave it.
         const grace = await (opts.graceMs?.() ?? Promise.resolve(opts.disconnectGraceMs ?? 90_000)).catch(() => opts.disconnectGraceMs ?? 90_000);
         // The others hear at once that a seat is being held, and until when.
@@ -305,6 +347,9 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
   // Every few seconds each waiting player hears how long they have waited, and why nothing is happening when something is wrong.
   const statusTimer = setInterval(() => {
     void (async () => {
+      for (const [i, w] of (triviaDuel?.queued() ?? []).entries()) {
+        io.to(room(w.userId)).emit(ServerEvent.queueStatus, { waitedSec: Math.max(0, Math.floor((now() - w.since) / 1000)), position: i + 1 });
+      }
       for (const line of [queue, teamQueue]) {
         for (const { userId, since, track } of line.waiting()) {
           const waitedSec = Math.max(0, Math.floor((now() - since) / 1000));
@@ -322,6 +367,7 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
     queue,
     teamQueue,
     matches,
+    triviaDuel,
     close: () => {
       clearInterval(statusTimer);
       return new Promise<void>((resolve) => void io.close(() => resolve()));
