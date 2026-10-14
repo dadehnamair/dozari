@@ -27,7 +27,7 @@ friends/chat, UGC, bots, post-match price chart + share card, Bale bot.
 1. Prices nominal, never inflation-adjusted. 2. Money = integer rials (BIGINT), shown as toman; no floats.
 3. Years = Solar Hijri ints. 4. Server authoritative; clients never see unsolved groups.
 5. Every puzzle has exactly one solution (`validatePuzzle`). 6. Coins only via append-only `coin_ledger` service fn.
-7. Free-text chat needs redeemed invite code, else canned taunts. 8. **No Google/Firebase** deps or runtime Google Fonts.
+7. Free-text chat needs redeemed invite code, else canned taunts. 8. **No direct Google/Firebase** deps or runtime Google Fonts; FCM push only via the irnoti broker (D233).
 9. Economy/timers/limits only in `packages/shared/src/config/*.ts`.
 
 ## Conventions

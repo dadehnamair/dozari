@@ -69,3 +69,37 @@ self.addEventListener('fetch', (event) => {
       .catch(() => caches.match(key).then((hit) => hit || Response.error())),
   );
 });
+
+// Browser notifications (docs/logic/web-notifications.md): a tap brings the open window forward, or opens the app.
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      const open = list.find((c) => 'focus' in c);
+      return open ? open.focus() : self.clients.openWindow('/');
+    }),
+  );
+});
+
+// Web Push (D232): the server sends {title, body, tag}. iPhone requires every push to show a notification, so when the app is
+// in front the notification is shown silently instead of being skipped.
+self.addEventListener('push', (event) => {
+  let d = {};
+  try {
+    d = event.data ? event.data.json() : {};
+  } catch (e) {
+    d = {};
+  }
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) =>
+      self.registration.showNotification(d.title || 'دوزاری', {
+        body: d.body || '',
+        tag: d.tag || 'dozari',
+        icon: '/icon-192.png',
+        lang: 'fa',
+        dir: 'rtl',
+        silent: list.some((c) => c.visibilityState === 'visible'),
+      }),
+    ),
+  );
+});

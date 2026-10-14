@@ -1,4 +1,4 @@
-import { AI_LIMITS, AI_PUZZLE_CATALOG_MAX, AI_REVIEW, trackRank } from '@dozari/shared';
+import { AI_LIMITS, AI_PUZZLE_CATALOG_MAX, AI_PUZZLE_THEMED_CATALOG_MAX, AI_REVIEW, trackRank } from '@dozari/shared';
 import type { AiKind } from '@dozari/shared';
 import type { LessonStore } from '../lessons/service.js';
 import type { PuzzleAdmin } from '../puzzles/admin.js';
@@ -23,6 +23,8 @@ export interface AiDeps {
   landing?: LandingService;
   /** The catalog as it is now, to keep suggestions from repeating existing products. */
   catalog?: () => Promise<{ id: string; slug: string; nameFa: string }[]>;
+  /** The product categories the admin has defined (active ones); the prompt offers them to the model. */
+  categories?: { activeSlugs(): Promise<string[]> };
   fetch?: FetchLike;
   now?: () => number;
 }
@@ -119,6 +121,7 @@ export class AiStudio {
       if (ctx.kidItems.length === 0) throw new AiError('ai_not_found');
     }
     if (req.kind === 'products' && this.deps.catalog) ctx.existing = await this.deps.catalog();
+    if (req.kind === 'products' && this.deps.categories) ctx.categories = await this.deps.categories.activeSlugs();
     if (req.kind === 'puzzle_groups') {
       if (!this.deps.puzzles || !this.deps.catalog || !this.deps.products) throw new AiError('ai_not_found');
       const [all, details] = await Promise.all([this.deps.catalog(), this.deps.products.details()]);
@@ -134,7 +137,7 @@ export class AiStudio {
         ctx.tier = { nameFa: tier.nameFa, minLevel: tier.minLevel, maxLevel: tier.maxLevel };
       }
       Object.assign(ctx, await this.theme(req.topicId, req.tags));
-      ctx.pool = usable.slice(0, AI_PUZZLE_CATALOG_MAX).map((p) => ({ productId: p.id, nameFa: p.nameFa, category: details[p.id]?.category }));
+      ctx.pool = usable.slice(0, ctx.topic || ctx.tags?.length ? AI_PUZZLE_THEMED_CATALOG_MAX : AI_PUZZLE_CATALOG_MAX).map((p) => ({ productId: p.id, nameFa: p.nameFa, category: details[p.id]?.category }));
       if (ctx.pool.length < 16) throw new AiError('ai_not_found');
       // Puzzles that already exist are sent too, so the model does not rebuild them; repeats are also dropped on parse.
       const names = new Map(all.map((p) => [p.id, p.nameFa]));
@@ -156,6 +159,10 @@ export class AiStudio {
     const model = req.model?.trim() || provider.defaultModel;
     const text = await chat(provider, { ...prompt, model, maxTokens: AI_LIMITS.maxTokens[req.kind] }, this.deps.fetch);
     const parsed = parseDrafts(req.kind, text, ctx, req.kind === 'products' || req.kind === 'puzzle_groups' || req.kind === 'trivia' ? req.ageTrack : 'adult');
+    // A themed run where the model found too few fitting products answers with no puzzles: say so instead of «unreadable».
+    if (!parsed && req.kind === 'puzzle_groups' && (ctx.topic || ctx.tags?.length) && /"puzzles"\s*:\s*\[\s*\]/.test(text)) {
+      throw new AiError('ai_not_found', undefined, `در کاتالوگ محصول کافیِ مرتبط با «${ctx.topic?.nameFa ?? ctx.tags?.join('، ')}» پیدا نشد؛ اول محصول‌های این موضوع را (از «محصول» در همین صفحه یا دستی) به کاتالوگ اضافه کن.`);
+    }
     if (!parsed) throw new AiError('ai_bad_output', undefined, `جواب مدل JSON قابل‌خواندن نبود: «${text.replace(/\s+/g, ' ').slice(0, 160)}»`);
     return { kind: req.kind, provider: provider.id, model, drafts: parsed.drafts, dropped: parsed.dropped, context: ctx, ...(req.kind === 'puzzle_groups' && req.tierId ? { tierId: req.tierId } : {}), ...(req.kind === 'puzzle_groups' || req.kind === 'trivia' ? { topicId: req.topicId } : {}), ...(req.kind === 'puzzle_groups' ? { tags: req.tags } : {}) };
   }
@@ -233,6 +240,7 @@ export class AiStudio {
         if (!d.products) throw new AiError('ai_not_found');
         const out: SaveOutcome[] = [];
         const known = new Set((await d.catalog?.() ?? []).flatMap((e) => [nameKey(e.nameFa), nameKey(e.slug)]));
+        const allowed = d.categories ? new Set(await d.categories.activeSlugs()) : null;
         for (const p of req.drafts) {
           if (known.has(nameKey(p.nameFa)) || known.has(nameKey(p.slug))) {
             out.push({ label: p.nameFa, ok: false, error: 'duplicate' });
@@ -242,7 +250,7 @@ export class AiStudio {
           known.add(nameKey(p.slug));
           let made: Awaited<ReturnType<ProductAdmin['create']>> = 'duplicate';
           for (const slug of [p.slug, `${p.slug}-2`, `${p.slug}-3`]) {
-            made = await d.products.create({ slug, nameFa: p.nameFa, category: p.category, unitFa: p.unitFa, ageTrack: p.ageTrack });
+            made = await d.products.create({ slug, nameFa: p.nameFa, category: !allowed || allowed.has(p.category) ? p.category : 'other', unitFa: p.unitFa, ageTrack: p.ageTrack });
             if (made !== 'duplicate') break;
           }
           if (typeof made === 'string') {

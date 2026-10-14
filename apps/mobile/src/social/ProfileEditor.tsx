@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import type { MyProfile } from '@dozari/shared';
+import type { AvatarShelf, MyProfile } from '@dozari/shared';
 import { provinceOf, toPersianDigits } from '@dozari/shared';
 import { ProvinceBadge } from '../components/ProvinceBadge';
 import { fa } from '../i18n/fa';
@@ -9,6 +9,9 @@ import { colors, fonts } from '../theme/colors';
 import { Avatar } from '../components/Avatar';
 import { CHARACTER_AVATARS } from '../kit/data';
 import { saveAvatar, saveEmail, saveNickname } from './api';
+import { buyAvatar, fetchAvatars } from '../shop/api';
+import { characterTag, characterTap } from './characterShelf';
+import { useConfirm } from '../components/useConfirm';
 import { nicknameHint } from './nicknameHint';
 import { BirthdayEditor } from './BirthdayEditor';
 import { TEXT_LEFT } from '../theme/direction';
@@ -24,6 +27,12 @@ export function ProfileEditor({ me, onChange, onPickCity }: { me: MyProfile; onC
   const [nick, setNick] = useState(me.nickname);
   const [email, setEmail] = useState(me.email ?? '');
   const setNote = noteToast;
+  const { ask, dialog } = useConfirm();
+  /** The priced cast (D230); null while loading or when the server has no shop, then every tap just tries to wear. */
+  const [shelf, setShelf] = useState<AvatarShelf | null>(null);
+  useEffect(() => {
+    fetchAvatars().then(setShelf, () => undefined);
+  }, []);
 
   useEffect(() => setNick(me.nickname), [me.nickname]);
   const say = (text: string, bad = false) => setNote({ text, bad });
@@ -36,8 +45,20 @@ export function ProfileEditor({ me, onChange, onPickCity }: { me: MyProfile; onC
   const pickAvatar = (key: string) =>
     saveAvatar(key).then(
       (saved) => (onChange({ avatarKey: saved }), say(fa.profile.saved)),
-      (e) => say(e instanceof ApiError && e.code === 'locked' ? fa.profile.avatarLocked(me.avatarLockedUntilGames ?? 0) : fa.profile.error, true),
+      (e) => say(e instanceof ApiError && e.code === 'locked' ? fa.profile.avatarLocked(me.avatarLockedUntilGames ?? 0) : e instanceof ApiError && e.code === 'not_owned' ? fa.avatarShelf.errors.generic ?? fa.profile.error : fa.profile.error, true),
     );
+  const purchase = (key: string) =>
+    buyAvatar(key).then(
+      (r) => (onChange({ avatarKey: r.avatarKey }), say(fa.avatarShelf.bought), fetchAvatars().then(setShelf, () => undefined)),
+      (e) => say(fa.avatarShelf.errors[e instanceof ApiError ? e.code : 'generic'] ?? fa.avatarShelf.errors.generic ?? fa.profile.error, true),
+    );
+  const tapCharacter = (key: string) => {
+    const tap = characterTap(key, shelf);
+    if (tap.kind === 'wear') return void pickAvatar(key);
+    if (tap.kind === 'blocked') return say(tap.text, true);
+    const name = fa.profile.characters[CHARACTER_AVATARS.find((c) => c.key === key)?.who ?? ''] ?? '';
+    ask({ title: name, message: fa.avatarShelf.confirm(name, tap.price), confirmLabel: fa.avatarShelf.buy, danger: false, onConfirm: () => void purchase(key) });
+  };
   const storeEmail = () =>
     saveEmail(email.trim() === '' ? null : email).then(
       () => (onChange({ email: email.trim() === '' ? null : email.trim().toLowerCase() }), say(fa.profile.saved)),
@@ -54,6 +75,7 @@ export function ProfileEditor({ me, onChange, onPickCity }: { me: MyProfile; onC
 
   return (
     <View style={styles.box}>
+      {dialog}
       <View style={styles.card}>
         <View style={styles.head}>
           <Text style={styles.label}>{fa.profile.level} {n(lv.level)}</Text>
@@ -76,13 +98,14 @@ export function ProfileEditor({ me, onChange, onPickCity }: { me: MyProfile; onC
         <Text style={styles.label}>{fa.profile.avatar}</Text>
         <View style={styles.faces}>
           {CHARACTER_AVATARS.map((a) => (
-            <Pressable key={a.key} onPress={() => void pickAvatar(a.key)} disabled={me.avatarLockedUntilGames !== null} accessibilityRole="button" accessibilityLabel={fa.profile.characters[a.who ?? ''] ?? ''} accessibilityState={{ selected: me.avatarKey === a.key }} style={[styles.face, me.avatarKey === a.key ? styles.faceOn : null, me.avatarLockedUntilGames !== null ? styles.disabled : null]}>
+            <Pressable key={a.key} onPress={() => tapCharacter(a.key)} disabled={me.avatarLockedUntilGames !== null} accessibilityRole="button" accessibilityLabel={fa.profile.characters[a.who ?? ''] ?? ''} accessibilityState={{ selected: me.avatarKey === a.key }} style={[styles.face, me.avatarKey === a.key ? styles.faceOn : null, me.avatarLockedUntilGames !== null ? styles.disabled : null]}>
               <Avatar avatar={a} size={52} />
               <Text style={styles.faceName} numberOfLines={1}>{fa.profile.characters[a.who ?? ''] ?? ''}</Text>
+              {characterTag(a.key, shelf) ? <Text style={styles.facePrice} numberOfLines={1}>{characterTag(a.key, shelf)}</Text> : null}
             </Pressable>
           ))}
         </View>
-        <Text style={styles.hint}>{me.avatarLockedUntilGames !== null ? fa.profile.avatarLocked(me.avatarLockedUntilGames) : fa.profile.avatarHint}</Text>
+        <Text style={styles.hint}>{me.avatarLockedUntilGames !== null ? fa.profile.avatarLocked(me.avatarLockedUntilGames) : shelf ? fa.avatarShelf.hint : fa.profile.avatarHint}</Text>
       </View>
 
       <View style={styles.card}>
@@ -155,5 +178,6 @@ const styles = StyleSheet.create({
   faces: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6 },
   faceName: { fontFamily: fonts.bold, fontSize: 11, color: INK, textAlign: 'center', marginTop: 2 },
   face: { width: 64, alignItems: 'center', padding: 2, borderRadius: 99, borderWidth: 3, borderColor: 'transparent' },
+  facePrice: { fontFamily: fonts.bold, fontSize: 10, color: '#7E46D6', textAlign: 'center' },
   faceOn: { borderColor: '#FFC93C', backgroundColor: 'rgba(255,201,60,0.25)' },
 });

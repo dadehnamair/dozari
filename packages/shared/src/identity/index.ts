@@ -1,5 +1,6 @@
 import type { Rng } from '../game/rng.js';
-import { AVATAR_CHANGE_MIN_LEVEL, NICKNAME_CHANGE_MIN_LEVEL } from '../config/game.js';
+import { z } from 'zod';
+import { AVATAR_CHANGE_MIN_LEVEL, AVATAR_DEFAULT_PRICE_COINS, AVATAR_FREE_COUNT, NICKNAME_CHANGE_MIN_LEVEL } from '../config/game.js';
 
 /**
  * Guest identity (docs/logic/profile-and-identity.md): a new account gets a random nickname and avatar from curated
@@ -45,4 +46,52 @@ export function canCustomise(what: 'avatar' | 'nickname', profile: { level: numb
   if (!profile.inviteRedeemed) return { ok: false, reason: 'NEEDS_INVITE', minLevel };
   if (profile.level < minLevel) return { ok: false, reason: 'NEEDS_LEVEL', minLevel };
   return { ok: true };
+}
+
+/** Opening price of cast character number `index` (0-based, order of `CHARACTER_AVATAR_KEYS`): the first `AVATAR_FREE_COUNT` are free, the rest cost the default price until the admin changes it (D230). */
+export function defaultAvatarPrice(index: number): number {
+  return index < AVATAR_FREE_COUNT ? 0 : AVATAR_DEFAULT_PRICE_COINS;
+}
+
+/** Why a player cannot take an avatar yet (D65 gates): free needs `AVATAR_UNLOCK_GAMES` games; paid also needs an activated profile and the minimum level. */
+export type AvatarBlock = 'NEEDS_GAMES' | 'NEEDS_INVITE' | 'NEEDS_LEVEL' | 'NEEDS_COINS';
+
+/** One avatar on the shelf as the player sees it (`GET /me/avatars`). */
+export const avatarShelfItemSchema = z.object({
+  key: z.string(),
+  /** Coins; 0 = free for everyone. */
+  priceCoins: z.number().int().nonnegative(),
+  /** Free, or already bought. */
+  owned: z.boolean(),
+  current: z.boolean(),
+  /** Null when the player can take it now (select if owned, buy if not). */
+  blocked: z.enum(['NEEDS_GAMES', 'NEEDS_INVITE', 'NEEDS_LEVEL', 'NEEDS_COINS']).nullable(),
+});
+export type AvatarShelfItem = z.infer<typeof avatarShelfItemSchema>;
+
+export const avatarShelfSchema = z.object({
+  items: z.array(avatarShelfItemSchema),
+  balance: z.number().int().nonnegative(),
+  games: z.number().int().nonnegative(),
+  level: z.number().int().positive(),
+  unlockGames: z.number().int().nonnegative(),
+  minLevel: z.number().int().positive(),
+});
+export type AvatarShelf = z.infer<typeof avatarShelfSchema>;
+
+/**
+ * May this player take an avatar priced `priceCoins` that they do not own yet or that is free? Pure (D65): free avatars need the games count; paid ones
+ * additionally need `canCustomise` (activated profile + level) and enough coins. An owned avatar is always selectable.
+ */
+export function avatarBlock(
+  priceCoins: number,
+  owned: boolean,
+  p: { games: number; level: number; inviteRedeemed: boolean; balance: number; unlockGames: number; minLevel: number },
+): AvatarBlock | null {
+  if (p.games < p.unlockGames) return 'NEEDS_GAMES';
+  if (owned || priceCoins <= 0) return null;
+  if (!p.inviteRedeemed) return 'NEEDS_INVITE';
+  if (p.level < p.minLevel) return 'NEEDS_LEVEL';
+  if (p.balance < priceCoins) return 'NEEDS_COINS';
+  return null;
 }

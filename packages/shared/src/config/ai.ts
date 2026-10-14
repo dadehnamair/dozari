@@ -23,6 +23,9 @@ export const AI_LIMITS = {
 /** Products offered to the model when it builds whole puzzles (names only; the rest of the catalog is left out to bound the prompt). */
 export const AI_PUZZLE_CATALOG_MAX = 300;
 
+/** Same, when the request names a topic or tags: the model needs to see (nearly) the whole catalog to find what belongs to the topic, so no small random slice. */
+export const AI_PUZZLE_THEMED_CATALOG_MAX = 1500;
+
 /** The puzzle review assistant (docs/logic/ai-studio.md §Puzzle review assistant): one provider call per puzzle, so the batch is small. */
 export const AI_REVIEW = {
   /** Puzzles one run may look at. */

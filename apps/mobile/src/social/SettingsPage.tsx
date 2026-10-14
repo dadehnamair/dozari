@@ -1,5 +1,5 @@
 import { FACE_TEXT } from '../theme/skin';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Character } from '../components/Character';
 import { GradientFill } from '../components/GradientFill';
@@ -23,7 +23,9 @@ import { ChildCodeSheet } from '../agetrack/ChildCodeSheet';
 import { ChildrenSheet } from '../agetrack/ChildrenSheet';
 import { CityPicker } from './CityPicker';
 import { fetchMyProfile } from './api';
-import type { City } from '@dozari/shared';
+import type { City, MyProfile } from '@dozari/shared';
+import { fetchWorn } from '../shop/api';
+import { WorkshopProfileCard } from './AdultProfileCard';
 import { pageTop, safeTop } from '../theme/safeArea';
 import { useHardwareBack } from '../nav/useHardwareBack';
 import { TEXT_RIGHT } from '../theme/direction';
@@ -65,6 +67,14 @@ export function SettingsPage({ onClose, onProfile, onMissions, missionsReady = 0
   const [childCodeOpen, setChildCodeOpen] = useState(false);
   const [baleOpen, setBaleOpen] = useState(false);
   const t = fa.settings;
+  // Adult look: the profile row gives way to a summary card on top (design `adult/Dozari Adult - Workshop`).
+  const [me, setMe] = useState<MyProfile | null>(null);
+  const [worn, setWorn] = useState<{ slot: string; iconKey: string | null }[]>([]);
+  useEffect(() => {
+    if (!dark) return;
+    void fetchMyProfile().then(setMe, () => undefined);
+    void fetchWorn().then((r) => setWorn(r.worn), () => undefined);
+  }, [dark]);
   // Nothing scrolls: on a short screen the rows tighten instead.
   const compact = useWindowDimensions().height < 760;
 
@@ -78,7 +88,7 @@ export function SettingsPage({ onClose, onProfile, onMissions, missionsReady = 0
   const groups: { title: string; tint: string; rows: Row[] }[] = [
     {
       title: t.groups.game,
-      tint: colors.candy.sky,
+      tint: dark ? '#1C4458' : colors.candy.sky,
       rows: [
         { key: 'sound', icon: 'radio', tint: '#3FC1F0', label: fa.prefs.sound, toggle: prefs.sound, onPress: toggle('sound') },
         { key: 'music', icon: 'radio', tint: '#FFC93C', label: fa.prefs.music, toggle: prefs.music, onPress: toggle('music') },
@@ -88,11 +98,11 @@ export function SettingsPage({ onClose, onProfile, onMissions, missionsReady = 0
     },
     {
       title: t.groups.me,
-      tint: colors.candy.lime,
+      tint: dark ? '#2F4E1A' : colors.candy.lime,
       rows: [
         // The missions live here (the workshop); a ready reward is announced on Home, on the level badge and on this row.
         ...(onMissions ? [{ key: 'missions', icon: 'target', tint: '#7ED957', label: missionsReady > 0 ? t.missionsReady(missionsReady) : t.missions, tone: missionsReady > 0 ? '#2E7D32' : undefined, onPress: onMissions }] : []),
-        { key: 'profile', icon: 'medal', tint: '#FFC93C', label: t.profile, bold: true, onPress: onProfile },
+        ...(dark && me ? [] : [{ key: 'profile', icon: 'medal', tint: '#FFC93C', label: t.profile, bold: true, onPress: onProfile }]),
         { key: 'city', icon: 'map', tint: '#7ED957', label: t.city, onPress: openCity },
         ...(pwa.installMode !== 'none' ? [{ key: 'install', icon: 'phone', tint: '#FF7A3D', label: t.install, onPress: () => void pwa.promptInstall().then((r) => r === 'ios' && setIosHelp(true)) }] : []),
         ...(onTutorial ? [{ key: 'tutorial', icon: 'scroll', tint: '#3FC1F0', label: t.tutorial, onPress: onTutorial }] : []),
@@ -100,7 +110,7 @@ export function SettingsPage({ onClose, onProfile, onMissions, missionsReady = 0
     },
     {
       title: t.groups.account,
-      tint: colors.candy.pink,
+      tint: dark ? '#5A1A24' : colors.candy.pink,
       rows: [
         { key: 'about', icon: 'lantern', tint: '#C9A3FF', label: t.about, onPress: () => setAboutOpen((v) => !v) },
         ...(baleOn ? [{ key: 'bale', icon: 'bolt', tint: '#FF7A3D', label: fa.bale.row, onPress: () => setBaleOpen(true) }] : []),
@@ -121,18 +131,20 @@ export function SettingsPage({ onClose, onProfile, onMissions, missionsReady = 0
           <View style={styles.head}>
             <Pressable accessibilityRole="button" accessibilityLabel={t.close} onPress={onClose}>
               {({ pressed }) => (
-                <View style={[styles.back, pressed ? styles.pressed : null]}>
-                  <GradientFill from="#C9A3FF" to="#A66BF0" />
-                  <Icon name="back" size={22} color="#fff" strokeWidth={3} />
+                <View style={[styles.back, dark ? dk.back : null, pressed ? styles.pressed : null]}>
+                  <GradientFill from={dark ? '#5A3A1C' : '#C9A3FF'} to={dark ? '#24160A' : '#A66BF0'} />
+                  <Icon name="back" size={22} color={dark ? '#FFE9A8' : '#fff'} strokeWidth={3} />
                 </View>
               )}
             </Pressable>
-            <View style={styles.plate}>
-              <GradientFill from="#8FDCFA" to="#3FC1F0" />
-              <Text style={styles.plateText}>{t.title}</Text>
+            <View style={[styles.plate, dark ? dk.plate : null]}>
+              <GradientFill from={dark ? '#FFF1B8' : '#8FDCFA'} to={dark ? '#B8822A' : '#3FC1F0'} />
+              <Text style={[styles.plateText, dark ? dk.plateText : null]}>{t.title}</Text>
             </View>
             <View style={styles.mashti} accessibilityLabel={t.mashti}><Character who="mashti" pose="pointing" crop="face" /></View>
           </View>
+
+          {dark && me ? <WorkshopProfileCard me={me} worn={worn} onOpen={onProfile} /> : null}
 
           {groups.map((g) => (
             <View key={g.title} style={[styles.group, dark ? dk.group : null]}>
@@ -198,6 +210,9 @@ const dk = StyleSheet.create({
   text: { color: DARK.text, opacity: 1 },
   track: { borderColor: DARK.frame },
   step: { backgroundColor: DARK.raised, borderColor: DARK.frame },
+  back: { borderColor: '#B8822A' },
+  plate: { borderColor: '#000' },
+  plateText: { color: '#2A1606', textShadowColor: 'rgba(255,255,255,0.55)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 0 },
 });
 
 const styles = StyleSheet.create({

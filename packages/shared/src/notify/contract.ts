@@ -4,6 +4,12 @@ import { z } from 'zod';
 export const baleLinkStatusSchema = z.object({ configured: z.boolean(), linked: z.boolean(), botUsername: z.string().nullable() });
 /** `POST /bale/link-code`: the one-time code the player sends to the bot. */
 export const baleLinkCodeSchema = z.object({ code: z.string().min(4).max(12), expiresAt: z.number().int(), botUsername: z.string().nullable() });
+/** Kinds a player can switch off for themselves (security, admin and broadcast messages always arrive). */
+export const MUTABLE_NOTIFY_KINDS = ['match_result', 'daily_ready', 'friend_request', 'table_invite', 'chat_message'] as const;
+export type MutableNotifyKind = (typeof MUTABLE_NOTIFY_KINDS)[number];
+/** `GET/PUT /bale/prefs`: the kinds this player has switched off. */
+export const balePrefsSchema = z.object({ muted: z.array(z.enum(MUTABLE_NOTIFY_KINDS)) });
+export type BalePrefs = z.infer<typeof balePrefsSchema>;
 export type BaleLinkStatus = z.infer<typeof baleLinkStatusSchema>;
 export type BaleLinkCode = z.infer<typeof baleLinkCodeSchema>;
 
@@ -21,3 +27,10 @@ export const ledgerPageSchema = z.object({
   next: z.string().nullable(),
 });
 export type LedgerPage = z.infer<typeof ledgerPageSchema>;
+
+/** `GET /me/pending-notices?after=<ms>`: what is new for the player since the device last looked (the Android background check polls this; no push service involved). `id` is stable, so a device never shows the same item twice. */
+export const pendingNoticesSchema = z.object({
+  now: z.number().int(),
+  items: z.array(z.object({ id: z.string().max(80), kind: z.enum(['inbox', 'friend_request']), title: z.string().max(200), body: z.string().max(500), at: z.number().int() })).max(20),
+});
+export type PendingNotices = z.infer<typeof pendingNoticesSchema>;

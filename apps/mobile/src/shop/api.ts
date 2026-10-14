@@ -1,5 +1,5 @@
-import { shopSchema, soloHintResultSchema, soloHintsSchema, soloNudgeResultSchema } from '@dozari/shared';
-import type { HintKind, HintPayload, Shop, SoloHintResult, SoloHints } from '@dozari/shared';
+import { avatarShelfSchema, shopSchema, soloHintResultSchema, soloHintsSchema, soloNudgeResultSchema } from '@dozari/shared';
+import type { AvatarShelf, HintKind, HintPayload, Shop, SoloHintResult, SoloHints } from '@dozari/shared';
 import { session } from '../auth';
 import { baleInvoiceHost, openInvoice } from '../miniapp/host';
 import type { InvoiceStatus } from '../miniapp/host';
@@ -31,3 +31,7 @@ export const takeHint = (sessionId: string, kind: HintKind): Promise<SoloHintRes
   authed(`/solo/${sessionId}/hint`, 'POST', (v) => soloHintResultSchema.parse(v), { kind });
 /** A small gift from the shop for a friend in their birthday week. */
 export const giftItem = (itemId: string, friendId: string): Promise<{ ok: true; balance: number }> => authed('/shop/gift', 'POST', (v) => v as { ok: true; balance: number }, { itemId, friendId });
+
+export const fetchAvatars = (): Promise<AvatarShelf> => authed('/me/avatars', 'GET', (v) => avatarShelfSchema.parse(v));
+export const buyAvatar = (key: string): Promise<{ ok: true; avatarKey: string; balance: number }> =>
+  authed(`/me/avatars/${key}/buy`, 'POST', (v) => v as { ok: true; avatarKey: string; balance: number });

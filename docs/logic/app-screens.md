@@ -10,7 +10,7 @@ part of the same "logic specs" set in `CLAUDE.md` — read it before building th
 screen-login of `19 Social Daily Onboarding`, shown **once** on a fresh install and only when the server can send codes (`GET /config` → `phoneLogin`, true when an SMS
 provider is configured): the bazaar at dusk, the waving hero, a cream card with «خوش اومدی به بازار!», the number after a fixed «+98», then five code boxes with a resend
 countdown (60 s) and «عوض کردن شماره», and «مهمان بازی کن» under «یا». Signing in with a number that has an account loads that account (the tutorial is skipped); a new number
-makes the account (the tutorial follows); guest goes on to the tutorial. The choice is stored (`dozari.loginSeen`) so it never comes back; «ورود با شماره» stays in settings.
+makes the account (the tutorial follows); guest goes on to the tutorial. The choice is stored (`dozari.loginSeen`) so it never comes back; «ورود با شماره» stays in settings and uses the same inputs (fixed «+98» + number, five code boxes, auto-submit, resend countdown).
 Backend: `profile-and-identity.md` §Phone login (`POST /auth/phone/code|verify`, the verify answer carries `created`).
 
 ## Onboarding (first app open, before any account setup)
@@ -43,6 +43,7 @@ Laid out as **screen-home** of `docs/design/Dozari - 01 Screens.dc.html` (D99, r
 "one row of equal mode cards"):
 
 - **Top counters** (three pills): coins, daily-puzzle streak, level.
+  Adult theme: two plates instead (`AdultTopBar`, design `adult/Dozari Adult - Login Home`): wallet (coins with «+», gems · streak) and map · wheel · level + XP bar · avatar; the level/avatar opens settings.
 - **Wordmark** and a **speech bubble** under it: "today's puzzle is ready" (tap → daily puzzle) while
   it can be played, otherwise the month's mood line.
 - **Corner tiles**, one column per side (54px candy squares with a label; a tile shows only when its
@@ -113,6 +114,8 @@ by nickname, incoming requests with accept / decline, then one card per friend (
 tap for their profile — and a gift button that opens the coin gift). The mock-up's online status and
 per-friend duel button need presence and direct challenges, which do not exist yet; they are left out.
 
+**Adult look** (`social/FriendsLedger.tsx`, design `docs/design/adult/Dozari Adult - Friends`): vault-room scene instead of the sky band; a header with the back square, «دوستان», «N نفر · M نفر آنلاین» and a brass «افزودن»; the search field; tabs همه / آنلاین / درخواست‌ها (pending count in a red badge); friends as ledger rows grouped آنلاین / آفلاین (gold-ringed avatar, presence dot, nickname, the saved address-book name, an eye button that reveals the saved number, gift square). Requests are a ledger with a close square and a brass «قبول». The design's level badge, «playing now» state and duel button are left out: the friends list carries no level, in-game status or direct challenge yet. The play look keeps the sky-band page.
+
 ## City hub (D112)
 
 screen-hub of `11 More Screens`, opened from the round map button in Home's top row (next to it, the round **wheel** button, D154, with the number of spins waiting; it is always there): «شهر دوزاری», a
@@ -165,6 +168,8 @@ The own profile no longer scrolls: a short caravan header (118–140 px) with th
 Another player's profile is a **player card**: the caravan header with a close button, avatar in a ring with the level hexagon, name with the online dot, skill rank and title chip, city with its province badge, four stat tiles (games / wins / losses / draws), chips for coins and member-since, up to three medals, and the actions — «درخواست دوستی» / waiting / accept for strangers; for friends a «دوست هستید» tag and round icon tiles for gift, loan, unfriend.
 
 ## Profile and settings (D107)
+
+**Adult look of profile + workshop** (design `adult/Dozari Adult - Workshop`; code `social/AdultProfileCard.tsx`): the workshop opens with a summary card (face avatar + level pill, name, tribe chip, XP bar, games/wins/losses/draws, gold «پروفایل من» button) and loses its profile row; the profile page is a gold title plate, one hero card (name + edit pill, tribe · level, stats), goods strip, showcase, badges and a «میان‌بر» panel of the shortcut tiles.
 
 **screen-profile**: caravan scene header with back and a pencil (opens the editor: gender, nickname,
 city, e-mail), the big avatar with the level hexagon, nickname, skill rank and city (with its province

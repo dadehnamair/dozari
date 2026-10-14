@@ -15,7 +15,7 @@ export const generateSchemas = {
     ...base,
     kind: z.literal('products'),
     count: z.number().int().min(1).max(AI_LIMITS.maxCount.products),
-    category: z.enum(PRODUCT_CATEGORIES).optional(),
+    category: z.string().regex(/^[a-z][a-z0-9_]{0,38}$/).optional(),
     ageTrack: z.enum(AGE_TRACKS).default('adult'),
     fromYear: z.number().int().min(1300).max(1450).optional(),
     toYear: z.number().int().min(1300).max(1450).optional(),
@@ -59,7 +59,7 @@ export const productDraft = z.object({
   slug: z.string().trim().toLowerCase().regex(/^[a-z0-9][a-z0-9-]{1,98}$/),
   nameFa: z.string().trim().min(2).max(80),
   unitFa: z.string().trim().max(30).nullable().default(null),
-  category: z.enum(PRODUCT_CATEGORIES),
+  category: z.string().regex(/^[a-z][a-z0-9_]{0,38}$/),
   storyFa: z.string().trim().max(300).default(''),
   ageTrack: z.enum(AGE_TRACKS).default('adult'),
   /** Nominal prices in toman (integer), one per Solar Hijri year. Saved as `pending` points; an editor still approves them. */
@@ -177,6 +177,8 @@ export interface PromptContext {
   tier?: { nameFa: string; minLevel: number; maxLevel: number | null };
   /** The topic (and the defined tags, by Persian name) the puzzles or questions are about. */
   topic?: { nameFa: string };
+  /** Category slugs the admin currently allows for products (products); the built-in list when unknown. */
+  categories?: string[];
   tags?: string[];
   /** Question texts already filed under the topic (trivia): the model must not repeat them. */
   existingQuestions?: string[];
@@ -217,8 +219,13 @@ export const nameKey = (s: string): string => s.replace(/[يى]/g, 'ی').replace
 
 /** Prompt lines that pin puzzles to a topic and its defined tags. */
 export function themeLines(ctx: PromptContext): string {
-  if (!ctx.topic) return ctx.tags?.length ? `\nFlavour tags: ${ctx.tags.join('، ')}.` : '';
-  return `\nTOPIC: «${ctx.topic.nameFa}». Every puzzle must be about this topic: choose products that belong to it and links that make sense inside it; if the list holds too few products for the topic, use the closest ones.${ctx.tags?.length ? ` Tags that describe the puzzles (use them as flavour: era, mood, audience): ${ctx.tags.join('، ')}.` : ''}`;
+  const tags = ctx.tags?.length ? ctx.tags.join('، ') : '';
+  if (!ctx.topic && !tags) return '';
+  const lines = [];
+  if (ctx.topic) lines.push(`TOPIC (mandatory): «${ctx.topic.nameFa}». EVERY group of EVERY puzzle must be about this topic, and every product used must really belong to it. Never fill a slot with a product that does not belong; do not drift to a loosely related topic.`);
+  if (tags) lines.push(`TAGS (mandatory): ${tags}. The puzzles must fit these tags (era, mood, audience, subject).`);
+  lines.push('If the list below holds too few fitting products for a full puzzle, return fewer puzzles; if it holds none, return {"puzzles":[]}. A short honest answer is better than an off-topic one.');
+  return `\n${lines.join('\n')}`;
 }
 
 export function buildPrompt(req: GenerateRequest, ctx: PromptContext = {}): PromptPieces {
@@ -229,7 +236,7 @@ export function buildPrompt(req: GenerateRequest, ctx: PromptContext = {}): Prom
       const audience = req.ageTrack === 'kid' ? '\nAudience: children up to 11. Only simple, friendly, everyday things a child knows (toys, fruit, sweets, school items); one common word each.' : req.ageTrack === 'teen' ? '\nAudience: teenagers.' : '';
       return {
         system: `${COMMON}\nTask: suggest catalog products for the game, each with a few NOMINAL historical prices (the price printed on the shelf or list in that year, never inflation-adjusted) in toman as integers. Give only prices you genuinely remember or can reasonably estimate for that product and year; prefer 3–5 well-spread years; leave "prices" empty rather than guess wildly. An editor verifies every price before it goes live.`,
-        user: `Suggest ${req.count} distinct Iranian products or services.${ctx.existing?.length ? `\nEXISTING PRODUCT LIST (${ctx.existing.length} products already in the catalog). Do NOT suggest any of them, a spelling variant, a plural, or a near-duplicate of one:\n${ctx.existing.slice(0, AI_LIMITS.maxExistingNames).map((e) => e.nameFa).join('، ')}\nEND OF EXISTING PRODUCT LIST.` : ''}${req.category ? `\nAll in category "${req.category}".` : `\nCategories allowed: ${PRODUCT_CATEGORIES.join(', ')}.`}${era}${audience}${extra}
+        user: `Suggest ${req.count} distinct Iranian products or services.${ctx.existing?.length ? `\nEXISTING PRODUCT LIST (${ctx.existing.length} products already in the catalog). Do NOT suggest any of them, a spelling variant, a plural, or a near-duplicate of one:\n${ctx.existing.slice(0, AI_LIMITS.maxExistingNames).map((e) => e.nameFa).join('، ')}\nEND OF EXISTING PRODUCT LIST.` : ''}${req.category ? `\nAll in category "${req.category}".` : `\nCategories allowed: ${(ctx.categories?.length ? ctx.categories : PRODUCT_CATEGORIES).join(', ')}.`}${era}${audience}${extra}
 JSON shape: {"items":[{"slug":"latin-kebab-case-id","nameFa":"…","unitFa":"واحد مثل «بسته» یا «عدد» یا null","category":"one of the allowed categories","storyFa":"one short nostalgic sentence (max 200 chars)","prices":[{"year":1375,"priceToman":150}]}]}`,
       };
     }
@@ -310,6 +317,8 @@ export function parseDrafts(kind: AiKind, text: string, ctx: PromptContext = {},
       out = take(json.items, productDraft, (d) => {
         const keys = [nameKey(d.nameFa), nameKey(d.slug)];
         if (keys.some((k) => seen.has(k))) return false;
+        // A category the admin no longer offers (or never defined) is a bad draft, not a silent «other».
+        if (ctx.categories?.length && !ctx.categories.includes(d.category)) return false;
         keys.forEach((k) => seen.add(k));
         return true;
       });

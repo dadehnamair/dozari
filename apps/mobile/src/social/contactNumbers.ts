@@ -9,6 +9,22 @@ export function iranianMobile(raw: string): string | null {
   return m ? `0${m[1]}` : null;
 }
 
+/** One address-book hit: an Iranian mobile and the name the player saved it under (empty when the contact has none). */
+export type ContactEntry = { phone: string; name: string };
+
+/** Unique Iranian mobiles with their contact names, at most `MAX_CONTACT_NUMBERS`; the first name seen for a number wins. */
+export function pickContacts(rows: readonly { name?: string | null; numbers: readonly (string | null | undefined)[] }[]): ContactEntry[] {
+  const out = new Map<string, string>();
+  for (const row of rows) {
+    for (const raw of row.numbers) {
+      const n = raw ? iranianMobile(raw) : null;
+      if (n && !out.has(n)) out.set(n, (row.name ?? '').trim().slice(0, 80));
+    }
+    if (out.size >= MAX_CONTACT_NUMBERS) break;
+  }
+  return [...out].slice(0, MAX_CONTACT_NUMBERS).map(([phone, name]) => ({ phone, name }));
+}
+
 /** Unique Iranian mobiles out of raw address-book strings, at most `MAX_CONTACT_NUMBERS`. */
 export function pickMobiles(raw: readonly string[]): string[] {
   const out = new Set<string>();

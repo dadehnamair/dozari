@@ -14,6 +14,8 @@ import { SchoolSheet } from '../feedback/SchoolSheet';
 import { Item } from '../components/Item';
 import { fetchFriends } from '../social/api';
 import { connectNotices } from '../notices/connectNotices';
+import { showWebNotice, syncWebPush } from '../notices/webNotify';
+import { startBackgroundNotify } from '../notices/backgroundNotify';
 import { FriendRequestSheet } from '../notices/FriendRequestSheet';
 import { claimProfileTask } from '../social/profileTasksApi';
 import { profileNudge } from './profileNudge';
@@ -58,6 +60,7 @@ import { fmt, styles } from './homeStyles';
 import { useHeroMotion } from './useHeroMotion';
 import { useHomeData } from './useHomeData';
 import { StatPill } from './StatPill';
+import { AdultTopBar } from './AdultTopBar';
 import { StatInfoSheet } from './StatInfoSheet';
 
 interface Tile {
@@ -82,7 +85,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onTriviaDuel, onDail
   /** Short phones (≤700px tall) get tighter columns and a smaller hero so nothing runs into the bottom buttons. */
   const compact = useWindowDimensions().height <= 700;
   const daily = useDailyReward();
-  const { spins, loadSpins, liveMatch, gender, setGender, avatarKey, setAvatarKey, level, province, slogan, dailyPuzzle, loadMe, profileTasks, loadTasks, gems, worn, loadWorn } = useHomeData(features);
+  const { spins, loadSpins, liveMatch, gender, setGender, avatarKey, setAvatarKey, level, xpFrac, province, slogan, dailyPuzzle, loadMe, profileTasks, loadTasks, gems, worn, loadWorn } = useHomeData(features);
   const hero = useHeroMotion();
   const [wheelOpen, setWheelOpen] = useState(false);
   const [baleOpen, setBaleOpen] = useState(false);
@@ -140,14 +143,20 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onTriviaDuel, onDail
     return () => clearTimeout(timer);
   }, [nudgeToast]);
   const inbox = useInbox();
+  useEffect(() => {
+    void startBackgroundNotify();
+    void syncWebPush();
+  }, []);
   const inboxReload = inbox.reload;
   useEffect(() => {
     if (!features.friends) return undefined;
     // Requests already waiting when the app opens, then pushes while it is open (a quiet socket, D168).
     fetchFriends().then((f) => f.incoming.length > 0 && setFriendNotice({ count: f.incoming.length }), () => undefined);
     return connectNotices((n) => {
+      showWebNotice(n);
       if (n.kind === 'inbox') return inboxReload();
       // Table news arrives as a short line from the guide (the table sheet itself polls for the details).
+      if (n.kind === 'dm') return setNudgeToast(fa.home.dm(n.from ?? ''));
       if (n.kind === 'table_invite') return setNudgeToast(fa.home.tableInvite(n.from ?? ''));
       if (n.kind === 'table_request') return setNudgeToast(fa.home.tableRequest(n.from ?? ''));
       if (n.kind === 'table_answer') return setNudgeToast(n.accepted ? fa.tables.openList.accepted : fa.tables.openList.declined);
@@ -202,24 +211,43 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onTriviaDuel, onDail
     <SceneBackground scene="bazaar">
       {adult ? <View pointerEvents="none" style={StyleSheet.absoluteFill}><GradientFill from="rgba(14,10,8,0.55)" to="rgba(14,10,8,0.7)" mid={{ at: 0.5, color: 'rgba(14,10,8,0.1)' }} /></View> : null}
       <View style={styles.root} pointerEvents="box-none" onTouchStart={() => setTip(null)}>
+        {adult ? (
+          <AdultTopBar
+            coins={daily.status ? fmt(daily.status.balance) : null}
+            gems={gems > 0 ? fmt(gems) : null}
+            streak={dailyPuzzle && dailyPuzzle.state !== 'unavailable' && dailyPuzzle.streak > 0 ? toPersianDigits(String(dailyPuzzle.streak)) : null}
+            level={level !== null ? toPersianDigits(String(level)) : null}
+            xpFrac={xpFrac}
+            who={heroOf(gender, avatarKey)}
+            spinBadge={spins > 0 ? toPersianDigits(String(spins)) : daily.status?.canClaim ? '!' : null}
+            labels={{ coins: h.coins, gems: h.gems, streak: h.streak, level: h.level, map: fa.hub.open, wheel: h.wheel, streakUnit: h.streak }}
+            onCoins={() => setLedgerOpen(true)}
+            onGems={() => setInfoOpen('gems')}
+            onStreak={() => setInfoOpen('streak')}
+            onMap={() => setHubOpen(true)}
+            onWheel={() => setWheelOpen(true)}
+            onProfile={() => setSettingsOpen(true)}
+          />
+        ) : (
         <View style={styles.pills}>
           {daily.status ? <StatPill color={colors.candy.yellow} icon="coin" value={fmt(daily.status.balance)} label={`${daily.status.balance} ${h.coins}`} onPress={() => setLedgerOpen(true)} /> : null}
           {gems > 0 ? <StatPill color={colors.candy.sky} glyph="💎" value={fmt(gems)} label={`${gems} ${h.gems}`} onPress={() => setInfoOpen('gems')} /> : null}
           {dailyPuzzle && dailyPuzzle.state !== 'unavailable' && dailyPuzzle.streak > 0 ? <StatPill color={colors.candy.pink} glyph="🔥" value={`${toPersianDigits(String(dailyPuzzle.streak))} ${h.streak}`} label={`${dailyPuzzle.streak} ${h.streak}`} onPress={() => setInfoOpen('streak')} /> : null}
-          <Pressable onPress={() => setHubOpen(true)} accessibilityRole="button" accessibilityLabel={fa.hub.open} style={[styles.mapBtn, adult ? styles.mapBtnAdult : null]}>
+          <Pressable onPress={() => setHubOpen(true)} accessibilityRole="button" accessibilityLabel={fa.hub.open} style={styles.mapBtn}>
             <Attention on={!!dailyOpenForPlay} radius={19}>
               <View style={styles.mapIcon}><Item icon="map" /></View>
             </Attention>
           </Pressable>
           {/* The lucky wheel is always one tap away; the number is the spins waiting (wins, level and tournament prizes, the shop, the daily free spin). */}
-          <Pressable onPress={() => setWheelOpen(true)} accessibilityRole="button" accessibilityLabel={h.wheel} style={[styles.mapBtn, adult ? styles.mapBtnAdult : null]}>
-            <Icon name="wheel" size={22} color={adult ? '#FFE9A8' : '#fff'} strokeWidth={2.2} />
+          <Pressable onPress={() => setWheelOpen(true)} accessibilityRole="button" accessibilityLabel={h.wheel} style={styles.mapBtn}>
+            <Icon name="wheel" size={22} color="#fff" strokeWidth={2.2} />
             {spins > 0 || daily.status?.canClaim ? <View style={styles.spinBadge}><Text style={styles.spinBadgeText}>{spins > 0 ? toPersianDigits(String(spins)) : '!'}</Text></View> : null}
           </Pressable>
           {/* A spacer keeps the level pill at the far (left) end of the row, whether or not the streak pill is showing. */}
           <View style={styles.pillsGap} />
           {level !== null ? <StatPill color={colors.candy.grape} icon="rosette" value={toPersianDigits(String(level))} label={`${h.level} ${level} · ${h.settings}`} badge={missionsReady > 0 ? toPersianDigits(String(missionsReady)) : undefined} onPress={() => setSettingsOpen(true)} /> : null}
         </View>
+        )}
 
         {turn.turn ? <TurnBanner turn={turn.turn} now={turn.now} enter={turn.enter} failed={turn.failed} /> : null}
 

@@ -62,7 +62,7 @@ export const matchPresenceSchema = z.object({
 });
 export type MatchPresence = z.infer<typeof matchPresenceSchema>;
 
-export const LIVE_NOTICE_KINDS = ['friend_request', 'inbox', 'table_invite', 'table_request', 'table_answer'] as const;
+export const LIVE_NOTICE_KINDS = ['friend_request', 'inbox', 'table_invite', 'table_request', 'table_answer', 'dm'] as const;
 export const liveNoticeSchema = z.object({
   kind: z.enum(LIVE_NOTICE_KINDS),
   /** Nickname of the player who sent the friend request, invited to a table, or asked to sit at one. */

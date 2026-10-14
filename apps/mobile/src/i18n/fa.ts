@@ -65,6 +65,7 @@ export const fa = {
     /** The guide character on Home: tap it to hear what each menu does (key = feature switch / menu). */
     /** Tapped the duel button below the duel level. */
     duelLocked: (n: number) => `دوئل از لول ${toPersianDigits(String(n))} باز می‌شود؛ با بازی تکی لول بگیر و برگرد.`,
+    dm: (from: string) => `${from || 'یک نفر'} برایت پیام فرستاد 💬`,
     tableInvite: (from: string) => (from ? `${from} تو را به یک میز دعوت کرد؛ از «سفره‌خانه» وارد شو.` : 'یک دعوت به میز داری؛ از «سفره‌خانه» وارد شو.'),
     tableRequest: (from: string) => (from ? `${from} می‌خواهد سر میزت بنشیند؛ از «سفره‌خانه» جوابش را بده.` : 'کسی می‌خواهد سر میزت بنشیند؛ از «سفره‌خانه» جوابش را بده.'),
     /** Missions live in the workshop (the level badge): this is how Home says a reward is waiting. */
@@ -300,6 +301,7 @@ export const fa = {
     myBadges: 'نشان‌های من',
     noBadges: 'هنوز نشانی نگرفته‌ای؛ بازی کن تا باز شوند.',
     shortcuts: 'میان‌بر',
+    xpToNext: (have: number, need: number, next: number) => `${toPersianDigits(String(have))} / ${toPersianDigits(String(need))} امتیاز تا سطح ${toPersianDigits(String(next))}`,
     noGames: 'هنوز بازی‌ای تمام نکرده‌ای.',
     tiles: { levels: 'جاده‌ی لول', friends: 'دوستان', badges: 'نشان‌ها', recent: 'بازی‌ها', find: 'پیدا کردن', loans: 'هدیه و وام', invite: 'دعوت' },
     statGames: 'بازی',
@@ -1064,6 +1066,9 @@ export const fa = {
     friendsEmpty: 'هنوز دوستی نداری؛ از «دوستان» یکی را اضافه کن.',
     dmEmpty: 'هنوز پیامی نیست؛ سلام کن!',
     dmBack: 'فهرست دوستان',
+    dmTitle: (name: string) => `پیام به ${name}`,
+    dmClose: 'بستن',
+    dmOpen: 'پیام',
     tableTitle: 'چت میز',
     tableEmpty: 'سر میز سلام کن!',
     online: 'آنلاین',
@@ -1128,7 +1133,12 @@ export const fa = {
   },
   find: {
     fromContacts: 'پیدا کردن از مخاطبین',
-    contactsHint: 'شماره‌ها فقط برای پیدا کردن دوستان فرستاده می‌شود و ذخیره نمی‌شود.',
+    contactsHint: 'شماره‌ها فقط برای پیدا کردن دوستان فرستاده می‌شود. از مخاطبینت فقط نام و شمارهٔ کسانی که در دوزاری هستند، برای خودت ذخیره می‌شود تا بعداً بفهمی دوستت کیست؛ دیگران آن را نمی‌بینند.',
+    savedAs: 'در گوشی‌ات:',
+    friendsAlready: 'دوست شدید',
+    requestSent: 'درخواست فرستاده شد',
+    requestAnswer: 'جواب بده',
+    addFriend: 'افزودن دوست',
     contactsDenied: 'اجازهٔ مخاطبین داده نشد.',
     contactsBlocked: 'اجازهٔ مخاطبین در تنظیمات گوشی بسته است؛ آن را روشن کن و برگرد.',
     contactsError: 'خواندن مخاطبین انجام نشد.',
@@ -1164,6 +1174,14 @@ export const fa = {
     gift: 'هدیه',
     back: 'برگشت',
     noMatch: 'دوستی با این اسم نداری.',
+    tabAll: 'همه',
+    tabOnline: 'آنلاین',
+    tabRequests: 'درخواست‌ها',
+    online: 'آنلاین',
+    offline: 'آفلاین',
+    count: (total: string, online: string) => `${total} نفر · ${online} نفر آنلاین`,
+    noRequests: 'درخواست تازه‌ای نداری.',
+    showPhone: 'نمایش شماره',
   },
   transfers: {
     baqalHello: 'قرض و هدیه‌ی سکه پیش من، بقال محل، حساب‌کتاب دارد؛ قرض را پس بده تا اعتبارت بماند.',
@@ -1530,6 +1548,28 @@ export const fa = {
     } as Record<string, string>,
   },
   /** A small shop gift for a friend whose birthday is near. */
+  avatarShelf: {
+    free: 'رایگان',
+    price: (n: number) => `${toPersianDigits(String(n))} سکه`,
+    confirm: (name: string, n: number) => `${name} را با ${toPersianDigits(String(n))} سکه بخرم؟ برای همیشه مال تو می‌شود.`,
+    buy: 'بخر',
+    bought: 'شخصیت تازه‌ات را خریدی! 🎉',
+    hint: 'چند شخصیت رایگان است؛ بقیه را با سکه می‌خری و برای همیشه مال خودت می‌شود.',
+    blocked: {
+      NEEDS_GAMES: (n: number) => `بعد از ${toPersianDigits(String(n))} بازی می‌توانی شخصیتت را عوض کنی.`,
+      NEEDS_INVITE: 'برای خرید شخصیت، اول کد دعوت دوستت را وارد کن.',
+      NEEDS_LEVEL: (n: number) => `از لول ${toPersianDigits(String(n))} می‌توانی شخصیت بخری.`,
+      NEEDS_COINS: 'سکه‌ی کافی نداری.',
+    },
+    errors: {
+      NEEDS_GAMES: 'هنوز بازی کافی نکرده‌ای.',
+      NEEDS_INVITE: 'اول کد دعوت را وارد کن.',
+      NEEDS_LEVEL: 'لولت برای خرید کافی نیست.',
+      NEEDS_COINS: 'سکه‌ی کافی نداری.',
+      already_owned: 'این شخصیت را داری.',
+      generic: 'نشد؛ دوباره امتحان کن.',
+    } as Record<string, string>,
+  },
   birthdayGift: {
     open: 'هدیه‌ی تولد',
     title: (name: string) => `هدیه برای ${name}`,
@@ -1830,6 +1870,23 @@ export const fa = {
     notConfigured: 'ربات بله هنوز راه‌اندازی نشده.',
     error: 'نتوانستیم به سرور وصل شویم.',
     close: 'بستن',
+    prefsTitle: 'خبرهایی که از بله می‌گیری',
+    prefs: { match_result: 'نتیجهٔ بازی', daily_ready: 'آماده شدن جایزهٔ روزانه', friend_request: 'درخواست دوستی', table_invite: 'دعوت به میز', chat_message: 'پیام دوستان' } as Record<string, string>,
+  },
+  /** Browser notifications of the installed web app (docs/logic/web-notifications.md). */
+  webNotify: {
+    title: 'اعلان در مرورگر',
+    enable: 'روشن کردن اعلان',
+    enabled: 'اعلان روشن است ✅ وقتی برنامه در پس‌زمینه است خبر می‌گیری.',
+    iphoneHint: 'روی آیفون: اول در سافاری «افزودن به صفحهٔ آغازین» را بزن، بعد برنامه را از همان آیکن باز کن و اینجا اعلان را روشن کن (iOS ۱۶٫۴ یا جدیدتر).',
+    denied: 'اعلان در تنظیمات مرورگر بسته شده است.',
+    friendRequest: (from: string) => `${from || 'یک نفر'} برایت درخواست دوستی فرستاد 🤝`,
+    tableInvite: (from: string) => `${from || 'یک نفر'} تو را به یک میز دعوت کرد 🎲`,
+    dm: (from: string) => `${from || 'یک نفر'} برایت پیام فرستاد 💬`,
+    tableRequest: (from: string) => `${from || 'یک نفر'} می‌خواهد پشت میزت بنشیند`,
+    tableAccepted: 'به میز راهت دادند 🎲',
+    tableDeclined: 'درخواست میزت پذیرفته نشد.',
+    inbox: 'یک پیام تازه در صندوقت داری',
   },
   /** Leave penalty (docs/logic/leave-penalty.md): the profile badge and when it comes off. */
   leave: {

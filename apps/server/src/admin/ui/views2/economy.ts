@@ -37,6 +37,35 @@ export const ADMIN_VIEWS2_ECONOMY_JS = String.raw`VIEWS.shop = function (root) {
   }));
   draw();
 };
+VIEWS.avatars = function (root) {
+  var list = h('div');
+  var NAMES = { dozari: 'دوزاری', dozariF: 'دوزاری‌خانم', mashti: 'مشتی', khale: 'خاله', pahlevan: 'پهلوان', baqal: 'بقال', mirza: 'میرزا', goli: 'گلی', ajan: 'آجان' };
+  function row(a) {
+    var price = h('input', { type: 'number', min: 0, value: a.priceCoins, style: 'width:100px' });
+    function save(patch) { api('/admin/avatars/' + a.avatarKey, { method: 'PATCH', body: patch }).then(function (x) { if (!x.ok) return fail(x); toast('ذخیره شد'); draw(); }); }
+    return h('div', { class: 'card', style: 'padding:12px' }, [
+      h('div', { style: 'display:flex;gap:8px;align-items:center;flex-wrap:wrap' }, [
+        h('b', { text: NAMES[a.avatarKey.replace('char-', '')] || a.avatarKey }), a.priceCoins === 0 ? badge('رایگان', 'b-ok') : badge(a.priceCoins + ' سکه', 'b-mute'), a.isActive ? null : badge('پنهان', 'b-warn')
+      ]),
+      h('div', { class: 'toolbar', style: 'margin-top:8px' }, [
+        field('قیمت (سکه، ۰ = رایگان)', price),
+        h('button', { class: 'btn primary', text: 'ذخیره', onclick: function () { save({ priceCoins: +price.value }); } }),
+        h('button', { class: 'btn', text: a.isActive ? 'پنهان کن' : 'فعال کن', onclick: function () { save({ isActive: !a.isActive }); } })
+      ])
+    ]);
+  }
+  function draw() {
+    api('/admin/avatars').then(function (r) {
+      clear(list);
+      if (r.status === 404) return list.appendChild(empty('شخصیت‌ها روی این سرور فعال نیست'));
+      if (!r.ok) return fail(r);
+      r.body.items.forEach(function (a) { list.appendChild(row(a)); });
+    });
+  }
+  root.appendChild(card('شخصیت‌ها', 'قیمت صفر یعنی رایگان برای همه (به‌طور پیش‌فرض چهار شخصیت اول: دوزاری، دوزاری‌خانم، مشتی و خاله). بقیه را بازیکن با سکه می‌خرد؛ چهره‌های گالری قدیمی رایگان می‌مانند؛ شرط تعداد بازی و لول در «تنظیمات ← پروفایل» است. شخصیتی که بازیکن الان دارد با تغییر قیمت یا پنهان‌شدن از دستش نمی‌رود.', []));
+  root.appendChild(list);
+  draw();
+};
 VIEWS.wheel = function (root) {
   var KIND = { coins: 'سکه', gems: 'الماس', hint_token: 'توکن راهنما', wheel_spin: 'چرخش گردونه', cosmetic: 'لباس / کلاه' };
   var KINDS = [['coins', 'سکه'], ['gems', 'الماس'], ['hint_token', 'توکن راهنما'], ['wheel_spin', 'چرخش گردونه'], ['cosmetic', 'لباس / کلاه (آیتم فروشگاه)']];

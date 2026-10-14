@@ -37,9 +37,13 @@ The launcher icon follows the player's gender (D166): `plugins/withGenderIcon.js
 - Install with `pnpm install --node-linker=hoisted`: the default `node_modules/.pnpm/...` paths make CMake/ninja fail (`build.ninja still dirty`, object path > 250 chars).
 - Run Gradle with JDK 21, not Android Studio's bundled JBR 25 (its prefab step prints a "restricted method" warning that Gradle treats as a failure): set `JAVA_HOME` and, if Android Studio created `android/gradle/gradle-daemon-jvm.properties`, set `toolchainVersion=21` in it.
 - Install NDK 27.1.12297006 and CMake 3.22.1 in the SDK Manager. A very new Android Studio writes SDK XML v4 that this AGP cannot read (`CXX5304`); put `ndk.dir=` and `cmake.dir=` in `android/local.properties` to bypass it.
-- Gradle needs Google's and Maven Central's repositories: from Iran run it with a working proxy (`~/.gradle/gradle.properties`, `systemProp.socksProxyHost/Port`) and make sure the proxy app is on.
+- Gradle needs Google's and Maven Central's repositories: from Iran run it with a working proxy (`~/.gradle/gradle.properties`, `systemProp.socksProxyHost/Port`) and make sure the proxy app is on. `scripts/build-android.ps1` does this itself: when `dl.google.com` is unreachable it asks for the local proxy (`host:port`, or `-Proxy 127.0.0.1:10808`), detects SOCKS5 vs HTTP, and writes it to `gradle.properties` between marker lines; If Google still answers 404 (it does for many foreign exit IPs), it installs `~/.gradle/init.d/dozari-mirror.gradle` so Gradle tries the Aliyun Google/Central mirrors first (JitPack still goes through the proxy). `-NoProxy` removes the proxy lines and the init script.
 
 Quick check on a connected phone instead: `pnpm --filter @dozari/mobile android` (dev build, needs the dev server).
+
+## Push notifications (FCM, optional)
+
+Set these in the build environment (GitHub secrets or `apps/mobile/.env`) to include instant push: `FCM_PROJECT_ID`, `FCM_APP_ID`, `FCM_API_KEY`, `FCM_SENDER_ID` (Firebase console → Project settings → Your apps → Android `ir.dozari.app`). Without them the APK builds the same and relies on the background check. The server needs `FCM_SERVICE_ACCOUNT_JSON`. Details: `docs/logic/web-notifications.md`.
 
 ## Before a store release
 
@@ -76,3 +80,5 @@ Do not pass signing as `-Pandroid.injected...` on the PowerShell command line: P
 3. Check: `apksigner verify --print-certs app\build\outputs\apk\release\app-release.apk` must not show the Android Debug certificate.
 4. Permissions: the manifest keeps only `INTERNET`, `READ_CONTACTS` (find friends) and `VIBRATE`; `app.json` `android.blockedPermissions` strips the storage, `WRITE_CONTACTS` and `SYSTEM_ALERT_WINDOW` ones that libraries add (stores flag them). Check `android/app/src/main/AndroidManifest.xml` after prebuild.
 5. Every store update needs a higher `android.versionCode` in `apps/mobile/app.json` (and a new `version` for users); build one APK per market.
+
+The `Android APK` workflow reads `FCM_PROJECT_ID`, `FCM_APP_ID`, `FCM_API_KEY`, `FCM_SENDER_ID`, `IRNOTI_PUSH_APP_KEY` (and optional `IRNOTI_API_BASE`) from GitHub repository secrets (Settings → Secrets and variables → Actions). Empty secrets are ignored. If a build fails, open Actions → Android APK → the failed run → the red step ("Generate the native Android project" or "Build the APK") and read the last lines.

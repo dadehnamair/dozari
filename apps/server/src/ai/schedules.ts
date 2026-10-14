@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AGE_TRACKS, AI_LIMITS, AI_SCHEDULE_KINDS, AI_SCHEDULE_LIMITS, PRODUCT_CATEGORIES, minCronGapMinutes, nextCronRun, parseCron } from '@dozari/shared';
+import { AGE_TRACKS, AI_LIMITS, AI_SCHEDULE_KINDS, AI_SCHEDULE_LIMITS, minCronGapMinutes, nextCronRun, parseCron } from '@dozari/shared';
 import type { AiScheduleKind } from '@dozari/shared';
 import { aiSchedules, asc, eq, isNotNull, lte, and } from '@dozari/db';
 import type { Db } from '@dozari/db';
@@ -23,7 +23,7 @@ export const scheduleInputSchema = z.object({
   style: z.enum(['witty', 'plain']).default('witty'),
   /** Puzzle tier the scheduled puzzles are made for (puzzle_groups); null = mixed. */
   tierId: z.string().min(1).max(36).nullable().default(null),
-  category: z.enum(PRODUCT_CATEGORIES).nullable().default(null),
+  category: z.string().regex(/^[a-z][a-z0-9_]{0,38}$/).nullable().default(null),
   fromYear: z.number().int().min(1300).max(1450).nullable().default(null),
   toYear: z.number().int().min(1300).max(1450).nullable().default(null),
   topic: z.string().trim().max(AI_LIMITS.maxHintLength).default(''),

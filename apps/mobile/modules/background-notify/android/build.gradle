@@ -1,0 +1,38 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'ir.dozari.bgnotify'
+version = '0.1.0'
+
+// The IRNoti SDK (JitPack) is off by default: its 1.0.0 build failed on JitPack (no gradlew in the repository; fixed in irnoti/andriod-sdk main, commit 1589fbc). Turn it on with
+// -Pdozari.irnoti=true (or in gradle.properties) once IRNoti publishes a working version; the no-op bridge is used otherwise.
+def useIrnoti = (findProperty('dozari.irnoti') ?: 'false').toString() == 'true'
+// 1.0.1 = the tag with the Gradle wrapper JitPack needs; a commit hash (e.g. 1589fbc) also works before the tag exists.
+def irnotiVersion = (findProperty('dozari.irnoti.version') ?: '1.0.1').toString()
+
+android {
+  namespace "ir.dozari.bgnotify"
+  sourceSets {
+    main.java.srcDirs += useIrnoti ? 'src/irnoti/java' : 'src/noIrnoti/java'
+  }
+  defaultConfig {
+    versionCode 1
+    versionName '0.1.0'
+  }
+}
+
+dependencies {
+  // AndroidX WorkManager: a build-time library, not Google Play Services; it needs no Google account or network service.
+  implementation "androidx.work:work-runtime-ktx:2.9.1"
+  // Firebase Cloud Messaging for instant delivery where Google is reachable. Started by hand from manifest meta-data
+  // (FcmInit), so no google-services.json or Gradle plugin; without the meta-data it is never touched.
+  implementation platform("com.google.firebase:firebase-bom:33.1.2")
+  implementation "com.google.firebase:firebase-messaging"
+  // IRNoti push SDK (JitPack; the repository is spelled "andriod-sdk"): registers this install with the IRNoti push service and shows
+  // its notifications. Started from manifest meta-data (IrnotiBridge); without them it is never touched.
+  if (useIrnoti) {
+    implementation "com.github.irnoti:andriod-sdk:${irnotiVersion}"
+  }
+}

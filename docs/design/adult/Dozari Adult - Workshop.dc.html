@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link href="https://fonts.googleapis.com/css2?family=Lalezar&amp;family=Vazirmatn:wght@600;700;800;900&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>html{background:#1A1210}body{margin:0;background:#1A1210;color:#FFF6E8;font-family:Vazirmatn}a{color:#E8B64A}a:hover{color:#FFF1B8}*{box-sizing:border-box}button{font-family:inherit}</style>
+</helmet>
+<section dir="rtl" style="padding:56px;display:flex;flex-direction:column;gap:32px">
+  <header style="display:flex;flex-direction:column;gap:6px">
+    <div style="font:14px 'JetBrains Mono',monospace;color:#E8B64A;direction:ltr;text-align:right">Dozari Adult · screen-settings (کارگاه) · SettingsPage.tsx · profile card on top</div>
+    <h1 style="margin:0;font:52px/1 Lalezar;color:#FFE9A8">کارگاه · با کارت پروفایل</h1>
+    <div style="font:700 17px/1.7 Vazirmatn;color:rgba(255,233,168,.7);max-width:900px">ردیف «پروفایل من» از گروه «من» برداشته شد و جایش یک کارت خلاصه بالای صفحه نشست: شخصیت، اسم، قبیله، سطح و آمار. دکمه‌ی کارت (یا خود کارت) به پروفایل می‌رود.</div>
+  </header>
+  <div style="display:flex;gap:36px;flex-wrap:wrap;align-items:flex-start">
+    <div data-screen-label="Adult Workshop" style="display:flex;flex-direction:column;gap:10px;align-items:center">
+      <div style="width:340px;height:736px;border-radius:52px;border:11px solid #000;box-shadow:0 30px 60px rgba(0,0,0,.6),0 0 0 2px rgba(232,182,74,.35);position:relative;overflow:hidden;background:#0E0A08">
+        <div style="position:absolute;inset:0;opacity:.9"><dc-import name="Scene" scene="sarafi" hint-size="100%,100%" style="width:100%;height:100%"></dc-import></div>
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(14,10,8,.55),rgba(14,10,8,.35) 40%,rgba(14,10,8,.75))"></div>
+
+        <sc-if value="{{ isWorkshop }}" hint-placeholder-val="{{ true }}">
+        <div style="position:absolute;inset:0;overflow-y:auto;scrollbar-width:none;padding:36px 10px 24px;display:flex;flex-direction:column;gap:9px">
+          <div style="flex:none;display:flex;align-items:center;gap:8px">
+            <div style="width:42px;height:46px;flex:none"><dc-import name="Character" who="mashti" pose="pointing" crop="face" hint-size="42px,46px" style="width:42px;height:46px"></dc-import></div>
+            <div style="flex:1;height:46px;border-radius:14px;border:3px solid #000;background:linear-gradient(180deg,#FFF1B8 0%,#E8B64A 45%,#B8822A 100%);box-shadow:inset 0 2px 0 rgba(255,255,255,.7),0 4px 0 #000;display:grid;place-items:center;font:24px/1 Lalezar;color:#2A1606;text-shadow:0 1px 0 rgba(255,255,255,.55)">کارگاه</div>
+            <button style="width:42px;height:42px;flex:none;border-radius:14px;border:2px solid #B8822A;background:linear-gradient(180deg,#5A3A1C 0%,#3A2412 60%,#24160A 100%);box-shadow:inset 0 2px 0 rgba(255,241,184,.35),0 0 0 2px #000,0 4px 0 #000;display:grid;place-items:center;cursor:pointer" style-active="transform:translateY(3px)"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M9 5l7 7-7 7" fill="none" stroke="#FFE9A8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
+          </div>
+
+          <div onClick="{{ openProfile }}" style="flex:none;position:relative;border-radius:22px;padding:12px;background:linear-gradient(180deg,#2E2016 0%,#17100C 70%,#120C09 100%);border:3px solid #E8B64A;box-shadow:0 0 0 3px #000,0 6px 0 #000;display:flex;flex-direction:column;gap:10px;cursor:pointer;overflow:hidden">
+            <div style="position:absolute;top:0;left:16px;right:16px;height:1px;background:linear-gradient(90deg,rgba(255,241,184,0),rgba(255,241,184,.7),rgba(255,241,184,0))"></div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <div style="position:relative;width:68px;height:68px;flex:none">
+                <div style="width:68px;height:68px;border-radius:50%;padding:3px;background:linear-gradient(160deg,#FFF1B8,#E8B64A 40%,#8A5A16);box-shadow:0 0 0 2px #000,0 3px 0 #000"><div style="width:100%;height:100%;border-radius:50%;overflow:hidden;background:radial-gradient(circle at 40% 30%,#5A3A1C,#140C06);border:2px solid #000;display:grid;place-items:center"><dc-import name="Character" who="dozari" crop="face" hint-size="58px,58px" style="width:58px;height:58px"></dc-import></div></div>
+                <div style="position:absolute;bottom:-4px;left:50%;margin-left:-22px;width:44px;height:20px;border-radius:99px;background:linear-gradient(180deg,#FFF1B8,#E8B64A 45%,#B8822A);border:2px solid #000;display:grid;place-items:center;font:12px/1 Lalezar;color:#2A1606">سطح ۲۷</div>
+              </div>
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:5px">
+                <span style="font:23px/1.1 Lalezar;color:#FFE9A8;text-shadow:0 2px 0 #000">دوزاری‌باز</span>
+                <div style="display:flex;gap:5px;flex-wrap:wrap">
+                  <span style="display:flex;align-items:center;gap:3px;padding:2px 8px 2px 6px;border-radius:99px;background:#0E0A08;border:1.5px solid #8A5A16;font:800 11px/1.5 Vazirmatn;color:#E8B64A"><span style="width:14px;height:14px;display:inline-block"><dc-import name="Item" icon="map" hint-size="14px,14px" style="width:14px;height:14px"></dc-import></span>قبیله: اصفهان</span>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:3px">
+                  <div style="height:7px;border-radius:99px;background:#0A0604;box-shadow:inset 0 0 0 1px rgba(232,182,74,.4);overflow:hidden;direction:ltr"><div style="width:64%;height:100%;border-radius:99px;background:linear-gradient(180deg,#FFF1B8,#E8B64A 50%,#B8822A)"></div></div>
+                  <span style="font:700 10.5px/1.3 Vazirmatn;color:rgba(255,233,168,.7)">۶۴۰ / ۱۰۰۰ امتیاز تا سطح ۲۸</span>
+                </div>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-radius:14px;background:rgba(10,6,4,.7);border:1.5px solid rgba(232,182,74,.35)">
+              <sc-for list="{{ stats }}" as="st" hint-placeholder-count="4">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 0;border-inline-start:{{ st.bd }}">
+                  <span style="font:18px/1.1 Lalezar;color:{{ st.c }}">{{ st.v }}</span>
+                  <span style="font:700 10.5px/1.3 Vazirmatn;color:rgba(255,233,168,.65)">{{ st.n }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <button onClick="{{ openProfile }}" style="height:46px;border-radius:14px;border:3px solid #000;background:linear-gradient(180deg,#FFF1B8 0%,#E8B64A 38%,#B8822A 72%,#8A5A16 100%);box-shadow:inset 0 2px 0 rgba(255,255,255,.75),inset 0 -4px 0 rgba(0,0,0,.25),0 4px 0 #000;display:flex;align-items:center;justify-content:center;gap:8px;font:20px/1 Lalezar;color:#2A1606;text-shadow:0 1px 0 rgba(255,255,255,.55);cursor:pointer" style-active="transform:translateY(3px);box-shadow:inset 0 2px 0 rgba(255,255,255,.75),0 1px 0 #000">پروفایل من<svg viewBox="0 0 24 24" width="18" height="18"><path d="M15 5l-7 7 7 7" fill="none" stroke="#2A1606" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
+          </div>
+
+          <sc-for list="{{ groups }}" as="g" hint-placeholder-count="3">
+            <div style="flex:none;border-radius:20px;border:2px solid #E8B64A;background:#17100C;box-shadow:0 0 0 2.5px #000,0 5px 0 #000;overflow:hidden">
+              <div style="padding:6px 14px;background:{{ g.head }};border-bottom:2px solid #000;font:16px/1.3 Lalezar;color:#FFE9A8;text-shadow:0 1px 0 #000">{{ g.title }}</div>
+              <sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="4">
+                <div onClick="{{ r.press }}" style="min-height:46px;display:flex;align-items:center;gap:10px;padding:4px 12px;border-top:{{ r.bt }};cursor:pointer" style-hover="background:rgba(232,182,74,.07)">
+                  <div style="width:32px;height:32px;flex:none;border-radius:10px;border:2px solid #000;background:{{ r.tint }};display:grid;place-items:center"><dc-import name="Item" icon="{{ r.icon }}" hint-size="22px,22px" style="width:22px;height:22px"></dc-import></div>
+                  <span style="flex:1;min-width:0;font:700 13.5px/1.55 Vazirmatn;color:{{ r.fg }}">{{ r.label }}</span>
+                  <sc-if value="{{ r.isToggle }}" hint-placeholder-val="{{ false }}">
+                    <div style="width:52px;height:30px;flex:none;border-radius:99px;border:2.5px solid #E8B64A;background:{{ r.trk }};display:flex;justify-content:{{ r.jc }};align-items:center;padding:0 2px;direction:ltr"><div style="width:21px;height:21px;border-radius:50%;border:2.5px solid #000;background:#FFF6E8"></div></div>
+                  </sc-if>
+                  <sc-if value="{{ r.isLink }}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="16" height="16" style="flex:none"><path d="M15 5l-7 7 7 7" fill="none" stroke="rgba(232,182,74,.7)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if>
+                </div>
+              </sc-for>
+              <sc-if value="{{ g.showVol }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;gap:6px;padding:8px 12px;border-top:1.5px dashed rgba(232,182,74,.25)">
+                  <span style="font:700 13.5px Vazirmatn;color:#FFE9A8">بلندی موسیقی</span>
+                  <div style="display:flex;gap:6px">
+                    <sc-for list="{{ vols }}" as="v" hint-placeholder-count="4">
+                      <button onClick="{{ v.pick }}" style="flex:1;padding:5px 0;border-radius:99px;border:2px solid {{ v.bd }};background:{{ v.bg }};font:700 12px Vazirmatn;color:{{ v.fg }};cursor:pointer">{{ v.n }}</button>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ g.showAbout }}" hint-placeholder-val="{{ false }}">
+                <div style="padding:12px;border-top:1.5px dashed rgba(232,182,74,.25);font:700 11.5px/1.7 Vazirmatn;color:rgba(255,233,168,.85);text-wrap:pretty">دوزاری یک بازی نوستالژی قیمت‌هاست. قیمت‌ها همان قیمت‌های روی برچسب آن سال‌هاست، بدون تعدیل تورم. پیشنهاد و گزارش مشکل: از بخش پیام‌ها یا گروه پشتیبانی بازی.</div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ isProfile }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;inset:0;overflow-y:auto;scrollbar-width:none;padding:36px 10px 24px;display:flex;flex-direction:column;gap:10px">
+          <div style="flex:none;display:flex;align-items:center;gap:8px">
+            <div style="flex:1;height:46px;border-radius:14px;border:3px solid #000;background:linear-gradient(180deg,#FFF1B8 0%,#E8B64A 45%,#B8822A 100%);box-shadow:inset 0 2px 0 rgba(255,255,255,.7),0 4px 0 #000;display:grid;place-items:center;font:24px/1 Lalezar;color:#2A1606;text-shadow:0 1px 0 rgba(255,255,255,.55)">پروفایل من</div>
+            <button onClick="{{ backToWorkshop }}" style="width:42px;height:42px;flex:none;border-radius:14px;border:2px solid #B8822A;background:linear-gradient(180deg,#5A3A1C 0%,#3A2412 60%,#24160A 100%);box-shadow:inset 0 2px 0 rgba(255,241,184,.35),0 0 0 2px #000,0 4px 0 #000;display:grid;place-items:center;cursor:pointer" style-active="transform:translateY(3px)"><svg viewBox="0 0 24 24" width="20" height="20"><path d="M9 5l7 7-7 7" fill="none" stroke="#FFE9A8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
+          </div>
+          <div style="flex:none;border-radius:22px;padding:16px 12px 12px;background:linear-gradient(180deg,#2E2016 0%,#17100C 70%,#120C09 100%);border:3px solid #E8B64A;box-shadow:0 0 0 3px #000,0 6px 0 #000;display:flex;flex-direction:column;align-items:center;gap:8px">
+            <div style="width:96px;height:96px;border-radius:50%;padding:3px;background:linear-gradient(160deg,#FFF1B8,#E8B64A 40%,#8A5A16);box-shadow:0 0 0 2px #000,0 4px 0 #000"><div style="width:100%;height:100%;border-radius:50%;overflow:hidden;background:radial-gradient(circle at 40% 30%,#5A3A1C,#140C06);border:2px solid #000;display:grid;place-items:center"><dc-import name="Character" who="dozari" crop="face" hint-size="84px,84px" style="width:84px;height:84px"></dc-import></div></div>
+            <div style="flex:none;display:flex;align-items:center;gap:8px"><span style="font:26px/1.1 Lalezar;color:#FFE9A8;text-shadow:0 2px 0 #000">دوزاری‌باز</span><button style="padding:2px 10px;border-radius:99px;border:1.5px solid #B8822A;background:#0E0A08;font:800 11px/1.6 Vazirmatn;color:#E8B64A;cursor:pointer">ویرایش</button></div>
+            <span style="font:800 11.5px Vazirmatn;color:#E8B64A">قبیله: اصفهان · سطح ۲۷</span>
+            <div style="width:100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-radius:14px;background:rgba(10,6,4,.7);border:1.5px solid rgba(232,182,74,.35)">
+              <sc-for list="{{ stats }}" as="st" hint-placeholder-count="4">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 0;border-inline-start:{{ st.bd }}">
+                  <span style="font:18px/1.1 Lalezar;color:{{ st.c }}">{{ st.v }}</span>
+                  <span style="font:700 10.5px/1.3 Vazirmatn;color:rgba(255,233,168,.65)">{{ st.n }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="flex:none;border-radius:20px;border:2px solid #E8B64A;background:#17100C;box-shadow:0 0 0 2.5px #000,0 5px 0 #000;overflow:hidden">
+            <div style="padding:6px 14px;background:linear-gradient(180deg,#5A3A1C,#3A2412);border-bottom:2px solid #000;font:16px/1.3 Lalezar;color:#FFE9A8;text-shadow:0 1px 0 #000">میان‌بر</div>
+            <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px 4px;padding:12px 8px">
+              <sc-for list="{{ tiles }}" as="t" hint-placeholder-count="7">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer" style-active="transform:scale(.94)">
+                  <div style="width:48px;height:48px;border-radius:15px;background:radial-gradient(circle at 35% 25%,#5A3A1C,#2A1A0E 65%,#140C06);border:2px solid #B8822A;box-shadow:0 0 0 2px #000,0 3px 0 #000;display:grid;place-items:center"><dc-import name="Item" icon="{{ t.icon }}" hint-size="30px,30px" style="width:30px;height:30px"></dc-import></div>
+                  <span style="font:12px/1.2 Lalezar;color:#FFE9A8;text-align:center">{{ t.n }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+        </sc-if>
+      </div>
+      <div style="font:12px 'JetBrains Mono',monospace;color:rgba(255,233,168,.6)">{{ caption }}</div>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;startView&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;workshop&quot;,&quot;profile&quot;],&quot;default&quot;:&quot;workshop&quot;,&quot;tsType&quot;:&quot;'workshop'|'profile'&quot;},&quot;missionsReady&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;min&quot;:0,&quot;max&quot;:9,&quot;default&quot;:2,&quot;tsType&quot;:&quot;number&quot;}}">
+class Component extends DCLogic {
+  state = { view: null, sound: true, music: true, vibration: true, reduceMotion: false, vol: 2, about: false };
+  renderVals() {
+    const s = this.state;
+    const view = s.view ?? this.props.startView ?? 'workshop';
+    const ready = this.props.missionsReady ?? 2;
+    const fa = n => String(n).replace(/\d/g, d => '۰۱۲۳۴۵۶۷۸۹'[d]);
+    const tg = k => () => this.setState(st => ({ [k]: !st[k] }));
+    const R = (o, i) => ({ isToggle: o.on !== undefined, isLink: o.on === undefined, trk: o.on ? '#E8B64A' : '#0E0A08', jc: o.on ? 'flex-end' : 'flex-start', fg: o.tone || '#FFE9A8', bt: i ? '1.5px dashed rgba(232,182,74,.25)' : '0 solid transparent', press: o.press || (() => {}), ...o });
+    const groups = [
+      { title: 'بازی', head: 'linear-gradient(180deg,#2F6E8A,#1C4458)', showVol: s.music, rows: [
+        { icon: 'radio', tint: '#3FC1F0', label: 'صدا', on: s.sound, press: tg('sound') },
+        { icon: 'radio', tint: '#FFC93C', label: 'موسیقی', on: s.music, press: tg('music') },
+        { icon: 'phone', tint: '#A66BF0', label: 'لرزش', on: s.vibration, press: tg('vibration') },
+        { icon: 'hourglass', tint: '#FF8FB6', label: 'حرکت کمتر', on: s.reduceMotion, press: tg('reduceMotion') }] },
+      { title: 'من', head: 'linear-gradient(180deg,#4E7A2E,#2F4E1A)', rows: [
+        { icon: 'star', tint: '#7ED957', label: ready > 0 ? `ماموریت‌ها · ${fa(ready)} جایزه آماده است` : 'ماموریت‌ها', tone: ready > 0 ? '#9BE36A' : '' },
+        { icon: 'map', tint: '#7ED957', label: 'قبیله‌ی من' },
+        { icon: 'phone', tint: '#FF7A3D', label: 'نصب روی گوشی' },
+        { icon: 'scroll', tint: '#3FC1F0', label: 'دیدن دوباره‌ی آموزش' }] },
+      { title: 'حساب', head: 'linear-gradient(180deg,#8A2E3C,#5A1A24)', showAbout: s.about, rows: [
+        { icon: 'lantern', tint: '#C9A3FF', label: 'درباره‌ی دوزاری', press: tg('about') },
+        { icon: 'key', tint: '#FFAA7A', label: 'خروج از همه‌ی دستگاه‌ها' },
+        { icon: 'lock', tint: '#FF4D8D', label: 'حذف حساب', tone: '#F08A80' }] },
+    ].map(g => ({ showVol: false, showAbout: false, ...g, rows: g.rows.map(R) }));
+    const vols = ['خیلی کم', 'کم', 'متوسط', 'زیاد'].map((n, i) => { const on = s.vol === i; return { n, pick: () => this.setState({ vol: i }), bd: on ? '#000' : '#8A5A16', bg: on ? 'linear-gradient(180deg,#FFF1B8,#E8B64A 45%,#B8822A)' : '#24160A', fg: on ? '#2A1606' : '#FFE9A8' }; });
+    const stats = [['بازی', 184, '#FFE9A8'], ['برد', 102, '#9BE36A'], ['باخت', 69, '#F08A80'], ['مساوی', 13, '#DDE4EF']].map(([n, v, c], i) => ({ n, v: fa(v), c, bd: i ? '1.5px solid rgba(232,182,74,.25)' : '0 solid transparent' }));
+    const tiles = [['جاده‌ی لول', 'map'], ['دوستان', 'heart'], ['نشان‌ها', 'medal'], ['بازی‌ها', 'dice'], ['پیدا کردن', 'magnifier'], ['هدیه و وام', 'gift'], ['دعوت', 'envelope']].map(([n, icon]) => ({ n, icon }));
+    return {
+      isWorkshop: view === 'workshop', isProfile: view === 'profile',
+      openProfile: e => { e && e.stopPropagation && e.stopPropagation(); this.setState({ view: 'profile' }); },
+      backToWorkshop: () => this.setState({ view: 'workshop' }),
+      groups, vols, stats, tiles,
+      caption: view === 'workshop' ? 'adult · screen-settings · tap the card → profile' : 'adult · screen-profile · back → کارگاه',
+    };
+  }
+}
+</script>
+</body>
+</html>

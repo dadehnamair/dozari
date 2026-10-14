@@ -17,6 +17,8 @@ import { FindSheet } from './FindSheet';
 import { PlayerSheet } from './PlayerSheet';
 import { TEXT_RIGHT } from '../theme/direction';
 import { BirthdayBadge } from './BirthdayBadge';
+import { FriendsLedger } from './FriendsLedger';
+import { useDark } from '../theme/skin';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const TINTS = ['#3FC1F0', '#FF4D8D', '#FF8FB6', '#FFC93C', '#B8F08F', '#FFAA7A', '#C9A3FF'];
@@ -24,8 +26,10 @@ const TINTS = ['#3FC1F0', '#FF4D8D', '#FF8FB6', '#FFC93C', '#B8F08F', '#FFAA7A',
 /**
  * screen-friends of `19 Social Daily Onboarding`: search, «+ افزودن» (find players), incoming requests to accept or
  * decline, and one card per friend with a gift button. Tapping a friend opens their profile.
+ * Adult look: `FriendsLedger` (docs/design/adult/Dozari Adult - Friends).
  */
 export function FriendsPage({ onClose }: { onClose: () => void }) {
+  const dark = useDark();
   const [data, setData] = useState<Friends | null>(null);
   const [failed, setFailed] = useState(false);
   const [q, setQ] = useState('');
@@ -42,8 +46,14 @@ export function FriendsPage({ onClose }: { onClose: () => void }) {
   if (open) return <PlayerSheet playerId={open} onClose={() => (setOpen(null), load())} />;
   if (gift) return <TransferSheet friendId={gift} kind="gift" onClose={() => setGift(null)} />;
 
+  if (dark) {
+    return (
+      <FriendsLedger data={data} failed={failed} onBack={onClose} onAdd={() => setFind(true)} onOpen={setOpen} onGift={setGift}
+        onAccept={(id) => acceptFriend(id).then(load, () => setFailed(true))} onDecline={(id) => removeFriend(id).then(load, () => setFailed(true))} />
+    );
+  }
   const needle = q.trim();
-  const shown = (data?.friends ?? []).filter((p) => !needle || p.nickname.includes(needle));
+  const shown = (data?.friends ?? []).filter((p) => !needle || p.nickname.includes(needle) || (p.contactName ?? '').includes(needle) || (p.phone ?? '').includes(needle));
   return (
     <PageShell title={fa.friends.title} color={colors.candy.sky} backLabel={fa.friends.back} onBack={onClose} bandHeight={156}
       action={
@@ -71,7 +81,11 @@ export function FriendsPage({ onClose }: { onClose: () => void }) {
         {shown.map((p, i) => (
           <View key={p.id} style={styles.card}>
             <Face avatarKey={p.avatarKey} tint={TINTS[i % TINTS.length]!} online={p.online} birthday={p.birthday} />
-            <Pressable style={styles.body} onPress={() => setOpen(p.id)} accessibilityRole="button"><Text style={styles.name} numberOfLines={1}>{p.nickname}</Text></Pressable>
+            <Pressable style={styles.body} onPress={() => setOpen(p.id)} accessibilityRole="button">
+              <Text style={styles.name} numberOfLines={1}>{p.nickname}</Text>
+              {p.contactName ? <Text style={styles.sub} numberOfLines={1}>{fa.find.savedAs} {p.contactName}</Text> : null}
+              {p.phone ? <Text style={[styles.sub, styles.ltr]}>{p.phone}</Text> : null}
+            </Pressable>
             <Pressable accessibilityRole="button" accessibilityLabel={`${fa.friends.gift} ${p.nickname}`} onPress={() => setGift(p.id)} style={styles.gift}>
               <View style={styles.giftIcon}><Item icon="gift" /></View>
             </Pressable>
@@ -108,6 +122,8 @@ const styles = StyleSheet.create({
   dot: { position: 'absolute', bottom: -2, right: -2 },
   body: { flex: 1, minWidth: 0 },
   name: { fontFamily: fonts.display, fontSize: 16, color: colors.ink, textAlign: TEXT_RIGHT },
+  sub: { fontFamily: fonts.bold, fontSize: 12, color: colors.ink, opacity: 0.7, textAlign: TEXT_RIGHT },
+  ltr: { writingDirection: 'ltr' },
   gift: { width: 40, height: 40, borderRadius: 12, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.cream, alignItems: 'center', justifyContent: 'center', ...lift(3) },
   giftIcon: { width: 26, height: 26 },
   small: { height: 36, paddingHorizontal: 10, borderRadius: 12, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.cream, justifyContent: 'center', ...lift(3) },

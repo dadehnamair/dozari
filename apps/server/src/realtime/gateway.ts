@@ -96,8 +96,11 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
     cors: opts.corsOrigin ? { origin: opts.corsOrigin === '*' ? true : opts.corsOrigin.split(',').map((o) => o.trim()) } : undefined,
   });
   if (opts.notices) {
-    const push = (userId: string, payload: LiveNotice) => void io.to(room(userId)).emit(ServerEvent.notice, payload);
-    opts.notices.push = push;
+    const notices = opts.notices;
+    notices.push = (userId: string, payload: LiveNotice) => {
+      io.to(room(userId)).emit(ServerEvent.notice, payload);
+      notices.also?.(userId, payload);
+    };
   }
   if (opts.chat) {
     const chat = opts.chat;

@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { normalizeForFilter, PRODUCT_CATEGORIES, priceOnDate, priceRange } from '@dozari/shared';
+import { normalizeForFilter, priceOnDate, priceRange } from '@dozari/shared';
 import type { LookupDetail, LookupHit, LookupRange } from '@dozari/shared';
 
 export interface ProductDto {
@@ -68,12 +68,14 @@ async function hitOf(repo: CatalogRepository, p: ProductDto, prices?: PricePoint
 }
 
 const searchQuery = z
-  .object({ q: z.string().trim().max(60).optional(), category: z.enum(PRODUCT_CATEGORIES).optional() })
+  .object({ q: z.string().trim().max(60).optional(), category: z.string().regex(/^[a-z][a-z0-9_]{0,38}$/).optional() })
   .refine((v) => Boolean(v.q) || Boolean(v.category));
 const detailQuery = z.object({ year: z.coerce.number().int().min(1300).max(1450).optional(), month: z.coerce.number().int().min(1).max(12).optional() });
 
 /** Price lookup «استعلام قیمت» (D70): answers only from approved price points; no estimates. */
-export function registerLookupRoutes(app: FastifyInstance, repo: CatalogRepository) {
+export function registerLookupRoutes(app: FastifyInstance, repo: CatalogRepository, categories?: () => Promise<{ slug: string; nameFa: string }[]>) {
+  /** The categories the app offers as filter chips (the admin defines them); the app falls back to its built-in list when this is not served. */
+  if (categories) app.get('/lookup/categories', async () => ({ categories: await categories() }));
   app.get('/lookup/search', async (req, reply) => {
     const q = searchQuery.safeParse(req.query);
     if (!q.success) return reply.code(400).send({ error: 'invalid_request' });

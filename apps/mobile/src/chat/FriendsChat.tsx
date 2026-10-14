@@ -49,7 +49,8 @@ export function FriendsChat({ meId, onJoinTable }: { meId: string | null; onJoin
   );
 }
 
-function Dm({ friend, meId, onBack, onJoinTable }: { friend: Friend; meId: string | null; onBack: () => void; onJoinTable?: (code: string) => void }) {
+/** A private chat with one friend. Used by the «دوستان» tab and, on its own, from a friend's profile (`DmSheet`). */
+export function Dm({ friend, meId, onBack, onJoinTable }: { friend: Pick<Friend, 'id' | 'nickname' | 'avatarKey'>; meId: string | null; onBack: () => void; onJoinTable?: (code: string) => void }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [canType, setCanType] = useState(true);
   const [text, setText] = useState('');

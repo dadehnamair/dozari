@@ -21,7 +21,7 @@ Owner (2026-10-12): beside the price questions, a place to define ordinary four-
 - Mobile: `duel/DuelTriviaRound.tsx` replaces the board like the price round; the result page shows the right answers of each side.
 - No coin wager on trivia rounds. A table's own choice of the count and 2v2 are not built (the setting applies to every 1v1).
 
-## Question duel («دوئل پرسشی») — D229
+## Question duel («دوئل پرسشی») — D234
 Owner (2026-10-14): beside «پرسش» (solo), a live 1v1 that works like the board duel's search: find a rival, start, answer the same questions. The only choice is a topic or random.
 - Home: a second button «دوئل پرسشی» next to «پرسش» (`feature.trivia_duel`, same age-track rule as the other question/price modes: kids do not get it). `TriviaDuelScreen`: topic grid + «🎲 تصادفی» → the same diamond search screen as the board duel → versus card (3 s, `TRIVIA_DUEL_INTRO_MS`) → `DuelTriviaRound` → result card with a review of every question.
 - Own service, not a board match: `apps/server/src/realtime/trivia-duel.ts` (`TriviaDuelService`, in memory) runs the shared `trivia/round.ts` state machine; the board-duel `MatchService` and its queue are untouched. Lines are per topic: a topic player meets the same topic or a random one (that topic is played); two randoms get a mix; two different topics never meet. Pairing also needs the same question pools (age track). Questions come from the approved bank in the pool, choices shuffled per game (`trivia.duel_questions` = 8, `trivia.duel_seconds` = 15 per question; a question closes when both answered or on the clock).

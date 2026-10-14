@@ -1,9 +1,10 @@
+import { registerPendingRoutes } from './notify/pending.js';
 import { randomInt, randomUUID } from 'node:crypto';
 import Fastify from 'fastify';
 import fastifyCors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
 import { resolve } from 'node:path';
-import { duelTiers, rialsToTomanString, pickTriviaQuestions, shuffleTrivia } from '@dozari/shared';
+import { AVATAR_CHANGE_MIN_LEVEL, AVATAR_UNLOCK_GAMES, duelTiers, rialsToTomanString, pickTriviaQuestions, shuffleTrivia } from '@dozari/shared';
 import { CHAT_RETENTION_DAYS, trackRules, MISSION_KEYS, TOURNAMENT_TICK_SECONDS, dailyDateKey, trackFeatureForPath, trackRuleForPath, WHEEL_SLICES_DEFAULT, scaleSlices } from '@dozari/shared';
 import type { AgeTrack, HintRules, MissionKey } from '@dozari/shared';
 import { createDb, imageStoreFromEnv } from '@dozari/db';
@@ -86,6 +87,7 @@ import { createDbAdminStore } from './admin/accounts/store.js';
 import { createDbAuditLog } from './admin/audit.js';
 import { createDbEconomyAdmin } from './admin/economy.js';
 import { createDbProductAdmin } from './admin/products.js';
+import { createDbCategoryAdmin } from './admin/categories.js';
 import { createDbStatsAdmin } from './admin/stats.js';
 import { createDbUsersAdmin } from './admin/users.js';
 import { createDbBotRepository } from './bot/repository.js';
@@ -97,6 +99,10 @@ import { NotifyService } from './notify/service.js';
 import { createBaleSignup } from './notify/signup.js';
 import { startNotifyRunner } from './notify/runner.js';
 import { registerBaleRoutes } from './notify/routes.js';
+import { FcmService, createDbFcmTokenStore, createFcmSender, loadServiceAccount, registerFcmRoutes } from './notify/fcm.js';
+import { irnotiPushFromEnv, registerIrnotiPushRoutes } from './notify/irnoti-push.js';
+import type { IrnotiPushService } from './notify/irnoti-push.js';
+import { WebPushService, createDbPushSubStore, createVapidSender, registerWebPushRoutes } from './notify/webpush.js';
 import { MessageCenter } from './messages/service.js';
 import { createDbMessageStore } from './messages/store.js';
 import { registerInboxRoutes } from './messages/routes.js';
@@ -144,6 +150,9 @@ import { createDbGemWallet, createGemCardPayer, registerGemRoutes } from './econ
 import type { GemWalletReader } from './economy/gems.js';
 import { createDbProfileTaskStore } from './profile/tasks-store.js';
 import { BirthdayService, registerBirthdayRoutes } from './profile/birthday.js';
+import { AvatarService, registerAvatarRoutes } from './profile/avatars.js';
+import { createDbAvatarStore } from './profile/avatars-store.js';
+import type { AvatarStore } from './profile/avatars-store.js';
 import { createErrorReporter } from './errors/report.js';
 import { buildFeedbackService } from './feedback/build.js';
 import { applyLedgerEntry } from './economy/ledger.js';
@@ -200,6 +209,8 @@ export interface ServerDeps {
   /** Called with every unexpected server error (and crash); wired to the self-hosted collector by `SENTRY_DSN`. */
   reportError?: (err: unknown, where?: string) => void;
   catalog?: CatalogRepository;
+  /** Active product categories for the lookup screen's filter chips. */
+  categories?: () => Promise<{ slug: string; nameFa: string }[]>;
   /** Interim catalog review page + API at `/admin`; registered only when a token is provided. */
   admin?: { repo: AdminRepository; token?: string; accounts?: AdminAccounts };
   /** Guest accounts and sessions (`/auth/guest`, `/me`). */
@@ -216,6 +227,9 @@ export interface ServerDeps {
   realtime?: boolean;
   /** Bale messenger integration: link codes for players, the bot's name for the app. */
   bale?: { service: NotifyService; botUsername: string | null };
+  webPush?: WebPushService;
+  fcm?: FcmService;
+  irnotiPush?: IrnotiPushService;
   /** Mobile numbers (`/me/phone`); also required before Bale linking when the setting says so. */
   phone?: PhoneService;
   /** «ورود با شماره»: logged-out sign-in by SMS code (`/auth/phone/*`). */
@@ -290,6 +304,8 @@ export interface ServerDeps {
   /** Level road (`/me/levels`, D109); needs `auth`. */
   levelRoad?: LevelRoadService;
   profileTasks?: ProfileTaskService;
+  /** The avatar («شخصیت») shelf: free and priced avatars (`/me/avatars`, D219); needs `auth`. */
+  avatars?: AvatarService;
   /** Birth date, birthday week, yearly gift and friend messages (D160). */
   birthday?: BirthdayService;
   /** Chosen age track: kid / teen / adult (D198); queues only pair one track. */
@@ -411,7 +427,15 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.invite) registerInviteRoutes(app, deps.auth, deps.invite);
   if (deps.auth && deps.transfers) registerTransferRoutes(app, deps.auth, deps.transfers);
   if (deps.auth && deps.keepsakes) registerKeepsakeRoutes(app, deps.auth, deps.keepsakes);
+  if (deps.auth && deps.webPush) registerWebPushRoutes(app, deps.auth, deps.webPush);
+  if (deps.auth && deps.fcm) registerFcmRoutes(app, deps.auth, deps.fcm);
+  if (deps.auth && deps.irnotiPush) registerIrnotiPushRoutes(app, deps.auth);
   if (deps.auth && deps.messages) registerInboxRoutes(app, deps.auth, deps.messages);
+  if (deps.auth && deps.messages && deps.social) {
+    const center = deps.messages;
+    const social = deps.social;
+    registerPendingRoutes(app, deps.auth, { inbox: (id) => center.inbox(id), incomingRequests: async (id) => (await social.friends(id)).incoming.map((p) => ({ id: p.id, nickname: p.nickname })) });
+  }
   if (deps.auth && deps.phone) registerPhoneRoutes(app, deps.auth, deps.phone);
   if (deps.phoneLogin) registerPhoneLoginRoutes(app, deps.phoneLogin);
   if (deps.auth && deps.match && deps.presence) registerCandidateRoutes(app, deps.auth, { online: () => deps.presence!.onlineIds(), bots: () => deps.botDriver?.rosterIds() ?? [], profile: deps.match.profile });
@@ -433,7 +457,7 @@ export function buildServer(deps: ServerDeps = {}) {
   }
   if (deps.catalog) {
     registerCatalogRoutes(app, deps.catalog);
-    registerLookupRoutes(app, deps.catalog);
+    registerLookupRoutes(app, deps.catalog, deps.categories);
   }
   // Is the player in a live match right now? (the app shows a "back to your game" banner, D42)
   if (deps.auth && deps.live) {
@@ -450,7 +474,7 @@ export function buildServer(deps: ServerDeps = {}) {
     if (!r.ok) return { ok: false, error: r.error };
     const online = deps.presence?.isOnline(friendId) ?? false;
     // A live nudge on top of the chat card, so the friend sees «X invited you» wherever they are in the app.
-    if (online) deps.notices?.push(friendId, { kind: 'table_invite', from: r.message.nickname, code: t.code });
+    deps.notices?.push(friendId, { kind: 'table_invite', from: r.message.nickname, code: t.code });
     if (!online) void deps.notify?.notify(friendId, 'table_invite', BALE_TEXT.tableInvite(r.message.nickname)).catch(() => undefined);
     return { ok: true, online };
   } : undefined, (playerId) => deps.live?.matches?.spectate(playerId) ?? null);
@@ -461,6 +485,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.shop) registerShopRoutes(app, deps.auth, deps.shop);
   if (deps.auth && deps.levelRoad) registerRoadRoutes(app, deps.auth, deps.levelRoad);
   if (deps.auth && deps.profileTasks) registerProfileTaskRoutes(app, deps.auth, deps.profileTasks);
+  if (deps.auth && deps.avatars) registerAvatarRoutes(app, deps.auth, deps.avatars);
   if (deps.auth && deps.birthday) registerBirthdayRoutes(app, deps.auth, deps.birthday);
   if (deps.auth && deps.ageTracks) registerAgeTrackRoutes(app, deps.auth, deps.ageTracks, deps.playTime);
   if (deps.auth && deps.lessons) registerLessonRoutes(app, deps.auth, deps.lessons, deps.lessonSeen);
@@ -550,6 +575,21 @@ if (isMainModule(import.meta.url)) {
   const baleClient = baleToken ? createBaleClient(baleToken, { base: process.env.BALE_API_BASE }) : null;
   const baleStore: NotifyStore | undefined = db ? createDbNotifyStore(db) : undefined;
   const notify = baleStore ? new NotifyService(baleStore, baleClient) : undefined;
+  // Browser push (Web Push, VAPID): iPhone home-screen apps through Apple's service, Chrome through Google's. Off without the three VAPID_* variables.
+  const vapid = process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY ? { publicKey: process.env.VAPID_PUBLIC_KEY, privateKey: process.env.VAPID_PRIVATE_KEY, subject: process.env.VAPID_SUBJECT ?? 'mailto:admin@dozari.ir' } : null;
+  const webPush = db && vapid ? new WebPushService(createDbPushSubStore(db), createVapidSender(vapid), vapid.publicKey) : undefined;
+  // Android app push (FCM HTTP v1, no SDK): `FCM_SERVICE_ACCOUNT_JSON` is the service-account key, as JSON text or a file path. Off without it.
+  const fcmAccount = loadServiceAccount(process.env.FCM_SERVICE_ACCOUNT_JSON);
+  // irnoti push service wins when configured: the SDK in the app registers the device with irnoti and delivery goes through irnoti, so the direct FCM sender stays off.
+  const irnotiPush = irnotiPushFromEnv(process.env) ?? undefined;
+  const fcm = irnotiPush || !(db && fcmAccount) ? undefined : new FcmService(createDbFcmTokenStore(db), createFcmSender(fcmAccount));
+  if (webPush || fcm || irnotiPush) {
+    notices.also = (id, n) => {
+      void webPush?.notice(id, n).catch(() => undefined);
+      void fcm?.notice(id, n).catch(() => undefined);
+      void irnotiPush?.notice(id, n).catch(() => undefined);
+    };
+  }
   // The SMS provider and message texts are edited in the admin panel (stored in app_settings); env vars are the fallback.
   const smsGateway = settings && db
     ? new SmsGateway(createDbSettingsStore(db), { irnotiKey: process.env.IRNOTI_API_KEY, irnotiMessage: process.env.IRNOTI_MESSAGE, irnotiLineId: process.env.IRNOTI_LINE_ID, irnotiPatternCode: process.env.IRNOTI_PATTERN_CODE, kavenegarKey: process.env.KAVENEGAR_API_KEY, kavenegarTemplate: process.env.KAVENEGAR_TEMPLATE })
@@ -607,7 +647,9 @@ if (isMainModule(import.meta.url)) {
     // Online recipients get a nudge so the inbox badge moves without a reload; offline ones see it on the next load.
     messages.onDelivered = (ids) => {
       const online = new Set(presence.onlineIds());
+      // Online players get the live nudge; the others a browser push (capped, so a broadcast to everybody does not become thousands of lookups).
       for (const id of ids) if (online.has(id)) notices.push(id, { kind: 'inbox' });
+      for (const id of ids.filter((i) => !online.has(i)).slice(0, 500)) notices.also?.(id, { kind: 'inbox' });
     };
   }
   const invite = inviteStore && settings && player ? new InviteService(inviteStore, () => inviteRulesFromSettings(settings), async (id) => (await player.levelOf(id)).level.level, async (id) => (await player.levelOf(id)).stats.games, () => randomInt(0, 2 ** 30) / 2 ** 30) : undefined;
@@ -635,7 +677,25 @@ if (isMainModule(import.meta.url)) {
           filter: words,
         })
       : undefined;
+<<<<<<< HEAD
   const live: { matches?: MatchService; queue?: DuelQueue; teamQueue?: DuelQueue; triviaDuel?: TriviaDuelService } = {};
+=======
+  // A private message must be noticed wherever the friend is: a live notice if they are online, Bale (at most once per sender per 10 minutes) if not.
+  if (chat) {
+    const baleSeen = new Map<string, number>();
+    chat.onDirect = (friendId, message) => {
+      const nickname = message.nickname;
+      if (presence.isOnline(friendId)) return void notices.push(friendId, { kind: 'dm', from: nickname });
+      notices.also?.(friendId, { kind: 'dm', from: nickname });
+      const key = `${message.userId}>${friendId}`;
+      const last = baleSeen.get(key) ?? 0;
+      if (Date.now() - last < 10 * 60_000) return;
+      baleSeen.set(key, Date.now());
+      void notify?.notify(friendId, 'chat_message', BALE_TEXT.chatMessage(nickname)).catch(() => undefined);
+    };
+  }
+  const live: { matches?: MatchService; queue?: DuelQueue; teamQueue?: DuelQueue } = {};
+>>>>>>> origin/main
   const botStore = db ? createDbBotPlayerStore(db) : undefined;
   const botService =
     botStore && player && settings
@@ -815,6 +875,7 @@ if (isMainModule(import.meta.url)) {
         )
       : undefined;
   if (chat && ageTracks) chat.managed = { trackOf: (id) => ageTracks.effective(id), hasGuardian: async (id) => (guardianStore ? (await guardianStore.guardianOf(id)) !== null : false), chatMode: async (id) => ((await ageTracks.featureOff(id, 'chat')) ? 'off' : guardianSettings ? (await guardianSettings.get(id)).chatMode : 'friends_text') };
+  if (social && find) social.contactNotes = (me, ids) => find.contactNotes(me, ids);
   if (social && ageTracks) {
     social.sameTrack = meetable;
     social.blocked = (id) => ageTracks.socialBlocked(id);
@@ -845,12 +906,17 @@ if (isMainModule(import.meta.url)) {
   }
   const levelOf = async (id: string) => (player ? (await player.levelOf(id)).level.level : 1);
   const shopStore = db ? createDbShopStore(db) : undefined;
+  const avatarStore: AvatarStore | undefined = db ? createDbAvatarStore(db) : undefined;
+  const avatars = avatarStore && settings
+    ? new AvatarService(avatarStore, levelOf, async () => ({ unlockGames: (await settings.num('profile.avatar_unlock_games')) ?? AVATAR_UNLOCK_GAMES, minLevel: (await settings.num('profile.avatar_change_min_level')) ?? AVATAR_CHANGE_MIN_LEVEL }))
+    : undefined;
   const landingService = db ? new LandingService(createDbLandingStore(db), Date.now, words ? async (t) => { const r = await words.check(t); return r.ok ? { ok: true, text: r.text } : { ok: false }; } : undefined) : undefined;
   const shortLinkService = db && settings ? new ShortLinkService(createDbShortLinkStore(db), () => settings.text('domain.short')) : undefined;
   if (social && shopStore) {
     const wardrobe = new ShopService(shopStore, levelOf);
     social.wornOf = (id) => wardrobe.worn(id);
   }
+  if (player && avatars) player.canWearAvatar = (id, key) => avatars.canWear(id, key);
   const shopReal = shopStore ? new ShopRealMoney(shopStore, levelOf) : undefined;
   const coinPackageService = db ? new CoinPackageService(createDbCoinPackageStore(db), levelOf) : undefined;
   if (notify && coinPackageService) {
@@ -911,7 +977,7 @@ if (isMainModule(import.meta.url)) {
           protectLast: process.env.BACKUP_PROTECT_LAST ? Number(process.env.BACKUP_PROTECT_LAST) || undefined : undefined,
         })
       : undefined;
-  const aiStudio = db ? new AiStudio({ env: process.env, lessons: createDbLessonStore(db), puzzles: createDbPuzzleAdmin(db), trivia: triviaStore, products: productAdmin, landing: landingService, catalog: async () => (await createDbAdminRepository(db).listCatalog()).map((p) => ({ id: p.id, slug: p.slug, nameFa: p.nameFa })) }) : undefined;
+  const aiStudio = db ? new AiStudio({ env: process.env, lessons: createDbLessonStore(db), puzzles: createDbPuzzleAdmin(db), categories: createDbCategoryAdmin(db), trivia: triviaStore, products: productAdmin, landing: landingService, catalog: async () => (await createDbAdminRepository(db).listCatalog()).map((p) => ({ id: p.id, slug: p.slug, nameFa: p.nameFa })) }) : undefined;
   const aiScheduler = db && aiStudio ? new AiScheduler(createDbAiScheduleStore(db), aiStudio, { audit: (action, target, detail) => void playerAudit?.record(action, target, detail), log: (msg, err) => app.log.error({ err }, msg) }) : undefined;
   const reportError = createErrorReporter({ dsn: process.env.SENTRY_DSN, environment: process.env.NODE_ENV, release: process.env.APP_RELEASE });
   const profileTaskService = db && settings ? new ProfileTaskService({
@@ -940,7 +1006,7 @@ if (isMainModule(import.meta.url)) {
     auth,
     settings,
     adminModules: db
-      ? { backups: backupService, images: adminImageStore(), products: productAdmin!, feedback, clientErrors, stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, keepsakes: keepsakeStore, wheel, ads, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, ageTracks: db ? createDbAgeTrackAdmin(db) : undefined, economy: db ? createDbEconomyAdmin(db) : undefined, daily, ai: aiStudio, aiSchedules: aiScheduler, puzzles: createDbPuzzleAdmin(db), trivia: triviaStore, leaves, levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, sms: smsGateway, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      ? { backups: backupService, images: adminImageStore(), products: productAdmin!, feedback, clientErrors, stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, avatars: avatarStore, keepsakes: keepsakeStore, wheel, ads, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, ageTracks: db ? createDbAgeTrackAdmin(db) : undefined, economy: db ? createDbEconomyAdmin(db) : undefined, daily, ai: aiStudio, aiSchedules: aiScheduler, puzzles: createDbPuzzleAdmin(db), categories: createDbCategoryAdmin(db), trivia: triviaStore, leaves, levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, sms: smsGateway, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
     triviaDuel:
@@ -1039,6 +1105,9 @@ if (isMainModule(import.meta.url)) {
     ambientLobby,
     presence,
     notices,
+    webPush,
+    fcm,
+    irnotiPush,
     notify,
     messages,
     social,
@@ -1049,6 +1118,7 @@ if (isMainModule(import.meta.url)) {
     ads,
     dailyReward: db && settings ? new DailyRewardService(createDbDailyRewardStore(db), Date.now, () => dailyRules(settings)) : undefined,
     catalog: db ? createDbCatalogRepository(db) : undefined,
+    categories: db ? async () => (await createDbCategoryAdmin(db).list()).filter((c) => c.isActive).map((c) => ({ slug: c.slug, nameFa: c.nameFa })) : undefined,
     solo,
     priceOnly,
     trivia: trivia ? { service: trivia, tracksOf: ageTracks ? async (id) => (id ? trackRules(await ageTracks.effective(id)).puzzleTracks : ['adult']) : undefined } : undefined,
@@ -1109,6 +1179,7 @@ if (isMainModule(import.meta.url)) {
     guardian,
     feedback,
     clientErrors,
+    avatars,
     profileTasks: profileTaskService,
     coinPackages: coinPackageService,
     shopReal,

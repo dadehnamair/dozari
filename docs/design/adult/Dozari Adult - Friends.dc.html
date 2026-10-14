@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link href="https://fonts.googleapis.com/css2?family=Lalezar&amp;family=Vazirmatn:wght@600;700;800;900&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>html{background:#1A1210}body{margin:0;background:#1A1210;color:#FFE9A8;font-family:Vazirmatn}a{color:#E8B64A}a:hover{color:#FFF1B8}*{box-sizing:border-box}button,input{font-family:inherit}input::placeholder{color:rgba(255,233,168,.45)}</style>
+</helmet>
+<section dir="rtl" style="padding:56px;display:flex;flex-direction:column;gap:32px">
+  <header style="display:flex;flex-direction:column;gap:6px">
+    <div style="font:14px 'JetBrains Mono',monospace;color:#E8B64A;direction:ltr;text-align:right">Dozari Adult · Friends · style: صرافی و گاوصندوق</div>
+    <h1 style="margin:0;font:52px/1 Lalezar;color:#FFE9A8">بزرگسال · دوستان</h1>
+    <div style="font:700 17px/1.7 Vazirmatn;color:rgba(255,233,168,.7);max-width:900px">بازطراحی صفحه‌ی دوستان (نسخه‌ی کودک در فایل ۱۹) با پوسته‌ی صرافی: فهرست به شکل دفتر حساب، دوئل مسی، هدیه برنز. اجزا از <a href="./Dozari Adult - UI Kit.dc.html">UI Kit بزرگسال</a>.</div>
+  </header>
+  <div style="display:flex;gap:36px;flex-wrap:wrap;align-items:flex-start">
+
+    <div data-screen-label="Adult Friends" style="display:flex;flex-direction:column;gap:10px;align-items:center">
+      <div style="width:340px;height:736px;border-radius:52px;border:11px solid #000;box-shadow:0 30px 60px rgba(0,0,0,.6),0 0 0 2px rgba(232,182,74,.35);position:relative;overflow:hidden;background:#0E0A08">
+        <div style="position:absolute;inset:0"><dc-import name="Scene" scene="sarafi" hint-size="100%,100%" style="width:100%;height:100%"></dc-import></div>
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(14,10,8,.6),rgba(14,10,8,.88) 32%,rgba(14,10,8,.96))"></div>
+
+        <div style="position:absolute;top:36px;left:12px;right:12px;display:flex;align-items:center;gap:8px">
+          <button style="width:42px;height:42px;flex:none;border-radius:13px;background:linear-gradient(180deg,#5A3A1C 0%,#3A2412 60%,#24160A 100%);border:2px solid #B8822A;box-shadow:inset 0 2px 0 rgba(255,241,184,.3),0 3px 0 #000;display:grid;place-items:center;cursor:pointer"><svg viewBox="0 0 24 24" width="22" height="22"><path d="M9 5l7 7-7 7" fill="none" stroke="#FFE9A8" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></button>
+          <div style="flex:1;display:flex;flex-direction:column;gap:1px;min-width:0">
+            <span style="font:26px/1.1 Lalezar;color:#FFE9A8;text-shadow:0 2px 0 #000">دوستان</span>
+            <span style="font:700 11.5px Vazirmatn;color:rgba(255,233,168,.6)">{{ totalN }} نفر · {{ onlineN }} نفر آنلاین</span>
+          </div>
+          <button onClick="{{ openAdd }}" style="height:42px;padding:0 12px;flex:none;border-radius:13px;border:2px solid #000;background:linear-gradient(180deg,#FFF1B8 0%,#E8B64A 38%,#B8822A 72%,#8A5A16 100%);box-shadow:inset 0 2px 0 rgba(255,255,255,.7),0 3px 0 #000;display:flex;align-items:center;gap:4px;font:17px Lalezar;color:#2A1606;cursor:pointer" style-active="transform:translateY(2px)"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M12 5v14M5 12h14" fill="none" stroke="#2A1606" stroke-width="3" stroke-linecap="round"></path></svg>افزودن</button>
+        </div>
+
+        <div style="position:absolute;top:96px;left:12px;right:12px;display:flex;flex-direction:column;gap:10px">
+          <div style="height:44px;border-radius:12px;border:2px solid #8A5A16;background:#0E0A08;display:flex;align-items:center;gap:8px;padding:0 12px">
+            <svg viewBox="0 0 24 24" width="18" height="18" style="flex:none"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM21 21l-5-5" fill="none" stroke="#E8B64A" stroke-width="2.2" stroke-linecap="round"></path></svg>
+            <input value="{{ q }}" onChange="{{ onQ }}" placeholder="جستجوی دوست…" style="flex:1;min-width:0;height:100%;border:0;background:transparent;font:800 14px Vazirmatn;color:#FFE9A8;outline:none"></input>
+          </div>
+          <div style="display:flex;gap:4px;padding:4px;border-radius:14px;background:#0E0A08;border:2px solid #8A5A16">
+            <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3">
+              <button onClick="{{ t.pick }}" style="flex:1;height:34px;border-radius:10px;border:{{ t.bd }};background:{{ t.bg }};font:16px Lalezar;color:{{ t.fg }};display:flex;align-items:center;justify-content:center;gap:5px;cursor:pointer">{{ t.n }}<sc-if value="{{ t.badge }}" hint-placeholder-val="{{ false }}"><span style="min-width:18px;height:18px;padding:0 4px;border-radius:99px;background:#C4302B;border:1.5px solid #000;font:11px/15px Lalezar;color:#fff">{{ t.badge }}</span></sc-if></button>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="position:absolute;top:202px;left:10px;right:10px;bottom:18px;overflow-y:auto;scrollbar-width:none;display:flex;flex-direction:column;gap:14px;padding:2px 2px 10px">
+          <sc-if value="{{ isReq }}" hint-placeholder-val="{{ false }}">
+            <div style="border-radius:20px;background:linear-gradient(180deg,#2A1E16,#17100C);border:2px solid #E8B64A;box-shadow:0 0 0 2px #000,0 5px 0 #000;padding:6px 12px;display:flex;flex-direction:column">
+              <sc-for list="{{ reqs }}" as="r" hint-placeholder-count="2">
+                <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:{{ r.sep }}">
+                  <div style="position:relative;width:46px;height:46px;flex:none;border-radius:50%;background:radial-gradient(circle at 50% 35%,#4A3220,#17100C 75%);border:2px solid #B8822A;box-shadow:0 0 0 2px #000;overflow:hidden"><div style="position:absolute;inset:-2px"><dc-import name="Character" who="{{ r.who }}" pose="idle" crop="face" hint-size="50px,50px" style="width:100%;height:100%"></dc-import></div></div>
+                  <div style="flex:1;min-width:0;display:flex;flex-direction:column"><span style="font:17px/1.2 Lalezar;color:#FFE9A8">{{ r.n }}</span><span style="font:700 11px Vazirmatn;color:rgba(255,233,168,.6)">{{ r.s }}</span></div>
+                  <button onClick="{{ r.no }}" style="width:38px;height:38px;flex:none;border-radius:12px;background:linear-gradient(180deg,#5A3A1C,#24160A);border:2px solid #B8822A;box-shadow:0 3px 0 #000;display:grid;place-items:center;cursor:pointer"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="#FFE9A8" stroke-width="2.6" stroke-linecap="round"></path></svg></button>
+                  <button onClick="{{ r.yes }}" style="height:38px;padding:0 12px;flex:none;border-radius:12px;border:2px solid #000;background:linear-gradient(180deg,#FFF1B8 0%,#E8B64A 38%,#B8822A 72%,#8A5A16 100%);box-shadow:inset 0 2px 0 rgba(255,255,255,.7),0 3px 0 #000;font:16px Lalezar;color:#2A1606;cursor:pointer">قبول</button>
+                </div>
+              </sc-for>
+              <sc-if value="{{ noReqs }}" hint-placeholder-val="{{ false }}"><div style="padding:22px 0;text-align:center;font:800 13px Vazirmatn;color:rgba(255,233,168,.6)">درخواست تازه‌ای نداری.</div></sc-if>
+            </div>
+          </sc-if>
+
+          <sc-for list="{{ groups }}" as="g" hint-placeholder-count="2">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="display:flex;align-items:center;gap:8px;padding:0 6px">
+                <div style="width:8px;height:8px;border-radius:50%;background:{{ g.dot }};box-shadow:0 0 6px {{ g.dot }}"></div>
+                <span style="font:16px/1 Lalezar;color:{{ g.c }}">{{ g.t }}</span>
+                <span style="font:12px 'JetBrains Mono',monospace;color:rgba(255,233,168,.5)">{{ g.nFa }}</span>
+                <div style="flex:1;height:0;border-top:1.5px dashed rgba(232,182,74,.3)"></div>
+              </div>
+              <div style="border-radius:20px;background:linear-gradient(180deg,#2A1E16,#17100C);border:2px solid {{ g.fr }};box-shadow:0 0 0 2px #000,0 5px 0 #000;padding:2px 12px;display:flex;flex-direction:column">
+                <sc-for list="{{ g.rows }}" as="f" hint-placeholder-count="4">
+                  <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:{{ f.sep }};opacity:{{ f.op }}">
+                    <div style="position:relative;width:46px;height:46px;flex:none">
+                      <div style="position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 50% 35%,#4A3220,#17100C 75%);border:2px solid {{ f.ring }};box-shadow:0 0 0 2px #000;overflow:hidden;filter:{{ f.flt }}"><div style="position:absolute;inset:-2px"><dc-import name="Character" who="{{ f.who }}" pose="idle" crop="face" hint-size="50px,50px" style="width:100%;height:100%"></dc-import></div></div>
+                      <div style="position:absolute;bottom:0;left:0;width:13px;height:13px;border-radius:50%;background:{{ f.dot }};border:2px solid #000"></div>
+                      <div style="position:absolute;top:-4px;right:-5px;min-width:20px;height:20px;padding:0 4px;border-radius:99px;background:linear-gradient(180deg,#FFF1B8,#E8B64A 45%,#B8822A);border:2px solid #000;font:12px/16px Lalezar;color:#2A1606;text-align:center">{{ f.lv }}</div>
+                    </div>
+                    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+                      <span style="font:17px/1.15 Lalezar;color:#FFE9A8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ f.n }}</span>
+                      <div style="display:flex;align-items:center;gap:6px;min-width:0"><button onClick="{{ f.togPh }}" title="نمایش شماره" style="flex:none;width:22px;height:22px;padding:0;border-radius:7px;border:1.5px solid {{ f.phBd }};background:{{ f.phBg }};display:grid;place-items:center;cursor:pointer"><svg viewBox="0 0 24 24" width="12" height="12"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z" fill="none" stroke="#A39A92" stroke-width="2.2" stroke-linejoin="round"></path></svg></button><span style="font:700 11px/1.3 Vazirmatn;color:#A39A92;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">{{ f.cn }}</span><sc-if value="{{ f.showPh }}" hint-placeholder-val="{{ false }}"><span style="flex:none;font:500 10.5px/1.3 'JetBrains Mono',monospace;color:#A39A92;direction:ltr;white-space:nowrap">{{ f.ph }}</span></sc-if></div>
+                    </div>
+                    <button onClick="{{ f.gift }}" style="width:38px;height:38px;flex:none;border-radius:12px;background:{{ f.giftBg }};border:2px solid {{ f.giftBd }};box-shadow:0 3px 0 #000;display:grid;place-items:center;cursor:pointer"><sc-if value="{{ f.gifted }}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="#E8B64A" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if><sc-if value="{{ f.canGift }}" hint-placeholder-val="{{ true }}"><div style="width:24px;height:24px"><dc-import name="Item" icon="gift" hint-size="24px,24px" style="width:24px;height:24px"></dc-import></div></sc-if></button>
+                    <button style="height:38px;width:60px;flex:none;border-radius:12px;border:2px solid {{ f.duelBd }};background:{{ f.duelBg }};box-shadow:{{ f.duelSh }};font:16px Lalezar;color:{{ f.duelFg }};cursor:pointer">دوئل</button>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+          <sc-if value="{{ empty }}" hint-placeholder-val="{{ false }}"><div style="padding:30px 0;text-align:center;font:800 13px Vazirmatn;color:rgba(255,233,168,.6)">کسی با این اسم پیدا نشد.</div></sc-if>
+        </div>
+
+        <sc-if value="{{ showAdd }}" hint-placeholder-val="{{ false }}">
+          <div onClick="{{ closeAdd }}" style="position:absolute;inset:0;background:rgba(0,0,0,.6)"></div>
+          <div style="position:absolute;left:10px;right:10px;bottom:16px;padding:16px 14px 14px;border-radius:24px;background:linear-gradient(180deg,#2A1E16,#17100C);border:3px solid #E8B64A;box-shadow:0 0 0 3px #000,0 8px 0 #000;display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center"><span style="font:24px/1 Lalezar;color:#FFE9A8">افزودن دوست</span><button onClick="{{ closeAdd }}" style="width:36px;height:36px;border-radius:11px;background:linear-gradient(180deg,#5A3A1C,#24160A);border:2px solid #B8822A;display:grid;place-items:center;cursor:pointer"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="#FFE9A8" stroke-width="2.6" stroke-linecap="round"></path></svg></button></div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <span style="font:800 12px Vazirmatn;color:rgba(255,233,168,.75)">کد دوستی تو</span>
+              <div style="display:flex;gap:6px">
+                <div style="flex:1;height:48px;border-radius:12px;border:2px dashed #E8B64A;background:#0E0A08;display:grid;place-items:center;font:500 18px 'JetBrains Mono',monospace;color:#FFE9A8;letter-spacing:3px;direction:ltr">DZ-48K2</div>
+                <button onClick="{{ copy }}" style="height:48px;padding:0 14px;border-radius:12px;border:2px solid #000;background:linear-gradient(180deg,#FFFFFF 0%,#D6DCE4 38%,#9AA5B4 72%,#66707E 100%);box-shadow:inset 0 2px 0 rgba(255,255,255,.7),0 3px 0 #000;font:17px Lalezar;color:#1E242C;cursor:pointer">{{ copyLabel }}</button>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <span style="font:800 12px Vazirmatn;color:rgba(255,233,168,.75)">کد یا شماره‌ی دوستت</span>
+              <input placeholder="مثلاً DZ-…" style="height:48px;border-radius:12px;border:2px solid #8A5A16;background:#0E0A08;padding:0 12px;font:800 15px Vazirmatn;color:#FFE9A8;outline:none"></input>
+            </div>
+            <button onClick="{{ closeAdd }}" style="height:54px;border-radius:16px;border:3px solid #000;background:linear-gradient(180deg,#FFF1B8 0%,#E8B64A 38%,#B8822A 72%,#8A5A16 100%);box-shadow:inset 0 2px 0 rgba(255,255,255,.75),inset 0 -4px 0 rgba(0,0,0,.25),0 5px 0 #000;font:22px Lalezar;color:#2A1606;text-shadow:0 1px 0 rgba(255,255,255,.55);cursor:pointer" style-active="transform:translateY(3px)">ارسال درخواست</button>
+          </div>
+        </sc-if>
+      </div>
+      <div style="font:12px 'JetBrains Mono',monospace;color:rgba(255,233,168,.6)">adult · screen-friends · ledger list · tabs · add sheet</div>
+    </div>
+
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;grouped&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;dimOffline&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
+const FR=[['goli','نگار_طلایی','on',14,'نگار خواهر','0912 345 4567'],['pahlevan','پهلوون آرش','play',22,'آرش همکار','0935 210 1203'],['khale','سارا۹۹','on',9,'سارا دانشگاه','0919 774 8890'],['baqal','مهدی بقال','on',11,'مهدی پسرخاله','0912 908 3341'],['mashti','رضا قدیمی','off',31,'رضا باشگاه','0901 455 7712'],['mirza','کیان','off',6,'کیان','0937 612 0458'],['khale','مریم‌بانو','off',17,'مریم همسایه','0912 503 6629']];
+const RQ=[['ajan','بهرام','۳ دوست مشترک'],['goli','لیلا','با کد دعوت']];
+const GOLD='linear-gradient(180deg,#FFF1B8 0%,#E8B64A 38%,#B8822A 72%,#8A5A16 100%)';
+const COPPER='linear-gradient(180deg,#FFD2B0 0%,#E0895A 38%,#B0552A 72%,#7A3414 100%)';
+class Component extends DCLogic{
+  state={tab:'all',q:'',gifted:{},showAdd:false,copied:false,reqDone:{},phOpen:{}};
+  renderVals(){
+    const s=this.state,grouped=this.props.grouped??true,dim=this.props.dimOffline??true;
+    const q=s.q.trim();
+    const reqs=RQ.filter(r=>!s.reqDone[r[1]]);
+    const list=FR.filter(f=>!q||f[1].includes(q)||f[4].includes(q)||f[5].replace(/\s/g,'').includes(q)).filter(f=>s.tab!=='on'||f[2]!=='off');
+    const row=([who,n,st,lv,cn,ph])=>{const off=st==='off',play=st==='play',g=!!s.gifted[n];const sp=!!s.phOpen[n];return{who,n,lv:fa(lv),cn,ph:fa(ph),showPh:sp,phBg:sp?'#2A1E16':'transparent',phBd:sp?'#A39A92':'rgba(163,154,146,.45)',togPh:()=>this.setState(x=>({phOpen:{...x.phOpen,[n]:!x.phOpen[n]}})),
+      dot:off?'#5A4A3A':play?'#E0895A':'#7ED957',stC:off?'rgba(255,233,168,.5)':play?'#FFB48A':'#9FE08A',
+      ring:off?'#5A4A3A':'#E8B64A',flt:off&&dim?'grayscale(.7) brightness(.8)':'none',op:1,
+      gifted:g,canGift:!g,giftBg:g?'#0E0A08':'linear-gradient(180deg,#5A3A1C,#24160A)',giftBd:g?'#5A4A3A':'#B8822A',
+      gift:()=>this.setState(x=>({gifted:{...x.gifted,[n]:1}})),
+      duelBg:off?'#1E1610':COPPER,duelBd:off?'#3A2A1C':'#000',duelFg:off?'rgba(255,233,168,.35)':'#2A1206',duelSh:off?'none':'inset 0 2px 0 rgba(255,255,255,.5),0 3px 0 #000'}};
+    const sep=(arr)=>arr.map((r,i)=>({...r,sep:i<arr.length-1?'1.5px dashed rgba(232,182,74,.22)':'0'}));
+    let groups=[];
+    if(s.tab!=='req'){
+      if(grouped){
+        const on=list.filter(f=>f[2]!=='off').map(row),off=list.filter(f=>f[2]==='off').map(row);
+        if(on.length)groups.push({t:'آنلاین',nFa:fa(on.length),dot:'#7ED957',c:'#FFE9A8',fr:'#E8B64A',rows:sep(on)});
+        if(off.length)groups.push({t:'آفلاین',nFa:fa(off.length),dot:'#5A4A3A',c:'rgba(255,233,168,.7)',fr:'#8A5A16',rows:sep(off)});
+      }else if(list.length)groups.push({t:'همه',nFa:fa(list.length),dot:'#E8B64A',c:'#FFE9A8',fr:'#E8B64A',rows:sep(list.map(row))});
+    }
+    const T=(id,n,badge)=>{const a=s.tab===id;return{n,badge:badge||'',pick:()=>this.setState({tab:id}),bg:a?'linear-gradient(180deg,#FFF1B8,#E8B64A 45%,#B8822A)':'transparent',bd:a?'2px solid #000':'2px solid transparent',fg:a?'#2A1606':'rgba(255,233,168,.75)'}};
+    return{
+      q:s.q,onQ:e=>this.setState({q:e.target.value}),
+      totalN:fa(FR.length),onlineN:fa(FR.filter(f=>f[2]!=='off').length),
+      tabs:[T('all','همه'),T('on','آنلاین'),T('req','درخواست‌ها',reqs.length?fa(reqs.length):'')],
+      isReq:s.tab==='req',noReqs:!reqs.length,
+      reqs:sep(reqs.map(([who,n,sub])=>({who,n,s:sub,yes:()=>this.setState(x=>({reqDone:{...x.reqDone,[n]:1}})),no:()=>this.setState(x=>({reqDone:{...x.reqDone,[n]:1}}))}))),
+      groups,empty:s.tab!=='req'&&!list.length,
+      showAdd:s.showAdd,openAdd:()=>this.setState({showAdd:true}),closeAdd:()=>this.setState({showAdd:false,copied:false}),
+      copy:()=>this.setState({copied:true}),copyLabel:s.copied?'کپی شد':'کپی'
+    };
+  }
+}
+</script>
+</body>
+</html>

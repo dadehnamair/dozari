@@ -79,7 +79,7 @@ export const products = mysqlTable('products', {
   slug: varchar('slug', { length: 100 }).notNull().unique(),
   nameFa: varchar('name_fa', { length: 200 }).notNull(),
   brand: varchar('brand', { length: 200 }),
-  category: mysqlEnum('category', PRODUCT_CATEGORY_VALUES).notNull(),
+  category: varchar('category', { length: 40 }).notNull(),
   unitFa: varchar('unit_fa', { length: 100 }),
   /** Key of the hand-drawn icon pack (`ITEM_ICON_KEYS` in shared); null = no icon yet. */
   iconKey: varchar('icon_key', { length: 40 }),
@@ -352,6 +352,18 @@ export const triviaQuestions = mysqlTable(
   (table) => ({ byTopic: index('trivia_topic_idx').on(table.topicId, table.status) }),
 );
 
+/**
+ * Product categories (دسته‌بندی محصولات): admin-defined; `products.category` holds the `slug`. The built-in 14 are seeded by the migration
+ * that created this table. The slug never changes after creation (so no cascade); the Persian name, order and active flag are editable.
+ */
+export const productCategories = mysqlTable('product_categories', {
+  id: id(),
+  slug: varchar('slug', { length: 40 }).notNull().unique(),
+  nameFa: varchar('name_fa', { length: 60 }).notNull(),
+  sortOrder: int('sort_order').notNull().default(0),
+  isActive: boolean('is_active').notNull().default(true),
+});
+
 /** The tag vocabulary: admin-defined, puzzles can only carry tags from this list (docs/logic/themed-rounds.md). */
 export const puzzleTagDefs = mysqlTable('puzzle_tag_defs', {
   id: id(),
@@ -396,7 +408,7 @@ export const puzzleGroups = mysqlTable(
     ruleRank: smallint('rule_rank'),
     ruleRefProductId: char('rule_ref_product_id', { length: 36 }).references(() => products.id),
     ruleEraTag: varchar('rule_era_tag', { length: 50 }),
-    ruleCategory: mysqlEnum('rule_category', PRODUCT_CATEGORY_VALUES),
+    ruleCategory: varchar('rule_category', { length: 40 }),
     ruleNote: varchar('rule_note', { length: 300 }),
   },
   (table) => ({
@@ -653,8 +665,36 @@ export const baleLinks = mysqlTable(
     chatId: varchar('chat_id', { length: 40 }).notNull(),
     linkedAt: datetime('linked_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
     dailyNotifiedFor: datetime('daily_notified_for', { mode: 'date', fsp: 3 }),
+    /** Comma-separated notification kinds the player switched off (no JSON columns, D63). */
+    mutedKinds: varchar('muted_kinds', { length: 200 }).notNull().default(''),
   },
   (table) => ({ uniqChat: uniqueIndex('bale_links_chat_uq').on(table.chatId) }),
+);
+
+/** Browser Web Push subscriptions (D232): one row per browser/device the player allowed notifications on. iPhone push (installed web app) goes through Apple's service, Chrome's through Google's; the endpoint says which. */
+export const webPushSubscriptions = mysqlTable(
+  'web_push_subscriptions',
+  {
+    id: char('id', { length: 36 }).primaryKey(),
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    endpoint: varchar('endpoint', { length: 700 }).notNull(),
+    p256dh: varchar('p256dh', { length: 200 }).notNull(),
+    auth: varchar('auth', { length: 100 }).notNull(),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ uniqEndpoint: uniqueIndex('web_push_endpoint_uq').on(table.endpoint), byUser: index('web_push_user_idx').on(table.userId) }),
+);
+
+/** Firebase Cloud Messaging device tokens of the Android app (D232): one row per install the player is signed in on. */
+export const fcmTokens = mysqlTable(
+  'fcm_tokens',
+  {
+    id: char('id', { length: 36 }).primaryKey(),
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    token: varchar('token', { length: 400 }).notNull(),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ uniqToken: uniqueIndex('fcm_token_uq').on(table.token), byUser: index('fcm_user_idx').on(table.userId) }),
 );
 
 export const baleLinkCodes = mysqlTable('bale_link_codes', {
@@ -689,6 +729,22 @@ export const friendships = mysqlTable(
     respondedAt: datetime('responded_at', { mode: 'date', fsp: 3 }),
   },
   (table) => ({ pk: primaryKey({ columns: [table.userLow, table.userHigh] }), byHigh: index('friendships_high_idx').on(table.userHigh) }),
+);
+
+/**
+ * A private note on a player found through the address book: the name `ownerId` has for them in their own phone and the number that
+ * matched. Only the owner ever sees it (friends list, player card); the other player never does.
+ */
+export const friendContacts = mysqlTable(
+  'friend_contacts',
+  {
+    ownerId: char('owner_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    friendId: char('friend_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    contactName: varchar('contact_name', { length: 80 }).notNull(),
+    phone: varchar('phone', { length: 20 }).notNull(),
+    updatedAt: datetime('updated_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.ownerId, table.friendId] }) }),
 );
 
 /** `all` and `bale_linked` reach adults only; `kid` and `teen` are the deliberate, child-safe audiences (docs/logic/age-tracks.md §Admin panel). */
@@ -859,7 +915,7 @@ export const priceCandidates = mysqlTable(
     sourceId: char('source_id', { length: 36 }),
     productNameFa: varchar('product_name_fa', { length: 200 }).notNull(),
     unitFa: varchar('unit_fa', { length: 100 }),
-    categoryGuess: mysqlEnum('category_guess', PRODUCT_CATEGORY_VALUES),
+    categoryGuess: varchar('category_guess', { length: 40 }),
     /** Matched catalog product, if the name is already known. */
     productId: char('product_id', { length: 36 }),
     year: smallint('year').notNull(),
@@ -991,6 +1047,25 @@ export const userCosmetics = mysqlTable(
     acquiredAt: datetime('acquired_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
   },
   (table) => ({ pk: primaryKey({ columns: [table.userId, table.itemId] }) }),
+);
+
+/** The avatar («شخصیت») shelf: one row per avatar key with its coin price (0 = free for everyone). The admin edits prices; rows are created on first read (D219). */
+export const avatarCatalog = mysqlTable('avatar_catalog', {
+  avatarKey: varchar('avatar_key', { length: 30 }).primaryKey(),
+  priceCoins: int('price_coins').notNull().default(0),
+  sortOrder: int('sort_order').notNull().default(0),
+  isActive: boolean('is_active').notNull().default(true),
+});
+
+/** Paid avatars a player bought (free ones need no row). Buying pays through the ledger (reason `shop_purchase`, ref `avatar`). */
+export const userAvatars = mysqlTable(
+  'user_avatars',
+  {
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    avatarKey: varchar('avatar_key', { length: 30 }).notNull(),
+    acquiredAt: datetime('acquired_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.userId, table.avatarKey] }) }),
 );
 
 /** Keepsake rarity; a copy of `KEEPSAKE_RARITIES` in shared (drizzle-kit cannot load the shared ESM config), a server test keeps them equal. */

@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { contactsRequestSchema } from '@dozari/shared';
 import type { AuthService } from '../auth/service.js';
 import { currentUser } from '../auth/routes.js';
 import type { FindService } from './service.js';
@@ -32,10 +33,10 @@ export function registerFindRoutes(app: FastifyInstance, auth: AuthService, find
 
   app.post('/friends/find-contacts', async (req, reply) => {
     const user = await currentUser(auth, req);
-    const body = z.object({ phones: z.array(z.string().max(30)).max(500) }).safeParse(req.body);
+    const body = contactsRequestSchema.safeParse(req.body);
     if (!user) return reply.code(401).send({ error: 'unauthorized' });
     if (!body.success) return reply.code(400).send({ error: 'invalid_request' });
-    const out = await find.contacts(user.id, body.data.phones);
+    const out = await find.contacts(user.id, body.data);
     return out === 'rate_limited' ? reply.code(429).send({ error: 'rate_limited' }) : out;
   });
 

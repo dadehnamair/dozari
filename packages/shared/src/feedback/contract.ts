@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { PRODUCT_CATEGORIES } from '../schemas/index.js';
 
 /** Why a player reports another player (profile) or a chat message; the label lives in `fa.report`. */
 export const REPORT_CATEGORIES = ['abuse', 'spam', 'cheating', 'bad_name', 'other'] as const;
@@ -33,7 +32,7 @@ export const submissionInputSchema = z
     kind: z.enum(SUBMISSION_KINDS),
     productId: z.string().uuid().optional(),
     nameFa: z.string().trim().min(2).max(80).optional(),
-    category: z.enum(PRODUCT_CATEGORIES as unknown as [string, ...string[]]).optional(),
+    category: z.string().regex(/^[a-z][a-z0-9_]{0,38}$/).optional(),
     unitFa: z.string().trim().max(60).optional(),
     year: z.number().int().min(1300).max(1499).optional(),
     /** Whole number in `unit`; the server stores rials (rule 2). */
