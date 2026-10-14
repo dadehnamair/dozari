@@ -62,6 +62,8 @@ import { useHomeData } from './useHomeData';
 import { StatPill } from './StatPill';
 import { AdultTopBar } from './AdultTopBar';
 import { StatInfoSheet } from './StatInfoSheet';
+import { CoinDeltaFx } from './CoinDeltaFx';
+import { useCoinDelta } from './useCoinDelta';
 
 interface Tile {
   key: string;
@@ -87,6 +89,8 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onTriviaDuel, onDail
   const daily = useDailyReward();
   const { spins, loadSpins, liveMatch, gender, setGender, avatarKey, setAvatarKey, level, xpFrac, province, slogan, dailyPuzzle, loadMe, profileTasks, loadTasks, gems, worn, loadWorn } = useHomeData(features);
   const hero = useHeroMotion();
+  /** Wins and losses since Home was last drawn: the coin counter counts to the new balance and a «+N» / «−N» chip floats by. */
+  const coinFx = useCoinDelta(daily.status?.balance ?? null);
   const [wheelOpen, setWheelOpen] = useState(false);
   const [baleOpen, setBaleOpen] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
@@ -230,7 +234,12 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onTriviaDuel, onDail
           />
         ) : (
         <View style={styles.pills}>
-          {daily.status ? <StatPill color={colors.candy.yellow} icon="coin" value={fmt(daily.status.balance)} label={`${daily.status.balance} ${h.coins}`} onPress={() => setLedgerOpen(true)} /> : null}
+          {daily.status ? (
+            <View style={styles.coinSlot}>
+              <StatPill color={colors.candy.yellow} icon="coin" value={fmt(coinFx.shown ?? daily.status.balance)} label={`${daily.status.balance} ${h.coins}`} onPress={() => setLedgerOpen(true)} />
+              {coinFx.fx ? <CoinDeltaFx key={coinFx.fx.key} delta={coinFx.fx.delta} progress={coinFx.progress} /> : null}
+            </View>
+          ) : null}
           {gems > 0 ? <StatPill color={colors.candy.sky} glyph="💎" value={fmt(gems)} label={`${gems} ${h.gems}`} onPress={() => setInfoOpen('gems')} /> : null}
           {dailyPuzzle && dailyPuzzle.state !== 'unavailable' && dailyPuzzle.streak > 0 ? <StatPill color={colors.candy.pink} glyph="🔥" value={`${toPersianDigits(String(dailyPuzzle.streak))} ${h.streak}`} label={`${dailyPuzzle.streak} ${h.streak}`} onPress={() => setInfoOpen('streak')} /> : null}
           <Pressable onPress={() => setHubOpen(true)} accessibilityRole="button" accessibilityLabel={fa.hub.open} style={styles.mapBtn}>

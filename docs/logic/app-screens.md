@@ -52,7 +52,7 @@ Laid out as **screen-home** of `docs/design/Dozari - 01 Screens.dc.html` (D99, r
 - The **hero** character floating over the bazaar background. It is also the **guide** (owner note 4):
   tapping it cycles short tips (`fa.home.guide.tips`, one per menu; tips of switched-off features are
   skipped) shown in a `GuideBubble` (mascot + speech bubble) above it; the tip fades after 12 s.
-- Coin pill → coin history sheet (see §Coin history sheet).
+- Coin pill → coin history sheet (see §Coin history sheet). After a win or loss the pill counts from the old balance to the new one and a green «+N» / red «−N» chip floats off it (Home remembers the last drawn balance across mounts; reduced motion skips the animation).
 - **Two big buttons** at the bottom: solo play (green) and duel (orange). When an unfinished match
   exists the orange button becomes **back to your game** with a badge (D42).
 - Still to come from the design: the mode screen (duel / team / play with a friend) behind the duel
