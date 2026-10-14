@@ -15,7 +15,8 @@ param(
   [ValidateSet('myket', 'bazaar', 'bale', '')][string]$Store = 'myket',
   [string]$ApiUrl = 'https://api.mrbots.ir',
   [string]$Proxy = '',   # local proxy host:port for Gradle, e.g. 127.0.0.1:10808 (asked for when Google Maven is unreachable)
-  [switch]$NoProxy       # remove the proxy lines this script wrote to gradle.properties
+  [switch]$NoProxy,      # remove the proxy lines this script wrote to gradle.properties
+  [switch]$Refresh       # gradlew --refresh-dependencies (ignore cached 'not found'; hits JitPack again, which can answer 429)
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -166,7 +167,9 @@ function Remove-AndroidDir {
 Remove-AndroidDir
 Run 'expo prebuild' { pnpm exec expo prebuild --platform android }
 Set-Location android
-Run 'gradlew assembleRelease' { .\gradlew assembleRelease --refresh-dependencies }
+$gradleArgs = @('assembleRelease')
+if ($Refresh) { $gradleArgs += '--refresh-dependencies' }
+Run 'gradlew assembleRelease' { .\gradlew @gradleArgs }
 
 $apk = Join-Path (Get-Location) 'app\build\outputs\apk\release\app-release.apk'
 Write-Host "`nAPK: $apk" -ForegroundColor Green
