@@ -293,7 +293,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       const role = req.adminActor?.role;
       const out = role === 'owner' ? detail : { ...detail, birth: null };
       // Contact details (phone, e-mail, device id) are for roles that manage players; viewers and editors get them blanked.
-      return role && can(role, 'users') ? out : { ...out, account: { ...out.account, phone: null, email: null, deviceId: null } };
+      return role && can(role, 'users') ? { ...out, account: { ...out.account, contactHidden: false } } : { ...out, account: { ...out.account, phone: null, email: null, deviceId: null, contactHidden: true } };
     });
     g.get('/admin/users/:id/ledger', async (req, reply) => {
       const p = idParam.safeParse(req.params);

@@ -175,7 +175,7 @@ tr.click { cursor:pointer; }
 .modal.sm { width:min(440px,100%); }
 .modal header { display:flex; align-items:center; gap:10px; padding:14px 20px; border-bottom:1px solid var(--line); } .modal header h3 { margin:0; flex:1; font-size:16.5px; }
 .modal .body { padding:20px; display:flex; flex-direction:column; gap:16px; } .modal footer { padding:12px 20px; border-top:1px solid var(--line); display:flex; gap:8px; justify-content:flex-end; background:var(--surface2); border-radius:0 0 16px 16px; }
-.overlay.drawer { padding:0; justify-content:flex-start; align-items:stretch; }
+.overlay.drawer { padding:0; justify-content:flex-start; align-items:flex-start; }
 .drawer .panel { background:var(--surface); width:min(620px,100%); min-height:100vh; box-shadow:var(--shadow-lg); display:flex; flex-direction:column; animation:slide .2s; border-inline-end:1px solid var(--line); }
 .drawer .panel > header, .drawer .panel > .tabs { flex:none; }
 .drawer .panel header { display:flex; align-items:center; gap:12px; padding:16px 22px; border-bottom:1px solid var(--line); }
