@@ -6,9 +6,11 @@ plugins {
 group = 'ir.dozari.bgnotify'
 version = '0.1.0'
 
-// The IRNoti SDK (JitPack) is off by default: its 1.0.0 build fails on JitPack (no gradlew in the repository). Turn it on with
+// The IRNoti SDK (JitPack) is off by default: its 1.0.0 build failed on JitPack (no gradlew in the repository; fixed in irnoti/andriod-sdk main, commit 1589fbc). Turn it on with
 // -Pdozari.irnoti=true (or in gradle.properties) once IRNoti publishes a working version; the no-op bridge is used otherwise.
 def useIrnoti = (findProperty('dozari.irnoti') ?: 'false').toString() == 'true'
+// 1.0.1 = the tag with the Gradle wrapper JitPack needs; a commit hash (e.g. 1589fbc) also works before the tag exists.
+def irnotiVersion = (findProperty('dozari.irnoti.version') ?: '1.0.1').toString()
 
 android {
   namespace "ir.dozari.bgnotify"
@@ -31,6 +33,6 @@ dependencies {
   // IRNoti push SDK (JitPack; the repository is spelled "andriod-sdk"): registers this install with the IRNoti push service and shows
   // its notifications. Started from manifest meta-data (IrnotiBridge); without them it is never touched.
   if (useIrnoti) {
-    implementation "com.github.irnoti:andriod-sdk:1.0.0"
+    implementation "com.github.irnoti:andriod-sdk:${irnotiVersion}"
   }
 }
