@@ -42,7 +42,7 @@ mascot (any other server error). Used by the live duel and the solo screen; othe
 Laid out as **screen-home** of `docs/design/Dozari - 01 Screens.dc.html` (D99, replaces the earlier
 "one row of equal mode cards"):
 
-- **Top counters** (three pills): coins, daily-puzzle streak, level.
+- **Top counters** (three pills): coins, daily-puzzle streak, level (tap → level road page, centred on the player; its gear button opens settings, carrying the missions badge).
   Adult theme: two plates instead (`AdultTopBar`, design `adult/Dozari Adult - Login Home`): wallet (coins with «+», gems · streak) and map · wheel · level + XP bar · avatar; the level/avatar opens settings.
 - **Wordmark** and a **speech bubble** under it: "today's puzzle is ready" (tap → daily puzzle) while
   it can be played, otherwise the month's mood line.

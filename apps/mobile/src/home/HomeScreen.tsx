@@ -30,6 +30,7 @@ import { useReviewPrompt } from '../review/useReviewPrompt';
 import { OPEN_CONFIG } from '../config/gate';
 import type { ClientConfig } from '../config/gate';
 import { InboxSheet } from '../inbox/InboxSheet';
+import { LevelRoadPage } from '../levels/LevelRoadPage';
 import { LedgerSheet } from '../ledger/LedgerSheet';
 import { GuideBubble } from '../components/GuideBubble';
 import { availableTips, nextTip } from './guideTips';
@@ -119,6 +120,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onTriviaDuel, onDail
   /** A friend request is waiting: who sent the latest one (when pushed live) and how many wait in all. */
   const [friendNotice, setFriendNotice] = useState<{ from?: string; count: number } | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [roadOpen, setRoadOpen] = useState(false);
   const [boardOpen, setBoardOpen] = useState(false);
   const [hubOpen, setHubOpen] = useState(false);
   const [schoolOpen, setSchoolOpen] = useState(false);
@@ -254,7 +256,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onTriviaDuel, onDail
           </Pressable>
           {/* A spacer keeps the level pill at the far (left) end of the row, whether or not the streak pill is showing. */}
           <View style={styles.pillsGap} />
-          {level !== null ? <StatPill color={colors.candy.grape} icon="rosette" value={toPersianDigits(String(level))} label={`${h.level} ${level} · ${h.settings}`} badge={missionsReady > 0 ? toPersianDigits(String(missionsReady)) : undefined} onPress={() => setSettingsOpen(true)} /> : null}
+          {level !== null ? <StatPill color={colors.candy.grape} icon="rosette" value={toPersianDigits(String(level))} label={`${h.level} ${level}`} onPress={() => setRoadOpen(true)} /> : null}
         </View>
         )}
 
@@ -333,6 +335,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onTriviaDuel, onDail
       ) : null}
       {schoolOpen ? <SchoolSheet onClose={() => setSchoolOpen(false)} /> : null}
       {boardOpen ? <LeaderboardPage onClose={() => setBoardOpen(false)} /> : null}
+      {roadOpen ? <LevelRoadPage onClose={() => setRoadOpen(false)} onSettings={() => (setRoadOpen(false), setSettingsOpen(true))} settingsBadge={missionsReady > 0 ? toPersianDigits(String(missionsReady)) : undefined} /> : null}
       {settingsOpen ? <SettingsPage onMissions={() => (setSettingsOpen(false), setMissionsOpen(true))} missionsReady={missionsReady} onClose={() => (setSettingsOpen(false), loadTasks(), returnToMissions())} onProfile={() => (setSettingsOpen(false), setProfileOpen(true))} onTutorial={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} onAccountGone={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} ageTracksOn={settings['feature.age_tracks'] === 1} baleOn={features.bale} phoneVerified={profileTasks.some((x) => x.key === 'phone' && x.done)} onPreview={onPreview ? (t) => (setSettingsOpen(false), onPreview(t)) : undefined} /> : null}
       {ledgerOpen ? <LedgerSheet onClose={() => setLedgerOpen(false)} /> : null}
       {infoOpen ? <StatInfoSheet kind={infoOpen} value={infoOpen === 'gems' ? gems : dailyPuzzle?.streak ?? 0} onClose={() => setInfoOpen(null)} /> : null}

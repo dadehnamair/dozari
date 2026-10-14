@@ -33,7 +33,7 @@ const view = (u: Unlock): { title: string; text: string; icon: string } => {
  * with a padlock), cards beside the levels that open something. Tapping an unlocked-later card opens the locked popup.
  * What each level opens comes from the real gates (`GET /me/levels`).
  */
-export function LevelRoadPage({ onClose }: { onClose: () => void }) {
+export function LevelRoadPage({ onClose, onSettings, settingsBadge }: { onClose: () => void; /** Home opens the road from the level pill: the settings page, once reached from that pill, is one tap away here. */ onSettings?: () => void; settingsBadge?: string }) {
   useHardwareBack(onClose);
   const [road, setRoad] = useState<LevelRoad | null>(null);
   const [failed, setFailed] = useState(false);
@@ -91,6 +91,17 @@ export function LevelRoadPage({ onClose }: { onClose: () => void }) {
             <GradientFill from="#FFE48A" to={colors.candy.yellow} />
             <Text style={styles.plateText}>{fa.levels.title}</Text>
           </View>
+          {onSettings ? (
+            <Pressable accessibilityRole="button" accessibilityLabel={fa.home.hub.settings} onPress={onSettings}>
+              {({ pressed }) => (
+                <View style={[styles.back, pressed ? styles.pressed : null]}>
+                  <GradientFill from="#C9A3FF" to="#A66BF0" />
+                  <Icon name="settings" size={22} color="#fff" strokeWidth={2.4} />
+                  {settingsBadge ? <View style={styles.gearBadge}><Text style={styles.gearBadgeText}>{settingsBadge}</Text></View> : null}
+                </View>
+              )}
+            </Pressable>
+          ) : null}
         </View>
         {road ? (
           <View style={styles.xpBox}>
@@ -273,6 +284,8 @@ const styles = StyleSheet.create({
   head: { flexDirection: ROW, alignItems: 'center', gap: 8, paddingHorizontal: 12, marginBottom: 8 },
   back: { width: 42, height: 42, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...lift(4) },
   pressed: { transform: [{ translateY: 3 }] },
+  gearBadge: { position: 'absolute', top: -2, left: -2, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, backgroundColor: colors.candy.pink, borderWidth: 2, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  gearBadgeText: { fontFamily: fonts.display, fontSize: 11, lineHeight: 14, color: '#fff' },
   plate: { flex: 1, height: 46, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...lift(4) },
   plateText: { fontFamily: fonts.display, fontSize: 22, color: colors.ink },
   note: { fontFamily: fonts.bold, fontSize: 13, color: colors.cream, textAlign: 'center', marginTop: 10 },
