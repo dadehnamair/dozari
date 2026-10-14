@@ -352,6 +352,17 @@ export const triviaQuestions = mysqlTable(
   (table) => ({ byTopic: index('trivia_topic_idx').on(table.topicId, table.status) }),
 );
 
+/** Which general questions a player has seen (shown and revealed), so the question modes stop repeating them (docs/logic/trivia.md §No repeats). Only the newest rows per player are kept. */
+export const triviaSeen = mysqlTable(
+  'trivia_seen',
+  {
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    questionId: char('question_id', { length: 36 }).notNull().references(() => triviaQuestions.id, { onDelete: 'cascade' }),
+    seenAt: datetime('seen_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.userId, t.questionId] }), byUser: index('trivia_seen_user_idx').on(t.userId, t.seenAt) }),
+);
+
 /**
  * Product categories (دسته‌بندی محصولات): admin-defined; `products.category` holds the `slug`. The built-in 14 are seeded by the migration
  * that created this table. The slug never changes after creation (so no cascade); the Persian name, order and active flag are editable.

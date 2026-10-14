@@ -42,5 +42,14 @@ Owner (2026-10-14): starting a solo question game or a question duel costs coins
 ## Rematch — D235
 - After a **played** game (not a forfeit) either side has `TRIVIA_DUEL_REMATCH_SECONDS` = 30 s to ask for another game with the same rival and topic: `tduel:rematch`. A bot rival, or a rival who already asked, starts it at once (fees taken again); otherwise the rival gets `tduel:offer {asked}` («حریف بازی مجدد می‌خواهد!»). When the window ends, or either side starts something else, both get `tduel:offer {expired}`. A side that cannot pay gets `INSUFFICIENT_COINS`. The result card shows the button, its waiting / accept states, and the reason when it is gone (forfeit / expired).
 
+## No repeats («سؤال تکراری») — D236
+Without memory every game is an independent random draw of 8 from the topic, so with N questions the chance of at least one repeat versus the previous game is ~99 % at N=20, 78 % at 50, 50 % at 100, 28 % at 200, 12 % at 500. Now each player has a memory:
+- Table `trivia_seen(user_id, question_id, seen_at)` (migration 0093), the newest `TRIVIA_SEEN_KEEP` = 500 rows per player (older ones are dropped on every write). Only humans; guests and bots keep none.
+- A question counts as seen when it is **revealed** (solo: when answered; question duel: when both answered or the clock ended it), so an abandoned game does not burn the rest. The board duel's question round marks its questions when it opens.
+- Drawing (`pickFreshTrivia`, shared, pure; `drawTrivia`, server): from up to `TRIVIA_POOL_FETCH` = 400 random approved questions of the topic (a chosen topic is never padded from others; a themed board duel pads from the bank), rank by *how many of the players saw it* (0 first), then *longest ago*, ties random. So a bank bigger than the history never repeats, and a small one cycles through its oldest questions instead of resetting. In a duel both humans' memories count (what neither saw first, then what only one saw); a bot has none.
+- Rematch needs nothing extra: the game just played was marked seen for both, so the next draw avoids it while the topic has enough other questions.
+- Rule of thumb for content: no repeats for the next G games while the topic has at least (G+1)×8 approved questions (100 → about 12 games). Near-duplicate wording of one fact is not detected here.
+
+
 ## Not built
 Rewards beyond the coins above (and a pass-rate based bonus), a bulk import, a per-table trivia count, trivia in 2v2, inviting a specific friend to a question duel.

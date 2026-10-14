@@ -33,6 +33,12 @@ export const TRIVIA_DUEL_INTRO_MS = 3000;
  * the winner takes the pot minus the usual house cut (`duel.house_cut_percent`). Both are below the board duel's 20 on purpose: a question
  * game is quicker and needs less skill, and the house cut makes it a small sink either way. 0 = free.
  */
+/**
+ * No-repeat memory of the question modes (docs/logic/trivia.md §No repeats): a game draws from up to this many random approved questions of
+ * the topic (so even a big bank is seen whole over time), and a player's last `TRIVIA_SEEN_KEEP` seen questions are remembered.
+ */
+export const TRIVIA_POOL_FETCH = 400;
+export const TRIVIA_SEEN_KEEP = 500;
 export const TRIVIA_SOLO_FEE = 3;
 export const TRIVIA_SOLO_REFUND_PERCENT = 75;
 export const TRIVIA_DUEL_FEE = 12;

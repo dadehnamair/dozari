@@ -54,7 +54,7 @@ export interface MatchDeps {
   /** General-question rounds after the boards of a 1v1 (admin setting `match.trivia_rounds`), read when a match starts; absent or 0 = none. */
   triviaRounds?: () => Promise<number>;
   /** Draws `count` approved questions (choices already shuffled) for a match, preferring the match's topics; fewer or none when the bank is thin. */
-  triviaQuestions?: (opts: { topicIds?: readonly string[]; tracks: readonly AgeTrack[]; count: number; rng: Rng }) => Promise<TriviaRoundQuestion[]>;
+  triviaQuestions?: (opts: { topicIds?: readonly string[]; tracks: readonly AgeTrack[]; count: number; rng: Rng; /** The match's players, so the draw can prefer questions they have not seen. */ userIds: readonly string[] }) => Promise<TriviaRoundQuestion[]>;
   now?: () => number;
   newSeed?: () => number;
   /** Schedules `fn` after `ms`; returns the canceller. Injected so tests can drive the clock. */
@@ -919,7 +919,7 @@ export class MatchService {
   private async startTrivia(entry: Active): Promise<void> {
     try {
       const count = entry.triviaCount ?? 0;
-      const questions = count > 0 && this.deps.triviaQuestions ? await this.deps.triviaQuestions({ topicIds: entry.triviaTopics, tracks: entry.tracks ?? ['adult'], count, rng: mulberry32(this.newSeed()) }) : [];
+      const questions = count > 0 && this.deps.triviaQuestions ? await this.deps.triviaQuestions({ topicIds: entry.triviaTopics, tracks: entry.tracks ?? ['adult'], count, rng: mulberry32(this.newSeed()), userIds: entry.state.players.map((p) => p.userId) }) : [];
       if (!this.matches.has(entry.id)) return;
       entry.pgPending = false;
       if (questions.length === 0) {

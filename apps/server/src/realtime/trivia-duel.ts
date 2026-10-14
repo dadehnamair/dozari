@@ -10,7 +10,10 @@ export interface TriviaDuelDeps {
   /** The question pools a player may draw from (their age track). Players are only paired when theirs are the same. Absent = adult. */
   poolOf?: (userId: string) => Promise<readonly AgeTrack[]>;
   /** Questions for one game, choices already shuffled; `topicId` absent = a mix of the whole bank. [] = nothing to ask. */
-  questions(o: { topicId?: string; tracks: readonly AgeTrack[]; count: number; rng: Rng }): Promise<TriviaRoundQuestion[]>;
+  /** `userIds` are the human players: the draw prefers questions none of them has seen (docs/logic/trivia.md §No repeats). */
+  questions(o: { topicId?: string; tracks: readonly AgeTrack[]; count: number; rng: Rng; userIds: readonly string[] }): Promise<TriviaRoundQuestion[]>;
+  /** A question was revealed to these human players: they have now seen it. Must not throw. */
+  markSeen?: (userIds: readonly string[], questionId: string) => void;
   topicName(topicId: string): Promise<string | null>;
   settings(): Promise<{ questions: number; seconds: number }>;
   /** A non-null answer refuses the join (maintenance, feature switched off, the player's age track). */
@@ -142,7 +145,7 @@ export class TriviaDuelService {
     if (this.deps.stakes && !(await this.deps.stakes.canAffordDuel(userId))) return { ok: false, error: 'INSUFFICIENT_COINS' };
     const { tracks, key } = await this.poolKey(userId);
     // A topic with nothing to ask must be told at once, not left to search forever.
-    const sample = await this.deps.questions({ topicId, tracks, count: 1, rng: mulberry32(this.newSeed()) }).catch(() => []);
+    const sample = await this.deps.questions({ topicId, tracks, count: 1, rng: mulberry32(this.newSeed()), userIds: [userId] }).catch(() => []);
     if (sample.length === 0) return { ok: false, error: 'NO_QUESTIONS' };
     // Re-check after the awaits: another join of the same player may have landed.
     if (this.byUser.has(userId) || this.waiting.has(userId)) return { ok: false, error: 'ALREADY_QUEUED' };
@@ -219,7 +222,7 @@ export class TriviaDuelService {
       const [pa, pb, pool, settings] = await Promise.all([this.deps.profile(a), this.deps.profile(b), this.poolKey(a), this.deps.settings()]);
       if (!pa || !pb) return 'fail';
       const rng = mulberry32(this.newSeed());
-      const questions = await this.deps.questions({ topicId, tracks: pool.tracks, count: Math.max(1, settings.questions), rng });
+      const questions = await this.deps.questions({ topicId, tracks: pool.tracks, count: Math.max(1, settings.questions), rng, userIds: [a, b].filter((u) => !this.deps.isBot?.(u)) });
       if (questions.length === 0) return 'fail';
       const topicNameFa = topicId ? ((await this.deps.topicName(topicId).catch(() => null)) ?? null) : null;
       if (this.byUser.has(a) || this.byUser.has(b)) return 'fail'; // raced with another start while loading
@@ -312,6 +315,17 @@ export class TriviaDuelService {
     const next = applyTriviaCommand(before, cmd);
     if (next === before) return;
     entry.state = next;
+    // A newly revealed question has been seen by both humans (the memory that keeps questions from repeating).
+    if (next.revealed.length > before.revealed.length) {
+      const shown = next.questions[next.revealed[next.revealed.length - 1]!.index]?.id;
+      if (shown) {
+        try {
+          this.deps.markSeen?.(entry.players.filter((u) => !this.deps.isBot?.(u)), shown);
+        } catch {
+          /* the memory must never break a game */
+        }
+      }
+    }
     if (next.index === before.index && next.status === 'playing') return this.push(entry); // an answer locked in, nothing revealed yet
     if (next.status === 'finished') {
       entry.cancel?.();

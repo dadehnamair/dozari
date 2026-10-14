@@ -777,3 +777,7 @@ Owner (2026-10-14): beside «پرسش», add a duel that behaves like the board 
 ## D235 — Question modes cost coins; rematch; leaving costs like a duel (2026-10-14, proposed)
 
 Owner (2026-10-14): starting a solo question game or a question duel takes coins (solo less, duel more) while XP stays; the numbers must be worth it; leaving a question duel costs like leaving a board duel; a rematch with the same rival; both answers are shown right after each question; vibration and graphics. Proposed: solo fee 3, refunded when ≥ 75 % are right (so a good player pays nothing); duel fee 12 each with the board duel's 10 % house cut (winner +9, draw −2, bot rival covered by the house, a leaver forfeits the fee and gets a logged leave); three new ledger reasons `trivia_entry` / `trivia_payout` / `trivia_refund` (migration 0092); rematch window 30 s. Details: `docs/logic/trivia.md` §Coins, §Rematch.
+
+## D236 — Question modes remember what a player has seen (2026-10-14, proposed)
+
+Owner (2026-10-14): how likely is a repeated question and how do we control it? Measured: with no memory a repeat versus the previous game is ~99 % at 20 questions per topic, 50 % at 100. Proposed: a persistent per-player memory (`trivia_seen`, newest 500, migration 0093) written when a question is revealed, and a freshness draw (unseen by all human players first, then by fewer, then oldest) in solo, the question duel and the board duel's question round; guests and bots keep none. Details: `docs/logic/trivia.md` §No repeats.

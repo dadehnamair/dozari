@@ -199,6 +199,7 @@ import { TriviaService } from './trivia/service.js';
 import { registerTriviaRoutes } from './trivia/routes.js';
 import { createDbTriviaStore } from './trivia/store.js';
 import { TriviaStakes } from './trivia/stakes.js';
+import { createDbTriviaSeenStore, drawTrivia } from './trivia/seen.js';
 import { PriceOnlyService } from './priceonly/service.js';
 import { createDbPriceOnlySource } from './priceonly/db-source.js';
 import { SoloService } from './solo/service.js';
@@ -965,10 +966,12 @@ if (isMainModule(import.meta.url)) {
           isBot: (id) => botDriver?.isBot(id) ?? false,
         })
       : undefined;
+  const triviaSeen = db ? createDbTriviaSeenStore(db) : undefined;
   const trivia = triviaStore
     ? new TriviaService(triviaStore, {
         perGame: settings ? () => settings.num('trivia.questions') : undefined,
         stakes: triviaStakes,
+        seen: triviaSeen,
         refundPercent: settings ? () => settings.num('trivia.solo_refund_percent') : undefined,
         // XP like any finished game: a score that earns the fee back counts as a win.
         onFinished: (userId, _score, _total, passed) => void player?.recordGame(userId, { mode: 'solo', outcome: passed ? 'win' : 'loss' }),
@@ -1029,10 +1032,8 @@ if (isMainModule(import.meta.url)) {
         ? {
             profile: duelProfile,
             poolOf: ageTracks ? async (id) => trackRules(await ageTracks.effective(id)).puzzleTracks : undefined,
-            questions: async ({ topicId, tracks, count, rng }) => {
-              const pool = await triviaStore.approved({ topicId, tracks, limit: Math.max(60, count * 6) });
-              return pickTriviaQuestions(pool, count, rng).map((q) => ({ id: q.id, textFa: q.textFa, explanationFa: q.explanationFa, ...shuffleTrivia(q, rng) }));
-            },
+            questions: async ({ topicId, tracks, count, rng, userIds }) => (await drawTrivia(triviaStore, triviaSeen, { topicId, tracks, count, rng, userIds })).map((q) => ({ id: q.id, textFa: q.textFa, explanationFa: q.explanationFa, ...shuffleTrivia(q, rng) })),
+            markSeen: triviaSeen ? (userIds, questionId) => userIds.forEach((u) => void triviaSeen.mark(u, [questionId], Date.now()).catch(() => undefined)) : undefined,
             topicName: (id) => triviaStore.topicName(id),
             settings: async () => ({ questions: await settings.num('trivia.duel_questions'), seconds: await settings.num('trivia.duel_seconds') }),
             stakes: triviaStakes,
@@ -1077,11 +1078,12 @@ if (isMainModule(import.meta.url)) {
           priceRound: settings ? async () => (await settings.num('match.price_round')) === 1 : undefined,
           triviaRounds: settings ? () => settings.num('match.trivia_rounds') : undefined,
           triviaQuestions: triviaStore
-            ? async ({ topicIds, tracks, count, rng }) => {
-                // The match's own topics first, then the whole bank, so a thin topic never leaves the round short.
-                const own = topicIds?.length ? (await Promise.all([...new Set(topicIds)].map((topicId) => triviaStore.approved({ topicId, tracks, limit: 60 })))).flat() : [];
-                const picked = pickTriviaQuestions(own, count, rng);
-                if (picked.length < count) picked.push(...pickTriviaQuestions(await triviaStore.approved({ tracks, limit: Math.max(60, count * 6) }), count - picked.length, rng, new Set(picked.map((q) => q.id))));
+            ? async ({ topicIds, tracks, count, rng, userIds }) => {
+                // The match's own topics first, then the whole bank; what the human players have not seen comes first (docs/logic/trivia.md §No repeats).
+                const humans = userIds.filter((u) => !botDriver?.isBot(u));
+                const picked = await drawTrivia(triviaStore, triviaSeen, { topicIds, tracks, count, rng, userIds: humans });
+                // The round is short and nearly always played out: its questions count as seen when it opens.
+                if (triviaSeen) for (const u of humans) void triviaSeen.mark(u, picked.map((q) => q.id), Date.now()).catch(() => undefined);
                 return picked.map((q) => ({ id: q.id, textFa: q.textFa, explanationFa: q.explanationFa, ...shuffleTrivia(q, rng) }));
               }
             : undefined,

@@ -1,14 +1,16 @@
 import { randomInt } from 'node:crypto';
-import { TRIVIA_QUESTIONS_PER_GAME, TRIVIA_SOLO_REFUND_PERCENT, mulberry32, pickTriviaQuestions, shuffleTrivia, triviaSoloPassed } from '@dozari/shared';
+import { TRIVIA_QUESTIONS_PER_GAME, TRIVIA_SOLO_REFUND_PERCENT, mulberry32, shuffleTrivia, triviaSoloPassed } from '@dozari/shared';
 import type { AgeTrack, TriviaResult, TriviaView } from '@dozari/shared';
 import { uuidv7 } from 'uuidv7';
 import type { TriviaStore } from './store.js';
 import type { TriviaStakes } from './stakes.js';
+import { drawTrivia } from './seen.js';
+import type { TriviaSeenStore } from './seen.js';
 
 interface Session {
   userId?: string;
   topicNameFa: string | null;
-  questions: { textFa: string; options: string[]; correctIndex: number; explanationFa: string; topicNameFa: string }[];
+  questions: { id: string; textFa: string; options: string[]; correctIndex: number; explanationFa: string; topicNameFa: string }[];
   results: TriviaResult[];
   touchedAt: number;
   /** Coins the game cost this player, and what came back (once, at the end). */
@@ -26,6 +28,8 @@ export interface TriviaOptions {
   onFinished?: (userId: string, score: number, total: number, passed: boolean) => void;
   /** Coins of a solo game (docs/logic/trivia.md §Coins). Absent = free. */
   stakes?: Pick<TriviaStakes, 'soloFee' | 'chargeSolo' | 'refundSolo'>;
+  /** What each player has seen, so a game prefers questions they have not (docs/logic/trivia.md §No repeats). Absent = a plain random draw. */
+  seen?: TriviaSeenStore;
   /** Percent of right answers that earns the fee back (setting `trivia.solo_refund_percent`). */
   refundPercent?: () => Promise<number>;
 }
@@ -60,8 +64,7 @@ export class TriviaService {
     this.sweep();
     const want = Math.max(1, (await this.opts.perGame?.().catch(() => undefined)) ?? TRIVIA_QUESTIONS_PER_GAME);
     const rng = mulberry32(this.newSeed());
-    const pool = await this.store.approved({ topicId: opts.topicId, tracks: opts.tracks, limit: Math.max(60, want * 6) });
-    const picked = pickTriviaQuestions(pool, want, rng);
+    const picked = await drawTrivia(this.store, this.opts.seen, { topicId: opts.topicId, tracks: opts.tracks, count: want, rng, userIds: opts.userId ? [opts.userId] : [] });
     if (picked.length === 0) return null;
     const names = new Map<string, string>();
     for (const q of picked) if (!names.has(q.topicId)) names.set(q.topicId, (await this.store.topicName(q.topicId)) ?? '');
@@ -74,7 +77,7 @@ export class TriviaService {
       refund: 0,
       userId: opts.userId,
       topicNameFa: opts.topicId ? (names.get(opts.topicId) ?? (await this.store.topicName(opts.topicId))) : null,
-      questions: picked.map((q) => ({ textFa: q.textFa, explanationFa: q.explanationFa, topicNameFa: names.get(q.topicId) ?? '', ...shuffleTrivia(q, rng) })),
+      questions: picked.map((q) => ({ id: q.id, textFa: q.textFa, explanationFa: q.explanationFa, topicNameFa: names.get(q.topicId) ?? '', ...shuffleTrivia(q, rng) })),
       results: [],
       touchedAt: this.now(),
     };
@@ -97,6 +100,8 @@ export class TriviaService {
     if (!result) {
       result = { index, pickedIndex, correctIndex: q.correctIndex, correct: pickedIndex === q.correctIndex, explanationFa: q.explanationFa || null };
       s.results.push(result);
+      // Shown and answered: this player will not be served it again until the rest of the topic has been seen.
+      if (s.userId) void this.opts.seen?.mark(s.userId, [q.id], this.now()).catch(() => undefined);
       if (s.results.length === s.questions.length && s.userId) {
         const score = s.results.filter((r) => r.correct).length;
         const percent = await (this.opts.refundPercent?.() ?? Promise.resolve(TRIVIA_SOLO_REFUND_PERCENT)).catch(() => TRIVIA_SOLO_REFUND_PERCENT);
