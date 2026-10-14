@@ -278,6 +278,7 @@ export const fa = {
     myBadges: 'نشان‌های من',
     noBadges: 'هنوز نشانی نگرفته‌ای؛ بازی کن تا باز شوند.',
     shortcuts: 'میان‌بر',
+    xpToNext: (have: number, need: number, next: number) => `${toPersianDigits(String(have))} / ${toPersianDigits(String(need))} امتیاز تا سطح ${toPersianDigits(String(next))}`,
     noGames: 'هنوز بازی‌ای تمام نکرده‌ای.',
     tiles: { levels: 'جاده‌ی لول', friends: 'دوستان', badges: 'نشان‌ها', recent: 'بازی‌ها', find: 'پیدا کردن', loans: 'هدیه و وام', invite: 'دعوت' },
     statGames: 'بازی',
