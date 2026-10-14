@@ -25,6 +25,8 @@ export function useHomeData(features: ClientConfig['features']) {
   const [gender, setGender] = useState<Gender | null>(null);
   const [avatarKey, setAvatarKey] = useState<string | null>(null);
   const [level, setLevel] = useState<number | null>(null);
+  /** Progress inside the current level, 0..1 (1 at the cap). */
+  const [xpFrac, setXpFrac] = useState(0);
   /** The player's province (D101): its badge and local greeting sit under the wordmark. */
   const [province, setProvince] = useState<Province | null>(null);
   /** The city's own slogan (admin-written), shown under the greeting. */
@@ -34,7 +36,7 @@ export function useHomeData(features: ClientConfig['features']) {
     void fetchAgeTrack().then((m) => setLookTrack(m.enabled ? m.track : null), () => undefined);
   }, []);
   const loadMe = useCallback(() => {
-    fetchMyProfile().then((p) => (setGender(p.gender), setAvatarKey(p.avatarKey), setLookGender(p.gender), setLevel(p.level.level), setProvince(provinceOf(p.city?.province)), setSlogan(p.city?.sloganFa ?? null)), () => undefined);
+    fetchMyProfile().then((p) => (setGender(p.gender), setAvatarKey(p.avatarKey), setLookGender(p.gender), setLevel(p.level.level), setXpFrac(p.level.xpForNext > 0 ? Math.min(1, p.level.xpInLevel / p.level.xpForNext) : 1), setProvince(provinceOf(p.city?.province)), setSlogan(p.city?.sloganFa ?? null)), () => undefined);
   }, []);
   useEffect(loadMe, [loadMe]);
   // Another screen (the player's own card) edited the profile: the hero and header follow.
@@ -52,5 +54,5 @@ export function useHomeData(features: ClientConfig['features']) {
   useEffect(() => {
     if (features.daily) fetchDailyStatus().then(setDailyPuzzle, () => undefined);
   }, [features.daily]);
-  return { spins, loadSpins, liveMatch, gender, setGender, avatarKey, setAvatarKey, level, province, slogan, dailyPuzzle, loadMe, profileTasks, loadTasks, gems, worn, loadWorn };
+  return { spins, loadSpins, liveMatch, gender, setGender, avatarKey, setAvatarKey, level, xpFrac, province, slogan, dailyPuzzle, loadMe, profileTasks, loadTasks, gems, worn, loadWorn };
 }

@@ -43,6 +43,7 @@ Laid out as **screen-home** of `docs/design/Dozari - 01 Screens.dc.html` (D99, r
 "one row of equal mode cards"):
 
 - **Top counters** (three pills): coins, daily-puzzle streak, level.
+  Adult theme: two plates instead (`AdultTopBar`, design `adult/Dozari Adult - Login Home`): wallet (coins with «+», gems · streak) and map · wheel · level + XP bar · avatar; the level/avatar opens settings.
 - **Wordmark** and a **speech bubble** under it: "today's puzzle is ready" (tap → daily puzzle) while
   it can be played, otherwise the month's mood line.
 - **Corner tiles**, one column per side (54px candy squares with a label; a tile shows only when its
