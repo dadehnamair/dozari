@@ -82,8 +82,8 @@ function userDrawer(id, done) {
         h('div', { style: 'margin-top:10px' }, [h('button', { class: 'btn', text: 'خروج از همه‌ی دستگاه‌ها', onclick: function () { ask('همه‌ی نشست‌های این بازیکن بسته شود؟ دفعه‌ی بعد دوباره وارد می‌شود.', function () { api('/admin/users/' + id + '/logout', { method: 'POST', body: {} }).then(function (x) { if (!x.ok) return fail(x); toast('نشست‌ها بسته شد'); }); }); } })])]));
     } else if (tab === 'account') {
       var a = u.account || {}, dash = function (x) { return x === null || x === undefined || x === '' ? h('span', { class: 'muted', text: 'ثبت نشده' }) : x; };
-      var hidden = a.phone === null && a.email === null && a.deviceId === null;
-      if (hidden) b.appendChild(banner('info', 'اطلاعات تماس (شماره، ایمیل، شناسه‌ی دستگاه) فقط برای نقش‌های «پشتیبان» و «مالک» نمایش داده می‌شود.'));
+      var hidden = !!a.contactHidden; // the server says so; an account that simply has no number shows «ثبت نشده»
+      if (hidden) b.appendChild(banner('info', 'اطلاعات تماس (شماره، ایمیل، شناسه‌ی دستگاه) فقط برای نقش‌های «پشتیبان» و «مالک» نمایش داده می‌شود. نقش شما: «' + (ROLE_FA[S.me && S.me.role] || (S.me && S.me.role) || '—') + '». مالک می‌تواند نقش حساب شما را در «مدیران» عوض کند.'));
       b.appendChild(sectionTitle('هویت'));
       b.appendChild(defs([
         ['اسم نمایشی', u.nickname], ['شناسه‌ی عمومی (handle)', dash(a.handle && h('span', { class: 'ltr', text: '@' + a.handle }))],
