@@ -30,6 +30,7 @@ import { useReviewPrompt } from '../review/useReviewPrompt';
 import { OPEN_CONFIG } from '../config/gate';
 import type { ClientConfig } from '../config/gate';
 import { InboxSheet } from '../inbox/InboxSheet';
+import { LevelRoadPage } from '../levels/LevelRoadPage';
 import { LedgerSheet } from '../ledger/LedgerSheet';
 import { GuideBubble } from '../components/GuideBubble';
 import { availableTips, nextTip } from './guideTips';
@@ -62,6 +63,8 @@ import { useHomeData } from './useHomeData';
 import { StatPill } from './StatPill';
 import { AdultTopBar } from './AdultTopBar';
 import { StatInfoSheet } from './StatInfoSheet';
+import { CoinDeltaFx } from './CoinDeltaFx';
+import { useCoinDelta } from './useCoinDelta';
 
 interface Tile {
   key: string;
@@ -87,6 +90,8 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onTriviaDuel, onDail
   const daily = useDailyReward();
   const { spins, loadSpins, liveMatch, gender, setGender, avatarKey, setAvatarKey, level, xpFrac, province, slogan, dailyPuzzle, loadMe, profileTasks, loadTasks, gems, worn, loadWorn } = useHomeData(features);
   const hero = useHeroMotion();
+  /** Wins and losses since Home was last drawn: the coin counter counts to the new balance and a «+N» / «−N» chip floats by. */
+  const coinFx = useCoinDelta(daily.status?.balance ?? null);
   const [wheelOpen, setWheelOpen] = useState(false);
   const [baleOpen, setBaleOpen] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
@@ -115,6 +120,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onTriviaDuel, onDail
   /** A friend request is waiting: who sent the latest one (when pushed live) and how many wait in all. */
   const [friendNotice, setFriendNotice] = useState<{ from?: string; count: number } | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [roadOpen, setRoadOpen] = useState(false);
   const [boardOpen, setBoardOpen] = useState(false);
   const [hubOpen, setHubOpen] = useState(false);
   const [schoolOpen, setSchoolOpen] = useState(false);
@@ -230,7 +236,12 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onTriviaDuel, onDail
           />
         ) : (
         <View style={styles.pills}>
-          {daily.status ? <StatPill color={colors.candy.yellow} icon="coin" value={fmt(daily.status.balance)} label={`${daily.status.balance} ${h.coins}`} onPress={() => setLedgerOpen(true)} /> : null}
+          {daily.status ? (
+            <View style={styles.coinSlot}>
+              <StatPill color={colors.candy.yellow} icon="coin" value={fmt(coinFx.shown ?? daily.status.balance)} label={`${daily.status.balance} ${h.coins}`} onPress={() => setLedgerOpen(true)} />
+              {coinFx.fx ? <CoinDeltaFx key={coinFx.fx.key} delta={coinFx.fx.delta} progress={coinFx.progress} /> : null}
+            </View>
+          ) : null}
           {gems > 0 ? <StatPill color={colors.candy.sky} glyph="💎" value={fmt(gems)} label={`${gems} ${h.gems}`} onPress={() => setInfoOpen('gems')} /> : null}
           {dailyPuzzle && dailyPuzzle.state !== 'unavailable' && dailyPuzzle.streak > 0 ? <StatPill color={colors.candy.pink} glyph="🔥" value={`${toPersianDigits(String(dailyPuzzle.streak))} ${h.streak}`} label={`${dailyPuzzle.streak} ${h.streak}`} onPress={() => setInfoOpen('streak')} /> : null}
           <Pressable onPress={() => setHubOpen(true)} accessibilityRole="button" accessibilityLabel={fa.hub.open} style={styles.mapBtn}>
@@ -245,7 +256,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onTriviaDuel, onDail
           </Pressable>
           {/* A spacer keeps the level pill at the far (left) end of the row, whether or not the streak pill is showing. */}
           <View style={styles.pillsGap} />
-          {level !== null ? <StatPill color={colors.candy.grape} icon="rosette" value={toPersianDigits(String(level))} label={`${h.level} ${level} · ${h.settings}`} badge={missionsReady > 0 ? toPersianDigits(String(missionsReady)) : undefined} onPress={() => setSettingsOpen(true)} /> : null}
+          {level !== null ? <StatPill color={colors.candy.grape} icon="rosette" value={toPersianDigits(String(level))} label={`${h.level} ${level}`} onPress={() => setRoadOpen(true)} /> : null}
         </View>
         )}
 
@@ -324,6 +335,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onTriviaDuel, onDail
       ) : null}
       {schoolOpen ? <SchoolSheet onClose={() => setSchoolOpen(false)} /> : null}
       {boardOpen ? <LeaderboardPage onClose={() => setBoardOpen(false)} /> : null}
+      {roadOpen ? <LevelRoadPage onClose={() => setRoadOpen(false)} onSettings={() => (setRoadOpen(false), setSettingsOpen(true))} settingsBadge={missionsReady > 0 ? toPersianDigits(String(missionsReady)) : undefined} /> : null}
       {settingsOpen ? <SettingsPage onMissions={() => (setSettingsOpen(false), setMissionsOpen(true))} missionsReady={missionsReady} onClose={() => (setSettingsOpen(false), loadTasks(), returnToMissions())} onProfile={() => (setSettingsOpen(false), setProfileOpen(true))} onTutorial={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} onAccountGone={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} ageTracksOn={settings['feature.age_tracks'] === 1} baleOn={features.bale} phoneVerified={profileTasks.some((x) => x.key === 'phone' && x.done)} onPreview={onPreview ? (t) => (setSettingsOpen(false), onPreview(t)) : undefined} /> : null}
       {ledgerOpen ? <LedgerSheet onClose={() => setLedgerOpen(false)} /> : null}
       {infoOpen ? <StatInfoSheet kind={infoOpen} value={infoOpen === 'gems' ? gems : dailyPuzzle?.streak ?? 0} onClose={() => setInfoOpen(null)} /> : null}
