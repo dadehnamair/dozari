@@ -5,8 +5,9 @@
   What it takes care of (the things that broke the manual build, docs/android-build.md):
   - hoisted pnpm install (the default .pnpm layout makes CMake object paths > 250 characters and ninja fails);
   - signing read from %USERPROFILE%\.gradle\gradle.properties (PowerShell splits -Pa.b=c arguments at the dot);
-  - Gradle proxy: when dl.google.com is unreachable it asks for host:port (or take -Proxy 127.0.0.1:10808), detects SOCKS5/HTTP
-    and writes it to gradle.properties; -NoProxy removes it;
+  - Gradle network: when dl.google.com is unreachable it asks for the local proxy host:port (or take -Proxy 127.0.0.1:10808),
+    detects SOCKS5/HTTP and writes it to gradle.properties; if Google still answers 404 (it does from Iranian exit IPs) it adds
+    the Aliyun Google/Central mirrors through a Gradle init script; -NoProxy removes both;
   - a fresh `expo prebuild`, then `gradlew assembleRelease`.
   Keep the repository in a short folder (e.g. C:\d or F:\d): it is the only complete fix for long paths.
 #>
@@ -38,15 +39,18 @@ foreach ($key in 'store.file', 'store.password', 'key.alias', 'key.password') {
   }
 }
 
-# Proxy: Gradle needs Google's Maven (dl.google.com) at build time, which is blocked from Iran. If it is unreachable, ask for the
-# local proxy (host:port), detect whether it speaks SOCKS5 or HTTP, and write it to gradle.properties between marker lines
-# (replaced on every run, removed by -NoProxy). The proxy app must be running.
+# Network for Gradle: it needs Google's Maven (dl.google.com), Maven Central and JitPack at build time. From Iran Google answers 404
+# even through a foreign proxy. So: (1) if Google is unreachable, ask for the local proxy (host:port), detect SOCKS5 vs HTTP and write
+# it to gradle.properties between marker lines (replaced every run, removed by -NoProxy); (2) if Google is still unreachable, install a
+# Gradle init script that tries the Aliyun mirrors of Google/Central first (~/.gradle/init.d/dozari-mirror.gradle).
 $proxyBegin = '# >>> dozari-build proxy (managed by scripts/build-android.ps1)'
 $proxyEnd = '# <<< dozari-build proxy'
-$mavenProbe = 'https://dl.google.com/dl/android/maven2/androidx/work/work-runtime-ktx/2.9.1/work-runtime-ktx-2.9.1.pom'
+$googleProbe = 'https://dl.google.com/dl/android/maven2/androidx/core/core-ktx/1.12.0/core-ktx-1.12.0.pom'
+$mirrorProbe = 'https://maven.aliyun.com/repository/google/androidx/core/core-ktx/1.12.0/core-ktx-1.12.0.pom'
+$initScript = Join-Path $env:USERPROFILE '.gradle\init.d\dozari-mirror.gradle'
 
-function Test-Url([string[]]$proxyArgs) {
-  & curl.exe -s -o NUL -m 10 -f @proxyArgs $mavenProbe 2>&1 | Out-Null
+function Test-Url([string]$url, [string[]]$proxyArgs) {
+  & curl.exe -s -o NUL -m 15 -f @proxyArgs $url 2>&1 | Out-Null
   return ($LASTEXITCODE -eq 0)
 }
 
@@ -71,23 +75,48 @@ function Remove-GradleProxy {
   Set-Content -Path $props -Value (([regex]::Replace($current, $pattern, "`r`n")).TrimEnd() + "`r`n") -Encoding ascii
 }
 
+function Set-MirrorInitScript {
+  New-Item -ItemType Directory -Force -Path (Split-Path $initScript) | Out-Null
+  $body = @'
+// Managed by scripts/build-android.ps1: Aliyun mirrors tried first because dl.google.com answers 404 from Iran.
+def mirrors = { RepositoryHandler repos ->
+  repos.maven { url 'https://maven.aliyun.com/repository/google' }
+  repos.maven { url 'https://maven.aliyun.com/repository/public' }
+}
+allprojects {
+  buildscript { repositories mirrors }
+  repositories mirrors
+}
+'@
+  Set-Content -Path $initScript -Value $body -Encoding ascii
+  Write-Host "==> Google Maven is unreachable; Gradle will use the Aliyun mirrors ($initScript)" -ForegroundColor Yellow
+}
+
 if ($NoProxy) {
   Remove-GradleProxy
-  Write-Host '==> Gradle proxy removed from gradle.properties' -ForegroundColor Yellow
+  if (Test-Path $initScript) { Remove-Item -Force $initScript }
+  Write-Host '==> Gradle proxy and mirror init script removed' -ForegroundColor Yellow
 } else {
   $hasProxy = (Test-Path $props) -and ((Get-Content $props -Raw) -match '(?m)^\s*systemProp\.(socksProxyHost|https?\.proxyHost)\s*=')
-  if (-not $Proxy -and -not $hasProxy) {
-    Write-Host '==> checking that Google Maven (needed by Gradle) is reachable' -ForegroundColor Cyan
-    if (-not (Test-Url @())) {
-      Write-Warning 'dl.google.com is not reachable directly (blocked from Iran). Start your proxy app first.'
-      $Proxy = Read-Host 'Local proxy as host:port (e.g. 127.0.0.1:10808), empty to skip'
-    }
+  Write-Host '==> checking that Google Maven (needed by Gradle) is reachable' -ForegroundColor Cyan
+  $googleOk = Test-Url $googleProbe @()
+  if (-not $googleOk -and -not $Proxy -and -not $hasProxy) {
+    Write-Warning 'dl.google.com is not reachable directly (blocked from Iran). Start your proxy app first.'
+    $Proxy = Read-Host 'Local proxy as host:port (e.g. 127.0.0.1:10808), empty to skip'
   }
   if ($Proxy) {
     if ($Proxy -notmatch '^[^:\s]+:\d+$') { throw "Invalid proxy '$Proxy' (expected host:port, e.g. 127.0.0.1:10808)." }
-    if (Test-Url @('--socks5-hostname', $Proxy)) { Set-GradleProxy $Proxy 'socks' }
-    elseif (Test-Url @('--proxy', "http://$Proxy")) { Set-GradleProxy $Proxy 'http' }
-    else { throw "dl.google.com is not reachable through $Proxy as SOCKS5 or HTTP. Check that the proxy app is on and the port is right (SOCKS and HTTP ports differ in v2rayN/Nekoray)." }
+    # Any reachable page proves the proxy works; JitPack is the one that always needs it.
+    if (Test-Url $mirrorProbe @('--socks5-hostname', $Proxy)) { $kind = 'socks'; $via = @('--socks5-hostname', $Proxy) }
+    elseif (Test-Url $mirrorProbe @('--proxy', "http://$Proxy")) { $kind = 'http'; $via = @('--proxy', "http://$Proxy") }
+    else { throw "Nothing is reachable through $Proxy as SOCKS5 or HTTP. Check that the proxy app is on and the port is right (SOCKS and HTTP ports differ in v2rayN/Nekoray)." }
+    Set-GradleProxy $Proxy $kind
+    $googleOk = Test-Url $googleProbe $via
+  }
+  if ($googleOk) {
+    if (Test-Path $initScript) { Remove-Item -Force $initScript }
+  } else {
+    Set-MirrorInitScript
   }
 }
 
@@ -137,7 +166,7 @@ function Remove-AndroidDir {
 Remove-AndroidDir
 Run 'expo prebuild' { pnpm exec expo prebuild --platform android }
 Set-Location android
-Run 'gradlew assembleRelease' { .\gradlew assembleRelease }
+Run 'gradlew assembleRelease' { .\gradlew assembleRelease --refresh-dependencies }
 
 $apk = Join-Path (Get-Location) 'app\build\outputs\apk\release\app-release.apk'
 Write-Host "`nAPK: $apk" -ForegroundColor Green
