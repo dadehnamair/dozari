@@ -16,7 +16,6 @@ export const styles = StyleSheet.create({
   pills: { flexDirection: RTL_ROW, gap: 6, minHeight: 40, alignItems: 'center', flexWrap: 'nowrap' },
   pillsGap: { flex: 1, minWidth: 0 },
   mapBtn: { flexShrink: 0, width: 36, height: 36, borderRadius: 18, borderWidth: 2, borderColor: 'rgba(255,255,255,0.35)', backgroundColor: 'rgba(43,18,64,0.65)', alignItems: 'center', justifyContent: 'center' },
-  mapBtnAdult: { borderColor: '#B8822A', backgroundColor: '#3A2412' },
   mapIcon: { width: 26, height: 26 },
   spinBadge: { position: 'absolute', top: -6, right: -6, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, backgroundColor: colors.candy.lime, borderWidth: 2, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   spinBadgeText: { fontFamily: fonts.bold, fontSize: 10, color: colors.ink },
