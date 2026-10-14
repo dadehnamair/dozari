@@ -37,7 +37,7 @@ type Topic = TriviaTopics['topics'][number];
  * Adult look of the question duel's topic picker («صرافی و گاوصندوق», copper = duel; docs/design/adult/Dozari Adult - Quiz Duel):
  * the entry-fee plate, «تصادفی» (rolls a topic onto the grid), the topic grid, and a start button naming the chosen topic.
  */
-export function TopicPickAdult({ topics, fee, busy, note, onBack, onStart }: { topics: Topic[]; fee: number; busy: boolean; note: string | null; onBack: () => void; onStart: (topicId: string) => void }) {
+export function TopicPickAdult({ topics, fee, busy = false, note = null, texts, mix, onBack, onStart }: { topics: Topic[]; fee: number; busy?: boolean; note?: string | null; /** Heading, subtitle and the fee plate's two lines (the question duel and the solo questions each say their own). */ texts: { title: string; sub: string; feeTitle: string; feeSub: string }; /** A button that starts straight away on every topic (solo); absent = «تصادفی» rolls a topic onto the grid (duel). */ mix?: { label: string; onPress: () => void }; onBack: () => void; onStart: (topicId: string) => void }) {
   const [sel, setSel] = useState<string | null>(null);
   const chosen = topics.find((x) => x.id === sel) ?? null;
   const roll = () => {
@@ -54,8 +54,8 @@ export function TopicPickAdult({ topics, fee, busy, note, onBack, onStart }: { t
             <Text style={styles.backText}>›</Text>
           </Pressable>
           <View style={styles.headText}>
-            <Text style={styles.title}>{t.title}</Text>
-            <Text style={styles.sub}>{a.pickSub}</Text>
+            <Text style={styles.title}>{texts.title}</Text>
+            <Text style={styles.sub}>{texts.sub}</Text>
           </View>
           <View style={styles.trophy}><View style={styles.trophyIcon}><Item icon="trophy" /></View></View>
         </View>
@@ -63,8 +63,8 @@ export function TopicPickAdult({ topics, fee, busy, note, onBack, onStart }: { t
         <View style={styles.fee}>
           <View style={styles.feeCoin}><View style={styles.feeCoinIcon}><Item icon="coin" /></View></View>
           <View style={styles.feeText}>
-            <Text style={styles.feeTitle}>{fee > 0 ? a.feeTitle(formatPersianNumber(fee)) : a.freeTitle}</Text>
-            <Text style={styles.feeSub}>{a.feeSub}</Text>
+            <Text style={styles.feeTitle}>{texts.feeTitle}</Text>
+            <Text style={styles.feeSub}>{texts.feeSub}</Text>
           </View>
         </View>
 
@@ -73,10 +73,10 @@ export function TopicPickAdult({ topics, fee, busy, note, onBack, onStart }: { t
 
         {topics.length > 0 ? (
           <>
-            <Pressable accessibilityRole="button" disabled={busy} onPress={roll} style={({ pressed }) => [styles.random, pressed ? styles.pressed : null]}>
+            <Pressable accessibilityRole="button" disabled={busy} onPress={mix ? mix.onPress : roll} style={({ pressed }) => [styles.random, pressed ? styles.pressed : null]}>
               <GradientFill from="#FFF1B8" to="#8A5A16" mid={{ at: 0.4, color: '#E8B64A' }} />
               <View style={styles.dice}><Item icon="dice" /></View>
-              <Text style={styles.randomText}>{t.randomAdult}</Text>
+              <Text style={styles.randomText}>{mix ? mix.label : t.randomAdult}</Text>
             </Pressable>
             <View style={styles.or}>
               <View style={styles.orLine} />
@@ -100,7 +100,7 @@ export function TopicPickAdult({ topics, fee, busy, note, onBack, onStart }: { t
                   >
                     <View style={[styles.topicRing, on ? styles.topicRingOn : null]}><View style={styles.topicIcon}><Item icon={TOPIC_ICON[x.nameFa] ?? 'star'} /></View></View>
                     <Text style={[styles.topicName, on ? styles.topicNameOn : null]} numberOfLines={1}>{x.nameFa}</Text>
-                    <Text style={styles.topicCount}>{fa.trivia.questionsCount(formatPersianNumber(x.questions))}</Text>
+                    <View style={styles.topicCount}><Text style={styles.topicCountText}>{formatPersianNumber(x.questions)}</Text></View>
                     {on ? <View style={styles.tick}><Text style={styles.tickText}>✓</Text></View> : null}
                   </Pressable>
                 );
@@ -159,14 +159,15 @@ const styles = StyleSheet.create({
   orText: { fontFamily: fonts.bold, fontSize: 11.5, color: '#E8B64A' },
   scroll: { flex: 1, minHeight: 0 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9, paddingVertical: 4, paddingBottom: 6 },
-  topic: { width: '48.5%', height: 100, borderRadius: 17, borderWidth: 2, borderColor: '#8A5A16', backgroundColor: '#201610', alignItems: 'center', justifyContent: 'center', gap: 4, padding: 6 },
+  topic: { width: '48.5%', height: 100, borderRadius: 17, borderWidth: 2, borderColor: '#8A5A16', backgroundColor: '#201610', alignItems: 'center', justifyContent: 'center', gap: 2, padding: 6 },
   topicOn: { borderColor: '#FFD2B0', backgroundColor: '#3F2010' },
   topicRing: { width: 46, height: 46, borderRadius: 23, backgroundColor: '#17100C', borderWidth: 1.5, borderColor: '#5A3A1C', alignItems: 'center', justifyContent: 'center' },
   topicRingOn: { borderColor: '#E0895A' },
   topicIcon: { width: 34, height: 34 },
-  topicName: { fontFamily: fonts.display, fontSize: 18, lineHeight: 20, color: '#FFE9A8' },
+  topicName: { fontFamily: fonts.display, fontSize: 18, lineHeight: 28, color: '#FFE9A8' },
   topicNameOn: { color: '#FFE2CC' },
-  topicCount: { fontFamily: fonts.bold, fontSize: 11, color: 'rgba(255,233,168,0.6)' },
+  topicCount: { position: 'absolute', top: 7, right: 7, minWidth: 22, height: 20, paddingHorizontal: 6, borderRadius: 10, backgroundColor: '#0E0A08', borderWidth: 1, borderColor: '#5A3A1C', alignItems: 'center', justifyContent: 'center' },
+  topicCountText: { fontFamily: fonts.bold, fontSize: 10.5, lineHeight: 15, color: 'rgba(255,233,168,0.7)' },
   tick: { position: 'absolute', top: 7, left: 7, width: 22, height: 22, borderRadius: 11, backgroundColor: '#E0895A', borderWidth: 1.5, borderColor: '#000', alignItems: 'center', justifyContent: 'center' },
   tickText: { fontFamily: fonts.display, fontSize: 13, lineHeight: 16, color: '#2A1206' },
   go: { height: 54, borderRadius: 16, borderWidth: 3, borderColor: '#000', overflow: 'hidden', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },

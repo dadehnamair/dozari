@@ -8,6 +8,8 @@ import { VERDICT_TONES, choiceVerdict } from '../components/choiceVerdict';
 import { SlabButton } from '../components/SlabButton';
 import { GameTopBar } from '../game/GameTopBar';
 import { MatchBackground } from '../game/MatchBackground';
+import { bootTheme } from '../theme/bootTheme';
+import { TopicPickAdult } from './TopicPickAdult';
 import { fa } from '../i18n/fa';
 import { ApiError, BASE_URL } from '../net/http';
 import { describeError, errorKind } from '../solo/errors';
@@ -75,6 +77,19 @@ export function TriviaScreen({ onBack, fee, refundPercent, workshop, onWorkshop 
           <ErrorCard kind={phase.card} sub={phase.message} detail={phase.detail} onRetry={() => void loadTopics()} retryLabel={fa.solo.errors.retry} onBack={onBack} backLabel={fa.solo.back} />
         </View>
       </MatchBackground>
+    );
+  }
+
+  if (phase.kind === 'topics' && bootTheme() === 'adult') {
+    return (
+      <TopicPickAdult
+        topics={phase.topics}
+        fee={fee}
+        texts={{ title: t.title, sub: t.adult.pickSub, feeTitle: fee > 0 ? t.fee(formatPersianNumber(fee)) : t.free, feeSub: fee > 0 ? t.feeHint(formatPersianNumber(refundPercent)) : t.adult.freeSub }}
+        mix={{ label: t.adult.mix, onPress: () => void start() }}
+        onBack={onBack}
+        onStart={(id) => void start(id)}
+      />
     );
   }
 

@@ -152,6 +152,8 @@ export const fa = {
     play: 'پرسش',
     intro: 'یه موضوع انتخاب کن و به چند پرسش چهارگزینه‌ای جواب بده؛ این‌جا بحث قیمت نیست، دانسته‌هات رو امتحان کن.',
     mix: 'ترکیبی از همه‌ی موضوع‌ها',
+    /** Adult look of the topic picker (docs/design/adult/Dozari Adult - Quiz Duel). */
+    adult: { pickSub: 'یه موضوع بردار یا همه رو قاطی کن', mix: 'ترکیبی', freeSub: 'بدون ورودی؛ دانسته‌هات رو امتحان کن' },
     questionsCount: (n: string) => `${n} پرسش`,
     noQuestions: 'هنوز پرسشی برای این بازی نداریم.',
     question: (i: string, n: string) => `پرسش ${i} از ${n}`,

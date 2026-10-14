@@ -251,7 +251,7 @@ export function TriviaDuelScreen({ onBack, fee, workshop, onWorkshop }: { onBack
       </MatchBackground>
     );
   }
-  if (bootTheme() === 'adult') return <TopicPickAdult topics={topics.topics} fee={fee} busy={busy} note={note} onBack={onBack} onStart={(id) => void start(id)} />;
+  if (bootTheme() === 'adult') return <TopicPickAdult topics={topics.topics} fee={fee} busy={busy} note={note} texts={{ title: t.title, sub: t.adult.pickSub, feeTitle: fee > 0 ? t.adult.feeTitle(formatPersianNumber(fee)) : t.adult.freeTitle, feeSub: t.adult.feeSub }} onBack={onBack} onStart={(id) => void start(id)} />;
   return (
     <MatchBackground>
       <ScrollView contentContainerStyle={styles.screen}>
