@@ -677,9 +677,6 @@ if (isMainModule(import.meta.url)) {
           filter: words,
         })
       : undefined;
-<<<<<<< HEAD
-  const live: { matches?: MatchService; queue?: DuelQueue; teamQueue?: DuelQueue; triviaDuel?: TriviaDuelService } = {};
-=======
   // A private message must be noticed wherever the friend is: a live notice if they are online, Bale (at most once per sender per 10 minutes) if not.
   if (chat) {
     const baleSeen = new Map<string, number>();
@@ -694,8 +691,7 @@ if (isMainModule(import.meta.url)) {
       void notify?.notify(friendId, 'chat_message', BALE_TEXT.chatMessage(nickname)).catch(() => undefined);
     };
   }
-  const live: { matches?: MatchService; queue?: DuelQueue; teamQueue?: DuelQueue } = {};
->>>>>>> origin/main
+  const live: { matches?: MatchService; queue?: DuelQueue; teamQueue?: DuelQueue; triviaDuel?: TriviaDuelService } = {};
   const botStore = db ? createDbBotPlayerStore(db) : undefined;
   const botService =
     botStore && player && settings
