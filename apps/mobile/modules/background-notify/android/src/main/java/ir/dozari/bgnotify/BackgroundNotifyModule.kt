@@ -6,13 +6,12 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import com.google.firebase.messaging.FirebaseMessaging
+import expo.modules.kotlin.Promise
 import expo.modules.kotlin.exception.Exceptions
-import com.google.firebase.messaging.FirebaseMessaging
-import expo.modules.kotlin.Promise
 import expo.modules.kotlin.modules.Module
-import com.google.firebase.messaging.FirebaseMessaging
-import expo.modules.kotlin.Promise
 import expo.modules.kotlin.modules.ModuleDefinition
+import ir.irnoti.sdk.Irnoti
 import java.util.concurrent.TimeUnit
 
 /**
@@ -51,8 +50,17 @@ class BackgroundNotifyModule : Module() {
       }
     }
 
+    // Links this install to the signed-in player in the IRNoti push service; false when the build has no IRNoti app key (the JS side then falls back to the direct FCM route).
+    Function("irnotiIdentify") { externalId: String ->
+      val context = appContext.reactContext ?: throw Exceptions.ReactContextLost()
+      if (!IrnotiInit.ensure(context)) return@Function false
+      Irnoti.identify(externalId)
+      true
+    }
+
     Function("cancel") {
       val context = appContext.reactContext ?: throw Exceptions.ReactContextLost()
+      if (IrnotiInit.ensure(context)) Irnoti.logout()
       WorkManager.getInstance(context).cancelUniqueWork(PendingWorker.WORK)
       context.getSharedPreferences(PendingWorker.PREFS, Context.MODE_PRIVATE).edit().clear().apply()
     }

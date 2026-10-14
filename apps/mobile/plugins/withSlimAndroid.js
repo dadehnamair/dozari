@@ -20,6 +20,8 @@ const KEEP = `
 -keep class ir.dozari.appicon.** { *; }
 # Local Expo module for the background "anything new?" check (modules/background-notify) and its WorkManager worker (created by class name).
 -keep class ir.dozari.bgnotify.** { *; }
+# IRNoti push SDK: its click activity and receiver are started by class name from notifications.
+-keep class ir.irnoti.sdk.** { *; }
 `;
 
 module.exports = (config) =>
