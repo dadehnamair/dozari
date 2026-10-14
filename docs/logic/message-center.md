@@ -15,7 +15,7 @@ Owner request (2026-10-01): one place in the admin panel to send and manage mess
 | `bale` | works when the bot is configured | goes through the Bale outbox (`bale-bot.md`), only to players who linked Bale |
 | `sms` | works with irnoti | free text to adult players' verified numbers (body only, ≤ 300 chars, 8 in parallel, failures not counted). Needs a free-text provider: irnoti; Kavenegar sends approved templates only, so the channel is off there |
 | `email` | not available | no e-mail is collected and no mail service is wired |
-| `push` | not available | FCM is forbidden (CLAUDE.md rule 8); an alternative provider has to be chosen first |
+| `push` | not built yet | FCM push is allowed only through the irnoti broker (D233, CLAUDE.md rule 8); the channel stays disabled until the irnoti push API and device-token storage are wired |
 
 Unavailable channels are shown disabled in the panel with the reason, and the API rejects them (`channel_unavailable`) — nothing pretends to send.
 

@@ -45,7 +45,7 @@ Code and spec must never diverge: fix one or the other in the same change.
 5. Every puzzle has exactly one solution — `validatePuzzle` (shared) before save/serve.
 6. Coins move only via append-only `coin_ledger` through one service fn. Never `UPDATE users SET coins`.
 7. Play needs no invite code; free-text chat needs a redeemed one (`users.chat_unlocked_at`), else canned taunts.
-8. No Google/Firebase deps (FCM, Firebase Auth, runtime Google Fonts, Maps…). Bundle fonts, self-host.
+8. No direct Google/Firebase deps (Firebase Auth, runtime Google Fonts, Maps…); bundle fonts, self-host. Exception (D233): FCM push is allowed only through the irnoti broker, never by calling Google endpoints from the client or relying on Google reachability.
 9. Economy numbers/timers/limits only in `packages/shared/src/config/*.ts`.
 
 ## Commands
