@@ -209,10 +209,10 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onDaily, onDuel, onD
     <SceneBackground scene="bazaar">
       {adult ? <View pointerEvents="none" style={StyleSheet.absoluteFill}><GradientFill from="rgba(14,10,8,0.55)" to="rgba(14,10,8,0.7)" mid={{ at: 0.5, color: 'rgba(14,10,8,0.1)' }} /></View> : null}
       <View style={styles.root} pointerEvents="box-none" onTouchStart={() => setTip(null)}>
-        <View style={styles.pills}>
+        <View style={[styles.pills, adult ? styles.pillsAdult : null]}>
           {daily.status ? <StatPill color={colors.candy.yellow} icon="coin" value={fmt(daily.status.balance)} label={`${daily.status.balance} ${h.coins}`} onPress={() => setLedgerOpen(true)} /> : null}
           {gems > 0 ? <StatPill color={colors.candy.sky} glyph="💎" value={fmt(gems)} label={`${gems} ${h.gems}`} onPress={() => setInfoOpen('gems')} /> : null}
-          {dailyPuzzle && dailyPuzzle.state !== 'unavailable' && dailyPuzzle.streak > 0 ? <StatPill color={colors.candy.pink} glyph="🔥" value={`${toPersianDigits(String(dailyPuzzle.streak))} ${h.streak}`} label={`${dailyPuzzle.streak} ${h.streak}`} onPress={() => setInfoOpen('streak')} /> : null}
+          {dailyPuzzle && dailyPuzzle.state !== 'unavailable' && dailyPuzzle.streak > 0 ? <StatPill color={colors.candy.pink} glyph="🔥" value={adult ? toPersianDigits(String(dailyPuzzle.streak)) : `${toPersianDigits(String(dailyPuzzle.streak))} ${h.streak}`} label={`${dailyPuzzle.streak} ${h.streak}`} onPress={() => setInfoOpen('streak')} /> : null}
           <Pressable onPress={() => setHubOpen(true)} accessibilityRole="button" accessibilityLabel={fa.hub.open} style={[styles.mapBtn, adult ? styles.mapBtnAdult : null]}>
             <Attention on={!!dailyOpenForPlay} radius={19}>
               <View style={styles.mapIcon}><Item icon="map" /></View>
@@ -220,12 +220,12 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onDaily, onDuel, onD
           </Pressable>
           {/* The lucky wheel is always one tap away; the number is the spins waiting (wins, level and tournament prizes, the shop, the daily free spin). */}
           <Pressable onPress={() => setWheelOpen(true)} accessibilityRole="button" accessibilityLabel={h.wheel} style={[styles.mapBtn, adult ? styles.mapBtnAdult : null]}>
-            <Icon name="wheel" size={22} color={adult ? '#FFE9A8' : '#fff'} strokeWidth={2.2} />
+            <Icon name="wheel" size={adult ? 18 : 22} color={adult ? '#FFE9A8' : '#fff'} strokeWidth={2.2} />
             {spins > 0 || daily.status?.canClaim ? <View style={styles.spinBadge}><Text style={styles.spinBadgeText}>{spins > 0 ? toPersianDigits(String(spins)) : '!'}</Text></View> : null}
           </Pressable>
           {/* A spacer keeps the level pill at the far (left) end of the row, whether or not the streak pill is showing. */}
           <View style={styles.pillsGap} />
-          {level !== null ? <StatPill color={colors.candy.grape} icon="rosette" value={toPersianDigits(String(level))} label={`${h.level} ${level} · ${h.settings}`} badge={missionsReady > 0 ? toPersianDigits(String(missionsReady)) : undefined} onPress={() => setSettingsOpen(true)} /> : null}
+          {level !== null ? <StatPill color={colors.candy.grape} icon="rosette" plate value={toPersianDigits(String(level))} label={`${h.level} ${level} · ${h.settings}`} badge={missionsReady > 0 ? toPersianDigits(String(missionsReady)) : undefined} onPress={() => setSettingsOpen(true)} /> : null}
         </View>
 
         {turn.turn ? <TurnBanner turn={turn.turn} now={turn.now} enter={turn.enter} failed={turn.failed} /> : null}
