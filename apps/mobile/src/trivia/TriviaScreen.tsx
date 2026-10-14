@@ -10,6 +10,7 @@ import { GameTopBar } from '../game/GameTopBar';
 import { MatchBackground } from '../game/MatchBackground';
 import { bootTheme } from '../theme/bootTheme';
 import { TopicPickAdult } from './TopicPickAdult';
+import { TriviaSoloAdult } from './TriviaSoloAdult';
 import { fa } from '../i18n/fa';
 import { ApiError, BASE_URL } from '../net/http';
 import { describeError, errorKind } from '../solo/errors';
@@ -142,6 +143,26 @@ export function TriviaScreen({ onBack, fee, refundPercent, workshop, onWorkshop 
       setBusy(false);
     }
   };
+
+  if (bootTheme() === 'adult') {
+    return (
+      <>
+        <TriviaSoloAdult
+          view={view}
+          index={index}
+          shown={shown}
+          busy={busy}
+          finished={finished}
+          onPick={(i) => void pick(i)}
+          onNext={() => setShown(null)}
+          onBack={onBack}
+          onAgain={() => void loadTopics()}
+          promo={workshop && onWorkshop ? <WorkshopPromo reward={workshop.reward} boost={workshop.boost} onOpen={onWorkshop} /> : null}
+        />
+        {finished && view.score === total ? <Confetti distance={500} /> : null}
+      </>
+    );
+  }
 
   return (
     <MatchBackground>

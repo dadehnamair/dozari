@@ -26,6 +26,7 @@ import { getLookGender } from '../theme/look';
 import { nativeTopInset } from '../theme/safeArea';
 import { fetchTriviaTopics } from './api';
 import { TopicPickAdult } from './TopicPickAdult';
+import { LeaveDialogAdult, TriviaDuelResultAdult } from './TriviaDuelResultAdult';
 import { initialTduel, tduelOutcome, tduelReducer } from './duelModel';
 import { connectTriviaDuel } from './duelSocket';
 import type { TriviaDuelConnection } from './duelSocket';
@@ -291,6 +292,7 @@ export function TriviaDuelScreen({ onBack, fee, workshop, onWorkshop }: { onBack
 
 /** «Leave the game?»: a second tap, saying what it costs. */
 function LeaveDialog({ onStay, onLeave }: { onStay: () => void; onLeave: () => void }) {
+  if (bootTheme() === 'adult') return <LeaveDialogAdult onStay={onStay} onLeave={onLeave} />;
   return (
     <View style={styles.overlay}>
       <View style={styles.dialog}>
@@ -307,6 +309,9 @@ function LeaveDialog({ onStay, onLeave }: { onStay: () => void; onLeave: () => v
 
 /** The finished game: outcome, score, the coins it moved, a review of every question with both picks, and the rematch. */
 function ResultView({ ended, you, rivalName, topicNameFa, fee, rematch, busy, note, onRematch, onBack, onAgain, promo }: { promo: React.ReactNode; ended: TduelEnded; you: 0 | 1; rivalName: string; topicNameFa: string | null; fee: number; rematch: 'none' | 'asked' | 'sent' | 'expired'; busy: boolean; note: string | null; onRematch: () => void; onBack: () => void; onAgain: () => void }) {
+  if (bootTheme() === 'adult') {
+    return <TriviaDuelResultAdult ended={ended} you={you} rivalName={rivalName} topicNameFa={topicNameFa} fee={fee} rematch={rematch} busy={busy} note={note} coinsLabel={coinsText(ended.coins)} onRematch={onRematch} onBack={onBack} onAgain={onAgain} promo={promo} />;
+  }
   const outcome = tduelOutcome(ended, you);
   const headline = ended.reason === 'forfeit' ? (outcome === 'won' ? t.forfeitWon : t.forfeitLost) : outcome === 'won' ? t.won : outcome === 'draw' ? t.draw : t.lost;
   return (

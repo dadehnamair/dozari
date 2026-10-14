@@ -1,9 +1,13 @@
 import { StyleSheet, View } from 'react-native';
 import { colors } from '../theme/colors';
+import { bootTheme } from '../theme/bootTheme';
+import { AdultBackdrop } from '../duel/adultKit';
 import Svg, { Defs, Pattern, RadialGradient, Rect, Stop } from 'react-native-svg';
 
 /** Background of screen-match (`docs/design/Dozari - 01 Screens`): deep violet, faint 46px checker, a glow at the top. */
 export function MatchBackground({ children }: { children?: React.ReactNode }) {
+  // The adult look paints the vault room (docs/design/adult/Dozari Adult - Quiz Duel) instead of the violet checker.
+  if (bootTheme() === 'adult') return <AdultBackdrop>{children}</AdultBackdrop>;
   return (
     <View style={styles.root}>
       <Svg style={StyleSheet.absoluteFill} width="100%" height="100%">
