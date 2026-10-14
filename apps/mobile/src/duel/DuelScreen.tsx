@@ -26,12 +26,14 @@ import { leaveTable } from '../tables/api';
 import { TableSheet } from '../tables/TableSheet';
 import { nativeTopInset } from '../theme/safeArea';
 import { colors, fonts } from '../theme/colors';
+import { bootTheme } from '../theme/bootTheme';
 import { getLookGender } from '../theme/look';
 import { arenaNumbers, arenaTiers, arrange, characterFor, clockText, endReason, groupsBy, myCharacter, shuffled } from './arena';
 import type { TierId } from './arena';
 import { fetchLeaveWarning } from './api';
 import { DuelPriceRound } from './DuelPriceRound';
 import { DuelTriviaRound } from './DuelTriviaRound';
+import { DuelTriviaRoundAdult } from './DuelTriviaRoundAdult';
 import { DuelResult } from './DuelResult';
 import { EDGE_LEFT, EDGE_RIGHT } from '../theme/direction';
 import { InviteSheet } from '../invite/InviteSheet';
@@ -485,14 +487,27 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
     return (
       <MatchBackground>
         <ScrollView contentContainerStyle={styles.screen}>
-          <DuelTriviaRound
-            round={view.triviaRound}
-            now={now}
-            onAnswer={async (index) => {
-              const ack = await conn.current?.triviaAnswer(index);
-              return !ack || ack.ok ? null : (fa.duel.errors[ack.error] ?? fa.duel.errors.generic ?? '');
-            }}
-          />
+          {bootTheme() === 'adult' ? (
+            <DuelTriviaRoundAdult
+              round={view.triviaRound}
+              now={now}
+              me={{ name: myName, who: myWho }}
+              rival={{ name: rivalName, who: rivalWho }}
+              onAnswer={async (index) => {
+                const ack = await conn.current?.triviaAnswer(index);
+                return !ack || ack.ok ? null : (fa.duel.errors[ack.error] ?? fa.duel.errors.generic ?? '');
+              }}
+            />
+          ) : (
+            <DuelTriviaRound
+              round={view.triviaRound}
+              now={now}
+              onAnswer={async (index) => {
+                const ack = await conn.current?.triviaAnswer(index);
+                return !ack || ack.ok ? null : (fa.duel.errors[ack.error] ?? fa.duel.errors.generic ?? '');
+              }}
+            />
+          )}
         </ScrollView>
       </MatchBackground>
     );

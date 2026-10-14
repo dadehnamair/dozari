@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link href="https://fonts.googleapis.com/css2?family=Lalezar&amp;family=Vazirmatn:wght@600;700;800;900&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>html{background:#1A1210}body{margin:0;background:#1A1210;color:#FFE9A8;font-family:Vazirmatn}a{color:#E8B64A}a:hover{color:#FFF1B8}*{box-sizing:border-box}button{font-family:inherit}</style>
+</helmet>
+<section dir="rtl" style="padding:56px;display:flex;flex-direction:column;gap:32px">
+  <header style="display:flex;flex-direction:column;gap:6px">
+    <div style="font:14px 'JetBrains Mono',monospace;color:#E8B64A;direction:ltr;text-align:right">Dozari Adult · Quiz Duel · style: صرافی و گاوصندوق · metal: copper</div>
+    <h1 style="margin:0;font:52px/1 Lalezar;color:#FFE9A8">بزرگسال · دوئل پرسشی</h1>
+    <div style="font:700 17px/1.7 Vazirmatn;color:rgba(255,233,168,.7);max-width:960px;text-wrap:pretty">گوشی اول زنده است: جواب بده، حریف هم جواب می‌ده و نتیجه باز می‌شه. بعد از جواب، گزینه‌ها جمع می‌شن و کارت «شرح» با نتیجه‌ی دست، جواب درست و توضیح کامل جای خالی پایین رو می‌گیره. دو گوشی بعدی حالت‌های ثابت نتیجه‌اند.</div>
+  </header>
+  <div style="display:flex;gap:36px;flex-wrap:wrap;align-items:flex-start">
+    <sc-for list="{{ phones }}" as="p" hint-placeholder-count="3">
+      <div data-screen-label="{{ p.label }}" style="display:flex;flex-direction:column;gap:10px;align-items:center">
+        <div style="width:340px;height:736px;border-radius:52px;border:11px solid #000;box-shadow:0 30px 60px rgba(0,0,0,.6),0 0 0 2px rgba(232,182,74,.35);position:relative;overflow:hidden;background:#0E0A08">
+          <div style="position:absolute;inset:0"><dc-import name="Scene" scene="sarafi" hint-size="100%,100%" style="width:100%;height:100%"></dc-import></div>
+          <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(14,10,8,.55),rgba(14,10,8,.86) 30%,rgba(14,10,8,.95))"></div>
+          <div style="position:absolute;inset:0;padding:36px 12px 14px;display:flex;flex-direction:column;gap:10px">
+
+            <div style="display:flex;align-items:center;gap:10px">
+              <div style="flex:1;display:flex;flex-direction:column;gap:6px;min-width:0">
+                <div style="display:flex;align-items:baseline;gap:8px"><span style="font:24px/1 Lalezar;color:#FFE9A8;text-shadow:0 2px 0 #000">دوئل پرسشی</span><span style="font:800 12px Vazirmatn;color:rgba(255,233,168,.65)">سؤال {{ p.numFa }} از ۸</span></div>
+                <div style="display:flex;gap:3px">
+                  <sc-for list="{{ p.pips }}" as="pp" hint-placeholder-count="8">
+                    <div style="flex:1;height:6px;border-radius:3px;background:{{ pp.c }};border:1px solid #000"></div>
+                  </sc-for>
+                </div>
+              </div>
+              <button style="width:40px;height:40px;flex:none;border-radius:13px;background:linear-gradient(180deg,#5A3A1C 0%,#3A2412 60%,#24160A 100%);border:2px solid #B8822A;box-shadow:inset 0 2px 0 rgba(255,241,184,.3),0 3px 0 #000;display:grid;place-items:center;cursor:pointer"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="#FFE9A8" stroke-width="2.6" stroke-linecap="round"></path></svg></button>
+            </div>
+
+            <div style="height:80px;flex:none;border-radius:18px;background:linear-gradient(180deg,#2A1E16,#17100C);border:2px solid #E0895A;box-shadow:0 0 0 2px #000,0 4px 0 #000;display:grid;grid-template-columns:minmax(0,1fr) 58px minmax(0,1fr);align-items:center;padding:0 8px;gap:4px">
+              <div style="display:flex;align-items:center;gap:7px;min-width:0">
+                <div style="position:relative;width:48px;height:48px;flex:none;border-radius:50%;background:radial-gradient(circle at 50% 35%,#4A3220,#17100C 75%);border:2px solid #E8B64A;box-shadow:0 0 0 2px #000;overflow:hidden"><div style="position:absolute;inset:-2px"><dc-import name="Character" who="pahlevan" pose="idle" crop="face" hint-size="52px,52px" style="width:100%;height:100%"></dc-import></div></div>
+                <div style="display:flex;flex-direction:column;gap:1px;min-width:0">
+                  <span style="font:800 11px Vazirmatn;color:rgba(255,233,168,.7)">تو</span>
+                  <span style="font:30px/1.15 Lalezar;color:#FFE9A8;text-shadow:0 2px 0 #000">{{ p.meFa }}</span>
+                  <sc-if value="{{ p.hasStreak }}" hint-placeholder-val="{{ false }}"><span style="display:flex;align-items:center;gap:2px;font:800 10.5px Vazirmatn;color:#FF9A5A;white-space:nowrap"><svg viewBox="0 0 24 24" width="12" height="12"><path d="M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 2-5 3-6 0 2 1 3 2 3 0-3-1-6 1-9z" fill="#FF7A3D" stroke="#000" stroke-width="1.5" stroke-linejoin="round"></path></svg>{{ p.streakFa }} تا پشت‌سرهم</span></sc-if>
+                </div>
+              </div>
+              <div style="position:relative;width:56px;height:56px;justify-self:center">
+                <svg viewBox="0 0 56 56" width="56" height="56" style="position:absolute;inset:0;transform:rotate(-90deg)"><circle cx="28" cy="28" r="22" fill="#0E0A08" stroke="#3A2A1C" stroke-width="5"></circle><circle cx="28" cy="28" r="22" fill="none" stroke="{{ p.tC }}" stroke-width="5" stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="{{ p.tOff }}" style="transition:stroke-dashoffset 1s linear"></circle></svg>
+                <div style="position:absolute;inset:0;display:grid;place-items:center;font:20px/1 Lalezar;color:{{ p.tC }}">{{ p.tFa }}</div>
+              </div>
+              <div style="display:flex;flex-direction:row-reverse;align-items:center;gap:7px;min-width:0">
+                <div style="position:relative;width:48px;height:48px;flex:none;border-radius:50%;background:radial-gradient(circle at 50% 35%,#4A3220,#17100C 75%);border:2px solid #E0895A;box-shadow:0 0 0 2px #000;overflow:hidden"><div style="position:absolute;inset:-2px"><dc-import name="Character" who="goli" pose="idle" crop="face" hint-size="52px,52px" style="width:100%;height:100%"></dc-import></div></div>
+                <div style="display:flex;flex-direction:column;gap:1px;align-items:flex-end;min-width:0">
+                  <span style="font:800 11px Vazirmatn;color:rgba(255,233,168,.7);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%">نگار_طلایی</span>
+                  <span style="font:30px/1.15 Lalezar;color:#FFD2B0;text-shadow:0 2px 0 #000">{{ p.opFa }}</span>
+                  <span style="font:800 10.5px Vazirmatn;color:{{ p.oppStC }};white-space:nowrap">{{ p.oppSt }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div style="flex:none;border-radius:20px;background:linear-gradient(180deg,#2A1E16,#17100C);border:2px solid #E8B64A;box-shadow:0 0 0 2px #000,0 5px 0 #000;padding:{{ p.qPad }};display:flex;flex-direction:column;gap:8px">
+              <sc-if value="{{ p.ask }}" hint-placeholder-val="{{ true }}"><span style="align-self:flex-start;padding:2px 10px;border-radius:99px;background:#0E0A08;border:1.5px solid #8A5A16;font:800 11px Vazirmatn;color:#E8B64A">{{ p.cat }}</span></sc-if>
+              <div style="font:900 {{ p.qFs }}/1.55 Vazirmatn;color:#FFE9A8;text-wrap:pretty">{{ p.q }}</div>
+            </div>
+
+            <sc-if value="{{ p.ask }}" hint-placeholder-val="{{ true }}">
+              <div style="flex:1;display:grid;place-items:center;font:800 12.5px Vazirmatn;color:rgba(255,233,168,.6)">{{ p.hint }}</div>
+            </sc-if>
+
+            <div style="flex:none;display:flex;flex-direction:column;gap:{{ p.rowGap }}">
+              <sc-for list="{{ p.rows }}" as="r" hint-placeholder-count="4">
+                <button onClick="{{ r.tap }}" style="height:{{ p.rowH }};border-radius:14px;border:2px solid {{ r.bd }};background:{{ r.bg }};box-shadow:{{ r.sh }};opacity:{{ r.op }};display:flex;align-items:center;gap:10px;padding:0 8px;cursor:pointer;transition:height .3s,opacity .3s">
+                  <div style="width:30px;height:30px;flex:none;border-radius:9px;background:{{ r.tagBg }};border:2px solid #000;display:grid;place-items:center;font:15px/1 Lalezar;color:{{ r.tagFg }}">
+                    <sc-if value="{{ r.showL }}" hint-placeholder-val="{{ true }}">{{ r.l }}</sc-if>
+                    <sc-if value="{{ r.ok }}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke="#0E2A06" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if>
+                    <sc-if value="{{ r.no }}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" width="16" height="16"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round"></path></svg></sc-if>
+                  </div>
+                  <span style="flex:1;text-align:right;font:900 16px Vazirmatn;color:{{ r.fg }}">{{ r.t }}</span>
+                  <sc-if value="{{ r.theirs }}" hint-placeholder-val="{{ false }}"><span style="flex:none;height:22px;padding:0 8px;border-radius:99px;background:linear-gradient(180deg,#FFD2B0,#E0895A 50%,#B0552A);border:1.5px solid #000;font:12px/19px Lalezar;color:#2A1206">حریف</span></sc-if>
+                  <sc-if value="{{ r.mine }}" hint-placeholder-val="{{ false }}"><span style="flex:none;height:22px;padding:0 8px;border-radius:99px;background:linear-gradient(180deg,#FFF1B8,#E8B64A 50%,#B8822A);border:1.5px solid #000;font:12px/19px Lalezar;color:#2A1606">تو</span></sc-if>
+                </button>
+              </sc-for>
+            </div>
+
+            <sc-if value="{{ p.rev }}" hint-placeholder-val="{{ false }}">
+              <div style="flex:1;min-height:0;border-radius:20px;background:linear-gradient(180deg,#2A1E16,#17100C);border:2px solid #E8B64A;box-shadow:0 0 0 2px #000,0 5px 0 #000;padding:10px 12px 12px;display:flex;flex-direction:column;gap:8px">
+                <div style="flex:none;display:flex;align-items:center;gap:8px;padding:5px 8px 5px 6px;border-radius:12px;background:{{ p.bBg }};border:2px solid {{ p.bBd }}">
+                  <span style="flex:1;font:19px/1.2 Lalezar;color:{{ p.bFg }}">{{ p.bT }}</span>
+                  <span style="flex:none;padding:2px 9px;border-radius:99px;background:#0E0A08;border:1.5px solid {{ p.bBd }};font:13px/1.4 Lalezar;color:{{ p.bFg }}">{{ p.bPill }}</span>
+                </div>
+                <div style="flex:none;display:flex;align-items:center;gap:6px">
+                  <svg viewBox="0 0 24 24" width="18" height="18" style="flex:none"><path d="M4 5c3-1 6-1 8 1 2-2 5-2 8-1v14c-3-1-6-1-8 1-2-2-5-2-8-1z M12 6v14" fill="none" stroke="#E8B64A" stroke-width="2" stroke-linejoin="round"></path></svg>
+                  <span style="font:17px/1 Lalezar;color:#E8B64A">چرا «{{ p.ansT }}»؟</span>
+                </div>
+                <div style="flex:1;min-height:0;overflow-y:auto;scrollbar-width:none;font:800 14.5px/1.75 Vazirmatn;color:#FFE9A8;text-wrap:pretty">{{ p.ex }}</div>
+                <button onClick="{{ p.next }}" style="flex:none;position:relative;overflow:hidden;height:48px;border-radius:15px;border:3px solid #000;background:linear-gradient(180deg,#FFD2B0 0%,#E0895A 38%,#B0552A 72%,#7A3414 100%);box-shadow:inset 0 2px 0 rgba(255,255,255,.6),0 4px 0 #000;font:20px Lalezar;color:#2A1206;text-shadow:0 1px 0 rgba(255,255,255,.45);cursor:pointer" style-active="transform:translateY(3px)">
+                  <div style="position:absolute;left:0;top:0;bottom:0;width:{{ p.nextPct }};background:rgba(0,0,0,.18);transition:width 1s linear"></div>
+                  <span style="position:relative">سؤال بعدی{{ p.nextLbl }}</span>
+                </button>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+        <div style="font:12px 'JetBrains Mono',monospace;color:rgba(255,233,168,.6)">{{ p.cap }}</div>
+      </div>
+    </sc-for>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;autoNext&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;oppSkill&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;default&quot;:70,&quot;min&quot;:0,&quot;max&quot;:100,&quot;step&quot;:5,&quot;unit&quot;:&quot;%&quot;,&quot;tsType&quot;:&quot;number&quot;},&quot;showStates&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+const fa=n=>String(n).replace(/\d/g,d=>'۰۱۲۳۴۵۶۷۸۹'[d]);
+const Q=[
+ {cat:'جغرافیا',q:'محوطه‌ی تاریخی ماچو پیچو در کدام کشور است؟',o:['مکزیک','اکوادور','بولیوی','پرو'],a:3,ex:'ماچو پیچو شهر سنگی اینکاهاست که حدود قرن پانزدهم میلادی بالای دره‌ی اوروبامبا در کوه‌های آند ساخته شد. سال ۱۹۸۳ در فهرست میراث جهانی یونسکو ثبت شد.'},
+ {cat:'جغرافیا',q:'پایتخت استرالیا کدام شهر است؟',o:['سیدنی','ملبورن','کانبرا','پرت'],a:2,ex:'کانبرا از اول برای پایتختی ساخته شد تا رقابت سیدنی و ملبورن سر پایتختی تمام شود. پارلمان استرالیا از ۱۹۲۷ آنجا تشکیل می‌شود.'},
+ {cat:'ایران',q:'بلندترین قله‌ی ایران کدام است؟',o:['دماوند','علم‌کوه','سبلان','تفتان'],a:0,ex:'دماوند با حدود ۵۶۱۰ متر ارتفاع بلندترین قله‌ی ایران است؛ یک آتشفشان خفته در رشته‌کوه البرز، نزدیک تهران.'}
+];
+const L=['الف','ب','ج','د'],T0=15,NX=8,C=138.2;
+const BASE={me:2,op:1,streak:2,hist:['r','r']};
+const fresh=(qi,b)=>({qi,pick:null,opp:null,oppAt:4+Math.floor(Math.random()*6),phase:'ask',t:T0,nextT:NX,...b});
+class Component extends DCLogic{
+  state={live:fresh(0,{...BASE,hist:[...BASE.hist]})};
+  componentDidMount(){this.iv=setInterval(()=>this.tick(),1000)}
+  componentWillUnmount(){clearInterval(this.iv)}
+  oppPick(q){const sk=(this.props.oppSkill??70)/100;if(Math.random()<sk)return q.a;const w=[0,1,2,3].filter(i=>i!==q.a);return w[Math.floor(Math.random()*3)]}
+  reveal(s){const q=Q[s.qi],m=s.pick===q.a,o=s.opp===q.a;return{...s,phase:'reveal',nextT:NX,me:s.me+(m?1:0),op:s.op+(o?1:0),streak:m?s.streak+1:0,hist:[...s.hist,m?'r':'w']}}
+  tick(){this.setState(({live:s})=>{
+    if(s.phase==='ask'){let n={...s,t:s.t-1};const el=T0-n.t;
+      if(n.opp===null&&el>=n.oppAt)n.opp=this.oppPick(Q[n.qi]);
+      if((n.pick!==null&&n.opp!==null)||n.t<=0)n=this.reveal(n);
+      return{live:n}}
+    if(this.props.autoNext??true){if(s.nextT<=1)return{live:this.nextOf(s)};return{live:{...s,nextT:s.nextT-1}}}
+    return null})}
+  nextOf(s){const done=s.hist.length>=8;const b=done?{...BASE,hist:[...BASE.hist]}:{me:s.me,op:s.op,streak:s.streak,hist:s.hist};return fresh((s.qi+1)%Q.length,b)}
+  pick(i){this.setState(({live:s})=>{if(s.phase!=='ask'||s.pick!==null)return null;let n={...s,pick:i};
+    if(n.opp!==null)n=this.reveal(n);else n.oppAt=Math.min(n.oppAt,T0-n.t+1);return{live:n}})}
+  vm(s,live,label,cap){
+    const q=Q[s.qi],rev=s.phase==='reveal',m=s.pick===q.a,o=s.opp===q.a;
+    const rows=q.o.map((t,i)=>{const A=i===q.a,mine=s.pick===i,theirs=rev&&s.opp===i;
+      let bg='linear-gradient(180deg,#3A2A1C,#1E1610)',bd='#8A5A16',fg='#FFE9A8',tagBg='linear-gradient(180deg,#FFF1B8,#E8B64A 45%,#B8822A)',tagFg='#2A1606',sh='0 0 0 2px #000,0 3px 0 #000',op=1,ok=false,no=false;
+      if(!rev&&mine){bd='#FFD2B0';bg='linear-gradient(180deg,#5A2E18,#2A140A)';tagBg='linear-gradient(180deg,#FFD2B0,#E0895A 45%,#B0552A)';sh='0 0 0 2px #000,0 0 14px rgba(224,137,90,.55)'}
+      if(!rev&&s.pick!==null&&!mine)op=.55;
+      if(rev){if(A){bg='linear-gradient(180deg,#3E7A22,#22480F)';bd='#9FE870';fg='#F1FFE6';tagBg='#9FE870';ok=true;sh='0 0 0 2px #000,0 0 16px rgba(126,217,87,.45)'}
+        else if(mine||theirs){bg='linear-gradient(180deg,#6A1E16,#3A0E0A)';bd='#E0533F';fg='#FFD9D2';tagBg='#C4302B';no=true}
+        else{bg='#17100C';bd='#3A2A1C';fg='rgba(255,233,168,.4)';tagBg='#2A1E16';tagFg='rgba(255,233,168,.4)';sh='0 0 0 2px #000';op=.75}}
+      return{t,l:L[i],bg,bd,fg,tagBg,tagFg,sh,op,ok,no,showL:!ok&&!no,mine,theirs,tap:live?()=>this.pick(i):()=>{}}});
+    let b;
+    if(m&&o)b={T:'هر دو درست زدید!',P:'+۱ هر دو',bg:'#1C3A12',bd:'#7ED957',fg:'#D9FFC4'};
+    else if(m)b={T:'این دست مال تو شد!',P:'+۱ تو',bg:'#3A2A0A',bd:'#E8B64A',fg:'#FFE9A8'};
+    else if(o)b={T:s.pick===null?'وقتت تموم شد؛ حریف زد':'حریف زد، تو نه',P:'+۱ حریف',bg:'#3A0E0A',bd:'#E0533F',fg:'#FFC9BF'};
+    else b={T:'هیچ‌کدوم نزدید',P:'بدون امتیاز',bg:'#2A1E16',bd:'#8A5A16',fg:'#FFE9A8'};
+    const pips=Array.from({length:8},(_,i)=>({c:s.hist[i]==='r'?'#7ED957':s.hist[i]==='w'?'#E0533F':i===s.hist.length?'#E8B64A':'#2A1E16'}));
+    const t=Math.max(0,s.t),auto=this.props.autoNext??true;
+    return{label,cap,ask:!rev,rev,cat:q.cat,q:q.q,rows,pips,numFa:fa(Math.min(8,rev?s.hist.length:s.hist.length+1)),
+      meFa:fa(s.me),opFa:fa(s.op),hasStreak:s.streak>=2,streakFa:fa(s.streak),
+      oppSt:rev?(o?'درست زد':s.opp===null?'جواب نداد':'غلط زد'):(s.opp!==null?'جواب داد ✓':'داره فکر می‌کنه…'),
+      oppStC:rev?(o?'#9FE870':'#FF9A8A'):(s.opp!==null?'#9FE870':'rgba(255,233,168,.55)'),
+      tFa:fa(t),tOff:C*(1-t/T0),tC:rev?'#5A4A3A':t<=5?'#FF6B55':'#E8B64A',
+      hint:s.pick===null?'یکی رو انتخاب کن':'منتظر حریف…',
+      rowH:rev?'34px':'60px',rowGap:rev?'5px':'9px',qPad:rev?'9px 12px':'12px 14px 14px',qFs:rev?'15.5px':'18px',
+      bT:b.T,bPill:b.P,bBg:b.bg,bBd:b.bd,bFg:b.fg,ansT:q.o[q.a],ex:q.ex,
+      nextLbl:live&&auto?' · '+fa(s.nextT):'',nextPct:live&&auto?((NX-s.nextT)/NX*100)+'%':'0%',
+      next:live?()=>this.setState(({live:x})=>({live:this.nextOf(x)})):()=>{}};
+  }
+  renderVals(){
+    const phones=[this.vm(this.state.live,true,'Duel live','live · tap an answer')];
+    if(this.props.showStates??true){
+      phones.push(this.vm({qi:0,pick:3,opp:1,phase:'reveal',t:7,nextT:NX,me:3,op:1,streak:3,hist:['r','r','r']},false,'Duel reveal win','state · reveal · you right, opponent wrong'));
+      phones.push(this.vm({qi:1,pick:0,opp:2,phase:'reveal',t:4,nextT:NX,me:3,op:2,streak:0,hist:['r','r','r','w']},false,'Duel reveal lose','state · reveal · you wrong'));
+    }
+    return{phones};
+  }
+}
+</script>
+</body>
+</html>

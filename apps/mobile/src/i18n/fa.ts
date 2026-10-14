@@ -747,6 +747,30 @@ export const fa = {
       resultTitle: 'دور سؤال عمومی',
       /** Right answers of each side (one point each). */
       earned: (you: string, them: string) => `جواب درست: تو ${you} · حریف ${them}`,
+      /** Adult look (docs/design/adult/Dozari Adult - Quiz Duel). */
+      adult: {
+        you: 'تو',
+        rival: 'حریف',
+        pickOne: 'یکی رو انتخاب کن',
+        waitRival: 'منتظر حریف…',
+        rivalThinking: 'داره فکر می‌کنه…',
+        rivalAnswered: 'جواب داد ✓',
+        rivalRight: 'درست زد',
+        rivalWrong: 'غلط زد',
+        rivalNone: 'جواب نداد',
+        streak: (n: string) => `${n} تا پشت‌سرهم`,
+        bothRight: 'هر دو درست زدید!',
+        mineRight: 'این دست مال تو شد!',
+        rivalOnly: 'حریف زد، تو نه',
+        timeUpRivalOnly: 'وقتت تموم شد؛ حریف زد',
+        noneRight: 'هیچ‌کدوم نزدید',
+        pointBoth: '+۱ هر دو',
+        pointMine: '+۱ تو',
+        pointRival: '+۱ حریف',
+        pointNone: 'بدون امتیاز',
+        why: (answer: string) => `چرا «${answer}»؟`,
+        next: 'سؤال بعدی',
+      },
     },
     /** Screens of `docs/design/Dozari - 13 Match Screens` (D99). */
     arena: {
