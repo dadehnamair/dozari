@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { formatPersianNumber } from '@dozari/shared';
 import type { TriviaTopics } from '@dozari/shared';
 import { AdultBackdrop, BrassSquare, Plate } from '../duel/adultKit';
@@ -9,7 +9,8 @@ import { playSfx } from '../sound/engine';
 import { fonts } from '../theme/colors';
 import { nativeTopInset } from '../theme/safeArea';
 
-const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
+/** The screen is laid out with `direction: 'rtl'` (see `styles.screen`), so a row starts at the right edge on every platform. */
+const ROW = 'row' as const;
 const t = fa.triviaDuel;
 const a = t.adult;
 
@@ -135,7 +136,7 @@ export function TopicPickAdult({ topics, fee, busy = false, note = null, texts, 
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, paddingHorizontal: 12, paddingBottom: 14, gap: 10, width: '100%', maxWidth: 480, alignSelf: 'center' },
+  screen: { direction: 'rtl', flex: 1, paddingHorizontal: 12, paddingBottom: 14, gap: 10, width: '100%', maxWidth: 480, alignSelf: 'center' },
   head: { flexDirection: ROW, alignItems: 'center', gap: 10 },
   headText: { flex: 1, gap: 2 },
   title: { fontFamily: fonts.display, fontSize: 26, lineHeight: 36, color: '#FFE9A8', textAlign: 'right' },

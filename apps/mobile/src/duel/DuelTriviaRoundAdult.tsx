@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { toPersianDigits } from '@dozari/shared';
 import type { TriviaRoundView } from '@dozari/shared';
@@ -14,8 +14,9 @@ const t = fa.duel.triviaRound;
 const a = t.adult;
 const LETTERS = ['الف', 'ب', 'ج', 'د'] as const;
 const RING = 138.2;
-const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
-const ROW_REV = Platform.OS === 'web' ? ('row' as const) : ('row-reverse' as const);
+/** The screen is laid out with `direction: 'rtl'` (see `styles.column`), so a row starts at the right edge on every platform, whatever the device's own layout direction. */
+const ROW = 'row' as const;
+const ROW_REV = 'row-reverse' as const;
 /** How long a finished question's «شرح» card stays before the next question takes over (the player can skip it). */
 const HOLD_MS = 8000;
 
@@ -217,7 +218,7 @@ export function DuelTriviaRoundAdult({ round, now, onAnswer, me, rival, topic, t
 }
 
 const styles = StyleSheet.create({
-  column: { width: '100%', maxWidth: 520, alignSelf: 'center', gap: 10, paddingTop: 8, alignItems: 'stretch' },
+  column: { direction: 'rtl', width: '100%', maxWidth: 520, alignSelf: 'center', gap: 10, paddingTop: 8, alignItems: 'stretch' },
   head: { flexDirection: ROW, alignItems: 'center', gap: 10 },
   headMain: { flex: 1, gap: 6, minWidth: 0 },
   titleRow: { flexDirection: ROW, alignItems: 'baseline', gap: 8 },
