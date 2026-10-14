@@ -6,6 +6,8 @@ interface Native {
   schedule: (baseUrl: string, token: string) => void;
   /** Firebase token of this install; null when the build has no Firebase identifiers or the phone cannot reach Google. */
   fcmToken?: () => Promise<string | null>;
+  /** Links this install to the player in the IRNoti push service; false when the build has no IRNoti app key. */
+  irnotiIdentify?: (externalId: string) => boolean;
   cancel: () => void;
 }
 
@@ -30,7 +32,11 @@ export async function startBackgroundNotify(): Promise<void> {
     const token = await session.token();
     if (!token) return;
     mod.schedule(BASE_URL, token);
-    // Instant push where Google is reachable; the scheduled check above stays as the fallback (both show under the same tag).
+    // Instant push where Google is reachable; the scheduled check above stays as the fallback.
+    // Preferred route: the IRNoti SDK registers the device itself, we only tell it which player this is (the server decides the id).
+    const irnoti = (await callJson('/push/irnoti', 'GET', undefined, token).catch(() => null)) as { externalId?: string } | null;
+    if (irnoti?.externalId && mod.irnotiIdentify?.(irnoti.externalId)) return;
+    // Builds or servers without IRNoti: hand our own FCM token to the server (direct FCM).
     const fcm = await mod.fcmToken?.().catch(() => null);
     if (fcm) await callJson('/push/fcm', 'POST', { token: fcm }, token);
   } catch {

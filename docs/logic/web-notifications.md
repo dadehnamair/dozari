@@ -39,3 +39,13 @@ Instant delivery for the native app where Google is reachable; the WorkManager c
 - No duplicates: FCM and the polling check show under the same notification tag (`friend_request`, `inbox`, `dm:<name>`…).
 - A phone without Play Services (or with Google blocked) gets no token and keeps only the polling check.
 - **Not compiled or run:** written without an Android SDK. Needs a real build (`assembleRelease`), a Firebase project with an Android app `ir.dozari.app`, and a test on a phone.
+
+## Android app: push through IRNoti (D233, owner request 2026-10-14)
+
+The owner wants Android push to go through the IRNoti push service, not our own FCM sender. IRNoti holds the Firebase service account; the app uses the official IRNoti Android SDK (`com.github.irnoti:andriod-sdk:1.0.0` from JitPack — the repo is spelled «andriod»).
+
+- Panel (once): organisation → project → enable the **Push** service → new app with the Firebase service-account JSON (`/panel/projects/<id>/push`). Copy the public key `pk_live_…` and the app's numeric id. Create an API key with scope `broker.write`.
+- Server (`notify/irnoti-push.ts`): env `IRNOTI_PUSH_APP_ID` + `IRNOTI_API_KEY` (+ optional `IRNOTI_BASE_URL`). Same events as Web Push; each is `POST /v1/sdk-apps/<id>/send` with `target.externalIds = [playerId]` and `extra.tag`. `GET /push/irnoti` tells the logged-in app its external id (the player id). When this is on, the direct FCM sender (`FCM_SERVICE_ACCOUNT_JSON`) is not started.
+- App: build env `IRNOTI_PUSH_APP_KEY` (+ optional `IRNOTI_API_BASE`, SDK default `https://api.irnoti.ir/v1/sdk`) plus the four `FCM_*` Firebase identifiers (the SDK reads the FCM token, so Firebase still has to start; `plugins/withFcm.js`). `plugins/withIrnoti.js` adds JitPack and the meta-data; `IrnotiInit` starts the SDK; `DozariMessagingService` is the only FCM service (the SDK's is removed from the merged manifest) and passes IRNoti payloads (`irn_id`) to `Irnoti.handleMessage`, and tokens to `Irnoti.onNewToken`. `startBackgroundNotify` calls `Irnoti.identify(playerId)` on every Home open; `stopBackgroundNotify` calls `Irnoti.logout()`.
+- Without `IRNOTI_PUSH_APP_KEY` the build falls back to the direct-FCM route above.
+- Known: IRNoti notifications use the SDK's renderer (notify id from the message), so an event shown by both the push and the WorkManager check can appear twice. Not compiled or run (no Android SDK here); `compileSdk` must be 35+.

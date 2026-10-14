@@ -98,6 +98,8 @@ import { createBaleSignup } from './notify/signup.js';
 import { startNotifyRunner } from './notify/runner.js';
 import { registerBaleRoutes } from './notify/routes.js';
 import { FcmService, createDbFcmTokenStore, createFcmSender, loadServiceAccount, registerFcmRoutes } from './notify/fcm.js';
+import { irnotiPushFromEnv, registerIrnotiPushRoutes } from './notify/irnoti-push.js';
+import type { IrnotiPushService } from './notify/irnoti-push.js';
 import { WebPushService, createDbPushSubStore, createVapidSender, registerWebPushRoutes } from './notify/webpush.js';
 import { MessageCenter } from './messages/service.js';
 import { createDbMessageStore } from './messages/store.js';
@@ -225,6 +227,7 @@ export interface ServerDeps {
   bale?: { service: NotifyService; botUsername: string | null };
   webPush?: WebPushService;
   fcm?: FcmService;
+  irnotiPush?: IrnotiPushService;
   /** Mobile numbers (`/me/phone`); also required before Bale linking when the setting says so. */
   phone?: PhoneService;
   /** «ورود با شماره»: logged-out sign-in by SMS code (`/auth/phone/*`). */
@@ -422,6 +425,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.keepsakes) registerKeepsakeRoutes(app, deps.auth, deps.keepsakes);
   if (deps.auth && deps.webPush) registerWebPushRoutes(app, deps.auth, deps.webPush);
   if (deps.auth && deps.fcm) registerFcmRoutes(app, deps.auth, deps.fcm);
+  if (deps.auth && deps.irnotiPush) registerIrnotiPushRoutes(app, deps.auth);
   if (deps.auth && deps.messages) registerInboxRoutes(app, deps.auth, deps.messages);
   if (deps.auth && deps.messages && deps.social) {
     const center = deps.messages;
@@ -571,11 +575,14 @@ if (isMainModule(import.meta.url)) {
   const webPush = db && vapid ? new WebPushService(createDbPushSubStore(db), createVapidSender(vapid), vapid.publicKey) : undefined;
   // Android app push (FCM HTTP v1, no SDK): `FCM_SERVICE_ACCOUNT_JSON` is the service-account key, as JSON text or a file path. Off without it.
   const fcmAccount = loadServiceAccount(process.env.FCM_SERVICE_ACCOUNT_JSON);
-  const fcm = db && fcmAccount ? new FcmService(createDbFcmTokenStore(db), createFcmSender(fcmAccount)) : undefined;
-  if (webPush || fcm) {
+  // irnoti push service wins when configured: the SDK in the app registers the device with irnoti and delivery goes through irnoti, so the direct FCM sender stays off.
+  const irnotiPush = irnotiPushFromEnv(process.env) ?? undefined;
+  const fcm = irnotiPush || !(db && fcmAccount) ? undefined : new FcmService(createDbFcmTokenStore(db), createFcmSender(fcmAccount));
+  if (webPush || fcm || irnotiPush) {
     notices.also = (id, n) => {
       void webPush?.notice(id, n).catch(() => undefined);
       void fcm?.notice(id, n).catch(() => undefined);
+      void irnotiPush?.notice(id, n).catch(() => undefined);
     };
   }
   // The SMS provider and message texts are edited in the admin panel (stored in app_settings); env vars are the fallback.
@@ -1067,6 +1074,7 @@ if (isMainModule(import.meta.url)) {
     notices,
     webPush,
     fcm,
+    irnotiPush,
     notify,
     messages,
     social,

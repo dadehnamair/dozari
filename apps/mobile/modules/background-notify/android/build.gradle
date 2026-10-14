@@ -21,4 +21,7 @@ dependencies {
   // (FcmInit), so no google-services.json or Gradle plugin; without the meta-data it is never touched.
   implementation platform("com.google.firebase:firebase-bom:33.1.2")
   implementation "com.google.firebase:firebase-messaging"
+  // IRNoti push SDK (JitPack; the repository is spelled "andriod-sdk"): registers this install with the IRNoti push service and shows
+  // its notifications. Started from manifest meta-data (IrnotiInit); without them it is never touched.
+  implementation "com.github.irnoti:andriod-sdk:1.0.0"
 }
