@@ -68,19 +68,19 @@ def framed(bg, fg):
 
 
 bg = rays(S)
-for suffix, src in (('', 'assets/adaptive-icon.png'),):
+for suffix, src in (('', 'assets/adaptive-icon.png'), ('-female', 'assets/adaptive-icon-female.png')):
     fg = foreground(src)
     full = framed(bg, fg)
     full.convert('RGB').save(f'assets/icon-adult{suffix}.png')
     full.convert('RGB').resize((192, 192), Image.LANCZOS).save(f'assets/icon-adult{suffix}-192.png')
     fg.resize((432, 432), Image.LANCZOS).save(f'assets/adaptive-icon-adult{suffix}-432.png')
     if suffix == '':
-        full.convert('RGB').resize((192, 192), Image.LANCZOS).save('public/icon-192.png')
-        full.convert('RGB').resize((512, 512), Image.LANCZOS).save('public/icon-512.png')
-        full.convert('RGB').resize((180, 180), Image.LANCZOS).save('public/apple-touch-icon.png')
+        full.convert('RGB').resize((192, 192), Image.LANCZOS).save('public/icon-adult-192.png')
+        full.convert('RGB').resize((512, 512), Image.LANCZOS).save('public/icon-adult-512.png')
+        full.convert('RGB').resize((180, 180), Image.LANCZOS).save('public/apple-touch-icon-adult.png')
         # maskable: no frame (the launcher masks it), hero inside the 80% safe zone
         mk = bg.copy()
         mk.alpha_composite(foreground(src, coin_d=540))
-        mk.convert('RGB').resize((512, 512), Image.LANCZOS).save('public/icon-maskable-512.png')
+        mk.convert('RGB').resize((512, 512), Image.LANCZOS).save('public/icon-adult-maskable-512.png')
 rays(216).convert('RGB').save('assets/adaptive-background-adult-216.png')
 print('ok')

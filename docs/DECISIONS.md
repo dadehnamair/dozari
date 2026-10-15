@@ -793,6 +793,3 @@ Owner (2026-10-14): record the difficulty of questions now and, once the bank is
 ## D239 — One «قیمت/سوال» entry under the coin plate, with a price section and a question section (2026-10-14, proposed)
 
 Owner (2026-10-14): a new Login Home design puts a gold «قیمت/سوال» tab under the coin count; the sheet it opens must have two sections, price and question. Proposed: the tab opens `SchoolSheet` (price: suggest/vote, D104; question: make/review, D237) with a segmented switch; the question section and the review-waiting badge appear only when the workshop switch is on (adult track). The hub «مکتب‌خانه» opens the same sheet. See `docs/logic/question-workshop.md` §Entry.
-## D240 — One fixed app icon: the gold adult icon for everyone (2026-10-15, owner)
-
-Owner: the `adult/Dozari Adult - App Icon` (male hero on the gold coin, black frame) is the only app icon — Android launcher and splash, PWA manifest/apple-touch/favicon, landing icons — for every track and gender. Supersedes the per-gender icon (D166) and the kid/teen candy icon of the age-theme pass (D198 note); the kid/teen **theme** is unchanged. Removed: the four launcher aliases, `plugins/withGenderIcon.js`, `modules/app-icon`, `src/appIcon`, the female/candy-icon assets and `manifest-adult.webmanifest`. Known limit: an installed PWA/launcher keeps its old icon until reinstalled or updated.
