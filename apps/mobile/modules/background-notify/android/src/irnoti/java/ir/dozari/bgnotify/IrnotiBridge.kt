@@ -2,6 +2,7 @@ package ir.dozari.bgnotify
 
 import android.content.Context
 import android.content.pm.PackageManager
+import android.util.Log
 import ir.irnoti.sdk.Irnoti
 import ir.irnoti.sdk.IrnotiConfig
 
@@ -10,6 +11,7 @@ import ir.irnoti.sdk.IrnotiConfig
  * plugins/withIrnoti.js writes; [ensure] is false when the build has no IRNoti app key.
  */
 object IrnotiBridge {
+  private const val TAG = "DozariIrnoti"
   @Volatile private var started = false
 
   /** Safe to call from any entry point (JS module, FCM service started cold by a push); Firebase is started first because the SDK reads its token. */
@@ -17,24 +19,28 @@ object IrnotiBridge {
   fun ensure(context: Context): Boolean {
     if (started) return true
     val app = context.applicationContext
-    if (!FcmInit.ensure(app)) return false
+    if (!FcmInit.ensure(app)) { Log.w(TAG, "ensure: Firebase is not initialised (missing ir.dozari.fcm.* meta-data?)"); return false }
     val meta = try {
       app.packageManager.getApplicationInfo(app.packageName, PackageManager.GET_META_DATA).metaData
     } catch (e: Exception) {
       null
     } ?: return false
-    val key = meta.getString("ir.dozari.irnoti.app_key") ?: return false
+    val key = meta.getString("ir.dozari.irnoti.app_key") ?: run { Log.w(TAG, "ensure: no ir.dozari.irnoti.app_key in the manifest"); return false }
     val base = meta.getString("ir.dozari.irnoti.api_base")
     // The launcher icon doubles as the status-bar icon, as in Notifier.
     val icon = app.applicationInfo.icon
     Irnoti.init(app, if (base.isNullOrBlank()) IrnotiConfig(appKey = key, smallIcon = icon) else IrnotiConfig(appKey = key, smallIcon = icon, apiBase = base))
     started = true
+    Log.i(TAG, "ensure: Irnoti.init done, apiBase=${if (base.isNullOrBlank()) "(SDK default)" else base}")
     return true
   }
 
   fun isIrnotiMessage(data: Map<String, String>): Boolean = Irnoti.isIrnotiMessage(data)
   fun handleMessage(context: Context, data: Map<String, String>) = Irnoti.handleMessage(context, data)
   fun onNewToken(token: String) = Irnoti.onNewToken(token)
-  fun identify(externalId: String) = Irnoti.identify(externalId)
+  fun identify(externalId: String) {
+    Log.i(TAG, "identify called")
+    Irnoti.identify(externalId)
+  }
   fun logout() = Irnoti.logout()
 }
