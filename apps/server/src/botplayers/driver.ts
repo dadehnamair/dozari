@@ -1,4 +1,4 @@
-import { AVATAR_KEYS, averageLevel, botSkillForLevel, changesAvatar, driftSkill, botThinkDelay, chooseBotMove, chooseBotPriceGuess, pickBotByLevel, scaledThinkRange } from '@dozari/shared';
+import { AVATAR_KEYS, averageLevel, botSkillForLevel, changesAvatar, driftSkill, botThinkDelay, chooseBotMove, chooseBotPriceGuess, pickBotByLevel, scaledThinkRange, withoutRecentBots } from '@dozari/shared';
 import type { ChatMessage, MatchEnded, MatchFound, MatchView, Rng, TduelState } from '@dozari/shared';
 import { createHash } from 'node:crypto';
 import type { ChatService } from '../chat/service.js';
@@ -52,6 +52,8 @@ export class BotDriver {
   private readonly sideOf = new Map<string, 0 | 1>();
   private readonly levels = new Map<string, number>();
   private ticks = 0;
+  /** Per human: the bots they were paired with lately (newest last), so a bot does not come back at once. In memory; a restart forgets it. */
+  private readonly met = new Map<string, { botId: string; at: number }[]>();
   private enabled = true;
   private readonly now: () => number;
   private readonly schedule: (ms: number, fn: () => void) => void;
@@ -264,6 +266,16 @@ export class BotDriver {
   /** The idle bot whose level is nearest the humans' (their average): a level-3 player is never paired with a level-20 bot. A random one when levels are unknown. */
   private async botNear(idle: BotRow[], humanIds: string[]): Promise<BotRow | null> {
     if (idle.length === 0) return null;
+    const at = this.now();
+    // A bot a human met lately sits out for a number of that human's games / a while, so the same names do not keep coming back.
+    const fresh = humanIds.reduce<BotRow[]>((pool, id) => withoutRecentBots(pool.map((b) => ({ ...b, id: b.userId })), this.met.get(id) ?? [], at).map((c) => idle.find((b) => b.userId === c.id)!), idle);
+    const pool = fresh.length > 0 ? fresh : idle;
+    const pick = await this.pickNear(pool, humanIds);
+    if (pick) for (const id of humanIds) this.met.set(id, [...(this.met.get(id) ?? []), { botId: pick.userId, at }].slice(-20));
+    return pick;
+  }
+
+  private async pickNear(idle: BotRow[], humanIds: string[]): Promise<BotRow | null> {
     if (this.deps.levelOf) {
       try {
         const level = averageLevel(await Promise.all(humanIds.map((id) => this.deps.levelOf!(id))));

@@ -37,6 +37,10 @@ a disguised way to take players' coins.
   explicitly enables an "اضافه‌کردن حریف در صورت نیاز" option — never inject a bot into a private
   table uninvited.
 
+## Not the same bot again
+
+A human is not paired with a bot they just played: the bots of their last `BOT_REPEAT_COOLDOWN_GAMES` games and anyone met within `BOT_REPEAT_COOLDOWN_MS` sit out for them (`withoutRecentBots`, used by the driver's `botNear`; kept in memory per human). When that would leave no bot, the one met longest ago plays, so a search never starves. With a small roster near the player's level the same few names still return, so keep `bots.autofill_min` high enough.
+
 ## In-match behavior
 
 - A bot plays through the **exact same server path** as a human: the server issues `submit` /

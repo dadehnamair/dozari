@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { averageLevel, pickBotByLevel } from '../pick.js';
+import { averageLevel, pickBotByLevel, withoutRecentBots } from '../pick.js';
 
 const bots = [{ id: 'a', level: 3 }, { id: 'b', level: 4 }, { id: 'c', level: 20 }, { id: 'd', level: 25 }];
 
@@ -20,5 +20,20 @@ describe('pickBotByLevel', () => {
   it('averages the levels of a team', () => {
     expect(averageLevel([2, 4])).toBe(3);
     expect(averageLevel([])).toBe(1);
+  });
+});
+
+describe('withoutRecentBots', () => {
+  const bots = ['a', 'b', 'c', 'd', 'e', 'f', 'g'].map((id) => ({ id }));
+  it('drops the bots of the last games and of the last minutes', () => {
+    const history = ['a', 'b', 'c', 'd', 'e'].map((botId, i) => ({ botId, at: i * 1000 }));
+    expect(withoutRecentBots(bots, history, 10 * 60_000).map((b) => b.id)).toEqual(['f', 'g']);
+    // a long time later only the last few games still count
+    const old = withoutRecentBots(bots, [...history, { botId: 'f', at: 0 }], 5 * 60 * 60_000).map((b) => b.id);
+    expect(old).toEqual(['a', 'g']);
+  });
+  it('never leaves nobody: the bot met longest ago is allowed', () => {
+    const history = [{ botId: 'x', at: 100 }, { botId: 'y', at: 200 }];
+    expect(withoutRecentBots([{ id: 'x' }, { id: 'y' }], history, 300).map((b) => b.id)).toEqual(['x']);
   });
 });
