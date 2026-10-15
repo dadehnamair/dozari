@@ -4,3 +4,4 @@ export * from './skill.js';
 export * from './names.js';
 export * from './pick.js';
 export * from './life.js';
+export * from './gender.js';

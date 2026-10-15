@@ -3,12 +3,23 @@ import { playSfx } from '../sound/engine';
 import { GradientFill } from '../components/GradientFill';
 import { Icon } from '../components/Icon';
 import { colors, fonts } from '../theme/colors';
+import { bootTheme } from '../theme/bootTheme';
+import { BrassSquare } from '../duel/adultKit';
 
 /** Right-to-left on web too (react-native-web does not flip rows; native does under forced RTL). */
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 
 /** Top bar of screen-match: square violet back button, yellow title plate, and a slot for counters on the far side. */
 export function GameTopBar({ title, backLabel, onBack, children }: { title: string; backLabel: string; onBack: () => void; children?: React.ReactNode }) {
+  if (bootTheme() === 'adult') {
+    return (
+      <View style={styles.adultBar}>
+        <BrassSquare glyph="back" label={backLabel} onPress={() => (playSfx('back'), onBack())} />
+        <Text style={styles.adultTitle} numberOfLines={1}>{title}</Text>
+        {children}
+      </View>
+    );
+  }
   return (
     <View style={styles.bar}>
       <Pressable accessibilityRole="button" accessibilityLabel={backLabel} onPress={() => (playSfx('back'), onBack())}>
@@ -29,6 +40,8 @@ export function GameTopBar({ title, backLabel, onBack, children }: { title: stri
 }
 
 const styles = StyleSheet.create({
+  adultBar: { direction: 'rtl', flexDirection: 'row', alignItems: 'center', gap: 10 },
+  adultTitle: { flex: 1, fontFamily: fonts.display, fontSize: 26, lineHeight: 38, color: '#FFE9A8', textAlign: 'right' },
   bar: { flexDirection: ROW, alignItems: 'center', gap: 8 },
   back: { width: 42, height: 42, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', marginBottom: 4, shadowColor: colors.ink, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4 },
   pressed: { transform: [{ translateY: 3 }] },

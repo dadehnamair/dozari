@@ -74,14 +74,14 @@ export function playSfx(name: Sfx): void {
 }
 
 /** A short buzz on phones that support it, when the player allows vibration. */
-export function buzz(ms = 30): void {
+export function buzz(ms: number | number[] = 30): void {
   if (!getPrefs().vibration) return;
   try {
     if (Platform.OS !== 'web') {
       Vibration.vibrate(ms);
       return;
     }
-    (globalThis.navigator as { vibrate?: (n: number) => boolean } | undefined)?.vibrate?.(ms);
+    (globalThis.navigator as { vibrate?: (n: number | number[]) => boolean } | undefined)?.vibrate?.(ms);
   } catch {
     /* unsupported */
   }

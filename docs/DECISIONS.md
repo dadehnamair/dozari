@@ -769,3 +769,27 @@ Owner (2026-10-13): "what can you do for notifications on PWA and Android?" → 
 ## D233 — FCM push allowed through the irnoti broker (2026-10-14)
 
 Owner (2026-10-14): irnoti already solves the filtering/sanctions problem, so the "no Google/Firebase" rule (D1, D18, CLAUDE.md rule 8) is relaxed. Allowed: FCM push delivered through the irnoti broker (the Firebase project and its `google-services.json` / service-account JSON may exist, kept out of git and in env/secrets). Still forbidden: Firebase Auth, Maps, runtime Google Fonts, and any client or server path that needs Google endpoints to be reachable directly. D1/D18 stay in force for everything else. Not built yet: irnoti push API call, device-token table, enabling the `push` channel in the message center.
+
+## D234 — Question duel: a live 1v1 on general questions (2026-10-14, proposed)
+
+Owner (2026-10-14): beside «پرسش», add a duel that behaves like the board duel — find a rival on the search screen, start, questions come — with only a topic choice or random. Proposed: a separate light service (`TriviaDuelService`) on the shared trivia round state machine instead of a board-less `MatchService` match (the board match state, resume, tables and tournaments all assume a puzzle); its own socket events (`tduel:*`); a topic player pairs with the same topic or a random player; 8 questions × 15 s (admin settings `trivia.duel_questions`, `trivia.duel_seconds`; switch `feature.trivia_duel`); bot fallback like the board duel; no coins/XP/leave penalty for now (rewards are open for solo trivia too). Details: `docs/logic/trivia.md` §Question duel.
+
+## D235 — Question modes cost coins; rematch; leaving costs like a duel (2026-10-14, proposed)
+
+Owner (2026-10-14): starting a solo question game or a question duel takes coins (solo less, duel more) while XP stays; the numbers must be worth it; leaving a question duel costs like leaving a board duel; a rematch with the same rival; both answers are shown right after each question; vibration and graphics. Proposed: solo fee 3, refunded when ≥ 75 % are right (so a good player pays nothing); duel fee 12 each with the board duel's 10 % house cut (winner +9, draw −2, bot rival covered by the house, a leaver forfeits the fee and gets a logged leave); three new ledger reasons `trivia_entry` / `trivia_payout` / `trivia_refund` (migration 0092); rematch window 30 s. Details: `docs/logic/trivia.md` §Coins, §Rematch.
+
+## D236 — Question modes remember what a player has seen (2026-10-14, proposed)
+
+Owner (2026-10-14): how likely is a repeated question and how do we control it? Measured: with no memory a repeat versus the previous game is ~99 % at 20 questions per topic, 50 % at 100. Proposed: a persistent per-player memory (`trivia_seen`, newest 500, migration 0093) written when a question is revealed, and a freshness draw (unseen by all human players first, then by fewer, then oldest) in solo, the question duel and the board duel's question round; guests and bots keep none. Details: `docs/logic/trivia.md` §No repeats.
+
+## D237 — Question workshop: players design and review questions, rewards and a loud entry (2026-10-14, proposed)
+
+Owner (2026-10-14): a reward system for designing questions (after approval) and points for reviewing, and make it eye-catching so people do it. Proposed: a **blind review** (the reviewer answers without seeing the author's answer, then rates 👍/👎; the score decides the admin queue), the **admin as the only publisher**, an **author reward** (40 coins + first-question bonus 40 + every 5th +50 + thin-topic bonus 15, admin campaign multiplier) paid once on approval, **reviewer points** (+1 per review, +3 when the blind pick and thumb agree with the final decision; every 30 points = 10 coins; titles تازه‌کار … استاد کارگاه), and a loud front: pulsing Home card with the waiting-review badge and live reward, call-to-actions after question games, the author's name under each played question, play counter, celebration card, weekly leaderboards. Details and numbers: `docs/logic/question-workshop.md` (migration 0094; settings `trivia.*` group «بازبینی»).
+
+## D238 — Question difficulty is recorded and measured; level matching is an admin switch (2026-10-14, proposed)
+
+Owner (2026-10-14): record the difficulty of questions now and, once the bank is big, serve them by player level whenever the admin wants. Proposed: three levels (آسان/متوسط/سخت) set by the admin (or suggested by the workshop author) plus play counters (`plays`, `right_count`, humans only) that yield a *measured* difficulty after 30 answers, shown in the admin panel with a one-click adopt; `trivia.level_matching` (default off) makes a draw prefer the difficulty that fits the average level of the human players, ranked after "unseen" (D236) so it never brings repeats back. Details: `docs/logic/trivia.md` §Difficulty (migration 0094).
+
+## D239 — One «قیمت/سوال» entry under the coin plate, with a price section and a question section (2026-10-14, proposed)
+
+Owner (2026-10-14): a new Login Home design puts a gold «قیمت/سوال» tab under the coin count; the sheet it opens must have two sections, price and question. Proposed: the tab opens `SchoolSheet` (price: suggest/vote, D104; question: make/review, D237) with a segmented switch; the question section and the review-waiting badge appear only when the workshop switch is on (adult track). The hub «مکتب‌خانه» opens the same sheet. See `docs/logic/question-workshop.md` §Entry.

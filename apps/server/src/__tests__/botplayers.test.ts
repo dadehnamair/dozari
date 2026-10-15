@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { levelInfo, matchViewSchema, mulberry32 } from '@dozari/shared';
+import { faceGender, levelInfo, matchViewSchema, mulberry32, nameGender } from '@dozari/shared';
 import { BotDriver } from '../botplayers/driver.js';
 import { BotPlayerService } from '../botplayers/service.js';
 import { createMemoryBotPlayerStore } from '../botplayers/store.js';
@@ -258,5 +258,26 @@ describe('bot community: bots grow from their games', () => {
     }
     expect(changed).toBeGreaterThan(5);
     expect(changed).toBeLessThan(25);
+  });
+});
+
+describe('bot faces follow names', () => {
+  it('generates faces and genders that fit the names, and repairs a bot whose face contradicts its name', async () => {
+    const store = createMemoryBotPlayerStore();
+    const svc = new BotPlayerService(store, async () => xp, mulberry32(11));
+    await svc.generate({ ...opts, count: 50 });
+    for (const b of await svc.list()) {
+      const g = nameGender(b.nickname);
+      if (g) {
+        expect(b.gender).toBe(g);
+        expect(faceGender(b.avatarKey)).toBe(g);
+      }
+    }
+    const id = await store.create({ nickname: 'پدرام', avatarKey: 'char-goli', gender: null, cityId: null, skill: 50, thinkMinMs: 3000, thinkMaxMs: 9000, tauntPercent: 0, coins: 0, stats: { xp: 0, games: 0, wins: 0, losses: 0, draws: 0 } });
+    const driver = new BotDriver({ store, matches: () => undefined, queue: () => undefined, settings: async () => ({ enabled: true, fallbackSec: 25, jitterSec: 0, cityReplyPercent: 0 }), rng: mulberry32(2) });
+    await driver.refresh();
+    const fixed = (await store.list()).find((b) => b.userId === id)!;
+    expect(fixed.gender).toBe('male');
+    expect(faceGender(fixed.avatarKey)).toBe('male');
   });
 });

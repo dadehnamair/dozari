@@ -12,6 +12,7 @@ import { fetchCandidates } from '../duel/api';
 import { facesFor, nextScan, searchClock, waitClock } from './scan';
 import type { Face } from './scan';
 import { safeTop } from '../theme/safeArea';
+import { bootTheme } from '../theme/bootTheme';
 
 // `direction` is not accepted inside StyleSheet.create by react-native-web's dev validation.
 const LTR: TextStyle = { direction: 'ltr' };
@@ -32,7 +33,7 @@ function Title({ small = false, text }: { small?: boolean; text: string }) {
       {OUTLINE.map(([dx, dy], i) => (
         <Text key={i} importantForAccessibility="no" style={[base, { position: 'absolute', left: 8 + dx, right: 8 - dx, top: 6 + dy, color: colors.ink }]}>{text}</Text>
       ))}
-      <Text style={[base, { color: '#FF8FD0' }]}>{text}</Text>
+      <Text style={[base, { color: bootTheme() === 'adult' ? '#FFE9A8' : '#FF8FD0' }]}>{text}</Text>
     </View>
   );
 }

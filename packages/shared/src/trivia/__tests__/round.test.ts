@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { applyTriviaCommand, startTriviaRound, toTriviaRoundView, triviaPoints } from '../round.js';
+import { applyTriviaCommand, startTriviaRound, toTriviaRoundView, triviaPoints, triviaWinner } from '../round.js';
 
 const q = (id: string, correctIndex: number) => ({ id, textFa: `سؤال ${id}`, options: ['الف', 'ب', 'ج', 'د'], correctIndex, explanationFa: '' });
 
@@ -39,5 +39,14 @@ describe('trivia round', () => {
     const after = toTriviaRoundView(s, 'b', 1);
     expect(after.revealed[0]).toMatchObject({ correctIndex: 2, yourPick: 0, opponentPick: 2 });
     expect(after.roundIndex).toBe(1);
+  });
+});
+
+describe('triviaWinner', () => {
+  it('gives the side with more right answers, and a draw on equal points', () => {
+    expect(triviaWinner([5, 3])).toBe(0);
+    expect(triviaWinner([2, 6])).toBe(1);
+    expect(triviaWinner([4, 4])).toBeNull();
+    expect(triviaWinner([0, 0])).toBeNull();
   });
 });

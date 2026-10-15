@@ -5,7 +5,7 @@ import type { PuzzleAdmin } from '../puzzles/admin.js';
 import type { FastifyInstance, FastifyReply } from 'fastify';
 import { can } from './accounts/permissions.js';
 import { z } from 'zod';
-import { accentColorSchema, triviaInputSchema, checkLevelTable, KEEPSAKE_RARITIES, KEEPSAKE_REWARD_GEMS, httpsUrlSchema, isDateKey, ITEMS, ITEM_GROUPS, LEVEL_TABLE_MAX, levelRowSchema, normalizeIranPhone, PRODUCT_CATEGORIES, PROVINCES, provinceOf, SETTING_GROUPS, SHOP_EFFECTS, SPONSOR_LIMITS, COSMETIC_SLOTS, WHEEL_PRIZE_KINDS, AD_LIMITS, AD_PLACEMENTS, AD_PLACEMENT_LABEL_FA, AD_REWARD_KINDS } from '@dozari/shared';
+import { accentColorSchema, measuredDifficulty, triviaInputSchema, checkLevelTable, KEEPSAKE_RARITIES, KEEPSAKE_REWARD_GEMS, httpsUrlSchema, isDateKey, ITEMS, ITEM_GROUPS, LEVEL_TABLE_MAX, levelRowSchema, normalizeIranPhone, PRODUCT_CATEGORIES, PROVINCES, provinceOf, SETTING_GROUPS, SHOP_EFFECTS, SPONSOR_LIMITS, COSMETIC_SLOTS, WHEEL_PRIZE_KINDS, AD_LIMITS, AD_PLACEMENTS, AD_PLACEMENT_LABEL_FA, AD_REWARD_KINDS } from '@dozari/shared';
 import type { LevelRow } from '@dozari/shared';
 import type { LevelTable } from '../progress/table.js';
 import type { SettingsService } from '../settings/service.js';
@@ -40,6 +40,8 @@ import { registerLandingAdminRoutes } from '../landing/routes.js';
 import type { LandingService } from '../landing/service.js';
 import { registerShortLinkAdminRoutes } from '../shortlinks/routes.js';
 import { registerFeedbackAdminRoutes } from '../feedback/routes.js';
+import { registerWorkshopAdminRoutes } from '../workshop/routes.js';
+import type { WorkshopService } from '../workshop/service.js';
 import { registerClientErrorAdminRoutes } from '../clienterrors/routes.js';
 import type { ClientErrorStore } from '../clienterrors/store.js';
 import type { FeedbackService } from '../feedback/service.js';
@@ -85,6 +87,8 @@ export interface AdminModules {
   landing?: LandingService;
   /** User reports and the suggestion queue. */
   feedback?: FeedbackService;
+  /** Players' question designs: the queue and the decision (docs/logic/question-workshop.md). */
+  workshop?: WorkshopService;
   clientErrors?: ClientErrorStore;
   /** AI content studio: generates product, kid-lesson, puzzle-title and blog drafts through a chat provider. */
   ai?: AiStudio;
@@ -203,7 +207,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     settingGroups: SETTING_GROUPS,
     icons: ITEMS,
     iconGroups: ITEM_GROUPS,
-    modules: { avatars: !!m.avatars, puzzles: !!m.puzzles, categories: !!m.categories, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, keepsakes: !!m.keepsakes, wheel: !!m.wheel, ads: !!m.ads, shortLinks: !!m.shortLinks, backups: !!m.backups, feedback: !!m.feedback, clientErrors: !!m.clientErrors, landing: !!m.landing, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, lessons: !!m.lessons, ai: !!m.ai, ageTracks: !!m.ageTracks, economy: !!m.economy, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages, sms: !!m.sms },
+    modules: { avatars: !!m.avatars, puzzles: !!m.puzzles, categories: !!m.categories, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, keepsakes: !!m.keepsakes, wheel: !!m.wheel, ads: !!m.ads, shortLinks: !!m.shortLinks, backups: !!m.backups, feedback: !!m.feedback, workshop: !!m.workshop, clientErrors: !!m.clientErrors, landing: !!m.landing, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, lessons: !!m.lessons, ai: !!m.ai, ageTracks: !!m.ageTracks, economy: !!m.economy, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages, sms: !!m.sms },
   }));
 
   if (m.ai) registerAiAdminRoutes(g, m.ai, audit, m.aiSchedules);
@@ -293,7 +297,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       const role = req.adminActor?.role;
       const out = role === 'owner' ? detail : { ...detail, birth: null };
       // Contact details (phone, e-mail, device id) are for roles that manage players; viewers and editors get them blanked.
-      return role && can(role, 'users') ? out : { ...out, account: { ...out.account, phone: null, email: null, deviceId: null } };
+      return role && can(role, 'users') ? { ...out, account: { ...out.account, contactHidden: false } } : { ...out, account: { ...out.account, phone: null, email: null, deviceId: null, contactHidden: true } };
     });
     g.get('/admin/users/:id/ledger', async (req, reply) => {
       const p = idParam.safeParse(req.params);
@@ -800,7 +804,9 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     const statusSchema = z.enum(['draft', 'approved', 'retired']);
     g.get('/admin/trivia', async (req) => {
       const q = z.object({ topicId: z.string().uuid().optional(), status: statusSchema.optional() }).safeParse(req.query);
-      return { questions: await trivia.list({ topicId: q.success ? q.data.topicId : undefined, status: q.success ? q.data.status : undefined, limit: 300 }) };
+      const rows = await trivia.list({ topicId: q.success ? q.data.topicId : undefined, status: q.success ? q.data.status : undefined, limit: 300 });
+      // `measured` is the difficulty the play data suggests (null while there are too few answers), next to the one the admin set.
+      return { questions: rows.map((r) => ({ ...r, measured: measuredDifficulty(r.plays, r.rightCount) })) };
     });
     g.post('/admin/trivia', async (req, reply) => {
       const b = triviaInputSchema.safeParse(req.body);
@@ -822,10 +828,16 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     });
     g.patch('/admin/trivia/:id', async (req, reply) => {
       const p = idParam.safeParse(req.params);
-      const b = z.object({ status: statusSchema }).safeParse(req.body);
+      const b = z.object({ status: statusSchema.optional(), difficulty: z.number().int().min(1).max(3).optional() }).refine((v) => v.status !== undefined || v.difficulty !== undefined).safeParse(req.body);
       if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
-      if ((await trivia.setStatus(p.data.id, b.data.status)) === 'not_found') return reply.code(404).send({ error: 'NOT_FOUND' });
-      void audit('trivia.status', p.data.id, b.data.status);
+      if (b.data.status !== undefined) {
+        if ((await trivia.setStatus(p.data.id, b.data.status)) === 'not_found') return reply.code(404).send({ error: 'NOT_FOUND' });
+        void audit('trivia.status', p.data.id, b.data.status);
+      }
+      if (b.data.difficulty !== undefined) {
+        if ((await trivia.setDifficulty(p.data.id, b.data.difficulty)) === 'not_found') return reply.code(404).send({ error: 'NOT_FOUND' });
+        void audit('trivia.difficulty', p.data.id, String(b.data.difficulty));
+      }
       return { ok: true };
     });
   }
@@ -1244,6 +1256,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
   if (m.images) registerAdminUploadRoutes(g, m.images, (a, t, d) => void audit(a, t, d));
   if (m.landing) registerLandingAdminRoutes(g, m.landing, (a, t, d) => void audit(a, t, d));
   if (m.feedback) registerFeedbackAdminRoutes(g, m.feedback, (a, t, d) => void audit(a, t, d));
+  if (m.workshop) registerWorkshopAdminRoutes(g, m.workshop, (a, t, d) => void audit(a, t, d));
   if (m.backups) registerBackupAdminRoutes(g, m.backups, (a, t, d) => void audit(a, t, d));
   if (m.clientErrors) registerClientErrorAdminRoutes(g, m.clientErrors, (a, t, d) => void audit(a, t, d));
   if (m.shortLinks) registerShortLinkAdminRoutes(g, m.shortLinks.service, m.shortLinks.base, (a, t, d) => void audit(a, t, d));

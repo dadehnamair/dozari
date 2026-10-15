@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { toneIn } from '../theme/appTheme';
 import { useTheme } from '../theme/themeStore';
 import { colors, fonts, toneOf } from '../theme/colors';
@@ -13,9 +13,13 @@ interface Props {
   disabled?: boolean;
   /** Click sound; `press` is the normal one, `back` for going back, `confirm` for the main action. */
   sfx?: Sfx;
+  /** No ink shelf under the face (a compact stack of buttons). */
+  flat?: boolean;
 }
 
 const SHELF = 6;
+// react-native-web turns the text-shadow props into a CSS shadow; dark text on a light face must have none or it looks doubled.
+const NO_SHADOW = (Platform.OS === 'web' ? { textShadow: 'none' } : {}) as object;
 const DISABLED = { light: '#B8AFC4', base: '#8E83A0', border: '#5C4A70', text: '#E8E2EF' };
 
 /** btn-* of docs/design/Dozari - 07 UI Components: ink-outlined candy face, light top edge, ink shelf, presses 5px. */
@@ -25,6 +29,7 @@ export function CandyButton({
   color = colors.candy.pink,
   disabled = false,
   sfx = 'press',
+  flat = false,
 }: Props) {
   const theme = useTheme();
   const tone = toneIn(theme, color, toneOf(color));
@@ -40,18 +45,18 @@ export function CandyButton({
       onPress={() => (playSfx(sfx), onPress())}
     >
       {({ pressed }) => (
-        <View style={styles.wrap}>
-          <View style={[styles.shelf, { backgroundColor: border }]} />
+        <View style={[styles.wrap, flat ? styles.wrapFlat : null]}>
+          {flat ? null : <View style={[styles.shelf, { backgroundColor: border }]} />}
           <View
             style={[
               styles.face,
-              { borderColor: border, transform: [{ translateY: pressed ? SHELF - 1 : 0 }] },
+              { borderColor: border, transform: [{ translateY: pressed ? (flat ? 2 : SHELF - 1) : 0 }] },
             ]}
           >
             <GradientFill from={face.from} to={face.to} mid={{ at: 0.6, color: face.to }} />
             <View style={styles.topLight} />
             {pressed || disabled ? null : <View style={styles.bottomShade} />}
-            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={[styles.label, { fontSize: label.length > 24 ? 15 : label.length > 17 ? 18 : 22 }, !disabled && theme === 'adult' ? { color: tone.text, textShadowColor: 'transparent', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 0 } : null, disabled ? styles.labelOff : null]}>{label}</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={[styles.label, { fontSize: label.length > 24 ? 15 : label.length > 17 ? 18 : 22 }, !disabled && theme === 'adult' ? { color: tone.text, textShadowColor: 'transparent', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 0, ...NO_SHADOW } : null, disabled ? styles.labelOff : null]}>{label}</Text>
           </View>
         </View>
       )}
@@ -61,6 +66,7 @@ export function CandyButton({
 
 const styles = StyleSheet.create({
   wrap: { minWidth: 120, paddingBottom: SHELF },
+  wrapFlat: { paddingBottom: 0 },
   shelf: { position: 'absolute', left: 0, right: 0, top: SHELF, bottom: 0, borderRadius: 20 },
   face: {
     height: 54,

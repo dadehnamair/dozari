@@ -43,6 +43,11 @@ export const BOT_NEAR_MISS_PERCENT = 35;
  */
 export const BOT_MATCH_LEVEL_GAP = 2;
 
+/** A bot a human just played is not paired with them again for this many of that human's games... */
+export const BOT_REPEAT_COOLDOWN_GAMES = 5;
+/** ...or for this long, whichever is longer (so the same few names do not keep coming back). */
+export const BOT_REPEAT_COOLDOWN_MS = 30 * 60_000;
+
 /**
  * A self-running bot community (docs/logic/bots.md §Community, D216). A bot's own skill drifts a step after each finished game, up with a win, down with a loss,
  * inside these bounds; at every `BOT_AVATAR_CHANGE_EVERY_LEVELS`-th level there is a `BOT_AVATAR_CHANGE_PERCENT` % chance it picks a new face.

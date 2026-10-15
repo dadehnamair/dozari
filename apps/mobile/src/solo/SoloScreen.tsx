@@ -10,9 +10,9 @@ import { Confetti } from '../components/Confetti';
 import { usePrefs } from '../prefs/store';
 import { buzz, playSfx } from '../sound/engine';
 import { Character } from '../components/Character';
-import { SlabButton } from '../components/SlabButton';
 import { Icon } from '../components/Icon';
 import { MatchBackground } from '../game/MatchBackground';
+import { GameActions } from '../components/GameActions';
 import { GameTopBar } from '../game/GameTopBar';
 import { Lives } from '../game/Lives';
 import { ComboRing } from '../game/ComboRing';
@@ -39,6 +39,12 @@ import { hintedCardIds, hintedTitles } from '../shop/hintView';
 import type { FeedbackKey } from './selection';
 import { nativeTopInset } from '../theme/safeArea';
 import { TEXT_RIGHT } from '../theme/direction';
+import { bootTheme } from '../theme/bootTheme';
+
+/** Adult look («صرافی و گاوصندوق»): the cream cards and the chat bubble become dark plates with a gold frame; read once, the palette is fixed at start. */
+const ADULT = bootTheme() === 'adult';
+const PLATE = ADULT ? ({ backgroundColor: '#201610', borderColor: '#E8B64A' } as const) : {};
+const PLATE_TEXT = ADULT ? ({ color: '#FFE9A8' } as const) : {};
 
 type Phase = { kind: 'loading' } | { kind: 'error'; message: string; detail: string; card: 'noInternet' | 'noPuzzles' | 'error' } | { kind: 'ready'; view: SoloView };
 
@@ -295,16 +301,16 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false, ageTrac
           </ScrollView>
           {/* The choices stay pinned under the scrolling middle, whichever step the end of the game is on. */}
           {!offline && !lessonMode && !priceDone && !priceReady ? (
-            <View style={styles.actions}>
-              <SlabButton label={fa.solo.price.skip} color={colors.candy.sky} height={58} fontSize={20} onPress={() => setPriceDone(true)} />
-              <SlabButton label={fa.solo.price.go} sfx="confirm" color={colors.candy.lime} height={58} fontSize={22} grow={1.4} onPress={() => setPriceReady(true)} />
-            </View>
+            <GameActions items={[
+              { label: fa.solo.price.skip, tone: 'dark', onPress: () => setPriceDone(true) },
+              { label: fa.solo.price.go, tone: 'gold', sfx: 'confirm', fontSize: 22, grow: 1.4, onPress: () => setPriceReady(true) },
+            ]} />
           ) : null}
           {priceDone || offline ? (
-            <View style={styles.actions}>
-              <SlabButton label={fa.solo.back} sfx="back" color={colors.candy.sky} height={58} fontSize={20} onPress={onBack} />
-              {daily ? null : <SlabButton label={fa.solo.newGame} color={colors.candy.lime} height={58} fontSize={22} grow={1.4} onPress={() => void begin()} />}
-            </View>
+            <GameActions items={[
+              { label: fa.solo.back, tone: 'dark', sfx: 'back', onPress: onBack },
+              ...(daily ? [] : [{ label: fa.solo.newGame, tone: 'gold' as const, fontSize: 22, grow: 1.4, onPress: () => void begin() }]),
+            ]} />
           ) : null}
         </View>
         {!prefs.reduceMotion ? (won ? <Confetti distance={500} /> : <Rain distance={800} />) : null}
@@ -350,11 +356,11 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false, ageTrac
         {playing ? (
           <>
             <Lives mistakes={view.mistakes} max={view.maxMistakes} last={lastLife} />
-            <View style={styles.actions}>
-              <SlabButton label={fa.solo.shuffle} color={colors.candy.sky} height={58} fontSize={20} onPress={() => void shuffle()} disabled={busy} />
-              <SlabButton label={fa.solo.deselect} color={colors.candy.orange} height={58} fontSize={20} onPress={() => setSelected([])} disabled={selected.length === 0} />
-              <SlabButton label={fa.solo.submit} sfx="confirm" color={colors.candy.lime} height={58} fontSize={24} grow={1.4} onPress={() => void submit()} disabled={!canSubmit(selected) || busy} />
-            </View>
+            <GameActions items={[
+              { label: fa.solo.shuffle, tone: 'dark', onPress: () => void shuffle(), disabled: busy },
+              { label: fa.solo.deselect, tone: 'copper', onPress: () => setSelected([]), disabled: selected.length === 0 },
+              { label: fa.solo.submit, tone: 'gold', sfx: 'confirm', fontSize: 24, grow: 1.4, onPress: () => void submit(), disabled: !canSubmit(selected) || busy },
+            ]} />
           </>
         ) : null}
       </View>
@@ -369,26 +375,26 @@ export function SoloScreen({ onBack, hintsEnabled = true, daily = false, ageTrac
 const styles = StyleSheet.create({
   previewBanner: { alignSelf: 'center', fontFamily: fonts.bold, fontSize: 13, color: colors.ink, backgroundColor: colors.hi, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 5, overflow: 'hidden', textAlign: 'center' },
   review: { gap: 10, width: '100%' },
-  askCard: { padding: 12, gap: 6, borderRadius: 20, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.paper },
-  askTitle: { fontFamily: fonts.display, fontSize: 18, color: colors.ink, textAlign: 'center' },
-  askSub: { fontFamily: fonts.bold, fontSize: 12.5, lineHeight: 20, color: '#5A3A7A', textAlign: 'center' },
+  askCard: { padding: 12, gap: 6, borderRadius: 20, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.paper, ...PLATE },
+  askTitle: { fontFamily: fonts.display, fontSize: 18, color: colors.ink, textAlign: 'center', ...PLATE_TEXT },
+  askSub: { fontFamily: fonts.bold, fontSize: 12.5, lineHeight: 20, color: ADULT ? 'rgba(255,233,168,0.8)' : '#5A3A7A', textAlign: 'center' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 24, backgroundColor: colors.deeper },
   screen: { flexGrow: 1, paddingHorizontal: 12, paddingTop: 14 + nativeTopInset(), paddingBottom: 24, alignItems: 'center' },
   column: { width: '100%', maxWidth: 520, gap: 12 },
-  hintBtn: { width: 42, height: 42, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.candy.orange, alignItems: 'center', justifyContent: 'center', marginBottom: 4, shadowColor: colors.ink, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4 },
+  hintBtn: { width: 42, height: 42, borderRadius: 14, borderWidth: 3, borderColor: colors.ink, backgroundColor: ADULT ? '#B0552A' : colors.candy.orange, alignItems: 'center', justifyContent: 'center', marginBottom: 4, shadowColor: colors.ink, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4 },
   pressed: { transform: [{ translateY: 3 }] },
   talk: { flexDirection: ROW, alignItems: 'center', gap: 6, minHeight: 110 },
   talker: { width: 104, height: 114 },
-  bubble: { flex: 1, backgroundColor: colors.cream, borderWidth: 3, borderColor: colors.ink, borderRadius: 18, paddingVertical: 10, paddingHorizontal: 12, shadowColor: colors.ink, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4 },
-  bubbleTail: { position: 'absolute', top: 24, right: -11, width: 16, height: 16, backgroundColor: colors.cream, borderRightWidth: 3, borderBottomWidth: 3, borderColor: colors.ink, transform: [{ rotate: '-45deg' }] },
-  bubbleText: { fontFamily: fonts.bold, fontSize: 13.5, lineHeight: 22, color: colors.ink, textAlign: TEXT_RIGHT },
+  bubble: { flex: 1, backgroundColor: ADULT ? '#201610' : colors.cream, borderWidth: 3, borderColor: ADULT ? '#E8B64A' : colors.ink, borderRadius: 18, paddingVertical: 10, paddingHorizontal: 12, shadowColor: colors.ink, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4 },
+  bubbleTail: { position: 'absolute', top: 24, right: -11, width: 16, height: 16, backgroundColor: ADULT ? '#201610' : colors.cream, borderRightWidth: 3, borderBottomWidth: 3, borderColor: ADULT ? '#E8B64A' : colors.ink, transform: [{ rotate: '-45deg' }] },
+  bubbleText: { fontFamily: fonts.bold, fontSize: 13.5, lineHeight: 22, color: ADULT ? '#FFE9A8' : colors.ink, textAlign: TEXT_RIGHT },
   actions: { flexDirection: ROW, gap: 9 },
   endScene: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingHorizontal: 12, paddingTop: 14 + nativeTopInset(), paddingBottom: 20, gap: 10 },
   endSceneCompact: { paddingTop: 8, paddingBottom: 12, gap: 6 },
   talkerSmall: { width: 72, height: 80 },
-  bubbleTitle: { fontFamily: fonts.display, fontSize: 18, lineHeight: 28, color: colors.ink, textAlign: TEXT_RIGHT },
+  bubbleTitle: { fontFamily: fonts.display, fontSize: 18, lineHeight: 28, color: ADULT ? '#FFE9A8' : colors.ink, textAlign: TEXT_RIGHT },
   /** The result frame keeps its size; whatever is taller than it (chart, tabs, share) scrolls inside it instead of spilling. */
-  stage: { flex: 1, minHeight: 0, borderRadius: 22, borderWidth: 3, borderColor: 'rgba(255,255,255,0.35)', backgroundColor: 'rgba(26,8,44,0.55)', overflow: 'hidden' },
+  stage: { flex: 1, minHeight: 0, borderRadius: 22, borderWidth: 3, borderColor: ADULT ? '#8A5A16' : 'rgba(255,255,255,0.35)', backgroundColor: ADULT ? 'rgba(14,10,8,0.7)' : 'rgba(26,8,44,0.55)', overflow: 'hidden' },
   stageContent: { flexGrow: 1, paddingHorizontal: 12, paddingTop: 4, paddingBottom: 14, alignItems: 'center', justifyContent: 'center' },
   endActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginTop: 8 },
   detail: { fontFamily: 'Vazirmatn_400Regular', fontSize: 12, color: colors.cream, opacity: 0.7, textAlign: 'center', writingDirection: 'ltr' },

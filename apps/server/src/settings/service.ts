@@ -77,6 +77,6 @@ export class SettingsService {
   /** The subset clients need to know (no bot internals). */
   async publicValues(): Promise<Record<string, SettingValue>> {
     const all = await this.values();
-    return Object.fromEntries(Object.entries(all).filter(([k]) => !k.startsWith('bot.')));
+    return Object.fromEntries(Object.entries(all).filter(([k]) => !k.startsWith('bot')));
   }
 }

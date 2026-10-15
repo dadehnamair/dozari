@@ -30,6 +30,7 @@ import { useReviewPrompt } from '../review/useReviewPrompt';
 import { OPEN_CONFIG } from '../config/gate';
 import type { ClientConfig } from '../config/gate';
 import { InboxSheet } from '../inbox/InboxSheet';
+import { LevelRoadPage } from '../levels/LevelRoadPage';
 import { LedgerSheet } from '../ledger/LedgerSheet';
 import { GuideBubble } from '../components/GuideBubble';
 import { availableTips, nextTip } from './guideTips';
@@ -62,6 +63,10 @@ import { useHomeData } from './useHomeData';
 import { StatPill } from './StatPill';
 import { AdultTopBar } from './AdultTopBar';
 import { StatInfoSheet } from './StatInfoSheet';
+import { CoinDeltaFx } from './CoinDeltaFx';
+import type { WorkshopInfo } from '@dozari/shared';
+import { fetchWorkshop } from '../workshop/api';
+import { useCoinDelta } from './useCoinDelta';
 
 interface Tile {
   key: string;
@@ -79,7 +84,7 @@ interface Tile {
  * speech bubble, corner tiles down both sides, the floating hero, and two big buttons at the bottom. Every feature
  * keeps its sheet; a tile only shows when its feature flag is on.
  */
-export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onDaily, onDuel, onDuelResume, onTutorial, onLookup, onGallery, features = OPEN_CONFIG.features, settings = OPEN_CONFIG.raw, myTrack, onPreview }: { onSolo: () => void; onPreview?: (track: 'kid' | 'teen') => void; onPriceOnly?: () => void; onTrivia?: () => void; onDaily?: () => void; onDuel?: () => void; onDuelResume?: () => void; onTutorial?: () => void; onLookup: () => void; onGallery?: () => void; features?: ClientConfig['features']; settings?: ClientConfig['raw']; /** Track rules and the guardian's limits; absent = no restriction. */ myTrack?: { rules: TrackRulesDto | null; limits: ChildLimits | null } }) {
+export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onTriviaDuel, onWorkshop, onDaily, onDuel, onDuelResume, onTutorial, onLookup, onGallery, features = OPEN_CONFIG.features, settings = OPEN_CONFIG.raw, myTrack, onPreview }: { onSolo: () => void; onPreview?: (track: 'kid' | 'teen') => void; onPriceOnly?: () => void; onTrivia?: () => void; onTriviaDuel?: () => void; onWorkshop?: (tab?: 'make' | 'review') => void; onDaily?: () => void; onDuel?: () => void; onDuelResume?: () => void; onTutorial?: () => void; onLookup: () => void; onGallery?: () => void; features?: ClientConfig['features']; settings?: ClientConfig['raw']; /** Track rules and the guardian's limits; absent = no restriction. */ myTrack?: { rules: TrackRulesDto | null; limits: ChildLimits | null } }) {
   const adult = useTheme() === 'adult';
   const month = useMemo(() => solarMonthOf(Date.now()), []);
   /** Short phones (≤700px tall) get tighter columns and a smaller hero so nothing runs into the bottom buttons. */
@@ -87,6 +92,8 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onDaily, onDuel, onD
   const daily = useDailyReward();
   const { spins, loadSpins, liveMatch, gender, setGender, avatarKey, setAvatarKey, level, xpFrac, province, slogan, dailyPuzzle, loadMe, profileTasks, loadTasks, gems, worn, loadWorn } = useHomeData(features);
   const hero = useHeroMotion();
+  /** Wins and losses since Home was last drawn: the coin counter counts to the new balance and a «+N» / «−N» chip floats by. */
+  const coinFx = useCoinDelta(daily.status?.balance ?? null);
   const [wheelOpen, setWheelOpen] = useState(false);
   const [baleOpen, setBaleOpen] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
@@ -115,6 +122,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onDaily, onDuel, onD
   /** A friend request is waiting: who sent the latest one (when pushed live) and how many wait in all. */
   const [friendNotice, setFriendNotice] = useState<{ from?: string; count: number } | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [roadOpen, setRoadOpen] = useState(false);
   const [boardOpen, setBoardOpen] = useState(false);
   const [hubOpen, setHubOpen] = useState(false);
   const [schoolOpen, setSchoolOpen] = useState(false);
@@ -205,6 +213,14 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onDaily, onDuel, onD
 
   const priceOnlyOn = features.priceonly && !!onPriceOnly;
   const triviaOn = features.trivia && !!onTrivia;
+  const triviaDuelOn = features.triviaduel && !!onTriviaDuel;
+  // The question workshop card shows the live reward and how many questions wait for this player's review; absent when the server refuses (age track, switch).
+  const workshopOn = features.workshop && !!onWorkshop;
+  const [workshop, setWorkshop] = useState<WorkshopInfo | null>(null);
+  useEffect(() => {
+    if (!workshopOn) return;
+    void fetchWorkshop().then((w) => setWorkshop(w.on ? w : null), () => setWorkshop(null));
+  }, [workshopOn]);
 
   return (
     <SceneBackground scene="bazaar">
@@ -226,10 +242,16 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onDaily, onDuel, onD
             onMap={() => setHubOpen(true)}
             onWheel={() => setWheelOpen(true)}
             onProfile={() => setSettingsOpen(true)}
+            contribute={{ label: fa.feedback.school.tabLabel, badge: workshop && workshop.waiting > 0 ? toPersianDigits(String(workshop.waiting)) : null, onPress: () => setSchoolOpen(true) }}
           />
         ) : (
         <View style={styles.pills}>
-          {daily.status ? <StatPill color={colors.candy.yellow} icon="coin" value={fmt(daily.status.balance)} label={`${daily.status.balance} ${h.coins}`} onPress={() => setLedgerOpen(true)} /> : null}
+          {daily.status ? (
+            <View style={styles.coinSlot}>
+              <StatPill color={colors.candy.yellow} icon="coin" value={fmt(coinFx.shown ?? daily.status.balance)} label={`${daily.status.balance} ${h.coins}`} onPress={() => setLedgerOpen(true)} />
+              {coinFx.fx ? <CoinDeltaFx key={coinFx.fx.key} delta={coinFx.fx.delta} progress={coinFx.progress} /> : null}
+            </View>
+          ) : null}
           {gems > 0 ? <StatPill color={colors.candy.sky} glyph="💎" value={fmt(gems)} label={`${gems} ${h.gems}`} onPress={() => setInfoOpen('gems')} /> : null}
           {dailyPuzzle && dailyPuzzle.state !== 'unavailable' && dailyPuzzle.streak > 0 ? <StatPill color={colors.candy.pink} glyph="🔥" value={`${toPersianDigits(String(dailyPuzzle.streak))} ${h.streak}`} label={`${dailyPuzzle.streak} ${h.streak}`} onPress={() => setInfoOpen('streak')} /> : null}
           <Pressable onPress={() => setHubOpen(true)} accessibilityRole="button" accessibilityLabel={fa.hub.open} style={styles.mapBtn}>
@@ -244,7 +266,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onDaily, onDuel, onD
           </Pressable>
           {/* A spacer keeps the level pill at the far (left) end of the row, whether or not the streak pill is showing. */}
           <View style={styles.pillsGap} />
-          {level !== null ? <StatPill color={colors.candy.grape} icon="rosette" value={toPersianDigits(String(level))} label={`${h.level} ${level} · ${h.settings}`} badge={missionsReady > 0 ? toPersianDigits(String(missionsReady)) : undefined} onPress={() => setSettingsOpen(true)} /> : null}
+          {level !== null ? <StatPill color={colors.candy.grape} icon="rosette" value={toPersianDigits(String(level))} label={`${h.level} ${level}`} onPress={() => setRoadOpen(true)} /> : null}
         </View>
         )}
 
@@ -295,9 +317,10 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onDaily, onDuel, onD
           {second ? <SlabButton label={second.label} color={second.color} badge={second.badge} icon={duelLocked ? 'lock' : undefined} height={68} fontSize={priceOnlyOn ? 20 : 28} onPress={second.onPress} /> : null}
           {priceOnlyOn ? <SlabButton label={fa.priceOnly.play} sfx="confirm" color={adult ? colors.candy.sky : colors.candy.yellow} icon="coin" height={68} fontSize={20} onPress={onPriceOnly!} /> : null}
         </View>
-        {triviaOn ? (
+        {triviaOn || triviaDuelOn ? (
           <View style={styles.buttons}>
-            <SlabButton label={fa.trivia.play} sfx="confirm" color={colors.candy.grape} height={54} fontSize={20} onPress={onTrivia!} />
+            {triviaOn ? <SlabButton label={fa.trivia.play} sfx="confirm" color={colors.candy.grape} height={54} fontSize={20} onPress={onTrivia!} /> : null}
+            {triviaDuelOn ? <SlabButton label={fa.triviaDuel.play} sfx="confirm" color={colors.candy.pink} height={54} fontSize={20} onPress={onTriviaDuel!} /> : null}
           </View>
         ) : null}
       </View>
@@ -320,8 +343,9 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onDaily, onDuel, onD
           }}
         />
       ) : null}
-      {schoolOpen ? <SchoolSheet onClose={() => setSchoolOpen(false)} /> : null}
+      {schoolOpen ? <SchoolSheet onClose={() => setSchoolOpen(false)} workshop={workshopOn && onWorkshop ? { info: workshop, onOpen: (tab) => (setSchoolOpen(false), onWorkshop(tab)) } : undefined} /> : null}
       {boardOpen ? <LeaderboardPage onClose={() => setBoardOpen(false)} /> : null}
+      {roadOpen ? <LevelRoadPage onClose={() => setRoadOpen(false)} onSettings={() => (setRoadOpen(false), setSettingsOpen(true))} settingsBadge={missionsReady > 0 ? toPersianDigits(String(missionsReady)) : undefined} /> : null}
       {settingsOpen ? <SettingsPage onMissions={() => (setSettingsOpen(false), setMissionsOpen(true))} missionsReady={missionsReady} onClose={() => (setSettingsOpen(false), loadTasks(), returnToMissions())} onProfile={() => (setSettingsOpen(false), setProfileOpen(true))} onTutorial={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} onAccountGone={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} ageTracksOn={settings['feature.age_tracks'] === 1} baleOn={features.bale} phoneVerified={profileTasks.some((x) => x.key === 'phone' && x.done)} onPreview={onPreview ? (t) => (setSettingsOpen(false), onPreview(t)) : undefined} /> : null}
       {ledgerOpen ? <LedgerSheet onClose={() => setLedgerOpen(false)} /> : null}
       {infoOpen ? <StatInfoSheet kind={infoOpen} value={infoOpen === 'gems' ? gems : dailyPuzzle?.streak ?? 0} onClose={() => setInfoOpen(null)} /> : null}

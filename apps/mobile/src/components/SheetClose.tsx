@@ -2,6 +2,9 @@ import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { colors } from '../theme/colors';
 import { playSfx } from '../sound/engine';
 import { Icon } from './Icon';
+import { bootTheme } from '../theme/bootTheme';
+
+const ADULT = bootTheme() === 'adult';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 
@@ -12,7 +15,7 @@ export function SheetClose({ onPress, label }: { onPress: () => void; label: str
       <Pressable accessibilityRole="button" accessibilityLabel={label} hitSlop={8} onPress={() => (playSfx('back'), onPress())}>
         {({ pressed }) => (
           <View style={[styles.btn, pressed ? styles.pressed : null]}>
-            <Icon name="close" size={18} color="#fff" strokeWidth={3.2} />
+            <Icon name="close" size={18} color={ADULT ? '#FFE9A8' : '#fff'} strokeWidth={3.2} />
           </View>
         )}
       </Pressable>
@@ -22,6 +25,6 @@ export function SheetClose({ onPress, label }: { onPress: () => void; label: str
 
 const styles = StyleSheet.create({
   row: { alignSelf: 'stretch', flexDirection: ROW, marginBottom: 2 },
-  btn: { width: 34, height: 34, borderRadius: 12, borderWidth: 3, borderColor: colors.ink, backgroundColor: '#A66BF0', alignItems: 'center', justifyContent: 'center', shadowColor: colors.ink, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 1, shadowRadius: 0, elevation: 3 },
+  btn: { width: 34, height: 34, borderRadius: 12, borderWidth: 3, borderColor: ADULT ? '#B8822A' : colors.ink, backgroundColor: ADULT ? '#3A2412' : '#A66BF0', alignItems: 'center', justifyContent: 'center', shadowColor: ADULT ? '#000' : colors.ink, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 1, shadowRadius: 0, elevation: 3 },
   pressed: { transform: [{ translateY: 2 }] },
 });

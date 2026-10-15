@@ -1,4 +1,4 @@
-import { AVATAR_KEYS, levelInfo, pickBotNames, plausibleStats } from '@dozari/shared';
+import { botFaceFor, levelInfo, nameGender, pickBotNames, plausibleStats } from '@dozari/shared';
 import type { Rng, XpRules } from '@dozari/shared';
 import type { BotPatch, BotPlayerStore } from './store.js';
 
@@ -45,8 +45,9 @@ export class BotPlayerService {
       const min = Math.max(1000, Math.min(o.thinkMinMs, o.thinkMaxMs));
       const id = await this.store.create({
         nickname,
-        avatarKey: AVATAR_KEYS[Math.floor(this.rng() * AVATAR_KEYS.length)] as string,
-        gender: this.rng() < 0.45 ? 'female' : this.rng() < 0.8 ? 'male' : null,
+        // The face and the stored gender follow the name: a woman's name never wears a man's face (a neutral name may wear any).
+        avatarKey: botFaceFor(nameGender(nickname), this.rng),
+        gender: nameGender(nickname) ?? (this.rng() < 0.45 ? 'female' : this.rng() < 0.8 ? 'male' : null),
         cityId: o.cityIds.length > 0 ? (o.cityIds[Math.floor(this.rng() * o.cityIds.length)] as string) : null,
         skill: this.between(o.skillMin, o.skillMax),
         thinkMinMs: min,

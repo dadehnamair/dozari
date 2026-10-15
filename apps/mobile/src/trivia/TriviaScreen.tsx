@@ -8,10 +8,15 @@ import { VERDICT_TONES, choiceVerdict } from '../components/choiceVerdict';
 import { SlabButton } from '../components/SlabButton';
 import { GameTopBar } from '../game/GameTopBar';
 import { MatchBackground } from '../game/MatchBackground';
+import { bootTheme } from '../theme/bootTheme';
+import { TopicPickAdult } from './TopicPickAdult';
+import { TriviaSoloAdult } from './TriviaSoloAdult';
 import { fa } from '../i18n/fa';
 import { ApiError, BASE_URL } from '../net/http';
 import { describeError, errorKind } from '../solo/errors';
-import { playSfx } from '../sound/engine';
+import { Confetti } from '../components/Confetti';
+import { WorkshopPromo } from '../workshop/WorkshopCards';
+import { buzz, playSfx } from '../sound/engine';
 import { colors, fonts } from '../theme/colors';
 import { nativeTopInset } from '../theme/safeArea';
 import { answerTrivia, beginTrivia, fetchTriviaTopics } from './api';
@@ -26,15 +31,16 @@ const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const t = fa.trivia;
 
 /** «پرسش‌های عمومی»: pick a topic, then answer a few four-choice questions that are not about prices (docs/logic/trivia.md). */
-export function TriviaScreen({ onBack }: { onBack: () => void }) {
+export function TriviaScreen({ onBack, fee, refundPercent, workshop, onWorkshop }: { onBack: () => void; /** The workshop call-to-action after a game: the reward on offer; absent = not shown. */ workshop?: { reward: number; boost: number }; onWorkshop?: () => void; /** Coins a game costs (setting `trivia.solo_fee`) and the right-answer percent that gives them back. */ fee: number; refundPercent: number }) {
   const [phase, setPhase] = useState<Phase>({ kind: 'loading' });
   const [busy, setBusy] = useState(false);
   /** The choice just tapped, kept on screen with its verdict until «بعدی». */
-  const [shown, setShown] = useState<{ picked: number; correct: number; explanationFa: string | null } | null>(null);
+  const [shown, setShown] = useState<{ picked: number; correct: number; explanationFa: string | null; authorFa: string | null } | null>(null);
 
   const fail = (err: unknown) => {
     const { message, detail } = describeError(err, BASE_URL);
-    setPhase({ kind: 'error', message: err instanceof ApiError && err.code === 'no_questions' ? t.noQuestions : message, detail, card: errorKind(err) });
+    const coded = err instanceof ApiError ? err.code : undefined;
+    setPhase({ kind: 'error', message: coded === 'no_questions' ? t.noQuestions : coded === 'insufficient_coins' ? t.insufficientCoins : message, detail, card: errorKind(err) });
   };
   const loadTopics = useCallback(async () => {
     setPhase({ kind: 'loading' });
@@ -75,6 +81,19 @@ export function TriviaScreen({ onBack }: { onBack: () => void }) {
     );
   }
 
+  if (phase.kind === 'topics' && bootTheme() === 'adult') {
+    return (
+      <TopicPickAdult
+        topics={phase.topics}
+        fee={fee}
+        texts={{ title: t.title, sub: t.adult.pickSub, feeTitle: fee > 0 ? t.fee(formatPersianNumber(fee)) : t.free, feeSub: fee > 0 ? t.feeHint(formatPersianNumber(refundPercent)) : t.adult.freeSub }}
+        offers={[{ kind: 'mix', label: t.adult.mix }]}
+        onBack={onBack}
+        onStart={(id) => void start(id)}
+      />
+    );
+  }
+
   if (phase.kind === 'topics') {
     return (
       <MatchBackground>
@@ -82,6 +101,10 @@ export function TriviaScreen({ onBack }: { onBack: () => void }) {
           <View style={styles.column}>
             <GameTopBar title={t.title} backLabel={fa.solo.back} onBack={onBack} />
             <Text style={styles.intro}>{t.intro}</Text>
+            <View style={styles.feeChip}>
+              <Text style={styles.feeText}>{fee > 0 ? t.fee(formatPersianNumber(fee)) : t.free}</Text>
+              {fee > 0 ? <Text style={styles.feeHint}>{t.feeHint(formatPersianNumber(refundPercent))}</Text> : null}
+            </View>
             {phase.topics.length === 0 ? <Text style={styles.intro}>{t.noQuestions}</Text> : null}
             <View style={styles.grid}>
               {phase.topics.map((x) => (
@@ -111,14 +134,35 @@ export function TriviaScreen({ onBack }: { onBack: () => void }) {
     try {
       const out = await answerTrivia(view.sessionId, round.index, choice);
       playSfx(out.result.correct ? 'correct' : 'wrong');
+      buzz(out.result.correct ? [0, 25, 45, 25] : 90);
       setPhase({ kind: 'playing', view: out.view });
-      setShown({ picked: out.result.pickedIndex, correct: out.result.correctIndex, explanationFa: out.result.explanationFa });
+      setShown({ picked: out.result.pickedIndex, correct: out.result.correctIndex, explanationFa: out.result.explanationFa, authorFa: out.result.authorFa });
     } catch (err) {
       fail(err);
     } finally {
       setBusy(false);
     }
   };
+
+  if (bootTheme() === 'adult') {
+    return (
+      <>
+        <TriviaSoloAdult
+          view={view}
+          index={index}
+          shown={shown}
+          busy={busy}
+          finished={finished}
+          onPick={(i) => void pick(i)}
+          onNext={() => setShown(null)}
+          onBack={onBack}
+          onAgain={() => void loadTopics()}
+          promo={workshop && onWorkshop ? <WorkshopPromo reward={workshop.reward} boost={workshop.boost} onOpen={onWorkshop} /> : null}
+        />
+        {finished && view.score === total ? <Confetti distance={500} /> : null}
+      </>
+    );
+  }
 
   return (
     <MatchBackground>
@@ -132,6 +176,8 @@ export function TriviaScreen({ onBack }: { onBack: () => void }) {
           {finished ? (
             <View style={styles.card}>
               <Text style={styles.title}>{t.summary}</Text>
+              {view.fee > 0 ? <Text style={[styles.sub, view.refund > 0 ? styles.good : null]}>{view.refund > 0 ? t.refunded(formatPersianNumber(view.refund)) : `${t.paid(formatPersianNumber(view.fee))} · ${t.notRefunded}`}</Text> : null}
+              {workshop && onWorkshop ? <WorkshopPromo reward={workshop.reward} boost={workshop.boost} onOpen={onWorkshop} /> : null}
               <View style={styles.actions}>
                 <SlabButton label={fa.solo.back} sfx="back" color={colors.candy.sky} height={58} fontSize={20} onPress={onBack} />
                 <SlabButton label={t.again} sfx="confirm" color={colors.candy.lime} height={58} fontSize={22} grow={1.4} onPress={() => void loadTopics()} />
@@ -154,6 +200,7 @@ export function TriviaScreen({ onBack }: { onBack: () => void }) {
                 <>
                   {shown.picked === shown.correct ? <Text style={styles.good}>{t.point}</Text> : null}
                   {shown.explanationFa ? <Text style={styles.sub}>{shown.explanationFa}</Text> : null}
+                  {shown.authorFa ? <Text style={styles.author}>{fa.workshop.byAuthor(shown.authorFa)}</Text> : null}
                   <SlabButton label={view.done ? t.seeResult : t.next} sfx="confirm" color={colors.candy.lime} height={54} fontSize={20} onPress={() => setShown(null)} />
                 </>
               ) : null}
@@ -161,6 +208,7 @@ export function TriviaScreen({ onBack }: { onBack: () => void }) {
           ) : null}
         </View>
       </ScrollView>
+      {finished && view.score === total ? <Confetti distance={500} /> : null}
     </MatchBackground>
   );
 }
@@ -187,5 +235,9 @@ const styles = StyleSheet.create({
   optionText: { fontFamily: fonts.display, fontSize: 18, color: colors.ink, textAlign: 'center' },
   dim: { opacity: 0.5 },
   good: { fontFamily: fonts.display, fontSize: 18, color: '#2E7D32', textAlign: 'center' },
+  feeChip: { alignSelf: 'center', alignItems: 'center', gap: 2, paddingHorizontal: 16, paddingVertical: 6, borderRadius: 16, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.paper },
+  feeText: { fontFamily: fonts.display, fontSize: 17, color: colors.ink },
+  feeHint: { fontFamily: fonts.bold, fontSize: 11, color: colors.ink, opacity: 0.7, textAlign: 'center' },
+  author: { fontFamily: fonts.bold, fontSize: 12, color: '#7E46D6', textAlign: 'center' },
   actions: { flexDirection: ROW, gap: 10 },
 });

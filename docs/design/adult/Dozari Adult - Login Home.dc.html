@@ -10,7 +10,7 @@
 <helmet>
 <meta name="design_doc_mode" content="canvas">
 <link href="https://fonts.googleapis.com/css2?family=Lalezar&amp;family=Vazirmatn:wght@600;700;800;900&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
-<style>html{background:#1A1210}body{margin:0;background:#1A1210;color:#FFF6E8;font-family:Vazirmatn}a{color:#E8B64A}a:hover{color:#FFF1B8}*{box-sizing:border-box}button,input{font-family:inherit}</style>
+<style>html{background:#1A1210}body{margin:0;background:#1A1210;color:#FFF6E8;font-family:Vazirmatn}a{color:#E8B64A}a:hover{color:#FFF1B8}*{box-sizing:border-box}button,input{font-family:inherit}@keyframes dzBadgePulse{0%,100%{box-shadow:0 4px 10px 0 rgba(255,217,138,.55)}50%{box-shadow:0 6px 16px 3px rgba(255,217,138,0)}}@keyframes dzBadgeShine{0%,60%{transform:translateX(120%) skewX(-20deg)}100%{transform:translateX(-220%) skewX(-20deg)}}</style>
 </helmet>
 <section dir="rtl" style="padding:56px;display:flex;flex-direction:column;gap:32px">
   <header style="display:flex;flex-direction:column;gap:6px">
@@ -57,6 +57,14 @@
         <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(14,10,8,.55),rgba(14,10,8,.1) 30%,rgba(14,10,8,.1) 70%,rgba(14,10,8,.7))"></div>
 
         <div style="position:absolute;top:36px;left:10px;right:10px;display:flex;gap:10px">
+          <div style="position:absolute;top:52px;right:16px;z-index:2;height:26px;cursor:pointer;clip-path:inset(2px -24px -24px -24px)">
+            {{ badgeFx }}
+            
+            <div style="position:relative;height:100%;display:flex;align-items:center;border-radius:0 0 11px 11px;overflow:hidden;background:linear-gradient(180deg,#0B0705,#1E130A);border:1.5px solid #B8822A;border-top:none;box-shadow:0 0 0 2px #000,0 4px 0 #000,inset 0 -1px 0 rgba(255,241,184,.18)">
+              {{ badgeShine }}
+              <div style="display:flex;align-items:center;gap:4px;padding:0 9px 0 9px;height:100%"><div style="width:14px;height:14px;border-radius:50%;background:linear-gradient(180deg,#FFF1B8,#E8B64A 45%,#B8822A);border:1px solid #000;display:grid;place-items:center"><svg viewBox="0 0 12 12" width="8" height="8"><path d="M6 2v8M2 6h8" stroke="#2A1606" stroke-width="2.4" stroke-linecap="round"></path></svg></div><span style="font:12px/1 Lalezar;color:#FFE9A8;white-space:nowrap">قیمت/سوال</span></div>
+            </div>
+          </div>
           <div style="flex:1;min-width:0;height:56px;box-sizing:border-box;border-radius:14px;position:relative;overflow:hidden;background:linear-gradient(180deg,rgba(46,30,16,.86) 0%,rgba(20,13,8,.9) 55%,rgba(10,7,5,.92) 100%);border:1.5px solid #B8822A;box-shadow:0 0 0 2px #000,0 4px 0 #000,inset 0 1px 0 rgba(255,241,184,.28),inset 0 -2px 0 rgba(0,0,0,.4);padding:5px 9px 5px 6px;display:flex;flex-direction:column;justify-content:center;gap:2px"><div style="position:absolute;top:0;left:10px;right:10px;height:1px;background:linear-gradient(90deg,rgba(255,241,184,0),rgba(255,241,184,.55),rgba(255,241,184,0))"></div>
             <div style="display:flex;align-items:center;gap:5px">
               <div style="width:22px;height:22px;flex:none"><dc-import name="Item" icon="coin" hint-size="22px,22px" style="width:22px;height:22px"></dc-import></div>
@@ -87,7 +95,7 @@
         </div>
 
         <sc-for list="{{ cols }}" as="col" hint-placeholder-count="2">
-          <div style="position:absolute;top:110px;bottom:128px;right:{{ col.r }};left:{{ col.l }};width:66px;display:flex;flex-direction:column;justify-content:space-between;align-items:center">
+          <div style="position:absolute;top:124px;bottom:128px;right:{{ col.r }};left:{{ col.l }};width:66px;display:flex;flex-direction:column;justify-content:space-between;align-items:center">
             <sc-for list="{{ col.items }}" as="t" hint-placeholder-count="6">
               <div style="display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;transition:transform .15s" style-hover="transform:translateY(-2px)" style-active="transform:scale(.94)">
                 <div style="width:48px;height:48px;border-radius:15px;position:relative;background:radial-gradient(circle at 35% 25%,#5A3A1C,#2A1A0E 65%,#140C06);border:2px solid {{ t.fr }};box-shadow:0 0 0 2px #000,0 4px 0 #000,{{ t.glow }};display:grid;place-items:center">
@@ -101,7 +109,7 @@
           </div>
         </sc-for>
 
-        <div style="position:absolute;top:104px;left:72px;right:72px;display:flex;flex-direction:column;align-items:center;gap:8px">
+        <div style="position:absolute;top:118px;left:72px;right:72px;display:flex;flex-direction:column;align-items:center;gap:8px">
           <svg viewBox="-90 0 700 200" width="160" style="overflow:visible"><defs><linearGradient id="gaH" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFF1B8"></stop><stop offset=".45" stop-color="#E8B64A"></stop><stop offset="1" stop-color="#9A6A1C"></stop></linearGradient></defs><text x="260" y="158" text-anchor="middle" font-family="Lalezar" font-size="168" fill="#000" stroke="#000" stroke-width="28" stroke-linejoin="round">دوزاری</text><text x="260" y="146" text-anchor="middle" font-family="Lalezar" font-size="168" fill="url(#gaH)" stroke="#000" stroke-width="12" stroke-linejoin="round" paint-order="stroke">دوزاری</text></svg>
           <div style="padding:4px 12px;border-radius:99px;background:#FFE9A8;border:2px solid #000;box-shadow:0 3px 0 #000;font:800 12.5px Vazirmatn;color:#2A1606;white-space:nowrap;cursor:pointer">پازل امروز آماده‌ست!</div>
         </div>
@@ -198,7 +206,7 @@ class Component extends DCLogic {
     const plates=HB.map(b=>{const on=b.key===s.hub;return{name:b.name,mode:b.on?b.mode:'به‌زودی',top:(b.by+6)+'px',left:(b.x-52)+'px',pick:()=>this.setState(st=>({hub:st.hub===b.key?null:b.key})),bg:on?'linear-gradient(180deg,#FFF1B8,#E8B64A 45%,#B8822A)':'#17100C',bd:on?'#000':'#E8B64A',fg:on?'#2A1606':'#FFE9A8',mc:b.on?'#E8B64A':'rgba(255,233,168,.5)'};});
     return {
       phone:s.phone,onPhone:e=>this.setState({phone:e.target.value.slice(0,13)}),ages,ageHint:H[s.age],cta:s.age==='kid'?'ورود با کد والدین':'ارسال کد',
-      ic:IC,showTip:this.props.showTip??true,
+      ic:IC,badgeFx:this.badgeFx||(this.badgeFx=React.createElement("div",{style:{position:"absolute",inset:0,borderRadius:"0 0 10px 10px",animation:"dzBadgePulse 1.8s ease-in-out infinite",pointerEvents:"none"}})),badgeShine:this.badgeShine||(this.badgeShine=React.createElement("div",{style:{position:"absolute",top:0,bottom:0,width:"40%",right:0,background:"linear-gradient(90deg,rgba(255,233,168,0),rgba(255,233,168,.35),rgba(255,233,168,0))",animation:"dzBadgeShine 2.6s ease-in-out infinite",pointerEvents:"none"}})),showTip:this.props.showTip??true,
       cols:[{r:'6px',l:'auto',items:right},{l:'6px',r:'auto',items:left}],
       hubParts:HUBPARTS,glows:HB.map(b=>({x:b.x,y:b.by-16})),plates,
       hasSel:!!s.hub,sel:{top:selTop,host:sb.host,name:sb.name,mode:sb.on?sb.mode:'به‌زودی',desc:sb.desc,cta:sb.on?'ورود':'به‌زودی',btn:sb.on?'linear-gradient(180deg,#FFF1B8 0%,#E8B64A 38%,#B8822A 72%,#8A5A16 100%)':'linear-gradient(180deg,#5A3A1C,#24160A)',btnFg:sb.on?'#2A1606':'rgba(255,233,168,.6)'}

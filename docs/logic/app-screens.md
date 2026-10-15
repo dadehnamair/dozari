@@ -42,7 +42,7 @@ mascot (any other server error). Used by the live duel and the solo screen; othe
 Laid out as **screen-home** of `docs/design/Dozari - 01 Screens.dc.html` (D99, replaces the earlier
 "one row of equal mode cards"):
 
-- **Top counters** (three pills): coins, daily-puzzle streak, level.
+- **Top counters** (three pills): coins, daily-puzzle streak, level (tap → level road page, centred on the player; its gear button opens settings, carrying the missions badge).
   Adult theme: two plates instead (`AdultTopBar`, design `adult/Dozari Adult - Login Home`): wallet (coins with «+», gems · streak) and map · wheel · level + XP bar · avatar; the level/avatar opens settings.
 - **Wordmark** and a **speech bubble** under it: "today's puzzle is ready" (tap → daily puzzle) while
   it can be played, otherwise the month's mood line.
@@ -52,11 +52,15 @@ Laid out as **screen-home** of `docs/design/Dozari - 01 Screens.dc.html` (D99, r
 - The **hero** character floating over the bazaar background. It is also the **guide** (owner note 4):
   tapping it cycles short tips (`fa.home.guide.tips`, one per menu; tips of switched-off features are
   skipped) shown in a `GuideBubble` (mascot + speech bubble) above it; the tip fades after 12 s.
-- Coin pill → coin history sheet (see §Coin history sheet).
+- Coin pill → coin history sheet (see §Coin history sheet). After a win or loss the pill counts from the old balance to the new one and a green «+N» / red «−N» chip floats off it (Home remembers the last drawn balance across mounts; reduced motion skips the animation).
 - **Two big buttons** at the bottom: solo play (green) and duel (orange). When an unfinished match
   exists the orange button becomes **back to your game** with a badge (D42).
 - Still to come from the design: the mode screen (duel / team / play with a friend) behind the duel
   button, the online-player badge (D45) and the UGC entry.
+
+## Adult look of the match screens («صرافی و گاوصندوق»)
+
+In the adult look every match-family screen (solo and daily board, price-only, question solo / duel, board duel with its versus, topic draft, price round and result, mode select, workshop) shares one style: the vault-room scene under a dark veil, ringed plates with a black ledge, brass / copper / bronze buttons, a brass back or leave square, gold = play, copper = duel, silver = price guess (design: `docs/design/adult/Dozari Adult - Quiz Duel`). Shared pieces: `duel/adultKit.tsx` (`AdultBackdrop`, `Plate`, `AnswerRow`, `BrassButton`, `BrassSquare`), `components/GameActions.tsx` (a button row that is slab buttons in play and brass plates in adult), `theme/skin.ts` `adultSkin` (re-colours the style sheet of a form-like screen). `MatchBackground`, `ArenaBackground` and `GameTopBar` switch by themselves. The adult screens lay out with `direction: 'rtl'` so rows start at the right edge on every platform. Kid / teen keep the candy look.
 
 ## Game board (solo and daily puzzle)
 
@@ -118,6 +122,7 @@ per-friend duel button need presence and direct challenges, which do not exist y
 
 ## City hub (D112)
 
+Adult Home also hangs a gold «قیمت/سوال» tab under the coin plate (pulse + glint, red badge = questions waiting for review): it opens the price/question sheet (`question-workshop.md` §Entry).
 screen-hub of `11 More Screens`, opened from the round map button in Home's top row (next to it, the round **wheel** button, D154, with the number of spins waiting; it is always there): «شهر دوزاری», a
 hand-drawn bazaar town where every building is a game mode — برج ساعت (daily puzzle, «جدید» when
 today's is open), کاروانسرا (tournaments, «زنده»), حجرهٔ بازار (solo), زورخانه (duel), قهوه‌خانه (team)
@@ -136,7 +141,7 @@ card shows the coins. Spec of the rules: `docs/logic/economy.md` §Lucky wheel.
 ## Level road and locked popup (D109)
 
 screen-levels of `17 Chat Shop Unlocks`, opened from the profile («جادهٔ لول‌ها»): a purple night, the
-yellow title plate and a cream road with one node per level (top level first, scrolled to the player's
+yellow title plate and a cream road with one node per level (top level first, centred (by measured viewport, once) on the player's
 level on open): done = gold with a tick, current = yellow with the hero waving beside it, ahead = grey
 with a padlock. Cards beside a level show what it opens, from the real gates (`GET /me/levels`: hint,
 personal invite code, gifts and loans, avatar change, nickname change, plus each active shop item with a

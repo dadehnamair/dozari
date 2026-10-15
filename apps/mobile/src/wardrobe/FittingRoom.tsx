@@ -16,6 +16,7 @@ import { buyItem, equipItem, fetchShop, payWithMoney } from '../shop/api';
 import { payNote } from '../shop/payNote';
 import { pageTop } from '../theme/safeArea';
 import { colors, fonts } from '../theme/colors';
+import { ON_YELLOW } from '../theme/skin';
 import type { CharacterId } from '../theme/character';
 import { PackCard } from './PackCard';
 import { rarityOf } from './rarity';
@@ -120,7 +121,7 @@ export function FittingRoom({ who, realMoney = false, onClose }: { who: Characte
             {({ pressed }) => (
               <View style={[styles.back, pressed ? styles.pressed : null]}>
                 <GradientFill from="#FFE48A" to={colors.candy.yellow} />
-                <Icon name="back" size={22} color={colors.ink} strokeWidth={3} />
+                <Icon name="back" size={22} color={ON_YELLOW} strokeWidth={3} />
               </View>
             )}
           </Pressable>
