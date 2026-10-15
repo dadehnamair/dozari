@@ -29,6 +29,19 @@ describe('IrnotiPushService', () => {
     const down = (async () => { throw new Error('down'); }) as unknown as typeof fetch;
     expect(await new IrnotiPushService(cfg, down).notify('u', { title: 't', body: 'b', tag: 'x' })).toBe(false);
   });
+  it('logs a refusal, an empty send and an outage instead of staying silent', async () => {
+    const logs: string[] = [];
+    const log = (m: string) => logs.push(m);
+    await new IrnotiPushService(cfg, recorder(401).http, log).notify('u1', { title: 't', body: 'b', tag: 'x' });
+    const empty = (async () => new Response('{"total":0,"accepted":0,"failed":0}', { status: 200 })) as unknown as typeof fetch;
+    await new IrnotiPushService(cfg, empty, log).notify('u2', { title: 't', body: 'b', tag: 'x' });
+    const down = (async () => { throw new Error('down'); }) as unknown as typeof fetch;
+    await new IrnotiPushService(cfg, down, log).notify('u3', { title: 't', body: 'b', tag: 'x' });
+    expect(logs).toHaveLength(3);
+    expect(logs[0]).toContain('HTTP 401');
+    expect(logs[1]).toContain('reached no device');
+    expect(logs[2]).toContain('down');
+  });
   it('turns a live notice into one push and skips notices that are only useful in-app', async () => {
     const { calls, http } = recorder();
     const s = new IrnotiPushService(cfg, http);
