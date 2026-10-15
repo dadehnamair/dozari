@@ -81,7 +81,8 @@ jobs:
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS || 'dozari' }}
           KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD || 'android' }}
         run: |
-          ./gradlew assembleRelease --no-daemon \
+          # -Pdozari.irnoti=true compiles the IRNoti push SDK in (the default build uses a no-op bridge, so the device never registers).
+          ./gradlew assembleRelease --no-daemon -Pdozari.irnoti=true \
             -Pandroid.injected.signing.store.file="$PWD/app/release.keystore" \
             -Pandroid.injected.signing.store.password="$KS_PASS" \
             -Pandroid.injected.signing.key.alias="$KEY_ALIAS" \
