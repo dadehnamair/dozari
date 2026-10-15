@@ -20,7 +20,12 @@ export interface IrnotiPushConfig {
  */
 export class IrnotiPushService {
   private readonly base: string;
-  constructor(private readonly cfg: IrnotiPushConfig, private readonly http: typeof fetch = fetch) {
+  constructor(
+    private readonly cfg: IrnotiPushConfig,
+    private readonly http: typeof fetch = fetch,
+    /** irnoti answers 200 even when it found no device (`total: 0`), so refusals and empty sends are logged here instead of being silent. */
+    private readonly log: (msg: string) => void = (m) => console.warn(m),
+  ) {
     this.base = (cfg.baseUrl ?? 'https://api.irnoti.com').replace(/\/$/, '');
   }
 
@@ -36,8 +41,15 @@ export class IrnotiPushService {
         }),
         signal: AbortSignal.timeout(10_000),
       });
-      return res.ok;
-    } catch {
+      if (!res.ok) {
+        this.log(`irnoti push to ${userId} refused: HTTP ${res.status} ${(await res.text().catch(() => '')).slice(0, 200)}`);
+        return false;
+      }
+      const out = (await res.json().catch(() => null)) as { total?: number; accepted?: number; failed?: number } | null;
+      if (!out?.accepted) this.log(`irnoti push to ${userId} reached no device: total=${out?.total ?? '?'} accepted=${out?.accepted ?? '?'} failed=${out?.failed ?? '?'}`);
+      return true;
+    } catch (e) {
+      this.log(`irnoti push to ${userId} failed: ${(e as Error).message}`);
       return false;
     }
   }
