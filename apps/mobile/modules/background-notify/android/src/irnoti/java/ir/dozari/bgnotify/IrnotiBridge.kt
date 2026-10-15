@@ -3,6 +3,7 @@ package ir.dozari.bgnotify
 import android.content.Context
 import android.content.pm.PackageManager
 import android.util.Log
+import com.google.firebase.messaging.FirebaseMessaging
 import ir.irnoti.sdk.Irnoti
 import ir.irnoti.sdk.IrnotiConfig
 
@@ -31,6 +32,10 @@ object IrnotiBridge {
     val icon = app.applicationInfo.icon
     Irnoti.init(app, if (base.isNullOrBlank()) IrnotiConfig(appKey = key, smallIcon = icon) else IrnotiConfig(appKey = key, smallIcon = icon, apiBase = base))
     started = true
+    // The SDK swallows every error silently, so check the one step it depends on (the FCM token, which needs Google to be reachable) and report it.
+    FirebaseMessaging.getInstance().token.addOnCompleteListener { t ->
+      if (t.isSuccessful) Log.i(TAG, "FCM token ok (length=${t.result?.length ?: 0})") else Log.w(TAG, "FCM token FAILED: ${t.exception}")
+    }
     Log.i(TAG, "ensure: Irnoti.init done, apiBase=${if (base.isNullOrBlank()) "(SDK default)" else base}")
     return true
   }
