@@ -2,6 +2,8 @@ package ir.dozari.appicon
 
 import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
+import android.os.Process
 import android.content.pm.PackageManager
 import expo.modules.kotlin.exception.Exceptions
 import expo.modules.kotlin.modules.Module
@@ -9,14 +11,12 @@ import expo.modules.kotlin.modules.ModuleDefinition
 
 /**
  * Switches the launcher icon between the activity-aliases that plugins/withGenderIcon.js adds to the manifest:
- * `MainActivityDefault` (the original hero), `MainActivityFemale`, `MainActivityAdult` and `MainActivityAdultFemale`.
+ * `MainActivityAdult` (male hero) and `MainActivityAdultFemale`.
  * Exactly one alias is enabled at a time; the target is enabled first so the app never has no launcher entry.
  * A no-op when the wanted icon is already the active one.
  */
 class AppIconModule : Module() {
   private val aliases = mapOf(
-    "default" to "MainActivityDefault",
-    "female" to "MainActivityFemale",
     "adult" to "MainActivityAdult",
     "adultFemale" to "MainActivityAdultFemale",
   )
@@ -40,6 +40,15 @@ class AppIconModule : Module() {
 
   override fun definition() = ModuleDefinition {
     Name("DozariAppIcon")
+
+    // Closes the app and starts it again through the (now enabled) launcher alias: the icon switch is only picked up by the launcher on a fresh start.
+    Function("restart") {
+      val context = appContext.reactContext ?: throw Exceptions.ReactContextLost()
+      val launch = context.packageManager.getLaunchIntentForPackage(context.packageName) ?: return@Function
+      launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+      context.startActivity(launch)
+      Process.killProcess(Process.myPid())
+    }
 
     Function("setIcon") { variant: String ->
       val context = appContext.reactContext ?: throw Exceptions.ReactContextLost()

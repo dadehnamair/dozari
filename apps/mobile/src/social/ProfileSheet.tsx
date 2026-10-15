@@ -21,6 +21,8 @@ import { ShowcaseStrip } from '../keepsake/ShowcaseStrip';
 import { colors, fonts } from '../theme/colors';
 import { fetchMyBadges } from '../badges/api';
 import { skillText } from '../badges/text';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { iconFor, restartApp } from '../appIcon/appIcon';
 import { fetchFriends, fetchMyProfile, fetchRecentGames, saveGender } from './api';
 import { avatarOf } from './avatarOf';
 import { ProfileEditor } from './ProfileEditor';
@@ -92,10 +94,26 @@ export function ProfileSheet({ onClose, onGender, onAvatar, start = null }: { on
     return () => stops.forEach((stop) => stop());
   }, []);
 
-  const pick = (g: Gender | null) => {
+  const [restartFor, setRestartFor] = useState<{ g: Gender | null } | null>(null);
+  const [restarting, setRestarting] = useState(false);
+  const apply = (g: Gender | null) => {
     setMe((m) => (m ? { ...m, gender: g } : m));
     onGender(g);
+  };
+  const pick = (g: Gender | null) => {
+    if (g === me?.gender) return;
+    // On Android the launcher icon follows gender; switching it closes and reopens the app, so ask first.
+    if (Platform.OS === 'android' && iconFor(g) !== iconFor(me?.gender)) return setRestartFor({ g });
+    apply(g);
     saveGender(g).catch(() => setFailed(true));
+  };
+  const confirmRestart = () => {
+    if (!restartFor) return;
+    setRestarting(true);
+    saveGender(restartFor.g).then(
+      () => (apply(restartFor.g), restartApp()),
+      () => (setFailed(true), setRestarting(false), setRestartFor(null)),
+    );
   };
   // Hooks stay above the sub-page early returns below: a hook after them throws "Rendered fewer hooks" when a sub page opens.
   /** What the player owns: hint tokens, streak shields, gems (the shop is off or unreachable = the row is simply not drawn). */
@@ -134,6 +152,7 @@ export function ProfileSheet({ onClose, onGender, onAvatar, start = null }: { on
 
   const overlays = (
     <>
+      {restartFor ? <ConfirmDialog title={fa.profile.genderRestartTitle} message={fa.profile.genderRestartMessage} confirmLabel={fa.profile.genderRestartOk} cancelLabel={fa.profile.genderRestartCancel} busy={restarting} onConfirm={confirmRestart} onCancel={() => setRestartFor(null)} /> : null}
       {sub === 'recent' ? <RecentGamesSheet dark={dark} games={games} onClose={() => setSub(null)} /> : null}
       {editing && me ? (
         <Pressable style={styles.overlay} onPress={() => setEditing(false)} accessibilityLabel={fa.profile.close}>
