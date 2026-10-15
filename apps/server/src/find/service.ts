@@ -69,7 +69,7 @@ export class FindService {
     if (!row) return null;
     const p = await this.social.pair(me, id);
     const relation = !p ? 'none' : p.status === 'accepted' ? 'friends' : p.requestedBy === me ? 'sent' : 'received';
-    return { id, nickname: row.nickname, avatarKey: row.avatarKey, relation };
+    return { id, nickname: row.nickname, avatarKey: row.avatarKey, relation, contactName: null, phone: null };
   }
 
   /** One exact match by public ID or verified phone; `rate_limited` after 20 a minute. */
@@ -77,8 +77,8 @@ export class FindService {
     if (!this.searches.take(me)) return 'rate_limited';
     const phone = normalizeIranPhone(raw);
     if (phone) {
-      const [id] = await this.find.byPhones([phone]);
-      return { player: id ? await this.card(me, id) : null };
+      const [hit] = await this.find.byPhones([phone]);
+      return { player: hit ? await this.card(me, hit.id) : null };
     }
     const handle = normalizeInviteCode(raw);
     if (!looksLikeHandle(handle)) return { player: null };
@@ -86,17 +86,38 @@ export class FindService {
     return { player: id ? await this.card(me, id) : null };
   }
 
-  /** Phone numbers from the player's address book: the players among them who verified that number and allow being found. */
-  async contacts(me: string, phones: readonly string[]): Promise<{ players: FoundPlayer[] } | 'rate_limited'> {
+  /**
+   * Address-book entries (name + number; `phones` alone is the older form): the players among them who verified that number and allow
+   * being found. Each match is remembered privately for `me` with the name they saved, so the friends list can show it later.
+   */
+  async contacts(me: string, input: { phones?: readonly string[]; contacts?: readonly { phone: string; name: string }[] }): Promise<{ players: FoundPlayer[] } | 'rate_limited'> {
     if (!this.uploads.take(me)) return 'rate_limited';
-    const normalised = [...new Set(phones.map((p) => normalizeIranPhone(p)).filter((p): p is string => p !== null))].slice(0, 500);
-    const ids = [...new Set(await this.find.byPhones(normalised))];
-    const out: FoundPlayer[] = [];
-    for (const id of ids) {
-      const c = await this.card(me, id);
-      if (c) out.push(c);
+    const names = new Map<string, string>();
+    for (const c of [...(input.contacts ?? []), ...(input.phones ?? []).map((phone) => ({ phone, name: '' }))]) {
+      const n = normalizeIranPhone(c.phone);
+      if (n && !names.has(n)) names.set(n, c.name.trim().slice(0, 80));
     }
+    const hits = await this.find.byPhones([...names.keys()].slice(0, 500));
+    const out: FoundPlayer[] = [];
+    const notes: { friendId: string; name: string; phone: string }[] = [];
+    const seen = new Set<string>();
+    for (const { id, phone } of hits) {
+      if (seen.has(id)) continue;
+      seen.add(id);
+      const c = await this.card(me, id);
+      if (!c) continue;
+      const name = names.get(phone) ?? '';
+      const shown = phone.replace(/^\+98/, '0'); // the form the player knows from their own phone
+      out.push({ ...c, contactName: name || null, phone: shown });
+      notes.push({ friendId: id, name, phone: shown });
+    }
+    if (notes.length > 0) await this.find.saveContacts(me, notes);
     return { players: out };
+  }
+
+  /** `me`'s private address-book notes for these players (name and number), for the friends list. */
+  contactNotes(me: string, ids: readonly string[]): Promise<Map<string, { name: string; phone: string }>> {
+    return this.find.contactsOf(me, ids);
   }
 
   /**

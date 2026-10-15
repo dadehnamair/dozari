@@ -347,9 +347,73 @@ export const triviaQuestions = mysqlTable(
     explanationFa: varchar('explanation_fa', { length: 300 }).notNull().default(''),
     ageTrack: mysqlEnum('age_track', AGE_TRACKS).notNull().default('adult'),
     status: mysqlEnum('status', ['draft', 'approved', 'retired']).notNull().default('approved'),
+    /** 1 easy · 2 medium · 3 hard (docs/logic/trivia.md §Difficulty). */
+    difficulty: tinyint('difficulty').notNull().default(2),
+    /** The player who designed it (question workshop); null for the admin's own. Kept if the player is deleted. */
+    authorId: char('author_id', { length: 36 }).references(() => users.id, { onDelete: 'set null' }),
+    /** Times it was answered in games and how many of those were right (the measured difficulty and the author's play counter). */
+    plays: int('plays').notNull().default(0),
+    rightCount: int('right_count').notNull().default(0),
     createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
   },
   (table) => ({ byTopic: index('trivia_topic_idx').on(table.topicId, table.status) }),
+);
+
+/** A question a player designed, waiting for review and the admin (docs/logic/question-workshop.md). Approval creates the `trivia_questions` row. */
+export const triviaSubmissions = mysqlTable(
+  'trivia_submissions',
+  {
+    id: id(),
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    topicId: fk('topic_id'),
+    textFa: varchar('text_fa', { length: 300 }).notNull(),
+    optionA: varchar('option_a', { length: 80 }).notNull(),
+    optionB: varchar('option_b', { length: 80 }).notNull(),
+    optionC: varchar('option_c', { length: 80 }).notNull(),
+    optionD: varchar('option_d', { length: 80 }).notNull(),
+    correctIndex: tinyint('correct_index').notNull(),
+    explanationFa: varchar('explanation_fa', { length: 300 }).notNull().default(''),
+    difficulty: tinyint('difficulty').notNull().default(2),
+    status: mysqlEnum('status', ['pending', 'ready_for_review', 'approved', 'rejected']).notNull().default('pending'),
+    /** Sum of the reviews' scores, the number of reviews, and how many reviewers picked another answer than the author's. */
+    score: int('score').notNull().default(0),
+    reviews: int('reviews').notNull().default(0),
+    disputes: int('disputes').notNull().default(0),
+    rejectReason: mysqlEnum('reject_reason', ['wrong_answer', 'unclear', 'duplicate', 'off_topic', 'bad_taste']),
+    /** The bank question it became, once approved. */
+    questionId: char('question_id', { length: 36 }),
+    rewardCoins: int('reward_coins').notNull().default(0),
+    rewardedAt: datetime('rewarded_at', { mode: 'date', fsp: 3 }),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    decidedAt: datetime('decided_at', { mode: 'date', fsp: 3 }),
+  },
+  (t) => ({ byStatus: index('trivia_sub_status_idx').on(t.status, t.score), byUser: index('trivia_sub_user_idx').on(t.userId, t.createdAt) }),
+);
+
+/** One player's review of a submission: the answer they picked blind (original index), the thumb, and the points earned. One per player and submission. */
+export const triviaReviews = mysqlTable(
+  'trivia_reviews',
+  {
+    submissionId: char('submission_id', { length: 36 }).notNull().references(() => triviaSubmissions.id, { onDelete: 'cascade' }),
+    reviewerId: char('reviewer_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    answerIndex: tinyint('answer_index').notNull(),
+    quality: tinyint('quality').notNull(),
+    points: int('points').notNull().default(1),
+    settledAt: datetime('settled_at', { mode: 'date', fsp: 3 }),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.submissionId, t.reviewerId] }), byReviewer: index('trivia_review_user_idx').on(t.reviewerId, t.createdAt) }),
+);
+
+/** Which general questions a player has seen (shown and revealed), so the question modes stop repeating them (docs/logic/trivia.md §No repeats). Only the newest rows per player are kept. */
+export const triviaSeen = mysqlTable(
+  'trivia_seen',
+  {
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    questionId: char('question_id', { length: 36 }).notNull().references(() => triviaQuestions.id, { onDelete: 'cascade' }),
+    seenAt: datetime('seen_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.userId, t.questionId] }), byUser: index('trivia_seen_user_idx').on(t.userId, t.seenAt) }),
 );
 
 /**
@@ -561,6 +625,9 @@ export const LEDGER_REASONS = [
   'keepsake_piece',
   'keepsake_upgrade',
   'ad_reward',
+  'trivia_entry',
+  'trivia_payout',
+  'trivia_refund',
 ] as const;
 
 /** Append-only. Coins move only through the server's ledger function; a repeated idempotency key is a no-op. */
@@ -665,8 +732,36 @@ export const baleLinks = mysqlTable(
     chatId: varchar('chat_id', { length: 40 }).notNull(),
     linkedAt: datetime('linked_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
     dailyNotifiedFor: datetime('daily_notified_for', { mode: 'date', fsp: 3 }),
+    /** Comma-separated notification kinds the player switched off (no JSON columns, D63). */
+    mutedKinds: varchar('muted_kinds', { length: 200 }).notNull().default(''),
   },
   (table) => ({ uniqChat: uniqueIndex('bale_links_chat_uq').on(table.chatId) }),
+);
+
+/** Browser Web Push subscriptions (D232): one row per browser/device the player allowed notifications on. iPhone push (installed web app) goes through Apple's service, Chrome's through Google's; the endpoint says which. */
+export const webPushSubscriptions = mysqlTable(
+  'web_push_subscriptions',
+  {
+    id: char('id', { length: 36 }).primaryKey(),
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    endpoint: varchar('endpoint', { length: 700 }).notNull(),
+    p256dh: varchar('p256dh', { length: 200 }).notNull(),
+    auth: varchar('auth', { length: 100 }).notNull(),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ uniqEndpoint: uniqueIndex('web_push_endpoint_uq').on(table.endpoint), byUser: index('web_push_user_idx').on(table.userId) }),
+);
+
+/** Firebase Cloud Messaging device tokens of the Android app (D232): one row per install the player is signed in on. */
+export const fcmTokens = mysqlTable(
+  'fcm_tokens',
+  {
+    id: char('id', { length: 36 }).primaryKey(),
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    token: varchar('token', { length: 400 }).notNull(),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ uniqToken: uniqueIndex('fcm_token_uq').on(table.token), byUser: index('fcm_user_idx').on(table.userId) }),
 );
 
 export const baleLinkCodes = mysqlTable('bale_link_codes', {
@@ -701,6 +796,22 @@ export const friendships = mysqlTable(
     respondedAt: datetime('responded_at', { mode: 'date', fsp: 3 }),
   },
   (table) => ({ pk: primaryKey({ columns: [table.userLow, table.userHigh] }), byHigh: index('friendships_high_idx').on(table.userHigh) }),
+);
+
+/**
+ * A private note on a player found through the address book: the name `ownerId` has for them in their own phone and the number that
+ * matched. Only the owner ever sees it (friends list, player card); the other player never does.
+ */
+export const friendContacts = mysqlTable(
+  'friend_contacts',
+  {
+    ownerId: char('owner_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    friendId: char('friend_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    contactName: varchar('contact_name', { length: 80 }).notNull(),
+    phone: varchar('phone', { length: 20 }).notNull(),
+    updatedAt: datetime('updated_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (table) => ({ pk: primaryKey({ columns: [table.ownerId, table.friendId] }) }),
 );
 
 /** `all` and `bale_linked` reach adults only; `kid` and `teen` are the deliberate, child-safe audiences (docs/logic/age-tracks.md §Admin panel). */

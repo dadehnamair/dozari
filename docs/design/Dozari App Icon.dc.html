@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link href="https://fonts.googleapis.com/css2?family=Lalezar&amp;family=JetBrains+Mono:wght@500&amp;display=swap" rel="stylesheet">
+<style>html,body{margin:0;background:#1A0F24}a{color:#FFC93C}a:hover{color:#FF7A3D}</style>
+</helmet>
+<section style="background:#1A0F24;min-height:100vh;padding:60px;display:flex;flex-direction:column;gap:28px">
+  <div style="font-family:'JetBrains Mono';color:#FFE9A8;font-size:14px;letter-spacing:.1em">TURN 2 — APP ICON · ADULT VAULT · مردانه / زنانه</div>
+  <div style="display:flex;flex-wrap:wrap;gap:40px">
+    <sc-for list="{{ icons }}" as="ic" hint-placeholder-count="2">
+      <div id="{{ ic.id }}" style="width:560px;display:flex;flex-direction:column;gap:16px;background:#24162F;border-radius:24px;padding:24px;box-sizing:border-box">
+        <div style="display:flex;gap:10px;align-items:center;font-family:'JetBrains Mono';font-size:13px;color:#FFE9A8"><span style="background:#FFC93C;color:#2B1240;padding:3px 9px;border-radius:6px;font-weight:500">{{ ic.id }}</span>{{ ic.label }}</div>
+        <div style="display:flex;justify-content:center;padding:10px 0"><dc-import name="AppIcon" who="{{ ic.who }}" variant="{{ ic.v }}" size="{{ 360 }}" hint-size="360px,360px"></dc-import></div>
+        <div style="display:flex;align-items:flex-end;justify-content:center;gap:22px;padding:18px;border-radius:16px;background:linear-gradient(160deg,#3A4A7A,#1C2440)">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><dc-import name="AppIcon" who="{{ ic.who }}" variant="{{ ic.v }}" size="{{ 120 }}" hint-size="120px,120px"></dc-import><span style="font-family:Lalezar;color:#fff;font-size:16px">دوزاری</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><dc-import name="AppIcon" who="{{ ic.who }}" variant="{{ ic.v }}" size="{{ 72 }}" hint-size="72px,72px"></dc-import><span style="font-family:'JetBrains Mono';color:#C9D3F0;font-size:11px">72</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><dc-import name="AppIcon" who="{{ ic.who }}" variant="{{ ic.v }}" size="{{ 48 }}" hint-size="48px,48px"></dc-import><span style="font-family:'JetBrains Mono';color:#C9D3F0;font-size:11px">48</span></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px"><dc-import name="AppIcon" who="{{ ic.who }}" variant="{{ ic.v }}" size="{{ 32 }}" hint-size="32px,32px"></dc-import><span style="font-family:'JetBrains Mono';color:#C9D3F0;font-size:11px">32</span></div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    return { icons: [
+      { id: '2a', who: 'man', v: 'A', label: 'مردانه — دوزاری سه‌بعدی، سکه رو گاز می‌گیره' },
+      { id: '2b', who: 'woman', v: 'A', label: 'زنانه — گلی خانم سه‌بعدی، چشمک + سکه' }
+    ]};
+  }
+}
+</script>
+</body>
+</html>

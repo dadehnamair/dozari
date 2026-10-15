@@ -7,6 +7,8 @@ import { MatchBackground } from '../game/MatchBackground';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { nativeTopInset } from '../theme/safeArea';
+import { bootTheme } from '../theme/bootTheme';
+import { TopicDraftAdult } from './TopicDraftAdult';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const t = fa.duel.topics;
@@ -18,7 +20,11 @@ const byText = (by: DraftView['picked'][number]['by'], you: 0 | 1): string => (b
  * The pre-match topic draft (themed-rounds.md): the sides take turns naming the topic of each round, a named topic closes, «تصادفی»
  * lets the game draw, and the last round of an odd count is the game's own. The server runs the clock and draws when it runs out.
  */
-export function TopicDraft({ draft, now, onPick, onLeave }: { draft: DraftView; now: number; /** Resolves to an error text, or null when the server took it. */ onPick: (topic: string) => Promise<string | null>; onLeave: () => void }) {
+export function TopicDraft(props: Parameters<typeof TopicDraftCandy>[0]) {
+  return bootTheme() === 'adult' ? <TopicDraftAdult {...props} /> : <TopicDraftCandy {...props} />;
+}
+
+function TopicDraftCandy({ draft, now, onPick, onLeave }: { draft: DraftView; now: number; /** Resolves to an error text, or null when the server took it. */ onPick: (topic: string) => Promise<string | null>; onLeave: () => void }) {
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const secs = Math.max(0, Math.ceil((draft.endsAt - now) / 1000));

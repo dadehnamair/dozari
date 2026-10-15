@@ -11,10 +11,13 @@ import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import type { CharacterId, CharacterPose } from '../theme/character';
 import { nativeTopInset } from '../theme/safeArea';
+import { bootTheme } from '../theme/bootTheme';
 import type { ArenaTier, TierId } from './arena';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const a = fa.duel.arena;
+/** Adult look: dark plates with a gold / copper band instead of the cream card with blue / violet bands. */
+const ADULT = bootTheme() === 'adult';
 
 /** screen-mode of `13 Match Screens`: the 1v1 card, the 2v2 card, «رقابت با دوست», «بزن بریم!». */
 export function ModeSelect({ entry, prize, mode, onMode, onGo, onFriend, onBack, tiers = [], tier = 'bronze', onTier }: { entry: number; prize: number; mode: 'duel' | 'team'; onMode: (m: 'duel' | 'team') => void; onGo: () => void; onFriend?: () => void; onBack: () => void; /** Stake tables on offer (bronze first); the chooser shows when there is more than one. */ tiers?: ArenaTier[]; tier?: TierId; onTier?: (t: TierId) => void }) {
@@ -67,9 +70,9 @@ function ModeCard({ tight = false, title, tag, band, cast, stats, picked = false
     <Pressable accessibilityRole="button" accessibilityLabel={`${title} ${tag}`} accessibilityState={{ disabled, selected: picked }} disabled={disabled} onPress={onPress}>
       {({ pressed }) => (
         <View style={[styles.card, picked ? styles.cardPicked : null, disabled ? styles.cardOff : null, pressed ? styles.pressed : null]}>
-          <GradientFill from={colors.cream} to="#F6E2C2" />
+          <GradientFill from={ADULT ? '#2A1E16' : colors.cream} to={ADULT ? '#17100C' : '#F6E2C2'} />
           <View style={styles.band}>
-            <GradientFill from={band === 'sky' ? '#8FDCFA' : '#C9A3FF'} to={band === 'sky' ? colors.candy.sky : colors.candy.grape} />
+            <GradientFill from={ADULT ? (band === 'sky' ? '#F0B48A' : '#FFF1B8') : band === 'sky' ? '#8FDCFA' : '#C9A3FF'} to={ADULT ? (band === 'sky' ? '#C2693A' : '#B8822A') : band === 'sky' ? colors.candy.sky : colors.candy.grape} />
             <Text style={styles.bandTitle}>{title}</Text>
             <View style={styles.tag}><Text style={styles.tagText}>{tag}</Text></View>
           </View>
@@ -100,7 +103,7 @@ function ModeCard({ tight = false, title, tag, band, cast, stats, picked = false
 export function VsBadge({ size = 44 }: { size?: number }) {
   return (
     <View style={[styles.vs, { width: size, height: size, borderRadius: size / 2 }]}>
-      <GradientFill from="#FF8FB6" to={colors.candy.pink} />
+      <GradientFill from={ADULT ? '#F0B48A' : '#FF8FB6'} to={ADULT ? '#C2693A' : colors.candy.pink} />
       <Text style={[styles.vsText, { fontSize: size * 0.45 }]}>VS</Text>
     </View>
   );
@@ -110,12 +113,12 @@ const shadow = { shadowColor: colors.ink, shadowOffset: { width: 0, height: 6 },
 
 const styles = StyleSheet.create({
   tierRow: { flexDirection: ROW, gap: 8, justifyContent: 'center', marginTop: 6 },
-  tierChip: { minHeight: 44, paddingHorizontal: 12, borderRadius: 14, backgroundColor: colors.cream, borderWidth: 2, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
+  tierChip: { minHeight: 44, paddingHorizontal: 12, borderRadius: 14, backgroundColor: ADULT ? '#201610' : colors.cream, borderWidth: 2, borderColor: ADULT ? '#8A5A16' : colors.ink, alignItems: 'center', justifyContent: 'center' },
   tierChipOn: { backgroundColor: colors.candy.yellow },
-  tierText: { fontFamily: fonts.bold, fontSize: 14, color: colors.ink },
-  tierSub: { fontFamily: fonts.body, fontSize: 11, color: colors.ink },
+  tierText: { fontFamily: fonts.bold, fontSize: 14, color: ADULT ? '#FFE9A8' : colors.ink },
+  tierSub: { fontFamily: fonts.body, fontSize: 11, color: ADULT ? 'rgba(255,233,168,0.7)' : colors.ink },
   root: { flex: 1, backgroundColor: colors.deep },
-  shade: { backgroundColor: 'rgba(43,18,64,0.5)' },
+  shade: { backgroundColor: ADULT ? 'rgba(14,10,8,0.8)' : 'rgba(43,18,64,0.5)' },
   scrollTight: { paddingTop: 8 + nativeTopInset(), paddingBottom: 10 },
   columnTight: { gap: 8 },
   stageTight: { height: 76 },
@@ -123,7 +126,7 @@ const styles = StyleSheet.create({
   castSmallTight: { width: 46, height: 62 },
   scroll: { flexGrow: 1, paddingHorizontal: 14, paddingTop: 14 + nativeTopInset(), paddingBottom: 20, alignItems: 'center' },
   column: { flex: 1, width: '100%', maxWidth: 480, gap: 14 },
-  card: { borderRadius: 24, borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', transform: [{ scale: 0.96 }], ...shadow },
+  card: { borderRadius: 24, borderWidth: 3, borderColor: ADULT ? '#E8B64A' : colors.ink, overflow: 'hidden', transform: [{ scale: 0.96 }], ...shadow },
   cardPicked: { transform: [{ scale: 1 }], shadowColor: colors.candy.yellow, shadowOffset: { width: 0, height: 0 }, shadowRadius: 18, shadowOpacity: 0.8 },
   cardOff: { opacity: 0.7 },
   pressed: { transform: [{ translateY: 3 }] },
@@ -138,7 +141,7 @@ const styles = StyleSheet.create({
   stats: { flexDirection: ROW, alignItems: 'center', justifyContent: 'space-around', gap: 6, paddingHorizontal: 12, paddingTop: 8, paddingBottom: 10, borderTopWidth: 2, borderStyle: 'dashed', borderColor: 'rgba(43,18,64,0.25)' },
   stat: { flexDirection: ROW, alignItems: 'center', gap: 4 },
   statIcon: { width: 22, height: 22 },
-  statText: { fontFamily: fonts.bold, fontSize: 13, color: colors.ink },
+  statText: { fontFamily: fonts.bold, fontSize: 13, color: ADULT ? '#FFE9A8' : colors.ink },
   check: { position: 'absolute', top: 50, left: 10, width: 30, height: 30, borderRadius: 15, backgroundColor: colors.candy.lime, borderWidth: 3, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   checkText: { fontFamily: fonts.bold, fontSize: 15, lineHeight: 20, color: '#fff' },
   vs: { alignSelf: 'center', borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', transform: [{ rotate: '-8deg' }], zIndex: 1 },

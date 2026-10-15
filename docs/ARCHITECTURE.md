@@ -37,7 +37,7 @@ Phase 0-A in `docs/PLAN.md` for the spikes that validate them before real code i
 | Payments (later) | Cafe Bazaar / Myket IAP (Poolakey SDK) for in-app; ZarinPal (needs Enamad) for web | Not built until monetization model is decided (open question 4). |
 | Error tracking | Self-hosted GlitchTip | Not Sentry SaaS or Crashlytics (D18). |
 | Analytics | Self-hosted Umami or PostHog | D18. |
-| Push | Deferred. Candidates: Pushe / Najva (Iranian) or none for MVP | No FCM (D18). |
+| Push | Via the irnoti broker (D233); not built yet. Pushe / Najva remain fallbacks | No direct FCM/Google calls (D1, D233). |
 | Ads (if monetized) | Tapsell, Adivery | Iranian ad networks (D18); deferred with open question 4. |
 | Hosting | **Primary: ArvanCloud or ParsPack (inside Iran)**, backups replicated to an off-country location | D16 — stays reachable during international connectivity outages, lower latency for the target audience. Docker Compose: `server`, `mysql`, `redis` (later), `caddy`. |
 | CI | GitHub Actions: typecheck, lint, test, build | Pin npm/Docker registry mirrors reachable from Iran once Phase 0-A experiment 4 identifies them. |

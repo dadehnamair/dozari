@@ -30,6 +30,7 @@ import { GiftSheet } from '../shop/GiftSheet';
 import { setLookGender } from '../theme/look';
 import { emitProfileChanged } from './profileEvents';
 import { ProfileSheet } from './ProfileSheet';
+import { DmSheet } from '../chat/DmSheet';
 
 const INK = '#3A2418';
 
@@ -45,6 +46,7 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
   /** The player opened their own card and chose «edit»: the full profile editor opens on top. */
   const [editing, setEditing] = useState(false);
   const [giftOpen, setGiftOpen] = useState(false);
+  const [dmOpen, setDmOpen] = useState(false);
   const { ask, dialog } = useConfirm();
   const { gate, intercept } = useGuardianGate();
   /** Gifts and loans are not drawn for a kid or teen (the server refuses them too). While the rules load, nothing is hidden. */
@@ -153,6 +155,7 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
               <>
                 <View style={styles.friendTag}><Icon name="check" size={14} color="#fff" strokeWidth={4} /><Text style={styles.friendTagText}>{fa.player.friends}</Text></View>
                 <View style={styles.actions}>
+                  <HubTile onLight icon="chat" label={fa.chat.dmOpen} color={colors.candy.sky} onPress={() => setDmOpen(true)} />
                   {p.birthday ? <HubTile onLight icon="gift" label={fa.birthdayGift.open} color={colors.candy.yellow} onPress={() => setGiftOpen(true)} /> : null}
                   {canSendCoins ? <HubTile onLight icon="gift" label={fa.transfers.gift} color={colors.candy.lime} onPress={() => setSend('gift')} /> : null}
                   {canSendCoins ? <HubTile onLight icon="wallet" label={fa.transfers.loan} color={colors.candy.orange} onPress={() => setSend('loan')} /> : null}
@@ -165,6 +168,7 @@ export function PlayerSheet({ playerId, onClose }: { playerId: string; onClose: 
       </Pressable>
       {dialog}
       {gate}
+      {dmOpen && p ? <DmSheet friend={{ id: playerId, nickname: p.nickname, avatarKey: p.avatarKey }} onClose={() => setDmOpen(false)} /> : null}
       {giftOpen && p ? <GiftSheet friendId={playerId} friendName={p.nickname} onClose={() => setGiftOpen(false)} /> : null}
       {editing ? <ProfileSheet start="edit" onGender={setLookGender} onClose={() => (setEditing(false), load(), emitProfileChanged())} /> : null}
       {reporting ? <ReportDialog target={{ kind: 'user', userId: playerId }} onClose={() => setReporting(false)} /> : null}

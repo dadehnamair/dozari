@@ -14,6 +14,8 @@ import { SchoolSheet } from '../feedback/SchoolSheet';
 import { Item } from '../components/Item';
 import { fetchFriends } from '../social/api';
 import { connectNotices } from '../notices/connectNotices';
+import { showWebNotice, syncWebPush } from '../notices/webNotify';
+import { startBackgroundNotify } from '../notices/backgroundNotify';
 import { FriendRequestSheet } from '../notices/FriendRequestSheet';
 import { claimProfileTask } from '../social/profileTasksApi';
 import { profileNudge } from './profileNudge';
@@ -28,6 +30,7 @@ import { useReviewPrompt } from '../review/useReviewPrompt';
 import { OPEN_CONFIG } from '../config/gate';
 import type { ClientConfig } from '../config/gate';
 import { InboxSheet } from '../inbox/InboxSheet';
+import { LevelRoadPage } from '../levels/LevelRoadPage';
 import { LedgerSheet } from '../ledger/LedgerSheet';
 import { GuideBubble } from '../components/GuideBubble';
 import { availableTips, nextTip } from './guideTips';
@@ -58,7 +61,12 @@ import { fmt, styles } from './homeStyles';
 import { useHeroMotion } from './useHeroMotion';
 import { useHomeData } from './useHomeData';
 import { StatPill } from './StatPill';
+import { AdultTopBar } from './AdultTopBar';
 import { StatInfoSheet } from './StatInfoSheet';
+import { CoinDeltaFx } from './CoinDeltaFx';
+import type { WorkshopInfo } from '@dozari/shared';
+import { fetchWorkshop } from '../workshop/api';
+import { useCoinDelta } from './useCoinDelta';
 
 interface Tile {
   key: string;
@@ -76,14 +84,16 @@ interface Tile {
  * speech bubble, corner tiles down both sides, the floating hero, and two big buttons at the bottom. Every feature
  * keeps its sheet; a tile only shows when its feature flag is on.
  */
-export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onDaily, onDuel, onDuelResume, onTutorial, onLookup, onGallery, features = OPEN_CONFIG.features, settings = OPEN_CONFIG.raw, myTrack, onPreview }: { onSolo: () => void; onPreview?: (track: 'kid' | 'teen') => void; onPriceOnly?: () => void; onTrivia?: () => void; onDaily?: () => void; onDuel?: () => void; onDuelResume?: () => void; onTutorial?: () => void; onLookup: () => void; onGallery?: () => void; features?: ClientConfig['features']; settings?: ClientConfig['raw']; /** Track rules and the guardian's limits; absent = no restriction. */ myTrack?: { rules: TrackRulesDto | null; limits: ChildLimits | null } }) {
+export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onTriviaDuel, onWorkshop, onDaily, onDuel, onDuelResume, onTutorial, onLookup, onGallery, features = OPEN_CONFIG.features, settings = OPEN_CONFIG.raw, myTrack, onPreview }: { onSolo: () => void; onPreview?: (track: 'kid' | 'teen') => void; onPriceOnly?: () => void; onTrivia?: () => void; onTriviaDuel?: () => void; onWorkshop?: (tab?: 'make' | 'review') => void; onDaily?: () => void; onDuel?: () => void; onDuelResume?: () => void; onTutorial?: () => void; onLookup: () => void; onGallery?: () => void; features?: ClientConfig['features']; settings?: ClientConfig['raw']; /** Track rules and the guardian's limits; absent = no restriction. */ myTrack?: { rules: TrackRulesDto | null; limits: ChildLimits | null } }) {
   const adult = useTheme() === 'adult';
   const month = useMemo(() => solarMonthOf(Date.now()), []);
   /** Short phones (≤700px tall) get tighter columns and a smaller hero so nothing runs into the bottom buttons. */
   const compact = useWindowDimensions().height <= 700;
   const daily = useDailyReward();
-  const { spins, loadSpins, liveMatch, gender, setGender, avatarKey, setAvatarKey, level, province, slogan, dailyPuzzle, loadMe, profileTasks, loadTasks, gems, worn, loadWorn } = useHomeData(features);
+  const { spins, loadSpins, liveMatch, gender, setGender, avatarKey, setAvatarKey, level, xpFrac, province, slogan, dailyPuzzle, loadMe, profileTasks, loadTasks, gems, worn, loadWorn } = useHomeData(features);
   const hero = useHeroMotion();
+  /** Wins and losses since Home was last drawn: the coin counter counts to the new balance and a «+N» / «−N» chip floats by. */
+  const coinFx = useCoinDelta(daily.status?.balance ?? null);
   const [wheelOpen, setWheelOpen] = useState(false);
   const [baleOpen, setBaleOpen] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
@@ -112,6 +122,7 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onDaily, onDuel, onD
   /** A friend request is waiting: who sent the latest one (when pushed live) and how many wait in all. */
   const [friendNotice, setFriendNotice] = useState<{ from?: string; count: number } | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [roadOpen, setRoadOpen] = useState(false);
   const [boardOpen, setBoardOpen] = useState(false);
   const [hubOpen, setHubOpen] = useState(false);
   const [schoolOpen, setSchoolOpen] = useState(false);
@@ -140,14 +151,20 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onDaily, onDuel, onD
     return () => clearTimeout(timer);
   }, [nudgeToast]);
   const inbox = useInbox();
+  useEffect(() => {
+    void startBackgroundNotify();
+    void syncWebPush();
+  }, []);
   const inboxReload = inbox.reload;
   useEffect(() => {
     if (!features.friends) return undefined;
     // Requests already waiting when the app opens, then pushes while it is open (a quiet socket, D168).
     fetchFriends().then((f) => f.incoming.length > 0 && setFriendNotice({ count: f.incoming.length }), () => undefined);
     return connectNotices((n) => {
+      showWebNotice(n);
       if (n.kind === 'inbox') return inboxReload();
       // Table news arrives as a short line from the guide (the table sheet itself polls for the details).
+      if (n.kind === 'dm') return setNudgeToast(fa.home.dm(n.from ?? ''));
       if (n.kind === 'table_invite') return setNudgeToast(fa.home.tableInvite(n.from ?? ''));
       if (n.kind === 'table_request') return setNudgeToast(fa.home.tableRequest(n.from ?? ''));
       if (n.kind === 'table_answer') return setNudgeToast(n.accepted ? fa.tables.openList.accepted : fa.tables.openList.declined);
@@ -196,29 +213,62 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onDaily, onDuel, onD
 
   const priceOnlyOn = features.priceonly && !!onPriceOnly;
   const triviaOn = features.trivia && !!onTrivia;
+  const triviaDuelOn = features.triviaduel && !!onTriviaDuel;
+  // The question workshop card shows the live reward and how many questions wait for this player's review; absent when the server refuses (age track, switch).
+  const workshopOn = features.workshop && !!onWorkshop;
+  const [workshop, setWorkshop] = useState<WorkshopInfo | null>(null);
+  useEffect(() => {
+    if (!workshopOn) return;
+    void fetchWorkshop().then((w) => setWorkshop(w.on ? w : null), () => setWorkshop(null));
+  }, [workshopOn]);
 
   return (
     <SceneBackground scene="bazaar">
       {adult ? <View pointerEvents="none" style={StyleSheet.absoluteFill}><GradientFill from="rgba(14,10,8,0.55)" to="rgba(14,10,8,0.7)" mid={{ at: 0.5, color: 'rgba(14,10,8,0.1)' }} /></View> : null}
       <View style={styles.root} pointerEvents="box-none" onTouchStart={() => setTip(null)}>
-        <View style={[styles.pills, adult ? styles.pillsAdult : null]}>
-          {daily.status ? <StatPill color={colors.candy.yellow} icon="coin" value={fmt(daily.status.balance)} label={`${daily.status.balance} ${h.coins}`} onPress={() => setLedgerOpen(true)} /> : null}
+        {adult ? (
+          <AdultTopBar
+            coins={daily.status ? fmt(daily.status.balance) : null}
+            gems={gems > 0 ? fmt(gems) : null}
+            streak={dailyPuzzle && dailyPuzzle.state !== 'unavailable' && dailyPuzzle.streak > 0 ? toPersianDigits(String(dailyPuzzle.streak)) : null}
+            level={level !== null ? toPersianDigits(String(level)) : null}
+            xpFrac={xpFrac}
+            who={heroOf(gender, avatarKey)}
+            spinBadge={spins > 0 ? toPersianDigits(String(spins)) : daily.status?.canClaim ? '!' : null}
+            labels={{ coins: h.coins, gems: h.gems, streak: h.streak, level: h.level, map: fa.hub.open, wheel: h.wheel, streakUnit: h.streak }}
+            onCoins={() => setLedgerOpen(true)}
+            onGems={() => setInfoOpen('gems')}
+            onStreak={() => setInfoOpen('streak')}
+            onMap={() => setHubOpen(true)}
+            onWheel={() => setWheelOpen(true)}
+            onProfile={() => setSettingsOpen(true)}
+            contribute={{ label: fa.feedback.school.tabLabel, badge: workshop && workshop.waiting > 0 ? toPersianDigits(String(workshop.waiting)) : null, onPress: () => setSchoolOpen(true) }}
+          />
+        ) : (
+        <View style={styles.pills}>
+          {daily.status ? (
+            <View style={styles.coinSlot}>
+              <StatPill color={colors.candy.yellow} icon="coin" value={fmt(coinFx.shown ?? daily.status.balance)} label={`${daily.status.balance} ${h.coins}`} onPress={() => setLedgerOpen(true)} />
+              {coinFx.fx ? <CoinDeltaFx key={coinFx.fx.key} delta={coinFx.fx.delta} progress={coinFx.progress} /> : null}
+            </View>
+          ) : null}
           {gems > 0 ? <StatPill color={colors.candy.sky} glyph="💎" value={fmt(gems)} label={`${gems} ${h.gems}`} onPress={() => setInfoOpen('gems')} /> : null}
-          {dailyPuzzle && dailyPuzzle.state !== 'unavailable' && dailyPuzzle.streak > 0 ? <StatPill color={colors.candy.pink} glyph="🔥" value={adult ? toPersianDigits(String(dailyPuzzle.streak)) : `${toPersianDigits(String(dailyPuzzle.streak))} ${h.streak}`} label={`${dailyPuzzle.streak} ${h.streak}`} onPress={() => setInfoOpen('streak')} /> : null}
-          <Pressable onPress={() => setHubOpen(true)} accessibilityRole="button" accessibilityLabel={fa.hub.open} style={[styles.mapBtn, adult ? styles.mapBtnAdult : null]}>
+          {dailyPuzzle && dailyPuzzle.state !== 'unavailable' && dailyPuzzle.streak > 0 ? <StatPill color={colors.candy.pink} glyph="🔥" value={`${toPersianDigits(String(dailyPuzzle.streak))} ${h.streak}`} label={`${dailyPuzzle.streak} ${h.streak}`} onPress={() => setInfoOpen('streak')} /> : null}
+          <Pressable onPress={() => setHubOpen(true)} accessibilityRole="button" accessibilityLabel={fa.hub.open} style={styles.mapBtn}>
             <Attention on={!!dailyOpenForPlay} radius={19}>
               <View style={styles.mapIcon}><Item icon="map" /></View>
             </Attention>
           </Pressable>
           {/* The lucky wheel is always one tap away; the number is the spins waiting (wins, level and tournament prizes, the shop, the daily free spin). */}
-          <Pressable onPress={() => setWheelOpen(true)} accessibilityRole="button" accessibilityLabel={h.wheel} style={[styles.mapBtn, adult ? styles.mapBtnAdult : null]}>
-            <Icon name="wheel" size={adult ? 18 : 22} color={adult ? '#FFE9A8' : '#fff'} strokeWidth={2.2} />
+          <Pressable onPress={() => setWheelOpen(true)} accessibilityRole="button" accessibilityLabel={h.wheel} style={styles.mapBtn}>
+            <Icon name="wheel" size={22} color="#fff" strokeWidth={2.2} />
             {spins > 0 || daily.status?.canClaim ? <View style={styles.spinBadge}><Text style={styles.spinBadgeText}>{spins > 0 ? toPersianDigits(String(spins)) : '!'}</Text></View> : null}
           </Pressable>
           {/* A spacer keeps the level pill at the far (left) end of the row, whether or not the streak pill is showing. */}
           <View style={styles.pillsGap} />
-          {level !== null ? <StatPill color={colors.candy.grape} icon="rosette" plate value={toPersianDigits(String(level))} label={`${h.level} ${level} · ${h.settings}`} badge={missionsReady > 0 ? toPersianDigits(String(missionsReady)) : undefined} onPress={() => setSettingsOpen(true)} /> : null}
+          {level !== null ? <StatPill color={colors.candy.grape} icon="rosette" value={toPersianDigits(String(level))} label={`${h.level} ${level}`} onPress={() => setRoadOpen(true)} /> : null}
         </View>
+        )}
 
         {turn.turn ? <TurnBanner turn={turn.turn} now={turn.now} enter={turn.enter} failed={turn.failed} /> : null}
 
@@ -267,9 +317,10 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onDaily, onDuel, onD
           {second ? <SlabButton label={second.label} color={second.color} badge={second.badge} icon={duelLocked ? 'lock' : undefined} height={68} fontSize={priceOnlyOn ? 20 : 28} onPress={second.onPress} /> : null}
           {priceOnlyOn ? <SlabButton label={fa.priceOnly.play} sfx="confirm" color={adult ? colors.candy.sky : colors.candy.yellow} icon="coin" height={68} fontSize={20} onPress={onPriceOnly!} /> : null}
         </View>
-        {triviaOn ? (
+        {triviaOn || triviaDuelOn ? (
           <View style={styles.buttons}>
-            <SlabButton label={fa.trivia.play} sfx="confirm" color={colors.candy.grape} height={54} fontSize={20} onPress={onTrivia!} />
+            {triviaOn ? <SlabButton label={fa.trivia.play} sfx="confirm" color={colors.candy.grape} height={54} fontSize={20} onPress={onTrivia!} /> : null}
+            {triviaDuelOn ? <SlabButton label={fa.triviaDuel.play} sfx="confirm" color={colors.candy.pink} height={54} fontSize={20} onPress={onTriviaDuel!} /> : null}
           </View>
         ) : null}
       </View>
@@ -292,8 +343,9 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onDaily, onDuel, onD
           }}
         />
       ) : null}
-      {schoolOpen ? <SchoolSheet onClose={() => setSchoolOpen(false)} /> : null}
+      {schoolOpen ? <SchoolSheet onClose={() => setSchoolOpen(false)} workshop={workshopOn && onWorkshop ? { info: workshop, onOpen: (tab) => (setSchoolOpen(false), onWorkshop(tab)) } : undefined} /> : null}
       {boardOpen ? <LeaderboardPage onClose={() => setBoardOpen(false)} /> : null}
+      {roadOpen ? <LevelRoadPage onClose={() => setRoadOpen(false)} onSettings={() => (setRoadOpen(false), setSettingsOpen(true))} settingsBadge={missionsReady > 0 ? toPersianDigits(String(missionsReady)) : undefined} /> : null}
       {settingsOpen ? <SettingsPage onMissions={() => (setSettingsOpen(false), setMissionsOpen(true))} missionsReady={missionsReady} onClose={() => (setSettingsOpen(false), loadTasks(), returnToMissions())} onProfile={() => (setSettingsOpen(false), setProfileOpen(true))} onTutorial={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} onAccountGone={onTutorial ? () => (setSettingsOpen(false), onTutorial()) : undefined} ageTracksOn={settings['feature.age_tracks'] === 1} baleOn={features.bale} phoneVerified={profileTasks.some((x) => x.key === 'phone' && x.done)} onPreview={onPreview ? (t) => (setSettingsOpen(false), onPreview(t)) : undefined} /> : null}
       {ledgerOpen ? <LedgerSheet onClose={() => setLedgerOpen(false)} /> : null}
       {infoOpen ? <StatInfoSheet kind={infoOpen} value={infoOpen === 'gems' ? gems : dailyPuzzle?.streak ?? 0} onClose={() => setInfoOpen(null)} /> : null}

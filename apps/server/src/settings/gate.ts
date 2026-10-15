@@ -24,6 +24,7 @@ const FEATURE_OF: [prefix: string, setting: string][] = [
   ['/daily-puzzle', 'feature.daily'],
   ['/price-only', 'feature.priceonly'],
   ['/trivia', 'feature.trivia'],
+  ['/workshop', 'feature.trivia_workshop'],
   ['/transfers', 'feature.friends'],
   ['/loans', 'feature.friends'],
   ['/guardian', 'feature.age_tracks'],

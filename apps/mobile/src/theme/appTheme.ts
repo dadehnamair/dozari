@@ -24,7 +24,7 @@ export const adultColors = {
 
 /** Browser chrome of each look: installed-app manifest, tab/home-screen icons, address-bar colour. */
 export const THEME_CHROME: Record<ThemeId, { manifest: string; icon: string; appleIcon: string; themeColor: string }> = {
-  play: { manifest: '/manifest.webmanifest', icon: '/icon-192.png', appleIcon: '/apple-touch-icon.png', themeColor: '#2B1240' },
+  play: { manifest: '/manifest-adult.webmanifest', icon: '/icon-adult-192.png', appleIcon: '/apple-touch-icon-adult.png', themeColor: '#2B1240' },
   adult: { manifest: '/manifest-adult.webmanifest', icon: '/icon-adult-192.png', appleIcon: '/apple-touch-icon-adult.png', themeColor: '#0E0A08' },
 };
 

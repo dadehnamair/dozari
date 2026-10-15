@@ -3,21 +3,18 @@ const path = require('path');
 const { withAndroidManifest, withDangerousMod } = require('expo/config-plugins');
 
 /**
- * Four launcher icons, switched at runtime by the player's gender and age track (modules/app-icon): the original hero and the female hero (kid, teen), and the same two on the adult gold coin.
- * MainActivity loses its own LAUNCHER entry; four activity-aliases take it, only the adult one enabled (the default look) until the app switches.
- * Art: the female one is exported by scripts/export-brand.mjs, the adult ones by scripts/build-adult-icons.py; each ships downscaled
+ * Two launcher icons (adult-vault pair), switched at runtime by the player's gender only (modules/app-icon); every age track gets the same pair.
+ * MainActivity loses its own LAUNCHER entry; two activity-aliases take it, the male one enabled until the app switches.
+ * Art: the female one is exported by scripts/export-brand.mjs, the adult ones by scripts/build-app-icons.py; each ships downscaled
  * (…-432.png xxxhdpi foreground, …-216.png backdrop, …-192.png Android 7 fallback).
  */
 const ALIASES = [
-  { name: '.MainActivityDefault', enabled: false, icon: '@mipmap/ic_launcher', round: '@mipmap/ic_launcher_round' },
-  { name: '.MainActivityFemale', enabled: false, icon: '@mipmap/ic_launcher_female', round: '@mipmap/ic_launcher_female_round' },
   { name: '.MainActivityAdult', enabled: true, icon: '@mipmap/ic_launcher_adult', round: '@mipmap/ic_launcher_adult_round' },
   { name: '.MainActivityAdultFemale', enabled: false, icon: '@mipmap/ic_launcher_adult_female', round: '@mipmap/ic_launcher_adult_female_round' },
 ];
 
 /** Resource suffix and asset files of each extra variant (the default one is Expo's own launcher icon). */
 const VARIANTS = [
-  { res: 'female', fg: 'adaptive-icon-female-432.png', bg: 'adaptive-background-female-216.png', full: 'icon-female-192.png' },
   { res: 'adult', fg: 'adaptive-icon-adult-432.png', bg: 'adaptive-background-adult-216.png', full: 'icon-adult-192.png' },
   { res: 'adult_female', fg: 'adaptive-icon-adult-female-432.png', bg: 'adaptive-background-adult-216.png', full: 'icon-adult-female-192.png' },
 ];

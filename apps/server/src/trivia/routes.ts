@@ -26,6 +26,7 @@ export function registerTriviaRoutes(app: FastifyInstance, svc: TriviaService, a
     if (!body.success) return reply.code(400).send({ error: 'invalid_request' });
     const user = auth ? await currentUser(auth, req) : null;
     const view = await svc.start({ userId: user?.id, topicId: body.data.topicId, tracks: await tracks(user?.id) });
+    if (view === 'insufficient_coins') return reply.code(402).send({ error: 'insufficient_coins' });
     if (!view) return reply.code(503).send({ error: 'no_questions' });
     return view;
   });
@@ -42,7 +43,7 @@ export function registerTriviaRoutes(app: FastifyInstance, svc: TriviaService, a
     const p = idParam.safeParse(req.params);
     const b = answerBody.safeParse(req.body);
     if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
-    const out = svc.answer(p.data.id, b.data.index, b.data.picked);
+    const out = await svc.answer(p.data.id, b.data.index, b.data.picked);
     if (out === null) return reply.code(404).send({ error: 'session_not_found' });
     if (out === 'unknown_question') return reply.code(404).send({ error: 'unknown_question' });
     return out;

@@ -9,6 +9,8 @@ import { colors, fonts } from '../theme/colors';
 import type { CharacterId } from '../theme/character';
 import { EDGE_LEFT, EDGE_RIGHT, TEXT_LEFT } from '../theme/direction';
 import { tugPercent } from './arena';
+import { MatchHudAdult } from './MatchHudAdult';
+import { bootTheme } from '../theme/bootTheme';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 /** Pips run from the outer edge inwards on both sides. */
@@ -20,7 +22,11 @@ type Side = { name: string; who: CharacterId; score: number; groups: number; act
  * Score row of screen-match (`13 Match Screens v2`): a blue card for the player and a pink card for the rival (square portrait, name,
  * level chip, four group pips), the score between them, and the tug bar under. The player's card carries the «کل‌کل» badge.
  */
-export function MatchHud({ me, rival, onChat, chatOpen = false, chatCooling = false, ofLabel }: { me: Side; rival: Side; /** Small caption under the score (boards won in separate-boards mode); default «از ۴ دسته». */ ofLabel?: string; /** Opens the taunt drawer; no badge when absent. */ onChat?: () => void; chatOpen?: boolean; /** A taunt was just sent: the badge dims until the pause is over. */ chatCooling?: boolean }) {
+export function MatchHud(props: Parameters<typeof MatchHudCandy>[0]) {
+  return bootTheme() === 'adult' ? <MatchHudAdult {...props} /> : <MatchHudCandy {...props} />;
+}
+
+function MatchHudCandy({ me, rival, onChat, chatOpen = false, chatCooling = false, ofLabel }: { me: Side; rival: Side; /** Small caption under the score (boards won in separate-boards mode); default «از ۴ دسته». */ ofLabel?: string; /** Opens the taunt drawer; no badge when absent. */ onChat?: () => void; chatOpen?: boolean; /** A taunt was just sent: the badge dims until the pause is over. */ chatCooling?: boolean }) {
   return (
     <View>
       <View style={styles.row}>

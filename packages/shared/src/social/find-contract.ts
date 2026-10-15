@@ -6,8 +6,17 @@ export const foundPlayerSchema = z.object({
   nickname: z.string(),
   avatarKey: z.string(),
   relation: friendRelationSchema,
+  /** Private to the caller: the name and number they have for this player in their own address book (null when found another way). */
+  contactName: z.string().nullable().default(null),
+  phone: z.string().nullable().default(null),
 });
 export type FoundPlayer = z.infer<typeof foundPlayerSchema>;
+
+/** `POST /friends/find-contacts` body: address-book entries (`phones` is the older, name-less form). */
+export const contactsRequestSchema = z.object({
+  phones: z.array(z.string().max(30)).max(500).default([]),
+  contacts: z.array(z.object({ phone: z.string().max(30), name: z.string().max(80).default('') })).max(500).default([]),
+});
 
 /** `GET /players/search?q=`: one exact match by public ID or verified phone, or null. Not-found and not-findable look identical. */
 export const searchResultSchema = z.object({ player: foundPlayerSchema.nullable() });

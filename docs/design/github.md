@@ -17,7 +17,9 @@ date: 2026-10-06T10:15:56Z
 | Landing site | docs/design/Dozari Site - *.dc.html, SiteNav, SiteFooter → site/ |
 | Yadegar set | docs/design/yadegar/*.dc.html |
 | kids/ Banners, adult/ Banner | apps/mobile/src/i18n/fa.ts (ageGroup, guardian) |
-| adult/ Login Home (home + hub) | apps/mobile/src/home/HomeScreen.tsx, apps/mobile/src/hub/layout.ts, buildings.ts |
+| adult/ Login Home (home + hub; the gold «قیمت/سوال» tab under the coin plate) | apps/mobile/src/home/HomeScreen.tsx, AdultTopBar.tsx, feedback/SchoolSheet.tsx, apps/mobile/src/hub/layout.ts, buildings.ts |
+| adult/ Workshop (the settings page «کارگاه» with the profile card — not the question workshop) | apps/mobile/src/account (settings) |
+| adult/ Quiz Duel (topic pick, answering + answer-reveal states) | apps/mobile/src/duel/DuelTriviaRoundAdult.tsx, apps/mobile/src/trivia/TopicPickAdult.tsx, apps/mobile/src/trivia/TriviaSoloAdult.tsx, apps/mobile/src/trivia/TriviaDuelResultAdult.tsx, apps/mobile/src/duel/adultKit.tsx, docs/logic/trivia.md |
 | adult/ UI Kit | apps/mobile/src/theme/icons.ts |
 | 13 Match Screens v2 (card faces, backs, 3D flip, motifs) | apps/mobile/src/components/Board.tsx, CardBack.tsx |
 | 14 Product Icons | apps/mobile/src/components/Item.tsx |

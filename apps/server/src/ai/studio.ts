@@ -301,7 +301,7 @@ export class AiStudio {
         if (!d.trivia) throw new AiError('ai_not_found');
         const out: SaveOutcome[] = [];
         for (const q of req.drafts) {
-          const res = await d.trivia.create({ ...q, topicId: req.topicId }, 'draft');
+          const res = await d.trivia.create({ ...q, topicId: req.topicId, difficulty: 2 }, 'draft');
           out.push({ label: q.textFa.slice(0, 40), ok: res.ok, ...(res.ok ? {} : { error: res.error }) });
         }
         return out;

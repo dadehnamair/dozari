@@ -1,9 +1,10 @@
-import { AVATAR_KEYS, averageLevel, botSkillForLevel, changesAvatar, driftSkill, botThinkDelay, chooseBotMove, chooseBotPriceGuess, pickBotByLevel, scaledThinkRange } from '@dozari/shared';
-import type { ChatMessage, MatchEnded, MatchFound, MatchView, Rng } from '@dozari/shared';
+import { averageLevel, botFaceFor, genderRepair, nameGender, botSkillForLevel, changesAvatar, driftSkill, botThinkDelay, chooseBotMove, chooseBotPriceGuess, pickBotByLevel, scaledThinkRange, withoutRecentBots } from '@dozari/shared';
+import type { ChatMessage, MatchEnded, MatchFound, MatchView, Rng, TduelState } from '@dozari/shared';
 import { createHash } from 'node:crypto';
 import type { ChatService } from '../chat/service.js';
 import type { DuelQueue } from '../realtime/queue.js';
 import type { MatchService } from '../realtime/match-service.js';
+import type { TriviaDuelService } from '../realtime/trivia-duel.js';
 import type { BotPlayerStore, BotRow } from './store.js';
 
 export interface BotDriverSettings {
@@ -20,6 +21,8 @@ export interface BotDriverDeps {
   matches: () => MatchService | undefined;
   queue: () => DuelQueue | undefined;
   teamQueue?: () => DuelQueue | undefined;
+  /** The question duel: a waiting human gets a bot after the same wait, and a bot answers its questions. */
+  triviaDuel?: () => TriviaDuelService | undefined;
   chat?: () => ChatService | undefined;
   settings: () => Promise<BotDriverSettings>;
   /** Lists the canned taunts by category name, for choosing a fitting reply. */
@@ -49,6 +52,8 @@ export class BotDriver {
   private readonly sideOf = new Map<string, 0 | 1>();
   private readonly levels = new Map<string, number>();
   private ticks = 0;
+  /** Per human: the bots they were paired with lately (newest last), so a bot does not come back at once. In memory; a restart forgets it. */
+  private readonly met = new Map<string, { botId: string; at: number }[]>();
   private enabled = true;
   private readonly now: () => number;
   private readonly schedule: (ms: number, fn: () => void) => void;
@@ -61,11 +66,18 @@ export class BotDriver {
   async refresh(): Promise<void> {
     const next = new Map((await this.deps.store.active()).map((b) => [b.userId, b]));
     // Bots grow up by playing: a bot that crossed a milestone level since the last look may take a new face (the first look only sets the baseline).
-    for (const b of next.values()) {
+    for (const b of [...next.values()]) {
+      // A bot whose face or gender contradicts its name (a man's name on a woman's face) is put right.
+      const fix = genderRepair(b, this.deps.rng);
+      if (fix && (await this.deps.store.update(b.userId, fix).catch(() => 'not_found')) === 'ok') {
+        const fixed = { ...b, ...fix };
+        next.set(b.userId, fixed);
+        Object.assign(b, fixed);
+      }
       const before = this.levels.get(b.userId);
       this.levels.set(b.userId, b.level ?? 1);
       if (before === undefined || !changesAvatar(before, b.level ?? 1, this.deps.rng)) continue;
-      const face = AVATAR_KEYS.filter((k) => k !== b.avatarKey)[Math.floor(this.deps.rng() * (AVATAR_KEYS.length - 1))];
+      const face = botFaceFor(nameGender(b.nickname), this.deps.rng, b.avatarKey);
       if (face && (await this.deps.store.update(b.userId, { avatarKey: face }).catch(() => 'not_found')) === 'ok') next.set(b.userId, { ...b, avatarKey: face });
     }
     this.roster = next;
@@ -90,6 +102,11 @@ export class BotDriver {
     return this.roster.has(userId);
   }
 
+  /** In a board match or a question duel right now. */
+  private busy(userId: string): boolean {
+    return !!this.deps.matches()?.inMatch(userId) || !!this.deps.triviaDuel?.()?.inMatch(userId);
+  }
+
   private between(min: number, max: number): number {
     return Math.round(min + this.deps.rng() * Math.max(0, max - min));
   }
@@ -103,6 +120,8 @@ export class BotDriver {
       const opp = this.deps.matches()?.opponentOf(userId);
       if (opp) this.opponentOf.set(userId, opp.opponentId);
       if (this.deps.rng() * 100 < bot.tauntPercent / 2) this.schedule(this.between(3000, 8000), () => void this.taunt(bot, 'greet'));
+    } else if (event === 'tduel:state') {
+      this.planDuelAnswer(bot, payload as TduelState);
     } else if (event === 'match:state') {
       this.planTurn(bot, payload as MatchView);
     } else if (event === 'match:ended') {
@@ -157,6 +176,26 @@ export class BotDriver {
       const hit = this.deps.rng() * 100 < profile.accuracyPercent;
       const wrong = [0, 1, 2, 3].filter((i) => i !== right);
       matches.submitTrivia(bot.userId, hit ? right : wrong[Math.floor(this.deps.rng() * wrong.length)]!);
+    });
+  }
+
+  /** The question duel: after a human-like pause the bot picks the right choice as often as its level's accuracy, else a wrong one. */
+  private planDuelAnswer(bot: BotRow, v: TduelState): void {
+    const r = v.round;
+    if (v.status !== 'playing' || !r.current || r.youAnswered) return;
+    const key = `${bot.userId}:${v.matchId}:tduel:${r.roundIndex}`;
+    if (this.planned.has(key)) return;
+    this.planned.add(key);
+    const profile = botSkillForLevel(bot.level ?? 1, bot.skill);
+    const think = scaledThinkRange(bot.thinkMinMs, bot.thinkMaxMs, profile);
+    const delay = botThinkDelay(think.minMs, think.maxMs, r.endsAt - this.now(), this.deps.rng);
+    this.schedule(delay, () => {
+      const duel = this.deps.triviaDuel?.();
+      const right = duel?.answerFor(bot.userId);
+      if (!duel || right === null || right === undefined) return;
+      const hit = this.deps.rng() * 100 < profile.accuracyPercent;
+      const wrong = [0, 1, 2, 3].filter((i) => i !== right);
+      duel.answer(bot.userId, hit ? right : wrong[Math.floor(this.deps.rng() * wrong.length)]!);
     });
   }
 
@@ -225,8 +264,7 @@ export class BotDriver {
 
   /** Idle active bots for a tournament that is not full (best skill last so seeds stay mixed). */
   fillSeats(n: number): string[] {
-    const matches = this.deps.matches();
-    const idle = [...this.roster.values()].filter((b) => !matches?.inMatch(b.userId));
+    const idle = [...this.roster.values()].filter((b) => !this.busy(b.userId));
     const out: string[] = [];
     while (out.length < n && idle.length > 0) out.push(idle.splice(Math.floor(this.deps.rng() * idle.length), 1)[0]!.userId);
     return out;
@@ -235,6 +273,16 @@ export class BotDriver {
   /** The idle bot whose level is nearest the humans' (their average): a level-3 player is never paired with a level-20 bot. A random one when levels are unknown. */
   private async botNear(idle: BotRow[], humanIds: string[]): Promise<BotRow | null> {
     if (idle.length === 0) return null;
+    const at = this.now();
+    // A bot a human met lately sits out for a number of that human's games / a while, so the same names do not keep coming back.
+    const fresh = humanIds.reduce<BotRow[]>((pool, id) => withoutRecentBots(pool.map((b) => ({ ...b, id: b.userId })), this.met.get(id) ?? [], at).map((c) => idle.find((b) => b.userId === c.id)!), idle);
+    const pool = fresh.length > 0 ? fresh : idle;
+    const pick = await this.pickNear(pool, humanIds);
+    if (pick) for (const id of humanIds) this.met.set(id, [...(this.met.get(id) ?? []), { botId: pick.userId, at }].slice(-20));
+    return pick;
+  }
+
+  private async pickNear(idle: BotRow[], humanIds: string[]): Promise<BotRow | null> {
     if (this.deps.levelOf) {
       try {
         const level = averageLevel(await Promise.all(humanIds.map((id) => this.deps.levelOf!(id))));
@@ -261,15 +309,30 @@ export class BotDriver {
     const matches = this.deps.matches();
     if (!s.enabled || !queue || !matches || this.roster.size === 0) return;
     const now = this.now();
+    await this.fillTriviaDuels(s, now);
     for (const { userId, since, track, tier } of queue.waiting()) {
       if (now - since < (s.fallbackSec + jitterOf(userId, s.jitterSec)) * 1000) continue;
-      const idle = [...this.roster.values()].filter((b) => !matches.inMatch(b.userId) && !queue.has(b.userId));
+      const idle = [...this.roster.values()].filter((b) => !this.busy(b.userId) && !queue.has(b.userId));
       const bot = await this.botNear(idle, [userId]);
       if (!bot) return;
       queue.leave(userId);
       if (!(await matches.start(userId, bot.userId, { tier }))) queue.join(userId, since, track, tier); // could not start: back in line, original place in time
     }
     await this.fillTeams(s, now);
+  }
+
+  /** Question duel: a human who waited long enough gets an idle bot (not in a board duel, a line or another question duel). */
+  private async fillTriviaDuels(s: BotDriverSettings, now: number): Promise<void> {
+    const duel = this.deps.triviaDuel?.();
+    const matches = this.deps.matches();
+    if (!duel || !matches) return;
+    for (const { userId, since } of duel.queued()) {
+      if (now - since < (s.fallbackSec + jitterOf(userId, s.jitterSec)) * 1000) continue;
+      const idle = [...this.roster.values()].filter((b) => !matches.inMatch(b.userId) && !duel.inMatch(b.userId) && !duel.isWaiting(b.userId));
+      const bot = await this.botNear(idle, [userId]);
+      if (!bot) return;
+      await duel.startWithBot(userId, bot.userId);
+    }
   }
 
   /** 2v2: once the longest waiter is due, everyone waiting plays and bots fill the empty seats (humans on opposite sides). */
@@ -281,7 +344,7 @@ export class BotDriver {
     const first = waiting[0];
     if (!first || now - first.since < (s.fallbackSec + jitterOf(first.userId, s.jitterSec)) * 1000) return;
     const humans = waiting.slice(0, 4);
-    const idle = [...this.roster.values()].filter((b) => !matches.inMatch(b.userId) && !queue.has(b.userId));
+    const idle = [...this.roster.values()].filter((b) => !this.busy(b.userId) && !queue.has(b.userId));
     const bots: string[] = [];
     while (humans.length + bots.length < 4 && idle.length > 0) {
       const pick = (await this.botNear(idle, humans.map((h) => h.userId))) ?? idle[0]!;

@@ -82,8 +82,8 @@ function userDrawer(id, done) {
         h('div', { style: 'margin-top:10px' }, [h('button', { class: 'btn', text: 'خروج از همه‌ی دستگاه‌ها', onclick: function () { ask('همه‌ی نشست‌های این بازیکن بسته شود؟ دفعه‌ی بعد دوباره وارد می‌شود.', function () { api('/admin/users/' + id + '/logout', { method: 'POST', body: {} }).then(function (x) { if (!x.ok) return fail(x); toast('نشست‌ها بسته شد'); }); }); } })])]));
     } else if (tab === 'account') {
       var a = u.account || {}, dash = function (x) { return x === null || x === undefined || x === '' ? h('span', { class: 'muted', text: 'ثبت نشده' }) : x; };
-      var hidden = a.phone === null && a.email === null && a.deviceId === null;
-      if (hidden) b.appendChild(banner('info', 'اطلاعات تماس (شماره، ایمیل، شناسه‌ی دستگاه) فقط برای نقش‌های «پشتیبان» و «مالک» نمایش داده می‌شود.'));
+      var hidden = !!a.contactHidden; // the server says so; an account that simply has no number shows «ثبت نشده»
+      if (hidden) b.appendChild(banner('info', 'اطلاعات تماس (شماره، ایمیل، شناسه‌ی دستگاه) فقط برای نقش‌های «پشتیبان» و «مالک» نمایش داده می‌شود. نقش شما: «' + (ROLE_FA[S.me && S.me.role] || (S.me && S.me.role) || '—') + '». مالک می‌تواند نقش حساب شما را در «مدیران» عوض کند.'));
       b.appendChild(sectionTitle('هویت'));
       b.appendChild(defs([
         ['اسم نمایشی', u.nickname], ['شناسه‌ی عمومی (handle)', dash(a.handle && h('span', { class: 'ltr', text: '@' + a.handle }))],
@@ -281,7 +281,7 @@ VIEWS.lessons = function (root) {
 
 /* ---------------- coin economy health ---------------- */
 VIEWS.economyhealth = function (root) {
-  var REASON_FA = { signup_bonus: 'هدیه‌ی ثبت‌نام', daily_login: 'جایزه‌ی روزانه', match_entry: 'ورودی دوئل', match_payout: 'برد دوئل', match_refund: 'بازگشت ورودی', invite_reward: 'پاداش دعوت', ugc_reward: 'پاداش پیشنهاد', admin_adjust: 'تغییر دستی ادمین', purchase: 'خرید سکه', bot_match_subsidy: 'یارانه‌ی ربات', price_guess_wager: 'شرط حدس قیمت', price_guess_payout: 'جایزه‌ی حدس قیمت', shop_purchase: 'خرید از فروشگاه', hint_purchase: 'خرید راهنما', gift_out: 'هدیه‌ی فرستاده', gift_in: 'هدیه‌ی گرفته', loan_out: 'وام داده', loan_in: 'وام گرفته', repay_out: 'بازپرداخت', repay_in: 'دریافت بازپرداخت', daily_puzzle: 'پازل روز', tournament_entry: 'ورودی تورنومنت', tournament_refund: 'بازگشت تورنومنت', tournament_prize: 'جایزه‌ی تورنومنت', match_consolation: 'دلداری باخت', broke_rescue: 'کمک به بی‌سکه', wheel_spin: 'گردونه', level_reward: 'جایزه‌ی لول', profile_task: 'تکمیل پروفایل', birthday_gift: 'هدیه‌ی تولد', keepsake_piece: 'خرید تکه‌ی یادگار', keepsake_upgrade: 'ارتقای یادگار', ad_reward: 'تماشای تبلیغ' };
+  var REASON_FA = { signup_bonus: 'هدیه‌ی ثبت‌نام', daily_login: 'جایزه‌ی روزانه', match_entry: 'ورودی دوئل', match_payout: 'برد دوئل', trivia_entry: 'ورودی پرسش', trivia_payout: 'برد دوئل پرسشی', trivia_refund: 'بازگشت ورودی پرسش', match_refund: 'بازگشت ورودی', invite_reward: 'پاداش دعوت', ugc_reward: 'پاداش پیشنهاد', admin_adjust: 'تغییر دستی ادمین', purchase: 'خرید سکه', bot_match_subsidy: 'یارانه‌ی ربات', price_guess_wager: 'شرط حدس قیمت', price_guess_payout: 'جایزه‌ی حدس قیمت', shop_purchase: 'خرید از فروشگاه', hint_purchase: 'خرید راهنما', gift_out: 'هدیه‌ی فرستاده', gift_in: 'هدیه‌ی گرفته', loan_out: 'وام داده', loan_in: 'وام گرفته', repay_out: 'بازپرداخت', repay_in: 'دریافت بازپرداخت', daily_puzzle: 'پازل روز', tournament_entry: 'ورودی تورنومنت', tournament_refund: 'بازگشت تورنومنت', tournament_prize: 'جایزه‌ی تورنومنت', match_consolation: 'دلداری باخت', broke_rescue: 'کمک به بی‌سکه', wheel_spin: 'گردونه', level_reward: 'جایزه‌ی لول', profile_task: 'تکمیل پروفایل', birthday_gift: 'هدیه‌ی تولد', keepsake_piece: 'خرید تکه‌ی یادگار', keepsake_upgrade: 'ارتقای یادگار', ad_reward: 'تماشای تبلیغ' };
   var days = select([['7', '۷ روز گذشته'], ['30', '۳۰ روز گذشته'], ['90', '۹۰ روز گذشته']], '7');
   var body = h('div');
   function draw() {

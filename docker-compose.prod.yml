@@ -130,6 +130,9 @@ services:
       IRNOTI_LINE_ID: ${IRNOTI_LINE_ID:-}
       IRNOTI_PATTERN_CODE: ${IRNOTI_PATTERN_CODE:-gdhsgcnt}
       IRNOTI_MESSAGE: ${IRNOTI_MESSAGE:-}
+      # Android push through the IRNoti push service (IRNOTI_API_KEY above needs the broker.write scope); off unless both are set.
+      IRNOTI_PUSH_APP_ID: ${IRNOTI_PUSH_APP_ID:-}
+      IRNOTI_BASE_URL: ${IRNOTI_BASE_URL:-}
       KAVENEGAR_API_KEY: ${KAVENEGAR_API_KEY:-}
       KAVENEGAR_TEMPLATE: ${KAVENEGAR_TEMPLATE:-}
     volumes:

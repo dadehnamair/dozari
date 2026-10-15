@@ -9,6 +9,8 @@ import { fa } from '../i18n/fa';
 import { priceText, questionText } from '../solo/priceRound';
 import { colors, fonts } from '../theme/colors';
 import { TEXT_RIGHT } from '../theme/direction';
+import { bootTheme } from '../theme/bootTheme';
+import { DuelPriceRoundAdult } from './DuelPriceRoundAdult';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const p = fa.duel.price;
@@ -27,7 +29,11 @@ function RevealedRow({ r }: { r: PriceRoundView['revealed'][number] }) {
 }
 
 /** The duel's price-guess round: a hidden numeric guess against the clock; the previous rounds stay revealed underneath. */
-export function DuelPriceRound({ round, now, onGuess }: { round: PriceRoundView; now: number; /** Resolves to an error text, or null when the server took the guess. */ onGuess: (rials: bigint) => Promise<string | null> }) {
+export function DuelPriceRound(props: Parameters<typeof DuelPriceRoundCandy>[0]) {
+  return bootTheme() === 'adult' ? <DuelPriceRoundAdult {...props} /> : <DuelPriceRoundCandy {...props} />;
+}
+
+function DuelPriceRoundCandy({ round, now, onGuess }: { round: PriceRoundView; now: number; /** Resolves to an error text, or null when the server took the guess. */ onGuess: (rials: bigint) => Promise<string | null> }) {
   const [text, setText] = useState('');
   const [note, setNote] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);

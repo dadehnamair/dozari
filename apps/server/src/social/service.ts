@@ -48,6 +48,9 @@ export class SocialService {
     return !this.sameTrack || (await this.sameTrack(me, [other])).has(other);
   }
 
+  /** The caller's private address-book name and number for these players (set at start-up when finding friends exists). Absent = none. */
+  contactNotes?: (me: string, ids: string[]) => Promise<Map<string, { name: string; phone: string }>>;
+
   /** What a player wears now (set at start-up when the shop exists); shown on their public profile. */
   wornOf?: (userId: string) => Promise<{ slot: string; iconKey: string | null }[]>;
 
@@ -114,7 +117,8 @@ export class SocialService {
     const friends = ok ? allFriends.filter((f) => ok.has(f.id)) : allFriends;
     const incoming = ok ? allIncoming.filter((f) => ok.has(f.id)) : allIncoming;
     const party = await this.birthdayInfo(friends.map((f) => f.id));
-    return { friends: friends.map((f) => ({ ...f, online: this.isOnline(f.id), birthday: party.get(f.id)?.badge ?? false })), incoming };
+    const notes = (await this.contactNotes?.(me, friends.map((f) => f.id))) ?? new Map<string, { name: string; phone: string }>();
+    return { friends: friends.map((f) => ({ ...f, online: this.isOnline(f.id), birthday: party.get(f.id)?.badge ?? false, contactName: notes.get(f.id)?.name || null, phone: notes.get(f.id)?.phone ?? null })), incoming };
   }
 
   /** Top of a scope by total XP plus the caller's own place (D108). A scope that does not apply (no city) is empty. */

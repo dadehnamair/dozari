@@ -21,6 +21,8 @@ import { ShowcaseStrip } from '../keepsake/ShowcaseStrip';
 import { colors, fonts } from '../theme/colors';
 import { fetchMyBadges } from '../badges/api';
 import { skillText } from '../badges/text';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { iconFor, restartApp } from '../appIcon/appIcon';
 import { fetchFriends, fetchMyProfile, fetchRecentGames, saveGender } from './api';
 import { avatarOf } from './avatarOf';
 import { ProfileEditor } from './ProfileEditor';
@@ -32,6 +34,7 @@ import { FriendsPage } from './FriendsPage';
 import { BadgesSheet } from '../badges/BadgesSheet';
 import { LevelRoadPage } from '../levels/LevelRoadPage';
 import { DARK, useDark } from '../theme/skin';
+import { GoldCard, ProfileHeroCard, StatStrip } from './AdultProfileCard';
 import { pageTop } from '../theme/safeArea';
 import { useHardwareBack } from '../nav/useHardwareBack';
 import { TEXT_LEFT, TEXT_RIGHT } from '../theme/direction';
@@ -91,10 +94,26 @@ export function ProfileSheet({ onClose, onGender, onAvatar, start = null }: { on
     return () => stops.forEach((stop) => stop());
   }, []);
 
-  const pick = (g: Gender | null) => {
+  const [restartFor, setRestartFor] = useState<{ g: Gender | null } | null>(null);
+  const [restarting, setRestarting] = useState(false);
+  const apply = (g: Gender | null) => {
     setMe((m) => (m ? { ...m, gender: g } : m));
     onGender(g);
+  };
+  const pick = (g: Gender | null) => {
+    if (g === me?.gender) return;
+    // On Android the launcher icon follows gender; switching it closes and reopens the app, so ask first.
+    if (Platform.OS === 'android' && iconFor(g) !== iconFor(me?.gender)) return setRestartFor({ g });
+    apply(g);
     saveGender(g).catch(() => setFailed(true));
+  };
+  const confirmRestart = () => {
+    if (!restartFor) return;
+    setRestarting(true);
+    saveGender(restartFor.g).then(
+      () => (apply(restartFor.g), restartApp()),
+      () => (setFailed(true), setRestarting(false), setRestartFor(null)),
+    );
   };
   // Hooks stay above the sub-page early returns below: a hook after them throws "Rendered fewer hooks" when a sub page opens.
   /** What the player owns: hint tokens, streak shields, gems (the shop is off or unreachable = the row is simply not drawn). */
@@ -130,6 +149,86 @@ export function ProfileSheet({ onClose, onGender, onAvatar, start = null }: { on
   ];
   const shownBadges = badges ? badges.earned.slice(0, 3) : [];
   const moreBadges = badges ? Math.max(0, badges.earned.length - shownBadges.length) : 0;
+
+  const overlays = (
+    <>
+      {restartFor ? <ConfirmDialog title={fa.profile.genderRestartTitle} message={fa.profile.genderRestartMessage} confirmLabel={fa.profile.genderRestartOk} cancelLabel={fa.profile.genderRestartCancel} busy={restarting} onConfirm={confirmRestart} onCancel={() => setRestartFor(null)} /> : null}
+      {sub === 'recent' ? <RecentGamesSheet dark={dark} games={games} onClose={() => setSub(null)} /> : null}
+      {editing && me ? (
+        <Pressable style={styles.overlay} onPress={() => setEditing(false)} accessibilityLabel={fa.profile.close}>
+          <Pressable style={[styles.editor, dark ? dk.editor : null]} onPress={() => undefined}>
+            <ScrollView contentContainerStyle={styles.editorContent} showsVerticalScrollIndicator={false}>
+              <Text style={[styles.sectionTitle, dark ? dk.text : null]}>{fa.profile.edit}</Text>
+              <Text style={[styles.sectionTitle, dark ? dk.text : null]}>{fa.profile.gender}</Text>
+              <Text style={[styles.hint, dark ? dk.sub : null]}>{fa.profile.genderHint}</Text>
+              <View style={styles.pills}>
+                {options.map(([g, label]) => (
+                  <Pressable key={label} onPress={() => pick(g)} style={[styles.pill, dark ? dk.pill : null, me.gender === g && styles.pillOn]} accessibilityRole="button">
+                    <Text style={[styles.pillText, dark && me.gender !== g ? dk.text : null]}>{label}</Text>
+                  </Pressable>
+                ))}
+              </View>
+              <ProfileEditor me={me} onChange={(patch) => (setMe((m) => (m ? { ...m, ...patch } : m)), patch.avatarKey ? onAvatar?.(patch.avatarKey) : undefined)} onPickCity={() => (setEditing(false), setSub('city'))} />
+              <CandyButton label={fa.profile.close} sfx="back" color={colors.candy.sky} onPress={() => setEditing(false)} />
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      ) : null}
+    </>
+  );
+
+  // Adult look (design `adult/Dozari Adult - Workshop`, profile view): gold title plate, one hero card, the shortcuts panel.
+  if (dark) {
+    return (
+      <View style={[styles.root, dk.root]}>
+        <View style={styles.scene} pointerEvents="none"><Scene scene="sarafi" /></View>
+        <ScrollView style={styles.scroll} contentContainerStyle={[styles.adultColumn, { paddingTop: pageTop() }]} showsVerticalScrollIndicator={false}>
+          <View style={styles.adultHead}>
+            <View style={styles.adultPlate}>
+              <GradientFill from="#FFF1B8" to="#B8822A" mid={{ at: 0.45, color: '#E8B64A' }} />
+              <Text style={styles.adultPlateText}>{fa.settings.profile}</Text>
+            </View>
+            <Pressable accessibilityRole="button" accessibilityLabel={fa.profile.close} onPress={onClose}>
+              {({ pressed }) => (
+                <View style={[styles.square, styles.adultBack, pressed ? styles.pressed : null]}>
+                  <GradientFill from="#5A3A1C" to="#24160A" />
+                  <Icon name="back" size={22} color="#FFE9A8" strokeWidth={3} />
+                </View>
+              )}
+            </Pressable>
+          </View>
+          {failed ? <Text style={[styles.hint, dk.sub]}>{fa.profile.error}</Text> : null}
+          {me && lv ? (
+            <>
+              {party ? <PartyBanner own /> : null}
+              <ProfileHeroCard me={me} worn={worn} skillLabel={badges ? skillText(badges.skill) : undefined} ageLabel={age !== null ? fa.player.age(age) : undefined} onEdit={() => setEditing(true)} onCity={() => setSub('city')} />
+              {goods ? <StatStrip rows={[[fa.profile.goodsHints, goods.tokens, '#FFE9A8'], [fa.profile.goodsShields, goods.shields, '#9BE36A'], [fa.profile.goodsGems, goods.gems, '#9BDDFF']]} /> : null}
+              <ShowcaseStrip playerId={me.id} />
+              <Pressable onPress={() => setSub('badges')} accessibilityRole="button" style={styles.tagsRow}>
+                {shownBadges.length > 0 ? (
+                  <>
+                    {shownBadges.map((b, i) => (
+                      <View key={b.id} style={[styles.tag, { backgroundColor: TAGS[i % TAGS.length] }, dk.tag]}><Text style={[styles.tagText, dk.tagText]} numberOfLines={1}>{b.titleFa}</Text></View>
+                    ))}
+                    {moreBadges > 0 ? <View style={[styles.tag, { backgroundColor: colors.ink }, dk.tag]}><Text style={[styles.tagText, dk.tagText]}>{`+${n(moreBadges)}`}</Text></View> : null}
+                  </>
+                ) : (
+                  <Text style={[styles.hint, dk.sub]}>{fa.profile.noBadges}</Text>
+                )}
+              </Pressable>
+              <GoldCard>
+                <View style={styles.shortHead}><Text style={styles.shortTitle}>{fa.profile.shortcuts}</Text></View>
+                <View style={styles.shortGrid}>
+                  {tiles.map((x) => <View key={x.key} style={styles.shortCell}><HubTile key={x.key} icon={x.icon} label={x.label} color={x.color} badge={x.badge} onPress={x.onPress} /></View>)}
+                </View>
+              </GoldCard>
+            </>
+          ) : null}
+        </ScrollView>
+        {overlays}
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.root, dark ? dk.root : null]}>
@@ -240,27 +339,7 @@ export function ProfileSheet({ onClose, onGender, onAvatar, start = null }: { on
         ) : null}
       </ScrollView>
 
-      {sub === 'recent' ? <RecentGamesSheet dark={dark} games={games} onClose={() => setSub(null)} /> : null}
-      {editing && me ? (
-        <Pressable style={styles.overlay} onPress={() => setEditing(false)} accessibilityLabel={fa.profile.close}>
-          <Pressable style={[styles.editor, dark ? dk.editor : null]} onPress={() => undefined}>
-            <ScrollView contentContainerStyle={styles.editorContent} showsVerticalScrollIndicator={false}>
-              <Text style={[styles.sectionTitle, dark ? dk.text : null]}>{fa.profile.edit}</Text>
-              <Text style={[styles.sectionTitle, dark ? dk.text : null]}>{fa.profile.gender}</Text>
-              <Text style={[styles.hint, dark ? dk.sub : null]}>{fa.profile.genderHint}</Text>
-              <View style={styles.pills}>
-                {options.map(([g, label]) => (
-                  <Pressable key={label} onPress={() => pick(g)} style={[styles.pill, dark ? dk.pill : null, me.gender === g && styles.pillOn]} accessibilityRole="button">
-                    <Text style={[styles.pillText, dark && me.gender !== g ? dk.text : null]}>{label}</Text>
-                  </Pressable>
-                ))}
-              </View>
-              <ProfileEditor me={me} onChange={(patch) => (setMe((m) => (m ? { ...m, ...patch } : m)), patch.avatarKey ? onAvatar?.(patch.avatarKey) : undefined)} onPickCity={() => (setEditing(false), setSub('city'))} />
-              <CandyButton label={fa.profile.close} sfx="back" color={colors.candy.sky} onPress={() => setEditing(false)} />
-            </ScrollView>
-          </Pressable>
-        </Pressable>
-      ) : null}
+      {overlays}
     </View>
   );
 }
@@ -307,6 +386,16 @@ const dk = StyleSheet.create({
 });
 
 const styles = StyleSheet.create({
+  scene: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.9 },
+  adultColumn: { width: '100%', maxWidth: 520, alignSelf: 'center', paddingHorizontal: 10, paddingBottom: 24, gap: 10 },
+  adultHead: { flexDirection: ROW, alignItems: 'center', gap: 8 },
+  adultPlate: { flex: 1, height: 46, borderRadius: 14, borderWidth: 3, borderColor: '#000', overflow: 'hidden', alignItems: 'center', justifyContent: 'center', ...lift(4) },
+  adultPlateText: { fontFamily: fonts.display, fontSize: 24, color: '#2A1606' },
+  adultBack: { borderColor: '#B8822A' },
+  shortHead: { paddingVertical: 6, paddingHorizontal: 14, backgroundColor: '#3A2412', borderBottomWidth: 2, borderBottomColor: '#000' },
+  shortTitle: { fontFamily: fonts.display, fontSize: 16, color: '#FFE9A8', textAlign: TEXT_RIGHT },
+  shortGrid: { flexDirection: ROW, flexWrap: 'wrap', paddingVertical: 12, paddingHorizontal: 8, rowGap: 10 },
+  shortCell: { width: '25%', alignItems: 'center' },
   gameRow: { alignSelf: 'stretch', flexDirection: ROW, alignItems: 'center', gap: 8, paddingVertical: 4 },
   gameDot: { width: 12, height: 12, borderRadius: 6, borderWidth: 2, borderColor: colors.ink },
   gameText: { flex: 1, fontFamily: fonts.bold, fontSize: 13, color: colors.ink, textAlign: TEXT_RIGHT },

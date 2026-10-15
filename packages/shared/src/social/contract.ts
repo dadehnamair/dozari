@@ -128,7 +128,7 @@ export type MyProfile = z.infer<typeof myProfileSchema>;
 
 const playerRow = z.object({ id: z.string().uuid(), nickname: z.string(), avatarKey: z.string() });
 /** `GET /friends`: accepted friends and requests waiting for the caller's answer. */
-export const friendsSchema = z.object({ friends: z.array(playerRow.extend({ online: z.boolean().default(false), birthday: z.boolean().default(false) })), incoming: z.array(playerRow) });
+export const friendsSchema = z.object({ friends: z.array(playerRow.extend({ online: z.boolean().default(false), birthday: z.boolean().default(false), /** The caller's private address-book name and number for this friend, when they found them through their contacts. */ contactName: z.string().nullable().default(null), phone: z.string().nullable().default(null) })), incoming: z.array(playerRow) });
 export type Friends = z.infer<typeof friendsSchema>;
 
 /** `GET /me/games`: the player's last finished games, newest first («بازی‌های اخیر» on the profile). */

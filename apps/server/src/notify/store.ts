@@ -42,12 +42,22 @@ export interface NotifyStore {
   /** Linked players whose daily reward has opened since the claim we last announced; `markDailyNotified` records it. */
   dailyDue(now: number, cooldownMs: number): Promise<{ userId: string; chatId: string; claimedAt: number }[]>;
   markDailyNotified(userId: string, claimedAt: number): Promise<void>;
+  /** Kinds the player switched off (empty when not linked). */
+  mutedKinds(userId: string): Promise<string[]>;
+  setMutedKinds(userId: string, kinds: string[]): Promise<void>;
 }
 
 const short = (s: string) => s.slice(0, 300);
 
 export function createDbNotifyStore(db: Db): NotifyStore {
   return {
+    async mutedKinds(userId) {
+      const [r] = await db.select({ m: baleLinks.mutedKinds }).from(baleLinks).where(eq(baleLinks.userId, userId));
+      return r?.m ? r.m.split(',') : [];
+    },
+    async setMutedKinds(userId, kinds) {
+      await db.update(baleLinks).set({ mutedKinds: kinds.join(',') }).where(eq(baleLinks.userId, userId));
+    },
     async chatOf(userId) {
       const [r] = await db.select({ chatId: baleLinks.chatId }).from(baleLinks).where(eq(baleLinks.userId, userId));
       return r?.chatId ?? null;
@@ -144,7 +154,7 @@ export function createDbNotifyStore(db: Db): NotifyStore {
 }
 
 export function createMemoryNotifyStore(): NotifyStore & { outbox: (OutboxRow & { status: string; lastError: string | null; at: number })[]; setClaim(userId: string, claimedAt: number): void } {
-  const links = new Map<string, { chatId: string; dailyNotifiedFor: number | null }>();
+  const links = new Map<string, { chatId: string; dailyNotifiedFor: number | null; muted: string[] }>();
   const codes = new Map<string, { userId: string; expiresAt: number }>();
   const claims = new Map<string, number>();
   const outbox: (OutboxRow & { status: string; lastError: string | null; at: number })[] = [];
@@ -152,6 +162,13 @@ export function createMemoryNotifyStore(): NotifyStore & { outbox: (OutboxRow & 
   return {
     outbox,
     setClaim: (userId, claimedAt) => void claims.set(userId, claimedAt),
+    async mutedKinds(userId) {
+      return links.get(userId)?.muted ?? [];
+    },
+    async setMutedKinds(userId, kinds) {
+      const l = links.get(userId);
+      if (l) l.muted = kinds;
+    },
     async chatOf(userId) {
       return links.get(userId)?.chatId ?? null;
     },
@@ -171,12 +188,12 @@ export function createMemoryNotifyStore(): NotifyStore & { outbox: (OutboxRow & 
       codes.delete(code);
       if (row.expiresAt < now) return null;
       for (const [u, l] of links) if (u === row.userId || l.chatId === chatId) links.delete(u);
-      links.set(row.userId, { chatId, dailyNotifiedFor: null });
+      links.set(row.userId, { chatId, dailyNotifiedFor: null, muted: [] });
       return { userId: row.userId };
     },
     async linkChat(userId, chatId) {
       for (const [u, l] of links) if (u === userId || l.chatId === chatId) links.delete(u);
-      links.set(userId, { chatId, dailyNotifiedFor: null });
+      links.set(userId, { chatId, dailyNotifiedFor: null, muted: [] });
     },
     async unlinkChat(chatId) {
       for (const [u, l] of links) if (l.chatId === chatId) return links.delete(u);

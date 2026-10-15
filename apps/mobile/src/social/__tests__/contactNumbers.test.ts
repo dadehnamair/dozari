@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MAX_CONTACT_NUMBERS, iranianMobile, pickMobiles } from '../contactNumbers';
+import { MAX_CONTACT_NUMBERS, iranianMobile, pickContacts, pickMobiles } from '../contactNumbers';
 
 describe('contact numbers', () => {
   it('normalises Iranian mobiles written in many ways', () => {
@@ -12,5 +12,12 @@ describe('contact numbers', () => {
     expect(pickMobiles(['0912 345 6789', '+989123456789', '021 111'])).toEqual(['09123456789']);
     const many = Array.from({ length: 700 }, (_, i) => `0912${String(1000000 + i)}`);
     expect(pickMobiles(many)).toHaveLength(MAX_CONTACT_NUMBERS);
+  });
+
+  it('keeps the contact name next to each mobile, first name wins', () => {
+    expect(pickContacts([{ name: ' علی ', numbers: ['0912 345 6789', '021 111'] }, { name: 'دیگری', numbers: ['+989123456789'] }, { name: null, numbers: ['09351112233'] }])).toEqual([
+      { phone: '09123456789', name: 'علی' },
+      { phone: '09351112233', name: '' },
+    ]);
   });
 });
