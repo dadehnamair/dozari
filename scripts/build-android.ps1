@@ -3,6 +3,7 @@
     powershell -ExecutionPolicy Bypass -File scripts\build-android.ps1 -Store myket
 
   What it takes care of (the things that broke the manual build, docs/android-build.md):
+  - push identifiers (FCM_*, IRNOTI_PUSH_APP_KEY) are validated before the build, and dozari.irnoti=true is switched on when a key is present;
   - hoisted pnpm install (the default .pnpm layout makes CMake object paths > 250 characters and ninja fails);
   - signing read from %USERPROFILE%\.gradle\gradle.properties (PowerShell splits -Pa.b=c arguments at the dot);
   - Gradle network: when dl.google.com is unreachable it asks for the local proxy host:port (or take -Proxy 127.0.0.1:10808),
@@ -38,6 +39,47 @@ foreach ($key in 'store.file', 'store.password', 'key.alias', 'key.password') {
   if ($text -notmatch "(?m)^\s*android\.injected\.signing\.$([regex]::Escape($key))\s*=") {
     throw "Missing android.injected.signing.$key in $props (see docs/android-build.md, 'Store release')."
   }
+}
+
+# Push identifiers: `expo prebuild` bakes FCM_* / IRNOTI_* into the manifest. A shell variable beats apps\mobile\.env (dotenv never overrides),
+# and a placeholder such as "..." is not empty, so without this check the build succeeds with an APK whose push can never work.
+function Get-BuildEnv([string]$name) {
+  $v = [Environment]::GetEnvironmentVariable($name)
+  if ($v) { return $v.Trim() }
+  $envFile = Join-Path $root 'apps\mobile\.env'
+  if (Test-Path $envFile) {
+    $line = Get-Content $envFile | Where-Object { $_ -match "^\s*$([regex]::Escape($name))\s*=" } | Select-Object -Last 1
+    if ($line) { return (($line -split '=', 2)[1]).Trim().Trim('"').Trim("'") }
+  }
+  return ''
+}
+$fcmShape = [ordered]@{
+  FCM_PROJECT_ID = '^[a-z][a-z0-9-]{4,}$'
+  FCM_SENDER_ID = '^\d+$'
+  FCM_APP_ID = '^\d+:\d+:android:[0-9a-f]+$'
+  FCM_API_KEY = '^AIza[\w-]{30,}$'
+}
+$fcmVals = @{}
+foreach ($k in $fcmShape.Keys) { $fcmVals[$k] = Get-BuildEnv $k }
+$irnotiAppKey = Get-BuildEnv 'IRNOTI_PUSH_APP_KEY'
+if (@($fcmVals.Values | Where-Object { $_ }).Count -gt 0) {
+  foreach ($k in $fcmShape.Keys) {
+    if ($fcmVals[$k] -notmatch $fcmShape[$k]) {
+      throw "$k is missing or malformed. Set all four FCM_* values from google-services.json (a shell variable overrides apps\mobile\.env; run 'Remove-Item Env:FCM_*' to use the file). See docs/android-build.md."
+    }
+  }
+  if ($irnotiAppKey -and $irnotiAppKey -notmatch '^pk_live_[0-9a-f]{20,}$') { throw "IRNOTI_PUSH_APP_KEY must be the push app's public key (pk_live_...)." }
+  $irnotiBase = Get-BuildEnv 'IRNOTI_API_BASE'
+  if ($irnotiBase -and $irnotiBase -notmatch '^https://') { throw "IRNOTI_API_BASE must start with https:// (e.g. https://api.irnoti.com/v1/sdk)." }
+  if (-not $irnotiAppKey) { Write-Warning 'IRNOTI_PUSH_APP_KEY is not set: the IRNoti SDK will not register this device (direct FCM only).' }
+  else { Write-Host '==> push identifiers look valid (FCM_* and IRNOTI_PUSH_APP_KEY)' -ForegroundColor Cyan }
+} else {
+  Write-Warning 'No FCM_* values found (shell or apps\mobile\.env): this APK will have no instant push.'
+}
+# The IRNoti SDK is compiled in only with dozari.irnoti=true (modules/background-notify/android/build.gradle); turn it on when a key is present.
+if ($irnotiAppKey -and $text -notmatch '(?m)^\s*dozari\.irnoti\s*=\s*true') {
+  Add-Content $props "`ndozari.irnoti=true"
+  Write-Host "==> added dozari.irnoti=true to $props" -ForegroundColor Cyan
 }
 
 # Network for Gradle: it needs Google's Maven (dl.google.com), Maven Central and JitPack at build time. From Iran Google answers 404
