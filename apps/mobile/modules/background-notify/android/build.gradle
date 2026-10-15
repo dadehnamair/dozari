@@ -9,8 +9,8 @@ version = '0.1.0'
 // The IRNoti SDK (JitPack) is off by default: its 1.0.0 build failed on JitPack (no gradlew in the repository; fixed in irnoti/andriod-sdk main, commit 1589fbc). Turn it on with
 // -Pdozari.irnoti=true (or in gradle.properties) once IRNoti publishes a working version; the no-op bridge is used otherwise.
 def useIrnoti = (findProperty('dozari.irnoti') ?: 'false').toString() == 'true'
-// 1.0.1 = the tag with the Gradle wrapper JitPack needs; a commit hash (e.g. 1589fbc) also works before the tag exists.
-def irnotiVersion = (findProperty('dozari.irnoti.version') ?: '1.0.1').toString()
+// 1.0.1+ = tags with the Gradle wrapper JitPack needs (1.0.2 is the latest built); a commit hash (e.g. 1589fbc) also works before the tag exists.
+def irnotiVersion = (findProperty('dozari.irnoti.version') ?: '1.0.2').toString()
 
 android {
   namespace "ir.dozari.bgnotify"
