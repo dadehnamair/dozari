@@ -4,11 +4,14 @@ import { GradientFill } from './GradientFill';
 import { Icon } from './Icon';
 import { toneIn } from '../theme/appTheme';
 import { useTheme } from '../theme/themeStore';
+import { bootTheme } from '../theme/bootTheme';
 import type { IconName } from '../theme/icons';
 import { playSfx } from '../sound/engine';
 import type { Sfx } from '../sound/engine';
 
 const SHELF = 6;
+/** Ring and ledge colour: ink in play, true black in adult (the vault look's black ring around every plate). */
+const RING = bootTheme() === 'adult' ? '#000' : colors.ink;
 
 const OFF = { light: '#B8AFC4', base: '#8E83A0', dark: '#6B5F80' };
 
@@ -45,9 +48,9 @@ export function SlabButton({ label, color, badge, onPress, height = 68, fontSize
 
 const styles = StyleSheet.create({
   wrap: { paddingBottom: SHELF },
-  shelf: { position: 'absolute', left: 0, right: 0, top: SHELF, bottom: 0, borderRadius: 20, backgroundColor: colors.ink },
-  face: { borderWidth: 3, borderColor: colors.ink, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
-  topLight: { position: 'absolute', top: 0, left: 0, right: 0, height: 4, backgroundColor: 'rgba(255,255,255,0.55)' },
+  shelf: { position: 'absolute', left: 0, right: 0, top: SHELF, bottom: 0, borderRadius: 20, backgroundColor: RING },
+  face: { borderWidth: 3, borderColor: RING, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
+  topLight: { position: 'absolute', top: 0, left: 0, right: 0, height: 4, backgroundColor: bootTheme() === 'adult' ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.55)' },
   content: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, maxWidth: '100%' },
   contentStacked: { flexDirection: 'column', gap: 4 },
   labelOff: { opacity: 0.85 },

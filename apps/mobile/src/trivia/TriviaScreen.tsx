@@ -87,7 +87,7 @@ export function TriviaScreen({ onBack, fee, refundPercent, workshop, onWorkshop 
         topics={phase.topics}
         fee={fee}
         texts={{ title: t.title, sub: t.adult.pickSub, feeTitle: fee > 0 ? t.fee(formatPersianNumber(fee)) : t.free, feeSub: fee > 0 ? t.feeHint(formatPersianNumber(refundPercent)) : t.adult.freeSub }}
-        mix={{ label: t.adult.mix, onPress: () => void start() }}
+        offers={[{ kind: 'mix', label: t.adult.mix }]}
         onBack={onBack}
         onStart={(id) => void start(id)}
       />

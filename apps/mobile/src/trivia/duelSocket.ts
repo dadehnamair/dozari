@@ -8,7 +8,7 @@ import type { TduelAction } from './duelModel';
 
 export interface TriviaDuelConnection {
   /** Enters the search for a rival: a topic id, or nothing for a random mix. */
-  join(topicId?: string): Promise<Ack>;
+  join(topicId?: string, mix?: boolean): Promise<Ack>;
   /** Leaves the search, or gives up the running game. */
   leave(): Promise<Ack>;
   answer(index: number): Promise<Ack>;
@@ -67,7 +67,7 @@ export async function connectTriviaDuel(dispatch: (a: TduelAction) => void): Pro
   });
 
   return {
-    join: (topicId) => ask(socket, ClientEvent.tduelJoin, topicId ? { topicId } : {}),
+    join: (topicId, mix) => ask(socket, ClientEvent.tduelJoin, mix ? { mix: true } : topicId ? { topicId } : {}),
     leave: () => ask(socket, ClientEvent.tduelLeave),
     answer: (index) => ask(socket, ClientEvent.tduelAnswer, { index }),
     rematch: () => ask(socket, ClientEvent.tduelRematch),

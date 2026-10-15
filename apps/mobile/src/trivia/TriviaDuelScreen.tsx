@@ -61,7 +61,7 @@ function CoinsBadge({ coins }: { coins: number }) {
  * four-choice questions blind and at the same time (docs/logic/trivia.md §Question duel). The server owns the clock, the scoring and the coins.
  * Leaving a running game forfeits it (the fee goes to the rival and the leave is logged), so it asks first.
  */
-export function TriviaDuelScreen({ onBack, fee, workshop, onWorkshop }: { onBack: () => void; /** The workshop call-to-action on the result card: the reward on offer; absent = not shown. */ workshop?: { reward: number; boost: number }; onWorkshop?: () => void; /** Entry fee of a game (setting `trivia.duel_fee`), to show before searching. */ fee: number }) {
+export function TriviaDuelScreen({ onBack, fee, mixMultiplier = 2, workshop, onWorkshop }: { onBack: () => void; /** How many times the fee a «ترکیبی» game costs and pays (setting `trivia.duel_mix_multiplier`). */ mixMultiplier?: number; /** The workshop call-to-action on the result card: the reward on offer; absent = not shown. */ workshop?: { reward: number; boost: number }; onWorkshop?: () => void; /** Entry fee of a game (setting `trivia.duel_fee`), to show before searching. */ fee: number }) {
   const [topics, setTopics] = useState<Topics>({ kind: 'loading' });
   const [m, dispatch] = useReducer(tduelReducer, initialTduel);
   const [busy, setBusy] = useState(false);
@@ -117,14 +117,14 @@ export function TriviaDuelScreen({ onBack, fee, workshop, onWorkshop }: { onBack
     if (m.refused) setNote(fa.duel.errors[m.refused] ?? t.refused);
   }, [m.refused]);
 
-  const start = async (topicId?: string) => {
+  const start = async (topicId?: string, mix = false) => {
     if (busy) return;
     setBusy(true);
     setNote(null);
     try {
       conn.current ??= await connectTriviaDuel(dispatch);
       dispatch({ t: 'queued' });
-      const ack = await conn.current.join(topicId);
+      const ack = await conn.current.join(topicId, mix);
       if (!ack.ok) {
         dispatch({ t: 'reset' });
         setNote(ack.error === 'INSUFFICIENT_COINS' ? t.insufficient : (fa.duel.errors[ack.error] ?? fa.duel.errors.generic ?? ''));
@@ -262,7 +262,7 @@ export function TriviaDuelScreen({ onBack, fee, workshop, onWorkshop }: { onBack
       </MatchBackground>
     );
   }
-  if (bootTheme() === 'adult') return <TopicPickAdult topics={topics.topics} fee={fee} busy={busy} note={note} texts={{ title: t.title, sub: t.adult.pickSub, feeTitle: fee > 0 ? t.adult.feeTitle(formatPersianNumber(fee)) : t.adult.freeTitle, feeSub: t.adult.feeSub }} onBack={onBack} onStart={(id) => void start(id)} />;
+  if (bootTheme() === 'adult') return <TopicPickAdult topics={topics.topics} fee={fee} busy={busy} note={note} texts={{ title: t.title, sub: t.adult.pickSub, feeTitle: fee > 0 ? t.adult.feeTitle(formatPersianNumber(fee)) : t.adult.freeTitle, feeSub: t.adult.feeSub }} offers={[{ kind: 'random', label: t.randomAdult }, { kind: 'mix', label: t.adult.mix, badge: mixMultiplier > 1 ? t.adult.mixBadge(formatPersianNumber(mixMultiplier)) : undefined }]} mixTimes={mixMultiplier} onBack={onBack} onStart={(id, mix) => void start(id, mix)} />;
   return (
     <MatchBackground>
       <ScrollView contentContainerStyle={styles.screen}>
@@ -276,6 +276,7 @@ export function TriviaDuelScreen({ onBack, fee, workshop, onWorkshop }: { onBack
           {note ? <Text style={styles.error}>{note}</Text> : null}
           {topics.topics.length === 0 ? <Text style={styles.intro}>{t.noQuestions}</Text> : null}
           {topics.topics.length > 0 ? <SlabButton label={t.random} sfx="confirm" color={colors.candy.yellow} height={58} fontSize={22} onPress={() => void start()} /> : null}
+          {topics.topics.length > 0 ? <SlabButton label={t.mix(formatPersianNumber(mixMultiplier))} sfx="confirm" color={colors.candy.orange} height={58} fontSize={22} onPress={() => void start(undefined, true)} /> : null}
           <View style={styles.grid}>
             {topics.topics.map((x) => (
               <Pressable key={x.id} accessibilityRole="button" disabled={busy} onPress={() => void start(x.id)} style={({ pressed }) => [styles.topic, pressed ? styles.pressed : null]}>

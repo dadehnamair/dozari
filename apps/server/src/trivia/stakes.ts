@@ -6,6 +6,8 @@ export interface TriviaStakeDeps {
   /** Entry fee of a solo game / of each side of a duel (settings `trivia.solo_fee`, `trivia.duel_fee`); 0 = free. */
   soloFee(): Promise<number>;
   duelFee(): Promise<number>;
+  /** Times the entry fee a «ترکیبی» duel costs and pays (setting `trivia.duel_mix_multiplier`); absent = 1. */
+  duelMixMultiplier?(): Promise<number>;
   /** House cut of a pot in percent (the board duel's `duel.house_cut_percent`). */
   houseCutPercent(): Promise<number>;
   isBot(userId: string): boolean;
@@ -25,8 +27,11 @@ export class TriviaStakes {
     return this.deps.soloFee();
   }
 
-  duelFee(): Promise<number> {
-    return this.deps.duelFee();
+  /** The entry fee of one duel side; a mix duel costs the multiple. */
+  async duelFee(mix = false): Promise<number> {
+    const base = await this.deps.duelFee();
+    if (!mix || base <= 0) return base;
+    return base * Math.max(1, Math.floor((await this.deps.duelMixMultiplier?.()) ?? 1));
   }
 
   /** Can this player pay a solo game's fee right now? */
@@ -35,8 +40,8 @@ export class TriviaStakes {
     return fee <= 0 || (await this.store.balance(userId)) >= fee;
   }
 
-  async canAffordDuel(userId: string): Promise<boolean> {
-    const fee = await this.deps.duelFee();
+  async canAffordDuel(userId: string, mix = false): Promise<boolean> {
+    const fee = await this.duelFee(mix);
     return fee <= 0 || (await this.store.balance(userId)) >= fee;
   }
 
@@ -55,8 +60,8 @@ export class TriviaStakes {
   }
 
   /** Takes each human seat's duel fee (a bot's is covered by the house). Not ok = the named player cannot pay; anything already taken is returned. */
-  async openDuel(matchId: string, players: readonly [string, string]): Promise<{ ok: true; stakes: [Stake, Stake]; fee: number } | { ok: false; broke: string }> {
-    const fee = await this.deps.duelFee();
+  async openDuel(matchId: string, players: readonly [string, string], mix = false): Promise<{ ok: true; stakes: [Stake, Stake]; fee: number } | { ok: false; broke: string }> {
+    const fee = await this.duelFee(mix);
     const stakes: Stake[] = [];
     const taken: string[] = [];
     for (const userId of players) {

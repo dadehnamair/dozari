@@ -250,7 +250,7 @@ export function attachGateway(http: HttpServer, opts: GatewayOptions): Gateway {
     socket.on(ClientEvent.tduelJoin, async (payload: unknown, ack?: (a: Ack) => void) => {
       const body = tduelJoinSchema.safeParse(payload ?? {});
       if (!body.success || !triviaDuel) return ack?.({ ok: false, error: triviaDuel ? 'INVALID_PAYLOAD' : 'FEATURE_OFF' });
-      const out = await triviaDuel.join(userId, body.data.topicId).catch(() => ({ ok: false, error: 'INTERNAL' }) as const);
+      const out = await triviaDuel.join(userId, body.data.topicId, body.data.mix === true).catch(() => ({ ok: false, error: 'INTERNAL' }) as const);
       ack?.(out);
       if (out.ok) socket.emit(ServerEvent.queueStatus, { waitedSec: 0, position: 1 });
     });

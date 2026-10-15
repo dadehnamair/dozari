@@ -300,3 +300,32 @@ describe('question duel rematch', () => {
     expect(await svc.rematch('a')).toEqual({ ok: false, error: 'UNKNOWN_MATCH' });
   });
 });
+
+describe('«ترکیبی» question duel', () => {
+  function withMix() {
+    const coins = createMemoryStakeStore();
+    for (const u of ['a', 'b', 'c', 'poor']) coins.balances.set(u, u === 'poor' ? 20 : 100);
+    const stakes = new TriviaStakes(coins, { soloFee: async () => 3, duelFee: async () => 12, duelMixMultiplier: async () => 2, houseCutPercent: async () => 10, isBot: (id) => id === 'bot' });
+    return { ...setup({ stakes, isBot: (id) => id === 'bot' }), coins };
+  }
+  it('meets only another mix search, asks the whole bank and costs the multiple', async () => {
+    const { svc, last, coins } = withMix();
+    await svc.join('a', undefined, true);
+    await svc.join('b'); // an ordinary random search does not take a mix one
+    await flush();
+    expect(svc.inMatch('a') || svc.inMatch('b')).toBe(false);
+    await svc.join('c', undefined, true);
+    await flush();
+    expect(svc.inMatch('a') && svc.inMatch('c')).toBe(true);
+    expect(svc.isWaiting('b')).toBe(true);
+    expect(last<{ fee: number; topicNameFa: string | null }>('a', 'tduel:found')).toMatchObject({ fee: 24, topicNameFa: null });
+    expect(coins.balances.get('a')).toBe(76);
+  });
+  it('a topic given with mix is ignored, and a player who cannot pay the multiple is refused', async () => {
+    const { svc } = withMix();
+    expect(await svc.join('poor', undefined, true)).toEqual({ ok: false, error: 'INSUFFICIENT_COINS' });
+    expect(await svc.join('poor')).toEqual({ ok: true }); // the plain fee (12) is affordable
+    expect(await svc.join('a', T1, true)).toEqual({ ok: true });
+    expect(svc.queued().find((w) => w.userId === 'a')?.topicId).toBeNull();
+  });
+});

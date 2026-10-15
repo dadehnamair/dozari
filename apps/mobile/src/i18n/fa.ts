@@ -153,7 +153,7 @@ export const fa = {
     intro: 'یه موضوع انتخاب کن و به چند پرسش چهارگزینه‌ای جواب بده؛ این‌جا بحث قیمت نیست، دانسته‌هات رو امتحان کن.',
     mix: 'ترکیبی از همه‌ی موضوع‌ها',
     /** Adult look of the topic picker (docs/design/adult/Dozari Adult - Quiz Duel). */
-    adult: { pickSub: 'یه موضوع بردار یا همه رو قاطی کن', mix: 'ترکیبی', freeSub: 'بدون ورودی؛ دانسته‌هات رو امتحان کن' },
+    adult: { pickSub: 'یه موضوع بردار یا همه رو قاطی کن', mix: 'ترکیبی', chosen: (name: string) => `«${name}» انتخاب شد · شروع می‌شه…`, freeSub: 'بدون ورودی؛ دانسته‌هات رو امتحان کن' },
     questionsCount: (n: string) => `${n} پرسش`,
     noQuestions: 'هنوز پرسشی برای این بازی نداریم.',
     question: (i: string, n: string) => `پرسش ${i} از ${n}`,
@@ -249,6 +249,7 @@ export const fa = {
     intro: 'یه موضوع انتخاب کن یا تصادفی بزن؛ برات یه حریف پیدا می‌کنیم و هر دو به همون پرسش‌ها جواب می‌دید. هر جواب درست یک امتیاز دارد.',
     random: '🎲 تصادفی',
     randomAdult: 'تصادفی',
+    mix: (n: string) => `🎁 ترکیبی · ×${n} سکه`,
     noQuestions: 'برای این موضوع هنوز پرسشی نداریم.',
     connecting: 'در حال اتصال…',
     won: 'بردی!',
@@ -266,6 +267,10 @@ export const fa = {
       or: 'یا خودت انتخاب کن',
       pickFirst: 'اول یه موضوع بردار',
       go: (name: string) => `شروع دوئل · ${name}`,
+      /** Shown on the start button after «تصادفی» / «ترکیبی» is tapped: the game starts by itself. */
+      chosen: (name: string) => `«${name}» انتخاب شد · شروع می‌شه…`,
+      mix: 'ترکیبی',
+      mixBadge: (n: string) => `×${n} سکه`,
     },
     score: (you: string, them: string) => `تو ${you} · حریف ${them}`,
     review: 'مرور پرسش‌ها',

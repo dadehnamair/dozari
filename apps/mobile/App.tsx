@@ -31,7 +31,7 @@ import { LookupScreen } from './src/lookup/LookupScreen';
 import { SearchScreen } from './src/search/SearchScreen';
 import { Tutorial } from './src/onboarding/Tutorial';
 import { loginSeen, markLoginSeen, markTutorialSeen, tutorialSeen } from './src/onboarding/state';
-import { TRIVIA_DUEL_FEE, TRIVIA_SOLO_FEE, TRIVIA_SOLO_REFUND_PERCENT, WORKSHOP_AUTHOR_COINS } from '@dozari/shared';
+import { TRIVIA_DUEL_FEE, TRIVIA_DUEL_MIX_MULTIPLIER, TRIVIA_SOLO_FEE, TRIVIA_SOLO_REFUND_PERCENT, WORKSHOP_AUTHOR_COINS } from '@dozari/shared';
 import type { AgeTrack } from '@dozari/shared';
 import { LoginScreen } from './src/phone/LoginScreen';
 import { bootTheme } from './src/theme/bootTheme';
@@ -235,7 +235,7 @@ function AppInner() {
       {screen === 'priceonly' ? <PriceOnlyScreen onBack={() => setScreen('home')} /> : null}
       {screen === 'trivia' ? <TriviaScreen onBack={() => setScreen('home')} fee={settingNum(config.raw, 'trivia.solo_fee', TRIVIA_SOLO_FEE)} refundPercent={settingNum(config.raw, 'trivia.solo_refund_percent', TRIVIA_SOLO_REFUND_PERCENT)} workshop={workshopPromo} onWorkshop={() => setScreen('workshop')} /> : null}
       {screen === 'workshop' ? <WorkshopScreen key={workshopTab} initialTab={workshopTab} onBack={() => setScreen('home')} /> : null}
-      {screen === 'triviaduel' ? <TriviaDuelScreen onBack={() => setScreen('home')} fee={settingNum(config.raw, 'trivia.duel_fee', TRIVIA_DUEL_FEE)} workshop={workshopPromo} onWorkshop={() => setScreen('workshop')} /> : null}
+      {screen === 'triviaduel' ? <TriviaDuelScreen onBack={() => setScreen('home')} fee={settingNum(config.raw, 'trivia.duel_fee', TRIVIA_DUEL_FEE)} mixMultiplier={settingNum(config.raw, 'trivia.duel_mix_multiplier', TRIVIA_DUEL_MIX_MULTIPLIER)} workshop={workshopPromo} onWorkshop={() => setScreen('workshop')} /> : null}
       {screen === 'daily' ? <SoloScreen daily onBack={() => setScreen('home')} hintsEnabled={config.features.shop} /> : null}
       {screen === 'tutorial' ? <Tutorial onDone={() => void markTutorialSeen().then(() => setScreen('home'))} /> : null}
       {screen === 'duel' ? <DuelScreen onBack={() => setScreen('home')} settings={config.raw} /> : null}

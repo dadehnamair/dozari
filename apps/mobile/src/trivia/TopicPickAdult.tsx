@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { formatPersianNumber } from '@dozari/shared';
 import type { TriviaTopics } from '@dozari/shared';
@@ -30,21 +30,47 @@ const TOPIC_ICON: Record<string, string> = {
   طبیعت: 'tulip',
 };
 
+/** How long a tapped offer shows its choice before the game starts. */
+const AUTO_START_MS = 900;
+
 const GO_ON = ['#FFD2B0', '#B0552A'] as const;
 
 type Topic = TriviaTopics['topics'][number];
 
+export type TopicOffer = { kind: 'random' | 'mix'; label: string; /** Small tag on the button, e.g. «×۲ سکه». */ badge?: string };
+
 /**
  * Adult look of the question duel's topic picker («صرافی و گاوصندوق», copper = duel; docs/design/adult/Dozari Adult - Quiz Duel):
- * the entry-fee plate, «تصادفی» (rolls a topic onto the grid), the topic grid, and a start button naming the chosen topic.
+ * the entry-fee plate, the offers (`تصادفی` rolls a topic, `ترکیبی` asks the whole bank), the topic grid, and a start button naming the choice.
+ * An offer starts the game by itself a moment after it is tapped (the bottom button says what was chosen); a topic card waits for the start button.
  */
-export function TopicPickAdult({ topics, fee, busy = false, note = null, texts, mix, onBack, onStart }: { topics: Topic[]; fee: number; busy?: boolean; note?: string | null; /** Heading, subtitle and the fee plate's two lines (the question duel and the solo questions each say their own). */ texts: { title: string; sub: string; feeTitle: string; feeSub: string }; /** A button that starts straight away on every topic (solo); absent = «تصادفی» rolls a topic onto the grid (duel). */ mix?: { label: string; onPress: () => void }; onBack: () => void; onStart: (topicId: string) => void }) {
+export function TopicPickAdult({ topics, fee, busy = false, note = null, texts, offers, mixTimes = 1, onBack, onStart }: { topics: Topic[]; fee: number; busy?: boolean; note?: string | null; /** Heading, subtitle and the fee plate's two lines (the question duel and the solo questions each say their own). */ texts: { title: string; sub: string; feeTitle: string; feeSub: string }; offers: TopicOffer[]; /** How many times the fee a mix game costs (shown on the start button). */ mixTimes?: number; onBack: () => void; onStart: (topicId?: string, mix?: boolean) => void }) {
   const [sel, setSel] = useState<string | null>(null);
+  const [auto, setAuto] = useState<'random' | 'mix' | null>(null);
   const chosen = topics.find((x) => x.id === sel) ?? null;
-  const roll = () => {
-    if (topics.length === 0) return;
+  const mixPicked = auto === 'mix';
+  const choiceName = mixPicked ? (offers.find((o) => o.kind === 'mix')?.label ?? '') : (chosen?.nameFa ?? '');
+  // A tapped offer starts the game after a short beat, so the player sees what was chosen.
+  useEffect(() => {
+    if (!auto) return undefined;
+    const timer = setTimeout(() => (auto === 'mix' ? onStart(undefined, true) : sel ? onStart(sel) : undefined), AUTO_START_MS);
+    return () => clearTimeout(timer);
+  }, [auto]);
+  // A refused start (no coins, no questions…) gives the picker back.
+  useEffect(() => {
+    if (note) setAuto(null);
+  }, [note]);
+  const offer = (o: TopicOffer) => {
+    if (busy || auto) return;
     playSfx('confirm');
+    if (o.kind === 'mix') {
+      setSel(null);
+      setAuto('mix');
+      return;
+    }
+    if (topics.length === 0) return;
     setSel(topics[Math.floor(Math.random() * topics.length)]!.id);
+    setAuto('random');
   };
   return (
     <AdultBackdrop>
@@ -71,12 +97,17 @@ export function TopicPickAdult({ topics, fee, busy = false, note = null, texts, 
 
         {topics.length > 0 ? (
           <>
-            <Pressable accessibilityRole="button" disabled={busy} onPress={mix ? mix.onPress : roll} style={({ pressed }) => (pressed ? styles.pressed : null)}>
-              <Plate radius={17} border="#000" frame={3} from="#FFF1B8" to="#8A5A16" style={styles.random}>
-                <View style={styles.dice}><Item icon="dice" /></View>
-                <Text style={styles.randomText}>{mix ? mix.label : t.randomAdult}</Text>
-              </Plate>
-            </Pressable>
+            <View style={styles.offers}>
+              {offers.map((o) => (
+                <Pressable key={o.kind} accessibilityRole="button" accessibilityState={{ selected: auto === o.kind }} disabled={busy || !!auto} onPress={() => offer(o)} style={({ pressed }) => [styles.offer, pressed ? styles.pressed : null, auto && auto !== o.kind ? styles.dim : null]}>
+                  <Plate radius={17} border={auto === o.kind ? '#FFF1B8' : '#000'} frame={3} from={o.kind === 'mix' ? '#FFD2B0' : '#FFF1B8'} to={o.kind === 'mix' ? '#B0552A' : '#8A5A16'} glow={auto === o.kind ? '#E8B64A' : undefined} style={styles.random}>
+                    <View style={styles.dice}><Item icon={o.kind === 'mix' ? 'gem' : 'dice'} /></View>
+                    <Text style={styles.randomText}>{o.label}</Text>
+                    {o.badge ? <Text style={styles.offerBadge}>{o.badge}</Text> : null}
+                  </Plate>
+                </Pressable>
+              ))}
+            </View>
             <View style={styles.or}>
               <View style={styles.orLine} />
               <Text style={styles.orText}>{a.or}</Text>
@@ -90,7 +121,7 @@ export function TopicPickAdult({ topics, fee, busy = false, note = null, texts, 
                     key={x.id}
                     accessibilityRole="button"
                     accessibilityState={{ selected: on }}
-                    disabled={busy}
+                    disabled={busy || !!auto}
                     onPress={() => {
                       playSfx('tap');
                       setSel(on ? null : x.id);
@@ -109,23 +140,23 @@ export function TopicPickAdult({ topics, fee, busy = false, note = null, texts, 
             </ScrollView>
             <Pressable
               accessibilityRole="button"
-              disabled={busy || !chosen}
+              disabled={busy || !!auto || !(chosen || mixPicked)}
               onPress={() => {
                 if (chosen) {
                   playSfx('confirm');
                   onStart(chosen.id);
                 }
               }}
-              style={({ pressed }) => [!chosen ? styles.goOff : null, pressed ? styles.pressed : null]}
+              style={({ pressed }) => [!(chosen || mixPicked) ? styles.goOff : null, pressed ? styles.pressed : null]}
             >
-              <Plate radius={16} border="#000" frame={3} from={chosen ? GO_ON[0] : '#5A4A3A'} to={chosen ? GO_ON[1] : '#3A2A1C'} height={54} style={styles.go}>
-              <Text style={styles.goText}>{chosen ? a.go(chosen.nameFa) : a.pickFirst}</Text>
-              {fee > 0 ? (
-                <View style={styles.goFee}>
-                  <View style={styles.goFeeIcon}><Item icon="coin" /></View>
-                  <Text style={styles.goFeeText}>{formatPersianNumber(fee)}</Text>
-                </View>
-              ) : null}
+              <Plate radius={16} border="#000" frame={3} from={chosen || mixPicked ? GO_ON[0] : '#5A4A3A'} to={chosen || mixPicked ? GO_ON[1] : '#3A2A1C'} height={54} style={styles.go}>
+                <Text style={styles.goText} numberOfLines={1}>{auto ? a.chosen(choiceName) : chosen ? a.go(chosen.nameFa) : a.pickFirst}</Text>
+                {fee > 0 ? (
+                  <View style={styles.goFee}>
+                    <View style={styles.goFeeIcon}><Item icon="coin" /></View>
+                    <Text style={styles.goFeeText}>{formatPersianNumber(mixPicked ? fee * mixTimes : fee)}</Text>
+                  </View>
+                ) : null}
               </Plate>
             </Pressable>
           </>
@@ -151,6 +182,10 @@ const styles = StyleSheet.create({
   feeSub: { fontFamily: fonts.bold, fontSize: 11.5, lineHeight: 17, color: 'rgba(255,233,168,0.7)', textAlign: 'right' },
   error: { fontFamily: fonts.bold, fontSize: 13, color: '#FF9A8A', textAlign: 'center' },
   empty: { fontFamily: fonts.bold, fontSize: 14, color: 'rgba(255,233,168,0.7)', textAlign: 'center', marginTop: 20 },
+  offers: { flexDirection: ROW, gap: 9 },
+  offer: { flex: 1 },
+  dim: { opacity: 0.5 },
+  offerBadge: { fontFamily: fonts.display, fontSize: 12, lineHeight: 18, color: '#FFF1B8', backgroundColor: 'rgba(0,0,0,0.35)', paddingHorizontal: 7, borderRadius: 99, overflow: 'hidden' },
   random: { height: 52, flexDirection: ROW, alignItems: 'center', justifyContent: 'center', gap: 10 },
   dice: { width: 38, height: 38, transform: [{ rotate: '-12deg' }] },
   randomText: { fontFamily: fonts.display, fontSize: 23, color: '#2A1606' },

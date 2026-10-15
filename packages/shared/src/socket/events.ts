@@ -147,7 +147,8 @@ export const priceSubmitSchema = z.object({ guessRials: z.string().regex(/^[1-9]
 export type PriceSubmit = z.infer<typeof priceSubmitSchema>;
 
 /** Question duel: a topic id, or nothing for a random mix. */
-export const tduelJoinSchema = z.object({ topicId: z.string().uuid().optional() });
+/** `mix`: the «ترکیبی» game (the whole bank, higher stakes, meets only another mix player). */
+export const tduelJoinSchema = z.object({ topicId: z.string().uuid().optional(), mix: z.boolean().optional() });
 export const tduelAnswerSchema = z.object({ index: z.number().int().min(0).max(3) });
 export type TduelJoin = z.infer<typeof tduelJoinSchema>;
 

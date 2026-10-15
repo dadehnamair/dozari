@@ -24,8 +24,8 @@ export interface TriviaDuelDeps {
   busy?: (userId: string) => boolean;
   /** Coins (docs/logic/trivia.md §Coins): the entry fee each side puts down, the payout, the refund of a game that could not start. Absent = free. */
   stakes?: {
-    canAffordDuel(userId: string): Promise<boolean>;
-    openDuel(matchId: string, players: readonly [string, string]): Promise<{ ok: true; stakes: [Stake, Stake]; fee: number } | { ok: false; broke: string }>;
+    canAffordDuel(userId: string, mix?: boolean): Promise<boolean>;
+    openDuel(matchId: string, players: readonly [string, string], mix?: boolean): Promise<{ ok: true; stakes: [Stake, Stake]; fee: number } | { ok: false; broke: string }>;
     cancelDuel(matchId: string, players: readonly [string, string], stakes: readonly [Stake, Stake], fee: number): Promise<void>;
     settleDuel(matchId: string, players: readonly [string, string], stakes: readonly [Stake, Stake], fee: number, result: { winner: 0 | 1 | null; reason: DuelReason }): Promise<[number, number]>;
   };
@@ -47,6 +47,8 @@ export interface TriviaDuelDeps {
 interface Waiting {
   since: number;
   topicId: string | null;
+  /** The «ترکیبی» search: the whole bank at higher stakes, paired only with another mix search (or a bot). */
+  mix: boolean;
   poolKey: string;
 }
 
@@ -62,6 +64,7 @@ interface Active {
   cancel: (() => void) | null;
   topicNameFa: string | null;
   topicId?: string;
+  mix: boolean;
   /** How each seat entered (paid / house / free) and the fee, once coins are on. */
   stakes?: [Stake, Stake];
   fee: number;
@@ -72,6 +75,7 @@ interface Active {
 interface Recent {
   players: [string, string];
   topicId?: string;
+  mix: boolean;
   asked: Set<string>;
   cancel: () => void;
 }
@@ -139,12 +143,13 @@ export class TriviaDuelService {
   }
 
   /** Puts a player in line for a topic (or random) and pairs them at once when someone fitting is waiting. */
-  async join(userId: string, topicId?: string): Promise<{ ok: true } | { ok: false; error: ErrorCode }> {
+  async join(userId: string, topicIdIn?: string, mix = false): Promise<{ ok: true } | { ok: false; error: ErrorCode }> {
     const refused = await this.deps.gate?.(userId);
     if (refused) return { ok: false, error: refused };
     if (this.byUser.has(userId) || this.deps.busy?.(userId)) return { ok: false, error: 'ALREADY_IN_MATCH' };
     if (this.waiting.has(userId)) return { ok: false, error: 'ALREADY_QUEUED' };
-    if (this.deps.stakes && !(await this.deps.stakes.canAffordDuel(userId))) return { ok: false, error: 'INSUFFICIENT_COINS' };
+    const topicId = mix ? undefined : topicIdIn;
+    if (this.deps.stakes && !(await this.deps.stakes.canAffordDuel(userId, mix))) return { ok: false, error: 'INSUFFICIENT_COINS' };
     const { tracks, key } = await this.poolKey(userId);
     // A topic with nothing to ask must be told at once, not left to search forever.
     const sample = await this.deps.questions({ topicId, tracks, count: 1, rng: mulberry32(this.newSeed()), userIds: [userId] }).catch(() => []);
@@ -152,7 +157,7 @@ export class TriviaDuelService {
     // Re-check after the awaits: another join of the same player may have landed.
     if (this.byUser.has(userId) || this.waiting.has(userId)) return { ok: false, error: 'ALREADY_QUEUED' };
     this.dropRecent(userId);
-    this.waiting.set(userId, { since: this.now(), topicId: topicId ?? null, poolKey: key });
+    this.waiting.set(userId, { since: this.now(), topicId: topicId ?? null, mix, poolKey: key });
     void this.tryPair(userId);
     return { ok: true };
   }
@@ -184,14 +189,15 @@ export class TriviaDuelService {
     if (!me) return;
     for (const [otherId, o] of this.waiting) {
       if (otherId === userId || o.poolKey !== me.poolKey) continue;
-      // A topic player meets the same topic or a random one; two different topics do not meet.
+      // A mix search meets only another mix search (the stakes are higher); a topic player meets the same topic or a random one; two different topics do not meet.
+      if (me.mix !== o.mix) continue;
       if (me.topicId !== null && o.topicId !== null && me.topicId !== o.topicId) continue;
       const topicId = me.topicId ?? o.topicId;
       this.waiting.delete(userId);
       this.waiting.delete(otherId);
       // The longer waiter sits on side 0.
       const [a, b] = o.since <= me.since ? ([otherId, userId] as const) : ([userId, otherId] as const);
-      const out = await this.start(a, b, topicId ?? undefined);
+      const out = await this.start(a, b, topicId ?? undefined, me.mix);
       if (out !== 'ok') {
         const broke = typeof out === 'object' ? out.broke : null;
         if (broke) this.refuse(broke, 'INSUFFICIENT_COINS');
@@ -207,7 +213,7 @@ export class TriviaDuelService {
     const me = this.waiting.get(userId);
     if (!me || this.byUser.has(botId)) return false;
     this.waiting.delete(userId);
-    const out = await this.start(userId, botId, me.topicId ?? undefined);
+    const out = await this.start(userId, botId, me.topicId ?? undefined, me.mix);
     if (typeof out === 'object') this.refuse(out.broke, 'INSUFFICIENT_COINS'); // the human cannot pay: they leave the line
     else if (out === 'fail' && !this.byUser.has(userId) && !this.waiting.has(userId)) this.waiting.set(userId, me);
     return out === 'ok';
@@ -218,7 +224,7 @@ export class TriviaDuelService {
     this.deps.emit(userId, ServerEvent.tduelRefused, { error });
   }
 
-  private async start(a: string, b: string, topicId?: string): Promise<StartResult> {
+  private async start(a: string, b: string, topicId?: string, mix = false): Promise<StartResult> {
     try {
       if (a === b || this.byUser.has(a) || this.byUser.has(b)) return 'fail';
       const [pa, pb, pool, settings] = await Promise.all([this.deps.profile(a), this.deps.profile(b), this.poolKey(a), this.deps.settings()]);
@@ -232,7 +238,7 @@ export class TriviaDuelService {
       let stakes: [Stake, Stake] | undefined;
       let fee = 0;
       if (this.deps.stakes) {
-        const taken = await this.deps.stakes.openDuel(id, [a, b]);
+        const taken = await this.deps.stakes.openDuel(id, [a, b], mix);
         if (!taken.ok) return { broke: taken.broke };
         stakes = taken.stakes;
         fee = taken.fee;
@@ -252,6 +258,7 @@ export class TriviaDuelService {
         cancel: null,
         topicNameFa,
         topicId,
+        mix,
         stakes,
         fee,
         found: [
@@ -374,7 +381,7 @@ export class TriviaDuelService {
 
   private openRematch(entry: Active): void {
     const seconds = this.deps.rematchSeconds ?? TRIVIA_DUEL_REMATCH_SECONDS;
-    const r: Recent = { players: [entry.players[0], entry.players[1]], topicId: entry.topicId, asked: new Set(), cancel: () => undefined };
+    const r: Recent = { players: [entry.players[0], entry.players[1]], topicId: entry.topicId, mix: entry.mix, asked: new Set(), cancel: () => undefined };
     r.cancel = this.schedule(seconds * 1000, () => {
       for (const u of r.players) {
         if (this.recent.get(u) !== r) continue;
@@ -404,7 +411,7 @@ export class TriviaDuelService {
     const r = this.recent.get(userId);
     if (!r) return { ok: false, error: 'UNKNOWN_MATCH' };
     if (this.byUser.has(userId) || this.waiting.has(userId) || this.deps.busy?.(userId)) return { ok: false, error: 'ALREADY_IN_MATCH' };
-    if (this.deps.stakes && !(await this.deps.stakes.canAffordDuel(userId))) return { ok: false, error: 'INSUFFICIENT_COINS' };
+    if (this.deps.stakes && !(await this.deps.stakes.canAffordDuel(userId, r.mix))) return { ok: false, error: 'INSUFFICIENT_COINS' };
     if (this.recent.get(userId) !== r) return { ok: false, error: 'UNKNOWN_MATCH' };
     const rival = r.players[0] === userId ? r.players[1] : r.players[0];
     if (!this.deps.isBot?.(rival) && !r.asked.has(rival)) {
@@ -419,7 +426,7 @@ export class TriviaDuelService {
       this.deps.emit(userId, ServerEvent.tduelOffer, { state: 'expired' });
       return { ok: false, error: 'ALREADY_IN_MATCH' };
     }
-    const out = await this.start(r.players[0], r.players[1], r.topicId);
+    const out = await this.start(r.players[0], r.players[1], r.topicId, r.mix);
     if (out === 'ok') return { ok: true };
     if (typeof out === 'object') {
       this.refuse(out.broke, 'INSUFFICIENT_COINS');

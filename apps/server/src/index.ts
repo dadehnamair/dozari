@@ -968,6 +968,7 @@ if (isMainModule(import.meta.url)) {
       ? new TriviaStakes(createDbStakeStore(db), {
           soloFee: () => settings.num('trivia.solo_fee'),
           duelFee: () => settings.num('trivia.duel_fee'),
+          duelMixMultiplier: () => settings.num('trivia.duel_mix_multiplier'),
           houseCutPercent: () => settings.num('duel.house_cut_percent'),
           isBot: (id) => botDriver?.isBot(id) ?? false,
         })
