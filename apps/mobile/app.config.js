@@ -1,5 +1,4 @@
 const { withMainApplication } = require('expo/config-plugins');
-const withGenderIcon = require('./plugins/withGenderIcon');
 const withSlimAndroid = require('./plugins/withSlimAndroid');
 const withFcm = require('./plugins/withFcm');
 const withIrnoti = require('./plugins/withIrnoti');
@@ -25,8 +24,8 @@ const withForcedRtl = (config) =>
 // build's EXPO_PUBLIC_API_URL is http:// (LAN/test builds). Production builds use https:// and keep it off.
 module.exports = ({ config }) => {
   const cleartext = (process.env.EXPO_PUBLIC_API_URL ?? '').startsWith('http://');
-  return withIrnoti(withFcm(withSlimAndroid(withGenderIcon(withForcedRtl({
+  return withIrnoti(withFcm(withSlimAndroid(withForcedRtl({
     ...config,
     plugins: [...(config.plugins ?? []), ['expo-build-properties', { android: { usesCleartextTraffic: cleartext } }]],
-  })))));
+  }))));
 };

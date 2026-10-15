@@ -26,7 +26,7 @@ cd android && ./gradlew assembleRelease     # app/build/outputs/apk/release/app-
 Put `EXPO_PUBLIC_API_URL` / `EXPO_PUBLIC_STORE` in `apps/mobile/.env` (git-ignored) if you build from Android Studio, which does not see your shell variables.
 Plain `http://` API addresses (LAN tests) turn on Android cleartext traffic automatically (`app.config.js`); `https://` keeps it off.
 
-The launcher icon follows the player's gender (D166): `plugins/withGenderIcon.js` + `modules/app-icon`; change the art in `src/brand/BrandScreen.tsx` and re-export with `scripts/export-brand.mjs`.
+The launcher icon is one fixed gold adult icon for every player (D240, supersedes D166): `app.json` points at `assets/icon-adult.png` + `adaptive-icon-adult-432.png`/`adaptive-background-adult-216.png`; rebuild the art with `scripts/build-adult-icons.py`.
 
 ### APK size
 

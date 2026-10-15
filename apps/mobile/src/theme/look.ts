@@ -1,9 +1,8 @@
 import type { AgeTrack, Gender } from '@dozari/shared';
-import { applyAppIcon } from '../appIcon/appIcon';
 import { applyTrackTheme } from './themeStore';
 
 /**
- * The player's look = theme (candy or adult) + launcher icon, both decided by track, the icon also by gender.
+ * The player's look = theme (candy or adult), decided by track. The launcher/PWA icon is one fixed adult icon for everyone (owner, 2026-10-15), so it never switches.
  * Gender and track arrive from different calls, so the last known value of each is kept and every change re-applies both.
  */
 let gender: Gender | null | undefined;
@@ -11,7 +10,6 @@ let track: AgeTrack | null | undefined;
 
 function apply(): void {
   applyTrackTheme(track);
-  applyAppIcon(gender, track);
 }
 
 export function setLookGender(g: Gender | null | undefined): void {
