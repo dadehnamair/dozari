@@ -12,6 +12,8 @@ import { colors, fonts } from '../theme/colors';
 import type { CharacterId } from '../theme/character';
 import { nativeTopInset } from '../theme/safeArea';
 import { TEXT_RIGHT } from '../theme/direction';
+import { bootTheme } from '../theme/bootTheme';
+import { DuelResultAdult } from './DuelResultAdult';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const a = fa.duel.arena;
@@ -26,7 +28,11 @@ const LOOK: Record<Outcome, { title: string; sub: string; pose: 'win' | 'sad' | 
 };
 
 /** screen-results of `13 Match Screens`: the hero's pose, a banner, why it ended, the scoreboard, home / play again. */
-export function DuelResult({ outcome, reason, lines, priceRound, triviaRound, onHome, onAgain, againLabel, onInvite, onPlayer, onReport }: { outcome: Outcome; reason: string; lines: Line[]; /** The finished price-guess round, when the duel had one. */ priceRound?: PriceRoundView; /** The finished general-question round, when the duel had one. */ triviaRound?: TriviaRoundView; onHome: () => void; onAgain?: () => void; /** Replaces the outcome's «play again» wording (a private table goes back to its lobby). */ againLabel?: string; /** Opens the invite sheet: the best moment to ask a friend to play is right after a game. */ onInvite?: () => void; /** Opens a player's profile sheet. */ onPlayer?: (id: string) => void; /** Opens the report dialog for the opponent (1v1). */ onReport?: (id: string) => void }) {
+export function DuelResult(props: Parameters<typeof DuelResultCandy>[0]) {
+  return bootTheme() === 'adult' ? <DuelResultAdult {...props} /> : <DuelResultCandy {...props} />;
+}
+
+function DuelResultCandy({ outcome, reason, lines, priceRound, triviaRound, onHome, onAgain, againLabel, onInvite, onPlayer, onReport }: { outcome: Outcome; reason: string; lines: Line[]; /** The finished price-guess round, when the duel had one. */ priceRound?: PriceRoundView; /** The finished general-question round, when the duel had one. */ triviaRound?: TriviaRoundView; onHome: () => void; onAgain?: () => void; /** Replaces the outcome's «play again» wording (a private table goes back to its lobby). */ againLabel?: string; /** Opens the invite sheet: the best moment to ask a friend to play is right after a game. */ onInvite?: () => void; /** Opens a player's profile sheet. */ onPlayer?: (id: string) => void; /** Opens the report dialog for the opponent (1v1). */ onReport?: (id: string) => void }) {
   const look = LOOK[outcome];
   const sorted = [...lines].sort((x, y) => y.points - x.points);
   return (
