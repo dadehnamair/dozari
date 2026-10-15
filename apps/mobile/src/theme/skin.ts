@@ -1,4 +1,5 @@
 import { bootTheme } from './bootTheme';
+import { colors } from './colors';
 import { useTheme } from './themeStore';
 
 /** Dark panels of the adult look («صرافی و گاوصندوق»): near-black panel, gold frame, cream-gold text (docs/design/CLAUDE.md). */
@@ -28,3 +29,6 @@ export const FACE_TEXT = ADULT_BOOT ? ({ color: '#2A1606', textShadowColor: 'tra
 
 /** Text lying straight on a dark scene (splash, backdrops): ink in play where scenes are light, cream-gold with a black shadow in adult. */
 export const SCENE_TEXT = ADULT_BOOT ? ({ color: '#FFE9A8', textShadowColor: '#000', textShadowRadius: 2 } as const) : ({} as const);
+
+/** Icon colour on the yellow back/close squares: ink in play; cream-gold in adult, where the square is dark bronze and ink would vanish on it. */
+export const ON_YELLOW = ADULT_BOOT ? '#FFE9A8' : colors.ink;

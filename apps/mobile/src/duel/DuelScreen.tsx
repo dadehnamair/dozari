@@ -34,7 +34,8 @@ import { fetchLeaveWarning } from './api';
 import { DuelPriceRound } from './DuelPriceRound';
 import { DuelTriviaRound } from './DuelTriviaRound';
 import { DuelTriviaRoundAdult } from './DuelTriviaRoundAdult';
-import { AdultBackdrop } from './adultKit';
+import { AdultBackdrop, BrassButton, Plate } from './adultKit';
+import { ArenaBarAdult, ItemPlateAdult, PowerPlateAdult, ToastAdult, TurnPillAdult } from './ArenaAdult';
 import { DuelResult } from './DuelResult';
 import { EDGE_LEFT, EDGE_RIGHT } from '../theme/direction';
 import { InviteSheet } from '../invite/InviteSheet';
@@ -534,6 +535,8 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
   const mateWaiting = team && mine && !captain && selected.length === 4;
   const turnText = view.lockedOut[me] ? fa.duel.lockedOut : mine ? (!captain ? (mateWaiting ? a.waitCaptain(captainName) : a.mateCaptain) : proposalReady ? a.mateReady(nameOf(view.proposal?.by)) : team ? a.captain : fa.duel.yourTurn) : fa.duel.theirTurn;
   const boards = view.rounds ?? 1;
+  const adult = bootTheme() === 'adult';
+  const modeText = (team ? (boards > 1 ? `${a.twoVsTwo} · ${a.boardOf((view.round ?? 0) + 1, boards)}` : a.twoVsTwo) : boards > 1 ? `${a.oneVsOne} · ${a.boardOf((view.round ?? 0) + 1, boards)}` : a.oneVsOne) + (view.topics?.[view.round ?? 0] ? ` · ${view.topics[view.round ?? 0]}` : '');
   /** A player of the match who dropped and whose seat is still held. */
   const awayId = playing ? Object.keys(state.away).find((id) => (state.away[id] ?? 0) > now) : undefined;
   const noticeText = state.notice ? fa.duel.errors[state.notice] ?? fa.duel.errors.generic ?? null : null;
@@ -594,6 +597,18 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
       <TickSound secs={secs} on={playing && mine && !state.finale} />
       <ScrollView contentContainerStyle={styles.screen}>
         <View style={styles.column}>
+          {adult ? (
+            <ArenaBarAdult
+              leaveLabel={a.leave}
+              onLeave={leave}
+              clockLabel={`${turnText} ${fa.duel.seconds(secs)}`}
+              clock={toPersianDigits(clockText(secs))}
+              urgent={secs <= 10}
+              combo={<ComboRing streak={combo.streak} left={combo.left} showLabel={false} />}
+              mode={modeText}
+              wrapClock={(c) => <Pulse on={secs <= 10 && playing && !prefs.reduceMotion} fast={secs <= 3}>{c}</Pulse>}
+            />
+          ) : (
           <View style={styles.bar}>
             <Pressable accessibilityRole="button" accessibilityLabel={a.leave} onPress={leave}>
               {({ pressed }) => (
@@ -611,8 +626,9 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
               </View></Pulse>
             </View>
             <ComboRing streak={combo.streak} left={combo.left} showLabel={false} />
-            <View style={styles.mode}><Text style={styles.modeText}>{(team ? (boards > 1 ? `${a.twoVsTwo} · ${a.boardOf((view.round ?? 0) + 1, boards)}` : a.twoVsTwo) : boards > 1 ? `${a.oneVsOne} · ${a.boardOf((view.round ?? 0) + 1, boards)}` : a.oneVsOne) + (view.topics?.[view.round ?? 0] ? ` · ${view.topics[view.round ?? 0]}` : '')}</Text></View>
+            <View style={styles.mode}><Text style={styles.modeText}>{modeText}</Text></View>
           </View>
+          )}
 
           <View style={styles.hudWrap}>
             <MatchHud
@@ -630,15 +646,16 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
           {awayId ? <Text style={styles.away}>{a.away(nameOf(awayId) || a.rival, Math.max(0, Math.ceil(((state.away[awayId] ?? 0) - now) / 1000)))}</Text> : null}
           {view.found && playing ? <Text style={[styles.rivalFound, view.found[them] >= 3 ? styles.rivalFoundHot : null]}>{view.found[them] > 0 ? a.rivalFound(view.found[them]) : a.rivalFoundNone}</Text> : null}
           <View style={styles.turnRow}>
-            <View style={[styles.turn, mine ? (team && !captain ? styles.turnMate : styles.turnMine) : null]}><Text style={[styles.turnText, mine ? styles.turnTextMine : null]}>{turnText}</Text></View>
+            {adult ? <TurnPillAdult text={turnText} tone={mine ? (team && !captain ? 'mate' : 'mine') : 'rival'} /> : <View style={[styles.turn, mine ? (team && !captain ? styles.turnMate : styles.turnMine) : null]}><Text style={[styles.turnText, mine ? styles.turnTextMine : null]}>{turnText}</Text></View>}
             {/* Toasts cover the turn pill for a moment instead of reserving a row of their own (no empty gap above the board). */}
-            {toast ? <View style={styles.toastOver} pointerEvents="none"><View style={styles.toast}><Text style={styles.toastText} numberOfLines={2}>{toast}</Text></View></View> : null}
+            {toast ? <View style={styles.toastOver} pointerEvents="none">{adult ? <ToastAdult text={toast} /> : <View style={styles.toast}><Text style={styles.toastText} numberOfLines={2}>{toast}</Text></View>}</View> : null}
           </View>
 
-          <View style={styles.boardPanel}>
+          {adult ? <Plate radius={22} border="#E0895A" from="#17100C" to="#0E0A08" ledge={6} style={styles.boardAdult}><Board solved={state.finale ? (finaleLast ? [...state.finale.solved, state.finale.last] : state.finale.solved) : boardSolved(view)} cards={state.finale ? (finaleLast ? [] : state.finale.cards) : arrange(view.cards, order)} names={state.names} selected={state.finale ? finaleSel : selected} onToggle={(id) => setSelected((s) => toggleSelection(s, id))} disabled={!playing || !mine || !!state.finale || frozenMe} muted={playing && !mine && !state.finale && !view.found} faceDown={!!view.found && playing && !mine && !state.finale} hinted={state.peek?.ids ?? []} verdict={state.verdict} />
+            {state.flash === 'one_away' ? <View style={styles.nearMiss} pointerEvents="none"><NearMissPill /></View> : null}</Plate> : <View style={styles.boardPanel}>
             <Board solved={state.finale ? (finaleLast ? [...state.finale.solved, state.finale.last] : state.finale.solved) : boardSolved(view)} cards={state.finale ? (finaleLast ? [] : state.finale.cards) : arrange(view.cards, order)} names={state.names} selected={state.finale ? finaleSel : selected} onToggle={(id) => setSelected((s) => toggleSelection(s, id))} disabled={!playing || !mine || !!state.finale || frozenMe} muted={playing && !mine && !state.finale && !view.found} faceDown={!!view.found && playing && !mine && !state.finale} hinted={state.peek?.ids ?? []} verdict={state.verdict} />
             {state.flash === 'one_away' ? <View style={styles.nearMiss} pointerEvents="none"><NearMissPill /></View> : null}
-          </View>
+          </View>}
 
           <View style={styles.tools}>
             <PowerButton kind="magnifier" count={view.powers?.magnifier ?? 0} enabled={canPower} onPress={() => power('magnifier')} />
@@ -654,12 +671,20 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
           ) : null}
 
           {/* A refused action is said once, right above the buttons where the player's thumb is (not also over the turn pill). */}
-          {noticeText ? <View style={styles.toastSlot}><View style={styles.toast}><Text style={styles.toastText} numberOfLines={2}>{noticeText}</Text></View></View> : null}
+          {noticeText ? <View style={styles.toastSlot}>{adult ? <ToastAdult text={noticeText} /> : <View style={styles.toast}><Text style={styles.toastText} numberOfLines={2}>{noticeText}</Text></View>}</View> : null}
+          {adult ? (
+            <View style={styles.actionsAdult}>
+              <View style={styles.flex1}><BrassButton label={fa.solo.shuffle} tone="dark" height={52} disabled={!playing || !!state.finale} onPress={() => (playSfx('press'), setOrder(shuffled(view.cards.map((c) => c.id))))} /></View>
+              <View style={styles.flex1}><BrassButton label={fa.solo.deselect} tone="copper" height={52} disabled={selected.length === 0 || !!state.finale} onPress={() => (playSfx('press'), setSelected([]))} /></View>
+              <View style={styles.flex14}><BrassButton label={sending ? fa.duel.submitting : fa.solo.submit} tone="gold" height={52} disabled={!canSend} onPress={() => (playSfx('confirm'), submit())} /></View>
+            </View>
+          ) : (
           <View style={styles.actions}>
             <SlabButton label={fa.solo.shuffle} color={colors.candy.sky} height={58} fontSize={20} onPress={() => setOrder(shuffled(view.cards.map((c) => c.id)))} disabled={!playing || !!state.finale} />
             <SlabButton label={fa.solo.deselect} color={colors.candy.orange} height={58} fontSize={20} onPress={() => setSelected([])} disabled={selected.length === 0 || !!state.finale} />
             <SlabButton label={sending ? fa.duel.submitting : fa.solo.submit} sfx="confirm" color={colors.candy.lime} height={58} fontSize={24} grow={1.4} onPress={submit} disabled={!canSend} />
           </View>
+          )}
         </View>
       </ScrollView>
       <ChatDrawer open={chatOpen} onClose={() => setChatOpen(false)} categories={taunts} tab={chatTab} onTab={setChatTab} onSend={sendTaunt} />
@@ -670,6 +695,7 @@ export function DuelScreen({ onBack, resume = false, settings = {} }: { onBack: 
 
 /** A bought item (shuffle the rival's cards, reveal a group): a labelled pill with how many are left. */
 function ItemButton({ icon, label, hint, count, enabled, onPress }: { icon: string; label: string; hint: string; count: number; enabled: boolean; onPress: () => void }) {
+  if (bootTheme() === 'adult') return <ItemPlateAdult icon={icon} text={`${label} · ${toPersianDigits(String(count))}`} label={`${label} · ${hint}`} enabled={enabled} onPress={() => (playSfx('press'), onPress())} />;
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={`${label} · ${hint}`} accessibilityState={{ disabled: !enabled }} onPress={enabled ? () => (playSfx('press'), onPress()) : undefined} style={({ pressed }) => [styles.item, enabled ? null : styles.powerOff, pressed && enabled ? styles.pressed : null]}>
       <View style={styles.itemIcon}><Item icon={icon} /></View>
@@ -682,6 +708,7 @@ function ItemButton({ icon, label, hint, count, enabled, onPress }: { icon: stri
 function PowerButton({ kind, count, enabled, onPress }: { kind: 'magnifier' | 'freeze'; count: number; enabled: boolean; onPress: () => void }) {
   const on = enabled && count > 0;
   const label = fa.duel.power[kind];
+  if (bootTheme() === 'adult') return <PowerPlateAdult kind={kind} count={count} enabled={enabled} label={`${label} · ${fa.duel.power[kind === 'magnifier' ? 'hintMagnifier' : 'hintFreeze']}`} onPress={() => (playSfx('press'), onPress())} />;
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={`${label} · ${fa.duel.power[kind === 'magnifier' ? 'hintMagnifier' : 'hintFreeze']}`} accessibilityState={{ disabled: !on }} onPress={on ? () => (playSfx('press'), onPress()) : undefined} style={({ pressed }) => [styles.power, kind === 'freeze' ? styles.powerIce : null, on ? null : styles.powerOff, pressed && on ? styles.pressed : null]}>
       <View style={styles.powerIcon}><Item icon={kind} /></View>
@@ -763,6 +790,10 @@ const styles = StyleSheet.create({
   toastText: { fontFamily: fonts.display, fontSize: 16, color: colors.candy.yellow, textAlign: 'center' },
   tools: { flexDirection: ROW, alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
   actions: { flexDirection: ROW, gap: 9 },
+  actionsAdult: { direction: 'rtl', flexDirection: 'row', gap: 9 },
+  flex1: { flex: 1 },
+  flex14: { flex: 1.4 },
+  boardAdult: { padding: 8 },
   nearMiss: { position: 'absolute', top: '38%', left: 0, right: 0, alignItems: 'center' },
   msg: { fontFamily: fonts.bold, fontSize: 18, color: colors.cream, textAlign: 'center' },
 });

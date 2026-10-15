@@ -3,6 +3,7 @@ import { playSfx } from '../sound/engine';
 import Svg, { Circle, Defs, Pattern, Rect } from 'react-native-svg';
 import { useId } from 'react';
 import { colors, fonts, toneOf } from '../theme/colors';
+import { ON_YELLOW } from '../theme/skin';
 import { GradientFill } from './GradientFill';
 import { Icon } from './Icon';
 import { pageTop, safeTop } from '../theme/safeArea';
@@ -42,7 +43,7 @@ export function PageShell({ title, color, backLabel, onBack, action, bandHeight 
             {({ pressed }) => (
               <View style={[styles.back, pressed ? styles.pressed : null]}>
                 <GradientFill from="#FFE48A" to={colors.candy.yellow} />
-                <Icon name="back" size={22} color={colors.ink} strokeWidth={3} />
+                <Icon name="back" size={22} color={ON_YELLOW} strokeWidth={3} />
               </View>
             )}
           </Pressable>

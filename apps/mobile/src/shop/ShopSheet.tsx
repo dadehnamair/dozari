@@ -12,6 +12,7 @@ import { Item } from '../components/Item';
 import { Scene } from '../components/Scene';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
+import { ON_YELLOW } from '../theme/skin';
 import { ApiError } from '../net/http';
 import { buyItem, fetchShop, payWithMoney } from './api';
 import { payNote } from './payNote';
@@ -110,7 +111,7 @@ export function ShopSheet({ onClose, onBalance, realMoney = false }: { onClose: 
             {({ pressed }) => (
               <View style={[styles.back, pressed ? styles.pressed : null]}>
                 <GradientFill from="#FFE48A" to={colors.candy.yellow} />
-                <Icon name="back" size={22} color={colors.ink} strokeWidth={3} />
+                <Icon name="back" size={22} color={ON_YELLOW} strokeWidth={3} />
               </View>
             )}
           </Pressable>

@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { StyleProp, ViewStyle } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import { Icon } from '../components/Icon';
 import { GradientFill } from '../components/GradientFill';
 import { SceneBackground } from '../components/SceneBackground';
 import { fonts } from '../theme/colors';
@@ -33,13 +33,11 @@ export function Plate({ radius, border, from = '#2A1E16', to = '#17100C', ledge 
 }
 
 /** Brass square button (back / leave) from the design header. */
-export function BrassSquare({ label, onPress, glyph }: { label: string; onPress: () => void; glyph: 'close' | 'back' }) {
+export function BrassSquare({ label, onPress, glyph }: { label: string; onPress: () => void; glyph: 'close' | 'back' | 'pause' }) {
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={label} hitSlop={8} onPress={onPress} style={({ pressed }) => [styles.square, pressed ? styles.pressed : null]}>
       <Plate radius={13} border="#B8822A" from="#5A3A1C" to="#24160A" ledge={3} height={36} style={styles.squareFace}>
-        <Svg width={18} height={18} viewBox="0 0 24 24">
-          <Path d={glyph === 'close' ? 'M6 6l12 12M18 6L6 18' : 'M9 5l7 7-7 7'} fill="none" stroke="#FFE9A8" strokeWidth={2.7} strokeLinecap="round" strokeLinejoin="round" />
-        </Svg>
+        <Icon name={glyph} size={20} color="#FFE9A8" strokeWidth={2.8} />
       </Plate>
     </Pressable>
   );
