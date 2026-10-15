@@ -1,4 +1,4 @@
-import { AVATAR_KEYS, averageLevel, botSkillForLevel, changesAvatar, driftSkill, botThinkDelay, chooseBotMove, chooseBotPriceGuess, pickBotByLevel, scaledThinkRange, withoutRecentBots } from '@dozari/shared';
+import { averageLevel, botFaceFor, genderRepair, nameGender, botSkillForLevel, changesAvatar, driftSkill, botThinkDelay, chooseBotMove, chooseBotPriceGuess, pickBotByLevel, scaledThinkRange, withoutRecentBots } from '@dozari/shared';
 import type { ChatMessage, MatchEnded, MatchFound, MatchView, Rng, TduelState } from '@dozari/shared';
 import { createHash } from 'node:crypto';
 import type { ChatService } from '../chat/service.js';
@@ -66,11 +66,18 @@ export class BotDriver {
   async refresh(): Promise<void> {
     const next = new Map((await this.deps.store.active()).map((b) => [b.userId, b]));
     // Bots grow up by playing: a bot that crossed a milestone level since the last look may take a new face (the first look only sets the baseline).
-    for (const b of next.values()) {
+    for (const b of [...next.values()]) {
+      // A bot whose face or gender contradicts its name (a man's name on a woman's face) is put right.
+      const fix = genderRepair(b, this.deps.rng);
+      if (fix && (await this.deps.store.update(b.userId, fix).catch(() => 'not_found')) === 'ok') {
+        const fixed = { ...b, ...fix };
+        next.set(b.userId, fixed);
+        Object.assign(b, fixed);
+      }
       const before = this.levels.get(b.userId);
       this.levels.set(b.userId, b.level ?? 1);
       if (before === undefined || !changesAvatar(before, b.level ?? 1, this.deps.rng)) continue;
-      const face = AVATAR_KEYS.filter((k) => k !== b.avatarKey)[Math.floor(this.deps.rng() * (AVATAR_KEYS.length - 1))];
+      const face = botFaceFor(nameGender(b.nickname), this.deps.rng, b.avatarKey);
       if (face && (await this.deps.store.update(b.userId, { avatarKey: face }).catch(() => 'not_found')) === 'ok') next.set(b.userId, { ...b, avatarKey: face });
     }
     this.roster = next;

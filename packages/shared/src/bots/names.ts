@@ -1,5 +1,6 @@
 import { NICKNAMES } from '../identity/index.js';
 import type { Rng } from '../game/rng.js';
+import { SUFFIXES_OF, nameGender } from './gender.js';
 
 /** Everyday given names and short handles Iranian players pick; with the preset nicknames it is the base of the pool bot names come from. */
 const BASE_NAMES: readonly string[] = [
@@ -21,14 +22,18 @@ const MORE_GIVEN_NAMES: readonly string[] = [
   'اصغر', 'تقی', 'جعفر', 'حسن', 'خسرو', 'رحیم', 'زکریا', 'سلمان', 'شاپور', 'قاسم', 'کاظم', 'ماکان', 'نادر', 'هوشنگ', 'یدالله', 'اسماعیل',
 ];
 
-const SUFFIXES: readonly string[] = ['جان', 'خان', 'جون', 'آقا', 'خانم'];
-
 const faDigits = (n: number): string => String(n).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)] as string);
 
 const GIVEN_NAMES = [...new Set([...BASE_NAMES, ...MORE_GIVEN_NAMES])];
 
+/** A suffix that suits the name's gender («نگارخانم», «رضاآقا»; never «نگارآقا»). */
+const suffixFor = (name: string, i: number): string => {
+  const set = SUFFIXES_OF[nameGender(name) ?? 'neutral'];
+  return set[i % set.length] as string;
+};
+
 /** Deterministic variants: «name_birthyear» handles (1360–1399) and «name+suffix» forms, never random so tests and admin previews are stable. */
-const VARIANTS: string[] = GIVEN_NAMES.flatMap((n, i) => [`${n}_${faDigits(1360 + ((i * 7) % 40))}`, `${n}${SUFFIXES[i % SUFFIXES.length]}`]);
+const VARIANTS: string[] = GIVEN_NAMES.flatMap((n, i) => [`${n}_${faDigits(1360 + ((i * 7) % 40))}`, `${n}${suffixFor(n, i)}`]);
 
 export const BOT_NAME_POOL: readonly string[] = [...new Set([...GIVEN_NAMES, ...VARIANTS])];
 

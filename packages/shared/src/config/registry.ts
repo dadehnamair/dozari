@@ -311,7 +311,7 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'bots.fallback_seconds', group: 'bot', label: 'بعد از چند ثانیه انتظار در صف، حریف ربات پیدا شود', kind: 'int', min: 3, max: 300, default: 8, unit: 'ثانیه' },
   { key: 'bots.fallback_jitter_seconds', group: 'bot', label: 'تأخیر تصادفی اضافه برای طبیعی‌شدن', kind: 'int', min: 0, max: 120, default: 4, unit: 'ثانیه' },
   { key: 'bots.city_reply_percent', group: 'bot', label: 'احتمال جواب کوتاه یک ربات همشهری به پیام چت', kind: 'int', min: 0, max: 100, default: 15, unit: '٪' },
-  { key: 'bots.autofill_min', group: 'bot', label: 'حداقل تعداد ربات؛ کم‌تر بود خودکار ساخته شود', hint: 'بدون ربات و بدون هم‌بازی واقعی، جستجوی حریف تمام نمی‌شود. ۰ = خاموش', kind: 'int', min: 0, max: 300, default: 12 },
+  { key: 'bots.autofill_min', group: 'bot', label: 'حداقل تعداد ربات؛ کم‌تر بود خودکار ساخته شود', hint: 'بدون ربات و بدون هم‌بازی واقعی، جستجوی حریف تمام نمی‌شود. ۰ = خاموش', kind: 'int', min: 0, max: 300, default: 60 },
   { key: 'chart.gap_break_years', group: 'chart', label: 'شکاف سال در نمودار قیمت', hint: 'بیشتر از این تعداد سال بدون داده، خط نمودار قطع می‌شود', kind: 'int', min: 1, max: 30, default: CHART_GAP_BREAK_YEARS, unit: 'سال' },
   { key: 'chart.min_year', group: 'chart', label: 'اولین سال نمودار', kind: 'int', min: 1200, max: 1400, default: CHART_MIN_YEAR },
   { key: 'bot.enabled', group: 'bot', label: 'ربات محتوا روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
