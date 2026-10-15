@@ -10,6 +10,7 @@ import { fa } from '../i18n/fa';
 import { ApiError } from '../net/http';
 import { buzz, playSfx } from '../sound/engine';
 import { colors, fonts } from '../theme/colors';
+import { adultSkin } from '../theme/skin';
 import { RTL_INPUT } from '../theme/direction';
 import { nativeTopInset } from '../theme/safeArea';
 import { fetchMine, fetchReviewFeed, fetchTop, fetchWorkshop, fetchWorkshopTopics, sendReview, submitQuestion } from './api';
@@ -297,7 +298,7 @@ export function WorkshopScreen({ onBack, initialTab = 'make' }: { onBack: () => 
   );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create(adultSkin({
   screen: { flexGrow: 1, alignItems: 'center', paddingHorizontal: 12, paddingTop: 20 + nativeTopInset(), paddingBottom: 40 },
   column: { width: '100%', maxWidth: 480, gap: 12 },
   ribbonWrap: { gap: 8 },
@@ -346,4 +347,4 @@ const styles = StyleSheet.create({
   mineRight: { color: '#2E7D32', opacity: 1 },
   rowText: { fontFamily: fonts.bold, fontSize: 14, color: colors.ink, textAlign: 'center' },
   rowYou: { fontFamily: fonts.display, color: '#7E46D6' },
-});
+}));

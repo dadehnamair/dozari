@@ -3,13 +3,15 @@ import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, TextInput, V
 import { formatPersianNumber, groupTypedNumber, parseTomanInput, solarMonthOf } from '@dozari/shared';
 import type { PriceOnlyView } from '@dozari/shared';
 import { Character } from '../components/Character';
-import { CandyButton } from '../components/CandyButton';
 import { PriceChoices } from '../components/PriceChoices';
 import { ErrorCard } from '../components/EmptyState';
 import { Item } from '../components/Item';
-import { SlabButton } from '../components/SlabButton';
 import { GameTopBar } from '../game/GameTopBar';
 import { MatchBackground } from '../game/MatchBackground';
+import { GameActions } from '../components/GameActions';
+import { bootTheme } from '../theme/bootTheme';
+
+const ADULT = bootTheme() === 'adult';
 import { fa } from '../i18n/fa';
 import { PriceFeedbackLink } from '../feedback/SuggestDialog';
 import { ApiError, BASE_URL } from '../net/http';
@@ -118,8 +120,10 @@ export function PriceOnlyScreen({ onBack }: { onBack: () => void }) {
                 );
               })}
               <View style={styles.actions}>
-                <SlabButton label={fa.solo.back} sfx="back" color={colors.candy.sky} height={58} fontSize={20} onPress={onBack} />
-                <SlabButton label={p.again} sfx="confirm" color={colors.candy.lime} height={58} fontSize={22} grow={1.4} onPress={() => void begin()} />
+                <GameActions items={[
+                  { label: fa.solo.back, tone: 'dark', sfx: 'back', onPress: onBack },
+                  { label: p.again, tone: 'gold', sfx: 'confirm', fontSize: 22, grow: 1.4, onPress: () => void begin() },
+                ]} />
               </View>
             </View>
           ) : round ? (
@@ -138,7 +142,7 @@ export function PriceOnlyScreen({ onBack }: { onBack: () => void }) {
                   )}
                   <Text style={styles.gain}>+{formatPersianNumber(result.points)} {p.points}</Text>
                   <PriceFeedbackLink product={{ id: round.productId, nameFa: round.nameFa, year: round.year }} />
-                  <CandyButton label={view.done ? p.seeResult : fa.solo.price.next} sfx="confirm" color={colors.candy.lime} onPress={() => setReviewing(false)} />
+                  <View style={styles.actions}><GameActions items={[{ label: view.done ? p.seeResult : fa.solo.price.next, tone: 'gold', sfx: 'confirm', onPress: () => setReviewing(false) }]} /></View>
                 </>
               ) : round.options && round.options.length > 0 ? (
                 <PriceChoices options={round.options} onPick={(rials) => void submit(rials)} disabled={busy} />
@@ -158,7 +162,7 @@ export function PriceOnlyScreen({ onBack }: { onBack: () => void }) {
                     <Text style={styles.msg}>{fa.solo.price.unit}</Text>
                   </View>
                   {invalid ? <Text style={styles.error}>{fa.solo.price.invalid}</Text> : null}
-                  <CandyButton label={fa.solo.price.submit} sfx="confirm" color={colors.candy.yellow} onPress={() => void submit()} disabled={busy} />
+                  <View style={styles.actions}><GameActions items={[{ label: fa.solo.price.submit, tone: 'gold', sfx: 'confirm', onPress: () => void submit(), disabled: busy }]} /></View>
                 </>
               )}
             </View>
@@ -175,9 +179,9 @@ const styles = StyleSheet.create({
   column: { width: '100%', maxWidth: 480, gap: 12 },
   talk: { flexDirection: ROW, alignItems: 'flex-end', gap: 8 },
   talker: { width: 110, height: 128 },
-  bubble: { flex: 1, padding: 12, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.card },
-  bubbleText: { fontFamily: fonts.bold, fontSize: 13.5, lineHeight: 22, color: colors.ink, textAlign: TEXT_RIGHT },
-  card: { padding: 14, gap: 10, alignItems: 'center', borderRadius: 22, borderWidth: 3, borderColor: 'rgba(255,255,255,0.35)', backgroundColor: 'rgba(43,18,64,0.72)' },
+  bubble: { flex: 1, padding: 12, borderRadius: 18, borderWidth: 3, borderColor: ADULT ? '#E8B64A' : colors.ink, backgroundColor: ADULT ? '#201610' : colors.card },
+  bubbleText: { fontFamily: fonts.bold, fontSize: 13.5, lineHeight: 22, color: ADULT ? '#FFE9A8' : colors.ink, textAlign: TEXT_RIGHT },
+  card: { padding: 14, gap: 10, alignItems: 'center', borderRadius: 22, borderWidth: 3, borderColor: ADULT ? '#C9D1D9' : 'rgba(255,255,255,0.35)', backgroundColor: ADULT ? 'rgba(20,23,27,0.88)' : 'rgba(43,18,64,0.72)' },
   title: { fontFamily: fonts.display, fontSize: 20, color: colors.candy.yellow },
   sub: { fontFamily: fonts.bold, fontSize: 12.5, color: colors.cream, opacity: 0.85 },
   icon: { width: 84, height: 84 },
@@ -189,5 +193,5 @@ const styles = StyleSheet.create({
   error: { fontFamily: fonts.bold, fontSize: 13, color: colors.candy.pink },
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   input: { minWidth: 160, borderWidth: 2, borderColor: colors.cream, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, color: colors.cream, fontFamily: fonts.bold, fontSize: 18, textAlign: 'center' },
-  actions: { flexDirection: ROW, gap: 10, alignSelf: 'stretch', marginTop: 6 },
+  actions: { alignSelf: 'stretch', marginTop: 6 },
 });

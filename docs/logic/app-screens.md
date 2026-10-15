@@ -58,6 +58,10 @@ Laid out as **screen-home** of `docs/design/Dozari - 01 Screens.dc.html` (D99, r
 - Still to come from the design: the mode screen (duel / team / play with a friend) behind the duel
   button, the online-player badge (D45) and the UGC entry.
 
+## Adult look of the match screens («صرافی و گاوصندوق»)
+
+In the adult look every match-family screen (solo and daily board, price-only, question solo / duel, board duel with its versus, topic draft, price round and result, mode select, workshop) shares one style: the vault-room scene under a dark veil, ringed plates with a black ledge, brass / copper / bronze buttons, a brass back or leave square, gold = play, copper = duel, silver = price guess (design: `docs/design/adult/Dozari Adult - Quiz Duel`). Shared pieces: `duel/adultKit.tsx` (`AdultBackdrop`, `Plate`, `AnswerRow`, `BrassButton`, `BrassSquare`), `components/GameActions.tsx` (a button row that is slab buttons in play and brass plates in adult), `theme/skin.ts` `adultSkin` (re-colours the style sheet of a form-like screen). `MatchBackground`, `ArenaBackground` and `GameTopBar` switch by themselves. The adult screens lay out with `direction: 'rtl'` so rows start at the right edge on every platform. Kid / teen keep the candy look.
+
 ## Game board (solo and daily puzzle)
 
 Laid out as **screen-match** of `docs/design/Dozari - 01 Screens.dc.html` (D99): violet checkered

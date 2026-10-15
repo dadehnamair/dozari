@@ -8,11 +8,16 @@ import { SlabButton } from '../components/SlabButton';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { FACE_TEXT } from '../theme/skin';
+import { bootTheme } from '../theme/bootTheme';
 import type { CharacterId } from '../theme/character';
 import { characterFor } from './arena';
 import { steppedSec } from '../search/scan';
 
 const a = fa.duel.arena;
+/** Adult look: the blue / pink halves become vault bronze (the player) and copper (the rival) with gold and copper glows. */
+const ADULT = bootTheme() === 'adult';
+const TOP = ADULT ? { fill: '#3A2814', glow: '#E8B64A' } : { fill: '#2A8CC8', glow: '#8FDCFA' };
+const BOTTOM = ADULT ? { fill: '#4A1E10', glow: '#E0895A' } : { fill: '#C8306E', glow: '#FF8FB6' };
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 
 /**
@@ -29,17 +34,17 @@ export function Versus({ me, rival, mate, rivals, waitedSec, countdown, onCancel
             <Rect width={2} height={4} fill="#fff" fillOpacity={0.07} />
           </Pattern>
           <RadialGradient id="vsg1" cx="50%" cy="22%" r="45%">
-            <Stop offset="0" stopColor="#8FDCFA" stopOpacity={0.7} />
-            <Stop offset="1" stopColor="#8FDCFA" stopOpacity={0} />
+            <Stop offset="0" stopColor={TOP.glow} stopOpacity={ADULT ? 0.4 : 0.7} />
+            <Stop offset="1" stopColor={TOP.glow} stopOpacity={0} />
           </RadialGradient>
           <RadialGradient id="vsg2" cx="50%" cy="78%" r="45%">
-            <Stop offset="0" stopColor="#FF8FB6" stopOpacity={0.7} />
-            <Stop offset="1" stopColor="#FF8FB6" stopOpacity={0} />
+            <Stop offset="0" stopColor={BOTTOM.glow} stopOpacity={ADULT ? 0.4 : 0.7} />
+            <Stop offset="1" stopColor={BOTTOM.glow} stopOpacity={0} />
           </RadialGradient>
         </Defs>
-        <Polygon points="0,0 100,0 100,44 0,56" fill="#2A8CC8" />
+        <Polygon points="0,0 100,0 100,44 0,56" fill={TOP.fill} />
         <Polygon points="0,0 100,0 100,44 0,56" fill="url(#vsg1)" />
-        <Polygon points="0,56 100,44 100,100 0,100" fill="#C8306E" />
+        <Polygon points="0,56 100,44 100,100 0,100" fill={BOTTOM.fill} />
         <Polygon points="0,56 100,44 100,100 0,100" fill="url(#vsg2)" />
         <Rect width={100} height={100} fill="url(#vsb)" />
         <Line x1={-2} y1={56.2} x2={102} y2={43.8} stroke={colors.ink} strokeWidth={1.4} />
@@ -102,7 +107,7 @@ function Fighter({ who, pose, name, level, side, small = false, party = false }:
         <Character who={who} pose={pose} month={who === 'dozari' ? solarMonthOf(Date.now()) : undefined} />
       </View>
       <View style={styles.plate}>
-        {level ? <View style={[styles.lv, { backgroundColor: side === 'me' ? colors.candy.sky : colors.candy.pink }]}><Text style={styles.lvText}>{a.level(level)}</Text></View> : null}
+        {level ? <View style={[styles.lv, { backgroundColor: ADULT ? (side === 'me' ? '#B8822A' : '#B0552A') : side === 'me' ? colors.candy.sky : colors.candy.pink }]}><Text style={styles.lvText}>{a.level(level)}</Text></View> : null}
         <Text style={styles.name} numberOfLines={1}>{name}</Text>
         {party ? <Text accessibilityLabel={fa.birthday.badge}>🎂</Text> : null}
       </View>
@@ -125,10 +130,10 @@ const styles = StyleSheet.create({
   bodySmall: { width: 86, height: 100 },
   pairRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-end', justifyContent: 'center' },
   flip: { transform: [{ scaleX: -1 }] },
-  plate: { flexDirection: ROW, alignItems: 'center', gap: 6, paddingVertical: 3, paddingHorizontal: 10, borderRadius: 12, backgroundColor: colors.cream, borderWidth: 3, borderColor: colors.ink, shadowColor: colors.ink, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4, maxWidth: 160 },
+  plate: { flexDirection: ROW, alignItems: 'center', gap: 6, paddingVertical: 3, paddingHorizontal: 10, borderRadius: 12, backgroundColor: ADULT ? '#201610' : colors.cream, borderWidth: 3, borderColor: ADULT ? '#E8B64A' : colors.ink, shadowColor: colors.ink, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 1, shadowRadius: 0, elevation: 4, maxWidth: 160 },
   lv: { width: 24, height: 24, borderRadius: 8, borderWidth: 2, borderColor: colors.ink, alignItems: 'center', justifyContent: 'center' },
   lvText: { fontFamily: fonts.display, fontSize: 13, lineHeight: 20, color: '#fff' },
-  name: { fontFamily: fonts.display, fontSize: 17, color: colors.ink, flexShrink: 1 },
+  name: { fontFamily: fonts.display, fontSize: 17, color: ADULT ? '#FFE9A8' : colors.ink, flexShrink: 1 },
   mystery: { width: 110, height: 110, borderRadius: 55, borderWidth: 4, borderColor: 'rgba(255,255,255,0.4)', backgroundColor: 'rgba(43,18,64,0.35)', alignItems: 'center', justifyContent: 'center', marginTop: 24 },
   mysteryText: { fontFamily: fonts.display, fontSize: 60, lineHeight: 84, color: colors.cream },
   footer: { position: 'absolute', bottom: 0, left: 0, right: 0, paddingHorizontal: 14, paddingBottom: 28, gap: 8, alignItems: 'stretch', width: '100%', maxWidth: 480, alignSelf: 'center' },
