@@ -162,7 +162,8 @@ VIEWS.dailypuzzle = function (root) {
   var MONTHS = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
   var themesBox = h('div'), schedBox = h('div');
   var puzzles = [], themes = [];
-  function pname(id) { var p = puzzles.filter(function (x) { return x.id === id; })[0]; return p ? p.titles.join('، ') : (id ? id.slice(0, 8) : '—'); }
+  function cut(s, n) { s = String(s || ''); return s.length > n ? s.slice(0, n - 1) + '…' : s; }
+  function find(id) { return puzzles.filter(function (x) { return x.id === id; })[0]; }
   function tname(id) { var t = themes.filter(function (x) { return x.id === id; })[0]; return t ? t.titleFa : ''; }
   function win(t) {
     var out = [];
@@ -170,17 +171,65 @@ VIEWS.dailypuzzle = function (root) {
     if (t.fromDate || t.toDate) out.push((t.fromDate || '…') + ' تا ' + (t.toDate || '…'));
     return out.length ? out.join(' و ') : 'همه‌ی روزها';
   }
-  function linkPanel(t, box) {
+  /* One puzzle as a compact card: a short id, then its four group titles, each cut to one line. */
+  function pzCard(p, extra) {
+    return h('div', { class: 'pz-card', title: p.titles.join('\n') }, [
+      h('div', { class: 'pz-id ltr', text: '#' + p.id.slice(-6) }),
+      h('div', { class: 'pz-titles' }, p.titles.map(function (t, i) { return h('div', { class: 'pz-t l' + i, text: cut(t, 46) }); })),
+      extra || null
+    ]);
+  }
+  /* Searchable picker: onPick(puzzle) for single choice. */
+  function pickPuzzle(title, onPick) {
+    var q = searchBox('جستجو در عنوان گروه‌ها…', function () { draw(); });
+    var list = h('div', { class: 'pz-list' });
+    function draw() {
+      clear(list);
+      var term = q.input.value.trim();
+      var rows = puzzles.filter(function (p) { return !term || p.titles.join(' ').indexOf(term) >= 0; });
+      if (!rows.length) return list.appendChild(empty('پازلی پیدا نشد'));
+      rows.slice(0, 60).forEach(function (p) {
+        var c = pzCard(p); c.classList.add('pick-it'); c.tabIndex = 0;
+        c.onclick = function () { close(); onPick(p); };
+        list.appendChild(c);
+      });
+      if (rows.length > 60) list.appendChild(h('div', { class: 'muted', style: 'text-align:center;padding:6px', text: fa(rows.length - 60) + ' پازل دیگر؛ جستجو را دقیق‌تر کن' }));
+    }
+    var close = modal(title, h('div', { style: 'display:flex;flex-direction:column;gap:10px' }, [q, list]), [{ label: 'بستن' }]);
+    draw();
+  }
+  /* Multi-select for a theme's puzzles; every toggle saves at once. */
+  function linkDialog(t) {
     api('/admin/daily-puzzle/themes/' + t.id + '/puzzles').then(function (r) {
       if (!r.ok) return fail(r);
       var on = {}; r.body.puzzleIds.forEach(function (id) { on[id] = true; });
-      clear(box);
-      if (!puzzles.length) return box.appendChild(empty('پازل تأییدشده‌ای نیست'));
-      puzzles.forEach(function (p) {
-        var cb = h('input', { type: 'checkbox' }); cb.checked = !!on[p.id];
-        cb.onchange = function () { api('/admin/daily-puzzle/themes/' + t.id + '/puzzles/' + p.id, { method: cb.checked ? 'POST' : 'DELETE' }).then(function (x) { if (!x.ok) { cb.checked = !cb.checked; return fail(x); } drawThemes(); }); };
-        box.appendChild(h('label', { style: 'display:block;padding:2px 0' }, [cb, ' ' + p.titles.join('، ')]));
-      });
+      var q = searchBox('جستجو…', function () { draw(); }), only = false;
+      var list = h('div', { class: 'pz-list' }), count = h('span', { class: 'muted' });
+      var seg1 = seg([['all', 'همه'], ['on', 'فقط وصل‌شده‌ها']], 'all', function (v) { only = v === 'on'; draw(); });
+      function draw() {
+        clear(list);
+        var term = q.input.value.trim(), n = Object.keys(on).length;
+        count.textContent = fa(n) + ' پازل وصل شده';
+        var rows = puzzles.filter(function (p) { return (!only || on[p.id]) && (!term || p.titles.join(' ').indexOf(term) >= 0); });
+        if (!rows.length) return list.appendChild(empty('پازلی پیدا نشد'));
+        rows.slice(0, 80).forEach(function (p) {
+          var cb = h('input', { type: 'checkbox' }); cb.checked = !!on[p.id];
+          var c = pzCard(p, cb); c.classList.add('pick-it');
+          c.onclick = function (e) { if (e.target !== cb) cb.checked = !cb.checked; cb.onchange(); };
+          cb.onchange = function () {
+            var want = cb.checked;
+            api('/admin/daily-puzzle/themes/' + t.id + '/puzzles/' + p.id, { method: want ? 'POST' : 'DELETE' }).then(function (x) {
+              if (!x.ok) { cb.checked = !want; return fail(x); }
+              if (want) on[p.id] = true; else delete on[p.id];
+              count.textContent = fa(Object.keys(on).length) + ' پازل وصل شده';
+            });
+          };
+          list.appendChild(c);
+        });
+      }
+      modal('پازل‌های «' + t.titleFa + '»', h('div', { style: 'display:flex;flex-direction:column;gap:10px' }, [h('div', { class: 'toolbar', style: 'margin:0' }, [q, seg1, count]), list]),
+        [{ label: 'تمام', cls: 'primary', run: function () { drawThemes(); } }]);
+      draw();
     });
   }
   function drawThemes() {
@@ -189,19 +238,18 @@ VIEWS.dailypuzzle = function (root) {
       if (r.status === 404) return themesBox.appendChild(empty('بخش پازل روز روی این سرور فعال نیست'));
       if (!r.ok) return fail(r);
       themes = r.body.themes;
-      if (!themes.length) themesBox.appendChild(empty('هنوز موضوعی نیست؛ بدون موضوع هر روز یک پازل تصادفی (که اخیراً نبوده) انتخاب می‌شود'));
+      if (!themes.length) themesBox.appendChild(empty('هنوز موضوعی نیست', 'بدون موضوع هر روز یک پازل تصادفی (که اخیراً نبوده) انتخاب می‌شود.'));
       themes.forEach(function (t) {
-        var panel = h('div', { style: 'display:none;max-height:240px;overflow:auto;margin-top:6px' });
-        themesBox.appendChild(h('div', { class: 'card-row', style: 'padding:8px 0;border-bottom:1px solid var(--line)' }, [
-          h('div', {}, [h('b', { text: t.titleFa }), ' ', badge(KINDS[t.kind], 'b-info'), ' ', t.isActive ? null : badge('خاموش', 'b-warn'), ' ', h('span', { class: 'muted', text: win(t) + ' · وزن ' + fa(t.weight) + ' · ' + fa(t.puzzles) + ' پازل' })]),
-          h('div', { class: 'toolbar' }, [
-            h('button', { class: 'btn sm', text: 'پازل‌ها', onclick: function () { panel.style.display = panel.style.display === 'none' ? 'block' : 'none'; if (panel.style.display === 'block') linkPanel(t, panel); } }),
+        themesBox.appendChild(h('div', { class: 'th-row' }, [
+          h('div', { class: 'th-main' }, [h('div', {}, [h('b', { text: t.titleFa }), ' ', badge(KINDS[t.kind], 'b-info'), ' ', t.isActive ? null : badge('خاموش', 'b-warn')]),
+            h('div', { class: 'muted', text: win(t) + ' · وزن ' + fa(t.weight) + ' · ' + fa(t.puzzles) + ' پازل' })]),
+          h('div', { class: 'toolbar', style: 'margin:0' }, [
+            h('button', { class: 'btn sm', text: 'پازل‌ها', onclick: function () { linkDialog(t); } }),
             h('button', { class: 'btn sm', text: t.isActive ? 'خاموش کن' : 'روشن کن', onclick: function () {
-              api('/admin/daily-puzzle/themes/' + t.id, { method: 'PATCH', body: { titleFa: t.titleFa, kind: t.kind, weight: t.weight, startMonth: t.startMonth, startDay: t.startDay, endMonth: t.endMonth, endDay: t.endDay, fromDate: t.fromDate, toDate: t.toDate, isActive: !t.isActive } }).then(function (x) { if (!x.ok) return fail(x); drawThemes(); drawSched(); });
+              api('/admin/daily-puzzle/themes/' + t.id, { method: 'PATCH', body: { titleFa: t.titleFa, kind: t.kind, weight: t.weight, startMonth: t.startMonth, startDay: t.startDay, endMonth: t.endMonth, endDay: t.endDay, fromDate: t.fromDate, toDate: t.toDate, isActive: !t.isActive } }).then(function (x) { if (!x.ok) return fail(x); drawThemes(); });
             } }),
-            h('button', { class: 'btn sm danger', text: 'حذف', onclick: function () { if (!confirm('این موضوع حذف شود؟')) return; api('/admin/daily-puzzle/themes/' + t.id, { method: 'DELETE' }).then(function (x) { if (!x.ok) return fail(x); drawThemes(); drawSched(); }); } })
-          ]),
-          panel
+            h('button', { class: 'btn bad sm', text: 'حذف', onclick: function () { ask('موضوع «' + t.titleFa + '» حذف شود؟', function () { api('/admin/daily-puzzle/themes/' + t.id, { method: 'DELETE' }).then(function (x) { if (!x.ok) return fail(x); drawThemes(); }); }, { danger: true, yes: 'حذف' }); } })
+          ])
         ]));
       });
       drawSched();
@@ -211,28 +259,32 @@ VIEWS.dailypuzzle = function (root) {
     api('/admin/daily-puzzle/schedule?days=14').then(function (r) {
       clear(schedBox);
       if (!r.ok) return fail(r);
-      var rows = r.body.days.map(function (d) {
-        var sel = h('select', {}, [h('option', { value: '', text: 'یک پازل را ثابت کن…' })].concat(puzzles.map(function (p) { return h('option', { value: p.id, text: p.titles.join('، ') }); })));
+      r.body.days.forEach(function (d) {
+        var p = d.puzzleId ? find(d.puzzleId) : null;
         var kind = d.pinnedBy === 'admin' ? badge('دستی', 'b-ok') : d.pinnedBy === 'auto' ? badge('انتخاب‌شده', 'b-info') : badge('پیش‌نمایش', 'b-warn');
-        return h('tr', {}, [
-          h('td', { class: 'ltr', text: d.dateKey }), h('td', { text: d.puzzleId ? pname(d.puzzleId) : 'پازلی نیست' }), h('td', { text: d.themeId ? tname(d.themeId) : '—' }), h('td', {}, [kind]),
-          h('td', {}, [h('div', { class: 'toolbar' }, [sel,
-            h('button', { class: 'btn sm', text: 'ثابت', onclick: function () { if (!sel.value) return; api('/admin/daily-puzzle/days/' + d.dateKey, { method: 'PUT', body: { puzzleId: sel.value, themeId: null } }).then(function (x) { if (x.status === 409) return toast('کسی این روز را بازی کرده', true); if (!x.ok) return fail(x); drawSched(); }); } }),
-            d.pinnedBy === 'preview' ? null : h('button', { class: 'btn sm', text: 'برداشتن', onclick: function () { api('/admin/daily-puzzle/days/' + d.dateKey, { method: 'DELETE' }).then(function (x) { if (x.status === 409) return toast('کسی این روز را بازی کرده', true); if (!x.ok) return fail(x); drawSched(); }); } })
-          ])])
-        ]);
+        function done(x) { if (x.status === 409) return toast('کسی این روز را بازی کرده', true); if (!x.ok) return fail(x); drawSched(); }
+        schedBox.appendChild(h('div', { class: 'day-row' }, [
+          h('div', { class: 'day-k' }, [h('b', { class: 'ltr', text: d.dateKey }), h('div', {}, [kind, d.themeId ? ' ' : null, d.themeId ? badge(tname(d.themeId), 'b-mute') : null])]),
+          h('div', { class: 'day-p' }, [p ? pzCard(p) : h('div', { class: 'muted', text: d.puzzleId ? 'پازل ' + d.puzzleId.slice(0, 8) : 'پازلی نیست' })]),
+          h('div', { class: 'toolbar', style: 'margin:0' }, [
+            h('button', { class: 'btn sm primary', text: d.pinnedBy === 'admin' ? 'تغییر' : 'ثابت‌کردن', onclick: function () {
+              pickPuzzle('پازل روز ' + d.dateKey, function (pz) { api('/admin/daily-puzzle/days/' + d.dateKey, { method: 'PUT', body: { puzzleId: pz.id, themeId: null } }).then(done); });
+            } }),
+            d.pinnedBy === 'preview' ? null : h('button', { class: 'btn sm', text: 'برداشتن', onclick: function () { api('/admin/daily-puzzle/days/' + d.dateKey, { method: 'DELETE' }).then(done); } })
+          ])
+        ]));
       });
-      schedBox.appendChild(h('div', { class: 'tbl-wrap' }, [h('table', {}, [h('thead', {}, [h('tr', {}, ['روز', 'پازل', 'موضوع', 'وضعیت', ''].map(function (x) { return h('th', { text: x }); }))]), h('tbody', {}, rows)])]));
     });
   }
   var title = h('input', { type: 'text', placeholder: 'عنوان (مثلاً «نوروز» یا «گرانی بنزین»)', maxlength: 80 });
   var kind = h('select', {}, Object.keys(KINDS).map(function (k) { return h('option', { value: k, text: KINDS[k] }); }));
   var weight = h('input', { type: 'number', value: 1, min: 1, max: 100, style: 'width:70px' });
-  function sel12(v) { return h('select', {}, [h('option', { value: '', text: '—' })].concat(MONTHS.map(function (m, i) { return h('option', { value: i + 1, text: m }); }))); }
+  function sel12() { return h('select', {}, [h('option', { value: '', text: '—' })].concat(MONTHS.map(function (m, i) { return h('option', { value: i + 1, text: m }); }))); }
   var sm = sel12(), em = sel12();
   var sd = h('input', { type: 'number', min: 1, max: 31, placeholder: 'روز', style: 'width:70px' }), ed = h('input', { type: 'number', min: 1, max: 31, placeholder: 'روز', style: 'width:70px' });
   var from = h('input', { type: 'text', dir: 'ltr', placeholder: 'از 2026-03-01', maxlength: 10, style: 'width:130px' }), to = h('input', { type: 'text', dir: 'ltr', placeholder: 'تا 2026-03-31', maxlength: 10, style: 'width:130px' });
-  root.appendChild(addCard('موضوع تازه', 'موضوع یعنی دلیلِ انتخاب پازل: مناسبت، فصل، ترند یا دسته. در روزهای بازه‌اش پازل‌های وصل‌شده به آن اولویت دارند. بازه‌ی سالانه به تاریخ شمسی است؛ بازه‌ی مطلق برای ترند یک‌باره.', 'موضوع تازه', [
+  root.appendChild(card('برنامه‌ی ۱۴ روز آینده', 'روزهای «پیش‌نمایش» هنوز ثبت نشده‌اند و هنگام اولین نیاز خودکار انتخاب می‌شوند. «ثابت‌کردن» یک پازل را برای آن روز قطعی می‌کند (تا وقتی کسی بازی نکرده).', [schedBox]));
+  root.appendChild(addCard('موضوع‌ها', 'موضوع یعنی دلیلِ انتخاب پازل: مناسبت، فصل، ترند یا دسته. در روزهای بازه‌اش پازل‌های وصل‌شده به آن اولویت دارند. بازه‌ی سالانه شمسی است؛ بازه‌ی مطلق برای ترند یک‌باره.', 'موضوع تازه', [
     ['عنوان', title], ['نوع', kind], ['وزن', weight],
     h('div', { class: 'toolbar' }, [h('span', { text: 'هر سال از' }), sm, sd, h('span', { text: 'تا' }), em, ed]),
     h('div', { class: 'toolbar' }, [from, to])
@@ -241,8 +293,7 @@ VIEWS.dailypuzzle = function (root) {
     if ((sm.value || sd.value || em.value || ed.value) && !rec) { toast('بازه‌ی سالانه را کامل پر کن', true); return false; }
     return api('/admin/daily-puzzle/themes', { method: 'POST', body: { titleFa: title.value.trim(), kind: kind.value, weight: +weight.value || 1, startMonth: rec ? +sm.value : null, startDay: rec ? +sd.value : null, endMonth: rec ? +em.value : null, endDay: rec ? +ed.value : null, fromDate: from.value.trim() || null, toDate: to.value.trim() || null, isActive: true } }).then(function (x) { if (!x.ok) { fail(x); return false; } toast('موضوع ساخته شد'); title.value = ''; drawThemes(); return true; });
   }));
-  root.appendChild(card('موضوع‌ها', null, [themesBox]));
-  root.appendChild(card('برنامه‌ی ۱۴ روز آینده', 'روزهای «پیش‌نمایش» هنوز ثبت نشده‌اند و هنگام اولین نیاز همین‌طور انتخاب می‌شوند. «ثابت» یک پازل را برای آن روز قطعی می‌کند (تا وقتی کسی بازی نکرده).', [schedBox]));
+  root.appendChild(card(null, null, [themesBox]));
   api('/admin/daily-puzzle/puzzles').then(function (r) { if (r.ok) puzzles = r.body.puzzles; drawThemes(); });
 };
 `;
