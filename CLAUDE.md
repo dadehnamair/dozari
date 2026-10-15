@@ -11,7 +11,7 @@ private tables. Name/slogans/voice: `docs/brand.md` (D29); visual direction: `do
 - `adult/` = بزرگسال designs: style «صرافی و گاوصندوق» (near-black + gold; locked rules in `docs/design/CLAUDE.md`). `Dozari Adult - Login Home` (login, home, hub), `- UI Kit`, `- App Icon`, `- Banner`.
 - `yadegar/` = keepsake-card (کارت یادگار) set: `YCard`, Album, Medals, Profile, Puzzles. Code: `packages/shared/src/keepsake`, `apps/server/src/keepsakes`, `apps/mobile/src/keepsake`.
 - `site/` = landing site designs (`apps/landing`). Each subfolder has its own copy of `support.js`/`Character`/`Item`/`Scene`/`Logo`: keep in sync with root.
-- Age-based theme/icon (owner, 2026-10-06, overrides D198 principle 1 "one theme/icon"): adult track uses the `adult/` look and app icon, kid/teen the current one; applies to PWA and Android, and switching track switches icon + theme everywhere. Code: `apps/mobile/src/theme`, `src/appIcon`, `modules/app-icon`, `plugins/withGenderIcon.js`, `public/manifest.webmanifest`.
+- Age-based theme/icon (owner, 2026-10-06, overrides D198 principle 1 "one theme/icon"): adult track uses the `adult/` look, kid/teen the current one. **App icon (owner, 2026-10-15, D240): the adult-vault pair (`docs/design/Dozari App Icon.dc.html`, male/female) for every track**; it follows gender only (Android alias switch, with a confirm + app restart on gender change), never the track. Code: `apps/mobile/src/theme`, `src/appIcon`, `modules/app-icon`, `plugins/withGenderIcon.js`, `public/manifest.webmanifest`.
 
 Product source of truth: `docs/design-brief.fa.md`; refinements/overrides: `docs/DECISIONS.md`.
 Read both before any product-level change. Roadmap: `docs/PLAN.md`. Stack: `docs/ARCHITECTURE.md`.
