@@ -36,8 +36,14 @@ export class IrnotiPushService {
         }),
         signal: AbortSignal.timeout(10_000),
       });
+      if (!res.ok) {
+        // Without this a wrong key scope / app id / IP whitelist looks exactly like "nothing happened".
+        const detail = await res.text().then((t) => t.slice(0, 300)).catch(() => '');
+        console.warn(`[irnoti-push] send refused: HTTP ${res.status} ${detail}`);
+      }
       return res.ok;
-    } catch {
+    } catch (err) {
+      console.warn('[irnoti-push] send failed', err);
       return false;
     }
   }

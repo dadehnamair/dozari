@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { IrnotiPushService, irnotiPushFromEnv } from '../notify/irnoti-push.js';
 
 const cfg = { appId: '7', apiKey: 'irnt_k' };
@@ -28,6 +28,12 @@ describe('IrnotiPushService', () => {
     expect(await new IrnotiPushService(cfg, recorder(403).http).notify('u', { title: 't', body: 'b', tag: 'x' })).toBe(false);
     const down = (async () => { throw new Error('down'); }) as unknown as typeof fetch;
     expect(await new IrnotiPushService(cfg, down).notify('u', { title: 't', body: 'b', tag: 'x' })).toBe(false);
+  });
+  it('logs why irnoti refused the send', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    await new IrnotiPushService(cfg, recorder(403).http).notify('u', { title: 't', body: 'b', tag: 'x' });
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('HTTP 403'));
+    warn.mockRestore();
   });
   it('turns a live notice into one push and skips notices that are only useful in-app', async () => {
     const { calls, http } = recorder();
