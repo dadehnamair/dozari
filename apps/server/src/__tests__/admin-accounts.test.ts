@@ -31,6 +31,7 @@ describe('passwords', () => {
 describe('role permissions', () => {
   it('maps requests to the permission they need (deny by default)', () => {
     expect(permissionFor('GET', '/admin/users')).toBe('read');
+    for (const path of ['/admin/trivia/x', '/admin/lessons', '/admin/puzzle-topics', '/admin/puzzle-tags/x', '/admin/product-categories']) expect(permissionFor('PATCH', path)).toBe('content'); // editors manage content, not just read it
     expect(permissionFor('POST', '/admin/users/x/ban')).toBe('users');
     expect(permissionFor('POST', '/admin/users/x/coins')).toBe('economy');
     expect(permissionFor('PUT', '/admin/daily-reward')).toBe('economy');
