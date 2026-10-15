@@ -44,10 +44,12 @@ class AppIconModule : Module() {
     // Closes the app and starts it again through the (now enabled) launcher alias: the icon switch is only picked up by the launcher on a fresh start.
     Function("restart") {
       val context = appContext.reactContext ?: throw Exceptions.ReactContextLost()
-      val launch = context.packageManager.getLaunchIntentForPackage(context.packageName) ?: return@Function
-      launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-      context.startActivity(launch)
-      Process.killProcess(Process.myPid())
+      val launch = context.packageManager.getLaunchIntentForPackage(context.packageName)
+      if (launch != null) {
+        launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        context.startActivity(launch)
+        Process.killProcess(Process.myPid())
+      }
     }
 
     Function("setIcon") { variant: String ->
@@ -56,9 +58,10 @@ class AppIconModule : Module() {
       val target = component(context, wanted)
       // Only the adult alias is enabled in the manifest.
       val alreadyOnly = aliases.values.all { name -> isEnabled(context, component(context, name), name == "MainActivityAdult") == (name == wanted) }
-      if (alreadyOnly) return@Function
-      set(context, target, true)
-      aliases.values.filter { it != wanted }.forEach { set(context, component(context, it), false) }
+      if (!alreadyOnly) {
+        set(context, target, true)
+        aliases.values.filter { it != wanted }.forEach { set(context, component(context, it), false) }
+      }
     }
   }
 }
