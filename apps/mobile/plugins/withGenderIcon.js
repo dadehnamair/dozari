@@ -5,7 +5,7 @@ const { withAndroidManifest, withDangerousMod } = require('expo/config-plugins')
 /**
  * Two launcher icons (adult-vault pair), switched at runtime by the player's gender only (modules/app-icon); every age track gets the same pair.
  * MainActivity loses its own LAUNCHER entry; two activity-aliases take it, the male one enabled until the app switches.
- * Art: the female one is exported by scripts/export-brand.mjs, the adult ones by scripts/build-adult-icons.py; each ships downscaled
+ * Art: the female one is exported by scripts/export-brand.mjs, the adult ones by scripts/build-app-icons.py; each ships downscaled
  * (…-432.png xxxhdpi foreground, …-216.png backdrop, …-192.png Android 7 fallback).
  */
 const ALIASES = [
