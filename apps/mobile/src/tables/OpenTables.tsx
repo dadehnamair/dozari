@@ -3,6 +3,7 @@ import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { PublicTable, TableView } from '@dozari/shared';
 import { Avatar } from '../components/Avatar';
 import { Item } from '../components/Item';
+import { Plate } from '../duel/adultKit';
 import { fa } from '../i18n/fa';
 import { avatarOf } from '../social/avatarOf';
 import { colors, fonts } from '../theme/colors';
@@ -78,11 +79,11 @@ export function OpenTables({ onSeated, onNote, onWatch, onNeedCoins, errText }: 
               <View style={styles.body}>
                 <Text style={[styles.name, dark ? dk.text : null]} numberOfLines={1}>{r.name}</Text>
                 <View style={styles.hostRow}>
-                  <Avatar avatar={avatarOf(r.hostAvatarKey)} size={20} />
+                  {dark ? null : <Avatar avatar={avatarOf(r.hostAvatarKey)} size={20} />}
                   <Text style={[styles.sub, dark ? dk.text : null]} numberOfLines={1}>{o.host(r.hostNickname)}</Text>
                 </View>
               </View>
-              <View style={[styles.chip, { backgroundColor: TONE[r.status] }]}><Text style={styles.chipText}>{o.status[r.status]}</Text></View>
+              <View style={[styles.chip, dark ? (live ? dk.chipOpen : dk.chipOff) : { backgroundColor: TONE[r.status] }]}><Text style={[styles.chipText, dark ? (live ? dk.chipOpenText : dk.text) : null]}>{o.status[r.status]}</Text></View>
             </View>
             <Text style={[styles.facts, dark ? dk.text : null]}>
               {r.format === '2v2' ? fa.tables.format2v2 : fa.tables.format1v1} · {fa.tables.rounds(r.rounds)} · {r.format === '1v1' ? `${r.priceRounds > 0 ? fa.tables.priceCount(r.priceRounds) : fa.tables.noPrice} · ` : ''}{fa.tables.entry(r.entryFee)} · {o.seats(r.taken, r.seats)}
@@ -90,7 +91,7 @@ export function OpenTables({ onSeated, onNote, onWatch, onNeedCoins, errText }: 
             {live ? (
               r.yourRequest === 'pending' ? <Text style={styles.waiting}>{o.pending}</Text>
               : balance !== null && r.entryFee > balance ? <Pressable onPress={() => onNeedCoins(balance)} style={styles.short} accessibilityRole="button"><Text style={styles.shortText}>{o.noCoins}</Text></Pressable>
-              : <Pressable onPress={() => void ask(r.code)} style={styles.ask} accessibilityRole="button"><Text style={styles.askText}>{r.yourRequest === 'denied' ? `${o.denied} · ${o.ask}` : o.ask}</Text></Pressable>
+              : <Pressable onPress={() => void ask(r.code)} style={dark ? undefined : styles.ask} accessibilityRole="button">{dark ? <Plate radius={11} border="#000" from="#FFF1B8" to="#8A5A16" height={40} ledge={3} style={styles.askAdult}><Text style={styles.askTextAdult}>{r.yourRequest === 'denied' ? `${o.denied} · ${o.ask}` : o.ask}</Text></Plate> : <Text style={styles.askText}>{r.yourRequest === 'denied' ? `${o.denied} · ${o.ask}` : o.ask}</Text>}</Pressable>
             ) : r.status === 'playing' ? (
               <Pressable onPress={() => onWatch(r.code)} style={styles.watch} accessibilityRole="button"><Text style={styles.askText}>{o.watch}{r.scores ? ` · ${o.score(r.scores[0], r.scores[1])}` : ''}{r.watchers > 0 ? ` · ${o.watchers(r.watchers)}` : ''}</Text></Pressable>
             ) : <Text style={[styles.viewOnly, dark ? dk.text : null]}>{o.viewOnly}</Text>}
@@ -103,11 +104,16 @@ export function OpenTables({ onSeated, onNote, onWatch, onNeedCoins, errText }: 
 
 const dk = StyleSheet.create({
   text: { color: DARK.text, opacity: 1 },
-  card: { backgroundColor: DARK.raised, borderColor: DARK.frame },
+  card: { backgroundColor: '#17100C', borderColor: '#8A5A16', borderWidth: 2, borderRadius: 16 },
   cardDim: { backgroundColor: DARK.field, borderColor: DARK.line },
+  chipOpen: { backgroundColor: 'rgba(126,217,87,0.12)', borderColor: '#5E9E3C', borderWidth: 1.5 },
+  chipOpenText: { color: '#B8F08F' },
+  chipOff: { backgroundColor: '#0E0A08', borderColor: '#5A3A1C', borderWidth: 1.5 },
 });
 
 const styles = StyleSheet.create({
+  askAdult: { alignItems: 'center', justifyContent: 'center' },
+  askTextAdult: { fontFamily: fonts.display, fontSize: 18, lineHeight: 28, color: '#2A1606' },
   wrap: { gap: 8 },
   intro: { fontFamily: fonts.bold, fontSize: 12.5, lineHeight: 21, color: INK, opacity: 0.85, textAlign: TEXT_RIGHT },
   empty: { fontFamily: fonts.bold, fontSize: 13, color: INK, textAlign: 'center', paddingVertical: 14 },

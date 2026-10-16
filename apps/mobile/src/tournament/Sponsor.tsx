@@ -1,5 +1,6 @@
 import { Image, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { Sponsor, SponsorBrief } from '@dozari/shared';
+import { bootTheme } from '../theme/bootTheme';
 import { fa } from '../i18n/fa';
 import { colors, fonts } from '../theme/colors';
 import { TEXT_RIGHT } from '../theme/direction';
@@ -59,7 +60,7 @@ const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0
 const styles = StyleSheet.create({
   tag: { flexDirection: ROW, alignItems: 'center', gap: 4, marginTop: 1 },
   tagLogo: { width: 14, height: 14, borderRadius: 4 },
-  tagText: { flexShrink: 1, fontFamily: fonts.bold, fontSize: 10.5, color: '#7E46D6', textAlign: TEXT_RIGHT },
+  tagText: { flexShrink: 1, fontFamily: fonts.bold, fontSize: 10.5, color: bootTheme() === 'adult' ? '#E8B64A' : '#7E46D6', textAlign: TEXT_RIGHT },
   card: { borderRadius: 20, borderWidth: 3, backgroundColor: colors.paper, overflow: 'hidden', ...lift(5) },
   kicker: { fontFamily: fonts.bold, fontSize: 11, color: '#7E46D6', textAlign: TEXT_RIGHT, paddingHorizontal: 12, paddingTop: 8 },
   banner: { width: '100%', aspectRatio: 2.5, marginTop: 6, backgroundColor: '#E9DDF5' },

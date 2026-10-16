@@ -30,12 +30,13 @@ import { useHardwareBack } from '../nav/useHardwareBack';
 import { TableChat } from './TableChat';
 import { TableLobby } from './TableLobby';
 import { TEXT_RIGHT } from '../theme/direction';
+import { Plate } from '../duel/adultKit';
 
 const INK = '#3A2418';
 
 /** Overrides for the adult look: a dark panel with a gold frame and cream-gold text. */
 const dk = StyleSheet.create({
-  sheet: { backgroundColor: DARK.panel, borderColor: DARK.frame },
+  sheet: { backgroundColor: '#1A120C', borderColor: DARK.frame, borderRadius: 26 },
   text: { color: DARK.text, opacity: 1 },
   input: { backgroundColor: DARK.field, borderColor: DARK.frame, color: DARK.text },
   cell: { backgroundColor: DARK.raised, borderColor: DARK.line },
@@ -169,7 +170,7 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
           </View>
         ) : <Text style={[styles.title, dark ? dk.text : null]}>{mode === 'make' ? fa.tables.createTitle : mode === 'join' ? fa.tables.joinTitle : fa.tables.title}</Text>}
         <ScrollView style={styles.list} contentContainerStyle={styles.content}>
-          <GuideBubble who="goli" text={fa.tables.goliHello} />
+          <GuideBubble who={dark ? 'mashti' : 'goli'} text={fa.tables.goliHello} />
           {table ? (
             <>
               <Text style={[styles.code, dark ? dk.text : null]} selectable>{fa.tables.code(table.code)}</Text>
@@ -218,7 +219,19 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
           ) : (
             mode === 'menu' ? (
               <>
-                <View style={styles.menuRow}>
+                {dark ? (
+                  <View style={styles.menuRow}>
+                    {([['make', 'samovar', fa.tables.menuMake, '#FFF1B8', '#8A5A16', '#2A1606'], ['join', 'key', fa.tables.menuJoin, '#FFFFFF', '#5E636C', '#1A1C20']] as const).map(([m, icon, label, from, to, ink]) => (
+                      <Pressable key={m} onPress={() => setMode(m)} style={({ pressed }) => [styles.bigAdult, pressed ? { opacity: 0.85 } : null]} accessibilityRole="button">
+                        <Plate radius={14} border="#000" frame={3} from={from} to={to} height={104} ledge={5} style={styles.bigAdultFace}>
+                          <View style={styles.bigIcon}><Item icon={icon} /></View>
+                          <Text style={[styles.bigTextAdult, { color: ink }]}>{label}</Text>
+                        </Plate>
+                      </Pressable>
+                    ))}
+                  </View>
+                ) : null}
+                <View style={[styles.menuRow, dark ? styles.hidden : null]}>
                   <Pressable onPress={() => setMode('make')} style={({ pressed }) => [styles.bigBtn, { backgroundColor: colors.candy.lime }, pressed ? { opacity: 0.85 } : null]} accessibilityRole="button">
                     <View style={styles.bigIcon}><Item icon="samovar" /></View>
                     <Text style={styles.bigText}>{fa.tables.menuMake}</Text>
@@ -375,6 +388,10 @@ function InviteFriends({ onNote }: { onNote: (text: string | null) => void }) {
 }
 
 const styles = StyleSheet.create({
+  bigAdult: { flex: 1 },
+  bigAdultFace: { alignItems: 'center', justifyContent: 'center', gap: 4 },
+  bigTextAdult: { fontFamily: fonts.display, fontSize: 21, lineHeight: 30 },
+  hidden: { display: 'none' },
   menuRow: { flexDirection: 'row', gap: 10 },
   bigBtn: { flex: 1, minHeight: 92, borderRadius: 18, borderWidth: 3, borderColor: INK, alignItems: 'center', justifyContent: 'center', gap: 4, padding: 8 },
   bigIcon: { width: 40, height: 40 },

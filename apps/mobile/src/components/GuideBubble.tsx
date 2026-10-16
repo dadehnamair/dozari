@@ -12,7 +12,7 @@ export function GuideBubble({ text, who = 'dozari', onPress }: { text: string; w
   const adult = useTheme() === 'adult';
   const body = (
     <View style={[styles.root, adult ? styles.rootAdult : null]} accessibilityRole={onPress ? undefined : 'text'} accessibilityLabel={onPress ? undefined : text}>
-      <View style={styles.mascot}><Character who={who} pose="idle" crop="face" /></View>
+      <View style={[styles.mascot, adult ? styles.mascotAdult : null]}><Character who={who} pose="idle" crop="face" /></View>
       <View style={styles.bubble}><Text style={[styles.text, adult ? styles.textAdult : null]}>{text}</Text></View>
     </View>
   );
@@ -21,9 +21,11 @@ export function GuideBubble({ text, who = 'dozari', onPress }: { text: string; w
 
 const styles = StyleSheet.create({
   root: { flexDirection: ROW, alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.cream },
-  rootAdult: { backgroundColor: '#17100C', borderColor: '#E8B64A' },
-  textAdult: { color: '#FFE9A8' },
+  /** Design «صرافی»: a dark plate with a bronze frame; the speaker sits in a gold-ringed round window. */
+  rootAdult: { backgroundColor: '#17100C', borderColor: '#8A5A16', borderWidth: 2, borderRadius: 16, paddingVertical: 10, gap: 10 },
+  textAdult: { color: '#FFE9A8', fontSize: 13.5, lineHeight: 21.5 },
   mascot: { width: 54, height: 54 },
+  mascotAdult: { width: 52, height: 52, borderRadius: 26, overflow: 'hidden', backgroundColor: '#2A1A0E', borderWidth: 2, borderColor: '#E8B64A' },
   bubble: { flex: 1, minWidth: 0 },
   text: { fontFamily: fonts.bold, fontSize: 13, lineHeight: 20, color: colors.ink, textAlign: TEXT_RIGHT },
 });

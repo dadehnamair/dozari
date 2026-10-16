@@ -22,6 +22,8 @@ import { ReportDialog } from '../feedback/ReportDialog';
 import type { ChatTab } from './api';
 import { chatErrorText, mergeMessages } from './errors';
 import { TEXT_RIGHT } from '../theme/direction';
+import { useTheme } from '../theme/themeStore';
+import { Plate } from '../duel/adultKit';
 
 const ROW = Platform.OS === 'web' ? ('row-reverse' as const) : ('row' as const);
 const POLL_MS = 4000;
@@ -35,6 +37,7 @@ const KHALE_SHOW_MS = 6000;
  * text box. Taunts are always allowed; free text needs an activated account. Refreshes every few seconds.
  */
 export function ChatSheet({ onClose, onJoinTable, initialTab = 'city' }: { onClose: () => void; onJoinTable?: (code: string) => void; initialTab?: ChatTab }) {
+  const adult = useTheme() === 'adult';
   const [tab, setTab] = useState<ChatTab>(initialTab);
   /** Khale's greeting stays a few seconds, then leaves so the room gets the whole screen. */
   const [khaleOn, setKhaleOn] = useState(true);
@@ -98,19 +101,19 @@ export function ChatSheet({ onClose, onJoinTable, initialTab = 'city' }: { onClo
   const sub = tab === 'global' ? t.subGlobal : cityInfo?.cityName ? t.subCity(cityInfo.cityName) : '';
 
   return (
-    <PageShell title={t.title} color={colors.candy.grape} backLabel={t.close} onBack={onClose} bandHeight={152}>
-      <View style={styles.tabs}>
+    <PageShell title={t.title} color={colors.candy.grape} backLabel={t.close} onBack={onClose} bandHeight={152} rule={false}>
+      <View style={[styles.tabs, adult ? styles.tabsAdult : null]}>
         {(['city', 'global'] as const).map((k) => (
-          <Pressable key={k} onPress={() => (setFriendsView(false), setTab(k))} accessibilityRole="tab" accessibilityState={{ selected: !friendsView && tab === k }} style={[styles.tab, !friendsView && tab === k ? styles.tabOn : null]}>
-            <Text style={[styles.tabText, !friendsView && tab === k ? styles.tabTextOn : null]}>{k === 'city' ? t.tabCity : t.tabGlobal}</Text>
+          <Pressable key={k} onPress={() => (setFriendsView(false), setTab(k))} accessibilityRole="tab" accessibilityState={{ selected: !friendsView && tab === k }} style={[styles.tab, !friendsView && tab === k ? styles.tabOn : null, adult ? (!friendsView && tab === k ? styles.tabOnAdult : styles.tabAdult) : null]}>
+            <Text style={[styles.tabText, !friendsView && tab === k ? styles.tabTextOn : null, adult ? (!friendsView && tab === k ? styles.tabTextOnAdult : styles.tabTextAdult) : null]}>{k === 'city' ? t.tabCity : t.tabGlobal}</Text>
           </Pressable>
         ))}
-        <Pressable onPress={() => setFriendsView(true)} accessibilityRole="tab" accessibilityState={{ selected: friendsView }} style={[styles.tab, friendsView ? styles.tabOn : null]}>
-          <Text style={[styles.tabText, friendsView ? styles.tabTextOn : null]}>{t.tabFriends}</Text>
+        <Pressable onPress={() => setFriendsView(true)} accessibilityRole="tab" accessibilityState={{ selected: friendsView }} style={[styles.tab, friendsView ? styles.tabOn : null, adult ? (friendsView ? styles.tabOnAdult : styles.tabAdult) : null]}>
+          <Text style={[styles.tabText, friendsView ? styles.tabTextOn : null, adult ? (friendsView ? styles.tabTextOnAdult : styles.tabTextAdult) : null]}>{t.tabFriends}</Text>
         </Pressable>
       </View>
       {friendsView ? <FriendsChat meId={meId} onJoinTable={onJoinTable} /> : <>
-      {sub ? <Text style={styles.sub}>{sub}</Text> : null}
+      {sub ? <Text style={[styles.sub, adult ? styles.subAdult : null]}>{sub}</Text> : null}
       {khaleOn ? <GuideBubble who="khale" text={t.khaleHello} /> : null}
 
       <ScrollView ref={scroller} style={styles.list} contentContainerStyle={styles.content}>
@@ -125,23 +128,38 @@ export function ChatSheet({ onClose, onJoinTable, initialTab = 'city' }: { onClo
           const mine = m.userId === meId;
           const prov = tab === 'global' ? provinceOf(m.province) : null;
           return (
-            <View key={m.id} style={[styles.msg, mine ? styles.msgMine : null]}>
-              <Pressable onPress={() => setOpen(m.userId)} accessibilityRole="button" accessibilityLabel={m.nickname}>
-                <Avatar avatar={avatarOf(m.avatarKey)} size={36} />
-              </Pressable>
-              <View style={[styles.col, mine ? styles.colMine : null]}>
-                <View style={styles.nameRow}>
+            <View key={m.id} style={[styles.msg, mine ? styles.msgMine : null, adult ? styles.msgAdult : null]}>
+              {adult ? null : (
+                <Pressable onPress={() => setOpen(m.userId)} accessibilityRole="button" accessibilityLabel={m.nickname}>
+                  <Avatar avatar={avatarOf(m.avatarKey)} size={36} />
+                </Pressable>
+              )}
+              <View style={[styles.col, mine ? styles.colMine : null, adult ? styles.colAdult : null]}>
+                <Pressable disabled={!adult} onPress={() => setOpen(m.userId)} accessibilityRole="button" accessibilityLabel={m.nickname} style={styles.nameRow}>
                   {prov ? <ProvinceBadge province={prov} size={16} /> : null}
-                  <Text style={[styles.name, mine ? styles.nameMine : null]}>{mine ? t.me : m.nickname}{m.badge ? ` · ${m.badge}` : ''}</Text>
-                </View>
+                  <Text style={[styles.name, mine ? styles.nameMine : null, adult ? (mine ? styles.nameMineAdult : styles.nameAdult) : null]}>{mine ? t.me : m.nickname}{m.badge ? ` · ${m.badge}` : ''}</Text>
+                </Pressable>
                 {m.kind === 'table' ? (
-                  <Pressable onPress={() => onJoinTable?.(m.text.split('|')[0] ?? '')} style={styles.tableCard} accessibilityRole="button">
-                    <View style={styles.tableRow}>
-                      <View style={styles.tableIcon}><Item icon={m.text.split('|')[1] ?? 'samovar'} /></View>
-                      <Text style={styles.text}>{t.tableInvite(m.text.split('|').slice(2).join('|'))}</Text>
-                    </View>
-                    <Text style={styles.join}>{t.tableJoin}</Text>
+                  <Pressable onPress={() => onJoinTable?.(m.text.split('|')[0] ?? '')} style={adult ? undefined : styles.tableCard} accessibilityRole="button">
+                    {adult ? (
+                      <Plate radius={16} border="#E8B64A" from="#3A2A16" to="#24180C" ledge={0} style={styles.bubbleAdult}>
+                        <Text style={styles.textAdult}>{t.tableInvite(m.text.split('|').slice(2).join('|'))}</Text>
+                        <Text style={styles.joinAdult}>{t.tableJoin}</Text>
+                      </Plate>
+                    ) : (
+                      <>
+                        <View style={styles.tableRow}>
+                          <View style={styles.tableIcon}><Item icon={m.text.split('|')[1] ?? 'samovar'} /></View>
+                          <Text style={styles.text}>{t.tableInvite(m.text.split('|').slice(2).join('|'))}</Text>
+                        </View>
+                        <Text style={styles.join}>{t.tableJoin}</Text>
+                      </>
+                    )}
                   </Pressable>
+                ) : adult ? (
+                  <Plate radius={16} border={mine ? '#E8B64A' : '#5A3A1C'} from={mine ? '#3A2A16' : '#17100C'} to={mine ? '#24180C' : '#17100C'} ledge={0} style={styles.bubbleAdult}>
+                    <Text style={styles.textAdult}>{m.text}</Text>
+                  </Plate>
                 ) : (
                   <View style={[styles.bubble, mine ? styles.bubbleMine : null, m.kind === 'taunt' ? styles.bubbleTaunt : null]}>
                     <Text style={styles.text}>{m.text}</Text>
@@ -149,7 +167,7 @@ export function ChatSheet({ onClose, onJoinTable, initialTab = 'city' }: { onClo
                 )}
                 {mine ? null : (
                   <Pressable onPress={() => report(m)} accessibilityRole="button" hitSlop={6}>
-                    <Text style={styles.report}>{t.report}</Text>
+                    <Text style={[styles.report, adult ? styles.reportAdult : null]}>{t.report}</Text>
                   </Pressable>
                 )}
               </View>
@@ -165,18 +183,24 @@ export function ChatSheet({ onClose, onJoinTable, initialTab = 'city' }: { onClo
           {quick.length > 0 ? (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quick} accessibilityLabel={t.taunts}>
               {quick.map((q) => (
-                <Pressable key={q.id} onPress={() => taunt(q.id)} accessibilityRole="button" style={styles.chip}>
-                  <Text style={styles.chipText}>{q.text}</Text>
+                <Pressable key={q.id} onPress={() => taunt(q.id)} accessibilityRole="button" style={[styles.chip, adult ? styles.chipAdult : null]}>
+                  <Text style={[styles.chipText, adult ? styles.chipTextAdult : null]}>{q.text}</Text>
                 </Pressable>
               ))}
             </ScrollView>
           ) : null}
           {cur?.canType ? (
             <View style={styles.inputRow}>
-              <TextInput value={text} onChangeText={setText} maxLength={200} placeholder={t.placeholder} style={styles.input} accessibilityLabel={t.placeholder} onSubmitEditing={send} returnKeyType="send" />
-              <Pressable onPress={send} accessibilityRole="button" accessibilityLabel={t.send} style={({ pressed }) => [styles.send, pressed ? styles.pressed : null]}>
-                <GradientFill from="#B8F08F" to="#5DBB3C" />
-                <Text style={styles.sendMark}>➤</Text>
+              <TextInput value={text} onChangeText={setText} maxLength={200} placeholder={t.placeholder} placeholderTextColor={adult ? 'rgba(255,233,168,0.4)' : undefined} style={[styles.input, adult ? styles.inputAdult : null]} accessibilityLabel={t.placeholder} onSubmitEditing={send} returnKeyType="send" />
+              <Pressable onPress={send} accessibilityRole="button" accessibilityLabel={t.send} style={({ pressed }) => [adult ? null : styles.send, pressed ? styles.pressed : null]}>
+                {adult ? (
+                  <Plate radius={14} border="#000" frame={3} from="#FFF1B8" to="#8A5A16" height={48} style={styles.sendAdult}><Text style={styles.sendMarkAdult}>➤</Text></Plate>
+                ) : (
+                  <>
+                    <GradientFill from="#B8F08F" to="#5DBB3C" />
+                    <Text style={styles.sendMark}>➤</Text>
+                  </>
+                )}
               </Pressable>
             </View>
           ) : cur && !cur.muted ? (
@@ -193,6 +217,25 @@ export function ChatSheet({ onClose, onJoinTable, initialTab = 'city' }: { onClo
 const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0, height: h }, shadowOpacity: 1, shadowRadius: 0, elevation: h });
 
 const styles = StyleSheet.create({
+  tabsAdult: { marginTop: 0, marginBottom: 0, borderRadius: 14, backgroundColor: '#0E0A08', borderWidth: 2, borderColor: '#8A5A16' },
+  tabAdult: { height: 40, borderRadius: 10, borderWidth: 2, borderColor: 'transparent' },
+  tabOnAdult: { height: 40, borderRadius: 10, borderWidth: 2, borderColor: '#000', backgroundColor: '#E8B64A' },
+  tabTextAdult: { fontSize: 16, color: 'rgba(255,233,168,0.75)' },
+  tabTextOnAdult: { fontSize: 16, color: '#2A1606' },
+  subAdult: { fontSize: 12, color: '#E8B64A', paddingVertical: 8 },
+  msgAdult: { flexDirection: 'column', alignItems: 'stretch' },
+  colAdult: { maxWidth: '78%', gap: 3 },
+  nameAdult: { fontSize: 11.5, color: 'rgba(255,233,168,0.6)' },
+  nameMineAdult: { fontSize: 11.5, color: '#E8B64A' },
+  bubbleAdult: { paddingVertical: 9, paddingHorizontal: 14, gap: 4 },
+  textAdult: { fontFamily: fonts.bold, fontSize: 14, lineHeight: 22, color: '#FFE9A8', textAlign: TEXT_RIGHT },
+  joinAdult: { fontFamily: fonts.display, fontSize: 16, color: '#E8B64A', textDecorationLine: 'underline', textAlign: TEXT_RIGHT },
+  reportAdult: { fontSize: 11, color: 'rgba(255,233,168,0.4)', opacity: 1, textDecorationLine: 'none' },
+  chipAdult: { height: 32, backgroundColor: '#17100C', borderWidth: 1.5, borderColor: '#8A5A16', shadowOpacity: 0, elevation: 0 },
+  chipTextAdult: { color: '#FFE9A8' },
+  inputAdult: { height: 48, borderRadius: 14, borderWidth: 2, borderColor: '#8A5A16', backgroundColor: '#0E0A08', color: '#FFE9A8', fontSize: 14 },
+  sendAdult: { width: 52, alignItems: 'center', justifyContent: 'center' },
+  sendMarkAdult: { fontSize: 22, color: '#2A1606' },
   cityBtn: { alignSelf: 'center', paddingHorizontal: 18, height: 38, borderRadius: 19, borderWidth: 2.5, borderColor: colors.ink, backgroundColor: colors.candy.yellow, alignItems: 'center', justifyContent: 'center' },
   cityBtnText: { fontFamily: fonts.bold, fontSize: 14, color: colors.ink },
   tabs: { marginTop: 0, marginBottom: 22, flexDirection: ROW, gap: 4, padding: 4, borderRadius: 16, backgroundColor: 'rgba(43,18,64,0.45)' },

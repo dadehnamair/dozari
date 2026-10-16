@@ -18,6 +18,8 @@ import { pageTop } from '../theme/safeArea';
 import { colors, fonts } from '../theme/colors';
 import { ON_YELLOW } from '../theme/skin';
 import type { CharacterId } from '../theme/character';
+import { useTheme } from '../theme/themeStore';
+import { BrassSquare, Pill, Plate } from '../duel/adultKit';
 import { PackCard } from './PackCard';
 import { rarityOf } from './rarity';
 import { WardrobeStage } from './WardrobeStage';
@@ -47,6 +49,9 @@ const whyText = (it: ShopItem): string | null => {
  */
 export function FittingRoom({ who, realMoney = false, onClose }: { who: CharacterId; realMoney?: boolean; onClose: () => void }) {
   useHardwareBack(onClose);
+  const adult = useTheme() === 'adult';
+  /** The pack chip lit in the adult nav strip (the last one tapped; the first pack to begin with). */
+  const [navOn, setNavOn] = useState<CosmeticSlot | null>(null);
   const compact = useWindowDimensions().height <= 700;
   const [shop, setShop] = useState<Shop | null>(null);
   const [failed, setFailed] = useState(false);
@@ -113,31 +118,37 @@ export function FittingRoom({ who, realMoney = false, onClose }: { who: Characte
 
   return (
     <View style={styles.root}>
-      <View style={StyleSheet.absoluteFill} pointerEvents="none"><Scene scene="hojre" /></View>
-      <View style={styles.veil} pointerEvents="none"><GradientFill from="rgba(43,18,64,0.6)" to="rgba(43,18,64,0.88)" /></View>
+      {adult ? <GradientFill from="#2A1A0E" to="#0E0A08" mid={{ at: 0.7, color: '#0E0A08' }} /> : <View style={StyleSheet.absoluteFill} pointerEvents="none"><Scene scene="hojre" /></View>}
+      {adult ? null : <View style={styles.veil} pointerEvents="none"><GradientFill from="rgba(43,18,64,0.6)" to="rgba(43,18,64,0.88)" /></View>}
       <View style={styles.column}>
         <View style={styles.head}>
-          <Pressable accessibilityRole="button" accessibilityLabel={fa.wardrobe.close} onPress={onClose}>
-            {({ pressed }) => (
-              <View style={[styles.back, pressed ? styles.pressed : null]}>
-                <GradientFill from="#FFE48A" to={colors.candy.yellow} />
-                <Icon name="back" size={22} color={ON_YELLOW} strokeWidth={3} />
-              </View>
-            )}
-          </Pressable>
-          <View style={styles.plate}>
-            <GradientFill from="#FFE48A" to={colors.candy.yellow} />
-            <Text style={styles.plateText}>{fa.wardrobe.title}</Text>
-          </View>
+          {adult ? <BrassSquare label={fa.wardrobe.close} onPress={onClose} glyph="back" /> : (
+            <Pressable accessibilityRole="button" accessibilityLabel={fa.wardrobe.close} onPress={onClose}>
+              {({ pressed }) => (
+                <View style={[styles.back, pressed ? styles.pressed : null]}>
+                  <GradientFill from="#FFE48A" to={colors.candy.yellow} />
+                  <Icon name="back" size={22} color={ON_YELLOW} strokeWidth={3} />
+                </View>
+              )}
+            </Pressable>
+          )}
+          {adult ? (
+            <View style={styles.plateAdultBox}><Plate radius={14} border="#000" frame={3} from="#FFF1B8" to="#8A5A16" height={48} style={styles.plateAdult}><Text style={styles.plateTextAdult} numberOfLines={1}>{fa.wardrobe.title}</Text></Plate></View>
+          ) : (
+            <View style={styles.plate}>
+              <GradientFill from="#FFE48A" to={colors.candy.yellow} />
+              <Text style={styles.plateText}>{fa.wardrobe.title}</Text>
+            </View>
+          )}
           {shop ? (
-            <View style={styles.pill} accessibilityLabel={`${fa.shop.balance} ${shop.balance}`}>
-              <Text style={styles.pillText}>{n(shop.balance)}</Text>
+            <View style={[styles.pill, adult ? styles.pillAdult : null]} accessibilityLabel={`${fa.shop.balance} ${shop.balance}`}>
+              <Text style={[styles.pillText, adult ? styles.pillTextAdult : null]}>{n(shop.balance)}</Text>
               <View style={styles.pillIcon}><Item icon="coin" /></View>
             </View>
           ) : null}
           {shop && shop.gems > 0 ? (
-            <View style={styles.pill} accessibilityLabel={`${fa.home.hub.gems} ${shop.gems}`}>
-              <Text style={styles.pillText}>{n(shop.gems)}</Text>
+            <View style={[styles.pill, adult ? styles.pillAdult : null]} accessibilityLabel={`${fa.home.hub.gems} ${shop.gems}`}>
+              <Text style={[styles.pillText, adult ? styles.pillTextAdult : null]}>{n(shop.gems)}</Text>
               <View style={styles.pillIcon}><Item icon="gem" /></View>
             </View>
           ) : null}
@@ -148,12 +159,12 @@ export function FittingRoom({ who, realMoney = false, onClose }: { who: Characte
         <WardrobeStage who={who} worn={worn} toast={toast} height={compact ? 190 : 250} />
 
         <View style={styles.wornRow}>
-          <Text style={styles.wornLabel}>{fa.wardrobe.worn}</Text>
+          <Text style={[styles.wornLabel, adult ? styles.wornLabelAdult : null]}>{fa.wardrobe.worn}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll} contentContainerStyle={styles.chips}>
-            {wornNow.length === 0 ? <Text style={styles.none}>{fa.wardrobe.nothing}</Text> : wornNow.map((i) => (
-              <Pressable key={i.id} onPress={() => setTried((t) => toggleTry(items, t, i))} accessibilityRole="button" accessibilityLabel={`${i.titleFa} ×`} style={[styles.chip, { backgroundColor: PACK_COLOR[i.slot!] }]}>
-                <Text style={styles.chipText}>{i.titleFa}</Text>
-                <Text style={styles.chipX}>×</Text>
+            {wornNow.length === 0 ? <Text style={[styles.none, adult ? styles.noneAdult : null]}>{fa.wardrobe.nothing}</Text> : wornNow.map((i) => (
+              <Pressable key={i.id} onPress={() => setTried((t) => toggleTry(items, t, i))} accessibilityRole="button" accessibilityLabel={`${i.titleFa} ×`} style={[styles.chip, adult ? styles.chipAdult : { backgroundColor: PACK_COLOR[i.slot!] }]}>
+                <Text style={[styles.chipText, adult ? styles.chipTextAdult : null]}>{i.titleFa}</Text>
+                <Text style={[styles.chipX, adult ? styles.chipTextAdult : null]}>×</Text>
               </Pressable>
             ))}
           </ScrollView>
@@ -162,12 +173,15 @@ export function FittingRoom({ who, realMoney = false, onClose }: { who: Characte
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.navScroll} contentContainerStyle={styles.nav}>
-          {packs.map((p) => (
-            <Pressable key={p.slot} onPress={() => scroller.current?.scrollToIndex({ index: Math.max(0, rows.findIndex((r) => r.kind === 'head' && r.slot === p.slot)), animated: true })} accessibilityRole="button" style={[styles.navChip, { backgroundColor: PACK_COLOR[p.slot] }]}>
-              <Text style={styles.navText}>{fa.wardrobe.slots[p.slot]}</Text>
-              <Text style={styles.navCount}>{n(p.items.length)}</Text>
-            </Pressable>
-          ))}
+          {packs.map((p) => {
+            const go = () => (setNavOn(p.slot), scroller.current?.scrollToIndex({ index: Math.max(0, rows.findIndex((r) => r.kind === 'head' && r.slot === p.slot)), animated: true }));
+            return adult ? <Pill key={p.slot} label={fa.wardrobe.slots[p.slot] ?? ''} count={n(p.items.length)} on={(navOn ?? packs[0]?.slot) === p.slot} onPress={go} height={32} /> : (
+              <Pressable key={p.slot} onPress={go} accessibilityRole="button" style={[styles.navChip, { backgroundColor: PACK_COLOR[p.slot] }]}>
+                <Text style={styles.navText}>{fa.wardrobe.slots[p.slot]}</Text>
+                <Text style={styles.navCount}>{n(p.items.length)}</Text>
+              </Pressable>
+            );
+          })}
         </ScrollView>
 
         <FlashList
@@ -184,10 +198,10 @@ export function FittingRoom({ who, realMoney = false, onClose }: { who: Characte
           renderItem={({ item: r }) =>
             r.kind === 'head' ? (
               <View style={styles.sectionHead}>
-                <View style={[styles.bar, { backgroundColor: PACK_COLOR[r.slot] }]} />
+                {adult ? null : <View style={[styles.bar, { backgroundColor: PACK_COLOR[r.slot] }]} />}
                 <View style={styles.titles}>
-                  <Text style={styles.sectionTitle}>{fa.wardrobe.pack(fa.wardrobe.slots[r.slot] ?? '')}</Text>
-                  <Text style={styles.sectionSub}>{fa.wardrobe.count(r.count, r.owned)}</Text>
+                  <Text style={[styles.sectionTitle, adult ? styles.sectionTitleAdult : null]}>{fa.wardrobe.pack(fa.wardrobe.slots[r.slot] ?? '')}</Text>
+                  <Text style={[styles.sectionSub, adult ? styles.sectionSubAdult : null]}>{fa.wardrobe.count(r.count, r.owned)}</Text>
                 </View>
               </View>
             ) : (
@@ -207,6 +221,17 @@ export function FittingRoom({ who, realMoney = false, onClose }: { who: Characte
 const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0, height: h }, shadowOpacity: 1, shadowRadius: 0, elevation: h });
 
 const styles = StyleSheet.create({
+  plateAdultBox: { flex: 1 },
+  plateAdult: { alignItems: 'center', justifyContent: 'center' },
+  plateTextAdult: { fontFamily: fonts.display, fontSize: 26, lineHeight: 36, color: '#2A1606' },
+  pillAdult: { height: 34, paddingHorizontal: 8, backgroundColor: '#0E0A08', borderColor: '#8A5A16' },
+  pillTextAdult: { fontSize: 16, color: '#FFE9A8' },
+  wornLabelAdult: { fontSize: 20, color: '#E8B64A' },
+  noneAdult: { fontSize: 12, color: 'rgba(255,233,168,0.55)' },
+  chipAdult: { backgroundColor: '#17100C', borderColor: '#8A5A16' },
+  chipTextAdult: { color: '#FFE9A8' },
+  sectionTitleAdult: { fontSize: 22, lineHeight: 26, color: '#FFE9A8', textShadowColor: 'transparent' },
+  sectionSubAdult: { fontSize: 12, color: 'rgba(255,233,168,0.55)' },
   root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20, backgroundColor: colors.deep },
   veil: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
   column: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingHorizontal: 10, paddingTop: pageTop(), paddingBottom: 8, gap: 8 },
