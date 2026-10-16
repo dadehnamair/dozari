@@ -87,7 +87,7 @@ export function LeaderboardPage({ onClose }: { onClose: () => void }) {
     );
     return (
       <View style={styles.root}>
-        <AdultBackdrop />
+        <View style={StyleSheet.absoluteFill} pointerEvents="none"><AdultBackdrop /></View>
         <View style={styles.column}>
           <View style={styles.head}>
             <BrassSquare label={t.close} onPress={onClose} glyph="back" />
@@ -119,7 +119,7 @@ export function LeaderboardPage({ onClose }: { onClose: () => void }) {
           </View>
           <View style={styles.sheetAdult}>
             <GradientFill from="#17100C" to="#0E0A08" />
-            <ScrollView contentContainerStyle={styles.rowsAdult}>
+            <ScrollView contentContainerStyle={styles.rowsAdult} showsVerticalScrollIndicator={false}>
               {board && entries.length === 0 ? null : <GuideBubble who="mashti" text={fa.leaderboard.pahlevanHello} />}
               {board === null && !failed ? <SkeletonRows rows={7} /> : null}
               {failed ? <Text style={styles.noteAdult}>{t.error}</Text> : null}
