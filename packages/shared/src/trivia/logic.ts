@@ -24,12 +24,14 @@ export function shuffleTrivia(q: TriviaQuestion, rng: Rng): { options: string[];
  * Up to `count` different questions, the freshest first: those none of the `histories` (question id → when that player saw it, ms) contains,
  * then those seen by fewer players, then — among equals — the one seen longest ago. Ties are random (shuffled first), so a bank bigger than
  * the history never repeats and a small one cycles through its oldest questions instead of resetting. Among equally unseen questions the one
- * whose difficulty is closest to `target` (1–3) comes first, when a target is given (level matching, docs/logic/trivia.md §Difficulty). `avoid` (e.g. the game just played)
+ * whose difficulty is closest to `target` (1–3) comes first (a tie goes to the harder one: an empty level falls to the next level up), when a target is given (level matching, docs/logic/trivia.md §Difficulty). `avoid` (e.g. the game just played)
  * counts as seen by everybody, most recently. Pure given the rng.
  */
 export function pickFreshTrivia(pool: readonly TriviaQuestion[], count: number, rng: Rng, histories: readonly ReadonlyMap<string, number>[], avoid: ReadonlySet<string> = new Set(), target?: number): TriviaQuestion[] {
   const rank = (q: TriviaQuestion): [number, number, number] => {
-    const fit = target === undefined ? 0 : Math.abs((q.difficulty ?? 2) - target);
+    // Distance first; at equal distance the harder neighbour wins, so an empty level falls to the NEXT level up, not back down.
+    const d = (q.difficulty ?? 2) - (target ?? 0);
+    const fit = target === undefined ? 0 : Math.abs(d) * 2 + (d < 0 ? 1 : 0);
     if (avoid.has(q.id)) return [histories.length + 1, fit, Number.MAX_SAFE_INTEGER];
     let seenBy = 0;
     let latest = 0;

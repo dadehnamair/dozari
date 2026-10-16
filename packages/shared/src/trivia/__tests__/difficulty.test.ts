@@ -32,6 +32,12 @@ describe('pickFreshTrivia with a target', () => {
     expect(pickFreshTrivia(pool, 2, mulberry32(1), [], undefined, 3).map((q) => q.difficulty)).toEqual([3, 3]);
     expect(pickFreshTrivia(pool, 4, mulberry32(1), [], undefined, 1).map((q) => q.difficulty).sort()).toEqual([1, 1, 2, 2]);
   });
+  it('with nothing at the target level takes the next level up first, then walks back down', () => {
+    const no2 = pool.filter((q) => q.difficulty !== 2);
+    expect(pickFreshTrivia(no2, 2, mulberry32(1), [], undefined, 2).map((q) => q.difficulty)).toEqual([3, 3]);
+    expect(pickFreshTrivia(no2, 3, mulberry32(1), [], undefined, 2).map((q) => q.difficulty)).toEqual([3, 3, 1]);
+    expect(pickFreshTrivia(pool.filter((q) => q.difficulty !== 1), 2, mulberry32(1), [], undefined, 1).map((q) => q.difficulty)).toEqual([2, 2]);
+  });
   it('but unseen always beats a better fit', () => {
     const seenHard = new Map([['q4', 1], ['q5', 2]]);
     expect(pickFreshTrivia(pool, 2, mulberry32(1), [seenHard], undefined, 3).map((q) => q.difficulty).sort()).toEqual([2, 2]);
