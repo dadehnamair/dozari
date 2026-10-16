@@ -21,9 +21,9 @@ export function AdultBackdrop({ children }: { children?: React.ReactNode }) {
  * A plate: a gradient face with a coloured frame, a black ring around it and a black ledge under it (the design's
  * `0 0 0 2px #000, 0 Npx 0 #000` shadow, drawn with views so it looks the same on every platform).
  */
-export function Plate({ radius, border, from = '#2A1E16', to = '#17100C', ledge = 4, frame = 2, height, glow, style, children }: { radius: number; border: string; from?: string; to?: string; ledge?: number; frame?: number; height?: number; /** Soft glow colour (iOS/web); the frame colour carries it elsewhere. */ glow?: string; style?: StyleProp<ViewStyle>; children?: React.ReactNode }) {
+export function Plate({ radius, border, from = '#2A1E16', to = '#17100C', ledge = 4, frame = 2, ring = 2, height, glow, style, children }: { radius: number; border: string; from?: string; to?: string; ledge?: number; frame?: number; /** Width of the black ring around the frame (0 when the frame itself is the black border, like the design's brass buttons). */ ring?: number; height?: number; /** Soft glow colour (iOS/web); the frame colour carries it elsewhere. */ glow?: string; style?: StyleProp<ViewStyle>; children?: React.ReactNode }) {
   return (
-    <View style={[{ backgroundColor: '#000', borderRadius: radius + 2, padding: 2, paddingBottom: 2 + ledge }, glow ? { shadowColor: glow, shadowOpacity: 0.55, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } } : null]}>
+    <View style={[{ backgroundColor: '#000', borderRadius: radius + ring, padding: ring, paddingBottom: ring + ledge }, glow ? { shadowColor: glow, shadowOpacity: 0.55, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } } : null]}>
       <View style={[{ borderRadius: radius, borderWidth: frame, borderColor: border, overflow: 'hidden', height }, style]}>
         <GradientFill from={from} to={to} />
         {children}

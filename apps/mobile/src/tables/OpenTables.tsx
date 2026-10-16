@@ -75,7 +75,7 @@ export function OpenTables({ onSeated, onNote, onWatch, onNeedCoins, errText }: 
         return (
           <View key={`${r.code}-${r.status}`} style={[styles.card, live ? null : styles.cardDim, dark ? (live ? dk.card : dk.cardDim) : null]}>
             <View style={styles.top}>
-              <View style={styles.icon}><Item icon={r.icon} /></View>
+              <View style={[styles.icon, dark ? dk.iconBox : null]}><Item icon={r.icon} /></View>
               <View style={styles.body}>
                 <Text style={[styles.name, dark ? dk.text : null]} numberOfLines={1}>{r.name}</Text>
                 <View style={styles.hostRow}>
@@ -91,7 +91,7 @@ export function OpenTables({ onSeated, onNote, onWatch, onNeedCoins, errText }: 
             {live ? (
               r.yourRequest === 'pending' ? <Text style={styles.waiting}>{o.pending}</Text>
               : balance !== null && r.entryFee > balance ? <Pressable onPress={() => onNeedCoins(balance)} style={styles.short} accessibilityRole="button"><Text style={styles.shortText}>{o.noCoins}</Text></Pressable>
-              : <Pressable onPress={() => void ask(r.code)} style={dark ? undefined : styles.ask} accessibilityRole="button">{dark ? <Plate radius={11} border="#000" from="#FFF1B8" to="#8A5A16" height={40} ledge={3} style={styles.askAdult}><Text style={styles.askTextAdult}>{r.yourRequest === 'denied' ? `${o.denied} · ${o.ask}` : o.ask}</Text></Plate> : <Text style={styles.askText}>{r.yourRequest === 'denied' ? `${o.denied} · ${o.ask}` : o.ask}</Text>}</Pressable>
+              : <Pressable onPress={() => void ask(r.code)} style={dark ? undefined : styles.ask} accessibilityRole="button">{dark ? <Plate radius={11} border="#000" ring={0} from="#FFF1B8" to="#8A5A16" height={40} ledge={3} style={styles.askAdult}><Text style={styles.askTextAdult}>{r.yourRequest === 'denied' ? `${o.denied} · ${o.ask}` : o.ask}</Text></Plate> : <Text style={styles.askText}>{r.yourRequest === 'denied' ? `${o.denied} · ${o.ask}` : o.ask}</Text>}</Pressable>
             ) : r.status === 'playing' ? (
               <Pressable onPress={() => onWatch(r.code)} style={styles.watch} accessibilityRole="button"><Text style={styles.askText}>{o.watch}{r.scores ? ` · ${o.score(r.scores[0], r.scores[1])}` : ''}{r.watchers > 0 ? ` · ${o.watchers(r.watchers)}` : ''}</Text></Pressable>
             ) : <Text style={[styles.viewOnly, dark ? dk.text : null]}>{o.viewOnly}</Text>}
@@ -106,6 +106,7 @@ const dk = StyleSheet.create({
   text: { color: DARK.text, opacity: 1 },
   card: { backgroundColor: '#17100C', borderColor: '#8A5A16', borderWidth: 2, borderRadius: 16 },
   cardDim: { backgroundColor: DARK.field, borderColor: DARK.line },
+  iconBox: { width: 48, height: 48, padding: 6, borderRadius: 12, borderWidth: 2, borderColor: '#5A3A1C', backgroundColor: '#0E0A08' },
   chipOpen: { backgroundColor: 'rgba(126,217,87,0.12)', borderColor: '#5E9E3C', borderWidth: 1.5 },
   chipOpenText: { color: '#B8F08F' },
   chipOff: { backgroundColor: '#0E0A08', borderColor: '#5A3A1C', borderWidth: 1.5 },

@@ -134,7 +134,7 @@ export function ChatSheet({ onClose, onJoinTable, initialTab = 'city' }: { onClo
                   <Avatar avatar={avatarOf(m.avatarKey)} size={36} />
                 </Pressable>
               )}
-              <View style={[styles.col, mine ? styles.colMine : null, adult ? styles.colAdult : null]}>
+              <View style={[styles.col, mine ? styles.colMine : null, adult ? [styles.colAdult, mine ? styles.colAdultMine : styles.colAdultTheirs] : null]}>
                 <Pressable disabled={!adult} onPress={() => setOpen(m.userId)} accessibilityRole="button" accessibilityLabel={m.nickname} style={styles.nameRow}>
                   {prov ? <ProvinceBadge province={prov} size={16} /> : null}
                   <Text style={[styles.name, mine ? styles.nameMine : null, adult ? (mine ? styles.nameMineAdult : styles.nameAdult) : null]}>{mine ? t.me : m.nickname}{m.badge ? ` · ${m.badge}` : ''}</Text>
@@ -194,7 +194,7 @@ export function ChatSheet({ onClose, onJoinTable, initialTab = 'city' }: { onClo
               <TextInput value={text} onChangeText={setText} maxLength={200} placeholder={t.placeholder} placeholderTextColor={adult ? 'rgba(255,233,168,0.4)' : undefined} style={[styles.input, adult ? styles.inputAdult : null]} accessibilityLabel={t.placeholder} onSubmitEditing={send} returnKeyType="send" />
               <Pressable onPress={send} accessibilityRole="button" accessibilityLabel={t.send} style={({ pressed }) => [adult ? null : styles.send, pressed ? styles.pressed : null]}>
                 {adult ? (
-                  <Plate radius={14} border="#000" frame={3} from="#FFF1B8" to="#8A5A16" height={48} style={styles.sendAdult}><Text style={styles.sendMarkAdult}>➤</Text></Plate>
+                  <Plate radius={14} border="#000" frame={3} ring={0} from="#FFF1B8" to="#8A5A16" height={48} style={styles.sendAdult}><Text style={styles.sendMarkAdult}>➤</Text></Plate>
                 ) : (
                   <>
                     <GradientFill from="#B8F08F" to="#5DBB3C" />
@@ -225,6 +225,8 @@ const styles = StyleSheet.create({
   subAdult: { fontSize: 12, color: '#E8B64A', paddingVertical: 8 },
   msgAdult: { flexDirection: 'column', alignItems: 'stretch' },
   colAdult: { maxWidth: '78%', gap: 3 },
+  colAdultMine: { alignSelf: Platform.OS === 'web' ? 'flex-start' : 'flex-end' },
+  colAdultTheirs: { alignSelf: Platform.OS === 'web' ? 'flex-end' : 'flex-start' },
   nameAdult: { fontSize: 11.5, color: 'rgba(255,233,168,0.6)' },
   nameMineAdult: { fontSize: 11.5, color: '#E8B64A' },
   bubbleAdult: { paddingVertical: 9, paddingHorizontal: 14, gap: 4 },

@@ -121,7 +121,7 @@ export function ShopSheet({ onClose, onBalance, realMoney = false }: { onClose: 
             </Pressable>
           )}
           {adult ? (
-            <View style={styles.plateAdultBox}><Plate radius={14} border="#000" frame={3} from="#FFF1B8" to="#8A5A16" height={48} style={styles.plateAdult}><Text style={styles.plateTextAdult} numberOfLines={1}>{fa.shop.room}</Text></Plate></View>
+            <View style={styles.plateAdultBox}><Plate radius={14} border="#000" frame={3} ring={0} from="#FFF1B8" to="#8A5A16" height={48} style={styles.plateAdult}><Text style={styles.plateTextAdult} numberOfLines={1}>{fa.shop.room}</Text></Plate></View>
           ) : (
             <View style={styles.plate}>
               <GradientFill from="#FFE48A" to={colors.candy.yellow} />
@@ -183,8 +183,8 @@ export function ShopSheet({ onClose, onBalance, realMoney = false }: { onClose: 
                         </Pressable>
                       ) : null}
                       <View style={[styles.art, tight ? styles.artTight : null]}>
-                        <View style={[styles.artIcon, tight ? styles.artIconTight : null]}><Item icon={it.iconKey ?? 'magnifier'} /></View>
-                        {locked ? <View style={styles.lock}><View style={styles.lockIcon}><Item icon="lock" /></View></View> : null}
+                        <View style={[styles.artIcon, tight ? styles.artIconTight : null, adult && locked ? styles.artLockedAdult : null]}><Item icon={it.iconKey ?? 'magnifier'} /></View>
+                        {locked ? <View style={[styles.lock, adult ? styles.lockAdult : null]}><View style={styles.lockIcon}><Item icon="lock" /></View></View> : null}
                       </View>
                       <Text style={[styles.name, adult ? styles.nameAdult : null]} numberOfLines={1}>{it.titleFa}</Text>
                       <Text style={[styles.sub, tight ? styles.subTight : null, adult ? styles.subAdult : null]} numberOfLines={2}>{why ?? fa.shop.amount(it.amount)}</Text>
@@ -240,6 +240,8 @@ const styles = StyleSheet.create({
   tabOnAdult: { height: 72, borderRadius: 14, borderWidth: 2, borderColor: '#000', backgroundColor: '#E8B64A', transform: [] },
   tabTextAdult: { fontSize: 15, color: '#FFE9A8' },
   tabTextOnAdult: { fontSize: 15, color: '#2A1606' },
+  lockAdult: { backgroundColor: 'transparent' },
+  artLockedAdult: { opacity: 0.45 },
   cardAdult: { borderRadius: 16, borderWidth: 2, borderColor: '#8A5A16', backgroundColor: '#17100C', padding: 10, gap: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0, elevation: 0 },
   infoAdult: { top: 8, left: 8, borderWidth: 1.5, borderColor: '#8A5A16', backgroundColor: 'transparent' },
   infoTextAdult: { fontSize: 13, color: 'rgba(255,233,168,0.7)' },

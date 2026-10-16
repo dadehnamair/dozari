@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { TableView } from '@dozari/shared';
 import { DEFAULT_TABLE_ICON, TABLE_ENTRY_MAX, TABLE_PRICE_ROUNDS_MAX, TABLE_HOUSE_CUT_PERCENT, TABLE_ROUNDS_MAX, TABLE_ICONS, normalizeTableCode, tableMinEntry, toPersianDigits } from '@dozari/shared';
 import { Avatar } from '../components/Avatar';
@@ -227,10 +227,10 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
             mode === 'menu' ? (
               <>
                 {dark ? (
-                  <View style={styles.menuRow}>
+                  <View style={styles.menuRowAdult}>
                     {([['make', 'samovar', fa.tables.menuMake, '#FFF1B8', '#8A5A16', '#2A1606'], ['join', 'key', fa.tables.menuJoin, '#FFFFFF', '#5E636C', '#1A1C20']] as const).map(([m, icon, label, from, to, ink]) => (
                       <Pressable key={m} onPress={() => setMode(m)} style={({ pressed }) => [styles.bigAdult, pressed ? { opacity: 0.85 } : null]} accessibilityRole="button">
-                        <Plate radius={14} border="#000" frame={3} from={from} to={to} height={104} ledge={5} style={styles.bigAdultFace}>
+                        <Plate radius={14} border="#000" frame={3} ring={0} from={from} to={to} height={104} ledge={5} style={styles.bigAdultFace}>
                           <View style={styles.bigIcon}><Item icon={icon} /></View>
                           <Text style={[styles.bigTextAdult, { color: ink }]}>{label}</Text>
                         </Plate>
@@ -398,6 +398,7 @@ const styles = StyleSheet.create({
   headAdult: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', direction: 'ltr' },
   headSlot: { width: 40, alignItems: 'center' },
   titleAdult: { fontSize: 32, lineHeight: 44, textAlign: 'center', flex: 1 },
+  menuRowAdult: { flexDirection: Platform.OS === 'web' ? 'row-reverse' : 'row', gap: 10 },
   bigAdult: { flex: 1 },
   bigAdultFace: { alignItems: 'center', justifyContent: 'center', gap: 4 },
   bigTextAdult: { fontFamily: fonts.display, fontSize: 21, lineHeight: 30 },

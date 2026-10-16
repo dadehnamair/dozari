@@ -133,7 +133,7 @@ export function FittingRoom({ who, realMoney = false, onClose }: { who: Characte
             </Pressable>
           )}
           {adult ? (
-            <View style={styles.plateAdultBox}><Plate radius={14} border="#000" frame={3} from="#FFF1B8" to="#8A5A16" height={48} style={styles.plateAdult}><Text style={styles.plateTextAdult} numberOfLines={1}>{fa.wardrobe.title}</Text></Plate></View>
+            <View style={styles.plateAdultBox}><Plate radius={14} border="#000" frame={3} ring={0} from="#FFF1B8" to="#8A5A16" height={48} style={styles.plateAdult}><Text style={styles.plateTextAdult} numberOfLines={1}>{fa.wardrobe.title}</Text></Plate></View>
           ) : (
             <View style={styles.plate}>
               <GradientFill from="#FFE48A" to={colors.candy.yellow} />
@@ -168,8 +168,8 @@ export function FittingRoom({ who, realMoney = false, onClose }: { who: Characte
               </Pressable>
             ))}
           </ScrollView>
-          {isTrying(tried) ? <Pressable onPress={() => setTried({})} accessibilityRole="button" style={styles.small}><Text style={styles.smallText}>{fa.wardrobe.undo}</Text></Pressable> : null}
-          {cosmeticsOf(items).some((i) => i.equipped) ? <Pressable onPress={takeOffAll} accessibilityRole="button" style={styles.small}><Text style={styles.smallText}>{fa.wardrobe.default}</Text></Pressable> : null}
+          {isTrying(tried) ? <Pressable onPress={() => setTried({})} accessibilityRole="button" style={[styles.small, adult ? styles.smallAdult : null]}><Text style={[styles.smallText, adult ? styles.chipTextAdult : null]}>{fa.wardrobe.undo}</Text></Pressable> : null}
+          {cosmeticsOf(items).some((i) => i.equipped) ? <Pressable onPress={takeOffAll} accessibilityRole="button" style={[styles.small, adult ? styles.smallAdult : null]}><Text style={[styles.smallText, adult ? styles.chipTextAdult : null]}>{fa.wardrobe.default}</Text></Pressable> : null}
         </View>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.navScroll} contentContainerStyle={styles.nav}>
@@ -191,8 +191,8 @@ export function FittingRoom({ who, realMoney = false, onClose }: { who: Characte
           contentContainerStyle={styles.sections}
           keyExtractor={(r) => (r.kind === 'head' ? `h-${r.slot}` : `c-${r.key}`)}
           getItemType={(r) => r.kind}
-          showsVerticalScrollIndicator
-          persistentScrollbar
+          showsVerticalScrollIndicator={!adult}
+          persistentScrollbar={!adult}
           extraData={[tried, busy, realMoney]}
           ListEmptyComponent={shop ? <Text style={styles.empty}>{fa.wardrobe.empty}</Text> : null}
           renderItem={({ item: r }) =>
@@ -228,6 +228,7 @@ const styles = StyleSheet.create({
   pillTextAdult: { fontSize: 16, color: '#FFE9A8' },
   wornLabelAdult: { fontSize: 20, color: '#E8B64A' },
   noneAdult: { fontSize: 12, color: 'rgba(255,233,168,0.55)' },
+  smallAdult: { backgroundColor: '#17100C', borderColor: '#8A5A16', borderWidth: 2 },
   chipAdult: { backgroundColor: '#17100C', borderColor: '#8A5A16' },
   chipTextAdult: { color: '#FFE9A8' },
   sectionTitleAdult: { fontSize: 22, lineHeight: 26, color: '#FFE9A8', textShadowColor: 'transparent' },

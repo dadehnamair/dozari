@@ -101,7 +101,7 @@ export function TreasuryPage({ onClose }: { onClose: () => void }) {
             </Pressable>
           )}
           {adult ? (
-            <View style={styles.plateAdultBox}><Plate radius={14} border="#000" frame={3} from="#FFF1B8" to="#8A5A16" height={48} style={styles.plateAdult}><Text style={styles.plateTextAdult} numberOfLines={1}>{t.title}</Text></Plate></View>
+            <View style={styles.plateAdultBox}><Plate radius={14} border="#000" frame={3} ring={0} from="#FFF1B8" to="#8A5A16" height={48} style={styles.plateAdult}><Text style={styles.plateTextAdult} numberOfLines={1}>{t.title}</Text></Plate></View>
           ) : (
             <View style={styles.plate}>
               <GradientFill from="#FFE48A" to={colors.candy.yellow} />
@@ -151,12 +151,12 @@ export function TreasuryPage({ onClose }: { onClose: () => void }) {
                           <View style={styles.photo}>
                             {k.complete ? <YadegarPhoto card={yadegarCard(k.artKey)!} width={140} /> : <YadegarPuzzle card={yadegarCard(k.artKey)!} owned={k.owned} width={112} />}
                             {k.complete ? <View style={styles.medal}><YadegarMedal card={yadegarCard(k.artKey)!} size={44} /></View> : null}
-                            {k.complete ? <View style={styles.levelTag}><Text style={styles.levelText}>{t.frame(k.level)}</Text></View> : null}
+                            {k.complete ? <View style={adult ? styles.levelTagAdult : styles.levelTag}><Text style={adult ? styles.levelTextAdult : styles.levelText}>{t.frame(k.level)}</Text></View> : null}
                           </View>
                         ) : (
                           <View style={[styles.art, adult ? styles.artAdult : { backgroundColor: RARITY_COLOR[k.rarity] }, !k.complete ? styles.artDim : null]}>
                             <View style={styles.artIcon}><Item icon={k.iconKey ?? 'coin'} /></View>
-                            {k.complete ? <View style={styles.levelTag}><Text style={styles.levelText}>{t.frame(k.level)}</Text></View> : null}
+                            {k.complete ? <View style={adult ? styles.levelTagAdult : styles.levelTag}><Text style={adult ? styles.levelTextAdult : styles.levelText}>{t.frame(k.level)}</Text></View> : null}
                           </View>
                         )}
                         <Text style={[styles.name, adult ? styles.nameAdult : null]} numberOfLines={2}>{k.titleFa}</Text>
@@ -201,7 +201,7 @@ function Shelf({ items, onUnpin, adult }: { items: KeepsakeView[]; onUnpin: (k: 
         <Text style={[styles.shelfTitle, adult ? styles.shelfTitleAdult : null]}>{t.shelf.title}</Text>
         <Text style={[styles.shelfSub, adult ? styles.shelfSubAdult : null]}>{t.shelf.sub(items.length, SHOWCASE_MAX)}</Text>
       </View>
-      <View style={styles.slots}>
+      <View style={[styles.slots, adult ? styles.slotsAdult : null]}>
         {Array.from({ length: SHOWCASE_MAX }, (_, i) => {
           const k = items[i];
           const card = k ? yadegarCard(k.artKey) : null;
@@ -272,6 +272,9 @@ const styles = StyleSheet.create({
   dotOnAdult: { borderColor: '#000', backgroundColor: '#E8B64A' },
   buyAdult: { minHeight: 36, borderRadius: 11, borderWidth: 2, backgroundColor: '#E8B64A' },
   buyTextAdult: { fontSize: 14, color: '#2A1606' },
+  levelTagAdult: { position: 'absolute', left: 6, bottom: 6, height: 20, paddingHorizontal: 8, borderRadius: 99, borderWidth: 1.5, borderColor: '#E8B64A', backgroundColor: '#0E0A08' },
+  levelTextAdult: { fontFamily: fonts.display, fontSize: 11, lineHeight: 18, color: '#E8B64A' },
+  slotsAdult: { justifyContent: 'space-between', gap: 0, flexWrap: 'nowrap' },
   pinAdult: { borderWidth: 2, borderColor: '#B8822A', backgroundColor: '#0E0A08' },
   pinOnAdult: { backgroundColor: '#3A2A16' },
   root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20, backgroundColor: colors.deep },
