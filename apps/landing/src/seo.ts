@@ -16,6 +16,7 @@ export interface Site {
   appUrl: string | null;
   androidApp: string | null;
   iosApp: string | null;
+  stores?: { myket: string | null; bazaar: string | null; googlePlay: string | null };
   baleBot?: string | null;
   telegramApp?: string | null;
   badges?: { id: string; url: string | null }[];

@@ -355,6 +355,19 @@ describe('self-hosted fonts', () => {
     expect((await mailApp.inject({ method: 'GET', url: '/contact' })).body).toContain('action="mailto:hi@mrdozari.ir"');
     expect((await app.inject({ method: 'GET', url: '/contact' })).body).not.toContain('action="mailto:');
   });
+
+  it('links the Myket, Bazaar and Google Play listings with their logos once the admin sets them', async () => {
+    const withStores: LandingData = { ...DATA, site: { ...DATA.site, stores: { myket: 'https://myket.ir/app/ir.dozari', bazaar: null, googlePlay: null } } };
+    const app = buildLanding({ api: fakeApi({}, [POST], {}, withStores), siteUrl: 'https://mrdozari.ir' });
+    const dl = (await app.inject({ method: 'GET', url: '/download' })).body;
+    expect(dl).toContain('href="https://myket.ir/app/ir.dozari"');
+    expect(dl).toContain('/badges/myket.svg');
+    expect(dl).toContain('/badges/googleplay.svg');
+    expect(dl).toContain('/badges/appstore.svg');
+    expect((await app.inject({ method: 'GET', url: '/badges/googleplay.svg' })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'GET', url: '/badges/appstore.svg' })).statusCode).toBe(200);
+    expect((await app.inject({ method: 'GET', url: '/' })).body).toContain('href="https://myket.ir/app/ir.dozari"');
+  });
 });
 
 describe('terms page', () => {
