@@ -162,13 +162,20 @@ export function TableSheet({ onClose, initialCode, onShare, onMatch }: { onClose
   return (
     <Pressable style={styles.overlay} onPress={onClose} accessibilityLabel={fa.tables.close}>
       <Pressable style={[styles.sheet, dark ? dk.sheet : null]} onPress={() => undefined}>
-        <SheetClose onPress={onClose} label={fa.tables.close} />
+        {dark && !table ? (
+          // Design «سفره‌خانه»: the title centred between an empty slot and the close square.
+          <View style={styles.headAdult}>
+            <View style={styles.headSlot} />
+            <Text style={[styles.title, styles.titleAdult, dk.text]}>{mode === 'make' ? fa.tables.createTitle : mode === 'join' ? fa.tables.joinTitle : fa.tables.title}</Text>
+            <View style={styles.headSlot}><SheetClose onPress={onClose} label={fa.tables.close} /></View>
+          </View>
+        ) : <SheetClose onPress={onClose} label={fa.tables.close} />}
         {table ? (
           <View style={styles.titleRow}>
             <View style={styles.titleIcon}><Item icon={table.icon} /></View>
             <Text style={[styles.title, dark ? dk.text : null]}>{table.name}</Text>
           </View>
-        ) : <Text style={[styles.title, dark ? dk.text : null]}>{mode === 'make' ? fa.tables.createTitle : mode === 'join' ? fa.tables.joinTitle : fa.tables.title}</Text>}
+        ) : dark ? null : <Text style={[styles.title, dark ? dk.text : null]}>{mode === 'make' ? fa.tables.createTitle : mode === 'join' ? fa.tables.joinTitle : fa.tables.title}</Text>}
         <ScrollView style={styles.list} contentContainerStyle={styles.content}>
           <GuideBubble who={dark ? 'mashti' : 'goli'} text={fa.tables.goliHello} />
           {table ? (
@@ -388,6 +395,9 @@ function InviteFriends({ onNote }: { onNote: (text: string | null) => void }) {
 }
 
 const styles = StyleSheet.create({
+  headAdult: { alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', direction: 'ltr' },
+  headSlot: { width: 40, alignItems: 'center' },
+  titleAdult: { fontSize: 32, lineHeight: 44, textAlign: 'center', flex: 1 },
   bigAdult: { flex: 1 },
   bigAdultFace: { alignItems: 'center', justifyContent: 'center', gap: 4 },
   bigTextAdult: { fontFamily: fonts.display, fontSize: 21, lineHeight: 30 },
