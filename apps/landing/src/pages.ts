@@ -51,7 +51,7 @@ h2.big{font-size:clamp(34px,4.5vw,52px);line-height:1.15;text-align:center}
 .stage img{position:relative;width:min(320px,80%);height:auto}
 .badges{display:flex;gap:12px;flex-wrap:wrap}
 .badge{display:flex;align-items:center;gap:12px;padding:10px 18px;border:3px solid var(--ink);border-radius:18px;background:var(--ink);color:var(--cream);text-decoration:none;box-shadow:0 4px 0 var(--pink);min-width:130px;line-height:1.5}
-.badge .ic{width:28px;height:28px;flex:none;color:var(--yellow)}.badge .tx{display:flex;flex-direction:column;gap:2px}.badge.off{opacity:.6;box-shadow:none}.badge:hover{color:var(--cream)}.badge small{font-size:11px;font-weight:600;opacity:.75}.badge b{font-family:var(--display);font-weight:400;font-size:20px;line-height:1.2}
+.badge .sl{width:28px;height:28px;flex:none;background:#fff;border-radius:7px;padding:2px;box-sizing:border-box}.badge .ic{width:28px;height:28px;flex:none;color:var(--yellow)}.badge .tx{display:flex;flex-direction:column;gap:2px}.badge.off{opacity:.6;box-shadow:none}.badge:hover{color:var(--cream)}.badge small{font-size:11px;font-weight:600;opacity:.75}.badge b{font-family:var(--display);font-weight:400;font-size:20px;line-height:1.2}
 .cards4{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;padding:0;list-style:none;margin:0}
 .tile{background:#fff;border:4px solid var(--ink);border-radius:28px;padding:24px;box-shadow:0 6px 0 var(--ink);display:flex;flex-direction:column;gap:12px}
 .tile.cream{background:var(--cream)}
@@ -98,7 +98,7 @@ details.faq p{margin:0;padding:0 22px 20px;font-weight:500;font-size:16px}
 .stores{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;padding:0;list-style:none;margin:0}
 .store{text-decoration:none;color:var(--ink);background:#fff;border:4px solid var(--ink);border-radius:28px;padding:22px;box-shadow:0 6px 0 var(--ink);display:flex;flex-direction:column;gap:14px;height:100%}
 .store:hover{color:var(--ink)}.store.off{opacity:.55;box-shadow:none}
-.store .top2{display:flex;align-items:center;gap:12px}.store .ab .ic{width:30px;height:30px}.store .ab{width:56px;height:56px;border-radius:16px;border:3px solid var(--ink);display:grid;place-items:center;font-family:var(--display);font-size:26px;line-height:1;flex:none}
+.store .top2{display:flex;align-items:center;gap:12px}.store .ab img{width:44px;height:44px;object-fit:contain;display:block}.store .ab .ic{width:30px;height:30px}.store .ab{width:56px;height:56px;border-radius:16px;border:3px solid var(--ink);display:grid;place-items:center;font-family:var(--display);font-size:26px;line-height:1;flex:none}
 .store .t{display:flex;flex-direction:column;line-height:1.5}.store .t b{font-family:var(--display);font-weight:400;font-size:26px;line-height:1.2}.store .t small{font-weight:600;font-size:13px;opacity:.65}
 .store .cta{align-self:flex-start;font-weight:800;font-size:15px;padding:6px 18px;border-radius:999px;background:var(--ink);color:var(--cream);line-height:1.8}
 .reqs{display:flex;flex-direction:column;gap:16px}
@@ -285,6 +285,8 @@ const ICON_PATH: Record<string, string> = {
   mail: 'M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm0 2v.5l8 5 8-5V6H4Zm16 3L12 14 4 9v9h16V9Z',
   link: 'M10.600 13.400a1 1 0 0 1 0-1.400l3-3a3 3 0 1 1 4.200 4.200l-1.800 1.800-1.400-1.400 1.800-1.800a1 1 0 0 0-1.400-1.400l-3 3a1 1 0 0 1-1.400 0ZM13.400 10.600a1 1 0 0 1 0 1.400l-3 3a3 3 0 1 1-4.200-4.200L8 9l1.400 1.400-1.800 1.800a1 1 0 0 0 1.400 1.400l3-3a1 1 0 0 1 1.400 0Z',
 };
+/** A store's logo, served from /badges. */
+const logo = (file: string, ext: string, alt: string): string => `<img src="/badges/${file}.${ext}" alt="${escapeHtml(alt)}" width="44" height="44" loading="lazy">`;
 const icon = (k: string): string => `<svg class="ic" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="${ICON_PATH[k] ?? ICON_PATH.link}"/></svg>`;
 const socialIcon = (u: string): string => (/instagram\.com/.test(u) ? 'instagram' : /t\.me|telegram/.test(u) ? 'telegram' : 'link');
 const SOCIAL_BG = [['#FF4D8D', '#FFF6E8'], ['#3FC1F0', '#2B1240'], ['#FFC93C', '#2B1240'], ['#7ED957', '#2B1240'], ['#FF7A3D', '#2B1240']] as const;
@@ -363,7 +365,8 @@ function storeBadges(site: Site): string {
     const inner = `${icon(ic)}<span class="tx"><small>${small}</small><b>${name}</b></span>`;
     return href ? `<a class="badge" href="${escapeHtml(href)}">${inner}</a>` : `<span class="badge off" aria-disabled="true">${inner}</span>`;
   };
-  return [b('web', 'بازی آنلاین', 'نسخهٔ وب', site.appUrl), b('android', 'دریافت فایل', 'اندروید', site.androidApp), b('apple', site.iosApp ? 'دریافت برنامه' : 'به‌زودی', 'iOS', site.iosApp), ...(site.baleBot ? [b('chat', 'بازی از طریق ربات', 'بله', site.baleBot)] : []), ...(site.telegramApp ? [b('chat', 'بازی بدون نصب', 'تلگرام', site.telegramApp)] : [])].join('');
+  const bl = (file: string, ext: string, small: string, name: string, href: string): string => `<a class="badge" href="${escapeHtml(href)}"><img class="sl" src="/badges/${file}.${ext}" alt="" width="28" height="28" loading="lazy"><span class="tx"><small>${small}</small><b>${name}</b></span></a>`;
+  return [b('web', 'بازی آنلاین', 'نسخهٔ وب', site.appUrl), b('android', 'دریافت فایل', 'اندروید', site.androidApp), ...(site.stores?.googlePlay ? [bl('googleplay', 'svg', 'دریافت از', 'گوگل‌پلی', site.stores.googlePlay)] : []), ...(site.stores?.bazaar ? [bl('cafebazaar', 'png', 'دریافت از', 'کافه‌بازار', site.stores.bazaar)] : []), ...(site.stores?.myket ? [bl('myket', 'svg', 'دریافت از', 'مایکت', site.stores.myket)] : []), b('apple', site.iosApp ? 'دریافت برنامه' : 'به‌زودی', 'iOS', site.iosApp), ...(site.baleBot ? [b('chat', 'بازی از طریق ربات', 'بله', site.baleBot)] : []), ...(site.telegramApp ? [b('chat', 'بازی بدون نصب', 'تلگرام', site.telegramApp)] : [])].join('');
 }
 
 const postCard = (p: PostSummary): string => {
@@ -606,10 +609,10 @@ export function downloadPage(site: Site): string {
     { fa: 'دانلود مستقیم', os: 'فایل APK اندروید', ab: icon('android'), bg: '#FFC93C', cta: 'دریافت فایل', href: site.androidApp },
     { fa: 'بله', os: 'بازی از طریق ربات', ab: 'ب', bg: '#3FC1F0', cta: 'شروع در بله', href: site.baleBot ?? null },
     ...(site.telegramApp ? [{ fa: 'تلگرام', os: 'بازی در مینی‌اپ، بدون نصب', ab: 'T', bg: '#3FC1F0', cta: 'بازی در تلگرام', href: site.telegramApp }] : []),
-    { fa: 'گوگل‌پلی', os: 'اندروید', ab: 'G', bg: '#7ED957', cta: 'به‌زودی', href: null },
-    { fa: 'کافه‌بازار', os: 'اندروید', ab: 'ب', bg: '#7ED957', cta: 'به‌زودی', href: null },
-    { fa: 'مایکت', os: 'اندروید', ab: 'م', bg: '#3FC1F0', cta: 'به‌زودی', href: null },
-    { fa: 'iOS', os: 'آیفون و آیپد', ab: icon('apple'), bg: '#A66BF0', cta: site.iosApp ? 'دریافت برنامه' : 'به‌زودی', href: site.iosApp },
+    { fa: 'گوگل‌پلی', os: 'اندروید', ab: logo('googleplay', 'svg', 'گوگل‌پلی'), bg: '#fff', cta: site.stores?.googlePlay ? 'دریافت از گوگل‌پلی' : 'به‌زودی', href: site.stores?.googlePlay ?? null },
+    { fa: 'کافه‌بازار', os: 'اندروید', ab: logo('cafebazaar', 'png', 'کافه‌بازار'), bg: '#fff', cta: site.stores?.bazaar ? 'دریافت از بازار' : 'به‌زودی', href: site.stores?.bazaar ?? null },
+    { fa: 'مایکت', os: 'اندروید', ab: logo('myket', 'svg', 'مایکت'), bg: '#fff', cta: site.stores?.myket ? 'دریافت از مایکت' : 'به‌زودی', href: site.stores?.myket ?? null },
+    { fa: 'اپ‌استور', os: 'آیفون و آیپد', ab: logo('appstore', 'svg', 'اپ‌استور'), bg: '#fff', cta: site.iosApp ? 'دریافت برنامه' : 'به‌زودی', href: site.iosApp },
   ];
   const reqs = [['اتصال اینترنت', 'برای بازی زنده و ذخیره‌ی پیشرفت'], ['حساب', 'مهمان؛ شماره‌ی تلفن اختیاری است'], ['مرورگر', 'نسخه‌ی تازه‌ی کروم، فایرفاکس، سافاری یا ادج'], ['هزینه', 'رایگان']] as const;
   const inGame = ['تکی، زنده دونفره، دو در دو و میز خصوصی', 'جدول تازه هر روز', 'آواتار، کلاه و لباس با سکه‌ی بازی', 'نمودار قیمت پایان هر بازی برای دیدن مسیر قیمت‌ها'];
