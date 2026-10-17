@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FRESH_STATE, decodeState, encodeState, nativeReviewUrl, parseReviewRules, reviewUrl, shouldPromptReview } from '../logic';
+import { bazaarPackageOf, FRESH_STATE, decodeState, encodeState, nativeReviewUrl, parseReviewRules, reviewUrl, shouldPromptReview } from '../logic';
 
 const DAY = 86_400_000;
 const rules = parseReviewRules({ 'review.enabled': 1, 'review.package_id': 'ir.dozari.app', 'review.url_bale': 'https://ble.ir/app/dozari' });
@@ -51,5 +51,12 @@ describe('review urls and stored state', () => {
     expect(nativeReviewUrl(rules, 'bale')).toBeNull();
     expect(nativeReviewUrl(parseReviewRules({}), 'myket')).toBeNull();
     expect(nativeReviewUrl(parseReviewRules({ 'review.package_id': 'x&y=1' }), 'myket')).toBeNull(); // only a real package name goes into the link
+  });
+
+  it('reads the package of a Bazaar details link only', () => {
+    expect(bazaarPackageOf('bazaar://details?id=ir.dozari.app')).toBe('ir.dozari.app');
+    expect(bazaarPackageOf('myket://comment?id=ir.dozari.app')).toBeNull();
+    expect(bazaarPackageOf('bazaar://details?id=x&y=1')).toBeNull();
+    expect(bazaarPackageOf('https://cafebazaar.ir/app/a.b')).toBeNull();
   });
 });
