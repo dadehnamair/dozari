@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { IrnotiPushService, irnotiPushFromEnv } from '../notify/irnoti-push.js';
+import { deepLinkOf } from '../notify/webpush.js';
 
 const cfg = { appId: '7', apiKey: 'irnt_k' };
 const recorder = (status = 200) => {
@@ -56,6 +57,18 @@ describe('IrnotiPushService', () => {
     await s.notice('u', { kind: 'friend_request', from: 'علی' } as never);
     await s.notice('u', { kind: 'table_request' } as never);
     expect(calls).toHaveLength(1);
+  });
+  it('tells the app where a tap should land', async () => {
+    const id = '01a100f2-3995-70bc-90c0-d644921e3b13';
+    expect(deepLinkOf({ kind: 'dm', from: 'علی', fromId: id })).toBe(`dozari://open/dm/${id}`);
+    expect(deepLinkOf({ kind: 'dm', from: 'علی' })).toBe('dozari://open/friends');
+    expect(deepLinkOf({ kind: 'friend_request', from: 'علی' })).toBe('dozari://open/friends');
+    expect(deepLinkOf({ kind: 'table_invite', from: 'علی', code: 'AB 12' })).toBe('dozari://open/table/AB%2012');
+    expect(deepLinkOf({ kind: 'inbox' })).toBe('dozari://open/inbox');
+    expect(deepLinkOf({ kind: 'table_answer', accepted: true })).toBeNull();
+    const { calls, http } = recorder();
+    await new IrnotiPushService(cfg, http).notice('u', { kind: 'dm', from: 'علی', fromId: id });
+    expect(JSON.parse(String(calls[0]!.init.body)).message.deeplink).toBe(`dozari://open/dm/${id}`);
   });
   it('is off unless the app id and API key are set', () => {
     expect(irnotiPushFromEnv({ IRNOTI_API_KEY: 'k' })).toBeNull();

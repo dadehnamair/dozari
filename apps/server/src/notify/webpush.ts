@@ -18,6 +18,8 @@ export interface PushPayload {
   title: string;
   body: string;
   tag: string;
+  /** `dozari://open/…` link the Android push opens on tap (see `deepLinkOf`). */
+  deeplink?: string;
 }
 
 /** I/O boundary: where a player's browser subscriptions live. */
@@ -76,6 +78,22 @@ export function createVapidSender(keys: { publicKey: string; privateKey: string;
 }
 
 /** What a live notice says as a push. Same wording as the Bale texts. */
+/** Where a tap on the push should land inside the app; null = just open the app. The app parses it in `apps/mobile/src/notices/deepLink.ts`. */
+export function deepLinkOf(n: LiveNotice): string | null {
+  switch (n.kind) {
+    case 'dm':
+      return n.fromId ? `dozari://open/dm/${n.fromId}` : 'dozari://open/friends';
+    case 'friend_request':
+      return 'dozari://open/friends';
+    case 'table_invite':
+      return n.code ? `dozari://open/table/${encodeURIComponent(n.code)}` : null;
+    case 'inbox':
+      return 'dozari://open/inbox';
+    default:
+      return null;
+  }
+}
+
 export function pushTextOf(n: LiveNotice): PushPayload | null {
   const from = n.from ?? '';
   switch (n.kind) {

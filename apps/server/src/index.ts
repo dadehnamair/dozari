@@ -703,8 +703,8 @@ if (isMainModule(import.meta.url)) {
     const baleSeen = new Map<string, number>();
     chat.onDirect = (friendId, message) => {
       const nickname = message.nickname;
-      if (presence.isOnline(friendId)) return void notices.push(friendId, { kind: 'dm', from: nickname });
-      notices.also?.(friendId, { kind: 'dm', from: nickname });
+      if (presence.isOnline(friendId)) return void notices.push(friendId, { kind: 'dm', from: nickname, fromId: message.userId });
+      notices.also?.(friendId, { kind: 'dm', from: nickname, fromId: message.userId });
       const key = `${message.userId}>${friendId}`;
       const last = baleSeen.get(key) ?? 0;
       if (Date.now() - last < 10 * 60_000) return;
