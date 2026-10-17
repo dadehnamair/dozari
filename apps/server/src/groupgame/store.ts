@@ -1,5 +1,6 @@
-import { and, botGroupPlays, botGroups, eq } from '@dozari/db';
+import { and, botGroupPlays, botGroupScores, botGroups, desc, eq, sql } from '@dozari/db';
 import type { Db } from '@dozari/db';
+import type { GroupScoreRow } from '@dozari/shared';
 
 export type GroupPlayResult = 'playing' | 'won' | 'lost';
 
@@ -14,6 +15,10 @@ export interface GroupGameStore {
   startPlay(chatId: string, dateKey: string): Promise<boolean>;
   /** True when the play moved from playing to its result. */
   finishPlay(chatId: string, dateKey: string, f: { result: 'won' | 'lost'; mistakes: number; solvedGroups: number; players: number }): Promise<boolean>;
+  /** Adds to one member's tally for the week (created on first use). */
+  addScore(chatId: string, weekKey: string, d: { userRef: string; name: string; points: number; groups: number; wrong: number }): Promise<void>;
+  /** The week's tallies of a group, any order (the caller ranks). */
+  weekScores(chatId: string, weekKey: string, limit: number): Promise<GroupScoreRow[]>;
 }
 
 export function createDbGroupGameStore(db: Db): GroupGameStore {
@@ -45,6 +50,21 @@ export function createDbGroupGameStore(db: Db): GroupGameStore {
         .set({ result: f.result, mistakes: f.mistakes, solvedGroups: f.solvedGroups, players: f.players, finishedAt: new Date() })
         .where(and(eq(botGroupPlays.chatId, chatId), eq(botGroupPlays.dateKey, dateKey), eq(botGroupPlays.result, 'playing')));
       return res.affectedRows > 0;
+    },
+    async addScore(chatId, weekKey, d) {
+      const name = d.name.slice(0, 100);
+      await db
+        .insert(botGroupScores)
+        .values({ chatId, weekKey, userRef: d.userRef, name, points: d.points, groups: d.groups, wrong: d.wrong })
+        .onDuplicateKeyUpdate({ set: { name, points: sql`${botGroupScores.points} + ${d.points}`, groups: sql`${botGroupScores.groups} + ${d.groups}`, wrong: sql`${botGroupScores.wrong} + ${d.wrong}` } });
+    },
+    async weekScores(chatId, weekKey, limit) {
+      return db
+        .select({ userRef: botGroupScores.userRef, name: botGroupScores.name, points: botGroupScores.points, groups: botGroupScores.groups, wrong: botGroupScores.wrong })
+        .from(botGroupScores)
+        .where(and(eq(botGroupScores.chatId, chatId), eq(botGroupScores.weekKey, weekKey)))
+        .orderBy(desc(botGroupScores.points))
+        .limit(limit * 3); // a few extra so ties can be re-ranked by the caller
     },
   };
 }

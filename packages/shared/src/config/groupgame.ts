@@ -11,3 +11,10 @@ export const GROUP_CARD_LABEL_MAX = 18;
 
 /** Cards per button row (the board is 4×4). */
 export const GROUP_BUTTONS_PER_ROW = 4;
+
+/** Weekly group leaderboard (phase 2): points for finding a group, plus a bonus per difficulty level (0 yellow .. 3 purple). */
+export const GROUP_POINTS_PER_GROUP = 10;
+export const GROUP_POINTS_LEVEL_BONUS = 5;
+
+/** Rows `/top` shows. */
+export const GROUP_TOP_SIZE = 10;

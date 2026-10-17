@@ -16,14 +16,20 @@ const puzzle: ServedPuzzle = {
 function memoryStore() {
   const groups = new Map<string, { title: string; removed: boolean }>();
   const plays = new Map<string, { result: GroupPlayResult; mistakes?: number; players?: number }>();
+  const scores: { chatId: string; weekKey: string; userRef: string; name: string; points: number; groups: number; wrong: number }[] = [];
   const store: GroupGameStore = {
+    async addScore(chatId, weekKey, d) {
+      const row = scores.find((x) => x.chatId === chatId && x.weekKey === weekKey && x.userRef === d.userRef);
+      if (row) { row.name = d.name; row.points += d.points; row.groups += d.groups; row.wrong += d.wrong; } else scores.push({ chatId, weekKey, ...d });
+    },
+    async weekScores(chatId, weekKey) { return scores.filter((x) => x.chatId === chatId && x.weekKey === weekKey); },
     async upsertGroup(g) { groups.set(g.chatId, { title: g.title, removed: false }); },
     async markRemoved(c) { const g = groups.get(c); if (g) g.removed = true; },
     async play(c, d) { const p = plays.get(`${c}|${d}`); return p ? { result: p.result } : null; },
     async startPlay(c, d) { if (plays.has(`${c}|${d}`)) return false; plays.set(`${c}|${d}`, { result: 'playing' }); return true; },
     async finishPlay(c, d, f) { const p = plays.get(`${c}|${d}`); if (!p || p.result !== 'playing') return false; plays.set(`${c}|${d}`, { result: f.result, mistakes: f.mistakes, players: f.players }); return true; },
   };
-  return { store, groups, plays };
+  return { store, groups, plays, scores };
 }
 
 function setup(opts: { bale?: string | null } = {}) {
@@ -183,6 +189,25 @@ describe('group game', () => {
     expect(t.sent[0]!.keyboard).toHaveLength(5);
     const url = renderBoard({ puzzle, state: { remaining: [], solved: [], mistakes: 0, tried: [], status: 'won' }, selection: [], rev: 1, maxMistakes: 4, dateFa: '', note: '', players: 1, ctaUrl: null });
     expect(url.keyboard).toEqual([]);
+  });
+
+  it('/top ranks this week\'s members and starts empty', async () => {
+    const t = setup();
+    await t.svc.handleUpdate(t.msg('/top'));
+    expect(t.sent.at(-1)!.text).toContain('هنوز کسی');
+    await t.svc.handleUpdate(t.msg('/play'));
+    await pick(t, ids(0)); // yellow, by user 5
+    await t.svc.handleUpdate(t.tap(act(lastKeyboard(t), 's'), 100, 5));
+    await pick(t, ids(3)); // purple, by user 6
+    await t.svc.handleUpdate(t.tap(act(lastKeyboard(t), 's'), 100, 6));
+    await pick(t, [ids(1)[0]!, ids(1)[1]!, ids(1)[2]!, ids(2)[0]!]);
+    await t.svc.handleUpdate(t.tap(act(lastKeyboard(t), 's'), 100, 5)); // wrong, user 5
+    await new Promise((r) => setTimeout(r, 0));
+    await t.svc.handleUpdate(t.msg('/top@dozari_bot'));
+    const text = t.sent.at(-1)!.text;
+    expect(text).toContain('🥇 سارا — ۲۵ امتیاز (۱ دسته)');
+    expect(text.indexOf('۲۵ امتیاز')).toBeLessThan(text.indexOf('۱۰ امتیاز'));
+    expect(t.mem.scores.find((x) => x.userRef === '5')).toMatchObject({ points: 10, groups: 1, wrong: 1 });
   });
 
   it('shuffles without changing the card set', async () => {

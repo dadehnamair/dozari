@@ -5,7 +5,7 @@ Bale first; Telegram runs on the same code (ids carry the `tg:` prefix, `docs/lo
 
 ## Phases
 1. **Daily puzzle in a group** (built): join, `/play`, cooperative board with inline buttons, one play per group per day, app call-to-action.
-2. Group leaderboard (`/top`, weekly) and deep link into a private table of the group.
+2. Weekly group leaderboard `/top` (built). The private-table deep link is **not built**: a table needs a signed-in host and the mini-app has no `startapp=table_<code>` mapping yet; until then the call-to-action opens `?startapp=duel`.
 3. Price-guess mode in groups.
 4. Admin stats: groups, plays, players, funnel to installs.
 
@@ -17,7 +17,7 @@ Bale first; Telegram runs on the same code (ids carry the `tg:` prefix, `docs/lo
 - Privacy: the bot reads only commands and button taps in groups, never ordinary messages.
 
 ## Commands (a `@botname` suffix is ignored)
-`/start` · `/help` welcome and rules · `/play` today's puzzle · (phase 2: `/top`).
+`/start` · `/help` welcome and rules · `/play` today's puzzle · `/top` this week's best members of the group.
 
 ## Rules of the round
 - The puzzle is **today's daily puzzle** (`DailyService.ensure`, same as in the app), 16 cards, 4 groups of 4. Cooperative: the whole group shares one board,
@@ -33,6 +33,14 @@ Bale first; Telegram runs on the same code (ids carry the `tg:` prefix, `docs/lo
 - No coins are given in groups (rule 6: coins only via the ledger, and the install is the prize). Group results never touch any player's stats.
 - Rounds are in memory, dropped after `GROUP_ROUND_TTL_MS` idle.
 
+## Weekly leaderboard (`/top`)
+- A member earns points when the submit they tapped finds a group: `groupPoints(level)` = 10 + 5 × level (yellow 10 .. purple 25); a wrong or one-away submit
+  adds one to their `wrong` count and no points (nobody is punished, but ties go to the fewer-wrong player). Groups the game reveals at the end earn nothing.
+- The week is named by its Saturday (`groupWeekKey`, Tehran date key); per `(chat, week, member)` one row, updated by an increment. Member = the messenger
+  user id of the tapper plus their first name as last seen. Only that group's members are listed; there is no global ranking.
+- Order (`rankGroupScores`): points, groups found, fewer wrong, name. `/top` shows `GROUP_TOP_SIZE` rows; an empty week invites `/play`.
+- Constants in `packages/shared/src/config/groupgame.ts`.
+
 ## Call to action
 The finishing message (and the «already played today» answer) carries a URL button «ادامه در بازی» → mini-app deep link
 `https://ble.ir/<bot>?startapp=daily` (Telegram: `https://t.me/<bot>?startapp=daily`) built from `BALE_BOT_USERNAME` / `TELEGRAM_BOT_USERNAME`
@@ -42,8 +50,9 @@ The finishing message (and the «already played today» answer) carries a URL bu
 Per tapper `GROUP_TAP_LIMIT` taps per minute; a message edit that Bale/Telegram rejects (`message is not modified`, deleted message) is swallowed.
 Config in `packages/shared/src/config/groupgame.ts`.
 
-## Data (migration 0097)
+## Data (migrations 0097, 0098)
 - `bot_groups(chat_id PK, platform, title, added_at, removed_at)`.
+- `bot_group_scores(chat_id, week_key, user_ref PK, name, points, groups, wrong)`.
 - `bot_group_plays(chat_id, date_key PK, result playing|won|lost, mistakes, solved_groups, players, started_at, finished_at)`.
 
 ## Not verified

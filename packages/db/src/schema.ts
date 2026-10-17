@@ -768,6 +768,21 @@ export const botGroupPlays = mysqlTable(
   (t) => ({ pk: primaryKey({ columns: [t.chatId, t.dateKey] }) }),
 );
 
+/** A group member's tally for one week (named by its Saturday) in one group chat: the weekly `/top` of docs/logic/group-game.md. `userRef` is the messenger user id (Telegram ids keep `tg:`). */
+export const botGroupScores = mysqlTable(
+  'bot_group_scores',
+  {
+    chatId: varchar('chat_id', { length: 40 }).notNull().references(() => botGroups.chatId, { onDelete: 'cascade' }),
+    weekKey: char('week_key', { length: 10 }).notNull(),
+    userRef: varchar('user_ref', { length: 40 }).notNull(),
+    name: varchar('name', { length: 100 }).notNull().default(''),
+    points: int('points').notNull().default(0),
+    groups: int('groups').notNull().default(0),
+    wrong: int('wrong').notNull().default(0),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.chatId, t.weekKey, t.userRef] }) }),
+);
+
 /** Browser Web Push subscriptions (D232): one row per browser/device the player allowed notifications on. iPhone push (installed web app) goes through Apple's service, Chrome's through Google's; the endpoint says which. */
 export const webPushSubscriptions = mysqlTable(
   'web_push_subscriptions',

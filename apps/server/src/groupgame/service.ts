@@ -1,5 +1,5 @@
 import { randomInt } from 'node:crypto';
-import { GROUP_ROUND_TTL_MS, GROUP_TAP_LIMIT, GROUP_SIZE, SOLO_MAX_MISTAKES, dailyDateKey, mulberry32, shuffleBoard, startSolo, submitGuess } from '@dozari/shared';
+import { GROUP_ROUND_TTL_MS, GROUP_TAP_LIMIT, GROUP_TOP_SIZE, GROUP_SIZE, SOLO_MAX_MISTAKES, dailyDateKey, groupPoints, groupWeekKey, mulberry32, rankGroupScores, shuffleBoard, startSolo, submitGuess } from '@dozari/shared';
 import type { Rng, SoloState } from '@dozari/shared';
 import type { BaleClient, BaleUpdate } from '../notify/client.js';
 import { isTelegramId } from '../notify/client.js';
@@ -70,9 +70,10 @@ export class GroupGameService {
     if (!m || !isGroupType(m.chat.type)) return false;
     const chatId = String(m.chat.id);
     const cmd = (m.text ?? '').trim().split(/\s+/)[0]?.toLowerCase().replace(/@.*$/, '') ?? '';
-    if (cmd === '/play' || cmd === '/start' || cmd === '/help') {
+    if (cmd === '/play' || cmd === '/top' || cmd === '/start' || cmd === '/help') {
       await this.register(chatId, m.chat.title ?? '');
       if (cmd === '/play') await this.play(chatId);
+      else if (cmd === '/top') await this.top(chatId);
       else await this.say(chatId, cmd === '/start' ? GROUP_TEXT.welcome : GROUP_TEXT.help);
     }
     // anything else typed in a group is none of our business (and must never reach the private link-code flow)
@@ -148,6 +149,14 @@ export class GroupGameService {
     }
   }
 
+  /** `/top`: this week's members of the group, best first. */
+  private async top(chatId: string): Promise<void> {
+    const rows = rankGroupScores(await this.d.store.weekScores(chatId, groupWeekKey(dailyDateKey(this.now())), GROUP_TOP_SIZE)).slice(0, GROUP_TOP_SIZE);
+    if (rows.length === 0) return void (await this.say(chatId, GROUP_TEXT.topEmpty));
+    const lines = rows.map((r, i) => GROUP_TEXT.topRow(i + 1, r.name || GROUP_TEXT.anon, r.points, r.groups));
+    await this.say(chatId, [GROUP_TEXT.topTitle, '', ...lines, '', GROUP_TEXT.topFooter].join('\n'));
+  }
+
   private async onTap(q: NonNullable<BaleUpdate['callback_query']>): Promise<void> {
     const chatId = q.message ? String(q.message.chat.id) : null;
     if (!chatId) return;
@@ -178,6 +187,11 @@ export class GroupGameService {
         const r = submitGuess(round.state, round.puzzle, round.selection, SOLO_MAX_MISTAKES);
         round.state = r.state;
         round.selection = [];
+        if (r.outcome === 'correct' || r.outcome === 'one_away' || r.outcome === 'wrong') {
+          const points = r.outcome === 'correct' && r.solvedLevel !== undefined ? groupPoints(r.solvedLevel) : 0;
+          // the tally must never break the round
+          void this.d.store.addScore(chatId, groupWeekKey(round.dateKey), { userRef: who, name, points, groups: r.outcome === 'correct' ? 1 : 0, wrong: r.outcome === 'correct' ? 0 : 1 }).catch((err) => this.d.log?.('group: saving the score failed', err));
+        }
         round.note = r.outcome === 'correct' ? GROUP_TEXT.noteCorrect(name) : r.outcome === 'one_away' ? GROUP_TEXT.noteOneAway(name) : r.outcome === 'duplicate' ? GROUP_TEXT.noteDuplicate(name) : GROUP_TEXT.noteWrong(name);
       }
     } else {
