@@ -24,6 +24,14 @@ describe('IrnotiPushService', () => {
     await new IrnotiPushService({ ...cfg, baseUrl: 'https://api.irnoti.ir/' }, http).notify('u', { title: 't', body: 'b', tag: 'x' });
     expect(calls[0]!.url).toBe('https://api.irnoti.ir/v1/sdk-apps/7/send');
   });
+  it('falls back to the default host when the base URL env var is an empty string (compose passes it empty)', async () => {
+    const urls: string[] = [];
+    const http = (async (url: string) => (urls.push(url), new Response(JSON.stringify({ accepted: 1, total: 1 }), { status: 200 }))) as unknown as typeof fetch;
+    await new IrnotiPushService({ ...cfg, baseUrl: '' }, http).notify('u', { title: 't', body: 'b', tag: 'x' });
+    await irnotiPushFromEnv({ IRNOTI_PUSH_APP_ID: '1', IRNOTI_API_KEY: 'k', IRNOTI_BASE_URL: '  ' }, http)!.notify('u', { title: 't', body: 'b', tag: 'x' });
+    expect(urls).toEqual(['https://api.irnoti.com/v1/sdk-apps/7/send', 'https://api.irnoti.com/v1/sdk-apps/1/send']);
+  });
+
   it('reports a refusal and never throws when irnoti is down', async () => {
     expect(await new IrnotiPushService(cfg, recorder(403).http).notify('u', { title: 't', body: 'b', tag: 'x' })).toBe(false);
     const down = (async () => { throw new Error('down'); }) as unknown as typeof fetch;

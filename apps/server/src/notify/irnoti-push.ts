@@ -26,7 +26,7 @@ export class IrnotiPushService {
     /** irnoti answers 200 even when it found no device (`total: 0`), so refusals and empty sends are logged here instead of being silent. */
     private readonly log: (msg: string) => void = (m) => console.warn(m),
   ) {
-    this.base = (cfg.baseUrl ?? 'https://api.irnoti.com').replace(/\/$/, '');
+    this.base = (cfg.baseUrl?.trim() || 'https://api.irnoti.com').replace(/\/$/, '');
   }
 
   /** Resolves true when irnoti accepted the send (it reports per-device outcomes in its own panel). */
