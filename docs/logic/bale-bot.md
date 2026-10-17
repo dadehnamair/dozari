@@ -97,3 +97,4 @@ Owner request (2026-10-17): the same bot runs on Telegram too, Telegram first in
 
 Groups: the bot also plays the daily puzzle in groups, see `docs/logic/group-game.md`.
 - Link sheet (2026-10-17): titled «اتصال به شبکه‌های اجتماعی»; after «گرفتن کد» it shows the code and one separate block per configured messenger (Telegram, Bale), each with its own open-bot button. Still one link per player.
+- Telegram long-poll length is `TELEGRAM_POLL_SECONDS` (default 5, Bale stays 25): through the relay a 25 s poll got `getUpdates 504`.
