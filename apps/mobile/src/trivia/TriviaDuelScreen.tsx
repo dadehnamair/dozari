@@ -395,7 +395,7 @@ const styles = StyleSheet.create({
   offer: { fontFamily: fonts.display, fontSize: 18, color: colors.candy.yellow, textAlign: 'center' },
   actions: { flexDirection: ROW, gap: 10 },
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,8,32,0.7)', alignItems: 'center', justifyContent: 'center', padding: 24 },
-  dialog: { width: '100%', maxWidth: 380, gap: 12, padding: 18, borderRadius: 22, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.paper },
+  dialog: { width: '100%', maxWidth: 380, maxHeight: '90%', gap: 12, padding: 18, borderRadius: 22, borderWidth: 3, borderColor: colors.ink, backgroundColor: colors.paper },
   dialogTitle: { fontFamily: fonts.display, fontSize: 22, color: colors.ink, textAlign: 'center' },
   dialogBody: { fontFamily: fonts.bold, fontSize: 14, lineHeight: 23, color: colors.ink, textAlign: 'center' },
 });

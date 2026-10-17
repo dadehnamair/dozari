@@ -5,6 +5,7 @@ import { toPersianDigits } from '@dozari/shared';
 import { CandyButton } from '../components/CandyButton';
 import { fa } from '../i18n/fa';
 import { SheetClose } from '../components/SheetClose';
+import { SheetBody } from '../components/SheetBody';
 import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
 import { fetchTransferInfo, offerLoan, sendGift } from './api';
@@ -40,6 +41,7 @@ export function TransferSheet({ friendId, kind, onClose }: { friendId: string; k
     <Pressable style={styles.overlay} onPress={onClose} accessibilityLabel={fa.transfers.close}>
       <Pressable style={styles.sheet} onPress={() => undefined}>
         <SheetClose onPress={onClose} label={fa.transfers.close} />
+        <SheetBody>
         <Text style={styles.title}>{kind === 'gift' ? fa.transfers.gift : fa.transfers.loan}</Text>
         {info && !read ? (
           <>
@@ -65,6 +67,7 @@ export function TransferSheet({ friendId, kind, onClose }: { friendId: string; k
           </>
         ) : null}
         {note ? <Text style={[styles.hint, note.bad && styles.bad]}>{note.text}</Text> : null}
+        </SheetBody>
       </Pressable>
     </Pressable>
   );
@@ -72,7 +75,7 @@ export function TransferSheet({ friendId, kind, onClose }: { friendId: string; k
 
 const styles = StyleSheet.create({
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,8,32,0.55)', alignItems: 'center', justifyContent: 'center', padding: 24 },
-  sheet: { width: '100%', maxWidth: 380, backgroundColor: colors.cream, borderWidth: 3, borderColor: INK, borderRadius: 24, padding: 16, gap: 8, alignItems: 'center' },
+  sheet: { width: '100%', maxWidth: 380, maxHeight: '90%', backgroundColor: colors.cream, borderWidth: 3, borderColor: INK, borderRadius: 24, padding: 16, gap: 8, alignItems: 'center' },
   title: { fontFamily: fonts.display, fontSize: 24, color: INK },
   label: { fontFamily: fonts.bold, fontSize: 15, color: INK, alignSelf: 'flex-start' },
   hint: { fontFamily: fonts.bold, fontSize: 12, color: INK, opacity: 0.85, alignSelf: 'flex-start' },
