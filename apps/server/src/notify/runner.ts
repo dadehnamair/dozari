@@ -17,9 +17,11 @@ export function startNotifyRunner(opts: { service: NotifyService; /** Every bot 
   for (const { name, client, pollSec } of opts.clients) {
     void (async () => {
       let offset = 0;
+      opts.log(`${name}: polling started (${pollSec ?? 25}s)`);
       while (!stopped) {
         try {
           const updates = await client.getUpdates(offset, pollSec ?? 25);
+          if (updates.length) opts.log(`${name}: ${updates.length} update(s) received`);
           for (const u of updates) {
             offset = Math.max(offset, u.update_id + 1);
             await opts.service.handleUpdate(u).catch((err) => opts.log(`${name}: update failed`, err));
