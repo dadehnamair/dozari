@@ -15,7 +15,7 @@ export function createDbProfileTaskStore(db: Db): Pick<ProfileTaskDeps, 'facts' 
       // A friend counts once their invite reward was paid, i.e. they actually played (invite.reward_after_games).
       const [invited] = await db.select({ id: inviteRedemptions.inviteeId }).from(inviteRedemptions).where(and(eq(inviteRedemptions.inviterId, userId), isNotNull(inviteRedemptions.rewardPaidAt))).limit(1);
       // Follows and store reviews happen outside the app and cannot be checked: they are honour claims (D163).
-      return { gender: !!u?.gender, city: !!u?.cityId, phone: !!u?.phoneVerifiedAt, bale: !!bale, first_win: (stats?.wins ?? 0) > 0, invite_friend: !!invited, follow_instagram: true, follow_channel: true, rate_app: true };
+      return { gender: !!u?.gender, city: !!u?.cityId, phone: !!u?.phoneVerifiedAt, bale: !!bale, first_win: (stats?.wins ?? 0) > 0, invite_friend: !!invited, follow_instagram: true, follow_channel: true, rate_app: true, rate_myket: true, rate_bazaar: true };
     },
     async claimedKeys(userId) {
       const rows = await db.select({ key: profileTaskClaims.taskKey }).from(profileTaskClaims).where(eq(profileTaskClaims.userId, userId));

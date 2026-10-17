@@ -586,6 +586,9 @@ export const userClients = mysqlTable('user_clients', {
   /** The market of the first build seen for this account. */
   firstStore: varchar('first_store', { length: 12 }),
   firstBuild: int('first_build'),
+  /** The web build runs as an installed PWA now / the first time it was seen. */
+  pwa: boolean('pwa').notNull().default(false),
+  firstPwa: boolean('first_pwa').notNull().default(false),
   firstSeenAt: datetime('first_seen_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
   updatedAt: datetime('updated_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
 });
@@ -1976,6 +1979,32 @@ export const dailyPuzzlePlays = mysqlTable(
     finishedAt: datetime('finished_at', { mode: 'date', fsp: 3 }),
   },
   (t) => ({ pk: primaryKey({ columns: [t.userId, t.dateKey] }) }),
+);
+
+/**
+ * One finished board of one player, for the admin's gameplay stats (docs/logic/admin-stats.md): which puzzle was used up, how it went.
+ * `mode` is solo, the daily puzzle, a 1v1 or a 2v2; for the last two it is the board in play when the match ended. `puzzle_id` has no
+ * foreign key on purpose: a deleted puzzle must not erase the history of the players who had it.
+ */
+export const puzzlePlays = mysqlTable(
+  'puzzle_plays',
+  {
+    id: id(),
+    userId: char('user_id', { length: 36 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+    puzzleId: char('puzzle_id', { length: 36 }).notNull(),
+    mode: mysqlEnum('mode', ['solo', 'daily', 'duel', 'team']).notNull(),
+    outcome: mysqlEnum('outcome', ['win', 'loss', 'draw']).notNull(),
+    /** Groups (0-4) this player found themselves; a group the game revealed does not count. */
+    groupsSolved: tinyint('groups_solved').notNull().default(0),
+    mistakes: smallint('mistakes').notNull().default(0),
+    hintsUsed: smallint('hints_used').notNull().default(0),
+    createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  },
+  (t) => ({
+    byTime: index('puzzle_plays_time_idx').on(t.createdAt),
+    byUser: index('puzzle_plays_user_idx').on(t.userId, t.createdAt),
+    byPuzzle: index('puzzle_plays_puzzle_idx').on(t.puzzleId),
+  }),
 );
 
 /** An S3-compatible place database backups are sent to, with its schedule and retention rule (docs/logic/backups.md). The secret key is stored encrypted. */

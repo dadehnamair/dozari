@@ -22,4 +22,10 @@ describe('missionRows', () => {
   it('keeps a finished mission visible even when its link is gone', () => {
     expect(missionRows([t('rate_app', true, true)], { link: () => null, feature: () => true }, new Set())[0]?.state).toBe('claimed');
   });
+  it('shows the Myket / Bazaar review missions only where the build offers their link', () => {
+    const myketOnly = { link: (k: MissionKey) => (k === 'rate_myket' ? 'myket://comment?id=a.b' : null), feature: () => true };
+    const keys = missionRows([t('rate_myket', true), t('rate_bazaar', true)], myketOnly, new Set()).map((r) => r.task.key);
+    expect(keys).toEqual(['rate_myket']);
+    expect(missionRows([t('rate_myket', true)], myketOnly, new Set<MissionKey>(['rate_myket']))[0]?.state).toBe('claim');
+  });
 });

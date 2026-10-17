@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FRESH_STATE, decodeState, encodeState, parseReviewRules, reviewUrl, shouldPromptReview } from '../logic';
+import { FRESH_STATE, decodeState, encodeState, nativeReviewUrl, parseReviewRules, reviewUrl, shouldPromptReview } from '../logic';
 
 const DAY = 86_400_000;
 const rules = parseReviewRules({ 'review.enabled': 1, 'review.package_id': 'ir.dozari.app', 'review.url_bale': 'https://ble.ir/app/dozari' });
@@ -42,5 +42,14 @@ describe('review urls and stored state', () => {
     expect(decodeState('junk', 42)).toEqual(FRESH_STATE(42));
     expect(decodeState(null, 42)).toEqual(FRESH_STATE(42));
     expect(decodeState('1,2,x,4,0', 42)).toEqual(FRESH_STATE(42));
+  });
+
+  it('builds the stores\' own review screens from the package id', () => {
+    const rules = parseReviewRules({ 'review.package_id': 'ir.dozari.app' });
+    expect(nativeReviewUrl(rules, 'myket')).toBe('myket://comment?id=ir.dozari.app');
+    expect(nativeReviewUrl(rules, 'bazaar')).toBe('bazaar://details?id=ir.dozari.app');
+    expect(nativeReviewUrl(rules, 'bale')).toBeNull();
+    expect(nativeReviewUrl(parseReviewRules({}), 'myket')).toBeNull();
+    expect(nativeReviewUrl(parseReviewRules({ 'review.package_id': 'x&y=1' }), 'myket')).toBeNull(); // only a real package name goes into the link
   });
 });

@@ -45,7 +45,10 @@ export function MissionsSheet({ avail, links, onGo, onClose, onChanged }: { avai
   const go = (row: MissionRow) => {
     if (row.go !== 'link') return onGo(row.go);
     const url = links(row.task.key);
-    if (url) void Linking.openURL(url).catch(() => undefined);
+    if (url) {
+      const alt = avail.fallback?.(row.task.key) ?? null;
+      void Linking.openURL(url).catch(() => (alt ? Linking.openURL(alt).catch(() => undefined) : undefined));
+    }
     setVisited((cur) => new Set(cur).add(row.task.key));
   };
 

@@ -27,6 +27,8 @@ import { heroOf } from '../social/heroFor';
 import { setLookGender } from '../theme/look';
 import { ReviewSheet } from '../review/ReviewSheet';
 import { useReviewPrompt } from '../review/useReviewPrompt';
+import { nativeReviewUrl, parseReviewRules, reviewUrl } from '../review/logic';
+import { APP_STORE } from '../config/build';
 import { OPEN_CONFIG } from '../config/gate';
 import type { ClientConfig } from '../config/gate';
 import { InboxSheet } from '../inbox/InboxSheet';
@@ -172,9 +174,11 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onTriviaDuel, onWork
     });
   }, [features.friends, inboxReload]);
   const review = useReviewPrompt(settings);
+  const reviewRules = parseReviewRules(settings);
   const text = (v: unknown): string | null => (typeof v === 'string' && /^https?:\/\//i.test(v) ? v : null);
   const missionAvail: MissionAvailability = {
-    link: (k) => (k === 'follow_instagram' ? text(settings['link.instagram']) : k === 'follow_channel' ? text(settings['link.channel']) : k === 'rate_app' ? review.url ?? null : null),
+    link: (k) => (k === 'follow_instagram' ? text(settings['link.instagram']) : k === 'follow_channel' ? text(settings['link.channel']) : k === 'rate_app' ? (APP_STORE === 'myket' || APP_STORE === 'bazaar' ? null : review.url ?? null) : k === 'rate_myket' ? (APP_STORE === 'myket' ? nativeReviewUrl(reviewRules, 'myket') : null) : k === 'rate_bazaar' ? (APP_STORE === 'bazaar' ? nativeReviewUrl(reviewRules, 'bazaar') : null) : null),
+    fallback: (k) => (k === 'rate_myket' ? reviewUrl(reviewRules, 'myket') : k === 'rate_bazaar' ? reviewUrl(reviewRules, 'bazaar') : null),
     feature: (k) => (k === 'bale' ? features.bale : k === 'phone' ? features.friends : true),
   };
   const missionsReady = missionRows(profileTasks, missionAvail, new Set()).filter((r) => r.state === 'claim').length;

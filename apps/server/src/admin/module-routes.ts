@@ -18,6 +18,9 @@ import type { EconomyAdmin } from './economy.js';
 import type { AgeTrackAdmin } from '../agetrack/overview.js';
 import type { ProductAdmin } from './products.js';
 import type { StatsAdmin } from './stats.js';
+import { PLAYER_SORTS } from './usage-stats.js';
+import type { UsageStatsAdmin } from './usage-stats.js';
+import type { BazaarMonitor } from './bazaar-monitor.js';
 import { isHttpUrl } from '../security/url-guard.js';
 import type { MessageCenter } from '../messages/service.js';
 import { SMS_PROVIDERS, renderSmsText } from '../phone/smsConfig.js';
@@ -65,6 +68,10 @@ import { registerBackupAdminRoutes } from '../backup/routes.js';
 import type { BackupService } from '../backup/service.js';
 
 export interface AdminModules {
+  /** Installs per market / PWA and what players did with the puzzles (docs/logic/admin-stats.md). */
+  usage?: UsageStatsAdmin;
+  /** Read-only CafeBazaar release status (Pishkhan API). */
+  bazaar?: BazaarMonitor;
   /** Database backups to S3-compatible storage (owner only). */
   backups?: BackupService;
   /** Where the panel's image uploads go (S3 or the local images dir); without it the upload button answers 404. */
@@ -207,7 +214,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     settingGroups: SETTING_GROUPS,
     icons: ITEMS,
     iconGroups: ITEM_GROUPS,
-    modules: { avatars: !!m.avatars, puzzles: !!m.puzzles, categories: !!m.categories, settings: !!m.settings, products: !!m.products, stats: !!m.stats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, keepsakes: !!m.keepsakes, wheel: !!m.wheel, ads: !!m.ads, shortLinks: !!m.shortLinks, backups: !!m.backups, feedback: !!m.feedback, workshop: !!m.workshop, clientErrors: !!m.clientErrors, landing: !!m.landing, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, lessons: !!m.lessons, ai: !!m.ai, ageTracks: !!m.ageTracks, economy: !!m.economy, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages, sms: !!m.sms },
+    modules: { avatars: !!m.avatars, puzzles: !!m.puzzles, categories: !!m.categories, settings: !!m.settings, products: !!m.products, stats: !!m.stats, usage: !!m.usage, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, keepsakes: !!m.keepsakes, wheel: !!m.wheel, ads: !!m.ads, shortLinks: !!m.shortLinks, backups: !!m.backups, feedback: !!m.feedback, workshop: !!m.workshop, clientErrors: !!m.clientErrors, landing: !!m.landing, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, lessons: !!m.lessons, ai: !!m.ai, ageTracks: !!m.ageTracks, economy: !!m.economy, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages, sms: !!m.sms },
   }));
 
   if (m.ai) registerAiAdminRoutes(g, m.ai, audit, m.aiSchedules);
@@ -215,6 +222,26 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
   if (m.stats) {
     const stats = m.stats;
     g.get('/admin/dashboard', async () => stats.dashboard(Date.now()));
+  }
+
+  if (m.usage) {
+    const usage = m.usage;
+    const q = z.object({ days: z.coerce.number().int().min(1).max(365).default(30), limit: z.coerce.number().int().min(1).max(200).default(50), sort: z.enum(PLAYER_SORTS).default('plays') });
+    g.get('/admin/stats/installs', async () => usage.installs(Date.now()));
+    g.get('/admin/stats/gameplay', async (req, reply) => {
+      const p = q.safeParse(req.query);
+      if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
+      return usage.gameplay(Date.now(), p.data.days);
+    });
+    g.get('/admin/stats/players', async (req, reply) => {
+      const p = q.safeParse(req.query);
+      if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
+      return { players: await usage.players(Date.now(), p.data.days, p.data.limit, p.data.sort) };
+    });
+  }
+  if (m.bazaar) {
+    const bazaar = m.bazaar;
+    g.get('/admin/stats/bazaar', async () => bazaar.status());
   }
 
   if (m.audit) {

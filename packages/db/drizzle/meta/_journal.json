@@ -666,6 +666,13 @@
       "when": 1792009042005,
       "tag": "0094_mute_sentinels",
       "breakpoints": true
+    },
+    {
+      "idx": 95,
+      "version": "5",
+      "when": 1792232160227,
+      "tag": "0095_admin_stats",
+      "breakpoints": true
     }
   ]
 }

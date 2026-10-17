@@ -1606,6 +1606,8 @@ export const fa = {
       follow_instagram: 'ما را در اینستاگرام دنبال کن',
       follow_channel: 'عضو کانال ما شو',
       rate_app: 'در فروشگاه به دوزاری نظر بده',
+      rate_myket: 'در مایکت امتیاز و نظر بده',
+      rate_bazaar: 'در کافه‌بازار امتیاز و نظر بده',
     } as Record<string, string>,
   },
   /** Rewarded video ads: «ببین و جایزه بگیر» (adult only; the server decides where and how much). */

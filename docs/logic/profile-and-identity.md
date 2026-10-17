@@ -130,7 +130,8 @@ The same service also carries the other one-time missions (`GET /me/profile-task
 one): `first_win` (the player has at least one win in `user_stats`), `invite_friend` (an invitee's `reward_paid_at` is set, i.e. the
 friend really played), and three **honour** missions that cannot be verified because they happen outside the app: `follow_instagram`,
 `follow_channel` (links `link.instagram`, `link.channel`; empty = the mission is hidden) and `rate_app` (the store link of the review flow,
-D75). Honour missions pay little and unlock only after the player opened the link. Proposed rewards, all admin settings
+D75). `rate_myket` / `rate_bazaar` (D241) are the same honour claim for the market the build ships through (`EXPO_PUBLIC_STORE`): Myket opens its comment form (`myket://comment?id=<review.package_id>`),
+Bazaar its app page (`bazaar://details?id=…`, where the rating lives), each falling back to the market's web page; the mission is hidden in any other build, and `rate_app` is hidden in Myket/Bazaar builds. Honour missions pay little and unlock only after the player opened the link. Proposed rewards, all admin settings
 (`profiletask.coins_<key>`): first win 25, invited friend 100, Instagram 15, channel 15, store review 40 coins.
 Home has a «ماموریت‌ها» tile (badge = rewards waiting) opening the list; the guide bubble still nudges only the profile steps.
 

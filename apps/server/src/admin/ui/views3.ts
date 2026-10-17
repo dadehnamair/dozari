@@ -101,7 +101,7 @@ function userDrawer(id, done) {
       var cl = a.client, PLAT = { android: 'اندروید', ios: 'آی‌اواس', web: 'وب (مرورگر)' }, STORE_FA = { myket: 'مایکت', bazaar: 'بازار', bale: 'بله' };
       b.appendChild(sectionTitle('آخرین دستگاه'));
       b.appendChild(cl ? defs([
-        ['پلتفرم', PLAT[cl.platform] || cl.platform], ['نسخه‌ی سیستم‌عامل', dash(cl.osVersion && h('span', { class: 'ltr', text: cl.osVersion }))],
+        ['پلتفرم', (PLAT[cl.platform] || cl.platform) + (cl.pwa ? ' · نصب‌شده (PWA)' : '')], ['نسخه‌ی سیستم‌عامل', dash(cl.osVersion && h('span', { class: 'ltr', text: cl.osVersion }))],
         ['نسخه‌ی اپ (build)', cl.appBuild ? fa(cl.appBuild) : dash(null)], ['مرجع نصب (بازار فعلی)', cl.store ? STORE_FA[cl.store] || cl.store : (cl.platform === 'web' ? 'وب' : 'نامشخص / مستقیم')],
         ['مرجع اولین نصب', cl.firstStore ? STORE_FA[cl.firstStore] || cl.firstStore : (cl.platform === 'web' ? 'وب' : 'نامشخص / مستقیم') + (cl.firstBuild ? ' · build ' + fa(cl.firstBuild) : '')],
         ['اولین بار دیده شد', ago(cl.firstSeenAt)], ['آخرین گزارش', ago(cl.updatedAt)]

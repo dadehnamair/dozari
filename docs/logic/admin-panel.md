@@ -26,8 +26,9 @@ e-mail, device id, city, age track, privacy flags, chat unlock, Bale link and **
 and device id are only returned to roles with the `users` permission (owner, support); the exact birth date stays owner-only. The user list also searches phone / handle / e-mail for those roles.
 «بازی و آیتم‌ها»: XP, games/wins, gems, stock items, owned cosmetics (worn or not) and recent shop purchases.
 
-**Last device** — the app sends `x-client-platform|os|build|store` on every API call (`apps/mobile/src/net/clientHeaders.ts`); after the response the server records them for the signed-in
+**Last device** — the app sends `x-client-platform|os|build|store|pwa` on every API call (`apps/mobile/src/net/clientHeaders.ts`); after the response the server records them for the signed-in
 player in `user_clients` (`apps/server/src/clients/`, at most once per 30 min unless something changed). The first row's store/build is kept as the install source. Client-reported: for display only.
+Install/market, gameplay and per-player puzzle numbers live in the «آمار نصب و بازی» section: `logic/admin-stats.md`.
 Users open in a side drawer; destructive actions use a styled confirmation dialog instead of the browser's `confirm`.
 
 ## Economy health (`GET /admin/economy?days=7|30|90`)

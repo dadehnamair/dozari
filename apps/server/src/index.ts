@@ -24,7 +24,10 @@ import { Presence } from './realtime/presence.js';
 import { createLiveNotices } from './realtime/notices.js';
 import type { LiveNotices } from './realtime/notices.js';
 import type { Gateway } from './realtime/gateway.js';
-import type { MatchDeps } from './realtime/match-service.js';
+import type { MatchDeps, MatchPlay } from './realtime/match-service.js';
+import { createDbPlayLog } from './plays/log.js';
+import { createDbUsageStats } from './admin/usage-stats.js';
+import { createBazaarMonitor } from './admin/bazaar-monitor.js';
 import { PlayerService, rulesFromSettings } from './player/service.js';
 import { LevelTable, createDbLevelTableStore } from './progress/table.js';
 import { defaultLevelTable, todayInTehran } from '@dozari/shared';
@@ -44,7 +47,7 @@ import { createDbChatStore } from './chat/store.js';
 import type { MatchService } from './realtime/match-service.js';
 import type { DuelQueue } from './realtime/queue.js';
 import { registerDailyRoutes } from './daily/routes.js';
-import { DailyService } from './daily/service.js';
+import { DAILY_TAG_PREFIX, DailyService } from './daily/service.js';
 import { createDbDailyStore } from './daily/store.js';
 import { registerTournamentRoutes } from './tournament/routes.js';
 import { TournamentService } from './tournament/service.js';
@@ -951,6 +954,8 @@ if (isMainModule(import.meta.url)) {
   let dailyRef: DailyService | undefined;
   /** Puzzles each player has had in duels, tables and 2v2: nobody gets the same one again while others remain (solo keeps its own recent list). */
   const puzzleHistory = new PuzzleHistory();
+  const playLog = db ? createDbPlayLog(db) : undefined;
+  const logMatchPlays = (mode: 'duel' | 'team', plays: readonly MatchPlay[]) => void playLog?.record(plays.map((p) => ({ ...p, mode, hintsUsed: 0 }))).catch((err) => console.error('play log failed', err));
   const solo =
     db && settings
       ? new SoloService(createDbPuzzleSource(db), {
@@ -959,8 +964,9 @@ if (isMainModule(import.meta.url)) {
           onGem: gemPayer,
           levelOf,
           trackOf: ageTracks ? (id) => ageTracks.effective(id) : undefined,
-          onFinished: (id, outcome, tag) => {
+          onFinished: (id, outcome, tag, detail) => {
             void player?.recordGame(id, { mode: 'solo', outcome });
+            if (detail) void playLog?.record([{ userId: id, mode: tag?.startsWith(DAILY_TAG_PREFIX) ? 'daily' : 'solo', outcome, ...detail }]).catch((err) => console.error('play log failed', err));
             void dailyRef?.onFinished(id, outcome, tag).catch((err) => console.error('daily finish failed', err));
           },
         })
@@ -1079,7 +1085,7 @@ if (isMainModule(import.meta.url)) {
     auth,
     settings,
     adminModules: db
-      ? { backups: backupService, images: adminImageStore(), products: productAdmin!, feedback, clientErrors, stats: createDbStatsAdmin(db), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, avatars: avatarStore, keepsakes: keepsakeStore, wheel, ads, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, ageTracks: db ? createDbAgeTrackAdmin(db) : undefined, economy: db ? createDbEconomyAdmin(db) : undefined, daily, ai: aiStudio, aiSchedules: aiScheduler, puzzles: createDbPuzzleAdmin(db), categories: createDbCategoryAdmin(db), trivia: triviaStore, workshop, leaves, levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, sms: smsGateway, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
+      ? { backups: backupService, images: adminImageStore(), products: productAdmin!, feedback, clientErrors, stats: createDbStatsAdmin(db), usage: createDbUsageStats(db), bazaar: createBazaarMonitor({ token: process.env.BAZAAR_PISHKHAN_TOKEN }), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, avatars: avatarStore, keepsakes: keepsakeStore, wheel, ads, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, ageTracks: db ? createDbAgeTrackAdmin(db) : undefined, economy: db ? createDbEconomyAdmin(db) : undefined, daily, ai: aiStudio, aiSchedules: aiScheduler, puzzles: createDbPuzzleAdmin(db), categories: createDbCategoryAdmin(db), trivia: triviaStore, workshop, leaves, levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, sms: smsGateway, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
     realtime: Boolean(auth),
     triviaDuel:
@@ -1154,11 +1160,13 @@ if (isMainModule(import.meta.url)) {
           tableStakes,
           profile: duelProfile!,
           // A 2v2 earns the duel XP too (progression.md: team reuses the duel base) — people and bots alike.
-          onTeamEnded: ({ players, result }) => {
+          onTeamEnded: ({ players, result, plays }) => {
+            logMatchPlays('team', plays);
             if (result.reason === 'abandon') return;
             for (const p of players) void player?.recordGame(p.userId, { mode: 'duel', outcome: result.winner === null ? 'draw' : result.winner === p.side ? 'win' : 'loss' });
           },
-          onEnded: ({ players, result }) => {
+          onEnded: ({ players, result, plays }) => {
+            logMatchPlays('duel', plays);
             if (tournamentService) void tournamentService.onMatchEnded(players, result.winner);
             if (result.reason !== 'abandon') {
               players.forEach((id, side) => void player?.recordGame(id, { mode: 'duel', outcome: result.winner === null ? 'draw' : result.winner === side ? 'win' : 'loss' }));

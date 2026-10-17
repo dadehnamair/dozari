@@ -4,6 +4,8 @@ export interface ClientInfo {
   osVersion: string | null;
   appBuild: number | null;
   store: 'myket' | 'bazaar' | 'bale' | null;
+  /** The web build runs as an installed home-screen app (PWA), not in a browser tab. */
+  pwa: boolean;
 }
 
 type Headers = Record<string, string | string[] | undefined>;
@@ -24,6 +26,7 @@ export function parseClientInfo(h: Headers): ClientInfo | null {
     osVersion: os && /^[\w.\- ]{1,24}$/.test(os) ? os : null,
     appBuild: Number.isInteger(build) && build > 0 && build < 1_000_000 ? build : null,
     store: store === 'myket' || store === 'bazaar' || store === 'bale' ? store : null,
+    pwa: platform === 'web' && one(h, 'x-client-pwa') === '1',
   };
 }
 
@@ -35,7 +38,7 @@ export interface ClientInfoStore {
 export function createClientRecorder(store: ClientInfoStore, now: () => number = Date.now, everyMs = 30 * 60_000) {
   const seen = new Map<string, { sig: string; at: number }>();
   return async (userId: string, info: ClientInfo): Promise<void> => {
-    const sig = `${info.platform}|${info.osVersion}|${info.appBuild}|${info.store}`;
+    const sig = `${info.platform}|${info.osVersion}|${info.appBuild}|${info.store}|${info.pwa}`;
     const prev = seen.get(userId);
     if (prev && prev.sig === sig && now() - prev.at < everyMs) return;
     if (seen.size > 20_000) seen.clear();

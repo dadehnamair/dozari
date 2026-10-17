@@ -181,6 +181,8 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'profiletask.coins_follow_instagram', group: 'economy', label: 'ماموریت: دنبال‌کردن اینستاگرام', hint: 'قابل بررسی نیست (ادعای خود بازیکن)، پس کم بگذار. ۰ = بدون جایزه', kind: 'int', min: 0, max: 10000, default: 15, unit: 'سکه' },
   { key: 'profiletask.coins_follow_channel', group: 'economy', label: 'ماموریت: عضویت در کانال', hint: 'قابل بررسی نیست (ادعای خود بازیکن)، پس کم بگذار. ۰ = بدون جایزه', kind: 'int', min: 0, max: 10000, default: 15, unit: 'سکه' },
   { key: 'profiletask.coins_rate_app', group: 'economy', label: 'ماموریت: نظر دادن در فروشگاه', hint: 'قابل بررسی نیست (ادعای خود بازیکن). ۰ = بدون جایزه', kind: 'int', min: 0, max: 10000, default: 40, unit: 'سکه' },
+  { key: 'profiletask.coins_rate_myket', group: 'economy', label: 'ماموریت: امتیاز و نظر در مایکت', hint: 'قابل بررسی نیست (ادعای خود بازیکن). ۰ = بدون جایزه', kind: 'int', min: 0, max: 10000, default: 40, unit: 'سکه' },
+  { key: 'profiletask.coins_rate_bazaar', group: 'economy', label: 'ماموریت: امتیاز و نظر در کافه‌بازار', hint: 'قابل بررسی نیست (ادعای خود بازیکن). ۰ = بدون جایزه', kind: 'int', min: 0, max: 10000, default: 40, unit: 'سکه' },
   { key: 'link.instagram', group: 'app', label: 'لینک صفحه‌ی اینستاگرام', hint: 'خالی = ماموریت دنبال‌کردن اینستاگرام نمایش داده نمی‌شود', kind: 'text', min: 0, max: 200, default: '' },
   { key: 'sponsor.cta_title', group: 'app', label: 'دعوت به اسپانسری: عنوان', kind: 'text', min: 0, max: 60, default: 'می‌خوای اسپانسر بشی؟' },
   { key: 'sponsor.cta_body', group: 'app', label: 'دعوت به اسپانسری: متن', kind: 'text', min: 0, max: 300, default: 'اسم و بنر کسب‌وکارت بالای تورنومنت‌های دوزاری می‌ماند و جلوی چشم هزاران بازیکن قرار می‌گیرد.' },
