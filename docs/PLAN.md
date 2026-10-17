@@ -282,3 +282,10 @@ Start after the first Android build.
 - [x] 5d. Question workshop («کارگاه سؤال») — players design questions, blind community review, admin decides, author coins + reviewer points + loud Home card (`docs/logic/question-workshop.md`, D237); a reviewer-accuracy tier, an author cooldown and edit-and-resubmit are open
 - [x] 5e. Question difficulty — recorded per question, measured from play, admin switch `trivia.level_matching` to serve by player level (`docs/logic/trivia.md` §Difficulty, D238); turn it on when each level has a few dozen questions per topic
 - [x] 6. Shop: shuffle opponent's cards, reveal a group — `docs/logic/shop-match-items.md` (migration 0082)
+
+## Group game in Bale/Telegram groups (D244, proposed) — see `docs/logic/group-game.md`
+
+- [x] 1. Daily puzzle in a group — join, `/play`, cooperative inline-button board, one play per group per day, app deep link (migration 0097); Bale callbacks/editMessage unverified on the live API
+- [ ] 2. Group leaderboard (`/top`) and a private-table deep link
+- [ ] 3. Price-guess mode in groups
+- [ ] 4. Admin stats: groups, plays, funnel to installs

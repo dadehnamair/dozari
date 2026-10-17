@@ -743,6 +743,31 @@ export const baleLinks = mysqlTable(
   (table) => ({ uniqChat: uniqueIndex('bale_links_chat_uq').on(table.chatId) }),
 );
 
+/** A Bale/Telegram group the bot sits in (docs/logic/group-game.md). Telegram chat ids keep the `tg:` prefix. `removedAt` = the bot was removed. */
+export const botGroups = mysqlTable('bot_groups', {
+  chatId: varchar('chat_id', { length: 40 }).primaryKey(),
+  platform: mysqlEnum('platform', ['bale', 'telegram']).notNull(),
+  title: varchar('title', { length: 200 }).notNull().default(''),
+  addedAt: datetime('added_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+  removedAt: datetime('removed_at', { mode: 'date', fsp: 3 }),
+});
+
+/** One daily-puzzle play per group per Tehran day; the primary key is the one-play rule. */
+export const botGroupPlays = mysqlTable(
+  'bot_group_plays',
+  {
+    chatId: varchar('chat_id', { length: 40 }).notNull().references(() => botGroups.chatId, { onDelete: 'cascade' }),
+    dateKey: char('date_key', { length: 10 }).notNull(),
+    result: mysqlEnum('result', ['playing', 'won', 'lost']).notNull().default('playing'),
+    mistakes: int('mistakes').notNull().default(0),
+    solvedGroups: int('solved_groups').notNull().default(0),
+    players: int('players').notNull().default(0),
+    startedAt: datetime('started_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
+    finishedAt: datetime('finished_at', { mode: 'date', fsp: 3 }),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.chatId, t.dateKey] }) }),
+);
+
 /** Browser Web Push subscriptions (D232): one row per browser/device the player allowed notifications on. iPhone push (installed web app) goes through Apple's service, Chrome's through Google's; the endpoint says which. */
 export const webPushSubscriptions = mysqlTable(
   'web_push_subscriptions',

@@ -814,3 +814,6 @@ server, it only readies the host, tells Telegram from Bale (`tgWebAppPlatform`) 
 Consequences, accepted by the owner: accounts the old login made keep working on the phones that stored their token, but one whose number was never verified and whose storage is lost
 cannot be reached again; in Bale's sandboxed iframe (no `localStorage`) a guest account lasts one visit unless a number is verified. Bale in-app payment (`openInvoice`) stays as it was: it maps the
 Bale id only to accounts the old login made; new guest accounts pay once their Bale chat is linked (a phone-number mapping is the proposed next step). Unverified: that Bale's launches carry no `tgWebAppPlatform`.
+## D244 — Group game: the bot plays the daily puzzle inside Bale/Telegram groups, then pulls players to the app (2026-10-17, proposed)
+
+Owner (2026-10-17): a service so the game can be played in Telegram/Bale groups, to attract installs; bot added to groups, a party mode, and some things only the app has. Bale first. Proposed: the existing bot gains a cooperative group board (inline buttons, one edited message) on today's daily puzzle, one play per group per day, no coins in groups, a «ادامه در بازی» mini-app deep link at the end; phases and data in `docs/logic/group-game.md`. Open: the free plays per group per day (proposed 1) and whether Telegram goes live together with Bale.

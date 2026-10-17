@@ -162,8 +162,12 @@ export class NotifyService {
     return due.length;
   }
 
+  /** Set at start-up when the bot can play in groups (docs/logic/group-game.md); it takes group chats and its own button taps first. */
+  groups?: { handleUpdate(update: BaleUpdate): Promise<boolean> };
+
   /** One incoming message of the bot: link code, /status, /stop, else help. */
   async handleUpdate(update: BaleUpdate): Promise<void> {
+    if (this.groups && (await this.groups.handleUpdate(update))) return;
     if (update.pre_checkout_query) return this.handlePreCheckout(update.pre_checkout_query);
     const msg = update.message;
     if (msg?.successful_payment) return this.handlePaid(msg.chat.id, msg.successful_payment);

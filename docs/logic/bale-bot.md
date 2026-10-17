@@ -94,3 +94,5 @@ Owner request (2026-10-17): the same bot runs on Telegram too, Telegram first in
 - `GET /bale/link` and `POST /bale/link-code` also return `telegramBotUsername`; the sheet shows «باز کردن در تلگرام» (`https://t.me/<bot>?start=<code>`) above the Bale button.
 - Mini-app payers: `miniAppUserOf` understands `tg:` ids (Telegram device id space). Wallet payments (invoices) stay Bale-only; Telegram has no rial provider.
 - Not verified against the live Telegram API.
+
+Groups: the bot also plays the daily puzzle in groups, see `docs/logic/group-game.md`.

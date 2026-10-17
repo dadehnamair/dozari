@@ -680,6 +680,13 @@
       "when": 1792240551489,
       "tag": "0096_sturdy_omega_red",
       "breakpoints": true
+    },
+    {
+      "idx": 97,
+      "version": "5",
+      "when": 1792243961768,
+      "tag": "0097_motionless_mastermind",
+      "breakpoints": true
     }
   ]
 }

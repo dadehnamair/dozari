@@ -101,6 +101,8 @@ import { createBaleClient, createMultiClient, createTelegramClient, isTelegramId
 import { NotifyService } from './notify/service.js';
 import { createBaleSignup } from './notify/signup.js';
 import { startNotifyRunner } from './notify/runner.js';
+import { GroupGameService } from './groupgame/service.js';
+import { createDbGroupGameStore } from './groupgame/store.js';
 import { registerBaleRoutes } from './notify/routes.js';
 import { FcmService, createDbFcmTokenStore, createFcmSender, loadServiceAccount, registerFcmRoutes } from './notify/fcm.js';
 import { irnotiPushFromEnv, registerIrnotiPushRoutes } from './notify/irnoti-push.js';
@@ -1338,6 +1340,21 @@ if (isMainModule(import.meta.url)) {
   }
   if (notify && (baleClient || telegramClient)) {
     const clients = [baleClient && { name: 'bale', client: baleClient }, telegramClient && { name: 'telegram', client: telegramClient }].filter((c): c is NonNullable<typeof c> => !!c);
+    // The bot also plays the daily puzzle inside groups (docs/logic/group-game.md).
+    const groupClient = createMultiClient(baleClient, telegramClient);
+    if (db && daily && groupClient) {
+      const groupPuzzles = createDbPuzzleSource(db);
+      notify.groups = new GroupGameService({
+        store: createDbGroupGameStore(db),
+        client: groupClient,
+        todayPuzzle: async (dateKey) => {
+          const row = await daily.ensure(dateKey);
+          return row ? ((await groupPuzzles.byId?.(row.puzzleId)) ?? null) : null;
+        },
+        usernames: { bale: baleUsername, telegram: telegramUsername },
+        log: (msg, err) => (err ? app.log.warn({ err }, msg) : app.log.info(msg)),
+      });
+    }
     const runner = startNotifyRunner({ service: notify, clients, settings, log: (msg, err) => (err ? app.log.error({ err }, msg) : app.log.info(msg)) });
     app.addHook('onClose', async () => runner.stop());
   }
