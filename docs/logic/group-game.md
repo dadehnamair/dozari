@@ -5,7 +5,7 @@ Bale first; Telegram runs on the same code (ids carry the `tg:` prefix, `docs/lo
 
 ## Phases
 1. **Daily puzzle in a group** (built): join, `/play`, cooperative board with inline buttons, one play per group per day, app call-to-action.
-2. Weekly group leaderboard `/top` (built). The private-table deep link is **not built**: a table needs a signed-in host and the mini-app has no `startapp=table_<code>` mapping yet; until then the call-to-action opens `?startapp=duel`.
+2. Weekly group leaderboard `/top` (built). Private-table card `/table CODE` (built, see §Table card).
 3. Price mode `/price` (built, see §Price mode).
 4. Admin stats and the funnel from group links to new accounts (built, see §Funnel).
 
@@ -17,7 +17,7 @@ Bale first; Telegram runs on the same code (ids carry the `tg:` prefix, `docs/lo
 - Privacy: the bot reads only commands and button taps in groups, never ordinary messages.
 
 ## Commands (a `@botname` suffix is ignored)
-`/start` · `/help` welcome and rules · `/play` today's puzzle · `/price` price questions · `/top` this week's best members of the group.
+`/start` · `/help` welcome and rules · `/table CODE` card for a private table · `/play` today's puzzle · `/price` price questions · `/top` this week's best members of the group.
 
 ## Rules of the round
 - The puzzle is **today's daily puzzle** (`DailyService.ensure`, same as in the app), 16 cards, 4 groups of 4. Cooperative: the whole group shares one board,
@@ -53,6 +53,18 @@ Bale first; Telegram runs on the same code (ids carry the `tg:` prefix, `docs/lo
 - At most `GROUP_PRICE_SESSIONS_PER_DAY` sessions per group per Tehran day (`bot_group_price_sessions`, an atomic counter); more is answered with the app
   call-to-action. One session at a time per group. A server restart drops a running session (its already revealed points stay saved; the daily count stays used).
 - Timers are in memory (`schedule` is injected so tests drive them).
+
+## Table card (`/table CODE`)
+- A player opens a private table in the app (it has a 5-character code) and writes `/table CODE` in the group. The bot answers with a card — host, table name, format,
+  seats taken, entry fee, code — and a URL button «ورود به میز 🎮» → `https://ble.ir/<bot>?startapp=table_<CODE>_g<ref>` (Telegram: `https://t.me/...`).
+  The code is the secret that lets someone post a table, exactly as it is in the app; a card shows public facts only (`TableService.card`: no player ids).
+- `TableService.card(code)` gives nothing (the bot says «پیدا نشد») for an unknown, expired, locked, full or playing table, and **never for a family table**.
+  Without the bot's username there is no link, so no card. A malformed code (alphabet or length) gets the usage text. At most 3 cards per group per minute.
+- Mini-app bridge: `table_<CODE>(_g<ref>)?` → `?go=table&code=<CODE>` (the code is shape-checked in the bridge and again in the game) and keeps `g<ref>` as the link source.
+  The game (`pwa/logic.ts tableLaunchOf`, `usePwa.takeTableCode`, `App.tsx` → `HomeScreen openTableCode`) opens the table sheet on that code once; the sheet then
+  joins through the normal `POST /tables/:code/join`, so every ordinary check applies (age track, family, guardian, leave ban, lock, full, coins). A guest account is
+  made on the way, like any first visit. A shared link on an old app build just opens Home.
+- Not built: a «share to group» button inside the app (the host writes `/table CODE` by hand), and a card that updates its seat count.
 
 ## Call to action
 The finishing message (and the «already played today» answer) carries a URL button «ادامه در بازی» → mini-app deep link

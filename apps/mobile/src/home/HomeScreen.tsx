@@ -86,7 +86,7 @@ interface Tile {
  * speech bubble, corner tiles down both sides, the floating hero, and two big buttons at the bottom. Every feature
  * keeps its sheet; a tile only shows when its feature flag is on.
  */
-export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onTriviaDuel, onWorkshop, onDaily, onDuel, onDuelResume, onTutorial, onLookup, onGallery, features = OPEN_CONFIG.features, settings = OPEN_CONFIG.raw, myTrack, onPreview }: { onSolo: () => void; onPreview?: (track: 'kid' | 'teen') => void; onPriceOnly?: () => void; onTrivia?: () => void; onTriviaDuel?: () => void; onWorkshop?: (tab?: 'make' | 'review') => void; onDaily?: () => void; onDuel?: () => void; onDuelResume?: () => void; onTutorial?: () => void; onLookup: () => void; onGallery?: () => void; features?: ClientConfig['features']; settings?: ClientConfig['raw']; /** Track rules and the guardian's limits; absent = no restriction. */ myTrack?: { rules: TrackRulesDto | null; limits: ChildLimits | null } }) {
+export function HomeScreen({ openTableCode, onTableOpened, onSolo, onPriceOnly, onTrivia, onTriviaDuel, onWorkshop, onDaily, onDuel, onDuelResume, onTutorial, onLookup, onGallery, features = OPEN_CONFIG.features, settings = OPEN_CONFIG.raw, myTrack, onPreview }: { /** A shared private table link: open the table sheet on this code once. */ openTableCode?: string; onTableOpened?: () => void; onSolo: () => void; onPreview?: (track: 'kid' | 'teen') => void; onPriceOnly?: () => void; onTrivia?: () => void; onTriviaDuel?: () => void; onWorkshop?: (tab?: 'make' | 'review') => void; onDaily?: () => void; onDuel?: () => void; onDuelResume?: () => void; onTutorial?: () => void; onLookup: () => void; onGallery?: () => void; features?: ClientConfig['features']; settings?: ClientConfig['raw']; /** Track rules and the guardian's limits; absent = no restriction. */ myTrack?: { rules: TrackRulesDto | null; limits: ChildLimits | null } }) {
   const adult = useTheme() === 'adult';
   const month = useMemo(() => solarMonthOf(Date.now()), []);
   /** Short phones (≤700px tall) get tighter columns and a smaller hero so nothing runs into the bottom buttons. */
@@ -106,6 +106,14 @@ export function HomeScreen({ onSolo, onPriceOnly, onTrivia, onTriviaDuel, onWork
   const turn = useTournamentTurn(features.tournament && myTrack?.rules?.tournaments !== false, onDuelResume);
   const [tableOpen, setTableOpen] = useState(false);
   const [tableCode, setTableCode] = useState<string | undefined>(undefined);
+  // A shared table link (docs/logic/group-game.md §Table card): open the table straight on its code, once.
+  useEffect(() => {
+    if (!openTableCode) return;
+    onTableOpened?.();
+    if (!features.tables) return;
+    setTableCode(openTableCode);
+    setTableOpen(true);
+  }, [openTableCode]);
   const [inboxOpen, setInboxOpen] = useState(false);
   const [ledgerOpen, setLedgerOpen] = useState(false);
   /** The explainer page of the 💎 or 🔥 counter. */

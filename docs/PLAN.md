@@ -287,6 +287,6 @@ Start after the first Android build.
 
 - [x] 1. Daily puzzle in a group — join, `/play`, cooperative inline-button board, one play per group per day, app deep link (migration 0097); Bale callbacks/editMessage unverified on the live API
 - [x] 2a. Weekly group leaderboard `/top` (migration 0098)
-- [ ] 2b. Private-table deep link (needs a mini-app `startapp=table_<code>` mapping)
+- [x] 2b. Private-table card `/table CODE` and `startapp=table_<CODE>` deep link
 - [x] 3. Price mode `/price` in groups (migration 0099)
 - [x] 4. Admin stats «گروه‌های ربات» and the group-link funnel (`startapp=daily_g<ref>`, migration 0100)

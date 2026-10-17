@@ -1,5 +1,5 @@
 import { randomInt } from 'node:crypto';
-import { GROUP_ROUND_TTL_MS, GROUP_TAP_LIMIT, GROUP_TOP_SIZE, GROUP_SIZE, SOLO_MAX_MISTAKES, dailyDateKey, groupPoints, groupWeekKey, mulberry32, rankGroupScores, shuffleBoard, startSolo, submitGuess } from '@dozari/shared';
+import { normalizeTableCode, GROUP_ROUND_TTL_MS, GROUP_TAP_LIMIT, GROUP_TOP_SIZE, GROUP_SIZE, SOLO_MAX_MISTAKES, dailyDateKey, groupPoints, groupWeekKey, mulberry32, rankGroupScores, shuffleBoard, startSolo, submitGuess } from '@dozari/shared';
 import type { Rng, SoloState } from '@dozari/shared';
 import type { BaleClient, BaleUpdate } from '../notify/client.js';
 import { isTelegramId } from '../notify/client.js';
@@ -10,7 +10,18 @@ import type { GroupPriceQuestion } from './price.js';
 import { parseCallback, renderBoard } from './render.js';
 import type { BoardView } from './render.js';
 import type { GroupGameStore } from './store.js';
-import { GROUP_TEXT, fa } from './texts.js';
+import { GROUP_TEXT, TABLE_TEXT, fa } from './texts.js';
+
+/** What a group card shows about a private table. */
+export interface GroupTableCard {
+  code: string;
+  name: string;
+  format: '1v1' | '2v2';
+  entryFee: number;
+  seats: number;
+  taken: number;
+  hostNickname: string;
+}
 
 export interface GroupGameDeps {
   store: GroupGameStore;
@@ -19,6 +30,8 @@ export interface GroupGameDeps {
   todayPuzzle: (dateKey: string) => Promise<ServedPuzzle | null>;
   /** Price-mode questions (phase 3); absent = no `/price`. */
   drawPrices?: (count: number) => Promise<GroupPriceQuestion[]>;
+  /** A joinable table by code, for `/table CODE`; absent = no table cards. */
+  tableCard?: (code: string) => GroupTableCard | null;
   /** Runs a function later (a timer in production, a manual queue in tests). */
   schedule?: (fn: () => void, ms: number) => void;
   /** Bot usernames for the mini-app deep link (without «@»). */
@@ -51,6 +64,8 @@ const dateFa = (dateKey: string): string => fa(dateKey.replaceAll('-', '/'));
 export class GroupGameService {
   private readonly rounds = new Map<string, Round>();
   private readonly taps = new RateLimiter(GROUP_TAP_LIMIT, 60_000);
+  /** Table cards per group: a card is a loud message, so a few a minute. */
+  private readonly cards = new RateLimiter(3, 60_000);
   private readonly price?: GroupPriceGame;
   private readonly now: () => number;
   private readonly newSeed: () => number;
@@ -92,10 +107,11 @@ export class GroupGameService {
     if (!m || !isGroupType(m.chat.type)) return false;
     const chatId = String(m.chat.id);
     const cmd = (m.text ?? '').trim().split(/\s+/)[0]?.toLowerCase().replace(/@.*$/, '') ?? '';
-    if (cmd === '/play' || cmd === '/price' || cmd === '/top' || cmd === '/start' || cmd === '/help') {
+    if (cmd === '/play' || cmd === '/price' || cmd === '/table' || cmd === '/top' || cmd === '/start' || cmd === '/help') {
       await this.register(chatId, m.chat.title ?? '');
       if (cmd === '/play') await this.play(chatId);
       else if (cmd === '/price' && this.price) await this.price.start(chatId);
+      else if (cmd === '/table' && this.d.tableCard) await this.tableCard(chatId, m.text ?? '');
       else if (cmd === '/top') await this.top(chatId);
       else await this.say(chatId, cmd === '/start' ? GROUP_TEXT.welcome : GROUP_TEXT.help);
     }
@@ -179,6 +195,26 @@ export class GroupGameService {
       this.rounds.delete(chatId);
       this.d.log?.('group: board send failed', err);
     }
+  }
+
+  /** `/table CODE`: a card with a button that opens the mini-app straight on that private table. */
+  private async tableCard(chatId: string, text: string): Promise<void> {
+    const code = normalizeTableCode(text.trim().split(/\s+/)[1] ?? '');
+    if (!code) return void (await this.say(chatId, TABLE_TEXT.usage));
+    if (!this.cards.take(chatId)) return void (await this.say(chatId, TABLE_TEXT.slow));
+    const t = this.d.tableCard!(code);
+    const url = this.tableUrl(chatId, code);
+    if (!t || !url || !this.d.client.sendInline) return void (await this.say(chatId, TABLE_TEXT.notFound));
+    const body = TABLE_TEXT.card(t.name, t.hostNickname, t.format === '2v2' ? '۲ به ۲' : '۱ به ۱', t.taken, t.seats, t.entryFee, t.code);
+    await this.d.client.sendInline(chatId, body, [[{ text: TABLE_TEXT.button, url }]]).catch((err) => this.d.log?.('group: send failed', err));
+  }
+
+  /** `?startapp=table_<CODE>_g<ref>`: opens the table in the mini-app and says which group sent the player. */
+  private tableUrl(chatId: string, code: string): string | null {
+    const tg = this.platformOf(chatId) === 'telegram';
+    const user = tg ? this.d.usernames.telegram : this.d.usernames.bale;
+    const ref = this.refs.get(chatId);
+    return user ? `${tg ? 'https://t.me' : 'https://ble.ir'}/${user}?startapp=table_${code}${ref ? `_g${ref}` : ''}` : null;
   }
 
   /** `/top`: this week's members of the group, best first. */

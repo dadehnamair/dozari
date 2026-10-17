@@ -57,7 +57,7 @@ static/cached recent-players sample, not a live query. Prototype: `prototype/scr
 
 - Host creates: `{format: '1v1'|'2v2', entryFee}` → 5-char room code (alphabet without 0/O/1/I/L),
   expires after *ROOM_IDLE_MINUTES* = 15 without start.
-- Deep link `dozari://room/<CODE>` and web URL `https://<domain>/r/<CODE>`.
+- Deep link `dozari://room/<CODE>` and web URL `https://<domain>/r/<CODE>`; from a Bale/Telegram group, `/table CODE` posts a card whose button opens the mini-app on the table (`docs/logic/group-game.md` §Table card).
 - Joiners pick a side; host can swap/kick; host starts when seats are full. Entry fee escrowed at start.
 - Rematch keeps the same room.
 - **Host ownership features (D52)** — beyond the bare controls above: a custom table name + emoji

@@ -61,7 +61,8 @@ function setup(opts: { bale?: string | null } = {}) {
     client,
     todayPuzzle: async () => puzzle,
     drawPrices: async (n) => [1, 2, 3, 4, 5].slice(0, n).map((i) => ({ nameFa: `نان ${i}`, unitFa: i === 1 ? 'عدد' : null, year: 1370 + i, actualRials: BigInt(i * 1000), options: [BigInt(i * 500), BigInt(i * 1000), BigInt(i * 2000), BigInt(i * 3000)] })),
-    schedule: (fn, ms) => void timers.push({ fn, ms }), usernames: { bale: opts.bale === undefined ? 'dozari_bot' : opts.bale, telegram: 'dozari_tg' },
+    schedule: (fn, ms) => void timers.push({ fn, ms }),
+    tableCard: (code) => (code === 'AB2CD' ? { code, name: 'میز علی', format: '1v1', entryFee: 0, seats: 2, taken: 1, hostNickname: 'علی' } : code === 'FEE22' ? { code, name: 'میز پولی', format: '2v2', entryFee: 20, seats: 4, taken: 3, hostNickname: 'سارا' } : null), usernames: { bale: opts.bale === undefined ? 'dozari_bot' : opts.bale, telegram: 'dozari_tg' },
     now: () => clock.t,
     newSeed: () => 7,
   });
@@ -306,6 +307,40 @@ describe('price mode', () => {
     expect(t.sent.at(-1)!.text).toContain('در جریان');
     await priceTap(t, 3, 1, 100, 5); // wrong question index
     expect(t.answers.at(-1)).toContain('تمام');
+  });
+});
+
+describe('table card', () => {
+  it('posts a card with a deep link to the table, naming the group that sent the player', async () => {
+    const t = setup();
+    await t.svc.handleUpdate(t.msg('/table ab2cd'));
+    const card = t.sent.at(-1)!;
+    expect(card.text).toContain('میز «میز علی»');
+    expect(card.text).toContain('رایگان');
+    expect(card.keyboard![0]![0]!.url).toBe('https://ble.ir/dozari_bot?startapp=table_AB2CD_gk3f9x2m');
+    await t.svc.handleUpdate(t.msg('/table FEE22'));
+    expect(t.sent.at(-1)!.text).toContain('۲۰ سکه');
+    expect(t.sent.at(-1)!.text).toContain('۲ به ۲');
+  });
+
+  it('explains a missing, malformed or unknown code, and slows a flood', async () => {
+    const t = setup();
+    await t.svc.handleUpdate(t.msg('/table'));
+    expect(t.sent.at(-1)!.text).toContain('/table AB2CD');
+    await t.svc.handleUpdate(t.msg('/table AB1CD')); // 1 is not in the alphabet
+    expect(t.sent.at(-1)!.text).toContain('/table AB2CD');
+    await t.svc.handleUpdate(t.msg('/table ZZZZZ'));
+    expect(t.sent.at(-1)!.text).toContain('پیدا نشد');
+    await t.svc.handleUpdate(t.msg('/table AB2CD'));
+    await t.svc.handleUpdate(t.msg('/table AB2CD'));
+    await t.svc.handleUpdate(t.msg('/table AB2CD')); // the fourth card in a minute
+    expect(t.sent.at(-1)!.text).toContain('کمی صبر');
+  });
+
+  it('gives no card without a bot username for the link', async () => {
+    const t = setup({ bale: null });
+    await t.svc.handleUpdate(t.msg('/table AB2CD'));
+    expect(t.sent.at(-1)!.text).toContain('پیدا نشد');
   });
 });
 

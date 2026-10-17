@@ -1353,6 +1353,7 @@ if (isMainModule(import.meta.url)) {
           const row = await daily.ensure(dateKey);
           return row ? ((await groupPuzzles.byId?.(row.puzzleId)) ?? null) : null;
         },
+        tableCard: tableService ? (code) => tableService.card(code) : undefined,
         drawPrices: async (n) => {
           const { catalog, items } = await createDbPriceOnlySource(db).products(n * 3);
           return selectPriceOnlyRounds(catalog, n, mulberry32(randomInt(0, 2 ** 31)))
