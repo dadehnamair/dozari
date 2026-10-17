@@ -1364,6 +1364,12 @@ if (isMainModule(import.meta.url)) {
         log: (msg, err) => (err ? app.log.warn({ err }, msg) : app.log.info(msg)),
       });
     }
+    if (find) {
+      notify.inviteLink = async (userId, telegram) => {
+        const user = telegram ? telegramUsername : baleUsername;
+        return user ? `${telegram ? 'https://t.me' : 'https://ble.ir'}/${user}?startapp=i_${await find.handle(userId)}` : null;
+      };
+    }
     const runner = startNotifyRunner({ service: notify, clients, settings, log: (msg, err) => (err ? app.log.error({ err }, msg) : app.log.info(msg)) });
     app.addHook('onClose', async () => runner.stop());
   }

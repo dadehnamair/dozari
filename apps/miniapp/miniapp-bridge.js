@@ -103,6 +103,8 @@
     // (docs/logic/group-game.md §Funnel, §Table card). The ref is kept for the game's request headers.
     var parts = /^(solo|daily|duel)(?:_(g[a-z0-9]{4,12}))?$/.exec(raw);
     var table = parts ? null : /^table_([2-9A-HJKMNP-Z]{5})(?:_(g[a-z0-9]{4,12}))?$/.exec(raw);
+    // «i_<ID>» = a friend's personal invite link from the bot's /invite (docs/logic/group-game.md §Personal invite link)
+    var invite = parts || table ? null : /^i_([A-Za-z0-9]{4,12})$/.exec(raw);
     var ref = parts ? parts[2] : table ? table[2] : '';
     if (ref) {
       try {
@@ -111,9 +113,9 @@
         /* no storage: the visit is simply not attributed */
       }
     }
-    if (location.search.indexOf('go=') !== -1 || (!parts && !table)) return;
+    if (location.search.indexOf('go=') !== -1 || (!parts && !table && !invite)) return;
     try {
-      history.replaceState(null, '', location.pathname + (table ? '?go=table&code=' + table[1] : '?go=' + parts[1]) + location.hash);
+      history.replaceState(null, '', location.pathname + (invite ? '?go=invite&code=' + invite[1] : table ? '?go=table&code=' + table[1] : '?go=' + parts[1]) + location.hash);
     } catch (e) {
       /* the game then opens on its home screen */
     }

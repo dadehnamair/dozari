@@ -2,6 +2,7 @@ import { randomInt } from 'node:crypto';
 import { MUTABLE_NOTIFY_KINDS, normalizeIranPhone } from '@dozari/shared';
 import type { MutableNotifyKind } from '@dozari/shared';
 import { RateLimiter } from '../security/rate-limit.js';
+import { isTelegramId } from './client.js';
 import type { BaleClient, BaleUpdate } from './client.js';
 import type { BaleInvoice, BalePaid, PreCheckout } from '../economy/coin-packages.js';
 import type { PhoneService } from '../phone/service.js';
@@ -165,6 +166,9 @@ export class NotifyService {
   /** Set at start-up when the bot can play in groups (docs/logic/group-game.md); it takes group chats and its own button taps first. */
   groups?: { handleUpdate(update: BaleUpdate): Promise<boolean> };
 
+  /** The player's personal invite link into the mini-app for this messenger (docs/logic/group-game.md §Personal invite link); null = none can be made. */
+  inviteLink?: (userId: string, telegram: boolean) => Promise<string | null>;
+
   /** One incoming message of the bot: link code, /status, /stop, else help. */
   async handleUpdate(update: BaleUpdate): Promise<void> {
     if (this.groups && (await this.groups.handleUpdate(update))) return;
@@ -178,6 +182,12 @@ export class NotifyService {
     const reply = (t: string) => this.client!.sendMessage(chatId, t).catch(() => undefined);
     const cmd = text.split(/\s+/)[0]!.toLowerCase();
     if (cmd === '/stop') return void (await reply((await this.store.unlinkChat(chatId)) ? BALE_TEXT.stopped : BALE_TEXT.notLinked));
+    if (cmd === '/invite') {
+      // A linked chat or a mini-app player (the messenger id maps to their account) gets their own link; nobody else has an account to invite from.
+      const userId = (await this.store.userOfChat(chatId)) ?? (msg.from?.id === undefined ? null : ((await this.miniAppUserOf?.(String(msg.from.id))) ?? null));
+      const link = userId && this.inviteLink ? await this.inviteLink(userId, isTelegramId(chatId)).catch(() => null) : null;
+      return void (await reply(link ? BALE_TEXT.invite(link) : BALE_TEXT.inviteNone));
+    }
     if (cmd === '/status') {
       const mine = (await this.store.allLinked()).some((l) => l.chatId === chatId);
       return void (await reply(mine ? BALE_TEXT.statusLinked : BALE_TEXT.notLinked));

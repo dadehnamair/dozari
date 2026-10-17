@@ -1,14 +1,14 @@
 import { randomInt } from 'node:crypto';
-import { normalizeTableCode, GROUP_ROUND_TTL_MS, GROUP_TAP_LIMIT, GROUP_TOP_SIZE, GROUP_SIZE, SOLO_MAX_MISTAKES, dailyDateKey, groupPoints, groupWeekKey, mulberry32, rankGroupScores, shuffleBoard, startSolo, submitGuess } from '@dozari/shared';
-import type { Rng, SoloState } from '@dozari/shared';
+import { normalizeTableCode, GROUP_PLAY_MS, GROUP_PLAY_REMIND_MS, GROUP_ROUND_TTL_MS, GROUP_TAP_LIMIT, GROUP_TOP_SIZE, GROUP_COUNT, GROUP_SIZE, SOLO_MAX_MISTAKES, dailyDateKey, groupPoints, groupWeekKey, mulberry32, rankGroupScores, startSolo, submitGuess } from '@dozari/shared';
+import type { SoloState } from '@dozari/shared';
 import type { BaleClient, BaleUpdate } from '../notify/client.js';
 import { isTelegramId } from '../notify/client.js';
 import { RateLimiter } from '../security/rate-limit.js';
 import type { ServedPuzzle } from '../solo/types.js';
 import { GroupPriceGame, parsePriceCallback } from './price.js';
 import type { GroupPriceQuestion } from './price.js';
-import { parseCallback, renderBoard } from './render.js';
-import type { BoardView } from './render.js';
+import { parseCallback, rankPlayers, renderBoard, renderResults } from './render.js';
+import type { PlayerResult } from './render.js';
 import type { GroupGameStore } from './store.js';
 import { GROUP_TEXT, TABLE_TEXT, fa } from './texts.js';
 
@@ -41,16 +41,23 @@ export interface GroupGameDeps {
   log?: (msg: string, err?: unknown) => void;
 }
 
+/** One member's own game on the shared board. Nobody else ever sees any of it before the round closes. */
+interface Player {
+  name: string;
+  state: SoloState;
+  selection: string[];
+  lastSolvedAt: number;
+}
+
 interface Round {
   dateKey: string;
   puzzle: ServedPuzzle;
-  state: SoloState;
-  rng: Rng;
-  selection: string[];
+  /** The one card order every member plays on. */
+  order: readonly string[];
+  players: Map<string, Player>;
   rev: number;
   messageId: number | null;
-  players: Set<string>;
-  note: string;
+  endsAt: number;
   touchedAt: number;
 }
 
@@ -156,10 +163,6 @@ export class GroupGameService {
     await this.d.client.sendMessage(chatId, text).catch((err) => this.d.log?.('group: send failed', err));
   }
 
-  private view(chatId: string, r: Round): BoardView {
-    return { puzzle: r.puzzle, state: r.state, selection: r.selection, rev: r.rev, maxMistakes: SOLO_MAX_MISTAKES, dateFa: dateFa(r.dateKey), note: r.note, players: r.players.size, ctaUrl: this.ctaUrl(chatId) };
-  }
-
   private sweep(): void {
     const cutoff = this.now() - GROUP_ROUND_TTL_MS;
     for (const [k, r] of this.rounds) if (r.touchedAt < cutoff) this.rounds.delete(k);
@@ -181,20 +184,34 @@ export class GroupGameService {
     if (!round || round.dateKey !== dateKey) {
       const puzzle = await this.d.todayPuzzle(dateKey);
       if (!puzzle) return void (await this.say(chatId, GROUP_TEXT.unavailable));
-      const rng = mulberry32(this.newSeed());
-      round = { dateKey, puzzle, state: startSolo(puzzle, rng), rng, selection: [], rev: 0, messageId: null, players: new Set(), note: '', touchedAt: this.now() };
+      const order = startSolo(puzzle, mulberry32(this.newSeed())).remaining;
+      round = { dateKey, puzzle, order, players: new Map(), rev: 0, messageId: null, endsAt: this.now() + GROUP_PLAY_MS, touchedAt: this.now() };
       this.rounds.set(chatId, round);
+      this.armTimers(chatId, round);
     }
     await this.d.store.startPlay(chatId, dateKey);
     round.rev += 1; // the older board message stops answering
     round.touchedAt = this.now();
-    const { text, keyboard } = renderBoard(this.view(chatId, round));
+    const { text, keyboard } = renderBoard({ puzzle: round.puzzle, order: round.order, rev: round.rev, dateFa: dateFa(round.dateKey), minutes: Math.max(1, Math.ceil((round.endsAt - this.now()) / 60_000)) });
     try {
       round.messageId = (await this.d.client.sendInline!(chatId, text, keyboard)).messageId;
     } catch (err) {
       this.rounds.delete(chatId);
       this.d.log?.('group: board send failed', err);
     }
+  }
+
+  /** The five-minutes-left reminder and the closing bell of a round (timers are in memory; a restart drops them with the round). */
+  private armTimers(chatId: string, round: Round): void {
+    const schedule = this.d.schedule ?? ((fn, ms) => void setTimeout(fn, ms).unref());
+    const live = () => this.rounds.get(chatId) === round;
+    schedule(() => void this.remind(chatId, round, live).catch((err) => this.d.log?.('group: reminder failed', err)), GROUP_PLAY_MS - GROUP_PLAY_REMIND_MS);
+    schedule(() => void (live() && this.finish(chatId, round)), GROUP_PLAY_MS);
+  }
+
+  private async remind(chatId: string, round: Round, live: () => boolean): Promise<void> {
+    if (!live()) return;
+    await this.say(chatId, GROUP_TEXT.remind(Math.round(GROUP_PLAY_REMIND_MS / 60_000), round.players.size));
   }
 
   /** `/table CODE`: a card with a button that opens the mini-app straight on that private table. */
@@ -225,6 +242,7 @@ export class GroupGameService {
     await this.say(chatId, [GROUP_TEXT.topTitle, '', ...lines, '', GROUP_TEXT.topFooter].join('\n'));
   }
 
+  /** A member's tap. Whatever it does is answered to them alone (a toast); the group's message is never edited by a tap. */
   private async onTap(q: NonNullable<BaleUpdate['callback_query']>): Promise<void> {
     const chatId = q.message ? String(q.message.chat.id) : null;
     if (!chatId) return;
@@ -232,64 +250,90 @@ export class GroupGameService {
     const cb = parseCallback(q.data)!;
     const round = this.rounds.get(chatId);
     if (!round || round.messageId !== q.message!.message_id) return void (await answer(GROUP_TEXT.gone));
+    if (this.now() >= round.endsAt) {
+      await answer(GROUP_TEXT.timeUp);
+      return void (await this.finish(chatId, round));
+    }
     const who = String(q.from.id);
     if (!this.taps.take(who)) return void (await answer());
     round.touchedAt = this.now();
-    if (cb.rev !== round.rev) {
-      await answer(GROUP_TEXT.stale);
-      return void (await this.redraw(chatId, round));
-    }
-
     const name = q.from.first_name?.trim() || GROUP_TEXT.anon;
-    let toast: string | undefined;
-    const a = cb.action;
-    if (a === 'c') {
-      round.selection = [];
-      round.note = '';
-    } else if (a === 'h') {
-      round.state = shuffleBoard(round.state, round.rng);
-    } else if (a === 's') {
-      if (round.selection.length !== GROUP_SIZE) toast = GROUP_TEXT.pickFour;
-      else {
-        round.players.add(who);
-        const r = submitGuess(round.state, round.puzzle, round.selection, SOLO_MAX_MISTAKES);
-        round.state = r.state;
-        round.selection = [];
-        if (r.outcome === 'correct' || r.outcome === 'one_away' || r.outcome === 'wrong') {
-          const points = r.outcome === 'correct' && r.solvedLevel !== undefined ? groupPoints(r.solvedLevel) : 0;
-          // the tally must never break the round
-          void this.d.store.addScore(chatId, groupWeekKey(round.dateKey), { userRef: who, name, points, groups: r.outcome === 'correct' ? 1 : 0, wrong: r.outcome === 'correct' ? 0 : 1 }).catch((err) => this.d.log?.('group: saving the score failed', err));
-        }
-        round.note = r.outcome === 'correct' ? GROUP_TEXT.noteCorrect(name) : r.outcome === 'one_away' ? GROUP_TEXT.noteOneAway(name) : r.outcome === 'duplicate' ? GROUP_TEXT.noteDuplicate(name) : GROUP_TEXT.noteWrong(name);
-      }
-    } else {
-      const id = round.state.remaining[a.card];
-      if (!id) return void (await answer(GROUP_TEXT.stale));
-      if (round.selection.includes(id)) round.selection = round.selection.filter((x) => x !== id);
-      else if (round.selection.length >= GROUP_SIZE) toast = GROUP_TEXT.maxFour;
-      else round.selection = [...round.selection, id];
+    let p = round.players.get(who);
+    if (!p) {
+      p = { name, state: startSolo(round.puzzle, mulberry32(0)), selection: [], lastSolvedAt: 0 };
+      p.state = { ...p.state, remaining: [...round.order] };
+      round.players.set(who, p);
     }
-    if (toast) return void (await answer(toast));
-    round.rev += 1;
-    await answer();
-    await this.redraw(chatId, round);
-    if (round.state.status !== 'playing') await this.finish(chatId, round);
+    p.name = name;
+    if (p.state.status !== 'playing') return void (await answer(GROUP_TEXT.alreadyDone));
+
+    const a = cb.action;
+    if (a === 'h') return void (await answer(GROUP_TEXT.shuffleGone));
+    if (a === 'c') {
+      p.selection = [];
+      return void (await answer(GROUP_TEXT.cleared));
+    }
+    if (a === 's') return void (await answer(await this.submit(chatId, round, who, p)));
+    const id = round.order[a.card];
+    if (!id) return void (await answer(GROUP_TEXT.gone));
+    if (!p.state.remaining.includes(id)) return void (await answer(GROUP_TEXT.cardSolved));
+    const label = round.puzzle.items[id]?.nameFa ?? '';
+    if (p.selection.includes(id)) {
+      p.selection = p.selection.filter((x) => x !== id);
+      return void (await answer(GROUP_TEXT.unpicked(label, p.selection.length)));
+    }
+    if (p.selection.length >= GROUP_SIZE) return void (await answer(GROUP_TEXT.maxFour));
+    p.selection = [...p.selection, id];
+    await answer(GROUP_TEXT.picked(label, p.selection.length, p.selection.map((x) => round.puzzle.items[x]?.nameFa ?? '').join('، ')));
   }
 
-  private async redraw(chatId: string, round: Round): Promise<void> {
-    if (round.messageId === null) return;
-    const { text, keyboard } = renderBoard(this.view(chatId, round));
-    // a rejected edit (not modified, message deleted) must never break the round
-    await this.d.client.editInline?.(chatId, round.messageId, text, keyboard).catch((err) => this.d.log?.('group: edit failed', err));
+  /** The text only the submitter sees. */
+  private async submit(chatId: string, round: Round, who: string, p: Player): Promise<string> {
+    if (p.selection.length !== GROUP_SIZE) return GROUP_TEXT.pickFour;
+    const r = submitGuess(p.state, round.puzzle, p.selection, SOLO_MAX_MISTAKES);
+    p.selection = [];
+    if (r.outcome === 'invalid') return GROUP_TEXT.pickFour;
+    if (r.outcome === 'duplicate') return GROUP_TEXT.mineDuplicate;
+    p.state = r.state;
+    const found = foundGroups(p.state);
+    const correct = r.outcome === 'correct';
+    if (correct) p.lastSolvedAt = this.now();
+    const points = correct && r.solvedLevel !== undefined ? groupPoints(r.solvedLevel) : 0;
+    // the tally must never break the round
+    void this.d.store.addScore(chatId, groupWeekKey(round.dateKey), { userRef: who, name: p.name, points, groups: correct ? 1 : 0, wrong: correct ? 0 : 1 }).catch((err) => this.d.log?.('group: saving the score failed', err));
+    if (p.state.status === 'won') return GROUP_TEXT.mineWon(p.state.mistakes);
+    if (p.state.status === 'lost') return GROUP_TEXT.mineLost(found);
+    const left = SOLO_MAX_MISTAKES - p.state.mistakes;
+    if (correct) return GROUP_TEXT.mineCorrect(round.puzzle.groups.find((g) => g.level === r.solvedLevel)?.titleFa ?? '', found);
+    return r.outcome === 'one_away' ? GROUP_TEXT.mineOneAway(left) : GROUP_TEXT.mineWrong(left);
   }
 
+  /** Time is up: lock the board, announce everyone's result, record the day's play. Runs once per round. */
   private async finish(chatId: string, round: Round): Promise<void> {
+    if (this.rounds.get(chatId) !== round) return;
     this.rounds.delete(chatId);
-    const s = round.state;
+    const results: PlayerResult[] = [...round.players.values()].map((p) => ({ name: p.name, groups: foundGroups(p.state), mistakes: p.state.mistakes, lastSolvedAt: p.lastSolvedAt }));
+    const ranked = rankPlayers(results);
+    const best = ranked[0];
     await this.d.store
-      .finishPlay(chatId, round.dateKey, { result: s.status === 'won' ? 'won' : 'lost', mistakes: s.mistakes, solvedGroups: s.solved.filter((g) => !g.revealed).length, players: round.players.size })
+      .finishPlay(chatId, round.dateKey, {
+        result: best && best.groups === GROUP_COUNT ? 'won' : 'lost',
+        mistakes: results.reduce((n, r) => n + r.mistakes, 0),
+        solvedGroups: best?.groups ?? 0,
+        players: round.players.size,
+      })
       .catch((err) => this.d.log?.('group: saving the result failed', err));
+    if (round.messageId !== null) await this.d.client.editInline?.(chatId, round.messageId, GROUP_TEXT.closedBoard(dateFa(round.dateKey)), []).catch((err) => this.d.log?.('group: edit failed', err));
+    const text = renderResults({ puzzle: round.puzzle, dateFa: dateFa(round.dateKey), ranked, maxRows: GROUP_TOP_SIZE });
+    const cta = this.ctaUrl(chatId);
+    if (cta && this.d.client.sendInline) await this.d.client.sendInline(chatId, text, [[{ text: GROUP_TEXT.ctaButton, url: cta }]]).catch((err) => this.d.log?.('group: send failed', err));
+    else await this.say(chatId, text);
   }
+}
+
+/** Groups a member found themselves (the last group the game fills in on its own does not count unless they won). */
+function foundGroups(s: SoloState): number {
+  return s.status === 'won' ? GROUP_COUNT : s.solved.filter((g) => !g.revealed).length;
 }
 
 function isGroupType(type: string | undefined): boolean {

@@ -1,70 +1,68 @@
 import { GROUP_BUTTONS_PER_ROW, GROUP_CARD_LABEL_MAX } from '@dozari/shared';
-import type { SoloState } from '@dozari/shared';
 import type { InlineKeyboard } from '../notify/client.js';
 import type { ServedPuzzle } from '../solo/types.js';
 import { GROUP_TEXT } from './texts.js';
 
-const LEVEL_EMOJI = ['🟨', '🟩', '🟦', '🟪'] as const;
+export const LEVEL_EMOJI = ['🟨', '🟩', '🟦', '🟪'] as const;
 
 export interface BoardView {
   puzzle: ServedPuzzle;
-  state: SoloState;
-  /** Product ids ticked on the shared board. */
-  selection: readonly string[];
+  /** The 16 product ids in the one order every member sees (button `t<i>` = `order[i]`). */
+  order: readonly string[];
   rev: number;
-  maxMistakes: number;
   dateFa: string;
-  /** The last thing that happened, shown under the board. */
-  note: string;
-  players: number;
-  /** Mini-app deep link for the call-to-action button; absent = no button. */
-  ctaUrl: string | null;
+  /** Whole minutes of play time the round was opened with. */
+  minutes: number;
 }
 
 const cut = (s: string, n: number): string => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 
-/** One solved (or revealed) group as a line: level colour, its title, the four names. Only ever built from `state.solved`. */
-function groupLine(v: BoardView, g: SoloState['solved'][number]): string {
-  const meta = v.puzzle.groups.find((x) => x.level === g.level);
-  const names = g.productIds.map((id) => v.puzzle.items[id]?.nameFa ?? '').join('، ');
-  return `${LEVEL_EMOJI[g.level]} ${meta?.titleFa ?? ''}${g.revealed ? ' (نشان داده شد)' : ''}\n   ${names}`;
-}
-
-const ctaRow = (v: BoardView): InlineKeyboard => (v.ctaUrl ? [[{ text: GROUP_TEXT.ctaButton, url: v.ctaUrl }]] : []);
-
-/** The message and keyboard of the shared board. Unsolved groups never appear here (rule 4). */
+/**
+ * The shared message of a round (docs/logic/group-game.md §Rules of the round). Every member plays alone on this one static board: what a member
+ * ticks and finds is answered to them only, so the message itself never shows a solution or anybody's picks (rule 4).
+ */
 export function renderBoard(v: BoardView): { text: string; keyboard: InlineKeyboard } {
-  const { state } = v;
-  const lines = [GROUP_TEXT.title(v.dateFa), ''];
-  if (state.solved.length > 0) lines.push(...state.solved.map((g) => groupLine(v, g)), '');
-
-  if (state.status !== 'playing') {
-    const won = state.status === 'won';
-    lines.push(won ? GROUP_TEXT.won : GROUP_TEXT.lost, GROUP_TEXT.summary(state.mistakes, v.players), '', GROUP_TEXT.cta);
-    return { text: lines.join('\n'), keyboard: ctaRow(v) };
-  }
-
-  const left = Math.max(0, v.maxMistakes - state.mistakes);
-  lines.push(`${GROUP_TEXT.mistakes} ${'❤️'.repeat(left)}${'🖤'.repeat(v.maxMistakes - left)}`);
-  if (v.selection.length > 0) lines.push(`${GROUP_TEXT.selected} ${v.selection.map((id) => v.puzzle.items[id]?.nameFa ?? '').join('، ')}`);
-  if (v.note) lines.push('', v.note);
-
-  const picked = new Set(v.selection);
   const keyboard: InlineKeyboard = [];
-  for (let i = 0; i < state.remaining.length; i += GROUP_BUTTONS_PER_ROW) {
+  for (let i = 0; i < v.order.length; i += GROUP_BUTTONS_PER_ROW) {
     keyboard.push(
-      state.remaining.slice(i, i + GROUP_BUTTONS_PER_ROW).map((id, j) => {
-        const label = cut(v.puzzle.items[id]?.nameFa ?? '?', GROUP_CARD_LABEL_MAX);
-        return { text: picked.has(id) ? `✅ ${label}` : label, callback_data: `g:${v.rev}:t${i + j}` };
-      }),
+      v.order.slice(i, i + GROUP_BUTTONS_PER_ROW).map((id, j) => ({
+        text: cut(v.puzzle.items[id]?.nameFa ?? '?', GROUP_CARD_LABEL_MAX),
+        callback_data: `g:${v.rev}:t${i + j}`,
+      })),
     );
   }
   keyboard.push([
     { text: GROUP_TEXT.submit, callback_data: `g:${v.rev}:s` },
     { text: GROUP_TEXT.clear, callback_data: `g:${v.rev}:c` },
-    { text: GROUP_TEXT.shuffle, callback_data: `g:${v.rev}:h` },
   ]);
-  return { text: lines.join('\n'), keyboard };
+  return { text: [GROUP_TEXT.title(v.dateFa), '', GROUP_TEXT.howTo(v.minutes)].join('\n'), keyboard };
+}
+
+/** A member's standing at the end: groups found, mistakes made, and when the last group was found (earlier wins a tie). */
+export interface PlayerResult {
+  name: string;
+  groups: number;
+  mistakes: number;
+  lastSolvedAt: number;
+}
+
+/** Best first: more groups, fewer mistakes, found earlier, then name. */
+export function rankPlayers<T extends PlayerResult>(rows: readonly T[]): T[] {
+  return [...rows].sort((a, b) => b.groups - a.groups || a.mistakes - b.mistakes || a.lastSolvedAt - b.lastSolvedAt || a.name.localeCompare(b.name, 'fa'));
+}
+
+/** The closed round: the four answers (safe now, the round is over) and everyone's result. */
+export function renderResults(v: { puzzle: ServedPuzzle; dateFa: string; ranked: readonly PlayerResult[]; maxRows: number }): string {
+  const lines = [GROUP_TEXT.resultsTitle(v.dateFa), ''];
+  lines.push(...[...v.puzzle.groups].sort((a, b) => a.level - b.level).map((g) => `${LEVEL_EMOJI[g.level]} ${g.titleFa}\n   ${g.productIds.map((id) => v.puzzle.items[id]?.nameFa ?? '').join('، ')}`), '');
+  if (v.ranked.length === 0) lines.push(GROUP_TEXT.resultsNobody);
+  else {
+    lines.push(GROUP_TEXT.resultsHeader);
+    lines.push(...v.ranked.slice(0, v.maxRows).map((r, i) => GROUP_TEXT.resultRow(i + 1, r.name, r.groups, r.mistakes)));
+    if (v.ranked.length > v.maxRows) lines.push(GROUP_TEXT.resultsMore(v.ranked.length - v.maxRows));
+  }
+  lines.push('', GROUP_TEXT.cta);
+  return lines.join('\n');
 }
 
 /** «g:<rev>:<action>» from a button; null when it is not ours or malformed. */

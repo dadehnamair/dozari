@@ -54,7 +54,7 @@ import { WorkshopScreen } from './src/workshop/WorkshopScreen';
 import { refillPack } from './src/offline/pack';
 import { ServerDownBanner } from './src/net/ServerDownBanner';
 import { ToastHost } from './src/toast/ToastHost';
-import { takeLaunchTarget, takeTableCode } from './src/pwa/usePwa';
+import { takeInviteHandle, takeLaunchTarget, takeTableCode } from './src/pwa/usePwa';
 import { ErrorBoundary } from './src/errors/ErrorBoundary';
 import { installGlobalErrorReporting } from './src/errors/globalHandlers';
 import { setCurrentScreen } from './src/errors/breadcrumbs';
@@ -107,7 +107,9 @@ function AppInner() {
   const config = useClientConfig();
   const phone = usePhoneGate(config.raw);
   const gate = gateState(config, APP_BUILD);
-  const inviteGate = useInviteLink(gate === 'ok' && config.features.friends);
+  /** A friend's bot invite link (`?go=invite`) is read before the other launch parameters. */
+  const [inviteHandle] = useState(takeInviteHandle);
+  const inviteGate = useInviteLink(gate === 'ok' && config.features.friends, inviteHandle);
   const ageTracksOn = config.raw['feature.age_tracks'] === 1;
   const myTrack = useMyTrack(ageTracksOn && gate === 'ok');
   const [fontsLoaded] = useFonts({ Vazirmatn_400Regular, Vazirmatn_700Bold, Lalezar_400Regular });
