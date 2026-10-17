@@ -20,7 +20,7 @@ import { useHardwareBack } from '../nav/useHardwareBack';
 
 const INK = '#3A2418';
 
-/** Bottom sheet of the Bale link: get a one-time code, send it to the bot, see "linked", unlink. */
+/** Bottom sheet of the Telegram / Bale link (one link per player; each messenger has its own block): get a one-time code, send it to the bot, see "linked", unlink. */
 export function BaleSheet({ onClose }: { onClose: () => void }) {
   useHardwareBack(onClose);
   const [status, setStatus] = useState<BaleLinkStatus | null>(null);
@@ -87,15 +87,22 @@ export function BaleSheet({ onClose }: { onClose: () => void }) {
         {status?.configured && !status.linked ? (
           code ? (
             <View style={styles.codeBox}>
-              <Text style={[styles.text, adult ? styles.textAdult : null]}>
-                {fa.bale.sendTo}
-                {[code.telegramBotUsername, code.botUsername].filter(Boolean).map((u) => ` (@${u})`).join('')}
-              </Text>
+              <Text style={[styles.text, adult ? styles.textAdult : null]}>{fa.bale.sendTo}</Text>
               <Text selectable style={styles.code}>
                 {code.code}
               </Text>
-              {code.telegramBotUsername ? <CandyButton label={fa.bale.openTelegramBot} color={colors.candy.lime} onPress={() => void Linking.openURL(`https://t.me/${code.telegramBotUsername}?start=${code.code}`).catch(() => setFailed(true))} /> : null}
-              {code.botUsername ? <CandyButton label={fa.bale.openBot} color={colors.candy.lime} onPress={() => void Linking.openURL(`https://ble.ir/${code.botUsername}?start=${code.code}`).catch(() => setFailed(true))} /> : null}
+              {code.telegramBotUsername ? (
+                <View style={styles.platform}>
+                  <Text style={[styles.text, adult ? styles.textAdult : null]}>{fa.bale.telegramHeading} (@{code.telegramBotUsername})</Text>
+                  <CandyButton label={fa.bale.openTelegramBot} color={colors.candy.sky} onPress={() => void Linking.openURL(`https://t.me/${code.telegramBotUsername}?start=${code.code}`).catch(() => setFailed(true))} />
+                </View>
+              ) : null}
+              {code.botUsername ? (
+                <View style={styles.platform}>
+                  <Text style={[styles.text, adult ? styles.textAdult : null]}>{fa.bale.baleHeading} (@{code.botUsername})</Text>
+                  <CandyButton label={fa.bale.openBot} color={colors.candy.lime} onPress={() => void Linking.openURL(`https://ble.ir/${code.botUsername}?start=${code.code}`).catch(() => setFailed(true))} />
+                </View>
+              ) : null}
               <Text style={[styles.small, adult ? styles.textAdult : null]}>{fa.bale.expires}</Text>
             </View>
           ) : (
@@ -128,6 +135,7 @@ const styles = StyleSheet.create({
   text: { fontFamily: fonts.bold, fontSize: 14, color: INK, textAlign: 'center' },
   small: { fontFamily: fonts.bold, fontSize: 12, color: INK, opacity: 0.7 },
   pref: { paddingVertical: 4, alignSelf: 'stretch' },
+  platform: { alignItems: 'center', gap: 6, alignSelf: 'stretch' },
   codeBox: { alignItems: 'center', gap: 6 },
   code: { fontFamily: fonts.display, fontSize: 36, letterSpacing: 4, color: INK, backgroundColor: '#FFC93C', borderWidth: 3, borderColor: INK, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 4, overflow: 'hidden' },
 });
