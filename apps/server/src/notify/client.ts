@@ -85,3 +85,60 @@ export function createBaleClient(token: string, opts: { base?: string; fetchImpl
     },
   };
 }
+
+export const DEFAULT_TELEGRAM_BASE = 'https://api.telegram.org';
+
+/**
+ * Chats and users of the Telegram bot are stored with this prefix, so they can share the Bale tables (`bale_links`, the outbox) without
+ * their ids ever meeting a Bale id, and the sender can tell which bot a chat belongs to.
+ */
+export const TELEGRAM_ID_PREFIX = 'tg:';
+export const isTelegramId = (id: string | number): boolean => String(id).startsWith(TELEGRAM_ID_PREFIX);
+const tgId = (id: number | string): string => `${TELEGRAM_ID_PREFIX}${id}`;
+const rawId = (id: string): string => (id.startsWith(TELEGRAM_ID_PREFIX) ? id.slice(TELEGRAM_ID_PREFIX.length) : id);
+
+/**
+ * The Telegram bot, speaking the same dialect as the Bale one: updates come back with prefixed ids (`tg:123`) and sends accept them.
+ * No wallet payments (Telegram has no rial provider); `TELEGRAM_API_BASE` points at a relay when api.telegram.org is blocked.
+ */
+export function createTelegramClient(token: string, opts: { base?: string; fetchImpl?: typeof fetch } = {}): BaleClient {
+  const inner = createBaleClient(token, { base: opts.base ?? DEFAULT_TELEGRAM_BASE, fetchImpl: opts.fetchImpl });
+  return {
+    sendMessage: (chatId, text, o) => inner.sendMessage(rawId(chatId), text, o),
+    async getUpdates(offset, timeoutSec) {
+      return (await inner.getUpdates(offset, timeoutSec)).map((u): BaleUpdate => {
+        const m = u.message;
+        if (!m) return { update_id: u.update_id };
+        return {
+          update_id: u.update_id,
+          message: {
+            ...m,
+            chat: { id: tgId(m.chat.id) },
+            ...(m.from ? { from: { id: tgId(m.from.id) } } : {}),
+            ...(m.contact ? { contact: { ...m.contact, ...(m.contact.user_id !== undefined ? { user_id: tgId(m.contact.user_id) } : {}) } } : {}),
+          },
+        };
+      });
+    },
+  };
+}
+
+/**
+ * One sender for both bots: a chat id with the Telegram prefix goes out through Telegram, any other through Bale. Receiving is not here
+ * (each bot is polled on its own); invoices exist on Bale only.
+ */
+export function createMultiClient(bale: BaleClient | null, telegram: BaleClient | null): BaleClient | null {
+  if (!bale && !telegram) return null;
+  const pick = (chatId: string): BaleClient => {
+    const c = isTelegramId(chatId) ? telegram : bale;
+    if (!c) throw new Error(`no bot for chat ${chatId}`);
+    return c;
+  };
+  return {
+    sendMessage: async (chatId, text, o) => pick(chatId).sendMessage(chatId, text, o),
+    getUpdates: async () => [],
+    sendInvoice: bale?.sendInvoice ? (chatId, inv) => (isTelegramId(chatId) ? Promise.reject(new Error('no invoices on Telegram')) : bale.sendInvoice!(chatId, inv)) : undefined,
+    createInvoiceLink: bale?.createInvoiceLink?.bind(bale),
+    answerPreCheckoutQuery: bale?.answerPreCheckoutQuery?.bind(bale),
+  };
+}

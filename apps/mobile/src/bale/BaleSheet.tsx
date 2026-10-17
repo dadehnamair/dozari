@@ -87,11 +87,12 @@ export function BaleSheet({ onClose }: { onClose: () => void }) {
             <View style={styles.codeBox}>
               <Text style={[styles.text, adult ? styles.textAdult : null]}>
                 {fa.bale.sendTo}
-                {code.botUsername ? ` (@${code.botUsername})` : ''}
+                {[code.telegramBotUsername, code.botUsername].filter(Boolean).map((u) => ` (@${u})`).join('')}
               </Text>
               <Text selectable style={styles.code}>
                 {code.code}
               </Text>
+              {code.telegramBotUsername ? <CandyButton label={fa.bale.openTelegramBot} color={colors.candy.lime} onPress={() => void Linking.openURL(`https://t.me/${code.telegramBotUsername}?start=${code.code}`).catch(() => setFailed(true))} /> : null}
               {code.botUsername ? <CandyButton label={fa.bale.openBot} color={colors.candy.lime} onPress={() => void Linking.openURL(`https://ble.ir/${code.botUsername}?start=${code.code}`).catch(() => setFailed(true))} /> : null}
               <Text style={[styles.small, adult ? styles.textAdult : null]}>{fa.bale.expires}</Text>
             </View>

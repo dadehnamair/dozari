@@ -7,28 +7,30 @@ export interface RunnerHandle {
 }
 
 /**
- * Background loops of the Bale integration: long-poll the bot for messages, flush the outbox every few seconds and
+ * Background loops of the bot integration (Bale, Telegram): long-poll each bot for messages, flush the outbox every few seconds and
  * announce ready daily rewards once a minute. Polling needs no public URL (a webhook would). Every loop survives errors.
  */
-export function startNotifyRunner(opts: { service: NotifyService; client: BaleClient; settings?: SettingsService; log: (msg: string, err?: unknown) => void }): RunnerHandle {
+export function startNotifyRunner(opts: { service: NotifyService; /** Every bot to long-poll (Bale, Telegram); sending is the service's own client. */ clients: { name: string; client: BaleClient }[]; settings?: SettingsService; log: (msg: string, err?: unknown) => void }): RunnerHandle {
   let stopped = false;
   const timers: ReturnType<typeof setInterval>[] = [];
 
-  void (async () => {
-    let offset = 0;
-    while (!stopped) {
-      try {
-        const updates = await opts.client.getUpdates(offset, 25);
-        for (const u of updates) {
-          offset = Math.max(offset, u.update_id + 1);
-          await opts.service.handleUpdate(u).catch((err) => opts.log('bale: update failed', err));
+  for (const { name, client } of opts.clients) {
+    void (async () => {
+      let offset = 0;
+      while (!stopped) {
+        try {
+          const updates = await client.getUpdates(offset, 25);
+          for (const u of updates) {
+            offset = Math.max(offset, u.update_id + 1);
+            await opts.service.handleUpdate(u).catch((err) => opts.log(`${name}: update failed`, err));
+          }
+        } catch (err) {
+          opts.log(`${name}: polling failed`, err);
+          await new Promise((r) => setTimeout(r, 10_000));
         }
-      } catch (err) {
-        opts.log('bale: polling failed', err);
-        await new Promise((r) => setTimeout(r, 10_000));
       }
-    }
-  })();
+    })();
+  }
 
   timers.push(setInterval(() => void opts.service.flush().catch((err) => opts.log('bale: flush failed', err)), 5_000));
   timers.push(
