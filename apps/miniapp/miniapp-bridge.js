@@ -1,14 +1,23 @@
-// Mini-app glue (Bale, Telegram). Runs before the game bundle: tells the host the page is ready, trades the signed `initData` for a
-// Dozari session (POST /auth/miniapp) and stores it where the game looks for it, then starts the game. Plain ES5, no dependencies.
+// Mini-app glue (Bale, Telegram). Runs before the game bundle: tells the host the page is ready (full-screen, colours, links), works out which
+// messenger hosts the page so the game picks the matching SDK, then starts the game. There is no messenger login (D243): the game signs in
+// with its own guest account and «ورود با شماره», exactly like the web app. Plain ES5, no dependencies.
 (function () {
-  var cfg = (window.__MINIAPP__ = window.__MINIAPP__ || {});
-  // The host is the messenger the page was opened in. Bale's SDK is in the page head; Telegram's is fetched only when Telegram-style launch
-  // data is in the address (its script host may be blocked for Bale users), in the background, so it never delays a launch.
-  // Bale's SDK reads Telegram's launch data too, so `initData` can be present in Telegram while `window.Bale` is what loaded: which
-  // messenger really signed it is decided by the server at login (`platform: 'auto'`), then the matching SDK is used.
+  window.__MINIAPP__ = window.__MINIAPP__ || {};
+  // The host is the messenger the page was opened in. Bale's SDK is in the page head and also reads Telegram's launch data, so its `initData`
+  // can be filled inside Telegram: only what Telegram itself supplies (`tgWebAppPlatform` in the launch parameters, or its native bridge) says
+  // Telegram. Telegram's own SDK is then fetched (its script host may be blocked for Bale users, so Bale launches never wait for it).
   var platform = 'bale';
   var webApp = window.Bale && window.Bale.WebApp && window.Bale.WebApp.initData ? window.Bale.WebApp : null;
   var launchData = /[#&?]tgWebAppData=/.test(location.hash + location.search);
+  function launchedByTelegram() {
+    if (/[#&?]tgWebAppPlatform=/.test(location.hash + location.search) || window.TelegramWebviewProxy) return true;
+    try {
+      // Telegram's SDK keeps its launch parameters for the session: a reload has no hash any more.
+      return /tgWebAppPlatform/.test(window.sessionStorage.getItem('__telegram__initParams') || '');
+    } catch (e) {
+      return false;
+    }
+  }
   var telegramSdk = null; // resolves with Telegram's WebApp (or null) once its script has loaded or failed
   var initData = (webApp && webApp.initData) || '';
   if (!webApp && window.Bale && window.Bale.WebApp) webApp = window.Bale.WebApp; // outside a launch: methods exist, data is empty
@@ -47,14 +56,6 @@
     });
   }
 
-  function store(key, value) {
-    try {
-      window.localStorage.setItem(key, value);
-    } catch (e) {
-      /* private mode: the game falls back to a guest session */
-    }
-  }
-
   // A messenger's web view has no console: collect script errors and, if the game has drawn nothing after a while, show them on screen.
   var errors = [];
   window.addEventListener('error', function (e) {
@@ -89,50 +90,6 @@
       s.async = false;
       document.body.appendChild(s);
     }
-  }
-
-  function showError(err) {
-    var box = document.createElement('div');
-    box.setAttribute('dir', 'rtl');
-    box.style.cssText =
-      'position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;' +
-      'background:#2b1240;color:#fff;font:16px sans-serif;text-align:center;padding:24px';
-    box.innerHTML = '<div>اتصال به دوزاری برقرار نشد.</div><div dir="ltr" style="font-size:12px;opacity:.7">' + String((err && err.message) || err) + '<br>page ' + location.origin + '<br>api ' + cfg.apiUrl + '</div><button style="padding:10px 24px;border:0;border-radius:12px;font-size:16px">تلاش دوباره</button>';
-    box.lastChild.onclick = function () {
-      box.remove();
-      login();
-    };
-    document.body.appendChild(box);
-  }
-
-  function login() {
-    fetch(cfg.apiUrl + '/auth/miniapp', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      // Bale's SDK also fills `initData` from Telegram's launch data, so the page cannot be sure which messenger signed it: let the server find out.
-      body: JSON.stringify({ platform: 'auto', initData: initData }),
-    })
-      .then(function (res) {
-        if (res.ok) return res.json();
-        return res.text().then(function (t) {
-          throw new Error('login ' + res.status + ' ' + t.slice(0, 120));
-        });
-      })
-      .then(function (session) {
-        // The game picks its host-specific calls (payment, contact, header) by the messenger that really signed the data.
-        store('dozari.token', session.token);
-        store('dozari.deviceId', session.deviceId);
-        if (session.platform !== 'telegram') {
-          window.__MINIAPP__.platform = platform = 'bale';
-          return startGame();
-        }
-        // The game reads `window.Telegram.WebApp` for payments/contact/back: wait (at most 4 s) for it before the game starts.
-        return loadTelegramSdk().then(function (sdk) {
-          adoptTelegram(sdk);
-          startGame();
-        });
-      })
-      .catch(showError);
   }
 
   // Link ?startapp=daily|solo|duel (https://ble.ir/<bot>?startapp=daily) opens that screen: the game reads its own `?go=` once.
@@ -208,7 +165,7 @@
     return telegramSdk;
   }
 
-  // The server said Telegram signed the data: switch from Bale's SDK (which merely echoed the launch data) to Telegram's own.
+  // Telegram's own SDK replaces Bale's (which merely echoed the launch data), so the game's host calls reach the right messenger.
   function adoptTelegram(sdk) {
     if (sdk && sdk.initData) {
       webApp = sdk;
@@ -218,19 +175,34 @@
     setupHost();
   }
 
-  function init() {
-    // Telegram launch data in the address: load its SDK now, in parallel with everything else.
-    if (launchData && !(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData)) loadTelegramSdk();
-    else if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData && !webApp) webApp = window.Telegram.WebApp;
-    setupHost();
+  // The Telegram SDK wait can outlast DOMContentLoaded: run at once then.
+  function whenReady(fn) {
+    if (document.readyState === 'loading') window.addEventListener('DOMContentLoaded', fn);
+    else fn();
+  }
+
+  function begin() {
     // Old Bale apps can run no mini-app at all (no launch data): say so instead of a blank page.
     if (webApp && webApp.isMiniAppSupported === false && !initData) {
-      window.addEventListener('DOMContentLoaded', showUpdateNotice);
+      whenReady(showUpdateNotice);
       return;
     }
-    // Opened outside a messenger (a plain browser): no signed data to send, so the game starts as an ordinary guest.
-    if (initData) window.addEventListener('DOMContentLoaded', login);
-    else window.addEventListener('DOMContentLoaded', startGame);
+    // No messenger sign-in (D243): the game starts with its own guest account, like the web app.
+    whenReady(startGame);
+  }
+
+  function init() {
+    if (launchedByTelegram()) {
+      // Telegram: wait (at most 4 s) for its SDK, which the game reads for the back button, header colour and links.
+      loadTelegramSdk().then(function (sdk) {
+        adoptTelegram(sdk);
+        begin();
+      });
+      return;
+    }
+    window.__MINIAPP__.platform = platform = 'bale';
+    setupHost();
+    begin();
   }
 
   init();
