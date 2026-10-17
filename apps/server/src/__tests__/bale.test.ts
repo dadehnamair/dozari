@@ -48,6 +48,21 @@ describe('NotifyService', () => {
     expect(store.outbox.map((o) => o.kind)).toEqual(['security', 'daily_ready']);
   });
 
+  it('pushes match results to the app even without Bale, unless switched off; other kinds are left to their own route', async () => {
+    const { svc } = setup();
+    const pushed: string[] = [];
+    svc.appPush = async (id, kind, text) => void pushed.push(`${id}:${kind}:${text}`);
+    expect(await svc.notify('u9', 'match_result', 'بردی')).toBe(false);
+    expect(await svc.notify('u9', 'friend_request', 'x')).toBe(false);
+    expect(await svc.notify('u9', 'security', 'کد')).toBe(false);
+    expect(pushed).toEqual(['u9:match_result:بردی']);
+    const { code } = await svc.linkCode('u9');
+    await svc.handleUpdate(msg(777, code));
+    await svc.setPrefs('u9', ['match_result']);
+    await svc.notify('u9', 'match_result', 'باختی');
+    expect(pushed).toHaveLength(1);
+  });
+
   it('links a chat with the one-time code and replies in Persian', async () => {
     const { svc, bale, store } = setup();
     const { code } = await svc.linkCode('u1');

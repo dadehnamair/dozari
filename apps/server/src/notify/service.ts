@@ -22,6 +22,9 @@ const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 /** Kinds of notification; admin settings can switch the automatic ones off. */
 export type NotifyKind = 'match_result' | 'daily_ready' | 'friend_request' | 'table_invite' | 'chat_message' | 'broadcast' | 'admin' | 'security' | 'test';
 
+/** Kinds sent to the Android app as a push from `notify` (the others already have their own app-push route). */
+const APP_PUSH_KINDS: ReadonlySet<NotifyKind> = new Set<NotifyKind>(['match_result']);
+
 export class NotifyService {
   /** Wrong link codes per chat: 8 in 10 minutes, then the bot stays quiet (a 6-character code must not be guessable). */
   private readonly badCodes = new RateLimiter(8, 10 * 60_000);
@@ -94,11 +97,19 @@ export class NotifyService {
     return this.store.unlinkUser(userId);
   }
 
-  /** Queues a message for a player; false when they have not linked Bale (nothing is stored then). */
+  /**
+   * Set at start-up when the Android app push is configured. Friend requests, table invites and chat reach the app through the
+   * live-notice pipe already; this is for what only Bale carried before (match results), so it sends the app push for those kinds.
+   */
+  appPush?: (userId: string, kind: NotifyKind, text: string) => Promise<unknown>;
+
+  /** Queues a message for a player (Bale) and pushes it to their app; false when they have not linked Bale (nothing is stored then). */
   async notify(userId: string, kind: NotifyKind, text: string): Promise<boolean> {
+    const muted = (MUTABLE_NOTIFY_KINDS as readonly string[]).includes(kind) ? await this.store.mutedKinds(userId) : [];
+    if (this.appPush && APP_PUSH_KINDS.has(kind) && !muted.includes(kind)) void this.appPush(userId, kind, text).catch(() => undefined);
     const chatId = await this.store.chatOf(userId);
     if (!chatId) return false;
-    if ((MUTABLE_NOTIFY_KINDS as readonly string[]).includes(kind) && (await this.store.mutedKinds(userId)).includes(kind)) return false;
+    if (muted.includes(kind)) return false;
     await this.store.enqueue({ chatId, userId, kind, text });
     return true;
   }

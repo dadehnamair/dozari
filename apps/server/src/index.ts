@@ -599,6 +599,7 @@ if (isMainModule(import.meta.url)) {
   // irnoti push service wins when configured: the SDK in the app registers the device with irnoti and delivery goes through irnoti, so the direct FCM sender stays off.
   const irnotiPush = irnotiPushFromEnv(process.env) ?? undefined;
   const fcm = irnotiPush || !(db && fcmAccount) ? undefined : new FcmService(createDbFcmTokenStore(db), createFcmSender(fcmAccount));
+  if (notify && irnotiPush) notify.appPush = (id, kind, text) => irnotiPush.notify(id, { title: 'دوزاری', body: text, tag: kind });
   if (webPush || fcm || irnotiPush) {
     notices.also = (id, n) => {
       void webPush?.notice(id, n).catch(() => undefined);
