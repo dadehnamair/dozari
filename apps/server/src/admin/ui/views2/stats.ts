@@ -147,4 +147,43 @@ VIEWS.playerstats = function (root) {
   }
   draw();
 };
+VIEWS.botgroups = function (root) {
+  var days = 30;
+  root.appendChild(pageHead('گروه‌های ربات', 'گروه‌های بله و تلگرام که ربات در آن‌ها بازی می‌شود و حساب‌های تازه‌ای که از لینک گروه آمدند'));
+  var bar = h('div', { class: 'toolbar' }), wrap = h('div'); root.appendChild(bar); root.appendChild(wrap);
+  function draw() {
+    clear(bar); bar.appendChild(daysPicker(days, function (n) { days = n; draw(); }));
+    clear(wrap);
+    api('/admin/stats/groups?days=' + days).then(function (r) {
+      if (r.status === 404) return wrap.appendChild(banner('info', 'آمار فقط وقتی دیتابیس وصل باشد نمایش داده می‌شود.'));
+      if (!r.ok) return fail(r);
+      var d = r.body, g = d.groups, w = d.window, f = d.funnel;
+      wrap.appendChild(h('div', { class: 'grid kpis' }, [
+        statCard('گروه‌های فعال', faNum(g.active), fa(g.total) + ' کل · ' + fa(g.bale) + ' بله · ' + fa(g.telegram) + ' تلگرام', '#4f46e5'),
+        statCard('گروه تازه', faNum(g.new7d), fa(g.new30d) + ' در ۳۰ روز', '#22a45d'),
+        statCard('پازل گروهی', faNum(w.plays), fa(w.activeGroups) + ' گروه · ' + fa(w.won) + ' برد · ' + fa(w.lost) + ' باخت', '#ef6c3d'),
+        statCard('بازیکن‌های گروهی', faNum(w.players), fa(w.priceSessions) + ' دور قیمت‌شناسی', '#14b8a6'),
+        statCard('حساب تازه از لینک گروه', faNum(f.referred), fa(f.referredAll) + ' در کل', '#f5b73b')
+      ]));
+      wrap.appendChild(h('div', { style: 'height:16px' }));
+      var base = f.referred;
+      wrap.appendChild(h('section', { class: 'card' }, [h('h2', { text: 'قیف گروه به اپ' }), h('div', { class: 'sub', text: 'حساب‌هایی که اولین بار با لینک «ادامه در بازی» یک گروه دیده شدند (بازه‌ی انتخاب‌شده)' })].concat([
+        barRow('حساب تازه از لینک گروه', f.referred, base, ''),
+        barRow('حداقل یک پازل بازی کرده‌اند', f.referredPlayed, base, base ? fa(Math.round((f.referredPlayed / base) * 100)) + '٪' : ''),
+        barRow('در ۷ روز اخیر فعال بوده‌اند', f.referredActive7d, base, base ? fa(Math.round((f.referredActive7d / base) * 100)) + '٪' : ''),
+        h('div', { class: 'muted', style: 'font-size:12.5px;margin-top:8px', text: fa(f.touchedAll) + ' حساب (تازه یا قدیمی) تا حالا لینک یک گروه را باز کرده‌اند. دکمه‌ی گروه فقط در مینی‌اپ ردیابی می‌شود؛ بازدیدی که حساب نساخته در این عددها نیست.' })
+      ])));
+      wrap.appendChild(h('div', { style: 'height:16px' }));
+      var dmax = d.daily.reduce(function (m, x) { return Math.max(m, x.plays); }, 0);
+      wrap.appendChild(h('section', { class: 'card' }, [h('h2', { text: 'پازل گروهی در هر روز' }), h('div', { class: 'sub', text: 'روز به وقت تهران' })].concat(d.daily.length ? d.daily.map(function (x) { return barRow(fa(x.day), x.plays, dmax, fa(x.groups) + ' گروه'); }) : [empty('در این بازه پازل گروهی ثبت نشده')])));
+      wrap.appendChild(h('div', { style: 'height:16px' }));
+      wrap.appendChild(h('section', { class: 'card flush' }, [h('div', { class: 'card-h' }, [h('h2', { text: 'گروه‌های برتر' })]),
+        d.top.length ? simpleTable(['گروه', 'پیام‌رسان', 'پازل', 'برد', 'بازیکن', 'دور قیمت', 'حساب تازه از گروه', 'که بازی کردند', 'وضعیت'], d.top.map(function (t) {
+          return [t.title || t.chatId, t.platform === 'telegram' ? 'تلگرام' : 'بله', faNum(t.plays), faNum(t.won), faNum(t.players), faNum(t.priceSessions), faNum(t.referred), faNum(t.referredPlayed), t.removed ? 'ربات بیرون شد' : 'فعال'];
+        })) : empty('هنوز ربات به گروهی اضافه نشده')]));
+      wrap.appendChild(h('div', { class: 'muted', style: 'font-size:12.5px', text: 'ستون «پازل/برد/بازیکن» برای بازه‌ی انتخاب‌شده است؛ «دور قیمت» و «حساب تازه از گروه» از ابتدا. نام گروه همان است که پیام‌رسان داده.' }));
+    });
+  }
+  draw();
+};
 `;

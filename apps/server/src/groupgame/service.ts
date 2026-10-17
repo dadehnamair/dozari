@@ -107,8 +107,15 @@ export class GroupGameService {
     return isTelegramId(chatId) ? 'telegram' : 'bale';
   }
 
-  private register(chatId: string, title: string): Promise<void> {
-    return this.d.store.upsertGroup({ chatId, platform: this.platformOf(chatId), title });
+  /** Link codes of the groups seen since start-up, so the (synchronous) button builders can use them. */
+  private readonly refs = new Map<string, string>();
+
+  private async register(chatId: string, title: string): Promise<void> {
+    await this.d.store.upsertGroup({ chatId, platform: this.platformOf(chatId), title });
+    if (!this.refs.has(chatId)) {
+      const ref = await this.d.store.refOf(chatId).catch(() => null);
+      if (ref) this.refs.set(chatId, ref);
+    }
   }
 
   private async onMembership(chatId: string, title: string, status: string): Promise<void> {
@@ -124,7 +131,9 @@ export class GroupGameService {
   private ctaUrl(chatId: string): string | null {
     const tg = this.platformOf(chatId) === 'telegram';
     const user = tg ? this.d.usernames.telegram : this.d.usernames.bale;
-    return user ? `${tg ? 'https://t.me' : 'https://ble.ir'}/${user}?startapp=daily` : null;
+    // «daily_g<ref>»: the screen plus which group the player came from (docs/logic/group-game.md §Funnel)
+    const ref = this.refs.get(chatId);
+    return user ? `${tg ? 'https://t.me' : 'https://ble.ir'}/${user}?startapp=daily${ref ? `_g${ref}` : ''}` : null;
   }
 
   private async say(chatId: string, text: string): Promise<void> {

@@ -7,7 +7,7 @@ Bale first; Telegram runs on the same code (ids carry the `tg:` prefix, `docs/lo
 1. **Daily puzzle in a group** (built): join, `/play`, cooperative board with inline buttons, one play per group per day, app call-to-action.
 2. Weekly group leaderboard `/top` (built). The private-table deep link is **not built**: a table needs a signed-in host and the mini-app has no `startapp=table_<code>` mapping yet; until then the call-to-action opens `?startapp=duel`.
 3. Price mode `/price` (built, see §Price mode).
-4. Admin stats: groups, plays, players, funnel to installs.
+4. Admin stats and the funnel from group links to new accounts (built, see §Funnel).
 
 ## Joining
 - The bot is added to a group → `my_chat_member` (status `member`/`administrator`) → row in `bot_groups` and a welcome message with the commands.
@@ -56,15 +56,30 @@ Bale first; Telegram runs on the same code (ids carry the `tg:` prefix, `docs/lo
 
 ## Call to action
 The finishing message (and the «already played today» answer) carries a URL button «ادامه در بازی» → mini-app deep link
-`https://ble.ir/<bot>?startapp=daily` (Telegram: `https://t.me/<bot>?startapp=daily`) built from `BALE_BOT_USERNAME` / `TELEGRAM_BOT_USERNAME`
+`https://ble.ir/<bot>?startapp=daily_g<ref>` (Telegram: `https://t.me/<bot>?startapp=daily_g<ref>`) built from `BALE_BOT_USERNAME` / `TELEGRAM_BOT_USERNAME`
 (no button without a username). Text sells what only the app has: more puzzles, duel 1v1/2v2, price chart, keepsake cards.
+
+## Funnel (phase 4)
+- Each group has a short opaque code `bot_groups.ref` (7 chars of `[a-z2-9]`, unique, made the first time the group is seen) so the link says which group it
+  came from without exposing the chat id. The button link is `?startapp=daily_g<ref>`; the bare `?startapp=daily` keeps working.
+- Mini-app bridge (`apps/miniapp/miniapp-bridge.js`, `applyStartParam`): `(solo|daily|duel)(_g<ref>)?` opens the screen as before and keeps `g<ref>` in
+  `localStorage['dozari_src']` (in-memory shim when storage is blocked: then the visit is simply not attributed).
+- The game's request headers (`apps/mobile/src/net/clientHeaders.ts`) add `x-client-src: g<ref>` (web only, shape-checked). The server (`clients/info.ts`) reads it
+  with the other client headers into `user_clients.src` (latest link source) and `first_src` (set only when the account's row is first created, like `first_store`):
+  **a new account counts as «from a group» only when its very first call carried the code**; an existing player opening a group link only moves `src`.
+  Client-reported, display-only, never used for access.
+- Admin «گروه‌های ربات» (`/admin/stats/groups?days=`, `admin/group-stats.ts`, view `botgroups` in `ui/views2/stats.ts`): groups (total/active/per messenger/new), group plays and
+  players in the window, price sessions, the funnel (new accounts from group links → played at least one board (`puzzle_plays`) → active in 7 days; all-time new and
+  touched), plays per Tehran day and the top 30 groups with their own referred accounts. Bots are not counted.
+- Not measurable: people who tap the button but never create an account, and the Telegram/Bale in-app browser that blocks storage. Link clicks are not logged (a
+  Telegram/Bale URL button is opened by the host, not by us).
 
 ## Abuse limits
 Per tapper `GROUP_TAP_LIMIT` taps per minute; a message edit that Bale/Telegram rejects (`message is not modified`, deleted message) is swallowed.
 Config in `packages/shared/src/config/groupgame.ts`.
 
-## Data (migrations 0097, 0098, 0099)
-- `bot_groups(chat_id PK, platform, title, added_at, removed_at)`.
+## Data (migrations 0097, 0098, 0099, 0100)
+- `bot_groups(chat_id PK, platform, title, ref unique, added_at, removed_at)`; `user_clients.src`, `user_clients.first_src` (migration 0100).
 - `bot_group_price_sessions(chat_id, date_key PK, sessions)`.
 - `bot_group_scores(chat_id, week_key, user_ref PK, name, points, groups, wrong)`.
 - `bot_group_plays(chat_id, date_key PK, result playing|won|lost, mistakes, solved_groups, players, started_at, finished_at)`.

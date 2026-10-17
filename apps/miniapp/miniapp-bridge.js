@@ -99,6 +99,16 @@
       var m = /[?&#]tgWebAppStartParam=([^&#]*)/.exec(location.search + location.hash);
       raw = m ? decodeURIComponent(m[1]) : '';
     }
+    // «daily_g<ref>» = the screen plus the bot group the link came from; the ref is kept for the game's request headers (docs/logic/group-game.md §Funnel).
+    var parts = /^(solo|daily|duel)(?:_(g[a-z0-9]{4,12}))?$/.exec(raw);
+    if (parts && parts[2]) {
+      try {
+        localStorage.setItem('dozari_src', parts[2]);
+      } catch (e) {
+        /* no storage: the visit is simply not attributed */
+      }
+    }
+    if (parts) raw = parts[1];
     if (/^(solo|daily|duel)$/.test(raw) && location.search.indexOf('go=') === -1) {
       try {
         history.replaceState(null, '', location.pathname + '?go=' + raw + location.hash);

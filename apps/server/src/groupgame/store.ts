@@ -1,4 +1,5 @@
 import { and, botGroupPlays, botGroupPriceSessions, botGroupScores, botGroups, desc, eq, sql } from '@dozari/db';
+import { randomInt } from 'node:crypto';
 import type { Db } from '@dozari/db';
 import type { GroupScoreRow } from '@dozari/shared';
 
@@ -6,6 +7,8 @@ export type GroupPlayResult = 'playing' | 'won' | 'lost';
 
 /** I/O boundary of the group game (docs/logic/group-game.md). */
 export interface GroupGameStore {
+  /** The group's short code for its mini-app links (made on first use, lowercase letters and digits). */
+  refOf(chatId: string): Promise<string | null>;
   /** Registers the group, or brings a removed one back; keeps the title fresh. */
   upsertGroup(g: { chatId: string; platform: 'bale' | 'telegram'; title: string }): Promise<void>;
   /** The bot was removed from the group. */
@@ -23,8 +26,28 @@ export interface GroupGameStore {
   weekScores(chatId: string, weekKey: string, limit: number): Promise<GroupScoreRow[]>;
 }
 
+const REF_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789';
+const newRef = (): string => Array.from({ length: 7 }, () => REF_ALPHABET[randomInt(REF_ALPHABET.length)]).join('');
+
 export function createDbGroupGameStore(db: Db): GroupGameStore {
   return {
+    async refOf(chatId) {
+      const [row] = await db.select({ ref: botGroups.ref }).from(botGroups).where(eq(botGroups.chatId, chatId)).limit(1);
+      if (!row) return null;
+      if (row.ref) return row.ref;
+      // a clash on the unique code (rare) just draws another one
+      for (let i = 0; i < 5; i++) {
+        const ref = newRef();
+        try {
+          const [res] = await db.update(botGroups).set({ ref }).where(and(eq(botGroups.chatId, chatId), sql`${botGroups.ref} IS NULL`));
+          if (res.affectedRows > 0) return ref;
+          return (await db.select({ ref: botGroups.ref }).from(botGroups).where(eq(botGroups.chatId, chatId)).limit(1))[0]?.ref ?? null;
+        } catch {
+          /* duplicate code: try another */
+        }
+      }
+      return null;
+    },
     async upsertGroup(g) {
       await db
         .insert(botGroups)

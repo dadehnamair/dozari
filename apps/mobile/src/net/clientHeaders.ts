@@ -22,11 +22,22 @@ function isInstalledPwa(os: string): boolean {
   }
 }
 
+/** The link source the mini-app bridge kept (`g<ref>` from a bot group's `?startapp=daily_g<ref>`), web only. */
+function linkSource(os: string): string {
+  if (os !== 'web') return '';
+  try {
+    const v = (globalThis as unknown as { localStorage?: { getItem(k: string): string | null } }).localStorage?.getItem('dozari_src') ?? '';
+    return /^g[a-z0-9]{4,12}$/.test(v) ? v : '';
+  } catch {
+    return '';
+  }
+}
+
 /**
  * Tells the server which app is calling: platform, OS version, build and market. It is only for the admin panel's «آخرین دستگاه»
  * (support and install-source questions); the server never trusts it for access decisions.
  */
 export function clientHeaders(): Record<string, string> {
   const { os, version } = platformInfo();
-  return { 'x-client-platform': os, 'x-client-os': version.slice(0, 24), 'x-client-build': String(APP_BUILD), 'x-client-store': APP_STORE ?? '', 'x-client-pwa': isInstalledPwa(os) ? '1' : '' };
+  return { 'x-client-platform': os, 'x-client-os': version.slice(0, 24), 'x-client-build': String(APP_BUILD), 'x-client-store': APP_STORE ?? '', 'x-client-pwa': isInstalledPwa(os) ? '1' : '', 'x-client-src': linkSource(os) };
 }

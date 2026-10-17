@@ -20,6 +20,7 @@ import type { ProductAdmin } from './products.js';
 import type { StatsAdmin } from './stats.js';
 import { PLAYER_SORTS } from './usage-stats.js';
 import type { UsageStatsAdmin } from './usage-stats.js';
+import type { GroupStatsAdmin } from './group-stats.js';
 import type { BazaarMonitor } from './bazaar-monitor.js';
 import { isHttpUrl } from '../security/url-guard.js';
 import type { MessageCenter } from '../messages/service.js';
@@ -70,6 +71,8 @@ import type { BackupService } from '../backup/service.js';
 export interface AdminModules {
   /** Installs per market / PWA and what players did with the puzzles (docs/logic/admin-stats.md). */
   usage?: UsageStatsAdmin;
+  /** Bot-group activity and the funnel from group links to new players (docs/logic/group-game.md §Funnel). */
+  groupStats?: GroupStatsAdmin;
   /** Read-only CafeBazaar release status (Pishkhan API). */
   bazaar?: BazaarMonitor;
   /** Database backups to S3-compatible storage (owner only). */
@@ -214,7 +217,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     settingGroups: SETTING_GROUPS,
     icons: ITEMS,
     iconGroups: ITEM_GROUPS,
-    modules: { avatars: !!m.avatars, puzzles: !!m.puzzles, categories: !!m.categories, settings: !!m.settings, products: !!m.products, stats: !!m.stats, usage: !!m.usage, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, keepsakes: !!m.keepsakes, wheel: !!m.wheel, ads: !!m.ads, shortLinks: !!m.shortLinks, backups: !!m.backups, feedback: !!m.feedback, workshop: !!m.workshop, clientErrors: !!m.clientErrors, landing: !!m.landing, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, lessons: !!m.lessons, ai: !!m.ai, ageTracks: !!m.ageTracks, economy: !!m.economy, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages, sms: !!m.sms },
+    modules: { avatars: !!m.avatars, puzzles: !!m.puzzles, categories: !!m.categories, settings: !!m.settings, products: !!m.products, stats: !!m.stats, usage: !!m.usage, groupStats: !!m.groupStats, users: !!m.users, bot: !!m.bot, audit: !!m.audit, words: !!m.words, cities: !!m.cities, shop: !!m.shop, keepsakes: !!m.keepsakes, wheel: !!m.wheel, ads: !!m.ads, shortLinks: !!m.shortLinks, backups: !!m.backups, feedback: !!m.feedback, workshop: !!m.workshop, clientErrors: !!m.clientErrors, landing: !!m.landing, coinPackages: !!m.coinPackages, invites: !!m.invites, badges: !!m.badges, chat: !!m.chat, tournaments: !!m.tournaments, daily: !!m.daily, lessons: !!m.lessons, ai: !!m.ai, ageTracks: !!m.ageTracks, economy: !!m.economy, levelRoad: !!m.levelRoad, botPlayers: !!m.botPlayers, bale: !!m.bale, messages: !!m.messages, sms: !!m.sms },
   }));
 
   if (m.ai) registerAiAdminRoutes(g, m.ai, audit, m.aiSchedules);
@@ -237,6 +240,14 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       const p = q.safeParse(req.query);
       if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
       return { players: await usage.players(Date.now(), p.data.days, p.data.limit, p.data.sort) };
+    });
+  }
+  if (m.groupStats) {
+    const groupStats = m.groupStats;
+    g.get('/admin/stats/groups', async (req, reply) => {
+      const p = z.object({ days: z.coerce.number().int().min(1).max(365).default(30) }).safeParse(req.query);
+      if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
+      return groupStats.groups(Date.now(), p.data.days);
     });
   }
   if (m.bazaar) {

@@ -591,6 +591,9 @@ export const userClients = mysqlTable('user_clients', {
   /** The web build runs as an installed PWA now / the first time it was seen. */
   pwa: boolean('pwa').notNull().default(false),
   firstPwa: boolean('first_pwa').notNull().default(false),
+  /** Where a link that brought the player came from (`g<ref>` = a bot group, docs/logic/group-game.md §Funnel): the latest one seen, and the one the account first arrived with. */
+  src: varchar('src', { length: 16 }),
+  firstSrc: varchar('first_src', { length: 16 }),
   firstSeenAt: datetime('first_seen_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
   updatedAt: datetime('updated_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
 });
@@ -748,9 +751,11 @@ export const botGroups = mysqlTable('bot_groups', {
   chatId: varchar('chat_id', { length: 40 }).primaryKey(),
   platform: mysqlEnum('platform', ['bale', 'telegram']).notNull(),
   title: varchar('title', { length: 200 }).notNull().default(''),
+  /** Short opaque code in the group's mini-app links (`?startapp=daily_g<ref>`), so a new account can be traced to the group. */
+  ref: varchar('ref', { length: 12 }),
   addedAt: datetime('added_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
   removedAt: datetime('removed_at', { mode: 'date', fsp: 3 }),
-});
+}, (t) => ({ uniqRef: uniqueIndex('bot_groups_ref_uq').on(t.ref) }));
 
 /** One daily-puzzle play per group per Tehran day; the primary key is the one-play rule. */
 export const botGroupPlays = mysqlTable(

@@ -19,6 +19,7 @@ function memoryStore() {
   const priceSessions = new Map<string, number>();
   const scores: { chatId: string; weekKey: string; userRef: string; name: string; points: number; groups: number; wrong: number }[] = [];
   const store: GroupGameStore = {
+    async refOf(chatId) { return groups.has(chatId) ? 'k3f9x2m' : null; },
     async startPriceSession(chatId, dateKey, max) {
       const k = `${chatId}|${dateKey}`;
       const n = priceSessions.get(k) ?? 0;
@@ -165,7 +166,7 @@ describe('group game', () => {
     }
     const fin = t.edits.at(-1)!;
     expect(fin.text).toContain('آفرین');
-    expect(fin.keyboard[0]![0]!.url).toBe('https://ble.ir/dozari_bot?startapp=daily');
+    expect(fin.keyboard[0]![0]!.url).toBe('https://ble.ir/dozari_bot?startapp=daily_gk3f9x2m');
     expect(fin.keyboard).toHaveLength(1);
     expect(t.mem.plays.get('-100|2026-10-17')).toMatchObject({ result: 'won', mistakes: 0, players: 1 });
     const n = t.sent.length;

@@ -289,4 +289,4 @@ Start after the first Android build.
 - [x] 2a. Weekly group leaderboard `/top` (migration 0098)
 - [ ] 2b. Private-table deep link (needs a mini-app `startapp=table_<code>` mapping)
 - [x] 3. Price mode `/price` in groups (migration 0099)
-- [ ] 4. Admin stats: groups, plays, funnel to installs
+- [x] 4. Admin stats «گروه‌های ربات» and the group-link funnel (`startapp=daily_g<ref>`, migration 0100)

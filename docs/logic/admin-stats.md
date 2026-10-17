@@ -25,3 +25,6 @@ Cached 5 minutes (the API answers 429 when polled hard). Without the env var the
 - Totals per window (7/30/90/365 days): boards, players, distinct puzzles used vs. the library (and how many were never played), groups found, mistakes, hints, win/loss/draw,
   a 0-4 groups histogram, per-mode split, boards per Tehran day, the ten most-played puzzles. The player table is sortable (plays, wins, groups, mistakes, hints, distinct puzzles, recent).
 - Endpoints (all `read` permission): `GET /admin/stats/installs`, `/admin/stats/gameplay?days=`, `/admin/stats/players?days=&limit=&sort=`, `/admin/stats/bazaar`.
+
+## Bot groups (`botgroups`)
+`GET /admin/stats/groups?days=`: group counts, group plays and the funnel from group links to new accounts, see `group-game.md` §Funnel.

@@ -39,7 +39,7 @@ appears only where something is truly that messenger's (Bale payments, the Bale 
 | `ready()` / `expand()` | loading screen ends at once, full-screen |
 | `setHeaderColor('#2B1240')` | the host's header matches the game's purple |
 | `openLink(url)` | external links (`window.open` of http(s) outside our origin) open in the messenger's browser |
-| `?startapp=solo\|daily\|duel` | `https://ble.ir/<bot>?startapp=daily` opens that screen (mapped to the game's `?go=`) |
+| `?startapp=solo\|daily\|duel` | `https://ble.ir/<bot>?startapp=daily` opens that screen (mapped to the game's `?go=`); a suffix `_g<ref>` (links from a bot group) is kept as the link source, `docs/logic/group-game.md` §Funnel |
 | `BackButton` | the header back button shows while a screen or sheet can go back and runs the same handler as the phone's back button (`nav/backStack.ts`, filled by `useHardwareBack` on the web; `miniapp/useMiniAppBack.ts`); on Home it hides |
 | `enableClosingConfirmation()` | while a live match is on screen, closing the mini-app asks «are you sure?» (`duel/LeaveGuard.tsx`) |
 | `isMiniAppSupported` | an old Bale app gets a Persian «update the app» notice instead of a blank page |
