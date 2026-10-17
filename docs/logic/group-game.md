@@ -93,6 +93,15 @@ The finishing message (and the «already played today» answer) carries a URL bu
 - Not measurable: people who tap the button but never create an account, and the Telegram/Bale in-app browser that blocks storage. Link clicks are not logged (a
   Telegram/Bale URL button is opened by the host, not by us).
 
+## Personal invite link (`/invite`, owner 2026-10-17)
+- In a **private chat** with the bot, `/invite` answers a player who has an account — a linked chat (`bale_links`) or a mini-app player (messenger id → account, `miniAppUserOf`) — with
+  `https://ble.ir/<bot>?startapp=i_<HANDLE>` (Telegram: `https://t.me/...`). `HANDLE` is their public ID (`FindService.handle`, made on first use, `docs/logic/find-friends.md`).
+  Anyone else is told to open the game first. Not available inside groups (group chats never link an account); no username configured = no link.
+- Mini-app bridge: `i_<ID>` → `?go=invite&code=<ID>`. The game (`pwa/logic.ts inviteLaunchOf`, `usePwa.takeInviteHandle`, `useInviteLink`) calls the ordinary `POST /friends/link {handle}` once
+  after the account exists, so every rule of the invite link applies (new account → friend at once, old account → friend request, kid/teen guardian gate, daily caps). It is the
+  referral too: a new player arrives with the inviter as a friend.
+- Not built: a per-inviter reward, and a «share my link» button inside the app for the messenger (the in-app invite link still uses `dozari://i/`).
+
 ## Abuse limits
 Per tapper `GROUP_TAP_LIMIT` taps per minute; a message edit that Bale/Telegram rejects (`message is not modified`, deleted message) is swallowed.
 Config in `packages/shared/src/config/groupgame.ts`.

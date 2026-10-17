@@ -42,6 +42,21 @@ export function tableLaunchOf(search: string): { code: string | null; rest: stri
   return { code: normalizeTableCode(raw), rest: rest ? `?${rest}` : '' };
 }
 
+/**
+ * A friend's personal invite link opened from a bot (`?go=invite&code=ABC2345`, from `https://ble.ir/<bot>?startapp=i_<ID>`): the public ID and the URL search
+ * without those parameters. Only the shape is checked here; the server decides whether the ID exists.
+ */
+export function inviteLaunchOf(search: string): { handle: string | null; rest: string } {
+  const q = new URLSearchParams(search);
+  if (q.get('go') !== 'invite') return { handle: null, rest: search };
+  const raw = q.get('code') ?? '';
+  q.delete('go');
+  q.delete('code');
+  q.delete('source');
+  const rest = q.toString();
+  return { handle: /^[A-Za-z0-9]{4,12}$/.test(raw) ? raw.toUpperCase() : null, rest: rest ? `?${rest}` : '' };
+}
+
 /** A dismissed install banner comes back after this long. */
 export const INSTALL_SNOOZE_MS = 7 * 24 * 60 * 60 * 1000;
 
