@@ -585,6 +585,7 @@ if (isMainModule(import.meta.url)) {
   // The Telegram bot sits next to Bale's: same service and tables, its chat ids carry the `tg:` prefix (docs/logic/bale-bot.md §Telegram).
   const telegramToken = process.env.TELEGRAM_BOT_TOKEN;
   const telegramUsername = process.env.TELEGRAM_BOT_USERNAME?.replace(/^@/, '') ?? null;
+  if (!telegramToken) console.warn('TELEGRAM_BOT_TOKEN is not set: Telegram mini-app logins and the Telegram bot are off');
   const telegramClient = telegramToken ? createTelegramClient(telegramToken, { base: process.env.TELEGRAM_API_BASE || undefined }) : null;
   const notify = baleStore ? new NotifyService(baleStore, createMultiClient(baleClient, telegramClient)) : undefined;
   // Browser push (Web Push, VAPID): iPhone home-screen apps through Apple's service, Chrome through Google's. Off without the three VAPID_* variables.
