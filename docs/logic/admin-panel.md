@@ -87,6 +87,14 @@ Built behind `feature.age_tracks` (full spec and status: `age-tracks.md`). In th
 - **Content:** «کلمه‌آموزی کودک» (lesson editor and approval), the kid/teen puzzle builder and per-track taunt libraries («کل‌کل‌های آماده») and the stricter word list («فیلتر کلمات»).
 - **Audit log:** every band choice of a player (`age_track.choose`), guardian link / add child / child band move / settings change / removal (`guardian.*`) and the admin actions above are recorded.
 
+## Puzzle review (بازبینی, D242)
+
+Approved puzzles can be re-checked later without leaving play: `puzzles.reviewed_at` (null = «بازبینی نشده») is only an admin mark, serving and status ignore it.
+- Every puzzle card shows «بازبینی نشده» or «بازبینی شد · <Jalali date and time>» with a button «بازبینی شد ✓» / «بازبینی مجدد» (`PUT /admin/puzzles/:id/review {reviewed}`; pending edits on the card are saved first; `reviewed:false` clears the mark; audit `puzzle.review`).
+- Puzzle list tabs have a review-state filter (all / نشده / شده) next to the age, group, tag and level filters; the daily-puzzle picker has the same filter.
+- The **«بازبینی»** tab walks the filtered puzzles one at a time (phone-first, sticky bar: قبلی · n از N · بازبینی شد ✓ · بعدی). Default filter = not reviewed, active + draft; order = never reviewed first, then longest since the last review, so marking one shows the next.
+- `GET /admin/puzzles` returns up to 1000 puzzles.
+
 ## Image uploads
 
 Wherever the panel asks for an image (sponsor banner/logo, landing post cover) the field has an «آپلود تصویر» button next to the URL box; the box stays editable, so an external https link still works.

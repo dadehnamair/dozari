@@ -306,6 +306,8 @@ export const puzzles = mysqlTable('puzzles', {
   ageTrack: mysqlEnum('age_track', AGE_TRACKS).notNull().default('adult'),
   timesPlayed: int('times_played').notNull().default(0),
   avgSolveRate: double('avg_solve_rate'),
+  /** When an admin last re-checked the puzzle (بازبینی); null = never reviewed. Has no effect on serving. */
+  reviewedAt: datetime('reviewed_at', { mode: 'date', fsp: 3 }),
   createdAt: datetime('created_at', { mode: 'date', fsp: 3 }).notNull().default(now()),
 });
 

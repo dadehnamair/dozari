@@ -58,7 +58,7 @@ median. No interpolation for gameplay rules (interpolation allowed only for char
 
 ### `puzzles`
 `id, status (draft|approved|retired), source (generated|curated|ugc), author_id null, seed bigint null,
-topic_id null (themed-rounds.md), difficulty_score double null, times_played int, avg_solve_rate double null, created_at`
+topic_id null (themed-rounds.md), difficulty_score double null, times_played int, avg_solve_rate double null, reviewed_at datetime(3) null (admin re-check, D242; never affects serving), created_at`
 
 ### `puzzle_topics` / `puzzle_tags`
 `puzzle_topics(id, slug unique, name_fa, sort_order, is_active)`; `puzzle_tags(puzzle_id FK, tag)` PK both — see `logic/themed-rounds.md`.

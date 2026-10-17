@@ -17,6 +17,8 @@ export interface PuzzleAdminRow {
   status: 'draft' | 'approved' | 'retired';
   source: 'generated' | 'curated' | 'ugc';
   createdAt: number;
+  /** When an admin last re-checked it (بازبینی), or null = never reviewed. Does not affect serving. */
+  reviewedAt: number | null;
   /** The puzzle's difficulty tier (admin-defined), or null while unrated. */
   tierId: string | null;
   /** Which age track's pool the puzzle belongs to (D198). */
@@ -102,6 +104,8 @@ export interface PuzzleAdmin {
   /** Puts a puzzle in a tier (null = unrated). */
   setTier(puzzleId: string, tierId: string | null): Promise<'ok' | 'not_found' | 'unknown_tier'>;
   setStatus(id: string, status: 'approved' | 'retired' | 'draft'): Promise<'ok' | 'not_found'>;
+  /** Stamps the puzzle as reviewed now (re-review overwrites the time), or clears the mark (`reviewed: false`). The puzzle's status and serving are untouched. */
+  markReviewed(id: string, reviewed: boolean, now?: Date): Promise<'ok' | 'not_found'>;
   /** The topics (admin order) with how many approved puzzles each holds. */
   topics(): Promise<TopicRow[]>;
   saveTopic(topic: TopicInput): Promise<SaveTopicResult>;
@@ -175,6 +179,7 @@ export function createDbPuzzleAdmin(db: Db): PuzzleAdmin {
         status: r.status,
         source: r.source,
         createdAt: r.createdAt.getTime(),
+        reviewedAt: r.reviewedAt?.getTime() ?? null,
         tierId: r.tierId,
         ageTrack: r.ageTrack,
         topicId: r.topicId,
@@ -392,6 +397,12 @@ export function createDbPuzzleAdmin(db: Db): PuzzleAdmin {
       await db.update(puzzles).set({ status }).where(eq(puzzles.id, id));
       return 'ok';
     },
+    async markReviewed(id, reviewed, now = new Date()) {
+      const [r] = await db.select({ id: puzzles.id }).from(puzzles).where(eq(puzzles.id, id));
+      if (!r) return 'not_found';
+      await db.update(puzzles).set({ reviewedAt: reviewed ? now : null }).where(eq(puzzles.id, id));
+      return 'ok';
+    },
   };
 }
 
@@ -414,7 +425,7 @@ export function createMemoryPuzzleAdmin(known: Set<string>, catalog: Catalog = [
       if (shape !== 'ok') return { ok: false, error: shape };
       if (groups.some((g) => g.productIds.some((id) => !known.has(id)))) return { ok: false, error: 'unknown_product' };
       const id = `00000000-0000-7000-9000-${String(rows.length + 1).padStart(12, "0")}`;
-      rows.unshift({ id, status, source: 'curated', createdAt: 0, tierId: tierId ?? null, ageTrack, topicId: null, tags: [], groups: groups.map((g) => ({ level: g.level, titleFa: g.titleFa, items: g.productIds, productIds: g.productIds })) });
+      rows.unshift({ id, status, source: 'curated', createdAt: 0, reviewedAt: null, tierId: tierId ?? null, ageTrack, topicId: null, tags: [], groups: groups.map((g) => ({ level: g.level, titleFa: g.titleFa, items: g.productIds, productIds: g.productIds })) });
       return { ok: true, id };
     },
     async swapProduct(puzzleId, fromProductId, toProductId) {
@@ -437,7 +448,7 @@ export function createMemoryPuzzleAdmin(known: Set<string>, catalog: Catalog = [
       for (const { puzzle: g, tierId } of made) {
         const id = `00000000-0000-7000-9000-${String(rows.length + 1).padStart(12, '0')}`;
         ids.push(id);
-        rows.unshift({ id, status: 'draft', source: 'generated', createdAt: 0, tierId, ageTrack: 'adult', topicId: opts.topicId ?? null, tags: cleanTags(opts.tags ?? []), groups: g.groups.map((x) => ({ level: x.level, titleFa: opts.plainTitles ? explainRule(x.rule) : draftTitle(x.rule, rng), items: [...x.productIds], productIds: [...x.productIds] })) });
+        rows.unshift({ id, status: 'draft', source: 'generated', createdAt: 0, reviewedAt: null, tierId, ageTrack: 'adult', topicId: opts.topicId ?? null, tags: cleanTags(opts.tags ?? []), groups: g.groups.map((x) => ({ level: x.level, titleFa: opts.plainTitles ? explainRule(x.rule) : draftTitle(x.rule, rng), items: [...x.productIds], productIds: [...x.productIds] })) });
       }
       return { requested: count, created: made.length, catalogSize: catalog.length, ids };
     },
@@ -536,6 +547,12 @@ export function createMemoryPuzzleAdmin(known: Set<string>, catalog: Catalog = [
       const r = rows.find((x) => x.id === id);
       if (!r) return 'not_found';
       r.status = status;
+      return 'ok';
+    },
+    async markReviewed(id, reviewed, now = new Date()) {
+      const r = rows.find((x) => x.id === id);
+      if (!r) return 'not_found';
+      r.reviewedAt = reviewed ? now.getTime() : null;
       return 'ok';
     },
   };

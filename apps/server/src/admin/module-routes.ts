@@ -923,7 +923,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
   if (m.puzzles) {
     const puzzles = m.puzzles;
     const groupBody = z.object({ level: z.number().int().min(0).max(3), titleFa: z.string().trim().min(2).max(100), explanationFa: z.string().trim().max(300).optional(), productIds: z.array(z.string().uuid()).length(4) });
-    g.get('/admin/puzzles', async () => ({ readiness: await puzzles.readiness(), puzzles: await puzzles.list(200), tiers: await puzzles.tiers() }));
+    g.get('/admin/puzzles', async () => ({ readiness: await puzzles.readiness(), puzzles: await puzzles.list(1000), tiers: await puzzles.tiers() }));
     g.post('/admin/puzzles', async (req, reply) => {
       const b = z.object({ groups: z.array(groupBody).length(4), tierId: z.string().uuid().nullable().optional(), ageTrack: z.enum(['kid', 'teen', 'adult']).optional() }).safeParse(req.body);
       if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
@@ -1020,6 +1020,16 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       if (!out.ok) return reply.code(out.error === 'not_found' || out.error === 'unknown_product' ? 404 : 400).send({ error: out.error });
       void audit('puzzle.swap', p.data.id, `${b.data.fromProductId}>${b.data.toProductId}`);
       return { ok: true, status: out.status };
+    });
+    // Review mark (بازبینی): stamps "reviewed now" (re-review overwrites) or clears it; serving is unaffected.
+    g.put('/admin/puzzles/:id/review', async (req, reply) => {
+      const p = idParam.safeParse(req.params);
+      const b = z.object({ reviewed: z.boolean().default(true) }).safeParse(req.body ?? {});
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      const out = await puzzles.markReviewed(p.data.id, b.data.reviewed);
+      if (out === 'not_found') return reply.code(404).send({ error: out });
+      void audit(b.data.reviewed ? 'puzzle.review' : 'puzzle.review.clear', p.data.id);
+      return { ok: true, reviewedAt: b.data.reviewed ? Date.now() : null };
     });
     g.patch('/admin/puzzles/:id', async (req, reply) => {
       const p = idParam.safeParse(req.params);

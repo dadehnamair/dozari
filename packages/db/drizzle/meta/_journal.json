@@ -673,6 +673,13 @@
       "when": 1792232160227,
       "tag": "0095_admin_stats",
       "breakpoints": true
+    },
+    {
+      "idx": 96,
+      "version": "5",
+      "when": 1792240551489,
+      "tag": "0096_sturdy_omega_red",
+      "breakpoints": true
     }
   ]
 }

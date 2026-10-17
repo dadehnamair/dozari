@@ -247,6 +247,11 @@ tr.click { cursor:pointer; }
 .pz.dirty { box-shadow:0 0 0 3px color-mix(in srgb,var(--warn) 35%,transparent); }
 .pz-head { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
 .pz-meta { display:grid; grid-template-columns:1fr 1fr; gap:10px; background:var(--card2); border-radius:12px; padding:10px 12px; } .pz-meta .f:last-child { grid-column:1 / -1; }
+.pz-review { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:8px 12px; border-radius:12px; background:color-mix(in srgb,var(--warn) 14%,transparent); } .pz-review.done { background:color-mix(in srgb,var(--ok) 12%,transparent); }
+.rv-tab { display:grid; gap:14px; max-width:560px; margin-inline:auto; padding-bottom:84px; }
+.rv-bar { position:fixed; inset-inline:0; bottom:0; z-index:20; display:flex; align-items:center; justify-content:center; gap:8px; padding:10px 12px calc(10px + env(safe-area-inset-bottom)); background:var(--card); border-top:1px solid var(--line2); }
+@media (min-width:1001px) { .rv-bar { position:sticky; border:1px solid var(--line2); border-radius:12px; } .rv-tab { padding-bottom:0; } }
+.rv-bar .btn { min-height:44px; } .rv-pos { font-size:13px; color:var(--muted); white-space:nowrap; }
 .pz-groups { display:grid; gap:10px; }
 .pz-group { border-inline-start:6px solid var(--lv); background:var(--card2); border-radius:12px; padding:10px 12px; display:grid; gap:8px; }
 .pz-lv { display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--muted); } .pz-lv i { width:10px; height:10px; border-radius:50%; background:var(--lv); display:inline-block; } .pz-lv b { color:var(--ink2); }
