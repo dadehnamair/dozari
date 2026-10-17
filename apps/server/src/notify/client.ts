@@ -62,11 +62,11 @@ export class BaleApiError extends Error {
   }
 }
 
-export function createBaleClient(token: string, opts: { base?: string; fetchImpl?: typeof fetch } = {}): BaleClient {
+export function createBaleClient(token: string, opts: { base?: string; fetchImpl?: typeof fetch; /** The base is a bot link that already carries the token (IRNoti broker): requests go to `<base>/<method>`. */ flat?: boolean } = {}): BaleClient {
   const base = (opts.base ?? DEFAULT_BALE_BASE).replace(/\/+$/, '');
   const doFetch = opts.fetchImpl ?? fetch;
   async function call<T>(method: string, body: unknown, timeoutMs: number): Promise<T> {
-    const res = await doFetch(`${base}/bot${token}/${method}`, {
+    const res = await doFetch(opts.flat ? `${base}/${method}` : `${base}/bot${token}/${method}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(body),
@@ -123,10 +123,11 @@ const rawId = (id: string): string => (id.startsWith(TELEGRAM_ID_PREFIX) ? id.sl
 
 /**
  * The Telegram bot, speaking the same dialect as the Bale one: updates come back with prefixed ids (`tg:123`) and sends accept them.
- * No wallet payments (Telegram has no rial provider); `TELEGRAM_API_BASE` points at a relay when api.telegram.org is blocked.
+ * No wallet payments (Telegram has no rial provider); `TELEGRAM_API_BASE` is the IRNoti broker link of the bot when api.telegram.org is blocked.
  */
 export function createTelegramClient(token: string, opts: { base?: string; fetchImpl?: typeof fetch } = {}): BaleClient {
-  const inner = createBaleClient(token, { base: opts.base ?? DEFAULT_TELEGRAM_BASE, fetchImpl: opts.fetchImpl });
+  // A custom base is an IRNoti broker link (`https://events.irnoti.com/<name>/<key>`): it holds the token itself, so no `/bot<token>` in the path.
+  const inner = createBaleClient(token, { base: opts.base ?? DEFAULT_TELEGRAM_BASE, fetchImpl: opts.fetchImpl, flat: !!opts.base });
   return {
     sendMessage: (chatId, text, o) => inner.sendMessage(rawId(chatId), text, o),
     sendInline: (chatId, text, kb) => inner.sendInline!(rawId(chatId), text, kb),

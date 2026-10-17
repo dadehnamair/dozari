@@ -18,6 +18,16 @@ describe('Telegram bot client', () => {
   });
 });
 
+describe('Telegram bot through a broker link', () => {
+  it('calls <link>/<method> without the token in the path', async () => {
+    const fetchImpl = reply([]);
+    const tg = createTelegramClient('1:tok', { base: 'https://events.irnoti.com/n1/KEY/', fetchImpl: fetchImpl as unknown as typeof fetch });
+    await tg.getUpdates(0, 1);
+    await tg.sendMessage('tg:42', 'hi');
+    expect(fetchImpl.mock.calls.map((c) => String(c[0]))).toEqual(['https://events.irnoti.com/n1/KEY/getUpdates', 'https://events.irnoti.com/n1/KEY/sendMessage']);
+  });
+});
+
 describe('multi client', () => {
   const fake = (): BaleClient => ({ sendMessage: vi.fn(async () => undefined), getUpdates: async () => [] });
   it('sends through the bot a chat belongs to', async () => {
