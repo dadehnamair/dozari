@@ -20,21 +20,26 @@ Bale first; Telegram runs on the same code (ids carry the `tg:` prefix, `docs/lo
 `/start` · `/help` welcome and rules · `/table CODE` card for a private table · `/play` today's puzzle · `/price` price questions · `/top` this week's best members of the group.
 
 ## Rules of the round
-- The puzzle is **today's daily puzzle** (`DailyService.ensure`, same as in the app), 16 cards, 4 groups of 4. Cooperative: the whole group shares one board,
-  one selection and one pool of mistakes (`SOLO_MAX_MISTAKES`). Pure logic is `startSolo` / `submitGuess` from shared; the server holds the solution
-  and only solved/revealed groups ever appear in a message (rule 4).
-- One message is edited in place. Buttons: the cards still on the board (4 per row; the taps toggle a ✅ on that card), then «ثبت» (needs exactly 4),
-  «پاک کردن», «بُر زدن». Callback data is `g:<rev>:<action>` (`t<index>` | `s` | `c` | `h`); `rev` bumps on every change, so a tap made on a stale
-  board is refused with a toast and the board is redrawn (positions shift after each solved group).
-- Whoever taps submit is named in the note under the board («سارا یک گروه پیدا کرد 🟩» / «یکی مونده بود 🔥» / «اشتباه بود»). Players are counted per tapper id.
+- The puzzle is **today's daily puzzle** (`DailyService.ensure`, same as in the app), 16 cards, 4 groups of 4. Pure logic is `startSolo` / `submitGuess` from shared; the
+  server holds the solution and the group's message never shows it before the round closes (rule 4).
+- **Everybody plays alone on one static board, for `GROUP_PLAY_MS` (15 min)** (owner, 2026-10-17: a shared selection let everyone tick and submit over each other).
+  One message with the 16 cards (4 per row) plus «ثبت» and «پاک کردن»; it is **never edited by a tap**. Each member has their own selection, found groups and
+  `SOLO_MAX_MISTAKES` mistakes in memory; every answer to a tap is a **toast shown only to the tapper** (what they ticked and how many, «درست بود: <title>»,
+  «فقط یک کارت اشتباه بود», chances left, «قبلاً امتحان کرده‌ای», «این کارت جزو دسته‌ای است که پیدا کردی»). Others see nothing of it. No shuffle (one order for all;
+  an old «بُر زدن» button is answered with a toast). Callback data is `g:<rev>:<action>` (`t<index>` | `s` | `c`); `rev` only changes when `/play` re-sends the board.
+- **Reminder** with `GROUP_PLAY_REMIND_MS` (5 min) left: a message with the number of members who have played (a count, never results).
+- **Close** at the deadline (timer, or the first tap after it): the board message is rewritten as «وقت تمام شد» without buttons, and a results message follows with the
+  four groups revealed and each member's result, best first (`rankPlayers`: groups found, fewer mistakes, found earlier, name; `GROUP_TOP_SIZE` rows, then «و N نفر دیگر»),
+  and the app call-to-action. A member who found all four or ran out of chances is told and waits for the result.
 - **One play per group per Tehran day** (`bot_group_plays` primary key `(chat_id, date_key)`). `/play` during a live round re-sends the board (the old
-  message stops answering). A play left `playing` after a server restart is restarted by the next `/play` (mistakes reset: same trade-off as the app's daily).
-  After it finished, `/play` answers with the result and the app call-to-action instead of a new puzzle.
+  message stops answering; the members' progress is kept and the deadline is unchanged). The result row is `won` when someone found all four groups, else `lost`;
+  `mistakes` = all members' mistakes, `solved_groups` = the best member's, `players` = members who tapped. A play left `playing` after a server restart is restarted
+  by the next `/play` (progress and timers are in memory: same trade-off as the app's daily). After it finished, `/play` answers with the result and the app call-to-action.
 - No coins are given in groups (rule 6: coins only via the ledger, and the install is the prize). Group results never touch any player's stats.
 - Rounds are in memory, dropped after `GROUP_ROUND_TTL_MS` idle.
 
 ## Weekly leaderboard (`/top`)
-- A member earns points when the submit they tapped finds a group: `groupPoints(level)` = 10 + 5 × level (yellow 10 .. purple 25); a wrong or one-away submit
+- A member earns points when their own submit finds a group: `groupPoints(level)` = 10 + 5 × level (yellow 10 .. purple 25); a wrong or one-away submit
   adds one to their `wrong` count and no points (nobody is punished, but ties go to the fewer-wrong player). Groups the game reveals at the end earn nothing.
 - The week is named by its Saturday (`groupWeekKey`, Tehran date key); per `(chat, week, member)` one row, updated by an increment. Member = the messenger
   user id of the tapper plus their first name as last seen. Only that group's members are listed; there is no global ranking.
@@ -44,6 +49,8 @@ Bale first; Telegram runs on the same code (ids carry the `tg:` prefix, `docs/lo
 ## Price mode (`/price`)
 - A session is `GROUP_PRICE_ROUNDS` four-choice price questions («قیمت X در سال Y؟», options from `buildPriceOptions`, same draw as the app's price-only mode:
   distinct products, a random priced year). One message per question with four option buttons (`p:<question>:<option>`; the option index, never a price).
+  The question text says what to do, that each member answers once and that the winners are announced when time is up, and shows a **visible countdown**: the same
+  message is rewritten every `GROUP_PRICE_TICK_MS` (10 s) with the seconds left and how many answered (a count, never the choices), buttons kept.
 - Everyone in the group may answer, **once per question** (the first tap locks; no edit of the message per tap, only a toast «جوابت ثبت شد»). After
   `GROUP_PRICE_ROUND_MS` the message is rewritten with the real price and who was right/wrong, and after `GROUP_PRICE_PAUSE_MS` the next question follows. The real
   price is in server memory only until that reveal (rule 4). Taps after the reveal, on an older question message or a wrong question index are refused with a toast.

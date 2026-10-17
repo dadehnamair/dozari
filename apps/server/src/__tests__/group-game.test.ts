@@ -3,7 +3,7 @@ import { createTelegramClient } from '../notify/client.js';
 import type { BaleClient, BaleUpdate, InlineKeyboard } from '../notify/client.js';
 import { GroupGameService } from '../groupgame/service.js';
 import type { GroupGameStore, GroupPlayResult } from '../groupgame/store.js';
-import { parseCallback, renderBoard } from '../groupgame/render.js';
+import { parseCallback } from '../groupgame/render.js';
 import type { ServedPuzzle } from '../solo/types.js';
 
 const ids = (g: number) => [0, 1, 2, 3].map((i) => `p${g}${i}`);
@@ -71,17 +71,24 @@ function setup(opts: { bale?: string | null } = {}) {
   return { svc, sent, edits, answers, mem, clock, msg, tap, client, timers };
 }
 
-/** Button callback data for the card showing this product on the latest board. */
+/** Button callback data for the card showing this product on the group's board. */
 function cardData(kb: InlineKeyboard, productName: string): string {
-  const b = kb.flat().find((x) => x.text.replace('✅ ', '') === `کالا ${productName}`);
+  const b = kb.flat().find((x) => x.text === `کالا ${productName}`);
   return b!.callback_data!;
 }
-const lastKeyboard = (t: ReturnType<typeof setup>) => (t.edits.length ? t.edits[t.edits.length - 1]!.keyboard : t.sent[t.sent.length - 1]!.keyboard!);
+/** The one shared board message: it never changes between taps. */
+const board = (t: ReturnType<typeof setup>) => t.sent.find((x) => x.keyboard?.length === 5)!.keyboard!;
 const act = (kb: InlineKeyboard, name: 's' | 'c' | 'h') => kb.flat().find((b) => b.callback_data?.endsWith(`:${name}`))!.callback_data!;
 
-async function pick(t: ReturnType<typeof setup>, productIds: string[], mid = 100) {
-  for (const id of productIds) await t.svc.handleUpdate(t.tap(cardData(lastKeyboard(t), id), mid));
+async function pick(t: ReturnType<typeof setup>, productIds: string[], from = 5, mid = 100) {
+  for (const id of productIds) await t.svc.handleUpdate(t.tap(cardData(board(t), id), mid, from));
 }
+const submit = (t: ReturnType<typeof setup>, from = 5, mid = 100) => t.svc.handleUpdate(t.tap(act(board(t), 's'), mid, from));
+/** The close-of-round timer (the last one scheduled when the board was posted). */
+const closeRound = async (t: ReturnType<typeof setup>) => {
+  t.timers.find((x) => x.ms === 15 * 60 * 1000)!.fn();
+  await new Promise((r) => setTimeout(r, 0));
+};
 
 describe('group game', () => {
   it('ignores private chats and non-group callbacks', async () => {
@@ -111,65 +118,89 @@ describe('group game', () => {
   it('/play posts a 4x4 board plus action row and never leaks the solution', async () => {
     const t = setup();
     await t.svc.handleUpdate(t.msg('/play'));
-    const board = t.sent[0]!;
-    expect(board.keyboard).toHaveLength(5);
-    expect(board.keyboard!.slice(0, 4).every((r) => r.length === 4)).toBe(true);
-    expect(board.text).not.toContain('دسته 0'); // titles only after a group is found
+    const b = t.sent[0]!;
+    expect(b.keyboard).toHaveLength(5);
+    expect(b.keyboard!.slice(0, 4).every((r) => r.length === 4)).toBe(true);
+    expect(b.keyboard!.at(-1)).toHaveLength(2); // submit + clear, no shuffle on a shared board
+    expect(b.text).not.toContain('دسته 0'); // titles only after the round closes
+    expect(b.text).toContain('۱۵ دقیقه');
     expect(t.mem.plays.get('-100|2026-10-17')?.result).toBe('playing');
   });
 
-  it('toggles cards, refuses a fifth and a short submit', async () => {
+  it('answers each member alone: picks, refusals and results are toasts, the group message is never edited', async () => {
     const t = setup();
     await t.svc.handleUpdate(t.msg('/play'));
     await pick(t, ids(0).slice(0, 2));
-    expect(lastKeyboard(t).flat().filter((b) => b.text.startsWith('✅'))).toHaveLength(2);
-    await t.svc.handleUpdate(t.tap(act(lastKeyboard(t), 's'), 100));
+    expect(t.answers.at(-1)).toContain('۲ از ۴');
+    expect(t.answers.at(-1)).toContain('کالا p01');
+    await submit(t);
     expect(t.answers.at(-1)).toContain('۴');
     await pick(t, [...ids(0).slice(2), ids(1)[0]!]);
     expect(t.answers.at(-1)).toBe('حداکثر ۴ کارت');
     await pick(t, [ids(0)[0]!]); // untick
-    expect(lastKeyboard(t).flat().filter((b) => b.text.startsWith('✅'))).toHaveLength(3);
+    expect(t.answers.at(-1)).toContain('برداشته شد');
+    await t.svc.handleUpdate(t.tap(act(board(t), 'c'), 100));
+    expect(t.answers.at(-1)).toContain('پاک شد');
+    expect(t.edits).toHaveLength(0);
   });
 
-  it('solves a group, reveals its title and counts mistakes', async () => {
+  it('keeps every member\'s selection and mistakes separate', async () => {
     const t = setup();
     await t.svc.handleUpdate(t.msg('/play'));
-    await pick(t, ids(0));
-    await t.svc.handleUpdate(t.tap(act(lastKeyboard(t), 's'), 100));
-    const e = t.edits.at(-1)!;
-    expect(e.text).toContain('دسته 0');
-    expect(e.text).toContain('سارا');
-    expect(e.keyboard.slice(0, -1).flat()).toHaveLength(12);
+    await pick(t, ids(0).slice(0, 3), 5);
+    await pick(t, ids(1).slice(0, 2), 6);
+    expect(t.answers.at(-1)).toContain('۲ از ۴'); // user 6 starts from zero
+    await pick(t, [ids(0)[3]!], 5);
+    await submit(t, 5);
+    expect(t.answers.at(-1)).toContain('دسته 0');
+    await submit(t, 6); // only two cards ticked
+    expect(t.answers.at(-1)).toBe('باید دقیقاً ۴ کارت انتخاب کنید');
+    expect(t.edits).toHaveLength(0);
+  });
+
+  it('tells the submitter alone: one away, wrong with chances left, a duplicate, a card already solved', async () => {
+    const t = setup();
+    await t.svc.handleUpdate(t.msg('/play'));
     await pick(t, [ids(1)[0]!, ids(1)[1]!, ids(1)[2]!, ids(2)[0]!]);
-    await t.svc.handleUpdate(t.tap(act(lastKeyboard(t), 's'), 100));
-    expect(t.edits.at(-1)!.text).toContain('فقط یک کارت');
-    expect(t.edits.at(-1)!.text).toContain('🖤');
+    await submit(t);
+    expect(t.answers.at(-1)).toContain('فقط یک کارت');
+    expect(t.answers.at(-1)).toContain('۳ فرصت');
+    await pick(t, [ids(1)[0]!, ids(1)[1]!, ids(1)[2]!, ids(2)[0]!]);
+    await submit(t);
+    expect(t.answers.at(-1)).toContain('قبلاً امتحان');
+    await pick(t, [ids(0)[0]!, ids(1)[0]!, ids(2)[0]!, ids(3)[0]!]);
+    await submit(t);
+    expect(t.answers.at(-1)).toContain('اشتباه بود');
+    await pick(t, ids(0));
+    await submit(t);
+    await pick(t, [ids(0)[0]!]);
+    expect(t.answers.at(-1)).toContain('جزو دسته‌ای');
   });
 
-  it('rejects a tap made on a stale board and redraws', async () => {
-    const t = setup();
-    await t.svc.handleUpdate(t.msg('/play'));
-    const stale = cardData(lastKeyboard(t), ids(0)[0]!);
-    await pick(t, [ids(0)[1]!]); // rev moves on
-    const before = t.edits.length;
-    await t.svc.handleUpdate(t.tap(stale, 100));
-    expect(t.answers.at(-1)).toBe('صفحه به‌روز شد');
-    expect(t.edits.length).toBe(before + 1);
-    expect(lastKeyboard(t).flat().filter((b) => b.text.startsWith('✅'))).toHaveLength(1);
-  });
-
-  it('wins, records one result, and offers the app link; a second /play only shows the result', async () => {
+  it('closes after 15 minutes: reveals the answers, ranks everyone, records one result and offers the app link', async () => {
     const t = setup();
     await t.svc.handleUpdate(t.msg('/play'));
     for (const g of [0, 1, 2]) {
-      await pick(t, ids(g));
-      await t.svc.handleUpdate(t.tap(act(lastKeyboard(t), 's'), 100));
+      await pick(t, ids(g), 5); // user 5 finds everything
+      await submit(t, 5);
     }
-    const fin = t.edits.at(-1)!;
-    expect(fin.text).toContain('آفرین');
-    expect(fin.keyboard[0]![0]!.url).toBe('https://ble.ir/dozari_bot?startapp=daily_gk3f9x2m');
-    expect(fin.keyboard).toHaveLength(1);
-    expect(t.mem.plays.get('-100|2026-10-17')).toMatchObject({ result: 'won', mistakes: 0, players: 1 });
+    expect(t.answers.at(-1)).toContain('هر ۴ دسته');
+    await pick(t, ids(3), 6); // user 6: one group, one mistake
+    await submit(t, 6);
+    await pick(t, [ids(0)[0]!, ids(1)[0]!, ids(2)[0]!, ids(3)[0]!], 7);
+    await submit(t, 7); // user 7: only a mistake
+    await new Promise((r) => setTimeout(r, 0));
+    expect(t.edits).toHaveLength(0); // nothing leaked while the round runs
+    await closeRound(t);
+    expect(t.edits.at(-1)!.text).toContain('وقت تمام شد');
+    expect(t.edits.at(-1)!.keyboard).toEqual([]);
+    const res = t.sent.at(-1)!;
+    for (let g = 0; g < 4; g++) expect(res.text).toContain(`دسته ${g}`);
+    expect(res.text).toContain('🥇 سارا — ۴ دسته از ۴ · ۰ اشتباه');
+    expect(res.text.indexOf('۴ دسته از ۴')).toBeLessThan(res.text.indexOf('۱ دسته از ۴'));
+    expect(res.text).toContain('🥉 سارا — ۰ دسته از ۴ · ۱ اشتباه');
+    expect(res.keyboard![0]![0]!.url).toBe('https://ble.ir/dozari_bot?startapp=daily_gk3f9x2m');
+    expect(t.mem.plays.get('-100|2026-10-17')).toMatchObject({ result: 'won', players: 3 });
     const n = t.sent.length;
     await t.svc.handleUpdate(t.msg('/play'));
     expect(t.sent.length).toBe(n + 1);
@@ -177,17 +208,39 @@ describe('group game', () => {
     expect(t.sent.at(-1)!.keyboard![0]![0]!.url).toContain('startapp=daily');
   });
 
-  it('loses after the mistakes run out and reveals the rest', async () => {
+  it('a member who runs out of chances is told and waits; a tap after the deadline closes the round', async () => {
     const t = setup();
     await t.svc.handleUpdate(t.msg('/play'));
     for (let i = 0; i < 4; i++) {
       await pick(t, [ids(0)[0]!, ids(1)[0]!, ids(2)[0]!, ids(3)[i]!]);
-      await t.svc.handleUpdate(t.tap(act(lastKeyboard(t), 's'), 100));
+      await submit(t);
     }
+    expect(t.answers.at(-1)).toContain('فرصت‌هایت تمام شد');
+    await t.svc.handleUpdate(t.tap(cardData(board(t), ids(0)[0]!), 100));
+    expect(t.answers.at(-1)).toContain('بازی تو تمام شده');
+    expect(t.mem.plays.get('-100|2026-10-17')?.result).toBe('playing'); // the group's round still runs for the others
+    t.clock.t += 16 * 60 * 1000;
+    await t.svc.handleUpdate(t.tap(cardData(board(t), ids(0)[0]!), 100, 8));
+    expect(t.answers.at(-1)).toContain('وقت بازی تمام شد');
     expect(t.mem.plays.get('-100|2026-10-17')?.result).toBe('lost');
-    expect(t.edits.at(-1)!.text).toContain('دسته 3');
-    await t.svc.handleUpdate(t.tap('g:9:s', 100));
-    expect(t.answers.at(-1)).toContain('تمام شده');
+    await closeRound(t); // the timer firing later does nothing twice
+    expect(t.sent.filter((x) => x.text.includes('نتیجه‌ی پازل')).length).toBe(1);
+  });
+
+  it('nobody played: says so; a reminder with the number of players goes out five minutes before', async () => {
+    const t = setup();
+    await t.svc.handleUpdate(t.msg('/play'));
+    await pick(t, [ids(0)[0]!]);
+    t.timers.find((x) => x.ms === 10 * 60 * 1000)!.fn();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(t.sent.at(-1)!.text).toContain('۵ دقیقه');
+    expect(t.sent.at(-1)!.text).toContain('۱ نفر');
+    await closeRound(t);
+    expect(t.sent.at(-1)!.text).toContain('۰ دسته از ۴'); // opened the board but never submitted: still listed
+    const q = setup();
+    await q.svc.handleUpdate(q.msg('/play'));
+    await closeRound(q);
+    expect(q.sent.at(-1)!.text).toContain('کسی بازی نکرد');
   });
 
   it('a second /play while the board is live moves the board and retires the old message', async () => {
@@ -198,16 +251,16 @@ describe('group game', () => {
     await t.svc.handleUpdate(t.tap(cardData(t.sent[0]!.keyboard!, ids(0)[0]!), 100));
     expect(t.answers.at(-1)).toContain('تمام شده');
     await t.svc.handleUpdate(t.tap(cardData(t.sent[1]!.keyboard!, ids(0)[0]!), 101));
-    expect(t.edits).toHaveLength(1);
+    expect(t.answers.at(-1)).toContain('۱ از ۴');
   });
 
-  it('a play left running by a restart can be restarted; no username means no button', async () => {
+  it('a play left running by a restart can be restarted; no username means a plain results message', async () => {
     const t = setup({ bale: null });
     t.mem.plays.set('-100|2026-10-17', { result: 'playing' });
     await t.svc.handleUpdate(t.msg('/play'));
     expect(t.sent[0]!.keyboard).toHaveLength(5);
-    const url = renderBoard({ puzzle, state: { remaining: [], solved: [], mistakes: 0, tried: [], status: 'won' }, selection: [], rev: 1, maxMistakes: 4, dateFa: '', note: '', players: 1, ctaUrl: null });
-    expect(url.keyboard).toEqual([]);
+    await closeRound(t);
+    expect(t.sent.at(-1)!.keyboard).toBeUndefined();
   });
 
   it('/top ranks this week\'s members and starts empty', async () => {
@@ -215,12 +268,12 @@ describe('group game', () => {
     await t.svc.handleUpdate(t.msg('/top'));
     expect(t.sent.at(-1)!.text).toContain('هنوز کسی');
     await t.svc.handleUpdate(t.msg('/play'));
-    await pick(t, ids(0)); // yellow, by user 5
-    await t.svc.handleUpdate(t.tap(act(lastKeyboard(t), 's'), 100, 5));
-    await pick(t, ids(3)); // purple, by user 6
-    await t.svc.handleUpdate(t.tap(act(lastKeyboard(t), 's'), 100, 6));
-    await pick(t, [ids(1)[0]!, ids(1)[1]!, ids(1)[2]!, ids(2)[0]!]);
-    await t.svc.handleUpdate(t.tap(act(lastKeyboard(t), 's'), 100, 5)); // wrong, user 5
+    await pick(t, ids(0), 5); // yellow, by user 5
+    await submit(t, 5);
+    await pick(t, ids(3), 6); // purple, by user 6
+    await submit(t, 6);
+    await pick(t, [ids(1)[0]!, ids(1)[1]!, ids(1)[2]!, ids(2)[0]!], 5);
+    await submit(t, 5); // wrong, user 5
     await new Promise((r) => setTimeout(r, 0));
     await t.svc.handleUpdate(t.msg('/top@dozari_bot'));
     const text = t.sent.at(-1)!.text;
@@ -229,27 +282,23 @@ describe('group game', () => {
     expect(t.mem.scores.find((x) => x.userRef === '5')).toMatchObject({ points: 10, groups: 1, wrong: 1 });
   });
 
-  it('shuffles without changing the card set', async () => {
+  it('answers an old shuffle button without changing anything; limits taps per person per minute', async () => {
     const t = setup();
     await t.svc.handleUpdate(t.msg('/play'));
-    const names = (kb: InlineKeyboard) => kb.slice(0, 4).flat().map((b) => b.text).sort();
-    const before = names(lastKeyboard(t));
-    await t.svc.handleUpdate(t.tap(act(lastKeyboard(t), 'h'), 100));
-    expect(names(lastKeyboard(t))).toEqual(before);
-  });
-
-  it('limits taps per person per minute', async () => {
-    const t = setup();
-    await t.svc.handleUpdate(t.msg('/play'));
-    for (let i = 0; i < 45; i++) await t.svc.handleUpdate(t.tap(act(lastKeyboard(t), 'c'), 100, 9));
-    expect(t.edits.length).toBeLessThanOrEqual(40);
+    await t.svc.handleUpdate(t.tap('g:1:h', 100));
+    expect(t.answers.at(-1)).toContain('بُر زدن');
+    const before = t.answers.length;
+    for (let i = 0; i < 45; i++) await t.svc.handleUpdate(t.tap(act(board(t), 'c'), 100, 9));
+    expect(t.answers.slice(before).filter((x) => x === 'انتخاب‌هایت پاک شد').length).toBeLessThanOrEqual(40);
   });
 });
 
 describe('price mode', () => {
   const run = async (t: ReturnType<typeof setup>) => {
-    const timer = t.timers.shift()!;
-    timer.fn();
+    // the countdown ticks come first; the closing bell is the 40 s timer, the next question the 4 s one
+    const i = t.timers.findIndex((x) => x.ms === 40_000 || x.ms === 4_000);
+    const [timer] = t.timers.splice(i, 1);
+    timer!.fn();
     await new Promise((r) => setTimeout(r, 0));
   };
   const priceTap = (t: ReturnType<typeof setup>, q: number, opt: number, mid: number, from: number, name = 'سارا') =>
@@ -261,6 +310,8 @@ describe('price mode', () => {
     const q = t.sent[0]!;
     expect(q.text).toContain('نان 1 (عدد)');
     expect(q.text).toContain('۱۳۷۱');
+    expect(q.text).toContain('۴۰ ثانیه مانده');
+    expect(q.text).toContain('هنوز کسی جواب نداده');
     expect(q.keyboard).toHaveLength(4);
     expect(q.keyboard!.flat().every((b) => /^p:0:[0-3]$/.test(b.callback_data!))).toBe(true);
     await priceTap(t, 0, 1, 100, 5); // the right option
@@ -277,6 +328,27 @@ describe('price mode', () => {
     expect(t.answers.at(-1)).toContain('تمام');
     expect(t.mem.scores.find((x) => x.userRef === '5')).toMatchObject({ points: 5, wrong: 0 });
     expect(t.mem.scores.find((x) => x.userRef === '6')).toMatchObject({ points: 0, wrong: 1 });
+  });
+
+  it('counts down on the question itself: seconds left and how many answered, buttons kept, no answers leaked', async () => {
+    const t = setup();
+    await t.svc.handleUpdate(t.msg('/price'));
+    await priceTap(t, 0, 1, 100, 5);
+    const ticks = t.timers.filter((x) => x.ms < 40_000 && x.ms >= 10_000).sort((a, b) => a.ms - b.ms);
+    expect(ticks.map((x) => x.ms)).toEqual([10_000, 20_000, 30_000]);
+    ticks[0]!.fn();
+    await new Promise((r) => setTimeout(r, 0));
+    const e = t.edits.at(-1)!;
+    expect(e.text).toContain('۳۰ ثانیه مانده');
+    expect(e.text).toContain('۱ نفر جواب داده‌اند');
+    expect(e.keyboard).toHaveLength(4);
+    ticks[2]!.fn();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(t.edits.at(-1)!.text).toContain('۱۰ ثانیه مانده');
+    await run(t);
+    ticks[1]!.fn(); // a late tick after the reveal does nothing
+    await new Promise((r) => setTimeout(r, 0));
+    expect(t.edits.at(-1)!.text).toContain('قیمت درست');
   });
 
   const playOut = async (t: ReturnType<typeof setup>, firstMessageId: number) => {

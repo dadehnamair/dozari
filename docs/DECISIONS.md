@@ -817,3 +817,10 @@ Bale id only to accounts the old login made; new guest accounts pay once their B
 ## D244 — Group game: the bot plays the daily puzzle inside Bale/Telegram groups, then pulls players to the app (2026-10-17, proposed)
 
 Owner (2026-10-17): a service so the game can be played in Telegram/Bale groups, to attract installs; bot added to groups, a party mode, and some things only the app has. Bale first. Proposed: the existing bot gains a cooperative group board (inline buttons, one edited message) on today's daily puzzle, one play per group per day, no coins in groups, a «ادامه در بازی» mini-app deep link at the end; phases and data in `docs/logic/group-game.md`. Open: the free plays per group per day (proposed 1) and whether Telegram goes live together with Bale.
+
+## D245 — Group game: solo-in-parallel 16-card round with a 15-minute timer, price countdown, personal invite link (2026-10-17, proposed)
+
+Owner (2026-10-17): the shared cooperative board is chaos (everyone ticks and submits over each other); `/price` should say more clearly what to do and show a timer; a personal link for inviting friends would be good.
+- **Supersedes the cooperative board of D244:** every member plays alone on one static board for `GROUP_PLAY_MS` (15 min); picks and results are toasts only the tapper sees; at the deadline the answers and every member's result are announced (details: `docs/logic/group-game.md` §Rules of the round).
+- `/price`: clearer question text and a visible countdown (the question is rewritten every `GROUP_PRICE_TICK_MS` with seconds left and how many answered).
+- **Not built, proposed default (personal invite link):** a linked player sends `/invite` to the bot in a private chat and gets `https://ble.ir/<bot>?startapp=i_<HANDLE>` (their public ID, `docs/logic/find-friends.md`); the mini-app bridge maps `i_<HANDLE>` to the app's existing `POST /friends/link {handle}` (new accounts become friends at once). Group chats never link accounts, so no personal link is made inside a group. Needs: bridge param, game-side handler on web, bot command. Owner to confirm before it is built.

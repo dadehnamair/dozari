@@ -1,4 +1,4 @@
-import { GROUP_PRICE_PAUSE_MS, GROUP_PRICE_POINTS, GROUP_PRICE_ROUNDS, GROUP_PRICE_ROUND_MS, GROUP_PRICE_SESSIONS_PER_DAY, GROUP_TAP_LIMIT, GROUP_TOP_SIZE, dailyDateKey, groupWeekKey, rialsToTomanString } from '@dozari/shared';
+import { GROUP_PRICE_PAUSE_MS, GROUP_PRICE_POINTS, GROUP_PRICE_ROUNDS, GROUP_PRICE_ROUND_MS, GROUP_PRICE_SESSIONS_PER_DAY, GROUP_PRICE_TICK_MS, GROUP_TAP_LIMIT, GROUP_TOP_SIZE, dailyDateKey, groupWeekKey, rialsToTomanString } from '@dozari/shared';
 import type { BaleClient, BaleUpdate, InlineKeyboard } from '../notify/client.js';
 import { RateLimiter } from '../security/rate-limit.js';
 import type { GroupGameStore } from './store.js';
@@ -39,6 +39,8 @@ interface Session {
   answers: Map<string, Answer>;
   /** True from the moment the question is closing: later taps are refused. */
   closed: boolean;
+  /** The option buttons of the open question, kept so a countdown edit does not drop them. */
+  keyboard?: InlineKeyboard;
   totals: Map<string, { name: string; points: number }>;
 }
 
@@ -101,15 +103,29 @@ export class GroupPriceGame {
     s.answers = new Map();
     s.closed = false;
     const keyboard: InlineKeyboard = q.options.map((o, i) => [{ text: rialsToTomanString(o), callback_data: `p:${s.index}:${i}` }]);
-    const text = PRICE_TEXT.question(s.index + 1, s.questions.length, label(q), q.year, GROUP_PRICE_ROUND_MS / 1000);
+    s.keyboard = keyboard;
     try {
-      s.messageId = (await this.d.client.sendInline!(chatId, text, keyboard)).messageId;
+      s.messageId = (await this.d.client.sendInline!(chatId, this.questionText(s, GROUP_PRICE_ROUND_MS), keyboard)).messageId;
     } catch (err) {
       this.sessions.delete(chatId);
       return void this.d.log?.('group: price question send failed', err);
     }
     const index = s.index;
+    // the visible countdown: the same message is rewritten with the seconds left and how many answered (never what they chose)
+    for (let left = GROUP_PRICE_ROUND_MS - GROUP_PRICE_TICK_MS; left > 0; left -= GROUP_PRICE_TICK_MS) {
+      this.d.schedule(() => void this.tick(chatId, s, index, left).catch((err) => this.d.log?.('group: price countdown failed', err)), GROUP_PRICE_ROUND_MS - left);
+    }
     this.d.schedule(() => void this.close(chatId, s, index).catch((err) => this.d.log?.('group: closing a price question failed', err)), GROUP_PRICE_ROUND_MS);
+  }
+
+  private questionText(s: Session, leftMs: number): string {
+    const q = s.questions[s.index]!;
+    return PRICE_TEXT.question(s.index + 1, s.questions.length, label(q), q.year, Math.round(leftMs / 1000), s.answers.size);
+  }
+
+  private async tick(chatId: string, s: Session, index: number, leftMs: number): Promise<void> {
+    if (this.sessions.get(chatId) !== s || s.index !== index || s.closed || s.messageId === null || !s.keyboard) return;
+    await this.d.client.editInline?.(chatId, s.messageId, this.questionText(s, leftMs), s.keyboard).catch((err) => this.d.log?.('group: edit failed', err));
   }
 
   private async close(chatId: string, s: Session, index: number): Promise<void> {
