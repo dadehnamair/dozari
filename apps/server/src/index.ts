@@ -1341,7 +1341,7 @@ if (isMainModule(import.meta.url)) {
     app.addHook('onClose', async () => aiRuns.stop());
   }
   if (notify && (baleClient || telegramClient)) {
-    const clients = [baleClient && { name: 'bale', client: baleClient }, telegramClient && { name: 'telegram', client: telegramClient }].filter((c): c is NonNullable<typeof c> => !!c);
+    const clients = [baleClient && { name: 'bale', client: baleClient }, telegramClient && { name: 'telegram', client: telegramClient, pollSec: Math.max(0, Number(process.env.TELEGRAM_POLL_SECONDS ?? 5)) }].filter((c): c is NonNullable<typeof c> => !!c);
     // The bot also plays the daily puzzle inside groups (docs/logic/group-game.md).
     const groupClient = createMultiClient(baleClient, telegramClient);
     if (db && daily && groupClient) {

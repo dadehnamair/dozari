@@ -96,3 +96,6 @@ Owner request (2026-10-17): the same bot runs on Telegram too, Telegram first in
 - Not verified against the live Telegram API.
 
 Groups: the bot also plays the daily puzzle in groups, see `docs/logic/group-game.md`.
+- Link sheet (2026-10-17): titled «اتصال به شبکه‌های اجتماعی»; after «گرفتن کد» it shows the code and one separate block per configured messenger (Telegram, Bale), each with its own open-bot button. Still one link per player.
+- Telegram long-poll length is `TELEGRAM_POLL_SECONDS` (default 5, Bale stays 25): through the relay a 25 s poll got `getUpdates 504`.
+- `TELEGRAM_API_BASE` is the bot's IRNoti broker link (`https://events.irnoti.com/<name>/<key>`, token inside): the client calls `<link>/<method>`, not `/bot<token>/<method>` (the old shape got a 302 to irnoti.com). Empty = direct `api.telegram.org/bot<token>/`.

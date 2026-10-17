@@ -10,16 +10,18 @@ export interface RunnerHandle {
  * Background loops of the bot integration (Bale, Telegram): long-poll each bot for messages, flush the outbox every few seconds and
  * announce ready daily rewards once a minute. Polling needs no public URL (a webhook would). Every loop survives errors.
  */
-export function startNotifyRunner(opts: { service: NotifyService; /** Every bot to long-poll (Bale, Telegram); sending is the service's own client. */ clients: { name: string; client: BaleClient }[]; settings?: SettingsService; log: (msg: string, err?: unknown) => void }): RunnerHandle {
+export function startNotifyRunner(opts: { service: NotifyService; /** Every bot to long-poll (Bale, Telegram); sending is the service's own client. */ clients: { name: string; client: BaleClient; /** Long-poll seconds (default 25); a relay with a short gateway timeout needs less. */ pollSec?: number }[]; settings?: SettingsService; log: (msg: string, err?: unknown) => void }): RunnerHandle {
   let stopped = false;
   const timers: ReturnType<typeof setInterval>[] = [];
 
-  for (const { name, client } of opts.clients) {
+  for (const { name, client, pollSec } of opts.clients) {
     void (async () => {
       let offset = 0;
+      opts.log(`${name}: polling started (${pollSec ?? 25}s)`);
       while (!stopped) {
         try {
-          const updates = await client.getUpdates(offset, 25);
+          const updates = await client.getUpdates(offset, pollSec ?? 25);
+          if (updates.length) opts.log(`${name}: ${updates.length} update(s) received`);
           for (const u of updates) {
             offset = Math.max(offset, u.update_id + 1);
             await opts.service.handleUpdate(u).catch((err) => opts.log(`${name}: update failed`, err));
