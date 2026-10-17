@@ -46,6 +46,7 @@ export class IrnotiPushService {
         return false;
       }
       const out = (await res.json().catch(() => null)) as { total?: number; accepted?: number; failed?: number } | null;
+      if (out?.accepted) this.log(`irnoti push to ${userId} (${payload.tag}): accepted=${out.accepted} total=${out.total ?? '?'}`);
       if (!out?.accepted) this.log(`irnoti push to ${userId} reached no device: total=${out?.total ?? '?'} accepted=${out?.accepted ?? '?'} failed=${out?.failed ?? '?'}`);
       return true;
     } catch (e) {
