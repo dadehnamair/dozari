@@ -4,6 +4,7 @@ import type { HintKind, HintPayload, SoloHints } from '@dozari/shared';
 import { toPersianDigits } from '@dozari/shared';
 import { fa } from '../i18n/fa';
 import { SheetClose } from '../components/SheetClose';
+import { SheetBody } from '../components/SheetBody';
 import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
 import { fetchHints, takeHint } from './api';
@@ -51,6 +52,7 @@ export function HintSheet({ sessionId, onGiven, onClose }: { sessionId: string; 
     <Pressable style={styles.overlay} onPress={onClose} accessibilityLabel={fa.hints.close}>
       <Pressable style={styles.sheet} onPress={() => undefined}>
         <SheetClose onPress={onClose} label={fa.hints.close} />
+        <SheetBody>
         <Text style={styles.title}>{fa.hints.title}</Text>
         <Text style={styles.hint}>{fa.hints.sub}</Text>
         {info ? (
@@ -69,6 +71,7 @@ export function HintSheet({ sessionId, onGiven, onClose }: { sessionId: string; 
           </>
         ) : null}
         {note ? <Text style={styles.warn}>{note}</Text> : null}
+        </SheetBody>
       </Pressable>
     </Pressable>
   );
@@ -76,7 +79,7 @@ export function HintSheet({ sessionId, onGiven, onClose }: { sessionId: string; 
 
 const styles = StyleSheet.create({
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,8,32,0.55)', alignItems: 'center', justifyContent: 'center', padding: 24 },
-  sheet: { width: '100%', maxWidth: 380, backgroundColor: colors.cream, borderWidth: 3, borderColor: INK, borderRadius: 24, padding: 16, gap: 8, alignItems: 'center' },
+  sheet: { width: '100%', maxWidth: 380, maxHeight: '90%', backgroundColor: colors.cream, borderWidth: 3, borderColor: INK, borderRadius: 24, padding: 16, gap: 8, alignItems: 'center' },
   title: { fontFamily: fonts.display, fontSize: 24, color: INK },
   hint: { fontFamily: fonts.bold, fontSize: 12, color: INK, opacity: 0.75, textAlign: 'center' },
   warn: { fontFamily: fonts.bold, fontSize: 13, color: '#B3261E', textAlign: 'center' },

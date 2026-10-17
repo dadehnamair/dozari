@@ -7,6 +7,7 @@ import { GuideBubble } from '../components/GuideBubble';
 import { useConfirm } from '../components/useConfirm';
 import { fa } from '../i18n/fa';
 import { SheetClose } from '../components/SheetClose';
+import { SheetBody } from '../components/SheetBody';
 import { colors, fonts } from '../theme/colors';
 import { ApiError } from '../net/http';
 import { phoneErrorText } from '../phone/errors';
@@ -64,6 +65,7 @@ export function BaleSheet({ onClose }: { onClose: () => void }) {
     <Pressable style={styles.overlay} onPress={onClose} accessibilityLabel={fa.bale.close}>
       <Pressable style={[styles.sheet, adult ? styles.sheetAdult : null]} onPress={() => undefined}>
         <SheetClose onPress={onClose} label={fa.bale.close} />
+        <SheetBody>
         <Text style={[styles.title, adult ? styles.textAdult : null]}>{fa.bale.title}</Text>
         <GuideBubble who="mirza" text={fa.bale.intro} />
         <PhoneStep />
@@ -110,6 +112,7 @@ export function BaleSheet({ onClose }: { onClose: () => void }) {
             <CandyButton label={fa.webNotify.enable} color={colors.candy.sky} onPress={() => void enableWebNotify().then(setWeb)} />
           )
         ) : null}
+        </SheetBody>
       </Pressable>
       {dialog}
     </Pressable>
@@ -118,7 +121,7 @@ export function BaleSheet({ onClose }: { onClose: () => void }) {
 
 const styles = StyleSheet.create({
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,8,32,0.55)', alignItems: 'center', justifyContent: 'center', padding: 24 },
-  sheet: { width: '100%', maxWidth: 360, backgroundColor: colors.cream, borderWidth: 3, borderColor: INK, borderRadius: 24, padding: 16, gap: 10, alignItems: 'center' },
+  sheet: { width: '100%', maxWidth: 360, maxHeight: '90%', backgroundColor: colors.cream, borderWidth: 3, borderColor: INK, borderRadius: 24, padding: 16, gap: 10, alignItems: 'center' },
   sheetAdult: { backgroundColor: '#17100C', borderColor: '#E8B64A' },
   textAdult: { color: '#FFE9A8' },
   title: { fontFamily: fonts.display, fontSize: 24, color: INK },

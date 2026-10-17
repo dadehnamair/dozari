@@ -31,7 +31,7 @@ export function ReviewSheet({ message, url, onReview, onLater, onNever }: { mess
 
 const styles = StyleSheet.create({
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(20,8,32,0.55)', alignItems: 'center', justifyContent: 'center', padding: 24 },
-  sheet: { width: '100%', maxWidth: 360, backgroundColor: colors.cream, borderWidth: 3, borderColor: INK, borderRadius: 24, padding: 18, gap: 10, alignItems: 'center' },
+  sheet: { width: '100%', maxWidth: 360, maxHeight: '90%', backgroundColor: colors.cream, borderWidth: 3, borderColor: INK, borderRadius: 24, padding: 18, gap: 10, alignItems: 'center' },
   title: { fontFamily: fonts.display, fontSize: 24, color: INK },
   text: { fontFamily: fonts.bold, fontSize: 15, color: INK, textAlign: 'center' },
   never: { fontFamily: fonts.bold, fontSize: 12, color: INK, opacity: 0.6, textDecorationLine: 'underline' },

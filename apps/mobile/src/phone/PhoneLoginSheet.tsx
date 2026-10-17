@@ -5,6 +5,7 @@ import { CandyButton } from '../components/CandyButton';
 import { OTP_LENGTH, PHONE_MAX_DIGITS, onlyDigits, phoneFromInput, resendLeft } from './loginInput';
 import { fa } from '../i18n/fa';
 import { SheetClose } from '../components/SheetClose';
+import { SheetBody } from '../components/SheetBody';
 import { ApiError } from '../net/http';
 import { colors, fonts } from '../theme/colors';
 import { TEXT_LEFT } from '../theme/direction';
@@ -84,6 +85,7 @@ export function PhoneLoginSheet({ onClose }: { onClose: () => void }) {
     <Pressable style={styles.overlay} onPress={onClose} accessibilityLabel={t.close}>
       <Pressable style={styles.sheet} onPress={() => undefined}>
         <SheetClose onPress={onClose} label={t.close} />
+        <SheetBody>
         <Text style={styles.title}>{t.title}</Text>
         <Text style={styles.text}>{t.intro}</Text>
         {sent ? (
@@ -109,6 +111,7 @@ export function PhoneLoginSheet({ onClose }: { onClose: () => void }) {
         )}
         {note ? <Text style={[styles.text, note.bad && styles.bad]}>{note.text}</Text> : null}
         {sent ? <CandyButton label={t.login} color={colors.candy.lime} disabled={busy || code.length !== OTP_LENGTH} onPress={() => enter(code)} /> : <CandyButton label={t.send} color={colors.candy.lime} disabled={busy || typed.length === 0} onPress={send} />}
+        </SheetBody>
       </Pressable>
     </Pressable>
   );
@@ -116,7 +119,7 @@ export function PhoneLoginSheet({ onClose }: { onClose: () => void }) {
 
 const styles = StyleSheet.create({
   overlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 30, backgroundColor: 'rgba(20,8,32,0.55)', alignItems: 'center', justifyContent: 'center', padding: 24 },
-  sheet: { width: '100%', maxWidth: 360, backgroundColor: colors.cream, borderWidth: 3, borderColor: INK, borderRadius: 24, padding: 16, gap: 10, alignItems: 'center' },
+  sheet: { width: '100%', maxWidth: 360, maxHeight: '90%', backgroundColor: colors.cream, borderWidth: 3, borderColor: INK, borderRadius: 24, padding: 16, gap: 10, alignItems: 'center' },
   title: { fontFamily: fonts.display, fontSize: 22, color: INK },
   text: { fontFamily: fonts.bold, fontSize: 13.5, color: INK, textAlign: 'center' },
   bad: { color: '#B3261E' },
