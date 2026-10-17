@@ -17,7 +17,7 @@ const INK = '#3A2418';
 const codeOf = (e: unknown): string => (e instanceof ApiError ? e.code : 'generic');
 
 /** Mobile number: type it, then prove it by sharing the contact in the Bale bot (or by an SMS code). Shown above the Bale link. */
-export function PhoneStep({ onChange }: { onChange?: (s: PhoneStatus) => void }) {
+export function PhoneStep({ onChange, hideWhenVerified }: { onChange?: (s: PhoneStatus) => void; /** Show nothing once the number is already verified (the link sheet only needs it asked, not repeated). */ hideWhenVerified?: boolean }) {
   const [status, setStatus] = useState<PhoneStatus | null>(null);
   const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
@@ -75,7 +75,7 @@ export function PhoneStep({ onChange }: { onChange?: (s: PhoneStatus) => void })
       (e) => setNote({ text: phoneErrorText(codeOf(e)), bad: true }),
     );
 
-  if (!status) return null;
+  if (!status || (hideWhenVerified && status.verified && !status.conflict)) return null;
   const c = fa.phone.conflict;
   if (status.conflict) {
     const cf = status.conflict;

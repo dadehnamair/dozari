@@ -68,7 +68,7 @@ export function BaleSheet({ onClose }: { onClose: () => void }) {
         <SheetBody>
         <Text style={[styles.title, adult ? styles.textAdult : null]}>{fa.bale.title}</Text>
         <GuideBubble who="mirza" text={fa.bale.intro} />
-        <PhoneStep />
+        <PhoneStep hideWhenVerified />
         {phoneNote ? <Text style={[styles.text, adult ? styles.textAdult : null]}>{phoneNote}</Text> : null}
         {failed ? <Text style={[styles.text, adult ? styles.textAdult : null]}>{why ?? fa.bale.error}</Text> : null}
         {status && !status.configured ? <Text style={[styles.text, adult ? styles.textAdult : null]}>{fa.bale.notConfigured}</Text> : null}
