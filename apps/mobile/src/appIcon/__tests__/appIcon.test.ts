@@ -1,3 +1,10 @@
+import { describe, expect, it, vi } from 'vitest';
+
+vi.mock('react-native', () => ({ Platform: { OS: 'android' } }));
+vi.mock('expo', () => ({ requireOptionalNativeModule: () => null }));
+
+import { applyAppIcon, iconFor } from '../appIcon';
+
 describe('iconFor', () => {
   it('follows gender only: female hero for female, male hero otherwise', () => {
     expect(iconFor('female')).toBe('adultFemale');
