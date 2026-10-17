@@ -11,14 +11,22 @@ export function useMiniAppBack(): void {
   useEffect(() => {
     const button = miniAppHost()?.sdk.BackButton;
     if (!button) return undefined;
-    const sync = () => (canGoBack() ? button.show() : button.hide());
-    button.onClick(runBack);
+    // A host SDK call can throw (an SDK that does not match its host): the game keeps running without the header button.
+    const safe = (call: () => void) => {
+      try {
+        call();
+      } catch {
+        /* no header button */
+      }
+    };
+    const sync = () => safe(() => (canGoBack() ? button.show() : button.hide()));
+    safe(() => button.onClick(runBack));
     sync();
     const off = subscribeBack(sync);
     return () => {
       off();
-      button.offClick(runBack);
-      button.hide();
+      safe(() => button.offClick(runBack));
+      safe(() => button.hide());
     };
   }, []);
 }
@@ -27,7 +35,17 @@ export function useMiniAppBack(): void {
 export function useClosingConfirmation(): void {
   useEffect(() => {
     const sdk = miniAppHost()?.sdk;
-    sdk?.enableClosingConfirmation?.();
-    return () => sdk?.disableClosingConfirmation?.();
+    try {
+      sdk?.enableClosingConfirmation?.();
+    } catch {
+      /* host without the call */
+    }
+    return () => {
+      try {
+        sdk?.disableClosingConfirmation?.();
+      } catch {
+        /* host without the call */
+      }
+    };
   }, []);
 }

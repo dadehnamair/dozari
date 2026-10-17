@@ -26,7 +26,8 @@ export function miniAppHost(): MiniAppHost | null {
   const bale = g.Bale?.WebApp?.initData ? { platform: 'bale' as const, sdk: g.Bale.WebApp } : null;
   const telegram = g.Telegram?.WebApp?.initData ? { platform: 'telegram' as const, sdk: g.Telegram.WebApp } : null;
   // Bale's SDK also reads Telegram's launch data, so both can look present: the messenger whose signature the server accepted (set by the page's bridge) wins.
-  if (g.__MINIAPP__?.platform === 'telegram') return telegram ?? bale;
+  // Never fall back to Bale's SDK then: it needs Bale's own host object and throws «BaleWebApp is not defined» anywhere else.
+  if (g.__MINIAPP__?.platform === 'telegram') return telegram;
   return bale ?? telegram;
 }
 
