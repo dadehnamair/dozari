@@ -44,10 +44,12 @@ export function openInvoice(sdk: MiniAppSdk, link: string): Promise<InvoiceStatu
   });
 }
 
-/** The host's «share my phone number with the bot» call, or null when this is not a mini-app (or an old client without it). */
+/**
+ * The host's «share my phone number with the bot» call. Off since the mini-app has no messenger login (D243): the bot could only prove the
+ * number for an account made from the messenger id; a guest account would get a second one from the bot's sign-up. The phone is proved by SMS.
+ */
 export function contactHost(): MiniAppSdk | null {
-  const host = miniAppHost();
-  return host && typeof host.sdk.requestContact === 'function' ? host.sdk : null;
+  return null;
 }
 
 /** Asks the host to share the player's contact with the bot; true when they agreed (the bot then verifies the number, the app only re-reads the status). */

@@ -805,3 +805,12 @@ Owner: a full install picture per market including PWA, per-player puzzle usage,
 ## D242 — Puzzle review mark (بازبینی) in the admin (2026-10-17, proposed)
 
 Owner: approved puzzles should be re-checked later; players are unaffected, the admin sees «بازبینی نشده» or the review date on each puzzle, can re-review, and has a phone-friendly review tab with filters. Built: nullable `puzzles.reviewed_at`, `PUT /admin/puzzles/:id/review`, review-state filter on the puzzle lists and the daily picker, «بازبینی» tab (`logic/admin-panel.md` §Puzzle review). Proposed defaults: existing and new puzzles start unreviewed; editing a puzzle does not clear the mark (the admin can use «برداشتن علامت»).
+
+## D243 — Mini-app uses the app's own authentication; no messenger login (2026-10-17, owner)
+
+Owner: inside Telegram and Bale the game must not log in through the messenger; it works with the app's own sign-in (guest account + «ورود با شماره»), the phone number being the identity.
+Built: `POST /auth/miniapp` and the `initData` verification are removed (`apps/server/src/auth/miniapp.ts` keeps only `miniAppDeviceId`); `miniapp-bridge.js` no longer sends anything to the
+server, it only readies the host, tells Telegram from Bale (`tgWebAppPlatform`) to pick the SDK, and starts the game; the one-tap «تأیید با بله» is off (SMS proof only). `logic/miniapp.md` updated.
+Consequences, accepted by the owner: accounts the old login made keep working on the phones that stored their token, but one whose number was never verified and whose storage is lost
+cannot be reached again; in Bale's sandboxed iframe (no `localStorage`) a guest account lasts one visit unless a number is verified. Bale in-app payment (`openInvoice`) stays as it was: it maps the
+Bale id only to accounts the old login made; new guest accounts pay once their Bale chat is linked (a phone-number mapping is the proposed next step). Unverified: that Bale's launches carry no `tgWebAppPlatform`.

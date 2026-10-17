@@ -2,8 +2,6 @@ import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { guestLoginSchema } from '@dozari/shared';
 import { z } from 'zod';
 import type { AccountDeletion } from '../account/deletion.js';
-import { checkMiniAppInitData, miniAppDeviceId } from './miniapp.js';
-import type { MiniAppPlatform } from './miniapp.js';
 import type { AuthService, UserRecord } from './service.js';
 
 const bearer = (req: FastifyRequest): string | null => {
@@ -17,42 +15,7 @@ export async function currentUser(auth: AuthService, req: FastifyRequest): Promi
   return token ? auth.authenticate(token) : null;
 }
 
-/** Bot tokens of the messengers that host the mini-app; a platform without a token has no login. */
-export type MiniAppTokens = Partial<Record<MiniAppPlatform, string>>;
-
-export function registerAuthRoutes(app: FastifyInstance, auth: AuthService, deletion?: AccountDeletion, miniApp: MiniAppTokens = {}) {
-  // Mini-app login: the page sends the signed `initData` of the messenger it runs in; the same messenger user always lands on the same account.
-  if (miniApp.bale || miniApp.telegram) {
-    app.post('/auth/miniapp', async (req, reply) => {
-      // `auto`: the page cannot always tell which messenger opened it (Bale's SDK also reads Telegram's launch data), so every platform
-      // with a token is tried; only the bot that signed the data can verify it. An explicit platform is checked against its own bot only.
-      const body = z.object({ platform: z.enum(['bale', 'telegram', 'auto']).default('bale'), initData: z.string().min(1).max(4096) }).safeParse(req.body);
-      if (!body.success) return reply.code(400).send({ error: 'invalid_request' });
-      const order = (body.data.platform === 'auto' ? (['bale', 'telegram'] as const) : ([body.data.platform] as const)).filter((p) => miniApp[p]);
-      if (order.length === 0) return reply.code(404).send({ error: 'platform_off' });
-      let platform: MiniAppPlatform | null = null;
-      let checked: ReturnType<typeof checkMiniAppInitData> = { ok: false, reason: 'bad_signature' };
-      for (const p of order) {
-        const r = checkMiniAppInitData(body.data.initData, miniApp[p]!);
-        if (r.ok || platform === null) {
-          checked = r;
-          platform = p;
-        }
-        if (r.ok) break;
-        if (r.reason !== 'bad_signature') break; // signed by this bot but unusable (stale, no user): another bot would not help
-      }
-      if (!checked.ok || !platform) {
-        req.log.warn({ reason: checked.ok ? 'none' : checked.reason, platform: body.data.platform }, 'mini-app login refused');
-        return reply.code(401).send({ error: 'invalid_init_data', reason: checked.ok ? 'bad_signature' : checked.reason, tried: order });
-      }
-      const token = miniApp[platform]!;
-      const deviceId = miniAppDeviceId(token, checked.user.id, platform);
-      const result = await auth.guestLogin(deviceId);
-      if (!result.ok) return reply.code(403).send({ error: 'banned' });
-      return { ...result.session, deviceId, platform };
-    });
-  }
-
+export function registerAuthRoutes(app: FastifyInstance, auth: AuthService, deletion?: AccountDeletion) {
   app.post('/auth/guest', async (req, reply) => {
     const body = guestLoginSchema.safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: 'invalid_request' });

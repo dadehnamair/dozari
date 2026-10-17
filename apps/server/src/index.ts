@@ -79,8 +79,8 @@ import { registerCandidateRoutes } from './realtime/candidates.js';
 import { createDbProfileLookup } from './realtime/profile.js';
 import { AccountDeletion, createDbDeleteCodeStore } from './account/deletion.js';
 import { registerAuthRoutes } from './auth/routes.js';
-import type { MiniAppTokens } from './auth/routes.js';
 import { miniAppDeviceId } from './auth/miniapp.js';
+import type { MiniAppTokens } from './auth/miniapp.js';
 import { createTokenSigner } from './auth/tokens.js';
 import { createDbAdminRepository } from './admin/db-repository.js';
 import { registerAdminRoutes } from './admin/routes.js';
@@ -343,7 +343,7 @@ export interface ServerDeps {
   corsOrigin?: string;
   /** Docker-free dev: directory of uploaded product images, served at `/images/*`. */
   localImagesDir?: string;
-  /** Bot tokens per messenger; turns on `POST /auth/miniapp` (the mini-app login, docs/logic/miniapp.md). */
+  /** Bot tokens per messenger: the mini-app's null-origin CORS and the id → account map for payments (the mini-app has no messenger login, D243). */
   miniApp?: MiniAppTokens;
 }
 
@@ -423,13 +423,13 @@ export function buildServer(deps: ServerDeps = {}) {
   }));
 
   // A messenger's web client may open the mini-app in a sandboxed iframe, whose requests carry `Origin: null`. The API takes bearer tokens
-  // only (no cookies), so allowing that origin adds no cross-site risk; it is on only when a mini-app login is.
+  // only (no cookies), so allowing that origin adds no cross-site risk; it is on only when a messenger token is set.
   const corsOrigin = deps.corsOrigin && (deps.miniApp?.bale || deps.miniApp?.telegram) && deps.corsOrigin !== '*' && !deps.corsOrigin.split(',').some((o) => o.trim() === 'null') ? `${deps.corsOrigin},null` : deps.corsOrigin;
   if (corsOrigin) {
     // @fastify/cors ≥10 allows only GET/HEAD/POST by default; the web app also sends PUT, PATCH and DELETE.
     void app.register(fastifyCors, { origin: corsOrigin === '*' ? true : corsOrigin.split(',').map((o) => o.trim()), methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'] });
   }
-  if (deps.auth) registerAuthRoutes(app, deps.auth, deps.deletion, deps.miniApp);
+  if (deps.auth) registerAuthRoutes(app, deps.auth, deps.deletion);
   if (deps.auth && deps.dailyReward) registerDailyRewardRoutes(app, deps.auth, deps.dailyReward);
   if (deps.auth && deps.wheel) registerWheelRoutes(app, deps.auth, deps.wheel);
   if (deps.auth && deps.ads) registerAdsRoutes(app, deps.auth, deps.ads);
@@ -588,7 +588,7 @@ if (isMainModule(import.meta.url)) {
   // The Telegram bot sits next to Bale's: same service and tables, its chat ids carry the `tg:` prefix (docs/logic/bale-bot.md §Telegram).
   const telegramToken = process.env.TELEGRAM_BOT_TOKEN;
   const telegramUsername = process.env.TELEGRAM_BOT_USERNAME?.replace(/^@/, '') ?? null;
-  if (!telegramToken) console.warn('TELEGRAM_BOT_TOKEN is not set: Telegram mini-app logins and the Telegram bot are off');
+  if (!telegramToken) console.warn('TELEGRAM_BOT_TOKEN is not set: the Telegram bot is off');
   const telegramClient = telegramToken ? createTelegramClient(telegramToken, { base: process.env.TELEGRAM_API_BASE || undefined }) : null;
   const notify = baleStore ? new NotifyService(baleStore, createMultiClient(baleClient, telegramClient)) : undefined;
   // Browser push (Web Push, VAPID): iPhone home-screen apps through Apple's service, Chrome through Google's. Off without the three VAPID_* variables.
