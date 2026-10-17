@@ -21,9 +21,9 @@ export function AdultBackdrop({ children }: { children?: React.ReactNode }) {
  * A plate: a gradient face with a coloured frame, a black ring around it and a black ledge under it (the design's
  * `0 0 0 2px #000, 0 Npx 0 #000` shadow, drawn with views so it looks the same on every platform).
  */
-export function Plate({ radius, border, from = '#2A1E16', to = '#17100C', ledge = 4, frame = 2, height, glow, style, children }: { radius: number; border: string; from?: string; to?: string; ledge?: number; frame?: number; height?: number; /** Soft glow colour (iOS/web); the frame colour carries it elsewhere. */ glow?: string; style?: StyleProp<ViewStyle>; children?: React.ReactNode }) {
+export function Plate({ radius, border, from = '#2A1E16', to = '#17100C', ledge = 4, frame = 2, ring = 2, height, glow, style, children }: { radius: number; border: string; from?: string; to?: string; ledge?: number; frame?: number; /** Width of the black ring around the frame (0 when the frame itself is the black border, like the design's brass buttons). */ ring?: number; height?: number; /** Soft glow colour (iOS/web); the frame colour carries it elsewhere. */ glow?: string; style?: StyleProp<ViewStyle>; children?: React.ReactNode }) {
   return (
-    <View style={[{ backgroundColor: '#000', borderRadius: radius + 2, padding: 2, paddingBottom: 2 + ledge }, glow ? { shadowColor: glow, shadowOpacity: 0.55, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } } : null]}>
+    <View style={[{ backgroundColor: '#000', borderRadius: radius + ring, padding: ring, paddingBottom: ring + ledge }, glow ? { shadowColor: glow, shadowOpacity: 0.55, shadowRadius: 10, shadowOffset: { width: 0, height: 0 } } : null]}>
       <View style={[{ borderRadius: radius, borderWidth: frame, borderColor: border, overflow: 'hidden', height }, style]}>
         <GradientFill from={from} to={to} />
         {children}
@@ -63,6 +63,30 @@ export function BrassButton({ label, onPress, tone = 'gold', height = 48, disabl
   );
 }
 
+/** Filter / tab pill: brass when on, a dark pill with a bronze frame when off (design: notifications filters, wardrobe tabs). */
+export function Pill({ label, on, onPress, count, height = 34, size = 15 }: { label: string; on?: boolean; onPress?: () => void; count?: string; height?: number; size?: number }) {
+  const body = (
+    <View style={[styles.pill2, { height, borderColor: on ? '#000' : '#8A5A16', backgroundColor: on ? '#E8B64A' : '#17100C' }]}>
+      {on ? <GradientFill from="#FFF1B8" to="#B8822A" mid={{ at: 0.45, color: '#E8B64A' }} /> : null}
+      <Text style={[styles.pill2Text, { fontSize: size, color: on ? '#2A1606' : '#FFE9A8' }]}>{label}</Text>
+      {count ? <Text style={[styles.pill2Count, { color: on ? '#2A1606' : '#FFE9A8' }]}>{count}</Text> : null}
+    </View>
+  );
+  return onPress ? <Pressable accessibilityRole="button" accessibilityState={{ selected: !!on }} accessibilityLabel={label} onPress={onPress}>{body}</Pressable> : body;
+}
+
+/** The round-cornered bronze medal an icon sits in (design: notification tile, cup, table icon). */
+export function Medal({ size, radius = 13, children, style }: { size: number; radius?: number; children?: React.ReactNode; style?: StyleProp<ViewStyle> }) {
+  return (
+    <View style={[{ width: size, height: size, borderRadius: radius + 2, backgroundColor: '#000', padding: 2 }, style]}>
+      <View style={{ flex: 1, borderRadius: radius, borderWidth: 2, borderColor: '#B8822A', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}>
+        <GradientFill from="#5A3A1C" to="#140C06" mid={{ at: 0.65, color: '#2A1A0E' }} />
+        {children}
+      </View>
+    </View>
+  );
+}
+
 export type AnswerState = 'idle' | 'picked' | 'right' | 'wrong' | 'dim';
 const ANSWER = {
   idle: { bd: '#8A5A16', from: '#3A2A1C', to: '#1E1610', fg: '#FFE9A8', tag: '#E8B64A', tagFg: '#2A1606', op: 1 },
@@ -99,6 +123,9 @@ const styles = StyleSheet.create({
   pill: { height: 22, paddingHorizontal: 8, borderRadius: 99, borderWidth: 1.5, borderColor: '#000', fontFamily: fonts.display, fontSize: 12, lineHeight: 19, overflow: 'hidden' },
   pillRival: { backgroundColor: '#E0895A', color: '#2A1206' },
   pillMine: { backgroundColor: '#E8B64A', color: '#2A1606' },
+  pill2: { paddingHorizontal: 14, borderRadius: 99, borderWidth: 2, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4 },
+  pill2Text: { fontFamily: fonts.display, lineHeight: 26 },
+  pill2Count: { fontFamily: fonts.display, fontSize: 12, lineHeight: 20, opacity: 0.7 },
   square: { width: 44 },
   squareFace: { alignItems: 'center', justifyContent: 'center' },
   pressed: { transform: [{ translateY: 2 }] },

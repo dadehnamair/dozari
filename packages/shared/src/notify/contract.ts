@@ -1,9 +1,9 @@
 import { z } from 'zod';
 
 /** `GET /bale/link`: is the Bale bot set up, and is this player linked. */
-export const baleLinkStatusSchema = z.object({ configured: z.boolean(), linked: z.boolean(), botUsername: z.string().nullable() });
+export const baleLinkStatusSchema = z.object({ configured: z.boolean(), linked: z.boolean(), botUsername: z.string().nullable(), /** The Telegram bot, when it is set up. */ telegramBotUsername: z.string().nullable().optional() });
 /** `POST /bale/link-code`: the one-time code the player sends to the bot. */
-export const baleLinkCodeSchema = z.object({ code: z.string().min(4).max(12), expiresAt: z.number().int(), botUsername: z.string().nullable() });
+export const baleLinkCodeSchema = z.object({ code: z.string().min(4).max(12), expiresAt: z.number().int(), botUsername: z.string().nullable(), telegramBotUsername: z.string().nullable().optional() });
 /** Kinds a player can switch off for themselves (security, admin and broadcast messages always arrive). */
 export const MUTABLE_NOTIFY_KINDS = ['match_result', 'daily_ready', 'friend_request', 'table_invite', 'chat_message'] as const;
 export type MutableNotifyKind = (typeof MUTABLE_NOTIFY_KINDS)[number];

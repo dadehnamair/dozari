@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Lalezar&amp;display=swap" rel="stylesheet">
+</helmet>
+<svg viewBox="0 0 512 512" width="{{ px }}" height="{{ px }}" style="display:block;flex:none">
+  <defs>
+    <clipPath id="icSq"><rect x="0" y="0" width="512" height="512"></rect></clipPath><clipPath id="icSafe"><rect x="87" y="87" width="338" height="338"></rect></clipPath>
+    <clipPath id="icClip"><rect x="0" y="0" width="512" height="512" rx="114"></rect></clipPath>
+    <clipPath id="icHeadD"><path d="M66 62 C62 30 82 18 100 18 C118 18 138 30 134 62 C140 96 138 150 100 150 C62 150 60 96 66 62Z"></path></clipPath>
+    <clipPath id="icHeadG"><path d="M100 34 C134 34 152 60 152 94 C152 128 130 150 100 150 C70 150 48 128 48 94 C48 60 66 34 100 34Z"></path></clipPath>
+    <clipPath id="icShirtD"><path d="M70 146 C62 170 60 196 62 216 Q100 226 138 216 C140 196 138 170 130 146 Q100 138 70 146Z"></path></clipPath>
+    <filter id="icB4" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"></feGaussianBlur></filter>
+    <filter id="icB2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.6"></feGaussianBlur></filter>
+    <radialGradient id="icBg" cx=".5" cy=".35" r=".75"><stop offset="0" stop-color="#6A4418"></stop><stop offset=".45" stop-color="#2A190C"></stop><stop offset="1" stop-color="#0B0705"></stop></radialGradient>
+    <radialGradient id="icCoin" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#FFF6D0"></stop><stop offset=".35" stop-color="#F2C658"></stop><stop offset=".75" stop-color="#B8822A"></stop><stop offset="1" stop-color="#6A420E"></stop></radialGradient>
+    <linearGradient id="icBrass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFF1B8"></stop><stop offset=".35" stop-color="#E8B64A"></stop><stop offset=".7" stop-color="#B8822A"></stop><stop offset="1" stop-color="#8A5A16"></stop></linearGradient>
+    <radialGradient id="icSkinD" cx=".36" cy=".36" r=".8"><stop offset="0" stop-color="#FFE0BE"></stop><stop offset=".45" stop-color="#E9A877"></stop><stop offset=".85" stop-color="#B86C40"></stop><stop offset="1" stop-color="#7A3E1E"></stop></radialGradient>
+    <radialGradient id="icSkinG" cx=".36" cy=".36" r=".8"><stop offset="0" stop-color="#FFF0DE"></stop><stop offset=".45" stop-color="#F8CEA6"></stop><stop offset=".85" stop-color="#D0926A"></stop><stop offset="1" stop-color="#8A5030"></stop></radialGradient>
+    <radialGradient id="icNoseD" cx=".35" cy=".3" r=".75"><stop offset="0" stop-color="#FFD8B4"></stop><stop offset=".55" stop-color="#E29A68"></stop><stop offset="1" stop-color="#9A522A"></stop></radialGradient>
+    <radialGradient id="icNoseG" cx=".35" cy=".3" r=".75"><stop offset="0" stop-color="#FFE8D4"></stop><stop offset=".6" stop-color="#F0B48C"></stop><stop offset="1" stop-color="#B8704A"></stop></radialGradient>
+    <radialGradient id="icFelt" cx=".35" cy=".25" r=".85"><stop offset="0" stop-color="#FFC08A"></stop><stop offset=".45" stop-color="#E8743B"></stop><stop offset="1" stop-color="#7A2E0C"></stop></radialGradient>
+    <linearGradient id="icTeal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7FE6D8"></stop><stop offset=".45" stop-color="#33B3A6"></stop><stop offset="1" stop-color="#145A52"></stop></linearGradient>
+    <linearGradient id="icRed" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF8A7A"></stop><stop offset=".5" stop-color="#E84A3C"></stop><stop offset="1" stop-color="#8A1E14"></stop></linearGradient>
+    <linearGradient id="icGreen" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#C6F7A0"></stop><stop offset=".45" stop-color="#7ED957"></stop><stop offset="1" stop-color="#2E7A1E"></stop></linearGradient>
+    <radialGradient id="icHair" cx=".4" cy=".2" r=".9"><stop offset="0" stop-color="#9A603E"></stop><stop offset=".5" stop-color="#5A3424"></stop><stop offset="1" stop-color="#1E0C04"></stop></radialGradient>
+    <linearGradient id="icBow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFA8C8"></stop><stop offset=".5" stop-color="#FF5C8A"></stop><stop offset="1" stop-color="#A81E4A"></stop></linearGradient>
+    <radialGradient id="icIris" cx=".42" cy=".38" r=".62"><stop offset="0" stop-color="#C8904A"></stop><stop offset=".6" stop-color="#5A3010"></stop><stop offset="1" stop-color="#1A0A02"></stop></radialGradient>
+    <linearGradient id="icWhite" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D6CABE"></stop><stop offset=".4" stop-color="#FFFAF2"></stop><stop offset="1" stop-color="#EEE4D8"></stop></linearGradient>
+    <linearGradient id="icGloss" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".2"></stop><stop offset="1" stop-color="#fff" stop-opacity="0"></stop></linearGradient>
+  </defs>
+  <g clip-path="url(#{{ clipId }})">
+    <sc-if value="{{ showBg }}" hint-placeholder-val="{{ true }}"><rect width="512" height="512" fill="url(#icBg)"></rect>
+    <path d="{{ rays }}" fill="#E8B64A" opacity=".09"></path></sc-if>
+    <g transform="{{ charT }}">
+
+    <sc-if value="{{ manOn }}" hint-placeholder-val="{{ true }}">
+      <g transform="translate(256 0) rotate(-5 0 260) scale(3.1) translate(-100 -10)" stroke="#2A160C" stroke-linejoin="round" stroke-linecap="round">
+        <path d="M70 146 C62 170 60 196 62 216 Q100 226 138 216 C140 196 138 170 130 146 Q100 138 70 146Z" fill="url(#icTeal)" stroke-width="1.8"></path>
+        <g clip-path="url(#icShirtD)" stroke="none"><path d="M80 150 L76 220 M100 150 L100 222 M120 150 L124 220" stroke="#9AF0E2" stroke-width="4" opacity=".55"></path><ellipse cx="134" cy="190" rx="14" ry="40" fill="#0A3A34" opacity=".5" filter="url(#icB4)"></ellipse></g>
+        <ellipse cx="62" cy="98" rx="9" ry="12" fill="url(#icSkinD)" stroke-width="1.6"></ellipse>
+        <path d="M62 92 q-4 6 0 12" fill="none" stroke="#8A4424" stroke-width="1.4"></path>
+        <ellipse cx="138" cy="98" rx="9" ry="12" fill="url(#icSkinD)" stroke-width="1.6"></ellipse>
+        <path d="M66 62 C62 30 82 18 100 18 C118 18 138 30 134 62 C140 96 138 150 100 150 C62 150 60 96 66 62Z" fill="url(#icSkinD)" stroke-width="1.8"></path>
+        <g clip-path="url(#icHeadD)" stroke="none">
+          <ellipse cx="138" cy="104" rx="20" ry="60" fill="#7A3A18" opacity=".5" filter="url(#icB4)"></ellipse>
+          <ellipse cx="100" cy="60" rx="44" ry="6" fill="#5A2410" opacity=".55" filter="url(#icB2)"></ellipse>
+          <ellipse cx="100" cy="152" rx="40" ry="12" fill="#6A3018" opacity=".5" filter="url(#icB4)"></ellipse>
+          <ellipse cx="76" cy="112" rx="10" ry="6" fill="#FF5A6A" opacity=".55" filter="url(#icB2)"></ellipse>
+          <ellipse cx="125" cy="112" rx="10" ry="6" fill="#FF5A6A" opacity=".5" filter="url(#icB2)"></ellipse>
+          <ellipse cx="78" cy="94" rx="6" ry="12" fill="#FFF0DC" opacity=".55" filter="url(#icB2)"></ellipse>
+        </g>
+        <path d="M68 72 Q63 102 74 132" fill="none" stroke="#FFDFA0" stroke-width="1.4" opacity=".8"></path>
+        <g stroke="none" fill="#A8582E"><circle cx="70" cy="99" r="1.3"></circle><circle cx="76" cy="103" r="1.1"></circle><circle cx="71" cy="107" r="1.2"></circle><circle cx="126" cy="103" r="1.1"></circle><circle cx="131" cy="99" r="1.3"></circle><circle cx="130" cy="107" r="1.2"></circle></g>
+        <ellipse cx="88" cy="76" rx="11" ry="13" fill="url(#icWhite)" stroke-width="1.6"></ellipse>
+        <ellipse cx="112" cy="76" rx="11" ry="13" fill="url(#icWhite)" stroke-width="1.6"></ellipse>
+        <circle cx="91" cy="78" r="6.2" fill="url(#icIris)" stroke="none"></circle>
+        <circle cx="115" cy="78" r="6.2" fill="url(#icIris)" stroke="none"></circle>
+        <circle cx="91.5" cy="78.5" r="3" fill="#0A0402" stroke="none"></circle>
+        <circle cx="115.5" cy="78.5" r="3" fill="#0A0402" stroke="none"></circle>
+        <circle cx="93.5" cy="75" r="2" fill="#fff" stroke="none"></circle>
+        <circle cx="117.5" cy="75" r="2" fill="#fff" stroke="none"></circle>
+        <path d="M79 47 Q88 41 97 47 M103 47 Q112 41 121 47" fill="none" stroke="#3A2010" stroke-width="3.2"></path>
+        <ellipse cx="102" cy="114" rx="16" ry="5" fill="#6A2A10" opacity=".5" stroke="none" filter="url(#icB2)"></ellipse>
+        <path d="M100 80 C86 82 80 102 88 112 C94 118 112 118 116 108 C120 96 112 82 100 80Z" fill="url(#icNoseD)" stroke-width="1.6"></path>
+        <ellipse cx="104" cy="108" rx="5" ry="3.5" fill="#8A3A1A" opacity=".55" stroke="none"></ellipse>
+        <path d="M93 90 Q90 96 91 102" fill="none" stroke="#fff" stroke-width="2" opacity=".85"></path>
+        <path d="M80 124 Q100 154 120 124 Q100 132 80 124Z" fill="#5A1414" stroke-width="1.6"></path>
+        <g transform="rotate(-8 101 143)">
+          <circle cx="101" cy="144" r="13.5" fill="#000" opacity=".45" stroke="none" transform="translate(1 1.5)"></circle>
+          <circle cx="101" cy="143" r="13.5" fill="url(#icCoin)" stroke-width="1.6"></circle>
+          <circle cx="101" cy="143" r="10" fill="none" stroke="#8A5A16" stroke-width="1" stroke-dasharray=".6 2"></circle>
+          <text x="101" y="150" text-anchor="middle" font-family="Lalezar" font-size="19" fill="#5A3608" stroke="none">۲</text>
+          <path d="M92 138 A10 10 0 0 1 96 133" fill="none" stroke="#fff" stroke-width="1.6" opacity=".85"></path>
+        </g>
+        <path d="M86 126.5 Q100 131 114 126.5 L113 133 Q100 137 87 133Z" fill="#FFFDF6" stroke-width="1.2"></path>
+        <path d="M100 129 L100 135" stroke="#C8B8A0" stroke-width=".8"></path>
+        <path d="M66 146 C80 160 120 160 134 146 C136 154 132 160 128 162 C112 170 88 170 72 162 C68 160 64 154 66 146Z" fill="url(#icRed)" stroke-width="1.6"></path>
+        <path d="M80 158 l2 8 M94 161 l1 8 M108 161 l-1 8 M121 158 l-2 8" stroke="#FFF3E0" stroke-width="2.2" fill="none"></path>
+        <path d="M116 162 L128 192 L115 196 L106 166Z" fill="url(#icRed)" stroke-width="1.6"></path>
+        <path d="M114 178 l8 -3 M118 188 l8 -3" stroke="#FFF3E0" stroke-width="2.2" fill="none"></path>
+        <g transform="rotate(-9 100 40) translate(100 40) scale(1.08) translate(-100 -40)">
+          <ellipse cx="100" cy="60" rx="38" ry="5" fill="#000" opacity=".35" stroke="none" filter="url(#icB2)"></ellipse>
+          <path d="M64 56 C60 26 82 14 100 14 C118 14 140 26 136 56 C120 60 80 60 64 56Z" fill="url(#icFelt)" stroke-width="1.8"></path>
+          <path d="M66 50 Q100 57 134 50" fill="none" stroke="#6A2408" stroke-width="2" opacity=".6"></path>
+          <ellipse cx="82" cy="30" rx="8" ry="12" fill="#FFE0C0" opacity=".45" stroke="none" filter="url(#icB2)" transform="rotate(-25 82 30)"></ellipse>
+          <path d="M76 32 Q84 22 94 20" fill="none" stroke="#fff" stroke-width="2.4" opacity=".85"></path>
+        </g>
+      </g>
+      <path d="M404 360 l7 18 18 7 -18 7 -7 18 -7 -18 -18 -7 18 -7 Z" fill="#FFF6C8"></path>
+      <path d="M96 60 l5 12 12 5 -12 5 -5 12 -5 -12 -12 -5 12 -5 Z" fill="#FFF6C8"></path>
+    </sc-if>
+
+    <sc-if value="{{ womanOn }}" hint-placeholder-val="{{ false }}">
+      <g transform="translate(256 0) rotate(4 0 260) scale(3.2) translate(-100 -16)" stroke="#2A160C" stroke-linejoin="round" stroke-linecap="round">
+        <path d="M44 100 C36 40 70 22 100 22 C130 22 164 40 156 100 C160 130 152 152 140 160 L60 160 C48 152 40 130 44 100Z" fill="url(#icHair)" stroke-width="1.8"></path>
+        <path d="M50 130 C44 100 48 70 62 52" fill="none" stroke="#B87A52" stroke-width="3" opacity=".5" filter="url(#icB2)"></path>
+        <path d="M68 150 C60 172 58 196 60 216 Q100 226 140 216 C142 196 140 172 132 150 Q100 142 68 150Z" fill="url(#icGreen)" stroke-width="1.8"></path>
+        <g stroke="none" fill="#E2FFCC" opacity=".8"><circle cx="80" cy="170" r="3"></circle><circle cx="100" cy="182" r="3"></circle><circle cx="120" cy="168" r="3"></circle><circle cx="86" cy="196" r="3"></circle><circle cx="114" cy="198" r="3"></circle></g>
+        <path d="M84 148 Q100 162 116 148" fill="#E2B08A" stroke-width="1.4"></path>
+        <path d="M100 34 C134 34 152 60 152 94 C152 128 130 150 100 150 C70 150 48 128 48 94 C48 60 66 34 100 34Z" fill="url(#icSkinG)" stroke-width="1.8"></path>
+        <g clip-path="url(#icHeadG)" stroke="none">
+          <ellipse cx="152" cy="104" rx="20" ry="56" fill="#8A4A2A" opacity=".45" filter="url(#icB4)"></ellipse>
+          <ellipse cx="100" cy="68" rx="52" ry="8" fill="#6A3018" opacity=".45" filter="url(#icB2)"></ellipse>
+          <ellipse cx="72" cy="110" rx="11" ry="7" fill="#FF5A7A" opacity=".55" filter="url(#icB2)"></ellipse>
+          <ellipse cx="128" cy="110" rx="11" ry="7" fill="#FF5A7A" opacity=".5" filter="url(#icB2)"></ellipse>
+          <ellipse cx="68" cy="94" rx="6" ry="12" fill="#FFF6EA" opacity=".6" filter="url(#icB2)"></ellipse>
+        </g>
+        <path d="M54 82 Q50 110 64 134" fill="none" stroke="#FFDFA0" stroke-width="1.4" opacity=".8"></path>
+        <ellipse cx="88" cy="82" rx="10" ry="12" fill="url(#icWhite)" stroke-width="1.6"></ellipse>
+        <circle cx="90" cy="84" r="6" fill="url(#icIris)" stroke="none"></circle>
+        <circle cx="90.5" cy="84.5" r="2.8" fill="#0A0402" stroke="none"></circle>
+        <circle cx="92.5" cy="81" r="2" fill="#fff" stroke="none"></circle>
+        <path d="M77 78 Q88 66 99 76" fill="none" stroke="#1A0A04" stroke-width="2.6"></path>
+        <path d="M78 76 l-4 -3 M81 72 l-3 -4 M86 70 l-1 -4" stroke="#1A0A04" stroke-width="1.4"></path>
+        <path d="M102 84 Q112 92 122 82" fill="none" stroke="#1A0A04" stroke-width="2.6"></path>
+        <path d="M120 84 l4 -1 M117 88 l3 3 M112 90 l1 4" stroke="#1A0A04" stroke-width="1.4"></path>
+        <path d="M78 63 Q88 57 98 62 M103 65 Q112 60 122 66" fill="none" stroke="#3A1E10" stroke-width="2.6"></path>
+        <ellipse cx="102" cy="108" rx="9" ry="3.5" fill="#B8704A" opacity=".45" stroke="none" filter="url(#icB2)"></ellipse>
+        <path d="M100 92 C90 92 88 104 96 107 C102 110 112 106 110 97 C109 93 105 92 100 92Z" fill="url(#icNoseG)" stroke-width="1.4"></path>
+        <path d="M96 96 Q94 99 95 102" fill="none" stroke="#fff" stroke-width="1.6" opacity=".85"></path>
+        <path d="M84 120 Q100 142 118 118 Q100 128 84 120Z" fill="#7A1A24" stroke-width="1.6"></path>
+        <path d="M89 121.5 Q100 126 113 121 L112 125 Q100 129 90 125Z" fill="#FFFDF6" stroke="none"></path>
+        <path d="M84 120 Q100 128 118 118" fill="none" stroke="#C83A50" stroke-width="1.8"></path>
+        <path d="M95 133 Q101 135 108 132" fill="none" stroke="#FF9AAA" stroke-width="1.4" opacity=".8"></path>
+        <path d="M52 92 C46 50 70 30 100 30 C130 30 154 50 148 92 C140 66 120 54 100 60 C80 54 60 66 52 92Z" fill="url(#icHair)" stroke-width="1.8"></path>
+        <path d="M78 42 Q88 50 94 58 M110 40 Q118 50 122 58" fill="none" stroke="#C88A62" stroke-width="2" opacity=".6"></path>
+        <path d="M62 62 Q70 44 88 37" fill="none" stroke="#D89A70" stroke-width="2.6" opacity=".6"></path>
+        <path d="M126 38 L144 26 L144 50 Z" fill="url(#icBow)" stroke-width="1.6"></path>
+        <path d="M126 38 L108 26 L108 50 Z" fill="url(#icBow)" stroke-width="1.6"></path>
+        <circle cx="126" cy="38" r="4.5" fill="#FF5C8A" stroke-width="1.4"></circle>
+        <path d="M111 31 L118 34 M141 31 L134 34" stroke="#FFD0E0" stroke-width="1.4" opacity=".9"></path>
+        <path d="M50 112 L50 118" stroke="#E8B64A" stroke-width="1.2"></path>
+        <circle cx="50" cy="123" r="5.5" fill="url(#icCoin)" stroke-width="1.2"></circle>
+        <path d="M150 112 L150 118" stroke="#E8B64A" stroke-width="1.2"></path>
+        <circle cx="150" cy="123" r="5.5" fill="url(#icCoin)" stroke-width="1.2"></circle>
+      </g>
+      <g transform="translate(96 112) rotate(-18)">
+        <ellipse rx="40" ry="54" fill="#000" opacity=".5" transform="translate(4 6)"></ellipse>
+        <ellipse rx="40" ry="54" fill="url(#icCoin)" stroke="#000" stroke-width="6"></ellipse>
+        <text y="22" text-anchor="middle" font-family="Lalezar" font-size="62" fill="#5A3608" stroke="#FFF1B8" stroke-width="3" paint-order="stroke" transform="scale(.8 1)">۲</text>
+        <path d="M-26 -22 A32 42 0 0 1 -8 -44" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".85"></path>
+      </g>
+      <path d="M50 190 Q40 220 56 246 M150 180 Q164 206 156 232" fill="none" stroke="#FFE9A8" stroke-width="5" stroke-linecap="round" opacity=".6"></path>
+      <path d="M430 420 l6 15 15 6 -15 6 -6 15 -6 -15 -15 -6 15 -6 Z" fill="#FFF6C8"></path>
+    </sc-if>
+
+    </g>
+    <sc-if value="{{ showFrame }}" hint-placeholder-val="{{ true }}"><path d="M20 20 H492 V200 Q256 168 20 200 Z" fill="url(#icGloss)"></path></sc-if>
+  </g>
+  <sc-if value="{{ showFrame }}" hint-placeholder-val="{{ true }}">
+  <rect x="9" y="9" width="494" height="494" rx="106" fill="none" stroke="url(#icBrass)" stroke-width="14"></rect>
+  <rect x="18" y="18" width="476" height="476" rx="98" fill="none" stroke="#000" stroke-width="4"></rect>
+  <rect x="3" y="3" width="506" height="506" rx="112" fill="none" stroke="#000" stroke-width="5"></rect>
+  </sc-if>
+</svg>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:512,&quot;height&quot;:512},&quot;who&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;man&quot;,&quot;woman&quot;],&quot;default&quot;:&quot;man&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;mode&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;rounded&quot;,&quot;full&quot;,&quot;fg&quot;,&quot;bg&quot;],&quot;default&quot;:&quot;rounded&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;size&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:512,&quot;min&quot;:16,&quot;max&quot;:1024,&quot;tsType&quot;:&quot;number&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props, who = p.who ?? 'man';
+    let rays = '';
+    for (let i = 0; i < 20; i++) {
+      const a = i / 20 * Math.PI * 2, w = Math.PI / 20 * .5, pt = t => `${(256 + Math.cos(t) * 520).toFixed(1)} ${(220 + Math.sin(t) * 520).toFixed(1)}`;
+      rays += `M256 220 L${pt(a - w)} L${pt(a + w)} Z `;
+    }
+    const mode = p.mode ?? 'rounded', ch = mode !== 'bg';
+    return { px: +(p.size ?? 512), manOn: ch && who !== 'woman', womanOn: ch && who === 'woman', rays,
+      showBg: mode !== 'fg', showFrame: mode === 'rounded',
+      clipId: mode === 'rounded' ? 'icClip' : mode === 'fg' ? 'icSafe' : 'icSq',
+      charT: mode === 'fg' ? 'translate(256 256) scale(.66) translate(-256 -256)' : '' };
+  }
+}
+</script>
+</body>
+</html>

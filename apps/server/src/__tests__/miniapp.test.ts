@@ -107,6 +107,21 @@ describe('POST /auth/miniapp', () => {
     // A platform without a token has no login.
     expect((await setup(BOT).inject({ method: 'POST', url: '/auth/miniapp', payload: { platform: 'telegram', initData: data } })).statusCode).toBe(404);
   });
+  it('auto: finds the messenger that signed the data, whichever the page guessed', async () => {
+    const TG = '999:telegram-bot-token';
+    const app = setup(BOT, TG);
+    const now = String(Math.floor(Date.now() / 1000));
+    const tg = await app.inject({ method: 'POST', url: '/auth/miniapp', payload: { platform: 'auto', initData: sign(fields({ auth_date: now }), TG) } });
+    expect(tg.statusCode).toBe(200);
+    expect(tg.json().platform).toBe('telegram');
+    expect(tg.json().deviceId).toBe(miniAppDeviceId(TG, '777', 'telegram'));
+    const bale = await app.inject({ method: 'POST', url: '/auth/miniapp', payload: { platform: 'auto', initData: sign(fields({ auth_date: now })) } });
+    expect(bale.json().platform).toBe('bale');
+    expect(bale.json().deviceId).toBe(miniAppDeviceId(BOT, '777', 'bale'));
+    expect((await app.inject({ method: 'POST', url: '/auth/miniapp', payload: { platform: 'auto', initData: sign(fields({ auth_date: now }), 'other:token') } })).statusCode).toBe(401);
+    // A Telegram-only server still logs Telegram players in when the page says auto.
+    expect((await setup(undefined, TG).inject({ method: 'POST', url: '/auth/miniapp', payload: { platform: 'auto', initData: sign(fields({ auth_date: now }), TG) } })).statusCode).toBe(200);
+  });
   it('keeps the account ids of the first (Bale-only) release', () => {
     // The formula of the first release, written out: changing it would orphan every account made so far.
     expect(miniAppDeviceId(BOT, '777')).toBe(createHmac('sha256', BOT).update('dozari-bale-miniapp:777').digest('hex').slice(0, 32));

@@ -1,6 +1,7 @@
 package ir.dozari.bgnotify
 
 import android.content.Context
+import android.util.Log
 import androidx.work.Constraints
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
@@ -52,7 +53,9 @@ class BackgroundNotifyModule : Module() {
     // Links this install to the signed-in player in the IRNoti push service; false when the build has no IRNoti app key (the JS side then falls back to the direct FCM route).
     Function("irnotiIdentify") { externalId: String ->
       val context = appContext.reactContext ?: throw Exceptions.ReactContextLost()
-      if (!IrnotiBridge.ensure(context)) return@Function false
+      val ready = IrnotiBridge.ensure(context)
+      Log.i("DozariIrnoti", "irnotiIdentify: sdkReady=$ready externalId=${externalId.take(8)}…")
+      if (!ready) return@Function false
       IrnotiBridge.identify(externalId)
       true
     }

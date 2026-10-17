@@ -94,7 +94,7 @@ import { createDbBotRepository } from './bot/repository.js';
 import { BotService } from './bot/service.js';
 import { startBotScheduler } from './bot/scheduler.js';
 import { TextFilterService, createDbWordStore } from './textfilter/service.js';
-import { createBaleClient } from './notify/client.js';
+import { createBaleClient, createMultiClient, createTelegramClient, isTelegramId, TELEGRAM_ID_PREFIX } from './notify/client.js';
 import { NotifyService } from './notify/service.js';
 import { createBaleSignup } from './notify/signup.js';
 import { startNotifyRunner } from './notify/runner.js';
@@ -231,7 +231,7 @@ export interface ServerDeps {
   /** Socket.io service (queue, matches); needs `auth`. Its live stats feed the admin panel. */
   realtime?: boolean;
   /** Bale messenger integration: link codes for players, the bot's name for the app. */
-  bale?: { service: NotifyService; botUsername: string | null };
+  bale?: { service: NotifyService; botUsername: string | null; telegramBotUsername?: string | null }
   webPush?: WebPushService;
   fcm?: FcmService;
   irnotiPush?: IrnotiPushService;
@@ -455,7 +455,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.bale) {
     const phoneSvc = deps.phone;
     const settings = deps.settings;
-    registerBaleRoutes(app, deps.auth, deps.bale.service, deps.bale.botUsername, phoneSvc ? { service: phoneSvc, required: async () => (settings ? (await settings.num('phone.required_for_bale')) === 1 : true) } : undefined);
+    registerBaleRoutes(app, deps.auth, deps.bale.service, deps.bale.botUsername, deps.bale.telegramBotUsername ?? null, phoneSvc ? { service: phoneSvc, required: async () => (settings ? (await settings.num('phone.required_for_bale')) === 1 : true) } : undefined);
   }
   if (deps.settings) {
     const settings = deps.settings;
@@ -582,7 +582,12 @@ if (isMainModule(import.meta.url)) {
   const baleUsername = process.env.BALE_BOT_USERNAME?.replace(/^@/, '') ?? null;
   const baleClient = baleToken ? createBaleClient(baleToken, { base: process.env.BALE_API_BASE }) : null;
   const baleStore: NotifyStore | undefined = db ? createDbNotifyStore(db) : undefined;
-  const notify = baleStore ? new NotifyService(baleStore, baleClient) : undefined;
+  // The Telegram bot sits next to Bale's: same service and tables, its chat ids carry the `tg:` prefix (docs/logic/bale-bot.md §Telegram).
+  const telegramToken = process.env.TELEGRAM_BOT_TOKEN;
+  const telegramUsername = process.env.TELEGRAM_BOT_USERNAME?.replace(/^@/, '') ?? null;
+  if (!telegramToken) console.warn('TELEGRAM_BOT_TOKEN is not set: Telegram mini-app logins and the Telegram bot are off');
+  const telegramClient = telegramToken ? createTelegramClient(telegramToken, { base: process.env.TELEGRAM_API_BASE || undefined }) : null;
+  const notify = baleStore ? new NotifyService(baleStore, createMultiClient(baleClient, telegramClient)) : undefined;
   // Browser push (Web Push, VAPID): iPhone home-screen apps through Apple's service, Chrome through Google's. Off without the three VAPID_* variables.
   const vapid = process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY ? { publicKey: process.env.VAPID_PUBLIC_KEY, privateKey: process.env.VAPID_PRIVATE_KEY, subject: process.env.VAPID_SUBJECT ?? 'mailto:admin@dozari.ir' } : null;
   const webPush = db && vapid ? new WebPushService(createDbPushSubStore(db), createVapidSender(vapid), vapid.publicKey) : undefined;
@@ -932,7 +937,15 @@ if (isMainModule(import.meta.url)) {
     };
     notify.providerToken = process.env.BALE_PROVIDER_TOKEN ?? null;
     // Mini-app players pay without linking the bot: the paying Bale user maps to their mini-app account (same device id as the login).
-    if (baleToken) notify.miniAppUserOf = async (baleUserId) => (await auth?.userByDevice(miniAppDeviceId(baleToken, baleUserId)))?.id ?? null;
+    if (baleToken || telegramToken) {
+      notify.miniAppUserOf = async (messengerUserId) => {
+        const telegram = isTelegramId(messengerUserId);
+        const token = telegram ? telegramToken : baleToken;
+        if (!token) return null;
+        const id = telegram ? messengerUserId.slice(TELEGRAM_ID_PREFIX.length) : messengerUserId;
+        return (await auth?.userByDevice(miniAppDeviceId(token, id, telegram ? 'telegram' : 'bale')))?.id ?? null;
+      };
+    }
   }
   const gemPayer = db ? createGemCardPayer(db, (msg, err) => console.error(msg, err)) : () => undefined;
   let dailyRef: DailyService | undefined;
@@ -1162,7 +1175,7 @@ if (isMainModule(import.meta.url)) {
           },
         }
       : undefined,
-    bale: notify ? { service: notify, botUsername: baleUsername } : undefined,
+    bale: notify ? { service: notify, botUsername: baleUsername, telegramBotUsername: telegramUsername } : undefined,
     phone,
     phoneLogin,
     find,
@@ -1261,7 +1274,7 @@ if (isMainModule(import.meta.url)) {
     clientInfo: db ? createDbClientInfoStore(db) : undefined,
     admin: db && jwtSecret ? { repo: createDbAdminRepository(db), token: adminToken, accounts: new AdminAccounts(createDbAdminStore(db), jwtSecret, adminToken) } : undefined,
     corsOrigin: process.env.CORS_ORIGIN,
-    miniApp: { bale: baleToken, telegram: process.env.TELEGRAM_BOT_TOKEN },
+    miniApp: { bale: baleToken, telegram: telegramToken },
     trustProxy: process.env.TRUST_PROXY === '1',
     localImagesDir: process.env.LOCAL_IMAGES_DIR,
   });
@@ -1314,8 +1327,9 @@ if (isMainModule(import.meta.url)) {
     const aiRuns = startAiScheduler({ scheduler: aiScheduler, log: (msg, err) => (err ? app.log.error({ err }, msg) : app.log.info(msg)) });
     app.addHook('onClose', async () => aiRuns.stop());
   }
-  if (notify && baleClient) {
-    const runner = startNotifyRunner({ service: notify, client: baleClient, settings, log: (msg, err) => (err ? app.log.error({ err }, msg) : app.log.info(msg)) });
+  if (notify && (baleClient || telegramClient)) {
+    const clients = [baleClient && { name: 'bale', client: baleClient }, telegramClient && { name: 'telegram', client: telegramClient }].filter((c): c is NonNullable<typeof c> => !!c);
+    const runner = startNotifyRunner({ service: notify, clients, settings, log: (msg, err) => (err ? app.log.error({ err }, msg) : app.log.info(msg)) });
     app.addHook('onClose', async () => runner.stop());
   }
   // The default shop items, badges, taunts and cities are created on first read; read them once now so a fresh database is complete at boot.

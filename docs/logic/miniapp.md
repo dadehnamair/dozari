@@ -13,14 +13,18 @@ appears only where something is truly that messenger's (Bale payments, the Bale 
   (no-cache page, immutable hashed bundles, no `X-Frame-Options`: web clients embed mini-apps in an iframe, so the host's reverse proxy must not add one either).
   Loopback `MINIAPP_PORT` (8084); the host's proxy forwards `MINIAPP_DOMAIN` to it. Set that address as the mini-app URL in the messenger's bot father.
   (`BALE_APP_DOMAIN` / `BALE_APP_PORT` from the first release still work as fallbacks.)
-- **Login** `POST /auth/miniapp {platform?: 'bale'|'telegram', initData}` (`platform` defaults to `bale`; a 401 answers `{error, reason, platform}`; a platform is on only when its bot token is set:
+- **Login** `POST /auth/miniapp {platform?: 'bale'|'telegram', initData}` (`platform` defaults to `bale`; a platform is on only when its bot token is set:
   `BALE_BOT_TOKEN`, `TELEGRAM_BOT_TOKEN`): the signature is checked the Telegram-web-app way (HMAC-SHA256 of the sorted lines, key = HMAC("WebAppData", bot token);
   Bale's docs word the key step the other way round, so both orders are accepted; `auth_date` at most 24 h old). The messenger user id maps to a fixed device id
   (`HMAC(bot token, "dozari-<platform>-miniapp:<id>")`, 32 hex), so the same messenger user always gets the same account on any phone, and a later 401 re-login (the
   game's guest flow) lands on it too. The Bale text is the one of the first release, so earlier accounts keep working; Telegram has its own id space. The bridge stores
   `dozari.token` and `dozari.deviceId` where the game reads them. Outside a messenger (no `initData`) the page just starts the game as a guest.
-- **Telegram:** its SDK (`https://telegram.org/js/telegram-web-app.js`) is loaded only when Telegram launched the page (`tgWebAppData` in the address) and gives up after
-  4 s, so it can never delay a Bale launch. Header colour, links, back button, start parameter and closing confirmation work through the same calls; in-app payment does not
+- **Which messenger?** Bale's SDK also reads Telegram-style launch data, so inside Telegram `window.Bale.WebApp.initData` can be filled and the page cannot tell by itself
+  (this was the `401 bad_signature` seen in Telegram: Telegram's data was checked with Bale's token). The bridge therefore posts `platform: 'auto'`; the server tries every
+  platform that has a token and answers `{platform}` for the one whose bot signed it. The bridge then stores that in `window.__MINIAPP__.platform` and `miniapp/host.ts`
+  picks the matching SDK from it. An explicit `platform: 'bale'|'telegram'` is still checked against that bot only.
+- **Telegram:** its SDK (`https://telegram.org/js/telegram-web-app.js`) is loaded in the background when `tgWebAppData` is in the address (gives up after 4 s); a Bale launch
+  never waits for it, a Telegram launch waits for it (at most 4 s) after login. Header colour, links, back button, start parameter and closing confirmation work through the same calls; in-app payment does not
   (the only payment path is Bale's wallet, below).
 - **CORS**: the compose file adds `https://MINIAPP_DOMAIN` to the server's `CORS_ORIGIN`, and the server adds the `null` origin itself whenever a mini-app login is on (web clients
   may sandbox the iframe, whose requests carry `Origin: null`). The API authenticates with bearer tokens only (no cookies), so a CORS allow-list is not what protects it.
@@ -74,5 +78,5 @@ back button are not checked against the real clients. First-deploy checks: that 
 
 ## Tests
 
-`apps/server/src/__tests__/miniapp.test.ts` (signature, device ids, both platforms, route, CORS), `bale-payments.test.ts` (invoice link, mini-app payer),
+`apps/server/src/__tests__/miniapp.test.ts` (signature, device ids, both platforms, `auto`, route, CORS), `telegram-bot.test.ts` (Telegram client, two-bot sender), `bale-payments.test.ts` (invoice link, mini-app payer),
 `apps/mobile/src/nav/__tests__/backStack.test.ts` and `node --test apps/miniapp/scripts/prepare-dist.test.mjs` (page rewrite).

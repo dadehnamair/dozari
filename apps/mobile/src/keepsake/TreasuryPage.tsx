@@ -11,6 +11,8 @@ import { useHardwareBack } from '../nav/useHardwareBack';
 import { pageTop } from '../theme/safeArea';
 import { colors, fonts } from '../theme/colors';
 import { ON_YELLOW } from '../theme/skin';
+import { useTheme } from '../theme/themeStore';
+import { BrassSquare, Plate } from '../duel/adultKit';
 import { buyPiece, fetchGallery, saveShowcase, upgradeKeepsake } from './api';
 import { YadegarMedal, YadegarPhoto, YadegarPuzzle, yadegarCard } from './YadegarArt';
 import type { PieceResult } from './api';
@@ -37,6 +39,7 @@ function gotText(r: PieceResult): string {
  */
 export function TreasuryPage({ onClose }: { onClose: () => void }) {
   useHardwareBack(onClose);
+  const adult = useTheme() === 'adult';
   const [g, setG] = useState<KeepsakeGallery | null>(null);
   const [failed, setFailed] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
@@ -84,24 +87,30 @@ export function TreasuryPage({ onClose }: { onClose: () => void }) {
 
   return (
     <View style={styles.root}>
-      <GradientFill from="#5B2A99" to="#2A0F4A" />
+      {adult ? <GradientFill from="#2A1A0E" to="#0E0A08" mid={{ at: 0.7, color: '#0E0A08' }} /> : <GradientFill from="#5B2A99" to="#2A0F4A" />}
       <View style={styles.column}>
         <View style={styles.head}>
-          <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel={t.close}>
-            {({ pressed }) => (
-              <View style={[styles.back, pressed ? styles.pressed : null]}>
-                <GradientFill from="#FFE48A" to={colors.candy.yellow} />
-                <Icon name="back" size={22} color={ON_YELLOW} strokeWidth={3} />
-              </View>
-            )}
-          </Pressable>
-          <View style={styles.plate}>
-            <GradientFill from="#FFE48A" to={colors.candy.yellow} />
-            <Text style={styles.plateText}>{t.title}</Text>
-          </View>
+          {adult ? <BrassSquare label={t.close} onPress={onClose} glyph="back" /> : (
+            <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel={t.close}>
+              {({ pressed }) => (
+                <View style={[styles.back, pressed ? styles.pressed : null]}>
+                  <GradientFill from="#FFE48A" to={colors.candy.yellow} />
+                  <Icon name="back" size={22} color={ON_YELLOW} strokeWidth={3} />
+                </View>
+              )}
+            </Pressable>
+          )}
+          {adult ? (
+            <View style={styles.plateAdultBox}><Plate radius={14} border="#000" frame={3} ring={0} from="#FFF1B8" to="#8A5A16" height={48} style={styles.plateAdult}><Text style={styles.plateTextAdult} numberOfLines={1}>{t.title}</Text></Plate></View>
+          ) : (
+            <View style={styles.plate}>
+              <GradientFill from="#FFE48A" to={colors.candy.yellow} />
+              <Text style={styles.plateText}>{t.title}</Text>
+            </View>
+          )}
           {g ? (
-            <View style={styles.pill}>
-              <Text style={styles.pillText}>{n(g.balance)}</Text>
+            <View style={[styles.pill, adult ? styles.pillAdult : null]}>
+              <Text style={[styles.pillText, adult ? styles.pillTextAdult : null]}>{n(g.balance)}</Text>
               <View style={styles.pillIcon}><Item icon="coin" /></View>
             </View>
           ) : null}
@@ -110,8 +119,8 @@ export function TreasuryPage({ onClose }: { onClose: () => void }) {
         {failed ? <GuideBubble who="baqal" text={t.error} /> : null}
         {g ? (
           <View style={styles.progress}>
-            <View style={styles.bar}><View style={[styles.barFill, { width: `${g.percent}%` }]} /></View>
-            <Text style={styles.progressText}>{t.percent(g.percent)}</Text>
+            <View style={[styles.bar, adult ? styles.barAdult : null]}><View style={[styles.barFill, adult ? styles.barFillAdult : null, { width: `${g.percent}%` }]} /></View>
+            <Text style={[styles.progressText, adult ? styles.progressTextAdult : null]}>{t.percent(g.percent)}</Text>
           </View>
         ) : null}
         {note ? <Text style={styles.note} accessibilityLiveRegion="polite">{note}</Text> : null}
@@ -119,16 +128,16 @@ export function TreasuryPage({ onClose }: { onClose: () => void }) {
         <ScrollView style={styles.list} contentContainerStyle={styles.sections} showsVerticalScrollIndicator>
           {g && g.items.length > 0 ? (
             <>
-              <Shelf items={g.items.filter((k) => k.showcaseSlot !== null).sort((a, b) => a.showcaseSlot! - b.showcaseSlot!)} onUnpin={(k) => void pin(k)} />
-              <Milestones g={g} />
+              <Shelf adult={adult} items={g.items.filter((k) => k.showcaseSlot !== null).sort((a, b) => a.showcaseSlot! - b.showcaseSlot!)} onUnpin={(k) => void pin(k)} />
+              <Milestones g={g} adult={adult} />
             </>
           ) : null}
           {g && g.items.length === 0 ? <Text style={styles.empty}>{t.empty}</Text> : null}
           {secs.map((s) => (
             <View key={s.key}>
               <View style={styles.sectionHead}>
-                <Text style={styles.sectionTitle}>{s.title}</Text>
-                <Text style={styles.sectionSub}>{t.setProgress(s.completed, s.total)}</Text>
+                <Text style={[styles.sectionTitle, adult ? styles.sectionTitleAdult : null]}>{s.title}</Text>
+                <Text style={[styles.sectionSub, adult ? styles.sectionSubAdult : null]}>{t.setProgress(s.completed, s.total)}</Text>
               </View>
               <View style={styles.grid}>
                 {s.items.map((k) => {
@@ -136,40 +145,40 @@ export function TreasuryPage({ onClose }: { onClose: () => void }) {
                   const price = priceOf(k);
                   const pinned = k.showcaseSlot !== null;
                   return (
-                    <View key={k.id} style={[styles.card, { borderColor: RARITY_COLOR[k.rarity] }]}>
+                    <View key={k.id} style={[styles.card, adult ? (k.complete ? styles.cardAdultOn : styles.cardAdult) : { borderColor: RARITY_COLOR[k.rarity] }]}>
                       <Pressable onPress={() => setOpen(open === k.id ? null : k.id)} accessibilityRole="button" accessibilityLabel={k.titleFa}>
                         {yadegarCard(k.artKey) ? (
                           <View style={styles.photo}>
                             {k.complete ? <YadegarPhoto card={yadegarCard(k.artKey)!} width={140} /> : <YadegarPuzzle card={yadegarCard(k.artKey)!} owned={k.owned} width={112} />}
                             {k.complete ? <View style={styles.medal}><YadegarMedal card={yadegarCard(k.artKey)!} size={44} /></View> : null}
-                            {k.complete ? <View style={styles.levelTag}><Text style={styles.levelText}>{t.frame(k.level)}</Text></View> : null}
+                            {k.complete ? <View style={adult ? styles.levelTagAdult : styles.levelTag}><Text style={adult ? styles.levelTextAdult : styles.levelText}>{t.frame(k.level)}</Text></View> : null}
                           </View>
                         ) : (
-                          <View style={[styles.art, { backgroundColor: RARITY_COLOR[k.rarity] }, !k.complete ? styles.artDim : null]}>
+                          <View style={[styles.art, adult ? styles.artAdult : { backgroundColor: RARITY_COLOR[k.rarity] }, !k.complete ? styles.artDim : null]}>
                             <View style={styles.artIcon}><Item icon={k.iconKey ?? 'coin'} /></View>
-                            {k.complete ? <View style={styles.levelTag}><Text style={styles.levelText}>{t.frame(k.level)}</Text></View> : null}
+                            {k.complete ? <View style={adult ? styles.levelTagAdult : styles.levelTag}><Text style={adult ? styles.levelTextAdult : styles.levelText}>{t.frame(k.level)}</Text></View> : null}
                           </View>
                         )}
-                        <Text style={styles.name} numberOfLines={2}>{k.titleFa}</Text>
-                        <Text style={styles.sub}>{t.rarity[k.rarity] ?? ''}{k.eraYear ? ` · ${n(k.eraYear)}` : ''}</Text>
+                        <Text style={[styles.name, adult ? styles.nameAdult : null]} numberOfLines={2}>{k.titleFa}</Text>
+                        <Text style={[styles.sub, adult ? styles.subAdult : null]}>{t.rarity[k.rarity] ?? ''}{k.eraYear ? ` · ${n(k.eraYear)}` : ''}</Text>
                       </Pressable>
                       <View style={styles.dots} accessibilityLabel={t.pieces(k.owned.length, k.pieces)}>
                         {Array.from({ length: k.pieces }, (_, i) => (
-                          <View key={i} style={[styles.dot, k.owned.includes(i + 1) ? styles.dotOn : null]} />
+                          <View key={i} style={[styles.dot, adult ? styles.dotAdult : null, k.owned.includes(i + 1) ? (adult ? styles.dotOnAdult : styles.dotOn) : null]} />
                         ))}
                       </View>
-                      {open === k.id ? <Text style={styles.story}>{k.eraYear ? `${t.era(k.eraYear)}\n` : ''}{k.storyFa}</Text> : null}
+                      {open === k.id ? <Text style={[styles.story, adult ? styles.subAdult : null]}>{k.eraYear ? `${t.era(k.eraYear)}\n` : ''}{k.storyFa}</Text> : null}
                       {a === 'max' ? (
-                        <Text style={styles.maxed}>{t.maxed}</Text>
+                        <Text style={[styles.maxed, adult ? styles.nameAdult : null]}>{t.maxed}</Text>
                       ) : (
-                        <Pressable disabled={busy !== null} onPress={() => void act(k)} accessibilityRole="button" accessibilityLabel={a === 'buy' ? t.buy(price ?? 0) : t.upgrade(price ?? 0)} style={({ pressed }) => [styles.buy, busy === k.id ? styles.buyBusy : null, pressed ? styles.pressed : null]}>
+                        <Pressable disabled={busy !== null} onPress={() => void act(k)} accessibilityRole="button" accessibilityLabel={a === 'buy' ? t.buy(price ?? 0) : t.upgrade(price ?? 0)} style={({ pressed }) => [styles.buy, adult ? styles.buyAdult : null, busy === k.id ? styles.buyBusy : null, pressed ? styles.pressed : null]}>
                           <View style={styles.buyIcon}><Item icon="coin" /></View>
-                          <Text style={styles.buyText}>{a === 'buy' ? t.buy(price ?? 0) : t.upgrade(price ?? 0)}</Text>
+                          <Text style={[styles.buyText, adult ? styles.buyTextAdult : null]}>{a === 'buy' ? t.buy(price ?? 0) : t.upgrade(price ?? 0)}</Text>
                         </Pressable>
                       )}
                       {k.complete ? (
-                        <Pressable onPress={() => void pin(k)} accessibilityRole="button" accessibilityState={{ selected: pinned }} style={[styles.pin, pinned ? styles.pinOn : null]}>
-                          <Text style={styles.pinText}>{pinned ? t.unpin : pins.length >= SHOWCASE_MAX ? t.pinFull : t.pin}</Text>
+                        <Pressable onPress={() => void pin(k)} accessibilityRole="button" accessibilityState={{ selected: pinned }} style={[styles.pin, adult ? styles.pinAdult : null, pinned ? (adult ? styles.pinOnAdult : styles.pinOn) : null]}>
+                          <Text style={[styles.pinText, adult ? styles.nameAdultSm : null]}>{pinned ? t.unpin : pins.length >= SHOWCASE_MAX ? t.pinFull : t.pin}</Text>
                         </Pressable>
                       ) : null}
                     </View>
@@ -185,45 +194,45 @@ export function TreasuryPage({ onClose }: { onClose: () => void }) {
 }
 
 /** «ویترین من»: the six places for pinned keepsakes, each showing the medal; tap one to take it off. Empty places say how to fill them. */
-function Shelf({ items, onUnpin }: { items: KeepsakeView[]; onUnpin: (k: KeepsakeView) => void }) {
+function Shelf({ items, onUnpin, adult }: { items: KeepsakeView[]; onUnpin: (k: KeepsakeView) => void; adult: boolean }) {
   return (
-    <View style={styles.shelf} accessibilityLabel={t.shelf.title}>
+    <View style={[styles.shelf, adult ? styles.panelAdult : null]} accessibilityLabel={t.shelf.title}>
       <View style={styles.shelfHead}>
-        <Text style={styles.shelfTitle}>{t.shelf.title}</Text>
-        <Text style={styles.shelfSub}>{t.shelf.sub(items.length, SHOWCASE_MAX)}</Text>
+        <Text style={[styles.shelfTitle, adult ? styles.shelfTitleAdult : null]}>{t.shelf.title}</Text>
+        <Text style={[styles.shelfSub, adult ? styles.shelfSubAdult : null]}>{t.shelf.sub(items.length, SHOWCASE_MAX)}</Text>
       </View>
-      <View style={styles.slots}>
+      <View style={[styles.slots, adult ? styles.slotsAdult : null]}>
         {Array.from({ length: SHOWCASE_MAX }, (_, i) => {
           const k = items[i];
           const card = k ? yadegarCard(k.artKey) : null;
           return k ? (
             <Pressable key={k.id} onPress={() => onUnpin(k)} accessibilityRole="button" accessibilityLabel={`${k.titleFa} · ${t.shelf.tapToRemove}`} style={styles.slot}>
-              {card ? <YadegarMedal card={card} size={50} /> : <View style={[styles.slotIcon, { backgroundColor: RARITY_COLOR[k.rarity] }]}><Item icon={k.iconKey ?? 'coin'} /></View>}
+              {card ? <YadegarMedal card={card} size={50} /> : <View style={[styles.slotIcon, adult ? styles.slotIconAdult : { backgroundColor: RARITY_COLOR[k.rarity] }]}><Item icon={k.iconKey ?? 'coin'} /></View>}
             </Pressable>
           ) : (
-            <View key={`e${i}`} style={[styles.slot, styles.slotEmpty]} accessibilityLabel={t.shelf.emptySlot}><Text style={styles.slotPlus}>+</Text></View>
+            <View key={`e${i}`} style={[styles.slot, styles.slotEmpty, adult ? styles.slotEmptyAdult : null]} accessibilityLabel={t.shelf.emptySlot}><Text style={[styles.slotPlus, adult ? styles.slotPlusAdult : null]}>+</Text></View>
           );
         })}
       </View>
-      <Text style={styles.shelfHint}>{items.length === 0 ? t.shelf.hint : t.shelf.tapToRemove}</Text>
+      <Text style={[styles.shelfHint, adult ? styles.hintAdult : null]}>{items.length === 0 ? t.shelf.hint : t.shelf.tapToRemove}</Text>
     </View>
   );
 }
 
 /** The steps of the collection: how many completed keepsakes pay a bonus, with the next one named. */
-function Milestones({ g }: { g: KeepsakeGallery }) {
+function Milestones({ g, adult }: { g: KeepsakeGallery; adult: boolean }) {
   const next = g.milestones.find((m) => !m.reached);
   return (
-    <View style={styles.steps}>
-      <Text style={styles.shelfTitle}>{t.milestones.title}</Text>
+    <View style={[styles.steps, adult ? styles.panelAdult : null]}>
+      <Text style={[styles.shelfTitle, adult ? styles.shelfTitleAdult : null]}>{t.milestones.title}</Text>
       <View style={styles.stepRow}>
         {g.milestones.map((m) => (
-          <View key={m.count} style={[styles.step, m.reached ? styles.stepOn : null]} accessibilityLabel={t.milestones.step(m.count, m.gems, m.spins)}>
-            <Text style={styles.stepNum}>{m.reached ? '✓' : n(m.count)}</Text>
+          <View key={m.count} style={[styles.step, adult ? styles.stepAdult : null, m.reached ? (adult ? styles.stepOnAdult : styles.stepOn) : null]} accessibilityLabel={t.milestones.step(m.count, m.gems, m.spins)}>
+            <Text style={[styles.stepNum, adult ? (m.reached ? styles.stepNumOnAdult : styles.stepNumAdult) : null]}>{m.reached ? '✓' : n(m.count)}</Text>
           </View>
         ))}
       </View>
-      <Text style={styles.shelfHint}>{next ? t.milestones.next(next.count - g.completed, next.gems, next.spins) : t.milestones.allDone}</Text>
+      <Text style={[styles.shelfHint, adult ? styles.hintAdult : null]}>{next ? t.milestones.next(next.count - g.completed, next.gems, next.spins) : t.milestones.allDone}</Text>
     </View>
   );
 }
@@ -231,6 +240,43 @@ function Milestones({ g }: { g: KeepsakeGallery }) {
 const lift = (h: number) => ({ shadowColor: colors.ink, shadowOffset: { width: 0, height: h }, shadowOpacity: 1, shadowRadius: 0, elevation: h });
 
 const styles = StyleSheet.create({
+  /** Adult look (docs/design/adult/Dozari Adult - App Screens, «گنجینه»): bronze panels, a gold progress bar, dark cards with a gold buy button. */
+  plateAdultBox: { flex: 1 },
+  plateAdult: { alignItems: 'center', justifyContent: 'center' },
+  plateTextAdult: { fontFamily: fonts.display, fontSize: 26, lineHeight: 36, color: '#2A1606' },
+  pillAdult: { height: 34, paddingHorizontal: 8, backgroundColor: '#0E0A08', borderColor: '#8A5A16' },
+  pillTextAdult: { fontSize: 17, color: '#FFE9A8' },
+  barAdult: { height: 12, borderColor: '#5A3A1C', backgroundColor: '#0E0A08' },
+  barFillAdult: { backgroundColor: '#E8B64A' },
+  progressTextAdult: { fontSize: 12.5, color: 'rgba(255,233,168,0.7)' },
+  panelAdult: { borderWidth: 2, borderColor: '#8A5A16', borderRadius: 16, backgroundColor: '#17100C', shadowColor: '#000', shadowOpacity: 0, elevation: 0 },
+  shelfTitleAdult: { fontSize: 20, color: '#E8B64A' },
+  shelfSubAdult: { fontSize: 12, color: 'rgba(255,233,168,0.6)' },
+  hintAdult: { fontSize: 11.5, color: 'rgba(255,233,168,0.55)' },
+  slotIconAdult: { backgroundColor: '#2A1A0E', borderColor: '#E8B64A' },
+  slotEmptyAdult: { borderWidth: 2, borderColor: '#5A3A1C', backgroundColor: 'transparent' },
+  slotPlusAdult: { fontSize: 22, color: '#8A5A16' },
+  stepAdult: { height: 42, borderWidth: 2, borderColor: '#5A3A1C', backgroundColor: '#0E0A08' },
+  stepOnAdult: { borderColor: '#000', backgroundColor: '#E8B64A' },
+  stepNumAdult: { color: 'rgba(255,233,168,0.7)' },
+  stepNumOnAdult: { color: '#2A1606' },
+  sectionTitleAdult: { fontSize: 22, color: '#FFE9A8', textShadowColor: 'transparent' },
+  sectionSubAdult: { color: 'rgba(255,233,168,0.6)' },
+  cardAdult: { borderRadius: 16, borderWidth: 2, borderColor: '#5A3A1C', backgroundColor: '#17100C', shadowColor: '#000', shadowOpacity: 0, elevation: 0 },
+  cardAdultOn: { borderRadius: 16, borderWidth: 2, borderColor: '#E8B64A', backgroundColor: '#17100C', shadowColor: '#000', shadowOpacity: 0, elevation: 0 },
+  artAdult: { backgroundColor: '#2A1A0E', borderColor: '#B8822A' },
+  nameAdult: { color: '#FFE9A8', fontSize: 17 },
+  nameAdultSm: { color: '#FFE9A8' },
+  subAdult: { color: 'rgba(255,233,168,0.6)', opacity: 1 },
+  dotAdult: { borderColor: '#5A3A1C', backgroundColor: '#0E0A08' },
+  dotOnAdult: { borderColor: '#000', backgroundColor: '#E8B64A' },
+  buyAdult: { minHeight: 36, borderRadius: 11, borderWidth: 2, backgroundColor: '#E8B64A' },
+  buyTextAdult: { fontSize: 14, color: '#2A1606' },
+  levelTagAdult: { position: 'absolute', left: 6, bottom: 6, height: 20, paddingHorizontal: 8, borderRadius: 99, borderWidth: 1.5, borderColor: '#E8B64A', backgroundColor: '#0E0A08' },
+  levelTextAdult: { fontFamily: fonts.display, fontSize: 11, lineHeight: 18, color: '#E8B64A' },
+  slotsAdult: { justifyContent: 'space-between', gap: 0, flexWrap: 'nowrap' },
+  pinAdult: { borderWidth: 2, borderColor: '#B8822A', backgroundColor: '#0E0A08' },
+  pinOnAdult: { backgroundColor: '#3A2A16' },
   root: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, zIndex: 20, backgroundColor: colors.deep },
   column: { flex: 1, width: '100%', maxWidth: 520, alignSelf: 'center', paddingHorizontal: 10, paddingTop: pageTop(), paddingBottom: 8, gap: 8 },
   head: { flexDirection: ROW, alignItems: 'center', gap: 6 },

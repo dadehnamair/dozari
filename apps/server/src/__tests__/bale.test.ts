@@ -193,7 +193,7 @@ describe('bale routes', () => {
     const h = { authorization: `Bearer ${await login()}` };
     const res = await app.inject({ method: 'POST', url: '/bale/link-code', headers: h });
     expect(res.json()).toMatchObject({ code: 'QWE789', botUsername: 'dozari_bot' });
-    expect((await app.inject({ method: 'GET', url: '/bale/link', headers: h })).json()).toEqual({ configured: true, linked: false, botUsername: 'dozari_bot' });
+    expect((await app.inject({ method: 'GET', url: '/bale/link', headers: h })).json()).toEqual({ configured: true, linked: false, botUsername: 'dozari_bot', telegramBotUsername: null });
     await service.handleUpdate(msg(42, 'QWE789'));
     expect((await app.inject({ method: 'GET', url: '/bale/link', headers: h })).json().linked).toBe(true);
     expect((await app.inject({ method: 'DELETE', url: '/bale/link', headers: h })).statusCode).toBe(200);

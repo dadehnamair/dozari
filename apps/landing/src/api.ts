@@ -9,6 +9,8 @@ export interface PublicSite {
   channel: string | null;
   androidApp: string | null;
   iosApp: string | null;
+  /** Store listings (Myket, Bazaar, Google Play); null until the admin pastes the link. */
+  stores?: { myket: string | null; bazaar: string | null; googlePlay: string | null };
   /** Link of the Bale bot where the game can be played; null until the admin sets it. */
   baleBot?: string | null;
   /** Telegram mini-app link; null while the admin switch is off or the link is empty. */
