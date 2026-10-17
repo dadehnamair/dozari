@@ -31,7 +31,7 @@ export function registerAuthRoutes(app: FastifyInstance, auth: AuthService, dele
       const checked = checkMiniAppInitData(body.data.initData, token);
       if (!checked.ok) {
         req.log.warn({ reason: checked.reason, platform: body.data.platform }, 'mini-app login refused');
-        return reply.code(401).send({ error: 'invalid_init_data', reason: checked.reason });
+        return reply.code(401).send({ error: 'invalid_init_data', reason: checked.reason, platform: body.data.platform });
       }
       const deviceId = miniAppDeviceId(token, checked.user.id, body.data.platform);
       const result = await auth.guestLogin(deviceId);

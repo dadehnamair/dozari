@@ -13,7 +13,7 @@ appears only where something is truly that messenger's (Bale payments, the Bale 
   (no-cache page, immutable hashed bundles, no `X-Frame-Options`: web clients embed mini-apps in an iframe, so the host's reverse proxy must not add one either).
   Loopback `MINIAPP_PORT` (8084); the host's proxy forwards `MINIAPP_DOMAIN` to it. Set that address as the mini-app URL in the messenger's bot father.
   (`BALE_APP_DOMAIN` / `BALE_APP_PORT` from the first release still work as fallbacks.)
-- **Login** `POST /auth/miniapp {platform?: 'bale'|'telegram', initData}` (`platform` defaults to `bale`; a platform is on only when its bot token is set:
+- **Login** `POST /auth/miniapp {platform?: 'bale'|'telegram', initData}` (`platform` defaults to `bale`; a 401 answers `{error, reason, platform}`; a platform is on only when its bot token is set:
   `BALE_BOT_TOKEN`, `TELEGRAM_BOT_TOKEN`): the signature is checked the Telegram-web-app way (HMAC-SHA256 of the sorted lines, key = HMAC("WebAppData", bot token);
   Bale's docs word the key step the other way round, so both orders are accepted; `auth_date` at most 24 h old). The messenger user id maps to a fixed device id
   (`HMAC(bot token, "dozari-<platform>-miniapp:<id>")`, 32 hex), so the same messenger user always gets the same account on any phone, and a later 401 re-login (the
