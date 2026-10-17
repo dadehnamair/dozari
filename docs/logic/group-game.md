@@ -6,7 +6,7 @@ Bale first; Telegram runs on the same code (ids carry the `tg:` prefix, `docs/lo
 ## Phases
 1. **Daily puzzle in a group** (built): join, `/play`, cooperative board with inline buttons, one play per group per day, app call-to-action.
 2. Weekly group leaderboard `/top` (built). The private-table deep link is **not built**: a table needs a signed-in host and the mini-app has no `startapp=table_<code>` mapping yet; until then the call-to-action opens `?startapp=duel`.
-3. Price-guess mode in groups.
+3. Price mode `/price` (built, see §Price mode).
 4. Admin stats: groups, plays, players, funnel to installs.
 
 ## Joining
@@ -17,7 +17,7 @@ Bale first; Telegram runs on the same code (ids carry the `tg:` prefix, `docs/lo
 - Privacy: the bot reads only commands and button taps in groups, never ordinary messages.
 
 ## Commands (a `@botname` suffix is ignored)
-`/start` · `/help` welcome and rules · `/play` today's puzzle · `/top` this week's best members of the group.
+`/start` · `/help` welcome and rules · `/play` today's puzzle · `/price` price questions · `/top` this week's best members of the group.
 
 ## Rules of the round
 - The puzzle is **today's daily puzzle** (`DailyService.ensure`, same as in the app), 16 cards, 4 groups of 4. Cooperative: the whole group shares one board,
@@ -41,6 +41,19 @@ Bale first; Telegram runs on the same code (ids carry the `tg:` prefix, `docs/lo
 - Order (`rankGroupScores`): points, groups found, fewer wrong, name. `/top` shows `GROUP_TOP_SIZE` rows; an empty week invites `/play`.
 - Constants in `packages/shared/src/config/groupgame.ts`.
 
+## Price mode (`/price`)
+- A session is `GROUP_PRICE_ROUNDS` four-choice price questions («قیمت X در سال Y؟», options from `buildPriceOptions`, same draw as the app's price-only mode:
+  distinct products, a random priced year). One message per question with four option buttons (`p:<question>:<option>`; the option index, never a price).
+- Everyone in the group may answer, **once per question** (the first tap locks; no edit of the message per tap, only a toast «جوابت ثبت شد»). After
+  `GROUP_PRICE_ROUND_MS` the message is rewritten with the real price and who was right/wrong, and after `GROUP_PRICE_PAUSE_MS` the next question follows. The real
+  price is in server memory only until that reveal (rule 4). Taps after the reveal, on an older question message or a wrong question index are refused with a toast.
+- Scoring: a right pick earns `GROUP_PRICE_POINTS` into the same weekly tally as the puzzle (`/top`); a wrong pick earns nothing and counts in `wrong`. (The app's
+  staircase is not used: with four choices every pick would earn something and tapping blindly would pay.) After the last question the bot posts the session's
+  top three and the app call-to-action.
+- At most `GROUP_PRICE_SESSIONS_PER_DAY` sessions per group per Tehran day (`bot_group_price_sessions`, an atomic counter); more is answered with the app
+  call-to-action. One session at a time per group. A server restart drops a running session (its already revealed points stay saved; the daily count stays used).
+- Timers are in memory (`schedule` is injected so tests drive them).
+
 ## Call to action
 The finishing message (and the «already played today» answer) carries a URL button «ادامه در بازی» → mini-app deep link
 `https://ble.ir/<bot>?startapp=daily` (Telegram: `https://t.me/<bot>?startapp=daily`) built from `BALE_BOT_USERNAME` / `TELEGRAM_BOT_USERNAME`
@@ -50,8 +63,9 @@ The finishing message (and the «already played today» answer) carries a URL bu
 Per tapper `GROUP_TAP_LIMIT` taps per minute; a message edit that Bale/Telegram rejects (`message is not modified`, deleted message) is swallowed.
 Config in `packages/shared/src/config/groupgame.ts`.
 
-## Data (migrations 0097, 0098)
+## Data (migrations 0097, 0098, 0099)
 - `bot_groups(chat_id PK, platform, title, added_at, removed_at)`.
+- `bot_group_price_sessions(chat_id, date_key PK, sessions)`.
 - `bot_group_scores(chat_id, week_key, user_ref PK, name, points, groups, wrong)`.
 - `bot_group_plays(chat_id, date_key PK, result playing|won|lost, mistakes, solved_groups, players, started_at, finished_at)`.
 

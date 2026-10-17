@@ -5,6 +5,8 @@ import type { BaleClient, BaleUpdate } from '../notify/client.js';
 import { isTelegramId } from '../notify/client.js';
 import { RateLimiter } from '../security/rate-limit.js';
 import type { ServedPuzzle } from '../solo/types.js';
+import { GroupPriceGame, parsePriceCallback } from './price.js';
+import type { GroupPriceQuestion } from './price.js';
 import { parseCallback, renderBoard } from './render.js';
 import type { BoardView } from './render.js';
 import type { GroupGameStore } from './store.js';
@@ -15,6 +17,10 @@ export interface GroupGameDeps {
   client: BaleClient;
   /** Today's daily puzzle (same one as in the app), or null when none is set. */
   todayPuzzle: (dateKey: string) => Promise<ServedPuzzle | null>;
+  /** Price-mode questions (phase 3); absent = no `/price`. */
+  drawPrices?: (count: number) => Promise<GroupPriceQuestion[]>;
+  /** Runs a function later (a timer in production, a manual queue in tests). */
+  schedule?: (fn: () => void, ms: number) => void;
   /** Bot usernames for the mini-app deep link (without «@»). */
   usernames: { bale: string | null; telegram: string | null };
   now?: () => number;
@@ -45,17 +51,33 @@ const dateFa = (dateKey: string): string => fa(dateKey.replaceAll('-', '/'));
 export class GroupGameService {
   private readonly rounds = new Map<string, Round>();
   private readonly taps = new RateLimiter(GROUP_TAP_LIMIT, 60_000);
+  private readonly price?: GroupPriceGame;
   private readonly now: () => number;
   private readonly newSeed: () => number;
 
   constructor(private readonly d: GroupGameDeps) {
     this.now = d.now ?? Date.now;
     this.newSeed = d.newSeed ?? (() => randomInt(0, 2 ** 31));
+    if (d.drawPrices) {
+      this.price = new GroupPriceGame({
+        store: d.store,
+        client: d.client,
+        draw: d.drawPrices,
+        ctaUrl: (chatId) => this.ctaUrl(chatId),
+        schedule: d.schedule ?? ((fn, ms) => void setTimeout(fn, ms).unref()),
+        now: this.now,
+        log: d.log,
+      });
+    }
   }
 
   /** True when this update belongs to a group (or is one of our buttons) and was handled here. */
   async handleUpdate(u: BaleUpdate): Promise<boolean> {
     if (u.callback_query) {
+      if (this.price && parsePriceCallback(u.callback_query.data)) {
+        await this.price.tap(u.callback_query);
+        return true;
+      }
       if (!parseCallback(u.callback_query.data)) return false;
       await this.onTap(u.callback_query);
       return true;
@@ -70,9 +92,10 @@ export class GroupGameService {
     if (!m || !isGroupType(m.chat.type)) return false;
     const chatId = String(m.chat.id);
     const cmd = (m.text ?? '').trim().split(/\s+/)[0]?.toLowerCase().replace(/@.*$/, '') ?? '';
-    if (cmd === '/play' || cmd === '/top' || cmd === '/start' || cmd === '/help') {
+    if (cmd === '/play' || cmd === '/price' || cmd === '/top' || cmd === '/start' || cmd === '/help') {
       await this.register(chatId, m.chat.title ?? '');
       if (cmd === '/play') await this.play(chatId);
+      else if (cmd === '/price' && this.price) await this.price.start(chatId);
       else if (cmd === '/top') await this.top(chatId);
       else await this.say(chatId, cmd === '/start' ? GROUP_TEXT.welcome : GROUP_TEXT.help);
     }

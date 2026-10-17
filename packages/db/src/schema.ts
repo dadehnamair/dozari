@@ -783,6 +783,17 @@ export const botGroupScores = mysqlTable(
   (t) => ({ pk: primaryKey({ columns: [t.chatId, t.weekKey, t.userRef] }) }),
 );
 
+/** How many `/price` sessions a group started on a Tehran day (the daily cap of docs/logic/group-game.md §Price mode). */
+export const botGroupPriceSessions = mysqlTable(
+  'bot_group_price_sessions',
+  {
+    chatId: varchar('chat_id', { length: 40 }).notNull().references(() => botGroups.chatId, { onDelete: 'cascade' }),
+    dateKey: char('date_key', { length: 10 }).notNull(),
+    sessions: int('sessions').notNull().default(0),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.chatId, t.dateKey] }) }),
+);
+
 /** Browser Web Push subscriptions (D232): one row per browser/device the player allowed notifications on. iPhone push (installed web app) goes through Apple's service, Chrome's through Google's; the endpoint says which. */
 export const webPushSubscriptions = mysqlTable(
   'web_push_subscriptions',

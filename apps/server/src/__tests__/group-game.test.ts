@@ -16,8 +16,16 @@ const puzzle: ServedPuzzle = {
 function memoryStore() {
   const groups = new Map<string, { title: string; removed: boolean }>();
   const plays = new Map<string, { result: GroupPlayResult; mistakes?: number; players?: number }>();
+  const priceSessions = new Map<string, number>();
   const scores: { chatId: string; weekKey: string; userRef: string; name: string; points: number; groups: number; wrong: number }[] = [];
   const store: GroupGameStore = {
+    async startPriceSession(chatId, dateKey, max) {
+      const k = `${chatId}|${dateKey}`;
+      const n = priceSessions.get(k) ?? 0;
+      if (n >= max) return false;
+      priceSessions.set(k, n + 1);
+      return true;
+    },
     async addScore(chatId, weekKey, d) {
       const row = scores.find((x) => x.chatId === chatId && x.weekKey === weekKey && x.userRef === d.userRef);
       if (row) { row.name = d.name; row.points += d.points; row.groups += d.groups; row.wrong += d.wrong; } else scores.push({ chatId, weekKey, ...d });
@@ -46,10 +54,19 @@ function setup(opts: { bale?: string | null } = {}) {
   };
   const mem = memoryStore();
   const clock = { t: Date.parse('2026-10-17T10:00:00Z') };
-  const svc = new GroupGameService({ store: mem.store, client, todayPuzzle: async () => puzzle, usernames: { bale: opts.bale === undefined ? 'dozari_bot' : opts.bale, telegram: 'dozari_tg' }, now: () => clock.t, newSeed: () => 7 });
+  const timers: { fn: () => void; ms: number }[] = [];
+  const svc = new GroupGameService({
+    store: mem.store,
+    client,
+    todayPuzzle: async () => puzzle,
+    drawPrices: async (n) => [1, 2, 3, 4, 5].slice(0, n).map((i) => ({ nameFa: `نان ${i}`, unitFa: i === 1 ? 'عدد' : null, year: 1370 + i, actualRials: BigInt(i * 1000), options: [BigInt(i * 500), BigInt(i * 1000), BigInt(i * 2000), BigInt(i * 3000)] })),
+    schedule: (fn, ms) => void timers.push({ fn, ms }), usernames: { bale: opts.bale === undefined ? 'dozari_bot' : opts.bale, telegram: 'dozari_tg' },
+    now: () => clock.t,
+    newSeed: () => 7,
+  });
   const msg = (text: string, chatId: number | string = -100, extra: Partial<NonNullable<BaleUpdate['message']>['chat']> = {}): BaleUpdate => ({ update_id: 1, message: { message_id: 1, chat: { id: chatId, type: 'group', title: 'دوستان', ...extra }, from: { id: 5 }, text } });
   const tap = (data: string, messageId: number, from = 5, chatId: number | string = -100): BaleUpdate => ({ update_id: 2, callback_query: { id: 'cb', from: { id: from, first_name: 'سارا' }, message: { message_id: messageId, chat: { id: chatId, type: 'group' } }, data } });
-  return { svc, sent, edits, answers, mem, clock, msg, tap, client };
+  return { svc, sent, edits, answers, mem, clock, msg, tap, client, timers };
 }
 
 /** Button callback data for the card showing this product on the latest board. */
@@ -224,6 +241,70 @@ describe('group game', () => {
     await t.svc.handleUpdate(t.msg('/play'));
     for (let i = 0; i < 45; i++) await t.svc.handleUpdate(t.tap(act(lastKeyboard(t), 'c'), 100, 9));
     expect(t.edits.length).toBeLessThanOrEqual(40);
+  });
+});
+
+describe('price mode', () => {
+  const run = async (t: ReturnType<typeof setup>) => {
+    const timer = t.timers.shift()!;
+    timer.fn();
+    await new Promise((r) => setTimeout(r, 0));
+  };
+  const priceTap = (t: ReturnType<typeof setup>, q: number, opt: number, mid: number, from: number, name = 'سارا') =>
+    t.svc.handleUpdate({ update_id: 3, callback_query: { id: 'p', from: { id: from, first_name: name }, message: { message_id: mid, chat: { id: -100, type: 'group' } }, data: `p:${q}:${opt}` } });
+
+  it('asks four-choice questions without leaking the answer, locks one answer per member and reveals on time-up', async () => {
+    const t = setup();
+    await t.svc.handleUpdate(t.msg('/price'));
+    const q = t.sent[0]!;
+    expect(q.text).toContain('نان 1 (عدد)');
+    expect(q.text).toContain('۱۳۷۱');
+    expect(q.keyboard).toHaveLength(4);
+    expect(q.keyboard!.flat().every((b) => /^p:0:[0-3]$/.test(b.callback_data!))).toBe(true);
+    await priceTap(t, 0, 1, 100, 5); // the right option
+    expect(t.answers.at(-1)).toContain('ثبت شد');
+    await priceTap(t, 0, 3, 100, 5); // second try is refused
+    expect(t.answers.at(-1)).toContain('قبلاً');
+    await priceTap(t, 0, 0, 100, 6, 'علی');
+    await run(t);
+    const reveal = t.edits.at(-1)!;
+    expect(reveal.text).toContain('✅ سارا (+۵)');
+    expect(reveal.text).toContain('❌ علی');
+    expect(reveal.keyboard).toEqual([]);
+    await priceTap(t, 0, 1, 100, 7); // too late
+    expect(t.answers.at(-1)).toContain('تمام');
+    expect(t.mem.scores.find((x) => x.userRef === '5')).toMatchObject({ points: 5, wrong: 0 });
+    expect(t.mem.scores.find((x) => x.userRef === '6')).toMatchObject({ points: 0, wrong: 1 });
+  });
+
+  const playOut = async (t: ReturnType<typeof setup>, firstMessageId: number) => {
+    for (let i = 0; i < 5; i++) {
+      await priceTap(t, i, 1, firstMessageId + i, 5);
+      await run(t); // time up
+      if (i < 4) await run(t); // pause is over, next question
+    }
+  };
+
+  it('runs all rounds, ends with a summary and the app link, and caps sessions per day', async () => {
+    const t = setup();
+    await t.svc.handleUpdate(t.msg('/price'));
+    await playOut(t, 100);
+    const last = t.sent.at(-1)!;
+    expect(last.text).toContain('🥇 سارا — ۲۵ امتیاز');
+    expect(last.keyboard![0]![0]!.url).toContain('startapp=daily');
+    await t.svc.handleUpdate(t.msg('/price')); // the second session of the day
+    await playOut(t, 106); // ids 100-104 questions, 105 the summary
+    await t.svc.handleUpdate(t.msg('/price')); // the third is refused
+    expect(t.sent.at(-1)!.text).toContain('امروز ۲ دور');
+  });
+
+  it('refuses a second session while one is running and stale taps', async () => {
+    const t = setup();
+    await t.svc.handleUpdate(t.msg('/price'));
+    await t.svc.handleUpdate(t.msg('/price'));
+    expect(t.sent.at(-1)!.text).toContain('در جریان');
+    await priceTap(t, 3, 1, 100, 5); // wrong question index
+    expect(t.answers.at(-1)).toContain('تمام');
   });
 });
 

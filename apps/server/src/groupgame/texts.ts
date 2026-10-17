@@ -1,7 +1,7 @@
 /** What the bot says inside groups. Persian only (a bot surface, separate from the app's `fa.ts`). */
 export const GROUP_TEXT = {
-  welcome: 'سلام! من «دوزاری» هستم 🪙\nبازی حدس قیمت‌های قدیمی ایران: ۱۶ کارت، ۴ دسته‌ی چهارتایی که باید با هم پیدا کنید.\n\n/play پازل امروز گروه\n/top جدول هفته\n/help راهنما',
-  help: 'راهنمای دوزاری 🧩\n۱۶ کارت روی صفحه است و ۴ دسته‌ی چهارتایی دارد که یک چیز مشترک دارند (مثلاً قیمتشان در یک سال).\nکارت‌ها را بزنید تا ✅ شوند، وقتی ۴ تا شد «ثبت» را بزنید. همه‌ی اعضا روی یک صفحه بازی می‌کنند و ۴ اشتباه مجاز است.\nروزی یک پازل برای هر گروه.\n\n/play شروع پازل امروز\n/top جدول هفته',
+  welcome: 'سلام! من «دوزاری» هستم 🪙\nبازی حدس قیمت‌های قدیمی ایران: ۱۶ کارت، ۴ دسته‌ی چهارتایی که باید با هم پیدا کنید.\n\n/play پازل امروز گروه\n/price قیمت‌شناسی\n/top جدول هفته\n/help راهنما',
+  help: 'راهنمای دوزاری 🧩\n۱۶ کارت روی صفحه است و ۴ دسته‌ی چهارتایی دارد که یک چیز مشترک دارند (مثلاً قیمتشان در یک سال).\nکارت‌ها را بزنید تا ✅ شوند، وقتی ۴ تا شد «ثبت» را بزنید. همه‌ی اعضا روی یک صفحه بازی می‌کنند و ۴ اشتباه مجاز است.\nروزی یک پازل برای هر گروه.\n\n/play شروع پازل امروز\n/price پنج سؤال قیمت (روزی دو بار)\n/top جدول هفته',
   unavailable: 'امروز پازلی آماده نیست. کمی بعد دوباره /play را بزنید.',
   title: (dateFa: string) => `🧩 پازل روز دوزاری — ${dateFa}`,
   mistakes: 'فرصت‌ها:',
@@ -35,3 +35,21 @@ const FA_DIGITS = '۰۱۲۳۴۵۶۷۸۹';
 export function fa(n: number | string): string {
   return String(n).replace(/\d/g, (d) => FA_DIGITS[Number(d)]!);
 }
+
+/** Price mode (`/price`) texts. */
+export const PRICE_TEXT = {
+  unavailable: 'الان سؤال قیمتی آماده نیست. کمی بعد دوباره /price را بزنید.',
+  busy: 'یک دور «قیمت‌شناسی» همین الان در جریان است 👆',
+  limit: (max: number) => `امروز ${fa(max)} دور «قیمت‌شناسی» بازی کردید. فردا دوباره! توی اپ می‌توانید هر چقدر خواستید بازی کنید 👇`,
+  question: (i: number, n: number, name: string, year: number, secs: number) => `💰 قیمت‌شناسی — سؤال ${fa(i)} از ${fa(n)}\n\nقیمت «${name}» در سال ${fa(year)} چقدر بود؟\n\nیکی را انتخاب کنید (${fa(secs)} ثانیه وقت دارید؛ هر نفر یک جواب):`,
+  locked: 'جوابت ثبت شد ✅',
+  already: 'جوابت قبلاً ثبت شده',
+  closed: 'وقت این سؤال تمام شده',
+  reveal: (i: number, n: number, name: string, year: number, price: string) => `💰 سؤال ${fa(i)} از ${fa(n)}: «${name}» در سال ${fa(year)}\n\n✅ قیمت درست: ${price}`,
+  right: (who: string, pts: number) => `✅ ${who} (+${fa(pts)})`,
+  wrong: (who: string) => `❌ ${who}`,
+  nobody: 'کسی جواب نداد 😴',
+  summaryTitle: '🏁 پایان دور قیمت‌شناسی',
+  summaryRow: (rank: number, who: string, pts: number) => `${['🥇', '🥈', '🥉'][rank - 1] ?? `${fa(rank)}.`} ${who} — ${fa(pts)} امتیاز`,
+  summaryNone: 'این بار کسی امتیاز نگرفت.',
+} as const;

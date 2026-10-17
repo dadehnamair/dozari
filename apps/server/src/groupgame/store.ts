@@ -1,4 +1,4 @@
-import { and, botGroupPlays, botGroupScores, botGroups, desc, eq, sql } from '@dozari/db';
+import { and, botGroupPlays, botGroupPriceSessions, botGroupScores, botGroups, desc, eq, sql } from '@dozari/db';
 import type { Db } from '@dozari/db';
 import type { GroupScoreRow } from '@dozari/shared';
 
@@ -15,6 +15,8 @@ export interface GroupGameStore {
   startPlay(chatId: string, dateKey: string): Promise<boolean>;
   /** True when the play moved from playing to its result. */
   finishPlay(chatId: string, dateKey: string, f: { result: 'won' | 'lost'; mistakes: number; solvedGroups: number; players: number }): Promise<boolean>;
+  /** Counts one `/price` session for the day; false when the group already used `max` of them. */
+  startPriceSession(chatId: string, dateKey: string, max: number): Promise<boolean>;
   /** Adds to one member's tally for the week (created on first use). */
   addScore(chatId: string, weekKey: string, d: { userRef: string; name: string; points: number; groups: number; wrong: number }): Promise<void>;
   /** The week's tallies of a group, any order (the caller ranks). */
@@ -49,6 +51,14 @@ export function createDbGroupGameStore(db: Db): GroupGameStore {
         .update(botGroupPlays)
         .set({ result: f.result, mistakes: f.mistakes, solvedGroups: f.solvedGroups, players: f.players, finishedAt: new Date() })
         .where(and(eq(botGroupPlays.chatId, chatId), eq(botGroupPlays.dateKey, dateKey), eq(botGroupPlays.result, 'playing')));
+      return res.affectedRows > 0;
+    },
+    async startPriceSession(chatId, dateKey, max) {
+      await db.insert(botGroupPriceSessions).ignore().values({ chatId, dateKey });
+      const [res] = await db
+        .update(botGroupPriceSessions)
+        .set({ sessions: sql`${botGroupPriceSessions.sessions} + 1` })
+        .where(and(eq(botGroupPriceSessions.chatId, chatId), eq(botGroupPriceSessions.dateKey, dateKey), sql`${botGroupPriceSessions.sessions} < ${max}`));
       return res.affectedRows > 0;
     },
     async addScore(chatId, weekKey, d) {

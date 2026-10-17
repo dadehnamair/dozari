@@ -18,3 +18,12 @@ export const GROUP_POINTS_LEVEL_BONUS = 5;
 
 /** Rows `/top` shows. */
 export const GROUP_TOP_SIZE = 10;
+
+/** Price-guess mode in groups (phase 3): `/price` asks this many questions, each open for this long, `GROUP_PRICE_SESSIONS_PER_DAY` times a day per group. */
+export const GROUP_PRICE_ROUNDS = 5;
+export const GROUP_PRICE_ROUND_MS = 40_000;
+/** Pause between a reveal and the next question. */
+export const GROUP_PRICE_PAUSE_MS = 4_000;
+export const GROUP_PRICE_SESSIONS_PER_DAY = 2;
+/** Points for picking the real price; a wrong pick earns nothing. */
+export const GROUP_PRICE_POINTS = 5;

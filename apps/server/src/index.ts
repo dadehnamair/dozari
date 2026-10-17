@@ -5,6 +5,7 @@ import fastifyCors from '@fastify/cors';
 import fastifyStatic from '@fastify/static';
 import { resolve } from 'node:path';
 import { AVATAR_CHANGE_MIN_LEVEL, AVATAR_UNLOCK_GAMES, duelTiers, rialsToTomanString, shuffleTrivia, triviaGroupLevel, triviaTargetDifficulty } from '@dozari/shared';
+import { mulberry32, selectPriceOnlyRounds } from '@dozari/shared';
 import { CHAT_RETENTION_DAYS, trackRules, MISSION_KEYS, TOURNAMENT_TICK_SECONDS, dailyDateKey, trackFeatureForPath, trackRuleForPath, WHEEL_SLICES_DEFAULT, scaleSlices } from '@dozari/shared';
 import type { AgeTrack, HintRules, MissionKey } from '@dozari/shared';
 import { createDb, imageStoreFromEnv } from '@dozari/db';
@@ -1350,6 +1351,12 @@ if (isMainModule(import.meta.url)) {
         todayPuzzle: async (dateKey) => {
           const row = await daily.ensure(dateKey);
           return row ? ((await groupPuzzles.byId?.(row.puzzleId)) ?? null) : null;
+        },
+        drawPrices: async (n) => {
+          const { catalog, items } = await createDbPriceOnlySource(db).products(n * 3);
+          return selectPriceOnlyRounds(catalog, n, mulberry32(randomInt(0, 2 ** 31)))
+            .map((r) => ({ nameFa: items[r.productId]?.nameFa ?? '', unitFa: items[r.productId]?.unitFa ?? null, year: r.year, actualRials: r.actualRials, options: r.options ?? [] }))
+            .filter((q) => q.nameFa !== '' && q.options.length > 0);
         },
         usernames: { bale: baleUsername, telegram: telegramUsername },
         log: (msg, err) => (err ? app.log.warn({ err }, msg) : app.log.info(msg)),

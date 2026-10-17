@@ -288,5 +288,5 @@ Start after the first Android build.
 - [x] 1. Daily puzzle in a group — join, `/play`, cooperative inline-button board, one play per group per day, app deep link (migration 0097); Bale callbacks/editMessage unverified on the live API
 - [x] 2a. Weekly group leaderboard `/top` (migration 0098)
 - [ ] 2b. Private-table deep link (needs a mini-app `startapp=table_<code>` mapping)
-- [ ] 3. Price-guess mode in groups
+- [x] 3. Price mode `/price` in groups (migration 0099)
 - [ ] 4. Admin stats: groups, plays, funnel to installs
