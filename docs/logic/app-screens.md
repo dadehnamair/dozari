@@ -8,8 +8,12 @@ part of the same "logic specs" set in `CLAUDE.md` — read it before building th
 ## First-run login screen (D147)
 
 screen-login of `19 Social Daily Onboarding`, shown **once** on a fresh install and only when the server can send codes (`GET /config` → `phoneLogin`, true when an SMS
-provider is configured): the bazaar at dusk, the waving hero, a cream card with «خوش اومدی به بازار!», the number after a fixed «+98», then five code boxes with a resend
-countdown (60 s) and «عوض کردن شماره», and «مهمان بازی کن» under «یا». Signing in with a number that has an account loads that account (the tutorial is skipped); a new number
+provider is configured): the bazaar at dusk, the waving hero, a cream card. **Step 1 (D246)** is a plain choice with no form: «خوش اومدی به بازار!», three
+lines on what signing up with a number gives (progress/coins/cards survive a new phone, return from any device with an SMS code, the «ثبت شماره» mission reward),
+then «ورود با شماره موبایل» and, under «یا», «ادامه به‌عنوان مهمان» (+ a note that a guest plays everything, only tied to this phone). **Step 2**: the number path shows
+the number after a fixed «+98» (with the age-band pills when age tracks are on), then five code boxes with a resend countdown (60 s) and «عوض کردن شماره»; the guest path
+(age tracks on only; otherwise a guest goes straight on) asks just the age band, reminds that signing up later is possible from settings, and offers «ترجیح می‌دم با شماره
+ثبت‌نام کنم» back to the number path. Signing in with a number that has an account loads that account (the tutorial is skipped); a new number
 makes the account (the tutorial follows); guest goes on to the tutorial. The choice is stored (`dozari.loginSeen`) so it never comes back; «ورود با شماره» stays in settings and uses the same inputs (fixed «+98» + number, five code boxes, auto-submit, resend countdown).
 Backend: `profile-and-identity.md` §Phone login (`POST /auth/phone/code|verify`, the verify answer carries `created`).
 
