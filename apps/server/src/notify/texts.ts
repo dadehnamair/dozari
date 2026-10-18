@@ -27,6 +27,7 @@ export const BALE_TEXT = {
   friendRequest: (nickname: string) => `${nickname} برایت درخواست دوستی فرستاد 🤝 در بازی جوابش را بده.`,
   chatMessage: (nickname: string) => `${nickname} برایت پیام فرستاد 💬 در بازی جوابش را بده.`,
   tableInvite: (nickname: string) => `${nickname} تو را به یک میز دعوت کرد 🎲 بیا بازی کنیم!`,
+  tableRequest: (nickname: string) => `${nickname || 'یک نفر'} می‌خواهد سر میزت بنشیند 🎲 جوابش را بده.`,
   matchWon: (reason: string) => `بازی را بردی 🏆 ${reason}`,
   matchLost: (reason: string) => `این بار باختی. ${reason}`,
   matchDraw: 'بازی مساوی شد.',

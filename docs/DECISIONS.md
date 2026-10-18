@@ -824,3 +824,11 @@ Owner (2026-10-17): the shared cooperative board is chaos (everyone ticks and su
 - **Supersedes the cooperative board of D244:** every member plays alone on one static board for `GROUP_PLAY_MS` (15 min); picks and results are toasts only the tapper sees; at the deadline the answers and every member's result are announced (details: `docs/logic/group-game.md` §Rules of the round).
 - `/price`: clearer question text and a visible countdown (the question is rewritten every `GROUP_PRICE_TICK_MS` with seconds left and how many answered).
 - **Built (owner approved 2026-10-17; personal invite link):** a linked player sends `/invite` to the bot in a private chat and gets `https://ble.ir/<bot>?startapp=i_<HANDLE>` (their public ID, `docs/logic/find-friends.md`); the mini-app bridge maps `i_<HANDLE>` to the app's existing `POST /friends/link {handle}` (new accounts become friends at once). Group chats never link accounts, so no personal link is made inside a group. Needs: bridge param, game-side handler on web, bot command.
+
+## D246 — Quiet notifications: only what needs a person (2026-10-18, owner)
+
+Owner: push must not be annoying; send only important things (friend request, private message, table join request), plus a rare nudge to come back for the reward / daily puzzle (interval adjustable in admin). No win/loss messages, not even in the bots.
+- **Pushed outside the app** (Web Push, FCM, IRNoti, Android background check): friend request, private message, table invite, table join request (`table_request`, to the host). Inbox news (admin/birthday messages), table answers and anything else stay in-app (badge/toast). Inbox messages are no longer in `GET /me/pending-notices`.
+- **Bale/Telegram:** `notify.match_result` now defaults to **off** (admin can still enable it; the app push for it follows the same switch). `daily_ready` is a come-back nudge: sent only when the player has not claimed for `notify.reminder_days` days (default 3, admin range 1–30), at most once per claim, so a daily player never gets it.
+- Not changed: the group game's end-of-round results (that is the game itself, in a group the players started); security/admin/broadcast messages.
+- Open: the nudge still goes only to Bale-linked players; app-only players get none yet (would need an app push + opt-out store).

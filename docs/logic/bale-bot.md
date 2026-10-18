@@ -21,8 +21,8 @@ Notifications built so far (switchable in admin settings, group «اعلان‌�
 
 | kind | when | setting |
 |---|---|---|
-| `match_result` | a live duel ends (win / loss / draw with the reason) | `notify.match_result` |
-| `daily_ready` | the daily-reward cooldown of a linked player has passed (once per claim, `bale_links.daily_notified_for`) | `notify.daily_ready` |
+| `match_result` | a live duel ends (win / loss / draw with the reason); **off by default** (D246) | `notify.match_result` |
+| `daily_ready` | come-back nudge: the player has not claimed for `notify.reminder_days` days (default 3; at least the cooldown), once per claim (`bale_links.daily_notified_for`) | `notify.daily_ready` |
 | `broadcast` | admin sends a message to everybody linked | — |
 | `test` / `admin` | admin sends a test to one chat id | — |
 

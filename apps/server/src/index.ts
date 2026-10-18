@@ -445,10 +445,9 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.fcm) registerFcmRoutes(app, deps.auth, deps.fcm);
   if (deps.auth && deps.irnotiPush) registerIrnotiPushRoutes(app, deps.auth);
   if (deps.auth && deps.messages) registerInboxRoutes(app, deps.auth, deps.messages);
-  if (deps.auth && deps.messages && deps.social) {
-    const center = deps.messages;
+  if (deps.auth && deps.social) {
     const social = deps.social;
-    registerPendingRoutes(app, deps.auth, { inbox: (id) => center.inbox(id), incomingRequests: async (id) => (await social.friends(id)).incoming.map((p) => ({ id: p.id, nickname: p.nickname })) });
+    registerPendingRoutes(app, deps.auth, { incomingRequests: async (id) => (await social.friends(id)).incoming.map((p) => ({ id: p.id, nickname: p.nickname })) });
   }
   if (deps.auth && deps.phone) registerPhoneRoutes(app, deps.auth, deps.phone);
   if (deps.phoneLogin) registerPhoneLoginRoutes(app, deps.phoneLogin);
@@ -668,9 +667,8 @@ if (isMainModule(import.meta.url)) {
     // Online recipients get a nudge so the inbox badge moves without a reload; offline ones see it on the next load.
     messages.onDelivered = (ids) => {
       const online = new Set(presence.onlineIds());
-      // Online players get the live nudge; the others a browser push (capped, so a broadcast to everybody does not become thousands of lookups).
+      // Only the live nudge: inbox news is never pushed outside the app (too noisy), the badge shows it on the next open.
       for (const id of ids) if (online.has(id)) notices.push(id, { kind: 'inbox' });
-      for (const id of ids.filter((i) => !online.has(i)).slice(0, 500)) notices.also?.(id, { kind: 'inbox' });
     };
   }
   const invite = inviteStore && settings && player ? new InviteService(inviteStore, () => inviteRulesFromSettings(settings), async (id) => (await player.levelOf(id)).level.level, async (id) => (await player.levelOf(id)).stats.games, () => randomInt(0, 2 ** 30) / 2 ** 30) : undefined;
