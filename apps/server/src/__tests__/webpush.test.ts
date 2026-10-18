@@ -33,5 +33,7 @@ describe('WebPushService', () => {
   it('words a private message and skips table answers', () => {
     expect(pushTextOf({ kind: 'dm', from: 'علی' })?.body).toContain('علی');
     expect(pushTextOf({ kind: 'table_answer', accepted: true })).toBeNull();
+    expect(pushTextOf({ kind: 'inbox' })).toBeNull();
+    expect(pushTextOf({ kind: 'table_request', from: 'سارا', code: 'AB12' })?.body).toContain('سارا');
   });
 });

@@ -7,26 +7,18 @@ import { RateLimiter } from '../security/rate-limit.js';
 import { BALE_TEXT } from './texts.js';
 
 const MAX_ITEMS = 20;
-/** Messages older than this are never announced by a background check (a phone off for weeks would otherwise buzz with old news). */
-export const PENDING_WINDOW_MS = 3 * 86_400_000;
 
 export interface PendingSources {
-  /** Unread inbox messages, newest first. */
-  inbox(userId: string): Promise<{ id: string; title: string; body: string; createdAt: number; read: boolean }[]>;
   /** Players who sent a friend request that is still waiting. */
   incomingRequests(userId: string): Promise<{ id: string; nickname: string }[]>;
 }
 
 /**
- * Pure part of the background check: unread inbox messages newer than `after` (and inside the window), plus waiting friend
- * requests. A friend request has no time of its own, so it is always listed and the device remembers it by id.
+ * Pure part of the background check: the waiting friend requests. Inbox news is deliberately not announced (only things that need a
+ * person are pushed outside the app). A friend request has no time of its own, so it is always listed and the device remembers it by id.
  */
-export function buildPending(now: number, after: number, inbox: Awaited<ReturnType<PendingSources['inbox']>>, requests: Awaited<ReturnType<PendingSources['incomingRequests']>>): PendingNotices {
-  const floor = Math.max(after, now - PENDING_WINDOW_MS);
-  const items: PendingNotices['items'] = [
-    ...requests.map((r) => ({ id: `fr:${r.id}`, kind: 'friend_request' as const, title: 'دوزاری', body: BALE_TEXT.friendRequest(r.nickname), at: now })),
-    ...inbox.filter((m) => !m.read && m.createdAt > floor).map((m) => ({ id: `in:${m.id}`, kind: 'inbox' as const, title: m.title.slice(0, 200), body: m.body.slice(0, 500), at: m.createdAt })),
-  ];
+export function buildPending(now: number, requests: Awaited<ReturnType<PendingSources['incomingRequests']>>): PendingNotices {
+  const items: PendingNotices['items'] = requests.map((r) => ({ id: `fr:${r.id}`, kind: 'friend_request' as const, title: 'دوزاری', body: BALE_TEXT.friendRequest(r.nickname), at: now }));
   return { now, items: items.slice(0, MAX_ITEMS) };
 }
 
@@ -41,7 +33,6 @@ export function registerPendingRoutes(app: FastifyInstance, auth: AuthService, s
     const q = query.safeParse(req.query);
     if (!q.success) return reply.code(400).send({ error: 'invalid_request' });
     if (!limiter.take(user.id)) return reply.header('retry-after', String(limiter.retryAfterSec(user.id))).code(429).send({ error: 'rate_limited' });
-    const [inbox, requests] = await Promise.all([sources.inbox(user.id), sources.incomingRequests(user.id)]);
-    return buildPending(now(), q.data.after, inbox, requests);
+    return buildPending(now(), await sources.incomingRequests(user.id));
   });
 }

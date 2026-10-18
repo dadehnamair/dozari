@@ -321,8 +321,9 @@ export const SETTING_DEFS: readonly SettingDef[] = [
   { key: 'chart.min_year', group: 'chart', label: 'اولین سال نمودار', kind: 'int', min: 1200, max: 1400, default: CHART_MIN_YEAR },
   { key: 'bot.enabled', group: 'bot', label: 'ربات محتوا روشن باشد', kind: 'bool', min: 0, max: 1, default: 1 },
   { key: 'bot.check_minutes', group: 'bot', label: 'هر چند دقیقه یک بار منبع‌های سررسید را بررسی کند', kind: 'int', min: 5, max: 1440, default: 60, unit: 'دقیقه' },
-  { key: 'notify.match_result', group: 'notify', label: 'نتیجه‌ی بازی به بله فرستاده شود', kind: 'bool', min: 0, max: 1, default: 1 },
-  { key: 'notify.daily_ready', group: 'notify', label: 'آماده شدن جایزه‌ی روزانه به بله فرستاده شود', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'notify.match_result', group: 'notify', label: 'نتیجه‌ی بازی (برد/باخت) به بله فرستاده شود', hint: 'پیش‌فرض خاموش: پیام‌های پرتکرار آزاردهنده‌اند', kind: 'bool', min: 0, max: 1, default: 0 },
+  { key: 'notify.daily_ready', group: 'notify', label: 'یادآوری سر زدن برای جایزه و پازل روزانه به بله فرستاده شود', kind: 'bool', min: 0, max: 1, default: 1 },
+  { key: 'notify.reminder_days', group: 'notify', label: 'یادآوری فقط وقتی بازیکن این‌قدر روز سر نزده', hint: 'برای هر بار دریافت جایزه حداکثر یک یادآوری؛ کسی که هر روز می‌آید هیچ‌وقت پیام نمی‌گیرد', kind: 'int', min: 1, max: 30, default: 3, unit: 'روز' },
   ...TRACK_FEATURE_DEFS,
   { key: 'bot.max_candidates_per_run', group: 'bot', label: 'سقف پیشنهاد در هر اجرا', hint: 'برای اینکه صف تأیید یک‌جا پر نشود', kind: 'int', min: 1, max: 500, default: 100 },
 ];
