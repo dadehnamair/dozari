@@ -832,3 +832,7 @@ Owner: push must not be annoying; send only important things (friend request, pr
 - **Bale/Telegram:** `notify.match_result` now defaults to **off** (admin can still enable it; the app push for it follows the same switch). `daily_ready` is a come-back nudge: sent only when the player has not claimed for `notify.reminder_days` days (default 3, admin range 1–30), at most once per claim, so a daily player never gets it.
 - Not changed: the group game's end-of-round results (that is the game itself, in a group the players started); security/admin/broadcast messages.
 - Open: the nudge still goes only to Bale-linked players; app-only players get none yet (would need an app push + opt-out store).
+
+## D247 — Group bot speaks only when called (2026-10-18, owner)
+
+Owner: in a group the bot must not post extra messages; it answers only when called by name («دوزاری») or by a game command. Seen on Bale: every ordinary group message got the private-chat help text because the group had no `chat.type`. Fixed: group detection falls back to sender id ≠ chat id; a name call gets the command list at most once a minute per group; everything else is silent. Not built: Persian-word commands (e.g. «بازی») — only `/play`, `/price`, `/table`, `/top`, `/help`.

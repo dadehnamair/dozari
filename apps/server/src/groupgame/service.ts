@@ -73,6 +73,8 @@ export class GroupGameService {
   private readonly taps = new RateLimiter(GROUP_TAP_LIMIT, 60_000);
   /** Table cards per group: a card is a loud message, so a few a minute. */
   private readonly cards = new RateLimiter(3, 60_000);
+  /** Answers to «someone said our name»: one a minute per group, so chatter about the game never turns into bot spam. */
+  private readonly calls = new RateLimiter(1, 60_000);
   private readonly price?: GroupPriceGame;
   private readonly now: () => number;
   private readonly newSeed: () => number;
@@ -111,7 +113,7 @@ export class GroupGameService {
       return true;
     }
     const m = u.message;
-    if (!m || !isGroupType(m.chat.type)) return false;
+    if (!m || !isGroupChat(m.chat, m.from)) return false;
     const chatId = String(m.chat.id);
     const cmd = (m.text ?? '').trim().split(/\s+/)[0]?.toLowerCase().replace(/@.*$/, '') ?? '';
     if (cmd === '/play' || cmd === '/price' || cmd === '/table' || cmd === '/top' || cmd === '/start' || cmd === '/help') {
@@ -122,8 +124,16 @@ export class GroupGameService {
       else if (cmd === '/top') await this.top(chatId);
       else await this.say(chatId, cmd === '/start' ? GROUP_TEXT.welcome : GROUP_TEXT.help);
     }
+    else if (this.isCalled(m.text ?? '') && this.calls.take(chatId)) await this.say(chatId, GROUP_TEXT.welcome);
     // anything else typed in a group is none of our business (and must never reach the private link-code flow)
     return true;
+  }
+
+  /** The bot is spoken to by name («دوزاری», «@bot_username») rather than by command. */
+  private isCalled(text: string): boolean {
+    const t = text.toLowerCase();
+    if (t.includes('دوزاری')) return true;
+    return [this.d.usernames.bale, this.d.usernames.telegram].some((u) => !!u && t.includes(`@${u.toLowerCase()}`));
   }
 
   private platformOf(chatId: string): 'bale' | 'telegram' {
@@ -338,4 +348,10 @@ function foundGroups(s: SoloState): number {
 
 function isGroupType(type: string | undefined): boolean {
   return type !== undefined && type !== 'private' && type !== 'channel';
+}
+
+/** A host that sends no `type` still gives it away: a private chat's id is the user's id, a group's is not. */
+function isGroupChat(chat: { id: number | string; type?: string }, from?: { id: number | string }): boolean {
+  if (chat.type !== undefined) return isGroupType(chat.type);
+  return from !== undefined && String(from.id) !== String(chat.id);
 }
