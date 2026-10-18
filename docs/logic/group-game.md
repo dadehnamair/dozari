@@ -13,7 +13,8 @@ Bale first; Telegram runs on the same code (ids carry the `tg:` prefix, `docs/lo
 - The bot is added to a group → `my_chat_member` (status `member`/`administrator`) → row in `bot_groups` and a welcome message with the commands.
   Leaving/being kicked (`left`/`kicked`) → `removed_at` set and any live round dropped.
 - Not every host sends `my_chat_member` (Bale is not verified), so the first command seen in a group registers it too (`/start`, `/play`, `/help`).
-- A chat is a group when `chat.type` is neither `private` nor `channel`; a missing type means private (the old flow is untouched).
+- A chat is a group when `chat.type` is neither `private` nor `channel`. A missing type is read from the ids: the sender's id differs from the chat id → group (a private chat's id is the user's id); otherwise private. Without this a host that omits `type` made the bot answer every group message with the private help text (seen on Bale, 2026-10-18).
+- Quiet in groups (D247): the bot speaks only to commands and when called by name (the word «دوزاری» or `@username` in a message), and then only once a minute per group (the short welcome/command list). All other chatter is ignored.
 - Privacy: the bot reads only commands and button taps in groups, never ordinary messages.
 
 ## Commands (a `@botname` suffix is ignored)

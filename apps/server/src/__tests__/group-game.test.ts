@@ -106,6 +106,20 @@ describe('group game', () => {
     expect(t.sent).toHaveLength(1);
   });
 
+  it('stays silent on chatter, answers once a minute when called by name, and spots a group without a chat type', async () => {
+    const t = setup();
+    expect(await t.svc.handleUpdate(t.msg('سلام'))).toBe(true);
+    expect(t.sent).toHaveLength(0);
+    await t.svc.handleUpdate(t.msg('دوزاری چطوری بازی میشه؟'));
+    expect(t.sent).toHaveLength(1);
+    await t.svc.handleUpdate(t.msg('@dozari_bot'));
+    expect(t.sent).toHaveLength(1); // rate limited
+    // a host that omits `type`: the chat id differs from the sender's id, so it is a group, not the private link flow
+    const typeless: BaleUpdate = { update_id: 1, message: { message_id: 1, chat: { id: -300 }, from: { id: 5 }, text: 'به به سلام' } };
+    expect(await t.svc.handleUpdate(typeless)).toBe(true);
+    expect(t.sent).toHaveLength(1);
+  });
+
   it('handles the bot being added and removed', async () => {
     const t = setup();
     await t.svc.handleUpdate({ update_id: 1, my_chat_member: { chat: { id: -9, type: 'supergroup', title: 'G' }, new_chat_member: { status: 'member' } } });
