@@ -29,6 +29,8 @@ const APP_PUSH_KINDS: ReadonlySet<NotifyKind> = new Set<NotifyKind>(['match_resu
 export class NotifyService {
   /** Wrong link codes per chat: 8 in 10 minutes, then the bot stays quiet (a 6-character code must not be guessable). */
   private readonly badCodes = new RateLimiter(8, 10 * 60_000);
+  /** Help text for chatter that is not a command or a code: once per 10 minutes per chat, so typing anything does not get the same reply every time. */
+  private readonly strayHelp = new RateLimiter(1, 10 * 60_000, () => this.now());
 
   constructor(
     private readonly store: NotifyStore,
@@ -199,7 +201,10 @@ export class NotifyService {
       if (await this.store.userOfChat(chatId)) return void (await reply(BALE_TEXT.statusLinked));
       return void (await this.client.sendMessage(chatId, BALE_TEXT.welcome, { contactButton: BALE_TEXT.contactButton }).catch(() => undefined));
     }
-    if (!candidate || !/^[A-Z0-9]{4,12}$/.test(candidate)) return void (await reply(BALE_TEXT.help));
+    if (!candidate || !/^[A-Z0-9]{4,12}$/.test(candidate)) {
+      if (cmd === '/help' || this.strayHelp.take(chatId)) await reply(BALE_TEXT.help);
+      return;
+    }
     if (this.badCodes.blocked(chatId)) return;
     const linked = await this.store.redeemCode(candidate, chatId, this.now());
     if (!linked) this.badCodes.take(chatId);
