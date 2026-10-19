@@ -128,6 +128,19 @@ describe('NotifyService', () => {
     expect(await store.stats()).toMatchObject({ pending: 0, failed: 1 });
   });
 
+  it('answers stray chatter with the help text at most once per 10 minutes; /help always answers', async () => {
+    const { svc, tick, bale } = setup();
+    await svc.handleUpdate(msg(5, 'سلام'));
+    await svc.handleUpdate(msg(5, 'چطوری؟', 2));
+    await svc.flush();
+    expect(bale.sent).toHaveLength(1);
+    await svc.handleUpdate(msg(5, '/help', 3));
+    expect(bale.sent).toHaveLength(2);
+    tick(10 * 60_000 + 1);
+    await svc.handleUpdate(msg(5, 'باز هم', 4));
+    expect(bale.sent).toHaveLength(3);
+  });
+
   it('announces a ready daily reward once per claim', async () => {
     const { svc, store, tick, bale } = setup();
     await svc.linkCode('u1');
