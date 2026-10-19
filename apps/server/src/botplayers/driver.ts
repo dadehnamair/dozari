@@ -155,7 +155,8 @@ export class BotDriver {
     this.planned.add(key);
     if (this.planned.size > 5000) this.planned.clear();
     const think = scaledThinkRange(bot.thinkMinMs, bot.thinkMaxMs, botSkillForLevel(bot.level ?? 1, bot.skill));
-    const delay = botThinkDelay(think.minMs, think.maxMs, v.turnEndsAt - this.now(), this.deps.rng);
+    const wait = Math.max(0, (v.turnStartsAt ?? 0) - this.now()); // a new board is being announced
+    const delay = wait + botThinkDelay(think.minMs, think.maxMs, v.turnEndsAt - this.now() - wait, this.deps.rng);
     this.schedule(delay, () => this.move(bot));
   }
 

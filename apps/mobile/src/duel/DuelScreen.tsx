@@ -1,6 +1,6 @@
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { Animated, Easing, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { isLastLife, toPersianDigits } from '@dozari/shared';
+import { BOARD_PAUSE_SECONDS, isLastLife, toPersianDigits } from '@dozari/shared';
 import type { TauntCategory } from '@dozari/shared';
 import { fetchTaunts } from '../chat/api';
 import { Board, WRONG_SHAKE_MS } from '../components/Board';
@@ -61,8 +61,8 @@ import { WheelPage } from '../wheel/WheelPage';
 const FLASH_MS = 1500;
 /** The versus card stays up this long once a rival is found (the turn clock is 45s by default). */
 const INTRO_MS = 3000;
-/** The banner between two boards of a multi-board match; the board is locked for as long. */
-const ROUND_INTRO_MS = 3000;
+/** The box between two boards of a multi-board match; the server holds the turn for the same time. */
+const ROUND_INTRO_MS = BOARD_PAUSE_SECONDS * 1000;
 const LEAVE_ARM_MS = 3000;
 /** How long a taunt floats under its sender's card, and the pause before the next one. */
 const BUBBLE_MS = 3200;
