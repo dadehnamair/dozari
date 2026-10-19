@@ -35,7 +35,7 @@ export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { sig
   /** «Who is playing?» sits in the card (age tracks on); the choice is saved right after sign-in. */
   const [age, setAge] = useState<AgeTrack>('adult');
   const track = ageTracksOn ? age : undefined;
-  const [step, setStep] = useState<'phone' | 'otp' | 'pick'>('phone');
+  const [step, setStep] = useState<'choose' | 'phone' | 'otp' | 'pick' | 'guest'>('choose');
   /** Children behind the number that just signed in: the player picks which account to play as. */
   const [accounts, setAccounts] = useState<ChildRow[]>([]);
   const [typed, setTyped] = useState('');
@@ -116,6 +116,23 @@ export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { sig
   };
   const onCodeRef = useRef(onCode);
   onCodeRef.current = onCode;
+  /** Guest: with age tracks on, the second step asks the age band (and reminds what signing up gives); otherwise straight in. */
+  const guest = () => (ageTracksOn ? (setNote(null), setStep('guest')) : onDone({ signedIn: false, created: false }));
+  const agePills = ageTracksOn ? (
+    <View style={styles.ageBlock}>
+      <Text style={[styles.sub, adult ? ad.sub : null]}>{fa.ageTrack.whoPlays}</Text>
+      <View style={styles.ageRow}>
+        {([['kid', fa.ageTrack.kid], ['teen', fa.ageTrack.teen], ['adult', fa.ageTrack.adult]] as const).map(([k, n]) => (
+          <Pressable key={k} accessibilityRole="button" accessibilityState={{ selected: age === k }} onPress={() => setAge(k)} style={[styles.agePill, adult ? ad.agePill : null, age === k ? (adult ? ad.agePillOn : styles.agePillOn) : null]}>
+            <Text style={[styles.agePillText, adult ? ad.agePillText : null, age === k && adult ? ad.agePillTextOn : null]}>{n}</Text>
+          </Pressable>
+        ))}
+      </View>
+    </View>
+  ) : null;
+  const backLink = (to: 'choose') => (
+    <Pressable onPress={() => (setStep(to), setNote(null))} accessibilityRole="button" style={styles.backRow}><Text style={[styles.link, adult ? ad.link : null]}>{l.back}</Text></Pressable>
+  );
 
   return (
     <View style={styles.root}>
@@ -127,26 +144,27 @@ export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { sig
       </View>
       <View style={[styles.cardWrap, tight ? styles.cardWrapTight : null]} pointerEvents="box-none">
       <View style={[styles.card, tight ? styles.cardTight : null, adult ? ad.card : null]}>
-        {step === 'phone' ? (
+        {step === 'choose' ? (
           <>
             <Text style={[styles.title, adult ? ad.title : null]}>{l.welcome}</Text>
+            <Text style={[styles.sub, adult ? ad.sub : null]}>{l.perksTitle}</Text>
+            {l.perks.map((p) => <Text key={p} style={[styles.perk, adult ? ad.fieldText : null]}>{`✓ ${p}`}</Text>)}
+          </>
+        ) : step === 'guest' ? (
+          <>
+            <Text style={[styles.title, adult ? ad.title : null]}>{fa.ageTrack.title}</Text>
+            {agePills}
+            <Text style={[styles.sub, adult ? ad.sub : null]}>{l.guestRemind}</Text>
+          </>
+        ) : step === 'phone' ? (
+          <>
+            <Text style={[styles.title, adult ? ad.title : null]}>{l.withPhone}</Text>
             <Text style={[styles.sub, adult ? ad.sub : null]}>{l.phoneHint}</Text>
             <View style={styles.phoneRow}>
               <View style={[styles.prefix, adult ? ad.field : null]}><Text style={[styles.prefixText, adult ? ad.fieldText : null]}>+98</Text></View>
               <TextInput value={toPersianDigits(typed)} onChangeText={(v) => setTyped(onlyDigits(v, PHONE_MAX_DIGITS))} onSubmitEditing={send} keyboardType="phone-pad" maxLength={PHONE_MAX_DIGITS} placeholder={toPersianDigits('912 345 6789')} placeholderTextColor={adult ? 'rgba(255,233,168,0.4)' : '#B8A9CC'} style={[styles.phoneInput, adult ? ad.field : null, adult ? ad.fieldText : null]} accessibilityLabel={fa.phoneLogin.phone} />
             </View>
-            {ageTracksOn ? (
-              <View style={styles.ageBlock}>
-                <Text style={[styles.sub, adult ? ad.sub : null]}>{fa.ageTrack.whoPlays}</Text>
-                <View style={styles.ageRow}>
-                  {([['kid', fa.ageTrack.kid], ['teen', fa.ageTrack.teen], ['adult', fa.ageTrack.adult]] as const).map(([k, n]) => (
-                    <Pressable key={k} accessibilityRole="button" accessibilityState={{ selected: age === k }} onPress={() => setAge(k)} style={[styles.agePill, adult ? ad.agePill : null, age === k ? (adult ? ad.agePillOn : styles.agePillOn) : null]}>
-                      <Text style={[styles.agePillText, adult ? ad.agePillText : null, age === k && adult ? ad.agePillTextOn : null]}>{n}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-              </View>
-            ) : null}
+            {agePills}
           </>
         ) : step === 'pick' ? (
           <>
@@ -179,18 +197,25 @@ export function LoginScreen({ onDone, ageTracksOn = false }: { onDone: (r: { sig
           </>
         )}
         {note ? <Text style={styles.error}>{note}</Text> : null}
-        {step === 'pick' ? null : <>
-        <SlabButton label={busy ? l.sending : step === 'phone' ? l.sendCode : l.enter} sfx="confirm" color={colors.candy.lime} height={tight ? 50 : 56} fontSize={22} grow={0} disabled={busy || (step === 'otp' && code.length !== OTP_LENGTH)} onPress={step === 'phone' ? send : () => enter(code)} />
+        {step === 'choose' ? <>
+        <SlabButton label={l.withPhone} sfx="confirm" color={colors.candy.lime} height={tight ? 50 : 56} fontSize={22} grow={0} onPress={() => setStep('phone')} />
         <View style={styles.orRow}><View style={[styles.orLine, adult ? ad.orLine : null]} /><Text style={[styles.orText, adult ? ad.sub : null]}>{l.or}</Text><View style={[styles.orLine, adult ? ad.orLine : null]} /></View>
-        <Pressable accessibilityRole="button" onPress={() => onDone({ signedIn: false, created: false, track })} style={({ pressed }) => [styles.guest, adult ? ad.guest : null, pressed ? styles.guestPressed : null]}>
-          <Text style={[styles.guestText, adult ? ad.guestText : null]}>{l.guest}</Text>
+        <Pressable accessibilityRole="button" onPress={guest} style={({ pressed }) => [styles.guest, adult ? ad.guest : null, pressed ? styles.guestPressed : null]}>
+          <Text style={[styles.guestText, adult ? ad.guestText : null]}>{l.guestContinue}</Text>
         </Pressable>
+        <Text style={[styles.sub, adult ? ad.sub : null]}>{l.guestNote}</Text>
         {ageTracksOn ? (
           <Pressable accessibilityRole="button" onPress={() => setChildCodeOpen(true)} style={({ pressed }) => [styles.parent, adult ? ad.parent : null, pressed ? styles.parentPressed : null]}>
             <Icon name="lock" size={16} color={adult ? '#E8B64A' : '#7E46D6'} strokeWidth={2.6} />
             <Text style={[styles.parentText, adult ? ad.link : null]}>{fa.guardian.childLoginRow}</Text>
           </Pressable>
         ) : null}
+        </> : step === 'guest' ? <>
+        <SlabButton label={l.guestStart} sfx="confirm" color={colors.candy.lime} height={tight ? 50 : 56} fontSize={22} grow={0} onPress={() => onDone({ signedIn: false, created: false, track })} />
+        <Pressable accessibilityRole="button" onPress={() => (setNote(null), setStep('phone'))} style={styles.backRow}><Text style={[styles.link, adult ? ad.link : null]}>{l.registerInstead}</Text></Pressable>
+        </> : step === 'pick' ? null : <>
+        <SlabButton label={busy ? l.sending : step === 'phone' ? l.sendCode : l.enter} sfx="confirm" color={colors.candy.lime} height={tight ? 50 : 56} fontSize={22} grow={0} disabled={busy || (step === 'otp' && code.length !== OTP_LENGTH)} onPress={step === 'phone' ? send : () => enter(code)} />
+        {step === 'phone' ? backLink('choose') : null}
         </>}
       </View>
       </View>
@@ -258,6 +283,8 @@ const styles = StyleSheet.create({
   orText: { fontFamily: fonts.bold, fontSize: 11, color: 'rgba(43,18,64,0.55)' },
   guest: { height: 46, borderRadius: 16, borderWidth: 3, borderColor: INK, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', ...lift(4) },
   guestPressed: { transform: [{ translateY: 3 }] },
+  perk: { fontFamily: fonts.bold, fontSize: 13.5, lineHeight: 21, color: INK, textAlign: TEXT_RIGHT },
+  backRow: { alignItems: 'center', paddingVertical: 2 },
   ageBlock: { gap: 6 },
   ageRow: { flexDirection: ROW, gap: 6 },
   agePill: { flex: 1, height: 40, borderRadius: 12, borderWidth: 3, borderColor: INK, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
