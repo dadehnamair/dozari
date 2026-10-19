@@ -87,6 +87,8 @@ export function deepLinkOf(n: LiveNotice): string | null {
       return 'dozari://open/friends';
     case 'table_invite':
       return n.code ? `dozari://open/table/${encodeURIComponent(n.code)}` : null;
+    case 'table_request':
+      return n.code ? `dozari://open/table/${encodeURIComponent(n.code)}` : null;
     case 'inbox':
       return 'dozari://open/inbox';
     default:
@@ -103,10 +105,10 @@ export function pushTextOf(n: LiveNotice): PushPayload | null {
       return { title: 'دوزاری', body: BALE_TEXT.chatMessage(from), tag: `dm:${from}` };
     case 'table_invite':
       return { title: 'دوزاری', body: BALE_TEXT.tableInvite(from), tag: `table_invite:${n.code ?? ''}` };
-    case 'inbox':
-      return { title: 'دوزاری', body: 'یک پیام تازه در صندوقت داری', tag: 'inbox' };
+    case 'table_request':
+      return { title: 'دوزاری', body: BALE_TEXT.tableRequest(from), tag: `table_request:${n.code ?? ''}:${from}` };
     default:
-      return null; // table_request / table_answer are only useful while the app is open
+      return null; // only what needs a person is pushed (friend request, private message, table invite/request); inbox news and table answers wait in-app
   }
 }
 
@@ -136,7 +138,7 @@ export class WebPushService {
     return ok;
   }
 
-  /** Pushes a live notice (friend request, private message, table invite, inbox) if it makes sense outside the app. */
+  /** Pushes a live notice (friend request, private message, table invite or join request) if it makes sense outside the app. */
   async notice(userId: string, n: LiveNotice): Promise<void> {
     const payload = pushTextOf(n);
     if (payload) await this.notify(userId, payload);

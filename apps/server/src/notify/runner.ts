@@ -40,7 +40,9 @@ export function startNotifyRunner(opts: { service: NotifyService; /** Every bot 
       void (async () => {
         if (opts.settings && (await opts.settings.num('notify.daily_ready')) !== 1) return;
         const hours = opts.settings ? await opts.settings.num('economy.daily_cooldown_hours') : 20;
-        await opts.service.announceDaily(hours * 3_600_000);
+        // Only a player who has stayed away for `notify.reminder_days` days is nudged, and once per claim: daily players hear nothing.
+        const awayDays = opts.settings ? await opts.settings.num('notify.reminder_days') : 3;
+        await opts.service.announceDaily(Math.max(hours * 3_600_000, awayDays * 86_400_000));
       })().catch((err) => opts.log('bale: daily announce failed', err));
     }, 60_000),
   );

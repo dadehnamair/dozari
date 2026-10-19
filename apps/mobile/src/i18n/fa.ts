@@ -816,7 +816,14 @@ export const fa = {
       soon: 'به‌زودی',
       teamNote: 'بدون ورودی، با دو هم‌تیمی',
       boardOf: (n: number, total: number) => `بسته‌ی ${toPersianDigits(String(n))} از ${toPersianDigits(String(total))}`,
-      nextBoard: (n: number, total: number) => `بسته‌ی بعدی! (${toPersianDigits(String(n))} از ${toPersianDigits(String(total))})`,
+      /** Banner over the board while the next board of a multi-board match is about to start. */
+      roundIntro: {
+        title: (n: number, total: number) => `دور ${toPersianDigits(String(n))} از ${toPersianDigits(String(total))}`,
+        startsIn: (s: number) => `${toPersianDigits(String(s))} ثانیه تا شروع`,
+        startsLabel: 'ثانیه تا شروع',
+        rivalDone: 'حریفت هر ۴ دسته رو پیدا کرد!',
+        youDone: 'تو هر ۴ دسته رو پیدا کردی!',
+      },
       twoVsTwoMode: '۲ در ۲',
       captain: 'کاپیتان این نوبت تویی',
       mateCaptain: 'کاپیتان این نوبت هم‌تیمی‌ته؛ انتخابت را پیشنهاد بده',

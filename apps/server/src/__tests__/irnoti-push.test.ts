@@ -55,7 +55,8 @@ describe('IrnotiPushService', () => {
     const { calls, http } = recorder();
     const s = new IrnotiPushService(cfg, http);
     await s.notice('u', { kind: 'friend_request', from: 'علی' } as never);
-    await s.notice('u', { kind: 'table_request' } as never);
+    await s.notice('u', { kind: 'table_answer', accepted: true } as never);
+    await s.notice('u', { kind: 'inbox' } as never);
     expect(calls).toHaveLength(1);
   });
   it('tells the app where a tap should land', async () => {

@@ -17,7 +17,7 @@ export interface GenerateOptions {
   cityIds: readonly string[];
 }
 
-export const MAX_BOTS_PER_CALL = 50;
+export const MAX_BOTS_PER_CALL = 200;
 
 /** Admin side of bot players: make many natural-looking accounts at once, tune or pause them. Never visible to players. */
 export class BotPlayerService {
