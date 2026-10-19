@@ -12,6 +12,7 @@ import {
   MAX_CONSECUTIVE_TIMEOUTS,
   PRICE_GUESS_LOSER_BONUS_PER_ROUND,
   TURN_SECONDS,
+  BOARD_PAUSE_SECONDS,
 } from '../config/index.js';
 import type { Rng } from './rng.js';
 import { initialBoardOrder, selectionKey } from './solo.js';
@@ -139,6 +140,8 @@ export interface MatchState {
   /** Bumps on every turn (re)start; a timeout for an older id is stale. */
   turnId: number;
   turnStartedAt: number;
+  /** Epoch ms until which nobody may move: the pause while the next board is announced (0 = none). */
+  pausedUntil: number;
   status: 'playing' | 'finished';
   result: MatchResult | null;
 }
@@ -265,6 +268,7 @@ export function startTeamMatch(
     turn,
     turnId: 1,
     turnStartedAt: now,
+    pausedUntil: 0,
     status: 'playing',
     result: null,
   };
@@ -281,6 +285,9 @@ const set = <T>(pair: readonly [T, T], side: MatchSide, value: T): [T, T] => (si
 const remainingOf = (state: MatchState, side: MatchSide): readonly string[] => (state.sep ? state.sep.remaining[side] : state.remaining);
 const solvedOf = (state: MatchState, side: MatchSide): readonly MatchSolvedGroup[] => (state.sep ? state.sep.solved[side] : state.solved);
 const triedOf = (state: MatchState, side: MatchSide): readonly string[] => (state.sep ? state.sep.tried[side] : state.tried);
+
+/** The turn has not begun yet: a new board is being announced. */
+export const boardPaused = (state: MatchState, now: number): boolean => now < state.pausedUntil;
 
 export const turnDeadline = (state: MatchState): number => state.turnStartedAt + state.rules.turnSeconds * 1000;
 
@@ -364,7 +371,8 @@ function endBoard(state: MatchState, reason: 'solved' | 'locked_out', now: numbe
     timeouts: [0, 0],
   };
   events.push({ t: 'board', round: next.round, rounds: next.rounds });
-  return startTurn(next, starter, now, events);
+  // The next board opens after a short pause: the turn clock starts then, and moves before it are refused (`boardPaused`).
+  return startTurn({ ...next, pausedUntil: now + BOARD_PAUSE_SECONDS * 1000 }, starter, now + BOARD_PAUSE_SECONDS * 1000, events);
 }
 
 /**
@@ -466,6 +474,7 @@ function applyItem(state: MatchState, side: MatchSide, by: string, kind: ItemKin
 export function applyCommand(state: MatchState, cmd: Command, ctx: Ctx): ApplyResult {
   if (state.status === 'finished') return { error: 'MATCH_FINISHED' };
   const events: MatchEvent[] = [];
+  if ((cmd.t === 'submit' || cmd.t === 'propose' || cmd.t === 'power') && boardPaused(state, ctx.now)) return { error: 'NOT_YOUR_TURN' };
 
   switch (cmd.t) {
     case 'forfeit':
@@ -658,6 +667,8 @@ export interface MatchClientView {
   turnId: number;
   /** Absolute ms timestamp when the active turn times out. */
   turnEndsAt: number;
+  /** Absolute ms when the turn begins; later than now while a new board is announced (the clients count down to it). */
+  turnStartsAt: number;
   status: 'playing' | 'finished';
   result: MatchResult | null;
 }
@@ -687,6 +698,7 @@ export function matchClientView(state: MatchState, viewerId: string): MatchClien
     captain: state.captain,
     turnId: state.turnId,
     turnEndsAt: turnDeadline(state),
+    turnStartsAt: state.turnStartedAt,
     status: state.status,
     result: state.result,
   };

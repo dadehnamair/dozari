@@ -128,12 +128,13 @@ describe('2v2 over several boards', () => {
   it('plays the configured number of different boards, reveals a finished board and hides the next', async () => {
     const sent: { to: string; event: string; payload: unknown }[] = [];
     let n = 0;
+    let clock = 1_000_000;
     const svc = new MatchService({
       puzzles: { pickRandom: async () => pool[n++ % 3]!, pricesFor: async () => ({}) },
       profile,
       emit: (to, event, payload) => sent.push({ to, event, payload }),
       teamBoards: async () => 3,
-      now: () => 1_000_000,
+      now: () => clock,
       newSeed: () => 5,
       schedule: () => () => undefined,
     });
@@ -149,6 +150,7 @@ describe('2v2 over several boards', () => {
       }
     };
     playBoard('a');
+    clock += 5000; // the pause between boards
     expect(view('a1').round).toBe(1);
     expect(view('a1').cards.every((c) => c.id.startsWith('b'))).toBe(true);
     const done = sent.filter((s) => s.to === 'a1' && s.event === 'match:event').map((s) => s.payload as { t: string; round?: number; groups?: unknown[] }).find((e) => e.t === 'board_done');
@@ -156,6 +158,7 @@ describe('2v2 over several boards', () => {
     expect(done?.groups).toHaveLength(4);
     expect(JSON.stringify(sent.filter((s) => s.event === 'match:state'))).not.toContain('عنوان c');
     playBoard('b');
+    clock += 5000;
     expect(view('a1').round).toBe(2);
     playBoard('c');
     expect(view('a1').status).toBe('finished');

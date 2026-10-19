@@ -290,6 +290,8 @@ export const matchViewSchema = z.object({
   turnId: z.number().int().positive(),
   /** Absolute epoch ms when the active turn times out. */
   turnEndsAt: z.number().int(),
+  /** Epoch ms when the turn begins (after the pause between boards); absent in older snapshots = it began already. */
+  turnStartsAt: z.number().int().optional(),
   status: z.enum(['playing', 'finished']),
   result: matchResultSchema.nullable(),
   /** Set while the duel's price-guess round runs (the board is over, the match is not): render the round instead of the board. */

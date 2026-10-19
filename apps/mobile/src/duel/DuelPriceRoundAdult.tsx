@@ -20,7 +20,7 @@ function RevealedRow({ r }: { r: PriceRoundView['revealed'][number] }) {
   return (
     <Plate radius={14} border={won ? '#9FE870' : lost ? '#E0533F' : SILVER} from={won ? '#22480F' : lost ? '#3A0E0A' : '#2A2F36'} to={won ? '#143008' : lost ? '#240805' : '#14171B'} ledge={3} style={styles.reveal}>
       <Text style={styles.revealName} numberOfLines={1}>{r.nameFa}</Text>
-      <Text style={styles.revealLine}>{p.actual}: {priceText(r.actualRials)} {fa.solo.price.unit}</Text>
+      <Text style={styles.revealLine}>{p.actual}: {priceText(r.actualRials)}</Text>
       <Text style={styles.revealLine}>{p.yourGuess}: {r.yourGuess ? priceText(r.yourGuess) : p.noGuess} · {p.opponentGuess}: {r.opponentGuess ? priceText(r.opponentGuess) : p.noGuess}</Text>
       <Text style={[styles.verdict, { color: won ? '#9FE870' : lost ? '#FF9A8A' : SILVER }]}>{verdict}</Text>
     </Plate>

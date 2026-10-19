@@ -1168,7 +1168,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     g.post('/admin/bots/generate', async (req, reply) => {
       const b = z
         .object({
-          count: z.number().int().min(1).max(50),
+          count: z.number().int().min(1).max(200),
           levelMin: z.number().int().min(1).max(100),
           levelMax: z.number().int().min(1).max(100),
           skillMin: z.number().int().min(0).max(100),

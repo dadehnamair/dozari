@@ -72,7 +72,7 @@ describe('separate boards', () => {
     expect(s.status).toBe('playing');
     expect([s.round, s.boardsWon, s.turn]).toEqual([1, [1, 0], 1]);
     expect(s.sep!.solved).toEqual([[], []]);
-    for (const lvl of [0, 1, 2]) s = submit(s, 1, ids(B, lvl)).state;
+    for (const lvl of [0, 1, 2]) s = ok(s, { t: 'submit', by: U[1], itemIds: ids(B, lvl) }, 6000).state;
     expect(s.status).toBe('finished');
     expect(s.boardsWon).toEqual([1, 1]);
   });

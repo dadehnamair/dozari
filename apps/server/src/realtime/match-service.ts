@@ -715,6 +715,7 @@ export class MatchService {
       proposal: entry.proposals[v.you] ? { by: entry.proposals[v.you]!.by, itemIds: [...entry.proposals[v.you]!.itemIds] } : null,
       turnId: v.turnId,
       turnEndsAt: v.turnEndsAt,
+      turnStartsAt: v.turnStartsAt,
       status: inPrice ? 'playing' : v.status,
       result: inPrice ? null : v.result,
       priceRound: entry.pg ? this.priceViewFor(entry, v.you) : null,

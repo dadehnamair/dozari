@@ -21,7 +21,7 @@ function RevealedRow({ r }: { r: PriceRoundView['revealed'][number] }) {
   return (
     <View style={[styles.reveal, r.winner === 'you' ? styles.revealWon : null]}>
       <Text style={styles.revealName} numberOfLines={1}>{r.nameFa}</Text>
-      <Text style={styles.revealLine}>{p.actual}: {priceText(r.actualRials)} {fa.solo.price.unit}</Text>
+      <Text style={styles.revealLine}>{p.actual}: {priceText(r.actualRials)}</Text>
       <Text style={styles.revealLine}>{p.yourGuess}: {r.yourGuess ? priceText(r.yourGuess) : p.noGuess} · {p.opponentGuess}: {r.opponentGuess ? priceText(r.opponentGuess) : p.noGuess}</Text>
       <Text style={styles.verdict}>{verdict}</Text>
     </View>

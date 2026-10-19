@@ -105,7 +105,7 @@ bot accounts: the admin can pause, tune or add more, and the top-up never touche
 ## As built (D86): bot players made in the admin panel
 
 - **Accounts.** A bot is an ordinary `users` row (`is_bot = true`, no device id so nobody can sign in as it) plus `bot_players` (skill 0–100, think-time range,
-  chance to answer a taunt, active). The admin generates up to 50 at once («بازیکن‌های ربات»): distinct names (preset nicknames + common given names; the pool is
+  chance to answer a taunt, active). The admin generates up to 200 at once («بازیکن‌های ربات»): distinct names (preset nicknames + common given names; the pool is
   finite), random avatar, gender, city, a level inside the asked range, XP/games/wins that fit that level (`plausibleStats`), coins, and the medals those stats earn.
   They can be tuned one by one or paused. `is_bot` is never selected by any player-facing endpoint or socket payload (tests check the payloads).
 - **Queue.** Every 5 s the driver looks at the duel queue: a human who waited `bots.fallback_seconds` (8) plus a per-player random delay up to
