@@ -836,3 +836,6 @@ Owner: push must not be annoying; send only important things (friend request, pr
 ## D247 — Group bot speaks only when called (2026-10-18, owner)
 
 Owner: in a group the bot must not post extra messages; it answers only when called by name («دوزاری») or by a game command. Seen on Bale: every ordinary group message got the private-chat help text because the group had no `chat.type`. Fixed: group detection falls back to sender id ≠ chat id; a name call gets the command list at most once a minute per group; everything else is silent. Not built: Persian-word commands (e.g. «بازی») — only `/play`, `/price`, `/table`, `/top`, `/help`.
+
+## D248 — First-run login is a two-step, non-forcing choice (2026-10-19, proposed)
+The first screen no longer shows the phone form: it lists what signing up with a number gives and offers two equal paths, «ورود با شماره موبایل» and «ادامه به‌عنوان مهمان». The number form (and age band) is step 2; a guest gets only the age-band step (when age tracks are on) with a reminder that signing up is possible later from settings. No server change. See `logic/app-screens.md` §First-run login screen.
