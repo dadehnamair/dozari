@@ -86,3 +86,5 @@ Relation to the rule-based pool top-up (`puzzles/pool.ts`, D141): independent. T
 ## Fill missing prices (product dialog)
 
 In the admin product dialog, next to «ثبت قیمت»: **«✨ پیشنهاد قیمت با هوش مصنوعی»** opens a dialog (provider, model, from/to Solar year, free hint). `POST /admin/ai/product-prices {provider, model?, productId, hint?, fromYear?, toYear?}` (code `ai/price-fill.ts`, `AiStudio.suggestPrices`) asks the model for up to 12 **nominal** toman prices in years the product has no price point for (any status; default range 1350–1405). The server drops invalid, out-of-range, duplicate and already-present years; nothing is saved by this call. The editor edits/ticks rows and the dialog posts each to the normal `POST /admin/prices` (×10 → rials, source `other`, note «AI-suggested, unverified»), so they land as **`pending`** and still need approval. Counts against `maxCallsPerHour`.
+
+The model field is a picker fed by the provider's own model list (`GET /admin/ai/models`), in the studio panel and in this dialog. The last provider and model chosen are remembered per browser (`localStorage` `ai.provider`, `ai.model.<provider>`) and preselected next time.
