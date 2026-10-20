@@ -795,6 +795,8 @@ export const botGroupPriceSessions = mysqlTable(
     chatId: varchar('chat_id', { length: 40 }).notNull().references(() => botGroups.chatId, { onDelete: 'cascade' }),
     dateKey: char('date_key', { length: 10 }).notNull(),
     sessions: int('sessions').notNull().default(0),
+    /** `/question` sessions of the same day (same cap rule, own counter). */
+    questionSessions: int('question_sessions').notNull().default(0),
   },
   (t) => ({ pk: primaryKey({ columns: [t.chatId, t.dateKey] }) }),
 );

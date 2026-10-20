@@ -17,6 +17,7 @@ function memoryStore() {
   const groups = new Map<string, { title: string; removed: boolean }>();
   const plays = new Map<string, { result: GroupPlayResult; mistakes?: number; players?: number }>();
   const priceSessions = new Map<string, number>();
+  const questionSessions = new Map<string, number>();
   const scores: { chatId: string; weekKey: string; userRef: string; name: string; points: number; groups: number; wrong: number }[] = [];
   const store: GroupGameStore = {
     async refOf(chatId) { return groups.has(chatId) ? 'k3f9x2m' : null; },
@@ -25,6 +26,13 @@ function memoryStore() {
       const n = priceSessions.get(k) ?? 0;
       if (n >= max) return false;
       priceSessions.set(k, n + 1);
+      return true;
+    },
+    async startQuestionSession(chatId, dateKey, max) {
+      const k = `${chatId}|${dateKey}`;
+      const n = questionSessions.get(k) ?? 0;
+      if (n >= max) return false;
+      questionSessions.set(k, n + 1);
       return true;
     },
     async addScore(chatId, weekKey, d) {
@@ -61,6 +69,7 @@ function setup(opts: { bale?: string | null } = {}) {
     client,
     todayPuzzle: async () => puzzle,
     drawPrices: async (n) => [1, 2, 3, 4, 5].slice(0, n).map((i) => ({ nameFa: `نان ${i}`, unitFa: i === 1 ? 'عدد' : null, year: 1370 + i, actualRials: BigInt(i * 1000), options: [BigInt(i * 500), BigInt(i * 1000), BigInt(i * 2000), BigInt(i * 3000)] })),
+    drawQuestions: async (n) => [1, 2, 3, 4, 5].slice(0, n).map((i) => ({ textFa: `پایتخت کشور ${i}؟`, options: ['الف', 'ب', 'ج', 'د'], correctIndex: 1, explanationFa: i === 1 ? 'چون این‌طور است' : '' })),
     schedule: (fn, ms) => void timers.push({ fn, ms }),
     tableCard: (code) => (code === 'AB2CD' ? { code, name: 'میز علی', format: '1v1', entryFee: 0, seats: 2, taken: 1, hostNickname: 'علی' } : code === 'FEE22' ? { code, name: 'میز پولی', format: '2v2', entryFee: 20, seats: 4, taken: 3, hostNickname: 'سارا' } : null), usernames: { bale: opts.bale === undefined ? 'dozari_bot' : opts.bale, telegram: 'dozari_tg' },
     now: () => clock.t,
@@ -393,6 +402,68 @@ describe('price mode', () => {
     expect(t.sent.at(-1)!.text).toContain('در جریان');
     await priceTap(t, 3, 1, 100, 5); // wrong question index
     expect(t.answers.at(-1)).toContain('تمام');
+  });
+});
+
+describe('question mode', () => {
+  const run = async (t: ReturnType<typeof setup>) => {
+    const i = t.timers.findIndex((x) => x.ms === 40_000 || x.ms === 4_000);
+    const [timer] = t.timers.splice(i, 1);
+    timer!.fn();
+    await new Promise((r) => setTimeout(r, 0));
+  };
+  const qTap = (t: ReturnType<typeof setup>, q: number, opt: number, mid: number, from: number, name = 'سارا') =>
+    t.svc.handleUpdate({ update_id: 3, callback_query: { id: 'q', from: { id: from, first_name: name }, message: { message_id: mid, chat: { id: -100, type: 'group' } }, data: `q:${q}:${opt}` } });
+
+  it('asks a general question without leaking the answer, locks one answer per member and reveals with the explanation', async () => {
+    const t = setup();
+    await t.svc.handleUpdate(t.msg('/question'));
+    const q = t.sent[0]!;
+    expect(q.text).toContain('پایتخت کشور 1؟');
+    expect(q.text).toContain('هنوز کسی جواب نداده');
+    expect(q.keyboard!.flat().map((b) => b.text)).toEqual(['الف', 'ب', 'ج', 'د']);
+    expect(q.keyboard!.flat().every((b) => /^q:0:[0-3]$/.test(b.callback_data!))).toBe(true);
+    await qTap(t, 0, 1, 100, 5);
+    expect(t.answers.at(-1)).toContain('ثبت شد');
+    await qTap(t, 0, 3, 100, 5);
+    expect(t.answers.at(-1)).toContain('قبلاً');
+    await qTap(t, 0, 0, 100, 6, 'علی');
+    await run(t);
+    const reveal = t.edits.at(-1)!;
+    expect(reveal.text).toContain('جواب درست: ب');
+    expect(reveal.text).toContain('چون این‌طور است');
+    expect(reveal.text).toContain('✅ سارا (+۵)');
+    expect(reveal.text).toContain('❌ علی');
+    await qTap(t, 0, 1, 100, 7); // too late
+    expect(t.answers.at(-1)).toContain('تمام');
+    expect(t.mem.scores.find((x) => x.userRef === '5')).toMatchObject({ points: 5, wrong: 0 });
+    expect(t.mem.scores.find((x) => x.userRef === '6')).toMatchObject({ points: 0, wrong: 1 });
+  });
+
+  it('runs all rounds into the same weekly tally as the puzzle, then caps sessions per day', async () => {
+    const t = setup();
+    const playOut = async (firstId: number) => {
+      for (let i = 0; i < 5; i++) {
+        await qTap(t, i, 1, firstId + i, 5);
+        await run(t);
+        if (i < 4) await run(t);
+      }
+    };
+    await t.svc.handleUpdate(t.msg('/question'));
+    await playOut(100);
+    expect(t.sent.at(-1)!.text).toContain('🥇 سارا — ۲۵ امتیاز');
+    await t.svc.handleUpdate(t.msg('/question'));
+    await playOut(106);
+    await t.svc.handleUpdate(t.msg('/question'));
+    expect(t.sent.at(-1)!.text).toContain('امروز ۲ دور');
+    expect(t.mem.scores.find((x) => x.userRef === '5')!.points).toBe(50);
+  });
+
+  it('refuses a second session while one is running', async () => {
+    const t = setup();
+    await t.svc.handleUpdate(t.msg('/question'));
+    await t.svc.handleUpdate(t.msg('/question'));
+    expect(t.sent.at(-1)!.text).toContain('در جریان');
   });
 });
 

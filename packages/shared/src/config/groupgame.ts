@@ -34,3 +34,12 @@ export const GROUP_PRICE_PAUSE_MS = 4_000;
 export const GROUP_PRICE_SESSIONS_PER_DAY = 2;
 /** Points for picking the real price; a wrong pick earns nothing. */
 export const GROUP_PRICE_POINTS = 5;
+
+/** General-question mode in groups (`/question`): same shape as price mode, questions come from the «پرسش‌های عمومی» bank. */
+export const GROUP_QUESTION_ROUNDS = 5;
+export const GROUP_QUESTION_ROUND_MS = 40_000;
+export const GROUP_QUESTION_TICK_MS = 10_000;
+export const GROUP_QUESTION_PAUSE_MS = 4_000;
+export const GROUP_QUESTION_SESSIONS_PER_DAY = 2;
+/** Points for the right choice; a wrong pick earns nothing. */
+export const GROUP_QUESTION_POINTS = 5;

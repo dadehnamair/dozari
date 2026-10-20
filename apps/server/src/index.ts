@@ -1358,6 +1358,13 @@ if (isMainModule(import.meta.url)) {
             .map((r) => ({ nameFa: items[r.productId]?.nameFa ?? '', unitFa: items[r.productId]?.unitFa ?? null, year: r.year, actualRials: r.actualRials, options: r.options ?? [] }))
             .filter((q) => q.nameFa !== '' && q.options.length > 0);
         },
+        drawQuestions: triviaStore
+          ? async (n) => {
+              const rng = mulberry32(randomInt(0, 2 ** 31));
+              // groups are mixed ages and never link an account: the adult pool, no per-player memory
+              return (await drawTrivia(triviaStore, undefined, { tracks: ['adult'], count: n, rng, userIds: [] })).map((q) => ({ textFa: q.textFa, explanationFa: q.explanationFa, ...(({ options, correctIndex }) => ({ options, correctIndex }))(shuffleTrivia(q, rng)) }));
+            }
+          : undefined,
         usernames: { bale: baleUsername, telegram: telegramUsername },
         log: (msg, err) => (err ? app.log.warn({ err }, msg) : app.log.info(msg)),
       });

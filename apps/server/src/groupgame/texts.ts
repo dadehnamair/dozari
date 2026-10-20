@@ -1,7 +1,7 @@
 /** What the bot says inside groups. Persian only (a bot surface, separate from the app's `fa.ts`). */
 export const GROUP_TEXT = {
-  welcome: 'سلام! من «دوزاری» هستم 🪙\nبازی حدس قیمت‌های قدیمی ایران: ۱۶ کارت، ۴ دسته‌ی چهارتایی که باید با هم پیدا کنید.\n\n/play پازل امروز گروه\n/price قیمت‌شناسی\n/table میز اختصاصی\n/top جدول هفته\n/help راهنما',
-  help: 'راهنمای دوزاری 🧩\n۱۶ کارت روی صفحه است و ۴ دسته‌ی چهارتایی دارد که یک چیز مشترک دارند (مثلاً قیمتشان در یک سال).\nهر نفر جداگانه بازی می‌کند: کارت‌ها را بزنید، وقتی ۴ تا شد «ثبت» را بزنید. جواب هر کس فقط برای خودش نشان داده می‌شود (۴ اشتباه مجاز است). بعد از ۱۵ دقیقه نتیجه‌ی همه اعلام می‌شود.\nروزی یک پازل برای هر گروه.\n\n/play شروع پازل امروز\n/price پنج سؤال قیمت (روزی دو بار)\n/table CODE کارت میز اختصاصی (میز را در اپ بسازید)\n/top جدول هفته',
+  welcome: 'سلام! من «دوزاری» هستم 🪙\nبازی حدس قیمت‌های قدیمی ایران: ۱۶ کارت، ۴ دسته‌ی چهارتایی که باید با هم پیدا کنید.\n\n/play پازل امروز گروه\n/price قیمت‌شناسی\n/question سؤال عمومی\n/table میز اختصاصی\n/top جدول هفته\n/help راهنما',
+  help: 'راهنمای دوزاری 🧩\n۱۶ کارت روی صفحه است و ۴ دسته‌ی چهارتایی دارد که یک چیز مشترک دارند (مثلاً قیمتشان در یک سال).\nهر نفر جداگانه بازی می‌کند: کارت‌ها را بزنید، وقتی ۴ تا شد «ثبت» را بزنید. جواب هر کس فقط برای خودش نشان داده می‌شود (۴ اشتباه مجاز است). بعد از ۱۵ دقیقه نتیجه‌ی همه اعلام می‌شود.\nروزی یک پازل برای هر گروه.\n\n/play شروع پازل امروز\n/price پنج سؤال قیمت (روزی دو بار)\n/question پنج سؤال عمومی (روزی دو بار)\n/table CODE کارت میز اختصاصی (میز را در اپ بسازید)\n/top جدول هفته',
   unavailable: 'امروز پازلی آماده نیست. کمی بعد دوباره /play را بزنید.',
   title: (dateFa: string) => `🧩 پازل روز دوزاری — ${dateFa}`,
   howTo: (minutes: number) =>
@@ -74,4 +74,23 @@ export const TABLE_TEXT = {
   card: (name: string, host: string, format: string, taken: number, seats: number, fee: number, code: string) =>
     `🎲 ${host} شما را به یک دوئل دعوت می‌کند!\n\nمیز «${name}» · ${format}\nصندلی‌ها: ${fa(taken)} از ${fa(seats)} پر است\nورودی: ${fee > 0 ? `${fa(fee)} سکه برای هر نفر` : 'رایگان'}\nکد میز: ${code}\n\nدکمه را بزنید تا مستقیم بروید سر میز 👇`,
   button: 'ورود به میز 🎮',
+} as const;
+
+/** General-question mode (`/question`) texts. */
+export const QUESTION_TEXT = {
+  unavailable: 'الان سؤالی آماده نیست. کمی بعد دوباره /question را بزنید.',
+  busy: 'یک دور «سؤال عمومی» همین الان در جریان است 👆',
+  limit: (max: number) => `امروز ${fa(max)} دور «سؤال عمومی» بازی کردید. فردا دوباره! توی اپ می‌توانید هر چقدر خواستید بازی کنید 👇`,
+  question: (i: number, n: number, text: string, secs: number, answered: number) =>
+    `🧠 سؤال عمومی — ${fa(i)} از ${fa(n)}\n\n❓ ${text}\n\n👇 یکی از چهار گزینه را بزنید\n• هر نفر فقط یک جواب می‌تواند بدهد و بعد از زدن عوض نمی‌شود.\n• جواب درست و برنده‌ها بعد از پایان وقت اعلام می‌شود.\n\n⏳ ${fa(secs)} ثانیه مانده · ${answered > 0 ? `${fa(answered)} نفر جواب داده‌اند` : 'هنوز کسی جواب نداده'}`,
+  locked: 'جوابت ثبت شد ✅',
+  already: 'جوابت قبلاً ثبت شده',
+  closed: 'وقت این سؤال تمام شده',
+  reveal: (i: number, n: number, text: string, right: string, why: string) => `🧠 سؤال ${fa(i)} از ${fa(n)}: ${text}\n\n✅ جواب درست: ${right}${why ? `\n💡 ${why}` : ''}`,
+  right: (who: string, pts: number) => `✅ ${who} (+${fa(pts)})`,
+  wrong: (who: string) => `❌ ${who}`,
+  nobody: 'کسی جواب نداد 😴',
+  summaryTitle: '🏁 پایان دور سؤال عمومی',
+  summaryRow: (rank: number, who: string, pts: number) => `${['🥇', '🥈', '🥉'][rank - 1] ?? `${fa(rank)}.`} ${who} — ${fa(pts)} امتیاز`,
+  summaryNone: 'این بار کسی امتیاز نگرفت.',
 } as const;

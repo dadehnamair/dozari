@@ -20,6 +20,8 @@ export interface GroupGameStore {
   finishPlay(chatId: string, dateKey: string, f: { result: 'won' | 'lost'; mistakes: number; solvedGroups: number; players: number }): Promise<boolean>;
   /** Counts one `/price` session for the day; false when the group already used `max` of them. */
   startPriceSession(chatId: string, dateKey: string, max: number): Promise<boolean>;
+  /** Counts one `/question` session for the day; false when the group already used `max` of them. */
+  startQuestionSession(chatId: string, dateKey: string, max: number): Promise<boolean>;
   /** Adds to one member's tally for the week (created on first use). */
   addScore(chatId: string, weekKey: string, d: { userRef: string; name: string; points: number; groups: number; wrong: number }): Promise<void>;
   /** The week's tallies of a group, any order (the caller ranks). */
@@ -82,6 +84,14 @@ export function createDbGroupGameStore(db: Db): GroupGameStore {
         .update(botGroupPriceSessions)
         .set({ sessions: sql`${botGroupPriceSessions.sessions} + 1` })
         .where(and(eq(botGroupPriceSessions.chatId, chatId), eq(botGroupPriceSessions.dateKey, dateKey), sql`${botGroupPriceSessions.sessions} < ${max}`));
+      return res.affectedRows > 0;
+    },
+    async startQuestionSession(chatId, dateKey, max) {
+      await db.insert(botGroupPriceSessions).ignore().values({ chatId, dateKey });
+      const [res] = await db
+        .update(botGroupPriceSessions)
+        .set({ questionSessions: sql`${botGroupPriceSessions.questionSessions} + 1` })
+        .where(and(eq(botGroupPriceSessions.chatId, chatId), eq(botGroupPriceSessions.dateKey, dateKey), sql`${botGroupPriceSessions.questionSessions} < ${max}`));
       return res.affectedRows > 0;
     },
     async addScore(chatId, weekKey, d) {

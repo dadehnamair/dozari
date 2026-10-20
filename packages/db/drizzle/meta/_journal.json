@@ -708,6 +708,13 @@
       "when": 1792246766483,
       "tag": "0100_quiet_karma",
       "breakpoints": true
+    },
+    {
+      "idx": 101,
+      "version": "5",
+      "when": 1792503533831,
+      "tag": "0101_jazzy_gargoyle",
+      "breakpoints": true
     }
   ]
 }

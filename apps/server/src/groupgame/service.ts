@@ -7,6 +7,8 @@ import { RateLimiter } from '../security/rate-limit.js';
 import type { ServedPuzzle } from '../solo/types.js';
 import { GroupPriceGame, parsePriceCallback } from './price.js';
 import type { GroupPriceQuestion } from './price.js';
+import { GroupTriviaGame, parseQuestionCallback } from './trivia.js';
+import type { GroupTriviaQuestion } from './trivia.js';
 import { parseCallback, rankPlayers, renderBoard, renderResults } from './render.js';
 import type { PlayerResult } from './render.js';
 import type { GroupGameStore } from './store.js';
@@ -30,6 +32,8 @@ export interface GroupGameDeps {
   todayPuzzle: (dateKey: string) => Promise<ServedPuzzle | null>;
   /** Price-mode questions (phase 3); absent = no `/price`. */
   drawPrices?: (count: number) => Promise<GroupPriceQuestion[]>;
+  /** General questions (`/question`); absent = no `/question`. */
+  drawQuestions?: (count: number) => Promise<GroupTriviaQuestion[]>;
   /** A joinable table by code, for `/table CODE`; absent = no table cards. */
   tableCard?: (code: string) => GroupTableCard | null;
   /** Runs a function later (a timer in production, a manual queue in tests). */
@@ -76,12 +80,24 @@ export class GroupGameService {
   /** Answers to «someone said our name»: one a minute per group, so chatter about the game never turns into bot spam. */
   private readonly calls = new RateLimiter(1, 60_000);
   private readonly price?: GroupPriceGame;
+  private readonly trivia?: GroupTriviaGame;
   private readonly now: () => number;
   private readonly newSeed: () => number;
 
   constructor(private readonly d: GroupGameDeps) {
     this.now = d.now ?? Date.now;
     this.newSeed = d.newSeed ?? (() => randomInt(0, 2 ** 31));
+    if (d.drawQuestions) {
+      this.trivia = new GroupTriviaGame({
+        store: d.store,
+        client: d.client,
+        draw: d.drawQuestions,
+        ctaUrl: (chatId) => this.ctaUrl(chatId),
+        schedule: d.schedule ?? ((fn, ms) => void setTimeout(fn, ms).unref()),
+        now: this.now,
+        log: d.log,
+      });
+    }
     if (d.drawPrices) {
       this.price = new GroupPriceGame({
         store: d.store,
@@ -102,6 +118,10 @@ export class GroupGameService {
         await this.price.tap(u.callback_query);
         return true;
       }
+      if (this.trivia && parseQuestionCallback(u.callback_query.data)) {
+        await this.trivia.tap(u.callback_query);
+        return true;
+      }
       if (!parseCallback(u.callback_query.data)) return false;
       await this.onTap(u.callback_query);
       return true;
@@ -116,10 +136,11 @@ export class GroupGameService {
     if (!m || !isGroupChat(m.chat, m.from)) return false;
     const chatId = String(m.chat.id);
     const cmd = (m.text ?? '').trim().split(/\s+/)[0]?.toLowerCase().replace(/@.*$/, '') ?? '';
-    if (cmd === '/play' || cmd === '/price' || cmd === '/table' || cmd === '/top' || cmd === '/start' || cmd === '/help') {
+    if (cmd === '/play' || cmd === '/price' || cmd === '/question' || cmd === '/table' || cmd === '/top' || cmd === '/start' || cmd === '/help') {
       await this.register(chatId, m.chat.title ?? '');
       if (cmd === '/play') await this.play(chatId);
       else if (cmd === '/price' && this.price) await this.price.start(chatId);
+      else if (cmd === '/question' && this.trivia) await this.trivia.start(chatId);
       else if (cmd === '/table' && this.d.tableCard) await this.tableCard(chatId, m.text ?? '');
       else if (cmd === '/top') await this.top(chatId);
       else await this.say(chatId, cmd === '/start' ? GROUP_TEXT.welcome : GROUP_TEXT.help);

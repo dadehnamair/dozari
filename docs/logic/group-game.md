@@ -18,7 +18,7 @@ Bale first; Telegram runs on the same code (ids carry the `tg:` prefix, `docs/lo
 - Privacy: the bot reads only commands and button taps in groups, never ordinary messages.
 
 ## Commands (a `@botname` suffix is ignored)
-`/start` · `/help` welcome and rules · `/table CODE` card for a private table · `/play` today's puzzle · `/price` price questions · `/top` this week's best members of the group.
+`/start` · `/help` welcome and rules · `/table CODE` card for a private table · `/play` today's puzzle · `/price` price questions · `/question` general questions · `/top` this week's best members of the group.
 
 ## Rules of the round
 - The puzzle is **today's daily puzzle** (`DailyService.ensure`, same as in the app), 16 cards, 4 groups of 4. Pure logic is `startSolo` / `submitGuess` from shared; the
@@ -61,6 +61,13 @@ Bale first; Telegram runs on the same code (ids carry the `tg:` prefix, `docs/lo
 - At most `GROUP_PRICE_SESSIONS_PER_DAY` sessions per group per Tehran day (`bot_group_price_sessions`, an atomic counter); more is answered with the app
   call-to-action. One session at a time per group. A server restart drops a running session (its already revealed points stay saved; the daily count stays used).
 - Timers are in memory (`schedule` is injected so tests drive them).
+
+## Question mode (`/question`, owner 2026-10-20)
+- Same flow, texts layout, scoring and caps as price mode (`groupgame/trivia.ts`, buttons `q:<question>:<option>`): `GROUP_QUESTION_ROUNDS` four-choice questions from the
+  approved «پرسش‌های عمومی» bank (`docs/logic/trivia.md`), choices shuffled, one answer per member per question, a visible countdown, the right choice and the explanation
+  revealed when time is up, `GROUP_QUESTION_POINTS` per right answer into the same weekly tally as the puzzle (`/top`).
+- Questions are drawn from the **adult** track pool across all topics (a group mixes ages and links no account), without the per-player seen memory (`drawTrivia` with no user ids).
+- At most `GROUP_QUESTION_SESSIONS_PER_DAY` sessions per group per Tehran day (`bot_group_price_sessions.question_sessions`, migration 0101); one session at a time; the correct index is in server memory only until the reveal (rule 4).
 
 ## Table card (`/table CODE`)
 - A player opens a private table in the app (it has a 5-character code) and writes `/table CODE` in the group. The bot answers with a card — host, table name, format,
@@ -107,9 +114,9 @@ The finishing message (and the «already played today» answer) carries a URL bu
 Per tapper `GROUP_TAP_LIMIT` taps per minute; a message edit that Bale/Telegram rejects (`message is not modified`, deleted message) is swallowed.
 Config in `packages/shared/src/config/groupgame.ts`.
 
-## Data (migrations 0097, 0098, 0099, 0100)
+## Data (migrations 0097–0101)
 - `bot_groups(chat_id PK, platform, title, ref unique, added_at, removed_at)`; `user_clients.src`, `user_clients.first_src` (migration 0100).
-- `bot_group_price_sessions(chat_id, date_key PK, sessions)`.
+- `bot_group_price_sessions(chat_id, date_key PK, sessions, question_sessions)` (0101).
 - `bot_group_scores(chat_id, week_key, user_ref PK, name, points, groups, wrong)`.
 - `bot_group_plays(chat_id, date_key PK, result playing|won|lost, mistakes, solved_groups, players, started_at, finished_at)`.
 
