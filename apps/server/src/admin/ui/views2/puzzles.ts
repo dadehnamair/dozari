@@ -420,7 +420,7 @@ export const ADMIN_VIEWS2_PUZZLES_JS = String.raw`VIEWS.puzzles = function (root
       var icon = t.iconKey || '', tile = h('div', { class: 'icon-tile-slot' }, [iconTile(icon)]);
       function chooseIcon() {
         var pick = icon;
-        var m = formModal('آیکن موضوع «' + t.nameFa + '»', [iconPicker(icon, function (k) { pick = k; })], function () { icon = pick; clear(tile); tile.appendChild(iconTile(icon)); return true; });
+        var m = formModal('آیکن موضوع «' + t.nameFa + '»', [h('div', { style: 'grid-column:1/-1' }, [iconPicker(icon, function (k) { pick = k; })])], function () { icon = pick; clear(tile); tile.appendChild(iconTile(icon)); return true; });
         return m;
       }
       return h('div', { class: 'toolbar' }, [tile, h('button', { class: 'btn sm', text: 'آیکن', title: 'انتخاب آیکن از بسته‌ی آیکن‌ها', onclick: chooseIcon }), icon ? h('button', { class: 'btn sm', text: '✕', title: 'برداشتن آیکن', onclick: function () { icon = ''; clear(tile); tile.appendChild(iconTile('')); } }) : null, emoji, name, slug, order, h('label', { class: 'sub' }, [active, ' فعال']), badge(fa(t.puzzles) + ' پازل فعال', t.puzzles >= 3 ? 'b-ok' : 'b-warn'),
