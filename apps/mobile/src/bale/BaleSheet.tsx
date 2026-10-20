@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { MUTABLE_NOTIFY_KINDS } from '@dozari/shared';
-import type { BaleLinkCode, BaleLinkStatus, MutableNotifyKind } from '@dozari/shared';
+import { MUTABLE_NOTIFY_KINDS, toPersianDigits as d } from '@dozari/shared';
+import type { BaleLinkCode, BaleLinkStatus, GroupStats, MutableNotifyKind } from '@dozari/shared';
 import { CandyButton } from '../components/CandyButton';
 import { GuideBubble } from '../components/GuideBubble';
 import { useConfirm } from '../components/useConfirm';
@@ -12,7 +12,7 @@ import { colors, fonts } from '../theme/colors';
 import { ApiError } from '../net/http';
 import { phoneErrorText } from '../phone/errors';
 import { PhoneStep } from '../phone/PhoneStep';
-import { fetchBaleLink, fetchBalePrefs, requestBaleCode, saveBalePrefs, unlinkBale } from './api';
+import { fetchBaleLink, fetchBalePrefs, fetchGroupStats, requestBaleCode, saveBalePrefs, unlinkBale } from './api';
 import { enableWebNotify, webNotifyState } from '../notices/webNotify';
 import type { WebNotifyState } from '../notices/webNotify';
 import { useTheme } from '../theme/themeStore';
@@ -32,11 +32,13 @@ export function BaleSheet({ onClose }: { onClose: () => void }) {
   const [phoneNote, setPhoneNote] = useState<string | null>(null);
 
   const [muted, setMuted] = useState<MutableNotifyKind[]>([]);
+  const [group, setGroup] = useState<GroupStats | null>(null);
   const [web, setWeb] = useState<WebNotifyState>(webNotifyState);
 
   useEffect(() => {
     fetchBaleLink().then(setStatus, () => setFailed(true));
     fetchBalePrefs().then((p) => setMuted(p.muted), () => undefined);
+    fetchGroupStats().then(setGroup, () => undefined);
   }, []);
 
   const toggle = (k: MutableNotifyKind) => {
@@ -68,6 +70,21 @@ export function BaleSheet({ onClose }: { onClose: () => void }) {
         <SheetBody>
         <Text style={[styles.title, adult ? styles.textAdult : null]}>{fa.bale.title}</Text>
         <GuideBubble who="mirza" text={fa.bale.intro} />
+        {group ? (
+          <View accessibilityLabel={fa.bale.groupTitle}>
+            <Text style={[styles.small, adult ? styles.textAdult : null]}>{fa.bale.groupTitle}</Text>
+            {group.groupCount === 0 ? (
+              <Text style={[styles.text, adult ? styles.textAdult : null]}>{fa.bale.groupEmpty}</Text>
+            ) : (
+              <>
+                <Text style={[styles.text, adult ? styles.textAdult : null]}>{fa.bale.groupPoints(d(group.points), d(group.groups), d(group.groupCount))}</Text>
+                <Text style={[styles.text, adult ? styles.textAdult : null]}>{fa.bale.groupWeek(d(group.weekPoints))}</Text>
+                <Text style={[styles.text, adult ? styles.textAdult : null]}>{fa.bale.groupToday(d(group.today.coins), d(group.today.coinsCap), d(group.today.xp), d(group.today.xpCap))}</Text>
+                <Text style={[styles.small, adult ? styles.textAdult : null]}>{fa.bale.groupTotal(d(group.totalCoins), d(group.totalXp))}</Text>
+              </>
+            )}
+          </View>
+        ) : null}
         <PhoneStep hideWhenVerified />
         {phoneNote ? <Text style={[styles.text, adult ? styles.textAdult : null]}>{phoneNote}</Text> : null}
         {failed ? <Text style={[styles.text, adult ? styles.textAdult : null]}>{why ?? fa.bale.error}</Text> : null}

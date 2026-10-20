@@ -1,12 +1,23 @@
 import type { FastifyInstance } from 'fastify';
 import type { AuthService } from '../auth/service.js';
 import { currentUser } from '../auth/routes.js';
-import { balePrefsSchema } from '@dozari/shared';
+import { balePrefsSchema, dailyDateKey, groupWeekKey } from '@dozari/shared';
+import type { GroupMine } from '../groupgame/mine.js';
 import type { PhoneService } from '../phone/service.js';
 import type { NotifyService } from './service.js';
 
 /** Player side: get a one-time code for the Bale bot, see whether Bale is linked, unlink. */
-export function registerBaleRoutes(app: FastifyInstance, auth: AuthService, notify: NotifyService, botUsername: string | null, telegramBotUsername: string | null, phone?: { service: PhoneService; required: () => Promise<boolean> }) {
+export function registerBaleRoutes(app: FastifyInstance, auth: AuthService, notify: NotifyService, botUsername: string | null, telegramBotUsername: string | null, phone?: { service: PhoneService; required: () => Promise<boolean> }, groupMine?: GroupMine) {
+  // What the player earned in group chats (D249).
+  if (groupMine) {
+    app.get('/me/group-stats', async (req, reply) => {
+      const user = await currentUser(auth, req);
+      if (!user) return reply.code(401).send({ error: 'unauthorized' });
+      const dateKey = dailyDateKey(Date.now());
+      return groupMine.stats(user.id, groupWeekKey(dateKey), dateKey);
+    });
+  }
+
   app.get('/bale/link', async (req, reply) => {
     const user = await currentUser(auth, req);
     if (!user) return reply.code(401).send({ error: 'unauthorized' });

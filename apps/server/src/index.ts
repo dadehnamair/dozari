@@ -104,6 +104,10 @@ import { NotifyService } from './notify/service.js';
 import { createBaleSignup } from './notify/signup.js';
 import { startNotifyRunner } from './notify/runner.js';
 import { GroupGameService } from './groupgame/service.js';
+import { GroupScoreRecorder } from './groupgame/record.js';
+import { createDbGroupRewardStore } from './groupgame/rewards.js';
+import { createDbGroupMine } from './groupgame/mine.js';
+import type { GroupMine } from './groupgame/mine.js';
 import { createDbGroupGameStore } from './groupgame/store.js';
 import { registerBaleRoutes } from './notify/routes.js';
 import { FcmService, createDbFcmTokenStore, createFcmSender, loadServiceAccount, registerFcmRoutes } from './notify/fcm.js';
@@ -239,6 +243,8 @@ export interface ServerDeps {
   realtime?: boolean;
   /** Bale messenger integration: link codes for players, the bot's name for the app. */
   bale?: { service: NotifyService; botUsername: string | null; telegramBotUsername?: string | null }
+  /** `GET /me/group-stats` (D249). */
+  groupMine?: GroupMine
   webPush?: WebPushService;
   fcm?: FcmService;
   irnotiPush?: IrnotiPushService;
@@ -461,7 +467,7 @@ export function buildServer(deps: ServerDeps = {}) {
   if (deps.auth && deps.bale) {
     const phoneSvc = deps.phone;
     const settings = deps.settings;
-    registerBaleRoutes(app, deps.auth, deps.bale.service, deps.bale.botUsername, deps.bale.telegramBotUsername ?? null, phoneSvc ? { service: phoneSvc, required: async () => (settings ? (await settings.num('phone.required_for_bale')) === 1 : true) } : undefined);
+    registerBaleRoutes(app, deps.auth, deps.bale.service, deps.bale.botUsername, deps.bale.telegramBotUsername ?? null, phoneSvc ? { service: phoneSvc, required: async () => (settings ? (await settings.num('phone.required_for_bale')) === 1 : true) } : undefined, deps.groupMine);
   }
   if (deps.settings) {
     const settings = deps.settings;
@@ -1090,6 +1096,7 @@ if (isMainModule(import.meta.url)) {
     adminModules: db
       ? { backups: backupService, images: adminImageStore(), products: productAdmin!, feedback, clientErrors, stats: createDbStatsAdmin(db), usage: createDbUsageStats(db), groupStats: createDbGroupStats(db), bazaar: createBazaarMonitor({ token: process.env.BAZAAR_PISHKHAN_TOKEN }), users: createDbUsersAdmin(db), audit: createDbAuditLog(db), words, cities: playerStore, shop: shopStore, avatars: avatarStore, keepsakes: keepsakeStore, wheel, ads, landing: landingService, shortLinks: shortLinkService && settings ? { service: shortLinkService, base: async () => { const h = (await settings.text('domain.short')).trim(); return h ? `https://${h}` : ''; } } : undefined, coinPackages: coinPackageService, invites: inviteStore, badges: badgeStore && badges ? { store: badgeStore, service: badges } : undefined, chat: chatStore, tournaments: tournamentService, sponsors: sponsorStore, lessons: db ? createDbLessonStore(db) : undefined, ageTracks: db ? createDbAgeTrackAdmin(db) : undefined, economy: db ? createDbEconomyAdmin(db) : undefined, daily, ai: aiStudio, aiSchedules: aiScheduler, puzzles: createDbPuzzleAdmin(db), categories: createDbCategoryAdmin(db), trivia: triviaStore, workshop, leaves, levelRoad: levelTable && settings ? { table: levelTable, defaults: async () => { const [curveBase, levelMax, every, base] = await Promise.all(['xp.curve_base', 'xp.level_max', 'levelreward.every', 'levelreward.base_coins'].map((k) => settings.num(k))); return defaultLevelTable({ curveBase: curveBase!, levelMax: levelMax! }, { every: every!, base: base! }); } } : undefined, botPlayers: botStore && player && settings && botService ? { service: botService, cities: async () => (playerStore ? (await playerStore.cities()).map((c) => c.id) : []) } : undefined, messages, sms: smsGateway, bale: notify && baleStore ? { service: notify, store: baleStore, botUsername: baleUsername } : undefined, bot: botRepo && bot ? { repo: botRepo, service: bot } : undefined }
       : undefined,
+    groupMine: db ? createDbGroupMine(db) : undefined,
     realtime: Boolean(auth),
     triviaDuel:
       duelProfile && triviaStore && settings
@@ -1344,8 +1351,9 @@ if (isMainModule(import.meta.url)) {
     const groupClient = createMultiClient(baleClient, telegramClient);
     if (db && daily && groupClient) {
       const groupPuzzles = createDbPuzzleSource(db);
+      const groupStore = createDbGroupGameStore(db);
       notify.groups = new GroupGameService({
-        store: createDbGroupGameStore(db),
+        store: groupStore,
         client: groupClient,
         todayPuzzle: async (dateKey) => {
           const row = await daily.ensure(dateKey);
@@ -1365,6 +1373,17 @@ if (isMainModule(import.meta.url)) {
               return (await drawTrivia(triviaStore, undefined, { tracks: ['adult'], count: n, rng, userIds: [] })).map((q) => ({ textFa: q.textFa, explanationFa: q.explanationFa, ...(({ options, correctIndex }) => ({ options, correctIndex }))(shuffleTrivia(q, rng)) }));
             }
           : undefined,
+        // Points earned in a group also pay the player's own account when the messenger id maps to one (D249).
+        recorder: new GroupScoreRecorder({
+          store: groupStore,
+          userOf: async (ref) => ((await baleStore?.userOfChat(ref)) ?? (await notify.miniAppUserOf?.(ref)) ?? null),
+          eligible: ageTracks ? async (id) => (await ageTracks.effective(id)) === 'adult' : undefined,
+          rewards: createDbGroupRewardStore(db),
+          onPaid: async (id) => {
+            await player?.afterGame?.(id);
+          },
+          log: (msg, err) => app.log.warn({ err }, msg),
+        }),
         usernames: { bale: baleUsername, telegram: telegramUsername },
         log: (msg, err) => (err ? app.log.warn({ err }, msg) : app.log.info(msg)),
       });

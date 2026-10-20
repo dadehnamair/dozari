@@ -36,7 +36,7 @@ Bale first; Telegram runs on the same code (ids carry the `tg:` prefix, `docs/lo
   message stops answering; the members' progress is kept and the deadline is unchanged). The result row is `won` when someone found all four groups, else `lost`;
   `mistakes` = all members' mistakes, `solved_groups` = the best member's, `players` = members who tapped. A play left `playing` after a server restart is restarted
   by the next `/play` (progress and timers are in memory: same trade-off as the app's daily). After it finished, `/play` answers with the result and the app call-to-action.
-- No coins are given in groups (rule 6: coins only via the ledger, and the install is the prize). Group results never touch any player's stats.
+- Coins and XP: nothing is paid inside the group itself, but points pay the player's own account, see §Account rewards (D249, owner 2026-10-20, replaces «no coins in groups / results never touch stats»).
 - Rounds are in memory, dropped after `GROUP_ROUND_TTL_MS` idle.
 
 ## Weekly leaderboard (`/top`)
@@ -101,6 +101,19 @@ The finishing message (and the «already played today» answer) carries a URL bu
 - Not measurable: people who tap the button but never create an account, and the Telegram/Bale in-app browser that blocks storage. Link clicks are not logged (a
   Telegram/Bale URL button is opened by the host, not by us).
 
+## Account rewards (D249, owner 2026-10-20)
+Goal: playing in a group shows up on the player's real account so they keep coming back (and Telegram groups count the same as Bale).
+- **Who:** a group score is attached to a game account when the messenger id maps to one at scoring time: `bale_links` (`userOfChat`) or a mini-app login (`miniAppUserOf`, Bale and `tg:` ids).
+  Not linked = group tally only, nothing paid. Only the **adult** track is paid (kid/teen never; a group mixes ages).
+- **What:** every point scored (puzzle group found, right `/price` or `/question` answer) counts into the account's Tehran-day total `group_rewards(user_id, date_key, points, coins, xp)`.
+  `groupRewardFor(dayPoints)` = `floor(points / GROUP_POINTS_PER_COIN)` coins (cap `GROUP_COINS_DAILY_CAP`) and `GROUP_XP_PER_POINT` XP per point (cap `GROUP_XP_DAILY_CAP`); the difference to what was already paid today is
+  credited. Coins go through `applyLedgerEntry` (reason `group_play`, key `group_play:<user>:<day>:<cumulative coins>`: a replay cannot pay twice); XP is added to `user_stats.xp` + an `xp_events` row (no game counted, so ranking and level
+  move, win/loss stats do not). After a payment `player.afterGame` runs (badges, invite settle). Levels pay their own road rewards as usual.
+- **Where it is saved:** `GroupScoreRecorder` (`groupgame/record.ts`) is the only writer: `bot_group_scores.user_id` (migration 0102) plus the payout (`groupgame/rewards.ts`). A paying failure never breaks the round.
+- **App:** `GET /me/group-stats` (`groupgame/mine.ts`, shared `groupStatsSchema`) feeds the card «آمار تو در گروه‌ها» in the Telegram/Bale sheet (`bale/BaleSheet.tsx`): points, groups found, groups played in, this week, today's coins/XP vs the caps, lifetime paid.
+- **Admin:** «گروه‌های ربات» shows accounts linked/paid, coins/XP paid and the top paid accounts in the window (`admin/group-stats.ts`).
+- Not built: backfilling points scored before the account was linked; a toast in the group saying what landed on the account (the results message only explains the rule).
+
 ## Personal invite link (`/invite`, owner 2026-10-17)
 - In a **private chat** with the bot, `/invite` answers a player who has an account — a linked chat (`bale_links`) or a mini-app player (messenger id → account, `miniAppUserOf`) — with
   `https://ble.ir/<bot>?startapp=i_<HANDLE>` (Telegram: `https://t.me/...`). `HANDLE` is their public ID (`FindService.handle`, made on first use, `docs/logic/find-friends.md`).
@@ -114,10 +127,10 @@ The finishing message (and the «already played today» answer) carries a URL bu
 Per tapper `GROUP_TAP_LIMIT` taps per minute; a message edit that Bale/Telegram rejects (`message is not modified`, deleted message) is swallowed.
 Config in `packages/shared/src/config/groupgame.ts`.
 
-## Data (migrations 0097–0101)
+## Data (migrations 0097–0102)
 - `bot_groups(chat_id PK, platform, title, ref unique, added_at, removed_at)`; `user_clients.src`, `user_clients.first_src` (migration 0100).
 - `bot_group_price_sessions(chat_id, date_key PK, sessions, question_sessions)` (0101).
-- `bot_group_scores(chat_id, week_key, user_ref PK, name, points, groups, wrong)`.
+- `bot_group_scores(chat_id, week_key, user_ref PK, name, points, groups, wrong, user_id)`; `group_rewards(user_id, date_key PK, points, coins, xp)` (0102).
 - `bot_group_plays(chat_id, date_key PK, result playing|won|lost, mistakes, solved_groups, players, started_at, finished_at)`.
 
 ## Not verified

@@ -1,4 +1,4 @@
-import { botGroupPlays, botGroupPriceSessions, botGroups, puzzlePlays, sql, userClients, users } from '@dozari/db';
+import { botGroupPlays, botGroupPriceSessions, botGroupScores, botGroups, groupRewards, puzzlePlays, sql, userClients, users } from '@dozari/db';
 import type { Db } from '@dozari/db';
 
 export interface GroupStats {
@@ -16,6 +16,16 @@ export interface GroupStats {
     /** All-time new accounts via groups, and all accounts that ever opened a group link (new or existing). */
     referredAll: number;
     touchedAll: number;
+  };
+  /** Group points paid to linked accounts as XP and coins (docs/logic/group-game.md §Account rewards). */
+  rewards: {
+    /** Accounts ever seen behind a group score, and accounts paid inside the window. */
+    linkedAll: number;
+    paidAccounts: number;
+    coins: number;
+    xp: number;
+    questionSessions: number;
+    top: { userId: string; nickname: string; points: number; coins: number; xp: number }[];
   };
   daily: { day: string; plays: number; groups: number }[];
   top: { chatId: string; title: string; platform: string; addedAt: number; removed: boolean; plays: number; won: number; players: number; priceSessions: number; referred: number; referredPlayed: number }[];
@@ -105,10 +115,27 @@ export function createDbGroupStats(db: Db): GroupStatsAdmin {
         .orderBy(sql`plays DESC, referred DESC`)
         .limit(30);
 
+      const fromKey = new Date(now - days * DAY + TEHRAN_OFFSET_MIN * 60_000).toISOString().slice(0, 10);
+      const [linked] = await db.select({ n: sql<number>`COUNT(DISTINCT ${botGroupScores.userId})` }).from(botGroupScores);
+      const [paid] = await db
+        .select({ accounts: sql<number>`COUNT(DISTINCT ${groupRewards.userId})`, coins: sql<number>`COALESCE(SUM(${groupRewards.coins}), 0)`, xp: sql<number>`COALESCE(SUM(${groupRewards.xp}), 0)` })
+        .from(groupRewards)
+        .where(sql`${groupRewards.dateKey} >= ${fromKey}`);
+      const [qs] = await db.select({ n: sql<number>`COALESCE(SUM(${botGroupPriceSessions.questionSessions}), 0)` }).from(botGroupPriceSessions).where(sql`${botGroupPriceSessions.dateKey} >= ${fromKey}`);
+      const rewardTop = await db
+        .select({ userId: groupRewards.userId, nickname: users.nickname, points: sql<number>`SUM(${groupRewards.points})`, coins: sql<number>`SUM(${groupRewards.coins})`, xp: sql<number>`SUM(${groupRewards.xp})` })
+        .from(groupRewards)
+        .innerJoin(users, sql`${users.id} = ${groupRewards.userId}`)
+        .where(sql`${groupRewards.dateKey} >= ${fromKey}`)
+        .groupBy(groupRewards.userId, users.nickname)
+        .orderBy(sql`SUM(${groupRewards.points}) DESC`)
+        .limit(15);
+
       return {
         groups: { total: num(g?.total), active: num(g?.active), bale: num(g?.bale), telegram: num(g?.telegram), new7d: num(g?.new7d), new30d: num(g?.new30d) },
         window: { days, plays: num(w?.plays), won: num(w?.won), lost: num(w?.lost), playing: num(w?.playing), activeGroups: num(w?.groups), players: num(w?.players), priceSessions: num(ps?.n) },
         funnel: { referred: num(f?.referred), referredPlayed: num(f?.referredPlayed), referredActive7d: num(f?.referredActive7d), referredAll: num(f?.referredAll), touchedAll: num(f?.touchedAll) },
+        rewards: { linkedAll: num(linked?.n), paidAccounts: num(paid?.accounts), coins: num(paid?.coins), xp: num(paid?.xp), questionSessions: num(qs?.n), top: rewardTop.map((r) => ({ userId: r.userId, nickname: r.nickname ?? '', points: num(r.points), coins: num(r.coins), xp: num(r.xp) })) },
         daily: dailyRows.map((r) => ({ day: r.day, plays: num(r.plays), groups: num(r.groups) })),
         top: topRows.map((r) => ({
           chatId: r.chatId,

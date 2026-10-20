@@ -43,3 +43,12 @@ export const GROUP_QUESTION_PAUSE_MS = 4_000;
 export const GROUP_QUESTION_SESSIONS_PER_DAY = 2;
 /** Points for the right choice; a wrong pick earns nothing. */
 export const GROUP_QUESTION_POINTS = 5;
+
+/**
+ * Group play pays the player's own account (D249, owner 2026-10-20): points earned in a group become XP and coins on the linked
+ * account (mini-app login or Bale/Telegram link), per Tehran day, with ceilings so a group of alts cannot farm. Adult track only.
+ */
+export const GROUP_POINTS_PER_COIN = 5;
+export const GROUP_COINS_DAILY_CAP = 20;
+export const GROUP_XP_PER_POINT = 1;
+export const GROUP_XP_DAILY_CAP = 80;

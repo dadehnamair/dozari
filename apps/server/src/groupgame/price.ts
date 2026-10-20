@@ -1,6 +1,7 @@
 import { GROUP_PRICE_PAUSE_MS, GROUP_PRICE_POINTS, GROUP_PRICE_ROUNDS, GROUP_PRICE_ROUND_MS, GROUP_PRICE_SESSIONS_PER_DAY, GROUP_PRICE_TICK_MS, GROUP_TAP_LIMIT, GROUP_TOP_SIZE, dailyDateKey, groupWeekKey, rialsToTomanString } from '@dozari/shared';
 import type { BaleClient, BaleUpdate, InlineKeyboard } from '../notify/client.js';
 import { RateLimiter } from '../security/rate-limit.js';
+import type { ScoreDelta } from './record.js';
 import type { GroupGameStore } from './store.js';
 import { GROUP_TEXT, PRICE_TEXT } from './texts.js';
 
@@ -19,6 +20,8 @@ export interface GroupPriceDeps {
   client: BaleClient;
   /** Fresh questions over distinct products (fewer when the catalog is small). */
   draw: (count: number) => Promise<GroupPriceQuestion[]>;
+  /** Saves a member's points (weekly tally and their account). */
+  record: (chatId: string, weekKey: string, dateKey: string, d: ScoreDelta) => Promise<void>;
   ctaUrl: (chatId: string) => string | null;
   /** Runs `fn` after `ms` (a real timer in production). */
   schedule: (fn: () => void, ms: number) => void;
@@ -142,7 +145,7 @@ export class GroupPriceGame {
         const t = s.totals.get(who) ?? { name: a.name, points: 0 };
         s.totals.set(who, { name: a.name, points: t.points + GROUP_PRICE_POINTS });
       }
-      void this.d.store.addScore(chatId, weekKey, { userRef: who, name: a.name, points: ok ? GROUP_PRICE_POINTS : 0, groups: 0, wrong: ok ? 0 : 1 }).catch((err) => this.d.log?.('group: saving the score failed', err));
+      void this.d.record(chatId, weekKey, s.dateKey, { userRef: who, name: a.name, points: ok ? GROUP_PRICE_POINTS : 0, groups: 0, wrong: ok ? 0 : 1 }).catch((err) => this.d.log?.('group: saving the score failed', err));
     }
     const text = [PRICE_TEXT.reveal(index + 1, s.questions.length, label(q), q.year, rialsToTomanString(q.actualRials)), '', ...(lines.length > 0 ? lines : [PRICE_TEXT.nobody])].join('\n');
     if (s.messageId !== null) await this.d.client.editInline?.(chatId, s.messageId, text, []).catch((err) => this.d.log?.('group: edit failed', err));

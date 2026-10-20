@@ -840,3 +840,8 @@ Owner: in a group the bot must not post extra messages; it answers only when cal
 ## D248 — Private bot chat: stray text gets the help text at most once per 10 minutes (2026-10-19, proposed)
 
 Owner: typing anything to the bot answered with the same message every time. In a private chat, text that is neither a command nor a link code now gets the help text once per 10 minutes per chat (`/help` always answers; wrong codes still get the bad-code reply, rate-limited as before). Needs confirmation of which message the owner saw (private chat vs group).
+
+## D249 — Group play pays the player's own account (2026-10-20, owner)
+
+Owner: playing the bot in a group must show on the player's real account so they keep playing in groups — points should raise their level and earn coins, on Telegram too. Overrides D244's «no coins in groups, group results never touch stats». Group points of a linked **adult** account (Bale link or mini-app login) become XP (1 per point, cap 80/day) and coins (1 per 5 points, cap 20/day) through the ledger (`group_play`); unlinked players and kid/teen accounts get nothing. Also: `/question` general-question mode (5 questions from the trivia bank, same scoring as `/price`), `GET /me/group-stats` card in the app, and admin numbers in «گروه‌های ربات». Numbers are proposed, tune in `config/groupgame.ts`; the cap exists so a group of alts cannot farm. Spec: `docs/logic/group-game.md` §Account rewards.
+

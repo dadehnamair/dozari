@@ -636,6 +636,7 @@ export const LEDGER_REASONS = [
   'trivia_entry',
   'trivia_payout',
   'trivia_refund',
+  'group_play',
 ] as const;
 
 /** Append-only. Coins move only through the server's ledger function; a repeated idempotency key is a no-op. */
@@ -784,8 +785,23 @@ export const botGroupScores = mysqlTable(
     points: int('points').notNull().default(0),
     groups: int('groups').notNull().default(0),
     wrong: int('wrong').notNull().default(0),
+    /** The game account behind `user_ref` when the messenger id maps to one at scoring time (D249); null = not linked. */
+    userId: char('user_id', { length: 36 }),
   },
-  (t) => ({ pk: primaryKey({ columns: [t.chatId, t.weekKey, t.userRef] }) }),
+  (t) => ({ pk: primaryKey({ columns: [t.chatId, t.weekKey, t.userRef] }), byUser: index('bot_group_scores_user_idx').on(t.userId) }),
+);
+
+/** What group play paid one account on one Tehran day (D249): the daily cap and the amounts already credited. */
+export const groupRewards = mysqlTable(
+  'group_rewards',
+  {
+    userId: fk('user_id').references(() => users.id),
+    dateKey: char('date_key', { length: 10 }).notNull(),
+    points: int('points').notNull().default(0),
+    coins: int('coins').notNull().default(0),
+    xp: int('xp').notNull().default(0),
+  },
+  (t) => ({ pk: primaryKey({ columns: [t.userId, t.dateKey] }) }),
 );
 
 /** How many `/price` sessions a group started on a Tehran day (the daily cap of docs/logic/group-game.md §Price mode). */

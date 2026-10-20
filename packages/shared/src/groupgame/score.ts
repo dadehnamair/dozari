@@ -1,4 +1,4 @@
-import { GROUP_POINTS_LEVEL_BONUS, GROUP_POINTS_PER_GROUP } from '../config/groupgame.js';
+import { GROUP_COINS_DAILY_CAP, GROUP_POINTS_LEVEL_BONUS, GROUP_POINTS_PER_COIN, GROUP_POINTS_PER_GROUP, GROUP_XP_DAILY_CAP, GROUP_XP_PER_POINT } from '../config/groupgame.js';
 import type { GroupLevel } from '../game/solo.js';
 
 /** Points for the player who finds a group of this level in a group chat. */
@@ -29,4 +29,13 @@ export interface GroupScoreRow {
 /** Leaderboard order: points, then groups found, then fewer wrong submits, then name (stable). */
 export function rankGroupScores(rows: readonly GroupScoreRow[]): GroupScoreRow[] {
   return [...rows].sort((a, b) => b.points - a.points || b.groups - a.groups || a.wrong - b.wrong || a.name.localeCompare(b.name, 'fa'));
+}
+
+/**
+ * What a day's group points are worth on the player's own account (D249): whole coins per `GROUP_POINTS_PER_COIN` points and XP per point,
+ * each up to its daily ceiling. Cumulative on purpose: the caller pays the difference to what was already paid that day.
+ */
+export function groupRewardFor(dayPoints: number): { coins: number; xp: number } {
+  const p = Math.max(0, Math.floor(dayPoints));
+  return { coins: Math.min(Math.floor(p / GROUP_POINTS_PER_COIN), GROUP_COINS_DAILY_CAP), xp: Math.min(p * GROUP_XP_PER_POINT, GROUP_XP_DAILY_CAP) };
 }

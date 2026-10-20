@@ -1,6 +1,7 @@
 import { GROUP_QUESTION_PAUSE_MS, GROUP_QUESTION_POINTS, GROUP_QUESTION_ROUNDS, GROUP_QUESTION_ROUND_MS, GROUP_QUESTION_SESSIONS_PER_DAY, GROUP_QUESTION_TICK_MS, GROUP_TAP_LIMIT, GROUP_TOP_SIZE, dailyDateKey, groupWeekKey } from '@dozari/shared';
 import type { BaleClient, BaleUpdate, InlineKeyboard } from '../notify/client.js';
 import { RateLimiter } from '../security/rate-limit.js';
+import type { ScoreDelta } from './record.js';
 import type { GroupGameStore } from './store.js';
 import { GROUP_TEXT, QUESTION_TEXT } from './texts.js';
 
@@ -18,6 +19,8 @@ export interface GroupTriviaDeps {
   client: BaleClient;
   /** Fresh questions from the approved bank (fewer, or none, when the bank is small). */
   draw: (count: number) => Promise<GroupTriviaQuestion[]>;
+  /** Saves a member's points (weekly tally and their account). */
+  record: (chatId: string, weekKey: string, dateKey: string, d: ScoreDelta) => Promise<void>;
   ctaUrl: (chatId: string) => string | null;
   /** Runs `fn` after `ms` (a real timer in production). */
   schedule: (fn: () => void, ms: number) => void;
@@ -138,7 +141,7 @@ export class GroupTriviaGame {
         const t = s.totals.get(who) ?? { name: a.name, points: 0 };
         s.totals.set(who, { name: a.name, points: t.points + GROUP_QUESTION_POINTS });
       }
-      void this.d.store.addScore(chatId, weekKey, { userRef: who, name: a.name, points: ok ? GROUP_QUESTION_POINTS : 0, groups: 0, wrong: ok ? 0 : 1 }).catch((err) => this.d.log?.('group: saving the score failed', err));
+      void this.d.record(chatId, weekKey, s.dateKey, { userRef: who, name: a.name, points: ok ? GROUP_QUESTION_POINTS : 0, groups: 0, wrong: ok ? 0 : 1 }).catch((err) => this.d.log?.('group: saving the score failed', err));
     }
     const text = [QUESTION_TEXT.reveal(index + 1, s.questions.length, q.textFa, q.options[q.correctIndex] ?? '', q.explanationFa), '', ...(lines.length > 0 ? lines : [QUESTION_TEXT.nobody])].join('\n');
     if (s.messageId !== null) await this.d.client.editInline?.(chatId, s.messageId, text, []).catch((err) => this.d.log?.('group: edit failed', err));

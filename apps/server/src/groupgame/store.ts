@@ -23,7 +23,7 @@ export interface GroupGameStore {
   /** Counts one `/question` session for the day; false when the group already used `max` of them. */
   startQuestionSession(chatId: string, dateKey: string, max: number): Promise<boolean>;
   /** Adds to one member's tally for the week (created on first use). */
-  addScore(chatId: string, weekKey: string, d: { userRef: string; name: string; points: number; groups: number; wrong: number }): Promise<void>;
+  addScore(chatId: string, weekKey: string, d: { userRef: string; name: string; points: number; groups: number; wrong: number; userId?: string | null }): Promise<void>;
   /** The week's tallies of a group, any order (the caller ranks). */
   weekScores(chatId: string, weekKey: string, limit: number): Promise<GroupScoreRow[]>;
 }
@@ -98,8 +98,8 @@ export function createDbGroupGameStore(db: Db): GroupGameStore {
       const name = d.name.slice(0, 100);
       await db
         .insert(botGroupScores)
-        .values({ chatId, weekKey, userRef: d.userRef, name, points: d.points, groups: d.groups, wrong: d.wrong })
-        .onDuplicateKeyUpdate({ set: { name, points: sql`${botGroupScores.points} + ${d.points}`, groups: sql`${botGroupScores.groups} + ${d.groups}`, wrong: sql`${botGroupScores.wrong} + ${d.wrong}` } });
+        .values({ chatId, weekKey, userRef: d.userRef, name, points: d.points, groups: d.groups, wrong: d.wrong, userId: d.userId ?? null })
+        .onDuplicateKeyUpdate({ set: { name, ...(d.userId ? { userId: d.userId } : {}), points: sql`${botGroupScores.points} + ${d.points}`, groups: sql`${botGroupScores.groups} + ${d.groups}`, wrong: sql`${botGroupScores.wrong} + ${d.wrong}` } });
     },
     async weekScores(chatId, weekKey, limit) {
       return db

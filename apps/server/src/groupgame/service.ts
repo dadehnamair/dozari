@@ -6,11 +6,12 @@ import { isTelegramId } from '../notify/client.js';
 import { RateLimiter } from '../security/rate-limit.js';
 import type { ServedPuzzle } from '../solo/types.js';
 import { GroupPriceGame, parsePriceCallback } from './price.js';
-import type { GroupPriceQuestion } from './price.js';
+import type { GroupPriceDeps, GroupPriceQuestion } from './price.js';
 import { GroupTriviaGame, parseQuestionCallback } from './trivia.js';
 import type { GroupTriviaQuestion } from './trivia.js';
 import { parseCallback, rankPlayers, renderBoard, renderResults } from './render.js';
 import type { PlayerResult } from './render.js';
+import { GroupScoreRecorder } from './record.js';
 import type { GroupGameStore } from './store.js';
 import { GROUP_TEXT, TABLE_TEXT, fa } from './texts.js';
 
@@ -36,6 +37,8 @@ export interface GroupGameDeps {
   drawQuestions?: (count: number) => Promise<GroupTriviaQuestion[]>;
   /** A joinable table by code, for `/table CODE`; absent = no table cards. */
   tableCard?: (code: string) => GroupTableCard | null;
+  /** Saves points and pays linked accounts; absent = the group's tally only. */
+  recorder?: GroupScoreRecorder;
   /** Runs a function later (a timer in production, a manual queue in tests). */
   schedule?: (fn: () => void, ms: number) => void;
   /** Bot usernames for the mini-app deep link (without «@»). */
@@ -81,17 +84,21 @@ export class GroupGameService {
   private readonly calls = new RateLimiter(1, 60_000);
   private readonly price?: GroupPriceGame;
   private readonly trivia?: GroupTriviaGame;
+  private readonly recorder: GroupScoreRecorder;
   private readonly now: () => number;
   private readonly newSeed: () => number;
 
   constructor(private readonly d: GroupGameDeps) {
     this.now = d.now ?? Date.now;
+    this.recorder = d.recorder ?? new GroupScoreRecorder({ store: d.store });
+    const record: GroupPriceDeps['record'] = (c, w, k, x) => this.recorder.record(c, w, k, x);
     this.newSeed = d.newSeed ?? (() => randomInt(0, 2 ** 31));
     if (d.drawQuestions) {
       this.trivia = new GroupTriviaGame({
         store: d.store,
         client: d.client,
         draw: d.drawQuestions,
+        record,
         ctaUrl: (chatId) => this.ctaUrl(chatId),
         schedule: d.schedule ?? ((fn, ms) => void setTimeout(fn, ms).unref()),
         now: this.now,
@@ -103,6 +110,7 @@ export class GroupGameService {
         store: d.store,
         client: d.client,
         draw: d.drawPrices,
+        record,
         ctaUrl: (chatId) => this.ctaUrl(chatId),
         schedule: d.schedule ?? ((fn, ms) => void setTimeout(fn, ms).unref()),
         now: this.now,
@@ -331,7 +339,7 @@ export class GroupGameService {
     if (correct) p.lastSolvedAt = this.now();
     const points = correct && r.solvedLevel !== undefined ? groupPoints(r.solvedLevel) : 0;
     // the tally must never break the round
-    void this.d.store.addScore(chatId, groupWeekKey(round.dateKey), { userRef: who, name: p.name, points, groups: correct ? 1 : 0, wrong: correct ? 0 : 1 }).catch((err) => this.d.log?.('group: saving the score failed', err));
+    void this.recorder.record(chatId, groupWeekKey(round.dateKey), round.dateKey, { userRef: who, name: p.name, points, groups: correct ? 1 : 0, wrong: correct ? 0 : 1 }).catch((err) => this.d.log?.('group: saving the score failed', err));
     if (p.state.status === 'won') return GROUP_TEXT.mineWon(p.state.mistakes);
     if (p.state.status === 'lost') return GROUP_TEXT.mineLost(found);
     const left = SOLO_MAX_MISTAKES - p.state.mistakes;

@@ -114,6 +114,9 @@ VIEWS.gameplay = function (root) {
         h('section', { class: 'card' }, [h('h2', { text: 'به تفکیک حالت بازی' })].concat(g.byMode.length ? g.byMode.map(function (m) { return h('div', { class: 'kv' }, [h('span', { text: MODE_FA[m.mode] || m.mode }), h('span', { class: 'muted', style: 'font-size:12.5px', text: fa(m.wins) + ' برد · ' + fa(m.groupsSolved) + ' گروه · ' + fa(m.mistakes) + ' اشتباه' }), h('b', { class: 'num', text: faNum(m.plays) })]); }) : [empty('بازی‌ای ثبت نشده')]))
       ]));
       wrap.appendChild(h('div', { style: 'height:16px' }));
+      wrap.appendChild(h('section', { class: 'card flush' }, [h('div', { class: 'card-h' }, [h('h2', { text: 'پاداش حساب‌ها از بازی گروهی' }), h('div', { class: 'sub', text: 'امتیاز گروه روی حساب اصلی: XP و سکه با سقف روزانه (فقط حساب بزرگسال). بازه‌ی انتخاب‌شده' })]),
+        d.rewards.top.length ? simpleTable(['بازیکن', 'امتیاز', 'سکه', 'XP'], d.rewards.top.map(function (t) { return [t.nickname || t.userId, faNum(t.points), faNum(t.coins), faNum(t.xp)]; })) : empty('هنوز حسابی از بازی گروهی پاداش نگرفته')]));
+      wrap.appendChild(h('div', { style: 'height:16px' }));
       var dmax = g.daily.reduce(function (m, x) { return Math.max(m, x.plays); }, 0);
       wrap.appendChild(h('section', { class: 'card' }, [h('h2', { text: 'بازی در هر روز' }), h('div', { class: 'sub', text: 'روز به وقت تهران؛ حداکثر ۶۰ روز اخیر' })].concat(g.daily.length ? g.daily.map(function (x) { return barRow(fa(x.day), x.plays, dmax, fa(x.players) + ' بازیکن'); }) : [empty('بازی‌ای ثبت نشده')])));
       wrap.appendChild(h('div', { style: 'height:16px' }));
@@ -163,7 +166,9 @@ VIEWS.botgroups = function (root) {
         statCard('گروه تازه', faNum(g.new7d), fa(g.new30d) + ' در ۳۰ روز', '#22a45d'),
         statCard('پازل گروهی', faNum(w.plays), fa(w.activeGroups) + ' گروه · ' + fa(w.won) + ' برد · ' + fa(w.lost) + ' باخت', '#ef6c3d'),
         statCard('بازیکن‌های گروهی', faNum(w.players), fa(w.priceSessions) + ' دور قیمت‌شناسی', '#14b8a6'),
-        statCard('حساب تازه از لینک گروه', faNum(f.referred), fa(f.referredAll) + ' در کل', '#f5b73b')
+        statCard('حساب تازه از لینک گروه', faNum(f.referred), fa(f.referredAll) + ' در کل', '#f5b73b'),
+        statCard('حساب پاداش‌گرفته', faNum(d.rewards.paidAccounts), fa(d.rewards.linkedAll) + ' حساب وصل‌شده در کل', '#8b5cf6'),
+        statCard('سکه‌ی داده‌شده از گروه', faNum(d.rewards.coins), fa(d.rewards.xp) + ' XP · ' + fa(d.rewards.questionSessions) + ' دور سؤال عمومی', '#0ea5e9')
       ]));
       wrap.appendChild(h('div', { style: 'height:16px' }));
       var base = f.referred;

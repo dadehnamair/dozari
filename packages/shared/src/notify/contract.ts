@@ -10,6 +10,21 @@ export type MutableNotifyKind = (typeof MUTABLE_NOTIFY_KINDS)[number];
 /** `GET/PUT /bale/prefs`: the kinds this player has switched off. */
 export const balePrefsSchema = z.object({ muted: z.array(z.enum(MUTABLE_NOTIFY_KINDS)) });
 export type BalePrefs = z.infer<typeof balePrefsSchema>;
+/** `GET /me/group-stats`: what this player earned playing the bot in Bale/Telegram groups (D249). Only groups where their messenger id mapped to this account count. */
+export const groupStatsSchema = z.object({
+  /** All-time points, groups found, wrong answers and groups played in. */
+  points: z.number().int(),
+  groups: z.number().int(),
+  wrong: z.number().int(),
+  groupCount: z.number().int(),
+  weekPoints: z.number().int(),
+  /** Paid to the account today and the daily ceilings. */
+  today: z.object({ coins: z.number().int(), xp: z.number().int(), coinsCap: z.number().int(), xpCap: z.number().int() }),
+  /** Everything group play ever paid to the account. */
+  totalCoins: z.number().int(),
+  totalXp: z.number().int(),
+});
+export type GroupStats = z.infer<typeof groupStatsSchema>;
 export type BaleLinkStatus = z.infer<typeof baleLinkStatusSchema>;
 export type BaleLinkCode = z.infer<typeof baleLinkCodeSchema>;
 
