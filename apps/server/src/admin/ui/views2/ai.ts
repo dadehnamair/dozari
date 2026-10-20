@@ -19,6 +19,30 @@ function aiErrorText(b, fallback) {
   else if (b && b.providerMessage) t += ' — ' + b.providerMessage;
   return t;
 }
+/**
+ * Wires a provider <select> and a model <select>: the model list comes from the provider (cached server-side) and the last provider and
+ * model the editor chose are remembered in this browser and preselected next time. Returns the loader to call once providers are filled in.
+ */
+function aiModelPicker(provider, model, getProviders) {
+  model.style.direction = 'ltr';
+  function loadModels() {
+    var p = (getProviders() || []).filter(function (x) { return x.id === provider.value; })[0];
+    var asked = provider.value, last = load('ai.model.' + asked) || '';
+    clear(model);
+    model.appendChild(h('option', { value: '', text: p ? 'پیش‌فرض سرویس (' + p.defaultModel + ')' : 'پیش‌فرض سرویس' }));
+    if (!p) return;
+    api('/admin/ai/models?provider=' + encodeURIComponent(asked)).then(function (r) {
+      if (provider.value !== asked) return;
+      var list = r.ok ? (r.body.models || []) : [];
+      if (last && list.indexOf(last) < 0) list.unshift(last);
+      list.forEach(function (m) { model.appendChild(h('option', { value: m, text: m })); });
+      model.value = last;
+    });
+  }
+  provider.addEventListener('change', function () { store('ai.provider', provider.value); loadModels(); });
+  model.addEventListener('change', function () { store('ai.model.' + provider.value, model.value || null); });
+  return loadModels;
+}
 var AI_KINDS = [['products', 'محصول'], ['kid_lessons', 'کلمه‌آموزی کودک'], ['puzzle_titles', 'عنوان گروه‌های پازل'], ['puzzle_groups', 'پازل کامل (گروه + محصول)'], ['blog', 'مقاله‌ی بلاگ'], ['trivia', 'سؤال عمومی چهارگزینه‌ای']];
 /* Editable fields of one draft, per kind: [key, label, 'text' | 'area' | 'select', options]. */
 function aiPricesText(list) { return (list || []).map(function (p) { return p.year + ': ' + p.priceToman; }).join('\n'); }
@@ -243,18 +267,7 @@ function aiManual(root) {
       showDrafts();
     });
   });
-  function loadModels() {
-    var p = (info && info.providers || []).filter(function (x) { return x.id === provider.value; })[0];
-    clear(model);
-    model.appendChild(h('option', { value: '', text: p ? 'پیش‌فرض سرویس (' + p.defaultModel + ')' : 'پیش‌فرض سرویس' }));
-    if (!p) return;
-    var asked = provider.value;
-    api('/admin/ai/models?provider=' + encodeURIComponent(asked)).then(function (r) {
-      if (!r.ok || provider.value !== asked) return;
-      (r.body.models || []).forEach(function (m) { model.appendChild(h('option', { value: m, text: m })); });
-    });
-  }
-  provider.addEventListener('change', loadModels);
+  var loadModels = aiModelPicker(provider, model, function () { return info && info.providers; });
   var tabs = seg(AI_KINDS, kind, function (v) { kind = v; store('ai.kind', v); result = null; buildOptions(); showDrafts(); });
   var form = card('تولید محتوا', 'چند گزینه را انتخاب کن؛ سرور از سرویس هوش مصنوعی پیش‌نویس می‌گیرد. هیچ چیزی بدون بازبینی خودت منتشر یا تأیید نمی‌شود.', [tabs, opts, h('div', { class: 'form-grid', style: 'margin-top:10px' }, [field('سرویس', provider), field('مدل', model)]), field('توضیح اضافه', hint), h('div', { style: 'margin-top:10px' }, [go])]);
   root.appendChild(form); root.appendChild(out);
@@ -265,6 +278,8 @@ function aiManual(root) {
     info = r.body;
     if (!info.providers.length) { root.insertBefore(banner('warn', AI_ERR.ai_not_configured), form); go.disabled = true; return; }
     info.providers.forEach(function (p) { provider.appendChild(h('option', { value: p.id, text: p.label })); });
+    var lastProvider = load('ai.provider');
+    if (lastProvider && info.providers.some(function (p) { return p.id === lastProvider; })) provider.value = lastProvider;
     loadModels();
   });
 }

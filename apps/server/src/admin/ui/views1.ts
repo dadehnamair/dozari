@@ -228,7 +228,7 @@ function editProduct(p) {
 }
 /* «Fill missing prices»: asks the AI studio for nominal prices in years the product has none for; ticked rows are saved as pending prices. */
 function aiPriceDialog(p) {
-  var provider = select([['', 'در حال بارگذاری…']], ''), model = h('input', { type: 'text', dir: 'ltr', placeholder: 'خالی = مدل پیش‌فرض' });
+  var provider = select([['', 'در حال بارگذاری…']], ''), model = select([['', 'پیش‌فرض سرویس']], '');
   var hint = h('textarea', { placeholder: 'توضیح اضافه برای هوش مصنوعی (اختیاری): برند، اندازه، شهر…', maxlength: 300 });
   var from = h('input', { type: 'number', min: 1300, max: 1450, value: 1350 }), to = h('input', { type: 'number', min: 1300, max: 1450, value: 1405 });
   var out = h('div'), rows = [], saving = false;
@@ -238,6 +238,9 @@ function aiPriceDialog(p) {
     if (!r.body.providers.length) return out.appendChild(banner('warn', AI_ERR.ai_not_configured));
     clear(provider);
     r.body.providers.forEach(function (x) { provider.appendChild(h('option', { value: x.id, text: x.label })); });
+    var lastProvider = load('ai.provider');
+    if (lastProvider && r.body.providers.some(function (x) { return x.id === lastProvider; })) provider.value = lastProvider;
+    aiModelPicker(provider, model, function () { return r.body.providers; })();
     go.disabled = false;
   });
   function show(list) {
