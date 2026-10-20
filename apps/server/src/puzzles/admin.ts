@@ -1,3 +1,4 @@
+import { isItemIconKey } from '@dozari/shared';
 import { and, asc, count, desc, eq, inArray, pricePoints, productEraTags, products, puzzleGroupItems, puzzleGroups, puzzleTagDefs, puzzleTags, puzzleTiers, puzzleTopics, puzzles, sql } from '@dozari/db';
 import { ruleToColumns } from '@dozari/db';
 import type { Db } from '@dozari/db';
@@ -33,13 +34,15 @@ export interface TopicRow {
   id: string;
   slug: string;
   nameFa: string;
+  /** Icon of the pack (`ITEMS` key) the app shows for the topic; null = none chosen. */
+  iconKey: string | null;
   sortOrder: number;
   isActive: boolean;
   /** Approved puzzles filed under it (a topic is offered in a match only with enough of them). */
   puzzles: number;
 }
-export type TopicInput = { id?: string; slug: string; nameFa: string; sortOrder: number; isActive: boolean };
-export type SaveTopicResult = { ok: true; id: string } | { ok: false; error: 'slug' | 'name' | 'duplicate' | 'not_found' };
+export type TopicInput = { id?: string; slug: string; nameFa: string; iconKey?: string | null; sortOrder: number; isActive: boolean };
+export type SaveTopicResult = { ok: true; id: string } | { ok: false; error: 'slug' | 'name' | 'icon' | 'duplicate' | 'not_found' };
 
 /** A defined tag (the vocabulary puzzles may be tagged from) with how many puzzles carry it. */
 export interface TagRow {
@@ -313,23 +316,25 @@ export function createDbPuzzleAdmin(db: Db): PuzzleAdmin {
     async topics() {
       const rows = await db.select().from(puzzleTopics).orderBy(asc(puzzleTopics.sortOrder), asc(puzzleTopics.nameFa));
       const counts = await db.select({ topicId: puzzles.topicId, n: count() }).from(puzzles).where(eq(puzzles.status, 'approved')).groupBy(puzzles.topicId);
-      return rows.map((r) => ({ id: r.id, slug: r.slug, nameFa: r.nameFa, sortOrder: r.sortOrder, isActive: r.isActive, puzzles: Number(counts.find((c) => c.topicId === r.id)?.n ?? 0) }));
+      return rows.map((r) => ({ id: r.id, slug: r.slug, nameFa: r.nameFa, iconKey: r.iconKey, sortOrder: r.sortOrder, isActive: r.isActive, puzzles: Number(counts.find((c) => c.topicId === r.id)?.n ?? 0) }));
     },
     async saveTopic(t) {
       const slug = t.slug.trim().toLowerCase();
       const nameFa = t.nameFa.trim();
       if (!validSlug(slug)) return { ok: false, error: 'slug' };
       if (nameFa.length < 2 || nameFa.length > 60) return { ok: false, error: 'name' };
+      const iconKey = t.iconKey === undefined ? undefined : t.iconKey && isItemIconKey(t.iconKey) ? t.iconKey : null;
+      if (t.iconKey && iconKey === null) return { ok: false, error: 'icon' };
       const [clash] = await db.select({ id: puzzleTopics.id }).from(puzzleTopics).where(eq(puzzleTopics.slug, slug));
       if (clash && clash.id !== t.id) return { ok: false, error: 'duplicate' };
       if (t.id) {
         const [r] = await db.select({ id: puzzleTopics.id }).from(puzzleTopics).where(eq(puzzleTopics.id, t.id));
         if (!r) return { ok: false, error: 'not_found' };
-        await db.update(puzzleTopics).set({ slug, nameFa, sortOrder: t.sortOrder, isActive: t.isActive }).where(eq(puzzleTopics.id, t.id));
+        await db.update(puzzleTopics).set({ slug, nameFa, iconKey, sortOrder: t.sortOrder, isActive: t.isActive }).where(eq(puzzleTopics.id, t.id));
         return { ok: true, id: t.id };
       }
       const id = uuidv7();
-      await db.insert(puzzleTopics).values({ id, slug, nameFa, sortOrder: t.sortOrder, isActive: t.isActive });
+      await db.insert(puzzleTopics).values({ id, slug, nameFa, iconKey: iconKey ?? null, sortOrder: t.sortOrder, isActive: t.isActive });
       return { ok: true, id };
     },
     async setTopic(puzzleId, topicId, tags) {
@@ -491,14 +496,15 @@ export function createMemoryPuzzleAdmin(known: Set<string>, catalog: Catalog = [
       if (!validSlug(slug)) return { ok: false, error: 'slug' };
       if (nameFa.length < 2 || nameFa.length > 60) return { ok: false, error: 'name' };
       if (topicRows.some((x) => x.slug === slug && x.id !== t.id)) return { ok: false, error: 'duplicate' };
+      if (t.iconKey && !isItemIconKey(t.iconKey)) return { ok: false, error: 'icon' };
       if (t.id) {
         const x = topicRows.find((r) => r.id === t.id);
         if (!x) return { ok: false, error: 'not_found' };
-        Object.assign(x, { slug, nameFa, sortOrder: t.sortOrder, isActive: t.isActive });
+        Object.assign(x, { slug, nameFa, ...(t.iconKey === undefined ? {} : { iconKey: t.iconKey || null }), sortOrder: t.sortOrder, isActive: t.isActive });
         return { ok: true, id: x.id };
       }
       const id = `00000000-0000-7000-d000-${String(topicRows.length + 1).padStart(12, '0')}`;
-      topicRows.push({ id, slug, nameFa, sortOrder: t.sortOrder, isActive: t.isActive, puzzles: 0 });
+      topicRows.push({ id, slug, nameFa, iconKey: t.iconKey || null, sortOrder: t.sortOrder, isActive: t.isActive, puzzles: 0 });
       return { ok: true, id };
     },
     async setTopic(puzzleId, topicId, tags) {

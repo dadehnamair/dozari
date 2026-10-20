@@ -52,5 +52,5 @@ export type TriviaResult = z.infer<typeof triviaResultSchema>;
 export type TriviaView = z.infer<typeof triviaViewSchema>;
 
 /** Topics a player can start a game on, with how many questions each has. */
-export const triviaTopicsSchema = z.object({ topics: z.array(z.object({ id: z.string().uuid(), nameFa: z.string(), questions: z.number().int().nonnegative() })) });
+export const triviaTopicsSchema = z.object({ topics: z.array(z.object({ id: z.string().uuid(), nameFa: z.string(), /** Icon of the pack chosen in the admin; the app falls back to its own per-name icon. */ iconKey: z.string().nullable().optional(), questions: z.number().int().nonnegative() })) });
 export type TriviaTopics = z.infer<typeof triviaTopicsSchema>;

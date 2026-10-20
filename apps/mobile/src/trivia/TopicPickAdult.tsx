@@ -14,7 +14,7 @@ const ROW = 'row' as const;
 const t = fa.triviaDuel;
 const a = t.adult;
 
-/** Icon of each topic by its Persian name (topics are DB content, so an unknown name draws a star). */
+/** Fallback icon of a topic without one chosen in the admin (topics are DB content, so an unknown name draws a star). */
 const TOPIC_ICON: Record<string, string> = {
   خوراکی: 'burger',
   ورزشی: 'medal',
@@ -129,7 +129,7 @@ export function TopicPickAdult({ topics, fee, busy = false, note = null, texts, 
                     style={({ pressed }) => [styles.topic, pressed ? styles.pressed : null]}
                   >
                     <Plate radius={17} border={on ? '#FFD2B0' : '#8A5A16'} from={on ? '#5A2E18' : '#2A1E16'} to={on ? '#2A140A' : '#17100C'} ledge={3} glow={on ? '#E0895A' : undefined} height={100} style={styles.topicFace}>
-                    <View style={[styles.topicRing, on ? styles.topicRingOn : null]}><View style={styles.topicIcon}><Item icon={TOPIC_ICON[x.nameFa] ?? 'star'} /></View></View>
+                    <View style={[styles.topicRing, on ? styles.topicRingOn : null]}><View style={styles.topicIcon}><Item icon={x.iconKey ?? TOPIC_ICON[x.nameFa] ?? 'star'} /></View></View>
                     <Text style={[styles.topicName, on ? styles.topicNameOn : null]} numberOfLines={1}>{x.nameFa}</Text>
                     <View style={styles.topicCount}><Text style={styles.topicCountText}>{formatPersianNumber(x.questions)}</Text></View>
                     {on ? <View style={styles.tick}><Text style={styles.tickText}>✓</Text></View> : null}

@@ -329,6 +329,8 @@ export const puzzleTopics = mysqlTable('puzzle_topics', {
   id: id(),
   slug: varchar('slug', { length: 50 }).notNull().unique(),
   nameFa: varchar('name_fa', { length: 60 }).notNull(),
+  /** Key of the hand-drawn icon pack (`ITEMS`) shown for the topic in the app; null = the app's fallback. */
+  iconKey: varchar('icon_key', { length: 40 }),
   sortOrder: int('sort_order').notNull().default(0),
   isActive: boolean('is_active').notNull().default(true),
 });

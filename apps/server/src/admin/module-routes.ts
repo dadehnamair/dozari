@@ -988,7 +988,7 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
     });
     g.get('/admin/puzzle-topics', async () => ({ topics: await puzzles.topics() }));
     g.post('/admin/puzzle-topics', async (req, reply) => {
-      const b = z.object({ id: z.string().uuid().optional(), slug: z.string().trim().min(1).max(50), nameFa: z.string().trim().min(2).max(60), sortOrder: z.number().int().min(0).max(1000).default(0), isActive: z.boolean().default(true) }).safeParse(req.body);
+      const b = z.object({ id: z.string().uuid().optional(), slug: z.string().trim().min(1).max(50), nameFa: z.string().trim().min(2).max(60), iconKey: z.string().trim().max(40).nullable().optional(), sortOrder: z.number().int().min(0).max(1000).default(0), isActive: z.boolean().default(true) }).safeParse(req.body);
       if (!b.success) return reply.code(400).send({ error: 'invalid_request' });
       const out = await puzzles.saveTopic(b.data);
       if (!out.ok) return reply.code(out.error === 'not_found' ? 404 : 400).send({ error: out.error });

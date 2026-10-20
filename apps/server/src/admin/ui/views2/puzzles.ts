@@ -416,9 +416,15 @@ export const ADMIN_VIEWS2_PUZZLES_JS = String.raw`VIEWS.puzzles = function (root
     var rows = P.topics.map(function (t) {
       var name = h('input', { value: t.nameFa }), slug = h('input', { value: t.slug, style: 'width:120px', dir: 'ltr' }), order = h('input', { type: 'number', value: String(t.sortOrder), style: 'width:70px' }), active = h('input', { type: 'checkbox' });
       active.checked = t.isActive;
-      return h('div', { class: 'toolbar' }, [name, slug, order, h('label', { class: 'sub' }, [active, ' فعال']), badge(fa(t.puzzles) + ' پازل فعال', t.puzzles >= 3 ? 'b-ok' : 'b-warn'),
+      var icon = t.iconKey || '', tile = h('div', { class: 'icon-tile-slot' }, [iconTile(icon)]);
+      function chooseIcon() {
+        var pick = icon;
+        var m = formModal('آیکن موضوع «' + t.nameFa + '»', [iconPicker(icon, function (k) { pick = k; })], function () { icon = pick; clear(tile); tile.appendChild(iconTile(icon)); return true; });
+        return m;
+      }
+      return h('div', { class: 'toolbar' }, [tile, h('button', { class: 'btn sm', text: 'آیکن', title: 'انتخاب آیکن از بسته‌ی آیکن‌ها', onclick: chooseIcon }), icon ? h('button', { class: 'btn sm', text: '✕', title: 'برداشتن آیکن', onclick: function () { icon = ''; clear(tile); tile.appendChild(iconTile('')); } }) : null, name, slug, order, h('label', { class: 'sub' }, [active, ' فعال']), badge(fa(t.puzzles) + ' پازل فعال', t.puzzles >= 3 ? 'b-ok' : 'b-warn'),
         h('button', { class: 'btn sm', text: 'ذخیره', onclick: function () {
-          api('/admin/puzzle-topics', { method: 'POST', body: { id: t.id, slug: slug.value, nameFa: name.value, sortOrder: Number(order.value) || 0, isActive: active.checked } }).then(function (r) { r.ok ? (toast('ذخیره شد'), reload()) : fail(r); });
+          api('/admin/puzzle-topics', { method: 'POST', body: { id: t.id, slug: slug.value, nameFa: name.value, iconKey: icon || null, sortOrder: Number(order.value) || 0, isActive: active.checked } }).then(function (r) { r.ok ? (toast('ذخیره شد'), reload()) : fail(r); });
         } })]);
     });
     var nn = h('input', { placeholder: 'نام موضوع، مثلا خوراکی' }), ns = h('input', { placeholder: 'نام لاتین، مثلا food', style: 'width:120px', dir: 'ltr' });

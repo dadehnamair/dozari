@@ -722,6 +722,13 @@
       "when": 1792503845271,
       "tag": "0102_aromatic_prima",
       "breakpoints": true
+    },
+    {
+      "idx": 103,
+      "version": "5",
+      "when": 1792504684816,
+      "tag": "0103_spotty_power_pack",
+      "breakpoints": true
     }
   ]
 }
