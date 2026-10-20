@@ -1,9 +1,7 @@
 import { ZodError } from 'zod';
 import { fa } from '../i18n/fa';
 import { ApiError } from './api';
-
-/** The gateway answered for a server that is down or restarting (its own error page, so no JSON `error` code). */
-const isGatewayDown = (err: ApiError): boolean => [502, 503, 504].includes(err.status) && err.code === 'error';
+import { isGatewayDown } from '../net/http';
 
 /** Turns a failed request into a user message plus a small technical line (so "can't connect" is diagnosable). */
 export function describeError(err: unknown, baseUrl: string): { message: string; detail: string } {
