@@ -1,0 +1,1 @@
+ALTER TABLE `puzzle_topics` ADD `emoji` varchar(16);

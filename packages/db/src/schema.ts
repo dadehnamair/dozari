@@ -331,6 +331,8 @@ export const puzzleTopics = mysqlTable('puzzle_topics', {
   nameFa: varchar('name_fa', { length: 60 }).notNull(),
   /** Key of the hand-drawn icon pack (`ITEMS`) shown for the topic in the app; null = the app's fallback. */
   iconKey: varchar('icon_key', { length: 40 }),
+  /** Emoji shown for the topic in bot messages (Bale/Telegram cannot draw the icon pack); null = none. */
+  emoji: varchar('emoji', { length: 16 }),
   sortOrder: int('sort_order').notNull().default(0),
   isActive: boolean('is_active').notNull().default(true),
 });

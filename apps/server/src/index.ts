@@ -1370,7 +1370,9 @@ if (isMainModule(import.meta.url)) {
           ? async (n) => {
               const rng = mulberry32(randomInt(0, 2 ** 31));
               // groups are mixed ages and never link an account: the adult pool, no per-player memory
-              return (await drawTrivia(triviaStore, undefined, { tracks: ['adult'], count: n, rng, userIds: [] })).map((q) => ({ textFa: q.textFa, explanationFa: q.explanationFa, ...(({ options, correctIndex }) => ({ options, correctIndex }))(shuffleTrivia(q, rng)) }));
+              const picked = await drawTrivia(triviaStore, undefined, { tracks: ['adult'], count: n, rng, userIds: [] });
+              const metas = new Map(await Promise.all([...new Set(picked.map((q) => q.topicId))].map(async (id) => [id, await triviaStore.topicMeta(id).catch(() => null)] as const)));
+              return picked.map((q) => ({ textFa: q.textFa, explanationFa: q.explanationFa, topicFa: metas.get(q.topicId)?.nameFa ?? null, topicEmoji: metas.get(q.topicId)?.emoji ?? null, ...(({ options, correctIndex }) => ({ options, correctIndex }))(shuffleTrivia(q, rng)) }));
             }
           : undefined,
         // Points earned in a group also pay the player's own account when the messenger id maps to one (D249).

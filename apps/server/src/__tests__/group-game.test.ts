@@ -69,7 +69,7 @@ function setup(opts: { bale?: string | null } = {}) {
     client,
     todayPuzzle: async () => puzzle,
     drawPrices: async (n) => [1, 2, 3, 4, 5].slice(0, n).map((i) => ({ nameFa: `نان ${i}`, unitFa: i === 1 ? 'عدد' : null, year: 1370 + i, actualRials: BigInt(i * 1000), options: [BigInt(i * 500), BigInt(i * 1000), BigInt(i * 2000), BigInt(i * 3000)] })),
-    drawQuestions: async (n) => [1, 2, 3, 4, 5].slice(0, n).map((i) => ({ textFa: `پایتخت کشور ${i}؟`, options: ['الف', 'ب', 'ج', 'د'], correctIndex: 1, explanationFa: i === 1 ? 'چون این‌طور است' : '' })),
+    drawQuestions: async (n) => [1, 2, 3, 4, 5].slice(0, n).map((i) => ({ textFa: `پایتخت کشور ${i}؟`, topicFa: i === 1 ? 'خوراکی' : null, topicEmoji: i === 1 ? '🍔' : null, options: ['الف', 'ب', 'ج', 'د'], correctIndex: 1, explanationFa: i === 1 ? 'چون این‌طور است' : '' })),
     schedule: (fn, ms) => void timers.push({ fn, ms }),
     tableCard: (code) => (code === 'AB2CD' ? { code, name: 'میز علی', format: '1v1', entryFee: 0, seats: 2, taken: 1, hostNickname: 'علی' } : code === 'FEE22' ? { code, name: 'میز پولی', format: '2v2', entryFee: 20, seats: 4, taken: 3, hostNickname: 'سارا' } : null), usernames: { bale: opts.bale === undefined ? 'dozari_bot' : opts.bale, telegram: 'dozari_tg' },
     now: () => clock.t,
@@ -420,6 +420,7 @@ describe('question mode', () => {
     await t.svc.handleUpdate(t.msg('/question'));
     const q = t.sent[0]!;
     expect(q.text).toContain('پایتخت کشور 1؟');
+    expect(q.text).toContain('🍔 خوراکی · سؤال عمومی');
     expect(q.text).toContain('هنوز کسی جواب نداده');
     expect(q.keyboard!.flat().map((b) => b.text)).toEqual(['الف', 'ب', 'ج', 'د']);
     expect(q.keyboard!.flat().every((b) => /^q:0:[0-3]$/.test(b.callback_data!))).toBe(true);

@@ -50,3 +50,15 @@ describe('GroupScoreRecorder', () => {
     expect(log).toHaveBeenCalled();
   });
 });
+
+describe('cleanEmoji', () => {
+  it('accepts pictographs only', async () => {
+    const { cleanEmoji } = await import('../puzzles/admin.js');
+    expect(cleanEmoji('🍔')).toBe('🍔');
+    expect(cleanEmoji(' 👨‍👩‍👧 ')).toBe('👨‍👩‍👧');
+    expect(cleanEmoji('')).toBeNull();
+    expect(cleanEmoji('abc')).toBeNull();
+    expect(cleanEmoji('🍔x')).toBeNull();
+    expect(cleanEmoji('1')).toBeNull();
+  });
+});

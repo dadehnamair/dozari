@@ -36,13 +36,15 @@ export interface TopicRow {
   nameFa: string;
   /** Icon of the pack (`ITEMS` key) the app shows for the topic; null = none chosen. */
   iconKey: string | null;
+  /** Emoji for bot messages. */
+  emoji: string | null;
   sortOrder: number;
   isActive: boolean;
   /** Approved puzzles filed under it (a topic is offered in a match only with enough of them). */
   puzzles: number;
 }
-export type TopicInput = { id?: string; slug: string; nameFa: string; iconKey?: string | null; sortOrder: number; isActive: boolean };
-export type SaveTopicResult = { ok: true; id: string } | { ok: false; error: 'slug' | 'name' | 'icon' | 'duplicate' | 'not_found' };
+export type TopicInput = { id?: string; slug: string; nameFa: string; iconKey?: string | null; emoji?: string | null; sortOrder: number; isActive: boolean };
+export type SaveTopicResult = { ok: true; id: string } | { ok: false; error: 'slug' | 'name' | 'icon' | 'emoji' | 'duplicate' | 'not_found' };
 
 /** A defined tag (the vocabulary puzzles may be tagged from) with how many puzzles carry it. */
 export interface TagRow {
@@ -59,6 +61,13 @@ export type SaveTagResult = { ok: true; id: string } | { ok: false; error: 'slug
 /** Tags are the slugs of defined tags; blanks and repeats go, the count is capped. */
 export function cleanTags(tags: readonly string[]): string[] {
   return [...new Set(tags.map((t) => t.trim().toLowerCase()).filter((t) => t.length >= 1 && t.length <= 50))].slice(0, PUZZLE_TAGS_MAX);
+}
+
+/** A topic emoji: a few pictographs and nothing else (empty = none); null when the text is not an emoji. */
+export function cleanEmoji(v: string | null | undefined): string | null {
+  const t = (v ?? '').trim();
+  if (t === '') return null;
+  return t.length <= 16 && /^(?:\p{Extended_Pictographic}|\u200d|\ufe0f|\p{Emoji_Modifier}|\p{Regional_Indicator})+$/u.test(t) ? t : null;
 }
 
 /** Slug rule shared by topics and tags. */
@@ -316,7 +325,7 @@ export function createDbPuzzleAdmin(db: Db): PuzzleAdmin {
     async topics() {
       const rows = await db.select().from(puzzleTopics).orderBy(asc(puzzleTopics.sortOrder), asc(puzzleTopics.nameFa));
       const counts = await db.select({ topicId: puzzles.topicId, n: count() }).from(puzzles).where(eq(puzzles.status, 'approved')).groupBy(puzzles.topicId);
-      return rows.map((r) => ({ id: r.id, slug: r.slug, nameFa: r.nameFa, iconKey: r.iconKey, sortOrder: r.sortOrder, isActive: r.isActive, puzzles: Number(counts.find((c) => c.topicId === r.id)?.n ?? 0) }));
+      return rows.map((r) => ({ id: r.id, slug: r.slug, nameFa: r.nameFa, iconKey: r.iconKey, emoji: r.emoji, sortOrder: r.sortOrder, isActive: r.isActive, puzzles: Number(counts.find((c) => c.topicId === r.id)?.n ?? 0) }));
     },
     async saveTopic(t) {
       const slug = t.slug.trim().toLowerCase();
@@ -325,16 +334,18 @@ export function createDbPuzzleAdmin(db: Db): PuzzleAdmin {
       if (nameFa.length < 2 || nameFa.length > 60) return { ok: false, error: 'name' };
       const iconKey = t.iconKey === undefined ? undefined : t.iconKey && isItemIconKey(t.iconKey) ? t.iconKey : null;
       if (t.iconKey && iconKey === null) return { ok: false, error: 'icon' };
+      const emoji = t.emoji === undefined ? undefined : cleanEmoji(t.emoji);
+      if (t.emoji && emoji === null) return { ok: false, error: 'emoji' };
       const [clash] = await db.select({ id: puzzleTopics.id }).from(puzzleTopics).where(eq(puzzleTopics.slug, slug));
       if (clash && clash.id !== t.id) return { ok: false, error: 'duplicate' };
       if (t.id) {
         const [r] = await db.select({ id: puzzleTopics.id }).from(puzzleTopics).where(eq(puzzleTopics.id, t.id));
         if (!r) return { ok: false, error: 'not_found' };
-        await db.update(puzzleTopics).set({ slug, nameFa, iconKey, sortOrder: t.sortOrder, isActive: t.isActive }).where(eq(puzzleTopics.id, t.id));
+        await db.update(puzzleTopics).set({ slug, nameFa, iconKey, emoji, sortOrder: t.sortOrder, isActive: t.isActive }).where(eq(puzzleTopics.id, t.id));
         return { ok: true, id: t.id };
       }
       const id = uuidv7();
-      await db.insert(puzzleTopics).values({ id, slug, nameFa, iconKey: iconKey ?? null, sortOrder: t.sortOrder, isActive: t.isActive });
+      await db.insert(puzzleTopics).values({ id, slug, nameFa, iconKey: iconKey ?? null, emoji: emoji ?? null, sortOrder: t.sortOrder, isActive: t.isActive });
       return { ok: true, id };
     },
     async setTopic(puzzleId, topicId, tags) {
@@ -497,14 +508,15 @@ export function createMemoryPuzzleAdmin(known: Set<string>, catalog: Catalog = [
       if (nameFa.length < 2 || nameFa.length > 60) return { ok: false, error: 'name' };
       if (topicRows.some((x) => x.slug === slug && x.id !== t.id)) return { ok: false, error: 'duplicate' };
       if (t.iconKey && !isItemIconKey(t.iconKey)) return { ok: false, error: 'icon' };
+      if (t.emoji && cleanEmoji(t.emoji) === null) return { ok: false, error: 'emoji' };
       if (t.id) {
         const x = topicRows.find((r) => r.id === t.id);
         if (!x) return { ok: false, error: 'not_found' };
-        Object.assign(x, { slug, nameFa, ...(t.iconKey === undefined ? {} : { iconKey: t.iconKey || null }), sortOrder: t.sortOrder, isActive: t.isActive });
+        Object.assign(x, { slug, nameFa, ...(t.iconKey === undefined ? {} : { iconKey: t.iconKey || null }), ...(t.emoji === undefined ? {} : { emoji: cleanEmoji(t.emoji) }), sortOrder: t.sortOrder, isActive: t.isActive });
         return { ok: true, id: x.id };
       }
       const id = `00000000-0000-7000-d000-${String(topicRows.length + 1).padStart(12, '0')}`;
-      topicRows.push({ id, slug, nameFa, iconKey: t.iconKey || null, sortOrder: t.sortOrder, isActive: t.isActive, puzzles: 0 });
+      topicRows.push({ id, slug, nameFa, iconKey: t.iconKey || null, emoji: cleanEmoji(t.emoji), sortOrder: t.sortOrder, isActive: t.isActive, puzzles: 0 });
       return { ok: true, id };
     },
     async setTopic(puzzleId, topicId, tags) {

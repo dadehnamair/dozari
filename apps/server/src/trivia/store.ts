@@ -32,6 +32,8 @@ export interface TriviaStore {
   /** Every active topic with its approved-question count in these tracks (0 included), in admin order. */
   topicCounts(tracks: readonly AgeTrack[]): Promise<{ id: string; nameFa: string; iconKey: string | null; questions: number }[]>;
   topicName(topicId: string): Promise<string | null>;
+  /** Name and bot emoji of a topic (group messages). */
+  topicMeta(topicId: string): Promise<{ nameFa: string; emoji: string | null } | null>;
 }
 
 type Row = typeof triviaQuestions.$inferSelect;
@@ -114,6 +116,10 @@ export function createDbTriviaStore(db: Db): TriviaStore {
         .orderBy(asc(puzzleTopics.sortOrder), asc(puzzleTopics.nameFa));
       return rows.map((r) => ({ id: r.id, nameFa: r.nameFa, iconKey: r.iconKey, questions: Number(r.n) }));
     },
+    async topicMeta(topicId) {
+      const [r] = await db.select({ nameFa: puzzleTopics.nameFa, emoji: puzzleTopics.emoji }).from(puzzleTopics).where(eq(puzzleTopics.id, topicId));
+      return r ?? null;
+    },
     async topicName(topicId) {
       const [r] = await db.select({ n: puzzleTopics.nameFa }).from(puzzleTopics).where(eq(puzzleTopics.id, topicId));
       return r?.n ?? null;
@@ -175,6 +181,9 @@ export function createMemoryTriviaStore(topics: Record<string, string> = {}): Tr
     },
     async topicName(topicId) {
       return topics[topicId] ?? null;
+    },
+    async topicMeta(topicId) {
+      return topics[topicId] ? { nameFa: topics[topicId]!, emoji: null } : null;
     },
   };
 }

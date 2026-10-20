@@ -7,6 +7,9 @@ import { GROUP_TEXT, QUESTION_TEXT } from './texts.js';
 
 /** One general question of a `/question` session. `correctIndex` never leaves the server before the reveal. */
 export interface GroupTriviaQuestion {
+  /** Topic name and its emoji (both optional), shown in the question header. */
+  topicFa?: string | null;
+  topicEmoji?: string | null;
   textFa: string;
   /** The four choices, already shuffled. */
   options: readonly string[];
@@ -45,6 +48,9 @@ interface Session {
   keyboard?: InlineKeyboard;
   totals: Map<string, { name: string; points: number }>;
 }
+
+/** «🍔 خوراکی» for the header; empty when the topic has neither a name nor an emoji. */
+const topicTag = (q: GroupTriviaQuestion): string => [q.topicEmoji, q.topicFa].filter(Boolean).join(' ');
 
 /** «q:<question index>:<option index>» from a question button. */
 export function parseQuestionCallback(data: string | undefined): { q: number; option: number } | null {
@@ -120,7 +126,7 @@ export class GroupTriviaGame {
   }
 
   private questionText(s: Session, leftMs: number): string {
-    return QUESTION_TEXT.question(s.index + 1, s.questions.length, s.questions[s.index]!.textFa, Math.round(leftMs / 1000), s.answers.size);
+    return QUESTION_TEXT.question(s.index + 1, s.questions.length, s.questions[s.index]!.textFa, Math.round(leftMs / 1000), s.answers.size, topicTag(s.questions[s.index]!));
   }
 
   private async tick(chatId: string, s: Session, index: number, leftMs: number): Promise<void> {
@@ -143,7 +149,7 @@ export class GroupTriviaGame {
       }
       void this.d.record(chatId, weekKey, s.dateKey, { userRef: who, name: a.name, points: ok ? GROUP_QUESTION_POINTS : 0, groups: 0, wrong: ok ? 0 : 1 }).catch((err) => this.d.log?.('group: saving the score failed', err));
     }
-    const text = [QUESTION_TEXT.reveal(index + 1, s.questions.length, q.textFa, q.options[q.correctIndex] ?? '', q.explanationFa), '', ...(lines.length > 0 ? lines : [QUESTION_TEXT.nobody])].join('\n');
+    const text = [QUESTION_TEXT.reveal(index + 1, s.questions.length, q.textFa, q.options[q.correctIndex] ?? '', q.explanationFa, topicTag(q)), '', ...(lines.length > 0 ? lines : [QUESTION_TEXT.nobody])].join('\n');
     if (s.messageId !== null) await this.d.client.editInline?.(chatId, s.messageId, text, []).catch((err) => this.d.log?.('group: edit failed', err));
     if (index + 1 < s.questions.length) {
       s.index = index + 1;
