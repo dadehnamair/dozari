@@ -10,6 +10,8 @@ import { AiError, chat, listModels, resolveProviders } from './providers.js';
 import type { Env, FetchLike, ResolvedProvider } from './providers.js';
 import { buildPrompt, nameKey, parseDrafts } from './content.js';
 import type { GenerateRequest, PromptContext, SaveRequest } from './content.js';
+import { buildPriceFillPrompt, parsePriceFill } from './price-fill.js';
+import type { PriceFillRequest, PriceSuggestion } from './price-fill.js';
 import { buildReviewPrompt, parseReview } from './puzzle-review.js';
 import type { Candidate, ReviewOutcome, ReviewRequest, ReviewView } from './puzzle-review.js';
 
@@ -22,7 +24,7 @@ export interface AiDeps {
   products?: ProductAdmin;
   landing?: LandingService;
   /** The catalog as it is now, to keep suggestions from repeating existing products. */
-  catalog?: () => Promise<{ id: string; slug: string; nameFa: string }[]>;
+  catalog?: () => Promise<{ id: string; slug: string; nameFa: string; unitFa?: string | null; /** Solar years that already have a price point. */ years?: number[] }[]>;
   /** The product categories the admin has defined (active ones); the prompt offers them to the model. */
   categories?: { activeSlugs(): Promise<string[]> };
   fetch?: FetchLike;
@@ -61,6 +63,7 @@ export class AiStudio {
   describe() {
     return {
       providers: this.providers.map((p) => ({ id: p.id, label: p.label, defaultModel: p.defaultModel })),
+      priceFill: !!this.deps.catalog,
       puzzleReview: !!(this.deps.puzzles && this.deps.catalog && this.deps.products),
       kinds: { products: !!this.deps.products, kid_lessons: !!this.deps.lessons, puzzle_titles: !!this.deps.puzzles, puzzle_groups: !!(this.deps.puzzles && this.deps.catalog && this.deps.products), blog: !!this.deps.landing, trivia: !!(this.deps.trivia && this.deps.puzzles) },
       maxCallsPerHour: AI_LIMITS.maxCallsPerHour,
@@ -108,6 +111,23 @@ export class AiStudio {
       out.tags = names;
     }
     return out;
+  }
+
+  /** Asks the model for nominal prices of ONE product in years it has none for; returns suggestions only, nothing is saved. */
+  async suggestPrices(req: PriceFillRequest): Promise<{ provider: string; model: string; prices: PriceSuggestion[]; dropped: number }> {
+    if (this.providers.length === 0) throw new AiError('ai_not_configured');
+    const provider = this.providers.find((p) => p.id === req.provider);
+    if (!provider) throw new AiError('ai_unknown_provider');
+    const product = (await this.deps.catalog?.())?.find((p) => p.id === req.productId);
+    if (!product) throw new AiError('ai_not_found');
+    const years = product.years ?? [];
+    this.takeSlot();
+    const prompt = buildPriceFillPrompt({ nameFa: product.nameFa, unitFa: product.unitFa ?? null, years }, req);
+    const model = req.model?.trim() || provider.defaultModel;
+    const text = await chat(provider, { system: prompt.system, user: prompt.user, model, maxTokens: 1200 }, this.deps.fetch);
+    const parsed = parsePriceFill(text, years, prompt.years);
+    if (!parsed) throw new AiError('ai_bad_output');
+    return { provider: provider.id, model, ...parsed };
   }
 
   async generate(req: GenerateRequest): Promise<GenerateResult> {
