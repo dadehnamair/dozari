@@ -845,3 +845,7 @@ Owner: typing anything to the bot answered with the same message every time. In 
 
 Owner: playing the bot in a group must show on the player's real account so they keep playing in groups — points should raise their level and earn coins, on Telegram too. Overrides D244's «no coins in groups, group results never touch stats». Group points of a linked **adult** account (Bale link or mini-app login) become XP (1 per point, cap 80/day) and coins (1 per 5 points, cap 20/day) through the ledger (`group_play`); unlinked players and kid/teen accounts get nothing. Also: `/question` general-question mode (5 questions from the trivia bank, same scoring as `/price`), `GET /me/group-stats` card in the app, and admin numbers in «گروه‌های ربات». Numbers are proposed, tune in `config/groupgame.ts`; the cap exists so a group of alts cannot farm. Spec: `docs/logic/group-game.md` §Account rewards.
 
+
+## D250 — Store reviews on the landing site (2026-10-21, proposed)
+
+Owner: bring players' app-store reviews onto the site. Default: the owner enters them by hand (no store API, no scraping) in the admin panel; shown on `/`, `/download` and a new `/reviews` page with stars, market name and a link to the listing, never as `Review`/`AggregateRating` structured data. Names should be short or pseudonymous and a row can be hidden on request. Details: `docs/logic/landing-site.md` §Store reviews.

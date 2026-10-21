@@ -1,5 +1,5 @@
-import type { CastMember, DemoPuzzle, FaqPair, LandingData, Post, PostList, PostSummary, PublicComment } from './api.js';
-import { EXTRA_CSS, commentsSection, faDate, faNum } from './blocks.js';
+import type { CastMember, DemoPuzzle, FaqPair, LandingData, Post, PostList, PostSummary, PublicComment, StoreReview } from './api.js';
+import { EXTRA_CSS, commentsSection, faDate, faNum, reviewsBlock } from './blocks.js';
 import type { Flash } from './blocks.js';
 import { escapeHtml, plainText, renderMarkdown } from './markdown.js';
 import { qrSvg } from './qr.js';
@@ -520,6 +520,7 @@ const FLOATERS: [string, string, string, string][] = [['coin', '38%', '52%', '0s
 
 export function homePage(site: Site, data: LandingData, latest: PostSummary[], demoPuzzle: DemoPuzzle | null = null): string {
   const { site: s, cast, faq } = data;
+  const reviews = data.reviews ?? [];
   const i = ids(site);
   const title = s.seo?.title || `${s.name} — ${s.tagline}`;
   const desc = description(s.seo?.description || s.heroText || s.tagline);
@@ -565,6 +566,7 @@ ${showRow('o', { h: 'هر روز یه جایزه', p: 'گردونه‌ی روز�
 <div class="castbox rv z">${people.map((c, k) => `<a href="/cast#${escapeHtml(c.id)}" style="--d:${(k % 4) * 0.4}s">${c.image ? `<img src="${escapeHtml(c.image)}" alt="${escapeHtml(c.name)}" width="120" height="138" loading="lazy" style="object-fit:contain">` : img(`${c.who}-idle`, 120, 138, { alt: c.name })}<span>${escapeHtml(c.name)}</span></a>`).join('')}</div>
 <p style="text-align:center;margin:0"><a href="/cast">معرفی کامل بازیگران دوزاری</a></p></section>
 ${latest.length ? `<section class="in col" style="gap:28px;padding-bottom:80px"><div class="row"><h2 class="big rv" style="text-align:start">تازه‌های وبلاگ</h2><a class="more" href="/blog">همهٔ مطالب ←</a></div><ul class="pgrid">${latest.map(postCard).join('')}</ul></section>` : ''}
+${reviews.length ? `<section class="in col" style="gap:20px;padding-bottom:80px"><h2 class="big rv">بازیکن‌ها چی می‌گن؟</h2>${reviewsBlock(reviews.slice(0, 6))}<p style="text-align:center;margin:0"><a href="/reviews">همه‌ی نظرها</a></p></section>` : ''}
 ${faq.length ? `<section class="in col" style="gap:28px;padding-bottom:80px"><h2 class="big rv">پرسش‌های متداول</h2>${faqList(faq)}</section>` : ''}
 <section class="in col" style="gap:28px;padding-bottom:80px;align-items:center"><h2 class="big rv">همین حالا رایگان دانلود کن</h2><a class="fin rv z" href="/download" aria-label="دانلود ${escapeHtml(s.name)}">${banner('banner8', bannerAlt('banner8'))}</a><a class="btn big yellow pulse" href="/download">دانلود ${escapeHtml(s.name)}</a></section>
 <script>${HOME_JS}</script>`;
@@ -604,7 +606,7 @@ ${promo('lime', 'می‌خوای با ما کار کنی؟', 'همکاری، ت�
 
 /* ---- download ---- */
 
-export function downloadPage(site: Site): string {
+export function downloadPage(site: Site, reviews: StoreReview[] = []): string {
   const title = `دانلود ${site.name}: رایگان برای اندروید، مرورگر و بله`;
   const desc = description(`${site.name} را رایگان روی گوشی اندروید نصب کن، همین حالا در مرورگر بازی کن یا از طریق ربات بله شروع کن.`);
   type Store = { fa: string; os: string; ab: string; bg: string; cta: string; href: string | null };
@@ -638,7 +640,8 @@ export function downloadPage(site: Site): string {
 <section class="band s"><div class="in grid2" style="align-items:start;gap:32px">
 <div class="reqs"><h2 class="l">چیزهایی که لازم است</h2>${reqs.map(([k, v]) => `<div class="req"><span>${k}</span><span>${v}</span></div>`).join('')}</div>
 <div class="reqs"><h2 class="l">توی بازی چی هست؟</h2><div class="note">${inGame.map((t) => `<span>• ${t}</span>`).join('')}</div></div>
-</div></section>`;
+</div></section>${reviews.length ? `
+<section class="in sec col" style="gap:20px"><h2 class="big" style="text-align:start;font-size:clamp(32px,4vw,44px)">بازیکن‌ها چی می‌گن؟</h2>${reviewsBlock(reviews.slice(0, 3))}<p style="margin:0"><a href="/reviews">همه‌ی نظرها</a></p></section>` : ''}`;
   return layout(site, head(site, { title, description: desc, path: '/download', nodes: [webPage(site, '/download', 'WebPage', title, desc)], crumbs: [{ name: 'صفحه‌ی اول', path: '/' }, { name: 'دانلود' }] }), null, body, { active: 'download', wide: true });
 }
 

@@ -1403,6 +1403,19 @@ export const landingFaq = mysqlTable('landing_faq', {
   isActive: boolean('is_active').notNull().default(true),
 });
 
+/** Player reviews copied by hand from the app stores (with the store name and a link to its listing), shown on the landing site. */
+export const landingReviews = mysqlTable('landing_reviews', {
+  id: id(),
+  authorName: varchar('author_name', { length: 60 }).notNull(),
+  bodyFa: text('body_fa').notNull(),
+  /** 1..5, or null when the store showed no stars. */
+  rating: int('rating'),
+  marketFa: varchar('market_fa', { length: 60 }).notNull(),
+  sourceUrl: varchar('source_url', { length: 300 }),
+  sortOrder: int('sort_order').notNull().default(0),
+  isActive: boolean('is_active').notNull().default(true),
+});
+
 export const LANDING_COMMENT_TARGETS = ['post', 'cast'] as const;
 export const LANDING_COMMENT_STATUS = ['pending', 'approved', 'hidden'] as const;
 

@@ -45,10 +45,22 @@ export interface FaqPair {
   question: string;
   answer: string;
 }
+/** A player's review copied by the owner from an app store; `url` is the store listing (null when unknown). */
+export interface StoreReview {
+  id: string;
+  author: string;
+  body: string;
+  /** 1..5, or null when the store showed no stars. */
+  rating: number | null;
+  market: string;
+  url: string | null;
+}
 export interface LandingData {
   site: PublicSite;
   cast: CastMember[];
   faq: FaqPair[];
+  /** Absent when the game server predates the reviews feature. */
+  reviews?: StoreReview[];
 }
 /** The try-it puzzle: groups in difficulty order (level 0 = easiest), each item an icon drawn by the game server. */
 export interface DemoPuzzle {
