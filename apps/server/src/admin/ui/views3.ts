@@ -12,8 +12,11 @@ VIEWS.users = function (root) {
   trackSel.addEventListener('change', function () { st.track = trackSel.value; store('users.track', st.track); st.offset = 0; pull(); });
   root.appendChild(h('div', { class: 'toolbar' }, [search, filt, h('span', { style: 'flex:1' }), trackSel, sortSel]));
   root.appendChild(out);
+  var pullSeq = 0;
   function pull() {
+    var mine = ++pullSeq;
     api('/admin/users?q=' + encodeURIComponent(st.q) + '&filter=' + st.filter + '&sort=' + st.sort + (st.track ? '&track=' + st.track : '') + '&offset=' + st.offset).then(function (r) {
+      if (mine !== pullSeq) return; // a newer search is already on its way
       clear(out);
       if (r.status === 404) return out.appendChild(empty('مدیریت کاربران روی این سرور فعال نیست'));
       if (!r.ok) return fail(r);
@@ -176,26 +179,35 @@ function userDrawer(id, done) {
 /* ---------------- settings ---------------- */
 var GROUP_FA = { app: 'مدیریت اپ', gameplay: 'بازی', scoring: 'امتیاز', profile: 'پروفایل', economy: 'اقتصاد', chart: 'نمودار', bot: 'ربات محتوا', notify: 'اعلان‌های بله', review: 'نظر در فروشگاه‌ها' };
 VIEWS.settings = function (root) {
-  var group = load('settings.group') || 'app', q = '', rows = [], nav = h('div', { class: 'chips', style: 'margin-bottom:14px' }), box = h('div');
+  var group = load('settings.group') || 'app', q = '', rows = [], edits = {}, nav = h('div', { class: 'chips', style: 'margin-bottom:14px' }), box = h('div');
   var search = searchBox('جستجو در همه‌ی تنظیم‌ها (عنوان، توضیح یا کلید)…', function (v) { q = v.trim().toLowerCase(); draw(); });
   root.appendChild(h('div', { class: 'toolbar' }, [search]));
   root.appendChild(nav); root.appendChild(box);
   function matches(r) { return (r.label + ' ' + (r.hint || '') + ' ' + r.key).toLowerCase().indexOf(q) >= 0; }
   function settingRow(r) {
-    var inp = h('input', { type: r.kind === 'bool' ? 'checkbox' : 'text', dir: r.kind === 'text' ? 'auto' : 'ltr', maxlength: r.kind === 'text' ? r.max : undefined, value: Array.isArray(r.value) ? r.value.join(',') : String(r.value), checked: r.kind === 'bool' ? r.value === 1 : undefined, 'aria-label': r.label });
+    var typed = edits[r.key]; // unsaved edit made before a redraw (saving another row, switching group, searching)
+    var inp = h('input', { type: r.kind === 'bool' ? 'checkbox' : 'text', dir: r.kind === 'text' ? 'auto' : 'ltr', maxlength: r.kind === 'text' ? r.max : undefined, value: typed !== undefined ? String(typed) : Array.isArray(r.value) ? r.value.join(',') : String(r.value), checked: r.kind === 'bool' ? (typed !== undefined ? typed === 1 : r.value === 1) : undefined, 'aria-label': r.label });
+    var row;
+    function save() {
+      var val = r.kind === 'bool' ? (inp.checked ? 1 : 0) : inp.value;
+      api('/admin/settings/' + encodeURIComponent(r.key), { method: 'PUT', body: { value: val } }).then(function (x) { if (!x.ok) return fail(x); delete edits[r.key]; rows = x.body.settings; toast('ذخیره شد'); draw(); });
+    }
+    inp.addEventListener(r.kind === 'bool' ? 'change' : 'input', function () {
+      edits[r.key] = r.kind === 'bool' ? (inp.checked ? 1 : 0) : inp.value;
+      if (row) row.classList.add('dirty');
+    });
+    inp.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.isComposing && r.kind !== 'bool') { e.preventDefault(); save(); } });
     var def = Array.isArray(r.default) ? r.default.join(',') : String(r.default) || '(خالی)';
-    return h('div', { class: 'setting' + (r.overridden ? ' changed' : '') }, [
+    row = h('div', { class: 'setting' + (r.overridden ? ' changed' : '') + (typed !== undefined ? ' dirty' : '') }, [
       h('div', {}, [h('div', { class: 'l', text: r.label + (r.unit ? ' (' + r.unit + ')' : '') }), r.hint ? h('div', { class: 'h', text: r.hint }) : null, h('div', { class: 'h ltr', text: r.key + ' · پیش‌فرض ' + def })]),
       inp,
       h('div', { style: 'display:flex;gap:6px;align-items:center' }, [
         r.overridden ? badge('تغییر‌یافته', 'b-warn') : null,
-        h('button', { class: 'btn primary sm', text: 'ذخیره', onclick: function () {
-          var val = r.kind === 'bool' ? (inp.checked ? 1 : 0) : inp.value;
-          api('/admin/settings/' + encodeURIComponent(r.key), { method: 'PUT', body: { value: val } }).then(function (x) { if (!x.ok) return fail(x); rows = x.body.settings; toast('ذخیره شد'); draw(); });
-        } }),
-        r.overridden ? h('button', { class: 'btn sm', text: 'پیش‌فرض', onclick: function () { api('/admin/settings/' + encodeURIComponent(r.key), { method: 'DELETE' }).then(function (x) { if (!x.ok) return fail(x); rows = x.body.settings; toast('به پیش‌فرض برگشت'); draw(); }); } }) : null
+        h('button', { class: 'btn primary sm', text: 'ذخیره', onclick: save }),
+        r.overridden ? h('button', { class: 'btn sm', text: 'پیش‌فرض', onclick: function () { api('/admin/settings/' + encodeURIComponent(r.key), { method: 'DELETE' }).then(function (x) { if (!x.ok) return fail(x); delete edits[r.key]; rows = x.body.settings; toast('به پیش‌فرض برگشت'); draw(); }); } }) : null
       ])
     ]);
+    return row;
   }
   function draw() {
     clear(nav); clear(box);

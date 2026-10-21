@@ -211,7 +211,11 @@ function editProduct(p) {
     var t = Number(price.value);
     if (!yr.value || !t) return toast('سال و قیمت را وارد کن', true);
     api('/admin/prices', { method: 'POST', body: { productId: p.id, year: Number(yr.value), priceRials: String(Math.round(t * 10)), sourceType: srcT.value, sourceUrl: srcU.value.trim() || null, sourceNote: note.value.trim() || null } }).then(function (r) {
-      if (!r.ok) return fail(r); toast('قیمت ثبت شد؛ برای نمایش در بازی باید تأیید شود'); route();
+      if (!r.ok) return fail(r); toast('قیمت ثبت شد؛ برای نمایش در بازی باید تأیید شود');
+      p.prices.push({ id: r.body.id, year: Number(yr.value), month: null, priceRials: String(Math.round(t * 10)), sourceType: srcT.value, sourceUrl: srcU.value.trim() || null, sourceNote: note.value.trim() || null, confidence: 1, status: 'pending' });
+      p.prices.sort(function (a, b) { return a.year - b.year; });
+      yr.value = ''; price.value = ''; srcU.value = ''; note.value = '';
+      drawPrices(); route();
     });
   } });
   var body = h('div', { style: 'display:flex;flex-direction:column;gap:16px' }, [

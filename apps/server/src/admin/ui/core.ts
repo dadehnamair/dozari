@@ -51,14 +51,26 @@ function load(k) { try { return localStorage.getItem(k); } catch (e) { return nu
 function sstore(k, v) { try { if (v === null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, v); } catch (e) { /* private mode */ } }
 function sload(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }
 
+var inflight = 0;
+function busy(d) { inflight = Math.max(0, inflight + d); document.body.classList.toggle('busy', inflight > 0); }
+/* One way out of a signed-in state (sign-out button or an expired session): closes every dialog so none stays on top of the login form. */
+function endSession(msg) { sstore('tok', null); S.token = ''; S.me = null; S.counts = {}; while (OVERLAYS.length) closeTop(); showLogin(msg || ''); }
 function api(path, opts) {
   opts = opts || {};
   var headers = { 'x-admin-token': S.token };
   if (opts.body !== undefined) headers['content-type'] = 'application/json';
+  busy(1);
   return fetch(path, { method: opts.method || 'GET', headers: headers, body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined })
-    .then(function (res) { return res.json().catch(function () { return {}; }).then(function (body) { if (res.status === 401 && S.token && path !== '/admin/login') { sstore('tok', null); S.token = ''; showLogin('نشست تمام شد؛ دوباره وارد شو.'); } return { status: res.status, ok: res.ok, body: body }; }); })
-    .catch(function () { return { status: 0, ok: false, body: {} }; });
+    .then(function (res) { return res.json().catch(function () { return {}; }).then(function (body) { if (res.status === 401 && S.token && path !== '/admin/login') endSession('نشست تمام شد؛ دوباره وارد شو.'); return { status: res.status, ok: res.ok, body: body }; }); })
+    .catch(function () { return { status: 0, ok: false, body: {} }; })
+    .then(function (r) {
+      busy(-1);
+      // a decision on a price, bot suggestion or chat report changes the sidebar badges: refresh them (debounced)
+      if (r.ok && opts.method && opts.method !== 'GET' && /^\/admin\/(bot\/candidates|chat\/(reports|messages)|prices|products)/.test(path)) { clearTimeout(countsTimer); countsTimer = setTimeout(refreshCounts, 400); }
+      return r;
+    });
 }
+var countsTimer;
 /* Raw-body upload (no multipart): the server answers { url }, the address to keep in the field. */
 function uploadImage(file, folder) {
   return fetch('/admin/uploads?folder=' + encodeURIComponent(folder || 'misc'), { method: 'POST', headers: { 'x-admin-token': S.token, 'content-type': file.type }, body: file })
@@ -94,9 +106,13 @@ function toast(msg, err) {
   area.appendChild(t);
   setTimeout(function () { if (t.parentNode) t.parentNode.removeChild(t); }, err ? 5000 : 2600);
 }
-var ERR = { bad_round_gap: 'فاصله‌ی دورها باید ۰ (پشت‌سرهم) یا بین ۱ ساعت تا ۱۴ روز باشد', bad_grace: 'مهلت حضور باید بین ۱ تا ۱۲۰ دقیقه باشد', bad_size: 'ظرفیت باید ۴، ۸، ۱۶ یا ۳۲ نفر باشد', bad_min_players: 'حداقل نفرات باید ۲ یا بیشتر و حداکثر برابر ظرفیت باشد', bad_entry_coins: 'ورودی سکه خارج از بازه‌ی مجاز است', bad_entry_gems: 'ورودی الماس خارج از بازه‌ی مجاز است', bad_min_level: 'کمترین لول باید حداقل ۱ باشد', bad_title: 'نام تورنومنت باید حداقل ۲ حرف باشد', bad_prize: 'مقدار جایزه (سکه، الماس یا چرخش) خارج از بازه‌ی مجاز است', dup_prize: 'برای یک مقام دو جایزه تعریف شده', bad_sponsor: 'اسپانسر انتخاب‌شده پیدا نشد یا غیرفعال است', not_draft: 'فقط پیش‌نویس را می‌شود منتشر کرد', invalid_code: 'کد نامعتبر است: ۴ تا ۱۲ حرف/عدد، فقط از «۲۳۴۵۶۷۸۹ و ABCDEFGHJKMNPQRSTUVWXYZ» (بدون ۰ ۱ O I L)', invalid_request: 'ورودی نادرست است؛ کد، نام کمپین و تعداد استفاده را بررسی کن', unauthorized: 'توکن اشتباه است', invalid_folder: 'پوشه‌ی آپلود نامعتبر است', unsupported_image: 'فایل تصویر معتبر نیست (PNG، JPG یا WebP)', forbidden: 'نقش تو اجازه‌ی این کار را ندارد', rate_limited: 'تلاش‌های زیاد؛ کمی بعد دوباره امتحان کن', invalid_credentials: 'نام کاربری یا رمز درست نیست', account_locked: 'حساب برای چند دقیقه قفل شد', duplicate: 'این نام کاربری قبلاً هست', invalid_username: 'نام کاربری: ۳ تا ۳۰ حرف انگلیسی کوچک، عدد، نقطه یا خط تیره', weak_password: 'رمز ضعیف است (حداقل ۱۰ نویسه، بدون نام کاربری، متنوع)', last_owner: 'آخرین مالک را نمی‌شود برداشت یا غیرفعال کرد', not_found: 'پیدا نشد', invalid_request: 'ورودی نامعتبر است', product_not_found: 'محصول پیدا نشد', slug_taken: 'این شناسه (slug) قبلاً استفاده شده', price_exists: 'همین قیمت قبلاً ثبت شده', approved_price_exists: 'برای این سال قبلاً یک قیمت تأییدشده هست', conflict: 'برای این محصول و سال قبلاً قیمت تأییدشده هست', needs_product: 'یک محصول انتخاب کن یا محصول جدید بساز', duplicate_slug: 'این شناسه قبلاً استفاده شده', already_decided: 'قبلاً تصمیم گرفته شده', insufficient: 'موجودی کافی نیست', source_not_found: 'منبع پیدا نشد', user_not_found: 'کاربر پیدا نشد', invalid_value: 'مقدار خارج از محدوده است', invalid_key: 'تنظیم ناشناخته است', emoji: 'ایموجی نامعتبر است (فقط ایموجی، تا چند نویسه)', icon: 'آیکن در بسته‌ی آیکن‌ها نیست' };
-function fail(r) { toast(ERR[r.body && r.body.reason] || ERR[r.body && r.body.error] || ('خطا (' + r.status + ')'), true); }
+var ERR = { bad_round_gap: 'فاصله‌ی دورها باید ۰ (پشت‌سرهم) یا بین ۱ ساعت تا ۱۴ روز باشد', bad_grace: 'مهلت حضور باید بین ۱ تا ۱۲۰ دقیقه باشد', bad_size: 'ظرفیت باید ۴، ۸، ۱۶ یا ۳۲ نفر باشد', bad_min_players: 'حداقل نفرات باید ۲ یا بیشتر و حداکثر برابر ظرفیت باشد', bad_entry_coins: 'ورودی سکه خارج از بازه‌ی مجاز است', bad_entry_gems: 'ورودی الماس خارج از بازه‌ی مجاز است', bad_min_level: 'کمترین لول باید حداقل ۱ باشد', bad_title: 'نام تورنومنت باید حداقل ۲ حرف باشد', bad_prize: 'مقدار جایزه (سکه، الماس یا چرخش) خارج از بازه‌ی مجاز است', dup_prize: 'برای یک مقام دو جایزه تعریف شده', bad_sponsor: 'اسپانسر انتخاب‌شده پیدا نشد یا غیرفعال است', not_draft: 'فقط پیش‌نویس را می‌شود منتشر کرد', invalid_code: 'کد نامعتبر است: ۴ تا ۱۲ حرف/عدد، فقط از «۲۳۴۵۶۷۸۹ و ABCDEFGHJKMNPQRSTUVWXYZ» (بدون ۰ ۱ O I L)', unauthorized: 'توکن اشتباه است', invalid_folder: 'پوشه‌ی آپلود نامعتبر است', unsupported_image: 'فایل تصویر معتبر نیست (PNG، JPG یا WebP)', forbidden: 'نقش تو اجازه‌ی این کار را ندارد', rate_limited: 'تلاش‌های زیاد؛ کمی بعد دوباره امتحان کن', invalid_credentials: 'نام کاربری یا رمز درست نیست', account_locked: 'حساب برای چند دقیقه قفل شد', duplicate: 'این نام کاربری قبلاً هست', invalid_username: 'نام کاربری: ۳ تا ۳۰ حرف انگلیسی کوچک، عدد، نقطه یا خط تیره', weak_password: 'رمز ضعیف است (حداقل ۱۰ نویسه، بدون نام کاربری، متنوع)', last_owner: 'آخرین مالک را نمی‌شود برداشت یا غیرفعال کرد', not_found: 'پیدا نشد', invalid_request: 'ورودی نامعتبر است؛ فیلدها را بررسی کن', product_not_found: 'محصول پیدا نشد', slug_taken: 'این شناسه (slug) قبلاً استفاده شده', price_exists: 'همین قیمت قبلاً ثبت شده', approved_price_exists: 'برای این سال قبلاً یک قیمت تأییدشده هست', conflict: 'برای این محصول و سال قبلاً قیمت تأییدشده هست', needs_product: 'یک محصول انتخاب کن یا محصول جدید بساز', duplicate_slug: 'این شناسه قبلاً استفاده شده', already_decided: 'قبلاً تصمیم گرفته شده', insufficient: 'موجودی کافی نیست', source_not_found: 'منبع پیدا نشد', user_not_found: 'کاربر پیدا نشد', invalid_value: 'مقدار خارج از محدوده است', invalid_key: 'تنظیم ناشناخته است', emoji: 'ایموجی نامعتبر است (فقط ایموجی، تا چند نویسه)', icon: 'آیکن در بسته‌ی آیکن‌ها نیست' };
+function fail(r) { if (r.status === 0) return toast('اتصال به سرور برقرار نشد؛ اینترنت یا سرور را بررسی کن', true); toast(ERR[r.body && r.body.reason] || ERR[r.body && r.body.error] || ('خطا (' + r.status + ')'), true); }
 
+var lastCrash = 0;
+function crashed(what) { console.error(what); if (Date.now() - lastCrash > 4000) { lastCrash = Date.now(); toast('خطای غیرمنتظره در پنل؛ صفحه را دوباره باز کن و اگر تکرار شد خبر بده', true); } }
+window.addEventListener('error', function (e) { crashed(e.error || e.message); });
+window.addEventListener('unhandledrejection', function (e) { crashed(e.reason); });
 var OVERLAYS = [];
 function closeTop() { var o = OVERLAYS[OVERLAYS.length - 1]; if (o) o(); }
 document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && OVERLAYS.length) { e.stopPropagation(); closeTop(); } });
@@ -111,7 +127,9 @@ function overlay(cls, content, onClose) {
     if (onClose) onClose();
   }
   OVERLAYS.push(close);
-  ov.addEventListener('mousedown', function (e) { if (e.target === ov) close(); });
+  var downOnBackdrop = false;
+  ov.addEventListener('mousedown', function (e) { downOnBackdrop = e.target === ov; });
+  ov.addEventListener('click', function (e) { if (e.target === ov && downOnBackdrop) close(); downOnBackdrop = false; });
   ov.appendChild(content);
   document.body.appendChild(ov);
   return close;
@@ -218,6 +236,12 @@ function formModal(title, fields, save) {
     Promise.resolve(save()).then(function (ok) { busy = false; if (ok) close(); });
   } }]);
   var first = body.querySelector('input,select,textarea'); if (first) first.focus();
+  body.addEventListener('keydown', function (e) {
+    var t = e.target;
+    if (e.key !== 'Enter' || e.isComposing || !t || t.tagName !== 'INPUT' || /^(search|checkbox|file)$/.test(t.type)) return;
+    var save = body.closest('.modal').querySelector('footer .btn.primary');
+    if (save) { e.preventDefault(); save.click(); }
+  });
 }
 function addCard(title, sub, btnLabel, fields, save) {
   function open() { formModal(title, fields, save); }

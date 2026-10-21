@@ -159,7 +159,9 @@ function drawNav() {
     nav.appendChild(box);
   });
 }
+var countsAt = 0;
 function refreshCounts() {
+  countsAt = Date.now();
   api('/admin/dashboard').then(function (r) { if (!r.ok) return; S.counts.prices = r.body.catalog.pricesPending; S.counts.inbox = r.body.bot.candidatesPending; drawNav(); });
   api('/admin/chat/reports').then(function (r) { if (!r.ok) return; S.counts.reports = r.body.reports.filter(function (x) { return !x.resolved; }).length; drawNav(); });
 }
@@ -174,6 +176,7 @@ function route() {
   if (!tab) { location.replace('#/dashboard'); return; }
   if (sec.tabs.length > 1) store('tab.' + sec.id, tab[0]);
   S.sec = sec.id; S.route = tab[0];
+  if (S.me && Date.now() - countsAt > 20000) refreshCounts();
   document.title = tab[1] + ' · مرکز مدیریت دوزاری';
   clear($('crumb')).appendChild(h('span', {}, [sec.id === 'dashboard' ? h('b', { text: 'نمای کلی' }) : [h('span', { text: sec.title }), ' › ', h('b', { text: tab[1] })]]));
   drawNav();
@@ -189,7 +192,10 @@ function route() {
   var body = h('div', { class: 'view-body' });
   root.appendChild(body);
   if (sec.tabs.length === 1) { /* dashboard draws its own heading */ } else body.appendChild(h('p', { class: 'muted', style: 'margin:-6px 0 16px;font-size:13.5px', text: DESC[tab[0]] || tab[2] }));
-  VIEWS[tab[0]](body);
+  try { VIEWS[tab[0]](body); } catch (err) {
+    console.error(err);
+    clear(body).appendChild(h('div', { class: 'empty-state' }, [h('b', { text: 'این صفحه باز نشد' }), 'خطای غیرمنتظره؛ دوباره امتحان کن.', h('div', { style: 'margin-top:12px' }, [h('button', { class: 'btn primary', text: 'تلاش دوباره', onclick: route })])]));
+  }
   window.scrollTo(0, 0);
 }
 function setTheme(t) { S.theme = t; if (t) document.documentElement.setAttribute('data-theme', t); else document.documentElement.removeAttribute('data-theme'); store('theme', t); }
@@ -255,16 +261,17 @@ function setLoginMode(tm) {
   $('login-user').hidden = tm; $('login-pass').hidden = tm; $('login-token').hidden = !tm;
   $('login-mode').textContent = tm ? 'ورود با نام کاربری و رمز' : 'ورود با توکن اصلی';
 }
-function logout() { sstore('tok', null); S.token = ''; S.me = null; S.counts = {}; while (OVERLAYS.length) closeTop(); showLogin(''); }
+function logout() { endSession(''); }
 function toggleTheme() { var dark = S.theme === 'dark' || (S.theme === null && window.matchMedia('(prefers-color-scheme: dark)').matches); setTheme(dark ? 'light' : 'dark'); }
 function enter(token) {
   S.token = token;
   api('/admin/me').then(function (m) {
     if (m.status === 401) { sstore('tok', null); S.token = ''; return showLogin('ورود ناموفق بود.'); }
+    if (m.status === 0) return showLogin('اتصال به سرور برقرار نشد؛ دوباره امتحان کن.');
     if (m.status === 404 || !m.ok) { return showLogin('پنل روی این سرور فعال نیست.'); }
     S.me = m.body;
     api('/admin/meta').then(function (r) {
-      if (!r.ok) return showLogin('پنل روی این سرور فعال نیست.');
+      if (!r.ok) return showLogin(r.status === 0 ? 'اتصال به سرور برقرار نشد؛ دوباره امتحان کن.' : 'پنل روی این سرور فعال نیست.');
       S.meta = r.body; applyCategoryNames(); sstore('tok', token);
       $('who-name').textContent = S.me.name; $('who-role').textContent = ROLE_FA[S.me.role] || S.me.role;
       $('avatar').textContent = initials(S.me.name);
@@ -274,7 +281,10 @@ function enter(token) {
   });
 }
 window.addEventListener('hashchange', route);
+document.addEventListener('click', function (e) { if (document.body.classList.contains('nav-open') && !e.target.closest('.side') && !e.target.closest('#menu')) document.body.classList.remove('nav-open'); });
+setInterval(function () { if (S.me && !document.hidden) refreshCounts(); }, 120000);
 document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape' && !OVERLAYS.length) document.body.classList.remove('nav-open');
   if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); if (S.me) openPalette(); }
   else if (e.key === '/' && S.me && !/^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || '') && !OVERLAYS.length) { e.preventDefault(); openPalette(); }
 });

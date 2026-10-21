@@ -4,6 +4,14 @@ Single-page app served at `GET /admin` (vanilla JS, no external requests, strict
 Source: `apps/server/src/admin/ui/` — `styles.ts` (design system, light/dark, RTL), `core.ts` (DOM/API helpers, modal, drawer, `ask` confirm), `kit.ts` (icons, page header, `dtable`, `seg`, `searchBox`…),
 `shell.ts` (navigation tree + router + Ctrl+K palette + sign-in), `views1/2/3.ts` (pages).
 
+## Working behaviour (shared by every page)
+
+- Sidebar/tab badges refresh on navigation (at most every 20 s), every 2 min, and right after a price / bot-suggestion / chat-report decision.
+- A thin progress bar shows while any request is in flight; an unreachable server says so («اتصال به سرور برقرار نشد») instead of «خطا (۰)».
+- An expired session (401) closes every open dialog before showing the sign-in form; a view that throws shows a retry card instead of a blank page; stray script errors raise one toast.
+- A dialog closes on a backdrop click only if the press also started there (selecting text and releasing outside keeps it open). Enter submits add/edit forms; in settings Enter saves the row.
+- Settings keep unsaved edits (yellow-tinted row) when another row is saved, the group changes or a search is typed. User search ignores out-of-order responses. On a phone the menu closes on an outside tap or Esc.
+
 ## Information architecture
 
 Seven sections in a collapsible sidebar; sections with several pages show them as tabs (`#/section/tab`). Old flat links (`#/users`) redirect. Badge counts (pending prices, bot inbox, open chat reports) show on the

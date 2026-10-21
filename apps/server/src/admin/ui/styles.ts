@@ -351,5 +351,10 @@ tbody tr { transition:background .12s; } tbody tr:nth-child(even) td { backgroun
 .th-row { transition:background .15s; border-radius:12px; padding-inline:10px; } .th-row:hover { background:var(--surface2); }
 :focus-visible { outline-offset:3px; border-radius:6px; }
 @media (prefers-reduced-motion:reduce) { *, *::before, *::after { animation:none !important; transition:none !important; } }
+/* thin progress bar while any request is in flight */
+body::before { content:""; position:fixed; inset-inline:0; top:0; height:3px; z-index:90; background:linear-gradient(90deg,transparent,var(--gold),var(--brand),transparent); background-size:50% 100%; background-repeat:no-repeat; opacity:0; pointer-events:none; transition:opacity .15s; }
+body.busy::before { opacity:1; animation:busy 1s linear infinite; }
+@keyframes busy { from { background-position:150% 0; } to { background-position:-50% 0; } }
+.setting.dirty { background:color-mix(in srgb,var(--brand) 7%,transparent); border-radius:10px; padding-inline:12px; }
 @media print { .side, .top { display:none; } .shell { display:block; } }
 `;
