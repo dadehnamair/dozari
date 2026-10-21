@@ -79,7 +79,7 @@ export interface AdminExtras extends AdminModules {
   accounts?: AdminAccounts;
 }
 
-const ADMIN_FONTS = new Set(['Vazirmatn-Regular.ttf', 'Vazirmatn-Bold.ttf']);
+const ADMIN_FONTS = new Set(['Vazirmatn-Regular.ttf', 'Vazirmatn-Bold.ttf', 'Lalezar-Regular.woff2']);
 
 export function registerAdminRoutes(app: FastifyInstance, repo: AdminRepository, token: string | undefined, extras: AdminExtras = {}) {
   const accounts = extras.accounts ?? new AdminAccounts(createMemoryAdminStore(), randomBytes(32).toString('hex'), token);
@@ -90,7 +90,7 @@ export function registerAdminRoutes(app: FastifyInstance, repo: AdminRepository,
   app.get<{ Params: { name: string } }>('/admin/fonts/:name', async (req, reply) => {
     if (!ADMIN_FONTS.has(req.params.name)) return reply.code(404).send();
     const file = await readFile(new URL(`../../assets/fonts/${req.params.name}`, import.meta.url));
-    return reply.type('font/ttf').header('cache-control', 'public, max-age=31536000, immutable').send(file);
+    return reply.type(req.params.name.endsWith('.woff2') ? 'font/woff2' : 'font/ttf').header('cache-control', 'public, max-age=31536000, immutable').send(file);
   });
 
   app.register(async (guarded) => {

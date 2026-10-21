@@ -6,7 +6,7 @@ var VIEWS = {};
  * Routes look like #/players/users; old flat links such as #/users are redirected.
  */
 var TREE = [
-  { id: 'dashboard', title: 'نمای کلی', icon: 'dashboard', tabs: [
+  { id: 'dashboard', section: 'پایش', title: 'نمای کلی', icon: 'dashboard', tabs: [
     ['dashboard', 'نمای کلی', 'وضعیت بازی، کارهای منتظر تو و میان‌برها', 'داشبورد آمار خانه']
   ] },
   { id: 'players', title: 'بازیکنان و نظارت', icon: 'players', tabs: [
@@ -21,7 +21,7 @@ var TREE = [
     ['bots', 'بازیکن‌های ربات', 'بازیکن‌های ساختگی برای پر کردن صف', 'ربات بازیکن صف'],
     ['invites', 'کد معرف', 'کدهای دعوت و کمپین‌ها', 'کد دعوت معرف کمپین']
   ] },
-  { id: 'catalog', title: 'محتوا و قیمت‌ها', icon: 'catalog', tabs: [
+  { id: 'catalog', section: 'محتوا و بازی', title: 'محتوا و قیمت‌ها', icon: 'catalog', tabs: [
     ['catalog', 'کاتالوگ محصولات', 'محصول‌ها، آیکن‌ها و تاریخچه‌ی قیمت', 'محصول کالا آیکن'],
     ['categories', 'دسته‌بندی محصولات', 'تعریف، ویرایش و مرتب‌کردن دسته‌های محصول (خوراکی، خودرو، …)', 'دسته بندی دسته‌بندی محصول کتگوری'],
     ['prices', 'بازبینی قیمت‌ها', 'قیمت‌هایی که دستی ثبت شده و منتظر تأییدند', 'قیمت تایید'],
@@ -51,7 +51,7 @@ var TREE = [
     ['tournaments', 'تورنومنت‌ها', 'ساخت و مدیریت مسابقه‌های ویژه', 'تورنومنت مسابقه'],
     ['sponsors', 'اسپانسرها', 'اسپانسرهای تورنومنت‌ها', 'اسپانسر حامی بنر']
   ] },
-  { id: 'comms', title: 'ارتباط با بازیکن', icon: 'comms', tabs: [
+  { id: 'comms', section: 'ارتباط', title: 'ارتباط با بازیکن', icon: 'comms', tabs: [
     ['messages', 'مرکز پیام', 'ارسال پیام همگانی و پیگیری گیرنده‌ها', 'پیام اعلان همگانی'],
     ['bale', 'ربات بله', 'وضعیت ربات بله و اعلان‌ها', 'بله اعلان'],
     ['sms', 'پیامک', 'درگاه پیامک، متن پیام‌ها و ارسال آزمایشی', 'پیامک sms درگاه ارائه‌دهنده کد تایید irnoti kavenegar']
@@ -63,7 +63,7 @@ var TREE = [
     ['landingcomments', 'نظرات', 'تأیید یا پنهان‌کردن نظر بازدیدکننده‌ها', 'نظر نظرات کامنت تایید'],
     ['shortlinks', 'لینک کوتاه', 'لینک‌های کوتاه و شمارش کلیک', 'لینک کوتاه']
   ] },
-  { id: 'system', title: 'سیستم', icon: 'system', tabs: [
+  { id: 'system', section: 'پیکربندی', title: 'سیستم', icon: 'system', tabs: [
     ['settings', 'تنظیمات', 'تنظیمات زنده‌ی سرور؛ حالت تعمیر، حداقل نسخه و کلیدهای قابلیت‌ها', 'تنظیم تعمیر نسخه'],
     ['admins', 'مدیران پنل', 'حساب‌ها و نقش‌های ادمین', 'ادمین نقش رمز'],
     ['socket', 'سرویس سوکت', 'اتصال‌ها، صف و مسابقه‌های زنده', 'سوکت صف زنده'],
@@ -133,25 +133,56 @@ function tabCount(t) { var k = TAB_COUNT[t[0]]; return k ? (S.counts[k] || 0) : 
 function secCount(sec) { return sec.tabs.reduce(function (a, t) { return a + tabCount(t); }, 0); }
 function href(secId, key) { return secId === 'dashboard' ? '#/dashboard' : '#/' + secId + '/' + key; }
 
+var navQuery = '', railOn = load('rail') === '1';
+function isRail() { return railOn && window.innerWidth > 900; }
+function applyRail() { document.getElementById('app').classList.toggle('rail', isRail()); }
 function drawNav() {
-  var nav = clear($('nav'));
-  TREE.forEach(function (sec) {
+  var rail = isRail(), q = navQuery.trim();
+  applyRail();
+  var nav = clear($('nav')), shown = 0, lastSec = '';
+  TREE.forEach(function (sec, si) {
     var tabs = sec.tabs.filter(function (t) { return tabVisible(sec, t); });
     if (!tabs.length) return;
+    var selfMatch = !q || sec.title.indexOf(q) >= 0;
+    if (q && !selfMatch) tabs = tabs.filter(function (t) { return t[1].indexOf(q) >= 0; });
+    if (q && !tabs.length) return;
+    shown++;
+    var single = sec.tabs.length === 1, multi = !single;
     var active = S.sec === sec.id, c = secCount(sec);
-    if (sec.tabs.length === 1) {
-      nav.appendChild(h('div', { class: 'nav-sec' + (active ? ' active' : '') }, [h('a', { class: 'nav-head', href: href(sec.id, tabs[0][0]), style: 'text-decoration:none', 'aria-current': active ? 'page' : null, onclick: function () { document.body.classList.remove('nav-open'); } }, [ic(sec.icon), h('span', { text: sec.title })])]));
-      return;
+    var open = multi && (q ? true : (openSec[sec.id] === undefined ? active : openSec[sec.id]));
+    if (sec.section && !q) {
+      if (rail) { if (si > 0) nav.appendChild(h('div', { class: 'nav-div' })); }
+      else nav.appendChild(h('div', { class: 'nav-label', text: sec.section }));
     }
-    var open = openSec[sec.id] === undefined ? active : openSec[sec.id];
-    var box = h('div', { class: 'nav-sec' + (open ? ' open' : '') + (active ? ' active' : '') });
-    box.appendChild(h('button', { class: 'nav-head', type: 'button', 'aria-expanded': String(open), onclick: function () { openSec[sec.id] = !open; drawNav(); } }, [ic(sec.icon), h('span', { text: sec.title }), c && !open ? h('span', { class: 'count', text: fa(c) }) : null, h('span', { class: 'chev' }, [ic('chev')])]));
-    box.appendChild(h('div', { class: 'nav-sub' }, tabs.map(function (t) {
+    var lit = active && (single || !open || rail);
+    var box = h('div', { class: 'nav-sec' + (open ? ' open' : '') + (active ? ' active' : '') + (lit ? ' lit' : '') });
+    var inner = [h('span', { class: 'bar' }), h('span', { class: 'ico' }, [ic(sec.icon), rail && c ? h('span', { class: 'dot' }) : null])];
+    if (!rail) {
+      inner.push(h('span', { class: 'lbl', text: sec.title }));
+      if (multi && c && !open) inner.push(h('span', { class: 'sum', text: fa(c) }));
+      if (multi) inner.push(h('span', { class: 'chev' }, [ic('chev')]));
+    }
+    var go = function () { document.body.classList.remove('nav-open'); };
+    var head = single || rail
+      ? h('a', { class: 'nav-head', href: href(sec.id, tabs[0][0]), title: sec.title, 'aria-current': active ? 'page' : null, onclick: go }, inner)
+      : h('button', { class: 'nav-head', type: 'button', title: sec.title, 'aria-expanded': String(open), onclick: function () { var was = open; openSec = {}; openSec[sec.id] = !was; drawNav(); } }, inner);
+    box.appendChild(head);
+    var link = function (t) {
       var n = tabCount(t);
-      return h('a', { href: href(sec.id, t[0]), 'aria-current': active && S.route === t[0] ? 'page' : null, onclick: function () { document.body.classList.remove('nav-open'); } }, [h('span', { text: t[1] }), n ? h('span', { class: 'count', text: fa(n) }) : null]);
-    })));
+      return h('a', { href: href(sec.id, t[0]), 'aria-current': active && S.route === t[0] ? 'page' : null, onclick: function () { go(); } }, [h('span', { text: t[1] }), n ? h('span', { class: 'count', text: fa(n) }) : null]);
+    };
+    if (multi && !rail) box.appendChild(h('div', { class: 'nav-fold' }, [h('div', {}, [h('div', { class: 'nav-sub' }, tabs.map(link))])]));
+    if (multi && rail) {
+      box.addEventListener('mouseenter', function () { if (!box.querySelector('.flyout')) box.appendChild(h('div', { class: 'flyout' }, [h('b', { text: sec.title })].concat(tabs.map(link)))); });
+      box.addEventListener('mouseleave', function () { var f = box.querySelector('.flyout'); if (f) f.remove(); });
+    }
     nav.appendChild(box);
   });
+  if (!shown) nav.appendChild(h('div', { class: 'nav-none', text: 'موردی پیدا نشد' }));
+}
+function focusSideSearch() {
+  if (railOn && window.innerWidth > 900) { railOn = false; store('rail', '0'); drawNav(); }
+  setTimeout(function () { $('side-q').focus(); $('side-q').select(); }, 0);
 }
 function refreshCounts() {
   api('/admin/dashboard').then(function (r) { if (!r.ok) return; S.counts.prices = r.body.catalog.pricesPending; S.counts.inbox = r.body.bot.candidatesPending; drawNav(); });
@@ -269,7 +300,7 @@ function enter(token) {
 }
 window.addEventListener('hashchange', route);
 document.addEventListener('keydown', function (e) {
-  if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); if (S.me) openPalette(); }
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) { e.preventDefault(); if (S.me) focusSideSearch(); }
   else if (e.key === '/' && S.me && !/^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || '') && !OVERLAYS.length) { e.preventDefault(); openPalette(); }
 });
 $('login-mode').addEventListener('click', function () { setLoginMode(!tokenMode); showLogin(''); });
@@ -288,7 +319,14 @@ $('logout').addEventListener('click', logout);
 $('menu').addEventListener('click', function () { document.body.classList.toggle('nav-open'); });
 $('theme').addEventListener('click', toggleTheme);
 $('quick').addEventListener('click', openPalette);
-$('side-search').addEventListener('click', function () { document.body.classList.remove('nav-open'); openPalette(); });
+$('side-q').addEventListener('input', function () { navQuery = this.value; drawNav(); });
+$('side-q').addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') { this.value = ''; navQuery = ''; drawNav(); }
+  else if (e.key === 'Enter') { var a = $('nav').querySelector('.nav-sub a'); if (a) { location.hash = a.getAttribute('href'); document.body.classList.remove('nav-open'); } }
+});
+$('rail').appendChild(ic('rail')); $('side-ic').appendChild(ic('search'));
+$('rail').addEventListener('click', function () { railOn = !railOn; store('rail', railOn ? '1' : '0'); drawNav(); });
+window.addEventListener('resize', applyRail);
 setTheme(load('theme'));
 var saved = sload('tok');
 if (saved) enter(saved); else showLogin('');

@@ -21,7 +21,7 @@ export const ADMIN_PAGE_HTML = `<!doctype html>
 <body>
 <div id="login" class="login-wrap" hidden>
   <section class="login-art">
-    <div class="brand"><i>۲</i><span>دوزاری<small>مرکز مدیریت</small></span></div>
+    <div class="brand"><i>۲</i><span class="bt">دوزاری<small>مرکز مدیریت</small></span></div>
     <p>همه‌ی بازی در یک جا: محتوا و قیمت‌ها، بازیکن‌ها، اقتصاد سکه، پیام‌ها و تنظیمات زنده‌ی سرور.</p>
     <ul><li>هر تغییر با نام خودت در گزارش ثبت می‌شود</li><li>دسترسی‌ها بر پایه‌ی نقش است</li><li>جستجوی سریع با Ctrl + K</li></ul>
   </section>
@@ -42,8 +42,8 @@ export const ADMIN_PAGE_HTML = `<!doctype html>
 </div>
 <div id="app" class="shell" hidden>
   <aside class="side">
-    <div class="brand"><i>۲</i><span>دوزاری<small>مرکز مدیریت</small></span></div>
-    <button id="side-search" class="side-search" type="button"><span>جستجو و پرش سریع…</span><kbd>Ctrl K</kbd></button>
+    <div class="brand"><i>۲</i><span class="bt">دوزاری<small>مرکز مدیریت</small></span><button id="rail" class="rail-btn" type="button" title="جمع/باز کردن منو" aria-label="جمع یا باز کردن منو"></button></div>
+    <label class="side-search"><span id="side-ic"></span><input id="side-q" type="search" placeholder="جستجو و پرش سریع…" aria-label="جستجو در منو" autocomplete="off"><kbd>Ctrl K</kbd></label>
     <nav id="nav" class="nav" aria-label="منوی اصلی"></nav>
     <div class="side-foot">
       <div id="avatar" class="avatar"></div>
