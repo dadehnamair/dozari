@@ -77,6 +77,8 @@ scripts/deploy.sh setup seed     # both, then deploy
 ```
 After changing `packages/db/src/schema.ts` run migrate before starting the new server build.
 
+After each deploy the script removes dangling images and build cache older than 72h (`PRUNE_KEEP=24h` changes the window, `PRUNE=0` skips the cleanup).
+
 ## Reverse proxy
 
 Add the two forwards from the table above in whatever proxy owns 80/443. `deploy/nginx.example.conf` is a
