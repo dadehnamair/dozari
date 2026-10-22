@@ -39,6 +39,8 @@ services:
     build:
       context: .
       dockerfile: deploy/Dockerfile.server
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmjs.org}
     image: dozari-server
     working_dir: /app/packages/db
     command: ['pnpm', 'exec', 'tsx', 'src/migrate.ts']
@@ -61,6 +63,8 @@ services:
     build:
       context: .
       dockerfile: deploy/Dockerfile.server
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmjs.org}
     image: dozari-server
     working_dir: /app/packages/db
     command:
@@ -89,6 +93,8 @@ services:
     build:
       context: .
       dockerfile: deploy/Dockerfile.server
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmjs.org}
     image: dozari-server
     restart: unless-stopped
     depends_on:
@@ -177,6 +183,7 @@ services:
       dockerfile: deploy/Dockerfile.web
       args:
         API_URL: https://${API_DOMAIN}
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmjs.org}
     restart: unless-stopped
     depends_on:
       - s-dozari-server
@@ -195,6 +202,8 @@ services:
     build:
       context: .
       dockerfile: deploy/Dockerfile.landing
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmjs.org}
     restart: unless-stopped
     depends_on:
       - s-dozari-server
@@ -219,6 +228,7 @@ services:
       dockerfile: deploy/Dockerfile.miniapp
       args:
         API_URL: https://${API_DOMAIN}
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmjs.org}
     restart: unless-stopped
     depends_on:
       - s-dozari-server

@@ -1,5 +1,7 @@
 # Landing site `mrdozari.ir` (Fastify, server-rendered HTML). It has no database: it reads the game server's public content API.
 FROM node:22-alpine
+ARG NPM_REGISTRY=https://registry.npmjs.org
+ENV COREPACK_NPM_REGISTRY=${NPM_REGISTRY} npm_config_registry=${NPM_REGISTRY}
 RUN corepack enable
 WORKDIR /app
 ENV NODE_ENV=production CI=1 npm_config_store_dir=/pnpm/store

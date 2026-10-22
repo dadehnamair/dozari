@@ -1,6 +1,8 @@
 # Web app (PWA) + Caddy. Stage 1 exports the Expo web build with the public API address baked in; stage 2 serves it
 # and reverse-proxies the API, with automatic https.
 FROM node:22-alpine AS build
+ARG NPM_REGISTRY=https://registry.npmjs.org
+ENV COREPACK_NPM_REGISTRY=${NPM_REGISTRY} npm_config_registry=${NPM_REGISTRY}
 RUN corepack enable
 WORKDIR /app
 ARG API_URL
