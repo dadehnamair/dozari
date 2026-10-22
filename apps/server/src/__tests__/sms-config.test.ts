@@ -54,6 +54,48 @@ describe('SmsGateway', () => {
   });
 });
 
+describe('SmsGateway per-type patterns', () => {
+  const okPattern = { batchId: '7', count: 1 };
+  function pf(calls: { url: string; body: string }[], failPattern = false): typeof fetch {
+    return (async (url: string, init?: { body?: string }) => {
+      calls.push({ url: String(url), body: init?.body ?? '' });
+      if (String(url).endsWith('/sms/pattern')) return failPattern ? new Response('{}', { status: 500 }) : new Response(JSON.stringify(okPattern), { status: 200 });
+      return new Response(JSON.stringify({ success: true }), { status: 200 });
+    }) as unknown as typeof fetch;
+  }
+
+  it('sends a pattern-type message through its own code and variables, plain text only as backup', async () => {
+    const calls: { url: string; body: string }[] = [];
+    const gw = new SmsGateway(createMemorySettingsStore(), {}, pf(calls));
+    await gw.update({ provider: 'irnoti', irnotiKey: 'k' });
+    expect(await gw.setPattern('login', { enabled: true, code: 'abc123', params: [{ name: 'otp', value: '{code}' }, { name: 'site', value: 'dozari' }] })).toBe(true);
+    await gw.sendCode('+989123456789', '4821', 'login');
+    expect(calls.map((c) => c.url)).toEqual(['https://api.irnoti.com/v1/sms/pattern']);
+    expect(JSON.parse(calls[0]!.body)).toEqual({ code: 'abc123', to: '09123456789', params: { otp: '4821', site: 'dozari' } });
+    // other types stay plain-first
+    calls.length = 0;
+    await gw.sendCode('+989123456789', '1', 'verify');
+    expect(calls.map((c) => c.url)).toEqual(['https://api.irnoti.com/v1/sms/send']);
+    const st = (await gw.adminState()).patterns;
+    expect(st.find((x) => x.purpose === 'login')).toMatchObject({ enabled: true, code: 'abc123', custom: true });
+    expect(st.find((x) => x.purpose === 'verify')).toMatchObject({ enabled: false, code: 'gdhsgcnt', params: [{ name: 'code', value: '{code}' }], custom: false });
+  });
+
+  it('falls back to plain text when the pattern fails, rejects bad input, and can be cleared', async () => {
+    const calls: { url: string; body: string }[] = [];
+    const gw = new SmsGateway(createMemorySettingsStore(), {}, pf(calls, true));
+    await gw.update({ provider: 'irnoti', irnotiKey: 'k' });
+    expect(await gw.setPattern('delete', { enabled: true, code: 'bad code!', params: [{ name: 'code', value: '{code}' }] })).toBe(false);
+    expect(await gw.setPattern('delete', { enabled: true, code: 'p1', params: [{ name: '1x', value: '{code}' }] })).toBe(false);
+    expect(await gw.setPattern('delete', { enabled: true, code: 'p1', params: [] })).toBe(false);
+    await gw.setPattern('delete', { enabled: true, code: 'p1', params: [{ name: 'code', value: '{code}' }] });
+    await gw.sendCode('+989123456789', '9', 'delete');
+    expect(calls.map((c) => c.url)).toEqual(['https://api.irnoti.com/v1/sms/pattern', 'https://api.irnoti.com/v1/sms/send']);
+    await gw.clearPattern('delete');
+    expect((await gw.adminState()).patterns.find((x) => x.purpose === 'delete')).toMatchObject({ enabled: false, custom: false });
+  });
+});
+
 describe('SMS channel of the message center', () => {
   it('sends the body to verified numbers only and counts successes', async () => {
     const { MessageCenter } = await import('../messages/service.js');

@@ -1,5 +1,5 @@
 import type { SettingsStore } from '../settings/service.js';
-import { DEFAULT_SMS_MESSAGE, SMS_PURPOSES, createFallbackSmsClient, createIrnotiClient, createIrnotiPatternClient, createKavenegarClient } from './sms.js';
+import { DEFAULT_IRNOTI_PATTERN_CODE, DEFAULT_SMS_MESSAGE, SMS_PURPOSES, createFallbackSmsClient, createIrnotiClient, createIrnotiPatternClient, createKavenegarClient } from './sms.js';
 import type { SmsClient, SmsPurpose } from './sms.js';
 
 export const SMS_PROVIDERS = ['auto', 'irnoti', 'kavenegar', 'off'] as const;
@@ -25,7 +25,51 @@ const K = {
   kavenegarKey: 'sms.kavenegar_key',
   kavenegarTemplate: 'sms.kavenegar_template',
   text: (p: SmsPurpose) => `sms.text.${p}`,
+  patternOn: (p: SmsPurpose) => `sms.pattern.${p}.enabled`,
+  patternCode: (p: SmsPurpose) => `sms.pattern.${p}.code`,
+  patternParams: (p: SmsPurpose) => `sms.pattern.${p}.params`,
 } as const;
+
+export const SMS_PATTERN_MAX_PARAMS = 10;
+const PATTERN_CODE_RE = /^[\w-]{1,64}$/;
+const PATTERN_PARAM_NAME_RE = /^[A-Za-z_]\w{0,31}$/;
+
+/**
+ * How one message type is sent through irnoti. `enabled` = this type goes out as a pattern (template) message first and the plain text is the
+ * backup; off = plain text first and the pattern is the backup (the old behaviour). `params` maps each pattern variable to its value;
+ * `{code}` inside a value is replaced by the OTP (e.g. `{name: 'code', value: '{code}'}`).
+ */
+export interface SmsPatternConfig {
+  enabled: boolean;
+  code: string;
+  params: { name: string; value: string }[];
+}
+
+export function validSmsPattern(p: SmsPatternConfig): boolean {
+  const names = p.params.map((x) => x.name);
+  return (
+    PATTERN_CODE_RE.test(p.code) &&
+    p.params.length >= 1 &&
+    p.params.length <= SMS_PATTERN_MAX_PARAMS &&
+    new Set(names).size === names.length &&
+    p.params.every((x) => PATTERN_PARAM_NAME_RE.test(x.name) && x.value.length > 0 && x.value.length <= 100 && !x.value.includes('\n'))
+  );
+}
+
+// `params` is stored as one `name=value` line per variable (app_settings values are plain strings).
+function encodeParams(params: SmsPatternConfig['params']): string {
+  return params.map((x) => `${x.name}=${x.value}`).join('\n');
+}
+
+function decodeParams(raw: string | undefined): SmsPatternConfig['params'] {
+  return (raw ?? '')
+    .split('\n')
+    .map((line) => {
+      const i = line.indexOf('=');
+      return i > 0 ? { name: line.slice(0, i), value: line.slice(i + 1) } : null;
+    })
+    .filter((x): x is { name: string; value: string } => x !== null);
+}
 
 // These keys are deliberately not in SETTING_DEFS: `app_settings` values listed there are shown to every client (`/config`) and in the
 // settings tab, and an API key must be in neither.
@@ -61,6 +105,8 @@ export interface SmsAdminState {
   irnoti: { keyMask: string | null; fromEnv: boolean };
   kavenegar: { keyMask: string | null; fromEnv: boolean; template: string };
   texts: { purpose: SmsPurpose; label: string; text: string; default: string; custom: boolean }[];
+  /** Per message type: pattern on/off, the pattern code and its variables (irnoti only). */
+  patterns: ({ purpose: SmsPurpose; label: string; custom: boolean } & SmsPatternConfig)[];
 }
 
 export interface SmsConfigPatch {
@@ -106,6 +152,18 @@ export class SmsGateway implements SmsClient {
     return own && validSmsText(own) ? { text: own, custom: true, default: dflt } : { text: dflt, custom: false, default: dflt };
   }
 
+  private patternFrom(raw: Record<string, string>, purpose: SmsPurpose): SmsPatternConfig & { custom: boolean } {
+    const params = decodeParams(raw[K.patternParams(purpose)]);
+    const code = raw[K.patternCode(purpose)];
+    const own = !!code && params.length > 0 && validSmsPattern({ enabled: false, code, params });
+    return {
+      enabled: raw[K.patternOn(purpose)] === '1' && own,
+      code: own ? code! : this.env.irnotiPatternCode || DEFAULT_IRNOTI_PATTERN_CODE,
+      params: own ? params : [{ name: 'code', value: '{code}' }],
+      custom: own,
+    };
+  }
+
   async refresh(): Promise<void> {
     const r = this.resolveFrom(await this.store.all());
     this.configured = r !== null;
@@ -123,15 +181,34 @@ export class SmsGateway implements SmsClient {
     const raw = await this.store.all();
     const r = this.resolveFrom(raw);
     if (!r) throw new Error('sms provider not configured');
-    const client =
-      r.kind === 'irnoti'
-        ? createFallbackSmsClient(
-            createIrnotiClient(r.key, { message: this.textFrom(raw, purpose).text, lineId: this.env.irnotiLineId, fetchImpl: this.fetchImpl }),
-            createIrnotiPatternClient(r.key, { patternCode: this.env.irnotiPatternCode, fetchImpl: this.fetchImpl }),
-            (err) => console.warn('[sms] irnoti plain send failed, retrying via pattern:', err instanceof Error ? err.message : err),
-          )
-        : createKavenegarClient(r.key, r.template, { fetchImpl: this.fetchImpl });
+    let client: SmsClient;
+    if (r.kind === 'irnoti') {
+      const plain = createIrnotiClient(r.key, { message: this.textFrom(raw, purpose).text, lineId: this.env.irnotiLineId, fetchImpl: this.fetchImpl });
+      const pat = this.patternFrom(raw, purpose);
+      const pattern = createIrnotiPatternClient(r.key, { patternCode: pat.code, params: Object.fromEntries(pat.params.map((x) => [x.name, x.value])), fetchImpl: this.fetchImpl });
+      // A pattern-type message goes out as a pattern first (the error of the pattern is surfaced if both fail); otherwise plain first.
+      client = pat.enabled
+        ? createFallbackSmsClient(pattern, plain, (err) => console.warn(`[sms] irnoti pattern send (${purpose}) failed, retrying as plain text:`, err instanceof Error ? err.message : err))
+        : createFallbackSmsClient(plain, pattern, (err) => console.warn('[sms] irnoti plain send failed, retrying via pattern:', err instanceof Error ? err.message : err));
+    } else {
+      client = createKavenegarClient(r.key, r.template, { fetchImpl: this.fetchImpl });
+    }
     await client.sendCode(phone, code, purpose);
+  }
+
+  /** `false` when the code or a variable name is malformed. `enabled:false` keeps the stored code/variables but turns the pattern off. */
+  async setPattern(purpose: SmsPurpose, cfg: SmsPatternConfig): Promise<boolean> {
+    if (!validSmsPattern(cfg)) return false;
+    await this.store.set(K.patternCode(purpose), cfg.code);
+    await this.store.set(K.patternParams(purpose), encodeParams(cfg.params));
+    if (cfg.enabled) await this.store.set(K.patternOn(purpose), '1');
+    else await this.store.remove(K.patternOn(purpose));
+    return true;
+  }
+
+  /** Forgets the stored pattern of a message type (back to plain text first, default backup pattern). */
+  async clearPattern(purpose: SmsPurpose): Promise<void> {
+    for (const key of [K.patternOn(purpose), K.patternCode(purpose), K.patternParams(purpose)]) await this.store.remove(key);
   }
 
   /** The text a player would get (what the panel previews). Kavenegar sends the text approved in its own panel, so this is only a draft there. */
@@ -149,6 +226,7 @@ export class SmsGateway implements SmsClient {
       irnoti: { keyMask: mask(raw[K.irnotiKey] || this.env.irnotiKey), fromEnv: !raw[K.irnotiKey] && !!this.env.irnotiKey },
       kavenegar: { keyMask: mask(raw[K.kavenegarKey] || this.env.kavenegarKey), fromEnv: !raw[K.kavenegarKey] && !!this.env.kavenegarKey, template: raw[K.kavenegarTemplate] || this.env.kavenegarTemplate || '' },
       texts: SMS_PURPOSES.map((purpose) => ({ purpose, label: SMS_PURPOSE_LABEL_FA[purpose], ...this.textFrom(raw, purpose) })),
+      patterns: SMS_PURPOSES.map((purpose) => ({ purpose, label: SMS_PURPOSE_LABEL_FA[purpose], ...this.patternFrom(raw, purpose) })),
     };
   }
 

@@ -84,17 +84,22 @@ export const DEFAULT_IRNOTI_PATTERN_CODE = 'gdhsgcnt';
  * A successful reply carries a `batchId` (`{batchId, count, totalPrice, replayed}`); a 2xx without one counts as refused.
  * Used as the backup when the plain `/sms/send` fails.
  */
-export function createIrnotiPatternClient(apiKey: string, opts: { patternCode?: string; baseUrl?: string; fetchImpl?: typeof fetch } = {}): SmsClient {
+export function createIrnotiPatternClient(
+  apiKey: string,
+  opts: { patternCode?: string; /** Pattern variable name -> value template; `{code}` is replaced by the OTP. Default `{code: '{code}'}`. */ params?: Record<string, string>; baseUrl?: string; fetchImpl?: typeof fetch } = {},
+): SmsClient {
   const doFetch = opts.fetchImpl ?? fetch;
   const patternCode = opts.patternCode || DEFAULT_IRNOTI_PATTERN_CODE;
+  const paramTemplates = opts.params && Object.keys(opts.params).length ? opts.params : { code: '{code}' };
   const url = `${opts.baseUrl ?? 'https://api.irnoti.com'}/v1/sms/pattern`;
   return {
     async sendCode(phone, code) {
       const to = phone.replace(/^\+98/, '0');
+      const params = Object.fromEntries(Object.entries(paramTemplates).map(([name, value]) => [name, value.split('{code}').join(code)]));
       const res = await doFetch(url, {
         method: 'POST',
         headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: patternCode, to, params: { code } }),
+        body: JSON.stringify({ code: patternCode, to, params }),
         signal: AbortSignal.timeout(10_000),
       });
       const json = (await res.json().catch(() => ({}))) as { batchId?: string | number; count?: number };
