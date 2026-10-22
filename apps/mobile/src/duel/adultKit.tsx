@@ -11,7 +11,7 @@ import { fonts } from '../theme/colors';
 export function AdultBackdrop({ children }: { children?: React.ReactNode }) {
   return (
     <SceneBackground scene="sarafi">
-      <GradientFill from="rgba(14,10,8,0.55)" to="rgba(14,10,8,0.95)" mid={{ at: 0.3, color: 'rgba(14,10,8,0.86)' }} />
+      <GradientFill from="rgba(14,10,8,0.3)" to="rgba(14,10,8,0.8)" mid={{ at: 0.3, color: 'rgba(14,10,8,0.66)' }} />
       {children}
     </SceneBackground>
   );
