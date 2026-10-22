@@ -118,7 +118,7 @@ export class AiStudio {
     if (this.providers.length === 0) throw new AiError('ai_not_configured');
     const provider = this.providers.find((p) => p.id === req.provider);
     if (!provider) throw new AiError('ai_unknown_provider');
-    const product = (await this.deps.catalog?.())?.find((p) => p.id === req.productId);
+    const product = req.productId ? (await this.deps.catalog?.())?.find((p) => p.id === req.productId) : req.nameFa ? { nameFa: req.nameFa, unitFa: req.unitFa ?? null, years: [] as number[] } : undefined;
     if (!product) throw new AiError('ai_not_found');
     const years = product.years ?? [];
     this.takeSlot();
