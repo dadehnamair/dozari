@@ -24,7 +24,7 @@ import type { GroupStatsAdmin } from './group-stats.js';
 import type { BazaarMonitor } from './bazaar-monitor.js';
 import { isHttpUrl } from '../security/url-guard.js';
 import type { MessageCenter } from '../messages/service.js';
-import { SMS_PROVIDERS, renderSmsText } from '../phone/smsConfig.js';
+import { SMS_PATTERN_MAX_PARAMS, SMS_PROVIDERS, renderSmsText } from '../phone/smsConfig.js';
 import type { SmsGateway } from '../phone/smsConfig.js';
 import { SMS_PURPOSES } from '../phone/sms.js';
 import type { NotifyService } from '../notify/service.js';
@@ -461,6 +461,26 @@ export function registerAdminModules(g: FastifyInstance, m: AdminModules) {
       if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
       if (!(await sms.setText(p.data, b.data.text.trim()))) return reply.code(400).send({ error: 'text_needs_code' });
       void audit('sms.text', p.data, b.data.text.slice(0, 100));
+      return sms.adminState();
+    });
+    const patternBody = z.object({
+      enabled: z.boolean(),
+      code: z.string().trim().max(64),
+      params: z.array(z.object({ name: z.string().trim().max(32), value: z.string().trim().max(100) })).max(SMS_PATTERN_MAX_PARAMS),
+    });
+    g.put('/admin/sms/patterns/:purpose', async (req, reply) => {
+      const p = purpose.safeParse((req.params as { purpose?: string }).purpose);
+      const b = patternBody.safeParse(req.body);
+      if (!p.success || !b.success) return reply.code(400).send({ error: 'invalid_request' });
+      if (!(await sms.setPattern(p.data, b.data))) return reply.code(400).send({ error: 'invalid_pattern' });
+      void audit('sms.pattern', p.data, `${b.data.enabled ? 'on' : 'off'} ${b.data.code} ${b.data.params.map((x) => x.name).join(',')}`);
+      return sms.adminState();
+    });
+    g.delete('/admin/sms/patterns/:purpose', async (req, reply) => {
+      const p = purpose.safeParse((req.params as { purpose?: string }).purpose);
+      if (!p.success) return reply.code(400).send({ error: 'invalid_request' });
+      await sms.clearPattern(p.data);
+      void audit('sms.pattern', p.data, 'cleared');
       return sms.adminState();
     });
     g.post('/admin/sms/test', async (req, reply) => {

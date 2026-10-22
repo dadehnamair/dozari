@@ -849,3 +849,7 @@ Owner: playing the bot in a group must show on the player's real account so they
 ## D250 — Store reviews on the landing site (2026-10-21, proposed)
 
 Owner: bring players' app-store reviews onto the site. Default: the owner enters them by hand (no store API, no scraping) in the admin panel; shown on `/`, `/download` and a new `/reviews` page with stars, market name and a link to the listing, never as `Review`/`AggregateRating` structured data. Names should be short or pseudonymous and a row can be hidden on request. Details: `docs/logic/landing-site.md` §Store reviews.
+
+## D-sms-pattern-per-type — pattern or plain, per OTP message type (2026-10-22)
+
+Owner request: some messages (login code etc.) must go out as irnoti pattern (template) messages. Each SMS type (`login`/`verify`/`delete`) now carries `{enabled, code, params}` in `app_settings` (`sms.pattern.<purpose>.*`), editable in the «پیامک» panel. `enabled` = pattern first, plain text as backup; off (default, unchanged behaviour) = plain first, pattern backup. Variables are `name=value` pairs where `{code}` is replaced by the OTP. Default: all types off; the backup pattern stays `IRNOTI_PATTERN_CODE`/`gdhsgcnt` with `{code: "{code}"}`.

@@ -97,6 +97,21 @@ VIEWS.sms = function (root) {
         ]);
       });
       body.appendChild(card('متن پیامک‌ها', 'به‌جای کد، {code} بنویس. فقط برای irnoti اعمال می‌شود؛ کاوه‌نگار متنی را می‌فرستد که در قالب خودش تأیید شده.', texts));
+      var pats = d.patterns.map(function (t) {
+        var on = h('input', { type: 'checkbox' }); on.checked = t.enabled;
+        var code = h('input', { type: 'text', dir: 'ltr', value: t.code, placeholder: 'کد پترن' }); code.value = t.code;
+        var ps = h('textarea', { dir: 'ltr', rows: 3, placeholder: 'code={code}' }); ps.value = t.params.map(function (x) { return x.name + '=' + x.value; }).join('\n');
+        return h('div', { style: 'padding:8px 0;border-bottom:1px solid var(--line,#ddd)' }, [
+          h('div', { class: 'kv' }, [h('b', { text: t.label }), t.enabled ? badge('پترن', 'b-info') : badge('متن ساده', 'b-mute'), t.custom ? badge('سفارشی', 'b-info') : badge('پیش‌فرض', 'b-mute')]),
+          h('label', {}, [on, ' این پیام با پترن فرستاده شود (متن ساده پشتیبان است)']),
+          h('div', { class: 'form-grid' }, [field('کد پترن', code), field('متغیرها (هر خط name=value)', ps)]),
+          h('div', { class: 'toolbar' }, [h('button', { class: 'btn sm primary', text: 'ذخیره', onclick: function () {
+            var params = ps.value.split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean).map(function (l) { var i = l.indexOf('='); return { name: i > 0 ? l.slice(0, i).trim() : l, value: i > 0 ? l.slice(i + 1).trim() : '' }; });
+            api('/admin/sms/patterns/' + t.purpose, { method: 'PUT', body: { enabled: on.checked, code: code.value.trim(), params: params } }).then(function (x) { if (x.status === 400 && x.body && x.body.error === 'invalid_pattern') return toast('کد پترن یا نام/مقدار متغیرها درست نیست', true); if (!x.ok) return fail(x); toast('ذخیره شد'); draw(); });
+          } }), t.custom ? h('button', { class: 'btn sm', text: 'برگرد به پیش‌فرض', onclick: function () { api('/admin/sms/patterns/' + t.purpose, { method: 'DELETE' }).then(function (x) { if (!x.ok) return fail(x); draw(); }); } }) : null])
+        ]);
+      });
+      body.appendChild(card('پترن (قالب) پیامک‌ها', 'برای هر نوع پیام مشخص کن پترن باشد یا نه، کد پترن در irnoti و متغیرهایش. در مقدار متغیر {code} جای کد می‌نشیند (پیش‌فرض: code={code}). اگر پترن روشن باشد اول پترن می‌رود و در خطا متن ساده؛ اگر خاموش باشد برعکس. فقط برای irnoti.', pats));
       var phone = h('input', { type: 'text', dir: 'ltr', placeholder: '09123456789' }), purp = select(d.texts.map(function (t) { return [t.purpose, t.label]; }), 'login');
       body.appendChild(card('ارسال آزمایشی', 'یک پیامک واقعی (با کد ۱۲۳۴۵) برای شماره‌ی خودت می‌رود و هزینه دارد؛ حداکثر ۵ بار در دقیقه. کد ذخیره نمی‌شود و جایی کار نمی‌کند.', [
         h('div', { class: 'form-grid' }, [field('شماره', phone), field('کدام متن', purp)]),

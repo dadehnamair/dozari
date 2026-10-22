@@ -36,3 +36,9 @@ Panel section «پیامک» (comms): pick the provider (`auto` = env behaviour,
 (changes need the `system` permission). Keys live in `app_settings` under `sms.*`, deliberately outside `SETTING_DEFS` so they never reach `/config` or the
 settings tab, and the API only returns a mask. Kavenegar sends the template approved in its own panel, so the texts apply to irnoti only.
 Broadcast SMS goes through `SmsGateway.sendText` (irnoti only).
+
+**Pattern per message type (D-sms-pattern-per-type).** Each OTP type (`login` / `verify` / `delete`) has its own irnoti pattern setting in the same panel section
+(«پترن (قالب) پیامک‌ها»): *is it a pattern* (`enabled`), the pattern `code`, and its variables (`params`, one `name=value` line each; `{code}` in a value is replaced
+by the OTP; default `code={code}` with code `IRNOTI_PATTERN_CODE`/`gdhsgcnt`). Enabled = the pattern API (`POST /v1/sms/pattern`) is tried first and the plain text
+(`/v1/sms/send`) is the backup; disabled (default) = plain first, pattern backup. Stored in `app_settings` as `sms.pattern.<purpose>.enabled|code|params`.
+Routes: `PUT|DELETE /admin/sms/patterns/:purpose` (`system` permission; `invalid_pattern` on a bad code/variable name); `GET /admin/sms` returns `patterns[]`.
