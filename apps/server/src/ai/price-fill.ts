@@ -13,12 +13,15 @@ export const PRICE_FILL_MAX_SUGGESTIONS = 12;
 export const priceFillRequestSchema = z.object({
   provider: z.string().min(1).max(20),
   model: z.string().trim().max(80).optional(),
-  productId: z.string().min(1).max(36),
+  /** An existing product, or (for an unsaved AI draft) its name and unit. */
+  productId: z.string().min(1).max(36).optional(),
+  nameFa: z.string().trim().min(2).max(80).optional(),
+  unitFa: z.string().trim().max(30).nullable().optional(),
   /** Extra instructions typed by the editor (brand, size, region…); passed as a hint only. */
   hint: z.string().trim().max(AI_LIMITS.maxHintLength).optional(),
   fromYear: z.number().int().min(PRICE_FILL_YEARS.min).max(PRICE_FILL_YEARS.max).optional(),
   toYear: z.number().int().min(PRICE_FILL_YEARS.min).max(PRICE_FILL_YEARS.max).optional(),
-});
+}).refine((r) => !!r.productId || !!r.nameFa, { message: 'productId or nameFa' });
 export type PriceFillRequest = z.infer<typeof priceFillRequestSchema>;
 
 export interface PriceFillProduct {

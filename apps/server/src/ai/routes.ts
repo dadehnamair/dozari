@@ -47,7 +47,7 @@ export function registerAiAdminRoutes(g: FastifyInstance, studio: AiStudio, audi
     if (!body.success) return reply.code(400).send({ error: 'invalid_request' });
     return run(reply, async () => {
       const out = await studio.suggestPrices(body.data);
-      void audit('ai.product-prices', body.data.productId, `${out.provider}/${out.model} ×${out.prices.length}`);
+      void audit('ai.product-prices', body.data.productId ?? body.data.nameFa ?? '', `${out.provider}/${out.model} ×${out.prices.length}`);
       return out;
     });
   });
